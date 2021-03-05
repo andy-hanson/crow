@@ -1,17 +1,19 @@
 no-std
 import
-	..bool: bool, false, true
-	..compare: ==, <=>
-	..misc: data, drop, void
-	..number: +, nat
+	..bool: bool
+	..fun: subscript
+	..misc: ->, data, from, void
+	..number: nat
+	..opt: has?
 	.arr: arr
-	.arr-util: each
-	.mut-list: ~=, insert-at!, move-to-arr!, mut-list, remove-at!, size, subscript
+	.arr-util: each, map
+	.mut-dict:
+		each, empty?, empty!, filter, filter!, fold, map, map!, move-to-arr!, mut-dict, remove!,
+		set-subscript, size, subscript
 	.set: set
-	.sort: sort
 
 ###
-Mutable set of unique values.
+Mutable sorted set of unique values.
 This is like a `set` but mutable, or like a `mut-dict` with no values.
 Unlike `mut-list`, values are in sorted order, not insertion order,
 and it never stores two of the same value.
@@ -19,15 +21,26 @@ and it never stores two of the same value.
 mut-set<?a> record mut
 	# TODO:PRIVATE
 	ignore void
-	inner mut-list<?a>
+	inner mut-dict<?a, void>
 
 # New empty `mut-set`.
 mut-set mut-set ?a() data<?a>
-	mut-set: void, mut-list
+	mut-set: void, mut-dict
 
-# Copies the arr to a new mut-set.
+###
+Copies the arr to a new mut-set.
+Result won't include any duplicated elements.
+###
 mut-set mut-set ?a(a arr ?a) data<?a>
-	mut-set: void, a.sort.mut-list
+	mut-set: void, a map {it -> void} mut-dict
+
+# True iff the set has no elements.
+empty? bool(a mut-set ?a) data<?a>
+	a.inner empty?
+
+# Removes all elements.
+empty! void(a mut-set ?a) data<?a>
+	a.inner empty!
 
 # Number of values in the set.
 size nat(a mut-set ?a) data<?a>
@@ -35,40 +48,14 @@ size nat(a mut-set ?a) data<?a>
 
 # True iff the value is in the set.
 subscript bool(a mut-set ?a, value ?a) data<?a>
-	a.inner has? 0, value
-
-.has? bool(a mut-list ?a, index nat, value ?a) data<?a>
-	# TODO: binary search
-	if index == a.size
-		false
-	else
-		match value <=> a[index]
-		as less
-			false
-		as equal
-			true
-		as greater
-			a has? index + 1, value
+	a.inner[value] has?
 
 ###
 Adds a value to the set.
 Does nothing if the value is already in the set.
 ###
 ~= void(a mut-set ?a, value ?a) data<?a>
-	a.inner add! 0, value drop
-.add! bool(a mut-list ?a, index nat, value ?a) data<?a>
-	if index == a.size
-		a ~= value
-		true
-	else
-		match value <=> a[index]
-		as less
-			a insert-at! index, value
-			true
-		as equal
-			false
-		as greater
-			a add! index + 1, value
+	a.inner[value] := void
 
 # Adds multiple values to the set.
 ~= void(a mut-set ?a, values arr ?a) data<?a>
@@ -81,23 +68,40 @@ If the value was present, removes it and returns `true`.
 If the value was not present, does nothing and returns `false`.
 ###
 remove! bool(a mut-set ?a, value ?a) data<?a>
-	a.inner remove! 0, value
-.remove! bool(a mut-list ?a, index nat, value ?a) data<?a>
-	if index == a.size
-		false
-	else
-		match value <=> a[index]
-		as less
-			false
-		as equal
-			a remove-at! index drop
-			true
-		as greater
-			a remove! index + 1, value
+	a.inner remove! value has?
 
-###
-Convert to a `set`, clearning the original `mut-set` in the process.
-(This avoids copying but still ensures that the result is immutable.)
-###
+# Convert to an `arr`, clearing the original `mut-set` in the process.
+move-to-arr! arr ?a(a mut-set ?a) data<?a>
+	a.inner.move-to-arr! map {it from}
+
+# Convert to a `set`, clearning the original `mut-set` in the process.
 move-to-set! set ?a(a mut-set ?a) data<?a>
-	set: a.inner move-to-arr!
+	set: a.move-to-arr!
+
+region iteration
+
+each void(a mut-set ?a, f act void(?a)) data<?a>
+	a.inner each \k, v
+		f[k]
+
+fold ?a(acc ?a, a mut-set ?b, f act ?a(?a, ?b)) data<?b>
+	acc fold a.inner, \cur, k, v
+		f[cur, k]
+
+filter mut-set ?a(a mut-set ?a, f act bool(?a)) data<?a>
+	mut-set: void, a.inner filter \k, v
+		f[k]
+
+map mut-set ?out(a mut-set ?in, f act ?out(?in)) data<?in> data<?out>
+	mut-set: void, a.inner map \k, v
+		f[k] -> void
+
+region mutating iteration
+
+filter! void(a mut-set ?a, f act bool(?a)) data<?a>
+	a.inner filter! \k, v
+		f[k]
+
+map! void(a mut-set ?a, f act ?a(?a)) data<?a>
+	a.inner map! \k, v
+		f[k] -> void

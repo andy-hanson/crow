@@ -1,21 +1,22 @@
 no-std
 import
 	..bool: bool, false, not, true
-	..compare: ==, <, >=
+	..compare: ==, <, <=>
 	..exception: assert
 	..misc: ->, arrow, data, drop, from, to, void
-	..number: +, /, nat
+	..number: +, nat
 	..opt: force, none, opt, some, value
-	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
+	..ptr: +, -, ptr, set-subscript
 	..str: char, str
 	..str-conv: to-str
 	..test: is
 	.arr: arr
 	.mut-arr: begin-ptr, cast-immutable, copy, mut-arr, reverse!, uninitialized-mut-arr
 	.mut-list:
-		~=, begin-ptr, each, each-with-index, empty?, empty!, end-ptr, fold, fold-reverse,
+		~=, begin-ptr, each, each-with-index, empty?, empty!, fold, fold-reverse,
 		move-to-arr!, mut-list, pop!, pop-n!, reverse!, set-last, size, subscript
 	.sort: sort-by!
+	.private.sort-utils: binary-search-insert-ptr
 
 mut-priority-queue<?k, ?v> record mut
 	by-ref
@@ -47,7 +48,8 @@ size nat(a mut-priority-queue<?k, ?v>) data<?k>
 	a.mins.size + n-in-buckets
 
 ~= void(a mut-priority-queue<?k, ?v>, pair arrow<?k, ?v>) trusted data<?k>
-	ptr = a.mins.begin-ptr binary-search a.mins.end-ptr, pair.from
+	# Highest min is on the right, so comparing in reverse
+	ptr = a.mins binary-search-insert-ptr {it.from <=> pair.from}
 	index = ptr - a.mins.begin-ptr
 	if index == a.mins.size
 		a.mins ~= pair
@@ -89,21 +91,6 @@ mut-arr mut-arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k>
 			out
 		mid[] := a.mins[index]
 		mid + 1 spread-all-buckets-recur! a, index + 1
-
-###
-Returns the farthest right min s.t. key >= min. (The mins are sorted highest first.)
-If no such min, returns pointer past the end of mins.
-'left' is inclusive, 'right' is exclusive.
-###
-.binary-search ptr arrow<?k, ?v>(left ptr arrow<?k, ?v>, right ptr arrow<?k, ?v>, key ?k) unsafe data<?k>
-	if left ptr-eq? right
-		left
-	else
-		mid = left + (right - left) / 2
-		if key >= mid[].from
-			left binary-search mid, key
-		else
-			mid + 1 binary-search right, key
 
 .add-to-bucket! void(buckets mut-list mut-list arrow<?k, ?v>, index nat, pair arrow<?k, ?v>)
 	if index < buckets.size

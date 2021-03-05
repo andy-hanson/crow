@@ -4,20 +4,19 @@ import
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	..private.bootstrap: hard-assert, noctx-decr, noctx-incr, todo
 	..bool: bool, not
-	..col.arr-util: contains?, index-of
-	..col.mut-arr:
-		begin-ptr, each, each-with-index, fill-mut-arr, fold, fold-reverse, map!, mut-arr,
-		reverse!, set-zero-elements, size, subscript, temp-as-arr, uninitialized-mut-arr
 	..compare: ==, <, <=, >, >=
 	..exception: assert
 	..fun: subscript
 	..misc: ->, data, drop, void
 	..number: +, -, *, nat
-	..opt: none, opt, some
+	..opt: none, opt, some, value
 	..posix.string: memcpy, memmove
 	..ptr: +, -, as-any-ptr, by-val, ptr, ptr-eq?, set-subscript, size-of, subscript, zeroed
 	.arr: arr
-	.arr-util: each
+	.arr-util: contains?, each, each-with-index, exists?, fold, fold-reverse, index-of
+	.mut-arr:
+		begin-ptr, cast-immutable, each, fill-mut-arr, map!, make-mut-arr,
+		mut-arr, reverse!, set-zero-elements, size, subscript, temp-as-arr, uninitialized-mut-arr
 
 ###
 Mutable array type that can change in size.
@@ -112,6 +111,14 @@ move-to-arr! arr ?a(a mut-list ?a) noctx trusted
 	a.backing := mut-arr
 	a.size := 0
 	res
+
+swap! void(a mut-list ?a, b mut-list ?a)
+	a-backing = a backing
+	a-size = a size
+	a.backing := b backing
+	a.size := b size
+	b.backing := a-backing
+	b.size := a-size
 
 ###
 Gets the element at the index.
@@ -259,12 +266,12 @@ push-capacity-must-be-sufficient! void(a mut-list ?a, value ?a) noctx unsafe
 		a increase-capacity-to! min-capacity
 
 ###
-#nsure that the mut-list can grow to a size of `reserved` without reallocating.
+Ensure that the mut-list can grow to a size of `reserved` without reallocating.
 Does nothing if the capacity is already sufficient.
 This may reserve more space than requested, so calling `reserve` repeatedly for slowly increasing sizes
 doesn't reallocate every time, and is no worse than pushing repeatedly.
 ###
-reserve void(a mut-list ?a, reserved nat) unsafe
+.reserve void(a mut-list ?a, reserved nat) unsafe
 	a ensure-capacity reserved.round-up-to-power-of-two
 
 ###
@@ -297,18 +304,14 @@ noctx-must-remove-unordered! void(a mut-list ?a, value ?a) noctx unsafe data<?a>
 	else
 		a noctx-must-remove-unordered-recur! index.noctx-incr, value
 
-.unsafe-set-size! void(a mut-list ?a, new-size nat) unsafe
-	assert: new-size <= a.capacity
+###
+Directly sets the `size` without touching the data.
+Unsafe because if this increases the size, it exposes uninitialized data.
+If this decreases the size, it doesn't zero out the rest of the data, so the garbage collector will keep it alive.
+###
+unsafe-set-size! void(a mut-list ?a, new-size nat) unsafe
+	a reserve new-size
 	a.size := new-size
-
-###
-Directly increases the `size` without touching the data.
-Unsafe because this will expose uninitialized elements (between the old size and the new size).
-You should write to the newly exposed elements immediately after calling this.
-Throws if this would increase the size past the capacity.
-###
-unsafe-increase-size! void(a mut-list ?a, increase-by nat) unsafe
-	a unsafe-set-size! a.size + increase-by
 
 ###
 Pops elements until the size is <= `new-size`.
@@ -345,9 +348,12 @@ insert-at! void(a mut-list ?a, index nat, value ?a) trusted
 	src = a.begin-ptr + index
 	n = a.size - index
 	memmove: dest.as-any-ptr, src.as-any-ptr, n * size-of<?a>
-	a[index] := value
 	a.size := a.size + 1
+	a[index] := value
 	assert: a.size <= a.capacity
+
+insert-at! void(a mut-list ?a, ptr ptr ?a, value ?a) unsafe
+	a insert-at! ptr - a.begin-ptr, value
 
 ###
 Removes `a[index]`, and shifts all values from `index` onwards to the left to fill the hole.
@@ -366,6 +372,8 @@ remove-at! ?a(a mut-list ?a, index nat) trusted
 	a.size := a.size - 1
 	res
 
+remove-at! ?a(a mut-list ?a, ptr ptr ?a) unsafe
+	a remove-at! ptr - a.begin-ptr
 
 reverse! void(a mut-list ?a) trusted
 	a.temp-as-mut-arr reverse!
@@ -374,16 +382,54 @@ region iteration
 
 # Calls `f` for each element in `a`.
 each void(a mut-list ?a, f act void(?a)) trusted
-	a.temp-as-mut-arr each f
+	a.temp-as-arr each f
 
 each-with-index void(a mut-list ?a, f act void(?a, nat)) trusted
-	a.temp-as-mut-arr each-with-index f
+	a.temp-as-arr each-with-index f
+
+exists? bool(a mut-list ?a, f act bool(?a)) trusted
+	a.temp-as-arr exists? f
 
 fold ?a(acc ?a, a mut-list ?b, f act ?a(?a, ?b)) trusted
-	acc fold a.temp-as-mut-arr, f
+	acc fold a.temp-as-arr, f
 
 fold-reverse ?a(acc ?a, a mut-list ?b, f act ?a(?a, ?b)) trusted
-	acc fold-reverse a.temp-as-mut-arr, f
+	acc fold-reverse a.temp-as-arr, f
+
+filter mut-list ?a(a mut-list ?a, f act bool(?a)) trusted
+	res = a copy
+	res filter! f
+	res
+
+map mut-list ?out(a mut-list ?in, f act ?out(?in)) trusted
+	a map-to-mut-arr f as-mut-list
+
+map-to-arr arr ?out(a mut-list ?in, f act ?out(?in)) trusted
+	a map-to-mut-arr f cast-immutable
+
+map-to-mut-arr mut-arr ?out(a mut-list ?in, f act ?out(?in))
+	a.size make-mut-arr \x
+		f[a[x]]
+
+map-opt mut-list ?out(a mut-list ?in, f act opt ?out(?in)) trusted
+	a map-opt-to-mut-arr f as-mut-list
+
+# TODO: this works on anything supporting 'fold' .. don't want to repeat for every collection
+map-opt-to-mut-arr mut-arr ?out(a mut-list ?in, f act opt ?out(?in)) trusted
+	out = a.size uninitialized-mut-arr<?out>
+	end = out.begin-ptr fold a, \cur, x
+		match f[x]
+		as none
+			cur
+		as some s
+			cur[] := s value
+			cur + 1
+	out[0 -> end - out.begin-ptr]
+
+.as-mut-list mut-list ?a(a mut-arr ?a) unsafe
+	mut-list: a, a.size
+
+region mutating iteration
 
 filter! void(a mut-list ?a, f act bool(?a)) trusted
 	new-end = a.begin-ptr filter-recur! a.begin-ptr, a.end-ptr, f

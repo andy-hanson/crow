@@ -1,0 +1,128 @@
+no-std
+import
+	...bool: not
+	...compare: ==, <, >=, <=>, comparison, equal, less, greater
+	...exception: assert, unreachable
+	...fun: subscript
+	...misc: void
+	...number: +, /, nat
+	...opt: none, opt, some
+	...ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
+	...test: is
+	..arr: arr
+	..mut-arr: begin-ptr, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end
+	..mut-list: arr, begin-ptr, empty?, empty!, end-ptr, mut-list, size, swap!, temp-as-mut-arr, unsafe-set-size!
+
+binary-search-exact-ptr opt ptr ?a(a mut-list ?a, compare act comparison(?a)) unsafe
+	a.temp-as-mut-arr binary-search-exact-ptr compare
+
+binary-search-exact-ptr opt ptr ?a(a mut-arr ?a, compare act comparison(?a)) unsafe
+	ptr = a.begin-ptr binary-search-recur a.end-ptr, compare
+	if ptr ptr-eq? a.end-ptr
+		none
+	elif compare[ptr[]] == equal
+		ptr some
+	else
+		none
+
+binary-search-insert-ptr ptr ?a(a mut-list ?a, compare act comparison(?a)) unsafe
+	a.temp-as-mut-arr binary-search-insert-ptr compare
+
+###
+Returns the pointer to the least value that is compared equal or greater.
+Returns `a end-ptr` if all values compare less.
+###
+binary-search-insert-ptr ptr ?a(a mut-arr ?a, compare act comparison(?a)) unsafe
+	a.begin-ptr binary-search-recur a.end-ptr, compare
+
+test
+	a = mut-arr: [1, 3, 5, 7]
+	(a binary-search-insert-ptr {0 <=> it}) - a.begin-ptr is 0
+	(a binary-search-insert-ptr {3 <=> it}) - a.begin-ptr is 1
+	(a binary-search-insert-ptr {4 <=> it}) - a.begin-ptr is 2
+	(a binary-search-insert-ptr {5 <=> it}) - a.begin-ptr is 2
+	(a binary-search-insert-ptr {6 <=> it}) - a.begin-ptr is 3
+	(a binary-search-insert-ptr {7 <=> it}) - a.begin-ptr is 3
+	(a binary-search-insert-ptr {8 <=> it}) - a.begin-ptr is 4
+
+# Left inclusive, right exclusive
+.binary-search-recur ptr ?a(left ptr ?a, right ptr ?a, compare act comparison(?a)) unsafe
+	if left ptr-eq? right
+		left
+	else
+		mid = left + (right - left) / 2
+		match compare[mid[]]
+		as less
+			left binary-search-recur mid, compare
+		as equal
+			mid
+		as greater
+			mid + 1 binary-search-recur right, compare
+
+unique-comparison union
+	less
+	greater
+
+assert-comparison-not-equal unique-comparison(a comparison)
+	match a
+	as less
+		less
+	as equal
+		unreachable
+	as greater
+		greater
+
+# 'a' and 'b' must be sorted. Moves contents of 'b' into 'a' and preserves sorting.
+merge-no-duplicates! void(a mut-list ?a, b mut-list ?a, compare act unique-comparison(?a, ?a)) trusted
+	if a.size < b.size
+		a swap! b
+	assert: a.size >= b.size
+	if b.empty? not
+		a-old-size = a size
+		a unsafe-set-size! a-old-size + b.size
+		a-read = a.begin-ptr + a-old-size - 1
+		a-write = a.end-ptr - 1
+		a.begin-ptr merge-reverse-recur! a-read, a-write, b.begin-ptr, b.end-ptr - 1, compare
+		b empty!
+
+###
+Merge right-to-left so we never overwrite anything we still have to read.
+In condition: a-read, a-write, b-read are all valid pointers.
+###
+.merge-reverse-recur! void
+	a-begin ptr ?a
+	a-read ptr ?a
+	a-write ptr ?a
+	b-begin ptr ?a
+	b-read ptr ?a
+	compare act unique-comparison(?a, ?a)
+spec
+	unsafe
+body
+	match compare[a-read[], b-read[]]
+	as less
+		a-write[] := b-read[]
+		if b-read ptr-eq? b-begin not
+			a-begin merge-reverse-recur! a-read, a-write - 1, b-begin, b-read - 1, compare
+	as greater
+		a-write[] := a-read[]
+		if a-read ptr-eq? a-begin
+			dest = a-begin mut-arr-from-begin-end a-write
+			src = b-begin mut-arr-from-begin-end b-read + 1
+			dest copy-from!: src
+		else
+			a-begin merge-reverse-recur! a-read - 1, a-write - 1, b-begin, b-read, compare
+
+.test-one void(a arr nat, b arr nat, expected arr nat)
+	a-mut = mut-list: a
+	b-mut = mut-list: b
+	a-mut merge-no-duplicates! b-mut, \x, y
+		x <=> y assert-comparison-not-equal
+	a-mut.arr is expected
+
+test
+	[1, 2, 3] test-one [4, 5, 6], [1, 2, 3, 4, 5, 6]
+	[4, 5, 6] test-one [1, 2, 3], [1, 2, 3, 4, 5, 6]
+	[1, 3, 5] test-one [2, 4, 6], [1, 2, 3, 4, 5, 6]
+	[2, 4, 6] test-one [1, 3, 5], [1, 2, 3, 4, 5, 6]
+	[3, 4, 5] test-one [1, 2, 6], [1, 2, 3, 4, 5, 6]

@@ -14,7 +14,7 @@ import
 	col.stack: stack
 	col.queue: queue
 	io.print: print
-	#io.time-format: gmt
+	io.time-format: gmt
 	log: info, log
 	private.bootstrap: ctx, get-ctx
 
@@ -33,7 +33,7 @@ main fut nat(_ arr str) summon
 	drop: set<nat>
 	drop: stack<nat>
 	drop: queue<nat>
-	#drop: gmt
+	drop: gmt
 	run-all-tests
 	0 resolved
 

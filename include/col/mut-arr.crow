@@ -1,7 +1,6 @@
 no-std
 import
 	..private.alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
-	..private.bootstrap: hard-assert
 	..bool: bool, not
 	..compare: ==, <, <=
 	..exception: assert
@@ -47,8 +46,8 @@ Further writes to the `mut-arr` won't affect the `arr` that was copied from it.
 arr arr ?a(a mut-arr ?a)
 	a.copy.inner
 
-mut-arr-from-begin-end mut-arr ?a(begin ptr ?a, end ptr ?a) unsafe noctx
-	hard-assert: begin ptr-less-eq? end
+mut-arr-from-begin-end mut-arr ?a(begin ptr ?a, end ptr ?a) unsafe
+	assert: begin ptr-less-eq? end
 	mut-arr: void, arr-from-begin-end: begin, end
 
 ###
@@ -61,6 +60,9 @@ copy mut-arr ?a(a mut-arr ?a)
 copy-from! void(dest mut-arr ?a, source arr ?a) trusted
 	assert: dest.size == source.size
 	memcpy: dest.begin-ptr.as-any-ptr, source.begin-ptr.as-any-ptr, dest.size * size-of<?a>
+
+copy-from! void(dest mut-arr ?a, source mut-arr ?a) trusted
+	dest copy-from! source.cast-immutable
 
 empty? bool(a mut-arr ?a) noctx
 	a.size == 0
