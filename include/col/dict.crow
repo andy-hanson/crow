@@ -1,137 +1,468 @@
 no-std
 import
-	..bool: and, bool, not
-	..compare: ==, <=>, comparison, greater, less
+	..bool: ?, and, bool, false, not, true
+	..compare: ==, <=, >=, <=>, comparison, max, min
 	..exception: assert
 	..fun: subscript
-	..misc: ->, arrow, as, data, from, to, void
-	..number: +, nat
-	..opt: each, has?, none, opt, some
-	.arr: arr, empty?, size, subscript
-	.arr-util: map, tail, zip
-	.mut-list: ~=, move-to-arr!, mut-list
-	.sort: a, b, sort-by-first
+	..log: info, log
+	..misc: ->, arrow, as, data, drop, from, to, void
+	..number: +, -, nat
+	..opt: has?, none, opt, opt-or, some, value
+	..ptr: +, -, ptr, ptr-eq?, ptr-less?, set-subscript, subscript
+	..str: char, str
+	..str-conv: to-str
+	..test: is
+	.arr: arr, begin-ptr, empty?, end-ptr, size, subscript
+	.arr-util: count, each, fold, map, tail
+	.mut-arr:
+		begin-ptr, cast-immutable, copy-from!, empty?, end-ptr, fold, mut-arr,
+		mut-arr-from-begin-end, set-subscript, size, subscript, tail, uninitialized-mut-arr
+	.mut-list: ~=, move-to-arr!, mut-list, pop!, set-last
+	.sort: sort-by
+	.private.sort-utils: binary-search-value
 
-###
-A dictionary type that maps keys to values.
-Called a "map", "table", "hash table", or "associative array" in other languages.
-Keys must be `data`; values can be anything.
-See `mut-dict` for a mutable version.
-See `set` for a dict with no values.
-###
 dict<?k, ?v> record
-	# TODO: PRIVATE
-	# Keys should be in sorted order
+	# TODO:PRIVATE
 	ignore void
-	keys arr ?k
-	values arr ?v
+	impl dict-impl<?k, ?v>
 
-# Empty dict.
+.dict-impl<?k, ?v> union
+	overlay<?k, ?v>
+	end-node<?k, ?v>
+
+.overlay<?k, ?v> record
+	# TODO: consider tracking the number of keys that are new, or change a value, or remove a value.
+	# We should merge more frequently if removing keys, less frequently if adding keys.
+	# never empty
+	pairs arr arrow<?k, opt ?v>
+	prev dict-impl<?k, ?v>
+
+# Leftmost node. Values are non-optional as there is nothing left of this to remove from.
+.end-node<?k, ?v> record
+	pairs arr arrow<?k, ?v>
+
 dict dict<?k, ?v>() data<?k>
-	dict: [], []
+	dict: void, end-node: []
 
-###
-`dict` from `key -> value` pairs.
-Throws if some key is repeated.
-###
-dict dict<?k, ?v>(pairs arr arrow<?k, ?v>) data<?k>
-	keys = pairs map {it from}
-	values = pairs map {it to}
-	dict: keys, values
+dict dict<?k, ?v>(a arr arrow<?k, ?v>) data<?k>
+	dict: void, end-node: a sort-by {it from}
 
-###
-`dict` from keys and values from corresponding elements in the arrays.
-Throws if the key and value arrays have different sizes.
-Throws if some key is repeated.
-###
-dict dict<?k, ?v>(keys arr ?k, values arr ?v) data<?k>
-	assert: keys.size == values.size
-	sorted = keys sort-by-first values
-	dict: void, sorted.a, sorted.b
+empty? bool(a dict<?k, ?v>) data<?k>
+	match a impl
+	as overlay
+		false
+	as end-node e
+		e.pairs empty?
 
-# Converts a dict to an arr of `key -> value` pairs.
-arr arr arrow<?k, ?v>(a dict<?k, ?v>)
-	a.keys zip a.values, \key, value
-		key -> value
+# This is O(n).
+size nat(a dict<?k, ?v>) data<?k>
+	0 size-recur a.impl
+.size-recur nat(acc nat, a dict-impl<?k, ?v>)
+	match a
+	as overlay o
+		acc + (o.pairs count {it.to has?}) size-recur o.prev
+	as end-node e
+		acc + e.pairs.size
 
-# True iff the dict has no keys.
-empty? bool(a dict<?k, ?v>)
-	a.keys empty?
+arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> trusted
+	match a impl
+	as overlay
+		out = a.size uninitialized-mut-arr<arrow<?k, ?v>>
+		end = out.begin-ptr fold a, \cur, k, v
+			cur[] := k -> v
+			cur + 1
+		assert: end ptr-eq? out.end-ptr
+		out cast-immutable
+	as end-node e
+		e pairs
 
-# Gets the value associated with a key, or returns `none`.
-subscript opt ?v(a dict<?k, ?v>, key ?k) trusted data<?k>
-	# TODO: should not need to provide type arguments
-	subscript-recur<?k, ?v>: a.keys, a.values, 0, key
-.subscript-recur<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?k>
-	if idx == keys.size
-		none
-	elif key == keys[idx]
-		values[idx] some
+~ dict<?k, ?v>(a dict<?k, ?v>, pair arrow<?k, ?v>) data<?k>
+	dict: void, a.impl add-or-remove pair.from, pair.to.some
+
+~ dict<?k, ?v>(a dict<?k, ?v>, b dict<?k, ?v>) data<?k>
+	a ~ b.arr
+
+~ dict<?k, ?v>(a dict<?k, ?v>, b arr arrow<?k, ?v>) data<?k>
+	if b empty?
+		a
+	elif a empty?
+		dict: b
 	else
-		# TODO: should not need to provide type arguments!
-		subscript-recur<?k, ?v>: keys, values, idx + 1, key
+		# TODO: 'as' should be unnecessary
+		pairs = as<arr arrow<?k, opt ?v>>: b map {it.from -> it.to.some} sort-by {it from}
+		dict: void, merge-as-needed: pairs overlay a.impl
 
-# True iff the key is in the dict.
-has? bool(a dict<?k, ?v>, key ?k) data<?k>
+- dict<?k, ?v>(a dict<?k, ?v>, key ?k) data<?k>
+	if a has-key? key
+		dict: void, a.impl add-or-remove key, none
+	else
+		a
+
+- dict<?k, ?v>(a dict<?k, ?v>, keys arr ?k) data<?k>
+	a fold keys, \cur, key
+		cur - key
+
+subscript opt ?v(a dict<?k, ?v>, key ?k) data<?k>
+	a.impl subscript-recur key
+.subscript-recur opt ?v(a dict-impl<?k, ?v>, key ?k) trusted data<?k>
+	match a
+	as overlay o
+		match o.pairs binary-search-value {key <=> it.from}
+		as none
+			o.prev subscript-recur key
+		as some s
+			s.value to
+	as end-node e
+		match e.pairs binary-search-value {key <=> it.from}
+		as none
+			none
+		as some s
+			s.value.to some
+
+has-key? bool(a dict<?k, ?v>, key ?k) trusted data<?k>
 	a[key] has?
 
-# Creates a new dict with the same keys, but with `f` applied to each value.
-map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?v-in)) data<?k>
-	# TODO: should be able to infer type arguments 
-	dict<?k, ?v-out>: a.keys, a.values map f
+.add-or-remove dict-impl<?k, ?v>(a dict-impl<?k, ?v>, key ?k, value opt ?v) data<?k>
+	merge-as-needed: overlay: [key -> value], a
 
-###
-Calls `f` for each `key -> value` pair in the dict.
-Keys are iterated in sorted order, so each key passed to `f` is `>` all previous keys.
-###
+.merge-as-needed dict-impl<?k, ?v>(a overlay<?k, ?v>) data<?k>
+	match a prev
+	as overlay o
+		if o.pairs.size should-merge? a.pairs.size
+			new-pairs = o.pairs merge-overlays a.pairs
+			merge-as-needed: overlay: new-pairs, o.prev
+		else
+			a
+	as end-node e
+		if e.pairs.size should-merge? a.pairs.size
+			new-pairs = e.pairs merge-to-end a.pairs
+			end-node: new-pairs
+		else
+			a
+
+.should-merge? bool(prev-size nat, overlay-size nat)
+	prev-size <=: overlay-size max 3
+
+.merge-overlays arr arrow<?k, opt ?v>(l arr arrow<?k, opt ?v>, r arr arrow<?k, opt ?v>) trusted data<?k>
+	res = l.size + r.size uninitialized-mut-arr<arrow<?k, opt ?v>>
+	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr, \x, y
+		x.from <=> y.from
+	res[0 -> end - res.begin-ptr] cast-immutable
+
+.merge-keep-right ptr ?a
+	out ptr ?a
+	l ptr ?a
+	l-end ptr ?a
+	r ptr ?a
+	r-end ptr ?a
+	compare act comparison(?a, ?a)
+spec
+	unsafe
+body
+	assert: l ptr-less? l-end
+	assert: r ptr-less? r-end
+	match compare[l[], r[]]
+	as less
+		out[] := l[]
+		if l + 1 ptr-eq? l-end
+			out + 1 finish-rest r, r-end
+		else
+			out + 1 merge-keep-right l + 1, l-end, r, r-end, compare
+	as equal
+		out[] := r[]
+		if l + 1 ptr-eq? l-end
+			out + 1 finish-rest r + 1, r-end
+		elif r + 1 ptr-eq? r-end
+			out + 1 finish-rest l + 1, l-end
+		else
+			out + 1 merge-keep-right l + 1, l-end, r + 1, r-end, compare
+	as greater
+		out[] := r[]
+		if r + 1 ptr-eq? r-end
+			out + 1 finish-rest l, l-end
+		else
+			out + 1 merge-keep-right l, l-end, r + 1, r-end, compare
+
+.merge-to-end arr arrow<?k, ?v>(l arr arrow<?k, ?v>, r arr arrow<?k, opt ?v>) trusted data<?k>
+	res = l.size + r.size uninitialized-mut-arr<arrow<?k, ?v>>
+	end = if l empty?
+		res.begin-ptr finish-rest-ignore-none r.begin-ptr, r.end-ptr
+	else
+		res.begin-ptr merge-to-end-recur l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
+	res[0 -> end - res.begin-ptr] cast-immutable
+
+.merge-to-end-recur ptr arrow<?k, ?v>
+	out ptr arrow<?k, ?v>
+	l ptr arrow<?k, ?v>
+	l-end ptr arrow<?k, ?v>
+	r ptr arrow<?k, opt ?v>
+	r-end ptr arrow<?k, opt ?v>
+spec
+	unsafe
+	data<?k>
+body
+	assert: l ptr-less? l-end
+	assert: r ptr-less? r-end
+	match l[].from <=> r[].from
+	as less
+		out[] := l[]
+		if l + 1 ptr-eq? l-end
+			out + 1 finish-rest-ignore-none r, r-end
+		else
+			out + 1 merge-to-end-recur l + 1, l-end, r, r-end
+	as equal
+		new-out = match r[] to
+		as none
+			out
+		as some s
+			out[] := r[].from -> s.value
+			out + 1
+		if l + 1 ptr-eq? l-end
+			new-out finish-rest-ignore-none r, r-end
+		elif r + 1 ptr-eq? r-end
+			new-out finish-rest l, l-end
+		else
+			new-out merge-to-end-recur l + 1, l-end, r + 1, r-end
+	as greater
+		new-out = match r[] to
+		as none
+			out
+		as some s
+			out[] := r[].from -> s.value
+			out + 1
+		if r + 1 ptr-eq? r-end
+			new-out finish-rest l, l-end
+		else
+			new-out merge-to-end-recur l, l-end, r + 1, r-end
+
+.finish-rest ptr ?a(out ptr ?a, cur ptr ?a, end ptr ?a) unsafe
+	rest-size = end - cur
+	out-end = out + rest-size
+	out mut-arr-from-begin-end out-end copy-from!: cur mut-arr-from-begin-end end
+	out-end
+
+.finish-rest-ignore-none ptr arrow<?k, ?v>
+	out ptr arrow<?k, ?v>
+	r ptr arrow<?k, opt ?v>
+	r-end ptr arrow<?k, opt ?v>
+spec
+	unsafe
+body
+	if r ptr-eq? r-end
+		out
+	else
+		new-out = match r[].to
+		as none
+			out
+		as some s
+			out[] := r[].from -> s.value
+			out + 1
+		new-out finish-rest-ignore-none r + 1, r-end
+
+region iteration
+
 each void(a dict<?k, ?v>, f act void(?k, ?v)) data<?k>
-	if a.empty? not
-		f[a.keys[0], a.values[0]]
-		# TODO: type arguments should be unnecessary
-		a.keys.tail dict<?k, ?v> a.values.tail each f
+	void fold a, \ignore, k, v
+		f[k, v]
 
-###
-Combines two dicts.
-For each key in *either* `a` or `b`, calls `f`,
-providing the key's corresponding values from `a` and `b`.
-The result will only have `key -> value` pairs where `f` returns `some`.
-###
-combine dict<?k, ?out>(a dict<?k, ?in-0>, b dict<?k, ?in-1>, f act opt ?out(?k, opt ?in-0, opt ?in-1)) data<?k>
-	out-keys = mut-list<?k>
-	out-values = mut-list<?out>
-	combine-recur: out-keys, out-values, a.keys, a.values, b.keys, b.values, f
-	dict: out-keys.move-to-arr!, out-values.move-to-arr!
-.combine-recur void
-	out-keys mut-list ?k
-	out-values mut-list ?out
-	a-keys arr ?k
-	a-values arr ?in-0
-	b-keys arr ?k
-	b-values arr ?in-1
-	cb act opt ?out(?k, opt ?in-0, opt ?in-1)
+fold ?a(acc ?a, a dict<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k>
+	iters = a.init-iters
+	acc fold-recur iters.end-pairs, iters.overlays, f
+
+.fold-recur ?a
+	acc ?a
+	end-node arr arrow<?k, ?v>
+	overlays mut-arr arr arrow<?k, opt ?v>
+	f act ?a(?a, ?k, ?v)
 spec
 	data<?k>
 body
-	if a-keys.empty? and b-keys.empty? not
-		cmp = as<comparison>: if a-keys empty?
-			greater
-		elif b-keys empty?
-			less
+	# Invariant: Nothing in 'overlays' is empty.
+	if overlays empty?
+		if end-node empty?
+			acc
 		else
-			a-keys[0] <=> b-keys[0]
-		match cmp
-		as less
-			cb[a-keys[0], a-values[0] some, none] each \v
-				out-keys ~= a-keys[0]
-				out-values ~= v
-			combine-recur: out-keys, out-values, a-keys.tail, a-values.tail, b-keys, b-values, cb
-		as equal
-			cb[a-keys[0], a-values[0] some, b-values[0] some] each \v
-				out-keys ~= a-keys[0]
-				out-values ~= v
-			combine-recur: out-keys, out-values, a-keys.tail, a-values.tail, b-keys.tail, b-values.tail, cb
-		as greater
-			cb[b-keys[0], none, b-values[0] some] each \v
-				out-keys ~= b-keys[0]
-				out-values ~= v
-			combine-recur: out-keys, out-values, a-keys, a-values, b-keys.tail, b-values.tail, cb
+			pair = end-node[0]
+			f[acc, pair.from, pair.to] fold-recur end-node.tail, overlays, f
+	else
+		least-key = if end-node empty?
+			overlays[0][0].from find-least-key overlays.tail
+		else
+			end-node[0].from
+		take-from-end-node? = end-node.empty?.not and least-key == end-node[0].from
+		val-from-end-node = as<opt ?v>: take-from-end-node? ? end-node[0].to.some, none
+		new-end-node = take-from-end-node? ? end-node.tail, end-node
+		took-from-overlays = overlays take-key least-key
+		new-acc = match took-from-overlays.rightmost-value opt-or val-from-end-node
+		as none
+			acc
+		as some s
+			f[acc, least-key, s.value]
+		new-acc fold-recur new-end-node, took-from-overlays.overlays, f
+
+.find-least-key ?k(current-least-key ?k, overlays mut-arr arr arrow<?k, ?v>) data<?k>
+	current-least-key fold overlays, \cur, overlay
+		cur min overlay[0].from
+
+.took-key<?k, ?v> record mut
+	rightmost-value opt ?v
+	overlays mut-arr arr arrow<?k, opt ?v>
+
+###
+Takes the key from the front of every overlay that has it.
+Removes rightmost overlays from the mut-arr (by returning a new, smaller mut-arr).
+Returns the rightmost value associated with that key.
+###
+.take-key took-key<?k, ?v>(overlays mut-arr arr arrow<?k, opt ?v>, key ?k) data<?k>
+	overlays take-key-recur key, 0, none
+.take-key-recur took-key<?k, ?v>
+	overlays mut-arr arr arrow<?k, opt ?v>
+	key ?k
+	index nat
+	rightmost-value opt ?v
+spec
+	data<?k>
+body
+	# Index can overshoot due to removing overlays
+	if index >= overlays.size
+		took-key: rightmost-value, overlays
+	elif overlays[index][0].from == key
+		new-rightmost-value = overlays[index][0] to
+		new-overlay = overlays[index] tail
+		if new-overlay empty?
+			overlays[index] := overlays[overlays.size - 1]
+			overlays[0 -> overlays.size - 1] take-key-recur key, index + 1, new-rightmost-value
+		else
+			overlays[index] := new-overlay
+			overlays take-key-recur key, index + 1, new-rightmost-value
+	else
+		overlays take-key-recur key, index + 1, rightmost-value
+
+.get-end end-node<?k, ?v>(a dict-impl<?k, ?v>)
+	match a
+	as overlay o
+		o.prev get-end
+	as end-node e
+		e
+
+.iters<?k, ?v> record mut
+	end-pairs arr arrow<?k, ?v>
+	overlays mut-arr arr arrow<?k, opt ?v>
+
+.init-iters iters<?k, ?v>(a dict<?k, ?v>) trusted
+	overlay-iters = 0 overlay-count a.impl uninitialized-mut-arr<arr arrow<?k, opt ?v>>
+	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur! a.impl
+	iters: end-pairs, overlay-iters
+
+.overlay-count nat(acc nat, a dict-impl<?k, ?v>)
+	match a
+	as overlay o
+		acc + 1 overlay-count o.prev
+	as end-node
+		acc
+
+.init-overlay-iters-recur! arr arrow<?k, ?v>(out ptr arr arrow<?k, opt ?v>, a dict-impl<?k, ?v>) unsafe
+	match a
+	as overlay o
+		out[] := o.pairs
+		out + 1 init-overlay-iters-recur! o.prev
+	as end-node e
+		e pairs
+
+map dict<?k-out, ?v-out>(a dict<?k-in, ?v-in>, f act arrow<?k-out, ?v-out>(?k-in, ?v-in)) data<?k-in> data<?k-out>
+	dict: a.arr map \pair
+		f[pair.from, pair.to]
+
+map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k>
+	# No need to re-sort
+	dict: void, end-node: a.arr map \pair
+		pair.from -> f[pair.from, pair.to]
+
+.dbg str(a dict<nat, str>)
+	out = mut-list<char>
+	out dbg-recur! a.impl
+	out move-to-arr!
+
+.dbg-recur! void(out mut-list char, a dict-impl<nat, str>)
+	match a
+	as overlay o
+		out dbg-recur! o.prev
+		out ~= ", "
+		out ~= "["
+		o.pairs each \pair
+			out ~= pair.from to-str
+			out ~= " -> "
+			out ~= match pair to
+			as none
+				"_"
+			as some s
+				s value
+			out ~= ", "
+		if o.pairs empty?
+			out ~= "]"
+		else
+			out.pop! drop
+			out.last := "]"
+	as end-node e
+		out ~= "["
+		e.pairs each \pair
+			out ~= pair.from to-str
+			out ~= " -> "
+			out ~= pair to
+			out ~= ", "
+		if e.pairs empty?
+			out ~= "]"
+		else
+			out.pop! drop
+			out.last := "]"
+
+
+verify void(a dict<nat, str>, expected str)
+	a.dbg is expected
+
+test
+	a = dict<nat, str>
+	a.empty? is true
+	a.size is 0
+	a verify "[]"
+	a[10] is none
+
+	b = a ~ (10 -> "10")
+	b verify "[10 -> 10]"
+	b[10] is "10".some
+
+	c = b ~ [15 -> "15", 5 -> "5", 20 -> "20"]
+	c verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20]"
+
+	d = c ~ (11 -> "11")
+	d verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [11 -> 11]"
+
+	e = d - 15
+	e verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [11 -> 11, 15 -> _]"
+
+	f = e - 16
+	f verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [11 -> 11, 15 -> _]"
+
+	g = f - 15
+	g verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [11 -> 11, 15 -> _]"
+
+	h = g - 10
+	h verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> _, 11 -> 11, 15 -> _]"
+
+	i = h ~ (10 -> "10b")
+	i verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> 11, 15 -> _]"
+
+	j = i - [11, 12]
+	# Unfortunately we leave an unnecessary '11 -> _',
+	# because we don't keep track of what a removal removes from, and it might be removing from the leftmost node.
+	j verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> _, 15 -> _]"
+
+	k = j ~ [11 -> "11", 25 -> "25"]
+	k verify "[5 -> 5, 10 -> 10b, 11 -> 11, 20 -> 20, 25 -> 25]"
+
+	# TODO: test fold, map
+
+	k-mapped = k map-values \k, v
+		v[0 -> 1]
+	k-mapped verify "[5 -> 5, 10 -> 1, 11 -> 1, 20 -> 2, 25 -> 2]"
+	info log "DONE"

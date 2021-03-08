@@ -2,7 +2,7 @@ no-std
 import
 	..private.alloc: alloc-uninitialized, fill-ptr-range
 	..private.bootstrap: noctx-incr
-	..bool: and, bool, false, not, true
+	..bool: and, bool, false, not, to-nat, true
 	..compare: ==, !=, <, <=, >=
 	..exception: assert, forbid
 	..fun: subscript
@@ -75,6 +75,11 @@ filter arr ?a(a arr ?a, f act bool(?a)) trusted
 		else
 			out
 		next-out filter-recur a.tail, f
+
+# TODO: move to iter-utiil since this works with any foldable
+count nat(a arr ?a, f act bool(?a))
+	0 fold a, \cur, x
+		cur + f[x].to-nat
 
 ###
 Equivalent to `[f[a[0]], f[a[1]], ...]`.
@@ -348,3 +353,6 @@ insert arr ?a(a arr ?a, index nat, value ?a)
 	assert: index <= a.size
 	# TODO:PERF (only concat once)
 	a[0 -> index] ~ [value] ~ a[index -> a.size]
+
+insert arr ?a(a arr ?a, ptr ptr ?a, value ?a) unsafe
+	a insert ptr - a.begin-ptr, value

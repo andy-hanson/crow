@@ -1,21 +1,23 @@
 no-std
 import
-	..bool: bool, false, not, true
+	..bool: and, bool, false, not, true
 	..compare: ==, !=, <, >, <=>
 	..exception: assert, forbid, unreachable
 	..fun: subscript
 	..misc: ->, as, data, drop, void
 	..number: +, -, /, nat
-	..opt: empty?, force, none, opt, some, value
-	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
+	..opt: has?, none, opt, some, value
+	..ptr: +, -, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, subscript
 	..str: char, str
+	..str-conv: interp, finish, to-str, with-str, with-value
 	..test: is
-	.arr: ~, arr, begin-ptr, empty?, end-ptr, size, subscript
+	.arr: arr, begin-ptr, empty?, end-ptr, size, subscript
 	.arr-util: each, fold, insert, last, rtail, tail, try-remove
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
 	.mut-list: ~=, move-to-arr!, mut-list, set-last
 	.mut-stack: ~=, mut-stack, last, pop!
 	.sort: sort-unique, sort-unique!
+	.private.sort-utils: binary-search-exact-ptr, binary-search-insert-ptr
 
 ###
 Set of unique values.
@@ -28,7 +30,7 @@ set<?a> record
 
 # True iff the set is empty.
 empty? bool(a set ?a) data<?a>
-	a.size == 0
+	a.total-size == 0
 
 # Number of values in the set.
 size nat(a set ?a) data<?a>
@@ -69,7 +71,7 @@ arr arr ?a(a set ?a) data<?a>
 # True iff the value is in the set.
 subscript bool(a set ?a, value ?a) data<?a>
 	a.root has? value
-.has? bool(a node ?a, value ?a) data<?a>
+.has? bool(a node ?a, value ?a) trusted data<?a>
 	match a
 	as inner-node i
 		match value <=> i.value
@@ -80,7 +82,7 @@ subscript bool(a set ?a, value ?a) data<?a>
 		as greater
 			i.right has? value
 	as arr arr
-		arr find-insertion-index value empty?
+		arr binary-search-exact-ptr {value <=> it} has?
 
 ###
 Add a value to the set.
@@ -193,13 +195,16 @@ try-remove opt set ?a(a set ?a, b ?a) data<?a>
 				new-left = s value
 				some: inner-node: i.value, new-left, i.right
 		as equal
-			# Remove the base of the tree -- making one of the sides take over.
-			match i.left pop-right
-			as none
-				i.right some
-			as some s
-				popped = s value
-				some: inner-node: popped.value, popped.rest, i.right
+			some: if i.right node-empty?
+				i left
+			else
+				# Remove the base of the tree -- making one of the sides take over.
+				match i.left pop-right
+				as none
+					i right
+				as some s
+					popped = s value
+					inner-node: popped.value, popped.rest, i.right
 		as greater
 			match i.right try-remove-recur b
 			as none
@@ -214,6 +219,13 @@ try-remove opt set ?a(a set ?a, b ?a) data<?a>
 		as some s
 			arr2 = s value
 			arr2.as<node ?a> some
+
+.node-empty? bool(a node ?a)
+	match a
+	as inner-node
+		false
+	as arr r
+		r empty?
 
 .popped<?a> record
 	value ?a
@@ -340,45 +352,50 @@ try-remove opt set ?a(a set ?a, b ?a) data<?a>
 		as find-scapegoat f
 			a handle-scapegoat value, a.left, f
 
-.add-to-arr add-result ?a(a arr ?a, value ?a, max-height nat) data<?a>
-	match a find-insertion-index value
-	as none
+.add-to-arr add-result ?a(a arr ?a, value ?a, max-height nat) trusted data<?a>
+	insert-ptr = a binary-search-insert-ptr {value <=> it}
+	if (insert-ptr ptr-eq? a.end-ptr).not and insert-ptr[] == value
 		none
-	as some s
-		insert-index = s value
-		if a.size < 4
-			inserted: a insert insert-index, value
-		elif max-height == 0
-			# Can't add new nodes
-			find-scapegoat: a.size + 1, 1
-		else
-			a break-up-arr value, insert-index, max-height
-
-.break-up-arr add-result ?a(a arr ?a, value ?a, insert-index nat, max-height nat) data<?a>
-	# Break it up into nodes, adding to height
-	mid-index = a.size / 2
-	mid = a[mid-index]
-	left-arr = a[0 -> mid-index]
-	right-arr = a[mid-index + 1 -> a.size]
-	forbid: left-arr empty?
-	forbid: right-arr empty?
-	if insert-index < mid-index
-		match left-arr add-to-arr value, max-height - 1
-		as none
-			unreachable
-		as inserted i
-			x = as<node ?a>: right-arr
-			inserted: inner-node: mid, i.node, x
-		as find-scapegoat
-			unreachable
+	elif a.size < 4
+		inserted: a insert insert-ptr, value
+	elif max-height == 0
+		# Can't add new nodes
+		find-scapegoat: a.size + 1, 1
 	else
-		match right-arr add-to-arr value, max-height - 1
-		as none
-			unreachable
-		as inserted i
-			inserted: inner-node: mid, left-arr, i.node
-		as find-scapegoat
-			unreachable
+		a break-up-arr value, insert-ptr, max-height
+
+.break-up-arr add-result ?a(a arr ?a, value ?a, insert-ptr ptr ?a, max-height nat) unsafe data<?a>
+	assert: a.begin-ptr ptr-less-eq? insert-ptr
+	assert: insert-ptr ptr-less-eq? a.end-ptr
+	# Break it up into nodes, adding to height
+	mid-ptr = a.begin-ptr + (a.end-ptr - a.begin-ptr) / 2
+	mid-index = mid-ptr - a.begin-ptr
+	if insert-ptr ptr-eq? mid-ptr
+		inserted: inner-node: value, a[0 -> mid-index], a[mid-index -> a.size]
+	else
+		mid = mid-ptr[]
+		assert: mid-index < a.size
+		left-arr = a[0 -> mid-index]
+		right-arr = a[mid-index + 1 -> a.size]
+		forbid: left-arr empty?
+		forbid: right-arr empty?
+		if insert-ptr ptr-less? mid-ptr
+			# TODO:PERF: This redundantly finds insert-ptr again
+			match left-arr add-to-arr value, max-height - 1
+			as none
+				unreachable
+			as inserted i
+				inserted: inner-node: mid, i.node, right-arr.as<node ?a>
+			as find-scapegoat
+				unreachable
+		else
+			match right-arr add-to-arr value, max-height - 1
+			as none
+				unreachable
+			as inserted i
+				inserted: inner-node: mid, left-arr, i.node
+			as find-scapegoat
+				unreachable
 
 .handle-scapegoat add-result ?a(a inner-node ?a, value ?a, other-subtree node ?a, f find-scapegoat) data<?a>
 	size-here = f.size + 1 + other-subtree.walk-size
@@ -421,10 +438,10 @@ try-remove opt set ?a(a set ?a, b ?a) data<?a>
 			mid + 1 tree-to-arr-recur! i.right, value
 	as arr arr
 		# Find first x > value, insert it before there
-		idx = arr find-insertion-index value force
-		mid = out copy-out! arr[0 -> idx]
+		index = (arr binary-search-insert-ptr {value <=> it}) - arr.begin-ptr
+		mid = out copy-out! arr[0 -> index]
 		mid[] := value
-		mid + 1 copy-out! arr[idx -> arr.size]
+		mid + 1 copy-out! arr[index -> arr.size]
 # Version where we know we don't have to insert value
 .tree-to-arr-recur! ptr ?a(out ptr ?a, a node ?a) unsafe
 	match a
@@ -447,28 +464,6 @@ try-remove opt set ?a(a set ?a, b ?a) data<?a>
 		0
 	else
 		(size / 2).get-max-height + 1
-
-# Returns none if the value is already in the arr
-.find-insertion-index opt nat(a arr ?a, value ?a) trusted data<?a>
-	match a.begin-ptr find-insertion-ptr a.end-ptr, value
-	as none
-		none
-	as some s
-		s.value - a.begin-ptr some
-
-.find-insertion-ptr opt ptr ?a(begin ptr ?a, end ptr ?a, value ?a) unsafe data<?a>
-	if begin ptr-eq? end
-		begin some
-	else
-		mid = begin + (end - begin) / 2
-		match value <=> mid[]
-		as less
-			begin find-insertion-ptr mid, value
-		as equal
-			none
-		as greater
-			mid + 1 find-insertion-ptr end, value
-
 
 region iteration
 
@@ -515,7 +510,8 @@ map set ?out(a set ?in, f act ?out(?in)) data<?in> data<?out> trusted
 	assert: end ptr-eq? out.end-ptr
 	set: out[0 -> end - out.begin-ptr].sort-unique! cast-immutable
 
-.dbg str(a set str)
+# TODO:PRIVATE
+dbg str(a set str)
 	res = mut-list<char>
 	res dbg-recur! a.root
 	res move-to-arr!
@@ -539,67 +535,71 @@ map set ?out(a set ?in, f act ?out(?in)) data<?in> data<?out> trusted
 				res ~= " "
 			res.last := "]"
 
-.validate void(a set str, expected str)
+.verify void(a set str, expected str)
 	a.size is a.root.walk-size
 	a.dbg is expected
 
 test
+	s = set: ["a", "c", "e", "g"]
+	s ~ "d" verify "([a c] d [e g])"
+
+test
 	s0 = set<str>
-	s0 validate "[]"
+	s0 verify "[]"
 
 	s1 = s0 ~ "h"
-	s1 validate "[h]"
+	s1 verify "[h]"
 
 	s2 = s1 ~ "k"
-	s2 validate "[h k]"
+	s2 verify "[h k]"
 
 	s3 = s2 ~ "i"
-	s3 validate "[h i k]"
+	s3 verify "[h i k]"
 
 	s4 = s3 ~ "j"
-	s4 validate "[h i j k]"
+	s4 verify "[h i j k]"
 
 	assert: s4["h"]
 	s4 ~ "i" is s4
 
 	s5 = s4 ~ "l"
-	s5 validate "([h i] j [k l])"
+	s5 verify "([h i] j [k l])"
 
-	(s5 - "i") validate "([h] j [k l])"
-	(s5 - "j") validate "([h] i [k l])"
-	(s5 - "k") validate "([h i] j [l])"
+	(s5 - "i") verify "([h] j [k l])"
+	(s5 - "j") verify "([h] i [k l])"
+	(s5 - "k") verify "([h i] j [l])"
 	s6 = s5 ~ "jj"
-	s6 validate "([h i] j [jj k l])"
+	s6 verify "([h i] j [jj k l])"
 
 	s7 = s6 ~ "ji"
-	s7 validate "([h i] j [ji jj k l])"
+	s7 verify "([h i] j [ji jj k l])"
 
 	s8 = s7 ~ "jk"
-	s8 validate "([h i] j ([ji jj] k [jk l]))"
+	s8 verify "([h i] j ([ji jj] jk [k l]))"
 
 	s8-k = s8 - "k"
-	s8-k validate "([h i] j ([ji] jj [jk l]))"
-	s8-k-jj = s8-k - "jj"
-	s8-k-jj validate "([h i] j ([] ji [jk l]))"
-	s8-k-jj - "ji" validate "([h i] j [jk l])"
+	s8-k verify "([h i] j ([ji jj] jk [l]))"
+	s8-k-l = s8-k - "l"
+	s8-k-l verify "([h i] j ([ji jj] jk []))"
+	s8-k-l - "jk" verify "([h i] j [ji jj])"
 
 	s9 = s8 ~ "m"
-	s9 validate "([h i] j ([ji jj] k [jk l m]))"
+	s9 verify "([h i] j ([ji jj] jk [k l m]))"
 	s10 = s9 ~ "n"
-	s10 validate "([h i] j ([ji jj] k [jk l m n]))"
+	s10 verify "([h i] j ([ji jj] jk [k l m n]))"
 	s11 = s10 ~ "o"
-	s11 validate "[h i j ji jj k jk l m n o]"
+	s11 verify "[h i j ji jj jk k l m n o]"
 
-	s8 ~ ["a", "jii", "z"].set validate "[a h i j ji jii jj jk k l z]"
-	s8 - s4 validate "[ji jj jk l]"
-	s8-k-jj intersect s3 validate "[h i]"
+	s8 ~ ["a", "jii", "z"].set verify "[a h i j ji jii jj jk k l z]"
+	s8 - s4 verify "[ji jj jk l]"
+	s8-k-l intersect s3 verify "[h i]"
 
 	folded = "s" fold s8, \x, y
-		x ~ y
-	folded is "shijjijjkjkl"
+		"{x}-{y}"
+	folded is "s-h-i-j-ji-jj-jk-k-l"
 
 	filtered = s8 filter {it[0] != "j"}
-	filtered validate "[h i k l]"
+	filtered verify "[h i k l]"
 
 	mapped = s8 map {it[0 -> 1]}
-	mapped validate "[h i j k l]"
+	mapped verify "[h i j k l]"

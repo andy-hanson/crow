@@ -6,17 +6,27 @@ import
 	...fun: subscript
 	...misc: void
 	...number: +, /, nat
-	...opt: none, opt, some
+	...opt: none, opt, some, value
 	...ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
 	...test: is
-	..arr: arr
-	..mut-arr: begin-ptr, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end
+	..arr: arr, begin-ptr, end-ptr
+	..mut-arr: begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end
 	..mut-list: arr, begin-ptr, empty?, empty!, end-ptr, mut-list, size, swap!, temp-as-mut-arr, unsafe-set-size!
+
+binary-search-value opt ?a(a arr ?a, compare act comparison(?a)) trusted
+	match a binary-search-exact-ptr compare
+	as none
+		none
+	as some s
+		s.value[] some
 
 binary-search-exact-ptr opt ptr ?a(a mut-list ?a, compare act comparison(?a)) unsafe
 	a.temp-as-mut-arr binary-search-exact-ptr compare
 
 binary-search-exact-ptr opt ptr ?a(a mut-arr ?a, compare act comparison(?a)) unsafe
+	a.cast-immutable binary-search-exact-ptr compare
+
+binary-search-exact-ptr opt ptr ?a(a arr ?a, compare act comparison(?a)) unsafe
 	ptr = a.begin-ptr binary-search-recur a.end-ptr, compare
 	if ptr ptr-eq? a.end-ptr
 		none
@@ -33,6 +43,9 @@ Returns the pointer to the least value that is compared equal or greater.
 Returns `a end-ptr` if all values compare less.
 ###
 binary-search-insert-ptr ptr ?a(a mut-arr ?a, compare act comparison(?a)) unsafe
+	a.begin-ptr binary-search-recur a.end-ptr, compare
+
+binary-search-insert-ptr ptr ?a(a arr ?a, compare act comparison(?a)) unsafe
 	a.begin-ptr binary-search-recur a.end-ptr, compare
 
 test

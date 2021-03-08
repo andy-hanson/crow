@@ -2,7 +2,7 @@ module(
 	path: 65
 	imports: [
 		import(none, 45, none)
-		import(some(range(8, 76)), 64, some([get-log-handler, info, log, log-handler, warn, with-log-handler]))]
+		import(some(range(8, 76)), 50, some([get-log-handler, info, log, log-handler, warn, with-log-handler]))]
 	funs: [
 		fun(
 			public?: true

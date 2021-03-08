@@ -321,15 +321,15 @@ map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k>
 
 .dbg str(a mut-dict<nat, str>)
 	out = mut-list<char>
-	out dbg-recur a
+	out dbg-recur! a
 	out move-to-arr!
 
-.dbg-recur void(out mut-list char, a mut-dict<nat, str>)
+.dbg-recur! void(out mut-list char, a mut-dict<nat, str>)
 	out ~= "["
 	a.pairs each \pair
 		out ~= pair.from to-str
 		out ~= " -> "
-		out ~= match pair.to
+		out ~= match pair to
 		as none
 			"_"
 		as some s
@@ -345,7 +345,7 @@ map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k>
 		void
 	as some s
 		out ~= ", "
-		out dbg-recur s.value
+		out dbg-recur! s.value
 
 .verify void(a mut-dict<nat, str>, expected str)
 	a.dbg is expected

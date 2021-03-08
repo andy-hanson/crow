@@ -30,7 +30,6 @@ main fut nat(_ arr str) summon
 	drop: mut-stack<nat>
 	drop: priority-queue<nat, nat>
 	drop: set<nat>
-	drop: set<nat>
 	drop: stack<nat>
 	drop: queue<nat>
 	drop: gmt

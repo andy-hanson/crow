@@ -35,6 +35,14 @@ map opt ?out(a opt ?in, f act ?out(?in))
 	as some s
 		f[s value] some
 
+# Takes the leftmost `some` value.
+opt-or opt ?a(a opt ?a, b opt ?a)
+	match a
+	as none
+		b
+	as some
+		a
+
 # Converts an option to a value by supplying a default to handle `none`.
 or-default ?a(a opt ?a, default act ?a())
 	match a
