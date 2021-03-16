@@ -3,14 +3,25 @@ import
 	..private.alloc: alloc-uninitialized, fill-ptr-range
 	..private.bootstrap: noctx-incr
 	..bool: and, bool, false, not, to-nat, true
-	..compare: ==, !=, <, <=, >=
+	..compare: ==, !=, <, <=, >=, max, min
 	..exception: assert, forbid
 	..fun: subscript
 	..misc: ->, data, void
 	..number: +, -, nat
 	..opt: has?, none, opt, some, value
-	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
+	..ptr: +, -, deep-size-bytes, ptr, ptr-eq?, set-subscript, size-of, subscript
 	.arr: ~, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, noctx-at, size, subscript
+
+###
+Number of bytes that does not go into storing the values.
+For an 'arr' this is a constant 16 bytes.
+###
+overhead-bytes nat(a arr ?a) unsafe
+	a size-of
+
+deep-size-bytes nat(a arr ?a) unsafe deep-size-bytes<?a>
+	a.overhead-bytes fold a, \acc, x
+		acc + x.deep-size-bytes
 
 ###
 Equivalent to `[f[0], f[1], ..., f[size - 1]]`.
@@ -61,20 +72,24 @@ each-ptr-recur void(cur ptr ?a, end ptr ?a, f act void(ptr ?a)) unsafe
 ###
 Arr of the elements of `a` for which `f[a[i]]` returns true.
 ###
-filter arr ?a(a arr ?a, f act bool(?a)) trusted
+filter arr ?a(a arr ?a, f act bool(?a))
+	a filter-with-index \cur, index
+		f[cur]
+
+filter-with-index arr ?a(a arr ?a, f act bool(?a, nat)) trusted
 	res = a.size alloc-uninitialized<?a>
-	end = res filter-recur a, f
+	end = res filter-with-index-recur a.begin-ptr, a.end-ptr, 0, f
 	res arr-from-begin-end end
-.filter-recur ptr ?a(out ptr ?a, a arr ?a, f act bool(?a)) unsafe
-	if a empty?
+.filter-with-index-recur ptr ?a(out ptr ?a, cur ptr ?a, end ptr ?a, index nat, f act bool(?a, nat)) unsafe
+	if cur ptr-eq? end
 		out
 	else
-		next-out = if f[a[0]]
-			out[] := a[0]
+		new-out = if f[cur[], index]
+			out[] := cur[]
 			out + 1
 		else
 			out
-		next-out filter-recur a.tail, f
+		new-out filter-with-index-recur cur + 1, end, index + 1, f
 
 # TODO: move to iter-utiil since this works with any foldable
 count nat(a arr ?a, f act bool(?a))
@@ -85,9 +100,13 @@ count nat(a arr ?a, f act bool(?a))
 Equivalent to `[f[a[0]], f[a[1]], ...]`.
 Arr of `f[x]` for each `x` in `a`.
 ###
-map arr ?out(a arr ?in, f act ?out(?in)) trusted
+map arr ?out(a arr ?in, f act ?out(?in))
 	a.size make-arr \i
 		f[a[i]]
+
+map-with-index arr ?out(a arr ?in, f act ?out(?in, nat))
+	a.size make-arr \i
+		f[a[i], i]
 
 first opt ?a(a arr ?a)
 	if a empty?
@@ -217,6 +236,14 @@ fold ?a(acc ?a, a arr ?b, f act ?a(?a, ?b)) trusted
 		acc
 	else
 		f[acc, cur[]] fold-recur cur + 1, end, f
+
+fold-with-index ?a(acc ?a, a arr ?b, f act ?a(?a, ?b, nat)) trusted
+	acc fold-with-index-recur 0, a.begin-ptr, a.end-ptr, f
+.fold-with-index-recur ?a(acc ?a, index nat, cur ptr ?b, end ptr ?b, f act ?a(?a, ?b, nat)) unsafe
+	if cur ptr-eq? end
+		acc
+	else
+		f[acc, cur[], index] fold-with-index-recur index + 1, cur + 1, end, f
 
 fold-reverse ?a(acc ?a, a arr ?b, f act ?a(?a, ?b)) trusted
 	acc fold-reverse-recur a.begin-ptr, a.end-ptr, f
@@ -349,6 +376,45 @@ zip arr ?out(a arr ?a, b arr ?b, f act ?out(?a, ?b))
 	a.size make-arr \i
 		f[a[i], b[i]]
 
+###
+Like `zip`, but instead of throwing on different sizes,
+cuts the larger array down to the smaller one's size.
+###
+zip-smaller arr ?out(a arr ?a, b arr ?b, f act ?out(?a, ?b))
+	size = a.size min b.size
+	a[0 -> size] zip b[0 -> size], f
+
+
+###
+Returns an array as big as the bigger of 'a' and 'b'.
+Calls 'f' using corresponding elements, or 'none' if the arr is too short.
+###
+zip-larger arr ?out(a arr ?a, b arr ?b, f act ?out(opt ?a, opt ?b))
+	a.size max b.size make-arr \i
+		f[(a opt-subscript i), (b opt-subscript i)]
+
+.opt-subscript opt ?a(a arr ?a, index nat)
+	if index < a.size
+		a[index] some
+	else
+		none
+
+update arr ?a(a arr ?a, index nat, new-value ?a)
+	assert: index < a.size
+	a[0 -> index] ~ [new-value] ~ a[index + 1 -> a.size]
+
+update-with-default arr ?a(a arr ?a, index nat, new-value ?a, default ?a)
+	if index < a.size
+		index + 1 make-arr \i
+			if i < a.size
+				a[i]
+			elif i == index
+				new-value
+			else
+				default
+	else
+		a update index, new-value
+
 insert arr ?a(a arr ?a, index nat, value ?a)
 	assert: index <= a.size
 	# TODO:PERF (only concat once)
@@ -356,3 +422,9 @@ insert arr ?a(a arr ?a, index nat, value ?a)
 
 insert arr ?a(a arr ?a, ptr ptr ?a, value ?a) unsafe
 	a insert ptr - a.begin-ptr, value
+
+with-max-size arr ?a(a arr ?a, max-size nat)
+	if a.size <= max-size
+		a
+	else
+		a[0 -> max-size]

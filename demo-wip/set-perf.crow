@@ -1,0 +1,59 @@
+import
+	col.set: ~, alloc-count, arr, dbg, deep-size-bytes, overhead-bytes, set, size
+	col.tree-set: ~, alloc-count, arr, dbg, deep-size-bytes, overhead-bytes, size, tree-set
+	io.print: print
+	io.time: get-monotime-nsec
+
+main fut nat(_ arr str) unsafe summon
+	print: "Hello, world!"
+	42 srand
+	start-s = get-monotime-nsec
+
+	max-value = 4096
+	iters = 2048
+
+	s = set<nat> add-test-recur iters, max-value
+	end-s = get-monotime-nsec
+	print: "s took: {(end-s - start-s) / 1000}ms"
+	print: "s size is {s size}"
+	print: "s deep-size-bytes is {s deep-size-bytes}"
+	print: "s overhead-bytes is {s overhead-bytes}"
+	print: "s alloc-count is {s alloc-count}"
+	print: "s dbg is {s dbg}"
+
+	42 srand
+	start-ts = get-monotime-nsec
+	ts = tree-set<nat> add-test-recur iters, max-value
+	end-ts = get-monotime-nsec
+	print: "ts took: {(end-ts - start-ts) / 1000}ms"
+	print: "ts size is {ts size}"
+	print: "ts deep-size-bytes is {ts deep-size-bytes}"
+	print: "ts overhead-bytes is {ts overhead-bytes}"
+	print: "ts alloc-count is {ts alloc-count}"
+	print: "ts dbg is {ts dbg}"
+
+	s-arr = s arr
+	ts-arr = ts arr
+
+	s-arr is ts-arr
+
+	0 resolved
+
+.add-test-recur set nat(a set nat, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		a ~ max-value.rand-nat add-test-recur iters - 1, max-value
+
+.add-test-recur tree-set nat(a tree-set nat, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		a ~ max-value.rand-nat add-test-recur iters - 1, max-value
+
+rand-nat nat(max nat) summon
+	rand.to-nat mod max
+
+rand int32() noctx extern<"rand"> summon
+
+srand void(a nat32) noctx extern<"srand"> summon

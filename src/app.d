@@ -20,6 +20,7 @@ import interpret.applyFn : nat64OfI32, nat64OfI64;
 import interpret.bytecode : DynCallType, TimeSpec;
 import lib.cliParser :
 	BuildOptions,
+	CCompileOptions,
 	Command,
 	matchCommand,
 	parseCommand,
@@ -294,7 +295,8 @@ immutable(RunBuildResult) runBuild(Alloc, PathAlloc)(
 		programDirAndMain,
 		includeDir,
 		cPath,
-		exePath);
+		exePath,
+		options.cCompileOptions);
 	return immutable RunBuildResult(err, exePath);
 }
 
@@ -319,6 +321,7 @@ immutable(ExitCode) buildToCAndCompile(Alloc, PathAlloc)(
 	immutable string includeDir,
 	immutable AbsolutePath cPath,
 	immutable AbsolutePath exePath,
+	ref immutable CCompileOptions cCompileOptions,
 ) {
 	RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
 		ptrTrustMe_mut(allPaths),
@@ -330,7 +333,9 @@ immutable(ExitCode) buildToCAndCompile(Alloc, PathAlloc)(
 		buildToC(alloc, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
 	if (empty(result.diagnostics)) {
 		immutable ExitCode res = writeFile(alloc, pathToNulTerminatedStr(alloc, allPaths, cPath), result.cSource);
-		return res == ExitCode.ok ? compileC(alloc, allPaths, cPath, exePath, result.allExternLibraryNames) : res;
+		return res == ExitCode.ok
+			? compileC(alloc, allPaths, cPath, exePath, result.allExternLibraryNames, cCompileOptions)
+			: res;
 	} else
 		return printErr(result.diagnostics);
 }
@@ -363,15 +368,8 @@ immutable(ExitCode) help(ref immutable Command.Help a) {
 	}
 }
 
-immutable(ExitCode) compileC(Alloc, PathAlloc)(
-	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
-	ref immutable AbsolutePath cPath,
-	ref immutable AbsolutePath exePath,
-	immutable string[] allExternLibraryNames,
-) {
-	ArrBuilder!string args;
-	addAll(alloc, args, [
+immutable(string[]) cCompilerArgs(ref immutable CCompileOptions options) {
+	static immutable string[] optimizedArgs = [
 		"-Werror",
 		"-Wextra",
 		"-Wall",
@@ -384,7 +382,42 @@ immutable(ExitCode) compileC(Alloc, PathAlloc)(
 		"-Wno-builtin-declaration-mismatch", //TODO:KILL?
 		"-pthread",
 		"-lm",
-	]);
+		"-Ofast",
+	];
+	static immutable string[] regularArgs = optimizedArgs[0 .. $ - 1];
+	return options.optimize ? optimizedArgs : regularArgs;
+}
+
+@trusted immutable(ExitCode) compileC(Alloc, PathAlloc)(
+	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
+	ref immutable AbsolutePath cPath,
+	ref immutable AbsolutePath exePath,
+	immutable string[] allExternLibraryNames,
+	ref immutable CCompileOptions options,
+) {
+	immutable string[] args = cCompileArgs(alloc, allPaths, cPath, exePath, allExternLibraryNames, options);
+	// if (true) {
+	// 	printf("/usr/bin/cc");
+	// 	foreach (immutable string arg; args) {
+	// 		printf(" %.*s", cast(int) size(arg), arg.ptr);
+	// 	}
+	// 	printf("\n");
+	// }
+	immutable int err = spawnAndWait(alloc, allPaths, "/usr/bin/cc", args);
+	return immutable ExitCode(err);
+}
+
+immutable(string[]) cCompileArgs(Alloc, PathAlloc)(
+	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
+	ref immutable AbsolutePath cPath,
+	ref immutable AbsolutePath exePath,
+	immutable string[] allExternLibraryNames,
+	ref immutable CCompileOptions options,
+) {
+	ArrBuilder!string args;
+	addAll(alloc, args, cCompilerArgs(options));
 	foreach (immutable string it; allExternLibraryNames)
 		add(alloc, args, cat(alloc, "-l", it));
 	addAll(alloc, args, [
@@ -394,8 +427,7 @@ immutable(ExitCode) compileC(Alloc, PathAlloc)(
 		"-o",
 		pathToStr(alloc, allPaths, exePath),
 	]);
-	immutable int err = spawnAndWait(alloc, allPaths, "/usr/bin/cc", finishArr(alloc, args));
-	return ExitCode(err);
+	return finishArr(alloc, args);
 }
 
 @trusted immutable(ExitCode) print(immutable string a) {

@@ -1,38 +1,47 @@
 import
+	bits: count-ones
 	col.arr-util: each
-	col.deque: deque
-	col.dict: dict
-	col.list: list
-	col.mut-deque: mut-deque
-	col.mut-dict: mut-dict
-	col.mut-list: mut-list
-	col.mut-priority-queue: mut-priority-queue
-	col.mut-set: mut-set
-	col.mut-stack: mut-stack
-	col.priority-queue: priority-queue
+	#col.deque: deque
+	#col.dict: dict
+	col.index-set: index-set
+	#col.list: list
+	#col.mut-deque: mut-deque
+	#col.mut-dict: mut-dict
+	#col.mut-list: mut-list
+	#col.mut-priority-queue: mut-priority-queue
+	#col.mut-set: mut-set
+	#col.mut-stack: mut-stack
+	#col.priority-queue: priority-queue
 	col.set: set
-	col.stack: stack
-	col.queue: queue
+	#col.stack: stack
+	col.tree-set: tree-set
+	#col.queue: queue
 	io.print: print
-	io.time-format: gmt
+	#io.time-format: gmt
 	log: info, log
 	private.bootstrap: ctx, get-ctx
 
 main fut nat(_ arr str) summon
-	drop: deque<nat>
-	drop: dict<nat, nat>
-	drop: list<nat>
-	drop: mut-deque<nat>
-	drop: mut-dict<nat, nat>
-	drop: mut-list<nat>
-	drop: mut-priority-queue<nat, nat>
-	drop: mut-set<nat>
-	drop: mut-stack<nat>
-	drop: priority-queue<nat, nat>
+	x = 0x77
+	info log "count-ones"
+	info log x.count-ones.to-str
+
+	#drop: deque<nat>
+	#drop: dict<nat, nat>
+	drop: index-set
+	#drop: list<nat>
+	#drop: mut-deque<nat>
+	#drop: mut-dict<nat, nat>
+	#drop: mut-list<nat>
+	#drop: mut-priority-queue<nat, nat>
+	#drop: mut-set<nat>
+	#drop: mut-stack<nat>
+	#drop: priority-queue<nat, nat>
 	drop: set<nat>
-	drop: stack<nat>
-	drop: queue<nat>
-	drop: gmt
+	#drop: stack<nat>
+	drop: tree-set<nat>
+	#drop: queue<nat>
+	#drop: gmt
 	run-all-tests
 	0 resolved
 

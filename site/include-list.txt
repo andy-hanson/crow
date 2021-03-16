@@ -5,6 +5,7 @@ col/arr-util
 col/arr
 col/deque
 col/dict
+col/index-set
 col/list
 col/mut-arr
 col/mut-deque
@@ -19,6 +20,7 @@ col/queue
 col/set
 col/sort
 col/stack
+col/tree-set
 compare
 exception
 fun

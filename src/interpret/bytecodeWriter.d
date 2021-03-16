@@ -585,6 +585,7 @@ void writeFn(Debug, Alloc)(
 			case FnOp.wrapSubIntegral:
 				return -1;
 			case FnOp.bitsNotNat64:
+			case FnOp.countOnesNat64:
 			case FnOp.float64FromInt64:
 			case FnOp.float64FromNat64:
 			case FnOp.intFromInt16:

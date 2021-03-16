@@ -1,605 +1,491 @@
 no-std
 import
 	..bool: and, bool, false, not, true
-	..compare: ==, !=, <, >, <=>
+	..compare: ==, !=, <, >, >=, <=>
 	..exception: assert, forbid, unreachable
 	..fun: subscript
-	..misc: ->, as, data, drop, void
-	..number: +, -, /, nat
-	..opt: has?, none, opt, some, value
-	..ptr: +, -, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, subscript
+	..log: info, log
+	..misc: ->, data, void
+	..number: +, -, *, nat
+	..opt: force, none, opt, or-default, some, value
+	..ptr:
+		+, -, deep-size-bytes, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of,
+		subscript
 	..str: char, str
-	..str-conv: interp, finish, to-str, with-str, with-value
+	..str-conv: finish, interp, to-str, with-str, with-value
 	..test: is
-	.arr: arr, begin-ptr, empty?, end-ptr, size, subscript
-	.arr-util: each, fold, insert, last, rtail, tail, try-remove
-	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
+	.arr: arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, size, subscript
+	.arr-util: deep-size-bytes, each, tail
+	.index-set:
+		~, alloc-count, count-greater-or-equal, count-range, deep-size-bytes, each, empty?,
+		filter-less, index-set, size, subscript, try-remove
+	.mut-arr:
+		begin-ptr, cast-immutable, empty?, end-ptr, mut-arr, set-subscript, size, subscript,
+		uninitialized-mut-arr
 	.mut-list: ~=, move-to-arr!, mut-list, set-last
-	.mut-stack: ~=, mut-stack, last, pop!
-	.sort: sort-unique, sort-unique!
-	.private.sort-utils: binary-search-exact-ptr, binary-search-insert-ptr
+	.sort: sort
+	.private.sort-utils: binary-search-exact-index
 
-###
-Set of unique values.
-Unlike `arr`, the values are always in sorted order, and there are never two of the same value.
-###
 set<?a> record
-	# TODO: PRIVATE
-	root node ?a
-	total-size nat
+	add add-node ?a
+	remove index-set
 
-# True iff the set is empty.
-empty? bool(a set ?a) data<?a>
-	a.total-size == 0
+###
+We store add/remove separately.
+Add nodes are a linked list where links point to the left. Largest node is on the left. Nodes are added to the right.
+Removes are a flat array, since removes can happen anywhere.
+Removes may be smaller than adds; that means that removals on the right are implicitly missing.
+###
 
-# Number of values in the set.
-size nat(a set ?a) data<?a>
-	a total-size
+.add-node<?a> record
+	values arr ?a
+	left opt add-node ?a
 
-# Empty `set`.
-set set ?a()
-	root = [] as<arr ?a>
-	set: root, 0
+set set ?a() data<?a>
+	[] set
 
-.node<?a> union
-	# TODO: SYNTAX should not require <>
-	inner-node<?a>
-	arr<?a>
-
-.inner-node<?a> record
-	by-ref
-	value ?a
-	left node ?a
-	right node ?a
-
-# Copy an `arr` to a `set`.
 set set ?a(a arr ?a) data<?a>
-	values = a sort-unique
-	set: values, values.size
+	a.sort add-node none set index-set
 
-###
-Array of all values in the set, in sorted order.
-This is O(a size).
-###
 arr arr ?a(a set ?a) data<?a>
-	match a.root
-	as inner-node i
-		i tree-to-arr a.size
-	as arr arr
-		arr
+	a map-to-arr {it}
 
-# True iff the value is in the set.
-subscript bool(a set ?a, value ?a) data<?a>
-	a.root has? value
-.has? bool(a node ?a, value ?a) trusted data<?a>
-	match a
-	as inner-node i
-		match value <=> i.value
-		as less
-			i.left has? value
-		as equal
-			true
-		as greater
-			i.right has? value
-	as arr arr
-		arr binary-search-exact-ptr {value <=> it} has?
-
-###
-Add a value to the set.
-No effect if the value is already in the set.
-This is O(a.size ln)
-###
-~ set ?a(a set ?a, value ?a) data<?a>
-	new-size = a.size + 1
-	match a.root add-recur value, new-size.get-max-height
+deep-size-bytes nat(a set ?a) unsafe deep-size-bytes<?a>
+	a.remove.deep-size-bytes deep-size-bytes-recur a.add
+.deep-size-bytes-recur nat(acc nat, a add-node ?a) unsafe deep-size-bytes<?a>
+	mid = acc + a.values.deep-size-bytes + a.left.size-of
+	match a left
 	as none
-		a
-	as inserted i
-		set: i.node, a.size + 1
-	as find-scapegoat
-		unreachable
-
-###
-Add many values to the set.
-This is O(a.size + b.size).
-###
-~ set ?a(a set ?a, b arr ?a) data<?a>
-	a ~ b.set
-
-###
-Union of two sets.
-This is O(a.size + b.size).
-###
-~ set ?a(a set ?a, b set ?a) trusted data<?a>
-	out = a.size + b.size uninitialized-mut-arr<?a>
-	b-iter = b iter
-	end = out.begin-ptr fold a, \cur, value
-		cur walk-iter-union! value, b-iter
-	end2 = end fold-iter b-iter, \cur, value
-		cur[] := value
-		cur + 1
-	set: out[0 -> end2 - out.begin-ptr] cast-immutable
-
-.walk-iter-union! ptr ?a(out ptr ?a, value ?a, a iter ?a) data<?a> unsafe
-	match a peek
-	as none
-		out[] := value
-		out + 1
+		mid
 	as some s
-		peek = s value
-		match value <=> peek
-		as less
-			out[] := value
-			out + 1
-		as equal
-			out[] := value
-			a.next! drop
-			out + 1
-		as greater
-			out[] := peek
-			a.next! drop
-			out + 1 walk-iter-union! value, a
+		mid deep-size-bytes-recur s.value
 
-intersect set ?a(a set ?a, b set ?a) trusted data<?a>
-	b-iter = b iter
-	a filter {b-iter walk-iter-has? it}
-
-.walk-iter-has? bool(a iter ?a, value ?a) data<?a> unsafe
-	match a peek
+overhead-bytes nat(a set ?a) unsafe
+	a.remove.deep-size-bytes overhead-bytes-recur a.add
+.overhead-bytes-recur nat(acc nat, a add-node ?a) unsafe
+	mid = acc + a.size-of
+	match a left
 	as none
-		false
+		mid
 	as some s
-		match value <=> s.value
-		as less
-			false
-		as equal
-			a.next! drop
-			true
-		as greater
-			a.next! drop
-			a walk-iter-has? value
+		mid overhead-bytes-recur s.value
 
-###
-Returns a set that does not contain 'b'.
-If 'b' is not in the set, returns it unmodified.
-This is O(a.size ln).
-###
-- set ?a(a set ?a, b ?a) data<?a>
-	match a try-remove b
+alloc-count nat(a set ?a) unsafe
+	a.remove.alloc-count alloc-count-recur a.add
+.alloc-count-recur nat(acc nat, a add-node ?a)
+	# + 1 to allocate the arr
+	mid = acc + 1
+	match a left
 	as none
-		a
+		mid
 	as some s
-		s value
+		# + 1 to allocate the left node
+		mid + 1 alloc-count-recur s.value
 
-###
-If 'b' is in the set, returns `none~.
-Else, returns a set with 'b' removed.
-This is O(a.size ln).
-###
-try-remove opt set ?a(a set ?a, b ?a) data<?a>
-	match a.root try-remove-recur b
+.add-node-count nat(a set ?a)
+	0 add-node-count-recur a.add
+.add-node-count-recur nat(acc nat, a add-node ?a)
+	match a left
 	as none
-		none
+		acc + 1
 	as some s
-		some: set: s.value, a.size - 1
+		acc + 1 add-node-count-recur s.value
 
-.try-remove-recur opt node ?a(a node ?a, b ?a) data<?a>
-	match a
-	as inner-node i
-		match b <=> i.value
-		as less
-			match i.left try-remove-recur b
-			as none
-				none
-			as some s
-				new-left = s value
-				some: inner-node: i.value, new-left, i.right
-		as equal
-			some: if i.right node-empty?
-				i left
-			else
-				# Remove the base of the tree -- making one of the sides take over.
-				match i.left pop-right
-				as none
-					i right
-				as some s
-					popped = s value
-					inner-node: popped.value, popped.rest, i.right
-		as greater
-			match i.right try-remove-recur b
-			as none
-				none
-			as some s
-				some: inner-node: i.value, i.left, s.value
-	as arr arr
-		# TODO: use a binary search (try-remove uses linear search since it's for arbitrary arr)
-		match arr try-remove b
-		as none
-			none
-		as some s
-			arr2 = s value
-			arr2.as<node ?a> some
 
-.node-empty? bool(a node ?a)
-	match a
-	as inner-node
-		false
-	as arr r
-		r empty?
+empty? bool(a set ?a)
+	# Compaction ensures that this is the only case where we store empty values.
+	a.add.values empty?
 
-.popped<?a> record
-	value ?a
-	rest node ?a
-
-.pop-right opt popped ?a(a node ?a)
-	match a
-	as inner-node i
-		match i.right pop-right
-		as none
-			# Then this is rightmost
-			some: popped: i.value, i.left
-		as some s
-			some: popped: s.value.value, inner-node: i.value, i.left, s.value.rest
-	as arr arr
-		match arr last
-		as none
-			none
-		as some s
-			some: popped: s.value, arr.rtail
-
-- set ?a(a set ?a, b set ?a) trusted data<?a>
-	b-iter = b iter
-	a filter {b-iter walk-iter-has? it not}
-
-.iter<?a> record mut
-	cur mut arr ?a
-	# If a node is on the stack, we have yet to write out the middle and right.
-	# TODO:PERF use a mut-arr, initialized to the tree's height
-	stack mut-stack inner-node ?a
-
-.iter iter ?a(a set ?a) trusted
-	stack = mut-stack<inner-node ?a>
-	cur = stack init-iter-recur! a.root
-	iter: cur, stack
-.init-iter-recur! arr ?a(stack mut-stack inner-node ?a, node node ?a)
-	match node
-	as inner-node i
-		stack ~= i
-		stack init-iter-recur! i.left
-	as arr arr
-		arr
-.peek opt ?a(a iter ?a)
-	if a.cur empty?
-		match a.stack last
-		as none
-			none
-		as some s
-			s.value.value some
-	else
-		a.cur[0] some
-.next! opt ?a(a iter ?a) trusted
-	if a.cur empty?
-		match a.stack pop!
-		as none
-			none
-		as some s
-			node = s value
-			res = node value
-			match node right
-			as inner-node i
-				a.stack ~= i
-			as arr arr
-				a.cur := arr
-			res some
-	else
-		res = a.cur[0]
-		a.cur := a.cur tail
-		res some
-
-# Folds the remaining elements from the iter
-.fold-iter ?a(acc ?a, a iter ?b, f act ?a(?a, ?b))
-	mid = acc fold a.cur, f
-	mid fold-iter-recur a.stack, f
-.fold-iter-recur ?a(acc ?a, stack mut-stack inner-node ?b, f act ?a(?a, ?b))
-	match stack pop!
+size nat(a set ?a)
+	a.remove.size add-size-recur a.add
+.add-size nat(a add-node ?a)
+	0 add-size-recur a
+.add-size-recur nat(acc nat, a add-node ?a)
+	acc + a.values.size add-size-left a
+.add-size-left nat(a add-node ?a)
+	0 add-size-left a
+.add-size-left nat(acc nat, a add-node ?a)
+	match a left
 	as none
 		acc
 	as some s
-		mid = acc fold-recur-inner-node s.value, f
-		mid fold-iter-recur stack, f
+		acc add-size-recur s.value
 
-.inserted<?a> record
-	by-val
-	node node ?a
+subscript bool(a set ?a, value ?a) data<?a>
+	match a.add find-in-add value
+	as none
+		false
+	as some s
+		a.remove[s value] not
 
-.find-scapegoat record
-	# size of this subtree
-	size nat
-	# height of this subtree
-	height nat
-
-.add-result<?a> union
-	none
-	# TODO: SYNTAX should not require <>
-	inserted<?a>
-	find-scapegoat
-
-.add-recur add-result ?a(a node ?a, value ?a, max-height nat) data<?a>
-	match a
-	as inner-node i
-		i add-to-inner value, max-height
-	as arr arr
-		arr add-to-arr value, max-height
-
-.add-to-inner add-result ?a(a inner-node ?a, value ?a, max-height nat) data<?a>
-	match value <=> a.value
-	as less
-		match a.left add-recur value, max-height - 1
+.find-in-add opt nat(a add-node ?a, value ?a) data<?a>
+	match a.values binary-search-exact-index value
+	as none
+		match a left
 		as none
 			none
-		as inserted new-left
-			inserted: inner-node: a.value, new-left.node, a.right
-		as find-scapegoat f
-			a handle-scapegoat value, a.right, f
-	as equal
-		none
-	as greater
-		match a.right add-recur value, max-height - 1
+		as some s
+			s.value find-in-add value
+	as some s
+		a.add-size-left + s.value some
+
+.find-in-add-for-remove-result record
+	value-index nat
+	size-left nat
+	size-here nat
+	size-right nat
+
+.find-in-add-for-remove opt find-in-add-for-remove-result(a add-node ?a, value ?a, size-right nat) data<?a>
+	match a.values binary-search-exact-index value
+	as none
+		match a left
 		as none
 			none
-		as inserted new-right
-			inserted: inner-node: a.value, a.left, new-right.node
-		as find-scapegoat f
-			a handle-scapegoat value, a.left, f
+		as some s
+			s.value find-in-add-for-remove value, size-right + a.values.size
+	as some s
+		sl = a add-size-left
+		some: find-in-add-for-remove-result: sl + s.value, sl, a.values.size, size-right
 
-.add-to-arr add-result ?a(a arr ?a, value ?a, max-height nat) trusted data<?a>
-	insert-ptr = a binary-search-insert-ptr {value <=> it}
-	if (insert-ptr ptr-eq? a.end-ptr).not and insert-ptr[] == value
+~ set ?a(a set ?a, value ?a) data<?a>
+	a try-add value or-default a
+
+try-add opt set ?a(a set ?a, value ?a) data<?a>
+	match a.add find-in-add value
+	as none
+		a add-and-compact value some
+	as some s
+		# In 'add', but may need to remove from removals
+		match a.remove try-remove s.value
+		as none
+			none
+		as some s2
+			some: set: a.add, s2.value
+
+- set ?a(a set ?a, value ?a) data<?a>
+	a try-remove value or-default a
+
+try-remove opt set ?a(a set ?a, value ?a) trusted data<?a>
+	match a.add find-in-add-for-remove value, 0
+	as none
 		none
-	elif a.size < 4
-		inserted: a insert insert-ptr, value
-	elif max-height == 0
-		# Can't add new nodes
-		find-scapegoat: a.size + 1, 1
-	else
-		a break-up-arr value, insert-ptr, max-height
-
-.break-up-arr add-result ?a(a arr ?a, value ?a, insert-ptr ptr ?a, max-height nat) unsafe data<?a>
-	assert: a.begin-ptr ptr-less-eq? insert-ptr
-	assert: insert-ptr ptr-less-eq? a.end-ptr
-	# Break it up into nodes, adding to height
-	mid-ptr = a.begin-ptr + (a.end-ptr - a.begin-ptr) / 2
-	mid-index = mid-ptr - a.begin-ptr
-	if insert-ptr ptr-eq? mid-ptr
-		inserted: inner-node: value, a[0 -> mid-index], a[mid-index -> a.size]
-	else
-		mid = mid-ptr[]
-		assert: mid-index < a.size
-		left-arr = a[0 -> mid-index]
-		right-arr = a[mid-index + 1 -> a.size]
-		forbid: left-arr empty?
-		forbid: right-arr empty?
-		if insert-ptr ptr-less? mid-ptr
-			# TODO:PERF: This redundantly finds insert-ptr again
-			match left-arr add-to-arr value, max-height - 1
-			as none
-				unreachable
-			as inserted i
-				inserted: inner-node: mid, i.node, right-arr.as<node ?a>
-			as find-scapegoat
-				unreachable
+	as some s
+		r = s value
+		removals-here-and-right = 1 +: a.remove count-greater-or-equal r.size-left
+		some: if r.size-here should-compact? r.size-right, removals-here-and-right
+			compacted-size = r.size-here + r.size-right - 1
+			a do-compact-and-remove (compact-plan: r.size-left, compacted-size), r.value-index
 		else
-			match right-arr add-to-arr value, max-height - 1
-			as none
-				unreachable
-			as inserted i
-				inserted: inner-node: mid, left-arr, i.node
-			as find-scapegoat
-				unreachable
+			set: a.add, a.remove ~ r.value-index
 
-.handle-scapegoat add-result ?a(a inner-node ?a, value ?a, other-subtree node ?a, f find-scapegoat) data<?a>
-	size-here = f.size + 1 + other-subtree.walk-size
-	height-here = f.height + 1
-	if height-here > size-here.get-max-height
-		inserted: a tree-to-arr value, size-here
+.add-and-compact set ?a(a set ?a, value ?a) trusted data<?a>
+	add-size = a.add add-size
+	if add-size == 0
+		set: (add-node: [value], none), index-set
 	else
-		find-scapegoat: size-here, height-here
+		# size-right starts as 1 because we're adding a value
+		plan = add-size add-and-compact-plan a.add, a.remove, 1
+		if plan.compacted-size == 1
+			set: (add-node: [value], a.add.some), a.remove
+		else
+			a do-compact-and-add add-size, plan, value
 
-.walk-size nat(a node ?a)
-	match a
-	as inner-node i
-		i.left.walk-size + 1 + i.right.walk-size
-	as arr arr
-		arr.size
+.compact-plan record
+	# Total size of all non-compacted nodes
+	size-left nat
+	# Size that the compacted node will have (sum of 'depth' rightmost nodes)
+	compacted-size nat
 
-.tree-to-arr arr ?a(a inner-node ?a, value ?a, size nat) trusted data<?a>
-	out = size uninitialized-mut-arr<?a>
-	end = out.begin-ptr tree-to-arr-recur! a, value
-	assert: end ptr-eq? out.end-ptr
-	out cast-immutable
-.tree-to-arr arr ?a(a inner-node ?a, size nat) trusted data<?a>
-	out = size uninitialized-mut-arr<?a>
-	end = out.begin-ptr tree-to-arr-recur! a
-	assert: end ptr-eq? out.end-ptr
-	out cast-immutable
-.tree-to-arr-recur! ptr ?a(out ptr ?a, a node ?a, value ?a) data<?a> unsafe
-	match a
-	as inner-node i
-		match value <=> i.value
-		as less
-			mid = out tree-to-arr-recur! i.left, value
-			mid[] := i.value
-			mid + 1 tree-to-arr-recur! i.right
-		as equal
-			unreachable
-		as greater
-			mid = out tree-to-arr-recur! i.left
-			mid[] := i.value
-			mid + 1 tree-to-arr-recur! i.right, value
-	as arr arr
-		# Find first x > value, insert it before there
-		index = (arr binary-search-insert-ptr {value <=> it}) - arr.begin-ptr
-		mid = out copy-out! arr[0 -> index]
-		mid[] := value
-		mid + 1 copy-out! arr[index -> arr.size]
-# Version where we know we don't have to insert value
-.tree-to-arr-recur! ptr ?a(out ptr ?a, a node ?a) unsafe
-	match a
-	as inner-node i
-		mid = out tree-to-arr-recur! i.left
-		mid[] := i.value
-		mid + 1 tree-to-arr-recur! i.right
-	as arr arr
-		out copy-out! arr
+###
+Given that we're adding a new value to the right, we may compact nodes on the right.
+size-here-and-left + size-right is the current size + 1.
 
-# TODO:PERF
-.copy-out! ptr ?a(out ptr ?a, a arr ?a) unsafe
-	out fold a, \cur, x
-		cur[] := x
-		cur + 1
-
-# TODO:PERF
-.get-max-height nat(size nat)
-	if size < 4
-		0
+We compact a node if:
+* The combined size of all nodes to the right is >= this node's size
+* Half of the values of this node have been removed
+Or a combination of the two.	
+###
+.add-and-compact-plan compact-plan(size-here-and-left nat, a add-node ?a, remove index-set, size-right nat)
+	size-here = a.values size
+	size-left = size-here-and-left - size-here
+	removals-here-and-right = remove count-greater-or-equal size-left
+	if size-here should-compact? size-right, removals-here-and-right
+		size-here-and-right = size-here + size-right
+		match a left
+		as none
+			compact-plan: size-left, size-here-and-right
+		as some s
+			size-here-and-left - size-here add-and-compact-plan s.value, remove, size-here-and-right
 	else
-		(size / 2).get-max-height + 1
+		compact-plan: size-here-and-left, size-right
+
+.should-compact? bool(size-here nat, size-right nat, removals-here-and-right nat)
+	size-right + removals-here-and-right * 2 >= size-here
+
+.do-compact-and-add set ?a(a set ?a, add-size nat, plan compact-plan, value ?a) unsafe data<?a>
+	assert: plan.compacted-size > 1
+	compacted = plan.compacted-size uninitialized-mut-arr<?a>
+	compacted.begin-ptr[] := value
+	compactor = compactor<?a>: compacted.begin-ptr, compacted.begin-ptr + 1, compacted.end-ptr
+	new-add = compactor do-compact-recur! a.add, add-size, a.remove
+	set: new-add, a.remove filter-less plan.size-left
+
+.do-compact-and-remove set ?a(a set ?a, plan compact-plan, extra-removal nat) unsafe data<?a>
+	new-remove = a.remove filter-less plan.size-left
+	if plan.compacted-size == 0
+		match a.add left
+		as none
+			set
+		as some s
+			set: s.value, new-remove
+	else
+		compacted = plan.compacted-size uninitialized-mut-arr<?a>
+		compactor = compactor<?a>: compacted.begin-ptr, compacted.begin-ptr, compacted.end-ptr
+		old-size = plan.size-left + plan.compacted-size + 1
+		new-add = compactor do-compact-recur! a.add, old-size, a.remove ~ extra-removal
+		set: new-add, new-remove
+
+.compactor<?a> record mut
+	begin ptr ?a
+	cur mut ptr ?a
+	end ptr ?a
+
+# NOTE: size-here-and-left is the old size, used to index into remove
+.do-compact-recur! add-node ?a
+	compactor compactor ?a
+	a add-node ?a
+	size-here-and-left nat
+	remove index-set
+spec
+	unsafe
+	data<?a>
+body
+	compactor merge! a.values, size-here-and-left, remove
+	assert: compactor.cur ptr-less-eq? compactor.end
+	if compactor.cur ptr-eq? compactor.end
+		add-node: compactor.finish, a left
+	else
+		compactor do-compact-recur! a.left.force, size-here-and-left - a.values.size, remove
+
+.merge! void(a compactor ?a, values arr ?a, size-here-and-left nat, remove index-set) unsafe data<?a>
+	n-remove = remove count-range size-here-and-left - values.size, size-here-and-left
+	n-added = values.size - n-remove
+	if n-added != 0
+		new-cur = a.cur + n-added
+		remove-index = size-here-and-left - 1
+		if a.cur ptr-eq? a.begin
+			new-cur - 1 copy-from-b-recur! values.begin-ptr, values.end-ptr - 1, remove-index, remove
+		else
+			a.begin merge-recur! a.cur - 1, new-cur - 1, values.begin-ptr, values.end-ptr - 1, remove-index, remove
+		a.cur := new-cur
+
+.merge-recur! void
+	a-begin ptr ?a
+	a-read ptr ?a
+	a-write ptr ?a
+	b-begin ptr ?a
+	b-read ptr ?a
+	b-remove-index nat
+	b-remove index-set
+spec
+	unsafe
+	data<?a>
+body
+	forbid: a-read ptr-less? a-begin
+	forbid: b-read ptr-less? b-begin
+	forbid: a-write ptr-less? a-begin
+	# merging from right, so take the greater value
+	match a-read[] <=> b-read[]
+	as less
+		new-a-write = if b-remove[b-remove-index]
+			a-write
+		else
+			a-write[] := b-read[]
+			a-write - 1
+		if b-read ptr-eq? b-begin not
+			a-begin merge-recur! a-read, new-a-write, b-begin, b-read - 1, b-remove-index - 1, b-remove
+		# Else -- done, everything from 'a' is in place
+	as equal
+		# We shouldn't store the same value twice.
+		unreachable
+	as greater
+		a-write[] := a-read[]
+		if a-read ptr-eq? a-begin
+			a-write - 1 copy-from-b-recur! b-begin, b-read, b-remove-index, b-remove
+		else
+			a-begin merge-recur! a-read - 1, a-write - 1, b-begin, b-read, b-remove-index, b-remove
+
+.copy-from-b-recur! void(a-write ptr ?a, b-begin ptr ?a, b-read ptr ?a, b-remove-index nat, b-remove index-set) unsafe
+	new-a-write = if b-remove[b-remove-index]
+		a-write
+	else
+		a-write[] := b-read[]
+		a-write - 1
+	if b-read ptr-eq? b-begin not
+		new-a-write copy-from-b-recur! b-begin, b-read - 1, b-remove-index - 1, b-remove
+
+.finish arr ?a(a compactor ?a) unsafe
+	assert: a.cur ptr-eq? a.end
+	a.begin arr-from-begin-end a.end
 
 region iteration
 
 each void(a set ?a, f act void(?a)) data<?a>
-	a.root each-recur f
-.each-recur void(a node ?a, f act void(?a))
-	match a
-	as inner-node i
-		i.left each-recur f
-		f[i.value]
-		i.right each-recur f
-	as arr arr
-		arr each f
+	void fold a, \ignore, x
+		f[x]
 
 fold ?a(acc ?a, a set ?b, f act ?a(?a, ?b)) data<?b>
-	acc fold-recur a.root, f
-.fold-recur ?a(acc ?a, a node ?b, f act ?a(?a, ?b))
-	match a
-	as inner-node i
-		acc fold-recur-inner-node i, f
-	as arr arr
-		acc fold arr, f
-.fold-recur-inner-node ?a(acc ?a, a inner-node ?b, f act ?a(?a, ?b))
-	left-value = acc fold-recur a.left, f
-	f[left-value, a.value] fold-recur a.right, f
-
-filter set ?a(a set ?a, f act bool(?a)) trusted data<?a>
-	out = a.size uninitialized-mut-arr<?a>
-	end = out.begin-ptr fold a, \cur, value
-		if f[value]
-			cur[] := value
-			cur + 1
+	acc fold-recur a.init-iters, a.remove, f
+.fold-recur ?a(acc ?a, iters mut-arr iter-part ?b, remove index-set, f act ?a(?a, ?b)) data<?b>
+	if iters empty?
+		acc
+	else
+		least-iter-index = iters[0].values[0] find-least-iter 0, 1, iters
+		least-value = iters[least-iter-index].values[0]
+		iters[least-iter-index] := iters[least-iter-index] tail remove
+		new-iters = if iters[least-iter-index] empty?
+			iters[least-iter-index] := iters[iters.size - 1]
+			iters[0 -> iters.size - 1]
 		else
-			cur
-	set: out[0 -> end - out.begin-ptr] cast-immutable
+			iters
+		f[acc, least-value] fold-recur new-iters, remove, f
 
-# TODO: first-some
+.find-least-iter nat(current-least ?a, current-least-index nat, iter-index nat, iters mut-arr iter-part ?a) data<?a>
+	if iter-index == iters.size
+		current-least-index
+	else
+		value = iters[iter-index].values[0]
+		if value < current-least
+			value find-least-iter iter-index, iter-index + 1, iters
+		else
+			current-least find-least-iter current-least-index, iter-index + 1, iters
 
-map set ?out(a set ?in, f act ?out(?in)) data<?in> data<?out> trusted
+.iter-part<?a> record
+	by-val
+	values arr ?a
+	remove-index nat
+
+.empty? bool(a iter-part ?a)
+	a.values empty?
+
+.tail iter-part ?a(a iter-part ?a, remove index-set)
+	a.values.tail iter-part a.remove-index + 1 remove-from-front remove
+
+.init-iters mut-arr iter-part ?a(a set ?a) trusted
+	iters = a.add-node-count uninitialized-mut-arr<iter-part<?a>>
+	res = iters.begin-ptr init-iters-recur! a.add, a.remove
+	iters[0 -> res.out - iters.begin-ptr]
+
+.init-iters-result<?a> record mut
+	by-val
+	next-remove-index nat
+	out ptr iter-part ?a
+
+.init-iters-recur! init-iters-result ?a(out ptr iter-part ?a, a add-node ?a, remove index-set) unsafe
+	prev = match a left
+	as none
+		init-iters-result: 0, out
+	as some s
+		out init-iters-recur! s.value, remove
+	here = a.values iter-part prev.next-remove-index remove-from-front remove
+	new-out = if here empty?
+		prev.out
+	else
+		prev.out[] := here
+		prev.out + 1
+	init-iters-result: prev.next-remove-index + a.values.size, new-out
+
+.remove-from-front iter-part ?a(a iter-part ?a, remove index-set)
+	if a.values.empty?.not and remove[a.remove-index]
+		a.values.tail iter-part a.remove-index + 1 remove-from-front remove
+	else
+		a
+
+# TODO: filter
+
+map set ?out(a set ?in, f act ?out(?in)) data<?out> data<?in>
+	set: a map-to-arr f
+
+map-to-arr arr ?out(a set ?in, f act ?out(?in)) trusted data<?in>
 	out = a.size uninitialized-mut-arr<?out>
-	end = out.begin-ptr fold a, \cur, value
-		cur[] := f[value]
+	end = out.begin-ptr fold a, \cur, x
+		cur[] := f[x]
 		cur + 1
+
 	assert: end ptr-eq? out.end-ptr
-	set: out[0 -> end - out.begin-ptr].sort-unique! cast-immutable
+	out cast-immutable
 
 # TODO:PRIVATE
-dbg str(a set str)
-	res = mut-list<char>
-	res dbg-recur! a.root
-	res move-to-arr!
-.dbg-recur! void(res mut-list char, a node str)
-	match a
-	as inner-node i
-		res ~= "("
-		res dbg-recur! i.left
-		res ~= " "
-		res ~= i value
-		res ~= " "
-		res dbg-recur! i.right
-		res ~= ")"
-	as arr arr
-		if arr empty?
-			res ~= "[]"
-		else
-			res ~= "["
-			arr each \x
-				res ~= x
-				res ~= " "
-			res.last := "]"
+dbg str(a set ?a) to-str<?a>
+	out = mut-list<char>
+	out dbg-add-recur! a.add
+	if a.remove.empty? not
+		out ~= " - ["
+		a.remove each \i
+			out ~= i to-str
+			out ~= " "
+		out.last := "]"
+	out move-to-arr!
+
+.dbg-add-recur! void(out mut-list char, a add-node ?a) to-str<?a>
+	match a left
+	as none
+		void
+	as some s
+		out dbg-add-recur! s.value
+		out ~= ", "
+	if a.values empty?
+		out ~= "[]"
+	else
+		out ~= "["
+		a.values each \x
+			out ~= x to-str
+			out ~= " "
+		out.last := "]"
 
 .verify void(a set str, expected str)
-	a.size is a.root.walk-size
 	a.dbg is expected
 
 test
-	s = set: ["a", "c", "e", "g"]
-	s ~ "d" verify "([a c] d [e g])"
+	info log "SET2 TEST START"
+	# TODO: be sure to test removing and then adding back
+	a = set<str>
+	a.empty? is true
+	a.size is 0
+	a verify "[]"
 
-test
-	s0 = set<str>
-	s0 verify "[]"
+	b = a ~ "r"
+	b.empty? is false
+	b.size is 1
+	b verify "[r]"
 
-	s1 = s0 ~ "h"
-	s1 verify "[h]"
+	b - "r" verify "[]"
 
-	s2 = s1 ~ "k"
-	s2 verify "[h k]"
+	c = b ~ "o"
+	c verify "[o r]"
 
-	s3 = s2 ~ "i"
-	s3 verify "[h i k]"
+	d = c ~ "c"
+	d verify "[o r], [c]"
 
-	s4 = s3 ~ "j"
-	s4 verify "[h i j k]"
+	d - "o" verify "[c r]"
+	d - "r" verify "[c o]"
+	d - "c" verify "[o r]"
 
-	assert: s4["h"]
-	s4 ~ "i" is s4
+	folded = "w" fold d, \acc, x
+		"{acc}-{x}"
+	folded is "w-c-o-r"
 
-	s5 = s4 ~ "l"
-	s5 verify "([h i] j [k l])"
+	# TODO: test filter
 
-	(s5 - "i") verify "([h] j [k l])"
-	(s5 - "j") verify "([h] i [k l])"
-	(s5 - "k") verify "([h i] j [l])"
-	s6 = s5 ~ "jj"
-	s6 verify "([h i] j [jj k l])"
+	dm = d map<str, str> \x
+		if x == "c"
+			"sea"
+		elif x == "r"
+			"arr"
+		elif x == "o"
+			"oh"
+		else
+			"x"
+	dm verify "[arr oh sea]"
 
-	s7 = s6 ~ "ji"
-	s7 verify "([h i] j [ji jj k l])"
-
-	s8 = s7 ~ "jk"
-	s8 verify "([h i] j ([ji jj] jk [k l]))"
-
-	s8-k = s8 - "k"
-	s8-k verify "([h i] j ([ji jj] jk [l]))"
-	s8-k-l = s8-k - "l"
-	s8-k-l verify "([h i] j ([ji jj] jk []))"
-	s8-k-l - "jk" verify "([h i] j [ji jj])"
-
-	s9 = s8 ~ "m"
-	s9 verify "([h i] j ([ji jj] jk [k l m]))"
-	s10 = s9 ~ "n"
-	s10 verify "([h i] j ([ji jj] jk [k l m n]))"
-	s11 = s10 ~ "o"
-	s11 verify "[h i j ji jj jk k l m n o]"
-
-	s8 ~ ["a", "jii", "z"].set verify "[a h i j ji jii jj jk k l z]"
-	s8 - s4 verify "[ji jj jk l]"
-	s8-k-l intersect s3 verify "[h i]"
-
-	folded = "s" fold s8, \x, y
-		"{x}-{y}"
-	folded is "s-h-i-j-ji-jj-jk-k-l"
-
-	filtered = s8 filter {it[0] != "j"}
-	filtered verify "[h i k l]"
-
-	mapped = s8 map {it[0 -> 1]}
-	mapped verify "[h i j k l]"
+	info log "SET2 TEST DONE"

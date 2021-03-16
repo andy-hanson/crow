@@ -566,6 +566,7 @@ enum FnOp : ubyte {
 	bitwiseAnd,
 	bitwiseOr,
 	compareExchangeStrongBool,
+	countOnesNat64,
 	eqBits,
 	float64FromInt64,
 	float64FromNat64,
@@ -638,6 +639,8 @@ private immutable(string) strOfFnOp(immutable FnOp fnOp) {
 			return "bitwise-or";
 		case FnOp.compareExchangeStrongBool:
 			return "compare-exchange-strong (bool)";
+		case FnOp.countOnesNat64:
+			return "count-ones (nat-64)";
 		case FnOp.eqBits:
 			return "== (integrals / pointers)";
 		case FnOp.float64FromInt64:

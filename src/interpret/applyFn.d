@@ -8,7 +8,7 @@ import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
 import util.collection.globalAllocatedStack : pop, push;
 import util.types : bottomU16OfU64, bottomU32OfU64, float64OfU64Bits, Nat64, u64OfFloat64Bits;
-import util.util : verify;
+import util.util : todo, verify;
 
 void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 	final switch (fn) {
@@ -31,6 +31,10 @@ void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 		case FnOp.compareExchangeStrongBool:
 			trinary(dataStack, (immutable ulong a, immutable ulong b, immutable ulong c) =>
 				compareExchangeStrongBool(a, b, c));
+			break;
+		case FnOp.countOnesNat64:
+			unary(dataStack, (immutable ulong a) =>
+				immutable Nat64(todo!(immutable ulong)("popcount")));
 			break;
 		case FnOp.eqBits:
 			binary(dataStack, (immutable ulong a, immutable ulong b) =>

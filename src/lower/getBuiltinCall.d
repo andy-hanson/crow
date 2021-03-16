@@ -203,6 +203,10 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseOrNat64
 				: failBinary());
+		case shortSymAlphaLiteralValue("count-ones"):
+			return unary(isNat64(p0)
+				? LowExprKind.SpecialUnary.Kind.countOnesNat64
+				: failUnary());
 		case shortSymAlphaLiteralValue("false"):
 			return constantBool(false);
 		case shortSymAlphaLiteralValue("get-ctx"):

@@ -51,6 +51,13 @@ or-default ?a(a opt ?a, default act ?a())
 	as some s
 		s value
 
+or-default ?a(a opt ?a, default ?a)
+	match a
+	as none
+		default
+	as some s
+		s value
+
 # Converts an option to a value by failing on `none`.
 force ?a(a opt ?a)
 	match a

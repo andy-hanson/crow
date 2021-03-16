@@ -7,6 +7,7 @@ import
 	..private.fut-low-level: resolve!, unresolved
 	..private.runtime: add-task, get-cur-island, new-exclusion
 	..ptr: null
+export
 	.time-low-level: get-monotime-nsec
 
 unix-time record

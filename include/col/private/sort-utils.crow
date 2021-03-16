@@ -1,17 +1,20 @@
 no-std
 import
-	...bool: not
+	...bool: bool, not
 	...compare: ==, <, >=, <=>, comparison, equal, less, greater
 	...exception: assert, unreachable
 	...fun: subscript
-	...misc: void
+	...misc: data, void
 	...number: +, /, nat
-	...opt: none, opt, some, value
+	...opt: has?, none, opt, some, value
 	...ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
 	...test: is
 	..arr: arr, begin-ptr, end-ptr
 	..mut-arr: begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end
 	..mut-list: arr, begin-ptr, empty?, empty!, end-ptr, mut-list, size, swap!, temp-as-mut-arr, unsafe-set-size!
+
+binary-search-has? bool(a arr ?a, value ?a) data<?a> trusted
+	a binary-search-value {value <=> it} has?
 
 binary-search-value opt ?a(a arr ?a, compare act comparison(?a)) trusted
 	match a binary-search-exact-ptr compare
@@ -19,6 +22,13 @@ binary-search-value opt ?a(a arr ?a, compare act comparison(?a)) trusted
 		none
 	as some s
 		s.value[] some
+
+binary-search-exact-index opt nat(a arr ?a, value ?a) trusted data<?a>
+	match a binary-search-exact-ptr {value <=> it}
+	as none
+		none
+	as some s
+		s.value - a.begin-ptr some
 
 binary-search-exact-ptr opt ptr ?a(a mut-list ?a, compare act comparison(?a)) unsafe
 	a.temp-as-mut-arr binary-search-exact-ptr compare
@@ -117,12 +127,13 @@ body
 		a-write[] := b-read[]
 		if b-read ptr-eq? b-begin not
 			a-begin merge-reverse-recur! a-read, a-write - 1, b-begin, b-read - 1, compare
+		# Else -- we are done, don't need to touch 'a' any more
 	as greater
 		a-write[] := a-read[]
 		if a-read ptr-eq? a-begin
 			dest = a-begin mut-arr-from-begin-end a-write
 			src = b-begin mut-arr-from-begin-end b-read + 1
-			dest copy-from!: src
+			dest copy-from! src
 		else
 			a-begin merge-reverse-recur! a-read - 1, a-write - 1, b-begin, b-read, compare
 

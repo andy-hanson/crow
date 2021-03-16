@@ -215,7 +215,7 @@ validate-gc void(gc gc) noctx unsafe
 	res
 
 .try-gc-alloc-recur opt any-ptr(gc gc, size-bytes nat) noctx unsafe
-	gc validate-gc
+	# gc validate-gc
 	size-words = size-bytes words-of-bytes
 	cur = gc data-cur
 	next = cur + size-words

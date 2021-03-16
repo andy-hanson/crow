@@ -1377,186 +1377,43 @@ program(
 			none
 			[param(gc, type(true, gc)), param(size-bytes, type(false, nat))]
 			expr-body(
-				seq(
-					call(validate-gc, [param-ref(gc)])
+				let(
+					size-words
+					call(words-of-bytes, [param-ref(size-bytes)])
 					let(
-						size-words
-						call(words-of-bytes, [param-ref(size-bytes)])
+						cur
+						call(data-cur, [param-ref(gc)])
 						let(
-							cur
-							call(data-cur, [param-ref(gc)])
-							let(
-								next
-								call(+, [local-ref(cur), local-ref(size-words)])
+							next
+							call(+, [local-ref(cur), local-ref(size-words)])
+							cond(
+								call(ptr-less?, [local-ref(next), call(data-end, [param-ref(gc)])])
 								cond(
-									call(ptr-less?, [local-ref(next), call(data-end, [param-ref(gc)])])
-									cond(
-										call(
-											range-free?
-											[
-												call(mark-cur, [param-ref(gc)])
-												call(+, [call(mark-cur, [param-ref(gc)]), local-ref(size-words)])])
-										seq(
-											seq(
-												call(
-													set-mark-cur
-													[
-														param-ref(gc)
-														call(
-															+
-															[call(mark-cur, [param-ref(gc)]), local-ref(size-words)])])
-												call(set-data-cur, [param-ref(gc), local-ref(next)]))
-											to-union(1, call(some, [call(ptr-cast, [local-ref(cur)])])))
-										seq(
-											seq(
-												call(
-													set-mark-cur
-													[param-ref(gc), call(+, [call(mark-cur, [param-ref(gc)]), 1])])
-												call(
-													set-data-cur
-													[param-ref(gc), call(+, [call(data-cur, [param-ref(gc)]), 1])]))
-											call(try-gc-alloc-recur, [param-ref(gc), param-ref(size-bytes)])))
-									to-union(0, call(none, [])))))))))
-		fun(
-			false
-			validate-gc
-			type(false, void)
-			none
-			[param(gc, type(true, gc))]
-			expr-body(
-				seq(
-					seq(
-						seq(
-							seq(
-								seq(
+									call(
+										range-free?
+										[
+											call(mark-cur, [param-ref(gc)])
+											call(+, [call(mark-cur, [param-ref(gc)]), local-ref(size-words)])])
 									seq(
 										seq(
 											call(
-												hard-assert
+												set-mark-cur
 												[
-													call(
-														word-aligned?
-														[call(as-any-ptr, [call(mark-begin, [param-ref(gc)])])])])
+													param-ref(gc)
+													call(+, [call(mark-cur, [param-ref(gc)]), local-ref(size-words)])])
+											call(set-data-cur, [param-ref(gc), local-ref(next)]))
+										to-union(1, call(some, [call(ptr-cast, [local-ref(cur)])])))
+									seq(
+										seq(
 											call(
-												hard-assert
-												[
-													call(
-														word-aligned?
-														[call(as-any-ptr, [call(data-begin, [param-ref(gc)])])])]))
-										call(
-											hard-assert
-											[call(word-aligned?, [call(as-any-ptr, [call(data-cur, [param-ref(gc)])])])]))
-									call(
-										hard-assert
-										[
+												set-mark-cur
+												[param-ref(gc), call(+, [call(mark-cur, [param-ref(gc)]), 1])])
 											call(
-												ptr-less-eq?
-												[call(mark-begin, [param-ref(gc)]), call(mark-cur, [param-ref(gc)])])]))
-								call(
-									hard-assert
-									[
-										call(
-											ptr-less-eq?
-											[call(mark-cur, [param-ref(gc)]), call(mark-end, [param-ref(gc)])])]))
-							call(
-								hard-assert
-								[
-									call(
-										ptr-less-eq?
-										[call(data-begin, [param-ref(gc)]), call(data-cur, [param-ref(gc)])])]))
-						call(
-							hard-assert
-							[call(ptr-less-eq?, [call(data-cur, [param-ref(gc)]), call(data-end, [param-ref(gc)])])]))
-					let(
-						mark-idx
-						call(-, [call(mark-cur, [param-ref(gc)]), call(mark-begin, [param-ref(gc)])])
-						let(
-							data-idx
-							call(-, [call(data-cur, [param-ref(gc)]), call(data-begin, [param-ref(gc)])])
-							seq(
-								seq(
-									call(
-										hard-assert
-										[
-											call(
-												==
-												[
-													call(
-														-
-														[
-															call(mark-end, [param-ref(gc)])
-															call(mark-begin, [param-ref(gc)])])
-													call(size-words, [param-ref(gc)])])])
-									call(
-										hard-assert
-										[
-											call(
-												==
-												[
-													call(
-														-
-														[
-															call(data-end, [param-ref(gc)])
-															call(data-begin, [param-ref(gc)])])
-													call(size-words, [param-ref(gc)])])]))
-								call(hard-assert, [call(==, [local-ref(mark-idx), local-ref(data-idx)])])))))))
-		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(false, ptr))], builtin([type(false, ptr)]))
-		fun(false, mark-begin, type(false, ptr), none, [param(a, type(true, gc))], field-get(5))
-		fun(false, data-begin, type(false, ptr), none, [param(a, type(true, gc))], field-get(8))
+												set-data-cur
+												[param-ref(gc), call(+, [call(data-cur, [param-ref(gc)]), 1])]))
+										call(try-gc-alloc-recur, [param-ref(gc), param-ref(size-bytes)])))
+								to-union(0, call(none, []))))))))
 		fun(false, data-cur, type(false, ptr), none, [param(a, type(true, gc))], field-get(9))
-		fun(
-			false
-			ptr-less-eq?
-			type(false, bool)
-			none
-			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			expr-body(
-				call(or, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
-		fun(
-			false
-			ptr-less?
-			type(false, bool)
-			none
-			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			builtin([type(false, bool)]))
-		fun(false, mark-cur, type(false, ptr), none, [param(a, type(true, gc))], field-get(6))
-		fun(false, mark-end, type(false, ptr), none, [param(a, type(true, gc))], field-get(7))
-		fun(
-			false
-			ptr-less-eq?
-			type(false, bool)
-			none
-			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			expr-body(
-				call(or, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
-		fun(
-			false
-			ptr-less?
-			type(false, bool)
-			none
-			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			builtin([type(false, nat)]))
-		fun(
-			false
-			ptr-eq?
-			type(false, bool)
-			none
-			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			builtin([type(false, nat)]))
-		fun(false, data-end, type(false, ptr), none, [param(a, type(true, gc))], field-get(10))
-		fun(
-			false
-			-
-			type(false, nat)
-			none
-			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			expr-body(
-				call(
-					unsafe-div
-					[call(wrap-sub, [call(to-nat, [param-ref(a)]), call(to-nat, [param-ref(b)])]), call(size-of, [])])))
-		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, bool)]))
-		fun(false, size-of, type(false, nat), none, [], builtin([type(false, bool)]))
-		fun(false, size-words, type(false, nat), none, [param(a, type(true, gc))], field-get(4))
 		fun(
 			false
 			+
@@ -1564,6 +1421,14 @@ program(
 			none
 			[param(a, type(false, ptr)), param(offset, type(false, nat))]
 			builtin([type(false, nat)]))
+		fun(
+			false
+			ptr-less?
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			builtin([type(false, nat)]))
+		fun(false, data-end, type(false, ptr), none, [param(a, type(true, gc))], field-get(10))
 		fun(
 			false
 			range-free?
@@ -1578,6 +1443,7 @@ program(
 						call(subscript, [param-ref(mark)])
 						call(false, [])
 						call(range-free?, [call(+, [param-ref(mark), 1]), param-ref(end)])))))
+		fun(false, mark-cur, type(false, ptr), none, [param(a, type(true, gc))], field-get(6))
 		fun(
 			false
 			set-mark-cur
@@ -2682,6 +2548,7 @@ program(
 			none
 			[param(p, type(false, ptr))]
 			builtin([type(false, bool), type(false, nat8)]))
+		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(false, ptr))], builtin([type(false, ptr)]))
 		fun(false, as, type(false, gc), none, [param(value, type(false, gc))], builtin([type(false, gc)]))
 		fun(
 			false
@@ -2701,6 +2568,135 @@ program(
 				param(data-cur, type(false, ptr))
 				param(data-end, type(false, ptr))]
 			new-record)
+		fun(
+			false
+			validate-gc
+			type(false, void)
+			none
+			[param(gc, type(true, gc))]
+			expr-body(
+				seq(
+					seq(
+						seq(
+							seq(
+								seq(
+									seq(
+										seq(
+											call(
+												hard-assert
+												[
+													call(
+														word-aligned?
+														[call(as-any-ptr, [call(mark-begin, [param-ref(gc)])])])])
+											call(
+												hard-assert
+												[
+													call(
+														word-aligned?
+														[call(as-any-ptr, [call(data-begin, [param-ref(gc)])])])]))
+										call(
+											hard-assert
+											[call(word-aligned?, [call(as-any-ptr, [call(data-cur, [param-ref(gc)])])])]))
+									call(
+										hard-assert
+										[
+											call(
+												ptr-less-eq?
+												[call(mark-begin, [param-ref(gc)]), call(mark-cur, [param-ref(gc)])])]))
+								call(
+									hard-assert
+									[
+										call(
+											ptr-less-eq?
+											[call(mark-cur, [param-ref(gc)]), call(mark-end, [param-ref(gc)])])]))
+							call(
+								hard-assert
+								[
+									call(
+										ptr-less-eq?
+										[call(data-begin, [param-ref(gc)]), call(data-cur, [param-ref(gc)])])]))
+						call(
+							hard-assert
+							[call(ptr-less-eq?, [call(data-cur, [param-ref(gc)]), call(data-end, [param-ref(gc)])])]))
+					let(
+						mark-idx
+						call(-, [call(mark-cur, [param-ref(gc)]), call(mark-begin, [param-ref(gc)])])
+						let(
+							data-idx
+							call(-, [call(data-cur, [param-ref(gc)]), call(data-begin, [param-ref(gc)])])
+							seq(
+								seq(
+									call(
+										hard-assert
+										[
+											call(
+												==
+												[
+													call(
+														-
+														[
+															call(mark-end, [param-ref(gc)])
+															call(mark-begin, [param-ref(gc)])])
+													call(size-words, [param-ref(gc)])])])
+									call(
+										hard-assert
+										[
+											call(
+												==
+												[
+													call(
+														-
+														[
+															call(data-end, [param-ref(gc)])
+															call(data-begin, [param-ref(gc)])])
+													call(size-words, [param-ref(gc)])])]))
+								call(hard-assert, [call(==, [local-ref(mark-idx), local-ref(data-idx)])])))))))
+		fun(false, mark-begin, type(false, ptr), none, [param(a, type(true, gc))], field-get(5))
+		fun(false, data-begin, type(false, ptr), none, [param(a, type(true, gc))], field-get(8))
+		fun(
+			false
+			ptr-less-eq?
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				call(or, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
+		fun(
+			false
+			ptr-less?
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			builtin([type(false, bool)]))
+		fun(false, mark-end, type(false, ptr), none, [param(a, type(true, gc))], field-get(7))
+		fun(
+			false
+			ptr-less-eq?
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				call(or, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
+		fun(
+			false
+			ptr-eq?
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			builtin([type(false, nat)]))
+		fun(
+			false
+			-
+			type(false, nat)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				call(
+					unsafe-div
+					[call(wrap-sub, [call(to-nat, [param-ref(a)]), call(to-nat, [param-ref(b)])]), call(size-of, [])])))
+		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, bool)]))
+		fun(false, size-of, type(false, nat), none, [], builtin([type(false, bool)]))
+		fun(false, size-words, type(false, nat), none, [param(a, type(true, gc))], field-get(4))
 		fun(false, ref-of-val, type(true, gc), none, [param(a, type(false, gc))], builtin([type(true, gc)]))
 		fun(
 			false
@@ -5697,45 +5693,106 @@ program(
 			to-str
 			type(false, arr)
 			none
-			[param(n, type(false, nat))]
+			[param(a, type(false, nat))]
+			expr-body(call(to-base, [param-ref(a), 10])))
+		fun(
+			true
+			to-base
+			type(false, arr)
+			none
+			[param(a, type(false, nat)), param(base, type(false, nat))]
 			expr-body(
 				cond(
-					call(==, [param-ref(n), 0])
+					call(<, [param-ref(a), param-ref(base)])
+					call(digit-to-str, [param-ref(a)])
+					call(
+						~
+						[
+							call(to-base, [call(/, [param-ref(a), param-ref(base)]), param-ref(base)])
+							call(digit-to-str, [call(mod, [param-ref(a), param-ref(base)])])]))))
+		fun(
+			true
+			digit-to-str
+			type(false, arr)
+			none
+			[param(a, type(false, nat))]
+			expr-body(
+				cond(
+					call(==, [param-ref(a), 0])
 					arr(0, 10)
 					cond(
-						call(==, [param-ref(n), 1])
+						call(==, [param-ref(a), 1])
 						arr(0, 11)
 						cond(
-							call(==, [param-ref(n), 2])
+							call(==, [param-ref(a), 2])
 							arr(0, 12)
 							cond(
-								call(==, [param-ref(n), 3])
+								call(==, [param-ref(a), 3])
 								arr(0, 13)
 								cond(
-									call(==, [param-ref(n), 4])
+									call(==, [param-ref(a), 4])
 									arr(0, 14)
 									cond(
-										call(==, [param-ref(n), 5])
+										call(==, [param-ref(a), 5])
 										arr(0, 15)
 										cond(
-											call(==, [param-ref(n), 6])
+											call(==, [param-ref(a), 6])
 											arr(0, 16)
 											cond(
-												call(==, [param-ref(n), 7])
+												call(==, [param-ref(a), 7])
 												arr(0, 17)
 												cond(
-													call(==, [param-ref(n), 8])
+													call(==, [param-ref(a), 8])
 													arr(0, 18)
 													cond(
-														call(==, [param-ref(n), 9])
+														call(==, [param-ref(a), 9])
 														arr(0, 19)
-														let(
-															hi
-															call(to-str, [call(/, [param-ref(n), 10])])
-															let(
-																lo
-																call(to-str, [call(mod, [param-ref(n), 10])])
-																call(~, [local-ref(hi), local-ref(lo)])))))))))))))))
+														cond(
+															call(==, [param-ref(a), 10])
+															arr(0, 20)
+															cond(
+																call(==, [param-ref(a), 11])
+																arr(0, 21)
+																cond(
+																	call(==, [param-ref(a), 12])
+																	arr(0, 22)
+																	cond(
+																		call(==, [param-ref(a), 13])
+																		arr(0, 23)
+																		cond(
+																			call(==, [param-ref(a), 14])
+																			arr(0, 24)
+																			cond(
+																				call(==, [param-ref(a), 15])
+																				arr(0, 25)
+																				call(unreachable, [])))))))))))))))))))
+		fun(true, unreachable, type(false, arr), none, [], expr-body(call(fail, [arr(0, 26)])))
+		fun(
+			true
+			fail
+			type(false, arr)
+			none
+			[param(message, type(false, arr))]
+			expr-body(call(throw, [call(exception, [param-ref(message), call(get-backtrace, [])])])))
+		fun(
+			true
+			throw
+			type(false, arr)
+			none
+			[param(e, type(false, exception))]
+			expr-body(
+				let(
+					exn-ctx
+					call(get-exception-ctx, [])
+					seq(
+						seq(
+							seq(
+								call(hard-forbid, [call(null?, [call(jmp-buf-ptr, [local-ref(exn-ctx)])])])
+								call(set-thrown-exception, [local-ref(exn-ctx), param-ref(e)]))
+							call(longjmp, [call(jmp-buf-ptr, [local-ref(exn-ctx)]), call(number-to-throw, [])]))
+						call(hard-unreachable, [])))))
+		fun(false, hard-unreachable, type(false, arr), none, [], expr-body(seq(call(abort!, []), call(zeroed, []))))
+		fun(false, zeroed, type(false, arr), none, [], builtin([type(false, arr)]))
 		fun(
 			true
 			mod

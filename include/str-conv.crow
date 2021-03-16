@@ -5,6 +5,7 @@ import
 	.col.arr-util: tail
 	.col.mut-list: ~=, move-to-arr!, mut-list
 	.compare: ==, <
+	.exception: unreachable
 	.number:
 		+, *, /, abs, float, int, int16, int32, mod, nat, nat16, nat32, multiple-of?,
 		to-int, to-float, to-nat, truncate-to-int
@@ -32,31 +33,56 @@ parse-bool opt bool(a str)
 Converts a nat to a str.
 Result is only digits, no punctuation.
 ###
-to-str str(n nat)
-	if n == 0
+to-str str(a nat)
+	a to-base 10
+
+.digit-to-str str(a nat)
+	if a == 0
 		"0"
-	elif n == 1
+	elif a == 1
 		"1"
-	elif n == 2
+	elif a == 2
 		"2"
-	elif n == 3
+	elif a == 3
 		"3"
-	elif n == 4
+	elif a == 4
 		"4"
-	elif n == 5
+	elif a == 5
 		"5"
-	elif n == 6
+	elif a == 6
 		"6"
-	elif n == 7
+	elif a == 7
 		"7"
-	elif n == 8
+	elif a == 8
 		"8"
-	elif n == 9
+	elif a == 9
 		"9"
+	elif a == 10
+		"a"
+	elif a == 11
+		"b"
+	elif a == 12
+		"c"
+	elif a == 13
+		"d"
+	elif a == 14
+		"e"
+	elif a == 15
+		"f"
 	else
-		hi = to-str: n / 10
-		lo = to-str: n mod 10
-		hi ~ lo
+		unreachable
+
+to-binary str(a nat)
+	a to-base 2
+
+to-hex str(a nat)
+	a to-base 16
+
+.to-base str(a nat, base nat)
+	if a < base
+		a digit-to-str
+	else
+		(a / base to-base base) ~ (a mod base).digit-to-str
 
 # Spec of any type that could be converted to a str.
 to-str<?a> spec

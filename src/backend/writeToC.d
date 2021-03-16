@@ -1308,6 +1308,28 @@ immutable(WriteExprResult) writeInlineable(Alloc, TempAlloc)(
 	}
 }
 
+void returnZeroedValue(Alloc, TempAlloc)(
+	ref Writer!Alloc writer,
+	ref TempAlloc tempAlloc,
+	immutable size_t indent,
+	ref FunBodyCtx ctx,
+	ref immutable WriteKind writeKind,
+	ref immutable LowType type,
+) {
+	immutable WriteExprResult res = writeInlineable(
+		writer,
+		tempAlloc,
+		indent,
+		ctx,
+		writeKind,
+		type,
+		[],
+		(ref immutable WriteExprResult[]) {
+			writeZeroedValue(writer, ctx.ctx, type);
+		});
+	assert(isDone(res));
+}
+
 immutable(WriteExprResult) writeInlineableSingleArg(Alloc, TempAlloc)(
 	ref Writer!Alloc writer,
 	ref TempAlloc tempAlloc,
@@ -1514,9 +1536,7 @@ immutable(WriteExprResult) writeMatch(Alloc, TempAlloc)(
 	writeNewline(writer, indent + 1);
 	writeStatic(writer, "default:");
 	writeNewline(writer, indent + 2);
-	if (isReturn(nested.writeKind))
-		writeStatic(writer, "return ");
-	writeZeroedValue(writer, ctx.ctx, type);
+	returnZeroedValue(writer, tempAlloc, indent, ctx, writeKind, type);
 	writeChar(writer, ';');
 	writeNewline(writer, indent);
 	writeChar(writer, '}');
@@ -1752,6 +1772,8 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 				});
 		case LowExprKind.SpecialUnary.Kind.bitsNotNat64:
 			return prefix("~");
+		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
+			return specialCall("__builtin_popcountl");
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return prefix("*");
 		case LowExprKind.SpecialUnary.Kind.isNan:

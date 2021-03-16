@@ -4,16 +4,15 @@ import
 	..compare: ==, <=, >=, <=>, comparison, max, min
 	..exception: assert
 	..fun: subscript
-	..log: info, log
 	..misc: ->, arrow, as, data, drop, from, to, void
-	..number: +, -, nat
+	..number: +, -, even?, nat
 	..opt: has?, none, opt, opt-or, some, value
 	..ptr: +, -, ptr, ptr-eq?, ptr-less?, set-subscript, subscript
 	..str: char, str
-	..str-conv: to-str
+	..str-conv: interp, finish, to-str, with-str, with-value
 	..test: is
 	.arr: arr, begin-ptr, empty?, end-ptr, size, subscript
-	.arr-util: count, each, fold, map, tail
+	.arr-util: each, filter, fold, map, tail
 	.mut-arr:
 		begin-ptr, cast-immutable, copy-from!, empty?, end-ptr, fold, mut-arr,
 		mut-arr-from-begin-end, set-subscript, size, subscript, tail, uninitialized-mut-arr
@@ -54,15 +53,13 @@ empty? bool(a dict<?k, ?v>) data<?k>
 	as end-node e
 		e.pairs empty?
 
-# This is O(n).
+###
+Number of pairs.
+This is O(n).
+###
 size nat(a dict<?k, ?v>) data<?k>
-	0 size-recur a.impl
-.size-recur nat(acc nat, a dict-impl<?k, ?v>)
-	match a
-	as overlay o
-		acc + (o.pairs count {it.to has?}) size-recur o.prev
-	as end-node e
-		acc + e.pairs.size
+	0 fold a, \acc, k, v
+		acc + 1
 
 arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> trusted
 	match a impl
@@ -266,7 +263,7 @@ each void(a dict<?k, ?v>, f act void(?k, ?v)) data<?k>
 		f[k, v]
 
 fold ?a(acc ?a, a dict<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k>
-	iters = a.init-iters
+	iters = a init-iters
 	acc fold-recur iters.end-pairs, iters.overlays, f
 
 .fold-recur ?a
@@ -369,6 +366,11 @@ body
 	as end-node e
 		e pairs
 
+filter dict<?k, ?v>(a dict<?k, ?v>, f act bool(?k, ?v)) data<?k>
+	# No need to re-sort
+	dict: void, end-node: a.arr filter \pair
+		f[pair.from, pair.to]
+
 map dict<?k-out, ?v-out>(a dict<?k-in, ?v-in>, f act arrow<?k-out, ?v-out>(?k-in, ?v-in)) data<?k-in> data<?k-out>
 	dict: a.arr map \pair
 		f[pair.from, pair.to]
@@ -416,7 +418,6 @@ map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k>
 			out.pop! drop
 			out.last := "]"
 
-
 verify void(a dict<nat, str>, expected str)
 	a.dbg is expected
 
@@ -460,9 +461,15 @@ test
 	k = j ~ [11 -> "11", 25 -> "25"]
 	k verify "[5 -> 5, 10 -> 10b, 11 -> 11, 20 -> 20, 25 -> 25]"
 
-	# TODO: test fold, map
+	j-folded = "" fold j, \cur, key, value
+		pair = "{key} -> {value}"
+		cur.empty? ? pair, "{cur}, {pair}"
+	j-folded is "5 -> 5, 10 -> 10b, 15 -> 15, 20 -> 20"
 
-	k-mapped = k map-values \k, v
-		v[0 -> 1]
-	k-mapped verify "[5 -> 5, 10 -> 1, 11 -> 1, 20 -> 2, 25 -> 2]"
-	info log "DONE"
+	j-filtered = j filter \k, v
+		k even?
+	j-filtered verify "[10 -> 10b, 20 -> 20]"
+
+	j-mapped = j map-values \k, v
+		v[v.size - 1 -> v.size]
+	j-mapped verify "[5 -> 5, 10 -> b, 15 -> 5, 20 -> 0]"

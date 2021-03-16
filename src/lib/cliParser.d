@@ -112,7 +112,6 @@ struct Command {
 		immutable Test test;
 	}
 }
-static assert(Command.sizeof <= 128);
 
 struct RunOptions {
 	@safe @nogc pure nothrow:
@@ -138,6 +137,11 @@ struct RunOptions {
 
 struct BuildOptions {
 	immutable BuildOut out_;
+	immutable CCompileOptions cCompileOptions;
+}
+
+struct CCompileOptions {
+	immutable bool optimize;
 }
 
 private struct BuildOut {
@@ -182,7 +186,7 @@ immutable(Command) parseCommand(Alloc, PathAlloc)(
 private:
 
 immutable(BuildOptions) emptyBuildOptions() {
-	return immutable BuildOptions(emptyBuildOut());
+	return immutable BuildOptions(emptyBuildOut(), CCompileOptions(false));
 }
 
 immutable(BuildOut) emptyBuildOut() {
@@ -359,6 +363,13 @@ immutable(Opt!RunOptions) parseRunOptions(Alloc, PathAlloc)(
 				? some(immutable RunOptions(allocate(alloc, immutable RunOptions.BuildAndRun(
 					immutable BuildOptions(force(buildOut))))))
 				: none!RunOptions;
+		} else if (strEq(part.tag, "--optimize")) {
+			if (!empty(part.args))
+				todo!void("!");
+			return some(immutable RunOptions(allocate(alloc, immutable RunOptions.BuildAndRun(
+				immutable BuildOptions(
+					immutable BuildOut(none!AbsolutePath, none!AbsolutePath),
+					immutable CCompileOptions(true))))));
 		} else
 			return none!RunOptions;
 	}

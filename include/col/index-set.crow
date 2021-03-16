@@ -1,0 +1,288 @@
+no-std
+import
+	..bits:
+		add-bit, bit?, bits-and, bits-diff, bit-shift-left, bit-shift-right, bits-or, count-ones,
+		filter-bits, fold-one-bits, nth-bit, sub-bit
+	..bool: and, bool, false, true
+	..compare: ==, !=, <, <=
+	..exception: assert
+	..fun: subscript
+	..log: info, log
+	..misc: ->, drop, void
+	..number: +, -, *, /, deep-size-bytes, each, mod, nat, nat64
+	..opt: none, opt, or-default, some, value
+	..ptr: +, ptr-eq?, set-subscript
+	..str: char, str
+	..str-conv: to-hex, to-str
+	..test: is
+	.arr: arr, empty?, size, subscript
+	.arr-util:
+		deep-size-bytes, each, fold, fold-with-index, last, make-arr, map-with-index, rtail,
+		update, zip-larger, zip-smaller
+	.mut-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-mut-arr
+	.mut-list: ~=, move-to-arr!, mut-list, pop!, set-last
+
+index-set record
+	# TODO:PRIVATE
+	ignore void
+	# TODO: use 'vector' type that supports efficient inserts to the middle
+	values arr nat64
+
+empty? bool(a index-set)
+	a.values empty?
+
+size nat(a index-set)
+	a.values count-ones-in-arr
+.count-ones-in-arr nat(a arr nat64)
+	a sum {it count-ones}
+
+# Total number of bytes used.
+deep-size-bytes nat(a index-set) unsafe
+	a.values deep-size-bytes
+
+alloc-count nat(_ index-set) unsafe
+	1
+
+#TODO:MOVE
+.sum nat(a arr ?a, cb act nat(?a))
+	0 fold a, \acc, x
+		acc + cb[x]
+
+index-set index-set()
+	index-set: void, []
+
+index-set index-set(a nat)
+	index-set: [a]
+
+index-set index-set(a arr nat) trusted
+	index-set fold a, \acc, x
+		acc ~ x
+
+arr arr nat(a index-set)
+	a map-to-arr {it}
+
+subscript bool(a index-set, index nat)
+	nat-index = index / 64
+	if nat-index < a.values.size
+		a.values[nat-index] bit?: index mod 64
+	else
+		false
+
+~ index-set(a index-set, index nat)
+	a try-add index or-default a
+
+try-add opt index-set(a index-set, index nat)
+	nat-index = index / 64
+	bit-index = index mod 64
+	if nat-index < a.values.size
+		if a.values[nat-index] bit? bit-index
+			none
+		else
+			new-values = a.values update: nat-index, a.values[nat-index] add-bit bit-index
+			some: index-set: void, new-values
+	else
+		some: index-set: void, nat-index + 1 make-arr \i
+			if i < a.values.size
+				a.values[i]
+			elif i == nat-index
+				bit-index nth-bit
+			else
+				0
+
+~ index-set(a index-set, indices arr nat)
+	a fold indices, \cur, index
+		cur ~ index
+
+- index-set(a index-set, index nat)
+	a try-remove index or-default a
+
+try-remove opt index-set(a index-set, index nat)
+	nat-index = index / 64
+	if nat-index < a.values.size
+		bit-index = index mod 64
+		old-value = a.values[nat-index]
+		new-value = old-value sub-bit bit-index
+		if new-value == old-value
+			none
+		elif new-value == 0 and nat-index == a.values.size - 1
+			some: index-set: void, a.values rtail
+		else
+			some: a.values update nat-index, new-value strip-trailing-zeroes
+	else
+		none
+
+~ index-set(a index-set, b index-set)
+	index-set: void, a.values zip-larger b.values, \x, y
+		x or-default 0 bits-or: y or-default 0
+
+intersect index-set(a index-set, b index-set)
+	strip-trailing-zeroes: a.values zip-smaller b.values, \x, y
+		x bits-and y
+
+- index-set(a index-set, b index-set)
+	strip-trailing-zeroes: a.values zip-larger b.values, \x, y
+		x or-default 0 bits-diff: y or-default 0
+
+.strip-trailing-zeroes index-set(a arr nat)
+	index-set: void, a.strip-trailing-zeroes
+.strip-trailing-zeroes arr nat(a arr nat)
+	match a last
+	as none
+		[]
+	as some s
+		if s.value == 0
+			a.rtail strip-trailing-zeroes
+		else
+			a
+
+# hi exclusive
+count-range nat(a index-set, lo nat, hi nat)
+	assert: lo <= hi
+	lo-nat-index = lo / 64
+	if lo-nat-index < a.values.size
+		hi-nat-index = hi / 64
+		lo-bit-index = lo mod 64
+		hi-bit-index = hi mod 64
+		if lo-nat-index == hi-nat-index
+			a.values[lo-nat-index] count-range-in-nat lo-bit-index, hi-bit-index
+		else
+			l = a.values[lo-nat-index] count-gte-in-nat lo-bit-index
+			mid = a.values[lo-nat-index + 1 -> hi-nat-index] count-ones-in-arr
+			r = a.values[hi-nat-index] count-less-in-nat hi-bit-index
+			l + mid + r
+	else
+		0
+
+count-less nat(a index-set, n nat)
+	nat-index = n / 64
+	if nat-index < a.values.size
+		here = a.values[nat-index] count-less-in-nat: n mod 64
+		here + a.values[0 -> nat-index].count-ones-in-arr
+	else
+		a.size
+
+count-greater-or-equal nat(a index-set, n nat)
+	nat-index = n / 64
+	if nat-index < a.values.size
+		here = a.values[nat-index] count-gte-in-nat: n mod 64
+		here + a.values[nat-index + 1 -> a.values.size].count-ones-in-arr
+	else
+		0
+
+.count-range-in-nat nat(a nat, lo-bit-index nat, hi-bit-index nat)
+	a bit-shift-right lo-bit-index count-less-in-nat: hi-bit-index - lo-bit-index
+
+.count-less-in-nat nat(a nat, bit-index nat)
+	a bit-shift-left (64 - bit-index) count-ones
+
+.count-gte-in-nat nat(a nat, bit-index nat)
+	a bit-shift-right bit-index count-ones
+
+filter-less index-set(a index-set, n nat)
+	if n < a.values.size
+		index-set: void, a.values[0 -> n]
+	else
+		a
+
+region iteration
+
+each void(a index-set, f act void(nat))
+	void fold a, \ignore, x
+		f[x]
+
+fold ?a(acc ?a, a index-set, f act ?a(?a, nat))
+	acc fold-with-index a.values, \cur, value, nat-index
+		bit-index-offset = nat-index * 64
+		cur fold-one-bits value, \inner-acc, bit-index
+			f[inner-acc, bit-index-offset + bit-index]
+
+filter index-set(a index-set, f act bool(nat))
+	strip-trailing-zeroes: a.values map-with-index \value, nat-index
+		bit-index-offset = nat-index * 64
+		value filter-bits \bit-index
+			f[bit-index-offset + bit-index]
+
+map index-set(a index-set, f act nat(nat))
+	a map-to-arr f index-set
+
+map-to-arr arr ?a(a index-set, f act ?a(nat)) trusted
+	res = a.size uninitialized-mut-arr<?a>
+	end = res.begin-ptr fold a, \cur, x
+		cur[] := f[x]
+		cur + 1
+	assert: end ptr-eq? res.end-ptr
+	res cast-immutable
+
+debug str(a index-set)
+	if a empty?
+		"[]"
+	else
+		out = mut-list<char>
+		out ~= "["
+		a each \index
+			out ~= index to-str
+			out ~= ", "
+		out.pop! drop
+		out.last := "]"
+		out move-to-arr!
+
+.dbg str(a index-set)
+	if a empty?
+		"[]"
+	else
+		out = mut-list<char>
+		out ~= "["
+		a.values each \value
+			out ~= "x"
+			out ~= value to-hex
+			out ~= ", "
+		out.pop! drop
+		out.last := "]"
+		out move-to-arr!
+
+.verify void(a index-set, expected str, expected-arr arr nat)
+	a.dbg is expected
+	r = a arr
+	r is expected-arr
+	drop: 0 fold a, \prev, cur
+		prev -> cur each \x
+			a[x] is false
+		a[cur] is true
+		cur + 1
+	a.size is r.size
+
+test
+	info log "START INDEX SET TEST"
+
+	a = index-set
+	a verify "[]", []
+	a[3] is false
+
+	b = a ~ 8
+	b verify "[x100]", [8]
+
+	b count-less 8 is 0
+	b count-greater-or-equal 8 is 1
+	b count-range 4, 8 is 0
+	b count-range 8, 9 is 1
+
+	c = b ~ [4, 9]
+	c verify "[x310]", [4, 8, 9]
+
+	c try-remove 7 is none
+	c try-add 8 is none
+
+	d = c - 8
+	d verify "[x210]", [4, 9]
+
+	folded = 1 fold d, \cur, x
+		cur + x
+	folded is 14
+
+	filtered = c filter {it != 8}
+	filtered verify "[x210]", [4, 9]
+
+	mapped = c map {10 - it}
+	mapped verify "[x46]", [1, 2, 6]
+
+	info log "DONE WITH INDEX SET TEST"
