@@ -9,11 +9,21 @@ program(
 					field(island-id, false, type(false, nat))
 					field(exclusion, false, type(false, nat))
 					field(gc-ctx-ptr, false, type(false, ptr))
-					field(exception-ctx-ptr, false, type(false, ptr))
-					field(log-ctx, false, type(false, ptr))]))
+					field(thread-local-stuff, false, type(true, thread-local-stuff))]))
 		struct(name: nat8, body: builtin(nat-8, []))
 		struct(name: ptr, body: builtin(ptr, [type(false, nat8)]))
 		struct(name: nat, body: builtin(nat-64, []))
+		struct(
+			name: thread-local-stuff
+			ptr?: true
+			body: record(
+				[
+					field(thread-id, false, type(false, nat))
+					field(print-lock, false, type(true, lock))
+					field(exception-ctx-ptr, false, type(false, ptr))
+					field(log-ctx-ptr, false, type(false, ptr))]))
+		struct(name: lock, ptr?: true, body: record([field(is-locked, false, type(false, atomic-bool))]))
+		struct(name: atomic-bool, mut?: true, ptr?: true, body: record([field(value, true, type(false, bool))]))
 		struct(name: bool, body: builtin(bool, []))
 		struct(
 			name: mark-ctx
@@ -39,8 +49,6 @@ program(
 			mut?: true
 			ptr?: true
 			body: record([field(lk, false, type(false, lock)), field(state, true, type(false, fut-state))]))
-		struct(name: lock, ptr?: true, body: record([field(is-locked, false, type(false, atomic-bool))]))
-		struct(name: atomic-bool, mut?: true, ptr?: true, body: record([field(value, true, type(false, bool))]))
 		struct(
 			name: fut-state
 			body: union(
@@ -81,6 +89,7 @@ program(
 			body: record(
 				[
 					field(lk, false, type(false, lock))
+					field(print-lock, false, type(false, lock))
 					field(islands, true, type(false, arr))
 					field(n-live-threads, true, type(false, nat))
 					field(may-be-work-to-do, false, type(false, condition))
@@ -186,7 +195,28 @@ program(
 			name: condition
 			mut?: true
 			ptr?: true
-			body: record([field(lk, false, type(false, lock)), field(value, true, type(false, nat))]))
+			body: record(
+				[
+					field(mutex-attr, false, type(false, pthread-mutexattr-t))
+					field(mutex, false, type(false, pthread-mutex-t))
+					field(cond-attr, false, type(false, pthread-condattr-t))
+					field(cond, false, type(false, pthread-cond-t))
+					field(sequence, true, type(false, nat))]))
+		struct(name: pthread-mutexattr-t, ptr?: true, body: record([field(sizer, false, type(false, nat32))]))
+		struct(name: nat32, body: builtin(nat-32, []))
+		struct(name: pthread-mutex-t, ptr?: true, body: record([field(sizer, false, type(false, bytes40))]))
+		struct(
+			name: bytes40
+			body: record([field(n0, false, type(false, bytes32)), field(n1, false, type(false, nat))]))
+		struct(
+			name: bytes32
+			body: record([field(n0, false, type(false, bytes16)), field(n1, false, type(false, bytes16))]))
+		struct(name: bytes16, body: record([field(n0, false, type(false, nat)), field(n1, false, type(false, nat))]))
+		struct(name: pthread-condattr-t, ptr?: true, body: record([field(sizer, false, type(false, nat32))]))
+		struct(name: pthread-cond-t, ptr?: true, body: record([field(sizer, false, type(false, bytes48))]))
+		struct(
+			name: bytes48
+			body: record([field(n0, false, type(false, bytes32)), field(n1, false, type(false, bytes16))]))
 		struct(name: int, body: builtin(int-64, []))
 		struct(
 			name: exception-ctx
@@ -203,10 +233,6 @@ program(
 		struct(
 			name: bytes64
 			body: record([field(n0, false, type(false, bytes32)), field(n1, false, type(false, bytes32))]))
-		struct(
-			name: bytes32
-			body: record([field(n0, false, type(false, bytes16)), field(n1, false, type(false, bytes16))]))
-		struct(name: bytes16, body: record([field(n0, false, type(false, nat)), field(n1, false, type(false, nat))]))
 		struct(
 			name: bytes128
 			body: record([field(n0, false, type(false, bytes64)), field(n1, false, type(false, bytes64))]))
@@ -242,10 +268,6 @@ program(
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, char)]))
 		struct(name: lambda(~=, 0), body: record([field(a, false, type(true, mut-list))]))
 		struct(name: log-ctx, mut?: true, ptr?: true, body: record([field(handler, true, type(false, fun1))]))
-		struct(
-			name: thread-local-stuff
-			ptr?: true
-			body: record([field(exception-ctx, false, type(true, exception-ctx)), field(log-ctx, false, type(true, log-ctx))]))
 		struct(
 			name: arr
 			body: record([field(size, false, type(false, nat)), field(begin-ptr, false, type(false, ptr))]))
@@ -378,6 +400,7 @@ program(
 			name: no-task
 			body: record([field(any-tasks?, false, type(false, bool)), field(first-task-time, false, type(false, opt))]))
 		struct(name: pop-task-result, body: union([type(false, task), type(false, no-task)]))
+		struct(name: ptr, body: builtin(ptr, [type(false, timespec)]))
 		struct(name: cell, mut?: true, ptr?: true, body: record([field(subscript, true, type(false, ptr))]))
 		struct(name: lambda(main, 0), body: record([field(lh, false, type(false, fun1))]))
 		struct(name: lambda(with-log-handler, 0), body: record([field(original-handler, false, type(false, fun1))]))
@@ -621,63 +644,80 @@ program(
 					n-threads
 					call(get-nprocs, [])
 					let(
-						gctx-by-val
-						call(
-							as
-							[
-								call(
-									global-ctx
-									[
-										call(lock-by-val, [])
-										record([0, null])
-										local-ref(n-threads)
-										call(condition, [])
-										call(false, [])
-										call(false, [])])])
+						f
+						call(false, [])
 						let(
-							gctx
-							call(ref-of-val, [local-ref(gctx-by-val)])
+							gctx-by-val
+							call(
+								as
+								[
+									call(
+										global-ctx
+										[
+											call(lock-by-val, [])
+											call(lock-by-val, [])
+											record([0, null])
+											local-ref(n-threads)
+											call(create-condition, [])
+											local-ref(f)
+											local-ref(f)])])
 							let(
-								island-by-val
-								call(island, [local-ref(gctx), 0, local-ref(n-threads)])
+								gctx
+								call(ref-of-val, [local-ref(gctx-by-val)])
 								let(
-									island
-									call(ref-of-val, [local-ref(island-by-val)])
-									seq(
-										call(
-											set-islands
-											[local-ref(gctx), call(arr, [1, call(ptr-to, [local-ref(island)])])])
-										let(
-											main-fut
+									island-by-val
+									call(island, [local-ref(gctx), 0, local-ref(n-threads)])
+									let(
+										island
+										call(ref-of-val, [local-ref(island-by-val)])
+										seq(
 											call(
-												do-main
-												[
-													local-ref(gctx)
-													local-ref(island)
-													param-ref(argc)
-													param-ref(argv)
-													param-ref(main-ptr)])
-											seq(
-												call(run-threads, [local-ref(n-threads), local-ref(gctx)])
-												match(
-													call(state, [local-ref(main-fut)])
+												set-islands
+												[local-ref(gctx), call(arr, [1, call(ptr-to, [local-ref(island)])])])
+											let(
+												main-fut
+												call(
+													add-main-task
 													[
-														case(none, 1)
-														case(none, 1)
-														case(
-															some(r)
-															call(
-																?
-																[
-																	call(any-unhandled-exceptions?, [local-ref(gctx)])
-																	1
-																	call(
-																		unsafe-to-int32
-																		[
-																			call(
-																				unsafe-to-int
-																				[call(value, [local-ref(r)])])])]))
-														case(none, 1)])))))))))))
+														local-ref(gctx)
+														call(noctx-decr, [local-ref(n-threads)])
+														local-ref(island)
+														param-ref(argc)
+														param-ref(argv)
+														param-ref(main-ptr)])
+												seq(
+													seq(
+														call(run-threads, [local-ref(n-threads), local-ref(gctx)])
+														call(
+															destroy-condition
+															[
+																call(
+																	ref-of-val
+																	[
+																		call(
+																			may-be-work-to-do
+																			[call(ref-of-val, [local-ref(gctx-by-val)])])])]))
+													match(
+														call(state, [local-ref(main-fut)])
+														[
+															case(none, 1)
+															case(none, 1)
+															case(
+																some(r)
+																call(
+																	?
+																	[
+																		call(
+																			any-unhandled-exceptions?
+																			[local-ref(gctx)])
+																		1
+																		call(
+																			unsafe-to-int32
+																			[
+																				call(
+																					unsafe-to-int
+																					[call(value, [local-ref(r)])])])]))
+															case(none, 1)]))))))))))))
 		fun(false, get-nprocs, type(false, nat), none, [], extern(false))
 		fun(
 			false
@@ -693,6 +733,7 @@ program(
 			none
 			[
 				param(lk, type(false, lock))
+				param(print-lock, type(false, lock))
 				param(islands, type(false, arr))
 				param(n-live-threads, type(false, nat))
 				param(may-be-work-to-do, type(false, condition))
@@ -703,14 +744,194 @@ program(
 		fun(false, lock, type(false, lock), none, [param(is-locked, type(false, atomic-bool))], new-record)
 		fun(false, atomic-bool, type(false, atomic-bool), none, [], expr-body(call(atomic-bool, [call(false, [])])))
 		fun(false, atomic-bool, type(false, atomic-bool), none, [param(value, type(false, bool))], new-record)
-		fun(false, condition, type(false, condition), none, [], expr-body(call(condition, [call(lock-by-val, []), 0])))
+		fun(
+			false
+			create-condition
+			type(false, condition)
+			none
+			[]
+			expr-body(
+				let(
+					res
+					call(
+						as
+						[call(condition, [call(zeroed, []), call(zeroed, []), call(zeroed, []), call(zeroed, []), 0])])
+					seq(
+						seq(
+							seq(
+								seq(
+									seq(
+										call(
+											hard-assert-posix-error
+											[
+												call(
+													pthread-mutexattr-init
+													[
+														call(
+															ref-of-val
+															[call(mutex-attr, [call(ref-of-val, [local-ref(res)])])])])])
+										call(
+											hard-assert-posix-error
+											[
+												call(
+													pthread-mutex-init
+													[
+														call(
+															ref-of-val
+															[call(mutex, [call(ref-of-val, [local-ref(res)])])])
+														call(
+															ref-of-val
+															[call(mutex-attr, [call(ref-of-val, [local-ref(res)])])])])]))
+									call(
+										hard-assert-posix-error
+										[
+											call(
+												pthread-condattr-init
+												[
+													call(
+														ref-of-val
+														[call(cond-attr, [call(ref-of-val, [local-ref(res)])])])])]))
+								call(
+									hard-assert-posix-error
+									[
+										call(
+											pthread-condattr-setclock
+											[
+												call(
+													ref-of-val
+													[call(cond-attr, [call(ref-of-val, [local-ref(res)])])])
+												call(clock-monotonic, [])])]))
+							call(
+								hard-assert-posix-error
+								[
+									call(
+										pthread-cond-init
+										[
+											call(ref-of-val, [call(cond, [call(ref-of-val, [local-ref(res)])])])
+											call(ref-of-val, [call(cond-attr, [call(ref-of-val, [local-ref(res)])])])])]))
+						local-ref(res)))))
+		fun(
+			false
+			as
+			type(false, condition)
+			none
+			[param(value, type(false, condition))]
+			builtin([type(false, condition)]))
 		fun(
 			false
 			condition
 			type(false, condition)
 			none
-			[param(lk, type(false, lock)), param(value, type(false, nat))]
+			[
+				param(mutex-attr, type(false, pthread-mutexattr-t))
+				param(mutex, type(false, pthread-mutex-t))
+				param(cond-attr, type(false, pthread-condattr-t))
+				param(cond, type(false, pthread-cond-t))
+				param(sequence, type(false, nat))]
 			new-record)
+		fun(false, zeroed, type(false, pthread-mutexattr-t), none, [], builtin([type(false, pthread-mutexattr-t)]))
+		fun(false, zeroed, type(false, pthread-mutex-t), none, [], builtin([type(false, pthread-mutex-t)]))
+		fun(false, zeroed, type(false, pthread-condattr-t), none, [], builtin([type(false, pthread-condattr-t)]))
+		fun(false, zeroed, type(false, pthread-cond-t), none, [], builtin([type(false, pthread-cond-t)]))
+		fun(
+			false
+			hard-assert-posix-error
+			type(false, void)
+			none
+			[param(err, type(false, int32))]
+			expr-body(call(hard-assert, [call(==, [param-ref(err), 0])])))
+		fun(
+			false
+			==
+			type(false, bool)
+			none
+			[param(a, type(false, int32)), param(b, type(false, int32))]
+			expr-body(
+				match(
+					call(<=>, [param-ref(a), param-ref(b)])
+					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
+		fun(
+			false
+			<=>
+			type(false, comparison)
+			none
+			[param(a, type(false, int32)), param(b, type(false, int32))]
+			builtin([type(false, int32)]))
+		fun(
+			false
+			pthread-mutexattr-init
+			type(false, int32)
+			none
+			[param(attr, type(true, pthread-mutexattr-t))]
+			extern(false))
+		fun(
+			false
+			ref-of-val
+			type(true, pthread-mutexattr-t)
+			none
+			[param(a, type(false, pthread-mutexattr-t))]
+			builtin([type(true, pthread-mutexattr-t)]))
+		fun(false, mutex-attr, type(false, pthread-mutexattr-t), none, [param(a, type(true, condition))], field-get(0))
+		fun(
+			false
+			ref-of-val
+			type(true, condition)
+			none
+			[param(a, type(false, condition))]
+			builtin([type(true, condition)]))
+		fun(
+			false
+			pthread-mutex-init
+			type(false, int32)
+			none
+			[param(mutex, type(true, pthread-mutex-t)), param(attr, type(true, pthread-mutexattr-t))]
+			extern(false))
+		fun(
+			false
+			ref-of-val
+			type(true, pthread-mutex-t)
+			none
+			[param(a, type(false, pthread-mutex-t))]
+			builtin([type(true, pthread-mutex-t)]))
+		fun(false, mutex, type(false, pthread-mutex-t), none, [param(a, type(true, condition))], field-get(1))
+		fun(
+			false
+			pthread-condattr-init
+			type(false, int32)
+			none
+			[param(attr, type(true, pthread-condattr-t))]
+			extern(false))
+		fun(
+			false
+			ref-of-val
+			type(true, pthread-condattr-t)
+			none
+			[param(a, type(false, pthread-condattr-t))]
+			builtin([type(true, pthread-condattr-t)]))
+		fun(false, cond-attr, type(false, pthread-condattr-t), none, [param(a, type(true, condition))], field-get(2))
+		fun(
+			false
+			pthread-condattr-setclock
+			type(false, int32)
+			none
+			[param(attr, type(true, pthread-condattr-t)), param(clock-id, type(false, int32))]
+			extern(false))
+		fun(false, clock-monotonic, type(false, int32), none, [], expr-body(1))
+		fun(
+			false
+			pthread-cond-init
+			type(false, int32)
+			none
+			[param(cond, type(true, pthread-cond-t)), param(cond-attr, type(true, pthread-condattr-t))]
+			extern(false))
+		fun(
+			false
+			ref-of-val
+			type(true, pthread-cond-t)
+			none
+			[param(a, type(false, pthread-cond-t))]
+			builtin([type(true, pthread-cond-t)]))
+		fun(false, cond, type(false, pthread-cond-t), none, [param(a, type(true, condition))], field-get(3))
 		fun(
 			false
 			ref-of-val
@@ -1084,7 +1305,7 @@ program(
 			type(true, exception-ctx)
 			none
 			[]
-			expr-body(call(as-ref, [call(exception-ctx-ptr, [call(get-ctx, [])])])))
+			expr-body(call(as-ref, [call(exception-ctx-ptr, [call(thread-local-stuff, [call(get-ctx, [])])])])))
 		fun(
 			false
 			as-ref
@@ -1092,7 +1313,8 @@ program(
 			none
 			[param(a, type(false, ptr))]
 			builtin([type(true, exception-ctx)]))
-		fun(false, exception-ctx-ptr, type(false, ptr), none, [param(a, type(true, ctx))], field-get(4))
+		fun(false, exception-ctx-ptr, type(false, ptr), none, [param(a, type(true, thread-local-stuff))], field-get(2))
+		fun(false, thread-local-stuff, type(true, thread-local-stuff), none, [param(a, type(true, ctx))], field-get(4))
 		fun(true, get-ctx, type(true, ctx), none, [], builtin([]))
 		fun(
 			false
@@ -1349,23 +1571,6 @@ program(
 			[]
 			expr-body(let(err, call(pthread-yield, []), call(hard-assert, [call(==, [local-ref(err), 0])]))))
 		fun(false, pthread-yield, type(false, int32), none, [], extern(false))
-		fun(
-			false
-			==
-			type(false, bool)
-			none
-			[param(a, type(false, int32)), param(b, type(false, int32))]
-			expr-body(
-				match(
-					call(<=>, [param-ref(a), param-ref(b)])
-					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
-		fun(
-			false
-			<=>
-			type(false, comparison)
-			none
-			[param(a, type(false, int32)), param(b, type(false, int32))]
-			builtin([type(false, int32)]))
 		fun(
 			false
 			noctx-incr
@@ -2408,7 +2613,7 @@ program(
 			type(false, void)
 			none
 			[param(a, type(true, global-ctx)), param(any-unhandled-exceptions?, type(false, bool))]
-			field-set(5))
+			field-set(6))
 		fun(
 			true
 			get-global-ctx
@@ -2731,7 +2936,7 @@ program(
 			type(false, void)
 			none
 			[param(a, type(true, global-ctx)), param(islands, type(false, arr))]
-			field-set(1))
+			field-set(2))
 		fun(
 			false
 			arr
@@ -2742,11 +2947,12 @@ program(
 		fun(false, ptr-to, type(false, ptr), none, [param(t, type(true, island))], builtin([type(true, island)]))
 		fun(
 			false
-			do-main
+			add-main-task
 			type(true, fut)
 			none
 			[
 				param(gctx, type(true, global-ctx))
+				param(thread-id, type(false, nat))
 				param(island, type(true, island))
 				param(argc, type(false, int32))
 				param(argv, type(false, ptr))
@@ -2759,36 +2965,55 @@ program(
 						log-ctx
 						call(log-ctx, [])
 						let(
-							tls
-							call(
-								as
-								[
-									call(
-										thread-local-stuff
-										[call(ref-of-val, [local-ref(ectx)]), call(ref-of-val, [local-ref(log-ctx)])])])
+							ectx-ptr
+							call(as-any-ptr, [call(ref-of-val, [local-ref(ectx)])])
 							let(
-								ctx-by-val
-								call(ctx, [param-ref(gctx), call(ref-of-val, [local-ref(tls)]), param-ref(island), 0])
+								log-ctx-ptr
+								call(as-any-ptr, [call(ref-of-val, [local-ref(log-ctx)])])
 								let(
-									ctx
-									call(ref-of-val, [local-ref(ctx-by-val)])
+									print-lock
+									call(ref-of-val, [call(print-lock, [param-ref(gctx)])])
 									let(
-										add
-										call(as, [lambda(0, void)])
+										tls
+										call(
+											as
+											[
+												call(
+													thread-local-stuff
+													[
+														param-ref(thread-id)
+														local-ref(print-lock)
+														local-ref(ectx-ptr)
+														local-ref(log-ctx-ptr)])])
 										let(
-											all-args
+											ctx-by-val
 											call(
-												arr
+												ctx
 												[
-													call(unsafe-to-nat, [call(to-int, [param-ref(argc)])])
-													param-ref(argv)])
-											call(
-												call-with-ctx
-												[
-													local-ref(add)
-													local-ref(ctx)
-													local-ref(all-args)
-													param-ref(main-ptr)]))))))))))
+													param-ref(gctx)
+													call(ref-of-val, [local-ref(tls)])
+													param-ref(island)
+													0])
+											let(
+												ctx
+												call(ref-of-val, [local-ref(ctx-by-val)])
+												let(
+													add
+													call(as, [lambda(0, void)])
+													let(
+														all-args
+														call(
+															arr
+															[
+																call(unsafe-to-nat, [call(to-int, [param-ref(argc)])])
+																param-ref(argv)])
+														call(
+															call-with-ctx
+															[
+																local-ref(add)
+																local-ref(ctx)
+																local-ref(all-args)
+																param-ref(main-ptr)])))))))))))))
 		fun(
 			false
 			exception-ctx
@@ -2813,6 +3038,35 @@ program(
 		fun(false, zeroed, type(false, fun1), none, [], builtin([type(false, fun1)]))
 		fun(
 			false
+			as-any-ptr
+			type(false, ptr)
+			none
+			[param(ref, type(true, exception-ctx))]
+			builtin([type(true, exception-ctx)]))
+		fun(
+			false
+			ref-of-val
+			type(true, exception-ctx)
+			none
+			[param(a, type(false, exception-ctx))]
+			builtin([type(true, exception-ctx)]))
+		fun(
+			false
+			as-any-ptr
+			type(false, ptr)
+			none
+			[param(ref, type(true, log-ctx))]
+			builtin([type(true, log-ctx)]))
+		fun(
+			false
+			ref-of-val
+			type(true, log-ctx)
+			none
+			[param(a, type(false, log-ctx))]
+			builtin([type(true, log-ctx)]))
+		fun(false, print-lock, type(false, lock), none, [param(a, type(true, global-ctx))], field-get(1))
+		fun(
+			false
 			as
 			type(false, thread-local-stuff)
 			none
@@ -2823,22 +3077,12 @@ program(
 			thread-local-stuff
 			type(false, thread-local-stuff)
 			none
-			[param(exception-ctx, type(true, exception-ctx)), param(log-ctx, type(true, log-ctx))]
+			[
+				param(thread-id, type(false, nat))
+				param(print-lock, type(true, lock))
+				param(exception-ctx-ptr, type(false, ptr))
+				param(log-ctx-ptr, type(false, ptr))]
 			new-record)
-		fun(
-			false
-			ref-of-val
-			type(true, exception-ctx)
-			none
-			[param(a, type(false, exception-ctx))]
-			builtin([type(true, exception-ctx)]))
-		fun(
-			false
-			ref-of-val
-			type(true, log-ctx)
-			none
-			[param(a, type(false, log-ctx))]
-			builtin([type(true, log-ctx)]))
 		fun(
 			false
 			ctx
@@ -2852,29 +3096,21 @@ program(
 			expr-body(
 				let(
 					gc-ctx
-					call(as-any-ptr, [call(get-gc-ctx, [call(ref-of-val, [call(gc, [param-ref(island)])])])])
-					let(
-						exception-ctx
-						call(exception-ctx, [param-ref(tls)])
-						let(
-							log-ctx
-							call(log-ctx, [param-ref(tls)])
-							seq(
-								call(
-									set-handler
-									[
-										local-ref(log-ctx)
-										call(log-handler, [call(ref-of-val, [call(gc-root, [param-ref(island)])])])])
-								call(
-									ctx
-									[
-										call(as-any-ptr, [param-ref(gctx)])
-										call(id, [param-ref(island)])
-										param-ref(exclusion)
-										local-ref(gc-ctx)
-										call(as-any-ptr, [local-ref(exception-ctx)])
-										call(as-any-ptr, [local-ref(log-ctx)])])))))))
-		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(true, gc-ctx))], builtin([type(true, gc-ctx)]))
+					call(get-gc-ctx, [call(ref-of-val, [call(gc, [param-ref(island)])])])
+					seq(
+						call(
+							set-handler
+							[
+								call(as-ref, [call(log-ctx-ptr, [param-ref(tls)])])
+								call(log-handler, [call(ref-of-val, [call(gc-root, [param-ref(island)])])])])
+						call(
+							ctx
+							[
+								call(as-any-ptr, [param-ref(gctx)])
+								call(id, [param-ref(island)])
+								param-ref(exclusion)
+								call(as-any-ptr, [local-ref(gc-ctx)])
+								param-ref(tls)])))))
 		fun(
 			false
 			get-gc-ctx
@@ -2938,19 +3174,13 @@ program(
 		fun(false, gc, type(false, gc), none, [param(a, type(true, island))], field-get(2))
 		fun(
 			false
-			exception-ctx
-			type(true, exception-ctx)
-			none
-			[param(a, type(true, thread-local-stuff))]
-			field-get(0))
-		fun(false, log-ctx, type(true, log-ctx), none, [param(a, type(true, thread-local-stuff))], field-get(1))
-		fun(
-			false
 			set-handler
 			type(false, void)
 			none
 			[param(a, type(true, log-ctx)), param(handler, type(false, fun1))]
 			field-set(0))
+		fun(false, as-ref, type(true, log-ctx), none, [param(a, type(false, ptr))], builtin([type(true, log-ctx)]))
+		fun(false, log-ctx-ptr, type(false, ptr), none, [param(a, type(true, thread-local-stuff))], field-get(3))
 		fun(false, log-handler, type(false, fun1), none, [param(a, type(true, island-gc-root))], field-get(2))
 		fun(
 			false
@@ -2970,8 +3200,7 @@ program(
 				param(island-id, type(false, nat))
 				param(exclusion, type(false, nat))
 				param(gc-ctx-ptr, type(false, ptr))
-				param(exception-ctx-ptr, type(false, ptr))
-				param(log-ctx, type(false, ptr))]
+				param(thread-local-stuff, type(true, thread-local-stuff))]
 			new-record)
 		fun(
 			false
@@ -2981,20 +3210,7 @@ program(
 			[param(ref, type(true, global-ctx))]
 			builtin([type(true, global-ctx)]))
 		fun(false, id, type(false, nat), none, [param(a, type(true, island))], field-get(1))
-		fun(
-			false
-			as-any-ptr
-			type(false, ptr)
-			none
-			[param(ref, type(true, exception-ctx))]
-			builtin([type(true, exception-ctx)]))
-		fun(
-			false
-			as-any-ptr
-			type(false, ptr)
-			none
-			[param(ref, type(true, log-ctx))]
-			builtin([type(true, log-ctx)]))
+		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(true, gc-ctx))], builtin([type(true, gc-ctx)]))
 		fun(
 			false
 			ref-of-val
@@ -3448,7 +3664,7 @@ program(
 			[param(a, type(false, ptr)), param(offset, type(false, nat))]
 			builtin([type(true, island)]))
 		fun(false, begin-ptr, type(false, ptr), none, [param(a, type(false, arr))], field-get(1))
-		fun(false, islands, type(false, arr), none, [param(a, type(true, global-ctx))], field-get(1))
+		fun(false, islands, type(false, arr), none, [param(a, type(true, global-ctx))], field-get(2))
 		fun(false, island, type(false, nat), none, [param(a, type(false, island-and-exclusion))], field-get(0))
 		fun(
 			false
@@ -3638,30 +3854,51 @@ program(
 			broadcast!
 			type(false, void)
 			none
-			[param(c, type(true, condition))]
+			[param(a, type(true, condition))]
 			expr-body(
 				seq(
 					seq(
-						call(acquire!, [call(ref-of-val, [call(lk, [param-ref(c)])])])
-						call(set-value, [param-ref(c), call(noctx-incr, [call(value, [param-ref(c)])])]))
-					call(release!, [call(ref-of-val, [call(lk, [param-ref(c)])])]))))
-		fun(false, lk, type(false, lock), none, [param(a, type(true, condition))], field-get(0))
+						seq(
+							call(
+								hard-assert-posix-error
+								[call(pthread-mutex-lock, [call(ref-of-val, [call(mutex, [param-ref(a)])])])])
+							call(
+								hard-assert-posix-error
+								[call(pthread-cond-broadcast, [call(ref-of-val, [call(cond, [param-ref(a)])])])]))
+						call(set-sequence, [param-ref(a), call(noctx-incr, [call(sequence, [param-ref(a)])])]))
+					call(
+						hard-assert-posix-error
+						[call(pthread-mutex-unlock, [call(ref-of-val, [call(mutex, [param-ref(a)])])])]))))
 		fun(
 			false
-			set-value
+			pthread-mutex-lock
+			type(false, int32)
+			none
+			[param(mutex, type(true, pthread-mutex-t))]
+			extern(false))
+		fun(
+			false
+			pthread-cond-broadcast
+			type(false, int32)
+			none
+			[param(cond, type(true, pthread-cond-t))]
+			extern(false))
+		fun(
+			false
+			set-sequence
 			type(false, void)
 			none
-			[param(a, type(true, condition)), param(value, type(false, nat))]
-			field-set(1))
-		fun(false, value, type(false, nat), none, [param(a, type(true, condition))], field-get(1))
+			[param(a, type(true, condition)), param(sequence, type(false, nat))]
+			field-set(4))
+		fun(false, sequence, type(false, nat), none, [param(a, type(true, condition))], field-get(4))
 		fun(
 			false
-			ref-of-val
-			type(true, condition)
+			pthread-mutex-unlock
+			type(false, int32)
 			none
-			[param(a, type(false, condition))]
-			builtin([type(true, condition)]))
-		fun(false, may-be-work-to-do, type(false, condition), none, [param(a, type(true, global-ctx))], field-get(3))
+			[param(mutex, type(true, pthread-mutex-t))]
+			extern(false))
+		fun(false, may-be-work-to-do, type(false, condition), none, [param(a, type(true, global-ctx))], field-get(4))
 		fun(false, gctx, type(true, global-ctx), none, [param(a, type(true, island))], field-get(0))
 		fun(false, no-timestamp, type(false, nat), none, [], expr-body(0))
 		fun(false, exclusion, type(false, nat), none, [param(a, type(false, island-and-exclusion))], field-get(1))
@@ -4350,7 +4587,7 @@ program(
 								[call(exception-handler, [call(get-cur-island, [])]), call(value, [local-ref(e)])]))])))
 		fun(
 			true
-			lambda(do-main, 0)
+			lambda(add-main-task, 0)
 			type(true, fut)
 			some(param("<<closure>>", type(false, void)))
 			[param(all-args, type(false, arr)), param(main-ptr, type(false, fun-ptr2))]
@@ -4556,25 +4793,35 @@ program(
 						log-ctx
 						call(log-ctx, [])
 						let(
-							tls
-							call(
-								as
-								[
-									call(
-										thread-local-stuff
-										[call(ref-of-val, [local-ref(ectx)]), call(ref-of-val, [local-ref(log-ctx)])])])
-							call(
-								thread-function-recur
-								[param-ref(thread-id), param-ref(gctx), call(ref-of-val, [local-ref(tls)])]))))))
+							print-lock
+							call(ref-of-val, [call(print-lock, [param-ref(gctx)])])
+							let(
+								ectx-ptr
+								call(as-any-ptr, [call(ref-of-val, [local-ref(ectx)])])
+								let(
+									log-ctx-ptr
+									call(as-any-ptr, [call(ref-of-val, [local-ref(log-ctx)])])
+									let(
+										tls
+										call(
+											as
+											[
+												call(
+													thread-local-stuff
+													[
+														param-ref(thread-id)
+														local-ref(print-lock)
+														local-ref(ectx-ptr)
+														local-ref(log-ctx-ptr)])])
+										call(
+											thread-function-recur
+											[param-ref(gctx), call(ref-of-val, [local-ref(tls)])])))))))))
 		fun(
 			false
 			thread-function-recur
 			type(false, void)
 			none
-			[
-				param(thread-id, type(false, nat))
-				param(gctx, type(true, global-ctx))
-				param(tls, type(true, thread-local-stuff))]
+			[param(gctx, type(true, global-ctx)), param(tls, type(true, thread-local-stuff))]
 			expr-body(
 				cond(
 					call(shut-down?, [param-ref(gctx)])
@@ -4591,7 +4838,7 @@ program(
 						call(hard-assert, [call(>, [call(n-live-threads, [param-ref(gctx)]), 0])])
 						let(
 							last-checked
-							call(get-last-checked, [call(ref-of-val, [call(may-be-work-to-do, [param-ref(gctx)])])])
+							call(get-sequence, [call(ref-of-val, [call(may-be-work-to-do, [param-ref(gctx)])])])
 							seq(
 								match(
 									call(choose-task, [param-ref(gctx)])
@@ -4635,8 +4882,8 @@ program(
 															param-ref(gctx)
 															call(noctx-incr, [call(n-live-threads, [param-ref(gctx)])])]))
 												call(release!, [call(ref-of-val, [call(lk, [param-ref(gctx)])])])))])
-								call(thread-function-recur, [param-ref(thread-id), param-ref(gctx), param-ref(tls)])))))))
-		fun(false, shut-down?, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(4))
+								call(thread-function-recur, [param-ref(gctx), param-ref(tls)])))))))
+		fun(false, shut-down?, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(5))
 		fun(false, lk, type(false, lock), none, [param(a, type(true, global-ctx))], field-get(0))
 		fun(
 			false
@@ -4644,8 +4891,8 @@ program(
 			type(false, void)
 			none
 			[param(a, type(true, global-ctx)), param(n-live-threads, type(false, nat))]
-			field-set(2))
-		fun(false, n-live-threads, type(false, nat), none, [param(a, type(true, global-ctx))], field-get(2))
+			field-set(3))
+		fun(false, n-live-threads, type(false, nat), none, [param(a, type(true, global-ctx))], field-get(3))
 		fun(
 			false
 			assert-islands-are-shut-down
@@ -4683,11 +4930,23 @@ program(
 			expr-body(match(call(head, [param-ref(a)]), [case(none, call(true, [])), case(none, call(false, []))])))
 		fun(
 			false
-			get-last-checked
+			get-sequence
 			type(false, nat)
 			none
 			[param(a, type(true, condition))]
-			expr-body(call(value, [param-ref(a)])))
+			expr-body(
+				seq(
+					call(
+						hard-assert-posix-error
+						[call(pthread-mutex-lock, [call(ref-of-val, [call(mutex, [param-ref(a)])])])])
+					let(
+						res
+						call(sequence, [param-ref(a)])
+						seq(
+							call(
+								hard-assert-posix-error
+								[call(pthread-mutex-unlock, [call(ref-of-val, [call(mutex, [param-ref(a)])])])])
+							local-ref(res))))))
 		fun(
 			false
 			choose-task
@@ -4782,7 +5041,6 @@ program(
 			none
 			[param(clock-id, type(false, int32)), param(timespec, type(true, cell))]
 			extern(false))
-		fun(false, clock-monotonic, type(false, int32), none, [], expr-body(1))
 		fun(false, ref-of-val, type(true, cell), none, [param(a, type(false, cell))], builtin([type(true, cell)]))
 		fun(false, subscript, type(false, timespec), none, [param(a, type(true, cell))], field-get(0))
 		fun(
@@ -5447,9 +5705,7 @@ program(
 				seq(
 					seq(
 						seq(
-							seq(
-								call(hard-assert, [call(needs-gc?, [param-ref(gc)])])
-								call(set-needs-gc?, [param-ref(gc), call(false, [])]))
+							call(hard-assert, [call(needs-gc?, [param-ref(gc)])])
 							call(set-gc-count, [param-ref(gc), call(noctx-incr, [call(gc-count, [param-ref(gc)])])]))
 						call(
 							memset
@@ -5469,23 +5725,20 @@ program(
 							seq(
 								seq(
 									seq(
-										call(mark-visit, [call(ref-of-val, [local-ref(mark-ctx)]), param-ref(gc-root)])
-										call(set-mark-cur, [param-ref(gc), call(mark-begin, [param-ref(gc)])]))
-									call(set-data-cur, [param-ref(gc), call(data-begin, [param-ref(gc)])]))
-								call(
-									clear-free-mem
-									[
-										call(mark-begin, [param-ref(gc)])
-										call(mark-end, [param-ref(gc)])
-										call(data-begin, [param-ref(gc)])]))
-							call(validate-gc, [param-ref(gc)]))))))
-		fun(
-			false
-			set-needs-gc?
-			type(false, void)
-			none
-			[param(a, type(true, gc)), param(needs-gc?, type(false, bool))]
-			field-set(3))
+										seq(
+											call(
+												mark-visit
+												[call(ref-of-val, [local-ref(mark-ctx)]), param-ref(gc-root)])
+											call(set-mark-cur, [param-ref(gc), call(mark-begin, [param-ref(gc)])]))
+										call(set-data-cur, [param-ref(gc), call(data-begin, [param-ref(gc)])]))
+									call(
+										clear-free-mem
+										[
+											call(mark-begin, [param-ref(gc)])
+											call(mark-end, [param-ref(gc)])
+											call(data-begin, [param-ref(gc)])]))
+								call(validate-gc, [param-ref(gc)]))
+							call(set-needs-gc?, [param-ref(gc), call(false, [])]))))))
 		fun(
 			false
 			set-gc-count
@@ -5545,42 +5798,118 @@ program(
 					void)))
 		fun(
 			false
+			set-needs-gc?
+			type(false, void)
+			none
+			[param(a, type(true, gc)), param(needs-gc?, type(false, bool))]
+			field-set(3))
+		fun(
+			false
 			set-shut-down?
 			type(false, void)
 			none
 			[param(a, type(true, global-ctx)), param(shut-down?, type(false, bool))]
-			field-set(4))
+			field-set(5))
 		fun(
 			false
 			wait-on
 			type(false, void)
 			none
 			[
-				param(cond, type(true, condition))
+				param(a, type(true, condition))
 				param(until-time, type(false, opt))
-				param(last-checked, type(false, nat))]
+				param(last-sequence, type(false, nat))]
 			expr-body(
-				cond(
-					call(==, [call(value, [param-ref(cond)]), param-ref(last-checked)])
+				seq(
 					seq(
-						call(yield-thread, [])
+						call(
+							hard-assert-posix-error
+							[call(pthread-mutex-lock, [call(ref-of-val, [call(mutex, [param-ref(a)])])])])
 						cond(
-							call(before-time?, [param-ref(until-time)])
-							call(wait-on, [param-ref(cond), param-ref(until-time), param-ref(last-checked)])
+							call(==, [call(sequence, [param-ref(a)]), param-ref(last-sequence)])
+							call(
+								hard-assert-posix-error
+								[
+									match(
+										param-ref(until-time)
+										[
+											case(
+												none
+												call(
+													pthread-cond-wait
+													[
+														call(ref-of-val, [call(cond, [param-ref(a)])])
+														call(ref-of-val, [call(mutex, [param-ref(a)])])]))
+											case(
+												some(s)
+												let(
+													abstime
+													call(to-timespec, [call(value, [local-ref(s)])])
+													let(
+														err
+														call(
+															pthread-cond-timedwait
+															[
+																call(ref-of-val, [call(cond, [param-ref(a)])])
+																call(ref-of-val, [call(mutex, [param-ref(a)])])
+																call(ptr-to, [local-ref(abstime)])])
+														call(
+															?
+															[
+																call(==, [local-ref(err), call(etimedout, [])])
+																0
+																local-ref(err)]))))])])
 							void))
-					void)))
+					call(
+						hard-assert-posix-error
+						[call(pthread-mutex-unlock, [call(ref-of-val, [call(mutex, [param-ref(a)])])])]))))
 		fun(
 			false
-			before-time?
-			type(false, bool)
+			pthread-cond-wait
+			type(false, int32)
 			none
-			[param(until-time, type(false, opt))]
+			[param(cond, type(true, pthread-cond-t)), param(mutex, type(true, pthread-mutex-t))]
+			extern(false))
+		fun(
+			false
+			to-timespec
+			type(false, timespec)
+			none
+			[param(a, type(false, nat))]
 			expr-body(
-				match(
-					param-ref(until-time)
-					[
-						case(none, call(true, []))
-						case(some(s), call(<, [call(get-monotime-nsec, []), call(value, [local-ref(s)])]))])))
+				let(
+					seconds
+					call(unsafe-to-int, [call(unsafe-div, [param-ref(a), 1000000000])])
+					let(
+						ns
+						call(unsafe-to-int, [call(unsafe-mod, [param-ref(a), 1000000000])])
+						call(timespec, [local-ref(seconds), local-ref(ns)])))))
+		fun(
+			false
+			unsafe-mod
+			type(false, nat)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			builtin([]))
+		fun(
+			false
+			pthread-cond-timedwait
+			type(false, int32)
+			none
+			[
+				param(cond, type(true, pthread-cond-t))
+				param(mutex, type(true, pthread-mutex-t))
+				param(abstime, type(false, ptr))]
+			extern(false))
+		fun(false, ptr-to, type(false, ptr), none, [param(t, type(false, timespec))], builtin([type(false, timespec)]))
+		fun(
+			false
+			?
+			type(false, int32)
+			none
+			[param(cond, type(false, bool)), param(if-true, type(false, int32)), param(if-false, type(false, int32))]
+			builtin([type(false, int32)]))
+		fun(false, etimedout, type(false, int32), none, [], expr-body(110))
 		fun(false, thread-id, type(false, nat), none, [param(a, type(true, thread-args))], field-get(0))
 		fun(false, gctx, type(true, global-ctx), none, [param(a, type(true, thread-args))], field-get(1))
 		fun(
@@ -5659,12 +5988,58 @@ program(
 			builtin([type(false, nat8), type(false, thread-args)]))
 		fun(
 			false
-			?
+			destroy-condition
+			type(false, void)
+			none
+			[param(a, type(true, condition))]
+			expr-body(
+				seq(
+					seq(
+						seq(
+							call(
+								hard-assert-posix-error
+								[
+									call(
+										pthread-mutexattr-destroy
+										[call(ref-of-val, [call(mutex-attr, [param-ref(a)])])])])
+							call(
+								hard-assert-posix-error
+								[call(pthread-mutex-destroy, [call(ref-of-val, [call(mutex, [param-ref(a)])])])]))
+						call(
+							hard-assert-posix-error
+							[call(pthread-condattr-destroy, [call(ref-of-val, [call(cond-attr, [param-ref(a)])])])]))
+					call(
+						hard-assert-posix-error
+						[call(pthread-cond-destroy, [call(ref-of-val, [call(cond, [param-ref(a)])])])]))))
+		fun(
+			false
+			pthread-mutexattr-destroy
 			type(false, int32)
 			none
-			[param(cond, type(false, bool)), param(if-true, type(false, int32)), param(if-false, type(false, int32))]
-			builtin([type(false, int32)]))
-		fun(false, any-unhandled-exceptions?, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(5))
+			[param(attr, type(true, pthread-mutexattr-t))]
+			extern(false))
+		fun(
+			false
+			pthread-mutex-destroy
+			type(false, int32)
+			none
+			[param(mutex, type(true, pthread-mutex-t))]
+			extern(false))
+		fun(
+			false
+			pthread-condattr-destroy
+			type(false, int32)
+			none
+			[param(attr, type(true, pthread-condattr-t))]
+			extern(false))
+		fun(
+			false
+			pthread-cond-destroy
+			type(false, int32)
+			none
+			[param(cond, type(true, pthread-cond-t))]
+			extern(false))
+		fun(false, any-unhandled-exceptions?, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(6))
 		fun(
 			true
 			main
@@ -5715,9 +6090,7 @@ program(
 			type(true, log-ctx)
 			none
 			[]
-			expr-body(call(as-ref, [call(log-ctx, [call(get-ctx, [])])])))
-		fun(false, as-ref, type(true, log-ctx), none, [param(a, type(false, ptr))], builtin([type(true, log-ctx)]))
-		fun(false, log-ctx, type(false, ptr), none, [param(a, type(true, ctx))], field-get(5))
+			expr-body(call(as-ref, [call(log-ctx-ptr, [call(thread-local-stuff, [call(get-ctx, [])])])])))
 		fun(
 			true
 			logged

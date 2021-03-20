@@ -1,7 +1,7 @@
 # sys/types.h
 no-std
 import
-	..number: int32, nat32
+	..private.bootstrap: int32, nat32
 	.c-types: s-long-long, u-int, u-long, u-long-long
 
 blkcnt-t alias

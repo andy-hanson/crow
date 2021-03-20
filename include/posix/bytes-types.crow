@@ -26,6 +26,16 @@ bytes32 record
 	n0 bytes16
 	n1 bytes16
 
+bytes40 record
+	by-val
+	n0 bytes32
+	n1 bytes8
+
+bytes48 record
+	by-val
+	n0 bytes32
+	n1 bytes16
+
 bytes64 record
 	by-val
 	n0 bytes32

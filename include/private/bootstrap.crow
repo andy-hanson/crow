@@ -238,8 +238,14 @@ ctx record mut
 	island-id island-id
 	exclusion exclusion
 	gc-ctx-ptr any-ptr
+	thread-local-stuff thread-local-stuff
+
+thread-local-stuff record mut
+	by-ref
+	thread-id nat
+	print-lock lock
 	exception-ctx-ptr any-ptr
-	log-ctx any-ptr
+	log-ctx-ptr any-ptr
 
 island-id alias
 	nat
@@ -392,6 +398,7 @@ region lock
 atomic-bool record force-sendable
 	value mut bool
 
+# TODO: use pthread lock
 lock record sendable
 	by-ref
 	is-locked by-val atomic-bool

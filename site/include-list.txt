@@ -73,9 +73,11 @@ posix/wait
 private/alloc
 private/backtrace
 private/bootstrap
+private/debug-low-level
 private/exception-low-level
 private/fut-low-level
 private/log-low-level
+private/number-low-level
 private/rt-main
 private/runtime
 private/task-queue

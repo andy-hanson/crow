@@ -1,0 +1,86 @@
+no-std
+import
+	..compare: ==, !=, >=
+	..posix.extra-types: fd-t
+	..posix.unistd: write
+	..ptr: as-any-ptr, size-of
+	.bootstrap:
+		begin-ptr, bool, char, get-ctx, hard-assert, lock, nat, nat8, print-lock, size, str, thread-id,
+		thread-local-stuff, todo, unsafe-div, unsafe-to-int, void
+	.number-low-level: unsafe-mod
+	.thread-utils: acquire!, release!
+
+debug-printer record mut
+	by-val
+	print-lock lock
+	thread-id nat
+
+get-debug-printer debug-printer() unsafe
+	ctx = get-ctx
+	debug-printer: ctx.thread-local-stuff.print-lock, ctx.thread-local-stuff.thread-id
+
+debug-print void(printer debug-printer, a str) unsafe noctx
+	printer.print-lock acquire!
+	debug-print-nat-no-newline: printer.thread-id
+	debug-print-no-newline: " "
+	debug-print-no-newline: a
+	debug-print-no-newline: "\n"
+	printer.print-lock release!
+
+debug-print-bool void(printer debug-printer, descr str, a bool) unsafe noctx
+	printer.print-lock acquire!
+	debug-print-nat-no-newline: printer.thread-id
+	debug-print-no-newline: " "
+	descr debug-print-no-newline
+	debug-print-no-newline: if a
+		"true\n"
+	else
+		"false\n"
+	printer.print-lock release!
+
+debug-print-nat void(printer debug-printer, descr str, a nat) unsafe noctx
+	printer.print-lock acquire!
+	printer.thread-id debug-print-nat-no-newline
+	descr debug-print-no-newline
+	a debug-print-nat-no-newline
+	"\n" debug-print-no-newline
+	printer.print-lock release!
+
+.debug-print-no-newline void(a str) unsafe noctx
+	1 write-no-newline a
+
+.debug-print-nat-no-newline void(a nat) unsafe noctx
+	if a >= 10
+		debug-print-nat-no-newline: a unsafe-div 10
+	debug-print-no-newline: (a unsafe-mod 10).digit-to-str
+
+.digit-to-str str(a nat) noctx
+	if a == 0
+		"0"
+	elif a == 1
+		"1"
+	elif a == 2
+		"2"
+	elif a == 3
+		"3"
+	elif a == 4
+		"4"
+	elif a == 5
+		"5"
+	elif a == 6
+		"6"
+	elif a == 7
+		"7"
+	elif a == 8
+		"8"
+	elif a == 9
+		"9"
+	else
+		"?"
+
+.write-no-newline void(fd fd-t, a str) unsafe noctx
+	hard-assert: size-of<char> == size-of<nat8>
+	res = fd write a.begin-ptr.as-any-ptr, a.size
+	if res != a.size.unsafe-to-int
+		# Retry?
+		todo

@@ -2,9 +2,8 @@
 no-std
 import
 	..misc: void
-	..number: int32, int64, nat
 	..ptr: any-ptr, ptr
-	..str: c-str
+	..private.bootstrap: c-str, int32, int64, nat
 	.c-types: size-t
 	.extra-types: err-t, fd-t
 	.types: off-t
@@ -16,7 +15,8 @@ readlink ssize-t(path c-str, buf c-str, len size-t) summon extern<"readlink"> no
 close err-t(fd fd-t) summon extern<"close"> noctx
 lseek off-t(f fd-t, offset off-t, whence int32) summon extern<"lseek"> noctx
 read ssize-t(fd fd-t, buff any-ptr, n-bytes size-t) summon extern<"read"> noctx
-write ssize-t(fd fd-t, buf any-ptr, n-bytes size-t) summon extern<"write"> noctx
+# TODO: summon
+write ssize-t(fd fd-t, buf any-ptr, n-bytes size-t) extern<"write"> noctx
 
 pipe err-t(pipes pipes) summon extern<"pipe"> noctx
 

@@ -3,9 +3,12 @@ no-std
 import
 	..cell: cell
 	..fun: fun-ptr1
-	..ptr: any-ptr
+	..ptr: any-ptr, ptr
+	..private.bootstrap: int32
+	.bytes-types: bytes4, bytes40, bytes48
 	.c-types: u-long
 	.extra-types: err-t
+	.time: clockid-t, timespec
 
 pthread-t alias
 	u-long
@@ -28,3 +31,91 @@ pthread-join err-t(thread pthread-t, thread-return cell any-ptr) unsafe extern<"
 
 # TODO: summon?
 pthread-yield err-t() unsafe extern<"pthread_yield"> noctx
+
+region mutex
+
+pthread-mutex-t record
+	by-ref
+	sizer bytes40
+
+pthread-mutexattr-t record
+	by-ref
+	sizer bytes4
+
+pthread-mutexattr-init err-t(attr pthread-mutexattr-t) unsafe extern<"pthread_mutexattr_init"> noctx
+pthread-mutexattr-destroy err-t(attr pthread-mutexattr-t) unsafe extern<"pthread_mutexattr_destroy"> noctx
+pthread-mutexattr-getpshared err-t
+	attr pthread-mutexattr-t
+	pshared ptr int32
+spec
+	unsafe
+	extern<"pthread_mutexattr_getpshared">
+	noctx
+pthread-mutexattr-setpshared err-t
+	attr pthread-mutexattr-t
+	pshared int32
+spec
+	unsafe
+	extern<"pthread_mutexattr_setpshared">
+	noctx
+
+pthread-mutex-init err-t(mutex pthread-mutex-t, attr pthread-mutexattr-t) unsafe extern<"pthread_mutex_init"> noctx
+pthread-mutex-destroy err-t(mutex pthread-mutex-t) unsafe extern<"pthread_mutex_destroy"> noctx
+pthread-mutex-trylock err-t(mutex pthread-mutex-t) unsafe extern<"pthread_mutex_trylock"> noctx
+pthread-mutex-lock err-t(mutex pthread-mutex-t) unsafe extern<"pthread_mutex_lock"> noctx
+pthread-mutex-unlock err-t(mutex pthread-mutex-t) unsafe extern<"pthread_mutex_unlock"> noctx
+
+region cond
+
+pthread-cond-t record
+	by-ref
+	sizer bytes48
+
+pthread-condattr-t record
+	by-ref
+	sizer bytes4
+
+pthread-condattr-init err-t(attr pthread-condattr-t) unsafe extern<"pthread_condattr_init"> noctx
+pthread-condattr-destroy err-t(attr pthread-condattr-t) unsafe extern<"pthread_condattr_destroy"> noctx
+pthread-condattr-getpshared err-t
+	attr pthread-condattr-t
+	pshared ptr int32
+spec
+	unsafe
+	extern<"pthread_condattr_getpshared">
+	noctx
+pthread-condattr-setpshared err-t
+	attr pthread-condattr-t
+	pshared ptr int32
+spec
+	unsafe
+	extern<"pthread_condattr_setpshared">
+	noctx
+pthread-condattr-getclock err-t
+	attr pthread-condattr-t
+	clock-id ptr clockid-t
+spec
+	unsafe
+	extern<"pthread_condattr_getclock">
+	noctx
+pthread-condattr-setclock err-t
+	attr pthread-condattr-t
+	clock-id clockid-t
+spec
+	unsafe
+	extern<"pthread_condattr_setclock">
+	noctx
+
+pthread-cond-init err-t(cond pthread-cond-t, cond-attr pthread-condattr-t) unsafe extern<"pthread_cond_init"> noctx
+pthread-cond-destroy err-t(cond pthread-cond-t) unsafe extern<"pthread_cond_destroy"> noctx
+pthread-cond-signal err-t(cond pthread-cond-t) unsafe extern<"pthread_cond_signal"> noctx
+pthread-cond-broadcast err-t(cond pthread-cond-t) unsafe extern<"pthread_cond_broadcast"> noctx
+pthread-cond-wait err-t(cond pthread-cond-t, mutex pthread-mutex-t) unsafe extern<"pthread_cond_wait"> noctx
+pthread-cond-timedwait err-t
+	cond pthread-cond-t
+	mutex pthread-mutex-t
+	abstime ptr timespec
+spec
+	unsafe
+	extern<"pthread_cond_timedwait">
+	noctx

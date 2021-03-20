@@ -1,12 +1,13 @@
 no-std
 import
-	..private.bootstrap: as, nat, todo, unsafe-to-nat, wrap-add, wrap-mul
+	..private.bootstrap: as, nat, todo, unsafe-div, unsafe-to-int, unsafe-to-nat, wrap-add, wrap-mul
+	..private.number-low-level: unsafe-mod
 	..cell: cell, subscript
 	..compare: ==
 	..posix.time: clock-gettime, clock-monotonic, timespec, tv-nsec, tv-sec
 	..ptr: by-val, ref-of-val
 
-# Alias for a nat that should represent a timestamp.
+# Monotime in nanoseconds.
 timestamp alias
 	nat
 
@@ -19,3 +20,9 @@ get-monotime-nsec timestamp() noctx trusted summon
 		time.tv-sec wrap-mul 1000000000 wrap-add time.tv-nsec unsafe-to-nat
 	else
 		todo
+
+to-timespec timespec(a timestamp) noctx unsafe
+	second = 1000000000
+	seconds = a unsafe-div second unsafe-to-int
+	ns = a unsafe-mod second unsafe-to-int
+	timespec: seconds, ns

@@ -10,7 +10,7 @@ import
 	.crow-tests: run-crow-tests
 
 main fut nat(args arr str) summon
-	option-names = ["print-tests", "overwrite-output", "max-failures"]
+	option-names = ["print-tests", "overwrite-output", "max-failures", "match"]
 	resolved: match args parse-command option-names
 	as none
 		print-help
@@ -20,6 +20,7 @@ main fut nat(args arr str) summon
 		print-tests-strs = values[0]
 		overwrite-output-strs = values[1]
 		max-failures-strs = values[2]
+		match-test-strs = values[3]
 		print-tests? = print-tests-strs has?
 		overwrite-output? = match overwrite-output-strs
 		as none
@@ -35,7 +36,14 @@ main fut nat(args arr str) summon
 			strs = sf value
 			assert: strs.size == 1
 			strs[0].parse-nat force
-		do-test: test-options: print-tests?, overwrite-output?, max-failures
+		match-test = match match-test-strs
+		as none
+			""
+		as some smt
+			strs = smt value
+			assert: strs.size == 1
+			strs[0]
+		do-test: test-options: print-tests?, overwrite-output?, max-failures, match-test
 
 .print-help void() summon
 	print: "test -- runs tests"

@@ -1,5 +1,5 @@
 import
-	col.arr-util: first-some, tail
+	col.arr-util: contains-subseq?, first-some, tail
 	col.mut-list: ~=, move-to-arr!, mut-list
 	io.environ: environ
 	io.file: each-child-recursive
@@ -7,11 +7,11 @@ import
 	io.print: print
 	io.process: exit-code, spawn-and-wait-result, stderr, stdout
 	.failure:
-		failure, flat-map-with-max-size, handle-output, max-failures, overwrite-output?,
+		failure, flat-map-with-max-size, handle-output, max-failures, match-test, overwrite-output?,
 		print-tests?, test-options
 
 run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ, options test-options) summon
-	tests = path list-tests
+	tests = path list-tests options.match-test
 	failures = tests flat-map-with-max-size options.max-failures, \test
 		path-to-crow run-single-crow-test env, test, options
 	if failures has?
@@ -19,16 +19,15 @@ run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ,
 	else
 		ok: "ran {tests size} tests in {path}"
 
-.list-tests arr str(path str) summon
+.list-tests arr str(path str, match-test str) summon
 	res = mut-list<str>
 	path each-child-recursive \child
-		match child.base-name get-extension
-		as none
-			void
-		as some s
-			if s.value == "crow"
-				res ~= child
+		if child contains-subseq? match-test and child.ext-is-crow?
+			res ~= child
 	res move-to-arr!
+
+.ext-is-crow? bool(a str)
+	a.base-name.get-extension == "crow".some
 
 .run-single-crow-test arr failure
 	path-to-crow str

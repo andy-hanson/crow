@@ -1,0 +1,5 @@
+no-std
+import
+	.bootstrap: nat
+
+unsafe-mod nat(a nat, b nat) noctx unsafe builtin

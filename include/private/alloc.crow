@@ -130,7 +130,6 @@ gc by-val gc() noctx unsafe
 
 run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	hard-assert: gc needs-gc?
-	gc.needs-gc? := false
 	gc.gc-count := gc.gc-count noctx-incr
 	gc.mark-begin.as-any-ptr memset 0, gc.size-words
 	mark-ctx = as<by-val<mark-ctx>>: mark-ctx: gc.size-words, gc.mark-begin, gc.data-begin
@@ -139,6 +138,7 @@ run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	gc.data-cur := gc.data-begin
 	clear-free-mem: gc.mark-begin, gc.mark-end, gc.data-begin
 	gc validate-gc
+	gc.needs-gc? := false
 
 .clear-free-mem void(mark-ptr ptr bool, mark-end ptr bool, data-ptr ptr nat64) noctx unsafe
 	if mark-ptr ptr-eq? mark-end not

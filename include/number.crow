@@ -11,6 +11,7 @@ import
 	.ptr: size-of
 export
 	.private.bootstrap: float, int, int8, int16, int32, int64, nat, nat8, nat16, nat32, nat64, to-int, to-nat
+	.private.number-low-level: unsafe-mod
 
 deep-size-bytes nat(a nat) unsafe
 	a size-of
@@ -80,8 +81,6 @@ div-ceil nat(a nat, b nat)
 		res
 	else
 		res + 1
-
-unsafe-mod nat(a nat, b nat) noctx unsafe builtin
 
 # Remainder of `a / b`.
 mod nat(a nat, b nat) trusted

@@ -21,13 +21,14 @@ import
 	.alloc
 	.bootstrap:
 		call-with-ctx, ctx, get-ctx, noctx-decr, noctx-incr,
-		state, unsafe-to-int, unsafe-to-int32, unsafe-to-nat
+		state, thread-local-stuff, unsafe-to-int, unsafe-to-int32, unsafe-to-nat
 	.exception-low-level: exception-ctx
 	.log-low-level: log-ctx
 	.runtime:
-		any-unhandled-exceptions?, ctx, global-ctx, island, set-islands, thread-function,
-		thread-local-stuff
-	.thread-utils: create-one-thread, join-one-thread, condition, lock-by-val
+		any-unhandled-exceptions?, ctx, global-ctx, island, may-be-work-to-do, print-lock,
+		set-islands, thread-function
+	.thread-utils:
+		create-one-thread, create-condition, destroy-condition, join-one-thread, lock-by-val
 
 .main-ptr alias
 	fun-ptr2<fut nat, ctx, arr str>
@@ -35,16 +36,19 @@ import
 # Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
 	n-threads = get-nprocs
-	gctx-by-val = as<by-val<global-ctx>>: global-ctx: lock-by-val, [], n-threads, condition, false, false
+	f = false
+	gctx-by-val = as<by-val global-ctx>: global-ctx: lock-by-val, lock-by-val, [], n-threads, create-condition, f, f
 	gctx = gctx-by-val ref-of-val
 	island-by-val = island: gctx, 0, n-threads
 	island = island-by-val ref-of-val
 
 	gctx.islands := arr: 1, island.ptr-to
 
-	main-fut = gctx do-main island, argc, argv, main-ptr
+	main-fut = gctx add-main-task n-threads.noctx-decr, island, argc, argv, main-ptr
 
 	n-threads run-threads gctx
+
+	gctx-by-val.ref-of-val.may-be-work-to-do.ref-of-val destroy-condition
 
 	match main-fut state
 	as fut-state-no-callbacks
@@ -60,12 +64,25 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 		# 'handle-exceptions' should have logged the error
 		1
 
-.do-main fut nat(gctx global-ctx, island island, argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx
+.add-main-task fut nat
+	gctx global-ctx
+	thread-id nat
+	island island
+	argc int32
+	argv ptr c-str
+	main-ptr main-ptr
+spec
+	trusted
+	noctx
+body
 	# Before we start the engine, add a task.
 	# Create a ctx manually so we can call functions that need it when creating the task
 	ectx = exception-ctx
 	log-ctx = log-ctx
-	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: ectx.ref-of-val, log-ctx.ref-of-val
+	ectx-ptr = ectx.ref-of-val as-any-ptr
+	log-ctx-ptr = log-ctx.ref-of-val as-any-ptr
+	print-lock = gctx.print-lock.ref-of-val
+	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: thread-id, print-lock, ectx-ptr, log-ctx-ptr
 	ctx-by-val = ctx: gctx, tls.ref-of-val, island, 0
 	ctx = ctx-by-val ref-of-val
 	add = as<act fut nat(arr c-str, main-ptr)>: \all-args, main-ptr

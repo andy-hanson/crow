@@ -42,6 +42,7 @@ test-options record
 	print-tests? bool
 	overwrite-output? bool
 	max-failures nat
+	match-test str
 
 failure record
 	path str

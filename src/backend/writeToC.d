@@ -1180,8 +1180,10 @@ immutable(WriteExprResult) writeExpr(Alloc, TempAlloc)(
 			}),
 		(ref immutable LowExprKind.PtrCast it) {
 			return inlineableSingleArg(it.target, (ref immutable WriteExprResult arg) {
+				writeChar(writer, '(');
 				writeCastToType(writer, ctx.ctx, type);
 				writeTempOrInline(writer, tempAlloc, ctx, it.target, arg);
+				writeChar(writer, ')');
 			});
 		},
 		(ref immutable LowExprKind.RecordFieldGet it) =>
@@ -1767,8 +1769,10 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 				type,
 				a.arg,
 				(ref immutable WriteExprResult temp) {
+					writeChar(writer, '(');
 					writeCastToType(writer, ctx.ctx, type);
 					writeTempOrInline(writer, tempAlloc, ctx, a.arg, temp);
+					writeChar(writer, ')');
 				});
 		case LowExprKind.SpecialUnary.Kind.bitsNotNat64:
 			return prefix("~");

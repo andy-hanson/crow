@@ -1,15 +1,24 @@
 no-std
 import
-	..bool: bool, false, not, true
+	..bool: ?, bool, false, not, true
 	..cell: cell, subscript
-	..compare: <, ==, !=
+	..compare: ==, !=
 	..fun: fun-ptr1, subscript
-	..io.time-low-level: get-monotime-nsec, timestamp
-	..posix.errno: eagain, einval, esrch
-	..posix.pthread: pthread-create, pthread-join, pthread-t, pthread-yield
+	..io.time-low-level: timestamp, to-timespec
+	..posix.errno: eagain, einval, esrch, etimedout
+	..posix.extra-types: err-t
+	..posix.pthread:
+		pthread-condattr-destroy, pthread-condattr-init, pthread-condattr-setclock,
+		pthread-condattr-t, pthread-cond-broadcast, pthread-cond-destroy, pthread-cond-init,
+		pthread-cond-t, pthread-cond-timedwait, pthread-cond-wait, pthread-create, pthread-join,
+		pthread-mutexattr-destroy, pthread-mutexattr-init, pthread-mutexattr-t,
+		pthread-mutex-destroy, pthread-mutex-init, pthread-mutex-lock, pthread-mutex-t,
+		pthread-mutex-unlock, pthread-t, pthread-yield
+	..posix.time: clock-monotonic
 	..ptr: any-ptr, by-val, null, null?, ptr, ptr-to, ref-of-val
 	.bootstrap:
-		as, atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat, noctx-decr, noctx-incr, opt, todo, value, void
+		as, atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat, noctx-decr, noctx-incr,
+		opt, todo, value, void, zeroed
 
 region atomic
 
@@ -66,36 +75,66 @@ with-lock ?a(a lock, f act ?a()) trusted
 	res
 
 condition record mut
-	lk by-val lock
-	value mut nat
+	# TODO:PRIVATE
+	mutex-attr by-val pthread-mutexattr-t
+	mutex by-val pthread-mutex-t
+	cond-attr by-val pthread-condattr-t
+	cond by-val pthread-cond-t
+	# Incremented each time the condition fires.
+	# Used to avoid waiting on a condition that has already changed.
+	# WARN: this is mutable state, but should acquire the mutex first.
+	sequence mut sequence-id
 
-condition by-val condition() noctx
-	condition: lock-by-val, 0
+# Unsafe because you must remember to 'destroy-condition'
+create-condition by-val condition() noctx unsafe
+	res = as<by-val condition>: condition: zeroed, zeroed, zeroed, zeroed, 0
+	hard-assert-posix-error: res.ref-of-val.mutex-attr.ref-of-val pthread-mutexattr-init
+	hard-assert-posix-error: res.ref-of-val.mutex.ref-of-val pthread-mutex-init res.ref-of-val.mutex-attr.ref-of-val
+	hard-assert-posix-error: res.ref-of-val.cond-attr.ref-of-val pthread-condattr-init
+	hard-assert-posix-error: res.ref-of-val.cond-attr.ref-of-val pthread-condattr-setclock clock-monotonic
+	hard-assert-posix-error: res.ref-of-val.cond.ref-of-val pthread-cond-init res.ref-of-val.cond-attr.ref-of-val
+	res
 
-broadcast! void(c condition) noctx trusted
-	c.lk.ref-of-val acquire!
-	c.value := c.value noctx-incr
-	c.lk.ref-of-val release!
+destroy-condition void(a condition) noctx unsafe
+	hard-assert-posix-error: a.mutex-attr.ref-of-val pthread-mutexattr-destroy
+	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-destroy
+	hard-assert-posix-error: a.cond-attr.ref-of-val pthread-condattr-destroy
+	hard-assert-posix-error: a.cond.ref-of-val pthread-cond-destroy
 
-last-checked alias
+.hard-assert-posix-error void(err err-t) noctx unsafe
+	hard-assert: err == 0
+
+broadcast! void(a condition) noctx trusted
+	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-lock
+	hard-assert-posix-error: a.cond.ref-of-val pthread-cond-broadcast
+	a.sequence := a.sequence noctx-incr
+	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-unlock
+
+sequence-id alias
 	nat
 
-get-last-checked last-checked(a condition) noctx
-	a.value
+get-sequence sequence-id(a condition) noctx unsafe
+	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-lock
+	res = a sequence
+	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-unlock
+	res
 
-wait-on void(cond condition, until-time opt timestamp, last-checked last-checked) noctx unsafe summon
-	# last-checked should have been called before a change, we wait until c.value is different
-	if cond.value == last-checked
-		yield-thread
-		if until-time before-time?
-			cond wait-on until-time, last-checked
-
-before-time? bool(until-time opt timestamp) noctx summon
-	match until-time
-	as none
-		true
-	as some s
-		get-monotime-nsec < s.value
+###
+WARN: May wake up early. Use only to be avoid consuming CPU.
+`until-time`, if set, should be from `get-monotime-nsec`.
+'last-sequence' is to ensure that we don't wait at all if the condition has already triggered.
+###
+wait-on void(a condition, until-time opt timestamp, last-sequence sequence-id) noctx unsafe summon
+	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-lock
+	if a.sequence == last-sequence
+		hard-assert-posix-error: match until-time
+		as none
+			a.cond.ref-of-val pthread-cond-wait a.mutex.ref-of-val
+		as some s
+			abstime = s.value to-timespec
+			err = a.cond.ref-of-val pthread-cond-timedwait a.mutex.ref-of-val, abstime.ptr-to
+			err == etimedout ? 0, err
+	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-unlock
 
 # TODO: use atomic operations for this
 thread-safe-counter record mut

@@ -8,7 +8,7 @@ import
 	.backtrace: backtrace
 	.bootstrap:
 		arr, as, exception, exception-ctx-ptr, get-ctx, hard-assert, hard-forbid, hard-unreachable,
-		int32, str
+		int32, str, thread-local-stuff
 
 exception-ctx record mut
 	jmp-buf-ptr mut jmp-buf
@@ -19,7 +19,7 @@ exception-ctx by-val exception-ctx() noctx unsafe
 	exception-ctx: null, exception: "", backtrace: as<arr str>: []
 
 get-exception-ctx exception-ctx() unsafe
-	get-ctx.exception-ctx-ptr as-ref<exception-ctx>
+	get-ctx.thread-local-stuff.exception-ctx-ptr as-ref<exception-ctx>
 
 catch-with-exception-ctx ?a(ec exception-ctx, try act ?a(), catcher act ?a(exception)) unsafe
 	old-thrown-exception = ec thrown-exception

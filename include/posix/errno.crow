@@ -14,3 +14,5 @@ ewouldblock err-t() noctx
 	eagain
 einval err-t() noctx
 	22
+etimedout err-t() noctx
+	110
