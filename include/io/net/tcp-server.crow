@@ -29,9 +29,10 @@ import
 	...sys.epoll:
 		data, epoll-create1, epoll-ctl, epoll-ctl-add, epollerr, epollet, epoll-event, epollhup,
 		epollin, epoll-wait, events
+	..duration: msec
 	..posix-util: check-posix-error
 	..print: print
-	..time: delay, msec
+	..time: delay
 	.net: bind-to-port
 
 # Represents the state of the server.

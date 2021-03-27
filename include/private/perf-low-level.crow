@@ -1,0 +1,27 @@
+no-std
+import
+	..io.duration: duration, nsec
+	..col.mut-arr: mut-arr
+	..ptr: by-val
+	.bootstrap: arr, nat, str
+
+perf-time record
+	by-val
+	# TODO:PRIVATE
+	ns nat
+
+perf-ctx record mut
+	measure-names mut arr str
+	measure-values mut mut-arr measure-value
+
+perf-ctx by-val perf-ctx() noctx
+	perf-ctx: [], mut-arr
+
+measure-value record
+	by-val
+	count nat
+	# TODO:PRIVATE
+	total-ns nat
+
+total-duration duration(a measure-value)
+	a.total-ns nsec

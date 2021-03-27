@@ -6,7 +6,7 @@ import
 	..fun: subscript
 	..misc: ->, as, data, drop, void
 	..number: +, -, /, nat
-	..opt: has?, none, opt, some, value
+	..opt: none, opt, some, value
 	..ptr: +, -, deep-size-bytes, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of, subscript
 	..str: char, str
 	..str-conv: interp, finish, to-str, with-str, with-value
@@ -17,7 +17,7 @@ import
 	.mut-list: ~=, move-to-arr!, mut-list, set-last
 	.mut-stack: ~=, mut-stack, last, pop!
 	.sort: sort-unique, sort-unique!
-	.private.sort-utils: binary-search-exact-ptr, binary-search-insert-ptr
+	.private.sort-utils: binary-search-has?, binary-search-insert-ptr
 
 ###
 Set of unique values.
@@ -112,7 +112,7 @@ subscript bool(a tree-set ?a, value ?a) data<?a>
 		as greater
 			i.right has? value
 	as arr arr
-		arr binary-search-exact-ptr {value <=> it} has?
+		arr binary-search-has? value
 
 ###
 Add a value to the set.
@@ -383,10 +383,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a>
 			a handle-scapegoat value, a.left, f
 
 .add-to-arr add-result ?a(a arr ?a, value ?a, max-height nat) trusted data<?a>
-	insert-ptr = a binary-search-insert-ptr {value <=> it}
-
-
-
+	insert-ptr = a binary-search-insert-ptr value
 	if (insert-ptr ptr-eq? a.end-ptr).not and insert-ptr[] == value
 		none
 	elif a.size < 4
@@ -471,7 +468,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a>
 			mid + 1 tree-to-arr-recur! i.right, value
 	as arr arr
 		# Find first x > value, insert it before there
-		index = (arr binary-search-insert-ptr {value <=> it}) - arr.begin-ptr
+		index = (arr binary-search-insert-ptr value) - arr.begin-ptr
 		mid = out copy-out! arr[0 -> index]
 		mid[] := value
 		mid + 1 copy-out! arr[index -> arr.size]

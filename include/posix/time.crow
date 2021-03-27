@@ -15,7 +15,8 @@ timespec record
 
 tm extern-ptr
 
-clock-gettime err-t(clock-id clockid-t, timespec cell timespec) noctx summon extern<"clock_gettime">
+# TODO:SUMMON
+clock-gettime err-t(clock-id clockid-t, timespec cell timespec) noctx extern<"clock_gettime">
 
 gmtime tm(timer ptr time-t) noctx summon unsafe extern<"gmtime">
 

@@ -1,7 +1,8 @@
 import
 	bits: bit-shift-left, bits-or
+	io.duration: duration, msec
 	io.print: print
-	io.time: delay, duration, msec
+	io.time: delay
 	ptr: as-any-ptr, null, null?, ptr
 	str-util: to-c-str, to-str
 

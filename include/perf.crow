@@ -1,0 +1,51 @@
+no-std
+import
+	.bool: or
+	.col.arr: arr, size, subscript
+	.col.mut-arr: fill-mut-arr, set-subscript, subscript
+	.compare: ==, !=
+	.io.time-low-level: get-monotime-nsec
+	.misc: void
+	.ptr: as-ref
+	.str: str
+	.private.bootstrap: get-ctx, nat, perf-ctx-ptr, thread-local-stuff, wrap-add, wrap-sub
+	.private.perf-low-level:
+		measure-names, measure-values, ns, perf-ctx, perf-time, set-measure-names,
+		set-measure-values, total-ns
+export
+	.private.perf-low-level: count, measure-value, total-duration
+
+perf-reset void(names arr str) summon
+	perf = get-perf-ctx
+	perf.measure-names := names
+	perf.measure-values := names.size fill-mut-arr: measure-value: 0, 0
+
+perf-get-measure measure-value(name str) summon
+	perf = get-perf-ctx
+	index = perf.measure-names find-index name
+	if index == perf.measure-names.size
+		measure-value: 0, 0
+	else
+		perf.measure-values[index]
+
+perf-now perf-time() noctx
+	get-monotime-nsec perf-time
+
+perf-measure void(start perf-time, name str)
+	perf = get-perf-ctx
+	index = perf.measure-names find-index name
+	if index != perf.measure-names.size
+		ns = perf-now.ns wrap-sub start.ns
+		old = perf.measure-values[index]
+		perf.measure-values[index] := measure-value: (old.count wrap-add 1), (old.total-ns wrap-add ns)
+
+.get-perf-ctx perf-ctx() trusted
+	get-ctx.thread-local-stuff.perf-ctx-ptr as-ref<perf-ctx>
+
+.find-index nat(names arr str, name str)
+	names find-index name, 0
+.find-index nat(names arr str, name str, index nat)
+	if index == names.size or names[index] == name
+		index
+	else
+		names find-index name, (index wrap-add 1)

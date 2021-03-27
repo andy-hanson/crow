@@ -526,16 +526,6 @@ struct RealExtern {
 		return posixWrite(fd, buf, nBytes);
 	}
 
-	immutable(size_t) getNProcs() const {
-		// TODO: interpreter needs to support multiple threads
-		return 1;
-	}
-
-	immutable(size_t) pthreadYield() const {
-		// We don't support launching other threads, so do nothing
-		return 0;
-	}
-
 	immutable(bool) hasMallocedPtr(ref const PtrRange range) const {
 		return hasAllocedPtr(allocTracker, range);
 	}
@@ -553,6 +543,9 @@ struct RealExtern {
 		// TODO: don't just get everything from SDL...
 		immutable CStr nameCStr = asCStr(name);
 		DCpointer ptr = dlsym(sdlHandle, nameCStr);
+		debug {
+			printf("Gonna call %s\n", nameCStr);
+		}
 		if (ptr == null)
 			printf("Can't load symbol %s\n", nameCStr);
 		verify(ptr != null);

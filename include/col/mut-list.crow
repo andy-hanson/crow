@@ -13,7 +13,7 @@ import
 	..posix.string: memcpy, memmove
 	..ptr: +, -, as-any-ptr, by-val, ptr, ptr-eq?, set-subscript, size-of, subscript, zeroed
 	.arr: arr
-	.arr-util: contains?, each, each-with-index, exists?, fold, fold-reverse, index-of
+	.arr-util: contains?, each, each-with-index, exists?, find-index, fold, fold-reverse, index-of
 	.mut-arr:
 		begin-ptr, cast-immutable, each, fill-mut-arr, map!, make-mut-arr,
 		mut-arr, reverse!, set-zero-elements, size, subscript, temp-as-arr, uninitialized-mut-arr
@@ -43,8 +43,10 @@ begin-ptr ptr ?a(a mut-list ?a) noctx unsafe
 end-ptr ptr ?a(a mut-list ?a) noctx unsafe
 	a.begin-ptr + a.size
 
-# TODO: PRIVATE
-.capacity nat(a mut-list ?a) noctx unsafe
+at-capacity? bool(a mut-list ?a) noctx unsafe
+	a.capacity == a.size
+
+capacity nat(a mut-list ?a) noctx unsafe
 	a.backing size
 
 mut-list-by-val by-val mut-list<?a>() noctx trusted
@@ -379,6 +381,10 @@ reverse! void(a mut-list ?a) trusted
 	a.temp-as-mut-arr reverse!
 
 region iteration
+
+# TODO: What if it's mutated while searching?
+find-index opt nat(a mut-list ?a, f act bool(?a)) trusted
+	a.temp-as-arr find-index f
 
 # Calls `f` for each element in `a`.
 each void(a mut-list ?a, f act void(?a)) trusted

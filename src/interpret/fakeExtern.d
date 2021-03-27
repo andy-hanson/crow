@@ -74,15 +74,6 @@ struct FakeExtern(Alloc) {
 		clear(stderr);
 	}
 
-	immutable(size_t) getNProcs() const {
-		return 1;
-	}
-
-	immutable(size_t) pthreadYield() const {
-		// We don't support launching other threads, so do nothing
-		return 0;
-	}
-
 	immutable(bool) hasMallocedPtr(ref const PtrRange range) const {
 		return hasAllocedPtr(allocTracker, range);
 	}

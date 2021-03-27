@@ -977,6 +977,18 @@ void writeDeclareLocal(Alloc)(
 	writeLocalRef(writer, local);
 }
 
+immutable(char*) writeKindStr(ref immutable WriteKind a) {
+	final switch (a.kind) {
+		case WriteKind.Kind.inline: return "inline";
+		case WriteKind.Kind.inlineOrTemp: return "inlineOrTemp";
+		case WriteKind.Kind.local: return "local";
+		case WriteKind.Kind.makeTemp: return "makeTemp";
+		case WriteKind.Kind.return_: return "return";
+		case WriteKind.Kind.useTemp: return "useTemp";
+		case WriteKind.Kind.void_: return "void";
+	}
+}
+
 struct WriteKind {
 	@safe @nogc pure nothrow:
 
@@ -1297,9 +1309,9 @@ immutable(WriteExprResult) writeInlineable(Alloc, TempAlloc)(
 		return writeExprsTempOrInline(writer, tempAlloc, indent, ctx, args);
 	}
 
-	if (isInlineOrTemp(writeKind))
+	if (isInlineOrTemp(writeKind)) {
 		return immutable WriteExprResult(immutable WriteExprResult.Done(setup()));
-	else if (isInline(writeKind)) {
+	} else if (isInline(writeKind)) {
 		inline(asInline(writeKind).args);
 		return writeExprDone();
 	} else {
@@ -1310,7 +1322,7 @@ immutable(WriteExprResult) writeInlineable(Alloc, TempAlloc)(
 	}
 }
 
-void returnZeroedValue(Alloc, TempAlloc)(
+immutable(WriteExprResult) returnZeroedValue(Alloc, TempAlloc)(
 	ref Writer!Alloc writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
@@ -1318,7 +1330,7 @@ void returnZeroedValue(Alloc, TempAlloc)(
 	ref immutable WriteKind writeKind,
 	ref immutable LowType type,
 ) {
-	immutable WriteExprResult res = writeInlineable(
+	return writeInlineable(
 		writer,
 		tempAlloc,
 		indent,
@@ -1329,7 +1341,6 @@ void returnZeroedValue(Alloc, TempAlloc)(
 		(ref immutable WriteExprResult[]) {
 			writeZeroedValue(writer, ctx.ctx, type);
 		});
-	assert(isDone(res));
 }
 
 immutable(WriteExprResult) writeInlineableSingleArg(Alloc, TempAlloc)(
@@ -1538,7 +1549,7 @@ immutable(WriteExprResult) writeMatch(Alloc, TempAlloc)(
 	writeNewline(writer, indent + 1);
 	writeStatic(writer, "default:");
 	writeNewline(writer, indent + 2);
-	returnZeroedValue(writer, tempAlloc, indent, ctx, writeKind, type);
+	drop(returnZeroedValue(writer, tempAlloc, indent, ctx, nested.writeKind, type));
 	writeChar(writer, ';');
 	writeNewline(writer, indent);
 	writeChar(writer, '}');

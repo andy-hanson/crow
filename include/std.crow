@@ -6,6 +6,7 @@ export
 	.exception
 	.fun
 	.fut
+	.hash
 	.misc
 	.number
 	.opt

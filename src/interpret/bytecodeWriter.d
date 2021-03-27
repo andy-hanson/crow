@@ -515,9 +515,21 @@ void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeS
 			case ExternOp.backtrace:
 			case ExternOp.clockGetTime:
 			case ExternOp.free:
+			case ExternOp.pthreadCondattrSetClock:
+			case ExternOp.pthreadCondInit:
 			case ExternOp.pthreadJoin:
+			case ExternOp.pthreadMutexInit:
 				return -1;
 			case ExternOp.malloc:
+			case ExternOp.pthreadCondattrDestroy:
+			case ExternOp.pthreadCondattrInit:
+			case ExternOp.pthreadCondBroadcast:
+			case ExternOp.pthreadCondDestroy:
+			case ExternOp.pthreadMutexattrDestroy:
+			case ExternOp.pthreadMutexattrInit:
+			case ExternOp.pthreadMutexDestroy:
+			case ExternOp.pthreadMutexLock:
+			case ExternOp.pthreadMutexUnlock:
 			case ExternOp.setjmp:
 				return 0;
 			case ExternOp.getNProcs:

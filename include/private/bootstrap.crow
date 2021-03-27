@@ -246,6 +246,7 @@ thread-local-stuff record mut
 	print-lock lock
 	exception-ctx-ptr any-ptr
 	log-ctx-ptr any-ptr
+	perf-ctx-ptr any-ptr
 
 island-id alias
 	nat

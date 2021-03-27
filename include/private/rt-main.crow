@@ -24,6 +24,7 @@ import
 		state, thread-local-stuff, unsafe-to-int, unsafe-to-int32, unsafe-to-nat
 	.exception-low-level: exception-ctx
 	.log-low-level: log-ctx
+	.perf-low-level: perf-ctx
 	.runtime:
 		any-unhandled-exceptions?, ctx, global-ctx, island, may-be-work-to-do, print-lock,
 		set-islands, thread-function
@@ -79,10 +80,12 @@ body
 	# Create a ctx manually so we can call functions that need it when creating the task
 	ectx = exception-ctx
 	log-ctx = log-ctx
+	perf-ctx = perf-ctx
 	ectx-ptr = ectx.ref-of-val as-any-ptr
 	log-ctx-ptr = log-ctx.ref-of-val as-any-ptr
+	perf-ptr = perf-ctx.ref-of-val as-any-ptr
 	print-lock = gctx.print-lock.ref-of-val
-	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: thread-id, print-lock, ectx-ptr, log-ctx-ptr
+	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: thread-id, print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
 	ctx-by-val = ctx: gctx, tls.ref-of-val, island, 0
 	ctx = ctx-by-val ref-of-val
 	add = as<act fut nat(arr c-str, main-ptr)>: \all-args, main-ptr

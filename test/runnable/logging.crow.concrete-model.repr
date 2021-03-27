@@ -21,7 +21,8 @@ program(
 					field(thread-id, false, type(false, nat))
 					field(print-lock, false, type(true, lock))
 					field(exception-ctx-ptr, false, type(false, ptr))
-					field(log-ctx-ptr, false, type(false, ptr))]))
+					field(log-ctx-ptr, false, type(false, ptr))
+					field(perf-ctx-ptr, false, type(false, ptr))]))
 		struct(name: lock, ptr?: true, body: record([field(is-locked, false, type(false, atomic-bool))]))
 		struct(name: atomic-bool, mut?: true, ptr?: true, body: record([field(value, true, type(false, bool))]))
 		struct(name: bool, body: builtin(bool, []))
@@ -268,6 +269,21 @@ program(
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, char)]))
 		struct(name: lambda(~=, 0), body: record([field(a, false, type(true, mut-list))]))
 		struct(name: log-ctx, mut?: true, ptr?: true, body: record([field(handler, true, type(false, fun1))]))
+		struct(
+			name: perf-ctx
+			mut?: true
+			ptr?: true
+			body: record([field(measure-names, true, type(false, arr)), field(measure-values, true, type(false, mut-arr))]))
+		struct(
+			name: measure-value
+			body: record([field(count, false, type(false, nat)), field(total-ns, false, type(false, nat))]))
+		struct(
+			name: mut-arr
+			body: record([field(ignore, false, type(false, void)), field(inner, false, type(false, arr))]))
+		struct(
+			name: arr
+			body: record([field(size, false, type(false, nat)), field(begin-ptr, false, type(false, ptr))]))
+		struct(name: ptr, body: builtin(ptr, [type(false, measure-value)]))
 		struct(
 			name: arr
 			body: record([field(size, false, type(false, nat)), field(begin-ptr, false, type(false, ptr))]))
@@ -1267,7 +1283,7 @@ program(
 			expr-body(
 				seq(
 					call(assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
-					call(noctx-at, [param-ref(a), param-ref(index)]))))
+					call(unsafe-at, [param-ref(a), param-ref(index)]))))
 		fun(
 			true
 			assert
@@ -2053,14 +2069,11 @@ program(
 			new-record)
 		fun(
 			false
-			noctx-at
+			unsafe-at
 			type(false, arr)
 			none
 			[param(a, type(false, arr)), param(index, type(false, nat))]
-			expr-body(
-				seq(
-					call(hard-assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
-					call(subscript, [call(begin-ptr, [param-ref(a)]), param-ref(index)]))))
+			expr-body(call(subscript, [call(begin-ptr, [param-ref(a)]), param-ref(index)])))
 		fun(false, begin-ptr, type(false, ptr), none, [param(a, type(false, arr))], field-get(1))
 		fun(
 			true
@@ -2965,55 +2978,64 @@ program(
 						log-ctx
 						call(log-ctx, [])
 						let(
-							ectx-ptr
-							call(as-any-ptr, [call(ref-of-val, [local-ref(ectx)])])
+							perf-ctx
+							call(perf-ctx, [])
 							let(
-								log-ctx-ptr
-								call(as-any-ptr, [call(ref-of-val, [local-ref(log-ctx)])])
+								ectx-ptr
+								call(as-any-ptr, [call(ref-of-val, [local-ref(ectx)])])
 								let(
-									print-lock
-									call(ref-of-val, [call(print-lock, [param-ref(gctx)])])
+									log-ctx-ptr
+									call(as-any-ptr, [call(ref-of-val, [local-ref(log-ctx)])])
 									let(
-										tls
-										call(
-											as
-											[
-												call(
-													thread-local-stuff
-													[
-														param-ref(thread-id)
-														local-ref(print-lock)
-														local-ref(ectx-ptr)
-														local-ref(log-ctx-ptr)])])
+										perf-ptr
+										call(as-any-ptr, [call(ref-of-val, [local-ref(perf-ctx)])])
 										let(
-											ctx-by-val
-											call(
-												ctx
-												[
-													param-ref(gctx)
-													call(ref-of-val, [local-ref(tls)])
-													param-ref(island)
-													0])
+											print-lock
+											call(ref-of-val, [call(print-lock, [param-ref(gctx)])])
 											let(
-												ctx
-												call(ref-of-val, [local-ref(ctx-by-val)])
+												tls
+												call(
+													as
+													[
+														call(
+															thread-local-stuff
+															[
+																param-ref(thread-id)
+																local-ref(print-lock)
+																local-ref(ectx-ptr)
+																local-ref(log-ctx-ptr)
+																local-ref(perf-ptr)])])
 												let(
-													add
-													call(as, [lambda(0, void)])
+													ctx-by-val
+													call(
+														ctx
+														[
+															param-ref(gctx)
+															call(ref-of-val, [local-ref(tls)])
+															param-ref(island)
+															0])
 													let(
-														all-args
-														call(
-															arr
-															[
-																call(unsafe-to-nat, [call(to-int, [param-ref(argc)])])
-																param-ref(argv)])
-														call(
-															call-with-ctx
-															[
-																local-ref(add)
-																local-ref(ctx)
-																local-ref(all-args)
-																param-ref(main-ptr)])))))))))))))
+														ctx
+														call(ref-of-val, [local-ref(ctx-by-val)])
+														let(
+															add
+															call(as, [lambda(0, void)])
+															let(
+																all-args
+																call(
+																	arr
+																	[
+																		call(
+																			unsafe-to-nat
+																			[call(to-int, [param-ref(argc)])])
+																		param-ref(argv)])
+																call(
+																	call-with-ctx
+																	[
+																		local-ref(add)
+																		local-ref(ctx)
+																		local-ref(all-args)
+																		param-ref(main-ptr)])))))))))))))))
 		fun(
 			false
 			exception-ctx
@@ -3036,6 +3058,34 @@ program(
 		fun(false, log-ctx, type(false, log-ctx), none, [], expr-body(call(log-ctx, [call(zeroed, [])])))
 		fun(false, log-ctx, type(false, log-ctx), none, [param(handler, type(false, fun1))], new-record)
 		fun(false, zeroed, type(false, fun1), none, [], builtin([type(false, fun1)]))
+		fun(
+			false
+			perf-ctx
+			type(false, perf-ctx)
+			none
+			[]
+			expr-body(call(perf-ctx, [record([0, null]), call(mut-arr, [])])))
+		fun(
+			false
+			perf-ctx
+			type(false, perf-ctx)
+			none
+			[param(measure-names, type(false, arr)), param(measure-values, type(false, mut-arr))]
+			new-record)
+		fun(
+			false
+			mut-arr
+			type(false, mut-arr)
+			none
+			[]
+			expr-body(call(mut-arr, [call(void, []), record([0, null])])))
+		fun(
+			false
+			mut-arr
+			type(false, mut-arr)
+			none
+			[param(ignore, type(false, void)), param(inner, type(false, arr))]
+			new-record)
 		fun(
 			false
 			as-any-ptr
@@ -3064,6 +3114,20 @@ program(
 			none
 			[param(a, type(false, log-ctx))]
 			builtin([type(true, log-ctx)]))
+		fun(
+			false
+			as-any-ptr
+			type(false, ptr)
+			none
+			[param(ref, type(true, perf-ctx))]
+			builtin([type(true, perf-ctx)]))
+		fun(
+			false
+			ref-of-val
+			type(true, perf-ctx)
+			none
+			[param(a, type(false, perf-ctx))]
+			builtin([type(true, perf-ctx)]))
 		fun(false, print-lock, type(false, lock), none, [param(a, type(true, global-ctx))], field-get(1))
 		fun(
 			false
@@ -3081,7 +3145,8 @@ program(
 				param(thread-id, type(false, nat))
 				param(print-lock, type(true, lock))
 				param(exception-ctx-ptr, type(false, ptr))
-				param(log-ctx-ptr, type(false, ptr))]
+				param(log-ctx-ptr, type(false, ptr))
+				param(perf-ctx-ptr, type(false, ptr))]
 			new-record)
 		fun(
 			false
@@ -3636,18 +3701,15 @@ program(
 			expr-body(
 				seq(
 					call(assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
-					call(noctx-at, [param-ref(a), param-ref(index)]))))
+					call(unsafe-at, [param-ref(a), param-ref(index)]))))
 		fun(false, size, type(false, nat), none, [param(a, type(false, arr))], field-get(0))
 		fun(
 			false
-			noctx-at
+			unsafe-at
 			type(true, island)
 			none
 			[param(a, type(false, arr)), param(index, type(false, nat))]
-			expr-body(
-				seq(
-					call(hard-assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
-					call(subscript, [call(begin-ptr, [param-ref(a)]), param-ref(index)]))))
+			expr-body(call(subscript, [call(begin-ptr, [param-ref(a)]), param-ref(index)])))
 		fun(
 			false
 			subscript
@@ -4391,17 +4453,14 @@ program(
 			expr-body(
 				seq(
 					call(assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
-					call(noctx-at, [param-ref(a), param-ref(index)]))))
+					call(unsafe-at, [param-ref(a), param-ref(index)]))))
 		fun(
 			false
-			noctx-at
+			unsafe-at
 			type(false, ptr)
 			none
 			[param(a, type(false, arr)), param(index, type(false, nat))]
-			expr-body(
-				seq(
-					call(hard-assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
-					call(subscript, [call(begin-ptr, [param-ref(a)]), param-ref(index)]))))
+			expr-body(call(subscript, [call(begin-ptr, [param-ref(a)]), param-ref(index)])))
 		fun(
 			false
 			subscript
@@ -4793,29 +4852,36 @@ program(
 						log-ctx
 						call(log-ctx, [])
 						let(
-							print-lock
-							call(ref-of-val, [call(print-lock, [param-ref(gctx)])])
+							perf-ctx
+							call(perf-ctx, [])
 							let(
-								ectx-ptr
-								call(as-any-ptr, [call(ref-of-val, [local-ref(ectx)])])
+								print-lock
+								call(ref-of-val, [call(print-lock, [param-ref(gctx)])])
 								let(
-									log-ctx-ptr
-									call(as-any-ptr, [call(ref-of-val, [local-ref(log-ctx)])])
+									ectx-ptr
+									call(as-any-ptr, [call(ref-of-val, [local-ref(ectx)])])
 									let(
-										tls
-										call(
-											as
-											[
+										log-ctx-ptr
+										call(as-any-ptr, [call(ref-of-val, [local-ref(log-ctx)])])
+										let(
+											perf-ptr
+											call(as-any-ptr, [call(ref-of-val, [local-ref(perf-ctx)])])
+											let(
+												tls
 												call(
-													thread-local-stuff
+													as
 													[
-														param-ref(thread-id)
-														local-ref(print-lock)
-														local-ref(ectx-ptr)
-														local-ref(log-ctx-ptr)])])
-										call(
-											thread-function-recur
-											[param-ref(gctx), call(ref-of-val, [local-ref(tls)])])))))))))
+														call(
+															thread-local-stuff
+															[
+																param-ref(thread-id)
+																local-ref(print-lock)
+																local-ref(ectx-ptr)
+																local-ref(log-ctx-ptr)
+																local-ref(perf-ptr)])])
+												call(
+													thread-function-recur
+													[param-ref(gctx), call(ref-of-val, [local-ref(tls)])])))))))))))
 		fun(
 			false
 			thread-function-recur
@@ -4919,6 +4985,16 @@ program(
 								call(release!, [call(ref-of-val, [call(tasks-lock, [local-ref(island)])])]))
 							call(assert-islands-are-shut-down, [call(noctx-incr, [param-ref(i)]), param-ref(islands)])))
 					void)))
+		fun(
+			false
+			noctx-at
+			type(true, island)
+			none
+			[param(a, type(false, arr)), param(index, type(false, nat))]
+			expr-body(
+				seq(
+					call(hard-assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
+					call(unsafe-at, [param-ref(a), param-ref(index)]))))
 		fun(false, needs-gc?, type(false, bool), none, [param(a, type(true, gc))], field-get(3))
 		fun(false, n-threads-running, type(false, nat), none, [param(a, type(true, island))], field-get(5))
 		fun(
@@ -5300,7 +5376,14 @@ program(
 			expr-body(
 				seq(
 					call(hard-assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
-					call(subscript, [call(begin-ptr, [param-ref(a)]), param-ref(index)]))))
+					call(unsafe-at, [param-ref(a), param-ref(index)]))))
+		fun(
+			false
+			unsafe-at
+			type(false, nat)
+			none
+			[param(a, type(false, arr)), param(index, type(false, nat))]
+			expr-body(call(subscript, [call(begin-ptr, [param-ref(a)]), param-ref(index)])))
 		fun(
 			false
 			subscript

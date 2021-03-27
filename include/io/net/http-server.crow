@@ -5,7 +5,7 @@ import
 	...col.arr: arr, begin-ptr, empty?, has?, size, subscript
 	...col.arr-util: contains?, last, rtail, split-by-subseq
 	...col.dict: dict, each, has-key?
-	...col.mut-dict: move-to-dict!, mut-dict, remove!, set-subscript, subscript
+	...col.mut-dict: move-to-dict!, mut-dict, remove-key!, set-subscript, subscript
 	...col.mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
 	...compare: ==, !=, <=, >=
 	...exception: assert, forbid
@@ -73,7 +73,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 			state = s value
 			closed <- fd handle-chunk state, bytes.as-str, handler
 			if closed
-				client-states remove! fd drop
+				client-states remove-key! fd drop
 			void resolved
 	tcp-server = port start-tcp-server tcp-handler: on-accepted-client, on-received-chunk
 

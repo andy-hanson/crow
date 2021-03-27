@@ -428,7 +428,7 @@ public @trusted immutable(LiteralAst) takeNumber(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable Opt!Sign sign,
 ) {
-	immutable ulong base = tryTake(lexer, "0x") ? 16 : 10;
+	immutable ulong base = tryTake(lexer, "0x") ? 16 : tryTake(lexer, "0b") ? 2 : 10;
 	immutable LiteralAst.Nat n = takeNat(lexer, base);
 	if (*lexer.ptr == '.' && isDigit(*(lexer.ptr + 1))) {
 		lexer.ptr++;

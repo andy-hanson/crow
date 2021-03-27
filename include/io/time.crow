@@ -2,11 +2,12 @@ no-std
 import
 	..fut: fut
 	..misc: void
-	..number: +, *, nat
+	..number: +
 	..posix.time: time, time-t
 	..private.fut-low-level: resolve!, unresolved
 	..private.runtime: add-task, get-cur-island, new-exclusion
 	..ptr: null
+	.duration: duration, nsec
 export
 	.time-low-level: get-monotime-nsec
 
@@ -15,14 +16,6 @@ unix-time record
 
 get-unix-time unix-time() summon trusted
 	unix-time: null time
-
-# Represents an amount of time.
-duration record
-	nsec nat
-
-# Duration in milliseconds.
-msec duration(a nat)
-	duration: a * 1000000
 
 # Returns a `fut` that will resolve after `duration` has passed.
 delay fut void(duration duration) trusted summon

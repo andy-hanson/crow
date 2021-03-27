@@ -8,8 +8,8 @@ import
 	.arr: arr
 	.arr-util: each, map
 	.mut-dict:
-		each, empty?, empty!, filter, filter!, fold, map, map!, move-to-arr!, mut-dict, remove!,
-		set-subscript, size, subscript
+		each, empty?, empty!, filter, filter!, fold, map, map!, move-to-arr!, mut-dict,
+		remove-key!, set-subscript, size, subscript
 	.set: set
 
 ###
@@ -68,7 +68,7 @@ If the value was present, removes it and returns `true`.
 If the value was not present, does nothing and returns `false`.
 ###
 remove! bool(a mut-set ?a, value ?a) data<?a>
-	a.inner remove! value has?
+	a.inner remove-key! value has?
 
 # Convert to an `arr`, clearing the original `mut-set` in the process.
 move-to-arr! arr ?a(a mut-set ?a) data<?a>

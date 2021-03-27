@@ -1,0 +1,209 @@
+no-std
+import
+	..bool: and, bool, false, not, true
+	..compare: ==, <=
+	..fun: subscript
+	..hash: hash, hash-mix
+	..log: info, log
+	..misc: data, void
+	..number: nat
+	..opt: none, opt, some, value
+	..ptr: +, -, ptr, ptr-eq?, ptr-less-eq?, set-subscript, size-of, subscript, swap!
+	..str-conv: to-str
+	..test: is
+	..private.bootstrap: unsafe-div, wrap-add, wrap-mul, wrap-sub
+	..private.number-low-level: unsafe-mod
+	.arr: arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, size, unsafe-at
+	.arr-util: alloc-count, each, fold, fold-with-index, index-of, map, overhead-bytes, ptr-of
+	.mut-arr:
+		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-mut-arr, mut-arr,
+		size, uninitialized-mut-arr, unsafe-at, unsafe-set-at!
+
+frozen-unordered-set<?a> record force-data
+	# TODO:PRIVATE
+	values arr ?a
+	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
+	bucket-starts arr ptr ?a
+
+frozen-unordered-set frozen-unordered-set ?a() data<?a> hash-mix<?a>
+	frozen-unordered-set: [], []
+
+frozen-unordered-set frozen-unordered-set ?a(a arr ?a) trusted data<?a> hash-mix<?a>
+	a.mut-arr unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
+
+# Values are stored as a contiguous array; order is arbitrary.
+begin-ptr ptr ?a(a frozen-unordered-set ?a) unsafe
+	a.values begin-ptr
+
+end-ptr ptr ?a(a frozen-unordered-set ?a) unsafe
+	a.values end-ptr
+
+alloc-count nat(a frozen-unordered-set<?a>) unsafe
+	a.values.alloc-count wrap-add a.bucket-starts.alloc-count
+
+overhead-bytes nat(a frozen-unordered-set ?a) unsafe
+	buckets-size = a.bucket-starts.size wrap-mul size-of<ptr ?a>
+	a.values.overhead-bytes wrap-add a.bucket-starts.overhead-bytes wrap-add buckets-size
+
+empty? bool(a frozen-unordered-set ?a)
+	a.values empty?
+
+size nat(a frozen-unordered-set ?a)
+	a.values size
+
+unordered-arr arr ?a(a frozen-unordered-set ?a)
+	a values
+
+subscript bool(a frozen-unordered-set ?a, value ?a) trusted data<?a> hash-mix<?a>
+	match a try-get-unordered-index value
+	as none
+		false
+	as some
+		true
+
+# WARN: The order of values is arbitrary,
+# but consistent for *identical* (not ==) sets.
+try-get-unordered-index opt nat(a frozen-unordered-set ?a, value ?a) trusted data<?a> hash-mix<?a>
+	if a.bucket-starts empty?
+		a.values index-of value
+	else
+		bucket-index = value.hash unsafe-mod a.bucket-starts.size
+		bucket-start = a.bucket-starts unsafe-at bucket-index
+		bucket-end = if bucket-index == (a.bucket-starts.size wrap-sub 1)
+			a.values end-ptr
+		else
+			a.bucket-starts unsafe-at: bucket-index wrap-add 1
+		match bucket-start arr-from-begin-end bucket-end ptr-of value
+		as none
+			none
+		as some s
+			s.value - a.begin-ptr some
+
+unsafe-frozen-unordered-set-from-mut-arr-cast-immutable frozen-unordered-set ?a
+	a mut-arr ?a
+spec
+	unsafe
+	data<?a>
+	hash-mix<?a>
+body
+	if a.size <= 4
+		frozen-unordered-set: a.cast-immutable, []
+	else
+		n-buckets = a.size unsafe-div 4
+		bucket-counts = a get-bucket-counts n-buckets
+		bucket-starts = a.begin-ptr running-sum bucket-counts
+		bucket-counts fill! 0
+		a.begin-ptr move-values-to-buckets-recur! a.end-ptr, bucket-counts, bucket-starts
+		frozen-unordered-set: a.cast-immutable, bucket-starts
+
+.get-bucket-counts mut-arr nat(a mut-arr ?a, n-buckets nat) unsafe hash-mix<?a>
+	res = n-buckets fill-mut-arr 0
+	a each \value
+		bucket-index = value get-bucket-index n-buckets
+		res unsafe-set-at!: bucket-index, res unsafe-at bucket-index wrap-add 1
+	res
+
+.move-values-to-buckets-recur! void
+	value-ptr ptr ?a
+	value-end ptr ?a
+	bucket-counts mut-arr nat
+	bucket-starts arr ptr ?a
+spec
+	unsafe
+	hash-mix<?a>
+body
+	if value-ptr ptr-eq? value-end not
+		bucket-index = value-ptr[] get-bucket-index bucket-counts.size
+		bucket-count = bucket-counts unsafe-at bucket-index
+		bucket-start = bucket-starts unsafe-at bucket-index
+		bucket-cur-end = bucket-start + bucket-count
+		if bucket-start ptr-less-eq? value-ptr and: value-ptr ptr-less-eq? bucket-cur-end
+			if value-ptr ptr-eq? bucket-cur-end
+				bucket-counts unsafe-set-at!: bucket-index, bucket-count wrap-add 1
+				value-ptr + 1 move-values-to-buckets-recur! value-end, bucket-counts, bucket-starts
+			else
+				value-ptr + 1 move-values-to-buckets-recur! value-end, bucket-counts, bucket-starts
+		else
+			bucket-counts unsafe-set-at!: bucket-index, bucket-count wrap-add 1
+			value-ptr swap! bucket-cur-end
+			value-ptr + 1 move-values-to-buckets-recur! value-end, bucket-counts, bucket-starts
+
+.get-bucket-index nat(value ?a, n-buckets nat) unsafe hash-mix<?a>
+	value.hash unsafe-mod n-buckets
+
+.running-sum arr ptr ?a(acc ptr ?a, a mut-arr nat) trusted
+	out = a.size uninitialized-mut-arr<ptr ?a>
+	acc running-sum-recur! out.begin-ptr, out.end-ptr, a.begin-ptr
+	out cast-immutable
+.running-sum-recur! void(acc ptr ?a, out ptr ptr ?a, out-end ptr ptr ?a, read ptr nat) unsafe
+	out[] := acc
+	if out + 1 ptr-eq? out-end not
+		acc + read[] running-sum-recur! out + 1, out-end, read + 1
+
+region iteration
+
+each-unordered void(a frozen-unordered-set ?a, f act void(?a))
+	void fold-unordered a, \ignore, x
+		f[x]
+
+fold-unordered ?a(acc ?a, a frozen-unordered-set ?b, f act ?a(?a, ?b))
+	acc fold a.values, f
+
+fold-unordered-with-index ?a(acc ?a, a frozen-unordered-set ?b, f act ?a(?a, ?b, nat))
+	acc fold-with-index a.values, f
+
+.verify void(a frozen-unordered-set nat, values arr nat, bucket-starts arr nat) unsafe
+	a.values is values
+	a.bucket-starts map {it - a.values.begin-ptr} is bucket-starts
+
+test
+	info log "FROZEN UNORDERED SET TEST START"
+
+	a = frozen-unordered-set<nat>
+	a.empty? is true
+	a.size is 0
+	a verify [], []
+	a[0] is false
+
+	b = frozen-unordered-set: [3, 1, 5, 2]
+	b verify [3, 1, 5, 2], []
+	b[0] is false
+	b[1] is true
+	b[2] is true
+	b[3] is true
+	b[4] is false
+	b[5] is true
+	b[6] is false
+
+	info log "COMPUTING C"
+	c = frozen-unordered-set: [3, 1, 5, 2, 8]
+
+	info log "C.Values is"
+	c.values each \x
+		info log x.to-str
+	info log "C.bucket-starts is"
+	c.bucket-starts each \x
+		info log: x - c.values.begin-ptr to-str
+	c verify [2, 8, 3, 5, 1], [0, 2]
+	info log "A"
+	c[0] is false
+	info log "B"
+	c[1] is true
+	info log "C"
+	c[2] is true
+	info log "D"
+	c[3] is true
+	info log "E"
+	c[4] is false
+	info log "F"
+	c[5] is true
+	info log "G"
+	c[6] is false
+	info log "H"
+	c[7] is false
+	info log "I"
+	c[8] is true
+	info log "J"
+	c[9] is false
+
+	info log "FROZEN UNORDERED SET TEST DONE"

@@ -114,7 +114,7 @@ words-used-in-range nat(acc nat, cur ptr bool, end ptr bool) noctx unsafe
 
 gc by-val gc() noctx unsafe
 	# TODO: handle malloc failure
-	# 16 MB
+	# 2^24 words = 2^27 bytes = 256 MB
 	size-words = 0x1000000
 	mark = ptr-cast<bool, nat8>: malloc: size-words
 	mark-end = mark + size-words

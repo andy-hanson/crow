@@ -1,0 +1,34 @@
+no-std
+import
+	.bool: bool, to-nat
+	.col.arr-util: each
+	.misc: as, void
+	.number: nat
+	.ptr: by-val, ref-of-val
+	.str: str
+	.private.bootstrap: to-nat, wrap-add
+
+hash nat(a ?a) trusted hash-mix<?a>
+	hasher = as<by-val hasher>: hasher: 0
+	hasher.ref-of-val hash-mix a
+	hasher.ref-of-val cur
+
+hash-mix<?a> spec
+	hash-mix void(hasher hasher, a ?a)
+
+hash nat(a bool)
+	a to-nat
+
+hasher record mut
+	cur mut nat
+
+hash-mix void(hasher hasher, a nat)
+	# TODO: better hash mixing algorithm
+	hasher.cur := hasher.cur wrap-add a
+
+hash-mix void(hasher hasher, a bool)
+	hasher hash-mix a.to-nat
+
+hash-mix void(hasher hasher, a str)
+	a each \c
+		hasher hash-mix c.to-nat

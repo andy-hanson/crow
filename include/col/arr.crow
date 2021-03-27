@@ -31,8 +31,11 @@ empty? bool(a arr ?a) noctx
 has? bool(a arr ?a) noctx
 	a.empty? not
 
-noctx-at ?a(a arr ?a, index nat) trusted noctx
+noctx-at ?a(a arr ?a, index nat) unsafe noctx
 	hard-assert: index < a.size
+	a unsafe-at index
+
+unsafe-at ?a(a arr ?a, index nat) unsafe noctx
 	a.begin-ptr[index]
 
 ###
@@ -41,7 +44,7 @@ Fails if `index >= a.size`.
 ###
 subscript ?a(a arr ?a, index nat) trusted
 	assert: index < a.size
-	a noctx-at index
+	a unsafe-at index
 
 ###
 Slices the arr.

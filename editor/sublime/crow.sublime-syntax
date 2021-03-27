@@ -277,10 +277,6 @@ contexts:
     - match: '{{name}}(\.)\s+'
       scope: comment
 
-    # Keywords that may be followed by type arguments
-    - match: (new-arr)(?=$|<|\s)
-      scope: keyword
-      push: new
     # Other keywords
     - match: 'match\s+'
       scope: keyword

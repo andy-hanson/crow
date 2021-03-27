@@ -1,11 +1,11 @@
 module(
-	path: 65
-	imports: [import(none, 46, none), import(some(range(8, 23)), 36, some([print]))]
+	path: 68
+	imports: [import(none, 49, none), import(some(range(8, 23)), 36, some([print]))]
 	funs: [
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(65, 25), main, fut(nat()), [param(file-range(65, range(38, 47)), none, arr(arr(char())))])
+			sig: sig(file-pos(68, 25), main, fut(nat()), [param(file-range(68, range(38, 47)), none, arr(arr(char())))])
 			body: seq(
 				seq(
 					call(

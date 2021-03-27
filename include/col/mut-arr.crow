@@ -85,8 +85,12 @@ end-ptr ptr ?a(a mut-arr ?a) noctx unsafe
 Gets the element at the index.
 Throws if `index >= a.size`.
 ###
-subscript ?a(a mut-arr ?a, index nat)
-	a.inner[index]
+subscript ?a(a mut-arr ?a, index nat) trusted
+	assert: index < a.size
+	a unsafe-at index
+
+unsafe-at ?a(a mut-arr ?a, index nat) unsafe
+	a.begin-ptr[index]
 
 ###
 Slices the mut-arr.
@@ -106,7 +110,11 @@ Throws if `index >= a.size`.
 ###
 set-subscript void(a mut-arr ?a, index nat, value ?a) trusted
 	assert: index < a.size
+	a unsafe-set-at! index, value
+
+unsafe-set-at! void(a mut-arr ?a, index nat, value ?a) unsafe
 	a.begin-ptr[index] := value
+
 
 first opt ?a(a mut-arr ?a)
 	if a empty?
@@ -151,6 +159,10 @@ zeroed-mut-arr mut-arr ?a(size nat) unsafe
 	res = size uninitialized-mut-arr<?a>
 	res set-zero-elements
 	res
+
+fill! void(a mut-arr ?a, value ?a)
+	a map! \ignore
+		value
 
 ###
 Unsafe cast a mut-arr to arr.
@@ -212,3 +224,7 @@ map! void(a mut-arr ?a, f act ?a(?a)) trusted
 	if cur ptr-eq? end not
 		cur[] := f[cur[]]
 		cur + 1 map-recur! end, f
+
+map mut-arr ?out(a mut-arr ?in, f act ?out(?in)) trusted
+	a.size make-mut-arr \i
+		f[a[i]]

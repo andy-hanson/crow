@@ -21,6 +21,7 @@ import
 		thread-local-stuff
 	.exception-low-level: exception-ctx
 	.log-low-level: default-log-handler, log-ctx, log-handler, set-handler
+	.perf-low-level: perf-ctx
 	.task-queue:
 		action, any-tasks?, empty?, exclusion, first-task-time, insert-task!, no-task,
 		no-timestamp, pop-task!, return-task!, task, task-queue, task-queue-node
@@ -124,10 +125,12 @@ add-task void(a island, exclusion exclusion, action act void()) unsafe
 thread-function void(thread-id nat, gctx global-ctx) noctx unsafe summon
 	ectx = exception-ctx
 	log-ctx = log-ctx
+	perf-ctx = perf-ctx
 	print-lock = gctx.print-lock ref-of-val
 	ectx-ptr = ectx.ref-of-val as-any-ptr
 	log-ctx-ptr = log-ctx.ref-of-val as-any-ptr
-	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: thread-id, print-lock, ectx-ptr, log-ctx-ptr
+	perf-ptr = perf-ctx.ref-of-val as-any-ptr
+	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: thread-id, print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
 	gctx thread-function-recur tls.ref-of-val
 
 .thread-function-recur void(gctx global-ctx, tls thread-local-stuff) noctx unsafe summon

@@ -547,8 +547,20 @@ enum ExternOp : ubyte {
 	memcpy,
 	memmove,
 	memset,
+	pthreadCondattrDestroy,
+	pthreadCondattrInit,
+	pthreadCondattrSetClock,
+	pthreadCondBroadcast,
+	pthreadCondDestroy,
+	pthreadCondInit,
 	pthreadCreate,
 	pthreadJoin,
+	pthreadMutexattrDestroy,
+	pthreadMutexattrInit,
+	pthreadMutexDestroy,
+	pthreadMutexInit,
+	pthreadMutexLock,
+	pthreadMutexUnlock,
 	pthreadYield,
 	setjmp,
 	write,
@@ -614,10 +626,34 @@ private immutable(string) strOfExternOp(immutable ExternOp op) {
 			return "memmove";
 		case ExternOp.memset:
 			return "memset";
+		case ExternOp.pthreadCondattrDestroy:
+			return "pthread_condattr_destroy";
+		case ExternOp.pthreadCondattrInit:
+			return "pthread_condattr_init";
+		case ExternOp.pthreadCondattrSetClock:
+			return "pthread_condattr_setclock";
+		case ExternOp.pthreadCondBroadcast:
+			return "pthread_cond_broadcast";
+		case ExternOp.pthreadCondDestroy:
+			return "pthread_cond_destroy";
+		case ExternOp.pthreadCondInit:
+			return "pthread_cond_init";
 		case ExternOp.pthreadCreate:
 			return "pthread_create";
 		case ExternOp.pthreadJoin:
 			return "pthread_join";
+		case ExternOp.pthreadMutexattrDestroy:
+			return "pthread_mutexattr_destroy";
+		case ExternOp.pthreadMutexattrInit:
+			return "pthread_mutexattr_init";
+		case ExternOp.pthreadMutexDestroy:
+			return "pthread_mutex_destroy";
+		case ExternOp.pthreadMutexInit:
+			return "pthread_mutex_init";
+		case ExternOp.pthreadMutexLock:
+			return "pthread_mutex_lock";
+		case ExternOp.pthreadMutexUnlock:
+			return "pthread_mutex_unlock";
 		case ExternOp.pthreadYield:
 			return "pthread_yield";
 		case ExternOp.setjmp:

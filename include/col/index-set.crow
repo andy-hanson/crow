@@ -17,8 +17,8 @@ import
 	..test: is
 	.arr: arr, empty?, size, subscript
 	.arr-util:
-		deep-size-bytes, each, fold, fold-with-index, last, make-arr, map-with-index, rtail,
-		update, zip-larger, zip-smaller
+		alloc-count, deep-size-bytes, each, fold, fold-with-index, last, make-arr, map-with-index,
+		rtail, update, zip-larger, zip-smaller
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-mut-arr
 	.mut-list: ~=, move-to-arr!, mut-list, pop!, set-last
 
@@ -40,8 +40,8 @@ size nat(a index-set)
 deep-size-bytes nat(a index-set) unsafe
 	a.values deep-size-bytes
 
-alloc-count nat(_ index-set) unsafe
-	1
+alloc-count nat(a index-set) unsafe
+	a.values alloc-count
 
 #TODO:MOVE
 .sum nat(a arr ?a, cb act nat(?a))

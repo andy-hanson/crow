@@ -1,0 +1,72 @@
+no-std
+import
+	..bool: bool
+	..hash: hash-mix
+	..misc: ->, data, void
+	..number: nat
+	..opt: has?, none, opt, some, value
+	.arr: arr
+	.arr-util: map
+	.lookup:
+		alloc-count, empty?, each-key-unordered, fold-keys-unordered, lookup, new-lookup, overhead-bytes, size,
+		subscript, try-add, try-remove
+
+unordered-set<?a> record
+	inner lookup<?a, void>
+
+unordered-set unordered-set ?a() data<?a> hash-mix<?a>
+	unordered-set: lookup<?a, void>
+
+unordered-set unordered-set ?a(a arr ?a) data<?a> hash-mix<?a>
+	unordered-set: lookup: a map {it -> void}
+
+alloc-count nat(a unordered-set ?a) unsafe
+	a.inner alloc-count
+
+overhead-bytes nat(a unordered-set ?a) unsafe
+	a.inner overhead-bytes
+
+empty? bool(a unordered-set ?a) data<?a> hash-mix<?a>
+	a.inner empty?
+
+size nat(a unordered-set ?a) data<?a> hash-mix<?a>
+	a.inner size
+
+subscript bool(a unordered-set ?a, value ?a) data<?a> hash-mix<?a>
+	a.inner[value] has?
+
+~ unordered-set ?a(a unordered-set ?a, value ?a) data<?a> hash-mix<?a>
+	match a try-add value
+	as none
+		a
+	as some s
+		s value
+
+try-add opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> hash-mix<?a>
+	match a.inner try-add value, {void}
+	as already-has-key
+		none
+	as lookup l
+		l.unordered-set some
+
+- unordered-set ?a(a unordered-set ?a, value ?a) data<?a> hash-mix<?a>
+	match a try-remove value
+	as none
+		a
+	as some s
+		s value
+
+try-remove opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> hash-mix<?a>
+	match a.inner try-remove value
+	as none
+		none
+	as some s
+		s.value.new-lookup.unordered-set some
+
+region iteration
+
+each-unordered void(a unordered-set ?a, f act void(?a))
+	a.inner each-key-unordered f
+
+fold-unordered ?a(acc ?a, a unordered-set ?b, f act ?a(?a, ?b))
+	acc fold-keys-unordered a.inner, f

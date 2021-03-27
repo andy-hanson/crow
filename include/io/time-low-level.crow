@@ -12,7 +12,8 @@ timestamp alias
 	nat
 
 # Get the value from a monotonic clock.
-get-monotime-nsec timestamp() noctx trusted summon
+# TODO: SUMMON
+get-monotime-nsec timestamp() noctx trusted
 	time-cell = as<by-val<cell<timespec>>>: cell: timespec: 0, 0
 	err = clock-monotonic clock-gettime time-cell.ref-of-val
 	if err == 0

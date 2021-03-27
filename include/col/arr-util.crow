@@ -12,6 +12,12 @@ import
 	..ptr: +, -, deep-size-bytes, ptr, ptr-eq?, set-subscript, size-of, subscript
 	.arr: ~, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, noctx-at, size, subscript
 
+alloc-count nat(a arr ?a) unsafe
+	if a empty?
+		0
+	else
+		1
+
 ###
 Number of bytes that does not go into storing the values.
 For an 'arr' this is a constant 16 bytes.
@@ -162,7 +168,15 @@ exists? bool(a arr ?a, f act bool(?a))
 	else
 		a.tail exists? f
 
-# TODO: only written this way to be `noctx`, else could defer to `some?`
+every? bool(a arr ?a, f act bool(?a))
+	if a empty?
+		true
+	elif f[a[0]]
+		a.tail every? f
+	else
+		false
+
+# TODO: only written this way to be `noctx`, else could defer to `exists?`
 ###
 Equivalent to `a exists? {it == value}`.
 Also equivalent to `a[0] == value or a[1] == value or ...`.
@@ -303,8 +317,24 @@ find-rindex opt nat(a arr ?a, f act bool(?a))
 Returns the first index where `a[i] == value`.
 Equivalent to `a find-index {it == value}`.
 ###
-index-of opt nat(a arr ?a, value ?a) data<?a>
-	a find-index {it == value}
+index-of opt nat(a arr ?a, value ?a) trusted data<?a>
+	match a ptr-of value
+	as none
+		none
+	as some s
+		s.value - a.begin-ptr some
+
+# Like `index-of` but returns a ptr.
+ptr-of opt ptr ?a(a arr ?a, value ?a) unsafe data<?a>
+	a.begin-ptr ptr-of-recur a.end-ptr, value
+
+.ptr-of-recur opt ptr ?a(cur ptr ?a, end ptr ?a, value ?a) unsafe data<?a>
+	if cur ptr-eq? end
+		none
+	elif cur[] == value
+		cur some
+	else
+		cur + 1 ptr-of-recur end, value
 
 ###
 Returns the last index where `a[i] == value`.
@@ -399,12 +429,15 @@ zip-larger arr ?out(a arr ?a, b arr ?b, f act ?out(opt ?a, opt ?b))
 	else
 		none
 
+# TODO: update-at
 update arr ?a(a arr ?a, index nat, new-value ?a)
 	assert: index < a.size
 	a[0 -> index] ~ [new-value] ~ a[index + 1 -> a.size]
 
 update-with-default arr ?a(a arr ?a, index nat, new-value ?a, default ?a)
 	if index < a.size
+		a update index, new-value
+	else
 		index + 1 make-arr \i
 			if i < a.size
 				a[i]
@@ -412,9 +445,8 @@ update-with-default arr ?a(a arr ?a, index nat, new-value ?a, default ?a)
 				new-value
 			else
 				default
-	else
-		a update index, new-value
 
+# TODO: insert-at
 insert arr ?a(a arr ?a, index nat, value ?a)
 	assert: index <= a.size
 	# TODO:PERF (only concat once)
@@ -422,6 +454,10 @@ insert arr ?a(a arr ?a, index nat, value ?a)
 
 insert arr ?a(a arr ?a, ptr ptr ?a, value ?a) unsafe
 	a insert ptr - a.begin-ptr, value
+
+remove-at arr ?a(a arr ?a, index nat)
+	assert: index < a.size
+	a[0 -> index] ~ a[index + 1 -> a.size]
 
 with-max-size arr ?a(a arr ?a, max-size nat)
 	if a.size <= max-size

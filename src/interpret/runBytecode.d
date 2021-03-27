@@ -559,7 +559,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			a.extern_.free(cast(ubyte*) pop(a.dataStack).raw());
 			break;
 		case ExternOp.getNProcs:
-			push(a.dataStack, immutable Nat64(a.extern_.getNProcs()));
+			push(a.dataStack, immutable Nat64(1));
 			break;
 		case ExternOp.longjmp:
 			immutable Nat64 val = pop(a.dataStack); // TODO: verify this is int32?
@@ -588,13 +588,32 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 				begin[i] = value;
 			break;
 		case ExternOp.pthreadCreate:
-			todo!void("pthread_create");
+			unreachable!void();
 			break;
 		case ExternOp.pthreadJoin:
-			todo!void("pthread_join");
+			unreachable!void();
+			break;
+		case ExternOp.pthreadCondattrDestroy:
+		case ExternOp.pthreadCondattrInit:
+		case ExternOp.pthreadCondBroadcast:
+		case ExternOp.pthreadCondDestroy:
+		case ExternOp.pthreadMutexattrDestroy:
+		case ExternOp.pthreadMutexattrInit:
+		case ExternOp.pthreadMutexDestroy:
+		case ExternOp.pthreadMutexLock:
+		case ExternOp.pthreadMutexUnlock:
+			pop(a.dataStack);
+			push(a.dataStack, immutable Nat64(0));
+			break;
+		case ExternOp.pthreadCondattrSetClock:
+		case ExternOp.pthreadCondInit:
+		case ExternOp.pthreadMutexInit:
+			pop(a.dataStack);
+			pop(a.dataStack);
+			push(a.dataStack, immutable Nat64(0));
 			break;
 		case ExternOp.pthreadYield:
-			push(a.dataStack, immutable Nat64(a.extern_.pthreadYield()));
+			push(a.dataStack, immutable Nat64(0));
 			break;
 		case ExternOp.setjmp:
 			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack).raw();

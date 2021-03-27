@@ -1,0 +1,313 @@
+no-std
+import
+	..bool: bool, false, not, true
+	..compare: ==, >, >=
+	..exception: assert
+	..fun: subscript
+	..hash: hash-mix
+	..log: info, log
+	..misc: data, void
+	..number: nat
+	..opt: force, none, opt, or-default, some, value
+	..ptr: +, ptr, ptr-eq?, ptr-less-eq?, set-subscript, size-of, subscript
+	..str: char, str
+	..str-conv: to-str
+	..test: is
+	..private.bootstrap: wrap-add, wrap-sub, wrap-mul
+	.arr: arr
+	.arr-util: fold
+	.frozen-unordered-set:
+		alloc-count, begin-ptr, each-unordered, empty?, end-ptr, fold-unordered-with-index,
+		frozen-unordered-set, overhead-bytes, size, try-get-unordered-index,
+		unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
+	.index-set:
+		alloc-count, count-greater-or-equal, deep-size-bytes, each, empty?, filter-less, index-set,
+		size, subscript, try-remove
+	.mut-arr: begin-ptr, cast-immutable, end-ptr, mut-arr-from-begin-end, uninitialized-mut-arr
+	.mut-list: ~=, move-to-arr!, mut-list, set-last
+
+unordered-set<?a> record
+	# TODO:PRIVATE
+	add add-node ?a
+	remove index-set
+
+.add-node<?a> record
+	here frozen-unordered-set ?a
+	left opt add-node ?a
+
+unordered-set unordered-set ?a() data<?a> hash-mix<?a>
+	unordered-set: (add-node: frozen-unordered-set, none), index-set
+
+unordered-arr arr ?a(a unordered-set ?a) data<?a> hash-mix<?a>
+	# TODO: If a has a single add node and no remove, just return that
+	a map-to-arr-unordered {it}
+
+alloc-count nat(a unordered-set ?a) unsafe
+	a.remove.alloc-count alloc-count-recur a.add
+.alloc-count-recur nat(acc nat, a add-node ?a) unsafe
+	mid = acc wrap-add a.here.alloc-count
+	match a left
+	as none
+		mid
+	as some s
+		# + 1 to allocate the left node
+		mid wrap-add 1 alloc-count-recur s.value
+
+# TODO: any value that is removed is overhead too
+overhead-bytes nat(a unordered-set ?a) unsafe
+	a.remove.deep-size-bytes overhead-bytes-recur a.add
+.overhead-bytes-recur nat(acc nat, a add-node ?a) unsafe
+	mid = acc wrap-add a.here.overhead-bytes wrap-add a.left.size-of
+	match a left
+	as none
+		mid
+	as some s
+		mid overhead-bytes-recur s.value
+
+empty? bool(a unordered-set ?a) data<?a> hash-mix<?a>
+	a.add.here empty?
+
+size nat(a unordered-set ?a) data<?a> hash-mix<?a>
+	a.remove.size add-size-recur a.add
+
+.add-size nat(a add-node ?a)
+	0 add-size-recur a
+.add-size-recur nat(acc nat, a add-node ?a)
+	acc wrap-add a.here.size add-size-left-recur a
+.add-size-left nat(a add-node ?a)
+	0 add-size-left-recur a
+.add-size-left-recur nat(acc nat, a add-node ?a)
+	match a left
+	as none
+		acc
+	as some s
+		acc add-size-recur s.value
+
+subscript bool(a unordered-set ?a, value ?a) data<?a> hash-mix<?a>
+	match a.add find-in-add value
+	as none
+		false
+	as some s
+		a.remove[s value] not
+
+.find-in-add opt nat(a add-node ?a, value ?a) data<?a> hash-mix<?a>
+	match a.here try-get-unordered-index value
+	as none
+		match a left
+		as none
+			none
+		as some s
+			s.value find-in-add value
+	as some s
+		a.add-size-left wrap-add s.value some
+
+~ unordered-set ?a(a unordered-set ?a, value ?a) data<?a> hash-mix<?a>
+	a try-add value or-default a
+
+~ unordered-set ?a(a unordered-set ?a, values arr ?a) data<?a> hash-mix<?a>
+	a fold values, \cur, value
+		cur ~ value
+
+try-add opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> hash-mix<?a>
+	match a.add find-in-add value
+	as none
+		a add-and-maybe-compact value some
+	as some s
+		match a.remove try-remove s.value
+		as none
+			none
+		as some s2
+			some: unordered-set: a.add, s2.value
+
+.add-and-maybe-compact unordered-set ?a(a unordered-set ?a, value ?a) trusted data<?a> hash-mix<?a>
+	add-size = a.add add-size
+	if add-size == 0
+		unordered-set: (add-node: [value].frozen-unordered-set, none), index-set
+	else
+		# size-right starts as 1 because we're adding a value
+		plan = add-size add-and-compact-plan a.add, a.remove, 1
+		if plan.compacted-size == 1
+			unordered-set: (add-node: [value].frozen-unordered-set, a.add.some), a.remove
+		else
+			a add-and-compact add-size, plan, value
+
+.compact-plan record
+	# Total size of all non-compacted nodes (all but the new last node)
+	add-size-left nat
+	# Size that the compacted node will have (sum of 'depth' rightmost nodes)
+	compacted-size nat
+
+
+.add-and-compact-plan compact-plan(size-here-and-left nat, a add-node ?a, remove index-set, size-right nat)
+	size-here = a.here size
+	size-left = size-here-and-left wrap-sub size-here
+	removals-here-and-right = remove count-greater-or-equal size-left
+	if size-here should-compact? size-right, removals-here-and-right
+		size-here-and-right = size-here wrap-add size-right
+		match a left
+		as none
+			compact-plan: size-left, size-here-and-right
+		as some s
+			size-left add-and-compact-plan s.value, remove, size-here-and-right
+	else
+		compact-plan: size-here-and-left, size-right
+
+.should-compact? bool(size-here nat, size-right nat, removals-here-and-right nat)
+	(size-right wrap-add (removals-here-and-right wrap-mul 2)) >= size-here
+
+.add-and-compact unordered-set ?a
+	a unordered-set ?a
+	add-size nat
+	plan compact-plan
+	value ?a
+spec
+	unsafe
+	data<?a>
+	hash-mix<?a>
+body
+	assert: plan.compacted-size > 1
+	compacted = plan.compacted-size uninitialized-mut-arr<?a>
+	compacted.begin-ptr[] := value
+	compactor = compactor<?a>: compacted.begin-ptr, compacted.begin-ptr + 1, compacted.end-ptr
+	new-add = compactor do-compact-recur! a.add, add-size, a.remove
+	unordered-set: new-add, a.remove filter-less plan.add-size-left
+
+.compactor<?a> record mut
+	begin ptr ?a
+	cur mut ptr ?a
+	end ptr ?a
+
+.do-compact-recur! add-node ?a
+	compactor compactor ?a
+	a add-node ?a
+	add-size-here-and-left nat
+	remove index-set
+spec
+	unsafe
+	data<?a>
+	hash-mix<?a>
+body
+	compactor push! a.here, add-size-here-and-left, remove
+	assert: compactor.cur ptr-less-eq? compactor.end
+	if compactor.cur ptr-eq? compactor.end
+		add-node: compactor.finish, a.left
+	else
+		# TODO: should be able to write this inline
+		new-l = add-size-here-and-left wrap-sub a.here.size
+		compactor do-compact-recur! a.left.force, new-l, remove
+
+.push! void(a compactor ?a, here frozen-unordered-set ?a, add-size-here-and-left nat, remove index-set) unsafe
+	a push-recur! here.begin-ptr, here.end-ptr, add-size-here-and-left, remove
+.push-recur! void(a compactor ?a, cur ptr ?a, end ptr ?a, remove-index nat, remove index-set) unsafe
+	if cur ptr-eq? end not
+		if remove[remove-index] not
+			a.cur[] := cur[]
+			a.cur := a.cur + 1
+		a push-recur! cur + 1, end, (remove-index wrap-add 1), remove
+
+
+.finish frozen-unordered-set ?a(a compactor ?a) unsafe data<?a> hash-mix<?a>
+	assert: a.cur ptr-eq? a.end
+	unsafe-frozen-unordered-set-from-mut-arr-cast-immutable: a.begin mut-arr-from-begin-end a.end
+
+region iteration
+
+fold-unordered ?a(acc ?a, a unordered-set ?b, f act ?a(?a, ?b)) data<?b> hash-mix<?b>
+	acc fold-unordered-recur a.add, a.add.add-size-left, a.remove, f
+
+.fold-unordered-recur ?a(acc ?a, a add-node ?b, add-size-left nat, remove index-set, f act ?a(?a, ?b))
+	mid = acc fold-unordered-with-index a.here, \cur, x, index
+		if remove[add-size-left wrap-add index]
+			cur
+		else
+			f[cur, x]
+	match a left
+	as none
+		mid
+	as some s
+		# TODO: should not need a local
+		l = add-size-left wrap-sub a.here.size
+		mid fold-unordered-recur s.value, l, remove, f
+
+map-to-arr-unordered arr ?out(a unordered-set ?in, f act ?out(?in)) trusted data<?in> hash-mix<?in>
+	out = a.size uninitialized-mut-arr<?out>
+	end = out.begin-ptr fold-unordered a, \cur, x
+		cur[] := f[x]
+		cur + 1
+	assert: end ptr-eq? out.end-ptr
+	out cast-immutable
+
+.dbg str(a unordered-set ?a) to-str<?a>
+	out = mut-list<char>
+	out dbg-add-recur! a.add
+	if a.remove.empty? not
+		out ~= " - ["
+		a.remove each \i
+			out ~= i to-str
+			out ~= " "
+		out.last := "]"
+	out move-to-arr!
+
+.dbg-add-recur! void(out mut-list char, a add-node ?a) to-str<?a>
+	match a left
+	as none
+		void
+	as some s
+		out dbg-add-recur! s.value
+		out ~= ", "
+	if a.here empty?
+		out ~= "[]"
+	else
+		out ~= "["
+		a.here each-unordered \x
+			out ~= x to-str
+			out ~= " "
+		out.last := "]"
+
+.verify void(a unordered-set nat, expected str)
+	a.dbg is expected
+
+test
+	info log "UNORDERED SET 2 TEST"
+
+	a = unordered-set<nat>
+	a.empty? is true
+	a.size is 0
+	a verify "[]"
+
+	b = a ~ 5
+	b.empty? is false
+	b.size is 1
+	b.unordered-arr is [5]
+	b verify "[5]"
+
+	c = b ~ [6, 4, 1]
+	info log "C IS"
+	info log c.dbg
+	c verify "[4 6 5], [1]"
+
+	d = c ~ [8]
+	info log "D IS"
+	info log d.dbg
+	d verify "[5 6 1 8 4]"
+
+	e = d ~ [4, 10]
+	e verify "[5 6 1 8 4], [10]"
+
+	e[0] is false
+	e[1] is true
+	e[2] is false
+	e[3] is false
+	e[4] is true
+	e[5] is true
+	e[6] is true
+	e[7] is false
+	e[8] is true
+	e[9] is false
+	e[10] is true
+	e[11] is false
+
+	info log "Z"
+	e.size is 6
+
+	info log "END UNORDERED SET 2 TEST"
