@@ -12,13 +12,13 @@ export
 region throwing
 
 # Create amd throw an exception with the given message.
-fail ?a(message str) trusted
+throw ?a(message str) trusted
 	throw: exception: message, get-backtrace
 
 # Fail if the condition is false.
 assert void(condition bool)
 	if condition not
-		"assert failed" fail
+		"assert failed" throw
 
 ###
 Fail if the condition is false, providing a custom message.
@@ -26,7 +26,7 @@ The message is eagerly evaluated; pass a `fun str()` instead to have it lazily e
 ###
 assert void(condition bool, message str)
 	if condition not
-		message fail
+		message throw
 
 ###
 Fail if the condition is false, providing a custom message.
@@ -34,7 +34,7 @@ The message is evaluated only if an exception will be thrown.
 ###
 assert void(condition bool, message fun str())
 	if condition not
-		message[] fail
+		message[] throw
 
 # Fail if the condition is true.
 forbid void(condition bool)
@@ -46,7 +46,7 @@ The message is eagerly evaluated; pass a `fun str()` instead to have it lazily e
 ###
 forbid void(condition bool, message str)
 	if condition
-		message fail
+		message throw
 
 ###
 Fail if the condition is false, providing a custom message.
@@ -54,14 +54,14 @@ The message is evaluated only if an exception will be thrown.
 ###
 forbid void(condition bool, message fun str())
 	if condition
-		message[] fail
+		message[] throw
 
 ###
 Fail unconditionally.
 This function is used to mark part of an `if` or `match` that should not be possible.
 ###
 unreachable ?a()
-	"should be unreachable" fail
+	"should be unreachable" throw
 
 region handling
 
@@ -70,11 +70,19 @@ Run `try`, and then run `after`, even if `try` threw an exception.
 (The exception is only temporarily caught to run `after` and is then rethrown.)
 ###
 finally ?a(after act void(), try act ?a())
-	res = try catch \err
-		after[]
-		err throw
+	res = after do-if-error try
 	after[]
 	res
+
+###
+Run `try`, and if there is an exception run `on-error`.
+Unlike `finally` this does not run in the successful case.
+(The exception is only temporarily caught to run `after` and is then rethrown.)
+###
+do-if-error ?a(on-error act void(), try act ?a())
+	try catch \err
+		on-error[]
+		err throw
 
 ###
 Run `try` and return `ok` containing its return value,

@@ -1,0 +1,48 @@
+no-std
+import
+	.col.arr: arr
+	.col.mut-list: ~=, move-to-arr!, mut-list
+	.compare: ==
+	.exception: assert, catch, message, throw
+	.fun: subscript
+	.misc: data, void
+	# TODO: import from .result instead
+	.private.bootstrap: value
+	.str: str
+	.tuple: pair
+
+spy-act1<?out, ?in> record mut
+	# TODO:PRIVATE
+	calls-builder mut-list ?in
+	fn act ?out(?in)
+
+# Empties the list of calls and returns it.
+calls arr ?in(a spy-act1<?out, ?in>)
+	a.calls-builder move-to-arr!
+
+spy-act spy-act1<?out, ?in>(f act ?out(?in))
+	calls = mut-list<?in>
+	spy-act1: calls, \in
+		calls ~= in
+		f[in]
+
+spy-act spy-act1<?out, ?in>(value ?out)
+	calls = mut-list<?in>
+	spy-act1: calls, \in
+		calls ~= in
+		value
+
+spy-act2<?out, ?in0, ?in1> record mut
+	# TODO:PRIVATE
+	calls-builder mut-list pair<?in0, ?in1>
+	fn act ?out(?in0, ?in1)
+
+# Empties the list of calls and returns it.
+calls arr pair<?in0, ?in1>(a spy-act2<?out, ?in0, ?in1>)
+	a.calls-builder move-to-arr!
+
+spy-act spy-act2<?out, ?in0, ?in1>(f act ?out(?in0, ?in1))
+	calls = mut-list<pair<?in0, ?in1>>
+	spy-act2: calls, \a, b
+		calls ~= pair<?in0, ?in1>: a, b
+		f[a, b]

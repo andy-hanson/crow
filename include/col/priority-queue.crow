@@ -10,7 +10,8 @@ import
 	..ptr: +, -, ptr, ptr-eq?, set-subscript
 	..str: char, str
 	..str-conv: finish, interp, to-str, with-str, with-value
-	..test: calls, fn, is, spy-act
+	..test: is
+	..test.spy: calls, fn, spy-act
 	..tuple: pair
 	.arr: arr, empty?, size
 	.arr-util: each, first, fold, map, tail

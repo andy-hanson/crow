@@ -1,0 +1,79 @@
+#!/usr/bin/env crow
+
+import
+	col.arr-util: tail
+	db.lmdb:
+		from-lmdb-key, get, lmdb-key-flags, lmdb-open-options, set, stat, to-lmdb-key, to-str,
+		with-db, with-env, with-read-transaction, with-write-transaction
+	io.print: print
+	parse-command: parse-named-args, single-str-or-throw
+	serialize: from-bytes, to-bytes
+
+main fut nat(args arr str) unsafe summon
+	opt-command = parse-command-name: args.empty? ? "", args[0]
+	match opt-command
+	as none
+		print: usage
+		1 resolved
+	as some s
+		command = s value
+		match command
+		as get
+			named-args = args.tail parse-named-args ["db-path", "db-name", "key"] force
+			db-path = named-args[0] single-str-or-throw "db-path"
+			db-name = named-args[1] single-str-or-throw "db-name"
+			key = named-args[2] single-str-or-throw "key"
+			db-path with-env true.lmdb-open-options, \env
+				env with-db<void, str, str> db-name, \db
+					print: env with-read-transaction \txn
+						txn get db, key or-default "none"
+		as set
+			named-args = args.tail parse-named-args ["db-path", "db-name", "key", "value"] force
+			db-path = named-args[0] single-str-or-throw "db-path"
+			db-name = named-args[1] single-str-or-throw "db-name"
+			key = named-args[2] single-str-or-throw "key"
+			value = named-args[3] single-str-or-throw "value"
+			db-path with-env true.lmdb-open-options, \env
+				env with-db<void, str, str> db-name, \db
+					env with-write-transaction \txn
+						txn set db, key, value
+		as stat
+			named-args = args.tail parse-named-args ["db-path", "db-name"] force
+			db-path = named-args[0] single-str-or-throw "db-path"
+			db-name = named-args[1] single-str-or-throw "db-name"
+			db-path with-env true.lmdb-open-options, \env
+				env with-db<void, str, str> db-name, \db
+					print: env with-read-transaction \txn
+						txn stat db to-str
+		0 resolved
+
+.usage str()
+	# TODO: Use a """ string
+	a = "Usage: crow run db <get | set | stat> --db-path <db file path> --db-name <db name> --key <key> --value <value>"
+
+	b = "Creates the DB file if it does not yet exist."
+	c = "The file contains multiple named sub-dbs."
+	d = "Each sub-db is a map from keys to values."
+
+	e = "Example:"
+	f = "	crow run db -- set --db-path foo.db --db-name capitals --key indiana --value indianapolis"
+	g = "	crow run db -- get --db-path foo.db --db-name capitals --key indiana"
+	"{a}\n{b}\n{c}\n{d}\n{e}\n{f}\n{g}\n"
+
+.parse-command-name opt command(a str)
+	if a == "get"
+		get some
+	elif a == "set"
+		set some
+	elif a == "stat"
+		stat some
+	else
+		none
+
+.command union
+	get
+	set
+	stat
+get record
+set record
+stat record

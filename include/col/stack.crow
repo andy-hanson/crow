@@ -2,7 +2,7 @@ no-std
 import
 	..bool: ?, bool
 	..compare: ==, !=
-	..exception: assert, fail, forbid
+	..exception: assert, forbid, throw
 	..fun: subscript
 	..misc: drop, void
 	..number: +, nat
@@ -102,7 +102,7 @@ Throws if the stack is empty.
 rtail stack ?a(a stack ?a)
 	match a last-node
 	as none
-		fail: "Stack is empty"
+		throw: "Stack is empty"
 	as some s
 		stack: void, s.value prev
 

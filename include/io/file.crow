@@ -1,7 +1,7 @@
 no-std
 import
 	..bits: bits-and, bit-shift-left, bits-or
-	..bool: and, bool, false, not, true
+	..bool: and, bool, false, not, to-nat, true
 	..cell: cell, subscript
 	..col.arr: arr, begin-ptr, size, subscript
 	..col.arr-util: each
@@ -9,18 +9,18 @@ import
 	..col.mut-list: ~=, move-to-arr!, mut-list
 	..col.sort: sort
 	..compare: ==, !=, <
-	..exception: assert, fail, forbid
+	..exception: assert, forbid, throw
 	..fun: subscript
 	..misc: ->, as, drop, void
-	..number: +, int32, nat8, nat16, nat32, to-int, to-nat
+	..number: +, int32, nat8, nat16, nat32, to-int, to-nat, to-nat32
 	..opt: has?, none, opt, some, value
 	..posix.bytes-types: zero
 	..posix.dirent: dir, dirent, opendir, readdir-r
 	..posix.errno: enoent, errno
 	..posix.fcntl: o-creat, o-rdonly, o-trunc, o-wronly, open
-	..posix.stat: empty-stat, s-ifdir, s-ifmt, s-ifreg, stat, stat-t, st-mode
-	..posix.types: ino-t, off-t
-	..posix.unistd: close, getcwd, lseek, read, readlink, write
+	..posix.stat: empty-stat, mkdir, s-ifdir, s-ifmt, s-ifreg, stat, stat-t, st-mode
+	..posix.types: ino-t, mode-t, off-t
+	..posix.unistd: close, getcwd, lseek, read, readlink, rmdir, unlink, write
 	..ptr: +, any-ptr, as-any-ptr, null?, ptr-cast, ptr-cast-from-extern, ptr-eq?, ref-eq?, size-of
 	..str: char, c-str, str
 	..str-conv: finish, interp, to-str, with-str, with-value
@@ -37,7 +37,7 @@ is-dir? bool(path str) summon trusted
 .is-dir? bool(path c-str) summon unsafe
 	match path get-stat
 	as none
-		fail: "path does not exist: {path}"
+		throw: "path does not exist: {path}"
 	as some s
 		(s.value.st-mode bits-and s-ifmt) == s-ifdir
 
@@ -244,3 +244,54 @@ each-child-recursive void(path str, filter act bool(str), f act void(str)) summo
 				path child-path child-name each-child-recursive filter, f
 	else
 		f[path]
+
+
+permissions record
+	read bool
+	write bool
+	execute bool
+
+.to-mode mode-t(a permissions)
+	(a.read.to-nat bit-shift-left 2) bits-or (a.write.to-nat bit-shift-left 1) bits-or a.execute.to-nat to-nat32
+
+no-permissions permissions()
+	permissions: false, false, false
+
+all-permissions permissions()
+	permissions: true, true, true
+
+file-permissions record
+	user permissions
+	group permissions
+	public permissions
+
+user-only file-permissions(user-permissions permissions)
+	file-permissions: user-permissions, no-permissions, no-permissions
+
+to-mode mode-t(a file-permissions)
+	(a.user.to-mode bit-shift-left 6) bits-or (a.group.to-mode bit-shift-left 3) bits-or a.public.to-mode
+
+make-directory void(path str) summon
+	# TODO: all-permissions.user-only instead of a number literal
+	# TODO: 'to-nat32' should not be necessary
+	path make-directory 0o777.to-nat32
+
+make-directory void(path str, permissions file-permissions) summon
+	path make-directory permissions.to-mode
+
+make-directory void(path str, permissions mode-t) trusted summon
+	check-posix-error: path.to-c-str mkdir permissions
+
+remove-file void(path str) trusted summon
+	check-posix-error: path.to-c-str unlink
+
+remove-directory void(path str) trusted summon
+	check-posix-error: path.to-c-str rmdir
+
+remove-directory-and-contents-non-recursive void(path str) summon
+	path remove-directory-contents-non-recursive
+	path remove-directory
+
+remove-directory-contents-non-recursive void(path str) summon
+	path.read-dir each \child
+		"{path}/{child}" remove-file

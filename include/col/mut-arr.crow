@@ -57,6 +57,9 @@ Writing to the result won't affect the original.
 copy mut-arr ?a(a mut-arr ?a)
 	a.size make-mut-arr<?a> {a[it]}
 
+copy-to-arr arr ?a(a mut-arr ?a) trusted
+	a.copy cast-immutable
+
 copy-from! void(dest mut-arr ?a, source arr ?a) trusted
 	assert: dest.size == source.size
 	memcpy: dest.begin-ptr.as-any-ptr, source.begin-ptr.as-any-ptr, dest.size * size-of<?a>

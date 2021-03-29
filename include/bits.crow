@@ -133,3 +133,6 @@ filter-bits nat(a nat, f act bool(nat))
 		else
 			acc
 		new-acc filter-bits-recur (a unsafe-bit-shift-right 1), (offset wrap-add 1), f
+
+bits-cat nat64(a nat32, b nat32)
+	a.to-nat bit-shift-left 32 bits-or b.to-nat

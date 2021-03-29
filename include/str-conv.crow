@@ -7,7 +7,7 @@ import
 	.compare: ==, <
 	.exception: unreachable
 	.number:
-		+, *, /, abs, float, int, int16, int32, mod, nat, nat16, nat32, multiple-of?,
+		+, *, /, abs, float, int, int16, int32, mod, nat, nat8, nat16, nat32, multiple-of?,
 		to-int, to-float, to-nat, truncate-to-int
 	.opt: map, none, opt, some, value
 	.str: char, str
@@ -77,12 +77,16 @@ to-binary str(a nat)
 
 to-hex str(a nat)
 	a to-base 16
+to-hex str(a nat8)
+	a to-base 16
 
 .to-base str(a nat, base nat)
 	if a < base
 		a digit-to-str
 	else
 		(a / base to-base base) ~ (a mod base).digit-to-str
+.to-base str(a nat8, base nat)
+	a.to-nat to-base base
 
 # Spec of any type that could be converted to a str.
 to-str<?a> spec

@@ -5,7 +5,7 @@ import
 	..exception: assert
 	..misc: arrow, from, to
 	..number: +, -, nat
-	..ptr: +, -, by-val, ptr, ptr-less-eq?, ref-of-ptr, subscript
+	..ptr: +, -, by-val, ptr, ptr-cast, ptr-less-eq?, ref-of-ptr, size-of, subscript
 	..private.alloc: alloc-uninitialized, copy-data-from
 	..private.bootstrap: hard-assert
 export
@@ -22,6 +22,10 @@ UB if begin > end.
 arr-from-begin-end arr ?a(begin ptr ?a, end ptr ?a) unsafe noctx
 	hard-assert: begin ptr-less-eq? end
 	arr: end - begin, begin
+
+arr-cast arr ?out(a arr ?in) unsafe noctx
+	hard-assert: size-of<?out> == size-of<?in>
+	arr: a.size, a.begin-ptr.ptr-cast<?out, ?in>
 
 # True iff `a.size == 0`.
 empty? bool(a arr ?a) noctx

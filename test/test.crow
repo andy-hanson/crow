@@ -4,14 +4,14 @@ import
 	io.environ: get-environ
 	io.path: child-path, parent-path
 	io.print: print
-	parse-command: parse-command
+	parse-command: parse-named-args
 	.failure: first-failures, print-failures, test-options
 	.lint: lint
 	.crow-tests: run-crow-tests
 
 main fut nat(args arr str) summon
 	option-names = ["print-tests", "overwrite-output", "max-failures", "match"]
-	resolved: match args parse-command option-names
+	resolved: match args parse-named-args option-names
 	as none
 		print-help
 		1

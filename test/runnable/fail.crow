@@ -6,4 +6,4 @@ foo void() unsafe summon
 	bar
 
 bar void() unsafe summon
-	fail: "FOO"
+	throw: "FOO"

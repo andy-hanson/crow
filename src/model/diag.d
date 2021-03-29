@@ -182,11 +182,16 @@ struct Diag {
 		immutable Type type;
 		immutable Ptr!FunDecl called;
 	}
-	struct SpecImplNotFound {
+	struct SpecImplFoundMultiple {
 		immutable Sym sigName;
+		immutable CalledDecl[] matches;
 	}
 	struct SpecImplHasSpecs {
-		immutable Sym funName;
+		immutable Ptr!FunDecl outerCalled;
+		immutable Ptr!FunDecl specImpl;
+	}
+	struct SpecImplNotFound {
+		immutable Sym sigName;
 	}
 	struct TypeConflict {
 		immutable Type expected;
@@ -259,6 +264,7 @@ struct Diag {
 		puritySpecifierRedundant,
 		sendFunDoesNotReturnFut,
 		specBuiltinNotSatisfied,
+		specImplFoundMultiple,
 		specImplHasSpecs,
 		specImplNotFound,
 		typeConflict,
@@ -307,6 +313,7 @@ struct Diag {
 		immutable PuritySpecifierRedundant puritySpecifierRedundant;
 		immutable SendFunDoesNotReturnFut sendFunDoesNotReturnFut;
 		immutable Ptr!SpecBuiltinNotSatisfied specBuiltinNotSatisfied;
+		immutable SpecImplFoundMultiple specImplFoundMultiple;
 		immutable SpecImplHasSpecs specImplHasSpecs;
 		immutable SpecImplNotFound specImplNotFound;
 		immutable Ptr!TypeConflict typeConflict;
@@ -403,6 +410,9 @@ struct Diag {
 	}
 	@trusted immutable this(immutable Ptr!SpecBuiltinNotSatisfied a) {
 		kind = Kind.specBuiltinNotSatisfied; specBuiltinNotSatisfied = a;
+	}
+	@trusted immutable this(immutable SpecImplFoundMultiple a) {
+		kind = Kind.specImplFoundMultiple; specImplFoundMultiple = a;
 	}
 	@trusted immutable this(immutable SpecImplHasSpecs a) { kind = Kind.specImplHasSpecs; specImplHasSpecs = a; }
 	@trusted immutable this(immutable SpecImplNotFound a) { kind = Kind.specImplNotFound; specImplNotFound = a; }
@@ -516,6 +526,9 @@ static assert(Diag.sizeof <= 32);
 		ref immutable Diag.SpecBuiltinNotSatisfied
 	) @safe @nogc pure nothrow cbSpecBuiltinNotSatisfied,
 	scope immutable(Out) delegate(
+		ref immutable Diag.SpecImplFoundMultiple
+	) @safe @nogc pure nothrow cbSpecImplFoundMultiple,
+	scope immutable(Out) delegate(
 		ref immutable Diag.SpecImplHasSpecs
 	) @safe @nogc pure nothrow cbSpecImplHasSpecs,
 	scope immutable(Out) delegate(
@@ -612,6 +625,8 @@ static assert(Diag.sizeof <= 32);
 			return cbSendFunDoesNotReturnFut(a.sendFunDoesNotReturnFut);
 		case Diag.Kind.specBuiltinNotSatisfied:
 			return cbSpecBuiltinNotSatisfied(a.specBuiltinNotSatisfied);
+		case Diag.Kind.specImplFoundMultiple:
+			return cbSpecImplFoundMultiple(a.specImplFoundMultiple);
 		case Diag.Kind.specImplHasSpecs:
 			return cbSpecImplHasSpecs(a.specImplHasSpecs);
 		case Diag.Kind.specImplNotFound:

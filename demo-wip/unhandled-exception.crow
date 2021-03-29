@@ -5,10 +5,10 @@ main fut nat(_ arr str) summon
 	print: "Hello world"
 
 	my-fun = as<ref void()>: \
-		fail: "I am error"
+		throw: "I am error"
 
 	my-fun[] handle-exceptions
 	print: "got here"
-	fail: "I, too, am error"
+	throw: "I, too, am error"
 
 	0 resolved

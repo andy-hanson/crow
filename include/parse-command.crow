@@ -8,7 +8,7 @@ import
 	.col.mut-dict: move-to-dict!, mut-dict, set-subscript
 	.col.mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
 	.compare: ==
-	.exception: assert, fail, forbid
+	.exception: assert, forbid, throw
 	.misc: ->, void
 	.number: +
 	.opt: force, has?, none, opt, some, value
@@ -22,7 +22,7 @@ Each argument will be 'none' if the argument was passed, else an array of argume
 If the command line is "--a --c d" and arg-names are ["a", "b", "c"],
 "a" will get `[].some`, "b" will get `none`, and "c" will get `["d"].some`.
 ###
-parse-command opt arr opt arr str(args arr str, arg-names arr str)
+parse-named-args opt arr opt arr str(args arr str, arg-names arr str)
 	parsed = args parse-command-dynamic
 	assert: parsed.nameless empty?, "Should be no nameless args"
 	assert: parsed.after empty?
@@ -36,7 +36,7 @@ parse-command opt arr opt arr str(args arr str, arg-names arr str)
 			if key == "help"
 				help[] := true
 			else
-				fail: "Unexpected arg {key}"
+				throw: "Unexpected arg {key}"
 		as some s
 			idx = s value
 			# TODO: duplicate argument error
@@ -47,6 +47,19 @@ parse-command opt arr opt arr str(args arr str, arg-names arr str)
 		none
 	else
 		values.move-to-arr! some
+
+single-str-or-throw str(a opt arr str, option-name str)
+	match a
+	as none
+		throw: "Need {option-name}"
+	as some s
+		res = s value
+		if res.size == 0
+			throw: "{option-name} needs a value"
+		if res.size == 1
+			res[0]
+		else
+			throw: "{option-name} got too many values"
 
 # Command line syntax:
 # `foo bar --a 1 --b 2 3 -- x y z`
@@ -89,4 +102,4 @@ parse-command opt arr opt arr str(args arr str, arg-names arr str)
 	as some s
 		next-named-arg-index = s value
 		builder[first-name] := tl[0 -> next-named-arg-index]
-		args[next-named-arg-index -> args.size] parse-named-args-recur builder
+		tl[next-named-arg-index -> tl.size] parse-named-args-recur builder

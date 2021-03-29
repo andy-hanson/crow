@@ -173,14 +173,16 @@ immutable(CheckedExpr) checkCall(Alloc)(
 				arity,
 				finishArr(alloc, actualArgTypes),
 				allCandidates)));
-		} else {
-			immutable CalledDecl[] matches = map_const!CalledDecl(alloc, candidatesArr, (ref const Candidate c) =>
-				c.called);
-			addDiag2(alloc, ctx, diagRange, immutable Diag(Diag.CallMultipleMatches(funName, matches)));
-		}
+		} else
+			addDiag2(alloc, ctx, diagRange, immutable Diag(Diag.CallMultipleMatches(funName, candidatesForDiag(alloc, candidatesArr))));
 		return bogus(expected, range);
 	} else
 		return checkCallAfterChoosingOverload(alloc, ctx, only_const(candidatesArr), range, force(args), expected);
+}
+
+immutable(CalledDecl[]) candidatesForDiag(Alloc)(ref Alloc alloc, ref const Candidate[] candidates) {
+	return map_const!CalledDecl(alloc, candidates, (ref const Candidate c) =>
+		c.called);
 }
 
 immutable(CheckedExpr) checkIdentifierCall(Alloc)(
@@ -512,6 +514,7 @@ immutable(Opt!Called) findSpecSigImplementation(Alloc)(
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
 	ref immutable Sig specSig,
+	immutable Ptr!FunDecl outerCalled,
 ) {
 	MutArr!Candidate candidates = getInitialCandidates(alloc, ctx, specSig.name, emptyArr!Type, arity(specSig));
 	filterByReturnType(alloc, programState(ctx), candidates, specSig.returnType);
@@ -522,12 +525,13 @@ immutable(Opt!Called) findSpecSigImplementation(Alloc)(
 	const Candidate[] candidatesArr = moveToArr_const(alloc, candidates);
 	switch (size(candidatesArr)) {
 		case 0:
-			addDiag2(alloc, ctx, range, immutable Diag(Diag.SpecImplNotFound(specSig.name)));
+			addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.SpecImplNotFound(specSig.name)));
 			return none!Called;
 		case 1:
-			return getCalledFromCandidate(alloc, ctx, range, only_const(candidatesArr), false);
+			return getCalledFromCandidate(alloc, ctx, range, only_const(candidatesArr), some(outerCalled));
 		default:
-			todo!void("diagnostic: multiple functions satisfy the spec");
+			addDiag2(alloc, ctx, range, immutable Diag(
+				immutable Diag.SpecImplFoundMultiple(specSig.name, candidatesForDiag(alloc, candidatesArr))));
 			return none!Called;
 	}
 }
@@ -579,13 +583,14 @@ immutable(bool) checkBuiltinSpec(Alloc)(
 	ref immutable FileAndRange range,
 	immutable Ptr!FunDecl called,
 	immutable Type[] typeArgz,
-	immutable bool allowSpecs,
+	immutable Opt!(Ptr!FunDecl) outerCalled,
 ) {
 	// We store the impls in a flat array. Calculate the size ahead of time.
 	immutable size_t nImpls = sum(specs(called), (ref immutable Ptr!SpecInst specInst) =>
 		nSigs(specInst.body_));
-	if (nImpls != 0 && !allowSpecs) {
-		addDiag2(alloc, ctx, range, immutable Diag(Diag.SpecImplHasSpecs()));
+	if (nImpls != 0 && has(outerCalled)) {
+		addDiag2(alloc, ctx, range, immutable Diag(
+			immutable Diag.SpecImplHasSpecs(force(outerCalled), called)));
 		return none!(Called[]);
 	} else {
 		MutArr!(immutable Called) res = newUninitializedMutArr!(immutable Called)(alloc, nImpls);
@@ -602,7 +607,7 @@ immutable(bool) checkBuiltinSpec(Alloc)(
 					checkBuiltinSpec(alloc, ctx, called, range, b.kind, only(typeArgs(specInstInstantiated))),
 				(ref immutable Sig[] sigs) {
 					foreach (ref immutable Sig sig; sigs) {
-						immutable Opt!Called impl = findSpecSigImplementation(alloc, ctx, range, sig);
+						immutable Opt!Called impl = findSpecSigImplementation(alloc, ctx, range, sig, called);
 						if (!has(impl))
 							return false;
 						setAt(res, outI, force(impl));
@@ -639,7 +644,7 @@ immutable(Opt!Called) getCalledFromCandidate(Alloc)(
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
 	ref const Candidate candidate,
-	immutable bool allowSpecs,
+	immutable Opt!(Ptr!FunDecl) outerCalled,
 ) {
 	if (has(candidate.used))
 		markUsedFun(ctx, force(candidate.used));
@@ -650,7 +655,7 @@ immutable(Opt!Called) getCalledFromCandidate(Alloc)(
 		return matchCalledDecl(
 			candidate.called,
 			(immutable Ptr!FunDecl f) {
-				immutable Opt!(Called[]) specImpls = checkSpecImpls(alloc, ctx, range, f, typeArgs, allowSpecs);
+				immutable Opt!(Called[]) specImpls = checkSpecImpls(alloc, ctx, range, f, typeArgs, outerCalled);
 				return has(specImpls)
 					? some(immutable Called(
 						instantiateFun(
@@ -673,7 +678,7 @@ immutable(CheckedExpr) checkCallAfterChoosingOverload(Alloc)(
 	immutable Expr[] args,
 	ref Expected expected,
 ) {
-	immutable Opt!Called opCalled = getCalledFromCandidate(alloc, ctx, range, candidate, true);
+	immutable Opt!Called opCalled = getCalledFromCandidate(alloc, ctx, range, candidate, none!(Ptr!FunDecl));
 	if (has(opCalled)) {
 		immutable Called called = force(opCalled);
 		immutable Expr calledExpr = immutable Expr(range, Expr.Call(called, args));

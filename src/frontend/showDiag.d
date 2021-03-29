@@ -315,15 +315,25 @@ void writeCalledDecl(Alloc, PathAlloc)(
 	return matchCalledDecl(
 		c,
 		(immutable Ptr!FunDecl funDecl) {
-			writeStatic(writer, " (from ");
-			writeLineNumber(writer, allPaths, options, fi, range(funDecl));
-			writeChar(writer, ')');
+			writeFunDeclLocation(writer, allPaths, options, fi, funDecl);
 		},
 		(ref immutable SpecSig specSig) {
 			writeStatic(writer, " (from spec ");
 			writeName(writer, specSig.specInst.name);
 			writeChar(writer, ')');
 		});
+}
+
+void writeFunDeclLocation(Alloc, PathAlloc)(
+	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
+	ref immutable ShowDiagOptions options,
+	immutable FilesInfo fi,
+	immutable Ptr!FunDecl funDecl,
+) {
+	writeStatic(writer, " (from ");
+	writeLineNumber(writer, allPaths, options, fi, range(funDecl));
+	writeChar(writer, ')');
 }
 
 void writeCalledDecls(Alloc, PathAlloc)(
@@ -654,9 +664,18 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			}();
 			writeStatic(writer, message);
 		},
+		(ref immutable Diag.SpecImplFoundMultiple d) {
+			writeStatic(writer, "multiple implementations found for spec signature ");
+			writeName(writer, d.sigName);
+			writeChar(writer, ':');
+			writeCalledDecls(writer, allPaths, options, fi, d.matches);
+		},
 		(ref immutable Diag.SpecImplHasSpecs d) {
-			writeStatic(writer, "spec implementation ");
-			writeName(writer, d.funName);
+			writeStatic(writer, "calling ");
+			writeName(writer, name(d.outerCalled));
+			writeStatic(writer, ", spec implementation for ");
+			writeName(writer, name(d.specImpl));
+			writeFunDeclLocation(writer, allPaths, options, fi, d.specImpl);
 			writeStatic(writer, " has specs itself; currently this is not allowed");
 		},
 		(ref immutable Diag.SpecImplNotFound d) {

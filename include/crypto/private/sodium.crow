@@ -1,0 +1,17 @@
+no-std
+import
+	...bool: or
+	...compare: ==
+	...exception: assert
+	...include.sodium: sodium-init
+	...misc: void
+	...ptr: ref-of-val
+	...private.runtime: get-global-ctx, print-lock
+	...private.thread-utils: with-lock
+
+ensure-sodium-initialized void() trusted
+	gctx = get-global-ctx
+	# TODO: rename 'print-lock'. We just want a generic global lock for rare uses.
+	gctx.print-lock.ref-of-val with-lock \
+		err = sodium-init
+		assert: err == 0 or err == 1

@@ -1,0 +1,40 @@
+no-std
+import
+	..number: nat, nat32
+	..posix.c-types: size-t, u-long-long
+	..posix.extra-types: err-t
+	..ptr: ptr
+	..str: char, c-str
+
+sodium-init err-t() noctx extern<"sodium_init", "sodium"> unsafe
+
+crypto-pwhash-strbytes nat() noctx extern<"crypto_pwhash_strbytes", "sodium">
+
+crypto-pwhash-opslimit-moderate nat() noctx extern<"crypto_pwhash_opslimit_moderate", "sodium">
+crypto-pwhash-opslimit-sensitive nat() noctx extern<"crypto_pwhash_opslimit_sensitive", "sodium">
+crypto-pwhash-memlimit-moderate nat() noctx extern<"crypto_pwhash_memlimit_moderate", "sodium">
+crypto-pwhash-memlimit-sensitive nat() noctx extern<"crypto_pwhash_memlimit_sensitive", "sodium">
+
+crypto-pwhash-str err-t
+	# Length should be crypto-pwhash-strbytes
+	output ptr char
+	passwd c-str
+	passwdlen u-long-long
+	opslimit u-long-long
+	memlimit size-t
+spec
+	noctx
+	extern<"crypto_pwhash_str", "sodium">
+	unsafe
+
+crypto-pwhash-str-verify err-t
+	# Length should be crypto-pwhash-strbytes
+	str ptr char
+	passwd c-str
+	passwdlen u-long-long
+spec
+	noctx
+	extern<"crypto_pwhash_str_verify", "sodium">
+	unsafe
+
+randombytes-random nat32() noctx extern<"randombytes_random", "sodium"> unsafe

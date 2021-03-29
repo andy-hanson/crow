@@ -1,0 +1,336 @@
+no-std
+import
+	..bits: bits-or
+	..bool: and, bool, false, not, or, true
+	..cell: cell, subscript
+	..col.arr: arr, begin-ptr, size
+	..col.mut-arr: copy-to-arr, mut-arr-from-begin-end
+	..compare: ==, !=
+	..exception: assert, do-if-error, finally, throw
+	..fun: subscript
+	..io.file: make-directory, path-exists?, remove-directory-and-contents-non-recursive
+	..io.posix-util: check-posix-error
+	..include.lmdb:
+		mdb-create, mdb-cursor, mdb-cursor-close, mdb-cursor-get, mdb-cursor-open, mdb-dbi,
+		mdb-dbi-close, mdb-dbi-open, mdb-env, mdb-env-close, mdb-env-create, mdb-env-open,
+		mdb-env-set-mapsize, mdb-env-set-maxdbs, mdb-first, mdb-get, mdb-get-current,
+		mdb-integerkey, mdb-keyexist, mdb-next, mdb-nooverwrite, mdb-notfound, mdb-put, mdb-rdonly,
+		mdb-stat, mdb-txn, mdb-txn-abort, mdb-txn-begin, mdb-txn-commit, mdb-val, ms-branch-pages,
+		ms-depth, ms-entries, ms-leaf-pages, ms-overflow-pages, ms-psize, mv-data, mv-size
+	..misc: as, data, void
+	..number: *, nat, nat8, nat32, nat64, to-nat
+	..opt: none, opt, some
+	..posix.c-types: u-int
+	..posix.extra-types: err-t
+	..ptr: +, null, ptr-cast-to-extern, zeroed
+	..serialize: from-bytes, serialize, to-4-bytes, to-8-bytes, to-bytes
+	..str: str
+	..str-conv: interp, finish, to-str, with-str, with-value
+	..str-util: to-c-str
+
+lmdb-env record mut
+	# TODO:PRIVATE
+	env mdb-env
+
+lmdb-db<?k, ?v> record mut
+	# TODO:PRIVATE
+	dbi mdb-dbi
+
+lmdb-txn record mut
+	# TODO:PRIVATE
+	txn mdb-txn
+
+lmdb-open-options record
+	create-if-not-exists? bool
+
+###
+Implemented for nat32, nat64 and str.
+Not recommended to implement this yourself.
+###
+lmdb-key<?k> spec
+	# NOTE: Parameter is a dummy, don't actually use it
+	lmdb-key-flags u-int(_ ?k)
+	# Don't use `serialize`, because lmdb expects integers to be fixed size
+	to-lmdb-key arr nat8(key ?k)
+	from-lmdb-key ?k(a arr nat8)
+
+lmdb-key-flags u-int(_ nat64)
+	mdb-integerkey
+lmdb-key-flags u-int(_ nat32)
+	mdb-integerkey
+lmdb-key-flags u-int(_ str)
+	0
+
+to-lmdb-key arr nat8(key nat64)
+	key to-8-bytes
+to-lmdb-key arr nat8(key nat32)
+	key to-4-bytes
+to-lmdb-key arr nat8(key str)
+	key to-bytes
+
+from-lmdb-key nat64(a arr nat8)
+	a from-bytes
+from-lmdb-key nat32(a arr nat8)
+	a from-bytes
+from-lmdb-key str(a arr nat8)
+	a from-bytes
+
+with-test-env ?a(f act ?a(lmdb-env)) trusted summon
+	test-path = "TEST-LMDB"
+	test-path make-directory
+	finally: {test-path remove-directory-and-contents-non-recursive}, \
+		test-path with-env true.lmdb-open-options, f
+
+with-env ?a(db-dir str, options lmdb-open-options, f act ?a(lmdb-env)) trusted summon
+	env = db-dir lmdb-open-env options
+	finally: {env lmdb-close-env}, {f[env]}
+
+# WARN: Should call 'close-env' when done
+lmdb-open-env lmdb-env(db-dir str, options lmdb-open-options) unsafe summon
+	env-cell = cell<mdb-env>: null ptr-cast-to-extern<mdb-env, nat8>
+	check-posix-error: env-cell mdb-env-create
+	env = env-cell[]
+	check-posix-error: env mdb-env-set-maxdbs 50
+	mapsize = 1024 * 1024 * 100000
+	check-posix-error: env mdb-env-set-mapsize mapsize
+
+	if options create-if-not-exists?
+		if db-dir.path-exists? not
+			db-dir make-directory
+
+	err = env mdb-env-open db-dir.to-c-str, 0, 0o666
+	if err != 0
+		env mdb-env-close
+		check-posix-error: err
+	lmdb-env: env
+
+lmdb-close-env void(env lmdb-env) unsafe summon
+	env.env mdb-env-close
+
+with-db ?a
+	env lmdb-env
+	db-name str
+	f act ?a(lmdb-db<?k, ?v>)
+spec
+	trusted
+	summon
+	lmdb-key<?k>
+	serialize<?v>
+body
+	db = env open-db<?k, ?v> db-name
+	finally: {env close-db db}, {f[db]}
+
+# WARN: Should call 'close-db' when done
+open-db lmdb-db<?k, ?v>(env lmdb-env, db-name str) unsafe summon lmdb-key<?k> serialize<?v>
+	parent-transaction = null ptr-cast-to-extern<mdb-txn, nat8>
+	transaction-cell = cell<mdb-txn>: null ptr-cast-to-extern<mdb-txn, nat8>
+	check-posix-error: env.env mdb-txn-begin parent-transaction, 0, transaction-cell
+	transaction = transaction-cell[]
+
+	dbi-cell = cell<mdb-dbi>: zeroed<mdb-dbi>
+	# TODO: Should be able to parse `zeroed<?k>.lmdb-key-flags`
+	flags = mdb-create bits-or (zeroed<?k> lmdb-key-flags)
+	check-posix-error: transaction mdb-dbi-open db-name.to-c-str, flags, dbi-cell
+
+	check-posix-error: transaction mdb-txn-commit
+	dbi-cell[] lmdb-db
+
+close-db void(env lmdb-env, db lmdb-db<?k, ?v>) unsafe summon
+	env.env mdb-dbi-close db.dbi
+
+transaction-result<?a> union
+	transaction-abort<?a>
+	transaction-commit<?a>
+
+transaction-abort<?a> record
+	value ?a
+transaction-commit<?a> record
+	value ?a
+
+each void(txn lmdb-txn, db lmdb-db<?k, ?v>, f act void(?k, ?v)) summon lmdb-key<?k> serialize<?v>
+	void fold txn, db, \ignore, key, value
+		f[key, value]
+
+fold ?a(acc ?a, txn lmdb-txn, db lmdb-db<?k, ?v>, f act ?a(?a, ?k, ?v)) trusted summon lmdb-key<?k> serialize<?v>
+	txn with-cursor db, \cursor
+		check-posix-error: cursor mdb-cursor-get empty-val, empty-val, mdb-first
+		acc fold-recur cursor, f
+.fold-recur ?a(acc ?a, cursor mdb-cursor, f act ?a(?a, ?k, ?v)) unsafe summon lmdb-key<?k> serialize<?v>
+	key = empty-val
+	value = empty-val
+	check-posix-error: cursor mdb-cursor-get key, value, mdb-get-current
+	new-acc = f[acc, key.bytes-of-val.from-lmdb-key, value.bytes-of-val.from-bytes]
+	err = cursor mdb-cursor-get empty-val, empty-val, mdb-next
+	if err == mdb-notfound
+		new-acc
+	else
+		check-posix-error: err
+		new-acc fold-recur cursor, f
+
+zip-each void
+	txn lmdb-txn
+	db0 lmdb-db<?k, ?v0>
+	db1 lmdb-db<?k, ?v1>
+	f act void(?k, ?v0, ?v1)
+spec
+	summon
+	data<?k>
+	lmdb-key<?k>
+	serialize<?v0>
+	serialize<?v1>
+body
+	void zip-fold txn, db0, db1, \ignore, key, value0, value1
+		f[key, value0, value1]
+
+zip-fold ?a
+	acc ?a
+	txn lmdb-txn
+	db0 lmdb-db<?k, ?v0>
+	db1 lmdb-db<?k, ?v1>
+	f act ?a(?a, ?k, ?v0, ?v1)
+spec
+	trusted
+	summon
+	data<?k>
+	lmdb-key<?k>
+	serialize<?v0>
+	serialize<?v1>
+body
+	txn with-cursor db0, \cursor0
+		txn with-cursor db1, \cursor1
+			check-posix-error: cursor0 mdb-cursor-get empty-val, empty-val, mdb-first
+			check-posix-error: cursor1 mdb-cursor-get empty-val, empty-val, mdb-first
+			acc zip-fold-recur cursor0, cursor1, f
+.zip-fold-recur ?a
+	acc ?a
+	cursor0 mdb-cursor
+	cursor1 mdb-cursor
+	f act ?a(?a, ?k, ?v0, ?v1)
+spec
+	unsafe
+	summon
+	data<?k>
+	lmdb-key<?k>
+	serialize<?v0>
+	serialize<?v1>
+body
+	key0-val = empty-val
+	value0-val = empty-val
+	check-posix-error: cursor0 mdb-cursor-get key0-val, value0-val, mdb-get-current
+	key0 = key0-val.bytes-of-val.from-lmdb-key as<?k>
+	value0 = value0-val.bytes-of-val.from-bytes as<?v0>
+	key1-val = empty-val
+	value1-val = empty-val
+	check-posix-error: cursor1 mdb-cursor-get key1-val, value1-val, mdb-get-current
+	key1 = key1-val.bytes-of-val.from-lmdb-key as<?k>
+	value1 = value1-val.bytes-of-val.from-bytes as<?v1>
+	assert: key0 == key1
+	new-acc = f[acc, key0, value0, value1]
+	err0 = cursor0 mdb-cursor-get empty-val, empty-val, mdb-next
+	err1 = cursor1 mdb-cursor-get empty-val, empty-val, mdb-next
+	if err0 == mdb-notfound or err1 == mdb-notfound
+		assert: err0 == mdb-notfound and err1 == mdb-notfound
+		new-acc
+	else
+		check-posix-error: err0
+		check-posix-error: err1
+		new-acc zip-fold-recur cursor0, cursor1, f
+
+.with-cursor ?a(txn lmdb-txn, db lmdb-db<?k, ?v>, f act ?a(mdb-cursor)) unsafe summon
+	cursor-cell = cell<mdb-cursor>: null ptr-cast-to-extern<mdb-cursor, nat8>
+	open-err = txn.txn mdb-cursor-open db.dbi, cursor-cell
+	cursor = cursor-cell[]
+	finally: {cursor mdb-cursor-close}, \
+		check-posix-error: open-err
+		f[cursor]
+
+get opt ?v(txn lmdb-txn, db lmdb-db<?k, ?v>, key ?k) trusted summon lmdb-key<?k> serialize<?v>
+	value = empty-val
+	err = txn.txn mdb-get db.dbi, key.to-lmdb-key.val-of-bytes, value
+	if err == mdb-notfound
+		none
+	else
+		err check-posix-error
+		# TODO:PERF For some ?v, the copy in 'bytes-of-val' is unnecessary.
+		value.bytes-of-val.from-bytes some
+
+###
+Fails if the key already exists.
+Use `set` to overwrite existing keys.
+###
+add void(txn lmdb-txn, db lmdb-db<?k, ?v>, key ?k, value ?v) summon lmdb-key<?k> serialize<?v>
+	if txn try-add db, key, value not
+		throw: "key already exists"
+
+try-add bool(txn lmdb-txn, db lmdb-db<?k, ?v>, key ?k, value ?v) summon lmdb-key<?k> serialize<?v>
+	err = txn put-inner db, key, value, mdb-nooverwrite
+	if err == mdb-keyexist
+		false
+	else
+		check-posix-error: err
+		true
+
+set void(txn lmdb-txn, db lmdb-db<?k, ?v>, key ?k, value ?v) summon lmdb-key<?k> serialize<?v>
+	check-posix-error: txn put-inner db, key, value, 0
+
+.put-inner err-t(txn lmdb-txn, db lmdb-db<?k, ?v>, key ?k, value ?v, flags u-int) trusted summon lmdb-key<?k> serialize<?v>
+	txn.txn mdb-put db.dbi, key.to-lmdb-key.val-of-bytes, value.to-bytes.val-of-bytes, flags
+
+lmdb-stat record
+	psize nat
+	depth nat
+	branch-pages nat
+	leaf-pages nat
+	overflow-pages nat
+	entries nat
+
+to-str str(a lmdb-stat)
+	# TODO: Use """ string
+	x = "	psize = {a psize}\n	depth = {a depth}\n	branch-pages = {a branch-pages}"
+	y = "	leaf-pages = {a leaf-pages}\n	overflow-pages = {a overflow-pages}"
+	z = "	entries = {a entries}"
+	"lmdb-stat:\n{x}\n{y}\n{z}"
+
+count nat(txn lmdb-txn, db lmdb-db<?k, ?v>) summon
+	txn stat db entries
+
+stat lmdb-stat(txn lmdb-txn, db lmdb-db<?k, ?v>) trusted summon
+	s = mdb-stat: 0, 0, 0, 0, 0, 0
+	check-posix-error: txn.txn mdb-stat db.dbi, s
+	psize = s.ms-psize to-nat
+	depth = s.ms-depth to-nat
+	lmdb-stat: psize, depth, s.ms-branch-pages, s.ms-leaf-pages, s.ms-overflow-pages, s.ms-entries
+
+with-read-transaction ?a(env lmdb-env, f act ?a(lmdb-txn)) trusted summon
+	env with-transaction mdb-rdonly, \txn
+		transaction-abort: f[txn]
+
+with-write-transaction ?a(env lmdb-env, f act ?a(lmdb-txn)) trusted summon
+	env with-abortable-write-transaction \txn
+		transaction-commit: f[txn]
+
+with-abortable-write-transaction ?a(env lmdb-env, f act transaction-result ?a(lmdb-txn)) trusted summon
+	env with-transaction 0, f
+
+.with-transaction ?a(env lmdb-env, flags u-int, f act transaction-result ?a(lmdb-txn)) unsafe summon
+	parent-transaction = null ptr-cast-to-extern<mdb-txn, nat8>
+	transaction-cell = cell<mdb-txn>: null ptr-cast-to-extern<mdb-txn, nat8>
+	check-posix-error: env.env mdb-txn-begin parent-transaction, flags, transaction-cell
+	transaction = transaction-cell[]
+	do-if-error: {transaction mdb-txn-abort}, \
+		match f[transaction lmdb-txn]
+		as transaction-abort a
+			transaction mdb-txn-abort
+			a value
+		as transaction-commit c
+			check-posix-error: transaction mdb-txn-commit
+			c value
+
+.empty-val mdb-val()
+	mdb-val: 0, null
+
+.val-of-bytes mdb-val(a arr nat8)
+	mdb-val: a.size, a.begin-ptr
+
+.bytes-of-val arr nat8(a mdb-val) unsafe
+	a.mv-data mut-arr-from-begin-end a.mv-data + a.mv-size copy-to-arr

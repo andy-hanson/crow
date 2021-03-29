@@ -35,7 +35,10 @@ immutable(bool) isAlphaIdentifierContinue(immutable char c) {
 }
 
 struct Sym {
+	@safe @nogc pure nothrow:
 	immutable ulong value;
+	@disable this();
+	immutable this(immutable ulong v) { value = v; }
 }
 
 struct AllSymbols(Alloc) {

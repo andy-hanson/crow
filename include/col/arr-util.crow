@@ -2,7 +2,7 @@ no-std
 import
 	..private.alloc: alloc-uninitialized, fill-ptr-range
 	..private.bootstrap: noctx-incr
-	..bool: and, bool, false, not, to-nat, true
+	..bool: and, bool, false, not, or, to-nat, true
 	..compare: ==, !=, <, <=, >=, max, min
 	..exception: assert, forbid
 	..fun: subscript
@@ -10,6 +10,7 @@ import
 	..number: +, -, nat
 	..opt: has?, none, opt, some, value
 	..ptr: +, -, deep-size-bytes, ptr, ptr-eq?, set-subscript, size-of, subscript
+	..test: is
 	.arr: ~, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, noctx-at, size, subscript
 
 alloc-count nat(a arr ?a) unsafe
@@ -96,6 +97,18 @@ filter-with-index arr ?a(a arr ?a, f act bool(?a, nat)) trusted
 		else
 			out
 		new-out filter-with-index-recur cur + 1, end, index + 1, f
+
+###
+Like 'filter', but keeps everything after the first time `f` returns true.
+###
+strip-left-while arr ?a(a arr ?a, f act bool(?a))
+	if a.empty? or f[a[0]].not
+		a
+	else
+		a.tail strip-left-while f
+test
+	[3, 2, 1] strip-left-while {it < 3} is [3, 2, 1]
+	[1, 3, 5, 3, 1] strip-left-while {it < 5} is [5, 3, 1]
 
 # TODO: move to iter-utiil since this works with any foldable
 count nat(a arr ?a, f act bool(?a))
@@ -464,3 +477,14 @@ with-max-size arr ?a(a arr ?a, max-size nat)
 		a
 	else
 		a[0 -> max-size]
+
+pad-left arr ?a(pad ?a, a arr ?a, min-size nat)
+	if a.size < min-size
+		diff = min-size - a.size
+		min-size make-arr \index
+			if index < diff
+				pad
+			else
+				a[index - diff]
+	else
+		a

@@ -1,0 +1,200 @@
+no-std
+import
+	..cell: cell
+	..misc: void
+	..posix.c-types: c-int, size-t, u-int
+	..posix.extra-types: err-t
+	..posix.types: mode-t
+	..ptr: any-ptr
+	..str: c-str
+
+mdb-env extern-ptr
+mdb-dbi record
+	# TODO:PRIVATE
+	value u-int
+
+mdb-val record mut
+	by-ref
+	mv-size mut size-t
+	mv-data mut any-ptr
+
+mdb-env-create err-t(env cell mdb-env) noctx extern<"mdb_env_create", "lmdb"> unsafe summon
+mdb-env-open err-t(env mdb-env, path c-str, flats c-int, mode mode-t) noctx extern<"mdb_env_open", "lmdb"> unsafe summon
+mdb-env-close void(env mdb-env) noctx extern<"mdb_env_close", "lmdb"> unsafe summon
+mdb-env-set-mapsize err-t(env mdb-env, size size-t) noctx extern<"mdb_env_set_mapsize", "lmdb"> unsafe summon
+mdb-env-set-maxdbs err-t(env mdb-env, dbs u-int) noctx extern<"mdb_env_set_maxdbs", "lmdb"> unsafe summon
+
+mdb-txn extern-ptr
+mdb-txn-begin err-t(env mdb-env, parent mdb-txn, flags u-int, txn cell mdb-txn) noctx extern<"mdb_txn_begin", "lmdb"> unsafe summon
+mdb-txn-abort void(txn mdb-txn) noctx extern<"mdb_txn_abort", "lmdb"> unsafe summon
+mdb-txn-commit err-t(txn mdb-txn) noctx extern<"mdb_txn_commit", "lmdb"> unsafe summon
+mdb-dbi-open err-t(txn mdb-txn, name c-str, flags u-int, dbi cell mdb-dbi) noctx extern<"mdb_dbi_open", "lmdb"> unsafe summon
+mdb-dbi-close void(env mdb-env, dbi mdb-dbi) noctx extern<"mdb_dbi_close", "lmdb"> unsafe summon
+
+mdb-get err-t(txn mdb-txn, dbi mdb-dbi, key mdb-val, data mdb-val) noctx extern<"mdb_get", "lmdb"> unsafe summon
+mdb-put err-t(txn mdb-txn, dbi mdb-dbi, key mdb-val, data mdb-val, flags u-int) noctx extern<"mdb_put", "lmdb"> unsafe summon
+
+mdb-stat record mut
+	by-ref
+	ms-psize mut u-int
+	ms-depth mut u-int
+	ms-branch-pages mut size-t
+	ms-leaf-pages mut size-t
+	ms-overflow-pages mut size-t
+	ms-entries mut size-t
+mdb-stat err-t(txn mdb-txn, dbi mdb-dbi, stat mdb-stat) noctx extern<"mdb_stat"> unsafe summon
+
+mdb-cursor extern-ptr
+mdb-cursor-open err-t(txn mdb-txn, dbi mdb-dbi, cursor cell mdb-cursor) noctx extern<"mdb_cursor_open", "lmdb"> unsafe summon
+mdb-cursor-close void(cursor mdb-cursor) noctx extern<"mdb_cursor_close", "lmdb"> unsafe summon
+mdb-cursor-get err-t(cursor mdb-cursor, key mdb-val, data mdb-val, op mdb-cursor-op) noctx extern<"mdb_cursor_get", "lmdb"> unsafe summon
+mdb-cursor-put err-t(cursor mdb-cursor, key mdb-val, data mdb-val, flags u-int) noctx extern<"mdb_cursor_put", "lmdb"> unsafe summon
+
+region mdb-cursor-op
+
+mdb-cursor-op alias
+	c-int
+
+mdb-first mdb-cursor-op()
+	0
+mdb-first-dup mdb-cursor-op()
+	1
+mdb-get-both mdb-cursor-op()
+	2
+mdb-get-both-range mdb-cursor-op()
+	3
+mdb-get-current mdb-cursor-op()
+	4
+mdb-get-multiple mdb-cursor-op()
+	5
+mdb-last mdb-cursor-op()
+	6
+mdb-last-dup mdb-cursor-op()
+	7
+mdb-next mdb-cursor-op()
+	8
+mdb-next-dup mdb-cursor-op()
+	9
+mdb-next-multiple mdb-cursor-op()
+	10
+mdb-next-nodup mdb-cursor-op()
+	11
+mdb-prev mdb-cursor-op()
+	12
+mdb-prev-dup mdb-cursor-op()
+	13
+mdb-prev-nodup mdb-cursor-op()
+	14
+mdb-set mdb-cursor-op()
+	15
+mdb-set-key mdb-cursor-op()
+	16
+mdb-set-range mdb-cursor-op()
+	17
+mdb-prev-multiple mdb-cursor-op()
+	18
+
+
+region environment flags
+
+mdb-fixedmap u-int()
+	0x01
+mdb-nosubdir u-int()
+	0x4000
+mdb-nosync u-int()
+	0x10000
+mdb-rdonly u-int()
+	0x20000
+mdb-nometasync u-int()
+	0x40000
+mdb-writemap u-int()
+	0x80000
+mdb-mapasync u-int()
+	0x100000
+mdb-notls u-int()
+	0x200000
+mdb-nolock u-int()
+	0x400000
+mdb-nordahead u-int()
+	0x800000
+mdb-nomeminit u-int()
+	0x1000000
+
+region database flags
+
+mdb-reversekey u-int()
+	0x02
+mdb-dupsort u-int()
+	0x04
+mdb-integerkey u-int()
+	0x08
+mdb-dupfixed u-int()
+	0x10
+mdb-integerdup u-int()
+	0x20
+mdb-reversedup u-int()
+	0x40
+mdb-create u-int()
+	0x40000
+
+region errors
+
+mdb-success err-t()
+	0
+mdb-keyexist err-t()
+	-30799
+mdb-notfound err-t()
+	-30798
+mdb-page-notfound err-t()
+	-30797
+mdb-corrupdated err-t()
+	-30796
+mdb-panic err-t()
+	-30795
+mdb-version-mismatch err-t()
+	-30794
+mdb-invalid err-t()
+	-30793
+mdb-map-full err-t()
+	-30792
+mdb-dbs-full err-t()
+	-30791
+mdb-readers-full err-t()
+	-30790
+mdb-tls-full err-t()
+	-30789
+mdb-txn-full err-t()
+	-30788
+mdb-cursor-full err-t()
+	-30787
+mdb-page-full err-t()
+	-30786
+mdb-map-resized err-t()
+	-30785
+mdb-incompatible err-t()
+	-30784
+mdb-bad-rslot err-t()
+	-30783
+mdb-bad-txn err-t()
+	-30782
+mdb-bad-valsize err-t()
+	-30781
+mdb-bad-dbi err-t()
+	-30780
+
+region write flags
+
+mdb-nooverwrite u-int()
+	0x10
+mdb-nodupdata u-int()
+	0x20
+mdb-current u-int()
+	0x40
+mdb-reserve u-int()
+	0x10000
+mdb-append u-int()
+	0x20000
+mdb-appenddup u-int()
+	0x40000
+mdb-multiple u-int()
+	0x80000

@@ -1,9 +1,11 @@
 no-std
 import
 	.bool: bool, false, not, true
-	.exception: fail
+	.exception: throw
 	.fun: subscript
 	.misc: void
+	.str: str
+	.tuple: pair
 export
 	.private.bootstrap: none, opt, some, value
 
@@ -60,11 +62,18 @@ or-default ?a(a opt ?a, default ?a)
 
 # Converts an option to a value by failing on `none`.
 force ?a(a opt ?a)
+	a force "tried to force empty option"
+
+force ?a(a opt ?a, message str)
 	match a
 	as none
-		fail: "tried to force empty option"
+		throw: message
 	as some s
 		s value
+
+opt-join opt pair<?in-0, ?in-1>(a opt ?in-0, b opt ?in-1)
+	a opt-join b, \x, y
+		pair: x, y
 
 ###
 Returns `some: f[a.force, b.force]` iff both `a` and `b` are `some`, else returns `none`.

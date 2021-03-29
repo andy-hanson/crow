@@ -27,7 +27,11 @@ pipes record mut
 
 environ ptr c-str() unsafe global<"environ"> noctx
 
-usleep void(micro-seconds nat) extern<"usleep"> noctx
+usleep void(micro-seconds nat) unsafe extern<"usleep"> noctx
 
 ssize-t alias
 	int64
+
+rmdir err-t(path c-str) unsafe extern<"rmdir"> noctx
+
+unlink err-t(path c-str) unsafe extern<"unlink"> noctx
