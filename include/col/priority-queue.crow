@@ -37,7 +37,7 @@ So node sizes might look like:
 	1 1 1 8 4 2 1
 
 A push operation just adds to the left.
-A pop operation will compact all the left nodes into a big node,
+Then right before a pop operation, we will compact all the left nodes into a big node,
 and also compact any nodes of the same size or less with it.
 (This applies recursively, so if the 3 1s were compacted,
 they would join with the `1` on the right to size 4, then with the `2` on the right to size 6,

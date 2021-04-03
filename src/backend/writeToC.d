@@ -977,18 +977,6 @@ void writeDeclareLocal(Alloc)(
 	writeLocalRef(writer, local);
 }
 
-immutable(char*) writeKindStr(ref immutable WriteKind a) {
-	final switch (a.kind) {
-		case WriteKind.Kind.inline: return "inline";
-		case WriteKind.Kind.inlineOrTemp: return "inlineOrTemp";
-		case WriteKind.Kind.local: return "local";
-		case WriteKind.Kind.makeTemp: return "makeTemp";
-		case WriteKind.Kind.return_: return "return";
-		case WriteKind.Kind.useTemp: return "useTemp";
-		case WriteKind.Kind.void_: return "void";
-	}
-}
-
 struct WriteKind {
 	@safe @nogc pure nothrow:
 

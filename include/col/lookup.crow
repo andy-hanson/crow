@@ -14,7 +14,8 @@ import
 	..str: char, str
 	..str-conv: to-str
 	..test: is
-	..private.bootstrap: todo, wrap-add, wrap-sub
+	..private.bootstrap: todo
+	..private.number-low-level: wrap-add, wrap-sub
 	.arr: ~, arr, empty?, size, subscript
 	.arr-util:
 		each, each-with-index, every?, find-index, fold, fold-with-index,

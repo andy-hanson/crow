@@ -19,4 +19,4 @@ module(
 			summon: true
 			unsafe: true
 			sig: sig(file-pos(68, 87), bar, void(), [])
-			body: call(fun-inst(name: fail, type-args: [void()]), [string-lit("FOO")]))])
+			body: call(fun-inst(name: throw, type-args: [void()]), [string-lit("FOO")]))])

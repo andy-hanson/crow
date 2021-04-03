@@ -12,6 +12,8 @@ import
 info record
 # Log level for warnings.
 warn record
+# Log level for errors.
+error record
 
 ###
 Log severity.
@@ -21,6 +23,7 @@ The default log handler just prints the level at the beginning of each log.
 log-level union
 	info
 	warn
+	error
 
 # Returns "info" or "warn".
 to-str str(a log-level)
@@ -29,6 +32,8 @@ to-str str(a log-level)
 		"info"
 	as warn
 		"warn"
+	as error
+		"error"
 
 # Represents a single log line.
 logged record

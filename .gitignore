@@ -1,14 +1,13 @@
 bin
-demo-wip/*
-demo-wip/*.c
-!demo-wip/*.*
 site/documentation/*
 site/documentation/**/*
 !site/documentation/index.pug
 site/example/*.c
 *.html
+!demo-wip/**/*.html
 dyncall
 crow-vscode/node_modules
 crow-vscode/client/node_modules
 crow-vscode/server/node_modules
 temp
+*.mdb

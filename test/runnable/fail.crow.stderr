@@ -1,6 +1,6 @@
 uncaught exception: FOO
 	at get-backtrace
-	at fail<void>
+	at throw<void>
 	at bar
 	at foo
 	at main

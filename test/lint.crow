@@ -27,9 +27,9 @@ lint result<str, arr failure>(path str, options test-options) summon
 	res move-to-arr!
 
 .excluded-from-lint? bool(name str)
-	bad-exts = [".bmp", ".err", ".html", ".png", ".repr", ".svg", ".ttf", ".wasm", ".xz"]
-	bad-names = ["documentation", "dyncall", "libfirm", "node_modules", "package-lock.json"]
-	name[0] == "." or: bad-names contains? name or: bad-exts exists? {name ends-with? it}
+	exclude-exts = [".bmp", ".err", ".html", ".mdb", ".png", ".repr", ".svg", ".ttf", ".wasm", ".xz"]
+	exclude-names = ["documentation", "dyncall", "libfirm", "node_modules", "package-lock.json"]
+	name[0] == "." or: exclude-names contains? name or: exclude-exts exists? {name ends-with? it}
 
 # Returns numner of errors
 .lint-file arr failure(path str) summon

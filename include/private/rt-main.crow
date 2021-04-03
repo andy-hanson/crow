@@ -19,11 +19,10 @@ import
 	..str-util: to-str
 	..sys.sysinfo: get-nprocs
 	.alloc
-	.bootstrap:
-		call-with-ctx, ctx, get-ctx, noctx-decr, noctx-incr,
-		state, thread-local-stuff, unsafe-to-int, unsafe-to-int32, unsafe-to-nat
+	.bootstrap: call-with-ctx, ctx, get-ctx, state, thread-local-stuff
 	.exception-low-level: exception-ctx
 	.log-low-level: log-ctx
+	.number-low-level: unsafe-to-int, unsafe-to-int32, unsafe-to-nat, wrap-add, wrap-sub
 	.perf-low-level: perf-ctx
 	.runtime:
 		any-unhandled-exceptions?, ctx, global-ctx, island, may-be-work-to-do, print-lock,
@@ -45,7 +44,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 
 	gctx.islands := arr: 1, island.ptr-to
 
-	main-fut = gctx add-main-task n-threads.noctx-decr, island, argc, argv, main-ptr
+	main-fut = gctx add-main-task (n-threads wrap-sub 1), island, argc, argv, main-ptr
 
 	n-threads run-threads gctx
 
@@ -116,7 +115,7 @@ body
 	threads = n-threads unmanaged-alloc-elements<pthread-t>
 	thread-args = n-threads unmanaged-alloc-elements<by-val<thread-args>>
 
-	actual-n-threads = n-threads noctx-decr
+	actual-n-threads = n-threads wrap-sub 1
 
 	start-threads-recur: 0, actual-n-threads, threads, thread-args, gctx
 	thread-function: actual-n-threads, gctx
@@ -141,7 +140,7 @@ body
 		thread-arg-ptr[] := thread-args: i, gctx
 		thread-ptr = threads + i
 		thread-ptr.as-cell create-one-thread thread-arg-ptr.as-any-ptr, &thread-fun
-		i.noctx-incr start-threads-recur n-threads, threads, thread-args-begin, gctx
+		i wrap-add 1 start-threads-recur n-threads, threads, thread-args-begin, gctx
 
 .thread-fun any-ptr(args-ptr any-ptr) noctx unsafe summon
 	args = args-ptr as-ref<thread-args>
@@ -151,4 +150,4 @@ body
 .join-threads-recur void(i nat, n-threads nat, threads ptr pthread-t) noctx unsafe summon
 	if i != n-threads
 		threads[i] join-one-thread
-		i.noctx-incr join-threads-recur n-threads, threads
+		i wrap-add 1 join-threads-recur n-threads, threads

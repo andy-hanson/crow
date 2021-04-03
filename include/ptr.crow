@@ -2,7 +2,8 @@ no-std
 import
 	.bool: bool, or
 	.compare: ==, comparison, less, equal, greater
-	.private.bootstrap: nat, unsafe-div, wrap-sub, void
+	.private.bootstrap: nat, void
+	.private.number-low-level: unsafe-div, wrap-sub
 export
 	.private.bootstrap: any-ptr, by-val, ptr, zeroed
 
@@ -20,6 +21,7 @@ null? bool(a ptr ?a) noctx trusted
 # Get the difference between two pointers, measured in strides of `?a`.
 # UB if `a < b` or if `size-of<?a> == 0`.
 - nat(a ptr ?a, b ptr ?a) noctx unsafe
+	# TODO: what if ?a is an empty type?
 	a.to-nat wrap-sub b.to-nat unsafe-div size-of<?a>
 
 ###

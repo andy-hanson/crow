@@ -1,0 +1,172 @@
+import
+	col.arr-util: each, index-of, split-by, split-by-subseq, try-split-once
+	col.dict: dict, subscript
+	col.mut-arr: fill-mut-arr, map-to-arr-with-index, set-subscript
+	col.mut-list: ~=, move-to-arr!, mut-list, pop!
+	io.file: read-file
+	io.net.http-server:
+		body, headers, http-bad-query, http-handler, http-not-found, http-request,
+		http-response, method, start-http-server, url
+	io.print: print
+	log: info, log
+	tuple: a, b
+	.db:
+		add-post!, close-real-db, content, cookie-expire-seconds, db, list-posts, list-users,
+		login!, post, post-info, new-user-id, open-real-db, parse-user-cookie, register-user!,
+		to-str, user, user-info, user-name
+
+main fut nat(args arr str) unsafe summon
+	if args.size != 1
+		print: "Usage: server PORT"
+		1 resolved
+	else
+		port = args[0]
+		db = open-real-db
+		handler = as<http-handler>: \req
+			req handle-request db resolved
+		server = port start-http-server handler
+		# TODO: do this after we've stopped the server
+		if false
+			db close-real-db
+		drop: server
+		0 resolved
+
+.handle-request http-response(req http-request, db db) summon
+	su = req.url split-url
+	path = su path
+	query = su query
+	match req method
+	as http-get
+		info log "GET {path}"
+		if path == "/"
+			http-response: 200, "OK", dict, read-file: "demo-wip/app/index.html"
+		elif path == "/index.js"
+			http-response: 200, "OK", dict, read-file: "demo-wip/app/index.js"
+		elif path == "/posts"
+			http-response: 200, "OK", dict, db.list-posts.format-posts-as-json
+		elif path == "/user-name"
+			user = (query parse-query ["user"])[0].parse-nat force
+			http-response: 200, "OK", dict, db user-name user
+		elif path == "/users"
+			http-response: 200, "OK", dict, db.list-users.format-users-as-json
+		else
+			http-not-found
+	as http-post
+		info log "POST {path}"
+		if path == "/register"
+			args = req.body parse-query ["user-name", "password"]
+			user-name = args[0]
+			password = args[1]
+			match db register-user! user-name, password
+			as register-user-success s
+				# We need to get: user-name and password
+				http-response: 200, "OK", dict, "\{\"userId\":{s new-user-id}}"
+			as user-already-exists
+				http-response: 400, "User already exists", dict, "User already exists"
+		elif path == "/login"
+			args = req.body parse-query ["user-name", "password"]
+			user-name = args[0]
+			password = args[1]
+			match db login! user-name, password
+			as ok o
+				cookie = o value
+				headers = dict: ["Set-Cookie" -> "login={cookie}; Max-Age={cookie-expire-seconds}"]
+				http-response: 200, "OK", headers, "Logged in as {user-name}"
+			as err e
+				match e value
+				as empty-name-or-password
+					"Invalid user or password" http-bad-query
+				as user-does-not-exist
+					"User does not exist" http-not-found
+		elif path == "/post"
+			match req.headers["Cookie"]
+			as none
+				http-response: 403, "No login cookie", dict, "No login cookie"
+			as some s
+				user-cookie = (s.value parse-cookies ["login"])[0].parse-user-cookie force
+				post = db add-post! user-cookie, req.body
+				http-response: 200, "OK", dict, "\{\"postId\":{post}}"
+		else
+			http-not-found
+	#descr = req describe-request
+	#http-response: 200, "OK", dict, "Your request:\n{descr}"
+
+url record
+	path str
+	query str
+
+split-url url(url-str str)
+	match url-str try-split-once "?"
+	as none
+		url: url-str, ""
+	as some s
+		url: s.value.a, s.value.b
+
+# Extra cookies are ignored
+parse-cookies arr str(s str, cookie-names arr str)
+	res = cookie-names.size fill-mut-arr<opt str> none
+	s split-by-subseq "; " each \part
+		match part try-split-once "="
+		as none
+			void
+		as some some-pair
+			key = some-pair.value a
+			value = some-pair.value b
+			match cookie-names index-of key
+			as none
+				void
+			as some some-index
+				res[some-index value] := value some
+	res map-to-arr-with-index \x, index
+		x or-throw {"Did not get cookie value for {cookie-names[index]}"}
+
+parse-query arr str(s str, arg-names arr str)
+	res = arg-names.size fill-mut-arr<opt str> none
+	s split-by "&" each \part
+		match part try-split-once "="
+		as none
+			throw: "Invalid part: {part}"
+		as some some-pair
+			key = some-pair.value a
+			value = some-pair.value b
+			match arg-names index-of key
+			as none
+				throw: "Unexpected key {key}"
+			as some some-index
+				res[some-index value] := value some
+	res map-to-arr-with-index \x, index
+		x or-throw {"Did not get argument for {arg-names[index]}"}
+
+.format-users-as-json str(users arr user-info)
+	res = mut-list<char>
+	res ~= "\{\"users\":["
+	users each \user
+		res ~= "\{\"user\":"
+		res ~= user.user to-str
+		res ~= ",\"userName\":\""
+		res ~= user.user-name
+		res ~= "\"},"
+	if users.empty? not
+		res.pop! drop
+	res ~= "]}"
+	res move-to-arr!
+
+.format-posts-as-json str(posts arr post-info)
+	res = mut-list<char>
+	res ~= "\{\"posts\":["
+	posts each \post
+		# TODO: module for proper json formatting
+		res ~= "\{\"post\":"
+		res ~= post.post to-str
+		res ~= ",\"user\":"
+		res ~= post.user to-str
+		res ~= ",\"userName\":\""
+		res ~= post user-name
+		res ~= "\",\"content\":\""
+		res ~= post content
+		res ~= "\"},"
+	if posts.empty? not
+		res.pop! drop
+	res ~= "]}"
+	res move-to-arr!
+

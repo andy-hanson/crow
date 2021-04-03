@@ -1,14 +1,17 @@
 no-std
 import
+	..bool: bool, not
 	..compare: ==
 	..fun: subscript
 	..posix.bytes-types: zero
 	..posix.setjmp: jmp-buf, jmp-buf-tag, longjmp, setjmp
 	..ptr: as-ref, by-val, null, null?, ptr-to
-	.backtrace: backtrace
+	.backtrace: backtrace, get-backtrace
 	.bootstrap:
-		arr, as, exception, exception-ctx-ptr, get-ctx, hard-assert, hard-forbid, hard-unreachable,
-		int32, str, thread-local-stuff
+		arr, as, err, exception-ctx-ptr, get-ctx, hard-assert, hard-forbid,
+		hard-unreachable, int32, ok, result, str, thread-local-stuff, void
+export
+	.bootstrap: exception, message
 
 exception-ctx record mut
 	jmp-buf-ptr mut jmp-buf
@@ -57,5 +60,33 @@ throw ?a(e exception) trusted
 	exn-ctx.jmp-buf-ptr longjmp number-to-throw
 	hard-unreachable
 
+# Create amd throw an exception with the given message.
+throw ?a(message str) trusted
+	throw: exception: message, get-backtrace
+
 .number-to-throw int32()
 	7
+
+# Fail if the condition is false.
+assert void(condition bool)
+	if condition not
+		"assert failed" throw
+
+# Fail if the condition is true.
+forbid void(condition bool)
+	if condition
+		"forbid failed" throw
+
+###
+Run `try` and return `ok` containing its return value,
+or `err` containing an exception if it threw one.
+###
+catch result<?a, exception>(try act ?a())
+	{try[] ok} catch {it err}
+
+###
+Run `try` and return what it returns, or return the result of `catcher` if `try` threw an exception.
+(An exception thrown by `catcher` will not be caught.)
+###
+catch ?a(try act ?a(), catcher act ?a(exception)) trusted
+	get-exception-ctx catch-with-exception-ctx try, catcher

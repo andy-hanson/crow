@@ -104,7 +104,7 @@ import util.memory : nu;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, symEq;
-import util.util : Empty, todo, verify;
+import util.util : Empty, verify;
 
 immutable(CheckedExpr) checkCall(Alloc)(
 	ref Alloc alloc,
@@ -174,15 +174,11 @@ immutable(CheckedExpr) checkCall(Alloc)(
 				finishArr(alloc, actualArgTypes),
 				allCandidates)));
 		} else
-			addDiag2(alloc, ctx, diagRange, immutable Diag(Diag.CallMultipleMatches(funName, candidatesForDiag(alloc, candidatesArr))));
+			addDiag2(alloc, ctx, diagRange, immutable Diag(
+				immutable Diag.CallMultipleMatches(funName, candidatesForDiag(alloc, candidatesArr))));
 		return bogus(expected, range);
 	} else
 		return checkCallAfterChoosingOverload(alloc, ctx, only_const(candidatesArr), range, force(args), expected);
-}
-
-immutable(CalledDecl[]) candidatesForDiag(Alloc)(ref Alloc alloc, ref const Candidate[] candidates) {
-	return map_const!CalledDecl(alloc, candidates, (ref const Candidate c) =>
-		c.called);
 }
 
 immutable(CheckedExpr) checkIdentifierCall(Alloc)(
@@ -279,6 +275,11 @@ void eachFunInScope(
 }
 
 private:
+
+immutable(CalledDecl[]) candidatesForDiag(Alloc)(ref Alloc alloc, ref const Candidate[] candidates) {
+	return map_const!CalledDecl(alloc, candidates, (ref const Candidate c) =>
+		c.called);
+}
 
 immutable(bool) candidateIsPreferred(ref const Candidate a) {
 	return matchCalledDecl!(immutable bool)(

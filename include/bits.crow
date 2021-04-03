@@ -4,8 +4,10 @@ import
 	.compare: ==, !=, <
 	.fun: subscript
 	.private.bootstrap:
-		int, int8, int16, int32, nat, nat8, nat16, nat32, nat64, to-int, to-nat, todo, unsafe-to-int,
-		unsafe-to-int32, unsafe-to-nat, unsafe-to-nat8, unsafe-to-nat16, unsafe-to-nat32, wrap-add
+		int, int8, int16, int32, nat, nat8, nat16, nat32, nat64, todo
+	.private.number-low-level:
+		to-int, to-nat, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, unsafe-to-nat8, unsafe-to-nat16,
+		unsafe-to-nat32, wrap-add
 
 ###
 Negates each bit in parallel.

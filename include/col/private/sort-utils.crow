@@ -8,7 +8,8 @@ import
 	...opt: none, opt, some, value
 	...ptr: +, -, null, null?, ptr, ptr-eq?, set-subscript, subscript
 	...test: is
-	...private.bootstrap: nat, unsafe-div, wrap-add
+	...private.bootstrap: nat
+	...private.number-low-level: unsafe-div, wrap-add
 	..arr: arr, begin-ptr, end-ptr
 	..mut-arr: begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end
 	..mut-list: arr, begin-ptr, empty?, empty!, end-ptr, mut-list, size, swap!, temp-as-mut-arr, unsafe-set-size!

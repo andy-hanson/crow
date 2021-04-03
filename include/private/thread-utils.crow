@@ -17,8 +17,9 @@ import
 	..posix.time: clock-monotonic
 	..ptr: any-ptr, by-val, null, null?, ptr, ptr-to, ref-of-val
 	.bootstrap:
-		as, atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat, noctx-decr, noctx-incr,
-		opt, todo, value, void, zeroed
+		as, atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat, opt, todo, value, void,
+		zeroed
+	.number-low-level: wrap-add, wrap-sub
 
 region atomic
 
@@ -59,7 +60,7 @@ acquire! void(a lock) noctx unsafe
 			todo
 		else
 			yield-thread
-			a acquire-recur! n-tries.noctx-incr
+			a acquire-recur!: n-tries wrap-add 1
 
 yield-thread void() noctx unsafe
 	err = pthread-yield
@@ -107,7 +108,7 @@ destroy-condition void(a condition) noctx unsafe
 broadcast! void(a condition) noctx trusted
 	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-lock
 	hard-assert-posix-error: a.cond.ref-of-val pthread-cond-broadcast
-	a.sequence := a.sequence noctx-incr
+	a.sequence := a.sequence wrap-add 1
 	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-unlock
 
 sequence-id alias
@@ -151,7 +152,7 @@ thread-safe-counter by-val thread-safe-counter(init nat) noctx
 get-and-increment! nat(t thread-safe-counter) noctx unsafe
 	t.lk.ref-of-val acquire!
 	old = t value
-	t.value := old noctx-incr
+	t.value := old wrap-add 1
 	t.lk.ref-of-val release!
 	old
 
@@ -160,7 +161,7 @@ get-and-decrement! nat(t thread-safe-counter) noctx unsafe
 	t.lk.ref-of-val acquire!
 	old = t value
 	hard-forbid: old == 0
-	t.value := old noctx-decr
+	t.value := old wrap-sub 1
 	t.lk.ref-of-val release!
 	old
 

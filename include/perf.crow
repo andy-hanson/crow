@@ -8,7 +8,8 @@ import
 	.misc: void
 	.ptr: as-ref
 	.str: str
-	.private.bootstrap: get-ctx, nat, perf-ctx-ptr, thread-local-stuff, wrap-add, wrap-sub
+	.private.bootstrap: get-ctx, nat, perf-ctx-ptr, thread-local-stuff
+	.private.number-low-level: wrap-add, wrap-sub
 	.private.perf-low-level:
 		measure-names, measure-values, ns, perf-ctx, perf-time, set-measure-names,
 		set-measure-values, total-ns

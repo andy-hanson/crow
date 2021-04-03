@@ -9,7 +9,8 @@ import
 	..opt: empty?, none, opt, some, value
 	..ptr: +, -, ptr-eq?, set-subscript
 	..str: str
-	..test: calls, fn, is, spy-act
+	..test: is
+	..test.spy: calls, fn, spy-act
 	.arr: arr
 	.arr-util: fold
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-mut-arr

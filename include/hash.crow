@@ -6,7 +6,8 @@ import
 	.number: nat
 	.ptr: by-val, ref-of-val
 	.str: str
-	.private.bootstrap: to-nat, wrap-add
+	.private.bootstrap: to-nat
+	.private.number-low-level: wrap-add
 
 hash nat(a ?a) trusted hash-mix<?a>
 	hasher = as<by-val hasher>: hasher: 0

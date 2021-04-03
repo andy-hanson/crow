@@ -7,12 +7,12 @@ import
 	..posix.stdlib: free, malloc
 	..posix.string: memcpy, memset
 	..ptr:
-		+, -, any-ptr, as-any-ptr, as-ref, by-val, null?, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, ptr-cast,
-		ref-of-val, set-subscript, size-of, subscript, to-nat
+		+, -, any-ptr, as-any-ptr, as-ref, by-val, null?, ptr, ptr-eq?, ptr-less?, ptr-less-eq?,
+		ptr-cast, ref-of-val, set-subscript, size-of, subscript, to-nat
 	.bootstrap:
-		as, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid,
-		lock, nat, nat8, nat64, noctx-incr, none, opt, some, todo,
-		unsafe-div, value, void, wrap-add, wrap-mul, wrap-sub
+		as, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, lock, nat, nat8, nat64, none, opt, some,
+		todo, value, void
+	.number-low-level: unsafe-div, wrap-add, wrap-mul, wrap-sub
 	.thread-utils: acquire!, lock-by-val, release!
 
 set-zero-range void(begin ptr ?a, size nat) noctx unsafe
@@ -114,8 +114,8 @@ words-used-in-range nat(acc nat, cur ptr bool, end ptr bool) noctx unsafe
 
 gc by-val gc() noctx unsafe
 	# TODO: handle malloc failure
-	# 2^24 words = 2^27 bytes = 256 MB
-	size-words = 0x1000000
+	# 3^25 words = 2^28 bytes = 512 MB
+	size-words = 0x2000000
 	mark = ptr-cast<bool, nat8>: malloc: size-words
 	mark-end = mark + size-words
 	data = ptr-cast<nat64, nat8>: malloc: size-words wrap-mul size-of<nat64>
@@ -130,7 +130,7 @@ gc by-val gc() noctx unsafe
 
 run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	hard-assert: gc needs-gc?
-	gc.gc-count := gc.gc-count noctx-incr
+	gc.gc-count := gc.gc-count wrap-add 1
 	gc.mark-begin.as-any-ptr memset 0, gc.size-words
 	mark-ctx = as<by-val<mark-ctx>>: mark-ctx: gc.size-words, gc.mark-begin, gc.data-begin
 	mark-ctx.ref-of-val mark-visit gc-root
@@ -290,4 +290,4 @@ fill-ptr-range void(begin ptr ?a, size nat, f act ?a(nat)) unsafe
 .fill-ptr-range-recur void(begin ptr ?a, i nat, size nat, f act ?a(nat)) unsafe
 	if i != size
 		begin[i] := f[i]
-		begin fill-ptr-range-recur i.noctx-incr, size, f
+		begin fill-ptr-range-recur (i wrap-add 1), size, f

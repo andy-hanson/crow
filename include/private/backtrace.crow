@@ -4,10 +4,8 @@ import
 	..ptr: +, any-ptr, ptr, ptr-less?, set-subscript, subscript
 	..sys.execinfo: backtrace
 	.alloc: try-alloc-uninitialized
-	.bootstrap:
-		arr, as, hard-assert, nat, to-int, noctx-decr, noctx-incr, none, opt,
-		some, str, unsafe-div, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, value,
-		void, wrap-sub
+	.bootstrap: arr, as, hard-assert, nat, none, opt, some, str, value, void
+	.number-low-level: to-int, unsafe-div, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, wrap-add, wrap-sub
 export
 	.bootstrap: backtrace, return-stack
 
@@ -78,7 +76,7 @@ body
 	if i != funs-count
 		fun-ptrs[i] := i.get-fun-ptr
 		fun-names[i] := i.get-fun-name
-		i.noctx-incr fill-fun-ptrs-names-recur fun-ptrs, fun-names
+		i wrap-add 1 fill-fun-ptrs-names-recur fun-ptrs, fun-names
 
 .get-fun-name str(code-ptr any-ptr, fun-ptrs ptr any-ptr, fun-names ptr str, size nat) unsafe noctx
 	# TODO: this will fail to give a name for the last function
@@ -87,14 +85,14 @@ body
 	elif code-ptr ptr-less? fun-ptrs[1]
 		fun-names[]
 	else
-		code-ptr get-fun-name fun-ptrs + 1, fun-names + 1, size.noctx-decr
+		code-ptr get-fun-name: fun-ptrs + 1, fun-names + 1, size wrap-sub 1
 
 .sort-together void(a ptr any-ptr, b ptr str, size nat) unsafe
 	if size > 1
 		swap: a, 0, size unsafe-div 2
 		swap: b, 0, size unsafe-div 2
-		after-pivot = a partition-recur-together b, a[], 1, size.noctx-decr
-		new-pivot-index = after-pivot noctx-decr
+		after-pivot = a partition-recur-together: b, a[], 1, size wrap-sub 1
+		new-pivot-index = after-pivot wrap-sub 1
 		a swap 0, new-pivot-index
 		b swap 0, new-pivot-index
 		
@@ -104,11 +102,11 @@ body
 .partition-recur-together nat(a ptr any-ptr, b ptr str, pivot any-ptr, l nat, r nat) unsafe
 	if l <= r
 		if a[l] ptr-less? pivot
-			a partition-recur-together b, pivot, l.noctx-incr, r
+			a partition-recur-together b, pivot, (l wrap-add 1), r
 		else
 			a swap l, r
 			b swap l, r
-			a partition-recur-together b, pivot, l, r.noctx-decr
+			a partition-recur-together: b, pivot, l, r wrap-sub 1
 	else
 		l
 

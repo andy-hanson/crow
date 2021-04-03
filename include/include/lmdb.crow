@@ -19,20 +19,73 @@ mdb-val record mut
 	mv-data mut any-ptr
 
 mdb-env-create err-t(env cell mdb-env) noctx extern<"mdb_env_create", "lmdb"> unsafe summon
-mdb-env-open err-t(env mdb-env, path c-str, flats c-int, mode mode-t) noctx extern<"mdb_env_open", "lmdb"> unsafe summon
+mdb-env-open err-t
+	env mdb-env
+	path c-str
+	flats c-int
+	mode mode-t
+spec
+	noctx
+	extern<"mdb_env_open", "lmdb">
+	unsafe
+	summon
 mdb-env-close void(env mdb-env) noctx extern<"mdb_env_close", "lmdb"> unsafe summon
 mdb-env-set-mapsize err-t(env mdb-env, size size-t) noctx extern<"mdb_env_set_mapsize", "lmdb"> unsafe summon
 mdb-env-set-maxdbs err-t(env mdb-env, dbs u-int) noctx extern<"mdb_env_set_maxdbs", "lmdb"> unsafe summon
 
 mdb-txn extern-ptr
-mdb-txn-begin err-t(env mdb-env, parent mdb-txn, flags u-int, txn cell mdb-txn) noctx extern<"mdb_txn_begin", "lmdb"> unsafe summon
+mdb-txn-begin err-t
+	env mdb-env
+	parent mdb-txn
+	flags u-int
+	txn cell mdb-txn
+spec
+	noctx
+	extern<"mdb_txn_begin", "lmdb">
+	unsafe
+	summon
 mdb-txn-abort void(txn mdb-txn) noctx extern<"mdb_txn_abort", "lmdb"> unsafe summon
 mdb-txn-commit err-t(txn mdb-txn) noctx extern<"mdb_txn_commit", "lmdb"> unsafe summon
-mdb-dbi-open err-t(txn mdb-txn, name c-str, flags u-int, dbi cell mdb-dbi) noctx extern<"mdb_dbi_open", "lmdb"> unsafe summon
-mdb-dbi-close void(env mdb-env, dbi mdb-dbi) noctx extern<"mdb_dbi_close", "lmdb"> unsafe summon
+mdb-dbi-open err-t
+	txn mdb-txn
+	name c-str
+	flags u-int
+	dbi cell mdb-dbi
+spec
+	noctx
+	extern<"mdb_dbi_open", "lmdb">
+	unsafe
+	summon
+mdb-dbi-close void
+	env mdb-env
+	dbi mdb-dbi
+spec
+	noctx
+	extern<"mdb_dbi_close", "lmdb">
+	unsafe
+	summon
 
-mdb-get err-t(txn mdb-txn, dbi mdb-dbi, key mdb-val, data mdb-val) noctx extern<"mdb_get", "lmdb"> unsafe summon
-mdb-put err-t(txn mdb-txn, dbi mdb-dbi, key mdb-val, data mdb-val, flags u-int) noctx extern<"mdb_put", "lmdb"> unsafe summon
+mdb-get err-t
+	txn mdb-txn
+	dbi mdb-dbi
+	key mdb-val
+	data mdb-val
+spec
+	noctx
+	extern<"mdb_get", "lmdb">
+	unsafe
+	summon
+mdb-put err-t
+	txn mdb-txn
+	dbi mdb-dbi
+	key mdb-val
+	data mdb-val
+	flags u-int
+spec
+	noctx
+	extern<"mdb_put", "lmdb">
+	unsafe
+	summon
 
 mdb-stat record mut
 	by-ref
@@ -45,10 +98,42 @@ mdb-stat record mut
 mdb-stat err-t(txn mdb-txn, dbi mdb-dbi, stat mdb-stat) noctx extern<"mdb_stat"> unsafe summon
 
 mdb-cursor extern-ptr
-mdb-cursor-open err-t(txn mdb-txn, dbi mdb-dbi, cursor cell mdb-cursor) noctx extern<"mdb_cursor_open", "lmdb"> unsafe summon
-mdb-cursor-close void(cursor mdb-cursor) noctx extern<"mdb_cursor_close", "lmdb"> unsafe summon
-mdb-cursor-get err-t(cursor mdb-cursor, key mdb-val, data mdb-val, op mdb-cursor-op) noctx extern<"mdb_cursor_get", "lmdb"> unsafe summon
-mdb-cursor-put err-t(cursor mdb-cursor, key mdb-val, data mdb-val, flags u-int) noctx extern<"mdb_cursor_put", "lmdb"> unsafe summon
+mdb-cursor-open err-t
+	txn mdb-txn
+	dbi mdb-dbi
+	cursor cell mdb-cursor
+spec
+	noctx
+	extern<"mdb_cursor_open", "lmdb">
+	unsafe
+	summon
+mdb-cursor-close void
+	cursor mdb-cursor
+spec
+	noctx
+	extern<"mdb_cursor_close", "lmdb">
+	unsafe
+	summon
+mdb-cursor-get err-t
+	cursor mdb-cursor
+	key mdb-val
+	data mdb-val
+	op mdb-cursor-op
+spec
+	noctx
+	extern<"mdb_cursor_get", "lmdb">
+	unsafe
+	summon
+mdb-cursor-put err-t
+	cursor mdb-cursor
+	key mdb-val
+	data mdb-val
+	flags u-int
+spec
+	noctx
+	extern<"mdb_cursor_put", "lmdb">
+	unsafe
+	summon
 
 region mdb-cursor-op
 

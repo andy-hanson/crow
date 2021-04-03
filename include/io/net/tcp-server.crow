@@ -8,7 +8,7 @@ import
 	...col.mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
 	...compare: ==, !=, <
 	...exception: assert, message
-	...fut: fut, handle-exceptions, then, fut-catch, resolved, subscript
+	...fut: fut, handle-exceptions, then-void, fut-catch, resolved, subscript
 	...misc: ->, as, drop, void
 	...number: int32, nat8, nat16, nat32, to-int, to-int32, to-nat, to-nat32
 	...opt: value
@@ -29,7 +29,7 @@ import
 	...sys.epoll:
 		data, epoll-create1, epoll-ctl, epoll-ctl-add, epollerr, epollet, epoll-event, epollhup,
 		epollin, epoll-wait, events
-	..duration: msec
+	..duration: seconds
 	..posix-util: check-posix-error
 	..print: print
 	..time: delay
@@ -122,8 +122,7 @@ close-client void(client-fd fd-t) unsafe summon
 			todo
 		elif num-events == 0
 			print: "no events (for now)"
-			ignore-me <- 500.msec delay
-			drop: ignore-me
+			<- 1.seconds delay
 			state tcp-server-loop
 		else
 			assert: num-events == 1

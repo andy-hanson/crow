@@ -2,14 +2,18 @@ no-std
 import
 	..bool: and, bool, not
 	..col.arr: ~, arr, size, subscript
+	..col.arr-util: try-split-once
 	..compare: ==, <
 	..exception: assert
 	..io.time: get-unix-time, seconds-since-epoch, unix-time
 	..log: info, log
 	..misc: ->
 	..number: -, nat, nat8, to-int
+	..opt: none, opt, opt-join, value
 	..serialize: from-bytes, to-8-bytes
-	..str-conv: interp, finish, to-str, with-str, with-value
+	..str: str
+	..str-conv: interp, finish, parse-int, parse-nat, to-str, with-str, with-value
+	..tuple: a, b
 	.random: random-nat64
 
 login-cookie record
@@ -34,3 +38,14 @@ to-bytes arr nat8(a login-cookie)
 from-bytes login-cookie(a arr nat8)
 	assert: a.size == 16
 	login-cookie: a[0 -> 8].from-bytes.unix-time, a[8 -> 16].from-bytes
+
+to-str str(a login-cookie)
+	"{a.timestamp seconds-since-epoch}|{a cookie}"
+
+parse-login-cookie opt login-cookie(a str)
+	match a try-split-once "|"
+	as none
+		none
+	as some s
+		s.value.a.parse-int opt-join s.value.b.parse-nat, \time, cookie
+			time.unix-time login-cookie cookie

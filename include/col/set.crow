@@ -9,13 +9,13 @@ import
 	..number: nat
 	..opt: force, none, opt, or-default, some, value
 	..perf: perf-measure, perf-now
-	..private.bootstrap: wrap-add, wrap-mul, wrap-sub
 	..ptr:
 		+, -, deep-size-bytes, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of,
 		subscript
 	..str: char, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..test: is
+	..private.number-low-level: wrap-add, wrap-mul, wrap-sub
 	.arr: arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, size, subscript
 	.arr-util: alloc-count, deep-size-bytes, each, tail
 	.index-set:

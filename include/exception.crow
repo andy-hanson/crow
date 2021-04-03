@@ -1,24 +1,18 @@
 no-std
 import
-	.bool: bool, not
+	.bool: ?, bool, not
+	.col.arr: empty?
+	.col.arr-util: each
+	.col.mut-list: ~=, move-to-arr!, mut-list
 	.fun: subscript
-	.private.backtrace: get-backtrace
-	.private.bootstrap: err, ok, result, str, void
-	.private.exception-low-level: catch-with-exception-ctx, get-exception-ctx
+	.misc: void
+	.str: char, str
+	.private.backtrace: return-stack
+	.private.bootstrap: backtrace
 export
-	.private.bootstrap: exception, message
-	.private.exception-low-level: throw
+	.private.exception-low-level: assert, catch, exception, forbid, message, throw
 
 region throwing
-
-# Create amd throw an exception with the given message.
-throw ?a(message str) trusted
-	throw: exception: message, get-backtrace
-
-# Fail if the condition is false.
-assert void(condition bool)
-	if condition not
-		"assert failed" throw
 
 ###
 Fail if the condition is false, providing a custom message.
@@ -35,10 +29,6 @@ The message is evaluated only if an exception will be thrown.
 assert void(condition bool, message fun str())
 	if condition not
 		message[] throw
-
-# Fail if the condition is true.
-forbid void(condition bool)
-	condition forbid "forbid failed"
 
 ###
 Fail if the condition is true, providing a custom message.
@@ -84,16 +74,10 @@ do-if-error ?a(on-error act void(), try act ?a())
 		on-error[]
 		err throw
 
-###
-Run `try` and return `ok` containing its return value,
-or `err` containing an exception if it threw one.
-###
-catch result<?a, exception>(try act ?a())
-	{try[] ok} catch {it err}
-
-###
-Run `try` and return what it returns, or return the result of `catcher` if `try` threw an exception.
-(An exception thrown by `catcher` will not be caught.)
-###
-catch ?a(try act ?a(), catcher act ?a(exception)) trusted
-	get-exception-ctx catch-with-exception-ctx try, catcher
+to-str str(a exception)
+	res = mut-list<char>
+	res ~= a.message.empty? ? "<<empty message>>", a.message
+	a.backtrace.return-stack each \x
+		res ~= "\n\tat "
+		res ~= x
+	res move-to-arr!

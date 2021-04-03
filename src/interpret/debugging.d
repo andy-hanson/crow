@@ -36,7 +36,6 @@ import util.opt : force, has;
 import util.ptr : Ptr;
 import util.writer : Writer, writeChar, writeNat, writeStatic, writeWithCommas;
 import util.sym : writeSym;
-import util.util : todo;
 
 void writeFunName(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram lowProgram, immutable LowFunIndex fun) {
 	writeFunName(writer, lowProgram, fullIndexDictGet(lowProgram.allFuns, fun));

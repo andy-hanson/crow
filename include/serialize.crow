@@ -9,7 +9,8 @@ import
 	.number: int64, max-int, nat8, nat32, nat64, to-int, to-nat, to-nat32
 	.str: str
 	.test: is
-	.private.bootstrap: todo, unsafe-to-nat8
+	.private.bootstrap: todo
+	.private.number-low-level: unsafe-to-nat8
 
 serialize<?a> spec
 	to-bytes arr nat8(a ?a)

@@ -7,7 +7,7 @@ duration record
 	# TODO:PRIVATE (public getter, private constructor)
 	nsec nat
 
-sec duration(a nat)
+seconds duration(a nat)
 	duration: a * 1000000000
 
 msec duration(a nat)

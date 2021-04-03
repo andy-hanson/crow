@@ -372,8 +372,10 @@ filter dict<?k, ?v>(a dict<?k, ?v>, f act bool(?k, ?v)) data<?k>
 		f[pair.from, pair.to]
 
 map dict<?k-out, ?v-out>(a dict<?k-in, ?v-in>, f act arrow<?k-out, ?v-out>(?k-in, ?v-in)) data<?k-in> data<?k-out>
-	dict: a.arr map \pair
-		f[pair.from, pair.to]
+	dict: a map-to-arr f
+
+map-to-arr arr<?out>(a dict<?k, ?v>, f act ?out(?k, ?v)) data<?k>
+	a.arr map {f[it.from, it.to]}
 
 map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k>
 	# No need to re-sort

@@ -1,11 +1,11 @@
 no-std
 import
 	.bool: bool, false, not, true
-	.exception: throw
 	.fun: subscript
 	.misc: void
 	.str: str
 	.tuple: pair
+	.private.exception-low-level: throw
 export
 	.private.bootstrap: none, opt, some, value
 
@@ -68,6 +68,14 @@ force ?a(a opt ?a, message str)
 	match a
 	as none
 		throw: message
+	as some s
+		s value
+
+# TODO: Should be called 'force' too, but that loses the expected type
+or-throw ?a(a opt ?a, get-message act str())
+	match a
+	as none
+		throw: get-message[]
 	as some s
 		s value
 

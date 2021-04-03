@@ -131,6 +131,8 @@ comparison union
 
 region bootstrap arithmetic
 
+# The compiler needs special access to these types to support number literals
+
 nat builtin
 nat8 builtin
 nat16 builtin
@@ -144,58 +146,6 @@ int32 builtin
 int64 alias
 	int
 float builtin
-
-unsafe-to-nat nat(a int) noctx builtin
-unsafe-to-nat8 nat8(a nat) noctx builtin
-unsafe-to-nat16 nat16(a nat) noctx builtin
-unsafe-to-nat32 nat32(a nat) noctx builtin
-
-# UB for positive numbers >= 2 ** 63
-unsafe-to-int int(a nat) noctx builtin
-unsafe-to-int8 int8(a int) noctx builtin
-unsafe-to-int16 int16(a int) noctx builtin
-unsafe-to-int32 int32(a int) noctx builtin
-
-to-nat nat(n nat8) noctx builtin
-to-nat nat(n nat16) noctx builtin
-to-nat nat(n nat32) noctx builtin
-
-to-int int(i int8) noctx builtin
-to-int int(i int16) noctx builtin
-to-int int(i int32) noctx builtin
-
-wrap-add nat(a nat, b nat) noctx builtin
-wrap-add nat8(a nat8, b nat8) noctx builtin
-wrap-add nat16(a nat16, b nat16) noctx builtin
-wrap-add nat32(a nat32, b nat32) noctx builtin
-wrap-add int(a int, b int) noctx builtin
-wrap-add int16(a int16, b int16) noctx builtin
-wrap-add int32(a int32, b int32) noctx builtin
-
-wrap-sub nat(a nat, b nat) noctx builtin
-wrap-sub nat8(a nat8, b nat8) noctx builtin
-wrap-sub nat16(a nat16, b nat16) noctx builtin
-wrap-sub nat32(a nat32, b nat32) noctx builtin
-wrap-sub int(a int, b int) noctx builtin
-wrap-sub int16(a int16, b int16) noctx builtin
-wrap-sub int32(a int32, b int32) noctx builtin
-
-wrap-mul int(a int, b int) noctx builtin
-wrap-mul int16(a int16, b int16) noctx builtin
-wrap-mul int32(a int32, b int32) noctx builtin
-wrap-mul nat(a nat, b nat) noctx builtin
-wrap-mul nat32(a nat32, b nat32) noctx builtin
-
-unsafe-div nat(a nat, b nat) noctx unsafe builtin
-unsafe-div int(a int, b int) noctx unsafe builtin
-
-noctx-incr nat(n nat) noctx unsafe
-	hard-forbid: n == 0xffffffffffffffff
-	n wrap-add 1
-
-noctx-decr nat(n nat) noctx unsafe
-	hard-forbid: n == 0
-	n wrap-sub 1
 
 region hard assertions
 

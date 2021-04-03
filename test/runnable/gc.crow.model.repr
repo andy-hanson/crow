@@ -6,8 +6,8 @@ module(
 			some(range(8, 128))
 			18
 			some([cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used]))
-		import(some(range(130, 145)), 36, some([print]))
-		import(some(range(147, 182)), 5, some([-, as-any-ptr, by-val, size-of]))]
+		import(some(range(130, 145)), 40, some([print]))
+		import(some(range(147, 182)), 6, some([-, as-any-ptr, by-val, size-of]))]
 	structs: [struct(range: file-range(68, range(761, 792)), public?: true, name: r)]
 	funs: [
 		fun(

@@ -1,16 +1,17 @@
 no-std
 import
 	..private.alloc: alloc-uninitialized, fill-ptr-range
-	..private.bootstrap: noctx-incr
+	..private.number-low-level: wrap-add
 	..bool: and, bool, false, not, or, to-nat, true
 	..compare: ==, !=, <, <=, >=, max, min
-	..exception: assert, forbid
 	..fun: subscript
 	..misc: ->, data, void
 	..number: +, -, nat
 	..opt: has?, none, opt, some, value
 	..ptr: +, -, deep-size-bytes, ptr, ptr-eq?, set-subscript, size-of, subscript
 	..test: is
+	..tuple: pair
+	..private.exception-low-level: assert, forbid
 	.arr: ~, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, noctx-at, size, subscript
 
 alloc-count nat(a arr ?a) unsafe
@@ -202,7 +203,10 @@ contains? bool(a arr ?a, value ?a) noctx data<?a>
 	elif (a noctx-at i) == value
 		true
 	else
-		a contains-recur? value, i.noctx-incr
+		a contains-recur?: value, i wrap-add 1
+test
+	[1, 2, 3] contains? 2 is true
+	[1, 3] contains? 2 is false
 
 try-remove opt arr ?a(a arr ?a, value ?a) data<?a>
 	a try-remove-recur 0, value
@@ -374,6 +378,19 @@ flatten arr ?a(a arr arr ?a, joiner arr ?a)
 		a[0]
 	else
 		a[0] ~ joiner ~: a.tail flatten joiner
+
+try-split-once opt pair<arr ?a, arr ?a>(a arr ?a, splitter ?a) data<?a>
+	match a index-of splitter
+	as none
+		none
+	as some s
+		index = s value
+		some: a[0 -> index] pair a[index + 1 -> a.size]
+
+# TODO: data<arr ?a> should be unnecessary
+split-by arr arr ?a(a arr ?a, splitter ?a) data<?a> data<arr ?a> trusted
+	# TODO:PERF
+	a split-by-subseq [splitter]
 
 # TODO: data<arr ?a> should be unnecessary
 ###

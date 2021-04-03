@@ -1,0 +1,247 @@
+import
+	col.arr-util: each, try-split-once
+	crypto.login-cookie:
+		cookie, cookie-matches?, from-bytes, generate-login-cookie, login-cookie,
+		parse-login-cookie, to-bytes, to-str
+	crypto.password: password-hash, password-matches?, quality-moderate
+	db.lmdb:
+		add, close-db, count, from-lmdb-key, get, lmdb-close-env, lmdb-db, lmdb-env,
+		lmdb-key-flags, lmdb-open-env, lmdb-open-options, lmdb-txn, map, open-db, set, to-lmdb-key,
+		transaction-abort, transaction-commit, try-add, with-abortable-write-transaction, with-env,
+		with-read-transaction, with-test-env, with-write-transaction, zip
+	io.print: print
+	log: info, log
+	serialize: from-bytes, to-bytes
+	tuple: a, b
+
+main fut nat(_ arr str) unsafe summon
+	print: "Hello, world!"
+	db-path with-env true.lmdb-open-options, \env
+		env with-db \db
+			if false
+				match db register-user! "alice", "swordfish"
+				as register-user-success s
+					print: "Success: user is {s new-user-id}"
+				as user-already-exists
+					print: "That user already exists"
+
+			cookie = match db login! "alice", "swordfish"
+			as ok o
+				o value
+			as err
+				throw: "TODO"
+			post = db add-post! cookie, "hello world"
+			pi = db get-post-info post
+			print: "{pi user-name} ({pi user}): {pi content}"
+
+			print: "users:"
+			db.list-users each \user
+				print: user.to-str
+			print: "posts:"
+			db.list-posts each \post
+				print: post.to-str
+	0 resolved
+
+user alias
+	nat
+
+user-info record
+	user user
+	user-name str
+
+to-str str(a user-info)
+	"user {a user}: {a user-name}"
+
+post alias
+	nat
+
+post-info record
+	post post
+	user user
+	user-name str
+	content str
+
+to-str str(a post-info)
+	"post {a post}: {a user-name} (user {a user}) says: {a content}"
+
+user-cookie record
+	user nat
+	inner login-cookie
+
+parse-user-cookie opt user-cookie(a str)
+	match a try-split-once "|"
+	as none
+		none
+	as some s
+		s.value.a.parse-nat opt-join s.value.b.parse-login-cookie, \user, inner
+			user user-cookie inner
+
+to-str str(a user-cookie)
+	"{a user}|{a inner}"
+
+db record mut
+	# TODO:PRIVATE
+	env lmdb-env
+	user-from-name lmdb-db<str, user>
+	user-name lmdb-db<user, str>
+	user-password-hash lmdb-db<user, arr nat8>
+	user-login-cookie lmdb-db<user, login-cookie>
+	post-user lmdb-db<post, user>
+	post-content lmdb-db<post, str>
+
+open-real-db db() unsafe summon
+	env = db-path lmdb-open-env true.lmdb-open-options
+	env db-open
+
+close-real-db void(db db) unsafe summon
+	db db-close
+	db.env lmdb-close-env
+
+.with-db ?a(env lmdb-env, f act ?a(db)) trusted summon
+	db = env db-open
+	finally: {db db-close}, {f[db]}
+
+.db-open db(env lmdb-env) unsafe summon
+	user-from-name = env open-db<str, user> "user-from-name"
+	user-name = env open-db<user, str> "user-name"
+	user-password-hash = env open-db<user, arr nat8> "user-password-hash"
+	user-login-cookie = env open-db<user, login-cookie> "user-login-cookie"
+	post-user = env open-db<post, user> "post-user"
+	post-content = env open-db<post, str> "post-content"
+	db: env, user-from-name, user-name, user-password-hash, user-login-cookie, post-user, post-content
+
+.db-close void(db db) unsafe summon
+	db.env close-db db.user-from-name
+	db.env close-db db.user-name
+	db.env close-db db.user-password-hash
+	db.env close-db db.post-user
+	db.env close-db db.post-content
+
+list-users arr user-info(db db) summon
+	db.env with-read-transaction \txn
+		txn map db.user-name, \user, name
+			user-info: user, name
+
+user-name str(db db, user user) summon
+	db.env with-read-transaction \txn
+		txn get db.user-name, user force
+
+list-posts arr post-info(db db) summon
+	db.env with-read-transaction \txn
+		txn zip db.post-user, db.post-content, \post, user, content
+			user-name = txn get db.user-name, user force
+			post-info: post, user, user-name, content
+
+register-user-result union
+	register-user-success
+	user-already-exists
+register-user-success record
+	new-user-id user
+user-already-exists record
+
+register-user! register-user-result(db db, user-name str, password str) summon
+	db.env with-abortable-write-transaction \txn
+		new-user-id = txn count db.user-from-name
+		user-count-check = txn count db.user-name
+		assert: new-user-id == user-count-check
+		if txn try-add db.user-from-name, user-name, new-user-id
+			txn add db.user-name, new-user-id, user-name
+			hash = password password-hash quality-moderate
+			txn add db.user-password-hash, new-user-id, hash
+			transaction-commit: register-user-success: new-user-id
+		else
+			transaction-abort: user-already-exists
+
+login-error union
+	empty-name-or-password
+	user-does-not-exist
+empty-name-or-password record
+user-does-not-exist record
+
+login! result<user-cookie, login-error>(db db, user-name str, password str) summon
+	if user-name.empty? or password.empty?
+		err: empty-name-or-password
+	else
+		db.env with-write-transaction \txn
+			match db get-user txn, user-name
+			as none
+				err: user-does-not-exist
+			as some s
+				user = s.value
+				hash = txn get db.user-password-hash, user force
+				if password password-matches? hash not
+					throw: "wrong password"
+				cookie = generate-login-cookie
+				txn set db.user-login-cookie, user, cookie
+				user user-cookie cookie ok
+
+.get-post-info post-info(db db, post post) summon
+	db.env with-read-transaction \txn
+		user = txn get db.post-user, post force
+		user-name = txn get db.user-name, user force
+		content = txn get db.post-content, post force
+		post-info: post, user, user-name, content
+
+add-post! post(db db, cookie user-cookie, content str) summon
+	db.env with-write-transaction \txn
+		user = db authenticate txn, cookie
+		post = txn count db.post-user
+		txn add db.post-user, post, user
+		txn add db.post-content, post, content
+		post
+
+.get-user opt user(db db, txn lmdb-txn, user-name str) summon
+	txn get db.user-from-name, user-name
+
+.authenticate user(db db, txn lmdb-txn, cookie user-cookie) summon
+	if db authenticate? txn, cookie
+		cookie user
+	else
+		"Login cookie invalid (may have expired)" throw
+
+.authenticate? bool(db db, txn lmdb-txn, cookie user-cookie) summon
+	match txn get db.user-login-cookie, cookie.user
+	as none
+		false
+	as some s
+		s.value cookie-matches? cookie.inner.cookie, cookie-expire-seconds
+
+.db-path str()
+	"demo-wip/app/db"
+
+cookie-expire-seconds nat()
+	5 * 60
+
+test
+	info log "GONNA TEST"
+	with-test-env: \env
+		env with-db \db
+			# TODO: way more tests
+
+			info log "A"
+			db register-user! "alice", "swordfish" is register-user-success: 0
+			info log "B"
+			db register-user! "bob", "gunfish" is register-user-success: 1
+			# TODO: test failed register
+
+			# TODO: test failed login
+			info log "C"
+			alice-login = match db login! "alice", "swordfish"
+			as ok o
+				o value
+			as err
+				"TODO" throw
+			info log "D"
+			post = db add-post! alice-login, "Curiouser and curiouser!"
+
+			info log "E"
+			post-info = db get-post-info post
+			info log "F"
+			post-info.user is 0
+			info log "G"
+			post-info.user-name is "alice"
+			info log "H"
+			post-info.content is "Curiouser and curiouser!"
+
+	"a" is "a"
+	info log "YAY, DID TEST"

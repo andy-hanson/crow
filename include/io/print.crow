@@ -1,6 +1,7 @@
 no-std
 import
-	..private.bootstrap: hard-assert, unsafe-to-int, todo
+	..private.bootstrap: hard-assert, todo
+	..private.number-low-level: unsafe-to-int
 	..col.arr: begin-ptr, size
 	..compare: ==, !=
 	..misc: void

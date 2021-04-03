@@ -1,10 +1,10 @@
 no-std
 import
 	.compare: ==
-	.exception: assert, catch, message, throw
 	.misc: data, void
 	# TODO: import from .result instead
 	.private.bootstrap: value
+	.private.exception-low-level: assert, catch, message, throw
 	.str: str
 
 is void(a ?a, b ?a) data<?a>

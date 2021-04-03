@@ -2,16 +2,16 @@ no-std
 import
 	.bool: ?, and, bool, not, or
 	.compare: ==, <, <=, >=
-	.exception: assert, forbid
 	.fun: subscript
 	.misc: ->, arrow, from, to, void
-	.private.bootstrap:
-		unsafe-div, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, unsafe-to-nat32, wrap-add,
-		wrap-mul, wrap-sub
+	.private.number-low-level:
+		unsafe-div, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, unsafe-to-nat32, unsafe-mod,
+		wrap-add, wrap-mul, wrap-sub
 	.ptr: size-of
+	.private.exception-low-level: assert, forbid
 export
-	.private.bootstrap: float, int, int8, int16, int32, int64, nat, nat8, nat16, nat32, nat64, to-int, to-nat
-	.private.number-low-level: unsafe-mod
+	.private.bootstrap: float, int, int8, int16, int32, int64, nat, nat8, nat16, nat32, nat64
+	.private.number-low-level: to-int, to-nat
 
 deep-size-bytes nat(a nat) unsafe
 	a size-of
@@ -145,6 +145,9 @@ to-nat32 nat32(a nat)
 abs nat(i int)
 	i-abs = i < 0 ? i * -1, i
 	i-abs to-nat
+
+
+region float
 
 # Add two floats. Never fails.
 + float(a float, b float) noctx builtin

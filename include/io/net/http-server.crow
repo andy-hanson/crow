@@ -8,8 +8,9 @@ import
 	...col.mut-dict: move-to-dict!, mut-dict, remove-key!, set-subscript, subscript
 	...col.mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
 	...compare: ==, !=, <=, >=
-	...exception: assert, forbid
-	...fut: fut, resolved, subscript, then
+	...exception: assert, forbid, to-str
+	...fut: fut, fut-catch, resolved, subscript, then
+	...log: error, info, log
 	...misc: as, drop, void
 	...number: +, nat, nat8, to-int
 	...opt: none, opt, some, value
@@ -17,7 +18,7 @@ import
 	...posix.unistd: write
 	...ptr: ptr-cast
 	...str: char, str
-	...str-conv: parse-nat, to-str
+	...str-conv: interp, finish, parse-nat, to-str, with-str, with-value
 	...str-util: as-str
 	..print: print
 	.tcp-server: close-client, start-tcp-server, stop, tcp-handler
@@ -40,6 +41,15 @@ http-response record
 	headers dict<str, str>
 	body str
 
+http-bad-query http-response(message str)
+	http-response: 400, message, dict, message
+
+http-not-found http-response()
+	"Not found" http-not-found
+
+http-not-found http-response(message str)
+	http-response: 404, message, dict, message
+
 # A function that can respond to HTTP requests.
 http-handler alias
 	ref http-response(http-request)
@@ -53,6 +63,13 @@ http-post record
 http-method union
 	http-get
 	http-post
+
+to-str str(a http-method)
+	match a
+	as http-get
+		"GET"
+	as http-post
+		"POST"
 
 ###
 Starts running an HTTP server on the given port.
@@ -85,6 +102,8 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 
 # Returns true when closed client
 .handle-chunk fut bool(fd fd-t, state http-parse-state, chunk str, handler http-handler) summon trusted
+	info log "HANDLE CHUNK:"
+	info log chunk
 	state.unparsed ~= chunk
 	finished-request? = if state.content-length != 0
 		assert: state.unparsed.size <= state.content-length
@@ -93,8 +112,15 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		state handle-http-initial
 
 	if finished-request?
-		res <- handler[state finish-request]
-		res-str = res response-to-str
+		info log "WILL CALL HANDLER"
+		handler-response <- handler[state finish-request] fut-catch
+		response = match handler-response
+		as ok o
+			o value
+		as err e
+			error log e.value.to-str
+			http-response: 500, "Internal server error", dict, "Internal server error"
+		res-str = response response-to-str
 		wrote = fd write res-str.begin-ptr.ptr-cast<nat8, char>, res-str.size
 		assert: wrote == res-str.size.to-int
 		fd close-client
@@ -112,6 +138,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	res ~= a.status to-str
 	res ~= " "
 	forbid: a.status-desc contains? "\n"
+	res ~= "\r\n"
 	res ~= a status-desc
 	# TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
 	a.headers each \k, v
@@ -123,6 +150,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		res ~= v
 	forbid: a.headers has-key? "Content-Length"
 	if a.body has?
+		res ~= "\r\n"
 		res ~= "Content-Length: "
 		res ~= a.body.size to-str
 	res ~= "\r\n\r\n"
@@ -132,13 +160,14 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 #ok-response str() noctx
 #	"HTTP/1.1 200 OK Feelin' Fine\nShoop: Da Woop\n\nHello, internet world!\n"
 
-# returns true if ready to clal handler
+# returns true if ready to call handler
 .handle-http-initial bool(state http-parse-state)
 	match state.unparsed try-take-first-line
 	as none
 		false
 	as some s
 		line = s value
+		info log "LINE IS {line}"
 		if line empty?
 			match state.headers["content-length"]
 			as none
@@ -160,7 +189,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 			state.url := parts[1]
 			assert: parts[2] == "HTTP/1.1"
 			forbid: state.url empty?
-			false
+			state handle-http-initial
 		else
 			parts = line split-by-subseq ": "
 			assert: parts.size == 2

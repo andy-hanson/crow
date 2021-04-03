@@ -3,7 +3,7 @@ import
 	..private.alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
 	..bool: bool, not
 	..compare: ==, <, <=
-	..exception: assert
+	..private.exception-low-level: assert
 	..fun: subscript
 	..misc: ->, arrow, data, from, to, void
 	..number: -, *, nat
@@ -231,3 +231,13 @@ map! void(a mut-arr ?a, f act ?a(?a)) trusted
 map mut-arr ?out(a mut-arr ?in, f act ?out(?in)) trusted
 	a.size make-mut-arr \i
 		f[a[i]]
+
+map-with-index mut-arr ?out(a mut-arr ?in, f act ?out(?in, nat)) trusted
+	a.size make-mut-arr \i
+		f[a[i], i]
+
+map-to-arr arr ?out(a mut-arr ?in, f act ?out(?in)) trusted
+	a map f cast-immutable
+
+map-to-arr-with-index arr ?out(a mut-arr ?in, f act ?out(?in, nat)) trusted
+	a map-with-index f cast-immutable

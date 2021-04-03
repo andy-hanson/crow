@@ -28,10 +28,17 @@ col/tree-set
 col/unordered-set-2
 col/unordered-set
 compare
+crypto/login-cookie
+crypto/password
+crypto/private/sodium
+crypto/random
+db/lmdb
 exception
 fun
 fut
 hash
+include/lmdb
+include/sodium
 io/duration
 io/environ
 io/file
@@ -94,6 +101,7 @@ private/task-queue
 private/thread-utils
 ptr
 result
+serialize
 std
 str-conv
 str-util
@@ -101,5 +109,6 @@ str
 sys/epoll
 sys/execinfo
 sys/sysinfo
+test/spy
 test
 tuple

@@ -1,73 +1,26 @@
 import
-	col.dict: dict
-	col.mut-set: ~=, mut-set, remove!, subscript
-	io.net.http-server: http-handler, http-response, start-http-server
-	io.net.tcp-server: close-client, start-tcp-server, stop, tcp-handler
+	col.arr-util: flatten
+	col.dict: dict, map-to-arr
+	io.net.http-server:
+		body, headers, http-handler, http-request, http-response, method, start-http-server,
+		to-str, url
 	io.print: print
-	io.time: delay, msec
-	posix.errno: errno
-	posix.extra-types: fd-t
-	posix.stdio: perror
-	posix.unistd: write
-	ptr: ptr-cast, size-of
-	str-util: as-str
-	sys.epoll: epoll-event
 
 main fut nat(args arr str) unsafe summon
-	assert: size-of<epoll-event> == 12
 	if args.size != 1
 		print: "Usage: server PORT"
 		1 resolved
 	else
 		port = args[0]
-		if false
-			print: "RUNNING OLD MAIN"
-			port old-main
-		else
-			port new-main
+		handler = as<http-handler>: \req
+			descr = req describe-request
+			print: descr
+			resolved: http-response: 200, "OK", dict, "Your request:\n{descr}"
+		server = port start-http-server handler
+		drop: server
+		0 resolved
 
-new-main fut nat(port str) unsafe summon
-	handler = as<http-handler>: \req
-		drop: req
-		resolved: http-response: 200, "OK", dict, "Hello, internet world!"
-	server = port start-http-server handler
-	drop: server
-	0 resolved
-
-old-main fut nat(port str) unsafe summon
-	clients = mut-set<fd-t>
-
-	on-accepted-client = as<ref void(fd-t)>: \fd
-		clients ~= fd
-		void resolved
-	on-received-chunk = as<ref void(fd-t, arr nat8)>: \client-fd, chunk
-		print: "CHUNK: {chunk as-str}"
-		if clients[client-fd]
-			print: "got chunk ({chunk size} bytes) on {client-fd}"
-			# TODO: this actually does not belong here..
-			response = ok-response
-			wrote = client-fd write response.begin-ptr.ptr-cast<nat8, char>, response.size
-			if wrote == -1
-				print: "ERRNO IS: {errno}"
-				perror: "WRITE ERR\0".begin-ptr
-
-			print: "WROTE: {wrote} bytes to {client-fd}"
-			print: "Response size: {response size}"
-			assert: wrote == response.size.to-int
-			client-fd close-client
-			print: "Closed client on {client-fd}"
-			clients remove! client-fd drop
-		else
-			print: "ignoring chunk from closed client {client-fd}"
-		void resolved
-	server = port start-tcp-server tcp-handler: on-accepted-client, on-received-chunk
-
-	print: "will stop after 10 seconds"
-	<- 10000.msec delay
-	print: "stopping..."
-	<- server.stop[]
-	print: "done"
-	0 resolved
-
-ok-response str() noctx
-	"HTTP/1.1 200 OK Feelin' Fine\nShoop: Da Woop\n\nHello, internet world!\n"
+.describe-request str(a http-request)
+	h = a.headers map-to-arr \k, v
+		"{k}: {v}"
+	"{a method} {a url}\n{h flatten "\n"}\n\n{a body}"

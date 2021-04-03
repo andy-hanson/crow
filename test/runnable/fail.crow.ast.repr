@@ -28,4 +28,4 @@ file-ast(
 			sig: sig-ast(range(87, 97), bar, inststruct(range(91, 95), name-range(91, void)), [])
 			summon: true
 			unsafe: true
-			body: call(prefix, name-range(113, fail), [], [literal("FOO")]))])
+			body: call(prefix, name-range(113, throw), [], [literal("FOO")]))])

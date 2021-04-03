@@ -2,12 +2,12 @@ no-std
 import
 	..bool: bool, not
 	..compare: ==, <, <=
-	..exception: assert
 	..misc: arrow, from, to
 	..number: +, -, nat
 	..ptr: +, -, by-val, ptr, ptr-cast, ptr-less-eq?, ref-of-ptr, size-of, subscript
 	..private.alloc: alloc-uninitialized, copy-data-from
 	..private.bootstrap: hard-assert
+	..private.exception-low-level: assert
 export
 	..private.bootstrap: arr, begin-ptr, size
 

@@ -10,7 +10,8 @@ import
 	..number: nat
 	..opt: none, opt, some, value
 	..ptr: by-val, ref-of-val
-	.bootstrap: exclusion, hard-assert, wrap-add
+	.bootstrap: exclusion, hard-assert
+	.number-low-level: wrap-add
 
 # TODO: use a heap, not a list
 
