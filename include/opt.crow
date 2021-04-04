@@ -1,13 +1,36 @@
 no-std
 import
 	.bool: bool, false, not, true
+	.col.arr: ==
+	.compare: equal
 	.fun: subscript
 	.misc: void
 	.str: str
 	.tuple: pair
 	.private.exception-low-level: throw
+	.private.number-low-level: ==, int, nat
 export
 	.private.bootstrap: none, opt, some, value
+
+== bool(a opt int, b opt int)
+	a opt-equal? b
+== bool(a opt nat, b opt nat)
+	a opt-equal? b
+== bool(a opt str, b opt str)
+	a opt-equal? b
+
+# TODO:GENERIC
+opt-equal? bool(a opt ?a, b opt ?a) equal<?a> noctx
+	match a
+	as none
+		b.has? not
+	as some sa
+		match b
+		as none
+			false
+		as some sb
+			sa.value == sb.value
+
 
 # True iff a is `none`.
 empty? bool(a opt ?a) noctx

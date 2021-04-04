@@ -9,7 +9,6 @@ import
 	..fut: delay, fut, handle-exceptions, then-void
 	..io.process: exit-code
 	..misc: as, void
-	..number: int32, nat, to-int
 	..opt: value
 	..posix.pthread: pthread-t
 	..ptr:
@@ -22,7 +21,8 @@ import
 	.bootstrap: call-with-ctx, ctx, get-ctx, state, thread-local-stuff
 	.exception-low-level: exception-ctx
 	.log-low-level: log-ctx
-	.number-low-level: unsafe-to-int, unsafe-to-int32, unsafe-to-nat, wrap-add, wrap-sub
+	.number-low-level:
+		==, int32, nat, to-int, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, wrap-add, wrap-sub
 	.perf-low-level: perf-ctx
 	.runtime:
 		any-unhandled-exceptions?, ctx, global-ctx, island, may-be-work-to-do, print-lock,

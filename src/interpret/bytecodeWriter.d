@@ -578,6 +578,7 @@ void writeFn(Debug, Alloc)(
 			case FnOp.bitwiseAnd:
 			case FnOp.bitwiseOr:
 			case FnOp.eqBits:
+			case FnOp.eqFloat64:
 			case FnOp.lessFloat64:
 			case FnOp.lessInt8:
 			case FnOp.lessInt16:

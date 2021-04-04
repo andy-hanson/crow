@@ -153,6 +153,18 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failBinary());
 		case operatorSymValue(Operator.times):
 			return binary(isFloat64(rt) ? LowExprKind.SpecialBinary.Kind.mulFloat64 : failBinary());
+		case operatorSymValue(Operator.equal):
+			return binary(
+				isNat8(p0) ? LowExprKind.SpecialBinary.Kind.eqNat8 :
+				isNat16(p0) ? LowExprKind.SpecialBinary.Kind.eqNat16 :
+				isNat32(p0) ? LowExprKind.SpecialBinary.Kind.eqNat32 :
+				isNat64(p0) ? LowExprKind.SpecialBinary.Kind.eqNat64 :
+				isInt8(p0) ? LowExprKind.SpecialBinary.Kind.eqInt8 :
+				isInt16(p0) ? LowExprKind.SpecialBinary.Kind.eqInt16 :
+				isInt32(p0) ? LowExprKind.SpecialBinary.Kind.eqInt32 :
+				isInt64(p0) ? LowExprKind.SpecialBinary.Kind.eqInt64 :
+				isFloat64(p0) ? LowExprKind.SpecialBinary.Kind.eqFloat64 :
+				failBinary());
 		case shortSymAlphaLiteralValue("?"):
 			return trinary(LowExprKind.SpecialTrinary.Kind.if_);
 		case shortSymAlphaLiteralValue("as-any-ptr"):
@@ -211,6 +223,18 @@ immutable(BuiltinKind) getBuiltinKind(
 			return constantBool(false);
 		case shortSymAlphaLiteralValue("get-ctx"):
 			return immutable BuiltinKind(immutable BuiltinKind.GetCtx());
+		case shortSymAlphaLiteralValue("less?"):
+			return binary(
+				isInt8(p0) ? LowExprKind.SpecialBinary.Kind.lessInt8 :
+				isInt16(p0) ? LowExprKind.SpecialBinary.Kind.lessInt16 :
+				isInt32(p0) ? LowExprKind.SpecialBinary.Kind.lessInt32 :
+				isInt64(p0) ? LowExprKind.SpecialBinary.Kind.lessInt64 :
+				isNat8(p0) ? LowExprKind.SpecialBinary.Kind.lessNat8 :
+				isNat16(p0) ? LowExprKind.SpecialBinary.Kind.lessNat16 :
+				isNat32(p0) ? LowExprKind.SpecialBinary.Kind.lessNat32 :
+				isNat64(p0) ? LowExprKind.SpecialBinary.Kind.lessNat64 :
+				isFloat64(p0) ? LowExprKind.SpecialBinary.Kind.lessFloat64 :
+				failBinary());
 		case shortSymAlphaLiteralValue("nan?"):
 			return unary(LowExprKind.SpecialUnary.Kind.isNan);
 		case shortSymAlphaLiteralValue("null"):

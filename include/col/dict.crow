@@ -1,17 +1,17 @@
 no-std
 import
-	..bool: ?, and, bool, false, not, true
-	..compare: ==, <=, >=, <=>, comparison, max, min
+	..bool: ==, ?, and, bool, false, not, true
+	..compare: <=, >=, compare, comparison, max, min
 	..exception: assert
 	..fun: subscript
 	..misc: ->, arrow, as, data, drop, from, to, void
-	..number: +, -, even?, nat
-	..opt: has?, none, opt, opt-or, some, value
+	..number: ==, <=>, +, -, even?, nat
+	..opt: ==, has?, none, opt, opt-or, some, value
 	..ptr: +, -, ptr, ptr-eq?, ptr-less?, set-subscript, subscript
 	..str: char, str
 	..str-conv: interp, finish, to-str, with-str, with-value
 	..test: is
-	.arr: arr, begin-ptr, empty?, end-ptr, size, subscript
+	.arr: ==, arr, begin-ptr, empty?, end-ptr, size, subscript
 	.arr-util: each, filter, fold, map, tail
 	.mut-arr:
 		begin-ptr, cast-immutable, copy-from!, empty?, end-ptr, fold, mut-arr,
@@ -40,13 +40,13 @@ dict<?k, ?v> record
 .end-node<?k, ?v> record
 	pairs arr arrow<?k, ?v>
 
-dict dict<?k, ?v>() data<?k>
+dict dict<?k, ?v>() data<?k> compare<?k>
 	dict: void, end-node: []
 
-dict dict<?k, ?v>(a arr arrow<?k, ?v>) data<?k>
+dict dict<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
 	dict: void, end-node: a sort-by {it from}
 
-empty? bool(a dict<?k, ?v>) data<?k>
+empty? bool(a dict<?k, ?v>) data<?k> compare<?k>
 	match a impl
 	as overlay
 		false
@@ -57,11 +57,11 @@ empty? bool(a dict<?k, ?v>) data<?k>
 Number of pairs.
 This is O(n).
 ###
-size nat(a dict<?k, ?v>) data<?k>
+size nat(a dict<?k, ?v>) data<?k> compare<?k>
 	0 fold a, \acc, k, v
 		acc + 1
 
-arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> trusted
+arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> compare<?k> trusted
 	match a impl
 	as overlay
 		out = a.size uninitialized-mut-arr<arrow<?k, ?v>>
@@ -73,13 +73,13 @@ arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> trusted
 	as end-node e
 		e pairs
 
-~ dict<?k, ?v>(a dict<?k, ?v>, pair arrow<?k, ?v>) data<?k>
+~ dict<?k, ?v>(a dict<?k, ?v>, pair arrow<?k, ?v>) data<?k> compare<?k>
 	dict: void, a.impl add-or-remove pair.from, pair.to.some
 
-~ dict<?k, ?v>(a dict<?k, ?v>, b dict<?k, ?v>) data<?k>
+~ dict<?k, ?v>(a dict<?k, ?v>, b dict<?k, ?v>) data<?k> compare<?k>
 	a ~ b.arr
 
-~ dict<?k, ?v>(a dict<?k, ?v>, b arr arrow<?k, ?v>) data<?k>
+~ dict<?k, ?v>(a dict<?k, ?v>, b arr arrow<?k, ?v>) data<?k> compare<?k>
 	if b empty?
 		a
 	elif a empty?
@@ -89,19 +89,19 @@ arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> trusted
 		pairs = as<arr arrow<?k, opt ?v>>: b map {it.from -> it.to.some} sort-by {it from}
 		dict: void, merge-as-needed: pairs overlay a.impl
 
-- dict<?k, ?v>(a dict<?k, ?v>, key ?k) data<?k>
+- dict<?k, ?v>(a dict<?k, ?v>, key ?k) data<?k> compare<?k>
 	if a has-key? key
 		dict: void, a.impl add-or-remove key, none
 	else
 		a
 
-- dict<?k, ?v>(a dict<?k, ?v>, keys arr ?k) data<?k>
+- dict<?k, ?v>(a dict<?k, ?v>, keys arr ?k) data<?k> compare<?k>
 	a fold keys, \cur, key
 		cur - key
 
-subscript opt ?v(a dict<?k, ?v>, key ?k) data<?k>
+subscript opt ?v(a dict<?k, ?v>, key ?k) data<?k> compare<?k>
 	a.impl subscript-recur key
-.subscript-recur opt ?v(a dict-impl<?k, ?v>, key ?k) trusted data<?k>
+.subscript-recur opt ?v(a dict-impl<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 	match a
 	as overlay o
 		match o.pairs binary-search-value {key <=> it.from}
@@ -116,13 +116,13 @@ subscript opt ?v(a dict<?k, ?v>, key ?k) data<?k>
 		as some s
 			s.value.to some
 
-has-key? bool(a dict<?k, ?v>, key ?k) trusted data<?k>
+has-key? bool(a dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 	a[key] has?
 
-.add-or-remove dict-impl<?k, ?v>(a dict-impl<?k, ?v>, key ?k, value opt ?v) data<?k>
+.add-or-remove dict-impl<?k, ?v>(a dict-impl<?k, ?v>, key ?k, value opt ?v) data<?k> compare<?k>
 	merge-as-needed: overlay: [key -> value], a
 
-.merge-as-needed dict-impl<?k, ?v>(a overlay<?k, ?v>) data<?k>
+.merge-as-needed dict-impl<?k, ?v>(a overlay<?k, ?v>) data<?k> compare<?k>
 	match a prev
 	as overlay o
 		if o.pairs.size should-merge? a.pairs.size
@@ -140,7 +140,7 @@ has-key? bool(a dict<?k, ?v>, key ?k) trusted data<?k>
 .should-merge? bool(prev-size nat, overlay-size nat)
 	prev-size <=: overlay-size max 3
 
-.merge-overlays arr arrow<?k, opt ?v>(l arr arrow<?k, opt ?v>, r arr arrow<?k, opt ?v>) trusted data<?k>
+.merge-overlays arr arrow<?k, opt ?v>(l arr arrow<?k, opt ?v>, r arr arrow<?k, opt ?v>) trusted data<?k> compare<?k>
 	res = l.size + r.size uninitialized-mut-arr<arrow<?k, opt ?v>>
 	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr, \x, y
 		x.from <=> y.from
@@ -180,7 +180,7 @@ body
 		else
 			out + 1 merge-keep-right l, l-end, r + 1, r-end, compare
 
-.merge-to-end arr arrow<?k, ?v>(l arr arrow<?k, ?v>, r arr arrow<?k, opt ?v>) trusted data<?k>
+.merge-to-end arr arrow<?k, ?v>(l arr arrow<?k, ?v>, r arr arrow<?k, opt ?v>) trusted data<?k> compare<?k>
 	res = l.size + r.size uninitialized-mut-arr<arrow<?k, ?v>>
 	end = if l empty?
 		res.begin-ptr finish-rest-ignore-none r.begin-ptr, r.end-ptr
@@ -197,6 +197,7 @@ body
 spec
 	unsafe
 	data<?k>
+	compare<?k>
 body
 	assert: l ptr-less? l-end
 	assert: r ptr-less? r-end
@@ -258,11 +259,11 @@ body
 
 region iteration
 
-each void(a dict<?k, ?v>, f act void(?k, ?v)) data<?k>
+each void(a dict<?k, ?v>, f act void(?k, ?v)) data<?k> compare<?k>
 	void fold a, \ignore, k, v
 		f[k, v]
 
-fold ?a(acc ?a, a dict<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k>
+fold ?a(acc ?a, a dict<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare<?k>
 	iters = a init-iters
 	acc fold-recur iters.end-pairs, iters.overlays, f
 
@@ -273,6 +274,7 @@ fold ?a(acc ?a, a dict<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k>
 	f act ?a(?a, ?k, ?v)
 spec
 	data<?k>
+	compare<?k>
 body
 	# Invariant: Nothing in 'overlays' is empty.
 	if overlays empty?
@@ -297,7 +299,7 @@ body
 			f[acc, least-key, s.value]
 		new-acc fold-recur new-end-node, took-from-overlays.overlays, f
 
-.find-least-key ?k(current-least-key ?k, overlays mut-arr arr arrow<?k, ?v>) data<?k>
+.find-least-key ?k(current-least-key ?k, overlays mut-arr arr arrow<?k, ?v>) data<?k> compare<?k>
 	current-least-key fold overlays, \cur, overlay
 		cur min overlay[0].from
 
@@ -310,7 +312,7 @@ Takes the key from the front of every overlay that has it.
 Removes rightmost overlays from the mut-arr (by returning a new, smaller mut-arr).
 Returns the rightmost value associated with that key.
 ###
-.take-key took-key<?k, ?v>(overlays mut-arr arr arrow<?k, opt ?v>, key ?k) data<?k>
+.take-key took-key<?k, ?v>(overlays mut-arr arr arrow<?k, opt ?v>, key ?k) data<?k> compare<?k>
 	overlays take-key-recur key, 0, none
 .take-key-recur took-key<?k, ?v>
 	overlays mut-arr arr arrow<?k, opt ?v>
@@ -319,6 +321,7 @@ Returns the rightmost value associated with that key.
 	rightmost-value opt ?v
 spec
 	data<?k>
+	compare<?k>
 body
 	# Index can overshoot due to removing overlays
 	if index >= overlays.size
@@ -366,18 +369,26 @@ body
 	as end-node e
 		e pairs
 
-filter dict<?k, ?v>(a dict<?k, ?v>, f act bool(?k, ?v)) data<?k>
+filter dict<?k, ?v>(a dict<?k, ?v>, f act bool(?k, ?v)) data<?k> compare<?k>
 	# No need to re-sort
 	dict: void, end-node: a.arr filter \pair
 		f[pair.from, pair.to]
 
-map dict<?k-out, ?v-out>(a dict<?k-in, ?v-in>, f act arrow<?k-out, ?v-out>(?k-in, ?v-in)) data<?k-in> data<?k-out>
+map dict<?k-out, ?v-out>
+	a dict<?k-in, ?v-in>
+	f act arrow<?k-out, ?v-out>(?k-in, ?v-in)
+spec
+	data<?k-in>
+	compare<?k-in>
+	data<?k-out>
+	compare<?k-out>
+body
 	dict: a map-to-arr f
 
-map-to-arr arr<?out>(a dict<?k, ?v>, f act ?out(?k, ?v)) data<?k>
+map-to-arr arr<?out>(a dict<?k, ?v>, f act ?out(?k, ?v)) data<?k> compare<?k>
 	a.arr map {f[it.from, it.to]}
 
-map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k>
+map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k> compare<?k>
 	# No need to re-sort
 	dict: void, end-node: a.arr map \pair
 		pair.from -> f[pair.from, pair.to]

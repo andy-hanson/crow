@@ -1,18 +1,69 @@
 no-std
 import
-	..bool: bool, not
-	..compare: ==, <, <=
+	..bool: and, bool, not
+	..compare: <, <=, compare, comparison, equal, greater, less
 	..misc: arrow, from, to
-	..number: +, -, nat
-	..ptr: +, -, by-val, ptr, ptr-cast, ptr-less-eq?, ref-of-ptr, size-of, subscript
+	..ptr: +, -, by-val, ptr, ptr-cast, ptr-eq?, ptr-less-eq?, ref-of-ptr, size-of, subscript
 	..private.alloc: alloc-uninitialized, copy-data-from
-	..private.bootstrap: hard-assert
+	..private.bootstrap: char, hard-assert, str, to-nat
 	..private.exception-low-level: assert
+	..private.number-low-level: ==, <=>, nat, nat8, wrap-add, wrap-sub
 export
 	..private.bootstrap: arr, begin-ptr, size
 
 end-ptr ptr ?a(a arr ?a) noctx unsafe
 	a.begin-ptr + a.size
+
+# TODO: arr comparison should be generic
+.arr-equal bool(a arr ?a, b arr ?a) trusted noctx equal<?a>
+	a.begin-ptr equal-recur? a.end-ptr, b.begin-ptr, b.end-ptr
+.equal-recur? bool(a ptr ?a, a-end ptr ?a, b ptr ?a, b-end ptr ?a) unsafe noctx equal<?a>
+	if a ptr-eq? a-end
+		b ptr-eq? b-end
+	else
+		(b ptr-eq? b-end).not and: a[] == b[] and: a + 1 equal-recur? a-end, b + 1, b-end
+
+.arr-compare comparison(a arr ?a, b arr ?a) trusted noctx compare<?a>
+	a.begin-ptr compare-recur a.end-ptr, b.begin-ptr, b.end-ptr
+.compare-recur comparison(a ptr ?a, a-end ptr ?a, b ptr ?a, b-end ptr ?a) unsafe noctx compare<?a>
+	if a ptr-eq? a-end
+		if b ptr-eq? b-end
+			equal
+		else
+			less
+	elif b ptr-eq? b-end
+		greater
+	else
+		match a[] <=> b[]
+		as less
+			less
+		as equal
+			a + 1 compare-recur a-end, b + 1, b-end
+		as greater
+			greater
+
+== bool(a arr nat8, b arr nat8) noctx
+	a arr-equal b
+<=> comparison(a arr nat8, b arr nat8) noctx
+	a arr-compare b
+
+== bool(a arr nat, b arr nat) noctx
+	a arr-equal b
+<=> comparison(a arr nat, b arr nat) noctx
+	a arr-compare b
+
+== bool(a str, b str) trusted noctx
+	a arr-equal b
+== bool(a char, b char) noctx
+	a.to-nat == b.to-nat
+
+<=> comparison(a str, b str) trusted noctx
+	a arr-compare b
+<=> comparison(a char, b char) noctx
+	a.to-nat <=> b.to-nat
+
+== bool(a arr str, b arr str) noctx
+	a arr-equal b
 
 ###
 Arr or the range from begin to end.
@@ -60,7 +111,7 @@ Fails if the slice would exceed the bounds of the arr.
 subscript arr ?a(a arr ?a, range arrow<nat, nat>) trusted
 	assert: range.from <= range.to
 	assert: range.to <= a.size
-	arr: range.to - range.from, a.begin-ptr + range.from
+	range.to wrap-sub range.from arr a.begin-ptr + range.from
 
 ref-of-val-at ?a(a arr by-val<?a>, index nat) trusted
 	assert: index < a.size
@@ -72,7 +123,7 @@ This involves copying every element from both arrs into the new arr.
 If you need to concatenate often, consider using `mut-list`.
 ###
 ~ arr ?a(a arr ?a, b arr ?a) trusted
-	res-size = a.size + b.size
+	res-size = a.size wrap-add b.size
 	res = res-size alloc-uninitialized<?a>
 	res copy-data-from a.begin-ptr, a.size
 	res + a.size copy-data-from b.begin-ptr, b.size

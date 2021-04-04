@@ -1,17 +1,17 @@
 no-std
 import
 	..bool: ?, and, bool, false, not, true
-	..compare: ==, <, >, <=, <=>
+	..compare: <, >, <=, compare
 	..exception: assert
 	..fun: subscript
 	..misc: ->, arrow, as, data, drop, from, to, void
-	..number: +, -, *, nat
-	..opt: empty?, force, has?, none, opt, some, value
+	..number: ==, <=>, +, -, *, nat
+	..opt: ==, empty?, force, has?, none, opt, some, value
 	..ptr: -, ptr, ptr-eq?, set-subscript, subscript
 	..str: char, str
 	..str-conv: to-str
 	..test: is
-	.arr: arr, subscript
+	.arr: ==, arr, subscript
 	.arr-util: each
 	.dict: dict
 	.mut-list:
@@ -37,11 +37,11 @@ mut-dict<?k, ?v> record mut
 	next mut opt mut-dict<?k, ?v>
 
 # New empty `mut-dict`.
-mut-dict mut-dict<?k, ?v>() data<?k>
+mut-dict mut-dict<?k, ?v>() data<?k> compare<?k>
 	mut-dict: mut-list, 0, none
 
 # Copies an `arr` to a `mut-dict`.
-mut-dict mut-dict<?k, ?v>(a arr arrow<?k, ?v>) data<?k>
+mut-dict mut-dict<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
 	res = mut-dict<?k, ?v>
 	a each \pair
 		res[pair from] := pair to
@@ -77,7 +77,7 @@ Look up a value from a key.
 Returns `none` if the key is not in the dict.
 This is O(a.size ln).
 ###
-subscript opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
+subscript opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 	match a find-exact-ptr key
 	as none
 		none
@@ -85,7 +85,7 @@ subscript opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
 		s.value[] to
 
 # Adds a key-value pair, replacing any existing one with that key.
-set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
+set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k> compare<?k>
 	if not: a insert-into-key-match-or-empty-slot! key, value
 		a add-pair! key, value
 
@@ -93,7 +93,7 @@ set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
 Adds many key-value pairs, replacing existing ones with the same keys.
 Equivalent to adding each element of `b` separately.
 ###
-~= void(a mut-dict<?k, ?v>, b arr arrow<?k, ?v>) data<?k>
+~= void(a mut-dict<?k, ?v>, b arr arrow<?k, ?v>) data<?k> compare<?k>
 	b each \pair
 		a[pair from] := pair to
 
@@ -102,7 +102,7 @@ Traverses nodes left-to-right looking for the key.
 If that fails, traverses back right-to-left and inserts into an empty slot if possible.
 Returns true if it succeeded.
 ###
-.insert-into-key-match-or-empty-slot! bool(a mut-dict<?k, ?v>, key ?k, value ?v) trusted data<?k>
+.insert-into-key-match-or-empty-slot! bool(a mut-dict<?k, ?v>, key ?k, value ?v) trusted data<?k> compare<?k>
 	insert-ptr = a find-insert-ptr key
 	can-insert? = not: insert-ptr ptr-eq? a.pairs.end-ptr
 	if can-insert? and insert-ptr[].from == key
@@ -134,7 +134,7 @@ Returns true if it succeeded.
 			false
 
 # Returns the new physical size of this node and all nodes to the right
-.add-pair! void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
+.add-pair! void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k> compare<?k>
 	if a.node-size < 4
 		if a.pairs empty?
 			# TODO: '.as<opt ?v>' should not be necessary
@@ -160,7 +160,7 @@ Returns true if it succeeded.
 			a compact-if-needed!
 
 # Insert at the last place where the key is < that value.
-.insert-linear! void(a mut-list arrow<?k, opt ?v>, index nat, key ?k, value ?v) data<?k>
+.insert-linear! void(a mut-list arrow<?k, opt ?v>, index nat, key ?k, value ?v) data<?k> compare<?k>
 	if key < a[index].from
 		a move-right! index
 		a[index] := key -> value.some
@@ -181,21 +181,21 @@ Returns true if it succeeded.
 			a[index + 1] := a[index]
 
 # Convert to an `arr`, clearning the original `mut-dict` in the process.
-move-to-arr! arr arrow<?k, ?v>(a mut-dict<?k, ?v>) data<?k>
+move-to-arr! arr arrow<?k, ?v>(a mut-dict<?k, ?v>) data<?k> compare<?k>
 	res = a map-to-arr \key, value
 		key -> value
 	a empty!
 	res
 
 # Convert to a `dict`, clearning the original `mut-set` in the process.
-move-to-dict! dict<?k, ?v>(a mut-dict<?k, ?v>) data<?k>
+move-to-dict! dict<?k, ?v>(a mut-dict<?k, ?v>) data<?k> compare<?k>
 	dict: a.move-to-arr!
 
 ###
 Remove the pair with the given key, if it exists.
 Returns the old value (if it exists).
 ###
-remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
+remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 	match a find-exact-ptr key
 	as none
 		match a next
@@ -216,7 +216,7 @@ remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
 		a compact-if-needed!
 		res
 
-.compact-if-needed! void(a mut-dict<?k, ?v>) data<?k>
+.compact-if-needed! void(a mut-dict<?k, ?v>) data<?k> compare<?k>
 	physical-size = a total-pairs-size
 	if a.node-size * 2 <= physical-size
 		a compact!
@@ -233,7 +233,7 @@ remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
 		mid total-pairs-size-recur s.value
 
 
-.compact! void(a mut-dict<?k, ?v>) data<?k>
+.compact! void(a mut-dict<?k, ?v>) data<?k> compare<?k>
 	match a next
 	as none
 		void
@@ -246,24 +246,24 @@ remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
 		a.next := none
 		a.node-size := a.pairs.size
 
-.find-exact-ptr opt ptr arrow<?k, opt ?v>(a mut-dict<?k, ?v>, key ?k) data<?k> unsafe
+.find-exact-ptr opt ptr arrow<?k, opt ?v>(a mut-dict<?k, ?v>, key ?k) data<?k> compare<?k> unsafe
 	a.pairs binary-search-exact-ptr {key <=> it.from}
 
-.find-insert-ptr ptr arrow<?k, opt ?v>(a mut-dict<?k, ?v>, key ?k) data<?k> unsafe
+.find-insert-ptr ptr arrow<?k, opt ?v>(a mut-dict<?k, ?v>, key ?k) data<?k> compare<?k> unsafe
 	a.pairs binary-search-insert-ptr {key <=> it.from}
 
 region iteration
 
-each void(a mut-dict<?k, ?v>, f act void(?k, ?v)) data<?k>
+each void(a mut-dict<?k, ?v>, f act void(?k, ?v)) data<?k> compare<?k>
 	void fold a, \ignore, k, v
 		f[k, v]
 
-fold ?a(acc ?a, a mut-dict<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k>
+fold ?a(acc ?a, a mut-dict<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare<?k>
 	a compact!
 	acc fold a.pairs, \cur, pair
 		f[cur, pair.from, pair.to.force]
 
-filter mut-dict<?k, ?v>(a mut-dict<?k, ?v>, f act bool(?k, ?v)) data<?k>
+filter mut-dict<?k, ?v>(a mut-dict<?k, ?v>, f act bool(?k, ?v)) data<?k> compare<?k>
 	a compact!
 	from-sorted-pairs: a.pairs filter \pair
 		f[pair.from, pair.to.force]
@@ -273,12 +273,14 @@ map mut-dict<?k-out, ?v-out>
 	f act arrow<?k-out, ?v-out>(?k-in, ?v-in)
 spec
 	data<?k-in>
+	compare<?k-in>
 	data<?k-out>
+	compare<?k-out>
 body
 	mut-dict: a map-to-arr \k, v
 		f[k, v]
 
-map-values mut-dict<?k, ?v-out>(a mut-dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k>
+map-values mut-dict<?k, ?v-out>(a mut-dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k> compare<?k>
 	a compact!
 	from-sorted-pairs: a.pairs map \pair
 		# TODO: 'as' should be unnecessary
@@ -287,19 +289,19 @@ map-values mut-dict<?k, ?v-out>(a mut-dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) 
 .from-sorted-pairs mut-dict<?k, ?v>(a mut-list<arrow<?k, opt ?v>>)
 	mut-dict: a, a.size, none
 
-map-to-arr arr ?out(a mut-dict<?k, ?v>, f act ?out(?k, ?v)) data<?k>
+map-to-arr arr ?out(a mut-dict<?k, ?v>, f act ?out(?k, ?v)) data<?k> compare<?k>
 	a compact!
 	a.pairs map-to-arr \pair
 		f[pair.from, pair.to.force]
 
 region mutating iteration
 
-filter! void(a mut-dict<?k, ?v>, f act bool(?k, ?v)) data<?k>
+filter! void(a mut-dict<?k, ?v>, f act bool(?k, ?v)) data<?k> compare<?k>
 	a compact!
 	a.pairs filter! \pair
 		f[pair.from, pair.to.force]
 
-map! void(a mut-dict<?k, ?v>, f act arrow<?k, ?v>(?k, ?v)) data<?k>
+map! void(a mut-dict<?k, ?v>, f act arrow<?k, ?v>(?k, ?v)) data<?k> compare<?k>
 	a compact!
 	a.pairs map! \pair
 		new-pair = f[pair.from, pair.to.force]
@@ -313,7 +315,7 @@ test
 		10 - k -> v[0 -> 1]
 	a verify "[4 -> 6, 7 -> 3]"
 
-map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k>
+map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k> compare<?k>
 	a compact!
 	a.pairs map! \pair
 		pair.from -> f[pair.from, pair.to.force].some

@@ -1,9 +1,9 @@
 no-std
 import
 	..bool: bool, not
-	..compare: ==, <, <=, >, >=
+	..compare: <, <=, >, >=, equal
 	..fun: subscript
-	..misc: ->, data, drop, void
+	..misc: ->, drop, void
 	..number: +, -, *, nat
 	..opt: none, opt, some, value
 	..posix.string: memcpy, memmove
@@ -12,7 +12,7 @@ import
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	..private.bootstrap: hard-assert, todo
 	..private.exception-low-level: assert
-	..private.number-low-level: wrap-add, wrap-sub
+	..private.number-low-level: ==, <=>, wrap-add, wrap-sub
 	.arr: arr
 	.arr-util: contains?, each, each-with-index, exists?, find-index, fold, fold-reverse, index-of
 	.mut-arr:
@@ -183,7 +183,7 @@ set-subscript void(a mut-list ?a, index nat, value ?a) trusted
 ###
 True iff `a[i] == value` for some `i`.
 ###
-contains? bool(a mut-list ?a, value ?a) noctx trusted data<?a>
+contains? bool(a mut-list ?a, value ?a) noctx trusted equal<?a>
 	a.temp-as-arr contains? value
 
 copy-range-to-arr arr ?a(a mut-list ?a, begin nat, size nat) trusted
@@ -296,10 +296,9 @@ noctx-remove-unordered-at! ?a(a mut-list ?a, index nat) noctx unsafe
 	a.size := new-size
 	res
 
-noctx-must-remove-unordered! void(a mut-list ?a, value ?a) noctx unsafe data<?a>
+noctx-must-remove-unordered! void(a mut-list ?a, value ?a) noctx unsafe equal<?a>
 	a noctx-must-remove-unordered-recur! 0, value
-
-.noctx-must-remove-unordered-recur! void(a mut-list ?a, index nat, value ?a) noctx unsafe data<?a>
+.noctx-must-remove-unordered-recur! void(a mut-list ?a, index nat, value ?a) noctx unsafe equal<?a>
 	if index == a.size
 		todo
 	elif a.begin-ptr[index] == value
@@ -335,7 +334,7 @@ reduce-size-if-more-than! void(a mut-list ?a, new-size nat)
 		acc * 2 round-up-to-power-of-two-recur n
 
 # Returns the first index where `a[i] == value`, or returns `none`.
-index-of opt nat(a mut-list ?a, value ?a) data<?a> trusted
+index-of opt nat(a mut-list ?a, value ?a) equal<?a> trusted
 	a.temp-as-arr index-of value
 
 ###

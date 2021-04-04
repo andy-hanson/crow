@@ -2,7 +2,7 @@ no-std
 import
 	..bool: ?, bool, false, not, true
 	..cell: cell, subscript
-	..compare: ==, !=
+	..compare: !=
 	..fun: fun-ptr1, subscript
 	..io.time-low-level: timestamp, to-timespec
 	..posix.errno: eagain, einval, esrch, etimedout
@@ -19,7 +19,7 @@ import
 	.bootstrap:
 		as, atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat, opt, todo, value, void,
 		zeroed
-	.number-low-level: wrap-add, wrap-sub
+	.number-low-level: ==, wrap-add, wrap-sub
 
 region atomic
 

@@ -2,9 +2,8 @@ no-std
 import
 	..private.bootstrap: as, nat, todo
 	..private.number-low-level:
-		unsafe-div, unsafe-mod, unsafe-to-int, unsafe-to-nat, wrap-add, wrap-mul
+		==, unsafe-div, unsafe-mod, unsafe-to-int, unsafe-to-nat, wrap-add, wrap-mul
 	..cell: cell, subscript
-	..compare: ==
 	..posix.time: clock-gettime, clock-monotonic, timespec, tv-nsec, tv-sec
 	..ptr: by-val, ref-of-val
 

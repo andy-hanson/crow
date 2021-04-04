@@ -131,8 +131,6 @@ immutable(Constant) nameFromLowFunCause(ref immutable ConcreteFunToName funToNam
 		// TODO: these other causes come from ConcreteFun too, just need to pass those along..
 		(ref immutable LowFunCause.CallWithCtx) =>
 			constantEmptyArr(),
-		(ref immutable LowFunCause.Compare) =>
-			constantEmptyArr(),
 		(immutable Ptr!ConcreteFun it) =>
 			mustGetAt(funToName, it),
 		(ref immutable LowFunCause.MarkVisitArrInner) =>

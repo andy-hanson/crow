@@ -1,7 +1,6 @@
 no-std
 import
 	..bool: bool, not
-	..compare: ==
 	..fun: subscript
 	..posix.bytes-types: zero
 	..posix.setjmp: jmp-buf, jmp-buf-tag, longjmp, setjmp
@@ -10,6 +9,7 @@ import
 	.bootstrap:
 		arr, as, err, exception-ctx-ptr, get-ctx, hard-assert, hard-forbid,
 		hard-unreachable, int32, ok, result, str, thread-local-stuff, void
+	.number-low-level: ==
 export
 	.bootstrap: exception, message
 

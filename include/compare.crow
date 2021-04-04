@@ -17,17 +17,60 @@ Restricting comparison to `data` means that it is ensured to be safe:
 
 no-std
 import
-	.bool: ?, bool, false, not, true
-	.private.bootstrap: data, str
-export
-	.private.bootstrap: ==, <=>, comparison, equal, greater, less
+	.private.bool-low-level: ?, bool, false, not, true
+	.private.bootstrap: str
 
-# True iff `not: a == b`.
-!= bool(a ?a, b ?a) noctx data<?a>
+# Comparison for `a < b`
+less record
+# Comparison for `a == b`
+equal record
+# Comparison for `a > b`
+greater record
+comparison union
+	less
+	equal
+	greater
+
+== bool(a comparison, b comparison)
+	match a
+	as less
+		match b
+		as less
+			true
+		as equal
+			false
+		as greater
+			false
+	as equal
+		match b
+		as less
+			false
+		as equal
+			true
+		as greater
+			false
+	as greater
+		match b
+		as less
+			false
+		as equal
+			false
+		as greater
+			true
+
+equal<?a> spec
+	== bool(a ?a, b ?a)
+
+compare<?a> spec
+	== bool(a ?a, b ?a)
+	<=> comparison(a ?a, b ?a)
+
+# True iff `a == b not`.
+!= bool(a ?a, b ?a) noctx equal<?a>
 	a == b not
 
 # True iff `(a <=> b) == less`.
-< bool(a ?a, b ?a) noctx data<?a>
+< bool(a ?a, b ?a) noctx compare<?a>
 	match a <=> b
 	as less
 		true
@@ -37,23 +80,23 @@ export
 		false
 
 # True iff `not: a > b`
-<= bool(a ?a, b ?a) noctx data<?a>
+<= bool(a ?a, b ?a) noctx compare<?a>
 	b < a not
 
 # True iff `(a <=> b) == greater`.
-> bool(a ?a, b ?a) noctx data<?a>
+> bool(a ?a, b ?a) noctx compare<?a>
 	b < a
 
 # True iff `not: a < b`.
->= bool(a ?a, b ?a) noctx data<?a>
+>= bool(a ?a, b ?a) noctx compare<?a>
 	a < b not
 
 # Returns the lesser argument
-min ?a(a ?a, b ?a) noctx data<?a>
+min ?a(a ?a, b ?a) noctx compare<?a>
 	a < b ? a, b
 
 # Returns the greater argument
-max ?a(a ?a, b ?a) noctx data<?a>
+max ?a(a ?a, b ?a) noctx compare<?a>
 	a < b ? b, a
 
 # Returns "less", "equal", or "greater"/

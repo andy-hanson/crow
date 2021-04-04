@@ -19,7 +19,7 @@ import model.lowModel :
 	LowType,
 	name,
 	PrimitiveType;
-import util.collection.arr : at, emptyArr, size;
+import util.collection.arr : at, size;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate, nu;
 import util.ptr : Ptr;
@@ -125,14 +125,6 @@ immutable(LowExpr) genIf(Alloc)(
 			allocate(alloc, else_))));
 }
 
-immutable(LowExpr) genNat64Eq0(Alloc)(
-	ref Alloc alloc,
-	ref immutable FileAndRange range,
-	immutable LowExpr a,
-) {
-	return genBinary(alloc, range, boolType, LowExprKind.SpecialBinary.Kind.eqNat64, a, constantNat64(range, 0));
-}
-
 immutable(LowExpr) incrPointer(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
@@ -150,62 +142,6 @@ immutable(LowExpr) constantNat64(
 		nat64Type,
 		range,
 		immutable LowExprKind(immutable Constant(immutable Constant.Integral(value))));
-}
-
-immutable(LowExpr) genCreateRecord(
-	ref immutable FileAndRange range,
-	immutable LowType.Record record,
-	immutable LowExpr[] args,
-) {
-	return immutable LowExpr(
-		immutable LowType(record),
-		range,
-		immutable LowExprKind(immutable LowExprKind.CreateRecord(args)));
-}
-
-immutable(LowExpr) genCreateRecord(ref immutable FileAndRange range, immutable LowType.Record record) {
-	return genCreateRecord(range, record, emptyArr!LowExpr);
-}
-
-immutable(LowExpr) genCreateUnion(Alloc)(
-	ref Alloc alloc,
-	ref immutable FileAndRange range,
-	immutable LowType.Union union_,
-	immutable ubyte memberIndex,
-	immutable LowExpr member,
-) {
-	return immutable LowExpr(
-		immutable LowType(union_),
-		range,
-		immutable LowExprKind(immutable LowExprKind.ConvertToUnion(memberIndex, allocate(alloc, member))));
-}
-
-immutable(LowExpr) genBinary(Alloc)(
-	ref Alloc alloc,
-	ref immutable FileAndRange range,
-	immutable LowType returnType,
-	immutable LowExprKind.SpecialBinary.Kind kind,
-	immutable LowExpr a,
-	immutable LowExpr b,
-) {
-	return immutable LowExpr(
-		returnType,
-		range,
-		immutable LowExprKind(immutable LowExprKind.SpecialBinary(kind, allocate(alloc, a), allocate(alloc, b))));
-}
-
-immutable(LowExpr) decrNat64(Alloc)(
-	ref Alloc alloc,
-	ref immutable FileAndRange range,
-	immutable LowExpr arg,
-) {
-	return immutable LowExpr(
-		nat64Type,
-		range,
-		immutable LowExprKind(immutable LowExprKind.SpecialBinary(
-			LowExprKind.SpecialBinary.Kind.wrapSubNat64,
-			allocate(alloc, arg),
-			allocate(alloc, constantNat64(range, 1)))));
 }
 
 immutable(LowExpr) genTailRecur(Alloc)(

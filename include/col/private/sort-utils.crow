@@ -1,20 +1,20 @@
 no-std
 import
 	...bool: ?, bool, not
-	...compare: ==, <, >=, <=>, comparison, equal, less, greater
+	...compare: ==, <, >=, compare, comparison, equal, less, greater
 	...exception: assert, unreachable
 	...fun: subscript
-	...misc: data, void
+	...misc: void
 	...opt: none, opt, some, value
 	...ptr: +, -, null, null?, ptr, ptr-eq?, set-subscript, subscript
 	...test: is
 	...private.bootstrap: nat
-	...private.number-low-level: unsafe-div, wrap-add
-	..arr: arr, begin-ptr, end-ptr
+	...private.number-low-level: ==, <=>, unsafe-div, wrap-add
+	..arr: ==, arr, begin-ptr, end-ptr
 	..mut-arr: begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end
 	..mut-list: arr, begin-ptr, empty?, empty!, end-ptr, mut-list, size, swap!, temp-as-mut-arr, unsafe-set-size!
 
-binary-search-has? bool(a arr ?a, value ?a) data<?a> trusted
+binary-search-has? bool(a arr ?a, value ?a) compare<?a> trusted
 	not: a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value null?
 
 binary-search-value opt ?a(a arr ?a, compare act comparison(?a)) trusted
@@ -24,7 +24,7 @@ binary-search-value opt ?a(a arr ?a, compare act comparison(?a)) trusted
 	as some s
 		s.value[] some
 
-binary-search-exact-index opt nat(a arr ?a, value ?a) trusted data<?a>
+binary-search-exact-index opt nat(a arr ?a, value ?a) trusted compare<?a>
 	ptr = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
 	if ptr null?
 		none
@@ -37,7 +37,7 @@ binary-search-exact-ptr opt ptr ?a(a mut-list ?a, compare act comparison(?a)) un
 binary-search-exact-ptr opt ptr ?a(a mut-arr ?a, compare act comparison(?a)) unsafe
 	a.cast-immutable binary-search-exact-ptr compare
 
-binary-search-exact-ptr opt ptr ?a(a arr ?a, value ?a) data<?a> unsafe
+binary-search-exact-ptr opt ptr ?a(a arr ?a, value ?a) compare<?a> unsafe
 	res = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
 	res.null? ? none, res.some
 
@@ -60,7 +60,7 @@ Returns `a end-ptr` if all values compare less.
 binary-search-insert-ptr ptr ?a(a mut-arr ?a, compare act comparison(?a)) unsafe
 	a.begin-ptr binary-search-compare-recur a.end-ptr, compare
 
-binary-search-insert-ptr ptr ?a(a arr ?a, value ?a) unsafe data<?a>
+binary-search-insert-ptr ptr ?a(a arr ?a, value ?a) unsafe compare<?a>
 	a.begin-ptr binary-search-insert-ptr-recur a.end-ptr, value
 
 test
@@ -74,7 +74,7 @@ test
 	(a binary-search-insert-ptr {8 <=> it}) - a.begin-ptr is 4
 
 # Left inclusive, right exclusive
-.binary-search-exact-ptr-recur ptr ?a(left ptr ?a, right ptr ?a, value ?a) unsafe data<?a>
+.binary-search-exact-ptr-recur ptr ?a(left ptr ?a, right ptr ?a, value ?a) unsafe compare<?a>
 	diff = right - left
 	if diff < 4
 		left linear-search-exact-ptr-recur right, value
@@ -88,7 +88,7 @@ test
 		as greater
 			mid + 1 binary-search-exact-ptr-recur right, value
 
-.linear-search-exact-ptr-recur ptr ?a(left ptr ?a, right ptr ?a, value ?a) unsafe data<?a>
+.linear-search-exact-ptr-recur ptr ?a(left ptr ?a, right ptr ?a, value ?a) unsafe compare<?a>
 	if left ptr-eq? right
 		null
 	elif left[] == value
@@ -97,7 +97,7 @@ test
 		left + 1 linear-search-exact-ptr-recur right, value
 
 # Left inclusive, right exclusive
-.binary-search-insert-ptr-recur ptr ?a(left ptr ?a, right ptr ?a, value ?a) unsafe data<?a>
+.binary-search-insert-ptr-recur ptr ?a(left ptr ?a, right ptr ?a, value ?a) unsafe compare<?a>
 	if left ptr-eq? right
 		left
 	else

@@ -88,6 +88,7 @@ posix/unistd
 posix/wait
 private/alloc
 private/backtrace
+private/bool-low-level
 private/bootstrap
 private/debug-low-level
 private/exception-low-level

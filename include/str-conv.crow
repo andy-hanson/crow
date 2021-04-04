@@ -1,13 +1,13 @@
 no-std
 import
 	.bool: ?, bool, false, true
-	.col.arr: ~, empty?, subscript
+	.col.arr: ==, ~, empty?, subscript
 	.col.arr-util: tail
 	.col.mut-list: ~=, move-to-arr!, mut-list
-	.compare: ==, <
+	.compare: <
 	.exception: unreachable
 	.number:
-		+, *, /, abs, float, int, int16, int32, mod, nat, nat8, nat16, nat32, multiple-of?,
+		==, <=>, +, *, /, abs, float, int, int16, int32, mod, nat, nat8, nat16, nat32, multiple-of?,
 		to-int, to-float, to-nat, truncate-to-int
 	.opt: map, none, opt, some, value
 	.str: char, str

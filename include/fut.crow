@@ -1,19 +1,18 @@
 no-std
 import
 	.col.arr: arr, size
-	.compare: ==
 	.cell: cell, set-subscript, subscript
 	.col.arr-util: each-with-index, first-some, map
 	.exception: catch, exception
 	.fun: subscript
 	.misc: as, void
-	.number: -, nat
 	.opt: none, opt, some
 	.result: result
 	.private.bootstrap:
-		exclusion, fun, fut-state-resolved, hard-unreachable, island, island-and-exclusion, send,
-		state, value
+		exclusion, fun, fut-state-resolved, hard-unreachable, island, island-and-exclusion, nat,
+		send, state, value
 	.private.fut-low-level: callback!, reject!, resolve!, resolve-or-reject!, unresolved
+	.private.number-low-level: ==, wrap-sub
 	.private.runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
 	.private.thread-utils: lock, lock-by-val, with-lock
 export
@@ -42,7 +41,7 @@ join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out>
 	remaining = cell<nat>: 2
 	decr-remaining = as<act void()>: \
 		lock with-lock \
-			remaining[] := remaining[] - 1
+			remaining[] := remaining[] wrap-sub 1
 			if remaining[] == 0
 				res finish-join! a, b, f
 	a callback! \ignore
@@ -81,7 +80,7 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 	a each-with-index \in, index
 		in callback! \value
 			lock with-lock \
-				remaining[] := remaining[] - 1
+				remaining[] := remaining[] wrap-sub 1
 				if remaining[] == 0
 					res finish-join! a
 	res

@@ -1,16 +1,16 @@
 no-std
 import
-	..bool: and, bool
+	..bool: ==, and, bool, false
 	..exception: assert
 	..fun: subscript
 	..misc: ->, void
-	..number: +, even?, nat
-	..opt: force, none, opt, some, value
+	..opt: force, has?, none, opt, some, value
 	..ptr: +, -, ptr-eq?, set-subscript
 	..str: char, str
 	..str-conv: to-str
 	..test: is
-	.arr: arr, empty?, size
+	..private.number-low-level: ==, even?, nat, wrap-add
+	.arr: ==, arr, empty?, size
 	.arr-util: each, first, fold, last, rtail, tail
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
 	.mut-list: ~=, move-to-arr!, mut-list, set-last
@@ -48,7 +48,7 @@ empty? bool(a deque ?a)
 	a.left.empty? and a.mid.empty? and a.right.empty?
 
 size nat(a deque ?a)
-	a.left.size + a.mid.size + a.right.size
+	a.left.size wrap-add a.mid.size wrap-add a.right.size
 
 ~ deque ?a(a deque ?a, value ?a)
 	deque: a.left, a.mid, a.right ~ value
@@ -143,21 +143,30 @@ test
 	assert: a empty?
 	a.dbg is "[]"
 	a.arr is []
-	a.pop-left is none
-	a.pop-right is none
+	# TODO: 'is none'
+	a.pop-left.has? is false
+	a.pop-right.has? is false
 
 	bl = 1 ~ a
 	bl.dbg is "1 []"
 	bl.arr is [1]
 	bl-pop-left = bl.pop-left force
-	bl-pop-left is popped: 1, deque
-	bl.pop-right is bl-pop-left.some
+	bl-pop-left.value is 1
+	# TODO: 'is deque'
+	bl-pop-left.rest.arr is []
+	bl-pop-right = bl.pop-right force
+	bl-pop-right.value is 1
+	bl-pop-right.rest.arr is []
 
 	br = a ~ 1
 	br.dbg is "[] 1"
 	br.arr is bl.arr
-	br.pop-left is bl-pop-left.some
-	br.pop-right is bl-pop-left.some
+	br-pop-left = br.pop-left force
+	br-pop-left.value is 1
+	br-pop-left.rest.arr is []
+	br-pop-right = br.pop-right force
+	br-pop-right.value is 1
+	br-pop-right.rest.arr is []
 
 	c = bl ~ 2 ~ 3
 	c.dbg is "1 [] 2 3"
@@ -167,7 +176,9 @@ test
 	# Forces it to convert to an array
 	d = c-pop rest
 	d.dbg is "[] 2 3"
-	d.pop-left is some: popped: 2, deque: [3]
+	d-pop-left = d.pop-left force
+	d-pop-left.value is 2
+	d-pop-left.rest.arr is [3]
 
 	d-pop = d.pop-left force
 	d-pop.value is 2
@@ -184,7 +195,7 @@ test
 	six = 1 ~ (2 ~ [3, 4].deque) ~ 5 ~ 6
 	six.dbg is "1 2 [3 4] 5 6"
 	folded = 10 fold six, \x, y
-		x + y
+		x wrap-add y
 	folded is 31
 	(six filter {it even?}).arr is [2, 4, 6]
-	(six map {it + 10}).arr is [11, 12, 13, 14, 15, 16]
+	(six map {it wrap-add 10}).arr is [11, 12, 13, 14, 15, 16]

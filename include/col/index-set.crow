@@ -3,19 +3,21 @@ import
 	..bits:
 		add-bit, bit?, bits-and, bits-diff, bit-shift-left, bit-shift-right, bits-or, count-ones,
 		filter-bits, fold-one-bits, nth-bit, sub-bit
-	..bool: and, bool, false, true
-	..compare: ==, !=, <, <=
+	..bool: ==, and, bool, false, true
+	..compare: !=, <, <=
 	..exception: assert
 	..fun: subscript
 	..log: info, log
 	..misc: ->, drop, void
-	..number: +, -, *, /, deep-size-bytes, each, mod, nat, nat64
-	..opt: none, opt, or-default, some, value
+	..number: deep-size-bytes, each
+	..opt: has?, none, opt, or-default, some, value
 	..ptr: +, ptr-eq?, set-subscript
 	..str: char, str
 	..str-conv: to-hex, to-str
 	..test: is
-	.arr: arr, empty?, size, subscript
+	..private.number-low-level:
+		==, <=>, nat, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
+	.arr: ==, arr, empty?, size, subscript
 	.arr-util:
 		alloc-count, deep-size-bytes, each, fold, fold-with-index, last, make-arr, map-with-index,
 		rtail, update, zip-larger, zip-smaller
@@ -34,7 +36,8 @@ empty? bool(a index-set)
 size nat(a index-set)
 	a.values count-ones-in-arr
 .count-ones-in-arr nat(a arr nat64)
-	a sum {it count-ones}
+	0 fold a, \acc, x
+		acc wrap-add x.count-ones
 
 # Total number of bytes used.
 deep-size-bytes nat(a index-set) unsafe
@@ -43,18 +46,13 @@ deep-size-bytes nat(a index-set) unsafe
 alloc-count nat(a index-set) unsafe
 	a.values alloc-count
 
-#TODO:MOVE
-.sum nat(a arr ?a, cb act nat(?a))
-	0 fold a, \acc, x
-		acc + cb[x]
-
 index-set index-set()
 	index-set: void, []
 
 index-set index-set(a nat)
 	index-set: [a]
 
-index-set index-set(a arr nat) trusted
+index-set index-set(a arr nat)
 	index-set fold a, \acc, x
 		acc ~ x
 
@@ -62,9 +60,9 @@ arr arr nat(a index-set)
 	a map-to-arr {it}
 
 subscript bool(a index-set, index nat)
-	nat-index = index / 64
+	nat-index = index word-index
 	if nat-index < a.values.size
-		a.values[nat-index] bit?: index mod 64
+		a.values[nat-index] bit? index.bit-index
 	else
 		false
 
@@ -72,8 +70,8 @@ subscript bool(a index-set, index nat)
 	a try-add index or-default a
 
 try-add opt index-set(a index-set, index nat)
-	nat-index = index / 64
-	bit-index = index mod 64
+	nat-index = index word-index
+	bit-index = index bit-index
 	if nat-index < a.values.size
 		if a.values[nat-index] bit? bit-index
 			none
@@ -81,7 +79,7 @@ try-add opt index-set(a index-set, index nat)
 			new-values = a.values update: nat-index, a.values[nat-index] add-bit bit-index
 			some: index-set: void, new-values
 	else
-		some: index-set: void, nat-index + 1 make-arr \i
+		some: index-set: void, (nat-index wrap-add 1) make-arr \i
 			if i < a.values.size
 				a.values[i]
 			elif i == nat-index
@@ -97,14 +95,14 @@ try-add opt index-set(a index-set, index nat)
 	a try-remove index or-default a
 
 try-remove opt index-set(a index-set, index nat)
-	nat-index = index / 64
+	nat-index = index word-index
 	if nat-index < a.values.size
-		bit-index = index mod 64
+		bit-index = index bit-index
 		old-value = a.values[nat-index]
 		new-value = old-value sub-bit bit-index
 		if new-value == old-value
 			none
-		elif new-value == 0 and nat-index == a.values.size - 1
+		elif new-value == 0 and nat-index == (a.values.size wrap-sub 1)
 			some: index-set: void, a.values rtail
 		else
 			some: a.values update nat-index, new-value strip-trailing-zeroes
@@ -138,42 +136,42 @@ intersect index-set(a index-set, b index-set)
 # hi exclusive
 count-range nat(a index-set, lo nat, hi nat)
 	assert: lo <= hi
-	lo-nat-index = lo / 64
+	lo-nat-index = lo word-index
 	if lo-nat-index < a.values.size
-		hi-nat-index = hi / 64
-		lo-bit-index = lo mod 64
-		hi-bit-index = hi mod 64
+		hi-nat-index = hi word-index
+		lo-bit-index = lo bit-index
+		hi-bit-index = hi bit-index
 		if lo-nat-index == hi-nat-index
 			a.values[lo-nat-index] count-range-in-nat lo-bit-index, hi-bit-index
 		else
 			l = a.values[lo-nat-index] count-gte-in-nat lo-bit-index
-			mid = a.values[lo-nat-index + 1 -> hi-nat-index] count-ones-in-arr
+			mid = a.values[(lo-nat-index wrap-add 1) -> hi-nat-index] count-ones-in-arr
 			r = a.values[hi-nat-index] count-less-in-nat hi-bit-index
-			l + mid + r
+			l wrap-add mid wrap-add r
 	else
 		0
 
 count-less nat(a index-set, n nat)
-	nat-index = n / 64
+	nat-index = n word-index
 	if nat-index < a.values.size
-		here = a.values[nat-index] count-less-in-nat: n mod 64
-		here + a.values[0 -> nat-index].count-ones-in-arr
+		here = a.values[nat-index] count-less-in-nat n.bit-index
+		here wrap-add a.values[0 -> nat-index].count-ones-in-arr
 	else
 		a.size
 
 count-greater-or-equal nat(a index-set, n nat)
-	nat-index = n / 64
+	nat-index = n word-index
 	if nat-index < a.values.size
-		here = a.values[nat-index] count-gte-in-nat: n mod 64
-		here + a.values[nat-index + 1 -> a.values.size].count-ones-in-arr
+		here = a.values[nat-index] count-gte-in-nat n.bit-index
+		here wrap-add a.values[(nat-index wrap-add 1) -> a.values.size].count-ones-in-arr
 	else
 		0
 
 .count-range-in-nat nat(a nat, lo-bit-index nat, hi-bit-index nat)
-	a bit-shift-right lo-bit-index count-less-in-nat: hi-bit-index - lo-bit-index
+	a bit-shift-right lo-bit-index count-less-in-nat: hi-bit-index wrap-sub lo-bit-index
 
 .count-less-in-nat nat(a nat, bit-index nat)
-	a bit-shift-left (64 - bit-index) count-ones
+	a bit-shift-left (64 wrap-sub bit-index) count-ones
 
 .count-gte-in-nat nat(a nat, bit-index nat)
 	a bit-shift-right bit-index count-ones
@@ -184,6 +182,11 @@ filter-less index-set(a index-set, n nat)
 	else
 		a
 
+.word-index nat(a nat) trusted
+	a unsafe-div 64
+.bit-index nat(a nat) trusted
+	a unsafe-mod 64
+
 region iteration
 
 each void(a index-set, f act void(nat))
@@ -192,15 +195,15 @@ each void(a index-set, f act void(nat))
 
 fold ?a(acc ?a, a index-set, f act ?a(?a, nat))
 	acc fold-with-index a.values, \cur, value, nat-index
-		bit-index-offset = nat-index * 64
+		bit-index-offset = nat-index wrap-mul 64
 		cur fold-one-bits value, \inner-acc, bit-index
-			f[inner-acc, bit-index-offset + bit-index]
+			f[inner-acc, bit-index-offset wrap-add bit-index]
 
 filter index-set(a index-set, f act bool(nat))
 	strip-trailing-zeroes: a.values map-with-index \value, nat-index
-		bit-index-offset = nat-index * 64
+		bit-index-offset = nat-index wrap-mul 64
 		value filter-bits \bit-index
-			f[bit-index-offset + bit-index]
+			f[bit-index-offset wrap-add bit-index]
 
 map index-set(a index-set, f act nat(nat))
 	a map-to-arr f index-set
@@ -248,7 +251,7 @@ debug str(a index-set)
 		prev -> cur each \x
 			a[x] is false
 		a[cur] is true
-		cur + 1
+		cur wrap-add 1
 	a.size is r.size
 
 test
@@ -269,20 +272,21 @@ test
 	c = b ~ [4, 9]
 	c verify "[x310]", [4, 8, 9]
 
-	c try-remove 7 is none
-	c try-add 8 is none
+	# TODO: 'is none'
+	(c try-remove 7).has? is false
+	(c try-add 8).has? is false
 
 	d = c - 8
 	d verify "[x210]", [4, 9]
 
 	folded = 1 fold d, \cur, x
-		cur + x
+		cur wrap-add x
 	folded is 14
 
 	filtered = c filter {it != 8}
 	filtered verify "[x210]", [4, 9]
 
-	mapped = c map {10 - it}
+	mapped = c map {10 wrap-sub it}
 	mapped verify "[x46]", [1, 2, 6]
 
 	info log "DONE WITH INDEX SET TEST"

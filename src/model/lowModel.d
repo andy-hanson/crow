@@ -74,8 +74,6 @@ enum PrimitiveType {
 	void_,
 }
 
-immutable(size_t) nPrimitiveTypes = 1 + cast(size_t) PrimitiveType.void_;
-
 immutable(Sym) symOfPrimitiveType(immutable PrimitiveType a) {
 	return shortSymAlphaLiteral(() {
 		final switch (a) {
@@ -731,6 +729,14 @@ struct LowExprKind {
 			bitwiseOrNat16,
 			bitwiseOrNat32,
 			bitwiseOrNat64,
+			eqFloat64,
+			eqInt8,
+			eqInt16,
+			eqInt32,
+			eqInt64,
+			eqNat8,
+			eqNat16,
+			eqNat32,
 			eqNat64,
 			eqPtr,
 			lessBool,

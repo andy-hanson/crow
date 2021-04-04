@@ -1,14 +1,14 @@
 no-std
 import
 	..bool: not
-	..compare: ==, <, <=, >, <=>, comparison, equal, less
+	..compare: ==, <, <=, >, compare, comparison, equal, less
 	..exception: assert, forbid
 	..fun: subscript
-	..misc: ->, as, data, void
-	..number: +, -, /, nat
+	..misc: ->, as, void
+	..number: ==, <=>, +, -, /, nat
 	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
 	..test: is
-	.arr: arr, subscript
+	.arr: ==, <=>, arr, subscript
 	.mut-arr: arr, begin-ptr, cast-immutable, empty?, end-ptr, mut-arr, size, set-subscript, subscript
 	.mut-list: mut-list, temp-as-mut-arr
 
@@ -16,14 +16,14 @@ import
 Returns a new array containing the same elements as `a`, but in sorted order.
 That means `res[i] <= res[i + 1]` for each element in the result.
 ###
-sort arr ?a(a arr ?a) data<?a>
+sort arr ?a(a arr ?a) compare<?a>
 	a sort \x, y
 		x <=> y
 sort arr ?a(a arr ?a, comparer act comparison(?a, ?a)) trusted
 	res = a mut-arr
 	res sort! comparer
 	res cast-immutable
-sort-by arr ?a(a arr ?a, f act ?b(?a)) data<?b>
+sort-by arr ?a(a arr ?a, f act ?b(?a)) compare<?b>
 	a sort \x, y
 		f[x] <=> f[y]
 
@@ -34,7 +34,7 @@ Sort and remove duplicates.
 That means `res[i] < res[i + 1]` for each element in the result.
 `[2, 1, 2] sort-unique` is `[1, 2]`.
 ###
-sort-unique arr ?a(a arr ?a) data<?a> trusted
+sort-unique arr ?a(a arr ?a) compare<?a> trusted
 	a.mut-arr.sort-unique! cast-immutable
 
 test
@@ -49,21 +49,21 @@ test
 
 
 # Sort a mut-list in place.
-sort! void(a mut-list ?a) data<?a> trusted
+sort! void(a mut-list ?a) compare<?a> trusted
 	a.temp-as-mut-arr sort!
 sort! void(a mut-list ?a, comparer act comparison(?a, ?a)) trusted
 	a.temp-as-mut-arr sort! comparer
-sort-by! void(a mut-list ?a, f act ?b(?a)) data<?b> trusted
+sort-by! void(a mut-list ?a, f act ?b(?a)) compare<?b> trusted
 	a.temp-as-mut-arr sort-by! f
 
 # Sort a mut-arr in place.
-sort! void(a mut-arr ?a) data<?a>
+sort! void(a mut-arr ?a) compare<?a>
 	a sort! \x, y
 		x <=> y
 sort! void(a mut-arr ?a, comparer act comparison(?a, ?a)) trusted
 	if a.empty? not
 		a.begin-ptr insertion-sort-recur! a.begin-ptr + 1, a.end-ptr, comparer
-sort-by! void(a mut-arr ?a, f act ?b(?a)) data<?b>
+sort-by! void(a mut-arr ?a, f act ?b(?a)) compare<?b>
 	a sort! \x, y
 		f[x] <=> f[y]
 
@@ -85,7 +85,7 @@ sort-by! void(a mut-arr ?a, f act ?b(?a)) data<?b>
 		cur[] := value
 
 # Sort a mut-list in place, remove unique elements, and return the (now shorter) mut-arr.
-sort-unique! mut-arr ?a(a mut-arr ?a) data<?a>
+sort-unique! mut-arr ?a(a mut-arr ?a) compare<?a>
 	a sort-unique! \x, y
 		x <=> y
 sort-unique! mut-arr ?a(a mut-arr ?a, comparer act comparison(?a, ?a)) trusted
@@ -95,7 +95,7 @@ sort-unique! mut-arr ?a(a mut-arr ?a, comparer act comparison(?a, ?a)) trusted
 		a sort! comparer
 		end = a.begin-ptr[] unique-recur! a.begin-ptr + 1, a.begin-ptr + 1, a.end-ptr, comparer
 		a[0 -> end - a.begin-ptr]
-sort-unique-by! mut-arr ?a(a mut-arr ?a, f act ?b(?a)) data<?b>
+sort-unique-by! mut-arr ?a(a mut-arr ?a, f act ?b(?a)) compare<?b>
 	a sort-unique! \x, y
 		f[x] <=> f[y]
 .unique-recur! ptr ?a(prev ?a, read ptr ?a, write ptr ?a, end ptr ?a, comparer act comparison(?a, ?a)) unsafe
@@ -119,18 +119,18 @@ sorted-by-first<?a, ?b> record
 	b arr ?b
 
 # Sort `a`, and apply the same permutation to `b`.
-sort-by-first sorted-by-first<?a, ?b>(a arr ?a, b arr ?b) data<?a> trusted
+sort-by-first sorted-by-first<?a, ?b>(a arr ?a, b arr ?b) compare<?a> trusted
 	mut-a = a mut-arr
 	mut-b = b mut-arr
 	mut-a sort-by-first! mut-b
 	mut-a.cast-immutable sorted-by-first mut-b.cast-immutable
 
 # Sort `a` in place, and apply the same permutation to `b` in place.
-sort-by-first! void(a mut-list ?a, b mut-list ?b) data<?a> trusted
+sort-by-first! void(a mut-list ?a, b mut-list ?b) compare<?a> trusted
 	a.temp-as-mut-arr sort-by-first! b.temp-as-mut-arr
 
 # Sort `a` in place, and apply the same permutation to `b` in place.
-sort-by-first! void(a mut-arr ?a, b mut-arr ?b) data<?a>
+sort-by-first! void(a mut-arr ?a, b mut-arr ?b) compare<?a>
 	assert: a.size == b.size
 	if a.size > 1
 		a swap 0, a.size / 2
@@ -141,7 +141,7 @@ sort-by-first! void(a mut-arr ?a, b mut-arr ?b) data<?a>
 		a[0 -> new-pivot-index] sort-by-first! b[0 -> new-pivot-index]
 		a[new-pivot-index + 1 -> a.size] sort-by-first! b[new-pivot-index + 1 -> b.size]
 
-.partition-by-first! nat(a mut-arr ?a, b mut-arr ?b, pivot ?a, l nat, r nat) data<?a>
+.partition-by-first! nat(a mut-arr ?a, b mut-arr ?b, pivot ?a, l nat, r nat) compare<?a>
 	assert: l <= a.size
 	assert: r < a.size
 	if l <= r

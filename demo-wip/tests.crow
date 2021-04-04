@@ -9,10 +9,10 @@ import
 	col.mut-deque: mut-deque
 	col.mut-dict: mut-dict
 	col.mut-list: mut-list
+	col.mut-lookup: mut-lookup
 	col.mut-priority-queue: mut-priority-queue
 	col.mut-set: mut-set
 	col.mut-stack: mut-stack
-	col.mut-lookup: mut-lookup
 	col.priority-queue: priority-queue
 	col.set: set
 	col.stack: stack
@@ -20,10 +20,12 @@ import
 	col.unordered-set-2: unordered-set
 	col.queue: queue
 	crypto.password: password-hash, quality-moderate
-	serialize: from-bytes
 	io.print: print
 	io.time-format: gmt
+	iter: iter
 	log: info, log
+	parse-command: parse-named-args
+	serialize: from-bytes
 	private.bootstrap: ctx, get-ctx
 
 main fut nat(_ arr str) summon
@@ -31,6 +33,7 @@ main fut nat(_ arr str) summon
 	drop: "" password-hash quality-moderate
 	drop: deque<nat>
 	drop: dict<nat, nat>
+	drop: frozen-unordered-set<nat>
 	drop: index-set
 	drop: list<nat>
 	drop: lookup<nat, str>
@@ -41,7 +44,6 @@ main fut nat(_ arr str) summon
 	drop: mut-priority-queue<nat, nat>
 	drop: mut-set<nat>
 	drop: mut-stack<nat>
-	drop: frozen-unordered-set<nat>
 	drop: priority-queue<nat, nat>
 	drop: set<nat>
 	drop: stack<nat>
@@ -49,6 +51,8 @@ main fut nat(_ arr str) summon
 	drop: unordered-set<nat>
 	drop: queue<nat>
 	drop: gmt
+	drop: 0 -> 0 iter
+	drop: [] parse-named-args []
 	run-all-tests
 	0 resolved
 

@@ -1,49 +1,140 @@
 no-std
 import
-	.bootstrap: int, int8, int16, int32, nat, nat8, nat16, nat32
+	..compare: comparison, equal, greater, less
+	.bool-low-level: ?, bool, not
+export
+	.bootstrap: float, int, int8, int16, int32, int64, nat, nat8, nat16, nat32, nat64
 
-unsafe-mod nat(a nat, b nat) noctx unsafe builtin
+<=> comparison(a nat8, b nat8) noctx
+	a less? b ?: less, a == b ? equal, greater
+<=> comparison(a nat16, b nat16) noctx
+	a less? b ?: less, a == b ? equal, greater
+<=> comparison(a nat32, b nat32) noctx
+	a less? b ?: less, a == b ? equal, greater
+<=> comparison(a nat64, b nat64) noctx
+	a less? b ?: less, a == b ? equal, greater
+<=> comparison(a int8, b int8) noctx
+	a less? b ?: less, a == b ? equal, greater
+<=> comparison(a int16, b int16) noctx
+	a less? b ?: less, a == b ? equal, greater
+<=> comparison(a int32, b int32) noctx
+	a less? b ?: less, a == b ? equal, greater
+<=> comparison(a int64, b int64) noctx
+	a less? b ?: less, a == b ? equal, greater
+<=> comparison(a float, b float) noctx
+	a less? b ?: less, a == b ? equal, greater
 
-unsafe-to-nat nat(a int) noctx builtin
-unsafe-to-nat8 nat8(a nat) noctx builtin
-unsafe-to-nat16 nat16(a nat) noctx builtin
-unsafe-to-nat32 nat32(a nat) noctx builtin
+.less? bool(a nat8, b nat8) noctx builtin
+.less? bool(a nat16, b nat16) noctx builtin
+.less? bool(a nat32, b nat32) noctx builtin
+.less? bool(a nat64, b nat64) noctx builtin
+.less? bool(a int8, b int8) noctx builtin
+.less? bool(a int16, b int16) noctx builtin
+.less? bool(a int32, b int32) noctx builtin
+.less? bool(a int64, b int64) noctx builtin
+.less? bool(a float, b float) noctx builtin
+== bool(a nat8, b nat8) noctx builtin
+== bool(a nat16, b nat16) noctx builtin
+== bool(a nat32, b nat32) noctx builtin
+== bool(a nat64, b nat64) noctx builtin
+== bool(a int8, b int8) noctx builtin
+== bool(a int16, b int16) noctx builtin
+== bool(a int32, b int32) noctx builtin
+== bool(a int64, b int64) noctx builtin
+== bool(a float, b float) noctx builtin
+
+unsafe-mod nat64(a nat64, b nat64) noctx unsafe builtin
+
+unsafe-to-nat nat64(a int64) noctx builtin
+unsafe-to-nat8 nat8(a nat64) noctx builtin
+unsafe-to-nat16 nat16(a nat64) noctx builtin
+unsafe-to-nat32 nat32(a nat64) noctx builtin
 
 # UB for positive numbers >= 2 ** 63
-unsafe-to-int int(a nat) noctx builtin
-unsafe-to-int8 int8(a int) noctx builtin
-unsafe-to-int16 int16(a int) noctx builtin
-unsafe-to-int32 int32(a int) noctx builtin
+unsafe-to-int int64(a nat64) noctx builtin
+unsafe-to-int8 int8(a int64) noctx builtin
+unsafe-to-int16 int16(a int64) noctx builtin
+unsafe-to-int32 int32(a int64) noctx builtin
 
-to-nat nat(n nat8) noctx builtin
-to-nat nat(n nat16) noctx builtin
-to-nat nat(n nat32) noctx builtin
+to-nat nat64(n nat8) noctx builtin
+to-nat nat64(n nat16) noctx builtin
+to-nat nat64(n nat32) noctx builtin
 
-to-int int(i int8) noctx builtin
-to-int int(i int16) noctx builtin
-to-int int(i int32) noctx builtin
+to-int int64(i int8) noctx builtin
+to-int int64(i int16) noctx builtin
+to-int int64(i int32) noctx builtin
 
-wrap-add nat(a nat, b nat) noctx builtin
 wrap-add nat8(a nat8, b nat8) noctx builtin
 wrap-add nat16(a nat16, b nat16) noctx builtin
 wrap-add nat32(a nat32, b nat32) noctx builtin
-wrap-add int(a int, b int) noctx builtin
+wrap-add nat64(a nat64, b nat64) noctx builtin
+wrap-add int8(a int8, b int8) noctx builtin
 wrap-add int16(a int16, b int16) noctx builtin
 wrap-add int32(a int32, b int32) noctx builtin
+wrap-add int64(a int64, b int64) noctx builtin
 
-wrap-sub nat(a nat, b nat) noctx builtin
 wrap-sub nat8(a nat8, b nat8) noctx builtin
 wrap-sub nat16(a nat16, b nat16) noctx builtin
 wrap-sub nat32(a nat32, b nat32) noctx builtin
-wrap-sub int(a int, b int) noctx builtin
+wrap-sub nat64(a nat64, b nat64) noctx builtin
+wrap-sub int8(a int8, b int8) noctx builtin
 wrap-sub int16(a int16, b int16) noctx builtin
 wrap-sub int32(a int32, b int32) noctx builtin
+wrap-sub int64(a int64, b int64) noctx builtin
 
-wrap-mul int(a int, b int) noctx builtin
+wrap-mul int8(a int8, b int8) noctx builtin
 wrap-mul int16(a int16, b int16) noctx builtin
 wrap-mul int32(a int32, b int32) noctx builtin
-wrap-mul nat(a nat, b nat) noctx builtin
+wrap-mul int64(a int64, b int64) noctx builtin
+wrap-mul nat8(a nat8, b nat8) noctx builtin
+wrap-mul nat16(a nat16, b nat16) noctx builtin
 wrap-mul nat32(a nat32, b nat32) noctx builtin
+wrap-mul nat64(a nat64, b nat64) noctx builtin
 
-unsafe-div nat(a nat, b nat) noctx unsafe builtin
-unsafe-div int(a int, b int) noctx unsafe builtin
+unsafe-div nat64(a nat64, b nat64) noctx unsafe builtin
+unsafe-div int64(a int64, b int64) noctx unsafe builtin
+
+# Equivlaent to `a multiple-of? 2`
+even? bool(a nat) trusted
+	(a unsafe-mod 2) == 0
+
+# Not even
+odd? bool(a nat)
+	a.even? not
+
+region constants
+
+min-int8 int8() noctx
+	-0x80
+min-int16 int16() noctx
+	-0x8000
+# Lowest possible int32.
+min-int32 int32() noctx
+	-0x80000000
+# Lowest possible int.
+min-int int() noctx
+	-0x8000000000000000
+
+max-int8 int8() noctx
+	0x7f
+max-int16 int16() noctx
+	0x7fff
+# Highest possible int32.
+max-int32 int32() noctx
+	0x7fffffff
+# Highest possible int.
+max-int int() noctx
+	0x7fffffffffffffff
+
+# Highest possible nat8.
+max-nat8 nat8() noctx
+	0xff
+# Highest possible nat16.
+max-nat16 nat16() noctx
+	0xffff
+# Highest possible nat32.
+max-nat32 nat32() noctx
+	0xffffffff
+# Highest possible nat.
+max-nat nat() noctx
+	0xffffffffffffffff

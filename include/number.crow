@@ -1,7 +1,7 @@
 no-std
 import
-	.bool: ?, and, bool, not, or
-	.compare: ==, <, <=, >=
+	.bool: ?, and, bool, or
+	.compare: <, <=, >=
 	.fun: subscript
 	.misc: ->, arrow, from, to, void
 	.private.number-low-level:
@@ -10,8 +10,10 @@ import
 	.ptr: size-of
 	.private.exception-low-level: assert, forbid
 export
-	.private.bootstrap: float, int, int8, int16, int32, int64, nat, nat8, nat16, nat32, nat64
-	.private.number-low-level: to-int, to-nat
+	.private.number-low-level:
+		==, <=>, even?, float, int, int8, int16, int32, int64, max-int8, max-int, max-int16,
+		max-int32, max-nat, max-nat8, max-nat16, max-nat32, min-int8, min-int16, min-int32,
+		min-int, nat, nat8, nat16, nat32, nat64, odd?, to-int, to-nat
 
 deep-size-bytes nat(a nat) unsafe
 	a size-of
@@ -38,14 +40,6 @@ region arithmetic
 # True if `b * c == a` for some `c`.
 multiple-of? bool(a nat, b nat)
 	(a mod b) == 0
-
-# Equivlaent to `a multiple-of? 2`
-even? bool(a nat)
-	a multiple-of? 2
-
-# Not even
-odd? bool(a nat)
-	a.even? not
 
 # Add two nats. Fail if the result would overflow.
 + nat(a nat, b nat)
@@ -173,33 +167,6 @@ square-root float(a float) noctx extern<"sqrt">
 
 # True if the float is "Not A Number".
 nan? bool(a float) noctx builtin
-
-region constants
-
-# Lowest possible int32.
-min-int32 int32() noctx
-	-2147483648
-# Highest possible int32.
-max-int32 int32() noctx
-	2147483647
-# Lowest possible int.
-min-int int() noctx
-	-0x8000000000000000
-# Highest possible int.
-max-int int() noctx
-	0x7fffffffffffffff
-# Highest possible nat8.
-max-nat8 nat8() noctx
-	0xff
-# Highest possible nat16.
-max-nat16 nat16() noctx
-	0xffff
-# Highest possible nat32.
-max-nat32 nat32() noctx
-	0xffffffff
-# Highest possible nat.
-max-nat nat() noctx
-	0xffffffffffffffff
 
 region number iteration
 

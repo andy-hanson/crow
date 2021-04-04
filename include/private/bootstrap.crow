@@ -104,31 +104,6 @@ bool builtin
 false bool() noctx builtin
 true bool() noctx builtin
 
-region compare.crow
-
-# Comparison for `a < b`
-less record
-# Comparison for `a == b`
-equal record
-# Comparison for `a > b`
-greater record
-comparison union
-	less
-	equal
-	greater
-
-<=> comparison(a ?a, b ?a) data<?a> noctx builtin
-
-# True iff `(a <=> b) == equal`
-== bool(a ?a, b ?a) noctx data<?a>
-	match a <=> b
-	as less
-		false
-	as equal
-		true
-	as greater
-		false
-
 region bootstrap arithmetic
 
 # The compiler needs special access to these types to support number literals

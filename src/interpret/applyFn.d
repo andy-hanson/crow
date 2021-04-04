@@ -40,6 +40,10 @@ void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 			binary(dataStack, (immutable ulong a, immutable ulong b) =>
 				u64OfBool(a == b));
 			break;
+		case FnOp.eqFloat64:
+			binary(dataStack, (immutable ulong a, immutable ulong b) =>
+				u64OfBool(float64OfU64Bits(a) == float64OfU64Bits(b)));
+			break;
 		case FnOp.float64FromInt64:
 			unary(dataStack, (immutable ulong a) =>
 				u64OfFloat64Bits(cast(double) (cast(long) a)));

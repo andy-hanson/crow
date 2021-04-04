@@ -1,7 +1,7 @@
 no-std
 import
 	..bool: not
-	..col.arr: ~, begin-ptr, arr-from-begin-end
+	..col.arr: ==, <=>, ~, begin-ptr, arr-from-begin-end
 	..col.dict: dict, each
 	..col.mut-dict: move-to-dict!, mut-dict, set-subscript
 	..col.mut-list: ~=, move-to-arr!, mut-list

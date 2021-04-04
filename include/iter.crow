@@ -5,7 +5,7 @@ import
 	.compare: >=
 	.fun: subscript
 	.misc: arrow, from, to, void
-	.number: +, nat
+	.number: ==, <=>, +, nat
 	.opt: none, opt, some, value
 
 ###

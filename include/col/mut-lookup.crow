@@ -1,26 +1,25 @@
 no-std
 import
 	..bool: and, bool, not, or
-	..compare: ==, >, >=
+	..compare: >, >=, compare
 	..exception: assert, forbid
 	..fun: subscript
 	..hash: hash, hash-mix
 	..misc: ->, arrow, as, data, drop, from, to, void
-	..number: nat
-	..opt: none, opt, some, value
+	..opt: ==, none, opt, some, value
 	..ptr: +, ptr, ptr-eq?, set-subscript, subscript
 	..str: char, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..test: is
-	..private.number-low-level: unsafe-mod, wrap-add, wrap-mul, wrap-sub
-	.arr: arr, size
-	.arr-util: each
+	..private.number-low-level: ==, <=>, nat, unsafe-mod, wrap-add, wrap-mul, wrap-sub
+	.arr: ==, arr, size
+	.arr-util: each, map
 	.mut-arr:
 		begin-ptr, cast-immutable, each, empty?, end-ptr, fill!, fill-mut-arr, fold, map, mut-arr,
 		set-subscript, size, subscript, uninitialized-mut-arr
 	.mut-list:
-		~=, at-capacity?, copy, each, empty?, filter!, find-index, fold, map!, move-to-arr!, mut-list,
-		pop-n!, remove-unordered-at!, set-subscript, size, subscript
+		~=, at-capacity?, copy, each, empty?, filter!, find-index, fold, map!, move-to-arr!,
+		mut-list, pop-n!, remove-unordered-at!, set-subscript, size, subscript
 
 mut-lookup<?k, ?v> record mut
 	# TODO:PRIVATE
@@ -33,10 +32,10 @@ mut-lookup<?k, ?v> record mut
 	arrow<?k, ?v>
 	mut-list<arrow<?k, ?v>>
 
-mut-lookup mut-lookup<?k, ?v>() data<?k> hash-mix<?k>
+mut-lookup mut-lookup<?k, ?v>() data<?k> compare<?k> hash-mix<?k>
 	mut-lookup: void, mut-arr, 0
 
-mut-lookup mut-lookup<?k, ?v>(a arr arrow<?k, ?v>) data<?k> hash-mix<?k>
+mut-lookup mut-lookup<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	res = a.size mut-lookup-with-capacity<?k, ?v>
 	a each \pair
 		res[pair from] := pair to
@@ -46,14 +45,14 @@ mut-lookup mut-lookup<?k, ?v>(a arr arrow<?k, ?v>) data<?k> hash-mix<?k>
 New dict with `capacity` empty entries.
 WARN: Due to hash conflicts, this doesn't guarantee that allocations won't be needed.
 ###
-mut-lookup-with-capacity mut-lookup<?k, ?v>(capacity nat) data<?k> hash-mix<?k>
+mut-lookup-with-capacity mut-lookup<?k, ?v>(capacity nat) data<?k> compare<?k> hash-mix<?k>
 	mut-lookup: void, (capacity fill-mut-arr none), 0
 
-arr-unordered arr arrow<?k, ?v>(a mut-lookup<?k, ?v>) data<?k> hash-mix<?k>
+arr-unordered arr arrow<?k, ?v>(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a map-to-arr-unordered \key, value
 		key -> value
 
-copy mut-lookup<?k, ?v>(a mut-lookup<?k, ?v>) data<?k> hash-mix<?k>
+copy mut-lookup<?k, ?v>(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	entries = a.entries map \entry
 		match entry
 		as none
@@ -74,13 +73,13 @@ test
 	a verify "(6 -> 6) (1 -> 1) [2 -> 2, 5 -> 5]"
 	b verify "_ (1 -> 1) [2 -> 2, 5 -> 5]"
 
-empty? bool(a mut-lookup<?k, ?v>) data<?k> hash-mix<?k>
+empty? bool(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a.size == 0
 
-size nat(a mut-lookup<?k, ?v>) data<?k> hash-mix<?k>
+size nat(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a total-size
 
-subscript opt ?v(a mut-lookup<?k, ?v>, key ?k) trusted data<?k> hash-mix<?k>
+subscript opt ?v(a mut-lookup<?k, ?v>, key ?k) trusted data<?k> compare<?k> hash-mix<?k>
 	if a empty?
 		none
 	else
@@ -99,15 +98,15 @@ subscript opt ?v(a mut-lookup<?k, ?v>, key ?k) trusted data<?k> hash-mix<?k>
 			as some s
 				m[s value].to some
 
-set-subscript void(a mut-lookup<?k, ?v>, key ?k, value ?v) data<?k> hash-mix<?k>
+set-subscript void(a mut-lookup<?k, ?v>, key ?k, value ?v) data<?k> compare<?k> hash-mix<?k>
 	drop: a update! key, \ignore
 		value some
 
-clear! void(a mut-lookup<?k, ?v>) data<?k> hash-mix<?k>
+clear! void(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a.entries fill! none
 	a.total-size := 0
 
-swap! void(a mut-lookup<?k, ?v>, b mut-lookup<?k, ?v>) data<?k> hash-mix<?k>
+swap! void(a mut-lookup<?k, ?v>, b mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	temp-entries = a.entries
 	a.entries := b.entries
 	b.entries := temp-entries
@@ -115,7 +114,7 @@ swap! void(a mut-lookup<?k, ?v>, b mut-lookup<?k, ?v>) data<?k> hash-mix<?k>
 	a.total-size := b.total-size
 	b.total-size := temp-size
 
-remove-key! opt ?v(a mut-lookup<?k, ?v>, key ?k) data<?k> hash-mix<?k>
+remove-key! opt ?v(a mut-lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 	a update! key, \ignore
 		none
 
@@ -123,7 +122,7 @@ remove-key! opt ?v(a mut-lookup<?k, ?v>, key ?k) data<?k> hash-mix<?k>
 f: Takes the value (if it exists), returns the new value (or none to remove).
 Returns the old value (if it exists).
 ###
-.update! opt ?v(a mut-lookup<?k, ?v>, key ?k, f act opt ?v(opt ?v)) trusted data<?k> hash-mix<?k>
+.update! opt ?v(a mut-lookup<?k, ?v>, key ?k, f act opt ?v(opt ?v)) trusted data<?k> compare<?k> hash-mix<?k>
 	if a.entries empty?
 		match f[none]
 		as none
@@ -195,7 +194,7 @@ Returns the old value (if it exists).
 					m[index] := key -> s.value
 				old-value some
 
-~= void(a mut-lookup<?k, ?v>, b arr arrow<?k, ?v>) data<?k> hash-mix<?k>
+~= void(a mut-lookup<?k, ?v>, b arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	b each \pair
 		a[pair from] := pair to
 
@@ -203,7 +202,7 @@ Returns the old value (if it exists).
 .should-expand? bool(a mut-lookup<?k, ?v>)
 	a.total-size >= a.entries.size
 
-.expand! void(a mut-lookup<?k, ?v>) data<?k> hash-mix<?k>
+.expand! void(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	forbid: a.entries.size == 0
 	new-size = a.entries.size wrap-mul 2
 	bigger = new-size mut-lookup-with-capacity<?k, ?v>
@@ -214,11 +213,11 @@ Returns the old value (if it exists).
 
 region iteration
 
-each-unordered void(a mut-lookup<?k, ?v>, f act void(?k, ?v)) data<?k> hash-mix<?k>
+each-unordered void(a mut-lookup<?k, ?v>, f act void(?k, ?v)) data<?k> compare<?k> hash-mix<?k>
 	void fold-unordered a, \ignore, key, value
 		f[key, value]
 
-fold-unordered ?a(acc ?a, a mut-lookup<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> hash-mix<?k>
+fold-unordered ?a(acc ?a, a mut-lookup<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare<?k> hash-mix<?k>
 	acc fold a.entries, \cur, entry
 		match entry
 		as none
@@ -229,7 +228,7 @@ fold-unordered ?a(acc ?a, a mut-lookup<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> h
 			cur fold m, \cur2, pair
 				f[cur2, pair.from, pair.to]
 
-filter! void(a mut-lookup<?k, ?v>, f act bool(?k, ?v)) trusted data<?k> hash-mix<?k>
+filter! void(a mut-lookup<?k, ?v>, f act bool(?k, ?v)) trusted data<?k> compare<?k> hash-mix<?k>
 	a.entries.begin-ptr filter-recur! a.entries.end-ptr, f
 .filter-recur! void(entry-ptr ptr entry<?k, ?v>, entry-end ptr entry<?k, ?v>, f act bool(?k, ?v)) unsafe
 	if entry-ptr ptr-eq? entry-end not
@@ -250,7 +249,7 @@ filter! void(a mut-lookup<?k, ?v>, f act bool(?k, ?v)) trusted data<?k> hash-mix
 		entry-ptr + 1 filter-recur! entry-end, f
 
 
-map-to-arr-unordered arr ?out(a mut-lookup<?k, ?v>, f act ?out(?k, ?v)) trusted data<?k> hash-mix<?k>
+map-to-arr-unordered arr ?out(a mut-lookup<?k, ?v>, f act ?out(?k, ?v)) trusted data<?k> compare<?k> hash-mix<?k>
 	out = a.size uninitialized-mut-arr<?out>
 	end = out.begin-ptr fold-unordered a, \cur, key, value
 		cur[] := f[key, value]
@@ -258,7 +257,7 @@ map-to-arr-unordered arr ?out(a mut-lookup<?k, ?v>, f act ?out(?k, ?v)) trusted 
 	assert: end ptr-eq? out.end-ptr
 	out cast-immutable
 
-map-values! void(a mut-lookup<?k, ?v>, f act ?v(?k, ?v)) trusted data<?k> hash-mix<?k>
+map-values! void(a mut-lookup<?k, ?v>, f act ?v(?k, ?v)) trusted data<?k> compare<?k> hash-mix<?k>
 	a.entries.begin-ptr map-values-recur! a.entries.end-ptr, f
 .map-values-recur! void(entry-ptr ptr entry<?k, ?v>, entry-end ptr entry<?k, ?v>, f act ?v(?k, ?v)) unsafe
 	if entry-ptr ptr-eq? entry-end not
@@ -306,7 +305,9 @@ test
 	a[5] is none
 	a[6] is "6".some
 	a.size is 1
-	a.arr-unordered is [6 -> "6"]
+	# TODO: a.arr-unordered is [6 -> "6"]
+	a.arr-unordered map {it from} is [6]
+	a.arr-unordered map {it to} is ["6"]
 
 	a verify "(6 -> 6)"
 
@@ -326,7 +327,9 @@ test
 	a[8] is "8".some
 	a[5] is none
 
-	a.arr-unordered is [4 -> "4", 8 -> "8", 6 -> "six", 3 -> "3"]
+	# TODO: a.arr-unordered is [4 -> "4", 8 -> "8", 6 -> "six", 3 -> "3"]
+	a.arr-unordered map {it from} is [4, 8, 6, 3]
+	a.arr-unordered map {it to} is ["4", "8", "six", "3"]
 
 	a[12] := "12"
 	a verify "(8 -> 8) _ _ (3 -> 3) [4 -> 4, 12 -> 12] _ (6 -> six) _"

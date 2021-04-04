@@ -1949,6 +1949,14 @@ immutable(WriteExprResult) writeSpecialBinary(Alloc, TempAlloc)(
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat32:
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat64:
 			return operator("|");
+		case LowExprKind.SpecialBinary.Kind.eqFloat64:
+		case LowExprKind.SpecialBinary.Kind.eqInt8:
+		case LowExprKind.SpecialBinary.Kind.eqInt16:
+		case LowExprKind.SpecialBinary.Kind.eqInt32:
+		case LowExprKind.SpecialBinary.Kind.eqInt64:
+		case LowExprKind.SpecialBinary.Kind.eqNat8:
+		case LowExprKind.SpecialBinary.Kind.eqNat16:
+		case LowExprKind.SpecialBinary.Kind.eqNat32:
 		case LowExprKind.SpecialBinary.Kind.eqNat64:
 		case LowExprKind.SpecialBinary.Kind.eqPtr:
 			return operator("==");

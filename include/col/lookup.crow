@@ -1,22 +1,21 @@
 no-std
 import
 	..bits: bits-and, unsafe-bit-shift-right
-	..bool: ?, and, bool, false, not, true
-	..compare: ==, !=, <, <=, >=, max
+	..bool: ==, ?, and, bool, false, not, true
+	..compare: !=, <, <=, >=, compare, max
 	..exception: assert, unreachable
 	..fun: subscript
 	..hash: hash, hash-mix
 	..log: info, log
 	..misc: ->, arrow, as, data, drop, from, to, void
-	..number: nat
-	..opt: force, none, opt, some, value
+	..opt: ==, force, none, opt, some, value
 	..ptr: size-of
 	..str: char, str
 	..str-conv: to-str
 	..test: is
 	..private.bootstrap: todo
-	..private.number-low-level: wrap-add, wrap-sub
-	.arr: ~, arr, empty?, size, subscript
+	..private.number-low-level: ==, <=>, nat, wrap-add, wrap-sub
+	.arr: ==, ~, arr, empty?, size, subscript
 	.arr-util:
 		each, each-with-index, every?, find-index, fold, fold-with-index,
 		remove-at, rtail, tail, update, update-with-default
@@ -76,24 +75,24 @@ overhead-bytes nat(a lookup<?k, ?v>) unsafe
 	as leaf-node
 		mid
 
-lookup lookup<?k, ?v>() data<?k> hash-mix<?k>
+lookup lookup<?k, ?v>() data<?k> compare<?k> hash-mix<?k>
 	lookup: void, empty-leaf-node
 
-lookup lookup<?k, ?v>(a arr arrow<?k, ?v>) data<?k> hash-mix<?k>
+lookup lookup<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	if a.size <= 4 and a.no-duplicate-keys?
 		lookup: void, leaf-node: a
 	else
 		lookup fold a, \cur, x
 			cur ~ x
 
-.no-duplicate-keys? bool(a arr arrow<?k, ?v>) data<?k>
+.no-duplicate-keys? bool(a arr arrow<?k, ?v>) compare<?k>
 	if a.size <= 1
 		true
 	else
 		key = a[0] from
 		a.tail every? {it.from != key} and a.tail.no-duplicate-keys?
 
-empty? bool(a lookup<?k, ?v>) data<?k> hash-mix<?k>
+empty? bool(a lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a.root node-empty?
 .node-empty? bool(a node<?k, ?v>)
 	match a
@@ -102,7 +101,7 @@ empty? bool(a lookup<?k, ?v>) data<?k> hash-mix<?k>
 	as leaf-node l
 		l.pairs empty?
 
-size nat(a lookup<?k, ?v>) data<?k> hash-mix<?k>
+size nat(a lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	0 size-recur a.root
 .size-recur nat(acc nat, a node<?k, ?v>)
 	match a
@@ -112,14 +111,14 @@ size nat(a lookup<?k, ?v>) data<?k> hash-mix<?k>
 	as leaf-node l
 		acc wrap-add l.pairs.size
 
-subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> hash-mix<?k>
+subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 	match a root
 	as inner-node
 		hash = key hash
 		a.root subscript-recur key, hash
 	as leaf-node l
 		l.pairs subscript-leaf-recur key
-.subscript-recur opt ?v(a node<?k, ?v>, key ?k, remaining-hash nat) trusted data<?k> hash-mix<?k>
+.subscript-recur opt ?v(a node<?k, ?v>, key ?k, remaining-hash nat) trusted data<?k> compare<?k> hash-mix<?k>
 	match a
 	as inner-node i
 		which = remaining-hash low-bits
@@ -129,7 +128,7 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> hash-mix<?k>
 			none
 	as leaf-node l
 		l.pairs subscript-leaf-recur key
-.subscript-leaf-recur opt ?v(a arr arrow<?k, ?v>, key ?k) data<?k>
+.subscript-leaf-recur opt ?v(a arr arrow<?k, ?v>, key ?k) compare<?k>
 	if a empty?
 		none
 	elif a[0].from == key
@@ -137,7 +136,7 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> hash-mix<?k>
 	else
 		a.tail subscript-leaf-recur key
 
-~ lookup<?k, ?v>(a lookup<?k, ?v>, pair arrow<?k, ?v>) data<?k> hash-mix<?k>
+~ lookup<?k, ?v>(a lookup<?k, ?v>, pair arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	res = a get-or-update pair.from, \old-value
 		pair.to insert
 	match res new-node
@@ -146,7 +145,7 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> hash-mix<?k>
 	as some s
 		lookup: void, s.value
 
-~ lookup<?k, ?v>(a lookup<?k, ?v>, pairs arr arrow<?k, ?v>) data<?k> hash-mix<?k>
+~ lookup<?k, ?v>(a lookup<?k, ?v>, pairs arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a fold pairs, \cur, pair
 		cur ~ pair
 
@@ -158,7 +157,7 @@ already-has-key<?v> record
 	value ?v
 
 # Adds a value if the key doesn't already exist
-try-add try-add-result<?k, ?v>(a lookup<?k, ?v>, key ?k, get-value act ?v()) data<?k> hash-mix<?k>
+try-add try-add-result<?k, ?v>(a lookup<?k, ?v>, key ?k, get-value act ?v()) data<?k> compare<?k> hash-mix<?k>
 	res = a get-or-update key, \old-value
 		match old-value
 		as none
@@ -171,7 +170,7 @@ try-add try-add-result<?k, ?v>(a lookup<?k, ?v>, key ?k, get-value act ?v()) dat
 	as some s
 		already-has-key: s.value
 
-- lookup<?k, ?v>(a lookup<?k, ?v>, key ?k) data<?k> hash-mix<?k>
+- lookup<?k, ?v>(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 	match a try-remove key
 	as none
 		a
@@ -183,7 +182,7 @@ try-remove-result<?k, ?v> record
 	old-value ?v
 	new-lookup lookup<?k, ?v>
 
-try-remove opt try-remove-result<?k, ?v>(a lookup<?k, ?v>, key ?k) data<?k> hash-mix<?k>
+try-remove opt try-remove-result<?k, ?v>(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 	res = a get-or-update key, \old-value
 		remove
 	match res old-value
@@ -216,7 +215,7 @@ try-remove opt try-remove-result<?k, ?v>(a lookup<?k, ?v>, key ?k) data<?k> hash
 	key ?k
 	f act get-or-update-action ?v(opt ?v)
 spec
-	data<?k>
+	compare<?k>
 	hash-mix<?k>
 body
 	hash = key hash
@@ -234,7 +233,7 @@ body
 	f act get-or-update-action ?v(opt ?v)
 spec
 	trusted
-	data<?k>
+	compare<?k>
 	hash-mix<?k>
 body
 	match a
@@ -328,7 +327,7 @@ inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat, new-ch
 	hash-shift nat
 	f act get-or-update-action ?v(opt ?v)
 spec
-	data<?k>
+	compare<?k>
 	hash-mix<?k>
 body
 	match a.pairs find-index {it.from == key}

@@ -1,33 +1,16 @@
 no-std
 import
+	.compare: comparison
 	.private.bootstrap: nat
+	.private.number-low-level: ==, <=>
 export
-	.private.bootstrap: bool, false, true
+	.private.bool-low-level: ?, and, bool, false, not, or, true
 
-# Changes `true` to `false`, and `false` to `true`.
-not bool(a bool) noctx
-	if a
-		false
-	else
-		true
+== bool(a bool, b bool)
+	a.to-nat == b.to-nat
 
-###
-If `a` is false, returns false immediately and does not evaluate `b`.
-Else, returns `b`.
-###
-and bool(a bool, b bool) noctx builtin
-
-###
-If `a` is `true`, returns `true` immediately and does not evaluate `a`.
-Else, returns `b`.
-###
-or bool(a bool, b bool) noctx builtin
-
-###
-If `cond` is true, evaluates `if-true` and returns the result, without evaluating `if-false`.
-If `cond` is false, evaluates `if-false` and returns the result, without evaluating `if-true`.
-###
-? ?a(cond bool, if-true ?a, if-false ?a) noctx builtin
+<=> comparison(a bool, b bool)
+	a.to-nat <=> b.to-nat
 
 # 0 for false, 1 for true.
 to-nat nat(b bool) noctx

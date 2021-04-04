@@ -1,16 +1,15 @@
 no-std
 import
-	..bool: and, bool, false, not, true
-	..compare: ==, <=
+	..bool: ==, and, bool, false, not, true
+	..compare: <=, compare
 	..fun: subscript
 	..hash: hash, hash-mix
 	..misc: data, void
-	..number: nat
 	..opt: none, opt, some, value
 	..ptr: +, -, ptr, ptr-eq?, ptr-less-eq?, set-subscript, size-of, subscript, swap!
 	..test: is
-	..private.number-low-level: unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
-	.arr: arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, size, unsafe-at
+	..private.number-low-level: ==, <=>, nat, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
+	.arr: ==, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, size, unsafe-at
 	.arr-util: alloc-count, fold, fold-with-index, index-of, map, overhead-bytes, ptr-of
 	.mut-arr:
 		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-mut-arr, mut-arr,
@@ -22,10 +21,10 @@ frozen-unordered-set<?a> record force-data
 	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
 	bucket-starts arr ptr ?a
 
-frozen-unordered-set frozen-unordered-set ?a() data<?a> hash-mix<?a>
+frozen-unordered-set frozen-unordered-set ?a() data<?a> compare<?a> hash-mix<?a>
 	frozen-unordered-set: [], []
 
-frozen-unordered-set frozen-unordered-set ?a(a arr ?a) trusted data<?a> hash-mix<?a>
+frozen-unordered-set frozen-unordered-set ?a(a arr ?a) trusted data<?a> compare<?a> hash-mix<?a>
 	a.mut-arr unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
 
 # Values are stored as a contiguous array; order is arbitrary.
@@ -51,7 +50,7 @@ size nat(a frozen-unordered-set ?a)
 unordered-arr arr ?a(a frozen-unordered-set ?a)
 	a values
 
-subscript bool(a frozen-unordered-set ?a, value ?a) trusted data<?a> hash-mix<?a>
+subscript bool(a frozen-unordered-set ?a, value ?a) trusted data<?a> compare<?a> hash-mix<?a>
 	match a try-get-unordered-index value
 	as none
 		false
@@ -60,7 +59,7 @@ subscript bool(a frozen-unordered-set ?a, value ?a) trusted data<?a> hash-mix<?a
 
 # WARN: The order of values is arbitrary,
 # but consistent for *identical* (not ==) sets.
-try-get-unordered-index opt nat(a frozen-unordered-set ?a, value ?a) trusted data<?a> hash-mix<?a>
+try-get-unordered-index opt nat(a frozen-unordered-set ?a, value ?a) trusted data<?a> compare<?a> hash-mix<?a>
 	if a.bucket-starts empty?
 		a.values index-of value
 	else
@@ -81,6 +80,7 @@ unsafe-frozen-unordered-set-from-mut-arr-cast-immutable frozen-unordered-set ?a
 spec
 	unsafe
 	data<?a>
+	compare<?a>
 	hash-mix<?a>
 body
 	if a.size <= 4

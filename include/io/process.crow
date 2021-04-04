@@ -6,10 +6,10 @@ import
 	..col.arr: ~, arr, begin-ptr, ref-of-val-at, size
 	..col.arr-util: fold, map
 	..col.mut-list: begin-ptr, move-to-arr!, mut-list, size, unsafe-set-size!
-	..compare: ==, <=
+	..compare: <=
 	..exception: assert, throw
 	..misc: as, void
-	..number: +, int32, to-int, to-nat
+	..number: to-nat
 	..posix.bytes-types: zero
 	..posix.extra-types: fd-t
 	..posix.poll:
@@ -28,6 +28,7 @@ import
 	..str: char, c-str, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..str-util: to-c-str
+	..private.number-low-level: ==, <=>, int32, to-int, wrap-add
 	.environ: convert-environ, environ
 	.file: is-file?
 	.posix-util: check-posix-error
@@ -132,7 +133,7 @@ body
 	else
 		a = stdout-pollfd handle-revents stdout-builder
 		b = stderr-pollfd handle-revents stderr-builder
-		assert: a.any?.to-nat + b.any?.to-nat == n-pollfds-with-events.to-nat
+		assert: (a.any?.to-nat wrap-add b.any?.to-nat) == n-pollfds-with-events.to-nat
 		# Apparently stdout and stderr can hang up at slightly different times.
 		if not: a.hung-up? and b.hung-up?
 			keep-polling: stdout-pipe, stderr-pipe, stdout-builder, stderr-builder
@@ -159,7 +160,7 @@ body
 	read-max = 1024
 	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	old-size = buffer.size
-	buffer unsafe-set-size! old-size + read-max
+	buffer unsafe-set-size!: old-size wrap-add read-max
 	add-data-to = buffer.begin-ptr + old-size
 	n-bytes-read = fd read add-data-to.as-any-ptr, read-max
 	if n-bytes-read == -1
@@ -171,7 +172,7 @@ body
 		void
 	else
 		assert: n-bytes-read.to-nat <= read-max
-		new-size = old-size + n-bytes-read.to-nat
+		new-size = old-size wrap-add n-bytes-read.to-nat
 		buffer unsafe-set-size! new-size
 		fd read-to-buffer-until-eof buffer
 

@@ -2,15 +2,14 @@ no-std
 import
 	.bool: bool, false, true
 	.cell: cell, set-subscript, subscript
-	.col.arr: arr, empty?, size, subscript
+	.col.arr: ==, <=>, arr, empty?, size, subscript
 	.col.arr-util: find-index, index-of, starts-with?, tail, try-remove-start
 	.col.dict: dict, each
 	.col.mut-dict: move-to-dict!, mut-dict, set-subscript
 	.col.mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
-	.compare: ==
 	.exception: assert, forbid, throw
 	.misc: ->, void
-	.number: +
+	.number: ==, +
 	.opt: force, has?, none, opt, some, value
 	.str: str
 	.str-conv: interp, finish, to-str, with-str, with-value

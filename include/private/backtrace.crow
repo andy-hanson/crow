@@ -5,7 +5,9 @@ import
 	..sys.execinfo: backtrace
 	.alloc: try-alloc-uninitialized
 	.bootstrap: arr, as, hard-assert, nat, none, opt, some, str, value, void
-	.number-low-level: to-int, unsafe-div, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, wrap-add, wrap-sub
+	.number-low-level:
+		==, <=>, to-int, unsafe-div, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, wrap-add,
+		wrap-sub
 export
 	.bootstrap: backtrace, return-stack
 

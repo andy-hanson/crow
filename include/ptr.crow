@@ -1,7 +1,7 @@
 no-std
 import
 	.bool: bool, or
-	.compare: ==, comparison, less, equal, greater
+	.compare: comparison, less, equal, greater
 	.private.bootstrap: nat, void
 	.private.number-low-level: unsafe-div, wrap-sub
 export
@@ -12,7 +12,7 @@ null ptr ?a() noctx builtin
 
 # True if the pointer is `null`.
 null? bool(a ptr ?a) noctx trusted
-	a.to-nat == (null<?a>).to-nat
+	a ptr-eq? null<?a>
 
 # Advance the pointer by `offset`.
 + ptr ?a(a ptr ?a, offset nat) noctx unsafe builtin

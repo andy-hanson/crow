@@ -2,7 +2,7 @@ no-std
 import
 	..bits: bits-and, bits-not
 	..bool: bool, false, not, or, to-nat, true
-	..compare: ==, !=, <, <=, >
+	..compare: !=, <, <=, >
 	..fun: subscript
 	..posix.stdlib: free, malloc
 	..posix.string: memcpy, memset
@@ -12,7 +12,7 @@ import
 	.bootstrap:
 		as, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, lock, nat, nat8, nat64, none, opt, some,
 		todo, value, void
-	.number-low-level: unsafe-div, wrap-add, wrap-mul, wrap-sub
+	.number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
 	.thread-utils: acquire!, lock-by-val, release!
 
 set-zero-range void(begin ptr ?a, size nat) noctx unsafe

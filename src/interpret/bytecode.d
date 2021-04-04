@@ -580,6 +580,7 @@ enum FnOp : ubyte {
 	compareExchangeStrongBool,
 	countOnesNat64,
 	eqBits,
+	eqFloat64,
 	float64FromInt64,
 	float64FromNat64,
 	intFromInt16,
@@ -679,6 +680,8 @@ private immutable(string) strOfFnOp(immutable FnOp fnOp) {
 			return "count-ones (nat-64)";
 		case FnOp.eqBits:
 			return "== (integrals / pointers)";
+		case FnOp.eqFloat64:
+			return "== (float-64)";
 		case FnOp.float64FromInt64:
 			return "float-64-from-int-64";
 		case FnOp.float64FromNat64:

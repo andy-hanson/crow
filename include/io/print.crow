@@ -1,16 +1,15 @@
 no-std
 import
-	..private.bootstrap: hard-assert, todo
-	..private.number-low-level: unsafe-to-int
 	..col.arr: begin-ptr, size
-	..compare: ==, !=
+	..compare: !=
 	..misc: void
-	..number: nat8
 	..posix.extra-types: fd-t
 	..posix.stdio: stderr, stdout
 	..posix.unistd: write
 	..ptr: as-any-ptr, size-of
 	..str: char, str
+	..private.bootstrap: hard-assert, todo
+	..private.number-low-level: ==, nat8, unsafe-to-int
 
 # Print to stdout, including a newline.
 print void(a str) summon noctx

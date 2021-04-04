@@ -1,9 +1,8 @@
 no-std
 import
 	.bool: and
-	.col.arr: ~, arr, arr-from-begin-end, begin-ptr, has?, size, subscript
+	.col.arr: ==, ~, arr, arr-from-begin-end, begin-ptr, has?, size, subscript
 	.col.arr-util: tail
-	.compare: ==
 	.number: nat8
 	.opt: none, opt, some, value
 	.ptr: +, ptr-cast, subscript

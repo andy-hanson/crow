@@ -2,14 +2,14 @@ no-std
 import
 	..private.alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
 	..bool: bool, not
-	..compare: ==, <, <=
-	..private.exception-low-level: assert
+	..compare: <, <=, equal
 	..fun: subscript
-	..misc: ->, arrow, data, from, to, void
-	..number: -, *, nat
+	..misc: ->, arrow, from, to, void
 	..opt: none, opt, some
 	..posix.string: memcpy
 	..ptr: +, -, as-any-ptr, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of, subscript
+	..private.exception-low-level: assert, forbid
+	..private.number-low-level: ==, <=>, nat, wrap-mul, wrap-sub
 	.arr: arr, arr-from-begin-end, begin-ptr, size, subscript
 	.arr-util: each, each-with-index, find-index, fold, fold-reverse
 
@@ -62,7 +62,7 @@ copy-to-arr arr ?a(a mut-arr ?a) trusted
 
 copy-from! void(dest mut-arr ?a, source arr ?a) trusted
 	assert: dest.size == source.size
-	memcpy: dest.begin-ptr.as-any-ptr, source.begin-ptr.as-any-ptr, dest.size * size-of<?a>
+	memcpy: dest.begin-ptr.as-any-ptr, source.begin-ptr.as-any-ptr, dest.size wrap-mul size-of<?a>
 
 copy-from! void(dest mut-arr ?a, source mut-arr ?a) trusted
 	dest copy-from! source.cast-immutable
@@ -132,10 +132,12 @@ last opt ?a(a mut-arr ?a)
 		a[0] some
 
 tail mut-arr ?a(a mut-arr ?a)
+	forbid: a empty?
 	a[1 -> a.size]
 
 rtail mut-arr ?a(a mut-arr ?a)
-	a[0 -> a.size - 1]
+	forbid: a empty?
+	a[0 -> (a.size wrap-sub 1)]
 
 # Allocates a `mut-arr` without initializing any of its elements.
 uninitialized-mut-arr mut-arr ?a(size nat) unsafe
@@ -191,7 +193,7 @@ set-zero-elements void(a mut-arr ?a) noctx unsafe
 	a.begin-ptr set-zero-range a.size
 
 # Equivalent to `a.temp-as-arr index-of value`.
-index-of opt nat(a mut-arr ?a, value ?a) data<?a>
+index-of opt nat(a mut-arr ?a, value ?a) equal<?a>
 	a find-index {it == value}
 
 # Equivalent to `a.temp-as-arr find-index f`.

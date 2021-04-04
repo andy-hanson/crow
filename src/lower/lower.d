@@ -4,7 +4,6 @@ module lower.lower;
 
 import lower.checkLowModel : checkLowProgram;
 import lower.generateCallWithCtxFun : generateCallWithCtxFun;
-import lower.generateCompareFun : ComparisonTypes, generateCompareFun;
 import lower.generateMarkVisitFun :
 	generateMarkVisitArrInner,
 	generateMarkVisitArrOuter,
@@ -52,7 +51,6 @@ import model.concreteModel :
 	ConcreteFunToName,
 	isCallWithCtxFun,
 	isClosure,
-	isCompareFun,
 	isMarkVisitFun,
 	matchConcreteExprKind,
 	matchConcreteFunBody,
@@ -68,7 +66,6 @@ import model.lowModel :
 	asPtrGc,
 	asPtrRaw,
 	asRecordType,
-	asUnionType,
 	compareLowType,
 	isArr,
 	isPtrGc,
@@ -94,7 +91,6 @@ import model.lowModel :
 	LowType,
 	LowUnion,
 	matchLowType,
-	nPrimitiveTypes,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
 import model.model : decl, FunInst, name, range;
@@ -131,32 +127,6 @@ immutable(Ptr!LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcretePr
 		nu!LowProgram(alloc, allConstants, allTypes.allTypes, allFuns.allLowFuns, allFuns.main);
 	checkLowProgram(alloc, res);
 	return res;
-}
-
-struct CompareFuns {
-	MutIndexDict!(immutable LowType.Record, immutable LowFunIndex) recordPtrToCompare;
-	MutIndexDict!(immutable LowType.Record, immutable LowFunIndex) recordValToCompare;
-	MutIndexDict!(immutable LowType.Union, immutable LowFunIndex) unionToCompare;
-	MutIndexDict!(immutable PrimitiveTypeIndex, immutable LowFunIndex) primitiveToCompare;
-}
-
-immutable(LowFunIndex) getCompareFun(ref const CompareFuns compareFuns, ref immutable LowType type) {
-	return matchLowType!(immutable LowFunIndex)(
-		type,
-		(immutable LowType.ExternPtr) =>
-			unreachable!(immutable LowFunIndex),
-		(immutable LowType.FunPtr) =>
-			unreachable!(immutable LowFunIndex),
-		(immutable PrimitiveType it) =>
-			mustGetAt(compareFuns.primitiveToCompare, immutable PrimitiveTypeIndex(sizeTOfPrimitiveType(it))),
-		(immutable LowType.PtrGc it) =>
-			mustGetAt(compareFuns.recordPtrToCompare, asRecordType(it.pointee)),
-		(immutable LowType.PtrRaw) =>
-			unreachable!(immutable LowFunIndex),
-		(immutable LowType.Record it) =>
-			mustGetAt(compareFuns.recordValToCompare, it),
-		(immutable LowType.Union it) =>
-			mustGetAt(compareFuns.unionToCompare, it));
 }
 
 struct MarkVisitFuns {
@@ -396,10 +366,6 @@ immutable(LowType) lowTypeFromConcreteType(Alloc)(
 		: lowTypeFromConcreteStruct(alloc, ctx, it.struct_);
 }
 
-struct PrimitiveTypeIndex {
-	immutable size_t index; // Cast from the enum
-}
-
 struct LowFunCause {
 	@safe @nogc pure nothrow:
 	struct CallWithCtx {
@@ -407,10 +373,6 @@ struct LowFunCause {
 		immutable LowType returnType;
 		immutable LowType[] nonFunNonCtxParamTypes;
 		immutable ConcreteLambdaImpl[] impls;
-	}
-	struct Compare {
-		immutable LowType type;
-		immutable bool typeIsArr;
 	}
 	struct MarkVisitArrInner {
 		immutable LowType.PtrRaw elementPtrType;
@@ -431,7 +393,6 @@ struct LowFunCause {
 	}
 
 	@trusted immutable this(immutable CallWithCtx a) { kind = Kind.callWithCtx; callWithCtx_ = a; }
-	@trusted immutable this(immutable Compare a) { kind = Kind.compare; compare_ = a; }
 	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind = Kind.concreteFun; concreteFun_ = a; }
 	@trusted immutable this(immutable MarkVisitArrInner a) { kind = Kind.markVisitArrInner; markVisitArrInner_ = a; }
 	@trusted immutable this(immutable MarkVisitArrOuter a) { kind = Kind.markVisitArrOuter; markVisitArrOuter_ = a; }
@@ -442,7 +403,6 @@ struct LowFunCause {
 	private:
 	enum Kind {
 		callWithCtx,
-		compare,
 		concreteFun,
 		markVisitArrInner,
 		markVisitArrOuter,
@@ -453,7 +413,6 @@ struct LowFunCause {
 	immutable Kind kind;
 	union {
 		immutable CallWithCtx callWithCtx_;
-		immutable Compare compare_;
 		immutable Ptr!ConcreteFun concreteFun_;
 		immutable MarkVisitArrOuter markVisitArrOuter_;
 		immutable MarkVisitArrInner markVisitArrInner_;
@@ -475,7 +434,6 @@ immutable(bool) isConcreteFun(ref immutable LowFunCause a) {
 @trusted T matchLowFunCause(T)(
 	ref immutable LowFunCause a,
 	scope T delegate(ref immutable LowFunCause.CallWithCtx) @safe @nogc pure nothrow cbCallWithCtx,
-	scope T delegate(ref immutable LowFunCause.Compare) @safe @nogc pure nothrow cbCompare,
 	scope T delegate(immutable Ptr!ConcreteFun) @safe @nogc pure nothrow cbConcreteFun,
 	scope T delegate(ref immutable LowFunCause.MarkVisitArrInner) @safe @nogc pure nothrow cbMarkVisitArrInner,
 	scope T delegate(ref immutable LowFunCause.MarkVisitArrOuter) @safe @nogc pure nothrow cbMarkVisitArrOuter,
@@ -486,8 +444,6 @@ immutable(bool) isConcreteFun(ref immutable LowFunCause a) {
 	final switch (a.kind) {
 		case LowFunCause.Kind.callWithCtx:
 			return cbCallWithCtx(a.callWithCtx_);
-		case LowFunCause.Kind.compare:
-			return cbCompare(a.compare_);
 		case LowFunCause.Kind.concreteFun:
 			return cbConcreteFun(a.concreteFun_);
 		case LowFunCause.Kind.markVisitArrInner:
@@ -501,11 +457,6 @@ immutable(bool) isConcreteFun(ref immutable LowFunCause a) {
 		case LowFunCause.Kind.specialBuiltin:
 			return cbSpecialBuiltin(a.specialBuiltin_);
 	}
-}
-
-//TODO:MOVE
-immutable(size_t) sizeTOfPrimitiveType(immutable PrimitiveType a) {
-	return cast(immutable size_t) a;
 }
 
 immutable(bool) needsMarkVisitFun(ref immutable AllLowTypes allTypes, ref immutable LowType a) {
@@ -540,14 +491,6 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 	immutable LowType ctxType =
 		lowTypeFromConcreteType(alloc, getLowTypeCtx, immutable ConcreteType(true, program.ctxType));
 	DictBuilder!(Ptr!ConcreteFun, LowFunIndex, comparePtr!ConcreteFun) concreteFunToLowFunIndexBuilder;
-	CompareFuns compareFuns = CompareFuns(
-		newMutIndexDict!(immutable LowType.Record, immutable LowFunIndex)(
-			alloc, fullIndexDictSize(allTypes.allRecords)),
-		newMutIndexDict!(immutable LowType.Record, immutable LowFunIndex)(
-			alloc, fullIndexDictSize(allTypes.allRecords)),
-		newMutIndexDict!(immutable LowType.Union, immutable LowFunIndex)(
-			alloc, fullIndexDictSize(allTypes.allUnions)),
-		newMutIndexDict!(immutable PrimitiveTypeIndex, immutable LowFunIndex)(alloc, nPrimitiveTypes));
 	ArrBuilder!LowFunCause lowFunCausesBuilder;
 
 	MarkVisitFuns markVisitFuns = MarkVisitFuns(
@@ -560,67 +503,6 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 		immutable LowFunIndex res = immutable LowFunIndex(arrBuilderSize(lowFunCausesBuilder));
 		add(alloc, lowFunCausesBuilder, source);
 		return res;
-	}
-
-	immutable(Opt!LowFunIndex) generateCompareForType(immutable LowType lowType) @safe @nogc pure nothrow {
-		immutable(LowFunIndex) addIt(immutable bool typeIsArr) {
-			return addLowFun(immutable LowFunCause(immutable LowFunCause.Compare(lowType, typeIsArr)));
-		}
-
-		void generateCompareForFields(immutable LowType.Record record) {
-			foreach (ref immutable LowField field; fullIndexDictGet(allTypes.allRecords, record).fields)
-				generateCompareForType(field.type);
-		}
-
-		// Then generate dependencies
-		return matchLowType!(immutable Opt!LowFunIndex)(
-			lowType,
-			(immutable LowType.ExternPtr) =>
-				unreachable!(immutable Opt!LowFunIndex)(),
-			(immutable LowType.FunPtr) =>
-				unreachable!(immutable Opt!LowFunIndex)(),
-			(immutable PrimitiveType it) {
-				immutable ValueAndDidAdd!(immutable LowFunIndex) index = getOrAddAndDidAdd(
-					compareFuns.primitiveToCompare,
-					immutable PrimitiveTypeIndex(sizeTOfPrimitiveType(it)),
-					() => addIt(false));
-				return some(index.value);
-			},
-			(immutable LowType.PtrGc it) {
-				immutable LowType.Record record = asRecordType(it.pointee);
-				immutable ValueAndDidAdd!(immutable LowFunIndex) index = getOrAddAndDidAdd(
-					compareFuns.recordPtrToCompare,
-					record,
-					() => addIt(false));
-				if (index.didAdd)
-					generateCompareForFields(record);
-				return some(index.value);
-			},
-			(immutable LowType.PtrRaw) =>
-				unreachable!(immutable Opt!LowFunIndex)(),
-			(immutable LowType.Record it) {
-				immutable LowRecord record = fullIndexDictGet(allTypes.allRecords, it);
-				immutable bool typeIsArr = isArr(record);
-				immutable ValueAndDidAdd!(immutable LowFunIndex) index = getOrAddAndDidAdd(
-					compareFuns.recordValToCompare,
-					it,
-					() => addIt(typeIsArr));
-				if (index.didAdd) {
-					if (typeIsArr)
-						generateCompareForType(getElementPtrTypeFromArrType(allTypes, it).pointee);
-					else
-						generateCompareForFields(it);
-				}
-				return some(index.value);
-			},
-			(immutable LowType.Union it) {
-				immutable ValueAndDidAdd!(immutable LowFunIndex) index =
-					getOrAddAndDidAdd(compareFuns.unionToCompare, it, () => addIt(false));
-				if (index.didAdd)
-					foreach (ref immutable LowType member; fullIndexDictGet(allTypes.allUnions, it).members)
-						generateCompareForType(member);
-				return some(index.value);
-			});
 	}
 
 	immutable(LowFunIndex) generateMarkVisitForType(immutable LowType lowType) @safe @nogc pure nothrow {
@@ -690,7 +572,6 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 			});
 	}
 
-	Late!(immutable LowType) comparisonType = late!(immutable LowType);
 	Late!(immutable LowType) markCtxTypeLate = late!(immutable LowType);
 	Late!(immutable LowType) strTypeLate = late!(immutable LowType);
 
@@ -714,15 +595,6 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 						: emptyArr!ConcreteLambdaImpl;
 					return some(addLowFun(immutable LowFunCause(
 						immutable LowFunCause.CallWithCtx(funType, returnType, nonFunNonCtxParamTypes, impls))));
-				} else if (isCompareFun(fun)) {
-					if (!lateIsSet(comparisonType)) {
-						immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, fun.returnType);
-						lateSet(comparisonType, returnType);
-					}
-					immutable Opt!LowFunIndex res =
-						generateCompareForType(lowTypeFromConcreteType(alloc, getLowTypeCtx, only(it.typeArgs)));
-					verify(has(res));
-					return res;
 				} else if (isMarkVisitFun(fun)) {
 					if (!lateIsSet(markCtxTypeLate))
 						lateSet(markCtxTypeLate, lowTypeFromConcreteType(
@@ -758,8 +630,6 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 		}
 	}
 
-	immutable ComparisonTypes comparisonTypes = getComparisonTypes(allTypes, lateGet(comparisonType));
-	//TODO: should always exist
 	immutable LowType markCtxType = lateIsSet(markCtxTypeLate) ? lateGet(markCtxTypeLate) : voidType;
 	immutable LowType strType = lateIsSet(strTypeLate) ? lateGet(strTypeLate) : voidType;
 
@@ -787,8 +657,6 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 					strType,
 					concreteFunToLowFunIndex,
 					lowFunCauses,
-					compareFuns,
-					comparisonTypes,
 					markVisitFuns,
 					markCtxType,
 					markFunIndex,
@@ -814,8 +682,6 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 	ref immutable LowType strType,
 	ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	ref immutable LowFunCause[] lowFunCauses,
-	ref const CompareFuns compareFuns,
-	ref immutable ComparisonTypes comparisonTypes,
 	ref const MarkVisitFuns markVisitFuns,
 	immutable LowType markCtxType,
 	immutable LowFunIndex markFun,
@@ -834,14 +700,6 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 				ctxType,
 				it.nonFunNonCtxParamTypes,
 				it.impls),
-		(ref immutable LowFunCause.Compare it) =>
-			generateCompareFun(
-				alloc,
-				allTypes,
-				comparisonTypes,
-				compareFuns,
-				it.type,
-				it.typeIsArr),
 		(immutable Ptr!ConcreteFun cf) {
 			immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, cf.returnType);
 			immutable Opt!LowParam ctxParam = cf.needsCtx
@@ -903,18 +761,6 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 			generateMarkVisitGcPtr(alloc, markCtxType, markFun, it.pointerType, it.visitPointee),
 		(ref immutable LowFunCause.SpecialBuiltin it) =>
 			generateSpecialBuiltin(alloc, funToName, lowFunCauses, strType, it.kind));
-}
-
-immutable(ComparisonTypes) getComparisonTypes(
-	ref immutable AllLowTypes allTypes,
-	immutable LowType comparisonType,
-) {
-	immutable LowType.Union comparison = asUnionType(comparisonType);
-	immutable LowType[] members = fullIndexDictGet(allTypes.allUnions, comparison).members;
-	immutable(LowType.Record) getMember(immutable size_t index) {
-		return asRecordType(at(members, index));
-	}
-	return immutable ComparisonTypes(comparison, getMember(0), getMember(1), getMember(2));
 }
 
 immutable(LowFun) mainFun(Alloc)(
@@ -1009,7 +855,7 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 	return matchConcreteFunBody!(immutable LowFunBody)(
 		a,
 		(ref immutable ConcreteFunBody.Builtin it) =>
-			unreachable!(immutable LowFunBody), // compare funs have a different code path
+			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.CreateRecord) =>
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.Extern it) =>

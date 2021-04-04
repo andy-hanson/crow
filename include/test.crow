@@ -1,13 +1,14 @@
 no-std
 import
-	.compare: ==
-	.misc: data, void
+	.col.arr: ==
+	.compare: equal
+	.misc: void
 	# TODO: import from .result instead
 	.private.bootstrap: value
 	.private.exception-low-level: assert, catch, message, throw
 	.str: str
 
-is void(a ?a, b ?a) data<?a>
+is void(a ?a, b ?a) equal<?a>
 	assert: a == b
 
 throws void(f act ?a(), message str)

@@ -1,18 +1,18 @@
 no-std
 import
-	..private.alloc: alloc-uninitialized, fill-ptr-range
-	..private.number-low-level: wrap-add
-	..bool: and, bool, false, not, or, to-nat, true
-	..compare: ==, !=, <, <=, >=, max, min
+	..bool: ==, and, bool, false, not, or, to-nat, true
+	..compare: !=, <, <=, >=, equal, max, min
 	..fun: subscript
-	..misc: ->, data, void
+	..misc: ->, void
 	..number: +, -, nat
 	..opt: has?, none, opt, some, value
 	..ptr: +, -, deep-size-bytes, ptr, ptr-eq?, set-subscript, size-of, subscript
 	..test: is
 	..tuple: pair
+	..private.alloc: alloc-uninitialized, fill-ptr-range
 	..private.exception-low-level: assert, forbid
-	.arr: ~, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, noctx-at, size, subscript
+	..private.number-low-level: ==, <=>, wrap-add
+	.arr: ==, ~, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, noctx-at, size, subscript
 
 alloc-count nat(a arr ?a) unsafe
 	if a empty?
@@ -114,7 +114,7 @@ test
 # TODO: move to iter-utiil since this works with any foldable
 count nat(a arr ?a, f act bool(?a))
 	0 fold a, \cur, x
-		cur + f[x].to-nat
+		cur wrap-add f[x].to-nat
 
 ###
 Equivalent to `[f[a[0]], f[a[1]], ...]`.
@@ -195,9 +195,9 @@ every? bool(a arr ?a, f act bool(?a))
 Equivalent to `a exists? {it == value}`.
 Also equivalent to `a[0] == value or a[1] == value or ...`.
 ###
-contains? bool(a arr ?a, value ?a) noctx data<?a>
+contains? bool(a arr ?a, value ?a) noctx equal<?a>
 	a contains-recur? value, 0
-.contains-recur? bool(a arr ?a, value ?a, i nat) noctx trusted data<?a>
+.contains-recur? bool(a arr ?a, value ?a, i nat) noctx trusted equal<?a>
 	if i == a.size
 		false
 	elif (a noctx-at i) == value
@@ -208,9 +208,9 @@ test
 	[1, 2, 3] contains? 2 is true
 	[1, 3] contains? 2 is false
 
-try-remove opt arr ?a(a arr ?a, value ?a) data<?a>
+try-remove opt arr ?a(a arr ?a, value ?a) equal<?a>
 	a try-remove-recur 0, value
-.try-remove-recur opt arr ?a(a arr ?a, index nat, value ?a) data<?a>
+.try-remove-recur opt arr ?a(a arr ?a, index nat, value ?a) equal<?a>
 	if index == a.size
 		none
 	elif a[index] == value
@@ -222,35 +222,35 @@ remove-index arr ?a(a arr ?a, index nat)
 	assert: index < a.size
 	a[0 -> index] ~ a[index + 1 -> a.size]
 
-# TODO: data<arr ?a> should be unnecessary
+# TODO: equal<arr ?a> should be unnecessary
 ###
 True iff the sub-sequence appears in `a`.
 Equivalent to `a[0 -> subseq.size] == subseq or a[1 -> 1 + subseq.size] == subseq or ...`
 ###
-contains-subseq? bool(a arr ?a, subseq arr ?a) data<?a> data<arr ?a>
+contains-subseq? bool(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
 	a index-of-subseq subseq has?
 
-# TODO: data<arr ?a> should be unnecessary
+# TODO: equal<arr ?a> should be unnecessary
 # True iff the first elements of `a` are `start`, meaning `a[0 -> start.size] == start`.
-starts-with? bool(a arr ?a, start arr ?a) data<?a> data<arr ?a>
+starts-with? bool(a arr ?a, start arr ?a) equal<?a> equal<arr ?a>
 	a.size >= start.size and: a[0 -> start.size] == start
 
-# TODO: data<arr ?a> should be unnecessary
+# TODO: equal<arr ?a> should be unnecessary
 # True iff the last elements of `a` are `end`, meaning `a[a.size - end.size -> a.size] == end`.
-ends-with? bool(a arr ?a, end arr ?a) data<?a> data<arr ?a>
+ends-with? bool(a arr ?a, end arr ?a) equal<?a> equal<arr ?a>
 	a.size >= end.size and: a[a.size - end.size -> a.size] == end
 
-# TODO: data<arr ?a> should be unnecessary
+# TODO: equal<arr ?a> should be unnecessary
 # If `a` starts with `start`, returns the remaining elements, else returns `none`.
-try-remove-start opt arr ?a(a arr ?a, start arr ?a) data<?a> data<arr ?a>
+try-remove-start opt arr ?a(a arr ?a, start arr ?a) equal<?a> equal<arr ?a>
 	if a starts-with? start
 		a[start.size -> a.size] some
 	else
 		none
 
-# TODO: data<arr ?a> should be unnecessary
+# TODO: equal<arr ?a> should be unnecessary
 # If `a` ends with `end`, returns the preceding elements, else returns `none`.
-try-remove-end opt arr ?a(a arr ?a, end arr ?a) data<?a> data<arr ?a>
+try-remove-end opt arr ?a(a arr ?a, end arr ?a) equal<?a> equal<arr ?a>
 	if a ends-with? end
 		a[0 -> a.size - end.size] some
 	else
@@ -285,13 +285,12 @@ fold-reverse ?a(acc ?a, a arr ?b, f act ?a(?a, ?b)) trusted
 		prev = cur - 1
 		f[acc, prev[]] fold-reverse-recur begin, prev, f
 
-# TODO: data<arr ?a> should be unnecessary
+# TODO: equal<arr ?a> should be unnecessary
 # Finds the first index where `a[i -> i + subseq.size] == subseq`.
-index-of-subseq opt nat(a arr ?a, subseq arr ?a) data<?a> data<arr ?a>
+index-of-subseq opt nat(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
 	a index-of-subseq-recur subseq, 0
-
-# TODO: data<arr ?a> should be unnecessary
-.index-of-subseq-recur opt nat(a arr ?a, subseq arr ?a, i nat) data<?a> data<arr ?a>
+# TODO: equal<arr ?a> should be unnecessary
+.index-of-subseq-recur opt nat(a arr ?a, subseq arr ?a, i nat) equal<?a> equal<arr ?a>
 	if i == a.size
 		none
 	elif a[i -> a.size] starts-with? subseq
@@ -334,7 +333,7 @@ find-rindex opt nat(a arr ?a, f act bool(?a))
 Returns the first index where `a[i] == value`.
 Equivalent to `a find-index {it == value}`.
 ###
-index-of opt nat(a arr ?a, value ?a) trusted data<?a>
+index-of opt nat(a arr ?a, value ?a) trusted equal<?a>
 	match a ptr-of value
 	as none
 		none
@@ -342,10 +341,10 @@ index-of opt nat(a arr ?a, value ?a) trusted data<?a>
 		s.value - a.begin-ptr some
 
 # Like `index-of` but returns a ptr.
-ptr-of opt ptr ?a(a arr ?a, value ?a) unsafe data<?a>
+ptr-of opt ptr ?a(a arr ?a, value ?a) unsafe equal<?a>
 	a.begin-ptr ptr-of-recur a.end-ptr, value
 
-.ptr-of-recur opt ptr ?a(cur ptr ?a, end ptr ?a, value ?a) unsafe data<?a>
+.ptr-of-recur opt ptr ?a(cur ptr ?a, end ptr ?a, value ?a) unsafe equal<?a>
 	if cur ptr-eq? end
 		none
 	elif cur[] == value
@@ -357,7 +356,7 @@ ptr-of opt ptr ?a(a arr ?a, value ?a) unsafe data<?a>
 Returns the last index where `a[i] == value`.
 Equivalent to `a find-rindex {it == value}`.
 ###
-r-index-of opt nat(a arr ?a, value ?a) data<?a>
+r-index-of opt nat(a arr ?a, value ?a) equal<?a>
 	a find-rindex {it == value}
 
 ###
@@ -379,7 +378,7 @@ flatten arr ?a(a arr arr ?a, joiner arr ?a)
 	else
 		a[0] ~ joiner ~: a.tail flatten joiner
 
-try-split-once opt pair<arr ?a, arr ?a>(a arr ?a, splitter ?a) data<?a>
+try-split-once opt pair<arr ?a, arr ?a>(a arr ?a, splitter ?a) equal<?a>
 	match a index-of splitter
 	as none
 		none
@@ -387,24 +386,24 @@ try-split-once opt pair<arr ?a, arr ?a>(a arr ?a, splitter ?a) data<?a>
 		index = s value
 		some: a[0 -> index] pair a[index + 1 -> a.size]
 
-# TODO: data<arr ?a> should be unnecessary
-split-by arr arr ?a(a arr ?a, splitter ?a) data<?a> data<arr ?a> trusted
+# TODO: equal<arr ?a> should be unnecessary
+split-by arr arr ?a(a arr ?a, splitter ?a) equal<?a> equal<arr ?a> trusted
 	# TODO:PERF
 	a split-by-subseq [splitter]
 
-# TODO: data<arr ?a> should be unnecessary
+# TODO: equal<arr ?a> should be unnecessary
 ###
 Splits `a` each time it finds `splitter`.
 For example, "a rose is a hose is a nose" split-by-subseq "is" would be
 ["a rose ", " a hose ", " a nose"].
 ###
-split-by-subseq arr arr ?a(a arr ?a, splitter arr ?a) data<?a> data<arr ?a> trusted
+split-by-subseq arr arr ?a(a arr ?a, splitter arr ?a) equal<?a> equal<arr ?a> trusted
 	size = (a count-subseqs splitter) + 1
 	res = size alloc-uninitialized<arr ?a>
 	res split-by-subseq-recur a, splitter
 	arr: size, res
-# TODO: data<arr ?a> should be unnecessary
-.split-by-subseq-recur void(out ptr arr ?a, a arr ?a, splitter arr ?a) data<?a> data<arr ?a> unsafe
+# TODO: equal<arr ?a> should be unnecessary
+.split-by-subseq-recur void(out ptr arr ?a, a arr ?a, splitter arr ?a) equal<?a> equal<arr ?a> unsafe
 	match a index-of-subseq splitter
 	as none
 		out[] := a
@@ -413,12 +412,12 @@ split-by-subseq arr arr ?a(a arr ?a, splitter arr ?a) data<?a> data<arr ?a> trus
 		rest = a[s.value + splitter.size -> a.size]
 		out + 1 split-by-subseq-recur rest, splitter
 
-# TODO: data<arr ?a> should be unnecessary
+# TODO: equal<arr ?a> should be unnecessary
 # Returns the number of indices for which `a[i -> i + subseq.size] == subseq`.
-count-subseqs nat(a arr ?a, subseq arr ?a) data<?a> data<arr ?a>
+count-subseqs nat(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
 	a count-subseqs-recur subseq, 0
-# TODO: data<arr ?a> should be unnecessary
-.count-subseqs-recur nat(a arr ?a, subseq arr ?a, acc nat) data<?a> data<arr ?a>
+# TODO: equal<arr ?a> should be unnecessary
+.count-subseqs-recur nat(a arr ?a, subseq arr ?a, acc nat) equal<?a> equal<arr ?a>
 	match a index-of-subseq subseq
 	as none
 		acc

@@ -364,6 +364,22 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "bitwise-or (nat-32)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat64:
 			return "bitwise-or (nat-64)";
+		case LowExprKind.SpecialBinary.Kind.eqFloat64:
+			return "== (float-64)";
+		case LowExprKind.SpecialBinary.Kind.eqInt8:
+			return "== (int-8)";
+		case LowExprKind.SpecialBinary.Kind.eqInt16:
+			return "== (int-16)";
+		case LowExprKind.SpecialBinary.Kind.eqInt32:
+			return "== (int-32)";
+		case LowExprKind.SpecialBinary.Kind.eqInt64:
+			return "== (int-64)";
+		case LowExprKind.SpecialBinary.Kind.eqNat8:
+			return "== (nat-8)";
+		case LowExprKind.SpecialBinary.Kind.eqNat16:
+			return "== (nat-16)";
+		case LowExprKind.SpecialBinary.Kind.eqNat32:
+			return "== (nat-32)";
 		case LowExprKind.SpecialBinary.Kind.eqNat64:
 			return "== (nat-64)";
 		case LowExprKind.SpecialBinary.Kind.eqPtr:

@@ -1,8 +1,7 @@
 no-std
 import
-	..col.arr: size, subscript
+	..col.arr: ==, size, subscript
 	..col.arr-util: last, r-index-of, rtail
-	..compare: ==
 	..misc: ->
 	..number: +, -, nat
 	..opt: none, opt, some, value
