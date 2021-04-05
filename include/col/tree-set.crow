@@ -5,7 +5,7 @@ import
 	..exception: assert, forbid, unreachable
 	..fun: subscript
 	..misc: ->, as, data, drop, void
-	..opt: none, opt, some, value
+	..opt: none, opt, some
 	..ptr: +, -, deep-size-bytes, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of, subscript
 	..str: char, str
 	..str-conv: interp, finish, to-str, with-str, with-value
@@ -151,12 +151,7 @@ This is O(a.size + b.size).
 	tree-set: out[0 -> end2 - out.begin-ptr] cast-immutable
 
 .walk-iter-union! ptr ?a(out ptr ?a, value ?a, a iter ?a) unsafe data<?a> compare<?a>
-	match a peek
-	as none
-		out[] := value
-		out + 1
-	as some s
-		peek = s value
+	if peek ?= a peek
 		match value <=> peek
 		as less
 			out[] := value
@@ -169,17 +164,17 @@ This is O(a.size + b.size).
 			out[] := peek
 			a.next! drop
 			out + 1 walk-iter-union! value, a
+	else
+		out[] := value
+		out + 1
 
 intersect tree-set ?a(a tree-set ?a, b tree-set ?a) trusted data<?a> compare<?a>
 	b-iter = b iter
 	a filter {b-iter walk-iter-has? it}
 
 .walk-iter-has? bool(a iter ?a, value ?a) unsafe data<?a> compare<?a>
-	match a peek
-	as none
-		false
-	as some s
-		match value <=> s.value
+	if peek ?= a peek
+		match value <=> peek
 		as less
 			false
 		as equal
@@ -188,6 +183,8 @@ intersect tree-set ?a(a tree-set ?a, b tree-set ?a) trusted data<?a> compare<?a>
 		as greater
 			a.next! drop
 			a walk-iter-has? value
+	else
+		false
 
 ###
 Returns a set that does not contain 'b'.
@@ -195,11 +192,10 @@ If 'b' is not in the set, returns it unmodified.
 This is O(a.size ln).
 ###
 - tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
-	match a try-remove b
-	as none
+	if res ?= a try-remove b
+		res
+	else
 		a
-	as some s
-		s value
 
 ###
 If 'b' is in the set, returns `none~.
@@ -207,48 +203,40 @@ Else, returns a set with 'b' removed.
 This is O(a.size ln).
 ###
 try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
-	match a.root try-remove-recur b
-	as none
+	if node ?= a.root try-remove-recur b
+		some: tree-set: node, a.size wrap-sub 1
+	else
 		none
-	as some s
-		some: tree-set: s.value, a.size wrap-sub 1
 
 .try-remove-recur opt node ?a(a node ?a, b ?a) compare<?a>
 	match a
 	as inner-node i
 		match b <=> i.value
 		as less
-			match i.left try-remove-recur b
-			as none
-				none
-			as some s
-				new-left = s value
+			if new-left ?= i.left try-remove-recur b
 				some: inner-node: i.value, new-left, i.right
+			else
+				none
 		as equal
 			some: if i.right node-empty?
 				i left
 			else
 				# Remove the base of the tree -- making one of the sides take over.
-				match i.left pop-right
-				as none
-					i right
-				as some s
-					popped = s value
+				if popped ?= i.left pop-right
 					inner-node: popped.value, popped.rest, i.right
+				else
+					i right
 		as greater
-			match i.right try-remove-recur b
-			as none
+			if new-right ?= i.right try-remove-recur b
+				some: inner-node: i.value, i.left, new-right
+			else
 				none
-			as some s
-				some: inner-node: i.value, i.left, s.value
 	as arr arr
 		# TODO: use a binary search (try-remove uses linear search since it's for arbitrary arr)
-		match arr try-remove b
-		as none
-			none
-		as some s
-			arr2 = s value
+		if arr2 ?= arr try-remove b
 			arr2.as<node ?a> some
+		else
+			none
 
 .node-empty? bool(a node ?a)
 	match a
@@ -264,18 +252,16 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 .pop-right opt popped ?a(a node ?a)
 	match a
 	as inner-node i
-		match i.right pop-right
-		as none
+		if popped ?= i.right pop-right
+			some: popped: popped.value, inner-node: i.value, i.left, popped.rest
+		else
 			# Then this is rightmost
 			some: popped: i.value, i.left
-		as some s
-			some: popped: s.value.value, inner-node: i.value, i.left, s.value.rest
 	as arr arr
-		match arr last
-		as none
+		if last ?= arr last
+			last popped arr.rtail some
+		else
 			none
-		as some s
-			some: popped: s.value, arr.rtail
 
 - tree-set ?a(a tree-set ?a, b tree-set ?a) trusted data<?a> compare<?a>
 	b-iter = b iter
@@ -300,20 +286,15 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		arr
 .peek opt ?a(a iter ?a)
 	if a.cur empty?
-		match a.stack last
-		as none
+		if last ?= a.stack last
+			last.value some
+		else
 			none
-		as some s
-			s.value.value some
 	else
 		a.cur[0] some
 .next! opt ?a(a iter ?a) trusted
 	if a.cur empty?
-		match a.stack pop!
-		as none
-			none
-		as some s
-			node = s value
+		if node ?= a.stack pop!
 			res = node value
 			match node right
 			as inner-node i
@@ -321,6 +302,8 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 			as arr arr
 				a.cur := arr
 			res some
+		else
+			none
 	else
 		res = a.cur[0]
 		a.cur := a.cur tail
@@ -331,12 +314,11 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	mid = acc fold a.cur, f
 	mid fold-iter-recur a.stack, f
 .fold-iter-recur ?a(acc ?a, stack mut-stack inner-node ?b, f act ?a(?a, ?b))
-	match stack pop!
-	as none
-		acc
-	as some s
-		mid = acc fold-recur-inner-node s.value, f
+	if popped ?= stack pop!
+		mid = acc fold-recur-inner-node popped, f
 		mid fold-iter-recur stack, f
+	else
+		acc
 
 .inserted<?a> record
 	by-val

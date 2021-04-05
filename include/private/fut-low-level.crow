@@ -42,11 +42,8 @@ resolve-or-reject! void(f fut ?a, result result<?a, exception>) unsafe
 
 .call-callbacks! void(cbs fut-state-callbacks ?a, value result<?a, exception>)
 	cbs.cb[value]
-	match cbs.next
-	as none
-		void
-	as some s
-		s.value call-callbacks! value
+	if next ?= cbs next
+		next call-callbacks! value
 
 # TODO: PRIVATE
 # WARN: Calls the callback immediately if possible

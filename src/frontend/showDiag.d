@@ -121,18 +121,22 @@ void writeParseDiag(Alloc, PathAlloc)(
 	matchParseDiag!void(
 		d,
 		(ref immutable ParseDiag.CantPrecedeEqLike it) {
-			writeStatic(writer, "this expression can't appear in front of ");
+			writeStatic(writer, "this expression can't appear in front of '");
 			final switch (it.kind) {
 				case EqLikeKind.equals:
-					writeStatic(writer, "'='");
+					writeStatic(writer, "=");
 					break;
 				case EqLikeKind.mutEquals:
-					writeStatic(writer, "':='");
+					writeStatic(writer, ":=");
+					break;
+				case EqLikeKind.optEquals:
+					writeStatic(writer, "?=");
 					break;
 				case EqLikeKind.then:
 					writeStatic(writer, "<-");
 					break;
 			}
+			writeChar(writer, '\'');
 		},
 		(ref immutable ParseDiag.CircularImport it) {
 			writeStatic(writer, "circular import from ");
@@ -536,6 +540,10 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 		},
 		(ref immutable Diag.ExternPtrHasTypeParams) {
 			writeStatic(writer, "an 'extern-ptr' type should not be a template");
+		},
+		(ref immutable Diag.IfNeedsOpt d) {
+			writeStatic(writer, "Expected an 'opt', but got ");
+			writeType(writer, d.actualType);
 		},
 		(ref immutable Diag.ImportRefersToNothing it) {
 			writeStatic(writer, "imported name ");

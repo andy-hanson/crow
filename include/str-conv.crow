@@ -9,7 +9,7 @@ import
 	.number:
 		==, <=>, +, *, /, abs, float, int, int16, int32, mod, nat, nat8, nat16, nat32, multiple-of?,
 		to-int, to-float, to-nat, truncate-to-int
-	.opt: map, none, opt, some, value
+	.opt: map, none, opt, some
 	.str: char, str
 
 # "true" or "false".
@@ -97,11 +97,10 @@ to-str str(a str)
 	a
 
 to-str str(a opt ?a) to-str<?a>
-	match a
-	as none
+	if v ?= a
+		"some({v})"
+	else
 		"none"
-	as some s
-		"some({s value})"
 
 to-str str(n nat32)
 	n.to-nat to-str
@@ -169,11 +168,10 @@ parse-nat opt nat(a str)
 	if a empty?
 		accum some
 	else
-		match a[0].char-to-nat
-		as none
+		if v ?= a[0].char-to-nat
+			a.tail parse-nat-recur: accum * 10 + v
+		else
 			none
-		as some s
-			a.tail parse-nat-recur: accum * 10 + s.value
 
 ###
 The str should be a series of digits, optionally preceded by "-" or "+".

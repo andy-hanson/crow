@@ -6,7 +6,7 @@ import
 	..fun: subscript
 	..misc: ->, arrow, as, data, drop, from, to, void
 	..number: ==, <=>, +, -, *, nat
-	..opt: ==, empty?, force, has?, none, opt, some, value
+	..opt: ==, empty?, force, has?, none, opt, or-default, some
 	..ptr: -, ptr, ptr-eq?, set-subscript, subscript
 	..str: char, str
 	..str-conv: to-str
@@ -66,11 +66,10 @@ size nat(a mut-dict<?k, ?v>)
 	0 size-recur a
 .size-recur nat(acc nat, a mut-dict<?k, ?v>)
 	mid = acc + a.node-size
-	match a next
-	as none
+	if next ?= a next
+		mid size-recur next
+	else
 		mid
-	as some s
-		mid size-recur s.value
 
 ###
 Look up a value from a key.
@@ -78,11 +77,10 @@ Returns `none` if the key is not in the dict.
 This is O(a.size ln).
 ###
 subscript opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
-	match a find-exact-ptr key
-	as none
+	if ptr ?= a find-exact-ptr key
+		ptr[] to
+	else
 		none
-	as some s
-		s.value[] to
 
 # Adds a key-value pair, replacing any existing one with that key.
 set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k> compare<?k>
@@ -111,11 +109,10 @@ Returns true if it succeeded.
 		insert-ptr[] := key -> value.some
 		true
 	else
-		inserted? = match a next
-		as none
+		inserted? = if next ?= a next
+			next insert-into-key-match-or-empty-slot! key, value
+		else
 			false
-		as some s
-			s.value insert-into-key-match-or-empty-slot! key, value
 
 		if inserted?
 			true
@@ -149,15 +146,14 @@ Returns true if it succeeded.
 		a.pairs insert-linear! a.pairs.size - 4, key, value
 		a.node-size := a.node-size + 1
 	else
-		match a next
-		as none
+		if next ?= a next
+			next add-pair! key, value
+			a compact-if-needed!
+		else
 			new-pairs = mut-list<arrow<?k, opt ?v>>
 			# TODO: '.as<opt ?v>' should not be necessary
 			new-pairs ~= key -> value.some.as<opt ?v>
 			a.next := some: mut-dict: new-pairs, 1, none
-		as some s
-			s.value add-pair! key, value
-			a compact-if-needed!
 
 # Insert at the last place where the key is < that value.
 .insert-linear! void(a mut-list arrow<?k, opt ?v>, index nat, key ?k, value ?v) data<?k> compare<?k>
@@ -196,15 +192,7 @@ Remove the pair with the given key, if it exists.
 Returns the old value (if it exists).
 ###
 remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
-	match a find-exact-ptr key
-	as none
-		match a next
-		as none
-			none
-		as some s
-			s.value remove-key! key
-	as some s
-		ptr = s value
+	if ptr ?= a find-exact-ptr key
 		res = if a.pairs.end-ptr - ptr < 4
 			a.pairs remove-at! ptr to
 		else
@@ -215,6 +203,10 @@ remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 			a.node-size := a.node-size - 1
 		a compact-if-needed!
 		res
+	elif next ?= a next
+		next remove-key! key
+	else
+		none
 
 .compact-if-needed! void(a mut-dict<?k, ?v>) data<?k> compare<?k>
 	physical-size = a total-pairs-size
@@ -226,22 +218,17 @@ remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 	0 total-pairs-size-recur a
 .total-pairs-size-recur nat(acc nat, a mut-dict<?k, ?v>)
 	mid = acc + a.pairs.size
-	match a next
-	as none
+	if next ?= a next
+		mid total-pairs-size-recur next
+	else
 		mid
-	as some s
-		mid total-pairs-size-recur s.value
 
 
 .compact! void(a mut-dict<?k, ?v>) data<?k> compare<?k>
-	match a next
-	as none
-		void
-	as some s
-		next-node = s value
-		next-node compact!
+	if next ?= a next
+		next compact!
 		a.pairs filter! {it.to has?}
-		a.pairs merge-no-duplicates! next-node.pairs, \x, y
+		a.pairs merge-no-duplicates! next.pairs, \x, y
 			x.from <=> y.from assert-comparison-not-equal
 		a.next := none
 		a.node-size := a.pairs.size
@@ -331,23 +318,17 @@ map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k> compare<?k>
 	a.pairs each \pair
 		out ~= pair.from to-str
 		out ~= " -> "
-		out ~= match pair to
-		as none
-			"_"
-		as some s
-			s value
+		out ~= pair.to or-default "_"
 		out ~= ", "
 	if a.pairs empty?
 		out ~= "]"
 	else
 		out.pop! drop
 		out.last := "]"
-	match a next
-	as none
-		void
-	as some s
+
+	if next ?= a next
 		out ~= ", "
-		out dbg-recur! s.value
+		out dbg-recur! next
 
 .verify void(a mut-dict<nat, str>, expected str)
 	a.dbg is expected
@@ -357,11 +338,8 @@ map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k> compare<?k>
 	actual = 0 fold a.pairs, \acc, x
 		acc + (x.to.has? ? 1, 0)
 	a.node-size is actual
-	match a next
-	as none
-		void
-	as some s
-		s.value verify-node-size
+	if next ?= a next
+		next verify-node-size
 
 test
 	a = mut-dict<nat, str>: [3 -> "3", 5 -> "5", 7 -> "7", 8 -> "8", 9 -> "9", 10 -> "10"]

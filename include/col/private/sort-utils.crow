@@ -5,7 +5,7 @@ import
 	...exception: assert, unreachable
 	...fun: subscript
 	...misc: void
-	...opt: none, opt, some, value
+	...opt: none, opt, some
 	...ptr: +, -, null, null?, ptr, ptr-eq?, set-subscript, subscript
 	...test: is
 	...private.bootstrap: nat
@@ -18,11 +18,10 @@ binary-search-has? bool(a arr ?a, value ?a) compare<?a> trusted
 	not: a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value null?
 
 binary-search-value opt ?a(a arr ?a, compare act comparison(?a)) trusted
-	match a binary-search-exact-ptr compare
-	as none
+	if ptr ?= a binary-search-exact-ptr compare
+		ptr[] some
+	else
 		none
-	as some s
-		s.value[] some
 
 binary-search-exact-index opt nat(a arr ?a, value ?a) trusted compare<?a>
 	ptr = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value

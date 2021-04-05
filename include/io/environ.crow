@@ -6,7 +6,6 @@ import
 	..col.mut-dict: move-to-dict!, mut-dict, set-subscript
 	..col.mut-list: ~=, move-to-arr!, mut-list
 	..misc: ->, arrow, from, to, void
-	..opt: value
 	..posix.unistd: environ
 	..private.bootstrap: todo
 	..ptr: +, null, null?, ptr, subscript
@@ -30,16 +29,14 @@ get-environ environ() summon trusted
 		env + 1 get-environ-recur res
 
 .parse-environ-entry arrow<str, str>(entry c-str) unsafe
-	match entry find-char-in-cstr "="
-	as none
-		todo
-	as some s
-		key-end = s value
+	if key-end ?= entry find-char-in-cstr "="
 		key = entry arr-from-begin-end key-end
 		value-begin = key-end + 1
 		value-end = value-begin find-cstr-end
 		value = value-begin arr-from-begin-end value-end
 		key -> value
+	else
+		todo
 
 # Get an environment string from environment variables.
 convert-environ ptr c-str(environ environ)

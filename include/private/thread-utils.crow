@@ -128,13 +128,12 @@ WARN: May wake up early. Use only to be avoid consuming CPU.
 wait-on void(a condition, until-time opt timestamp, last-sequence sequence-id) noctx unsafe summon
 	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-lock
 	if a.sequence == last-sequence
-		hard-assert-posix-error: match until-time
-		as none
-			a.cond.ref-of-val pthread-cond-wait a.mutex.ref-of-val
-		as some s
-			abstime = s.value to-timespec
+		hard-assert-posix-error: if t ?= until-time
+			abstime = t to-timespec
 			err = a.cond.ref-of-val pthread-cond-timedwait a.mutex.ref-of-val, abstime.ptr-to
 			err == etimedout ? 0, err
+		else
+			a.cond.ref-of-val pthread-cond-wait a.mutex.ref-of-val
 	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-unlock
 
 # TODO: use atomic operations for this

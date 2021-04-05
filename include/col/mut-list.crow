@@ -5,7 +5,7 @@ import
 	..fun: subscript
 	..misc: ->, drop, void
 	..number: +, -, *, nat
-	..opt: none, opt, some, value
+	..opt: none, opt, some
 	..posix.string: memcpy, memmove
 	..ptr: +, -, as-any-ptr, by-val, ptr, ptr-eq?, set-subscript, size-of, subscript, zeroed
 	..private.alloc:
@@ -424,12 +424,11 @@ map-opt mut-list ?out(a mut-list ?in, f act opt ?out(?in)) trusted
 map-opt-to-mut-arr mut-arr ?out(a mut-list ?in, f act opt ?out(?in)) trusted
 	out = a.size uninitialized-mut-arr<?out>
 	end = out.begin-ptr fold a, \cur, x
-		match f[x]
-		as none
-			cur
-		as some s
-			cur[] := s value
+		if fx ?= f[x]
+			cur[] := fx
 			cur + 1
+		else
+			cur
 	out[0 -> end - out.begin-ptr]
 
 .as-mut-list mut-list ?a(a mut-arr ?a) unsafe

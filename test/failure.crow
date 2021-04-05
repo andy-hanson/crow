@@ -13,15 +13,8 @@ handle-output arr failure
 spec
 	summon
 body
-	match output-path try-read-file
-	as none
-		if overwrite-output?
-			output-path write-file actual
-			[]
-		else
-			[original-path failure "{output-path base-name} does not exist. actual was:\n{actual}"]
-	as some s
-		if s.value == actual
+	if text ?= output-path try-read-file
+		if text == actual
 			[]
 		elif overwrite-output?
 			output-path write-file actual
@@ -29,6 +22,11 @@ body
 		else
 			message = "{output-path base-name} was not as expected. actual:\n{actual}"
 			[original-path failure message]
+	elif overwrite-output?
+		output-path write-file actual
+		[]
+	else
+		[original-path failure "{output-path base-name} does not exist. actual was:\n{actual}"]
 
 flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper act arr<?out>(?in)) trusted
 	res = mut-list<?out>

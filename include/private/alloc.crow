@@ -11,7 +11,7 @@ import
 		ptr-cast, ref-of-val, set-subscript, size-of, subscript, to-nat
 	.bootstrap:
 		as, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, lock, nat, nat8, nat64, none, opt, some,
-		todo, value, void
+		todo, void
 	.number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
 	.thread-utils: acquire!, lock-by-val, release!
 
@@ -159,18 +159,16 @@ force-needs-gc void(gc gc) unsafe
 
 get-gc-ctx gc-ctx(gc gc) noctx unsafe
 	gc.lk.ref-of-val acquire!
-	res = match gc.context-head
-	as none
+	res = if c ?= gc.context-head
+		gc.context-head := c next-ctx
+		c.next-ctx := none
+		c
+	else
 		# NOTE: malloc'd memory is not traced for garbage col.
 		# This is fine as 'gc' is kept alive anyway.
 		# TODO: `size-of<by-val<gc-ctx>>.malloc` should be legal
 		c = (size-of<by-val<gc-ctx>> malloc) as-ref<gc-ctx>
 		c.gc := gc
-		c.next-ctx := none
-		c
-	as some s
-		c = s.value
-		gc.context-head := c next-ctx
 		c.next-ctx := none
 		c
 	gc.lk.ref-of-val release!
@@ -240,12 +238,11 @@ range-free? bool(mark ptr bool, end ptr bool) noctx unsafe
 		mark + 1 range-free? end
 
 gc-alloc any-ptr(gc gc, size nat) trusted
-	match gc try-gc-alloc size
-	as none
+	if res ?= gc try-gc-alloc size
+		res
+	else
 		# TODO: throw an exception on OOM
 		todo
-	as some s
-		s value
 
 alloc any-ptr(size-bytes nat) unsafe
 	get-gc gc-alloc size-bytes
@@ -258,11 +255,10 @@ alloc-uninitialized ptr ?a(size nat) unsafe
 	ptr-cast<?a, nat8>: alloc: size wrap-mul size-of<?a>
 
 try-alloc-uninitialized opt ptr ?a(size nat) unsafe
-	match size wrap-mul size-of<?a> try-alloc
-	as none
+	if res ?= size wrap-mul size-of<?a> try-alloc
+		res.ptr-cast<?a, nat8> some
+	else
 		none
-	as some s
-		some: s.value ptr-cast<?a, nat8>
 
 unmanaged-alloc-bytes any-ptr(size nat) noctx unsafe
 	res = size malloc

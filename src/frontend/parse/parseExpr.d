@@ -13,6 +13,7 @@ import frontend.parse.ast :
 	FunPtrAst,
 	IdentifierAst,
 	IfAst,
+	IfOptionAst,
 	InterpolatedAst,
 	InterpolatedPart,
 	isCall,
@@ -232,6 +233,11 @@ struct ExprAndMaybeNameOrDedent {
 }
 static assert(ExprAndMaybeNameOrDedent.sizeof <= 80);
 
+immutable(ExprAst) assertNoNameOrDedent(immutable ExprAndMaybeNameOrDedent a) {
+	verify(isNone(a.nameOrDedent));
+	return a.expr;
+}
+
 struct OptExprAndDedent {
 	immutable Opt!(Ptr!ExprAst) expr;
 	immutable uint dedents;
@@ -350,7 +356,7 @@ immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
 				return immutable FromBefore(beforeCall.funNameName, beforeCall.args, beforeCall.typeArgs, style);
 			} else {
 				addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(
-					immutable ParseDiag.CantPrecedeEqLike()));
+					immutable ParseDiag.CantPrecedeEqLike(kind)));
 				return immutable FromBefore(
 					shortSymAlphaLiteral("bogus"),
 					emptyArrWithSize!ExprAst,
@@ -374,15 +380,12 @@ immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
 			start,
 			initAndDedent.dedents,
 			curIndent);
-		immutable ExprAstKind exprKind = () {
-			if (isIdentifier(before.kind))
-				return letOrThen(alloc, kind, identifierAsNameAndRange(before), init, thenAndDedent.expr);
-			else {
-				addDiag(alloc, lexer, before.range, immutable ParseDiag(
-					immutable ParseDiag.CantPrecedeEqLike(kind)));
-				return immutable ExprAstKind(immutable BogusAst());
-			}
-		}();
+		immutable ExprAstKind exprKind = letOrThen(
+			alloc,
+			kind,
+			asIdentifierOrDiagnostic(alloc, lexer, before, kind),
+			init,
+			thenAndDedent.expr);
 		return immutable ExprAndDedent(immutable ExprAst(range(lexer, start), exprKind), thenAndDedent.dedents);
 	}
 }
@@ -413,9 +416,24 @@ immutable(ExprAstKind) letOrThen(Alloc)(
 		case EqLikeKind.equals:
 			return immutable ExprAstKind(immutable LetAst(nameAndRange, allocate(alloc, init), allocate(alloc, then)));
 		case EqLikeKind.mutEquals:
+		case EqLikeKind.optEquals:
 			return unreachable!(immutable ExprAstKind)();
 		case EqLikeKind.then:
 			return immutable ExprAstKind(immutable ThenAst(nameAndRange, allocate(alloc, init), allocate(alloc, then)));
+	}
+}
+
+immutable(NameAndRange) asIdentifierOrDiagnostic(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	ref immutable ExprAst a,
+	immutable EqLikeKind kind,
+) {
+	if (isIdentifier(a.kind))
+		return identifierAsNameAndRange(a);
+	else {
+		addDiag(alloc, lexer, a.range, immutable ParseDiag(immutable ParseDiag.CantPrecedeEqLike(kind)));
+		return immutable NameAndRange(a.range.start, shortSymAlphaLiteral("a"));
 	}
 }
 
@@ -631,9 +649,17 @@ immutable(ExprAndDedent) parseIfRecur(Alloc, SymAlloc)(
 	immutable Pos start,
 	immutable uint curIndent,
 ) {
-	immutable ExprAst condition = parseExprNoBlock(alloc, lexer);
+	immutable ExprAndMaybeDedent beforeCallAndDedent = parseExprBeforeCall(alloc, lexer, noBlock());
+	assert(!has(beforeCallAndDedent.dedents));
+	immutable ExprAst beforeCall = beforeCallAndDedent.expr;
+	immutable bool isOption = tryTake(lexer, " ?= ");
+	immutable ExprAst optionOrCondition = isOption
+		? parseExprNoBlock(alloc, lexer)
+		: assertNoNameOrDedent(
+			parseCallsAfterSimpleExpr(alloc, lexer, start, beforeCall, immutable ArgCtx(noBlock(), allowAllCalls())));
 	immutable ExprAndDedent thenAndDedent = takeIndentOrFail_ExprAndDedent(alloc, lexer, curIndent, () =>
 		parseStatementsAndExtraDedents(alloc, lexer, curIndent + 1));
+	immutable ExprAst then = thenAndDedent.expr;
 	immutable Pos elifStart = curPos(lexer);
 	immutable OptExprAndDedent else_ = thenAndDedent.dedents != 0
 		? immutable OptExprAndDedent(none!(Ptr!ExprAst), thenAndDedent.dedents)
@@ -643,14 +669,18 @@ immutable(ExprAndDedent) parseIfRecur(Alloc, SymAlloc)(
 		? toOptExprAndDedent(alloc, takeIndentOrFail_ExprAndDedent(alloc, lexer, curIndent, () =>
 			parseStatementsAndExtraDedents(alloc, lexer, curIndent + 1)))
 		: immutable OptExprAndDedent(none!(Ptr!ExprAst), 0);
-	return immutable ExprAndDedent(
-		immutable ExprAst(
-			range(lexer, start),
-			immutable ExprAstKind(immutable IfAst(
-				allocate(alloc, condition),
-				allocate(alloc, thenAndDedent.expr),
-				else_.expr))),
-		else_.dedents);
+
+	immutable ExprAstKind kind = isOption
+		? immutable ExprAstKind(allocate(alloc, immutable IfOptionAst(
+			asIdentifierOrDiagnostic(alloc, lexer, beforeCall, EqLikeKind.optEquals),
+			optionOrCondition,
+			then,
+			has(else_.expr) ? some(force(else_.expr).deref()) : none!ExprAst)))
+		: immutable ExprAstKind(immutable IfAst(
+			allocate(alloc, optionOrCondition),
+			allocate(alloc, then),
+			else_.expr));
+	return immutable ExprAndDedent(immutable ExprAst(range(lexer, start), kind), else_.dedents);
 }
 
 immutable(ExprAndDedent) takeIndentOrFail_ExprAndDedent(Alloc, SymAlloc)(

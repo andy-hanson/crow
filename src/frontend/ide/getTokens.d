@@ -15,6 +15,7 @@ import frontend.parse.ast :
 	funs,
 	IdentifierAst,
 	IfAst,
+	IfOptionAst,
 	ImportAst,
 	imports,
 	ImportsOrExportsAst,
@@ -31,6 +32,7 @@ import frontend.parse.ast :
 	matchSpecBodyAst,
 	matchStructDeclAstBody,
 	matchTypeAst,
+	NameAndRange,
 	ParamAst,
 	ParenthesizedAst,
 	rangeOfExplicitByValOrRef,
@@ -306,6 +308,13 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			if (has(it.else_))
 				addExprTokens(alloc, tokens, force(it.else_));
 		},
+		(ref immutable IfOptionAst it) {
+			add(alloc, tokens, localDefOfNameAndRange(it.name));
+			addExprTokens(alloc, tokens, it.option);
+			addExprTokens(alloc, tokens, it.then);
+			if (has(it.else_))
+				addExprTokens(alloc, tokens, force(it.else_));
+		},
 		(ref immutable InterpolatedAst it) {
 			Pos pos = a.range.start;
 			if (!empty(it.parts)) {
@@ -353,7 +362,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			addExprTokens(alloc, tokens, it.body_);
 		},
 		(ref immutable LetAst it) {
-			add(alloc, tokens, immutable Token(Token.Kind.localDef, rangeOfNameAndRange(it.name)));
+			add(alloc, tokens, localDefOfNameAndRange(it.name));
 			addExprTokens(alloc, tokens, it.initializer);
 			addExprTokens(alloc, tokens, it.then);
 		},
@@ -375,7 +384,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			foreach (ref immutable MatchAst.CaseAst case_; it.cases) {
 				add(alloc, tokens, immutable Token(Token.Kind.structRef, rangeOfNameAndRange(case_.structName)));
 				if (has(case_.local))
-					add(alloc, tokens, immutable Token(Token.Kind.localDef, rangeOfNameAndRange(force(case_.local))));
+					add(alloc, tokens, localDefOfNameAndRange(force(case_.local)));
 				addExprTokens(alloc, tokens, case_.then);
 			}
 		},
@@ -395,6 +404,10 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			addExprTokens(alloc, tokens, it.futExpr);
 			addExprTokens(alloc, tokens, it.then);
 		});
+}
+
+immutable(Token) localDefOfNameAndRange(ref immutable NameAndRange a) {
+	return immutable Token(Token.Kind.localDef, rangeOfNameAndRange(a));
 }
 
 void addLambdaAstParam(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable LambdaAst.Param param) {

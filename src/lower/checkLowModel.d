@@ -220,6 +220,20 @@ void checkTypeEqual(Alloc)(
 	ref immutable LowType expected,
 	ref immutable LowType actual,
 ) {
+	debug {
+		if (!lowTypeEqual(expected, actual)) {
+			import core.stdc.stdio : printf;
+			import util.repr : writeRepr;
+			import util.writer : finishWriterToCStr, Writer, writeStatic;
+			import util.ptr : ptrTrustMe_mut;
+			Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+			writeStatic(writer, "Type is not as expected. Expected:\n");
+			writeRepr(writer, reprOfLowType2(alloc, ctx, expected));
+			writeStatic(writer, "Actual:\n");
+			writeRepr(writer, reprOfLowType2(alloc, ctx, actual));
+			printf("%s\n", finishWriterToCStr(writer));
+		}
+	}
 	verify(lowTypeEqual(expected, actual));
 }
 

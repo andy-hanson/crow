@@ -277,10 +277,11 @@ contexts:
     - match: '{{name}}(\.)\s+'
       scope: comment
 
-    # Other keywords
-    - match: 'match\s+'
+    # Keywords that are followed by a space
+    - match: '(elif|if|match)\s+'
       scope: keyword
-    - match: '(as|elif|else|if|it)(?=$|<|\,|\s|\}|\.)'
+    # Other keywords
+    - match: '(as|else|it)(?=$|<|\,|\s|\}|\.)'
       scope: keyword
     - match: '{{name}}'
       scope: identifier
@@ -304,6 +305,9 @@ contexts:
     # Making sure that when we eat a comma, we eat the space after it too.
     - match: '\,\s+'
       scope: comment # punctuation.separator
+    # `?=` in `if x ?= opt`
+    - match: '\s+\?=\s+'
+      scope: keyword
     # Call ` foo ` or ` foo: `
     - match: '\s+{{name}}(\:)?\s+'
       scope: variable.function.crow

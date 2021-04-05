@@ -4,7 +4,7 @@ import
 	..compare: <, compare
 	..exception: assert
 	..misc: ->, arrow, data, drop, from, to, void
-	..opt: force, has?, none, opt, some, value
+	..opt: force, has?, none, opt, some
 	..ptr: +, -, ptr, set-subscript
 	..str: char, str
 	..str-conv: to-str
@@ -102,11 +102,10 @@ mut-arr mut-arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 		buckets add-to-bucket! index, pair
 
 pop-value! opt ?v(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
-	match a pop!
-	as none
+	if pair ?= a pop!
+		pair.to some
+	else
 		none
-	as some s
-		s.value.to some
 
 pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 	res = a.mins pop!
@@ -189,12 +188,10 @@ test
 
 # TODO: opt should have generic ==
 .== bool(a opt arrow<nat, str>, b opt arrow<nat, str>)
-	match a
-	as none
-		b.has? not
-	as some sa
-		match b
-		as none
+	if va ?= a
+		if vb ?= b
+			va.from == vb.from and va.to == vb.to
+		else
 			false
-		as some sb
-			sa.value.from == sb.value.from and sa.value.to == sb.value.to
+	else
+		b.has? not

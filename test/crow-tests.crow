@@ -42,8 +42,9 @@ body
 			print: "crow print {print-kind} {path}"
 		res = print-kind run-print-test path-to-crow, env, path, options.overwrite-output?
 		res.should-stop? ? res.failures.some, none
-	match op
-	as none
+	if res ?= op
+		res
+	else
 		if options.print-tests?
 			print: "crow run {path}"
 		interpret-failures = path-to-crow run-single-runnable-test env, path, true, options.overwrite-output?
@@ -51,8 +52,6 @@ body
 			path-to-crow run-single-runnable-test env, path, false, options.overwrite-output?
 		else
 			interpret-failures
-	as some s
-		s value
 
 .print-test-result record
 	should-stop? bool

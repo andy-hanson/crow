@@ -349,6 +349,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 	immutable Ptr!StructDecl byVal = com("by-val", 1);
 	immutable Ptr!StructDecl arr = com("arr", 1);
 	immutable Ptr!StructDecl fut = com("fut", 1);
+	immutable Ptr!StructDecl opt = com("opt", 1);
 	immutable Ptr!StructDecl fun0 = com("fun0", 1);
 	immutable Ptr!StructDecl fun1 = com("fun1", 2);
 	immutable Ptr!StructDecl fun2 = com("fun2", 3);
@@ -407,6 +408,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 		byVal,
 		arr,
 		fut,
+		opt,
 		//TODO: this could have a compile-time length
 		arrLiteral!(Ptr!StructDecl)(alloc, [
 			funPtr0,

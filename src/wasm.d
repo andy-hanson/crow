@@ -38,6 +38,12 @@ extern (C) @system pure int memcmp(scope const ubyte* s1, scope const ubyte* s2,
 	return 0;
 }
 
+extern (C) @system pure void* memcpy(return scope ubyte* s1, scope const ubyte* s2, immutable size_t n) {
+	foreach (immutable size_t i; 0..n)
+		s1[i] = s2[i];
+	return s1;
+}
+
 extern(C) immutable(size_t) getGlobalBufferSize() {
 	return globalBuffer.length;
 }

@@ -4,7 +4,7 @@ import
 	.col.arr: ==, ~, arr, arr-from-begin-end, begin-ptr, has?, size, subscript
 	.col.arr-util: tail
 	.number: nat8
-	.opt: none, opt, some, value
+	.opt: none, opt, some
 	.ptr: +, ptr-cast, subscript
 	.str: char, c-str, str
 	.private.bootstrap: hard-unreachable
@@ -36,11 +36,10 @@ find-char-in-cstr opt c-str(a c-str, c char) unsafe noctx
 
 # Pointer to the end of a c-str.
 find-cstr-end c-str(a c-str) unsafe noctx
-	match a find-char-in-cstr "\0"
-	as none
+	if v ?= a find-char-in-cstr "\0"
+		v
+	else
 		hard-unreachable
-	as some s
-		s value
 
 # Strips whitespace from the front.
 lstrip str(a str)

@@ -10,7 +10,7 @@ import
 	..log: info, log
 	..misc: ->, drop, void
 	..number: deep-size-bytes, each
-	..opt: has?, none, opt, or-default, some, value
+	..opt: has?, none, opt, or-default, some
 	..ptr: +, ptr-eq?, set-subscript
 	..str: char, str
 	..str-conv: to-hex, to-str
@@ -124,14 +124,13 @@ intersect index-set(a index-set, b index-set)
 .strip-trailing-zeroes index-set(a arr nat)
 	index-set: void, a.strip-trailing-zeroes
 .strip-trailing-zeroes arr nat(a arr nat)
-	match a last
-	as none
-		[]
-	as some s
-		if s.value == 0
+	if last ?= a last
+		if last == 0
 			a.rtail strip-trailing-zeroes
 		else
 			a
+	else
+		[]
 
 # hi exclusive
 count-range nat(a index-set, lo nat, hi nat)

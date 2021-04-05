@@ -56,12 +56,11 @@ lint result<str, arr failure>(path str, options test-options) summon
 	ignored-extensions contains? ext
 
 .ignore-extension-of-name? bool(name str)
-	match name get-extension
-	as none
+	if ext ?= name get-extension
+		ext ignore-extension?
+	else
 		# Ignore extensionless files
 		true
-	as some s
-		s.value ignore-extension?
 
 .lines arr str(s str)
 	res = mut-list<str>

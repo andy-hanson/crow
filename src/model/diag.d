@@ -114,6 +114,9 @@ struct Diag {
 		immutable Opt!Type expectedType;
 	}
 	struct ExternPtrHasTypeParams {}
+	struct IfNeedsOpt {
+		immutable Type actualType;
+	}
 	struct ImportRefersToNothing {
 		immutable Sym name;
 	}
@@ -247,6 +250,7 @@ struct Diag {
 		duplicateImports,
 		expectedTypeIsNotALambda,
 		externPtrHasTypeParams,
+		ifNeedsOpt,
 		importRefersToNothing,
 		lambdaCantInferParamTypes,
 		lambdaClosesOverMut,
@@ -296,6 +300,7 @@ struct Diag {
 		immutable DuplicateImports duplicateImports;
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
 		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
+		immutable IfNeedsOpt ifNeedsOpt;
 		immutable ImportRefersToNothing importRefersToNothing;
 		immutable LambdaCantInferParamTypes lambdaCantInferParamTypes;
 		immutable LambdaClosesOverMut lambdaClosesOverMut;
@@ -364,6 +369,7 @@ struct Diag {
 	immutable this(immutable ExternPtrHasTypeParams a) {
 		kind = Kind.externPtrHasTypeParams; externPtrHasTypeParams = a;
 	}
+	@trusted immutable this(immutable IfNeedsOpt a) { kind = Kind.ifNeedsOpt; ifNeedsOpt = a; }
 	immutable this(immutable ImportRefersToNothing a) { kind = Kind.importRefersToNothing; importRefersToNothing = a; }
 	@trusted immutable this(immutable LambdaCantInferParamTypes a) {
 		kind = Kind.lambdaCantInferParamTypes; lambdaCantInferParamTypes = a;
@@ -476,6 +482,7 @@ static assert(Diag.sizeof <= 32);
 	scope immutable(Out) delegate(
 		ref immutable Diag.ExternPtrHasTypeParams
 	) @safe @nogc pure nothrow cbExternPtrHasTypeParams,
+	scope immutable(Out) delegate(ref immutable Diag.IfNeedsOpt) @safe @nogc pure nothrow cbIfNeedsOpt,
 	scope immutable(Out) delegate(
 		ref immutable Diag.ImportRefersToNothing
 	) @safe @nogc pure nothrow cbImportRefersToNothing,
@@ -591,6 +598,8 @@ static assert(Diag.sizeof <= 32);
 			return cbExpectedTypeIsNotALambda(a.expectedTypeIsNotALambda);
 		case Diag.Kind.externPtrHasTypeParams:
 			return cbExternPtrHasTypeParams(a.externPtrHasTypeParams);
+		case Diag.Kind.ifNeedsOpt:
+			return cbIfNeedsOpt(a.ifNeedsOpt);
 		case Diag.Kind.importRefersToNothing:
 			return cbImportRefersToNothing(a.importRefersToNothing);
 		case Diag.Kind.lambdaCantInferParamTypes:

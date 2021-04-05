@@ -69,12 +69,11 @@ user-cookie record
 	inner login-cookie
 
 parse-user-cookie opt user-cookie(a str)
-	match a try-split-once "|"
-	as none
-		none
-	as some s
-		s.value.a.parse-nat opt-join s.value.b.parse-login-cookie, \user, inner
+	if split ?= a try-split-once "|"
+		split.a.parse-nat opt-join split.b.parse-login-cookie, \user, inner
 			user user-cookie inner
+	else
+		none
 
 to-str str(a user-cookie)
 	"{a user}|{a inner}"
@@ -138,6 +137,20 @@ register-user-result union
 register-user-success record
 	new-user-id user
 user-already-exists record
+== bool(a register-user-result, b register-user-result)
+	match a
+	as register-user-success sa
+		match b
+		as register-user-success sb
+			sa.new-user-id == sb.new-user-id
+		as user-already-exists
+			false
+	as user-already-exists
+		match b
+		as register-user-success
+			false
+		as user-already-exists
+			true
 
 register-user! register-user-result(db db, user-name str, password str) summon
 	db.env with-abortable-write-transaction \txn
@@ -163,17 +176,15 @@ login! result<user-cookie, login-error>(db db, user-name str, password str) summ
 		err: empty-name-or-password
 	else
 		db.env with-write-transaction \txn
-			match db get-user txn, user-name
-			as none
-				err: user-does-not-exist
-			as some s
-				user = s.value
+			if user ?= db get-user txn, user-name
 				hash = txn get db.user-password-hash, user force
 				if password password-matches? hash not
 					throw: "wrong password"
 				cookie = generate-login-cookie
 				txn set db.user-login-cookie, user, cookie
 				user user-cookie cookie ok
+			else
+				user-does-not-exist err
 
 .get-post-info post-info(db db, post post) summon
 	db.env with-read-transaction \txn
@@ -200,14 +211,13 @@ add-post! post(db db, cookie user-cookie, content str) summon
 		"Login cookie invalid (may have expired)" throw
 
 .authenticate? bool(db db, txn lmdb-txn, cookie user-cookie) summon
-	match txn get db.user-login-cookie, cookie.user
-	as none
+	if login-cookie ?= txn get db.user-login-cookie, cookie.user
+		login-cookie cookie-matches? cookie.inner.cookie, cookie-expire-seconds
+	else
 		false
-	as some s
-		s.value cookie-matches? cookie.inner.cookie, cookie-expire-seconds
 
 .db-path str()
-	"demo-wip/app/db"
+	"demo-wip/webapp/db"
 
 cookie-expire-seconds nat()
 	5 * 60

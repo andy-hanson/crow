@@ -1,15 +1,15 @@
 no-std
 import
 	..bool: and, bool, not
-	..col.arr: ~, arr, size, subscript
+	..col.arr: ==, ~, arr, size, subscript
 	..col.arr-util: try-split-once
-	..compare: ==, <
+	..compare: <
 	..exception: assert
 	..io.time: get-unix-time, seconds-since-epoch, unix-time
 	..log: info, log
 	..misc: ->
-	..number: -, nat, nat8, to-int
-	..opt: none, opt, opt-join, value
+	..number: ==, <=>, -, nat, nat8, to-int
+	..opt: none, opt, opt-join
 	..serialize: from-bytes, to-8-bytes
 	..str: str
 	..str-conv: interp, finish, parse-int, parse-nat, to-str, with-str, with-value
@@ -43,9 +43,8 @@ to-str str(a login-cookie)
 	"{a.timestamp seconds-since-epoch}|{a cookie}"
 
 parse-login-cookie opt login-cookie(a str)
-	match a try-split-once "|"
-	as none
-		none
-	as some s
-		s.value.a.parse-int opt-join s.value.b.parse-nat, \time, cookie
+	if split ?= a try-split-once "|"
+		split.a.parse-int opt-join split.b.parse-nat, \time, cookie
 			time.unix-time login-cookie cookie
+	else
+		none

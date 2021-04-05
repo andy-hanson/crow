@@ -232,6 +232,12 @@ immutable(Repr) reprExpr(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Expr
 			reprRecord(alloc, "fun-ptr", [
 				reprFunInst(alloc, ctx, it.funInst),
 				reprStructInst(alloc, ctx, it.structInst)]),
+		(ref immutable Expr.IfOption it) =>
+			reprRecord(alloc, "if", [
+				reprExpr(alloc, ctx, it.option),
+				reprLocal(alloc, ctx, it.local),
+				reprExpr(alloc, ctx, it.then),
+				reprExpr(alloc, ctx, it.else_)]),
 		(ref immutable Expr.ImplicitConvertToUnion e) =>
 			reprRecord(alloc, "to-union", [
 				reprStructInst(alloc, ctx, e.unionType),

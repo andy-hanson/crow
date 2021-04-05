@@ -2,23 +2,23 @@ no-std
 import
 	...private.bootstrap: todo
 	...bool: bool, false, true
-	...col.arr: arr, begin-ptr, empty?, has?, size, subscript
+	...col.arr: ==, <=>, arr, begin-ptr, empty?, has?, size, subscript
 	...col.arr-util: contains?, last, rtail, split-by-subseq
 	...col.dict: dict, each, has-key?
 	...col.mut-dict: move-to-dict!, mut-dict, remove-key!, set-subscript, subscript
 	...col.mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
-	...compare: ==, !=, <=, >=
+	...compare: !=, <=, >=
 	...exception: assert, forbid, to-str
 	...fut: fut, fut-catch, resolved, subscript, then
-	...log: error, info, log
+	...log: error, log
 	...misc: as, drop, void
-	...number: +, nat, nat8, to-int
-	...opt: none, opt, some, value
+	...number: ==, <=>, +, nat, nat8, to-int
+	...opt: ==, none, opt, some, value
 	...posix.extra-types: fd-t
 	...posix.unistd: write
 	...ptr: ptr-cast
 	...str: char, str
-	...str-conv: interp, finish, parse-nat, to-str, with-str, with-value
+	...str-conv: parse-nat, to-str
 	...str-util: as-str
 	..print: print
 	.tcp-server: close-client, start-tcp-server, stop, tcp-handler
@@ -82,15 +82,13 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		client-states[fd] := http-parse-state
 		void resolved
 	on-received-chunk = as<ref void(fd-t, arr nat8)>: \fd, bytes
-		match client-states[fd]
-		as none
-			print: "Ignoring unrecognized client"
-			void resolved
-		as some s
-			state = s value
+		if state ?= client-states[fd]
 			closed <- fd handle-chunk state, bytes.as-str, handler
 			if closed
 				client-states remove-key! fd drop
+			void resolved
+		else
+			print: "Ignoring unrecognized client"
 			void resolved
 	tcp-server = port start-tcp-server tcp-handler: on-accepted-client, on-received-chunk
 
@@ -102,8 +100,6 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 
 # Returns true when closed client
 .handle-chunk fut bool(fd fd-t, state http-parse-state, chunk str, handler http-handler) summon trusted
-	info log "HANDLE CHUNK:"
-	info log chunk
 	state.unparsed ~= chunk
 	finished-request? = if state.content-length != 0
 		assert: state.unparsed.size <= state.content-length
@@ -112,7 +108,6 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		state handle-http-initial
 
 	if finished-request?
-		info log "WILL CALL HANDLER"
 		handler-response <- handler[state finish-request] fut-catch
 		response = match handler-response
 		as ok o
@@ -162,25 +157,18 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 
 # returns true if ready to call handler
 .handle-http-initial bool(state http-parse-state)
-	match state.unparsed try-take-first-line
-	as none
-		false
-	as some s
-		line = s value
-		info log "LINE IS {line}"
+	if line ?= state.unparsed try-take-first-line
 		if line empty?
-			match state.headers["content-length"]
-			as none
-				true
-			as some some-content-length-str
+			if content-length-str ?= state.headers["content-length"]
 				# set state.content-length
-				match some-content-length-str.value parse-nat
-				as none
+				if content-length ?= content-length-str parse-nat
+					state.content-length := content-length
+					false
+				else
 					# invalid content-length
 					todo
-				as some some-content-length
-					state.content-length := some-content-length value
-					false
+			else
+				true
 		elif state.url empty?
 			# Expect something like "GET / HTTP/1.1"
 			parts = line split-by-subseq " "
@@ -197,6 +185,8 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 			value = parts[1]
 			state.headers[key] := value
 			state handle-http-initial
+	else
+		false
 
 .parse-method http-method(name str)
 	if name == "GET"
@@ -207,12 +197,11 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		todo
 
 .try-take-first-line opt str(a mut-list char)
-	match a index-of "\n"
-	as none
-		none
-	as some s
-		line = a pop-n-from-start! s.value + 1 rtail
+	if index ?= a index-of "\n"
+		line = a pop-n-from-start! index + 1 rtail
 		some: line strip-carriage-return
+	else
+		none
 
 .strip-carriage-return str(a str)
 	if a.last == "\r".some

@@ -5,7 +5,7 @@ import
 	..exception: assert, forbid, throw
 	..fun: subscript
 	..misc: drop, void
-	..opt: ==, empty?, none, opt, some, value
+	..opt: ==, empty?, has?, none, opt, some
 	..ptr: +, -, ptr-eq?, set-subscript
 	..str: str
 	..test: is
@@ -89,11 +89,10 @@ Most recently appended element.
 This is O(1).
 ###
 last opt ?a(a stack ?a)
-	match a last-node
-	as none
+	if node ?= a last-node
+		node.value some
+	else
 		none
-	as some s
-		s.value.value some
 
 ###
 All but the last element.
@@ -101,102 +100,89 @@ This is O(1).
 Throws if the stack is empty.
 ###
 rtail stack ?a(a stack ?a)
-	match a last-node
-	as none
+	if node ?= a last-node
+		stack: void, node prev
+	else
 		throw: "Stack is empty"
-	as some s
-		stack: void, s.value prev
 
 popped<?a> record
 	value ?a
 	rest stack ?a
 
 pop opt popped ?a(a stack ?a)
-	match a last-node
-	as none
+	if node ?= a last-node
+		some: popped: node.value, stack: void, node.prev
+	else
 		none
-	as some s
-		some: popped: s.value.value, stack: void, s.value.prev
 
 region iteration
 
 each void(a stack ?a, f act void(?a))
 	a.last-node each-recur f
 .each-recur void(a opt node ?a, f act void(?a))
-	match a
-	as none
-		void
-	as some s
-		s.value.prev each-recur f
-		f[s.value value]
+	if node ?= a
+		node.prev each-recur f
+		f[node value]
 
 each-reverse void(a stack ?a, f act void(?a))
 	a.last-node each-reverse-recur f
 .each-reverse-recur void(a opt node ?a, f act void(?a))
-	match a
-	as none
-		void
-	as some s
-		f[s.value value]
-		s.value.prev each-reverse-recur f
+	if node ?= a
+		f[node value]
+		node.prev each-reverse-recur f
 
 # Call a function for each element in the stack and accumulate.
 fold ?a(acc ?a, a stack ?b, f act ?a(?a, ?b))
 	acc fold-recur a.last-node, f
 .fold-recur ?a(acc ?a, a opt node ?b, f act ?a(?a, ?b))
-	match a
-	as none
+	if node ?= a
+		prev-val = acc fold-recur node.prev, f
+		f[prev-val, node.value]
+	else
 		acc
-	as some s
-		prev-val = acc fold-recur s.value.prev, f
-		f[prev-val, s.value.value]
 
 fold-reverse ?a(acc ?a, a stack ?b, f act ?a(?a, ?b))
 	acc fold-reverse-recur a.last-node, f
 .fold-reverse-recur ?a(acc ?a, a opt node ?b, f act ?a(?a, ?b))
-	match a
-	as none
+	if node ?= a
+		f[acc, node.value] fold-reverse-recur node.prev, f
+	else
 		acc
-	as some s
-		f[acc, s.value.value] fold-reverse-recur s.value.prev, f
 
 
 # Produce a stack with `f[x]` applied to each element `x` in the input.
 map stack ?out(a stack ?in, f act ?out(?in))
 	stack: void, a.last-node map-recur f
 .map-recur opt node ?out(a opt node ?in, f act ?out(?in))
-	match a
-	as none
+	if node ?= a
+		prev = node.prev map-recur f
+		some: node: prev, f[node value]
+	else
 		none
-	as some s
-		prev = s.value.prev map-recur f
-		some: node: prev, f[s.value.value]
 
 filter stack ?a(a stack ?a, f act bool(?a))
 	stack: void, a.last-node filter-recur f
 .filter-recur opt node ?a(a opt node ?a, f act bool(?a))
-	match a
-	as none
-		none
-	as some s
-		prev = s.value.prev filter-recur f
-		if f[s.value value]
-			some: node: prev, s.value.value
+	if node ?= a
+		prev = node.prev filter-recur f
+		if f[node value]
+			some: node: prev, node.value
 		else
 			prev
+	else
+		none
 
 first-some opt ?out(a stack ?in, f act opt ?out(?in))
 	a.last-node first-some-recur f
 .first-some-recur opt ?out(a opt node ?in, f act opt ?out(?in))
-	match a
-	as none
+	if node ?= a
+		res = node.prev first-some-recur f
+		if res has?
+			res
+		else
+			f[node value]
+	else
 		none
-	as some some-node
-		match some-node.value.prev first-some-recur f
-		as none
-			f[some-node.value value]
-		as some some-out
-			some-out
 
 test
 	a = stack<nat>

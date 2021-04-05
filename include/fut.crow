@@ -97,11 +97,10 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 			none
 		as exception e
 			e some
-	match exception
-	as none
+	if e ?= exception
+		res reject! e
+	else
 		res resolve!: a map {it must-be-resolved}
-	as some s
-		res reject! s.value
 
 .must-be-resolved ?a(a fut ?a) unsafe
 	match a state

@@ -7,8 +7,7 @@ main fut nat(_ arr str) summon
 	0 resolved
 
 rate-my-number str(a str)
-	match a parse-nat
-	as none
+	if n ?= a parse-nat
+		"as many as {n}"
+	else
 		"not a nat"
-	as some s
-		"as many as {s value}"

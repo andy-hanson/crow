@@ -11,6 +11,7 @@ import util.sym : Sym;
 enum EqLikeKind {
 	equals,
 	mutEquals,
+	optEquals,
 	then,
 }
 

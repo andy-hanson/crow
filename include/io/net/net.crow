@@ -2,10 +2,10 @@ no-std
 import
 	...private.bootstrap: todo
 	...cell: cell, subscript
-	...compare: ==, !=
+	...compare: !=
 	...exception: assert
-	...number: nat16
-	...opt: force, none, opt, some, value
+	...number: ==, nat16
+	...opt: force, none, opt, some
 	...posix.extra-types: fd-t
 	...posix.netdb:
 		addrinfo, ai-addr, ai-addrlen, ai-family, ai-next, ai-passive, ai-protocol, ai-socktype,
@@ -67,12 +67,11 @@ bind-to-port fd-t(port str) unsafe summon
 	check-posix-error: getaddrinfo: null, port.to-c-str, hints.ptr-to, result
 	op-sock = result[] find-and-bind-working-socket
 	result[] freeaddrinfo
-	match op-sock
-	as none
+	if res ?= op-sock
+		res
+	else
 		print: "Failed to bind to port {port}"
 		todo
-	as some s
-		s.value
 
 .find-and-bind-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
 	if ap null?

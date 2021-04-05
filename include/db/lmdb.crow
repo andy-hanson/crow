@@ -7,7 +7,7 @@ import
 	..col.mut-arr:
 		begin-ptr, cast-immutable, copy-to-arr, end-ptr, mut-arr-from-begin-end,
 		uninitialized-mut-arr
-	..compare: ==, !=
+	..compare: !=
 	..exception: assert, do-if-error, finally, forbid, throw
 	..fun: subscript
 	..io.file: make-directory, path-exists?, remove-directory-and-contents-non-recursive
@@ -22,8 +22,9 @@ import
 		mdb-txn-abort, mdb-txn-begin, mdb-txn-commit, mdb-txn-full, mdb-val, mdb-version-mismatch,
 		ms-branch-pages, ms-depth, ms-entries, ms-leaf-pages, ms-overflow-pages, ms-psize, mv-data,
 		mv-size
+	..log: info, log
 	..misc: as, data, void
-	..number: *, nat, nat8, nat32, nat64, to-nat
+	..number: ==, *, nat, nat8, nat32, nat64, to-nat
 	..opt: none, opt, some
 	..posix.c-types: u-int
 	..posix.extra-types: err-t
@@ -53,8 +54,7 @@ Implemented for nat32, nat64 and str.
 Not recommended to implement this yourself.
 ###
 lmdb-key<?k> spec
-	# TODO:KILL?
-	to-str str(k ?k)
+	== bool(a ?k, b ?k)
 	# NOTE: Parameter is a dummy, don't actually use it
 	lmdb-key-flags u-int(_ ?k)
 	# Don't use `serialize`, because lmdb expects integers to be fixed size
@@ -103,6 +103,7 @@ lmdb-open-env lmdb-env(db-dir str, options lmdb-open-options) unsafe summon
 
 	if options create-if-not-exists?
 		if db-dir.path-exists? not
+			info log "Creating database directory {db-dir}"
 			db-dir make-directory
 
 	err = env mdb-env-open db-dir.to-c-str, 0, 0o666

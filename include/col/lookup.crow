@@ -8,7 +8,7 @@ import
 	..hash: hash, hash-mix
 	..log: info, log
 	..misc: ->, arrow, as, data, drop, from, to, void
-	..opt: ==, force, none, opt, some, value
+	..opt: ==, force, has?, none, opt, some
 	..ptr: size-of
 	..str: char, str
 	..str-conv: to-str
@@ -139,11 +139,10 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 ~ lookup<?k, ?v>(a lookup<?k, ?v>, pair arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	res = a get-or-update pair.from, \old-value
 		pair.to insert
-	match res new-node
-	as none
+	if node ?= res new-node
+		lookup: void, node
+	else
 		a
-	as some s
-		lookup: void, s.value
 
 ~ lookup<?k, ?v>(a lookup<?k, ?v>, pairs arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a fold pairs, \cur, pair
@@ -159,23 +158,20 @@ already-has-key<?v> record
 # Adds a value if the key doesn't already exist
 try-add try-add-result<?k, ?v>(a lookup<?k, ?v>, key ?k, get-value act ?v()) data<?k> compare<?k> hash-mix<?k>
 	res = a get-or-update key, \old-value
-		match old-value
-		as none
-			get-value[] insert
-		as some
+		if old-value has?
 			no-change
-	match res old-value
-	as none
+		else
+			get-value[] insert
+	if value ?= res old-value
+		value already-has-key
+	else
 		lookup: void, res.new-node.force
-	as some s
-		already-has-key: s.value
 
 - lookup<?k, ?v>(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
-	match a try-remove key
-	as none
+	if res ?= a try-remove key
+		res new-lookup
+	else
 		a
-	as some s
-		s.value new-lookup
 
 try-remove-result<?k, ?v> record
 	by-val
@@ -185,11 +181,10 @@ try-remove-result<?k, ?v> record
 try-remove opt try-remove-result<?k, ?v>(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 	res = a get-or-update key, \old-value
 		remove
-	match res old-value
-	as none
+	if value ?= res old-value
+		some: try-remove-result: value, lookup: void, res.new-node.force
+	else
 		none
-	as some s
-		some: try-remove-result: s.value, lookup: void, res.new-node.force
 
 .get-or-update-result<?k, ?v> record
 	by-val
@@ -242,12 +237,11 @@ body
 		if which < i.children.size
 			next-hash = remaining-hash unsafe-bit-shift-right 3
 			child-res = i.children[which] get-or-update-recur: key, next-hash, (hash-shift wrap-add 3), f
-			match child-res new-node
-			as none
-				child-res
-			as some s
-				new-inner = i update-child which, s.value
+			if node ?= child-res new-node
+				new-inner = i update-child which, node
 				get-or-update-result: new-inner.some, child-res.old-value
+			else
+				child-res
 		else
 			match f[none]
 			as no-change
@@ -266,28 +260,23 @@ body
 		l get-or-update-leaf key, remaining-hash, hash-shift, f
 
 .update-child node<?k, ?v>(a inner-node<?k, ?v>, which nat, new-child node<?k, ?v>)
-	match a inner-node-to-leaf which, new-child
-	as none
-		if new-child node-empty?
-			if which ==: a.children.size wrap-sub 1
-				new-children = a.children rtail
-				if new-children.size == 1
-					new-children[0]
-				else
-					inner-node: new-children
+	if leaf ?= a inner-node-to-leaf which, new-child
+		leaf
+	elif new-child node-empty?
+		if which ==: a.children.size wrap-sub 1
+			new-children = a.children rtail
+			if new-children.size == 1
+				new-children[0]
 			else
-				new-children = a.children update which, new-child
-				match new-children find-only-non-empty-child
-				as none
-					inner-node: new-children
-				as some s
-					s value
+				inner-node: new-children
 		else
-			inner-node: a.children update which, new-child
-	as some some-leaf
-		# TODO: should not need a local
-		v = some-leaf value
-		v
+			new-children = a.children update which, new-child
+			if child ?= new-children find-only-non-empty-child
+				child
+			else
+				new-children inner-node
+	else
+		inner-node: a.children update which, new-child
 
 # Returns 'some' if we should change this to a leaf.
 inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat, new-child node<?k, ?v>) trusted
@@ -330,8 +319,17 @@ spec
 	compare<?k>
 	hash-mix<?k>
 body
-	match a.pairs find-index {it.from == key}
-	as none
+	if index ?= a.pairs find-index {it.from == key}
+		old-value = a.pairs[index] to
+		new-node = match f[old-value some]
+		as no-change
+			none as<opt node<?k, ?v>>
+		as remove
+			some: leaf-node: a.pairs remove-at index
+		as insert ins
+			some: leaf-node: a.pairs update index, key -> ins.value
+		get-or-update-result: new-node, old-value.some
+	else
 		new-node = as<opt node<?k, ?v>>: match f[none]
 		as no-change
 			none
@@ -349,17 +347,6 @@ body
 			else
 				leaf-node: a.pairs ~ [key -> ins.value]
 		get-or-update-result: new-node, none
-	as some some-index
-		index = some-index value
-		old-value = a.pairs[index] to
-		new-node = match f[old-value some]
-		as no-change
-			none as<opt node<?k, ?v>>
-		as remove
-			some: leaf-node: a.pairs remove-at index
-		as insert ins
-			some: leaf-node: a.pairs update index, key -> ins.value
-		get-or-update-result: new-node, old-value.some
 
 # In order to get the hash, we need to know the shift amount
 .new-inner-node inner-node<?k, ?v>(a leaf-node<?k, ?v>, key ?k, value ?v, hash nat, hash-shift nat) trusted hash-mix<?k>

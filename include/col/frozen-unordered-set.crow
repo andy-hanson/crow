@@ -5,7 +5,7 @@ import
 	..fun: subscript
 	..hash: hash, hash-mix
 	..misc: data, void
-	..opt: none, opt, some, value
+	..opt: has?, none, opt, some
 	..ptr: +, -, ptr, ptr-eq?, ptr-less-eq?, set-subscript, size-of, subscript, swap!
 	..test: is
 	..private.number-low-level: ==, <=>, nat, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
@@ -51,11 +51,7 @@ unordered-arr arr ?a(a frozen-unordered-set ?a)
 	a values
 
 subscript bool(a frozen-unordered-set ?a, value ?a) trusted data<?a> compare<?a> hash-mix<?a>
-	match a try-get-unordered-index value
-	as none
-		false
-	as some
-		true
+	a try-get-unordered-index value has?
 
 # WARN: The order of values is arbitrary,
 # but consistent for *identical* (not ==) sets.
@@ -69,11 +65,10 @@ try-get-unordered-index opt nat(a frozen-unordered-set ?a, value ?a) trusted dat
 			a.values end-ptr
 		else
 			a.bucket-starts unsafe-at: bucket-index wrap-add 1
-		match bucket-start arr-from-begin-end bucket-end ptr-of value
-		as none
+		if ptr ?= bucket-start arr-from-begin-end bucket-end ptr-of value
+			ptr - a.begin-ptr some
+		else
 			none
-		as some s
-			s.value - a.begin-ptr some
 
 unsafe-frozen-unordered-set-from-mut-arr-cast-immutable frozen-unordered-set ?a
 	a mut-arr ?a

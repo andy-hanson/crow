@@ -13,7 +13,7 @@ import
 	..fun: subscript
 	..misc: ->, as, drop, void
 	..number: ==, <=>, +, int32, nat8, nat16, nat32, to-int, to-nat, to-nat32
-	..opt: has?, none, opt, some, value
+	..opt: has?, none, opt, some
 	..posix.bytes-types: zero
 	..posix.dirent: dir, dirent, opendir, readdir-r
 	..posix.errno: enoent, errno
@@ -35,22 +35,20 @@ is-dir? bool(path str) summon trusted
 	path.to-c-str is-dir?
 
 .is-dir? bool(path c-str) summon unsafe
-	match path get-stat
-	as none
+	if stat ?= path get-stat
+		(stat.st-mode bits-and s-ifmt) == s-ifdir
+	else
 		throw: "path does not exist: {path}"
-	as some s
-		(s.value.st-mode bits-and s-ifmt) == s-ifdir
 
 # True if this is the path of a file.
 is-file? bool(path str) summon
 	path.to-c-str is-file?
 
 .is-file? bool(path c-str) summon
-	match path get-stat
-	as none
+	if stat ?= path get-stat
+		(stat.st-mode bits-and s-ifmt) == s-ifreg
+	else
 		false
-	as some s
-		(s.value.st-mode bits-and s-ifmt) == s-ifreg
 
 # True if something (like a file or directory) exists at the path.
 path-exists? bool(path str) summon
@@ -122,13 +120,12 @@ current-executable-path str() summon trusted
 
 # Gets the full contents of the file as a string.
 read-file str(path str) summon
-	match path try-read-file
-	as none
+	if res ?= path try-read-file
+		res
+	else
 		# TODO: don't print, warn
 		print: "file does not exist: {path}"
 		""
-	as some s
-		s value
 
 ###
 Writes the full contents of the file as a string.

@@ -36,6 +36,7 @@ import frontend.parse.ast :
 	FunPtrAst,
 	IdentifierAst,
 	IfAst,
+	IfOptionAst,
 	InterpolatedAst,
 	InterpolatedPart,
 	LambdaAst,
@@ -173,7 +174,7 @@ immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 		// TODO: use temp alloc
 		fillArr_mut!(bool, Alloc)(alloc, size(params), (immutable size_t) =>
 			false));
-	immutable Ptr!Expr res = allocExpr(alloc, checkAndExpect!Alloc(alloc, exprCtx, ast, returnType));
+	immutable Ptr!Expr res = allocExpr(alloc, checkAndExpect(alloc, exprCtx, ast, returnType));
 	zipPtrFirst!(Param, bool)(
 		params,
 		castImmutable(exprCtx.paramsUsed),
@@ -267,13 +268,61 @@ immutable(CheckedExpr) checkIf(Alloc)(
 	} else {
 		immutable Ptr!StructInst void_ = ctx.commonTypes.void_;
 		immutable Ptr!Expr then = allocExpr(alloc, checkAndExpect(alloc, ctx, ast.then, void_));
-		immutable Ptr!Expr else_ = allocExpr(alloc, immutable Expr(range, nu!(Expr.Literal)(
-			alloc,
-			void_,
-			immutable Constant(immutable Constant.Void()))));
+		immutable Ptr!Expr else_ = allocExpr(alloc, makeVoid(alloc, range, void_));
 		immutable Type voidType = immutable Type(void_);
 		immutable Expr expr = immutable Expr(range, immutable Expr.Cond(voidType, cond, then, else_));
 		return check(alloc, ctx, expected, voidType, expr);
+	}
+}
+
+immutable(Expr) makeVoid(Alloc)(ref Alloc alloc, ref immutable FileAndRange range, immutable Ptr!StructInst void_) {
+	return immutable Expr(range, nu!(Expr.Literal)(
+		alloc,
+		void_,
+		immutable Constant(immutable Constant.Void())));
+}
+
+immutable(CheckedExpr) checkIfOption(Alloc)(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	ref immutable FileAndRange range,
+	ref immutable IfOptionAst ast,
+	ref Expected expected,
+) {
+	// We don't know the cond type, except that it's an option
+	immutable ExprAndType optionAndType = checkAndInfer(alloc, ctx, ast.option);
+	immutable Ptr!Expr option = allocExpr(alloc, optionAndType.expr);
+	immutable Type optionType = optionAndType.type;
+
+	immutable Ptr!StructInst inst = isStructInst(optionType)
+		? asStructInst(optionType)
+		// Arbitrary type that's not opt
+		: ctx.commonTypes.void_;
+	if (!ptrEquals(decl(inst), ctx.commonTypes.opt)) {
+		addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.IfNeedsOpt(optionType)));
+		return bogus(expected, range);
+	} else {
+		immutable Type innerType = only(typeArgs(inst));
+		immutable Ptr!Local local = nu!Local(
+			alloc,
+			rangeInFile2(ctx, rangeOfNameAndRange(ast.name)),
+			ast.name.name,
+			innerType);
+
+		if (has(ast.else_)) {
+			immutable Ptr!Expr then = allocExpr(alloc, checkWithLocal(alloc, ctx, local, ast.then, expected));
+			immutable Ptr!Expr else_ = allocExpr(alloc, checkExpr(alloc, ctx, force(ast.else_), expected));
+			return immutable CheckedExpr(immutable Expr(
+				range,
+				immutable Expr.IfOption(inferred(expected), option, local, then, else_)));
+		} else {
+			immutable Ptr!StructInst void_ = ctx.commonTypes.void_;
+			immutable Type voidType = immutable Type(void_);
+			immutable Ptr!Expr then = allocExpr(alloc, checkWithLocalAndExpect(alloc, ctx, local, ast.then, voidType));
+			immutable Ptr!Expr else_ = allocExpr(alloc, makeVoid(alloc, range, void_));
+			immutable Expr expr = immutable Expr(range, immutable Expr.IfOption(voidType, option, local, then, else_));
+			return check(alloc, ctx, expected, voidType, expr);
+		}
 	}
 }
 
@@ -671,6 +720,17 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 		});
 }
 
+immutable(Expr) checkWithLocalAndExpect(Alloc)(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	immutable Ptr!Local local,
+	ref immutable ExprAst ast,
+	ref immutable Type expectedType,
+) {
+	Expected expected = Expected(some(expectedType));
+	return checkWithLocal(alloc, ctx, local, ast, expected);
+}
+
 immutable(Expr) checkWithLocal(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
@@ -789,6 +849,8 @@ immutable(Opt!Pos) findIt(ref immutable ExprAst a) {
 		(ref immutable IdentifierAst id) =>
 			symEq(id.name, itSym) ? some(a.range.start) : none!Pos,
 		(ref immutable(IfAst)) =>
+			unreachable!(immutable Opt!Pos),
+		(ref immutable(IfOptionAst)) =>
 			unreachable!(immutable Opt!Pos),
 		(ref immutable InterpolatedAst it) =>
 			findSome(it.parts, (ref immutable InterpolatedPart part) =>
@@ -994,7 +1056,7 @@ immutable(CheckedExpr) checkMatch(Alloc)(
 						: checkWithOptLocal(alloc, ctx, local, caseAst.then.deref, expected);
 					return immutable Expr.Match.Case(local, allocExpr(alloc, then));
 				});
-			return CheckedExpr(immutable Expr(range, Expr.Match(
+			return CheckedExpr(immutable Expr(range, immutable Expr.Match(
 				allocExpr(alloc, matchedAndType.expr),
 				matchedUnion,
 				cases,
@@ -1079,6 +1141,8 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 			checkIdentifier(alloc, ctx, range, a, expected),
 		(ref immutable IfAst a) =>
 			checkIf(alloc, ctx, range, a, expected),
+		(ref immutable IfOptionAst a) =>
+			checkIfOption(alloc, ctx, range, a, expected),
 		(ref immutable InterpolatedAst a) =>
 			checkInterpolated(alloc, ctx, range, a, expected),
 		(ref immutable LambdaAst a) =>

@@ -6,7 +6,7 @@ import
 	.fun: subscript
 	.misc: arrow, from, to, void
 	.number: ==, <=>, +, nat
-	.opt: none, opt, some, value
+	.opt: none, opt, some
 
 ###
 Function to get an iterator.
@@ -62,11 +62,8 @@ iter iterator nat(r arrow<nat, nat>)
 each void(a iterable ?a, f act void(?a))
 	a.iter each-recur f
 .each-recur void(i iterator ?a, f act void(?a))
-	match i next
-	as none
-		void
-	as some s
-		f[s value]
+	if v ?= i next
+		f[v]
 		i each-recur f
 
 # Returns a new iterable containing just the elements of the input for which `pred` returns true.
@@ -75,16 +72,14 @@ filter iterable ?a(a iterable ?a, pred act bool(?a))
 		itr = a iter
 		{itr filter-recur pred} iterator
 .filter-recur opt ?a(a iterator ?a, pred act bool(?a))
-	match a next
-	as none
-		none
-	as some s
-		v = s value
+	if v ?= a next
 		if pred[v]
 			v some
 		else
 			# This one didn't satisfy the predicate, but keep trying until we get one or each the end
 			a filter-recur pred
+	else
+		none
 
 # Returns a new iterable which yields f[x] for each x in the input.
 map iterable ?b(a iterable ?a, f act ?b(?a))
@@ -92,8 +87,7 @@ map iterable ?b(a iterable ?a, f act ?b(?a))
 		itr = a iter
 		{itr map-recur f} iterator
 .map-recur opt ?b(a iterator ?a, f act ?b(?a))
-	match a next
-	as none
+	if v ?= a next
+		f[v] some
+	else
 		none
-	as some s
-		f[s value] some

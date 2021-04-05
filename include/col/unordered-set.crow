@@ -1,10 +1,11 @@
 no-std
 import
 	..bool: bool
+	..compare: compare
 	..hash: hash-mix
 	..misc: ->, data, void
 	..number: nat
-	..opt: has?, none, opt, some, value
+	..opt: has?, none, opt, some
 	.arr: arr
 	.arr-util: map
 	.lookup:
@@ -14,10 +15,10 @@ import
 unordered-set<?a> record
 	inner lookup<?a, void>
 
-unordered-set unordered-set ?a() data<?a> hash-mix<?a>
+unordered-set unordered-set ?a() data<?a> compare<?a> hash-mix<?a>
 	unordered-set: lookup<?a, void>
 
-unordered-set unordered-set ?a(a arr ?a) data<?a> hash-mix<?a>
+unordered-set unordered-set ?a(a arr ?a) data<?a> compare<?a> hash-mix<?a>
 	unordered-set: lookup: a map {it -> void}
 
 alloc-count nat(a unordered-set ?a) unsafe
@@ -26,42 +27,39 @@ alloc-count nat(a unordered-set ?a) unsafe
 overhead-bytes nat(a unordered-set ?a) unsafe
 	a.inner overhead-bytes
 
-empty? bool(a unordered-set ?a) data<?a> hash-mix<?a>
+empty? bool(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
 	a.inner empty?
 
-size nat(a unordered-set ?a) data<?a> hash-mix<?a>
+size nat(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
 	a.inner size
 
-subscript bool(a unordered-set ?a, value ?a) data<?a> hash-mix<?a>
+subscript bool(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
 	a.inner[value] has?
 
-~ unordered-set ?a(a unordered-set ?a, value ?a) data<?a> hash-mix<?a>
-	match a try-add value
-	as none
+~ unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
+	if res ?= a try-add value
+		res
+	else
 		a
-	as some s
-		s value
 
-try-add opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> hash-mix<?a>
+try-add opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
 	match a.inner try-add value, {void}
 	as already-has-key
 		none
 	as lookup l
 		l.unordered-set some
 
-- unordered-set ?a(a unordered-set ?a, value ?a) data<?a> hash-mix<?a>
-	match a try-remove value
-	as none
+- unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
+	if res ?= a try-remove value
+		res
+	else
 		a
-	as some s
-		s value
 
-try-remove opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> hash-mix<?a>
-	match a.inner try-remove value
-	as none
+try-remove opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
+	if res ?= a.inner try-remove value
+		res.new-lookup.unordered-set some
+	else
 		none
-	as some s
-		s.value.new-lookup.unordered-set some
 
 region iteration
 

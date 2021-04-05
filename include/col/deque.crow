@@ -4,7 +4,7 @@ import
 	..exception: assert
 	..fun: subscript
 	..misc: ->, void
-	..opt: force, has?, none, opt, some, value
+	..opt: force, has?, none, opt, some
 	..ptr: +, -, ptr-eq?, set-subscript
 	..str: char, str
 	..str-conv: to-str
@@ -61,36 +61,29 @@ popped<?a> record
 	rest deque ?a
 
 pop-left opt popped ?a(a deque ?a)
-	match a.left pop
-	as none
-		match a.mid first
-		as none
+	if popped ?= a.left pop
+		some: popped: popped.value, deque: popped.rest, a.mid, a.right
+	else
+		if first ?= a.mid first
+			some: popped: first, deque: stack, a.mid.tail, a.right
+		else
 			right-arr = a.right arr
-			match right-arr first
-			as none
+			if first ?= right-arr first
+				some: popped: first, deque: stack, right-arr.tail, stack
+			else
 				none
-			as some s
-				some: popped: s.value, deque: stack, right-arr.tail, stack
-		as some s
-			some: popped: s.value, deque: stack, a.mid.tail, a.right
-	as some s
-		some: popped: s.value.value, deque: s.value.rest, a.mid, a.right
 
 pop-right opt popped ?a(a deque ?a)
-	match a.right pop
-	as none
-		match a.mid last
-		as none
-			left-arr = a.left arr-reverse
-			match left-arr last
-			as none
-				none
-			as some s
-				some: popped: s.value, deque: stack, left-arr.rtail, stack
-		as some s
-			some: popped: s.value, deque: a.left, a.mid.rtail, stack
-	as some s
-		some: popped: s.value.value, deque: a.left, a.mid, s.value.rest
+	if popped ?= a.right pop
+		some: popped: popped.value, deque: a.left, a.mid, popped.rest
+	elif last ?= a.mid last
+		some: popped: last, deque: a.left, a.mid.rtail, stack
+	else
+		left-arr = a.left arr-reverse
+		if last ?= left-arr last
+			some: popped: last, deque: stack, left-arr.rtail, stack
+		else
+			none
 
 region iteration
 

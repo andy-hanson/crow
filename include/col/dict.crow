@@ -6,7 +6,7 @@ import
 	..fun: subscript
 	..misc: ->, arrow, as, data, drop, from, to, void
 	..number: ==, <=>, +, -, even?, nat
-	..opt: ==, has?, none, opt, opt-or, some, value
+	..opt: ==, has?, none, opt, opt-or, or-default, some
 	..ptr: +, -, ptr, ptr-eq?, ptr-less?, set-subscript, subscript
 	..str: char, str
 	..str-conv: interp, finish, to-str, with-str, with-value
@@ -104,17 +104,15 @@ subscript opt ?v(a dict<?k, ?v>, key ?k) data<?k> compare<?k>
 .subscript-recur opt ?v(a dict-impl<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 	match a
 	as overlay o
-		match o.pairs binary-search-value {key <=> it.from}
-		as none
+		if pair ?= o.pairs binary-search-value {key <=> it.from}
+			pair to
+		else
 			o.prev subscript-recur key
-		as some s
-			s.value to
 	as end-node e
-		match e.pairs binary-search-value {key <=> it.from}
-		as none
+		if pair ?= e.pairs binary-search-value {key <=> it.from}
+			pair.to some
+		else
 			none
-		as some s
-			s.value.to some
 
 has-key? bool(a dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 	a[key] has?
@@ -209,12 +207,12 @@ body
 		else
 			out + 1 merge-to-end-recur l + 1, l-end, r, r-end
 	as equal
-		new-out = match r[] to
-		as none
-			out
-		as some s
-			out[] := r[].from -> s.value
+		new-out = if r-value ?= r[] to
+			out[] := r[].from -> r-value
 			out + 1
+		else
+			out
+
 		if l + 1 ptr-eq? l-end
 			new-out finish-rest-ignore-none r, r-end
 		elif r + 1 ptr-eq? r-end
@@ -222,12 +220,12 @@ body
 		else
 			new-out merge-to-end-recur l + 1, l-end, r + 1, r-end
 	as greater
-		new-out = match r[] to
-		as none
-			out
-		as some s
-			out[] := r[].from -> s.value
+		new-out = if r-value ?= r[] to
+			out[] := r[].from -> r-value
 			out + 1
+		else
+			out
+
 		if r + 1 ptr-eq? r-end
 			new-out finish-rest l, l-end
 		else
@@ -249,12 +247,11 @@ body
 	if r ptr-eq? r-end
 		out
 	else
-		new-out = match r[].to
-		as none
-			out
-		as some s
-			out[] := r[].from -> s.value
+		new-out = if r-value ?= r[] to
+			out[] := r[].from -> r-value
 			out + 1
+		else
+			out
 		new-out finish-rest-ignore-none r + 1, r-end
 
 region iteration
@@ -292,11 +289,10 @@ body
 		val-from-end-node = as<opt ?v>: take-from-end-node? ? end-node[0].to.some, none
 		new-end-node = take-from-end-node? ? end-node.tail, end-node
 		took-from-overlays = overlays take-key least-key
-		new-acc = match took-from-overlays.rightmost-value opt-or val-from-end-node
-		as none
+		new-acc = if val ?= took-from-overlays.rightmost-value opt-or val-from-end-node
+			f[acc, least-key, val]
+		else
 			acc
-		as some s
-			f[acc, least-key, s.value]
 		new-acc fold-recur new-end-node, took-from-overlays.overlays, f
 
 .find-least-key ?k(current-least-key ?k, overlays mut-arr arr arrow<?k, ?v>) data<?k> compare<?k>
@@ -407,11 +403,7 @@ map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k>
 		o.pairs each \pair
 			out ~= pair.from to-str
 			out ~= " -> "
-			out ~= match pair to
-			as none
-				"_"
-			as some s
-				s value
+			out ~= pair.to or-default "_"
 			out ~= ", "
 		if o.pairs empty?
 			out ~= "]"

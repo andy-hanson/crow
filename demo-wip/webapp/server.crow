@@ -39,9 +39,9 @@ main fut nat(args arr str) unsafe summon
 	as http-get
 		info log "GET {path}"
 		if path == "/"
-			http-response: 200, "OK", dict, read-file: "demo-wip/app/index.html"
+			http-response: 200, "OK", dict, read-file: "demo-wip/webapp/index.html"
 		elif path == "/index.js"
-			http-response: 200, "OK", dict, read-file: "demo-wip/app/index.js"
+			http-response: 200, "OK", dict, read-file: "demo-wip/webapp/index.js"
 		elif path == "/posts"
 			http-response: 200, "OK", dict, db.list-posts.format-posts-as-json
 		elif path == "/user-name"
@@ -79,13 +79,12 @@ main fut nat(args arr str) unsafe summon
 				as user-does-not-exist
 					"User does not exist" http-not-found
 		elif path == "/post"
-			match req.headers["Cookie"]
-			as none
-				http-response: 403, "No login cookie", dict, "No login cookie"
-			as some s
-				user-cookie = (s.value parse-cookies ["login"])[0].parse-user-cookie force
+			if cookie ?= req.headers["Cookie"]
+				user-cookie = (cookie parse-cookies ["login"])[0].parse-user-cookie force
 				post = db add-post! user-cookie, req.body
 				http-response: 200, "OK", dict, "\{\"postId\":{post}}"
+			else
+				http-response: 403, "No login cookie", dict, "No login cookie"
 		else
 			http-not-found
 	#descr = req describe-request
@@ -96,44 +95,31 @@ url record
 	query str
 
 split-url url(url-str str)
-	match url-str try-split-once "?"
-	as none
-		url: url-str, ""
-	as some s
-		url: s.value.a, s.value.b
+	if split ?= url-str try-split-once "?"
+		split.a url split.b
+	else
+		url-str url ""
 
 # Extra cookies are ignored
 parse-cookies arr str(s str, cookie-names arr str)
 	res = cookie-names.size fill-mut-arr<opt str> none
 	s split-by-subseq "; " each \part
-		match part try-split-once "="
-		as none
-			void
-		as some some-pair
-			key = some-pair.value a
-			value = some-pair.value b
-			match cookie-names index-of key
-			as none
-				void
-			as some some-index
-				res[some-index value] := value some
+		if pair ?= part try-split-once "="
+			if index ?= cookie-names index-of pair.a
+				res[index] := pair.b some
 	res map-to-arr-with-index \x, index
 		x or-throw {"Did not get cookie value for {cookie-names[index]}"}
 
 parse-query arr str(s str, arg-names arr str)
 	res = arg-names.size fill-mut-arr<opt str> none
 	s split-by "&" each \part
-		match part try-split-once "="
-		as none
+		if pair ?= part try-split-once "="
+			if index ?= arg-names index-of pair.a
+				res[index] := pair.b some
+			else
+				throw: "Unexpected key {pair a}"
+		else
 			throw: "Invalid part: {part}"
-		as some some-pair
-			key = some-pair.value a
-			value = some-pair.value b
-			match arg-names index-of key
-			as none
-				throw: "Unexpected key {key}"
-			as some some-index
-				res[some-index value] := value some
 	res map-to-arr-with-index \x, index
 		x or-throw {"Did not get argument for {arg-names[index]}"}
 

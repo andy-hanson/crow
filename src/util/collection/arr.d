@@ -130,6 +130,11 @@ ref const(T) only_const(T)(ref const T[] a) {
 	return first(a);
 }
 
+immutable(Ptr!T) onlyPtr(T)(ref immutable T[] a) {
+	verify(a.size == 1);
+	return ptrAt(a, 0);
+}
+
 Ptr!T onlyPtr_mut(T)(ref T[] a) {
 	verify(a.size == 1);
 	return ptrAt(a, 0);

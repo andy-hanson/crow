@@ -7,6 +7,7 @@ import
 	.misc: void
 	.str: str
 	.tuple: pair
+	.private.bootstrap: char
 	.private.exception-low-level: throw
 	.private.number-low-level: ==, int, nat
 export
@@ -18,19 +19,18 @@ export
 	a opt-equal? b
 == bool(a opt str, b opt str)
 	a opt-equal? b
+== bool(a opt char, b opt char)
+	a opt-equal? b
 
 # TODO:GENERIC
 opt-equal? bool(a opt ?a, b opt ?a) equal<?a> noctx
-	match a
-	as none
-		b.has? not
-	as some sa
-		match b
-		as none
+	if va ?= a
+		if vb ?= b
+			va == vb
+		else
 			false
-		as some sb
-			sa.value == sb.value
-
+	else
+		b.has? not
 
 # True iff a is `none`.
 empty? bool(a opt ?a) noctx
@@ -46,61 +46,54 @@ has? bool(a opt ?a) noctx
 
 # Calls `f` on the value in a `some`, or does nothing.
 each void(a opt ?in, f act void(?in))
-	match a
-	as none
+	if v ?= a
+		f[v]
+	else
 		void
-	as some s
-		f[s value]
 
 # Converts `none` to `none`, or `some` to another `some` with `f` applied.
 map opt ?out(a opt ?in, f act ?out(?in))
-	match a
-	as none
+	if v ?= a
+		f[v] some
+	else
 		none
-	as some s
-		f[s value] some
 
 # Takes the leftmost `some` value.
 opt-or opt ?a(a opt ?a, b opt ?a)
-	match a
-	as none
-		b
-	as some
+	if a has?
 		a
+	else
+		b
 
 # Converts an option to a value by supplying a default to handle `none`.
 or-default ?a(a opt ?a, default act ?a())
-	match a
-	as none
+	if v ?= a
+		v
+	else
 		default[]
-	as some s
-		s value
 
 or-default ?a(a opt ?a, default ?a)
-	match a
-	as none
+	if v ?= a
+		v
+	else
 		default
-	as some s
-		s value
 
 # Converts an option to a value by failing on `none`.
 force ?a(a opt ?a)
 	a force "tried to force empty option"
 
 force ?a(a opt ?a, message str)
-	match a
-	as none
+	if v ?= a
+		v
+	else
 		throw: message
-	as some s
-		s value
 
 # TODO: Should be called 'force' too, but that loses the expected type
 or-throw ?a(a opt ?a, get-message act str())
-	match a
-	as none
+	if v ?= a
+		v
+	else
 		throw: get-message[]
-	as some s
-		s value
 
 opt-join opt pair<?in-0, ?in-1>(a opt ?in-0, b opt ?in-1)
 	a opt-join b, \x, y
@@ -110,12 +103,10 @@ opt-join opt pair<?in-0, ?in-1>(a opt ?in-0, b opt ?in-1)
 Returns `some: f[a.force, b.force]` iff both `a` and `b` are `some`, else returns `none`.
 ###
 opt-join opt ?out(a opt ?in-0, b opt ?in-1, f act ?out(?in-0, ?in-1))
-	match a
-	as none
-		none
-	as some sa
-		match b
-		as none
+	if va ?= a
+		if vb ?= b
+			f[va, vb] some
+		else
 			none
-		as some sb
-			f[sa value, sb value] some
+	else
+		none

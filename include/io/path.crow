@@ -4,7 +4,7 @@ import
 	..col.arr-util: last, r-index-of, rtail
 	..misc: ->
 	..number: +, -, nat
-	..opt: none, opt, some, value
+	..opt: none, opt, some
 	..str: char, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 
@@ -13,11 +13,10 @@ Gets the paremt of a path.
 Returns "" if the path has no parent.
 ###
 parent-path str(a str)
-	match a r-index-of "/"
-	as none
+	if index ?= a r-index-of "/"
+		a[0 -> index]
+	else
 		""
-	as some s
-		a[0 -> s.value]
 
 # Gets a child of a path.
 child-path str(a str, child-name str)
@@ -25,31 +24,28 @@ child-path str(a str, child-name str)
 
 # TODO:MOVE
 .last-index-of opt nat(a str, c char)
-	match a last
-	as none
-		none
-	as some s
-		if s.value == c
+	if last-char ?= a last
+		if last-char == c
 			a.size - 1 some
 		else
 			a.rtail last-index-of c
+	else
+		none
 
 # Gets the extension from a file name or path.
 # Returns none if there is no extension.
 get-extension opt str(name str)
-	match name last-index-of "."
-	as none
+	if index ?= name last-index-of "."
+		name[index + 1 -> name.size] some
+	else
 		none
-	as some s
-		name[s.value + 1 -> name.size] some
 
 # Removes the extension from a file name or path.
 remove-extension str(name str)
-	match name last-index-of "."
-	as none
+	if index ?= name last-index-of "."
+		name[0 -> index]
+	else
 		name
-	as some s
-		name[0 -> s.value]
 
 ###
 Adds an extension to a file name or path.
@@ -64,9 +60,7 @@ change-extension str(name str, ext str)
 
 # Gets just the file name without any directory names in from of it.
 base-name str(path str)
-	i = path last-index-of "/"
-	match i
-	as none
+	if index ?= path last-index-of "/"
+		path[index + 1 -> path.size]
+	else
 		path
-	as some s
-		path[s.value + 1 -> path.size]

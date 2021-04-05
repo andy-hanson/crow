@@ -1179,10 +1179,11 @@ struct CommonTypes {
 	immutable Ptr!StructDecl byVal;
 	immutable Ptr!StructDecl arr;
 	immutable Ptr!StructDecl fut;
+	immutable Ptr!StructDecl opt;
 	immutable Ptr!StructDecl[] funPtrStructs; // Indexed by arity
 	immutable FunKindAndStructs[] funKindsAndStructs;
 }
-static assert(CommonTypes.sizeof <= 112);
+static assert(CommonTypes.sizeof <= 120);
 
 struct IntegralTypes {
 	immutable Ptr!StructInst int8;
@@ -1273,6 +1274,14 @@ struct Expr {
 		immutable Ptr!StructInst structInst;
 	}
 
+	struct IfOption {
+		immutable Type type;
+		immutable Ptr!Expr option;
+		immutable Ptr!Local local;
+		immutable Ptr!Expr then;
+		immutable Ptr!Expr else_;
+	}
+
 	struct ImplicitConvertToUnion {
 		immutable Ptr!StructInst unionType;
 		immutable ubyte memberIndex;
@@ -1339,6 +1348,7 @@ struct Expr {
 		cond,
 		createArr,
 		funPtr,
+		ifOption,
 		implicitConvertToUnion,
 		lambda,
 		let,
@@ -1360,6 +1370,7 @@ struct Expr {
 		immutable CreateArr createArr;
 		immutable ImplicitConvertToUnion implicitConvertToUnion;
 		immutable FunPtr funPtr;
+		immutable IfOption ifOption;
 		immutable Lambda lambda;
 		immutable Let let;
 		immutable Ptr!Literal literal;
@@ -1385,6 +1396,9 @@ struct Expr {
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable FunPtr a) {
 		range_ = r; kind = Kind.funPtr; funPtr = a;
+	}
+	@trusted immutable this(immutable FileAndRange r, immutable IfOption a) {
+		range_ = r; kind = Kind.ifOption; ifOption = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable Lambda a) {
 		range_ = r; kind = Kind.lambda; lambda = a;
@@ -1422,6 +1436,7 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	scope T delegate(ref immutable Expr.Cond) @safe @nogc pure nothrow cbCond,
 	scope T delegate(ref immutable Expr.CreateArr) @safe @nogc pure nothrow cbCreateArr,
 	scope T delegate(ref immutable Expr.FunPtr) @safe @nogc pure nothrow cbFunPtr,
+	scope T delegate(ref immutable Expr.IfOption) @safe @nogc pure nothrow cbIfOption,
 	scope T delegate(ref immutable Expr.ImplicitConvertToUnion) @safe @nogc pure nothrow cbImplicitConvertToUnion,
 	scope T delegate(ref immutable Expr.Lambda) @safe @nogc pure nothrow cbLambda,
 	scope T delegate(ref immutable Expr.Let) @safe @nogc pure nothrow cbLet,
@@ -1445,6 +1460,8 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 			return cbCreateArr(a.createArr);
 		case Expr.Kind.funPtr:
 			return cbFunPtr(a.funPtr);
+		case Expr.Kind.ifOption:
+			return cbIfOption(a.ifOption);
 		case Expr.Kind.implicitConvertToUnion:
 			return cbImplicitConvertToUnion(a.implicitConvertToUnion);
 		case Expr.Kind.lambda:
@@ -1475,6 +1492,7 @@ immutable(bool) typeIsBogus(ref immutable Expr a) {
 		(ref immutable Expr.Cond e) => isBogus(e.type),
 		(ref immutable Expr.CreateArr) => false,
 		(ref immutable Expr.FunPtr) => false,
+		(ref immutable Expr.IfOption e) => isBogus(e.type),
 		(ref immutable Expr.ImplicitConvertToUnion) => false,
 		(ref immutable Expr.Lambda) => false,
 		(ref immutable Expr.Let e) => typeIsBogus(e.then),
@@ -1495,6 +1513,7 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.Cond) => todo!(immutable Type)("getType cond"),
 		(ref immutable Expr.CreateArr e) => immutable Type(e.arrType),
 		(ref immutable Expr.FunPtr e) => immutable Type(e.structInst),
+		(ref immutable Expr.IfOption e) => e.type,
 		(ref immutable Expr.ImplicitConvertToUnion e) => immutable Type(e.unionType),
 		(ref immutable Expr.Lambda e) => immutable Type(e.type),
 		(ref immutable Expr.Let e) => getType(e.then, commonTypes),

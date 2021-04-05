@@ -6,8 +6,7 @@ import
 	..fun: subscript
 	..log: info, log
 	..misc: ->, data, void
-	..opt: force, none, opt, or-default, some, value
-	..perf: perf-measure, perf-now
+	..opt: force, none, opt, or-default, some
 	..ptr:
 		+, -, deep-size-bytes, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of,
 		subscript
@@ -56,42 +55,38 @@ deep-size-bytes nat(a set ?a) unsafe deep-size-bytes<?a>
 	a.remove.deep-size-bytes deep-size-bytes-recur a.add
 .deep-size-bytes-recur nat(acc nat, a add-node ?a) unsafe deep-size-bytes<?a>
 	mid = acc wrap-add a.values.deep-size-bytes wrap-add a.left.size-of
-	match a left
-	as none
+	if left ?= a left
+		mid deep-size-bytes-recur left
+	else
 		mid
-	as some s
-		mid deep-size-bytes-recur s.value
 
 # TODO: any value that is removed is overhead too
 overhead-bytes nat(a set ?a) unsafe
 	a.remove.deep-size-bytes overhead-bytes-recur a.add
 .overhead-bytes-recur nat(acc nat, a add-node ?a) unsafe
 	mid = acc wrap-add a.size-of
-	match a left
-	as none
+	if left ?= a left
+		mid overhead-bytes-recur left
+	else
 		mid
-	as some s
-		mid overhead-bytes-recur s.value
 
 alloc-count nat(a set ?a) unsafe
 	a.remove.alloc-count alloc-count-recur a.add
 .alloc-count-recur nat(acc nat, a add-node ?a) unsafe
 	mid = acc wrap-add a.values.alloc-count
-	match a left
-	as none
-		mid
-	as some s
+	if left ?= a left
 		# + 1 to allocate the left node
-		mid wrap-add 1 alloc-count-recur s.value
+		mid wrap-add 1 alloc-count-recur left
+	else
+		mid
 
 .add-node-count nat(a set ?a)
 	0 add-node-count-recur a.add
 .add-node-count-recur nat(acc nat, a add-node ?a)
-	match a left
-	as none
+	if left ?= a left
+		acc wrap-add 1 add-node-count-recur left
+	else
 		acc wrap-add 1
-	as some s
-		acc wrap-add 1 add-node-count-recur s.value
 
 
 empty? bool(a set ?a)
@@ -107,32 +102,24 @@ size nat(a set ?a)
 .add-size-left nat(a add-node ?a)
 	0 add-size-left-recur a
 .add-size-left-recur nat(acc nat, a add-node ?a)
-	match a left
-	as none
+	if left ?= a left
+		acc add-size-recur left
+	else
 		acc
-	as some s
-		acc add-size-recur s.value
 
 subscript bool(a set ?a, value ?a) data<?a> compare<?a>
-	match a.add find-in-add value
-	as none
+	if index ?= a.add find-in-add value
+		a.remove[index] not
+	else
 		false
-	as some s
-		a.remove[s value] not
 
 .find-in-add opt nat(a add-node ?a, value ?a) compare<?a>
-	start = perf-now
-	x = a.values binary-search-exact-index value
-	start perf-measure "bin-search"
-	match x
-	as none
-		match a left
-		as none
-			none
-		as some s
-			s.value find-in-add value
-	as some s
-		a.add-size-left wrap-add s.value some
+	if index ?= a.values binary-search-exact-index value
+		a.add-size-left wrap-add index some
+	elif left ?= a left
+		left find-in-add value
+	else
+		none
 
 .find-in-add-for-remove-result record
 	value-index nat
@@ -141,49 +128,42 @@ subscript bool(a set ?a, value ?a) data<?a> compare<?a>
 	size-right nat
 
 .find-in-add-for-remove opt find-in-add-for-remove-result(a add-node ?a, value ?a, size-right nat) compare<?a>
-	match a.values binary-search-exact-index value
-	as none
-		match a left
-		as none
-			none
-		as some s
-			# TODO: should be able to write this inline
-			new-size-right = size-right wrap-add a.values.size
-			s.value find-in-add-for-remove: value, new-size-right
-	as some s
+	if index ?= a.values binary-search-exact-index value
 		sl = a add-size-left
-		some: find-in-add-for-remove-result: (sl wrap-add s.value), sl, a.values.size, size-right
+		some: find-in-add-for-remove-result: (sl wrap-add index), sl, a.values.size, size-right
+	elif left ?= a left
+		# TODO: should be able to write this inline
+		new-size-right = size-right wrap-add a.values.size
+		left find-in-add-for-remove: value, new-size-right
+	else
+		none
 
 ~ set ?a(a set ?a, value ?a) data<?a> compare<?a>
 	a try-add value or-default a
 
 try-add opt set ?a(a set ?a, value ?a) data<?a> compare<?a>
-	match a.add find-in-add value
-	as none
-		a add-and-maybe-compact value some
-	as some s
+	if index ?= a.add find-in-add value
 		# In 'add', but may need to remove from removals
-		match a.remove try-remove s.value
-		as none
+		if new-remove ?= a.remove try-remove index
+			a.add set new-remove some
+		else
 			none
-		as some s2
-			some: set: a.add, s2.value
+	else
+		a add-and-maybe-compact value some
 
 - set ?a(a set ?a, value ?a) data<?a> compare<?a>
 	a try-remove value or-default a
 
 try-remove opt set ?a(a set ?a, value ?a) trusted data<?a> compare<?a>
-	match a.add find-in-add-for-remove value, 0
-	as none
-		none
-	as some s
-		r = s value
+	if r ?= a.add find-in-add-for-remove value, 0
 		removals-here-and-right = 1 wrap-add: a.remove count-greater-or-equal r.size-left
 		some: if r.size-here should-compact? r.size-right, removals-here-and-right
 			compacted-size = r.size-here wrap-add r.size-right wrap-sub 1
 			a remove-and-compact (compact-plan: r.size-left, compacted-size), r.value-index
 		else
 			set: a.add, a.remove ~ r.value-index
+	else
+		none
 
 .add-and-maybe-compact set ?a(a set ?a, value ?a) trusted compare<?a>
 	add-size = a.add add-size
@@ -218,13 +198,12 @@ Or a combination of the two.
 	removals-here-and-right = remove count-greater-or-equal size-left
 	if size-here should-compact? size-right, removals-here-and-right
 		size-here-and-right = size-here wrap-add size-right
-		match a left
-		as none
-			compact-plan: size-left, size-here-and-right
-		as some s
-			size-left add-and-compact-plan s.value, remove, size-here-and-right
+		if left ?= a left
+			size-left add-and-compact-plan left, remove, size-here-and-right
+		else
+			size-left compact-plan size-here-and-right
 	else
-		compact-plan: size-here-and-left, size-right
+		size-here-and-left compact-plan size-right
 
 .should-compact? bool(size-here nat, size-right nat, removals-here-and-right nat)
 	(size-right wrap-add (removals-here-and-right wrap-mul 2) wrap-mul 2) >= size-here
@@ -240,17 +219,16 @@ Or a combination of the two.
 .remove-and-compact set ?a(a set ?a, plan compact-plan, extra-removal nat) unsafe data<?a> compare<?a>
 	new-remove = a.remove filter-less plan.add-size-left
 	if plan.compacted-size == 0
-		match a.add left
-		as none
+		if left ?= a.add left
+			left set new-remove
+		else
 			set
-		as some s
-			set: s.value, new-remove
 	else
 		compacted = plan.compacted-size uninitialized-mut-arr<?a>
 		compactor = compactor<?a>: compacted.begin-ptr, compacted.begin-ptr, compacted.end-ptr
 		old-size = plan.add-size-left wrap-add plan.compacted-size wrap-add 1
 		new-add = compactor do-compact-recur! a.add, old-size, a.remove ~ extra-removal
-		set: new-add, new-remove
+		new-add set new-remove
 
 .compactor<?a> record mut
 	begin ptr ?a
@@ -391,11 +369,10 @@ fold ?a(acc ?a, a set ?b, f act ?a(?a, ?b)) data<?b> compare<?b>
 	out ptr iter-part ?a
 
 .init-iters-recur! init-iters-result ?a(out ptr iter-part ?a, a add-node ?a, remove index-set) unsafe
-	prev = match a left
-	as none
-		init-iters-result: 0, out
-	as some s
-		out init-iters-recur! s.value, remove
+	prev = if left ?= a left
+		out init-iters-recur! left, remove
+	else
+		0 init-iters-result out
 	here = a.values iter-part prev.next-remove-index remove-from-front remove
 	new-out = if here empty?
 		prev.out
@@ -437,12 +414,10 @@ dbg str(a set ?a) to-str<?a>
 	out move-to-arr!
 
 .dbg-add-recur! void(out mut-list char, a add-node ?a) to-str<?a>
-	match a left
-	as none
-		void
-	as some s
-		out dbg-add-recur! s.value
+	if left ?= a left
+		out dbg-add-recur! left
 		out ~= ", "
+
 	if a.values empty?
 		out ~= "[]"
 	else

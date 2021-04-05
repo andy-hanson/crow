@@ -168,6 +168,13 @@ struct IfAst {
 	immutable Opt!(Ptr!ExprAst) else_;
 }
 
+struct IfOptionAst {
+	immutable NameAndRange name;
+	immutable ExprAst option;
+	immutable ExprAst then;
+	immutable Opt!ExprAst else_;
+}
+
 struct InterpolatedAst {
 	immutable InterpolatedPart[] parts;
 }
@@ -318,6 +325,7 @@ struct ExprAstKind {
 		funPtr,
 		identifier,
 		if_,
+		ifOption,
 		interpolated,
 		lambda,
 		lambdaSingleLine,
@@ -337,6 +345,7 @@ struct ExprAstKind {
 		immutable FunPtrAst funPtr;
 		immutable IdentifierAst identifier;
 		immutable IfAst if_;
+		immutable Ptr!IfOptionAst ifOption;
 		immutable InterpolatedAst interpolated;
 		immutable LambdaAst lambda;
 		immutable LambdaSingleLineAst lambdaSingleLine;
@@ -356,6 +365,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable FunPtrAst a) { kind = Kind.funPtr; funPtr = a; }
 	@trusted immutable this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
 	@trusted immutable this(immutable IfAst a) { kind = Kind.if_; if_ = a; }
+	@trusted immutable this(immutable Ptr!IfOptionAst a) { kind = Kind.ifOption; ifOption = a; }
 	@trusted immutable this(immutable InterpolatedAst a) { kind = Kind.interpolated; interpolated = a; }
 	@trusted immutable this(immutable LambdaAst a) { kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable LambdaSingleLineAst a) { kind = Kind.lambdaSingleLine; lambdaSingleLine = a; }
@@ -393,6 +403,7 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	scope T delegate(ref immutable FunPtrAst) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
 	scope T delegate(ref immutable IfAst) @safe @nogc pure nothrow cbIf,
+	scope T delegate(ref immutable IfOptionAst) @safe @nogc pure nothrow cbIfOption,
 	scope T delegate(ref immutable InterpolatedAst) @safe @nogc pure nothrow cbInterpolated,
 	scope T delegate(ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
 	scope T delegate(ref immutable LambdaSingleLineAst) @safe @nogc pure nothrow cbLambdaSingleLine,
@@ -417,6 +428,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbIdentifier(a.identifier);
 		case ExprAstKind.Kind.if_:
 			return cbIf(a.if_);
+		case ExprAstKind.Kind.ifOption:
+			return cbIfOption(a.ifOption);
 		case ExprAstKind.Kind.interpolated:
 			return cbInterpolated(a.interpolated);
 		case ExprAstKind.Kind.lambda:
@@ -1117,6 +1130,13 @@ immutable(Repr) reprExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKin
 				reprExprAst(alloc, e.cond),
 				reprExprAst(alloc, e.then),
 				reprOpt(alloc, e.else_, (ref immutable Ptr!ExprAst it) =>
+					reprExprAst(alloc, it))]),
+		(ref immutable IfOptionAst it) =>
+			reprRecord(alloc, "if", [
+				reprNameAndRange(alloc, it.name),
+				reprExprAst(alloc, it.option),
+				reprExprAst(alloc, it.then),
+				reprOpt(alloc, it.else_, (ref immutable ExprAst it) =>
 					reprExprAst(alloc, it))]),
 		(ref immutable InterpolatedAst it) =>
 			reprRecord(alloc, "interpolated", [

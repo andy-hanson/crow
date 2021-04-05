@@ -13,15 +13,13 @@ main fut exit-code(args arr str) summon
 
 test-uri void() summon
 	my-uri = "https://www.duckduckgo.com:80/some-thing"
-	match my-uri parse-uri
-	as none
-		print: "did not parse"
-	as some s
-		uri = s value
+	if uri ?= my-uri parse-uri
 		uri test-get
 		# print: "host: " + uri.host
 		# print: "path and query: " + uri.path-and-query
 		# print: "port: " + uri.port.to-str
+	else
+		print: "did not parse"
 
 split-with-splitter<?a> record
 	before arr ?a
@@ -40,21 +38,17 @@ split-at-first opt split-with-splitter<?a>(a arr ?a, pred act bool(?a))
 
 # If splitter is not present, right part is empty
 try-split split ?a(a arr ?a, pred act bool(?a))
-	match a find-index pred
-	as none
+	if index ?= a find-index pred
+		split<?a>: (a slice-up-to index), (a slice-after index)
+	else
 		split<?a>: a, []
-	as some s
-		idx = s value
-		split<?a>: (a slice-up-to idx), (a slice-after idx)
 
 # If splitter is not present, right part is empty
 try-split-from-right split ?a(a arr ?a, pred act bool(?a))
-	match a find-rindex pred
-	as none
-		split<?a>: a, []
-	as some s
-		index = s value
+	if index ?= a find-rindex pred
 		split<?a>: (a slice-up-to index), (a slice-after index)
+	else
+		split<?a>: a, []
 
 # nghttp2-session-callbacks-new foo() extern<"nghttp2_session_callbacks_new"> noctx summon
 # nghttp2-session-client-new foo() extern<"nghttp2_session_client"> noctx summon

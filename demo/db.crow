@@ -10,13 +10,7 @@ import
 	serialize: from-bytes, to-bytes
 
 main fut nat(args arr str) unsafe summon
-	opt-command = parse-command-name: args.empty? ? "", args[0]
-	match opt-command
-	as none
-		print: usage
-		1 resolved
-	as some s
-		command = s value
+	if command ?= parse-command-name: args.empty? ? "", args[0]
 		match command
 		as get
 			named-args = args.tail parse-named-args ["db-path", "db-name", "key"] force
@@ -46,6 +40,9 @@ main fut nat(args arr str) unsafe summon
 					print: env with-read-transaction \txn
 						txn stat db to-str
 		0 resolved
+	else
+		print: usage
+		1 resolved
 
 .usage str()
 	# TODO: Use a """ string

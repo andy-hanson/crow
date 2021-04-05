@@ -5,7 +5,7 @@ import
 	..exception: assert
 	..fun: subscript
 	..misc: ->, void
-	..opt: force, has?, none, opt, some, value
+	..opt: force, has?, none, opt, some
 	..ptr: +, -, ptr-eq?, set-subscript
 	..test: is
 	..private.number-low-level: ==, nat, wrap-add
@@ -51,16 +51,14 @@ dequeued<?a> record
 	rest queue ?a
 
 dequeue opt dequeued ?a(a queue ?a)
-	match a.left first
-	as none
+	if first ?= a.left first
+		some: dequeued: first, queue: a.left.tail, a.right
+	else
 		right-arr = a.right arr
-		match right-arr first
-		as none
+		if first ?= right-arr first
+			some: dequeued: first, queue: right-arr.tail, stack
+		else
 			none
-		as some s
-			some: dequeued: s.value, queue: right-arr.tail, stack
-	as some s
-		some: dequeued: s.value, queue: a.left.tail, a.right
 
 region iteration
 

@@ -5,7 +5,7 @@ import
 	..exception: assert
 	..fun: subscript
 	..misc: ->, arrow, as, data, from, to, void
-	..opt: empty?, force, none, opt, some, value
+	..opt: empty?, force, none, opt, some
 	..ptr: +, -, ptr, ptr-eq?, set-subscript
 	..str: char, str
 	..str-conv: finish, interp, to-str, with-str, with-value
@@ -65,11 +65,10 @@ empty? bool(a priority-queue<?k, ?v>) data<?k> compare<?k>
 size nat(a priority-queue<?k, ?v>) data<?k> compare<?k>
 	0 size-recur a.root
 .size-recur nat(acc nat, a opt node<?k, ?v>)
-	match a
-	as none
+	if node ?= a
+		acc wrap-add 1 wrap-add node.pairs.size size-recur node.next
+	else
 		acc
-	as some s
-		acc wrap-add 1 wrap-add s.value.pairs.size size-recur s.value.next
 
 ###
 Add a pair to the queue.
@@ -83,44 +82,36 @@ popped<?k, ?v> record
 	rest priority-queue<?k, ?v>
 
 pop opt popped<?k, ?v>(a priority-queue<?k, ?v>) data<?k> compare<?k>
-	match a.compact-leading-nodes root
-	as none
+	if root ?= a.compact-leading-nodes root
+		if next ?= root next
+			some: if popped ?= next pop-no-compact-recur root.min.from
+				root combine-with-popped popped
+			else
+				root.pop-from-node
+		else
+			root.pop-from-node some
+	else
 		none
-	as some some-root
-		root = some-root value
-		match root next
-		as none
-			some: root pop-from-node
-		as some some-next
-			next = some-next value
-			match next pop-no-compact-recur root.min.from
-			as none
-				some: root pop-from-node
-			as some s
-				some: root combine-with-popped s.value
 
 .pop-from-node popped<?k, ?v>(a node<?k, ?v>)
-	rest = match a.pairs first
-	as none
+	rest = as<opt node<?k, ?v>>: if first ?= a.pairs first
+		some: node: first, a.pairs.tail, a.next
+	else
 		a next
-	as some s
-		some: node: s.value, a.pairs.tail, a.next
 	popped: a.min, priority-queue: void, rest
 
 # Returns none if this (or any following node) did not have a lower min.
 .pop-no-compact-recur opt popped<?k, ?v>(a node<?k, ?v>, min ?k) compare<?k>
 	is-min? = a.min.from < min
-	next-popped = match a next
-	as none
-		none as<opt popped<?k, ?v>>
-	as some s
-		s.value pop-no-compact-recur (is-min? ? a.min.from, min)
+	next-popped = if next ?= a next
+		next pop-no-compact-recur: is-min? ? a.min.from, min
+	else
+		none
 
-	match next-popped
-	as none
+	if next ?= next-popped
+		a combine-with-popped next some
+	else
 		is-min? ? a.pop-from-node.some, none
-	as some s
-		some: a combine-with-popped s.value
 
 combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 	node = node<?k, ?v>: a.min, a.pairs, popped.rest.root
@@ -145,15 +136,13 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 # Finds the first node with 'pairs' non-empty.
 # Also returns the # of nodes before that
 .find-mid found-mid<?k, ?v>(a opt node<?k, ?v>, n-before nat)
-	match a
-	as none
-		found-mid: none, n-before
-	as some s
-		node = s value
+	if node ?= a
 		if node.pairs empty?
 			node.next find-mid: n-before wrap-add 1
 		else
 			found-mid: node.some, n-before
+	else
+		found-mid: none, n-before
 
 .plan-did-compact<?k, ?v> record
 	node node<?k, ?v>
@@ -168,11 +157,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 # We only call this if we will definitely compact something,
 # TODO: 'plan' is misnamed, this now does the compaction during the recursion
 .plan plan<?k, ?v>(a opt node<?k, ?v>, root node<?k, ?v>, n-singles nat) compare<?k>
-	match a
-	as none
-		plan-will-compact<?k, ?v>: n-singles
-	as some s
-		node = s value
+	if node ?= a
 		match node.next plan root, n-singles
 		as plan-did-compact d
 			new-node = node<?k, ?v>: node.min, node.pairs, d.node.some
@@ -184,6 +169,8 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 			else
 				compacted = root do-compact c.n-elements-to-compact, node.next
 				plan-did-compact: node: node.min, node.pairs, some: compacted
+	else
+		plan-will-compact<?k, ?v>: n-singles
 
 .do-compact node<?k, ?v>(root node<?k, ?v>, n-to-compact nat, nodes-to-compact opt node<?k, ?v>) trusted compare<?k>
 	compacted = n-to-compact uninitialized-mut-arr<arrow<?k, ?v>>
@@ -197,40 +184,33 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 .compact-singles! ptr arrow<?k, ?v>(out ptr arrow<?k, ?v>, a node<?k, ?v>) unsafe
 	if a.pairs empty?
 		# Output later nodes first to preserve insertion order (since they're inserted to the front)
-		pos = match a next
-		as none
+		pos = if next ?= a next
+			out compact-singles! next
+		else
 			out
-		as some s
-			out compact-singles! s.value
 		pos[] := a.min
 		pos + 1
 	else
 		out
 
 .compact-non-singles! ptr arrow<?k, ?v>(out ptr arrow<?k, ?v>, a opt node<?k, ?v>) unsafe
-	match a
-	as none
-		out
-	as some s
-		node = s value
+	if node ?= a
 		out[] := node min
 		out2 = out + 1 fold node.pairs, \cur, x
 			cur[] := x
 			cur + 1
 		out2 compact-non-singles! node.next
+	else
+		out
 
 .dbg str(a priority-queue<nat, str>)
 	res = mut-list<char>
 	res dbg-recur! a.root, true
 	res move-to-arr!
 .dbg-recur! void(out mut-list char, a opt node<nat, str>, first bool)
-	match a
-	as none
-		void
-	as some s
+	if node ?= a
 		if first not
 			out ~= "; "
-		node = s value
 		out ~= node.min.from to-str
 		out ~= " "
 		out ~= node.min.to to-str
@@ -269,37 +249,31 @@ fold ?a(acc ?a, a priority-queue<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare
 	0 node-count a.root
 
 .node-count nat(acc nat, a opt node<?k, ?v>)
-	match a
-	as none
+	if node ?= a
+		acc wrap-add 1 node-count node.next
+	else
 		acc
-	as some s
-		acc wrap-add 1 node-count s.value.next
 
 .fill-each-arr! ptr each-part<?k, ?v>(out ptr each-part<?k, ?v>, a opt node<?k, ?v>) unsafe
-	match a
-	as none
-		out
-	as some s
-		node = s value
+	if node ?= a
 		out[] := each-part: node.min, node.pairs
 		out + 1 fill-each-arr! node.next
+	else
+		out
 
 .walk-fold ?a(acc ?a, a mut-arr each-part<?k, ?v>, f act ?a(?a, ?k, ?v)) compare<?k>
-	match a first
-	as none
-		acc
-	as some s
-		head = s value
+	if head ?= a first
 		min = head min
 		next-acc = f[acc, min from, min to]
-		match head.pairs first
-		as none
-			next-acc walk-fold a.tail, f
-		as some s2
-			head.min := s2 value
+		if first-pair ?= head.pairs first
+			head.min := first-pair
 			head.pairs := head.pairs tail
 			a swap-sorted!
 			next-acc walk-fold a, f
+		else
+			next-acc walk-fold a.tail, f
+	else
+		acc
 
 .swap-sorted! void(a mut-arr each-part<?k, ?v>) compare<?k>
 	if a.size > 1 and a[0].min.from > a[1].min.from
