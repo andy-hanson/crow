@@ -1,0 +1,16 @@
+###
+Crashes the compiler because '<' is marked 'noctx', but depends on a spec whose impl is not noctx.
+The fix will be to infer notcx from the specs.
+###
+
+main fut nat(_ arr str) summon
+	drop: my-type < my-type
+	0 resolved
+
+my-type record
+
+== bool(_ my-type, _ my-type)
+	false
+
+<=> comparison(_ my-type, _ my-type)
+	less

@@ -1,7 +1,7 @@
 no-std
 import
-	..bool: ?, bool
-	..compare: !=, >
+	..bool: ?, bool, false, true
+	..compare: !=, <, >, equal, min
 	..exception: assert, forbid
 	..fun: subscript
 	..misc: ->, drop, void
@@ -10,8 +10,9 @@ import
 	..str: char, str
 	..str-conv: to-str
 	..test: is
+	..private.bootstrap: hard-assert, hard-unreachable
 	..private.number-low-level: ==, <=>, nat, wrap-add, wrap-sub
-	.arr: ==, arr, begin-ptr, end-ptr, empty?, size
+	.arr: ==, arr, arr-equal?, begin-ptr, end-ptr, empty?, size, unsafe-slice
 	.arr-util: each, each-with-index, first, first-some, fold, last, rtail
 	.mut-arr:
 		begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end,
@@ -39,6 +40,95 @@ This is O(1).
 ###
 list list ?a(a arr ?a)
 	list: void, none, a
+
+# TODO:KILL
+list-equal? bool(a list ?a, b list ?a, eq act bool(?a, ?a))
+	a.arr arr-equal? b.arr, eq
+
+# TODO: should be generic
+list-equal? bool(a list ?a, b list ?a) trusted noctx equal<?a>
+	if a.size == b.size
+		match a equal-recur b
+		as not-equal
+			false
+		as left-longer ll
+			hard-assert: ll.remainder empty?
+			true
+		as right-longer
+			hard-unreachable
+	else
+		false
+
+.equal-with-remainder<?a> union
+	not-equal
+	left-longer<?a>
+	right-longer<?a>
+.not-equal record
+.left-longer<?a> record
+	by-val
+	remainder arr ?a
+.right-longer<?a> record
+	by-val
+	remainder arr ?a
+
+.mirror equal-with-remainder ?a(a equal-with-remainder ?a) noctx
+	match a
+	as not-equal
+		not-equal
+	as left-longer ll
+		ll.remainder right-longer
+	as right-longer rl
+		rl.remainder left-longer
+
+.equal-recur equal-with-remainder ?a(a list ?a, b list ?a) unsafe noctx equal<?a>
+	if ap ?= a prev
+		if bp ?= b prev
+			# Problem: The remainder could be a lit that ends partially...
+			match ap equal-recur bp
+			as not-equal
+				not-equal
+			as left-longer ll
+				ll.remainder equal-with-remainder a.values, b.values
+			as right-longer rl
+				rl.remainder equal-with-remainder b.values, a.values mirror
+		else
+			match ap equal-recur b
+			as not-equal
+				not-equal
+			as left-longer
+				# Shouldn't happen if they are the same total size
+				hard-unreachable
+			as right-longer rl
+				a.values equal-with-remainder rl.remainder
+	elif bp ?= b prev
+		match a equal-recur bp
+		as not-equal
+			not-equal
+		as left-longer ll
+			# Shouldn't happen if they are the same total size
+			ll.remainder equal-with-remainder b.values
+		as right-longer
+			hard-unreachable
+	else
+		a.values equal-with-remainder b.values
+
+# WARN: For simplicity, this returns empty 'remainder'
+.equal-with-remainder equal-with-remainder ?a(a arr ?a, b arr ?a) unsafe noctx equal<?a>
+	size = a.size min b.size
+	if (a unsafe-slice 0, size) arr-equal? (b unsafe-slice 0, size)
+		if a.size < size
+			b unsafe-slice size, b.size right-longer
+		else
+			a unsafe-slice size, a.size left-longer
+	else
+		not-equal
+
+.equal-with-remainder equal-with-remainder ?a(a0 arr ?a, a1 arr ?a, b arr ?a) unsafe noctx equal<?a>
+	hard-assert: a0.size < b.size
+	if a0 arr-equal? (b unsafe-slice 0, a0.size)
+		a1 equal-with-remainder: b unsafe-slice a0.size, b.size
+	else
+		not-equal
 
 ###
 Copy a list to an arr.
@@ -120,9 +210,9 @@ rtail list ?a(a list ?a)
 Number of elements in the list.
 This is O(ln a.size).
 ###
-size nat(a list ?a)
+size nat(a list ?a) noctx
 	a.values.size size-recur a.prev
-.size-recur nat(acc nat, a opt list ?a)
+.size-recur nat(acc nat, a opt list ?a) noctx
 	if node ?= a
 		acc wrap-add node.size size-recur node.prev
 	else

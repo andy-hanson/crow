@@ -384,5 +384,5 @@ test
 	p6.values is ["6", "6b", "6c", "7", "7b", "8"]
 
 # TODO: arrow should be equatable
-== bool(a arrow<nat, str>, b arrow<nat, str>)
+== bool(a arrow<nat, str>, b arrow<nat, str>) noctx
 	a.from == b.from and a.to == b.to

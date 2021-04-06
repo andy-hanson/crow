@@ -1,0 +1,267 @@
+no-std
+import
+	.bool: ==, bool, false, not, true
+	.col.arr: ==, <=>
+	.col.arr-util: each
+	.col.dict: dict, dict-equal?, each, empty?
+	.col.list: each, empty?, list, list-equal?
+	.col.mut-dict: move-to-dict!, mut-dict, set-subscript
+	.col.mut-list: ~=, move-to-arr!, mut-list, pop!
+	.log: info, log
+	.misc: ->, drop, void
+	.number: ==, float
+	.opt: none, opt, some
+	.reader:
+		reader, skip-whitespace!, take-char?, take-float!, take-quoted-str!, take-str?, with-reader
+	.str: char, str
+	.str-conv: finish, interp, to-str, with-str, with-value
+	.test: is
+
+json union
+	bool
+	float
+	str
+	list<json>
+	dict<str, json>
+
+== bool(a json, b json)
+	match a
+	as bool ba
+		if bb ?= b as-bool
+			ba == bb
+		else
+			false
+	as float fa
+		if fb ?= b as-float
+			fa == fb
+		else
+			false
+	as arr sa
+		if sb ?= b as-str
+			sa == sb
+		else
+			false
+	as list aa
+		if ab ?= b as-list
+			aa list-equal? ab, \x, y
+				x == y
+		else
+			false
+	as dict da
+		if db ?= b as-dict
+			da dict-equal? db
+		else
+			false
+
+# TODO: opt equality should be generic
+== bool(a opt json, b opt json)
+	if va ?= a
+		if vb ?= b
+			va == vb
+		else
+			false
+	else
+		false
+
+as-bool opt bool(a json) noctx
+	match a
+	as bool b
+		b some
+	as float
+		none
+	as arr
+		none
+	as list
+		none
+	as dict
+		none
+as-float opt float(a json) noctx
+	match a
+	as bool
+		none
+	as float f
+		f some
+	as arr
+		none
+	as list
+		none
+	as dict
+		none
+as-str opt str(a json) noctx
+	match a
+	as bool
+		none
+	as float
+		none
+	as arr s
+		s some
+	as list
+		none
+	as dict
+		none
+as-list opt list json(a json) noctx
+	match a
+	as bool
+		none
+	as float
+		none
+	as arr
+		none
+	as list l
+		l some
+	as dict
+		none
+as-dict opt dict<str, json>(a json) noctx
+	match a
+	as bool
+		none
+	as float
+		none
+	as arr
+		none
+	as list
+		none
+	as dict d
+		d some
+
+parse-json opt json(a str)
+	a with-reader {it take-json!}
+
+to-str str(a json)
+	res = mut-list<char>
+	res to-str-recur! a
+	res move-to-arr!
+
+.to-str-recur! void(out mut-list char, a json)
+	match a
+	as bool b
+		out ~= b.to-str
+	as float f
+		out ~= f.to-str
+	as arr s
+		out write-quoted-str! s
+	as list l
+		out ~= "["
+		l each \x
+			out to-str-recur! x
+			out ~= ","
+		if l.empty? not
+			out.pop! drop
+		out ~= "]"
+	as dict d
+		out ~= "\{"
+		d each \key, value
+			out write-quoted-str! key
+			out ~= ":"
+			out to-str-recur! value
+			out ~= ","
+		if d.empty? not
+			out.pop! drop
+		out ~= "}"
+
+take-json! opt json(a reader)
+	a skip-whitespace!
+	if f ?= a take-float!
+		f some
+	elif a take-str? "true"
+		true some
+	elif a take-str? "false"
+		false some
+	elif s ?= a take-quoted-str!
+		s some
+	elif a take-char? "["
+		a skip-whitespace!
+		if a take-char? "]"
+			list some
+		else
+			a take-list-recur! mut-list
+	elif a take-char? "\{"
+		a skip-whitespace!
+		if a take-char? "}"
+			dict some
+		else
+			a take-object-recur! mut-dict
+	else
+		none
+
+.take-list-recur! opt json(a reader, res mut-list json)
+	if j ?= a take-json!
+		res ~= j
+		a skip-whitespace!
+		if a take-char? ","
+			a skip-whitespace!
+			a take-list-recur! res
+		elif a take-char? "]"
+			res.move-to-arr!.list some
+		else
+			none
+	else
+		none
+
+.take-object-recur! opt json(a reader, res mut-dict<str, json>)
+	if key ?= a take-quoted-str!
+		a skip-whitespace!
+		if a take-char? ":"
+			if j ?= a take-json!
+				res[key] := j
+				a skip-whitespace!
+				if a take-char? ","
+					a skip-whitespace!
+					a take-object-recur! res
+				elif a take-char? "}"
+					res.move-to-dict! some
+				else
+					a take-object-recur! res
+			else
+				none
+		else
+			none
+	else
+		none
+
+.write-quoted-str! void(out mut-list char, a str)
+	out ~= "\""
+	a each \x
+		if x == "\""
+			out ~= "\\\""
+		elif x == "\n"
+			out ~= "\\n"
+		elif x == "\r"
+			out ~= "\\r"
+		elif x == "\t"
+			out ~= "\\t"
+		else
+			out ~= x
+	out ~= "\""
+
+.verify void(a json, s str)
+	info log "TEST {s}"
+	info log "Parsed: {s.parse-json to-str}"
+	s.parse-json is a.some
+	info log "TEST TO-STR: actual {a.to-str}"
+	a.to-str is s
+
+test
+	info log "JSON TEST START"
+
+	true verify "true"
+	false verify "false"
+	-3.0 verify "-3"
+	1.5 verify "1.5"
+	-1.5 verify "-1.5"
+	"j" verify "\"j\""
+	info log "GOT HERE"
+	"a\nb" verify "\"a\\nb\""
+	info log "GOT HERE 2"
+
+	list verify "[]"
+	[1.0].list verify "[1]"
+	[1.0, true].list verify "[1,true]"
+
+	info log "DICT TEST"
+	dict verify "\{}"
+	["a" -> 1.0].dict verify "\{\"a\":1}"
+	["a" -> 1.0, "x\ny" -> true].dict verify "\{\"a\":1,\"x\\ny\":true}"
+
+	# TODO: test list, dict
+	info log "JSON TEST DONE"

@@ -6,10 +6,10 @@ import
 export
 	.private.bool-low-level: ?, and, bool, false, not, or, true
 
-== bool(a bool, b bool)
+== bool(a bool, b bool) noctx
 	a.to-nat == b.to-nat
 
-<=> comparison(a bool, b bool)
+<=> comparison(a bool, b bool) noctx
 	a.to-nat <=> b.to-nat
 
 # 0 for false, 1 for true.

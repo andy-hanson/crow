@@ -1,0 +1,191 @@
+no-std
+import
+	.bool: ?, and, bool, false, not, or, true
+	.col.arr: ==, arr-from-begin-end, begin-ptr, end-ptr, size
+	.col.mut-list: ~=, move-to-arr!, mut-list
+	.compare: >=
+	.exception: assert
+	.fun: subscript
+	.log: info, log
+	.misc: drop, void
+	.number: ==, <=>, +, *, ^, float, int, nat, to-float, to-int
+	.opt: has?, none, opt, some
+	.ptr: +, -, ptr, ptr-eq?, ptr-less-eq?, subscript
+	.str: char, str
+	.test: is
+
+reader record mut
+	# TODO:PRIVATE
+	cur mut ptr char
+	end ptr char
+
+reader reader(a str) trusted
+	a.begin-ptr reader a.end-ptr
+
+with-reader opt ?a(a str, f act opt ?a(reader))
+	reader = a reader
+	res = f[reader]
+	if res.has? and reader.empty?
+		res
+	else
+		none
+
+empty? bool(a reader) trusted
+	assert: a.cur ptr-less-eq? a.end
+	a.cur ptr-eq? a.end
+
+has? bool(a reader)
+	a.empty? not
+
+peek char(a reader) trusted
+	assert: a has?
+	a.cur[]
+
+next! char(a reader) trusted
+	assert: a has?
+	res = a.cur[]
+	a.cur := a.cur + 1
+	res
+
+take-char? bool(a reader, c char)
+	if a.has? and a.peek == c
+		a.next! drop
+		true
+	else
+		false
+
+skip-if-char! void(a reader, c char)
+	a take-char? c drop
+
+take-str? bool(a reader, s str) trusted
+	size = s size
+	if a.end - a.cur >= size and (a.cur arr-from-begin-end a.cur + size) == s
+		a.cur := a.cur + size
+		true
+	else
+		false
+
+take-nat! opt nat(a reader)
+	if a.has?
+		if first-digit ?= a.peek.char-to-nat
+			a.next! drop
+			first-digit take-nat-recur! a some
+		else
+			none
+	else
+		none
+.take-nat-recur! nat(acc nat, a reader)
+	if a empty?
+		acc
+	elif v ?= a.peek.char-to-nat
+		a.next! drop
+		acc * 10 + v take-nat-recur! a
+	else
+		acc
+
+take-int! opt int(a reader) trusted
+	start = a cur
+	sign = a.take-sign? ? +1, -1
+	if n ?= a take-nat!
+		n.to-int * sign some
+	else
+		a.cur := start
+		none
+
+skip-whitespace! void(a reader)
+	if a take-char? " " or: a take-char? "\n" or: a take-char? "\t"
+		a skip-whitespace!
+
+.take-sign? bool(a reader)
+	if a take-char? "-"
+		false
+	else
+		a take-char? "+" drop
+		true
+
+take-float! opt float(a reader) trusted
+	sign = a.take-sign? ? 1.0, -1.0
+	if whole-nat ?= a take-nat!
+		whole-part = whole-nat to-float
+		before-dot = a cur
+		some: if a take-char? "."
+			if n ?= a take-nat!
+				digits-taken = a.cur - (before-dot + 1)
+				# TODO: more accurate methods exist
+				sign * (whole-part + n.to-float * 0.1 ^ digits-taken)
+			else
+				a.cur := before-dot
+				sign * whole-part
+		else
+			sign * whole-part
+	else
+		info log "DIDNT TAKE NOTHING"
+		none
+
+take-quoted-str! opt str(a reader)
+	if a take-char? "\""
+		start = a.cur
+		res = a take-quoted-str-recur! mut-list
+		if res.has? not
+			a.cur := start
+		res
+	else
+		none
+
+.take-quoted-str-recur! opt str(a reader, res mut-list char)
+	if a empty?
+		none
+	elif a take-char? "\""
+		res.move-to-arr! some
+	elif a take-char? "\\"
+		if esc ?= a.next! escape
+			res ~= esc
+			a take-quoted-str-recur! res
+		else
+			none
+	else
+		res ~= a next!
+		a take-quoted-str-recur! res
+
+.escape opt char(a char)
+	if a == "n"
+		"\n" some
+	elif a == "r"
+		"\r" some
+	elif a == "t"
+		"\t" some
+	elif a == "\""
+		"\"" some
+	elif a == "\\"
+		"\\" some
+	elif a == "0"
+		"\0" some
+	else
+		none
+
+.char-to-nat opt nat(c char)
+	if c == "0"
+		0 some
+	elif c == "1"
+		1 some
+	elif c == "2"
+		2 some
+	elif c == "3"
+		3 some
+	elif c == "4"
+		4 some
+	elif c == "5"
+		5 some
+	elif c == "6"
+		6 some
+	elif c == "7"
+		7 some
+	elif c == "8"
+		8 some
+	elif c == "9"
+		9 some
+	else
+		none
+
+test
+	"a" is "a"

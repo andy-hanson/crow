@@ -270,7 +270,7 @@ contexts:
       captures:
         1: comment # punctuation.accessor
     # numbers
-    - match: '-?((0((b[01]+)|(o[0-8]+)|(x[\da-f]+)))|(\d+(\.\d+)?))'
+    - match: '[\+\-]?((0((b[01]+)|(o[0-8]+)|(x[\da-f]+)))|(\d+(\.\d+)?))'
       scope: constant.numeric
 
     # `foo. ` in a multiline new record

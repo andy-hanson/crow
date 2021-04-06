@@ -602,16 +602,18 @@ public @trusted immutable(StringPart) takeStringPart(Alloc, SymAlloc)(
 						immutable size_t na = toHexDigit(a);
 						immutable size_t nb = toHexDigit(b);
 						return cast(char) (na * 16 + nb);
-					case '"':
-						return '"';
-					case '{':
-						return '{';
 					case 'n':
 						return '\n';
 					case 'r':
 						return '\r';
 					case 't':
 						return '\t';
+					case '"':
+						return '"';
+					case '\\':
+						return '\\';
+					case '{':
+						return '{';
 					case '0':
 						return '\0';
 					default:

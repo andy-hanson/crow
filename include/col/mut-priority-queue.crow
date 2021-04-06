@@ -187,7 +187,7 @@ test
 	a verify "6 -> 6, 5 -> 5, 4 -> 4b"
 
 # TODO: opt should have generic ==
-.== bool(a opt arrow<nat, str>, b opt arrow<nat, str>)
+.== bool(a opt arrow<nat, str>, b opt arrow<nat, str>) noctx
 	if va ?= a
 		if vb ?= b
 			va.from == vb.from and va.to == vb.to

@@ -1,15 +1,15 @@
 no-std
 import
 	.bool: ?, bool, false, true
-	.col.arr: ==, ~, empty?, subscript
-	.col.arr-util: tail
+	.col.arr: ==, ~
 	.col.mut-list: ~=, move-to-arr!, mut-list
 	.compare: <
 	.exception: unreachable
 	.number:
-		==, <=>, +, *, /, abs, float, int, int16, int32, mod, nat, nat8, nat16, nat32, multiple-of?,
-		to-int, to-float, to-nat, truncate-to-int
-	.opt: map, none, opt, some
+		==, <=>, *, /, abs, float, int, int16, int32, mod, nat, nat8, nat16, nat32, multiple-of?,
+		to-int, to-nat, truncate-to-int
+	.opt: none, opt, some
+	.reader: take-float!, take-int!, take-nat!, with-reader
 	.str: char, str
 
 # "true" or "false".
@@ -131,66 +131,26 @@ to-str str(a float)
 	else
 		"{whole-part}.{hundredths}"
 
-.char-to-nat opt nat(c char)
-	if c == "0"
-		0 some
-	elif c == "1"
-		1 some
-	elif c == "2"
-		2 some
-	elif c == "3"
-		3 some
-	elif c == "4"
-		4 some
-	elif c == "5"
-		5 some
-	elif c == "6"
-		6 some
-	elif c == "7"
-		7 some
-	elif c == "8"
-		8 some
-	elif c == "9"
-		9 some
-	else
-		none
-
 ###
 Parse digits as a nat.
 Return none if the str contains any punctuation or whitespace.
 ###
 parse-nat opt nat(a str)
-	if a empty?
-		none
-	else
-		a parse-nat-recur 0
-.parse-nat-recur opt nat(a str, accum nat)
-	if a empty?
-		accum some
-	else
-		if v ?= a[0].char-to-nat
-			a.tail parse-nat-recur: accum * 10 + v
-		else
-			none
+	a with-reader {it take-nat!}
 
 ###
 The str should be a series of digits, optionally preceded by "-" or "+".
 If not, this returns `none`.
 ###
 parse-int opt int(a str)
-	if a[0] == "-"
-		a.tail.parse-nat map {it.to-int * -1}
-	else
-		(a[0] == "+" ? a.tail, a).parse-nat map {it to-int}
+	a with-reader {it take-int!}
 
-# TODO: handle the decimal point!
 ###
 The str should be a valid int, optionally followed by a "." and then a valid int.
 If not, this returns `none`.
 ###
 parse-float opt float(a str)
-	a.parse-nat map {it to-float}
-
+	a with-reader {it take-float!}
 
 region Interpolation
 

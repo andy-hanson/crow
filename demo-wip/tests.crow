@@ -1,58 +1,61 @@
 import
 	col.arr-util: each
-	col.deque: deque
-	col.dict: dict
-	col.frozen-unordered-set: frozen-unordered-set
-	col.index-set: index-set
-	col.list: list
-	col.lookup: lookup
-	col.mut-deque: mut-deque
-	col.mut-dict: mut-dict
-	col.mut-list: mut-list
-	col.mut-lookup: mut-lookup
-	col.mut-priority-queue: mut-priority-queue
-	col.mut-set: mut-set
-	col.mut-stack: mut-stack
-	col.priority-queue: priority-queue
-	col.set: set
-	col.stack: stack
-	col.tree-set: tree-set
-	col.unordered-set-2: unordered-set
-	col.queue: queue
-	crypto.password: password-hash, quality-moderate
+	#col.deque: deque
+	#col.dict: dict
+	#col.frozen-unordered-set: frozen-unordered-set
+	#col.index-set: index-set
+	#col.list: list
+	#col.lookup: lookup
+	#col.mut-deque: mut-deque
+	#col.mut-dict: mut-dict
+	#col.mut-list: mut-list
+	#col.mut-lookup: mut-lookup
+	#col.mut-priority-queue: mut-priority-queue
+	#col.mut-set: mut-set
+	#col.mut-stack: mut-stack
+	#col.priority-queue: priority-queue
+	#col.set: set
+	#col.stack: stack
+	#col.tree-set: tree-set
+	#col.unordered-set-2: unordered-set
+	#col.queue: queue
+	#crypto.password: password-hash, quality-moderate
 	io.print: print
-	io.time-format: gmt
-	iter: iter
+	#io.time-format: gmt
+	#iter: iter
+	json: parse-json
 	log: info, log
-	parse-command: parse-named-args
-	serialize: from-bytes
+	#parse-command: parse-named-args
+	reader: reader, take-quoted-str!
+	#serialize: from-bytes
 	private.bootstrap: ctx, get-ctx
 
 main fut nat(_ arr str) summon
-	drop: [].from-bytes as<arr nat8>
-	drop: "" password-hash quality-moderate
-	drop: deque<nat>
-	drop: dict<nat, nat>
-	drop: frozen-unordered-set<nat>
-	drop: index-set
-	drop: list<nat>
-	drop: lookup<nat, str>
-	drop: mut-deque<nat>
-	drop: mut-dict<nat, nat>
-	drop: mut-list<nat>
-	drop: mut-lookup<nat, nat>
-	drop: mut-priority-queue<nat, nat>
-	drop: mut-set<nat>
-	drop: mut-stack<nat>
-	drop: priority-queue<nat, nat>
-	drop: set<nat>
-	drop: stack<nat>
-	drop: tree-set<nat>
-	drop: unordered-set<nat>
-	drop: queue<nat>
-	drop: gmt
-	drop: 0 -> 0 iter
-	drop: [] parse-named-args []
+	#drop: [].from-bytes as<arr nat8>
+	#drop: "" password-hash quality-moderate
+	#drop: deque<nat>
+	#drop: dict<nat, nat>
+	#drop: frozen-unordered-set<nat>
+	#drop: index-set
+	#drop: list<nat>
+	#drop: lookup<nat, str>
+	#drop: mut-deque<nat>
+	#drop: mut-dict<nat, nat>
+	#drop: mut-list<nat>
+	#drop: mut-lookup<nat, nat>
+	#drop: mut-priority-queue<nat, nat>
+	#drop: mut-set<nat>
+	#drop: mut-stack<nat>
+	#drop: priority-queue<nat, nat>
+	#drop: set<nat>
+	#drop: stack<nat>
+	#drop: tree-set<nat>
+	#drop: unordered-set<nat>
+	#drop: queue<nat>
+	#drop: gmt
+	#drop: 0 -> 0 iter
+	drop: "" parse-json
+	#drop: [] parse-named-args []
 	run-all-tests
 	0 resolved
 
@@ -68,3 +71,14 @@ run-all-tests void() summon trusted
 test
 	1 + 1 is 2
 	info log "I am a test!"
+
+test
+	info log "READER TEST START"
+
+	r = "\"j\"" reader
+	if s ?= r take-quoted-str!
+		info log "GOT A STRING: {s}"
+	else
+		info log "GOT NOTHIN"
+
+	info log "READER TEST DONE"

@@ -13,13 +13,13 @@ import
 export
 	.private.bootstrap: none, opt, some, value
 
-== bool(a opt int, b opt int)
+== bool(a opt int, b opt int) noctx
 	a opt-equal? b
-== bool(a opt nat, b opt nat)
+== bool(a opt nat, b opt nat) noctx
 	a opt-equal? b
-== bool(a opt str, b opt str)
+== bool(a opt str, b opt str) noctx
 	a opt-equal? b
-== bool(a opt char, b opt char)
+== bool(a opt char, b opt char) noctx
 	a opt-equal? b
 
 # TODO:GENERIC

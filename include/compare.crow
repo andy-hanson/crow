@@ -31,7 +31,7 @@ comparison union
 	equal
 	greater
 
-== bool(a comparison, b comparison)
+== bool(a comparison, b comparison) noctx
 	match a
 	as less
 		match b
