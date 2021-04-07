@@ -12,9 +12,10 @@ import
 	..number: deep-size-bytes, each
 	..opt: has?, none, opt, or-default, some
 	..ptr: +, ptr-eq?, set-subscript
-	..str: char, str
-	..str-conv: to-hex, to-str
+	..str: str
+	..str-conv: to-hex
 	..test: is
+	..writer: ~=, backup!, move-to-str!, writer
 	..private.number-low-level:
 		==, <=>, nat, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	.arr: ==, arr, empty?, size, subscript
@@ -22,7 +23,6 @@ import
 		alloc-count, deep-size-bytes, each, fold, fold-with-index, last, make-arr, map-with-index,
 		rtail, update, zip-larger, zip-smaller
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-mut-arr
-	.mut-list: ~=, move-to-arr!, mut-list, pop!, set-last
 
 index-set record
 	# TODO:PRIVATE
@@ -219,28 +219,28 @@ debug str(a index-set)
 	if a empty?
 		"[]"
 	else
-		out = mut-list<char>
+		out = writer
 		out ~= "["
 		a each \index
-			out ~= index to-str
+			out ~= index
 			out ~= ", "
-		out.pop! drop
-		out.last := "]"
-		out move-to-arr!
+		out backup! 2
+		out ~= "]"
+		out move-to-str!
 
 .dbg str(a index-set)
 	if a empty?
 		"[]"
 	else
-		out = mut-list<char>
+		out = writer
 		out ~= "["
 		a.values each \value
 			out ~= "x"
 			out ~= value to-hex
 			out ~= ", "
-		out.pop! drop
-		out.last := "]"
-		out move-to-arr!
+		out backup! 2
+		out ~= "]"
+		out move-to-str!
 
 .verify void(a index-set, expected str, expected-arr arr nat)
 	a.dbg is expected

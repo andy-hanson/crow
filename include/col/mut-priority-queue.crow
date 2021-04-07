@@ -3,19 +3,19 @@ import
 	..bool: ==, and, bool, false, not, true
 	..compare: <, compare
 	..exception: assert
-	..misc: ->, arrow, data, drop, from, to, void
+	..misc: ->, arrow, data, from, to, void
 	..opt: force, has?, none, opt, some
 	..ptr: +, -, ptr, set-subscript
-	..str: char, str
-	..str-conv: to-str
+	..str: str
 	..test: is
+	..writer: ~=, backup!, move-to-str!, writer
 	..private.number-low-level: ==, <=>, nat, wrap-add
 	.arr: ==, arr
 	.arr-util: map
 	.mut-arr: begin-ptr, cast-immutable, copy, mut-arr, reverse!, uninitialized-mut-arr
 	.mut-list:
-		~=, begin-ptr, each, each-with-index, empty?, empty!, fold, fold-reverse,
-		move-to-arr!, mut-list, pop!, pop-n!, reverse!, set-last, size, subscript
+		~=, begin-ptr, each, each-with-index, empty?, empty!, fold, fold-reverse, mut-list,
+		pop!, reverse!, size, subscript
 	.sort: sort-by!
 	.private.sort-utils: binary-search-insert-ptr
 
@@ -121,7 +121,7 @@ pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 	res
 
 .dbg str(a mut-priority-queue<nat, str>)
-	out = mut-list<char>
+	out = writer
 	a.mins each-with-index \min, index
 		out write-pair! min
 		if index < a.buckets.size
@@ -131,17 +131,17 @@ pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 				bucket each \pair
 					out write-pair! pair
 					out ~= ", "
-				out.pop! drop
-				out.last := "]"
+				out backup! 2
+				out ~= "]"
 		out ~= ", "
 	if a.mins.empty? not
-		out pop-n! 2
-	out move-to-arr!
+		out backup! 2
+	out move-to-str!
 
-.write-pair! void(out mut-list<char>, pair arrow<nat, str>)
-	out ~= pair.from to-str
+.write-pair! void(out writer, pair arrow<nat, str>)
+	out ~= pair from
 	out ~= " -> "
-	out ~= pair.to
+	out ~= pair to
 
 .verify void(a mut-priority-queue<nat, str>, expected str)
 	a.dbg is expected

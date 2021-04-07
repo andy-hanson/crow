@@ -3,10 +3,10 @@ import
 	.bool: ?, bool, not
 	.col.arr: empty?
 	.col.arr-util: each
-	.col.mut-list: ~=, move-to-arr!, mut-list
 	.fun: subscript
 	.misc: void
-	.str: char, str
+	.str: str
+	.writer: ~=, move-to-str!, writer
 	.private.backtrace: return-stack
 	.private.bootstrap: backtrace
 export
@@ -75,9 +75,9 @@ do-if-error ?a(on-error act void(), try act ?a())
 		err throw
 
 to-str str(a exception)
-	res = mut-list<char>
+	res = writer
 	res ~= a.message.empty? ? "<<empty message>>", a.message
 	a.backtrace.return-stack each \x
 		res ~= "\n\tat "
 		res ~= x
-	res move-to-arr!
+	res move-to-str!

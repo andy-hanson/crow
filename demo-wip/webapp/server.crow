@@ -10,6 +10,7 @@ import
 	io.print: print
 	log: info, log
 	tuple: a, b
+	writer: ~=, backup!, move-to-str!, writer
 	.db:
 		add-post!, close-real-db, content, cookie-expire-seconds, db, list-posts, list-users,
 		login!, post, post-info, new-user-id, open-real-db, parse-user-cookie, register-user!,
@@ -124,35 +125,34 @@ parse-query arr str(s str, arg-names arr str)
 		x or-throw {"Did not get argument for {arg-names[index]}"}
 
 .format-users-as-json str(users arr user-info)
-	res = mut-list<char>
+	res = writer
 	res ~= "\{\"users\":["
 	users each \user
 		res ~= "\{\"user\":"
-		res ~= user.user to-str
+		res ~= user user
 		res ~= ",\"userName\":\""
-		res ~= user.user-name
+		res ~= user user-name
 		res ~= "\"},"
 	if users.empty? not
-		res.pop! drop
+		res backup!
 	res ~= "]}"
-	res move-to-arr!
+	res move-to-str!
 
 .format-posts-as-json str(posts arr post-info)
-	res = mut-list<char>
+	res = writer
 	res ~= "\{\"posts\":["
 	posts each \post
 		# TODO: module for proper json formatting
 		res ~= "\{\"post\":"
-		res ~= post.post to-str
+		res ~= post post
 		res ~= ",\"user\":"
-		res ~= post.user to-str
+		res ~= post user
 		res ~= ",\"userName\":\""
 		res ~= post user-name
 		res ~= "\",\"content\":\""
 		res ~= post content
 		res ~= "\"},"
 	if posts.empty? not
-		res.pop! drop
+		res backup!
 	res ~= "]}"
-	res move-to-arr!
-
+	res move-to-str!

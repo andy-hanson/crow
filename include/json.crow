@@ -2,20 +2,18 @@ no-std
 import
 	.bool: ==, bool, false, not, true
 	.col.arr: ==, <=>
-	.col.arr-util: each
 	.col.dict: dict, dict-equal?, each, empty?
 	.col.list: each, empty?, list, list-equal?
 	.col.mut-dict: move-to-dict!, mut-dict, set-subscript
-	.col.mut-list: ~=, move-to-arr!, mut-list, pop!
-	.log: info, log
-	.misc: ->, drop, void
+	.col.mut-list: ~=, move-to-arr!, mut-list
+	.misc: ->, void
 	.number: ==, float
 	.opt: none, opt, some
 	.reader:
 		reader, skip-whitespace!, take-char?, take-float!, take-quoted-str!, take-str?, with-reader
-	.str: char, str
-	.str-conv: finish, interp, to-str, with-str, with-value
+	.str: str
 	.test: is
+	.writer: ~=, backup!, move-to-str!, writer, write-quoted-str!
 
 json union
 	bool
@@ -128,16 +126,16 @@ parse-json opt json(a str)
 	a with-reader {it take-json!}
 
 to-str str(a json)
-	res = mut-list<char>
+	res = writer
 	res to-str-recur! a
-	res move-to-arr!
+	res move-to-str!
 
-.to-str-recur! void(out mut-list char, a json)
+.to-str-recur! void(out writer, a json)
 	match a
 	as bool b
-		out ~= b.to-str
+		out ~= b
 	as float f
-		out ~= f.to-str
+		out ~= f
 	as arr s
 		out write-quoted-str! s
 	as list l
@@ -146,7 +144,7 @@ to-str str(a json)
 			out to-str-recur! x
 			out ~= ","
 		if l.empty? not
-			out.pop! drop
+			out backup!
 		out ~= "]"
 	as dict d
 		out ~= "\{"
@@ -156,7 +154,7 @@ to-str str(a json)
 			out to-str-recur! value
 			out ~= ","
 		if d.empty? not
-			out.pop! drop
+			out backup!
 		out ~= "}"
 
 take-json! opt json(a reader)
@@ -219,49 +217,23 @@ take-json! opt json(a reader)
 	else
 		none
 
-.write-quoted-str! void(out mut-list char, a str)
-	out ~= "\""
-	a each \x
-		if x == "\""
-			out ~= "\\\""
-		elif x == "\n"
-			out ~= "\\n"
-		elif x == "\r"
-			out ~= "\\r"
-		elif x == "\t"
-			out ~= "\\t"
-		else
-			out ~= x
-	out ~= "\""
-
 .verify void(a json, s str)
-	info log "TEST {s}"
-	info log "Parsed: {s.parse-json to-str}"
 	s.parse-json is a.some
-	info log "TEST TO-STR: actual {a.to-str}"
 	a.to-str is s
 
 test
-	info log "JSON TEST START"
-
 	true verify "true"
 	false verify "false"
 	-3.0 verify "-3"
 	1.5 verify "1.5"
 	-1.5 verify "-1.5"
 	"j" verify "\"j\""
-	info log "GOT HERE"
 	"a\nb" verify "\"a\\nb\""
-	info log "GOT HERE 2"
 
 	list verify "[]"
 	[1.0].list verify "[1]"
 	[1.0, true].list verify "[1,true]"
 
-	info log "DICT TEST"
 	dict verify "\{}"
 	["a" -> 1.0].dict verify "\{\"a\":1}"
 	["a" -> 1.0, "x\ny" -> true].dict verify "\{\"a\":1,\"x\\ny\":true}"
-
-	# TODO: test list, dict
-	info log "JSON TEST DONE"

@@ -4,15 +4,14 @@ import
 	.col.arr: ==, arr-from-begin-end, begin-ptr, end-ptr, size
 	.col.mut-list: ~=, move-to-arr!, mut-list
 	.compare: >=
-	.exception: assert
 	.fun: subscript
-	.log: info, log
 	.misc: drop, void
 	.number: ==, <=>, +, *, ^, float, int, nat, to-float, to-int
 	.opt: has?, none, opt, some
 	.ptr: +, -, ptr, ptr-eq?, ptr-less-eq?, subscript
 	.str: char, str
 	.test: is
+	.private.exception-low-level: assert
 
 reader record mut
 	# TODO:PRIVATE
@@ -119,7 +118,6 @@ take-float! opt float(a reader) trusted
 		else
 			sign * whole-part
 	else
-		info log "DIDNT TAKE NOTHING"
 		none
 
 take-quoted-str! opt str(a reader)

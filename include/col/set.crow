@@ -10,9 +10,10 @@ import
 	..ptr:
 		+, -, deep-size-bytes, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of,
 		subscript
-	..str: char, str
+	..str: str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..test: is
+	..writer: ~=, backup!, move-to-str!, writer
 	..private.number-low-level: ==, <=>, nat, wrap-add, wrap-mul, wrap-sub
 	.arr: ==, <=>, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, size, subscript
 	.arr-util: alloc-count, deep-size-bytes, each, tail
@@ -22,7 +23,6 @@ import
 	.mut-arr:
 		begin-ptr, cast-immutable, empty?, end-ptr, mut-arr, set-subscript, size, subscript,
 		uninitialized-mut-arr
-	.mut-list: ~=, move-to-arr!, mut-list, set-last
 	.sort: sort
 	.private.sort-utils: binary-search-exact-index
 
@@ -403,17 +403,18 @@ map-to-arr arr ?out(a set ?in, f act ?out(?in)) trusted data<?in> compare<?in>
 
 # TODO:PRIVATE
 dbg str(a set ?a) to-str<?a>
-	out = mut-list<char>
+	out = writer
 	out dbg-add-recur! a.add
 	if a.remove.empty? not
 		out ~= " - ["
 		a.remove each \i
 			out ~= i to-str
 			out ~= " "
-		out.last := "]"
-	out move-to-arr!
+		out backup!
+		out ~= "]"
+	out move-to-str!
 
-.dbg-add-recur! void(out mut-list char, a add-node ?a) to-str<?a>
+.dbg-add-recur! void(out writer, a add-node ?a) to-str<?a>
 	if left ?= a left
 		out dbg-add-recur! left
 		out ~= ", "
@@ -425,7 +426,8 @@ dbg str(a set ?a) to-str<?a>
 		a.values each \x
 			out ~= x to-str
 			out ~= " "
-		out.last := "]"
+		out backup!
+		out ~= "]"
 
 .verify void(a set str, expected str)
 	a.dbg is expected

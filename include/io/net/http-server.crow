@@ -20,6 +20,7 @@ import
 	...str: char, str
 	...str-conv: parse-nat, to-str
 	...str-util: as-str
+	...writer: ~=, move-to-str!, writer
 	..print: print
 	.tcp-server: close-client, start-tcp-server, stop, tcp-handler
 
@@ -128,7 +129,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 
 # TODO: write out to a stream, not str
 .response-to-str str(a http-response)
-	res = mut-list<char>
+	res = writer
 	res ~= "HTTP/1.1 "
 	res ~= a.status to-str
 	res ~= " "
@@ -150,7 +151,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		res ~= a.body.size to-str
 	res ~= "\r\n\r\n"
 	res ~= a body
-	res move-to-arr!
+	res move-to-str!
 
 #ok-response str() noctx
 #	"HTTP/1.1 200 OK Feelin' Fine\nShoop: Da Woop\n\nHello, internet world!\n"

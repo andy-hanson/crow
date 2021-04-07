@@ -4,7 +4,6 @@ import
 	.col.arr: ==, ~
 	.col.mut-list: ~=, move-to-arr!, mut-list
 	.compare: <
-	.exception: unreachable
 	.number:
 		==, <=>, *, /, abs, float, int, int16, int32, mod, nat, nat8, nat16, nat32, multiple-of?,
 		to-int, to-nat, truncate-to-int
@@ -70,7 +69,7 @@ to-str str(a nat)
 	elif a == 15
 		"f"
 	else
-		unreachable
+		"?"
 
 to-binary str(a nat)
 	a to-base 2

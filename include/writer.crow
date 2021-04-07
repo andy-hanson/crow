@@ -1,0 +1,59 @@
+no-std
+import
+	.bool: bool
+	.col.arr: ==
+	.col.arr-util: each
+	.col.mut-list: ~=, move-to-arr!, mut-list, pop-n!
+	.misc: void
+	.number: float, int, nat
+	.str: char, str
+	.str-conv: to-str
+
+writer record mut
+	# TODO:PRIVATE
+	chars mut-list char
+
+writer writer()
+	mut-list writer
+
+move-to-str! str(a writer)
+	a.chars move-to-arr!
+
+backup! void(a writer)
+	a backup! 1
+
+backup! void(a writer, n nat)
+	a.chars pop-n! n
+
+~= void(a writer, b char)
+	a.chars ~= b
+
+~= void(a writer, b str)
+	a.chars ~= b
+
+~= void(a writer, b bool)
+	a ~= b to-str
+
+~= void(a writer, b nat)
+	a ~= b to-str
+
+~= void(a writer, b int)
+	a ~= b to-str
+
+~= void(a writer, b float)
+	a ~= b to-str
+
+write-quoted-str! void(out writer, a str)
+	out ~= "\""
+	a each \x
+		if x == "\""
+			out ~= "\\\""
+		elif x == "\n"
+			out ~= "\\n"
+		elif x == "\r"
+			out ~= "\\r"
+		elif x == "\t"
+			out ~= "\\t"
+		else
+			out ~= x
+	out ~= "\""

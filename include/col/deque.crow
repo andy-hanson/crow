@@ -6,14 +6,14 @@ import
 	..misc: ->, void
 	..opt: force, has?, none, opt, some
 	..ptr: +, -, ptr-eq?, set-subscript
-	..str: char, str
+	..str: str
 	..str-conv: to-str
 	..test: is
+	..writer: ~=, backup!, move-to-str!, writer
 	..private.number-low-level: ==, even?, nat, wrap-add
 	.arr: ==, arr, empty?, size
 	.arr-util: each, first, fold, last, rtail, tail
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
-	.mut-list: ~=, move-to-arr!, mut-list, set-last
 	.stack:
 		~, arr, arr-reverse, each, each-reverse, empty?, fold, fold-reverse, pop, rest, size,
 		stack, value
@@ -114,9 +114,9 @@ map deque ?out(a deque ?in, f act ?out(?in)) trusted
 	deque: res.cast-immutable
 
 .dbg str(a deque nat)
-	out = mut-list<char>
+	out = writer
 	a.left each-reverse \x
-		out ~= x to-str
+		out ~= x
 		out ~= " "
 	out ~= "["
 	if a.mid empty?
@@ -125,11 +125,12 @@ map deque ?out(a deque ?in, f act ?out(?in)) trusted
 		a.mid each \x
 			out ~= x to-str
 			out ~= " "
-		out.last := "]"
+		out backup!
+		out ~= "]"
 	a.right each \x
 		out ~= " "
-		out ~= x to-str
-	out move-to-arr!
+		out ~= x
+	out move-to-str!
 
 test
 	a = deque<nat>

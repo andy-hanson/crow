@@ -4,19 +4,19 @@ import
 	..compare: <, >, <=, compare
 	..exception: assert
 	..fun: subscript
-	..misc: ->, arrow, as, data, drop, from, to, void
+	..misc: ->, arrow, as, data, from, to, void
 	..number: ==, <=>, +, -, *, nat
 	..opt: ==, empty?, force, has?, none, opt, or-default, some
 	..ptr: -, ptr, ptr-eq?, set-subscript, subscript
-	..str: char, str
-	..str-conv: to-str
+	..str: str
 	..test: is
+	..writer: ~=, backup!, move-to-str!, writer
 	.arr: ==, arr, subscript
 	.arr-util: each
 	.dict: dict
 	.mut-list:
 		~=, begin-ptr, each, empty?, empty!, end-ptr, filter, filter!, fold, map, map!, map-to-arr,
-		move-to-arr!, mut-list, pop!, remove-at!, set-last, set-subscript, size, subscript
+		mut-list, remove-at!, set-subscript, size, subscript
 	.sort: sort-by!
 	.private.sort-utils:
 		assert-comparison-not-equal, binary-search-exact-ptr, binary-search-insert-ptr,
@@ -309,22 +309,22 @@ map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k> compare<?k>
 
 
 .dbg str(a mut-dict<nat, str>)
-	out = mut-list<char>
+	out = writer
 	out dbg-recur! a
-	out move-to-arr!
+	out move-to-str!
 
-.dbg-recur! void(out mut-list char, a mut-dict<nat, str>)
+.dbg-recur! void(out writer, a mut-dict<nat, str>)
 	out ~= "["
 	a.pairs each \pair
-		out ~= pair.from to-str
+		out ~= pair from
 		out ~= " -> "
 		out ~= pair.to or-default "_"
 		out ~= ", "
 	if a.pairs empty?
 		out ~= "]"
 	else
-		out.pop! drop
-		out.last := "]"
+		out backup! 2
+		out ~= "]"
 
 	if next ?= a next
 		out ~= ", "

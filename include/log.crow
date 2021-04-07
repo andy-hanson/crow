@@ -1,9 +1,9 @@
 no-std
 import
-	.exception: finally
 	.fun: subscript
 	.misc: as, void
 	.str: str
+	.private.exception-low-level: catch, throw
 	.private.log-low-level: set-log-handler
 export
 	.private.log-low-level:
@@ -21,8 +21,11 @@ Temporarily replaces the log handler for this task.
 ###
 with-log-handler ?a(handler log-handler, cb act ?a())
 	original-handler = get-log-handler
-	reset = as<act void()>: \
-		log-handler := original-handler
-	finally: reset, \
+	action = as<act ?a()>: \
 		log-handler := handler
-		cb[]
+		res = cb[]
+		log-handler := original-handler
+		res
+	action catch \err
+		log-handler := original-handler
+		err throw

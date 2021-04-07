@@ -8,9 +8,10 @@ import
 	..misc: ->, arrow, as, data, drop, from, to, void
 	..opt: ==, none, opt, some
 	..ptr: +, ptr, ptr-eq?, set-subscript, subscript
-	..str: char, str
+	..str: str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..test: is
+	..writer: ~=, backup!, move-to-str!, writer
 	..private.number-low-level: ==, <=>, nat, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	.arr: ==, arr, size
 	.arr-util: each, map
@@ -18,8 +19,8 @@ import
 		begin-ptr, cast-immutable, each, empty?, end-ptr, fill!, fill-mut-arr, fold, map, mut-arr,
 		set-subscript, size, subscript, uninitialized-mut-arr
 	.mut-list:
-		~=, at-capacity?, copy, each, empty?, filter!, find-index, fold, map!, move-to-arr!,
-		mut-list, pop-n!, remove-unordered-at!, set-subscript, size, subscript
+		~=, at-capacity?, copy, each, empty?, filter!, find-index, fold, map!, mut-list,
+		remove-unordered-at!, set-subscript, size, subscript
 
 mut-lookup<?k, ?v> record mut
 	# TODO:PRIVATE
@@ -254,7 +255,7 @@ map-values! void(a mut-lookup<?k, ?v>, f act ?v(?k, ?v)) trusted data<?k> compar
 		entry-ptr + 1 map-values-recur! entry-end, f
 
 .dbg str(a mut-lookup<nat, str>)
-	out = mut-list<char>
+	out = writer
 	a.entries each \entry
 		match entry
 		as none
@@ -272,11 +273,11 @@ map-values! void(a mut-lookup<?k, ?v>, f act ?v(?k, ?v)) trusted data<?k> compar
 				out ~= " -> "
 				out ~= pair to
 				out ~= ", "
-			out pop-n! 2
+			out backup! 2
 			out ~= "]"
 		out ~= " "
-	out pop-n! 1
-	out move-to-arr!
+	out backup!
+	out move-to-str!
 
 .verify void(a mut-lookup<nat, str>, expected str)
 	a.dbg is expected

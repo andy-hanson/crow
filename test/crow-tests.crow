@@ -6,6 +6,7 @@ import
 	io.path: base-name, get-extension
 	io.print: print
 	io.process: exit-code, spawn-and-wait-result, stderr, stdout
+	writer: ~=, move-to-str!, writer
 	.failure:
 		failure, flat-map-with-max-size, handle-output, max-failures, match-test, overwrite-output?,
 		print-tests?, test-options
@@ -107,23 +108,23 @@ body
 	stdout-failures ~ stderr-failures
 
 .remove-colors str(s str)
-	res = mut-list<char>
-	s remove-colors-recur res
-	res move-to-arr!
+	res = writer
+	s remove-colors-recur! res
+	res move-to-str!
 
-.remove-colors-recur void(s str, out mut-list char)
+.remove-colors-recur! void(s str, out writer)
 	if s empty?
 		void
 	elif s[0] == "\x1b"
-		s.tail remove-colors-recur-2 out
+		s.tail remove-colors-recur-2! out
 	else
 		out ~= s[0]
-		s.tail remove-colors-recur out
+		s.tail remove-colors-recur! out
 
-.remove-colors-recur-2 void(s str, out mut-list char)
+.remove-colors-recur-2! void(s str, out writer)
 	if s empty?
 		void
 	elif s[0] == "m"
-		s.tail remove-colors-recur out
+		s.tail remove-colors-recur! out
 	else
-		s.tail remove-colors-recur-2 out
+		s.tail remove-colors-recur-2! out

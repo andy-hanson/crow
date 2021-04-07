@@ -8,9 +8,10 @@ import
 	..misc: data, void
 	..opt: force, none, opt, or-default, some
 	..ptr: +, ptr, ptr-eq?, ptr-less-eq?, set-subscript, size-of, subscript
-	..str: char, str
+	..str: str
 	..str-conv: to-str
 	..test: is
+	..writer: ~=, backup!, move-to-str!, writer
 	..private.number-low-level: ==, <=>, nat, wrap-add, wrap-sub, wrap-mul
 	.arr: ==, arr
 	.arr-util: fold
@@ -22,7 +23,6 @@ import
 		alloc-count, count-greater-or-equal, deep-size-bytes, each, empty?, filter-less, index-set,
 		size, subscript, try-remove
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, mut-arr-from-begin-end, uninitialized-mut-arr
-	.mut-list: ~=, move-to-arr!, mut-list, set-last
 
 unordered-set<?a> record
 	# TODO:PRIVATE
@@ -227,17 +227,18 @@ map-to-arr-unordered arr ?out(a unordered-set ?in, f act ?out(?in)) trusted data
 	out cast-immutable
 
 .dbg str(a unordered-set ?a) to-str<?a>
-	out = mut-list<char>
+	out = writer
 	out dbg-add-recur! a.add
 	if a.remove.empty? not
 		out ~= " - ["
 		a.remove each \i
 			out ~= i to-str
 			out ~= " "
-		out.last := "]"
-	out move-to-arr!
+		out backup!
+		out ~= "]"
+	out move-to-str!
 
-.dbg-add-recur! void(out mut-list char, a add-node ?a) to-str<?a>
+.dbg-add-recur! void(out writer, a add-node ?a) to-str<?a>
 	if left ?= a left
 		out dbg-add-recur! left
 		out ~= ", "
@@ -249,7 +250,8 @@ map-to-arr-unordered arr ?out(a unordered-set ?in, f act ?out(?in)) trusted data
 		a.here each-unordered \x
 			out ~= x to-str
 			out ~= " "
-		out.last := "]"
+		out backup!
+		out ~= "]"
 
 .verify void(a unordered-set nat, expected str)
 	a.dbg is expected

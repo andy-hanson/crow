@@ -1,20 +1,20 @@
 no-std
 import
-	..bool: ?, bool, not
+	..bool: ?, bool
 	..exception: assert, forbid
-	..misc: ->, drop, void
+	..misc: ->, void
 	..opt: ==, none, opt, some
 	..ptr: +, -, null, null?, ptr, ptr-compare, ptr-eq?, ptr-less?, set-subscript, subscript, zeroed
-	..str: char, str
+	..str: str
 	..str-conv: to-str
 	..test: is
+	..writer: ~=, move-to-str!, writer
 	..private.number-low-level: ==, nat, wrap-add, wrap-mul
-	.arr: ==, arr, arr-from-begin-end, size
-	.arr-util: each-ptr, first, last
+	.arr: ==, arr, arr-from-begin-end, empty?, size
+	.arr-util: each-ptr, first, last, rtail
 	.mut-arr:
 		begin-ptr, cast-immutable, copy-from!, empty?, end-ptr, mut-arr, set-zero-elements, size,
 		subscript, uninitialized-mut-arr, zeroed-mut-arr
-	.mut-list: ~=, empty?, move-to-arr!, mut-list, pop!
 
 mut-deque<?a> record mut
 	# TODO:PRIVATE
@@ -148,7 +148,7 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 		dest[left-to-end-size -> dest.size] copy-from!: a.inner.begin-ptr arr-from-begin-end a.right
 
 .dbg str(a mut-deque nat) trusted
-	out = mut-list<char>
+	out = writer
 	a.inner.begin-ptr arr-from-begin-end a.inner.end-ptr each-ptr \ptr
 		if ptr ptr-eq? a.right
 			out ~= "<-R "
@@ -156,9 +156,8 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 			out ~= "L-> "
 		out ~= ptr[] to-str
 		out ~= " "
-	if out.empty? not
-		out.pop! drop
-	out move-to-arr!
+	res = out move-to-str!
+	res.empty? ? res, res.rtail
 
 .verify void(a mut-deque nat, arr arr nat, expected str)
 	a.first is arr.first
