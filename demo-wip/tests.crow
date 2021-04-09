@@ -26,6 +26,7 @@ import
 	json: parse-json
 	log: info, log
 	parse-command: parse-named-args
+	perf: perf-now
 	reader: reader, take-quoted-str!
 	serialize: from-bytes
 	private.bootstrap: ctx, get-ctx
@@ -46,6 +47,7 @@ main fut nat(_ arr str) summon
 	drop: mut-priority-queue<nat, nat>
 	drop: mut-set<nat>
 	drop: mut-stack<nat>
+	drop: perf-now
 	drop: priority-queue<nat, nat>
 	drop: set<nat>
 	drop: stack<nat>

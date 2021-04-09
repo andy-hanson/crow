@@ -1,8 +1,7 @@
 no-std
 import
 	..bool: and, bool, not
-	..col.arr: ==, ~, arr, size, subscript
-	..col.arr-util: try-split-once
+	..col.arr: ~, arr, size, subscript
 	..compare: <
 	..exception: assert
 	..io.time: get-unix-time, seconds-since-epoch, unix-time
@@ -13,6 +12,7 @@ import
 	..serialize: from-bytes, to-8-bytes
 	..str: str
 	..str-conv: interp, finish, parse-int, parse-nat, to-str, with-str, with-value
+	..str-util: try-split-once
 	..tuple: a, b
 	.random: random-nat64
 

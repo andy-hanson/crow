@@ -7,8 +7,9 @@ import
 	..misc: ->, as, void
 	..number: ==, <=>, +, -, /, nat
 	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
+	..str: ==, <=>, chars
 	..test: is
-	.arr: ==, <=>, arr, subscript
+	.arr: ==, arr, subscript
 	.mut-arr: arr, begin-ptr, cast-immutable, empty?, end-ptr, mut-arr, size, set-subscript, subscript
 	.mut-list: mut-list, temp-as-mut-arr
 
@@ -44,7 +45,7 @@ test
 	# Test that it's a stable sort
 	arr = mut-arr: ["2a", "2b", "1a", "1b"]
 	arr sort! \x, y
-		x[0] <=> y[0]
+		x.chars[0] <=> y.chars[0]
 	arr.arr is ["1a", "1b", "2a", "2b"]
 
 

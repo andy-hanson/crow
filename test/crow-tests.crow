@@ -1,11 +1,12 @@
 import
-	col.arr-util: contains-subseq?, first-some, tail
+	col.arr-util: first-some, tail
 	col.mut-list: ~=, move-to-arr!, mut-list
 	io.environ: environ
 	io.file: each-child-recursive
 	io.path: base-name, get-extension
 	io.print: print
 	io.process: exit-code, spawn-and-wait-result, stderr, stdout
+	str-util: has-substr?, try-remove-start
 	writer: ~=, move-to-str!, writer
 	.failure:
 		failure, flat-map-with-max-size, handle-output, max-failures, match-test, overwrite-output?,
@@ -23,7 +24,7 @@ run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ,
 .list-tests arr str(path str, match-test str) summon
 	res = mut-list<str>
 	path each-child-recursive \child
-		if child contains-subseq? match-test and child.ext-is-crow?
+		if child has-substr? match-test and child.ext-is-crow?
 			res ~= child
 	res move-to-arr!
 
@@ -115,16 +116,16 @@ body
 .remove-colors-recur! void(s str, out writer)
 	if s empty?
 		void
-	elif s[0] == "\x1b"
-		s.tail remove-colors-recur-2! out
+	elif rest ?= s try-remove-start "\x1b"
+		rest remove-colors-recur-2! out
 	else
-		out ~= s[0]
-		s.tail remove-colors-recur! out
+		out ~= s.chars[0]
+		s.chars.tail.str remove-colors-recur! out
 
 .remove-colors-recur-2! void(s str, out writer)
 	if s empty?
 		void
-	elif s[0] == "m"
-		s.tail remove-colors-recur! out
+	elif rest ?= s try-remove-start "m"
+		rest remove-colors-recur! out
 	else
-		s.tail remove-colors-recur-2! out
+		s.chars.tail.str remove-colors-recur-2! out

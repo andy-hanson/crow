@@ -8,10 +8,10 @@ import
 	..number: ==, <=>, +, -, *, nat
 	..opt: ==, empty?, force, has?, none, opt, or-default, some
 	..ptr: -, ptr, ptr-eq?, set-subscript, subscript
-	..str: str
+	..str: ==, chars, str
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
-	.arr: ==, arr, subscript
+	.arr: arr, subscript
 	.arr-util: each
 	.dict: dict
 	.mut-list:
@@ -299,7 +299,7 @@ test
 	a = mut-dict: [3 -> "30", 6 -> "60"]
 	a verify "[3 -> 30, 6 -> 60]"
 	a map! \k, v
-		10 - k -> v[0 -> 1]
+		10 - k -> v.chars[0 -> 1].str
 	a verify "[4 -> 6, 7 -> 3]"
 
 map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k> compare<?k>

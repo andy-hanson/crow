@@ -525,7 +525,21 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeChar(writer, ' ');
 			writeName(writer, d.name);
 		},
+		(ref immutable Diag.DuplicateExports d) {
+			writeStatic(writer, "there are multiple exported ");
+			writeStatic(writer, () {
+				final switch (d.kind) {
+					case Diag.DuplicateExports.Kind.spec:
+						return "specs";
+					case Diag.DuplicateExports.Kind.type:
+						return "types";
+				}
+			}());
+			writeStatic(writer, " named ");
+			writeName(writer, d.name);
+		},
 		(ref immutable Diag.DuplicateImports d) {
+			//TODO: use d.kind
 			writeStatic(writer, "the symbol ");
 			writeName(writer, d.name);
 			writeStatic(writer, " appears in multiple modules");

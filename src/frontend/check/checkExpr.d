@@ -367,8 +367,7 @@ immutable(CallAst) checkInterpolatedRecur(Alloc)(
 				immutable ExprAst right = immutable ExprAst(
 					// TODO: this length may be wrong in the presence of escapes
 					immutable RangeWithinFile(pos, safeSizeTToU32(pos + it.length)),
-					immutable ExprAstKind(
-						immutable LiteralAst(it)));
+					immutable ExprAstKind(immutable LiteralAst(it)));
 				return immutable CallAst(
 					CallAst.Style.infix,
 					immutable NameAndRange(pos, shortSymAlphaLiteral("with-str")),

@@ -12,7 +12,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(71, 105), main, fut(nat()), [param(file-range(71, range(118, 127)), none, arr(arr(char())))])
+			sig: sig(file-pos(71, 105), main, fut(nat()), [param(file-range(71, range(118, 127)), none, arr(str()))])
 			body: let(
 				local(file-range(71, range(137, 138)), r, rect())
 				call(

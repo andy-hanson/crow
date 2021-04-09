@@ -7,7 +7,7 @@ import
 	.exception: assert
 	.misc: ->, as
 	.number: to-int, to-nat, to-nat32
-	.str: str
+	.str: chars, str
 	.test: is
 	.private.bootstrap: todo
 	.private.number-low-level: ==, <=>, int64, max-int, nat8, nat32, nat64, unsafe-to-nat8
@@ -22,9 +22,9 @@ from-bytes arr nat8(a arr nat8)
 	a
 
 to-bytes arr nat8(a str) trusted
-	a arr-cast
+	a.chars arr-cast
 from-bytes str(a arr nat8) trusted
-	a arr-cast
+	a.arr-cast str
 
 to-bytes arr nat8(a nat64)
 	a.to-8-bytes strip-left-while {it == 0}

@@ -1,12 +1,11 @@
 no-std
 import
-	.col.arr: ==
 	.compare: equal
 	.misc: void
 	# TODO: import from .result instead
 	.private.bootstrap: value
 	.private.exception-low-level: assert, catch, message, throw
-	.str: str
+	.str: ==, str
 
 is void(a ?a, b ?a) equal<?a>
 	assert: a == b

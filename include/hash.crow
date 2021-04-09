@@ -5,7 +5,7 @@ import
 	.misc: as, void
 	.number: nat
 	.ptr: by-val, ref-of-val
-	.str: str
+	.str: chars, str
 	.private.bootstrap: to-nat
 	.private.number-low-level: wrap-add
 
@@ -31,5 +31,5 @@ hash-mix void(hasher hasher, a bool)
 	hasher hash-mix a.to-nat
 
 hash-mix void(hasher hasher, a str)
-	a each \c
+	a.chars each \c
 		hasher hash-mix c.to-nat

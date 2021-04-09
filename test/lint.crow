@@ -1,11 +1,11 @@
 import
 	cell: cell, swap, subscript
-	col.arr-util:
-		contains?, contains-subseq?, each-with-index, exists?, ends-with?, tail
+	col.arr-util: contains?, each-with-index, exists?
 	col.mut-list: ~=, move-to-arr!, mut-list
 	io.file: each-child-recursive, read-file
 	io.path: base-name, get-extension
 	io.print: print
+	str-util: ends-with?, has-substr?, starts-with?, try-remove-start
 	.failure: failure, flat-map-with-max-size, max-failures, print-tests?, test-options
 
 lint result<str, arr failure>(path str, options test-options) summon
@@ -29,7 +29,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 .excluded-from-lint? bool(name str)
 	exclude-exts = [".bmp", ".err", ".html", ".mdb", ".png", ".repr", ".svg", ".ttf", ".wasm", ".xz"]
 	exclude-names = ["documentation", "dyncall", "libfirm", "node_modules", "package-lock.json"]
-	name[0] == "." or: exclude-names contains? name or: exclude-exts exists? {name ends-with? it}
+	name starts-with? "." or: exclude-names contains? name or: exclude-exts exists? {name ends-with? it}
 
 # Returns numner of errors
 .lint-file arr failure(path str) summon
@@ -40,7 +40,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 	text.lines each-with-index \line, line-num
 		ln = line-num + 1 to-str
 		space-space = " " ~ " "
-		if allow-double-space?.not and: line contains-subseq? space-space
+		if allow-double-space?.not and: line has-substr? space-space
 			message = "line {ln} contains a double space"
 			res ~=: failure: path, message
 		width = line line-len
@@ -62,22 +62,23 @@ lint result<str, arr failure>(path str, options test-options) summon
 		# Ignore extensionless files
 		true
 
+# TODO: move to str-util, make a generic 'split' function
 .lines arr str(s str)
 	res = mut-list<str>
 	last-nl = 0 cell<nat>
-	s each-with-index \c, index
+	s.chars each-with-index \c, index
 		if c == "\n"
 			nl = last-nl swap index + 1
-			res ~= s[nl -> index]
-	res ~= s[last-nl[] -> s.size]
+			res ~= s.chars[nl -> index] str
+	res ~= s.chars[last-nl[] -> s.size-bytes] str
 	res move-to-arr!
 
 .max-line-length nat()
 	120
 
 .n-tabs nat(line str)
-	if line.empty?.not and: line[0] == "\t"
-		line.tail.n-tabs + 1
+	if rest ?= line try-remove-start "\t"
+		rest.n-tabs + 1
 	else
 		0
 
@@ -85,4 +86,4 @@ lint result<str, arr failure>(path str, options test-options) summon
 	4
 
 .line-len nat(line str)
-	line.n-tabs * (tab-size - 1) + line.size
+	line.n-tabs * (tab-size - 1) + line.size-bytes

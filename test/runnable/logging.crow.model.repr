@@ -7,7 +7,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(72, 78), main, fut(nat()), [param(file-range(72, range(91, 100)), none, arr(arr(char())))])
+			sig: sig(file-pos(72, 78), main, fut(nat()), [param(file-range(72, range(91, 100)), none, arr(str()))])
 			body: seq(
 				call(
 					fun-inst(name: log)

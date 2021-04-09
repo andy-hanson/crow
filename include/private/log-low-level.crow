@@ -1,11 +1,10 @@
 no-std
 import
-	..col.arr: ~
 	..io.print: print
 	..ptr: as-ref, by-val
 	..misc: void
 	..ptr: zeroed
-	..str: str
+	..str: ~, str
 	.bootstrap: get-ctx, log-ctx-ptr, thread-local-stuff
 
 # Lowest-priority log level.

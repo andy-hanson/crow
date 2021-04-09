@@ -1,17 +1,17 @@
 no-std
 import
-	..bool: ?, bool
+	..bool: ?, bool, not
 	..exception: assert, forbid
 	..misc: ->, void
 	..opt: ==, none, opt, some
 	..ptr: +, -, null, null?, ptr, ptr-compare, ptr-eq?, ptr-less?, set-subscript, subscript, zeroed
-	..str: str
+	..str: ==, str
 	..str-conv: to-str
 	..test: is
-	..writer: ~=, move-to-str!, writer
+	..writer: ~=, backup!, move-to-str!, writer
 	..private.number-low-level: ==, nat, wrap-add, wrap-mul
-	.arr: ==, arr, arr-from-begin-end, empty?, size
-	.arr-util: each-ptr, first, last, rtail
+	.arr: ==, arr, arr-from-begin-end, size
+	.arr-util: each-ptr, first, last
 	.mut-arr:
 		begin-ptr, cast-immutable, copy-from!, empty?, end-ptr, mut-arr, set-zero-elements, size,
 		subscript, uninitialized-mut-arr, zeroed-mut-arr
@@ -156,8 +156,9 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 			out ~= "L-> "
 		out ~= ptr[] to-str
 		out ~= " "
-	res = out move-to-str!
-	res.empty? ? res, res.rtail
+	if a.inner.empty? not
+		out backup!
+	out move-to-str!
 
 .verify void(a mut-deque nat, arr arr nat, expected str)
 	a.first is arr.first

@@ -6,7 +6,7 @@ module(
 			public?: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(71, 0), main, fut(nat()), [param(file-range(71, range(13, 22)), none, arr(arr(char())))])
+			sig: sig(file-pos(71, 0), main, fut(nat()), [param(file-range(71, range(13, 22)), none, arr(str()))])
 			body: seq(call(fun-inst(name: foo), []), call(fun-inst(name: resolved, type-args: [nat()]), [literal(nat(), 0)])))
 		fun(
 			public?: true

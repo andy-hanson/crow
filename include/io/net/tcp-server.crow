@@ -24,7 +24,7 @@ import
 	# TODO: don't use this
 	...private.fut-low-level: callback!
 	...ptr: by-val, ptr-cast-to-extern, ptr-to, ref-of-val, size-of
-	...str: str
+	...str: chars, str
 	...str-conv: interp, finish, to-str, with-str, with-value
 	...sys.epoll:
 		data, epoll-create1, epoll-ctl, epoll-ctl-add, epollerr, epollet, epoll-event, epollhup,
@@ -59,14 +59,14 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 
 	epoll-fd = 0 epoll-create1
 	if epoll-fd < 0
-		perror: "epoll-create1 failed\0".begin-ptr
+		perror: "epoll-create1 failed\0".chars.begin-ptr
 		todo
 	else
 		event-flags = as<nat32>: epollin bits-or epollet
 		accept-event = epoll-event: event-flags, port-fd.to-int.to-nat
 		ctl-err = epoll-fd epoll-ctl epoll-ctl-add, port-fd, accept-event.ptr-to
 		if ctl-err != 0
-			perror: "epoll-ctl failed\0".begin-ptr
+			perror: "epoll-ctl failed\0".chars.begin-ptr
 			todo
 
 		state = tcp-server-state: false, false, 0, port-fd, epoll-fd, 0, handler
@@ -147,7 +147,7 @@ close-client void(client-fd fd-t) unsafe summon
 		if e == eagain or: e == ewouldblock
 			print: "done accepting clients"
 		else
-			perror: "accept() error\0".begin-ptr
+			perror: "accept() error\0".chars.begin-ptr
 			todo
 	else
 		print: "Accepted client {client-fd}"
@@ -166,7 +166,7 @@ close-client void(client-fd fd-t) unsafe summon
 		if err == eagain
 			print: "read EAGAIN"
 		else
-			perror: "read() failed\0".begin-ptr
+			perror: "read() failed\0".chars.begin-ptr
 	elif count != 0
 		chunk = buf.cast-immutable[0 -> count.to-nat]
 		on-received-chunk[fd, chunk] handle-exceptions
@@ -175,10 +175,10 @@ close-client void(client-fd fd-t) unsafe summon
 .set-non-blocking void(fd fd-t) noctx unsafe summon
 	flags = fd fcntl f-getfl, 0
 	if flags < 0
-		perror: "fcntl() error\0".begin-ptr
+		perror: "fcntl() error\0".chars.begin-ptr
 		todo
 	else
 		err = fd fcntl: f-setfl, flags bits-or o-nonblock
 		if err < 0
-			perror: "fcntl() error\0".begin-ptr
+			perror: "fcntl() error\0".chars.begin-ptr
 			todo

@@ -8,7 +8,7 @@ import
 	..misc: ->, arrow, as, data, drop, from, to, void
 	..opt: ==, none, opt, some
 	..ptr: +, ptr, ptr-eq?, set-subscript, subscript
-	..str: str
+	..str: ==, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer

@@ -330,6 +330,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 	immutable Ptr!StructInst nat16 = nonTemplate("nat16");
 	immutable Ptr!StructInst nat32 = nonTemplate("nat32");
 	immutable Ptr!StructInst nat64 = nonTemplate("nat");
+	immutable Ptr!StructInst str = nonTemplate("str");
 	immutable Ptr!StructInst void_ = nonTemplate("void");
 	immutable Ptr!StructInst ctxStructInst = nonTemplate("ctx");
 
@@ -372,12 +373,6 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 	immutable Ptr!StructDecl funRef2 = com("fun-ref2", 3);
 	immutable Ptr!StructDecl funRef3 = com("fun-ref3", 4);
 	immutable Ptr!StructDecl funRef4 = com("fun-ref4", 5);
-
-	immutable Ptr!StructInst str = instantiateStruct!Alloc(
-		alloc,
-		ctx.programState,
-		immutable StructDeclAndArgs(arr, arrLiteral!Type(alloc, [immutable Type(char_)])),
-		someMut(ptrTrustMe_mut(delayedStructInsts)));
 
 	immutable string[] missingArr = finishArr(alloc, missing);
 
@@ -1303,7 +1298,8 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 			reExports,
 			structsAndAliasesDict,
 			specsDict,
-			funsAndDict.funsDict));
+			funsAndDict.funsDict,
+			fileIndex));
 }
 
 immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
@@ -1313,17 +1309,26 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable SpecsDict specsDict,
 	ref immutable FunsDict funsDict,
+	immutable FileIndex fileIndex,
 ) {
 	MutDict!(immutable Sym, immutable NameReferents, compareSym) res;
-	void add(immutable Sym name, immutable NameReferents cur) @safe @nogc pure nothrow {
+	void addExport(immutable Sym name, immutable NameReferents cur, immutable FileAndRange range)
+		@safe @nogc pure nothrow {
 		insertOrUpdate!(Alloc, immutable Sym, immutable NameReferents, compareSym)(
 			alloc,
 			res,
 			name,
 			() => cur,
 			(ref immutable NameReferents prev) {
-				if ((has(prev.structOrAlias) && has(cur.structOrAlias)) || (has(prev.spec) && has(cur.spec)))
-					todo!void("duplicate export");
+				immutable Opt!(Diag.DuplicateExports.Kind) kind = has(prev.structOrAlias) && has(cur.structOrAlias)
+					? some(Diag.DuplicateExports.Kind.type)
+					: has(prev.spec) && has(cur.spec)
+					? some(Diag.DuplicateExports.Kind.spec)
+					: none!(Diag.DuplicateExports.Kind);
+				if (has(kind))
+					add(alloc, diagsBuilder, immutable Diagnostic(
+						range,
+						allocate(alloc, immutable Diag(immutable Diag.DuplicateExports(force(kind), name)))));
 				return immutable NameReferents(
 					has(prev.structOrAlias) ? prev.structOrAlias : cur.structOrAlias,
 					has(prev.spec) ? prev.spec : cur.spec,
@@ -1336,20 +1341,28 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
 			e.module_.allExportedNames,
 			(ref immutable Sym name, ref immutable NameReferents value) {
 				if (!has(e.names) || containsSym(force(e.names), name))
-					add(name, value);
+					addExport(name, value, immutable FileAndRange(
+						fileIndex,
+						has(e.importSource) ? force(e.importSource) : RangeWithinFile.empty));
 			});
 	}
 	dictEach!(Sym, StructOrAliasAndIndex, compareSym)(
 		structsAndAliasesDict,
 		(ref immutable Sym name, ref immutable StructOrAliasAndIndex it) {
 			if (isPublic(it.structOrAlias))
-				add(name, immutable NameReferents(some(it.structOrAlias), none!(Ptr!SpecDecl), emptyArr!(Ptr!FunDecl)));
+				addExport(
+					name,
+					immutable NameReferents(some(it.structOrAlias), none!(Ptr!SpecDecl), emptyArr!(Ptr!FunDecl)),
+					range(it.structOrAlias));
 		});
 	dictEach!(Sym, SpecDeclAndIndex, compareSym)(
 		specsDict,
 		(ref immutable Sym name, ref immutable SpecDeclAndIndex it) {
 			if (it.decl.isPublic)
-				add(name, immutable NameReferents(none!StructOrAlias, some(it.decl), emptyArr!(Ptr!FunDecl)));
+				addExport(
+					name,
+					immutable NameReferents(none!StructOrAlias, some(it.decl), emptyArr!(Ptr!FunDecl)),
+					it.decl.range);
 		});
 	multiDictEach!(Sym, FunDeclAndIndex, compareSym)(
 		funsDict,
@@ -1359,7 +1372,12 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
 				funs,
 				(ref immutable FunDeclAndIndex it) =>
 					it.decl.isPublic ? some(it.decl) : none!(Ptr!FunDecl));
-			add(name, immutable NameReferents(none!StructOrAlias, none!(Ptr!SpecDecl), funDecls));
+			if (!empty(funDecls))
+				addExport(
+					name,
+					immutable NameReferents(none!StructOrAlias, none!(Ptr!SpecDecl), funDecls),
+					// This argument doesn't matter because a function never results in a duplicate export error
+					immutable FileAndRange(fileIndex, RangeWithinFile.empty));
 		});
 
 	return moveToDict!(Sym, NameReferents, compareSym, Alloc)(alloc, res);

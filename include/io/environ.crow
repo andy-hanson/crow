@@ -1,7 +1,7 @@
 no-std
 import
 	..bool: not
-	..col.arr: ==, <=>, ~, begin-ptr, arr-from-begin-end
+	..col.arr: begin-ptr, arr-from-begin-end
 	..col.dict: dict, each
 	..col.mut-dict: move-to-dict!, mut-dict, set-subscript
 	..col.mut-list: ~=, move-to-arr!, mut-list
@@ -9,7 +9,7 @@ import
 	..posix.unistd: environ
 	..private.bootstrap: todo
 	..ptr: +, null, null?, ptr, subscript
-	..str: char, c-str, str
+	..str: ==, <=>, ~, char, c-str, str
 	..str-util: find-char-in-cstr, find-cstr-end, to-c-str
 
 # Represents all environment variables.
@@ -30,10 +30,10 @@ get-environ environ() summon trusted
 
 .parse-environ-entry arrow<str, str>(entry c-str) unsafe
 	if key-end ?= entry find-char-in-cstr "="
-		key = entry arr-from-begin-end key-end
+		key = entry arr-from-begin-end key-end str
 		value-begin = key-end + 1
 		value-end = value-begin find-cstr-end
-		value = value-begin arr-from-begin-end value-end
+		value = value-begin arr-from-begin-end value-end str
 		key -> value
 	else
 		todo

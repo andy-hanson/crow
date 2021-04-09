@@ -1,11 +1,10 @@
 no-std
 import
 	.bool: ?, bool, not
-	.col.arr: empty?
 	.col.arr-util: each
 	.fun: subscript
 	.misc: void
-	.str: str
+	.str: empty?, str
 	.writer: ~=, move-to-str!, writer
 	.private.backtrace: return-stack
 	.private.bootstrap: backtrace

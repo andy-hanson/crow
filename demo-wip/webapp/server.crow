@@ -1,14 +1,14 @@
 import
-	col.arr-util: each, index-of, split-by, split-by-subseq, try-split-once
+	col.arr-util: each, index-of
 	col.dict: dict, subscript
 	col.mut-arr: fill-mut-arr, map-to-arr-with-index, set-subscript
-	col.mut-list: ~=, move-to-arr!, mut-list, pop!
 	io.file: read-file
 	io.net.http-server:
 		body, headers, http-bad-query, http-handler, http-not-found, http-request,
 		http-response, method, start-http-server, url
 	io.print: print
 	log: info, log
+	str-util: split-by, try-split-once
 	tuple: a, b
 	writer: ~=, backup!, move-to-str!, writer
 	.db:
@@ -104,7 +104,7 @@ split-url url(url-str str)
 # Extra cookies are ignored
 parse-cookies arr str(s str, cookie-names arr str)
 	res = cookie-names.size fill-mut-arr<opt str> none
-	s split-by-subseq "; " each \part
+	s split-by "; " each \part
 		if pair ?= part try-split-once "="
 			if index ?= cookie-names index-of pair.a
 				res[index] := pair.b some

@@ -1,7 +1,7 @@
 import
-	col.arr-util: try-remove-end, try-remove-start
 	io.file: each-child-recursive
 	io.print: print
+	str-util: try-remove-end, try-remove-start
 
 main fut nat(_ arr str) summon
 	"include" each-child-recursive \path

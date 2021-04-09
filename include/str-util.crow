@@ -1,25 +1,28 @@
 no-std
 import
-	.bool: and
-	.col.arr: ==, ~, arr, arr-from-begin-end, begin-ptr, has?, size, subscript
-	.col.arr-util: tail
+	.bool: and, bool, not
+	.col.arr: arr, arr-from-begin-end, begin-ptr, size, subscript
+	.col.arr-util:
+		contains-subseq?, ends-with?, map, split-by-subseq, starts-with?, tail, try-remove-end,
+		try-remove-start, try-split-once
 	.number: nat8
 	.opt: none, opt, some
 	.ptr: +, ptr-cast, subscript
-	.str: char, c-str, str
+	.str: ==, ~, char, chars, c-str, empty?, str
+	.tuple: a, b, pair
 	.private.bootstrap: hard-unreachable
 
 # Treats bytes as a string.
 as-str str(bytes arr nat8) unsafe noctx
-	arr: bytes.size, bytes.begin-ptr ptr-cast<char, nat8>
+	str: arr: bytes.size, bytes.begin-ptr ptr-cast<char, nat8>
 
 # Converts a str to a c-str by appending "\0".
 to-c-str c-str(a str)
-	a ~ "\0" begin-ptr
+	(a ~ "\0").chars begin-ptr
 
 # Treats a c-str as a str by walking to the end.
 to-str str(a c-str) unsafe noctx
-	a arr-from-begin-end a.find-cstr-end
+	a arr-from-begin-end a.find-cstr-end str
 
 ###
 Walk a c-str and return a pointer to the first occurrence of `c`.
@@ -43,7 +46,37 @@ find-cstr-end c-str(a c-str) unsafe noctx
 
 # Strips whitespace from the front.
 lstrip str(a str)
-	if a.has? and: a[0] == " "
-		a.tail lstrip
+	if a.empty?.not and: a.chars[0] == " "
+		a.chars.tail.str lstrip
 	else
 		a
+
+has-substr? bool(a str, b str)
+	a.chars contains-subseq? b.chars
+
+starts-with? bool(a str, b str)
+	a.chars starts-with? b.chars
+
+ends-with? bool(a str, b str)
+	a.chars ends-with? b.chars
+
+try-remove-start opt str(a str, b str)
+	if res ?= a.chars try-remove-start b.chars
+		res.str some
+	else
+		none
+
+try-remove-end opt str(a str, b str)
+	if res ?= a.chars try-remove-end b.chars
+		res.str some
+	else
+		none
+
+try-split-once opt pair<str, str>(a str, b char)
+	if res ?= a.chars try-split-once b
+		res.a.str pair res.b.str some
+	else
+		none
+
+split-by arr str(a str, b str)
+	a.chars split-by-subseq b.chars map {it str}

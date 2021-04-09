@@ -1,18 +1,19 @@
 no-std
 import
 	..bool: and, bool, false, not, true
-	..compare: compare, !=, <, >
+	..compare: compare, <, >
 	..exception: assert, forbid, unreachable
 	..fun: subscript
 	..misc: ->, as, data, drop, void
 	..opt: none, opt, some
 	..ptr: +, -, deep-size-bytes, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of, subscript
-	..str: str
+	..str: ==, <=>, chars, str
 	..str-conv: interp, finish, to-str, with-str, with-value
+	..str-util: starts-with?
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
 	..private.number-low-level: ==, <=>, nat, unsafe-div, wrap-add, wrap-sub
-	.arr: ==, <=>, arr, begin-ptr, empty?, end-ptr, size, subscript
+	.arr: arr, begin-ptr, empty?, end-ptr, size, subscript
 	.arr-util: deep-size-bytes, each, fold, insert, last, overhead-bytes, rtail, tail, try-remove
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
 	.mut-stack: ~=, mut-stack, last, pop!
@@ -611,8 +612,8 @@ test
 		"{x}-{y}"
 	folded is "s-h-i-j-ji-jj-jk-k-l"
 
-	filtered = s8 filter {it[0] != "j"}
+	filtered = s8 filter {it starts-with? "j" not}
 	filtered verify "[h i k l]"
 
-	mapped = s8 map {it[0 -> 1]}
+	mapped = s8 map {it.chars[0 -> 1] str}
 	mapped verify "[h i j k l]"

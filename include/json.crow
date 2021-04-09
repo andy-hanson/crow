@@ -1,7 +1,6 @@
 no-std
 import
 	.bool: ==, bool, false, not, true
-	.col.arr: ==, <=>
 	.col.dict: dict, dict-equal?, each, empty?
 	.col.list: each, empty?, list, list-equal?
 	.col.mut-dict: move-to-dict!, mut-dict, set-subscript
@@ -11,7 +10,7 @@ import
 	.opt: none, opt, some
 	.reader:
 		reader, skip-whitespace!, take-char?, take-float!, take-quoted-str!, take-str?, with-reader
-	.str: str
+	.str: ==, <=>, str
 	.test: is
 	.writer: ~=, backup!, move-to-str!, writer, write-quoted-str!
 
@@ -34,7 +33,7 @@ json union
 			fa == fb
 		else
 			false
-	as arr sa
+	as str sa
 		if sb ?= b as-str
 			sa == sb
 		else
@@ -67,7 +66,7 @@ as-bool opt bool(a json) noctx
 		b some
 	as float
 		none
-	as arr
+	as str
 		none
 	as list
 		none
@@ -79,7 +78,7 @@ as-float opt float(a json) noctx
 		none
 	as float f
 		f some
-	as arr
+	as str
 		none
 	as list
 		none
@@ -91,7 +90,7 @@ as-str opt str(a json) noctx
 		none
 	as float
 		none
-	as arr s
+	as str s
 		s some
 	as list
 		none
@@ -103,7 +102,7 @@ as-list opt list json(a json) noctx
 		none
 	as float
 		none
-	as arr
+	as str
 		none
 	as list l
 		l some
@@ -115,7 +114,7 @@ as-dict opt dict<str, json>(a json) noctx
 		none
 	as float
 		none
-	as arr
+	as str
 		none
 	as list
 		none
@@ -136,7 +135,7 @@ to-str str(a json)
 		out ~= b
 	as float f
 		out ~= f
-	as arr s
+	as str s
 		out write-quoted-str! s
 	as list l
 		out ~= "["

@@ -6,7 +6,7 @@ import
 	..misc: arrow, from, to
 	..ptr: +, -, by-val, ptr, ptr-cast, ptr-eq?, ptr-less-eq?, ref-of-ptr, size-of, subscript
 	..private.alloc: alloc-uninitialized, copy-data-from
-	..private.bootstrap: char, hard-assert, str, to-nat
+	..private.bootstrap: hard-assert
 	..private.exception-low-level: assert
 	..private.number-low-level: ==, <=>, nat, nat8, wrap-add, wrap-sub
 export
@@ -32,7 +32,7 @@ arr-equal? bool(a arr ?a, b arr ?a, eq act bool(?a, ?a)) trusted
 	else
 		(b ptr-eq? b-end).not and: eq[a[], b[]] and: a + 1 equal-recur? a-end, b + 1, b-end, eq
 
-.arr-compare comparison(a arr ?a, b arr ?a) trusted noctx compare<?a>
+arr-compare comparison(a arr ?a, b arr ?a) trusted noctx compare<?a>
 	a.begin-ptr compare-recur a.end-ptr, b.begin-ptr, b.end-ptr
 .compare-recur comparison(a ptr ?a, a-end ptr ?a, b ptr ?a, b-end ptr ?a) unsafe noctx compare<?a>
 	if a ptr-eq? a-end
@@ -60,19 +60,6 @@ arr-equal? bool(a arr ?a, b arr ?a, eq act bool(?a, ?a)) trusted
 	a arr-equal? b
 <=> comparison(a arr nat, b arr nat) noctx
 	a arr-compare b
-
-== bool(a str, b str) trusted noctx
-	a arr-equal? b
-== bool(a char, b char) noctx
-	a.to-nat == b.to-nat
-
-<=> comparison(a str, b str) trusted noctx
-	a arr-compare b
-<=> comparison(a char, b char) noctx
-	a.to-nat <=> b.to-nat
-
-== bool(a arr str, b arr str) noctx
-	a arr-equal? b
 
 ###
 Arr or the range from begin to end.

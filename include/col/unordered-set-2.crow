@@ -8,7 +8,7 @@ import
 	..misc: data, void
 	..opt: force, none, opt, or-default, some
 	..ptr: +, ptr, ptr-eq?, ptr-less-eq?, set-subscript, size-of, subscript
-	..str: str
+	..str: ==, str
 	..str-conv: to-str
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer

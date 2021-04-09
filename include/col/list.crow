@@ -7,7 +7,7 @@ import
 	..misc: ->, drop, void
 	..opt: ==, empty?, has?, none, opt, some
 	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
-	..str: str
+	..str: ==, str
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
 	..private.bootstrap: hard-assert, hard-unreachable

@@ -102,6 +102,14 @@ struct Diag {
 		immutable Kind kind;
 		immutable Sym name;
 	}
+	struct DuplicateExports {
+		enum Kind {
+			spec,
+			type,
+		}
+		immutable Kind kind;
+		immutable Sym name;
+	}
 	struct DuplicateImports {
 		enum Kind {
 			spec,
@@ -247,6 +255,7 @@ struct Diag {
 		createRecordByRefNoCtx,
 		createRecordMultiLineWrongFields,
 		duplicateDeclaration,
+		duplicateExports,
 		duplicateImports,
 		expectedTypeIsNotALambda,
 		externPtrHasTypeParams,
@@ -297,6 +306,7 @@ struct Diag {
 		immutable CreateRecordByRefNoCtx createRecordByRefNoCtx;
 		immutable Ptr!CreateRecordMultiLineWrongFields createRecordMultiLineWrongFields;
 		immutable DuplicateDeclaration duplicateDeclaration;
+		immutable DuplicateExports duplicateExports;
 		immutable DuplicateImports duplicateImports;
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
 		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
@@ -362,6 +372,7 @@ struct Diag {
 	@trusted immutable this(immutable DuplicateDeclaration a) {
 		kind = Kind.duplicateDeclaration; duplicateDeclaration = a;
 	}
+	@trusted immutable this(immutable DuplicateExports a) { kind = Kind.duplicateExports; duplicateExports = a; }
 	@trusted immutable this(immutable DuplicateImports a) { kind = Kind.duplicateImports; duplicateImports = a; }
 	@trusted immutable this(immutable ExpectedTypeIsNotALambda a) {
 		kind = Kind.expectedTypeIsNotALambda; expectedTypeIsNotALambda = a;
@@ -475,6 +486,7 @@ static assert(Diag.sizeof <= 32);
 	scope immutable(Out) delegate(
 		ref immutable Diag.DuplicateDeclaration
 	) @safe @nogc pure nothrow cbDuplicateDeclaration,
+	scope immutable(Out) delegate(ref immutable Diag.DuplicateExports) @safe @nogc pure nothrow cbDuplicateExports,
 	scope immutable(Out) delegate(ref immutable Diag.DuplicateImports) @safe @nogc pure nothrow cbDuplicateImports,
 	scope immutable(Out) delegate(
 		ref immutable Diag.ExpectedTypeIsNotALambda
@@ -592,6 +604,8 @@ static assert(Diag.sizeof <= 32);
 			return cbCreateRecordMultiLineWrongFields(a.createRecordMultiLineWrongFields);
 		case Diag.Kind.duplicateDeclaration:
 			return cbDuplicateDeclaration(a.duplicateDeclaration);
+		case Diag.Kind.duplicateExports:
+			return cbDuplicateExports(a.duplicateExports);
 		case Diag.Kind.duplicateImports:
 			return cbDuplicateImports(a.duplicateImports);
 		case Diag.Kind.expectedTypeIsNotALambda:

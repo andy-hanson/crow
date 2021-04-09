@@ -12,7 +12,7 @@ import
 	..number: deep-size-bytes, each
 	..opt: has?, none, opt, or-default, some
 	..ptr: +, ptr-eq?, set-subscript
-	..str: str
+	..str: ==, str
 	..str-conv: to-hex
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer

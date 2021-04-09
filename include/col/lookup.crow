@@ -9,13 +9,13 @@ import
 	..misc: ->, arrow, as, data, from, to, void
 	..opt: ==, force, has?, none, opt, some
 	..ptr: size-of
-	..str: str
+	..str: ==, ~, str
 	..str-conv: to-str
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
 	..private.bootstrap: todo
 	..private.number-low-level: ==, <=>, nat, wrap-add, wrap-sub
-	.arr: ==, ~, arr, empty?, size, subscript
+	.arr: ~, arr, empty?, size, subscript
 	.arr-util:
 		each, each-with-index, every?, find-index, fold, fold-with-index,
 		remove-at, rtail, tail, update, update-with-default

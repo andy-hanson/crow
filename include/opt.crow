@@ -1,11 +1,10 @@
 no-std
 import
 	.bool: bool, false, not, true
-	.col.arr: ==
 	.compare: equal
 	.fun: subscript
 	.misc: void
-	.str: str
+	.str: ==, str
 	.tuple: pair
 	.private.bootstrap: char
 	.private.exception-low-level: throw

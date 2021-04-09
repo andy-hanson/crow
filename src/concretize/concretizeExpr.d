@@ -700,12 +700,11 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 				: immutable ConcreteExpr(then.type, range, immutable ConcreteExprKind(
 					immutable ConcreteExprKind.Seq(allocExpr(alloc, first), allocExpr(alloc, then))));
 		},
-		(ref immutable Expr.StringLiteral e) {
-			return immutable ConcreteExpr(
+		(ref immutable Expr.StringLiteral e) =>
+			immutable ConcreteExpr(
 				strType(alloc, ctx.concretizeCtx),
 				range,
-				immutable ConcreteExprKind(constantStr(alloc, ctx.concretizeCtx, e.literal)));
-		});
+				immutable ConcreteExprKind(constantStr(alloc, ctx.concretizeCtx, e.literal))));
 }
 
 immutable(Constant) evalConstant(ref immutable ConcreteFun fn, immutable Constant[] /*parameters*/) {

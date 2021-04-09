@@ -5,13 +5,16 @@ module concretize.allConstantsBuilder;
 import model.concreteModel :
 	AllConstantsConcrete,
 	ArrTypeAndConstantsConcrete,
+	asRecord,
+	body_,
 	ConcreteStruct,
 	ConcreteType,
 	compareConcreteType,
+	mustBeNonPointer,
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantEqual;
-import util.collection.arr : empty;
-import util.collection.arrUtil : arrEqual, findIndex_const, map, map_mut;
+import util.collection.arr : empty, only;
+import util.collection.arrUtil : arrEqual, arrLiteral, findIndex_const, map, map_mut;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push, tempAsArr;
 import util.collection.mutDict : getOrAdd, MutDict, mustGetAt_mut, mutDictSize, tempPairs_mut;
@@ -110,7 +113,7 @@ immutable(Constant) getConstantArr(Alloc)(
 	}
 }
 
-immutable(Constant) constantEmptyArr() {
+private immutable(Constant) constantEmptyArr() {
 	static immutable Constant[2] fields = [
 		immutable Constant(immutable Constant.Integral(0)),
 		immutable Constant(immutable Constant.Null())];
@@ -126,7 +129,14 @@ immutable(Constant) getConstantStr(Alloc)(
 ) {
 	immutable Constant[] chars = map(alloc, str, (ref immutable char c) =>
 		immutable Constant(immutable Constant.Integral(c)));
-	return getConstantArr(alloc, allConstants, strStruct, charType, chars);
+	immutable Ptr!ConcreteStruct arrCharStruct = mustBeNonPointer(only(asRecord(body_(strStruct)).fields).type);
+	immutable Constant arr = getConstantArr(alloc, allConstants, arrCharStruct, charType, chars);
+	return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [arr])));
+}
+
+immutable(Constant) constantEmptyStr() {
+	static immutable Constant[1] fields = [constantEmptyArr()];
+	return immutable Constant(immutable Constant.Record(fields));
 }
 
 private:

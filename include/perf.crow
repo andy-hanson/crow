@@ -1,13 +1,13 @@
 no-std
 import
 	.bool: or
-	.col.arr: ==, arr, size, subscript
+	.col.arr: arr, size, subscript
 	.col.mut-arr: fill-mut-arr, set-subscript, subscript
 	.compare: !=
 	.io.time-low-level: get-monotime-nsec
 	.misc: void
 	.ptr: as-ref
-	.str: str
+	.str: ==, str
 	.private.bootstrap: get-ctx, nat, perf-ctx-ptr, thread-local-stuff
 	.private.number-low-level: ==, wrap-add, wrap-sub
 	.private.perf-low-level:

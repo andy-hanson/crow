@@ -6,7 +6,7 @@ import
 	..misc: ->, void
 	..opt: force, has?, none, opt, some
 	..ptr: +, -, ptr-eq?, set-subscript
-	..str: str
+	..str: ==, str
 	..str-conv: to-str
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer

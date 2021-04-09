@@ -1,5 +1,5 @@
 import
-	col.arr-util: each, try-split-once
+	col.arr-util: each
 	crypto.login-cookie:
 		cookie, cookie-matches?, from-bytes, generate-login-cookie, login-cookie,
 		parse-login-cookie, to-bytes, to-str
@@ -12,6 +12,7 @@ import
 	io.print: print
 	log: info, log
 	serialize: from-bytes, to-bytes
+	str-util: try-split-once
 	tuple: a, b
 
 main fut nat(_ arr str) unsafe summon

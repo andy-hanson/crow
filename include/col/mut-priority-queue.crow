@@ -6,7 +6,7 @@ import
 	..misc: ->, arrow, data, from, to, void
 	..opt: force, has?, none, opt, some
 	..ptr: +, -, ptr, set-subscript
-	..str: str
+	..str: ==, str
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
 	..private.number-low-level: ==, <=>, nat, wrap-add

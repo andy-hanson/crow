@@ -14,7 +14,7 @@ module(
 			public?: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(71, 184), main, fut(nat()), [param(file-range(71, range(197, 206)), none, arr(arr(char())))])
+			sig: sig(file-pos(71, 184), main, fut(nat()), [param(file-range(71, range(197, 206)), none, arr(str()))])
 			body: let(
 				local(file-range(71, range(223, 225)), gc, gc())
 				call(fun-inst(name: get-gc), [])
@@ -244,7 +244,7 @@ module(
 											fut(nat()))])))))))
 		fun(
 			public?: true
-			sig: sig(file-pos(71, 792), to-str, arr(char()), [param(file-range(71, range(803, 806)), some(a), r())])
+			sig: sig(file-pos(71, 792), to-str, str(), [param(file-range(71, range(803, 806)), some(a), r())])
 			body: call(
 				fun-inst(name: finish)
 				[
@@ -280,7 +280,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(71, 838), to-str, arr(char()), [param(file-range(71, range(849, 859)), some(a), gc-stats())])
+			sig: sig(file-pos(71, 838), to-str, str(), [param(file-range(71, range(849, 859)), some(a), gc-stats())])
 			body: call(
 				fun-inst(name: finish)
 				[

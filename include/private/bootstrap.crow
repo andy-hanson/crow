@@ -86,8 +86,9 @@ region str
 # This could be any UTF-8 code point.
 char builtin
 # String type.
-str alias
-	arr char
+str record
+	by-val
+	chars arr char
 ###
 C-style string.
 This should be a valid pointer whose content ends in a "\0", though this is not enforced.

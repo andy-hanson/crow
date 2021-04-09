@@ -1,12 +1,11 @@
 no-std
 import
 	.bool: bool
-	.col.arr: ==
 	.col.arr-util: each
 	.col.mut-list: ~=, move-to-arr!, mut-list, pop-n!
 	.misc: void
 	.number: float, int, nat
-	.str: char, str
+	.str: ==, char, chars, str
 	.str-conv: to-str
 
 writer record mut
@@ -17,7 +16,7 @@ writer writer()
 	mut-list writer
 
 move-to-str! str(a writer)
-	a.chars move-to-arr!
+	a.chars.move-to-arr! str
 
 backup! void(a writer)
 	a backup! 1
@@ -29,7 +28,7 @@ backup! void(a writer, n nat)
 	a.chars ~= b
 
 ~= void(a writer, b str)
-	a.chars ~= b
+	a.chars ~= b chars
 
 ~= void(a writer, b bool)
 	a ~= b to-str
@@ -45,7 +44,7 @@ backup! void(a writer, n nat)
 
 write-quoted-str! void(out writer, a str)
 	out ~= "\""
-	a each \x
+	a.chars each \x
 		if x == "\""
 			out ~= "\\\""
 		elif x == "\n"

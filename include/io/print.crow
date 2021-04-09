@@ -1,13 +1,13 @@
 no-std
 import
-	..col.arr: begin-ptr, size
+	..col.arr: begin-ptr
 	..compare: !=
 	..misc: void
 	..posix.extra-types: fd-t
 	..posix.stdio: stderr, stdout
 	..posix.unistd: write
 	..ptr: as-any-ptr, size-of
-	..str: char, str
+	..str: char, chars, size-bytes, str
 	..private.bootstrap: hard-assert, todo
 	..private.number-low-level: ==, nat8, unsafe-to-int
 
@@ -31,7 +31,7 @@ print-err-no-newline void(s str) summon trusted noctx
 
 .write-no-newline void(fd fd-t, a str) summon unsafe noctx
 	hard-assert: size-of<char> == size-of<nat8>
-	res = fd write a.begin-ptr.as-any-ptr, a.size
-	if res != a.size.unsafe-to-int
+	res = fd write a.chars.begin-ptr.as-any-ptr, a.size-bytes
+	if res != a.size-bytes.unsafe-to-int
 		# Retry?
 		todo

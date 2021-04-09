@@ -2,7 +2,7 @@ module lower.generateSpecialBuiltin;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : constantEmptyArr;
+import concretize.allConstantsBuilder : constantEmptyStr;
 import lower.lower : asConcreteFun, isConcreteFun, LowFunCause, matchLowFunCause;
 import lower.lowExprHelpers : anyPtrType, constantNat64, genParam, genSwitch, nat64Type, paramRef, ptrCast;
 import model.concreteModel : body_, ConcreteFun, ConcreteFunSource, ConcreteFunToName, isGlobal, matchConcreteFunSource;
@@ -130,19 +130,19 @@ immutable(Constant) nameFromLowFunCause(ref immutable ConcreteFunToName funToNam
 		a,
 		// TODO: these other causes come from ConcreteFun too, just need to pass those along..
 		(ref immutable LowFunCause.CallWithCtx) =>
-			constantEmptyArr(),
+			constantEmptyStr(),
 		(immutable Ptr!ConcreteFun it) =>
 			mustGetAt(funToName, it),
 		(ref immutable LowFunCause.MarkVisitArrInner) =>
-			constantEmptyArr(),
+			constantEmptyStr(),
 		(ref immutable LowFunCause.MarkVisitArrOuter) =>
-			constantEmptyArr(),
+			constantEmptyStr(),
 		(ref immutable LowFunCause.MarkVisitNonArr) =>
-			constantEmptyArr(),
+			constantEmptyStr(),
 		(ref immutable LowFunCause.MarkVisitGcPtr) =>
-			constantEmptyArr(),
+			constantEmptyStr(),
 		(ref immutable LowFunCause.SpecialBuiltin) =>
-			constantEmptyArr());
+			constantEmptyStr());
 }
 
 immutable(LowFun) getFunPtr(Alloc)(

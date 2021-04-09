@@ -7,7 +7,7 @@ import
 	..misc: ->, arrow, as, data, from, to, void
 	..opt: empty?, force, none, opt, some
 	..ptr: +, -, ptr, ptr-eq?, set-subscript
-	..str: str
+	..str: ==, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..test: is
 	..test.spy: calls, fn, spy-act

@@ -3,7 +3,7 @@ import
 	..bits: bits-and, bit-shift-left, bits-or
 	..bool: and, bool, false, not, to-nat, true
 	..cell: cell, subscript
-	..col.arr: ==, <=>, arr, begin-ptr, size, subscript
+	..col.arr: arr, begin-ptr, subscript
 	..col.arr-util: each
 	..col.mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
 	..col.mut-list: ~=, move-to-arr!, mut-list
@@ -22,7 +22,7 @@ import
 	..posix.types: ino-t, mode-t, off-t
 	..posix.unistd: close, getcwd, lseek, read, readlink, rmdir, unlink, write
 	..ptr: +, any-ptr, as-any-ptr, null?, ptr-cast, ptr-cast-from-extern, ptr-eq?, ref-eq?, size-of
-	..str: char, c-str, str
+	..str: ==, <=>, char, chars, c-str, size-bytes, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..str-util: to-c-str, to-str
 	..private.bootstrap: todo
@@ -107,7 +107,7 @@ read-link str(path str) summon trusted
 	size = path.to-c-str readlink buff.begin-ptr, buff.size
 	if size == -1
 		check-errno
-	buff.cast-immutable[0 -> size.to-nat]
+	buff.cast-immutable[0 -> size.to-nat] str
 
 ###
 Gets the path of the current executable.
@@ -147,8 +147,8 @@ write-file void(path str, content str) summon
 		print: "permission: {permission}"
 		todo
 	else
-		wrote-bytes = fd write content.begin-ptr.ptr-cast<nat8, char>, content.size
-		if wrote-bytes != content.size.to-int
+		wrote-bytes = fd write content.chars.begin-ptr.ptr-cast<nat8, char>, content.size-bytes
+		if wrote-bytes != content.size-bytes.to-int
 			if wrote-bytes == -1
 				todo
 			else
@@ -196,7 +196,7 @@ try-read-file opt str(path str) summon
 				forbid: n-bytes-read == -1
 				assert: n-bytes-read == file-size
 				check-posix-error: fd close
-				res.cast-immutable some
+				res.cast-immutable.str some
 	else
 		none
 
