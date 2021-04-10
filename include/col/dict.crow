@@ -117,8 +117,6 @@ subscript opt ?v(a dict<?k, ?v>, key ?k) data<?k> compare<?k>
 	as end-node e
 		if pair ?= e.pairs binary-search-value {key <=> it.from}
 			pair.to some
-		else
-			none
 
 has-key? bool(a dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 	a[key] has?

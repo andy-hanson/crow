@@ -118,8 +118,6 @@ subscript bool(a set ?a, value ?a) data<?a> compare<?a>
 		a.add-size-left wrap-add index some
 	elif left ?= a left
 		left find-in-add value
-	else
-		none
 
 .find-in-add-for-remove-result record
 	value-index nat
@@ -135,8 +133,6 @@ subscript bool(a set ?a, value ?a) data<?a> compare<?a>
 		# TODO: should be able to write this inline
 		new-size-right = size-right wrap-add a.values.size
 		left find-in-add-for-remove: value, new-size-right
-	else
-		none
 
 ~ set ?a(a set ?a, value ?a) data<?a> compare<?a>
 	a try-add value or-default a
@@ -146,8 +142,6 @@ try-add opt set ?a(a set ?a, value ?a) data<?a> compare<?a>
 		# In 'add', but may need to remove from removals
 		if new-remove ?= a.remove try-remove index
 			a.add set new-remove some
-		else
-			none
 	else
 		a add-and-maybe-compact value some
 
@@ -162,8 +156,6 @@ try-remove opt set ?a(a set ?a, value ?a) trusted data<?a> compare<?a>
 			a remove-and-compact (compact-plan: r.size-left, compacted-size), r.value-index
 		else
 			set: a.add, a.remove ~ r.value-index
-	else
-		none
 
 .add-and-maybe-compact set ?a(a set ?a, value ?a) trusted compare<?a>
 	add-size = a.add add-size

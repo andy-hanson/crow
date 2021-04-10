@@ -1183,7 +1183,6 @@ struct CommonTypes {
 	immutable Ptr!StructDecl[] funPtrStructs; // Indexed by arity
 	immutable FunKindAndStructs[] funKindsAndStructs;
 }
-static assert(CommonTypes.sizeof <= 120);
 
 struct IntegralTypes {
 	immutable Ptr!StructInst int8;

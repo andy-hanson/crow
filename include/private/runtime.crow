@@ -260,8 +260,6 @@ body
 	if ta ?= a
 		if tb ?= b
 			ta min tb some
-		else
-			none
 	else
 		b
 

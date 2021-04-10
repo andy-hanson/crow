@@ -2,11 +2,11 @@ no-std
 import
 	.bool: bool
 	.cell: cell, set-subscript, subscript
-	.compare: >=
+	.compare: <
 	.fun: subscript
 	.misc: arrow, from, to, void
 	.number: ==, <=>, +, nat
-	.opt: none, opt, some
+	.opt: opt, some
 
 ###
 Function to get an iterator.
@@ -51,9 +51,7 @@ iter iterator nat(r arrow<nat, nat>)
 	# TODO: should not need a type argument here
 	n = r.from cell<nat>
 	iterator: \
-		if n[] >= r.to
-			none
-		else
+		if n[] < r.to
 			res = n[]
 			n[] := res + 1
 			res some
@@ -78,8 +76,6 @@ filter iterable ?a(a iterable ?a, pred act bool(?a))
 		else
 			# This one didn't satisfy the predicate, but keep trying until we get one or each the end
 			a filter-recur pred
-	else
-		none
 
 # Returns a new iterable which yields f[x] for each x in the input.
 map iterable ?b(a iterable ?a, f act ?b(?a))
@@ -89,5 +85,3 @@ map iterable ?b(a iterable ?a, f act ?b(?a))
 .map-recur opt ?b(a iterator ?a, f act ?b(?a))
 	if v ?= a next
 		f[v] some
-	else
-		none

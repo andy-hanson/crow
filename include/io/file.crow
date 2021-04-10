@@ -13,7 +13,7 @@ import
 	..fun: subscript
 	..misc: ->, as, drop, void
 	..number: ==, <=>, +, int32, nat8, nat16, nat32, to-int, to-nat, to-nat32
-	..opt: has?, none, opt, some
+	..opt: has?, opt, some
 	..posix.bytes-types: zero
 	..posix.dirent: dir, dirent, opendir, readdir-r
 	..posix.errno: enoent, errno
@@ -169,9 +169,7 @@ try-read-file opt str(path str) summon
 	if path is-file?
 		fd = path open o-rdonly, 0
 		if fd == -1
-			if errno == enoent
-				none
-			else
+			if errno != enoent
 				print: "failed to open file {path}"
 				todo
 		else
@@ -197,8 +195,6 @@ try-read-file opt str(path str) summon
 				assert: n-bytes-read == file-size
 				check-posix-error: fd close
 				res.cast-immutable.str some
-	else
-		none
 
 # Gets the current directory (of the user that ran the program).
 current-directory str() summon trusted
@@ -218,9 +214,7 @@ current-directory str() summon trusted
 		s some
 	else
 		assert: err == -1
-		if errno == enoent
-			none
-		else
+		if errno != enoent
 			todo
 
 ###

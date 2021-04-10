@@ -7,7 +7,6 @@ import
 		body, headers, http-bad-query, http-handler, http-not-found, http-request,
 		http-response, method, start-http-server, url
 	io.print: print
-	log: info, log
 	str-util: split-by, try-split-once
 	tuple: a, b
 	writer: ~=, backup!, move-to-str!, writer
@@ -38,7 +37,6 @@ main fut nat(args arr str) unsafe summon
 	query = su query
 	match req method
 	as http-get
-		info log "GET {path}"
 		if path == "/"
 			http-response: 200, "OK", dict, read-file: "demo-wip/webapp/index.html"
 		elif path == "/index.js"
@@ -53,7 +51,6 @@ main fut nat(args arr str) unsafe summon
 		else
 			http-not-found
 	as http-post
-		info log "POST {path}"
 		if path == "/register"
 			args = req.body parse-query ["user-name", "password"]
 			user-name = args[0]

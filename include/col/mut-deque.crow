@@ -74,22 +74,16 @@ push! void(a mut-deque ?a, value ?a) trusted
 	a.right := a.right + 1
 
 first opt ?a(a mut-deque ?a) trusted
-	if a.left null?
-		none
-	else
+	if a.left.null? not
 		a.left[] some
 
 last opt ?a(a mut-deque ?a) trusted
-	if a.right null?
-		none
-	else
+	if a.right.null? not
 		fixed-right = a.right ptr-eq? a.inner.begin-ptr ? a.inner.end-ptr, a.right
 		(fixed-right - 1)[] some
 
 pop-left! opt ?a(a mut-deque ?a) trusted
-	if a.left null?
-		none
-	else
+	if a.left.null? not
 		res = a.left[]
 		a.left[] := zeroed
 		a.left := a.left + 1
@@ -102,9 +96,7 @@ pop-left! opt ?a(a mut-deque ?a) trusted
 		res some
 
 pop-right! opt ?a(a mut-deque ?a) trusted
-	if a.right null?
-		none
-	else
+	if a.right.null? not
 		if a.right ptr-eq? a.inner.begin-ptr
 			a.right := a.inner end-ptr
 		a.right := a.right - 1

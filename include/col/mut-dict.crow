@@ -79,8 +79,6 @@ This is O(a.size ln).
 subscript opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 	if ptr ?= a find-exact-ptr key
 		ptr[] to
-	else
-		none
 
 # Adds a key-value pair, replacing any existing one with that key.
 set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k> compare<?k>
@@ -205,8 +203,6 @@ remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 		res
 	elif next ?= a next
 		next remove-key! key
-	else
-		none
 
 .compact-if-needed! void(a mut-dict<?k, ?v>) data<?k> compare<?k>
 	physical-size = a total-pairs-size

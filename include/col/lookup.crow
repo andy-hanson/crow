@@ -123,8 +123,6 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 		which = remaining-hash low-bits
 		if which < i.children.size
 			i.children[which] subscript-recur: key, remaining-hash unsafe-bit-shift-right inner-node-n-bits
-		else
-			none
 	as leaf-node l
 		l.pairs subscript-leaf-recur key
 .subscript-leaf-recur opt ?v(a arr arrow<?k, ?v>, key ?k) compare<?k>
@@ -182,8 +180,6 @@ try-remove opt try-remove-result<?k, ?v>(a lookup<?k, ?v>, key ?k) data<?k> comp
 		remove
 	if value ?= res old-value
 		some: try-remove-result: value, lookup: void, res.new-node.force
-	else
-		none
 
 .get-or-update-result<?k, ?v> record
 	by-val
@@ -298,15 +294,11 @@ inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat, new-ch
 				new-out-index
 		assert: end == out.size
 		some: leaf-node: out cast-immutable
-	else
-		none
 
 .find-only-non-empty-child opt node<?k, ?v>(children arr node<?k, ?v>)
 	first-non-empty-index = children find-index {it.node-empty? not} force
 	if children[(first-non-empty-index wrap-add 1) -> children.size] every? {it node-empty?}
 		children[first-non-empty-index] some
-	else
-		none
 
 .get-or-update-leaf get-or-update-result<?k, ?v>
 	a leaf-node<?k, ?v>

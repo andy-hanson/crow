@@ -1,6 +1,6 @@
 no-std
 import
-	.bool: bool, false, true
+	.bool: bool, false, not, true
 	.cell: cell, set-subscript, subscript
 	.col.arr: arr, empty?, size, subscript
 	.col.arr-util: find-index, index-of, tail
@@ -40,9 +40,7 @@ parse-named-args opt arr opt arr str(args arr str, arg-names arr str)
 		else
 			throw: "Unexpected arg {key}"
 
-	if help[]
-		none
-	else
+	if help[] not
 		values.move-to-arr! some
 
 single-str-or-throw str(a opt arr str, option-name str)

@@ -63,20 +63,14 @@ ends-with? bool(a str, b str)
 try-remove-start opt str(a str, b str)
 	if res ?= a.chars try-remove-start b.chars
 		res.str some
-	else
-		none
 
 try-remove-end opt str(a str, b str)
 	if res ?= a.chars try-remove-end b.chars
 		res.str some
-	else
-		none
 
 try-split-once opt pair<str, str>(a str, b char)
 	if res ?= a.chars try-split-once b
 		res.a.str pair res.b.str some
-	else
-		none
 
 split-by arr str(a str, b str)
 	a.chars split-by-subseq b.chars map {it str}

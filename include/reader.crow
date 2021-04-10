@@ -26,8 +26,6 @@ with-reader opt ?a(a str, f act opt ?a(reader))
 	res = f[reader]
 	if res.has? and reader.empty?
 		res
-	else
-		none
 
 empty? bool(a reader) trusted
 	assert: a.cur ptr-less-eq? a.end
@@ -69,10 +67,6 @@ take-nat! opt nat(a reader)
 		if first-digit ?= a.peek.char-to-nat
 			a.next! drop
 			first-digit take-nat-recur! a some
-		else
-			none
-	else
-		none
 .take-nat-recur! nat(acc nat, a reader)
 	if a empty?
 		acc
@@ -117,8 +111,6 @@ take-float! opt float(a reader) trusted
 				sign * whole-part
 		else
 			sign * whole-part
-	else
-		none
 
 take-quoted-str! opt str(a reader)
 	if a take-char? "\""
@@ -127,8 +119,6 @@ take-quoted-str! opt str(a reader)
 		if res.has? not
 			a.cur := start
 		res
-	else
-		none
 
 .take-quoted-str-recur! opt str(a reader, res mut-list char)
 	if a empty?
@@ -139,8 +129,6 @@ take-quoted-str! opt str(a reader)
 		if esc ?= a.next! escape
 			res ~= esc
 			a take-quoted-str-recur! res
-		else
-			none
 	else
 		res ~= a next!
 		a take-quoted-str-recur! res
@@ -158,8 +146,6 @@ take-quoted-str! opt str(a reader)
 		"\\" some
 	elif a == "0"
 		"\0" some
-	else
-		none
 
 .char-to-nat opt nat(c char)
 	if c == "0"
@@ -182,8 +168,6 @@ take-quoted-str! opt str(a reader)
 		8 some
 	elif c == "9"
 		9 some
-	else
-		none
 
 test
 	"a" is "a"

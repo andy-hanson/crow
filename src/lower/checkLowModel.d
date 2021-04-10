@@ -220,6 +220,7 @@ void checkTypeEqual(Alloc)(
 	ref immutable LowType expected,
 	ref immutable LowType actual,
 ) {
+	/*
 	debug {
 		if (!lowTypeEqual(expected, actual)) {
 			import core.stdc.stdio : printf;
@@ -234,6 +235,7 @@ void checkTypeEqual(Alloc)(
 			printf("%s\n", finishWriterToCStr(writer));
 		}
 	}
+	*/
 	verify(lowTypeEqual(expected, actual));
 }
 

@@ -87,11 +87,9 @@ pop opt popped<?k, ?v>(a priority-queue<?k, ?v>) data<?k> compare<?k>
 			some: if popped ?= next pop-no-compact-recur root.min.from
 				root combine-with-popped popped
 			else
-				root.pop-from-node
+				root pop-from-node
 		else
 			root.pop-from-node some
-	else
-		none
 
 .pop-from-node popped<?k, ?v>(a node<?k, ?v>)
 	rest = as<opt node<?k, ?v>>: if first ?= a.pairs first
@@ -105,8 +103,6 @@ pop opt popped<?k, ?v>(a priority-queue<?k, ?v>) data<?k> compare<?k>
 	is-min? = a.min.from < min
 	next-popped = if next ?= a next
 		next pop-no-compact-recur: is-min? ? a.min.from, min
-	else
-		none
 
 	if next ?= next-popped
 		a combine-with-popped next some

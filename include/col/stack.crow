@@ -91,8 +91,6 @@ This is O(1).
 last opt ?a(a stack ?a)
 	if node ?= a last-node
 		node.value some
-	else
-		none
 
 ###
 All but the last element.
@@ -112,8 +110,6 @@ popped<?a> record
 pop opt popped ?a(a stack ?a)
 	if node ?= a last-node
 		some: popped: node.value, stack: void, node.prev
-	else
-		none
 
 region iteration
 
@@ -157,8 +153,6 @@ map stack ?out(a stack ?in, f act ?out(?in))
 	if node ?= a
 		prev = node.prev map-recur f
 		some: node: prev, f[node value]
-	else
-		none
 
 filter stack ?a(a stack ?a, f act bool(?a))
 	stack: void, a.last-node filter-recur f
@@ -169,8 +163,6 @@ filter stack ?a(a stack ?a, f act bool(?a))
 			some: node: prev, node.value
 		else
 			prev
-	else
-		none
 
 first-some opt ?out(a stack ?in, f act opt ?out(?in))
 	a.last-node first-some-recur f
@@ -181,8 +173,6 @@ first-some opt ?out(a stack ?in, f act opt ?out(?in))
 			res
 		else
 			f[node value]
-	else
-		none
 
 test
 	a = stack<nat>

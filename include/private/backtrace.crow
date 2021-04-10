@@ -4,7 +4,7 @@ import
 	..ptr: +, any-ptr, ptr, ptr-less?, set-subscript, subscript
 	..sys.execinfo: backtrace
 	.alloc: try-alloc-uninitialized
-	.bootstrap: arr, as, hard-assert, nat, none, opt, some, str, void
+	.bootstrap: arr, as, hard-assert, nat, opt, some, str, void
 	.number-low-level:
 		==, <=>, to-int, unsafe-div, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, wrap-add,
 		wrap-sub
@@ -59,14 +59,6 @@ body
 			if fun-ptrs ?= funs-count try-alloc-uninitialized<any-ptr>
 				if fun-names ?= funs-count try-alloc-uninitialized<str>
 					some: backtrace-arrs: code-ptrs, code-names, fun-ptrs, fun-names
-				else
-					none
-			else
-				none
-		else
-			none
-	else
-		none
 		
 .fill-fun-ptrs-names-recur void(i nat, fun-ptrs ptr any-ptr, fun-names ptr str) unsafe noctx
 	if i != funs-count

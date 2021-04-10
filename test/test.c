@@ -15157,11 +15157,11 @@ struct pop_task_result pop_recur__e(struct task_queue_node* prev, struct mut_lis
 /* to-opt-time opt<nat>(a nat) */
 struct opt_9 to_opt_time(uint64_t a) {
 	uint64_t _0 = no_timestamp();
-	uint8_t _1 = (a == _0);
+	uint8_t _1 = _notEqual_1(a, _0);
 	if (_1) {
-		return (struct opt_9) {0, .as0 = (struct none) {}};
-	} else {
 		return (struct opt_9) {1, .as1 = (struct some_9) {a}};
+	} else {
+		return (struct opt_9) {0, .as0 = (struct none) {}};
 	}
 }
 /* push-capacity-must-be-sufficient!<nat> void(a mut-list<nat>, value nat) */
@@ -16164,12 +16164,12 @@ struct opt_11 parse_named_args_0(struct ctx* ctx, struct arr_1 args, struct arr_
 	
 	*temp1 = (struct parse_named_args_0__lambda0) {arg_names, values1, help2};
 	each_2(ctx, parsed0->named, (struct fun_act2_4) {0, .as0 = temp1});
-	uint8_t _4 = help2->subscript;
+	uint8_t _4 = not(help2->subscript);
 	if (_4) {
-		return (struct opt_11) {0, .as0 = (struct none) {}};
-	} else {
 		struct arr_6 _5 = move_to_arr__e_2(values1);
 		return (struct opt_11) {1, .as1 = (struct some_11) {_5}};
+	} else {
+		return (struct opt_11) {0, .as0 = (struct none) {}};
 	}
 }
 /* parse-command-dynamic parsed-command(args arr<str>) */
@@ -18961,11 +18961,12 @@ struct opt_9 r_index_of(struct ctx* ctx, struct arr_0 a, char value) {
 /* find-rindex<?a> opt<nat>(a arr<char>, f fun-act1<bool, char>) */
 struct opt_9 find_rindex(struct ctx* ctx, struct arr_0 a, struct fun_act1_16 f) {
 	uint8_t _0 = empty__q_1(a);
-	if (_0) {
-		return (struct opt_9) {0, .as0 = (struct none) {}};
+	uint8_t _1 = not(_0);
+	if (_1) {
+		uint64_t _2 = _minus_4(ctx, a.size, 1u);
+		return find_rindex_recur(ctx, a, _2, f);
 	} else {
-		uint64_t _1 = _minus_4(ctx, a.size, 1u);
-		return find_rindex_recur(ctx, a, _1, f);
+		return (struct opt_9) {0, .as0 = (struct none) {}};
 	}
 }
 /* find-rindex-recur<?a> opt<nat>(a arr<char>, index nat, f fun-act1<bool, char>) */
@@ -18976,15 +18977,15 @@ struct opt_9 find_rindex_recur(struct ctx* ctx, struct arr_0 a, uint64_t index, 
 	if (_1) {
 		return (struct opt_9) {1, .as1 = (struct some_9) {index}};
 	} else {
-		uint8_t _2 = (index == 0u);
+		uint8_t _2 = _notEqual_1(index, 0u);
 		if (_2) {
-			return (struct opt_9) {0, .as0 = (struct none) {}};
-		} else {
 			uint64_t _3 = _minus_4(ctx, index, 1u);
 			a = a;
 			index = _3;
 			f = f;
 			goto top;
+		} else {
+			return (struct opt_9) {0, .as0 = (struct none) {}};
 		}
 	}
 }
@@ -20433,11 +20434,11 @@ struct opt_16 get_stat(struct ctx* ctx, char* path) {
 		assert_0(ctx, (err1 == -1));
 		int32_t _1 = errno;
 		int32_t _2 = enoent();
-		uint8_t _3 = (_1 == _2);
+		uint8_t _3 = _notEqual_2(_1, _2);
 		if (_3) {
-			return (struct opt_16) {0, .as0 = (struct none) {}};
-		} else {
 			return todo_4();
+		} else {
+			return (struct opt_16) {0, .as0 = (struct none) {}};
 		}
 	}
 }
@@ -20979,12 +20980,13 @@ struct opt_9 last_index_of(struct ctx* ctx, struct str a, char c) {
 /* last<char> opt<char>(a arr<char>) */
 struct opt_17 last(struct ctx* ctx, struct arr_0 a) {
 	uint8_t _0 = empty__q_1(a);
-	if (_0) {
-		return (struct opt_17) {0, .as0 = (struct none) {}};
+	uint8_t _1 = not(_0);
+	if (_1) {
+		uint64_t _2 = _minus_4(ctx, a.size, 1u);
+		char _3 = subscript_56(ctx, a, _2);
+		return (struct opt_17) {1, .as1 = (struct some_17) {_3}};
 	} else {
-		uint64_t _1 = _minus_4(ctx, a.size, 1u);
-		char _2 = subscript_56(ctx, a, _1);
-		return (struct opt_17) {1, .as1 = (struct some_17) {_2}};
+		return (struct opt_17) {0, .as0 = (struct none) {}};
 	}
 }
 /* rtail<char> arr<char>(a arr<char>) */
@@ -21275,9 +21277,8 @@ struct void_ drop_3(struct opt_18 _p0) {
 /* pop!<?a> opt<failure>(a mut-list<failure>) */
 struct opt_18 pop__e(struct ctx* ctx, struct mut_list_6* a) {
 	uint8_t _0 = empty__q_18(a);
-	if (_0) {
-		return (struct opt_18) {0, .as0 = (struct none) {}};
-	} else {
+	uint8_t _1 = not(_0);
+	if (_1) {
 		uint64_t new_size0;
 		new_size0 = (a->size - 1u);
 		
@@ -21287,6 +21288,8 @@ struct opt_18 pop__e(struct ctx* ctx, struct mut_list_6* a) {
 		set_subscript_17(ctx, a, new_size0, NULL);
 		a->size = new_size0;
 		return (struct opt_18) {1, .as1 = (struct some_18) {res1}};
+	} else {
+		return (struct opt_18) {0, .as0 = (struct none) {}};
 	}
 }
 /* empty?<?a> bool(a mut-list<failure>) */
@@ -21383,22 +21386,23 @@ struct arr_12 run_single_crow_test(struct ctx* ctx, struct str path_to_crow, str
 struct opt_19 first_some(struct ctx* ctx, struct arr_1 a, struct fun_act1_24 f) {
 	top:;
 	uint8_t _0 = empty__q_6(a);
-	if (_0) {
-		return (struct opt_19) {0, .as0 = (struct none) {}};
-	} else {
+	uint8_t _1 = not(_0);
+	if (_1) {
 		struct opt_19 res0;
-		struct str _1 = subscript_25(ctx, a, 0u);
-		res0 = subscript_81(ctx, f, _1);
+		struct str _2 = subscript_25(ctx, a, 0u);
+		res0 = subscript_81(ctx, f, _2);
 		
-		uint8_t _2 = has__q_4(res0);
-		if (_2) {
+		uint8_t _3 = has__q_4(res0);
+		if (_3) {
 			return res0;
 		} else {
-			struct arr_1 _3 = tail_1(ctx, a);
-			a = _3;
+			struct arr_1 _4 = tail_1(ctx, a);
+			a = _4;
 			f = f;
 			goto top;
 		}
+	} else {
+		return (struct opt_19) {0, .as0 = (struct none) {}};
 	}
 }
 /* subscript<opt<?out>, ?in> opt<arr<failure>>(a fun-act1<opt<arr<failure>>, str>, p0 str) */
@@ -23122,16 +23126,16 @@ struct opt_13 try_read_file_1(struct ctx* ctx, char* path) {
 		if (_2) {
 			int32_t _3 = errno;
 			int32_t _4 = enoent();
-			uint8_t _5 = (_3 == _4);
+			uint8_t _5 = _notEqual_2(_3, _4);
 			if (_5) {
-				return (struct opt_13) {0, .as0 = (struct none) {}};
-			} else {
 				struct interp _6 = interp(ctx);
 				struct interp _7 = with_str(ctx, _6, (struct str) {{20, constantarr_0_64}});
 				struct interp _8 = with_value_1(ctx, _7, path);
 				struct str _9 = finish(ctx, _8);
 				print(_9);
 				return todo_6();
+			} else {
+				return (struct opt_13) {0, .as0 = (struct none) {}};
 			}
 		} else {
 			int64_t file_size1;

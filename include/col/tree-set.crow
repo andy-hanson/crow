@@ -206,8 +206,6 @@ This is O(a.size ln).
 try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	if node ?= a.root try-remove-recur b
 		some: tree-set: node, a.size wrap-sub 1
-	else
-		none
 
 .try-remove-recur opt node ?a(a node ?a, b ?a) compare<?a>
 	match a
@@ -216,8 +214,6 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		as less
 			if new-left ?= i.left try-remove-recur b
 				some: inner-node: i.value, new-left, i.right
-			else
-				none
 		as equal
 			some: if i.right node-empty?
 				i left
@@ -230,14 +226,10 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		as greater
 			if new-right ?= i.right try-remove-recur b
 				some: inner-node: i.value, i.left, new-right
-			else
-				none
 	as arr arr
 		# TODO: use a binary search (try-remove uses linear search since it's for arbitrary arr)
 		if arr2 ?= arr try-remove b
 			arr2.as<node ?a> some
-		else
-			none
 
 .node-empty? bool(a node ?a)
 	match a
@@ -261,8 +253,6 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	as arr arr
 		if last ?= arr last
 			last popped arr.rtail some
-		else
-			none
 
 - tree-set ?a(a tree-set ?a, b tree-set ?a) trusted data<?a> compare<?a>
 	b-iter = b iter
@@ -289,8 +279,6 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	if a.cur empty?
 		if last ?= a.stack last
 			last.value some
-		else
-			none
 	else
 		a.cur[0] some
 .next! opt ?a(a iter ?a) trusted
@@ -303,8 +291,6 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 			as arr arr
 				a.cur := arr
 			res some
-		else
-			none
 	else
 		res = a.cur[0]
 		a.cur := a.cur tail

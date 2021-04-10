@@ -7908,11 +7908,11 @@ struct pop_task_result pop_recur__e(struct task_queue_node* prev, struct mut_lis
 /* to-opt-time opt<nat>(a nat) */
 struct opt_9 to_opt_time(uint64_t a) {
 	uint64_t _0 = no_timestamp();
-	uint8_t _1 = (a == _0);
+	uint8_t _1 = _notEqual_1(a, _0);
 	if (_1) {
-		return (struct opt_9) {0, .as0 = (struct none) {}};
-	} else {
 		return (struct opt_9) {1, .as1 = (struct some_9) {a}};
+	} else {
+		return (struct opt_9) {0, .as0 = (struct none) {}};
 	}
 }
 /* push-capacity-must-be-sufficient!<nat> void(a mut-list<nat>, value nat) */

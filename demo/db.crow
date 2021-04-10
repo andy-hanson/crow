@@ -63,9 +63,7 @@ main fut nat(args arr str) unsafe summon
 	elif a == "set"
 		set some
 	elif a == "stat"
-		stat some
-	else
-		none
+		stat
 
 .command union
 	get

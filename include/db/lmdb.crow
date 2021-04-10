@@ -25,7 +25,7 @@ import
 	..log: info, log
 	..misc: as, data, void
 	..number: ==, *, nat, nat8, nat32, nat64, to-nat
-	..opt: none, opt, some
+	..opt: opt, some
 	..posix.c-types: u-int
 	..posix.extra-types: err-t
 	..ptr: +, null, ptr-cast-to-extern, ptr-eq?, set-subscript, zeroed
@@ -296,15 +296,11 @@ body
 get opt ?v(txn lmdb-txn, db lmdb-db<?k, ?v>, key ?k) trusted summon lmdb-key<?k> serialize<?v>
 	value = empty-val
 	# TODO: this check should be unnecessary...
-	if (txn count db) == 0
-		none
-	else
+	if (txn count db) != 0
 		lmdb-key = key to-lmdb-key
 		lmdb-key.empty? forbid "Empty key is not allowed"
 		err = txn.txn mdb-get db.dbi, lmdb-key.val-of-bytes, value
-		if err == mdb-notfound
-			none
-		else
+		if err != mdb-notfound
 			err check-lmdb-error
 			# TODO:PERF For some ?v, the copy in 'bytes-of-val' is unnecessary.
 			value.bytes-of-val.from-bytes some

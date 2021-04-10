@@ -104,8 +104,6 @@ mut-arr mut-arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 pop-value! opt ?v(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 	if pair ?= a pop!
 		pair.to some
-	else
-		none
 
 pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 	res = a.mins pop!

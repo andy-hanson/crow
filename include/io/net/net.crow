@@ -1,11 +1,11 @@
 no-std
 import
-	...private.bootstrap: todo
+	...bool: not
 	...cell: cell, subscript
 	...compare: !=
 	...exception: assert
 	...number: ==, nat16
-	...opt: force, none, opt, some
+	...opt: force, opt, some
 	...posix.extra-types: fd-t
 	...posix.netdb:
 		addrinfo, ai-addr, ai-addrlen, ai-family, ai-next, ai-passive, ai-protocol, ai-socktype,
@@ -17,6 +17,7 @@ import
 	...str: str
 	...str-conv: finish, interp, to-str, with-str, with-value
 	...str-util: to-c-str
+	...private.bootstrap: todo
 	..posix-util: check-posix-error
 	..print: print
 
@@ -39,9 +40,7 @@ connect-to-uri fd-t(u uri) trusted summon
 	op-sock force
 
 .find-and-connect-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
-	if ap null?
-		none
-	else
+	if ap.null? not
 		a = ap[]
 		sock = socket: a.ai-family, a.ai-socktype, a.ai-protocol
 		print: "sock is {sock}"
@@ -74,9 +73,7 @@ bind-to-port fd-t(port str) unsafe summon
 		todo
 
 .find-and-bind-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
-	if ap null?
-		none
-	else
+	if ap.null? not
 		a = ap[]
 		listen-fd = socket: a.ai-family, a.ai-socktype, 0
 		if listen-fd != -1

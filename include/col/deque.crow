@@ -4,7 +4,7 @@ import
 	..exception: assert
 	..fun: subscript
 	..misc: ->, void
-	..opt: force, has?, none, opt, some
+	..opt: force, has?, opt, some
 	..ptr: +, -, ptr-eq?, set-subscript
 	..str: ==, str
 	..str-conv: to-str
@@ -63,15 +63,12 @@ popped<?a> record
 pop-left opt popped ?a(a deque ?a)
 	if popped ?= a.left pop
 		some: popped: popped.value, deque: popped.rest, a.mid, a.right
+	elif first ?= a.mid first
+		some: popped: first, deque: stack, a.mid.tail, a.right
 	else
-		if first ?= a.mid first
-			some: popped: first, deque: stack, a.mid.tail, a.right
-		else
-			right-arr = a.right arr
-			if first ?= right-arr first
-				some: popped: first, deque: stack, right-arr.tail, stack
-			else
-				none
+		right-arr = a.right arr
+		if first ?= right-arr first
+			some: popped: first, deque: stack, right-arr.tail, stack
 
 pop-right opt popped ?a(a deque ?a)
 	if popped ?= a.right pop
@@ -82,8 +79,6 @@ pop-right opt popped ?a(a deque ?a)
 		left-arr = a.left arr-reverse
 		if last ?= left-arr last
 			some: popped: last, deque: stack, left-arr.rtail, stack
-		else
-			none
 
 region iteration
 

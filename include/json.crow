@@ -178,8 +178,6 @@ take-json! opt json(a reader)
 			dict some
 		else
 			a take-object-recur! mut-dict
-	else
-		none
 
 .take-list-recur! opt json(a reader, res mut-list json)
 	if j ?= a take-json!
@@ -190,10 +188,6 @@ take-json! opt json(a reader)
 			a take-list-recur! res
 		elif a take-char? "]"
 			res.move-to-arr!.list some
-		else
-			none
-	else
-		none
 
 .take-object-recur! opt json(a reader, res mut-dict<str, json>)
 	if key ?= a take-quoted-str!
@@ -209,12 +203,6 @@ take-json! opt json(a reader)
 					res.move-to-dict! some
 				else
 					a take-object-recur! res
-			else
-				none
-		else
-			none
-	else
-		none
 
 .verify void(a json, s str)
 	s.parse-json is a.some

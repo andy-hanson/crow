@@ -89,8 +89,6 @@ subscript bool(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
 		a.add-size-left wrap-add index some
 	elif left ?= a left
 		left find-in-add value
-	else
-		none
 
 ~ unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
 	a try-add value or-default a
@@ -103,8 +101,6 @@ try-add opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> 
 	if index ?= a.add find-in-add value
 		if new-remove ?= a.remove try-remove index
 			a.add unordered-set new-remove some
-		else
-			none
 	else
 		a add-and-maybe-compact value some
 

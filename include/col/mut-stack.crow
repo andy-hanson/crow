@@ -1,8 +1,8 @@
 no-std
 import
-	..bool: bool
+	..bool: bool, not
 	..misc: void
-	..opt: none, opt
+	..opt: opt
 	.arr: arr
 	.mut-list: ~=, arr, copy, each, empty?, filter!, fold, last, map!, mut-list, pop!
 
@@ -36,9 +36,7 @@ empty? bool(a mut-stack ?a)
 	a.inner ~= values
 
 last opt ?a(a mut-stack ?a)
-	if a empty?
-		none
-	else
+	if a.empty? not
 		a.inner last
 
 pop! opt ?a(a mut-stack ?a)

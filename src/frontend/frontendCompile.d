@@ -6,6 +6,7 @@ import model.diag : Diag, Diags, Diagnostic, FilesInfo;
 import model.model : CommonTypes, LineAndColumnGetters, Module, ModuleAndNames, Program, SpecialModules;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, PathAndAst;
+import frontend.check.inferringType : CommonFuns;
 import frontend.parse.ast :
 	emptyFileAst,
 	exports,
@@ -538,6 +539,7 @@ immutable(ModulesAndCommonTypes) getModules(ModelAlloc, SymAlloc)(
 	immutable FileIndex stdIndex,
 	ref immutable AstAndResolvedImports[] fileAsts,
 ) {
+	Late!(immutable Ptr!CommonFuns) commonFuns = late!(immutable Ptr!CommonFuns);
 	Late!(immutable Ptr!CommonTypes) commonTypes = late!(immutable Ptr!CommonTypes);
 	immutable Ptr!Module[] modules = mapWithSoFar!(Ptr!Module)(
 		modelAlloc,
@@ -566,12 +568,14 @@ immutable(ModulesAndCommonTypes) getModules(ModelAlloc, SymAlloc)(
 					mappedImports,
 					mappedExports,
 					pathAndAst,
+					lateGet(commonFuns),
 					lateGet(commonTypes));
 			} else {
 				// The first module to check is always 'bootstrap.crow'
 				verify(ast.resolvedImports.empty);
 				immutable BootstrapCheck res =
 					checkBootstrap(modelAlloc, allSymbols, diagsBuilder, programState, pathAndAst);
+				lateSet(commonFuns, res.commonFuns);
 				lateSet(commonTypes, res.commonTypes);
 				return res.module_;
 			}

@@ -5513,9 +5513,9 @@ program(
 			[param(a, type(false, nat))]
 			expr-body(
 				cond(
-					call(==, [param-ref(a), call(no-timestamp, [])])
-					to-union(0, call(none, []))
-					to-union(1, call(some, [param-ref(a)])))))
+					call(!=, [param-ref(a), call(no-timestamp, [])])
+					to-union(1, call(some, [param-ref(a)]))
+					to-union(0, call(none, [])))))
 		fun(false, some, type(false, some), none, [param(value, type(false, nat))], new-record)
 		fun(
 			false

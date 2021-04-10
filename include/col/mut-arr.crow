@@ -5,7 +5,7 @@ import
 	..compare: <, <=, equal
 	..fun: subscript
 	..misc: ->, arrow, from, to, void
-	..opt: none, opt, some
+	..opt: opt, some
 	..posix.string: memcpy
 	..ptr: +, -, as-any-ptr, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of, subscript
 	..private.exception-low-level: assert, forbid
@@ -120,15 +120,11 @@ unsafe-set-at! void(a mut-arr ?a, index nat, value ?a) unsafe
 
 
 first opt ?a(a mut-arr ?a)
-	if a empty?
-		none
-	else
+	if a.empty? not
 		a[0] some
 
 last opt ?a(a mut-arr ?a)
-	if a empty?
-		none
-	else
+	if a.empty? not
 		a[0] some
 
 tail mut-arr ?a(a mut-arr ?a)

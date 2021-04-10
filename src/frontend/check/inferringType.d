@@ -18,7 +18,9 @@ import model.model :
 	CommonTypes,
 	decl,
 	Expr,
+	FunDecl,
 	FunFlags,
+	FunInst,
 	FunKind,
 	isBogus,
 	isStructInst,
@@ -63,6 +65,7 @@ struct ExprCtx {
 	immutable Ptr!StructsAndAliasesDict structsAndAliasesDict;
 	immutable Ptr!FunsDict funsDict;
 	immutable Ptr!CommonTypes commonTypes;
+	immutable Ptr!CommonFuns commonFuns;
 	immutable Ptr!SpecInst[] outermostFunSpecs;
 	immutable Param[] outermostFunParams;
 	immutable TypeParam[] outermostFunTypeParams;
@@ -76,6 +79,11 @@ struct ExprCtx {
 	// These are pointers because MutArr currently only works on copyable values,
 	// and LambdaInfo should not be copied.
 	MutArr!(Ptr!LambdaInfo) lambdas;
+}
+
+struct CommonFuns {
+	immutable Ptr!FunDecl someFun;
+	immutable Ptr!FunInst noneFun;
 }
 
 void markUsedLocalFun(ref ExprCtx a, immutable ModuleLocalFunIndex index) {

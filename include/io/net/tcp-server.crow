@@ -2,7 +2,7 @@ no-std
 import
 	...private.bootstrap: todo
 	...bits: bits-intersect?, bits-or
-	...bool: bool, false, not, or, true
+	...bool: and, bool, false, not, or, true
 	...cell: cell
 	...col.arr: arr, begin-ptr, subscript
 	...col.mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
@@ -25,7 +25,6 @@ import
 	...private.fut-low-level: callback!
 	...ptr: by-val, ptr-cast-to-extern, ptr-to, ref-of-val, size-of
 	...str: chars, str
-	...str-conv: interp, finish, to-str, with-str, with-value
 	...sys.epoll:
 		data, epoll-create1, epoll-ctl, epoll-ctl-add, epollerr, epollet, epoll-event, epollhup,
 		epollin, epoll-wait, events
@@ -144,13 +143,10 @@ close-client void(client-fd fd-t) unsafe summon
 	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val
 	if client-fd < 0
 		e = errno
-		if e == eagain or: e == ewouldblock
-			print: "done accepting clients"
-		else
+		if e != eagain and e != ewouldblock
 			perror: "accept() error\0".chars.begin-ptr
 			todo
 	else
-		print: "Accepted client {client-fd}"
 		client-fd set-non-blocking
 		client-event = epoll-event: (epollin bits-or epollet), client-fd.to-int.to-nat
 		err = epoll-fd epoll-ctl epoll-ctl-add, client-fd, client-event.ptr-to
@@ -163,9 +159,7 @@ close-client void(client-fd fd-t) unsafe summon
 	count = fd read buf.begin-ptr, buf.size
 	if count < 0
 		err = errno
-		if err == eagain
-			print: "read EAGAIN"
-		else
+		if err != eagain
 			perror: "read() failed\0".chars.begin-ptr
 	elif count != 0
 		chunk = buf.cast-immutable[0 -> count.to-nat]

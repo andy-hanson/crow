@@ -47,15 +47,11 @@ has? bool(a opt ?a) noctx
 each void(a opt ?in, f act void(?in))
 	if v ?= a
 		f[v]
-	else
-		void
 
 # Converts `none` to `none`, or `some` to another `some` with `f` applied.
 map opt ?out(a opt ?in, f act ?out(?in))
 	if v ?= a
 		f[v] some
-	else
-		none
 
 # Takes the leftmost `some` value.
 opt-or opt ?a(a opt ?a, b opt ?a)
@@ -105,7 +101,3 @@ opt-join opt ?out(a opt ?in-0, b opt ?in-1, f act ?out(?in-0, ?in-1))
 	if va ?= a
 		if vb ?= b
 			f[va, vb] some
-		else
-			none
-	else
-		none

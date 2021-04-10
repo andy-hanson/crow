@@ -1,0 +1,11 @@
+import
+	io.print: print
+
+main fut nat(_ arr str) summon
+	x = if true
+		1
+	y = if true
+		2.some as<opt nat>
+	print: x to-str
+	print: y to-str
+	0 resolved

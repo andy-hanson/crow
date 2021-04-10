@@ -81,22 +81,16 @@ size nat(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a total-size
 
 subscript opt ?v(a mut-lookup<?k, ?v>, key ?k) trusted data<?k> compare<?k> hash-mix<?k>
-	if a empty?
-		none
-	else
+	if a.empty? not
 		match a.entries[key.hash unsafe-mod a.entries.size]
 		as none
 			none
 		as arrow ar
 			if ar.from == key
 				ar.to some
-			else
-				none
 		as mut-list m
 			if index ?= m find-index {it.from == key}
 				m[index].to some
-			else
-				none
 
 set-subscript void(a mut-lookup<?k, ?v>, key ?k, value ?v) data<?k> compare<?k> hash-mix<?k>
 	drop: a update! key, \ignore

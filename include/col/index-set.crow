@@ -3,7 +3,7 @@ import
 	..bits:
 		add-bit, bit?, bits-and, bits-diff, bit-shift-left, bit-shift-right, bits-or, count-ones,
 		filter-bits, fold-one-bits, nth-bit, sub-bit
-	..bool: ==, and, bool, false, true
+	..bool: ==, and, bool, false, not, true
 	..compare: !=, <, <=
 	..exception: assert
 	..fun: subscript
@@ -73,9 +73,7 @@ try-add opt index-set(a index-set, index nat)
 	nat-index = index word-index
 	bit-index = index bit-index
 	if nat-index < a.values.size
-		if a.values[nat-index] bit? bit-index
-			none
-		else
+		if a.values[nat-index] bit? bit-index not
 			new-values = a.values update: nat-index, a.values[nat-index] add-bit bit-index
 			some: index-set: void, new-values
 	else
@@ -106,8 +104,6 @@ try-remove opt index-set(a index-set, index nat)
 			some: index-set: void, a.values rtail
 		else
 			some: a.values update nat-index, new-value strip-trailing-zeroes
-	else
-		none
 
 ~ index-set(a index-set, b index-set)
 	index-set: void, a.values zip-larger b.values, \x, y

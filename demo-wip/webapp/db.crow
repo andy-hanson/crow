@@ -73,8 +73,6 @@ parse-user-cookie opt user-cookie(a str)
 	if split ?= a try-split-once "|"
 		split.a.parse-nat opt-join split.b.parse-login-cookie, \user, inner
 			user user-cookie inner
-	else
-		none
 
 to-str str(a user-cookie)
 	"{a user}|{a inner}"

@@ -13,7 +13,7 @@ import
 	...log: error, log
 	...misc: as, drop, void
 	...number: ==, <=>, +, nat, nat8, to-int
-	...opt: none, opt, or-default, some, value
+	...opt: opt, or-default, some, value
 	...posix.extra-types: fd-t
 	...posix.unistd: write
 	...ptr: ptr-cast
@@ -201,8 +201,6 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	if index ?= a index-of "\n"
 		line = a pop-n-from-start! index + 1 rtail
 		line.str try-remove-end "\r" or-default line.str some
-	else
-		none
 
 .http-parse-state record mut
 	method mut http-method

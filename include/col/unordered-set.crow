@@ -58,8 +58,6 @@ try-add opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> 
 try-remove opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
 	if res ?= a.inner try-remove value
 		res.new-lookup.unordered-set some
-	else
-		none
 
 region iteration
 

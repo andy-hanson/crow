@@ -484,8 +484,13 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 		(ref immutable Diag.CantInferTypeArguments) {
 			writeStatic(writer, "can't infer type arguments");
 		},
+		(ref immutable Diag.CommonFunMissing it) {
+			writeStatic(writer, "common function ");
+			writeName(writer, it.name);
+			writeStatic(writer, " is missing from 'bootstrap.crow'");
+		},
 		(ref immutable Diag.CommonTypesMissing d) {
-			writeStatic(writer, "common types are missing from 'include.crow':");
+			writeStatic(writer, "common types are missing from 'bootstrap.crow':");
 			foreach (immutable string s; d.missing) {
 				writeStatic(writer, "\n\t");
 				writeStr(writer, s);
@@ -558,6 +563,11 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 		(ref immutable Diag.IfNeedsOpt d) {
 			writeStatic(writer, "Expected an 'opt', but got ");
 			writeType(writer, d.actualType);
+		},
+		(ref immutable Diag.IfWithoutElse d) {
+			writeStatic(writer, "'if' without 'else' should be 'void' or 'opt'. Instead got ");
+			writeType(writer, d.thenType);
+			writeChar(writer, '.');
 		},
 		(ref immutable Diag.ImportRefersToNothing it) {
 			writeStatic(writer, "imported name ");

@@ -20,8 +20,6 @@ binary-search-has? bool(a arr ?a, value ?a) compare<?a> trusted
 binary-search-value opt ?a(a arr ?a, compare act comparison(?a)) trusted
 	if ptr ?= a binary-search-exact-ptr compare
 		ptr[] some
-	else
-		none
 
 binary-search-exact-index opt nat(a arr ?a, value ?a) trusted compare<?a>
 	ptr = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
@@ -46,8 +44,6 @@ binary-search-exact-ptr opt ptr ?a(a arr ?a, compare act comparison(?a)) unsafe
 		none
 	elif compare[ptr[]] == equal
 		ptr some
-	else
-		none
 
 binary-search-insert-ptr ptr ?a(a mut-list ?a, compare act comparison(?a)) unsafe
 	a.temp-as-mut-arr binary-search-insert-ptr compare

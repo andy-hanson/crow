@@ -5,7 +5,7 @@ import
 	..fun: subscript
 	..hash: hash, hash-mix
 	..misc: data, void
-	..opt: has?, none, opt, some
+	..opt: has?, opt, some
 	..ptr: +, -, ptr, ptr-eq?, ptr-less-eq?, set-subscript, size-of, subscript, swap!
 	..test: is
 	..private.number-low-level: ==, <=>, nat, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
@@ -67,8 +67,6 @@ try-get-unordered-index opt nat(a frozen-unordered-set ?a, value ?a) trusted dat
 			a.bucket-starts unsafe-at: bucket-index wrap-add 1
 		if ptr ?= bucket-start arr-from-begin-end bucket-end ptr-of value
 			ptr - a.begin-ptr some
-		else
-			none
 
 unsafe-frozen-unordered-set-from-mut-arr-cast-immutable frozen-unordered-set ?a
 	a mut-arr ?a

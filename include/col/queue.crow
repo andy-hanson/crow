@@ -5,7 +5,7 @@ import
 	..exception: assert
 	..fun: subscript
 	..misc: ->, void
-	..opt: force, has?, none, opt, some
+	..opt: force, has?, opt, some
 	..ptr: +, -, ptr-eq?, set-subscript
 	..test: is
 	..private.number-low-level: ==, nat, wrap-add
@@ -57,8 +57,6 @@ dequeue opt dequeued ?a(a queue ?a)
 		right-arr = a.right arr
 		if first ?= right-arr first
 			some: dequeued: first, queue: right-arr.tail, stack
-		else
-			none
 
 region iteration
 

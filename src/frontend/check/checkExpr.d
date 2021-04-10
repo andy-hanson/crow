@@ -12,6 +12,7 @@ import frontend.check.inferringType :
 	bogusWithoutChangingExpected,
 	check,
 	CheckedExpr,
+	CommonFuns,
 	copyWithNewExpectedType,
 	Expected,
 	ExprCtx,
@@ -152,6 +153,7 @@ immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 	ref CheckCtx checkCtx,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable CommonTypes commonTypes,
+	ref immutable CommonFuns commonFuns,
 	ref immutable FunsDict funsDict,
 	ref bool[] usedFuns,
 	immutable Type returnType,
@@ -166,6 +168,7 @@ immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 		ptrTrustMe(structsAndAliasesDict),
 		ptrTrustMe(funsDict),
 		ptrTrustMe(commonTypes),
+		ptrTrustMe(commonFuns),
 		specs,
 		params,
 		typeParams,
@@ -222,7 +225,7 @@ immutable(ExprAndType) checkAndInfer(Alloc)(
 ) {
 	Expected expected = Expected.infer();
 	immutable Expr expr = checkExpr(alloc, ctx, ast, expected);
-	return ExprAndType(expr, inferred(expected));
+	return immutable ExprAndType(expr, inferred(expected));
 }
 
 immutable(Expr) checkAndExpect(Alloc)(
@@ -260,19 +263,70 @@ immutable(CheckedExpr) checkIf(Alloc)(
 	ref immutable IfAst ast,
 	ref Expected expected,
 ) {
-	immutable Ptr!Expr cond = allocExpr(alloc, checkAndExpect(alloc, ctx, ast.cond, ctx.commonTypes.bool_));
+	immutable Expr cond = allocExpr(alloc, checkAndExpect(alloc, ctx, ast.cond, ctx.commonTypes.bool_));
 	if (has(ast.else_)) {
 		immutable Ptr!Expr then = allocExpr(alloc, checkExpr(alloc, ctx, ast.then, expected));
 		immutable Ptr!Expr else_ = allocExpr(alloc, checkExpr(alloc, ctx, force(ast.else_), expected));
-		return immutable CheckedExpr(immutable Expr(range, immutable Expr.Cond(inferred(expected), cond, then, else_)));
+		return immutable CheckedExpr(immutable Expr(
+			range,
+			immutable Expr.Cond(inferred(expected), allocExpr(alloc, cond), then, else_)));
 	} else {
-		immutable Ptr!StructInst void_ = ctx.commonTypes.void_;
-		immutable Ptr!Expr then = allocExpr(alloc, checkAndExpect(alloc, ctx, ast.then, void_));
-		immutable Ptr!Expr else_ = allocExpr(alloc, makeVoid(alloc, range, void_));
-		immutable Type voidType = immutable Type(void_);
-		immutable Expr expr = immutable Expr(range, immutable Expr.Cond(voidType, cond, then, else_));
-		return check(alloc, ctx, expected, voidType, expr);
+		immutable ThenAndElse te = checkIfWithoutElse(alloc, ctx, range, none!(Ptr!Local), ast.then, expected);
+		return immutable CheckedExpr(immutable Expr(range, immutable Expr.Cond(
+			inferred(expected),
+			allocExpr(alloc, cond),
+			allocExpr(alloc, te.then),
+			allocExpr(alloc, te.else_))));
 	}
+}
+
+struct ThenAndElse {
+	immutable Expr then;
+	immutable Expr else_;
+}
+
+immutable(ThenAndElse) checkIfWithoutElse(Alloc)(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	ref immutable FileAndRange range,
+	immutable Opt!(Ptr!Local) local,
+	ref immutable ExprAst thenAst,
+	ref Expected expected,
+) {
+	immutable Expr then = checkWithOptLocal(alloc, ctx, local, thenAst, expected);
+	immutable Type inferredType = inferred(expected);
+	if (isVoid(ctx, inferredType))
+		return immutable ThenAndElse(then, makeVoid(alloc, range, asStructInst(inferredType)));
+	else if (isOptType(ctx.commonTypes, inferredType))
+		return immutable ThenAndElse(then, makeNone(alloc, ctx, range, asStructInst(inferredType)));
+	else {
+		addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.IfWithoutElse(inferredType)));
+		return immutable ThenAndElse(
+			then,
+			immutable Expr(range, immutable Expr.Bogus()));
+	}
+}
+
+enum NeedsCheck { alreadyChecked, needsCheck }
+
+immutable(bool) isOptType(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+	return isStructInst(type) && ptrEquals(decl(asStructInst(type).deref()), commonTypes.opt);
+}
+
+immutable(Expr) makeNone(Alloc)(
+	ref Alloc alloc,
+	ref const ExprCtx ctx,
+	ref immutable FileAndRange range,
+	immutable Ptr!StructInst optStructInst,
+) {
+	immutable Expr none = immutable Expr(
+		range,
+		immutable Expr.Call(immutable Called(ctx.commonFuns.noneFun), emptyArr!Expr()));
+	return immutable Expr(range, immutable Expr.ImplicitConvertToUnion(optStructInst, 0, allocExpr(alloc, none)));
+}
+
+immutable(bool) isVoid(ref const ExprCtx ctx, ref immutable Type type) {
+	return isStructInst(type) && ptrEquals(asStructInst(type), ctx.commonTypes.void_);
 }
 
 immutable(Expr) makeVoid(Alloc)(ref Alloc alloc, ref immutable FileAndRange range, immutable Ptr!StructInst void_) {
@@ -316,12 +370,13 @@ immutable(CheckedExpr) checkIfOption(Alloc)(
 				range,
 				immutable Expr.IfOption(inferred(expected), option, local, then, else_)));
 		} else {
-			immutable Ptr!StructInst void_ = ctx.commonTypes.void_;
-			immutable Type voidType = immutable Type(void_);
-			immutable Ptr!Expr then = allocExpr(alloc, checkWithLocalAndExpect(alloc, ctx, local, ast.then, voidType));
-			immutable Ptr!Expr else_ = allocExpr(alloc, makeVoid(alloc, range, void_));
-			immutable Expr expr = immutable Expr(range, immutable Expr.IfOption(voidType, option, local, then, else_));
-			return check(alloc, ctx, expected, voidType, expr);
+			immutable ThenAndElse te = checkIfWithoutElse(alloc, ctx, range, some(local), ast.then, expected);
+			return immutable CheckedExpr(immutable Expr(range, immutable Expr.IfOption(
+				inferred(expected),
+				option,
+				local,
+				allocExpr(alloc, te.then),
+				allocExpr(alloc, te.else_))));
 		}
 	}
 }
@@ -989,6 +1044,28 @@ immutable(Expr) checkWithOptLocal(Alloc)(
 	return has(local)
 		? checkWithLocal(alloc, ctx, force(local), ast, expected)
 		: checkExpr(alloc, ctx, ast, expected);
+}
+
+immutable(Expr) checkWithOptLocalAndExpect(Alloc)(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	immutable Opt!(Ptr!Local) local,
+	ref immutable ExprAst ast,
+	ref immutable Type expectedType,
+) {
+	Expected expected = Expected(some(expectedType));
+	return checkWithOptLocal(alloc, ctx, local, ast, expected);
+}
+
+immutable(ExprAndType) checkWithOptLocalAndInfer(Alloc)(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	immutable Opt!(Ptr!Local) local,
+	ref immutable ExprAst ast,
+) {
+	Expected expected = Expected.infer();
+	immutable Expr expr = checkWithOptLocal(alloc, ctx, local, ast, expected);
+	return immutable ExprAndType(expr, inferred(expected));
 }
 
 struct UnionAndMembers {

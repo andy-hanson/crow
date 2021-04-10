@@ -295,8 +295,6 @@ filter list ?a(a list ?a, f act bool(?a)) trusted
 first-some opt ?out(a list ?in, f act opt ?out(?in))
 	before = if prev ?= a prev
 		prev first-some f
-	else
-		none
 
 	if before has?
 		before

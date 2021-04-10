@@ -8,7 +8,7 @@ import
 	..log: info, log
 	..misc: ->
 	..number: ==, <=>, -, nat, nat8, to-int
-	..opt: none, opt, opt-join
+	..opt: opt, opt-join
 	..serialize: from-bytes, to-8-bytes
 	..str: str
 	..str-conv: interp, finish, parse-int, parse-nat, to-str, with-str, with-value
@@ -46,5 +46,3 @@ parse-login-cookie opt login-cookie(a str)
 	if split ?= a try-split-once "|"
 		split.a.parse-int opt-join split.b.parse-nat, \time, cookie
 			time.unix-time login-cookie cookie
-	else
-		none

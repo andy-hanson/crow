@@ -226,8 +226,6 @@ validate-gc void(gc gc) noctx unsafe
 			gc.mark-cur := gc.mark-cur + 1
 			gc.data-cur := gc.data-cur + 1
 			gc try-gc-alloc-recur size-bytes
-	else
-		none
 
 range-free? bool(mark ptr bool, end ptr bool) noctx unsafe
 	if mark ptr-eq? end
@@ -257,8 +255,6 @@ alloc-uninitialized ptr ?a(size nat) unsafe
 try-alloc-uninitialized opt ptr ?a(size nat) unsafe
 	if res ?= size wrap-mul size-of<?a> try-alloc
 		res.ptr-cast<?a, nat8> some
-	else
-		none
 
 unmanaged-alloc-bytes any-ptr(size nat) noctx unsafe
 	res = size malloc

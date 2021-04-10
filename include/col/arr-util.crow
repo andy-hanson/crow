@@ -129,15 +129,11 @@ map-with-index arr ?out(a arr ?in, f act ?out(?in, nat))
 		f[a[i], i]
 
 first opt ?a(a arr ?a)
-	if a empty?
-		none
-	else
+	if a.empty? not
 		a[0] some
 
 last opt ?a(a arr ?a)
-	if a empty?
-		none
-	else
+	if a.empty? not
 		a[a.size - 1] some
 
 ###
@@ -161,9 +157,7 @@ Calls `f` on each element of `a` and returns the first result that is `some`.
 Returns `none` if every call to `f` returned `none`.
 ###
 first-some opt ?out(a arr ?in, f act opt ?out(?in))
-	if a empty?
-		none
-	else
+	if a.empty? not
 		res = f[a[0]]
 		if res has?
 			res
@@ -245,16 +239,12 @@ ends-with? bool(a arr ?a, end arr ?a) equal<?a> equal<arr ?a>
 try-remove-start opt arr ?a(a arr ?a, start arr ?a) equal<?a> equal<arr ?a>
 	if a starts-with? start
 		a[start.size -> a.size] some
-	else
-		none
 
 # TODO: equal<arr ?a> should be unnecessary
 # If `a` ends with `end`, returns the preceding elements, else returns `none`.
 try-remove-end opt arr ?a(a arr ?a, end arr ?a) equal<?a> equal<arr ?a>
 	if a ends-with? end
 		a[0 -> a.size - end.size] some
-	else
-		none
 
 ###
 This is like `each` but with a state variable that gets transformed by each call to `f`.
@@ -317,16 +307,12 @@ Like `find-index`, but starts from the end.
 Equivalent to `f[a[a.size - 1]] ? (a.size - 1 some), f[a[a.size - 2]] ? (a.size - 2 some), ...`.
 ###
 find-rindex opt nat(a arr ?a, f act bool(?a))
-	if a empty?
-		none
-	else
+	if a.empty? not
 		a find-rindex-recur a.size - 1, f
 .find-rindex-recur opt nat(a arr ?a, index nat, f act bool(?a))
 	if f[a[index]]
 		index some
-	elif index == 0
-		none
-	else
+	elif index != 0
 		a find-rindex-recur index - 1, f
 
 ###
@@ -336,8 +322,6 @@ Equivalent to `a find-index {it == value}`.
 index-of opt nat(a arr ?a, value ?a) trusted equal<?a>
 	if v ?= a ptr-of value
 		v - a.begin-ptr some
-	else
-		none
 
 # Like `index-of` but returns a ptr.
 ptr-of opt ptr ?a(a arr ?a, value ?a) unsafe equal<?a>
@@ -380,8 +364,6 @@ flatten arr ?a(a arr arr ?a, joiner arr ?a)
 try-split-once opt pair<arr ?a, arr ?a>(a arr ?a, splitter ?a) equal<?a>
 	if index ?= a index-of splitter
 		some: a[0 -> index] pair a[index + 1 -> a.size]
-	else
-		none
 
 # TODO: equal<arr ?a> should be unnecessary
 split-by arr arr ?a(a arr ?a, splitter ?a) equal<?a> equal<arr ?a> trusted
@@ -449,8 +431,6 @@ zip-larger arr ?out(a arr ?a, b arr ?b, f act ?out(opt ?a, opt ?b))
 .opt-subscript opt ?a(a arr ?a, index nat)
 	if index < a.size
 		a[index] some
-	else
-		none
 
 # TODO: update-at
 update arr ?a(a arr ?a, index nat, new-value ?a)

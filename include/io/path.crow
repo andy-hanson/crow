@@ -4,7 +4,7 @@ import
 	..col.arr-util: last, r-index-of, rtail
 	..misc: ->
 	..number: +, -, nat
-	..opt: none, opt, some
+	..opt: opt, some
 	..str: ==, char, chars, size-bytes, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 
@@ -29,16 +29,12 @@ child-path str(a str, child-name str)
 			a.size-bytes - 1 some
 		else
 			a.chars.rtail.str last-index-of c
-	else
-		none
 
 # Gets the extension from a file name or path.
 # Returns none if there is no extension.
 get-extension opt str(name str)
 	if index ?= name last-index-of "."
 		name.chars[index + 1 -> name.size-bytes].str some
-	else
-		none
 
 # Removes the extension from a file name or path.
 remove-extension str(name str)

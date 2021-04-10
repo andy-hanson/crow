@@ -80,6 +80,9 @@ struct Diag {
 
 	struct CantCreateRecordWithoutExpectedType {}
 	struct CantInferTypeArguments {}
+	struct CommonFunMissing {
+		immutable Sym name;
+	}
 	struct CommonTypesMissing {
 		immutable string[] missing;
 	}
@@ -124,6 +127,9 @@ struct Diag {
 	struct ExternPtrHasTypeParams {}
 	struct IfNeedsOpt {
 		immutable Type actualType;
+	}
+	struct IfWithoutElse {
+		immutable Type thenType;
 	}
 	struct ImportRefersToNothing {
 		immutable Sym name;
@@ -250,6 +256,7 @@ struct Diag {
 		cantCreateNonRecordType,
 		cantCreateRecordWithoutExpectedType,
 		cantInferTypeArguments,
+		commonFunMissing,
 		commonTypesMissing,
 		createArrNoExpectedType,
 		createRecordByRefNoCtx,
@@ -260,6 +267,7 @@ struct Diag {
 		expectedTypeIsNotALambda,
 		externPtrHasTypeParams,
 		ifNeedsOpt,
+		ifWithoutElse,
 		importRefersToNothing,
 		lambdaCantInferParamTypes,
 		lambdaClosesOverMut,
@@ -301,6 +309,7 @@ struct Diag {
 		immutable CantCreateNonRecordType cantCreateNonRecordType;
 		immutable CantCreateRecordWithoutExpectedType cantCreateRecordWithoutExpectedType;
 		immutable CantInferTypeArguments cantInferTypeArguments;
+		immutable CommonFunMissing commonFunMissing;
 		immutable CommonTypesMissing commonTypesMissing;
 		immutable CreateArrNoExpectedType createArrNoExpectedType;
 		immutable CreateRecordByRefNoCtx createRecordByRefNoCtx;
@@ -311,6 +320,7 @@ struct Diag {
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
 		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
 		immutable IfNeedsOpt ifNeedsOpt;
+		immutable IfWithoutElse ifWithoutElse;
 		immutable ImportRefersToNothing importRefersToNothing;
 		immutable LambdaCantInferParamTypes lambdaCantInferParamTypes;
 		immutable LambdaClosesOverMut lambdaClosesOverMut;
@@ -359,6 +369,7 @@ struct Diag {
 	@trusted immutable this(immutable CantInferTypeArguments a) {
 		kind = Kind.cantInferTypeArguments; cantInferTypeArguments = a;
 	}
+	@trusted immutable this(immutable CommonFunMissing a) { kind = Kind.commonFunMissing; commonFunMissing = a; }
 	@trusted immutable this(immutable CommonTypesMissing a) { kind = Kind.commonTypesMissing; commonTypesMissing = a; }
 	@trusted immutable this(immutable CreateArrNoExpectedType a) {
 		kind = Kind.createArrNoExpectedType; createArrNoExpectedType = a;
@@ -381,6 +392,7 @@ struct Diag {
 		kind = Kind.externPtrHasTypeParams; externPtrHasTypeParams = a;
 	}
 	@trusted immutable this(immutable IfNeedsOpt a) { kind = Kind.ifNeedsOpt; ifNeedsOpt = a; }
+	@trusted immutable this(immutable IfWithoutElse a) { kind = Kind.ifWithoutElse; ifWithoutElse = a; }
 	immutable this(immutable ImportRefersToNothing a) { kind = Kind.importRefersToNothing; importRefersToNothing = a; }
 	@trusted immutable this(immutable LambdaCantInferParamTypes a) {
 		kind = Kind.lambdaCantInferParamTypes; lambdaCantInferParamTypes = a;
@@ -472,6 +484,9 @@ static assert(Diag.sizeof <= 32);
 		ref immutable Diag.CantInferTypeArguments
 	) @safe @nogc pure nothrow cbCantInferTypeArguments,
 	scope immutable(Out) delegate(
+		ref immutable Diag.CommonFunMissing
+	) @safe @nogc pure nothrow cbCommonFunMissing,
+	scope immutable(Out) delegate(
 		ref immutable Diag.CommonTypesMissing
 	) @safe @nogc pure nothrow cbCommonTypesMissing,
 	scope immutable(Out) delegate(
@@ -495,6 +510,7 @@ static assert(Diag.sizeof <= 32);
 		ref immutable Diag.ExternPtrHasTypeParams
 	) @safe @nogc pure nothrow cbExternPtrHasTypeParams,
 	scope immutable(Out) delegate(ref immutable Diag.IfNeedsOpt) @safe @nogc pure nothrow cbIfNeedsOpt,
+	scope immutable(Out) delegate(ref immutable Diag.IfWithoutElse) @safe @nogc pure nothrow cbIfWithoutElse,
 	scope immutable(Out) delegate(
 		ref immutable Diag.ImportRefersToNothing
 	) @safe @nogc pure nothrow cbImportRefersToNothing,
@@ -594,6 +610,8 @@ static assert(Diag.sizeof <= 32);
 			return cbCantCreateRecordWithoutExpectedType(a.cantCreateRecordWithoutExpectedType);
 		case Diag.Kind.cantInferTypeArguments:
 			return cbCantInferTypeArguments(a.cantInferTypeArguments);
+		case Diag.Kind.commonFunMissing:
+			return cbCommonFunMissing(a.commonFunMissing);
 		case Diag.Kind.commonTypesMissing:
 			return cbCommonTypesMissing(a.commonTypesMissing);
 		case Diag.Kind.createArrNoExpectedType:
@@ -614,6 +632,8 @@ static assert(Diag.sizeof <= 32);
 			return cbExternPtrHasTypeParams(a.externPtrHasTypeParams);
 		case Diag.Kind.ifNeedsOpt:
 			return cbIfNeedsOpt(a.ifNeedsOpt);
+		case Diag.Kind.ifWithoutElse:
+			return cbIfWithoutElse(a.ifWithoutElse);
 		case Diag.Kind.importRefersToNothing:
 			return cbImportRefersToNothing(a.importRefersToNothing);
 		case Diag.Kind.lambdaCantInferParamTypes:
