@@ -1,0 +1,18 @@
+no-std
+import
+	..col.arr: arr, size
+	..col.arr-util: each
+	..fun: fun-ptr1, subscript
+	..io.print: print
+	..misc: void
+	..str-conv: finish, interp, to-str, with-str, with-value
+	..private.bootstrap: ctx, get-ctx
+
+all-tests arr fun-ptr1<void, ctx>() builtin
+
+run-all-tests void() summon trusted
+	tests = all-tests
+	print: "Running {tests size} tests"
+	tests each \test
+		test[get-ctx]
+	print: "done"

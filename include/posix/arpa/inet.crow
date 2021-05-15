@@ -1,0 +1,8 @@
+no-std
+import
+	...str: c-str
+	..netinet.in: in-addr, in-addr-t
+
+inet-addr in-addr-t(cp c-str) unsafe extern<"inet_addr"> noctx summon
+
+inet-ntoa c-str(in in-addr) unsafe extern<"inet_ntoa"> noctx summon

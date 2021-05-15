@@ -1,9 +1,10 @@
 no-std
 import
 	.bool: ?, and, bool, or
-	.compare: <, <=, >=
+	.compare: !=, <, <=, >, >=
 	.fun: subscript
 	.misc: ->, arrow, from, to, void
+	.opt: opt, some
 	.private.number-low-level:
 		unsafe-div, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, unsafe-to-nat32, unsafe-mod,
 		wrap-add, wrap-mul, wrap-sub
@@ -13,7 +14,7 @@ export
 	.private.number-low-level:
 		==, <=>, even?, float, int, int8, int16, int32, int64, max-int8, max-int, max-int16,
 		max-int32, max-nat, max-nat8, max-nat16, max-nat32, min-int8, min-int16, min-int32,
-		min-int, nat, nat8, nat16, nat32, nat64, odd?, to-int, to-nat
+		min-int, nat, nat8, nat16, nat32, nat64, odd?, to-int, to-nat, unsafe-to-nat8
 
 deep-size-bytes nat(a nat) unsafe
 	a size-of
@@ -46,10 +47,25 @@ multiple-of? bool(a nat, b nat)
 	res = a wrap-add b
 	assert: res >= a and: res >= b
 	res
++ nat8(a nat8, b nat8)
+	res = a wrap-add b
+	assert: res >= a and res >= b
+	res
+
 # Subtract two nats. Fail if the result would be negative.
 - nat(a nat, b nat)
 	assert: a >= b
 	a wrap-sub b
+- nat8(a nat8, b nat8)
+	assert: a >= b
+	a wrap-sub b
+- nat16(a nat16, b nat16)
+	assert: a >= b
+	a wrap-sub b
+- nat32(a nat32, b nat32)
+	assert: a >= b
+	a wrap-sub b
+
 # Multiply two nats. Fail if the result would overflow.
 * nat(a nat, b nat)
 	# TODO: better safety check
@@ -102,6 +118,8 @@ mod nat(a int, b nat)
 - int32(a int32, b int32)
 	a.to-int wrap-sub b.to-int to-int32
 
+* int32(a int32, b int32)
+	a.to-int wrap-mul b.to-int to-int32
 * int(a int, b int)
 	# TODO: safety check
 	a wrap-mul b
@@ -119,6 +137,25 @@ to-int32 int32(a int)
 	assert: a >= min-int32.to-int
 	assert: a <= max-int32.to-int
 	a unsafe-to-int32
+to-int32 int32(a nat)
+	a.to-int to-int32
+
+clamp-to-nat nat(a int)
+	if a < 0
+		0
+	else
+		a unsafe-to-nat
+
+clamp-to-int32 int32(a int) noctx trusted
+	if a < min-int32.to-int
+		min-int32
+	elif a > max-int32.to-int
+		max-int32
+	else
+		a unsafe-to-int32
+
+clamp-add int32(a int32, b int32) noctx
+	a.to-int wrap-add b.to-int clamp-to-int32
 
 # Convert an int to a nat. Fail if it's negative.
 to-nat nat(a int)
@@ -127,6 +164,9 @@ to-nat nat(a int)
 to-nat nat(a int32)
 	a.to-int to-nat
 
+to-nat8 nat8(a nat64)
+	assert: a <= max-nat8.to-nat
+	a unsafe-to-nat8
 to-nat32 nat32(a nat16) noctx trusted
 	a.to-nat unsafe-to-nat32
 
@@ -135,11 +175,22 @@ to-nat32 nat32(a nat)
 	assert: a < max-nat32.to-nat
 	a unsafe-to-nat32
 
+wrap-to-nat32 nat32(a nat) noctx trusted
+	# TODO: safe?
+	a unsafe-to-nat32
+
 # Absolute value of an int, as a nat.
 abs nat(i int)
 	i-abs = i < 0 ? i * -1, i
 	i-abs to-nat
 
+^ nat(a nat, b nat)
+	if b == 0
+		1
+	elif b even?
+		(a * a) ^ (b / 2)
+	else
+		a * a ^ (b - 1)
 
 region float
 
@@ -177,5 +228,23 @@ Does nothing if `a.from` is not less than `a.to`.
 ###
 each void(a arrow<nat, nat>, f act void(nat))
 	if a.from < a.to
-		f[a.from]
+		f[a from]
 		a.from + 1 -> a.to each f
+
+each-reverse void(a arrow<nat, nat>, f act void(nat))
+	if a.from < a.to
+		a.from each-reverse-recur (a.to wrap-sub 1), f
+.each-reverse-recur void(low nat, cur nat, f act void(nat))
+	f[cur]
+	if cur != low
+		low each-reverse-recur (cur wrap-sub 1), f
+
+exists? bool(a arrow<nat, nat>, f act bool(nat))
+	a.from < a.to and: f[a from] or: (a.from wrap-add 1) -> a.to exists? f
+
+find opt nat(a arrow<nat, nat>, f act bool(nat))
+	if a.from < a.to
+		if f[a from]
+			a.from some
+		else
+			(a.from wrap-add 1) -> a.to find f

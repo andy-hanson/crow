@@ -12,6 +12,9 @@ writer record mut
 	# TODO:PRIVATE
 	chars mut-list char
 
+write<?a> spec
+	~= void(writer writer, value ?a)
+
 writer writer()
 	mut-list writer
 

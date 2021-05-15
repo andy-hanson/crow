@@ -5,7 +5,7 @@ import
 	.col.arr: ~, arr, arr-compare, arr-equal?, empty?, size
 	.private.number-low-level: ==, <=>, nat
 export
-	.private.bootstrap: char, chars, c-str, str, to-nat
+	.private.bootstrap: char, chars, c-str, str, to-char, to-nat8
 
 ~ str(a str, b str)
 	a.chars ~ b.chars str
@@ -19,12 +19,12 @@ size-bytes nat(a str) noctx
 == bool(a str, b str) trusted noctx
 	a.chars arr-equal? b.chars
 == bool(a char, b char) noctx
-	a.to-nat == b.to-nat
+	a.to-nat8 == b.to-nat8
 
 <=> comparison(a str, b str) trusted noctx
 	a.chars arr-compare b.chars
 <=> comparison(a char, b char) noctx
-	a.to-nat <=> b.to-nat
+	a.to-nat8 <=> b.to-nat8
 
 == bool(a arr char, b arr char) noctx
 	a arr-equal? b

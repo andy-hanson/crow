@@ -3,11 +3,9 @@ import
 	io.duration: duration, msec
 	io.print: print
 	io.time: delay
+	posix.c-types: c-int
 	ptr: as-any-ptr, null, null?, ptr
 	str-util: to-c-str, to-str
-
-c-int alias
-	int
 
 # SDL.h
 

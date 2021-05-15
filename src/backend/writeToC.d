@@ -1747,15 +1747,16 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 			return prefix("(uint8_t*) ");
 		case LowExprKind.SpecialUnary.Kind.asRef:
-		case LowExprKind.SpecialUnary.Kind.toNatFromPtr:
+		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt16:
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
-		case LowExprKind.SpecialUnary.Kind.toNatFromChar:
+		case LowExprKind.SpecialUnary.Kind.toNat8FromChar:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
+		case LowExprKind.SpecialUnary.Kind.toNatFromPtr:
 		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
@@ -1955,6 +1956,15 @@ immutable(WriteExprResult) writeSpecialBinary(Alloc, TempAlloc)(
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat32:
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat64:
 			return operator("|");
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt8:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt16:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt32:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt64:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat8:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat16:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat32:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat64:
+			return operator("^");
 		case LowExprKind.SpecialBinary.Kind.eqFloat64:
 		case LowExprKind.SpecialBinary.Kind.eqInt8:
 		case LowExprKind.SpecialBinary.Kind.eqInt16:

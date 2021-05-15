@@ -490,6 +490,7 @@ immutable(ulong) getDivisor(immutable ulong acc, immutable ulong a, immutable ul
 	if (digit < base) {
 		lexer.ptr++;
 		immutable ulong newValue = value * base + digit;
+		tryTake(lexer, '_');
 		return takeNatRecur(lexer, base, newValue, overflow || newValue / base != value);
 	} else
 		return immutable LiteralAst.Nat(value, overflow);
@@ -567,6 +568,18 @@ public struct StringPart {
 	}
 }
 
+immutable(bool) allowedStringPartCharacter(immutable char c) {
+	switch (c) {
+		case '\n':
+		case '\0':
+		case '"':
+		case '{':
+			return false;
+		default:
+			return true;
+	}
+}
+
 public @trusted immutable(StringPart) takeStringPart(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
@@ -574,12 +587,26 @@ public @trusted immutable(StringPart) takeStringPart(Alloc, SymAlloc)(
 	immutable CStr begin = lexer.ptr;
 	size_t nEscapedCharacters = 0;
 	// First get the max size
-	while (*lexer.ptr != '"' && *lexer.ptr != '{') {
+	while (allowedStringPartCharacter(*lexer.ptr)) {
 		if (*lexer.ptr == '\\') {
 			lexer.ptr++;
-			nEscapedCharacters += (*lexer.ptr == 'x' ? 3 : 1);
+			nEscapedCharacters++;
+			if (*lexer.ptr == 'x') {
+				lexer.ptr++;
+				if (allowedStringPartCharacter(*lexer.ptr)) {
+					lexer.ptr++;
+					nEscapedCharacters++;
+					if (allowedStringPartCharacter(*lexer.ptr)) {
+						lexer.ptr++;
+						nEscapedCharacters++;
+					}
+				}
+			} else {
+				lexer.ptr++;
+			}
+		} else {
+			lexer.ptr++;
 		}
-		lexer.ptr++;
 	}
 
 	immutable size_t size = (lexer.ptr - begin) - nEscapedCharacters;
@@ -587,7 +614,7 @@ public @trusted immutable(StringPart) takeStringPart(Alloc, SymAlloc)(
 
 	size_t outI = 0;
 	lexer.ptr = begin;
-	while (*lexer.ptr != '"' && *lexer.ptr != '{') {
+	while (allowedStringPartCharacter(*lexer.ptr)) {
 		if (*lexer.ptr == '\\') {
 			lexer.ptr++;
 			immutable char c = () {

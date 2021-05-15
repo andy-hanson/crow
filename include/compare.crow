@@ -99,6 +99,12 @@ min ?a(a ?a, b ?a) noctx compare<?a>
 max ?a(a ?a, b ?a) noctx compare<?a>
 	a < b ? b, a
 
+max ?a(a ?a, b ?a, c ?a) noctx compare<?a>
+	a max b max c
+
+max ?a(a ?a, b ?a, c ?a, d ?a) noctx compare<?a>
+	a max b max c max d
+
 # Returns "less", "equal", or "greater"/
 to-str str(a comparison)
 	match a
@@ -108,3 +114,11 @@ to-str str(a comparison)
 		"equal"
 	as greater
 		"greater"
+
+clamp ?a(a ?a, min ?a, max ?a) noctx compare<?a>
+	if a < min
+		min
+	elif a > max
+		max
+	else
+		a

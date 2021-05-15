@@ -1,20 +1,24 @@
 no-std
 import
-	.bool: and, bool, not
-	.col.arr: arr, arr-from-begin-end, begin-ptr, size, subscript
+	.bool: and, bool, or
+	.col.arr: arr, arr-cast, arr-from-begin-end, begin-ptr
 	.col.arr-util:
-		contains-subseq?, ends-with?, map, split-by-subseq, starts-with?, tail, try-remove-end,
-		try-remove-start, try-split-once
-	.number: nat8
+		contains-subseq?, ends-with?, first, last, map, rtail, split-by-subseq, starts-with?, tail,
+		try-remove-end, try-remove-start, try-split-once
+	.compare: <=
+	.number: ==, <=>, +, -, nat8
 	.opt: none, opt, some
-	.ptr: +, ptr-cast, subscript
-	.str: ==, ~, char, chars, c-str, empty?, str
+	.ptr: +, subscript
+	.str: ==, ~, char, chars, c-str, str, to-char, to-nat8
 	.tuple: a, b, pair
 	.private.bootstrap: hard-unreachable
 
 # Treats bytes as a string.
 as-str str(bytes arr nat8) unsafe noctx
-	str: arr: bytes.size, bytes.begin-ptr ptr-cast<char, nat8>
+	bytes.arr-cast str
+
+bytes arr nat8(a str) trusted noctx
+	a.chars arr-cast
 
 # Converts a str to a c-str by appending "\0".
 to-c-str c-str(a str)
@@ -44,12 +48,31 @@ find-cstr-end c-str(a c-str) unsafe noctx
 	else
 		hard-unreachable
 
+# Strips whitespace from both ends.
+strip str(a str)
+	a.lstrip rstrip
+
 # Strips whitespace from the front.
 lstrip str(a str)
-	if a.empty?.not and: a.chars[0] == " "
-		a.chars.tail.str lstrip
+	if c ?= a.chars first
+		if c whitespace?
+			a.chars.tail.str lstrip
+		else
+			a
 	else
 		a
+
+rstrip str(a str)
+	if c ?= a.chars last
+		if c whitespace?
+			a.chars.rtail.str rstrip
+		else
+			a
+	else
+		a
+
+.whitespace? bool(a char)
+	a == " " or a == "\n" or a == "\t"
 
 has-substr? bool(a str, b str)
 	a.chars contains-subseq? b.chars
@@ -74,3 +97,13 @@ try-split-once opt pair<str, str>(a str, b char)
 
 split-by arr str(a str, b str)
 	a.chars split-by-subseq b.chars map {it str}
+
+lower-case str(a str)
+	a.chars map {it lower-case-char} str
+
+.lower-case-char char(a char)
+	a-nat = a to-nat8
+	if "A".to-nat8 <= a-nat and a-nat <= "Z".to-nat8
+		to-char: "a".to-nat8 + a-nat - "A".to-nat8
+	else
+		a

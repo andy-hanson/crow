@@ -285,6 +285,8 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "ptr-to";
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
 			return "ref-of-val";
+		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
+			return "to-char8 (from nat-8)";
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
 			return "to-float64 (from int-64)";
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
@@ -293,8 +295,8 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "to-int (from int-16)";
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
 			return "to-int (from int-32)";
-		case LowExprKind.SpecialUnary.Kind.toNatFromChar:
-			return "to-nat (from char)";
+		case LowExprKind.SpecialUnary.Kind.toNat8FromChar:
+			return "to-nat8 (from char8)";
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
 			return "to-nat (from nat-8)";
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
@@ -364,6 +366,22 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "bitwise-or (nat-32)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat64:
 			return "bitwise-or (nat-64)";
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt8:
+			return "bitwise-xor (int-8)";
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt16:
+			return "bitwise-xor (int-16)";
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt32:
+			return "bitwise-xor (int-32)";
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt64:
+			return "bitwise-xor (int-64)";
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat8:
+			return "bitwise-xor (nat-8)";
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat16:
+			return "bitwise-xor (nat-16)";
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat32:
+			return "bitwise-xor (nat-32)";
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat64:
+			return "bitwise-xor (nat-64)";
 		case LowExprKind.SpecialBinary.Kind.eqFloat64:
 			return "== (float-64)";
 		case LowExprKind.SpecialBinary.Kind.eqInt8:

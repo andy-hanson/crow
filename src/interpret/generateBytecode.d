@@ -792,6 +792,8 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 	final switch (a.kind) {
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 		case LowExprKind.SpecialUnary.Kind.asRef:
+		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
+		case LowExprKind.SpecialUnary.Kind.toNat8FromChar:
 		case LowExprKind.SpecialUnary.Kind.toNatFromPtr:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
@@ -825,7 +827,6 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 		// Normal operations on <64-bit values treat other bits as garbage
 		// (they may be written to, such as in a wrap-add operation that overflows)
 		// So we must mask out just the lower bits now.
-		case LowExprKind.SpecialUnary.Kind.toNatFromChar:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
 			generateArg();
 			writePushConstant(dbg, writer, source, Nat8.max);
@@ -1031,6 +1032,16 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat32:
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat64:
 			fn(FnOp.bitwiseOr);
+			break;
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt8:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt16:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt32:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt64:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat8:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat16:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat32:
+		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat64:
+			fn(FnOp.bitwiseXor);
 			break;
 		case LowExprKind.SpecialBinary.Kind.eqFloat64:
 			fn(FnOp.eqFloat64);

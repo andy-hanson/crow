@@ -114,8 +114,8 @@ words-used-in-range nat(acc nat, cur ptr bool, end ptr bool) noctx unsafe
 
 gc by-val gc() noctx unsafe
 	# TODO: handle malloc failure
-	# 3^25 words = 2^28 bytes = 512 MB
-	size-words = 0x2000000
+	# 2^28 words = 2^31 bytes = 4 GB
+	size-words = 0x10000000
 	mark = ptr-cast<bool, nat8>: malloc: size-words
 	mark-end = mark + size-words
 	data = ptr-cast<nat64, nat8>: malloc: size-words wrap-mul size-of<nat64>
@@ -209,8 +209,14 @@ validate-gc void(gc gc) noctx unsafe
 .try-gc-alloc opt any-ptr(gc gc, size-bytes nat) noctx trusted
 	gc.lk.ref-of-val acquire!
 	res = gc try-gc-alloc-recur size-bytes
+	gc maybe-set-needs-gc!
 	gc.lk.ref-of-val release!
 	res
+
+.maybe-set-needs-gc! void(gc gc) noctx unsafe
+	cur-word = gc.mark-cur - gc.mark-begin
+	if cur-word > (gc.size-words unsafe-div 2)
+		gc.needs-gc? := true
 
 .try-gc-alloc-recur opt any-ptr(gc gc, size-bytes nat) noctx unsafe
 	# gc validate-gc

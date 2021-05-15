@@ -1,0 +1,176 @@
+import
+	bits: bit?, bits-and, bit-shift-left, bit-shift-right, bits-intersect?, bits-or, bits-xor
+	col.mut-arr: fill-mut-arr, mut-arr, set-subscript, size, subscript
+	col.mut-grid: coord, x, y
+	io.terminal-color: term-bold, term-blue, term-red, term-reset
+	ptr: zeroed
+	writer: ~=, move-to-str!, writer
+
+###
+Board representation is bits: 7 bits for a column (max of 6 entries), over 6 rows.
+Bit index of each cell is:
+	5 12 19 26 33 40 47
+	4 11 18 25 32 39 46
+	3 10 17 24 31 38 45
+	2  9 16 23 30 37 44
+	1  8 15 22 29 36 43
+	0  7 14 21 28 35 42 
+The top bit of each column is left empty so that we can add `current-player + both-players`
+without overflowing to produce the compact key.
+###
+
+board record
+	by-val
+	# TODO:PRIVATE
+	current-player nat64
+	both-players nat64
+
+board-cache<?a> record mut
+	# TODO:PRIVATE
+	keys mut-arr nat32
+	values mut-arr ?a
+
+board-cache board-cache ?a() trusted
+	size = 0xccce9
+	# Per the Chinese Remainder Theorem, if we know the key mod 2^32 and mod size, we know the key mod their product.
+	# If their product is > the max key, then we know the key.
+	assert: 2 ^ 32 * size > max-key
+	# Use max-nat as an impossible key
+	size fill-mut-arr max-nat32 board-cache: size fill-mut-arr zeroed<?a>
+
+subscript opt ?a(a board-cache ?a, key board)
+	small-key = key board-key
+	index = small-key mod a.keys.size
+	if a.keys[index] == small-key.wrap-to-nat32
+		a.values[index] some
+
+set-subscript void(a board-cache ?a, key board, value ?a)
+	small-key = key board-key
+	index = small-key mod a.keys.size
+	a.keys[index] := small-key wrap-to-nat32
+	a.values[index] := value
+
+###
+Uniquely represents a board.
+Note that for each column, 'both-players' is a series of 0s and then a series of 1s.
+E.g., suppose current player is 0010 and both players is 0111. Result is 1001.
+The high bit of the result depends on the value of both-players.
+The result is unique for any value of current-player.
+###
+.board-key nat(a board)
+	a.current-player + a.both-players
+
+color union
+	red
+	blue
+red record
+blue record
+
+opposite color(a color)
+	match a
+	as red
+		blue
+	as blue
+		red
+
+to-str str(a color)
+	match a
+	as red
+		"{term-red}red{term-reset}"
+	as blue
+		"{term-blue}blue{term-reset}"
+
+.to-short-str str(a opt color)
+	if c ?= a
+		match c
+		as red
+			"{term-red}✕{term-reset}"
+		as blue
+			"{term-blue}●{term-reset}"
+	else
+		" "
+
+width nat()
+	7
+height nat()
+	6
+
+.grid-has? bool(a nat, x nat, y nat)
+	x < width and: y < height and: a bit?: x bit-index y
+.grid-has? bool(a nat, c coord)
+	a grid-has? c.x, c.y
+
+.bit-index nat(x nat, y nat)
+	x * (height + 1) + y
+
+can-place? bool(a board, x nat)
+	a.both-players bits-intersect? x.top-mask not
+
+place board(a board, x nat)
+	assert: a can-place? x
+	new-current-player = a.current-player bits-xor a.both-players
+	# Since the column is 111, adding a 1 makes it 1000
+	new-both-players = a.both-players bits-or a.both-players + x.bottom-mask
+	new-current-player board new-both-players
+
+empty-board board()
+	0 board 0
+
+.subscript opt color(a board, x nat, y nat, cur-player color)
+	pos = x coord y
+	if a.both-players grid-has? pos
+		some: a.current-player grid-has? pos ? cur-player, cur-player.opposite
+
+to-str str(a board, cur-player color, last-column opt nat)
+	res = writer
+	0 -> width each \x
+		text = " {x letter-of-alphabet}"
+		# TODO: shouldn't need 'as'
+		res ~= if x.some.as<opt nat> == last-column
+			"{term-bold}{text}{term-reset}"
+		else
+			text
+	res ~= "\n"
+	0 -> height each-reverse \y
+		res ~= "│"
+		0 -> width each \x
+			res ~= a[x, y, cur-player] to-short-str
+			res ~= "│"
+		res ~= "\n"
+	res ~= "╰─┴─┴─┴─┴─┴─┴─╯"
+	res move-to-str!
+
+.letter-of-alphabet str(a nat)
+	# TODO: shouldn't need as<char>
+	("A".as<char>.to-nat8 + a.to-nat8).to-char to-str
+
+just-won? bool(a board)
+	a.current-player bits-xor a.both-players win?
+
+.win? bool(a nat)
+	horiz-mask = a bits-and: a bit-shift-right height + 1
+	horiz-win? = horiz-mask bits-intersect?: horiz-mask bit-shift-right height * 2 + 2
+	diag-0-mask = a bits-and: a bit-shift-right height
+	diag-0-win? = diag-0-mask bits-intersect?: diag-0-mask bit-shift-right height * 2
+	diag-1-mask = a bits-and: a bit-shift-right height + 2
+	diag-1-win? = diag-1-mask bits-intersect?: diag-1-mask bit-shift-right height * 2 + 4
+	verti-mask = a bits-and: a bit-shift-right 1
+	verti-win? = verti-mask bits-intersect?: verti-mask bit-shift-right 2
+	horiz-win? or diag-0-win? or diag-1-win? or verti-win?
+
+has-empty? bool(a board)
+	a.both-players != full-grid
+
+.full-grid nat()
+	0b0111111_0111111_0111111_0111111_0111111_0111111_0111111
+
+.max-key nat()
+	0b1111111_1111111_1111111_1111111_1111111_1111111_1111111
+
+# Bit mask with a 1 at the top cell of the column
+.top-mask nat(col nat)
+	1 bit-shift-left (height - 1) bit-shift-left col * (height + 1)
+
+# Bit mask with a 1 at the bottom cell of the column
+.bottom-mask nat(col nat)
+	1 bit-shift-left col * (height + 1)

@@ -215,6 +215,24 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseOrNat64
 				: failBinary());
+		case shortSymAlphaLiteralValue("bits-xor"):
+			return binary(isInt8(rt)
+				? LowExprKind.SpecialBinary.Kind.bitwiseXorInt8
+				: isInt16(rt)
+				? LowExprKind.SpecialBinary.Kind.bitwiseXorInt16
+				: isInt32(rt)
+				? LowExprKind.SpecialBinary.Kind.bitwiseXorInt32
+				: isInt64(rt)
+				? LowExprKind.SpecialBinary.Kind.bitwiseXorInt64
+				: isNat8(rt)
+				? LowExprKind.SpecialBinary.Kind.bitwiseXorNat8
+				: isNat16(rt)
+				? LowExprKind.SpecialBinary.Kind.bitwiseXorNat16
+				: isNat32(rt)
+				? LowExprKind.SpecialBinary.Kind.bitwiseXorNat32
+				: isNat64(rt)
+				? LowExprKind.SpecialBinary.Kind.bitwiseXorNat64
+				: failBinary());
 		case shortSymAlphaLiteralValue("count-ones"):
 			return unary(isNat64(p0)
 				? LowExprKind.SpecialUnary.Kind.countOnesNat64
@@ -259,6 +277,10 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isPtrRaw(p0)
 				? unary(LowExprKind.SpecialUnary.Kind.deref)
 				: fail();
+		case shortSymAlphaLiteralValue("to-char"):
+			return unary(isNat8(p0)
+				? LowExprKind.SpecialUnary.Kind.toCharFromNat8
+				: failUnary());
 		case shortSymAlphaLiteralValue("to-float"):
 			return unary(isInt64(p0)
 				? LowExprKind.SpecialUnary.Kind.toFloat64FromInt64
@@ -272,9 +294,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialUnary.Kind.toIntFromInt32
 				: failUnary());
 		case shortSymAlphaLiteralValue("to-nat"):
-			return unary(isChar(p0)
-				? LowExprKind.SpecialUnary.Kind.toNatFromChar
-				: isNat8(p0)
+			return unary(isNat8(p0)
 				? LowExprKind.SpecialUnary.Kind.toNatFromNat8
 				: isNat16(p0)
 				? LowExprKind.SpecialUnary.Kind.toNatFromNat16
@@ -282,6 +302,10 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialUnary.Kind.toNatFromNat32
 				: isPtrRaw(p0)
 				? LowExprKind.SpecialUnary.Kind.toNatFromPtr
+				: failUnary());
+		case shortSymAlphaLiteralValue("to-nat8"):
+			return unary(isChar(p0)
+				? LowExprKind.SpecialUnary.Kind.toNat8FromChar
 				: failUnary());
 		case shortSymAlphaLiteralValue("true"):
 			return constantBool(true);

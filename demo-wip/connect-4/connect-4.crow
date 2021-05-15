@@ -1,0 +1,166 @@
+import
+	col.arr-util: repeat
+	io.print: clear-screen, print
+	io.stdin: read-stdin-until-parse
+	#log: info, log
+	str-util: strip
+	.board:
+		board, board-cache, can-place?, color, empty-board, has-empty?, just-won?, opposite, place,
+		red, set-subscript, subscript, to-str, width
+
+main fut nat(args arr str) summon
+	print: "Select a game:\n(If using hard CPU, compile with --optimize)\n"
+	print: "2: 2-player game\nE: Easy\nM: Medium\nH: Hard\nH2: Hard and CPU goes first\nCPU: CPU vs CPU\n"
+	#settings = "Invalid option" read-stdin-until-parse {it parse-settings}
+	settings = 11.some ai-settings 11.some
+	empty-board print-board red, none
+	winner <- empty-board play-recur red, settings
+	print: winner show-winner
+	0 resolved
+
+# TODO:PRIVATE
+parse-settings opt ai-settings(a str)
+	if a == "2"
+		none ai-settings none some
+	elif a == "E"
+		none ai-settings 6.some some
+	elif a == "M"
+		none ai-settings 8.some some
+	elif a == "H"
+		none ai-settings 10.some some
+	elif a == "H2"
+		10.some ai-settings none some
+	elif a == "CPU"
+		10.some ai-settings 10.some some
+
+.show-winner str(winner opt color)
+	if w ?= winner
+		"{w} wins!"
+	else
+		"It's a tie."
+
+.ai-settings record
+	ai-depth-red opt nat
+	ai-depth-blue opt nat
+
+.ai-depth-for-color opt nat(color color, ai-settings ai-settings)
+	match color
+	as red
+		ai-settings ai-depth-red
+	as blue
+		ai-settings ai-depth-blue
+
+.play-recur fut opt color(board board, cur-player color, ai-settings ai-settings) summon
+	x <- if depth ?= cur-player ai-depth-for-color ai-settings
+		board ai-best-x depth
+	else
+		board human-player-move cur-player resolved
+	new-board = board place x
+	other-player = cur-player opposite
+	new-board print-board other-player, x.some
+	if new-board just-won?
+		cur-player.some resolved
+	elif new-board has-empty?
+		new-board play-recur other-player, ai-settings
+	else
+		none resolved
+
+.print-board void(a board, cur-player color, last-x opt nat) summon
+	clear-screen
+	print: a to-str cur-player, last-x
+
+.human-player-move nat(board board, color color) summon
+	print: "{color} player, where will you go? (Type a letter A-G and hit enter)"
+	board human-player-move-recur
+.human-player-move-recur nat(board board) summon
+	column = "Not a valid column." read-stdin-until-parse {it column-of-str}
+	if board can-place? column
+		column
+	else
+		print: "Can't, column is full."
+		board human-player-move-recur
+
+.column-of-str opt nat(a str)
+	if n ?= a.strip letter-to-number
+		if n < width
+			n some
+
+.letter-to-number opt nat(a str)
+	if a.size-bytes == 1
+		n = a.chars[0] to-nat8
+		# TODO: shouldn't need as<char>
+		if "A".as<char>.to-nat8 <= n and n < "Z".as<char>.to-nat8
+			some: n - "A".as<char>.to-nat8 to-nat
+		elif "a".as<char>.to-nat8 <= n and n < "z".as<char>.to-nat8
+			some: n - "a".as<char>.to-nat8 to-nat
+
+.strategy record
+	by-val
+	x nat
+	score int32
+
+# TODO:PRIVATE
+score-and-best record
+	by-val
+	score int32
+	best strategy
+
+score-cache alias
+	board-cache int32
+
+# Return a fut as this may do a lot of processing
+.ai-best-x fut nat(board board, ai-depth nat)
+	<- delay
+	# Use a new cache each time, since each turn we're exploring to a further depth.
+	cache = board-cache<int32>
+	resolved: cache strategy-recur board, ai-depth, (0 strategy min-int32), 0, 0 x
+
+.strategy-score int32(cache score-cache, board board, ai-depth nat)
+	if cached ?= cache[board]
+		cached
+	else
+		res = cache strategy-recur board, ai-depth, (0 strategy min-int32), 0, 0 score
+		cache[board] := res
+		res
+
+.strategy-recur strategy(cache score-cache, board board, ai-depth nat, best strategy, sum-score int, x nat)
+	if x == width
+		best.x strategy sum-score.clamp-to-int32
+	else
+		#log? = true
+		#ai-depth >= 8
+		score-and-best = if board can-place? x
+			new-board = board place x
+			#if log?
+			#	info log "{ai-depth indent}Depth {ai-depth}: Thinking about {x}"
+			score = if new-board just-won?
+				#if log?
+				#	info log "{ai-depth indent}Depth {ai-depth}: I'll win!"
+				(width ^ ai-depth).to-int clamp-to-int32
+			elif ai-depth == 0
+				0
+			else
+				(cache strategy-score new-board, ai-depth - 1) * -1
+				#if log?
+				#	info log "{ai-depth indent}Depth {ai-depth}: Other player's outcome: {other-player-score}"
+			new-strategy = if score > best.score
+				#if log?
+				#	info log "{ai-depth indent}Depth {ai-depth}: Will use this new strategy at {x} with score {score}"
+				x strategy score
+			else
+				best
+			score score-and-best new-strategy
+		else
+			#if log?
+			#	info log "{ai-depth indent}Depth {ai-depth}: Can't place at {x}"
+			0 score-and-best best
+		#if log?
+		#	info log "{ai-depth indent}Depth {ai-depth}: Score at {x} is {score-and-best score}"
+		cache strategy-recur board, ai-depth, score-and-best.best, (sum-score + score-and-best.score.to-int), x + 1
+
+indent str(depth nat)
+	"  " repeat 9 - depth
+
+# TODO: to stdlib
+repeat str(a str, n nat)
+	a.chars repeat n str

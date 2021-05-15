@@ -1,18 +1,20 @@
 # Corresponds to /usr/include/x86_64-linux-gnu/bits/socket.h
 no-std
 import
-	..number: int32
+	..number: int32, nat16
 	..cell: cell
 	..ptr: any-ptr
-	.c-types: size-t
+	.c-types: c-int, size-t
 	.extra-types: err-t, fd-t
 	.types: socklen-t
 	.unistd: ssize-t
 
-af-unspec int32() noctx
+af-unspec nat16() noctx
 	0
 
-af-inet int32() noctx
+af-inet nat16() noctx
+	2
+af-inet c-int() noctx
 	2
 
 sockaddr extern-ptr
@@ -23,7 +25,7 @@ bind err-t(fd fd-t, addr sockaddr, len socklen-t) unsafe extern<"bind"> noctx su
 
 recv ssize-t(fd fd-t, buf any-ptr, n size-t, flags int32) unsafe extern<"recv"> noctx summon
 
-socket fd-t(domain int32, type int32, protocol int32) unsafe extern<"socket"> noctx summon
+socket fd-t(domain c-int, type c-int, protocol c-int) unsafe extern<"socket"> noctx summon
 
 connect int32(fd fd-t, addr sockaddr, len socklen-t) unsafe extern<"connect"> noctx summon
 
@@ -37,3 +39,25 @@ shut-wr int32() noctx
 	1
 shut-rdwr int32() noctx
 	2
+
+sock-stream int32() noctx
+	1
+sock-dgram int32() noctx
+	2
+sock-raw int32() noctx
+	3
+sock-rdm int32() noctx
+	4
+sock-seqpacket int32() noctx
+	5
+sock-dccp int32() noctx
+	6
+sock-packet int32() noctx
+	10
+sock-cloexec int32() noctx
+	0o2000000
+sock-nonblock int32() noctx
+	0o4000
+
+sa-family-t alias
+	nat16

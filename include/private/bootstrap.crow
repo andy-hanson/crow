@@ -97,7 +97,8 @@ Thus, all operations on `c-str` are unsafe.
 c-str alias
 	ptr char
 
-to-nat nat(c char) noctx builtin
+to-char char(a nat8) noctx builtin
+to-nat8 nat8(c char) noctx builtin
 
 region bool.crow
 

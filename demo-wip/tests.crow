@@ -8,6 +8,7 @@ import
 	col.lookup: lookup
 	col.mut-deque: mut-deque
 	col.mut-dict: mut-dict
+	col.mut-grid: mut-grid
 	col.mut-list: mut-list
 	col.mut-lookup: mut-lookup
 	col.mut-priority-queue: mut-priority-queue
@@ -29,7 +30,7 @@ import
 	perf: perf-now
 	reader: reader, take-quoted-str!
 	serialize: from-bytes
-	private.bootstrap: ctx, get-ctx
+	test.test-runner: run-all-tests
 
 main fut nat(_ arr str) summon
 	drop: [].from-bytes as<arr nat8>
@@ -42,6 +43,7 @@ main fut nat(_ arr str) summon
 	drop: lookup<nat, str>
 	drop: mut-deque<nat>
 	drop: mut-dict<nat, nat>
+	drop: mut-grid<nat>
 	drop: mut-list<nat>
 	drop: mut-lookup<nat, nat>
 	drop: mut-priority-queue<nat, nat>
@@ -60,15 +62,6 @@ main fut nat(_ arr str) summon
 	drop: [] parse-named-args []
 	run-all-tests
 	0 resolved
-
-all-tests arr fun-ptr1<void, ctx>() builtin
-
-run-all-tests void() summon trusted
-	tests = all-tests
-	print: "Running {tests size} tests"
-	tests each \test
-		test[get-ctx]
-	print: "done"
 
 test
 	1 + 1 is 2

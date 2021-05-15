@@ -28,6 +28,10 @@ void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 			binary(dataStack, (immutable ulong a, immutable ulong b) =>
 				immutable Nat64(a | b));
 			break;
+		case FnOp.bitwiseXor:
+			binary(dataStack, (immutable ulong a, immutable ulong b) =>
+				immutable Nat64(a ^ b));
+			break;
 		case FnOp.compareExchangeStrongBool:
 			trinary(dataStack, (immutable ulong a, immutable ulong b, immutable ulong c) =>
 				compareExchangeStrongBool(a, b, c));

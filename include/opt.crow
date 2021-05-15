@@ -81,18 +81,31 @@ force ?a(a opt ?a, message str)
 	if v ?= a
 		v
 	else
-		throw: message
+		message throw
 
 # TODO: Should be called 'force' too, but that loses the expected type
 or-throw ?a(a opt ?a, get-message act str())
 	if v ?= a
 		v
 	else
-		throw: get-message[]
+		get-message[] throw
+
+###
+If both `a` and `b` are non-empty, combines them using `f`.
+Else, returns the non-empty one.
+###
+opt-combine opt ?a(a opt ?a, b opt ?a, f act ?a(?a, ?a))
+	if va ?= a
+		if vb ?= b
+			f[va, vb] some
+		else
+			a
+	else
+		b
 
 opt-join opt pair<?in-0, ?in-1>(a opt ?in-0, b opt ?in-1)
 	a opt-join b, \x, y
-		pair: x, y
+		x pair y
 
 ###
 Returns `some: f[a.force, b.force]` iff both `a` and `b` are `some`, else returns `none`.

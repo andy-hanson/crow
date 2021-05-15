@@ -1,0 +1,45 @@
+no-std
+import
+	...col.dict: dict
+	...number: nat
+	...str: ==, <=>, str
+
+# Parse of a single HTTP request.
+http-request record
+	method http-method
+	url str
+	headers dict<str, str>
+	body str
+
+# Response to send to a single HTTP request.
+http-response record
+	status nat
+	status-desc str
+	headers dict<str, str>
+	body str
+
+http-bad-query http-response(message str)
+	http-response: 400, message, dict, message
+
+http-not-found http-response()
+	"Not found" http-not-found
+
+http-not-found http-response(message str)
+	http-response: 404, message, dict, message
+
+# Method used by an HTTP request.
+http-method union
+	http-get
+	http-post
+
+# HTTP GET method.
+http-get record
+# HTTP POST method.
+http-post record
+
+to-str str(a http-method)
+	match a
+	as http-get
+		"GET"
+	as http-post
+		"POST"

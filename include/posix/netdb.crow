@@ -6,6 +6,7 @@ import
 	..number: int32
 	..ptr: ptr
 	..str: c-str
+	.c-types: c-int
 	.socket: sockaddr
 	.types: socklen-t
 
@@ -37,3 +38,22 @@ spec
 	summon
 freeaddrinfo void(ai ptr addrinfo) unsafe extern<"freeaddrinfo"> noctx
 gai-strerror c-str(ecode int32) extern<"gai-strerror"> noctx
+
+hostent record mut
+	by-ref
+	h-name c-str
+	h-aliases ptr c-str
+	h-addrtype c-int
+	h-length c-int
+	h-addr-list ptr c-str
+
+gethostbyname hostent(name c-str) unsafe extern<"gethostbyname"> noctx
+
+protoent record mut
+	by-ref
+	p-name c-str
+	p-aliases ptr c-str
+	p-proto c-int
+
+getprotobyname protoent(name c-str) unsafe extern<"getprotobyname"> noctx
+

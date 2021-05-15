@@ -1,27 +1,33 @@
 # /usr/include/netinet/in.h
 no-std
 import
-	...misc: drop, void
-	...number: nat, nat16
+	...number: nat16, nat32, nat64
+	..socket: sa-family-t
+
+in-addr-t alias
+	nat32
+in-addr record
+	by-val
+	s-addr in-addr-t
 
 in-port-t alias
 	nat16
 
-.sockaddr-sizer record
-	by-val
-	# 16 bytes
-	a nat
-	b nat
-
-# TOOD:KILL (allow unused record fields)
-useless void(a sockaddr-sizer)
-	drop: a.a
-	drop: a.b
-
 # Same size as sockaddr
 sockaddr-in record
 	by-val
-	sizer sockaddr-sizer
+	# 2 bytes
+	sin-family sa-family-t
+	# 2 bytes
+	sin-port in-port-t
+	# 4 bytes
+	sin-addr in-addr
+	padding nat64
 
-empty-sockaddr-in sockaddr-in() unsafe noctx
-	sockaddr-in: sockaddr-sizer: 0, 0
+sockaddr-in sockaddr-in(sin-family sa-family-t, sin-port in-port-t, sin-addr in-addr) noctx
+	sin-family sockaddr-in sin-port, sin-addr, 0
+
+empty-sockaddr-in sockaddr-in() noctx
+	0 sockaddr-in 0, 0.in-addr
+
+htons nat16(hostshort nat16) unsafe extern<"htons"> noctx

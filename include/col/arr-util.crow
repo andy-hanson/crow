@@ -11,7 +11,7 @@ import
 	..tuple: pair
 	..private.alloc: alloc-uninitialized, fill-ptr-range
 	..private.exception-low-level: assert, forbid
-	..private.number-low-level: ==, <=>, wrap-add
+	..private.number-low-level: ==, <=>, unsafe-mod, wrap-add, wrap-mul
 	.arr: ==, ~, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, noctx-at, size, subscript
 
 alloc-count nat(a arr ?a) unsafe
@@ -478,3 +478,7 @@ pad-left arr ?a(pad ?a, a arr ?a, min-size nat)
 				a[index - diff]
 	else
 		a
+
+repeat arr ?a(a arr ?a, n nat) trusted
+	a.size wrap-mul n make-arr \i
+		a[i unsafe-mod a.size]

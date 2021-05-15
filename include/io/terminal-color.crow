@@ -1,0 +1,17 @@
+term-reset str()
+	"\x1b[m"
+
+term-bold str()
+	"\x1b[1m"
+
+term-color str(r float, g float, b float)
+	"\x1b[38;2;{r to-color};{g to-color};{b to-color}m"
+
+.to-color nat(f float)
+	(f * 255.0).truncate-to-int.clamp-to-nat clamp 0, 255
+
+term-red str()
+	"\x1b[31m"
+
+term-blue str()
+	"\x1b[36m"

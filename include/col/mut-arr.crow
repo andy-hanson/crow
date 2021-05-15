@@ -11,7 +11,7 @@ import
 	..private.exception-low-level: assert, forbid
 	..private.number-low-level: ==, <=>, nat, wrap-mul, wrap-sub
 	.arr: arr, arr-from-begin-end, begin-ptr, size, subscript
-	.arr-util: each, each-with-index, find-index, fold, fold-reverse
+	.arr-util: each, each-with-index, exists?, find-index, fold, fold-reverse
 
 ###
 Like `arr` but mutable.
@@ -206,6 +206,9 @@ reverse! void(a mut-arr ?a) trusted
 		left + 1 reverse-recur! right - 1
 
 region iteration
+
+exists? bool(a mut-arr ?a, f act bool(?a)) trusted
+	a.temp-as-arr exists? f
 
 # Calls 'f' on each element in the mut-arr.
 each void(a mut-arr ?a, f act void(?a)) trusted

@@ -5,9 +5,8 @@ import
 	.misc: as, void
 	.number: nat
 	.ptr: by-val, ref-of-val
-	.str: chars, str
-	.private.bootstrap: to-nat
-	.private.number-low-level: wrap-add
+	.str: chars, str, to-nat8
+	.private.number-low-level: wrap-add, to-nat
 
 hash nat(a ?a) trusted hash-mix<?a>
 	hasher = as<by-val hasher>: hasher: 0
@@ -32,4 +31,4 @@ hash-mix void(hasher hasher, a bool)
 
 hash-mix void(hasher hasher, a str)
 	a.chars each \c
-		hasher hash-mix c.to-nat
+		hasher hash-mix c.to-nat8.to-nat

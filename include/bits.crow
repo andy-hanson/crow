@@ -4,43 +4,52 @@ import
 	.compare: !=, <
 	.fun: subscript
 	.private.bootstrap:
-		int, int8, int16, int32, nat, nat8, nat16, nat32, nat64, todo
+		int8, int16, int32, int64, nat8, nat16, nat32, nat64, todo
 	.private.number-low-level:
 		==, <=>, to-int, to-nat, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, unsafe-to-nat8,
-		unsafe-to-nat16, unsafe-to-nat32, wrap-add
+		unsafe-to-nat16, unsafe-to-nat32, wrap-add, wrap-mul
 
 ###
 Negates each bit in parallel.
 0 bits become 1 bits and vice versa.
 ###
-bits-not nat(a nat) noctx builtin
+bits-not nat64(a nat64) noctx builtin
 
 ###
 Intersects each corresponding bit in parallel.
 Output bits will be 1 iff both input bits are.
 ###
-bits-and nat(a nat, b nat) noctx builtin
 bits-and nat16(a nat16, b nat16) noctx builtin
 bits-and nat32(a nat32, b nat32) noctx builtin
-bits-and int(a int, b int) noctx builtin
+bits-and nat64(a nat64, b nat64) noctx builtin
 bits-and int8(a int8, b int8) noctx builtin
 bits-and int16(a int16, b int16) noctx builtin
 bits-and int32(a int32, b int32) noctx builtin
+bits-and int64(a int64, b int64) noctx builtin
 
-bits-diff nat(a nat, b nat)
+bits-diff nat64(a nat64, b nat64)
 	a bits-and b.bits-not
 
 ###
 Unions each corresponding bit in parallel.
 Output bits will be 1 iff either input bit is.
 ###
+bits-or nat8(a nat8, b nat8) noctx builtin
 bits-or nat16(a nat16, b nat16) noctx builtin
 bits-or nat32(a nat32, b nat32) noctx builtin
-bits-or nat(a nat, b nat) noctx builtin
-bits-or nat8(a nat8, b nat8) noctx builtin
+bits-or nat64(a nat64, b nat64) noctx builtin
 bits-or int16(a int16, b int16) noctx builtin
 bits-or int32(a int32, b int32) noctx builtin
-bits-or int(a int, b int) noctx builtin
+bits-or int64(a int64, b int64) noctx builtin
+
+bits-xor nat8(a nat8, b nat8) noctx builtin
+bits-xor nat16(a nat16, b nat16) noctx builtin
+bits-xor nat32(a nat32, b nat32) noctx builtin
+bits-xor nat64(a nat64, b nat64) noctx builtin
+bits-xor int8(a int8, b int8) noctx builtin
+bits-xor int16(a int16, b int16) noctx builtin
+bits-xor int32(a int32, b int32) noctx builtin
+bits-xor int64(a int64, b int64) noctx builtin
 
 # True if the numbers have at least one bit in common.
 bits-intersect? bool(a int16, b int16) noctx
@@ -52,8 +61,12 @@ bits-intersect? bool(a nat32, b nat32) noctx
 bits-intersect? bool(a nat64, b nat64) noctx
 	(a bits-and b) != 0
 
-unsafe-bit-shift-left nat(a nat, b nat) noctx builtin unsafe
-unsafe-bit-shift-right nat(a nat, b nat) noctx builtin unsafe
+# True if all 1 bits in 'b' are 1 bits in 'a'.
+has-all-bits? bool(a nat64, b nat64) noctx
+	(a bits-and b) == b
+
+unsafe-bit-shift-left nat64(a nat64, b nat64) noctx builtin unsafe
+unsafe-bit-shift-right nat64(a nat64, b nat64) noctx builtin unsafe
 
 # Shifts the bits of 'a' left by 'b' bits.
 bit-shift-left nat8(a nat8, b nat8) noctx trusted
@@ -77,6 +90,12 @@ bit-shift-left nat64(a nat64, b nat64) noctx trusted
 	else
 		0
 
+bit-shift-left nat64(a nat64, b int64) noctx trusted
+	if b < 0
+		a bit-shift-right: b wrap-mul -1 unsafe-to-nat
+	else
+		a bit-shift-left b.unsafe-to-nat
+
 # Shifts the bits of 'a' right by 'b' bits.
 bit-shift-right nat32(a nat32, b nat32) noctx trusted
 	if b < 32
@@ -88,6 +107,13 @@ bit-shift-right nat64(a nat64, b nat64) noctx trusted
 		a unsafe-bit-shift-right b
 	else
 		0
+
+bit-shift-right nat64(a nat64, b int64) noctx trusted
+	if b < 0
+		a bit-shift-left: b wrap-mul -1 unsafe-to-nat
+	else
+		a bit-shift-right b.unsafe-to-nat
+
 bit-shift-right int32(a int32, b int32) noctx trusted
 	if a < 0
 		todo
@@ -98,35 +124,35 @@ bit-shift-right int32(a int32, b int32) noctx trusted
 	else
 		todo
 
-nth-bit nat(bit-index nat)
+nth-bit nat64(bit-index nat64)
 	1 bit-shift-left bit-index
 
-bit? bool(a nat, bit-index nat)
+bit? bool(a nat64, bit-index nat64)
 	a bits-intersect? bit-index.nth-bit
 
-add-bit nat(a nat, bit-index nat)
+add-bit nat64(a nat64, bit-index nat64)
 	a bits-or bit-index.nth-bit
 
-sub-bit nat(a nat, bit-index nat)
+sub-bit nat64(a nat64, bit-index nat64)
 	a bits-diff bit-index.nth-bit
 
 # Number of 1 bits in the binary representation.
-count-ones nat(a nat) noctx builtin
+count-ones nat64(a nat64) noctx builtin
 
 # Calls 'f' on the index of each '1' bit.
-fold-one-bits ?a(acc ?a, a nat, f act ?a(?a, nat))
+fold-one-bits ?a(acc ?a, a nat64, f act ?a(?a, nat64))
 	acc fold-one-bits-recur a, 0, f
 # TODO:PERF faster way?
-.fold-one-bits-recur ?a(acc ?a, a nat, offset nat, f act ?a(?a, nat)) trusted
+.fold-one-bits-recur ?a(acc ?a, a nat64, offset nat64, f act ?a(?a, nat64)) trusted
 	if a == 0
 		acc
 	else
 		new-acc = a bits-intersect? 1 ? f[acc, offset], acc
 		new-acc fold-one-bits-recur (a unsafe-bit-shift-right 1), (offset wrap-add 1), f
 
-filter-bits nat(a nat, f act bool(nat))
+filter-bits nat64(a nat64, f act bool(nat64))
 	0 filter-bits-recur a, 0, f
-.filter-bits-recur nat(acc nat, a nat, offset nat, f act bool(nat)) trusted
+.filter-bits-recur nat64(acc nat64, a nat64, offset nat64, f act bool(nat64)) trusted
 	if a == 0
 		acc
 	else

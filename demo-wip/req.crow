@@ -1,0 +1,64 @@
+import
+	col.mut-arr: begin-ptr, cast-immutable, size, subscript, uninitialized-mut-arr
+	io.print: print
+	posix.arpa.inet: inet-addr, inet-ntoa
+	posix.extra-types: fd-t
+	posix.netdb: gethostbyname, getprotobyname, h-addr-list, p-proto
+	posix.netinet.in: htons, in-addr, sockaddr-in
+	posix.socket: af-inet, connect, sockaddr, socket, sock-stream
+	posix.unistd: read, write
+	ptr: as-any-ptr, null?, ptr-cast, ptr-cast-to-extern, ptr-to, size-of, subscript
+	str-util: as-str, bytes, to-c-str
+
+main fut nat(_ arr str) unsafe summon
+	hostname = "duckduckgo.com"
+	socket = get-tcp-socket
+	socket connect-socket! hostname, 80
+
+	request = "GET / HTTP/1.1\r\nHost: duckduckgo.com\r\n\r\n"
+
+	socket send-request! request
+	socket receive-response!
+
+	print: "Hello, world!"
+	0 resolved
+
+.get-tcp-socket fd-t() unsafe summon
+	protoent = "tcp".to-c-str getprotobyname
+	forbid: protoent.as-any-ptr null?
+	socket-file-descriptor = af-inet socket sock-stream, protoent.p-proto
+	forbid: socket-file-descriptor == -1
+	socket-file-descriptor
+
+.connect-socket! void(socket fd-t, hostname str, server-port nat16) unsafe summon
+	hostent = hostname.to-c-str gethostbyname
+	forbid: hostent.as-any-ptr null?
+	in-addr0 = hostent.h-addr-list[].ptr-cast<in-addr, char>
+	in-addr = in-addr0[].inet-ntoa inet-addr
+
+	sockaddr-in = af-inet sockaddr-in server-port.htons, in-addr.in-addr
+	sockaddr = sockaddr-in.ptr-to ptr-cast-to-extern<sockaddr, sockaddr-in>
+	assert: (socket connect sockaddr, sockaddr-in.size-of.to-nat32) == 0
+
+.send-request! void(socket fd-t, request str) unsafe summon
+	forbid: request empty?
+	socket send-request-recur! request.bytes
+.send-request-recur! void(socket fd-t, bytes arr nat8)
+	bytes-sent = socket write bytes.begin-ptr, bytes.size
+	# TODO: might be 0 if the socket is overloaded -- delay and try again
+	assert: bytes-sent > 0
+	if bytes-sent < bytes.size.to-int
+		socket send-request-recur! bytes[bytes-sent.to-nat -> bytes.size]
+	else
+		assert: bytes-sent == bytes.size.to-int
+
+.receive-response! void(socket fd-t) unsafe summon
+	buffer = 0x2000 uninitialized-mut-arr<nat8>
+	# TODO: use epoll like we did in the server, for a non-blocking read.
+	bytes-read = socket read buffer.begin-ptr, buffer.size
+	assert: bytes-read >= 0
+	if bytes-read > 0
+		print: "Read (partial?) response:"
+		print: buffer[0 -> bytes-read.to-nat].cast-immutable as-str
+		# TODO: Response might be partial. The parser will have to tell us that.
+

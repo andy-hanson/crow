@@ -1,0 +1,165 @@
+no-std
+import
+	..bool: and, bool, not
+	..compare: !=, <
+	..exception: assert
+	..fun: subscript
+	..log: info, log
+	..misc: ->, void
+	..number: *
+	..ptr: +, ptr, ptr-eq?, set-subscript, subscript
+	..private.number-low-level: ==, <=>, nat, wrap-add, wrap-mul
+	..str: ==, str
+	..str-conv: interp, finish, to-str, with-str, with-value
+	..test: is
+	..writer: ~=, backup!, move-to-str!, write, writer
+	.mut-arr:
+		begin-ptr, copy, each, empty?, end-ptr, exists?, fold, map!, mut-arr, set-subscript, size,
+		subscript, uninitialized-mut-arr
+
+###
+Mutable grid (matrix) type.
+Not really intended for linear algebra.
+Rows are stored contiguously.
+###
+mut-grid<?a> record mut
+	# TODO:PRIVATE
+	elements mut-arr ?a
+	width nat
+	height nat
+
+coord record
+	x nat
+	y nat
+
+has-coord? bool(a mut-grid ?a, coord coord)
+	coord.x < a.width and coord.y < a.height
+
+to-str str(a coord)
+	"<{a.x}, {a.y}>"
+
+zero coord()
+	0 coord 0
+
+row mut-arr ?a(a mut-grid ?a, y nat)
+	assert: y < a.height
+	begin = y wrap-mul a.width
+	a.elements[begin -> (begin wrap-add a.width)]
+
+mut-grid mut-grid ?a()
+	mut-arr mut-grid 0, 0
+
+size nat(a mut-grid ?a)
+	a.elements size
+
+fill-mut-grid mut-grid ?a(width nat, height nat, value ?a)
+	width make-mut-grid height, \ignore, ignore2
+		value
+
+make-mut-grid mut-grid ?a(width nat, height nat, f act ?a(nat, nat)) trusted
+	res = (width * height).uninitialized-mut-arr mut-grid<?a> width, height
+	res map-with-coords! \ignore, coord
+		f[coord.x, coord.y]
+	res
+
+copy mut-grid ?a(a mut-grid ?a)
+	a.elements.copy mut-grid a.width, a.height
+
+subscript ?a(a mut-grid ?a, x nat, y nat)
+	index = a index-for x, y
+	a.elements[index]
+
+subscript ?a(a mut-grid ?a, coord coord)
+	a[coord.x, coord.y]
+
+set-subscript void(a mut-grid ?a, x nat, y nat, value ?a)
+	index = a index-for x, y
+	a.elements[index] := value
+
+set-subscript void(a mut-grid ?a, coord coord, value ?a)
+	a[coord.x, coord.y] := value
+
+.index-for nat(a mut-grid ?a, x nat, y nat)
+	assert: x < a.width
+	assert: y < a.height
+	res = y wrap-mul a.width wrap-add x
+	assert: res < a.elements.size
+	res
+
+###
+Represented with row 0 coming first.
+###
+to-str str(a mut-grid ?a) write<?a>
+	res = writer
+	a each-row \row
+		row each \value
+			res ~= value
+			res ~= " "
+		if row.empty? not
+			res backup!
+		res ~= "\n"
+	if a.height != 0
+		res backup!
+	res move-to-str!
+
+region iteration
+
+each void(a mut-grid ?a, f act void(?a))
+	void fold a, \ignore, value
+		f[value]
+
+each-row void(a mut-grid ?a, f act void(mut-arr ?a))
+	void fold-rows a, \ignore, row
+		f[row]
+
+fold-rows ?a(acc ?a, a mut-grid ?b, f act ?a(?a, mut-arr ?b))
+	acc fold-rows-recur a, 0, f
+.fold-rows-recur ?a(acc ?a, a mut-grid ?b, y nat, f act ?a(?a, mut-arr ?b))
+	if y == a.height
+		acc
+	else
+		f[acc, a row y] fold-rows-recur a, (y wrap-add 1), f
+
+fold ?a(acc ?a, a mut-grid ?b, f act ?a(?a, ?b))
+	acc fold a.elements, f
+
+fold-with-coords ?a(acc ?a, a mut-grid ?b, f act ?a(?a, ?b, coord)) trusted
+	acc fold-with-coords-recur a.elements.begin-ptr, a.elements.end-ptr, zero, a.width, f
+.fold-with-coords-recur ?a(acc ?a, cur ptr ?b, end ptr ?b, coord coord, width nat, f act ?a(?a, ?b, coord)) unsafe
+	if cur ptr-eq? end
+		acc
+	else
+		f[acc, cur[], coord] fold-with-coords-recur cur + 1, end, (coord next-coord width), width, f
+
+exists? bool(a mut-grid ?a, f act bool(?a))
+	a.elements exists? f
+
+map! void(a mut-grid ?a, f act ?a(?a))
+	a.elements map! f
+
+map-with-coords! void(a mut-grid ?a, f act ?a(?a, coord)) trusted
+	a.elements.begin-ptr map-with-coords-recur! a.elements.end-ptr, zero, a.width, f
+.map-with-coords-recur! void(cur ptr ?a, end ptr ?a, coord coord, width nat, f act ?a(?a, coord)) unsafe
+	if cur ptr-eq? end
+		void
+	else
+		cur[] := f[cur[], coord]
+		cur + 1 map-with-coords-recur! end, (coord next-coord width), width, f
+
+.next-coord coord(a coord, width nat)
+	new-x = a.x wrap-add 1
+	if new-x == width
+		0 coord: a.y wrap-add 1
+	else
+		new-x coord a.y
+
+test
+	info log "START THE TEST"
+
+	a = 3 make-mut-grid<str> 2, \x, y
+		"{x}|{y}"
+	a.to-str is "0|0 1|0 2|0\n0|1 1|1 2|1"
+
+	folded = "S" fold-with-coords a, \acc, value, coord
+		"{acc} {value}/{coord}"
+	folded is "S 0|0/<0, 0> 1|0/<1, 0> 2|0/<2, 0> 0|1/<0, 1> 1|1/<1, 1> 2|1/<2, 1>"

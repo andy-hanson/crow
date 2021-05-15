@@ -22,55 +22,18 @@ import
 	...str-util: as-str, has-substr?, split-by, try-remove-end
 	...writer: ~=, move-to-str!, writer
 	..print: print
+	.http-types:
+		body, headers, http-get, http-method, http-post, http-request, http-response, status,
+		status-desc
 	.tcp-server: close-client, start-tcp-server, stop, tcp-handler
 
 # Represents the state of the server.
 http-server record sendable
 	stop ref void()
 
-# Parse of a single HTTP request.
-http-request record
-	method http-method
-	url str
-	headers dict<str, str>
-	body str
-
-# Response to send to a single HTTP request.
-http-response record
-	status nat
-	status-desc str
-	headers dict<str, str>
-	body str
-
-http-bad-query http-response(message str)
-	http-response: 400, message, dict, message
-
-http-not-found http-response()
-	"Not found" http-not-found
-
-http-not-found http-response(message str)
-	http-response: 404, message, dict, message
-
 # A function that can respond to HTTP requests.
 http-handler alias
 	ref http-response(http-request)
-
-# HTTP GET method.
-http-get record
-# HTTP POST method.
-http-post record
-
-# Method used by an HTTP request.
-http-method union
-	http-get
-	http-post
-
-to-str str(a http-method)
-	match a
-	as http-get
-		"GET"
-	as http-post
-		"POST"
 
 ###
 Starts running an HTTP server on the given port.

@@ -188,7 +188,9 @@ void writeEscapedChar_inner(Alloc)(ref Writer!Alloc writer, immutable char c) {
 			break;
 		// TODO: handle other special characters like this one
 		case '\x1b':
-			writeStatic(writer, "\\x1b");
+			// NOTE: need two adjacent concatenated strings
+			// in case the next character is a valid hex digit
+			writeStatic(writer, "\\x1b\"\"");
 			break;
 		default:
 			writeChar(writer, c);
