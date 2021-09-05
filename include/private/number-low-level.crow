@@ -3,7 +3,7 @@ import
 	..compare: comparison, equal, greater, less
 	.bool-low-level: ?, bool, not
 export
-	.bootstrap: float, int, int8, int16, int32, int64, nat, nat8, nat16, nat32, nat64
+	.bootstrap: float, float32, int, int8, int16, int32, int64, nat, nat8, nat16, nat32, nat64
 
 <=> comparison(a nat8, b nat8) noctx
 	a less? b ?: less, a == b ? equal, greater
@@ -23,6 +23,8 @@ export
 	a less? b ?: less, a == b ? equal, greater
 <=> comparison(a float, b float) noctx
 	a less? b ?: less, a == b ? equal, greater
+<=> comparison(a float32, b float32) noctx
+	a less? b ?: less, a == b ? equal, greater
 
 .less? bool(a nat8, b nat8) noctx builtin
 .less? bool(a nat16, b nat16) noctx builtin
@@ -33,6 +35,7 @@ export
 .less? bool(a int32, b int32) noctx builtin
 .less? bool(a int64, b int64) noctx builtin
 .less? bool(a float, b float) noctx builtin
+.less? bool(a float32, b float32) noctx builtin
 == bool(a nat8, b nat8) noctx builtin
 == bool(a nat16, b nat16) noctx builtin
 == bool(a nat32, b nat32) noctx builtin
@@ -42,6 +45,7 @@ export
 == bool(a int32, b int32) noctx builtin
 == bool(a int64, b int64) noctx builtin
 == bool(a float, b float) noctx builtin
+== bool(a float32, b float32) noctx builtin
 
 unsafe-mod nat64(a nat64, b nat64) noctx unsafe builtin
 

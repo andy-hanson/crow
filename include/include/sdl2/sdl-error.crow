@@ -1,0 +1,8 @@
+# SDL_error.h
+
+no-std
+import
+	.,.number: int
+
+sdl-err alias
+	int

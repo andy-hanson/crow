@@ -580,6 +580,7 @@ void writeFn(Debug, Alloc)(
 			case FnOp.bitwiseXor:
 			case FnOp.eqBits:
 			case FnOp.eqFloat64:
+			case FnOp.lessFloat32:
 			case FnOp.lessFloat64:
 			case FnOp.lessInt8:
 			case FnOp.lessInt16:
@@ -590,6 +591,7 @@ void writeFn(Debug, Alloc)(
 			case FnOp.subFloat64:
 			case FnOp.unsafeBitShiftLeftNat64:
 			case FnOp.unsafeBitShiftRightNat64:
+			case FnOp.unsafeDivFloat32:
 			case FnOp.unsafeDivFloat64:
 			case FnOp.unsafeDivInt64:
 			case FnOp.unsafeDivNat64:
@@ -600,11 +602,13 @@ void writeFn(Debug, Alloc)(
 				return -1;
 			case FnOp.bitsNotNat64:
 			case FnOp.countOnesNat64:
+			case FnOp.float64FromFloat32:
 			case FnOp.float64FromInt64:
 			case FnOp.float64FromNat64:
 			case FnOp.intFromInt16:
 			case FnOp.intFromInt32:
-			case FnOp.isNan:
+			case FnOp.isNanFloat32:
+			case FnOp.isNanFloat64:
 			case FnOp.truncateToInt64FromFloat64:
 				return 0;
 		}

@@ -122,10 +122,10 @@ enum StepResult {
 	exit,
 }
 
-alias DataStack = GlobalAllocatedStack!(Nat64, 1024 * 4);
-private alias ReturnStack = GlobalAllocatedStack!(immutable(ubyte)*, 1024);
+alias DataStack = GlobalAllocatedStack!(Nat64, 1024 * 64);
+private alias ReturnStack = GlobalAllocatedStack!(immutable(ubyte)*, 1024 * 4);
 // Gives start stack position of each function
-private alias StackStartStack = GlobalAllocatedStack!(Nat16, 1024);
+private alias StackStartStack = GlobalAllocatedStack!(Nat16, 1024 * 4);
 
 struct Interpreter(Extern) {
 	@safe @nogc pure nothrow:
@@ -677,11 +677,11 @@ alias JmpBufTag = immutable InterpreterRestore*;
 	zipSystem!(Nat64, Nat8)(values, sizes, (ref immutable Nat64 value, ref immutable Nat8 size) {
 		//TODO: use a 'size' type
 		if (size == immutable Nat8(1))
-			*bytePtr = value.to8().raw();
+			*bytePtr = cast(ubyte) value.raw();
 		else if (size == immutable Nat8(2))
-			*(cast(ushort*) bytePtr) = value.to16().raw();
+			*(cast(ushort*) bytePtr) = cast(ushort) value.raw();
 		else if (size == immutable Nat8(4))
-			*(cast(uint*) bytePtr) = value.to32().raw();
+			*(cast(uint*) bytePtr) = cast(uint) value.raw();
 		else
 			unreachable!void();
 		bytePtr += size.raw();

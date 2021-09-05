@@ -1,0 +1,107 @@
+import
+	bits: bits-or
+	include.sdl2.sdl:
+		sdl-get-error, sdl-init, sdl-init-video, sdl-quit
+	include.sdl2.sdl-events:
+		sdl-event, sdl-poll-event, sdl-pump-events, sdl-quit, type
+	include.sdl2.sdl-keyboard:
+		sdl-get-keyboard-state
+	include.sdl2.sdl-render:
+		sdl-create-renderer, sdl-destroy-texture, sdl-create-texture-from-surface,
+		sdl-destroy-renderer, sdl-render-clear, sdl-render-copy, sdl-renderer,
+		sdl-renderer-accelerated, sdl-renderer-present-vsync, sdl-render-present, sdl-texture
+	include.sdl2.sdl-scancode:
+		sdl-num-scancodes, sdl-scancode-return
+	include.sdl2.sdl-surface:
+		sdl-free-surface, sdl-load-bmp
+	include.sdl2.sdl-video:
+		sdl-create-window, sdl-destroy-window, sdl-window, sdl-window-shown
+	io.duration: duration, msec
+	io.print: print
+	io.time: delay
+	posix.c-types: c-int
+	ptr: as-any-ptr, null, null?
+	str-util: to-c-str, to-str
+
+main fut nat(_ arr str) summon trusted
+	"sdl-init-video" handle-sdl-error: sdl-init-video sdl-init
+	window = "Hello World!".to-c-str sdl-create-window 100, 100, 640, 480, sdl-window-shown
+	if window.as-any-ptr null?
+		"sdl-create-window" fail-sdl-error
+	renderer = window renderer
+	texture = renderer create-texture
+
+	<- 100.msec repeat-interval {renderer main-loop-body texture}
+
+	# TODO: use 'finally'
+	texture sdl-destroy-texture
+	renderer sdl-destroy-renderer
+	window sdl-destroy-window
+	sdl-quit
+
+	print: "Bye bye"
+	0 resolved
+
+.main-loop-body continue-or-quit(renderer sdl-renderer, texture sdl-texture) summon trusted
+	sdl-pump-events
+	if look-for-quit-event
+		quit
+	else
+		key-states-ptr = null sdl-get-keyboard-state
+		key-states = arr: sdl-num-scancodes, key-states-ptr
+		print: key-states[sdl-scancode-return] == 0 ? "no return", "return is pressed"
+
+		"sdl-render-clear" handle-sdl-error: renderer sdl-render-clear
+		"sdl-render-copy" handle-sdl-error: renderer sdl-render-copy texture, null, null
+		renderer sdl-render-present
+		continue
+
+.look-for-quit-event bool() summon
+	e = sdl-event
+	if e.sdl-poll-event == 0
+		false
+	else
+		if e.type == sdl-quit
+			true
+		else
+			look-for-quit-event
+
+.renderer sdl-renderer(window sdl-window) summon trusted
+	renderer = window sdl-create-renderer: -1, sdl-renderer-accelerated bits-or sdl-renderer-present-vsync
+	if renderer.as-any-ptr null?
+		"sdl-create-renderer" fail-sdl-error
+	renderer
+
+.create-texture sdl-texture(renderer sdl-renderer) summon trusted
+	image-path = "demo/ball/hello.bmp"
+	bmp = image-path sdl-load-bmp
+	if bmp.as-any-ptr null?
+		"sdl-loadbmp-error" fail-sdl-error
+	texture = renderer sdl-create-texture-from-surface bmp
+	bmp sdl-free-surface
+	if texture.as-any-ptr null?
+		"sdl-create-texture-from-surface" fail-sdl-error
+	texture
+
+.handle-sdl-error void(operation str, err c-int) summon trusted
+	if err != 0
+		operation fail-sdl-error
+
+.fail-sdl-error void(operation str) summon trusted
+	throw: "sdl error in {operation}: {sdl-get-error}"
+	sdl-quit
+
+continue record
+quit record
+continue-or-quit union
+	continue
+	quit
+
+# TODO:MOVE
+.repeat-interval fut void(interval duration, action act continue-or-quit()) summon
+	match action[]
+	as continue
+		<- interval delay
+		interval repeat-interval action
+	as quit
+		void resolved

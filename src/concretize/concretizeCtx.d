@@ -248,11 +248,11 @@ immutable(ConcreteType) strType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
 	});
 }
 
-immutable(ConcreteType) ctxType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a)
-out(it) { verify(it.isPointer); }
-body {
-	return lazilySet(a._ctxType, () =>
+immutable(ConcreteType) ctxType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
+	immutable ConcreteType res = lazilySet(a._ctxType, () =>
 		getConcreteType_forStructInst(alloc, a, a.ctxStructInst, TypeArgsScope.empty));
+	verify(res.isPointer);
+	return res;
 }
 
 immutable(Constant) constantStr(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, immutable string value) {
@@ -666,6 +666,8 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 			return BuiltinStructKind.bool_;
 		case shortSymAlphaLiteralValue("char"):
 			return BuiltinStructKind.char_;
+		case shortSymAlphaLiteralValue("float32"):
+			return BuiltinStructKind.float32;
 		case shortSymAlphaLiteralValue("float"):
 			return BuiltinStructKind.float64;
 		case shortSymAlphaLiteralValue("fun0"):
@@ -718,6 +720,8 @@ immutable(size_t) getBuiltinStructSize(immutable BuiltinStructKind kind) {
 			return bool.sizeof;
 		case BuiltinStructKind.char_:
 			return char.sizeof;
+		case BuiltinStructKind.float32:
+			return float.sizeof;
 		case BuiltinStructKind.float64:
 			return double.sizeof;
 		case BuiltinStructKind.fun:

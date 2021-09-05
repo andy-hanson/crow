@@ -62,6 +62,7 @@ struct LowFunPtrType {
 enum PrimitiveType {
 	bool_,
 	char_,
+	float32,
 	float64,
 	int8,
 	int16,
@@ -81,6 +82,8 @@ immutable(Sym) symOfPrimitiveType(immutable PrimitiveType a) {
 				return "bool";
 			case PrimitiveType.char_:
 				return "char";
+			case PrimitiveType.float32:
+				return "float-32";
 			case PrimitiveType.float64:
 				return "float-64";
 			case PrimitiveType.int8:
@@ -256,6 +259,11 @@ private immutable(bool) isPtrGcOrRaw(ref immutable LowType a) {
 immutable(LowType.FunPtr) asFunPtrType(ref immutable LowType a) {
 	verify(a.kind_ == LowType.Kind.funPtr);
 	return a.funPtr_;
+}
+
+immutable(PrimitiveType) asPrimitiveType(ref immutable LowType a) {
+	verify(a.kind_ == LowType.Kind.primitive);
+	return a.primitive_;
 }
 
 immutable(LowType.Record) asRecordType(ref immutable LowType a) {
@@ -682,10 +690,12 @@ struct LowExprKind {
 			bitsNotNat64,
 			countOnesNat64,
 			deref,
-			isNan,
+			isNanFloat32,
+			isNanFloat64,
 			ptrTo,
 			refOfVal,
 			toCharFromNat8,
+			toFloat64FromFloat32,
 			toFloat64FromInt64,
 			toFloat64FromNat64,
 			toIntFromInt16,
@@ -750,6 +760,7 @@ struct LowExprKind {
 			eqPtr,
 			lessBool,
 			lessChar,
+			lessFloat32,
 			lessFloat64,
 			lessInt8,
 			lessInt16,
@@ -766,6 +777,7 @@ struct LowExprKind {
 			subPtrNat, // RHS is multiplied by size of pointee first
 			unsafeBitShiftLeftNat64,
 			unsafeBitShiftRightNat64,
+			unsafeDivFloat32,
 			unsafeDivFloat64,
 			unsafeDivInt64,
 			unsafeDivNat64,

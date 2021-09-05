@@ -3,8 +3,8 @@ import
 	.bool: and, bool, or
 	.col.arr: arr, arr-cast, arr-from-begin-end, begin-ptr
 	.col.arr-util:
-		contains-subseq?, ends-with?, first, last, map, rtail, split-by-subseq, starts-with?, tail,
-		try-remove-end, try-remove-start, try-split-once
+		contains-subseq?, ends-with?, first, flatten, last, map, rtail, split-by-subseq,
+		starts-with?, tail, try-remove-end, try-remove-start, try-split-once
 	.compare: <=
 	.number: ==, <=>, +, -, nat8
 	.opt: none, opt, some
@@ -97,6 +97,9 @@ try-split-once opt pair<str, str>(a str, b char)
 
 split-by arr str(a str, b str)
 	a.chars split-by-subseq b.chars map {it str}
+
+join str(a arr str, b str)
+	a map {it chars} flatten b.chars str
 
 lower-case str(a str)
 	a.chars map {it lower-case-char} str

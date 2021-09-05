@@ -7,13 +7,20 @@ import core.atomic : cas;
 import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
 import util.collection.globalAllocatedStack : pop, push;
-import util.types : bottomU16OfU64, bottomU32OfU64, float64OfU64Bits, Nat64, u64OfFloat64Bits;
+import util.types :
+	bottomU16OfU64,
+	bottomU32OfU64,
+	float32OfU64Bits,
+	float64OfU64Bits,
+	Nat64,
+	u64OfFloat32Bits,
+	u64OfFloat64Bits;
 import util.util : todo, verify;
 
 void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 	final switch (fn) {
 		case FnOp.addFloat64:
-			binaryFloats(dataStack, (immutable double a, immutable double b) =>
+			binaryFloat64s(dataStack, (immutable double a, immutable double b) =>
 				a + b);
 			break;
 		case FnOp.bitsNotNat64:
@@ -48,6 +55,10 @@ void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 			binary(dataStack, (immutable ulong a, immutable ulong b) =>
 				u64OfBool(float64OfU64Bits(a) == float64OfU64Bits(b)));
 			break;
+		case FnOp.float64FromFloat32:
+			unary(dataStack, (immutable ulong a) =>
+				u64OfFloat64Bits(cast(double) float32OfU64Bits(a)));
+			break;
 		case FnOp.float64FromInt64:
 			unary(dataStack, (immutable ulong a) =>
 				u64OfFloat64Bits(cast(double) (cast(long) a)));
@@ -64,9 +75,17 @@ void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 			unary(dataStack, (immutable ulong a) =>
 				nat64OfI32(cast(int) (bottomU32OfU64(a))));
 			break;
-		case FnOp.isNan:
+		case FnOp.isNanFloat32:
+			unary(dataStack, (immutable ulong a) =>
+				u64OfBool(isNaN(float32OfU64Bits(a))));
+			break;
+		case FnOp.isNanFloat64:
 			unary(dataStack, (immutable ulong a) =>
 				u64OfBool(isNaN(float64OfU64Bits(a))));
+			break;
+		case FnOp.lessFloat32:
+			binary(dataStack, (immutable ulong a, immutable ulong b) =>
+				u64OfBool(float32OfU64Bits(a) < float32OfU64Bits(b)));
 			break;
 		case FnOp.lessFloat64:
 			binary(dataStack, (immutable ulong a, immutable ulong b) =>
@@ -93,11 +112,11 @@ void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 				u64OfBool(a < b));
 			break;
 		case FnOp.mulFloat64:
-			binaryFloats(dataStack, (immutable double a, immutable double b) =>
+			binaryFloat64s(dataStack, (immutable double a, immutable double b) =>
 				a * b);
 			break;
 		case FnOp.subFloat64:
-			binaryFloats(dataStack, (immutable double a, immutable double b) =>
+			binaryFloat64s(dataStack, (immutable double a, immutable double b) =>
 				a - b);
 			break;
 		case FnOp.truncateToInt64FromFloat64:
@@ -116,8 +135,12 @@ void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 				return immutable Nat64(a >> b);
 			});
 			break;
+		case FnOp.unsafeDivFloat32:
+			binaryFloat32s(dataStack, (immutable float a, immutable float b) =>
+				a / b);
+			break;
 		case FnOp.unsafeDivFloat64:
-			binaryFloats(dataStack, (immutable double a, immutable double b) =>
+			binaryFloat64s(dataStack, (immutable double a, immutable double b) =>
 				a / b);
 			break;
 		case FnOp.unsafeDivInt64:
@@ -192,7 +215,15 @@ void trinary(
 	push(dataStack, immutable Nat64(cb(a, b, c)));
 }
 
-void binaryFloats(
+void binaryFloat32s(
+	ref DataStack dataStack,
+	scope immutable(float) delegate(immutable float, immutable float) @safe @nogc pure nothrow cb,
+) {
+	binary(dataStack, (immutable ulong a, immutable ulong b) =>
+		u64OfFloat32Bits(cb(float32OfU64Bits(a), float32OfU64Bits(b))));
+}
+
+void binaryFloat64s(
 	ref DataStack dataStack,
 	scope immutable(double) delegate(immutable double, immutable double) @safe @nogc pure nothrow cb,
 ) {

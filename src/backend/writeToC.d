@@ -1748,6 +1748,7 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 			return prefix("(uint8_t*) ");
 		case LowExprKind.SpecialUnary.Kind.asRef:
 		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
+		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt16:
@@ -1786,7 +1787,8 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 			return specialCall("__builtin_popcountl");
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return prefix("*");
-		case LowExprKind.SpecialUnary.Kind.isNan:
+		case LowExprKind.SpecialUnary.Kind.isNanFloat32:
+		case LowExprKind.SpecialUnary.Kind.isNanFloat64:
 			return specialCall("__builtin_isnan");
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
@@ -1978,6 +1980,7 @@ immutable(WriteExprResult) writeSpecialBinary(Alloc, TempAlloc)(
 			return operator("==");
 		case LowExprKind.SpecialBinary.Kind.lessBool:
 		case LowExprKind.SpecialBinary.Kind.lessChar:
+		case LowExprKind.SpecialBinary.Kind.lessFloat32:
 		case LowExprKind.SpecialBinary.Kind.lessFloat64:
 		case LowExprKind.SpecialBinary.Kind.lessInt8:
 		case LowExprKind.SpecialBinary.Kind.lessInt16:
@@ -2021,6 +2024,7 @@ immutable(WriteExprResult) writeSpecialBinary(Alloc, TempAlloc)(
 			return operator("<<");
 		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64:
 			return operator(">>");
+		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat32:
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
 		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:
 		case LowExprKind.SpecialBinary.Kind.unsafeDivNat64:
@@ -2198,6 +2202,8 @@ void writePrimitiveType(Alloc)(ref Writer!Alloc writer, immutable PrimitiveType 
 				return "uint8_t";
 			case PrimitiveType.char_:
 				return "char";
+			case PrimitiveType.float32:
+				return "float";
 			case PrimitiveType.float64:
 				return "double";
 			case PrimitiveType.int8:
@@ -2284,10 +2290,15 @@ void writeMangledName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
 immutable(bool) conflictsWithCName(immutable Sym name) {
 	switch (name.value) {
 		case shortSymAlphaLiteralValue("atomic-bool"): // avoid conflicting with c's "atomic_bool" type
+		case shortSymAlphaLiteralValue("break"):
+		case shortSymAlphaLiteralValue("continue"):
 		case shortSymAlphaLiteralValue("default"):
+		case shortSymAlphaLiteralValue("double"):
 		case shortSymAlphaLiteralValue("float"):
+		case shortSymAlphaLiteralValue("for"):
 		case shortSymAlphaLiteralValue("int"):
 		case shortSymAlphaLiteralValue("void"):
+		case shortSymAlphaLiteralValue("while"):
 			return true;
 		default:
 			return false;

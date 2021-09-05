@@ -1,0 +1,149 @@
+import
+	bits: bits-or
+	cell: as-ptr, cell, subscript
+	col.arr-util: map
+	include.gles2.gl2:
+		gl-array-buffer, gl-bind-buffer, gl-buffer-data, gl-clear, gl-clear-color,
+		gl-color-buffer-bit, gl-delete-buffers, gl-draw-arrays, gl-enable-vertex-attrib-array,
+		gl-float, gl-gen-buffers, gl-get-error, gl-no-error, gl-static-draw, gl-triangles, gl-uint,
+		gl-use-program, gl-vertex-attrib-pointer
+	include.sdl2.sdl:
+		sdl-get-error, sdl-init, sdl-init-video, sdl-quit
+	include.sdl2.sdl-events:
+		sdl-event, sdl-poll-event, sdl-pump-events, sdl-quit, type
+	include.sdl2.sdl-keyboard:
+		sdl-get-keyboard-state
+	include.sdl2.sdl-scancode:
+		sdl-num-scancodes, sdl-scancode-return
+	include.sdl2.sdl-video:
+		sdl-create-window, sdl-destroy-window, sdl-gl-context-profile-es, sdl-gl-create-context,
+		sdl-gl-doublebuffer, sdl-gl-context-major-version, sdl-gl-context-minor-version,
+		sdl-gl-context-profile-mask, sdl-gl-setattribute, sdl-gl-swap-window, sdl-window-opengl,
+		sdl-windowpos-undefined, sdl-window-shown
+	io.duration: duration, msec
+	io.print: print
+	io.time: delay
+	math.vec: vec-2-32, to-str
+	posix.c-types: c-int
+	ptr: as-any-ptr, null, null?, ptr-cast, ptr-to, size-of
+	str-util: join, to-c-str, to-str
+	.shader: shader-prog-destroy, shader-prog-load
+
+main fut nat(_ arr str) summon trusted
+	"sdl-init-video" handle-sdl-error: sdl-init-video sdl-init
+
+	"set GL ES" handle-sdl-error: sdl-gl-context-profile-mask sdl-gl-setattribute sdl-gl-context-profile-es
+	"set major version" handle-sdl-error: sdl-gl-context-major-version sdl-gl-setattribute 3
+	"set minor version" handle-sdl-error: sdl-gl-context-minor-version sdl-gl-setattribute 0
+	"set double buffer" handle-sdl-error: sdl-gl-doublebuffer sdl-gl-setattribute 1
+
+	window = "Hello World!".to-c-str sdl-create-window sdl-windowpos-undefined, sdl-windowpos-undefined, 640, 480, (sdl-window-opengl bits-or sdl-window-shown)
+	if window.as-any-ptr null?
+		"sdl-create-window" fail-sdl-error
+
+	context = window sdl-gl-create-context
+	if context.as-any-ptr null?
+		"sdl-gl-create-context" fail-sdl-error
+
+	0.0 gl-clear-color 0.0, 0.0, 1.0
+	gl-color-buffer-bit gl-clear
+	window sdl-gl-swap-window
+
+	shader-prog = "demo/ogl/Simple2D.vert" shader-prog-load "demo/ogl/Simple2D.frag"
+
+	shader-prog gl-use-program
+
+	vertices = [(0.0 vec-2-32 -0.9), (0.9 vec-2-32 0.9), (-0.9 vec-2-32 0.9)]
+	print: "vertices is {vertices map {it to-str} join ", "}"
+
+	triangle-vbo = vertices vbo-create
+	assert: triangle-vbo != 0
+
+	position-idx = 0 as<gl-uint>
+	gl-array-buffer gl-bind-buffer triangle-vbo
+	position-idx gl-vertex-attrib-pointer 2, gl-float, false, (to-int32: size-of<vec-2-32>), null
+	position-idx gl-enable-vertex-attrib-array
+
+	gl-triangles gl-draw-arrays 0, vertices.size.to-int32
+
+	window sdl-gl-swap-window
+	triangle-vbo vbo-free
+	shader-prog shader-prog-destroy
+
+	<- 100.msec repeat-interval {main-loop-body}
+
+	# TODO: use 'finally'
+	window sdl-destroy-window
+	sdl-quit
+
+	print: "Bye bye"
+	0 resolved
+
+.main-loop-body continue-or-quit() summon trusted
+	sdl-pump-events
+	if look-for-quit-event
+		quit
+	else
+		key-states-ptr = null sdl-get-keyboard-state
+		key-states = arr: sdl-num-scancodes, key-states-ptr
+		print: key-states[sdl-scancode-return] == 0 ? "no return", "return is pressed"
+
+		#"sdl-render-clear" handle-sdl-error: renderer sdl-render-clear
+		#"sdl-render-copy" handle-sdl-error: renderer sdl-render-copy texture, null, null
+		#renderer sdl-render-present
+		continue
+
+.look-for-quit-event bool() summon
+	e = sdl-event
+	if e.sdl-poll-event == 0
+		false
+	else
+		if e.type == sdl-quit
+			true
+		else
+			look-for-quit-event
+
+.handle-sdl-error void(operation str, err c-int) summon trusted
+	if err != 0
+		operation fail-sdl-error
+
+.fail-sdl-error void(operation str) summon trusted
+	throw: "sdl error in {operation}: {sdl-get-error}"
+	sdl-quit
+
+continue record
+quit record
+continue-or-quit union
+	continue
+	quit
+
+# TODO:MOVE
+.repeat-interval fut void(interval duration, action act continue-or-quit()) summon
+	match action[]
+	as continue
+		<- interval delay
+		interval repeat-interval action
+	as quit
+		void resolved
+
+.vbo-create gl-uint(vertices arr vec-2-32) summon unsafe
+	vbo-cell = 0 cell<gl-uint>
+	n-buffers = 1 to-int32
+	n-buffers gl-gen-buffers vbo-cell.as-ptr
+	vbo = vbo-cell[]
+	print: "vbo is {vbo}"
+	gl-array-buffer gl-bind-buffer vbo
+	# Copy the vertex data in, and deactivate
+	n-bytes = (vertices.size * size-of<vec-2-32>).to-int
+	print: "n-bytes is {n-bytes}"
+	gl-array-buffer gl-buffer-data n-bytes, vertices.begin-ptr.ptr-cast, gl-static-draw
+	gl-array-buffer gl-bind-buffer 0
+	err = gl-get-error
+	if err != gl-no-error
+		n-buffers gl-delete-buffers vbo-cell.as-ptr
+		"Creating VBO failed: Code {err}" throw
+	vbo
+
+
+.vbo-free void(vbo gl-uint) summon unsafe
+	1 gl-delete-buffers vbo.ptr-to

@@ -455,7 +455,7 @@ public @trusted immutable(LiteralAst) takeNumber(Alloc, SymAlloc)(
 	immutable LiteralAst.Nat rest = takeNat(lexer, base);
 	immutable bool overflow = natPart.overflow || rest.overflow;
 	immutable ulong power = lexer.ptr - cur;
-	immutable double divisor = pow(1.0, base, power);
+	immutable double multiplier = pow(1.0, 1.0 / base, power);
 	immutable double floatSign = () {
 		final switch (sign) {
 			case Sign.minus:
@@ -464,7 +464,8 @@ public @trusted immutable(LiteralAst) takeNumber(Alloc, SymAlloc)(
 				return 1.0;
 		}
 	}();
-	return immutable LiteralAst.Float(floatSign * (natPart.value + (rest.value / divisor)), overflow);
+	immutable double f = floatSign * (natPart.value + (rest.value * multiplier));
+	return immutable LiteralAst.Float(f, overflow);
 }
 
 immutable(double) pow(immutable double acc, immutable double base, immutable ulong power) {

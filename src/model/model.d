@@ -1171,6 +1171,7 @@ struct CommonTypes {
 
 	immutable Ptr!StructInst bool_;
 	immutable Ptr!StructInst char_;
+	immutable Ptr!StructInst float32;
 	immutable Ptr!StructInst float64;
 	immutable Ptr!IntegralTypes integrals;
 	immutable Ptr!StructInst str;

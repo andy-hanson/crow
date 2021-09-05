@@ -74,17 +74,19 @@ import util.path :
 import util.ptr : Ptr, PtrRange, ptrTrustMe_mut;
 import util.sym : AllSymbols;
 import util.types :
+	float32OfU32Bits,
 	float64OfU64Bits,
 	Nat64,
 	safeSizeTFromU64,
 	safeUlongFromLong,
 	safeU32FromI64,
+	u32OfI32Bits,
 	u64OfFloat64Bits;
 import util.util : todo, unreachable, verify;
 import util.writer : Writer;
 
 @system extern(C) immutable(int) main(immutable size_t argc, immutable CStr* argv) {
-	immutable size_t memorySizeBytes = 1024 * 1024 * 1024;
+	immutable size_t memorySizeBytes =  1536 * 1024 * 1024; // 1.5 GB
 	ubyte* mem = cast(ubyte*) pureMalloc(memorySizeBytes);
 	scope(exit) pureFree(mem);
 	verify(mem != null);
@@ -486,6 +488,7 @@ struct RealExtern {
 	Ptr!RangeAlloc alloc;
 	AllocTracker allocTracker;
 	void* sdlHandle;
+	void* glHandle;
 	DCCallVM* dcVm;
 
 	this(Ptr!RangeAlloc a) {
@@ -493,6 +496,9 @@ struct RealExtern {
 		// TODO: better way to find where it is (may depend on system)
 		sdlHandle = dlopen("/usr/lib64/libSDL2-2.0.so.0", RTLD_LAZY);
 		verify(sdlHandle != null);
+		//libEGL.so instead?
+		glHandle = dlopen("/usr/lib64/libGL.so", RTLD_LAZY);
+		verify(glHandle != null);
 
 		dcVm = dcNewCallVM(4096);
 		verify(dcVm != null);
@@ -502,7 +508,7 @@ struct RealExtern {
 	public:
 
 	~this() {
-		immutable int err = dlclose(sdlHandle);
+		immutable int err = dlclose(sdlHandle) || dlclose(glHandle);
 		verify(err == 0);
 		dcFree(dcVm);
 	}
@@ -543,11 +549,9 @@ struct RealExtern {
 		// TODO: don't just get everything from SDL...
 		immutable CStr nameCStr = asCStr(name);
 		DCpointer ptr = dlsym(sdlHandle, nameCStr);
-		debug {
-			printf("Gonna call %s\n", nameCStr);
-		}
-		if (ptr == null)
-			printf("Can't load symbol %s\n", nameCStr);
+		if (ptr == null) ptr = dlsym(glHandle, nameCStr);
+		if (ptr == null) printf("Can't load symbol %s\n", nameCStr);
+		//printf("Gonna call %s\n", nameCStr);
 		verify(ptr != null);
 
 		dcReset(dcVm);
@@ -557,7 +561,7 @@ struct RealExtern {
 			(ref immutable Nat64 value, ref immutable DynCallType type) {
 				final switch (type) {
 					case DynCallType.bool_:
-						todo!void("handle this type");
+						dcArgBool(dcVm, cast(bool) value.raw());
 						break;
 					case DynCallType.char_:
 						todo!void("handle this type");
@@ -572,7 +576,7 @@ struct RealExtern {
 						dcArgInt(dcVm, cast(int) value.raw());
 						break;
 					case DynCallType.float32:
-						todo!void("handle this type");
+						dcArgFloat(dcVm, float32OfU32Bits(cast(uint) value.raw()));
 						break;
 					case DynCallType.float64:
 						dcArgDouble(dcVm, float64OfU64Bits(value.raw()));
@@ -621,7 +625,7 @@ struct RealExtern {
 				case DynCallType.nat16:
 					return todo!(immutable Nat64)("handle this type");
 				case DynCallType.nat32:
-					return todo!(immutable Nat64)("handle this type");
+					return immutable Nat64(u32OfI32Bits(dcCallInt(dcVm, ptr)));
 				case DynCallType.nat64:
 					return todo!(immutable Nat64)("handle this type");
 				case DynCallType.pointer:
@@ -632,6 +636,7 @@ struct RealExtern {
 			}
 		}();
 		dcReset(dcVm);
+		//printf("Did call %s\n", nameCStr);
 		return res;
 	}
 }
@@ -673,13 +678,13 @@ extern(C) {
 
 	void dcMode(DCCallVM* vm, DCint mode);
 
-	//void dcArgBool (DCCallVM* vm, DCbool value);
+	void dcArgBool (DCCallVM* vm, DCbool value);
 	//void dcArgChar (DCCallVM* vm, DCchar value);
 	//void dcArgShort (DCCallVM* vm, DCshort value);
 	void dcArgInt (DCCallVM* vm, DCint value);
 	void dcArgLong (DCCallVM* vm, DClong value);
 	//void dcArgLongLong (DCCallVM* vm, DClonglong value);
-	//void dcArgFloat (DCCallVM* vm, DCfloat value);
+	void dcArgFloat (DCCallVM* vm, DCfloat value);
 	void dcArgDouble (DCCallVM* vm, DCdouble value);
 	void dcArgPointer (DCCallVM* vm, DCpointer value);
 	// void dcArgStruct (DCCallVM* vm, DCstruct* s, DCpointer value);

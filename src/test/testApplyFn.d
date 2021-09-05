@@ -7,7 +7,7 @@ import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
 import test.testUtil : expectDataStack, Test;
 import util.collection.globalAllocatedStack : clearStack, pushAll;
-import util.types : Nat64, u64OfFloat64Bits;
+import util.types : Nat64, u64OfFloat32Bits, u64OfFloat64Bits;
 import util.util : verify,verifyEq;
 
 void testApplyFn(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
@@ -40,6 +40,9 @@ void testApplyFn(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	testFn(test, [u64OfI64Bits(-1)], FnOp.float64FromInt64, [u64OfFloat64Bits(-1.0)]);
 
 	testFn(test, [immutable Nat64(1)], FnOp.float64FromNat64, [u64OfFloat64Bits(1.0)]);
+
+	testFn(test, [u64OfFloat32Bits(-1.0), u64OfFloat32Bits(1.0)], FnOp.lessFloat32, [immutable Nat64(1)]);
+	testFn(test, [u64OfFloat32Bits(1.0), u64OfFloat32Bits(-1.0)], FnOp.lessFloat32, [immutable Nat64(0)]);
 
 	testFn(test, [u64OfFloat64Bits(-1.0), u64OfFloat64Bits(1.0)], FnOp.lessFloat64, [immutable Nat64(1)]);
 	testFn(test, [u64OfFloat64Bits(1.0), u64OfFloat64Bits(-1.0)], FnOp.lessFloat64, [immutable Nat64(0)]);
@@ -74,6 +77,7 @@ void testApplyFn(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	testFn(test, [u64OfFloat64Bits(-double.infinity)], FnOp.truncateToInt64FromFloat64, [u64OfI64Bits(long.min)]);
 	testFn(test, [u64OfFloat64Bits(-9.0)], FnOp.truncateToInt64FromFloat64, [u64OfI64Bits(-9)]);
 
+	testFn(test, [u64OfFloat32Bits(9.0), u64OfFloat32Bits(5.0)], FnOp.unsafeDivFloat32, [u64OfFloat32Bits(1.8)]);
 	testFn(test, [u64OfFloat64Bits(9.0), u64OfFloat64Bits(5.0)], FnOp.unsafeDivFloat64, [u64OfFloat64Bits(1.8)]);
 
 	testFn(test, [u64OfI64Bits(3), u64OfI64Bits(2)], FnOp.unsafeDivInt64, [u64OfI64Bits(1)]);

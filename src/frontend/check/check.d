@@ -346,6 +346,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 
 	immutable Ptr!StructInst bool_ = nonTemplate("bool");
 	immutable Ptr!StructInst char_ = nonTemplate("char");
+	immutable Ptr!StructInst float32 = nonTemplate("float32");
 	immutable Ptr!StructInst float64 = nonTemplate("float");
 	immutable Ptr!StructInst int8 = nonTemplate("int8");
 	immutable Ptr!StructInst int16 = nonTemplate("int16");
@@ -411,6 +412,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 		alloc,
 		bool_,
 		char_,
+		float32,
 		float64,
 		nu!IntegralTypes(
 			alloc,

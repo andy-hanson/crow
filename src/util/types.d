@@ -281,6 +281,32 @@ immutable(U4U4) u4u4OfU8(immutable Nat8 a) {
 	return immutable U4U4(immutable Nat8(a.raw() >> 4), immutable Nat8(a.raw() & maxU4));
 }
 
+immutable(Nat32) u32OfFloat32Bits(immutable float value) {
+	Converter32 conv;
+	conv.asFloat32 = value;
+	return immutable Nat32(conv.asU32);
+}
+
+immutable(Nat64) u64OfFloat32Bits(immutable float value) {
+	return u32OfFloat32Bits(value).to64();
+}
+
+immutable(float) float32OfU32Bits(immutable uint value) {
+	Converter32 conv;
+	conv.asU32 = value;
+	return conv.asFloat32;
+}
+
+immutable(float) float32OfU64Bits(immutable ulong value) {
+	return float32OfU32Bits(cast(uint) value);
+}
+
+immutable(uint) u32OfI32Bits(immutable int value) {
+	Converter32 conv;
+	conv.asI32 = value;
+	return conv.asU32;
+}
+
 immutable(Nat64) u64OfFloat64Bits(immutable double value) {
 	Converter64 conv;
 	conv.asFloat64 = value;
@@ -310,6 +336,7 @@ private:
 union Converter32 {
 	int asI32;
 	uint asU32;
+	float asFloat32;
 }
 
 union Converter64 {

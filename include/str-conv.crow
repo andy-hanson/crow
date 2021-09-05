@@ -4,8 +4,8 @@ import
 	.col.mut-list: ~=, move-to-arr!, mut-list
 	.compare: <
 	.number:
-		==, <=>, *, /, abs, float, int, int16, int32, mod, nat, nat8, nat16, nat32, multiple-of?,
-		to-int, to-nat, truncate-to-int
+		==, <=>, *, /, abs, float, float32, int, int16, int32, mod, nat, nat8, nat16, nat32,
+		multiple-of?, to-float, to-int, to-nat, truncate-to-int
 	.opt: opt, some
 	.reader: take-float!, take-int!, take-nat!, with-reader
 	.str: ==, ~, char, chars, str
@@ -115,6 +115,10 @@ to-str str(i int16)
 	i.to-int to-str
 
 to-str str(a float)
+	pos = a.abs to-str-positive
+	a < 0 ? "-{pos}", pos
+
+.to-str-positive str(a float)
 	# TODO: Use a real float to str algorithm
 	times-100 = (a * 100.0).truncate-to-int
 	hundredths = times-100 mod 100
@@ -126,6 +130,9 @@ to-str str(a float)
 		"{whole-part}.{tenths}"
 	else
 		"{whole-part}.{hundredths}"
+
+to-str str(a float32)
+	a.to-float to-str
 
 ###
 Parse digits as a nat.

@@ -683,7 +683,14 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 		: ctx.commonTypes.bool_; // Just picking a random one that won't match any of the below tests
 	immutable Ptr!IntegralTypes integrals = ctx.commonTypes.integrals;
 
-	immutable(CheckedExpr) asFloat(immutable double value) {
+	immutable(CheckedExpr) asFloat32(immutable float value) {
+		immutable Expr e = immutable Expr(
+			range,
+			nu!(Expr.Literal)(alloc, ctx.commonTypes.float32, immutable Constant(value)));
+		return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.float32), e);
+	}
+
+	immutable(CheckedExpr) asFloat64(immutable double value) {
 		immutable Expr e = immutable Expr(
 			range,
 			nu!(Expr.Literal)(alloc, ctx.commonTypes.float64, immutable Constant(value)));
@@ -695,11 +702,16 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 		(ref immutable LiteralAst.Float it) {
 			if (it.overflow)
 				todo!void("literal overflow");
-			return asFloat(it.value);
+
+			return ptrEquals(expectedStruct, ctx.commonTypes.float32)
+				? asFloat32(it.value)
+				: asFloat64(it.value);
 		},
 		(ref immutable LiteralAst.Int it) {
+			if (ptrEquals(expectedStruct, ctx.commonTypes.float32))
+				return asFloat32(cast(immutable float) it.value);
 			if (ptrEquals(expectedStruct, ctx.commonTypes.float64))
-				return asFloat(cast(immutable double) it.value);
+				return asFloat64(cast(immutable double) it.value);
 			else {
 				immutable(Opt!IntRange) intRange = ptrEquals(expectedStruct, integrals.int8)
 					? some(immutable IntRange(byte.min, byte.max))
@@ -723,8 +735,10 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 			}
 		},
 		(ref immutable LiteralAst.Nat it) {
+			if (ptrEquals(expectedStruct, ctx.commonTypes.float32))
+				return asFloat32(cast(immutable float) it.value);
 			if (ptrEquals(expectedStruct, ctx.commonTypes.float64))
-				return asFloat(cast(immutable double) it.value);
+				return asFloat64(cast(immutable double) it.value);
 			else {
 				immutable(Opt!ulong) max = ptrEquals(expectedStruct, integrals.nat8)
 					? some!ulong(ubyte.max)

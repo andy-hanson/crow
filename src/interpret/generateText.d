@@ -31,7 +31,15 @@ import util.collection.exactSizeArrBuilder :
 	newExactSizeArrBuilder;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.ptr : Ptr, ptrTrustMe;
-import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat8, Nat16, u64OfFloat64Bits, zero;
+import util.types :
+	bottomU8OfU64,
+	bottomU16OfU64,
+	bottomU32OfU64,
+	Nat8,
+	Nat16,
+	u32OfFloat32Bits,
+	u64OfFloat64Bits,
+	zero;
 import util.util : todo, unreachable, verify;
 
 struct TextAndInfo {
@@ -228,11 +236,30 @@ void writeConstant(TempAlloc)(
 			exactSizeArrBuilderAdd(ctx.text, it.value ? 1 : 0);
 		},
 		(immutable double it) {
-			add64(ctx.text, u64OfFloat64Bits(it).raw());
+			switch (asPrimitive(type)) {
+				case PrimitiveType.float32:
+					debug {
+						import core.stdc.stdio : printf;
+						printf("adding constant float32 %f (repr %d)", it, u32OfFloat32Bits(it).raw());
+					}
+					add32(ctx.text, u32OfFloat32Bits(it).raw());
+					break;
+				case PrimitiveType.float64:
+					debug {
+						import core.stdc.stdio : printf;
+						printf("adding constant float64 %f (repr %d)", it, u32OfFloat32Bits(it).raw());
+					}
+					add64(ctx.text, u64OfFloat64Bits(it).raw());
+					break;
+				default:
+					unreachable!void();
+					break;
+			}
 		},
 		(immutable Constant.Integral it) {
 			final switch (asPrimitive(type)) {
 				case PrimitiveType.bool_:
+				case PrimitiveType.float32:
 				case PrimitiveType.float64:
 				case PrimitiveType.void_:
 					unreachable!void();

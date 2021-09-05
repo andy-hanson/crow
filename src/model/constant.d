@@ -66,6 +66,7 @@ struct Constant {
 	public:
 	@trusted immutable this(immutable ArrConstant a) { kind = Kind.arr; arr_ = a; }
 	immutable this(immutable BoolConstant a) { kind = Kind.bool_; bool_ = a; }
+	// used for both float32 and float64
 	immutable this(immutable double a) { kind = Kind.float_; float_ = a; }
 	immutable this(immutable Integral a) { kind = Kind.integral; integral_ = a; }
 	immutable this(immutable Null a) { kind = Kind.null_; null_ = a; }

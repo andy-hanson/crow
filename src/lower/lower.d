@@ -218,6 +218,8 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(
 						return some(immutable LowType(PrimitiveType.bool_));
 					case BuiltinStructKind.char_:
 						return some(immutable LowType(PrimitiveType.char_));
+					case BuiltinStructKind.float32:
+						return some(immutable LowType(PrimitiveType.float32));
 					case BuiltinStructKind.float64:
 						return some(immutable LowType(PrimitiveType.float64));
 					case BuiltinStructKind.fun:

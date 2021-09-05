@@ -123,6 +123,7 @@ int32 builtin
 int64 alias
 	int
 float builtin
+float32 builtin
 
 region hard assertions
 

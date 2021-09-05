@@ -57,6 +57,7 @@ import model.constant : Constant, matchConstant;
 import model.lowModel :
 	asLocalRef,
 	asParamRef,
+	asPrimitiveType,
 	asPtrRaw,
 	asRecordFieldGet,
 	asRecordType,
@@ -103,7 +104,15 @@ import util.collection.str : strEq;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
-import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU32, u64OfFloat64Bits, zero;
+import util.types :
+	Nat8,
+	Nat16,
+	Nat32,
+	Nat64,
+	safeSizeTToU32,
+	u64OfFloat32Bits,
+	u64OfFloat64Bits,
+	zero;
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
@@ -282,6 +291,8 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 					return DynCallType.bool_;
 				case PrimitiveType.char_:
 					return DynCallType.char_;
+				case PrimitiveType.float32:
+					return DynCallType.float32;
 				case PrimitiveType.float64:
 					return DynCallType.float64;
 				case PrimitiveType.int8:
@@ -720,7 +731,17 @@ void generateConstant(Debug, CodeAlloc, TempAlloc)(
 			writeBoolConstant(dbg, writer, source, it.value);
 		},
 		(immutable double it) {
-			writePushConstant(dbg, writer, source, u64OfFloat64Bits(it));
+			switch (asPrimitiveType(type)) {
+				case PrimitiveType.float32:
+					writePushConstant(dbg, writer, source, u64OfFloat32Bits(cast(float) it));
+					break;
+				case PrimitiveType.float64:
+					writePushConstant(dbg, writer, source, u64OfFloat64Bits(it));
+					break;
+				default:
+					unreachable!void();
+					break;
+			}
 		},
 		(immutable Constant.Integral it) {
 			writePushConstant(dbg, writer, source, immutable Nat64(it.value));
@@ -815,8 +836,11 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
 			fn(FnOp.countOnesNat64);
 			break;
-		case LowExprKind.SpecialUnary.Kind.isNan:
-			fn(FnOp.isNan);
+		case LowExprKind.SpecialUnary.Kind.isNanFloat32:
+			fn(FnOp.isNanFloat32);
+			break;
+		case LowExprKind.SpecialUnary.Kind.isNanFloat64:
+			fn(FnOp.isNanFloat64);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt16:
 			fn(FnOp.intFromInt16);
@@ -849,6 +873,9 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
 			generateRefOfVal(dbg, tempAlloc, writer, ctx, source, a.arg);
+			break;
+		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
+			fn(FnOp.float64FromFloat32);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64: // FnOp.float64FromInt64
 			fn(FnOp.float64FromInt64);
@@ -1066,6 +1093,9 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 		case LowExprKind.SpecialBinary.Kind.lessPtr:
 			fn(FnOp.lessNat);
 			break;
+		case LowExprKind.SpecialBinary.Kind.lessFloat32:
+			fn(FnOp.lessFloat32);
+			break;
 		case LowExprKind.SpecialBinary.Kind.lessFloat64:
 			fn(FnOp.lessFloat64);
 			break;
@@ -1110,6 +1140,9 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat32:
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat64:
 			fn(FnOp.wrapSubIntegral);
+			break;
+		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat32:
+			fn(FnOp.unsafeDivFloat32);
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
 			fn(FnOp.unsafeDivFloat64);

@@ -30,6 +30,7 @@ import util.util : todo, unreachable, verify;
 enum BuiltinStructKind {
 	bool_,
 	char_,
+	float32,
 	float64,
 	fun, // 'fun' or 'act'
 	funPtrN, // fun-ptr0, fun-ptr1, etc...
@@ -51,6 +52,8 @@ immutable(Sym) symOfBuiltinStructKind(immutable BuiltinStructKind a) {
 			return shortSymAlphaLiteral("bool");
 		case BuiltinStructKind.char_:
 			return shortSymAlphaLiteral("char");
+		case BuiltinStructKind.float32:
+			return shortSymAlphaLiteral("float-32");
 		case BuiltinStructKind.float64:
 			return shortSymAlphaLiteral("float-64");
 		case BuiltinStructKind.fun:

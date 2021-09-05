@@ -251,10 +251,14 @@ immutable(BuiltinKind) getBuiltinKind(
 				isNat16(p0) ? LowExprKind.SpecialBinary.Kind.lessNat16 :
 				isNat32(p0) ? LowExprKind.SpecialBinary.Kind.lessNat32 :
 				isNat64(p0) ? LowExprKind.SpecialBinary.Kind.lessNat64 :
+				isFloat32(p0) ? LowExprKind.SpecialBinary.Kind.lessFloat32 :
 				isFloat64(p0) ? LowExprKind.SpecialBinary.Kind.lessFloat64 :
 				failBinary());
 		case shortSymAlphaLiteralValue("nan?"):
-			return unary(LowExprKind.SpecialUnary.Kind.isNan);
+			return unary(
+				isFloat32(p0) ? LowExprKind.SpecialUnary.Kind.isNanFloat32 :
+				isFloat64(p0) ? LowExprKind.SpecialUnary.Kind.isNanFloat64 :
+				failUnary());
 		case shortSymAlphaLiteralValue("null"):
 			return constant(immutable Constant(immutable Constant.Null()));
 		case shortSymAlphaLiteralValue("or"):
@@ -286,6 +290,8 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialUnary.Kind.toFloat64FromInt64
 				: isNat64(p0)
 				? LowExprKind.SpecialUnary.Kind.toFloat64FromNat64
+				: isFloat32(p0)
+				? LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32
 				: failUnary());
 		case shortSymAlphaLiteralValue("to-int"):
 			return unary(isInt16(p0)
@@ -310,7 +316,9 @@ immutable(BuiltinKind) getBuiltinKind(
 		case shortSymAlphaLiteralValue("true"):
 			return constantBool(true);
 		case shortSymAlphaLiteralValue("unsafe-div"):
-			return binary(isFloat64(rt)
+			return binary(isFloat32(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeDivFloat32
+				: isFloat64(rt)
 				? LowExprKind.SpecialBinary.Kind.unsafeDivFloat64
 				: isInt64(rt)
 				? LowExprKind.SpecialBinary.Kind.unsafeDivInt64
@@ -378,7 +386,9 @@ immutable(BuiltinKind) getBuiltinKind(
 			else if (symEqLongAlphaLiteral(name, "set-subscript"))
 				return isPtrRaw(p0) ? binary(LowExprKind.SpecialBinary.Kind.writeToPtr) : fail();
 			else if (symEqLongAlphaLiteral(name, "truncate-to-int"))
-				return unary(LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64);
+				return unary(isFloat64(p0)
+					? LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64
+					: failUnary());
 			else if (symEqLongAlphaLiteral(name, "unsafe-bit-shift-left"))
 				return isNat64(rt) ? binary(LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-bit-shift-right"))
@@ -446,6 +456,10 @@ immutable(bool) isNat32(ref immutable LowType t) {
 
 immutable(bool) isNat64(ref immutable LowType t) {
 	return isPrimitiveType(t, PrimitiveType.nat64);
+}
+
+immutable(bool) isFloat32(ref immutable LowType t) {
+	return isPrimitiveType(t, PrimitiveType.float32);
 }
 
 immutable(bool) isFloat64(ref immutable LowType t) {

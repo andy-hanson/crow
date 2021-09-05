@@ -1,0 +1,11 @@
+# SDL_rect.h
+
+no-std
+import
+	...posix.c-types: c-int
+
+sdl-rect record
+	x c-int
+	y c-int
+	w c-int
+	h c-int

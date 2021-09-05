@@ -582,11 +582,14 @@ enum FnOp : ubyte {
 	countOnesNat64,
 	eqBits,
 	eqFloat64,
+	float64FromFloat32,
 	float64FromInt64,
 	float64FromNat64,
 	intFromInt16,
 	intFromInt32,
-	isNan,
+	isNanFloat32,
+	isNanFloat64,
+	lessFloat32,
 	lessFloat64,
 	lessInt8,
 	lessInt16,
@@ -598,6 +601,7 @@ enum FnOp : ubyte {
 	truncateToInt64FromFloat64,
 	unsafeBitShiftLeftNat64,
 	unsafeBitShiftRightNat64,
+	unsafeDivFloat32,
 	unsafeDivFloat64,
 	unsafeDivInt64,
 	unsafeDivNat64,
@@ -685,6 +689,8 @@ private immutable(string) strOfFnOp(immutable FnOp fnOp) {
 			return "== (integrals / pointers)";
 		case FnOp.eqFloat64:
 			return "== (float-64)";
+		case FnOp.float64FromFloat32:
+			return "float-64-from-float-32";
 		case FnOp.float64FromInt64:
 			return "float-64-from-int-64";
 		case FnOp.float64FromNat64:
@@ -693,8 +699,12 @@ private immutable(string) strOfFnOp(immutable FnOp fnOp) {
 			return "to-int (from int-16)";
 		case FnOp.intFromInt32:
 			return "to-int (from int-32)";
-		case FnOp.isNan:
-			return "nan?";
+		case FnOp.isNanFloat32:
+			return "nan? (float-32)";
+		case FnOp.isNanFloat64:
+			return "nan? (float-64)";
+		case FnOp.lessFloat32:
+			return "< (float-32)";
 		case FnOp.lessFloat64:
 			return "< (float-64)";
 		case FnOp.lessInt8:
@@ -717,6 +727,8 @@ private immutable(string) strOfFnOp(immutable FnOp fnOp) {
 			return "unsafe-bit-shift-left (nat-64)";
 		case FnOp.unsafeBitShiftRightNat64:
 			return "unsafe-bit-shift-right (nat-64)";
+		case FnOp.unsafeDivFloat32:
+			return "unsafe-div (float-32)";
 		case FnOp.unsafeDivFloat64:
 			return "unsafe-div (float-64)";
 		case FnOp.unsafeDivInt64:

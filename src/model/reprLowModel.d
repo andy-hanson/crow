@@ -279,14 +279,18 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "count-ones (nat-64)";
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return "deref";
-		case LowExprKind.SpecialUnary.Kind.isNan:
-			return "nan?";
+		case LowExprKind.SpecialUnary.Kind.isNanFloat32:
+			return "nan? (float-32)";
+		case LowExprKind.SpecialUnary.Kind.isNanFloat64:
+			return "nan? (float-64)";
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 			return "ptr-to";
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
 			return "ref-of-val";
 		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
 			return "to-char8 (from nat-8)";
+		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
+			return "to-float64 (from float-32)";
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
 			return "to-float64 (from int-64)";
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
@@ -406,8 +410,10 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "< (bool)";
 		case LowExprKind.SpecialBinary.Kind.lessChar:
 			return "< (char)";
+		case LowExprKind.SpecialBinary.Kind.lessFloat32:
+			return "< (float-32)";
 		case LowExprKind.SpecialBinary.Kind.lessFloat64:
-			return "< (float-64)";
+			return "< (float-32)";
 		case LowExprKind.SpecialBinary.Kind.lessInt8:
 			return "< (int-8)";
 		case LowExprKind.SpecialBinary.Kind.lessInt16:
@@ -438,6 +444,8 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "unsafe-bit-shift-left (nat-64)";
 		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64:
 			return "unsafe-bit-shift-left (nat-64)";
+		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat32:
+			return "unsafe-div (float-32)";
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
 			return "unsafe-div (float-64)";
 		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:

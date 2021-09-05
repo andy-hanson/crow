@@ -12,7 +12,7 @@ import
 	.private.exception-low-level: assert, forbid
 export
 	.private.number-low-level:
-		==, <=>, even?, float, int, int8, int16, int32, int64, max-int8, max-int, max-int16,
+		==, <=>, even?, float, float32, int, int8, int16, int32, int64, max-int8, max-int, max-int16,
 		max-int32, max-nat, max-nat8, max-nat16, max-nat32, min-int8, min-int16, min-int32,
 		min-int, nat, nat8, nat16, nat32, nat64, odd?, to-int, to-nat, unsafe-to-nat8
 
@@ -31,6 +31,7 @@ Convert an int to float.
 Result is approximate for high values.
 ###
 to-float float(a int) noctx builtin
+to-float float(a float32) noctx builtin
 ###
 Convert a float to int by tossing any fractional part.
 ###
@@ -180,9 +181,11 @@ wrap-to-nat32 nat32(a nat) noctx trusted
 	a unsafe-to-nat32
 
 # Absolute value of an int, as a nat.
-abs nat(i int)
-	i-abs = i < 0 ? i * -1, i
-	i-abs to-nat
+abs nat(a int)
+	to-nat: a < 0 ? a * -1, a
+
+abs float(a float) noctx
+	a < 0 ? a * -1, a
 
 ^ nat(a nat, b nat)
 	if b == 0
@@ -196,28 +199,43 @@ region float
 
 # Add two floats. Never fails.
 + float(a float, b float) noctx builtin
++ float32(a float32, b float32) noctx builtin
 # Subtract two floats. Never fails.
 - float(a float, b float) noctx builtin
+- float32(a float32, b float32) noctx builtin
 # Multiply two floats. Never fails.
 * float(a float, b float) noctx builtin
+* float32(a float32, b float32) noctx builtin
 # Divide two floats. UB if `b == 0`.
 unsafe-div float(a float, b float) noctx unsafe builtin
+unsafe-div float32(a float32, b float32) noctx unsafe builtin
 # Divide two floats. Fail if `b == 0`.
 / float(a float, b float) trusted
 	forbid: b == 0.0
 	a unsafe-div b
+/ float32(a float32, b float32) trusted
+	forbid: b == 0.0
+	a unsafe-div b
 
 # Raise a float to a power.
-^ float(a float, b nat)
+^ float(a float, b nat) noctx
 	if b == 0
 		1.0
 	else
-		a * a ^ (b - 1)
+		a * a ^ (b wrap-sub 1)
+# Raise a float to a power.
+^ float32(a float32, b nat) noctx
+	if b == 0
+		1.0
+	else
+		a * a ^ (b wrap-sub 1)
 
 square-root float(a float) noctx extern<"sqrt">
+square-root float32(a float32) noctx extern<"sqrt">
 
 # True if the float is "Not A Number".
 nan? bool(a float) noctx builtin
+nan? bool(a float32) noctx builtin
 
 region number iteration
 

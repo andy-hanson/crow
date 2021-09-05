@@ -1,0 +1,67 @@
+no-std
+import
+	col.arr: begin-ptr, size
+	col.mut-arr: begin-ptr, copy-to-arr, uninitialized-mut-arr
+	cell: cell, subscript
+	compare: !=
+	exception: assert, throw
+	io.file: read-file
+	include.gles2.gl2:
+		gl-attach-shader, gl-char, gl-compile-shader, gl-compile-status, gl-create-program, gl-create-shader,
+		gl-delete-program, gl-delete-shader, gl-enum, gl-false, gl-fragment-shader,
+		gl-get-program-info-log, gl-get-program-iv, gl-get-shader-info-log, gl-get-shader-iv,
+		gl-info-log-length, gl-int, gl-link-program, gl-link-status, gl-shader-source, gl-true,
+		gl-uint, gl-vertex-shader
+	misc: void
+	number: ==, to-int32, to-nat
+	ptr: null
+	str: str
+	str-util: to-c-str
+
+shader-prog-load gl-uint(vert-file-name str, frag-file-name str) summon unsafe
+	vert-shader = vert-file-name shader-load gl-vertex-shader
+	frag-shader = frag-file-name shader-load gl-fragment-shader
+	shader-prog = gl-create-program
+	assert: shader-prog != 0
+	shader-prog gl-attach-shader vert-shader
+	shader-prog gl-attach-shader frag-shader
+	shader-prog gl-link-program
+	# TODO: type arg should not be needed
+	linking-succeeded = gl-false cell<gl-int>
+	shader-prog gl-get-program-iv gl-link-status, linking-succeeded
+	vert-shader gl-delete-shader
+	frag-shader gl-delete-shader
+	if linking-succeeded[] == gl-true
+		shader-prog
+	else
+		log-length = 0 cell<gl-int>
+		shader-prog gl-get-program-iv gl-info-log-length, log-length
+		err-log = log-length[].to-nat uninitialized-mut-arr<gl-char>
+		shader-prog gl-get-program-info-log log-length[], log-length, err-log.begin-ptr
+		shader-prog gl-delete-program
+		err-log.copy-to-arr.str throw
+
+shader-prog-destroy void(shader-prog gl-uint) summon unsafe
+	shader-prog gl-delete-program
+
+.shader-load gl-uint(file-name str, shader-type gl-enum) summon unsafe
+	shader = file-name create-shader-from-source shader-type
+	shader gl-compile-shader
+	compile-succeeded = gl-false cell<gl-int>
+	shader gl-get-shader-iv gl-compile-status, compile-succeeded
+	if compile-succeeded[] == gl-true
+		shader
+	else
+		log-length = 0 cell<gl-int>
+		shader gl-get-shader-iv gl-info-log-length, log-length
+		err-log = log-length[].to-nat uninitialized-mut-arr<gl-char>
+		shader gl-get-shader-info-log log-length[], log-length, err-log.begin-ptr
+		shader gl-delete-shader
+		err-log.copy-to-arr.str throw
+
+.create-shader-from-source gl-uint(file-name str, shader-type gl-enum) summon unsafe
+	shader = shader-type gl-create-shader
+	ccc = file-name.read-file
+	shader-sources = [ccc.to-c-str]
+	shader gl-shader-source shader-sources.size.to-int32, shader-sources.begin-ptr, null
+	shader

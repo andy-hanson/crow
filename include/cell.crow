@@ -1,6 +1,6 @@
 no-std
 import
-	.ptr: as-any-ptr, as-ref, ptr
+	.ptr: as-any-ptr, as-ref, ptr, ptr-cast
 
 ###
 Mutable reference to a single value.
@@ -19,8 +19,11 @@ cell<?a> record mut
 Treats a pointer as a cell.
 UB if the pointer does not point to a mutable value.
 ###
-as-cell cell ?a(p ptr ?a) noctx unsafe
-	p.as-any-ptr as-ref
+as-cell cell ?a(a ptr ?a) noctx unsafe
+	a.as-any-ptr as-ref
+
+as-ptr ptr ?a(a cell ?a) noctx unsafe
+	a.as-any-ptr ptr-cast
 
 # Put `v` into the cell, and return the old value.
 swap ?a(c cell ?a, v ?a) noctx

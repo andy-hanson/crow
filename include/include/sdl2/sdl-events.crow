@@ -1,0 +1,51 @@
+# SDL_events.h
+
+no-std
+import
+	...misc: void
+	...number: nat32
+	...posix.bytes-types: bytes48, zero
+	...posix.c-types: c-int
+
+sdl-pump-events void() extern<"SDL_PumpEvents", "SDL2"> noctx summon
+
+sdl-poll-event c-int(event sdl-event) extern<"SDL_PollEvent", "SDL2"> noctx summon
+
+sdl-event record
+	by-ref
+	type nat32
+	timestamp nat32
+	padding bytes48
+
+sdl-event sdl-event()
+	sdl-event: 0, 0, zero
+
+
+sdl-quit nat32()
+	0x100
+sdl-displayevent nat32()
+	0x150
+sdl-windowevent nat32()
+	0x200
+sdl-systemevent nat32()
+	0x201
+
+sdl-keydown nat32()
+	0x300
+sdl-keyup nat32()
+	0x301
+sdl-textediting nat32()
+	0x302
+sdl-textinput nat32()
+	0x303
+sdl-keymapchanged nat32()
+	0x304
+
+sdl-mousemotion nat32()
+	0x400
+sdl-mousebuttondown nat32()
+	0x401
+sdl-mousebuttonup nat32()
+	0x402
+sdl-mousewheel nat32()
+	0x403

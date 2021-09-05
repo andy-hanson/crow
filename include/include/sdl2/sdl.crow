@@ -1,0 +1,24 @@
+# SDL.h
+
+no-std
+import
+	...bits: bit-shift-left
+	...misc: void
+	...number: nat32
+	...posix.c-types: c-int
+	...str: c-str
+
+sdl-flags alias
+	nat32
+
+sdl-init c-int(flags sdl-flags) extern<"SDL_Init", "SDL2"> noctx summon
+
+sdl-init-video sdl-flags()
+	1 bit-shift-left 5
+
+sdl-init-joystick sdl-flags()
+	1 bit-shift-left 9
+
+sdl-quit void() extern<"SDL_Quit", "SDL2"> noctx summon
+
+sdl-get-error c-str() extern<"SDL_GetError", "SDL2"> noctx summon
