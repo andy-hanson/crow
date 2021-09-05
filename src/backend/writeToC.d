@@ -1920,6 +1920,7 @@ immutable(WriteExprResult) writeSpecialBinary(Alloc, TempAlloc)(
 	}
 
 	final switch (it.kind) {
+		case LowExprKind.SpecialBinary.Kind.addFloat32:
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
 		case LowExprKind.SpecialBinary.Kind.addPtr:
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt16:

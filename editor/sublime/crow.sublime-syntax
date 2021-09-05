@@ -7,7 +7,7 @@
 # In a '.crow' file, use ctrl-alt-shift-p to see the scope at the cursor.
 
 variables:
-  name: '(([a-z][a-z0-9\-\?\!]*)|[\=\!\<\>\+\-\*\/\^\~]+)'
+  name: '(([a-zA-Z][a-zA-Z0-9\-_\?\!]*)|[\=\!\<\>\+\-\*\/\^\~]+)'
   type_name: '\??{{name}}'
   # Declarations end at the next unindented line.
   # We don't want to consume any characters at that line,
@@ -23,11 +23,9 @@ contexts:
   prototype:
     # This is a part of every context
     # type argument
-    - match: '(?<=[a-z0-9\-\?])<'
+    - match: '(?<=[a-zA\Z0-9\-_\?])<'
       scope: comment # punctuation.definition.generic.begin
       push: type_args
-    - match: "[A-Z]"
-      scope: invalid
     - match: '^###\n'
       scope: comment
       push: block_comment

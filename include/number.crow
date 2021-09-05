@@ -140,6 +140,10 @@ to-int32 int32(a int)
 	a unsafe-to-int32
 to-int32 int32(a nat)
 	a.to-int to-int32
+to-int32 int32(a nat32)
+	a.to-nat to-int32
+to-int32 int32(a nat16)
+	a.to-nat to-int32
 
 clamp-to-nat nat(a int)
 	if a < 0

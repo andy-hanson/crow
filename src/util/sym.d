@@ -22,7 +22,7 @@ immutable(bool) containsSym(ref immutable Sym[] a, immutable Sym b) {
 }
 
 immutable(bool) isAlphaIdentifierStart(immutable char c) {
-	return ('a' <= c && c <= 'z') || c == '?';
+	return ('a' <= c && c <= 'z') || c == '?' || ('A' <= c && c <= 'Z');
 }
 
 immutable(bool) isDigit(immutable char c) {
@@ -31,7 +31,7 @@ immutable(bool) isDigit(immutable char c) {
 
 immutable(bool) isAlphaIdentifierContinue(immutable char c) {
 	//TODO: only last character should be '?' or '!'
-	return isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '?' || c == '!';
+	return isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '?' || c == '!' || c == '_';
 }
 
 struct Sym {
@@ -58,7 +58,7 @@ immutable(Sym) prependSet(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Sym 
 	writeSym(writer, a);
 	immutable string str = finishWriter(writer);
 
-	if (newSize <= alphaIdentifierMaxChars) {
+	if (isShortAlphaSym(a) && newSize <= alphaIdentifierMaxChars) {
 		immutable Sym res = prefixAlphaIdentifierWithSet(a, oldSize);
 		immutable Opt!Sym op = tryGetSymFromStr(allSymbols, str);
 		verify(symEq(force(op), res));
@@ -307,6 +307,10 @@ immutable(bool) canPackAlphaChar5(immutable char c) {
 	return ('a' <= c && c <= 'z') || c == '-' || ('0' <= c && c <= '3');
 }
 
+immutable(bool) canPackAlphaChar6(immutable char c) {
+	return canPackAlphaChar5(c) || ('4' <= c && c <= '9') || c == '?' || c == '!';
+}
+
 immutable(ulong) packAlphaChar5(immutable char c) {
 	// 0 means no character, so start at 1
 	return 'a' <= c && c <= 'z' ? 1 + c - 'a' :
@@ -354,15 +358,12 @@ immutable ulong operatorBits = 0x7fff000000000000;
 immutable size_t alphaIdentifierMaxChars = 12;
 
 immutable(bool) canPackAlphaIdentifier(immutable string str) {
-	if (size(str) > alphaIdentifierMaxChars)
-		return false;
-	else if (size(str) <= 2)
-		return true;
-	else {
-		immutable string after2 = str[0 .. $ - 2];
-		return every!char(after2, (ref immutable char c) =>
-			canPackAlphaChar5(c));
-	}
+	return size(str) > alphaIdentifierMaxChars
+		? false
+		: size(str) <= 2
+		? every!char(str, (ref immutable char c) => canPackAlphaChar6(c))
+		: every!char(str[$ - 2 .. $], (ref immutable char c) => canPackAlphaChar6(c)) &&
+			every!char(str[0 .. $ - 2], (ref immutable char c) => canPackAlphaChar5(c));
 }
 
 immutable ulong setPrefix =
@@ -372,6 +373,7 @@ immutable ulong setPrefix =
 	packAlphaChar5('s');
 
 immutable(Sym) prefixAlphaIdentifierWithSet(immutable Sym a, immutable size_t symSize) {
+	verify(isShortAlphaSym(a));
 	verify(symSize != 0);
 	immutable ulong inputSizeBits = symSize == 1
 		? 2 + 6

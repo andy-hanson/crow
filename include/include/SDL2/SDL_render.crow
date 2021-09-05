@@ -1,0 +1,65 @@
+# SDL_render.h
+
+no-std
+import
+	...misc: void
+	...posix.c-types: c-int
+	...ptr: ptr
+	.SDL: sdl-flags
+	.SDL_Rect: SDL_Rect
+	.SDL_surface: sdl-surface
+	.SDL_video: sdl-window
+
+SDL_CreateRenderer SDL_Renderer
+	window sdl-window
+	index c-int
+	flags sdl-flags
+spec
+	extern<"SDL_CreateRenderer", "SDL2">
+	noctx
+	summon
+	unsafe
+
+SDL_CreateTextureFromSurface SDL_Texture
+	renderer SDL_Renderer
+	surface sdl-surface
+spec
+	extern<"SDL_CreateTextureFromSurface", "SDL2">
+	noctx
+	summon
+	unsafe
+
+SDL_DestroyRenderer void(renderer SDL_Renderer) extern<"SDL_DestroyRenderer", "SDL2"> noctx summon unsafe
+
+SDL_DestroyTexture void(texture SDL_Texture) extern<"SDL_DestroyTexture", "SDL2"> noctx summon unsafe
+
+SDL_RenderClear c-int(renderer SDL_Renderer) extern<"SDL_RenderClear", "SDL2"> noctx summon unsafe
+
+SDL_RenderCopy c-int
+	renderer SDL_Renderer
+	texture SDL_Texture
+	src-rect ptr SDL_Rect
+	dest-rect ptr SDL_Rect
+spec
+	extern<"SDL_RenderCopy">
+	noctx
+	summon
+	unsafe
+
+SDL_Renderer extern-ptr
+
+SDL_RENDERER_SOFTWARE sdl-flags()
+	1
+
+SDL_RENDERER_ACCELERATED sdl-flags()
+	2
+
+SDL_RENDERER_PRESENTVSYNC sdl-flags()
+	4
+
+SDL_RENDERER_TARGETTEXTURE sdl-flags()
+	8
+
+SDL_RenderPresent void(renderer SDL_Renderer) extern<"SDL_RenderPresent", "SDL2"> noctx summon unsafe
+
+SDL_Texture extern-ptr

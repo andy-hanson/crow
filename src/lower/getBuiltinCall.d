@@ -140,11 +140,13 @@ immutable(BuiltinKind) getBuiltinKind(
 
 	switch (name.value) {
 		case operatorSymValue(Operator.plus):
-			return binary(isFloat64(rt)
-					? LowExprKind.SpecialBinary.Kind.addFloat64
-					: isPtrRaw(rt)
-					? LowExprKind.SpecialBinary.Kind.addPtr
-					: failBinary());
+			return binary(isFloat32(rt)
+				? LowExprKind.SpecialBinary.Kind.addFloat32
+				: isFloat64(rt)
+				? LowExprKind.SpecialBinary.Kind.addFloat64
+				: isPtrRaw(rt)
+				? LowExprKind.SpecialBinary.Kind.addPtr
+				: failBinary());
 		case operatorSymValue(Operator.minus):
 			return binary(isFloat64(rt)
 				? LowExprKind.SpecialBinary.Kind.subFloat64

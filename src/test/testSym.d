@@ -51,6 +51,9 @@ void testSym(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	verify(isLongAlphaSym(longAlpha));
 	verify(symEq(longAlpha, getSym("a9aa")));
 
+	immutable Sym cStyle = getSym("C_STYLE");
+	verify(isLongAlphaSym(cStyle));
+
 	immutable Sym setA = prependSet(allSymbols, getSym("a"));
 	verify(symEq(setA, getSym("set-a")));
 	verify(isShortAlphaSym(setA));
@@ -62,4 +65,10 @@ void testSym(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	immutable Sym setAbcdefghi = prependSet(allSymbols, getSym("abcdefghi"));
 	verify(symEq(setAbcdefghi, getSym("set-abcdefghi")));
 	verify(isLongAlphaSym(setAbcdefghi));
+
+	immutable Sym mvSize = getSym("mv_size");
+	verify(isLongAlphaSym(mvSize));
+	immutable Sym setMvSize = prependSet(allSymbols, mvSize);
+	verify(symEq(setMvSize, getSym("set-mv_size")));
+	verify(isLongAlphaSym(setMvSize));
 }

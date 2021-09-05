@@ -1,0 +1,18 @@
+# SDL_surface.h
+
+no-std
+import
+	...misc: void
+	...posix.c-types: c-int
+	...str: str
+	...str-util: to-c-str
+	.SDL_RWops: SDL_RWFromFile, SDL_RWops
+
+SDL_FreeSurface void(surface SDL_Surface) extern<"SDL_FreeSurface", "SDL2"> noctx summon unsafe
+
+SDL_Surface extern-ptr
+
+SDL_LoadBMP_RW SDL_Surface(src SDL_RWops, freesrc c-int) extern<"SDL_LoadBMP_RW", "SDL2"> noctx summon unsafe
+
+SDL_LoadBMP SDL_Surface(file str) summon unsafe
+	file.to-c-str SDL_RWFromFile "rb".to-c-str SDL_LoadBMP_RW 1

@@ -4,7 +4,8 @@ no-std
 import
 	...posix.c-types: c-int
 
-sdl-rect record
+SDL_Rect record
+	by-val
 	x c-int
 	y c-int
 	w c-int

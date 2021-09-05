@@ -1,104 +1,120 @@
 import
 	bits: bits-or
 	cell: as-ptr, cell, subscript
-	col.arr-util: map
-	include.gles2.gl2:
-		gl-array-buffer, gl-bind-buffer, gl-buffer-data, gl-clear, gl-clear-color,
-		gl-color-buffer-bit, gl-delete-buffers, gl-draw-arrays, gl-enable-vertex-attrib-array,
-		gl-float, gl-gen-buffers, gl-get-error, gl-no-error, gl-static-draw, gl-triangles, gl-uint,
-		gl-use-program, gl-vertex-attrib-pointer
-	include.sdl2.sdl:
-		sdl-get-error, sdl-init, sdl-init-video, sdl-quit
-	include.sdl2.sdl-events:
-		sdl-event, sdl-poll-event, sdl-pump-events, sdl-quit, type
-	include.sdl2.sdl-keyboard:
-		sdl-get-keyboard-state
-	include.sdl2.sdl-scancode:
-		sdl-num-scancodes, sdl-scancode-return
-	include.sdl2.sdl-video:
-		sdl-create-window, sdl-destroy-window, sdl-gl-context-profile-es, sdl-gl-create-context,
-		sdl-gl-doublebuffer, sdl-gl-context-major-version, sdl-gl-context-minor-version,
-		sdl-gl-context-profile-mask, sdl-gl-setattribute, sdl-gl-swap-window, sdl-window-opengl,
-		sdl-windowpos-undefined, sdl-window-shown
+	col.mut-arr: begin-ptr, mut-arr, set-subscript, size, subscript
+	include.GLES2.gl2:
+		GL_ARRAY_BUFFER, glBindBuffer, glBufferData, glBufferSubData, glClear,
+		glClearColor, GL_COLOR_BUFFER_BIT, glDeleteBuffers, glDrawArrays,
+		glEnableVertexAttribArray, GL_FLOAT, glGenBuffers, glGetError, GL_NO_ERROR,
+		GL_STATIC_DRAW, GL_TRIANGLES, GLuint, glUseProgram, glVertexAttribPointer
+	include.SDL2.SDL:
+		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
+	include.SDL2.SDL_events:
+		SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
+	include.SDL2.SDL_keyboard:
+		SDL_GetKeyboardState
+	include.SDL2.SDL_scancode:
+		SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN
+	include.SDL2.SDL_video:
+		SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
+		SDL_GL_DOUBLEBUFFER, SDL_GL_CONTEXT_MAJOR_VERSION, SDL_GL_CONTEXT_MINOR_VERSION,
+		SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_SetAttribute, SDL_GL_SwapWindow, SDL_Window, SDL_WINDOW_OPENGL,
+		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN
 	io.duration: duration, msec
 	io.print: print
 	io.time: delay
-	math.vec: vec-2-32, to-str
+	math.vec: +, vec-2-32
 	posix.c-types: c-int
 	ptr: as-any-ptr, null, null?, ptr-cast, ptr-to, size-of
-	str-util: join, to-c-str, to-str
+	str-util: to-c-str, to-str
 	.shader: shader-prog-destroy, shader-prog-load
 
 main fut nat(_ arr str) summon trusted
-	"sdl-init-video" handle-sdl-error: sdl-init-video sdl-init
+	"SDL_INIT_VIDEO" handle-sdl-error: SDL_INIT_VIDEO SDL_Init
 
-	"set GL ES" handle-sdl-error: sdl-gl-context-profile-mask sdl-gl-setattribute sdl-gl-context-profile-es
-	"set major version" handle-sdl-error: sdl-gl-context-major-version sdl-gl-setattribute 3
-	"set minor version" handle-sdl-error: sdl-gl-context-minor-version sdl-gl-setattribute 0
-	"set double buffer" handle-sdl-error: sdl-gl-doublebuffer sdl-gl-setattribute 1
+	"set GL ES" handle-sdl-error: SDL_GL_CONTEXT_PROFILE_MASK SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_ES
+	"set major version" handle-sdl-error: SDL_GL_CONTEXT_MAJOR_VERSION SDL_GL_SetAttribute 3
+	"set minor version" handle-sdl-error: SDL_GL_CONTEXT_MINOR_VERSION SDL_GL_SetAttribute 0
+	"set double buffer" handle-sdl-error: SDL_GL_DOUBLEBUFFER SDL_GL_SetAttribute 1
 
-	window = "Hello World!".to-c-str sdl-create-window sdl-windowpos-undefined, sdl-windowpos-undefined, 640, 480, (sdl-window-opengl bits-or sdl-window-shown)
+	window = "Hello World!".to-c-str SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, (SDL_WINDOW_OPENGL bits-or SDL_WINDOW_SHOWN)
 	if window.as-any-ptr null?
-		"sdl-create-window" fail-sdl-error
+		"SDL_CreateWindow" fail-sdl-error
 
-	context = window sdl-gl-create-context
+	context = window SDL_GL_CreateContext
 	if context.as-any-ptr null?
-		"sdl-gl-create-context" fail-sdl-error
+		"SDL_GL_CreateContext" fail-sdl-error
 
-	0.0 gl-clear-color 0.0, 0.0, 1.0
-	gl-color-buffer-bit gl-clear
-	window sdl-gl-swap-window
+	#0.0 glClearColor 0.0, 0.0, 1.0
+	#GL_COLOR_BUFFER_BIT glClear
+	#window SDL_GL_SwapWindow
 
 	shader-prog = "demo/ogl/Simple2D.vert" shader-prog-load "demo/ogl/Simple2D.frag"
 
-	shader-prog gl-use-program
-
-	vertices = [(0.0 vec-2-32 -0.9), (0.9 vec-2-32 0.9), (-0.9 vec-2-32 0.9)]
-	print: "vertices is {vertices map {it to-str} join ", "}"
-
+	vertices = mut-arr: [(0.0 vec-2-32 -0.9), (0.9 vec-2-32 0.9), (-0.9 vec-2-32 0.9)]
 	triangle-vbo = vertices vbo-create
 	assert: triangle-vbo != 0
 
-	position-idx = 0 as<gl-uint>
-	gl-array-buffer gl-bind-buffer triangle-vbo
-	position-idx gl-vertex-attrib-pointer 2, gl-float, false, (to-int32: size-of<vec-2-32>), null
-	position-idx gl-enable-vertex-attrib-array
+	renderer = window renderer shader-prog, vertices, triangle-vbo
 
-	gl-triangles gl-draw-arrays 0, vertices.size.to-int32
-
-	window sdl-gl-swap-window
-	triangle-vbo vbo-free
-	shader-prog shader-prog-destroy
-
-	<- 100.msec repeat-interval {main-loop-body}
+	<- 100.msec repeat-interval {renderer main-loop-body}
 
 	# TODO: use 'finally'
-	window sdl-destroy-window
-	sdl-quit
+	triangle-vbo vbo-free
+	shader-prog shader-prog-destroy
+	window SDL_DestroyWindow
+	SDL_Quit
 
 	print: "Bye bye"
 	0 resolved
 
-.main-loop-body continue-or-quit() summon trusted
-	sdl-pump-events
+.renderer record mut
+	window SDL_Window
+	shader-prog GLuint
+	vertices mut-arr vec-2-32
+	triangle-vbo GLuint
+
+.main-loop-body continue-or-quit(renderer renderer) summon trusted
+	SDL_PumpEvents
 	if look-for-quit-event
 		quit
 	else
-		key-states-ptr = null sdl-get-keyboard-state
-		key-states = arr: sdl-num-scancodes, key-states-ptr
-		print: key-states[sdl-scancode-return] == 0 ? "no return", "return is pressed"
+		key-states-ptr = null SDL_GetKeyboardState
+		key-states = arr: SDL_NUM_SCANCODES, key-states-ptr
+		print: key-states[SDL_SCANCODE_RETURN] == 0 ? "no return", "return is pressed"
 
-		#"sdl-render-clear" handle-sdl-error: renderer sdl-render-clear
-		#"sdl-render-copy" handle-sdl-error: renderer sdl-render-copy texture, null, null
-		#renderer sdl-render-present
+		renderer.vertices[0] := renderer.vertices[0] + (0.01 vec-2-32 0)
+
+		renderer draw-it
+
+		#"SDL_RenderClear" handle-sdl-error: renderer SDL_RenderClear
+		#"SDL_RenderCopy" handle-sdl-error: renderer SDL_RenderCopy texture, null, null
+		#renderer SDL_RenderPresent
 		continue
 
+
+.draw-it void(renderer renderer) summon unsafe
+	0.0 glClearColor 0.0, 0.0, 1.0
+	GL_COLOR_BUFFER_BIT glClear
+
+	renderer.shader-prog glUseProgram
+
+	GL_ARRAY_BUFFER glBindBuffer renderer.triangle-vbo
+	GL_ARRAY_BUFFER glBufferSubData 0, renderer.vertices.n-bytes.to-int, renderer.vertices.begin-ptr.ptr-cast
+	position-idx = 0 as<GLuint>
+	position-idx glVertexAttribPointer 2, GL_FLOAT, false, (to-int32: size-of<vec-2-32>), null
+	position-idx glEnableVertexAttribArray
+
+	GL_TRIANGLES glDrawArrays 0, renderer.vertices.size.to-int32
+
+	renderer.window SDL_GL_SwapWindow
+
 .look-for-quit-event bool() summon
-	e = sdl-event
-	if e.sdl-poll-event == 0
+	e = SDL_Event
+	if e.SDL_PollEvent == 0
 		false
 	else
-		if e.type == sdl-quit
+		if e.type == SDL_Quit
 			true
 		else
 			look-for-quit-event
@@ -108,8 +124,8 @@ main fut nat(_ arr str) summon trusted
 		operation fail-sdl-error
 
 .fail-sdl-error void(operation str) summon trusted
-	throw: "sdl error in {operation}: {sdl-get-error}"
-	sdl-quit
+	throw: "sdl error in {operation}: {SDL_GetError}"
+	SDL_Quit
 
 continue record
 quit record
@@ -126,24 +142,22 @@ continue-or-quit union
 	as quit
 		void resolved
 
-.vbo-create gl-uint(vertices arr vec-2-32) summon unsafe
-	vbo-cell = 0 cell<gl-uint>
+.vbo-create GLuint(vertices mut-arr vec-2-32) summon unsafe
+	vbo-cell = 0 cell<GLuint>
 	n-buffers = 1 to-int32
-	n-buffers gl-gen-buffers vbo-cell.as-ptr
+	n-buffers glGenBuffers vbo-cell.as-ptr
 	vbo = vbo-cell[]
-	print: "vbo is {vbo}"
-	gl-array-buffer gl-bind-buffer vbo
-	# Copy the vertex data in, and deactivate
-	n-bytes = (vertices.size * size-of<vec-2-32>).to-int
-	print: "n-bytes is {n-bytes}"
-	gl-array-buffer gl-buffer-data n-bytes, vertices.begin-ptr.ptr-cast, gl-static-draw
-	gl-array-buffer gl-bind-buffer 0
-	err = gl-get-error
-	if err != gl-no-error
-		n-buffers gl-delete-buffers vbo-cell.as-ptr
+	GL_ARRAY_BUFFER glBindBuffer vbo
+	GL_ARRAY_BUFFER glBufferData vertices.n-bytes.to-int, vertices.begin-ptr.ptr-cast, GL_STATIC_DRAW
+	GL_ARRAY_BUFFER glBindBuffer 0
+	err = glGetError
+	if err != GL_NO_ERROR
+		n-buffers glDeleteBuffers vbo-cell.as-ptr
 		"Creating VBO failed: Code {err}" throw
 	vbo
 
+n-bytes nat(vertices mut-arr vec-2-32) unsafe
+	vertices.size * size-of<vec-2-32>
 
-.vbo-free void(vbo gl-uint) summon unsafe
-	1 gl-delete-buffers vbo.ptr-to
+.vbo-free void(vbo GLuint) summon unsafe
+	1 glDeleteBuffers vbo.ptr-to

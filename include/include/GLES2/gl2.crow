@@ -1,0 +1,161 @@
+# /usr/include/GLES2/gl2.h
+
+no-std
+import
+	...bool: bool
+	...cell: cell
+	...misc: void
+	...posix.c-types: c-char, c-float, c-int, s-long, u-int
+	...ptr: any-ptr, ptr
+
+GLbitfield alias
+	u-int
+GLboolean alias
+	bool
+GLchar alias
+	c-char
+GLenum alias
+	u-int
+GLint alias
+	c-int
+GLintptr alias
+	s-long
+GLsizei alias
+	c-int
+GLsizeiptr alias
+	s-long
+GLuint alias
+	u-int
+GLfloat alias
+	c-float
+
+glAttachShader void(program GLuint, shader GLuint) extern<"glAttachShader", "GL"> noctx summon unsafe
+
+glBindBuffer void(target GLenum, buffer GLuint) extern<"glBindBuffer", "GL"> noctx summon unsafe
+
+glBufferData void
+	target GLenum
+	size GLsizeiptr
+	data any-ptr
+	usage GLenum
+spec
+	extern<"glBufferData", "GL">
+	noctx
+	summon
+	unsafe
+
+glBufferSubData void
+	target GLenum
+	offset GLintptr
+	size GLsizeiptr
+	data any-ptr
+spec
+	extern<"glBufferSubData", "GL">
+	noctx
+	summon
+	unsafe
+
+glClearColor void(red GLfloat, green GLfloat, blue GLfloat, alpha GLfloat) extern<"glClearColor", "GL"> noctx summon unsafe
+
+glClear void(mask GLbitfield) extern<"glClear", "GL"> noctx summon unsafe
+
+glCompileShader void(shader GLuint) extern<"glCompileShader", "GL"> noctx summon unsafe
+
+glCreateProgram GLuint() extern<"glCreateProgram", "GL"> noctx summon unsafe
+
+glCreateShader GLuint(type GLenum) extern<"glCreateShader", "GL"> noctx summon unsafe
+
+glDeleteBuffers void(n GLsizei, buffers ptr GLuint) extern<"glDeleteBuffers", "GL"> noctx summon unsafe
+
+glDeleteProgram void(program GLuint) extern<"glDeleteProgram", "GL"> noctx summon unsafe
+
+glDeleteShader void(shader GLuint) extern<"glDeleteShader", "GL"> noctx summon unsafe
+
+glDrawArrays void(mode GLenum, first GLint, count GLsizei) extern<"glDrawArrays"> noctx summon unsafe
+
+glEnableVertexAttribArray void(index GLuint) extern<"glEnableVertexAttribArray", "GL"> noctx summon unsafe
+
+glGenBuffers void(n GLsizei, buffers ptr GLuint) extern<"glGenBuffers"> noctx summon unsafe
+
+glGetError GLenum() extern<"glGetError", "GL"> noctx summon unsafe
+
+glGetProgramInfoLog void
+	program GLuint
+	buf-size GLsizei
+	length cell GLsizei
+	info-log ptr GLchar
+spec
+	extern<"glGetProgramInfoLog", "GL">
+	noctx
+	summon
+	unsafe
+
+glGetProgramiv void(program GLuint, pname GLenum, params cell GLint) extern<"glGetProgramiv", "GL"> noctx summon unsafe
+
+glGetShaderInfoLog void
+	shader GLuint
+	buf-size GLsizei
+	length cell GLsizei
+	info-log ptr GLchar
+spec
+	extern<"glGetShaderInfoLog", "GL">
+	noctx
+	summon
+	unsafe
+
+glGetShaderiv void(reader GLuint, pname GLenum, params cell GLint) extern<"glGetShaderiv", "GL"> noctx summon unsafe
+
+glLinkProgram void(program GLuint) extern<"glLinkProgram", "GL"> noctx summon unsafe
+
+glShaderSource void
+	shader GLuint
+	count GLsizei
+	string ptr ptr GLchar
+	length ptr GLint
+spec
+	extern<"glShaderSource", "GL">
+	noctx
+	summon
+	unsafe
+
+glUseProgram void(program GLuint) extern<"glUseProgram", "GL"> noctx summon unsafe
+
+glVertexAttribPointer void
+	index GLuint
+	size GLint
+	type GLenum
+	normalized GLboolean
+	stride GLsizei
+	pointer any-ptr
+spec
+	extern<"glVertexAttribPointer", "GL">
+	noctx
+	summon
+	unsafe
+
+GL_FALSE GLint()
+	0
+GL_TRUE GLint()
+	1
+GL_NO_ERROR GLuint()
+	0
+GL_TRIANGLES GLuint()
+	4
+GL_FLOAT GLuint()
+	0x1406
+GL_ARRAY_BUFFER GLuint()
+	0x8892
+GL_STATIC_DRAW GLuint()
+	0x88e4
+GL_FRAGMENT_SHADER GLuint()
+	0x8b30
+GL_VERTEX_SHADER GLuint()
+	0x8b31
+GL_COMPILE_STATUS GLuint()
+	0x8b81
+GL_LINK_STATUS GLuint()
+	0x8b82
+GL_INFO_LOG_LENGTH GLuint()
+	0x8b84
+GL_COLOR_BUFFER_BIT GLbitfield()
+	0x00004000

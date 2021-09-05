@@ -6,7 +6,7 @@ import
 	crypto.password: password-hash, password-matches?, quality-moderate
 	db.lmdb:
 		add, close-db, count, from-lmdb-key, get, lmdb-close-env, lmdb-db, lmdb-env,
-		lmdb-key-flags, lmdb-open-env, lmdb-open-options, lmdb-txn, map, open-db, set, to-lmdb-key,
+		lmdb-key-flags, lmdb-open-env, lmdb-open-options, lMDB_txn, map, open-db, set, to-lmdb-key,
 		transaction-abort, transaction-commit, try-add, with-abortable-write-transaction, with-env,
 		with-read-transaction, with-test-env, with-write-transaction, zip
 	io.print: print
@@ -200,16 +200,16 @@ add-post! post(db db, cookie user-cookie, content str) summon
 		txn add db.post-content, post, content
 		post
 
-.get-user opt user(db db, txn lmdb-txn, user-name str) summon
+.get-user opt user(db db, txn lMDB_txn, user-name str) summon
 	txn get db.user-from-name, user-name
 
-.authenticate user(db db, txn lmdb-txn, cookie user-cookie) summon
+.authenticate user(db db, txn lMDB_txn, cookie user-cookie) summon
 	if db authenticate? txn, cookie
 		cookie user
 	else
 		"Login cookie invalid (may have expired)" throw
 
-.authenticate? bool(db db, txn lmdb-txn, cookie user-cookie) summon
+.authenticate? bool(db db, txn lMDB_txn, cookie user-cookie) summon
 	if login-cookie ?= txn get db.user-login-cookie, cookie.user
 		login-cookie cookie-matches? cookie.inner.cookie, cookie-expire-seconds
 	else

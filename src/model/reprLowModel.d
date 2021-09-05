@@ -332,6 +332,8 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 
 immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kind a) {
 	final switch (a) {
+		case LowExprKind.SpecialBinary.Kind.addFloat32:
+			return "+ (float-32)";
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
 			return "+ (float-64)";
 		case LowExprKind.SpecialBinary.Kind.addPtr:

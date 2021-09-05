@@ -19,6 +19,10 @@ import util.util : todo, verify;
 
 void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 	final switch (fn) {
+		case FnOp.addFloat32:
+			binaryFloat32s(dataStack, (immutable float a, immutable float b) =>
+				a + b);
+			break;
 		case FnOp.addFloat64:
 			binaryFloat64s(dataStack, (immutable double a, immutable double b) =>
 				a + b);

@@ -1016,6 +1016,9 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 				source,
 				a.kind == LowExprKind.SpecialBinary.Kind.addPtr ? FnOp.wrapAddIntegral : FnOp.wrapSubIntegral);
 			break;
+		case LowExprKind.SpecialBinary.Kind.addFloat32:
+			fn(FnOp.addFloat32);
+			break;
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
 			fn(FnOp.addFloat64);
 			break;

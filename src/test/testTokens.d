@@ -35,7 +35,7 @@ void testTokens(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 		immutable Token(Token.Kind.funDef, immutable RangeWithinFile(0, 1)),
 		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(2, 5)),
 		immutable Token(Token.Kind.paramDef, immutable RangeWithinFile(6, 7)),
-		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(7, 7)),
+		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(7, 8)),
 		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(9, 12)),
 		immutable Token(Token.Kind.literalNumber, immutable RangeWithinFile(15, 16))]));
 }
@@ -84,5 +84,5 @@ main fut exit-code(args arr str) summon
 	0 resolved
 `;
 
-immutable string testSource2 = `f nat(aA nat)
+immutable string testSource2 = `f nat(a^ nat)
 	0`;

@@ -1,21 +1,21 @@
 import
 	bits: bits-or
-	include.sdl2.sdl:
-		sdl-get-error, sdl-init, sdl-init-video, sdl-quit
-	include.sdl2.sdl-events:
-		sdl-event, sdl-poll-event, sdl-pump-events, sdl-quit, type
-	include.sdl2.sdl-keyboard:
-		sdl-get-keyboard-state
-	include.sdl2.sdl-render:
-		sdl-create-renderer, sdl-destroy-texture, sdl-create-texture-from-surface,
-		sdl-destroy-renderer, sdl-render-clear, sdl-render-copy, sdl-renderer,
-		sdl-renderer-accelerated, sdl-renderer-present-vsync, sdl-render-present, sdl-texture
-	include.sdl2.sdl-scancode:
-		sdl-num-scancodes, sdl-scancode-return
-	include.sdl2.sdl-surface:
-		sdl-free-surface, sdl-load-bmp
-	include.sdl2.sdl-video:
-		sdl-create-window, sdl-destroy-window, sdl-window, sdl-window-shown
+	include.SDL2.sdl:
+		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
+	include.SDL2.SDL_events:
+		SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
+	include.SDL2.SDL_keyboard:
+		SDL_GetKeyboardState
+	include.SDL2.SDL_render:
+		SDL_CreateRenderer, SDL_DestroyTexture, SDL_CreateTextureFromSurface,
+		SDL_DestroyRenderer, SDL_RenderClear, SDL_RenderCopy, SDL_Renderer,
+		SDL_RENDERER_ACCELERATED, SDL_RENDERER_PRESENTVSYNC, SDL_RenderPresent, SDL_Texture
+	include.SDL2.SDL_scancode:
+		SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN
+	include.SDL2.SDL_Surface:
+		SDL_FreeSurface, SDL_LoadBMP
+	include.SDL2.SDL_video:
+		SDL_CreateWindow, SDL_DestroyWindow, SDL_Window, SDL_Window-shown
 	io.duration: duration, msec
 	io.print: print
 	io.time: delay
@@ -24,63 +24,63 @@ import
 	str-util: to-c-str, to-str
 
 main fut nat(_ arr str) summon trusted
-	"sdl-init-video" handle-sdl-error: sdl-init-video sdl-init
-	window = "Hello World!".to-c-str sdl-create-window 100, 100, 640, 480, sdl-window-shown
+	"SDL_INIT_VIDEO" handle-sdl-error: SDL_INIT_VIDEO SDL_Init
+	window = "Hello World!".to-c-str SDL_CreateWindow 100, 100, 640, 480, SDL_WINDOW_SHOWN
 	if window.as-any-ptr null?
-		"sdl-create-window" fail-sdl-error
+		"SDL_CreateWindow" fail-sdl-error
 	renderer = window renderer
 	texture = renderer create-texture
 
 	<- 100.msec repeat-interval {renderer main-loop-body texture}
 
 	# TODO: use 'finally'
-	texture sdl-destroy-texture
-	renderer sdl-destroy-renderer
-	window sdl-destroy-window
-	sdl-quit
+	texture SDL_DestroyTexture
+	renderer SDL_DestroyRenderer
+	window SDL_DestroyWindow
+	SDL_Quit
 
 	print: "Bye bye"
 	0 resolved
 
-.main-loop-body continue-or-quit(renderer sdl-renderer, texture sdl-texture) summon trusted
-	sdl-pump-events
+.main-loop-body continue-or-quit(renderer SDL_Renderer, texture SDL_Texture) summon trusted
+	SDL_PumpEvents
 	if look-for-quit-event
 		quit
 	else
-		key-states-ptr = null sdl-get-keyboard-state
-		key-states = arr: sdl-num-scancodes, key-states-ptr
-		print: key-states[sdl-scancode-return] == 0 ? "no return", "return is pressed"
+		key-states-ptr = null SDL_GetKeyboardState
+		key-states = arr: SDL_NUM_SCANCODES, key-states-ptr
+		print: key-states[SDL_SCANCODE_RETURN] == 0 ? "no return", "return is pressed"
 
-		"sdl-render-clear" handle-sdl-error: renderer sdl-render-clear
-		"sdl-render-copy" handle-sdl-error: renderer sdl-render-copy texture, null, null
-		renderer sdl-render-present
+		"SDL_RenderClear" handle-sdl-error: renderer SDL_RenderClear
+		"SDL_RenderCopy" handle-sdl-error: renderer SDL_RenderCopy texture, null, null
+		renderer SDL_RenderPresent
 		continue
 
 .look-for-quit-event bool() summon
-	e = sdl-event
-	if e.sdl-poll-event == 0
+	e = SDL_Event
+	if e.SDL_PollEvent == 0
 		false
 	else
-		if e.type == sdl-quit
+		if e.type == SDL_Quit
 			true
 		else
 			look-for-quit-event
 
-.renderer sdl-renderer(window sdl-window) summon trusted
-	renderer = window sdl-create-renderer: -1, sdl-renderer-accelerated bits-or sdl-renderer-present-vsync
+.renderer SDL_Renderer(window SDL_Window) summon trusted
+	renderer = window SDL_CreateRenderer: -1, SDL_RENDERER_ACCELERATED bits-or SDL_RENDERER_PRESENTVSYNC
 	if renderer.as-any-ptr null?
-		"sdl-create-renderer" fail-sdl-error
+		"SDL_CreateRenderer" fail-sdl-error
 	renderer
 
-.create-texture sdl-texture(renderer sdl-renderer) summon trusted
+.create-texture SDL_Texture(renderer SDL_Renderer) summon trusted
 	image-path = "demo/ball/hello.bmp"
-	bmp = image-path sdl-load-bmp
+	bmp = image-path SDL_LoadBMP
 	if bmp.as-any-ptr null?
 		"sdl-loadbmp-error" fail-sdl-error
-	texture = renderer sdl-create-texture-from-surface bmp
-	bmp sdl-free-surface
+	texture = renderer SDL_CreateTextureFromSurface bmp
+	bmp SDL_FreeSurface
 	if texture.as-any-ptr null?
-		"sdl-create-texture-from-surface" fail-sdl-error
+		"SDL_CreateTextureFromSurface" fail-sdl-error
 	texture
 
 .handle-sdl-error void(operation str, err c-int) summon trusted
@@ -88,8 +88,8 @@ main fut nat(_ arr str) summon trusted
 		operation fail-sdl-error
 
 .fail-sdl-error void(operation str) summon trusted
-	throw: "sdl error in {operation}: {sdl-get-error}"
-	sdl-quit
+	throw: "sdl error in {operation}: {SDL_GetError}"
+	SDL_Quit
 
 continue record
 quit record

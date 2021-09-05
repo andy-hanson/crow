@@ -121,7 +121,7 @@ immutable(bool) exists_const(T)(
 }
 
 immutable(bool) every(T)(
-	scope ref immutable T[] arr,
+	scope immutable T[] arr,
 	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (ref immutable T x; arr)

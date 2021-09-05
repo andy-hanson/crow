@@ -573,6 +573,7 @@ struct TimeSpec {
 }
 
 enum FnOp : ubyte {
+	addFloat32,
 	addFloat64,
 	bitsNotNat64,
 	bitwiseAnd,
@@ -671,6 +672,8 @@ private immutable(string) strOfExternOp(immutable ExternOp op) {
 
 private immutable(string) strOfFnOp(immutable FnOp fnOp) {
 	final switch (fnOp) {
+		case FnOp.addFloat32:
+			return "add-float-32";
 		case FnOp.addFloat64:
 			return "add-float-64";
 		case FnOp.bitsNotNat64:

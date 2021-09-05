@@ -1,8 +1,0 @@
-# SDL_keyboard.h
-
-no-std
-import
-	...number: int, nat8
-	...ptr: ptr
-
-sdl-get-keyboard-state ptr nat8(num-keys ptr int) extern<"SDL_GetKeyboardState", "SDL2"> noctx summon
