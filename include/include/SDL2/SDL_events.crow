@@ -7,9 +7,9 @@ import
 	...posix.bytes-types: bytes48, zero
 	...posix.c-types: c-int
 
-SDL_PumpEvents void() extern<"SDL_PumpEvents", "SDL2"> noctx summon
+SDL_PumpEvents void() extern<"SDL2"> noctx summon
 
-SDL_PollEvent c-int(event SDL_Event) extern<"SDL_PollEvent", "SDL2"> noctx summon
+SDL_PollEvent c-int(event SDL_Event) extern<"SDL2"> noctx summon
 
 SDL_Event record
 	by-ref

@@ -25,4 +25,4 @@ __sighandler_t alias
 __sigrestore_t alias
 	fun-ptr0<void>
 
-sigignore int(sig signal-t) extern<"sigignore"> noctx summon
+sigignore int(sig signal-t) extern noctx summon

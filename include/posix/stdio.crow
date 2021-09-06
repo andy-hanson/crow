@@ -4,7 +4,7 @@ import
 	..str: c-str
 	.extra-types: fd-t
 
-perror void(s c-str) unsafe summon extern<"perror"> noctx
+perror void(s c-str) unsafe summon extern noctx
 
 stdin fd-t() noctx
 	0

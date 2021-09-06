@@ -17,5 +17,5 @@ dirent record mut
 	# TODO: d_name char[256]
 	d_name mut bytes256
 
-opendir dir(name c-str) summon extern<"opendir"> noctx
-readdir_r int32(dirp dir, entry dirent, result cell dirent) summon extern<"readdir_r"> noctx
+opendir dir(name c-str) summon extern noctx
+readdir_r int32(dirp dir, entry dirent, result cell dirent) summon extern noctx

@@ -8,30 +8,30 @@ import
 	.extra-types: err-t, fd-t
 	.types: off_t
 
-getcwd c-str(buf c-str, size size_t) unsafe extern<"getcwd"> noctx summon
+getcwd c-str(buf c-str, size size_t) unsafe extern noctx summon
 
-readlink ssize_t(path c-str, buf c-str, len size_t) summon extern<"readlink"> noctx
+readlink ssize_t(path c-str, buf c-str, len size_t) summon extern noctx
 
-close err-t(fd fd-t) summon extern<"close"> noctx
-lseek off_t(f fd-t, offset off_t, whence int32) summon extern<"lseek"> noctx
-read ssize_t(fd fd-t, buff any-ptr, n-bytes size_t) summon extern<"read"> noctx
+close err-t(fd fd-t) summon extern noctx
+lseek off_t(f fd-t, offset off_t, whence int32) summon extern noctx
+read ssize_t(fd fd-t, buff any-ptr, n-bytes size_t) summon extern noctx
 # TODO: summon
-write ssize_t(fd fd-t, buf any-ptr, n-bytes size_t) extern<"write"> noctx
+write ssize_t(fd fd-t, buf any-ptr, n-bytes size_t) extern noctx
 
-pipe err-t(pipes pipes) summon extern<"pipe"> noctx
+pipe err-t(pipes pipes) summon extern noctx
 
 # The headers just use int[2], but this is easier to use from crow
 pipes record mut
 	write-pipe mut fd-t
 	read-pipe mut fd-t
 
-environ ptr c-str() unsafe global<"environ"> noctx
+environ ptr c-str() unsafe global noctx
 
-usleep void(micro-seconds nat) unsafe extern<"usleep"> noctx
+usleep void(micro-seconds nat) unsafe extern noctx
 
 ssize_t alias
 	int64
 
-rmdir err-t(path c-str) unsafe extern<"rmdir"> noctx
+rmdir err-t(path c-str) unsafe extern noctx
 
-unlink err-t(path c-str) unsafe extern<"unlink"> noctx
+unlink err-t(path c-str) unsafe extern noctx

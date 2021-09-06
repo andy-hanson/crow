@@ -721,7 +721,6 @@ struct FunBodyAst {
 	struct Builtin {}
 	struct Extern {
 		immutable bool isGlobal;
-		immutable string externName;
 		immutable Opt!string libraryName;
 	}
 
@@ -1090,7 +1089,7 @@ immutable(Repr) reprFunBodyAst(Alloc)(ref Alloc alloc, ref immutable FunBodyAst 
 			reprRecord("builtin"),
 		(ref immutable FunBodyAst.Extern e) {
 			immutable Repr isGlobal = reprBool(e.isGlobal);
-			return reprRecord(alloc, "extern", [isGlobal, reprStr(e.externName)]);
+			return reprRecord(alloc, "extern", [isGlobal]);
 		},
 		(ref immutable ExprAst e) =>
 			reprExprAst(alloc, e));

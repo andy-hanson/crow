@@ -7,7 +7,7 @@ import
 	...posix.c-types: c-int
 	...str: c-str
 
-SDL_DestroyWindow void(window SDL_Window) extern<"SDL_DestroyWindow", "SDL2"> noctx summon unsafe
+SDL_DestroyWindow void(window SDL_Window) extern<"SDL2"> noctx summon unsafe
 
 SDL_Window extern-ptr
 
@@ -21,7 +21,7 @@ SDL_CreateWindow SDL_Window
 	h c-int
 	flags nat32
 spec
-	extern<"SDL_CreateWindow", "SDL2">
+	extern<"SDL2">
 	noctx
 	summon
 	unsafe
@@ -33,7 +33,7 @@ SDL_WINDOW_OPENGL nat32()
 SDL_WINDOW_SHOWN nat32()
 	4
 
-SDL_GL_CreateContext SDL_GLContext(window SDL_Window) extern<"SDL_GL_CreateContext", "SDL2"> noctx summon unsafe
+SDL_GL_CreateContext SDL_GLContext(window SDL_Window) extern<"SDL2"> noctx summon unsafe
 
 # TODO: enum type
 SDL_GLattr alias
@@ -105,10 +105,10 @@ SDL_GL_CONTEXT_PROFILE_COMPATIBILITY SDL_GLprofile()
 SDL_GL_CONTEXT_PROFILE_ES SDL_GLprofile()
 	4
 
-SDL_GL_SetAttribute c-int(attr SDL_GLattr, value c-int) extern<"SDL_GL_SetAttribute", "SDL2"> noctx summon unsafe
+SDL_GL_SetAttribute c-int(attr SDL_GLattr, value c-int) extern<"SDL2"> noctx summon unsafe
 
 
 SDL_WINDOWPOS_UNDEFINED c-int()
 	0x1fff0000
 
-SDL_GL_SwapWindow void(window SDL_Window) extern<"SDL_GL_SwapWindow", "SDL2"> noctx summon unsafe
+SDL_GL_SwapWindow void(window SDL_Window) extern<"SDL2"> noctx summon unsafe

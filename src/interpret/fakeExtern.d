@@ -8,6 +8,7 @@ import util.alloc.alloc : allocateBytes, freeBytes;
 import util.collection.mutArr : clear, moveToArr, MutArr, pushAll;
 import util.collection.str : NulTerminatedStr;
 import util.ptr : Ptr, PtrRange;
+import util.sym : Sym;
 import util.types : Nat64;
 import util.util : todo, verify;
 import util.writer : Writer;
@@ -83,7 +84,7 @@ struct FakeExtern(Alloc) {
 	}
 
 	immutable(Nat64) doDynCall(
-		ref immutable NulTerminatedStr,
+		immutable Sym,
 		immutable DynCallType,
 		ref immutable Nat64[],
 		ref immutable DynCallType[],

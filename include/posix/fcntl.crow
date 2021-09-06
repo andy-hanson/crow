@@ -5,7 +5,7 @@ import
 	.c-types: c-int
 	.extra-types: fd-t
 
-fcntl c-int(fd fd-t, cmd c-int, flags oflag-t) summon unsafe extern<"fcntl"> noctx
+fcntl c-int(fd fd-t, cmd c-int, flags oflag-t) summon unsafe extern noctx
 
 F_DUPFD c-int() noctx
 	0
@@ -18,7 +18,7 @@ F_GETFL c-int() noctx
 F_SETFL c-int() noctx
 	4
 
-open fd-t(path c-str, oflag oflag-t, permission nat32) summon unsafe extern<"open"> noctx
+open fd-t(path c-str, oflag oflag-t, permission nat32) summon unsafe extern noctx
 
 oflag-t alias
 	c-int

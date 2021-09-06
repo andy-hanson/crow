@@ -18,7 +18,7 @@ MDB_val record mut
 	mv_size mut size_t
 	mv_data mut any-ptr
 
-mdb_env_create err-t(env cell MDB_env) noctx extern<"mdb_env_create", "lmdb"> unsafe summon
+mdb_env_create err-t(env cell MDB_env) noctx extern<"lmdb"> unsafe summon
 mdb_env_open err-t
 	env MDB_env
 	path c-str
@@ -26,12 +26,12 @@ mdb_env_open err-t
 	mode mode_t
 spec
 	noctx
-	extern<"mdb_env_open", "lmdb">
+	extern<"lmdb">
 	unsafe
 	summon
-mdb_env_close void(env MDB_env) noctx extern<"mdb_env_close", "lmdb"> unsafe summon
-mdb_env_set_mapsize err-t(env MDB_env, size size_t) noctx extern<"mdb_env_set_mapsize", "lmdb"> unsafe summon
-mdb_env_set_maxdbs err-t(env MDB_env, dbs u-int) noctx extern<"mdb_env_set_maxdbs", "lmdb"> unsafe summon
+mdb_env_close void(env MDB_env) noctx extern<"lmdb"> unsafe summon
+mdb_env_set_mapsize err-t(env MDB_env, size size_t) noctx extern<"lmdb"> unsafe summon
+mdb_env_set_maxdbs err-t(env MDB_env, dbs u-int) noctx extern<"lmdb"> unsafe summon
 
 MDB_txn extern-ptr
 mdb_txn_begin err-t
@@ -41,11 +41,11 @@ mdb_txn_begin err-t
 	txn cell MDB_txn
 spec
 	noctx
-	extern<"mdb_txn_begin", "lmdb">
+	extern<"lmdb">
 	unsafe
 	summon
-mdb_txn_abort void(txn MDB_txn) noctx extern<"mdb_txn_abort", "lmdb"> unsafe summon
-mdb_txn_commit err-t(txn MDB_txn) noctx extern<"mdb_txn_commit", "lmdb"> unsafe summon
+mdb_txn_abort void(txn MDB_txn) noctx extern<"lmdb"> unsafe summon
+mdb_txn_commit err-t(txn MDB_txn) noctx extern<"lmdb"> unsafe summon
 mdb_dbi_open err-t
 	txn MDB_txn
 	name c-str
@@ -53,7 +53,7 @@ mdb_dbi_open err-t
 	dbi cell MDB_dbi
 spec
 	noctx
-	extern<"mdb_dbi_open", "lmdb">
+	extern<"lmdb">
 	unsafe
 	summon
 mdb_dbi_close void
@@ -61,7 +61,7 @@ mdb_dbi_close void
 	dbi MDB_dbi
 spec
 	noctx
-	extern<"mdb_dbi_close", "lmdb">
+	extern<"lmdb">
 	unsafe
 	summon
 
@@ -72,7 +72,7 @@ mdb_get err-t
 	data MDB_val
 spec
 	noctx
-	extern<"mdb_get", "lmdb">
+	extern<"lmdb">
 	unsafe
 	summon
 mdb_put err-t
@@ -83,7 +83,7 @@ mdb_put err-t
 	flags u-int
 spec
 	noctx
-	extern<"mdb_put", "lmdb">
+	extern<"lmdb">
 	unsafe
 	summon
 
@@ -95,7 +95,7 @@ mdb_stat record mut
 	ms_leaf_pages mut size_t
 	ms_overflow_pages mut size_t
 	ms_entries mut size_t
-mdb_stat err-t(txn MDB_txn, dbi MDB_dbi, stat mdb_stat) noctx extern<"mdb_stat"> unsafe summon
+mdb_stat err-t(txn MDB_txn, dbi MDB_dbi, stat mdb_stat) noctx extern unsafe summon
 
 MDB_cursor extern-ptr
 mdb_cursor_open err-t
@@ -104,14 +104,14 @@ mdb_cursor_open err-t
 	cursor cell MDB_cursor
 spec
 	noctx
-	extern<"mdb_cursor_open", "lmdb">
+	extern<"lmdb">
 	unsafe
 	summon
 mdb_cursor_close void
 	cursor MDB_cursor
 spec
 	noctx
-	extern<"mdb_cursor_close", "lmdb">
+	extern<"lmdb">
 	unsafe
 	summon
 mdb_cursor_get err-t
@@ -121,7 +121,7 @@ mdb_cursor_get err-t
 	op MDB_cursor_op
 spec
 	noctx
-	extern<"mdb_cursor_get", "lmdb">
+	extern<"lmdb">
 	unsafe
 	summon
 mdb_cursor_put err-t
@@ -131,7 +131,7 @@ mdb_cursor_put err-t
 	flags u-int
 spec
 	noctx
-	extern<"mdb_cursor_put", "lmdb">
+	extern<"lmdb">
 	unsafe
 	summon
 

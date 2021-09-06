@@ -580,7 +580,7 @@ void fillInConcreteFunBody(Alloc)(
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf._body_)) {
 		// set to arbitrary temporarily
-		lateSet(cf._body_, nu!ConcreteFunBody(alloc, immutable ConcreteFunBody.Extern(false, "<<temp>>")));
+		lateSet(cf._body_, nu!ConcreteFunBody(alloc, immutable ConcreteFunBody.Extern(false)));
 		immutable ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, castImmutable(cf));
 		immutable ConcreteFunBody body_ = matchFunBody!(immutable ConcreteFunBody)(
 			inputs.body_,
@@ -596,7 +596,7 @@ void fillInConcreteFunBody(Alloc)(
 				if (has(e.libraryName))
 					//TODO: don't always copy
 					addToMutSetOkIfPresent(alloc, ctx.allExternLibraryNames, copyStr(alloc, force(e.libraryName)));
-				return immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(e.isGlobal, e.externName));
+				return immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(e.isGlobal));
 			},
 			(immutable Ptr!Expr e) =>
 				immutable ConcreteFunBody(immutable ConcreteFunExprBody(

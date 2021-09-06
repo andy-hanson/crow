@@ -16,15 +16,15 @@ timespec record
 tm extern-ptr
 
 # TODO:SUMMON
-clock_gettime err-t(clock-id __clockid_t, timespec cell timespec) noctx extern<"clock_gettime">
+clock_gettime err-t(clock-id __clockid_t, timespec cell timespec) noctx extern
 
-gmtime tm(timer ptr time_t) noctx summon unsafe extern<"gmtime">
+gmtime tm(timer ptr time_t) noctx summon unsafe extern
 
-localtime tm(timer ptr time_t) noctx summon unsafe extern<"localtime">
+localtime tm(timer ptr time_t) noctx summon unsafe extern
 
-time time_t(timer ptr time_t) noctx summon unsafe extern<"time">
+time time_t(timer ptr time_t) noctx summon unsafe extern
 
-strftime size_t(s c-str, max-size size_t, format c-str, tp tm) noctx summon extern<"strftime">
+strftime size_t(s c-str, max-size size_t, format c-str, tp tm) noctx summon extern
 
 CLOCK_MONOTONIC __clockid_t() noctx
 	1

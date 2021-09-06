@@ -861,7 +861,7 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 		(ref immutable ConcreteFunBody.CreateRecord) =>
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.Extern it) =>
-			immutable LowFunBody(nu!(LowFunBody.Extern)(alloc, it.isGlobal, it.externName)),
+			immutable LowFunBody(nu!(LowFunBody.Extern)(alloc, it.isGlobal)),
 		(ref immutable ConcreteFunExprBody it) {
 			GetLowExprCtx exprCtx = GetLowExprCtx(
 				thisFunIndex,

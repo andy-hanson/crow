@@ -127,7 +127,7 @@ float32 builtin
 
 region hard assertions
 
-abort void() noctx unsafe extern<"abort">
+abort void() noctx unsafe extern
 
 ###
 Zeroed data isn't safe as it would contain null pointers.

@@ -13,7 +13,6 @@ import frontend.parse.ast :
 	FunDeclAst,
 	ImportAst,
 	ImportsOrExportsAst,
-	matchFunBodyAst,
 	ParamAst,
 	PuritySpecifier,
 	PuritySpecifierAndRange,
@@ -515,18 +514,14 @@ immutable(FunBodyAst.Extern) takeExternName(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable bool isGlobal,
 ) {
-	if (tryTake(lexer, '<')) {
-		immutable string externName = takeQuotedStr(lexer, alloc);
-		immutable Opt!string libraryName = tryTake(lexer, ", ") ? some(takeQuotedStr(lexer, alloc)) : none!string;
-		takeTypeArgsEnd(alloc, lexer);
-		return immutable FunBodyAst.Extern(isGlobal, externName, libraryName);
-	} else {
-		addDiagAtChar(
-			alloc,
-			lexer,
-			immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.externName)));
-		return immutable FunBodyAst.Extern(isGlobal, "", none!string);
-	}
+	immutable Opt!string libraryName = tryTake(lexer, '<') ? some(takeExternLibraryName(alloc, lexer)) : none!string;
+	return immutable FunBodyAst.Extern(isGlobal, libraryName);
+}
+
+immutable(string) takeExternLibraryName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	immutable string res = takeQuotedStr(lexer, alloc);
+	takeTypeArgsEnd(alloc, lexer);
+	return res;
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
@@ -707,22 +702,6 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 			immutable SpecUsesAndSigFlagsAndKwBody extra = parseSpecUsesAndSigFlagsAndKwBody(alloc, lexer);
 			immutable Ptr!FunBodyAst body_ = optOr(extra.body_, () =>
 				nu!FunBodyAst(alloc, parseFunExprBody(alloc, lexer)));
-
-
-			matchFunBodyAst(
-				body_,
-				(ref immutable FunBodyAst.Builtin) {},
-				(ref immutable FunBodyAst.Extern it) {
-					import util.sym : getSymFromAlphaIdentifier, strOfSym;
-					import core.stdc.stdio : printf;
-					if (!symEq(getSymFromAlphaIdentifier(lexer.allSymbols, it.externName), name)) {
-						debug {
-							immutable string nameStr = strOfSym(alloc, name);
-							printf("Name for %.*s does not match\n", cast(int) nameStr.length, nameStr.ptr);
-						}
-					}
-				},
-				(ref immutable ExprAst) {});
 			return immutable FunDeclStuff(extra, body_);
 		}
 	}();

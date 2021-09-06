@@ -85,7 +85,8 @@ import util.sym :
 	shortSymAlphaLiteral,
 	shortSymAlphaLiteralValue,
 	Sym,
-	symEq;
+	symEq,
+	writeSym;
 import util.types : abs, i64OfU64Bits;
 import util.util : drop, todo, unreachable, verify;
 import util.writer :
@@ -606,7 +607,7 @@ void writeFunMangledName(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, 
 		source.source,
 		(immutable Ptr!FunInst it) {
 			if (isExtern(body_(source)))
-				writeStr(writer, asExtern(body_(source)).externName);
+				writeSym(writer, name(it));
 			else {
 				writeMangledName(writer, name(it));
 				maybeWriteIndexSuffix(writer, getAt(ctx.mangledNames.funToNameIndex, source));

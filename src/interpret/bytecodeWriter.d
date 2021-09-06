@@ -35,6 +35,7 @@ import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
 import util.dbg : dbgLog = log;
 import util.ptr : Ptr;
+import util.sym : Sym;
 import util.util : divRoundUp, repeat, verify;
 import util.types : catU4U4, decr, incr, Int16, Nat8, Nat16, Nat32, Nat64, zero;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
@@ -545,14 +546,12 @@ void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeS
 void writeExternDynCall(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	immutable string name,
+	immutable Sym name,
 	immutable DynCallType returnType,
 	immutable DynCallType[] parameterTypes,
 ) {
 	pushOpcode(writer, source, OpCode.externDynCall);
-	foreach (immutable char c; name)
-		pushU8(writer, source, immutable Nat8(c));
-	pushU8(writer, source, immutable Nat8('\0'));
+	pushU64(writer, source, immutable Nat64(name.value));
 	pushU8(writer, source, immutable Nat8(returnType));
 	pushU8(writer, source, sizeNat(parameterTypes).to8());
 	foreach (immutable DynCallType t; parameterTypes) {

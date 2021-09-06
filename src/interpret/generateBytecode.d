@@ -83,6 +83,7 @@ import model.lowModel :
 	matchLowExprKind,
 	matchLowFunBody,
 	matchLowType,
+	name,
 	PrimitiveType;
 import model.model : FunDecl, Module, name, Program, range;
 import util.collection.arr : at, only, size, sizeNat;
@@ -104,6 +105,7 @@ import util.collection.str : strEq;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
+import util.sym : shortSymAlphaLiteralValue, Sym, symEqLongAlphaLiteral;
 import util.types :
 	Nat8,
 	Nat16,
@@ -266,14 +268,16 @@ void generateExternCall(Debug, TempAlloc, CodeAlloc)(
 	ref immutable LowFunBody.Extern a,
 ) {
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
-	immutable Opt!ExternOp op = externOpFromName(a.externName);
+	immutable Opt!Sym optName = name(fun);
+	immutable Sym name = force(optName);
+	immutable Opt!ExternOp op = externOpFromName(name);
 	if (has(op))
 		writeExtern(writer, source, force(op));
 	else {
 		immutable DynCallType[] parameterTypes = map(tempAlloc, fun.params, (ref immutable LowParam it) =>
 			toDynCallType(it.type));
 		immutable DynCallType returnType = toDynCallType(fun.returnType);
-		writeExternDynCall(writer, source, a.externName, returnType, parameterTypes);
+		writeExternDynCall(writer, source, name, returnType, parameterTypes);
 	}
 	writeReturn(dbg, writer, source);
 }
@@ -325,60 +329,63 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 			unreachable!(immutable DynCallType));
 }
 
-immutable(Opt!ExternOp) externOpFromName(immutable string a) {
-	return strEq(a, "backtrace")
-			? some(ExternOp.backtrace)
-		: strEq(a, "clock_gettime")
-			? some(ExternOp.clockGetTime)
-		: strEq(a, "free")
-			? some(ExternOp.free)
-		: strEq(a, "get_nprocs")
-			? some(ExternOp.getNProcs)
-		: strEq(a, "longjmp")
-			? some(ExternOp.longjmp)
-		: strEq(a, "malloc")
-			? some(ExternOp.malloc)
-		: strEq(a, "memcpy")
-			? some(ExternOp.memcpy)
-		: strEq(a, "memmove")
-			? some(ExternOp.memmove)
-		: strEq(a, "memset")
-			? some(ExternOp.memset)
-		: strEq(a, "pthread_condattr_destroy")
-			? some(ExternOp.pthreadCondattrDestroy)
-		: strEq(a, "pthread_condattr_init")
-			? some(ExternOp.pthreadCondattrInit)
-		: strEq(a, "pthread_condattr_setclock")
-			? some(ExternOp.pthreadCondattrSetClock)
-		: strEq(a, "pthread_cond_broadcast")
-			? some(ExternOp.pthreadCondBroadcast)
-		: strEq(a, "pthread_cond_destroy")
-			? some(ExternOp.pthreadCondDestroy)
-		: strEq(a, "pthread_cond_init")
-			? some(ExternOp.pthreadCondInit)
-		: strEq(a, "pthread_create")
-			? some(ExternOp.pthreadCreate)
-		: strEq(a, "pthread_join")
-			? some(ExternOp.pthreadJoin)
-		: strEq(a, "pthread_mutexattr_destroy")
-			? some(ExternOp.pthreadMutexattrDestroy)
-		: strEq(a, "pthread_mutexattr_init")
-			? some(ExternOp.pthreadMutexattrInit)
-		: strEq(a, "pthread_mutex_destroy")
-			? some(ExternOp.pthreadMutexDestroy)
-		: strEq(a, "pthread_mutex_init")
-			? some(ExternOp.pthreadMutexInit)
-		: strEq(a, "pthread_mutex_lock")
-			? some(ExternOp.pthreadMutexLock)
-		: strEq(a, "pthread_mutex_unlock")
-			? some(ExternOp.pthreadMutexUnlock)
-		: strEq(a, "pthread_yield")
-			? some(ExternOp.pthreadYield)
-		: strEq(a, "setjmp")
-			? some(ExternOp.setjmp)
-		: strEq(a, "write")
-			? some(ExternOp.write)
-		: none!ExternOp;
+immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
+	switch (a.value) {
+		case shortSymAlphaLiteralValue("backtrace"):
+			return some(ExternOp.backtrace);
+		case shortSymAlphaLiteralValue("free"):
+			return some(ExternOp.free);
+		case shortSymAlphaLiteralValue("longjmp"):
+			return some(ExternOp.longjmp);
+		case shortSymAlphaLiteralValue("malloc"):
+			return some(ExternOp.malloc);
+		case shortSymAlphaLiteralValue("memcpy"):
+			return some(ExternOp.memcpy);
+		case shortSymAlphaLiteralValue("memmove"):
+			return some(ExternOp.memmove);
+		case shortSymAlphaLiteralValue("memset"):
+			return some(ExternOp.memset);
+		case shortSymAlphaLiteralValue("setjmp"):
+			return some(ExternOp.setjmp);
+		case shortSymAlphaLiteralValue("write"):
+			return some(ExternOp.write);
+		default:
+			return symEqLongAlphaLiteral(a, "clock_gettime")
+					? some(ExternOp.clockGetTime)
+				: symEqLongAlphaLiteral(a, "get_nprocs")
+					? some(ExternOp.getNProcs)
+				: symEqLongAlphaLiteral(a, "pthread_condattr_destroy")
+					? some(ExternOp.pthreadCondattrDestroy)
+				: symEqLongAlphaLiteral(a, "pthread_condattr_init")
+					? some(ExternOp.pthreadCondattrInit)
+				: symEqLongAlphaLiteral(a, "pthread_condattr_setclock")
+					? some(ExternOp.pthreadCondattrSetClock)
+				: symEqLongAlphaLiteral(a, "pthread_cond_broadcast")
+					? some(ExternOp.pthreadCondBroadcast)
+				: symEqLongAlphaLiteral(a, "pthread_cond_destroy")
+					? some(ExternOp.pthreadCondDestroy)
+				: symEqLongAlphaLiteral(a, "pthread_cond_init")
+					? some(ExternOp.pthreadCondInit)
+				: symEqLongAlphaLiteral(a, "pthread_create")
+					? some(ExternOp.pthreadCreate)
+				: symEqLongAlphaLiteral(a, "pthread_join")
+					? some(ExternOp.pthreadJoin)
+				: symEqLongAlphaLiteral(a, "pthread_mutexattr_destroy")
+					? some(ExternOp.pthreadMutexattrDestroy)
+				: symEqLongAlphaLiteral(a, "pthread_mutexattr_init")
+					? some(ExternOp.pthreadMutexattrInit)
+				: symEqLongAlphaLiteral(a, "pthread_mutex_destroy")
+					? some(ExternOp.pthreadMutexDestroy)
+				: symEqLongAlphaLiteral(a, "pthread_mutex_init")
+					? some(ExternOp.pthreadMutexInit)
+				: symEqLongAlphaLiteral(a, "pthread_mutex_lock")
+					? some(ExternOp.pthreadMutexLock)
+				: symEqLongAlphaLiteral(a, "pthread_mutex_unlock")
+					? some(ExternOp.pthreadMutexUnlock)
+				: symEqLongAlphaLiteral(a, "pthread_yield")
+					? some(ExternOp.pthreadYield)
+				: none!ExternOp;
+	}
 }
 
 

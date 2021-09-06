@@ -33,11 +33,11 @@ getaddrinfo int32
 	pai cell ptr<addrinfo>
 spec
 	unsafe
-	extern<"getaddrinfo">
+	extern
 	noctx
 	summon
-freeaddrinfo void(ai ptr addrinfo) unsafe extern<"freeaddrinfo"> noctx
-gai_strerror c-str(ecode int32) extern<"gai_strerror"> noctx
+freeaddrinfo void(ai ptr addrinfo) unsafe extern noctx
+gai_strerror c-str(ecode int32) extern noctx
 
 hostent record mut
 	by-ref
@@ -47,7 +47,7 @@ hostent record mut
 	h_length c-int
 	h_addr_list ptr c-str
 
-gethostbyname hostent(name c-str) unsafe extern<"gethostbyname"> noctx
+gethostbyname hostent(name c-str) unsafe extern noctx
 
 protoent record mut
 	by-ref
@@ -55,5 +55,5 @@ protoent record mut
 	p_aliases ptr c-str
 	p_proto c-int
 
-getprotobyname protoent(name c-str) unsafe extern<"getprotobyname"> noctx
+getprotobyname protoent(name c-str) unsafe extern noctx
 

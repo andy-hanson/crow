@@ -19,19 +19,19 @@ AF_INET c-int() noctx
 
 sockaddr extern-ptr
 
-accept err-t(fd fd-t, addr sockaddr, addrlen cell socklen_t) unsafe extern<"accept"> noctx summon
+accept err-t(fd fd-t, addr sockaddr, addrlen cell socklen_t) unsafe extern noctx summon
 
-bind err-t(fd fd-t, addr sockaddr, len socklen_t) unsafe extern<"bind"> noctx summon
+bind err-t(fd fd-t, addr sockaddr, len socklen_t) unsafe extern noctx summon
 
-recv ssize_t(fd fd-t, buf any-ptr, n size_t, flags int32) unsafe extern<"recv"> noctx summon
+recv ssize_t(fd fd-t, buf any-ptr, n size_t, flags int32) unsafe extern noctx summon
 
-socket fd-t(domain c-int, type c-int, protocol c-int) unsafe extern<"socket"> noctx summon
+socket fd-t(domain c-int, type c-int, protocol c-int) unsafe extern noctx summon
 
-connect int32(fd fd-t, addr sockaddr, len socklen_t) unsafe extern<"connect"> noctx summon
+connect int32(fd fd-t, addr sockaddr, len socklen_t) unsafe extern noctx summon
 
-listen err-t(fd fd-t, n int32) unsafe extern<"listen"> noctx summon
+listen err-t(fd fd-t, n int32) unsafe extern noctx summon
 
-shutdown err-t(fd fd-t, how int32) unsafe extern<"shutdown"> noctx summon
+shutdown err-t(fd fd-t, how int32) unsafe extern noctx summon
 
 SHUT_RD int32() noctx
 	0

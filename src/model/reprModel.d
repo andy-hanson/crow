@@ -182,7 +182,7 @@ immutable(Repr) reprFunBody(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable F
 		(ref immutable FunBody.CreateRecord) =>
 			reprSym("new-record"),
 		(ref immutable FunBody.Extern it) =>
-			reprRecord(alloc, "extern", [reprBool(it.isGlobal), reprStr(it.externName)]),
+			reprRecord(alloc, "extern", [reprBool(it.isGlobal)]),
 		(immutable Ptr!Expr it) =>
 			reprExpr(alloc, ctx, it),
 		(ref immutable FunBody.RecordFieldGet it) =>

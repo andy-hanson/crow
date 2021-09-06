@@ -8,7 +8,7 @@ import
 	...posix.c-types: c-int
 	...str: c-str
 
-SDL_Init c-int(flags nat32) extern<"SDL_Init", "SDL2"> noctx summon
+SDL_Init c-int(flags nat32) extern<"SDL2"> noctx summon
 
 SDL_INIT_VIDEO nat32()
 	1 bit-shift-left 5
@@ -16,6 +16,6 @@ SDL_INIT_VIDEO nat32()
 SDL_INIT_JOYSTICK nat32()
 	1 bit-shift-left 9
 
-SDL_Quit void() extern<"SDL_Quit", "SDL2"> noctx summon
+SDL_Quit void() extern<"SDL2"> noctx summon
 
-SDL_GetError c-str() extern<"SDL_GetError", "SDL2"> noctx summon
+SDL_GetError c-str() extern<"SDL2"> noctx summon

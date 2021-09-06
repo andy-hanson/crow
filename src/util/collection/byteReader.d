@@ -66,10 +66,3 @@ void setPtr(ref ByteReader reader, immutable(ubyte)* ptr) {
 @trusted immutable(T[]) readArrayDoNotSkipBytes(T)(ref ByteReader reader, immutable size_t size) {
 	return (cast(immutable T*) reader.ptr)[0 .. size];
 }
-
-@trusted immutable(NulTerminatedStr) readNulTerminatedStr(ref ByteReader reader) {
-	immutable char* begin = cast(immutable char*) reader.ptr;
-	immutable NulTerminatedStr res = nulTerminatedStrOfCStr(begin);
-	setPtr(reader, cast(immutable ubyte*) end(res.str));
-	return res;
-}

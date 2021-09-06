@@ -2,8 +2,8 @@ import
 	col.arr-util: try-remove-start
 	io.io: check-errno, connect-to-uri, exit-code, print, uri
 	openssl
-		err-clear-error, openssl-init-ssl, ssl, ssl-connect, ssl-ctx, ssl-ctx-new,
-		ssl-load-error-strings, ssl-new, ssl-set-fd, tls-client-method
+		ERR_clear_error, OPENSSL_init_ssl, ssl, SSL_connect, ssl-ctx, SSL_CTX_new,
+		SSL_load_error_strings, SSL_new, SSL_set_fd, TLS_client_method
 	posix: fd-t, sigignore, sigpipe
 
 main fut exit-code(args arr str) summon
@@ -81,14 +81,14 @@ test-get void(u uri) trusted summon
 		check-errno
 
 	# ssl-load-error-strings
-	i = openssl-init-ssl: 0, null.as-ref
+	i = OPENSSL_init_ssl: 0, null.as-ref
 	assert: i == 0
 
 	fd = u connect-to-uri
 
-	ssl-ctx = tls-client-method ssl-ctx-new
+	ssl-ctx = TLS_client_method SSL_CTX_new
 	forbid: ssl-ctx.as-any-ptr null?
-	ssl = ssl-ctx ssl-new
+	ssl = ssl-ctx SSL_new
 	forbid: ssl.as-any-ptr null?
 
 	ssl ssl-handshake fd
@@ -96,11 +96,11 @@ test-get void(u uri) trusted summon
 	todo
 
 ssl-handshake void(ssl ssl, fd fd-t) summon
-	err = ssl ssl-set-fd fd
+	err = ssl SSL_set_fd fd
 	# TODO: handle errors
 	forbid: err == 0
-	err-clear-error
-	rv = ssl ssl-connect
+	ERR_clear_error
+	rv = ssl SSL_connect
 	# TODO: handle other return values
 	assert: rv == 1
 

@@ -1100,7 +1100,6 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 				return immutable FunBody(nu!(FunBody.Extern)(
 					alloc,
 					e.isGlobal,
-					copyStr(alloc, e.externName),
 					has(e.libraryName) ? some(copyStr(alloc, force(e.libraryName))) : none!string));
 			},
 			(ref immutable ExprAst e) {

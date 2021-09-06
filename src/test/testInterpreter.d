@@ -128,7 +128,7 @@ void doInterpret(Debug, Alloc)(
 			nat64Type,
 			immutable LowFunParamsKind(false, false),
 			emptyArr!LowParam),
-		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc.deref(), false, "test")))];
+		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc.deref(), false)))];
 	immutable LowProgram lowProgram = immutable LowProgram(
 		immutable AllConstantsLow(emptyArr!ArrTypeAndConstantsLow, emptyArr!PointerTypeAndConstantsLow),
 		nu!AllLowTypes(

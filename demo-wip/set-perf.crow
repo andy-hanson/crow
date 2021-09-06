@@ -84,6 +84,6 @@ main fut nat(_ arr str) unsafe summon
 rand-nat nat(max nat) summon
 	rand.to-nat mod max
 
-rand int32() noctx extern<"rand"> summon
+rand int32() noctx extern summon
 
-srand void(a nat32) noctx extern<"srand"> summon
+srand void(a nat32) noctx extern summon

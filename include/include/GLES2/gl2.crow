@@ -29,9 +29,9 @@ GLuint alias
 GLfloat alias
 	c-float
 
-glAttachShader void(program GLuint, shader GLuint) extern<"glAttachShader", "GL"> noctx summon unsafe
+glAttachShader void(program GLuint, shader GLuint) extern<"GL"> noctx summon unsafe
 
-glBindBuffer void(target GLenum, buffer GLuint) extern<"glBindBuffer", "GL"> noctx summon unsafe
+glBindBuffer void(target GLenum, buffer GLuint) extern<"GL"> noctx summon unsafe
 
 glBufferData void
 	target GLenum
@@ -39,7 +39,7 @@ glBufferData void
 	data any-ptr
 	usage GLenum
 spec
-	extern<"glBufferData", "GL">
+	extern<"GL">
 	noctx
 	summon
 	unsafe
@@ -50,34 +50,34 @@ glBufferSubData void
 	size GLsizeiptr
 	data any-ptr
 spec
-	extern<"glBufferSubData", "GL">
+	extern<"GL">
 	noctx
 	summon
 	unsafe
 
-glClearColor void(red GLfloat, green GLfloat, blue GLfloat, alpha GLfloat) extern<"glClearColor", "GL"> noctx summon unsafe
+glClearColor void(red GLfloat, green GLfloat, blue GLfloat, alpha GLfloat) extern<"GL"> noctx summon unsafe
 
-glClear void(mask GLbitfield) extern<"glClear", "GL"> noctx summon unsafe
+glClear void(mask GLbitfield) extern<"GL"> noctx summon unsafe
 
-glCompileShader void(shader GLuint) extern<"glCompileShader", "GL"> noctx summon unsafe
+glCompileShader void(shader GLuint) extern<"GL"> noctx summon unsafe
 
-glCreateProgram GLuint() extern<"glCreateProgram", "GL"> noctx summon unsafe
+glCreateProgram GLuint() extern<"GL"> noctx summon unsafe
 
-glCreateShader GLuint(type GLenum) extern<"glCreateShader", "GL"> noctx summon unsafe
+glCreateShader GLuint(type GLenum) extern<"GL"> noctx summon unsafe
 
-glDeleteBuffers void(n GLsizei, buffers ptr GLuint) extern<"glDeleteBuffers", "GL"> noctx summon unsafe
+glDeleteBuffers void(n GLsizei, buffers ptr GLuint) extern<"GL"> noctx summon unsafe
 
-glDeleteProgram void(program GLuint) extern<"glDeleteProgram", "GL"> noctx summon unsafe
+glDeleteProgram void(program GLuint) extern<"GL"> noctx summon unsafe
 
-glDeleteShader void(shader GLuint) extern<"glDeleteShader", "GL"> noctx summon unsafe
+glDeleteShader void(shader GLuint) extern<"GL"> noctx summon unsafe
 
-glDrawArrays void(mode GLenum, first GLint, count GLsizei) extern<"glDrawArrays"> noctx summon unsafe
+glDrawArrays void(mode GLenum, first GLint, count GLsizei) extern noctx summon unsafe
 
-glEnableVertexAttribArray void(index GLuint) extern<"glEnableVertexAttribArray", "GL"> noctx summon unsafe
+glEnableVertexAttribArray void(index GLuint) extern<"GL"> noctx summon unsafe
 
-glGenBuffers void(n GLsizei, buffers ptr GLuint) extern<"glGenBuffers"> noctx summon unsafe
+glGenBuffers void(n GLsizei, buffers ptr GLuint) extern noctx summon unsafe
 
-glGetError GLenum() extern<"glGetError", "GL"> noctx summon unsafe
+glGetError GLenum() extern<"GL"> noctx summon unsafe
 
 glGetProgramInfoLog void
 	program GLuint
@@ -85,12 +85,12 @@ glGetProgramInfoLog void
 	length cell GLsizei
 	info-log ptr GLchar
 spec
-	extern<"glGetProgramInfoLog", "GL">
+	extern<"GL">
 	noctx
 	summon
 	unsafe
 
-glGetProgramiv void(program GLuint, pname GLenum, params cell GLint) extern<"glGetProgramiv", "GL"> noctx summon unsafe
+glGetProgramiv void(program GLuint, pname GLenum, params cell GLint) extern<"GL"> noctx summon unsafe
 
 glGetShaderInfoLog void
 	shader GLuint
@@ -98,14 +98,14 @@ glGetShaderInfoLog void
 	length cell GLsizei
 	info-log ptr GLchar
 spec
-	extern<"glGetShaderInfoLog", "GL">
+	extern<"GL">
 	noctx
 	summon
 	unsafe
 
-glGetShaderiv void(reader GLuint, pname GLenum, params cell GLint) extern<"glGetShaderiv", "GL"> noctx summon unsafe
+glGetShaderiv void(reader GLuint, pname GLenum, params cell GLint) extern<"GL"> noctx summon unsafe
 
-glLinkProgram void(program GLuint) extern<"glLinkProgram", "GL"> noctx summon unsafe
+glLinkProgram void(program GLuint) extern<"GL"> noctx summon unsafe
 
 glShaderSource void
 	shader GLuint
@@ -113,12 +113,12 @@ glShaderSource void
 	string ptr ptr GLchar
 	length ptr GLint
 spec
-	extern<"glShaderSource", "GL">
+	extern<"GL">
 	noctx
 	summon
 	unsafe
 
-glUseProgram void(program GLuint) extern<"glUseProgram", "GL"> noctx summon unsafe
+glUseProgram void(program GLuint) extern<"GL"> noctx summon unsafe
 
 glVertexAttribPointer void
 	index GLuint
@@ -128,7 +128,7 @@ glVertexAttribPointer void
 	stride GLsizei
 	pointer any-ptr
 spec
-	extern<"glVertexAttribPointer", "GL">
+	extern<"GL">
 	noctx
 	summon
 	unsafe

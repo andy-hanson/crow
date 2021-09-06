@@ -5,4 +5,4 @@ import
 	...number: int, nat8
 	...ptr: ptr
 
-SDL_GetKeyboardState ptr nat8(num-keys ptr int) extern<"SDL_GetKeyboardState", "SDL2"> noctx summon
+SDL_GetKeyboardState ptr nat8(num-keys ptr int) extern<"SDL2"> noctx summon

@@ -12,6 +12,7 @@ import model.model :
 	isCompareFun,
 	isMarkVisitFun,
 	Local,
+	name,
 	Param,
 	Purity,
 	range,
@@ -21,7 +22,7 @@ import model.model :
 import util.collection.dict : Dict;
 import util.comparison : compareBool, Comparison;
 import util.late : Late, lateGet, lateSet;
-import util.opt : Opt;
+import util.opt : none, Opt, some;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
@@ -431,7 +432,6 @@ struct ConcreteFunBody {
 	}
 	struct Extern {
 		immutable bool isGlobal;
-		immutable string externName;
 	}
 	struct RecordFieldGet {
 		immutable ubyte fieldIndex;
@@ -592,6 +592,17 @@ struct ConcreteFun {
 	ref immutable(ConcreteParam[]) paramsExcludingCtxAndClosure() return scope immutable {
 		return sig.paramsExcludingCtxAndClosure;
 	}
+}
+
+immutable(Opt!Sym) name(ref immutable ConcreteFun a) {
+	return matchConcreteFunSource!(immutable Opt!Sym)(
+		a.source,
+		(immutable Ptr!FunInst it) =>
+			some(name(it)),
+		(ref immutable ConcreteFunSource.Lambda) =>
+			none!Sym,
+		(ref immutable ConcreteFunSource.Test) =>
+			none!Sym);
 }
 
 struct ConcreteFunSig {

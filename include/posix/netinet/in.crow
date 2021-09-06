@@ -30,4 +30,4 @@ sockaddr_in sockaddr_in(sin_family sa_family_t, sin_port in_port_t, sin_addr in_
 sockaddr_in sockaddr_in() noctx
 	0 sockaddr_in 0, 0.in_addr
 
-htons nat16(hostshort nat16) unsafe extern<"htons"> noctx
+htons nat16(hostshort nat16) unsafe extern noctx

@@ -167,9 +167,6 @@ void writeParseDiag(Alloc, PathAlloc)(
 				case ParseDiag.Expected.Kind.endOfLine:
 					writeStatic(writer, "expected end of line");
 					break;
-				case ParseDiag.Expected.Kind.externName:
-					writeStatic(writer, "expected name of extern function ('<\"foo\">')");
-					break;
 				case ParseDiag.Expected.Kind.indent:
 					writeStatic(writer, "expected an indent");
 					break;

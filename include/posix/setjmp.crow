@@ -20,7 +20,7 @@ jmp_buf alias
 	ptr __jmp_buf_tag
 
 # TODO: this is marked __THROWNL, what does that do?
-setjmp int32(env jmp_buf) unsafe extern<"setjmp"> noctx
+setjmp int32(env jmp_buf) unsafe extern noctx
 
 # TODO: this is marked __THROWNL, what does that do?
-longjmp void(env jmp_buf, val int32) unsafe extern<"longjmp"> noctx
+longjmp void(env jmp_buf, val int32) unsafe extern noctx

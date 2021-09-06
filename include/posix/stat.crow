@@ -30,7 +30,7 @@ stat record mut
 	st_ino mut u-long-long
 	unused mut u-long-long
 
-stat int32(path c-str, buf stat) noctx extern<"stat"> unsafe summon
+stat int32(path c-str, buf stat) noctx extern unsafe summon
 
 stat stat()
 	stat: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
@@ -47,4 +47,4 @@ S_IFREG nat32() noctx
 	# TODO: "octal100000"
 	32768
 
-mkdir err-t(path c-str, mode mode_t) noctx extern<"mkdir"> unsafe summon
+mkdir err-t(path c-str, mode mode_t) noctx extern unsafe summon

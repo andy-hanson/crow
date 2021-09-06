@@ -60,6 +60,7 @@ import util.path : AbsolutePath, AllPaths, pathToCStr;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
 import util.repr : writeReprNoNewline;
 import util.sourceRange : FileAndPos;
+import util.sym : logSym;
 import util.types :
 	decr,
 	incr,
@@ -656,7 +657,7 @@ void applyExternDynCall(Debug, Extern)(
 ) {
 	if (dbg.enabled()) {
 		logNoNewline(dbg, "Running extern function ");
-		log(dbg, strOfNulTerminatedStr(op.name));
+		logSym(dbg, op.name);
 	}
 
 	immutable Nat64[] params = popN(a.dataStack, sizeNat(op.parameterTypes).to8());

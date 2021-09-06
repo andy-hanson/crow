@@ -17,7 +17,7 @@ import model.constant : Constant;
 import model.model : asRecord, body_;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.comparison : compareEnum, compareSizeT, Comparison;
-import util.opt : Opt;
+import util.opt : none, Opt;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
@@ -433,7 +433,6 @@ struct LowFunBody {
 
 	struct Extern {
 		immutable bool isGlobal;
-		immutable string externName;
 	}
 
 	enum Kind {
@@ -545,6 +544,13 @@ struct LowFun {
 	}
 }
 static assert(LowFun.sizeof <= 48);
+
+immutable(Opt!Sym) name(ref immutable LowFun a) {
+	return matchLowFunSource!(immutable Opt!Sym)(
+		a.source,
+		(immutable Ptr!ConcreteFun it) => name(it),
+		(ref immutable LowFunSource.Generated) => none!Sym);
+}
 
 struct LowFunSig {
 	immutable LowType returnType;

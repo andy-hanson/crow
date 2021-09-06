@@ -72,7 +72,7 @@ import util.path :
 	rootPath,
 	StorageKind;
 import util.ptr : Ptr, PtrRange, ptrTrustMe_mut;
-import util.sym : AllSymbols;
+import util.sym : AllSymbols, Sym, symAsTempBuffer;
 import util.types :
 	float32OfU32Bits,
 	float64OfU64Bits,
@@ -541,13 +541,14 @@ struct RealExtern {
 	}
 
 	@trusted immutable(Nat64) doDynCall(
-		ref immutable NulTerminatedStr name,
+		immutable Sym name,
 		immutable DynCallType returnType,
 		ref immutable Nat64[] parameters,
 		ref immutable DynCallType[] parameterTypes,
 	) {
-		// TODO: don't just get everything from SDL...
-		immutable CStr nameCStr = asCStr(name);
+		immutable char[32] nameBuffer = symAsTempBuffer!32(name);
+		immutable CStr nameCStr = nameBuffer.ptr;
+		// TODO: don't just get everything from SDL/GL... use the library from the extern declaration!
 		DCpointer ptr = dlsym(sdlHandle, nameCStr);
 		if (ptr == null) ptr = dlsym(glHandle, nameCStr);
 		if (ptr == null) printf("Can't load symbol %s\n", nameCStr);

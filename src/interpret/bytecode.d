@@ -163,7 +163,7 @@ immutable(Repr) reprOperation(Alloc)(ref Alloc alloc, ref immutable Operation a)
 			reprRecord(alloc, "extern", [reprStr(strOfExternOp(it.op))]),
 		(ref immutable Operation.ExternDynCall it) =>
 			reprRecord(alloc, "extern-dyn", [
-				reprStr(strOfNulTerminatedStr(it.name)),
+				reprSym(it.name),
 				reprSym(symOfDynCallType(it.returnType)),
 				reprArr(alloc, it.parameterTypes, (ref immutable DynCallType t) =>
 					reprSym(symOfDynCallType(t)))]),
@@ -368,7 +368,7 @@ struct Operation {
 	}
 
 	struct ExternDynCall {
-		immutable NulTerminatedStr name;
+		immutable Sym name;
 		immutable DynCallType returnType;
 		immutable DynCallType[] parameterTypes;
 	}

@@ -3,8 +3,8 @@ import
 	..private.bootstrap: nat, nat8, void
 	..ptr: any-ptr
 
-memcpy void(dest any-ptr, src any-ptr, size nat) extern<"memcpy"> noctx unsafe
+memcpy void(dest any-ptr, src any-ptr, size nat) extern noctx unsafe
 
-memmove void(dest any-ptr, src any-ptr, size nat) extern<"memmove"> noctx unsafe
+memmove void(dest any-ptr, src any-ptr, size nat) extern noctx unsafe
 
-memset void(begin any-ptr, value nat8, size nat) extern<"memset"> noctx unsafe
+memset void(begin any-ptr, value nat8, size nat) extern noctx unsafe

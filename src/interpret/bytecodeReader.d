@@ -20,7 +20,6 @@ import util.collection.byteReader :
 	readInt16,
 	readArray,
 	readArrayDoNotSkipBytes,
-	readNulTerminatedStr,
 	readU8,
 	readU16,
 	readU32,
@@ -28,6 +27,7 @@ import util.collection.byteReader :
 	setPtr,
 	skipBytes;
 import util.collection.str : NulTerminatedStr;
+import util.sym : Sym;
 import util.types : incr, Nat8, Nat16, Nat32, Nat64, safeSizeTFromU64, U4U4, u4u4OfU8;
 import util.util : unreachable;
 
@@ -78,7 +78,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable ubyte* bytes) {
 			return immutable Operation(immutable Operation.Extern(
 				cast(immutable ExternOp) readU8(reader.reader).raw()));
 		case OpCode.externDynCall:
-			immutable NulTerminatedStr name = readNulTerminatedStr(reader.reader);
+			immutable Sym name = immutable Sym(readU64(reader.reader).raw());
 			static assert(DynCallType.sizeof == Nat8.sizeof);
 			immutable DynCallType returnType = cast(immutable DynCallType) readU8(reader.reader).raw();
 			immutable DynCallType[] parameterTypes =

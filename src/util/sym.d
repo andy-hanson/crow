@@ -267,6 +267,18 @@ immutable(string) strOfSym(Alloc)(ref Alloc alloc, immutable Sym a) {
 	return finishWriter(writer);
 }
 
+immutable(char[bufferSize]) symAsTempBuffer(size_t bufferSize)(immutable Sym a) {
+	char[bufferSize] res;
+	verify(symSize(a) < bufferSize);
+	size_t index;
+	eachCharInSym(a, (immutable char c) {
+		res[index] = c;
+		index++;
+	});
+	res[index] = '\0';
+	return res;
+}
+
 immutable(size_t) writeSymAndGetSize(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
 	size_t size = 0;
 	eachCharInSym(a, (immutable char c) {
@@ -274,6 +286,12 @@ immutable(size_t) writeSymAndGetSize(Alloc)(ref Writer!Alloc writer, immutable S
 		size++;
 	});
 	return size;
+}
+
+void logSym(Debug)(ref Debug dbg, immutable Sym a) {
+	eachCharInSym(a, (immutable char c) {
+		dbg.writeChar(c);
+	});
 }
 
 void writeSym(Alloc)(ref Writer!Alloc writer, immutable Sym a) {

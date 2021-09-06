@@ -5,7 +5,7 @@ import
 
 errno err-t() unsafe noctx
 	__errno_location[]
-.__errno_location ptr err-t() extern<"__errno_location"> noctx unsafe
+.__errno_location ptr err-t() extern noctx unsafe
 
 ENOENT err-t() noctx
 	2

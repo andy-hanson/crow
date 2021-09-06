@@ -559,7 +559,6 @@ struct FunBody {
 	struct CreateRecord {}
 	struct Extern {
 		immutable bool isGlobal;
-		immutable string externName;
 		immutable Opt!string libraryName;
 	}
 	struct RecordFieldGet {

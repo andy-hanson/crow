@@ -3,4 +3,4 @@ no-std
 import
 	..number: nat
 
-get_nprocs nat() summon extern<"get_nprocs"> noctx
+get_nprocs nat() summon extern noctx

@@ -14,18 +14,18 @@ ssl-ctx extern-ptr
 ssl-method extern-ptr
 
 # /usr/include/openssl/ssl.h
-ssl-load-error-strings void() extern<"SSL_load_error_strings"> noctx summon
-ssl-ctx-new ssl-ctx(meth ssl-method) extern<"SSL_CTX_new"> noctx summon
-tls-client-method ssl-method() extern<"TLS_client_method"> noctx summon
+SSL_load_error_strings void() extern noctx summon
+SSL_CTX_new ssl-ctx(meth ssl-method) extern noctx summon
+TLS_client_method ssl-method() extern noctx summon
 
 openssl-init-settings extern-ptr
 
-openssl-init-ssl int32(opts nat64, settings openssl-init-settings) extern<"OPENSSL_init_ssl"> noctx summon
+OPENSSL_init_ssl int32(opts nat64, settings openssl-init-settings) extern noctx summon
 
 long alias
 	int64
 
-ssl-ctx-ctrl long(ctx ssl-ctx, cmd int32, larg long, parg any-ptr) extern<"SSL_CTX_ctrl"> noctx summon
+SSL_CTX_ctrl long(ctx ssl-ctx, cmd int32, larg long, parg any-ptr) extern noctx summon
 
 ssl-ctrl-options int32()
 	32
@@ -33,30 +33,24 @@ ssl-ctrl-mode int32()
 	33
 
 ssl-ctx-set-options long(s ssl-ctx, op long) summon
-	s ssl-ctx-ctrl ssl-ctrl-options, op, null
+	s SSL_CTX_ctrl ssl-ctrl-options, op, null
 ssl-ctx-set-mode long(s ssl-ctx, op long) summon
-	s ssl-ctx-ctrl ssl-ctrl-mode, op, null
+	s SSL_CTX_ctrl ssl-ctrl-mode, op, null
 
 proto-select-cb alias
 	fun-ptr6<int32, ssl, ptr str, ptr nat8, ptr nat8, nat32, any-ptr>
 
-ssl-ctx-set-next-proto-select-cb void
-	s ssl-ctx
-	cb proto-select-cb
-spec
-	extern<"SSL_CTX_set_next_proto_select_cb">
-	noctx
-	summon
+SSL_CTX_set_next_proto_select_cb void(s ssl-ctx, cb proto-select-cb) extern noctx summon
 
-ssl-set-fd int32(s ssl, fd fd-t) extern<"SSL_set_fd"> noctx summon
-ssl-connect int32(s ssl) extern<"SSL_connect"> noctx summon
+SSL_set_fd int32(s ssl, fd fd-t) extern noctx summon
+SSL_connect int32(s ssl) extern noctx summon
 
-ssl-new ssl(ctx ssl-ctx) extern<"SSL_new"> noctx summon
-ssl-shutdown int32() extern<"SSL_shutdown"> noctx summon
-ssl-free void() extern<"SSL_free"> noctx summon
-ssl-ctx-free void(ctx ssl-ctx) extern<"SSL_CTX_free"> noctx summon
+SSL_new ssl(ctx ssl-ctx) extern noctx summon
+SSL_shutdown int32() extern noctx summon
+SSL_free void() extern noctx summon
+SSL_CTX_free void(ctx ssl-ctx) extern noctx summon
 
 # /usr/include/openssl/err.h
-err-clear-error void() extern<"ERR_clear_error"> noctx summon
-err-error-string c-str(e u-long, buf c-str) extern<"ERR_error_string"> noctx summon
-err-get-error u-long() extern<"ERR_get_error"> noctx summon
+ERR_clear_error void() extern noctx summon
+ERR_error_string c-str(e u-long, buf c-str) extern noctx summon
+ERR_get_error u-long() extern noctx summon

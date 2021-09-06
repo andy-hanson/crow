@@ -236,10 +236,10 @@ unsafe-div float32(a float32, b float32) noctx unsafe builtin
 
 square-root float(a float) noctx
 	a sqrt
-.sqrt float(a float) noctx extern<"sqrt">
+.sqrt float(a float) noctx extern
 square-root float32(a float32) noctx
 	a sqrt
-.sqrt float32(a float32) noctx extern<"sqrt">
+.sqrt float32(a float32) noctx extern
 
 # True if the float is "Not A Number".
 nan? bool(a float) noctx builtin
