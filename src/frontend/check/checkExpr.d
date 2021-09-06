@@ -307,8 +307,6 @@ immutable(ThenAndElse) checkIfWithoutElse(Alloc)(
 	}
 }
 
-enum NeedsCheck { alreadyChecked, needsCheck }
-
 immutable(bool) isOptType(ref immutable CommonTypes commonTypes, ref immutable Type type) {
 	return isStructInst(type) && ptrEquals(decl(asStructInst(type).deref()), commonTypes.opt);
 }
@@ -788,17 +786,6 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 		});
 }
 
-immutable(Expr) checkWithLocalAndExpect(Alloc)(
-	ref Alloc alloc,
-	ref ExprCtx ctx,
-	immutable Ptr!Local local,
-	ref immutable ExprAst ast,
-	ref immutable Type expectedType,
-) {
-	Expected expected = Expected(some(expectedType));
-	return checkWithLocal(alloc, ctx, local, ast, expected);
-}
-
 immutable(Expr) checkWithLocal(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
@@ -1058,28 +1045,6 @@ immutable(Expr) checkWithOptLocal(Alloc)(
 	return has(local)
 		? checkWithLocal(alloc, ctx, force(local), ast, expected)
 		: checkExpr(alloc, ctx, ast, expected);
-}
-
-immutable(Expr) checkWithOptLocalAndExpect(Alloc)(
-	ref Alloc alloc,
-	ref ExprCtx ctx,
-	immutable Opt!(Ptr!Local) local,
-	ref immutable ExprAst ast,
-	ref immutable Type expectedType,
-) {
-	Expected expected = Expected(some(expectedType));
-	return checkWithOptLocal(alloc, ctx, local, ast, expected);
-}
-
-immutable(ExprAndType) checkWithOptLocalAndInfer(Alloc)(
-	ref Alloc alloc,
-	ref ExprCtx ctx,
-	immutable Opt!(Ptr!Local) local,
-	ref immutable ExprAst ast,
-) {
-	Expected expected = Expected.infer();
-	immutable Expr expr = checkWithOptLocal(alloc, ctx, local, ast, expected);
-	return immutable ExprAndType(expr, inferred(expected));
 }
 
 struct UnionAndMembers {

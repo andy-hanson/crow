@@ -16,18 +16,23 @@ import util.collection.fullIndexDictBuilder :
 	newFullIndexDictBuilder;
 import util.opt : force, has, none, Opt, some;
 import util.types : Nat8, Nat16, zero;
-import util.util : divRoundUp, roundUp, verify;
+import util.util : divRoundUp, drop, max, roundUp, verify;
 
 // NOTE: we should lay out structs so that no primitive field straddles multiple stack entries.
 struct TypeLayout {
 	// All in bytes
-	immutable FullIndexDict!(LowType.Record, Nat16) recordSizes;
+	immutable FullIndexDict!(LowType.Record, TypeSize) recordSizes;
 	immutable FullIndexDict!(LowType.Record, Nat16[]) fieldOffsets;
-	immutable FullIndexDict!(LowType.Union, Nat16) unionSizes;
+	immutable FullIndexDict!(LowType.Union, TypeSize) unionSizes;
 }
 
-immutable(Nat16) sizeOfType(ref immutable TypeLayout typeLayout, ref immutable LowType t) {
-	return matchLowType!(immutable Nat16)(
+struct TypeSize {
+	immutable Nat16 size;
+	immutable Nat8 alignment;
+}
+
+immutable(TypeSize) sizeOfType(ref immutable TypeLayout typeLayout, ref immutable LowType t) {
+	return matchLowType!(immutable TypeSize)(
 		t,
 		(immutable LowType.ExternPtr) =>
 			externPtrSize,
@@ -46,25 +51,25 @@ immutable(Nat16) sizeOfType(ref immutable TypeLayout typeLayout, ref immutable L
 }
 
 immutable(Nat8) nStackEntriesForType(ref immutable TypeLayout typeLayout, ref immutable LowType t) {
-	return divRoundUp(sizeOfType(typeLayout, t), stackEntrySize).to8();
+	return divRoundUp(sizeOfType(typeLayout, t).size, stackEntrySize).to8();
 }
 
 immutable(TypeLayout) layOutTypes(Alloc)(ref Alloc alloc, ref immutable LowProgram program) {
 	TypeLayoutBuilder builder = TypeLayoutBuilder(
-		newFullIndexDictBuilder!(LowType.Record, Nat16)(alloc, fullIndexDictSize(program.allRecords)),
+		newFullIndexDictBuilder!(LowType.Record, TypeSize)(alloc, fullIndexDictSize(program.allRecords)),
 		newFullIndexDictBuilder!(LowType.Record, Nat16[])(alloc, fullIndexDictSize(program.allRecords)),
-		newFullIndexDictBuilder!(LowType.Union, Nat16)(alloc, fullIndexDictSize(program.allUnions)));
+		newFullIndexDictBuilder!(LowType.Union, TypeSize)(alloc, fullIndexDictSize(program.allUnions)));
 	fullIndexDictEach!(LowType.Record, LowRecord)(
 		program.allRecords,
 		(immutable LowType.Record index, ref immutable LowRecord record) {
 			if (!fullIndexDictBuilderHas(builder.recordSizes, index))
-				fillRecordSize!Alloc(alloc, program, index, record, builder);
+				drop(fillRecordSize!Alloc(alloc, program, index, record, builder));
 		});
 	fullIndexDictEach!(LowType.Union, LowUnion)(
 		program.allUnions,
 		(immutable LowType.Union index, ref immutable LowUnion union_) {
 			if (!fullIndexDictBuilderHas(builder.unionSizes, index))
-				fillUnionSize!Alloc(alloc, program, index, union_, builder);
+				drop(fillUnionSize!Alloc(alloc, program, index, union_, builder));
 		});
 	return immutable TypeLayout(
 		finishFullIndexDict(builder.recordSizes),
@@ -96,7 +101,7 @@ void walkRecordFields(TempAlloc)(
 				tempAlloc,
 				record.fields[force(packStart) .. packEnd],
 				(ref immutable LowField field) {
-					immutable Nat8 size = sizeOfType(typeLayout, field.type).to8();
+					immutable Nat8 size = sizeOfType(typeLayout, field.type).size.to8();
 					return zero(size) ? none!Nat8 : some(size);
 				});
 			if (!empty(fieldSizes))
@@ -110,7 +115,7 @@ void walkRecordFields(TempAlloc)(
 		} else {
 			//TODO: use field offsets instead of getting size?
 			immutable LowType fieldType = at(record.fields, fieldIndex).type;
-			immutable Nat16 fieldSize = sizeOfType(typeLayout, fieldType);
+			immutable Nat16 fieldSize = sizeOfType(typeLayout, fieldType).size;
 			immutable Opt!size_t nextPackStart = () {
 				if (fieldSize < immutable Nat16(8)) {
 					return has(packStart) ? packStart : some(fieldIndex);
@@ -131,40 +136,45 @@ void walkRecordFields(TempAlloc)(
 private:
 
 struct TypeLayoutBuilder {
-	FullIndexDictBuilder!(LowType.Record, Nat16) recordSizes;
+	FullIndexDictBuilder!(LowType.Record, TypeSize) recordSizes;
 	FullIndexDictBuilder!(LowType.Record, Nat16[]) recordFieldOffsets;
-	FullIndexDictBuilder!(LowType.Union, Nat16) unionSizes;
+	FullIndexDictBuilder!(LowType.Union, TypeSize) unionSizes;
 }
 
 immutable Nat16 fieldBoundary = immutable Nat16(8);
 
-immutable(Nat16) fillRecordSize(Alloc)(
+immutable(TypeSize) fillRecordSize(Alloc)(
 	ref Alloc alloc,
 	ref immutable LowProgram program,
 	immutable LowType.Record index,
 	ref immutable LowRecord record,
 	ref TypeLayoutBuilder builder,
 ) {
+	Nat16 maxFieldSize = immutable Nat16(1);
+	Nat8 maxFieldAlignment = immutable Nat8(1);
 	Nat16 offset = immutable Nat16(0);
 	immutable Nat16[] fieldOffsets = map(alloc, record.fields, (ref immutable LowField field) {
-		immutable Nat16 fieldSize = sizeOfType(alloc, program, field.type, builder);
+		immutable TypeSize fieldSize = sizeOfType(alloc, program, field.type, builder);
+		maxFieldSize = max(maxFieldSize, fieldSize.size);
+		maxFieldAlignment = max(maxFieldAlignment, fieldSize.alignment);
 		// If field would stretch across a boundary, move offset up to the next boundary
 		immutable Nat16 mod = offset % fieldBoundary;
-		if (!record.packed && !zero(mod) && mod + fieldSize > fieldBoundary)
+		if (!record.packed && !zero(mod) && mod + fieldSize.size > fieldBoundary)
 			offset = roundUp(offset, fieldBoundary);
 		immutable Nat16 res = offset;
-		offset += fieldSize;
+		offset += fieldSize.size;
 		return res;
 	});
 	immutable Nat16 size = offset <= immutable Nat16(8) || record.packed
 		? offset
-		: roundUp(offset, fieldBoundary);
-	fullIndexDictBuilderAdd(builder.recordSizes, index, size);
+		: roundUp(offset, maxFieldAlignment.to16());
+	immutable TypeSize typeSize = immutable TypeSize(size, maxFieldAlignment);
+	fullIndexDictBuilderAdd(builder.recordSizes, index, typeSize);
 	fullIndexDictBuilderAdd(builder.recordFieldOffsets, index, fieldOffsets);
-	return size;
+	return typeSize;
 }
 
-immutable(Nat16) fillUnionSize(Alloc)(
+immutable(TypeSize) fillUnionSize(Alloc)(
 	ref Alloc alloc,
 	ref immutable LowProgram program,
 	immutable LowType.Union index,
@@ -172,25 +182,28 @@ immutable(Nat16) fillUnionSize(Alloc)(
 	ref TypeLayoutBuilder builder,
 ) {
 	immutable Nat16 maxMemberSize = arrMax(immutable Nat16(0), union_.members, (ref immutable LowType t) =>
-		sizeOfType(alloc, program, t, builder));
-	immutable Nat16 size = unionKindSize + roundUp(maxMemberSize, unionKindSize);
+		sizeOfType(alloc, program, t, builder).size);
+	immutable TypeSize size = immutable TypeSize(
+		unionKindSize.size + roundUp(maxMemberSize, unionKindSize.size),
+		// Since the union kind is 8 bytes, that's the alignment
+		immutable Nat8(8));
 	fullIndexDictBuilderAdd(builder.unionSizes, index, size);
 	return size;
 }
 
-// NOTE: Using a full 64 bits even on 32-bit system so behavior is consistent.
-immutable Nat16 externPtrSize = immutable Nat16(8);
-immutable Nat16 ptrSize = immutable Nat16(8);
-immutable Nat16 funPtrSize = immutable Nat16(8);
-immutable Nat16 unionKindSize = immutable Nat16(8);
+immutable TypeSize ptrSize = immutable TypeSize(immutable Nat16(8), immutable Nat8(8));
+immutable TypeSize externPtrSize = ptrSize;
+immutable TypeSize funPtrSize = ptrSize;
+// TODO: could be smaller...
+immutable TypeSize unionKindSize = ptrSize;
 
-immutable(Nat16) sizeOfType(Alloc)(
+immutable(TypeSize) sizeOfType(Alloc)(
 	ref Alloc alloc,
 	ref immutable LowProgram program,
 	ref immutable LowType t,
 	ref TypeLayoutBuilder builder,
 ) {
-	return matchLowType!(immutable Nat16)(
+	return matchLowType!(immutable TypeSize)(
 		t,
 		(immutable LowType.ExternPtr) =>
 			externPtrSize,
@@ -203,38 +216,38 @@ immutable(Nat16) sizeOfType(Alloc)(
 		(immutable LowType.PtrRaw) =>
 			ptrSize,
 		(immutable LowType.Record index) {
-			immutable Opt!Nat16 size = fullIndexDictBuilderOptGet(builder.recordSizes, index);
+			immutable Opt!TypeSize size = fullIndexDictBuilderOptGet(builder.recordSizes, index);
 			return has(size)
 				? force(size)
 				: fillRecordSize(alloc, program, index, fullIndexDictGet(program.allRecords, index), builder);
 		},
 		(immutable LowType.Union index) {
-			immutable Opt!Nat16 size = fullIndexDictBuilderOptGet(builder.unionSizes, index);
+			immutable Opt!TypeSize size = fullIndexDictBuilderOptGet(builder.unionSizes, index);
 			return has(size)
 				? force(size)
 				: fillUnionSize(alloc, program, index, fullIndexDictGet(program.allUnions, index), builder);
 		});
 }
 
-immutable(Nat16) primitiveSize(immutable PrimitiveType a) {
+immutable(TypeSize) primitiveSize(immutable PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.void_:
-			return immutable Nat16(0);
+			return immutable TypeSize(immutable Nat16(0), immutable Nat8(1));
 		case PrimitiveType.bool_:
 		case PrimitiveType.char_:
 		case PrimitiveType.int8:
 		case PrimitiveType.nat8:
-			return immutable Nat16(1);
+			return immutable TypeSize(immutable Nat16(1), immutable Nat8(1));
 		case PrimitiveType.int16:
 		case PrimitiveType.nat16:
-			return immutable Nat16(2);
+			return immutable TypeSize(immutable Nat16(2), immutable Nat8(2));
 		case PrimitiveType.float32:
 		case PrimitiveType.int32:
 		case PrimitiveType.nat32:
-			return immutable Nat16(4);
+			return immutable TypeSize(immutable Nat16(4), immutable Nat8(4));
 		case PrimitiveType.float64:
 		case PrimitiveType.int64:
 		case PrimitiveType.nat64:
-			return immutable Nat16(8);
+			return immutable TypeSize(immutable Nat16(8), immutable Nat8(8));
 	}
 }

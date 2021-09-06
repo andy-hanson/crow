@@ -601,11 +601,6 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 	return a.kind == FunBody.Kind.extern_;
 }
 
-@trusted immutable(FunBody.Extern) asExtern(ref immutable FunBody a) {
-	verify(a.isExtern);
-	return a.extern_;
-}
-
 @trusted T matchFunBody(T)(
 	ref immutable FunBody a,
 	scope T delegate(ref immutable FunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,

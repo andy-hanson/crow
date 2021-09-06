@@ -5,7 +5,7 @@ module util.collection.globalAllocatedStack;
 import util.collection.arr : at, size;
 import util.collection.arrUtil : copyArr;
 import util.ptr : PtrRange;
-import util.types : decr, Nat8, Nat32, Nat64, safeSizeTToU32, zero;
+import util.types : decr, Nat8, Nat32, safeSizeTToU32, zero;
 import util.util : verify;
 
 struct GlobalAllocatedStack(T, size_t capacity) {
@@ -84,7 +84,7 @@ immutable(T) peek(T, size_t capacity)(
 }
 
 // WARN: result is temporary!
-@trusted immutable(Nat64[]) popN(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable Nat8 n) {
+@trusted immutable(T[]) popN(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable Nat8 n) {
 	verify(a.size >= n.raw());
 	a.size -= n.raw();
 	return cast(immutable) a.values[a.size .. a.size + n.raw()];

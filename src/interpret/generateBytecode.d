@@ -52,7 +52,7 @@ import interpret.bytecodeWriter :
 	writeWrite;
 import interpret.debugging : writeLowType;
 import interpret.generateText : generateText, getTextInfoForArray, getTextPointer, TextAndInfo, TextArrInfo;
-import interpret.typeLayout : layOutTypes, nStackEntriesForType, sizeOfType, TypeLayout, walkRecordFields;
+import interpret.typeLayout : layOutTypes, nStackEntriesForType, sizeOfType, TypeLayout, TypeSize, walkRecordFields;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	asLocalRef,
@@ -101,7 +101,6 @@ import util.collection.mutIndexMultiDict :
 	mutIndexMultiDictAdd,
 	mutIndexMultiDictMustGetAt,
 	newMutIndexMultiDict;
-import util.collection.str : strEq;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
@@ -179,7 +178,7 @@ immutable(FileToFuns) fileToFuns(Alloc)(ref Alloc alloc, ref immutable Program p
 				immutable FunNameAndPos(name(it), range(it).range.start)));
 }
 
-immutable(Nat16) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
+immutable(TypeSize) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
 	return sizeOfType(ctx.typeLayout, t);
 }
 
@@ -515,7 +514,7 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 			generateExpr(dbg, tempAlloc, writer, ctx, it.then);
 		},
 		(ref immutable LowExprKind.SizeOf it) {
-			writePushConstant(dbg, writer, source, sizeOfType(ctx, it.type));
+			writePushConstant(dbg, writer, source, sizeOfType(ctx, it.type).size);
 		},
 		(ref immutable Constant it) {
 			generateConstant(dbg, tempAlloc, writer, ctx, source, expr.type, it);
@@ -694,7 +693,7 @@ immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	immutable Nat8 fieldIndex,
 ) {
 	immutable Nat16 size =
-		sizeOfType(ctx, at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).type);
+		sizeOfType(ctx, at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).type).size;
 	return immutable FieldOffsetAndSize(getFieldOffset(ctx, record, fieldIndex), size);
 }
 
@@ -875,7 +874,7 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
 			generateArg();
-			writeRead(dbg, writer, source, immutable Nat16(0), sizeOfType(ctx, type));
+			writeRead(dbg, writer, source, immutable Nat16(0), sizeOfType(ctx, type).size);
 			break;
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
@@ -1014,7 +1013,7 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 			immutable LowType pointee = asPtrRaw(a.left.type).pointee;
 			generateExpr(dbg, tempAlloc, writer, ctx, a.left);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.right);
-			immutable Nat16 pointeeSize = sizeOfType(ctx, pointee);
+			immutable Nat16 pointeeSize = sizeOfType(ctx, pointee).size;
 			if (pointeeSize != immutable Nat16(1))
 				writeMulConstantNat64(dbg, writer, source, pointeeSize.to64());
 			writeFn(
@@ -1186,7 +1185,7 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
 			generateExpr(dbg, tempAlloc, writer, ctx, a.left);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.right);
-			writeWrite(dbg, writer, source, immutable Nat16(0), sizeOfType(ctx, a.right.type));
+			writeWrite(dbg, writer, source, immutable Nat16(0), sizeOfType(ctx, a.right.type).size);
 			break;
 	}
 }

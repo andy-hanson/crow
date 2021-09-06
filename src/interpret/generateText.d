@@ -210,10 +210,10 @@ void recurWritePointer(TempAlloc)(
 
 immutable(size_t) getAllConstantsSize(ref immutable TypeLayout typeLayout, ref immutable AllConstantsLow allConstants) {
 	immutable size_t arrsSize = sum(allConstants.arrs, (ref immutable ArrTypeAndConstantsLow arrs) =>
-		sizeOfType(typeLayout, arrs.elementType).raw() *
+		sizeOfType(typeLayout, arrs.elementType).size.raw() *
 		sum(arrs.constants, (ref immutable Constant[] elements) => size(elements)));
 	immutable size_t pointersSize = sum(allConstants.pointers, (ref immutable PointerTypeAndConstantsLow pointers) =>
-		sizeOfType(typeLayout, pointers.pointeeType).raw() * size(pointers.constants));
+		sizeOfType(typeLayout, pointers.pointeeType).size.raw() * size(pointers.constants));
 	return arrsSize + pointersSize;
 }
 

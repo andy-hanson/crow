@@ -458,18 +458,18 @@ void writePack(Debug, Alloc)(
 ) {
 	log(dbg, writer, "write pack");
 	verify(!empty(sizes));
-	Nat8 sizeSum = immutable Nat8(0);
+	Nat16 sizeSum = immutable Nat16(0);
 	foreach (immutable Nat8 size; sizes) {
 		// TODO: size type
 		verify(size == immutable Nat8(1) || size == immutable Nat8(2) || size == immutable Nat8(4));
-		sizeSum += size;
+		sizeSum += size.to16();
 	}
-	verify(sizeSum <= immutable Nat8(8));
 	pushOpcode(writer, source, OpCode.pack);
 	pushU8(writer, source, sizeNat(sizes).to8());
 	foreach (immutable Nat8 size; sizes)
 		pushU8(writer, source, size);
-	writer.nextStackEntry -= decr(sizeNat(sizes)).to16();
+	writer.nextStackEntry -= sizeNat(sizes).to16();
+	writer.nextStackEntry += divRoundUp(sizeSum, immutable Nat16(8));
 }
 
 immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(

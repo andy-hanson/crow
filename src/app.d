@@ -86,7 +86,7 @@ import util.util : todo, unreachable, verify;
 import util.writer : Writer;
 
 @system extern(C) immutable(int) main(immutable size_t argc, immutable CStr* argv) {
-	immutable size_t memorySizeBytes =  1536 * 1024 * 1024; // 1.5 GB
+	immutable size_t memorySizeBytes = 1536 * 1024 * 1024; // 1.5 GB
 	ubyte* mem = cast(ubyte*) pureMalloc(memorySizeBytes);
 	scope(exit) pureFree(mem);
 	verify(mem != null);

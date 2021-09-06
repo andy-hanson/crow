@@ -479,7 +479,7 @@ immutable(bool) isExtern(ref immutable ConcreteFunBody a) {
 	return a.builtin;
 }
 
-@trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref immutable ConcreteFunBody a) {
+private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref immutable ConcreteFunBody a) {
 	verify(isExtern(a));
 	return a.extern_;
 }

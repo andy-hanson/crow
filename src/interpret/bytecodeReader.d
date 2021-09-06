@@ -26,7 +26,6 @@ import util.collection.byteReader :
 	readU64,
 	setPtr,
 	skipBytes;
-import util.collection.str : NulTerminatedStr;
 import util.sym : Sym;
 import util.types : incr, Nat8, Nat16, Nat32, Nat64, safeSizeTFromU64, U4U4, u4u4OfU8;
 import util.util : unreachable;

@@ -615,16 +615,6 @@ void zip(T, U, V)(
 		cb(at(a, i), at(b, i), at(c, i));
 }
 
-@system void zipSystem(T, U)(
-	immutable T[] a,
-	immutable U[] b,
-	scope void delegate(ref immutable T, ref immutable U) @system @nogc pure nothrow cb,
-) {
-	verify(sizeEq(a, b));
-	foreach (immutable size_t i; 0 .. size(a))
-		cb(at(a, i), at(b, i));
-}
-
 void zipFirstMut(T, U)(
 	ref T[] a,
 	ref immutable U[] b,

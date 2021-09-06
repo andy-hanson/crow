@@ -159,7 +159,7 @@ score-cache alias
 		cache strategy-recur board, ai-depth, score-and-best.best, (sum-score + score-and-best.score.to-int), x + 1
 
 indent str(depth nat)
-	"  " repeat 9 - depth
+	" " repeat 2 * (9 - depth)
 
 # TODO: to stdlib
 repeat str(a str, n nat)

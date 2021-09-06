@@ -43,7 +43,7 @@ enum OpCode : ubyte {
 	jump,
 
 	// args: u8 nToPack, u8[nToPack] sizes
-	// Sum of sizes is <= 8
+	// Sum of sizes may be > 8 (to pack many at once)
 	pack,
 
 	// args: u32 value

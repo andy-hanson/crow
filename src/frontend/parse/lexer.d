@@ -491,7 +491,7 @@ immutable(ulong) getDivisor(immutable ulong acc, immutable ulong a, immutable ul
 	if (digit < base) {
 		lexer.ptr++;
 		immutable ulong newValue = value * base + digit;
-		tryTake(lexer, '_');
+		drop(tryTake(lexer, '_'));
 		return takeNatRecur(lexer, base, newValue, overflow || newValue / base != value);
 	} else
 		return immutable LiteralAst.Nat(value, overflow);

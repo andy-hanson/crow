@@ -37,7 +37,8 @@ main fut nat(_ arr str) summon trusted
 	"set minor version" handle-sdl-error: SDL_GL_CONTEXT_MINOR_VERSION SDL_GL_SetAttribute 0
 	"set double buffer" handle-sdl-error: SDL_GL_DOUBLEBUFFER SDL_GL_SetAttribute 1
 
-	window = "Hello World!".to-c-str SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, (SDL_WINDOW_OPENGL bits-or SDL_WINDOW_SHOWN)
+	wflags = SDL_WINDOW_OPENGL bits-or SDL_WINDOW_SHOWN
+	window = "my game".to-c-str SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, wflags
 	if window.as-any-ptr null?
 		"SDL_CreateWindow" fail-sdl-error
 
@@ -49,9 +50,12 @@ main fut nat(_ arr str) summon trusted
 	#GL_COLOR_BUFFER_BIT glClear
 	#window SDL_GL_SwapWindow
 
-	shader-prog = "demo/ogl/Simple2D.vert" shader-prog-load "demo/ogl/Simple2D.frag"
+	shader-prog = "demo/ogl/vertex.vert.essl" shader-prog-load "demo/ogl/fragment.frag.essl"
 
-	vertices = mut-arr: [(0.0 vec-2-32 -0.9), (0.9 vec-2-32 0.9), (-0.9 vec-2-32 0.9)]
+	v0 = (0.0 vec-2-32 -0.9)
+	v1 = (0.9 vec-2-32 0.9)
+	v2 = (-0.9 vec-2-32 0.9)
+	vertices = mut-arr: [(v0 vertex red), (v1 vertex green), (v2 vertex blue)]
 	triangle-vbo = vertices vbO_CREATe
 	assert: triangle-vbo != 0
 
@@ -68,10 +72,29 @@ main fut nat(_ arr str) summon trusted
 	print: "Bye bye"
 	0 resolved
 
+.vertex record
+	by-val
+	pos vec-2-32
+	color color-32
+
+# TODO:MOVE
+color-32 record
+	by-val
+	r float32
+	g float32
+	b float32
+
+red color-32()
+	1 color-32 0, 0
+green color-32()
+	0 color-32 1, 0
+blue color-32()
+	0 color-32 0, 1
+
 .renderer record mut
 	window SDL_Window
 	shader-prog GLuint
-	vertices mut-arr vec-2-32
+	vertices mut-arr vertex
 	triangle-vbo GLuint
 
 .main-loop-body continue-or-quit(renderer renderer) summon trusted
@@ -83,7 +106,7 @@ main fut nat(_ arr str) summon trusted
 		key-states = arr: SDL_NUM_SCANCODES, key-states-ptr
 		print: key-states[SDL_SCANCODE_RETURN] == 0 ? "no return", "return is pressed"
 
-		renderer.vertices[0] := renderer.vertices[0] + (0.01 vec-2-32 0)
+		renderer.vertices[0] := (renderer.vertices[0].pos + (0.01 vec-2-32 0)) vertex renderer.vertices[0].color
 
 		renderer draw-it
 
@@ -102,7 +125,7 @@ main fut nat(_ arr str) summon trusted
 	GL_ARRAY_BUFFER glBindBuffer renderer.triangle-vbo
 	GL_ARRAY_BUFFER glBufferSubData 0, renderer.vertices.n-bytes.to-int, renderer.vertices.begin-ptr.ptr-cast
 	position-idx = 0 as<GLuint>
-	position-idx glVertexAttribPointer 2, GL_FLOAT, false, (to-int32: size-of<vec-2-32>), null
+	position-idx glVertexAttribPointer 5, GL_FLOAT, false, (to-int32: size-of<vertex>), null
 	position-idx glEnableVertexAttribArray
 
 	GL_TRIANGLES glDrawArrays 0, renderer.vertices.size.to-int32
@@ -142,7 +165,7 @@ continue-or-quit union
 	as quit
 		void resolved
 
-.vbO_CREATe GLuint(vertices mut-arr vec-2-32) summon unsafe
+.vbO_CREATe GLuint(vertices mut-arr vertex) summon unsafe
 	vbo-cell = 0 cell<GLuint>
 	n-buffers = 1 to-int32
 	n-buffers glGenBuffers vbo-cell.as-ptr
@@ -156,8 +179,8 @@ continue-or-quit union
 		"Creating VBO failed: Code {err}" throw
 	vbo
 
-n-bytes nat(vertices mut-arr vec-2-32) unsafe
-	vertices.size * size-of<vec-2-32>
+n-bytes nat(vertices mut-arr vertex) unsafe
+	vertices.size * size-of<vertex>
 
 .vbo-free void(vbo GLuint) summon unsafe
 	1 glDeleteBuffers vbo.ptr-to

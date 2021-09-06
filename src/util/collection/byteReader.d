@@ -2,8 +2,6 @@ module util.collection.byteReader;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : end;
-import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr;
 import util.types : Int16, Nat8, Nat16, Nat32, Nat64;
 
 struct ByteReader {

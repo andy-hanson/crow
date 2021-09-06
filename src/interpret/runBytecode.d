@@ -33,7 +33,7 @@ import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belo
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import util.dbg : log, logNoNewline;
 import util.collection.arr : begin, freeArr, ptrAt, sizeNat;
-import util.collection.arrUtil : mapWithFirst, zipSystem;
+import util.collection.arrUtil : mapWithFirst, zipImpureSystem;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.globalAllocatedStack :
 	asTempArr,
@@ -53,7 +53,7 @@ import util.collection.globalAllocatedStack :
 	stackRef,
 	stackSize,
 	toArr;
-import util.collection.str : CStr, freeCStr, strOfNulTerminatedStr, strToCStr;
+import util.collection.str : CStr, freeCStr, strToCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : has;
 import util.path : AbsolutePath, AllPaths, pathToCStr;
@@ -363,7 +363,8 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Pack it) {
-			push(a.dataStack, pack(popN(a.dataStack, sizeNat(it.sizes).to8()), it.sizes));
+			// NOTE: popped is temporary, but we'll use each entry before it's overwritten
+			packRecur(a.dataStack, popN(a.dataStack, sizeNat(it.sizes).to8()), it.sizes);
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.PushValue it) {
@@ -666,16 +667,19 @@ void applyExternDynCall(Debug, Extern)(
 		push(a.dataStack, value);
 }
 
-pure: // TODO: many more are pure actually..
-
 // This isn't the structure the posix jmp-buf-tag has, but it fits inside it
 alias JmpBufTag = immutable InterpreterRestore*;
 
-@trusted immutable(Nat64) pack(immutable Nat64[] values, immutable Nat8[] sizes) {
-	ulong res;
-	ubyte* bytePtr = cast(ubyte*) &res;
+@trusted void packRecur(ref DataStack dataStack, immutable Nat64[] values, immutable Nat8[] sizes) {
+	Nat64 tmp = immutable Nat64(0);
+	ubyte* bytePtr = cast(ubyte*) &tmp;
 	Nat64 totalSize = immutable Nat64(0);
-	zipSystem!(Nat64, Nat8)(values, sizes, (ref immutable Nat64 value, ref immutable Nat8 size) {
+	zipImpureSystem!(Nat64, Nat8)(values, sizes, (ref immutable Nat64 value, ref immutable Nat8 size) {
+		if (totalSize + size.to64() > immutable Nat64(8)) {
+			push(dataStack, tmp);
+			tmp = immutable Nat64(0);
+			bytePtr = cast(ubyte*) &tmp;
+		}
 		//TODO: use a 'size' type
 		if (size == immutable Nat8(1))
 			*bytePtr = cast(ubyte) value.raw();
@@ -688,6 +692,5 @@ alias JmpBufTag = immutable InterpreterRestore*;
 		bytePtr += size.raw();
 		totalSize += size.to64();
 	});
-	verify(totalSize <= immutable Nat64(8));
-	return immutable Nat64(res);
+	push(dataStack, tmp);
 }

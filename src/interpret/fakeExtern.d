@@ -6,7 +6,6 @@ import interpret.allocTracker : AllocTracker, hasAllocedPtr, markAlloced, markFr
 import interpret.bytecode : DynCallType, TimeSpec;
 import util.alloc.alloc : allocateBytes, freeBytes;
 import util.collection.mutArr : clear, moveToArr, MutArr, pushAll;
-import util.collection.str : NulTerminatedStr;
 import util.ptr : Ptr, PtrRange;
 import util.sym : Sym;
 import util.types : Nat64;

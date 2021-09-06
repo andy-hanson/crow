@@ -3,10 +3,9 @@ module backend.writeToC;
 @safe @nogc pure nothrow:
 
 import interpret.debugging : writeFunName, writeFunSig;
-import interpret.typeLayout : layOutTypes, sizeOfType, TypeLayout;
+import interpret.typeLayout : layOutTypes, sizeOfType, TypeLayout, TypeSize;
 import lower.lowExprHelpers : boolType, voidType;
 import model.concreteModel :
-	asExtern,
 	body_,
 	ConcreteFun,
 	ConcreteFunSource,
@@ -99,7 +98,6 @@ import util.writer :
 	writeNewline,
 	Writer,
 	writeStatic,
-	writeStr,
 	writeWithCommas;
 
 immutable(string) writeToC(Alloc, TempAlloc)(
@@ -555,12 +553,18 @@ void staticAssertStructSize(Alloc)(
 	ref Writer!Alloc writer,
 	ref immutable Ctx ctx,
 	ref immutable LowType type,
-	immutable size_t size,
+	immutable TypeSize size,
 ) {
 	writeStatic(writer, "_Static_assert(sizeof(");
 	writeType(writer, ctx, type);
 	writeStatic(writer, ") == ");
-	writeNat(writer, size);
+	writeNat(writer, size.size.raw());
+	writeStatic(writer, ", \"\");\n");
+
+	writeStatic(writer, "_Static_assert(_Alignof(");
+	writeType(writer, ctx, type);
+	writeStatic(writer, ") == ");
+	writeNat(writer, size.alignment.raw());
 	writeStatic(writer, ", \"\");\n");
 }
 
@@ -764,7 +768,7 @@ void writeStructs(Alloc, WriterAlloc)(ref Alloc alloc, ref Writer!WriterAlloc wr
 	writeChar(writer, '\n');
 
 	void assertSize(immutable LowType t) {
-		staticAssertStructSize(writer, ctx, t, sizeOfType(typeLayout, t).raw());
+		staticAssertStructSize(writer, ctx, t, sizeOfType(typeLayout, t));
 	}
 
 	//TODO: use a temp alloc

@@ -12,7 +12,7 @@ all-clean: clean all-dirty
 all-dirty: test lint sdl-demo serve
 
 sdl-demo: bin/crow
-	bin/crow run demo/sdl.crow
+	#TODO: bin/crow run demo/ogl/ogl.crow --interpret
 
 dyncall:
 	hg clone https://dyncall.org/pub/dyncall/dyncall/

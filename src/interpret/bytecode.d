@@ -5,7 +5,6 @@ module interpret.bytecode;
 import model.lowModel : LowFunIndex;
 import util.collection.arr : size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
-import util.collection.str : NulTerminatedStr, strOfNulTerminatedStr;
 import util.repr : Repr, reprArr, reprHex, reprInt, reprNat, reprRecord, reprStr, reprSym;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Int16, Nat8, Nat16, Nat32, Nat64, zero;
