@@ -2,32 +2,32 @@
 no-std
 import
 	...number: nat16, nat32, nat64
-	..socket: sa-family-t
+	..socket: sa_family_t
 
-in-addr-t alias
+in_addr_t alias
 	nat32
-in-addr record
+in_addr record
 	by-val
-	s-addr in-addr-t
+	s-addr in_addr_t
 
-in-port-t alias
+in_port_t alias
 	nat16
 
 # Same size as sockaddr
-sockaddr-in record
+sockaddr_in record
 	by-val
 	# 2 bytes
-	sin-family sa-family-t
+	sin_family sa_family_t
 	# 2 bytes
-	sin-port in-port-t
+	sin_port in_port_t
 	# 4 bytes
-	sin-addr in-addr
+	sin_addr in_addr
 	padding nat64
 
-sockaddr-in sockaddr-in(sin-family sa-family-t, sin-port in-port-t, sin-addr in-addr) noctx
-	sin-family sockaddr-in sin-port, sin-addr, 0
+sockaddr_in sockaddr_in(sin_family sa_family_t, sin_port in_port_t, sin_addr in_addr) noctx
+	sin_family sockaddr_in sin_port, sin_addr, 0
 
-empty-sockaddr-in sockaddr-in() noctx
-	0 sockaddr-in 0, 0.in-addr
+sockaddr_in sockaddr_in() noctx
+	0 sockaddr_in 0, 0.in_addr
 
 htons nat16(hostshort nat16) unsafe extern<"htons"> noctx

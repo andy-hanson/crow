@@ -8,10 +8,10 @@ import
 	...opt: force, opt, some
 	...posix.extra-types: fd-t
 	...posix.netdb:
-		addrinfo, ai-addr, ai-addrlen, ai-family, ai-next, ai-passive, ai-protocol, ai-socktype,
+		addrinfo, ai_addr, ai_addrlen, ai_family, ai_next, ai-passive, ai_protocol, ai_socktype,
 		freeaddrinfo, getaddrinfo
-	...posix.socket: af-inet, af-unspec, bind, connect, socket
-	...posix.socket-type: sock-stream
+	...posix.socket: AF_INET, AF_UNSPEC, bind, connect, socket
+	...posix.socket-type: SOCK_STREAM
 	...posix.unistd: close
 	...ptr: as-ref, null, null?, ptr, ptr-to, subscript
 	...str: str
@@ -31,7 +31,7 @@ uri record
 
 # Opens a socket, connects to the URI, and returns the fd.
 connect-to-uri fd-t(u uri) trusted summon
-	hints = addrinfo: 0, af-unspec.to-int32, sock-stream, 0, 0, null.as-ref, null, null
+	hints = addrinfo: 0, AF_UNSPEC.to-int32, SOCK_STREAM, 0, 0, null.as-ref, null, null
 	result = null cell<ptr<addrinfo>>
 	check-posix-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
 	op-sock = result[] find-and-connect-working-socket
@@ -42,26 +42,26 @@ connect-to-uri fd-t(u uri) trusted summon
 .find-and-connect-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
 	if ap.null? not
 		a = ap[]
-		sock = socket: a.ai-family, a.ai-socktype, a.ai-protocol
+		sock = socket: a.ai_family, a.ai_socktype, a.ai_protocol
 		print: "sock is {sock}"
 		if sock == -1
 			# Ignore error and try again
-			a.ai-next find-and-connect-working-socket
+			a.ai_next find-and-connect-working-socket
 		else
-			err = sock connect a.ai-addr, a.ai-addrlen
+			err = sock connect a.ai_addr, a.ai_addrlen
 			print: "err is {err}"
 			if err == -1
 				print: "connect() failed: "
 				check-posix-error: sock close
 				# Ignore error and try again
-				a.ai-next find-and-connect-working-socket
+				a.ai_next find-and-connect-working-socket
 			else
 				assert: err == 0
 				sock some
 
 # Returns an fd bound to the given port.
 bind-to-port fd-t(port str) unsafe summon
-	hints = addrinfo: ai-passive, af-inet, sock-stream, 0, 0, null.as-ref, null, null
+	hints = addrinfo: ai-passive, AF_INET, SOCK_STREAM, 0, 0, null.as-ref, null, null
 	result = null cell<ptr<addrinfo>>
 	check-posix-error: getaddrinfo: null, port.to-c-str, hints.ptr-to, result
 	op-sock = result[] find-and-bind-working-socket
@@ -75,13 +75,13 @@ bind-to-port fd-t(port str) unsafe summon
 .find-and-bind-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
 	if ap.null? not
 		a = ap[]
-		listen-fd = socket: a.ai-family, a.ai-socktype, 0
+		listen-fd = socket: a.ai_family, a.ai_socktype, 0
 		if listen-fd != -1
-			if (listen-fd bind a.ai-addr, a.ai-addrlen) == 0
+			if (listen-fd bind a.ai_addr, a.ai_addrlen) == 0
 				print: "Connected!"
 				listen-fd some
 			else
 				check-posix-error: listen-fd close
-				a.ai-next find-and-bind-working-socket
+				a.ai_next find-and-bind-working-socket
 		else
-			a.ai-next find-and-bind-working-socket
+			a.ai_next find-and-bind-working-socket

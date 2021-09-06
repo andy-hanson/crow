@@ -127,7 +127,7 @@ float32 builtin
 
 region hard assertions
 
-abort! void() noctx unsafe extern<"abort">
+abort void() noctx unsafe extern<"abort">
 
 ###
 Zeroed data isn't safe as it would contain null pointers.
@@ -136,23 +136,23 @@ It's GC-safe though, since the GC treats a null pointer same as any external poi
 zeroed ?a() noctx unsafe builtin
 
 hard-unreachable ?a() unsafe noctx
-	abort!
+	abort
 	zeroed
 
 todo ?a() trusted noctx
 	## TODO: soft-fail, remove 'trusted noctx' above
-	abort!
+	abort
 	zeroed
 
 hard-assert void(condition bool) noctx unsafe
 	if condition
 		void
 	else
-		abort!
+		abort
 
 hard-forbid void(condition bool) noctx unsafe
 	if condition
-		abort!
+		abort
 
 region bootstrap runtime
 

@@ -15,11 +15,11 @@ import
 	..number: ==, <=>, +, int32, nat8, nat16, nat32, to-int, to-nat, to-nat32
 	..opt: has?, opt, some
 	..posix.bytes-types: zero
-	..posix.dirent: dir, dirent, opendir, readdir-r
-	..posix.errno: enoent, errno
-	..posix.fcntl: o-creat, o-rdonly, o-trunc, o-wronly, open
-	..posix.stat: empty-stat, mkdir, s-ifdir, s-ifmt, s-ifreg, stat, stat-t, st-mode
-	..posix.types: ino-t, mode-t, off-t
+	..posix.dirent: dir, dirent, opendir, readdir_r
+	..posix.errno: ENOENT, errno
+	..posix.fcntl: O_CREAT, O_RDONLY, O_TRUNC, O_WRONLY, open
+	..posix.stat: mkdir, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
+	..posix.types: ino_t, mode_t, off_t
 	..posix.unistd: close, getcwd, lseek, read, readlink, rmdir, unlink, write
 	..ptr: +, any-ptr, as-any-ptr, null?, ptr-cast, ptr-cast-from-extern, ptr-eq?, ref-eq?, size-of
 	..str: ==, <=>, char, chars, c-str, size-bytes, str
@@ -36,7 +36,7 @@ is-dir? bool(path str) summon trusted
 
 .is-dir? bool(path c-str) summon unsafe
 	if stat ?= path get-stat
-		(stat.st-mode bits-and s-ifmt) == s-ifdir
+		(stat.st_mode bits-and S_IFMT) == S_IFDIR
 	else
 		throw: "path does not exist: {path}"
 
@@ -46,7 +46,7 @@ is-file? bool(path str) summon
 
 .is-file? bool(path c-str) summon
 	if stat ?= path get-stat
-		(stat.st-mode bits-and s-ifmt) == s-ifreg
+		(stat.st_mode bits-and S_IFMT) == S_IFREG
 	else
 		false
 
@@ -58,8 +58,8 @@ path-exists? bool(path str) summon
 	path.get-stat has?
 
 .get-dirent-name str(d dirent) unsafe
-	# TODO: this is offsetof(d, d-name)
-	name-offset = size-of<ino-t> + size-of<off-t> + size-of<nat16> + size-of<char>
+	# TODO: this is offsetof(d, d_name)
+	name-offset = size-of<ino_t> + size-of<off_t> + size-of<nat16> + size-of<char>
 	name-ptr = d.as-any-ptr + name-offset
 	name-ptr.ptr-cast<char, nat8> to-str
 
@@ -90,7 +90,7 @@ read-dir arr str(path str) summon
 	entry = dirent: 0, 0, 0, "\0", zero
 	# TODO: should not need a type argument here
 	result = entry cell<dirent>
-	err = dirp readdir-r entry, result
+	err = dirp readdir_r entry, result
 	# TODO: handle error
 	assert: err == 0
 	if result[].as-any-ptr.null? not
@@ -138,7 +138,7 @@ write-file void(path str, content str) summon
 	permission-rdwr = 6 as<nat32>
 	permission-rd = 4 as<nat32>
 	permission = (permission-rdwr bit-shift-left 6) bits-or (permission-rd bit-shift-left 3) bits-or permission-rd
-	flags = o-creat bits-or o-wronly bits-or o-trunc
+	flags = O_CREAT bits-or O_WRONLY bits-or O_TRUNC
 	fd = path open flags, permission
 	if fd == -1
 		print: "failed to open file for write: {path}"
@@ -167,9 +167,9 @@ try-read-file opt str(path str) summon
 
 .try-read-file opt str(path c-str) summon trusted
 	if path is-file?
-		fd = path open o-rdonly, 0
+		fd = path open O_RDONLY, 0
 		if fd == -1
-			if errno != enoent
+			if errno != ENOENT
 				print: "failed to open file {path}"
 				todo
 		else
@@ -206,15 +206,15 @@ current-directory str() summon trusted
 		assert: b ptr-eq? buff.begin-ptr
 		b to-str
 
-.get-stat opt stat-t(path c-str) summon trusted
+.get-stat opt stat(path c-str) summon trusted
 	# Initial value doesn't really matter
-	s = empty-stat
+	s = stat
 	err = path stat s
 	if err == 0
 		s some
 	else
 		assert: err == -1
-		if errno != enoent
+		if errno != ENOENT
 			todo
 
 ###
@@ -227,12 +227,12 @@ each-child-recursive void(path str, f act void(str)) summon
 		true
 	path each-child-recursive filter, f
 
-# `each-child-recursive` that does not descend into a child if `f[child-name]` returns false.
+# `each-child-recursive` that does not descend into a child if `f[child_name]` returns false.
 each-child-recursive void(path str, filter act bool(str), f act void(str)) summon
 	if path is-dir?
-		path.read-dir each \child-name
-			if filter[child-name]
-				path child-path child-name each-child-recursive filter, f
+		path.read-dir each \child_name
+			if filter[child_name]
+				path child-path child_name each-child-recursive filter, f
 	else
 		f[path]
 
@@ -242,7 +242,7 @@ permissions record
 	write bool
 	execute bool
 
-.to-mode mode-t(a permissions)
+.to-mode mode_t(a permissions)
 	(a.read.to-nat bit-shift-left 2) bits-or (a.write.to-nat bit-shift-left 1) bits-or a.execute.to-nat to-nat32
 
 no-permissions permissions()
@@ -259,7 +259,7 @@ file-permissions record
 user-only file-permissions(user-permissions permissions)
 	file-permissions: user-permissions, no-permissions, no-permissions
 
-to-mode mode-t(a file-permissions)
+to-mode mode_t(a file-permissions)
 	(a.user.to-mode bit-shift-left 6) bits-or (a.group.to-mode bit-shift-left 3) bits-or a.public.to-mode
 
 make-directory void(path str) summon
@@ -270,7 +270,7 @@ make-directory void(path str) summon
 make-directory void(path str, permissions file-permissions) summon
 	path make-directory permissions.to-mode
 
-make-directory void(path str, permissions mode-t) trusted summon
+make-directory void(path str, permissions mode_t) trusted summon
 	check-posix-error: path.to-c-str mkdir permissions
 
 remove-file void(path str) trusted summon

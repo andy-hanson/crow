@@ -3,5 +3,5 @@ no-std
 import
 	..number: nat16
 
-sa-family-t alias
+sa_family_t alias
 	nat16

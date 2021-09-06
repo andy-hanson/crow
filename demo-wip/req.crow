@@ -1,11 +1,11 @@
 import
 	col.mut-arr: begin-ptr, cast-immutable, size, subscript, uninitialized-mut-arr
 	io.print: print
-	posix.arpa.inet: inet-addr, inet-ntoa
+	posix.arpa.inet: inet_addr, inet_ntoa
 	posix.extra-types: fd-t
-	posix.netdb: gethostbyname, getprotobyname, h-addr-list, p-proto
-	posix.netinet.in: htons, in-addr, sockaddr-in
-	posix.socket: af-inet, connect, sockaddr, socket, sock-stream
+	posix.netdb: gethostbyname, getprotobyname, h_addr_list, p_proto
+	posix.netinet.in: htons, in_addr, sockaddr_in
+	posix.socket: AF_INET, connect, sockaddr, socket, SOCK_STREAM
 	posix.unistd: read, write
 	ptr: as-any-ptr, null?, ptr-cast, ptr-cast-to-extern, ptr-to, size-of, subscript
 	str-util: as-str, bytes, to-c-str
@@ -26,19 +26,19 @@ main fut nat(_ arr str) unsafe summon
 .get-tcp-socket fd-t() unsafe summon
 	protoent = "tcp".to-c-str getprotobyname
 	forbid: protoent.as-any-ptr null?
-	socket-file-descriptor = af-inet socket sock-stream, protoent.p-proto
+	socket-file-descriptor = AF_INET socket SOCK_STREAM, protoent.p_proto
 	forbid: socket-file-descriptor == -1
 	socket-file-descriptor
 
 .connect-socket! void(socket fd-t, hostname str, server-port nat16) unsafe summon
 	hostent = hostname.to-c-str gethostbyname
 	forbid: hostent.as-any-ptr null?
-	in-addr0 = hostent.h-addr-list[].ptr-cast<in-addr, char>
-	in-addr = in-addr0[].inet-ntoa inet-addr
+	in_addr0 = hostent.h_addr_list[].ptr-cast<in_addr, char>
+	in_addr = in_addr0[].inet_ntoa inet_addr
 
-	sockaddr-in = af-inet sockaddr-in server-port.htons, in-addr.in-addr
-	sockaddr = sockaddr-in.ptr-to ptr-cast-to-extern<sockaddr, sockaddr-in>
-	assert: (socket connect sockaddr, sockaddr-in.size-of.to-nat32) == 0
+	sockaddr_in = AF_INET sockaddr_in server-port.htons, in_addr.in_addr
+	sockaddr = sockaddr_in.ptr-to ptr-cast-to-extern<sockaddr, sockaddr_in>
+	assert: (socket connect sockaddr, sockaddr_in.size-of.to-nat32) == 0
 
 .send-request! void(socket fd-t, request str) unsafe summon
 	forbid: request empty?

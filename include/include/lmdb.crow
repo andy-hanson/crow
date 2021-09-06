@@ -2,9 +2,9 @@ no-std
 import
 	..cell: cell
 	..misc: void
-	..posix.c-types: c-int, size-t, u-int
+	..posix.c-types: c-int, size_t, u-int
 	..posix.extra-types: err-t
-	..posix.types: mode-t
+	..posix.types: mode_t
 	..ptr: any-ptr
 	..str: c-str
 
@@ -15,7 +15,7 @@ MDB_dbi record
 
 MDB_val record mut
 	by-ref
-	mv_size mut size-t
+	mv_size mut size_t
 	mv_data mut any-ptr
 
 mdb_env_create err-t(env cell MDB_env) noctx extern<"mdb_env_create", "lmdb"> unsafe summon
@@ -23,14 +23,14 @@ mdb_env_open err-t
 	env MDB_env
 	path c-str
 	flats c-int
-	mode mode-t
+	mode mode_t
 spec
 	noctx
 	extern<"mdb_env_open", "lmdb">
 	unsafe
 	summon
 mdb_env_close void(env MDB_env) noctx extern<"mdb_env_close", "lmdb"> unsafe summon
-mdb_env_set_mapsize err-t(env MDB_env, size size-t) noctx extern<"mdb_env_set_mapsize", "lmdb"> unsafe summon
+mdb_env_set_mapsize err-t(env MDB_env, size size_t) noctx extern<"mdb_env_set_mapsize", "lmdb"> unsafe summon
 mdb_env_set_maxdbs err-t(env MDB_env, dbs u-int) noctx extern<"mdb_env_set_maxdbs", "lmdb"> unsafe summon
 
 MDB_txn extern-ptr
@@ -91,10 +91,10 @@ mdb_stat record mut
 	by-ref
 	ms_psize mut u-int
 	ms_depth mut u-int
-	ms_branch_pages mut size-t
-	ms_leaf_pages mut size-t
-	ms_overflow_pages mut size-t
-	ms_entries mut size-t
+	ms_branch_pages mut size_t
+	ms_leaf_pages mut size_t
+	ms_overflow_pages mut size_t
+	ms_entries mut size_t
 mdb_stat err-t(txn MDB_txn, dbi MDB_dbi, stat mdb_stat) noctx extern<"mdb_stat"> unsafe summon
 
 MDB_cursor extern-ptr

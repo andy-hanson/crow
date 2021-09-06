@@ -10,13 +10,13 @@ import
 	..io.process: exit-code
 	..misc: as, void
 	..opt: value
-	..posix.pthread: pthread-t
+	..posix.pthread: pthread_t
 	..ptr:
 		+, any-ptr, as-any-ptr, as-ref, by-val, null, ptr, ptr-to, ref-of-val, set-subscript,
 		subscript
 	..str: c-str, str
 	..str-util: to-str
-	..sys.sysinfo: get-nprocs
+	..sys.sysinfo: get_nprocs
 	.alloc
 	.bootstrap: call-with-ctx, ctx, get-ctx, state, thread-local-stuff
 	.exception-low-level: exception-ctx
@@ -35,7 +35,7 @@ import
 
 # Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
-	n-threads = get-nprocs
+	n-threads = get_nprocs
 	f = false
 	gctx-by-val = as<by-val global-ctx>: global-ctx: lock-by-val, lock-by-val, [], n-threads, create-condition, f, f
 	gctx = gctx-by-val ref-of-val
@@ -112,7 +112,7 @@ body
 
 # Each thread will get the thread ID, and the common arguments.
 .run-threads void(n-threads nat, gctx global-ctx) noctx unsafe summon
-	threads = n-threads unmanaged-alloc-elements<pthread-t>
+	threads = n-threads unmanaged-alloc-elements<pthread_t>
 	thread-args = n-threads unmanaged-alloc-elements<by-val<thread-args>>
 
 	actual-n-threads = n-threads wrap-sub 1
@@ -127,7 +127,7 @@ body
 .start-threads-recur void
 	i nat
 	n-threads nat
-	threads ptr pthread-t
+	threads ptr pthread_t
 	thread-args-begin ptr by-val<thread-args>
 	gctx global-ctx
 spec
@@ -147,7 +147,7 @@ body
 	args.thread-id thread-function args.gctx
 	null
 
-.join-threads-recur void(i nat, n-threads nat, threads ptr pthread-t) noctx unsafe summon
+.join-threads-recur void(i nat, n-threads nat, threads ptr pthread_t) noctx unsafe summon
 	if i != n-threads
 		threads[i] join-one-thread
 		i wrap-add 1 join-threads-recur n-threads, threads

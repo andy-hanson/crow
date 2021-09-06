@@ -4,19 +4,19 @@ import
 	..misc: void
 	..ptr: any-ptr, ptr
 	..private.bootstrap: c-str, int32, int64, nat
-	.c-types: size-t
+	.c-types: size_t
 	.extra-types: err-t, fd-t
-	.types: off-t
+	.types: off_t
 
-getcwd c-str(buf c-str, size size-t) unsafe extern<"getcwd"> noctx summon
+getcwd c-str(buf c-str, size size_t) unsafe extern<"getcwd"> noctx summon
 
-readlink ssize-t(path c-str, buf c-str, len size-t) summon extern<"readlink"> noctx
+readlink ssize_t(path c-str, buf c-str, len size_t) summon extern<"readlink"> noctx
 
 close err-t(fd fd-t) summon extern<"close"> noctx
-lseek off-t(f fd-t, offset off-t, whence int32) summon extern<"lseek"> noctx
-read ssize-t(fd fd-t, buff any-ptr, n-bytes size-t) summon extern<"read"> noctx
+lseek off_t(f fd-t, offset off_t, whence int32) summon extern<"lseek"> noctx
+read ssize_t(fd fd-t, buff any-ptr, n-bytes size_t) summon extern<"read"> noctx
 # TODO: summon
-write ssize-t(fd fd-t, buf any-ptr, n-bytes size-t) extern<"write"> noctx
+write ssize_t(fd fd-t, buf any-ptr, n-bytes size_t) extern<"write"> noctx
 
 pipe err-t(pipes pipes) summon extern<"pipe"> noctx
 
@@ -29,7 +29,7 @@ environ ptr c-str() unsafe global<"environ"> noctx
 
 usleep void(micro-seconds nat) unsafe extern<"usleep"> noctx
 
-ssize-t alias
+ssize_t alias
 	int64
 
 rmdir err-t(path c-str) unsafe extern<"rmdir"> noctx

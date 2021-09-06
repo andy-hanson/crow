@@ -1,18 +1,21 @@
 no-std
 import
+	..ptr: ptr, subscript
 	.extra-types: err-t
 
-errno err-t() unsafe global<"errno"> noctx
+errno err-t() unsafe noctx
+	__errno_location[]
+.__errno_location ptr err-t() extern<"__errno_location"> noctx unsafe
 
-enoent err-t() noctx
+ENOENT err-t() noctx
 	2
-esrch err-t() noctx
+ESRCH err-t() noctx
 	3
-eagain err-t() noctx
+EAGAIN err-t() noctx
 	11
-ewouldblock err-t() noctx
-	eagain
-einval err-t() noctx
+EWOULDBLOCK err-t() noctx
+	EAGAIN
+EINVAL err-t() noctx
 	22
-etimedout err-t() noctx
+ETIMEDOUT err-t() noctx
 	110

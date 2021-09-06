@@ -3,7 +3,7 @@ import
 	..fut: fut
 	..misc: void
 	..number: +
-	..posix.time: time, time-t
+	..posix.time: time, time_t
 	..private.fut-low-level: resolve!, unresolved
 	..private.runtime: add-task, get-cur-island, new-exclusion
 	..ptr: null
@@ -12,7 +12,7 @@ export
 	.time-low-level: get-monotime-nsec
 
 unix-time record
-	seconds-since-epoch time-t
+	seconds-since-epoch time_t
 
 get-unix-time unix-time() summon trusted
 	unix-time: null time

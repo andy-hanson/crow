@@ -4,37 +4,27 @@ import
 	..private.bootstrap: int32, nat32
 	.c-types: s-long-long, u-int, u-long, u-long-long
 
-blkcnt-t alias
+blkcnt_t alias
 	u-long
-blksize-t alias
+blksize_t alias
 	u-long
-
-dev-t alias
+dev_t alias
 	u-long-long
-
-gid-t alias
+gid_t alias
 	u-long
-
-ino-t alias
+ino_t alias
 	u-long
-
-mode-t alias
+mode_t alias
 	u-int
-
-nlink-t alias
+nlink_t alias
 	u-int
-
-off-t alias
+off_t alias
 	s-long-long
-
-pid-t alias
+pid_t alias
 	int32
-
-socklen-t alias
+socklen_t alias
 	nat32
-
-time-t alias
+time_t alias
 	u-long
-
-uid-t alias
+uid_t alias
 	u-long

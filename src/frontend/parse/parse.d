@@ -13,6 +13,7 @@ import frontend.parse.ast :
 	FunDeclAst,
 	ImportAst,
 	ImportsOrExportsAst,
+	matchFunBodyAst,
 	ParamAst,
 	PuritySpecifier,
 	PuritySpecifierAndRange,
@@ -706,6 +707,22 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 			immutable SpecUsesAndSigFlagsAndKwBody extra = parseSpecUsesAndSigFlagsAndKwBody(alloc, lexer);
 			immutable Ptr!FunBodyAst body_ = optOr(extra.body_, () =>
 				nu!FunBodyAst(alloc, parseFunExprBody(alloc, lexer)));
+
+
+			matchFunBodyAst(
+				body_,
+				(ref immutable FunBodyAst.Builtin) {},
+				(ref immutable FunBodyAst.Extern it) {
+					import util.sym : getSymFromAlphaIdentifier, strOfSym;
+					import core.stdc.stdio : printf;
+					if (!symEq(getSymFromAlphaIdentifier(lexer.allSymbols, it.externName), name)) {
+						debug {
+							immutable string nameStr = strOfSym(alloc, name);
+							printf("Name for %.*s does not match\n", cast(int) nameStr.length, nameStr.ptr);
+						}
+					}
+				},
+				(ref immutable ExprAst) {});
 			return immutable FunDeclStuff(extra, body_);
 		}
 	}();

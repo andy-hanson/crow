@@ -108,7 +108,6 @@ immutable(string) writeToC(Alloc, TempAlloc)(
 ) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 
-	writeStatic(writer, "#include <errno.h>\n");
 	writeStatic(writer, "#include <stdatomic.h>\n");
 	writeStatic(writer, "#include <stddef.h>\n"); // for NULL
 	writeStatic(writer, "#include <stdint.h>\n");

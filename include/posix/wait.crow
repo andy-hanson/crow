@@ -6,34 +6,34 @@ import
 	..cell: cell
 	..compare: !=
 	..private.number-low-level: ==, int32
-	.types: pid-t
+	.types: pid_t
 
-waitpid pid-t(pid pid-t, wait-status cell status-t, options int32) unsafe extern<"waitpid"> noctx summon
+waitpid pid_t(pid pid_t, wait-status cell status-t, options int32) unsafe extern<"waitpid"> noctx summon
 
 status-t alias
 	int32
 
-w-term-sig status-t(status status-t)
+WTERMSIG status-t(status status-t)
 	# /usr/include/x86_64-linux-gnu/bits/waitstatus.h
 	status bits-and 0x7f
 
-w-exit-status status-t(status status-t)
+WEXITSTATUS status-t(status status-t)
 	# /usr/include/x86_64-linux-gnu/bits/waitstatus.h
 	status bits-and 0xff00 bit-shift-right 8
 
-w-if-exited bool(status status-t)
+WIFEXITED bool(status status-t)
 	# /usr/include/x86_64-linux-gnu/bits/waitstatus.h
-	status.w-term-sig == 0
+	status.WTERMSIG == 0
 
-w-if-signaled bool(status status-t)
-	ts = status w-term-sig
+WIFSIGNALED bool(status status-t)
+	ts = status WTERMSIG
 	ts != 0 and: ts != 0x7f
 
-w-core-dump bool(status status-t)
+WCOREDUMP bool(status status-t)
 	status bits-intersect? 0x80
 
-w-if-stopped bool(status status-t)
+WIFSTOPPED bool(status status-t)
 	(status bits-and 0xff) == 0x7f
 
-w-if-continued bool(status status-t)
+WIFCONTINUED bool(status status-t)
 	status == 0xffff

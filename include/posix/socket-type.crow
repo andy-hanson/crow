@@ -3,5 +3,5 @@ no-std
 import
 	..number: int32
 
-sock-stream int32()
+SOCK_STREAM int32()
 	1

@@ -10,7 +10,7 @@ import
 	serialize: from-bytes, to-bytes
 
 main fut nat(args arr str) unsafe summon
-	if command ?= parse-command-name: args.empty? ? "", args[0]
+	if command ?= parse-command_name: args.empty? ? "", args[0]
 		match command
 		as get
 			named-args = args.tail parse-named-args ["db-path", "db-name", "key"] force
@@ -57,7 +57,7 @@ main fut nat(args arr str) unsafe summon
 	g = "	crow run db -- get --db-path foo.db --db-name capitals --key indiana"
 	"{a}\n{b}\n{c}\n{d}\n{e}\n{f}\n{g}\n"
 
-.parse-command-name opt command(a str)
+.parse-command_name opt command(a str)
 	if a == "get"
 		get some
 	elif a == "set"

@@ -22,7 +22,7 @@ immutable(bool) containsSym(ref immutable Sym[] a, immutable Sym b) {
 }
 
 immutable(bool) isAlphaIdentifierStart(immutable char c) {
-	return ('a' <= c && c <= 'z') || c == '?' || ('A' <= c && c <= 'Z');
+	return ('a' <= c && c <= 'z') || c == '?' || ('A' <= c && c <= 'Z') || c == '_';
 }
 
 immutable(bool) isDigit(immutable char c) {
@@ -31,7 +31,7 @@ immutable(bool) isDigit(immutable char c) {
 
 immutable(bool) isAlphaIdentifierContinue(immutable char c) {
 	//TODO: only last character should be '?' or '!'
-	return isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '?' || c == '!' || c == '_';
+	return isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '?' || c == '!';
 }
 
 struct Sym {

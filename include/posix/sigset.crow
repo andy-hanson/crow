@@ -3,6 +3,6 @@ no-std
 import
 	.bytes-types: bytes128
 
-sigset-t alias
+__sigset_t alias
 	# 1024 bits
 	bytes128

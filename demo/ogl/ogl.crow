@@ -52,7 +52,7 @@ main fut nat(_ arr str) summon trusted
 	shader-prog = "demo/ogl/Simple2D.vert" shader-prog-load "demo/ogl/Simple2D.frag"
 
 	vertices = mut-arr: [(0.0 vec-2-32 -0.9), (0.9 vec-2-32 0.9), (-0.9 vec-2-32 0.9)]
-	triangle-vbo = vertices vbo-create
+	triangle-vbo = vertices vbO_CREATe
 	assert: triangle-vbo != 0
 
 	renderer = window renderer shader-prog, vertices, triangle-vbo
@@ -142,7 +142,7 @@ continue-or-quit union
 	as quit
 		void resolved
 
-.vbo-create GLuint(vertices mut-arr vec-2-32) summon unsafe
+.vbO_CREATe GLuint(vertices mut-arr vec-2-32) summon unsafe
 	vbo-cell = 0 cell<GLuint>
 	n-buffers = 1 to-int32
 	n-buffers glGenBuffers vbo-cell.as-ptr

@@ -13,21 +13,21 @@ import
 	...number: ==, <=>, int32, nat8, nat16, nat32, to-int, to-int32, to-nat, to-nat32
 	...opt: value
 	...posix.c-types: c-int
-	...posix.errno: eagain, errno, ewouldblock
+	...posix.errno: EAGAIN, errno, EWOULDBLOCK
 	...posix.extra-types: fd-t
-	...posix.fcntl: fcntl, f-getfl, f-setfl, o-nonblock
-	...posix.netinet.in: empty-sockaddr-in, sockaddr-in
-	...posix.socket: accept, listen, shutdown, shut-rdwr, sockaddr
+	...posix.fcntl: fcntl, F_GETFL, F_SETFL, O_NONBLOCK
+	...posix.netinet.in: sockaddr_in
+	...posix.socket: accept, listen, shutdown, SHUT_RDWR, sockaddr
 	...posix.stdio: perror
-	...posix.types: socklen-t
+	...posix.types: socklen_t
 	...posix.unistd: close, read
 	# TODO: don't use this
 	...private.fut-low-level: callback!
 	...ptr: by-val, ptr-cast-to-extern, ptr-to, ref-of-val, size-of
 	...str: chars, str
 	...sys.epoll:
-		data, epoll-create1, epoll-ctl, epoll-ctl-add, epollerr, epollet, epoll-event, epollhup,
-		epollin, epoll-wait, events
+		data, epoll_create1, epoll_ctl, EPOLL_CTL_ADD, EPOLLERR, EPOLLET, epoll_event, EPOLLHUP,
+		EPOLLIN, epoll_wait, events
 	..duration: msec
 	..posix-util: check-posix-error
 	..print: print
@@ -56,16 +56,16 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 	check-posix-error: port-fd listen max-connections
 	set-non-blocking: port-fd
 
-	epoll-fd = 0 epoll-create1
+	epoll-fd = 0 epoll_create1
 	if epoll-fd < 0
 		perror: "epoll-create1 failed\0".chars.begin-ptr
 		todo
 	else
-		event-flags = as<nat32>: epollin bits-or epollet
-		accept-event = epoll-event: event-flags, port-fd.to-int.to-nat
-		ctl-err = epoll-fd epoll-ctl epoll-ctl-add, port-fd, accept-event.ptr-to
+		event-flags = as<nat32>: EPOLLIN bits-or EPOLLET
+		accept-event = epoll_event: event-flags, port-fd.to-int.to-nat
+		ctl-err = epoll-fd epoll_ctl EPOLL_CTL_ADD, port-fd, accept-event.ptr-to
 		if ctl-err != 0
-			perror: "epoll-ctl failed\0".chars.begin-ptr
+			perror: "epoll_ctl failed\0".chars.begin-ptr
 			todo
 
 		state = tcp-server-state: false, false, 0, port-fd, epoll-fd, 0, handler
@@ -92,7 +92,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 
 # Close the fd for a TCP client.
 close-client void(client-fd fd-t) unsafe summon
-	sd-err = client-fd shutdown shut-rdwr
+	sd-err = client-fd shutdown SHUT_RDWR
 	assert: sd-err == 0
 	close-err = client-fd close
 	assert: close-err == 0
@@ -113,11 +113,11 @@ close-client void(client-fd fd-t) unsafe summon
 	if state should-stop?
 		void resolved
 	else
-		event = epoll-event: 0, 0
+		event = epoll_event: 0, 0
 		timeout = 0 as<c-int>
-		num-events = state.epoll-fd epoll-wait event.ptr-to, 1, timeout
+		num-events = state.epoll-fd epoll_wait event.ptr-to, 1, timeout
 		if num-events < 0
-			print: "error in epoll-wait"
+			print: "error in epoll_wait"
 			todo
 		elif num-events == 0
 			<- 100.msec delay
@@ -126,7 +126,7 @@ close-client void(client-fd fd-t) unsafe summon
 			assert: num-events == 1
 			flags = event.events
 			fd = event.data.to-int to-int32
-			if flags bits-intersect? (epollerr bits-or epollhup) or: not: flags bits-intersect? epollin
+			if flags bits-intersect? (EPOLLERR bits-or EPOLLHUP) or: not: flags bits-intersect? EPOLLIN
 				print: "SOME KINDA ERROR"
 				err = fd close
 				assert: err == 0
@@ -137,19 +137,19 @@ close-client void(client-fd fd-t) unsafe summon
 			state tcp-server-loop
 
 .accept-clients void(listen-fd fd-t, epoll-fd fd-t, on-accepted-client ref void(fd-t)) unsafe summon
-	clientaddr = empty-sockaddr-in
-	clientaddr-as-sockaddr = clientaddr.ptr-to ptr-cast-to-extern<sockaddr, sockaddr-in>
-	addrlen = as<by-val<cell<socklen-t>>>: cell<socklen-t>: size-of<sockaddr-in> to-nat32
+	clientaddr = sockaddr_in
+	clientaddr-as-sockaddr = clientaddr.ptr-to ptr-cast-to-extern<sockaddr, sockaddr_in>
+	addrlen = as<by-val<cell<socklen_t>>>: cell<socklen_t>: size-of<sockaddr_in> to-nat32
 	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val
 	if client-fd < 0
 		e = errno
-		if e != eagain and e != ewouldblock
+		if e != EAGAIN and e != EWOULDBLOCK
 			perror: "accept() error\0".chars.begin-ptr
 			todo
 	else
 		client-fd set-non-blocking
-		client-event = epoll-event: (epollin bits-or epollet), client-fd.to-int.to-nat
-		err = epoll-fd epoll-ctl epoll-ctl-add, client-fd, client-event.ptr-to
+		client-event = epoll_event: (EPOLLIN bits-or EPOLLET), client-fd.to-int.to-nat
+		err = epoll-fd epoll_ctl EPOLL_CTL_ADD, client-fd, client-event.ptr-to
 		assert: err == 0
 		on-accepted-client[client-fd] handle-exceptions
 		accept-clients: listen-fd, epoll-fd, on-accepted-client
@@ -159,7 +159,7 @@ close-client void(client-fd fd-t) unsafe summon
 	count = fd read buf.begin-ptr, buf.size
 	if count < 0
 		err = errno
-		if err != eagain
+		if err != EAGAIN
 			perror: "read() failed\0".chars.begin-ptr
 	elif count != 0
 		chunk = buf.cast-immutable[0 -> count.to-nat]
@@ -167,12 +167,12 @@ close-client void(client-fd fd-t) unsafe summon
 		fd handle-client on-received-chunk
 
 .set-non-blocking void(fd fd-t) noctx unsafe summon
-	flags = fd fcntl f-getfl, 0
+	flags = fd fcntl F_GETFL, 0
 	if flags < 0
 		perror: "fcntl() error\0".chars.begin-ptr
 		todo
 	else
-		err = fd fcntl: f-setfl, flags bits-or o-nonblock
+		err = fd fcntl: F_SETFL, flags bits-or O_NONBLOCK
 		if err < 0
 			perror: "fcntl() error\0".chars.begin-ptr
 			todo

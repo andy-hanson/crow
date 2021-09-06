@@ -3,7 +3,7 @@ import
 	..bool: bool, not
 	..fun: subscript
 	..posix.bytes-types: zero
-	..posix.setjmp: jmp-buf, jmp-buf-tag, longjmp, setjmp
+	..posix.setjmp: jmp_buf, __jmp_buf_tag, longjmp, setjmp
 	..ptr: as-ref, by-val, null, null?, ptr-to
 	.backtrace: backtrace, get-backtrace
 	.bootstrap:
@@ -14,7 +14,7 @@ export
 	.bootstrap: exception, message
 
 exception-ctx record mut
-	jmp-buf-ptr mut jmp-buf
+	jmp-buf-ptr mut jmp_buf
 	thrown-exception mut exception
 
 exception-ctx by-val exception-ctx() noctx unsafe
@@ -27,7 +27,7 @@ get-exception-ctx exception-ctx() unsafe
 catch-with-exception-ctx ?a(ec exception-ctx, try act ?a(), catcher act ?a(exception)) unsafe
 	old-thrown-exception = ec thrown-exception
 	old-jmp-buf = ec jmp-buf-ptr
-	store = jmp-buf-tag: zero, 0, zero
+	store = __jmp_buf_tag: zero, 0, zero
 	ec.jmp-buf-ptr := store ptr-to
 	setjmp-result = ec.jmp-buf-ptr setjmp
 	if setjmp-result == 0

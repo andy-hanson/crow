@@ -19,8 +19,8 @@ parent-path str(a str)
 		""
 
 # Gets a child of a path.
-child-path str(a str, child-name str)
-	"{a}/{child-name}"
+child-path str(a str, child_name str)
+	"{a}/{child_name}"
 
 # TODO:MOVE
 .last-index-of opt nat(a str, c char)

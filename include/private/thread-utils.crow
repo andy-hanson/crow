@@ -5,16 +5,16 @@ import
 	..compare: !=
 	..fun: fun-ptr1, subscript
 	..io.time-low-level: timestamp, to-timespec
-	..posix.errno: eagain, einval, esrch, etimedout
+	..posix.errno: EAGAIN, EINVAL, ESRCH, ETIMEDOUT
 	..posix.extra-types: err-t
 	..posix.pthread:
-		pthread-condattr-destroy, pthread-condattr-init, pthread-condattr-setclock,
-		pthread-condattr-t, pthread-cond-broadcast, pthread-cond-destroy, pthread-cond-init,
-		pthread-cond-t, pthread-cond-timedwait, pthread-cond-wait, pthread-create, pthread-join,
-		pthread-mutexattr-destroy, pthread-mutexattr-init, pthread-mutexattr-t,
-		pthread-mutex-destroy, pthread-mutex-init, pthread-mutex-lock, pthread-mutex-t,
-		pthread-mutex-unlock, pthread-t, pthread-yield
-	..posix.time: clock-monotonic
+		pthread_condattr_destroy, pthread_condattr_init, pthread_condattr_setclock,
+		pthread_condattr_t, pthread_cond_broadcast, pthread_cond_destroy, pthread_cond_init,
+		pthread_cond_t, pthread_cond_timedwait, pthread_cond_wait, pthread_create, pthread_join,
+		pthread_mutexattr_destroy, pthread_mutexattr_init, pthread_mutexattr_t,
+		pthread_mutex_destroy, pthread_mutex_init, pthread_mutex_lock, pthread_mutex_t,
+		pthread_mutex_unlock, pthread_t, pthread_yield
+	..posix.time: CLOCK_MONOTONIC
 	..ptr: any-ptr, by-val, null, null?, ptr, ptr-to, ref-of-val
 	.bootstrap:
 		as, atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat, opt, todo, value, void,
@@ -63,7 +63,7 @@ acquire! void(a lock) noctx unsafe
 			a acquire-recur!: n-tries wrap-add 1
 
 yield-thread void() noctx unsafe
-	err = pthread-yield
+	err = pthread_yield
 	hard-assert: err == 0
 
 release! void(a lock) noctx unsafe
@@ -77,10 +77,10 @@ with-lock ?a(a lock, f act ?a()) trusted
 
 condition record mut
 	# TODO:PRIVATE
-	mutex-attr by-val pthread-mutexattr-t
-	mutex by-val pthread-mutex-t
-	cond-attr by-val pthread-condattr-t
-	cond by-val pthread-cond-t
+	mutex-attr by-val pthread_mutexattr_t
+	mutex by-val pthread_mutex_t
+	cond-attr by-val pthread_condattr_t
+	cond by-val pthread_cond_t
 	# Incremented each time the condition fires.
 	# Used to avoid waiting on a condition that has already changed.
 	# WARN: this is mutable state, but should acquire the mutex first.
@@ -89,35 +89,35 @@ condition record mut
 # Unsafe because you must remember to 'destroy-condition'
 create-condition by-val condition() noctx unsafe
 	res = as<by-val condition>: condition: zeroed, zeroed, zeroed, zeroed, 0
-	hard-assert-posix-error: res.ref-of-val.mutex-attr.ref-of-val pthread-mutexattr-init
-	hard-assert-posix-error: res.ref-of-val.mutex.ref-of-val pthread-mutex-init res.ref-of-val.mutex-attr.ref-of-val
-	hard-assert-posix-error: res.ref-of-val.cond-attr.ref-of-val pthread-condattr-init
-	hard-assert-posix-error: res.ref-of-val.cond-attr.ref-of-val pthread-condattr-setclock clock-monotonic
-	hard-assert-posix-error: res.ref-of-val.cond.ref-of-val pthread-cond-init res.ref-of-val.cond-attr.ref-of-val
+	hard-assert-posix-error: res.ref-of-val.mutex-attr.ref-of-val pthread_mutexattr_init
+	hard-assert-posix-error: res.ref-of-val.mutex.ref-of-val pthread_mutex_init res.ref-of-val.mutex-attr.ref-of-val
+	hard-assert-posix-error: res.ref-of-val.cond-attr.ref-of-val pthread_condattr_init
+	hard-assert-posix-error: res.ref-of-val.cond-attr.ref-of-val pthread_condattr_setclock CLOCK_MONOTONIC
+	hard-assert-posix-error: res.ref-of-val.cond.ref-of-val pthread_cond_init res.ref-of-val.cond-attr.ref-of-val
 	res
 
 destroy-condition void(a condition) noctx unsafe
-	hard-assert-posix-error: a.mutex-attr.ref-of-val pthread-mutexattr-destroy
-	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-destroy
-	hard-assert-posix-error: a.cond-attr.ref-of-val pthread-condattr-destroy
-	hard-assert-posix-error: a.cond.ref-of-val pthread-cond-destroy
+	hard-assert-posix-error: a.mutex-attr.ref-of-val pthread_mutexattr_destroy
+	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_destroy
+	hard-assert-posix-error: a.cond-attr.ref-of-val pthread_condattr_destroy
+	hard-assert-posix-error: a.cond.ref-of-val pthread_cond_destroy
 
 .hard-assert-posix-error void(err err-t) noctx unsafe
 	hard-assert: err == 0
 
 broadcast! void(a condition) noctx trusted
-	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-lock
-	hard-assert-posix-error: a.cond.ref-of-val pthread-cond-broadcast
+	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_lock
+	hard-assert-posix-error: a.cond.ref-of-val pthread_cond_broadcast
 	a.sequence := a.sequence wrap-add 1
-	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-unlock
+	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_unlock
 
 sequence-id alias
 	nat
 
 get-sequence sequence-id(a condition) noctx unsafe
-	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-lock
+	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_lock
 	res = a sequence
-	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-unlock
+	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_unlock
 	res
 
 ###
@@ -126,15 +126,15 @@ WARN: May wake up early. Use only to be avoid consuming CPU.
 'last-sequence' is to ensure that we don't wait at all if the condition has already triggered.
 ###
 wait-on void(a condition, until-time opt timestamp, last-sequence sequence-id) noctx unsafe summon
-	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-lock
+	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_lock
 	if a.sequence == last-sequence
 		hard-assert-posix-error: if t ?= until-time
 			abstime = t to-timespec
-			err = a.cond.ref-of-val pthread-cond-timedwait a.mutex.ref-of-val, abstime.ptr-to
-			err == etimedout ? 0, err
+			err = a.cond.ref-of-val pthread_cond_timedwait a.mutex.ref-of-val, abstime.ptr-to
+			err == ETIMEDOUT ? 0, err
 		else
-			a.cond.ref-of-val pthread-cond-wait a.mutex.ref-of-val
-	hard-assert-posix-error: a.mutex.ref-of-val pthread-mutex-unlock
+			a.cond.ref-of-val pthread_cond_wait a.mutex.ref-of-val
+	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_unlock
 
 # TODO: use atomic operations for this
 thread-safe-counter record mut
@@ -165,7 +165,7 @@ get-and-decrement! nat(t thread-safe-counter) noctx unsafe
 	old
 
 create-one-thread void
-	tid cell pthread-t
+	tid cell pthread_t
 	thread-arg any-ptr
 	thread-fun fun-ptr1<any-ptr, any-ptr>
 spec
@@ -173,22 +173,22 @@ spec
 	unsafe
 	summon
 body
-	err = tid pthread-create null, thread-fun, thread-arg
+	err = tid pthread_create null, thread-fun, thread-arg
 	if err != 0
-		if err == eagain
+		if err == EAGAIN
 			# TODO: warn and make do with the threads it does let us create (so long as there's at least one)
 			todo
 		else
 			# Fatal error
 			todo
 
-join-one-thread void(tid pthread-t) noctx unsafe summon
+join-one-thread void(tid pthread_t) noctx unsafe summon
 	thread-return = as<by-val<cell<any-ptr>>>: cell: null
-	err = tid pthread-join thread-return.ref-of-val
+	err = tid pthread_join thread-return.ref-of-val
 	if err != 0
-		if err == einval
+		if err == EINVAL
 			todo
-		elif err == esrch
+		elif err == ESRCH
 			todo
 		else
 			todo
