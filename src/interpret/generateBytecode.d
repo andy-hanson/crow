@@ -11,6 +11,7 @@ import interpret.bytecode :
 	FileToFuns,
 	FnOp,
 	FunNameAndPos,
+	Operation,
 	stackEntrySize;
 import interpret.bytecodeWriter :
 	ByteCodeWriter,
@@ -30,9 +31,9 @@ import interpret.bytecodeWriter :
 	writeAssertUnreachable,
 	writeCallDelayed,
 	writeCallFunPtr,
+	writeDup,
 	writeDupEntries,
 	writeDupEntry,
-	writeDupPartial,
 	writeExtern,
 	writeExternDynCall,
 	writeFn,
@@ -52,7 +53,7 @@ import interpret.bytecodeWriter :
 	writeWrite;
 import interpret.debugging : writeLowType;
 import interpret.generateText : generateText, getTextInfoForArray, getTextPointer, TextAndInfo, TextArrInfo;
-import interpret.typeLayout : layOutTypes, nStackEntriesForType, sizeOfType, TypeLayout, TypeSize, walkRecordFields;
+import interpret.typeLayout : layOutTypes, nStackEntriesForType, optPack, sizeOfType, TypeLayout, TypeSize;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	asLocalRef,
@@ -78,6 +79,7 @@ import model.lowModel :
 	LowLocal,
 	LowParam,
 	LowProgram,
+	LowRecord,
 	LowType,
 	lowTypeEqual,
 	matchLowExprKind,
@@ -614,18 +616,13 @@ void generateCreateRecordOrConstantRecord(Debug, CodeAlloc, TempAlloc)(
 ) {
 	immutable StackEntry before = getNextStackEntry(writer);
 
-	walkRecordFields(
-		tempAlloc,
-		ctx.program,
-		ctx.typeLayout,
-		type,
-		(ref immutable Nat8[] fieldSizes) {
-			// TODO:PERF: if generating a record constant, could do the pack at compile time
-			writePack(dbg, writer, source, fieldSizes);
-		},
-		(immutable size_t fieldIndex, ref immutable LowType fieldType, immutable Nat16) {
-			cbGenerateField(fieldIndex, fieldType);
-		});
+	immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, type);
+	foreach (immutable size_t i; 0 .. size(record.fields))
+		cbGenerateField(i, at(record.fields, i).type);
+
+	immutable Opt!(Operation.Pack) optPack = optPack(tempAlloc, ctx.program, ctx.typeLayout, type);
+	if (has(optPack))
+		writePack(dbg, writer, source, force(optPack));
 
 	immutable StackEntry after = getNextStackEntry(writer);
 	immutable Nat8 stackEntriesForType = nStackEntriesForRecordType(ctx, type);
@@ -822,6 +819,7 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
 		case LowExprKind.SpecialUnary.Kind.toNat8FromChar:
 		case LowExprKind.SpecialUnary.Kind.toNatFromPtr:
+		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32:
@@ -958,15 +956,14 @@ void generateRecordFieldGet(Debug, TempAlloc, CodeAlloc)(
 				immutable StackEntries entries =
 					immutable StackEntries(firstEntry, (offsetAndSize.size / stackEntrySize).to8());
 				writeDupEntries(dbg, writer, source, entries);
-			} else {
-				writeDupPartial(
+			} else
+				writeDup(
 					dbg,
 					writer,
 					source,
 					firstEntry,
 					(offsetAndSize.offset % stackEntrySize).to8(),
-					offsetAndSize.size.to8());
-			}
+					offsetAndSize.size);
 		}
 		writeRemove(dbg, writer, source, targetEntries);
 	}

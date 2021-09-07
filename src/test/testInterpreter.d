@@ -2,7 +2,7 @@ module test.testInterpreter;
 
 @safe @nogc nothrow: // not pure
 
-import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, FileToFuns, FnOp, FunNameAndPos;
+import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, FileToFuns, FnOp, FunNameAndPos, Operation;
 import interpret.fakeExtern : FakeExtern, newFakeExtern;
 import interpret.runBytecode :
 	nextByteCodeIndex,
@@ -24,9 +24,9 @@ import interpret.bytecodeWriter :
 	StackEntry,
 	writeCallDelayed,
 	writeCallFunPtr,
+	writeDup,
 	writeDupEntries,
 	writeDupEntry,
-	writeDupPartial,
 	writeFn,
 	writePack,
 	writePushConstant,
@@ -385,27 +385,27 @@ void testDupPartial(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 		test,
 		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [u.n]);
-			writeDupPartial(
+			writeDup(
 				test.dbg,
 				writer,
 				source,
 				immutable StackEntry(immutable Nat16(0)),
 				immutable Nat8(0),
-				immutable Nat8(4));
-			writeDupPartial(
+				immutable Nat16(4));
+			writeDup(
 				test.dbg,
 				writer,
 				source,
 				immutable StackEntry(immutable Nat16(0)),
 				immutable Nat8(4),
-				immutable Nat8(2));
-			writeDupPartial(
+				immutable Nat16(2));
+			writeDup(
 				test.dbg,
 				writer,
 				source,
 				immutable StackEntry(immutable Nat16(0)),
 				immutable Nat8(6),
-				immutable Nat8(1));
+				immutable Nat16(1));
 			writeReturn(test.dbg, writer, source);
 		},
 		(ref Interpreter!(FakeExtern!Alloc) interpreter) {
@@ -429,8 +429,12 @@ void testPack(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 				immutable Nat64(0x01234567),
 				immutable Nat64(0x89ab),
 				immutable Nat64(0xcd)]);
-			immutable Nat8[3] a = [immutable Nat8(4), immutable Nat8(2), immutable Nat8(1)];
-			writePack!(Debug, Alloc)(test.dbg, writer, source, a);
+			scope immutable Operation.Pack.Field[3] fields = [
+				immutable Operation.Pack.Field(immutable Nat16(0), immutable Nat16(0), immutable Nat16(4)),
+				immutable Operation.Pack.Field(immutable Nat16(8), immutable Nat16(4), immutable Nat16(2)),
+				immutable Operation.Pack.Field(immutable Nat16(16), immutable Nat16(6), immutable Nat16(1))];
+			scope immutable Operation.Pack pack = immutable Operation.Pack(immutable Nat8(3), immutable Nat8(1), fields);
+			writePack!(Debug, Alloc)(test.dbg, writer, source, pack);
 			writeReturn(test.dbg, writer, source);
 		},
 		(ref Interpreter!(FakeExtern!Alloc) interpreter) {

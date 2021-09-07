@@ -1,7 +1,7 @@
 import
 	bits: bits-or
 	cell: as-ptr, cell, subscript
-	col.mut-arr: begin-ptr, mut-arr, set-subscript, size, subscript
+	col.mut-arr: begin-ptr, map-to-arr, mut-arr, set-subscript, size, subscript
 	include.GLES2.gl2:
 		GL_ARRAY_BUFFER, glBindBuffer, glBufferData, glBufferSubData, glClear,
 		glClearColor, GL_COLOR_BUFFER_BIT, glDeleteBuffers, glDrawArrays,
@@ -25,8 +25,8 @@ import
 	io.time: delay
 	math.vec: +, vec-2-32
 	posix.c-types: c-int
-	ptr: as-any-ptr, null, null?, ptr-cast, ptr-to, size-of
-	str-util: to-c-str, to-str
+	ptr: as-any-ptr, null, null?, ptr-cast, ptr-to, size-of, to-ptr
+	str-util: join, to-c-str, to-str
 	.shader: shader-prog-destroy, shader-prog-load
 
 main fut nat(_ arr str) summon trusted
@@ -56,8 +56,11 @@ main fut nat(_ arr str) summon trusted
 	v1 = (0.9 vec-2-32 0.9)
 	v2 = (-0.9 vec-2-32 0.9)
 	vertices = mut-arr: [(v0 vertex red), (v1 vertex green), (v2 vertex blue)]
-	triangle-vbo = vertices vbO_CREATe
+	triangle-vbo = vertices vbo-create
 	assert: triangle-vbo != 0
+
+	colors = vertices map-to-arr {it.color to-str} join " | "
+	print: colors
 
 	renderer = window renderer shader-prog, vertices, triangle-vbo
 
@@ -83,6 +86,9 @@ color-32 record
 	r float32
 	g float32
 	b float32
+
+to-str str(a color-32)
+	"<{a r}, {a g}, {a b}>"
 
 red color-32()
 	1 color-32 0, 0
@@ -124,9 +130,11 @@ blue color-32()
 
 	GL_ARRAY_BUFFER glBindBuffer renderer.triangle-vbo
 	GL_ARRAY_BUFFER glBufferSubData 0, renderer.vertices.n-bytes.to-int, renderer.vertices.begin-ptr.ptr-cast
-	position-idx = 0 as<GLuint>
-	position-idx glVertexAttribPointer 5, GL_FLOAT, false, (to-int32: size-of<vertex>), null
-	position-idx glEnableVertexAttribArray
+	stride = (to-int32: size-of<vertex>)
+	0 glVertexAttribPointer 2, GL_FLOAT, false, stride, 0.to-ptr
+	0 glEnableVertexAttribArray
+	1 glVertexAttribPointer 3, GL_FLOAT, false, stride, (2 * size-of<float32>).to-ptr
+	1 glEnableVertexAttribArray
 
 	GL_TRIANGLES glDrawArrays 0, renderer.vertices.size.to-int32
 
@@ -165,7 +173,7 @@ continue-or-quit union
 	as quit
 		void resolved
 
-.vbO_CREATe GLuint(vertices mut-arr vertex) summon unsafe
+.vbo-create GLuint(vertices mut-arr vertex) summon unsafe
 	vbo-cell = 0 cell<GLuint>
 	n-buffers = 1 to-int32
 	n-buffers glGenBuffers vbo-cell.as-ptr

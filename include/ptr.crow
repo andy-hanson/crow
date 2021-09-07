@@ -138,6 +138,7 @@ ptr-cast ptr ?out(p ptr ?in) noctx unsafe builtin
 
 # Nat value of a pointer.
 to-nat nat(p ptr ?a) noctx unsafe builtin
+to-ptr ptr ?a(a nat) noctx unsafe builtin
 
 # Swap the pointees. Does not change the pointer itself.
 swap! void(a ptr ?a, b ptr ?a) noctx unsafe

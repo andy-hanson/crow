@@ -2,10 +2,10 @@ module interpret.typeLayout;
 
 @safe @nogc pure nothrow:
 
-import interpret.bytecode : stackEntrySize;
+import interpret.bytecode : Operation, stackEntrySize;
 import model.lowModel : LowField, LowProgram, LowRecord, LowType, LowUnion, matchLowType, PrimitiveType;
 import util.collection.arr : at, empty, size;
-import util.collection.arrUtil : arrMax, map, mapOp;
+import util.collection.arrUtil : arrMax, every, map, mapOp, mapZip;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictEach, fullIndexDictGet, fullIndexDictSize;
 import util.collection.fullIndexDictBuilder :
 	finishFullIndexDict,
@@ -31,7 +31,7 @@ struct TypeSize {
 	immutable Nat8 alignment;
 }
 
-immutable(TypeSize) sizeOfType(ref immutable TypeLayout typeLayout, ref immutable LowType t) {
+immutable(TypeSize) sizeOfType(ref immutable TypeLayout typeLayout, immutable LowType t) {
 	return matchLowType!(immutable TypeSize)(
 		t,
 		(immutable LowType.ExternPtr) =>
@@ -50,8 +50,12 @@ immutable(TypeSize) sizeOfType(ref immutable TypeLayout typeLayout, ref immutabl
 			fullIndexDictGet(typeLayout.unionSizes, index));
 }
 
-immutable(Nat8) nStackEntriesForType(ref immutable TypeLayout typeLayout, ref immutable LowType t) {
-	return divRoundUp(sizeOfType(typeLayout, t).size, stackEntrySize).to8();
+immutable(Nat8) nStackEntriesForType(ref immutable TypeLayout typeLayout, immutable LowType t) {
+	return nStackEntriesForBytes(sizeOfType(typeLayout, t).size);
+}
+
+immutable(Nat8) nStackEntriesForBytes(immutable Nat16 bytes) {
+	return divRoundUp(bytes, stackEntrySize).to8();
 }
 
 immutable(TypeLayout) layOutTypes(Alloc)(ref Alloc alloc, ref immutable LowProgram program) {
@@ -77,60 +81,32 @@ immutable(TypeLayout) layOutTypes(Alloc)(ref Alloc alloc, ref immutable LowProgr
 		finishFullIndexDict(builder.unionSizes));
 }
 
-// 'cbSingleField' is called for every field.
-// While doing so, 'cbPack' is called after a group of fields that should be packed together.
-void walkRecordFields(TempAlloc)(
+immutable(Opt!(Operation.Pack)) optPack(TempAlloc)(
 	ref TempAlloc tempAlloc,
 	ref immutable LowProgram program,
 	ref immutable TypeLayout typeLayout,
 	immutable LowType.Record type,
-	scope void delegate(ref immutable Nat8[]) @safe @nogc pure nothrow cbPack,
-	scope void delegate(
-		immutable size_t,
-		ref immutable LowType,
-		immutable Nat16,
-	) @safe @nogc pure nothrow cbSingleField,
 ) {
 	immutable LowRecord record = fullIndexDictGet(program.allRecords, type);
 
-	void maybePack(immutable Opt!size_t packStart, immutable size_t packEnd) {
-		if (has(packStart)) {
-			// TODO: could just write these to a MaxNat16[] when making in the first place
-			// (instead of Opt!size_t packStart, have MaxArr!(size_t, 3))
-			immutable Nat8[] fieldSizes = mapOp!Nat8(
-				tempAlloc,
-				record.fields[force(packStart) .. packEnd],
-				(ref immutable LowField field) {
-					immutable Nat8 size = sizeOfType(typeLayout, field.type).size.to8();
-					return zero(size) ? none!Nat8 : some(size);
-				});
-			if (!empty(fieldSizes))
-				cbPack(fieldSizes);
-		}
+	immutable Nat16[] fieldOffsets = fullIndexDictGet(typeLayout.fieldOffsets, type);
+	if (every!Nat16(fieldOffsets, (ref immutable Nat16 offset) => offset.raw() % 8 == 0))
+		return none!(Operation.Pack);
+	else {
+		Nat8 inOffsetEntries = immutable Nat8(0);
+		immutable Operation.Pack.Field[] fields = mapZip!(Operation.Pack.Field)(
+			tempAlloc,
+			record.fields,
+			fieldOffsets,
+			(ref immutable LowField field, ref immutable Nat16 fieldOffset) {
+				immutable Nat16 fieldInOffsetBytes = inOffsetEntries.to16() * immutable Nat16(8);
+				immutable Nat16 fieldSizeBytes = sizeOfType(typeLayout, field.type).size;
+				inOffsetEntries += nStackEntriesForBytes(fieldSizeBytes);
+				return immutable Operation.Pack.Field(fieldInOffsetBytes, fieldOffset, fieldSizeBytes);
+			});
+		immutable Nat8 outEntries = nStackEntriesForType(typeLayout, immutable LowType(type));
+		return some(immutable Operation.Pack(inOffsetEntries, outEntries, fields));
 	}
-
-	void recur(immutable Opt!size_t packStart, immutable size_t fieldIndex) {
-		if (fieldIndex == size(record.fields)) {
-			maybePack(packStart, fieldIndex);
-		} else {
-			//TODO: use field offsets instead of getting size?
-			immutable LowType fieldType = at(record.fields, fieldIndex).type;
-			immutable Nat16 fieldSize = sizeOfType(typeLayout, fieldType).size;
-			immutable Opt!size_t nextPackStart = () {
-				if (fieldSize < immutable Nat16(8)) {
-					return has(packStart) ? packStart : some(fieldIndex);
-				} else {
-					verify(fieldSize % immutable Nat16(8) == immutable Nat16(0));
-					maybePack(packStart, fieldIndex);
-					return none!size_t;
-				}
-			}();
-			cbSingleField(fieldIndex, fieldType, fieldSize);
-			recur(nextPackStart, fieldIndex + 1);
-		}
-	}
-
-	recur(none!size_t, 0);
 }
 
 private:

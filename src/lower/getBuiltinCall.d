@@ -315,6 +315,10 @@ immutable(BuiltinKind) getBuiltinKind(
 			return unary(isChar(p0)
 				? LowExprKind.SpecialUnary.Kind.toNat8FromChar
 				: failUnary());
+		case shortSymAlphaLiteralValue("to-ptr"):
+			return unary(isNat64(p0)
+				? LowExprKind.SpecialUnary.Kind.toPtrFromNat64
+				: failUnary());
 		case shortSymAlphaLiteralValue("true"):
 			return constantBool(true);
 		case shortSymAlphaLiteralValue("unsafe-div"):

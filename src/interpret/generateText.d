@@ -2,7 +2,8 @@ module interpret.generateText;
 
 @safe @nogc pure nothrow:
 
-import interpret.typeLayout : sizeOfType, TypeLayout, walkRecordFields;
+import interpret.bytecode : Operation;
+import interpret.typeLayout : optPack, sizeOfType, TypeLayout;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	AllConstantsLow,
@@ -30,6 +31,7 @@ import util.collection.exactSizeArrBuilder :
 	finish,
 	newExactSizeArrBuilder;
 import util.collection.fullIndexDict : fullIndexDictGet;
+import util.opt : has, Opt;
 import util.ptr : Ptr, ptrTrustMe;
 import util.types :
 	bottomU8OfU64,
@@ -292,18 +294,15 @@ void writeConstant(TempAlloc)(
 			add64TextPtr(ctx.text, textIndex);
 		},
 		(ref immutable Constant.Record it) {
-			walkRecordFields(
-				tempAlloc,
-				ctx.program,
-				ctx.typeLayout,
-				asRecordType(type),
-				(ref immutable Nat8[]) {
-					todo!void("pack it");
-				},
-				(immutable size_t fieldIndex, ref immutable LowType fieldType, immutable Nat16 fieldSize) {
-					verify(zero(fieldSize % immutable Nat16(8))); // TODO: 'size' type so don't need this assertion
-					writeConstant(tempAlloc, ctx, fieldType, at(it.args, fieldIndex));
-				});
+			immutable LowType.Record recordType = asRecordType(type);
+			immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, recordType);
+			zip!(LowField, Constant)(record.fields, it.args, (ref immutable LowField field, ref immutable Constant fieldValue) {
+				writeConstant(tempAlloc, ctx, field.type, fieldValue);
+			});
+			immutable Opt!(Operation.Pack) pack = optPack(tempAlloc, ctx.program, ctx.typeLayout, recordType);
+			if (has(pack))
+				//TODO: we should be writing each constant at the appropriate offset, so no need to pack.
+				todo!void("pack it");
 		},
 		(ref immutable Constant.Union) {
 			todo!void("write union");

@@ -25,11 +25,8 @@ enum OpCode : ubyte {
 	// args: u8 stackOffsetOfFunPtr
 	callFunPtr,
 
-	// args: u8 stackOffset
+	// args: u16 stackOffsetBytes, u16 sizeBytes
 	dup,
-
-	// args: u8 entryOffset, u4 byteOffset, u4 sizeBytes
-	dupPartial,
 
 	extern_,
 	externDynCall,

@@ -50,11 +50,11 @@ private immutable(T) roundUpRecur(T)(immutable T a, immutable T b) {
 	return zero(a % b) ? a : roundUpRecur(incr(a), b);
 }
 
-immutable(Nat16) divRoundUp(immutable Nat16 a, immutable Nat16 b) {
+immutable(T) divRoundUp(T)(immutable T a, immutable T b) {
 	assert(!zero(b));
-	immutable Nat16 div = a / b;
-	immutable Nat16 mod = a % b;
-	immutable Nat16 res = div + immutable Nat16(zero(mod) ? 0 : 1);
+	immutable T div = a / b;
+	immutable T mod = a % b;
+	immutable T res = div + immutable T(zero(mod) ? 0 : 1);
 	verify(res * b >= a);
 	return res;
 }

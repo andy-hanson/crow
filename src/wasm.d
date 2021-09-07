@@ -16,6 +16,7 @@ import util.alloc.alloc : allocateBytes;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.collection.arr : size;
 import util.collection.str : CStr, strToCStr;
+import util.memory : utilMemcpy = memcpy, utilMemset = memset;
 import util.path : StorageKind;
 import util.ptr : ptrTrustMe_mut;
 import util.repr : Repr, jsonStrOfRepr, nameAndRepr, reprArr, reprNamedRecord, reprStr;
@@ -27,20 +28,18 @@ import util.writer : finishWriterToCStr, writeChar, writeNat, writeQuotedStr, Wr
 extern(C) void _start() {}
 
 extern(C) @system pure void memset(scope ubyte* s, immutable int c, immutable size_t n) {
-	foreach (immutable int i; 0..n)
-		s[i] = cast(ubyte) c;
+	utilMemset(s, c, n);
 }
 
 extern (C) @system pure int memcmp(scope const ubyte* s1, scope const ubyte* s2, immutable size_t n) {
-	foreach (immutable size_t i; 0..n)
+	foreach (immutable size_t i; 0 .. n)
 		if (s1[i] != s2[i])
 			return s1[i] < s2[i] ? -1 : 1;
 	return 0;
 }
 
 extern (C) @system pure void* memcpy(return scope ubyte* s1, scope const ubyte* s2, immutable size_t n) {
-	foreach (immutable size_t i; 0..n)
-		s1[i] = s2[i];
+	utilMemcpy(s1, src, n);
 	return s1;
 }
 

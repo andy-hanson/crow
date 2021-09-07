@@ -11,7 +11,8 @@ import interpret.bytecode :
 	ExternOp,
 	FnOp,
 	Operation,
-	StackOffset;
+	StackOffset,
+	StackOffsetBytes;
 import interpret.opcode : OpCode;
 import util.collection.arr : at;
 import util.collection.byteReader :
@@ -68,11 +69,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable ubyte* bytes) {
 		case OpCode.callFunPtr:
 			return immutable Operation(immutable Operation.CallFunPtr(readU8(reader.reader)));
 		case OpCode.dup:
-			return immutable Operation(immutable Operation.Dup(readStackOffset(reader)));
-		case OpCode.dupPartial:
-			immutable StackOffset offset = readStackOffset(reader);
-			immutable U4U4 offsetAndSize = u4u4OfU8(readU8(reader.reader));
-			return immutable Operation(immutable Operation.DupPartial(offset, offsetAndSize.a, offsetAndSize.b));
+			return immutable Operation(immutable Operation.Dup(readStackOffsetBytes(reader), readU16(reader.reader)));
 		case OpCode.extern_:
 			return immutable Operation(immutable Operation.Extern(
 				cast(immutable ExternOp) readU8(reader.reader).raw()));
@@ -88,8 +85,13 @@ void setReaderPtr(ref ByteCodeReader reader, immutable ubyte* bytes) {
 		case OpCode.jump:
 			return immutable Operation(immutable Operation.Jump(immutable ByteCodeOffset(readInt16(reader.reader))));
 		case OpCode.pack:
-			return immutable Operation(
-				immutable Operation.Pack(readArray!Nat8(reader.reader, readU8(reader.reader).raw())));
+			immutable Nat8 inEntries = readU8(reader.reader);
+			immutable Nat8 outEntries = readU8(reader.reader);
+			immutable Nat8 nFields = readU8(reader.reader);
+			return immutable Operation(immutable Operation.Pack(
+				inEntries,
+				outEntries,
+				readArray!(Operation.Pack.Field)(reader.reader, nFields.raw())));
 		case OpCode.pushU32:
 			return immutable Operation(immutable Operation.PushValue(readU32(reader.reader).to64()));
 		case OpCode.pushU64:
@@ -130,4 +132,8 @@ private:
 
 immutable(StackOffset) readStackOffset(ref ByteCodeReader reader) {
 	return immutable StackOffset(readU8(reader.reader));
+}
+
+immutable(StackOffsetBytes) readStackOffsetBytes(ref ByteCodeReader reader) {
+	return immutable StackOffsetBytes(readU16(reader.reader));
 }

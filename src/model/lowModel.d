@@ -711,6 +711,7 @@ struct LowExprKind {
 			toNatFromNat16,
 			toNatFromNat32,
 			toNatFromPtr,
+			toPtrFromNat64,
 			truncateToInt64FromFloat64,
 			unsafeInt64ToInt8,
 			unsafeInt64ToInt16,

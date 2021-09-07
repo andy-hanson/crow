@@ -64,6 +64,10 @@ immutable(bool) isEmpty(T, size_t capacity)(ref const GlobalAllocatedStack!(T, c
 	return a.size == 0;
 }
 
+void pushUninitialized(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable size_t n) {
+	a.size += n;
+}
+
 void push(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable T value) {
 	verify(a.size != capacity);
 	a.values[a.size] = value;

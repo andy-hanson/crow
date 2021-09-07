@@ -28,11 +28,12 @@ import interpret.bytecodeReader :
 	readerSwitch,
 	setReaderPtr;
 import interpret.debugging : writeFunName;
+import interpret.typeLayout : TypeSize;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import util.dbg : log, logNoNewline;
-import util.collection.arr : begin, freeArr, ptrAt, sizeNat;
+import util.collection.arr : begin, freeArr, last, ptrAt, sizeNat;
 import util.collection.arrUtil : mapWithFirst, zipImpureSystem;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.globalAllocatedStack :
@@ -40,12 +41,14 @@ import util.collection.globalAllocatedStack :
 	begin,
 	clearStack,
 	dup,
+	end,
 	GlobalAllocatedStack,
 	isEmpty,
 	peek,
 	pop,
 	popN,
 	push,
+	pushUninitialized,
 	reduceStackSize,
 	remove,
 	setToArr,
@@ -54,7 +57,7 @@ import util.collection.globalAllocatedStack :
 	stackSize,
 	toArr;
 import util.collection.str : CStr, freeCStr, strToCStr;
-import util.memory : allocate, overwriteMemory;
+import util.memory : allocate, memcpy, memmove, memset, overwriteMemory;
 import util.opt : has;
 import util.path : AbsolutePath, AllPaths, pathToCStr;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
@@ -73,7 +76,7 @@ import util.types :
 	safeSizeTFromU64,
 	safeU32FromI32,
 	zero;
-import util.util : min, todo, unreachable, verify;
+import util.util : divRoundUp, drop, min, todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, writeStatic;
 
 @trusted immutable(int) runBytecode(Debug, TempAlloc, PathAlloc, Extern)(
@@ -337,13 +340,7 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Dup it) {
-			dup(a.dataStack, it.offset.offset);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.DupPartial it) {
-			push(
-				a.dataStack,
-				getBytes(peek(a.dataStack, it.entryOffset.offset), it.byteOffset, it.sizeBytes));
+			dup(a.dataStack, it);
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Extern it) {
@@ -364,7 +361,7 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 		},
 		(ref immutable Operation.Pack it) {
 			// NOTE: popped is temporary, but we'll use each entry before it's overwritten
-			packRecur(a.dataStack, popN(a.dataStack, sizeNat(it.sizes).to8()), it.sizes);
+			pack(a.dataStack, it);
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.PushValue it) {
@@ -416,14 +413,7 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 ) {
 	immutable ubyte* ptr = cast(immutable ubyte*) pop(a.dataStack).raw();
 	checkPtr(tempAlloc, a, ptr, offset, size);
-	if (size < immutable Nat16(8)) { //TODO: just have 2 different ops then
-		push(a.dataStack, readPartialBytes(ptr + offset.raw(), size.raw()));
-	} else {
-		verify(zero(size % immutable Nat16(8)));
-		verify(zero(offset % immutable Nat16(8)));
-		foreach (immutable size_t i; 0 .. (size.raw() / 8))
-			push(a.dataStack, ((cast(immutable Nat64*) ptr) + (offset.raw() / 8))[i]);
-	}
+	readNoCheck(a.dataStack, ptr + offset.raw(), size.raw());
 }
 
 @system void checkPtr(TempAlloc, Extern)(
@@ -466,26 +456,18 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	immutable Nat16 offset,
 	immutable Nat16 size,
 ) {
-	if (size < immutable Nat16(8)) { //TODO: just have 2 different ops then
+	if (size < immutable Nat16(8)) { //TODO:UNNECESSARY?
 		immutable Nat64 value = pop(a.dataStack);
 		ubyte* ptr = cast(ubyte*) pop(a.dataStack).raw();
 		checkPtr(tempAlloc, a, ptr, offset, size);
 		writePartialBytes(ptr + offset.raw(), value.raw(), size.raw());
 	} else {
-		verify(zero(size % immutable Nat16(8)));
-		verify(zero(offset % immutable Nat16(8)));
-		immutable Nat16 offsetWords = offset / immutable Nat16(8);
-		immutable Nat16 sizeWords = size / immutable Nat16(8);
-		Nat64* ptrWithoutOffset = (cast(Nat64*) peek(a.dataStack, sizeWords.to8()).raw());
-		checkPtr(
-			tempAlloc,
-			a,
-			cast(const ubyte*) ptrWithoutOffset,
-			offsetWords * immutable Nat16(8),
-			sizeWords * immutable Nat16(8));
-		Nat64* ptr = ptrWithoutOffset + offsetWords.raw();
-		foreach (immutable ushort i; 0 .. sizeWords.raw())
-			ptr[i] = peek(a.dataStack, (decr(sizeWords) - immutable Nat16(i)).to8());
+		immutable Nat16 sizeWords = divRoundUp(size, immutable Nat16(8));
+		ubyte* destWithoutOffset = cast(ubyte*) peek(a.dataStack, sizeWords.to8()).raw();
+		checkPtr(tempAlloc, a, destWithoutOffset, offset, size);
+		ubyte* src = cast(ubyte*) (end(a.dataStack) - sizeWords.raw());
+		ubyte* dest = destWithoutOffset + offset.raw();
+		memcpy(dest, src, size.raw());
 		popN(a.dataStack, incr(sizeWords).to8());
 	}
 }
@@ -524,6 +506,10 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 
 //TODO:MOVE?
 @trusted immutable(Nat64) getBytes(immutable Nat64 a, immutable Nat8 byteOffset, immutable Nat8 sizeBytes) {
+	debug {
+		import core.stdc.stdio : printf;
+		printf("getBytes: %lu, %u, %u\n", a.raw(), byteOffset.raw(), sizeBytes.raw());
+	}
 	verify(byteOffset + sizeBytes <= immutable Nat8(ulong.sizeof));
 	return readPartialBytes((cast(immutable ubyte*) &a) + byteOffset.raw(), sizeBytes.raw());
 }
@@ -579,15 +565,13 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			immutable size_t size = safeSizeTFromU64(pop(a.dataStack).raw());
 			const ubyte* src = cast(ubyte*) pop(a.dataStack).raw();
 			ubyte* dest = cast(ubyte*) pop(a.dataStack).raw();
-			foreach (immutable size_t i; 0 .. size)
-				dest[i] = src[i];
+			memmove(dest, src, size);
 			break;
 		case ExternOp.memset:
 			immutable size_t size = safeSizeTFromU64(pop(a.dataStack).raw());
 			immutable ubyte value = pop(a.dataStack).to8().raw();
 			ubyte* begin = cast(ubyte*) pop(a.dataStack).raw();
-			foreach (immutable size_t i; 0 .. size)
-				begin[i] = value;
+			memset(begin, value, size);
 			break;
 		case ExternOp.pthreadCreate:
 			unreachable!void();
@@ -670,27 +654,35 @@ void applyExternDynCall(Debug, Extern)(
 // This isn't the structure the posix jmp-buf-tag has, but it fits inside it
 alias JmpBufTag = immutable InterpreterRestore*;
 
-@trusted void packRecur(ref DataStack dataStack, immutable Nat64[] values, immutable Nat8[] sizes) {
-	Nat64 tmp = immutable Nat64(0);
-	ubyte* bytePtr = cast(ubyte*) &tmp;
-	Nat64 totalSize = immutable Nat64(0);
-	zipImpureSystem!(Nat64, Nat8)(values, sizes, (ref immutable Nat64 value, ref immutable Nat8 size) {
-		if (totalSize + size.to64() > immutable Nat64(8)) {
-			push(dataStack, tmp);
-			tmp = immutable Nat64(0);
-			bytePtr = cast(ubyte*) &tmp;
-		}
-		//TODO: use a 'size' type
-		if (size == immutable Nat8(1))
-			*bytePtr = cast(ubyte) value.raw();
-		else if (size == immutable Nat8(2))
-			*(cast(ushort*) bytePtr) = cast(ushort) value.raw();
-		else if (size == immutable Nat8(4))
-			*(cast(uint*) bytePtr) = cast(uint) value.raw();
-		else
-			unreachable!void();
-		bytePtr += size.raw();
-		totalSize += size.to64();
-	});
-	push(dataStack, tmp);
+@trusted void pack(ref DataStack dataStack, scope immutable Operation.Pack pack) {
+	ubyte* base = cast(ubyte*) (end(dataStack) - pack.inEntries.raw());
+	foreach (immutable Operation.Pack.Field field; pack.fields)
+		memmove(base + field.outOffset.raw(), base + field.inOffset.raw(), field.size.raw());
+
+	// drop extra entries
+	drop(popN(dataStack, pack.inEntries - pack.outEntries));
+
+	// fill remaining bytes with 0
+	ubyte* ptr = base + last(pack.fields).outOffset.raw() + last(pack.fields).size.raw();
+	while (ptr < cast(ubyte*) end(dataStack)) {
+		*ptr = 0;
+		ptr++;
+	}
+}
+
+@trusted void dup(ref DataStack dataStack, scope immutable Operation.Dup dup) {
+	readNoCheck(dataStack, (cast(const ubyte*) end(dataStack)) - dup.offsetBytes.offsetBytes.raw(), dup.sizeBytes.raw());
+}
+
+@system void readNoCheck(ref DataStack dataStack, const ubyte* readFrom, immutable size_t sizeBytes) {
+	ubyte* outPtr = cast(ubyte*) end(dataStack);
+	immutable size_t sizeWords = divRoundUp(sizeBytes, 8);
+	pushUninitialized(dataStack, sizeWords);
+	memcpy(outPtr, readFrom, sizeBytes);
+
+	ubyte* endPtr = outPtr + sizeBytes;
+	while (endPtr < cast(ubyte*) end(dataStack)) {
+		*endPtr = 0;
+		endPtr++;
+	}
 }

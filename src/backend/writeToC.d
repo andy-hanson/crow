@@ -1762,6 +1762,7 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
 		case LowExprKind.SpecialUnary.Kind.toNatFromPtr:
+		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
 		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:

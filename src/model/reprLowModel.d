@@ -309,6 +309,8 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "to-nat (from nat-32)";
 		case LowExprKind.SpecialUnary.Kind.toNatFromPtr:
 			return "to-nat (from ptr)";
+		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
+			return "to-ptr (from nat-64)";
 		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
 			return "truncate-to-int (from float-64)";
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:

@@ -59,11 +59,11 @@ void writeU32(Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 index, immutab
 	writeBytes!Nat32(writer, index, value);
 }
 
-private:
-
 @trusted void pushBytes(T, Alloc)(ref ByteWriter!Alloc writer, immutable T value) {
 	pushAll(writer.alloc.deref(), writer.bytes, asBytes!T(&value));
 }
+
+private:
 
 @system immutable(ubyte[]) asBytes(T)(immutable T* value) {
 	return (cast(immutable ubyte*) value)[0 .. T.sizeof];

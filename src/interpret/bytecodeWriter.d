@@ -13,14 +13,17 @@ import interpret.bytecode :
 	ExternOp,
 	FileToFuns,
 	FnOp,
+	Operation,
 	stackEntrySize,
 	StackOffset,
+	StackOffsetBytes,
 	subtractByteCodeIndex;
 import util.collection.byteWriter :
 	ByteWriter,
 	finishByteWriter,
 	newByteWriter,
 	nextByteIndex,
+	pushBytes,
 	bytePushInt16 = pushInt16,
 	bytePushU8 = pushU8,
 	bytePushU16 = pushU16,
@@ -164,7 +167,16 @@ private immutable(Nat8) getStackOffsetTo(Alloc)(
 	return (decr(getNextStackEntry(writer).entry) - stackEntry.entry).to8();
 }
 
-// WARN: 'get' operation does not delete the thing that was got from (unlike 'read')
+private immutable(StackOffsetBytes) getStackOffsetBytes(Alloc)(
+	ref const ByteCodeWriter!Alloc writer,
+	immutable StackEntry stackEntry,
+	immutable Nat8 offsetBytes,
+) {
+	// stack entry offsets use 0 for the last entry, but byte offsets use 0 for the next entry (thus 1 is the final byte of the last entry)
+	return immutable StackOffsetBytes(
+		incr(getStackOffsetTo(writer, stackEntry)).to16() * immutable Nat16(8) - offsetBytes.to16());
+}
+
 void writeDupEntries(Debug, Alloc)(
 	ref Debug dbg,
 	ref ByteCodeWriter!Alloc writer,
@@ -173,8 +185,7 @@ void writeDupEntries(Debug, Alloc)(
 ) {
 	verify(!zero(entries.size));
 	verify(entries.start.entry + entries.size.to16() <= getNextStackEntry(writer).entry);
-	foreach (immutable ushort i; 0 .. entries.size.raw())
-		writeDupEntry(dbg, writer, source, immutable StackEntry(entries.start.entry + immutable Nat16(i)));
+	writeDup(dbg, writer, source, entries.start, immutable Nat8(0), entries.size.to16() * immutable Nat16(8));
 }
 
 void writeDupEntry(Debug, Alloc)(
@@ -183,26 +194,24 @@ void writeDupEntry(Debug, Alloc)(
 	ref immutable ByteCodeSource source,
 	immutable StackEntry entry,
 ) {
-	log(dbg, writer, "write dup entry");
-	pushOpcode(writer, source, OpCode.dup);
-	pushU8(writer, source, getStackOffsetTo(writer, entry));
-	writer.nextStackEntry++;
+	writeDup(dbg, writer, source, entry, immutable Nat8(0), immutable Nat16(8));
 }
 
-void writeDupPartial(Debug, Alloc)(
+void writeDup(Debug, Alloc)(
 	ref Debug dbg,
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	immutable StackEntry stackEntry,
-	immutable Nat8 byteOffset,
-	immutable Nat8 sizeBytes,
+	immutable StackEntry start,
+	immutable Nat8 offsetBytes,
+	immutable Nat16 sizeBytes,
 ) {
-	log(dbg, writer, "write dup partial");
 	verify(!zero(sizeBytes));
-	pushOpcode(writer, source, OpCode.dupPartial);
-	pushU8(writer, source, getStackOffsetTo(writer, stackEntry));
-	pushU8(writer, source, catU4U4(byteOffset, sizeBytes));
-	writer.nextStackEntry += 1;
+
+	pushOpcode(writer, source, OpCode.dup);
+	pushU16(writer, source, getStackOffsetBytes(writer, start, offsetBytes).offsetBytes);
+	pushU16(writer, source, sizeBytes);
+
+	writer.nextStackEntry += divRoundUp(sizeBytes, immutable Nat16(8));
 }
 
 void writeRead(Debug, Alloc)(
@@ -454,22 +463,16 @@ void writePack(Debug, Alloc)(
 	ref Debug dbg,
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	scope immutable Nat8[] sizes,
+	scope immutable Operation.Pack pack,
 ) {
-	log(dbg, writer, "write pack");
-	verify(!empty(sizes));
-	Nat16 sizeSum = immutable Nat16(0);
-	foreach (immutable Nat8 size; sizes) {
-		// TODO: size type
-		verify(size == immutable Nat8(1) || size == immutable Nat8(2) || size == immutable Nat8(4));
-		sizeSum += size.to16();
-	}
 	pushOpcode(writer, source, OpCode.pack);
-	pushU8(writer, source, sizeNat(sizes).to8());
-	foreach (immutable Nat8 size; sizes)
-		pushU8(writer, source, size);
-	writer.nextStackEntry -= sizeNat(sizes).to16();
-	writer.nextStackEntry += divRoundUp(sizeSum, immutable Nat16(8));
+	pushU8(writer, source, pack.inEntries);
+	pushU8(writer, source, pack.outEntries);
+	pushU8(writer, source, sizeNat(pack.fields).to8());
+	foreach (immutable Operation.Pack.Field field; pack.fields)
+		pushT!(Operation.Pack.Field)(writer, source, field);
+	writer.nextStackEntry -= pack.inEntries.to16();
+	writer.nextStackEntry += pack.outEntries.to16();
 }
 
 immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(
@@ -624,6 +627,11 @@ private void pushOpcode(Alloc)(
 	immutable OpCode code,
 ) {
 	pushU8(writer, source, immutable Nat8(code));
+}
+
+void pushT(T, Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable T value) {
+	pushBytes!T(writer.byteWriter, value);
+	repeat(T.sizeof, () { pushSource(writer, source); });
 }
 
 void pushInt16(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Int16 value) {

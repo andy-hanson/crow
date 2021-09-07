@@ -30,7 +30,6 @@ T matchDebugOperationImpure(T)(
 	scope T delegate(ref immutable Operation.CallFunPtr) @safe @nogc nothrow cbCallFunPtr,
 	scope T delegate(ref immutable Operation.Debug) @safe @nogc nothrow cbDebug,
 	scope T delegate(ref immutable Operation.Dup) @safe @nogc nothrow cbDup,
-	scope T delegate(ref immutable Operation.DupPartial) @safe @nogc nothrow cbDupPartial,
 	scope T delegate(ref immutable Operation.Extern) @safe @nogc nothrow cbExtern,
 	scope T delegate(ref immutable Operation.ExternDynCall) @safe @nogc nothrow cbExternDynCall,
 	scope T delegate(ref immutable Operation.Fn) @safe @nogc nothrow cbFn,
@@ -53,8 +52,6 @@ T matchDebugOperationImpure(T)(
 			return cbDebug(a.debug_);
 		case Operation.Kind.dup:
 			return cbDup(a.dup_);
-		case Operation.Kind.dupPartial:
-			return cbDupPartial(a.dupPartial_);
 		case Operation.Kind.extern_:
 			return cbExtern(a.extern_);
 		case Operation.Kind.externDynCall:
@@ -90,7 +87,6 @@ private @trusted T matchOperation(T)(
 	scope T delegate(ref immutable Operation.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
 	scope T delegate(ref immutable Operation.Debug) @safe @nogc pure nothrow cbAssertStackSize,
 	scope T delegate(ref immutable Operation.Dup) @safe @nogc pure nothrow cbDup,
-	scope T delegate(ref immutable Operation.DupPartial) @safe @nogc pure nothrow cbDupPartial,
 	scope T delegate(ref immutable Operation.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(ref immutable Operation.ExternDynCall) @safe @nogc pure nothrow cbExternDynCall,
 	scope T delegate(ref immutable Operation.Fn) @safe @nogc pure nothrow cbFn,
@@ -113,8 +109,6 @@ private @trusted T matchOperation(T)(
 			return cbAssertStackSize(a.debug_);
 		case Operation.Kind.dup:
 			return cbDup(a.dup_);
-		case Operation.Kind.dupPartial:
-			return cbDupPartial(a.dupPartial_);
 		case Operation.Kind.extern_:
 			return cbExtern(a.extern_);
 		case Operation.Kind.externDynCall:
@@ -152,11 +146,8 @@ immutable(Repr) reprOperation(Alloc)(ref Alloc alloc, ref immutable Operation a)
 		(ref immutable Operation.Debug it) =>
 			reprRecord(alloc, "debug", [reprDebugOperation(alloc, it.debugOperation)]),
 		(ref immutable Operation.Dup it) =>
-			reprRecord(alloc, "dup", [reprNat(it.offset.offset)]),
-		(ref immutable Operation.DupPartial it) =>
-			reprRecord(alloc, "dup-part", [
-				reprNat(it.entryOffset.offset),
-				reprNat(it.byteOffset),
+			reprRecord(alloc, "dup", [
+				reprNat(it.offsetBytes.offsetBytes),
 				reprNat(it.sizeBytes)]),
 		(ref immutable Operation.Extern it) =>
 			reprRecord(alloc, "extern", [reprStr(strOfExternOp(it.op))]),
@@ -171,7 +162,14 @@ immutable(Repr) reprOperation(Alloc)(ref Alloc alloc, ref immutable Operation a)
 		(ref immutable Operation.Jump it) =>
 			reprRecord(alloc, "jump", [reprInt(it.offset.offset)]),
 		(ref immutable Operation.Pack it) =>
-			reprRecord(alloc, "pack", [reprArr(alloc, it.sizes, (ref immutable Nat8 size) => reprNat(size))]),
+			reprRecord(alloc, "pack", [
+				reprNat(it.inEntries),
+				reprNat(it.outEntries),
+				reprArr(alloc, it.fields, (ref immutable Operation.Pack.Field field) =>
+					reprRecord(alloc, "field", [
+						reprNat(field.inOffset),
+						reprNat(field.outOffset),
+						reprNat(field.size)]))]),
 		(ref immutable Operation.PushValue it) =>
 			reprRecord(alloc, "push-val", [reprHex(it.value)]),
 		(ref immutable Operation.Read it) =>
@@ -274,6 +272,16 @@ struct StackOffset {
 	// 0 is the top entry on the stack, 1 is the one before that, etc.
 	immutable Nat8 offset;
 }
+struct StackOffsetBytes {
+	@safe @nogc pure nothrow:
+
+	immutable Nat16 offsetBytes;
+
+	immutable this(immutable Nat16 o) {
+		offsetBytes = o;
+		verify(offsetBytes > immutable Nat16(0));
+	}
+}
 
 struct DebugOperation {
 	@safe @nogc pure nothrow:
@@ -350,16 +358,16 @@ struct Operation {
 
 	// Gets a stack entry and duplicates it on the top of the stack.
 	struct Dup {
-		immutable StackOffset offset; // Duplicates the stackentry at this offset to the top
-	}
+		@safe @nogc pure nothrow:
 
-	// Like Dup, gets part of the bytes of a single stack entry.
-	// byteOffset + sizeBytes must be <= stackEntrySize
-	struct DupPartial {
-		immutable StackOffset entryOffset;
-		// Encoded as u4
-		immutable Nat8 byteOffset;
-		immutable Nat8 sizeBytes;
+		immutable StackOffsetBytes offsetBytes;
+		immutable Nat16 sizeBytes;
+
+		immutable this(immutable StackOffsetBytes so, immutable Nat16 sb) {
+			offsetBytes = so;
+			sizeBytes = sb;
+			verify(sizeBytes > immutable Nat16(0));
+		}
 	}
 
 	struct Extern {
@@ -383,7 +391,15 @@ struct Operation {
 	}
 
 	struct Pack {
-		immutable Nat8[] sizes;
+		struct Field {
+			immutable Nat16 inOffset;
+			immutable Nat16 outOffset;
+			immutable Nat16 size;
+		}
+
+		immutable Nat8 inEntries;
+		immutable Nat8 outEntries;
+		immutable Field[] fields;
 	}
 
 	// Push the value onto the stack.
@@ -429,12 +445,6 @@ struct Operation {
 			offset = o;
 			size = s;
 			verify(!zero(size));
-			//TODO: use a size type to ensure this
-			verify(
-				size == immutable Nat16(1) ||
-				size == immutable Nat16(2) ||
-				size == immutable Nat16(4) ||
-				zero(size % immutable Nat16(8)));
 		}
 	}
 
@@ -444,7 +454,6 @@ struct Operation {
 		callFunPtr,
 		debug_,
 		dup,
-		dupPartial,
 		extern_,
 		externDynCall,
 		fn,
@@ -464,7 +473,6 @@ struct Operation {
 		immutable CallFunPtr callFunPtr_;
 		immutable Debug debug_;
 		immutable Dup dup_;
-		immutable DupPartial dupPartial_;
 		immutable Extern extern_;
 		immutable ExternDynCall externDynCall;
 		immutable Fn fn_;
@@ -484,7 +492,6 @@ struct Operation {
 	immutable this(immutable CallFunPtr a) { kind_ = Kind.callFunPtr; callFunPtr_ = a; }
 	immutable this(immutable Debug a) { kind_ = Kind.debug_; debug_ = a; }
 	immutable this(immutable Dup a) { kind_ = Kind.dup; dup_ = a; }
-	immutable this(immutable DupPartial a) { kind_ = Kind.dupPartial; dupPartial_ = a; }
 	immutable this(immutable Extern a) { kind_ = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable ExternDynCall a) { kind_ = Kind.externDynCall; externDynCall = a; }
 	immutable this(immutable Fn a) { kind_ = Kind.fn; fn_ = a; }
