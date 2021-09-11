@@ -1,0 +1,43 @@
+# SDL_pixels.h
+
+no-std
+import
+	...number: nat8, nat16, nat32
+	...posix.c-types: c-int
+	...ptr: ptr
+
+SDL_Color record
+	by-val
+	r nat8
+	g nat8
+	b nat8
+	a nat8
+
+SDL_Palette record mut
+	by-ref
+	ncolors c-int
+	colors ptr SDL_Color
+	version nat32
+	refcount c-int
+
+SDL_PixelFormat record mut
+	by-val
+	format nat32
+	palette SDL_Palette
+	BitsPerPixel nat8
+	BytesPerPixel nat8
+	padding nat16
+	Rmask nat32
+	Gmask nat32
+	Bmask nat32
+	Amask nat32
+	Rloss nat8
+	Gloss nat8
+	Bloss nat8
+	Aloss nat8
+	Rshift nat8
+	Gshift nat8
+	Bshift nat8
+	Ashift nat8
+	refcount c-int
+	next ptr SDL_PixelFormat

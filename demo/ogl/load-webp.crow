@@ -1,0 +1,36 @@
+no-std
+import
+	cell: cell, subscript
+	col.arr: begin-ptr, size
+	exception: finally
+	fun: subscript
+	include.webp.decode: WebPDecodeRGBA
+	include.webp.types: WebPFree
+	io.file: read-file-binary
+	misc: void
+	number: nat, nat8, to-nat
+	posix.c-types: c-int
+	ptr: ptr
+	str: str
+
+# WARN: Remember to free
+webp-rgba-image record mut
+	data ptr nat8
+	width nat
+	height nat
+
+with-webp ?a(path str, cb act ?a(webp-rgba-image)) unsafe summon
+	image = path load-webp
+	{image free-webp} finally {cb[image]}
+
+.load-webp webp-rgba-image(path str) unsafe summon
+	compressed = path read-file-binary
+	width = 0 cell<c-int>
+	height = 0 cell<c-int>
+	uncompressed = compressed.begin-ptr WebPDecodeRGBA compressed.size, width, height
+	uncompressed webp-rgba-image width[].to-nat, height[].to-nat
+
+.free-webp void(a webp-rgba-image) unsafe summon
+	a.data WebPFree
+
+

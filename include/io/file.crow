@@ -24,7 +24,7 @@ import
 	..ptr: +, any-ptr, as-any-ptr, null?, ptr-cast, ptr-cast-from-extern, ptr-eq?, ref-eq?, size-of
 	..str: ==, <=>, char, chars, c-str, size-bytes, str
 	..str-conv: finish, interp, to-str, with-str, with-value
-	..str-util: to-c-str, to-str
+	..str-util: bytes, to-c-str, to-str
 	..private.bootstrap: todo
 	.path: child-path
 	.posix-util: check-errno, check-posix-error
@@ -117,6 +117,9 @@ If you are using the interpreter, this will be the path to `crow`.
 ###
 current-executable-path str() summon trusted
 	"/proc/self/exe" read-link
+
+read-file-binary arr nat8(path str) summon
+	path.read-file bytes
 
 # Gets the full contents of the file as a string.
 read-file str(path str) summon

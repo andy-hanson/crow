@@ -1,0 +1,37 @@
+no-std
+import
+	cell: as-ptr, cell, subscript
+	compare: !=
+	exception: throw
+	include.GLES2.gl2:
+		glBindTexture, glDeleteTextures, glGetError, glGenTextures, GL_LINEAR, GL_NO_ERROR,
+		GL_RGBA, glTexImage2D, glTexParameteri, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_MIN_FILTER,
+		GL_TEXTURE_2D, GLuint, GL_UNSIGNED_BYTE
+	misc: void
+	number: ==, to-int32
+	ptr: ptr-to
+	str: str
+	str-conv: finish, interp, to-str, with-str, with-value
+	.load-webp: data, height, width, with-webp
+
+# Remember to call 'free-texture'
+load-texture GLuint(path str) unsafe summon
+	path with-webp \image
+		texture-cell = 0 cell<GLuint>
+		1 glGenTextures texture-cell.as-ptr
+		texture = texture-cell[]
+
+		GL_TEXTURE_2D glBindTexture texture
+		GL_TEXTURE_2D glTexImage2D 0, GL_RGBA.to-int32, image.width.to-int32, image.height.to-int32, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.data
+
+		err = glGetError
+		if err != GL_NO_ERROR
+			"Error loading image {path}" throw
+
+		GL_TEXTURE_2D glTexParameteri GL_TEXTURE_MAG_FILTER, GL_LINEAR
+		GL_TEXTURE_2D glTexParameteri GL_TEXTURE_MIN_FILTER, GL_LINEAR
+
+		texture
+
+free-texture void(tex-name GLuint) unsafe summon
+	1 glDeleteTextures tex-name.ptr-to

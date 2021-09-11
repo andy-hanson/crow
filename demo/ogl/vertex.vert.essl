@@ -2,7 +2,9 @@
 
 in vec2 vertPos;
 in vec3 vertColor;
+in vec2 vertTextCoord;
 out vec4 color;
+out vec2 texCoord;
 
 const vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
 

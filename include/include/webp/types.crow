@@ -1,0 +1,8 @@
+no-std
+import
+	...misc: void
+	...posix.c-types: size_t
+	...ptr: any-ptr
+
+WebPMalloc any-ptr(size size_t) extern<"webp"> noctx summon unsafe
+WebPFree void(ptr any-ptr) extern<"webp"> noctx summon unsafe

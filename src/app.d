@@ -489,6 +489,7 @@ struct RealExtern {
 	AllocTracker allocTracker;
 	void* sdlHandle;
 	void* glHandle;
+	void* webpHandle;
 	DCCallVM* dcVm;
 
 	this(Ptr!RangeAlloc a) {
@@ -499,6 +500,8 @@ struct RealExtern {
 		//libEGL.so instead?
 		glHandle = dlopen("/usr/lib64/libGL.so", RTLD_LAZY);
 		verify(glHandle != null);
+		webpHandle = dlopen("/usr/lib64/libwep.so", RTLD_LAZY);
+		verify(webpHandle != null);
 
 		dcVm = dcNewCallVM(4096);
 		verify(dcVm != null);
@@ -508,7 +511,7 @@ struct RealExtern {
 	public:
 
 	~this() {
-		immutable int err = dlclose(sdlHandle) || dlclose(glHandle);
+		immutable int err = dlclose(sdlHandle) || dlclose(glHandle) || dlclose(webpHandle);
 		verify(err == 0);
 		dcFree(dcVm);
 	}
@@ -551,6 +554,7 @@ struct RealExtern {
 		// TODO: don't just get everything from SDL/GL... use the library from the extern declaration!
 		DCpointer ptr = dlsym(sdlHandle, nameCStr);
 		if (ptr == null) ptr = dlsym(glHandle, nameCStr);
+		if (ptr == null) ptr = dlsym(webpHandle, nameCStr);
 		if (ptr == null) printf("Can't load symbol %s\n", nameCStr);
 		//printf("Gonna call %s\n", nameCStr);
 		verify(ptr != null);
