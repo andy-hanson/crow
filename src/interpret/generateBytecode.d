@@ -53,7 +53,6 @@ import interpret.bytecodeWriter :
 	writeWrite;
 import interpret.debugging : writeLowType;
 import interpret.generateText : generateText, getTextInfoForArray, getTextPointer, TextAndInfo, TextArrInfo;
-import interpret.typeLayout : nStackEntriesForType, optPack, sizeOfType;
 import model.concreteModel : TypeSize;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
@@ -90,6 +89,7 @@ import model.lowModel :
 	name,
 	PrimitiveType;
 import model.model : FunDecl, Module, name, Program, range;
+import model.typeLayout : nStackEntriesForType, optPack, sizeOfType;
 import util.collection.arr : at, only, size, sizeNat;
 import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.fullIndexDict :

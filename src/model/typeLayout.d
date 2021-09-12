@@ -1,4 +1,4 @@
-module interpret.typeLayout;
+module model.typeLayout;
 
 @safe @nogc pure nothrow:
 

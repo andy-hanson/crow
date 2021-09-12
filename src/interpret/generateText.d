@@ -3,7 +3,6 @@ module interpret.generateText;
 @safe @nogc pure nothrow:
 
 import interpret.bytecode : Operation;
-import interpret.typeLayout : optPack, sizeOfType;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	AllConstantsLow,
@@ -18,6 +17,7 @@ import model.lowModel :
 	lowTypeEqual,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
+import model.typeLayout : optPack, sizeOfType;
 import util.collection.arr : at, castImmutable, empty, ptrAt, setAt, size;
 import util.collection.arrUtil : mapToMut, sum, zip;
 import util.collection.exactSizeArrBuilder :

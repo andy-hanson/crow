@@ -3,7 +3,6 @@ module backend.writeToC;
 @safe @nogc pure nothrow:
 
 import interpret.debugging : writeFunName, writeFunSig;
-import interpret.typeLayout : sizeOfType;
 import lower.lowExprHelpers : boolType, voidType;
 import model.concreteModel :
 	body_,
@@ -65,6 +64,7 @@ import model.lowModel :
 	PrimitiveType,
 	regularParams;
 import model.model : FunInst, Local, name, Param;
+import model.typeLayout : sizeOfType;
 import util.collection.arr : at, empty, emptyArr, first, only, setAt, size, sizeEq;
 import util.collection.arrUtil : arrLiteral, every, fillArr_mut, map, tail, zip;
 import util.collection.dict : Dict, getAt;
