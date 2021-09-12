@@ -22,7 +22,10 @@ load-texture GLuint(path str) unsafe summon
 		texture = texture-cell[]
 
 		GL_TEXTURE_2D glBindTexture texture
-		GL_TEXTURE_2D glTexImage2D 0, GL_RGBA.to-int32, image.width.to-int32, image.height.to-int32, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.data
+		w = image.width to-int32
+		h = image.height to-int32
+		data = image data
+		GL_TEXTURE_2D glTexImage2D 0, GL_RGBA.to-int32, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
 
 		err = glGetError
 		if err != GL_NO_ERROR

@@ -264,23 +264,6 @@ immutable(double) abs(immutable double a) {
 	return a < 0 ? -a : a;
 }
 
-private immutable ubyte maxU4 = 0xf;
-
-immutable(Nat8) catU4U4(immutable Nat8 a, immutable Nat8 b) {
-	verify(a.value <= maxU4);
-	verify(b.value <= maxU4);
-	return (a << immutable Nat8(4)) | b;
-}
-
-struct U4U4 {
-	immutable Nat8 a;
-	immutable Nat8 b;
-}
-
-immutable(U4U4) u4u4OfU8(immutable Nat8 a) {
-	return immutable U4U4(immutable Nat8(a.raw() >> 4), immutable Nat8(a.raw() & maxU4));
-}
-
 immutable(Nat32) u32OfFloat32Bits(immutable float value) {
 	Converter32 conv;
 	conv.asFloat32 = value;

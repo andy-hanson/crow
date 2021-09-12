@@ -28,7 +28,7 @@ import util.collection.byteReader :
 	setPtr,
 	skipBytes;
 import util.sym : Sym;
-import util.types : incr, Nat8, Nat16, Nat32, Nat64, safeSizeTFromU64, U4U4, u4u4OfU8;
+import util.types : incr, Nat8, Nat16, Nat32, Nat64, safeSizeTFromU64;
 import util.util : unreachable;
 
 struct ByteCodeReader {

@@ -28,7 +28,7 @@ import util.writer : finishWriterToCStr, writeChar, writeNat, writeQuotedStr, Wr
 extern(C) void _start() {}
 
 extern(C) @system pure void memset(scope ubyte* s, immutable int c, immutable size_t n) {
-	utilMemset(s, c, n);
+	utilMemset(s, cast(immutable ubyte) c, n);
 }
 
 extern (C) @system pure int memcmp(scope const ubyte* s1, scope const ubyte* s2, immutable size_t n) {
@@ -39,7 +39,7 @@ extern (C) @system pure int memcmp(scope const ubyte* s1, scope const ubyte* s2,
 }
 
 extern (C) @system pure void* memcpy(return scope ubyte* s1, scope const ubyte* s2, immutable size_t n) {
-	utilMemcpy(s1, src, n);
+	utilMemcpy(s1, s2, n);
 	return s1;
 }
 
@@ -157,7 +157,8 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 
 private:
 
-ubyte[1024 * 1024 * 1024] globalBuffer;
+// Almost 2GB (which is size limit for a global array)
+ubyte[2047 * 1024 * 1024] globalBuffer;
 
 immutable(Repr) reprParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable StrParseDiagnostic[] a) {
 	return reprArr(alloc, a, (ref immutable StrParseDiagnostic it) =>

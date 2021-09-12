@@ -3,7 +3,7 @@ module util.util;
 @safe @nogc nothrow:
 
 import util.dbg : log, logNoNewline;
-import util.types : incr, Nat16, zero;
+import util.types : incr, zero;
 
 void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc nothrow cb) {
 	foreach (immutable size_t _; 0 .. times)

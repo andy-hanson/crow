@@ -500,7 +500,7 @@ struct RealExtern {
 		//libEGL.so instead?
 		glHandle = dlopen("/usr/lib64/libGL.so", RTLD_LAZY);
 		verify(glHandle != null);
-		webpHandle = dlopen("/usr/lib64/libwep.so", RTLD_LAZY);
+		webpHandle = dlopen("/usr/lib64/libwebp.so", RTLD_LAZY);
 		verify(webpHandle != null);
 
 		dcVm = dcNewCallVM(4096);

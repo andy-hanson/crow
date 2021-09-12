@@ -26,6 +26,7 @@ import util.opt : none, Opt, some;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
+import util.types : Nat8, Nat16;
 import util.util : todo, unreachable, verify;
 
 enum BuiltinStructKind {
@@ -94,6 +95,7 @@ struct ConcreteStructBody {
 	struct ExternPtr {}
 	struct Record {
 		immutable ConcreteField[] fields;
+		immutable Nat16[] fieldOffsets;
 	}
 	struct Union {
 		immutable ConcreteType[] members;
@@ -161,6 +163,11 @@ struct ConcreteType {
 	immutable Ptr!ConcreteStruct struct_;
 }
 
+struct TypeSize {
+	immutable Nat16 size;
+	immutable Nat8 alignment;
+}
+
 immutable(Purity) purity(immutable ConcreteType a) {
 	return a.struct_.purity;
 }
@@ -172,7 +179,7 @@ immutable(Ptr!ConcreteStruct) mustBeNonPointer(ref immutable ConcreteType a) {
 
 struct ConcreteStructInfo {
 	immutable ConcreteStructBody body_;
-	immutable size_t sizeBytes; // TODO: never used?
+	immutable TypeSize typeSize;
 	immutable bool isSelfMutable; //TODO: never used? (may need for GC though)
 	immutable bool defaultIsPointer;
 }
@@ -248,8 +255,8 @@ ref immutable(ConcreteStructBody) body_(return scope ref immutable ConcreteStruc
 	return info(a).body_;
 }
 
-private immutable(size_t) sizeBytes(ref immutable ConcreteStruct a) {
-	return info(a).sizeBytes;
+private immutable(TypeSize) typeSize(ref immutable ConcreteStruct a) {
+	return info(a).typeSize;
 }
 
 immutable(bool) isSelfMutable(ref immutable ConcreteStruct a) {
@@ -260,8 +267,10 @@ immutable(bool) defaultIsPointer(ref immutable ConcreteStruct a) {
 	return info(a).defaultIsPointer;
 }
 
-immutable(size_t) sizeOrPointerSizeBytes(ref immutable ConcreteType t) {
-	return t.isPointer ? (void*).sizeof : sizeBytes(t.struct_);
+immutable(TypeSize) sizeOrPointerSizeBytes(ref immutable ConcreteType t) {
+	return t.isPointer
+		? immutable TypeSize(immutable Nat16(8), immutable Nat8(8))
+		: typeSize(t.struct_);
 }
 
 immutable(ConcreteType) byRef(immutable ConcreteType t) {

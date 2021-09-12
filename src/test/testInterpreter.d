@@ -332,12 +332,6 @@ void testDup(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 				immutable Nat64(65),
 				immutable Nat64(75),
 				immutable Nat64(55),
-				immutable Nat64(75)]);
-			stepAndExpect(test, interpreter, [
-				immutable Nat64(55),
-				immutable Nat64(65),
-				immutable Nat64(75),
-				immutable Nat64(55),
 				immutable Nat64(75),
 				immutable Nat64(55)]);
 			stepExit(test, interpreter);
@@ -433,7 +427,8 @@ void testPack(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 				immutable Operation.Pack.Field(immutable Nat16(0), immutable Nat16(0), immutable Nat16(4)),
 				immutable Operation.Pack.Field(immutable Nat16(8), immutable Nat16(4), immutable Nat16(2)),
 				immutable Operation.Pack.Field(immutable Nat16(16), immutable Nat16(6), immutable Nat16(1))];
-			scope immutable Operation.Pack pack = immutable Operation.Pack(immutable Nat8(3), immutable Nat8(1), fields);
+			scope immutable Operation.Pack pack =
+				immutable Operation.Pack(immutable Nat8(3), immutable Nat8(1), fields);
 			writePack!(Debug, Alloc)(test.dbg, writer, source, pack);
 			writeReturn(test.dbg, writer, source);
 		},

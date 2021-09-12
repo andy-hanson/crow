@@ -3,10 +3,11 @@ import
 	cell: as-ptr, cell, subscript
 	col.mut-arr: begin-ptr, map-to-arr, mut-arr, set-subscript, size, subscript
 	include.GLES2.gl2:
-		glActiveTexture, GL_ARRAY_BUFFER, glBindBuffer, glBindTexture, glBufferData, glBufferSubData, glClear,
-		glClearColor, GL_COLOR_BUFFER_BIT, glDeleteBuffers, glDrawArrays,
-		glEnableVertexAttribArray, GL_FLOAT, glGenBuffers, glGetError, glGetUniformLocation, GL_NO_ERROR,
-		GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLES, GLuint, glUniform1i, glUseProgram, glVertexAttribPointer
+		glActiveTexture, GL_ARRAY_BUFFER, glBindBuffer, glBindTexture, glBufferData,
+		glBufferSubData, glClear, glClearColor, GL_COLOR_BUFFER_BIT, glDeleteBuffers, glDrawArrays,
+		glEnableVertexAttribArray, GL_FLOAT, glGenBuffers, glGetError, glGetUniformLocation,
+		GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLES, GLuint, glUniform1i,
+		glUseProgram, glVertexAttribPointer
 	include.SDL2.SDL:
 		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
 	include.SDL2.SDL_events:
@@ -18,8 +19,8 @@ import
 	include.SDL2.SDL_video:
 		SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
 		SDL_GL_DOUBLEBUFFER, SDL_GL_CONTEXT_MAJOR_VERSION, SDL_GL_CONTEXT_MINOR_VERSION,
-		SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_SetAttribute, SDL_GL_SwapWindow, SDL_Window, SDL_WINDOW_OPENGL,
-		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN
+		SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_SetAttribute, SDL_GL_SwapWindow, SDL_Window,
+		SDL_WINDOW_OPENGL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN
 	io.duration: duration, msec
 	io.print: print
 	io.time: delay

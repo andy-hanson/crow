@@ -4,8 +4,8 @@ module interpret.typeLayout;
 
 import interpret.bytecode : Operation, stackEntrySize;
 import model.lowModel : LowField, LowProgram, LowRecord, LowType, LowUnion, matchLowType, PrimitiveType;
-import util.collection.arr : at, empty, size;
-import util.collection.arrUtil : arrMax, every, map, mapOp, mapZip;
+import util.collection.arr : size;
+import util.collection.arrUtil : arrMax, every, map, mapZip;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictEach, fullIndexDictGet, fullIndexDictSize;
 import util.collection.fullIndexDictBuilder :
 	finishFullIndexDict,
@@ -16,7 +16,7 @@ import util.collection.fullIndexDictBuilder :
 	newFullIndexDictBuilder;
 import util.opt : force, has, none, Opt, some;
 import util.types : Nat8, Nat16, zero;
-import util.util : divRoundUp, drop, max, roundUp, verify;
+import util.util : divRoundUp, drop, max, roundUp;
 
 // NOTE: we should lay out structs so that no primitive field straddles multiple stack entries.
 struct TypeLayout {
@@ -54,7 +54,7 @@ immutable(Nat8) nStackEntriesForType(ref immutable TypeLayout typeLayout, immuta
 	return nStackEntriesForBytes(sizeOfType(typeLayout, t).size);
 }
 
-immutable(Nat8) nStackEntriesForBytes(immutable Nat16 bytes) {
+private immutable(Nat8) nStackEntriesForBytes(immutable Nat16 bytes) {
 	return divRoundUp(bytes, stackEntrySize).to8();
 }
 

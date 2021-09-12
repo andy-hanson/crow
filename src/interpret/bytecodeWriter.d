@@ -33,14 +33,14 @@ import util.collection.byteWriter :
 	writeU16,
 	writeU32;
 import interpret.opcode : OpCode;
-import util.collection.arr : empty, sizeNat;
+import util.collection.arr : sizeNat;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
 import util.dbg : dbgLog = log;
 import util.ptr : Ptr;
 import util.sym : Sym;
 import util.util : divRoundUp, repeat, verify;
-import util.types : catU4U4, decr, incr, Int16, Nat8, Nat16, Nat32, Nat64, zero;
+import util.types : decr, incr, Int16, Nat8, Nat16, Nat32, Nat64, zero;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
 struct ByteCodeWriter(Alloc) {
@@ -172,7 +172,8 @@ private immutable(StackOffsetBytes) getStackOffsetBytes(Alloc)(
 	immutable StackEntry stackEntry,
 	immutable Nat8 offsetBytes,
 ) {
-	// stack entry offsets use 0 for the last entry, but byte offsets use 0 for the next entry (thus 1 is the final byte of the last entry)
+	// stack entry offsets use 0 for the last entry,
+	// but byte offsets use 0 for the next entry (thus 1 is the final byte of the last entry)
 	return immutable StackOffsetBytes(
 		incr(getStackOffsetTo(writer, stackEntry)).to16() * immutable Nat16(8) - offsetBytes.to16());
 }
@@ -629,7 +630,7 @@ private void pushOpcode(Alloc)(
 	pushU8(writer, source, immutable Nat8(code));
 }
 
-void pushT(T, Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable T value) {
+private void pushT(T, Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable T value) {
 	pushBytes!T(writer.byteWriter, value);
 	repeat(T.sizeof, () { pushSource(writer, source); });
 }

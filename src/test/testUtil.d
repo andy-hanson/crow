@@ -24,7 +24,11 @@ struct Test(Debug, Alloc) {
 		return Writer!Alloc(alloc);
 	}
 
-	void fail(immutable string) {
+	void fail(immutable string s) {
+		debug {
+			import core.stdc.stdio : printf;
+			printf("Failed: %.*s\n", cast(int) s.length, s.ptr);
+		}
 		verify(false);
 	}
 }

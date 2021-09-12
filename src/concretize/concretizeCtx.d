@@ -30,7 +30,8 @@ import model.concreteModel :
 	ConcreteStructSource,
 	mustBeNonPointer,
 	purity,
-	sizeOrPointerSizeBytes;
+	sizeOrPointerSizeBytes,
+	TypeSize;
 import model.constant : Constant;
 import model.model :
 	body_,
@@ -77,8 +78,8 @@ import util.opt : force, has, none, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
-import util.types : safeSizeTToU8;
-import util.util : min, max, roundUp, todo, unreachable, verify;
+import util.types : Nat8, Nat16, safeSizeTToU8, zero;
+import util.util : max, roundUp, todo, unreachable, verify;
 
 struct TypeArgsScope {
 	@safe @nogc pure nothrow:
@@ -381,7 +382,7 @@ immutable(ConcreteType) concreteTypeFromClosure(Alloc)(
 				return worsePurity(p, purity(f.type));
 			});
 		Ptr!ConcreteStruct cs = nuMut!ConcreteStruct(alloc, purity, source);
-		lateSet(cs.info_, getConcreteStructInfoForFields(ForcedByValOrRefOrNone.none, closureFields));
+		lateSet(cs.info_, getConcreteStructInfoForFields(alloc, ForcedByValOrRefOrNone.none, false, closureFields));
 		add(alloc, ctx.allConcreteStructs, castImmutable(cs));
 		// TODO: consider passing closure by value
 		return immutable ConcreteType(true, castImmutable(cs));
@@ -453,32 +454,58 @@ immutable(Comparison) compareConcreteTypeArr(ref immutable ConcreteType[] a, ref
 		compareConcreteType(x, y));
 }
 
-immutable(size_t) sizeFromConcreteFields(immutable ConcreteField[] fields) {
-	// TODO: this is definitely not accurate. Luckily I use static asserts in the generated code to check this.
-	size_t s = 0;
-	size_t maxFieldAlign = 1;
-	foreach (ref immutable ConcreteField field; fields) {
-		immutable size_t itsSize = sizeOrPointerSizeBytes(field.type);
-		//TODO: this is wrong!
-		const size_t itsAlign = min(itsSize, 8);
-		maxFieldAlign = max(maxFieldAlign, itsAlign);
-		while (s % itsAlign != 0)
-			s++;
-		s += itsSize;
-	}
-	while (s % maxFieldAlign != 0)
-		s++;
-	return max(s, 1);
+struct RecordSizeAndFieldOffsets {
+	immutable TypeSize typeSize;
+	immutable Nat16[] fieldOffsets;
 }
+
+immutable(RecordSizeAndFieldOffsets) recordSize(Alloc)(
+	ref Alloc alloc,
+	immutable bool packed,
+	immutable ConcreteField[] fields,
+) {
+	Nat16 maxFieldSize = immutable Nat16(1);
+	Nat8 maxFieldAlignment = immutable Nat8(1);
+	Nat16 offset = immutable Nat16(0);
+	immutable Nat16[] fieldOffsets = map(alloc, fields, (ref immutable ConcreteField field) {
+		immutable TypeSize fieldSize = sizeOrPointerSizeBytes(field.type);
+		maxFieldSize = max(maxFieldSize, fieldSize.size);
+		maxFieldAlignment = max(maxFieldAlignment, fieldSize.alignment);
+		// If field would stretch across a boundary, move offset up to the next boundary
+		immutable Nat16 mod = offset % fieldBoundary;
+		if (!packed && !zero(mod) && mod + fieldSize.size > fieldBoundary)
+			offset = roundUp(offset, fieldBoundary);
+		immutable Nat16 fieldOffset = offset;
+		offset += fieldSize.size;
+		return fieldOffset;
+	});
+	immutable Nat16 size = offset <= immutable Nat16(8) || packed
+		? offset
+		: roundUp(offset, maxFieldAlignment.to16());
+	immutable TypeSize typeSize = immutable TypeSize(size, maxFieldAlignment);
+	return immutable RecordSizeAndFieldOffsets(typeSize, fieldOffsets);
+}
+
+immutable(TypeSize) unionSize(ref immutable ConcreteType[] members) {
+	immutable Nat8 unionAlign = immutable Nat8(8);
+	immutable Nat16 maxMember = arrMax(
+		immutable Nat16(0),
+		members,
+		(ref immutable ConcreteType t) => sizeOrPointerSizeBytes(t).size);
+	immutable Nat16 sizeBytes = roundUp(immutable Nat16(8) + maxMember, unionAlign.to16());
+	return immutable TypeSize(sizeBytes, unionAlign);
+}
+
+immutable Nat16 fieldBoundary = immutable Nat16(8);
 
 immutable(bool) getDefaultIsPointerForFields(
 	immutable ForcedByValOrRefOrNone forcedByValOrRef,
-	immutable size_t sizeBytes,
+	immutable TypeSize typeSize,
 	immutable bool isSelfMutable,
 ) {
 	final switch (forcedByValOrRef) {
 		case ForcedByValOrRefOrNone.none:
-			return isSelfMutable || sizeBytes > (void*).sizeof * 2;
+			return isSelfMutable || typeSize.size > immutable Nat16(8 * 2);
 		case ForcedByValOrRefOrNone.byVal:
 			verify(!isSelfMutable);
 			return false;
@@ -487,18 +514,20 @@ immutable(bool) getDefaultIsPointerForFields(
 	}
 }
 
-immutable(ConcreteStructInfo) getConcreteStructInfoForFields(
+immutable(ConcreteStructInfo) getConcreteStructInfoForFields(Alloc)(
+	ref Alloc alloc,
 	immutable ForcedByValOrRefOrNone forcedByValOrRef,
+	immutable bool packed,
 	immutable ConcreteField[] fields,
 ) {
-	immutable size_t sizeBytes = sizeFromConcreteFields(fields);
+	immutable RecordSizeAndFieldOffsets sizeAndOffsets = recordSize(alloc, packed, fields);
 	immutable bool isSelfMutable = exists!ConcreteField(fields, (ref immutable ConcreteField fld) =>
 		fld.isMutable);
 	return immutable ConcreteStructInfo(
-		immutable ConcreteStructBody(ConcreteStructBody.Record(fields)),
-		sizeBytes,
+		immutable ConcreteStructBody(immutable ConcreteStructBody.Record(fields, sizeAndOffsets.fieldOffsets)),
+		sizeAndOffsets.typeSize,
 		isSelfMutable,
-		getDefaultIsPointerForFields(forcedByValOrRef, sizeBytes, isSelfMutable));
+		getDefaultIsPointerForFields(forcedByValOrRef, sizeAndOffsets.typeSize, isSelfMutable));
 }
 
 void initializeConcreteStruct(Alloc)(
@@ -524,7 +553,7 @@ void initializeConcreteStruct(Alloc)(
 		(ref immutable StructBody.Union) => false);
 	lateSet(res.info_, immutable ConcreteStructInfo(
 		immutable ConcreteStructBody(immutable ConcreteStructBody.Record(emptyArr!ConcreteField)),
-		/*sizeBytes*/ 9999,
+		immutable TypeSize(immutable Nat16(9999), immutable Nat8(8)),
 		/*isSelfMutable*/ true,
 		initialDefaultIsPointer));
 
@@ -542,7 +571,7 @@ void initializeConcreteStruct(Alloc)(
 		(ref immutable StructBody.ExternPtr it) =>
 			immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(immutable ConcreteStructBody.ExternPtr()),
-				(void*).sizeof,
+				getBuiltinStructSize(BuiltinStructKind.ptr),
 				false,
 				//defaultIsPointer is false because the 'extern' type *is* a pointer
 				false),
@@ -554,18 +583,14 @@ void initializeConcreteStruct(Alloc)(
 						safeSizeTToU8(index),
 						f.isMutable,
 						getConcreteType(alloc, ctx, f.type, typeArgsScope)));
-			return getConcreteStructInfoForFields(r.flags.forcedByValOrRef, fields);
+			return getConcreteStructInfoForFields(alloc, r.flags.forcedByValOrRef, r.flags.packed, fields);
 		},
 		(ref immutable StructBody.Union u) {
 			immutable ConcreteType[] members = map!ConcreteType(alloc, u.members, (ref immutable Ptr!StructInst si) =>
 				getConcreteType_forStructInst(alloc, ctx, si, typeArgsScope));
-			immutable size_t maxMember =
-				arrMax(0, members, (ref immutable ConcreteType t) => sizeOrPointerSizeBytes(t));
-			// Must factor in the 'kind' size. It seems that enums are int-sized.
-			immutable size_t sizeBytes = roundUp(int.sizeof + maxMember, (void*).sizeof);
 			return immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(ConcreteStructBody.Union(members)),
-				sizeBytes,
+				unionSize(members),
 				false,
 				false);
 		});
@@ -714,39 +739,28 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 	}
 }
 
-immutable(size_t) getBuiltinStructSize(immutable BuiltinStructKind kind) {
+immutable(TypeSize) getBuiltinStructSize(immutable BuiltinStructKind kind) {
 	final switch (kind) {
-		case BuiltinStructKind.bool_:
-			return bool.sizeof;
-		case BuiltinStructKind.char_:
-			return char.sizeof;
-		case BuiltinStructKind.float32:
-			return float.sizeof;
-		case BuiltinStructKind.float64:
-			return double.sizeof;
-		case BuiltinStructKind.fun:
-			return ulong.sizeof;
-		case BuiltinStructKind.funPtrN:
-			return (void*).sizeof;
-		case BuiltinStructKind.int8:
-			return byte.sizeof;
-		case BuiltinStructKind.int16:
-			return short.sizeof;
-		case BuiltinStructKind.int32:
-			return int.sizeof;
-		case BuiltinStructKind.int64:
-			return long.sizeof;
-		case BuiltinStructKind.nat8:
-			return ubyte.sizeof;
-		case BuiltinStructKind.nat16:
-			return ushort.sizeof;
-		case BuiltinStructKind.nat32:
-			return uint.sizeof;
-		case BuiltinStructKind.nat64:
-			return ulong.sizeof;
-		case BuiltinStructKind.ptr:
-			return (void*).sizeof;
 		case BuiltinStructKind.void_:
-			return 1; // TODO: should be 0?
+			return immutable TypeSize(immutable Nat16(0), immutable Nat8(1));
+		case BuiltinStructKind.bool_:
+		case BuiltinStructKind.char_:
+		case BuiltinStructKind.int8:
+		case BuiltinStructKind.nat8:
+			return immutable TypeSize(immutable Nat16(1), immutable Nat8(1));
+		case BuiltinStructKind.int16:
+		case BuiltinStructKind.nat16:
+			return immutable TypeSize(immutable Nat16(2), immutable Nat8(2));
+		case BuiltinStructKind.float32:
+		case BuiltinStructKind.int32:
+		case BuiltinStructKind.nat32:
+			return immutable TypeSize(immutable Nat16(4), immutable Nat8(4));
+		case BuiltinStructKind.float64:
+		case BuiltinStructKind.fun:
+		case BuiltinStructKind.funPtrN:
+		case BuiltinStructKind.int64:
+		case BuiltinStructKind.nat64:
+		case BuiltinStructKind.ptr:
+			return immutable TypeSize(immutable Nat16(8), immutable Nat8(8));
 	}
 }

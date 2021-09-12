@@ -114,8 +114,9 @@ words-used-in-range nat(acc nat, cur ptr bool, end ptr bool) noctx unsafe
 
 gc by-val gc() noctx unsafe
 	# TODO: handle malloc failure
-	# 2^26 words = 2^29 bytes = 2^10 MB
-	size-words = 0x4000000
+	# 3*2^24 words = 3*2^27 bytes = 3*2^8 MB = 1.5 GB
+	# If changing this, be sure `globalBuffer` in `wasm.d` is big enough
+	size-words = 0x3000000
 	mark = ptr-cast<bool, nat8>: malloc: size-words
 	mark-end = mark + size-words
 	data = ptr-cast<nat64, nat8>: malloc: size-words wrap-mul size-of<nat64>

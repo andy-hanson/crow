@@ -33,15 +33,7 @@ import util.collection.exactSizeArrBuilder :
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.opt : has, Opt;
 import util.ptr : Ptr, ptrTrustMe;
-import util.types :
-	bottomU8OfU64,
-	bottomU16OfU64,
-	bottomU32OfU64,
-	Nat8,
-	Nat16,
-	u32OfFloat32Bits,
-	u64OfFloat64Bits,
-	zero;
+import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, u32OfFloat32Bits, u64OfFloat64Bits;
 import util.util : todo, unreachable, verify;
 
 struct TextAndInfo {
@@ -296,9 +288,12 @@ void writeConstant(TempAlloc)(
 		(ref immutable Constant.Record it) {
 			immutable LowType.Record recordType = asRecordType(type);
 			immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, recordType);
-			zip!(LowField, Constant)(record.fields, it.args, (ref immutable LowField field, ref immutable Constant fieldValue) {
-				writeConstant(tempAlloc, ctx, field.type, fieldValue);
-			});
+			zip!(LowField, Constant)(
+				record.fields,
+				it.args,
+				(ref immutable LowField field, ref immutable Constant fieldValue) {
+					writeConstant(tempAlloc, ctx, field.type, fieldValue);
+				});
 			immutable Opt!(Operation.Pack) pack = optPack(tempAlloc, ctx.program, ctx.typeLayout, recordType);
 			if (has(pack))
 				//TODO: we should be writing each constant at the appropriate offset, so no need to pack.

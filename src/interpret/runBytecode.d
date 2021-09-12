@@ -28,13 +28,12 @@ import interpret.bytecodeReader :
 	readerSwitch,
 	setReaderPtr;
 import interpret.debugging : writeFunName;
-import interpret.typeLayout : TypeSize;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import util.dbg : log, logNoNewline;
 import util.collection.arr : begin, freeArr, last, ptrAt, sizeNat;
-import util.collection.arrUtil : mapWithFirst, zipImpureSystem;
+import util.collection.arrUtil : mapWithFirst;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.globalAllocatedStack :
 	asTempArr,
@@ -65,7 +64,6 @@ import util.repr : writeReprNoNewline;
 import util.sourceRange : FileAndPos;
 import util.sym : logSym;
 import util.types :
-	decr,
 	incr,
 	i32OfU64Bits,
 	Nat8,
@@ -74,8 +72,7 @@ import util.types :
 	Nat64,
 	safeIntFromNat64,
 	safeSizeTFromU64,
-	safeU32FromI32,
-	zero;
+	safeU32FromI32;
 import util.util : divRoundUp, drop, min, todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, writeStatic;
 
@@ -671,7 +668,8 @@ alias JmpBufTag = immutable InterpreterRestore*;
 }
 
 @trusted void dup(ref DataStack dataStack, scope immutable Operation.Dup dup) {
-	readNoCheck(dataStack, (cast(const ubyte*) end(dataStack)) - dup.offsetBytes.offsetBytes.raw(), dup.sizeBytes.raw());
+	const ubyte* ptr = (cast(const ubyte*) end(dataStack)) - dup.offsetBytes.offsetBytes.raw();
+	readNoCheck(dataStack, ptr, dup.sizeBytes.raw());
 }
 
 @system void readNoCheck(ref DataStack dataStack, const ubyte* readFrom, immutable size_t sizeBytes) {
