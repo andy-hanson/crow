@@ -1,0 +1,7 @@
+main fut nat(_ arr str) summon trusted
+	a = none r
+	drop: a
+	0 resolved
+
+r record
+	next opt r

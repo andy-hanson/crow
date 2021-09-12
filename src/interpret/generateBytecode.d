@@ -53,7 +53,8 @@ import interpret.bytecodeWriter :
 	writeWrite;
 import interpret.debugging : writeLowType;
 import interpret.generateText : generateText, getTextInfoForArray, getTextPointer, TextAndInfo, TextArrInfo;
-import interpret.typeLayout : layOutTypes, nStackEntriesForType, optPack, sizeOfType, TypeLayout, TypeSize;
+import interpret.typeLayout : nStackEntriesForType, optPack, sizeOfType;
+import model.concreteModel : TypeSize;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	asLocalRef,
@@ -71,6 +72,7 @@ import model.lowModel :
 	isSpecialUnary,
 	LowExpr,
 	LowExprKind,
+	LowField,
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
@@ -126,8 +128,7 @@ immutable(ByteCode) generateBytecode(Debug, CodeAlloc, TempAlloc)(
 	ref immutable Program modelProgram,
 	ref immutable LowProgram program,
 ) {
-	immutable TypeLayout typeLayout = layOutTypes(tempAlloc, program);
-	immutable TextAndInfo text = generateText(codeAlloc, tempAlloc, program, typeLayout, program.allConstants);
+	immutable TextAndInfo text = generateText(codeAlloc, tempAlloc, program, program.allConstants);
 
 	MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences =
 		newMutIndexMultiDict!(LowFunIndex, ByteCodeIndex)(tempAlloc, fullIndexDictSize(program.allFuns));
@@ -145,7 +146,6 @@ immutable(ByteCode) generateBytecode(Debug, CodeAlloc, TempAlloc)(
 					tempAlloc,
 					writer,
 					funToReferences,
-					typeLayout,
 					text,
 					program,
 					funIndex,
@@ -181,11 +181,11 @@ immutable(FileToFuns) fileToFuns(Alloc)(ref Alloc alloc, ref immutable Program p
 }
 
 immutable(TypeSize) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
-	return sizeOfType(ctx.typeLayout, t);
+	return sizeOfType(ctx.program, t);
 }
 
 immutable(Nat8) nStackEntriesForType(ref const ExprCtx ctx, ref immutable LowType t) {
-	return nStackEntriesForType(ctx.typeLayout, t);
+	return nStackEntriesForType(ctx.program, t);
 }
 
 immutable(Nat8) nStackEntriesForRecordType(ref const ExprCtx ctx, ref immutable LowType.Record t) {
@@ -203,7 +203,6 @@ void generateBytecodeForFun(Debug, TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences,
-	ref immutable TypeLayout typeLayout,
 	ref immutable TextAndInfo textInfo,
 	ref immutable LowProgram program,
 	immutable LowFunIndex funIndex,
@@ -215,13 +214,13 @@ void generateBytecodeForFun(Debug, TempAlloc, CodeAlloc)(
 		fun.params,
 		(ref immutable LowParam it) {
 			immutable StackEntry start = immutable StackEntry(stackEntry);
-			immutable Nat8 n = nStackEntriesForType(typeLayout, it.type);
+			immutable Nat8 n = nStackEntriesForType(program, it.type);
 			stackEntry += n.to16();
 			return immutable StackEntries(start, n);
 		});
 	immutable StackEntry stackEntryAfterParameters = immutable StackEntry(stackEntry);
 	setStackEntryAfterParameters(writer, stackEntryAfterParameters);
-	immutable Nat8 returnEntries = nStackEntriesForType(typeLayout, fun.returnType);
+	immutable Nat8 returnEntries = nStackEntriesForType(program, fun.returnType);
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 
 	matchLowFunBody!void(
@@ -237,7 +236,6 @@ void generateBytecodeForFun(Debug, TempAlloc, CodeAlloc)(
 				: at(parameters, firstRegularParameterIndex).start;
 			ExprCtx ctx = ExprCtx(
 				ptrTrustMe(program),
-				ptrTrustMe(typeLayout),
 				ptrTrustMe(textInfo),
 				funIndex,
 				returnEntries,
@@ -392,7 +390,6 @@ immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
 
 struct ExprCtx {
 	immutable Ptr!LowProgram program;
-	immutable Ptr!TypeLayout typeLayout;
 	immutable Ptr!TextAndInfo textInfo;
 	immutable LowFunIndex curFunIndex;
 	immutable Nat8 returnTypeSizeInStackEntries;
@@ -620,7 +617,7 @@ void generateCreateRecordOrConstantRecord(Debug, CodeAlloc, TempAlloc)(
 	foreach (immutable size_t i; 0 .. size(record.fields))
 		cbGenerateField(i, at(record.fields, i).type);
 
-	immutable Opt!(Operation.Pack) optPack = optPack(tempAlloc, ctx.program, ctx.typeLayout, type);
+	immutable Opt!(Operation.Pack) optPack = optPack(tempAlloc, ctx.program, type);
 	if (has(optPack))
 		writePack(dbg, writer, source, force(optPack));
 
@@ -679,19 +676,14 @@ struct FieldOffsetAndSize {
 	immutable Nat16 size;
 }
 
-immutable(Nat16) getFieldOffset(ref const ExprCtx ctx, immutable LowType.Record record, immutable Nat8 fieldIndex) {
-	immutable Nat16[] fieldOffsets = fullIndexDictGet(ctx.typeLayout.fieldOffsets, record);
-	return at(fieldOffsets, fieldIndex);
-}
-
 immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	ref const ExprCtx ctx,
 	immutable LowType.Record record,
 	immutable Nat8 fieldIndex,
 ) {
-	immutable Nat16 size =
-		sizeOfType(ctx, at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).type).size;
-	return immutable FieldOffsetAndSize(getFieldOffset(ctx, record, fieldIndex), size);
+	immutable LowField field = at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex);
+	immutable Nat16 size = sizeOfType(ctx, field.type).size;
+	return immutable FieldOffsetAndSize(field.offset, size);
 }
 
 void registerFunAddress(TempAlloc)(
@@ -951,19 +943,13 @@ void generateRecordFieldGet(Debug, TempAlloc, CodeAlloc)(
 		if (!zero(offsetAndSize.size)) {
 			immutable StackEntry firstEntry =
 				immutable StackEntry(targetEntry.entry + (offsetAndSize.offset / stackEntrySize));
-			if (zero(offsetAndSize.size % stackEntrySize)) {
-				verify(zero(offsetAndSize.offset % stackEntrySize));
-				immutable StackEntries entries =
-					immutable StackEntries(firstEntry, (offsetAndSize.size / stackEntrySize).to8());
-				writeDupEntries(dbg, writer, source, entries);
-			} else
-				writeDup(
-					dbg,
-					writer,
-					source,
-					firstEntry,
-					(offsetAndSize.offset % stackEntrySize).to8(),
-					offsetAndSize.size);
+			writeDup(
+				dbg,
+				writer,
+				source,
+				firstEntry,
+				(offsetAndSize.offset % stackEntrySize).to8(),
+				offsetAndSize.size);
 		}
 		writeRemove(dbg, writer, source, targetEntries);
 	}
@@ -981,7 +967,7 @@ void generatePtrToRecordFieldGet(Debug, TempAlloc, CodeAlloc)(
 	ref immutable LowExpr target,
 ) {
 	generateExpr(dbg, tempAlloc, writer, ctx, target);
-	immutable Nat16 offset = getFieldOffset(ctx, record, immutable Nat8(fieldIndex));
+	immutable Nat16 offset = at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).offset;
 	if (targetIsPointer) {
 		if (!zero(offset))
 			writeAddConstantNat64(dbg, writer, source, offset.to64());

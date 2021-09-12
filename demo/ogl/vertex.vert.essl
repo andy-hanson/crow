@@ -10,5 +10,6 @@ const vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
 
 void main() {
 	color = vec4(vertColor, 1.0);
+	texCoord = vertTextCoord;
 	gl_Position = vec4(vertPos, 0.0, 1.0);
 }

@@ -3,10 +3,11 @@ module backend.writeToC;
 @safe @nogc pure nothrow:
 
 import interpret.debugging : writeFunName, writeFunSig;
-import interpret.typeLayout : layOutTypes, sizeOfType, TypeLayout, TypeSize;
+import interpret.typeLayout : sizeOfType;
 import lower.lowExprHelpers : boolType, voidType;
 import model.concreteModel :
 	body_,
+	BuiltinStructKind,
 	ConcreteFun,
 	ConcreteFunSource,
 	ConcreteLocal,
@@ -14,12 +15,15 @@ import model.concreteModel :
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteStruct,
+	ConcreteStructBody,
 	ConcreteStructSource,
 	isExtern,
 	matchConcreteFunSource,
 	matchConcreteParamSource,
 	matchConcreteLocalSource,
-	matchConcreteStructSource;
+	matchConcreteStructBody,
+	matchConcreteStructSource,
+	TypeSize;
 import model.constant : asIntegral, Constant, matchConstant;
 import model.lowModel :
 	AllConstantsLow,
@@ -86,7 +90,7 @@ import util.sym :
 	Sym,
 	symEq,
 	writeSym;
-import util.types : abs, i64OfU64Bits;
+import util.types : abs, i64OfU64Bits, Nat16;
 import util.util : drop, todo, unreachable, verify;
 import util.writer :
 	finishWriter,
@@ -483,6 +487,21 @@ void writeUnion(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immut
 		writeNat(writer, memberIndex);
 		writeChar(writer, ';');
 	}
+
+	matchConcreteStructBody!void(
+		body_(a.source),
+		(ref immutable ConcreteStructBody.Builtin it) {
+			verify(it.kind == BuiltinStructKind.fun);
+			// Fun types must be 16 bytes
+			if (every!LowType(a.members, (ref immutable LowType member) =>
+				sizeOfType(ctx.program, member).size < immutable Nat16(8))) {
+				writeStatic(writer, "\n\t\tuint64_t __ensureSizeIs16;");
+			}
+		},
+		(ref immutable ConcreteStructBody.ExternPtr) {},
+		(ref immutable ConcreteStructBody.Record) {},
+		(ref immutable ConcreteStructBody.Union) {});
+
 	writeStatic(writer, "\n\t};");
 	writeStructEnd(writer);
 }
@@ -699,8 +718,6 @@ immutable(StructState) writeUnionDeclarationOrDefinition(Alloc)(
 }
 
 void writeStructs(Alloc, WriterAlloc)(ref Alloc alloc, ref Writer!WriterAlloc writer, ref immutable Ctx ctx) {
-	immutable TypeLayout typeLayout = layOutTypes(alloc, ctx.program); // For debugging...
-
 	writeStatic(writer, "\nstruct void_ {};\n");
 
 	// Write extern-ptr types first
@@ -768,7 +785,7 @@ void writeStructs(Alloc, WriterAlloc)(ref Alloc alloc, ref Writer!WriterAlloc wr
 	writeChar(writer, '\n');
 
 	void assertSize(immutable LowType t) {
-		staticAssertStructSize(writer, ctx, t, sizeOfType(typeLayout, t));
+		staticAssertStructSize(writer, ctx, t, sizeOfType(ctx.program, t));
 	}
 
 	//TODO: use a temp alloc

@@ -12,7 +12,9 @@ import model.concreteModel :
 	ConcreteStructSource,
 	isArr,
 	matchConcreteStructSource,
-	name;
+	name,
+	typeSize,
+	TypeSize;
 import model.constant : Constant;
 import model.model : asRecord, body_;
 import util.collection.fullIndexDict : FullIndexDict;
@@ -21,6 +23,7 @@ import util.opt : none, Opt;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
+import util.types : Nat16;
 import util.util : verify;
 
 struct LowExternPtrType {
@@ -44,6 +47,10 @@ struct LowRecord {
 	}
 }
 
+immutable(TypeSize) typeSize(ref immutable LowRecord a) {
+	return typeSize(a.source);
+}
+
 immutable(bool) isArr(ref immutable LowRecord a) {
 	return isArr(a.source.deref());
 }
@@ -51,6 +58,10 @@ immutable(bool) isArr(ref immutable LowRecord a) {
 struct LowUnion {
 	immutable Ptr!ConcreteStruct source;
 	immutable LowType[] members;
+}
+
+immutable(TypeSize) typeSize(ref immutable LowUnion a) {
+	return typeSize(a.source);
 }
 
 struct LowFunPtrType {
@@ -326,6 +337,7 @@ immutable(LowType.Union) asUnionType(ref immutable LowType a) {
 
 struct LowField {
 	immutable Ptr!ConcreteField source;
+	immutable Nat16 offset;
 	immutable LowType type;
 }
 

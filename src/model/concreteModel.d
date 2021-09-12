@@ -21,7 +21,7 @@ import model.model :
 	summon;
 import util.collection.dict : Dict;
 import util.comparison : compareBool, Comparison;
-import util.late : Late, lateGet, lateSet;
+import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
@@ -181,7 +181,6 @@ struct ConcreteStructInfo {
 	immutable ConcreteStructBody body_;
 	immutable TypeSize typeSize;
 	immutable bool isSelfMutable; //TODO: never used? (may need for GC though)
-	immutable bool defaultIsPointer;
 }
 
 struct ConcreteStructSource {
@@ -236,6 +235,7 @@ struct ConcreteStruct {
 	immutable Purity purity;
 	immutable ConcreteStructSource source;
 	Late!(immutable ConcreteStructInfo) info_;
+	Late!(immutable bool) defaultIsPointer_;
 }
 
 immutable(bool) isArr(ref immutable ConcreteStruct a) {
@@ -255,7 +255,7 @@ ref immutable(ConcreteStructBody) body_(return scope ref immutable ConcreteStruc
 	return info(a).body_;
 }
 
-private immutable(TypeSize) typeSize(ref immutable ConcreteStruct a) {
+immutable(TypeSize) typeSize(ref immutable ConcreteStruct a) {
 	return info(a).typeSize;
 }
 
@@ -264,13 +264,18 @@ immutable(bool) isSelfMutable(ref immutable ConcreteStruct a) {
 }
 
 immutable(bool) defaultIsPointer(ref immutable ConcreteStruct a) {
-	return info(a).defaultIsPointer;
+	return lateGet(a.defaultIsPointer_);
 }
 
-immutable(TypeSize) sizeOrPointerSizeBytes(ref immutable ConcreteType t) {
-	return t.isPointer
+//TODO: this is only useful during concretize, move
+immutable(bool) hasSizeOrPointerSizeBytes(ref immutable ConcreteType a) {
+	return a.isPointer || lateIsSet(a.struct_.info_);
+}
+
+immutable(TypeSize) sizeOrPointerSizeBytes(ref immutable ConcreteType a) {
+	return a.isPointer
 		? immutable TypeSize(immutable Nat16(8), immutable Nat8(8))
-		: typeSize(t.struct_);
+		: typeSize(a.struct_);
 }
 
 immutable(ConcreteType) byRef(immutable ConcreteType t) {

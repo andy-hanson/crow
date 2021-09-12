@@ -282,6 +282,7 @@ struct fun1_0 {
 	uint64_t kind;
 	union {
 		struct void_ as0;
+		uint64_t __ensureSizeIs16;
 	};
 };
 struct log_level {
@@ -296,6 +297,7 @@ struct fun1_1 {
 	uint64_t kind;
 	union {
 		struct void_ as0;
+		uint64_t __ensureSizeIs16;
 	};
 };
 struct fun_act1_1 {
@@ -342,6 +344,7 @@ struct fun_act2 {
 	uint64_t kind;
 	union {
 		struct void_ as0;
+		uint64_t __ensureSizeIs16;
 	};
 };
 struct fut_state_1;
@@ -389,6 +392,7 @@ struct fun_act1_6 {
 	uint64_t kind;
 	union {
 		struct void_ as0;
+		uint64_t __ensureSizeIs16;
 	};
 };
 struct fun_act1_7 {
@@ -804,7 +808,7 @@ _Static_assert(sizeof(struct fut_state_resolved_0) == 8, "");
 _Static_assert(_Alignof(struct fut_state_resolved_0) == 8, "");
 _Static_assert(sizeof(struct global_ctx) == 152, "");
 _Static_assert(_Alignof(struct global_ctx) == 8, "");
-_Static_assert(sizeof(struct island) == 200, "");
+_Static_assert(sizeof(struct island) == 216, "");
 _Static_assert(_Alignof(struct island) == 8, "");
 _Static_assert(sizeof(struct gc) == 96, "");
 _Static_assert(_Alignof(struct gc) == 8, "");
@@ -812,7 +816,7 @@ _Static_assert(sizeof(struct gc_ctx) == 24, "");
 _Static_assert(_Alignof(struct gc_ctx) == 8, "");
 _Static_assert(sizeof(struct some_1) == 8, "");
 _Static_assert(_Alignof(struct some_1) == 8, "");
-_Static_assert(sizeof(struct island_gc_root) == 56, "");
+_Static_assert(sizeof(struct island_gc_root) == 72, "");
 _Static_assert(_Alignof(struct island_gc_root) == 8, "");
 _Static_assert(sizeof(struct task_queue) == 40, "");
 _Static_assert(_Alignof(struct task_queue) == 8, "");
@@ -888,7 +892,7 @@ _Static_assert(sizeof(struct arrow) == 16, "");
 _Static_assert(_Alignof(struct arrow) == 8, "");
 _Static_assert(sizeof(struct to_str_0__lambda0) == 8, "");
 _Static_assert(_Alignof(struct to_str_0__lambda0) == 8, "");
-_Static_assert(sizeof(struct log_ctx) == 8, "");
+_Static_assert(sizeof(struct log_ctx) == 16, "");
 _Static_assert(_Alignof(struct log_ctx) == 8, "");
 _Static_assert(sizeof(struct perf_ctx) == 32, "");
 _Static_assert(_Alignof(struct perf_ctx) == 8, "");
@@ -942,7 +946,7 @@ _Static_assert(sizeof(struct subscript_15__lambda0__lambda1) == 8, "");
 _Static_assert(_Alignof(struct subscript_15__lambda0__lambda1) == 8, "");
 _Static_assert(sizeof(struct add_first_task__lambda0) == 24, "");
 _Static_assert(_Alignof(struct add_first_task__lambda0) == 8, "");
-_Static_assert(sizeof(struct map__lambda0) == 24, "");
+_Static_assert(sizeof(struct map__lambda0) == 32, "");
 _Static_assert(_Alignof(struct map__lambda0) == 8, "");
 _Static_assert(sizeof(struct some_8) == 8, "");
 _Static_assert(_Alignof(struct some_8) == 8, "");
@@ -990,11 +994,11 @@ _Static_assert(sizeof(struct fun_act0_0) == 16, "");
 _Static_assert(_Alignof(struct fun_act0_0) == 8, "");
 _Static_assert(sizeof(struct opt_2) == 16, "");
 _Static_assert(_Alignof(struct opt_2) == 8, "");
-_Static_assert(sizeof(struct fun1_0) == 8, "");
+_Static_assert(sizeof(struct fun1_0) == 16, "");
 _Static_assert(_Alignof(struct fun1_0) == 8, "");
 _Static_assert(sizeof(struct log_level) == 8, "");
 _Static_assert(_Alignof(struct log_level) == 8, "");
-_Static_assert(sizeof(struct fun1_1) == 8, "");
+_Static_assert(sizeof(struct fun1_1) == 16, "");
 _Static_assert(_Alignof(struct fun1_1) == 8, "");
 _Static_assert(sizeof(struct fun_act1_1) == 16, "");
 _Static_assert(_Alignof(struct fun_act1_1) == 8, "");
@@ -1008,7 +1012,7 @@ _Static_assert(sizeof(struct opt_6) == 16, "");
 _Static_assert(_Alignof(struct opt_6) == 8, "");
 _Static_assert(sizeof(struct fun_act1_2) == 16, "");
 _Static_assert(_Alignof(struct fun_act1_2) == 8, "");
-_Static_assert(sizeof(struct fun_act2) == 8, "");
+_Static_assert(sizeof(struct fun_act2) == 16, "");
 _Static_assert(_Alignof(struct fun_act2) == 8, "");
 _Static_assert(sizeof(struct fut_state_1) == 40, "");
 _Static_assert(_Alignof(struct fut_state_1) == 8, "");
@@ -1026,7 +1030,7 @@ _Static_assert(sizeof(struct fun_act0_2) == 16, "");
 _Static_assert(_Alignof(struct fun_act0_2) == 8, "");
 _Static_assert(sizeof(struct fun_act1_5) == 16, "");
 _Static_assert(_Alignof(struct fun_act1_5) == 8, "");
-_Static_assert(sizeof(struct fun_act1_6) == 8, "");
+_Static_assert(sizeof(struct fun_act1_6) == 16, "");
 _Static_assert(_Alignof(struct fun_act1_6) == 8, "");
 _Static_assert(sizeof(struct fun_act1_7) == 16, "");
 _Static_assert(_Alignof(struct fun_act1_7) == 8, "");
@@ -6582,25 +6586,25 @@ struct void_ island__lambda1(struct ctx* ctx, struct void_ _closure, struct logg
 /* gc gc() */
 struct gc gc(void) {
 	uint8_t* mark0;
-	uint8_t* _0 = malloc(67108864u);
+	uint8_t* _0 = malloc(50331648u);
 	mark0 = ((uint8_t*) _0);
 	
 	uint8_t* mark_end1;
-	mark_end1 = (mark0 + 67108864u);
+	mark_end1 = (mark0 + 50331648u);
 	
 	uint64_t* data2;
-	uint8_t* _1 = malloc((67108864u * sizeof(uint64_t)));
+	uint8_t* _1 = malloc((50331648u * sizeof(uint64_t)));
 	data2 = ((uint64_t*) _1);
 	
 	uint8_t _2 = word_aligned__q(((uint8_t*) data2));
 	hard_assert(_2);
 	uint64_t* data_end3;
-	data_end3 = (data2 + 67108864u);
+	data_end3 = (data2 + 50331648u);
 	
-	(memset(((uint8_t*) mark0), 0u, 67108864u), (struct void_) {});
+	(memset(((uint8_t*) mark0), 0u, 50331648u), (struct void_) {});
 	struct gc res4;
 	struct lock _3 = lock_by_val();
-	res4 = (struct gc) {_3, 0u, (struct opt_1) {0, .as0 = (struct none) {}}, 0, 67108864u, mark0, mark0, mark_end1, data2, data2, data_end3};
+	res4 = (struct gc) {_3, 0u, (struct opt_1) {0, .as0 = (struct none) {}}, 0, 50331648u, mark0, mark0, mark_end1, data2, data2, data_end3};
 	
 	validate_gc((&res4));
 	return res4;

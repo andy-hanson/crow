@@ -85,7 +85,7 @@ glGenBuffers void(n GLsizei, buffers ptr GLuint) extern<"GL"> noctx summon unsaf
 
 glGenTextures void(n GLsizei, textures ptr GLuint) extern<"GL"> noctx summon unsafe
 
-glGetError GLenum() extern<"GL"> noctx summon unsafe
+glGetError GLenum() extern<"GL"> noctx summon
 
 glGetProgramInfoLog void
 	program GLuint
@@ -171,6 +171,10 @@ GL_NO_ERROR GLuint() noctx
 	0
 GL_TRIANGLES GLuint() noctx
 	4
+GL_TRIANGLE_STRIP GLuint() noctx
+	5
+GL_TRIANGLE_FAN GLuint() noctx
+	6
 GL_TEXTURE_2D GLuint() noctx
 	0x0de1
 GL_UNSIGNED_BYTE GLuint() noctx

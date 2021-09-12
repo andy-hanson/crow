@@ -3,7 +3,7 @@ module interpret.generateText;
 @safe @nogc pure nothrow:
 
 import interpret.bytecode : Operation;
-import interpret.typeLayout : optPack, sizeOfType, TypeLayout;
+import interpret.typeLayout : optPack, sizeOfType;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	AllConstantsLow,
@@ -66,15 +66,13 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref immutable LowProgram program,
-	ref immutable TypeLayout typeLayout,
 	ref immutable AllConstantsLow allConstants,
 ) {
 	Ctx ctx = Ctx(
 		ptrTrustMe(program),
 		ptrTrustMe(allConstants),
-		ptrTrustMe(typeLayout),
 		// '1 +' because we add a dummy byte at 0
-		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(typeLayout, allConstants)),
+		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(program, allConstants)),
 		mapToMut!(size_t[], ArrTypeAndConstantsLow, Alloc)(
 			alloc,
 			allConstants.arrs,
@@ -123,7 +121,6 @@ private:
 struct Ctx {
 	immutable Ptr!LowProgram program;
 	immutable Ptr!AllConstantsLow allConstants;
-	immutable Ptr!TypeLayout typeLayout;
 	ExactSizeArrBuilder!ubyte text;
 	size_t[][] arrTypeIndexToConstantIndexToTextIndex;
 	size_t[][] pointeeTypeIndexToIndexToTextIndex;
@@ -202,12 +199,12 @@ void recurWritePointer(TempAlloc)(
 	}
 }
 
-immutable(size_t) getAllConstantsSize(ref immutable TypeLayout typeLayout, ref immutable AllConstantsLow allConstants) {
+immutable(size_t) getAllConstantsSize(ref immutable LowProgram program, ref immutable AllConstantsLow allConstants) {
 	immutable size_t arrsSize = sum(allConstants.arrs, (ref immutable ArrTypeAndConstantsLow arrs) =>
-		sizeOfType(typeLayout, arrs.elementType).size.raw() *
+		sizeOfType(program, arrs.elementType).size.raw() *
 		sum(arrs.constants, (ref immutable Constant[] elements) => size(elements)));
 	immutable size_t pointersSize = sum(allConstants.pointers, (ref immutable PointerTypeAndConstantsLow pointers) =>
-		sizeOfType(typeLayout, pointers.pointeeType).size.raw() * size(pointers.constants));
+		sizeOfType(program, pointers.pointeeType).size.raw() * size(pointers.constants));
 	return arrsSize + pointersSize;
 }
 
@@ -294,7 +291,7 @@ void writeConstant(TempAlloc)(
 				(ref immutable LowField field, ref immutable Constant fieldValue) {
 					writeConstant(tempAlloc, ctx, field.type, fieldValue);
 				});
-			immutable Opt!(Operation.Pack) pack = optPack(tempAlloc, ctx.program, ctx.typeLayout, recordType);
+			immutable Opt!(Operation.Pack) pack = optPack(tempAlloc, ctx.program, recordType);
 			if (has(pack))
 				//TODO: we should be writing each constant at the appropriate offset, so no need to pack.
 				todo!void("pack it");

@@ -334,6 +334,7 @@ program(
 		struct(name: fun-act1, body: builtin(fun, [type(true, fut), type(false, void)]))
 		struct(
 			name: lambda(callback!, 0)
+			ptr?: true
 			body: record([field(f, false, type(true, fut)), field(cb, false, type(false, fun-act1))]))
 		struct(
 			name: lambda(then, 0)
@@ -341,6 +342,7 @@ program(
 			body: record([field(cb, false, type(false, fun-ref1)), field(res, false, type(true, fut))]))
 		struct(
 			name: lambda(callback!, 0)
+			ptr?: true
 			body: record([field(f, false, type(true, fut)), field(cb, false, type(false, fun-act1))]))
 		struct(name: lambda(forward-to!, 0), body: record([field(to, false, type(true, fut))]))
 		struct(name: fun-act0, body: builtin(fun, [type(false, fut-state)]))
@@ -438,7 +440,10 @@ program(
 					field(cur-word, false, type(false, nat))
 					field(total-words, false, type(false, nat))
 					field(words-used, false, type(false, nat))]))
-		struct(name: lambda(main, 0), body: record([field(gc, false, type(true, gc)), field(a, false, type(true, r))]))]
+		struct(
+			name: lambda(main, 0)
+			ptr?: true
+			body: record([field(gc, false, type(true, gc)), field(a, false, type(true, r))]))]
 	[
 		fun(
 			false
@@ -2792,20 +2797,20 @@ program(
 			expr-body(
 				let(
 					mark
-					call(ptr-cast, [call(malloc, [67108864])])
+					call(ptr-cast, [call(malloc, [50331648])])
 					let(
 						mark-end
-						call(+, [local-ref(mark), 67108864])
+						call(+, [local-ref(mark), 50331648])
 						let(
 							data
-							call(ptr-cast, [call(malloc, [call(wrap-mul, [67108864, call(size-of, [])])])])
+							call(ptr-cast, [call(malloc, [call(wrap-mul, [50331648, call(size-of, [])])])])
 							seq(
 								call(hard-assert, [call(word-aligned?, [call(as-any-ptr, [local-ref(data)])])])
 								let(
 									data-end
-									call(+, [local-ref(data), 67108864])
+									call(+, [local-ref(data), 50331648])
 									seq(
-										call(memset, [call(as-any-ptr, [local-ref(mark)]), 0, 67108864])
+										call(memset, [call(as-any-ptr, [local-ref(mark)]), 0, 50331648])
 										let(
 											res
 											call(
@@ -2818,7 +2823,7 @@ program(
 															0
 															to-union(0, call(none, []))
 															call(false, [])
-															67108864
+															50331648
 															local-ref(mark)
 															local-ref(mark)
 															local-ref(mark-end)

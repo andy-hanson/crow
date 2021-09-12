@@ -13,6 +13,7 @@ import
 	str: str
 	str-conv: finish, interp, to-str, with-str, with-value
 	.load-webp: data, height, width, with-webp
+	io.print: print
 
 # Remember to call 'free-texture'
 load-texture GLuint(path str) unsafe summon
@@ -25,11 +26,12 @@ load-texture GLuint(path str) unsafe summon
 		w = image.width to-int32
 		h = image.height to-int32
 		data = image data
+		print: "width is {w}, height is {h}"
 		GL_TEXTURE_2D glTexImage2D 0, GL_RGBA.to-int32, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
 
 		err = glGetError
 		if err != GL_NO_ERROR
-			"Error loading image {path}" throw
+			"Error loading image {path}: code {err}" throw
 
 		GL_TEXTURE_2D glTexParameteri GL_TEXTURE_MAG_FILTER, GL_LINEAR
 		GL_TEXTURE_2D glTexParameteri GL_TEXTURE_MIN_FILTER, GL_LINEAR

@@ -3,7 +3,12 @@ module concretize.concretize;
 @safe @nogc pure nothrow:
 
 import concretize.allConstantsBuilder : finishAllConstants;
-import concretize.concretizeCtx : ConcretizeCtx, constantStr, ctxType, getOrAddNonTemplateConcreteFunAndFillBody;
+import concretize.concretizeCtx :
+	ConcretizeCtx,
+	constantStr,
+	ctxType,
+	deferredFillRecordBodies,
+	getOrAddNonTemplateConcreteFunAndFillBody;
 import interpret.debugging : writeConcreteFunName;
 import model.concreteModel :
 	ConcreteCommonFuns,
@@ -72,6 +77,8 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 
 	immutable Ptr!ConcreteFun[] allConcreteFuns = finishArr_immutable(alloc, ctx.allConcreteFuns);
 	immutable ConcreteFunToName funToName = getFunToName(alloc, ctx, allConcreteFuns);
+
+	deferredFillRecordBodies(alloc, ctx);
 
 	return nu!ConcreteProgram(
 		alloc,

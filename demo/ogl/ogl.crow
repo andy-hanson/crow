@@ -6,7 +6,7 @@ import
 		glActiveTexture, GL_ARRAY_BUFFER, glBindBuffer, glBindTexture, glBufferData,
 		glBufferSubData, glClear, glClearColor, GL_COLOR_BUFFER_BIT, glDeleteBuffers, glDrawArrays,
 		glEnableVertexAttribArray, GL_FLOAT, glGenBuffers, glGetError, glGetUniformLocation,
-		GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLES, GLuint, glUniform1i,
+		GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLE_FAN, GLuint, glUniform1i,
 		glUseProgram, glVertexAttribPointer
 	include.SDL2.SDL:
 		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
@@ -53,28 +53,34 @@ main fut nat(_ arr str) summon trusted
 	#window SDL_GL_SwapWindow
 
 	shader-prog = "demo/ogl/vertex.vert.essl" shader-prog-load "demo/ogl/fragment.frag.essl"
+	"after shader-prog" gl-check-error
+	shader-prog glUseProgram
+
 	tex-sampler-uniform-loc = shader-prog glGetUniformLocation "texSampler".to-c-str
+	"after tex-sampler-uniform-loc" gl-check-error
+	print: "tex-sampler-uniform-loc is {tex-sampler-uniform-loc}"
 	assert: tex-sampler-uniform-loc >= 0
 	tex-sampler-uniform-loc glUniform1i 0
+	"after glUniform1i" gl-check-error
 
-	texture = "demo/ogl/sprite.png" load-texture
-	GL_TEXTURE0 glActiveTexture
-	GL_TEXTURE_2D glBindTexture texture
+	texture = "demo/ogl/sprite.webp" load-texture
 
-	v0 = (0.0 vec-2-32 -0.9)
-	v1 = (0.9 vec-2-32 0.9)
-	v2 = (-0.9 vec-2-32 0.9)
-	t0 = (0.0 vec-2-32 0.0)
-	t1 = (1.0 vec-2-32 0.0)
-	t2 = (1.0 vec-2-32 1.0)
-	vertices = mut-arr: [(v0 vertex red, t0), (v1 vertex green, t1), (v2 vertex blue, t2)]
+	v0 = -0.9 vec-2-32 -0.9
+	v1 = 0.9 vec-2-32 -0.9
+	v2 = 0.9 vec-2-32 0.9
+	v3 = -0.9 vec-2-32 0.9
+	t0 = 0.0 vec-2-32 0.0
+	t1 = 1.0 vec-2-32 0.0
+	t2 = 1.0 vec-2-32 1.0
+	t3 = 0.0 vec-2-32 1.0
+	vertices = mut-arr: [(v0 vertex red, t0), (v1 vertex green, t1), (v2 vertex blue, t2), (v3 vertex white, t3)]
 	triangle-vbo = vertices vbo-create
 	assert: triangle-vbo != 0
 
 	colors = vertices map-to-arr {it.color to-str} join " | "
 	print: colors
 
-	renderer = window renderer shader-prog, vertices, triangle-vbo
+	renderer = window renderer shader-prog, vertices, triangle-vbo, texture
 
 	<- 100.msec repeat-interval {renderer main-loop-body}
 
@@ -104,6 +110,8 @@ color-32 record
 to-str str(a color-32)
 	"<{a r}, {a g}, {a b}>"
 
+white color-32()
+	1 color-32 1, 1
 red color-32()
 	1 color-32 0, 0
 green color-32()
@@ -116,6 +124,7 @@ blue color-32()
 	shader-prog GLuint
 	vertices mut-arr vertex
 	triangle-vbo GLuint
+	texture GLuint
 
 .main-loop-body continue-or-quit(renderer renderer) summon trusted
 	SDL_PumpEvents
@@ -145,13 +154,19 @@ blue color-32()
 
 	GL_ARRAY_BUFFER glBindBuffer renderer.triangle-vbo
 	GL_ARRAY_BUFFER glBufferSubData 0, renderer.vertices.n-bytes.to-int, renderer.vertices.begin-ptr.ptr-cast
+	# TODO: don't do this every frame?
 	stride = (to-int32: size-of<vertex>)
 	0 glVertexAttribPointer 2, GL_FLOAT, false, stride, 0.to-ptr
 	0 glEnableVertexAttribArray
 	1 glVertexAttribPointer 3, GL_FLOAT, false, stride, (2 * size-of<float32>).to-ptr
 	1 glEnableVertexAttribArray
+	2 glVertexAttribPointer 2, GL_FLOAT, false, stride, (5 * size-of<float32>).to-ptr
+	2 glEnableVertexAttribArray
 
-	GL_TRIANGLES glDrawArrays 0, renderer.vertices.size.to-int32
+	GL_TEXTURE0 glActiveTexture
+	GL_TEXTURE_2D glBindTexture renderer.texture
+
+	GL_TRIANGLE_FAN glDrawArrays 0, renderer.vertices.size.to-int32
 
 	renderer.window SDL_GL_SwapWindow
 
@@ -207,3 +222,9 @@ n-bytes nat(vertices mut-arr vertex) unsafe
 
 .vbo-free void(vbo GLuint) summon unsafe
 	1 glDeleteBuffers vbo.ptr-to
+
+.gl-check-error void(desc str) summon
+	err = glGetError
+	if err != GL_NO_ERROR
+		"Gl error at {desc}: code {err}" throw
+

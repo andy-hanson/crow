@@ -28,6 +28,7 @@ import model.concreteModel :
 	ConcreteStructBody,
 	ConcreteStructInfo,
 	ConcreteStructSource,
+	hasSizeOrPointerSizeBytes,
 	mustBeNonPointer,
 	purity,
 	sizeOrPointerSizeBytes,
@@ -66,8 +67,8 @@ import model.model :
 	worsePurity;
 import util.collection.arr : at, empty, emptyArr, only, ptrAt, sizeEq;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.collection.arrUtil : arrMax, compareArr, exists, fold, map, mapPtrsWithIndex, mapWithIndex;
-import util.collection.mutArr : MutArr;
+import util.collection.arrUtil : arrMax, compareArr, every, exists, fold, map, mapPtrsWithIndex, mapWithIndex;
+import util.collection.mutArr : MutArr, push, tempAsArr_mut;
 import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
 import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
 import util.collection.str : compareStr, copyStr;
@@ -78,7 +79,7 @@ import util.opt : force, has, none, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
-import util.types : Nat8, Nat16, safeSizeTToU8, zero;
+import util.types : Nat8, Nat16, safeSizeTToU8;
 import util.util : max, roundUp, todo, unreachable, verify;
 
 struct TypeArgsScope {
@@ -183,6 +184,12 @@ immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunBodyInputs a) {
 	return typeArgsScope(a.containing);
 }
 
+private struct DeferredRecordBody {
+	Ptr!ConcreteStruct struct_;
+	immutable bool packed;
+	immutable ConcreteField[] fields;
+}
+
 struct ConcretizeCtx {
 	@safe @nogc pure nothrow:
 
@@ -198,6 +205,7 @@ struct ConcretizeCtx {
 	) nonLambdaConcreteStructs;
 	ArrBuilder!(immutable Ptr!ConcreteStruct) allConcreteStructs;
 	MutDict!(immutable ConcreteFunKey, immutable Ptr!ConcreteFun, compareConcreteFunKey) nonLambdaConcreteFuns;
+	MutArr!DeferredRecordBody deferredRecords;
 	ArrBuilder!(immutable Ptr!ConcreteFun) allConcreteFuns;
 	MutSet!(immutable string, compareStr) allExternLibraryNames;
 
@@ -331,7 +339,7 @@ immutable(ConcreteType) getConcreteType_forStructInst(Alloc)(
 				return res;
 			});
 		if (res.didAdd)
-			initializeConcreteStruct!Alloc(alloc, ctx, typeArgs, i, castMutable(res.value).deref, typeArgsScope);
+			initializeConcreteStruct!Alloc(alloc, ctx, typeArgs, i, castMutable(res.value), typeArgsScope);
 		return concreteType_fromStruct(res.value);
 	}
 }
@@ -382,7 +390,11 @@ immutable(ConcreteType) concreteTypeFromClosure(Alloc)(
 				return worsePurity(p, purity(f.type));
 			});
 		Ptr!ConcreteStruct cs = nuMut!ConcreteStruct(alloc, purity, source);
-		lateSet(cs.info_, getConcreteStructInfoForFields(alloc, ForcedByValOrRefOrNone.none, false, closureFields));
+		immutable ConcreteStructInfo info = getConcreteStructInfoForFields(alloc, false, closureFields);
+		lateSet(
+			cs.defaultIsPointer_,
+			getDefaultIsPointerForFields(ForcedByValOrRefOrNone.none, info.typeSize, false, FieldsType.closure));
+		lateSet(cs.info_, info);
 		add(alloc, ctx.allConcreteStructs, castImmutable(cs));
 		// TODO: consider passing closure by value
 		return immutable ConcreteType(true, castImmutable(cs));
@@ -454,12 +466,49 @@ immutable(Comparison) compareConcreteTypeArr(ref immutable ConcreteType[] a, ref
 		compareConcreteType(x, y));
 }
 
-struct RecordSizeAndFieldOffsets {
-	immutable TypeSize typeSize;
-	immutable Nat16[] fieldOffsets;
+immutable(TypeSize) unionSize(ref immutable ConcreteType[] members) {
+	immutable Nat8 unionAlign = immutable Nat8(8);
+	immutable Nat16 maxMember = arrMax(
+		immutable Nat16(0),
+		members,
+		(ref immutable ConcreteType t) => sizeOrPointerSizeBytes(t).size);
+	immutable Nat16 sizeBytes = roundUp(immutable Nat16(8) + maxMember, unionAlign.to16());
+	return immutable TypeSize(sizeBytes, unionAlign);
 }
 
-immutable(RecordSizeAndFieldOffsets) recordSize(Alloc)(
+immutable(bool) getDefaultIsPointerForFields(
+	immutable ForcedByValOrRefOrNone forcedByValOrRef,
+	immutable TypeSize typeSize,
+	immutable bool isSelfMutable,
+	immutable FieldsType type,
+) {
+	final switch (forcedByValOrRef) {
+		case ForcedByValOrRefOrNone.none:
+			immutable Nat16 maxSize = () {
+				final switch (type) {
+					case FieldsType.closure:
+						return immutable Nat16(8);
+					case FieldsType.record:
+						return immutable Nat16(8 * 2);
+				}
+			}();
+			return isSelfMutable || typeSize.size > maxSize;
+		case ForcedByValOrRefOrNone.byVal:
+			verify(!isSelfMutable);
+			return false;
+		case ForcedByValOrRefOrNone.byRef:
+			return true;
+	}
+}
+
+enum FieldsType { record, closure }
+
+immutable(bool) canGetConcreteStructInfoForFields(immutable ConcreteField[] fields) {
+	return every!ConcreteField(fields, (ref immutable ConcreteField field) =>
+		hasSizeOrPointerSizeBytes(field.type));
+}
+
+immutable(ConcreteStructInfo) getConcreteStructInfoForFields(Alloc)(
 	ref Alloc alloc,
 	immutable bool packed,
 	immutable ConcreteField[] fields,
@@ -471,63 +520,19 @@ immutable(RecordSizeAndFieldOffsets) recordSize(Alloc)(
 		immutable TypeSize fieldSize = sizeOrPointerSizeBytes(field.type);
 		maxFieldSize = max(maxFieldSize, fieldSize.size);
 		maxFieldAlignment = max(maxFieldAlignment, fieldSize.alignment);
-		// If field would stretch across a boundary, move offset up to the next boundary
-		immutable Nat16 mod = offset % fieldBoundary;
-		if (!packed && !zero(mod) && mod + fieldSize.size > fieldBoundary)
-			offset = roundUp(offset, fieldBoundary);
+		if (!packed)
+			offset = roundUp(offset, fieldSize.alignment.to16());
 		immutable Nat16 fieldOffset = offset;
 		offset += fieldSize.size;
 		return fieldOffset;
 	});
-	immutable Nat16 size = offset <= immutable Nat16(8) || packed
-		? offset
-		: roundUp(offset, maxFieldAlignment.to16());
-	immutable TypeSize typeSize = immutable TypeSize(size, maxFieldAlignment);
-	return immutable RecordSizeAndFieldOffsets(typeSize, fieldOffsets);
-}
-
-immutable(TypeSize) unionSize(ref immutable ConcreteType[] members) {
-	immutable Nat8 unionAlign = immutable Nat8(8);
-	immutable Nat16 maxMember = arrMax(
-		immutable Nat16(0),
-		members,
-		(ref immutable ConcreteType t) => sizeOrPointerSizeBytes(t).size);
-	immutable Nat16 sizeBytes = roundUp(immutable Nat16(8) + maxMember, unionAlign.to16());
-	return immutable TypeSize(sizeBytes, unionAlign);
-}
-
-immutable Nat16 fieldBoundary = immutable Nat16(8);
-
-immutable(bool) getDefaultIsPointerForFields(
-	immutable ForcedByValOrRefOrNone forcedByValOrRef,
-	immutable TypeSize typeSize,
-	immutable bool isSelfMutable,
-) {
-	final switch (forcedByValOrRef) {
-		case ForcedByValOrRefOrNone.none:
-			return isSelfMutable || typeSize.size > immutable Nat16(8 * 2);
-		case ForcedByValOrRefOrNone.byVal:
-			verify(!isSelfMutable);
-			return false;
-		case ForcedByValOrRefOrNone.byRef:
-			return true;
-	}
-}
-
-immutable(ConcreteStructInfo) getConcreteStructInfoForFields(Alloc)(
-	ref Alloc alloc,
-	immutable ForcedByValOrRefOrNone forcedByValOrRef,
-	immutable bool packed,
-	immutable ConcreteField[] fields,
-) {
-	immutable RecordSizeAndFieldOffsets sizeAndOffsets = recordSize(alloc, packed, fields);
-	immutable bool isSelfMutable = exists!ConcreteField(fields, (ref immutable ConcreteField fld) =>
-		fld.isMutable);
-	return immutable ConcreteStructInfo(
-		immutable ConcreteStructBody(immutable ConcreteStructBody.Record(fields, sizeAndOffsets.fieldOffsets)),
-		sizeAndOffsets.typeSize,
-		isSelfMutable,
-		getDefaultIsPointerForFields(forcedByValOrRef, sizeAndOffsets.typeSize, isSelfMutable));
+	immutable bool isSelfMutable = exists!ConcreteField(fields, (ref immutable ConcreteField field) =>
+		field.isMutable);
+	immutable ConcreteStructBody.Record body_ = immutable ConcreteStructBody.Record(fields, fieldOffsets);
+	immutable TypeSize typeSize = immutable TypeSize(
+		packed ? offset : roundUp(offset, maxFieldAlignment.to16()),
+		maxFieldAlignment);
+	return immutable ConcreteStructInfo(immutable ConcreteStructBody(body_), typeSize, isSelfMutable);
 }
 
 void initializeConcreteStruct(Alloc)(
@@ -535,47 +540,36 @@ void initializeConcreteStruct(Alloc)(
 	ref ConcretizeCtx ctx,
 	ref immutable ConcreteType[] typeArgs,
 	immutable Ptr!StructInst i,
-	ref ConcreteStruct res,
+	Ptr!ConcreteStruct res,
 	ref immutable TypeArgsScope typeArgsScope,
 ) {
-	// Initially make this a by-ref type, so we don't recurse infinitely when computing size
-	// TODO: is this a bug? We compute the size based on assuming it's a pointer,
-	// then make it not be a pointer and that would change the size?
-
-	// A record forced by-val should be marked early, in case it needs a 'ptr' to itself
-	immutable bool initialDefaultIsPointer = matchStructBody(
+	matchStructBody!void(
 		body_(i),
-		(ref immutable StructBody.Bogus) => true,
-		(ref immutable StructBody.Builtin) => true,
-		(ref immutable StructBody.ExternPtr) => true,
-		(ref immutable StructBody.Record it) =>
-			it.flags.forcedByValOrRef != ForcedByValOrRefOrNone.byVal,
-		(ref immutable StructBody.Union) => false);
-	lateSet(res.info_, immutable ConcreteStructInfo(
-		immutable ConcreteStructBody(immutable ConcreteStructBody.Record(emptyArr!ConcreteField)),
-		immutable TypeSize(immutable Nat16(9999), immutable Nat8(8)),
-		/*isSelfMutable*/ true,
-		initialDefaultIsPointer));
-
-	immutable ConcreteStructInfo info = matchStructBody!(immutable ConcreteStructInfo)(
-		body_(i),
-		(ref immutable StructBody.Bogus) => unreachable!(immutable ConcreteStructInfo),
+		(ref immutable StructBody.Bogus) => unreachable!void,
 		(ref immutable StructBody.Builtin) {
 			immutable BuiltinStructKind kind = getBuiltinStructKind(i.decl.name);
-			return immutable ConcreteStructInfo(
+			lateSet(res.defaultIsPointer_, false);
+			lateSet(res.info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(ConcreteStructBody.Builtin(kind, typeArgs)),
 				getBuiltinStructSize(kind),
-				false,
-				false);
+				false));
 		},
-		(ref immutable StructBody.ExternPtr it) =>
-			immutable ConcreteStructInfo(
+		(ref immutable StructBody.ExternPtr it) {
+			// defaultIsPointer is false because the 'extern' type *is* a pointer
+			lateSet(res.defaultIsPointer_, false);
+			lateSet(res.info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(immutable ConcreteStructBody.ExternPtr()),
 				getBuiltinStructSize(BuiltinStructKind.ptr),
-				false,
-				//defaultIsPointer is false because the 'extern' type *is* a pointer
-				false),
+				false));
+		},
 		(ref immutable StructBody.Record r) {
+			// Initially make this a by-ref type, so we don't recurse infinitely when computing size
+			// TODO: is this a bug? We compute the size based on assuming it's a pointer,
+			// then make it not be a pointer and that would change the size?
+			// A record forced by-val should be marked early, in case it needs a 'ptr' to itself
+			//TODO: needed? We're about to set this anyway...
+			lateSet(res.defaultIsPointer_, r.flags.forcedByValOrRef != ForcedByValOrRefOrNone.byVal);
+
 			immutable ConcreteField[] fields =
 				mapPtrsWithIndex!ConcreteField(alloc, r.fields, (immutable size_t index, immutable Ptr!RecordField f) =>
 					immutable ConcreteField(
@@ -583,18 +577,34 @@ void initializeConcreteStruct(Alloc)(
 						safeSizeTToU8(index),
 						f.isMutable,
 						getConcreteType(alloc, ctx, f.type, typeArgsScope)));
-			return getConcreteStructInfoForFields(alloc, r.flags.forcedByValOrRef, r.flags.packed, fields);
+			immutable bool packed = r.flags.packed;
+			if (canGetConcreteStructInfoForFields(fields)) {
+				immutable ConcreteStructInfo info = getConcreteStructInfoForFields(alloc, packed, fields);
+				lateSetOverwrite(res.defaultIsPointer_, getDefaultIsPointerForFields(
+					r.flags.forcedByValOrRef,
+					info.typeSize,
+					info.isSelfMutable,
+					FieldsType.record));
+				lateSet(res.info_, info);
+			} else {
+				lateSetOverwrite(res.defaultIsPointer_, true);
+				push(alloc, ctx.deferredRecords, DeferredRecordBody(res, packed, fields));
+			}
 		},
 		(ref immutable StructBody.Union u) {
+			lateSet(res.defaultIsPointer_, false);
 			immutable ConcreteType[] members = map!ConcreteType(alloc, u.members, (ref immutable Ptr!StructInst si) =>
 				getConcreteType_forStructInst(alloc, ctx, si, typeArgsScope));
-			return immutable ConcreteStructInfo(
+			lateSet(res.info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(ConcreteStructBody.Union(members)),
 				unionSize(members),
-				false,
-				false);
+				false));
 		});
-	lateSetOverwrite(res.info_, info);
+}
+
+public void deferredFillRecordBodies(Alloc)(ref Alloc alloc, ref ConcretizeCtx ctx) {
+	foreach (ref DeferredRecordBody deferred; tempAsArr_mut(ctx.deferredRecords))
+		lateSet(deferred.struct_.info_, getConcreteStructInfoForFields(alloc, deferred.packed, deferred.fields));
 }
 
 void fillInConcreteFunBody(Alloc)(
@@ -756,11 +766,12 @@ immutable(TypeSize) getBuiltinStructSize(immutable BuiltinStructKind kind) {
 		case BuiltinStructKind.nat32:
 			return immutable TypeSize(immutable Nat16(4), immutable Nat8(4));
 		case BuiltinStructKind.float64:
-		case BuiltinStructKind.fun:
 		case BuiltinStructKind.funPtrN:
 		case BuiltinStructKind.int64:
 		case BuiltinStructKind.nat64:
 		case BuiltinStructKind.ptr:
 			return immutable TypeSize(immutable Nat16(8), immutable Nat8(8));
+		case BuiltinStructKind.fun:
+			return immutable TypeSize(immutable Nat16(16), immutable Nat8(8));
 	}
 }

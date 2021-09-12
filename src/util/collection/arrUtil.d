@@ -659,6 +659,20 @@ void zipPtrFirst(T, U)(
 	return cast(immutable) res[0 .. sz];
 }
 
+@trusted immutable(Out[]) mapZipPtrFirst(Out, In0, In1, Alloc)(
+	ref Alloc alloc,
+	ref immutable In0[] in0,
+	ref immutable In1[] in1,
+	scope immutable(Out) delegate(immutable Ptr!In0, ref immutable In1) @safe @nogc pure nothrow cb,
+) {
+	verify(sizeEq(in0, in1));
+	immutable size_t sz = size(in0);
+	Out* res = cast(Out*) allocateBytes(alloc, Out.sizeof * sz);
+	foreach (immutable size_t i; 0 .. sz)
+		initMemory(res + i, cb(ptrAt(in0, i), at(in1, i)));
+	return cast(immutable) res[0 .. sz];
+}
+
 @trusted immutable(Out[]) mapZipWithIndex(Out, In0, In1, Alloc)(
 	ref Alloc alloc,
 	ref immutable In0[] in0,

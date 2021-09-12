@@ -100,7 +100,7 @@ import util.collection.arrUtil :
 	arrLiteral,
 	exists,
 	map,
-	mapPtrs,
+	mapZipPtrFirst,
 	mapWithIndexAndConcatOne,
 	mapWithOptFirst,
 	mapWithOptFirst2,
@@ -116,7 +116,7 @@ import util.opt : asImmutable, force, has, mapOption, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : safeU16ToU8;
+import util.types : Nat16, safeU16ToU8;
 import util.util : unreachable, verify;
 
 immutable(Ptr!LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
@@ -284,10 +284,15 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(
 			map(alloc, finishArr(alloc, allRecordSources), (ref immutable Ptr!ConcreteStruct it) =>
 				immutable LowRecord(
 					it,
-					mapPtrs(alloc, asRecord(it.body_).fields, (immutable Ptr!ConcreteField field) =>
-						immutable LowField(
-							field,
-							lowTypeFromConcreteType(alloc, getLowTypeCtx, field.type))))));
+					mapZipPtrFirst!LowField(
+						alloc,
+						asRecord(it.body_).fields,
+						asRecord(body_(it)).fieldOffsets,
+						(immutable Ptr!ConcreteField field, ref immutable Nat16 fieldOffset) =>
+							immutable LowField(
+								field,
+								fieldOffset,
+								lowTypeFromConcreteType(alloc, getLowTypeCtx, field.type))))));
 	immutable FullIndexDict!(LowType.Union, LowUnion) allUnions =
 		fullIndexDictOfArr!(LowType.Union, LowUnion)(
 			map(alloc, finishArr(alloc, allUnionSources), (ref immutable Ptr!ConcreteStruct it) =>
