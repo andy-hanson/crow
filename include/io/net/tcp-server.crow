@@ -75,7 +75,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 
 		print: "starting the server loop"
 		done = state tcp-server-loop
-		done.fut-catch callback! \r
+		done.fut-catch callback! r =>
 			match r
 			as ok
 				print: "stopped normally"
@@ -85,7 +85,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 
 		done handle-exceptions
 
-		tcp-server: \
+		tcp-server: () =>
 			print: "STOP CALLED"
 			state.should-stop? := true
 			done

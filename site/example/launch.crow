@@ -2,12 +2,12 @@ import
 	io.print: print
 
 main fut nat(_ arr str) summon
-	fut-a = launch: \
+	fut-a = launch: () =>
 		print: "Hello from a"
 		1 + 1 resolved
-	fut-b = launch: \
+	fut-b = launch: () =>
 		print: "Hello from b"
 		2 + 2 resolved
-	fut-a join fut-b, \a, b
+	fut-a join fut-b, (a, b) =>
 		print: a + b to-str
 		0 resolved

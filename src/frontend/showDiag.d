@@ -149,9 +149,6 @@ void writeParseDiag(Alloc, PathAlloc)(
 				case ParseDiag.Expected.Kind.bodyKeyword:
 					writeStatic(writer, "expected 'body'");
 					break;
-				case ParseDiag.Expected.Kind.closingBrace:
-					writeStatic(writer, "expected '}'");
-					break;
 				case ParseDiag.Expected.Kind.closingBracket:
 					writeStatic(writer, "expected ']'");
 					break;
@@ -169,6 +166,9 @@ void writeParseDiag(Alloc, PathAlloc)(
 					break;
 				case ParseDiag.Expected.Kind.indent:
 					writeStatic(writer, "expected an indent");
+					break;
+				case ParseDiag.Expected.Kind.lambdaArrow:
+					writeStatic(writer, "expected ' =>' after lambda parameters");
 					break;
 				case ParseDiag.Expected.Kind.multiLineArrSeparator:
 				case ParseDiag.Expected.Kind.multiLineNewSeparator:

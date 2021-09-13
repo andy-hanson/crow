@@ -18,15 +18,13 @@ Returns a new array containing the same elements as `a`, but in sorted order.
 That means `res[i] <= res[i + 1]` for each element in the result.
 ###
 sort arr ?a(a arr ?a) compare<?a>
-	a sort \x, y
-		x <=> y
+	a sort (x, y) => x <=> y
 sort arr ?a(a arr ?a, comparer act comparison(?a, ?a)) trusted
 	res = a mut-arr
 	res sort! comparer
 	res cast-immutable
 sort-by arr ?a(a arr ?a, f act ?b(?a)) compare<?b>
-	a sort \x, y
-		f[x] <=> f[y]
+	a sort (x, y) => f[x] <=> f[y]
 
 # TODO: try https://github.com/BonzaiThePenguin/WikiSort
 
@@ -44,8 +42,7 @@ test
 
 	# Test that it's a stable sort
 	arr = mut-arr: ["2a", "2b", "1a", "1b"]
-	arr sort! \x, y
-		x.chars[0] <=> y.chars[0]
+	arr sort! (x, y) => x.chars[0] <=> y.chars[0]
 	arr.arr is ["1a", "1b", "2a", "2b"]
 
 
@@ -59,14 +56,12 @@ sort-by! void(a mut-list ?a, f act ?b(?a)) compare<?b> trusted
 
 # Sort a mut-arr in place.
 sort! void(a mut-arr ?a) compare<?a>
-	a sort! \x, y
-		x <=> y
+	a sort! (x, y) => x <=> y
 sort! void(a mut-arr ?a, comparer act comparison(?a, ?a)) trusted
 	if a.empty? not
 		a.begin-ptr insertion-sort-recur! a.begin-ptr + 1, a.end-ptr, comparer
 sort-by! void(a mut-arr ?a, f act ?b(?a)) compare<?b>
-	a sort! \x, y
-		f[x] <=> f[y]
+	a sort! (x, y) => f[x] <=> f[y]
 
 .insertion-sort-recur! void(begin ptr ?a, cur ptr ?a, end ptr ?a, comparer act comparison(?a, ?a)) unsafe
 	if cur ptr-eq? end not
@@ -87,8 +82,7 @@ sort-by! void(a mut-arr ?a, f act ?b(?a)) compare<?b>
 
 # Sort a mut-list in place, remove unique elements, and return the (now shorter) mut-arr.
 sort-unique! mut-arr ?a(a mut-arr ?a) compare<?a>
-	a sort-unique! \x, y
-		x <=> y
+	a sort-unique! (x, y) => x <=> y
 sort-unique! mut-arr ?a(a mut-arr ?a, comparer act comparison(?a, ?a)) trusted
 	if a empty?
 		a
@@ -97,8 +91,7 @@ sort-unique! mut-arr ?a(a mut-arr ?a, comparer act comparison(?a, ?a)) trusted
 		end = a.begin-ptr[] unique-recur! a.begin-ptr + 1, a.begin-ptr + 1, a.end-ptr, comparer
 		a[0 -> end - a.begin-ptr]
 sort-unique-by! mut-arr ?a(a mut-arr ?a, f act ?b(?a)) compare<?b>
-	a sort-unique! \x, y
-		f[x] <=> f[y]
+	a sort-unique! (x, y) => f[x] <=> f[y]
 .unique-recur! ptr ?a(prev ?a, read ptr ?a, write ptr ?a, end ptr ?a, comparer act comparison(?a, ?a)) unsafe
 	if read ptr-eq? end
 		write

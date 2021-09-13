@@ -47,7 +47,7 @@ backup! void(a writer, n nat)
 
 write-quoted-str! void(out writer, a str)
 	out ~= "\""
-	a.chars each \x
+	a.chars each x =>
 		if x == "\""
 			out ~= "\\\""
 		elif x == "\n"

@@ -11,7 +11,7 @@ import
 	..compare: !=, <
 	..exception: assert, forbid, throw
 	..fun: subscript
-	..misc: ->, as, drop, void
+	..misc: ->, as, void
 	..number: ==, <=>, +, int32, nat8, nat16, nat32, to-int, to-nat, to-nat32
 	..opt: has?, opt, some
 	..posix.bytes-types: zero
@@ -225,15 +225,13 @@ If `path` is a directory, calls `each-child-recursive` on every child of the dir
 Else, calls `f[path]`.
 ###
 each-child-recursive void(path str, f act void(str)) summon
-	filter = as<act bool(str)>: \x
-		drop: x
-		true
+	filter = as<act bool(str)>: ignore => true
 	path each-child-recursive filter, f
 
 # `each-child-recursive` that does not descend into a child if `f[child_name]` returns false.
 each-child-recursive void(path str, filter act bool(str), f act void(str)) summon
 	if path is-dir?
-		path.read-dir each \child_name
+		path.read-dir each child_name =>
 			if filter[child_name]
 				path child-path child_name each-child-recursive filter, f
 	else
@@ -287,5 +285,5 @@ remove-directory-and-contents-non-recursive void(path str) summon
 	path remove-directory
 
 remove-directory-contents-non-recursive void(path str) summon
-	path.read-dir each \child
+	path.read-dir each child =>
 		"{path}/{child}" remove-file

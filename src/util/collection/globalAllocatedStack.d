@@ -1,6 +1,6 @@
 module util.collection.globalAllocatedStack;
 
-@safe @nogc nothrow: // not pure (accesses global data)
+@safe @nogc nothrow pure:
 
 import util.collection.arr : at, size;
 import util.collection.arrUtil : copyArr;
@@ -9,15 +9,29 @@ import util.types : decr, Nat8, Nat32, safeSizeTToU32, zero;
 import util.util : verify;
 
 struct GlobalAllocatedStack(T, size_t capacity) {
-	@safe @nogc nothrow:
+	@safe @nogc nothrow: // not pure
+
+	@disable this();
+	@disable this(ref const GlobalAllocatedStack);
+
+	this(bool ignore) {
+		verify(!oneExists);
+		oneExists = true;
+		values = STORAGE;
+		size = 0;
+	}
 
 	~this() {
 		verify(zero(size));
+		verify(oneExists);
+		oneExists = false;
 	}
 
 	private:
-	static T[capacity] values = void;
-	static uint size = 0;
+	static T[capacity] STORAGE = void;
+	static bool oneExists = false;
+	T[] values;
+	uint size;
 }
 
 @system const(T*) begin(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {

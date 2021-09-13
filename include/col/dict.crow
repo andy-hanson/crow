@@ -28,7 +28,7 @@ dict<?k, ?v> record
 # TODO: comparison should be generic
 dict-equal? bool(a dict<?k, ?v>, b dict<?k, ?v>) data<?k> compare<?k> equal<?v>
 	# TODO:PERF
-	a.arr arr-equal? b.arr, \x, y
+	a.arr arr-equal? b.arr, (x, y) =>
 		x.from == y.from and x.to == y.to
 
 .dict-impl<?k, ?v> union
@@ -51,7 +51,7 @@ dict dict<?k, ?v>() data<?k> compare<?k>
 	dict: void, end-node: []
 
 dict dict<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
-	dict: void, end-node: a sort-by {it from}
+	dict: void, end-node: a sort-by pair => pair from
 
 empty? bool(a dict<?k, ?v>) data<?k> compare<?k>
 	match a impl
@@ -65,14 +65,13 @@ Number of pairs.
 This is O(n).
 ###
 size nat(a dict<?k, ?v>) data<?k> compare<?k>
-	0 fold a, \acc, k, v
-		acc + 1
+	0 fold a, (acc, k, v) => acc + 1
 
 arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> compare<?k> trusted
 	match a impl
 	as overlay
 		out = a.size uninitialized-mut-arr<arrow<?k, ?v>>
-		end = out.begin-ptr fold a, \cur, k, v
+		end = out.begin-ptr fold a, (cur, k, v) =>
 			cur[] := k -> v
 			cur + 1
 		assert: end ptr-eq? out.end-ptr
@@ -93,7 +92,7 @@ arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> compare<?k> trusted
 		dict: b
 	else
 		# TODO: 'as' should be unnecessary
-		pairs = as<arr arrow<?k, opt ?v>>: b map {it.from -> it.to.some} sort-by {it from}
+		pairs = as<arr arrow<?k, opt ?v>>: b map (it => it.from -> it.to.some) sort-by it => it from
 		dict: void, merge-as-needed: pairs overlay a.impl
 
 - dict<?k, ?v>(a dict<?k, ?v>, key ?k) data<?k> compare<?k>
@@ -103,7 +102,7 @@ arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> compare<?k> trusted
 		a
 
 - dict<?k, ?v>(a dict<?k, ?v>, keys arr ?k) data<?k> compare<?k>
-	a fold keys, \cur, key
+	a fold keys, (cur, key) =>
 		cur - key
 
 subscript opt ?v(a dict<?k, ?v>, key ?k) data<?k> compare<?k>
@@ -111,12 +110,12 @@ subscript opt ?v(a dict<?k, ?v>, key ?k) data<?k> compare<?k>
 .subscript-recur opt ?v(a dict-impl<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 	match a
 	as overlay o
-		if pair ?= o.pairs binary-search-value {key <=> it.from}
+		if pair ?= o.pairs binary-search-value pair => key <=> pair.from
 			pair to
 		else
 			o.prev subscript-recur key
 	as end-node e
-		if pair ?= e.pairs binary-search-value {key <=> it.from}
+		if pair ?= e.pairs binary-search-value pair => key <=> pair.from
 			pair.to some
 
 has-key? bool(a dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
@@ -145,7 +144,7 @@ has-key? bool(a dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 
 .merge-overlays arr arrow<?k, opt ?v>(l arr arrow<?k, opt ?v>, r arr arrow<?k, opt ?v>) trusted data<?k> compare<?k>
 	res = l.size + r.size uninitialized-mut-arr<arrow<?k, opt ?v>>
-	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr, \x, y
+	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr, (x, y) =>
 		x.from <=> y.from
 	res[0 -> end - res.begin-ptr] cast-immutable
 
@@ -262,7 +261,7 @@ body
 region iteration
 
 each void(a dict<?k, ?v>, f act void(?k, ?v)) data<?k> compare<?k>
-	void fold a, \ignore, k, v
+	void fold a, (ignore, k, v) =>
 		f[k, v]
 
 fold ?a(acc ?a, a dict<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare<?k>
@@ -301,7 +300,7 @@ body
 		new-acc fold-recur new-end-node, took-from-overlays.overlays, f
 
 .find-least-key ?k(current-least-key ?k, overlays mut-arr arr arrow<?k, ?v>) data<?k> compare<?k>
-	current-least-key fold overlays, \cur, overlay
+	current-least-key fold overlays, (cur, overlay) =>
 		cur min overlay[0].from
 
 .took-key<?k, ?v> record mut
@@ -372,7 +371,7 @@ body
 
 filter dict<?k, ?v>(a dict<?k, ?v>, f act bool(?k, ?v)) data<?k> compare<?k>
 	# No need to re-sort
-	dict: void, end-node: a.arr filter \pair
+	dict: void, end-node: a.arr filter pair =>
 		f[pair.from, pair.to]
 
 map dict<?k-out, ?v-out>
@@ -387,11 +386,11 @@ body
 	dict: a map-to-arr f
 
 map-to-arr arr<?out>(a dict<?k, ?v>, f act ?out(?k, ?v)) data<?k> compare<?k>
-	a.arr map {f[it.from, it.to]}
+	a.arr map pair => f[pair.from, pair.to]
 
 map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k> compare<?k>
 	# No need to re-sort
-	dict: void, end-node: a.arr map \pair
+	dict: void, end-node: a.arr map pair =>
 		pair.from -> f[pair.from, pair.to]
 
 .dbg str(a dict<nat, str>)
@@ -405,7 +404,7 @@ map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k>
 		out dbg-recur! o.prev
 		out ~= ", "
 		out ~= "["
-		o.pairs each \pair
+		o.pairs each pair =>
 			out ~= pair.from
 			out ~= " -> "
 			out ~= pair.to or-default "_"
@@ -417,7 +416,7 @@ map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k>
 			out ~= "]"
 	as end-node e
 		out ~= "["
-		e.pairs each \pair
+		e.pairs each pair =>
 			out ~= pair.from to-str
 			out ~= " -> "
 			out ~= pair to
@@ -471,15 +470,15 @@ test
 	k = j ~ [11 -> "11", 25 -> "25"]
 	k verify "[5 -> 5, 10 -> 10b, 11 -> 11, 20 -> 20, 25 -> 25]"
 
-	j-folded = "" fold j, \cur, key, value
+	j-folded = "" fold j, (cur, key, value) =>
 		pair = "{key} -> {value}"
 		cur.empty? ? pair, "{cur}, {pair}"
 	j-folded is "5 -> 5, 10 -> 10b, 15 -> 15, 20 -> 20"
 
-	j-filtered = j filter \k, v
+	j-filtered = j filter (k, v) =>
 		k even?
 	j-filtered verify "[10 -> 10b, 20 -> 20]"
 
-	j-mapped = j map-values \k, v
+	j-mapped = j map-values (k, v) =>
 		v.chars[v.size-bytes - 1 -> v.size-bytes] str
 	j-mapped verify "[5 -> 5, 10 -> b, 15 -> 5, 20 -> 0]"

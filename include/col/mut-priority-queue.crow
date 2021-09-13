@@ -33,7 +33,7 @@ mut-priority-queue mut-priority-queue<?k, ?v>() data<?k> compare<?k>
 
 mut-priority-queue mut-priority-queue<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
 	mins = mut-list: a
-	mins sort-by! {it from}
+	mins sort-by! pair => pair from
 	mut-priority-queue: mins, mut-list
 
 empty! void(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
@@ -44,13 +44,13 @@ empty? bool(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 	a.mins empty?
 
 size nat(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
-	n-in-buckets = 0 fold a.buckets, \acc, b
+	n-in-buckets = 0 fold a.buckets, (acc, b) =>
 		acc wrap-add b.size
 	a.mins.size wrap-add n-in-buckets
 
 ~= void(a mut-priority-queue<?k, ?v>, pair arrow<?k, ?v>) trusted data<?k> compare<?k>
 	# Highest min is on the right, so comparing in reverse
-	ptr = a.mins binary-search-insert-ptr {it.from <=> pair.from}
+	ptr = a.mins binary-search-insert-ptr it => it.from <=> pair.from
 	index = ptr - a.mins.begin-ptr
 	if index == a.mins.size
 		a.mins ~= pair
@@ -84,8 +84,8 @@ mut-arr mut-arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 .spread-all-buckets-recur! void(out ptr arrow<?k, ?v>, a mut-priority-queue<?k, ?v>, index nat) unsafe compare<?k>
 	if index < a.mins.size
 		mid = if index < a.buckets.size
-			a.buckets[index] sort-by! {it from}
-			out fold-reverse a.buckets[index], \cur, x
+			a.buckets[index] sort-by! it => it from
+			out fold-reverse a.buckets[index], (cur, x) =>
 				cur[] := x
 				cur + 1
 		else
@@ -110,7 +110,7 @@ pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 	if a.mins.size < a.buckets.size
 		assert: (a.mins.size wrap-add 1) == a.buckets.size
 		bucket = a.buckets.pop! force
-		bucket sort-by! {it from}
+		bucket sort-by! it => it from
 		# Mins are popped off from the right.
 		# Note thie preserves insertion order: 'sort-by!' doesn't change that,
 		# then we reverse, then popping from the right reverses it again.
@@ -120,13 +120,13 @@ pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 
 .dbg str(a mut-priority-queue<nat, str>)
 	out = writer
-	a.mins each-with-index \min, index
+	a.mins each-with-index (min, index) =>
 		out write-pair! min
 		if index < a.buckets.size
 			bucket = a.buckets[index]
 			if bucket.empty? not
 				out ~= " ["
-				bucket each \pair
+				bucket each pair =>
 					out write-pair! pair
 					out ~= ", "
 				out backup! 2
@@ -180,8 +180,8 @@ test
 	a verify "5 -> 5 [6 -> 6], 4 -> 4b"
 
 	# TODO: a.arr is [4 -> "4b", 5 -> "5", 6 -> "6"]
-	a.arr map {it from} is [4, 5, 6]
-	a.arr map {it to} is ["4b", "5", "6"]
+	a.arr map (it => it from) is [4, 5, 6]
+	a.arr map (it => it to) is ["4b", "5", "6"]
 	a verify "6 -> 6, 5 -> 5, 4 -> 4b"
 
 # TODO: opt should have generic ==

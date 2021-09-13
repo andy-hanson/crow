@@ -58,7 +58,7 @@ alloc-count nat(a lookup<?k, ?v>) unsafe
 .alloc-count-recur nat(acc nat, a node<?k, ?v>) unsafe
 	match a
 	as inner-node i
-		acc wrap-add 1 fold i.children, \cur, child
+		acc wrap-add 1 fold i.children, (cur, child) =>
 			cur alloc-count-recur child
 	as leaf-node
 		acc wrap-add 1
@@ -69,7 +69,7 @@ overhead-bytes nat(a lookup<?k, ?v>) unsafe
 	mid = acc wrap-add size-of<node<?k, ?v>>
 	match a
 	as inner-node i
-		mid fold i.children, \cur, child
+		mid fold i.children, (cur, child) =>
 			cur overhead-bytes-recur child
 	as leaf-node
 		mid
@@ -81,15 +81,14 @@ lookup lookup<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	if a.size <= 4 and a.no-duplicate-keys?
 		lookup: void, leaf-node: a
 	else
-		lookup fold a, \cur, x
-			cur ~ x
+		lookup fold a, (cur, x) => cur ~ x
 
 .no-duplicate-keys? bool(a arr arrow<?k, ?v>) compare<?k>
 	if a.size <= 1
 		true
 	else
 		key = a[0] from
-		a.tail every? {it.from != key} and a.tail.no-duplicate-keys?
+		a.tail every? (it => it.from != key) and a.tail.no-duplicate-keys?
 
 empty? bool(a lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a.root node-empty?
@@ -105,8 +104,7 @@ size nat(a lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 .size-recur nat(acc nat, a node<?k, ?v>)
 	match a
 	as inner-node i
-		acc fold i.children, \cur, child
-			cur size-recur child
+		acc fold i.children, (cur, child) => cur size-recur child
 	as leaf-node l
 		acc wrap-add l.pairs.size
 
@@ -134,7 +132,7 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 		a.tail subscript-leaf-recur key
 
 ~ lookup<?k, ?v>(a lookup<?k, ?v>, pair arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
-	res = a get-or-update pair.from, \old-value
+	res = a get-or-update pair.from, (old-value) =>
 		pair.to insert
 	if node ?= res new-node
 		lookup: void, node
@@ -142,8 +140,7 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 		a
 
 ~ lookup<?k, ?v>(a lookup<?k, ?v>, pairs arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
-	a fold pairs, \cur, pair
-		cur ~ pair
+	a fold pairs, (cur, pair) => cur ~ pair
 
 try-add-result<?k, ?v> union
 	already-has-key<?v>
@@ -154,7 +151,7 @@ already-has-key<?v> record
 
 # Adds a value if the key doesn't already exist
 try-add try-add-result<?k, ?v>(a lookup<?k, ?v>, key ?k, get-value act ?v()) data<?k> compare<?k> hash-mix<?k>
-	res = a get-or-update key, \old-value
+	res = a get-or-update key, old-value =>
 		if old-value has?
 			no-change
 		else
@@ -176,8 +173,7 @@ try-remove-result<?k, ?v> record
 	new-lookup lookup<?k, ?v>
 
 try-remove opt try-remove-result<?k, ?v>(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
-	res = a get-or-update key, \old-value
-		remove
+	res = a get-or-update key, old-value => remove
 	if value ?= res old-value
 		some: try-remove-result: value, lookup: void, res.new-node.force
 
@@ -275,7 +271,7 @@ body
 
 # Returns 'some' if we should change this to a leaf.
 inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat, new-child node<?k, ?v>) trusted
-	total-size = 0 fold-with-index a.children, \cur, child, child-index
+	total-size = 0 fold-with-index a.children, (cur, child, child-index) =>
 		match child-index == which ? new-child, child
 		as inner-node
 			99
@@ -284,7 +280,7 @@ inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat, new-ch
 	if total-size <= leaf-max-size
 		# TODO: if only one non-empty leaf, don't copy..
 		out = total-size uninitialized-mut-arr<arrow<?k, ?v>>
-		end = 0 fold-with-index a.children, \out-index, child, child-index
+		end = 0 fold-with-index a.children, (out-index, child, child-index) =>
 			match child-index == which ? new-child, child
 			as inner-node
 				unreachable
@@ -296,8 +292,8 @@ inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat, new-ch
 		some: leaf-node: out cast-immutable
 
 .find-only-non-empty-child opt node<?k, ?v>(children arr node<?k, ?v>)
-	first-non-empty-index = children find-index {it.node-empty? not} force
-	if children[(first-non-empty-index wrap-add 1) -> children.size] every? {it node-empty?}
+	first-non-empty-index = force: children find-index it => it.node-empty? not
+	if children[(first-non-empty-index wrap-add 1) -> children.size] every? it => it node-empty?
 		children[first-non-empty-index] some
 
 .get-or-update-leaf get-or-update-result<?k, ?v>
@@ -310,7 +306,7 @@ spec
 	compare<?k>
 	hash-mix<?k>
 body
-	if index ?= a.pairs find-index {it.from == key}
+	if index ?= a.pairs find-index it => it.from == key
 		old-value = a.pairs[index] to
 		new-node = match f[old-value some]
 		as no-change
@@ -342,12 +338,12 @@ body
 # In order to get the hash, we need to know the shift amount
 .new-inner-node inner-node<?k, ?v>(a leaf-node<?k, ?v>, key ?k, value ?v, hash nat, hash-shift nat) trusted hash-mix<?k>
 	key-hash = hash low-bits
-	max-hash = key-hash fold a.pairs, \cur, pair
+	max-hash = key-hash fold a.pairs, (cur, pair) =>
 		cur max: pair.from.hash unsafe-bit-shift-right hash-shift low-bits
 	res = max-hash wrap-add 1 fill-mut-arr<node<?k, ?v>> empty-leaf-node
 	# TODO: avoid allocating the same leaf twice...
 	res[key-hash] := leaf-node: [key -> value]
-	a.pairs each \pair
+	a.pairs each pair =>
 		x = pair.from.hash unsafe-bit-shift-right hash-shift low-bits
 		res[x] := match res[x]
 		as inner-node
@@ -359,27 +355,22 @@ body
 region iteration
 
 each-unordered void(a lookup<?k, ?v>, f act void(?k, ?v))
-	void fold-unordered a, \ignore, key, value
-		f[key, value]
+	void fold-unordered a, (ignore, key, value) => f[key, value]
 
 each-key-unordered void(a lookup<?k, ?v>, f act void(?k))
-	void fold-keys-unordered a, \ignore, key
-		f[key]
+	void fold-keys-unordered a, (ignore, key) => f[key]
 
 fold-unordered ?a(acc ?a, a lookup<?k, ?v>, f act ?a(?a, ?k, ?v))
 	acc fold-unordered-recur a.root, f
 .fold-unordered-recur ?a(acc ?a, a node<?k, ?v>, f act ?a(?a, ?k, ?v))
 	match a
 	as inner-node i
-		acc fold i.children, \cur, child
-			cur fold-unordered-recur child, f
+		acc fold i.children, (cur, child) => cur fold-unordered-recur child, f
 	as leaf-node l
-		acc fold l.pairs, \cur, pair
-			f[cur, pair.from, pair.to]
+		acc fold l.pairs, (cur, pair) => f[cur, pair.from, pair.to]
 
 fold-keys-unordered ?a(acc ?a, a lookup<?k, ?v>, f act ?a(?a, ?k))
-	acc fold-unordered a, \cur, key, value
-		f[cur, key]
+	acc fold-unordered a, (cur, key, value) => f[cur, key]
 
 .dbg str(a lookup<nat, str>)
 	res = writer
@@ -389,7 +380,7 @@ fold-keys-unordered ?a(acc ?a, a lookup<?k, ?v>, f act ?a(?a, ?k))
 .dbg-recur void(out writer, a node<nat, str>, path str)
 	match a
 	as inner-node i
-		i.children each-with-index \child, index
+		i.children each-with-index (child, index) =>
 			if child.node-empty? not
 				out dbg-recur child, path ~ index.to-str
 				out ~= " "
@@ -397,7 +388,7 @@ fold-keys-unordered ?a(acc ?a, a lookup<?k, ?v>, f act ?a(?a, ?k))
 	as leaf-node l
 		out ~= path
 		out ~= "["
-		l.pairs each \pair
+		l.pairs each pair =>
 			out ~= pair from
 			out ~= " -> "
 			out ~= pair to
@@ -417,7 +408,7 @@ dbg str(a lookup<nat, void>)
 .dbg-recur void(out writer, a node<nat, void>, path str)
 	match a
 	as inner-node i
-		i.children each-with-index \child, index
+		i.children each-with-index (child, index) =>
 			if child.node-empty? not
 				out dbg-recur child, path ~ index.to-str
 				out ~= " "
@@ -425,7 +416,7 @@ dbg str(a lookup<nat, void>)
 	as leaf-node l
 		out ~= path
 		out ~= "["
-		l.pairs each \pair
+		l.pairs each pair =>
 			out ~= pair from
 			out ~= ", "
 		if l.pairs empty?

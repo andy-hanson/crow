@@ -30,7 +30,7 @@ body
 
 flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper act arr<?out>(?in)) trusted
 	res = mut-list<?out>
-	a each \x
+	a each x =>
 		if res.size < max-size
 			res ~= mapper[x]
 			res reduce-size-if-more-than! max-size
@@ -63,7 +63,7 @@ print-failures nat(failures result<str, arr failure>, options test-options) summ
 		print: o value
 		0
 	as err e
-		e.value each {it print-failure}
+		e.value each failure => failure print-failure
 		n-failures = e.value.size
 		print: if n-failures == options.max-failures
 			"hit maximum of {options max-failures} failures"

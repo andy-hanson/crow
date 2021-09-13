@@ -43,7 +43,7 @@ mut-dict mut-dict<?k, ?v>() data<?k> compare<?k>
 # Copies an `arr` to a `mut-dict`.
 mut-dict mut-dict<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
 	res = mut-dict<?k, ?v>
-	a each \pair
+	a each pair =>
 		res[pair from] := pair to
 	res
 
@@ -90,7 +90,7 @@ Adds many key-value pairs, replacing existing ones with the same keys.
 Equivalent to adding each element of `b` separately.
 ###
 ~= void(a mut-dict<?k, ?v>, b arr arrow<?k, ?v>) data<?k> compare<?k>
-	b each \pair
+	b each pair =>
 		a[pair from] := pair to
 
 ###
@@ -176,8 +176,7 @@ Returns true if it succeeded.
 
 # Convert to an `arr`, clearning the original `mut-dict` in the process.
 move-to-arr! arr arrow<?k, ?v>(a mut-dict<?k, ?v>) data<?k> compare<?k>
-	res = a map-to-arr \key, value
-		key -> value
+	res = a map-to-arr (key, value) => key -> value
 	a empty!
 	res
 
@@ -223,32 +222,32 @@ remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 .compact! void(a mut-dict<?k, ?v>) data<?k> compare<?k>
 	if next ?= a next
 		next compact!
-		a.pairs filter! {it.to has?}
-		a.pairs merge-no-duplicates! next.pairs, \x, y
+		a.pairs filter! pair => pair.to has?
+		a.pairs merge-no-duplicates! next.pairs, (x, y) =>
 			x.from <=> y.from assert-comparison-not-equal
 		a.next := none
 		a.node-size := a.pairs.size
 
 .find-exact-ptr opt ptr arrow<?k, opt ?v>(a mut-dict<?k, ?v>, key ?k) data<?k> compare<?k> unsafe
-	a.pairs binary-search-exact-ptr {key <=> it.from}
+	a.pairs binary-search-exact-ptr pair => key <=> pair.from
 
 .find-insert-ptr ptr arrow<?k, opt ?v>(a mut-dict<?k, ?v>, key ?k) data<?k> compare<?k> unsafe
-	a.pairs binary-search-insert-ptr {key <=> it.from}
+	a.pairs binary-search-insert-ptr pair => key <=> pair.from
 
 region iteration
 
 each void(a mut-dict<?k, ?v>, f act void(?k, ?v)) data<?k> compare<?k>
-	void fold a, \ignore, k, v
+	void fold a, (ignore, k, v) =>
 		f[k, v]
 
 fold ?a(acc ?a, a mut-dict<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare<?k>
 	a compact!
-	acc fold a.pairs, \cur, pair
+	acc fold a.pairs, (cur, pair) =>
 		f[cur, pair.from, pair.to.force]
 
 filter mut-dict<?k, ?v>(a mut-dict<?k, ?v>, f act bool(?k, ?v)) data<?k> compare<?k>
 	a compact!
-	from-sorted-pairs: a.pairs filter \pair
+	from-sorted-pairs: a.pairs filter pair =>
 		f[pair.from, pair.to.force]
 
 map mut-dict<?k-out, ?v-out>
@@ -260,12 +259,11 @@ spec
 	data<?k-out>
 	compare<?k-out>
 body
-	mut-dict: a map-to-arr \k, v
-		f[k, v]
+	mut-dict: a map-to-arr (k, v) => f[k, v]
 
 map-values mut-dict<?k, ?v-out>(a mut-dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k> compare<?k>
 	a compact!
-	from-sorted-pairs: a.pairs map \pair
+	from-sorted-pairs: a.pairs map pair =>
 		# TODO: 'as' should be unnecessary
 		pair.from -> f[pair.from, pair.to.force].some.as<opt ?v-out>
 
@@ -274,33 +272,33 @@ map-values mut-dict<?k, ?v-out>(a mut-dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) 
 
 map-to-arr arr ?out(a mut-dict<?k, ?v>, f act ?out(?k, ?v)) data<?k> compare<?k>
 	a compact!
-	a.pairs map-to-arr \pair
+	a.pairs map-to-arr pair =>
 		f[pair.from, pair.to.force]
 
 region mutating iteration
 
 filter! void(a mut-dict<?k, ?v>, f act bool(?k, ?v)) data<?k> compare<?k>
 	a compact!
-	a.pairs filter! \pair
+	a.pairs filter! pair =>
 		f[pair.from, pair.to.force]
 
 map! void(a mut-dict<?k, ?v>, f act arrow<?k, ?v>(?k, ?v)) data<?k> compare<?k>
 	a compact!
-	a.pairs map! \pair
+	a.pairs map! pair =>
 		new-pair = f[pair.from, pair.to.force]
 		new-pair.from -> new-pair.to.some
-	a.pairs sort-by! {it from}
+	a.pairs sort-by! pair => pair from
 
 test
 	a = mut-dict: [3 -> "30", 6 -> "60"]
 	a verify "[3 -> 30, 6 -> 60]"
-	a map! \k, v
+	a map! (k, v) =>
 		10 - k -> v.chars[0 -> 1].str
 	a verify "[4 -> 6, 7 -> 3]"
 
 map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k> compare<?k>
 	a compact!
-	a.pairs map! \pair
+	a.pairs map! pair =>
 		pair.from -> f[pair.from, pair.to.force].some
 
 
@@ -311,7 +309,7 @@ map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k> compare<?k>
 
 .dbg-recur! void(out writer, a mut-dict<nat, str>)
 	out ~= "["
-	a.pairs each \pair
+	a.pairs each pair =>
 		out ~= pair from
 		out ~= " -> "
 		out ~= pair.to or-default "_"
@@ -331,7 +329,7 @@ map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k> compare<?k>
 	a verify-node-size
 
 .verify-node-size void(a mut-dict<?k, ?v>)
-	actual = 0 fold a.pairs, \acc, x
+	actual = 0 fold a.pairs, (acc, x) =>
 		acc + (x.to.has? ? 1, 0)
 	a.node-size is actual
 	if next ?= a next

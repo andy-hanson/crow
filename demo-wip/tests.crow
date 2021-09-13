@@ -1,5 +1,4 @@
 import
-	col.arr-util: each
 	col.deque: deque
 	col.dict: dict
 	col.frozen-unordered-set: frozen-unordered-set
@@ -21,7 +20,6 @@ import
 	col.unordered-set-2: unordered-set
 	col.queue: queue
 	crypto.password: password-hash, quality-moderate
-	io.print: print
 	io.time-format: gmt
 	iter: iter
 	json: parse-json

@@ -60,13 +60,13 @@ binary-search-insert-ptr ptr ?a(a arr ?a, value ?a) unsafe compare<?a>
 
 test
 	a = mut-arr: [1, 3, 5, 7]
-	(a binary-search-insert-ptr {0 <=> it}) - a.begin-ptr is 0
-	(a binary-search-insert-ptr {3 <=> it}) - a.begin-ptr is 1
-	(a binary-search-insert-ptr {4 <=> it}) - a.begin-ptr is 2
-	(a binary-search-insert-ptr {5 <=> it}) - a.begin-ptr is 2
-	(a binary-search-insert-ptr {6 <=> it}) - a.begin-ptr is 3
-	(a binary-search-insert-ptr {7 <=> it}) - a.begin-ptr is 3
-	(a binary-search-insert-ptr {8 <=> it}) - a.begin-ptr is 4
+	(a binary-search-insert-ptr x => 0 <=> x) - a.begin-ptr is 0
+	(a binary-search-insert-ptr x => 3 <=> x) - a.begin-ptr is 1
+	(a binary-search-insert-ptr x => 4 <=> x) - a.begin-ptr is 2
+	(a binary-search-insert-ptr x => 5 <=> x) - a.begin-ptr is 2
+	(a binary-search-insert-ptr x => 6 <=> x) - a.begin-ptr is 3
+	(a binary-search-insert-ptr x => 7 <=> x) - a.begin-ptr is 3
+	(a binary-search-insert-ptr x => 8 <=> x) - a.begin-ptr is 4
 
 # Left inclusive, right exclusive
 .binary-search-exact-ptr-recur ptr ?a(left ptr ?a, right ptr ?a, value ?a) unsafe compare<?a>
@@ -178,7 +178,7 @@ body
 .test-one void(a arr nat, b arr nat, expected arr nat)
 	a-mut = mut-list: a
 	b-mut = mut-list: b
-	a-mut merge-no-duplicates! b-mut, \x, y
+	a-mut merge-no-duplicates! b-mut, (x, y) =>
 		x <=> y assert-comparison-not-equal
 	a-mut.arr is expected
 

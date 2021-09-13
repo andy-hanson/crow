@@ -85,12 +85,12 @@ from-lmdb-key str(a arr nat8)
 with-test-env ?a(f act ?a(lmdb-env)) trusted summon
 	test-path = "TEST-LMDB"
 	test-path make-directory
-	finally: {test-path remove-directory-and-contents-non-recursive}, \
+	(() => test-path remove-directory-and-contents-non-recursive) finally () =>
 		test-path with-env true.lmdb-open-options, f
 
 with-env ?a(db-dir str, options lmdb-open-options, f act ?a(lmdb-env)) trusted summon
 	env = db-dir lmdb-open-env options
-	finally: {env lmdb-close-env}, {f[env]}
+	(() => env lmdb-close-env) finally () => f[env]
 
 # WARN: Should call 'close-env' when done
 lmdb-open-env lmdb-env(db-dir str, options lmdb-open-options) unsafe summon
@@ -126,7 +126,7 @@ spec
 	serialize<?v>
 body
 	db = env open-db<?k, ?v> db-name
-	finally: {env close-db db}, {f[db]}
+	(() => env close-db db) finally () => f[db]
 
 # WARN: Should call 'close-db' when done
 open-db lmdb-db<?k, ?v>(env lmdb-env, db-name str) unsafe summon lmdb-key<?k> serialize<?v>
@@ -156,19 +156,18 @@ transaction-commit<?a> record
 	value ?a
 
 each void(txn lMDB_txn, db lmdb-db<?k, ?v>, f act void(?k, ?v)) summon lmdb-key<?k> serialize<?v>
-	void fold txn, db, \ignore, key, value
-		f[key, value]
+	void fold txn, db, (ignore, key, value) => f[key, value]
 
 map arr ?out(txn lMDB_txn, db lmdb-db<?k, ?v>, f act ?out(?k, ?v)) trusted summon lmdb-key<?k> serialize<?v>
 	out = txn count db uninitialized-mut-arr<?out>
-	end = out.begin-ptr fold txn, db, \cur, key, value
+	end = out.begin-ptr fold txn, db, (cur, key, value) =>
 		cur[] := f[key, value]
 		cur + 1
 	assert: end ptr-eq? out.end-ptr
 	out cast-immutable
 
 fold ?a(acc ?a, txn lMDB_txn, db lmdb-db<?k, ?v>, f act ?a(?a, ?k, ?v)) trusted summon lmdb-key<?k> serialize<?v>
-	txn with-cursor db, \cursor
+	txn with-cursor db, cursor =>
 		check-lmdb-error: cursor mdb_cursor_get empty-val, empty-val, MDB_FIRST
 		acc fold-recur cursor, f
 .fold-recur ?a(acc ?a, cursor MDB_cursor, f act ?a(?a, ?k, ?v)) unsafe summon lmdb-key<?k> serialize<?v>
@@ -203,7 +202,7 @@ body
 		[]
 	else
 		res = db0-count uninitialized-mut-arr<?out>
-		end = res.begin-ptr zip-fold-non-empty txn, db0, db1, \cur, key, value0, value1
+		end = res.begin-ptr zip-fold-non-empty txn, db0, db1, (cur, key, value0, value1) =>
 			cur[] := f[key, value0, value1]
 			cur + 1
 		assert: end ptr-eq? res.end-ptr
@@ -245,8 +244,8 @@ spec
 	serialize<?v0>
 	serialize<?v1>
 body
-	txn with-cursor db0, \cursor0
-		txn with-cursor db1, \cursor1
+	txn with-cursor db0, cursor0 =>
+		txn with-cursor db1, cursor1 =>
 			check-lmdb-error: cursor0 mdb_cursor_get empty-val, empty-val, MDB_FIRST
 			check-lmdb-error: cursor1 mdb_cursor_get empty-val, empty-val, MDB_FIRST
 			acc zip-fold-recur cursor0, cursor1, f
@@ -289,7 +288,7 @@ body
 	cursor-cell = cell<MDB_cursor>: null ptr-cast-to-extern<MDB_cursor, nat8>
 	open-err = txn.txn mdb_cursor_open db.dbi, cursor-cell
 	cursor = cursor-cell[]
-	finally: {cursor mdb_cursor_close}, \
+	(() => cursor mdb_cursor_close) finally () =>
 		check-lmdb-error: open-err
 		f[cursor]
 
@@ -364,11 +363,11 @@ stat lmdb_stat(txn lMDB_txn, db lmdb-db<?k, ?v>) trusted summon
 	lmdb_stat: psize, depth, s.ms_branch_pages, s.ms_leaf_pages, s.ms_overflow_pages, s.ms_entries
 
 with-read-transaction ?a(env lmdb-env, f act ?a(lMDB_txn)) trusted summon
-	env with-transaction MDB_RDONLY, \txn
+	env with-transaction MDB_RDONLY, txn =>
 		transaction-abort: f[txn]
 
 with-write-transaction ?a(env lmdb-env, f act ?a(lMDB_txn)) trusted summon
-	env with-abortable-write-transaction \txn
+	env with-abortable-write-transaction txn =>
 		transaction-commit: f[txn]
 
 with-abortable-write-transaction ?a(env lmdb-env, f act transaction-result ?a(lMDB_txn)) trusted summon
@@ -379,7 +378,7 @@ with-abortable-write-transaction ?a(env lmdb-env, f act transaction-result ?a(lM
 	transaction-cell = cell<MDB_txn>: null ptr-cast-to-extern<MDB_txn, nat8>
 	check-lmdb-error: env.env mdb_txn_begin parent-transaction, flags, transaction-cell
 	transaction = transaction-cell[]
-	do-if-error: {transaction mdb_txn_abort}, \
+	(() => transaction mdb_txn_abort) do-if-error () =>
 		match f[transaction lMDB_txn]
 		as transaction-abort a
 			transaction mdb_txn_abort

@@ -104,7 +104,7 @@ opt-combine opt ?a(a opt ?a, b opt ?a, f act ?a(?a, ?a))
 		b
 
 opt-join opt pair<?in-0, ?in-1>(a opt ?in-0, b opt ?in-1)
-	a opt-join b, \x, y
+	a opt-join b, (x, y) =>
 		x pair y
 
 ###

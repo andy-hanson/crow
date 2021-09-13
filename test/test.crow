@@ -50,8 +50,8 @@ main fut nat(args arr str) summon
 	crow-exe = crow-path child-path "bin" child-path "crow"
 	env = get-environ
 
-	crow-failures = test-path child-path "parse-errors" run-crow-tests crow-exe, env, options first-failures \
-		test-path child-path "compile-errors" run-crow-tests crow-exe, env, options first-failures \
+	crow-failures = test-path child-path "parse-errors" run-crow-tests crow-exe, env, options first-failures () =>
+		test-path child-path "compile-errors" run-crow-tests crow-exe, env, options first-failures () =>
 			test-path child-path "runnable" run-crow-tests crow-exe, env, options
-	all-failures = crow-failures first-failures {crow-path lint options}
+	all-failures = crow-failures first-failures () => crow-path lint options
 	all-failures print-failures options

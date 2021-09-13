@@ -31,7 +31,7 @@ queue queue ?a(a arr ?a)
 
 arr arr ?a(a queue ?a) trusted
 	res = a.size uninitialized-mut-arr<?a>
-	end = res.begin-ptr fold a, \out, x
+	end = res.begin-ptr fold a, (out, x) =>
 		out[] := x
 		out + 1
 	assert: end ptr-eq? res.end-ptr
@@ -69,7 +69,7 @@ fold ?a(acc ?a, a queue ?b, f act ?a(?a, ?b))
 
 filter queue ?a(a queue ?a, f act bool(?a)) trusted
 	res = a.size uninitialized-mut-arr<?a>
-	end = res.begin-ptr fold a, \out, x
+	end = res.begin-ptr fold a, (out, x) =>
 		if f[x]
 			out[] := x
 			out + 1
@@ -79,7 +79,7 @@ filter queue ?a(a queue ?a, f act bool(?a)) trusted
 
 map queue ?out(a queue ?in, f act ?out(?in)) trusted
 	res = a.size uninitialized-mut-arr<?out>
-	end = res.begin-ptr fold a, \out, x
+	end = res.begin-ptr fold a, (out, x) =>
 		out[] := f[x]
 		out + 1
 	assert: end ptr-eq? res.end-ptr
@@ -111,5 +111,5 @@ test
 	d = c ~ 3
 	d.arr is [1, 2, 3]
 
-	(d filter {it != 2}).arr is [1, 3]
-	(d map {it wrap-add 10}).arr is [11, 12, 13]
+	(d filter x => x != 2).arr is [1, 3]
+	(d map x => x wrap-add 10).arr is [11, 12, 13]

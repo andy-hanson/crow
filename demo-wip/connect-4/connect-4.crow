@@ -11,7 +11,7 @@ import
 main fut nat(args arr str) summon
 	print: "Select a game:\n(If using hard CPU, compile with --optimize)\n"
 	print: "2: 2-player game\nE: Easy\nM: Medium\nH: Hard\nH2: Hard and CPU goes first\nCPU: CPU vs CPU\n"
-	#settings = "Invalid option" read-stdin-until-parse {it parse-settings}
+	#settings = "Invalid option" read-stdin-until-parse it => it parse-settings
 	settings = 11.some ai-settings 11.some
 	empty-board print-board red, none
 	winner <- empty-board play-recur red, settings
@@ -73,7 +73,7 @@ parse-settings opt ai-settings(a str)
 	print: "{color} player, where will you go? (Type a letter A-G and hit enter)"
 	board human-player-move-recur
 .human-player-move-recur nat(board board) summon
-	column = "Not a valid column." read-stdin-until-parse {it column-of-str}
+	column = "Not a valid column." read-stdin-until-parse it => it column-of-str
 	if board can-place? column
 		column
 	else

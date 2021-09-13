@@ -129,7 +129,8 @@ private alias ReturnStack = GlobalAllocatedStack!(immutable(ubyte)*, 1024 * 4);
 private alias StackStartStack = GlobalAllocatedStack!(Nat16, 1024 * 4);
 
 struct Interpreter(Extern) {
-	@safe @nogc pure nothrow:
+	@safe @nogc nothrow: // not pure
+
 	@disable this(ref const Interpreter);
 
 	@trusted this(Ptr!Extern e, immutable Ptr!LowProgram p, immutable Ptr!ByteCode b, immutable Ptr!FilesInfo f) {
@@ -138,6 +139,9 @@ struct Interpreter(Extern) {
 		byteCode = b;
 		filesInfo = f;
 		reader = newByteCodeReader(begin(byteCode.byteCode), byteCode.main.index);
+		dataStack = DataStack(true);
+		returnStack = ReturnStack(true);
+		stackStartStack = StackStartStack(true);
 	}
 
 	Ptr!Extern extern_;

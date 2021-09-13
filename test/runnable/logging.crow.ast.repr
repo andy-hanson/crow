@@ -29,24 +29,24 @@ file-ast(
 							[inststruct(range(169, 180), name-range(169, log-handler))]
 							[
 								lambda(
-									[name-range(184, logged)]
+									[name-range(183, logged)]
 									seq-ast(
-										call(subscript, name-range(195, subscript), [], [lh, logged])
-										call(subscript, name-range(208, subscript), [], [lh, logged])))])
+										call(subscript, name-range(197, subscript), [], [lh, logged])
+										call(subscript, name-range(210, subscript), [], [lh, logged])))])
 						seq-ast(
 							seq-ast(
 								call(
 									infix
-									name-range(226, with-log-handler)
+									name-range(228, with-log-handler)
 									[]
 									[
 										doubler
-										lambda([], call(infix, name-range(252, log), [], [warn, literal("Logged twice")]))])
+										lambda([], call(infix, name-range(258, log), [], [warn, literal("Logged twice")]))])
 								call(
 									infix
-									name-range(282, with-log-handler)
+									name-range(295, with-log-handler)
 									[]
 									[
-										lambda-line(call(infix, name-range(276, drop), [], [it]))
-										lambda([], call(infix, name-range(308, log), [], [warn, literal("Logged never")]))]))
-							call(infix, name-range(330, resolved), [], [literal(nat(0, false))]))))))])
+										paren(lambda([name-range(279, ignore)], void))
+										lambda([], call(infix, name-range(325, log), [], [warn, literal("Logged never")]))]))
+							call(infix, name-range(347, resolved), [], [literal(nat(0, false))]))))))])

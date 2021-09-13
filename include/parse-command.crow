@@ -30,7 +30,7 @@ parse-named-args opt arr opt arr str(args arr str, arg-names arr str)
 	values = arg-names.size fill-mut-list<opt arr str> none
 	# TODO: should not need a type argument here
 	help = false cell<bool>
-	parsed.named each \key, value
+	parsed.named each (key, value) =>
 		if index ?= arg-names index-of key
 			# TODO: duplicate argument error
 			forbid: values[index] has?
@@ -66,10 +66,10 @@ single-str-or-throw str(a opt arr str, option-name str)
 
 .parse-command-dynamic parsed-command(args arr str)
 	# Find the location of the first name beginning in '--'
-	if first-named-arg-index ?= args find-index {it starts-with? "--"}
+	if first-named-arg-index ?= args find-index arg => arg starts-with? "--"
 		nameless = args[0 -> first-named-arg-index]
 		rest = args[first-named-arg-index -> args.size]
-		if sep-index ?= rest find-index {it == "--"}
+		if sep-index ?= rest find-index arg => arg == "--"
 			named-args = rest[0 -> sep-index] parse-named-args
 			parsed-command: nameless, named-args, rest[sep-index + 1 -> rest.size]
 		else
@@ -85,7 +85,7 @@ single-str-or-throw str(a opt arr str, option-name str)
 .parse-named-args-recur void(args arr str, builder mut-dict<str, arr str>)
 	first-name = args[0] try-remove-start "--" force
 	tl = args tail
-	if next-named-arg-index ?= tl find-index {it starts-with? "--"}
+	if next-named-arg-index ?= tl find-index arg => arg starts-with? "--"
 		builder[first-name] := tl[0 -> next-named-arg-index]
 		tl[next-named-arg-index -> tl.size] parse-named-args-recur builder
 	else

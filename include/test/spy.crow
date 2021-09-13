@@ -16,13 +16,13 @@ calls arr ?in(a spy-act1<?out, ?in>)
 
 spy-act spy-act1<?out, ?in>(f act ?out(?in))
 	calls = mut-list<?in>
-	spy-act1: calls, \in
+	spy-act1: calls, in =>
 		calls ~= in
 		f[in]
 
 spy-act spy-act1<?out, ?in>(value ?out)
 	calls = mut-list<?in>
-	spy-act1: calls, \in
+	spy-act1: calls, in =>
 		calls ~= in
 		value
 
@@ -37,6 +37,6 @@ calls arr pair<?in0, ?in1>(a spy-act2<?out, ?in0, ?in1>)
 
 spy-act spy-act2<?out, ?in0, ?in1>(f act ?out(?in0, ?in1))
 	calls = mut-list<pair<?in0, ?in1>>
-	spy-act2: calls, \a, b
+	spy-act2: calls, (a, b) =>
 		calls ~= pair<?in0, ?in1>: a, b
 		f[a, b]

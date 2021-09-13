@@ -88,7 +88,7 @@ body
 
 .get-bucket-counts mut-arr nat(a mut-arr ?a, n-buckets nat) unsafe hash-mix<?a>
 	res = n-buckets fill-mut-arr 0
-	a each \value
+	a each value =>
 		bucket-index = value get-bucket-index n-buckets
 		res unsafe-set-at!: bucket-index, res unsafe-at bucket-index wrap-add 1
 	res
@@ -133,7 +133,7 @@ body
 region iteration
 
 each-unordered void(a frozen-unordered-set ?a, f act void(?a))
-	void fold-unordered a, \ignore, x
+	void fold-unordered a, (ignore, x) =>
 		f[x]
 
 fold-unordered ?a(acc ?a, a frozen-unordered-set ?b, f act ?a(?a, ?b))
@@ -144,7 +144,7 @@ fold-unordered-with-index ?a(acc ?a, a frozen-unordered-set ?b, f act ?a(?a, ?b,
 
 .verify void(a frozen-unordered-set nat, values arr nat, bucket-starts arr nat) unsafe
 	a.values is values
-	a.bucket-starts map {it - a.values.begin-ptr} is bucket-starts
+	a.bucket-starts map (ptr => ptr - a.values.begin-ptr) is bucket-starts
 
 test
 	a = frozen-unordered-set<nat>

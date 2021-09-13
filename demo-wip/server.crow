@@ -12,7 +12,7 @@ main fut nat(args arr str) unsafe summon
 		1 resolved
 	else
 		port = args[0]
-		handler = as<http-handler>: \req
+		handler = as<http-handler>: req =>
 			descr = req describe-request
 			print: descr
 			resolved: http-response: 200, "OK", dict, "Your request:\n{descr}"
@@ -21,6 +21,5 @@ main fut nat(args arr str) unsafe summon
 		0 resolved
 
 .describe-request str(a http-request)
-	h = a.headers map-to-arr \k, v
-		"{k}: {v}"
+	h = a.headers map-to-arr (k, v) => "{k}: {v}"
 	"{a method} {a url}\n{h flatten "\n"}\n\n{a body}"

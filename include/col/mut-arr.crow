@@ -37,7 +37,7 @@ Copies an `arr` to a `mut-arr`.
 Writing to the result won't affect the original.
 ###
 mut-arr mut-arr ?a(a arr ?a)
-	a.size make-mut-arr<?a> {a[it]}
+	a.size make-mut-arr<?a> i => a[i]
 
 ###
 Copies a `mut-arr` to an `arr`.
@@ -55,7 +55,7 @@ Copies the elements of a `mut-arr`.
 Writing to the result won't affect the original.
 ###
 copy mut-arr ?a(a mut-arr ?a)
-	a.size make-mut-arr<?a> {a[it]}
+	a.size make-mut-arr<?a> i => a[i]
 
 copy-to-arr arr ?a(a mut-arr ?a) trusted
 	a.copy cast-immutable
@@ -153,8 +153,7 @@ make-mut-arr mut-arr ?a(size nat, f act ?a(nat)) trusted
 Equivalent to `mut-arr: [value, value, ...]`.
 ###
 fill-mut-arr mut-arr ?a(size nat, value ?a)
-	size make-mut-arr \ignore
-		value
+	size make-mut-arr ignore => value
 
 zeroed-mut-arr mut-arr ?a(size nat) unsafe
 	res = size uninitialized-mut-arr<?a>
@@ -162,8 +161,7 @@ zeroed-mut-arr mut-arr ?a(size nat) unsafe
 	res
 
 fill! void(a mut-arr ?a, value ?a)
-	a map! \ignore
-		value
+	a map! ignore => value
 
 ###
 Unsafe cast a mut-arr to arr.
@@ -190,7 +188,7 @@ set-zero-elements void(a mut-arr ?a) noctx unsafe
 
 # Equivalent to `a.temp-as-arr index-of value`.
 index-of opt nat(a mut-arr ?a, value ?a) equal<?a>
-	a find-index {it == value}
+	a find-index x => x == value
 
 # Equivalent to `a.temp-as-arr find-index f`.
 find-index opt nat(a mut-arr ?a, f act bool(?a)) trusted
@@ -230,12 +228,10 @@ map! void(a mut-arr ?a, f act ?a(?a)) trusted
 		cur + 1 map-recur! end, f
 
 map mut-arr ?out(a mut-arr ?in, f act ?out(?in)) trusted
-	a.size make-mut-arr \i
-		f[a[i]]
+	a.size make-mut-arr i => f[a[i]]
 
 map-with-index mut-arr ?out(a mut-arr ?in, f act ?out(?in, nat)) trusted
-	a.size make-mut-arr \i
-		f[a[i], i]
+	a.size make-mut-arr i => f[a[i], i]
 
 map-to-arr arr ?out(a mut-arr ?in, f act ?out(?in)) trusted
 	a map f cast-immutable

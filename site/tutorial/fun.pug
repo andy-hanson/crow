@@ -12,9 +12,10 @@ include ../pug-include/tutorial.pug
 		crow-runnable(src="fun")
 
 		p.
-			The <code>\x</code> syntax introduces a new function value.
-			<code>x</code> is the parameter of the inner function.
-			With multiple parameters it would be written <code>\x, y</code>.
+			The <code>x => x + 1 to-str</code> syntax introduces a new function value.
+			<code>x</code> is its parameter.
+			When there are multiple (or zero) parameters,
+			you must put them in parentheses, like <code>(x, y) =></code>.
 
 			The parameter list may not contain types; they are inferred from the type the expression must have.
 			For example, <code class="fun-ref">call-it</code> takes a <code>fun str(nat)</code>,
@@ -23,18 +24,19 @@ include ../pug-include/tutorial.pug
 			<br />
 
 			If the compiler doesn't infer a type, you could write
-			<code>as&lt;fun str(nat)&gt;:</code> to make it explicit.
+			<code>as&lt;fun str(nat)&gt;: x => x + 1 to-str</code> to make it explicit.
 
 		p.
-			There is an alternate syntax <code>{it * 2 to-str}</code> for short functions with a single parameter.
-			This implicitly takes a parameter called <code class="param-ref">it</code>.
+			The function result can either go on the same line after the `=>`, or you can start a new indented block.
 
 		p.
 			<code>fun str(nat)</code> is the type of a function value returning a
 			<code class="struct-ref">str</code> given a <code class="struct-ref">nat</code>.
 
 		p.
-			<code>f[3]</code> calls the function value, executing the inner function.
+			<code>f[3]</code> is syntax for calling the function value.
+			It's identical to <code>f subscript 3</code>;
+			<code>subscript</code> is an auto-imported function that calls function values.
 
 		h4 closures
 

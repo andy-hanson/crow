@@ -22,7 +22,7 @@ main fut nat(args arr str) unsafe summon
 	else
 		port = args[0]
 		db = open-real-db
-		handler = as<http-handler>: \req
+		handler = as<http-handler>: req =>
 			req handle-request db resolved
 		server = port start-http-server handler
 		# TODO: do this after we've stopped the server
@@ -101,16 +101,16 @@ split-url url(url-str str)
 # Extra cookies are ignored
 parse-cookies arr str(s str, cookie-names arr str)
 	res = cookie-names.size fill-mut-arr<opt str> none
-	s split-by "; " each \part
+	s split-by "; " each part =>
 		if pair ?= part try-split-once "="
 			if index ?= cookie-names index-of pair.a
 				res[index] := pair.b some
-	res map-to-arr-with-index \x, index
-		x or-throw {"Did not get cookie value for {cookie-names[index]}"}
+	res map-to-arr-with-index (x, index) =>
+		x or-throw () => "Did not get cookie value for {cookie-names[index]}"
 
 parse-query arr str(s str, arg-names arr str)
 	res = arg-names.size fill-mut-arr<opt str> none
-	s split-by "&" each \part
+	s split-by "&" each part =>
 		if pair ?= part try-split-once "="
 			if index ?= arg-names index-of pair.a
 				res[index] := pair.b some
@@ -118,8 +118,8 @@ parse-query arr str(s str, arg-names arr str)
 				throw: "Unexpected key {pair a}"
 		else
 			throw: "Invalid part: {part}"
-	res map-to-arr-with-index \x, index
-		x or-throw {"Did not get argument for {arg-names[index]}"}
+	res map-to-arr-with-index (x, index) =>
+		x or-throw () => "Did not get argument for {arg-names[index]}"
 
 .format-users-as-json str(users arr user-info)
 	res = writer

@@ -19,7 +19,7 @@ unordered-set unordered-set ?a() data<?a> compare<?a> hash-mix<?a>
 	unordered-set: lookup<?a, void>
 
 unordered-set unordered-set ?a(a arr ?a) data<?a> compare<?a> hash-mix<?a>
-	unordered-set: lookup: a map {it -> void}
+	unordered-set: lookup: a map x => x -> void
 
 alloc-count nat(a unordered-set ?a) unsafe
 	a.inner alloc-count
@@ -43,7 +43,7 @@ subscript bool(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
 		a
 
 try-add opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
-	match a.inner try-add value, {void}
+	match a.inner try-add value, () => void
 	as already-has-key
 		none
 	as lookup l

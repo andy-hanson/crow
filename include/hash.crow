@@ -30,5 +30,5 @@ hash-mix void(hasher hasher, a bool)
 	hasher hash-mix a.to-nat
 
 hash-mix void(hasher hasher, a str)
-	a.chars each \c
+	a.chars each c =>
 		hasher hash-mix c.to-nat8.to-nat

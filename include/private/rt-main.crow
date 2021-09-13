@@ -87,8 +87,8 @@ body
 	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: thread-id, print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
 	ctx-by-val = ctx: gctx, tls.ref-of-val, island, 0
 	ctx = ctx-by-val ref-of-val
-	add = as<act fut nat(arr c-str, main-ptr)>: \all-args, main-ptr
-		add-first-task: all-args, main-ptr
+	add = as<act fut nat(arr c-str, main-ptr)>: (all-args, main-ptr) =>
+		all-args add-first-task main-ptr
 	all-args = arr: argc.to-int.unsafe-to-nat, argv
 	add call-with-ctx ctx, all-args, main-ptr
 
@@ -103,10 +103,10 @@ body
 .add-first-task fut nat(all-args arr c-str, main-ptr fun-ptr2<fut nat, ctx, arr str>) unsafe
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for fut<void> taking lambda with 0 params
-	res = delay then-void \
+	res = delay then-void () =>
 		# First argument is the path to this executable.
 		args = all-args tail
-		main-ptr[get-ctx, args map {it to-str}]
+		main-ptr[get-ctx, args map arg => arg to-str]
 	res handle-exceptions
 	res
 

@@ -1,6 +1,6 @@
 module test.testUtil;
 
-@safe @nogc nothrow: // not pure
+@safe @nogc pure nothrow:
 
 import interpret.bytecode : ByteCodeIndex;
 import interpret.runBytecode : byteCodeIndexOfPtr, DataStack, Interpreter, showDataArr;

@@ -77,12 +77,12 @@ main fut nat(_ arr str) summon trusted
 	triangle-vbo = vertices vbo-create
 	assert: triangle-vbo != 0
 
-	colors = vertices map-to-arr {it.color to-str} join " | "
+	colors = vertices map-to-arr (v => v.color to-str) join " | "
 	print: colors
 
 	renderer = window renderer shader-prog, vertices, triangle-vbo, texture
 
-	<- 100.msec repeat-interval {renderer main-loop-body}
+	<- 100.msec repeat-interval () => renderer main-loop-body
 
 	# TODO: use 'finally'
 	texture free-texture

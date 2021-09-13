@@ -139,21 +139,21 @@ Parse digits as a nat.
 Return none if the str contains any punctuation or whitespace.
 ###
 parse-nat opt nat(a str)
-	a with-reader {it take-nat!}
+	a with-reader r => r take-nat!
 
 ###
 The str should be a series of digits, optionally preceded by "-" or "+".
 If not, this returns `none`.
 ###
 parse-int opt int(a str)
-	a with-reader {it take-int!}
+	a with-reader r => r take-int!
 
 ###
 The str should be a valid int, optionally followed by a "." and then a valid int.
 If not, this returns `none`.
 ###
 parse-float opt float(a str)
-	a with-reader {it take-float!}
+	a with-reader r => r take-float!
 
 region Interpolation
 

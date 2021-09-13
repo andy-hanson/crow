@@ -40,7 +40,7 @@ json union
 			false
 	as list aa
 		if ab ?= b as-list
-			aa list-equal? ab, \x, y
+			aa list-equal? ab, (x, y) =>
 				x == y
 		else
 			false
@@ -122,7 +122,7 @@ as-dict opt dict<str, json>(a json) noctx
 		d some
 
 parse-json opt json(a str)
-	a with-reader {it take-json!}
+	a with-reader r => r take-json!
 
 to-str str(a json)
 	res = writer
@@ -139,7 +139,7 @@ to-str str(a json)
 		out write-quoted-str! s
 	as list l
 		out ~= "["
-		l each \x
+		l each x =>
 			out to-str-recur! x
 			out ~= ","
 		if l.empty? not
@@ -147,7 +147,7 @@ to-str str(a json)
 		out ~= "]"
 	as dict d
 		out ~= "\{"
-		d each \key, value
+		d each (key, value) =>
 			out write-quoted-str! key
 			out ~= ":"
 			out to-str-recur! value

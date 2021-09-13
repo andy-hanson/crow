@@ -85,7 +85,7 @@ new-exclusion exclusion(v island) noctx trusted
 
 island by-val island(gctx global-ctx, id island-id, max-threads nat) summon noctx unsafe
 	q = max-threads task-queue
-	gc-root = as<by-val<island-gc-root>>: island-gc-root: q, {it default-exception-handler}, \log
+	gc-root = as<by-val<island-gc-root>>: island-gc-root: q, (exn => exn default-exception-handler), log =>
 		log default-log-handler
 	island: gctx, id, gc, gc-root, lock-by-val, 0, thread-safe-counter
 

@@ -43,12 +43,12 @@ extern (C) @system pure void* memcpy(return scope ubyte* s1, scope const ubyte* 
 	return s1;
 }
 
-extern(C) immutable(size_t) getGlobalBufferSize() {
-	return globalBuffer.length;
+extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
+	return globalBuffer.length * globalBuffer[0].sizeof;
 }
 
 @system extern(C) ubyte* getGlobalBufferPtr() {
-	return globalBuffer.ptr;
+	return cast(ubyte*) globalBuffer.ptr;
 }
 
 @system extern(C) Server!RangeAlloc* newServer(
@@ -157,8 +157,9 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 
 private:
 
+// declaring as ulong[] to ensure it's word aligned
 // Almost 2GB (which is size limit for a global array)
-ubyte[2047 * 1024 * 1024] globalBuffer;
+ulong[2047 * 1024 * 1024 / ulong.sizeof] globalBuffer;
 
 immutable(Repr) reprParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable StrParseDiagnostic[] a) {
 	return reprArr(alloc, a, (ref immutable StrParseDiagnostic it) =>

@@ -31,7 +31,7 @@ main fut nat(_ arr str) summon trusted
 	renderer = window renderer
 	texture = renderer create-texture
 
-	<- 100.msec repeat-interval {renderer main-loop-body texture}
+	<- 100.msec repeat-interval () => renderer main-loop-body texture
 
 	# TODO: use 'finally'
 	texture SDL_DestroyTexture

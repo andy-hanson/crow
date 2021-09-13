@@ -3,7 +3,7 @@ import
 	.bool: and, bool, or
 	.col.arr: arr, arr-cast, arr-from-begin-end, begin-ptr
 	.col.arr-util:
-		contains-subseq?, ends-with?, first, flatten, last, map, rtail, split-by-subseq,
+		contains-subseq?, ends-with?, first, flatten, last, map, reverse, rtail, split-by-subseq,
 		starts-with?, tail, try-remove-end, try-remove-start, try-split-once
 	.compare: <=
 	.number: ==, <=>, +, -, nat8
@@ -96,13 +96,13 @@ try-split-once opt pair<str, str>(a str, b char)
 		res.a.str pair res.b.str some
 
 split-by arr str(a str, b str)
-	a.chars split-by-subseq b.chars map {it str}
+	a.chars split-by-subseq b.chars map chars => chars str
 
 join str(a arr str, b str)
-	a map {it chars} flatten b.chars str
+	a map (it => it chars) flatten b.chars str
 
 lower-case str(a str)
-	a.chars map {it lower-case-char} str
+	a.chars map (it => it lower-case-char) str
 
 .lower-case-char char(a char)
 	a-nat = a to-nat8
@@ -110,3 +110,6 @@ lower-case str(a str)
 		to-char: "a".to-nat8 + a-nat - "A".to-nat8
 	else
 		a
+
+reverse str(a str)
+	a.chars.reverse str

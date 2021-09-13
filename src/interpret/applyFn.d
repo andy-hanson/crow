@@ -1,6 +1,6 @@
 module interpret.applyFn;
 
-@safe @nogc nothrow: // not pure
+@safe @nogc pure nothrow:
 
 import core.atomic : cas;
 

@@ -237,11 +237,11 @@ pop-n! void(a mut-list ?a, n nat) trusted
 # TODO: Use an 'each' spec..
 # Push multiple values onto the end of the list.
 ~= void(a mut-list ?a, values arr ?a)
-	values each {a ~= it}
+	values each x => a ~= x
 ~= void(a mut-list ?a, values mut-arr ?a)
-	values each {a ~= it}
+	values each x => a ~= x
 ~= void(a mut-list ?a, values mut-list ?a)
-	values each {a ~= it}
+	values each x => a ~= x
 
 .incr-capacity! void(a mut-list ?a) unsafe
 	a ensure-capacity: a.size + 1 round-up-to-power-of-two
@@ -408,8 +408,7 @@ map-to-arr arr ?out(a mut-list ?in, f act ?out(?in)) trusted
 	a map-to-mut-arr f cast-immutable
 
 map-to-mut-arr mut-arr ?out(a mut-list ?in, f act ?out(?in))
-	a.size make-mut-arr \x
-		f[a[x]]
+	a.size make-mut-arr i => f[a[i]]
 
 map-opt mut-list ?out(a mut-list ?in, f act opt ?out(?in)) trusted
 	a map-opt-to-mut-arr f as-mut-list
@@ -417,7 +416,7 @@ map-opt mut-list ?out(a mut-list ?in, f act opt ?out(?in)) trusted
 # TODO: this works on anything supporting 'fold' .. don't want to repeat for every collection
 map-opt-to-mut-arr mut-arr ?out(a mut-list ?in, f act opt ?out(?in)) trusted
 	out = a.size uninitialized-mut-arr<?out>
-	end = out.begin-ptr fold a, \cur, x
+	end = out.begin-ptr fold a, (cur, x) =>
 		if fx ?= f[x]
 			cur[] := fx
 			cur + 1

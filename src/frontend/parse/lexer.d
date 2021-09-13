@@ -874,3 +874,22 @@ public immutable(bool) isReservedName(immutable Sym name) {
 			return false;
 	}
 }
+
+public @trusted immutable(bool) lookaheadWillTakeArrow(SymAlloc)(ref Lexer!SymAlloc lexer) {
+	immutable(char)* ptr = lexer.ptr;
+	while (true) {
+		switch (ptr[0]) {
+			case '(':
+				// Arrow function parameters never have '(' in them
+				return false;
+			case ')':
+				return ptr[1] == ' ' && ptr[2] == '=' && ptr[3] == '>';
+			case '\n':
+			case '\0':
+				return false;
+			default:
+				break;
+		}
+		ptr++;
+	}
+}

@@ -21,7 +21,7 @@ webp-rgba-image record mut
 
 with-webp ?a(path str, cb act ?a(webp-rgba-image)) unsafe summon
 	image = path load-webp
-	{image free-webp} finally {cb[image]}
+	(() => image free-webp) finally () => cb[image]
 
 .load-webp webp-rgba-image(path str) unsafe summon
 	compressed = path read-file-binary

@@ -38,7 +38,7 @@ deque deque ?a(a arr ?a)
 
 arr arr ?a(a deque ?a) trusted
 	res = a.size uninitialized-mut-arr<?a>
-	end = res.begin-ptr fold a, \out, x
+	end = res.begin-ptr fold a, (out, x) =>
 		out[] := x
 		out + 1
 	assert: end ptr-eq? res.end-ptr
@@ -92,7 +92,7 @@ fold ?a(acc ?a, a deque ?b, f act ?a(?a, ?b))
 
 filter deque ?a(a deque ?a, f act bool(?a)) trusted
 	res = a.size uninitialized-mut-arr<?a>
-	end = res.begin-ptr fold a, \out, x
+	end = res.begin-ptr fold a, (out, x) =>
 		if f[x]
 			out[] := x
 			out + 1
@@ -102,7 +102,7 @@ filter deque ?a(a deque ?a, f act bool(?a)) trusted
 
 map deque ?out(a deque ?in, f act ?out(?in)) trusted
 	res = a.size uninitialized-mut-arr<?out>
-	end = res.begin-ptr fold a, \out, x
+	end = res.begin-ptr fold a, (out, x) =>
 		out[] := f[x]
 		out + 1
 	assert: end ptr-eq? res.end-ptr
@@ -110,19 +110,19 @@ map deque ?out(a deque ?in, f act ?out(?in)) trusted
 
 .dbg str(a deque nat)
 	out = writer
-	a.left each-reverse \x
+	a.left each-reverse x =>
 		out ~= x
 		out ~= " "
 	out ~= "["
 	if a.mid empty?
 		out ~= "]"
 	else
-		a.mid each \x
+		a.mid each x =>
 			out ~= x to-str
 			out ~= " "
 		out backup!
 		out ~= "]"
-	a.right each \x
+	a.right each x =>
 		out ~= " "
 		out ~= x
 	out move-to-str!
@@ -183,8 +183,7 @@ test
 
 	six = 1 ~ (2 ~ [3, 4].deque) ~ 5 ~ 6
 	six.dbg is "1 2 [3 4] 5 6"
-	folded = 10 fold six, \x, y
-		x wrap-add y
+	folded = 10 fold six, (x, y) => x wrap-add y
 	folded is 31
-	(six filter {it even?}).arr is [2, 4, 6]
-	(six map {it wrap-add 10}).arr is [11, 12, 13, 14, 15, 16]
+	(six filter it => it even?).arr is [2, 4, 6]
+	(six map it => it wrap-add 10).arr is [11, 12, 13, 14, 15, 16]

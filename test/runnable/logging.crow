@@ -4,11 +4,11 @@ import
 main fut nat(_ arr str) summon
 	info log "Logged once"
 	lh = get-log-handler
-	doubler = as<log-handler>: \logged
+	doubler = as<log-handler>: logged =>
 		lh[logged]
 		lh[logged]
-	doubler with-log-handler \
+	doubler with-log-handler () =>
 		warn log "Logged twice"
-	{it drop} with-log-handler \
+	(ignore => void) with-log-handler () =>
 		warn log "Logged never"
 	0 resolved

@@ -123,7 +123,7 @@ empty-board board()
 
 to-str str(a board, cur-player color, last-column opt nat)
 	res = writer
-	0 -> width each \x
+	0 -> width each x =>
 		text = " {x letter-of-alphabet}"
 		# TODO: shouldn't need 'as'
 		res ~= if x.some.as<opt nat> == last-column
@@ -131,9 +131,9 @@ to-str str(a board, cur-player color, last-column opt nat)
 		else
 			text
 	res ~= "\n"
-	0 -> height each-reverse \y
+	0 -> height each-reverse y =>
 		res ~= "│"
-		0 -> width each \x
+		0 -> width each x =>
 			res ~= a[x, y, cur-player] to-short-str
 			res ~= "│"
 		res ~= "\n"

@@ -21,7 +21,7 @@ iter iterator ?a(s iterable ?a)
 
 # Converts anything with an `iter` function to an `iterable`.
 to-iterable<?a, ?e> iterable ?e(a ?a) iter<?a, ?e>
-	iterable: {a iter}
+	iterable: () => a iter
 
 # Spec for anything that has an iterator.
 iter<?a, ?e> spec
@@ -50,7 +50,7 @@ The beginning must be less than the end.
 iter iterator nat(r arrow<nat, nat>)
 	# TODO: should not need a type argument here
 	n = r.from cell<nat>
-	iterator: \
+	iterator: () =>
 		if n[] < r.to
 			res = n[]
 			n[] := res + 1
@@ -66,9 +66,9 @@ each void(a iterable ?a, f act void(?a))
 
 # Returns a new iterable containing just the elements of the input for which `pred` returns true.
 filter iterable ?a(a iterable ?a, pred act bool(?a))
-	iterable: \
+	iterable: () =>
 		itr = a iter
-		{itr filter-recur pred} iterator
+		iterator: () => itr filter-recur pred
 .filter-recur opt ?a(a iterator ?a, pred act bool(?a))
 	if v ?= a next
 		if pred[v]
@@ -79,9 +79,9 @@ filter iterable ?a(a iterable ?a, pred act bool(?a))
 
 # Returns a new iterable which yields f[x] for each x in the input.
 map iterable ?b(a iterable ?a, f act ?b(?a))
-	iterable: \
+	iterable: () =>
 		itr = a iter
-		{itr map-recur f} iterator
+		iterator: () => itr map-recur f
 .map-recur opt ?b(a iterator ?a, f act ?b(?a))
 	if v ?= a next
 		f[v] some

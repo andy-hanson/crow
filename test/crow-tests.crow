@@ -14,7 +14,7 @@ import
 
 run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ, options test-options) summon
 	tests = path list-tests options.match-test
-	failures = tests flat-map-with-max-size options.max-failures, \test
+	failures = tests flat-map-with-max-size options.max-failures, test =>
 		path-to-crow run-single-crow-test env, test, options
 	if failures has?
 		failures err
@@ -23,7 +23,7 @@ run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ,
 
 .list-tests arr str(path str, match-test str) summon
 	res = mut-list<str>
-	path each-child-recursive \child
+	path each-child-recursive child =>
 		if child has-substr? match-test and child.ext-is-crow?
 			res ~= child
 	res move-to-arr!
@@ -39,7 +39,7 @@ run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ,
 spec
 	summon
 body
-	op = ["ast", "model", "concrete-model", "low-model"] first-some<arr<failure>, str> \print-kind
+	op = ["ast", "model", "concrete-model", "low-model"] first-some<arr<failure>, str> print-kind =>
 		if options.print-tests?
 			print: "crow print {print-kind} {path}"
 		res = print-kind run-print-test path-to-crow, env, path, options.overwrite-output?

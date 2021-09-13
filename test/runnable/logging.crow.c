@@ -1628,8 +1628,7 @@ char constantarr_0_579[30];
 char constantarr_0_580[12];
 char constantarr_0_581[12];
 char constantarr_0_582[12];
-char constantarr_0_583[12];
-char constantarr_0_584[13];
+char constantarr_0_583[13];
 char constantarr_0_0[20] = "uncaught exception: ";
 char constantarr_0_1[1] = "\n";
 char constantarr_0_2[11] = "<<UNKNOWN>>";
@@ -2211,10 +2210,9 @@ char constantarr_0_577[15] = "set-log-handler";
 char constantarr_0_578[30] = "with-log-handler<void>.lambda0";
 char constantarr_0_579[30] = "with-log-handler<void>.lambda1";
 char constantarr_0_580[12] = "main.lambda1";
-char constantarr_0_581[12] = "drop<logged>";
-char constantarr_0_582[12] = "main.lambda2";
-char constantarr_0_583[12] = "main.lambda3";
-char constantarr_0_584[13] = "resolved<nat>";
+char constantarr_0_581[12] = "main.lambda2";
+char constantarr_0_582[12] = "main.lambda3";
+char constantarr_0_583[13] = "resolved<nat>";
 uint8_t mark(struct mark_ctx* ctx, uint8_t* ptr_any, uint64_t size_bytes);
 struct void_ hard_assert(uint8_t condition);
 extern void abort(void);
@@ -2348,7 +2346,7 @@ uint64_t _times(struct ctx* ctx, uint64_t a, uint64_t b);
 uint64_t _divide(struct ctx* ctx, uint64_t a, uint64_t b);
 struct void_ forbid(struct ctx* ctx, uint8_t condition);
 struct void_ set_subscript_2(char* a, uint64_t n, char value);
-struct void_ _concatEquals_1__lambda0(struct ctx* ctx, struct _concatEquals_1__lambda0* _closure, char it);
+struct void_ _concatEquals_1__lambda0(struct ctx* ctx, struct _concatEquals_1__lambda0* _closure, char x);
 uint8_t empty__q_0(struct str a);
 uint8_t empty__q_1(struct arr_0 a);
 struct void_ each_1(struct ctx* ctx, struct arr_1 a, struct fun_act1_2 f);
@@ -2360,7 +2358,7 @@ struct void_ to_str_0__lambda0(struct ctx* ctx, struct to_str_0__lambda0* _closu
 struct str move_to_str__e(struct ctx* ctx, struct writer a);
 struct arr_0 move_to_arr__e(struct mut_list_1* a);
 struct global_ctx* get_global_ctx(struct ctx* ctx);
-struct void_ island__lambda0(struct ctx* ctx, struct void_ _closure, struct exception it);
+struct void_ island__lambda0(struct ctx* ctx, struct void_ _closure, struct exception exn);
 struct void_ default_log_handler(struct ctx* ctx, struct logged* a);
 struct void_ print(struct str a);
 struct void_ print_no_newline(struct str a);
@@ -2436,14 +2434,14 @@ struct fut_0* subscript_14(struct ctx* ctx, struct fun_act1_4 a, struct void_ p0
 struct fut_0* call_w_ctx_218(struct fun_act1_4 a, struct ctx* ctx, struct void_ p0);
 struct void_ subscript_10__lambda0__lambda0(struct ctx* ctx, struct subscript_10__lambda0__lambda0* _closure);
 struct void_ reject__e(struct ctx* ctx, struct fut_0* f, struct exception e);
-struct void_ subscript_10__lambda0__lambda1(struct ctx* ctx, struct subscript_10__lambda0__lambda1* _closure, struct exception it);
+struct void_ subscript_10__lambda0__lambda1(struct ctx* ctx, struct subscript_10__lambda0__lambda1* _closure, struct exception err);
 struct void_ subscript_10__lambda0(struct ctx* ctx, struct subscript_10__lambda0* _closure);
 struct void_ then__lambda0(struct ctx* ctx, struct then__lambda0* _closure, struct result_1 result);
 struct fut_0* subscript_15(struct ctx* ctx, struct fun_ref0 f);
 struct fut_0* subscript_16(struct ctx* ctx, struct fun_act0_1 a);
 struct fut_0* call_w_ctx_226(struct fun_act0_1 a, struct ctx* ctx);
 struct void_ subscript_15__lambda0__lambda0(struct ctx* ctx, struct subscript_15__lambda0__lambda0* _closure);
-struct void_ subscript_15__lambda0__lambda1(struct ctx* ctx, struct subscript_15__lambda0__lambda1* _closure, struct exception it);
+struct void_ subscript_15__lambda0__lambda1(struct ctx* ctx, struct subscript_15__lambda0__lambda1* _closure, struct exception err);
 struct void_ subscript_15__lambda0(struct ctx* ctx, struct subscript_15__lambda0* _closure);
 struct fut_0* then_void__lambda0(struct ctx* ctx, struct then_void__lambda0* _closure, struct void_ ignore);
 struct island_and_exclusion cur_island_and_exclusion(struct ctx* ctx);
@@ -2473,7 +2471,7 @@ char* find_cstr_end(char* a);
 struct opt_8 find_char_in_cstr(char* a, char c);
 uint8_t _equal(char a, char b);
 char* hard_unreachable_1(void);
-struct str add_first_task__lambda0__lambda0(struct ctx* ctx, struct void_ _closure, char* it);
+struct str add_first_task__lambda0__lambda0(struct ctx* ctx, struct void_ _closure, char* arg);
 struct fut_0* add_first_task__lambda0(struct ctx* ctx, struct add_first_task__lambda0* _closure);
 struct void_ handle_exceptions(struct ctx* ctx, struct fut_0* a);
 struct void_ subscript_22(struct ctx* ctx, struct fun1_0 a, struct exception p0);
@@ -2530,7 +2528,7 @@ struct void_ do_task(struct global_ctx* gctx, struct thread_local_stuff* tls, st
 struct void_ return_task__e(struct task_queue* a, struct task task);
 struct void_ noctx_must_remove_unordered__e(struct mut_list_0* a, uint64_t value);
 struct void_ noctx_must_remove_unordered_recur__e(struct mut_list_0* a, uint64_t index, uint64_t value);
-struct void_ drop_0(uint64_t _p0);
+struct void_ drop(uint64_t _p0);
 uint64_t noctx_remove_unordered_at__e(struct mut_list_0* a, uint64_t index);
 struct void_ return_ctx(struct ctx* c);
 struct void_ return_gc_ctx(struct gc_ctx* gc_ctx);
@@ -2629,8 +2627,7 @@ struct void_ set_log_handler(struct ctx* ctx, struct fun1_1 handler);
 struct void_ with_log_handler__lambda0(struct ctx* ctx, struct with_log_handler__lambda0* _closure);
 struct void_ with_log_handler__lambda1(struct ctx* ctx, struct with_log_handler__lambda1* _closure, struct exception err);
 struct void_ main_0__lambda1(struct ctx* ctx, struct void_ _closure);
-struct void_ drop_1(struct logged* _p0);
-struct void_ main_0__lambda2(struct ctx* ctx, struct void_ _closure, struct logged* it);
+struct void_ main_0__lambda2(struct ctx* ctx, struct void_ _closure, struct logged* ignore);
 struct void_ main_0__lambda3(struct ctx* ctx, struct void_ _closure);
 struct fut_0* resolved_1(struct ctx* ctx, uint64_t value);
 int32_t main(int32_t argc, char** argv);
@@ -3462,7 +3459,7 @@ struct opt_6 try_alloc_uninitialized_1(struct ctx* ctx, uint64_t size) {
 }
 /* funs-count (generated) (generated) */
 uint64_t funs_count_93(void) {
-	return 418u;
+	return 417u;
 }
 /* code-ptrs-size nat() */
 uint64_t code_ptrs_size(struct ctx* ctx) {
@@ -4442,7 +4439,7 @@ uint8_t* get_fun_ptr_99(uint64_t fun_id) {switch (fun_id) {
 			return ((uint8_t*) noctx_must_remove_unordered_recur__e);
 		}
 		case 315: {
-			return ((uint8_t*) drop_0);
+			return ((uint8_t*) drop);
 		}
 		case 316: {
 			return ((uint8_t*) noctx_remove_unordered_at__e);
@@ -4739,15 +4736,12 @@ uint8_t* get_fun_ptr_99(uint64_t fun_id) {switch (fun_id) {
 			return ((uint8_t*) main_0__lambda1);
 		}
 		case 414: {
-			return ((uint8_t*) drop_1);
-		}
-		case 415: {
 			return ((uint8_t*) main_0__lambda2);
 		}
-		case 416: {
+		case 415: {
 			return ((uint8_t*) main_0__lambda3);
 		}
-		case 417: {
+		case 416: {
 			return ((uint8_t*) resolved_1);
 		}
 		default:
@@ -6009,10 +6003,7 @@ struct str get_fun_name_101(uint64_t fun_id) {switch (fun_id) {
 			return (struct str) {{12, constantarr_0_582}};
 		}
 		case 416: {
-			return (struct str) {{12, constantarr_0_583}};
-		}
-		case 417: {
-			return (struct str) {{13, constantarr_0_584}};
+			return (struct str) {{13, constantarr_0_583}};
 		}
 		default:
 			return (struct str) {(struct arr_0) {0, NULL}};
@@ -6298,9 +6289,9 @@ struct void_ forbid(struct ctx* ctx, uint8_t condition) {
 struct void_ set_subscript_2(char* a, uint64_t n, char value) {
 	return (*(a + n) = value, (struct void_) {});
 }
-/* ~=<char>.lambda0 void(it char) */
-struct void_ _concatEquals_1__lambda0(struct ctx* ctx, struct _concatEquals_1__lambda0* _closure, char it) {
-	return _concatEquals_2(ctx, _closure->a, it);
+/* ~=<char>.lambda0 void(x char) */
+struct void_ _concatEquals_1__lambda0(struct ctx* ctx, struct _concatEquals_1__lambda0* _closure, char x) {
+	return _concatEquals_2(ctx, _closure->a, x);
 }
 /* empty? bool(a str) */
 uint8_t empty__q_0(struct str a) {
@@ -6376,9 +6367,9 @@ struct arr_0 move_to_arr__e(struct mut_list_1* a) {
 struct global_ctx* get_global_ctx(struct ctx* ctx) {
 	return ((struct global_ctx*) ctx->gctx_ptr);
 }
-/* island.lambda0 void(it exception) */
-struct void_ island__lambda0(struct ctx* ctx, struct void_ _closure, struct exception it) {
-	return default_exception_handler(ctx, it);
+/* island.lambda0 void(exn exception) */
+struct void_ island__lambda0(struct ctx* ctx, struct void_ _closure, struct exception exn) {
+	return default_exception_handler(ctx, exn);
 }
 /* default-log-handler void(a logged) */
 struct void_ default_log_handler(struct ctx* ctx, struct logged* a) {
@@ -7279,9 +7270,9 @@ struct void_ subscript_10__lambda0__lambda0(struct ctx* ctx, struct subscript_10
 struct void_ reject__e(struct ctx* ctx, struct fut_0* f, struct exception e) {
 	return resolve_or_reject__e(ctx, f, (struct result_0) {1, .as1 = (struct err) {e}});
 }
-/* subscript<?out, ?in>.lambda0.lambda1 void(it exception) */
-struct void_ subscript_10__lambda0__lambda1(struct ctx* ctx, struct subscript_10__lambda0__lambda1* _closure, struct exception it) {
-	return reject__e(ctx, _closure->res, it);
+/* subscript<?out, ?in>.lambda0.lambda1 void(err exception) */
+struct void_ subscript_10__lambda0__lambda1(struct ctx* ctx, struct subscript_10__lambda0__lambda1* _closure, struct exception err) {
+	return reject__e(ctx, _closure->res, err);
 }
 /* subscript<?out, ?in>.lambda0 void() */
 struct void_ subscript_10__lambda0(struct ctx* ctx, struct subscript_10__lambda0* _closure) {
@@ -7354,9 +7345,9 @@ struct void_ subscript_15__lambda0__lambda0(struct ctx* ctx, struct subscript_15
 	struct fut_0* _0 = subscript_16(ctx, _closure->f.fun);
 	return forward_to__e(ctx, _0, _closure->res);
 }
-/* subscript<?out>.lambda0.lambda1 void(it exception) */
-struct void_ subscript_15__lambda0__lambda1(struct ctx* ctx, struct subscript_15__lambda0__lambda1* _closure, struct exception it) {
-	return reject__e(ctx, _closure->res, it);
+/* subscript<?out>.lambda0.lambda1 void(err exception) */
+struct void_ subscript_15__lambda0__lambda1(struct ctx* ctx, struct subscript_15__lambda0__lambda1* _closure, struct exception err) {
+	return reject__e(ctx, _closure->res, err);
 }
 /* subscript<?out>.lambda0 void() */
 struct void_ subscript_15__lambda0(struct ctx* ctx, struct subscript_15__lambda0* _closure) {
@@ -7584,9 +7575,9 @@ char* hard_unreachable_1(void) {
 	(abort(), (struct void_) {});
 	return NULL;
 }
-/* add-first-task.lambda0.lambda0 str(it ptr<char>) */
-struct str add_first_task__lambda0__lambda0(struct ctx* ctx, struct void_ _closure, char* it) {
-	return to_str_2(it);
+/* add-first-task.lambda0.lambda0 str(arg ptr<char>) */
+struct str add_first_task__lambda0__lambda0(struct ctx* ctx, struct void_ _closure, char* arg) {
+	return to_str_2(arg);
 }
 /* add-first-task.lambda0 fut<nat>() */
 struct fut_0* add_first_task__lambda0(struct ctx* ctx, struct add_first_task__lambda0* _closure) {
@@ -8366,7 +8357,7 @@ struct void_ noctx_must_remove_unordered_recur__e(struct mut_list_0* a, uint64_t
 		uint8_t _3 = (_2 == value);
 		if (_3) {
 			uint64_t _4 = noctx_remove_unordered_at__e(a, index);
-			return drop_0(_4);
+			return drop(_4);
 		} else {
 			a = a;
 			index = (index + 1u);
@@ -8376,7 +8367,7 @@ struct void_ noctx_must_remove_unordered_recur__e(struct mut_list_0* a, uint64_t
 	}
 }
 /* drop<?a> void(_ nat) */
-struct void_ drop_0(uint64_t _p0) {
+struct void_ drop(uint64_t _p0) {
 	return (struct void_) {};
 }
 /* noctx-remove-unordered-at!<?a> nat(a mut-list<nat>, index nat) */
@@ -9250,13 +9241,9 @@ struct void_ with_log_handler__lambda1(struct ctx* ctx, struct with_log_handler_
 struct void_ main_0__lambda1(struct ctx* ctx, struct void_ _closure) {
 	return log(ctx, (struct log_level) {1, .as1 = (struct warn) {}}, (struct str) {{12, constantarr_0_12}});
 }
-/* drop<logged> void(_ logged) */
-struct void_ drop_1(struct logged* _p0) {
+/* main.lambda2 void(ignore logged) */
+struct void_ main_0__lambda2(struct ctx* ctx, struct void_ _closure, struct logged* ignore) {
 	return (struct void_) {};
-}
-/* main.lambda2 void(it logged) */
-struct void_ main_0__lambda2(struct ctx* ctx, struct void_ _closure, struct logged* it) {
-	return drop_1(it);
 }
 /* main.lambda3 void() */
 struct void_ main_0__lambda3(struct ctx* ctx, struct void_ _closure) {

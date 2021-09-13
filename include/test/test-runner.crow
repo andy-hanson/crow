@@ -13,6 +13,6 @@ all-tests arr fun-ptr1<void, ctx>() builtin
 run-all-tests void() summon trusted
 	tests = all-tests
 	print: "Running {tests size} tests"
-	tests each \test
+	tests each test =>
 		test[get-ctx]
 	print: "done"

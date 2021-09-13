@@ -21,11 +21,11 @@ Temporarily replaces the log handler for this task.
 ###
 with-log-handler ?a(handler log-handler, cb act ?a())
 	original-handler = get-log-handler
-	action = as<act ?a()>: \
+	action = as<act ?a()>: () =>
 		log-handler := handler
 		res = cb[]
 		log-handler := original-handler
 		res
-	action catch \err
+	action catch err =>
 		log-handler := original-handler
 		err throw

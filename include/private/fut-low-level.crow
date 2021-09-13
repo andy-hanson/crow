@@ -19,7 +19,7 @@ reject! void(f fut ?a, e exception) unsafe
 	f resolve-or-reject! e.err
 
 resolve-or-reject! void(f fut ?a, result result<?a, exception>) unsafe
-	old-state = f.lk.ref-of-val with-lock \
+	old-state = f.lk.ref-of-val with-lock () =>
 		old = f.state
 		f.state := match result
 		as ok o
@@ -48,7 +48,7 @@ resolve-or-reject! void(f fut ?a, result result<?a, exception>) unsafe
 # TODO: PRIVATE
 # WARN: Calls the callback immediately if possible
 callback! void(f fut ?a, cb act void(result<?a, exception>)) unsafe
-	f.lk.ref-of-val with-lock \
+	f.lk.ref-of-val with-lock () =>
 		match f state
 		as fut-state-no-callbacks
 			f.state := fut-state-callbacks: cb, none

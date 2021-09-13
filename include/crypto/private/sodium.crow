@@ -12,6 +12,6 @@ import
 ensure-sodium-initialized void() trusted
 	gctx = get-global-ctx
 	# TODO: rename 'print-lock'. We just want a generic global lock for rare uses.
-	gctx.print-lock.ref-of-val with-lock \
+	gctx.print-lock.ref-of-val with-lock () =>
 		err = sodium_init
 		assert: err == 0 or err == 1

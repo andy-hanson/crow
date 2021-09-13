@@ -17,9 +17,9 @@ main fut nat(args arr str) unsafe summon
 			db-path = named-args[0] single-str-or-throw "db-path"
 			db-name = named-args[1] single-str-or-throw "db-name"
 			key = named-args[2] single-str-or-throw "key"
-			db-path with-env true.lmdb-open-options, \env
-				env with-db<void, str, str> db-name, \db
-					print: env with-read-transaction \txn
+			db-path with-env true.lmdb-open-options, env =>
+				env with-db<void, str, str> db-name, db =>
+					print: env with-read-transaction txn =>
 						txn get db, key or-default "none"
 		as set
 			named-args = args.tail parse-named-args ["db-path", "db-name", "key", "value"] force
@@ -27,17 +27,17 @@ main fut nat(args arr str) unsafe summon
 			db-name = named-args[1] single-str-or-throw "db-name"
 			key = named-args[2] single-str-or-throw "key"
 			value = named-args[3] single-str-or-throw "value"
-			db-path with-env true.lmdb-open-options, \env
-				env with-db<void, str, str> db-name, \db
-					env with-write-transaction \txn
+			db-path with-env true.lmdb-open-options, env =>
+				env with-db<void, str, str> db-name, db =>
+					env with-write-transaction txn =>
 						txn set db, key, value
 		as stat
 			named-args = args.tail parse-named-args ["db-path", "db-name"] force
 			db-path = named-args[0] single-str-or-throw "db-path"
 			db-name = named-args[1] single-str-or-throw "db-name"
-			db-path with-env true.lmdb-open-options, \env
-				env with-db<void, str, str> db-name, \db
-					print: env with-read-transaction \txn
+			db-path with-env true.lmdb-open-options, env =>
+				env with-db<void, str, str> db-name, db =>
+					print: env with-read-transaction txn =>
 						txn stat db to-str
 		0 resolved
 	else
@@ -63,7 +63,7 @@ main fut nat(args arr str) unsafe summon
 	elif a == "set"
 		set some
 	elif a == "stat"
-		stat
+		stat some
 
 .command union
 	get

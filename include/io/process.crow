@@ -50,7 +50,7 @@ The child process' stdout and stderr will be sent to the `process-result`,
 not to the parent's stdout and stderr.
 ###
 spawn-and-wait-result process-result(exe str, args arr str, environ environ) trusted summon
-	print: "spawn-and-wait-result: {exe}" fold args, \a, b
+	print: "spawn-and-wait-result: {exe}" fold args, (a, b) =>
 		"{a} {b}"
 
 	# TODO: kill, handle that error properly
@@ -75,7 +75,7 @@ spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
 		throw: "{exe} is not a file"
 
 .convert-args ptr c-str(exe-c-str c-str, args arr str)
-	begin-ptr: [exe-c-str] ~ (args map {it to-c-str}) ~ [null]
+	begin-ptr: [exe-c-str] ~ (args map x => x to-c-str) ~ [null]
 
 .spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
 	stdout-pipes = make-pipes

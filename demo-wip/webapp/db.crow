@@ -17,8 +17,8 @@ import
 
 main fut nat(_ arr str) unsafe summon
 	print: "Hello, world!"
-	db-path with-env true.lmdb-open-options, \env
-		env with-db \db
+	db-path with-env true.lmdb-open-options, env =>
+		env with-db db =>
 			if false
 				match db register-user! "alice", "swordfish"
 				as register-user-success s
@@ -36,10 +36,10 @@ main fut nat(_ arr str) unsafe summon
 			print: "{pi user-name} ({pi user}): {pi content}"
 
 			print: "users:"
-			db.list-users each \user
+			db.list-users each user =>
 				print: user.to-str
 			print: "posts:"
-			db.list-posts each \post
+			db.list-posts each post =>
 				print: post.to-str
 	0 resolved
 
@@ -71,7 +71,7 @@ user-cookie record
 
 parse-user-cookie opt user-cookie(a str)
 	if split ?= a try-split-once "|"
-		split.a.parse-nat opt-join split.b.parse-login-cookie, \user, inner
+		split.a.parse-nat opt-join split.b.parse-login-cookie, (user, inner) =>
 			user user-cookie inner
 
 to-str str(a user-cookie)
@@ -97,7 +97,7 @@ close-real-db void(db db) unsafe summon
 
 .with-db ?a(env lmdb-env, f act ?a(db)) trusted summon
 	db = env db-open
-	finally: {db db-close}, {f[db]}
+	(() => db db-close) finally () => f[db]
 
 .db-open db(env lmdb-env) unsafe summon
 	user-from-name = env open-db<str, user> "user-from-name"
@@ -116,17 +116,17 @@ close-real-db void(db db) unsafe summon
 	db.env close-db db.post-content
 
 list-users arr user-info(db db) summon
-	db.env with-read-transaction \txn
-		txn map db.user-name, \user, name
+	db.env with-read-transaction txn =>
+		txn map db.user-name, (user, name) =>
 			user-info: user, name
 
 user-name str(db db, user user) summon
-	db.env with-read-transaction \txn
+	db.env with-read-transaction txn =>
 		txn get db.user-name, user force
 
 list-posts arr post-info(db db) summon
-	db.env with-read-transaction \txn
-		txn zip db.post-user, db.post-content, \post, user, content
+	db.env with-read-transaction txn =>
+		txn zip db.post-user, db.post-content, (post, user, content) =>
 			user-name = txn get db.user-name, user force
 			post-info: post, user, user-name, content
 
@@ -152,7 +152,7 @@ user-already-exists record
 			true
 
 register-user! register-user-result(db db, user-name str, password str) summon
-	db.env with-abortable-write-transaction \txn
+	db.env with-abortable-write-transaction txn =>
 		new-user-id = txn count db.user-from-name
 		user-count-check = txn count db.user-name
 		assert: new-user-id == user-count-check
@@ -174,7 +174,7 @@ login! result<user-cookie, login-error>(db db, user-name str, password str) summ
 	if user-name.empty? or password.empty?
 		err: empty-name-or-password
 	else
-		db.env with-write-transaction \txn
+		db.env with-write-transaction txn =>
 			if user ?= db get-user txn, user-name
 				hash = txn get db.user-password-hash, user force
 				if password password-matches? hash not
@@ -186,14 +186,14 @@ login! result<user-cookie, login-error>(db db, user-name str, password str) summ
 				user-does-not-exist err
 
 .get-post-info post-info(db db, post post) summon
-	db.env with-read-transaction \txn
+	db.env with-read-transaction txn =>
 		user = txn get db.post-user, post force
 		user-name = txn get db.user-name, user force
 		content = txn get db.post-content, post force
 		post-info: post, user, user-name, content
 
 add-post! post(db db, cookie user-cookie, content str) summon
-	db.env with-write-transaction \txn
+	db.env with-write-transaction txn =>
 		user = db authenticate txn, cookie
 		post = txn count db.post-user
 		txn add db.post-user, post, user
@@ -223,8 +223,8 @@ cookie-expire-seconds nat()
 
 test
 	info log "GONNA TEST"
-	with-test-env: \env
-		env with-db \db
+	with-test-env: env =>
+		env with-db db =>
 			# TODO: way more tests
 
 			info log "A"

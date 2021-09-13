@@ -27,13 +27,13 @@ struct ParseDiag {
 	struct Expected {
 		enum Kind {
 			bodyKeyword,
-			closingBrace,
 			closingBracket,
 			closingParen,
 			comma,
 			endOfLine,
 			dedent,
 			indent,
+			lambdaArrow,
 			multiLineArrSeparator,
 			multiLineNewSeparator,
 			purity,

@@ -2536,8 +2536,8 @@ program(
 			lambda(~=, 0)
 			type(false, void)
 			some(param("<<closure>>", type(true, lambda(~=, 0))))
-			[param(it, type(false, char))]
-			expr-body(call(~=, [get-field(param-ref("<<closure>>"), a), param-ref(it)])))
+			[param(x, type(false, char))]
+			expr-body(call(~=, [get-field(param-ref("<<closure>>"), a), param-ref(x)])))
 		fun(false, chars, type(true, mut-list), none, [param(a, type(false, writer))], field-get(0))
 		fun(
 			false
@@ -2671,8 +2671,8 @@ program(
 			lambda(island, 0)
 			type(false, void)
 			some(param("<<closure>>", type(false, void)))
-			[param(it, type(false, exception))]
-			expr-body(call(default-exception-handler, [param-ref(it)])))
+			[param(exn, type(false, exception))]
+			expr-body(call(default-exception-handler, [param-ref(exn)])))
 		fun(
 			true
 			default-log-handler
@@ -4172,8 +4172,8 @@ program(
 			lambda(lambda(subscript, 0), 1)
 			type(false, void)
 			some(param("<<closure>>", type(true, lambda(lambda(subscript, 0), 1))))
-			[param(it, type(false, exception))]
-			expr-body(call(reject!, [get-field(param-ref("<<closure>>"), res), param-ref(it)])))
+			[param(err, type(false, exception))]
+			expr-body(call(reject!, [get-field(param-ref("<<closure>>"), res), param-ref(err)])))
 		fun(
 			true
 			lambda(subscript, 0)
@@ -4273,8 +4273,8 @@ program(
 			lambda(lambda(subscript, 0), 1)
 			type(false, void)
 			some(param("<<closure>>", type(true, lambda(lambda(subscript, 0), 1))))
-			[param(it, type(false, exception))]
-			expr-body(call(reject!, [get-field(param-ref("<<closure>>"), res), param-ref(it)])))
+			[param(err, type(false, exception))]
+			expr-body(call(reject!, [get-field(param-ref("<<closure>>"), res), param-ref(err)])))
 		fun(
 			true
 			lambda(subscript, 0)
@@ -4603,8 +4603,8 @@ program(
 			lambda(lambda(add-first-task, 0), 0)
 			type(false, str)
 			some(param("<<closure>>", type(false, void)))
-			[param(it, type(false, ptr))]
-			expr-body(call(to-str, [param-ref(it)])))
+			[param(arg, type(false, ptr))]
+			expr-body(call(to-str, [param-ref(arg)])))
 		fun(
 			true
 			lambda(add-first-task, 0)

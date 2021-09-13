@@ -4,7 +4,7 @@ import
 main fut nat(_ arr str) summon
 	print: "Hello world"
 
-	my-fun = as<ref void()>: \
+	my-fun = as<ref void()>: () =>
 		throw: "I am error"
 
 	my-fun[] handle-exceptions

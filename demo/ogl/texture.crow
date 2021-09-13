@@ -17,7 +17,7 @@ import
 
 # Remember to call 'free-texture'
 load-texture GLuint(path str) unsafe summon
-	path with-webp \image
+	path with-webp image =>
 		texture-cell = 0 cell<GLuint>
 		1 glGenTextures texture-cell.as-ptr
 		texture = texture-cell[]

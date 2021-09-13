@@ -82,7 +82,7 @@ Run `try` and return `ok` containing its return value,
 or `err` containing an exception if it threw one.
 ###
 catch result<?a, exception>(try act ?a())
-	{try[] ok} catch {it err}
+	(() => try[] ok) catch e => e err
 
 ###
 Run `try` and return what it returns, or return the result of `catcher` if `try` threw an exception.

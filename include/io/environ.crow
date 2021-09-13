@@ -41,7 +41,7 @@ get-environ environ() summon trusted
 # Get an environment string from environment variables.
 convert-environ ptr c-str(environ environ)
 	res = mut-list<c-str>
-	environ each \key, value
+	environ each (key, value) =>
 		res ~=: key ~ "=" ~ value to-c-str
 	res ~= null<char>
 	res.move-to-arr! begin-ptr

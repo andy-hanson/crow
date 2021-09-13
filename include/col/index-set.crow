@@ -36,7 +36,7 @@ empty? bool(a index-set)
 size nat(a index-set)
 	a.values count-ones-in-arr
 .count-ones-in-arr nat(a arr nat64)
-	0 fold a, \acc, x
+	0 fold a, (acc, x) =>
 		acc wrap-add x.count-ones
 
 # Total number of bytes used.
@@ -53,11 +53,10 @@ index-set index-set(a nat)
 	index-set: [a]
 
 index-set index-set(a arr nat)
-	index-set fold a, \acc, x
-		acc ~ x
+	index-set fold a, (acc, x) => acc ~ x
 
 arr arr nat(a index-set)
-	a map-to-arr {it}
+	a map-to-arr (it => it)
 
 subscript bool(a index-set, index nat)
 	nat-index = index word-index
@@ -77,7 +76,7 @@ try-add opt index-set(a index-set, index nat)
 			new-values = a.values update: nat-index, a.values[nat-index] add-bit bit-index
 			some: index-set: void, new-values
 	else
-		some: index-set: void, (nat-index wrap-add 1) make-arr \i
+		some: index-set: void, (nat-index wrap-add 1) make-arr i =>
 			if i < a.values.size
 				a.values[i]
 			elif i == nat-index
@@ -86,8 +85,7 @@ try-add opt index-set(a index-set, index nat)
 				0
 
 ~ index-set(a index-set, indices arr nat)
-	a fold indices, \cur, index
-		cur ~ index
+	a fold indices, (cur, index) => cur ~ index
 
 - index-set(a index-set, index nat)
 	a try-remove index or-default a
@@ -106,15 +104,15 @@ try-remove opt index-set(a index-set, index nat)
 			some: a.values update nat-index, new-value strip-trailing-zeroes
 
 ~ index-set(a index-set, b index-set)
-	index-set: void, a.values zip-larger b.values, \x, y
+	index-set: void, a.values zip-larger b.values, (x, y) =>
 		x or-default 0 bits-or: y or-default 0
 
 intersect index-set(a index-set, b index-set)
-	strip-trailing-zeroes: a.values zip-smaller b.values, \x, y
+	strip-trailing-zeroes: a.values zip-smaller b.values, (x, y) =>
 		x bits-and y
 
 - index-set(a index-set, b index-set)
-	strip-trailing-zeroes: a.values zip-larger b.values, \x, y
+	strip-trailing-zeroes: a.values zip-larger b.values, (x, y) =>
 		x or-default 0 bits-diff: y or-default 0
 
 .strip-trailing-zeroes index-set(a arr nat)
@@ -185,19 +183,18 @@ filter-less index-set(a index-set, n nat)
 region iteration
 
 each void(a index-set, f act void(nat))
-	void fold a, \ignore, x
-		f[x]
+	void fold a, (ignore, x) => f[x]
 
 fold ?a(acc ?a, a index-set, f act ?a(?a, nat))
-	acc fold-with-index a.values, \cur, value, nat-index
+	acc fold-with-index a.values, (cur, value, nat-index) =>
 		bit-index-offset = nat-index wrap-mul 64
-		cur fold-one-bits value, \inner-acc, bit-index
+		cur fold-one-bits value, (inner-acc, bit-index) =>
 			f[inner-acc, bit-index-offset wrap-add bit-index]
 
 filter index-set(a index-set, f act bool(nat))
-	strip-trailing-zeroes: a.values map-with-index \value, nat-index
+	strip-trailing-zeroes: a.values map-with-index (value, nat-index) =>
 		bit-index-offset = nat-index wrap-mul 64
-		value filter-bits \bit-index
+		value filter-bits bit-index =>
 			f[bit-index-offset wrap-add bit-index]
 
 map index-set(a index-set, f act nat(nat))
@@ -205,7 +202,7 @@ map index-set(a index-set, f act nat(nat))
 
 map-to-arr arr ?a(a index-set, f act ?a(nat)) trusted
 	res = a.size uninitialized-mut-arr<?a>
-	end = res.begin-ptr fold a, \cur, x
+	end = res.begin-ptr fold a, (cur, x) =>
 		cur[] := f[x]
 		cur + 1
 	assert: end ptr-eq? res.end-ptr
@@ -217,7 +214,7 @@ debug str(a index-set)
 	else
 		out = writer
 		out ~= "["
-		a each \index
+		a each index =>
 			out ~= index
 			out ~= ", "
 		out backup! 2
@@ -230,7 +227,7 @@ debug str(a index-set)
 	else
 		out = writer
 		out ~= "["
-		a.values each \value
+		a.values each value =>
 			out ~= "x"
 			out ~= value to-hex
 			out ~= ", "
@@ -242,8 +239,8 @@ debug str(a index-set)
 	a.dbg is expected
 	r = a arr
 	r is expected-arr
-	drop: 0 fold a, \prev, cur
-		prev -> cur each \x
+	drop: 0 fold a, (prev, cur) =>
+		prev -> cur each x =>
 			a[x] is false
 		a[cur] is true
 		cur wrap-add 1
@@ -274,14 +271,13 @@ test
 	d = c - 8
 	d verify "[x210]", [4, 9]
 
-	folded = 1 fold d, \cur, x
-		cur wrap-add x
+	folded = 1 fold d, (cur, x) => cur wrap-add x
 	folded is 14
 
-	filtered = c filter {it != 8}
+	filtered = c filter it => it != 8
 	filtered verify "[x210]", [4, 9]
 
-	mapped = c map {10 wrap-sub it}
+	mapped = c map it => 10 wrap-sub it
 	mapped verify "[x46]", [1, 2, 6]
 
 	info log "DONE WITH INDEX SET TEST"

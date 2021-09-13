@@ -49,7 +49,7 @@ set set ?a(a arr ?a) data<?a> compare<?a>
 	a.sort add-node none set index-set
 
 arr arr ?a(a set ?a) data<?a> compare<?a>
-	a map-to-arr {it}
+	a map-to-arr x => x
 
 deep-size-bytes nat(a set ?a) unsafe deep-size-bytes<?a>
 	a.remove.deep-size-bytes deep-size-bytes-recur a.add
@@ -310,8 +310,7 @@ body
 region iteration
 
 each void(a set ?a, f act void(?a)) data<?a> compare<?a>
-	void fold a, \ignore, x
-		f[x]
+	void fold a, (ignore, x) => f[x]
 
 fold ?a(acc ?a, a set ?b, f act ?a(?a, ?b)) data<?b> compare<?b>
 	acc fold-recur a.init-iters, a.remove, f
@@ -386,7 +385,7 @@ map set ?out(a set ?in, f act ?out(?in)) data<?out> compare<?out> data<?in> comp
 
 map-to-arr arr ?out(a set ?in, f act ?out(?in)) trusted data<?in> compare<?in>
 	out = a.size uninitialized-mut-arr<?out>
-	end = out.begin-ptr fold a, \cur, x
+	end = out.begin-ptr fold a, (cur, x) =>
 		cur[] := f[x]
 		cur + 1
 
@@ -399,7 +398,7 @@ dbg str(a set ?a) to-str<?a>
 	out dbg-add-recur! a.add
 	if a.remove.empty? not
 		out ~= " - ["
-		a.remove each \i
+		a.remove each i =>
 			out ~= i to-str
 			out ~= " "
 		out backup!
@@ -415,7 +414,7 @@ dbg str(a set ?a) to-str<?a>
 		out ~= "[]"
 	else
 		out ~= "["
-		a.values each \x
+		a.values each x =>
 			out ~= x to-str
 			out ~= " "
 		out backup!
@@ -453,13 +452,12 @@ test
 	d - "r" verify "[c o]"
 	d - "c" verify "[o r]"
 
-	folded = "w" fold d, \acc, x
-		"{acc}-{x}"
+	folded = "w" fold d, (acc, x) => "{acc}-{x}"
 	folded is "w-c-o-r"
 
 	# TODO: test filter
 
-	dm = d map<str, str> \x
+	dm = d map<str, str> x =>
 		if x == "c"
 			"sea"
 		elif x == "r"

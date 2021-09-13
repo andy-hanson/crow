@@ -41,7 +41,6 @@ import frontend.parse.ast :
 	InterpolatedAst,
 	InterpolatedPart,
 	LambdaAst,
-	LambdaSingleLineAst,
 	LetAst,
 	LiteralAst,
 	MatchAst,
@@ -115,7 +114,6 @@ import util.collection.arrUtil :
 	arrLiteral,
 	arrWithSizeLiteral,
 	exists,
-	findSome,
 	fillArr_mut,
 	map,
 	mapOrNone,
@@ -874,65 +872,6 @@ immutable(CheckedExpr) checkFunPtr(Alloc)(
 	return check(alloc, ctx, expected, immutable Type(structInst), expr);
 }
 
-immutable(CheckedExpr) checkLambdaSingleLine(Alloc)(
-	ref Alloc alloc,
-	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
-	ref immutable LambdaSingleLineAst ast,
-	ref Expected expected,
-) {
-	immutable Opt!Pos itPos = findIt(ast.body_);
-	return has(itPos)
-		? checkLambdaCommon(alloc, ctx, range, [immutable LambdaAst.Param(force(itPos), itSym)], ast.body_, expected)
-		: checkLambdaCommon(alloc, ctx, range, [], ast.body_, expected);
-}
-
-immutable Sym itSym = shortSymAlphaLiteral("it");
-
-immutable(Opt!Pos) findIt(ref immutable ExprAst a) {
-	// Since this is only used checking for 'it' in a braced lambda, any multi-line ast is unreachable
-	return matchExprAstKind!(immutable Opt!Pos)(
-		a.kind,
-		(ref immutable(BogusAst)) =>
-			none!Pos,
-		(ref immutable CallAst e) =>
-			findSome(toArr(e.args), (ref immutable ExprAst arg) => findIt(arg)),
-		(ref immutable CreateArrAst e) =>
-			findSome(toArr(e.args), (ref immutable ExprAst arg) => findIt(arg)),
-		(ref immutable(FunPtrAst)) =>
-			none!Pos,
-		(ref immutable IdentifierAst id) =>
-			symEq(id.name, itSym) ? some(a.range.start) : none!Pos,
-		(ref immutable(IfAst)) =>
-			unreachable!(immutable Opt!Pos),
-		(ref immutable(IfOptionAst)) =>
-			unreachable!(immutable Opt!Pos),
-		(ref immutable InterpolatedAst it) =>
-			findSome(it.parts, (ref immutable InterpolatedPart part) =>
-				matchInterpolatedPart!(immutable Opt!Pos)(
-					part,
-					(ref immutable string) => none!Pos,
-					(ref immutable ExprAst e) => findIt(e))),
-		(ref immutable(LambdaAst)) =>
-			none!Pos,
-		(ref immutable(LambdaSingleLineAst)) =>
-			none!Pos,
-		(ref immutable(LetAst)) =>
-			unreachable!(immutable Opt!Pos),
-		(ref immutable(LiteralAst)) =>
-			none!Pos,
-		(ref immutable(MatchAst)) =>
-			unreachable!(immutable Opt!Pos),
-		(ref immutable ParenthesizedAst it) =>
-			findIt(it.inner),
-		(ref immutable(SeqAst)) =>
-			unreachable!(immutable Opt!Pos),
-		(ref immutable(ThenAst)) =>
-			unreachable!(immutable Opt!Pos),
-		(ref immutable(ThenVoidAst)) =>
-			unreachable!(immutable Opt!Pos));
-}
-
 immutable(CheckedExpr) checkLambda(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
@@ -1202,8 +1141,6 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 			checkInterpolated(alloc, ctx, range, a, expected),
 		(ref immutable LambdaAst a) =>
 			checkLambda(alloc, ctx, range, a, expected),
-		(ref immutable LambdaSingleLineAst a) =>
-			checkLambdaSingleLine(alloc, ctx, range, a, expected),
 		(ref immutable LetAst a) =>
 			checkLet(alloc, ctx, range, a, expected),
 		(ref immutable LiteralAst a) =>

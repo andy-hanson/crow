@@ -53,13 +53,11 @@ size nat(a mut-grid ?a)
 	a.elements size
 
 fill-mut-grid mut-grid ?a(width nat, height nat, value ?a)
-	width make-mut-grid height, \ignore, ignore2
-		value
+	width make-mut-grid height, (ignore, ignore2) => value
 
 make-mut-grid mut-grid ?a(width nat, height nat, f act ?a(nat, nat)) trusted
 	res = (width * height).uninitialized-mut-arr mut-grid<?a> width, height
-	res map-with-coords! \ignore, coord
-		f[coord.x, coord.y]
+	res map-with-coords! (ignore, coord) => f[coord.x, coord.y]
 	res
 
 copy mut-grid ?a(a mut-grid ?a)
@@ -91,8 +89,8 @@ Represented with row 0 coming first.
 ###
 to-str str(a mut-grid ?a) write<?a>
 	res = writer
-	a each-row \row
-		row each \value
+	a each-row row =>
+		row each value =>
 			res ~= value
 			res ~= " "
 		if row.empty? not
@@ -105,12 +103,10 @@ to-str str(a mut-grid ?a) write<?a>
 region iteration
 
 each void(a mut-grid ?a, f act void(?a))
-	void fold a, \ignore, value
-		f[value]
+	void fold a, (ignore, value) => f[value]
 
 each-row void(a mut-grid ?a, f act void(mut-arr ?a))
-	void fold-rows a, \ignore, row
-		f[row]
+	void fold-rows a, (ignore, row) => f[row]
 
 fold-rows ?a(acc ?a, a mut-grid ?b, f act ?a(?a, mut-arr ?b))
 	acc fold-rows-recur a, 0, f
@@ -156,10 +152,8 @@ map-with-coords! void(a mut-grid ?a, f act ?a(?a, coord)) trusted
 test
 	info log "START THE TEST"
 
-	a = 3 make-mut-grid<str> 2, \x, y
-		"{x}|{y}"
+	a = 3 make-mut-grid<str> 2, (x, y) => "{x}|{y}"
 	a.to-str is "0|0 1|0 2|0\n0|1 1|1 2|1"
 
-	folded = "S" fold-with-coords a, \acc, value, coord
-		"{acc} {value}/{coord}"
+	folded = "S" fold-with-coords a, (acc, value, coord) => "{acc} {value}/{coord}"
 	folded is "S 0|0/<0, 0> 1|0/<1, 0> 2|0/<2, 0> 0|1/<0, 1> 1|1/<1, 1> 2|1/<2, 1>"

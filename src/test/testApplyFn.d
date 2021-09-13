@@ -1,6 +1,6 @@
 module test.testApplyFn;
 
-@safe @nogc nothrow: // not pure (DataStack uses globals)
+@safe @nogc nothrow: // not pure (DataStack constructor)
 
 import interpret.applyFn : applyFn;
 import interpret.bytecode : FnOp;
@@ -141,7 +141,7 @@ void testFn(Debug, Alloc)(
 	immutable FnOp fnOp,
 	scope immutable Nat64[] stackOut,
 ) {
-	DataStack dataStack;
+	DataStack dataStack = DataStack(true);
 	pushAll(dataStack, stackIn);
 	applyFn(test.dbg, dataStack, fnOp);
 	expectDataStack(test, dataStack, stackOut);

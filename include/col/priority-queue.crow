@@ -56,7 +56,7 @@ priority-queue priority-queue<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
 	if a empty?
 		priority-queue
 	else
-		sorted = a sort-by {it from}
+		sorted = a sort-by pair => pair from
 		priority-queue: void, some: node: sorted.first.force, sorted.tail, none
 
 empty? bool(a priority-queue<?k, ?v>) data<?k> compare<?k>
@@ -173,7 +173,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 	mid = compacted.begin-ptr compact-non-singles! nodes-to-compact
 	end = mid compact-singles! root
 	assert: end ptr-eq? compacted.end-ptr
-	compacted sort-by! {it from}
+	compacted sort-by! pair => pair from
 	arr = compacted cast-immutable
 	node: arr.first.force, arr.tail, none
 
@@ -192,7 +192,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 .compact-non-singles! ptr arrow<?k, ?v>(out ptr arrow<?k, ?v>, a opt node<?k, ?v>) unsafe
 	if node ?= a
 		out[] := node min
-		out2 = out + 1 fold node.pairs, \cur, x
+		out2 = out + 1 fold node.pairs, (cur, x) =>
 			cur[] := x
 			cur + 1
 		out2 compact-non-singles! node.next
@@ -212,7 +212,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 		out ~= node.min to
 		out ~= " ["
 		if node.pairs.empty? not
-			node.pairs each \pair
+			node.pairs each pair =>
 				out ~= pair from
 				out ~= " "
 				out ~= pair to
@@ -224,8 +224,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 region iteration
 
 each void(a priority-queue<?k, ?v>, f act void(?k, ?v)) data<?k> compare<?k>
-	void fold a, \ignore, k, v
-		f[k, v]
+	void fold a, (ignore, k, v) => f[k, v]
 
 fold ?a(acc ?a, a priority-queue<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare<?k>
 	acc walk-fold a.each-arr, f
@@ -238,7 +237,7 @@ fold ?a(acc ?a, a priority-queue<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare
 	res = a.node-count uninitialized-mut-arr<each-part<?k, ?v>>
 	end = res.begin-ptr fill-each-arr! a.root
 	assert: end ptr-eq? res.end-ptr
-	res sort-by! {it.min from}
+	res sort-by! it => it.min from
 	res
 
 .node-count nat(a priority-queue<?k, ?v>)
@@ -280,7 +279,7 @@ fold ?a(acc ?a, a priority-queue<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare
 
 filter priority-queue<?k, ?v>(a priority-queue<?k, ?v>, f act bool(?k, ?v)) trusted data<?k> compare<?k>
 	out = a.size uninitialized-mut-arr<arrow<?k, ?v>>
-	end = out.begin-ptr fold a, \cur, k, v
+	end = out.begin-ptr fold a, (cur, k, v) =>
 		if f[k, v]
 			cur[] := k -> v
 			cur + 1
@@ -301,7 +300,7 @@ body
 
 map-to-arr arr ?out(a priority-queue<?k, ?v>, f act ?out(?k, ?v)) data<?k> compare<?k> trusted
 	out = a.size uninitialized-mut-arr<?out>
-	end = out.begin-ptr fold a, \cur, k, v
+	end = out.begin-ptr fold a, (cur, k, v) =>
 		cur[] := f[k, v]
 		cur + 1
 	assert: end ptr-eq? out.end-ptr
@@ -309,12 +308,10 @@ map-to-arr arr ?out(a priority-queue<?k, ?v>, f act ?out(?k, ?v)) data<?k> compa
 	arr
 
 keys arr ?k(a priority-queue<?k, ?v>) data<?k> compare<?k>
-	a map-to-arr \k, v
-		k
+	a map-to-arr (k, v) => k
 
 values arr ?v(a priority-queue<?k, ?v>) data<?k> compare<?k>
-	a map-to-arr \k, v
-		v
+	a map-to-arr (k, v) => v
 
 test
 	p = priority-queue<nat, str>
@@ -353,27 +350,24 @@ test
 	p6pop = p6.pop force
 	p6pop.rest.dbg is "6 6b [6 6c, 7 7, 7 7b, 8 8]"
 
-	folded = "init" fold p6, \acc, k, v
-		"{acc}, {k} -> {v}"
+	folded = "init" fold p6, (acc, k, v) => "{acc}, {k} -> {v}"
 	folded is "init, 6 -> 6, 6 -> 6b, 6 -> 6c, 7 -> 7, 7 -> 7b, 8 -> 8"
 
-	p6-pairs = [6 -> "6", 6 -> "6b", 6 -> "6c", 7 -> "7", 7 -> "7b", 8 -> "8"] map {it pair}
-	filter-order = spy-act<bool, nat, str>: \k, v
-		k == 6
+	p6-pairs = [6 -> "6", 6 -> "6b", 6 -> "6c", 7 -> "7", 7 -> "7b", 8 -> "8"] map x => x pair
+	filter-order = spy-act<bool, nat, str>: (k, v) => k == 6
 	filtered = p6 filter filter-order.fn
 	filter-calls = filter-order calls
 	# TODO: filter-order.calls is p6-pairs
-	filter-calls map {it a} is: p6-pairs map {it a}
-	filter-calls map {it b} is: p6-pairs map {it b}
+	filter-calls map (x => x a) is: p6-pairs map x => x a
+	filter-calls map (x => x b) is: p6-pairs map x => x b
 	filtered.dbg is "6 6 [6 6b, 6 6c]"
 
-	map-order = spy-act<arrow<nat, str>, nat, str>: \k, v
-		(10 wrap-sub k) -> "{v}x"
+	map-order = spy-act<arrow<nat, str>, nat, str>: (k, v) => (10 wrap-sub k) -> "{v}x"
 	mapped = p6 map map-order.fn
 	map-calls = map-order calls
 	# TODO: map-order.calls is p6-pairs
-	map-calls map {it a} is: p6-pairs map {it a}
-	map-calls map {it b} is: p6-pairs map {it b}
+	map-calls map (x => x a) is: p6-pairs map x => x a
+	map-calls map (x => x b) is: p6-pairs map x => x b
 	mapped.dbg is "2 8x [3 7x, 3 7bx, 4 6x, 4 6bx, 4 6cx]"
 
 	p6.keys is [6, 6, 6, 7, 7, 8]

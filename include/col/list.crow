@@ -267,7 +267,7 @@ map list ?out(a list ?in, f act ?out(?in)) trusted
 		out map-recur prev, f
 	else
 		out
-	a.values each-with-index \value, index
+	a.values each-with-index (value, index) =>
 		next-out[index] := f[value]
 	next-out + a.values.size
 
@@ -313,7 +313,7 @@ first-some opt ?out(a list ?in, f act opt ?out(?in))
 	if a.values empty?
 		out ~= "]"
 	else
-		a.values each \x
+		a.values each x =>
 			out ~= x
 			out ~= " "
 		out backup!
@@ -352,16 +352,15 @@ test
 	e56.dbg is "[1 2 3 4] [5 6]"
 	(c ~ d).dbg is "[1 2 1 2 3]"
 
-	e2 = e map {it wrap-add 10}
+	e2 = e map it => it wrap-add 10
 	e2.dbg is "[11 12 13 14]"
 
-	e3 = e filter {it != 2}
+	e3 = e filter it => it != 2
 	e3.dbg is "[1 3 4]"
 
-	folded = 5 fold e, \x, y
-		x wrap-add y
+	folded = 5 fold e, (x, y) => x wrap-add y
 	folded is 15
 
 	# TODO: compiler crashes without a type argument here
-	(e first-some<str, nat> {it == 3 ? "three".some, none}) is "three".some
-	(e first-some<str, nat> {it == 5 ? "five".some, none}) is none
+	(e first-some<str, nat> it => it == 3 ? "three".some, none) is "three".some
+	(e first-some<str, nat> it => it == 5 ? "five".some, none) is none

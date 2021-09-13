@@ -1,6 +1,6 @@
 module test.testFakeExtern;
 
-@safe @nogc nothrow: // not pure
+@safe @nogc pure nothrow:
 
 import interpret.fakeExtern : FakeExtern, newFakeExtern;
 import test.testUtil : Test;

@@ -27,7 +27,7 @@ from-bytes str(a arr nat8) trusted
 	a.arr-cast str
 
 to-bytes arr nat8(a nat64)
-	a.to-8-bytes strip-left-while {it == 0}
+	a.to-8-bytes strip-left-while byte => byte == 0
 to-8-bytes arr nat8(a nat64) trusted
 	b0 = a bit-shift-right 0x00 bits-and 0xff unsafe-to-nat8
 	b1 = a bit-shift-right 0x08 bits-and 0xff unsafe-to-nat8
@@ -40,7 +40,7 @@ to-8-bytes arr nat8(a nat64) trusted
 	[b7, b6, b5, b4, b3, b2, b1, b0]
 from-bytes nat64(a arr nat8)
 	assert: a.size <= 8
-	0 fold a, \cur, x
+	0 fold a, (cur, x) =>
 		cur bit-shift-left 8 bits-or x.to-nat
 test
 	n = 0x0123456789abcdef

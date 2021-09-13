@@ -19,7 +19,6 @@ import frontend.parse.ast :
 	isCall,
 	isIdentifier,
 	LambdaAst,
-	LambdaSingleLineAst,
 	LetAst,
 	LiteralAst,
 	MatchAst,
@@ -35,11 +34,11 @@ import frontend.parse.lexer :
 	addDiagOnReservedName,
 	addDiagUnexpected,
 	backUp,
-	curChar,
 	curPos,
 	isOperatorChar,
 	isReservedName,
 	Lexer,
+	lookaheadWillTakeArrow,
 	next,
 	range,
 	Sign,
@@ -58,8 +57,8 @@ import frontend.parse.lexer :
 	tryTake;
 import frontend.parse.parseType : tryParseTypeArgsBracketed;
 import model.parseDiag : EqLikeKind, ParseDiag;
-import util.collection.arr : ArrWithSize, empty, emptyArrWithSize, toArr;
-import util.collection.arrUtil : append, arrWithSizeLiteral, prepend;
+import util.collection.arr : ArrWithSize, empty, emptyArr, emptyArrWithSize, toArr;
+import util.collection.arrUtil : append, arrLiteral, arrWithSizeLiteral, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, finishArr;
 import util.collection.str : CStr;
 import util.memory : allocate;
@@ -698,54 +697,73 @@ immutable(ExprAndDedent) takeIndentOrFail_ExprAndDedent(Alloc, SymAlloc)(
 			immutable ExprAndDedent(bogusExpr(range), nDedents));
 }
 
-immutable(ExprAndMaybeDedent) takeIndentOrFail_ExprAndMaybeDedent(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
-	immutable uint curIndent,
-	scope immutable(ExprAndMaybeDedent) delegate() @safe @nogc pure nothrow cbIndent,
-) {
-	return takeIndentOrFailGeneric!ExprAndMaybeDedent(
-		alloc,
-		lexer,
-		curIndent,
-		cbIndent,
-		(immutable RangeWithinFile range, immutable uint nDedents) =>
-			immutable ExprAndMaybeDedent(bogusExpr(range), some(nDedents)));
-}
-
-immutable(ExprAndMaybeDedent) parseLambda(Alloc, SymAlloc)(
+immutable(ExprAndMaybeDedent) parseLambdaWithParenthesizedParameters(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
-	immutable uint curIndent,
+	immutable AllowedBlock allowedBlock,
 ) {
-	ArrBuilder!(LambdaAst.Param) parameters;
-	bool isFirst = true;
-	while (curChar(lexer) != '\n') {
-		immutable bool success = () {
-			if (isFirst) {
-				isFirst = false;
-				return true;
-			} else
-				return tryTake(lexer, ", ");
-		}();
-		if (success)
-			add(alloc, parameters, takeNameAndRange(alloc, lexer));
-		else {
-			addDiagAtChar(alloc, lexer, immutable ParseDiag(
-				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.comma)));
-			skipUntilNewlineNoDiag(lexer);
-		}
+	immutable LambdaAst.Param[] parameters = parseParenthesizedLambdaParameters(alloc, lexer);
+	if (!tryTake(lexer, " =>"))
+		addDiagAtChar(alloc, lexer, immutable ParseDiag(
+			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.lambdaArrow)));
+	return parseLambdaAfterArrow(alloc, lexer, start, allowedBlock, parameters);
+}
+
+immutable(LambdaAst.Param[]) parseParenthesizedLambdaParameters(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+) {
+	if (tryTake(lexer, ')'))
+		return emptyArr!(LambdaAst.Param);
+	else {
+		ArrBuilder!(LambdaAst.Param) parameters;
+		return parseParenthesizedLambdaParametersRecur(alloc, lexer, parameters);
 	}
-	return takeIndentOrFail_ExprAndMaybeDedent(alloc, lexer, curIndent, () {
-		immutable ExprAndDedent bodyAndDedent = parseStatementsAndExtraDedents(alloc, lexer, curIndent + 1);
-		immutable LambdaAst lambda = immutable LambdaAst(
-			finishArr(alloc, parameters),
-			allocExpr(alloc, bodyAndDedent.expr));
-		return immutable ExprAndMaybeDedent(
-			immutable ExprAst(range(lexer, start), immutable ExprAstKind(lambda)),
-			some!uint(bodyAndDedent.dedents));
-	});
+}
+
+immutable(LambdaAst.Param[]) parseParenthesizedLambdaParametersRecur(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	ref ArrBuilder!(LambdaAst.Param) parameters,
+) {
+	immutable Pos start = curPos(lexer);
+	immutable Sym name = takeName(alloc, lexer);
+	add(alloc, parameters, immutable LambdaAst.Param(start, name));
+	if (tryTake(lexer, ", "))
+		return parseParenthesizedLambdaParametersRecur(alloc, lexer, parameters);
+	else {
+		if (!tryTake(lexer, ')'))
+			addDiagAtChar(alloc, lexer, immutable ParseDiag(
+				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.closingParen)));
+		return finishArr(alloc, parameters);
+	}
+}
+
+immutable(ExprAndMaybeDedent) parseLambdaAfterArrow(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable Pos start,
+	immutable AllowedBlock allowedBlock,
+	immutable LambdaAst.Param[] parameters,
+) {
+	immutable bool inLine = tryTake(lexer, ' ');
+	immutable ExprAndMaybeDedent body_ = () {
+		if (isAllowBlock(allowedBlock)) {
+			immutable uint curIndent = asAllowBlock(allowedBlock).curIndent;
+			return inLine
+				? toMaybeDedent(parseExprNoLet(alloc, lexer, curIndent))
+				: toMaybeDedent(takeIndentOrFail_ExprAndDedent(alloc, lexer, curIndent, () =>
+					parseStatementsAndExtraDedents(alloc, lexer, curIndent + 1)));
+		} else
+			return inLine
+				? noDedent(parseExprNoBlock(alloc, lexer))
+				: exprBlockNotAllowed(alloc, lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda);
+	}();
+	immutable LambdaAst lambda = immutable LambdaAst(parameters, allocExpr(alloc, body_.expr));
+	return immutable ExprAndMaybeDedent(
+		immutable ExprAst(range(lexer, start), immutable ExprAstKind(lambda)),
+		body_.dedents);
 }
 
 immutable(ExprAndMaybeDedent) skipRestOfLineAndReturnBogusNoDiag(SymAlloc)(
@@ -766,6 +784,19 @@ immutable(ExprAndMaybeDedent) skipRestOfLineAndReturnBogus(Alloc, SymAlloc)(
 	return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 }
 
+immutable(ExprAndMaybeDedent) exprBlockNotAllowed(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable Pos start,
+	immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind kind,
+) {
+	return skipRestOfLineAndReturnBogus(
+		alloc,
+		lexer,
+		start,
+		immutable ParseDiag(immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx(kind)));
+}
+
 immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
@@ -777,11 +808,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 	}
 
 	immutable(ExprAndMaybeDedent) blockNotAllowed(immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind kind) {
-		return skipRestOfLineAndReturnBogus(
-			alloc,
-			lexer,
-			start,
-			immutable ParseDiag(immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx(kind)));
+		return exprBlockNotAllowed(alloc, lexer, start, kind);
 	}
 
 	immutable(ExprAndMaybeDedent) handleLiteral(immutable LiteralAst literal) {
@@ -808,29 +835,22 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 	immutable char c = next(lexer);
 	switch (c) {
 		case '(':
-			immutable ExprAst inner = parseExprNoBlock(alloc, lexer);
-			takeOrAddDiagExpected(alloc, lexer, ')', ParseDiag.Expected.Kind.closingParen);
-			immutable ExprAst expr = immutable ExprAst(
-				getRange(),
-				immutable ExprAstKind(immutable ParenthesizedAst(allocate(alloc, inner))));
-			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
+			if (lookaheadWillTakeArrow(lexer)) {
+				return parseLambdaWithParenthesizedParameters(alloc, lexer, start, allowedBlock);
+			} else {
+				immutable ExprAst inner = parseExprNoBlock(alloc, lexer);
+				takeOrAddDiagExpected(alloc, lexer, ')', ParseDiag.Expected.Kind.closingParen);
+				immutable ExprAst expr = immutable ExprAst(
+					getRange(),
+					immutable ExprAstKind(immutable ParenthesizedAst(allocate(alloc, inner))));
+				return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
+			}
 		case '[':
 			immutable ArrWithSize!ExprAst args = parseSubscriptArgs(alloc, lexer);
 			immutable ExprAst expr = immutable ExprAst(
 				range(lexer, start),
 				immutable ExprAstKind(immutable CreateArrAst(args)));
 			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
-		case '{':
-			immutable Ptr!ExprAst body_ = allocExpr(alloc, parseExprNoBlock(alloc, lexer));
-			takeOrAddDiagExpected(alloc, lexer, '}', ParseDiag.Expected.Kind.closingBrace);
-			immutable ExprAst expr = immutable ExprAst(
-				getRange(),
-				immutable ExprAstKind(immutable LambdaSingleLineAst(body_)));
-			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
-		case '\\':
-			return isAllowBlock(allowedBlock)
-				? parseLambda(alloc, lexer, start, asAllowBlock(allowedBlock).curIndent)
-				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda);
 		case '&':
 			immutable Sym name = takeName(alloc, lexer);
 			return noDedent(immutable ExprAst(
@@ -871,6 +891,13 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 							addDiagOnReservedName(alloc, lexer, immutable NameAndRange(start, name));
 							return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 					}
+				else if (tryTake(lexer, " =>"))
+					return parseLambdaAfterArrow(
+						alloc,
+						lexer,
+						start,
+						allowedBlock,
+						arrLiteral!(LambdaAst.Param)(alloc, [immutable LambdaAst.Param(start, name)]));
 				else
 					return handleName(immutable NameAndRange(start, name));
 			} else if (isDigit(c)) {

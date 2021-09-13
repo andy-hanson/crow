@@ -9,5 +9,4 @@ main fut nat(_ arr str) summon
 	0 resolved
 
 make-cooker fun str(str)(type str)
-	\b
-		"{type} {b}"
+	b => "{type} {b}"

@@ -10,7 +10,7 @@ import
 
 lint result<str, arr failure>(path str, options test-options) summon
 	files = path list-lintable-files
-	failures = files flat-map-with-max-size options.max-failures, \file
+	failures = files flat-map-with-max-size options.max-failures, file =>
 		if options.print-tests?
 			print: "lint {file}"
 		file lint-file
@@ -21,7 +21,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 
 .list-lintable-files arr str(path str) summon
 	res = mut-list<str>
-	path each-child-recursive {not: it excluded-from-lint?}, \child
+	path each-child-recursive (child => child.excluded-from-lint? not), child =>
 		if child.base-name.ignore-extension-of-name? not
 			res ~= child
 	res move-to-arr!
@@ -29,7 +29,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 .excluded-from-lint? bool(name str)
 	exclude-exts = [".bmp", ".err", ".html", ".mdb", ".png", ".repr", ".svg", ".ttf", ".wasm", ".webp", ".xz"]
 	exclude-names = ["documentation", "dyncall", "libfirm", "node_modules", "package-lock.json"]
-	name starts-with? "." or: exclude-names contains? name or: exclude-exts exists? {name ends-with? it}
+	name starts-with? "." or: exclude-names contains? name or: exclude-exts exists? ext => name ends-with? ext
 
 # Returns numner of errors
 .lint-file arr failure(path str) summon
@@ -37,7 +37,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 	res = mut-list<failure>
 	ext = path.get-extension force
 	allow-double-space? = ext == "err" or: ext == "sublime-syntax"
-	text.lines each-with-index \line, line-num
+	text.lines each-with-index (line, line-num) =>
 		ln = line-num + 1 to-str
 		space-space = " " ~ " "
 		if allow-double-space?.not and: line has-substr? space-space
@@ -66,7 +66,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 .lines arr str(s str)
 	res = mut-list<str>
 	last-nl = 0 cell<nat>
-	s.chars each-with-index \c, index
+	s.chars each-with-index (c, index) =>
 		if c == "\n"
 			nl = last-nl swap index + 1
 			res ~= s.chars[nl -> index] str

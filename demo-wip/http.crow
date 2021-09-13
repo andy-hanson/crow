@@ -125,7 +125,7 @@ parse-uri opt uri(uri str)
 	host-and-port = host-and-port-split-path-and-query-and-hash before
 	path-and-query-and-hash = host-and-port-split-path-and-query-and-hash after
 
-	host-split-port = host-and-port try-split {it == ":"}
+	host-split-port = host-and-port try-split it => it == ":"
 	host = host-split-port before
 	port-str = host-split-port after
 	port = port-str.literal as<nat16>

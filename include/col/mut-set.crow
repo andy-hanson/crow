@@ -33,7 +33,7 @@ Copies the arr to a new mut-set.
 Result won't include any duplicated elements.
 ###
 mut-set mut-set ?a(a arr ?a) data<?a> compare<?a>
-	mut-set: void, a map {it -> void} mut-dict
+	mut-set: void, a map (x => x -> void) mut-dict
 
 # True iff the set has no elements.
 empty? bool(a mut-set ?a) data<?a> compare<?a>
@@ -60,7 +60,7 @@ Does nothing if the value is already in the set.
 
 # Adds multiple values to the set.
 ~= void(a mut-set ?a, values arr ?a) data<?a> compare<?a>
-	values each \value
+	values each value =>
 		a ~= value
 
 ###
@@ -73,7 +73,7 @@ remove! bool(a mut-set ?a, value ?a) data<?a> compare<?a>
 
 # Convert to an `arr`, clearing the original `mut-set` in the process.
 move-to-arr! arr ?a(a mut-set ?a) data<?a> compare<?a>
-	a.inner.move-to-arr! map {it from}
+	a.inner.move-to-arr! map pair => pair from
 
 # Convert to a `set`, clearning the original `mut-set` in the process.
 move-to-set! set ?a(a mut-set ?a) data<?a> compare<?a>
@@ -82,27 +82,21 @@ move-to-set! set ?a(a mut-set ?a) data<?a> compare<?a>
 region iteration
 
 each void(a mut-set ?a, f act void(?a)) data<?a> compare<?a>
-	a.inner each \k, v
-		f[k]
+	a.inner each (k, v) => f[k]
 
 fold ?a(acc ?a, a mut-set ?b, f act ?a(?a, ?b)) data<?b> compare<?b>
-	acc fold a.inner, \cur, k, v
-		f[cur, k]
+	acc fold a.inner, (cur, k, v) => f[cur, k]
 
 filter mut-set ?a(a mut-set ?a, f act bool(?a)) data<?a> compare<?a>
-	mut-set: void, a.inner filter \k, v
-		f[k]
+	mut-set: void, a.inner filter (k, v) => f[k]
 
 map mut-set ?out(a mut-set ?in, f act ?out(?in)) data<?in> compare<?in> data<?out> compare<?out>
-	mut-set: void, a.inner map \k, v
-		f[k] -> void
+	mut-set: void, a.inner map (k, v) => f[k] -> void
 
 region mutating iteration
 
 filter! void(a mut-set ?a, f act bool(?a)) data<?a> compare<?a>
-	a.inner filter! \k, v
-		f[k]
+	a.inner filter! (k, v) => f[k]
 
 map! void(a mut-set ?a, f act ?a(?a)) data<?a> compare<?a>
-	a.inner map! \k, v
-		f[k] -> void
+	a.inner map! (k, v) => f[k] -> void

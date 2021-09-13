@@ -252,6 +252,34 @@ contexts:
   expression:
     - match: '{{unindented_line}}'
       pop: true
+
+    # Lambda () =>
+    - match: '\(\) =>'
+      scope: comment
+    # Lambda x =>
+    - match: '{{name}} (=>)'
+      scope: entity.name.parameter
+      captures:
+          3: comment
+    # Lambda (x, y) =>
+    - match: '(\(){{name}}(,) {{name}}(\)) (=>)'
+      scope: entity.name.parameter
+      captures:
+          1: comment
+          4: comment
+          7: comment
+          8: comment
+    # Lambda (x, y, z) =>
+    - match: '(\(){{name}}(,) {{name}}(,) {{name}}(\)) (=>)'
+      scope: entity.name.parameter
+      captures:
+          1: comment
+          4: comment
+          7: comment
+          10: comment
+          11: comment
+    # TODO: Lambda (x, y, z, w) =>
+
     # Skip beginning-of-line indent
     - match: ^\s+
     # '<-' at beginning of line

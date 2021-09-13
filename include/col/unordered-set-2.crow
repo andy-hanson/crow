@@ -38,7 +38,7 @@ unordered-set unordered-set ?a() data<?a> compare<?a> hash-mix<?a>
 
 unordered-arr arr ?a(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
 	# TODO: If a has a single add node and no remove, just return that
-	a map-to-arr-unordered {it}
+	a map-to-arr-unordered x => x
 
 alloc-count nat(a unordered-set ?a) unsafe
 	a.remove.alloc-count alloc-count-recur a.add
@@ -94,8 +94,7 @@ subscript bool(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
 	a try-add value or-default a
 
 ~ unordered-set ?a(a unordered-set ?a, values arr ?a) data<?a> compare<?a> hash-mix<?a>
-	a fold values, \cur, value
-		cur ~ value
+	a fold values, (cur, value) => cur ~ value
 
 try-add opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
 	if index ?= a.add find-in-add value
@@ -202,7 +201,7 @@ fold-unordered ?a(acc ?a, a unordered-set ?b, f act ?a(?a, ?b)) data<?b> compare
 	acc fold-unordered-recur a.add, a.add.add-size-left, a.remove, f
 
 .fold-unordered-recur ?a(acc ?a, a add-node ?b, add-size-left nat, remove index-set, f act ?a(?a, ?b))
-	mid = acc fold-unordered-with-index a.here, \cur, x, index
+	mid = acc fold-unordered-with-index a.here, (cur, x, index) =>
 		if remove[add-size-left wrap-add index]
 			cur
 		else
@@ -216,7 +215,7 @@ fold-unordered ?a(acc ?a, a unordered-set ?b, f act ?a(?a, ?b)) data<?b> compare
 
 map-to-arr-unordered arr ?out(a unordered-set ?in, f act ?out(?in)) trusted data<?in> compare<?in> hash-mix<?in>
 	out = a.size uninitialized-mut-arr<?out>
-	end = out.begin-ptr fold-unordered a, \cur, x
+	end = out.begin-ptr fold-unordered a, (cur, x) =>
 		cur[] := f[x]
 		cur + 1
 	assert: end ptr-eq? out.end-ptr
@@ -227,7 +226,7 @@ map-to-arr-unordered arr ?out(a unordered-set ?in, f act ?out(?in)) trusted data
 	out dbg-add-recur! a.add
 	if a.remove.empty? not
 		out ~= " - ["
-		a.remove each \i
+		a.remove each i =>
 			out ~= i to-str
 			out ~= " "
 		out backup!
@@ -243,7 +242,7 @@ map-to-arr-unordered arr ?out(a unordered-set ?in, f act ?out(?in)) trusted data
 		out ~= "[]"
 	else
 		out ~= "["
-		a.here each-unordered \x
+		a.here each-unordered x =>
 			out ~= x to-str
 			out ~= " "
 		out backup!

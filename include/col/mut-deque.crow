@@ -141,7 +141,7 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 
 .dbg str(a mut-deque nat) trusted
 	out = writer
-	a.inner.begin-ptr arr-from-begin-end a.inner.end-ptr each-ptr \ptr
+	a.inner.begin-ptr arr-from-begin-end a.inner.end-ptr each-ptr ptr =>
 		if ptr ptr-eq? a.right
 			out ~= "<-R "
 		if ptr ptr-eq? a.left

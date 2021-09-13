@@ -35,13 +35,12 @@ stack stack ?a()
 
 # Copy an arr to a stack.
 stack stack ?a(a arr ?a)
-	stack<?a> fold a, \stack, x
-		stack ~ x
+	stack<?a> fold a, (stack, x) => stack ~ x
 
 # Copy a stack to an arr.
 arr arr ?a(a stack ?a) trusted
 	res = a.size uninitialized-mut-arr<?a>
-	begin = res.end-ptr fold-reverse a, \out, x
+	begin = res.end-ptr fold-reverse a, (out, x) =>
 		new-out = out - 1
 		new-out[] := x
 		new-out
@@ -50,7 +49,7 @@ arr arr ?a(a stack ?a) trusted
 
 arr-reverse arr ?a(a stack ?a) trusted
 	res = a.size uninitialized-mut-arr<?a>
-	end = res.begin-ptr fold-reverse a, \out, x
+	end = res.begin-ptr fold-reverse a, (out, x) =>
 		out[] := x
 		out + 1
 	assert: end ptr-eq? res.end-ptr
@@ -72,7 +71,7 @@ Number of elements in the stack.
 This is O(1).
 ###
 size nat(a stack ?a)
-	0 fold a, \acc, ignore
+	0 fold a, (acc, ignore) =>
 		drop: ignore
 		acc wrap-add 1
 
@@ -81,8 +80,7 @@ Oldest element.
 This is O(a size).
 ###
 first opt ?a(a stack ?a)
-	none fold-reverse a, \ignore, x
-		x some
+	none fold-reverse a, (ignore, x) => x some
 
 ###
 Most recently appended element.
@@ -201,15 +199,14 @@ test
 	d each-reverse each-spy.fn
 	each-spy.calls is [3, 2, 1]
 
-	d2 = d map {it wrap-add 10}
+	d2 = d map x => x wrap-add 10
 	d2.arr is [11, 12, 13]
 
-	d3 = d filter {it != 2}
+	d3 = d filter x => x != 2
 	d3.arr is [1, 3]
 
-	folded = 5 fold d, \x, y
-		x wrap-add y
+	folded = 5 fold d, (x, y) => x wrap-add y
 	folded is 11
 
-	(d first-some<str, nat> {it == 2 ? "two".some, none}) is "two".some
-	(d first-some<str, nat> {it == 5 ? "five".some, none}) is none
+	(d first-some<str, nat> x => x == 2 ? "two".some, none) is "two".some
+	(d first-some<str, nat> x => x == 5 ? "five".some, none) is none

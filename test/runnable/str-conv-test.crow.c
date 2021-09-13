@@ -2458,7 +2458,7 @@ uint64_t _times_0(struct ctx* ctx, uint64_t a, uint64_t b);
 uint64_t _divide(struct ctx* ctx, uint64_t a, uint64_t b);
 struct void_ forbid(struct ctx* ctx, uint8_t condition);
 struct void_ set_subscript_2(char* a, uint64_t n, char value);
-struct void_ _concatEquals_1__lambda0(struct ctx* ctx, struct _concatEquals_1__lambda0* _closure, char it);
+struct void_ _concatEquals_1__lambda0(struct ctx* ctx, struct _concatEquals_1__lambda0* _closure, char x);
 uint8_t empty__q_0(struct str a);
 uint8_t empty__q_1(struct arr_0 a);
 struct void_ each_1(struct ctx* ctx, struct arr_1 a, struct fun_act1_2 f);
@@ -2470,7 +2470,7 @@ struct void_ to_str_0__lambda0(struct ctx* ctx, struct to_str_0__lambda0* _closu
 struct str move_to_str__e(struct ctx* ctx, struct writer a);
 struct arr_0 move_to_arr__e(struct mut_list_1* a);
 struct global_ctx* get_global_ctx(struct ctx* ctx);
-struct void_ island__lambda0(struct ctx* ctx, struct void_ _closure, struct exception it);
+struct void_ island__lambda0(struct ctx* ctx, struct void_ _closure, struct exception exn);
 struct void_ default_log_handler(struct ctx* ctx, struct logged* a);
 struct void_ print(struct str a);
 struct void_ print_no_newline(struct str a);
@@ -2546,14 +2546,14 @@ struct fut_0* subscript_14(struct ctx* ctx, struct fun_act1_4 a, struct void_ p0
 struct fut_0* call_w_ctx_218(struct fun_act1_4 a, struct ctx* ctx, struct void_ p0);
 struct void_ subscript_10__lambda0__lambda0(struct ctx* ctx, struct subscript_10__lambda0__lambda0* _closure);
 struct void_ reject__e(struct ctx* ctx, struct fut_0* f, struct exception e);
-struct void_ subscript_10__lambda0__lambda1(struct ctx* ctx, struct subscript_10__lambda0__lambda1* _closure, struct exception it);
+struct void_ subscript_10__lambda0__lambda1(struct ctx* ctx, struct subscript_10__lambda0__lambda1* _closure, struct exception err);
 struct void_ subscript_10__lambda0(struct ctx* ctx, struct subscript_10__lambda0* _closure);
 struct void_ then__lambda0(struct ctx* ctx, struct then__lambda0* _closure, struct result_1 result);
 struct fut_0* subscript_15(struct ctx* ctx, struct fun_ref0 f);
 struct fut_0* subscript_16(struct ctx* ctx, struct fun_act0_1 a);
 struct fut_0* call_w_ctx_226(struct fun_act0_1 a, struct ctx* ctx);
 struct void_ subscript_15__lambda0__lambda0(struct ctx* ctx, struct subscript_15__lambda0__lambda0* _closure);
-struct void_ subscript_15__lambda0__lambda1(struct ctx* ctx, struct subscript_15__lambda0__lambda1* _closure, struct exception it);
+struct void_ subscript_15__lambda0__lambda1(struct ctx* ctx, struct subscript_15__lambda0__lambda1* _closure, struct exception err);
 struct void_ subscript_15__lambda0(struct ctx* ctx, struct subscript_15__lambda0* _closure);
 struct fut_0* then_void__lambda0(struct ctx* ctx, struct then_void__lambda0* _closure, struct void_ ignore);
 struct island_and_exclusion cur_island_and_exclusion(struct ctx* ctx);
@@ -2583,7 +2583,7 @@ char* find_cstr_end(char* a);
 struct opt_8 find_char_in_cstr(char* a, char c);
 uint8_t _equal_0(char a, char b);
 char* hard_unreachable_1(void);
-struct str add_first_task__lambda0__lambda0(struct ctx* ctx, struct void_ _closure, char* it);
+struct str add_first_task__lambda0__lambda0(struct ctx* ctx, struct void_ _closure, char* arg);
 struct fut_0* add_first_task__lambda0(struct ctx* ctx, struct add_first_task__lambda0* _closure);
 struct void_ handle_exceptions(struct ctx* ctx, struct fut_0* a);
 struct void_ subscript_22(struct ctx* ctx, struct fun1_0 a, struct exception p0);
@@ -2741,7 +2741,7 @@ char peek(struct ctx* ctx, struct reader* a);
 struct void_ drop_1(char _p0);
 char next__e(struct ctx* ctx, struct reader* a);
 uint64_t take_nat_recur__e(struct ctx* ctx, uint64_t acc, struct reader* a);
-struct opt_9 parse_nat__lambda0(struct ctx* ctx, struct void_ _closure, struct reader* it);
+struct opt_9 parse_nat__lambda0(struct ctx* ctx, struct void_ _closure, struct reader* r);
 uint8_t _equal_2(struct opt_10 a, struct opt_10 b);
 uint8_t opt_equal__q_1(struct opt_10 a, struct opt_10 b);
 uint8_t has__q_2(struct opt_10 a);
@@ -2761,7 +2761,7 @@ uint64_t to_nat(struct ctx* ctx, int64_t a);
 struct comparison _compare_1(int64_t a, int64_t b);
 uint8_t _less_1(int64_t a, int64_t b);
 int64_t max_int(void);
-struct opt_10 parse_int__lambda0(struct ctx* ctx, struct void_ _closure, struct reader* it);
+struct opt_10 parse_int__lambda0(struct ctx* ctx, struct void_ _closure, struct reader* r);
 struct str to_str_3(struct ctx* ctx, uint64_t a);
 struct str to_base(struct ctx* ctx, uint64_t a, uint64_t base);
 struct str digit_to_str(struct ctx* ctx, uint64_t a);
@@ -6611,9 +6611,9 @@ struct void_ forbid(struct ctx* ctx, uint8_t condition) {
 struct void_ set_subscript_2(char* a, uint64_t n, char value) {
 	return (*(a + n) = value, (struct void_) {});
 }
-/* ~=<char>.lambda0 void(it char) */
-struct void_ _concatEquals_1__lambda0(struct ctx* ctx, struct _concatEquals_1__lambda0* _closure, char it) {
-	return _concatEquals_2(ctx, _closure->a, it);
+/* ~=<char>.lambda0 void(x char) */
+struct void_ _concatEquals_1__lambda0(struct ctx* ctx, struct _concatEquals_1__lambda0* _closure, char x) {
+	return _concatEquals_2(ctx, _closure->a, x);
 }
 /* empty? bool(a str) */
 uint8_t empty__q_0(struct str a) {
@@ -6689,9 +6689,9 @@ struct arr_0 move_to_arr__e(struct mut_list_1* a) {
 struct global_ctx* get_global_ctx(struct ctx* ctx) {
 	return ((struct global_ctx*) ctx->gctx_ptr);
 }
-/* island.lambda0 void(it exception) */
-struct void_ island__lambda0(struct ctx* ctx, struct void_ _closure, struct exception it) {
-	return default_exception_handler(ctx, it);
+/* island.lambda0 void(exn exception) */
+struct void_ island__lambda0(struct ctx* ctx, struct void_ _closure, struct exception exn) {
+	return default_exception_handler(ctx, exn);
 }
 /* default-log-handler void(a logged) */
 struct void_ default_log_handler(struct ctx* ctx, struct logged* a) {
@@ -7572,9 +7572,9 @@ struct void_ subscript_10__lambda0__lambda0(struct ctx* ctx, struct subscript_10
 struct void_ reject__e(struct ctx* ctx, struct fut_0* f, struct exception e) {
 	return resolve_or_reject__e(ctx, f, (struct result_0) {1, .as1 = (struct err) {e}});
 }
-/* subscript<?out, ?in>.lambda0.lambda1 void(it exception) */
-struct void_ subscript_10__lambda0__lambda1(struct ctx* ctx, struct subscript_10__lambda0__lambda1* _closure, struct exception it) {
-	return reject__e(ctx, _closure->res, it);
+/* subscript<?out, ?in>.lambda0.lambda1 void(err exception) */
+struct void_ subscript_10__lambda0__lambda1(struct ctx* ctx, struct subscript_10__lambda0__lambda1* _closure, struct exception err) {
+	return reject__e(ctx, _closure->res, err);
 }
 /* subscript<?out, ?in>.lambda0 void() */
 struct void_ subscript_10__lambda0(struct ctx* ctx, struct subscript_10__lambda0* _closure) {
@@ -7647,9 +7647,9 @@ struct void_ subscript_15__lambda0__lambda0(struct ctx* ctx, struct subscript_15
 	struct fut_0* _0 = subscript_16(ctx, _closure->f.fun);
 	return forward_to__e(ctx, _0, _closure->res);
 }
-/* subscript<?out>.lambda0.lambda1 void(it exception) */
-struct void_ subscript_15__lambda0__lambda1(struct ctx* ctx, struct subscript_15__lambda0__lambda1* _closure, struct exception it) {
-	return reject__e(ctx, _closure->res, it);
+/* subscript<?out>.lambda0.lambda1 void(err exception) */
+struct void_ subscript_15__lambda0__lambda1(struct ctx* ctx, struct subscript_15__lambda0__lambda1* _closure, struct exception err) {
+	return reject__e(ctx, _closure->res, err);
 }
 /* subscript<?out>.lambda0 void() */
 struct void_ subscript_15__lambda0(struct ctx* ctx, struct subscript_15__lambda0* _closure) {
@@ -7877,9 +7877,9 @@ char* hard_unreachable_1(void) {
 	(abort(), (struct void_) {});
 	return NULL;
 }
-/* add-first-task.lambda0.lambda0 str(it ptr<char>) */
-struct str add_first_task__lambda0__lambda0(struct ctx* ctx, struct void_ _closure, char* it) {
-	return to_str_2(it);
+/* add-first-task.lambda0.lambda0 str(arg ptr<char>) */
+struct str add_first_task__lambda0__lambda0(struct ctx* ctx, struct void_ _closure, char* arg) {
+	return to_str_2(arg);
 }
 /* add-first-task.lambda0 fut<nat>() */
 struct fut_0* add_first_task__lambda0(struct ctx* ctx, struct add_first_task__lambda0* _closure) {
@@ -9659,9 +9659,9 @@ uint64_t take_nat_recur__e(struct ctx* ctx, uint64_t acc, struct reader* a) {
 		}
 	}
 }
-/* parse-nat.lambda0 opt<nat>(it reader) */
-struct opt_9 parse_nat__lambda0(struct ctx* ctx, struct void_ _closure, struct reader* it) {
-	return take_nat__e(ctx, it);
+/* parse-nat.lambda0 opt<nat>(r reader) */
+struct opt_9 parse_nat__lambda0(struct ctx* ctx, struct void_ _closure, struct reader* r) {
+	return take_nat__e(ctx, r);
 }
 /* == bool(a opt<int>, b opt<int>) */
 uint8_t _equal_2(struct opt_10 a, struct opt_10 b) {
@@ -9893,9 +9893,9 @@ uint8_t _less_1(int64_t a, int64_t b) {
 int64_t max_int(void) {
 	return 9223372036854775807;
 }
-/* parse-int.lambda0 opt<int>(it reader) */
-struct opt_10 parse_int__lambda0(struct ctx* ctx, struct void_ _closure, struct reader* it) {
-	return take_int__e(ctx, it);
+/* parse-int.lambda0 opt<int>(r reader) */
+struct opt_10 parse_int__lambda0(struct ctx* ctx, struct void_ _closure, struct reader* r) {
+	return take_int__e(ctx, r);
 }
 /* to-str str(a nat) */
 struct str to_str_3(struct ctx* ctx, uint64_t a) {

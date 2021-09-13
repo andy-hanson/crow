@@ -14,4 +14,4 @@ file-ast(
 						[
 							case(range(44, 57), name-range(47, some), none, literal(nat(0, false)))
 							case(range(57, 70), name-range(60, none), none, literal(nat(1, false)))]))
-				match(bogus, [])))])
+				match(lambda([], bogus), [])))])

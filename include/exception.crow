@@ -69,14 +69,14 @@ Unlike `finally` this does not run in the successful case.
 (The exception is only temporarily caught to run `after` and is then rethrown.)
 ###
 do-if-error ?a(on-error act void(), try act ?a())
-	try catch \err
+	try catch err =>
 		on-error[]
 		err throw
 
 to-str str(a exception)
 	res = writer
 	res ~= a.message.empty? ? "<<empty message>>", a.message
-	a.backtrace.return-stack each \x
+	a.backtrace.return-stack each x =>
 		res ~= "\n\tat "
 		res ~= x
 	res move-to-str!

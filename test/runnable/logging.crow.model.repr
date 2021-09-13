@@ -21,7 +21,7 @@ module(
 							fun-inst(name: as, type-args: [fun1(void(), logged())])
 							[
 								lambda(
-									[param(file-range(72, range(184, 190)), some(logged), logged())]
+									[param(file-range(72, range(183, 189)), some(logged), logged())]
 									seq(
 										call(
 											fun-inst(name: subscript, type-args: [void(), logged()])
@@ -54,8 +54,8 @@ module(
 									fun-inst(name: with-log-handler, type-args: [void()])
 									[
 										lambda(
-											[param(file-range(72, range(273, 275)), some(it), logged())]
-											call(fun-inst(name: drop, type-args: [logged()]), [param-ref(it)])
+											[param(file-range(72, range(279, 285)), some(ignore), logged())]
+											call(fun-inst(name: void), [])
 											[]
 											fun1(void(), logged())
 											plain
