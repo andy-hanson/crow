@@ -1128,11 +1128,7 @@ struct arr_6 {
 struct some_11 {
 	struct arr_6 value;
 };
-struct parsed_command {
-	struct arr_1 nameless;
-	struct dict_0* named;
-	struct arr_1 after;
-};
+struct parsed_command;
 struct dict_0;
 struct overlay_0;
 struct arrow_1 {
@@ -1263,17 +1259,8 @@ struct flat_map_with_max_size__lambda0 {
 	uint64_t max_size;
 	struct fun_act1_22 mapper;
 };
-struct run_crow_tests__lambda0 {
-	struct str path_to_crow;
-	struct dict_1* env;
-	struct test_options* options;
-};
-struct run_single_crow_test__lambda0 {
-	struct test_options* options;
-	struct str path;
-	struct str path_to_crow;
-	struct dict_1* env;
-};
+struct run_crow_tests__lambda0;
+struct run_single_crow_test__lambda0;
 struct process_result {
 	int32_t exit_code;
 	struct str stdout;
@@ -1302,18 +1289,8 @@ struct took_key_1;
 struct each_4__lambda0 {
 	struct fun_act2_11 f;
 };
-struct do_test__lambda0 {
-	struct str test_path;
-	struct str crow_exe;
-	struct dict_1* env;
-	struct test_options* options;
-};
-struct do_test__lambda0__lambda0 {
-	struct str test_path;
-	struct str crow_exe;
-	struct dict_1* env;
-	struct test_options* options;
-};
+struct do_test__lambda0;
+struct do_test__lambda0__lambda0;
 struct do_test__lambda1 {
 	struct str crow_path;
 	struct test_options* options;
@@ -1441,6 +1418,7 @@ struct chosen_task {
 	struct island* task_island;
 	struct task_or_gc task_or_gc;
 };
+struct parsed_command;
 struct dict_0 {
 	struct void_ ignore;
 	struct dict_impl_0 impl;
@@ -1476,6 +1454,17 @@ struct dirent {
 	char d_type;
 	struct bytes256 d_name;
 };
+struct run_crow_tests__lambda0 {
+	struct str path_to_crow;
+	struct dict_1 env;
+	struct test_options* options;
+};
+struct run_single_crow_test__lambda0 {
+	struct test_options* options;
+	struct str path;
+	struct str path_to_crow;
+	struct dict_1 env;
+};
 struct iters_1 {
 	struct arr_11 end_pairs;
 	struct mut_arr_12 overlays;
@@ -1483,6 +1472,18 @@ struct iters_1 {
 struct took_key_1 {
 	struct opt_13 rightmost_value;
 	struct mut_arr_12 overlays;
+};
+struct do_test__lambda0 {
+	struct str test_path;
+	struct str crow_exe;
+	struct dict_1 env;
+	struct test_options* options;
+};
+struct do_test__lambda0__lambda0 {
+	struct str test_path;
+	struct str crow_exe;
+	struct dict_1 env;
+	struct test_options* options;
 };
 struct fut_state_0 {
 	uint64_t kind;
@@ -1545,6 +1546,11 @@ struct fut_1 {
 struct resolve_or_reject__e__lambda0 {
 	struct fut_0* f;
 	struct result_0 result;
+};
+struct parsed_command {
+	struct arr_1 nameless;
+	struct dict_0 named;
+	struct arr_1 after;
 };
 struct global_ctx;
 struct island;
@@ -1791,7 +1797,7 @@ _Static_assert(sizeof(struct arr_6) == 16, "");
 _Static_assert(_Alignof(struct arr_6) == 8, "");
 _Static_assert(sizeof(struct some_11) == 16, "");
 _Static_assert(_Alignof(struct some_11) == 8, "");
-_Static_assert(sizeof(struct parsed_command) == 40, "");
+_Static_assert(sizeof(struct parsed_command) == 56, "");
 _Static_assert(_Alignof(struct parsed_command) == 8, "");
 _Static_assert(sizeof(struct dict_0) == 24, "");
 _Static_assert(_Alignof(struct dict_0) == 8, "");
@@ -1933,11 +1939,11 @@ _Static_assert(sizeof(struct _concatEquals_6__lambda0) == 8, "");
 _Static_assert(_Alignof(struct _concatEquals_6__lambda0) == 8, "");
 _Static_assert(sizeof(struct some_18) == 8, "");
 _Static_assert(_Alignof(struct some_18) == 8, "");
-_Static_assert(sizeof(struct run_crow_tests__lambda0) == 32, "");
+_Static_assert(sizeof(struct run_crow_tests__lambda0) == 48, "");
 _Static_assert(_Alignof(struct run_crow_tests__lambda0) == 8, "");
 _Static_assert(sizeof(struct some_19) == 16, "");
 _Static_assert(_Alignof(struct some_19) == 8, "");
-_Static_assert(sizeof(struct run_single_crow_test__lambda0) == 48, "");
+_Static_assert(sizeof(struct run_single_crow_test__lambda0) == 64, "");
 _Static_assert(_Alignof(struct run_single_crow_test__lambda0) == 8, "");
 _Static_assert(sizeof(struct print_test_result) == 24, "");
 _Static_assert(_Alignof(struct print_test_result) == 8, "");
@@ -1973,9 +1979,9 @@ _Static_assert(sizeof(struct each_4__lambda0) == 16, "");
 _Static_assert(_Alignof(struct each_4__lambda0) == 8, "");
 _Static_assert(sizeof(struct convert_environ__lambda0) == 8, "");
 _Static_assert(_Alignof(struct convert_environ__lambda0) == 8, "");
-_Static_assert(sizeof(struct do_test__lambda0) == 48, "");
+_Static_assert(sizeof(struct do_test__lambda0) == 64, "");
 _Static_assert(_Alignof(struct do_test__lambda0) == 8, "");
-_Static_assert(sizeof(struct do_test__lambda0__lambda0) == 48, "");
+_Static_assert(sizeof(struct do_test__lambda0__lambda0) == 64, "");
 _Static_assert(_Alignof(struct do_test__lambda0__lambda0) == 8, "");
 _Static_assert(sizeof(struct do_test__lambda1) == 24, "");
 _Static_assert(_Alignof(struct do_test__lambda1) == 8, "");
@@ -4854,7 +4860,7 @@ struct comparison _compare_2(char a, char b);
 struct comparison _compare_3(uint8_t a, uint8_t b);
 struct comparison arr_compare(struct arr_0 a, struct arr_0 b);
 struct comparison compare_recur(char* a, char* a_end, char* b, char* b_end);
-struct dict_0* dict_0(struct ctx* ctx, struct arr_8 a);
+struct dict_0 dict_0(struct ctx* ctx, struct arr_8 a);
 struct arr_8 sort_by_0(struct ctx* ctx, struct arr_8 a, struct fun_act1_9 f);
 struct arr_8 sort_0(struct ctx* ctx, struct arr_8 a, struct fun_act2_1 comparer);
 struct mut_arr_3 mut_arr_4(struct ctx* ctx, struct arr_8 a);
@@ -4888,7 +4894,7 @@ struct comparison sort_by_0__lambda0(struct ctx* ctx, struct sort_by_0__lambda0*
 struct str dict_0__lambda0(struct ctx* ctx, struct void_ _closure, struct arrow_2 pair);
 struct arr_1 subscript_31(struct ctx* ctx, struct arr_1 a, struct arrow_0 range);
 uint8_t parse_command_dynamic__lambda1(struct ctx* ctx, struct void_ _closure, struct str arg);
-struct dict_0* parse_named_args_1(struct ctx* ctx, struct arr_1 args);
+struct dict_0 parse_named_args_1(struct ctx* ctx, struct arr_1 args);
 struct mut_dict_0* mut_dict_0(struct ctx* ctx);
 struct mut_list_2* mut_list_1(struct ctx* ctx);
 struct mut_arr_4 mut_arr_6(void);
@@ -4976,7 +4982,7 @@ struct unique_comparison throw_4(struct ctx* ctx, struct str message);
 struct unique_comparison throw_5(struct ctx* ctx, struct exception e);
 struct unique_comparison hard_unreachable_3(void);
 struct unique_comparison compact__e_0__lambda1(struct ctx* ctx, struct void_ _closure, struct arrow_1 x, struct arrow_1 y);
-struct dict_0* move_to_dict__e_0(struct ctx* ctx, struct mut_dict_0* a);
+struct dict_0 move_to_dict__e_0(struct ctx* ctx, struct mut_dict_0* a);
 struct arr_8 move_to_arr__e_1(struct ctx* ctx, struct mut_dict_0* a);
 struct arr_8 map_to_arr_0(struct ctx* ctx, struct mut_dict_0* a, struct fun_act2_3 f);
 struct arr_8 map_to_arr_1(struct ctx* ctx, struct mut_list_2* a, struct fun_act1_13 f);
@@ -5009,9 +5015,9 @@ struct opt_10 subscript_41(struct ctx* ctx, struct fun_act1_14 a, uint64_t p0);
 struct opt_10 call_w_ctx_571(struct fun_act1_14 a, struct ctx* ctx, uint64_t p0);
 struct opt_10* begin_ptr_7(struct mut_arr_5 a);
 struct opt_10 fill_mut_arr__lambda0(struct ctx* ctx, struct fill_mut_arr__lambda0* _closure, uint64_t ignore);
-struct void_ each_2(struct ctx* ctx, struct dict_0* a, struct fun_act2_4 f);
-struct void_ fold_0(struct ctx* ctx, struct void_ acc, struct dict_0* a, struct fun_act3_0 f);
-struct iters_0* init_iters_0(struct ctx* ctx, struct dict_0* a);
+struct void_ each_2(struct ctx* ctx, struct dict_0 a, struct fun_act2_4 f);
+struct void_ fold_0(struct ctx* ctx, struct void_ acc, struct dict_0 a, struct fun_act3_0 f);
+struct iters_0* init_iters_0(struct ctx* ctx, struct dict_0 a);
 struct mut_arr_6 uninitialized_mut_arr_4(struct ctx* ctx, uint64_t size);
 struct mut_arr_6 mut_arr_9(uint64_t size, struct arr_7* begin_ptr);
 struct arr_7* alloc_uninitialized_5(struct ctx* ctx, uint64_t size);
@@ -5107,7 +5113,7 @@ char unsafe_at_8(struct arr_0 a, uint64_t index);
 char subscript_57(char* a, uint64_t n);
 uint8_t r_index_of__lambda0(struct ctx* ctx, struct r_index_of__lambda0* _closure, char it);
 struct str child_path(struct ctx* ctx, struct str a, struct str child_name);
-struct dict_1* get_environ(struct ctx* ctx);
+struct dict_1 get_environ(struct ctx* ctx);
 struct mut_dict_1* mut_dict_1(struct ctx* ctx);
 struct mut_list_4* mut_list_2(struct ctx* ctx);
 struct mut_arr_7 mut_arr_11(void);
@@ -5182,8 +5188,8 @@ struct void_ empty__e_2(struct ctx* ctx, struct mut_list_4* a);
 struct void_ pop_n__e_1(struct ctx* ctx, struct mut_list_4* a, uint64_t n);
 struct unique_comparison compact__e_1__lambda1(struct ctx* ctx, struct void_ _closure, struct arrow_3 x, struct arrow_3 y);
 extern char** environ;
-struct dict_1* move_to_dict__e_1(struct ctx* ctx, struct mut_dict_1* a);
-struct dict_1* dict_1(struct ctx* ctx, struct arr_11 a);
+struct dict_1 move_to_dict__e_1(struct ctx* ctx, struct mut_dict_1* a);
+struct dict_1 dict_1(struct ctx* ctx, struct arr_11 a);
 struct arr_11 sort_by_1(struct ctx* ctx, struct arr_11 a, struct fun_act1_19 f);
 struct arr_11 sort_1(struct ctx* ctx, struct arr_11 a, struct fun_act2_7 comparer);
 struct mut_arr_8 mut_arr_13(struct ctx* ctx, struct arr_11 a);
@@ -5229,7 +5235,7 @@ struct void_ empty__e_3(struct ctx* ctx, struct mut_dict_1* a);
 struct result_2 first_failures(struct ctx* ctx, struct result_2 a, struct fun0 b);
 struct result_2 subscript_72(struct ctx* ctx, struct fun0 a);
 struct result_2 call_w_ctx_793(struct fun0 a, struct ctx* ctx);
-struct result_2 run_crow_tests(struct ctx* ctx, struct str path, struct str path_to_crow, struct dict_1* env, struct test_options* options);
+struct result_2 run_crow_tests(struct ctx* ctx, struct str path, struct str path_to_crow, struct dict_1 env, struct test_options* options);
 struct arr_1 list_tests(struct ctx* ctx, struct str path, struct str match_test);
 struct mut_list_5* mut_list_3(struct ctx* ctx);
 struct mut_arr_9 mut_arr_15(void);
@@ -5343,14 +5349,14 @@ struct failure* subscript_80(struct failure** a, uint64_t n);
 struct void_ set_subscript_17(struct ctx* ctx, struct mut_list_6* a, uint64_t index, struct failure* value);
 struct void_ flat_map_with_max_size__lambda0(struct ctx* ctx, struct flat_map_with_max_size__lambda0* _closure, struct str x);
 struct arr_12 move_to_arr__e_5(struct mut_list_6* a);
-struct arr_12 run_single_crow_test(struct ctx* ctx, struct str path_to_crow, struct dict_1* env, struct str path, struct test_options* options);
+struct arr_12 run_single_crow_test(struct ctx* ctx, struct str path_to_crow, struct dict_1 env, struct str path, struct test_options* options);
 struct opt_19 first_some(struct ctx* ctx, struct arr_1 a, struct fun_act1_24 f);
 struct opt_19 subscript_81(struct ctx* ctx, struct fun_act1_24 a, struct str p0);
 struct opt_19 call_w_ctx_911(struct fun_act1_24 a, struct ctx* ctx, struct str p0);
 uint8_t has__q_4(struct opt_19 a);
 uint8_t empty__q_19(struct opt_19 a);
-struct print_test_result* run_print_test(struct ctx* ctx, struct str print_kind, struct str path_to_crow, struct dict_1* env, struct str path, uint8_t overwrite_output__q);
-struct process_result* spawn_and_wait_result_0(struct ctx* ctx, struct str exe, struct arr_1 args, struct dict_1* environ);
+struct print_test_result* run_print_test(struct ctx* ctx, struct str print_kind, struct str path_to_crow, struct dict_1 env, struct str path, uint8_t overwrite_output__q);
+struct process_result* spawn_and_wait_result_0(struct ctx* ctx, struct str exe, struct arr_1 args, struct dict_1 environ);
 struct str fold_3(struct ctx* ctx, struct str acc, struct arr_1 a, struct fun_act2_10 f);
 struct str fold_recur_2(struct ctx* ctx, struct str acc, struct str* cur, struct str* end, struct fun_act2_10 f);
 struct str subscript_82(struct ctx* ctx, struct fun_act2_10 a, struct str p0, struct str p1);
@@ -5432,12 +5438,12 @@ char* subscript_84(struct ctx* ctx, struct fun_act1_25 a, struct str p0);
 char* call_w_ctx_994(struct fun_act1_25 a, struct ctx* ctx, struct str p0);
 char* map_1__lambda0(struct ctx* ctx, struct map_1__lambda0* _closure, uint64_t i);
 char* convert_args__lambda0(struct ctx* ctx, struct void_ _closure, struct str x);
-char** convert_environ(struct ctx* ctx, struct dict_1* environ);
+char** convert_environ(struct ctx* ctx, struct dict_1 environ);
 struct mut_list_7* mut_list_5(struct ctx* ctx);
 struct mut_arr_11 mut_arr_20(void);
-struct void_ each_4(struct ctx* ctx, struct dict_1* a, struct fun_act2_11 f);
-struct void_ fold_4(struct ctx* ctx, struct void_ acc, struct dict_1* a, struct fun_act3_1 f);
-struct iters_1* init_iters_1(struct ctx* ctx, struct dict_1* a);
+struct void_ each_4(struct ctx* ctx, struct dict_1 a, struct fun_act2_11 f);
+struct void_ fold_4(struct ctx* ctx, struct void_ acc, struct dict_1 a, struct fun_act3_1 f);
+struct iters_1* init_iters_1(struct ctx* ctx, struct dict_1 a);
 struct mut_arr_12 uninitialized_mut_arr_9(struct ctx* ctx, uint64_t size);
 struct mut_arr_12 mut_arr_21(uint64_t size, struct arr_10* begin_ptr);
 struct arr_10* alloc_uninitialized_10(struct ctx* ctx, uint64_t size);
@@ -5527,7 +5533,7 @@ struct void_ _concatEquals_9(struct ctx* ctx, struct writer a, char b);
 struct arr_0 tail_8(struct ctx* ctx, struct arr_0 a);
 struct void_ remove_colors_recur_2__e(struct ctx* ctx, struct str s, struct writer out);
 struct opt_19 run_single_crow_test__lambda0(struct ctx* ctx, struct run_single_crow_test__lambda0* _closure, struct str print_kind);
-struct arr_12 run_single_runnable_test(struct ctx* ctx, struct str path_to_crow, struct dict_1* env, struct str path, uint8_t interpret__q, uint8_t overwrite_output__q);
+struct arr_12 run_single_runnable_test(struct ctx* ctx, struct str path_to_crow, struct dict_1 env, struct str path, uint8_t interpret__q, uint8_t overwrite_output__q);
 struct arr_12 _concat_3(struct ctx* ctx, struct arr_12 a, struct arr_12 b);
 struct arr_12 run_crow_tests__lambda0(struct ctx* ctx, struct run_crow_tests__lambda0* _closure, struct str test);
 uint8_t has__q_5(struct arr_12 a);
@@ -16516,7 +16522,7 @@ struct parsed_command* parse_command_dynamic(struct ctx* ctx, struct arr_1 args)
 			uint8_t* _1 = alloc(ctx, sizeof(struct parsed_command));
 			temp0 = ((struct parsed_command*) _1);
 			
-			struct dict_0* _2 = dict_0(ctx, (struct arr_8) {0u, NULL});
+			struct dict_0 _2 = dict_0(ctx, (struct arr_8) {0u, NULL});
 			*temp0 = (struct parsed_command) {args, _2, (struct arr_1) {0u, NULL}};
 			return temp0;
 		}
@@ -16541,7 +16547,7 @@ struct parsed_command* parse_command_dynamic(struct ctx* ctx, struct arr_1 args)
 					uint8_t* _6 = alloc(ctx, sizeof(struct parsed_command));
 					temp1 = ((struct parsed_command*) _6);
 					
-					struct dict_0* _7 = parse_named_args_1(ctx, rest3);
+					struct dict_0 _7 = parse_named_args_1(ctx, rest3);
 					*temp1 = (struct parsed_command) {nameless2, _7, (struct arr_1) {0u, NULL}};
 					return temp1;
 				}
@@ -16551,7 +16557,7 @@ struct parsed_command* parse_command_dynamic(struct ctx* ctx, struct arr_1 args)
 					uint64_t sep_index5;
 					sep_index5 = _matched4.value;
 					
-					struct dict_0* named_args6;
+					struct dict_0 named_args6;
 					struct arrow_0 _8 = _arrow_0(ctx, 0u, sep_index5);
 					struct arr_1 _9 = subscript_31(ctx, rest3, _8);
 					named_args6 = parse_named_args_1(ctx, _9);
@@ -16777,14 +16783,9 @@ struct comparison compare_recur(char* a, char* a_end, char* b, char* b_end) {
 	}
 }
 /* dict<str, arr<str>> dict<str, arr<str>>(a arr<arrow<str, arr<str>>>) */
-struct dict_0* dict_0(struct ctx* ctx, struct arr_8 a) {
-	struct dict_0* temp0;
-	uint8_t* _0 = alloc(ctx, sizeof(struct dict_0));
-	temp0 = ((struct dict_0*) _0);
-	
-	struct arr_8 _1 = sort_by_0(ctx, a, (struct fun_act1_9) {0, .as0 = (struct void_) {}});
-	*temp0 = (struct dict_0) {(struct void_) {}, (struct dict_impl_0) {1, .as1 = (struct end_node_0) {_1}}};
-	return temp0;
+struct dict_0 dict_0(struct ctx* ctx, struct arr_8 a) {
+	struct arr_8 _0 = sort_by_0(ctx, a, (struct fun_act1_9) {0, .as0 = (struct void_) {}});
+	return (struct dict_0) {(struct void_) {}, (struct dict_impl_0) {1, .as1 = (struct end_node_0) {_0}}};
 }
 /* sort-by<arrow<?k, ?v>, ?k> arr<arrow<str, arr<str>>>(a arr<arrow<str, arr<str>>>, f fun-act1<str, arrow<str, arr<str>>>) */
 struct arr_8 sort_by_0(struct ctx* ctx, struct arr_8 a, struct fun_act1_9 f) {
@@ -17095,7 +17096,7 @@ uint8_t parse_command_dynamic__lambda1(struct ctx* ctx, struct void_ _closure, s
 	return _equal_2(arg, (struct str) {{2, constantarr_0_15}});
 }
 /* parse-named-args dict<str, arr<str>>(args arr<str>) */
-struct dict_0* parse_named_args_1(struct ctx* ctx, struct arr_1 args) {
+struct dict_0 parse_named_args_1(struct ctx* ctx, struct arr_1 args) {
 	struct mut_dict_0* res0;
 	res0 = mut_dict_0(ctx);
 	
@@ -18096,7 +18097,7 @@ struct unique_comparison compact__e_0__lambda1(struct ctx* ctx, struct void_ _cl
 	return assert_comparison_not_equal(ctx, _0);
 }
 /* move-to-dict!<str, arr<str>> dict<str, arr<str>>(a mut-dict<str, arr<str>>) */
-struct dict_0* move_to_dict__e_0(struct ctx* ctx, struct mut_dict_0* a) {
+struct dict_0 move_to_dict__e_0(struct ctx* ctx, struct mut_dict_0* a) {
 	struct arr_8 _0 = move_to_arr__e_1(ctx, a);
 	return dict_0(ctx, _0);
 }
@@ -18341,7 +18342,7 @@ struct opt_10 fill_mut_arr__lambda0(struct ctx* ctx, struct fill_mut_arr__lambda
 	return _closure->value;
 }
 /* each<str, arr<str>> void(a dict<str, arr<str>>, f fun-act2<void, str, arr<str>>) */
-struct void_ each_2(struct ctx* ctx, struct dict_0* a, struct fun_act2_4 f) {
+struct void_ each_2(struct ctx* ctx, struct dict_0 a, struct fun_act2_4 f) {
 	struct each_2__lambda0* temp0;
 	uint8_t* _0 = alloc(ctx, sizeof(struct each_2__lambda0));
 	temp0 = ((struct each_2__lambda0*) _0);
@@ -18350,21 +18351,21 @@ struct void_ each_2(struct ctx* ctx, struct dict_0* a, struct fun_act2_4 f) {
 	return fold_0(ctx, (struct void_) {}, a, (struct fun_act3_0) {0, .as0 = temp0});
 }
 /* fold<void, ?k, ?v> void(acc void, a dict<str, arr<str>>, f fun-act3<void, void, str, arr<str>>) */
-struct void_ fold_0(struct ctx* ctx, struct void_ acc, struct dict_0* a, struct fun_act3_0 f) {
+struct void_ fold_0(struct ctx* ctx, struct void_ acc, struct dict_0 a, struct fun_act3_0 f) {
 	struct iters_0* iters0;
 	iters0 = init_iters_0(ctx, a);
 	
 	return fold_recur_0(ctx, acc, iters0->end_pairs, iters0->overlays, f);
 }
 /* init-iters<?k, ?v> iters<str, arr<str>>(a dict<str, arr<str>>) */
-struct iters_0* init_iters_0(struct ctx* ctx, struct dict_0* a) {
+struct iters_0* init_iters_0(struct ctx* ctx, struct dict_0 a) {
 	struct mut_arr_6 overlay_iters0;
-	uint64_t _0 = overlay_count_0(ctx, 0u, a->impl);
+	uint64_t _0 = overlay_count_0(ctx, 0u, a.impl);
 	overlay_iters0 = uninitialized_mut_arr_4(ctx, _0);
 	
 	struct arr_8 end_pairs1;
 	struct arr_7* _1 = begin_ptr_8(overlay_iters0);
-	end_pairs1 = init_overlay_iters_recur__e_0(ctx, _1, a->impl);
+	end_pairs1 = init_overlay_iters_recur__e_0(ctx, _1, a.impl);
 	
 	struct iters_0* temp0;
 	uint8_t* _2 = alloc(ctx, sizeof(struct iters_0));
@@ -19253,7 +19254,7 @@ uint64_t do_test(struct ctx* ctx, struct test_options* options) {
 	struct str _0 = child_path(ctx, crow_path0, (struct str) {{3, constantarr_0_27}});
 	crow_exe1 = child_path(ctx, _0, (struct str) {{4, constantarr_0_28}});
 	
-	struct dict_1* env2;
+	struct dict_1 env2;
 	env2 = get_environ(ctx);
 	
 	struct result_2 crow_failures3;
@@ -19383,7 +19384,7 @@ struct str child_path(struct ctx* ctx, struct str a, struct str child_name) {
 	return finish(ctx, _3);
 }
 /* get-environ dict<str, str>() */
-struct dict_1* get_environ(struct ctx* ctx) {
+struct dict_1 get_environ(struct ctx* ctx) {
 	struct mut_dict_1* res0;
 	res0 = mut_dict_1(ctx);
 	
@@ -20249,19 +20250,14 @@ struct unique_comparison compact__e_1__lambda1(struct ctx* ctx, struct void_ _cl
 	return assert_comparison_not_equal(ctx, _0);
 }
 /* move-to-dict!<str, str> dict<str, str>(a mut-dict<str, str>) */
-struct dict_1* move_to_dict__e_1(struct ctx* ctx, struct mut_dict_1* a) {
+struct dict_1 move_to_dict__e_1(struct ctx* ctx, struct mut_dict_1* a) {
 	struct arr_11 _0 = move_to_arr__e_3(ctx, a);
 	return dict_1(ctx, _0);
 }
 /* dict<?k, ?v> dict<str, str>(a arr<arrow<str, str>>) */
-struct dict_1* dict_1(struct ctx* ctx, struct arr_11 a) {
-	struct dict_1* temp0;
-	uint8_t* _0 = alloc(ctx, sizeof(struct dict_1));
-	temp0 = ((struct dict_1*) _0);
-	
-	struct arr_11 _1 = sort_by_1(ctx, a, (struct fun_act1_19) {0, .as0 = (struct void_) {}});
-	*temp0 = (struct dict_1) {(struct void_) {}, (struct dict_impl_1) {1, .as1 = (struct end_node_1) {_1}}};
-	return temp0;
+struct dict_1 dict_1(struct ctx* ctx, struct arr_11 a) {
+	struct arr_11 _0 = sort_by_1(ctx, a, (struct fun_act1_19) {0, .as0 = (struct void_) {}});
+	return (struct dict_1) {(struct void_) {}, (struct dict_impl_1) {1, .as1 = (struct end_node_1) {_0}}};
 }
 /* sort-by<arrow<?k, ?v>, ?k> arr<arrow<str, str>>(a arr<arrow<str, str>>, f fun-act1<str, arrow<str, str>>) */
 struct arr_11 sort_by_1(struct ctx* ctx, struct arr_11 a, struct fun_act1_19 f) {
@@ -20654,7 +20650,7 @@ struct result_2 call_w_ctx_793(struct fun0 a, struct ctx* ctx) {
 	}
 }
 /* run-crow-tests result<str, arr<failure>>(path str, path-to-crow str, env dict<str, str>, options test-options) */
-struct result_2 run_crow_tests(struct ctx* ctx, struct str path, struct str path_to_crow, struct dict_1* env, struct test_options* options) {
+struct result_2 run_crow_tests(struct ctx* ctx, struct str path, struct str path_to_crow, struct dict_1 env, struct test_options* options) {
 	struct arr_1 tests0;
 	tests0 = list_tests(ctx, path, options->match_test);
 	
@@ -21686,7 +21682,7 @@ struct arr_12 move_to_arr__e_5(struct mut_list_6* a) {
 	return res0;
 }
 /* run-single-crow-test arr<failure>(path-to-crow str, env dict<str, str>, path str, options test-options) */
-struct arr_12 run_single_crow_test(struct ctx* ctx, struct str path_to_crow, struct dict_1* env, struct str path, struct test_options* options) {
+struct arr_12 run_single_crow_test(struct ctx* ctx, struct str path_to_crow, struct dict_1 env, struct str path, struct test_options* options) {
 	struct opt_19 op0;
 	struct run_single_crow_test__lambda0* temp0;
 	uint8_t* _0 = alloc(ctx, sizeof(struct run_single_crow_test__lambda0));
@@ -21793,7 +21789,7 @@ uint8_t empty__q_19(struct opt_19 a) {
 	}
 }
 /* run-print-test print-test-result(print-kind str, path-to-crow str, env dict<str, str>, path str, overwrite-output? bool) */
-struct print_test_result* run_print_test(struct ctx* ctx, struct str print_kind, struct str path_to_crow, struct dict_1* env, struct str path, uint8_t overwrite_output__q) {
+struct print_test_result* run_print_test(struct ctx* ctx, struct str print_kind, struct str path_to_crow, struct dict_1 env, struct str path, uint8_t overwrite_output__q) {
 	struct process_result* res0;
 	struct str* temp0;
 	uint8_t* _0 = alloc(ctx, (sizeof(struct str) * 3u));
@@ -21891,7 +21887,7 @@ struct print_test_result* run_print_test(struct ctx* ctx, struct str print_kind,
 	}
 }
 /* spawn-and-wait-result process-result(exe str, args arr<str>, environ dict<str, str>) */
-struct process_result* spawn_and_wait_result_0(struct ctx* ctx, struct str exe, struct arr_1 args, struct dict_1* environ) {
+struct process_result* spawn_and_wait_result_0(struct ctx* ctx, struct str exe, struct arr_1 args, struct dict_1 environ) {
 	struct interp _0 = interp(ctx);
 	struct interp _1 = with_str(ctx, _0, (struct str) {{23, constantarr_0_39}});
 	struct interp _2 = with_value_0(ctx, _1, exe);
@@ -22761,7 +22757,7 @@ char* convert_args__lambda0(struct ctx* ctx, struct void_ _closure, struct str x
 	return to_c_str(ctx, x);
 }
 /* convert-environ ptr<ptr<char>>(environ dict<str, str>) */
-char** convert_environ(struct ctx* ctx, struct dict_1* environ) {
+char** convert_environ(struct ctx* ctx, struct dict_1 environ) {
 	struct mut_list_7* res0;
 	res0 = mut_list_5(ctx);
 	
@@ -22790,7 +22786,7 @@ struct mut_arr_11 mut_arr_20(void) {
 	return (struct mut_arr_11) {(struct void_) {}, (struct arr_5) {0u, NULL}};
 }
 /* each<str, str> void(a dict<str, str>, f fun-act2<void, str, str>) */
-struct void_ each_4(struct ctx* ctx, struct dict_1* a, struct fun_act2_11 f) {
+struct void_ each_4(struct ctx* ctx, struct dict_1 a, struct fun_act2_11 f) {
 	struct each_4__lambda0* temp0;
 	uint8_t* _0 = alloc(ctx, sizeof(struct each_4__lambda0));
 	temp0 = ((struct each_4__lambda0*) _0);
@@ -22799,21 +22795,21 @@ struct void_ each_4(struct ctx* ctx, struct dict_1* a, struct fun_act2_11 f) {
 	return fold_4(ctx, (struct void_) {}, a, (struct fun_act3_1) {0, .as0 = temp0});
 }
 /* fold<void, ?k, ?v> void(acc void, a dict<str, str>, f fun-act3<void, void, str, str>) */
-struct void_ fold_4(struct ctx* ctx, struct void_ acc, struct dict_1* a, struct fun_act3_1 f) {
+struct void_ fold_4(struct ctx* ctx, struct void_ acc, struct dict_1 a, struct fun_act3_1 f) {
 	struct iters_1* iters0;
 	iters0 = init_iters_1(ctx, a);
 	
 	return fold_recur_3(ctx, acc, iters0->end_pairs, iters0->overlays, f);
 }
 /* init-iters<?k, ?v> iters<str, str>(a dict<str, str>) */
-struct iters_1* init_iters_1(struct ctx* ctx, struct dict_1* a) {
+struct iters_1* init_iters_1(struct ctx* ctx, struct dict_1 a) {
 	struct mut_arr_12 overlay_iters0;
-	uint64_t _0 = overlay_count_1(ctx, 0u, a->impl);
+	uint64_t _0 = overlay_count_1(ctx, 0u, a.impl);
 	overlay_iters0 = uninitialized_mut_arr_9(ctx, _0);
 	
 	struct arr_11 end_pairs1;
 	struct arr_10* _1 = begin_ptr_17(overlay_iters0);
-	end_pairs1 = init_overlay_iters_recur__e_1(ctx, _1, a->impl);
+	end_pairs1 = init_overlay_iters_recur__e_1(ctx, _1, a.impl);
 	
 	struct iters_1* temp0;
 	uint8_t* _2 = alloc(ctx, sizeof(struct iters_1));
@@ -23807,7 +23803,7 @@ struct opt_19 run_single_crow_test__lambda0(struct ctx* ctx, struct run_single_c
 	}
 }
 /* run-single-runnable-test arr<failure>(path-to-crow str, env dict<str, str>, path str, interpret? bool, overwrite-output? bool) */
-struct arr_12 run_single_runnable_test(struct ctx* ctx, struct str path_to_crow, struct dict_1* env, struct str path, uint8_t interpret__q, uint8_t overwrite_output__q) {
+struct arr_12 run_single_runnable_test(struct ctx* ctx, struct str path_to_crow, struct dict_1 env, struct str path, uint8_t interpret__q, uint8_t overwrite_output__q) {
 	struct arr_1 args0;
 	uint8_t _0 = interpret__q;
 	if (_0) {

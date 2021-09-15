@@ -1,0 +1,23 @@
+main fut nat(_ arr str) summon
+	j = true as<json>
+	drop: j
+	0 resolved
+
+json union
+	bool
+	dict
+
+opt-json union
+	bool
+	some-json
+
+some-json record
+	by-val
+	v json
+
+dict record
+	by-ref
+	# TODO: consider tracking the number of keys that are new, or change a value, or remove a value.
+	# We should merge more frequently if removing keys, less frequently if adding keys.
+	# never empty
+	pairs opt-json

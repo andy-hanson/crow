@@ -49,6 +49,7 @@ import model.concreteModel :
 	ConcreteStructBody,
 	ConcreteType,
 	ConcreteFunToName,
+	fieldOffsets,
 	isCallWithCtxFun,
 	isClosure,
 	isMarkVisitFun,
@@ -284,10 +285,10 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(
 			map(alloc, finishArr(alloc, allRecordSources), (ref immutable Ptr!ConcreteStruct it) =>
 				immutable LowRecord(
 					it,
-					mapZipPtrFirst!LowField(
+					mapZipPtrFirst!(LowField, ConcreteField, Nat16, Alloc)(
 						alloc,
-						asRecord(it.body_).fields,
-						asRecord(body_(it)).fieldOffsets,
+						asRecord(body_(it)).fields,
+						fieldOffsets(it),
 						(immutable Ptr!ConcreteField field, ref immutable Nat16 fieldOffset) =>
 							immutable LowField(
 								field,

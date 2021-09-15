@@ -174,7 +174,6 @@ class Compiler {
 		this._serverRangeStart = buffer
 		this._serverRangeSize = half
 		this._tempAlloc = new Allocator(view, this._serverRangeStart + half, half)
-		console.log("NEWSERVER", this._serverRangeStart, this._serverRangeSize)
 		this._server = this._exports.newServer(this._serverRangeStart, this._serverRangeSize)
 	}
 

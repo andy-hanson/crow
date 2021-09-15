@@ -24,6 +24,7 @@ Appending a value with `~` is amortized O(1).
 Popping a value with `rtail` and `last` is always O(1).
 ###
 list<?a> record
+	by-ref
 	# TODO:PRIVATE
 	ignore void
 	prev opt list ?a

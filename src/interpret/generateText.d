@@ -10,6 +10,7 @@ import model.lowModel :
 	asPrimitive,
 	asPtrGc,
 	asRecordType,
+	asUnionType,
 	LowField,
 	LowProgram,
 	LowRecord,
@@ -22,6 +23,7 @@ import util.collection.arr : at, castImmutable, empty, ptrAt, setAt, size;
 import util.collection.arrUtil : mapToMut, sum, zip;
 import util.collection.exactSizeArrBuilder :
 	exactSizeArrBuilderAdd,
+	add0Bytes,
 	add16,
 	add32,
 	add64,
@@ -33,7 +35,7 @@ import util.collection.exactSizeArrBuilder :
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.opt : has, Opt;
 import util.ptr : Ptr, ptrTrustMe;
-import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, u32OfFloat32Bits, u64OfFloat64Bits;
+import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat16, u32OfFloat32Bits, u64OfFloat64Bits;
 import util.util : todo, unreachable, verify;
 
 struct TextAndInfo {
@@ -158,10 +160,18 @@ void ensureConstant(TempAlloc)(
 					ensureConstant(tempAlloc, ctx, field.type, arg);
 				});
 		},
-		(ref immutable Constant.Union) {
-			todo!void("generate union");
+		(ref immutable Constant.Union it) {
+			ensureConstant(tempAlloc, ctx, unionMemberType(ctx.program, asUnionType(t), it.memberIndex), it.arg);
 		},
 		(immutable Constant.Void) {});
+}
+
+ref immutable(LowType) unionMemberType(
+	ref immutable LowProgram program,
+	immutable LowType.Union t,
+	immutable ubyte memberIndex,
+) {
+	return at(fullIndexDictGet(program.allUnions, t).members, memberIndex);
 }
 
 void recurWriteArr(TempAlloc)(
@@ -229,17 +239,9 @@ void writeConstant(TempAlloc)(
 		(immutable double it) {
 			switch (asPrimitive(type)) {
 				case PrimitiveType.float32:
-					debug {
-						import core.stdc.stdio : printf;
-						printf("adding constant float32 %f (repr %d)", it, u32OfFloat32Bits(it).raw());
-					}
 					add32(ctx.text, u32OfFloat32Bits(it).raw());
 					break;
 				case PrimitiveType.float64:
-					debug {
-						import core.stdc.stdio : printf;
-						printf("adding constant float64 %f (repr %d)", it, u32OfFloat32Bits(it).raw());
-					}
 					add64(ctx.text, u64OfFloat64Bits(it).raw());
 					break;
 				default:
@@ -296,8 +298,14 @@ void writeConstant(TempAlloc)(
 				//TODO: we should be writing each constant at the appropriate offset, so no need to pack.
 				todo!void("pack it");
 		},
-		(ref immutable Constant.Union) {
-			todo!void("write union");
+		(ref immutable Constant.Union it) {
+			add64(ctx.text, it.memberIndex);
+			immutable LowType memberType = unionMemberType(ctx.program, asUnionType(type), it.memberIndex);
+			writeConstant(tempAlloc, ctx, memberType, it.arg);
+			immutable Nat16 unionSize = sizeOfType(ctx.program, type).size;
+			immutable Nat16 memberSize = sizeOfType(ctx.program, memberType).size;
+			immutable Nat16 padding = unionSize - immutable Nat16(8) - memberSize;
+			add0Bytes(ctx.text, padding.raw());
 		},
 		(immutable Constant.Void) {
 			todo!void("write void"); // should only happen if there's a pointer to void..

@@ -4,7 +4,7 @@ module util.collection.exactSizeArrBuilder;
 
 import util.alloc.alloc : allocateBytes;
 import util.collection.arr : arrOfRange_mut;
-import util.memory : initMemory_mut;
+import util.memory : initMemory_mut, memset;
 import util.util : verify;
 
 //TODO:MOVE
@@ -49,6 +49,12 @@ immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T 
 	ulong* ptr = cast(ulong*) a.cur;
 	*ptr = value;
 	a.cur = cast(ubyte*) (ptr + 1);
+}
+
+@trusted void add0Bytes(ref ExactSizeArrBuilder!ubyte a, immutable size_t nBytes) {
+	verify(a.cur + nBytes <= a.end);
+	memset(a.cur, 0, nBytes);
+	a.cur += nBytes;
 }
 
 @trusted void add64TextPtr(ref ExactSizeArrBuilder!ubyte a, immutable size_t textIndex) {

@@ -1674,12 +1674,6 @@ void writeConstantRef(Alloc)(
 		},
 		(ref immutable Constant.Record it) {
 			immutable LowField[] fields = fullIndexDictGet(ctx.program.allRecords, asRecordType(type)).fields;
-			debug {
-				if (!sizeEq(fields, it.args)) {
-					import core.stdc.stdio : printf;
-					printf("Record fields: %lu, args provided: %lu\n", size(fields), size(it.args));
-				}
-			}
 			verify(sizeEq(fields, it.args));
 			if (pos == ConstantRefPos.outer)
 				writeCastToType(writer, ctx, type);

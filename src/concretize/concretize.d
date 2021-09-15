@@ -7,7 +7,7 @@ import concretize.concretizeCtx :
 	ConcretizeCtx,
 	constantStr,
 	ctxType,
-	deferredFillRecordBodies,
+	deferredFillRecordAndUnionBodies,
 	getOrAddNonTemplateConcreteFunAndFillBody;
 import interpret.debugging : writeConcreteFunName;
 import model.concreteModel :
@@ -78,7 +78,7 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 	immutable Ptr!ConcreteFun[] allConcreteFuns = finishArr_immutable(alloc, ctx.allConcreteFuns);
 	immutable ConcreteFunToName funToName = getFunToName(alloc, ctx, allConcreteFuns);
 
-	deferredFillRecordBodies(alloc, ctx);
+	deferredFillRecordAndUnionBodies(alloc, ctx);
 
 	return nu!ConcreteProgram(
 		alloc,

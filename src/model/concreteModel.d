@@ -27,7 +27,7 @@ import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Nat8, Nat16;
-import util.util : todo, unreachable, verify;
+import util.util : unreachable, verify;
 
 enum BuiltinStructKind {
 	bool_,
@@ -95,7 +95,6 @@ struct ConcreteStructBody {
 	struct ExternPtr {}
 	struct Record {
 		immutable ConcreteField[] fields;
-		immutable Nat16[] fieldOffsets;
 	}
 	struct Union {
 		immutable ConcreteType[] members;
@@ -179,7 +178,6 @@ immutable(Ptr!ConcreteStruct) mustBeNonPointer(ref immutable ConcreteType a) {
 
 struct ConcreteStructInfo {
 	immutable ConcreteStructBody body_;
-	immutable TypeSize typeSize;
 	immutable bool isSelfMutable; //TODO: never used? (may need for GC though)
 }
 
@@ -236,6 +234,9 @@ struct ConcreteStruct {
 	immutable ConcreteStructSource source;
 	Late!(immutable ConcreteStructInfo) info_;
 	Late!(immutable bool) defaultIsPointer_;
+	Late!(immutable TypeSize) typeSize_;
+	// Only set for records
+	Late!(immutable Nat16[]) fieldOffsets_;
 }
 
 immutable(bool) isArr(ref immutable ConcreteStruct a) {
@@ -256,7 +257,11 @@ ref immutable(ConcreteStructBody) body_(return scope ref immutable ConcreteStruc
 }
 
 immutable(TypeSize) typeSize(ref immutable ConcreteStruct a) {
-	return info(a).typeSize;
+	return lateGet(a.typeSize_);
+}
+
+ref immutable(Nat16[]) fieldOffsets(return scope ref immutable ConcreteStruct a) {
+	return lateGet(a.fieldOffsets_);
 }
 
 immutable(bool) isSelfMutable(ref immutable ConcreteStruct a) {
@@ -269,7 +274,7 @@ immutable(bool) defaultIsPointer(ref immutable ConcreteStruct a) {
 
 //TODO: this is only useful during concretize, move
 immutable(bool) hasSizeOrPointerSizeBytes(ref immutable ConcreteType a) {
-	return a.isPointer || lateIsSet(a.struct_.info_);
+	return a.isPointer || lateIsSet(a.struct_.typeSize_);
 }
 
 immutable(TypeSize) sizeOrPointerSizeBytes(ref immutable ConcreteType a) {
@@ -537,12 +542,13 @@ struct ConcreteFunSource {
 	}
 
 	struct Test {
+		immutable FileAndRange range;
 		immutable size_t index;
 	}
 
 	@trusted immutable this(immutable Ptr!FunInst a) { kind_ = Kind.funInst; funInst_ = a; }
 	@trusted immutable this(immutable Ptr!Lambda a) { kind_ = Kind.lambda; lambda_ = a; }
-	immutable this(immutable Test a) { kind_ = Kind.test; test_ = a; }
+	@trusted immutable this(immutable Ptr!Test a) { kind_ = Kind.test; test_ = a; }
 
 	private:
 	enum Kind {
@@ -554,7 +560,7 @@ struct ConcreteFunSource {
 	union {
 		immutable Ptr!FunInst funInst_;
 		immutable Ptr!Lambda lambda_;
-		immutable Test test_;
+		immutable Ptr!Test test_;
 	}
 }
 static assert(ConcreteFunSource.sizeof <= 16);
@@ -663,8 +669,8 @@ immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a) {
 			range(decl(it).deref()),
 		(ref immutable ConcreteFunSource.Lambda it) =>
 			it.range,
-		(ref immutable ConcreteFunSource.Test) =>
-			todo!(immutable FileAndRange)("!"));
+		(ref immutable ConcreteFunSource.Test it) =>
+			it.range);
 }
 
 immutable(bool) isCallWithCtxFun(ref immutable ConcreteFun a) {

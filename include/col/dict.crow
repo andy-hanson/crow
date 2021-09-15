@@ -21,6 +21,7 @@ import
 	.private.sort-utils: binary-search-value
 
 dict<?k, ?v> record
+	by-val
 	# TODO:PRIVATE
 	ignore void
 	impl dict-impl<?k, ?v>
@@ -45,6 +46,7 @@ dict-equal? bool(a dict<?k, ?v>, b dict<?k, ?v>) data<?k> compare<?k> equal<?v>
 
 # Leftmost node. Values are non-optional as there is nothing left of this to remove from.
 .end-node<?k, ?v> record
+	by-val
 	pairs arr arrow<?k, ?v>
 
 dict dict<?k, ?v>() data<?k> compare<?k>

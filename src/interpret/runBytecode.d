@@ -473,20 +473,6 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	}
 }
 
-@trusted immutable(Nat64) readPartialBytes(immutable ubyte* ptr, immutable ushort size) {
-	//TODO: Just have separate ops for separate sizes
-	switch (size) {
-		case 1:
-			return (*(cast(immutable Nat8*) ptr)).to64();
-		case 2:
-			return (*(cast(immutable Nat16*) ptr)).to64();
-		case 4:
-			return (*(cast(immutable Nat32*) ptr)).to64();
-		default:
-			return unreachable!(immutable Nat64);
-	}
-}
-
 @trusted void writePartialBytes(ubyte* ptr, immutable ulong value, immutable ushort size) {
 	//TODO: Just have separate ops for separate sizes
 	switch (size) {
@@ -503,16 +489,6 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 			unreachable!void();
 			break;
 	}
-}
-
-//TODO:MOVE?
-@trusted immutable(Nat64) getBytes(immutable Nat64 a, immutable Nat8 byteOffset, immutable Nat8 sizeBytes) {
-	debug {
-		import core.stdc.stdio : printf;
-		printf("getBytes: %lu, %u, %u\n", a.raw(), byteOffset.raw(), sizeBytes.raw());
-	}
-	verify(byteOffset + sizeBytes <= immutable Nat8(ulong.sizeof));
-	return readPartialBytes((cast(immutable ubyte*) &a) + byteOffset.raw(), sizeBytes.raw());
 }
 
 void call(Extern)(ref Interpreter!Extern a, immutable ByteCodeIndex address, immutable Nat8 parametersSize) {
