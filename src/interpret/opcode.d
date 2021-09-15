@@ -43,13 +43,10 @@ enum OpCode : ubyte {
 	// Sum of sizes may be > 8 (to pack many at once)
 	pack,
 
-	// args: u32 value
-	// Push a constant u32 value. (Takes up a full 64-bit stack entry)
-	pushU32,
-
-	// args: u64 value
-	// Push a constant u64 value.
-	pushU64,
+	// args: u8/u16/u32/u64 value
+	// Push a constant u8/u16/u32/u64 value.
+	// (Takes up a full 64-bit stack entry regardless of value size.)
+	pushU8, pushU16, pushU32, pushU64,
 
 	// args: u8 offset, u8 size
 	read,

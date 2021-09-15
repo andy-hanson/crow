@@ -15,7 +15,7 @@ import util.types :
 	Nat64,
 	u64OfFloat32Bits,
 	u64OfFloat64Bits;
-import util.util : todo, verify;
+import util.util : verify;
 
 void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 	final switch (fn) {
@@ -49,7 +49,7 @@ void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 			break;
 		case FnOp.countOnesNat64:
 			unary(dataStack, (immutable ulong a) =>
-				immutable Nat64(todo!(immutable ulong)("popcount")));
+				immutable Nat64(popcount(a)));
 			break;
 		case FnOp.eqBits:
 			binary(dataStack, (immutable ulong a, immutable ulong b) =>
@@ -237,4 +237,11 @@ void binaryFloat64s(
 
 pure immutable(bool) isNaN(immutable double a) {
 	return a != a;
+}
+
+//TODO:PERF
+pure immutable(long) popcount(immutable ulong a) {
+	return a == 0
+		? 0
+		: popcount(a >> 1) + (a % 2 != 0 ? 1 : 0);
 }

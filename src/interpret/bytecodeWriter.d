@@ -40,7 +40,7 @@ import util.dbg : dbgLog = log;
 import util.ptr : Ptr;
 import util.sym : Sym;
 import util.util : divRoundUp, repeat, verify;
-import util.types : decr, incr, Int16, Nat8, Nat16, Nat32, Nat64, zero;
+import util.types : decr, incr, Int16, Nat8, Nat16, Nat32, Nat64, NatN, zero;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
 struct ByteCodeWriter(Alloc) {
@@ -306,46 +306,38 @@ void writePushConstants(Debug, Alloc, size_t n)(
 		writePushConstant(dbg, writer, source, value);
 }
 
-void writePushConstant(Debug, Alloc)(
+void writePushConstant(T, Debug, Alloc)(
 	ref Debug dbg,
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	immutable Nat8 value,
+	immutable NatN!T value,
 ) {
-	writePushConstant(dbg, writer, source, value.to32());
+	static if (is(T == ulong))
+		writePushConstant64(dbg, writer, source, value);
+	else
+		writePushConstant64(dbg, writer, source, value.to64());
 }
 
-void writePushConstant(Debug, Alloc)(
-	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
-	ref immutable ByteCodeSource source,
-	immutable Nat16 value,
-) {
-	writePushConstant(dbg, writer, source, value.to32());
-}
-
-void writePushConstant(Debug, Alloc)(
-	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
-	ref immutable ByteCodeSource source,
-	immutable Nat32 value,
-) {
-	log(dbg, writer, "write push constant (32)");
-	writePushU32(dbg, writer, source, value);
-}
-
-void writePushConstant(Debug, Alloc)(
+private void writePushConstant64(Debug, Alloc)(
 	ref Debug dbg,
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat64 value,
 ) {
-	log(dbg, writer, "write push constant (64)");
-	//TODO: optimize if the value is small
-	//if (value <= Nat32.max.to64())
-	//	writePushConstant(writer, source, value.to32());
-	//else
-	writePushU64(dbg, writer, source, value);
+	//TODO: optimize for 8bit too
+	if (value <= Nat8.max.to64()) {
+		log(dbg, writer, "write push constant (8bit)");
+		writePushU8(dbg, writer, source, value.to8());
+	} else if (value <= Nat16.max.to64()) {
+		log(dbg, writer, "write push constant (16bit)");
+		writePushU16(dbg, writer, source, value.to16());
+	} else if (value <= Nat32.max.to64()) {
+		log(dbg, writer, "write push constant (32bit)");
+		writePushU32(dbg, writer, source, value.to32());
+	} else {
+		log(dbg, writer, "write push constant (64bit)");
+		writePushU64(dbg, writer, source, value);
+	}
 }
 
 void writePushConstantPointer(Debug, Alloc)(
@@ -355,6 +347,30 @@ void writePushConstantPointer(Debug, Alloc)(
 	immutable ubyte* value,
 ) {
 	writePushConstant(dbg, writer, source, immutable Nat64(cast(ulong) value));
+}
+
+private void writePushU8(Debug, Alloc)(
+	ref Debug dbg,
+	ref ByteCodeWriter!Alloc writer,
+	ref immutable ByteCodeSource source,
+	immutable Nat8 value,
+) {
+	log(dbg, writer, "write push u8");
+	pushOpcode(writer, source, OpCode.pushU8);
+	pushU8(writer, source, value);
+	writer.nextStackEntry++;
+}
+
+private void writePushU16(Debug, Alloc)(
+	ref Debug dbg,
+	ref ByteCodeWriter!Alloc writer,
+	ref immutable ByteCodeSource source,
+	immutable Nat16 value,
+) {
+	log(dbg, writer, "write push u16");
+	pushOpcode(writer, source, OpCode.pushU16);
+	pushU16(writer, source, value);
+	writer.nextStackEntry++;
 }
 
 private void writePushU32(Debug, Alloc)(

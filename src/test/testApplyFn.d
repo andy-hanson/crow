@@ -38,6 +38,12 @@ void testApplyFn(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 
 	testCompareExchangeStrong(test);
 
+	testFn(
+		test,
+		[immutable Nat64(0b10101)],
+		FnOp.countOnesNat64,
+		[immutable Nat64(3)]);
+
 	testFn(test, [u64OfI64Bits(-1)], FnOp.float64FromInt64, [u64OfFloat64Bits(-1.0)]);
 
 	testFn(test, [immutable Nat64(1)], FnOp.float64FromNat64, [u64OfFloat64Bits(1.0)]);

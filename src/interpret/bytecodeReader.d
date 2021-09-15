@@ -92,6 +92,10 @@ void setReaderPtr(ref ByteCodeReader reader, immutable ubyte* bytes) {
 				inEntries,
 				outEntries,
 				readArray!(Operation.Pack.Field)(reader.reader, nFields.raw())));
+		case OpCode.pushU8:
+			return immutable Operation(immutable Operation.PushValue(readU8(reader.reader).to64()));
+		case OpCode.pushU16:
+			return immutable Operation(immutable Operation.PushValue(readU16(reader.reader).to64()));
 		case OpCode.pushU32:
 			return immutable Operation(immutable Operation.PushValue(readU32(reader.reader).to64()));
 		case OpCode.pushU64:
