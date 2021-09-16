@@ -105,6 +105,17 @@ struct NatN(T) {
 		}
 	}
 
+	static if (is(T == ulong)) {
+		immutable(Nat48) to48() const {
+			verify(value < (cast(ulong) 1) << 48);
+			verify(bottomU16OfU64(value >> 48) == 0);
+			return immutable Nat48(
+				bottomU16OfU64(value >> 32),
+				bottomU16OfU64(value >> 16),
+				bottomU16OfU64(value));
+		}
+	}
+
 	immutable(Int16) toInt16() const {
 		verify(value <= short.max);
 		return immutable Int16(cast(immutable short) value);
@@ -177,6 +188,22 @@ immutable(bool) zero(T)(immutable NatN!T a) {
 //TODO:KILL
 immutable(bool) zero(immutable size_t a) {
 	return a == 0;
+}
+
+struct Nat48 {
+	@safe @nogc pure nothrow:
+
+	static immutable(Nat48) max() {
+		return immutable Nat48(0xffff, 0xffff, 0xffff);
+	}
+
+	immutable ushort a;
+	immutable ushort b;
+	immutable ushort c;
+
+	immutable(Nat64) to64() immutable {
+		return immutable Nat64(((cast(ulong) a) << 32) | ((cast(ulong) b) << 16) | (cast(ulong) c));
+	}
 }
 
 alias Nat8 = NatN!ubyte;

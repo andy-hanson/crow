@@ -490,6 +490,7 @@ struct RealExtern {
 	void* sdlHandle;
 	void* glHandle;
 	void* webpHandle;
+	void* sodiumHandle;
 	DCCallVM* dcVm;
 
 	this(Ptr!RangeAlloc a) {
@@ -502,6 +503,8 @@ struct RealExtern {
 		verify(glHandle != null);
 		webpHandle = dlopen("/usr/lib64/libwebp.so", RTLD_LAZY);
 		verify(webpHandle != null);
+		sodiumHandle = dlopen("/usr/lib64/libsodium.so", RTLD_LAZY);
+		verify(sodiumHandle != null);
 
 		dcVm = dcNewCallVM(4096);
 		verify(dcVm != null);
@@ -511,7 +514,7 @@ struct RealExtern {
 	public:
 
 	~this() {
-		immutable int err = dlclose(sdlHandle) || dlclose(glHandle) || dlclose(webpHandle);
+		immutable int err = dlclose(sdlHandle) || dlclose(glHandle) || dlclose(webpHandle) || dlclose(sodiumHandle);
 		verify(err == 0);
 		dcFree(dcVm);
 	}
@@ -555,6 +558,7 @@ struct RealExtern {
 		DCpointer ptr = dlsym(sdlHandle, nameCStr);
 		if (ptr == null) ptr = dlsym(glHandle, nameCStr);
 		if (ptr == null) ptr = dlsym(webpHandle, nameCStr);
+		if (ptr == null) ptr = dlsym(sodiumHandle, nameCStr);
 		if (ptr == null) printf("Can't load symbol %s\n", nameCStr);
 		//printf("Gonna call %s\n", nameCStr);
 		verify(ptr != null);
@@ -620,6 +624,7 @@ struct RealExtern {
 				case DynCallType.int32:
 					return nat64OfI32(dcCallInt(dcVm, ptr));
 				case DynCallType.int64:
+				case DynCallType.nat64:
 					return nat64OfI64(dcCallLong(dcVm, ptr));
 				case DynCallType.float32:
 					return todo!(immutable Nat64)("handle this type");
@@ -631,8 +636,6 @@ struct RealExtern {
 					return todo!(immutable Nat64)("handle this type");
 				case DynCallType.nat32:
 					return immutable Nat64(u32OfI32Bits(dcCallInt(dcVm, ptr)));
-				case DynCallType.nat64:
-					return todo!(immutable Nat64)("handle this type");
 				case DynCallType.pointer:
 					return immutable Nat64(cast(size_t) dcCallPointer(dcVm, ptr));
 				case DynCallType.void_:

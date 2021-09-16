@@ -24,6 +24,7 @@ import util.collection.byteReader :
 	readU8,
 	readU16,
 	readU32,
+	readU48,
 	readU64,
 	setPtr,
 	skipBytes;
@@ -98,6 +99,8 @@ void setReaderPtr(ref ByteCodeReader reader, immutable ubyte* bytes) {
 			return immutable Operation(immutable Operation.PushValue(readU16(reader.reader).to64()));
 		case OpCode.pushU32:
 			return immutable Operation(immutable Operation.PushValue(readU32(reader.reader).to64()));
+		case OpCode.pushU48:
+			return immutable Operation(immutable Operation.PushValue(readU48(reader.reader).to64()));
 		case OpCode.pushU64:
 			return immutable Operation(immutable Operation.PushValue(readU64(reader.reader)));
 		case OpCode.read:

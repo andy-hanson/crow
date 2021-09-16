@@ -4,7 +4,7 @@ module util.collection.byteWriter;
 
 import util.collection.mutArr : moveToArr, MutArr, mutArrPtrAt, mutArrSize, push, pushAll;
 import util.ptr : Ptr;
-import util.types : Int16, Nat8, Nat16, Nat32, Nat64;
+import util.types : Int16, Nat8, Nat16, Nat32, Nat48, Nat64;
 import util.util : verify;
 
 // NOTE: When this writes a u16/u32/u64, it is written in platform-dependent order.
@@ -41,6 +41,12 @@ void pushU16(Alloc)(ref ByteWriter!Alloc writer, immutable Nat16 value) {
 
 void pushU32(Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 value) {
 	pushBytes!Nat32(writer, value);
+}
+
+void pushU48(Alloc)(ref ByteWriter!Alloc writer, immutable Nat48 value) {
+	pushU16(writer, immutable Nat16(value.a));
+	pushU16(writer, immutable Nat16(value.b));
+	pushU16(writer, immutable Nat16(value.c));
 }
 
 void pushU64(Alloc)(ref ByteWriter!Alloc writer, immutable Nat64 value) {

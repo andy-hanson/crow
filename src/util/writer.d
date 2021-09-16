@@ -7,7 +7,7 @@ import util.collection.arr : at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr;
 import util.ptr : PtrRange;
-import util.types : abs;
+import util.types : abs, NatN;
 import util.util : verify;
 
 struct Writer(Alloc) {
@@ -88,6 +88,10 @@ void writePtrRange(Alloc)(ref Writer!Alloc writer, const PtrRange a) {
 	writeHex(writer, cast(immutable ulong) a.begin);
 	writeChar(writer, '-');
 	writeHex(writer, cast(immutable ulong) a.end);
+}
+
+void writeNat(Alloc, T)(ref Writer!Alloc writer, immutable NatN!T n, immutable ulong base = 10) {
+	writeNat(writer, n.raw(), base);
 }
 
 void writeNat(Alloc)(ref Writer!Alloc writer, immutable ulong n, immutable ulong base = 10) {

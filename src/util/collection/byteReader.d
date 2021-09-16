@@ -2,7 +2,7 @@ module util.collection.byteReader;
 
 @safe @nogc pure nothrow:
 
-import util.types : Int16, Nat8, Nat16, Nat32, Nat64;
+import util.types : Int16, Nat8, Nat16, Nat32, Nat48, Nat64;
 
 struct ByteReader {
 	private:
@@ -46,6 +46,10 @@ void setPtr(ref ByteReader reader, immutable(ubyte)* ptr) {
 	immutable Nat32 res = *ptr;
 	reader.ptr = cast(immutable ubyte*) (ptr + 1);
 	return res;
+}
+
+@trusted immutable(Nat48) readU48(ref ByteReader reader) {
+	return immutable Nat48(readU16(reader).raw(), readU16(reader).raw(), readU16(reader).raw());
 }
 
 @trusted immutable(Nat64) readU64(ref ByteReader reader) {

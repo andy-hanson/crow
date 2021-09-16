@@ -44,9 +44,10 @@ enum OpCode : ubyte {
 	pack,
 
 	// args: u8/u16/u32/u64 value
-	// Push a constant u8/u16/u32/u64 value.
+	// Push a constant u8/u16/u32/u48/u64 value.
+	// (u48 is useful for pointers.)
 	// (Takes up a full 64-bit stack entry regardless of value size.)
-	pushU8, pushU16, pushU32, pushU64,
+	pushU8, pushU16, pushU32, pushU48, pushU64,
 
 	// args: u8 offset, u8 size
 	read,
@@ -60,7 +61,7 @@ enum OpCode : ubyte {
 	// args: u8 stackOffset
 	stackRef,
 
-	// args: u16[nCases] offsets
+	// args: u32[nCases] offsets
 	switch_,
 
 	// args: u8 offset, u8 size

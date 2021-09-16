@@ -28,6 +28,7 @@ import util.collection.byteWriter :
 	bytePushU8 = pushU8,
 	bytePushU16 = pushU16,
 	bytePushU32 = pushU32,
+	bytePushU48 = pushU48,
 	bytePushU64 = pushU64,
 	writeInt16,
 	writeU16,
@@ -37,11 +38,12 @@ import util.collection.arr : sizeNat;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
 import util.dbg : dbgLog = log;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sym : Sym;
 import util.util : divRoundUp, repeat, verify;
-import util.types : decr, incr, Int16, Nat8, Nat16, Nat32, Nat64, NatN, zero;
-import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
+import util.types : decr, incr, Int16, Nat8, Nat16, Nat32, Nat48, Nat64, NatN, zero;
+import util.writer : finishWriter, writeNat, Writer, writeStatic;
 
 struct ByteCodeWriter(Alloc) {
 	private:
@@ -324,18 +326,20 @@ private void writePushConstant64(Debug, Alloc)(
 	ref immutable ByteCodeSource source,
 	immutable Nat64 value,
 ) {
-	//TODO: optimize for 8bit too
 	if (value <= Nat8.max.to64()) {
-		log(dbg, writer, "write push constant (8bit)");
+		log(dbg, writer, "write push constant (8bit)", value);
 		writePushU8(dbg, writer, source, value.to8());
 	} else if (value <= Nat16.max.to64()) {
-		log(dbg, writer, "write push constant (16bit)");
+		log(dbg, writer, "write push constant (16bit)", value);
 		writePushU16(dbg, writer, source, value.to16());
 	} else if (value <= Nat32.max.to64()) {
-		log(dbg, writer, "write push constant (32bit)");
+		log(dbg, writer, "write push constant (32bit)", value);
 		writePushU32(dbg, writer, source, value.to32());
+	} else if (value <= Nat48.max.to64()) {
+		log(dbg, writer, "write push constant (48bit)", value);
+		writePushU48(dbg, writer, source, value.to48());
 	} else {
-		log(dbg, writer, "write push constant (64bit)");
+		log(dbg, writer, "write push constant (64bit)", value);
 		writePushU64(dbg, writer, source, value);
 	}
 }
@@ -380,6 +384,18 @@ private void writePushU32(Debug, Alloc)(
 	immutable Nat32 value,
 ) {
 	writePushU32Common(dbg, writer, source, value);
+}
+
+private void writePushU48(Debug, Alloc)(
+	ref Debug dbg,
+	ref ByteCodeWriter!Alloc writer,
+	ref immutable ByteCodeSource source,
+	immutable Nat48 value,
+) {
+	log(dbg, writer, "write push U48");
+	pushOpcode(writer, source, OpCode.pushU48);
+	pushU48(writer, source, value);
+	writer.nextStackEntry++;
 }
 
 private void writePushU64(Debug, Alloc)(
@@ -671,6 +687,11 @@ void pushU32(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSourc
 	repeat(uint.sizeof, () { pushSource(writer, source); });
 }
 
+void pushU48(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Nat48 value) {
+	bytePushU48(writer.byteWriter, value);
+	repeat(6, () { pushSource(writer, source); });
+}
+
 void pushU64(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Nat64 value) {
 	bytePushU64(writer.byteWriter, value);
 	repeat(ulong.sizeof, () { pushSource(writer, source); });
@@ -681,10 +702,32 @@ private void pushSource(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable By
 }
 
 void log(Debug, Alloc)(ref Debug dbg, ref ByteCodeWriter!Alloc byteCodeWriter, immutable string message) {
+	log(dbg, byteCodeWriter, message, none!Nat64);
+}
+
+void log(Debug, Alloc)(
+	ref Debug dbg,
+	ref ByteCodeWriter!Alloc byteCodeWriter,
+	immutable string message,
+	immutable Nat64 value,
+) {
+	log(dbg, byteCodeWriter, message, some!Nat64(value));
+}
+
+void log(Debug, Alloc)(
+	ref Debug dbg,
+	ref ByteCodeWriter!Alloc byteCodeWriter,
+	immutable string message,
+	immutable Opt!Nat64 value,
+) {
 	if (dbg.enabled()) {
 		Writer!Alloc writer = Writer!Alloc(byteCodeWriter.alloc);
 		writeStatic(writer, message);
-		writeChar(writer, ' ');
+		if (has(value)) {
+			writeStatic(writer, " = ");
+			writeNat(writer, force(value));
+		}
+		writeStatic(writer, " at bytecode offset ");
 		writeNat(writer, nextByteCodeIndex(byteCodeWriter).index.raw());
 		dbgLog(dbg, finishWriter(writer));
 	}
