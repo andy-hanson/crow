@@ -1,7 +1,0 @@
-# /usr/include/x86_64-linux-gnu/bits/sockaddr.h
-no-std
-import
-	..number: nat16
-
-sa_family_t alias
-	nat16

@@ -1,10 +1,10 @@
 #!/usr/bin/env crow
 
 import
-	io.environ: get-environ
-	io.path: child-path, parent-path
-	io.print: print
-	parse-command: parse-named-args
+	crow.io.environ: get-environ
+	crow.io.path: child-path, parent-path
+	crow.io.print: print
+	crow.parse-command: parse-named-args
 	.failure: first-failures, print-failures, test-options
 	.lint: lint
 	.crow-tests: run-crow-tests

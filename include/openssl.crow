@@ -1,12 +1,12 @@
 no-std
 import
-	.fun: fun-ptr6
-	.number: int32, int64, nat8, nat32, nat64
-	.misc: void
-	.posix.c-types: u-long
-	.posix.extra-types: fd-t
-	.ptr: any-ptr, null, ptr
-	.str: c-str, str
+	.crow.c-types: u-long
+	.crow.extra-types: fd-t
+	.crow.fun: fun-ptr6
+	.crow.misc: void
+	.crow.number: int32, int64, nat8, nat32, nat64
+	.crow.ptr: any-ptr, null, ptr
+	.crow.str: c-str, str
 
 # /usr/include/openssl/ossl_typ.h
 ssl extern-ptr

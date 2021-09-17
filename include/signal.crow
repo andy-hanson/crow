@@ -1,0 +1,27 @@
+no-std
+import
+	.crow.fun: fun-ptr0, fun-ptr1
+	.crow.number: int, int32
+	.crow.misc: void
+	.crow.c-types: u-long
+	.bits.types.sigset_t: __sigset_t
+
+sigaction record mut
+	sa_handler __sighandler_t
+	sa_flags u-long
+	sa_restorer __sigrestore_t
+	sa_mask __sigset_t
+
+# Not in include headers, something I added
+signal-t alias
+	int32
+
+sigpipe signal-t() noctx
+	13
+
+__sighandler_t alias
+	fun-ptr1<void, int>
+__sigrestore_t alias
+	fun-ptr0<void>
+
+sigignore int(sig signal-t) extern noctx summon

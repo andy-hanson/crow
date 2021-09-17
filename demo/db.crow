@@ -1,13 +1,13 @@
 #!/usr/bin/env crow
 
 import
-	col.arr-util: tail
-	db.lmdb:
+	crow.col.arr-util: tail
+	crow.db.lmdb:
 		from-lmdb-key, get, lmdb-key-flags, lmdb-open-options, set, stat, to-lmdb-key, to-str,
 		with-db, with-env, with-read-transaction, with-write-transaction
-	io.print: print
-	parse-command: parse-named-args, single-str-or-throw
-	serialize: from-bytes, to-bytes
+	crow.io.print: print
+	crow.parse-command: parse-named-args, single-str-or-throw
+	crow.serialize: from-bytes, to-bytes
 
 main fut nat(args arr str) unsafe summon
 	if command ?= parse-command_name: args.empty? ? "", args[0]

@@ -491,6 +491,7 @@ struct RealExtern {
 	void* glHandle;
 	void* webpHandle;
 	void* sodiumHandle;
+	void* lmdbHandle;
 	DCCallVM* dcVm;
 
 	this(Ptr!RangeAlloc a) {
@@ -505,6 +506,8 @@ struct RealExtern {
 		verify(webpHandle != null);
 		sodiumHandle = dlopen("/usr/lib64/libsodium.so", RTLD_LAZY);
 		verify(sodiumHandle != null);
+		lmdbHandle = dlopen("/usr/lib64/liblmdb.so", RTLD_LAZY);
+		verify(lmdbHandle != null);
 
 		dcVm = dcNewCallVM(4096);
 		verify(dcVm != null);
@@ -514,7 +517,11 @@ struct RealExtern {
 	public:
 
 	~this() {
-		immutable int err = dlclose(sdlHandle) || dlclose(glHandle) || dlclose(webpHandle) || dlclose(sodiumHandle);
+		immutable int err = dlclose(sdlHandle) ||
+			dlclose(glHandle) ||
+			dlclose(webpHandle) ||
+			dlclose(sodiumHandle) ||
+			dlclose(lmdbHandle);
 		verify(err == 0);
 		dcFree(dcVm);
 	}
@@ -559,6 +566,7 @@ struct RealExtern {
 		if (ptr == null) ptr = dlsym(glHandle, nameCStr);
 		if (ptr == null) ptr = dlsym(webpHandle, nameCStr);
 		if (ptr == null) ptr = dlsym(sodiumHandle, nameCStr);
+		if (ptr == null) ptr = dlsym(lmdbHandle, nameCStr);
 		if (ptr == null) printf("Can't load symbol %s\n", nameCStr);
 		//printf("Gonna call %s\n", nameCStr);
 		verify(ptr != null);

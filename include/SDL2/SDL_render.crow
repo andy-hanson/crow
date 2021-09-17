@@ -1,0 +1,63 @@
+no-std
+import
+	..crow.c-types: c-int
+	..crow.misc: void
+	..crow.number: nat32
+	..crow.ptr: ptr
+	.SDL_rect: SDL_Rect
+	.SDL_surface: SDL_Surface
+	.SDL_video: SDL_Window
+
+SDL_CreateRenderer SDL_Renderer
+	window SDL_Window
+	index c-int
+	flags nat32
+spec
+	extern<"SDL2">
+	noctx
+	summon
+	unsafe
+
+SDL_CreateTextureFromSurface SDL_Texture
+	renderer SDL_Renderer
+	surface SDL_Surface
+spec
+	extern<"SDL2">
+	noctx
+	summon
+	unsafe
+
+SDL_DestroyRenderer void(renderer SDL_Renderer) extern<"SDL2"> noctx summon unsafe
+
+SDL_DestroyTexture void(texture SDL_Texture) extern<"SDL2"> noctx summon unsafe
+
+SDL_RenderClear c-int(renderer SDL_Renderer) extern<"SDL2"> noctx summon unsafe
+
+SDL_RenderCopy c-int
+	renderer SDL_Renderer
+	texture SDL_Texture
+	src-rect ptr SDL_Rect
+	dest-rect ptr SDL_Rect
+spec
+	extern<"SDL2">
+	noctx
+	summon
+	unsafe
+
+SDL_Renderer extern-ptr
+
+SDL_RENDERER_SOFTWARE nat32()
+	1
+
+SDL_RENDERER_ACCELERATED nat32()
+	2
+
+SDL_RENDERER_PRESENTVSYNC nat32()
+	4
+
+SDL_RENDERER_TARGETTEXTURE nat32()
+	8
+
+SDL_RenderPresent void(renderer SDL_Renderer) extern<"SDL2"> noctx summon unsafe
+
+SDL_Texture extern-ptr

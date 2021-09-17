@@ -1,0 +1,21 @@
+# SDL.h
+
+no-std
+import
+	..crow.bits: bit-shift-left
+	..crow.c-types: c-int
+	..crow.misc: void
+	..crow.number: nat32
+	..crow.str: c-str
+
+SDL_Init c-int(flags nat32) extern<"SDL2"> noctx summon
+
+SDL_INIT_VIDEO nat32()
+	1 bit-shift-left 5
+
+SDL_INIT_JOYSTICK nat32()
+	1 bit-shift-left 9
+
+SDL_Quit void() extern<"SDL2"> noctx summon
+
+SDL_GetError c-str() extern<"SDL2"> noctx summon

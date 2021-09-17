@@ -1,0 +1,292 @@
+no-std
+import
+	...stdlib: free, malloc
+	...string: memcpy, memset
+	..bits: bits-and, bits-not
+	..bool: bool, false, not, or, to-nat, true
+	..compare: !=, <, <=, >
+	..fun: subscript
+	..ptr:
+		+, -, any-ptr, as-any-ptr, as-ref, by-val, null?, ptr, ptr-eq?, ptr-less?, ptr-less-eq?,
+		ptr-cast, ref-of-val, set-subscript, size-of, subscript, to-nat
+	.bootstrap:
+		as, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, lock, nat, nat8, nat64, none, opt, some,
+		todo, void
+	.number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
+	.thread-utils: acquire!, lock-by-val, release!
+
+set-zero-range void(begin ptr ?a, size nat) noctx unsafe
+	# TODO: wrap-mul is unsafe
+	begin.as-any-ptr memset: 0, size wrap-mul size-of<?a>
+
+mark-ctx record mut
+	memory-size-words nat
+	marks ptr bool
+	memory-start ptr nat64
+
+# Returns true if the range is GC-allocated memory and was not already marked
+mark bool(ctx mark-ctx, ptr-any any-ptr, size-bytes nat) noctx unsafe summon
+	hard-assert: ptr-any word-aligned?
+	size-words = size-bytes words-of-bytes
+	ptr = ptr-any ptr-cast<nat64, nat8>
+	index = ptr - ctx.memory-start
+	gc-memory? = index < ctx.memory-size-words
+	if gc-memory?
+		hard-assert: (index wrap-add size-words) <= ctx.memory-size-words
+		mark-start = ctx.marks + index
+		mark-end = mark-start + size-words
+		mark-range-recur: false, mark-start, mark-end
+	else
+		hard-assert: (index wrap-add size-words) > ctx.memory-size-words
+		false
+
+.word-aligned? bool(a any-ptr) noctx unsafe
+	(a.to-nat bits-and 7) == 0
+
+words-of-bytes nat(size-bytes nat) noctx trusted
+	size-bytes.round-up-to-multiple-of-8 unsafe-div 8
+
+round-up-to-multiple-of-8 nat(n nat) noctx
+	n wrap-add 7 bits-and: 7 bits-not
+
+mark-range-recur bool(marked-anything? bool, cur ptr bool, end ptr bool) noctx unsafe
+	if cur ptr-eq? end
+		marked-anything?
+	else
+		new-marked-anything? = marked-anything? or cur[].not
+		cur[] := true
+		mark-range-recur: new-marked-anything?, cur + 1, end
+
+mark-visit void(mark-ctx mark-ctx, value ?a) noctx unsafe builtin
+
+gc record mut
+	lk by-val lock
+	gc-count mut nat
+	context-head mut opt gc-ctx
+	needs-gc? mut bool
+	size-words mut nat
+	# 'mark-cur' and 'data-cur' run in parallel
+	# mark-end must be `mark-begin + size-words` and similar for data-end
+	mark-begin ptr bool
+	mark-cur mut ptr bool
+	mark-end mut ptr bool
+	# We allocate data in increments of nat64
+	data-begin ptr nat64
+	data-cur mut ptr nat64
+	data-end mut ptr nat64
+
+gc-stats record
+	by-val
+	cur-word nat
+	total-words nat
+	words-used nat
+
+words-free nat(a gc-stats) noctx
+	a.total-words wrap-sub a.words-used
+
+# Super unsafe
+# WARN: Unfortunately this doesn't prevent the original allocation in new-gc, just forbids us to use it
+set-hard-limit void(gc gc, size-words nat) noctx unsafe
+	gc validate-gc
+	hard-assert: size-words <= gc.size-words
+	cur-index = gc.mark-cur - gc.mark-begin
+	hard-assert: cur-index < size-words
+	gc.size-words := size-words
+	gc.mark-end := gc.mark-begin + size-words
+	gc.data-end := gc.data-begin + size-words
+	gc validate-gc
+
+# WARN: this locks up the GC for a long time
+get-stats gc-stats(gc gc) noctx unsafe
+	gc validate-gc
+	gc.lk.ref-of-val acquire!
+	cur-word = gc.mark-cur - gc.mark-begin
+	used-words-remaining = words-used-in-range: 0, gc.mark-cur, gc.mark-end
+	total-words = gc.mark-end - gc.mark-begin
+	gc.lk.ref-of-val release!
+	gc-stats: cur-word, total-words, cur-word wrap-add used-words-remaining
+
+words-used-in-range nat(acc nat, cur ptr bool, end ptr bool) noctx unsafe
+	if cur ptr-eq? end
+		acc
+	else
+		acc wrap-add cur[].to-nat words-used-in-range cur + 1, end
+
+gc by-val gc() noctx unsafe
+	# TODO: handle malloc failure
+	# 3*2^24 words = 3*2^27 bytes = 3*2^8 MB = 1.5 GB
+	# If changing this, be sure `globalBuffer` in `wasm.d` is big enough
+	size-words = 0x3000000
+	mark = ptr-cast<bool, nat8>: malloc: size-words
+	mark-end = mark + size-words
+	data = ptr-cast<nat64, nat8>: malloc: size-words wrap-mul size-of<nat64>
+	hard-assert: data.as-any-ptr word-aligned?
+	data-end = data + size-words
+
+	mark.as-any-ptr memset 0, size-words
+
+	res = as<by-val gc>: gc: lock-by-val, 0, none, false, size-words, mark, mark, mark-end, data, data, data-end
+	res.ref-of-val validate-gc
+	res
+
+run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
+	hard-assert: gc needs-gc?
+	gc.gc-count := gc.gc-count wrap-add 1
+	gc.mark-begin.as-any-ptr memset 0, gc.size-words
+	mark-ctx = as<by-val<mark-ctx>>: mark-ctx: gc.size-words, gc.mark-begin, gc.data-begin
+	mark-ctx.ref-of-val mark-visit gc-root
+	gc.mark-cur := gc.mark-begin
+	gc.data-cur := gc.data-begin
+	clear-free-mem: gc.mark-begin, gc.mark-end, gc.data-begin
+	gc validate-gc
+	gc.needs-gc? := false
+
+.clear-free-mem void(mark-ptr ptr bool, mark-end ptr bool, data-ptr ptr nat64) noctx unsafe
+	if mark-ptr ptr-eq? mark-end not
+		if mark-ptr[] not
+			data-ptr[] := 0xfadefadefadefade
+		clear-free-mem: mark-ptr + 1, mark-end, data-ptr
+
+###
+GC info specific to a ctx.
+Currently they all share the common GC and must take a lock every time they allocate.
+###
+gc-ctx record mut
+	gc mut gc
+	next-ctx mut opt gc-ctx
+
+force-needs-gc void(gc gc) unsafe
+	gc.needs-gc? := true
+
+get-gc-ctx gc-ctx(gc gc) noctx unsafe
+	gc.lk.ref-of-val acquire!
+	res = if c ?= gc.context-head
+		gc.context-head := c next-ctx
+		c.next-ctx := none
+		c
+	else
+		# NOTE: malloc'd memory is not traced for garbage col.
+		# This is fine as 'gc' is kept alive anyway.
+		# TODO: `size-of<by-val<gc-ctx>>.malloc` should be legal
+		c = (size-of<by-val<gc-ctx>> malloc) as-ref<gc-ctx>
+		c.gc := gc
+		c.next-ctx := none
+		c
+	gc.lk.ref-of-val release!
+	res
+
+return-gc-ctx void(gc-ctx gc-ctx) noctx unsafe
+	gc = gc-ctx.gc
+	gc.lk.ref-of-val acquire!
+	gc-ctx.next-ctx := gc context-head
+	gc.context-head := gc-ctx some
+	gc.lk.ref-of-val release!
+
+get-gc-ctx gc-ctx() unsafe
+	get-ctx.gc-ctx-ptr as-ref
+
+get-gc gc() unsafe
+	get-gc-ctx.gc
+
+fill-ptr-range void(cur ptr ?a, end ptr ?a, value ?a) noctx unsafe
+	if cur ptr-eq? end not
+		cur[] := value
+		cur + 1 fill-ptr-range end, value
+
+validate-gc void(gc gc) noctx unsafe
+	hard-assert: gc.mark-begin.as-any-ptr word-aligned?
+	hard-assert: gc.data-begin.as-any-ptr word-aligned?
+	hard-assert: gc.data-cur.as-any-ptr word-aligned?
+	hard-assert: gc.mark-begin ptr-less-eq? gc.mark-cur
+	hard-assert: gc.mark-cur ptr-less-eq? gc.mark-end
+	hard-assert: gc.data-begin ptr-less-eq? gc.data-cur
+	hard-assert: gc.data-cur ptr-less-eq? gc.data-end
+	mark-idx = gc.mark-cur - gc.mark-begin
+	data-idx = gc.data-cur - gc.data-begin
+	hard-assert: gc.mark-end - gc.mark-begin == gc.size-words
+	hard-assert: gc.data-end - gc.data-begin == gc.size-words
+	hard-assert: mark-idx == data-idx
+
+.try-gc-alloc opt any-ptr(gc gc, size-bytes nat) noctx trusted
+	gc.lk.ref-of-val acquire!
+	res = gc try-gc-alloc-recur size-bytes
+	gc maybe-set-needs-gc!
+	gc.lk.ref-of-val release!
+	res
+
+.maybe-set-needs-gc! void(gc gc) noctx unsafe
+	cur-word = gc.mark-cur - gc.mark-begin
+	if cur-word > (gc.size-words unsafe-div 2)
+		gc.needs-gc? := true
+
+.try-gc-alloc-recur opt any-ptr(gc gc, size-bytes nat) noctx unsafe
+	# gc validate-gc
+	size-words = size-bytes words-of-bytes
+	cur = gc data-cur
+	next = cur + size-words
+	if next ptr-less? gc.data-end
+		if gc.mark-cur range-free? gc.mark-cur + size-words
+			gc.mark-cur := gc.mark-cur + size-words
+			gc.data-cur := next
+			cur.ptr-cast<nat8, nat64> some<ptr nat8>
+		else
+			gc.mark-cur := gc.mark-cur + 1
+			gc.data-cur := gc.data-cur + 1
+			gc try-gc-alloc-recur size-bytes
+
+range-free? bool(mark ptr bool, end ptr bool) noctx unsafe
+	if mark ptr-eq? end
+		true
+	elif mark[]
+		false
+	else
+		mark + 1 range-free? end
+
+gc-alloc any-ptr(gc gc, size nat) trusted
+	if res ?= gc try-gc-alloc size
+		res
+	else
+		# TODO: throw an exception on OOM
+		todo
+
+alloc any-ptr(size-bytes nat) unsafe
+	get-gc gc-alloc size-bytes
+
+try-alloc opt any-ptr(size-bytes nat) unsafe
+	get-gc try-gc-alloc size-bytes
+
+alloc-uninitialized ptr ?a(size nat) unsafe
+	# TODO: wrap-mul is unsafe!
+	ptr-cast<?a, nat8>: alloc: size wrap-mul size-of<?a>
+
+try-alloc-uninitialized opt ptr ?a(size nat) unsafe
+	if res ?= size wrap-mul size-of<?a> try-alloc
+		res.ptr-cast<?a, nat8> some
+
+unmanaged-alloc-bytes any-ptr(size nat) noctx unsafe
+	res = size malloc
+	hard-forbid: res null?
+	res
+
+unmanaged-alloc-zeroed-elements ptr ?a(size-elements nat) noctx unsafe
+	res = size-elements unmanaged-alloc-elements<?a>
+	res set-zero-range size-elements
+	res
+
+unmanaged-alloc-elements ptr ?a(size-elements nat) noctx unsafe
+	# TODO: wrap-mul is unsafe!
+	ptr-cast: size-elements wrap-mul size-of<?a> unmanaged-alloc-bytes
+
+unmanaged-free void(p ptr ?a) noctx unsafe
+	p.ptr-cast free
+
+copy-data-from void(to ptr ?a, from ptr ?a, len nat) unsafe
+	to.as-any-ptr memcpy: from.as-any-ptr, len wrap-mul size-of<?a>
+
+fill-ptr-range void(begin ptr ?a, size nat, f act ?a(nat)) unsafe
+	begin fill-ptr-range-recur 0, size, f
+
+.fill-ptr-range-recur void(begin ptr ?a, i nat, size nat, f act ?a(nat)) unsafe
+	if i != size
+		begin[i] := f[i]
+		begin fill-ptr-range-recur (i wrap-add 1), size, f

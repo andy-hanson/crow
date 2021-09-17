@@ -1,0 +1,25 @@
+no-std
+import
+	.bits.types.sigset_t: __sigset_t
+	.crow.c-types: c-int
+	.crow.ptr: ptr
+	.crow.bytes-types: bytes64
+	.crow.private.bootstrap: int32, void
+
+__jmp_buf_tag record
+	by-val
+	__jmpbuf bytes64
+	__mask_was_saved c-int
+	__saved_mask __sigset_t
+
+# WARNING: This is declared as `typedef struct __jmp_buf_tag jmp_buf[1];`
+# So in some cases it's by value, in others by reference
+# /usr/include/setjmp.h
+jmp_buf alias
+	ptr __jmp_buf_tag
+
+# TODO: this is marked __THROWNL, what does that do?
+setjmp int32(env jmp_buf) unsafe extern noctx
+
+# TODO: this is marked __THROWNL, what does that do?
+longjmp void(env jmp_buf, val int32) unsafe extern noctx

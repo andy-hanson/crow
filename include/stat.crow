@@ -1,0 +1,49 @@
+no-std
+import
+	.crow.c-types: u-long, u-long-long
+	.crow.extra-types: err-t
+	.crow.number: int32, nat32
+	.crow.str: c-str
+	.sys.types: blkcnt_t, blksize_t, dev_t, gid_t, ino_t, mode_t, nlink_t, off_t, time_t, uid_t
+
+stat record mut
+	by-ref
+	st_dev mut dev_t
+	pad0 mut nat32
+	st_ino_unused mut ino_t
+	st_mode mut mode_t
+	st_nlink mut nlink_t
+	st_uid mut uid_t
+	st_gid mut gid_t
+	st_rdev mut dev_t
+	pad1 mut nat32
+	sts_ize mut off_t
+	st_blksize mut blksize_t
+	st_blocks mut blkcnt_t
+	st_atime mut time_t
+	st_atime_nsec mut u-long
+	st_mtime mut time_t
+	st_mtime_nsec mut u-long
+	st_ctime mut time_t
+	st_ctime_nsec mut u-long
+	st_ino mut u-long-long
+	unused mut u-long-long
+
+stat int32(path c-str, buf stat) noctx extern unsafe summon
+
+stat stat()
+	stat: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+S_IFMT nat32() noctx
+	# TODO: "octal170000"
+	61440
+
+S_IFDIR nat32() noctx
+	# TODO: "octal40000"
+	16384
+
+S_IFREG nat32() noctx
+	# TODO: "octal100000"
+	32768
+
+mkdir err-t(path c-str, mode mode_t) noctx extern unsafe summon

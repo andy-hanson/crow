@@ -1,9 +1,9 @@
 import
-	col.arr-util: each
-	col.mut-list: ~=, move-to-arr!, mut-list, reduce-size-if-more-than!, size
-	io.file: try-read-file, write-file
-	io.path: base-name
-	io.print: print, print-no-newline
+	crow.col.arr-util: each
+	crow.col.mut-list: ~=, move-to-arr!, mut-list, reduce-size-if-more-than!, size
+	crow.io.file: try-read-file, write-file
+	crow.io.path: base-name
+	crow.io.print: print, print-no-newline
 
 handle-output arr failure
 	original-path str

@@ -1,14 +1,14 @@
 import
-	col.mut-arr: begin-ptr, cast-immutable, size, subscript, uninitialized-mut-arr
-	io.print: print
-	posix.arpa.inet: inet_addr, inet_ntoa
-	posix.extra-types: fd-t
-	posix.netdb: gethostbyname, getprotobyname, h_addr_list, p_proto
-	posix.netinet.in: htons, in_addr, sockaddr_in
-	posix.socket: AF_INET, connect, sockaddr, socket, SOCK_STREAM
-	posix.unistd: read, write
-	ptr: as-any-ptr, null?, ptr-cast, ptr-cast-to-extern, ptr-to, size-of, subscript
-	str-util: as-str, bytes, to-c-str
+	crow.col.mut-arr: begin-ptr, cast-immutable, size, subscript, uninitialized-mut-arr
+	crow.extra-types: fd-t
+	crow.io.print: print
+	crow.ptr: as-any-ptr, null?, ptr-cast, ptr-cast-to-extern, ptr-to, size-of, subscript
+	crow.str-util: as-str, bytes, to-c-str
+	arpa.inet: inet_addr, inet_ntoa
+	netdb: gethostbyname, getprotobyname, h_addr_list, p_proto
+	netinet.in: htons, in_addr, sockaddr_in
+	sys.socket: AF_INET, connect, sockaddr, socket, SOCK_STREAM
+	unistd: read, write
 
 main fut nat(_ arr str) unsafe summon
 	hostname = "duckduckgo.com"

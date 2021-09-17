@@ -1,0 +1,21 @@
+no-std
+import
+	.crow.extra-types: err-t
+	.crow.ptr: ptr, subscript
+
+errno err-t() unsafe noctx
+	__errno_location[]
+.__errno_location ptr err-t() extern noctx unsafe
+
+ENOENT err-t() noctx
+	2
+ESRCH err-t() noctx
+	3
+EAGAIN err-t() noctx
+	11
+EWOULDBLOCK err-t() noctx
+	EAGAIN
+EINVAL err-t() noctx
+	22
+ETIMEDOUT err-t() noctx
+	110

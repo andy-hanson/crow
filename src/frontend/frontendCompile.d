@@ -343,11 +343,13 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, PathAlloc, SymAlloc, ReadO
 pure:
 
 immutable(PathAndStorageKind) pathInInclude(Alloc)(ref AllPaths!Alloc allPaths, scope immutable string name) {
-	return immutable PathAndStorageKind(rootPath(allPaths, name), StorageKind.global);
+	immutable Path crow = rootPath(allPaths, "crow");
+	return immutable PathAndStorageKind(childPath(allPaths, crow, name), StorageKind.global);
 }
 
 immutable(PathAndStorageKind) pathInIncludePrivate(Alloc)(ref AllPaths!Alloc allPaths, scope immutable string name) {
-	immutable Path private_ = rootPath(allPaths, "private");
+	immutable Path crow = rootPath(allPaths, "crow");
+	immutable Path private_ = childPath(allPaths, crow, "private");
 	return immutable PathAndStorageKind(childPath(allPaths, private_, name), StorageKind.global);
 }
 

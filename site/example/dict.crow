@@ -1,7 +1,7 @@
 import
-	col.dict: dict, subscript
-	col.mut-dict: mut-dict, remove!, set-subscript, subscript
-	io.print: print
+	crow.col.dict: dict, subscript
+	crow.col.mut-dict: mut-dict, remove-key!, set-subscript, subscript
+	crow.io.print: print
 
 main fut nat(_ arr str) summon
 	a = dict: [10 -> "ten", 1 -> "one"]
@@ -9,8 +9,8 @@ main fut nat(_ arr str) summon
 	print: a[3] to-str
 
 	m = mut-dict: [1 -> "one", 2 -> "two"]
-	print: m remove! 1 to-str
-	print: m remove! 1 to-str
+	print: m remove-key! 1 to-str
+	print: m remove-key! 1 to-str
 	m[3] := "three"
 	print: m[3] to-str
 	0 resolved

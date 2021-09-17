@@ -1,5 +1,5 @@
 file-ast(
-	imports: ports(range(0, 25), [import-ast(0, "/io/print", some([print]))])
+	imports: ports(range(0, 30), [import-ast(0, "/crow/io/print", some([print]))])
 	specs: []
 	aliases: []
 	structs: []
@@ -7,57 +7,57 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(25, 48)
+				range(30, 53)
 				main
-				inststruct(range(30, 37), name-range(30, fut), [inststruct(range(34, 37), name-range(34, nat))])
+				inststruct(range(35, 42), name-range(35, fut), [inststruct(range(39, 42), name-range(39, nat))])
 				[
 					param(
-						range(38, 47)
+						range(43, 52)
 						none
-						inststruct(range(40, 47), name-range(40, arr), [inststruct(range(44, 47), name-range(44, str))]))])
+						inststruct(range(45, 52), name-range(45, arr), [inststruct(range(49, 52), name-range(49, str))]))])
 			summon: true
 			body: seq-ast(
 				seq-ast(
 					call(
 						prefix
-						name-range(57, print)
+						name-range(62, print)
 						[]
 						[
 							call(
 								prefix
-								name-range(64, to-str)
+								name-range(69, to-str)
 								[]
 								[
 									call(
 										infix
-										name-range(74, *)
+										name-range(79, *)
 										[]
 										[
 											literal(nat(1, false))
 											call(
 												infix
-												name-range(79, +)
+												name-range(84, +)
 												[]
 												[literal(nat(2, false)), literal(nat(3, false))])])])])
 					call(
 						prefix
-						name-range(84, print)
+						name-range(89, print)
 						[]
 						[
 							call(
 								infix
-								name-range(101, to-str)
+								name-range(106, to-str)
 								[]
 								[
 									call(
 										infix
-										name-range(93, +)
+										name-range(98, +)
 										[]
 										[
 											literal(nat(1, false))
 											call(
 												infix
-												name-range(97, *)
+												name-range(102, *)
 												[]
 												[literal(nat(2, false)), literal(nat(3, false))])])])]))
-				call(infix, name-range(111, resolved), [], [literal(nat(0, false))])))])
+				call(infix, name-range(116, resolved), [], [literal(nat(0, false))])))])

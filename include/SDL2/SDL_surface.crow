@@ -1,0 +1,34 @@
+no-std
+import
+	..crow.c-types: c-int
+	..crow.misc: void
+	..crow.number: nat32
+	..crow.ptr: any-ptr, ptr
+	..crow.str: str
+	..crow.str-util: to-c-str
+	.SDL_pixels: SDL_PixelFormat
+	.SDL_rect: SDL_Rect
+	.SDL_rwops: SDL_RWFromFile, SDL_RWops
+
+SDL_FreeSurface void(surface SDL_Surface) extern<"SDL2"> noctx summon unsafe
+
+SDL_Surface record mut
+	by-ref
+	flags nat32
+	format ptr SDL_PixelFormat
+	w c-int
+	h c-int
+	pitch c-int
+	pixels any-ptr
+	userdata any-ptr
+	locked c-int
+	list_blitmap any-ptr
+	clip_rect SDL_Rect
+	# TODO: SDL_BlitMap
+	map any-ptr
+	refcount c-int
+
+SDL_LoadBMP_RW SDL_Surface(src SDL_RWops, freesrc c-int) extern<"SDL2"> noctx summon unsafe
+
+SDL_LoadBMP SDL_Surface(file str) summon unsafe
+	file.to-c-str SDL_RWFromFile "rb".to-c-str SDL_LoadBMP_RW 1

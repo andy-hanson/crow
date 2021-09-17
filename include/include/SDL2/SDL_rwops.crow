@@ -1,9 +1,0 @@
-# SDL_rwops.h
-
-no-std
-import
-	...str: c-str
-
-SDL_RWops extern-ptr
-
-SDL_RWFromFile SDL_RWops(file c-str, mode c-str) extern<"SDL2"> noctx summon unsafe

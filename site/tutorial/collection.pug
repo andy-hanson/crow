@@ -6,9 +6,9 @@ include ../pug-include/tutorial.pug
 		h3 opt
 
 		p.
-			<code class="struct-ref">opt ?t</code> is like a collection with 0 or 1 value in it.
-			<code class="struct-ref">opt ?t</code> is
-			<code class="struct-ref">none</code> or <code class="struct-ref">some ?t</code>.
+			<code class="struct-ref">opt ?a</code> is like a collection with 0 or 1 value in it.
+			<code class="struct-ref">opt ?a</code> is
+			<code class="struct-ref">none</code> or <code class="struct-ref">some ?a</code>.
 
 			<br />
 			<code class="struct-ref">none</code> is an empty record,
@@ -53,7 +53,7 @@ include ../pug-include/tutorial.pug
 			which just constructs a templated record type <code>arrow</code>
 			which has <code class="fun-ref">from</code> and <code class="fun-ref">to</code> fields of arbitrary type.
 
-			Then, there is a function <code>subscript arr ?t(a arr ?t, range arrow&lt;nat, nat>)</code>
+			Then, there is a function <code>subscript arr ?a(a arr ?a, range arrow&lt;nat, nat>)</code>
 			that slices an array.
 			The beginning of the range is inclusive and the end is exclusive.
 			Slicing an array doesn't allocate a new array.

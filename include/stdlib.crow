@@ -1,0 +1,7 @@
+no-std
+import
+	.crow.ptr: any-ptr
+	.crow.private.bootstrap: nat, void
+
+malloc any-ptr(size nat) unsafe extern noctx
+free void(p any-ptr) unsafe extern noctx

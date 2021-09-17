@@ -13,64 +13,74 @@ include ../pug-include/tutorial.pug
 		h4 Syntax for templates
 
 		p.
-			The syntax for defining a template is the same for all kinds of declaration:
-			put type parameters in <code>&lt;></code>.
+			To define a template, put <code>&lt;></code> after the declaration name with type parameter names inside.
 			<br />
 			A type parameter name must start with a <code>?</code>. (The naming rules are otherwise unchanged.)
 			<br />
-			For functions, type parameters are inferred (since only type parameters start with <code>?</code>).
+			This same syntax works on types, functions, and specs.
+		p.
+			For a function, it's optional to declare type parameters.
+			<br />
+			If they are not declared, the compiler will create a new type parameter when it sees a name starting with <code>?</code> that it doesn't recognize.
+			<br />
+			(You may still want to declare them to force a certain order.)
 
-		h4 Syntax for type template instances
+		h4 Syntax for using templates
 
 		p.
-			<code>node</code> is <em>not</em> a type, it is a <em>type template</em>;
-			only an instantiation like <code>node nat</code> is a type.
-
-			The syntax for an instance of a type template looks like <code>dict&lt;nat, str></code>,
-			but when there is a single type argument, as in <code>arr str</code>, the <code>&lt;></code> may be omitted.
-			This applies recursively, as in <code>opt node ?t</code>
-			which is equivalent to <code>opt&lt;node&lt;?t>></code>.
-
-		h4 Specifying function type arguments
+			The syntax to use a type template is <code>dict&lt;nat, str></code>.
+			<br />
+			When there is a single type argument, the <code>&lt;></code> may be omitted, as in <code>arr str</code>.
+			This applies recursively, as in <code>opt node ?a</code>
+			which is equivalent to <code>opt&lt;node&lt;?a>></code>.
 
 		p.
-			Normally a call will infer type arguments, but sometimes it can't.
-			You can specify them exactly as in <code>node&lt;nat>:</code> in the example.
-			(At that position, <code>node</code> is a function, not a type.)
+			For pedants:
+			<br />
+			When you write <code>node&lt;?a&gt; record</code> as a <em>declaration</em>, the <code>?a</code> is a type <em>parameter</em>.
+			<br />
+			When you write <code>a node ?a</code>, the <code class="tparam-ref">?a</code> is a type <em>argument</em>, which happens to refer to the <code class="fun-ref">sum</code> function's type parameter;
+			just like <code class="struct-ref">nat</code> is the type argument in <code>node nat</code>.
 
-			Try adding some more (unnecessary) type arguments, like <code>floats.sum&lt;float></code>.
+		p.
+			For functions, you don't usually need to specify type arguments, since the compiler can infer them.
+			<br />
+			If necessary, you can specify function type arguments using the same syntax as for types, though the <code>&lt;&gt;</code> is never optional.
 
 	section
 		h3 spec
 
 		p.
-			Templates are type-checked abstractly;
-			that means that you can only perform operations on <code class="tparam-ref">?t</code>
-			that work for all types.
-
-			That's simple for <code class="fun-ref">size</code> which doesn't actually access the node heads.
-			But <code class="fun-ref">sum</code> needs to call a <code class="fun-ref">+</code> function,
-			and which function it calls will depend on <code class="tparam-ref">?t</code>.
-
-		p.
-			A <code class="keyword">spec</code> allows you to call functions that you don't currently have access to,
-			but that the caller of the function will provide for you.
+			In C++, a template is type-checked each time it is instantiated, so you can write code that depends on knowing what kind of types will appear.
 			<br />
-			Specs can be used outside of templates, but are mostly used to perform operations on type parameters.
+			In crow, templates are type-checked abstractly; the compiler only checks them once, and checks that they work for all possible <code class="tparam-ref">?a</code>.
+			<br />
+			That means that you can't assume anything about <code class="tparam-ref">?a</code>.
+		p.
+			That works for <code class="fun-ref">size</code> which doesn't actually touch the <code>head</code>.
+			<br />
+			But <code class="fun-ref">sum</code> needs to call a <code class="fun-ref">+</code> function,
+			and which function it calls will depend on <code class="tparam-ref">?a</code>.
 
 		p.
-			In this example, <code class="fun-def">sum</code> wants to call <code class="fun-ref">+</code>,
-			but can't as there is no <code class="fun-def">+</code> function
-			that takes <code class="tparam-ref">?t</code> (that is, that works for any arbitrary type).
+			The solution is a <code class="keyword">spec</code>,
+			which allows you to call functions that are provided by the <em>caller</em>, and don't need to be in the scope of the callee.
 
-			But the caller knows that <code class="tparam-ref">?t</code> is <code class="struct-ref">nat</code>,
-			and is able to supply the <code class="fun-ref">+</code> function
-			that <code class="fun-ref">sum</code> needs.
+		p.
+			In this example, <code class="fun-def">sum</code> wants to call a function with the signature <code>+ ?a(a ?a, b ?a)</code>.
+			(With <code>?a</code> replaced by the type <code class="fun-ref">sum</code> was instantiated with.)
+
+		p.
+			The caller of <code class="fun-ref">sum</code> (in this case <code class="fun-ref">main</code>)
+			instantiates it as <code>sum&lt;nat&gt;</code>
+			and is able to supply a <code class="fun-ref">+</code> function that has the signature <code class="fun-ref">+ nat(a nat, b nat)</code>.
 
 	section
 		h3 Tail recursion
 
 		p.
-			Both <code>size</code> and <code>sum</code> are <em>tail-recursive</em> functions.
-			This means that the very last operation (along the <code>as some</code> branch) is a call to itself.
-			This <em>tail recursion</em> is implemented by a goto, meaning it won't cause a stack overflow.
+			Both <code>size</code> and <code>sum</code> (the second overload) are <em>tail-recursive</em> functions.
+			This means that the very last operation is a call to itself (or is a base case returning <code>acc</code>).
+		p.
+			In crow, <em>tail recursive</em> calls do not increase the stack size,
+			so they are safe to use on long lists without overflowing the stack, unlike non-tail recursive calls which may cause a stack overflow.

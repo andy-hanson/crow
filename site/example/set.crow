@@ -1,8 +1,8 @@
 import
-	col.arr-util: flatten
-	col.mut-set: ~=, move-to-set!, mut-set, remove!, subscript
-	col.set: -, ~, arr, intersect, set, size, subscript
-	io.print: print
+	crow.col.mut-set: ~=, move-to-set!, mut-set, remove!, subscript
+	crow.col.set: -, ~, arr, intersect, set, size, subscript
+	crow.io.print: print
+	crow.str-util: join
 
 main fut nat(_ arr str) summon
 	chili = set: ["beans", "pepper", "onion", "beans"]
@@ -11,15 +11,15 @@ main fut nat(_ arr str) summon
 	print: "has potato? {chili["potato"]}"
 
 	pepper-spray = set: ["pepper", "onion", "spray bottle"]
-	print: "union: {(chili ~ pepper-spray).arr flatten ", "}"
-	print: "intersection: {(chili intersect pepper-spray).arr flatten ", "}"
-	print: "difference: {(chili - pepper-spray).arr flatten ", "}"
+	print: "union: {(chili ~ pepper-spray).arr join ", "}"
+	print: "intersection: {(chili intersect pepper-spray).arr join ", "}"
+	print: "difference: {(chili - pepper-spray).arr join ", "}"
 
 	m = mut-set: ["beans", "pepper", "onion"]
 	print: "has pepper? {m["pepper"]}"
 	print: "remove pepper? {m remove! "pepper"}"
 	print: "remove pepper again? {m remove! "pepper"}"
 	m ~= ["spray bottle", "cumin"]
-	print: "after concat: {m.move-to-set!.arr flatten ", "}"
+	print: "after concat: {m.move-to-set!.arr join ", "}"
 
 	0 resolved

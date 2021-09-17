@@ -1,6 +1,6 @@
 import
-	io.print: print
-	math.vec: length, to-str, vec-2
+	crow.io.print: print
+	crow.math.vec: length, to-str, vec-2
 
 main fut nat(_ arr str) summon
 	a = rect: 0.0, 1.0, 0.0, 1.0
@@ -34,7 +34,7 @@ intersection-or-distance result<rect, float>(a rect, b rect)
 			0.0
 		as err e
 			e value
-		err: (vec-2: dx.value, dy) length
+		err: dx.value vec-2 dy length
 
 intersection-or-distance result<float-range, float>(a float-range, b float-range)
 	if a.max < b.min
@@ -58,10 +58,10 @@ rect rect(x-range float-range, y-range float-range)
 	rect: x-range.min, x-range.max, y-range.min, y-range.max
 
 bottom-left vec-2(a rect)
-	vec-2: a.left, a.bottom
+	a.left vec-2 a.bottom
 
 top-right vec-2(a rect)
-	vec-2: a.right, a.top
+	a.right vec-2 a.top
 
 x-range float-range(a rect)
 	a.left float-range a.right

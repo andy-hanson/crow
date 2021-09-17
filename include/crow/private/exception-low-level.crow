@@ -1,0 +1,92 @@
+no-std
+import
+	...setjmp: jmp_buf, __jmp_buf_tag, longjmp, setjmp
+	..bool: bool, not
+	..bytes-types: zero
+	..fun: subscript
+	..ptr: as-ref, by-val, null, null?, ptr-to
+	.backtrace: backtrace, get-backtrace
+	.bootstrap:
+		arr, as, err, exception-ctx-ptr, get-ctx, hard-assert, hard-forbid,
+		hard-unreachable, int32, ok, result, str, thread-local-stuff, void
+	.number-low-level: ==
+export
+	.bootstrap: exception, message
+
+exception-ctx record mut
+	jmp-buf-ptr mut jmp_buf
+	thrown-exception mut exception
+
+exception-ctx by-val exception-ctx() noctx unsafe
+	# Nothing on the exception-ctx initially
+	exception-ctx: null, exception: "", backtrace: as<arr str>: []
+
+get-exception-ctx exception-ctx() unsafe
+	get-ctx.thread-local-stuff.exception-ctx-ptr as-ref<exception-ctx>
+
+catch-with-exception-ctx ?a(ec exception-ctx, try act ?a(), catcher act ?a(exception)) unsafe
+	old-thrown-exception = ec thrown-exception
+	old-jmp-buf = ec jmp-buf-ptr
+	store = __jmp_buf_tag: zero, 0, zero
+	ec.jmp-buf-ptr := store ptr-to
+	setjmp-result = ec.jmp-buf-ptr setjmp
+	if setjmp-result == 0
+		# Get here after setting the jump.
+		# If it throws, we'll go to the above branch.
+		res = try[]
+		ec.jmp-buf-ptr := old-jmp-buf
+		ec.thrown-exception := old-thrown-exception
+		res
+	else
+		# This is what we threw in 'throw'
+		hard-assert: setjmp-result == number-to-throw
+		# Get here if we throw inside of `try`
+		thrown-exception = ec thrown-exception
+		# NOTE: changing thrown-exception back probably isn't really necessary
+		ec.jmp-buf-ptr := old-jmp-buf
+		ec.thrown-exception := old-thrown-exception
+		catcher[thrown-exception]
+
+###
+Throw an exception (that already exists).
+If you want to create and throw an exception, use `fail` instead.
+`throw` is useful for rethrowing an exception that was already caught.
+Throwing an exception does not modify its backtrace.
+###
+throw ?a(e exception) trusted
+	exn-ctx = get-exception-ctx
+	hard-forbid: exn-ctx.jmp-buf-ptr null?
+	exn-ctx.thrown-exception := e
+	exn-ctx.jmp-buf-ptr longjmp number-to-throw
+	hard-unreachable
+
+# Create amd throw an exception with the given message.
+throw ?a(message str) trusted
+	throw: exception: message, get-backtrace
+
+.number-to-throw int32()
+	7
+
+# Fail if the condition is false.
+assert void(condition bool)
+	if condition not
+		"assert failed" throw
+
+# Fail if the condition is true.
+forbid void(condition bool)
+	if condition
+		"forbid failed" throw
+
+###
+Run `try` and return `ok` containing its return value,
+or `err` containing an exception if it threw one.
+###
+catch result<?a, exception>(try act ?a())
+	(() => try[] ok) catch e => e err
+
+###
+Run `try` and return what it returns, or return the result of `catcher` if `try` threw an exception.
+(An exception thrown by `catcher` will not be caught.)
+###
+catch ?a(try act ?a(), catcher act ?a(exception)) trusted
+	get-exception-ctx catch-with-exception-ctx try, catcher

@@ -1,5 +1,5 @@
 import
-	io.print: print
+	crow.io.print: print
 
 main fut nat(_ arr str) summon
 	my-nat = 3

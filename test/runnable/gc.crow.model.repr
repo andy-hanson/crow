@@ -3,28 +3,28 @@ module(
 	imports: [
 		import(none, 52, none)
 		import(
-			some(range(8, 128))
+			some(range(8, 133))
 			19
 			some([cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used]))
-		import(some(range(130, 145)), 44, some([print]))
-		import(some(range(147, 182)), 7, some([-, as-any-ptr, by-val, size-of]))]
-	structs: [struct(range: file-range(71, range(761, 792)), public?: true, name: r)]
+		import(some(range(135, 155)), 44, some([print]))
+		import(some(range(157, 197)), 5, some([-, as-any-ptr, by-val, size-of]))]
+	structs: [struct(range: file-range(71, range(776, 807)), public?: true, name: r)]
 	funs: [
 		fun(
 			public?: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(71, 184), main, fut(nat()), [param(file-range(71, range(197, 206)), none, arr(str()))])
+			sig: sig(file-pos(71, 199), main, fut(nat()), [param(file-range(71, range(212, 221)), none, arr(str()))])
 			body: let(
-				local(file-range(71, range(223, 225)), gc, gc())
+				local(file-range(71, range(238, 240)), gc, gc())
 				call(fun-inst(name: get-gc), [])
 				seq(
 					call(fun-inst(name: set-hard-limit), [local-ref(gc), literal(nat(), 512)])
 					let(
-						local(file-range(71, range(324, 325)), a, r())
+						local(file-range(71, range(339, 340)), a, r())
 						call(fun-inst(name: r), [literal(nat(), 1), literal(nat(), 2), literal(nat(), 3)])
 						let(
-							local(file-range(71, range(340, 341)), b, r())
+							local(file-range(71, range(355, 356)), b, r())
 							call(fun-inst(name: r), [literal(nat(), 4), literal(nat(), 5), literal(nat(), 6)])
 							seq(
 								seq(
@@ -244,7 +244,7 @@ module(
 											fut(nat()))])))))))
 		fun(
 			public?: true
-			sig: sig(file-pos(71, 792), to-str, str(), [param(file-range(71, range(803, 806)), some(a), r())])
+			sig: sig(file-pos(71, 807), to-str, str(), [param(file-range(71, range(818, 821)), some(a), r())])
 			body: call(
 				fun-inst(name: finish)
 				[
@@ -280,7 +280,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(71, 838), to-str, str(), [param(file-range(71, range(849, 859)), some(a), gc-stats())])
+			sig: sig(file-pos(71, 853), to-str, str(), [param(file-range(71, range(864, 874)), some(a), gc-stats())])
 			body: call(
 				fun-inst(name: finish)
 				[
@@ -319,38 +319,38 @@ module(
 			public?: true
 			preferred: true
 			sig: sig(
-				file-pos(71, 761)
+				file-pos(71, 776)
 				r
 				r()
 				[
-					param(file-range(71, range(771, 776)), some(a), nat())
-					param(file-range(71, range(778, 783)), some(b), nat())
-					param(file-range(71, range(785, 790)), some(c), nat())])
+					param(file-range(71, range(786, 791)), some(a), nat())
+					param(file-range(71, range(793, 798)), some(b), nat())
+					param(file-range(71, range(800, 805)), some(c), nat())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
 			sig: sig(
-				file-pos(71, 761)
+				file-pos(71, 776)
 				r
 				by-val(r())
 				[
-					param(file-range(71, range(771, 776)), some(a), nat())
-					param(file-range(71, range(778, 783)), some(b), nat())
-					param(file-range(71, range(785, 790)), some(c), nat())])
+					param(file-range(71, range(786, 791)), some(a), nat())
+					param(file-range(71, range(793, 798)), some(b), nat())
+					param(file-range(71, range(800, 805)), some(c), nat())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(71, 771), a, nat(), [param(file-range(71, range(771, 776)), some(a), r())])
+			sig: sig(file-pos(71, 786), a, nat(), [param(file-range(71, range(786, 791)), some(a), r())])
 			body: field-get(0))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(71, 778), b, nat(), [param(file-range(71, range(778, 783)), some(a), r())])
+			sig: sig(file-pos(71, 793), b, nat(), [param(file-range(71, range(793, 798)), some(a), r())])
 			body: field-get(1))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(71, 785), c, nat(), [param(file-range(71, range(785, 790)), some(a), r())])
+			sig: sig(file-pos(71, 800), c, nat(), [param(file-range(71, range(800, 805)), some(a), r())])
 			body: field-get(2))])

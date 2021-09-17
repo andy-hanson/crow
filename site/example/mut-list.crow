@@ -1,13 +1,13 @@
 import
-	col.arr-util: flatten
-	col.mut-list: ~=, empty?, move-to-arr!, mut-list
-	io.print: print
+	crow.col.mut-list: ~=, empty?, move-to-arr!, mut-list
+	crow.io.print: print
+	crow.str-util: join
 
 main fut nat(_ arr str) summon
 	xs = mut-list: ["a", "b", "c"]
 	xs ~= "d"
 	xs ~= ["e", "f"]
 	a = xs move-to-arr!
-	print: a flatten ", "
+	print: a join ", "
 	print: xs.empty? to-str
 	0 resolved

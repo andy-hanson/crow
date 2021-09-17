@@ -1,0 +1,14 @@
+no-std
+import
+	.crow.extra-types: fd-t
+	.crow.misc: void
+	.crow.str: c-str
+
+perror void(s c-str) unsafe summon extern noctx
+
+stdin fd-t() noctx
+	0
+stdout fd-t() noctx
+	1
+stderr fd-t() noctx
+	2

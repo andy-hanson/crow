@@ -74,7 +74,7 @@ bin/crow.tar.xz: bin/crow demo/* include/* include/*/*
 site/include-list.txt: bin/crow include/*.crow
 	./bin/crow run script/gen-include-list.crow > site/include-list.txt
 
-INCLUDE_TO_DOCUMENT = $(wildcard include/*.crow include/col/*.crow include/io/*.crow include/io/*/*.crow include/math/*.crow)
+INCLUDE_TO_DOCUMENT = $(wildcard include/crow/*.crow include/crow/crypto/*.crow include/crow/db/*.crow  include/crow/col/*.crow include/crow/io/*.crow include/crow/io/*/*.crow include/crow/math/*.crow include/crow/test/*.crow)
 DOC_PUGS = $(patsubst include/%.crow, site/documentation/%.pug, $(INCLUDE_TO_DOCUMENT))
 ALL_PUGS = $(wildcard site/*.pug site/tutorial/*.pug) site/documentation/index.pug $(DOC_PUGS)
 HTMLS = $(patsubst site/%.pug, site/%.html, $(ALL_PUGS))

@@ -1,5 +1,5 @@
 import
-	log: get-log-handler, info, log, log-handler, warn, with-log-handler
+	crow.log: get-log-handler, info, log, log-handler, warn, with-log-handler
 
 main fut nat(_ arr str) summon
 	info log "Logged once"

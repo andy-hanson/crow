@@ -1,0 +1,13 @@
+no-std
+import
+	..crow.number: nat
+
+SDL_LIL_ENDIAN nat()
+	1234
+
+SDL_BIG_ENDIAN nat()
+	4321
+
+# TODO: compiler intrinsic for this
+SDL_BYTEORDER nat()
+	SDL_LIL_ENDIAN

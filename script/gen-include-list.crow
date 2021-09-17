@@ -1,7 +1,7 @@
 import
-	io.file: each-child-recursive
-	io.print: print
-	str-util: try-remove-end, try-remove-start
+	crow.io.file: each-child-recursive
+	crow.io.print: print
+	crow.str-util: try-remove-end, try-remove-start
 
 main fut nat(_ arr str) summon
 	"include" each-child-recursive path =>

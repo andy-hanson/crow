@@ -1,15 +1,15 @@
 import
-	col.arr-util: each, index-of
-	col.dict: dict, subscript
-	col.mut-arr: fill-mut-arr, map-to-arr-with-index, set-subscript
-	io.file: read-file
-	io.net.http-server: http-handler, start-http-server
-	io.net.http-types:
+	crow.col.arr-util: each, index-of
+	crow.col.dict: dict, subscript
+	crow.col.mut-arr: fill-mut-arr, map-to-arr-with-index, set-subscript
+	crow.io.file: read-file
+	crow.io.net.http-server: http-handler, start-http-server
+	crow.io.net.http-types:
 		body, headers, http-bad-query, http-not-found, http-request, http-response, method, url
-	io.print: print
-	str-util: split-by, try-split-once
-	tuple: a, b
-	writer: ~=, backup!, move-to-str!, writer
+	crow.io.print: print
+	crow.str-util: split-by, try-split-once
+	crow.tuple: a, b
+	crow.writer: ~=, backup!, move-to-str!, writer
 	.db:
 		add-post!, close-real-db, content, cookie-expire-seconds, db, list-posts, list-users,
 		login!, post, post-info, new-user-id, open-real-db, parse-user-cookie, register-user!,
@@ -124,7 +124,7 @@ parse-query arr str(s str, arg-names arr str)
 .format-users-as-json str(users arr user-info)
 	res = writer
 	res ~= "\{\"users\":["
-	users each \user
+	users each user =>
 		res ~= "\{\"user\":"
 		res ~= user user
 		res ~= ",\"userName\":\""
@@ -138,7 +138,7 @@ parse-query arr str(s str, arg-names arr str)
 .format-posts-as-json str(posts arr post-info)
 	res = writer
 	res ~= "\{\"posts\":["
-	posts each \post
+	posts each post =>
 		# TODO: module for proper json formatting
 		res ~= "\{\"post\":"
 		res ~= post post

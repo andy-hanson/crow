@@ -2,7 +2,7 @@ include ../pug-include/tutorial.pug
 +tutorialPage("record")
 	section
 		h2 records
-		p Records are just like structs in C; a record is a value combining several other values by name.
+		p A record is a value that stores several other values by name.
 
 		crow-runnable(src="record")
 
@@ -12,20 +12,12 @@ include ../pug-include/tutorial.pug
 		p.
 			Declaring the <code class="keyword">record</code> generates a function
 			<code class="fun-ref">dinner</code> for creating the record.
-			(It's normal for a function to have the same name as a type).
+			(A function may have the same name as a type).
 			It also generates getter functions <code class="fun-ref">food</code> and <code class="fun-ref">drink</code>.
-
-			<br />
-
-			<em>There is no special syntax for using records</em>.
+		p.
 			These are ordinary functions and can be called using any syntax for calling functions.
 			(So <code>a.food</code> may be written <code>a food</code> or <code>food: a</code>.)
-		p.
-			Since the record is <code class="spec-ref">data</code>,
-			comparison operators like <code>==</code> and <code>&lt;</code> will work.
-			<br />
-			Fields are compared in the order they are declared,
-			so <code>a &lt; b</code> because <code>"bruschetta" &lt; "chili"</code>.
+			(Once we get to modules, they also must be imported separately from the record if using named imports.)
 		p.
 			That's all you do with records: build them out of their component fields and then get the fields back.
 
@@ -42,10 +34,6 @@ include ../pug-include/tutorial.pug
 		crow-runnable(src="record-mut")
 
 		p.
-			Since the field is <code class="keyword">mut</code>,
+			Since the field <code class="field-def">food</code> is <code class="keyword">mut</code>,
 			the record as a whole must be marked <code class="keyword">mut</code> too.
 			This would also apply to any record containing <code class="struct-ref">dinner</code>.
-
-			<br />
-			When something is <code class="keyword">mut</code> it is no longer <code class="keyword">data</code>,
-			and you can no longer share it between parallel tasks or use comparison operators.

@@ -1,7 +1,7 @@
 import
-	io.print: print
-	io.time: get-unix-time
-	io.time-format:
+	crow.io.print: print
+	crow.io.time: get-unix-time
+	crow.io.time-format:
 		date, day-of-week-long, gmt, iso-date, iso-timestamp, local-time, time-of-day,
 		timezone-name, timezone-offset, year
 

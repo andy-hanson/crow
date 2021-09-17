@@ -1,5 +1,5 @@
 import
-	io.print: print
+	crow.io.print: print
 
 main fut nat(_ arr str) summon
 	nats = node<nat>: 1, some: node: 2, some: node: 3, none
@@ -12,7 +12,7 @@ main fut nat(_ arr str) summon
 
 node<?a> record
 	head ?a
-	tail opt node<?a>
+	tail opt node ?a
 
 size nat(a node ?a)
 	1 size a.tail
@@ -31,6 +31,6 @@ sum ?a(a node ?a) plus<?a>
 
 sum ?a(acc ?a, a opt node ?a) plus<?a>
 	if node ?= a
-		acc + s.value.head sum s.value.tail
+		acc + node.head sum node.tail
 	else
 		acc

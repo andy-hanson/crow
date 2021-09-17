@@ -1,0 +1,6 @@
+no-std
+import
+	..crow.number: int, nat8
+	..crow.ptr: ptr
+
+SDL_GetKeyboardState ptr nat8(num-keys ptr int) extern<"SDL2"> noctx summon

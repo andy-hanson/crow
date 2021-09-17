@@ -1,10 +1,10 @@
 import
-	bits: bit?, bits-and, bit-shift-left, bit-shift-right, bits-intersect?, bits-or, bits-xor
-	col.mut-arr: fill-mut-arr, mut-arr, set-subscript, size, subscript
-	col.mut-grid: coord, x, y
-	io.terminal-color: term-bold, term-blue, term-red, term-reset
-	ptr: zeroed
-	writer: ~=, move-to-str!, writer
+	crow.bits: bit?, bits-and, bit-shift-left, bit-shift-right, bits-intersect?, bits-or, bits-xor
+	crow.col.mut-arr: fill-mut-arr, mut-arr, set-subscript, size, subscript
+	crow.col.mut-grid: coord, x, y
+	crow.io.terminal-color: term-bold, term-blue, term-red, term-reset
+	crow.ptr: zeroed
+	crow.writer: ~=, move-to-str!, writer
 
 ###
 Board representation is bits: 7 bits for a column (max of 6 entries), over 6 rows.

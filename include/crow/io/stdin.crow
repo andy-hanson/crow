@@ -1,0 +1,41 @@
+no-std
+import
+	...stdio: stdin
+	...unistd: read
+	..col.mut-arr: begin-ptr, cast-immutable, size, subscript, uninitialized-mut-arr
+	..compare: >=
+	..exception: assert
+	..fun: subscript
+	..misc: ->
+	..number: ==, <=>, nat8, to-nat
+	..opt: opt
+	..str: str
+	..str-util: as-str, strip
+	..private.bootstrap: todo
+	.print: print
+
+###
+Reads from stdin.
+If that comes from the user typing at the terminal, this will block until they hit enter.
+Result is `strip`ped.
+###
+read-stdin str() trusted summon
+	buffer = 0x2000 uninitialized-mut-arr<nat8>
+	bytes-read-or-err = stdin read buffer.begin-ptr, buffer.size
+	assert: bytes-read-or-err >= 0
+	bytes-read = bytes-read-or-err to-nat
+	if bytes-read >= buffer.size
+		todo
+	else
+		buffer[0 -> bytes-read].cast-immutable.as-str strip
+
+###
+Keep reading from stdin until `parse` succeeds.
+Print `error-message` after every failure.
+###
+read-stdin-until-parse ?a(error-message str, parse act opt ?a(str)) summon
+	if res ?= parse[read-stdin]
+		res
+	else
+		error-message print
+		error-message read-stdin-until-parse parse

@@ -1,22 +1,22 @@
 no-std
 import
-	col.arr: begin-ptr, size
-	col.mut-arr: begin-ptr, copy-to-arr, uninitialized-mut-arr
-	cell: cell, subscript
-	compare: !=
-	exception: assert, throw
-	io.file: read-file
-	include.GLES2.gl2:
+	crow.cell: cell, subscript
+	crow.col.arr: begin-ptr, size
+	crow.col.mut-arr: begin-ptr, copy-to-arr, uninitialized-mut-arr
+	crow.compare: !=
+	crow.exception: assert, throw
+	crow.io.file: read-file
+	crow.misc: void
+	crow.number: ==, to-int32, to-nat
+	crow.ptr: null
+	crow.str: str
+	crow.str-util: to-c-str
+	GLES2.gl2:
 		glAttachShader, GLchar, glCompileShader, GL_COMPILE_STATUS, glCreateProgram, glCreateShader,
 		glDeleteProgram, glDeleteShader, GLenum, GL_FALSE, GL_FRAGMENT_SHADER,
 		glGetProgramInfoLog, glGetProgramiv, glGetShaderInfoLog, glGetShaderiv,
 		GL_INFO_LOG_LENGTH, GLint, glLinkProgram, GL_LINK_STATUS, glShaderSource, GL_TRUE,
 		GLuint, GL_VERTEX_SHADER
-	misc: void
-	number: ==, to-int32, to-nat
-	ptr: null
-	str: str
-	str-util: to-c-str
 
 shader-prog-load GLuint(vert-file-name str, frag-file-name str) summon unsafe
 	vert-shader = vert-file-name shader-load GL_VERTEX_SHADER

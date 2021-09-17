@@ -1,9 +1,0 @@
-no-std
-import
-	..private.bootstrap: int32
-
-err-t alias
-	int32
-
-fd-t alias
-	int32

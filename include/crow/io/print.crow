@@ -1,0 +1,40 @@
+no-std
+import
+	...stdio: stderr, stdout
+	...unistd: write
+	..col.arr: begin-ptr
+	..compare: !=
+	..extra-types: fd-t
+	..misc: void
+	..ptr: as-any-ptr, size-of
+	..str: char, chars, size-bytes, str
+	..private.bootstrap: hard-assert, todo
+	..private.number-low-level: ==, nat8, unsafe-to-int
+
+# Print to stdout, including a newline.
+print void(a str) summon noctx
+	a print-no-newline
+	"\n" print-no-newline
+
+# Print to stdout, without appending a newline.
+print-no-newline void(a str) summon trusted noctx
+	stdout write-no-newline a
+
+# Print to stderr, including a newline.
+print-err void(s str) summon noctx
+	s print-err-no-newline
+	"\n" print-err-no-newline
+
+# Print to stderr, without appending a newline.
+print-err-no-newline void(s str) summon trusted noctx
+	stderr write-no-newline s
+
+.write-no-newline void(fd fd-t, a str) summon unsafe noctx
+	hard-assert: size-of<char> == size-of<nat8>
+	res = fd write a.chars.begin-ptr.as-any-ptr, a.size-bytes
+	if res != a.size-bytes.unsafe-to-int
+		# Retry?
+		todo
+
+clear-screen void() summon
+	"\x1bc" print-no-newline

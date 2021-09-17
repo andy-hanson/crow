@@ -1,17 +1,17 @@
 no-std
 import
-	cell: cell, subscript
-	col.arr: begin-ptr, size
-	exception: finally
-	fun: subscript
-	include.webp.decode: WebPDecodeRGBA
-	include.webp.types: WebPFree
-	io.file: read-file-binary
-	misc: void
-	number: nat, nat8, to-nat
-	posix.c-types: c-int
-	ptr: ptr
-	str: str
+	crow.c-types: c-int
+	crow.cell: cell, subscript
+	crow.col.arr: begin-ptr, size
+	crow.exception: finally
+	crow.fun: subscript
+	crow.io.file: read-file-binary
+	crow.misc: void
+	crow.number: nat, nat8, to-nat
+	crow.ptr: ptr
+	crow.str: str
+	webp.decode: WebPDecodeRGBA
+	webp.types: WebPFree
 
 # WARN: Remember to free
 webp-rgba-image record mut

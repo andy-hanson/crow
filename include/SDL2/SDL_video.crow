@@ -1,0 +1,112 @@
+no-std
+import
+	..crow.misc: void
+	..crow.number: nat32
+	..crow.c-types: c-int
+	..crow.str: c-str
+
+SDL_DestroyWindow void(window SDL_Window) extern<"SDL2"> noctx summon unsafe
+
+SDL_Window extern-ptr
+
+SDL_GLContext extern-ptr
+
+SDL_CreateWindow SDL_Window
+	title c-str
+	x c-int
+	y c-int
+	w c-int
+	h c-int
+	flags nat32
+spec
+	extern<"SDL2">
+	noctx
+	summon
+	unsafe
+
+SDL_WINDOW_FULLSCREEN nat32()
+	1
+SDL_WINDOW_OPENGL nat32()
+	2
+SDL_WINDOW_SHOWN nat32()
+	4
+
+SDL_GL_CreateContext SDL_GLContext(window SDL_Window) extern<"SDL2"> noctx summon unsafe
+
+# TODO: enum type
+SDL_GLattr alias
+	c-int
+
+SDL_GL_RED_SIZE SDL_GLattr()
+	0
+SDL_GL_GREEN_SIZE SDL_GLattr()
+	1
+SDL_GL_BLUE_SIZE SDL_GLattr()
+	2
+SDL_GL_ALPHA_SIZE SDL_GLattr()
+	3
+SDL_GL_BUFFER_SIZE SDL_GLattr()
+	4
+SDL_GL_DOUBLEBUFFER SDL_GLattr()
+	5
+SDL_GL_DEPTH_SIZE SDL_GLattr()
+	6
+SDL_GL_STENCIL_SIZE SDL_GLattr()
+	7
+SDL_GL_ACCUM_RED_SIZE SDL_GLattr()
+	8
+SDL_GL_ACCUM_GREEN_SIZE SDL_GLattr()
+	9
+SDL_GL_ACCUM_BLUE_SIZE SDL_GLattr()
+	10
+SDL_GL_ACCUM_ALPHA_SIZE SDL_GLattr()
+	11
+SDL_GL_STEREO SDL_GLattr()
+	12
+SDL_GL_MULTISAMPLEBUFFERS SDL_GLattr()
+	13
+SDL_GL_MULTISAMPLESAMPLES SDL_GLattr()
+	14
+SDL_GL_ACCELERATED_VISUAL SDL_GLattr()
+	15
+SDL_GL_RETAINED_BACKING SDL_GLattr()
+	16
+SDL_GL_CONTEXT_MAJOR_VERSION SDL_GLattr()
+	17
+SDL_GL_CONTEXT_MINOR_VERSION SDL_GLattr()
+	18
+SDL_GL_CONTEXT_EGL SDL_GLattr()
+	19
+SDL_GL_CONTEXT_FLAGS SDL_GLattr()
+	20
+SDL_GL_CONTEXT_PROFILE_MASK SDL_GLattr()
+	21
+SDL_GL_SHARE_WITH_CURRENT_CONTEXT SDL_GLattr()
+	22
+SDL_GL_FRAMEBUFFER_SRGB_CAPABLE SDL_GLattr()
+	23
+SDL_GL_CONTEXT_RELEASE_BEHAVIOR SDL_GLattr()
+	24
+SDL_GL_CONTEXT_RESET_NOTIFICATION SDL_GLattr()
+	25
+SDL_GL_CONTEXT_NO_ERROR SDL_GLattr()
+	26
+
+
+SDL_GLprofile alias
+	c-int
+
+SDL_GL_CONTEXT_PROFILE_CORE SDL_GLprofile()
+	1
+SDL_GL_CONTEXT_PROFILE_COMPATIBILITY SDL_GLprofile()
+	2
+SDL_GL_CONTEXT_PROFILE_ES SDL_GLprofile()
+	4
+
+SDL_GL_SetAttribute c-int(attr SDL_GLattr, value c-int) extern<"SDL2"> noctx summon unsafe
+
+
+SDL_WINDOWPOS_UNDEFINED c-int()
+	0x1fff0000
+
+SDL_GL_SwapWindow void(window SDL_Window) extern<"SDL2"> noctx summon unsafe

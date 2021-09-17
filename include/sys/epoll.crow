@@ -1,9 +1,9 @@
 no-std
 import
-	..number: nat32, nat64
-	..posix.c-types: c-int
-	..posix.extra-types: err-t, fd-t
-	..ptr: ptr
+	..crow.c-types: c-int
+	..crow.extra-types: err-t, fd-t
+	..crow.number: nat32, nat64
+	..crow.ptr: ptr
 
 epoll_create1 fd-t(flags c-int) unsafe noctx extern summon
 

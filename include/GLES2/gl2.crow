@@ -1,0 +1,228 @@
+# /usr/include/GLES2/gl2.h
+
+no-std
+import
+	..crow.bool: bool
+	..crow.cell: cell
+	..crow.c-types: c-char, c-float, c-int, s-long, u-int
+	..crow.misc: void
+	..crow.ptr: any-ptr, ptr
+
+GLbitfield alias
+	u-int
+GLboolean alias
+	bool
+GLchar alias
+	c-char
+GLenum alias
+	u-int
+GLint alias
+	c-int
+GLintptr alias
+	s-long
+GLsizei alias
+	c-int
+GLsizeiptr alias
+	s-long
+GLuint alias
+	u-int
+GLfloat alias
+	c-float
+
+glActiveTexture void(texture GLenum) extern<"GL"> noctx summon unsafe
+
+glAttachShader void(program GLuint, shader GLuint) extern<"GL"> noctx summon unsafe
+
+glBindBuffer void(target GLenum, buffer GLuint) extern<"GL"> noctx summon unsafe
+
+glBindTexture void(target GLenum, texture GLuint) extern<"GL"> noctx summon unsafe
+
+glBufferData void
+	target GLenum
+	size GLsizeiptr
+	data any-ptr
+	usage GLenum
+spec
+	extern<"GL">
+	noctx
+	summon
+	unsafe
+
+glBufferSubData void
+	target GLenum
+	offset GLintptr
+	size GLsizeiptr
+	data any-ptr
+spec
+	extern<"GL">
+	noctx
+	summon
+	unsafe
+
+glClearColor void(red GLfloat, green GLfloat, blue GLfloat, alpha GLfloat) extern<"GL"> noctx summon unsafe
+
+glClear void(mask GLbitfield) extern<"GL"> noctx summon unsafe
+
+glCompileShader void(shader GLuint) extern<"GL"> noctx summon unsafe
+
+glCreateProgram GLuint() extern<"GL"> noctx summon unsafe
+
+glCreateShader GLuint(type GLenum) extern<"GL"> noctx summon unsafe
+
+glDeleteBuffers void(n GLsizei, buffers ptr GLuint) extern<"GL"> noctx summon unsafe
+
+glDeleteProgram void(program GLuint) extern<"GL"> noctx summon unsafe
+
+glDeleteShader void(shader GLuint) extern<"GL"> noctx summon unsafe
+
+glDeleteTextures void(n GLsizei, textures ptr GLuint) extern<"GL"> noctx summon unsafe
+
+glDrawArrays void(mode GLenum, first GLint, count GLsizei) extern noctx summon unsafe
+
+glEnableVertexAttribArray void(index GLuint) extern<"GL"> noctx summon unsafe
+
+glGenBuffers void(n GLsizei, buffers ptr GLuint) extern<"GL"> noctx summon unsafe
+
+glGenTextures void(n GLsizei, textures ptr GLuint) extern<"GL"> noctx summon unsafe
+
+glGetError GLenum() extern<"GL"> noctx summon
+
+glGetProgramInfoLog void
+	program GLuint
+	buf-size GLsizei
+	length cell GLsizei
+	info-log ptr GLchar
+spec
+	extern<"GL">
+	noctx
+	summon
+	unsafe
+
+glGetProgramiv void(program GLuint, pname GLenum, params cell GLint) extern<"GL"> noctx summon unsafe
+
+glGetShaderInfoLog void
+	shader GLuint
+	buf-size GLsizei
+	length cell GLsizei
+	info-log ptr GLchar
+spec
+	extern<"GL">
+	noctx
+	summon
+	unsafe
+
+glGetShaderiv void(reader GLuint, pname GLenum, params cell GLint) extern<"GL"> noctx summon unsafe
+
+glGetUniformLocation GLint(program GLuint, name ptr GLchar) extern<"GL"> noctx summon unsafe
+
+glLinkProgram void(program GLuint) extern<"GL"> noctx summon unsafe
+
+glShaderSource void
+	shader GLuint
+	count GLsizei
+	string ptr ptr GLchar
+	length ptr GLint
+spec
+	extern<"GL">
+	noctx
+	summon
+	unsafe
+
+glTexImage2D void
+	target GLenum
+	level GLint
+	internalformat GLint
+	width GLsizei
+	height GLsizei
+	border GLint
+	format GLenum
+	type GLenum
+	pixels any-ptr
+spec
+	extern<"GL">
+	noctx
+	summon
+	unsafe
+
+glTexParameteri void(target GLenum, pname GLenum, param GLint) extern<"GL"> noctx summon unsafe
+
+glUniform1i void(location GLint, v0 GLint) extern<"GL"> noctx summon unsafe
+
+glUseProgram void(program GLuint) extern<"GL"> noctx summon unsafe
+
+glVertexAttribPointer void
+	index GLuint
+	size GLint
+	type GLenum
+	normalized GLboolean
+	stride GLsizei
+	pointer any-ptr
+spec
+	extern<"GL">
+	noctx
+	summon
+	unsafe
+
+GL_FALSE GLint() noctx
+	0
+GL_TRUE GLint() noctx
+	1
+GL_NO_ERROR GLuint() noctx
+	0
+GL_TRIANGLES GLuint() noctx
+	4
+GL_TRIANGLE_STRIP GLuint() noctx
+	5
+GL_TRIANGLE_FAN GLuint() noctx
+	6
+GL_TEXTURE_2D GLuint() noctx
+	0x0de1
+GL_UNSIGNED_BYTE GLuint() noctx
+	0x1401
+GL_FLOAT GLuint() noctx
+	0x1406
+GL_RED GLuint() noctx
+	0x1903
+GL_GREEN GLuint() noctx
+	0x1904
+GL_BLUE GLuint() noctx
+	0x1905
+GL_ALPHA GLuint() noctx
+	0x1906
+GL_RGB GLuint() noctx
+	0x1907
+GL_RGBA GLuint() noctx
+	0x1908
+GL_TEXTURE0 GLuint() noctx
+	0x84c0
+GL_ARRAY_BUFFER GLuint() noctx
+	0x8892
+GL_STATIC_DRAW GLuint() noctx
+	0x88e4
+GL_FRAGMENT_SHADER GLuint() noctx
+	0x8b30
+GL_VERTEX_SHADER GLuint() noctx
+	0x8b31
+GL_COMPILE_STATUS GLuint() noctx
+	0x8b81
+GL_LINEAR GLint() noctx
+	0x2601
+GL_LINK_STATUS GLuint() noctx
+	0x8b82
+GL_INFO_LOG_LENGTH GLuint() noctx
+	0x8b84
+GL_TEXTURE_MAG_FILTER GLuint() noctx
+	0x2800
+GL_TEXTURE_MIN_FILTER GLuint() noctx
+	0x2801
+GL_TEXTURE_SWIZZLE_R GLuint() noctx
+	0x8e42
+GL_TEXTURE_SWIZZLE_G GLuint() noctx
+	0x8e43
+GL_TEXTURE_SWIZZLE_B GLuint() noctx
+	0x8e44
+GL_TEXTURE_SWIZZLE_A GLuint() noctx
+	0x8e45
+GL_COLOR_BUFFER_BIT GLbitfield() noctx
+	0x00004000
+

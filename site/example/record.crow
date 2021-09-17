@@ -1,10 +1,11 @@
 import
-	io.print: print
+	crow.io.print: print
 
 main fut nat(_ arr str) summon
-	a = dinner: "bruschetta", "wine"
-	b = dinner: "chili", "milk"
-	print: a <=> b to-str
+	a = "bruschetta" dinner "wine"
+	b = "chili" dinner "milk"
+	print: a to-str
+	print: b to-str
 	print: a mix b to-str
 	0 resolved
 
@@ -13,7 +14,7 @@ dinner record
 	drink str
 
 mix dinner(a dinner, b dinner)
-	dinner: a.food, b.drink
+	a.food dinner b.drink
 
 to-str str(a dinner)
 	"{a food} and {a drink}"

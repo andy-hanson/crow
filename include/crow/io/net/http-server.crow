@@ -1,0 +1,178 @@
+no-std
+import
+	....unistd: write
+	...bool: bool, false, not, true
+	...col.arr: arr, begin-ptr, size, subscript
+	...col.arr-util: rtail
+	...col.dict: dict, each, has-key?
+	...col.mut-dict: move-to-dict!, mut-dict, remove-key!, set-subscript, subscript
+	...col.mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
+	...compare: !=, <=, >=
+	...exception: assert, forbid, to-str
+	...fut: fut, fut-catch, resolved, subscript, then
+	...log: error, log
+	...misc: as, drop, void
+	...number: ==, <=>, +, nat, nat8, to-int
+	...opt: opt, or-default, some, value
+	...extra-types: fd-t
+	...ptr: ptr-cast
+	...str: ==, <=>, char, chars, empty?, size-bytes, str
+	...str-conv: parse-nat, to-str
+	...str-util: as-str, has-substr?, split-by, try-remove-end
+	...writer: ~=, move-to-str!, writer
+	...private.bootstrap: todo
+	..print: print
+	.http-types:
+		body, headers, http-get, http-method, http-post, http-request, http-response, status,
+		status-desc
+	.tcp-server: close-client, start-tcp-server, stop, tcp-handler
+
+# Represents the state of the server.
+http-server record sendable
+	stop ref void()
+
+# A function that can respond to HTTP requests.
+http-handler alias
+	ref http-response(http-request)
+
+###
+Starts running an HTTP server on the given port.
+Once the future is resolved, it is already serving requests.
+###
+start-http-server fut http-server(port str, handler http-handler) trusted summon
+	client-states = mut-dict<fd-t, http-parse-state>
+
+	on-accepted-client = as<ref void(fd-t)>: fd =>
+		client-states[fd] := http-parse-state
+		void resolved
+	on-received-chunk = as<ref void(fd-t, arr nat8)>: (fd, bytes) =>
+		if state ?= client-states[fd]
+			closed <- fd handle-chunk state, bytes.as-str, handler
+			if closed
+				client-states remove-key! fd drop
+			void resolved
+		else
+			print: "Ignoring unrecognized client"
+			void resolved
+	tcp-server = port start-tcp-server tcp-handler: on-accepted-client, on-received-chunk
+
+	# TODO: KILL
+	ignore <- handler[http-request: http-get, "", [].dict, ""]
+	drop: ignore
+
+	resolved: http-server: tcp-server.stop
+
+# Returns true when closed client
+.handle-chunk fut bool(fd fd-t, state http-parse-state, chunk str, handler http-handler) summon trusted
+	state.unparsed ~= chunk chars
+	finished-request? = if state.content-length != 0
+		assert: state.unparsed.size <= state.content-length
+		state.unparsed.size >= state.content-length
+	else
+		state handle-http-initial
+
+	if finished-request?
+		handler-response <- handler[state finish-request] fut-catch
+		response = match handler-response
+		as ok o
+			o value
+		as err e
+			error log e.value.to-str
+			http-response: 500, "Internal server error", dict, "Internal server error"
+		res-str = response response-to-str
+		wrote = fd write res-str.chars.begin-ptr.ptr-cast<nat8, char>, res-str.size-bytes
+		assert: wrote == res-str.size-bytes.to-int
+		fd close-client
+		true resolved
+	else
+		false resolved
+
+.finish-request http-request(state http-parse-state)
+	http-request: state.method, state.url, state.headers.move-to-dict!, state.unparsed.move-to-arr!.str
+
+# TODO: write out to a stream, not str
+.response-to-str str(a http-response)
+	res = writer
+	res ~= "HTTP/1.1 "
+	res ~= a.status to-str
+	res ~= " "
+	forbid: a.status-desc has-substr? "\n"
+	res ~= "\r\n"
+	res ~= a status-desc
+	# TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
+	a.headers each (k, v) =>
+		res ~= "\r\n"
+		forbid: k has-substr? "\n"
+		forbid: v has-substr? "\n"
+		res ~= k
+		res ~= ": "
+		res ~= v
+	forbid: a.headers has-key? "Content-Length"
+	if a.body.empty? not
+		res ~= "\r\n"
+		res ~= "Content-Length: "
+		res ~= a.body.size-bytes to-str
+	res ~= "\r\n\r\n"
+	res ~= a body
+	res move-to-str!
+
+#ok-response str() noctx
+#	"HTTP/1.1 200 OK Feelin' Fine\nShoop: Da Woop\n\nHello, internet world!\n"
+
+# returns true if ready to call handler
+.handle-http-initial bool(state http-parse-state)
+	if line ?= state.unparsed try-take-first-line
+		if line empty?
+			if content-length-str ?= state.headers["content-length"]
+				# set state.content-length
+				if content-length ?= content-length-str parse-nat
+					state.content-length := content-length
+					false
+				else
+					# invalid content-length
+					todo
+			else
+				true
+		elif state.url empty?
+			# Expect something like "GET / HTTP/1.1"
+			parts = line split-by " "
+			assert: parts.size == 3
+			state.method := parts[0] parse-method
+			state.url := parts[1]
+			assert: parts[2] == "HTTP/1.1"
+			forbid: state.url empty?
+			state handle-http-initial
+		else
+			parts = line split-by ": "
+			assert: parts.size == 2
+			key = parts[0]
+			value = parts[1]
+			state.headers[key] := value
+			state handle-http-initial
+	else
+		false
+
+.parse-method http-method(name str)
+	if name == "GET"
+		http-get
+	elif name == "POST"
+		http-post
+	else
+		todo
+
+.try-take-first-line opt str(a mut-list char)
+	if index ?= a index-of "\n"
+		line = a pop-n-from-start! index + 1 rtail
+		line.str try-remove-end "\r" or-default line.str some
+
+.http-parse-state record mut
+	method mut http-method
+	url mut str
+	headers mut-dict<str, str>
+	# This is not set until after the end of headers
+	content-length mut nat
+	# TODO:PERF: Use a circular buffer as we often take content off the front
+	unparsed mut-list char
+
+.http-parse-state http-parse-state()
+	http-parse-state: http-get, "", mut-dict, 0, mut-list

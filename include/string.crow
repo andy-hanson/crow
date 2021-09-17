@@ -1,0 +1,10 @@
+no-std
+import
+	.crow.ptr: any-ptr
+	.crow.private.bootstrap: nat, nat8, void
+
+memcpy void(dest any-ptr, src any-ptr, size nat) extern noctx unsafe
+
+memmove void(dest any-ptr, src any-ptr, size nat) extern noctx unsafe
+
+memset void(begin any-ptr, value nat8, size nat) extern noctx unsafe

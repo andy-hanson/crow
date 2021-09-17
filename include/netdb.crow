@@ -1,0 +1,58 @@
+no-std
+import
+	.crow.cell: cell
+	.crow.c-types: c-int
+	.crow.misc: void
+	.crow.number: int32
+	.crow.ptr: ptr
+	.crow.str: c-str
+	.sys.socket: sockaddr
+	.sys.types: socklen_t
+
+addrinfo record mut
+	by-val
+	ai_flags int32
+	ai_family int32
+	ai_socktype int32
+	ai_protocol int32
+	ai_addrlen socklen_t
+	ai_addr sockaddr
+	ai_canonname c-str
+	ai_next ptr addrinfo
+
+ai-passive int32()
+	1
+
+# Remember to call 'freeaddrinfo'!
+# Writes to 'pai'
+getaddrinfo int32
+	name c-str
+	service c-str
+	req ptr addrinfo
+	pai cell ptr<addrinfo>
+spec
+	unsafe
+	extern
+	noctx
+	summon
+freeaddrinfo void(ai ptr addrinfo) unsafe extern noctx
+gai_strerror c-str(ecode int32) extern noctx
+
+hostent record mut
+	by-ref
+	h_name c-str
+	h_aliases ptr c-str
+	h_addrtype c-int
+	h_length c-int
+	h_addr_list ptr c-str
+
+gethostbyname hostent(name c-str) unsafe extern noctx
+
+protoent record mut
+	by-ref
+	p_name c-str
+	p_aliases ptr c-str
+	p_proto c-int
+
+getprotobyname protoent(name c-str) unsafe extern noctx
+

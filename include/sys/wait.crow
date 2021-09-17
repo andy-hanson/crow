@@ -1,0 +1,38 @@
+no-std
+import
+	..crow.bits: bits-and, bit-shift-right, bits-intersect?
+	..crow.bool: and, bool
+	..crow.cell: cell
+	..crow.compare: !=
+	..crow.private.number-low-level: ==, int32
+	..sys.types: pid_t
+
+waitpid pid_t(pid pid_t, wait-status cell status-t, options int32) unsafe extern noctx summon
+
+status-t alias
+	int32
+
+WTERMSIG status-t(status status-t)
+	# /usr/include/x86_64-linux-gnu/bits/waitstatus.h
+	status bits-and 0x7f
+
+WEXITSTATUS status-t(status status-t)
+	# /usr/include/x86_64-linux-gnu/bits/waitstatus.h
+	status bits-and 0xff00 bit-shift-right 8
+
+WIFEXITED bool(status status-t)
+	# /usr/include/x86_64-linux-gnu/bits/waitstatus.h
+	status.WTERMSIG == 0
+
+WIFSIGNALED bool(status status-t)
+	ts = status WTERMSIG
+	ts != 0 and: ts != 0x7f
+
+WCOREDUMP bool(status status-t)
+	status bits-intersect? 0x80
+
+WIFSTOPPED bool(status status-t)
+	(status bits-and 0xff) == 0x7f
+
+WIFCONTINUED bool(status status-t)
+	status == 0xffff

@@ -1,8 +1,8 @@
 import
-	io.print: print
+	crow.io.print: print
 
 main fut nat(_ arr str) summon
-	a = dinner: "ramen", "tea"
+	a = "lasagna" dinner "wine"
 	print: "yum, {a}"
 	a snarf!
 	print: "yum, {a}"
