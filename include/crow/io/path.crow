@@ -3,7 +3,7 @@ import
 	..col.arr: subscript
 	..col.arr-util: last, r-index-of, rtail
 	..misc: ->
-	..number: +, -, nat
+	..number: +, -, nat64
 	..opt: opt, some
 	..str: ==, char, chars, size-bytes, str
 	..str-conv: finish, interp, to-str, with-str, with-value
@@ -23,7 +23,7 @@ child-path str(a str, child_name str)
 	"{a}/{child_name}"
 
 # TODO:MOVE
-.last-index-of opt nat(a str, c char)
+.last-index-of opt nat64(a str, c char)
 	if last-char ?= a.chars last
 		if last-char == c
 			a.size-bytes - 1 some

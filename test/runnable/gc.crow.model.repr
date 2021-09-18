@@ -4,28 +4,28 @@ module(
 		import(none, 52, none)
 		import(
 			some(range(8, 133))
-			19
+			20
 			some([cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used]))
 		import(some(range(135, 155)), 44, some([print]))
-		import(some(range(157, 197)), 5, some([-, as-any-ptr, by-val, size-of]))]
+		import(some(range(157, 197)), 6, some([-, as-any-ptr, by-val, size-of]))]
 	structs: [struct(range: file-range(71, range(776, 807)), public?: true, name: r)]
 	funs: [
 		fun(
 			public?: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(71, 199), main, fut(nat()), [param(file-range(71, range(212, 221)), none, arr(str()))])
+			sig: sig(file-pos(71, 199), main, fut(nat64()), [param(file-range(71, range(212, 221)), none, arr(str()))])
 			body: let(
 				local(file-range(71, range(238, 240)), gc, gc())
 				call(fun-inst(name: get-gc), [])
 				seq(
-					call(fun-inst(name: set-hard-limit), [local-ref(gc), literal(nat(), 512)])
+					call(fun-inst(name: set-hard-limit), [local-ref(gc), literal(nat64(), 512)])
 					let(
 						local(file-range(71, range(339, 340)), a, r())
-						call(fun-inst(name: r), [literal(nat(), 1), literal(nat(), 2), literal(nat(), 3)])
+						call(fun-inst(name: r), [literal(nat64(), 1), literal(nat64(), 2), literal(nat64(), 3)])
 						let(
 							local(file-range(71, range(355, 356)), b, r())
-							call(fun-inst(name: r), [literal(nat(), 4), literal(nat(), 5), literal(nat(), 6)])
+							call(fun-inst(name: r), [literal(nat64(), 4), literal(nat64(), 5), literal(nat64(), 6)])
 							seq(
 								seq(
 									seq(
@@ -44,7 +44,7 @@ module(
 																				name: size-of
 																				type-args: [by-val(r())])
 																			[])
-																		literal(nat(), 24)])])
+																		literal(nat64(), 24)])])
 														call(
 															fun-inst(name: assert)
 															[
@@ -64,7 +64,7 @@ module(
 																						name: as-any-ptr
 																						type-args: [r()])
 																					[local-ref(a)])])
-																		literal(nat(), 24)])]))
+																		literal(nat64(), 24)])]))
 													call(
 														fun-inst(name: print)
 														[
@@ -94,7 +94,7 @@ module(
 																call(
 																	fun-inst(
 																		name: with-value
-																		type-args: [nat()]
+																		type-args: [nat64()]
 																		spec-impls: [fun-inst(name: to-str)])
 																	[
 																		call(
@@ -141,7 +141,7 @@ module(
 																call(fun-inst(name: get-stats), [local-ref(gc)])])])]))
 									call(fun-inst(name: force-needs-gc), [local-ref(gc)]))
 								call(
-									fun-inst(name: then-void, type-args: [nat()])
+									fun-inst(name: then-void, type-args: [nat64()])
 									[
 										call(fun-inst(name: delay), [])
 										lambda(
@@ -186,7 +186,7 @@ module(
 																			call(
 																				fun-inst(
 																					name: with-value
-																					type-args: [nat()]
+																					type-args: [nat64()]
 																					spec-impls: [fun-inst(name: to-str)])
 																				[
 																					call(
@@ -237,11 +237,13 @@ module(
 																			call(
 																				fun-inst(name: get-stats)
 																				[closure-rf(gc)])])])]))
-												call(fun-inst(name: resolved, type-args: [nat()]), [literal(nat(), 0)]))
+												call(
+													fun-inst(name: resolved, type-args: [nat64()])
+													[literal(nat64(), 0)]))
 											[closure-f(gc, gc(), local-ref(gc)), closure-f(a, r(), local-ref(a))]
-											fun-ref0(nat())
+											fun-ref0(nat64())
 											ref
-											fut(nat()))])))))))
+											fut(nat64()))])))))))
 		fun(
 			public?: true
 			sig: sig(file-pos(71, 807), to-str, str(), [param(file-range(71, range(818, 821)), some(a), r())])
@@ -249,7 +251,7 @@ module(
 				fun-inst(name: finish)
 				[
 					call(
-						fun-inst(name: with-value, type-args: [nat()], spec-impls: [fun-inst(name: to-str)])
+						fun-inst(name: with-value, type-args: [nat64()], spec-impls: [fun-inst(name: to-str)])
 						[
 							call(
 								fun-inst(name: with-str)
@@ -257,7 +259,7 @@ module(
 									call(
 										fun-inst(
 											name: with-value
-											type-args: [nat()]
+											type-args: [nat64()]
 											spec-impls: [fun-inst(name: to-str)])
 										[
 											call(
@@ -266,7 +268,7 @@ module(
 													call(
 														fun-inst(
 															name: with-value
-															type-args: [nat()]
+															type-args: [nat64()]
 															spec-impls: [fun-inst(name: to-str)])
 														[
 															call(
@@ -285,7 +287,7 @@ module(
 				fun-inst(name: finish)
 				[
 					call(
-						fun-inst(name: with-value, type-args: [nat()], spec-impls: [fun-inst(name: to-str)])
+						fun-inst(name: with-value, type-args: [nat64()], spec-impls: [fun-inst(name: to-str)])
 						[
 							call(
 								fun-inst(name: with-str)
@@ -293,7 +295,7 @@ module(
 									call(
 										fun-inst(
 											name: with-value
-											type-args: [nat()]
+											type-args: [nat64()]
 											spec-impls: [fun-inst(name: to-str)])
 										[
 											call(
@@ -302,7 +304,7 @@ module(
 													call(
 														fun-inst(
 															name: with-value
-															type-args: [nat()]
+															type-args: [nat64()]
 															spec-impls: [fun-inst(name: to-str)])
 														[
 															call(
@@ -323,9 +325,9 @@ module(
 				r
 				r()
 				[
-					param(file-range(71, range(786, 791)), some(a), nat())
-					param(file-range(71, range(793, 798)), some(b), nat())
-					param(file-range(71, range(800, 805)), some(c), nat())])
+					param(file-range(71, range(786, 791)), some(a), nat64())
+					param(file-range(71, range(793, 798)), some(b), nat64())
+					param(file-range(71, range(800, 805)), some(c), nat64())])
 			body: new-record)
 		fun(
 			public?: true
@@ -335,22 +337,22 @@ module(
 				r
 				by-val(r())
 				[
-					param(file-range(71, range(786, 791)), some(a), nat())
-					param(file-range(71, range(793, 798)), some(b), nat())
-					param(file-range(71, range(800, 805)), some(c), nat())])
+					param(file-range(71, range(786, 791)), some(a), nat64())
+					param(file-range(71, range(793, 798)), some(b), nat64())
+					param(file-range(71, range(800, 805)), some(c), nat64())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(71, 786), a, nat(), [param(file-range(71, range(786, 791)), some(a), r())])
+			sig: sig(file-pos(71, 786), a, nat64(), [param(file-range(71, range(786, 791)), some(a), r())])
 			body: field-get(0))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(71, 793), b, nat(), [param(file-range(71, range(793, 798)), some(a), r())])
+			sig: sig(file-pos(71, 793), b, nat64(), [param(file-range(71, range(793, 798)), some(a), r())])
 			body: field-get(1))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(71, 800), c, nat(), [param(file-range(71, range(800, 805)), some(a), r())])
+			sig: sig(file-pos(71, 800), c, nat64(), [param(file-range(71, range(800, 805)), some(a), r())])
 			body: field-get(2))])

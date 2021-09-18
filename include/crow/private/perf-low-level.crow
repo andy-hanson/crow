@@ -3,12 +3,12 @@ import
 	..io.duration: duration, nsec
 	..col.mut-arr: mut-arr
 	..ptr: by-val
-	.bootstrap: arr, nat, str
+	.bootstrap: arr, nat64, str
 
 perf-time record
 	by-val
 	# TODO:PRIVATE
-	ns nat
+	ns nat64
 
 perf-ctx record mut
 	measure-names mut arr str
@@ -19,9 +19,9 @@ perf-ctx by-val perf-ctx() noctx
 
 measure-value record
 	by-val
-	count nat
+	count nat64
 	# TODO:PRIVATE
-	total-ns nat
+	total-ns nat64
 
 total-duration duration(a measure-value)
 	a.total-ns nsec

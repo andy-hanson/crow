@@ -12,7 +12,7 @@ import
 	..str-conv: to-str
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
-	..private.number-low-level: ==, <=>, nat, wrap-add, wrap-sub, wrap-mul
+	..private.number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
 	.arr: ==, arr
 	.arr-util: fold
 	.frozen-unordered-set:
@@ -40,9 +40,9 @@ unordered-arr arr ?a(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
 	# TODO: If a has a single add node and no remove, just return that
 	a map-to-arr-unordered x => x
 
-alloc-count nat(a unordered-set ?a) unsafe
+alloc-count nat64(a unordered-set ?a) unsafe
 	a.remove.alloc-count alloc-count-recur a.add
-.alloc-count-recur nat(acc nat, a add-node ?a) unsafe
+.alloc-count-recur nat64(acc nat64, a add-node ?a) unsafe
 	mid = acc wrap-add a.here.alloc-count
 	if left ?= a left
 		# + 1 to allocate the left node
@@ -51,9 +51,9 @@ alloc-count nat(a unordered-set ?a) unsafe
 		mid
 
 # TODO: any value that is removed is overhead too
-overhead-bytes nat(a unordered-set ?a) unsafe
+overhead-bytes nat64(a unordered-set ?a) unsafe
 	a.remove.deep-size-bytes overhead-bytes-recur a.add
-.overhead-bytes-recur nat(acc nat, a add-node ?a) unsafe
+.overhead-bytes-recur nat64(acc nat64, a add-node ?a) unsafe
 	mid = acc wrap-add a.here.overhead-bytes wrap-add a.left.size-of
 	if left ?= a left
 		mid overhead-bytes-recur left
@@ -63,16 +63,16 @@ overhead-bytes nat(a unordered-set ?a) unsafe
 empty? bool(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
 	a.add.here empty?
 
-size nat(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
+size nat64(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
 	a.remove.size add-size-recur a.add
 
-.add-size nat(a add-node ?a)
+.add-size nat64(a add-node ?a)
 	0 add-size-recur a
-.add-size-recur nat(acc nat, a add-node ?a)
+.add-size-recur nat64(acc nat64, a add-node ?a)
 	acc wrap-add a.here.size add-size-left-recur a
-.add-size-left nat(a add-node ?a)
+.add-size-left nat64(a add-node ?a)
 	0 add-size-left-recur a
-.add-size-left-recur nat(acc nat, a add-node ?a)
+.add-size-left-recur nat64(acc nat64, a add-node ?a)
 	if left ?= a left
 		acc add-size-recur left
 	else
@@ -84,7 +84,7 @@ subscript bool(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
 	else
 		false
 
-.find-in-add opt nat(a add-node ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
+.find-in-add opt nat64(a add-node ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
 	if index ?= a.here try-get-unordered-index value
 		a.add-size-left wrap-add index some
 	elif left ?= a left
@@ -117,12 +117,12 @@ try-add opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> 
 
 .compact-plan record
 	# Total size of all non-compacted nodes (all but the new last node)
-	add-size-left nat
+	add-size-left nat64
 	# Size that the compacted node will have (sum of 'depth' rightmost nodes)
-	compacted-size nat
+	compacted-size nat64
 
 
-.add-and-compact-plan compact-plan(size-here-and-left nat, a add-node ?a, remove index-set, size-right nat)
+.add-and-compact-plan compact-plan(size-here-and-left nat64, a add-node ?a, remove index-set, size-right nat64)
 	size-here = a.here size
 	size-left = size-here-and-left wrap-sub size-here
 	removals-here-and-right = remove count-greater-or-equal size-left
@@ -135,12 +135,12 @@ try-add opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> 
 	else
 		size-here-and-left compact-plan size-right
 
-.should-compact? bool(size-here nat, size-right nat, removals-here-and-right nat)
+.should-compact? bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right wrap-add (removals-here-and-right wrap-mul 2)) >= size-here
 
 .add-and-compact unordered-set ?a
 	a unordered-set ?a
-	add-size nat
+	add-size nat64
 	plan compact-plan
 	value ?a
 spec
@@ -164,7 +164,7 @@ body
 .do-compact-recur! add-node ?a
 	compactor compactor ?a
 	a add-node ?a
-	add-size-here-and-left nat
+	add-size-here-and-left nat64
 	remove index-set
 spec
 	unsafe
@@ -181,9 +181,9 @@ body
 		new-l = add-size-here-and-left wrap-sub a.here.size
 		compactor do-compact-recur! a.left.force, new-l, remove
 
-.push! void(a compactor ?a, here frozen-unordered-set ?a, add-size-here-and-left nat, remove index-set) unsafe
+.push! void(a compactor ?a, here frozen-unordered-set ?a, add-size-here-and-left nat64, remove index-set) unsafe
 	a push-recur! here.begin-ptr, here.end-ptr, add-size-here-and-left, remove
-.push-recur! void(a compactor ?a, cur ptr ?a, end ptr ?a, remove-index nat, remove index-set) unsafe
+.push-recur! void(a compactor ?a, cur ptr ?a, end ptr ?a, remove-index nat64, remove index-set) unsafe
 	if cur ptr-eq? end not
 		if remove[remove-index] not
 			a.cur[] := cur[]
@@ -200,7 +200,7 @@ region iteration
 fold-unordered ?a(acc ?a, a unordered-set ?b, f act ?a(?a, ?b)) data<?b> compare<?b> hash-mix<?b>
 	acc fold-unordered-recur a.add, a.add.add-size-left, a.remove, f
 
-.fold-unordered-recur ?a(acc ?a, a add-node ?b, add-size-left nat, remove index-set, f act ?a(?a, ?b))
+.fold-unordered-recur ?a(acc ?a, a add-node ?b, add-size-left nat64, remove index-set, f act ?a(?a, ?b))
 	mid = acc fold-unordered-with-index a.here, (cur, x, index) =>
 		if remove[add-size-left wrap-add index]
 			cur
@@ -248,11 +248,11 @@ map-to-arr-unordered arr ?out(a unordered-set ?in, f act ?out(?in)) trusted data
 		out backup!
 		out ~= "]"
 
-.verify void(a unordered-set nat, expected str)
+.verify void(a unordered-set nat64, expected str)
 	a.dbg is expected
 
 test
-	a = unordered-set<nat>
+	a = unordered-set<nat64>
 	a.empty? is true
 	a.size is 0
 	a verify "[]"

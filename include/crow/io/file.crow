@@ -8,7 +8,7 @@ import
 	...unistd: close, getcwd, lseek, read, readlink, rmdir, unlink, write
 	..bits: bits-and, bit-shift-left, bits-or
 	..bytes-types: zero
-	..bool: and, bool, false, not, to-nat, true
+	..bool: and, bool, false, not, to-nat64, true
 	..cell: cell, subscript
 	..col.arr: arr, begin-ptr, subscript
 	..col.arr-util: each
@@ -19,7 +19,7 @@ import
 	..exception: assert, forbid, throw
 	..fun: subscript
 	..misc: ->, as, void
-	..number: ==, <=>, +, int32, nat8, nat16, nat32, to-int, to-nat, to-nat32
+	..number: ==, <=>, +, int32, nat8, nat16, nat32, to-int64, to-nat32, to-nat64
 	..opt: has?, opt, some
 	..ptr: +, any-ptr, as-any-ptr, null?, ptr-cast, ptr-cast-from-extern, ptr-eq?, ref-eq?, size-of
 	..str: ==, <=>, char, chars, c-str, size-bytes, str
@@ -107,7 +107,7 @@ read-link str(path str) summon trusted
 	size = path.to-c-str readlink buff.begin-ptr, buff.size
 	if size == -1
 		check-errno
-	buff.cast-immutable[0 -> size.to-nat] str
+	buff.cast-immutable[0 -> size.to-nat64] str
 
 ###
 Gets the path of the current executable.
@@ -151,7 +151,7 @@ write-file void(path str, content str) summon
 		todo
 	else
 		wrote-bytes = fd write content.chars.begin-ptr.ptr-cast<nat8, char>, content.size-bytes
-		if wrote-bytes != content.size-bytes.to-int
+		if wrote-bytes != content.size-bytes.to-int64
 			if wrote-bytes == -1
 				todo
 			else
@@ -190,7 +190,7 @@ try-read-file opt str(path str) summon
 				assert: off == 0
 
 				# TODO: allocation can fail, then 'fd' is left open. Need finalizers
-				file-size-nat = file-size.to-nat
+				file-size-nat = file-size to-nat64
 				res = file-size-nat uninitialized-mut-arr<char>
 				n-bytes-read = fd read res.begin-ptr.ptr-cast, file-size-nat
 				# TODO: handle errors
@@ -244,7 +244,7 @@ permissions record
 	execute bool
 
 .to-mode mode_t(a permissions)
-	(a.read.to-nat bit-shift-left 2) bits-or (a.write.to-nat bit-shift-left 1) bits-or a.execute.to-nat to-nat32
+	(a.read.to-nat64 bit-shift-left 2) bits-or (a.write.to-nat64 bit-shift-left 1) bits-or a.execute.to-nat64 to-nat32
 
 no-permissions permissions()
 	permissions: false, false, false

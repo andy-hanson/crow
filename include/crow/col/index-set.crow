@@ -17,7 +17,7 @@ import
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
 	..private.number-low-level:
-		==, <=>, nat, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
+		==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	.arr: ==, arr, empty?, size, subscript
 	.arr-util:
 		alloc-count, deep-size-bytes, each, fold, fold-with-index, last, make-arr, map-with-index,
@@ -33,75 +33,75 @@ index-set record
 empty? bool(a index-set)
 	a.values empty?
 
-size nat(a index-set)
+size nat64(a index-set)
 	a.values count-ones-in-arr
-.count-ones-in-arr nat(a arr nat64)
+.count-ones-in-arr nat64(a arr nat64)
 	0 fold a, (acc, x) =>
 		acc wrap-add x.count-ones
 
 # Total number of bytes used.
-deep-size-bytes nat(a index-set) unsafe
+deep-size-bytes nat64(a index-set) unsafe
 	a.values deep-size-bytes
 
-alloc-count nat(a index-set) unsafe
+alloc-count nat64(a index-set) unsafe
 	a.values alloc-count
 
 index-set index-set()
 	index-set: void, []
 
-index-set index-set(a nat)
+index-set index-set(a nat64)
 	index-set: [a]
 
-index-set index-set(a arr nat)
+index-set index-set(a arr nat64)
 	index-set fold a, (acc, x) => acc ~ x
 
-arr arr nat(a index-set)
+arr arr nat64(a index-set)
 	a map-to-arr (it => it)
 
-subscript bool(a index-set, index nat)
-	nat-index = index word-index
-	if nat-index < a.values.size
-		a.values[nat-index] bit? index.bit-index
+subscript bool(a index-set, index nat64)
+	nat64-index = index word-index
+	if nat64-index < a.values.size
+		a.values[nat64-index] bit? index.bit-index
 	else
 		false
 
-~ index-set(a index-set, index nat)
+~ index-set(a index-set, index nat64)
 	a try-add index or-default a
 
-try-add opt index-set(a index-set, index nat)
-	nat-index = index word-index
+try-add opt index-set(a index-set, index nat64)
+	nat64-index = index word-index
 	bit-index = index bit-index
-	if nat-index < a.values.size
-		if a.values[nat-index] bit? bit-index not
-			new-values = a.values update: nat-index, a.values[nat-index] add-bit bit-index
+	if nat64-index < a.values.size
+		if a.values[nat64-index] bit? bit-index not
+			new-values = a.values update: nat64-index, a.values[nat64-index] add-bit bit-index
 			some: index-set: void, new-values
 	else
-		some: index-set: void, (nat-index wrap-add 1) make-arr i =>
+		some: index-set: void, (nat64-index wrap-add 1) make-arr i =>
 			if i < a.values.size
 				a.values[i]
-			elif i == nat-index
+			elif i == nat64-index
 				bit-index nth-bit
 			else
 				0
 
-~ index-set(a index-set, indices arr nat)
+~ index-set(a index-set, indices arr nat64)
 	a fold indices, (cur, index) => cur ~ index
 
-- index-set(a index-set, index nat)
+- index-set(a index-set, index nat64)
 	a try-remove index or-default a
 
-try-remove opt index-set(a index-set, index nat)
-	nat-index = index word-index
-	if nat-index < a.values.size
+try-remove opt index-set(a index-set, index nat64)
+	nat64-index = index word-index
+	if nat64-index < a.values.size
 		bit-index = index bit-index
-		old-value = a.values[nat-index]
+		old-value = a.values[nat64-index]
 		new-value = old-value sub-bit bit-index
 		if new-value == old-value
 			none
-		elif new-value == 0 and nat-index == (a.values.size wrap-sub 1)
+		elif new-value == 0 and nat64-index == (a.values.size wrap-sub 1)
 			some: index-set: void, a.values rtail
 		else
-			some: a.values update nat-index, new-value strip-trailing-zeroes
+			some: a.values update nat64-index, new-value strip-trailing-zeroes
 
 ~ index-set(a index-set, b index-set)
 	index-set: void, a.values zip-larger b.values, (x, y) =>
@@ -115,9 +115,9 @@ intersect index-set(a index-set, b index-set)
 	strip-trailing-zeroes: a.values zip-larger b.values, (x, y) =>
 		x or-default 0 bits-diff: y or-default 0
 
-.strip-trailing-zeroes index-set(a arr nat)
+.strip-trailing-zeroes index-set(a arr nat64)
 	index-set: void, a.strip-trailing-zeroes
-.strip-trailing-zeroes arr nat(a arr nat)
+.strip-trailing-zeroes arr nat64(a arr nat64)
 	if last ?= a last
 		if last == 0
 			a.rtail strip-trailing-zeroes
@@ -127,80 +127,80 @@ intersect index-set(a index-set, b index-set)
 		[]
 
 # hi exclusive
-count-range nat(a index-set, lo nat, hi nat)
+count-range nat64(a index-set, lo nat64, hi nat64)
 	assert: lo <= hi
-	lo-nat-index = lo word-index
-	if lo-nat-index < a.values.size
-		hi-nat-index = hi word-index
+	lo-nat64-index = lo word-index
+	if lo-nat64-index < a.values.size
+		hi-nat64-index = hi word-index
 		lo-bit-index = lo bit-index
 		hi-bit-index = hi bit-index
-		if lo-nat-index == hi-nat-index
-			a.values[lo-nat-index] count-range-in-nat lo-bit-index, hi-bit-index
+		if lo-nat64-index == hi-nat64-index
+			a.values[lo-nat64-index] count-range-in-nat64 lo-bit-index, hi-bit-index
 		else
-			l = a.values[lo-nat-index] count-gte-in-nat lo-bit-index
-			mid = a.values[(lo-nat-index wrap-add 1) -> hi-nat-index] count-ones-in-arr
-			r = a.values[hi-nat-index] count-less-in-nat hi-bit-index
+			l = a.values[lo-nat64-index] count-gte-in-nat64 lo-bit-index
+			mid = a.values[(lo-nat64-index wrap-add 1) -> hi-nat64-index] count-ones-in-arr
+			r = a.values[hi-nat64-index] count-less-in-nat64 hi-bit-index
 			l wrap-add mid wrap-add r
 	else
 		0
 
-count-less nat(a index-set, n nat)
-	nat-index = n word-index
-	if nat-index < a.values.size
-		here = a.values[nat-index] count-less-in-nat n.bit-index
-		here wrap-add a.values[0 -> nat-index].count-ones-in-arr
+count-less nat64(a index-set, n nat64)
+	nat64-index = n word-index
+	if nat64-index < a.values.size
+		here = a.values[nat64-index] count-less-in-nat64 n.bit-index
+		here wrap-add a.values[0 -> nat64-index].count-ones-in-arr
 	else
 		a.size
 
-count-greater-or-equal nat(a index-set, n nat)
-	nat-index = n word-index
-	if nat-index < a.values.size
-		here = a.values[nat-index] count-gte-in-nat n.bit-index
-		here wrap-add a.values[(nat-index wrap-add 1) -> a.values.size].count-ones-in-arr
+count-greater-or-equal nat64(a index-set, n nat64)
+	nat64-index = n word-index
+	if nat64-index < a.values.size
+		here = a.values[nat64-index] count-gte-in-nat64 n.bit-index
+		here wrap-add a.values[(nat64-index wrap-add 1) -> a.values.size].count-ones-in-arr
 	else
 		0
 
-.count-range-in-nat nat(a nat, lo-bit-index nat, hi-bit-index nat)
-	a bit-shift-right lo-bit-index count-less-in-nat: hi-bit-index wrap-sub lo-bit-index
+.count-range-in-nat64 nat64(a nat64, lo-bit-index nat64, hi-bit-index nat64)
+	a bit-shift-right lo-bit-index count-less-in-nat64: hi-bit-index wrap-sub lo-bit-index
 
-.count-less-in-nat nat(a nat, bit-index nat)
+.count-less-in-nat64 nat64(a nat64, bit-index nat64)
 	a bit-shift-left (64 wrap-sub bit-index) count-ones
 
-.count-gte-in-nat nat(a nat, bit-index nat)
+.count-gte-in-nat64 nat64(a nat64, bit-index nat64)
 	a bit-shift-right bit-index count-ones
 
-filter-less index-set(a index-set, n nat)
+filter-less index-set(a index-set, n nat64)
 	if n < a.values.size
 		index-set: void, a.values[0 -> n]
 	else
 		a
 
-.word-index nat(a nat) trusted
+.word-index nat64(a nat64) trusted
 	a unsafe-div 64
-.bit-index nat(a nat) trusted
+.bit-index nat64(a nat64) trusted
 	a unsafe-mod 64
 
 region iteration
 
-each void(a index-set, f act void(nat))
+each void(a index-set, f act void(nat64))
 	void fold a, (ignore, x) => f[x]
 
-fold ?a(acc ?a, a index-set, f act ?a(?a, nat))
-	acc fold-with-index a.values, (cur, value, nat-index) =>
-		bit-index-offset = nat-index wrap-mul 64
+fold ?a(acc ?a, a index-set, f act ?a(?a, nat64))
+	acc fold-with-index a.values, (cur, value, nat64-index) =>
+		bit-index-offset = nat64-index wrap-mul 64
 		cur fold-one-bits value, (inner-acc, bit-index) =>
 			f[inner-acc, bit-index-offset wrap-add bit-index]
 
-filter index-set(a index-set, f act bool(nat))
-	strip-trailing-zeroes: a.values map-with-index (value, nat-index) =>
-		bit-index-offset = nat-index wrap-mul 64
+filter index-set(a index-set, f act bool(nat64))
+	strip-trailing-zeroes: a.values map-with-index (value, nat64-index) =>
+		bit-index-offset = nat64-index wrap-mul 64
 		value filter-bits bit-index =>
 			f[bit-index-offset wrap-add bit-index]
 
-map index-set(a index-set, f act nat(nat))
+map index-set(a index-set, f act nat64(nat64))
 	a map-to-arr f index-set
 
-map-to-arr arr ?a(a index-set, f act ?a(nat)) trusted
+map-to-arr arr ?a(a index-set, f act ?a(nat64)) trusted
 	res = a.size uninitialized-mut-arr<?a>
 	end = res.begin-ptr fold a, (cur, x) =>
 		cur[] := f[x]
@@ -235,7 +235,7 @@ debug str(a index-set)
 		out ~= "]"
 		out move-to-str!
 
-.verify void(a index-set, expected str, expected-arr arr nat)
+.verify void(a index-set, expected str, expected-arr arr nat64)
 	a.dbg is expected
 	r = a arr
 	r is expected-arr

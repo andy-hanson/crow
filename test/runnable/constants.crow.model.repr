@@ -6,7 +6,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(71, 30), main, fut(nat()), [param(file-range(71, range(43, 52)), none, arr(str()))])
+			sig: sig(file-pos(71, 30), main, fut(nat64()), [param(file-range(71, range(43, 52)), none, arr(str()))])
 			body: let(
 				local(file-range(71, range(62, 63)), r, my-record())
 				call(fun-inst(name: my-record), [string-lit("a"), string-lit("b")])
@@ -16,7 +16,7 @@ module(
 							call(fun-inst(name: foo), [local-ref(r)])
 							call(fun-inst(name: print), [call(fun-inst(name: a), [local-ref(r)])]))
 						call(fun-inst(name: print), [call(fun-inst(name: b), [local-ref(r)])]))
-					call(fun-inst(name: resolved, type-args: [nat()]), [literal(nat(), 0)]))))
+					call(fun-inst(name: resolved, type-args: [nat64()]), [literal(nat64(), 0)]))))
 		fun(
 			public?: true
 			summon: true

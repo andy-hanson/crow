@@ -1,6 +1,5 @@
 GLES2/gl2
 SDL2/SDL
-SDL2/SDL_endian
 SDL2/SDL_events
 SDL2/SDL_image
 SDL2/SDL_keyboard
@@ -80,7 +79,6 @@ crow/log
 crow/math/vec
 crow/misc
 crow/number
-crow/openssl
 crow/opt
 crow/parse-command
 crow/perf
@@ -117,6 +115,7 @@ fcntl
 lmdb
 netdb
 netinet/in
+openssl
 poll
 pthread
 setjmp

@@ -5,7 +5,7 @@ import
 	..exception: assert, forbid
 	..fun: subscript
 	..misc: ->, as, void
-	..number: ==, <=>, +, -, /, nat
+	..number: ==, <=>, +, -, /, nat64
 	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
 	..str: ==, <=>, chars
 	..test: is
@@ -37,7 +37,7 @@ sort-unique arr ?a(a arr ?a) compare<?a> trusted
 	a.mut-arr.sort-unique! cast-immutable
 
 test
-	(sort: as<arr nat>: []) is []
+	(sort: as<arr nat64>: []) is []
 	[3, 1, 2].sort is [1, 2, 3]
 
 	# Test that it's a stable sort
@@ -103,7 +103,7 @@ sort-unique-by! mut-arr ?a(a mut-arr ?a, f act ?b(?a)) compare<?b>
 			write[] := here
 			here unique-recur! read + 1, write + 1, end, comparer
 
-.swap void(a mut-arr ?a, x nat, y nat)
+.swap void(a mut-arr ?a, x nat64, y nat64)
 	old-x = a[x]
 	a[x] := a[y]
 	a[y] := old-x
@@ -135,7 +135,7 @@ sort-by-first! void(a mut-arr ?a, b mut-arr ?b) compare<?a>
 		a[0 -> new-pivot-index] sort-by-first! b[0 -> new-pivot-index]
 		a[new-pivot-index + 1 -> a.size] sort-by-first! b[new-pivot-index + 1 -> b.size]
 
-.partition-by-first! nat(a mut-arr ?a, b mut-arr ?b, pivot ?a, l nat, r nat) compare<?a>
+.partition-by-first! nat64(a mut-arr ?a, b mut-arr ?b, pivot ?a, l nat64, r nat64) compare<?a>
 	assert: l <= a.size
 	assert: r < a.size
 	if l <= r

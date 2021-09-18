@@ -21,7 +21,7 @@ import
 	...extra-types: fd-t
 	...fut: fut, handle-exceptions, then-void, fut-catch, resolved, subscript
 	...misc: ->, as, drop, void
-	...number: ==, <=>, int32, nat8, nat16, nat32, to-int, to-int32, to-nat, to-nat32
+	...number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64
 	...opt: value
 	...private.bootstrap: todo
 	# TODO: don't use this
@@ -62,7 +62,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		todo
 	else
 		event-flags = as<nat32>: EPOLLIN bits-or EPOLLET
-		accept-event = epoll_event: event-flags, port-fd.to-int.to-nat
+		accept-event = epoll_event: event-flags, port-fd.to-int64.to-nat64
 		ctl-err = epoll-fd epoll_ctl EPOLL_CTL_ADD, port-fd, accept-event.ptr-to
 		if ctl-err != 0
 			perror: "epoll_ctl failed\0".chars.begin-ptr
@@ -125,7 +125,7 @@ close-client void(client-fd fd-t) unsafe summon
 		else
 			assert: num-events == 1
 			flags = event.events
-			fd = event.data.to-int to-int32
+			fd = event.data.to-int64 to-int32
 			if flags bits-intersect? (EPOLLERR bits-or EPOLLHUP) or: not: flags bits-intersect? EPOLLIN
 				print: "SOME KINDA ERROR"
 				err = fd close
@@ -148,7 +148,7 @@ close-client void(client-fd fd-t) unsafe summon
 			todo
 	else
 		client-fd set-non-blocking
-		client-event = epoll_event: (EPOLLIN bits-or EPOLLET), client-fd.to-int.to-nat
+		client-event = epoll_event: (EPOLLIN bits-or EPOLLET), client-fd.to-int64.to-nat64
 		err = epoll-fd epoll_ctl EPOLL_CTL_ADD, client-fd, client-event.ptr-to
 		assert: err == 0
 		on-accepted-client[client-fd] handle-exceptions
@@ -162,7 +162,7 @@ close-client void(client-fd fd-t) unsafe summon
 		if err != EAGAIN
 			perror: "read() failed\0".chars.begin-ptr
 	elif count != 0
-		chunk = buf.cast-immutable[0 -> count.to-nat]
+		chunk = buf.cast-immutable[0 -> count.to-nat64]
 		on-received-chunk[fd, chunk] handle-exceptions
 		fd handle-client on-received-chunk
 

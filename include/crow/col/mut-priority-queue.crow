@@ -9,7 +9,7 @@ import
 	..str: ==, str
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
-	..private.number-low-level: ==, <=>, nat, wrap-add
+	..private.number-low-level: ==, <=>, nat64, wrap-add
 	.arr: ==, arr
 	.arr-util: map
 	.mut-arr: begin-ptr, cast-immutable, copy, mut-arr, reverse!, uninitialized-mut-arr
@@ -43,7 +43,7 @@ empty! void(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 empty? bool(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 	a.mins empty?
 
-size nat(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
+size nat64(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 	n-in-buckets = 0 fold a.buckets, (acc, b) =>
 		acc wrap-add b.size
 	a.mins.size wrap-add n-in-buckets
@@ -81,7 +81,7 @@ mut-arr mut-arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 	new-mins = a.size uninitialized-mut-arr<arrow<?k, ?v>>
 	new-mins.begin-ptr spread-all-buckets-recur! a, 0
 	new-mins
-.spread-all-buckets-recur! void(out ptr arrow<?k, ?v>, a mut-priority-queue<?k, ?v>, index nat) unsafe compare<?k>
+.spread-all-buckets-recur! void(out ptr arrow<?k, ?v>, a mut-priority-queue<?k, ?v>, index nat64) unsafe compare<?k>
 	if index < a.mins.size
 		mid = if index < a.buckets.size
 			a.buckets[index] sort-by! it => it from
@@ -93,7 +93,7 @@ mut-arr mut-arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 		mid[] := a.mins[index]
 		mid + 1 spread-all-buckets-recur!: a, index wrap-add 1
 
-.add-to-bucket! void(buckets mut-list mut-list arrow<?k, ?v>, index nat, pair arrow<?k, ?v>)
+.add-to-bucket! void(buckets mut-list mut-list arrow<?k, ?v>, index nat64, pair arrow<?k, ?v>)
 	if index < buckets.size
 		buckets[index] ~= pair
 	else
@@ -118,7 +118,7 @@ pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 		a.mins ~= bucket
 	res
 
-.dbg str(a mut-priority-queue<nat, str>)
+.dbg str(a mut-priority-queue<nat64, str>)
 	out = writer
 	a.mins each-with-index (min, index) =>
 		out write-pair! min
@@ -136,16 +136,16 @@ pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 		out backup! 2
 	out move-to-str!
 
-.write-pair! void(out writer, pair arrow<nat, str>)
+.write-pair! void(out writer, pair arrow<nat64, str>)
 	out ~= pair from
 	out ~= " -> "
 	out ~= pair to
 
-.verify void(a mut-priority-queue<nat, str>, expected str)
+.verify void(a mut-priority-queue<nat64, str>, expected str)
 	a.dbg is expected
 
 test
-	a = mut-priority-queue<nat, str>
+	a = mut-priority-queue<nat64, str>
 	a.empty? is true
 	a.pop! is none
 	a verify ""
@@ -185,7 +185,7 @@ test
 	a verify "6 -> 6, 5 -> 5, 4 -> 4b"
 
 # TODO: opt should have generic ==
-.== bool(a opt arrow<nat, str>, b opt arrow<nat, str>) noctx
+.== bool(a opt arrow<nat64, str>, b opt arrow<nat64, str>) noctx
 	if va ?= a
 		if vb ?= b
 			va.from == vb.from and va.to == vb.to

@@ -287,7 +287,7 @@ immutable(BuiltinKind) getBuiltinKind(
 			return unary(isNat8(p0)
 				? LowExprKind.SpecialUnary.Kind.toCharFromNat8
 				: failUnary());
-		case shortSymAlphaLiteralValue("to-float"):
+		case shortSymAlphaLiteralValue("to-float64"):
 			return unary(isInt64(p0)
 				? LowExprKind.SpecialUnary.Kind.toFloat64FromInt64
 				: isNat64(p0)
@@ -295,21 +295,21 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isFloat32(p0)
 				? LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32
 				: failUnary());
-		case shortSymAlphaLiteralValue("to-int"):
+		case shortSymAlphaLiteralValue("to-int64"):
 			return unary(isInt16(p0)
-				? LowExprKind.SpecialUnary.Kind.toIntFromInt16
+				? LowExprKind.SpecialUnary.Kind.toInt64FromInt16
 				: isInt32(p0)
-				? LowExprKind.SpecialUnary.Kind.toIntFromInt32
+				? LowExprKind.SpecialUnary.Kind.toInt64FromInt32
 				: failUnary());
-		case shortSymAlphaLiteralValue("to-nat"):
+		case shortSymAlphaLiteralValue("to-nat64"):
 			return unary(isNat8(p0)
-				? LowExprKind.SpecialUnary.Kind.toNatFromNat8
+				? LowExprKind.SpecialUnary.Kind.toNat64FromNat8
 				: isNat16(p0)
-				? LowExprKind.SpecialUnary.Kind.toNatFromNat16
+				? LowExprKind.SpecialUnary.Kind.toNat64FromNat16
 				: isNat32(p0)
-				? LowExprKind.SpecialUnary.Kind.toNatFromNat32
+				? LowExprKind.SpecialUnary.Kind.toNat64FromNat32
 				: isPtrRaw(p0)
-				? LowExprKind.SpecialUnary.Kind.toNatFromPtr
+				? LowExprKind.SpecialUnary.Kind.toNat64FromPtr
 				: failUnary());
 		case shortSymAlphaLiteralValue("to-nat8"):
 			return unary(isChar(p0)
@@ -391,7 +391,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
 			else if (symEqLongAlphaLiteral(name, "set-subscript"))
 				return isPtrRaw(p0) ? binary(LowExprKind.SpecialBinary.Kind.writeToPtr) : fail();
-			else if (symEqLongAlphaLiteral(name, "truncate-to-int"))
+			else if (symEqLongAlphaLiteral(name, "truncate-to-int64"))
 				return unary(isFloat64(p0)
 					? LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64
 					: failUnary());
@@ -401,22 +401,22 @@ immutable(BuiltinKind) getBuiltinKind(
 				return isNat64(rt)
 					? binary(LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64)
 					: fail();
-			else if (symEqLongAlphaLiteral(name, "unsafe-to-int"))
-				return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int8"))
 				return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int16"))
 				return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int32"))
 				return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32) : fail();
-			else if (symEqLongAlphaLiteral(name, "unsafe-to-nat"))
-				return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64) : fail();
+			else if (symEqLongAlphaLiteral(name, "unsafe-to-int64"))
+				return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-nat8"))
 				return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat8) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-nat16"))
 				return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16): fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-nat32"))
 				return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32) : fail();
+			else if (symEqLongAlphaLiteral(name, "unsafe-to-nat64"))
+				return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64) : fail();
 			else
 				return fail();
 	}

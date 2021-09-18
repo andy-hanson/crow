@@ -17,7 +17,7 @@ import
 	..io.time-low-level: timestamp, to-timespec
 	..ptr: any-ptr, by-val, null, null?, ptr, ptr-to, ref-of-val
 	.bootstrap:
-		as, atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat, opt, todo, value, void,
+		as, atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat64, opt, todo, value, void,
 		zeroed
 	.number-low-level: ==, wrap-add, wrap-sub
 
@@ -54,7 +54,7 @@ try-acquire! bool(a lock) noctx trusted
 acquire! void(a lock) noctx unsafe
 	a acquire-recur! 0
 
-.acquire-recur! void(a lock, n-tries nat) noctx unsafe
+.acquire-recur! void(a lock, n-tries nat64) noctx unsafe
 	if a.try-acquire! not
 		if n-tries == 10000
 			todo
@@ -112,7 +112,7 @@ broadcast! void(a condition) noctx trusted
 	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_unlock
 
 sequence-id alias
-	nat
+	nat64
 
 get-sequence sequence-id(a condition) noctx unsafe
 	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_lock
@@ -139,16 +139,16 @@ wait-on void(a condition, until-time opt timestamp, last-sequence sequence-id) n
 # TODO: use atomic operations for this
 thread-safe-counter record mut
 	lk by-val lock
-	value mut nat
+	value mut nat64
 
 thread-safe-counter by-val thread-safe-counter() noctx
 	0 thread-safe-counter
 
-thread-safe-counter by-val thread-safe-counter(init nat) noctx
+thread-safe-counter by-val thread-safe-counter(init nat64) noctx
 	thread-safe-counter: lock-by-val, init
 
 # Returns the old value
-get-and-increment! nat(t thread-safe-counter) noctx unsafe
+get-and-increment! nat64(t thread-safe-counter) noctx unsafe
 	t.lk.ref-of-val acquire!
 	old = t value
 	t.value := old wrap-add 1
@@ -156,7 +156,7 @@ get-and-increment! nat(t thread-safe-counter) noctx unsafe
 	old
 
 # Returns the old value
-get-and-decrement! nat(t thread-safe-counter) noctx unsafe
+get-and-decrement! nat64(t thread-safe-counter) noctx unsafe
 	t.lk.ref-of-val acquire!
 	old = t value
 	hard-forbid: old == 0

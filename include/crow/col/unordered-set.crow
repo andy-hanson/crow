@@ -4,7 +4,7 @@ import
 	..compare: compare
 	..hash: hash-mix
 	..misc: ->, data, void
-	..number: nat
+	..number: nat64
 	..opt: has?, none, opt, some
 	.arr: arr
 	.arr-util: map
@@ -21,16 +21,16 @@ unordered-set unordered-set ?a() data<?a> compare<?a> hash-mix<?a>
 unordered-set unordered-set ?a(a arr ?a) data<?a> compare<?a> hash-mix<?a>
 	unordered-set: lookup: a map x => x -> void
 
-alloc-count nat(a unordered-set ?a) unsafe
+alloc-count nat64(a unordered-set ?a) unsafe
 	a.inner alloc-count
 
-overhead-bytes nat(a unordered-set ?a) unsafe
+overhead-bytes nat64(a unordered-set ?a) unsafe
 	a.inner overhead-bytes
 
 empty? bool(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
 	a.inner empty?
 
-size nat(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
+size nat64(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
 	a.inner size
 
 subscript bool(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>

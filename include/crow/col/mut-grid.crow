@@ -8,7 +8,7 @@ import
 	..misc: ->, void
 	..number: *
 	..ptr: +, ptr, ptr-eq?, set-subscript, subscript
-	..private.number-low-level: ==, <=>, nat, wrap-add, wrap-mul
+	..private.number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
 	..str: ==, str
 	..str-conv: interp, finish, to-str, with-str, with-value
 	..test: is
@@ -25,12 +25,12 @@ Rows are stored contiguously.
 mut-grid<?a> record mut
 	# TODO:PRIVATE
 	elements mut-arr ?a
-	width nat
-	height nat
+	width nat64
+	height nat64
 
 coord record
-	x nat
-	y nat
+	x nat64
+	y nat64
 
 has-coord? bool(a mut-grid ?a, coord coord)
 	coord.x < a.width and coord.y < a.height
@@ -41,7 +41,7 @@ to-str str(a coord)
 zero coord()
 	0 coord 0
 
-row mut-arr ?a(a mut-grid ?a, y nat)
+row mut-arr ?a(a mut-grid ?a, y nat64)
 	assert: y < a.height
 	begin = y wrap-mul a.width
 	a.elements[begin -> (begin wrap-add a.width)]
@@ -49,13 +49,13 @@ row mut-arr ?a(a mut-grid ?a, y nat)
 mut-grid mut-grid ?a()
 	mut-arr mut-grid 0, 0
 
-size nat(a mut-grid ?a)
+size nat64(a mut-grid ?a)
 	a.elements size
 
-fill-mut-grid mut-grid ?a(width nat, height nat, value ?a)
+fill-mut-grid mut-grid ?a(width nat64, height nat64, value ?a)
 	width make-mut-grid height, (ignore, ignore2) => value
 
-make-mut-grid mut-grid ?a(width nat, height nat, f act ?a(nat, nat)) trusted
+make-mut-grid mut-grid ?a(width nat64, height nat64, f act ?a(nat64, nat64)) trusted
 	res = (width * height).uninitialized-mut-arr mut-grid<?a> width, height
 	res map-with-coords! (ignore, coord) => f[coord.x, coord.y]
 	res
@@ -63,21 +63,21 @@ make-mut-grid mut-grid ?a(width nat, height nat, f act ?a(nat, nat)) trusted
 copy mut-grid ?a(a mut-grid ?a)
 	a.elements.copy mut-grid a.width, a.height
 
-subscript ?a(a mut-grid ?a, x nat, y nat)
+subscript ?a(a mut-grid ?a, x nat64, y nat64)
 	index = a index-for x, y
 	a.elements[index]
 
 subscript ?a(a mut-grid ?a, coord coord)
 	a[coord.x, coord.y]
 
-set-subscript void(a mut-grid ?a, x nat, y nat, value ?a)
+set-subscript void(a mut-grid ?a, x nat64, y nat64, value ?a)
 	index = a index-for x, y
 	a.elements[index] := value
 
 set-subscript void(a mut-grid ?a, coord coord, value ?a)
 	a[coord.x, coord.y] := value
 
-.index-for nat(a mut-grid ?a, x nat, y nat)
+.index-for nat64(a mut-grid ?a, x nat64, y nat64)
 	assert: x < a.width
 	assert: y < a.height
 	res = y wrap-mul a.width wrap-add x
@@ -110,7 +110,7 @@ each-row void(a mut-grid ?a, f act void(mut-arr ?a))
 
 fold-rows ?a(acc ?a, a mut-grid ?b, f act ?a(?a, mut-arr ?b))
 	acc fold-rows-recur a, 0, f
-.fold-rows-recur ?a(acc ?a, a mut-grid ?b, y nat, f act ?a(?a, mut-arr ?b))
+.fold-rows-recur ?a(acc ?a, a mut-grid ?b, y nat64, f act ?a(?a, mut-arr ?b))
 	if y == a.height
 		acc
 	else
@@ -121,7 +121,7 @@ fold ?a(acc ?a, a mut-grid ?b, f act ?a(?a, ?b))
 
 fold-with-coords ?a(acc ?a, a mut-grid ?b, f act ?a(?a, ?b, coord)) trusted
 	acc fold-with-coords-recur a.elements.begin-ptr, a.elements.end-ptr, zero, a.width, f
-.fold-with-coords-recur ?a(acc ?a, cur ptr ?b, end ptr ?b, coord coord, width nat, f act ?a(?a, ?b, coord)) unsafe
+.fold-with-coords-recur ?a(acc ?a, cur ptr ?b, end ptr ?b, coord coord, width nat64, f act ?a(?a, ?b, coord)) unsafe
 	if cur ptr-eq? end
 		acc
 	else
@@ -135,14 +135,14 @@ map! void(a mut-grid ?a, f act ?a(?a))
 
 map-with-coords! void(a mut-grid ?a, f act ?a(?a, coord)) trusted
 	a.elements.begin-ptr map-with-coords-recur! a.elements.end-ptr, zero, a.width, f
-.map-with-coords-recur! void(cur ptr ?a, end ptr ?a, coord coord, width nat, f act ?a(?a, coord)) unsafe
+.map-with-coords-recur! void(cur ptr ?a, end ptr ?a, coord coord, width nat64, f act ?a(?a, coord)) unsafe
 	if cur ptr-eq? end
 		void
 	else
 		cur[] := f[cur[], coord]
 		cur + 1 map-with-coords-recur! end, (coord next-coord width), width, f
 
-.next-coord coord(a coord, width nat)
+.next-coord coord(a coord, width nat64)
 	new-x = a.x wrap-add 1
 	if new-x == width
 		0 coord: a.y wrap-add 1

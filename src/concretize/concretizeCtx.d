@@ -759,7 +759,7 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 			return BuiltinStructKind.char_;
 		case shortSymAlphaLiteralValue("float32"):
 			return BuiltinStructKind.float32;
-		case shortSymAlphaLiteralValue("float"):
+		case shortSymAlphaLiteralValue("float64"):
 			return BuiltinStructKind.float64;
 		case shortSymAlphaLiteralValue("fun0"):
 		case shortSymAlphaLiteralValue("fun1"):
@@ -786,7 +786,7 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 			return BuiltinStructKind.int16;
 		case shortSymAlphaLiteralValue("int32"):
 			return BuiltinStructKind.int32;
-		case shortSymAlphaLiteralValue("int"):
+		case shortSymAlphaLiteralValue("int64"):
 			return BuiltinStructKind.int64;
 		case shortSymAlphaLiteralValue("nat8"):
 			return BuiltinStructKind.nat8;
@@ -794,7 +794,7 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 			return BuiltinStructKind.nat16;
 		case shortSymAlphaLiteralValue("nat32"):
 			return BuiltinStructKind.nat32;
-		case shortSymAlphaLiteralValue("nat"):
+		case shortSymAlphaLiteralValue("nat64"):
 			return BuiltinStructKind.nat64;
 		case shortSymAlphaLiteralValue("ptr"):
 			return BuiltinStructKind.ptr;

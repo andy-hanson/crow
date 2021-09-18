@@ -9,7 +9,7 @@ import
 	.opt: none, opt, some
 	.result: result
 	.private.bootstrap:
-		exclusion, fun, fut-state-resolved, hard-unreachable, island, island-and-exclusion, nat,
+		exclusion, fun, fut-state-resolved, hard-unreachable, island, island-and-exclusion, nat64,
 		send, state, value
 	.private.fut-low-level: callback!, reject!, resolve!, resolve-or-reject!, unresolved
 	.private.number-low-level: ==, wrap-sub
@@ -38,7 +38,7 @@ Returns a fut that will be resolved by the result of `f`.
 join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out> send<?in0> send<?in1>
 	res = unresolved<?out>
 	lock = lock
-	remaining = cell<nat>: 2
+	remaining = cell<nat64>: 2
 	decr-remaining = as<act void()>: () =>
 		lock with-lock () =>
 			remaining[] := remaining[] wrap-sub 1
@@ -76,7 +76,7 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 	# TODO: send<arr ?a> should be unnecessary
 	res = unresolved<arr ?a>
 	lock = lock
-	remaining = cell<nat>: a.size
+	remaining = cell<nat64>: a.size
 	a each-with-index (in, index) =>
 		in callback! value =>
 			lock with-lock () =>

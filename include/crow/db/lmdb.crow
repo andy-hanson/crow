@@ -26,7 +26,7 @@ import
 	..io.file: make-directory, path-exists?, remove-directory-and-contents-non-recursive
 	..log: info, log
 	..misc: as, data, void
-	..number: ==, *, nat, nat8, nat32, nat64, to-nat
+	..number: ==, *, nat, nat8, nat32, nat64, to-nat64
 	..opt: opt, some
 	..ptr: +, null, ptr-cast-to-extern, ptr-eq?, set-subscript, zeroed
 	..serialize: from-bytes, serialize, to-4-bytes, to-8-bytes, to-bytes
@@ -358,8 +358,8 @@ count nat(txn lMDB_txn, db lmdb-db<?k, ?v>) summon
 stat lmdb_stat(txn lMDB_txn, db lmdb-db<?k, ?v>) trusted summon
 	s = mdb_stat: 0, 0, 0, 0, 0, 0
 	check-lmdb-error: txn.txn mdb_stat db.dbi, s
-	psize = s.ms_psize to-nat
-	depth = s.ms_depth to-nat
+	psize = s.ms_psize to-nat64
+	depth = s.ms_depth to-nat64
 	lmdb_stat: psize, depth, s.ms_branch_pages, s.ms_leaf_pages, s.ms_overflow_pages, s.ms_entries
 
 with-read-transaction ?a(env lmdb-env, f act ?a(lMDB_txn)) trusted summon

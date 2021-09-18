@@ -6,7 +6,7 @@ import
 	.compare: >=
 	.fun: subscript
 	.misc: drop, void
-	.number: ==, <=>, +, *, ^, float, int, nat, to-float, to-int
+	.number: ==, <=>, +, *, ^, float64, int64, nat64, to-float64, to-int64
 	.opt: has?, none, opt, some
 	.ptr: +, -, ptr, ptr-eq?, ptr-less-eq?, subscript
 	.str: ==, char, chars, size-bytes, str
@@ -62,25 +62,25 @@ take-str? bool(a reader, s str) trusted
 	else
 		false
 
-take-nat! opt nat(a reader)
+take-nat! opt nat64(a reader)
 	if a.has?
-		if first-digit ?= a.peek.char-to-nat
+		if first-digit ?= a.peek.char-to-nat64
 			a.next! drop
 			first-digit take-nat-recur! a some
-.take-nat-recur! nat(acc nat, a reader)
+.take-nat-recur! nat64(acc nat64, a reader)
 	if a empty?
 		acc
-	elif v ?= a.peek.char-to-nat
+	elif v ?= a.peek.char-to-nat64
 		a.next! drop
 		acc * 10 + v take-nat-recur! a
 	else
 		acc
 
-take-int! opt int(a reader) trusted
+take-int! opt int64(a reader) trusted
 	start = a cur
 	sign = a.take-sign? ? +1, -1
 	if n ?= a take-nat!
-		n.to-int * sign some
+		n.to-int64 * sign some
 	else
 		a.cur := start
 		none
@@ -96,16 +96,16 @@ skip-whitespace! void(a reader)
 		a take-char? "+" drop
 		true
 
-take-float! opt float(a reader) trusted
+take-float! opt float64(a reader) trusted
 	sign = a.take-sign? ? 1.0, -1.0
 	if whole-nat ?= a take-nat!
-		whole-part = whole-nat to-float
+		whole-part = whole-nat to-float64
 		before-dot = a cur
 		some: if a take-char? "."
 			if n ?= a take-nat!
 				digits-taken = a.cur - (before-dot + 1)
 				# TODO: more accurate methods exist
-				sign * (whole-part + n.to-float * 0.1 ^ digits-taken)
+				sign * (whole-part + n.to-float64 * 0.1 ^ digits-taken)
 			else
 				a.cur := before-dot
 				sign * whole-part
@@ -147,7 +147,7 @@ take-quoted-str! opt str(a reader)
 	elif a == "0"
 		"\0" some
 
-.char-to-nat opt nat(c char)
+.char-to-nat64 opt nat64(c char)
 	if c == "0"
 		0 some
 	elif c == "1"

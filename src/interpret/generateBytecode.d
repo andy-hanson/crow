@@ -208,6 +208,17 @@ void generateBytecodeForFun(Debug, TempAlloc, CodeAlloc)(
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 ) {
+	debug {
+		if (false) {
+			import util.writer : finishWriterToCStr;
+			import core.stdc.stdio : printf;
+			import interpret.debugging : writeFunName;
+			Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+			writeFunName(w, program, fun);
+			printf("generateBytecodeForFun %s\n", finishWriterToCStr(w));
+		}
+	}
+
 	Nat16 stackEntry = Nat16(0);
 	immutable StackEntries[] parameters = map!StackEntries(
 		tempAlloc,
@@ -810,7 +821,7 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.asRef:
 		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
 		case LowExprKind.SpecialUnary.Kind.toNat8FromChar:
-		case LowExprKind.SpecialUnary.Kind.toNatFromPtr:
+		case LowExprKind.SpecialUnary.Kind.toNat64FromPtr:
 		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
@@ -838,26 +849,26 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.isNanFloat64:
 			fn(FnOp.isNanFloat64);
 			break;
-		case LowExprKind.SpecialUnary.Kind.toIntFromInt16:
+		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
 			fn(FnOp.intFromInt16);
 			break;
-		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
+		case LowExprKind.SpecialUnary.Kind.toInt64FromInt32:
 			fn(FnOp.intFromInt32);
 			break;
 		// Normal operations on <64-bit values treat other bits as garbage
 		// (they may be written to, such as in a wrap-add operation that overflows)
 		// So we must mask out just the lower bits now.
-		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
+		case LowExprKind.SpecialUnary.Kind.toNat64FromNat8:
 			generateArg();
 			writePushConstant(dbg, writer, source, Nat8.max);
 			writeFn(dbg, writer, source, FnOp.bitwiseAnd);
 			break;
-		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
+		case LowExprKind.SpecialUnary.Kind.toNat64FromNat16:
 			generateArg();
 			writePushConstant(dbg, writer, source, Nat16.max);
 			writeFn(dbg, writer, source, FnOp.bitwiseAnd);
 			break;
-		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
+		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
 			generateArg();
 			writePushConstant(dbg, writer, source, Nat32.max);
 			writeFn(dbg, writer, source, FnOp.bitwiseAnd);

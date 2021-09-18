@@ -8,7 +8,7 @@ import
 	..opt: force, has?, opt, some
 	..ptr: +, -, ptr-eq?, set-subscript
 	..test: is
-	..private.number-low-level: ==, nat, wrap-add
+	..private.number-low-level: ==, nat64, wrap-add
 	.arr: ==, arr, empty?, size
 	.arr-util: each, first, fold, tail
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
@@ -37,7 +37,7 @@ arr arr ?a(a queue ?a) trusted
 	assert: end ptr-eq? res.end-ptr
 	res cast-immutable
 
-size nat(a queue ?a)
+size nat64(a queue ?a)
 	a.left.size wrap-add a.right.size
 
 ~ queue ?a(a queue ?a, value ?a)
@@ -86,7 +86,7 @@ map queue ?out(a queue ?in, f act ?out(?in)) trusted
 	queue: res.cast-immutable
 
 test
-	a = queue<nat>
+	a = queue<nat64>
 	assert: a empty?
 	a.arr is []
 	a.dequeue.has? is false

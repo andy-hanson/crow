@@ -6,7 +6,7 @@ import
 	.private.bootstrap:
 		int8, int16, int32, int64, nat8, nat16, nat32, nat64, todo
 	.private.number-low-level:
-		==, <=>, to-int, to-nat, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, unsafe-to-nat8,
+		==, <=>, to-int64, to-nat64, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat8, unsafe-to-nat64,
 		unsafe-to-nat16, unsafe-to-nat32, wrap-add, wrap-mul
 
 ###
@@ -71,17 +71,17 @@ unsafe-bit-shift-right nat64(a nat64, b nat64) noctx builtin unsafe
 # Shifts the bits of 'a' left by 'b' bits.
 bit-shift-left nat8(a nat8, b nat8) noctx trusted
 	if b < 8
-		a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat8
+		a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat8
 	else
 		0
 bit-shift-left nat16(a nat16, b nat16) noctx trusted
 	if b < 16
-		a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat16
+		a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat16
 	else
 		0
 bit-shift-left nat32(a nat32, b nat32) noctx trusted
 	if b < 32
-		a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat32
+		a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat32
 	else
 		0
 bit-shift-left nat64(a nat64, b nat64) noctx trusted
@@ -92,14 +92,14 @@ bit-shift-left nat64(a nat64, b nat64) noctx trusted
 
 bit-shift-left nat64(a nat64, b int64) noctx trusted
 	if b < 0
-		a bit-shift-right: b wrap-mul -1 unsafe-to-nat
+		a bit-shift-right: b wrap-mul -1 unsafe-to-nat64
 	else
-		a bit-shift-left b.unsafe-to-nat
+		a bit-shift-left b.unsafe-to-nat64
 
 # Shifts the bits of 'a' right by 'b' bits.
 bit-shift-right nat32(a nat32, b nat32) noctx trusted
 	if b < 32
-		a.to-nat unsafe-bit-shift-right b.to-nat unsafe-to-nat32
+		a.to-nat64 unsafe-bit-shift-right b.to-nat64 unsafe-to-nat32
 	else
 		0
 bit-shift-right nat64(a nat64, b nat64) noctx trusted
@@ -110,9 +110,9 @@ bit-shift-right nat64(a nat64, b nat64) noctx trusted
 
 bit-shift-right nat64(a nat64, b int64) noctx trusted
 	if b < 0
-		a bit-shift-left: b wrap-mul -1 unsafe-to-nat
+		a bit-shift-left: b wrap-mul -1 unsafe-to-nat64
 	else
-		a bit-shift-right b.unsafe-to-nat
+		a bit-shift-right b.unsafe-to-nat64
 
 bit-shift-right int32(a int32, b int32) noctx trusted
 	if a < 0
@@ -120,7 +120,7 @@ bit-shift-right int32(a int32, b int32) noctx trusted
 	elif b < 0
 		todo
 	elif b < 32
-		unsafe-to-int32: a.to-int.unsafe-to-nat unsafe-bit-shift-right b.to-int.unsafe-to-nat unsafe-to-int
+		unsafe-to-int32: a.to-int64.unsafe-to-nat64 unsafe-bit-shift-right b.to-int64.unsafe-to-nat64 unsafe-to-int64
 	else
 		todo
 
@@ -163,4 +163,4 @@ filter-bits nat64(a nat64, f act bool(nat64))
 		new-acc filter-bits-recur (a unsafe-bit-shift-right 1), (offset wrap-add 1), f
 
 bits-cat nat64(a nat32, b nat32)
-	a.to-nat bit-shift-left 32 bits-or b.to-nat
+	a.to-nat64 bit-shift-left 32 bits-or b.to-nat64

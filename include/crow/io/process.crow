@@ -12,7 +12,7 @@ import
 		status-t, waitpid, WEXITSTATUS, WIFCONTINUED, WIFEXITED, WIFSIGNALED,
 		WIFSTOPPED, WTERMSIG
 	...unistd: close, pipe, pipes, read, read-pipe, write-pipe
-	..bool: and, bool, not, or, to-nat
+	..bool: and, bool, not, or, to-nat64
 	..bytes-types: zero
 	..cell: cell, subscript
 	..col.arr: ~, arr, begin-ptr, ref-of-val-at, size
@@ -22,13 +22,13 @@ import
 	..exception: assert, throw
 	..extra-types: fd-t
 	..misc: as, void
-	..number: to-nat
+	..number: to-nat64
 	..ptr: +, as-any-ptr, as-ref, by-val, null, ptr
 	..str: char, c-str, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..str-util: to-c-str
 	..private.bootstrap: todo
-	..private.number-low-level: ==, <=>, int32, to-int, wrap-add
+	..private.number-low-level: ==, <=>, int32, to-int64, wrap-add
 	.environ: convert-environ, environ
 	.file: is-file?
 	.posix-util: check-posix-error
@@ -126,14 +126,14 @@ body
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
 	# timeout == -1 means we block
-	n-pollfds-with-events = to-int: poll: poll-fds.begin-ptr, poll-fds.size, -1
+	n-pollfds-with-events = to-int64: poll: poll-fds.begin-ptr, poll-fds.size, -1
 	if n-pollfds-with-events == 0
 		# TODO: is this even possible to reach? I think we always get has-POLLHUP? instead.
 		void
 	else
 		a = stdout-pollfd handle-revents stdout-builder
 		b = stderr-pollfd handle-revents stderr-builder
-		assert: (a.any?.to-nat wrap-add b.any?.to-nat) == n-pollfds-with-events.to-nat
+		assert: (a.any?.to-nat64 wrap-add b.any?.to-nat64) == n-pollfds-with-events.to-nat64
 		# Apparently stdout and stderr can hang up at slightly different times.
 		if not: a.hung-up? and b.hung-up?
 			keep-POLLINg: stdout-pipe, stderr-pipe, stdout-builder, stderr-builder
@@ -171,8 +171,8 @@ body
 		buffer unsafe-set-size! old-size
 		void
 	else
-		assert: n-bytes-read.to-nat <= read-max
-		new-size = old-size wrap-add n-bytes-read.to-nat
+		assert: n-bytes-read.to-nat64 <= read-max
+		new-size = old-size wrap-add n-bytes-read.to-nat64
 		buffer unsafe-set-size! new-size
 		fd read-to-buffer-until-eof buffer
 

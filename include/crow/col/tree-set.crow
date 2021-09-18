@@ -12,7 +12,7 @@ import
 	..str-util: starts-with?
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
-	..private.number-low-level: ==, <=>, nat, unsafe-div, wrap-add, wrap-sub
+	..private.number-low-level: ==, <=>, nat64, unsafe-div, wrap-add, wrap-sub
 	.arr: arr, begin-ptr, empty?, end-ptr, size, subscript
 	.arr-util: deep-size-bytes, each, fold, insert, last, overhead-bytes, rtail, tail, try-remove
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
@@ -27,7 +27,7 @@ Unlike `arr`, the values are always in sorted order, and there are never two of 
 tree-set<?a> record
 	# TODO: PRIVATE
 	root node ?a
-	total-size nat
+	total-size nat64
 
 .node<?a> union
 	# TODO: SYNTAX should not require <>
@@ -45,12 +45,12 @@ empty? bool(a tree-set ?a) data<?a> compare<?a>
 	a.total-size == 0
 
 # Number of values in the set.
-size nat(a tree-set ?a) data<?a> compare<?a>
+size nat64(a tree-set ?a) data<?a> compare<?a>
 	a total-size
 
-deep-size-bytes nat(a tree-set ?a) unsafe deep-size-bytes<?a>
+deep-size-bytes nat64(a tree-set ?a) unsafe deep-size-bytes<?a>
 	a.size-of deep-size-bytes-recur a.root
-.deep-size-bytes-recur nat(acc nat, a node ?a) unsafe deep-size-bytes<?a>
+.deep-size-bytes-recur nat64(acc nat64, a node ?a) unsafe deep-size-bytes<?a>
 	match a
 	as inner-node i
 		mid = acc wrap-add i.value.deep-size-bytes wrap-add i.left.size-of wrap-add i.right.size-of
@@ -59,18 +59,18 @@ deep-size-bytes nat(a tree-set ?a) unsafe deep-size-bytes<?a>
 		acc wrap-add r.deep-size-bytes
 
 # Number of bytes that does not go into storing the values.
-overhead-bytes nat(a tree-set ?a) unsafe
+overhead-bytes nat64(a tree-set ?a) unsafe
 	a.size-of overhead-bytes-recur a.root
-.overhead-bytes-recur nat(acc nat, a node ?a) unsafe
+.overhead-bytes-recur nat64(acc nat64, a node ?a) unsafe
 	match a
 	as inner-node i
 		acc wrap-add i.left.size-of wrap-add i.right.size-of overhead-bytes-recur i.left overhead-bytes-recur i.right
 	as arr r
 		acc wrap-add r.overhead-bytes
 
-alloc-count nat(a tree-set ?a) unsafe
+alloc-count nat64(a tree-set ?a) unsafe
 	0 alloc-count-recur a.root
-.alloc-count-recur nat(acc nat, a node ?a) unsafe
+.alloc-count-recur nat64(acc nat64, a node ?a) unsafe
 	mid = acc wrap-add 1
 	match a
 	as inner-node i
@@ -313,9 +313,9 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 
 .find-scapegoat record
 	# size of this subtree (including the new value)
-	size nat
+	size nat64
 	# height of this subtree
-	height nat
+	height nat64
 
 .add-result<?a> union
 	none
@@ -323,14 +323,14 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	inserted<?a>
 	find-scapegoat
 
-.add-recur add-result ?a(a node ?a, value ?a, max-height nat) compare<?a>
+.add-recur add-result ?a(a node ?a, value ?a, max-height nat64) compare<?a>
 	match a
 	as inner-node i
 		i add-to-inner value, max-height
 	as arr arr
 		arr add-to-arr value, max-height
 
-.add-to-inner add-result ?a(a inner-node ?a, value ?a, max-height nat) compare<?a>
+.add-to-inner add-result ?a(a inner-node ?a, value ?a, max-height nat64) compare<?a>
 	match value <=> a.value
 	as less
 		match a.left add-recur: value, max-height wrap-sub 1
@@ -351,7 +351,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		as find-scapegoat f
 			a handle-scapegoat value, a.left, f
 
-.add-to-arr add-result ?a(a arr ?a, value ?a, max-height nat) trusted compare<?a>
+.add-to-arr add-result ?a(a arr ?a, value ?a, max-height nat64) trusted compare<?a>
 	insert-ptr = a binary-search-insert-ptr value
 	if (insert-ptr ptr-eq? a.end-ptr).not and insert-ptr[] == value
 		none
@@ -363,7 +363,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	else
 		a break-up-arr value, insert-ptr, max-height
 
-.break-up-arr add-result ?a(a arr ?a, value ?a, insert-ptr ptr ?a, max-height nat) unsafe compare<?a>
+.break-up-arr add-result ?a(a arr ?a, value ?a, insert-ptr ptr ?a, max-height nat64) unsafe compare<?a>
 	assert: a.begin-ptr ptr-less-eq? insert-ptr
 	assert: insert-ptr ptr-less-eq? a.end-ptr
 	# Break it up into nodes, adding to height
@@ -404,19 +404,19 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	else
 		find-scapegoat: size-here, height-here
 
-.walk-size nat(a node ?a)
+.walk-size nat64(a node ?a)
 	match a
 	as inner-node i
 		i.left.walk-size wrap-add 1 wrap-add i.right.walk-size
 	as arr arr
 		arr.size
 
-.tree-to-arr arr ?a(a inner-node ?a, value ?a, size nat) trusted compare<?a>
+.tree-to-arr arr ?a(a inner-node ?a, value ?a, size nat64) trusted compare<?a>
 	out = size uninitialized-mut-arr<?a>
 	end = out.begin-ptr tree-to-arr-recur! a, value
 	assert: end ptr-eq? out.end-ptr
 	out cast-immutable
-.tree-to-arr arr ?a(a inner-node ?a, size nat) trusted compare<?a>
+.tree-to-arr arr ?a(a inner-node ?a, size nat64) trusted compare<?a>
 	out = size uninitialized-mut-arr<?a>
 	end = out.begin-ptr tree-to-arr-recur! a
 	assert: end ptr-eq? out.end-ptr
@@ -458,7 +458,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		cur + 1
 
 # TODO:PERF
-.get-max-height nat(size nat) trusted
+.get-max-height nat64(size nat64) trusted
 	if size < 4
 		0
 	else

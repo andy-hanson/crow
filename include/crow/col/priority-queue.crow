@@ -13,7 +13,7 @@ import
 	..test.spy: calls, fn, spy-act
 	..tuple: a, b, pair
 	..writer: ~=, backup!, move-to-str!, writer
-	..private.number-low-level: ==, <=>, nat, wrap-add, wrap-sub
+	..private.number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	.arr: ==, arr, empty?, size
 	.arr-util: each, first, fold, map, tail
 	.mut-arr:
@@ -62,9 +62,9 @@ priority-queue priority-queue<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
 empty? bool(a priority-queue<?k, ?v>) data<?k> compare<?k>
 	a.root empty?
 
-size nat(a priority-queue<?k, ?v>) data<?k> compare<?k>
+size nat64(a priority-queue<?k, ?v>) data<?k> compare<?k>
 	0 size-recur a.root
-.size-recur nat(acc nat, a opt node<?k, ?v>)
+.size-recur nat64(acc nat64, a opt node<?k, ?v>)
 	if node ?= a
 		acc wrap-add 1 wrap-add node.pairs.size size-recur node.next
 	else
@@ -127,11 +127,11 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 
 .found-mid<?k, ?v> record
 	mid opt node<?k, ?v>
-	n-before-mid nat
+	n-before-mid nat64
 
 # Finds the first node with 'pairs' non-empty.
 # Also returns the # of nodes before that
-.find-mid found-mid<?k, ?v>(a opt node<?k, ?v>, n-before nat)
+.find-mid found-mid<?k, ?v>(a opt node<?k, ?v>, n-before nat64)
 	if node ?= a
 		if node.pairs empty?
 			node.next find-mid: n-before wrap-add 1
@@ -144,7 +144,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 	node node<?k, ?v>
 
 .plan-will-compact<?k, ?v> record
-	n-elements-to-compact nat
+	n-elements-to-compact nat64
 
 .plan<?k, ?v> union
 	plan-did-compact<?k, ?v>
@@ -152,7 +152,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 
 # We only call this if we will definitely compact something,
 # TODO: 'plan' is misnamed, this now does the compaction during the recursion
-.plan plan<?k, ?v>(a opt node<?k, ?v>, root node<?k, ?v>, n-singles nat) compare<?k>
+.plan plan<?k, ?v>(a opt node<?k, ?v>, root node<?k, ?v>, n-singles nat64) compare<?k>
 	if node ?= a
 		match node.next plan root, n-singles
 		as plan-did-compact d
@@ -168,7 +168,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 	else
 		plan-will-compact<?k, ?v>: n-singles
 
-.do-compact node<?k, ?v>(root node<?k, ?v>, n-to-compact nat, nodes-to-compact opt node<?k, ?v>) trusted compare<?k>
+.do-compact node<?k, ?v>(root node<?k, ?v>, n-to-compact nat64, nodes-to-compact opt node<?k, ?v>) trusted compare<?k>
 	compacted = n-to-compact uninitialized-mut-arr<arrow<?k, ?v>>
 	mid = compacted.begin-ptr compact-non-singles! nodes-to-compact
 	end = mid compact-singles! root
@@ -199,11 +199,11 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 	else
 		out
 
-.dbg str(a priority-queue<nat, str>)
+.dbg str(a priority-queue<nat64, str>)
 	res = writer
 	res dbg-recur! a.root, true
 	res move-to-str!
-.dbg-recur! void(out writer, a opt node<nat, str>, first bool)
+.dbg-recur! void(out writer, a opt node<nat64, str>, first bool)
 	if node ?= a
 		if first not
 			out ~= "; "
@@ -240,10 +240,10 @@ fold ?a(acc ?a, a priority-queue<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare
 	res sort-by! it => it.min from
 	res
 
-.node-count nat(a priority-queue<?k, ?v>)
+.node-count nat64(a priority-queue<?k, ?v>)
 	0 node-count a.root
 
-.node-count nat(acc nat, a opt node<?k, ?v>)
+.node-count nat64(acc nat64, a opt node<?k, ?v>)
 	if node ?= a
 		acc wrap-add 1 node-count node.next
 	else
@@ -314,7 +314,7 @@ values arr ?v(a priority-queue<?k, ?v>) data<?k> compare<?k>
 	a map-to-arr (k, v) => v
 
 test
-	p = priority-queue<nat, str>
+	p = priority-queue<nat64, str>
 
 	p1 = p ~ (5 -> "5")
 	p1.dbg is "5 5 []"
@@ -354,7 +354,7 @@ test
 	folded is "init, 6 -> 6, 6 -> 6b, 6 -> 6c, 7 -> 7, 7 -> 7b, 8 -> 8"
 
 	p6-pairs = [6 -> "6", 6 -> "6b", 6 -> "6c", 7 -> "7", 7 -> "7b", 8 -> "8"] map x => x pair
-	filter-order = spy-act<bool, nat, str>: (k, v) => k == 6
+	filter-order = spy-act<bool, nat64, str>: (k, v) => k == 6
 	filtered = p6 filter filter-order.fn
 	filter-calls = filter-order calls
 	# TODO: filter-order.calls is p6-pairs
@@ -362,7 +362,7 @@ test
 	filter-calls map (x => x b) is: p6-pairs map x => x b
 	filtered.dbg is "6 6 [6 6b, 6 6c]"
 
-	map-order = spy-act<arrow<nat, str>, nat, str>: (k, v) => (10 wrap-sub k) -> "{v}x"
+	map-order = spy-act<arrow<nat64, str>, nat64, str>: (k, v) => (10 wrap-sub k) -> "{v}x"
 	mapped = p6 map map-order.fn
 	map-calls = map-order calls
 	# TODO: map-order.calls is p6-pairs
@@ -374,5 +374,5 @@ test
 	p6.values is ["6", "6b", "6c", "7", "7b", "8"]
 
 # TODO: arrow should be equatable
-== bool(a arrow<nat, str>, b arrow<nat, str>) noctx
+== bool(a arrow<nat64, str>, b arrow<nat64, str>) noctx
 	a.from == b.from and a.to == b.to

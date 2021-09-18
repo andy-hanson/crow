@@ -1,14 +1,14 @@
 no-std
 import
-	.bool: bool, to-nat
+	.bool: bool, to-nat64
 	.col.arr-util: each
 	.misc: as, void
-	.number: nat
+	.number: nat64, to-nat64
 	.ptr: by-val, ref-of-val
 	.str: chars, str, to-nat8
-	.private.number-low-level: wrap-add, to-nat
+	.private.number-low-level: wrap-add
 
-hash nat(a ?a) trusted hash-mix<?a>
+hash nat64(a ?a) trusted hash-mix<?a>
 	hasher = as<by-val hasher>: hasher: 0
 	hasher.ref-of-val hash-mix a
 	hasher.ref-of-val cur
@@ -16,19 +16,19 @@ hash nat(a ?a) trusted hash-mix<?a>
 hash-mix<?a> spec
 	hash-mix void(hasher hasher, a ?a)
 
-hash nat(a bool)
-	a to-nat
+hash nat64(a bool)
+	a to-nat64
 
 hasher record mut
-	cur mut nat
+	cur mut nat64
 
-hash-mix void(hasher hasher, a nat)
+hash-mix void(hasher hasher, a nat64)
 	# TODO: better hash mixing algorithm
 	hasher.cur := hasher.cur wrap-add a
 
 hash-mix void(hasher hasher, a bool)
-	hasher hash-mix a.to-nat
+	hasher hash-mix a.to-nat64
 
 hash-mix void(hasher hasher, a str)
 	a.chars each c =>
-		hasher hash-mix c.to-nat8.to-nat
+		hasher hash-mix c.to-nat8.to-nat64

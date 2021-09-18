@@ -8,7 +8,7 @@ import
 	..opt: has?, opt, some
 	..ptr: +, -, ptr, ptr-eq?, ptr-less-eq?, set-subscript, size-of, subscript, swap!
 	..test: is
-	..private.number-low-level: ==, <=>, nat, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
+	..private.number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	.arr: ==, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, size, unsafe-at
 	.arr-util: alloc-count, fold, fold-with-index, index-of, map, overhead-bytes, ptr-of
 	.mut-arr:
@@ -34,17 +34,17 @@ begin-ptr ptr ?a(a frozen-unordered-set ?a) unsafe
 end-ptr ptr ?a(a frozen-unordered-set ?a) unsafe
 	a.values end-ptr
 
-alloc-count nat(a frozen-unordered-set<?a>) unsafe
+alloc-count nat64(a frozen-unordered-set<?a>) unsafe
 	a.values.alloc-count wrap-add a.bucket-starts.alloc-count
 
-overhead-bytes nat(a frozen-unordered-set ?a) unsafe
+overhead-bytes nat64(a frozen-unordered-set ?a) unsafe
 	buckets-size = a.bucket-starts.size wrap-mul size-of<ptr ?a>
 	a.values.overhead-bytes wrap-add a.bucket-starts.overhead-bytes wrap-add buckets-size
 
 empty? bool(a frozen-unordered-set ?a)
 	a.values empty?
 
-size nat(a frozen-unordered-set ?a)
+size nat64(a frozen-unordered-set ?a)
 	a.values size
 
 unordered-arr arr ?a(a frozen-unordered-set ?a)
@@ -55,7 +55,7 @@ subscript bool(a frozen-unordered-set ?a, value ?a) trusted data<?a> compare<?a>
 
 # WARN: The order of values is arbitrary,
 # but consistent for *identical* (not ==) sets.
-try-get-unordered-index opt nat(a frozen-unordered-set ?a, value ?a) trusted data<?a> compare<?a> hash-mix<?a>
+try-get-unordered-index opt nat64(a frozen-unordered-set ?a, value ?a) trusted data<?a> compare<?a> hash-mix<?a>
 	if a.bucket-starts empty?
 		a.values index-of value
 	else
@@ -86,7 +86,7 @@ body
 		a.begin-ptr move-values-to-buckets-recur! a.end-ptr, bucket-counts, bucket-starts
 		frozen-unordered-set: a.cast-immutable, bucket-starts
 
-.get-bucket-counts mut-arr nat(a mut-arr ?a, n-buckets nat) unsafe hash-mix<?a>
+.get-bucket-counts mut-arr nat64(a mut-arr ?a, n-buckets nat64) unsafe hash-mix<?a>
 	res = n-buckets fill-mut-arr 0
 	a each value =>
 		bucket-index = value get-bucket-index n-buckets
@@ -96,7 +96,7 @@ body
 .move-values-to-buckets-recur! void
 	value-ptr ptr ?a
 	value-end ptr ?a
-	bucket-counts mut-arr nat
+	bucket-counts mut-arr nat64
 	bucket-starts arr ptr ?a
 spec
 	unsafe
@@ -118,14 +118,14 @@ body
 			value-ptr swap! bucket-cur-end
 			value-ptr + 1 move-values-to-buckets-recur! value-end, bucket-counts, bucket-starts
 
-.get-bucket-index nat(value ?a, n-buckets nat) unsafe hash-mix<?a>
+.get-bucket-index nat64(value ?a, n-buckets nat64) unsafe hash-mix<?a>
 	value.hash unsafe-mod n-buckets
 
-.running-sum arr ptr ?a(acc ptr ?a, a mut-arr nat) trusted
+.running-sum arr ptr ?a(acc ptr ?a, a mut-arr nat64) trusted
 	out = a.size uninitialized-mut-arr<ptr ?a>
 	acc running-sum-recur! out.begin-ptr, out.end-ptr, a.begin-ptr
 	out cast-immutable
-.running-sum-recur! void(acc ptr ?a, out ptr ptr ?a, out-end ptr ptr ?a, read ptr nat) unsafe
+.running-sum-recur! void(acc ptr ?a, out ptr ptr ?a, out-end ptr ptr ?a, read ptr nat64) unsafe
 	out[] := acc
 	if out + 1 ptr-eq? out-end not
 		acc + read[] running-sum-recur! out + 1, out-end, read + 1
@@ -139,15 +139,15 @@ each-unordered void(a frozen-unordered-set ?a, f act void(?a))
 fold-unordered ?a(acc ?a, a frozen-unordered-set ?b, f act ?a(?a, ?b))
 	acc fold a.values, f
 
-fold-unordered-with-index ?a(acc ?a, a frozen-unordered-set ?b, f act ?a(?a, ?b, nat))
+fold-unordered-with-index ?a(acc ?a, a frozen-unordered-set ?b, f act ?a(?a, ?b, nat64))
 	acc fold-with-index a.values, f
 
-.verify void(a frozen-unordered-set nat, values arr nat, bucket-starts arr nat) unsafe
+.verify void(a frozen-unordered-set nat64, values arr nat64, bucket-starts arr nat64) unsafe
 	a.values is values
 	a.bucket-starts map (ptr => ptr - a.values.begin-ptr) is bucket-starts
 
 test
-	a = frozen-unordered-set<nat>
+	a = frozen-unordered-set<nat64>
 	a.empty? is true
 	a.size is 0
 	a verify [], []

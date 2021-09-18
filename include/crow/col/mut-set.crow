@@ -4,7 +4,7 @@ import
 	..compare: compare
 	..fun: subscript
 	..misc: ->, data, from, void
-	..number: nat
+	..number: nat64
 	..opt: has?
 	.arr: arr
 	.arr-util: each, map
@@ -44,7 +44,7 @@ empty! void(a mut-set ?a) data<?a> compare<?a>
 	a.inner empty!
 
 # Number of values in the set.
-size nat(a mut-set ?a) data<?a> compare<?a>
+size nat64(a mut-set ?a) data<?a> compare<?a>
 	a.inner size
 
 # True iff the value is in the set.

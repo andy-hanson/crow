@@ -9,7 +9,7 @@ import
 	..str-conv: to-str
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
-	..private.number-low-level: ==, nat, wrap-add, wrap-mul
+	..private.number-low-level: ==, nat64, wrap-add, wrap-mul
 	.arr: ==, arr, arr-from-begin-end, size
 	.arr-util: each-ptr, first, last
 	.mut-arr:
@@ -46,7 +46,7 @@ copy mut-deque ?a(a mut-deque ?a) trusted
 empty? bool(a mut-deque ?a)
 	a.left null?
 
-size nat(a mut-deque ?a) trusted
+size nat64(a mut-deque ?a) trusted
 	match a.left ptr-compare a.right
 	as less
 		a.right - a.left
@@ -139,7 +139,7 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 		dest[0 -> left-to-end-size] copy-from!: a.left arr-from-begin-end a.inner.end-ptr
 		dest[left-to-end-size -> dest.size] copy-from!: a.inner.begin-ptr arr-from-begin-end a.right
 
-.dbg str(a mut-deque nat) trusted
+.dbg str(a mut-deque nat64) trusted
 	out = writer
 	a.inner.begin-ptr arr-from-begin-end a.inner.end-ptr each-ptr ptr =>
 		if ptr ptr-eq? a.right
@@ -152,7 +152,7 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 		out backup!
 	out move-to-str!
 
-.verify void(a mut-deque nat, arr arr nat, expected str)
+.verify void(a mut-deque nat64, arr arr nat64, expected str)
 	a.first is arr.first
 	a.last is arr.last
 	a.size is arr.size
@@ -160,7 +160,7 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 	a.dbg is expected
 
 test
-	a = mut-deque<nat>
+	a = mut-deque<nat64>
 	a.pop-left! is none
 	a.pop-right! is none
 	a verify [], ""

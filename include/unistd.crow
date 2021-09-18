@@ -1,10 +1,9 @@
 no-std
 import
-	.crow.c-types: size_t
+	.crow.c-types: c-int, size_t
 	.crow.extra-types: err-t, fd-t
-	.crow.misc: void
 	.crow.ptr: any-ptr, ptr
-	.crow.private.bootstrap: c-str, int32, int64, nat
+	.crow.private.bootstrap: c-str, int32, int64, nat32
 	.sys.types: off_t
 
 getcwd c-str(buf c-str, size size_t) unsafe extern noctx summon
@@ -26,7 +25,7 @@ pipes record mut
 
 environ ptr c-str() unsafe global noctx
 
-usleep void(micro-seconds nat) unsafe extern noctx
+usleep c-int(micro-seconds nat32) unsafe extern noctx
 
 ssize_t alias
 	int64

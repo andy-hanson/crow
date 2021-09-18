@@ -133,7 +133,7 @@ blue color-32()
 	else
 		key-states-ptr = null SDL_GetKeyboardState
 		key-states = arr: SDL_NUM_SCANCODES, key-states-ptr
-		print: key-states[SDL_SCANCODE_RETURN] == 0 ? "no return", "return is pressed"
+		print: key-states[SDL_SCANCODE_RETURN to-nat64] == 0 ? "no return", "return is pressed"
 
 		v0 = renderer.vertices[0]
 		renderer.vertices[0] := (v0.pos + (0.003 vec-2-32 0)) vertex v0.color, v0.tex-coord
@@ -153,7 +153,7 @@ blue color-32()
 	renderer.shader-prog glUseProgram
 
 	GL_ARRAY_BUFFER glBindBuffer renderer.triangle-vbo
-	GL_ARRAY_BUFFER glBufferSubData 0, renderer.vertices.n-bytes.to-int, renderer.vertices.begin-ptr.ptr-cast
+	GL_ARRAY_BUFFER glBufferSubData 0, renderer.vertices.n-bytes.to-int64, renderer.vertices.begin-ptr.ptr-cast
 	# TODO: don't do this every frame?
 	stride = (to-int32: size-of<vertex>)
 	0 glVertexAttribPointer 2, GL_FLOAT, false, stride, 0.to-ptr
@@ -209,7 +209,7 @@ continue-or-quit union
 	n-buffers glGenBuffers vbo-cell.as-ptr
 	vbo = vbo-cell[]
 	GL_ARRAY_BUFFER glBindBuffer vbo
-	GL_ARRAY_BUFFER glBufferData vertices.n-bytes.to-int, vertices.begin-ptr.ptr-cast, GL_STATIC_DRAW
+	GL_ARRAY_BUFFER glBufferData vertices.n-bytes.to-int64, vertices.begin-ptr.ptr-cast, GL_STATIC_DRAW
 	GL_ARRAY_BUFFER glBindBuffer 0
 	err = glGetError
 	if err != GL_NO_ERROR

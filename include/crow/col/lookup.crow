@@ -14,7 +14,7 @@ import
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
 	..private.bootstrap: todo
-	..private.number-low-level: ==, <=>, nat, wrap-add, wrap-sub
+	..private.number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	.arr: ~, arr, empty?, size, subscript
 	.arr-util:
 		each, each-with-index, every?, find-index, fold, fold-with-index,
@@ -44,18 +44,18 @@ node<?k, ?v> union
 .empty-leaf-node leaf-node<?k, ?v>()
 	leaf-node: []
 
-.low-bits nat(a nat)
+.low-bits nat64(a nat64)
 	a bits-and 0b111
 
-.inner-node-n-bits nat()
+.inner-node-n-bits nat64()
 	3
 
-.leaf-max-size nat()
+.leaf-max-size nat64()
 	8
 
-alloc-count nat(a lookup<?k, ?v>) unsafe
+alloc-count nat64(a lookup<?k, ?v>) unsafe
 	0 alloc-count-recur a.root
-.alloc-count-recur nat(acc nat, a node<?k, ?v>) unsafe
+.alloc-count-recur nat64(acc nat64, a node<?k, ?v>) unsafe
 	match a
 	as inner-node i
 		acc wrap-add 1 fold i.children, (cur, child) =>
@@ -63,9 +63,9 @@ alloc-count nat(a lookup<?k, ?v>) unsafe
 	as leaf-node
 		acc wrap-add 1
 
-overhead-bytes nat(a lookup<?k, ?v>) unsafe
+overhead-bytes nat64(a lookup<?k, ?v>) unsafe
 	0 overhead-bytes-recur a.root
-.overhead-bytes-recur nat(acc nat, a node<?k, ?v>) unsafe
+.overhead-bytes-recur nat64(acc nat64, a node<?k, ?v>) unsafe
 	mid = acc wrap-add size-of<node<?k, ?v>>
 	match a
 	as inner-node i
@@ -99,9 +99,9 @@ empty? bool(a lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	as leaf-node l
 		l.pairs empty?
 
-size nat(a lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
+size nat64(a lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	0 size-recur a.root
-.size-recur nat(acc nat, a node<?k, ?v>)
+.size-recur nat64(acc nat64, a node<?k, ?v>)
 	match a
 	as inner-node i
 		acc fold i.children, (cur, child) => cur size-recur child
@@ -115,7 +115,7 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 		a.root subscript-recur key, hash
 	as leaf-node l
 		l.pairs subscript-leaf-recur key
-.subscript-recur opt ?v(a node<?k, ?v>, key ?k, remaining-hash nat) trusted data<?k> compare<?k> hash-mix<?k>
+.subscript-recur opt ?v(a node<?k, ?v>, key ?k, remaining-hash nat64) trusted data<?k> compare<?k> hash-mix<?k>
 	match a
 	as inner-node i
 		which = remaining-hash low-bits
@@ -214,8 +214,8 @@ body
 .get-or-update-recur get-or-update-result<?k, ?v>
 	a node<?k, ?v>
 	key ?k
-	remaining-hash nat
-	hash-shift nat
+	remaining-hash nat64
+	hash-shift nat64
 	f act get-or-update-action ?v(opt ?v)
 spec
 	trusted
@@ -250,7 +250,7 @@ body
 	as leaf-node l
 		l get-or-update-leaf key, remaining-hash, hash-shift, f
 
-.update-child node<?k, ?v>(a inner-node<?k, ?v>, which nat, new-child node<?k, ?v>)
+.update-child node<?k, ?v>(a inner-node<?k, ?v>, which nat64, new-child node<?k, ?v>)
 	if leaf ?= a inner-node-to-leaf which, new-child
 		leaf
 	elif new-child node-empty?
@@ -270,7 +270,7 @@ body
 		inner-node: a.children update which, new-child
 
 # Returns 'some' if we should change this to a leaf.
-inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat, new-child node<?k, ?v>) trusted
+inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat64, new-child node<?k, ?v>) trusted
 	total-size = 0 fold-with-index a.children, (cur, child, child-index) =>
 		match child-index == which ? new-child, child
 		as inner-node
@@ -299,8 +299,8 @@ inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat, new-ch
 .get-or-update-leaf get-or-update-result<?k, ?v>
 	a leaf-node<?k, ?v>
 	key ?k
-	remaining-hash nat
-	hash-shift nat
+	remaining-hash nat64
+	hash-shift nat64
 	f act get-or-update-action ?v(opt ?v)
 spec
 	compare<?k>
@@ -336,7 +336,16 @@ body
 		get-or-update-result: new-node, none
 
 # In order to get the hash, we need to know the shift amount
-.new-inner-node inner-node<?k, ?v>(a leaf-node<?k, ?v>, key ?k, value ?v, hash nat, hash-shift nat) trusted hash-mix<?k>
+.new-inner-node inner-node<?k, ?v>
+	a leaf-node<?k, ?v>
+	key ?k
+	value ?v
+	hash nat64
+	hash-shift nat64
+spec
+	trusted
+	hash-mix<?k>
+body
 	key-hash = hash low-bits
 	max-hash = key-hash fold a.pairs, (cur, pair) =>
 		cur max: pair.from.hash unsafe-bit-shift-right hash-shift low-bits
@@ -372,12 +381,12 @@ fold-unordered ?a(acc ?a, a lookup<?k, ?v>, f act ?a(?a, ?k, ?v))
 fold-keys-unordered ?a(acc ?a, a lookup<?k, ?v>, f act ?a(?a, ?k))
 	acc fold-unordered a, (cur, key, value) => f[cur, key]
 
-.dbg str(a lookup<nat, str>)
+.dbg str(a lookup<nat64, str>)
 	res = writer
 	res dbg-recur a.root, ""
 	res move-to-str!
 
-.dbg-recur void(out writer, a node<nat, str>, path str)
+.dbg-recur void(out writer, a node<nat64, str>, path str)
 	match a
 	as inner-node i
 		i.children each-with-index (child, index) =>
@@ -400,12 +409,12 @@ fold-keys-unordered ?a(acc ?a, a lookup<?k, ?v>, f act ?a(?a, ?k))
 			out ~= "]"
 
 # TODO:PRIVATE
-dbg str(a lookup<nat, void>)
+dbg str(a lookup<nat64, void>)
 	res = writer
 	res dbg-recur a.root, ""
 	res move-to-str!
 
-.dbg-recur void(out writer, a node<nat, void>, path str)
+.dbg-recur void(out writer, a node<nat64, void>, path str)
 	match a
 	as inner-node i
 		i.children each-with-index (child, index) =>
@@ -425,11 +434,11 @@ dbg str(a lookup<nat, void>)
 			out backup! 2
 			out ~= "]"
 
-verify void(a lookup<nat, str>, expected str)
+verify void(a lookup<nat64, str>, expected str)
 	a.dbg is expected
 
 test
-	l0 = lookup<nat, str>
+	l0 = lookup<nat64, str>
 	l0.empty? is true
 	l0.size is 0
 	l0 verify "[]"

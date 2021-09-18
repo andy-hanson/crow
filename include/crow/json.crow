@@ -6,7 +6,7 @@ import
 	.col.mut-dict: move-to-dict!, mut-dict, set-subscript
 	.col.mut-list: ~=, move-to-arr!, mut-list
 	.misc: ->, void
-	.number: ==, float
+	.number: ==, float64
 	.opt: none, opt, some
 	.reader:
 		reader, skip-whitespace!, take-char?, take-float!, take-quoted-str!, take-str?, with-reader
@@ -16,7 +16,7 @@ import
 
 json union
 	bool
-	float
+	float64
 	str
 	list<json>
 	dict<str, json>
@@ -28,7 +28,7 @@ json union
 			ba == bb
 		else
 			false
-	as float fa
+	as float64 fa
 		if fb ?= b as-float
 			fa == fb
 		else
@@ -64,7 +64,7 @@ as-bool opt bool(a json) noctx
 	match a
 	as bool b
 		b some
-	as float
+	as float64
 		none
 	as str
 		none
@@ -72,11 +72,11 @@ as-bool opt bool(a json) noctx
 		none
 	as dict
 		none
-as-float opt float(a json) noctx
+as-float opt float64(a json) noctx
 	match a
 	as bool
 		none
-	as float f
+	as float64 f
 		f some
 	as str
 		none
@@ -88,7 +88,7 @@ as-str opt str(a json) noctx
 	match a
 	as bool
 		none
-	as float
+	as float64
 		none
 	as str s
 		s some
@@ -100,7 +100,7 @@ as-list opt list json(a json) noctx
 	match a
 	as bool
 		none
-	as float
+	as float64
 		none
 	as str
 		none
@@ -112,7 +112,7 @@ as-dict opt dict<str, json>(a json) noctx
 	match a
 	as bool
 		none
-	as float
+	as float64
 		none
 	as str
 		none
@@ -133,7 +133,7 @@ to-str str(a json)
 	match a
 	as bool b
 		out ~= b
-	as float f
+	as float64 f
 		out ~= f
 	as str s
 		out write-quoted-str! s

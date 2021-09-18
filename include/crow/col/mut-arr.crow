@@ -4,12 +4,12 @@ import
 	..bool: bool, not
 	..compare: <, <=, equal
 	..fun: subscript
-	..misc: ->, arrow, from, to, void
+	..misc: ->, arrow, drop, from, to, void
 	..opt: opt, some
 	..ptr: +, -, as-any-ptr, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of, subscript
 	..private.alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
 	..private.exception-low-level: assert, forbid
-	..private.number-low-level: ==, <=>, nat, wrap-mul, wrap-sub
+	..private.number-low-level: ==, <=>, nat64, wrap-mul, wrap-sub
 	.arr: arr, arr-from-begin-end, begin-ptr, size, subscript
 	.arr-util: each, each-with-index, exists?, find-index, fold, fold-reverse
 
@@ -29,7 +29,7 @@ mut-arr mut-arr ?a() noctx
 	mut-arr: void, []
 
 # `mut-arr` from a pointer and size.
-mut-arr mut-arr ?a(size nat, begin-ptr ptr ?a) noctx unsafe
+mut-arr mut-arr ?a(size nat64, begin-ptr ptr ?a) noctx unsafe
 	mut-arr: void, arr: size, begin-ptr
 
 ###
@@ -62,7 +62,7 @@ copy-to-arr arr ?a(a mut-arr ?a) trusted
 
 copy-from! void(dest mut-arr ?a, source arr ?a) trusted
 	assert: dest.size == source.size
-	memcpy: dest.begin-ptr.as-any-ptr, source.begin-ptr.as-any-ptr, dest.size wrap-mul size-of<?a>
+	drop: memcpy: dest.begin-ptr.as-any-ptr, source.begin-ptr.as-any-ptr, dest.size wrap-mul size-of<?a>
 
 copy-from! void(dest mut-arr ?a, source mut-arr ?a) trusted
 	dest copy-from! source.cast-immutable
@@ -70,7 +70,7 @@ copy-from! void(dest mut-arr ?a, source mut-arr ?a) trusted
 empty? bool(a mut-arr ?a) noctx
 	a.size == 0
 
-size nat(a mut-arr ?a) noctx
+size nat64(a mut-arr ?a) noctx
 	a.inner size
 
 # Pointer to the beginning of the `mut-arr`.
@@ -88,11 +88,11 @@ end-ptr ptr ?a(a mut-arr ?a) noctx unsafe
 Gets the element at the index.
 Throws if `index >= a.size`.
 ###
-subscript ?a(a mut-arr ?a, index nat) trusted
+subscript ?a(a mut-arr ?a, index nat64) trusted
 	assert: index < a.size
 	a unsafe-at index
 
-unsafe-at ?a(a mut-arr ?a, index nat) unsafe
+unsafe-at ?a(a mut-arr ?a, index nat64) unsafe
 	a.begin-ptr[index]
 
 ###
@@ -102,7 +102,7 @@ Writes to the slice will affect the original. (If you don't want that, use `copy
 Throws if `range.from > range.to`.
 Throws if the slice would exceed the bounds of the `mut-arr`.
 ###
-subscript mut-arr ?a(a mut-arr ?a, range arrow<nat, nat>)
+subscript mut-arr ?a(a mut-arr ?a, range arrow<nat64, nat64>)
 	assert: range.from <= range.to
 	assert: range.to <= a.size
 	mut-arr: void, a.inner[range]
@@ -111,11 +111,11 @@ subscript mut-arr ?a(a mut-arr ?a, range arrow<nat, nat>)
 Write to a single element.
 Throws if `index >= a.size`.
 ###
-set-subscript void(a mut-arr ?a, index nat, value ?a) trusted
+set-subscript void(a mut-arr ?a, index nat64, value ?a) trusted
 	assert: index < a.size
 	a unsafe-set-at! index, value
 
-unsafe-set-at! void(a mut-arr ?a, index nat, value ?a) unsafe
+unsafe-set-at! void(a mut-arr ?a, index nat64, value ?a) unsafe
 	a.begin-ptr[index] := value
 
 
@@ -136,14 +136,14 @@ rtail mut-arr ?a(a mut-arr ?a)
 	a[0 -> (a.size wrap-sub 1)]
 
 # Allocates a `mut-arr` without initializing any of its elements.
-uninitialized-mut-arr mut-arr ?a(size nat) unsafe
+uninitialized-mut-arr mut-arr ?a(size nat64) unsafe
 	mut-arr: size, alloc-uninitialized<?a>: size
 
 ###
 `mut-arr` where each element is `f[i]`.
 Equivalent to `mut-arr: [f[0], f[1], ...]`.
 ###
-make-mut-arr mut-arr ?a(size nat, f act ?a(nat)) trusted
+make-mut-arr mut-arr ?a(size nat64, f act ?a(nat64)) trusted
 	res = size uninitialized-mut-arr<?a>
 	res.begin-ptr fill-ptr-range size, f
 	res
@@ -152,10 +152,10 @@ make-mut-arr mut-arr ?a(size nat, f act ?a(nat)) trusted
 `mut-arr` where every element is `value`.
 Equivalent to `mut-arr: [value, value, ...]`.
 ###
-fill-mut-arr mut-arr ?a(size nat, value ?a)
+fill-mut-arr mut-arr ?a(size nat64, value ?a)
 	size make-mut-arr ignore => value
 
-zeroed-mut-arr mut-arr ?a(size nat) unsafe
+zeroed-mut-arr mut-arr ?a(size nat64) unsafe
 	res = size uninitialized-mut-arr<?a>
 	res set-zero-elements
 	res
@@ -187,11 +187,11 @@ set-zero-elements void(a mut-arr ?a) noctx unsafe
 	a.begin-ptr set-zero-range a.size
 
 # Equivalent to `a.temp-as-arr index-of value`.
-index-of opt nat(a mut-arr ?a, value ?a) equal<?a>
+index-of opt nat64(a mut-arr ?a, value ?a) equal<?a>
 	a find-index x => x == value
 
 # Equivalent to `a.temp-as-arr find-index f`.
-find-index opt nat(a mut-arr ?a, f act bool(?a)) trusted
+find-index opt nat64(a mut-arr ?a, f act bool(?a)) trusted
 	a.temp-as-arr find-index f
 
 reverse! void(a mut-arr ?a) trusted
@@ -212,7 +212,7 @@ exists? bool(a mut-arr ?a, f act bool(?a)) trusted
 each void(a mut-arr ?a, f act void(?a)) trusted
 	a.temp-as-arr each f
 
-each-with-index void(a mut-arr ?a, f act void(?a, nat)) trusted
+each-with-index void(a mut-arr ?a, f act void(?a, nat64)) trusted
 	a.temp-as-arr each-with-index f
 
 fold ?a(acc ?a, a mut-arr ?b, f act ?a(?a, ?b)) trusted
@@ -230,11 +230,11 @@ map! void(a mut-arr ?a, f act ?a(?a)) trusted
 map mut-arr ?out(a mut-arr ?in, f act ?out(?in)) trusted
 	a.size make-mut-arr i => f[a[i]]
 
-map-with-index mut-arr ?out(a mut-arr ?in, f act ?out(?in, nat)) trusted
+map-with-index mut-arr ?out(a mut-arr ?in, f act ?out(?in, nat64)) trusted
 	a.size make-mut-arr i => f[a[i], i]
 
 map-to-arr arr ?out(a mut-arr ?in, f act ?out(?in)) trusted
 	a map f cast-immutable
 
-map-to-arr-with-index arr ?out(a mut-arr ?in, f act ?out(?in, nat)) trusted
+map-to-arr-with-index arr ?out(a mut-arr ?in, f act ?out(?in, nat64)) trusted
 	a map-with-index f cast-immutable

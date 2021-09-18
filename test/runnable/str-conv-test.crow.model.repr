@@ -5,7 +5,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(71, 30), main, fut(nat()), [param(file-range(71, range(43, 52)), none, arr(str()))])
+			sig: sig(file-pos(71, 30), main, fut(nat64()), [param(file-range(71, range(43, 52)), none, arr(str()))])
 			body: seq(
 				seq(
 					seq(
@@ -18,73 +18,73 @@ module(
 												call(
 													fun-inst(
 														name: is
-														type-args: [opt(nat())]
+														type-args: [opt(nat64())]
 														spec-impls: [fun-inst(name: ==)])
 													[
 														call(fun-inst(name: parse-nat), [string-lit("")])
-														to-union(opt(nat()), 0, call(fun-inst(name: none), []))])
+														to-union(opt(nat64()), 0, call(fun-inst(name: none), []))])
 												call(
 													fun-inst(
 														name: is
-														type-args: [opt(nat())]
+														type-args: [opt(nat64())]
 														spec-impls: [fun-inst(name: ==)])
 													[
 														call(fun-inst(name: parse-nat), [string-lit("1")])
 														to-union(
-															opt(nat())
+															opt(nat64())
 															1
 															call(
-																fun-inst(name: some, type-args: [nat()])
-																[literal(nat(), 1)]))]))
+																fun-inst(name: some, type-args: [nat64()])
+																[literal(nat64(), 1)]))]))
 											call(
 												fun-inst(
 													name: is
-													type-args: [opt(nat())]
+													type-args: [opt(nat64())]
 													spec-impls: [fun-inst(name: ==)])
 												[
 													call(fun-inst(name: parse-nat), [string-lit("1.2")])
-													to-union(opt(nat()), 0, call(fun-inst(name: none), []))]))
+													to-union(opt(nat64()), 0, call(fun-inst(name: none), []))]))
 										call(
 											fun-inst(
 												name: is
-												type-args: [opt(nat())]
+												type-args: [opt(nat64())]
 												spec-impls: [fun-inst(name: ==)])
 											[
 												call(fun-inst(name: parse-nat), [string-lit("+1")])
-												to-union(opt(nat()), 0, call(fun-inst(name: none), []))]))
+												to-union(opt(nat64()), 0, call(fun-inst(name: none), []))]))
 									call(
-										fun-inst(name: is, type-args: [opt(int())], spec-impls: [fun-inst(name: ==)])
+										fun-inst(name: is, type-args: [opt(int64())], spec-impls: [fun-inst(name: ==)])
 										[
 											call(fun-inst(name: parse-int), [string-lit("123")])
 											to-union(
-												opt(int())
+												opt(int64())
 												1
-												call(fun-inst(name: some, type-args: [int()]), [literal(int(), 123)]))]))
+												call(fun-inst(name: some, type-args: [int64()]), [literal(int64(), 123)]))]))
 								call(
-									fun-inst(name: is, type-args: [opt(int())], spec-impls: [fun-inst(name: ==)])
+									fun-inst(name: is, type-args: [opt(int64())], spec-impls: [fun-inst(name: ==)])
 									[
 										call(fun-inst(name: parse-int), [string-lit("-123")])
 										to-union(
-											opt(int())
+											opt(int64())
 											1
-											call(fun-inst(name: some, type-args: [int()]), [literal(int(), -123)]))]))
+											call(fun-inst(name: some, type-args: [int64()]), [literal(int64(), -123)]))]))
 							call(
-								fun-inst(name: is, type-args: [opt(int())], spec-impls: [fun-inst(name: ==)])
+								fun-inst(name: is, type-args: [opt(int64())], spec-impls: [fun-inst(name: ==)])
 								[
 									call(fun-inst(name: parse-int), [string-lit("+123")])
 									to-union(
-										opt(int())
+										opt(int64())
 										1
-										call(fun-inst(name: some, type-args: [int()]), [literal(int(), 123)]))]))
+										call(fun-inst(name: some, type-args: [int64()]), [literal(int64(), 123)]))]))
 						call(
-							fun-inst(name: is, type-args: [opt(int())], spec-impls: [fun-inst(name: ==)])
+							fun-inst(name: is, type-args: [opt(int64())], spec-impls: [fun-inst(name: ==)])
 							[
 								call(fun-inst(name: parse-int), [string-lit("*123")])
-								to-union(opt(int()), 0, call(fun-inst(name: none), []))]))
+								to-union(opt(int64()), 0, call(fun-inst(name: none), []))]))
 					call(
 						fun-inst(name: print)
 						[
 							call(
-								fun-inst(name: to-str, type-args: [nat()], spec-impls: [fun-inst(name: to-str)])
+								fun-inst(name: to-str, type-args: [nat64()], spec-impls: [fun-inst(name: to-str)])
 								[call(fun-inst(name: parse-nat), [string-lit("1")])])]))
-				call(fun-inst(name: resolved, type-args: [nat()]), [literal(nat(), 0)])))])
+				call(fun-inst(name: resolved, type-args: [nat64()]), [literal(nat64(), 0)])))])

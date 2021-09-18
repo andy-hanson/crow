@@ -1,17 +1,16 @@
 no-std
 import
 	.compare: comparison
-	.private.bootstrap: nat
-	.private.number-low-level: ==, <=>
+	.private.number-low-level: ==, <=>, nat64
 export
 	.private.bool-low-level: ?, and, bool, false, not, or, true
 
 == bool(a bool, b bool) noctx
-	a.to-nat == b.to-nat
+	a.to-nat64 == b.to-nat64
 
 <=> comparison(a bool, b bool) noctx
-	a.to-nat <=> b.to-nat
+	a.to-nat64 <=> b.to-nat64
 
 # 0 for false, 1 for true.
-to-nat nat(b bool) noctx
-	b ? 1, 0
+to-nat64 nat64(a bool) noctx
+	a ? 1, 0

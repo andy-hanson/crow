@@ -5,7 +5,7 @@ import
 	..compare: <, <=, >, >=, equal
 	..fun: subscript
 	..misc: ->, drop, void
-	..number: +, -, *, nat
+	..number: +, -, *, nat64
 	..opt: opt, some
 	..ptr: +, -, as-any-ptr, by-val, ptr, ptr-eq?, set-subscript, size-of, subscript, zeroed
 	..private.alloc:
@@ -31,7 +31,7 @@ mut-list<?a> record mut
 	# For the GC's sake, unused parts of backing are filled with 'zeroed'
 	backing mut mut-arr ?a
 	# TODO:PRIVATE (getter public)
-	size mut nat
+	size mut nat64
 
 ###
 Pointer to the first element.
@@ -47,13 +47,13 @@ end-ptr ptr ?a(a mut-list ?a) noctx unsafe
 at-capacity? bool(a mut-list ?a) noctx unsafe
 	a.capacity == a.size
 
-capacity nat(a mut-list ?a) noctx unsafe
+capacity nat64(a mut-list ?a) noctx unsafe
 	a.backing size
 
 mut-list-by-val by-val mut-list<?a>() noctx trusted
 	mut-list<?a>: mut-arr, 0
 
-mut-list-by-val-with-capacity-from-unmanaged-memory by-val mut-list ?a(capacity nat) noctx unsafe
+mut-list-by-val-with-capacity-from-unmanaged-memory by-val mut-list ?a(capacity nat64) noctx unsafe
 	backing = mut-arr<?a>: capacity, capacity unmanaged-alloc-zeroed-elements<?a>
 	mut-list<?a>: backing, 0
 
@@ -61,7 +61,7 @@ mut-list-by-val-with-capacity-from-unmanaged-memory by-val mut-list ?a(capacity 
 mut-list where every element is `value`.
 Equivalent to `mut-list: [value, value, ...]`.
 ###
-fill-mut-list mut-list ?a(size nat, value ?a)
+fill-mut-list mut-list ?a(size nat64, value ?a)
 	backing = size fill-mut-arr value
 	mut-list: backing, size
 
@@ -127,7 +127,7 @@ swap! void(a mut-list ?a, b mut-list ?a)
 Gets the element at the index.
 Throws if `index >= a.size`.
 ###
-subscript ?a(a mut-list ?a, index nat) trusted
+subscript ?a(a mut-list ?a, index nat64) trusted
 	assert: index < a.size
 	a.begin-ptr[index]
 
@@ -172,7 +172,7 @@ has? bool(a mut-list ?a) noctx
 Sets the element at the index.
 Throws if `index >= a.size`.
 ###
-set-subscript void(a mut-list ?a, index nat, value ?a) trusted
+set-subscript void(a mut-list ?a, index nat64, value ?a) trusted
 	assert: index < a.size
 	a.begin-ptr[index] := value
 
@@ -182,11 +182,11 @@ True iff `a[i] == value` for some `i`.
 contains? bool(a mut-list ?a, value ?a) noctx trusted equal<?a>
 	a.temp-as-arr contains? value
 
-copy-range-to-arr arr ?a(a mut-list ?a, begin nat, size nat) trusted
+copy-range-to-arr arr ?a(a mut-list ?a, begin nat64, size nat64) trusted
 	assert: begin + size <= a.size
 	res = alloc-uninitialized<?a>: size
 	src = a.begin-ptr + begin
-	memcpy: res.as-any-ptr, src.as-any-ptr, size * size-of<?a>
+	drop: memcpy: res.as-any-ptr, src.as-any-ptr, size * size-of<?a>
 	arr: size, res
 
 ###
@@ -194,13 +194,13 @@ Removes the first `n` elements and returns them as an array.
 This is O(a.size - n) because of the cost of copying, and all remaining elements must be shifted.
 Throws if `n > a.size`.
 ###
-pop-n-from-start! arr ?a(a mut-list ?a, n nat) trusted
+pop-n-from-start! arr ?a(a mut-list ?a, n nat64) trusted
 	assert: n <= a.size
 	res = a copy-range-to-arr 0, n
 	dest = a.begin-ptr as-any-ptr
 	src = a.begin-ptr + n as-any-ptr
 	new-size = a.size - n
-	memmove: dest, src, new-size * size-of<?a>
+	drop: memmove: dest, src, new-size * size-of<?a>
 	a.size := new-size
 	res
 
@@ -221,7 +221,7 @@ pop! opt ?a(a mut-list ?a) trusted
 Pops `n` times, discarding the result.
 Throws if `n > a.size`.
 ###
-pop-n! void(a mut-list ?a, n nat) trusted
+pop-n! void(a mut-list ?a, n nat64) trusted
 	assert: n <= a.size
 	new-size = a.size - n
 	a.begin-ptr + new-size set-zero-range n
@@ -251,14 +251,14 @@ push-capacity-must-be-sufficient! void(a mut-list ?a, value ?a) noctx unsafe
 	a.begin-ptr[a size] := value
 	a.size := a.size wrap-add 1
 
-.increase-capacity-to! void(a mut-list ?a, new-capacity nat) unsafe
+.increase-capacity-to! void(a mut-list ?a, new-capacity nat64) unsafe
 	assert: new-capacity > a.capacity
 	old-begin = a begin-ptr
 	a.backing := new-capacity uninitialized-mut-arr<?a>
 	a.begin-ptr copy-data-from old-begin, a.size
 	a.backing[a.size + 1 -> a.backing.size] set-zero-elements
 
-.ensure-capacity void(a mut-list ?a, min-capacity nat) unsafe
+.ensure-capacity void(a mut-list ?a, min-capacity nat64) unsafe
 	if a.capacity < min-capacity
 		a increase-capacity-to! min-capacity
 
@@ -268,7 +268,7 @@ Does nothing if the capacity is already sufficient.
 This may reserve more space than requested, so calling `reserve` repeatedly for slowly increasing sizes
 doesn't reallocate every time, and is no worse than pushing repeatedly.
 ###
-.reserve void(a mut-list ?a, reserved nat) unsafe
+.reserve void(a mut-list ?a, reserved nat64) unsafe
 	a ensure-capacity reserved.round-up-to-power-of-two
 
 ###
@@ -278,11 +278,11 @@ This is more efficient than `a remove-at! index`,
 which has to shift all values past `index` to the left.
 Throws if `index >= a.size`.
 ###
-remove-unordered-at! ?a(a mut-list ?a, index nat) trusted
+remove-unordered-at! ?a(a mut-list ?a, index nat64) trusted
 	assert: index < a.size
 	a noctx-remove-unordered-at! index
 
-noctx-remove-unordered-at! ?a(a mut-list ?a, index nat) noctx unsafe
+noctx-remove-unordered-at! ?a(a mut-list ?a, index nat64) noctx unsafe
 	hard-assert: index < a.size
 	res = a.begin-ptr[index]
 	new-size = a.size wrap-sub 1
@@ -292,7 +292,7 @@ noctx-remove-unordered-at! ?a(a mut-list ?a, index nat) noctx unsafe
 
 noctx-must-remove-unordered! void(a mut-list ?a, value ?a) noctx unsafe equal<?a>
 	a noctx-must-remove-unordered-recur! 0, value
-.noctx-must-remove-unordered-recur! void(a mut-list ?a, index nat, value ?a) noctx unsafe equal<?a>
+.noctx-must-remove-unordered-recur! void(a mut-list ?a, index nat64, value ?a) noctx unsafe equal<?a>
 	if index == a.size
 		todo
 	elif a.begin-ptr[index] == value
@@ -305,7 +305,7 @@ Directly sets the `size` without touching the data.
 Unsafe because if this increases the size, it exposes uninitialized data.
 If this decreases the size, it doesn't zero out the rest of the data, so the garbage collector will keep it alive.
 ###
-unsafe-set-size! void(a mut-list ?a, new-size nat) unsafe
+unsafe-set-size! void(a mut-list ?a, new-size nat64) unsafe
 	a reserve new-size
 	a.size := new-size
 
@@ -313,22 +313,22 @@ unsafe-set-size! void(a mut-list ?a, new-size nat) unsafe
 Pops elements until the size is <= `new-size`.
 Does nothing if `a.size <= new-size` already.
 ###
-reduce-size-if-more-than! void(a mut-list ?a, new-size nat)
+reduce-size-if-more-than! void(a mut-list ?a, new-size nat64)
 	if new-size < a.size
 		a.pop! drop
 		a reduce-size-if-more-than! new-size
 
 # TODO:MOVE
-.round-up-to-power-of-two nat(n nat)
+.round-up-to-power-of-two nat64(n nat64)
 	1 round-up-to-power-of-two-recur n
-.round-up-to-power-of-two-recur nat(acc nat, n nat)
+.round-up-to-power-of-two-recur nat64(acc nat64, n nat64)
 	if acc >= n
 		acc
 	else
 		acc * 2 round-up-to-power-of-two-recur n
 
 # Returns the first index where `a[i] == value`, or returns `none`.
-index-of opt nat(a mut-list ?a, value ?a) equal<?a> trusted
+index-of opt nat64(a mut-list ?a, value ?a) equal<?a> trusted
 	a.temp-as-arr index-of value
 
 ###
@@ -337,13 +337,13 @@ Increases the size by 1.
 This is O(a.size - index) due to having to move other elements.
 Throws if `index > a.size`.
 ###
-insert-at! void(a mut-list ?a, index nat, value ?a) trusted
+insert-at! void(a mut-list ?a, index nat64, value ?a) trusted
 	assert: index <= a.size
 	a incr-capacity!
 	dest = a.begin-ptr + index + 1
 	src = a.begin-ptr + index
 	n = a.size - index
-	memmove: dest.as-any-ptr, src.as-any-ptr, n * size-of<?a>
+	drop: memmove: dest.as-any-ptr, src.as-any-ptr, n * size-of<?a>
 	a.size := a.size + 1
 	a[index] := value
 	assert: a.size <= a.capacity
@@ -358,13 +358,13 @@ Decreases the size by 1.
 This is O(a.size - index) due to having to move other elements.
 Throws if `index >= a.size`.
 ###
-remove-at! ?a(a mut-list ?a, index nat) trusted
+remove-at! ?a(a mut-list ?a, index nat64) trusted
 	assert: index < a.size
 	res = a[index]
 	dest = a.begin-ptr + index
 	src = a.begin-ptr + index + 1
 	n = a.size - index - 1
-	memmove: dest.as-any-ptr, src.as-any-ptr, n * size-of<?a>
+	drop: memmove: dest.as-any-ptr, src.as-any-ptr, n * size-of<?a>
 	a.size := a.size - 1
 	res
 
@@ -377,14 +377,14 @@ reverse! void(a mut-list ?a) trusted
 region iteration
 
 # TODO: What if it's mutated while searching?
-find-index opt nat(a mut-list ?a, f act bool(?a)) trusted
+find-index opt nat64(a mut-list ?a, f act bool(?a)) trusted
 	a.temp-as-arr find-index f
 
 # Calls `f` for each element in `a`.
 each void(a mut-list ?a, f act void(?a)) trusted
 	a.temp-as-arr each f
 
-each-with-index void(a mut-list ?a, f act void(?a, nat)) trusted
+each-with-index void(a mut-list ?a, f act void(?a, nat64)) trusted
 	a.temp-as-arr each-with-index f
 
 exists? bool(a mut-list ?a, f act bool(?a)) trusted

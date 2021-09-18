@@ -1,6 +1,6 @@
 no-std
 import
-	..number: +, -, *, ^, float, float32, square-root
+	..number: +, -, *, ^, float32, float64, square-root
 	..str: str
 	..str-conv: finish, interp, to-str, with-str, with-value
 
@@ -10,8 +10,8 @@ Each element is a 64-bit float.
 ###
 vec-2 record
 	by-val
-	x float
-	y float
+	x float64
+	y float64
 
 vec-2-32 record
 	by-val
@@ -33,19 +33,19 @@ vec-2-32 record
 	a.x - b.x vec-2-32 a.y - b.y
 
 # Scales a vector by a scalar.
-* vec-2(a vec-2, b float) noctx
+* vec-2(a vec-2, b float64) noctx
 	a.x * b vec-2 a.y * b
 * vec-2-32(a vec-2-32, b float32) noctx
 	a.x * b vec-2-32 a.y * b
 
 # Equivalent to `a.length ^ 2` (but more efficient).
-length-squared float(a vec-2) noctx
+length-squared float64(a vec-2) noctx
 	a.x ^ 2 + a.y ^ 2
 length-squared float32(a vec-2-32) noctx
 	a.x ^ 2 + a.y ^ 2
 
 # Vector length, also known as the magnitude, norm, or |a|.
-length float(a vec-2) noctx
+length float64(a vec-2) noctx
 	a.length-squared square-root
 length float32(a vec-2-32) noctx
 	a.length-squared square-root

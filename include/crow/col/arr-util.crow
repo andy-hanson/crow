@@ -1,10 +1,10 @@
 no-std
 import
-	..bool: ==, and, bool, false, not, or, to-nat, true
+	..bool: ==, and, bool, false, not, or, to-nat64, true
 	..compare: !=, <, <=, >=, equal, max, min
 	..fun: subscript
 	..misc: ->, void
-	..number: +, -, nat
+	..number: +, -, nat64
 	..opt: has?, none, opt, some
 	..ptr: +, -, deep-size-bytes, ptr, ptr-eq?, set-subscript, size-of, subscript
 	..test: is
@@ -14,7 +14,7 @@ import
 	..private.number-low-level: ==, <=>, unsafe-mod, wrap-add, wrap-mul
 	.arr: ==, ~, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, noctx-at, size, subscript
 
-alloc-count nat(a arr ?a) unsafe
+alloc-count nat64(a arr ?a) unsafe
 	if a empty?
 		0
 	else
@@ -24,10 +24,10 @@ alloc-count nat(a arr ?a) unsafe
 Number of bytes that does not go into storing the values.
 For an 'arr' this is a constant 16 bytes.
 ###
-overhead-bytes nat(a arr ?a) unsafe
+overhead-bytes nat64(a arr ?a) unsafe
 	a size-of
 
-deep-size-bytes nat(a arr ?a) unsafe deep-size-bytes<?a>
+deep-size-bytes nat64(a arr ?a) unsafe deep-size-bytes<?a>
 	a.overhead-bytes fold a, (acc, x) =>
 		acc + x.deep-size-bytes
 
@@ -35,7 +35,7 @@ deep-size-bytes nat(a arr ?a) unsafe deep-size-bytes<?a>
 Equivalent to `[f[0], f[1], ..., f[size - 1]]`.
 Arr containing the result of `f` for each number 0 to size (exclusive).
 ###
-make-arr arr ?a(size nat, f act ?a(nat)) trusted
+make-arr arr ?a(size nat64, f act ?a(nat64)) trusted
 	res = size alloc-uninitialized<?a>
 	res fill-ptr-range size, f
 	arr: size, res
@@ -44,7 +44,7 @@ make-arr arr ?a(size nat, f act ?a(nat)) trusted
 Equivalent to `[value, value, ...]`.
 Arr with the given `size` where every element is `value`.
 ###
-fill-arr arr ?a(size nat, value ?a)
+fill-arr arr ?a(size nat64, value ?a)
 	size make-arr ignore =>
 		value
 
@@ -63,9 +63,9 @@ each void(a arr ?a, f act void(?a)) trusted
 Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc., in turn.
 Calls `f` for each element in `a`, also providing the index.
 ###
-each-with-index void(a arr ?a, f act void(?a, nat))
+each-with-index void(a arr ?a, f act void(?a, nat64))
 	a each-with-index-recur f, 0
-.each-with-index-recur void(a arr ?a, f act void(?a, nat), n nat)
+.each-with-index-recur void(a arr ?a, f act void(?a, nat64), n nat64)
 	if n != a.size
 		f[a[n], n]
 		a each-with-index-recur f, n + 1
@@ -84,11 +84,11 @@ filter arr ?a(a arr ?a, f act bool(?a))
 	a filter-with-index (cur, index) =>
 		f[cur]
 
-filter-with-index arr ?a(a arr ?a, f act bool(?a, nat)) trusted
+filter-with-index arr ?a(a arr ?a, f act bool(?a, nat64)) trusted
 	res = a.size alloc-uninitialized<?a>
 	end = res filter-with-index-recur a.begin-ptr, a.end-ptr, 0, f
 	res arr-from-begin-end end
-.filter-with-index-recur ptr ?a(out ptr ?a, cur ptr ?a, end ptr ?a, index nat, f act bool(?a, nat)) unsafe
+.filter-with-index-recur ptr ?a(out ptr ?a, cur ptr ?a, end ptr ?a, index nat64, f act bool(?a, nat64)) unsafe
 	if cur ptr-eq? end
 		out
 	else
@@ -112,9 +112,9 @@ test
 	[1, 3, 5, 3, 1] strip-left-while (it => it < 5) is [5, 3, 1]
 
 # TODO: move to iter-utiil since this works with any foldable
-count nat(a arr ?a, f act bool(?a))
+count nat64(a arr ?a, f act bool(?a))
 	0 fold a, (cur, x) =>
-		cur wrap-add f[x].to-nat
+		cur wrap-add f[x].to-nat64
 
 ###
 Equivalent to `[f[a[0]], f[a[1]], ...]`.
@@ -124,7 +124,7 @@ map arr ?out(a arr ?in, f act ?out(?in))
 	a.size make-arr i =>
 		f[a[i]]
 
-map-with-index arr ?out(a arr ?in, f act ?out(?in, nat))
+map-with-index arr ?out(a arr ?in, f act ?out(?in, nat64))
 	a.size make-arr i =>
 		f[a[i], i]
 
@@ -191,7 +191,7 @@ Also equivalent to `a[0] == value or a[1] == value or ...`.
 ###
 contains? bool(a arr ?a, value ?a) noctx equal<?a>
 	a contains-recur? value, 0
-.contains-recur? bool(a arr ?a, value ?a, i nat) noctx trusted equal<?a>
+.contains-recur? bool(a arr ?a, value ?a, i nat64) noctx trusted equal<?a>
 	if i == a.size
 		false
 	elif (a noctx-at i) == value
@@ -204,7 +204,7 @@ test
 
 try-remove opt arr ?a(a arr ?a, value ?a) equal<?a>
 	a try-remove-recur 0, value
-.try-remove-recur opt arr ?a(a arr ?a, index nat, value ?a) equal<?a>
+.try-remove-recur opt arr ?a(a arr ?a, index nat64, value ?a) equal<?a>
 	if index == a.size
 		none
 	elif a[index] == value
@@ -212,7 +212,7 @@ try-remove opt arr ?a(a arr ?a, value ?a) equal<?a>
 	else
 		a try-remove-recur index + 1, value
 
-remove-index arr ?a(a arr ?a, index nat)
+remove-index arr ?a(a arr ?a, index nat64)
 	assert: index < a.size
 	a[0 -> index] ~ a[index + 1 -> a.size]
 
@@ -258,9 +258,9 @@ fold ?a(acc ?a, a arr ?b, f act ?a(?a, ?b)) trusted
 	else
 		f[acc, cur[]] fold-recur cur + 1, end, f
 
-fold-with-index ?a(acc ?a, a arr ?b, f act ?a(?a, ?b, nat)) trusted
+fold-with-index ?a(acc ?a, a arr ?b, f act ?a(?a, ?b, nat64)) trusted
 	acc fold-with-index-recur 0, a.begin-ptr, a.end-ptr, f
-.fold-with-index-recur ?a(acc ?a, index nat, cur ptr ?b, end ptr ?b, f act ?a(?a, ?b, nat)) unsafe
+.fold-with-index-recur ?a(acc ?a, index nat64, cur ptr ?b, end ptr ?b, f act ?a(?a, ?b, nat64)) unsafe
 	if cur ptr-eq? end
 		acc
 	else
@@ -277,10 +277,10 @@ fold-reverse ?a(acc ?a, a arr ?b, f act ?a(?a, ?b)) trusted
 
 # TODO: equal<arr ?a> should be unnecessary
 # Finds the first index where `a[i -> i + subseq.size] == subseq`.
-index-of-subseq opt nat(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
+index-of-subseq opt nat64(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
 	a index-of-subseq-recur subseq, 0
 # TODO: equal<arr ?a> should be unnecessary
-.index-of-subseq-recur opt nat(a arr ?a, subseq arr ?a, i nat) equal<?a> equal<arr ?a>
+.index-of-subseq-recur opt nat64(a arr ?a, subseq arr ?a, i nat64) equal<?a> equal<arr ?a>
 	if i == a.size
 		none
 	elif a[i -> a.size] starts-with? subseq
@@ -292,9 +292,9 @@ index-of-subseq opt nat(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
 Equivalent to `f[a[0]] ? 0.some, f[a[1]] ? 1.some, ...`.
 Returns the first index for which `f[a[i]]` is true, or returns `none`.
 ###
-find-index opt nat(a arr ?a, f act bool(?a))
+find-index opt nat64(a arr ?a, f act bool(?a))
 	a find-index-recur 0, f
-.find-index-recur opt nat(a arr ?a, index nat, f act bool(?a))
+.find-index-recur opt nat64(a arr ?a, index nat64, f act bool(?a))
 	if index == a.size
 		none
 	elif f[a[index]]
@@ -306,10 +306,10 @@ find-index opt nat(a arr ?a, f act bool(?a))
 Like `find-index`, but starts from the end.
 Equivalent to `f[a[a.size - 1]] ? (a.size - 1 some), f[a[a.size - 2]] ? (a.size - 2 some), ...`.
 ###
-find-rindex opt nat(a arr ?a, f act bool(?a))
+find-rindex opt nat64(a arr ?a, f act bool(?a))
 	if a.empty? not
 		a find-rindex-recur a.size - 1, f
-.find-rindex-recur opt nat(a arr ?a, index nat, f act bool(?a))
+.find-rindex-recur opt nat64(a arr ?a, index nat64, f act bool(?a))
 	if f[a[index]]
 		index some
 	elif index != 0
@@ -319,7 +319,7 @@ find-rindex opt nat(a arr ?a, f act bool(?a))
 Returns the first index where `a[i] == value`.
 Equivalent to `a find-index it => it == value`.
 ###
-index-of opt nat(a arr ?a, value ?a) trusted equal<?a>
+index-of opt nat64(a arr ?a, value ?a) trusted equal<?a>
 	if v ?= a ptr-of value
 		v - a.begin-ptr some
 
@@ -339,7 +339,7 @@ ptr-of opt ptr ?a(a arr ?a, value ?a) unsafe equal<?a>
 Returns the last index where `a[i] == value`.
 Equivalent to `a find-rindex it => it == value`.
 ###
-r-index-of opt nat(a arr ?a, value ?a) equal<?a>
+r-index-of opt nat64(a arr ?a, value ?a) equal<?a>
 	a find-rindex it => it == value
 
 ###
@@ -392,10 +392,10 @@ split-by-subseq arr arr ?a(a arr ?a, splitter arr ?a) equal<?a> equal<arr ?a> tr
 
 # TODO: equal<arr ?a> should be unnecessary
 # Returns the number of indices for which `a[i -> i + subseq.size] == subseq`.
-count-subseqs nat(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
+count-subseqs nat64(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
 	a count-subseqs-recur subseq, 0
 # TODO: equal<arr ?a> should be unnecessary
-.count-subseqs-recur nat(a arr ?a, subseq arr ?a, acc nat) equal<?a> equal<arr ?a>
+.count-subseqs-recur nat64(a arr ?a, subseq arr ?a, acc nat64) equal<?a> equal<arr ?a>
 	if index ?= a index-of-subseq subseq
 		a[index + subseq.size -> a.size] count-subseqs-recur subseq, acc + 1
 	else
@@ -428,16 +428,16 @@ zip-larger arr ?out(a arr ?a, b arr ?b, f act ?out(opt ?a, opt ?b))
 	a.size max b.size make-arr i =>
 		f[(a opt-subscript i), (b opt-subscript i)]
 
-.opt-subscript opt ?a(a arr ?a, index nat)
+.opt-subscript opt ?a(a arr ?a, index nat64)
 	if index < a.size
 		a[index] some
 
 # TODO: update-at
-update arr ?a(a arr ?a, index nat, new-value ?a)
+update arr ?a(a arr ?a, index nat64, new-value ?a)
 	assert: index < a.size
 	a[0 -> index] ~ [new-value] ~ a[index + 1 -> a.size]
 
-update-with-default arr ?a(a arr ?a, index nat, new-value ?a, default ?a)
+update-with-default arr ?a(a arr ?a, index nat64, new-value ?a, default ?a)
 	if index < a.size
 		a update index, new-value
 	else
@@ -450,7 +450,7 @@ update-with-default arr ?a(a arr ?a, index nat, new-value ?a, default ?a)
 				default
 
 # TODO: insert-at
-insert arr ?a(a arr ?a, index nat, value ?a)
+insert arr ?a(a arr ?a, index nat64, value ?a)
 	assert: index <= a.size
 	# TODO:PERF (only concat once)
 	a[0 -> index] ~ [value] ~ a[index -> a.size]
@@ -458,17 +458,17 @@ insert arr ?a(a arr ?a, index nat, value ?a)
 insert arr ?a(a arr ?a, ptr ptr ?a, value ?a) unsafe
 	a insert ptr - a.begin-ptr, value
 
-remove-at arr ?a(a arr ?a, index nat)
+remove-at arr ?a(a arr ?a, index nat64)
 	assert: index < a.size
 	a[0 -> index] ~ a[index + 1 -> a.size]
 
-with-max-size arr ?a(a arr ?a, max-size nat)
+with-max-size arr ?a(a arr ?a, max-size nat64)
 	if a.size <= max-size
 		a
 	else
 		a[0 -> max-size]
 
-pad-left arr ?a(pad ?a, a arr ?a, min-size nat)
+pad-left arr ?a(pad ?a, a arr ?a, min-size nat64)
 	if a.size < min-size
 		diff = min-size - a.size
 		min-size make-arr index =>
@@ -479,7 +479,7 @@ pad-left arr ?a(pad ?a, a arr ?a, min-size nat)
 	else
 		a
 
-repeat arr ?a(a arr ?a, n nat) trusted
+repeat arr ?a(a arr ?a, n nat64) trusted
 	a.size wrap-mul n make-arr i =>
 		a[i unsafe-mod a.size]
 

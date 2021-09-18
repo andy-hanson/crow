@@ -4,8 +4,8 @@ import
 	.col.mut-list: ~=, move-to-arr!, mut-list
 	.compare: <
 	.number:
-		==, <=>, *, /, abs, float, float32, int, int16, int32, mod, nat, nat8, nat16, nat32,
-		multiple-of?, to-float, to-int, to-nat, truncate-to-int
+		==, <=>, *, /, abs, float64, float32, int8, int16, int32, int64, mod, nat8, nat16, nat32,
+		nat64, multiple-of?, to-float64, to-int64, to-nat64, truncate-to-int64
 	.opt: opt, some
 	.reader: take-float!, take-int!, take-nat!, with-reader
 	.str: ==, ~, char, chars, str
@@ -26,13 +26,13 @@ parse-bool opt bool(a str)
 		false some
 
 ###
-Converts a nat to a str.
+Converts a nat64 to a str.
 Result is only digits, no punctuation.
 ###
-to-str str(a nat)
+to-str str(a nat64)
 	a to-base 10
 
-.digit-to-str str(a nat)
+.digit-to-str str(a nat64)
 	if a == 0
 		"0"
 	elif a == 1
@@ -68,21 +68,21 @@ to-str str(a nat)
 	else
 		"?"
 
-to-binary str(a nat)
+to-binary str(a nat64)
 	a to-base 2
 
-to-hex str(a nat)
+to-hex str(a nat64)
 	a to-base 16
 to-hex str(a nat8)
 	a to-base 16
 
-.to-base str(a nat, base nat)
+.to-base str(a nat64, base nat64)
 	if a < base
 		a digit-to-str
 	else
 		(a / base to-base base) ~ (a mod base).digit-to-str
-.to-base str(a nat8, base nat)
-	a.to-nat to-base base
+.to-base str(a nat8, base nat64)
+	a.to-nat64 to-base base
 
 # Spec of any type that could be converted to a str.
 to-str<?a> spec
@@ -98,29 +98,38 @@ to-str str(a opt ?a) to-str<?a>
 	else
 		"none"
 
-to-str str(n nat32)
-	n.to-nat to-str
+to-str str(a nat8)
+	a.to-nat64 to-str
 
-to-str str(n nat16)
-	n.to-nat to-str
+to-str str(a nat16)
+	a.to-nat64 to-str
 
-to-str str(i int)
-	a = i.abs to-str
-	i < 0 ? "-{a}", a
+to-str str(a nat32)
+	a.to-nat64 to-str
 
-to-str str(i int32)
-	i.to-int to-str
+to-str str(a int8)
+	a.to-int64 to-str
 
-to-str str(i int16)
-	i.to-int to-str
+to-str str(a int16)
+	a.to-int64 to-str
 
-to-str str(a float)
+to-str str(a int32)
+	a.to-int64 to-str
+
+to-str str(a int64)
+	s = a.abs to-str
+	a < 0 ? "-{s}", s
+
+to-str str(a float32)
+	a.to-float64 to-str
+
+to-str str(a float64)
 	pos = a.abs to-str-positive
 	a < 0 ? "-{pos}", pos
 
-.to-str-positive str(a float)
+.to-str-positive str(a float64)
 	# TODO: Use a real float to str algorithm
-	times-100 = (a * 100.0).truncate-to-int
+	times-100 = (a * 100.0).truncate-to-int64
 	hundredths = times-100 mod 100
 	tenths = hundredths / 10
 	whole-part = (times-100 / 100).to-str
@@ -131,28 +140,25 @@ to-str str(a float)
 	else
 		"{whole-part}.{hundredths}"
 
-to-str str(a float32)
-	a.to-float to-str
-
 ###
-Parse digits as a nat.
+Parse digits as a nat64.
 Return none if the str contains any punctuation or whitespace.
 ###
-parse-nat opt nat(a str)
+parse-nat opt nat64(a str)
 	a with-reader r => r take-nat!
 
 ###
 The str should be a series of digits, optionally preceded by "-" or "+".
 If not, this returns `none`.
 ###
-parse-int opt int(a str)
+parse-int opt int64(a str)
 	a with-reader r => r take-int!
 
 ###
 The str should be a valid int, optionally followed by a "." and then a valid int.
 If not, this returns `none`.
 ###
-parse-float opt float(a str)
+parse-float opt float64(a str)
 	a with-reader r => r take-float!
 
 region Interpolation

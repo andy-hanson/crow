@@ -10,7 +10,7 @@ import
 	..str: str
 	..test: is
 	..test.spy: calls, fn, spy-act
-	..private.number-low-level: ==, nat, wrap-add
+	..private.number-low-level: ==, nat64, wrap-add
 	.arr: ==, arr
 	.arr-util: fold
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-mut-arr
@@ -70,7 +70,7 @@ This is O(1).
 Number of elements in the stack.
 This is O(1).
 ###
-size nat(a stack ?a)
+size nat64(a stack ?a)
 	0 fold a, (acc, ignore) =>
 		drop: ignore
 		acc wrap-add 1
@@ -173,7 +173,7 @@ first-some opt ?out(a stack ?in, f act opt ?out(?in))
 			f[node value]
 
 test
-	a = stack<nat>
+	a = stack<nat64>
 	assert: a empty?
 	a.arr is []
 	a.last is none
@@ -192,7 +192,7 @@ test
 	d = c ~ 3
 	d.arr is [1, 2, 3]
 
-	each-spy = spy-act<void, nat>: void
+	each-spy = spy-act<void, nat64>: void
 	d each each-spy.fn
 	each-spy.calls is [1, 2, 3]
 
@@ -208,5 +208,5 @@ test
 	folded = 5 fold d, (x, y) => x wrap-add y
 	folded is 11
 
-	(d first-some<str, nat> x => x == 2 ? "two".some, none) is "two".some
-	(d first-some<str, nat> x => x == 5 ? "five".some, none) is none
+	(d first-some<str, nat64> x => x == 2 ? "two".some, none) is "two".some
+	(d first-some<str, nat64> x => x == 5 ? "five".some, none) is none

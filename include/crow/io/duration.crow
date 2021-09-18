@@ -1,28 +1,28 @@
 no-std
 import
-	..number: *, /, nat
+	..number: *, /, nat64
 
 # Represents an amount of time.
 duration record
 	# TODO:PRIVATE (public getter, private constructor)
-	nsec nat
+	nsec nat64
 
-seconds duration(a nat)
+seconds duration(a nat64)
 	duration: a * 1000000000
 
-msec duration(a nat)
+msec duration(a nat64)
 	duration: a * 1000000
 
-usec duration(a nat)
+usec duration(a nat64)
 	duration: a * 1000
 
-nsec duration(a nat)
+nsec duration(a nat64)
 	duration: a
 
-msec nat(a duration)
+msec nat64(a duration)
 	# TODO:ROUND
 	a.nsec / 1000000
 
-usec nat(a duration)
+usec nat64(a duration)
 	# TODO:ROUND
 	a.nsec / 1000

@@ -12,7 +12,7 @@ import
 	.bool-low-level: and, bool, false, not, or, true
 	.bootstrap:
 		call-with-ctx, ctx, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
-		island-and-exclusion, island-id, lock, log-ctx-ptr, nat, thread-local-stuff
+		island-and-exclusion, island-id, lock, log-ctx-ptr, nat64, thread-local-stuff
 	.exception-low-level: exception-ctx
 	.log-low-level: default-log-handler, log-ctx, log-handler, set-handler
 	.number-low-level: ==, <=>, wrap-add, wrap-sub
@@ -46,7 +46,7 @@ global-ctx record mut
 	# if a thread finds no work to do, it decrements this and waits on 'may-be-work-to-do'.
 	# if the last thread decrements this, it can't go to sleep!
 	# But if there's no work to do, it can set 'is-shut-down' and wake up the other threads so they can shut down too.
-	n-live-threads mut nat
+	n-live-threads mut nat64
 	may-be-work-to-do by-val condition
 	shut-down? mut bool
 	# Set to true the first time the default exception handler is invoked.
@@ -63,7 +63,7 @@ island record mut
 	# these variables are all protected by tasks-lock
 	tasks-lock by-val lock
 	# Number of threads currently performing tasks in this island
-	n-threads-running mut nat
+	n-threads-running mut nat64
 	# not protected by tasks-lock, thread-safe on its own
 	next-exclusion by-val thread-safe-counter
 
@@ -83,7 +83,7 @@ exception-handler fun void(exception)(a island) trusted
 new-exclusion exclusion(v island) noctx trusted
 	v.next-exclusion.ref-of-val get-and-increment!
 
-island by-val island(gctx global-ctx, id island-id, max-threads nat) summon noctx unsafe
+island by-val island(gctx global-ctx, id island-id, max-threads nat64) summon noctx unsafe
 	q = max-threads task-queue
 	gc-root = as<by-val<island-gc-root>>: island-gc-root: q, (exn => exn default-exception-handler), log =>
 		log default-log-handler
@@ -111,7 +111,7 @@ add-task void(a island, timestamp timestamp, exclusion exclusion, action act voi
 add-task void(a island, exclusion exclusion, action act void()) unsafe
 	a add-task no-timestamp, exclusion, action
 
-thread-function void(thread-id nat, gctx global-ctx) noctx unsafe summon
+thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 	ectx = exception-ctx
 	log-ctx = log-ctx
 	perf-ctx = perf-ctx
@@ -234,7 +234,7 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 
 .choose-task-recur choose-task-result
 	islands arr island
-	i nat
+	i nat64
 	cur-time timestamp
 	any-tasks? bool
 	first-task-time opt timestamp
@@ -304,7 +304,7 @@ body
 	res
 
 
-.assert-islands-are-shut-down void(i nat, islands arr island) noctx unsafe
+.assert-islands-are-shut-down void(i nat64, islands arr island) noctx unsafe
 	if i != islands.size
 		island = islands noctx-at i
 

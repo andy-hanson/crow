@@ -12,7 +12,7 @@ import
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
-	..private.number-low-level: ==, <=>, nat, unsafe-mod, wrap-add, wrap-mul, wrap-sub
+	..private.number-low-level: ==, <=>, nat64, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	.arr: ==, arr, size
 	.arr-util: each, map
 	.mut-arr:
@@ -26,7 +26,7 @@ mut-lookup<?k, ?v> record mut
 	# TODO:PRIVATE
 	ignore void
 	entries mut mut-arr entry<?k, ?v>
-	total-size mut nat
+	total-size mut nat64
 
 .entry<?k, ?v> union mut
 	none
@@ -46,7 +46,7 @@ mut-lookup mut-lookup<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix
 New dict with `capacity` empty entries.
 WARN: Due to hash conflicts, this doesn't guarantee that allocations won't be needed.
 ###
-mut-lookup-with-capacity mut-lookup<?k, ?v>(capacity nat) data<?k> compare<?k> hash-mix<?k>
+mut-lookup-with-capacity mut-lookup<?k, ?v>(capacity nat64) data<?k> compare<?k> hash-mix<?k>
 	mut-lookup: void, (capacity fill-mut-arr none), 0
 
 arr-unordered arr arrow<?k, ?v>(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
@@ -63,7 +63,7 @@ copy mut-lookup<?k, ?v>(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 			m copy
 	mut-lookup: void, entries, a.total-size
 test
-	a = mut-lookup<nat, str>: [1 -> "1", 2 -> "2", 5 -> "5"]
+	a = mut-lookup<nat64, str>: [1 -> "1", 2 -> "2", 5 -> "5"]
 	a verify "_ (1 -> 1) [2 -> 2, 5 -> 5]"
 
 	b = a copy
@@ -76,7 +76,7 @@ test
 empty? bool(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a.size == 0
 
-size nat(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
+size nat64(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a total-size
 
 subscript opt ?v(a mut-lookup<?k, ?v>, key ?k) trusted data<?k> compare<?k> hash-mix<?k>
@@ -243,7 +243,7 @@ map-values! void(a mut-lookup<?k, ?v>, f act ?v(?k, ?v)) trusted data<?k> compar
 			m map! pair => pair.from -> f[pair.from, pair.to]
 		entry-ptr + 1 map-values-recur! entry-end, f
 
-.dbg str(a mut-lookup<nat, str>)
+.dbg str(a mut-lookup<nat64, str>)
 	out = writer
 	a.entries each entry =>
 		match entry
@@ -268,11 +268,11 @@ map-values! void(a mut-lookup<?k, ?v>, f act ?v(?k, ?v)) trusted data<?k> compar
 	out backup!
 	out move-to-str!
 
-.verify void(a mut-lookup<nat, str>, expected str)
+.verify void(a mut-lookup<nat64, str>, expected str)
 	a.dbg is expected
 
 test
-	a = mut-lookup<nat, str>
+	a = mut-lookup<nat64, str>
 
 	a[6] := "6"
 	a[5] is none

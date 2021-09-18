@@ -22,7 +22,8 @@ import
 	.exception-low-level: exception-ctx
 	.log-low-level: log-ctx
 	.number-low-level:
-		==, int32, nat, to-int, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, wrap-add, wrap-sub
+		==, int32, nat64, to-int64, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat64, wrap-add,
+		wrap-sub
 	.perf-low-level: perf-ctx
 	.runtime:
 		any-unhandled-exceptions?, ctx, global-ctx, island, may-be-work-to-do, print-lock,
@@ -31,7 +32,7 @@ import
 		create-one-thread, create-condition, destroy-condition, join-one-thread, lock-by-val
 
 .main-ptr alias
-	fun-ptr2<fut nat, ctx, arr str>
+	fun-ptr2<fut nat64, ctx, arr str>
 
 # Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
@@ -58,15 +59,15 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 		# Should never happen
 		1
 	as fut-state-resolved r
-		# TODO: handle nat too big for int32
-		gctx.any-unhandled-exceptions? ? 1, r.value.unsafe-to-int.unsafe-to-int32
+		# TODO: handle nat64 too big for int32
+		gctx.any-unhandled-exceptions? ? 1, r.value.unsafe-to-int64.unsafe-to-int32
 	as exception
 		# 'handle-exceptions' should have logged the error
 		1
 
-.add-main-task fut nat
+.add-main-task fut nat64
 	gctx global-ctx
-	thread-id nat
+	thread-id nat64
 	island island
 	argc int32
 	argv ptr c-str
@@ -87,20 +88,20 @@ body
 	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: thread-id, print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
 	ctx-by-val = ctx: gctx, tls.ref-of-val, island, 0
 	ctx = ctx-by-val ref-of-val
-	add = as<act fut nat(arr c-str, main-ptr)>: (all-args, main-ptr) =>
+	add = as<act fut nat64(arr c-str, main-ptr)>: (all-args, main-ptr) =>
 		all-args add-first-task main-ptr
-	all-args = arr: argc.to-int.unsafe-to-nat, argv
+	all-args = arr: argc.to-int64.unsafe-to-nat64, argv
 	add call-with-ctx ctx, all-args, main-ptr
 
 .thread-args record mut
 	by-ref
-	thread-id nat
+	thread-id nat64
 	gctx global-ctx
 
 # TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 # We want main-fut to be available immediately, not after having run some user code.
 # So we create main-fut now, and forward the result of 'main' to that.
-.add-first-task fut nat(all-args arr c-str, main-ptr fun-ptr2<fut nat, ctx, arr str>) unsafe
+.add-first-task fut nat64(all-args arr c-str, main-ptr fun-ptr2<fut nat64, ctx, arr str>) unsafe
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for fut<void> taking lambda with 0 params
 	res = delay then-void () =>
@@ -111,7 +112,7 @@ body
 	res
 
 # Each thread will get the thread ID, and the common arguments.
-.run-threads void(n-threads nat, gctx global-ctx) noctx unsafe summon
+.run-threads void(n-threads nat64, gctx global-ctx) noctx unsafe summon
 	threads = n-threads unmanaged-alloc-elements<pthread_t>
 	thread-args = n-threads unmanaged-alloc-elements<by-val<thread-args>>
 
@@ -125,8 +126,8 @@ body
 	thread-args unmanaged-free
 
 .start-threads-recur void
-	i nat
-	n-threads nat
+	i nat64
+	n-threads nat64
 	threads ptr pthread_t
 	thread-args-begin ptr by-val<thread-args>
 	gctx global-ctx
@@ -147,7 +148,7 @@ body
 	args.thread-id thread-function args.gctx
 	null
 
-.join-threads-recur void(i nat, n-threads nat, threads ptr pthread_t) noctx unsafe summon
+.join-threads-recur void(i nat64, n-threads nat64, threads ptr pthread_t) noctx unsafe summon
 	if i != n-threads
 		threads[i] join-one-thread
 		i wrap-add 1 join-threads-recur n-threads, threads

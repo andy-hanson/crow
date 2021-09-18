@@ -77,7 +77,7 @@ elements not reachable by any slice will be garbage collected.
 ###
 arr<?a> record force-data
 	by-val
-	size nat
+	size nat64
 	begin-ptr ptr ?a
 
 region str
@@ -110,20 +110,16 @@ region bootstrap arithmetic
 
 # The compiler needs special access to these types to support number literals
 
-nat builtin
 nat8 builtin
 nat16 builtin
 nat32 builtin
-nat64 alias
-	nat
-int builtin
+nat64 builtin
 int8 builtin
 int16 builtin
 int32 builtin
-int64 alias
-	int
-float builtin
+int64 builtin
 float32 builtin
+float64 builtin
 
 region hard assertions
 
@@ -170,17 +166,17 @@ ctx record mut
 
 thread-local-stuff record mut
 	by-ref
-	thread-id nat
+	thread-id nat64
 	print-lock lock
 	exception-ctx-ptr any-ptr
 	log-ctx-ptr any-ptr
 	perf-ctx-ptr any-ptr
 
 island-id alias
-	nat
+	nat64
 
 exclusion alias
-	nat
+	nat64
 
 island-and-exclusion record
 	by-val

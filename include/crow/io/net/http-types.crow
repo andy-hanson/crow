@@ -1,7 +1,7 @@
 no-std
 import
 	...col.dict: dict
-	...number: nat
+	...number: nat64
 	...str: ==, <=>, str
 
 # Parse of a single HTTP request.
@@ -13,7 +13,7 @@ http-request record
 
 # Response to send to a single HTTP request.
 http-response record
-	status nat
+	status nat64
 	status-desc str
 	headers dict<str, str>
 	body str

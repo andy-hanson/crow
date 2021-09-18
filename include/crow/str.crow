@@ -3,7 +3,7 @@ import
 	.bool: bool
 	.compare: comparison
 	.col.arr: ~, arr, arr-compare, arr-equal?, empty?, size
-	.private.number-low-level: ==, <=>, nat
+	.private.number-low-level: ==, <=>, nat64
 export
 	.private.bootstrap: char, chars, c-str, str, to-char, to-nat8
 
@@ -13,7 +13,7 @@ export
 empty? bool(a str) noctx
 	a.chars empty?
 
-size-bytes nat(a str) noctx
+size-bytes nat64(a str) noctx
 	a.chars size
 
 == bool(a str, b str) trusted noctx

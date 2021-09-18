@@ -4,7 +4,7 @@ import
 	.col.arr-util: each
 	.col.mut-list: ~=, move-to-arr!, mut-list, pop-n!
 	.misc: void
-	.number: float, int, nat
+	.number: float64, int64, nat64
 	.str: ==, char, chars, str
 	.str-conv: to-str
 
@@ -24,7 +24,7 @@ move-to-str! str(a writer)
 backup! void(a writer)
 	a backup! 1
 
-backup! void(a writer, n nat)
+backup! void(a writer, n nat64)
 	a.chars pop-n! n
 
 ~= void(a writer, b char)
@@ -36,13 +36,13 @@ backup! void(a writer, n nat)
 ~= void(a writer, b bool)
 	a ~= b to-str
 
-~= void(a writer, b nat)
+~= void(a writer, b nat64)
 	a ~= b to-str
 
-~= void(a writer, b int)
+~= void(a writer, b int64)
 	a ~= b to-str
 
-~= void(a writer, b float)
+~= void(a writer, b float64)
 	a ~= b to-str
 
 write-quoted-str! void(out writer, a str)

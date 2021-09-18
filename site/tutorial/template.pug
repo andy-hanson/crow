@@ -21,7 +21,8 @@ include ../pug-include/tutorial.pug
 		p.
 			For a function, it's optional to declare type parameters.
 			<br />
-			If they are not declared, the compiler will create a new type parameter when it sees a name starting with <code>?</code> that it doesn't recognize.
+			If they are not declared, the compiler will create a new type parameter
+			when it sees a name starting with <code>?</code> that it doesn't recognize.
 			<br />
 			(You may still want to declare them to force a certain order.)
 
@@ -37,23 +38,28 @@ include ../pug-include/tutorial.pug
 		p.
 			For pedants:
 			<br />
-			When you write <code>node&lt;?a&gt; record</code> as a <em>declaration</em>, the <code>?a</code> is a type <em>parameter</em>.
+			When you write <code>node&lt;?a&gt; record</code> as a <em>declaration</em>,
+			the <code>?a</code> is a type <em>parameter</em>.
 			<br />
-			When you write <code>a node ?a</code>, the <code class="tparam-ref">?a</code> is a type <em>argument</em>, which happens to refer to the <code class="fun-ref">sum</code> function's type parameter;
+			When you write <code>a node ?a</code>, the <code class="tparam-ref">?a</code> is a type <em>argument</em>,
+			which happens to refer to the <code class="fun-ref">sum</code> function's type parameter;
 			just like <code class="struct-ref">nat</code> is the type argument in <code>node nat</code>.
 
 		p.
 			For functions, you don't usually need to specify type arguments, since the compiler can infer them.
 			<br />
-			If necessary, you can specify function type arguments using the same syntax as for types, though the <code>&lt;&gt;</code> is never optional.
+			If necessary, you can specify function type arguments using the same syntax as for types,
+			though the <code>&lt;&gt;</code> is never optional.
 
 	section
 		h3 spec
 
 		p.
-			In C++, a template is type-checked each time it is instantiated, so you can write code that depends on knowing what kind of types will appear.
+			In C++, a template is type-checked each time it is instantiated,
+			so you can write code that depends on knowing what kind of types will appear.
 			<br />
-			In crow, templates are type-checked abstractly; the compiler only checks them once, and checks that they work for all possible <code class="tparam-ref">?a</code>.
+			In crow, templates are type-checked abstractly; the compiler only checks them once,
+			and checks that they work for all possible <code class="tparam-ref">?a</code>.
 			<br />
 			That means that you can't assume anything about <code class="tparam-ref">?a</code>.
 		p.
@@ -63,17 +69,18 @@ include ../pug-include/tutorial.pug
 			and which function it calls will depend on <code class="tparam-ref">?a</code>.
 
 		p.
-			The solution is a <code class="keyword">spec</code>,
-			which allows you to call functions that are provided by the <em>caller</em>, and don't need to be in the scope of the callee.
+			The solution is a <code class="keyword">spec</code>, which allows you to call functions
+			that are provided by the <em>caller</em>, and don't need to be in the scope of the callee.
 
 		p.
-			In this example, <code class="fun-def">sum</code> wants to call a function with the signature <code>+ ?a(a ?a, b ?a)</code>.
+			In this example, <code class="fun-def">sum</code> wants to call a function
+			with the signature <code>+ ?a(a ?a, b ?a)</code>.
 			(With <code>?a</code> replaced by the type <code class="fun-ref">sum</code> was instantiated with.)
 
 		p.
 			The caller of <code class="fun-ref">sum</code> (in this case <code class="fun-ref">main</code>)
-			instantiates it as <code>sum&lt;nat&gt;</code>
-			and is able to supply a <code class="fun-ref">+</code> function that has the signature <code class="fun-ref">+ nat(a nat, b nat)</code>.
+			instantiates it as <code>sum&lt;nat&gt;</code> and can supply a <code class="fun-ref">+</code> function
+			that has the signature <code class="fun-ref">+ nat(a nat, b nat)</code>.
 
 	section
 		h3 Tail recursion
@@ -83,4 +90,5 @@ include ../pug-include/tutorial.pug
 			This means that the very last operation is a call to itself (or is a base case returning <code>acc</code>).
 		p.
 			In crow, <em>tail recursive</em> calls do not increase the stack size,
-			so they are safe to use on long lists without overflowing the stack, unlike non-tail recursive calls which may cause a stack overflow.
+			so they are safe to use on long lists without overflowing the stack,
+			unlike non-tail recursive calls which may cause a stack overflow.

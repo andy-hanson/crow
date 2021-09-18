@@ -5,7 +5,7 @@ import
 	..col.arr: subscript
 	..col.mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
 	..misc: ->
-	..number: +, nat
+	..number: +, nat64
 	..ptr: ptr-to
 	..str: char, str
 	..str-util: to-c-str
@@ -112,7 +112,7 @@ minute str(locale time-locale, time unix-time) summon
 second str(locale time-locale, time unix-time) summon
 	locale format time, "%S", 2
 
-.format str(locale time-locale, time unix-time, format str, max-size nat) trusted summon
+.format str(locale time-locale, time unix-time, format str, max-size nat64) trusted summon
 	tm = if locale local-time?
 		time.seconds-since-epoch.ptr-to localtime
 	else

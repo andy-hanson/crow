@@ -5,7 +5,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(71, 30), main, fut(nat()), [param(file-range(71, range(43, 52)), none, arr(str()))])
+			sig: sig(file-pos(71, 30), main, fut(nat64()), [param(file-range(71, range(43, 52)), none, arr(str()))])
 			body: seq(
 				seq(
 					call(
@@ -17,8 +17,8 @@ module(
 									call(
 										fun-inst(name: *)
 										[
-											literal(nat(), 1)
-											call(fun-inst(name: +), [literal(nat(), 2), literal(nat(), 3)])])])])
+											literal(nat64(), 1)
+											call(fun-inst(name: +), [literal(nat64(), 2), literal(nat64(), 3)])])])])
 					call(
 						fun-inst(name: print)
 						[
@@ -28,6 +28,6 @@ module(
 									call(
 										fun-inst(name: +)
 										[
-											literal(nat(), 1)
-											call(fun-inst(name: *), [literal(nat(), 2), literal(nat(), 3)])])])]))
-				call(fun-inst(name: resolved, type-args: [nat()]), [literal(nat(), 0)])))])
+											literal(nat64(), 1)
+											call(fun-inst(name: *), [literal(nat64(), 2), literal(nat64(), 3)])])])]))
+				call(fun-inst(name: resolved, type-args: [nat64()]), [literal(nat64(), 0)])))])

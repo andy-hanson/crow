@@ -2,7 +2,7 @@ no-std
 import
 	.bool: bool, or
 	.compare: comparison, less, equal, greater
-	.private.bootstrap: nat, void
+	.private.bootstrap: nat64, void
 	.private.number-low-level: unsafe-div, wrap-sub
 export
 	.private.bootstrap: any-ptr, by-val, ptr, zeroed
@@ -15,14 +15,14 @@ null? bool(a ptr ?a) noctx trusted
 	a ptr-eq? null<?a>
 
 # Advance the pointer by `offset`.
-+ ptr ?a(a ptr ?a, offset nat) noctx unsafe builtin
++ ptr ?a(a ptr ?a, offset nat64) noctx unsafe builtin
 # Back up the pointer by `offset`.
-- ptr ?a(p ptr ?a, offset nat) noctx unsafe builtin
+- ptr ?a(p ptr ?a, offset nat64) noctx unsafe builtin
 # Get the difference between two pointers, measured in strides of `?a`.
 # UB if `a < b` or if `size-of<?a> == 0`.
-- nat(a ptr ?a, b ptr ?a) noctx unsafe
+- nat64(a ptr ?a, b ptr ?a) noctx unsafe
 	# TODO: what if ?a is an empty type?
-	a.to-nat wrap-sub b.to-nat unsafe-div size-of<?a>
+	a.to-nat64 wrap-sub b.to-nat64 unsafe-div size-of<?a>
 
 ###
 Get the value pointed to.
@@ -33,7 +33,7 @@ subscript ?a(a ptr ?a) noctx unsafe builtin
 Get the value pointed to at the offset.
 UB if that is not a valid pointer.
 ###
-subscript ?a(a ptr ?a, n nat) noctx unsafe
+subscript ?a(a ptr ?a, n nat64) noctx unsafe
 	(a + n)[]
 ###
 Set the value pointed to.
@@ -44,7 +44,7 @@ set-subscript void(a ptr ?a, value ?a) noctx unsafe builtin
 Set the value pointed to at the offset.
 UB if that is not a valid pointer.
 ###
-set-subscript void(a ptr ?a, n nat, value ?a) noctx unsafe
+set-subscript void(a ptr ?a, n nat64, value ?a) noctx unsafe
 	(a + n)[] := value
 
 ###
@@ -81,12 +81,12 @@ True iff two pointers are identical.
 (False if they point to equal values but are different pointers.)
 ###
 ptr-eq? bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
-# True iff `a.to-nat < b.to-nat`.
+# True iff `a.to-nat64 < b.to-nat64`.
 ptr-less? bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
-# True iff `a.to-nat <= b.to-nat`.
+# True iff `a.to-nat64 <= b.to-nat64`.
 ptr-less-eq? bool(a ptr ?a, b ptr ?a) noctx unsafe
 	a ptr-less? b or: a ptr-eq? b
-# Equal to `a.to-nat <=> b.to-nat`.
+# Equal to `a.to-nat64 <=> b.to-nat64`.
 ptr-compare comparison(a ptr ?a, b ptr ?a) noctx unsafe
 	if a ptr-less? b
 		less
@@ -107,14 +107,14 @@ Number of bytes taken up by a type.
 For a reference type, this is the size of a pointer.
 0 for empty types like `void`.
 ###
-size-of<?a> nat() noctx unsafe builtin
+size-of<?a> nat64() noctx unsafe builtin
 
 # Sometimes this is more convenient than writing the type
-size-of nat(_ ?a) noctx unsafe
+size-of nat64(_ ?a) noctx unsafe
 	size-of<?a>
 
 deep-size-bytes<?a> spec
-	deep-size-bytes nat(a ?a)
+	deep-size-bytes nat64(a ?a)
 
 # TODO: require that ?out be an extern-ptr type
 ###
@@ -136,9 +136,9 @@ Does nothing at runtime, just changes the type.
 ###
 ptr-cast ptr ?out(p ptr ?in) noctx unsafe builtin
 
-# Nat value of a pointer.
-to-nat nat(p ptr ?a) noctx unsafe builtin
-to-ptr ptr ?a(a nat) noctx unsafe builtin
+# nat64 value of a pointer.
+to-nat64 nat64(p ptr ?a) noctx unsafe builtin
+to-ptr ptr ?a(a nat64) noctx unsafe builtin
 
 # Swap the pointees. Does not change the pointer itself.
 swap! void(a ptr ?a, b ptr ?a) noctx unsafe

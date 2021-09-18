@@ -6,57 +6,69 @@ import
 	.misc: ->, arrow, from, to, void
 	.opt: opt, some
 	.private.number-low-level:
-		unsafe-div, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, unsafe-to-nat32, unsafe-mod,
+		unsafe-div, unsafe-to-int64, unsafe-to-int32, unsafe-to-nat64, unsafe-to-nat32, unsafe-mod,
 		wrap-add, wrap-mul, wrap-sub
 	.ptr: size-of
 	.private.exception-low-level: assert, forbid
 export
 	.private.number-low-level:
-		==, <=>, even?, float, float32, int, int8, int16, int32, int64, max-int8, max-int, max-int16,
-		max-int32, max-nat, max-nat8, max-nat16, max-nat32, min-int8, min-int16, min-int32,
-		min-int, nat, nat8, nat16, nat32, nat64, odd?, to-int, to-nat, unsafe-to-nat8
+		==, <=>, even?, float32, float64, int8, int16, int32, int64, max-int8, max-int16, max-int32,
+		max-int64, max-nat8, max-nat16, max-nat32, max-nat64, min-int8, min-int16, min-int32,
+		min-int64, nat8, nat16, nat32, nat64, odd?, to-int64, to-nat64, unsafe-to-nat8
 
-deep-size-bytes nat(a nat) unsafe
+int alias
+	int64
+nat alias
+	nat64
+float alias
+	float64
+
+deep-size-bytes nat64(a nat64) unsafe
 	a size-of
 
 region conversion
 
 ###
-Convert a nat to float.
+Convert a nat64 to float64.
 Result is approximate for high values.
 ###
-to-float float(a nat) noctx builtin
+to-float64 float64(a nat64) noctx builtin
 ###
-Convert an int to float.
+Convert an int64 to float64.
 Result is approximate for high values.
 ###
-to-float float(a int) noctx builtin
-to-float float(a float32) noctx builtin
+to-float64 float64(a int64) noctx builtin
+to-float64 float64(a float32) noctx builtin
 ###
 Convert a float to int by tossing any fractional part.
 ###
-truncate-to-int int(a float) noctx builtin
+truncate-to-int64 int64(a float64) noctx builtin
 
 region arithmetic
 
 # True if `b * c == a` for some `c`.
-multiple-of? bool(a nat, b nat)
+multiple-of? bool(a nat64, b nat64)
 	(a mod b) == 0
 
 # Add two nats. Fail if the result would overflow.
-+ nat(a nat, b nat)
-	res = a wrap-add b
-	assert: res >= a and: res >= b
-	res
 + nat8(a nat8, b nat8)
 	res = a wrap-add b
 	assert: res >= a and res >= b
 	res
++ nat16(a nat16, b nat16)
+	res = a wrap-add b
+	assert: res >= a and res >= b
+	res
++ nat32(a nat32, b nat32)
+	res = a wrap-add b
+	assert: res >= a and res >= b
+	res
++ nat64(a nat64, b nat64)
+	res = a wrap-add b
+	assert: res >= a and: res >= b
+	res
 
 # Subtract two nats. Fail if the result would be negative.
-- nat(a nat, b nat)
-	assert: a >= b
-	a wrap-sub b
 - nat8(a nat8, b nat8)
 	assert: a >= b
 	a wrap-sub b
@@ -66,9 +78,12 @@ multiple-of? bool(a nat, b nat)
 - nat32(a nat32, b nat32)
 	assert: a >= b
 	a wrap-sub b
+- nat64(a nat64, b nat64)
+	assert: a >= b
+	a wrap-sub b
 
 # Multiply two nats. Fail if the result would overflow.
-* nat(a nat, b nat)
+* nat64(a nat64, b nat64)
 	# TODO: better safety check
 	if a == 0 or: b == 0
 		0
@@ -77,16 +92,17 @@ multiple-of? bool(a nat, b nat)
 		assert: res / b == a
 		assert: res / a == b
 		res
+
 ###
-A divided by b, taking the floor.
+a divided by b, taking the floor.
 Throws if `b == 0`.
 ###
-/ nat(a nat, b nat) trusted
+/ nat64(a nat64, b nat64) trusted
 	forbid: b == 0
 	a unsafe-div b
 
 # Like 'a / b' but takes the ceil instead of the floor.
-div-ceil nat(a nat, b nat)
+div-ceil nat64(a nat64, b nat64)
 	res = a / b
 	if res * b == a
 		res
@@ -94,104 +110,105 @@ div-ceil nat(a nat, b nat)
 		res + 1
 
 # Remainder of `a / b`.
-mod nat(a nat, b nat) trusted
+mod nat64(a nat64, b nat64) trusted
 	forbid: b == 0
 	a unsafe-mod b
 
-# Remainder of `a / b.to-int`.
-mod nat(a int, b nat)
+# Remainder of `a / b.to-int64`.
+mod nat64(a int64, b nat64)
 	forbid: b == 0
 	if a < 0
 		abs-mod = a.abs mod b
 		abs-mod == 0 ? 0, b - abs-mod
 	else
-		a.to-nat mod b
+		a.to-nat64 mod b
 
-+ int(a int, b int)
++ int32(a int32, b int32)
+	a.to-int64 wrap-add b.to-int64 to-int32
++ int64(a int64, b int64)
 	# TODO: safety check
 	a wrap-add b
-+ int32(a int32, b int32)
-	a.to-int wrap-add b.to-int to-int32
 
-- int(a int, b int)
+- int32(a int32, b int32)
+	a.to-int64 wrap-sub b.to-int64 to-int32
+- int64(a int64, b int64)
 	# TODO: safety check
 	a wrap-sub b
-- int32(a int32, b int32)
-	a.to-int wrap-sub b.to-int to-int32
 
 * int32(a int32, b int32)
-	a.to-int wrap-mul b.to-int to-int32
-* int(a int, b int)
+	a.to-int64 wrap-mul b.to-int64 to-int32
+* int64(a int64, b int64)
 	# TODO: safety check
 	a wrap-mul b
-/ int(a int, b int) trusted
+
+/ int64(a int64, b int64) trusted
 	forbid: b == 0
-	forbid: a == min-int and: b == -1
+	forbid: a == min-int64 and: b == -1
 	a unsafe-div b
 
-# Convert a nat to an int. Fail if the result would overflow.
-to-int int(n nat)
-	assert: n < max-int.to-nat
-	n unsafe-to-int
+# Convert a nat64 to an int64. Fail if the result would overflow.
+to-int64 int64(a nat64)
+	assert: a < max-int64.to-nat64
+	a unsafe-to-int64
 # Convert an int to 32 bits. Fail if the result would overflow.
-to-int32 int32(a int)
-	assert: a >= min-int32.to-int
-	assert: a <= max-int32.to-int
+to-int32 int32(a int64)
+	assert: a >= min-int32.to-int64
+	assert: a <= max-int32.to-int64
 	a unsafe-to-int32
-to-int32 int32(a nat)
-	a.to-int to-int32
 to-int32 int32(a nat32)
-	a.to-nat to-int32
+	a.to-nat64 to-int32
 to-int32 int32(a nat16)
-	a.to-nat to-int32
+	a.to-nat64 to-int32
+to-int32 int32(a nat64)
+	a.to-int64 to-int32
 
-clamp-to-nat nat(a int)
+clamp-to-nat nat64(a int64)
 	if a < 0
 		0
 	else
-		a unsafe-to-nat
+		a unsafe-to-nat64
 
-clamp-to-int32 int32(a int) noctx trusted
-	if a < min-int32.to-int
+clamp-to-int32 int32(a int64) noctx trusted
+	if a < min-int32.to-int64
 		min-int32
-	elif a > max-int32.to-int
+	elif a > max-int32.to-int64
 		max-int32
 	else
 		a unsafe-to-int32
 
 clamp-add int32(a int32, b int32) noctx
-	a.to-int wrap-add b.to-int clamp-to-int32
+	a.to-int64 wrap-add b.to-int64 clamp-to-int32
 
 # Convert an int to a nat. Fail if it's negative.
-to-nat nat(a int)
+to-nat64 nat64(a int64)
 	forbid: a < 0
-	a unsafe-to-nat
-to-nat nat(a int32)
-	a.to-int to-nat
+	a unsafe-to-nat64
+to-nat64 nat64(a int32)
+	a.to-int64 to-nat64
 
 to-nat8 nat8(a nat64)
-	assert: a <= max-nat8.to-nat
+	assert: a <= max-nat8.to-nat64
 	a unsafe-to-nat8
 to-nat32 nat32(a nat16) noctx trusted
-	a.to-nat unsafe-to-nat32
+	a.to-nat64 unsafe-to-nat32
 
 # Convert a nat to 32 bits. Fail if the result would overflow.
-to-nat32 nat32(a nat)
-	assert: a < max-nat32.to-nat
+to-nat32 nat32(a nat64)
+	assert: a < max-nat32.to-nat64
 	a unsafe-to-nat32
 
-wrap-to-nat32 nat32(a nat) noctx trusted
+wrap-to-nat32 nat32(a nat64) noctx trusted
 	# TODO: safe?
 	a unsafe-to-nat32
 
 # Absolute value of an int, as a nat.
-abs nat(a int)
-	to-nat: a < 0 ? a * -1, a
+abs nat64(a int64)
+	to-nat64: a < 0 ? a * -1, a
 
-abs float(a float) noctx
+abs float64(a float64) noctx
 	a < 0 ? a * -1, a
 
-^ nat(a nat, b nat)
+^ nat64(a nat64, b nat64)
 	if b == 0
 		1
 	elif b even?
@@ -202,47 +219,47 @@ abs float(a float) noctx
 region float
 
 # Add two floats. Never fails.
-+ float(a float, b float) noctx builtin
 + float32(a float32, b float32) noctx builtin
++ float64(a float64, b float64) noctx builtin
 # Subtract two floats. Never fails.
-- float(a float, b float) noctx builtin
 - float32(a float32, b float32) noctx builtin
+- float64(a float64, b float64) noctx builtin
 # Multiply two floats. Never fails.
-* float(a float, b float) noctx builtin
 * float32(a float32, b float32) noctx builtin
+* float64(a float64, b float64) noctx builtin
 # Divide two floats. UB if `b == 0`.
-unsafe-div float(a float, b float) noctx unsafe builtin
 unsafe-div float32(a float32, b float32) noctx unsafe builtin
+unsafe-div float64(a float64, b float64) noctx unsafe builtin
 # Divide two floats. Fail if `b == 0`.
-/ float(a float, b float) trusted
-	forbid: b == 0.0
-	a unsafe-div b
 / float32(a float32, b float32) trusted
 	forbid: b == 0.0
 	a unsafe-div b
+/ float64(a float64, b float64) trusted
+	forbid: b == 0.0
+	a unsafe-div b
 
 # Raise a float to a power.
-^ float(a float, b nat) noctx
+^ float64(a float64, b nat64) noctx
 	if b == 0
 		1.0
 	else
 		a * a ^ (b wrap-sub 1)
 # Raise a float to a power.
-^ float32(a float32, b nat) noctx
+^ float32(a float32, b nat64) noctx
 	if b == 0
 		1.0
 	else
 		a * a ^ (b wrap-sub 1)
 
-square-root float(a float) noctx
+square-root float64(a float64) noctx
 	a sqrt
-.sqrt float(a float) noctx extern
+.sqrt float64(a float64) noctx extern
 square-root float32(a float32) noctx
 	a sqrt
 .sqrt float32(a float32) noctx extern
 
 # True if the float is "Not A Number".
-nan? bool(a float) noctx builtin
+nan? bool(a float64) noctx builtin
 nan? bool(a float32) noctx builtin
 
 region number iteration
@@ -252,23 +269,23 @@ Calls a function for each number from `a.from` to `a.to`.
 `a.from` is inclusive and `a.to` is exclusive.
 Does nothing if `a.from` is not less than `a.to`.
 ###
-each void(a arrow<nat, nat>, f act void(nat))
+each void(a arrow<nat64, nat64>, f act void(nat64))
 	if a.from < a.to
 		f[a from]
 		a.from + 1 -> a.to each f
 
-each-reverse void(a arrow<nat, nat>, f act void(nat))
+each-reverse void(a arrow<nat64, nat64>, f act void(nat64))
 	if a.from < a.to
 		a.from each-reverse-recur (a.to wrap-sub 1), f
-.each-reverse-recur void(low nat, cur nat, f act void(nat))
+.each-reverse-recur void(low nat64, cur nat64, f act void(nat64))
 	f[cur]
 	if cur != low
 		low each-reverse-recur (cur wrap-sub 1), f
 
-exists? bool(a arrow<nat, nat>, f act bool(nat))
+exists? bool(a arrow<nat64, nat64>, f act bool(nat64))
 	a.from < a.to and: f[a from] or: (a.from wrap-add 1) -> a.to exists? f
 
-find opt nat(a arrow<nat, nat>, f act bool(nat))
+find opt nat64(a arrow<nat64, nat64>, f act bool(nat64))
 	if a.from < a.to
 		if f[a from]
 			a.from some

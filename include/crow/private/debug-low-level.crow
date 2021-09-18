@@ -5,7 +5,7 @@ import
 	..extra-types: fd-t
 	..ptr: as-any-ptr, size-of
 	.bootstrap:
-		begin-ptr, bool, char, get-ctx, hard-assert, lock, nat, nat8, print-lock, size, str, thread-id,
+		begin-ptr, bool, char, get-ctx, hard-assert, lock, nat8, nat64, print-lock, size, str, thread-id,
 		thread-local-stuff, todo, unsafe-div, unsafe-to-int, void
 	.number-low-level: unsafe-mod
 	.thread-utils: acquire!, release!
@@ -13,7 +13,7 @@ import
 debug-printer record mut
 	by-val
 	print-lock lock
-	thread-id nat
+	thread-id nat64
 
 get-debug-printer debug-printer() unsafe
 	ctx = get-ctx
@@ -38,7 +38,7 @@ debug-print-bool void(printer debug-printer, descr str, a bool) unsafe noctx
 		"false\n"
 	printer.print-lock release!
 
-debug-print-nat void(printer debug-printer, descr str, a nat) unsafe noctx
+debug-print-nat void(printer debug-printer, descr str, a nat64) unsafe noctx
 	printer.print-lock acquire!
 	printer.thread-id debug-print-nat-no-newline
 	descr debug-print-no-newline
@@ -49,12 +49,12 @@ debug-print-nat void(printer debug-printer, descr str, a nat) unsafe noctx
 .debug-print-no-newline void(a str) unsafe noctx
 	1 write-no-newline a
 
-.debug-print-nat-no-newline void(a nat) unsafe noctx
+.debug-print-nat-no-newline void(a nat64) unsafe noctx
 	if a >= 10
 		debug-print-nat-no-newline: a unsafe-div 10
 	debug-print-no-newline: (a unsafe-mod 10).digit-to-str
 
-.digit-to-str str(a nat) noctx
+.digit-to-str str(a nat64) noctx
 	if a == 0
 		"0"
 	elif a == 1

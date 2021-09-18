@@ -10,7 +10,7 @@ import
 	..str-conv: to-str
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
-	..private.number-low-level: ==, even?, nat, wrap-add
+	..private.number-low-level: ==, even?, nat64, wrap-add
 	.arr: ==, arr, empty?, size
 	.arr-util: each, first, fold, last, rtail, tail
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
@@ -47,7 +47,7 @@ arr arr ?a(a deque ?a) trusted
 empty? bool(a deque ?a)
 	a.left.empty? and a.mid.empty? and a.right.empty?
 
-size nat(a deque ?a)
+size nat64(a deque ?a)
 	a.left.size wrap-add a.mid.size wrap-add a.right.size
 
 ~ deque ?a(a deque ?a, value ?a)
@@ -108,7 +108,7 @@ map deque ?out(a deque ?in, f act ?out(?in)) trusted
 	assert: end ptr-eq? res.end-ptr
 	deque: res.cast-immutable
 
-.dbg str(a deque nat)
+.dbg str(a deque nat64)
 	out = writer
 	a.left each-reverse x =>
 		out ~= x
@@ -128,7 +128,7 @@ map deque ?out(a deque ?in, f act ?out(?in)) trusted
 	out move-to-str!
 
 test
-	a = deque<nat>
+	a = deque<nat64>
 	assert: a empty?
 	a.dbg is "[]"
 	a.arr is []

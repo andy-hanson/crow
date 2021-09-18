@@ -5,7 +5,7 @@ import
 	..exception: assert
 	..fun: subscript
 	..misc: ->, arrow, as, data, from, to, void
-	..number: ==, <=>, +, -, *, nat
+	..number: ==, <=>, +, -, *, nat64
 	..opt: ==, empty?, force, has?, none, opt, or-default, some
 	..ptr: -, ptr, ptr-eq?, set-subscript, subscript
 	..str: ==, chars, str
@@ -33,7 +33,7 @@ mut-dict<?k, ?v> record mut
 	pairs mut-list arrow<?k, opt ?v>
 	# Number of pairs in this node that are not `none`.
 	# Does not include sizes of other nodes.
-	node-size mut nat
+	node-size mut nat64
 	next mut opt mut-dict<?k, ?v>
 
 # New empty `mut-dict`.
@@ -62,9 +62,9 @@ empty! void(a mut-dict<?k, ?v>)
 Number of pairs in the `mut-dict`.
 This is O(n).
 ###
-size nat(a mut-dict<?k, ?v>)
+size nat64(a mut-dict<?k, ?v>)
 	0 size-recur a
-.size-recur nat(acc nat, a mut-dict<?k, ?v>)
+.size-recur nat64(acc nat64, a mut-dict<?k, ?v>)
 	mid = acc + a.node-size
 	if next ?= a next
 		mid size-recur next
@@ -154,7 +154,7 @@ Returns true if it succeeded.
 			a.next := some: mut-dict: new-pairs, 1, none
 
 # Insert at the last place where the key is < that value.
-.insert-linear! void(a mut-list arrow<?k, opt ?v>, index nat, key ?k, value ?v) data<?k> compare<?k>
+.insert-linear! void(a mut-list arrow<?k, opt ?v>, index nat64, key ?k, value ?v) data<?k> compare<?k>
 	if key < a[index].from
 		a move-right! index
 		a[index] := key -> value.some
@@ -165,7 +165,7 @@ Returns true if it succeeded.
 		a insert-linear! index + 1, key, value
 
 # If there's something here, move it so something else can be inserted.
-.move-right! void(a mut-list arrow<?k, opt ?v>, index nat)
+.move-right! void(a mut-list arrow<?k, opt ?v>, index nat64)
 	if a[index].to has?
 		# If this is the last value, push it
 		if index == a.size - 1
@@ -209,9 +209,9 @@ remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 		a compact!
 		assert: a.node-size == a.total-pairs-size
 
-.total-pairs-size nat(a mut-dict<?k, ?v>)
+.total-pairs-size nat64(a mut-dict<?k, ?v>)
 	0 total-pairs-size-recur a
-.total-pairs-size-recur nat(acc nat, a mut-dict<?k, ?v>)
+.total-pairs-size-recur nat64(acc nat64, a mut-dict<?k, ?v>)
 	mid = acc + a.pairs.size
 	if next ?= a next
 		mid total-pairs-size-recur next
@@ -302,12 +302,12 @@ map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k> compare<?k>
 		pair.from -> f[pair.from, pair.to.force].some
 
 
-.dbg str(a mut-dict<nat, str>)
+.dbg str(a mut-dict<nat64, str>)
 	out = writer
 	out dbg-recur! a
 	out move-to-str!
 
-.dbg-recur! void(out writer, a mut-dict<nat, str>)
+.dbg-recur! void(out writer, a mut-dict<nat64, str>)
 	out ~= "["
 	a.pairs each pair =>
 		out ~= pair from
@@ -324,7 +324,7 @@ map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k> compare<?k>
 		out ~= ", "
 		out dbg-recur! next
 
-.verify void(a mut-dict<nat, str>, expected str)
+.verify void(a mut-dict<nat64, str>, expected str)
 	a.dbg is expected
 	a verify-node-size
 
@@ -336,7 +336,7 @@ map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k> compare<?k>
 		next verify-node-size
 
 test
-	a = mut-dict<nat, str>: [3 -> "3", 5 -> "5", 7 -> "7", 8 -> "8", 9 -> "9", 10 -> "10"]
+	a = mut-dict<nat64, str>: [3 -> "3", 5 -> "5", 7 -> "7", 8 -> "8", 9 -> "9", 10 -> "10"]
 	a verify "[3 -> 3, 5 -> 5, 7 -> 7, 8 -> 8, 9 -> 9, 10 -> 10]"
 
 	# Insert into the previous slot
@@ -352,7 +352,7 @@ test
 	a verify "[3 -> 3, 5 -> 5, 7 -> 7, 8 -> 8, 9 -> 9, 10 -> 10]"
 
 test
-	a = mut-dict<nat, str>
+	a = mut-dict<nat64, str>
 	a verify "[]"
 
 	a[5] := "5"

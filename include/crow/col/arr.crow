@@ -8,7 +8,7 @@ import
 	..private.alloc: alloc-uninitialized, copy-data-from
 	..private.bootstrap: hard-assert
 	..private.exception-low-level: assert
-	..private.number-low-level: ==, <=>, nat, nat8, wrap-add, wrap-sub
+	..private.number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
 export
 	..private.bootstrap: arr, begin-ptr, size
 
@@ -56,9 +56,9 @@ arr-compare comparison(a arr ?a, b arr ?a) trusted noctx compare<?a>
 <=> comparison(a arr nat8, b arr nat8) noctx
 	a arr-compare b
 
-== bool(a arr nat, b arr nat) noctx
+== bool(a arr nat64, b arr nat64) noctx
 	a arr-equal? b
-<=> comparison(a arr nat, b arr nat) noctx
+<=> comparison(a arr nat64, b arr nat64) noctx
 	a arr-compare b
 
 ###
@@ -82,18 +82,18 @@ empty? bool(a arr ?a) noctx
 has? bool(a arr ?a) noctx
 	a.empty? not
 
-noctx-at ?a(a arr ?a, index nat) unsafe noctx
+noctx-at ?a(a arr ?a, index nat64) unsafe noctx
 	hard-assert: index < a.size
 	a unsafe-at index
 
-unsafe-at ?a(a arr ?a, index nat) unsafe noctx
+unsafe-at ?a(a arr ?a, index nat64) unsafe noctx
 	a.begin-ptr[index]
 
 ###
 Gets the element at the index.
 Fails if `index >= a.size`.
 ###
-subscript ?a(a arr ?a, index nat) trusted
+subscript ?a(a arr ?a, index nat64) trusted
 	assert: index < a.size
 	a unsafe-at index
 
@@ -104,15 +104,15 @@ This works in O(1) without copying any elements.
 Fails if `range.from > range.to`.
 Fails if the slice would exceed the bounds of the arr.
 ###
-subscript arr ?a(a arr ?a, range arrow<nat, nat>) trusted
+subscript arr ?a(a arr ?a, range arrow<nat64, nat64>) trusted
 	assert: range.from <= range.to
 	assert: range.to <= a.size
 	range.to wrap-sub range.from arr a.begin-ptr + range.from
 
-unsafe-slice arr ?a(a arr ?a, begin nat, end nat) unsafe noctx
+unsafe-slice arr ?a(a arr ?a, begin nat64, end nat64) unsafe noctx
 	a.begin-ptr + begin arr-from-begin-end a.begin-ptr + end
 
-ref-of-val-at ?a(a arr by-val<?a>, index nat) trusted
+ref-of-val-at ?a(a arr by-val<?a>, index nat64) trusted
 	assert: index < a.size
 	a.begin-ptr + index ref-of-ptr
 

@@ -295,19 +295,19 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "to-float64 (from int-64)";
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
 			return "to-float64 (from nat-64)";
-		case LowExprKind.SpecialUnary.Kind.toIntFromInt16:
+		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
 			return "to-int (from int-16)";
-		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
+		case LowExprKind.SpecialUnary.Kind.toInt64FromInt32:
 			return "to-int (from int-32)";
 		case LowExprKind.SpecialUnary.Kind.toNat8FromChar:
 			return "to-nat8 (from char8)";
-		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
+		case LowExprKind.SpecialUnary.Kind.toNat64FromNat8:
 			return "to-nat (from nat-8)";
-		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
+		case LowExprKind.SpecialUnary.Kind.toNat64FromNat16:
 			return "to-nat (from nat-16)";
-		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
+		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
 			return "to-nat (from nat-32)";
-		case LowExprKind.SpecialUnary.Kind.toNatFromPtr:
+		case LowExprKind.SpecialUnary.Kind.toNat64FromPtr:
 			return "to-nat (from ptr)";
 		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
 			return "to-ptr (from nat-64)";

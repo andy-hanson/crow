@@ -3,13 +3,13 @@ import
 	...time: clock_gettime, CLOCK_MONOTONIC, timespec, tv-nsec, tv-sec
 	..cell: cell, subscript
 	..ptr: by-val, ref-of-val
-	..private.bootstrap: as, nat, todo
+	..private.bootstrap: as, nat64, todo
 	..private.number-low-level:
-		==, unsafe-div, unsafe-mod, unsafe-to-int, unsafe-to-nat, wrap-add, wrap-mul
+		==, unsafe-div, unsafe-mod, unsafe-to-int64, unsafe-to-nat64, wrap-add, wrap-mul
 
 # Monotime in nanoseconds.
 timestamp alias
-	nat
+	nat64
 
 # Get the value from a monotonic clock.
 # TODO: SUMMON
@@ -18,12 +18,12 @@ get-monotime-nsec timestamp() noctx trusted
 	err = CLOCK_MONOTONIC clock_gettime time-cell.ref-of-val
 	if err == 0
 		time = time-cell.ref-of-val[]
-		time.tv-sec wrap-mul 1000000000 wrap-add time.tv-nsec unsafe-to-nat
+		time.tv-sec wrap-mul 1000000000 wrap-add time.tv-nsec unsafe-to-nat64
 	else
 		todo
 
 to-timespec timespec(a timestamp) noctx unsafe
 	second = 1000000000
-	seconds = a unsafe-div second unsafe-to-int
-	ns = a unsafe-mod second unsafe-to-int
+	seconds = a unsafe-div second unsafe-to-int64
+	ns = a unsafe-mod second unsafe-to-int64
 	timespec: seconds, ns

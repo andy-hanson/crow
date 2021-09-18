@@ -1,9 +1,10 @@
 no-std
 import
-	..crow.number: nat
+	..crow.c-types: u-int
+	..crow.number: nat64
 
 SDL_Scancode alias
-	nat
+	u-int
 
 SDL_SCANCODE_RETURN SDL_Scancode()
 	40
@@ -16,5 +17,5 @@ SDL_SCANCODE_DOWN SDL_Scancode()
 	81
 SDL_SCANCODE_UP SDL_Scancode()
 	82
-SDL_NUM_SCANCODES SDL_Scancode()
+SDL_NUM_SCANCODES nat64()
 	512

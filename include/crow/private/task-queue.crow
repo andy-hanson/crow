@@ -10,11 +10,11 @@ import
 	..opt: empty?, none, opt, some
 	..ptr: by-val, ref-of-val
 	.bootstrap: exclusion, hard-assert
-	.number-low-level: ==, <=>, nat, wrap-add
+	.number-low-level: ==, <=>, nat64, wrap-add
 
 # TODO: use a heap, not a list
 
-no-timestamp nat() noctx
+no-timestamp nat64() noctx
 	0
 
 task record mut
@@ -38,7 +38,7 @@ task-queue record mut
 empty? bool(a task-queue) noctx
 	a.head empty?
 
-task-queue by-val task-queue(max-threads nat) unsafe noctx
+task-queue by-val task-queue(max-threads nat64) unsafe noctx
 	task-queue: none, max-threads mut-list-by-val-with-capacity-from-unmanaged-memory<exclusion>
 
 # Expose construction of nodes, because it's better to do this outside of a lock
@@ -134,10 +134,10 @@ insert-task! void(a task-queue, inserted task-queue-node) noctx unsafe
 		prev.next := inserted some
 
 
-.size nat(a task-queue) noctx
+.size nat64(a task-queue) noctx
 	a.head size-recur 0
 
-.size-recur nat(node opt task-queue-node, acc nat) noctx
+.size-recur nat64(node opt task-queue-node, acc nat64) noctx
 	if n ?= node
 		n.next size-recur: acc wrap-add 1
 	else

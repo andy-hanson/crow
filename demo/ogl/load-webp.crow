@@ -7,7 +7,7 @@ import
 	crow.fun: subscript
 	crow.io.file: read-file-binary
 	crow.misc: void
-	crow.number: nat, nat8, to-nat
+	crow.number: nat, nat8, to-nat64
 	crow.ptr: ptr
 	crow.str: str
 	webp.decode: WebPDecodeRGBA
@@ -28,7 +28,7 @@ with-webp ?a(path str, cb act ?a(webp-rgba-image)) unsafe summon
 	width = 0 cell<c-int>
 	height = 0 cell<c-int>
 	uncompressed = compressed.begin-ptr WebPDecodeRGBA compressed.size, width, height
-	uncompressed webp-rgba-image width[].to-nat, height[].to-nat
+	uncompressed webp-rgba-image width[].to-nat64, height[].to-nat64
 
 .free-webp void(a webp-rgba-image) unsafe summon
 	a.data WebPFree

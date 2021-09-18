@@ -5,7 +5,7 @@ import
 	..exception: assert
 	..fun: subscript
 	..misc: ->, arrow, as, data, from, to, void
-	..number: ==, <=>, +, -, even?, nat
+	..number: ==, <=>, +, -, even?, nat64
 	..opt: ==, has?, none, opt, opt-or, or-default, some
 	..ptr: +, -, ptr, ptr-eq?, ptr-less?, set-subscript, subscript
 	..str: ==, chars, empty?, size-bytes, str
@@ -66,7 +66,7 @@ empty? bool(a dict<?k, ?v>) data<?k> compare<?k>
 Number of pairs.
 This is O(n).
 ###
-size nat(a dict<?k, ?v>) data<?k> compare<?k>
+size nat64(a dict<?k, ?v>) data<?k> compare<?k>
 	0 fold a, (acc, k, v) => acc + 1
 
 arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> compare<?k> trusted
@@ -141,7 +141,7 @@ has-key? bool(a dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 		else
 			a
 
-.should-merge? bool(prev-size nat, overlay-size nat)
+.should-merge? bool(prev-size nat64, overlay-size nat64)
 	prev-size <=: overlay-size max 3
 
 .merge-overlays arr arrow<?k, opt ?v>(l arr arrow<?k, opt ?v>, r arr arrow<?k, opt ?v>) trusted data<?k> compare<?k>
@@ -319,7 +319,7 @@ Returns the rightmost value associated with that key.
 .take-key-recur took-key<?k, ?v>
 	overlays mut-arr arr arrow<?k, opt ?v>
 	key ?k
-	index nat
+	index nat64
 	rightmost-value opt ?v
 spec
 	data<?k>
@@ -356,7 +356,7 @@ body
 	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur! a.impl
 	iters: end-pairs, overlay-iters
 
-.overlay-count nat(acc nat, a dict-impl<?k, ?v>)
+.overlay-count nat64(acc nat64, a dict-impl<?k, ?v>)
 	match a
 	as overlay o
 		acc + 1 overlay-count o.prev
@@ -395,12 +395,12 @@ map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k>
 	dict: void, end-node: a.arr map pair =>
 		pair.from -> f[pair.from, pair.to]
 
-.dbg str(a dict<nat, str>)
+.dbg str(a dict<nat64, str>)
 	out = writer
 	out dbg-recur! a.impl
 	out move-to-str!
 
-.dbg-recur! void(out writer, a dict-impl<nat, str>)
+.dbg-recur! void(out writer, a dict-impl<nat64, str>)
 	match a
 	as overlay o
 		out dbg-recur! o.prev
@@ -429,11 +429,11 @@ map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k>
 			out backup! 2
 			out ~= "]"
 
-verify void(a dict<nat, str>, expected str)
+verify void(a dict<nat64, str>, expected str)
 	a.dbg is expected
 
 test
-	a = dict<nat, str>
+	a = dict<nat64, str>
 	a.empty? is true
 	a.size is 0
 	a verify "[]"

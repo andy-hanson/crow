@@ -7,7 +7,7 @@ import
 	crow.exception: assert, throw
 	crow.io.file: read-file
 	crow.misc: void
-	crow.number: ==, to-int32, to-nat
+	crow.number: ==, to-int32, to-nat64
 	crow.ptr: null
 	crow.str: str
 	crow.str-util: to-c-str
@@ -36,7 +36,7 @@ shader-prog-load GLuint(vert-file-name str, frag-file-name str) summon unsafe
 	else
 		log-length = 0 cell<GLint>
 		shader-prog glGetProgramiv GL_INFO_LOG_LENGTH, log-length
-		err-log = log-length[].to-nat uninitialized-mut-arr<GLchar>
+		err-log = log-length[].to-nat64 uninitialized-mut-arr<GLchar>
 		shader-prog glGetProgramInfoLog log-length[], log-length, err-log.begin-ptr
 		shader-prog glDeleteProgram
 		err-log.copy-to-arr.str throw
@@ -54,7 +54,7 @@ shader-prog-destroy void(shader-prog GLuint) summon unsafe
 	else
 		log-length = 0 cell<GLint>
 		shader glGetShaderiv GL_INFO_LOG_LENGTH, log-length
-		err-log = log-length[].to-nat uninitialized-mut-arr<GLchar>
+		err-log = log-length[].to-nat64 uninitialized-mut-arr<GLchar>
 		shader glGetShaderInfoLog log-length[], log-length, err-log.begin-ptr
 		shader glDeleteShader
 		err-log.copy-to-arr.str throw

@@ -542,13 +542,15 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			immutable size_t size = safeSizeTFromU64(pop(a.dataStack).raw());
 			const ubyte* src = cast(ubyte*) pop(a.dataStack).raw();
 			ubyte* dest = cast(ubyte*) pop(a.dataStack).raw();
-			memmove(dest, src, size);
+			ubyte* res = memmove(dest, src, size);
+			push(a.dataStack, immutable Nat64(cast(immutable ulong) res));
 			break;
 		case ExternOp.memset:
 			immutable size_t size = safeSizeTFromU64(pop(a.dataStack).raw());
 			immutable ubyte value = pop(a.dataStack).to8().raw();
 			ubyte* begin = cast(ubyte*) pop(a.dataStack).raw();
-			memset(begin, value, size);
+			ubyte* res = memset(begin, value, size);
+			push(a.dataStack, immutable Nat64(cast(immutable ulong) res));
 			break;
 		case ExternOp.pthreadCreate:
 			unreachable!void();

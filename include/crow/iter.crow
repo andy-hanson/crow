@@ -5,7 +5,7 @@ import
 	.compare: <
 	.fun: subscript
 	.misc: arrow, from, to, void
-	.number: ==, <=>, +, nat
+	.number: ==, <=>, +, nat64
 	.opt: opt, some
 
 ###
@@ -47,9 +47,9 @@ Iterator for a number range.
 The beginning is inclusive and the end is exclusive.
 The beginning must be less than the end.
 ###
-iter iterator nat(r arrow<nat, nat>)
+iter iterator nat64(r arrow<nat64, nat64>)
 	# TODO: should not need a type argument here
-	n = r.from cell<nat>
+	n = r.from cell<nat64>
 	iterator: () =>
 		if n[] < r.to
 			res = n[]

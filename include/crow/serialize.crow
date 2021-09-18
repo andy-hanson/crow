@@ -6,11 +6,11 @@ import
 	.compare: <, <=
 	.exception: assert
 	.misc: ->, as
-	.number: to-int, to-nat, to-nat32
+	.number: to-int64, to-nat32, to-nat64
 	.str: chars, str
 	.test: is
 	.private.bootstrap: todo
-	.private.number-low-level: ==, <=>, int64, max-int, nat8, nat32, nat64, unsafe-to-nat8
+	.private.number-low-level: ==, <=>, int64, max-int64, nat8, nat32, nat64, unsafe-to-nat8
 
 serialize<?a> spec
 	to-bytes arr nat8(a ?a)
@@ -41,7 +41,7 @@ to-8-bytes arr nat8(a nat64) trusted
 from-bytes nat64(a arr nat8)
 	assert: a.size <= 8
 	0 fold a, (cur, x) =>
-		cur bit-shift-left 8 bits-or x.to-nat
+		cur bit-shift-left 8 bits-or x.to-nat64
 test
 	n = 0x0123456789abcdef
 	bytes = n to-bytes
@@ -51,9 +51,9 @@ test
 	0x500.to-bytes is [5, 0]
 
 to-4-bytes arr nat8(a nat32)
-	a.to-nat.to-8-bytes[4 -> 8]
+	a.to-nat64.to-8-bytes[4 -> 8]
 to-bytes arr nat8(a nat32)
-	a.to-nat to-bytes
+	a.to-nat64 to-bytes
 from-bytes nat32(a arr nat8)
 	a.from-bytes.as<nat64> to-nat32
 
@@ -61,10 +61,10 @@ to-8-bytes arr nat8(a int64)
 	if a < 0
 		todo
 	else
-		a.to-nat to-8-bytes
+		a.to-nat64 to-8-bytes
 from-bytes int64(a arr nat8)
 	n = a.from-bytes as<nat64>
-	if n < max-int.to-nat
-		n to-int
+	if n < max-int64.to-nat64
+		n to-int64
 	else
 		todo

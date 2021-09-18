@@ -8,7 +8,7 @@ import
 	.misc: void
 	.ptr: as-ref
 	.str: ==, str
-	.private.bootstrap: get-ctx, nat, perf-ctx-ptr, thread-local-stuff
+	.private.bootstrap: get-ctx, nat64, perf-ctx-ptr, thread-local-stuff
 	.private.number-low-level: ==, wrap-add, wrap-sub
 	.private.perf-low-level:
 		measure-names, measure-values, ns, perf-ctx, perf-time, set-measure-names,
@@ -43,9 +43,9 @@ perf-measure void(start perf-time, name str)
 .get-perf-ctx perf-ctx() trusted
 	get-ctx.thread-local-stuff.perf-ctx-ptr as-ref<perf-ctx>
 
-.find-index nat(names arr str, name str)
+.find-index nat64(names arr str, name str)
 	names find-index name, 0
-.find-index nat(names arr str, name str, index nat)
+.find-index nat64(names arr str, name str, index nat64)
 	if index == names.size or names[index] == name
 		index
 	else
