@@ -20,9 +20,10 @@ struct Constant {
 	struct BoolConstant { // TODO: just use Integral?
 		immutable bool value;
 	}
-	// For int and nat types
+	// For int and nat types.
+	// For a large nat, this may wrap around to negative.
 	struct Integral {
-		immutable ulong value;
+		immutable long value;
 	}
 	struct Null {}
 	struct Pointer {

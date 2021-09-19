@@ -28,7 +28,7 @@ import util.sym :
 	symForOperator,
 	symSize,
 	writeSym;
-import util.types : safeSizeTToU32;
+import util.types : Int32, safeSizeTToU32;
 import util.util : todo, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
@@ -267,6 +267,14 @@ struct StructBody {
 	@safe @nogc pure nothrow:
 	struct Bogus {}
 	struct Builtin {}
+	struct Enum {
+		struct Member {
+			immutable FileAndRange range;
+			immutable Sym name;
+			immutable Int32 value;
+		}
+		immutable Member[] members;
+	}
 	struct ExternPtr {}
 	struct Record {
 		immutable RecordFlags flags;
@@ -280,6 +288,7 @@ struct StructBody {
 	enum Kind {
 		bogus,
 		builtin,
+		enum_,
 		externPtr,
 		record,
 		union_,
@@ -288,6 +297,7 @@ struct StructBody {
 	union {
 		immutable Bogus bogus;
 		immutable Builtin builtin;
+		immutable Enum enum_;
 		immutable ExternPtr externPtr;
 		immutable Record record;
 		immutable Union union_;
@@ -296,6 +306,7 @@ struct StructBody {
 	public:
 	immutable this(immutable Bogus a) { kind = Kind.bogus; bogus = a; }
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	@trusted immutable this(immutable Enum a) { kind = Kind.enum_; enum_ = a; }
 	immutable this(immutable ExternPtr a) { kind = Kind.externPtr; externPtr = a; }
 	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
 	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a;}
@@ -324,6 +335,7 @@ immutable(bool) isUnion(ref immutable StructBody a) {
 	ref immutable StructBody a,
 	scope T delegate(ref immutable StructBody.Bogus) @safe @nogc pure nothrow cbBogus,
 	scope T delegate(ref immutable StructBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope T delegate(ref immutable StructBody.Enum) @safe @nogc pure nothrow cbEnum,
 	scope T delegate(ref immutable StructBody.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
 	scope T delegate(ref immutable StructBody.Record) @safe @nogc pure nothrow cbRecord,
 	scope T delegate(ref immutable StructBody.Union) @safe @nogc pure nothrow cbUnion,
@@ -333,6 +345,8 @@ immutable(bool) isUnion(ref immutable StructBody a) {
 			return cbBogus(a.bogus);
 		case StructBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
+		case StructBody.Kind.enum_:
+			return cbEnum(a.enum_);
 		case StructBody.Kind.externPtr:
 			return cbExternPtr(a.externPtr);
 		case StructBody.Kind.record:
@@ -556,6 +570,9 @@ struct FunBody {
 	@safe @nogc pure nothrow:
 
 	struct Builtin {}
+	struct CreateEnum {
+		immutable Int32 value;
+	}
 	struct CreateRecord {}
 	struct Extern {
 		immutable bool isGlobal;
@@ -571,6 +588,7 @@ struct FunBody {
 	private:
 	enum Kind {
 		builtin,
+		createEnum,
 		createRecord,
 		extern_,
 		expr,
@@ -580,6 +598,7 @@ struct FunBody {
 	immutable Kind kind;
 	union {
 		immutable Builtin builtin;
+		immutable CreateEnum createEnum;
 		immutable CreateRecord createRecord;
 		immutable Ptr!Extern extern_;
 		immutable Ptr!Expr expr;
@@ -589,6 +608,7 @@ struct FunBody {
 
 	public:
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	immutable this(immutable CreateEnum a) { kind = Kind.createEnum; createEnum = a; }
 	immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	@trusted immutable this(immutable Ptr!Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
@@ -604,6 +624,7 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 @trusted T matchFunBody(T)(
 	ref immutable FunBody a,
 	scope T delegate(ref immutable FunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope T delegate(ref immutable FunBody.CreateEnum) @safe @nogc pure nothrow cbCreateEnum,
 	scope T delegate(ref immutable FunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(ref immutable FunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(immutable Ptr!Expr) @safe @nogc pure nothrow cbExpr,
@@ -613,6 +634,8 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 	final switch (a.kind) {
 		case FunBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
+		case FunBody.Kind.createEnum:
+			return cbCreateEnum(a.createEnum);
 		case FunBody.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
 		case FunBody.Kind.extern_:
@@ -1309,7 +1332,13 @@ struct Expr {
 		immutable Ptr!Local local;
 	}
 
-	struct Match {
+	struct MatchEnum {
+		immutable Ptr!Expr matched;
+		immutable Expr[] cases;
+		immutable Type type;
+	}
+
+	struct MatchUnion {
 		struct Case {
 			immutable Opt!(Ptr!Local) local;
 			immutable Ptr!Expr then;
@@ -1348,7 +1377,8 @@ struct Expr {
 		let,
 		literal,
 		localRef,
-		match,
+		matchEnum,
+		matchUnion,
 		paramRef,
 		seq,
 		stringLiteral,
@@ -1369,7 +1399,8 @@ struct Expr {
 		immutable Let let;
 		immutable Ptr!Literal literal;
 		immutable LocalRef localRef;
-		immutable Match match_;
+		immutable MatchEnum matchEnum;
+		immutable MatchUnion matchUnion;
 		immutable ParamRef paramRef;
 		immutable Seq seq;
 		immutable StringLiteral stringLiteral;
@@ -1404,7 +1435,12 @@ struct Expr {
 	@trusted immutable this(immutable FileAndRange r, immutable LocalRef a) {
 		range_ = r; kind = Kind.localRef; localRef = a;
 	}
-	@trusted immutable this(immutable FileAndRange r, immutable Match a) { range_ = r; kind = Kind.match; match_ = a; }
+	@trusted immutable this(immutable FileAndRange r, immutable MatchEnum a) {
+		range_ = r; kind = Kind.matchEnum; matchEnum = a;
+	}
+	@trusted immutable this(immutable FileAndRange r, immutable MatchUnion a) {
+		range_ = r; kind = Kind.matchUnion; matchUnion = a;
+	}
 	@trusted immutable this(immutable FileAndRange r, immutable ParamRef a) {
 		range_ = r; kind = Kind.paramRef; paramRef = a;
 	}
@@ -1436,7 +1472,8 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	scope T delegate(ref immutable Expr.Let) @safe @nogc pure nothrow cbLet,
 	scope T delegate(ref immutable Expr.Literal) @safe @nogc pure nothrow cbLiteral,
 	scope T delegate(ref immutable Expr.LocalRef) @safe @nogc pure nothrow cbLocalRef,
-	scope T delegate(ref immutable Expr.Match) @safe @nogc pure nothrow cbMatch,
+	scope T delegate(ref immutable Expr.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
+	scope T delegate(ref immutable Expr.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
 	scope T delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
 	scope T delegate(ref immutable Expr.Seq) @safe @nogc pure nothrow cbSeq,
 	scope T delegate(ref immutable Expr.StringLiteral) @safe @nogc pure nothrow cbStringLiteral,
@@ -1466,8 +1503,10 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 			return cbLiteral(a.literal);
 		case Expr.Kind.localRef:
 			return cbLocalRef(a.localRef);
-		case Expr.Kind.match:
-			return cbMatch(a.match_);
+		case Expr.Kind.matchEnum:
+			return cbMatchEnum(a.matchEnum);
+		case Expr.Kind.matchUnion:
+			return cbMatchUnion(a.matchUnion);
 		case Expr.Kind.paramRef:
 			return cbParamRef(a.paramRef);
 		case Expr.Kind.seq:
@@ -1492,7 +1531,8 @@ immutable(bool) typeIsBogus(ref immutable Expr a) {
 		(ref immutable Expr.Let e) => typeIsBogus(e.then),
 		(ref immutable Expr.Literal) => false,
 		(ref immutable Expr.LocalRef e) => isBogus(e.local.type),
-		(ref immutable Expr.Match e) => isBogus(e.type),
+		(ref immutable Expr.MatchEnum e) => isBogus(e.type),
+		(ref immutable Expr.MatchUnion e) => isBogus(e.type),
 		(ref immutable Expr.ParamRef e) => isBogus(e.param.type),
 		(ref immutable Expr.Seq e) => typeIsBogus(e.then),
 		(ref immutable Expr.StringLiteral e) => false);
@@ -1513,7 +1553,8 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.Let e) => getType(e.then, commonTypes),
 		(ref immutable Expr.Literal e) => immutable Type(e.structInst),
 		(ref immutable Expr.LocalRef e) => e.local.type,
-		(ref immutable Expr.Match) => todo!(immutable Type)("getType match"),
+		(ref immutable Expr.MatchEnum) => todo!(immutable Type)("getType matchEnum"),
+		(ref immutable Expr.MatchUnion) => todo!(immutable Type)("getType matchUnion"),
 		(ref immutable Expr.ParamRef e) => e.param.type,
 		(ref immutable Expr.Seq e) => getType(e.then, commonTypes),
 		(ref immutable Expr.StringLiteral) => immutable Type(commonTypes.str));

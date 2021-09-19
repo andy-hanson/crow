@@ -4,7 +4,7 @@ module lower.generateSpecialBuiltin;
 
 import concretize.allConstantsBuilder : constantEmptyStr;
 import lower.lower : asConcreteFun, isConcreteFun, LowFunCause, matchLowFunCause;
-import lower.lowExprHelpers : anyPtrType, constantNat64, genParam, genSwitch, nat64Type, paramRef, ptrCast;
+import lower.lowExprHelpers : anyPtrType, constantNat64, genParam, genSwitch0ToN, nat64Type, paramRef, ptrCast;
 import model.concreteModel : body_, ConcreteFun, ConcreteFunSource, ConcreteFunToName, isGlobal, matchConcreteFunSource;
 import model.constant : Constant;
 import model.lowModel :
@@ -110,7 +110,7 @@ immutable(LowFun) getFunName(Alloc)(
 	immutable LowExpr funId = paramRef(range, nat64Type, immutable LowParamIndex(0));
 	immutable LowExpr[] cases = map(alloc, lowFunCauses, (ref immutable LowFunCause cause) =>
 		immutable LowExpr(strType, range, immutable LowExprKind(nameFromLowFunCause(funToName, cause))));
-	immutable LowExpr expr = genSwitch(alloc, strType, range, funId, cases);
+	immutable LowExpr expr = genSwitch0ToN(alloc, strType, range, funId, cases);
 	immutable LowFunExprBody body_ = immutable LowFunExprBody(false, allocate(alloc, expr));
 	return immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(
@@ -158,7 +158,7 @@ immutable(LowFun) getFunPtr(Alloc)(
 			? immutable LowExpr(anyPtrType, range, immutable LowExprKind(immutable Constant(immutable Constant.Null())))
 			: ptrCast(alloc, anyPtrType, range, immutable LowExpr(anyPtrType, range, immutable LowExprKind(
 				immutable LowExprKind.FunPtr(immutable LowFunIndex(i))))));
-	immutable LowExpr expr = genSwitch(alloc, anyPtrType, range, funId, cases);
+	immutable LowExpr expr = genSwitch0ToN(alloc, anyPtrType, range, funId, cases);
 	immutable LowFunExprBody body_ = immutable LowFunExprBody(false, allocate(alloc, expr));
 	return immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(

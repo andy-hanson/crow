@@ -2,7 +2,7 @@ file-ast(
 	specs: []
 	aliases: []
 	structs: [
-		struct(range(0, 14), "", true, [], none, extern)
+		struct(range(0, 14), "", true, [], none, extern-ptr)
 		struct(
 			range(14, 28)
 			""

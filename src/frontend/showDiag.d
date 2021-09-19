@@ -20,7 +20,6 @@ import model.model :
 	Sig,
 	SpecBody,
 	SpecSig,
-	StructInst,
 	symOfPurity,
 	Type,
 	writeStructInst,
@@ -596,10 +595,10 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeName(writer, d.name);
 			writeStatic(writer, " is already in scope");
 		},
-		(ref immutable Diag.MatchCaseStructNamesDoNotMatch d) {
+		(ref immutable Diag.MatchCaseNamesDoNotMatch d) {
 			writeStatic(writer, "expected the case names to be: ");
-			writeWithCommas!(Ptr!StructInst)(writer, d.unionMembers, (ref immutable Ptr!StructInst i) {
-				writeName(writer, decl(i).name);
+			writeWithCommas!Sym(writer, d.expectedNames, (ref immutable Sym name) {
+				writeName(writer, name);
 			});
 		},
 		(ref immutable Diag.MatchOnNonUnion d) {
@@ -797,6 +796,8 @@ immutable(string) aOrAnTypeKind(immutable TypeKind a) {
 	final switch (a) {
 		case TypeKind.builtin:
 			return "a builtin";
+		case TypeKind.enum_:
+			return "an enum";
 		case TypeKind.externPtr:
 			return "an extern-ptr";
 		case TypeKind.record:

@@ -46,6 +46,7 @@ import util.repr :
 	reprArr,
 	reprBool,
 	reprFullIndexDict,
+	reprInt,
 	reprNamedRecord,
 	reprNat,
 	reprOpt,
@@ -53,6 +54,7 @@ import util.repr :
 	reprStr,
 	reprSym;
 import util.sourceRange : reprFileAndRange;
+import util.types : Int32;
 
 immutable(Repr) reprOfLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a) {
 	return reprNamedRecord(alloc, "program", [
@@ -199,8 +201,8 @@ immutable(Repr) reprOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExprK
 				reprOfLowExpr(alloc, it.then)]),
 		(ref immutable LowExprKind.LocalRef it) =>
 			reprRecord(alloc, "local-ref", [reprOfLowLocalSource(alloc, it.local.source)]),
-		(ref immutable LowExprKind.Match it) =>
-			reprOfMatch(alloc, it),
+		(ref immutable LowExprKind.MatchUnion it) =>
+			reprOfMatchUnion(alloc, it),
 		(ref immutable LowExprKind.ParamRef it) =>
 			reprRecord(alloc, "param-ref", [reprNat(it.index.index)]),
 		(ref immutable LowExprKind.PtrCast it) =>
@@ -244,11 +246,18 @@ immutable(Repr) reprOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExprK
 				reprStr(strOfSpecialNAryKind(it.kind)),
 				reprArr(alloc, it.args, (ref immutable LowExpr arg) =>
 					reprOfLowExpr(alloc, arg))]),
-		(ref immutable LowExprKind.Switch it) =>
-			reprRecord(alloc, "switch", [
+		(ref immutable LowExprKind.Switch0ToN it) =>
+			reprRecord(alloc, "switch-n", [
 				reprOfLowExpr(alloc, it.value),
 				reprArr(alloc, it.cases, (ref immutable LowExpr arg) =>
 					reprOfLowExpr(alloc, arg))]),
+		(ref immutable LowExprKind.SwitchWithValues it) =>
+			reprRecord(alloc, "switch-v", [
+				reprOfLowExpr(alloc, it.value),
+				reprArr(alloc, it.values, (ref immutable Int32 value) =>
+					reprInt(value)),
+				reprArr(alloc, it.cases, (ref immutable LowExpr case_) =>
+					reprOfLowExpr(alloc, case_))]),
 		(ref immutable LowExprKind.TailRecur it) =>
 			reprRecord(alloc, "tail-recur", [
 				reprArr(alloc, it.args, (ref immutable LowExpr arg) =>
@@ -257,10 +266,10 @@ immutable(Repr) reprOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExprK
 			reprSym("uninit"));
 }
 
-immutable(Repr) reprOfMatch(Alloc)(ref Alloc alloc, ref immutable LowExprKind.Match a) {
+immutable(Repr) reprOfMatchUnion(Alloc)(ref Alloc alloc, ref immutable LowExprKind.MatchUnion a) {
 	return reprRecord(alloc, "match", [
 		reprOfLowExpr(alloc, a.matchedValue),
-		reprArr(alloc, a.cases, (ref immutable LowExprKind.Match.Case case_) =>
+		reprArr(alloc, a.cases, (ref immutable LowExprKind.MatchUnion.Case case_) =>
 			reprRecord(alloc, "case", [
 				reprOpt(alloc, case_.local, (ref immutable Ptr!LowLocal it) =>
 					reprOfLowLocalSource(alloc, it.source)),

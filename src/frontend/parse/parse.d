@@ -13,6 +13,7 @@ import frontend.parse.ast :
 	FunDeclAst,
 	ImportAst,
 	ImportsOrExportsAst,
+	LiteralAst,
 	ParamAst,
 	PuritySpecifier,
 	PuritySpecifierAndRange,
@@ -44,6 +45,7 @@ import frontend.parse.lexer :
 	takeIndentOrDiagTopLevel,
 	takeIndentOrDiagTopLevelAfterNewline,
 	takeIndentOrFailGeneric,
+	takeInt,
 	takeName,
 	takeNameAllowReserved,
 	takeNameAsTempStr,
@@ -376,6 +378,7 @@ enum NonFunKeyword {
 	alias_,
 	builtin,
 	builtinSpec,
+	enum_,
 	externPtr,
 	record,
 	spec,
@@ -423,7 +426,11 @@ immutable(Opt!NonFunKeywordAndIndent) parseNonFunKeyword(Alloc, SymAlloc)(ref Al
 				? res
 				: tryTakeKw(alloc, lexer, "builtin-spec ", "builtin-spec\n", NonFunKeyword.builtinSpec);
 		case 'e':
-			return tryTakeKw(alloc, lexer, "extern-ptr ", "extern-ptr\n", NonFunKeyword.externPtr);
+			immutable Opt!NonFunKeywordAndIndent res =
+				tryTakeKw(alloc, lexer, "enum ", "enum\n", NonFunKeyword.enum_);
+			return has(res)
+				? res
+				: tryTakeKw(alloc, lexer, "extern-ptr ", "extern-ptr\n", NonFunKeyword.externPtr);
 		case 'r':
 			return tryTakeKw(alloc, lexer, "record ", "record\n", NonFunKeyword.record);
 		case 's':
@@ -433,6 +440,28 @@ immutable(Opt!NonFunKeywordAndIndent) parseNonFunKeyword(Alloc, SymAlloc)(ref Al
 		default:
 			return none!NonFunKeywordAndIndent;
 	}
+}
+
+immutable(StructDeclAst.Body.Enum) parseEnumBody(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+) {
+	ArrBuilder!(StructDeclAst.Body.Enum.Member) res;
+	immutable(StructDeclAst.Body.Enum) recur() {
+		immutable Pos start = curPos(lexer);
+		immutable Sym name = takeName(alloc, lexer);
+		immutable Opt!(LiteralAst.Int) value = tryTake(lexer, " = ")
+			? some(takeInt(lexer))
+			: none!(LiteralAst.Int);
+		add(alloc, res, immutable StructDeclAst.Body.Enum.Member(range(lexer, start), name, value));
+		final switch (takeNewlineOrSingleDedent(alloc, lexer)) {
+			case NewlineOrDedent.newline:
+				return recur();
+			case NewlineOrDedent.dedent:
+				return immutable StructDeclAst.Body.Enum(finishArr(alloc, res));
+		}
+	}
+	return recur();
 }
 
 immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
@@ -808,6 +837,7 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 							immutable SpecBodyAst(sigs)));
 					break;
 				case NonFunKeyword.builtin:
+				case NonFunKeyword.enum_:
 				case NonFunKeyword.externPtr:
 				case NonFunKeyword.record:
 				case NonFunKeyword.union_:
@@ -821,6 +851,10 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 								if (tookIndent)
 									todo!void("shouldn't indent after builtin");
 								return immutable StructDeclAst.Body(immutable StructDeclAst.Body.Builtin());
+							case NonFunKeyword.enum_:
+								return immutable StructDeclAst.Body(tookIndent
+									? parseEnumBody(alloc, lexer)
+									: immutable StructDeclAst.Body.Enum(emptyArr!(StructDeclAst.Body.Enum.Member)));
 							case NonFunKeyword.externPtr:
 								if (tookIndent)
 									todo!void("shouldn't indent after 'extern'");

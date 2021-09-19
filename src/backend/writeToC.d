@@ -90,7 +90,7 @@ import util.sym :
 	Sym,
 	symEq,
 	writeSym;
-import util.types : abs, i64OfU64Bits, Nat16;
+import util.types : abs, Int32, i64OfU64Bits, Nat16, Nat32, Nat64;
 import util.util : drop, todo, unreachable, verify;
 import util.writer :
 	finishWriter,
@@ -498,9 +498,10 @@ void writeUnion(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immut
 				writeStatic(writer, "\n\t\tuint64_t __ensureSizeIs16;");
 			}
 		},
-		(ref immutable ConcreteStructBody.ExternPtr) {},
-		(ref immutable ConcreteStructBody.Record) {},
-		(ref immutable ConcreteStructBody.Union) {});
+		(ref immutable(ConcreteStructBody.Enum)) {},
+		(ref immutable(ConcreteStructBody.ExternPtr)) {},
+		(ref immutable(ConcreteStructBody.Record)) {},
+		(ref immutable(ConcreteStructBody.Union)) {});
 
 	writeStatic(writer, "\n\t};");
 	writeStructEnd(writer);
@@ -1193,8 +1194,8 @@ immutable(WriteExprResult) writeExpr(Alloc, TempAlloc)(
 			inlineableSimple(() {
 				writeLocalRef(writer, it.local);
 			}),
-		(ref immutable LowExprKind.Match it) =>
-			writeMatch(writer, tempAlloc, indent, ctx, writeKind, type, it),
+		(ref immutable LowExprKind.MatchUnion it) =>
+			writeMatchUnion(writer, tempAlloc, indent, ctx, writeKind, type, it),
 		(ref immutable LowExprKind.ParamRef it) =>
 			inlineableSimple(() {
 				writeParamRef(writer, ctx, it);
@@ -1247,8 +1248,12 @@ immutable(WriteExprResult) writeExpr(Alloc, TempAlloc)(
 			writeSpecialTrinary(writer, tempAlloc, indent, ctx, writeKind, type, it),
 		(ref immutable LowExprKind.SpecialNAry it) =>
 			writeSpecialNAry(writer, tempAlloc, indent, ctx, writeKind, type, it),
-		(ref immutable LowExprKind.Switch it) =>
-			writeSwitch(writer, tempAlloc, indent, ctx, writeKind, type, it),
+		(ref immutable LowExprKind.Switch0ToN it) =>
+			writeSwitch(writer, tempAlloc, indent, ctx, writeKind, type, it.value, it.cases, (immutable Nat32 i) =>
+				i.toInt32()),
+		(ref immutable LowExprKind.SwitchWithValues it) =>
+			writeSwitch(writer, tempAlloc, indent, ctx, writeKind, type, it.value, it.cases, (immutable Nat32 i) =>
+				at(it.values, i)),
 		(ref immutable LowExprKind.TailRecur it) {
 			verify(isReturn(writeKind));
 			writeTailRecur(writer, tempAlloc, indent, ctx, it);
@@ -1517,14 +1522,14 @@ void writeParamRef(Alloc)(ref Writer!Alloc writer, ref const FunBodyCtx ctx, ref
 	writeLowParamName(writer, at(fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params, a.index.index));
 }
 
-immutable(WriteExprResult) writeMatch(Alloc, TempAlloc)(
+immutable(WriteExprResult) writeMatchUnion(Alloc, TempAlloc)(
 	ref Writer!Alloc writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
 	ref immutable WriteKind writeKind,
 	ref immutable LowType type,
-	ref immutable LowExprKind.Match a,
+	ref immutable LowExprKind.MatchUnion a,
 ) {
 	immutable Temp matchedValue = writeExprTemp(writer, tempAlloc, indent, ctx, a.matchedValue);
 	immutable WriteExprResultAndNested nested = getNestedWriteKind(writer, indent, ctx, type, writeKind);
@@ -1533,7 +1538,7 @@ immutable(WriteExprResult) writeMatch(Alloc, TempAlloc)(
 	writeTempRef(writer, matchedValue);
 	writeStatic(writer, ".kind) {");
 	foreach (immutable size_t caseIndex; 0 .. size(a.cases)) {
-		immutable LowExprKind.Match.Case case_ = at(a.cases, caseIndex);
+		immutable LowExprKind.MatchUnion.Case case_ = at(a.cases, caseIndex);
 		writeNewline(writer, indent + 1);
 		writeStatic(writer, "case ");
 		writeNat(writer, caseIndex);
@@ -1565,7 +1570,7 @@ immutable(WriteExprResult) writeMatch(Alloc, TempAlloc)(
 	return nested.result;
 }
 
-//TODO: share code with writeMatch
+//TODO: share code with writeMatchUnion
 immutable(WriteExprResult) writeSwitch(Alloc, TempAlloc)(
 	ref Writer!Alloc writer,
 	ref TempAlloc tempAlloc,
@@ -1573,20 +1578,21 @@ immutable(WriteExprResult) writeSwitch(Alloc, TempAlloc)(
 	ref FunBodyCtx ctx,
 	immutable WriteKind writeKind,
 	ref immutable LowType type,
-	ref immutable LowExprKind.Switch a,
+	ref immutable LowExpr value,
+	immutable LowExpr[] cases,
+	scope immutable(Int32) delegate(immutable Nat32) @safe @nogc pure nothrow getValue,
 ) {
-	immutable WriteExprResult value = writeExprTempOrInline(writer, tempAlloc, indent, ctx, a.value);
+	immutable WriteExprResult valueResult = writeExprTempOrInline(writer, tempAlloc, indent, ctx, value);
 	immutable WriteExprResultAndNested nested = getNestedWriteKind(writer, indent, ctx, type, writeKind);
 	writeStatic(writer, "switch (");
-	writeTempOrInline(writer, tempAlloc, ctx, a.value, value);
+	writeTempOrInline(writer, tempAlloc, ctx, value, valueResult);
 	writeStatic(writer, ") {");
-	foreach (immutable size_t caseIndex; 0 .. size(a.cases)) {
-		immutable LowExpr case_ = at(a.cases, caseIndex);
+	foreach (immutable size_t caseIndex; 0 .. size(cases)) {
 		writeNewline(writer, indent + 1);
 		writeStatic(writer, "case ");
-		writeNat(writer, caseIndex);
+		writeInt(writer, getValue((immutable Nat64(caseIndex)).to32()));
 		writeStatic(writer, ": {");
-		drop(writeExpr(writer, tempAlloc, indent + 2, ctx, nested.writeKind, case_));
+		drop(writeExpr(writer, tempAlloc, indent + 2, ctx, nested.writeKind, at(cases, caseIndex)));
 		if (!isReturn(nested.writeKind)) {
 			writeNewline(writer, indent + 2);
 			writeStatic(writer, "break;");
@@ -1827,7 +1833,7 @@ void writeLValue(Alloc)(ref Writer!Alloc writer, ref const FunBodyCtx ctx, ref i
 		(ref immutable LowExprKind.LocalRef it) {
 			writeLocalRef(writer, it.local);
 		},
-		(ref immutable LowExprKind.Match) => unreachable!void(),
+		(ref immutable LowExprKind.MatchUnion) => unreachable!void(),
 		(ref immutable LowExprKind.ParamRef it) {
 			writeParamRef(writer, ctx, it);
 		},
@@ -1860,7 +1866,8 @@ void writeLValue(Alloc)(ref Writer!Alloc writer, ref const FunBodyCtx ctx, ref i
 		(ref immutable LowExprKind.SpecialBinary) => unreachable!void(),
 		(ref immutable LowExprKind.SpecialTrinary) => unreachable!void(),
 		(ref immutable LowExprKind.SpecialNAry) => unreachable!void(),
-		(ref immutable LowExprKind.Switch) => unreachable!void(),
+		(ref immutable LowExprKind.Switch0ToN) => unreachable!void(),
+		(ref immutable LowExprKind.SwitchWithValues) => unreachable!void(),
 		(ref immutable LowExprKind.TailRecur) => unreachable!void(),
 		(ref immutable LowExprKind.Zeroed) => unreachable!void());
 }

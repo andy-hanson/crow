@@ -2,7 +2,7 @@ module frontend.parse.lexer;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : LiteralAst, NameAndRange, rangeOfNameAndRange;
+import frontend.parse.ast : LiteralAst, matchLiteralAst, NameAndRange, rangeOfNameAndRange;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : allocateBytes;
 import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
@@ -16,7 +16,7 @@ import util.collection.str :
 	NulTerminatedStr,
 	SafeCStr,
 	strOfNulTerminatedStr;
-import util.opt : force, has, Opt, optOr;
+import util.opt : force, has, none, Opt, optOr;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
@@ -423,11 +423,17 @@ public enum Sign {
 	minus,
 }
 
-public @trusted immutable(LiteralAst) takeNumber(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
-	immutable Opt!Sign sign,
-) {
+public @trusted immutable(LiteralAst.Int) takeInt(SymAlloc)(ref Lexer!SymAlloc lexer) {
+	immutable LiteralAst res = takeNumberAfterSign(lexer, none!Sign);
+	return matchLiteralAst!(LiteralAst.Int)(
+		res,
+		(ref immutable LiteralAst.Float f) => todo!(immutable LiteralAst.Int)("no float in enum"),
+		(ref immutable LiteralAst.Int i) => i,
+		(ref immutable LiteralAst.Nat n) => immutable LiteralAst.Int(n.value, n.overflow || n.value > long.max),
+		(ref immutable string) => unreachable!(immutable LiteralAst.Int));
+}
+
+public @trusted immutable(LiteralAst) takeNumberAfterSign(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Opt!Sign sign) {
 	immutable ulong base = tryTake(lexer, "0x") ? 16 : tryTake(lexer, "0o") ? 8 : tryTake(lexer, "0b") ? 2 : 10;
 	immutable LiteralAst.Nat n = takeNat(lexer, base);
 	if (*lexer.ptr == '.' && isDigit(*(lexer.ptr + 1))) {

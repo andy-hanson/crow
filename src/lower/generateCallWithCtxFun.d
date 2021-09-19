@@ -48,7 +48,7 @@ immutable(LowFun) generateCallWithCtxFun(Alloc)(
 
 	ubyte localIndex = 0;
 
-	immutable LowExprKind.Match.Case[] cases = mapZip(
+	immutable LowExprKind.MatchUnion.Case[] cases = mapZip(
 		alloc,
 		impls,
 		fullIndexDictGet(allTypes.allUnions, asUnionType(funType)).members,
@@ -68,11 +68,11 @@ immutable(LowFun) generateCallWithCtxFun(Alloc)(
 					paramRef(range, paramType, immutable LowParamIndex(i + 2)));
 			immutable LowExpr then = immutable LowExpr(returnType, range, immutable LowExprKind(
 				immutable LowExprKind.Call(mustGetAt(concreteFunToLowFunIndex, impl.impl), args)));
-			return immutable LowExprKind.Match.Case(some(closureLocal), then);
+			return immutable LowExprKind.MatchUnion.Case(some(closureLocal), then);
 		});
 
 	immutable LowExpr expr = immutable LowExpr(returnType, range, immutable LowExprKind(
-		nu!(LowExprKind.Match)(alloc, allocate(alloc, funParamRef), cases)));
+		nu!(LowExprKind.MatchUnion)(alloc, allocate(alloc, funParamRef), cases)));
 	immutable LowParam[] params = mapWithFirst2!(LowParam, LowType, Alloc)(
 		alloc,
 		immutable LowParam(

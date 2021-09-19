@@ -26,6 +26,7 @@ import interpret.bytecodeReader :
 	readerJump,
 	readOperation,
 	readerSwitch,
+	readerSwitchWithValues,
 	setReaderPtr;
 import interpret.debugging : writeFunName;
 import model.concreteModel : ConcreteFun, concreteFunRange;
@@ -390,8 +391,12 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 			pushStackRef(a.dataStack, it.offset);
 			return StepResult.continue_;
 		},
-		(ref immutable Operation.Switch it) {
+		(ref immutable Operation.Switch0ToN it) {
 			readerSwitch(a.reader, pop(a.dataStack), it.offsets);
+			return StepResult.continue_;
+		},
+		(ref immutable Operation.SwitchWithValues it) {
+			readerSwitchWithValues(a.reader, pop(a.dataStack), it.values, it.offsets);
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Write it) {

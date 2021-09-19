@@ -130,6 +130,8 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 			f.body_,
 			(ref immutable FunBody.Builtin) =>
 				none!Position,
+			(ref immutable FunBody.CreateEnum) =>
+				none!Position,
 			(ref immutable FunBody.CreateRecord) =>
 				none!Position,
 			(ref immutable FunBody.Extern) =>
@@ -183,6 +185,8 @@ immutable(Position) positionInStruct(immutable Ptr!StructDecl a, immutable Pos p
 		(ref immutable StructBody.Bogus) =>
 			none!Position,
 		(ref immutable StructBody.Builtin) =>
+			none!Position,
+		(ref immutable StructBody.Enum) =>
 			none!Position,
 		(ref immutable StructBody.ExternPtr) =>
 			none!Position,

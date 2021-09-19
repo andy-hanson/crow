@@ -7,7 +7,7 @@ import util.collection.arr : size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.repr : Repr, reprArr, reprHex, reprInt, reprNat, reprRecord, reprStr, reprSym;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Int16, Nat8, Nat16, Nat32, Nat64, zero;
+import util.types : Int16, Int32, Nat8, Nat16, Nat32, Nat64, zero;
 import util.sourceRange : FileIndex, Pos;
 import util.util : verify;
 
@@ -40,7 +40,8 @@ T matchDebugOperationImpure(T)(
 	scope T delegate(ref immutable Operation.Remove) @safe @nogc nothrow cbRemove,
 	scope T delegate(ref immutable Operation.Return) @safe @nogc nothrow cbReturn,
 	scope T delegate(ref immutable Operation.StackRef) @safe @nogc nothrow cbStackRef,
-	scope T delegate(ref immutable Operation.Switch) @safe @nogc nothrow cbSwitch,
+	scope T delegate(ref immutable Operation.Switch0ToN) @safe @nogc nothrow cbSwitch0ToN,
+	scope T delegate(ref immutable Operation.SwitchWithValues) @safe @nogc nothrow cbSwitchWithValues,
 	scope T delegate(ref immutable Operation.Write) @safe @nogc nothrow cbWrite,
 ) {
 	final switch (a.kind_) {
@@ -72,8 +73,10 @@ T matchDebugOperationImpure(T)(
 			return cbReturn(a.return_);
 		case Operation.Kind.stackRef_:
 			return cbStackRef(a.stackRef_);
-		case Operation.Kind.switch_:
-			return cbSwitch(a.switch_);
+		case Operation.Kind.switch0ToN:
+			return cbSwitch0ToN(a.switch0ToN);
+		case Operation.Kind.switchWithValues:
+			return cbSwitchWithValues(a.switchWithValues);
 		case Operation.Kind.write:
 			return cbWrite(a.write_);
 	}
@@ -97,7 +100,8 @@ private @trusted T matchOperation(T)(
 	scope T delegate(ref immutable Operation.Remove) @safe @nogc pure nothrow cbRemove,
 	scope T delegate(ref immutable Operation.Return) @safe @nogc pure nothrow cbReturn,
 	scope T delegate(ref immutable Operation.StackRef) @safe @nogc pure nothrow cbStackRef,
-	scope T delegate(ref immutable Operation.Switch) @safe @nogc pure nothrow cbSwitch,
+	scope T delegate(ref immutable Operation.Switch0ToN) @safe @nogc pure nothrow cbSwitch0ToN,
+	scope T delegate(ref immutable Operation.SwitchWithValues) @safe @nogc pure nothrow cbSwitchWithValues,
 	scope T delegate(ref immutable Operation.Write) @safe @nogc pure nothrow cbWrite,
 ) {
 	final switch (a.kind_) {
@@ -129,8 +133,10 @@ private @trusted T matchOperation(T)(
 			return cbReturn(a.return_);
 		case Operation.Kind.stackRef_:
 			return cbStackRef(a.stackRef_);
-		case Operation.Kind.switch_:
-			return cbSwitch(a.switch_);
+		case Operation.Kind.switch0ToN:
+			return cbSwitch0ToN(a.switch0ToN);
+		case Operation.Kind.switchWithValues:
+			return cbSwitchWithValues(a.switchWithValues);
 		case Operation.Kind.write:
 			return cbWrite(a.write_);
 	}
@@ -180,8 +186,12 @@ immutable(Repr) reprOperation(Alloc)(ref Alloc alloc, ref immutable Operation a)
 			reprSym("return"),
 		(ref immutable Operation.StackRef it) =>
 			reprRecord(alloc, "stack-ref", [reprNat(it.offset.offset)]),
-		(ref immutable Operation.Switch it) =>
-			reprSym("switch"),
+		(ref immutable Operation.Switch0ToN it) =>
+			// TODO: more detail
+			reprSym("switch-n"),
+		(ref immutable Operation.SwitchWithValues it) =>
+			// TODO: more detail
+			reprSym("switch-v"),
 		(ref immutable Operation.Write it) =>
 			reprRecord(alloc, "write", [reprNat(it.offset), reprNat(it.size)]));
 }
@@ -429,8 +439,13 @@ struct Operation {
 	// Pop a number off the stack, look it up in 'offsets', and jump forward that much.
 	// Offsets are relative to the bytecode index of the first offset.
 	// A 0th offset is needed because otherwise there's no way to know how many cases there are.
-	struct Switch {
+	struct Switch0ToN {
 		// The reader can't return the offsets since it doesn't have a length
+		immutable ByteCodeOffsetUnsigned[] offsets;
+	}
+
+	struct SwitchWithValues {
+		immutable Int32[] values;
 		immutable ByteCodeOffsetUnsigned[] offsets;
 	}
 
@@ -464,7 +479,8 @@ struct Operation {
 		remove,
 		return_,
 		stackRef_,
-		switch_,
+		switch0ToN,
+		switchWithValues,
 		write,
 	}
 	immutable Kind kind_;
@@ -483,7 +499,8 @@ struct Operation {
 		immutable Remove remove_;
 		immutable Return return_;
 		immutable StackRef stackRef_;
-		immutable Switch switch_;
+		immutable Switch0ToN switch0ToN;
+		immutable SwitchWithValues switchWithValues;
 		immutable Write write_;
 	}
 
@@ -502,7 +519,8 @@ struct Operation {
 	immutable this(immutable Remove a) { kind_ = Kind.remove; remove_ = a; }
 	immutable this(immutable Return a) { kind_ = Kind.return_; return_ = a; }
 	immutable this(immutable StackRef a) { kind_ = Kind.stackRef_; stackRef_ = a; }
-	@trusted immutable this(immutable Switch a) { kind_ = Kind.switch_; switch_ = a; }
+	@trusted immutable this(immutable Switch0ToN a) { kind_ = Kind.switch0ToN; switch0ToN = a; }
+	@trusted immutable this(immutable SwitchWithValues a) { kind_ = Kind.switchWithValues; switchWithValues = a; }
 	immutable this(immutable Write a) { kind_ = Kind.write; write_ = a; }
 }
 

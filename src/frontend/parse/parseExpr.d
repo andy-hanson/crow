@@ -50,7 +50,7 @@ import frontend.parse.lexer :
 	takeNameAndRange,
 	takeNameRest,
 	takeNewlineOrDedentAmount,
-	takeNumber,
+	takeNumberAfterSign,
 	takeOperator,
 	takeOrAddDiagExpected,
 	takeStringPart,
@@ -869,7 +869,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 		case '+':
 		case '-':
 			return isDigit(*lexer.ptr)
-				? handleLiteral(takeNumber(alloc, lexer, some(c == '+' ? Sign.plus : Sign.minus)))
+				? handleLiteral(takeNumberAfterSign(lexer, some(c == '+' ? Sign.plus : Sign.minus)))
 				: handleName(takeOperator(alloc, lexer, begin));
 		default:
 			if (isOperatorChar(c))
@@ -902,7 +902,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 					return handleName(immutable NameAndRange(start, name));
 			} else if (isDigit(c)) {
 				backUp(lexer);
-				return handleLiteral(takeNumber(alloc, lexer, none!Sign));
+				return handleLiteral(takeNumberAfterSign(lexer, none!Sign));
 			} else {
 				backUp(lexer);
 				addDiagUnexpected(alloc, lexer);

@@ -504,7 +504,7 @@ immutable(ConcreteExpr) concretizeIfOption(Alloc)(
 	} else {
 		immutable ConcreteType someType = at(asUnion(body_(mustBeNonPointer(option.type).deref())).members, 1);
 		immutable ConcreteType type = getConcreteType(alloc, ctx, e.type);
-		immutable ConcreteExprKind.Match.Case noneCase = immutable ConcreteExprKind.Match.Case(
+		immutable ConcreteExprKind.MatchUnion.Case noneCase = immutable ConcreteExprKind.MatchUnion.Case(
 			none!(Ptr!ConcreteLocal),
 			concretizeExpr(alloc, ctx, e.else_));
 		// Local for the 'some'
@@ -523,12 +523,11 @@ immutable(ConcreteExpr) concretizeIfOption(Alloc)(
 				valueLocal,
 				allocExpr(alloc, getSomeValue(alloc, range, someLocal, valueLocal.type)),
 				allocExpr(alloc, concretizeWithLocal(alloc, ctx, e.local, lc, e.then)))));
-		immutable ConcreteExprKind.Match.Case someCase = immutable ConcreteExprKind.Match.Case(some(someLocal), then);
-		return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
-			nu!(ConcreteExprKind.Match)(
-				alloc,
-				allocExpr(alloc, option),
-				arrLiteral!(ConcreteExprKind.Match.Case)(alloc, [noneCase, someCase]))));
+		immutable ConcreteExprKind.MatchUnion.Case someCase =
+			immutable ConcreteExprKind.MatchUnion.Case(some(someLocal), then);
+		return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(immutable ConcreteExprKind.MatchUnion(
+			allocExpr(alloc, option),
+			arrLiteral!(ConcreteExprKind.MatchUnion.Case)(alloc, [noneCase, someCase]))));
 	}
 }
 
@@ -549,11 +548,26 @@ immutable(ConcreteExpr) getSomeValue(Alloc)(
 		immutable ConcreteExprKind(immutable ConcreteExprKind.RecordFieldGet(target, field)));
 }
 
-immutable(ConcreteExpr) concretizeMatch(Alloc)(
+immutable(ConcreteExpr) concretizeMatchEnum(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable FileAndRange range,
-	ref immutable Expr.Match e,
+	ref immutable Expr.MatchEnum e,
+) {
+	immutable ConcreteExpr matched = concretizeExpr(alloc, ctx, e.matched);
+	//TODO: If matched is a constant, just compile the relevant case
+	immutable ConcreteType type = getConcreteType(alloc, ctx, e.type);
+	immutable ConcreteExpr[] cases = map!ConcreteExpr(alloc, e.cases, (ref immutable Expr case_) =>
+		concretizeExpr(alloc, ctx, case_));
+	return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
+		nu!(ConcreteExprKind.MatchEnum)(alloc, allocExpr(alloc, matched), cases)));
+}
+
+immutable(ConcreteExpr) concretizeMatchUnion(Alloc)(
+	ref Alloc alloc,
+	ref ConcretizeExprCtx ctx,
+	ref immutable FileAndRange range,
+	ref immutable Expr.MatchUnion e,
 ) {
 	immutable ConcreteExpr matched = concretizeExpr(alloc, ctx, e.matched);
 	immutable ConcreteType ct = getConcreteType_forStructInst(alloc, ctx, e.matchedUnion);
@@ -561,7 +575,7 @@ immutable(ConcreteExpr) concretizeMatch(Alloc)(
 	immutable ConcreteType type = getConcreteType(alloc, ctx, e.type);
 	if (isConstant(matched.kind)) {
 		immutable Constant.Union u = asUnion(asConstant(matched.kind));
-		immutable Expr.Match.Case case_ = at(e.cases, u.memberIndex);
+		immutable Expr.MatchUnion.Case case_ = at(e.cases, u.memberIndex);
 		if (has(case_.local)) {
 			immutable ConcreteType caseType = at(asUnion(body_(matchedUnion)).members, u.memberIndex);
 			immutable LocalOrConstant lc = immutable LocalOrConstant(immutable TypedConstant(caseType, u.arg));
@@ -569,22 +583,22 @@ immutable(ConcreteExpr) concretizeMatch(Alloc)(
 		} else
 			return concretizeExpr(alloc, ctx, case_.then);
 	} else {
-		immutable ConcreteExprKind.Match.Case[] cases = map!(ConcreteExprKind.Match.Case)(
+		immutable ConcreteExprKind.MatchUnion.Case[] cases = map!(ConcreteExprKind.MatchUnion.Case)(
 			alloc,
 			e.cases,
-			(ref immutable Expr.Match.Case case_) {
+			(ref immutable Expr.MatchUnion.Case case_) {
 				if (has(case_.local)) {
 					immutable Ptr!ConcreteLocal local = concretizeLocal(alloc, ctx, force(case_.local));
 					immutable LocalOrConstant lc = immutable LocalOrConstant(local);
 					immutable ConcreteExpr then = concretizeWithLocal(alloc, ctx, force(case_.local), lc, case_.then);
-					return immutable ConcreteExprKind.Match.Case(some(local), then);
+					return immutable ConcreteExprKind.MatchUnion.Case(some(local), then);
 				} else
-					return immutable ConcreteExprKind.Match.Case(
+					return immutable ConcreteExprKind.MatchUnion.Case(
 						none!(Ptr!ConcreteLocal),
 						concretizeExpr(alloc, ctx, case_.then));
 			});
 		return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
-			nu!(ConcreteExprKind.Match)(alloc, allocExpr(alloc, matched), cases)));
+			immutable ConcreteExprKind.MatchUnion(allocExpr(alloc, matched), cases)));
 	}
 }
 
@@ -688,8 +702,10 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 						immutable ConcreteExprKind.LocalRef(local))),
 				(ref immutable TypedConstant it) =>
 					immutable ConcreteExpr(it.type, range, immutable ConcreteExprKind(it.value))),
-		(ref immutable Expr.Match e) =>
-			concretizeMatch(alloc, ctx, range, e),
+		(ref immutable Expr.MatchEnum e) =>
+			concretizeMatchEnum(alloc, ctx, range, e),
+		(ref immutable Expr.MatchUnion e) =>
+			concretizeMatchUnion(alloc, ctx, range, e),
 		(ref immutable Expr.ParamRef e) =>
 			concretizeParamRef(alloc, ctx, range, e),
 		(ref immutable Expr.Seq e) {

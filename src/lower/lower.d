@@ -31,6 +31,7 @@ import model.concreteModel :
 	AllConstantsConcrete,
 	ArrTypeAndConstantsConcrete,
 	asBuiltin,
+	asEnum,
 	asRecord,
 	body_,
 	BuiltinStructKind,
@@ -57,6 +58,7 @@ import model.concreteModel :
 	matchConcreteFunBody,
 	matchConcreteFunSource,
 	matchConcreteStructBody,
+	matchEnum,
 	mustBeNonPointer,
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant;
@@ -117,7 +119,7 @@ import util.opt : asImmutable, force, has, mapOption, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Nat16, safeU16ToU8;
+import util.types : Int32, Nat16, safeU16ToU8;
 import util.util : unreachable, verify;
 
 immutable(Ptr!LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
@@ -252,6 +254,8 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(
 						return some(immutable LowType(PrimitiveType.void_));
 				}
 			},
+			(ref immutable ConcreteStructBody.Enum) =>
+				some(immutable LowType(PrimitiveType.int32)),
 			(ref immutable ConcreteStructBody.ExternPtr it) {
 				immutable size_t i = arrBuilderSize(allExternPtrTypes);
 				add(alloc, allExternPtrTypes, immutable LowExternPtrType(s));
@@ -315,13 +319,14 @@ immutable(LowUnion) getLowUnion(Alloc)(
 	ref GetLowTypeCtx getLowTypeCtx,
 	immutable Ptr!ConcreteStruct s,
 ) {
-	immutable LowType[] members = matchConcreteStructBody(
+	immutable LowType[] members = matchConcreteStructBody!(immutable LowType[])(
 		body_(s),
 		(ref immutable ConcreteStructBody.Builtin it) {
 			verify(it.kind == BuiltinStructKind.fun);
 			return map(alloc, mustGetAt(program.funStructToImpls, s), (ref immutable ConcreteLambdaImpl impl) =>
 				lowTypeFromConcreteType(alloc, getLowTypeCtx, impl.closureType));
 		},
+		(ref immutable ConcreteStructBody.Enum) => unreachable!(immutable LowType[])(),
 		(ref immutable ConcreteStructBody.ExternPtr) => unreachable!(immutable LowType[])(),
 		(ref immutable ConcreteStructBody.Record) => unreachable!(immutable LowType[])(),
 		(ref immutable ConcreteStructBody.Union it) =>
@@ -623,6 +628,8 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 						return none!LowFunIndex;
 				}
 			},
+			(ref immutable ConcreteFunBody.CreateEnum) =>
+				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.CreateRecord) =>
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.Extern) =>
@@ -864,6 +871,8 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 		a,
 		(ref immutable ConcreteFunBody.Builtin it) =>
 			unreachable!(immutable LowFunBody),
+		(ref immutable ConcreteFunBody.CreateEnum) =>
+			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.CreateRecord) =>
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.Extern it) =>
@@ -991,8 +1000,10 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 			getLetExpr(alloc, ctx, exprPos, expr.range, it),
 		(ref immutable ConcreteExprKind.LocalRef it) =>
 			immutable LowExprKind(immutable LowExprKind.LocalRef(mustGetAt_mut(ctx.locals, it.local))),
-		(ref immutable ConcreteExprKind.Match it) =>
-			getMatchExpr(alloc, ctx, exprPos, it),
+		(ref immutable ConcreteExprKind.MatchEnum it) =>
+			getMatchEnumExpr(alloc, ctx, exprPos, it),
+		(ref immutable ConcreteExprKind.MatchUnion it) =>
+			getMatchUnionExpr(alloc, ctx, exprPos, it),
 		(ref immutable ConcreteExprKind.ParamRef it) =>
 			getParamRefExpr(alloc, ctx, it),
 		(ref immutable ConcreteExprKind.RecordFieldGet it) =>
@@ -1082,6 +1093,8 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 			(ref immutable ConcreteFunBody.Builtin) {
 				return getCallBuiltinExpr(alloc, ctx, exprPos, range, type, a);
 			},
+			(ref immutable ConcreteFunBody.CreateEnum it) =>
+				immutable LowExprKind(immutable Constant(immutable Constant.Integral(it.value.raw()))),
 			(ref immutable ConcreteFunBody.CreateRecord) {
 				immutable LowExpr[] args = getArgs(alloc, ctx, a.args);
 				immutable LowExprKind create = immutable LowExprKind(immutable LowExprKind.CreateRecord(args));
@@ -1289,19 +1302,37 @@ immutable(LowExprKind) getLetExpr(Alloc)(
 			allocate(alloc, getLowExpr(alloc, ctx, a.then, exprPos)))));
 }
 
-immutable(LowExprKind) getMatchExpr(Alloc)(
+immutable(LowExprKind) getMatchEnumExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
 	immutable ExprPos exprPos,
-	ref immutable ConcreteExprKind.Match a,
+	ref immutable ConcreteExprKind.MatchEnum a,
+) {
+	immutable ConcreteStructBody.Enum enum_ = asEnum(body_(mustBeNonPointer(a.matchedValue.type).deref()));
+	immutable Ptr!LowExpr matchedValue = allocate(alloc, getLowExpr(alloc, ctx, a.matchedValue, ExprPos.nonTail));
+	immutable LowExpr[] cases = map!LowExpr(alloc, a.cases, (ref immutable ConcreteExpr case_) =>
+		getLowExpr(alloc, ctx, case_, exprPos));
+	return matchEnum!(immutable LowExprKind)(
+		enum_,
+		(immutable size_t) =>
+			immutable LowExprKind(immutable LowExprKind.Switch0ToN(matchedValue, cases)),
+		(immutable Int32[] values) =>
+			immutable LowExprKind(nu!(LowExprKind.SwitchWithValues)(alloc, matchedValue, values, cases)));
+}
+
+immutable(LowExprKind) getMatchUnionExpr(Alloc)(
+	ref Alloc alloc,
+	ref GetLowExprCtx ctx,
+	immutable ExprPos exprPos,
+	ref immutable ConcreteExprKind.MatchUnion a,
 ) {
 	immutable Ptr!LowExpr matched = allocate(alloc, getLowExpr(alloc, ctx, a.matchedValue, ExprPos.nonTail));
-	return immutable LowExprKind(nu!(LowExprKind.Match)(
+	return immutable LowExprKind(nu!(LowExprKind.MatchUnion)(
 		alloc,
 		matched,
-		map(alloc, a.cases, (ref immutable ConcreteExprKind.Match.Case case_) =>
+		map(alloc, a.cases, (ref immutable ConcreteExprKind.MatchUnion.Case case_) =>
 			withOptLowLocal(alloc, ctx, case_.local, (immutable Opt!(Ptr!LowLocal) local) =>
-				immutable LowExprKind.Match.Case(
+				immutable LowExprKind.MatchUnion.Case(
 					local,
 					getLowExpr(alloc, ctx, case_.then, exprPos))))));
 }

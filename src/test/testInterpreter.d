@@ -37,7 +37,7 @@ import interpret.bytecodeWriter :
 	writeRemove,
 	writeReturn,
 	writeStackRef,
-	writeSwitchDelay,
+	writeSwitch0ToNDelay,
 	writeWrite;
 import lower.lowExprHelpers : nat64Type;
 import model.diag : FilesInfo;
@@ -262,7 +262,7 @@ void testSwitchAndJump(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	//TODO: want to test both sides of the switch...
 	immutable StackEntry startStack = getNextStackEntry(writer);
 	writePushConstant(test.dbg, writer, source, immutable Nat64(0));
-	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, immutable Nat32(2));
+	immutable ByteCodeIndex delayed = writeSwitch0ToNDelay(writer, source, immutable Nat16(2));
 	fillDelayedSwitchEntry(writer, delayed, immutable Nat32(0));
 	immutable ByteCodeIndex firstCase = nextByteCodeIndex(writer);
 	writePushConstant(test.dbg, writer, source, immutable Nat64(3));

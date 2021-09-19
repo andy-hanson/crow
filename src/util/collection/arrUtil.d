@@ -130,6 +130,16 @@ immutable(bool) every(T)(
 	return true;
 }
 
+immutable(bool) everyWithIndex(T)(
+	scope immutable T[] arr,
+	scope immutable(bool) delegate(ref immutable T, immutable size_t) @safe @nogc pure nothrow cb,
+) {
+	foreach (immutable size_t i; 0 .. size(arr))
+		if (!cb(at(arr, i), i))
+			return false;
+	return true;
+}
+
 immutable(bool) contains(T)(
 	scope ref immutable T[] arr,
 	scope ref immutable T value,
@@ -695,18 +705,6 @@ void zipPtrFirst(T, U)(
 	return some!(Out[])(cast(immutable) res[0 .. sz]);
 }
 
-immutable(bool) zipSome(In0, In1)(
-	ref immutable In0[] in0,
-	ref immutable In1[] in1,
-	scope immutable(bool) delegate(ref immutable In0, ref immutable In1) @safe @nogc pure nothrow cb,
-) {
-	verify(sizeEq(in0, in1));
-	foreach (immutable size_t i; 0 .. size(in0))
-		if (cb(at(in0, i), at(in1, i)))
-			return true;
-	return false;
-}
-
 immutable(bool) eachCorresponds(T, U)(
 	immutable T[] a,
 	immutable U[] b,
@@ -719,12 +717,20 @@ immutable(bool) eachCorresponds(T, U)(
 	return true;
 }
 
+immutable(bool) arrsCorrespond(T, U)(
+	scope immutable T[] a,
+	scope immutable U[] b,
+	scope immutable(bool) delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow elementsCorrespond,
+) {
+	return sizeEq(a, b) && eachCorresponds!(T, U)(a, b, elementsCorrespond);
+}
+
 immutable(bool) arrEqual(T)(
 	scope immutable T[] a,
 	scope immutable T[] b,
 	scope immutable(bool) delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow elementEqual,
 ) {
-	return sizeEq(a, b) && eachCorresponds!(T, T)(a, b, elementEqual);
+	return arrsCorrespond!(T, T)(a, b, elementEqual);
 }
 
 immutable(Comparison) compareArr(T)(

@@ -52,6 +52,7 @@ import util.repr :
 	Repr,
 	reprArr,
 	reprBool,
+	reprInt,
 	reprNamedRecord,
 	reprNat,
 	reprOpt,
@@ -179,6 +180,8 @@ immutable(Repr) reprFunBody(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable F
 		a,
 		(ref immutable FunBody.Builtin) =>
 			reprSym("builtin"),
+		(ref immutable FunBody.CreateEnum it) =>
+			reprRecord(alloc, "new-enum", [reprInt(it.value)]),
 		(ref immutable FunBody.CreateRecord) =>
 			reprSym("new-record"),
 		(ref immutable FunBody.Extern it) =>
@@ -264,12 +267,17 @@ immutable(Repr) reprExpr(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Expr
 				reprOfConstant(alloc, it.value)]),
 		(ref immutable Expr.LocalRef it) =>
 			reprRecord(alloc, "local-ref", [reprSym(it.local.name)]),
-		(ref immutable Expr.Match a) =>
-			reprRecord(alloc, "match", [
+		(ref immutable Expr.MatchEnum a) =>
+			reprRecord(alloc, "match-enum", [
+				reprExpr(alloc, ctx, a.matched),
+				reprArr(alloc, a.cases, (ref immutable Expr case_) =>
+					reprExpr(alloc, ctx, case_))]),
+		(ref immutable Expr.MatchUnion a) =>
+			reprRecord(alloc, "match-union", [
 				reprExpr(alloc, ctx, a.matched),
 				reprStructInst(alloc, ctx, a.matchedUnion),
-				reprArr(alloc, a.cases, (ref immutable Expr.Match.Case case_) =>
-					reprMatchCase(alloc, ctx, case_))]),
+				reprArr(alloc, a.cases, (ref immutable Expr.MatchUnion.Case case_) =>
+					reprMatchUnionCase(alloc, ctx, case_))]),
 		(ref immutable Expr.ParamRef it) =>
 			reprRecord(alloc, "param-ref", [reprSym(force(it.param.name))]),
 		(ref immutable Expr.Seq a) =>
@@ -298,7 +306,7 @@ immutable(Sym) symOfFunKind(immutable FunKind a) {
 	}
 }
 
-immutable(Repr) reprMatchCase(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Expr.Match.Case a) {
+immutable(Repr) reprMatchUnionCase(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Expr.MatchUnion.Case a) {
 	return reprRecord(alloc, "case", [
 		reprOpt(alloc, a.local, (ref immutable Ptr!Local local) =>
 			reprLocal(alloc, ctx, local)),

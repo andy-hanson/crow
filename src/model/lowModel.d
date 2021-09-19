@@ -23,7 +23,7 @@ import util.opt : none, Opt;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Nat16;
+import util.types : Int32, Nat16;
 import util.util : verify;
 
 struct LowExternPtrType {
@@ -637,7 +637,7 @@ struct LowExprKind {
 	}
 
 	// TODO: compile down to a Switch?
-	struct Match {
+	struct MatchUnion {
 		struct Case {
 			immutable Opt!(Ptr!LowLocal) local;
 			immutable LowExpr then;
@@ -848,8 +848,14 @@ struct LowExprKind {
 		immutable LowExpr[] args;
 	}
 
-	struct Switch {
+	struct Switch0ToN {
 		immutable Ptr!LowExpr value;
+		immutable LowExpr[] cases;
+	}
+
+	struct SwitchWithValues {
+		immutable LowExpr value;
+		immutable Int32[] values;
 		immutable LowExpr[] cases;
 	}
 
@@ -868,7 +874,7 @@ struct LowExprKind {
 		funPtr,
 		let,
 		localRef,
-		match,
+		matchUnion,
 		paramRef,
 		ptrCast,
 		recordFieldGet,
@@ -880,7 +886,8 @@ struct LowExprKind {
 		specialBinary,
 		specialTrinary,
 		specialNAry,
-		switch_,
+		switchWithValues,
+		switch0ToN,
 		tailRecur,
 		zeroed,
 	}
@@ -892,7 +899,7 @@ struct LowExprKind {
 		immutable ConvertToUnion convertToUnion;
 		immutable Let let;
 		immutable LocalRef localRef;
-		immutable Ptr!Match match;
+		immutable Ptr!MatchUnion matchUnion;
 		immutable ParamRef paramRef;
 		immutable PtrCast ptrCast;
 		immutable RecordFieldGet recordFieldGet;
@@ -904,7 +911,8 @@ struct LowExprKind {
 		immutable SpecialBinary specialBinary;
 		immutable Ptr!SpecialTrinary specialTrinary;
 		immutable SpecialNAry specialNAry;
-		immutable Switch switch_;
+		immutable Switch0ToN switch0ToN;
+		immutable Ptr!SwitchWithValues switchWithValues;
 		immutable TailRecur tailRecur;
 		immutable Zeroed zeroed;
 	}
@@ -916,7 +924,7 @@ struct LowExprKind {
 	@trusted immutable this(immutable ConvertToUnion a) { kind = Kind.convertToUnion; convertToUnion = a; }
 	@trusted immutable this(immutable Let a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
-	@trusted immutable this(immutable Ptr!Match a) { kind = Kind.match; match = a; }
+	@trusted immutable this(immutable Ptr!MatchUnion a) { kind = Kind.matchUnion; matchUnion = a; }
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
 	@trusted immutable this(immutable PtrCast a) { kind = Kind.ptrCast; ptrCast = a; }
 	@trusted immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
@@ -928,7 +936,8 @@ struct LowExprKind {
 	@trusted immutable this(immutable SpecialBinary a) { kind = Kind.specialBinary; specialBinary = a; }
 	@trusted immutable this(immutable Ptr!SpecialTrinary a) { kind = Kind.specialTrinary; specialTrinary = a; }
 	@trusted immutable this(immutable SpecialNAry a) { kind = Kind.specialNAry; specialNAry = a; }
-	@trusted immutable this(immutable Switch a) { kind = Kind.switch_; switch_ = a; }
+	@trusted immutable this(immutable Switch0ToN a) { kind = Kind.switch0ToN; switch0ToN = a; }
+	@trusted immutable this(immutable Ptr!SwitchWithValues a) { kind = Kind.switchWithValues; switchWithValues = a; }
 	@trusted immutable this(immutable TailRecur a) { kind = Kind.tailRecur; tailRecur = a; }
 	@trusted immutable this(immutable Zeroed a) { kind = Kind.zeroed; zeroed = a; }
 }
@@ -942,7 +951,7 @@ static assert(LowExprKind.sizeof <= 32);
 	scope T delegate(ref immutable LowExprKind.FunPtr) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(ref immutable LowExprKind.Let) @safe @nogc pure nothrow cbLet,
 	scope T delegate(ref immutable LowExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
-	scope T delegate(ref immutable LowExprKind.Match) @safe @nogc pure nothrow cbMatch,
+	scope T delegate(ref immutable LowExprKind.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
 	scope T delegate(ref immutable LowExprKind.ParamRef) @safe @nogc pure nothrow cbParamRef,
 	scope T delegate(ref immutable LowExprKind.PtrCast) @safe @nogc pure nothrow cbPtrCast,
 	scope T delegate(ref immutable LowExprKind.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
@@ -954,7 +963,8 @@ static assert(LowExprKind.sizeof <= 32);
 	scope T delegate(ref immutable LowExprKind.SpecialBinary) @safe @nogc pure nothrow cbSpecialBinary,
 	scope T delegate(ref immutable LowExprKind.SpecialTrinary) @safe @nogc pure nothrow cbSpecialTrinary,
 	scope T delegate(ref immutable LowExprKind.SpecialNAry) @safe @nogc pure nothrow cbSpecialNAry,
-	scope T delegate(ref immutable LowExprKind.Switch) @safe @nogc pure nothrow cbSwitch,
+	scope T delegate(ref immutable LowExprKind.Switch0ToN) @safe @nogc pure nothrow cbSwitch0ToN,
+	scope T delegate(ref immutable LowExprKind.SwitchWithValues) @safe @nogc pure nothrow cbSwitchWithValues,
 	scope T delegate(ref immutable LowExprKind.TailRecur) @safe @nogc pure nothrow cbTailRecur,
 	scope T delegate(ref immutable LowExprKind.Zeroed) @safe @nogc pure nothrow cbZeroed,
 ) {
@@ -971,8 +981,8 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbLet(a.let);
 		case LowExprKind.Kind.localRef:
 			return cbLocalRef(a.localRef);
-		case LowExprKind.Kind.match:
-			return cbMatch(a.match);
+		case LowExprKind.Kind.matchUnion:
+			return cbMatchUnion(a.matchUnion);
 		case LowExprKind.Kind.paramRef:
 			return cbParamRef(a.paramRef);
 		case LowExprKind.Kind.ptrCast:
@@ -995,8 +1005,10 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbSpecialTrinary(a.specialTrinary);
 		case LowExprKind.Kind.specialNAry:
 			return cbSpecialNAry(a.specialNAry);
-		case LowExprKind.Kind.switch_:
-			return cbSwitch(a.switch_);
+		case LowExprKind.Kind.switch0ToN:
+			return cbSwitch0ToN(a.switch0ToN);
+		case LowExprKind.Kind.switchWithValues:
+			return cbSwitchWithValues(a.switchWithValues);
 		case LowExprKind.Kind.tailRecur:
 			return cbTailRecur(a.tailRecur);
 		case LowExprKind.Kind.zeroed:

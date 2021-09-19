@@ -15,6 +15,7 @@ import interpret.bytecode :
 	StackOffsetBytes;
 import interpret.opcode : OpCode;
 import util.collection.arr : at;
+import util.collection.arrUtil : findIndex;
 import util.collection.byteReader :
 	ByteReader,
 	getPtr,
@@ -28,9 +29,10 @@ import util.collection.byteReader :
 	readU64,
 	setPtr,
 	skipBytes;
+import util.opt : force, has, Opt;
 import util.sym : Sym;
-import util.types : incr, Nat8, Nat16, Nat32, Nat64, safeSizeTFromU64;
-import util.util : unreachable;
+import util.types : incr, Int32, Nat8, Nat16, Nat32, Nat64, safeSizeTFromU64;
+import util.util : todo, unreachable;
 
 struct ByteCodeReader {
 	private:
@@ -111,10 +113,17 @@ void setReaderPtr(ref ByteCodeReader reader, immutable ubyte* bytes) {
 			return immutable Operation(immutable Operation.Return());
 		case OpCode.stackRef:
 			return immutable Operation(immutable Operation.StackRef(readStackOffset(reader)));
-		case OpCode.switch_:
-			immutable Nat32 size = readU32(reader.reader);
-			immutable Nat16[] offsets = readArrayDoNotSkipBytes!Nat16(reader.reader, size.raw());
-			return immutable Operation(immutable Operation.Switch(cast(immutable ByteCodeOffsetUnsigned[]) offsets));
+		case OpCode.switch0ToN:
+			immutable Nat16 size = readU16(reader.reader);
+			immutable ByteCodeOffsetUnsigned[] offsets =
+				readArrayDoNotSkipBytes!ByteCodeOffsetUnsigned(reader.reader, size.raw());
+			return immutable Operation(immutable Operation.Switch0ToN(offsets));
+		case OpCode.switchWithValues:
+			immutable Nat16 size = readU16(reader.reader);
+			immutable Int32[] values = readArray!Int32(reader.reader, size.raw());
+			immutable ByteCodeOffsetUnsigned[] offsets =
+				readArrayDoNotSkipBytes!ByteCodeOffsetUnsigned(reader.reader, size.raw());
+			return immutable Operation(immutable Operation.SwitchWithValues(values, offsets));
 		case OpCode.write:
 			return immutable Operation(immutable Operation.Write(readU16(reader.reader), readU16(reader.reader)));
 	}
@@ -133,6 +142,20 @@ void setReaderPtr(ref ByteCodeReader reader, immutable ubyte* bytes) {
 	// Jump is relative to after value.
 	immutable Nat16 fullOffset = (incr(value) * immutable Nat64(ByteCodeOffsetUnsigned.sizeof)).to16() + offset.offset;
 	readerJump(reader, immutable ByteCodeOffset(fullOffset.toInt16()));
+}
+
+void readerSwitchWithValues(
+	ref ByteCodeReader reader,
+	immutable Nat64 value,
+	immutable Int32[] values,
+	immutable ByteCodeOffsetUnsigned[] offsets,
+) {
+	immutable long valueLong = value.raw();
+	immutable Opt!size_t index = findIndex!Int32(values, (ref immutable Int32 v) => v.raw() == valueLong);
+	if (!has(index))
+		todo!void("!");
+	else
+		readerSwitch(reader, immutable Nat64(force(index)), offsets);
 }
 
 private:

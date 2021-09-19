@@ -65,12 +65,13 @@ import model.model :
 	TypeParam,
 	typeParams,
 	worsePurity;
-import util.collection.arr : at, empty, emptyArr, only, ptrAt, sizeEq;
+import util.collection.arr : at, empty, emptyArr, only, ptrAt, size, sizeEq;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil :
 	arrMax,
 	compareArr,
 	every,
+	everyWithIndex,
 	exists,
 	filterUnordered,
 	fold,
@@ -584,6 +585,13 @@ void initializeConcreteStruct(Alloc)(
 				false));
 			lateSet(res.typeSize_, getBuiltinStructSize(kind));
 		},
+		(ref immutable StructBody.Enum it) {
+			lateSet(res.defaultIsPointer_, false);
+			lateSet(res.info_, immutable ConcreteStructInfo(
+				immutable ConcreteStructBody(getConcreteStructBodyForEnum(alloc, it)),
+				false));
+			lateSet(res.typeSize_, immutable TypeSize(immutable Nat16(4), immutable Nat8(4)));
+		},
 		(ref immutable StructBody.ExternPtr it) {
 			// defaultIsPointer is false because the 'extern' type *is* a pointer
 			lateSet(res.defaultIsPointer_, false);
@@ -635,6 +643,20 @@ void initializeConcreteStruct(Alloc)(
 		});
 }
 
+immutable(ConcreteStructBody.Enum) getConcreteStructBodyForEnum(Alloc)(
+	ref Alloc alloc,
+	ref immutable StructBody.Enum a,
+) {
+	immutable bool simple = everyWithIndex!(StructBody.Enum.Member)(
+		a.members,
+		(ref immutable StructBody.Enum.Member member, immutable size_t index) =>
+			member.value.raw() == index);
+	return simple
+		? immutable ConcreteStructBody.Enum(size(a.members))
+		: immutable ConcreteStructBody.Enum(map(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>
+			member.value));
+}
+
 public void deferredFillRecordAndUnionBodies(Alloc)(ref Alloc alloc, ref ConcretizeCtx ctx) {
 	if (!mutArrIsEmpty(ctx.deferredRecords) || !mutArrIsEmpty(ctx.deferredUnions)) {
 		bool couldGetSomething = false;
@@ -681,6 +703,8 @@ void fillInConcreteFunBody(Alloc)(
 					? bodyForAllTests!Alloc(alloc, ctx, castImmutable(cf).returnType())
 					: immutable ConcreteFunBody(immutable ConcreteFunBody.Builtin(typeArgs(inputs)));
 			},
+			(ref immutable FunBody.CreateEnum it) =>
+				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateEnum(it.value)),
 			(ref immutable FunBody.CreateRecord) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateRecord()),
 			(ref immutable FunBody.Extern e) {

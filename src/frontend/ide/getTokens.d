@@ -224,6 +224,9 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 	matchStructDeclAstBody!void(
 		a.body_,
 		(ref immutable StructDeclAst.Body.Builtin) {},
+		(ref immutable StructDeclAst.Body.Enum) {
+			todo!void("enum");
+		},
 		(ref immutable StructDeclAst.Body.ExternPtr) {},
 		(ref immutable StructDeclAst.Body.Record record) {
 			//TODO: add token for 'packed' modifier

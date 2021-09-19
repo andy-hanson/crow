@@ -2,7 +2,7 @@ module lower.checkLowModel;
 
 @safe @nogc pure nothrow:
 
-import lower.lowExprHelpers : boolType, nat64Type, voidType;
+import lower.lowExprHelpers : boolType, int32Type, nat64Type, voidType;
 import model.constant : Constant;
 import model.lowModel :
 	asFunPtrType,
@@ -120,12 +120,12 @@ void checkLowExpr(Alloc)(
 		(ref immutable LowExprKind.LocalRef it) {
 			checkTypeEqual(alloc, ctx.ctx, type, it.local.type);
 		},
-		(ref immutable LowExprKind.Match it) {
+		(ref immutable LowExprKind.MatchUnion it) {
 			checkLowExpr(alloc, ctx, it.matchedValue.type, it.matchedValue);
-			zip!(LowType, LowExprKind.Match.Case)(
+			zip!(LowType, LowExprKind.MatchUnion.Case)(
 				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(it.matchedValue.type)).members,
 				it.cases,
-				(ref immutable LowType memberType, ref immutable LowExprKind.Match.Case case_) {
+				(ref immutable LowType memberType, ref immutable LowExprKind.MatchUnion.Case case_) {
 					if (has(case_.local))
 						checkTypeEqual(alloc, ctx.ctx, memberType, force(case_.local).type);
 					checkLowExpr(alloc, ctx, type, case_.then);
@@ -203,8 +203,16 @@ void checkLowExpr(Alloc)(
 						});
 			}
 		},
-		(ref immutable LowExprKind.Switch it) {
-			checkLowExpr(alloc, ctx, nat64Type, it.value);
+		(ref immutable LowExprKind.Switch0ToN it) {
+			//TODO: want to allow all integral types here
+			immutable LowType switchedType = lowTypeEqual(int32Type, it.value.type) ? int32Type : nat64Type;
+			checkLowExpr(alloc, ctx, switchedType, it.value);
+			foreach (ref immutable LowExpr case_; it.cases)
+				checkLowExpr(alloc, ctx, type, case_);
+		},
+		(ref immutable LowExprKind.SwitchWithValues it) {
+			immutable LowType switchedType = lowTypeEqual(int32Type, it.value.type) ? int32Type : nat64Type;
+			checkLowExpr(alloc, ctx, switchedType, it.value);
 			foreach (ref immutable LowExpr case_; it.cases)
 				checkLowExpr(alloc, ctx, type, case_);
 		},

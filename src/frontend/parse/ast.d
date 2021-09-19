@@ -26,7 +26,7 @@ import util.repr :
 import util.sourceRange : Pos, reprRangeWithinFile, rangeOfStartAndName, RangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32;
-import util.util : verify;
+import util.util : todo, verify;
 
 struct NameAndRange {
 	@safe @nogc pure nothrow:
@@ -566,6 +566,15 @@ struct StructDeclAst {
 	struct Body {
 		@safe @nogc pure nothrow:
 		struct Builtin {}
+		struct Enum {
+			struct Member {
+				immutable RangeWithinFile range;
+				immutable Sym name;
+				immutable Opt!(LiteralAst.Int) value;
+			}
+
+			immutable Member[] members;
+		}
 		struct ExternPtr {}
 		struct Record {
 			@safe @nogc pure nothrow:
@@ -604,6 +613,7 @@ struct StructDeclAst {
 		private:
 		enum Kind {
 			builtin,
+			enum_,
 			externPtr,
 			record,
 			union_,
@@ -612,6 +622,7 @@ struct StructDeclAst {
 		immutable Kind kind;
 		union {
 			immutable Builtin builtin;
+			immutable Enum enum_;
 			immutable ExternPtr externPtr;
 			immutable Record record;
 			immutable Union union_;
@@ -620,6 +631,7 @@ struct StructDeclAst {
 		public:
 
 		immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+		@trusted immutable this(immutable Enum a) { kind = Kind.enum_; enum_ = a; }
 		immutable this(immutable ExternPtr a) { kind = Kind.externPtr; externPtr = a; }
 		@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
 		@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
@@ -646,6 +658,7 @@ immutable(bool) isUnion(ref immutable StructDeclAst.Body a) {
 @trusted T matchStructDeclAstBody(T)(
 	ref immutable StructDeclAst.Body a,
 	scope T delegate(ref immutable StructDeclAst.Body.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope T delegate(ref immutable StructDeclAst.Body.Enum) @safe @nogc pure nothrow cbEnum,
 	scope T delegate(ref immutable StructDeclAst.Body.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
 	scope T delegate(ref immutable StructDeclAst.Body.Record) @safe @nogc pure nothrow cbRecord,
 	scope T delegate(ref immutable StructDeclAst.Body.Union) @safe @nogc pure nothrow cbUnion,
@@ -653,6 +666,8 @@ immutable(bool) isUnion(ref immutable StructDeclAst.Body a) {
 	final switch (a.kind) {
 		case StructDeclAst.Body.Kind.builtin:
 			return cbBuiltin(a.builtin);
+		case StructDeclAst.Body.Kind.enum_:
+			return cbEnum(a.enum_);
 		case StructDeclAst.Body.Kind.externPtr:
 			return cbExternPtr(a.externPtr);
 		case StructDeclAst.Body.Kind.record:
@@ -936,6 +951,10 @@ immutable(Repr) reprOptExplicitByValOrRefAndRange(Alloc)(
 		reprRecord(alloc, "by-val-ref", [reprNat(it.start), reprSym(symOfExplicitByValOrRef(it.byValOrRef))]));
 }
 
+immutable(Repr) reprEnum(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Enum a) {
+	return todo!(immutable Repr)("!");
+}
+
 immutable(Repr) reprField(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Record.Field a) {
 	return reprRecord(alloc, "field", [
 		reprRangeWithinFile(alloc, a.range),
@@ -962,8 +981,10 @@ immutable(Repr) reprStructBodyAst(Alloc)(ref Alloc alloc, ref immutable StructDe
 		a,
 		(ref immutable StructDeclAst.Body.Builtin) =>
 			reprSym("builtin"),
+		(ref immutable StructDeclAst.Body.Enum e) =>
+			reprEnum(alloc, e),
 		(ref immutable StructDeclAst.Body.ExternPtr) =>
-			reprSym("extern"),
+			reprSym("extern-ptr"),
 		(ref immutable StructDeclAst.Body.Record a) =>
 			reprRecord(alloc, a),
 		(ref immutable StructDeclAst.Body.Union a) =>

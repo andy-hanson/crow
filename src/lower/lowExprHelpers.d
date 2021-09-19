@@ -310,7 +310,7 @@ immutable(LowType.PtrRaw) getElementPtrTypeFromArrType(
 	return asPtrRaw(at(arrRecord.fields, 1).type);
 }
 
-immutable(LowExpr) genSwitch(Alloc)(
+immutable(LowExpr) genSwitch0ToN(Alloc)(
 	ref Alloc alloc,
 	ref immutable LowType type,
 	ref immutable FileAndRange range,
@@ -318,5 +318,5 @@ immutable(LowExpr) genSwitch(Alloc)(
 	ref immutable LowExpr[] cases,
 ) {
 	return immutable LowExpr(type, range, immutable LowExprKind(
-		immutable LowExprKind.Switch(allocate(alloc, value), cases)));
+		immutable LowExprKind.Switch0ToN(allocate(alloc, value), cases)));
 }

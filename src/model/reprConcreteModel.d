@@ -44,6 +44,7 @@ import util.repr :
 	Repr,
 	reprArr,
 	reprBool,
+	reprInt,
 	reprNamedRecord,
 	reprNat,
 	reprOpt,
@@ -95,6 +96,8 @@ immutable(Repr) reprOfConcreteStructBody(Alloc)(ref Alloc alloc, ref immutable C
 		a,
 		(ref immutable ConcreteStructBody.Builtin it) =>
 			reprOfConcreteStructBodyBuiltin(alloc, it),
+		(ref immutable ConcreteStructBody.Enum it) =>
+			reprSym("enum"),
 		(ref immutable ConcreteStructBody.ExternPtr it) =>
 			reprSym("extern-ptr"),
 		(ref immutable ConcreteStructBody.Record it) =>
@@ -181,6 +184,8 @@ immutable(Repr) reprOfConcreteFunBody(Alloc)(ref Alloc alloc, ref immutable Conc
 		a,
 		(ref immutable ConcreteFunBody.Builtin it) =>
 			reprOfConcreteFunBodyBuiltin(alloc, it),
+		(ref immutable ConcreteFunBody.CreateEnum it) =>
+			reprRecord(alloc, "create-enum", [reprInt(it.value)]),
 		(ref immutable ConcreteFunBody.CreateRecord) =>
 			reprSym("new-record"),
 		(ref immutable ConcreteFunBody.Extern it) =>
@@ -265,10 +270,15 @@ immutable(Repr) reprOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Con
 				reprOfConcreteExpr(alloc, it.then)]),
 		(ref immutable ConcreteExprKind.LocalRef it) =>
 			reprRecord(alloc, "local-ref", [reprOfConcreteLocalRef(it.local)]),
-		(ref immutable ConcreteExprKind.Match it) =>
-			reprRecord(alloc, "match", [
+		(ref immutable ConcreteExprKind.MatchEnum it) =>
+			reprRecord(alloc, "match-enum", [
 				reprOfConcreteExpr(alloc, it.matchedValue),
-				reprArr(alloc, it.cases, (ref immutable ConcreteExprKind.Match.Case case_) =>
+				reprArr(alloc, it.cases, (ref immutable ConcreteExpr case_) =>
+					reprOfConcreteExpr(alloc, case_))]),
+		(ref immutable ConcreteExprKind.MatchUnion it) =>
+			reprRecord(alloc, "match-union", [
+				reprOfConcreteExpr(alloc, it.matchedValue),
+				reprArr(alloc, it.cases, (ref immutable ConcreteExprKind.MatchUnion.Case case_) =>
 					reprRecord(alloc, "case", [
 						reprOpt(alloc, case_.local, (ref immutable Ptr!ConcreteLocal local) =>
 							reprOfConcreteLocalRef(local)),

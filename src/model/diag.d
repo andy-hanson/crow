@@ -35,6 +35,7 @@ import util.writerUtils : writePathRelativeToCwd, writePos, writeRangeWithinFile
 
 enum TypeKind {
 	builtin,
+	enum_,
 	externPtr,
 	record,
 	union_,
@@ -148,8 +149,8 @@ struct Diag {
 	struct LocalShadowsPrevious {
 		immutable Sym name;
 	}
-	struct MatchCaseStructNamesDoNotMatch {
-		immutable Ptr!StructInst[] unionMembers;
+	struct MatchCaseNamesDoNotMatch {
+		immutable Sym[] expectedNames;
 	}
 	struct MatchOnNonUnion {
 		immutable Type type;
@@ -274,7 +275,7 @@ struct Diag {
 		lambdaWrongNumberParams,
 		literalOverflow,
 		localShadowsPrevious,
-		matchCaseStructNamesDoNotMatch,
+		matchCaseNamesDoNotMatch,
 		matchOnNonUnion,
 		mutFieldNotAllowed,
 		nameNotFound,
@@ -327,7 +328,7 @@ struct Diag {
 		immutable LambdaWrongNumberParams lambdaWrongNumberParams;
 		immutable LiteralOverflow literalOverflow;
 		immutable LocalShadowsPrevious localShadowsPrevious;
-		immutable MatchCaseStructNamesDoNotMatch matchCaseStructNamesDoNotMatch;
+		immutable MatchCaseNamesDoNotMatch matchCaseNamesDoNotMatch;
 		immutable MatchOnNonUnion matchOnNonUnion;
 		immutable MutFieldNotAllowed mutFieldNotAllowed;
 		immutable NameNotFound nameNotFound;
@@ -407,8 +408,8 @@ struct Diag {
 	@trusted immutable this(immutable LocalShadowsPrevious a) {
 		kind = Kind.localShadowsPrevious; localShadowsPrevious = a;
 	}
-	@trusted immutable this(immutable MatchCaseStructNamesDoNotMatch a) {
-		kind = Kind.matchCaseStructNamesDoNotMatch; matchCaseStructNamesDoNotMatch = a;
+	@trusted immutable this(immutable MatchCaseNamesDoNotMatch a) {
+		kind = Kind.matchCaseNamesDoNotMatch; matchCaseNamesDoNotMatch = a;
 	}
 	@trusted immutable this(immutable MatchOnNonUnion a) {
 		kind = Kind.matchOnNonUnion; matchOnNonUnion = a;
@@ -528,8 +529,8 @@ static assert(Diag.sizeof <= 32);
 		ref immutable Diag.LocalShadowsPrevious
 	) @safe @nogc pure nothrow cbLocalShadowsPrevious,
 	scope immutable(Out) delegate(
-		ref immutable Diag.MatchCaseStructNamesDoNotMatch
-	) @safe @nogc pure nothrow cbMatchCaseStructNamesDoNotMatch,
+		ref immutable Diag.MatchCaseNamesDoNotMatch
+	) @safe @nogc pure nothrow cbMatchCaseNamesDoNotMatch,
 	scope immutable(Out) delegate(
 		ref immutable Diag.MatchOnNonUnion
 	) @safe @nogc pure nothrow cbMatchOnNonUnion,
@@ -646,8 +647,8 @@ static assert(Diag.sizeof <= 32);
 			return cbLiteralOverflow(a.literalOverflow);
 		case Diag.Kind.localShadowsPrevious:
 			return cbLocalShadowsPrevious(a.localShadowsPrevious);
-		case Diag.Kind.matchCaseStructNamesDoNotMatch:
-			return cbMatchCaseStructNamesDoNotMatch(a.matchCaseStructNamesDoNotMatch);
+		case Diag.Kind.matchCaseNamesDoNotMatch:
+			return cbMatchCaseNamesDoNotMatch(a.matchCaseNamesDoNotMatch);
 		case Diag.Kind.matchOnNonUnion:
 			return cbMatchOnNonUnion(a.matchOnNonUnion);
 		case Diag.Kind.mutFieldNotAllowed:

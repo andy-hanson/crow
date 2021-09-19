@@ -40,7 +40,7 @@ import util.opt : force, has, Opt;
 import util.path : AllPaths, eachPathPart, nPathComponents, Path;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : compareSym, Sym, writeSym;
-import util.util : repeat, unreachable;
+import util.util : repeat, todo, unreachable;
 import util.writer : finishWriter, Writer, writeChar, writeStatic, writeStr, writeWithCommas;
 
 immutable(string) document(Alloc, PathAlloc)(
@@ -127,6 +127,9 @@ void writeStructDecl(Alloc)(ref Writer!Alloc writer, ref immutable StructDecl a)
 			writeQuotedSym(writer, a.name);
 			writeTypeParams(writer, typeParams(a));
 			writeStatic(writer, ")");
+		},
+		(ref immutable(StructBody.Enum)) {
+			todo!void("!");
 		},
 		(ref immutable(StructBody.ExternPtr)) {
 			writeStatic(writer, "\n\t\t+externPtrType(");

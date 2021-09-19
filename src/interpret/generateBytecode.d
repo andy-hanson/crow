@@ -49,7 +49,8 @@ import interpret.bytecodeWriter :
 	writeRead,
 	writeRemove,
 	writeReturn,
-	writeSwitchDelay,
+	writeSwitch0ToNDelay,
+	writeSwitchWithValuesDelay,
 	writeWrite;
 import interpret.debugging : writeLowType;
 import interpret.generateText : generateText, getTextInfoForArray, getTextPointer, TextAndInfo, TextArrInfo;
@@ -454,14 +455,15 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 			if (!zero(entries.size))
 				writeDupEntries(dbg, writer, source, entries);
 		},
-		(ref immutable LowExprKind.Match it) {
+		(ref immutable LowExprKind.MatchUnion it) {
 			immutable StackEntry startStack = getNextStackEntry(writer);
 			generateExpr(dbg, tempAlloc, writer, ctx, it.matchedValue);
 			// Move the union kind to top of stack
 			writeDupEntry(dbg, writer, source, startStack);
 			writeRemove(dbg, writer, source, immutable StackEntries(startStack, immutable Nat8(1)));
 			// Get the kind (always the first entry)
-			immutable ByteCodeIndex indexOfFirstCaseOffset = writeSwitchDelay(writer, source, sizeNat(it.cases).to32());
+			immutable ByteCodeIndex indexOfFirstCaseOffset =
+				writeSwitch0ToNDelay(writer, source, sizeNat(it.cases).to16());
 			// Start of the union values is where the kind used to be.
 			immutable StackEntry stackAfterMatched = getNextStackEntry(writer);
 			immutable StackEntries matchedEntriesWithoutKind =
@@ -470,7 +472,7 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 			immutable ByteCodeIndex[] delayedGotos = mapOpWithIndex!ByteCodeIndex(
 				tempAlloc,
 				it.cases,
-				(immutable size_t caseIndex, ref immutable LowExprKind.Match.Case case_) {
+				(immutable size_t caseIndex, ref immutable LowExprKind.MatchUnion.Case case_) {
 					fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, immutable Nat32(safeSizeTToU32(caseIndex)));
 					if (has(case_.local)) {
 						immutable Nat8 nEntries = nStackEntriesForType(ctx, force(case_.local).type);
@@ -541,25 +543,11 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 		(ref immutable LowExprKind.SpecialNAry it) {
 			generateSpecialNAry(dbg, tempAlloc, writer, ctx, source, expr.type, it);
 		},
-		(ref immutable LowExprKind.Switch it) {
-			immutable StackEntry stackBefore = getNextStackEntry(writer);
-			generateExpr(dbg, tempAlloc, writer, ctx, it.value);
-			immutable ByteCodeIndex indexOfFirstCaseOffset = writeSwitchDelay(writer, source, sizeNat(it.cases).to32());
-			// TODO: 'mapOp' is overly complex, all but the last case return 'some'
-			immutable ByteCodeIndex[] delayedGotos = mapOpWithIndex!ByteCodeIndex(
-				tempAlloc,
-				it.cases,
-				(immutable size_t caseIndex, ref immutable LowExpr case_) {
-					fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, immutable Nat32(safeSizeTToU32(caseIndex)));
-					generateExpr(dbg, tempAlloc, writer, ctx, case_);
-					if (caseIndex != size(it.cases) - 1) {
-						setNextStackEntry(writer, stackBefore);
-						return some(writeJumpDelayed(dbg, writer, source));
-					} else
-						return none!ByteCodeIndex;
-				});
-			foreach (immutable ByteCodeIndex jumpIndex; delayedGotos)
-				fillInJumpDelayed(writer, jumpIndex);
+		(ref immutable LowExprKind.Switch0ToN it) {
+			generateSwitch0ToN(dbg, tempAlloc, writer, ctx, source, it);
+		},
+		(ref immutable LowExprKind.SwitchWithValues it) {
+			generateSwitchWithValues(dbg, tempAlloc, writer, ctx, source, it);
 		},
 		(ref immutable LowExprKind.TailRecur it) {
 			immutable StackEntry before = getNextStackEntry(writer);
@@ -577,6 +565,75 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 		(ref immutable LowExprKind.Zeroed) {
 			writePushEmptySpace(dbg, writer, source, nStackEntriesForType(ctx, expr.type).to16());
 		});
+}
+
+void generateSwitch0ToN(Debug, CodeAlloc, TempAlloc)(
+	ref Debug dbg,
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	ref immutable ByteCodeSource source,
+	ref immutable LowExprKind.Switch0ToN it,
+ ) {
+	immutable StackEntry stackBefore = getNextStackEntry(writer);
+	generateExpr(dbg, tempAlloc, writer, ctx, it.value);
+	writeSwitchCases(
+		dbg,
+		tempAlloc,
+		writer,
+		ctx,
+		source,
+		stackBefore,
+		writeSwitch0ToNDelay(writer, source, sizeNat(it.cases).to16()),
+		it.cases);
+}
+
+void generateSwitchWithValues(Debug, CodeAlloc, TempAlloc)(
+	ref Debug dbg,
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	ref immutable ByteCodeSource source,
+	ref immutable LowExprKind.SwitchWithValues it,
+) {
+	immutable StackEntry stackBefore = getNextStackEntry(writer);
+	generateExpr(dbg, tempAlloc, writer, ctx, it.value);
+	writeSwitchCases(
+		dbg,
+		tempAlloc,
+		writer,
+		ctx,
+		source,
+		stackBefore,
+		writeSwitchWithValuesDelay(writer, source, it.values),
+		it.cases);
+}
+
+void writeSwitchCases(Debug, CodeAlloc, TempAlloc)(
+	ref Debug dbg,
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	ref immutable ByteCodeSource source,
+	immutable StackEntry stackBefore,
+	immutable ByteCodeIndex indexOfFirstCaseOffset,
+	immutable LowExpr[] cases,
+ ) {
+	// TODO: 'mapOp' is overly complex, all but the last case return 'some'
+	immutable ByteCodeIndex[] delayedGotos = mapOpWithIndex!ByteCodeIndex(
+		tempAlloc,
+		cases,
+		(immutable size_t caseIndex, ref immutable LowExpr case_) {
+			fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, immutable Nat32(safeSizeTToU32(caseIndex)));
+			generateExpr(dbg, tempAlloc, writer, ctx, case_);
+			if (caseIndex != size(cases) - 1) {
+				setNextStackEntry(writer, stackBefore);
+				return some(writeJumpDelayed(dbg, writer, source));
+			} else
+				return none!ByteCodeIndex;
+		});
+	foreach (immutable ByteCodeIndex jumpIndex; delayedGotos)
+		fillInJumpDelayed(writer, jumpIndex);
 }
 
 void generateArgs(Debug, CodeAlloc, TempAlloc)(
@@ -1229,7 +1286,7 @@ void generateIf(Debug, TempAlloc, CodeAlloc)(
 ) {
 	immutable StackEntry startStack = getNextStackEntry(writer);
 	generateExpr(dbg, tempAlloc, writer, ctx, cond);
-	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, immutable Nat32(2));
+	immutable ByteCodeIndex delayed = writeSwitch0ToNDelay(writer, source, immutable Nat16(2));
 	fillDelayedSwitchEntry(writer, delayed, immutable Nat32(0));
 	cbElse();
 	setNextStackEntry(writer, startStack);

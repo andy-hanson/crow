@@ -61,8 +61,11 @@ enum OpCode : ubyte {
 	// args: u8 stackOffset
 	stackRef,
 
-	// args: u32[nCases] offsets
-	switch_,
+	// args: u16 nCases, u16[nCases] offsets
+	switch0ToN,
+
+	// args: u16 nCases, i32[nCases] values, u16[nCases] offsets
+	switchWithValues,
 
 	// args: u8 offset, u8 size
 	write,

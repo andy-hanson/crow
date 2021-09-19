@@ -4697,7 +4697,7 @@ program(
 				expr(
 					raw-ptr(nat-8)
 					file-range(65535, range(0, 0))
-					switch(
+					switch-n(
 						expr(nat-64, file-range(65535, range(0, 0)), param-ref(0))
 						[
 							expr(
@@ -6344,7 +6344,7 @@ program(
 				expr(
 					record(12)
 					file-range(65535, range(0, 0))
-					switch(
+					switch-n(
 						expr(nat-64, file-range(65535, range(0, 0)), param-ref(0))
 						[
 							expr(record(12), file-range(65535, range(0, 0)), record([arr(0, 28)]))

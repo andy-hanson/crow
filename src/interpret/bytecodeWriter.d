@@ -25,6 +25,7 @@ import util.collection.byteWriter :
 	nextByteIndex,
 	pushBytes,
 	bytePushInt16 = pushInt16,
+	bytePushInt32 = pushInt32,
 	bytePushU8 = pushU8,
 	bytePushU16 = pushU16,
 	bytePushU32 = pushU32,
@@ -34,7 +35,7 @@ import util.collection.byteWriter :
 	writeU16,
 	writeU32;
 import interpret.opcode : OpCode;
-import util.collection.arr : sizeNat;
+import util.collection.arr : size, sizeNat;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
 import util.dbg : dbgLog = log;
@@ -42,7 +43,7 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sym : Sym;
 import util.util : divRoundUp, repeat, verify;
-import util.types : decr, incr, Int16, Nat8, Nat16, Nat32, Nat48, Nat64, NatN, zero;
+import util.types : decr, incr, Int16, Int32, Nat8, Nat16, Nat32, Nat48, Nat64, NatN, zero;
 import util.writer : finishWriter, writeNat, Writer, writeStatic;
 
 struct ByteCodeWriter(Alloc) {
@@ -508,16 +509,34 @@ void writePack(Debug, Alloc)(
 	writer.nextStackEntry += pack.outEntries.to16();
 }
 
-immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(
+immutable(ByteCodeIndex) writeSwitch0ToNDelay(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	immutable Nat32 nCases,
+	immutable Nat16 nCases,
 ) {
-	pushOpcode(writer, source, OpCode.switch_);
-	pushU32(writer, source, nCases);
+	pushOpcode(writer, source, OpCode.switch0ToN);
+	pushU16(writer, source, nCases);
 	writer.nextStackEntry -= 1;
 	immutable ByteCodeIndex addresses = nextByteCodeIndex(writer);
 	foreach (immutable uint i; 0 .. nCases.raw()) {
+		static assert(ByteCodeOffset.sizeof == Nat16.sizeof);
+		pushU16(writer, source, immutable Nat16(0));
+	}
+	return addresses;
+}
+
+immutable(ByteCodeIndex) writeSwitchWithValuesDelay(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	ref immutable ByteCodeSource source,
+	immutable Int32[] values,
+) {
+	pushOpcode(writer, source, OpCode.switchWithValues);
+	pushU16(writer, source, sizeNat(values).to16());
+	foreach (immutable Int32 value; values)
+		pushInt32(writer, source, value);
+	writer.nextStackEntry -= 1;
+	immutable ByteCodeIndex addresses = nextByteCodeIndex(writer);
+	foreach (immutable size_t; 0 .. size(values)) {
 		static assert(ByteCodeOffset.sizeof == Nat16.sizeof);
 		pushU16(writer, source, immutable Nat16(0));
 	}
@@ -670,6 +689,11 @@ private void pushT(T, Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable Byte
 void pushInt16(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Int16 value) {
 	bytePushInt16(writer.byteWriter, value);
 	repeat(Int16.sizeof, () { pushSource(writer, source); });
+}
+
+void pushInt32(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Int32 value) {
+	bytePushInt32(writer.byteWriter, value);
+	repeat(Int32.sizeof, () { pushSource(writer, source); });
 }
 
 void pushU8(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Nat8 value) {

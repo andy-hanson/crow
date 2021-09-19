@@ -319,8 +319,8 @@ immutable(LowFunExprBody) visitUnionBody(Alloc)(
 	ref immutable LowExpr markCtx,
 	ref immutable LowExpr value,
 ) {
-	immutable LowExprKind.Match.Case[] cases =
-		mapWithIndex!(LowExprKind.Match.Case)(
+	immutable LowExprKind.MatchUnion.Case[] cases =
+		mapWithIndex!(LowExprKind.MatchUnion.Case)(
 			alloc,
 			unionMembers,
 			(immutable size_t memberIndex, ref immutable LowType memberType) {
@@ -338,11 +338,11 @@ immutable(LowFunExprBody) visitUnionBody(Alloc)(
 						force(visitMember),
 						voidType,
 						arrLiteral!LowExpr(alloc, [markCtx, getLocal]));
-					return immutable LowExprKind.Match.Case(some(local), then);
+					return immutable LowExprKind.MatchUnion.Case(some(local), then);
 				} else
-					return immutable LowExprKind.Match.Case(none!(Ptr!LowLocal), genVoid(range));
+					return immutable LowExprKind.MatchUnion.Case(none!(Ptr!LowLocal), genVoid(range));
 			});
 	immutable LowExpr expr = immutable LowExpr(voidType, range, immutable LowExprKind(
-		allocate(alloc, immutable LowExprKind.Match(allocate(alloc, value), cases))));
+		allocate(alloc, immutable LowExprKind.MatchUnion(allocate(alloc, value), cases))));
 	return immutable LowFunExprBody(false, allocate(alloc, expr));
 }

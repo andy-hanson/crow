@@ -88,6 +88,9 @@ contexts:
     - match: builtin
       scope: comment
       pop: true
+    - match: enum
+      scope: comment
+      push: enum
     - match: extern-ptr
       scope: comment
       pop: true
@@ -133,6 +136,21 @@ contexts:
     - match: '{{name}}'
       scope: storage.type
       push: type_ending_in_nl
+
+  enum:
+    - match: '{{unindented_line}}'
+      pop: true
+    - match: $
+      push: enum_body
+
+  enum_body:
+    - match: '{{unindented_line}}'
+      pop: true
+    - match: '{{name}}( \= (\d+))?'
+      scope: identifier
+      captures:
+        3: comment
+        4: constant.numeric
 
   record:
     - match: '{{unindented_line}}'

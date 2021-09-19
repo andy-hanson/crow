@@ -7,7 +7,7 @@ import util.collection.arr : at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr;
 import util.ptr : PtrRange;
-import util.types : abs, NatN;
+import util.types : abs, IntN, NatN;
 import util.util : verify;
 
 struct Writer(Alloc) {
@@ -103,6 +103,10 @@ void writeNat(Alloc)(ref Writer!Alloc writer, immutable ulong n, immutable ulong
 private immutable(char) digitChar(immutable ulong digit) {
 	verify(digit < 16);
 	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
+}
+
+void writeInt(Alloc, T)(ref Writer!Alloc writer, immutable IntN!T a, immutable ulong base = 10) {
+	writeInt(writer, a.raw(), base);
 }
 
 void writeInt(Alloc)(ref Writer!Alloc writer, immutable long i, immutable ulong base = 10) {
