@@ -5,14 +5,14 @@ import
 	crow.exception: throw
 	crow.io.print: print
 	crow.misc: void
-	crow.number: ==, to-int32
+	crow.number: to-int32
 	crow.ptr: ptr-to
 	crow.str: str
 	crow.str-conv: finish, interp, to-str, with-str, with-value
 	GLES2.gl2:
-		glBindTexture, glDeleteTextures, glGetError, glGenTextures, GL_LINEAR, GL_NO_ERROR,
+		==, glBindTexture, glDeleteTextures, glGetError, glGenTextures, GL_LINEAR, GL_NO_ERROR,
 		GL_RGBA, glTexImage2D, glTexParameteri, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_MIN_FILTER,
-		GL_TEXTURE_2D, GLuint, GL_UNSIGNED_BYTE
+		GL_TEXTURE_2D, GLuint, GL_UNSIGNED_BYTE, to-str
 	.load-webp: data, height, width, with-webp
 
 # Remember to call 'free-texture'
@@ -27,7 +27,7 @@ load-texture GLuint(path str) unsafe summon
 		h = image.height to-int32
 		data = image data
 		print: "width is {w}, height is {h}"
-		GL_TEXTURE_2D glTexImage2D 0, GL_RGBA.to-int32, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
+		GL_TEXTURE_2D glTexImage2D 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
 
 		err = glGetError
 		if err != GL_NO_ERROR

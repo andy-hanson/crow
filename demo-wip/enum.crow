@@ -3,14 +3,10 @@ import
 
 main fut nat(_ arr str) summon
 	my-e = x
-	b = match my-e
-	as x
-		true
-	as y
-		false
-	print: "{b}"
+	print: "{my-e to-nat8}"
+	print: "{y to-nat8}"
 	0 resolved
 
-e enum
+e enum<nat8>
 	x = 1
 	y = 7

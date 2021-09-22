@@ -7,7 +7,7 @@ import util.collection.arr : size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.repr : Repr, reprArr, reprHex, reprInt, reprNat, reprRecord, reprStr, reprSym;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Int16, Int32, Nat8, Nat16, Nat32, Nat64, zero;
+import util.types : Int16, Nat8, Nat16, Nat32, Nat64, zero;
 import util.sourceRange : FileIndex, Pos;
 import util.util : verify;
 
@@ -445,7 +445,7 @@ struct Operation {
 	}
 
 	struct SwitchWithValues {
-		immutable Int32[] values;
+		immutable Nat64[] values;
 		immutable ByteCodeOffsetUnsigned[] offsets;
 	}
 

@@ -2,7 +2,7 @@ module frontend.parse.lexer;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : LiteralAst, matchLiteralAst, NameAndRange, rangeOfNameAndRange;
+import frontend.parse.ast : LiteralAst, LiteralIntOrNat, matchLiteralAst, NameAndRange, rangeOfNameAndRange;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : allocateBytes;
 import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
@@ -16,7 +16,7 @@ import util.collection.str :
 	NulTerminatedStr,
 	SafeCStr,
 	strOfNulTerminatedStr;
-import util.opt : force, has, none, Opt, optOr;
+import util.opt : force, has, none, Opt, optOr, some;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
@@ -423,14 +423,19 @@ public enum Sign {
 	minus,
 }
 
-public @trusted immutable(LiteralAst.Int) takeInt(SymAlloc)(ref Lexer!SymAlloc lexer) {
-	immutable LiteralAst res = takeNumberAfterSign(lexer, none!Sign);
-	return matchLiteralAst!(LiteralAst.Int)(
+public @trusted immutable(LiteralIntOrNat) takeIntOrNat(SymAlloc)(ref Lexer!SymAlloc lexer) {
+	immutable Opt!Sign sign = tryTake(lexer, '+')
+		? some(Sign.plus)
+		: tryTake(lexer, '-')
+		? some(Sign.minus)
+		: none!Sign;
+	immutable LiteralAst res = takeNumberAfterSign(lexer, sign);
+	return matchLiteralAst!(LiteralIntOrNat)(
 		res,
-		(ref immutable LiteralAst.Float f) => todo!(immutable LiteralAst.Int)("no float in enum"),
-		(ref immutable LiteralAst.Int i) => i,
-		(ref immutable LiteralAst.Nat n) => immutable LiteralAst.Int(n.value, n.overflow || n.value > long.max),
-		(ref immutable string) => unreachable!(immutable LiteralAst.Int));
+		(ref immutable LiteralAst.Float f) => todo!(immutable LiteralIntOrNat)("no float in enum"),
+		(ref immutable LiteralAst.Int i) => immutable LiteralIntOrNat(i),
+		(ref immutable LiteralAst.Nat n) => immutable LiteralIntOrNat(n),
+		(ref immutable string) => unreachable!(immutable LiteralIntOrNat));
 }
 
 public @trusted immutable(LiteralAst) takeNumberAfterSign(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Opt!Sign sign) {

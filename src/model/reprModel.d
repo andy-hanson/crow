@@ -181,9 +181,15 @@ immutable(Repr) reprFunBody(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable F
 		(ref immutable FunBody.Builtin) =>
 			reprSym("builtin"),
 		(ref immutable FunBody.CreateEnum it) =>
-			reprRecord(alloc, "new-enum", [reprInt(it.value)]),
+			reprRecord(alloc, "new-enum", [reprInt(it.value.value)]),
 		(ref immutable FunBody.CreateRecord) =>
 			reprSym("new-record"),
+		(ref immutable FunBody.EnumEqual) =>
+			reprSym("enum-equal"),
+		(ref immutable FunBody.EnumToIntegral) =>
+			reprSym("enum-to-int"),
+		(ref immutable FunBody.EnumToStr) =>
+			reprSym("enum-to-str"),
 		(ref immutable FunBody.Extern it) =>
 			reprRecord(alloc, "extern", [reprBool(it.isGlobal)]),
 		(immutable Ptr!Expr it) =>

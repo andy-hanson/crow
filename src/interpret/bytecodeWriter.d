@@ -18,6 +18,7 @@ import interpret.bytecode :
 	StackOffset,
 	StackOffsetBytes,
 	subtractByteCodeIndex;
+import model.model : EnumValue;
 import util.collection.byteWriter :
 	ByteWriter,
 	finishByteWriter,
@@ -528,12 +529,12 @@ immutable(ByteCodeIndex) writeSwitch0ToNDelay(Alloc)(
 immutable(ByteCodeIndex) writeSwitchWithValuesDelay(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	immutable Int32[] values,
+	immutable EnumValue[] values,
 ) {
 	pushOpcode(writer, source, OpCode.switchWithValues);
 	pushU16(writer, source, sizeNat(values).to16());
-	foreach (immutable Int32 value; values)
-		pushInt32(writer, source, value);
+	foreach (immutable EnumValue value; values)
+		pushU64(writer, source, value.asUnsigned());
 	writer.nextStackEntry -= 1;
 	immutable ByteCodeIndex addresses = nextByteCodeIndex(writer);
 	foreach (immutable size_t; 0 .. size(values)) {

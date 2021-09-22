@@ -562,6 +562,34 @@ struct RecordModifiers {
 	}
 }
 
+struct LiteralIntOrNat {
+	@safe @nogc pure nothrow:
+
+	immutable this(immutable LiteralAst.Int a) { kind = Kind.int_; int_ = a; }
+	immutable this(immutable LiteralAst.Nat a) { kind = Kind.nat; nat = a; }
+
+	private:
+	enum Kind { int_, nat }
+	immutable Kind kind;
+	union {
+		immutable LiteralAst.Int int_;
+		immutable LiteralAst.Nat nat;
+	}
+}
+
+@trusted T matchLiteralIntOrNat(T)(
+	ref immutable LiteralIntOrNat a,
+	scope T delegate(ref immutable LiteralAst.Int) @safe @nogc pure nothrow cbInt,
+	scope T delegate(ref immutable LiteralAst.Nat) @safe @nogc pure nothrow cbNat,
+) {
+	final switch (a.kind) {
+		case LiteralIntOrNat.Kind.int_:
+			return cbInt(a.int_);
+		case LiteralIntOrNat.Kind.nat:
+			return cbNat(a.nat);
+	}
+}
+
 struct StructDeclAst {
 	struct Body {
 		@safe @nogc pure nothrow:
@@ -570,10 +598,11 @@ struct StructDeclAst {
 			struct Member {
 				immutable RangeWithinFile range;
 				immutable Sym name;
-				immutable Opt!(LiteralAst.Int) value;
+				immutable Opt!LiteralIntOrNat value;
 			}
 
-			immutable Member[] members;
+			immutable OptPtr!TypeAst typeArg;
+			immutable ArrWithSize!Member members;
 		}
 		struct ExternPtr {}
 		struct Record {

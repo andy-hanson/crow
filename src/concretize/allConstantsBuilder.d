@@ -21,6 +21,7 @@ import util.collection.mutDict : getOrAdd, MutDict, mustGetAt_mut, mutDictSize, 
 import util.memory : allocate;
 import util.opt : force, has, Opt;
 import util.ptr : comparePtr, Ptr, ptrTrustMe_mut;
+import util.sym : mapSymChars, Sym;
 import util.util : verify;
 
 struct AllConstantsBuilder {
@@ -127,8 +128,36 @@ immutable(Constant) getConstantStr(Alloc)(
 	ref immutable ConcreteType charType,
 	immutable string str,
 ) {
-	immutable Constant[] chars = map(alloc, str, (ref immutable char c) =>
-		immutable Constant(immutable Constant.Integral(c)));
+	return getConstantStrOfChars(
+		alloc, allConstants, strStruct, charType,
+		map!Constant(alloc, str, (ref immutable char it) =>
+			constantChar(it)));
+}
+
+immutable(Constant) getConstantStrOfSym(Alloc)(
+	ref Alloc alloc,
+	ref AllConstantsBuilder allConstants,
+	immutable Ptr!ConcreteStruct strStruct,
+	ref immutable ConcreteType charType,
+	immutable Sym sym,
+) {
+	return getConstantStrOfChars(
+		alloc, allConstants, strStruct, charType,
+		mapSymChars!Constant(alloc, sym, (immutable char it) =>
+			constantChar(it)));
+}
+
+private immutable(Constant) constantChar(immutable char a) {
+	return immutable Constant(immutable Constant.Integral(a));
+}
+
+private immutable(Constant) getConstantStrOfChars(Alloc)(
+	ref Alloc alloc,
+	ref AllConstantsBuilder allConstants,
+	immutable Ptr!ConcreteStruct strStruct,
+	ref immutable ConcreteType charType,
+	immutable Constant[] chars,
+) {
 	immutable Ptr!ConcreteStruct arrCharStruct = mustBeNonPointer(only(asRecord(body_(strStruct)).fields).type);
 	immutable Constant arr = getConstantArr(alloc, allConstants, arrCharStruct, charType, chars);
 	return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [arr])));

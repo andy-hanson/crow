@@ -545,6 +545,11 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeName(writer, d.name);
 			writeStatic(writer, " appears in multiple modules");
 		},
+		(ref immutable Diag.EnumBackingTypeInvalid d) {
+			writeStatic(writer, "type ");
+			writeStructInst(writer, d.actual);
+			writeStatic(writer, " cannot be used to back an enum");
+		},
 		(ref immutable Diag.ExpectedTypeIsNotALambda d) {
 			if (has(d.expectedType)) {
 				writeStatic(writer, "the expected type at the lambda is ");

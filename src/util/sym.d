@@ -2,12 +2,14 @@ module util.sym;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : allocateBytes;
 import util.collection.arr : at, empty, first, last, only, size;
 import util.collection.arrUtil : contains, every, findIndex, tail;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
 import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
 import util.collection.str : CStr, strEq, strOfCStr, strToCStr;
 import util.comparison : Comparison;
+import util.memory : initMemory;
 import util.opt : has, Opt, force, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.util : unreachable, verify;
@@ -222,10 +224,30 @@ void eachCharInSym(immutable Sym a, scope void delegate(immutable char) @safe @n
 
 immutable(size_t) symSize(immutable Sym a) {
 	size_t size = 0;
-	a.eachCharInSym((immutable char) {
+	eachCharInSym(a, (immutable char) {
 		size++;
 	});
 	return size;
+}
+
+@trusted immutable(Out[]) mapSymChars(Out, Alloc)(
+	ref Alloc alloc,
+	immutable Sym a,
+	scope immutable(Out) delegate(immutable char) @safe @nogc pure nothrow cb,
+) {
+	immutable size_t size = symSize(a);
+	Out* res = cast(Out*) allocateBytes(alloc, Out.sizeof * size);
+	Out* cur = res;
+	eachCharInSym(a, (immutable char it) {
+		initMemory(cur, cb(it));
+		cur = trustedIncPtr(cur);
+	});
+	verify(cur == res + size);
+	return cast(immutable) res[0 .. size];
+}
+
+private @trusted T* trustedIncPtr(T)(T* cur) {
+	return cur + 1;
 }
 
 immutable(Comparison) compareSym(immutable Sym a, immutable Sym b) {

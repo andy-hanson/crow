@@ -13,7 +13,7 @@ import frontend.parse.ast :
 	FunDeclAst,
 	ImportAst,
 	ImportsOrExportsAst,
-	LiteralAst,
+	LiteralIntOrNat,
 	ParamAst,
 	PuritySpecifier,
 	PuritySpecifierAndRange,
@@ -45,7 +45,7 @@ import frontend.parse.lexer :
 	takeIndentOrDiagTopLevel,
 	takeIndentOrDiagTopLevelAfterNewline,
 	takeIndentOrFailGeneric,
-	takeInt,
+	takeIntOrNat,
 	takeName,
 	takeNameAllowReserved,
 	takeNameAsTempStr,
@@ -63,7 +63,7 @@ import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, arrWithSizeBuilderIsEmpty, finishArr;
 import util.collection.str : CStr, NulTerminatedStr, SafeCStr;
 import util.memory : allocate, nu;
-import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, some, somePtr;
+import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some, somePtr;
 import util.path : AllPaths, childPath, Path, rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
@@ -387,6 +387,7 @@ enum NonFunKeyword {
 
 struct NonFunKeywordAndIndent {
 	immutable NonFunKeyword keyword;
+	immutable OptPtr!TypeAst typeArgument; // only parsed for enum
 	immutable SpaceOrNewlineOrIndent after;
 }
 
@@ -407,10 +408,11 @@ immutable(Opt!NonFunKeywordAndIndent) tryTakeKw(Alloc, SymAlloc)(
 	immutable NonFunKeyword keyword
 ) {
 	return tryTake(lexer, kwSpace)
-		? some(NonFunKeywordAndIndent(keyword, SpaceOrNewlineOrIndent.space))
+		? some(immutable NonFunKeywordAndIndent(keyword, nonePtr!TypeAst, SpaceOrNewlineOrIndent.space))
 		: tryTake(lexer, kwNl)
-		? some(NonFunKeywordAndIndent(
+		? some(immutable NonFunKeywordAndIndent(
 			keyword,
+			nonePtr!TypeAst,
 			spaceOrNewlineOrIndentFromNewlineOrIndent(tryTakeIndentAfterNewline_topLevel(alloc, lexer))))
 		: none!NonFunKeywordAndIndent;
 }
@@ -426,11 +428,23 @@ immutable(Opt!NonFunKeywordAndIndent) parseNonFunKeyword(Alloc, SymAlloc)(ref Al
 				? res
 				: tryTakeKw(alloc, lexer, "builtin-spec ", "builtin-spec\n", NonFunKeyword.builtinSpec);
 		case 'e':
-			immutable Opt!NonFunKeywordAndIndent res =
-				tryTakeKw(alloc, lexer, "enum ", "enum\n", NonFunKeyword.enum_);
-			return has(res)
-				? res
-				: tryTakeKw(alloc, lexer, "extern-ptr ", "extern-ptr\n", NonFunKeyword.externPtr);
+			if (tryTake(lexer, "enum<")) {
+				immutable TypeAst typeArg = parseType(alloc, lexer);
+				takeTypeArgsEnd(alloc, lexer);
+				immutable SpaceOrNewlineOrIndent after = tryTake(lexer, ' ')
+					? SpaceOrNewlineOrIndent.space
+					: spaceOrNewlineOrIndentFromNewlineOrIndent(takeNewlineOrIndent_topLevel(alloc, lexer));
+				return some(immutable NonFunKeywordAndIndent(
+					NonFunKeyword.enum_,
+					somePtr(allocate(alloc, typeArg)),
+					after));
+			} else {
+				immutable Opt!NonFunKeywordAndIndent res =
+					tryTakeKw(alloc, lexer, "enum ", "enum\n", NonFunKeyword.enum_);
+				return has(res)
+					? res
+					: tryTakeKw(alloc, lexer, "extern-ptr ", "extern-ptr\n", NonFunKeyword.externPtr);
+			}
 		case 'r':
 			return tryTakeKw(alloc, lexer, "record ", "record\n", NonFunKeyword.record);
 		case 's':
@@ -445,20 +459,21 @@ immutable(Opt!NonFunKeywordAndIndent) parseNonFunKeyword(Alloc, SymAlloc)(ref Al
 immutable(StructDeclAst.Body.Enum) parseEnumBody(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
+	immutable OptPtr!TypeAst typeArg,
 ) {
-	ArrBuilder!(StructDeclAst.Body.Enum.Member) res;
+	ArrWithSizeBuilder!(StructDeclAst.Body.Enum.Member) res;
 	immutable(StructDeclAst.Body.Enum) recur() {
 		immutable Pos start = curPos(lexer);
 		immutable Sym name = takeName(alloc, lexer);
-		immutable Opt!(LiteralAst.Int) value = tryTake(lexer, " = ")
-			? some(takeInt(lexer))
-			: none!(LiteralAst.Int);
+		immutable Opt!LiteralIntOrNat value = tryTake(lexer, " = ")
+			? some(takeIntOrNat(lexer))
+			: none!LiteralIntOrNat;
 		add(alloc, res, immutable StructDeclAst.Body.Enum.Member(range(lexer, start), name, value));
 		final switch (takeNewlineOrSingleDedent(alloc, lexer)) {
 			case NewlineOrDedent.newline:
 				return recur();
 			case NewlineOrDedent.dedent:
-				return immutable StructDeclAst.Body.Enum(finishArr(alloc, res));
+				return immutable StructDeclAst.Body.Enum(typeArg, finishArr(alloc, res));
 		}
 	}
 	return recur();
@@ -774,125 +789,145 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 		}
 	} else {
 		immutable Opt!NonFunKeywordAndIndent opKwAndIndent = parseNonFunKeyword(alloc, lexer);
-		if (has(opKwAndIndent)) {
-			immutable NonFunKeywordAndIndent kwAndIndent = force(opKwAndIndent);
-			immutable NonFunKeyword kw = kwAndIndent.keyword;
-			immutable SpaceOrNewlineOrIndent after = kwAndIndent.after;
-			immutable Opt!PuritySpecifierAndRange purity = after == SpaceOrNewlineOrIndent.space
-				? parsePurity(alloc, lexer)
-				: none!PuritySpecifierAndRange;
+		if (has(opKwAndIndent))
+			handleNonFunKeywordAndIndent(
+				alloc, lexer, specs, structAliases, structs, docComment, start,
+				isPublic, name, typeParams, force(opKwAndIndent));
+		else
+			add(alloc, funs, parseFun(alloc, lexer, docComment, isPublic, start, name, typeParams));
+	}
+}
 
-			immutable bool tookIndent = () {
-				final switch (after) {
-					case SpaceOrNewlineOrIndent.space:
-						return takeNewlineOrIndent_topLevel(alloc, lexer) == NewlineOrIndent.indent;
-					case SpaceOrNewlineOrIndent.newline:
-						return false;
-					case SpaceOrNewlineOrIndent.indent:
-						return true;
+void handleNonFunKeywordAndIndent(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	ref ArrBuilder!SpecDeclAst specs,
+	ref ArrBuilder!StructAliasAst structAliases,
+	ref ArrBuilder!StructDeclAst structs,
+	immutable SafeCStr docComment,
+	immutable Pos start,
+	immutable bool isPublic,
+	immutable Sym name,
+	immutable ArrWithSize!TypeParamAst typeParams,
+	immutable NonFunKeywordAndIndent kwAndIndent,
+) {
+	immutable NonFunKeyword kw = kwAndIndent.keyword;
+	immutable OptPtr!TypeAst typeArg = kwAndIndent.typeArgument;
+	immutable SpaceOrNewlineOrIndent after = kwAndIndent.after;
+	immutable Opt!PuritySpecifierAndRange purity = after == SpaceOrNewlineOrIndent.space
+		? parsePurity(alloc, lexer)
+		: none!PuritySpecifierAndRange;
+
+	immutable bool tookIndent = () {
+		final switch (after) {
+			case SpaceOrNewlineOrIndent.space:
+				return takeNewlineOrIndent_topLevel(alloc, lexer) == NewlineOrIndent.indent;
+			case SpaceOrNewlineOrIndent.newline:
+				return false;
+			case SpaceOrNewlineOrIndent.indent:
+				return true;
+		}
+	}();
+
+	final switch (kw) {
+		case NonFunKeyword.alias_:
+			if (!tookIndent)
+				todo!void("always indent alias");
+			if (has(purity))
+				todo!void("alias shouldn't have purity");
+			immutable Ptr!TypeAst target = allocate(alloc, parseType(alloc, lexer));
+			takeDedentFromIndent1(alloc, lexer);
+			add(
+				alloc,
+				structAliases,
+				immutable StructAliasAst(range(lexer, start), docComment, isPublic, name, typeParams, target));
+			break;
+		case NonFunKeyword.builtinSpec:
+			if (tookIndent)
+				todo!void("builtin-spec has no body");
+			if (has(purity))
+				todo!void("spec shouldn't have purity");
+			add(alloc, specs, immutable SpecDeclAst(
+				range(lexer, start),
+				docComment,
+				isPublic,
+				name,
+				typeParams,
+				SpecBodyAst(SpecBodyAst.Builtin())));
+			break;
+		case NonFunKeyword.spec:
+			if (!tookIndent)
+				todo!void("always indent spec");
+			if (has(purity))
+				todo!void("spec shouldn't have purity");
+			immutable SigAst[] sigs = parseIndentedSigs(alloc, lexer);
+			add(
+				alloc,
+				specs,
+				immutable SpecDeclAst(
+					range(lexer, start),
+					docComment,
+					isPublic,
+					name,
+					typeParams,
+					immutable SpecBodyAst(sigs)));
+			break;
+		case NonFunKeyword.builtin:
+		case NonFunKeyword.enum_:
+		case NonFunKeyword.externPtr:
+		case NonFunKeyword.record:
+		case NonFunKeyword.union_:
+			immutable StructDeclAst.Body body_ = () {
+				final switch (kw) {
+					case NonFunKeyword.alias_:
+					case NonFunKeyword.builtinSpec:
+					case NonFunKeyword.spec:
+						return unreachable!(immutable StructDeclAst.Body);
+					case NonFunKeyword.builtin:
+						if (tookIndent)
+							todo!void("shouldn't indent after builtin");
+						return immutable StructDeclAst.Body(immutable StructDeclAst.Body.Builtin());
+					case NonFunKeyword.enum_:
+						return immutable StructDeclAst.Body(tookIndent
+							? parseEnumBody(alloc, lexer, typeArg)
+							: immutable StructDeclAst.Body.Enum(
+								nonePtr!TypeAst,
+								emptyArrWithSize!(StructDeclAst.Body.Enum.Member)));
+					case NonFunKeyword.externPtr:
+						if (tookIndent)
+							todo!void("shouldn't indent after 'extern'");
+						return immutable StructDeclAst.Body(immutable StructDeclAst.Body.ExternPtr());
+					case NonFunKeyword.record:
+						return immutable StructDeclAst.Body(tookIndent
+							? parseRecordBody(alloc, lexer)
+							: immutable StructDeclAst.Body.Record(
+								nonePtr!RecordModifiers,
+								emptyArrWithSize!(StructDeclAst.Body.Record.Field)));
+					case NonFunKeyword.union_:
+						return immutable StructDeclAst.Body(
+							immutable StructDeclAst.Body.Union(() {
+								if (tookIndent)
+									return parseUnionMembers(alloc, lexer);
+								else {
+									addDiagAtChar(alloc, lexer, immutable ParseDiag(
+										immutable ParseDiag.UnionCantBeEmpty()));
+									return emptyArr!(TypeAst.InstStruct);
+								}
+							}()));
 				}
 			}();
-
-			final switch (kw) {
-				case NonFunKeyword.alias_:
-					if (!tookIndent)
-						todo!void("always indent alias");
-					if (has(purity))
-						todo!void("alias shouldn't have purity");
-					immutable Ptr!TypeAst target = allocate(alloc, parseType(alloc, lexer));
-					takeDedentFromIndent1(alloc, lexer);
-					add(
-						alloc,
-						structAliases,
-						immutable StructAliasAst(range(lexer, start), docComment, isPublic, name, typeParams, target));
-					break;
-				case NonFunKeyword.builtinSpec:
-					if (tookIndent)
-						todo!void("builtin-spec has no body");
-					if (has(purity))
-						todo!void("spec shouldn't have purity");
-					add(alloc, specs, immutable SpecDeclAst(
-						range(lexer, start),
-						docComment,
-						isPublic,
-						name,
-						typeParams,
-						SpecBodyAst(SpecBodyAst.Builtin())));
-					break;
-				case NonFunKeyword.spec:
-					if (!tookIndent)
-						todo!void("always indent spec");
-					if (has(purity))
-						todo!void("spec shouldn't have purity");
-					immutable SigAst[] sigs = parseIndentedSigs(alloc, lexer);
-					add(
-						alloc,
-						specs,
-						immutable SpecDeclAst(
-							range(lexer, start),
-							docComment,
-							isPublic,
-							name,
-							typeParams,
-							immutable SpecBodyAst(sigs)));
-					break;
-				case NonFunKeyword.builtin:
-				case NonFunKeyword.enum_:
-				case NonFunKeyword.externPtr:
-				case NonFunKeyword.record:
-				case NonFunKeyword.union_:
-					immutable StructDeclAst.Body body_ = () {
-						final switch (kw) {
-							case NonFunKeyword.alias_:
-							case NonFunKeyword.builtinSpec:
-							case NonFunKeyword.spec:
-								return unreachable!(immutable StructDeclAst.Body);
-							case NonFunKeyword.builtin:
-								if (tookIndent)
-									todo!void("shouldn't indent after builtin");
-								return immutable StructDeclAst.Body(immutable StructDeclAst.Body.Builtin());
-							case NonFunKeyword.enum_:
-								return immutable StructDeclAst.Body(tookIndent
-									? parseEnumBody(alloc, lexer)
-									: immutable StructDeclAst.Body.Enum(emptyArr!(StructDeclAst.Body.Enum.Member)));
-							case NonFunKeyword.externPtr:
-								if (tookIndent)
-									todo!void("shouldn't indent after 'extern'");
-								return immutable StructDeclAst.Body(immutable StructDeclAst.Body.ExternPtr());
-							case NonFunKeyword.record:
-								return immutable StructDeclAst.Body(tookIndent
-									? parseRecordBody(alloc, lexer)
-									: immutable StructDeclAst.Body.Record(
-										nonePtr!RecordModifiers,
-										emptyArrWithSize!(StructDeclAst.Body.Record.Field)));
-							case NonFunKeyword.union_:
-								return immutable StructDeclAst.Body(
-									immutable StructDeclAst.Body.Union(() {
-										if (tookIndent)
-											return parseUnionMembers(alloc, lexer);
-										else {
-											addDiagAtChar(alloc, lexer, immutable ParseDiag(
-												immutable ParseDiag.UnionCantBeEmpty()));
-											return emptyArr!(TypeAst.InstStruct);
-										}
-									}()));
-						}
-					}();
-					add(
-						alloc,
-						structs,
-						immutable StructDeclAst(
-							range(lexer, start),
-							docComment,
-							isPublic,
-							name,
-							typeParams,
-							purity,
-							body_));
-					break;
-			}
-		} else
-			add(alloc, funs, parseFun(alloc, lexer, docComment, isPublic, start, name, typeParams));
+			add(
+				alloc,
+				structs,
+				immutable StructDeclAst(
+					range(lexer, start),
+					docComment,
+					isPublic,
+					name,
+					typeParams,
+					purity,
+					body_));
+			break;
 	}
 }
 

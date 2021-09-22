@@ -64,7 +64,8 @@ enum OpCode : ubyte {
 	// args: u16 nCases, u16[nCases] offsets
 	switch0ToN,
 
-	// args: u16 nCases, i32[nCases] values, u16[nCases] offsets
+	// args: u16 nCases, u64[nCases] values, u16[nCases] offsets
+	// NOTE: values may actually be signed, it doesn't matter as we're just comparing the bits.
 	switchWithValues,
 
 	// args: u8 offset, u8 size

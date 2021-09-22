@@ -1,0 +1,53 @@
+include ../pug-include/tutorial.pug
++tutorialPage("union")
+	section
+		h2 Enums
+
+		p.
+			An enum is a value with a specific set of possibilities.
+
+		crow-runnable(src="enum")
+
+		p.
+			Like with records, defining an enum type defines several other functions as side effects:
+
+		ul
+			li.
+				<code class="fun-def">up</code> and <code class="fun-def">down</code>
+				functions for creating enum values.
+			li.
+				<code class="fun-def">==</code> for comparing values.
+				(There is a <code class="fun-def">!=</code> template
+				that works on any type with <code class="fun-def">==</code>)
+			li.
+				<code class="fun-def">to-str</code> which gives the name from an enum member.
+
+		p.
+			Again as with records, the functions have no special connection to the type
+			other than being auto-generated from it.
+
+	h3 match
+		p.
+			There is also a <code class="keyword">match</code> syntax for using enums.
+			<br />
+			This works similar to <code class="keyword">switch</code> from C, though each case is an expression,
+			and the entire <code class="keyword">match</code> is also itself an expression.
+			<br />
+			That means there's no need to explicitly <code class="keyword">return</code> or
+			<code class="keyword">break</code> like it is in C.
+
+		p.
+			Each case of the match is introduced by the <code class="keyword">as</code> keyword,
+			and the case body is indented.
+			<br />
+			The cases must have the same order as the enum does, and there must be a case for every enum member.
+
+	h3 C-style enums
+		p.
+			For compatibility with C libraries, you can also explicitly specify the values used in an enum.
+			<br />
+			It's a compile error to repeat a value.
+			<br />
+			Each ommitted value is 1 greater than the previous value.
+
+		crow-runnable(src="enum-explicit-value")

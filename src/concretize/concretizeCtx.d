@@ -2,7 +2,7 @@ module concretize.concretizeCtx;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantStr;
+import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantStr, getConstantStrOfSym;
 import concretize.concretizeExpr : concretizeExpr;
 import model.concreteModel :
 	asFunInst,
@@ -35,6 +35,7 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model :
+	asEnum,
 	body_,
 	CommonTypes,
 	decl,
@@ -65,7 +66,7 @@ import model.model :
 	TypeParam,
 	typeParams,
 	worsePurity;
-import util.collection.arr : at, empty, emptyArr, only, ptrAt, size, sizeEq;
+import util.collection.arr : at, empty, emptyArr, only, onlyPtr, ptrAt, size, sizeEq;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil :
 	arrMax,
@@ -285,6 +286,13 @@ immutable(Constant) constantStr(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, imm
 	immutable ConcreteType strType = strType(alloc, a);
 	immutable Ptr!ConcreteStruct strStruct = mustBeNonPointer(strType);
 	return getConstantStr(alloc, a.allConstants, strStruct, charType, value);
+}
+
+private immutable(Constant) constantStrOfSym(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, immutable Sym value) {
+	immutable ConcreteType charType = charType(alloc, a);
+	immutable ConcreteType strType = strType(alloc, a);
+	immutable Ptr!ConcreteStruct strStruct = mustBeNonPointer(strType);
+	return getConstantStrOfSym(alloc, a.allConstants, strStruct, charType, value);
 }
 
 immutable(Ptr!ConcreteFun) getOrAddConcreteFunAndFillBody(Alloc)(
@@ -650,7 +658,7 @@ immutable(ConcreteStructBody.Enum) getConcreteStructBodyForEnum(Alloc)(
 	immutable bool simple = everyWithIndex!(StructBody.Enum.Member)(
 		a.members,
 		(ref immutable StructBody.Enum.Member member, immutable size_t index) =>
-			member.value.raw() == index);
+			member.value.value == index);
 	return simple
 		? immutable ConcreteStructBody.Enum(size(a.members))
 		: immutable ConcreteStructBody.Enum(map(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>
@@ -707,6 +715,12 @@ void fillInConcreteFunBody(Alloc)(
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateEnum(it.value)),
 			(ref immutable FunBody.CreateRecord) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateRecord()),
+			(ref immutable FunBody.EnumEqual) =>
+				immutable ConcreteFunBody(immutable ConcreteFunBody.EnumEqual()),
+			(ref immutable FunBody.EnumToIntegral) =>
+				immutable ConcreteFunBody(immutable ConcreteFunBody.EnumToIntegral()),
+			(ref immutable FunBody.EnumToStr) =>
+				bodyForEnumToStr(alloc, ctx, castImmutable(cf)),
 			(ref immutable FunBody.Extern e) {
 				if (has(e.libraryName))
 					//TODO: don't always copy
@@ -726,12 +740,38 @@ void fillInConcreteFunBody(Alloc)(
 	}
 }
 
+immutable(ConcreteFunBody) bodyForEnumToStr(Alloc)(
+	ref Alloc alloc,
+	ref ConcretizeCtx ctx,
+	immutable Ptr!ConcreteFun cf,
+) {
+	immutable ConcreteType strType = cf.returnType;
+	immutable Ptr!ConcreteParam param = onlyPtr(cf.paramsExcludingCtxAndClosure);
+	immutable ConcreteType enumType = param.type;
+	immutable ConcreteExpr[] cases = map!(ConcreteExpr, StructBody.Enum.Member, Alloc)(
+		alloc,
+		asEnum(body_(decl(asInst(mustBeNonPointer(enumType).source).inst).deref())).members,
+		(ref immutable StructBody.Enum.Member member) =>
+			immutable ConcreteExpr(
+				strType,
+				FileAndRange.empty,
+				immutable ConcreteExprKind(constantStrOfSym(alloc, ctx, member.name))));
+	immutable ConcreteExpr matchedValue = immutable ConcreteExpr(
+		enumType,
+		FileAndRange.empty,
+		immutable ConcreteExprKind(immutable ConcreteExprKind.ParamRef(param)));
+	immutable ConcreteExpr body_ = immutable ConcreteExpr(
+		strType,
+		FileAndRange.empty,
+		immutable ConcreteExprKind(immutable ConcreteExprKind.MatchEnum(allocate(alloc, matchedValue), cases)));
+	return immutable ConcreteFunBody(immutable ConcreteFunExprBody(allocate(alloc, body_)));
+}
+
 immutable(ConcreteFunBody) bodyForAllTests(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	immutable ConcreteType returnType,
 ) {
-	// Step 1: collect all tests
 	ArrBuilder!Test allTestsBuilder;
 	foreach (immutable Ptr!Module m; ctx.program.allModules)
 		addAll(alloc, allTestsBuilder, m.tests);

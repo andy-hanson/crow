@@ -31,7 +31,7 @@ import util.collection.byteReader :
 	skipBytes;
 import util.opt : force, has, Opt;
 import util.sym : Sym;
-import util.types : incr, Int32, Nat8, Nat16, Nat32, Nat64, safeSizeTFromU64;
+import util.types : incr, Nat8, Nat16, Nat32, Nat64, safeSizeTFromU64;
 import util.util : todo, unreachable;
 
 struct ByteCodeReader {
@@ -120,7 +120,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable ubyte* bytes) {
 			return immutable Operation(immutable Operation.Switch0ToN(offsets));
 		case OpCode.switchWithValues:
 			immutable Nat16 size = readU16(reader.reader);
-			immutable Int32[] values = readArray!Int32(reader.reader, size.raw());
+			immutable Nat64[] values = readArray!Nat64(reader.reader, size.raw());
 			immutable ByteCodeOffsetUnsigned[] offsets =
 				readArrayDoNotSkipBytes!ByteCodeOffsetUnsigned(reader.reader, size.raw());
 			return immutable Operation(immutable Operation.SwitchWithValues(values, offsets));
@@ -147,11 +147,11 @@ void setReaderPtr(ref ByteCodeReader reader, immutable ubyte* bytes) {
 void readerSwitchWithValues(
 	ref ByteCodeReader reader,
 	immutable Nat64 value,
-	immutable Int32[] values,
+	immutable Nat64[] values,
 	immutable ByteCodeOffsetUnsigned[] offsets,
 ) {
 	immutable long valueLong = value.raw();
-	immutable Opt!size_t index = findIndex!Int32(values, (ref immutable Int32 v) => v.raw() == valueLong);
+	immutable Opt!size_t index = findIndex!Nat64(values, (ref immutable Nat64 v) => v.raw() == valueLong);
 	if (!has(index))
 		todo!void("!");
 	else

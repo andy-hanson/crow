@@ -436,7 +436,7 @@ immutable(T[]) copyArr(T, Alloc)(ref Alloc alloc, immutable T[] a) {
 
 @trusted immutable(Out[]) mapWithSoFar(Out, In, Alloc)(
 	ref Alloc alloc,
-	ref immutable In[] inputs,
+	scope immutable In[] inputs,
 	scope immutable(Out) delegate(
 		ref immutable In,
 		ref immutable Out[],

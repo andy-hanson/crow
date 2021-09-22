@@ -16,14 +16,14 @@ import model.concreteModel :
 	typeSize,
 	TypeSize;
 import model.constant : Constant;
-import model.model : asRecord, body_;
+import model.model : asRecord, body_, EnumValue;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.comparison : compareEnum, compareSizeT, Comparison;
 import util.opt : none, Opt;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Int32, Nat16;
+import util.types : Nat16;
 import util.util : verify;
 
 struct LowExternPtrType {
@@ -708,6 +708,7 @@ struct LowExprKind {
 			bitsNotNat64,
 			countOnesNat64,
 			deref,
+			enumToIntegral,
 			isNanFloat32,
 			isNanFloat64,
 			ptrTo,
@@ -855,7 +856,7 @@ struct LowExprKind {
 
 	struct SwitchWithValues {
 		immutable LowExpr value;
-		immutable Int32[] values;
+		immutable EnumValue[] values;
 		immutable LowExpr[] cases;
 	}
 

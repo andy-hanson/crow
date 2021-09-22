@@ -1,0 +1,19 @@
+import
+	crow.io.print: print
+
+main fut nat(_ arr str) summon
+	print: up.opposite to-str
+	print: up == up to-str
+	print: up == down to-str
+	0 resolved
+
+opposite direction(a direction)
+	match a
+	as up
+		down
+	as down
+		up
+
+direction enum
+	up
+	down

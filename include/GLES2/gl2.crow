@@ -14,8 +14,6 @@ GLboolean alias
 	bool
 GLchar alias
 	c-char
-GLenum alias
-	u-int
 GLint alias
 	c-int
 GLintptr alias
@@ -131,7 +129,7 @@ spec
 glTexImage2D void
 	target GLenum
 	level GLint
-	internalformat GLint
+	internalformat GLenum
 	width GLsizei
 	height GLsizei
 	border GLint
@@ -144,7 +142,7 @@ spec
 	summon
 	unsafe
 
-glTexParameteri void(target GLenum, pname GLenum, param GLint) extern<"GL"> noctx summon unsafe
+glTexParameteri void(target GLenum, pname GLenum, param GLenum) extern<"GL"> noctx summon unsafe
 
 glUniform1i void(location GLint, v0 GLint) extern<"GL"> noctx summon unsafe
 
@@ -167,62 +165,36 @@ GL_FALSE GLint() noctx
 	0
 GL_TRUE GLint() noctx
 	1
-GL_NO_ERROR GLuint() noctx
-	0
-GL_TRIANGLES GLuint() noctx
-	4
-GL_TRIANGLE_STRIP GLuint() noctx
-	5
-GL_TRIANGLE_FAN GLuint() noctx
-	6
-GL_TEXTURE_2D GLuint() noctx
-	0x0de1
-GL_UNSIGNED_BYTE GLuint() noctx
-	0x1401
-GL_FLOAT GLuint() noctx
-	0x1406
-GL_RED GLuint() noctx
-	0x1903
-GL_GREEN GLuint() noctx
-	0x1904
-GL_BLUE GLuint() noctx
-	0x1905
-GL_ALPHA GLuint() noctx
-	0x1906
-GL_RGB GLuint() noctx
-	0x1907
-GL_RGBA GLuint() noctx
-	0x1908
-GL_TEXTURE0 GLuint() noctx
-	0x84c0
-GL_ARRAY_BUFFER GLuint() noctx
-	0x8892
-GL_STATIC_DRAW GLuint() noctx
-	0x88e4
-GL_FRAGMENT_SHADER GLuint() noctx
-	0x8b30
-GL_VERTEX_SHADER GLuint() noctx
-	0x8b31
-GL_COMPILE_STATUS GLuint() noctx
-	0x8b81
-GL_LINEAR GLint() noctx
-	0x2601
-GL_LINK_STATUS GLuint() noctx
-	0x8b82
-GL_INFO_LOG_LENGTH GLuint() noctx
-	0x8b84
-GL_TEXTURE_MAG_FILTER GLuint() noctx
-	0x2800
-GL_TEXTURE_MIN_FILTER GLuint() noctx
-	0x2801
-GL_TEXTURE_SWIZZLE_R GLuint() noctx
-	0x8e42
-GL_TEXTURE_SWIZZLE_G GLuint() noctx
-	0x8e43
-GL_TEXTURE_SWIZZLE_B GLuint() noctx
-	0x8e44
-GL_TEXTURE_SWIZZLE_A GLuint() noctx
-	0x8e45
+
+GLenum enum
+	GL_NO_ERROR = 0
+	GL_TRIANGLES = 4
+	GL_TRIANGLE_STRIP = 5
+	GL_TRIANGLE_FAN = 6
+	GL_TEXTURE_2D = 0x0de1
+	GL_UNSIGNED_BYTE = 0x1401
+	GL_FLOAT = 0x1406
+	GL_RED = 0x1903
+	GL_GREEN = 0x1904
+	GL_BLUE = 0x1905
+	GL_ALPHA = 0x1906
+	GL_RGB = 0x1907
+	GL_RGBA = 0x1908
+	GL_TEXTURE0 = 0x84c0
+	GL_ARRAY_BUFFER = 0x8892
+	GL_STATIC_DRAW = 0x88e4
+	GL_FRAGMENT_SHADER = 0x8b30
+	GL_VERTEX_SHADER = 0x8b31
+	GL_COMPILE_STATUS = 0x8b81
+	GL_LINEAR = 0x2601
+	GL_LINK_STATUS = 0x8b82
+	GL_INFO_LOG_LENGTH = 0x8b84
+	GL_TEXTURE_MAG_FILTER = 0x2800
+	GL_TEXTURE_MIN_FILTER = 0x2801
+	GL_TEXTURE_SWIZZLE_R = 0x8e42
+	GL_TEXTURE_SWIZZLE_G = 0x8e43
+	GL_TEXTURE_SWIZZLE_B = 0x8e44
+	GL_TEXTURE_SWIZZLE_A = 0x8e45
+
 GL_COLOR_BUFFER_BIT GLbitfield() noctx
 	0x00004000
-

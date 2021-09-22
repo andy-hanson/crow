@@ -560,7 +560,7 @@ immutable(ConcreteExpr) concretizeMatchEnum(Alloc)(
 	immutable ConcreteExpr[] cases = map!ConcreteExpr(alloc, e.cases, (ref immutable Expr case_) =>
 		concretizeExpr(alloc, ctx, case_));
 	return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
-		nu!(ConcreteExprKind.MatchEnum)(alloc, allocExpr(alloc, matched), cases)));
+		immutable ConcreteExprKind.MatchEnum(allocExpr(alloc, matched), cases)));
 }
 
 immutable(ConcreteExpr) concretizeMatchUnion(Alloc)(

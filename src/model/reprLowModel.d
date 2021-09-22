@@ -32,6 +32,7 @@ import model.lowModel :
 	name,
 	PrimitiveType,
 	symOfPrimitiveType;
+import model.model : EnumValue;
 import model.reprConcreteModel :
 	reprOfConcreteFunRef,
 	reprOfConcreteLocalRef,
@@ -54,7 +55,6 @@ import util.repr :
 	reprStr,
 	reprSym;
 import util.sourceRange : reprFileAndRange;
-import util.types : Int32;
 
 immutable(Repr) reprOfLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a) {
 	return reprNamedRecord(alloc, "program", [
@@ -254,8 +254,8 @@ immutable(Repr) reprOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExprK
 		(ref immutable LowExprKind.SwitchWithValues it) =>
 			reprRecord(alloc, "switch-v", [
 				reprOfLowExpr(alloc, it.value),
-				reprArr(alloc, it.values, (ref immutable Int32 value) =>
-					reprInt(value)),
+				reprArr(alloc, it.values, (ref immutable EnumValue value) =>
+					reprInt(value.value)),
 				reprArr(alloc, it.cases, (ref immutable LowExpr case_) =>
 					reprOfLowExpr(alloc, case_))]),
 		(ref immutable LowExprKind.TailRecur it) =>
@@ -288,6 +288,8 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "count-ones (nat-64)";
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return "deref";
+		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
+			return "to integral (from enum)";
 		case LowExprKind.SpecialUnary.Kind.isNanFloat32:
 			return "nan? (float-32)";
 		case LowExprKind.SpecialUnary.Kind.isNanFloat64:

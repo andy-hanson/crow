@@ -16,6 +16,8 @@ import lower.lowExprHelpers :
 	charPtrPtrType,
 	constantNat64,
 	genAddPtr,
+	genEnumEq,
+	genEnumToIntegral,
 	getElementPtrTypeFromArrType,
 	getSizeOf,
 	int32Type,
@@ -96,7 +98,7 @@ import model.lowModel :
 	matchLowType,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
-import model.model : decl, FunInst, name, range;
+import model.model : decl, EnumValue, FunInst, name, range;
 import util.collection.arr : at, empty, emptyArr, first, only, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
@@ -119,7 +121,7 @@ import util.opt : asImmutable, force, has, mapOption, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Int32, Nat16, safeU16ToU8;
+import util.types : Nat16, safeU16ToU8;
 import util.util : unreachable, verify;
 
 immutable(Ptr!LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
@@ -632,6 +634,10 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.CreateRecord) =>
 				none!LowFunIndex,
+			(ref immutable ConcreteFunBody.EnumEqual) =>
+				none!LowFunIndex,
+			(ref immutable ConcreteFunBody.EnumToIntegral) =>
+				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.Extern) =>
 				some(addLowFun(immutable LowFunCause(fun))),
 			(ref immutable ConcreteFunExprBody) =>
@@ -875,6 +881,10 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.CreateRecord) =>
 			unreachable!(immutable LowFunBody),
+		(ref immutable ConcreteFunBody.EnumEqual) =>
+			unreachable!(immutable LowFunBody),
+		(ref immutable ConcreteFunBody.EnumToIntegral) =>
+			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.Extern it) =>
 			immutable LowFunBody(nu!(LowFunBody.Extern)(alloc, it.isGlobal)),
 		(ref immutable ConcreteFunExprBody it) {
@@ -1094,7 +1104,7 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 				return getCallBuiltinExpr(alloc, ctx, exprPos, range, type, a);
 			},
 			(ref immutable ConcreteFunBody.CreateEnum it) =>
-				immutable LowExprKind(immutable Constant(immutable Constant.Integral(it.value.raw()))),
+				immutable LowExprKind(immutable Constant(immutable Constant.Integral(it.value.value))),
 			(ref immutable ConcreteFunBody.CreateRecord) {
 				immutable LowExpr[] args = getArgs(alloc, ctx, a.args);
 				immutable LowExprKind create = immutable LowExprKind(immutable LowExprKind.CreateRecord(args));
@@ -1104,6 +1114,12 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 				} else
 					return create;
 			},
+			(ref immutable ConcreteFunBody.EnumEqual) =>
+				genEnumEq(alloc,
+					getLowExpr(alloc, ctx, at(a.args, 0), ExprPos.nonTail),
+					getLowExpr(alloc, ctx, at(a.args, 1), ExprPos.nonTail)),
+			(ref immutable ConcreteFunBody.EnumToIntegral) =>
+				genEnumToIntegral(alloc, getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail)),
 			(ref immutable ConcreteFunBody.Extern) =>
 				unreachable!(immutable LowExprKind),
 			(ref immutable ConcreteFunExprBody) =>
@@ -1316,7 +1332,7 @@ immutable(LowExprKind) getMatchEnumExpr(Alloc)(
 		enum_,
 		(immutable size_t) =>
 			immutable LowExprKind(immutable LowExprKind.Switch0ToN(matchedValue, cases)),
-		(immutable Int32[] values) =>
+		(immutable EnumValue[] values) =>
 			immutable LowExprKind(nu!(LowExprKind.SwitchWithValues)(alloc, matchedValue, values, cases)));
 }
 

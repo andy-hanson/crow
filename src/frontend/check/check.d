@@ -42,6 +42,7 @@ import frontend.parse.ast :
 	imports,
 	LiteralAst,
 	matchFunBodyAst,
+	matchLiteralIntOrNat,
 	matchSpecBodyAst,
 	matchStructDeclAstBody,
 	matchTypeAst,
@@ -72,6 +73,8 @@ import model.model :
 	body_,
 	CommonTypes,
 	decl,
+	EnumBackingType,
+	EnumValue,
 	ForcedByValOrRefOrNone,
 	FunBody,
 	FunDecl,
@@ -89,6 +92,7 @@ import model.model :
 	isUnion,
 	matchStructBody,
 	matchStructOrAlias,
+	matchType,
 	Module,
 	ModuleArrs,
 	ModuleImportsExports,
@@ -123,6 +127,7 @@ import model.model :
 	Type,
 	TypeParam,
 	typeParams;
+import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr :
 	ArrWithSize,
 	at,
@@ -175,7 +180,7 @@ import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.collection.mutDict : insertOrUpdate, moveToDict, MutDict;
 import util.collection.str : copySafeCStr, copyStr, emptySafeCStr;
 import util.memory : allocate, nu, nuMut, overwriteMemory;
-import util.opt : force, has, none, noneMut, Opt, some, someMut;
+import util.opt : force, has, none, noneMut, Opt, some, someMut, toOpt;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, fileAndPosFromFileAndRange, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym :
@@ -183,13 +188,15 @@ import util.sym :
 	AllSymbols,
 	compareSym,
 	containsSym,
+	Operator,
 	prependSet,
 	shortSymAlphaLiteral,
 	shortSymAlphaLiteralValue,
 	Sym,
-	symEq;
-import util.types : Int32, safeSizeTToU8;
-import util.util : todo, verify;
+	symEq,
+	symForOperator;
+import util.types : safeSizeTToU8;
+import util.util : todo, unreachable, verify;
 
 struct PathAndAst { //TODO:RENAME
 	immutable FileIndex fileIndex;
@@ -809,33 +816,176 @@ void everyPair(T)(
 immutable(StructBody) checkEnum(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
+	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	immutable RangeWithinFile range,
 	ref immutable StructDeclAst.Body.Enum e,
+	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	Int32 lastValue = immutable Int32(-1);
+	immutable TypeParamsScope typeParamsScope = immutable TypeParamsScope(emptyArr!TypeParam);
+	immutable Opt!(Ptr!TypeAst) typeAst = toOpt(e.typeArg);
+	immutable Type implementationType = has(typeAst)
+		? typeFromAst(
+			alloc, ctx, commonTypes, force(typeAst), structsAndAliasesDict, typeParamsScope,
+			someMut(ptrTrustMe_mut(delayStructInsts)))
+		: immutable Type(commonTypes.integrals.nat32);
+	immutable EnumBackingType enumType = getEnumTypeFromType(alloc, ctx, range, commonTypes, implementationType);
+
+	Cell!(Opt!EnumValue) lastValue = Cell!(Opt!EnumValue)(none!EnumValue);
 	immutable StructBody.Enum.Member[] members = mapWithSoFar!(StructBody.Enum.Member, StructDeclAst.Body.Enum.Member)(
 		alloc,
-		e.members,
+		toArr(e.members),
 		(ref immutable StructDeclAst.Body.Enum.Member member,
 		 ref immutable StructBody.Enum.Member[] prevMembers,
 		 immutable size_t) {
-			immutable long longValue = () {
+			immutable ValueAndOverflow valueAndOverflow = () {
 				if (has(member.value)) {
-					immutable LiteralAst.Int value = force(member.value);
-					if (value.overflow) todo!void("literal overflow");
-					return value.value;
+					if (isSignedType(enumType))
+						return todo!(immutable ValueAndOverflow)("!");
+					else
+						return matchLiteralIntOrNat!(immutable ValueAndOverflow)(
+							force(member.value),
+							(ref immutable LiteralAst.Int) =>
+								todo!(immutable ValueAndOverflow)("signed value in unsigned enum"),
+							(ref immutable LiteralAst.Nat n) =>
+								immutable ValueAndOverflow(immutable EnumValue(n.value), n.overflow));
 				} else
-					return (cast(long) lastValue.raw()) + 1;
+					return has(cellGet(lastValue))
+						? immutable ValueAndOverflow(
+							immutable EnumValue(force(cellGet(lastValue)).value + 1),
+							force(cellGet(lastValue)) == maxValue(enumType))
+						: immutable ValueAndOverflow(immutable EnumValue(0), false);
 			}();
-			if (longValue < int.min || longValue > int.max)
-				todo!void("literal overflow");
-			immutable Int32 value = immutable Int32(cast(int) longValue);
-			lastValue = value;
+			immutable EnumValue value = valueAndOverflow.value;
+			cellSet(lastValue, some(value));
+			if (valueAndOverflow.overflow || valueOverflows(enumType, value))
+				todo!void("enum member overflows");
 			foreach (ref immutable StructBody.Enum.Member prevMember; prevMembers)
 				if (prevMember.value == value)
 					todo!void("duplicate enum member");
 			return immutable StructBody.Enum.Member(rangeInFile(ctx, member.range), member.name, value);
 		});
-	return immutable StructBody(immutable StructBody.Enum(members));
+	return immutable StructBody(immutable StructBody.Enum(enumType, members));
+}
+
+immutable(bool) valueOverflows(immutable EnumBackingType type, immutable EnumValue value) {
+	immutable long v = value.value;
+	final switch (type) {
+		case EnumBackingType.int8:
+			return v < byte.min || v > byte.max;
+		case EnumBackingType.int16:
+			return v < short.min || v > short.max;
+		case EnumBackingType.int32:
+			return v < int.min || v > int.max;
+		case EnumBackingType.int64:
+			return false;
+		case EnumBackingType.nat8:
+			return v < 0 || v > ubyte.max;
+		case EnumBackingType.nat16:
+			return v < 0 || v > ushort.max;
+		case EnumBackingType.nat32:
+			return v < 0 || v > uint.max;
+		// For unsigned types, any negative 'value' is actually a wrapped-around large nat.
+		case EnumBackingType.nat64:
+			return false;
+	}
+}
+
+immutable(EnumValue) maxValue(immutable EnumBackingType type) {
+	return immutable EnumValue(() {
+		final switch (type) {
+			case EnumBackingType.int8: return byte.max;
+			case EnumBackingType.int16: return short.max;
+			case EnumBackingType.int32: return int.max;
+			case EnumBackingType.int64: return long.max;
+			case EnumBackingType.nat8: return ubyte.max;
+			case EnumBackingType.nat16: return ushort.max;
+			case EnumBackingType.nat32: return uint.max;
+			case EnumBackingType.nat64: return ulong.max;
+		}
+	}());
+}
+
+struct ValueAndOverflow {
+	immutable EnumValue value;
+	immutable bool overflow;
+}
+
+immutable(EnumBackingType) defaultEnumBackingType() { return EnumBackingType.nat32; }
+
+immutable(EnumBackingType) getEnumTypeFromType(Alloc)(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	ref immutable RangeWithinFile range,
+	ref immutable CommonTypes commonTypes,
+	ref immutable Type type,
+) {
+	immutable IntegralTypes integrals = commonTypes.integrals;
+	return matchType!EnumBackingType(
+		type,
+		(ref immutable Type.Bogus) =>
+			defaultEnumBackingType(),
+		(immutable Ptr!TypeParam) =>
+			// enums can't have type params
+			unreachable!EnumBackingType(),
+		(immutable Ptr!StructInst it) =>
+			ptrEquals(integrals.int8, it)
+				? EnumBackingType.int8
+				: ptrEquals(integrals.int16, it)
+				? EnumBackingType.int16
+				: ptrEquals(integrals.int32, it)
+				? EnumBackingType.int32
+				: ptrEquals(integrals.int64, it)
+				? EnumBackingType.int64
+				: ptrEquals(integrals.nat8, it)
+				? EnumBackingType.nat8
+				: ptrEquals(integrals.nat16, it)
+				? EnumBackingType.nat16
+				: ptrEquals(integrals.nat32, it)
+				? EnumBackingType.nat32
+				: ptrEquals(integrals.nat64, it)
+				? EnumBackingType.nat64
+				: (() {
+					addDiag(alloc, ctx, range, immutable Diag(immutable Diag.EnumBackingTypeInvalid(it)));
+					return defaultEnumBackingType();
+				})());
+}
+
+immutable(Ptr!StructInst) getTypeFromEnumType(immutable EnumBackingType a, ref immutable CommonTypes commonTypes) {
+	immutable IntegralTypes integrals = commonTypes.integrals;
+	final switch (a) {
+		case EnumBackingType.int8:
+			return integrals.int8;
+		case EnumBackingType.int16:
+			return integrals.int16;
+		case EnumBackingType.int32:
+			return integrals.int32;
+		case EnumBackingType.int64:
+			return integrals.int64;
+		case EnumBackingType.nat8:
+			return integrals.nat8;
+		case EnumBackingType.nat16:
+			return integrals.nat16;
+		case EnumBackingType.nat32:
+			return integrals.nat32;
+		case EnumBackingType.nat64:
+			return integrals.nat64;
+	}
+}
+
+immutable(bool) isSignedType(immutable EnumBackingType a) {
+	final switch (a) {
+		case EnumBackingType.int8:
+		case EnumBackingType.int16:
+		case EnumBackingType.int32:
+		case EnumBackingType.int64:
+			return true;
+		case EnumBackingType.nat8:
+		case EnumBackingType.nat16:
+		case EnumBackingType.nat32:
+		case EnumBackingType.nat64:
+			return false;
+	}
 }
 
 immutable(ForcedByValOrRefOrNone) getForcedByValOrRef(immutable Opt!ExplicitByValOrRefAndRange e) {
@@ -962,7 +1112,7 @@ void checkStructBodies(Alloc)(
 				(ref immutable StructDeclAst.Body.Builtin) =>
 					immutable StructBody(immutable StructBody.Builtin()),
 				(ref immutable StructDeclAst.Body.Enum it) =>
-					checkEnum(alloc, ctx, it),
+					checkEnum!Alloc(alloc, ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts),
 				(ref immutable StructDeclAst.Body.ExternPtr) {
 					if (!empty(toArr(ast.typeParams)))
 						addDiag(alloc, ctx, ast.range, immutable Diag(immutable Diag.ExternPtrHasTypeParams()));
@@ -1252,7 +1402,8 @@ immutable(size_t) countFunsForStruct(
 			(ref immutable StructBody.Builtin) =>
 				immutable size_t(0),
 			(ref immutable StructBody.Enum it) =>
-				size(it.members),
+				// '==', 'to-intXX'/'to-natXX', 'to-str', and a constructor for each member
+				3 + size(it.members),
 			(ref immutable StructBody.ExternPtr) =>
 				immutable size_t(0),
 			(ref immutable StructBody.Record it) {
@@ -1296,22 +1447,92 @@ void addFunsForEnum(Alloc, SymAlloc)(
 	immutable Ptr!StructDecl struct_,
 	ref immutable StructBody.Enum enum_,
 ) {
-	immutable Ptr!StructInst inst = instantiateNonTemplateStructDeclNeverDelay(alloc, ctx.programState, struct_);
-	foreach (ref immutable StructBody.Enum.Member member; enum_.members) {
-		immutable Ptr!Sig ctorSig = allocate(alloc, immutable Sig(
-			fileAndPosFromFileAndRange(member.range),
-			member.name,
-			immutable Type(inst),
-			emptyArr!Param));
+	immutable Type enumType =
+		immutable Type(instantiateNonTemplateStructDeclNeverDelay(alloc, ctx.programState, struct_));
+	immutable Type implementationType = getTypeFromEnumType(enum_.backingType, commonTypes);
+	immutable FileAndPos structFileAndPos = fileAndPosFromFileAndRange(struct_.range);
+
+	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+		emptySafeCStr,
+		struct_.isPublic,
+		FunFlags.generatedNoCtx,
+		allocate(alloc, immutable Sig(
+			structFileAndPos,
+			symForOperator(Operator.equal),
+			immutable Type(commonTypes.bool_),
+			arrLiteral!Param(alloc, [
+				immutable Param(struct_.range, some(shortSymAlphaLiteral("a")), enumType, 0),
+				immutable Param(struct_.range, some(shortSymAlphaLiteral("b")), enumType, 1)]))),
+		emptyArrWithSize!TypeParam,
+		emptyArrWithSize!(Ptr!SpecInst),
+		immutable FunBody(immutable FunBody.EnumEqual())));
+
+	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+		emptySafeCStr,
+		struct_.isPublic,
+		FunFlags.generatedNoCtx,
+		allocate(alloc, immutable Sig(
+			structFileAndPos,
+			enumToIntegralName(enum_.backingType),
+			implementationType,
+			arrLiteral!Param(alloc, [immutable Param(struct_.range, some(shortSymAlphaLiteral("a")), enumType, 0)]))),
+		emptyArrWithSize!TypeParam,
+		emptyArrWithSize!(Ptr!SpecInst),
+		immutable FunBody(immutable FunBody.EnumToIntegral())));
+
+	//TODO: also to-e (prepend 'to-' to the enum name)
+
+	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+		emptySafeCStr,
+		struct_.isPublic,
+		FunFlags.generatedNoCtx,
+		allocate(alloc, immutable Sig(
+			structFileAndPos,
+			shortSymAlphaLiteral("to-str"),
+			immutable Type(commonTypes.str),
+			arrLiteral!Param(alloc, [immutable Param(struct_.range, some(shortSymAlphaLiteral("a")), enumType, 0)]))),
+		emptyArrWithSize!TypeParam,
+		emptyArrWithSize!(Ptr!SpecInst),
+		immutable FunBody(immutable FunBody.EnumToStr())));
+
+	foreach (ref immutable StructBody.Enum.Member member; enum_.members)
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			emptySafeCStr,
 			struct_.isPublic,
 			FunFlags.generatedNoCtx,
-			ctorSig,
+			allocate(alloc, immutable Sig(
+				fileAndPosFromFileAndRange(member.range),
+				member.name,
+				enumType,
+				emptyArr!Param)),
 			emptyArrWithSize!TypeParam,
 			emptyArrWithSize!(Ptr!SpecInst),
 			immutable FunBody(immutable FunBody.CreateEnum(member.value))));
-	}
+}
+
+//TODO: actually, we should record the type name used,
+//so if they had 'e enum<size_t>' we should have 'to-size_t' not 'to-nat64'
+immutable(Sym) enumToIntegralName(immutable EnumBackingType a) {
+	return shortSymAlphaLiteral(() {
+		final switch (a) {
+			case EnumBackingType.int8:
+				return "to-int8";
+			case EnumBackingType.int16:
+				return "to-int16";
+			case EnumBackingType.int32:
+				return "to-int32";
+			case EnumBackingType.int64:
+				return "to-int64";
+			case EnumBackingType.nat8:
+				return "to-nat8";
+			case EnumBackingType.nat16:
+				return "to-nat16";
+			case EnumBackingType.nat32:
+				return "to-nat32";
+			case EnumBackingType.nat64:
+				return "to-nat64";
+		}
+	}());
 }
 
 void addFunsForRecord(Alloc, SymAlloc)(

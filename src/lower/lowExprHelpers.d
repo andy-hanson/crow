@@ -218,6 +218,23 @@ immutable(LowExpr) genPtrEq(Alloc)(
 		allocate(alloc, b))));
 }
 
+immutable(LowExprKind) genEnumEq(Alloc)(
+	ref Alloc alloc,
+	immutable LowExpr a,
+	immutable LowExpr b,
+) {
+	return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
+		LowExprKind.SpecialBinary.Kind.eqInt32,
+		allocate(alloc, a),
+		allocate(alloc, b)));
+}
+
+immutable(LowExprKind) genEnumToIntegral(Alloc)(ref Alloc alloc, immutable LowExpr inner) {
+	return immutable LowExprKind(immutable LowExprKind.SpecialUnary(
+		LowExprKind.SpecialUnary.Kind.enumToIntegral,
+		allocate(alloc, inner)));
+}
+
 immutable(LowExpr) ptrCast(Alloc)(
 	ref Alloc alloc,
 	immutable LowType type,

@@ -6,6 +6,7 @@ import model.constant : Constant;
 import model.model :
 	ClosureField,
 	decl,
+	EnumValue,
 	FunInst,
 	isArr,
 	isCallWithCtxFun,
@@ -26,7 +27,7 @@ import util.opt : none, Opt, some;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Int32, Nat8, Nat16;
+import util.types : Nat8, Nat16;
 import util.util : unreachable, verify;
 
 enum BuiltinStructKind {
@@ -97,7 +98,7 @@ struct ConcreteStructBody {
 
 		@disable this();
 		immutable this(immutable size_t a) { kind = Kind.size; size = a; }
-		@trusted immutable this(immutable Int32[] a) { kind = Kind.values; values = a; }
+		@trusted immutable this(immutable EnumValue[] a) { kind = Kind.values; values = a; }
 
 		private:
 		enum Kind {
@@ -107,7 +108,7 @@ struct ConcreteStructBody {
 		immutable Kind kind;
 		union {
 			immutable size_t size;
-			immutable Int32[] values;
+			immutable EnumValue[] values;
 		}
 	}
 	struct ExternPtr {}
@@ -146,7 +147,7 @@ struct ConcreteStructBody {
 @trusted immutable(T) matchEnum(T)(
 	ref immutable ConcreteStructBody.Enum a,
 	scope immutable(T) delegate(immutable size_t) @safe @nogc pure nothrow cbSize,
-	scope immutable(T) delegate(immutable Int32[]) @safe @nogc pure nothrow cbValues,
+	scope immutable(T) delegate(immutable EnumValue[]) @safe @nogc pure nothrow cbValues,
 ) {
 	final switch (a.kind) {
 		case ConcreteStructBody.Enum.Kind.size:
@@ -490,9 +491,11 @@ struct ConcreteFunBody {
 		immutable ConcreteType[] typeArgs;
 	}
 	struct CreateEnum {
-		immutable Int32 value;
+		immutable EnumValue value;
 	}
 	struct CreateRecord {}
+	struct EnumEqual {}
+	struct EnumToIntegral {}
 	struct Extern {
 		immutable bool isGlobal;
 	}
@@ -508,6 +511,8 @@ struct ConcreteFunBody {
 		builtin,
 		createEnum,
 		createRecord,
+		enumEqual,
+		enumToIntegral,
 		extern_,
 		concreteFunExprBody,
 		recordFieldGet,
@@ -518,6 +523,8 @@ struct ConcreteFunBody {
 		immutable Builtin builtin;
 		immutable CreateEnum createEnum;
 		immutable CreateRecord createRecord;
+		immutable EnumEqual enumEqual;
+		immutable EnumToIntegral enumToIntegral;
 		immutable Extern extern_;
 		immutable ConcreteFunExprBody concreteFunExprBody;
 		immutable RecordFieldGet recordFieldGet;
@@ -528,6 +535,8 @@ struct ConcreteFunBody {
 	@trusted immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	immutable this(immutable CreateEnum a) { kind = Kind.createEnum; createEnum = a; }
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
+	immutable this(immutable EnumEqual a) { kind = Kind.enumEqual; enumEqual = a; }
+	immutable this(immutable EnumToIntegral a) { kind = Kind.enumToIntegral; enumToIntegral = a; }
 	@trusted immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable ConcreteFunExprBody a) {
 		kind = Kind.concreteFunExprBody; concreteFunExprBody = a;
@@ -555,6 +564,8 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref
 	scope T delegate(ref immutable ConcreteFunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope T delegate(ref immutable ConcreteFunBody.CreateEnum) @safe @nogc pure nothrow cbCreateEnum,
 	scope T delegate(ref immutable ConcreteFunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
+	scope T delegate(ref immutable ConcreteFunBody.EnumEqual) @safe @nogc pure nothrow cbEnumEqual,
+	scope T delegate(ref immutable ConcreteFunBody.EnumToIntegral) @safe @nogc pure nothrow cbEnumToIntegral,
 	scope T delegate(ref immutable ConcreteFunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(ref immutable ConcreteFunExprBody) @safe @nogc pure nothrow cbConcreteFunExprBody,
 	scope T delegate(ref immutable ConcreteFunBody.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
@@ -567,6 +578,10 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref
 			return cbCreateEnum(a.createEnum);
 		case ConcreteFunBody.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
+		case ConcreteFunBody.Kind.enumEqual:
+			return cbEnumEqual(a.enumEqual);
+		case ConcreteFunBody.Kind.enumToIntegral:
+			return cbEnumToIntegral(a.enumToIntegral);
 		case ConcreteFunBody.Kind.extern_:
 			return cbExtern(a.extern_);
 		case ConcreteFunBody.Kind.concreteFunExprBody:

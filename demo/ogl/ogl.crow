@@ -10,11 +10,11 @@ import
 	crow.ptr: as-any-ptr, null, null?, ptr-cast, ptr-to, size-of, to-ptr
 	crow.str-util: join, to-c-str, to-str
 	GLES2.gl2:
-		glActiveTexture, GL_ARRAY_BUFFER, glBindBuffer, glBindTexture, glBufferData,
+		==, glActiveTexture, GL_ARRAY_BUFFER, glBindBuffer, glBindTexture, glBufferData,
 		glBufferSubData, glClear, glClearColor, GL_COLOR_BUFFER_BIT, glDeleteBuffers, glDrawArrays,
 		glEnableVertexAttribArray, GL_FLOAT, glGenBuffers, glGetError, glGetUniformLocation,
 		GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLE_FAN, GLuint, glUniform1i,
-		glUseProgram, glVertexAttribPointer
+		glUseProgram, glVertexAttribPointer, to-str
 	SDL2.SDL:
 		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
 	SDL2.SDL_events:

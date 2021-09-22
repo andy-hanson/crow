@@ -134,6 +134,12 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 				none!Position,
 			(ref immutable FunBody.CreateRecord) =>
 				none!Position,
+			(ref immutable FunBody.EnumEqual) =>
+				none!Position,
+			(ref immutable FunBody.EnumToIntegral) =>
+				none!Position,
+			(ref immutable FunBody.EnumToStr) =>
+				none!Position,
 			(ref immutable FunBody.Extern) =>
 				none!Position,
 			(immutable Ptr!Expr it) =>

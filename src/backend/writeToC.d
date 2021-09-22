@@ -63,7 +63,7 @@ import model.lowModel :
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
 	regularParams;
-import model.model : FunInst, Local, name, Param;
+import model.model : EnumValue, FunInst, Local, name, Param;
 import model.typeLayout : sizeOfType;
 import util.collection.arr : at, empty, emptyArr, first, only, setAt, size, sizeEq;
 import util.collection.arrUtil : arrLiteral, every, fillArr_mut, map, tail, zip;
@@ -90,7 +90,7 @@ import util.sym :
 	Sym,
 	symEq,
 	writeSym;
-import util.types : abs, Int32, i64OfU64Bits, Nat16, Nat32, Nat64;
+import util.types : abs, i64OfU64Bits, Nat16;
 import util.util : drop, todo, unreachable, verify;
 import util.writer :
 	finishWriter,
@@ -1249,10 +1249,10 @@ immutable(WriteExprResult) writeExpr(Alloc, TempAlloc)(
 		(ref immutable LowExprKind.SpecialNAry it) =>
 			writeSpecialNAry(writer, tempAlloc, indent, ctx, writeKind, type, it),
 		(ref immutable LowExprKind.Switch0ToN it) =>
-			writeSwitch(writer, tempAlloc, indent, ctx, writeKind, type, it.value, it.cases, (immutable Nat32 i) =>
-				i.toInt32()),
+			writeSwitch(writer, tempAlloc, indent, ctx, writeKind, type, it.value, it.cases, (immutable size_t i) =>
+				immutable EnumValue(i)),
 		(ref immutable LowExprKind.SwitchWithValues it) =>
-			writeSwitch(writer, tempAlloc, indent, ctx, writeKind, type, it.value, it.cases, (immutable Nat32 i) =>
+			writeSwitch(writer, tempAlloc, indent, ctx, writeKind, type, it.value, it.cases, (immutable size_t i) =>
 				at(it.values, i)),
 		(ref immutable LowExprKind.TailRecur it) {
 			verify(isReturn(writeKind));
@@ -1577,10 +1577,10 @@ immutable(WriteExprResult) writeSwitch(Alloc, TempAlloc)(
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
 	immutable WriteKind writeKind,
-	ref immutable LowType type,
+	ref immutable LowType type, // type returned by the switch
 	ref immutable LowExpr value,
 	immutable LowExpr[] cases,
-	scope immutable(Int32) delegate(immutable Nat32) @safe @nogc pure nothrow getValue,
+	scope immutable(EnumValue) delegate(immutable size_t) @safe @nogc pure nothrow getValue,
 ) {
 	immutable WriteExprResult valueResult = writeExprTempOrInline(writer, tempAlloc, indent, ctx, value);
 	immutable WriteExprResultAndNested nested = getNestedWriteKind(writer, indent, ctx, type, writeKind);
@@ -1590,7 +1590,11 @@ immutable(WriteExprResult) writeSwitch(Alloc, TempAlloc)(
 	foreach (immutable size_t caseIndex; 0 .. size(cases)) {
 		writeNewline(writer, indent + 1);
 		writeStatic(writer, "case ");
-		writeInt(writer, getValue((immutable Nat64(caseIndex)).to32()));
+		if (isSignedIntegral(value.type)) {
+			writeInt(writer, getValue(caseIndex).asSigned());
+		} else {
+			writeNat(writer, getValue(caseIndex).asUnsigned());
+		}
 		writeStatic(writer, ": {");
 		drop(writeExpr(writer, tempAlloc, indent + 2, ctx, nested.writeKind, at(cases, caseIndex)));
 		if (!isReturn(nested.writeKind)) {
@@ -1610,6 +1614,27 @@ immutable(WriteExprResult) writeSwitch(Alloc, TempAlloc)(
 	writeNewline(writer, indent);
 	writeChar(writer, '}');
 	return nested.result;
+}
+
+immutable(bool) isSignedIntegral(ref immutable LowType a) {
+	final switch (asPrimitive(a)) {
+		case PrimitiveType.bool_:
+		case PrimitiveType.char_:
+		case PrimitiveType.float32:
+		case PrimitiveType.float64:
+		case PrimitiveType.void_:
+			return unreachable!(immutable bool);
+		case PrimitiveType.int8:
+		case PrimitiveType.int16:
+		case PrimitiveType.int32:
+		case PrimitiveType.int64:
+			return true;
+		case PrimitiveType.nat8:
+		case PrimitiveType.nat16:
+		case PrimitiveType.nat32:
+		case PrimitiveType.nat64:
+			return false;
+	}
 }
 
 void writeRecordFieldRef(Alloc)(
@@ -1768,6 +1793,7 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 			return prefix("(uint8_t*) ");
 		case LowExprKind.SpecialUnary.Kind.asRef:
+		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:

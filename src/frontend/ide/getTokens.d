@@ -224,8 +224,18 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 	matchStructDeclAstBody!void(
 		a.body_,
 		(ref immutable StructDeclAst.Body.Builtin) {},
-		(ref immutable StructDeclAst.Body.Enum) {
-			todo!void("enum");
+		(ref immutable StructDeclAst.Body.Enum it) {
+			foreach (ref immutable StructDeclAst.Body.Enum.Member member; toArr(it.members)) {
+				add(alloc, tokens, immutable Token(
+					Token.Kind.fieldDef, // TODO: enumMemberREf
+					member.range));
+				if (has(member.value)) {
+					immutable Pos pos = safeSizeTToU32(member.range.start + symSize(member.name) + " = ".length);
+					add(alloc, tokens, immutable Token(
+						Token.Kind.literalNumber,
+						immutable RangeWithinFile(pos, member.range.end)));
+				}
+			}
 		},
 		(ref immutable StructDeclAst.Body.ExternPtr) {},
 		(ref immutable StructDeclAst.Body.Record record) {

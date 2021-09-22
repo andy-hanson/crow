@@ -1,0 +1,11 @@
+import
+	crow.io.print: print
+
+main fut nat(_ arr str) summon
+	print: saturday to-nat32
+	0 resolved
+
+lucky-numbers enum
+	friday = 13
+	saturday
+	slots = 777

@@ -28,7 +28,7 @@ import util.sym :
 	symForOperator,
 	symSize,
 	writeSym;
-import util.types : Int32, safeSizeTToU32;
+import util.types : Int64, Nat64, safeSizeTToU32;
 import util.util : todo, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
@@ -263,6 +263,17 @@ struct RecordFlags {
 	immutable ForcedByValOrRefOrNone forcedByValOrRef;
 }
 
+struct EnumValue {
+	@safe @nogc pure nothrow:
+
+	// Large nat64 are represented as wrapped to negative values.
+	immutable long value;
+
+	//TODO:NOT INSTANCE
+	immutable(Int64) asSigned() immutable { return immutable Int64(value); }
+	immutable(Nat64) asUnsigned() immutable { return immutable Nat64(cast(ulong) value); }
+}
+
 struct StructBody {
 	@safe @nogc pure nothrow:
 	struct Bogus {}
@@ -271,8 +282,9 @@ struct StructBody {
 		struct Member {
 			immutable FileAndRange range;
 			immutable Sym name;
-			immutable Int32 value;
+			immutable EnumValue value;
 		}
+		immutable EnumBackingType backingType;
 		immutable Member[] members;
 	}
 	struct ExternPtr {}
@@ -316,18 +328,22 @@ static assert(StructBody.sizeof <= 32);
 immutable(bool) isBogus(ref immutable StructBody a) {
 	return a.kind == StructBody.Kind.bogus;
 }
+@trusted ref immutable(StructBody.Enum) asEnum(return scope ref immutable StructBody a) {
+	verify(a.kind == StructBody.Kind.enum_);
+	return a.enum_;
+}
 immutable(bool) isRecord(ref const StructBody a) {
 	return a.kind == StructBody.Kind.record;
 }
 @trusted ref const(StructBody.Record) asRecord(return scope ref const StructBody a) {
-	verify(a.isRecord);
+	verify(isRecord(a));
 	return a.record;
 }
 immutable(bool) isUnion(ref immutable StructBody a) {
 	return a.kind == StructBody.Kind.union_;
 }
 @trusted ref immutable(StructBody.Union) asUnion(return scope ref immutable StructBody a) {
-	verify(a.isUnion);
+	verify(isUnion(a));
 	return a.union_;
 }
 
@@ -571,9 +587,12 @@ struct FunBody {
 
 	struct Builtin {}
 	struct CreateEnum {
-		immutable Int32 value;
+		immutable EnumValue value;
 	}
 	struct CreateRecord {}
+	struct EnumEqual {}
+	struct EnumToIntegral {}
+	struct EnumToStr {}
 	struct Extern {
 		immutable bool isGlobal;
 		immutable Opt!string libraryName;
@@ -590,6 +609,9 @@ struct FunBody {
 		builtin,
 		createEnum,
 		createRecord,
+		enumEqual,
+		enumToIntegral,
+		enumToStr,
 		extern_,
 		expr,
 		recordFieldGet,
@@ -600,6 +622,9 @@ struct FunBody {
 		immutable Builtin builtin;
 		immutable CreateEnum createEnum;
 		immutable CreateRecord createRecord;
+		immutable EnumEqual enumEqual;
+		immutable EnumToIntegral enumToIntegral;
+		immutable EnumToStr enumToStr;
 		immutable Ptr!Extern extern_;
 		immutable Ptr!Expr expr;
 		immutable RecordFieldGet recordFieldGet;
@@ -610,6 +635,9 @@ struct FunBody {
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	immutable this(immutable CreateEnum a) { kind = Kind.createEnum; createEnum = a; }
 	immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
+	immutable this(immutable EnumEqual a) { kind = Kind.enumEqual; enumEqual = a; }
+	immutable this(immutable EnumToIntegral a) { kind = Kind.enumToIntegral; enumToIntegral = a; }
+	immutable this(immutable EnumToStr a) { kind = Kind.enumToStr; enumToStr = a; }
 	@trusted immutable this(immutable Ptr!Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
 	immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
@@ -626,6 +654,9 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 	scope T delegate(ref immutable FunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope T delegate(ref immutable FunBody.CreateEnum) @safe @nogc pure nothrow cbCreateEnum,
 	scope T delegate(ref immutable FunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
+	scope T delegate(ref immutable FunBody.EnumEqual) @safe @nogc pure nothrow cbEnumEqual,
+	scope T delegate(ref immutable FunBody.EnumToIntegral) @safe @nogc pure nothrow cbEnumToIntegral,
+	scope T delegate(ref immutable FunBody.EnumToStr) @safe @nogc pure nothrow cbEnumToStr,
 	scope T delegate(ref immutable FunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(immutable Ptr!Expr) @safe @nogc pure nothrow cbExpr,
 	scope T delegate(ref immutable FunBody.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
@@ -638,6 +669,12 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 			return cbCreateEnum(a.createEnum);
 		case FunBody.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
+		case FunBody.Kind.enumEqual:
+			return cbEnumEqual(a.enumEqual);
+		case FunBody.Kind.enumToIntegral:
+			return cbEnumToIntegral(a.enumToIntegral);
+		case FunBody.Kind.enumToStr:
+			return cbEnumToStr(a.enumToStr);
 		case FunBody.Kind.extern_:
 			return cbExtern(a.extern_);
 		case FunBody.Kind.expr:
@@ -1211,6 +1248,17 @@ struct IntegralTypes {
 	immutable Ptr!StructInst nat16;
 	immutable Ptr!StructInst nat32;
 	immutable Ptr!StructInst nat64;
+}
+
+enum EnumBackingType {
+	int8,
+	int16,
+	int32,
+	int64,
+	nat8,
+	nat16,
+	nat32,
+	nat64,
 }
 
 struct Program {

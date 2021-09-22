@@ -122,6 +122,9 @@ struct Diag {
 		immutable Kind kind;
 		immutable Sym name;
 	}
+	struct EnumBackingTypeInvalid {
+		immutable Ptr!StructInst actual;
+	}
 	struct ExpectedTypeIsNotALambda {
 		immutable Opt!Type expectedType;
 	}
@@ -265,6 +268,7 @@ struct Diag {
 		duplicateDeclaration,
 		duplicateExports,
 		duplicateImports,
+		EnumBackingTypeInvalid,
 		expectedTypeIsNotALambda,
 		externPtrHasTypeParams,
 		ifNeedsOpt,
@@ -318,6 +322,7 @@ struct Diag {
 		immutable DuplicateDeclaration duplicateDeclaration;
 		immutable DuplicateExports duplicateExports;
 		immutable DuplicateImports duplicateImports;
+		immutable EnumBackingTypeInvalid enumBackingTypeInvalid;
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
 		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
 		immutable IfNeedsOpt ifNeedsOpt;
@@ -386,6 +391,9 @@ struct Diag {
 	}
 	@trusted immutable this(immutable DuplicateExports a) { kind = Kind.duplicateExports; duplicateExports = a; }
 	@trusted immutable this(immutable DuplicateImports a) { kind = Kind.duplicateImports; duplicateImports = a; }
+	@trusted immutable this(immutable EnumBackingTypeInvalid a) {
+		kind = Kind.EnumBackingTypeInvalid; enumBackingTypeInvalid = a;
+	}
 	@trusted immutable this(immutable ExpectedTypeIsNotALambda a) {
 		kind = Kind.expectedTypeIsNotALambda; expectedTypeIsNotALambda = a;
 	}
@@ -504,6 +512,9 @@ static assert(Diag.sizeof <= 32);
 	) @safe @nogc pure nothrow cbDuplicateDeclaration,
 	scope immutable(Out) delegate(ref immutable Diag.DuplicateExports) @safe @nogc pure nothrow cbDuplicateExports,
 	scope immutable(Out) delegate(ref immutable Diag.DuplicateImports) @safe @nogc pure nothrow cbDuplicateImports,
+	scope immutable(Out) delegate(
+		ref immutable Diag.EnumBackingTypeInvalid
+	) @safe @nogc pure nothrow cbEnumBackingTypeInvalid,
 	scope immutable(Out) delegate(
 		ref immutable Diag.ExpectedTypeIsNotALambda
 	) @safe @nogc pure nothrow cbExpectedTypeIsNotALambda,
@@ -627,6 +638,8 @@ static assert(Diag.sizeof <= 32);
 			return cbDuplicateExports(a.duplicateExports);
 		case Diag.Kind.duplicateImports:
 			return cbDuplicateImports(a.duplicateImports);
+		case Diag.Kind.EnumBackingTypeInvalid:
+			return cbEnumBackingTypeInvalid(a.enumBackingTypeInvalid);
 		case Diag.Kind.expectedTypeIsNotALambda:
 			return cbExpectedTypeIsNotALambda(a.expectedTypeIsNotALambda);
 		case Diag.Kind.externPtrHasTypeParams:
