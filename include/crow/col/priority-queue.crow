@@ -6,7 +6,7 @@ import
 	..fun: subscript
 	..misc: ->, arrow, as, data, from, to, void
 	..opt: empty?, force, none, opt, some
-	..ptr: +, -, ptr, ptr-eq?, set-subscript
+	..ptr: ==, +, -, ptr, set-subscript
 	..str: ==, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..test: is
@@ -172,7 +172,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 	compacted = n-to-compact uninitialized-mut-arr<arrow<?k, ?v>>
 	mid = compacted.begin-ptr compact-non-singles! nodes-to-compact
 	end = mid compact-singles! root
-	assert: end ptr-eq? compacted.end-ptr
+	assert: end == compacted.end-ptr
 	compacted sort-by! pair => pair from
 	arr = compacted cast-immutable
 	node: arr.first.force, arr.tail, none
@@ -236,7 +236,7 @@ fold ?a(acc ?a, a priority-queue<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare
 .each-arr mut-arr each-part<?k, ?v>(a priority-queue<?k, ?v>) trusted compare<?k>
 	res = a.node-count uninitialized-mut-arr<each-part<?k, ?v>>
 	end = res.begin-ptr fill-each-arr! a.root
-	assert: end ptr-eq? res.end-ptr
+	assert: end == res.end-ptr
 	res sort-by! it => it.min from
 	res
 
@@ -303,7 +303,7 @@ map-to-arr arr ?out(a priority-queue<?k, ?v>, f act ?out(?k, ?v)) data<?k> compa
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		cur[] := f[k, v]
 		cur + 1
-	assert: end ptr-eq? out.end-ptr
+	assert: end == out.end-ptr
 	arr = out.cast-immutable
 	arr
 

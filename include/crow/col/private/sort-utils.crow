@@ -1,12 +1,12 @@
 no-std
 import
 	...bool: ?, bool, not
-	...compare: ==, <, >=, compare, comparison, equal, less, greater
+	...compare: ==, !=, <, >=, compare, comparison, equal, less, greater
 	...exception: assert, unreachable
 	...fun: subscript
 	...misc: void
 	...opt: none, opt, some
-	...ptr: +, -, null, null?, ptr, ptr-eq?, set-subscript, subscript
+	...ptr: ==, +, -, null, null?, ptr, set-subscript, subscript
 	...test: is
 	...private.bootstrap: nat64
 	...private.number-low-level: ==, <=>, unsafe-div, wrap-add
@@ -40,7 +40,7 @@ binary-search-exact-ptr opt ptr ?a(a arr ?a, value ?a) compare<?a> unsafe
 
 binary-search-exact-ptr opt ptr ?a(a arr ?a, compare act comparison(?a)) unsafe
 	ptr = a.begin-ptr binary-search-compare-recur a.end-ptr, compare
-	if ptr ptr-eq? a.end-ptr
+	if ptr == a.end-ptr
 		none
 	elif compare[ptr[]] == equal
 		ptr some
@@ -84,7 +84,7 @@ test
 			mid + 1 binary-search-exact-ptr-recur right, value
 
 .linear-search-exact-ptr-recur ptr ?a(left ptr ?a, right ptr ?a, value ?a) unsafe compare<?a>
-	if left ptr-eq? right
+	if left == right
 		null
 	elif left[] == value
 		left
@@ -93,7 +93,7 @@ test
 
 # Left inclusive, right exclusive
 .binary-search-insert-ptr-recur ptr ?a(left ptr ?a, right ptr ?a, value ?a) unsafe compare<?a>
-	if left ptr-eq? right
+	if left == right
 		left
 	else
 		mid = left + ((right - left) unsafe-div 2)
@@ -108,7 +108,7 @@ test
 
 # Left inclusive, right exclusive
 .binary-search-compare-recur ptr ?a(left ptr ?a, right ptr ?a, compare act comparison(?a)) unsafe
-	if left ptr-eq? right
+	if left == right
 		left
 	else
 		mid = left + ((right - left) unsafe-div 2)
@@ -163,12 +163,12 @@ body
 	match compare[a-read[], b-read[]]
 	as less
 		a-write[] := b-read[]
-		if b-read ptr-eq? b-begin not
+		if b-read != b-begin
 			a-begin merge-reverse-recur! a-read, a-write - 1, b-begin, b-read - 1, compare
 		# Else -- we are done, don't need to touch 'a' any more
 	as greater
 		a-write[] := a-read[]
-		if a-read ptr-eq? a-begin
+		if a-read == a-begin
 			dest = a-begin mut-arr-from-begin-end a-write
 			src = b-begin mut-arr-from-begin-end b-read + 1
 			dest copy-from! src

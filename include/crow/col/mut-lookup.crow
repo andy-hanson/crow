@@ -1,13 +1,13 @@
 no-std
 import
 	..bool: &&, ||, bool, not
-	..compare: >, >=, compare
+	..compare: !=, >, >=, compare
 	..exception: assert, forbid
 	..fun: subscript
 	..hash: hash, hash-mix
 	..misc: ->, arrow, as, data, drop, from, to, void
 	..opt: ==, none, opt, some
-	..ptr: +, ptr, ptr-eq?, set-subscript, subscript
+	..ptr: ==, +, ptr, set-subscript, subscript
 	..str: ==, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..test: is
@@ -204,7 +204,7 @@ fold-unordered ?a(acc ?a, a mut-lookup<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> c
 filter! void(a mut-lookup<?k, ?v>, f act bool(?k, ?v)) trusted data<?k> compare<?k> hash-mix<?k>
 	a.entries.begin-ptr filter-recur! a.entries.end-ptr, f
 .filter-recur! void(entry-ptr ptr entry<?k, ?v>, entry-end ptr entry<?k, ?v>, f act bool(?k, ?v)) unsafe
-	if entry-ptr ptr-eq? entry-end not
+	if entry-ptr != entry-end
 		match entry-ptr[]
 		as none
 			void
@@ -227,13 +227,13 @@ map-to-arr-unordered arr ?out(a mut-lookup<?k, ?v>, f act ?out(?k, ?v)) trusted 
 	end = out.begin-ptr fold-unordered a, (cur, key, value) =>
 		cur[] := f[key, value]
 		cur + 1
-	assert: end ptr-eq? out.end-ptr
+	assert: end == out.end-ptr
 	out cast-immutable
 
 map-values! void(a mut-lookup<?k, ?v>, f act ?v(?k, ?v)) trusted data<?k> compare<?k> hash-mix<?k>
 	a.entries.begin-ptr map-values-recur! a.entries.end-ptr, f
 .map-values-recur! void(entry-ptr ptr entry<?k, ?v>, entry-end ptr entry<?k, ?v>, f act ?v(?k, ?v)) unsafe
-	if entry-ptr ptr-eq? entry-end not
+	if entry-ptr != entry-end
 		match entry-ptr[]
 		as none
 			void

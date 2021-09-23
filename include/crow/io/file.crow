@@ -21,7 +21,7 @@ import
 	..misc: ->, as, void
 	..number: ==, <=>, +, int32, nat8, nat16, nat32, to-int64, to-nat32, to-nat64
 	..opt: has?, opt, some
-	..ptr: +, any-ptr, as-any-ptr, null?, ptr-cast, ptr-cast-from-extern, ptr-eq?, ref-eq?, size-of
+	..ptr: ==, +, any-ptr, as-any-ptr, null?, ptr-cast, ptr-cast-from-extern, ref-eq?, size-of
 	..str: ==, <=>, char, chars, c-str, size-bytes, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..str-util: bytes, to-c-str, to-str
@@ -206,7 +206,7 @@ current-directory str() summon trusted
 	if b null?
 		todo
 	else
-		assert: b ptr-eq? buff.begin-ptr
+		assert: b == buff.begin-ptr
 		b to-str
 
 .get-stat opt stat(path c-str) summon trusted

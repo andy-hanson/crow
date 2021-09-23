@@ -11,7 +11,7 @@ import
 	..misc: ->, drop, void
 	..number: deep-size-bytes, each
 	..opt: has?, none, opt, or-default, some
-	..ptr: +, ptr-eq?, set-subscript
+	..ptr: ==, +, set-subscript
 	..str: ==, str
 	..str-conv: to-hex
 	..test: is
@@ -205,7 +205,7 @@ map-to-arr arr ?a(a index-set, f act ?a(nat64)) trusted
 	end = res.begin-ptr fold a, (cur, x) =>
 		cur[] := f[x]
 		cur + 1
-	assert: end ptr-eq? res.end-ptr
+	assert: end == res.end-ptr
 	res cast-immutable
 
 debug str(a index-set)

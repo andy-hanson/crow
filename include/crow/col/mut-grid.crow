@@ -7,7 +7,7 @@ import
 	..log: info, log
 	..misc: ->, void
 	..number: *
-	..ptr: +, ptr, ptr-eq?, set-subscript, subscript
+	..ptr: ==, +, ptr, set-subscript, subscript
 	..private.number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
 	..str: ==, str
 	..str-conv: interp, finish, to-str, with-str, with-value
@@ -122,7 +122,7 @@ fold ?a(acc ?a, a mut-grid ?b, f act ?a(?a, ?b))
 fold-with-coords ?a(acc ?a, a mut-grid ?b, f act ?a(?a, ?b, coord)) trusted
 	acc fold-with-coords-recur a.elements.begin-ptr, a.elements.end-ptr, zero, a.width, f
 .fold-with-coords-recur ?a(acc ?a, cur ptr ?b, end ptr ?b, coord coord, width nat64, f act ?a(?a, ?b, coord)) unsafe
-	if cur ptr-eq? end
+	if cur == end
 		acc
 	else
 		f[acc, cur[], coord] fold-with-coords-recur cur + 1, end, (coord next-coord width), width, f
@@ -136,7 +136,7 @@ map! void(a mut-grid ?a, f act ?a(?a))
 map-with-coords! void(a mut-grid ?a, f act ?a(?a, coord)) trusted
 	a.elements.begin-ptr map-with-coords-recur! a.elements.end-ptr, zero, a.width, f
 .map-with-coords-recur! void(cur ptr ?a, end ptr ?a, coord coord, width nat64, f act ?a(?a, coord)) unsafe
-	if cur ptr-eq? end
+	if cur == end
 		void
 	else
 		cur[] := f[cur[], coord]

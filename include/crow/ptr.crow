@@ -1,6 +1,6 @@
 no-std
 import
-	.bool: ||, bool
+	.bool: bool
 	.compare: comparison, less, equal, greater
 	.private.bootstrap: nat64, void
 	.private.number-low-level: unsafe-div, wrap-sub
@@ -12,7 +12,7 @@ null ptr ?a() noctx builtin
 
 # True if the pointer is `null`.
 null? bool(a ptr ?a) noctx trusted
-	a ptr-eq? null<?a>
+	a == null<?a>
 
 # Advance the pointer by `offset`.
 + ptr ?a(a ptr ?a, offset nat64) noctx unsafe builtin
@@ -80,17 +80,14 @@ as-ref ?a(a any-ptr) noctx unsafe builtin
 True iff two pointers are identical.
 (False if they point to equal values but are different pointers.)
 ###
-ptr-eq? bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
+== bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
 # True iff `a.to-nat64 < b.to-nat64`.
-ptr-less? bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
-# True iff `a.to-nat64 <= b.to-nat64`.
-ptr-less-eq? bool(a ptr ?a, b ptr ?a) noctx unsafe
-	a ptr-less? b || a ptr-eq? b
+.ptr-less? bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
 # Equal to `a.to-nat64 <=> b.to-nat64`.
-ptr-compare comparison(a ptr ?a, b ptr ?a) noctx unsafe
+<=> comparison(a ptr ?a, b ptr ?a) noctx unsafe
 	if a ptr-less? b
 		less
-	elif a ptr-eq? b
+	elif a == b
 		equal
 	else
 		greater
@@ -100,7 +97,7 @@ True if two references have the same pointer.
 Contrast with `a == b` which can also e true for different pointers with equal contents.
 ###
 ref-eq? bool(a ?a, b ?a) noctx unsafe
-	a.as-any-ptr ptr-eq? b.as-any-ptr
+	a.as-any-ptr == b.as-any-ptr
 
 ###
 Number of bytes taken up by a type.

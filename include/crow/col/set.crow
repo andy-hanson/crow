@@ -1,15 +1,13 @@
 no-std
 import
 	..bool: &&, ==, bool, false, not, true
-	..compare: !=, <, >, >=, compare
+	..compare: !=, <, <=, >, >=, compare
 	..exception: assert, forbid, unreachable
 	..fun: subscript
 	..log: info, log
 	..misc: ->, data, void
 	..opt: force, none, opt, or-default, some
-	..ptr:
-		+, -, deep-size-bytes, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of,
-		subscript
+	..ptr: ==, <=>, +, -, deep-size-bytes, ptr, set-subscript, size-of, subscript
 	..str: ==, <=>, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..test: is
@@ -236,8 +234,8 @@ spec
 	compare<?a>
 body
 	compactor merge! a.values, add-size-here-and-left, remove
-	assert: compactor.cur ptr-less-eq? compactor.end
-	if compactor.cur ptr-eq? compactor.end
+	assert: compactor.cur <= compactor.end
+	if compactor.cur == compactor.end
 		add-node: compactor.finish, a left
 	else
 		# TODO: should be able to write this inline
@@ -250,7 +248,7 @@ body
 	if n-added != 0
 		new-cur = a.cur + n-added
 		remove-index = add-size-here-and-left wrap-sub 1
-		if a.cur ptr-eq? a.begin
+		if a.cur == a.begin
 			new-cur - 1 copy-from-b-recur! values.begin-ptr, values.end-ptr - 1, remove-index, remove
 		else
 			a.begin merge-recur! a.cur - 1, new-cur - 1, values.begin-ptr, values.end-ptr - 1, remove-index, remove
@@ -268,9 +266,9 @@ spec
 	unsafe
 	compare<?a>
 body
-	forbid: a-read ptr-less? a-begin
-	forbid: b-read ptr-less? b-begin
-	forbid: a-write ptr-less? a-begin
+	forbid: a-read < a-begin
+	forbid: b-read < b-begin
+	forbid: a-write < a-begin
 	# merging from right, so take the greater value
 	match a-read[] <=> b-read[]
 	as less
@@ -279,7 +277,7 @@ body
 		else
 			a-write[] := b-read[]
 			a-write - 1
-		if b-read ptr-eq? b-begin not
+		if b-read != b-begin
 			a-begin merge-recur! a-read, new-a-write, b-begin, b-read - 1, (b-remove-index wrap-sub 1), b-remove
 		# Else -- done, everything from 'a' is in place
 	as equal
@@ -287,7 +285,7 @@ body
 		unreachable
 	as greater
 		a-write[] := a-read[]
-		if a-read ptr-eq? a-begin
+		if a-read == a-begin
 			a-write - 1 copy-from-b-recur! b-begin, b-read, b-remove-index, b-remove
 		else
 			a-begin merge-recur! a-read - 1, a-write - 1, b-begin, b-read, b-remove-index, b-remove
@@ -298,11 +296,11 @@ body
 	else
 		a-write[] := b-read[]
 		a-write - 1
-	if b-read ptr-eq? b-begin not
+	if b-read != b-begin
 		new-a-write copy-from-b-recur! b-begin, b-read - 1, (b-remove-index wrap-sub 1), b-remove
 
 .finish arr ?a(a compactor ?a) unsafe
-	assert: a.cur ptr-eq? a.end
+	assert: a.cur == a.end
 	a.begin arr-from-begin-end a.end
 
 region iteration
@@ -394,7 +392,7 @@ map-to-arr arr ?out(a set ?in, f act ?out(?in)) trusted data<?in> compare<?in>
 		cur[] := f[x]
 		cur + 1
 
-	assert: end ptr-eq? out.end-ptr
+	assert: end == out.end-ptr
 	out cast-immutable
 
 # TODO:PRIVATE

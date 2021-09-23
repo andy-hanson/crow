@@ -1,12 +1,12 @@
 no-std
 import
-	..bool: &&, ==, bool, false, not, true
-	..compare: <=, compare
+	..bool: &&, ==, bool, false, true
+	..compare: !=, <=, compare
 	..fun: subscript
 	..hash: hash, hash-mix
 	..misc: data, void
 	..opt: has?, opt, some
-	..ptr: +, -, ptr, ptr-eq?, ptr-less-eq?, set-subscript, size-of, subscript, swap!
+	..ptr: ==, <=>, +, -, ptr, set-subscript, size-of, subscript, swap!
 	..test: is
 	..private.number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	.arr: ==, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, size, unsafe-at
@@ -102,13 +102,13 @@ spec
 	unsafe
 	hash-mix<?a>
 body
-	if value-ptr ptr-eq? value-end not
+	if value-ptr != value-end
 		bucket-index = value-ptr[] get-bucket-index bucket-counts.size
 		bucket-count = bucket-counts unsafe-at bucket-index
 		bucket-start = bucket-starts unsafe-at bucket-index
 		bucket-cur-end = bucket-start + bucket-count
-		if bucket-start ptr-less-eq? value-ptr && value-ptr ptr-less-eq? bucket-cur-end
-			if value-ptr ptr-eq? bucket-cur-end
+		if bucket-start <= value-ptr && value-ptr <= bucket-cur-end
+			if value-ptr == bucket-cur-end
 				bucket-counts unsafe-set-at!: bucket-index, bucket-count wrap-add 1
 				value-ptr + 1 move-values-to-buckets-recur! value-end, bucket-counts, bucket-starts
 			else
@@ -127,7 +127,7 @@ body
 	out cast-immutable
 .running-sum-recur! void(acc ptr ?a, out ptr ptr ?a, out-end ptr ptr ?a, read ptr nat64) unsafe
 	out[] := acc
-	if out + 1 ptr-eq? out-end not
+	if out + 1 != out-end
 		acc + read[] running-sum-recur! out + 1, out-end, read + 1
 
 region iteration

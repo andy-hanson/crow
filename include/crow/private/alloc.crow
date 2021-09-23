@@ -8,8 +8,8 @@ import
 	..fun: subscript
 	..misc: drop
 	..ptr:
-		+, -, any-ptr, as-any-ptr, as-ref, by-val, null?, ptr, ptr-eq?, ptr-less?, ptr-less-eq?,
-		ptr-cast, ref-of-val, set-subscript, size-of, subscript, to-nat64
+		==, <=>, +, -, any-ptr, as-any-ptr, as-ref, by-val, null?, ptr, ptr-cast, ref-of-val,
+		set-subscript, size-of, subscript, to-nat64
 	.bootstrap:
 		as, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, lock, nat8, nat64, none, opt, some,
 		todo, void
@@ -51,7 +51,7 @@ round-up-to-multiple-of-8 nat64(n nat64) noctx
 	(n wrap-add 7) & 7.bits-not
 
 mark-range-recur bool(marked-anything? bool, cur ptr bool, end ptr bool) noctx unsafe
-	if cur ptr-eq? end
+	if cur == end
 		marked-anything?
 	else
 		new-marked-anything? = marked-anything? || cur[].not
@@ -108,7 +108,7 @@ get-stats gc-stats(gc gc) noctx unsafe
 	gc-stats: cur-word, total-words, cur-word wrap-add used-words-remaining
 
 words-used-in-range nat64(acc nat64, cur ptr bool, end ptr bool) noctx unsafe
-	if cur ptr-eq? end
+	if cur == end
 		acc
 	else
 		acc wrap-add cur[].to-nat64 words-used-in-range cur + 1, end
@@ -143,7 +143,7 @@ run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	gc.needs-gc? := false
 
 .clear-free-mem void(mark-ptr ptr bool, mark-end ptr bool, data-ptr ptr nat64) noctx unsafe
-	if mark-ptr ptr-eq? mark-end not
+	if mark-ptr != mark-end
 		if mark-ptr[] not
 			data-ptr[] := 0xfadefadefadefade
 		clear-free-mem: mark-ptr + 1, mark-end, data-ptr
@@ -190,7 +190,7 @@ get-gc gc() unsafe
 	get-gc-ctx.gc
 
 fill-ptr-range void(cur ptr ?a, end ptr ?a, value ?a) noctx unsafe
-	if cur ptr-eq? end not
+	if cur != end
 		cur[] := value
 		cur + 1 fill-ptr-range end, value
 
@@ -198,10 +198,10 @@ validate-gc void(gc gc) noctx unsafe
 	hard-assert: gc.mark-begin.as-any-ptr word-aligned?
 	hard-assert: gc.data-begin.as-any-ptr word-aligned?
 	hard-assert: gc.data-cur.as-any-ptr word-aligned?
-	hard-assert: gc.mark-begin ptr-less-eq? gc.mark-cur
-	hard-assert: gc.mark-cur ptr-less-eq? gc.mark-end
-	hard-assert: gc.data-begin ptr-less-eq? gc.data-cur
-	hard-assert: gc.data-cur ptr-less-eq? gc.data-end
+	hard-assert: gc.mark-begin <= gc.mark-cur
+	hard-assert: gc.mark-cur <= gc.mark-end
+	hard-assert: gc.data-begin <= gc.data-cur
+	hard-assert: gc.data-cur <= gc.data-end
 	mark-idx = gc.mark-cur - gc.mark-begin
 	data-idx = gc.data-cur - gc.data-begin
 	hard-assert: gc.mark-end - gc.mark-begin == gc.size-words
@@ -225,7 +225,7 @@ validate-gc void(gc gc) noctx unsafe
 	size-words = size-bytes words-of-bytes
 	cur = gc data-cur
 	next = cur + size-words
-	if next ptr-less? gc.data-end
+	if next < gc.data-end
 		if gc.mark-cur range-free? gc.mark-cur + size-words
 			gc.mark-cur := gc.mark-cur + size-words
 			gc.data-cur := next
@@ -236,7 +236,7 @@ validate-gc void(gc gc) noctx unsafe
 			gc try-gc-alloc-recur size-bytes
 
 range-free? bool(mark ptr bool, end ptr bool) noctx unsafe
-	if mark ptr-eq? end
+	if mark == end
 		true
 	elif mark[]
 		false

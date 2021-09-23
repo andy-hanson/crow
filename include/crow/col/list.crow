@@ -6,7 +6,7 @@ import
 	..fun: subscript
 	..misc: ->, drop, void
 	..opt: ==, empty?, has?, none, opt, some
-	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
+	..ptr: ==, +, -, ptr, set-subscript, subscript
 	..str: ==, str
 	..test: is
 	..writer: ~=, backup!, move-to-str!, writer
@@ -283,7 +283,7 @@ filter list ?a(a list ?a, f act bool(?a)) trusted
 		out
 	new-out filter-recur-arr a.values.begin-ptr, a.values.end-ptr, f
 .filter-recur-arr ptr ?a(out ptr ?a, cur ptr ?a, end ptr ?a, f act bool(?a)) unsafe
-	if cur ptr-eq? end
+	if cur == end
 		out
 	else
 		new-out = if f[cur[]]

@@ -5,7 +5,7 @@ import
 	..fun: subscript
 	..misc: ->, void
 	..opt: force, has?, opt, some
-	..ptr: +, -, ptr-eq?, set-subscript
+	..ptr: ==, +, -, set-subscript
 	..str: ==, str
 	..str-conv: to-str
 	..test: is
@@ -41,7 +41,7 @@ arr arr ?a(a deque ?a) trusted
 	end = res.begin-ptr fold a, (out, x) =>
 		out[] := x
 		out + 1
-	assert: end ptr-eq? res.end-ptr
+	assert: end == res.end-ptr
 	res cast-immutable
 
 empty? bool(a deque ?a)
@@ -105,7 +105,7 @@ map deque ?out(a deque ?in, f act ?out(?in)) trusted
 	end = res.begin-ptr fold a, (out, x) =>
 		out[] := f[x]
 		out + 1
-	assert: end ptr-eq? res.end-ptr
+	assert: end == res.end-ptr
 	deque: res.cast-immutable
 
 .dbg str(a deque nat64)

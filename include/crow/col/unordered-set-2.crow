@@ -1,13 +1,13 @@
 no-std
 import
 	..bool: ==, bool, false, not, true
-	..compare: >, >=, compare
+	..compare: !=, <=, >, >=, compare
 	..exception: assert
 	..fun: subscript
 	..hash: hash-mix
 	..misc: data, void
 	..opt: force, none, opt, or-default, some
-	..ptr: +, ptr, ptr-eq?, ptr-less-eq?, set-subscript, size-of, subscript
+	..ptr: ==, <=>, +, ptr, set-subscript, size-of, subscript
 	..str: ==, str
 	..str-conv: to-str
 	..test: is
@@ -173,8 +173,8 @@ spec
 	hash-mix<?a>
 body
 	compactor push! a.here, add-size-here-and-left, remove
-	assert: compactor.cur ptr-less-eq? compactor.end
-	if compactor.cur ptr-eq? compactor.end
+	assert: compactor.cur <= compactor.end
+	if compactor.cur == compactor.end
 		add-node: compactor.finish, a.left
 	else
 		# TODO: should be able to write this inline
@@ -184,7 +184,7 @@ body
 .push! void(a compactor ?a, here frozen-unordered-set ?a, add-size-here-and-left nat64, remove index-set) unsafe
 	a push-recur! here.begin-ptr, here.end-ptr, add-size-here-and-left, remove
 .push-recur! void(a compactor ?a, cur ptr ?a, end ptr ?a, remove-index nat64, remove index-set) unsafe
-	if cur ptr-eq? end not
+	if cur != end
 		if remove[remove-index] not
 			a.cur[] := cur[]
 			a.cur := a.cur + 1
@@ -192,7 +192,7 @@ body
 
 
 .finish frozen-unordered-set ?a(a compactor ?a) unsafe data<?a> compare<?a> hash-mix<?a>
-	assert: a.cur ptr-eq? a.end
+	assert: a.cur == a.end
 	unsafe-frozen-unordered-set-from-mut-arr-cast-immutable: a.begin mut-arr-from-begin-end a.end
 
 region iteration
@@ -218,7 +218,7 @@ map-to-arr-unordered arr ?out(a unordered-set ?in, f act ?out(?in)) trusted data
 	end = out.begin-ptr fold-unordered a, (cur, x) =>
 		cur[] := f[x]
 		cur + 1
-	assert: end ptr-eq? out.end-ptr
+	assert: end == out.end-ptr
 	out cast-immutable
 
 .dbg str(a unordered-set ?a) to-str<?a>

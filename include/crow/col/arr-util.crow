@@ -6,7 +6,7 @@ import
 	..misc: ->, void
 	..number: +, -, nat64
 	..opt: has?, none, opt, some
-	..ptr: +, -, deep-size-bytes, ptr, ptr-eq?, set-subscript, size-of, subscript
+	..ptr: ==, +, -, deep-size-bytes, ptr, set-subscript, size-of, subscript
 	..test: is
 	..tuple: pair
 	..private.alloc: alloc-uninitialized, fill-ptr-range
@@ -55,7 +55,7 @@ Calls `f` for each element in `a`.
 each void(a arr ?a, f act void(?a)) trusted
 	a.begin-ptr each-recur a.end-ptr, f
 .each-recur void(cur ptr ?a, end ptr ?a, f act void(?a)) unsafe
-	if cur ptr-eq? end not
+	if cur != end
 		f[cur[]]
 		cur + 1 each-recur end, f
 
@@ -73,7 +73,7 @@ each-with-index void(a arr ?a, f act void(?a, nat64))
 each-ptr void(a arr ?a, f act void(ptr ?a)) unsafe
 	a.begin-ptr each-ptr-recur a.end-ptr, f
 each-ptr-recur void(cur ptr ?a, end ptr ?a, f act void(ptr ?a)) unsafe
-	if cur ptr-eq? end not
+	if cur != end
 		f[cur]
 		cur + 1 each-ptr-recur end, f
 
@@ -89,7 +89,7 @@ filter-with-index arr ?a(a arr ?a, f act bool(?a, nat64)) trusted
 	end = res filter-with-index-recur a.begin-ptr, a.end-ptr, 0, f
 	res arr-from-begin-end end
 .filter-with-index-recur ptr ?a(out ptr ?a, cur ptr ?a, end ptr ?a, index nat64, f act bool(?a, nat64)) unsafe
-	if cur ptr-eq? end
+	if cur == end
 		out
 	else
 		new-out = if f[cur[], index]
@@ -253,7 +253,7 @@ For example, for a 2-element array, this is equivalent to `f[f[val, a[0]], a[1]]
 fold ?a(acc ?a, a arr ?b, f act ?a(?a, ?b)) trusted
 	acc fold-recur a.begin-ptr, a.end-ptr, f
 .fold-recur ?a(acc ?a, cur ptr ?b, end ptr ?b, f act ?a(?a, ?b)) unsafe
-	if cur ptr-eq? end
+	if cur == end
 		acc
 	else
 		f[acc, cur[]] fold-recur cur + 1, end, f
@@ -261,7 +261,7 @@ fold ?a(acc ?a, a arr ?b, f act ?a(?a, ?b)) trusted
 fold-with-index ?a(acc ?a, a arr ?b, f act ?a(?a, ?b, nat64)) trusted
 	acc fold-with-index-recur 0, a.begin-ptr, a.end-ptr, f
 .fold-with-index-recur ?a(acc ?a, index nat64, cur ptr ?b, end ptr ?b, f act ?a(?a, ?b, nat64)) unsafe
-	if cur ptr-eq? end
+	if cur == end
 		acc
 	else
 		f[acc, cur[], index] fold-with-index-recur index + 1, cur + 1, end, f
@@ -269,7 +269,7 @@ fold-with-index ?a(acc ?a, a arr ?b, f act ?a(?a, ?b, nat64)) trusted
 fold-reverse ?a(acc ?a, a arr ?b, f act ?a(?a, ?b)) trusted
 	acc fold-reverse-recur a.begin-ptr, a.end-ptr, f
 .fold-reverse-recur ?a(acc ?a, begin ptr ?b, cur ptr ?b, f act ?a(?a, ?b)) unsafe
-	if cur ptr-eq? begin
+	if cur == begin
 		acc
 	else
 		prev = cur - 1
@@ -328,7 +328,7 @@ ptr-of opt ptr ?a(a arr ?a, value ?a) unsafe equal<?a>
 	a.begin-ptr ptr-of-recur a.end-ptr, value
 
 .ptr-of-recur opt ptr ?a(cur ptr ?a, end ptr ?a, value ?a) unsafe equal<?a>
-	if cur ptr-eq? end
+	if cur == end
 		none
 	elif cur[] == value
 		cur some

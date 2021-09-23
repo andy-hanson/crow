@@ -1,12 +1,12 @@
 no-std
 import
 	..bool: not
-	..compare: ==, <, <=, >, compare, comparison, equal, less
+	..compare: ==, !=, <, <=, >, compare, comparison, equal, less
 	..exception: assert, forbid
 	..fun: subscript
 	..misc: ->, as, void
 	..number: ==, <=>, +, -, /, nat64
-	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
+	..ptr: ==, +, -, ptr, set-subscript, subscript
 	..str: ==, <=>, chars
 	..test: is
 	.arr: ==, arr, subscript
@@ -64,16 +64,16 @@ sort-by! void(a mut-arr ?a, f act ?b(?a)) compare<?b>
 	a sort! (x, y) => f[x] <=> f[y]
 
 .insertion-sort-recur! void(begin ptr ?a, cur ptr ?a, end ptr ?a, comparer act comparison(?a, ?a)) unsafe
-	if cur ptr-eq? end not
+	if cur != end
 		begin insert! cur, cur[], comparer
 		begin insertion-sort-recur! cur + 1, end, comparer
 
 .insert! void(begin ptr ?a, cur ptr ?a, value ?a, comparer act comparison(?a, ?a)) unsafe
-	forbid: begin ptr-eq? cur
+	forbid: begin == cur
 	prev = cur - 1
 	if comparer[value, prev[]] == less
 		cur[] := prev[]
-		if begin ptr-eq? prev
+		if begin == prev
 			prev[] := value
 		else
 			begin insert! prev, value, comparer
@@ -93,7 +93,7 @@ sort-unique! mut-arr ?a(a mut-arr ?a, comparer act comparison(?a, ?a)) trusted
 sort-unique-by! mut-arr ?a(a mut-arr ?a, f act ?b(?a)) compare<?b>
 	a sort-unique! (x, y) => f[x] <=> f[y]
 .unique-recur! ptr ?a(prev ?a, read ptr ?a, write ptr ?a, end ptr ?a, comparer act comparison(?a, ?a)) unsafe
-	if read ptr-eq? end
+	if read == end
 		write
 	else
 		here = read[]

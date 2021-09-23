@@ -1,12 +1,12 @@
 no-std
 import
 	..bool: &&, bool, false, not, true
-	..compare: compare, <, >
+	..compare: !=, <, <=, >, compare
 	..exception: assert, forbid, unreachable
 	..fun: subscript
 	..misc: ->, as, data, drop, void
 	..opt: none, opt, some
-	..ptr: +, -, deep-size-bytes, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of, subscript
+	..ptr: ==, <=>, +, -, deep-size-bytes, ptr, set-subscript, size-of, subscript
 	..str: ==, <=>, chars, str
 	..str-conv: interp, finish, to-str, with-str, with-value
 	..str-util: starts-with?
@@ -353,7 +353,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 
 .add-to-arr add-result ?a(a arr ?a, value ?a, max-height nat64) trusted compare<?a>
 	insert-ptr = a binary-search-insert-ptr value
-	if (insert-ptr ptr-eq? a.end-ptr).not && insert-ptr[] == value
+	if insert-ptr != a.end-ptr && insert-ptr[] == value
 		none
 	elif a.size < 4
 		inserted: a insert insert-ptr, value
@@ -364,12 +364,12 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		a break-up-arr value, insert-ptr, max-height
 
 .break-up-arr add-result ?a(a arr ?a, value ?a, insert-ptr ptr ?a, max-height nat64) unsafe compare<?a>
-	assert: a.begin-ptr ptr-less-eq? insert-ptr
-	assert: insert-ptr ptr-less-eq? a.end-ptr
+	assert: a.begin-ptr <= insert-ptr
+	assert: insert-ptr <= a.end-ptr
 	# Break it up into nodes, adding to height
 	mid-ptr = a.begin-ptr +: (a.end-ptr - a.begin-ptr) unsafe-div 2
 	mid-index = mid-ptr - a.begin-ptr
-	if insert-ptr ptr-eq? mid-ptr
+	if insert-ptr == mid-ptr
 		inserted: inner-node: value, a[0 -> mid-index], a[mid-index -> a.size]
 	else
 		mid = mid-ptr[]
@@ -378,7 +378,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		right-arr = a[(mid-index wrap-add 1) -> a.size]
 		forbid: left-arr empty?
 		forbid: right-arr empty?
-		if insert-ptr ptr-less? mid-ptr
+		if insert-ptr < mid-ptr
 			# TODO:PERF: This redundantly finds insert-ptr again
 			match left-arr add-to-arr: value, max-height wrap-sub 1
 			as none
@@ -414,12 +414,12 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 .tree-to-arr arr ?a(a inner-node ?a, value ?a, size nat64) trusted compare<?a>
 	out = size uninitialized-mut-arr<?a>
 	end = out.begin-ptr tree-to-arr-recur! a, value
-	assert: end ptr-eq? out.end-ptr
+	assert: end == out.end-ptr
 	out cast-immutable
 .tree-to-arr arr ?a(a inner-node ?a, size nat64) trusted compare<?a>
 	out = size uninitialized-mut-arr<?a>
 	end = out.begin-ptr tree-to-arr-recur! a
-	assert: end ptr-eq? out.end-ptr
+	assert: end == out.end-ptr
 	out cast-immutable
 .tree-to-arr-recur! ptr ?a(out ptr ?a, a node ?a, value ?a) compare<?a> unsafe
 	match a
@@ -506,7 +506,7 @@ map tree-set ?out(a tree-set ?in, f act ?out(?in)) data<?in> compare<?in> data<?
 	end = out.begin-ptr fold a, (cur, value) =>
 		cur[] := f[value]
 		cur + 1
-	assert: end ptr-eq? out.end-ptr
+	assert: end == out.end-ptr
 	tree-set: out[0 -> end - out.begin-ptr].sort-unique! cast-immutable
 
 # TODO:PRIVATE

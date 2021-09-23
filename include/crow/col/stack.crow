@@ -6,7 +6,7 @@ import
 	..fun: subscript
 	..misc: drop, void
 	..opt: ==, empty?, has?, none, opt, some
-	..ptr: +, -, ptr-eq?, set-subscript
+	..ptr: ==, +, -, set-subscript
 	..str: str
 	..test: is
 	..test.spy: calls, fn, spy-act
@@ -44,7 +44,7 @@ arr arr ?a(a stack ?a) trusted
 		new-out = out - 1
 		new-out[] := x
 		new-out
-	assert: begin ptr-eq? res.begin-ptr
+	assert: begin == res.begin-ptr
 	res cast-immutable
 
 arr-reverse arr ?a(a stack ?a) trusted
@@ -52,7 +52,7 @@ arr-reverse arr ?a(a stack ?a) trusted
 	end = res.begin-ptr fold-reverse a, (out, x) =>
 		out[] := x
 		out + 1
-	assert: end ptr-eq? res.end-ptr
+	assert: end == res.end-ptr
 	res cast-immutable
 
 # True iff `a.size == 0`.

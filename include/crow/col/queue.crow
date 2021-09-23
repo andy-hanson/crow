@@ -6,7 +6,7 @@ import
 	..fun: subscript
 	..misc: ->, void
 	..opt: force, has?, opt, some
-	..ptr: +, -, ptr-eq?, set-subscript
+	..ptr: ==, +, -, set-subscript
 	..test: is
 	..private.number-low-level: ==, nat64, wrap-add
 	.arr: ==, arr, empty?, size
@@ -34,7 +34,7 @@ arr arr ?a(a queue ?a) trusted
 	end = res.begin-ptr fold a, (out, x) =>
 		out[] := x
 		out + 1
-	assert: end ptr-eq? res.end-ptr
+	assert: end == res.end-ptr
 	res cast-immutable
 
 size nat64(a queue ?a)
@@ -82,7 +82,7 @@ map queue ?out(a queue ?in, f act ?out(?in)) trusted
 	end = res.begin-ptr fold a, (out, x) =>
 		out[] := f[x]
 		out + 1
-	assert: end ptr-eq? res.end-ptr
+	assert: end == res.end-ptr
 	queue: res.cast-immutable
 
 test

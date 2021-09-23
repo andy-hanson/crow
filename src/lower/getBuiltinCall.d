@@ -166,6 +166,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				isInt32(p0) ? LowExprKind.SpecialBinary.Kind.eqInt32 :
 				isInt64(p0) ? LowExprKind.SpecialBinary.Kind.eqInt64 :
 				isFloat64(p0) ? LowExprKind.SpecialBinary.Kind.eqFloat64 :
+				isPtrRaw(p0) ? LowExprKind.SpecialBinary.Kind.eqPtr :
 				failBinary());
 		case shortSymAlphaLiteralValue("?"):
 			return trinary(LowExprKind.SpecialTrinary.Kind.if_);
@@ -267,8 +268,6 @@ immutable(BuiltinKind) getBuiltinKind(
 			return constant(immutable Constant(immutable Constant.Null()));
 		case shortSymAlphaLiteralValue("ptr-cast"):
 			return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
-		case shortSymAlphaLiteralValue("ptr-eq?"):
-			return binary(LowExprKind.SpecialBinary.Kind.eqPtr);
 		case shortSymAlphaLiteralValue("ptr-less?"):
 			return binary(LowExprKind.SpecialBinary.Kind.lessPtr);
 		case shortSymAlphaLiteralValue("ptr-to"):

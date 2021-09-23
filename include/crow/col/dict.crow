@@ -1,13 +1,13 @@
 no-std
 import
 	..bool: &&, ==, ?, bool, false, not, true
-	..compare: <=, >=, compare, comparison, equal, max, min
+	..compare: <, <=, >=, compare, comparison, equal, max, min
 	..exception: assert
 	..fun: subscript
 	..misc: ->, arrow, as, data, from, to, void
 	..number: ==, <=>, +, -, even?, nat64
 	..opt: ==, has?, none, opt, opt-or, or-default, some
-	..ptr: +, -, ptr, ptr-eq?, ptr-less?, set-subscript, subscript
+	..ptr: ==, <=>, +, -, ptr, set-subscript, subscript
 	..str: ==, chars, empty?, size-bytes, str
 	..str-conv: interp, finish, to-str, with-str, with-value
 	..test: is
@@ -76,7 +76,7 @@ arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> compare<?k> trusted
 		end = out.begin-ptr fold a, (cur, k, v) =>
 			cur[] := k -> v
 			cur + 1
-		assert: end ptr-eq? out.end-ptr
+		assert: end == out.end-ptr
 		out cast-immutable
 	as end-node e
 		e pairs
@@ -160,26 +160,26 @@ has-key? bool(a dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 spec
 	unsafe
 body
-	assert: l ptr-less? l-end
-	assert: r ptr-less? r-end
+	assert: l < l-end
+	assert: r < r-end
 	match compare[l[], r[]]
 	as less
 		out[] := l[]
-		if l + 1 ptr-eq? l-end
+		if l + 1 == l-end
 			out + 1 finish-rest r, r-end
 		else
 			out + 1 merge-keep-right l + 1, l-end, r, r-end, compare
 	as equal
 		out[] := r[]
-		if l + 1 ptr-eq? l-end
+		if l + 1 == l-end
 			out + 1 finish-rest r + 1, r-end
-		elif r + 1 ptr-eq? r-end
+		elif r + 1 == r-end
 			out + 1 finish-rest l + 1, l-end
 		else
 			out + 1 merge-keep-right l + 1, l-end, r + 1, r-end, compare
 	as greater
 		out[] := r[]
-		if r + 1 ptr-eq? r-end
+		if r + 1 == r-end
 			out + 1 finish-rest l, l-end
 		else
 			out + 1 merge-keep-right l, l-end, r + 1, r-end, compare
@@ -203,12 +203,12 @@ spec
 	data<?k>
 	compare<?k>
 body
-	assert: l ptr-less? l-end
-	assert: r ptr-less? r-end
+	assert: l < l-end
+	assert: r < r-end
 	match l[].from <=> r[].from
 	as less
 		out[] := l[]
-		if l + 1 ptr-eq? l-end
+		if l + 1 == l-end
 			out + 1 finish-rest-ignore-none r, r-end
 		else
 			out + 1 merge-to-end-recur l + 1, l-end, r, r-end
@@ -219,9 +219,9 @@ body
 		else
 			out
 
-		if l + 1 ptr-eq? l-end
+		if l + 1 == l-end
 			new-out finish-rest-ignore-none r, r-end
-		elif r + 1 ptr-eq? r-end
+		elif r + 1 == r-end
 			new-out finish-rest l, l-end
 		else
 			new-out merge-to-end-recur l + 1, l-end, r + 1, r-end
@@ -232,7 +232,7 @@ body
 		else
 			out
 
-		if r + 1 ptr-eq? r-end
+		if r + 1 == r-end
 			new-out finish-rest l, l-end
 		else
 			new-out merge-to-end-recur l, l-end, r + 1, r-end
@@ -250,7 +250,7 @@ body
 spec
 	unsafe
 body
-	if r ptr-eq? r-end
+	if r == r-end
 		out
 	else
 		new-out = if r-value ?= r[] to

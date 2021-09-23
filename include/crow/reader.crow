@@ -3,12 +3,12 @@ import
 	.bool: &&, ||, ?, bool, false, not, true
 	.col.arr: arr-from-begin-end, begin-ptr, end-ptr
 	.col.mut-list: ~=, move-to-arr!, mut-list
-	.compare: >=
+	.compare: <=, >=
 	.fun: subscript
 	.misc: drop, void
 	.number: ==, <=>, +, *, ^, float64, int64, nat64, to-float64, to-int64
 	.opt: has?, none, opt, some
-	.ptr: +, -, ptr, ptr-eq?, ptr-less-eq?, subscript
+	.ptr: ==, <=>, +, -, ptr, subscript
 	.str: ==, char, chars, size-bytes, str
 	.test: is
 	.private.exception-low-level: assert
@@ -28,8 +28,8 @@ with-reader opt ?a(a str, f act opt ?a(reader))
 		res
 
 empty? bool(a reader) trusted
-	assert: a.cur ptr-less-eq? a.end
-	a.cur ptr-eq? a.end
+	assert: a.cur <= a.end
+	a.cur == a.end
 
 has? bool(a reader)
 	a.empty? not

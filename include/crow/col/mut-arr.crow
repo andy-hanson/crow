@@ -2,11 +2,11 @@ no-std
 import
 	...string: memcpy
 	..bool: bool, not
-	..compare: <, <=, equal
+	..compare: !=, <, <=, equal
 	..fun: subscript
 	..misc: ->, arrow, drop, from, to, void
 	..opt: opt, some
-	..ptr: +, -, as-any-ptr, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of, subscript
+	..ptr: ==, <=>, +, -, as-any-ptr, ptr, set-subscript, size-of, subscript
 	..private.alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
 	..private.exception-low-level: assert, forbid
 	..private.number-low-level: ==, <=>, nat64, wrap-mul, wrap-sub
@@ -47,7 +47,7 @@ arr arr ?a(a mut-arr ?a)
 	a.copy.inner
 
 mut-arr-from-begin-end mut-arr ?a(begin ptr ?a, end ptr ?a) unsafe
-	assert: begin ptr-less-eq? end
+	assert: begin <= end
 	mut-arr: void, arr-from-begin-end: begin, end
 
 ###
@@ -197,7 +197,7 @@ find-index opt nat64(a mut-arr ?a, f act bool(?a)) trusted
 reverse! void(a mut-arr ?a) trusted
 	a.begin-ptr reverse-recur! a.end-ptr - 1
 .reverse-recur! void(left ptr ?a, right ptr ?a) unsafe
-	if left ptr-less? right
+	if left < right
 		tmp = left[]
 		left[] := right[]
 		right[] := tmp
@@ -223,7 +223,7 @@ fold-reverse ?a(acc ?a, a mut-arr ?b, f act ?a(?a, ?b)) trusted
 map! void(a mut-arr ?a, f act ?a(?a)) trusted
 	a.begin-ptr map-recur! a.end-ptr, f
 .map-recur! void(cur ptr ?a, end ptr ?a, f act ?a(?a)) unsafe
-	if cur ptr-eq? end not
+	if cur != end
 		cur[] := f[cur[]]
 		cur + 1 map-recur! end, f
 
