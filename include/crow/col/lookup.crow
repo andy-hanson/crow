@@ -1,6 +1,6 @@
 no-std
 import
-	..bits: bits-and, unsafe-bit-shift-right
+	..bits: &, unsafe-bit-shift-right
 	..bool: ==, ?, and, bool, false, not, true
 	..compare: !=, <, <=, >=, compare, max
 	..exception: assert, unreachable
@@ -45,7 +45,7 @@ node<?k, ?v> union
 	leaf-node: []
 
 .low-bits nat64(a nat64)
-	a bits-and 0b111
+	a & 0b111
 
 .inner-node-n-bits nat64()
 	3

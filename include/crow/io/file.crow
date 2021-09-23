@@ -6,7 +6,7 @@ import
 	...stat: mkdir, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
 	...sys.types: ino_t, mode_t, off_t
 	...unistd: close, getcwd, lseek, read, readlink, rmdir, unlink, write
-	..bits: bits-and, bit-shift-left, bits-or
+	..bits: &, |, bit-shift-left
 	..bytes-types: zero
 	..bool: and, bool, false, not, to-nat64, true
 	..cell: cell, subscript
@@ -36,7 +36,7 @@ is-dir? bool(path str) summon trusted
 
 .is-dir? bool(path c-str) summon unsafe
 	if stat ?= path get-stat
-		(stat.st_mode bits-and S_IFMT) == S_IFDIR
+		stat.st_mode & S_IFMT == S_IFDIR
 	else
 		throw: "path does not exist: {path}"
 
@@ -46,7 +46,7 @@ is-file? bool(path str) summon
 
 .is-file? bool(path c-str) summon
 	if stat ?= path get-stat
-		(stat.st_mode bits-and S_IFMT) == S_IFREG
+		stat.st_mode & S_IFMT == S_IFREG
 	else
 		false
 
@@ -140,8 +140,8 @@ write-file void(path str, content str) summon
 .write-file void(path c-str, content str) summon trusted
 	permission-rdwr = 6 as<nat32>
 	permission-rd = 4 as<nat32>
-	permission = (permission-rdwr bit-shift-left 6) bits-or (permission-rd bit-shift-left 3) bits-or permission-rd
-	flags = O_CREAT bits-or O_WRONLY bits-or O_TRUNC
+	permission = (permission-rdwr bit-shift-left 6) | (permission-rd bit-shift-left 3) | permission-rd
+	flags = O_CREAT | O_WRONLY | O_TRUNC
 	fd = path open flags, permission
 	if fd == -1
 		print: "failed to open file for write: {path}"
@@ -244,7 +244,7 @@ permissions record
 	execute bool
 
 .to-mode mode_t(a permissions)
-	(a.read.to-nat64 bit-shift-left 2) bits-or (a.write.to-nat64 bit-shift-left 1) bits-or a.execute.to-nat64 to-nat32
+	to-nat32: (a.read.to-nat64 bit-shift-left 2) | (a.write.to-nat64 bit-shift-left 1) | a.execute.to-nat64
 
 no-permissions permissions()
 	permissions: false, false, false
@@ -261,7 +261,7 @@ user-only file-permissions(user-permissions permissions)
 	file-permissions: user-permissions, no-permissions, no-permissions
 
 to-mode mode_t(a file-permissions)
-	(a.user.to-mode bit-shift-left 6) bits-or (a.group.to-mode bit-shift-left 3) bits-or a.public.to-mode
+	(a.user.to-mode bit-shift-left 6) | (a.group.to-mode bit-shift-left 3) | a.public.to-mode
 
 make-directory void(path str) summon
 	# TODO: all-permissions.user-only instead of a number literal

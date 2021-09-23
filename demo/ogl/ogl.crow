@@ -1,5 +1,5 @@
 import
-	crow.bits: bits-or
+	crow.bits: |
 	crow.cell: as-ptr, cell, subscript
 	crow.col.mut-arr: begin-ptr, map-to-arr, mut-arr, set-subscript, size, subscript
 	crow.c-types: c-int
@@ -39,7 +39,7 @@ main fut nat(_ arr str) summon trusted
 	"set minor version" handle-sdl-error: SDL_GL_CONTEXT_MINOR_VERSION SDL_GL_SetAttribute 0
 	"set double buffer" handle-sdl-error: SDL_GL_DOUBLEBUFFER SDL_GL_SetAttribute 1
 
-	wflags = SDL_WINDOW_OPENGL bits-or SDL_WINDOW_SHOWN
+	wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
 	window = "my game".to-c-str SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, wflags
 	if window.as-any-ptr null?
 		"SDL_CreateWindow" fail-sdl-error

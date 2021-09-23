@@ -19,30 +19,31 @@ bits-not nat64(a nat64) noctx builtin
 Intersects each corresponding bit in parallel.
 Output bits will be 1 iff both input bits are.
 ###
-bits-and nat16(a nat16, b nat16) noctx builtin
-bits-and nat32(a nat32, b nat32) noctx builtin
-bits-and nat64(a nat64, b nat64) noctx builtin
-bits-and int8(a int8, b int8) noctx builtin
-bits-and int16(a int16, b int16) noctx builtin
-bits-and int32(a int32, b int32) noctx builtin
-bits-and int64(a int64, b int64) noctx builtin
+& nat8(a nat8, b nat8) noctx builtin
+& nat16(a nat16, b nat16) noctx builtin
+& nat32(a nat32, b nat32) noctx builtin
+& nat64(a nat64, b nat64) noctx builtin
+& int8(a int8, b int8) noctx builtin
+& int16(a int16, b int16) noctx builtin
+& int32(a int32, b int32) noctx builtin
+& int64(a int64, b int64) noctx builtin
 
 bits-diff nat64(a nat64, b nat64)
-	a bits-and b.bits-not
+	a & b.bits-not
 
 ###
 Unions each corresponding bit in parallel.
 Output bits will be 1 iff either input bit is.
 ###
-bits-or nat8(a nat8, b nat8) noctx builtin
-bits-or nat16(a nat16, b nat16) noctx builtin
-bits-or nat32(a nat32, b nat32) noctx builtin
-bits-or nat64(a nat64, b nat64) noctx builtin
-bits-or int16(a int16, b int16) noctx builtin
-bits-or int32(a int32, b int32) noctx builtin
-bits-or int64(a int64, b int64) noctx builtin
+| nat8(a nat8, b nat8) noctx builtin
+| nat16(a nat16, b nat16) noctx builtin
+| nat32(a nat32, b nat32) noctx builtin
+| nat64(a nat64, b nat64) noctx builtin
+| int16(a int16, b int16) noctx builtin
+| int32(a int32, b int32) noctx builtin
+| int64(a int64, b int64) noctx builtin
 
-bits-xor nat8(a nat8, b nat8) noctx builtin
+xor nat8(a nat8, b nat8) noctx builtin
 bits-xor nat16(a nat16, b nat16) noctx builtin
 bits-xor nat32(a nat32, b nat32) noctx builtin
 bits-xor nat64(a nat64, b nat64) noctx builtin
@@ -53,17 +54,17 @@ bits-xor int64(a int64, b int64) noctx builtin
 
 # True if the numbers have at least one bit in common.
 bits-intersect? bool(a int16, b int16) noctx
-	(a bits-and b) != 0
+	a & b != 0
 bits-intersect? bool(a int32, b int32) noctx
-	(a bits-and b) != 0
+	a & b != 0
 bits-intersect? bool(a nat32, b nat32) noctx
-	(a bits-and b) != 0
+	a & b != 0
 bits-intersect? bool(a nat64, b nat64) noctx
-	(a bits-and b) != 0
+	a & b != 0
 
 # True if all 1 bits in 'b' are 1 bits in 'a'.
 has-all-bits? bool(a nat64, b nat64) noctx
-	(a bits-and b) == b
+	a & b == b
 
 unsafe-bit-shift-left nat64(a nat64, b nat64) noctx builtin unsafe
 unsafe-bit-shift-right nat64(a nat64, b nat64) noctx builtin unsafe
@@ -131,7 +132,7 @@ bit? bool(a nat64, bit-index nat64)
 	a bits-intersect? bit-index.nth-bit
 
 add-bit nat64(a nat64, bit-index nat64)
-	a bits-or bit-index.nth-bit
+	a | bit-index.nth-bit
 
 sub-bit nat64(a nat64, bit-index nat64)
 	a bits-diff bit-index.nth-bit
@@ -163,4 +164,4 @@ filter-bits nat64(a nat64, f act bool(nat64))
 		new-acc filter-bits-recur (a unsafe-bit-shift-right 1), (offset wrap-add 1), f
 
 bits-cat nat64(a nat32, b nat32)
-	a.to-nat64 bit-shift-left 32 bits-or b.to-nat64
+	(a.to-nat64 bit-shift-left 32) | b.to-nat64

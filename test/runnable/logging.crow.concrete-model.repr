@@ -508,7 +508,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, ptr))]
-			expr-body(call(==, [call(bits-and, [call(to-nat64, [param-ref(a)]), 7]), 0])))
+			expr-body(call(==, [call(&, [call(to-nat64, [param-ref(a)]), 7]), 0])))
 		fun(
 			false
 			==
@@ -518,7 +518,7 @@ program(
 			builtin([]))
 		fun(
 			false
-			bits-and
+			&
 			type(false, nat64)
 			none
 			[param(a, type(false, nat64)), param(b, type(false, nat64))]
@@ -544,7 +544,7 @@ program(
 			type(false, nat64)
 			none
 			[param(n, type(false, nat64))]
-			expr-body(call(bits-and, [call(wrap-add, [param-ref(n), 7]), call(bits-not, [7])])))
+			expr-body(call(&, [call(wrap-add, [param-ref(n), 7]), call(bits-not, [7])])))
 		fun(
 			false
 			wrap-add

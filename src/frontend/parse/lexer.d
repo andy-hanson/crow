@@ -535,6 +535,8 @@ public immutable(bool) isOperatorChar(immutable char c) {
 		case '/':
 		case '^':
 		case '~':
+		case '&':
+		case '|':
 			return true;
 		default:
 			return false;

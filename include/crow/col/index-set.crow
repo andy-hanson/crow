@@ -1,7 +1,7 @@
 no-std
 import
 	..bits:
-		add-bit, bit?, bits-and, bits-diff, bit-shift-left, bit-shift-right, bits-or, count-ones,
+		&, |, add-bit, bit?, bits-diff, bit-shift-left, bit-shift-right, count-ones,
 		filter-bits, fold-one-bits, nth-bit, sub-bit
 	..bool: ==, and, bool, false, not, true
 	..compare: !=, <, <=
@@ -105,11 +105,11 @@ try-remove opt index-set(a index-set, index nat64)
 
 ~ index-set(a index-set, b index-set)
 	index-set: void, a.values zip-larger b.values, (x, y) =>
-		x or-default 0 bits-or: y or-default 0
+		x or-default 0 |: y or-default 0
 
 intersect index-set(a index-set, b index-set)
 	strip-trailing-zeroes: a.values zip-smaller b.values, (x, y) =>
-		x bits-and y
+		x & y
 
 - index-set(a index-set, b index-set)
 	strip-trailing-zeroes: a.values zip-larger b.values, (x, y) =>

@@ -1,6 +1,6 @@
 ###
 Crashes the compiler because '<' is marked 'noctx', but depends on a spec whose impl is not noctx.
-The fix will be to infer notcx from the specs.
+The fix will be to infer noctx from the specs.
 ###
 
 main fut nat(_ arr str) summon

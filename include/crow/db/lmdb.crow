@@ -11,7 +11,7 @@ import
 		mdb_txn_abort, mdb_txn_begin, mdb_txn_commit, MDB_TXN_FULL, MDB_val, MDB_VERSION_MISMATCH,
 		ms_branch_pages, ms_depth, ms_entries, ms_leaf_pages, ms_overflow_pages, ms_psize, mv_data,
 		mv_size
-	..bits: bits-or
+	..bits: |
 	..bool: and, bool, false, not, or, true
 	..cell: cell, subscript
 	..col.arr: arr, begin-ptr, empty?, size
@@ -137,7 +137,7 @@ open-db lmdb-db<?k, ?v>(env lmdb-env, db-name str) unsafe summon lmdb-key<?k> se
 
 	dbi-cell = cell<MDB_dbi>: zeroed<MDB_dbi>
 	# TODO: Should be able to parse `zeroed<?k>.lmdb-key-flags`
-	flags = MDB_CREATE bits-or (zeroed<?k> lmdb-key-flags)
+	flags = MDB_CREATE | (zeroed<?k> lmdb-key-flags)
 	check-lmdb-error: transaction mdb_dbi_open db-name.to-c-str, flags, dbi-cell
 
 	check-lmdb-error: transaction mdb_txn_commit

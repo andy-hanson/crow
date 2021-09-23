@@ -2,11 +2,16 @@ import
 	crow.io.print: print
 
 main fut nat(_ arr str) summon
-	my-e = x
-	print: "{my-e to-nat8}"
-	print: "{y to-nat8}"
+	f0 = a
+	f1 = b
+	print: "{f0 to-nat8}"
+	print: "{f1 to-nat8}"
+	print: "{a | b to-nat8}"
+
 	0 resolved
 
-e enum<nat8>
-	x = 1
-	y = 7
+f enum<nat8> flags
+	a = 1
+	b = 2
+	c = 4
+

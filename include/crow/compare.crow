@@ -79,7 +79,7 @@ compare<?a> spec
 	as greater
 		false
 
-# True iff `not: a > b`
+# True iff `a > b not`
 <= bool(a ?a, b ?a) noctx compare<?a>
 	b < a not
 
@@ -87,7 +87,7 @@ compare<?a> spec
 > bool(a ?a, b ?a) noctx compare<?a>
 	b < a
 
-# True iff `not: a < b`.
+# True iff `a < b not`.
 >= bool(a ?a, b ?a) noctx compare<?a>
 	a < b not
 
@@ -105,7 +105,7 @@ max ?a(a ?a, b ?a, c ?a) noctx compare<?a>
 max ?a(a ?a, b ?a, c ?a, d ?a) noctx compare<?a>
 	a max b max c max d
 
-# Returns "less", "equal", or "greater"/
+# Returns "less", "equal", or "greater"
 to-str str(a comparison)
 	match a
 	as less

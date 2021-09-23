@@ -1,5 +1,5 @@
 import
-	crow.bits: bits-or
+	crow.bits: |
 	crow.io.duration: duration, msec
 	crow.io.print: print
 	crow.io.time: delay
@@ -64,7 +64,7 @@ main fut nat(_ arr str) summon trusted
 			look-for-quit-event
 
 .renderer SDL_Renderer(window SDL_Window) summon trusted
-	renderer = window SDL_CreateRenderer: -1, SDL_RENDERER_ACCELERATED bits-or SDL_RENDERER_PRESENTVSYNC
+	renderer = window SDL_CreateRenderer: -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
 	if renderer.as-any-ptr null?
 		"SDL_CreateRenderer" fail-sdl-error
 	renderer

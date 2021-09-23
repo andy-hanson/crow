@@ -177,7 +177,7 @@ immutable(BuiltinKind) getBuiltinKind(
 			return immutable BuiltinKind(immutable BuiltinKind.As());
 		case shortSymAlphaLiteralValue("as-ref"):
 			return unary(LowExprKind.SpecialUnary.Kind.asRef);
-		case shortSymAlphaLiteralValue("bits-and"):
+		case operatorSymValue(Operator.and1):
 			return binary(isInt8(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseAndInt8
 				: isInt16(rt)
@@ -199,7 +199,7 @@ immutable(BuiltinKind) getBuiltinKind(
 			return unary(isNat64(rt)
 				? LowExprKind.SpecialUnary.Kind.bitsNotNat64
 				: failUnary());
-		case shortSymAlphaLiteralValue("bits-or"):
+		case operatorSymValue(Operator.or1):
 			return binary(isInt8(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseOrInt8
 				: isInt16(rt)

@@ -10,7 +10,7 @@ import
 	....sys.socket: accept, listen, shutdown, SHUT_RDWR, sockaddr
 	....sys.types: socklen_t
 	....unistd: close, read
-	...bits: bits-intersect?, bits-or
+	...bits: |, bits-intersect?
 	...bool: and, bool, false, not, or, true
 	...cell: cell
 	...col.arr: arr, begin-ptr, subscript
@@ -61,7 +61,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		perror: "epoll-create1 failed\0".chars.begin-ptr
 		todo
 	else
-		event-flags = as<nat32>: EPOLLIN bits-or EPOLLET
+		event-flags = as<nat32>: EPOLLIN | EPOLLET
 		accept-event = epoll_event: event-flags, port-fd.to-int64.to-nat64
 		ctl-err = epoll-fd epoll_ctl EPOLL_CTL_ADD, port-fd, accept-event.ptr-to
 		if ctl-err != 0
@@ -126,7 +126,7 @@ close-client void(client-fd fd-t) unsafe summon
 			assert: num-events == 1
 			flags = event.events
 			fd = event.data.to-int64 to-int32
-			if flags bits-intersect? (EPOLLERR bits-or EPOLLHUP) or: not: flags bits-intersect? EPOLLIN
+			if flags bits-intersect? EPOLLERR | EPOLLHUP or: not: flags bits-intersect? EPOLLIN
 				print: "SOME KINDA ERROR"
 				err = fd close
 				assert: err == 0
@@ -148,7 +148,7 @@ close-client void(client-fd fd-t) unsafe summon
 			todo
 	else
 		client-fd set-non-blocking
-		client-event = epoll_event: (EPOLLIN bits-or EPOLLET), client-fd.to-int64.to-nat64
+		client-event = epoll_event: EPOLLIN | EPOLLET, client-fd.to-int64.to-nat64
 		err = epoll-fd epoll_ctl EPOLL_CTL_ADD, client-fd, client-event.ptr-to
 		assert: err == 0
 		on-accepted-client[client-fd] handle-exceptions
@@ -172,7 +172,7 @@ close-client void(client-fd fd-t) unsafe summon
 		perror: "fcntl() error\0".chars.begin-ptr
 		todo
 	else
-		err = fd fcntl: F_SETFL, flags bits-or O_NONBLOCK
+		err = fd fcntl: F_SETFL, flags | O_NONBLOCK
 		if err < 0
 			perror: "fcntl() error\0".chars.begin-ptr
 			todo

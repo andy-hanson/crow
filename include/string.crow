@@ -2,9 +2,12 @@ no-std
 import
 	.crow.c-types: c-int, size_t
 	.crow.ptr: any-ptr
+	.crow.private.bootstrap: c-str
 
 memcpy any-ptr(dest any-ptr, src any-ptr, size size_t) extern noctx unsafe
 
 memmove any-ptr(dest any-ptr, src any-ptr, size size_t) extern noctx unsafe
 
 memset any-ptr(begin any-ptr, value c-int, size size_t) extern noctx unsafe
+
+strlen size_t(a c-str) extern noctx unsafe
