@@ -1,6 +1,6 @@
 no-std
 import
-	.bool: or
+	.bool: ||
 	.col.arr: arr, size, subscript
 	.col.mut-arr: fill-mut-arr, set-subscript, subscript
 	.compare: !=
@@ -46,7 +46,7 @@ perf-measure void(start perf-time, name str)
 .find-index nat64(names arr str, name str)
 	names find-index name, 0
 .find-index nat64(names arr str, name str, index nat64)
-	if index == names.size or names[index] == name
+	if index == names.size || names[index] == name
 		index
 	else
 		names find-index name, (index wrap-add 1)

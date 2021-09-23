@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: ==, and, bool, false, not, true
+	..bool: &&, ==, bool, false, not, true
 	..compare: <, compare
 	..exception: assert
 	..misc: ->, arrow, data, from, to, void
@@ -188,7 +188,7 @@ test
 .== bool(a opt arrow<nat64, str>, b opt arrow<nat64, str>) noctx
 	if va ?= a
 		if vb ?= b
-			va.from == vb.from and va.to == vb.to
+			va.from == vb.from && va.to == vb.to
 		else
 			false
 	else

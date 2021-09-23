@@ -664,7 +664,7 @@ program(
 					param-ref(marked-anything?)
 					let(
 						new-marked-anything?
-						call(or, [param-ref(marked-anything?), call(not, [call(subscript, [param-ref(cur)])])])
+						call(||, [param-ref(marked-anything?), call(not, [call(subscript, [param-ref(cur)])])])
 						seq(
 							call(set-subscript, [param-ref(cur), call(true, [])])
 							call(
@@ -677,7 +677,7 @@ program(
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			builtin([type(false, bool)]))
-		fun(false, or, type(false, bool), none, [param(a, type(false, bool)), param(b, type(false, bool))], builtin([]))
+		fun(false, ||, type(false, bool), none, [param(a, type(false, bool)), param(b, type(false, bool))], builtin([]))
 		fun(false, subscript, type(false, bool), none, [param(a, type(false, ptr))], builtin([type(false, bool)]))
 		fun(
 			false
@@ -2489,16 +2489,10 @@ program(
 							assert
 							[
 								call(
-									and
+									&&
 									[call(>=, [local-ref(res), param-ref(a)]), call(>=, [local-ref(res), param-ref(b)])])])
 						local-ref(res)))))
-		fun(
-			false
-			and
-			type(false, bool)
-			none
-			[param(a, type(false, bool)), param(b, type(false, bool))]
-			builtin([]))
+		fun(false, &&, type(false, bool), none, [param(a, type(false, bool)), param(b, type(false, bool))], builtin([]))
 		fun(
 			false
 			>=
@@ -2532,7 +2526,7 @@ program(
 			[param(a, type(false, nat64)), param(b, type(false, nat64))]
 			expr-body(
 				cond(
-					call(or, [call(==, [param-ref(a), 0]), call(==, [param-ref(b), 0])])
+					call(||, [call(==, [param-ref(a), 0]), call(==, [param-ref(b), 0])])
 					0
 					let(
 						res
@@ -2975,7 +2969,7 @@ program(
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			expr-body(
-				call(or, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
+				call(||, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
 		fun(
 			false
 			ptr-less?
@@ -2991,7 +2985,7 @@ program(
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			expr-body(
-				call(or, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
+				call(||, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
 		fun(
 			false
 			ptr-eq?
@@ -4590,7 +4584,7 @@ program(
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			expr-body(
-				call(or, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
+				call(||, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
 		fun(
 			false
 			ptr-less?
@@ -5149,7 +5143,7 @@ program(
 													let(
 														no-task-and-last-thread-out?
 														call(
-															and
+															&&
 															[
 																call(no-tasks-and-last-thread-out?, [local-ref(n)])
 																call(==, [call(n-live-threads, [param-ref(gctx)]), 0])])
@@ -5262,7 +5256,7 @@ program(
 									some(n)
 									let(
 										new-any-tasks?
-										call(or, [param-ref(any-tasks?), call(any-tasks?, [local-ref(n)])])
+										call(||, [param-ref(any-tasks?), call(any-tasks?, [local-ref(n)])])
 										let(
 											new-first-task-time
 											call(
@@ -6326,7 +6320,7 @@ program(
 						res
 						call(subscript, [param-ref(f), local-ref(reader)])
 						cond(
-							call(and, [call(has?, [local-ref(res)]), call(empty?, [local-ref(reader)])])
+							call(&&, [call(has?, [local-ref(res)]), call(empty?, [local-ref(reader)])])
 							local-ref(res)
 							to-union(0, call(none, [])))))))
 		fun(
@@ -6575,7 +6569,7 @@ program(
 						res
 						call(subscript, [param-ref(f), local-ref(reader)])
 						cond(
-							call(and, [call(has?, [local-ref(res)]), call(empty?, [local-ref(reader)])])
+							call(&&, [call(has?, [local-ref(res)]), call(empty?, [local-ref(reader)])])
 							local-ref(res)
 							to-union(0, call(none, [])))))))
 		fun(
@@ -6645,7 +6639,7 @@ program(
 			[param(a, type(true, reader)), param(c, type(false, char))]
 			expr-body(
 				cond(
-					call(and, [call(has?, [param-ref(a)]), call(==, [call(peek, [param-ref(a)]), param-ref(c)])])
+					call(&&, [call(has?, [param-ref(a)]), call(==, [call(peek, [param-ref(a)]), param-ref(c)])])
 					seq(call(drop, [call(next!, [param-ref(a)])]), call(true, []))
 					call(false, []))))
 		fun(false, drop, type(false, void), none, [param("_", type(false, bool))], expr-body(call(void, [])))

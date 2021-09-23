@@ -16,7 +16,7 @@ greeting str()
 	"Hello"
 
 plural str(name str)
-	suffix = if name ends-with? "s" or name == "fox"
+	suffix = if name ends-with? "s" || name == "fox"
 		"es"
 	elif name ends-with? "x"
 		"en"

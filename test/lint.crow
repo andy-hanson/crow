@@ -29,18 +29,18 @@ lint result<str, arr failure>(path str, options test-options) summon
 .excluded-from-lint? bool(name str)
 	exclude-exts = [".bmp", ".err", ".html", ".mdb", ".png", ".repr", ".svg", ".ttf", ".wasm", ".webp", ".xz"]
 	exclude-names = ["documentation", "dyncall", "libfirm", "node_modules", "package-lock.json"]
-	name starts-with? "." or: exclude-names contains? name or: exclude-exts exists? ext => name ends-with? ext
+	name starts-with? "." || exclude-names contains? name || exclude-exts exists? ext => name ends-with? ext
 
 # Returns numner of errors
 .lint-file arr failure(path str) summon
 	text = path read-file
 	res = mut-list<failure>
 	ext = path.get-extension force
-	allow-double-space? = ext == "err" or: ext == "sublime-syntax"
+	allow-double-space? = ext == "err" || ext == "sublime-syntax"
 	text.lines each-with-index (line, line-num) =>
 		ln = line-num + 1 to-str
 		space-space = " " ~ " "
-		if allow-double-space?.not and: line has-substr? space-space
+		if allow-double-space?.not && line has-substr? space-space
 			message = "line {ln} contains a double space"
 			res ~=: failure: path, message
 		width = line line-len

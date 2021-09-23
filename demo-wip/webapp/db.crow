@@ -171,8 +171,8 @@ empty-name-or-password record
 user-does-not-exist record
 
 login! result<user-cookie, login-error>(db db, user-name str, password str) summon
-	if user-name.empty? or password.empty?
-		err: empty-name-or-password
+	if user-name.empty? || password.empty?
+		empty-name-or-password err
 	else
 		db.env with-write-transaction txn =>
 			if user ?= db get-user txn, user-name

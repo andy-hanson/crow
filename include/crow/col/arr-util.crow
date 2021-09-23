@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: ==, and, bool, false, not, or, to-nat64, true
+	..bool: &&, ||, ==, bool, false, not, to-nat64, true
 	..compare: !=, <, <=, >=, equal, max, min
 	..fun: subscript
 	..misc: ->, void
@@ -103,7 +103,7 @@ filter-with-index arr ?a(a arr ?a, f act bool(?a, nat64)) trusted
 Like 'filter', but keeps everything after the first time `f` returns true.
 ###
 strip-left-while arr ?a(a arr ?a, f act bool(?a))
-	if a.empty? or f[a[0]].not
+	if a.empty? || f[a[0]].not
 		a
 	else
 		a.tail strip-left-while f
@@ -227,12 +227,12 @@ contains-subseq? bool(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
 # TODO: equal<arr ?a> should be unnecessary
 # True iff the first elements of `a` are `start`, meaning `a[0 -> start.size] == start`.
 starts-with? bool(a arr ?a, start arr ?a) equal<?a> equal<arr ?a>
-	a.size >= start.size and: a[0 -> start.size] == start
+	a.size >= start.size && a[0 -> start.size] == start
 
 # TODO: equal<arr ?a> should be unnecessary
 # True iff the last elements of `a` are `end`, meaning `a[a.size - end.size -> a.size] == end`.
 ends-with? bool(a arr ?a, end arr ?a) equal<?a> equal<arr ?a>
-	a.size >= end.size and: a[a.size - end.size -> a.size] == end
+	a.size >= end.size && a[a.size - end.size -> a.size] == end
 
 # TODO: equal<arr ?a> should be unnecessary
 # If `a` starts with `start`, returns the remaining elements, else returns `none`.

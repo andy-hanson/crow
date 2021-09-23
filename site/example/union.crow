@@ -17,7 +17,7 @@ contains? bool(a hitbox, p vec-2)
 	as circle c
 		(p - c.center).length-squared <= c.radius ^ 2
 	as rect r
-		r.left <= p.x and: p.x <= r.right and: r.bottom <= p.y and: p.y <= r.top
+		r.left <= p.x && p.x <= r.right && r.bottom <= p.y && p.y <= r.top
 	as empty
 		false
 

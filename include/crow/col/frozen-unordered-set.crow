@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: ==, and, bool, false, not, true
+	..bool: &&, ==, bool, false, not, true
 	..compare: <=, compare
 	..fun: subscript
 	..hash: hash, hash-mix
@@ -107,7 +107,7 @@ body
 		bucket-count = bucket-counts unsafe-at bucket-index
 		bucket-start = bucket-starts unsafe-at bucket-index
 		bucket-cur-end = bucket-start + bucket-count
-		if bucket-start ptr-less-eq? value-ptr and: value-ptr ptr-less-eq? bucket-cur-end
+		if bucket-start ptr-less-eq? value-ptr && value-ptr ptr-less-eq? bucket-cur-end
 			if value-ptr ptr-eq? bucket-cur-end
 				bucket-counts unsafe-set-at!: bucket-index, bucket-count wrap-add 1
 				value-ptr + 1 move-values-to-buckets-recur! value-end, bucket-counts, bucket-starts

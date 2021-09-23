@@ -1,6 +1,6 @@
 no-std
 import
-	.bool: bool, or
+	.bool: ||, bool
 	.compare: comparison, less, equal, greater
 	.private.bootstrap: nat64, void
 	.private.number-low-level: unsafe-div, wrap-sub
@@ -85,7 +85,7 @@ ptr-eq? bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
 ptr-less? bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
 # True iff `a.to-nat64 <= b.to-nat64`.
 ptr-less-eq? bool(a ptr ?a, b ptr ?a) noctx unsafe
-	a ptr-less? b or: a ptr-eq? b
+	a ptr-less? b || a ptr-eq? b
 # Equal to `a.to-nat64 <=> b.to-nat64`.
 ptr-compare comparison(a ptr ?a, b ptr ?a) noctx unsafe
 	if a ptr-less? b

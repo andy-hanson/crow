@@ -3,7 +3,7 @@ import
 	...stdlib: free, malloc
 	...string: memcpy, memset
 	..bits: &, bits-not
-	..bool: bool, false, not, or, to-nat64, true
+	..bool: ||, bool, false, not, to-nat64, true
 	..compare: !=, <, <=, >
 	..fun: subscript
 	..misc: drop
@@ -54,7 +54,7 @@ mark-range-recur bool(marked-anything? bool, cur ptr bool, end ptr bool) noctx u
 	if cur ptr-eq? end
 		marked-anything?
 	else
-		new-marked-anything? = marked-anything? or cur[].not
+		new-marked-anything? = marked-anything? || cur[].not
 		cur[] := true
 		mark-range-recur: new-marked-anything?, cur + 1, end
 

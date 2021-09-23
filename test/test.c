@@ -2517,7 +2517,7 @@ char constantarr_0_350[16];
 char constantarr_0_351[16];
 char constantarr_0_352[13];
 char constantarr_0_353[1];
-char constantarr_0_354[3];
+char constantarr_0_354[2];
 char constantarr_0_355[9];
 char constantarr_0_356[24];
 char constantarr_0_357[30];
@@ -3459,7 +3459,7 @@ char constantarr_0_152[7] = "+<bool>";
 char constantarr_0_153[5] = "marks";
 char constantarr_0_154[16] = "mark-range-recur";
 char constantarr_0_155[13] = "ptr-eq?<bool>";
-char constantarr_0_156[2] = "or";
+char constantarr_0_156[2] = "||";
 char constantarr_0_157[15] = "subscript<bool>";
 char constantarr_0_158[19] = "set-subscript<bool>";
 char constantarr_0_159[8] = "><nat64>";
@@ -3657,7 +3657,7 @@ char constantarr_0_350[16] = "to<nat64, nat64>";
 char constantarr_0_351[16] = "-><nat64, nat64>";
 char constantarr_0_352[13] = "arrow<?a, ?b>";
 char constantarr_0_353[1] = "+";
-char constantarr_0_354[3] = "and";
+char constantarr_0_354[2] = "&&";
 char constantarr_0_355[9] = ">=<nat64>";
 char constantarr_0_356[24] = "round-up-to-power-of-two";
 char constantarr_0_357[30] = "round-up-to-power-of-two-recur";
@@ -16698,18 +16698,19 @@ uint8_t equal_recur__q(char* a, char* a_end, char* b, char* b_end) {
 	if (_0) {
 		return (b == b_end);
 	} else {
-		uint8_t _1 = not((b == b_end));
+		uint8_t _1 = not((b == b_end));uint8_t _2;
+		
 		if (_1) {
-			uint8_t _2 = _equal_0((*a), (*b));
-			if (_2) {
-				a = (a + 1u);
-				a_end = a_end;
-				b = (b + 1u);
-				b_end = b_end;
-				goto top;
-			} else {
-				return 0;
-			}
+			_2 = _equal_0((*a), (*b));
+		} else {
+			_2 = 0;
+		}
+		if (_2) {
+			a = (a + 1u);
+			a_end = a_end;
+			b = (b + 1u);
+			b_end = b_end;
+			goto top;
 		} else {
 			return 0;
 		}
@@ -23972,21 +23973,22 @@ struct arr_1 list_lintable_files(struct ctx* ctx, struct str path) {
 }
 /* excluded-from-lint? bool(name str) */
 uint8_t excluded_from_lint__q(struct ctx* ctx, struct str name) {
-	uint8_t _0 = starts_with__q_0(ctx, name, (struct str) {{1, constantarr_0_31}});
+	uint8_t _0 = starts_with__q_0(ctx, name, (struct str) {{1, constantarr_0_31}});uint8_t _1;
+	
 	if (_0) {
+		_1 = 1;
+	} else {
+		_1 = contains__q_2((struct arr_1) {5, constantarr_1_3}, name);
+	}
+	if (_1) {
 		return 1;
 	} else {
-		uint8_t _1 = contains__q_2((struct arr_1) {5, constantarr_1_3}, name);
-		if (_1) {
-			return 1;
-		} else {
-			struct excluded_from_lint__q__lambda0* temp0;
-			uint8_t* _2 = alloc(ctx, sizeof(struct excluded_from_lint__q__lambda0));
-			temp0 = ((struct excluded_from_lint__q__lambda0*) _2);
-			
-			*temp0 = (struct excluded_from_lint__q__lambda0) {name};
-			return exists__q(ctx, (struct arr_1) {11, constantarr_1_2}, (struct fun_act1_8) {4, .as4 = temp0});
-		}
+		struct excluded_from_lint__q__lambda0* temp0;
+		uint8_t* _2 = alloc(ctx, sizeof(struct excluded_from_lint__q__lambda0));
+		temp0 = ((struct excluded_from_lint__q__lambda0*) _2);
+		
+		*temp0 = (struct excluded_from_lint__q__lambda0) {name};
+		return exists__q(ctx, (struct arr_1) {11, constantarr_1_2}, (struct fun_act1_8) {4, .as4 = temp0});
 	}
 }
 /* contains?<str> bool(a arr<str>, value str) */

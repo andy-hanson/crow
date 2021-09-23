@@ -171,8 +171,10 @@ immutable(BuiltinKind) getBuiltinKind(
 			return trinary(LowExprKind.SpecialTrinary.Kind.if_);
 		case shortSymAlphaLiteralValue("as-any-ptr"):
 			return unary(LowExprKind.SpecialUnary.Kind.asAnyPtr);
-		case shortSymAlphaLiteralValue("and"):
+		case operatorSymValue(Operator.and2):
 			return binary(LowExprKind.SpecialBinary.Kind.and);
+		case operatorSymValue(Operator.or2):
+			return binary(LowExprKind.SpecialBinary.Kind.or);
 		case shortSymAlphaLiteralValue("as"):
 			return immutable BuiltinKind(immutable BuiltinKind.As());
 		case shortSymAlphaLiteralValue("as-ref"):
@@ -263,8 +265,6 @@ immutable(BuiltinKind) getBuiltinKind(
 				failUnary());
 		case shortSymAlphaLiteralValue("null"):
 			return constant(immutable Constant(immutable Constant.Null()));
-		case shortSymAlphaLiteralValue("or"):
-			return binary(LowExprKind.SpecialBinary.Kind.or);
 		case shortSymAlphaLiteralValue("ptr-cast"):
 			return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
 		case shortSymAlphaLiteralValue("ptr-eq?"):

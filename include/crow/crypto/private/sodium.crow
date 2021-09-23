@@ -1,7 +1,7 @@
 no-std
 import
 	....sodium: sodium_init
-	...bool: or
+	...bool: ||
 	...exception: assert
 	...misc: void
 	...ptr: ref-of-val
@@ -14,4 +14,4 @@ ensure-sodium-initialized void() trusted
 	# TODO: rename 'print-lock'. We just want a generic global lock for rare uses.
 	gctx.print-lock.ref-of-val with-lock () =>
 		err = sodium_init
-		assert: err == 0 or err == 1
+		assert: err == 0 || err == 1

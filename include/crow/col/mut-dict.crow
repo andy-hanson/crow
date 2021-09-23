@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: ?, and, bool, false, not, true
+	..bool: &&, ?, bool, false, not, true
 	..compare: <, >, <=, compare
 	..exception: assert
 	..fun: subscript
@@ -101,7 +101,7 @@ Returns true if it succeeded.
 .insert-into-key-match-or-empty-slot! bool(a mut-dict<?k, ?v>, key ?k, value ?v) trusted data<?k> compare<?k>
 	insert-ptr = a find-insert-ptr key
 	can-insert? = not: insert-ptr ptr-eq? a.pairs.end-ptr
-	if can-insert? and insert-ptr[].from == key
+	if can-insert? && insert-ptr[].from == key
 		if insert-ptr[].to empty?
 			a.node-size := a.node-size + 1
 		insert-ptr[] := key -> value.some
@@ -114,12 +114,12 @@ Returns true if it succeeded.
 
 		if inserted?
 			true
-		elif can-insert? and insert-ptr[].to.empty?
+		elif can-insert? && insert-ptr[].to.empty?
 			assert: key < insert-ptr[].from
 			a.node-size := a.node-size + 1
 			insert-ptr[] := key -> value.some
 			true
-		elif can-insert? and (insert-ptr ptr-eq? a.pairs.begin-ptr).not and (insert-ptr - 1)[].to.empty?
+		elif can-insert? && (insert-ptr ptr-eq? a.pairs.begin-ptr).not && (insert-ptr - 1)[].to.empty?
 			assert: key < insert-ptr[].from
 			# overwrite empty slot even though key doesn't match
 			a.node-size := a.node-size + 1

@@ -8,7 +8,7 @@ import
 	...unistd: close, getcwd, lseek, read, readlink, rmdir, unlink, write
 	..bits: &, |, bit-shift-left
 	..bytes-types: zero
-	..bool: and, bool, false, not, to-nat64, true
+	..bool: &&, bool, false, not, to-nat64, true
 	..cell: cell, subscript
 	..col.arr: arr, begin-ptr, subscript
 	..col.arr-util: each
@@ -96,7 +96,7 @@ read-dir arr str(path str) summon
 	if result[].as-any-ptr.null? not
 		assert: result[] ref-eq? entry
 		name = entry.get-dirent-name
-		if name != "." and: name != ".."
+		if name != "." && name != ".."
 			res ~= entry.get-dirent-name
 		dirp read-dir-recur res
 

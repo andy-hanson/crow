@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: and, bool, not
+	..bool: &&, bool, not
 	..compare: <, <=, compare, comparison, equal, greater, less
 	..fun: subscript
 	..misc: arrow, from, to
@@ -22,7 +22,7 @@ arr-equal? bool(a arr ?a, b arr ?a) trusted noctx equal<?a>
 	if a ptr-eq? a-end
 		b ptr-eq? b-end
 	else
-		(b ptr-eq? b-end).not and: a[] == b[] and: a + 1 equal-recur? a-end, b + 1, b-end
+		(b ptr-eq? b-end).not && a[] == b[] && a + 1 equal-recur? a-end, b + 1, b-end
 
 arr-equal? bool(a arr ?a, b arr ?a, eq act bool(?a, ?a)) trusted
 	a.begin-ptr equal-recur? a.end-ptr, b.begin-ptr, b.end-ptr, eq
@@ -30,7 +30,7 @@ arr-equal? bool(a arr ?a, b arr ?a, eq act bool(?a, ?a)) trusted
 	if a ptr-eq? a-end
 		b ptr-eq? b-end
 	else
-		(b ptr-eq? b-end).not and: eq[a[], b[]] and: a + 1 equal-recur? a-end, b + 1, b-end, eq
+		(b ptr-eq? b-end).not && eq[a[], b[]] && a + 1 equal-recur? a-end, b + 1, b-end, eq
 
 arr-compare comparison(a arr ?a, b arr ?a) trusted noctx compare<?a>
 	a.begin-ptr compare-recur a.end-ptr, b.begin-ptr, b.end-ptr

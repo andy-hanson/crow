@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: ==, ?, and, bool, false, not, true
+	..bool: &&, ==, ?, bool, false, not, true
 	..compare: <=, >=, compare, comparison, equal, max, min
 	..exception: assert
 	..fun: subscript
@@ -30,7 +30,7 @@ dict<?k, ?v> record
 dict-equal? bool(a dict<?k, ?v>, b dict<?k, ?v>) data<?k> compare<?k> equal<?v>
 	# TODO:PERF
 	a.arr arr-equal? b.arr, (x, y) =>
-		x.from == y.from and x.to == y.to
+		x.from == y.from && x.to == y.to
 
 .dict-impl<?k, ?v> union
 	overlay<?k, ?v>
@@ -291,7 +291,7 @@ body
 			overlays[0][0].from find-least-key overlays.tail
 		else
 			end-node[0].from
-		take-from-end-node? = end-node.empty?.not and least-key == end-node[0].from
+		take-from-end-node? = end-node.empty?.not && least-key == end-node[0].from
 		val-from-end-node = as<opt ?v>: take-from-end-node? ? end-node[0].to.some, none
 		new-end-node = take-from-end-node? ? end-node.tail, end-node
 		took-from-overlays = overlays take-key least-key

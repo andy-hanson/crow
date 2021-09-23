@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: and, bool, false, not, true
+	..bool: &&, bool, false, not, true
 	..compare: compare, <, >
 	..exception: assert, forbid, unreachable
 	..fun: subscript
@@ -353,7 +353,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 
 .add-to-arr add-result ?a(a arr ?a, value ?a, max-height nat64) trusted compare<?a>
 	insert-ptr = a binary-search-insert-ptr value
-	if (insert-ptr ptr-eq? a.end-ptr).not and insert-ptr[] == value
+	if (insert-ptr ptr-eq? a.end-ptr).not && insert-ptr[] == value
 		none
 	elif a.size < 4
 		inserted: a insert insert-ptr, value

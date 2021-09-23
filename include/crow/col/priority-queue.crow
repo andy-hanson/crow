@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: ?, and, bool, false, not, true
+	..bool: &&, ?, bool, false, not, true
 	..compare: <, >, <=, compare
 	..exception: assert
 	..fun: subscript
@@ -271,7 +271,7 @@ fold ?a(acc ?a, a priority-queue<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare
 		acc
 
 .swap-sorted! void(a mut-arr each-part<?k, ?v>) compare<?k>
-	if a.size > 1 and a[0].min.from > a[1].min.from
+	if a.size > 1 && a[0].min.from > a[1].min.from
 		temp = a[0]
 		a[0] := a[1]
 		a[1] := temp
@@ -375,4 +375,4 @@ test
 
 # TODO: arrow should be equatable
 == bool(a arrow<nat64, str>, b arrow<nat64, str>) noctx
-	a.from == b.from and a.to == b.to
+	a.from == b.from && a.to == b.to

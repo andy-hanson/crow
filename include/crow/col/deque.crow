@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: ==, and, bool, false
+	..bool: &&, ==, bool, false
 	..exception: assert
 	..fun: subscript
 	..misc: ->, void
@@ -45,7 +45,7 @@ arr arr ?a(a deque ?a) trusted
 	res cast-immutable
 
 empty? bool(a deque ?a)
-	a.left.empty? and a.mid.empty? and a.right.empty?
+	a.left.empty? && a.mid.empty? && a.right.empty?
 
 size nat64(a deque ?a)
 	a.left.size wrap-add a.mid.size wrap-add a.right.size

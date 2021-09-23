@@ -1,7 +1,7 @@
 no-std
 import
 	..crow.bits: &, bit-shift-right, bits-intersect?
-	..crow.bool: and, bool
+	..crow.bool: &&, bool
 	..crow.cell: cell
 	..crow.compare: !=
 	..crow.private.number-low-level: ==, int32
@@ -26,7 +26,7 @@ WIFEXITED bool(status status-t)
 
 WIFSIGNALED bool(status status-t)
 	ts = status WTERMSIG
-	ts != 0 and: ts != 0x7f
+	ts != 0 && ts != 0x7f
 
 WCOREDUMP bool(status status-t)
 	status bits-intersect? 0x80

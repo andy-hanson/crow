@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: and, bool, not
+	..bool: &&, bool, not
 	..col.arr: ~, arr, size, subscript
 	..compare: <
 	..exception: assert
@@ -27,7 +27,7 @@ cookie-matches? bool(a login-cookie, cookie nat64, expire-seconds nat64) summon
 		info log "Cookie expired! now: {now}, then: {a.timestamp.seconds-since-epoch}, expire after: {expire-seconds}"
 	if a.cookie == cookie not
 		info log "Wrong cookie! expected: {a cookie}, got: {cookie}"
-	recent? and a.cookie == cookie
+	recent? && a.cookie == cookie
 
 generate-login-cookie login-cookie() summon
 	login-cookie: get-unix-time, random-nat64

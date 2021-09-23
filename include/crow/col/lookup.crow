@@ -1,7 +1,7 @@
 no-std
 import
 	..bits: &, unsafe-bit-shift-right
-	..bool: ==, ?, and, bool, false, not, true
+	..bool: &&, ==, ?, bool, false, not, true
 	..compare: !=, <, <=, >=, compare, max
 	..exception: assert, unreachable
 	..fun: subscript
@@ -78,7 +78,7 @@ lookup lookup<?k, ?v>() data<?k> compare<?k> hash-mix<?k>
 	lookup: void, empty-leaf-node
 
 lookup lookup<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
-	if a.size <= 4 and a.no-duplicate-keys?
+	if a.size <= 4 && a.no-duplicate-keys?
 		lookup: void, leaf-node: a
 	else
 		lookup fold a, (cur, x) => cur ~ x
@@ -88,7 +88,7 @@ lookup lookup<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 		true
 	else
 		key = a[0] from
-		a.tail every? (it => it.from != key) and a.tail.no-duplicate-keys?
+		a.tail every? (it => it.from != key) && a.tail.no-duplicate-keys?
 
 empty? bool(a lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a.root node-empty?

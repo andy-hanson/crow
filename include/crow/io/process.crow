@@ -12,7 +12,7 @@ import
 		status-t, waitpid, WEXITSTATUS, WIFCONTINUED, WIFEXITED, WIFSIGNALED,
 		WIFSTOPPED, WTERMSIG
 	...unistd: close, pipe, pipes, read, read-pipe, write-pipe
-	..bool: and, bool, not, or, to-nat64
+	..bool: &&, ||, bool, not, to-nat64
 	..bytes-types: zero
 	..cell: cell, subscript
 	..col.arr: ~, arr, begin-ptr, ref-of-val-at, size
@@ -135,7 +135,7 @@ body
 		b = stderr-pollfd handle-revents stderr-builder
 		assert: (a.any?.to-nat64 wrap-add b.any?.to-nat64) == n-pollfds-with-events.to-nat64
 		# Apparently stdout and stderr can hang up at slightly different times.
-		if not: a.hung-up? and b.hung-up?
+		if not: a.hung-up? && b.hung-up?
 			keep-POLLINg: stdout-pipe, stderr-pipe, stdout-builder, stderr-builder
 
 .handle-revents-result record
@@ -143,7 +143,7 @@ body
 	hung-up? bool
 
 .any? bool(r handle-revents-result)
-	r.had-POLLIN? or r.hung-up?
+	r.had-POLLIN? || r.hung-up?
 
 .handle-revents handle-revents-result(pollfd pollfd, builder mut-list char) summon
 	revents = pollfd revents
@@ -151,7 +151,7 @@ body
 	if had-POLLIN?
 		pollfd.fd read-to-buffer-until-eof builder
 	hung-up? = revents has-POLLHUP?
-	if revents.has-POLLPRI? or revents.has-POLLOUT? or revents.has-POLLERR? or revents.has-POLLNVAL?
+	if revents.has-POLLPRI? || revents.has-POLLOUT? || revents.has-POLLERR? || revents.has-POLLNVAL?
 		todo
 	# TODO: shouldn't need parens?
 	handle-revents-result: had-POLLIN?, hung-up?

@@ -3,7 +3,7 @@ import
 	..bits:
 		&, |, add-bit, bit?, bits-diff, bit-shift-left, bit-shift-right, count-ones,
 		filter-bits, fold-one-bits, nth-bit, sub-bit
-	..bool: ==, and, bool, false, not, true
+	..bool: &&, ==, bool, false, not, true
 	..compare: !=, <, <=
 	..exception: assert
 	..fun: subscript
@@ -98,7 +98,7 @@ try-remove opt index-set(a index-set, index nat64)
 		new-value = old-value sub-bit bit-index
 		if new-value == old-value
 			none
-		elif new-value == 0 and nat64-index == (a.values.size wrap-sub 1)
+		elif new-value == 0 && nat64-index == (a.values.size wrap-sub 1)
 			some: index-set: void, a.values rtail
 		else
 			some: a.values update nat64-index, new-value strip-trailing-zeroes

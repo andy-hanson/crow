@@ -1,6 +1,6 @@
 no-std
 import
-	.bool: ?, and, bool
+	.bool: &&, ?, bool
 	.compare: !=, <
 	.fun: subscript
 	.private.bootstrap:
@@ -157,7 +157,7 @@ filter-bits nat64(a nat64, f act bool(nat64))
 	if a == 0
 		acc
 	else
-		new-acc = if a bits-intersect? 1 and f[offset]
+		new-acc = if a bits-intersect? 1 && f[offset]
 			acc add-bit offset
 		else
 			acc

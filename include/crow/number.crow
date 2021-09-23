@@ -1,6 +1,6 @@
 no-std
 import
-	.bool: ?, and, bool, or
+	.bool: &&, ||, ?, bool, false
 	.compare: !=, <, <=, >, >=
 	.fun: subscript
 	.misc: ->, arrow, from, to, void
@@ -53,19 +53,19 @@ multiple-of? bool(a nat64, b nat64)
 # Add two nats. Fail if the result would overflow.
 + nat8(a nat8, b nat8)
 	res = a wrap-add b
-	assert: res >= a and res >= b
+	assert: res >= a && res >= b
 	res
 + nat16(a nat16, b nat16)
 	res = a wrap-add b
-	assert: res >= a and res >= b
+	assert: res >= a && res >= b
 	res
 + nat32(a nat32, b nat32)
 	res = a wrap-add b
-	assert: res >= a and res >= b
+	assert: res >= a && res >= b
 	res
 + nat64(a nat64, b nat64)
 	res = a wrap-add b
-	assert: res >= a and: res >= b
+	assert: res >= a && res >= b
 	res
 
 # Subtract two nats. Fail if the result would be negative.
@@ -85,7 +85,7 @@ multiple-of? bool(a nat64, b nat64)
 # Multiply two nats. Fail if the result would overflow.
 * nat64(a nat64, b nat64)
 	# TODO: better safety check
-	if a == 0 or: b == 0
+	if a == 0 || b == 0
 		0
 	else
 		res = a wrap-mul b
@@ -143,7 +143,7 @@ mod nat64(a int64, b nat64)
 
 / int64(a int64, b int64) trusted
 	forbid: b == 0
-	forbid: a == min-int64 and: b == -1
+	forbid: a == min-int64 && b == -1
 	a unsafe-div b
 
 # Convert a nat64 to an int64. Fail if the result would overflow.
@@ -283,7 +283,10 @@ each-reverse void(a arrow<nat64, nat64>, f act void(nat64))
 		low each-reverse-recur (cur wrap-sub 1), f
 
 exists? bool(a arrow<nat64, nat64>, f act bool(nat64))
-	a.from < a.to and: f[a from] or: (a.from wrap-add 1) -> a.to exists? f
+	if a.from < a.to
+		f[a from] || (a.from wrap-add 1) -> a.to exists? f
+	else
+		false
 
 find opt nat64(a arrow<nat64, nat64>, f act bool(nat64))
 	if a.from < a.to

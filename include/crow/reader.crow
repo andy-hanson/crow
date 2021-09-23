@@ -1,6 +1,6 @@
 no-std
 import
-	.bool: ?, and, bool, false, not, or, true
+	.bool: &&, ||, ?, bool, false, not, true
 	.col.arr: arr-from-begin-end, begin-ptr, end-ptr
 	.col.mut-list: ~=, move-to-arr!, mut-list
 	.compare: >=
@@ -24,7 +24,7 @@ reader reader(a str) trusted
 with-reader opt ?a(a str, f act opt ?a(reader))
 	reader = a reader
 	res = f[reader]
-	if res.has? and reader.empty?
+	if res.has? && reader.empty?
 		res
 
 empty? bool(a reader) trusted
@@ -45,7 +45,7 @@ next! char(a reader) trusted
 	res
 
 take-char? bool(a reader, c char)
-	if a.has? and a.peek == c
+	if a.has? && a.peek == c
 		a.next! drop
 		true
 	else
@@ -56,7 +56,7 @@ skip-if-char! void(a reader, c char)
 
 take-str? bool(a reader, s str) trusted
 	size = s size-bytes
-	if a.end - a.cur >= size and (a.cur arr-from-begin-end a.cur + size).str == s
+	if a.end - a.cur >= size && (a.cur arr-from-begin-end a.cur + size).str == s
 		a.cur := a.cur + size
 		true
 	else
@@ -86,7 +86,7 @@ take-int! opt int64(a reader) trusted
 		none
 
 skip-whitespace! void(a reader)
-	if a take-char? " " or: a take-char? "\n" or: a take-char? "\t"
+	if a take-char? " " || a take-char? "\n" || a take-char? "\t"
 		a skip-whitespace!
 
 .take-sign? bool(a reader)

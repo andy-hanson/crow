@@ -89,10 +89,10 @@ parse-settings opt ai-settings(a str)
 	if a.size-bytes == 1
 		n = a.chars[0] to-nat8
 		# TODO: shouldn't need as<char>
-		if "A".as<char>.to-nat8 <= n and n < "Z".as<char>.to-nat8
-			some: n - "A".as<char>.to-nat8 to-nat
-		elif "a".as<char>.to-nat8 <= n and n < "z".as<char>.to-nat8
-			some: n - "a".as<char>.to-nat8 to-nat
+		if "A".as<char>.to-nat8 <= n && n < "Z".as<char>.to-nat8
+			some: n - "A".as<char>.to-nat8 to-nat64
+		elif "a".as<char>.to-nat8 <= n && n < "z".as<char>.to-nat8
+			some: n - "a".as<char>.to-nat8 to-nat64
 
 .strategy record
 	by-val
@@ -136,7 +136,7 @@ score-cache alias
 			score = if new-board just-won?
 				#if log?
 				#	info log "{ai-depth indent}Depth {ai-depth}: I'll win!"
-				(width ^ ai-depth).to-int clamp-to-int32
+				(width ^ ai-depth).to-int64 clamp-to-int32
 			elif ai-depth == 0
 				0
 			else
@@ -156,7 +156,7 @@ score-cache alias
 			0 score-and-best best
 		#if log?
 		#	info log "{ai-depth indent}Depth {ai-depth}: Score at {x} is {score-and-best score}"
-		cache strategy-recur board, ai-depth, score-and-best.best, (sum-score + score-and-best.score.to-int), x + 1
+		cache strategy-recur board, ai-depth, score-and-best.best, (sum-score + score-and-best.score.to-int64), x + 1
 
 indent str(depth nat)
 	" " repeat 2 * (9 - depth)

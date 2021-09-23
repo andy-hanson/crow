@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: and, bool, not, or
+	..bool: &&, ||, bool, not
 	..compare: >, >=, compare
 	..exception: assert, forbid
 	..fun: subscript
@@ -161,7 +161,7 @@ Returns the old value (if it exists).
 				old-value some
 			else
 				if value ?= f[none]
-					if m.at-capacity? and a.should-expand?
+					if m.at-capacity? && a.should-expand?
 						a expand!
 						a[key] := value
 					else
@@ -315,7 +315,7 @@ test
 	a[11] := "11"
 	a verify "(8 -> 8) _ _ [3 -> 3, 11 -> 11] (12 -> 12) _ (6 -> six) _"
 
-	a filter! (key, value) => key > 10 or value == "six"
+	a filter! (key, value) => key > 10 || value == "six"
 	a verify "_ _ _ (11 -> 11) (12 -> 12) _ (6 -> six) _"
 
 	a map-values! (key, value) => "{key}-{value}"

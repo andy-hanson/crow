@@ -1,6 +1,6 @@
 no-std
 import
-	.bool: and, bool, or
+	.bool: &&, ||, bool
 	.col.arr: arr, arr-cast, arr-from-begin-end, begin-ptr
 	.col.arr-util:
 		contains-subseq?, ends-with?, first, flatten, last, map, reverse, rtail, split-by-subseq,
@@ -72,7 +72,7 @@ rstrip str(a str)
 		a
 
 .whitespace? bool(a char)
-	a == " " or a == "\n" or a == "\t"
+	a == " " || a == "\n" || a == "\t"
 
 has-substr? bool(a str, b str)
 	a.chars contains-subseq? b.chars
@@ -106,7 +106,8 @@ lower-case str(a str)
 
 .lower-case-char char(a char)
 	a-nat = a to-nat8
-	if "A".to-nat8 <= a-nat and a-nat <= "Z".to-nat8
+	# TODO: support '<=' for chars
+	if "A".to-nat8 <= a-nat && a-nat <= "Z".to-nat8
 		to-char: "a".to-nat8 + a-nat - "A".to-nat8
 	else
 		a

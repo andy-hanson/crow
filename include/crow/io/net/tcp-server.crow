@@ -11,7 +11,7 @@ import
 	....sys.types: socklen_t
 	....unistd: close, read
 	...bits: |, bits-intersect?
-	...bool: and, bool, false, not, or, true
+	...bool: &&, ||, bool, false, not, true
 	...cell: cell
 	...col.arr: arr, begin-ptr, subscript
 	...col.mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
@@ -126,7 +126,7 @@ close-client void(client-fd fd-t) unsafe summon
 			assert: num-events == 1
 			flags = event.events
 			fd = event.data.to-int64 to-int32
-			if flags bits-intersect? EPOLLERR | EPOLLHUP or: not: flags bits-intersect? EPOLLIN
+			if flags bits-intersect? EPOLLERR | EPOLLHUP || not: flags bits-intersect? EPOLLIN
 				print: "SOME KINDA ERROR"
 				err = fd close
 				assert: err == 0
@@ -143,7 +143,7 @@ close-client void(client-fd fd-t) unsafe summon
 	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val
 	if client-fd < 0
 		e = errno
-		if e != EAGAIN and e != EWOULDBLOCK
+		if e != EAGAIN && e != EWOULDBLOCK
 			perror: "accept() error\0".chars.begin-ptr
 			todo
 	else

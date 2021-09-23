@@ -12,7 +12,7 @@ import
 		ms_branch_pages, ms_depth, ms_entries, ms_leaf_pages, ms_overflow_pages, ms_psize, mv_data,
 		mv_size
 	..bits: |
-	..bool: and, bool, false, not, or, true
+	..bool: &&, ||, bool, false, not, true
 	..cell: cell, subscript
 	..col.arr: arr, begin-ptr, empty?, size
 	..col.mut-arr:
@@ -276,8 +276,8 @@ body
 	new-acc = f[acc, key0, value0, value1]
 	err0 = cursor0 mdb_cursor_get empty-val, empty-val, MDB_NEXT
 	err1 = cursor1 mdb_cursor_get empty-val, empty-val, MDB_NEXT
-	if err0 == MDB_NOTFOUND or err1 == MDB_NOTFOUND
-		assert: err0 == MDB_NOTFOUND and err1 == MDB_NOTFOUND
+	if err0 == MDB_NOTFOUND || err1 == MDB_NOTFOUND
+		assert: err0 == MDB_NOTFOUND && err1 == MDB_NOTFOUND
 		new-acc
 	else
 		check-lmdb-error: err0

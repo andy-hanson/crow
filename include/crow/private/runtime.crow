@@ -9,7 +9,7 @@ import
 	..opt: none, opt, some
 	..ptr: as-any-ptr, as-ref, by-val, ref-of-val
 	.alloc: gc, get-gc-ctx, needs-gc?, return-gc-ctx, run-garbage-collection
-	.bool-low-level: and, bool, false, not, or, true
+	.bool-low-level: &&, ||, bool, false, not, true
 	.bootstrap:
 		call-with-ctx, ctx, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
 		island-and-exclusion, island-id, lock, log-ctx-ptr, nat64, thread-local-stuff
@@ -221,7 +221,7 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 		c
 	as no-chosen-task n
 		gctx.n-live-threads := gctx.n-live-threads wrap-sub 1
-		no-task-and-last-thread-out? = n.no-tasks-and-last-thread-out? and: gctx.n-live-threads == 0
+		no-task-and-last-thread-out? = n.no-tasks-and-last-thread-out? && gctx.n-live-threads == 0
 		# Did not find a task to do.
 		# (Tasks may have been added concurrently;
 		# this is fine as we're about to wait on a condition and will immediately wake up if so.)
@@ -252,7 +252,7 @@ body
 		as do-a-gc g
 			chosen-task: island, g
 		as no-task n
-			new-any-tasks? = any-tasks? or n.any-tasks?
+			new-any-tasks? = any-tasks? || n.any-tasks?
 			new-first-task-time = first-task-time min-time n.first-task-time
 			islands choose-task-recur: (i wrap-add 1), cur-time, new-any-tasks?, new-first-task-time
 

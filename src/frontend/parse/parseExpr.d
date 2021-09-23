@@ -492,10 +492,11 @@ immutable(int) symPrecedence(immutable Sym a) {
 immutable(int) operatorPrecedence(immutable Operator a) {
 	final switch (a) {
 		case Operator.concatEquals:
-			return -1;
-		case Operator.and2:
+			return -3;
 		case Operator.or2:
-			return 1;
+			return -2;
+		case Operator.and2:
+			return -1;
 		case Operator.equal:
 		case Operator.notEqual:
 		case Operator.less:
@@ -507,15 +508,15 @@ immutable(int) operatorPrecedence(immutable Operator a) {
 		case Operator.or1:
 		case Operator.arrow:
 		case Operator.concat:
-			return 2;
+			return 1;
 		case Operator.plus:
 		case Operator.minus:
-			return 3;
+			return 2;
 		case Operator.times:
 		case Operator.divide:
-			return 4;
+			return 3;
 		case Operator.power:
-			return 5;
+			return 4;
 	}
 }
 

@@ -96,7 +96,7 @@ height nat()
 	6
 
 .grid-has? bool(a nat, x nat, y nat)
-	x < width and: y < height and: a bit?: x bit-index y
+	x < width && y < height && a bit?: x bit-index y
 .grid-has? bool(a nat, c coord)
 	a grid-has? c.x, c.y
 
@@ -156,7 +156,7 @@ just-won? bool(a board)
 	diag-1-win? = diag-1-mask bits-intersect?: diag-1-mask bit-shift-right height * 2 + 4
 	verti-mask = a &: a bit-shift-right 1
 	verti-win? = verti-mask bits-intersect?: verti-mask bit-shift-right 2
-	horiz-win? or diag-0-win? or diag-1-win? or verti-win?
+	horiz-win? || diag-0-win? || diag-1-win? || verti-win?
 
 has-empty? bool(a board)
 	a.both-players != full-grid

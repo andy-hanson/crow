@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: ==, and, bool, false
+	..bool: &&, ==, bool, false
 	..compare: !=
 	..exception: assert
 	..fun: subscript
@@ -44,7 +44,7 @@ size nat64(a queue ?a)
 	queue: a.left, a.right ~ value
 
 empty? bool(a queue ?a)
-	a.left.empty? and a.right.empty?
+	a.left.empty? && a.right.empty?
 
 dequeued<?a> record
 	value ?a

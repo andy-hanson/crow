@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: ==, and, bool, false, not, true
+	..bool: &&, ==, bool, false, not, true
 	..compare: !=, <, >, >=, compare
 	..exception: assert, forbid, unreachable
 	..fun: subscript
@@ -378,7 +378,7 @@ body
 	init-iters-result: (prev.next-remove-index wrap-add a.values.size), new-out
 
 .remove-from-front iter-part ?a(a iter-part ?a, remove index-set)
-	if a.values.empty?.not and remove[a.remove-index]
+	if a.values.empty?.not && remove[a.remove-index]
 		a.values.tail iter-part (a.remove-index wrap-add 1) remove-from-front remove
 	else
 		a

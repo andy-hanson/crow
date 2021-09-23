@@ -24,7 +24,7 @@ run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ,
 .list-tests arr str(path str, match-test str) summon
 	res = mut-list<str>
 	path each-child-recursive child =>
-		if child has-substr? match-test and child.ext-is-crow?
+		if child has-substr? match-test && child.ext-is-crow?
 			res ~= child
 	res move-to-arr!
 
@@ -71,7 +71,7 @@ body
 	res = path-to-crow spawn-and-wait-result ["print", print-kind, path], env
 	output-path = "{path}.{print-kind}.repr"
 	# NOTE: compiler may have both stderr and stdout!
-	output-failures = if res.stdout.empty? and: res.exit-code != 0
+	output-failures = if res.stdout.empty? && res.exit-code != 0
 		# Just have a file for the err
 		[] as<arr failure>
 	else
@@ -102,7 +102,7 @@ body
 	args = interpret? ? ["run", path, "--interpret"], ["run", path, "--out", "{path}.c"]
 	res = path-to-crow spawn-and-wait-result args, env
 	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output?
-	stderr-failures = if res.exit-code == 0 and: res.stderr == ""
+	stderr-failures = if res.exit-code == 0 && res.stderr == ""
 		[] as<arr failure>
 	else
 		path handle-output ("{path}.stderr"), res.stderr, overwrite-output?

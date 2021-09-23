@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: and, bool, not
+	..bool: &&, bool, not
 	..compare: !=, <
 	..exception: assert
 	..fun: subscript
@@ -33,7 +33,7 @@ coord record
 	y nat64
 
 has-coord? bool(a mut-grid ?a, coord coord)
-	coord.x < a.width and coord.y < a.height
+	coord.x < a.width && coord.y < a.height
 
 to-str str(a coord)
 	"<{a.x}, {a.y}>"
