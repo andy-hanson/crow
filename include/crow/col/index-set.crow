@@ -1,7 +1,7 @@
 no-std
 import
 	..bits:
-		&, |, add-bit, bit?, bits-diff, bit-shift-left, bit-shift-right, count-ones,
+		&, |, <<, >>, add-bit, bit?, bits-diff, count-ones,
 		filter-bits, fold-one-bits, nth-bit, sub-bit
 	..bool: &&, ==, bool, false, not, true
 	..compare: !=, <, <=
@@ -161,13 +161,13 @@ count-greater-or-equal nat64(a index-set, n nat64)
 		0
 
 .count-range-in-nat64 nat64(a nat64, lo-bit-index nat64, hi-bit-index nat64)
-	a bit-shift-right lo-bit-index count-less-in-nat64: hi-bit-index wrap-sub lo-bit-index
+	a >> lo-bit-index count-less-in-nat64: hi-bit-index wrap-sub lo-bit-index
 
 .count-less-in-nat64 nat64(a nat64, bit-index nat64)
-	a bit-shift-left (64 wrap-sub bit-index) count-ones
+	a << (64 wrap-sub bit-index) count-ones
 
 .count-gte-in-nat64 nat64(a nat64, bit-index nat64)
-	a bit-shift-right bit-index count-ones
+	a >> bit-index count-ones
 
 filter-less index-set(a index-set, n nat64)
 	if n < a.values.size

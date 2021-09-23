@@ -509,14 +509,17 @@ immutable(int) operatorPrecedence(immutable Operator a) {
 		case Operator.arrow:
 		case Operator.concat:
 			return 1;
+		case Operator.shiftLeft:
+		case Operator.shiftRight:
+			return 2;
 		case Operator.plus:
 		case Operator.minus:
-			return 2;
+			return 3;
 		case Operator.times:
 		case Operator.divide:
-			return 3;
-		case Operator.power:
 			return 4;
+		case Operator.power:
+			return 5;
 	}
 }
 

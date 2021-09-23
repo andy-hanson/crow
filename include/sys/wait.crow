@@ -1,6 +1,6 @@
 no-std
 import
-	..crow.bits: &, bit-shift-right, bits-intersect?
+	..crow.bits: &, >>, bits-intersect?
 	..crow.bool: &&, bool
 	..crow.cell: cell
 	..crow.compare: !=
@@ -18,7 +18,7 @@ WTERMSIG status-t(status status-t)
 
 WEXITSTATUS status-t(status status-t)
 	# /usr/include/x86_64-linux-gnu/bits/waitstatus.h
-	status & 0xff00 bit-shift-right 8
+	(status & 0xff00) >> 8
 
 WIFEXITED bool(status status-t)
 	# /usr/include/x86_64-linux-gnu/bits/waitstatus.h

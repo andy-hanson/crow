@@ -114,6 +114,8 @@ enum Operator {
 	or1,
 	concat,
 	arrow,
+	shiftLeft,
+	shiftRight,
 	plus,
 	minus,
 	times,
@@ -182,6 +184,10 @@ private immutable(Opt!Operator) operatorFromStr(scope immutable string str) {
 			? some(Operator.compare)
 			: strEq(str, "->")
 			? some(Operator.arrow)
+			: strEq(str, "<<")
+			? some(Operator.shiftLeft)
+			: strEq(str, ">>")
+			? some(Operator.shiftRight)
 			: none!Operator;
 }
 
@@ -215,6 +221,10 @@ private immutable(string) strOfOperator(immutable Operator a) {
 			return "->";
 		case Operator.concat:
 			return "~";
+		case Operator.shiftLeft:
+			return "<<";
+		case Operator.shiftRight:
+			return ">>";
 		case Operator.plus:
 			return "+";
 		case Operator.minus:

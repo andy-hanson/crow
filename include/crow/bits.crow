@@ -43,7 +43,7 @@ Output bits will be 1 iff either input bit is.
 | int32(a int32, b int32) noctx builtin
 | int64(a int64, b int64) noctx builtin
 
-xor nat8(a nat8, b nat8) noctx builtin
+bits-xor nat8(a nat8, b nat8) noctx builtin
 bits-xor nat16(a nat16, b nat16) noctx builtin
 bits-xor nat32(a nat32, b nat32) noctx builtin
 bits-xor nat64(a nat64, b nat64) noctx builtin
@@ -70,52 +70,52 @@ unsafe-bit-shift-left nat64(a nat64, b nat64) noctx builtin unsafe
 unsafe-bit-shift-right nat64(a nat64, b nat64) noctx builtin unsafe
 
 # Shifts the bits of 'a' left by 'b' bits.
-bit-shift-left nat8(a nat8, b nat8) noctx trusted
+<< nat8(a nat8, b nat8) noctx trusted
 	if b < 8
 		a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat8
 	else
 		0
-bit-shift-left nat16(a nat16, b nat16) noctx trusted
+<< nat16(a nat16, b nat16) noctx trusted
 	if b < 16
 		a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat16
 	else
 		0
-bit-shift-left nat32(a nat32, b nat32) noctx trusted
+<< nat32(a nat32, b nat32) noctx trusted
 	if b < 32
 		a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat32
 	else
 		0
-bit-shift-left nat64(a nat64, b nat64) noctx trusted
+<< nat64(a nat64, b nat64) noctx trusted
 	if b < 64
 		a unsafe-bit-shift-left b
 	else
 		0
 
-bit-shift-left nat64(a nat64, b int64) noctx trusted
+<< nat64(a nat64, b int64) noctx trusted
 	if b < 0
-		a bit-shift-right: b wrap-mul -1 unsafe-to-nat64
+		a >>: b wrap-mul -1 unsafe-to-nat64
 	else
-		a bit-shift-left b.unsafe-to-nat64
+		a << b.unsafe-to-nat64
 
 # Shifts the bits of 'a' right by 'b' bits.
-bit-shift-right nat32(a nat32, b nat32) noctx trusted
+>> nat32(a nat32, b nat32) noctx trusted
 	if b < 32
 		a.to-nat64 unsafe-bit-shift-right b.to-nat64 unsafe-to-nat32
 	else
 		0
-bit-shift-right nat64(a nat64, b nat64) noctx trusted
+>> nat64(a nat64, b nat64) noctx trusted
 	if b < 64
 		a unsafe-bit-shift-right b
 	else
 		0
 
-bit-shift-right nat64(a nat64, b int64) noctx trusted
+>> nat64(a nat64, b int64) noctx trusted
 	if b < 0
-		a bit-shift-left: b wrap-mul -1 unsafe-to-nat64
+		a <<: b wrap-mul -1 unsafe-to-nat64
 	else
-		a bit-shift-right b.unsafe-to-nat64
+		a >> b.unsafe-to-nat64
 
-bit-shift-right int32(a int32, b int32) noctx trusted
+>> int32(a int32, b int32) noctx trusted
 	if a < 0
 		todo
 	elif b < 0
@@ -126,7 +126,7 @@ bit-shift-right int32(a int32, b int32) noctx trusted
 		todo
 
 nth-bit nat64(bit-index nat64)
-	1 bit-shift-left bit-index
+	1 << bit-index
 
 bit? bool(a nat64, bit-index nat64)
 	a bits-intersect? bit-index.nth-bit
@@ -164,4 +164,4 @@ filter-bits nat64(a nat64, f act bool(nat64))
 		new-acc filter-bits-recur (a unsafe-bit-shift-right 1), (offset wrap-add 1), f
 
 bits-cat nat64(a nat32, b nat32)
-	(a.to-nat64 bit-shift-left 32) | b.to-nat64
+	a.to-nat64 << 32 | b.to-nat64

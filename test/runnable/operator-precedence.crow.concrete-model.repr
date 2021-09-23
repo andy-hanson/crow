@@ -650,7 +650,7 @@ program(
 			[param(marked-anything?, type(false, bool)), param(cur, type(false, ptr)), param(end, type(false, ptr))]
 			expr-body(
 				cond(
-					call(ptr-eq?, [param-ref(cur), param-ref(end)])
+					call(==, [param-ref(cur), param-ref(end)])
 					param-ref(marked-anything?)
 					let(
 						new-marked-anything?
@@ -662,7 +662,7 @@ program(
 								[local-ref(new-marked-anything?), call(+, [param-ref(cur), 1]), param-ref(end)]))))))
 		fun(
 			false
-			ptr-eq?
+			==
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
@@ -1100,10 +1100,10 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, ptr))]
-			expr-body(call(ptr-eq?, [param-ref(a), call(null, [])])))
+			expr-body(call(==, [param-ref(a), call(null, [])])))
 		fun(
 			false
-			ptr-eq?
+			==
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
@@ -1331,18 +1331,25 @@ program(
 			[param(cur, type(false, ptr)), param(end, type(false, ptr)), param(f, type(false, fun-act1))]
 			expr-body(
 				cond(
-					call(not, [call(ptr-eq?, [param-ref(cur), param-ref(end)])])
+					call(!=, [param-ref(cur), param-ref(end)])
 					seq(
 						call(subscript, [param-ref(f), call(subscript, [param-ref(cur)])])
 						call(each-recur, [call(+, [param-ref(cur), 1]), param-ref(end), param-ref(f)]))
 					void)))
 		fun(
 			false
-			ptr-eq?
+			==
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			builtin([type(false, char)]))
+		fun(
+			false
+			!=
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(call(not, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(
 			true
 			subscript
@@ -1511,10 +1518,10 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, ptr))]
-			expr-body(call(ptr-eq?, [param-ref(a), call(null, [])])))
+			expr-body(call(==, [param-ref(a), call(null, [])])))
 		fun(
 			false
-			ptr-eq?
+			==
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
@@ -1811,7 +1818,7 @@ program(
 							next
 							call(+, [local-ref(cur), local-ref(size-words)])
 							cond(
-								call(ptr-less?, [local-ref(next), call(data-end, [param-ref(gc)])])
+								call(<, [local-ref(next), call(data-end, [param-ref(gc)])])
 								cond(
 									call(
 										range-free?
@@ -1847,11 +1854,42 @@ program(
 			builtin([type(false, nat64)]))
 		fun(
 			false
+			==
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			builtin([type(false, nat64)]))
+		fun(
+			false
+			<=>
+			type(false, comparison)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				cond(
+					call(ptr-less?, [param-ref(a), param-ref(b)])
+					to-union(0, call(less, []))
+					cond(
+						call(==, [param-ref(a), param-ref(b)])
+						to-union(1, call(equal, []))
+						to-union(2, call(greater, []))))))
+		fun(
+			false
 			ptr-less?
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			builtin([type(false, nat64)]))
+		fun(
+			false
+			<
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				match-union(
+					call(<=>, [param-ref(a), param-ref(b)])
+					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
 		fun(false, data-end, type(false, ptr), none, [param(a, type(true, gc))], field-get(10))
 		fun(
 			false
@@ -1861,7 +1899,7 @@ program(
 			[param(mark, type(false, ptr)), param(end, type(false, ptr))]
 			expr-body(
 				cond(
-					call(ptr-eq?, [param-ref(mark), param-ref(end)])
+					call(==, [param-ref(mark), param-ref(end)])
 					call(true, [])
 					cond(
 						call(subscript, [param-ref(mark)])
@@ -2193,7 +2231,7 @@ program(
 				cond(
 					call(<=, [param-ref(l), param-ref(r)])
 					cond(
-						call(ptr-less?, [call(subscript, [param-ref(a), param-ref(l)]), param-ref(pivot)])
+						call(<, [call(subscript, [param-ref(a), param-ref(l)]), param-ref(pivot)])
 						call(
 							partition-recur-together
 							[
@@ -2217,11 +2255,35 @@ program(
 					param-ref(l))))
 		fun(
 			false
+			<=>
+			type(false, comparison)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				cond(
+					call(ptr-less?, [param-ref(a), param-ref(b)])
+					to-union(0, call(less, []))
+					cond(
+						call(==, [param-ref(a), param-ref(b)])
+						to-union(1, call(equal, []))
+						to-union(2, call(greater, []))))))
+		fun(
+			false
 			ptr-less?
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			builtin([type(false, nat8)]))
+		fun(
+			false
+			<
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				match-union(
+					call(<=>, [param-ref(a), param-ref(b)])
+					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
 		fun(false, code-names, type(false, ptr), none, [param(a, type(true, backtrace-arrs))], field-get(1))
 		fun(
 			true
@@ -2236,7 +2298,7 @@ program(
 				param(fun-names, type(false, ptr))]
 			expr-body(
 				cond(
-					call(ptr-less?, [param-ref(code-names), param-ref(end-code-names)])
+					call(<, [param-ref(code-names), param-ref(end-code-names)])
 					seq(
 						call(
 							set-subscript
@@ -2260,11 +2322,42 @@ program(
 					void)))
 		fun(
 			false
+			==
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			builtin([type(false, str)]))
+		fun(
+			false
+			<=>
+			type(false, comparison)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				cond(
+					call(ptr-less?, [param-ref(a), param-ref(b)])
+					to-union(0, call(less, []))
+					cond(
+						call(==, [param-ref(a), param-ref(b)])
+						to-union(1, call(equal, []))
+						to-union(2, call(greater, []))))))
+		fun(
+			false
 			ptr-less?
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			builtin([type(false, str)]))
+		fun(
+			false
+			<
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				match-union(
+					call(<=>, [param-ref(a), param-ref(b)])
+					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
 		fun(
 			false
 			get-fun-name
@@ -2280,7 +2373,7 @@ program(
 					call(<, [param-ref(size), 2])
 					record([arr(0, 2)])
 					cond(
-						call(ptr-less?, [param-ref(code-ptr), call(subscript, [param-ref(fun-ptrs), 1])])
+						call(<, [param-ref(code-ptr), call(subscript, [param-ref(fun-ptrs), 1])])
 						call(subscript, [param-ref(fun-names)])
 						call(
 							get-fun-name
@@ -2606,18 +2699,18 @@ program(
 			[param(cur, type(false, ptr)), param(end, type(false, ptr)), param(f, type(false, fun-act1))]
 			expr-body(
 				cond(
-					call(not, [call(ptr-eq?, [param-ref(cur), param-ref(end)])])
+					call(!=, [param-ref(cur), param-ref(end)])
 					seq(
 						call(subscript, [param-ref(f), call(subscript, [param-ref(cur)])])
 						call(each-recur, [call(+, [param-ref(cur), 1]), param-ref(end), param-ref(f)]))
 					void)))
 		fun(
 			false
-			ptr-eq?
+			!=
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			builtin([type(false, str)]))
+			expr-body(call(not, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(
 			true
 			subscript
@@ -2899,25 +2992,16 @@ program(
 											[call(word-aligned?, [call(as-any-ptr, [call(data-cur, [param-ref(gc)])])])]))
 									call(
 										hard-assert
-										[
-											call(
-												ptr-less-eq?
-												[call(mark-begin, [param-ref(gc)]), call(mark-cur, [param-ref(gc)])])]))
+										[call(<=, [call(mark-begin, [param-ref(gc)]), call(mark-cur, [param-ref(gc)])])]))
 								call(
 									hard-assert
-									[
-										call(
-											ptr-less-eq?
-											[call(mark-cur, [param-ref(gc)]), call(mark-end, [param-ref(gc)])])]))
+									[call(<=, [call(mark-cur, [param-ref(gc)]), call(mark-end, [param-ref(gc)])])]))
 							call(
 								hard-assert
-								[
-									call(
-										ptr-less-eq?
-										[call(data-begin, [param-ref(gc)]), call(data-cur, [param-ref(gc)])])]))
+								[call(<=, [call(data-begin, [param-ref(gc)]), call(data-cur, [param-ref(gc)])])]))
 						call(
 							hard-assert
-							[call(ptr-less-eq?, [call(data-cur, [param-ref(gc)]), call(data-end, [param-ref(gc)])])]))
+							[call(<=, [call(data-cur, [param-ref(gc)]), call(data-end, [param-ref(gc)])])]))
 					let(
 						mark-idx
 						call(-, [call(mark-cur, [param-ref(gc)]), call(mark-begin, [param-ref(gc)])])
@@ -2954,12 +3038,18 @@ program(
 		fun(false, data-begin, type(false, ptr), none, [param(a, type(true, gc))], field-get(8))
 		fun(
 			false
-			ptr-less-eq?
-			type(false, bool)
+			<=>
+			type(false, comparison)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			expr-body(
-				call(||, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
+				cond(
+					call(ptr-less?, [param-ref(a), param-ref(b)])
+					to-union(0, call(less, []))
+					cond(
+						call(==, [param-ref(a), param-ref(b)])
+						to-union(1, call(equal, []))
+						to-union(2, call(greater, []))))))
 		fun(
 			false
 			ptr-less?
@@ -2967,22 +3057,31 @@ program(
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			builtin([type(false, bool)]))
-		fun(false, mark-end, type(false, ptr), none, [param(a, type(true, gc))], field-get(7))
 		fun(
 			false
-			ptr-less-eq?
+			<=
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(call(not, [call(<, [param-ref(b), param-ref(a)])])))
+		fun(
+			false
+			<
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			expr-body(
-				call(||, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
+				match-union(
+					call(<=>, [param-ref(a), param-ref(b)])
+					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
+		fun(false, mark-end, type(false, ptr), none, [param(a, type(true, gc))], field-get(7))
 		fun(
 			false
-			ptr-eq?
+			<=
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			builtin([type(false, nat64)]))
+			expr-body(call(not, [call(<, [param-ref(b), param-ref(a)])])))
 		fun(false, ref-of-val, type(true, gc), none, [param(a, type(false, gc))], builtin([type(true, gc)]))
 		fun(
 			false
@@ -4565,16 +4664,22 @@ program(
 			[param(begin, type(false, ptr)), param(end, type(false, ptr))]
 			expr-body(
 				seq(
-					call(hard-assert, [call(ptr-less-eq?, [param-ref(begin), param-ref(end)])])
+					call(hard-assert, [call(<=, [param-ref(begin), param-ref(end)])])
 					call(arr, [call(-, [param-ref(end), param-ref(begin)]), param-ref(begin)]))))
 		fun(
 			false
-			ptr-less-eq?
-			type(false, bool)
+			<=>
+			type(false, comparison)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			expr-body(
-				call(||, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
+				cond(
+					call(ptr-less?, [param-ref(a), param-ref(b)])
+					to-union(0, call(less, []))
+					cond(
+						call(==, [param-ref(a), param-ref(b)])
+						to-union(1, call(equal, []))
+						to-union(2, call(greater, []))))))
 		fun(
 			false
 			ptr-less?
@@ -4582,6 +4687,23 @@ program(
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			builtin([type(false, char)]))
+		fun(
+			false
+			<=
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(call(not, [call(<, [param-ref(b), param-ref(a)])])))
+		fun(
+			false
+			<
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				match-union(
+					call(<=>, [param-ref(a), param-ref(b)])
+					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
 		fun(
 			false
 			-
@@ -5949,7 +6071,7 @@ program(
 			[param(mark-ptr, type(false, ptr)), param(mark-end, type(false, ptr)), param(data-ptr, type(false, ptr))]
 			expr-body(
 				cond(
-					call(not, [call(ptr-eq?, [param-ref(mark-ptr), param-ref(mark-end)])])
+					call(!=, [param-ref(mark-ptr), param-ref(mark-end)])
 					seq(
 						cond(
 							call(not, [call(subscript, [param-ref(mark-ptr)])])
@@ -5959,6 +6081,13 @@ program(
 							clear-free-mem
 							[call(+, [param-ref(mark-ptr), 1]), param-ref(mark-end), param-ref(data-ptr)]))
 					void)))
+		fun(
+			false
+			!=
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(call(not, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(
 			false
 			set-shut-down?

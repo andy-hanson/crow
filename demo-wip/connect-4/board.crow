@@ -1,5 +1,5 @@
 import
-	crow.bits: &, |, bit?, bit-shift-left, bit-shift-right, bits-intersect?, bits-xor
+	crow.bits: &, |, <<, >>, bit?, bits-intersect?, bits-xor
 	crow.col.mut-arr: fill-mut-arr, mut-arr, set-subscript, size, subscript
 	crow.col.mut-grid: coord, x, y
 	crow.io.terminal-color: term-bold, term-blue, term-red, term-reset
@@ -148,14 +148,14 @@ just-won? bool(a board)
 	a.current-player bits-xor a.both-players win?
 
 .win? bool(a nat)
-	horiz-mask = a &: a bit-shift-right height + 1
-	horiz-win? = horiz-mask bits-intersect?: horiz-mask bit-shift-right height * 2 + 2
-	diag-0-mask = a &: a bit-shift-right height
-	diag-0-win? = diag-0-mask bits-intersect?: diag-0-mask bit-shift-right height * 2
-	diag-1-mask = a &: a bit-shift-right height + 2
-	diag-1-win? = diag-1-mask bits-intersect?: diag-1-mask bit-shift-right height * 2 + 4
-	verti-mask = a &: a bit-shift-right 1
-	verti-win? = verti-mask bits-intersect?: verti-mask bit-shift-right 2
+	horiz-mask = a & a >> height + 1
+	horiz-win? = horiz-mask bits-intersect?: horiz-mask >> height * 2 + 2
+	diag-0-mask = a & a >> height
+	diag-0-win? = diag-0-mask bits-intersect?: diag-0-mask >> height * 2
+	diag-1-mask = a & a >> height + 2
+	diag-1-win? = diag-1-mask bits-intersect?: diag-1-mask >> height * 2 + 4
+	verti-mask = a &: a >> 1
+	verti-win? = verti-mask bits-intersect?: verti-mask >> 2
 	horiz-win? || diag-0-win? || diag-1-win? || verti-win?
 
 has-empty? bool(a board)
@@ -169,8 +169,8 @@ has-empty? bool(a board)
 
 # Bit mask with a 1 at the top cell of the column
 .top-mask nat(col nat)
-	1 bit-shift-left (height - 1) bit-shift-left col * (height + 1)
+	1 << (height - 1) << col * (height + 1)
 
 # Bit mask with a 1 at the bottom cell of the column
 .bottom-mask nat(col nat)
-	1 bit-shift-left col * (height + 1)
+	1 << col * (height + 1)
