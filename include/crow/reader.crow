@@ -6,7 +6,7 @@ import
 	.compare: <=, >=
 	.fun: subscript
 	.misc: drop, void
-	.number: ==, <=>, +, *, ^, float64, int64, nat64, to-float64, to-int64
+	.number: ==, <=>, +, *, **, float64, int64, nat64, to-float64, to-int64
 	.opt: has?, none, opt, some
 	.ptr: ==, <=>, +, -, ptr, subscript
 	.str: ==, char, chars, size-bytes, str
@@ -105,7 +105,7 @@ take-float! opt float64(a reader) trusted
 			if n ?= a take-nat!
 				digits-taken = a.cur - (before-dot + 1)
 				# TODO: more accurate methods exist
-				sign * (whole-part + n.to-float64 * 0.1 ^ digits-taken)
+				sign * (whole-part + n.to-float64 * 0.1 ** digits-taken)
 			else
 				a.cur := before-dot
 				sign * whole-part

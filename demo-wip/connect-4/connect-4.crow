@@ -136,7 +136,7 @@ score-cache alias
 			score = if new-board just-won?
 				#if log?
 				#	info log "{ai-depth indent}Depth {ai-depth}: I'll win!"
-				(width ^ ai-depth).to-int64 clamp-to-int32
+				(width ** ai-depth).to-int64 clamp-to-int32
 			elif ai-depth == 0
 				0
 			else

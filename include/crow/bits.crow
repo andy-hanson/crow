@@ -43,14 +43,14 @@ Output bits will be 1 iff either input bit is.
 | int32(a int32, b int32) noctx builtin
 | int64(a int64, b int64) noctx builtin
 
-bits-xor nat8(a nat8, b nat8) noctx builtin
-bits-xor nat16(a nat16, b nat16) noctx builtin
-bits-xor nat32(a nat32, b nat32) noctx builtin
-bits-xor nat64(a nat64, b nat64) noctx builtin
-bits-xor int8(a int8, b int8) noctx builtin
-bits-xor int16(a int16, b int16) noctx builtin
-bits-xor int32(a int32, b int32) noctx builtin
-bits-xor int64(a int64, b int64) noctx builtin
+^ nat8(a nat8, b nat8) noctx builtin
+^ nat16(a nat16, b nat16) noctx builtin
+^ nat32(a nat32, b nat32) noctx builtin
+^ nat64(a nat64, b nat64) noctx builtin
+^ int8(a int8, b int8) noctx builtin
+^ int16(a int16, b int16) noctx builtin
+^ int32(a int32, b int32) noctx builtin
+^ int64(a int64, b int64) noctx builtin
 
 # True if the numbers have at least one bit in common.
 bits-intersect? bool(a int16, b int16) noctx

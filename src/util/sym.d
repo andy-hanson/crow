@@ -100,9 +100,9 @@ private immutable(bool) isAlphaIdentifier(scope immutable string a) {
 }
 
 enum Operator {
-	and2,
-	or2,
 	concatEquals,
+	or2,
+	and2,
 	equal,
 	notEqual,
 	less,
@@ -110,8 +110,9 @@ enum Operator {
 	greater,
 	greaterOrEqual,
 	compare,
-	and1,
 	or1,
+	xor1,
+	and1,
 	concat,
 	arrow,
 	shiftLeft,
@@ -120,7 +121,7 @@ enum Operator {
 	minus,
 	times,
 	divide,
-	power,
+	exponent,
 	not,
 }
 
@@ -162,7 +163,7 @@ private immutable(Opt!Operator) operatorFromStr(scope immutable string str) {
 			case '/':
 				return some(Operator.divide);
 			case '^':
-				return some(Operator.power);
+				return some(Operator.xor1);
 			case '!':
 				return some(Operator.not);
 			default:
@@ -191,15 +192,17 @@ private immutable(Opt!Operator) operatorFromStr(scope immutable string str) {
 			? some(Operator.shiftLeft)
 			: strEq(str, ">>")
 			? some(Operator.shiftRight)
+			: strEq(str, "**")
+			? some(Operator.exponent)
 			: none!Operator;
 }
 
 private immutable(string) strOfOperator(immutable Operator a) {
 	final switch (a) {
-		case Operator.and2:
-			return "&&";
 		case Operator.or2:
 			return "||";
+		case Operator.and2:
+			return "&&";
 		case Operator.concatEquals:
 			return "~=";
 		case Operator.equal:
@@ -216,10 +219,12 @@ private immutable(string) strOfOperator(immutable Operator a) {
 			return ">=";
 		case Operator.compare:
 			return "<=>";
-		case Operator.and1:
-			return "&";
 		case Operator.or1:
 			return "|";
+		case Operator.xor1:
+			return "^";
+		case Operator.and1:
+			return "&";
 		case Operator.arrow:
 			return "->";
 		case Operator.concat:
@@ -236,8 +241,8 @@ private immutable(string) strOfOperator(immutable Operator a) {
 			return "*";
 		case Operator.divide:
 			return "/";
-		case Operator.power:
-			return "^";
+		case Operator.exponent:
+			return "**";
 		case Operator.not:
 			return "!";
 	}

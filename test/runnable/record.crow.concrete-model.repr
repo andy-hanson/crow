@@ -1870,7 +1870,7 @@ program(
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			expr-body(
 				cond(
-					call(ptr-less?, [param-ref(a), param-ref(b)])
+					call(less?, [param-ref(a), param-ref(b)])
 					to-union(0, call(less, []))
 					cond(
 						call(==, [param-ref(a), param-ref(b)])
@@ -1878,7 +1878,7 @@ program(
 						to-union(2, call(greater, []))))))
 		fun(
 			false
-			ptr-less?
+			less?
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
@@ -2264,7 +2264,7 @@ program(
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			expr-body(
 				cond(
-					call(ptr-less?, [param-ref(a), param-ref(b)])
+					call(less?, [param-ref(a), param-ref(b)])
 					to-union(0, call(less, []))
 					cond(
 						call(==, [param-ref(a), param-ref(b)])
@@ -2272,7 +2272,7 @@ program(
 						to-union(2, call(greater, []))))))
 		fun(
 			false
-			ptr-less?
+			less?
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
@@ -2338,7 +2338,7 @@ program(
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			expr-body(
 				cond(
-					call(ptr-less?, [param-ref(a), param-ref(b)])
+					call(less?, [param-ref(a), param-ref(b)])
 					to-union(0, call(less, []))
 					cond(
 						call(==, [param-ref(a), param-ref(b)])
@@ -2346,7 +2346,7 @@ program(
 						to-union(2, call(greater, []))))))
 		fun(
 			false
-			ptr-less?
+			less?
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
@@ -3047,7 +3047,7 @@ program(
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			expr-body(
 				cond(
-					call(ptr-less?, [param-ref(a), param-ref(b)])
+					call(less?, [param-ref(a), param-ref(b)])
 					to-union(0, call(less, []))
 					cond(
 						call(==, [param-ref(a), param-ref(b)])
@@ -3055,7 +3055,7 @@ program(
 						to-union(2, call(greater, []))))))
 		fun(
 			false
-			ptr-less?
+			less?
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
@@ -4677,7 +4677,7 @@ program(
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			expr-body(
 				cond(
-					call(ptr-less?, [param-ref(a), param-ref(b)])
+					call(less?, [param-ref(a), param-ref(b)])
 					to-union(0, call(less, []))
 					cond(
 						call(==, [param-ref(a), param-ref(b)])
@@ -4685,7 +4685,7 @@ program(
 						to-union(2, call(greater, []))))))
 		fun(
 			false
-			ptr-less?
+			less?
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]

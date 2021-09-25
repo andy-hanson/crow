@@ -2284,12 +2284,12 @@ void writeMangledName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
 	if (has(operator)) {
 		writeStatic(writer, () {
 			final switch (force(operator)) {
-				case Operator.and2:
-					return "_and2";
-				case Operator.or2:
-					return "_or2";
 				case Operator.concatEquals:
 					return "_concatEquals";
+				case Operator.or2:
+					return "_or2";
+				case Operator.and2:
+					return "_and2";
 				case Operator.equal:
 					return "_equal";
 				case Operator.notEqual:
@@ -2304,10 +2304,12 @@ void writeMangledName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
 					return "_greaterOrEqual";
 				case Operator.compare:
 					return "_compare";
-				case Operator.and1:
-					return "_and";
 				case Operator.or1:
 					return "_or";
+				case Operator.xor1:
+					return "_xor";
+				case Operator.and1:
+					return "_and";
 				case Operator.arrow:
 					return "_arrow";
 				case Operator.concat:
@@ -2324,8 +2326,8 @@ void writeMangledName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
 					return "_times";
 				case Operator.divide:
 					return "_divide";
-				case Operator.power:
-					return "_power";
+				case Operator.exponent:
+					return "_exponent";
 				case Operator.not:
 					return "_not";
 			}

@@ -82,10 +82,10 @@ True iff two pointers are identical.
 ###
 == bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
 # True iff `a.to-nat64 < b.to-nat64`.
-.ptr-less? bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
+.less? bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
 # Equal to `a.to-nat64 <=> b.to-nat64`.
 <=> comparison(a ptr ?a, b ptr ?a) noctx unsafe
-	if a ptr-less? b
+	if a less? b
 		less
 	elif a == b
 		equal

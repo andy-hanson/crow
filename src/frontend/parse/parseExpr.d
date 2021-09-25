@@ -507,22 +507,26 @@ immutable(int) operatorPrecedence(immutable Operator a) {
 		case Operator.greater:
 		case Operator.greaterOrEqual:
 		case Operator.compare:
-		case Operator.and1:
-		case Operator.or1:
 		case Operator.arrow:
 		case Operator.concat:
 			return 1;
+		case Operator.or1:
+			return 2;
+		case Operator.xor1:
+			return 3;
+		case Operator.and1:
+			return 4;
 		case Operator.shiftLeft:
 		case Operator.shiftRight:
-			return 2;
+			return 5;
 		case Operator.plus:
 		case Operator.minus:
-			return 3;
+			return 6;
 		case Operator.times:
 		case Operator.divide:
-			return 4;
-		case Operator.power:
-			return 5;
+			return 7;
+		case Operator.exponent:
+			return 8;
 		case Operator.not:
 			// prefix only
 			return unreachable!int();

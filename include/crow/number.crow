@@ -232,13 +232,13 @@ abs float32(a float32) noctx
 abs float64(a float64) noctx
 	a < 0 ? -a, a
 
-^ nat64(a nat64, b nat64)
+** nat64(a nat64, b nat64)
 	if b == 0
 		1
 	elif b even?
-		(a * a) ^ (b / 2)
+		(a * a) ** (b / 2)
 	else
-		a * a ^ (b - 1)
+		a * a ** (b - 1)
 
 region float
 
@@ -268,17 +268,17 @@ unsafe-div float64(a float64, b float64) noctx unsafe builtin
 	a unsafe-div b
 
 # Raise a float to a power.
-^ float64(a float64, b nat64) noctx
+** float64(a float64, b nat64) noctx
 	if b == 0
 		1.0
 	else
-		a * a ^ (b wrap-sub 1)
+		a * a ** (b wrap-sub 1)
 # Raise a float to a power.
-^ float32(a float32, b nat64) noctx
+** float32(a float32, b nat64) noctx
 	if b == 0
 		1.0
 	else
-		a * a ^ (b wrap-sub 1)
+		a * a ** (b wrap-sub 1)
 
 square-root float64(a float64) noctx
 	a sqrt

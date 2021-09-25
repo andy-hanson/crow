@@ -220,7 +220,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseOrNat64
 				: failBinary());
-		case shortSymAlphaLiteralValue("bits-xor"):
+		case operatorSymValue(Operator.xor1):
 			return binary(isInt8(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseXorInt8
 				: isInt16(rt)
@@ -258,6 +258,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				isNat64(p0) ? LowExprKind.SpecialBinary.Kind.lessNat64 :
 				isFloat32(p0) ? LowExprKind.SpecialBinary.Kind.lessFloat32 :
 				isFloat64(p0) ? LowExprKind.SpecialBinary.Kind.lessFloat64 :
+				isPtrRaw(p0) ? LowExprKind.SpecialBinary.Kind.lessPtr :
 				failBinary());
 		case shortSymAlphaLiteralValue("nan?"):
 			return unary(
@@ -268,8 +269,6 @@ immutable(BuiltinKind) getBuiltinKind(
 			return constant(immutable Constant(immutable Constant.Null()));
 		case shortSymAlphaLiteralValue("ptr-cast"):
 			return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
-		case shortSymAlphaLiteralValue("ptr-less?"):
-			return binary(LowExprKind.SpecialBinary.Kind.lessPtr);
 		case shortSymAlphaLiteralValue("ptr-to"):
 			return unary(LowExprKind.SpecialUnary.Kind.ptrTo);
 		case shortSymAlphaLiteralValue("ref-of-val"):
