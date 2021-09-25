@@ -13,7 +13,7 @@ import
 Negates each bit in parallel.
 0 bits become 1 bits and vice versa.
 ###
-bits-not nat64(a nat64) noctx builtin
+~ nat64(a nat64) noctx builtin
 
 ###
 Intersects each corresponding bit in parallel.
@@ -29,7 +29,7 @@ Output bits will be 1 iff both input bits are.
 & int64(a int64, b int64) noctx builtin
 
 bits-diff nat64(a nat64, b nat64)
-	a & b.bits-not
+	a & ~b
 
 ###
 Unions each corresponding bit in parallel.

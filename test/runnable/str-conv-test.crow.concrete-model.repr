@@ -541,7 +541,7 @@ program(
 			type(false, nat64)
 			none
 			[param(n, type(false, nat64))]
-			expr-body(call(&, [call(wrap-add, [param-ref(n), 7]), call(bits-not, [7])])))
+			expr-body(call(&, [call(wrap-add, [param-ref(n), 7]), call(~, [7])])))
 		fun(
 			false
 			wrap-add
@@ -549,7 +549,7 @@ program(
 			none
 			[param(a, type(false, nat64)), param(b, type(false, nat64))]
 			builtin([]))
-		fun(false, bits-not, type(false, nat64), none, [param(a, type(false, nat64))], builtin([]))
+		fun(false, ~, type(false, nat64), none, [param(a, type(false, nat64))], builtin([]))
 		fun(
 			false
 			ptr-cast

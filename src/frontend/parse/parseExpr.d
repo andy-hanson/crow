@@ -508,7 +508,7 @@ immutable(int) operatorPrecedence(immutable Operator a) {
 		case Operator.greaterOrEqual:
 		case Operator.compare:
 		case Operator.arrow:
-		case Operator.concat:
+		case Operator.tilde:
 			return 1;
 		case Operator.or1:
 			return 2;
@@ -868,6 +868,8 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				: handlePrefixOperator(alloc, lexer, allowedBlock, start, Operator.minus);
 		case '!':
 			return handlePrefixOperator(alloc, lexer, allowedBlock, start, Operator.not);
+		case '~':
+			return handlePrefixOperator(alloc, lexer, allowedBlock, start, Operator.tilde);
 		default:
 			if (isAlphaIdentifierStart(c)) {
 				immutable string nameStr = takeNameRest(lexer, begin);

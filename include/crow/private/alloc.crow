@@ -2,7 +2,7 @@ no-std
 import
 	...stdlib: free, malloc
 	...string: memcpy, memset
-	..bits: &, bits-not
+	..bits: ~, &
 	..bool: !, ||, bool, false, to-nat64, true
 	..compare: !=, <, <=, >
 	..fun: subscript
@@ -48,7 +48,7 @@ words-of-bytes nat64(size-bytes nat64) noctx trusted
 	size-bytes.round-up-to-multiple-of-8 unsafe-div 8
 
 round-up-to-multiple-of-8 nat64(n nat64) noctx
-	(n wrap-add 7) & 7.bits-not
+	(n wrap-add 7) & ~7
 
 mark-range-recur bool(marked-anything? bool, cur ptr bool, end ptr bool) noctx unsafe
 	if cur == end

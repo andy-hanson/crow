@@ -2312,8 +2312,8 @@ void writeMangledName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
 					return "_and";
 				case Operator.arrow:
 					return "_arrow";
-				case Operator.concat:
-					return "_concat";
+				case Operator.tilde:
+					return "_tilde";
 				case Operator.shiftLeft:
 					return "_shiftLeft";
 				case Operator.shiftRight:

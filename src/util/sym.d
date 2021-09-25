@@ -113,7 +113,7 @@ enum Operator {
 	or1,
 	xor1,
 	and1,
-	concat,
+	tilde,
 	arrow,
 	shiftLeft,
 	shiftRight,
@@ -157,7 +157,7 @@ private immutable(Opt!Operator) operatorFromStr(scope immutable string str) {
 			case '-':
 				return some(Operator.minus);
 			case '~':
-				return some(Operator.concat);
+				return some(Operator.tilde);
 			case '*':
 				return some(Operator.times);
 			case '/':
@@ -227,7 +227,7 @@ private immutable(string) strOfOperator(immutable Operator a) {
 			return "&";
 		case Operator.arrow:
 			return "->";
-		case Operator.concat:
+		case Operator.tilde:
 			return "~";
 		case Operator.shiftLeft:
 			return "<<";

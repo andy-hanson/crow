@@ -198,7 +198,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseAndNat64
 				: failBinary());
-		case shortSymAlphaLiteralValue("bits-not"):
+		case operatorSymValue(Operator.tilde):
 			return unary(isNat64(rt)
 				? LowExprKind.SpecialUnary.Kind.bitsNotNat64
 				: failUnary());
