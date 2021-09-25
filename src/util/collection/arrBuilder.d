@@ -2,11 +2,7 @@ module util.collection.arrBuilder;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : allocateBytes, freeBytesPartial;
-import util.collection.arr : ArrWithSize, begin, emptyArrWithSize;
 import util.collection.mutArr : moveToArr, MutArr, mutArrSize, push, pushAll;
-import util.memory : initMemory;
-import util.util : verify;
 
 struct ArrBuilder(T) {
 	private MutArr!(immutable T) data;

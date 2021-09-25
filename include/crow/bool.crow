@@ -3,7 +3,7 @@ import
 	.compare: comparison
 	.private.number-low-level: ==, <=>, nat64
 export
-	.private.bool-low-level: &&, ||, ?, bool, false, not, true
+	.private.bool-low-level: !, &&, ||, ?, bool, false, true
 
 == bool(a bool, b bool) noctx
 	a.to-nat64 == b.to-nat64

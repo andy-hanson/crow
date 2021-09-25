@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: &&, bool, not
+	..bool: !, &&, bool
 	..compare: !=, <
 	..exception: assert
 	..fun: subscript
@@ -93,7 +93,7 @@ to-str str(a mut-grid ?a) write<?a>
 		row each value =>
 			res ~= value
 			res ~= " "
-		if row.empty? not
+		if !row.empty?
 			res backup!
 		res ~= "\n"
 	if a.height != 0

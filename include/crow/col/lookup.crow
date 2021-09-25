@@ -1,7 +1,7 @@
 no-std
 import
 	..bits: &, unsafe-bit-shift-right
-	..bool: &&, ==, ?, bool, false, not, true
+	..bool: !, &&, ==, ?, bool, false, true
 	..compare: !=, <, <=, >=, compare, max
 	..exception: assert, unreachable
 	..fun: subscript
@@ -292,7 +292,7 @@ inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat64, new-
 		some: leaf-node: out cast-immutable
 
 .find-only-non-empty-child opt node<?k, ?v>(children arr node<?k, ?v>)
-	first-non-empty-index = force: children find-index it => it.node-empty? not
+	first-non-empty-index = force: children find-index it => !it.node-empty?
 	if children[(first-non-empty-index wrap-add 1) -> children.size] every? it => it node-empty?
 		children[first-non-empty-index] some
 
@@ -390,7 +390,7 @@ fold-keys-unordered ?a(acc ?a, a lookup<?k, ?v>, f act ?a(?a, ?k))
 	match a
 	as inner-node i
 		i.children each-with-index (child, index) =>
-			if child.node-empty? not
+			if !child.node-empty?
 				out dbg-recur child, path ~ index.to-str
 				out ~= " "
 		out backup!
@@ -418,7 +418,7 @@ dbg str(a lookup<nat64, void>)
 	match a
 	as inner-node i
 		i.children each-with-index (child, index) =>
-			if child.node-empty? not
+			if !child.node-empty?
 				out dbg-recur child, path ~ index.to-str
 				out ~= " "
 		out backup!

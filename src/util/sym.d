@@ -121,6 +121,7 @@ enum Operator {
 	times,
 	divide,
 	power,
+	not,
 }
 
 immutable(Opt!Sym) getSymFromOperator(Alloc)(ref AllSymbols!Alloc allSymbols, scope immutable string str) {
@@ -162,6 +163,8 @@ private immutable(Opt!Operator) operatorFromStr(scope immutable string str) {
 				return some(Operator.divide);
 			case '^':
 				return some(Operator.power);
+			case '!':
+				return some(Operator.not);
 			default:
 				return none!Operator;
 		}
@@ -235,6 +238,8 @@ private immutable(string) strOfOperator(immutable Operator a) {
 			return "/";
 		case Operator.power:
 			return "^";
+		case Operator.not:
+			return "!";
 	}
 }
 

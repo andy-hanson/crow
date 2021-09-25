@@ -1,6 +1,6 @@
 no-std
 import
-	.bool: ==, bool, false, not, true
+	.bool: !, ==, bool, false, true
 	.col.dict: dict, dict-equal?, each, empty?
 	.col.list: each, empty?, list, list-equal?
 	.col.mut-dict: move-to-dict!, mut-dict, set-subscript
@@ -142,7 +142,7 @@ to-str str(a json)
 		l each x =>
 			out to-str-recur! x
 			out ~= ","
-		if l.empty? not
+		if !l.empty?
 			out backup!
 		out ~= "]"
 	as dict d
@@ -152,7 +152,7 @@ to-str str(a json)
 			out ~= ":"
 			out to-str-recur! value
 			out ~= ","
-		if d.empty? not
+		if !d.empty?
 			out backup!
 		out ~= "}"
 

@@ -1091,7 +1091,7 @@ char constantarr_0_56[4];
 char constantarr_0_57[5];
 char constantarr_0_58[17];
 char constantarr_0_59[9];
-char constantarr_0_60[3];
+char constantarr_0_60[1];
 char constantarr_0_61[7];
 char constantarr_0_62[5];
 char constantarr_0_63[16];
@@ -1709,7 +1709,7 @@ char constantarr_0_56[4] = "true";
 char constantarr_0_57[5] = "false";
 char constantarr_0_58[17] = "memory-size-words";
 char constantarr_0_59[9] = "<=<nat64>";
-char constantarr_0_60[3] = "not";
+char constantarr_0_60[1] = "!";
 char constantarr_0_61[7] = "+<bool>";
 char constantarr_0_62[5] = "marks";
 char constantarr_0_63[16] = "mark-range-recur";
@@ -2277,7 +2277,7 @@ uint64_t _minus_0(uint64_t* a, uint64_t* b);
 struct comparison _compare_0(uint64_t a, uint64_t b);
 uint8_t _less_0(uint64_t a, uint64_t b);
 uint8_t _lessOrEqual_0(uint64_t a, uint64_t b);
-uint8_t not(uint8_t a);
+uint8_t _not(uint8_t a);
 uint8_t mark_range_recur(uint8_t marked_anything__q, uint8_t* cur, uint8_t* end);
 uint8_t _greater(uint64_t a, uint64_t b);
 int32_t rt_main(int32_t argc, char** argv, fun_ptr2 main_ptr);
@@ -2687,8 +2687,9 @@ uint8_t _less_6(int64_t a, int64_t b);
 uint64_t mod_1(struct ctx* ctx, uint64_t a, uint64_t b);
 uint64_t abs_0(struct ctx* ctx, int64_t a);
 uint64_t to_nat64(struct ctx* ctx, int64_t a);
+int64_t _minus_3(struct ctx* ctx, int64_t a);
 int64_t _times_1(struct ctx* ctx, int64_t a, int64_t b);
-uint64_t _minus_3(struct ctx* ctx, uint64_t a, uint64_t b);
+uint64_t _minus_4(struct ctx* ctx, uint64_t a, uint64_t b);
 struct str to_str_4(struct ctx* ctx, int64_t a);
 struct str to_str_5(struct ctx* ctx, uint64_t a);
 struct str to_base(struct ctx* ctx, uint64_t a, uint64_t base);
@@ -2705,6 +2706,7 @@ struct interp with_value_1(struct ctx* ctx, struct interp a, uint64_t b);
 double abs_1(double a);
 struct comparison _compare_7(double a, double b);
 uint8_t _less_7(double a, double b);
+double _minus_5(double a);
 double area(struct ctx* ctx, struct rect a);
 struct fut_0* resolved_1(struct ctx* ctx, uint64_t value);
 int32_t main(int32_t argc, char** argv);
@@ -2802,10 +2804,10 @@ uint8_t _less_0(uint64_t a, uint64_t b) {
 /* <=<nat64> bool(a nat64, b nat64) */
 uint8_t _lessOrEqual_0(uint64_t a, uint64_t b) {
 	uint8_t _0 = _less_0(b, a);
-	return not(_0);
+	return _not(_0);
 }
-/* not bool(a bool) */
-uint8_t not(uint8_t a) {
+/* ! bool(a bool) */
+uint8_t _not(uint8_t a) {
 	uint8_t _0 = a;
 	if (_0) {
 		return 0;
@@ -2824,7 +2826,7 @@ uint8_t mark_range_recur(uint8_t marked_anything__q, uint8_t* cur, uint8_t* end)
 		if (marked_anything__q) {
 			new_marked_anything__q0 = 1;
 		} else {
-			new_marked_anything__q0 = not((*cur));
+			new_marked_anything__q0 = _not((*cur));
 		}
 		
 		*cur = 1;
@@ -3036,7 +3038,7 @@ uint64_t size_bytes(struct str a) {
 }
 /* !=<int64> bool(a int64, b int64) */
 uint8_t _notEqual_0(int64_t a, int64_t b) {
-	return not((a == b));
+	return _not((a == b));
 }
 /* todo<void> void() */
 struct void_ todo_0(void) {
@@ -3126,7 +3128,7 @@ struct void_ each_recur_0(struct ctx* ctx, char* cur, char* end, struct fun_act1
 }
 /* !=<ptr<?a>> bool(a ptr<char>, b ptr<char>) */
 uint8_t _notEqual_1(char* a, char* b) {
-	return not((a == b));
+	return _not((a == b));
 }
 /* subscript<void, ?a> void(a fun-act1<void, char>, p0 char) */
 struct void_ subscript_0(struct ctx* ctx, struct fun_act1_1 a, char p0) {
@@ -3205,7 +3207,7 @@ struct void_ increase_capacity_to__e(struct ctx* ctx, struct mut_list_1* a, uint
 }
 /* assert void(condition bool) */
 struct void_ assert(struct ctx* ctx, uint8_t condition) {
-	uint8_t _0 = not(condition);
+	uint8_t _0 = _not(condition);
 	if (_0) {
 		return throw_0(ctx, (struct str) {{13, constantarr_0_3}});
 	} else {
@@ -3399,7 +3401,7 @@ struct void_ acquire__e(struct lock* a) {
 struct void_ acquire_recur__e(struct lock* a, uint64_t n_tries) {
 	top:;
 	uint8_t _0 = try_acquire__e(a);
-	uint8_t _1 = not(_0);
+	uint8_t _1 = _not(_0);
 	if (_1) {
 		uint8_t _2 = (n_tries == 10000u);
 		if (_2) {
@@ -3426,7 +3428,7 @@ uint8_t try_set__e(struct _atomic_bool* a) {
 uint8_t try_change__e(struct _atomic_bool* a, uint8_t old_value) {
 	uint8_t* _0 = (&a->value);
 	uint8_t* _1 = (&old_value);
-	uint8_t _2 = not(old_value);
+	uint8_t _2 = _not(old_value);
 	return atomic_compare_exchange_strong(_0, _1, _2);
 }
 /* yield-thread void() */
@@ -3577,7 +3579,7 @@ struct opt_6 try_alloc_uninitialized_1(struct ctx* ctx, uint64_t size) {
 }
 /* funs-count (generated) (generated) */
 uint64_t funs_count_97(void) {
-	return 440u;
+	return 442u;
 }
 /* code-ptrs-size nat64() */
 uint64_t code_ptrs_size(struct ctx* ctx) {
@@ -3603,7 +3605,7 @@ struct void_ fill_fun_ptrs_names_recur(uint64_t i, uint8_t** fun_ptrs, struct st
 }
 /* !=<nat64> bool(a nat64, b nat64) */
 uint8_t _notEqual_2(uint64_t a, uint64_t b) {
-	return not((a == b));
+	return _not((a == b));
 }
 /* set-subscript<ptr<nat8>> void(a ptr<ptr<nat8>>, n nat64, value ptr<nat8>) */
 struct void_ set_subscript_0(uint8_t** a, uint64_t n, uint8_t* value) {
@@ -3642,7 +3644,7 @@ uint8_t* get_fun_ptr_103(uint64_t fun_id) {switch (fun_id) {
 			return ((uint8_t*) _lessOrEqual_0);
 		}
 		case 10: {
-			return ((uint8_t*) not);
+			return ((uint8_t*) _not);
 		}
 		case 11: {
 			return ((uint8_t*) mark_range_recur);
@@ -4872,63 +4874,69 @@ uint8_t* get_fun_ptr_103(uint64_t fun_id) {switch (fun_id) {
 			return ((uint8_t*) to_nat64);
 		}
 		case 420: {
-			return ((uint8_t*) _times_1);
-		}
-		case 421: {
 			return ((uint8_t*) _minus_3);
 		}
+		case 421: {
+			return ((uint8_t*) _times_1);
+		}
 		case 422: {
-			return ((uint8_t*) to_str_4);
+			return ((uint8_t*) _minus_4);
 		}
 		case 423: {
-			return ((uint8_t*) to_str_5);
+			return ((uint8_t*) to_str_4);
 		}
 		case 424: {
-			return ((uint8_t*) to_base);
+			return ((uint8_t*) to_str_5);
 		}
 		case 425: {
-			return ((uint8_t*) digit_to_str);
+			return ((uint8_t*) to_base);
 		}
 		case 426: {
-			return ((uint8_t*) finish);
+			return ((uint8_t*) digit_to_str);
 		}
 		case 427: {
-			return ((uint8_t*) to_str_6);
+			return ((uint8_t*) finish);
 		}
 		case 428: {
-			return ((uint8_t*) with_value_0);
+			return ((uint8_t*) to_str_6);
 		}
 		case 429: {
-			return ((uint8_t*) with_str);
+			return ((uint8_t*) with_value_0);
 		}
 		case 430: {
-			return ((uint8_t*) interp);
+			return ((uint8_t*) with_str);
 		}
 		case 431: {
-			return ((uint8_t*) _divide_1);
+			return ((uint8_t*) interp);
 		}
 		case 432: {
-			return ((uint8_t*) min_int64);
+			return ((uint8_t*) _divide_1);
 		}
 		case 433: {
-			return ((uint8_t*) multiple_of__q);
+			return ((uint8_t*) min_int64);
 		}
 		case 434: {
-			return ((uint8_t*) with_value_1);
+			return ((uint8_t*) multiple_of__q);
 		}
 		case 435: {
-			return ((uint8_t*) abs_1);
+			return ((uint8_t*) with_value_1);
 		}
 		case 436: {
-			return ((uint8_t*) _compare_7);
+			return ((uint8_t*) abs_1);
 		}
 		case 437: {
-			return ((uint8_t*) _less_7);
+			return ((uint8_t*) _compare_7);
 		}
 		case 438: {
-			return ((uint8_t*) area);
+			return ((uint8_t*) _less_7);
 		}
 		case 439: {
+			return ((uint8_t*) _minus_5);
+		}
+		case 440: {
+			return ((uint8_t*) area);
+		}
+		case 441: {
 			return ((uint8_t*) resolved_1);
 		}
 		default:
@@ -4972,7 +4980,7 @@ struct str get_fun_name_105(uint64_t fun_id) {switch (fun_id) {
 			return (struct str) {{9, constantarr_0_59}};
 		}
 		case 10: {
-			return (struct str) {{3, constantarr_0_60}};
+			return (struct str) {{1, constantarr_0_60}};
 		}
 		case 11: {
 			return (struct str) {{16, constantarr_0_63}};
@@ -6202,63 +6210,69 @@ struct str get_fun_name_105(uint64_t fun_id) {switch (fun_id) {
 			return (struct str) {{8, constantarr_0_600}};
 		}
 		case 420: {
-			return (struct str) {{1, constantarr_0_274}};
-		}
-		case 421: {
 			return (struct str) {{1, constantarr_0_28}};
 		}
+		case 421: {
+			return (struct str) {{1, constantarr_0_274}};
+		}
 		case 422: {
-			return (struct str) {{6, constantarr_0_139}};
+			return (struct str) {{1, constantarr_0_28}};
 		}
 		case 423: {
 			return (struct str) {{6, constantarr_0_139}};
 		}
 		case 424: {
-			return (struct str) {{7, constantarr_0_602}};
-		}
-		case 425: {
-			return (struct str) {{12, constantarr_0_603}};
-		}
-		case 426: {
-			return (struct str) {{6, constantarr_0_604}};
-		}
-		case 427: {
 			return (struct str) {{6, constantarr_0_139}};
 		}
+		case 425: {
+			return (struct str) {{7, constantarr_0_602}};
+		}
+		case 426: {
+			return (struct str) {{12, constantarr_0_603}};
+		}
+		case 427: {
+			return (struct str) {{6, constantarr_0_604}};
+		}
 		case 428: {
-			return (struct str) {{15, constantarr_0_606}};
+			return (struct str) {{6, constantarr_0_139}};
 		}
 		case 429: {
-			return (struct str) {{8, constantarr_0_607}};
+			return (struct str) {{15, constantarr_0_606}};
 		}
 		case 430: {
-			return (struct str) {{6, constantarr_0_608}};
+			return (struct str) {{8, constantarr_0_607}};
 		}
 		case 431: {
-			return (struct str) {{1, constantarr_0_275}};
+			return (struct str) {{6, constantarr_0_608}};
 		}
 		case 432: {
-			return (struct str) {{9, constantarr_0_609}};
+			return (struct str) {{1, constantarr_0_275}};
 		}
 		case 433: {
-			return (struct str) {{12, constantarr_0_610}};
+			return (struct str) {{9, constantarr_0_609}};
 		}
 		case 434: {
-			return (struct str) {{17, constantarr_0_611}};
+			return (struct str) {{12, constantarr_0_610}};
 		}
 		case 435: {
-			return (struct str) {{3, constantarr_0_599}};
+			return (struct str) {{17, constantarr_0_611}};
 		}
 		case 436: {
-			return (struct str) {{3, constantarr_0_49}};
+			return (struct str) {{3, constantarr_0_599}};
 		}
 		case 437: {
-			return (struct str) {{10, constantarr_0_613}};
+			return (struct str) {{3, constantarr_0_49}};
 		}
 		case 438: {
-			return (struct str) {{4, constantarr_0_614}};
+			return (struct str) {{10, constantarr_0_613}};
 		}
 		case 439: {
+			return (struct str) {{1, constantarr_0_28}};
+		}
+		case 440: {
+			return (struct str) {{4, constantarr_0_614}};
+		}
+		case 441: {
 			return (struct str) {{15, constantarr_0_617}};
 		}
 		default:
@@ -6553,7 +6567,7 @@ uint64_t _plus(struct ctx* ctx, uint64_t a, uint64_t b) {
 /* >=<nat64> bool(a nat64, b nat64) */
 uint8_t _greaterOrEqual(uint64_t a, uint64_t b) {
 	uint8_t _0 = _less_0(a, b);
-	return not(_0);
+	return _not(_0);
 }
 /* round-up-to-power-of-two nat64(n nat64) */
 uint64_t round_up_to_power_of_two(struct ctx* ctx, uint64_t n) {
@@ -6644,7 +6658,7 @@ struct void_ each_recur_1(struct ctx* ctx, struct str* cur, struct str* end, str
 }
 /* !=<ptr<?a>> bool(a ptr<str>, b ptr<str>) */
 uint8_t _notEqual_3(struct str* a, struct str* b) {
-	return not((a == b));
+	return _not((a == b));
 }
 /* subscript<void, ?a> void(a fun-act1<void, str>, p0 str) */
 struct void_ subscript_5(struct ctx* ctx, struct fun_act1_2 a, struct str p0) {
@@ -6829,7 +6843,7 @@ struct comparison _compare_4(uint8_t* a, uint8_t* b) {
 /* <=<ptr<bool>> bool(a ptr<bool>, b ptr<bool>) */
 uint8_t _lessOrEqual_1(uint8_t* a, uint8_t* b) {
 	uint8_t _0 = _less_4(b, a);
-	return not(_0);
+	return _not(_0);
 }
 /* <<?a> bool(a ptr<bool>, b ptr<bool>) */
 uint8_t _less_4(uint8_t* a, uint8_t* b) {
@@ -6852,7 +6866,7 @@ uint8_t _less_4(uint8_t* a, uint8_t* b) {
 /* <=<ptr<nat64>> bool(a ptr<nat64>, b ptr<nat64>) */
 uint8_t _lessOrEqual_2(uint64_t* a, uint64_t* b) {
 	uint8_t _0 = _less_1(b, a);
-	return not(_0);
+	return _not(_0);
 }
 /* thread-safe-counter thread-safe-counter() */
 struct thread_safe_counter thread_safe_counter_0(void) {
@@ -7867,7 +7881,7 @@ struct comparison _compare_5(char* a, char* b) {
 /* <=<ptr<?a>> bool(a ptr<char>, b ptr<char>) */
 uint8_t _lessOrEqual_3(char* a, char* b) {
 	uint8_t _0 = _less_5(b, a);
-	return not(_0);
+	return _not(_0);
 }
 /* <<?a> bool(a ptr<char>, b ptr<char>) */
 uint8_t _less_5(char* a, char* b) {
@@ -8082,7 +8096,7 @@ struct void_ create_one_thread(struct cell_0* tid, uint8_t* thread_arg, fun_ptr1
 }
 /* !=<int32> bool(a int32, b int32) */
 uint8_t _notEqual_4(int32_t a, int32_t b) {
-	return not((a == b));
+	return _not((a == b));
 }
 /* EAGAIN int32() */
 int32_t EAGAIN(void) {
@@ -8300,7 +8314,7 @@ struct choose_task_result choose_task_recur(struct arr_3 islands, uint64_t i, ui
 	top:;
 	uint8_t _0 = (i == islands.size);
 	if (_0) {
-		uint8_t _1 = not(any_tasks__q);
+		uint8_t _1 = _not(any_tasks__q);
 		return (struct choose_task_result) {1, .as1 = (struct no_chosen_task) {_1, first_task_time}};
 	} else {
 		struct island* island0;
@@ -8379,7 +8393,7 @@ struct choose_task_in_island_result choose_task_in_island(struct island* island,
 	}
 	
 	uint8_t _4 = is_no_task__q(res2);
-	uint8_t _5 = not(_4);
+	uint8_t _5 = _not(_4);
 	if (_5) {
 		island->n_threads_running = (island->n_threads_running + 1u);
 	} else {
@@ -9287,7 +9301,7 @@ struct void_ clear_free_mem(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data
 	top:;
 	uint8_t _0 = _notEqual_5(mark_ptr, mark_end);
 	if (_0) {
-		uint8_t _1 = not((*mark_ptr));
+		uint8_t _1 = _not((*mark_ptr));
 		if (_1) {
 			*data_ptr = 18077161789910350558u;
 		} else {
@@ -9303,7 +9317,7 @@ struct void_ clear_free_mem(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data
 }
 /* !=<ptr<bool>> bool(a ptr<bool>, b ptr<bool>) */
 uint8_t _notEqual_5(uint8_t* a, uint8_t* b) {
-	return not((a == b));
+	return _not((a == b));
 }
 /* wait-on void(a condition, until-time opt<nat64>, last-sequence nat64) */
 struct void_ wait_on(struct condition* a, struct opt_9 until_time, uint64_t last_sequence) {
@@ -9509,7 +9523,7 @@ uint64_t mod_0(struct ctx* ctx, int64_t a, uint64_t b) {
 		if (_2) {
 			return 0u;
 		} else {
-			return _minus_3(ctx, b, abs_mod0);
+			return _minus_4(ctx, b, abs_mod0);
 		}
 	} else {
 		uint64_t _3 = to_nat64(ctx, a);
@@ -9558,7 +9572,7 @@ uint64_t abs_0(struct ctx* ctx, int64_t a) {
 	uint8_t _0 = _less_6(a, 0);int64_t _1;
 	
 	if (_0) {
-		_1 = _times_1(ctx, a, -1);
+		_1 = _minus_3(ctx, a);
 	} else {
 		_1 = a;
 	}
@@ -9570,12 +9584,16 @@ uint64_t to_nat64(struct ctx* ctx, int64_t a) {
 	forbid(ctx, _0);
 	return ((uint64_t) a);
 }
+/* - int64(a int64) */
+int64_t _minus_3(struct ctx* ctx, int64_t a) {
+	return _times_1(ctx, a, -1);
+}
 /* * int64(a int64, b int64) */
 int64_t _times_1(struct ctx* ctx, int64_t a, int64_t b) {
 	return (a * b);
 }
 /* - nat64(a nat64, b nat64) */
-uint64_t _minus_3(struct ctx* ctx, uint64_t a, uint64_t b) {
+uint64_t _minus_4(struct ctx* ctx, uint64_t a, uint64_t b) {
 	uint8_t _0 = _greaterOrEqual(a, b);
 	assert(ctx, _0);
 	return (a - b);
@@ -9752,7 +9770,7 @@ struct interp with_value_1(struct ctx* ctx, struct interp a, uint64_t b) {
 double abs_1(double a) {
 	uint8_t _0 = _less_7(a, 0.0);
 	if (_0) {
-		return (a * -1.0);
+		return _minus_5(a);
 	} else {
 		return a;
 	}
@@ -9788,6 +9806,10 @@ uint8_t _less_7(double a, double b) {
 			
 	return 0;;
 	}
+}
+/* - float64(a float64) */
+double _minus_5(double a) {
+	return (a * -1.0);
 }
 /* area float64(a rect) */
 double area(struct ctx* ctx, struct rect a) {

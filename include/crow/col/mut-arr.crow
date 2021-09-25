@@ -1,7 +1,7 @@
 no-std
 import
 	...string: memcpy
-	..bool: bool, not
+	..bool: !, bool
 	..compare: !=, <, <=, equal
 	..fun: subscript
 	..misc: ->, arrow, drop, from, to, void
@@ -120,11 +120,11 @@ unsafe-set-at! void(a mut-arr ?a, index nat64, value ?a) unsafe
 
 
 first opt ?a(a mut-arr ?a)
-	if a.empty? not
+	if !a.empty?
 		a[0] some
 
 last opt ?a(a mut-arr ?a)
-	if a.empty? not
+	if !a.empty?
 		a[0] some
 
 tail mut-arr ?a(a mut-arr ?a)

@@ -3,7 +3,7 @@ export
 	.bootstrap: bool, false, true
 
 # Changes `true` to `false`, and `false` to `true`.
-not bool(a bool) noctx
+! bool(a bool) noctx
 	if a
 		false
 	else

@@ -1,6 +1,6 @@
 no-std
 import
-	...bool: ?, bool, not
+	...bool: !, ?, bool
 	...compare: ==, !=, <, >=, compare, comparison, equal, less, greater
 	...exception: assert, unreachable
 	...fun: subscript
@@ -15,7 +15,7 @@ import
 	..mut-list: arr, begin-ptr, empty?, empty!, end-ptr, mut-list, size, swap!, temp-as-mut-arr, unsafe-set-size!
 
 binary-search-has? bool(a arr ?a, value ?a) compare<?a> trusted
-	not: a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value null?
+	!(a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value null?)
 
 binary-search-value opt ?a(a arr ?a, compare act comparison(?a)) trusted
 	if ptr ?= a binary-search-exact-ptr compare
@@ -138,7 +138,7 @@ merge-no-duplicates! void(a mut-list ?a, b mut-list ?a, compare act unique-compa
 	if a.size < b.size
 		a swap! b
 	assert: a.size >= b.size
-	if b.empty? not
+	if !b.empty?
 		a-old-size = a size
 		a unsafe-set-size!: a-old-size wrap-add b.size
 		a-read = a.begin-ptr + a-old-size - 1

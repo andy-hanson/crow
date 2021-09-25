@@ -35,7 +35,6 @@ import frontend.parse.lexer :
 	addDiagUnexpected,
 	backUp,
 	curPos,
-	isOperatorChar,
 	isReservedName,
 	Lexer,
 	lookaheadWillTakeArrow,
@@ -51,7 +50,6 @@ import frontend.parse.lexer :
 	takeNameRest,
 	takeNewlineOrDedentAmount,
 	takeNumberAfterSign,
-	takeOperator,
 	takeOrAddDiagExpected,
 	takeStringPart,
 	tryTake;
@@ -525,6 +523,9 @@ immutable(int) operatorPrecedence(immutable Operator a) {
 			return 4;
 		case Operator.power:
 			return 5;
+		case Operator.not:
+			// prefix only
+			return unreachable!int();
 	}
 }
 
@@ -854,20 +855,15 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			}
 		}
 		case '+':
+			return isDigit(*lexer.ptr)
+				? handleLiteral(alloc, lexer, start, takeNumberAfterSign(lexer, some(Sign.plus)))
+				: handleUnexpectedChar(alloc, lexer, start);
 		case '-':
-			if (isDigit(*lexer.ptr))
-				return handleLiteral(alloc, lexer, start, takeNumberAfterSign(lexer, some(c == '+' ? Sign.plus : Sign.minus)));
-			else if (c == '-') {
-				immutable ExprAndMaybeDedent arg = parseExprBeforeCall(alloc, lexer, allowedBlock);
-				immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(
-					immutable CallAst(
-						CallAst.Style.prefixOperator,
-						immutable NameAndRange(start, symForOperator(Operator.minus)),
-						emptyArrWithSize!TypeAst,
-						arrWithSizeLiteral!ExprAst(alloc, [arg.expr]))));
-				return immutable ExprAndMaybeDedent(expr, arg.dedents);
-			} else
-				return handleUnexpectedChar(alloc, lexer, start);
+			return isDigit(*lexer.ptr)
+				? handleLiteral(alloc, lexer, start, takeNumberAfterSign(lexer, some(Sign.minus)))
+				: handlePrefixOperator(alloc, lexer, allowedBlock, start, Operator.minus);
+		case '!':
+			return handlePrefixOperator(alloc, lexer, allowedBlock, start, Operator.not);
 		default:
 			if (isAlphaIdentifierStart(c)) {
 				immutable string nameStr = takeNameRest(lexer, begin);
@@ -906,7 +902,28 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 	}
 }
 
-immutable(ExprAndMaybeDedent) handleUnexpectedChar(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer, immutable Pos start) {
+immutable(ExprAndMaybeDedent) handlePrefixOperator(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable AllowedBlock allowedBlock,
+	immutable Pos start,
+	immutable Operator operator,
+) {
+	immutable ExprAndMaybeDedent arg = parseExprBeforeCall(alloc, lexer, allowedBlock);
+	immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(
+		immutable CallAst(
+			CallAst.Style.prefixOperator,
+			immutable NameAndRange(start, symForOperator(operator)),
+			emptyArrWithSize!TypeAst,
+			arrWithSizeLiteral!ExprAst(alloc, [arg.expr]))));
+	return immutable ExprAndMaybeDedent(expr, arg.dedents);
+}
+
+immutable(ExprAndMaybeDedent) handleUnexpectedChar(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable Pos start,
+) {
 	backUp(lexer);
 	addDiagUnexpected(alloc, lexer);
 	return skipRestOfLineAndReturnBogusNoDiag(lexer, start);

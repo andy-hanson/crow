@@ -4,7 +4,6 @@ module util.collection.arrWithSizeBuilder;
 
 import util.alloc.alloc : allocateBytes, freeBytesPartial;
 import util.collection.arr : ArrWithSize, begin, emptyArrWithSize;
-import util.collection.mutArr : moveToArr, MutArr, mutArrSize, push, pushAll;
 import util.memory : initMemory;
 import util.util : verify;
 

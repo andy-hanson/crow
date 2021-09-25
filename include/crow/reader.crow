@@ -1,6 +1,6 @@
 no-std
 import
-	.bool: &&, ||, ?, bool, false, not, true
+	.bool: !, &&, ||, ?, bool, false, true
 	.col.arr: arr-from-begin-end, begin-ptr, end-ptr
 	.col.mut-list: ~=, move-to-arr!, mut-list
 	.compare: <=, >=
@@ -32,7 +32,7 @@ empty? bool(a reader) trusted
 	a.cur == a.end
 
 has? bool(a reader)
-	a.empty? not
+	!a.empty?
 
 peek char(a reader) trusted
 	assert: a has?
@@ -116,7 +116,7 @@ take-quoted-str! opt str(a reader)
 	if a take-char? "\""
 		start = a.cur
 		res = a take-quoted-str-recur! mut-list
-		if res.has? not
+		if !res.has?
 			a.cur := start
 		res
 

@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: &&, ||, ==, bool, false, not, to-nat64, true
+	..bool: !, &&, ||, ==, bool, false, to-nat64, true
 	..compare: !=, <, <=, >=, equal, max, min
 	..fun: subscript
 	..misc: ->, void
@@ -103,7 +103,7 @@ filter-with-index arr ?a(a arr ?a, f act bool(?a, nat64)) trusted
 Like 'filter', but keeps everything after the first time `f` returns true.
 ###
 strip-left-while arr ?a(a arr ?a, f act bool(?a))
-	if a.empty? || f[a[0]].not
+	if a.empty? || !f[a[0]]
 		a
 	else
 		a.tail strip-left-while f
@@ -129,11 +129,11 @@ map-with-index arr ?out(a arr ?in, f act ?out(?in, nat64))
 		f[a[i], i]
 
 first opt ?a(a arr ?a)
-	if a.empty? not
+	if !a.empty?
 		a[0] some
 
 last opt ?a(a arr ?a)
-	if a.empty? not
+	if !a.empty?
 		a[a.size - 1] some
 
 ###
@@ -157,7 +157,7 @@ Calls `f` on each element of `a` and returns the first result that is `some`.
 Returns `none` if every call to `f` returned `none`.
 ###
 first-some opt ?out(a arr ?in, f act opt ?out(?in))
-	if a.empty? not
+	if !a.empty?
 		res = f[a[0]]
 		if res has?
 			res
@@ -307,7 +307,7 @@ Like `find-index`, but starts from the end.
 Equivalent to `f[a[a.size - 1]] ? (a.size - 1 some), f[a[a.size - 2]] ? (a.size - 2 some), ...`.
 ###
 find-rindex opt nat64(a arr ?a, f act bool(?a))
-	if a.empty? not
+	if !a.empty?
 		a find-rindex-recur a.size - 1, f
 .find-rindex-recur opt nat64(a arr ?a, index nat64, f act bool(?a))
 	if f[a[index]]

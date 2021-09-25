@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: bool, not
+	..bool: !, bool
 	..misc: void
 	..opt: opt
 	.arr: arr
@@ -36,7 +36,7 @@ empty? bool(a mut-stack ?a)
 	a.inner ~= values
 
 last opt ?a(a mut-stack ?a)
-	if a.empty? not
+	if !a.empty?
 		a.inner last
 
 pop! opt ?a(a mut-stack ?a)

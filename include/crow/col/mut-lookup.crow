@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: &&, ||, bool, not
+	..bool: !, &&, ||, bool
 	..compare: !=, >, >=, compare
 	..exception: assert, forbid
 	..fun: subscript
@@ -80,7 +80,7 @@ size nat64(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a total-size
 
 subscript opt ?v(a mut-lookup<?k, ?v>, key ?k) trusted data<?k> compare<?k> hash-mix<?k>
-	if a.empty? not
+	if !a.empty?
 		match a.entries[key.hash unsafe-mod a.entries.size]
 		as none
 			none
@@ -209,7 +209,7 @@ filter! void(a mut-lookup<?k, ?v>, f act bool(?k, ?v)) trusted data<?k> compare<
 		as none
 			void
 		as arrow ar
-			if f[ar.from, ar.to] not
+			if !f[ar.from, ar.to]
 				entry-ptr[] := none
 		as mut-list m
 			m filter! pair => f[pair.from, pair.to]

@@ -1,7 +1,7 @@
 no-std
 import
 	...string: memcpy, memmove
-	..bool: bool, not
+	..bool: !, bool
 	..compare: <, <=, >, >=, equal
 	..fun: subscript
 	..misc: ->, drop, void
@@ -132,11 +132,11 @@ subscript ?a(a mut-list ?a, index nat64) trusted
 	a.begin-ptr[index]
 
 first opt ?a(a mut-list ?a)
-	if a.empty? not
+	if !a.empty?
 		a[0] some
 
 last opt ?a(a mut-list ?a)
-	if a.empty? not
+	if !a.empty?
 		a[a.size - 1] some
 
 ###
@@ -166,7 +166,7 @@ empty? bool(a mut-list ?a) noctx
 
 # True iff `a.size != 0`.
 has? bool(a mut-list ?a) noctx
-	a.empty? not
+	!a.empty?
 
 ###
 Sets the element at the index.
@@ -209,7 +209,7 @@ Removes the last element and returns it.
 Returns `none` if `a` is empty.
 ###
 pop! opt ?a(a mut-list ?a) trusted
-	if a.empty? not
+	if !a.empty?
 		new-size = a.size wrap-sub 1
 		res = a[new-size]
 		# Ensure GC doesn't hold on to the memory there

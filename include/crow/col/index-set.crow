@@ -3,7 +3,7 @@ import
 	..bits:
 		&, |, <<, >>, add-bit, bit?, bits-diff, count-ones,
 		filter-bits, fold-one-bits, nth-bit, sub-bit
-	..bool: &&, ==, bool, false, not, true
+	..bool: !, &&, ==, bool, false, true
 	..compare: !=, <, <=
 	..exception: assert
 	..fun: subscript
@@ -72,7 +72,7 @@ try-add opt index-set(a index-set, index nat64)
 	nat64-index = index word-index
 	bit-index = index bit-index
 	if nat64-index < a.values.size
-		if a.values[nat64-index] bit? bit-index not
+		if !(a.values[nat64-index] bit? bit-index)
 			new-values = a.values update: nat64-index, a.values[nat64-index] add-bit bit-index
 			some: index-set: void, new-values
 	else

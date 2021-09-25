@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: &&, ==, bool, false, not, true
+	..bool: !, &&, ==, bool, false, true
 	..compare: <, compare
 	..exception: assert
 	..misc: ->, arrow, data, from, to, void
@@ -124,7 +124,7 @@ pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 		out write-pair! min
 		if index < a.buckets.size
 			bucket = a.buckets[index]
-			if bucket.empty? not
+			if !bucket.empty?
 				out ~= " ["
 				bucket each pair =>
 					out write-pair! pair
@@ -132,7 +132,7 @@ pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 				out backup! 2
 				out ~= "]"
 		out ~= ", "
-	if a.mins.empty? not
+	if !a.mins.empty?
 		out backup! 2
 	out move-to-str!
 
@@ -192,4 +192,4 @@ test
 		else
 			false
 	else
-		b.has? not
+		!b.has?

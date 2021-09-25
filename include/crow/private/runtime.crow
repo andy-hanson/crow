@@ -9,7 +9,7 @@ import
 	..opt: none, opt, some
 	..ptr: as-any-ptr, as-ref, by-val, ref-of-val
 	.alloc: gc, get-gc-ctx, needs-gc?, return-gc-ctx, run-garbage-collection
-	.bool-low-level: &&, ||, bool, false, not, true
+	.bool-low-level: !, &&, ||, bool, false, true
 	.bootstrap:
 		call-with-ctx, ctx, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
 		island-and-exclusion, island-id, lock, log-ctx-ptr, nat64, thread-local-stuff
@@ -243,7 +243,7 @@ spec
 	unsafe
 body
 	if i == islands.size
-		no-chosen-task: any-tasks?.not, first-task-time
+		!any-tasks? no-chosen-task first-task-time
 	else
 		island = islands noctx-at i
 		match island choose-task-in-island cur-time
@@ -296,7 +296,7 @@ body
 		as no-task n
 			n
 
-	if res.is-no-task? not
+	if !res.is-no-task?
 		island.n-threads-running := island.n-threads-running wrap-add 1
 
 	island.tasks-lock.ref-of-val release!

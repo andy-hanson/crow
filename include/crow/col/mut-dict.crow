@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: &&, ?, bool, false, not, true
+	..bool: !, &&, ?, bool, false, true
 	..compare: !=, <, >, <=, compare
 	..exception: assert
 	..fun: subscript
@@ -82,7 +82,7 @@ subscript opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 
 # Adds a key-value pair, replacing any existing one with that key.
 set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k> compare<?k>
-	if not: a insert-into-key-match-or-empty-slot! key, value
+	if !(a insert-into-key-match-or-empty-slot! key, value)
 		a add-pair! key, value
 
 ###

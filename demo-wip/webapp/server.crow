@@ -130,7 +130,7 @@ parse-query arr str(s str, arg-names arr str)
 		res ~= ",\"userName\":\""
 		res ~= user user-name
 		res ~= "\"},"
-	if users.empty? not
+	if !users.empty?
 		res backup!
 	res ~= "]}"
 	res move-to-str!
@@ -149,7 +149,7 @@ parse-query arr str(s str, arg-names arr str)
 		res ~= "\",\"content\":\""
 		res ~= post content
 		res ~= "\"},"
-	if posts.empty? not
+	if !posts.empty?
 		res backup!
 	res ~= "]}"
 	res move-to-str!

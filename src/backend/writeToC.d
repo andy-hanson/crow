@@ -2326,6 +2326,8 @@ void writeMangledName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
 					return "_divide";
 				case Operator.power:
 					return "_power";
+				case Operator.not:
+					return "_not";
 			}
 		}());
 	} else {

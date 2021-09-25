@@ -12,7 +12,7 @@ import
 		ms_branch_pages, ms_depth, ms_entries, ms_leaf_pages, ms_overflow_pages, ms_psize, mv_data,
 		mv_size
 	..bits: |
-	..bool: &&, ||, bool, false, not, true
+	..bool: !, &&, ||, bool, false, true
 	..cell: cell, subscript
 	..col.arr: arr, begin-ptr, empty?, size
 	..col.mut-arr:
@@ -102,7 +102,7 @@ lmdb-open-env lmdb-env(db-dir str, options lmdb-open-options) unsafe summon
 	check-lmdb-error: env mdb_env_set_mapsize mapsize
 
 	if options create-if-not-exists?
-		if db-dir.path-exists? not
+		if !db-dir.path-exists?
 			info log "Creating database directory {db-dir}"
 			db-dir make-directory
 
@@ -309,7 +309,7 @@ Fails if the key already exists.
 Use `set` to overwrite existing keys.
 ###
 add void(txn lMDB_txn, db lmdb-db<?k, ?v>, key ?k, value ?v) summon lmdb-key<?k> serialize<?v>
-	if txn try-add db, key, value not
+	if !(txn try-add db, key, value)
 		throw: "key already exists"
 
 try-add bool(txn lMDB_txn, db lmdb-db<?k, ?v>, key ?k, value ?v) summon lmdb-key<?k> serialize<?v>

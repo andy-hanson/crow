@@ -1078,7 +1078,7 @@ char constantarr_0_54[4];
 char constantarr_0_55[5];
 char constantarr_0_56[17];
 char constantarr_0_57[9];
-char constantarr_0_58[3];
+char constantarr_0_58[1];
 char constantarr_0_59[7];
 char constantarr_0_60[5];
 char constantarr_0_61[16];
@@ -1674,7 +1674,7 @@ char constantarr_0_54[4] = "true";
 char constantarr_0_55[5] = "false";
 char constantarr_0_56[17] = "memory-size-words";
 char constantarr_0_57[9] = "<=<nat64>";
-char constantarr_0_58[3] = "not";
+char constantarr_0_58[1] = "!";
 char constantarr_0_59[7] = "+<bool>";
 char constantarr_0_60[5] = "marks";
 char constantarr_0_61[16] = "mark-range-recur";
@@ -2222,7 +2222,7 @@ uint64_t _minus_0(uint64_t* a, uint64_t* b);
 struct comparison _compare_0(uint64_t a, uint64_t b);
 uint8_t _less_0(uint64_t a, uint64_t b);
 uint8_t _lessOrEqual_0(uint64_t a, uint64_t b);
-uint8_t not(uint8_t a);
+uint8_t _not(uint8_t a);
 uint8_t mark_range_recur(uint8_t marked_anything__q, uint8_t* cur, uint8_t* end);
 uint8_t _greater(uint64_t a, uint64_t b);
 int32_t rt_main(int32_t argc, char** argv, fun_ptr2 main_ptr);
@@ -2724,10 +2724,10 @@ uint8_t _less_0(uint64_t a, uint64_t b) {
 /* <=<nat64> bool(a nat64, b nat64) */
 uint8_t _lessOrEqual_0(uint64_t a, uint64_t b) {
 	uint8_t _0 = _less_0(b, a);
-	return not(_0);
+	return _not(_0);
 }
-/* not bool(a bool) */
-uint8_t not(uint8_t a) {
+/* ! bool(a bool) */
+uint8_t _not(uint8_t a) {
 	uint8_t _0 = a;
 	if (_0) {
 		return 0;
@@ -2746,7 +2746,7 @@ uint8_t mark_range_recur(uint8_t marked_anything__q, uint8_t* cur, uint8_t* end)
 		if (marked_anything__q) {
 			new_marked_anything__q0 = 1;
 		} else {
-			new_marked_anything__q0 = not((*cur));
+			new_marked_anything__q0 = _not((*cur));
 		}
 		
 		*cur = 1;
@@ -2958,7 +2958,7 @@ uint64_t size_bytes(struct str a) {
 }
 /* !=<int64> bool(a int64, b int64) */
 uint8_t _notEqual_0(int64_t a, int64_t b) {
-	return not((a == b));
+	return _not((a == b));
 }
 /* todo<void> void() */
 struct void_ todo_0(void) {
@@ -3048,7 +3048,7 @@ struct void_ each_recur_0(struct ctx* ctx, char* cur, char* end, struct fun_act1
 }
 /* !=<ptr<?a>> bool(a ptr<char>, b ptr<char>) */
 uint8_t _notEqual_1(char* a, char* b) {
-	return not((a == b));
+	return _not((a == b));
 }
 /* subscript<void, ?a> void(a fun-act1<void, char>, p0 char) */
 struct void_ subscript_0(struct ctx* ctx, struct fun_act1_1 a, char p0) {
@@ -3127,7 +3127,7 @@ struct void_ increase_capacity_to__e(struct ctx* ctx, struct mut_list_1* a, uint
 }
 /* assert void(condition bool) */
 struct void_ assert(struct ctx* ctx, uint8_t condition) {
-	uint8_t _0 = not(condition);
+	uint8_t _0 = _not(condition);
 	if (_0) {
 		return throw_0(ctx, (struct str) {{13, constantarr_0_3}});
 	} else {
@@ -3321,7 +3321,7 @@ struct void_ acquire__e(struct lock* a) {
 struct void_ acquire_recur__e(struct lock* a, uint64_t n_tries) {
 	top:;
 	uint8_t _0 = try_acquire__e(a);
-	uint8_t _1 = not(_0);
+	uint8_t _1 = _not(_0);
 	if (_1) {
 		uint8_t _2 = (n_tries == 10000u);
 		if (_2) {
@@ -3348,7 +3348,7 @@ uint8_t try_set__e(struct _atomic_bool* a) {
 uint8_t try_change__e(struct _atomic_bool* a, uint8_t old_value) {
 	uint8_t* _0 = (&a->value);
 	uint8_t* _1 = (&old_value);
-	uint8_t _2 = not(old_value);
+	uint8_t _2 = _not(old_value);
 	return atomic_compare_exchange_strong(_0, _1, _2);
 }
 /* yield-thread void() */
@@ -3525,7 +3525,7 @@ struct void_ fill_fun_ptrs_names_recur(uint64_t i, uint8_t** fun_ptrs, struct st
 }
 /* !=<nat64> bool(a nat64, b nat64) */
 uint8_t _notEqual_2(uint64_t a, uint64_t b) {
-	return not((a == b));
+	return _not((a == b));
 }
 /* set-subscript<ptr<nat8>> void(a ptr<ptr<nat8>>, n nat64, value ptr<nat8>) */
 struct void_ set_subscript_0(uint8_t** a, uint64_t n, uint8_t* value) {
@@ -3564,7 +3564,7 @@ uint8_t* get_fun_ptr_103(uint64_t fun_id) {switch (fun_id) {
 			return ((uint8_t*) _lessOrEqual_0);
 		}
 		case 10: {
-			return ((uint8_t*) not);
+			return ((uint8_t*) _not);
 		}
 		case 11: {
 			return ((uint8_t*) mark_range_recur);
@@ -4825,7 +4825,7 @@ struct str get_fun_name_105(uint64_t fun_id) {switch (fun_id) {
 			return (struct str) {{9, constantarr_0_57}};
 		}
 		case 10: {
-			return (struct str) {{3, constantarr_0_58}};
+			return (struct str) {{1, constantarr_0_58}};
 		}
 		case 11: {
 			return (struct str) {{16, constantarr_0_61}};
@@ -6337,7 +6337,7 @@ uint64_t _plus(struct ctx* ctx, uint64_t a, uint64_t b) {
 /* >=<nat64> bool(a nat64, b nat64) */
 uint8_t _greaterOrEqual(uint64_t a, uint64_t b) {
 	uint8_t _0 = _less_0(a, b);
-	return not(_0);
+	return _not(_0);
 }
 /* round-up-to-power-of-two nat64(n nat64) */
 uint64_t round_up_to_power_of_two(struct ctx* ctx, uint64_t n) {
@@ -6428,7 +6428,7 @@ struct void_ each_recur_1(struct ctx* ctx, struct str* cur, struct str* end, str
 }
 /* !=<ptr<?a>> bool(a ptr<str>, b ptr<str>) */
 uint8_t _notEqual_3(struct str* a, struct str* b) {
-	return not((a == b));
+	return _not((a == b));
 }
 /* subscript<void, ?a> void(a fun-act1<void, str>, p0 str) */
 struct void_ subscript_5(struct ctx* ctx, struct fun_act1_2 a, struct str p0) {
@@ -6613,7 +6613,7 @@ struct comparison _compare_4(uint8_t* a, uint8_t* b) {
 /* <=<ptr<bool>> bool(a ptr<bool>, b ptr<bool>) */
 uint8_t _lessOrEqual_1(uint8_t* a, uint8_t* b) {
 	uint8_t _0 = _less_4(b, a);
-	return not(_0);
+	return _not(_0);
 }
 /* <<?a> bool(a ptr<bool>, b ptr<bool>) */
 uint8_t _less_4(uint8_t* a, uint8_t* b) {
@@ -6636,7 +6636,7 @@ uint8_t _less_4(uint8_t* a, uint8_t* b) {
 /* <=<ptr<nat64>> bool(a ptr<nat64>, b ptr<nat64>) */
 uint8_t _lessOrEqual_2(uint64_t* a, uint64_t* b) {
 	uint8_t _0 = _less_1(b, a);
-	return not(_0);
+	return _not(_0);
 }
 /* thread-safe-counter thread-safe-counter() */
 struct thread_safe_counter thread_safe_counter_0(void) {
@@ -7651,7 +7651,7 @@ struct comparison _compare_5(char* a, char* b) {
 /* <=<ptr<?a>> bool(a ptr<char>, b ptr<char>) */
 uint8_t _lessOrEqual_3(char* a, char* b) {
 	uint8_t _0 = _less_5(b, a);
-	return not(_0);
+	return _not(_0);
 }
 /* <<?a> bool(a ptr<char>, b ptr<char>) */
 uint8_t _less_5(char* a, char* b) {
@@ -7866,7 +7866,7 @@ struct void_ create_one_thread(struct cell_0* tid, uint8_t* thread_arg, fun_ptr1
 }
 /* !=<int32> bool(a int32, b int32) */
 uint8_t _notEqual_4(int32_t a, int32_t b) {
-	return not((a == b));
+	return _not((a == b));
 }
 /* EAGAIN int32() */
 int32_t EAGAIN(void) {
@@ -8084,7 +8084,7 @@ struct choose_task_result choose_task_recur(struct arr_3 islands, uint64_t i, ui
 	top:;
 	uint8_t _0 = (i == islands.size);
 	if (_0) {
-		uint8_t _1 = not(any_tasks__q);
+		uint8_t _1 = _not(any_tasks__q);
 		return (struct choose_task_result) {1, .as1 = (struct no_chosen_task) {_1, first_task_time}};
 	} else {
 		struct island* island0;
@@ -8163,7 +8163,7 @@ struct choose_task_in_island_result choose_task_in_island(struct island* island,
 	}
 	
 	uint8_t _4 = is_no_task__q(res2);
-	uint8_t _5 = not(_4);
+	uint8_t _5 = _not(_4);
 	if (_5) {
 		island->n_threads_running = (island->n_threads_running + 1u);
 	} else {
@@ -9071,7 +9071,7 @@ struct void_ clear_free_mem(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data
 	top:;
 	uint8_t _0 = _notEqual_5(mark_ptr, mark_end);
 	if (_0) {
-		uint8_t _1 = not((*mark_ptr));
+		uint8_t _1 = _not((*mark_ptr));
 		if (_1) {
 			*data_ptr = 18077161789910350558u;
 		} else {
@@ -9087,7 +9087,7 @@ struct void_ clear_free_mem(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data
 }
 /* !=<ptr<bool>> bool(a ptr<bool>, b ptr<bool>) */
 uint8_t _notEqual_5(uint8_t* a, uint8_t* b) {
-	return not((a == b));
+	return _not((a == b));
 }
 /* wait-on void(a condition, until-time opt<nat64>, last-sequence nat64) */
 struct void_ wait_on(struct condition* a, struct opt_9 until_time, uint64_t last_sequence) {

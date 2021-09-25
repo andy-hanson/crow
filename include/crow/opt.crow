@@ -1,6 +1,6 @@
 no-std
 import
-	.bool: bool, false, not, true
+	.bool: !, bool, false, true
 	.compare: equal
 	.fun: subscript
 	.misc: void
@@ -29,7 +29,7 @@ opt-equal? bool(a opt ?a, b opt ?a) equal<?a> noctx
 		else
 			false
 	else
-		b.has? not
+		!b.has?
 
 # True iff a is `none`.
 empty? bool(a opt ?a) noctx
@@ -41,7 +41,7 @@ empty? bool(a opt ?a) noctx
 
 # True iff a is `some`.
 has? bool(a opt ?a) noctx
-	a.empty? not
+	!a.empty?
 
 # Calls `f` on the value in a `some`, or does nothing.
 each void(a opt ?in, f act void(?in))

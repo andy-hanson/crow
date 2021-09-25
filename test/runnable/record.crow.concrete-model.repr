@@ -629,10 +629,10 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, nat64)), param(b, type(false, nat64))]
-			expr-body(call(not, [call(<, [param-ref(b), param-ref(a)])])))
+			expr-body(call(!, [call(<, [param-ref(b), param-ref(a)])])))
 		fun(
 			false
-			not
+			!
 			type(false, bool)
 			none
 			[param(a, type(false, bool))]
@@ -657,7 +657,7 @@ program(
 					param-ref(marked-anything?)
 					let(
 						new-marked-anything?
-						call(||, [param-ref(marked-anything?), call(not, [call(subscript, [param-ref(cur)])])])
+						call(||, [param-ref(marked-anything?), call(!, [call(subscript, [param-ref(cur)])])])
 						seq(
 							call(set-subscript, [param-ref(cur), call(true, [])])
 							call(
@@ -1241,7 +1241,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, int64)), param(b, type(false, int64))]
-			expr-body(call(not, [call(==, [param-ref(a), param-ref(b)])])))
+			expr-body(call(!, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(false, unsafe-to-int64, type(false, int64), none, [param(a, type(false, nat64))], builtin([]))
 		fun(false, todo, type(false, void), none, [], expr-body(seq(call(abort, []), call(zeroed, []))))
 		fun(false, zeroed, type(false, void), none, [], builtin([type(false, void)]))
@@ -1352,7 +1352,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			expr-body(call(not, [call(==, [param-ref(a), param-ref(b)])])))
+			expr-body(call(!, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(
 			true
 			subscript
@@ -1474,7 +1474,7 @@ program(
 			type(false, void)
 			none
 			[param(condition, type(false, bool))]
-			expr-body(cond(call(not, [param-ref(condition)]), call(throw, [record([arr(0, 3)])]), void)))
+			expr-body(cond(call(!, [param-ref(condition)]), call(throw, [record([arr(0, 3)])]), void)))
 		fun(
 			true
 			throw
@@ -1739,7 +1739,7 @@ program(
 			[param(a, type(true, lock)), param(n-tries, type(false, nat64))]
 			expr-body(
 				cond(
-					call(not, [call(try-acquire!, [param-ref(a)])])
+					call(!, [call(try-acquire!, [param-ref(a)])])
 					cond(
 						call(==, [param-ref(n-tries), 10000])
 						call(todo, [])
@@ -1773,7 +1773,7 @@ program(
 					[
 						call(ptr-to, [call(value, [param-ref(a)])])
 						call(ptr-to, [param-ref(old-value)])
-						call(not, [param-ref(old-value)])])))
+						call(!, [param-ref(old-value)])])))
 		fun(
 			false
 			compare-exchange-strong
@@ -2087,7 +2087,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, nat64)), param(b, type(false, nat64))]
-			expr-body(call(not, [call(==, [param-ref(a), param-ref(b)])])))
+			expr-body(call(!, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(
 			false
 			set-subscript
@@ -2585,7 +2585,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, nat64)), param(b, type(false, nat64))]
-			expr-body(call(not, [call(<, [param-ref(a), param-ref(b)])])))
+			expr-body(call(!, [call(<, [param-ref(a), param-ref(b)])])))
 		fun(
 			true
 			round-up-to-power-of-two
@@ -2713,7 +2713,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			expr-body(call(not, [call(==, [param-ref(a), param-ref(b)])])))
+			expr-body(call(!, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(
 			true
 			subscript
@@ -3066,7 +3066,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			expr-body(call(not, [call(<, [param-ref(b), param-ref(a)])])))
+			expr-body(call(!, [call(<, [param-ref(b), param-ref(a)])])))
 		fun(
 			false
 			<
@@ -3084,7 +3084,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			expr-body(call(not, [call(<, [param-ref(b), param-ref(a)])])))
+			expr-body(call(!, [call(<, [param-ref(b), param-ref(a)])])))
 		fun(false, ref-of-val, type(true, gc), none, [param(a, type(false, gc))], builtin([type(true, gc)]))
 		fun(
 			false
@@ -4696,7 +4696,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			expr-body(call(not, [call(<, [param-ref(b), param-ref(a)])])))
+			expr-body(call(!, [call(<, [param-ref(b), param-ref(a)])])))
 		fun(
 			false
 			<
@@ -4996,7 +4996,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, int32)), param(b, type(false, int32))]
-			expr-body(call(not, [call(==, [param-ref(a), param-ref(b)])])))
+			expr-body(call(!, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(false, EAGAIN, type(false, int32), none, [], expr-body(11))
 		fun(
 			false
@@ -5354,7 +5354,7 @@ program(
 			expr-body(
 				cond(
 					call(==, [param-ref(i), call(size, [param-ref(islands)])])
-					to-union(1, call(no-chosen-task, [call(not, [param-ref(any-tasks?)]), param-ref(first-task-time)]))
+					to-union(1, call(no-chosen-task, [call(!, [param-ref(any-tasks?)]), param-ref(first-task-time)]))
 					let(
 						island
 						call(noctx-at, [param-ref(islands), param-ref(i)])
@@ -5420,7 +5420,7 @@ program(
 						seq(
 							seq(
 								cond(
-									call(not, [call(is-no-task?, [local-ref(res)])])
+									call(!, [call(is-no-task?, [local-ref(res)])])
 									call(
 										set-n-threads-running
 										[
@@ -6077,7 +6077,7 @@ program(
 					call(!=, [param-ref(mark-ptr), param-ref(mark-end)])
 					seq(
 						cond(
-							call(not, [call(subscript, [param-ref(mark-ptr)])])
+							call(!, [call(subscript, [param-ref(mark-ptr)])])
 							call(set-subscript, [param-ref(data-ptr), -369582283799201058])
 							void)
 						call(
@@ -6090,7 +6090,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			expr-body(call(not, [call(==, [param-ref(a), param-ref(b)])])))
+			expr-body(call(!, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(
 			false
 			set-shut-down?

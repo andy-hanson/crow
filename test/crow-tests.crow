@@ -77,7 +77,7 @@ body
 	else
 		path handle-output output-path, res.stdout, overwrite-output?
 
-	if output-failures.empty? not
+	if !output-failures.empty?
 		print-test-result: true, output-failures
 	elif res.exit-code == 0
 		assert: res.stderr == ""

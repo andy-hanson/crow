@@ -1,6 +1,6 @@
 no-std
 import
-	.bool: ?, bool, not
+	.bool: !, ?, bool
 	.col.arr-util: each
 	.fun: subscript
 	.misc: void
@@ -18,7 +18,7 @@ Fail if the condition is false, providing a custom message.
 The message is eagerly evaluated; pass a `fun str()` instead to have it lazily evaluatied.
 ###
 assert void(condition bool, message str)
-	if condition not
+	if !condition
 		message throw
 
 ###
@@ -26,7 +26,7 @@ Fail if the condition is false, providing a custom message.
 The message is evaluated only if an exception will be thrown.
 ###
 assert void(condition bool, message fun str())
-	if condition not
+	if !condition
 		message[] throw
 
 ###

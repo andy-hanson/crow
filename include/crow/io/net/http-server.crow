@@ -1,7 +1,7 @@
 no-std
 import
 	....unistd: write
-	...bool: bool, false, not, true
+	...bool: !, bool, false, true
 	...col.arr: arr, begin-ptr, size, subscript
 	...col.arr-util: rtail
 	...col.dict: dict, each, has-key?
@@ -108,7 +108,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		res ~= ": "
 		res ~= v
 	forbid: a.headers has-key? "Content-Length"
-	if a.body.empty? not
+	if !a.body.empty?
 		res ~= "\r\n"
 		res ~= "Content-Length: "
 		res ~= a.body.size-bytes to-str

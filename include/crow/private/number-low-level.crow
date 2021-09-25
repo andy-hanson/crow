@@ -1,7 +1,7 @@
 no-std
 import
 	..compare: comparison, equal, greater, less
-	.bool-low-level: ?, bool, not
+	.bool-low-level: !, ?, bool
 export
 	.bootstrap: float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64
 
@@ -104,7 +104,7 @@ even? bool(a nat64) trusted
 
 # Not even
 odd? bool(a nat64)
-	a.even? not
+	!a.even?
 
 region constants
 

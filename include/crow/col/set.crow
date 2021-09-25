@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: &&, ==, bool, false, not, true
+	..bool: !, &&, ==, bool, false, true
 	..compare: !=, <, <=, >, >=, compare
 	..exception: assert, forbid, unreachable
 	..fun: subscript
@@ -105,7 +105,7 @@ size nat64(a set ?a)
 
 subscript bool(a set ?a, value ?a) data<?a> compare<?a>
 	if index ?= a.add find-in-add value
-		a.remove[index] not
+		!a.remove[index]
 	else
 		false
 
@@ -376,7 +376,7 @@ body
 	init-iters-result: (prev.next-remove-index wrap-add a.values.size), new-out
 
 .remove-from-front iter-part ?a(a iter-part ?a, remove index-set)
-	if a.values.empty?.not && remove[a.remove-index]
+	if !a.values.empty? && remove[a.remove-index]
 		a.values.tail iter-part (a.remove-index wrap-add 1) remove-from-front remove
 	else
 		a
@@ -399,7 +399,7 @@ map-to-arr arr ?out(a set ?in, f act ?out(?in)) trusted data<?in> compare<?in>
 dbg str(a set ?a) to-str<?a>
 	out = writer
 	out dbg-add-recur! a.add
-	if a.remove.empty? not
+	if !a.remove.empty?
 		out ~= " - ["
 		a.remove each i =>
 			out ~= i to-str

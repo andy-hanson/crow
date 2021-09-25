@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: ==, bool, false, not, true
+	..bool: !, ==, bool, false, true
 	..compare: !=, <=, >, >=, compare
 	..exception: assert
 	..fun: subscript
@@ -80,7 +80,7 @@ size nat64(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
 
 subscript bool(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
 	if index ?= a.add find-in-add value
-		a.remove[index] not
+		!a.remove[index]
 	else
 		false
 
@@ -185,7 +185,7 @@ body
 	a push-recur! here.begin-ptr, here.end-ptr, add-size-here-and-left, remove
 .push-recur! void(a compactor ?a, cur ptr ?a, end ptr ?a, remove-index nat64, remove index-set) unsafe
 	if cur != end
-		if remove[remove-index] not
+		if !remove[remove-index]
 			a.cur[] := cur[]
 			a.cur := a.cur + 1
 		a push-recur! cur + 1, end, (remove-index wrap-add 1), remove
@@ -224,7 +224,7 @@ map-to-arr-unordered arr ?out(a unordered-set ?in, f act ?out(?in)) trusted data
 .dbg str(a unordered-set ?a) to-str<?a>
 	out = writer
 	out dbg-add-recur! a.add
-	if a.remove.empty? not
+	if !a.remove.empty?
 		out ~= " - ["
 		a.remove each i =>
 			out ~= i to-str

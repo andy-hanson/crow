@@ -523,7 +523,7 @@ immutable(ulong) charToNat(immutable char c) {
 }
 
 // NOTE: this will allow taking invalid operators, then we'll issue a diagnostic for them
-public immutable(bool) isOperatorChar(immutable char c) {
+immutable(bool) isOperatorChar(immutable char c) {
 	switch (c) {
 		case '=':
 		case '!':
@@ -543,7 +543,7 @@ public immutable(bool) isOperatorChar(immutable char c) {
 	}
 }
 
-public immutable(NameAndRange) takeOperator(Alloc, SymAlloc)(
+immutable(NameAndRange) takeOperator(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable CStr begin,

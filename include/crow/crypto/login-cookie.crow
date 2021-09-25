@@ -1,8 +1,8 @@
 no-std
 import
-	..bool: &&, bool, not
+	..bool: !, &&, bool
 	..col.arr: ~, arr, size, subscript
-	..compare: <
+	..compare: !=, <
 	..exception: assert
 	..io.time: get-unix-time, seconds-since-epoch, unix-time
 	..log: info, log
@@ -23,9 +23,9 @@ login-cookie record
 cookie-matches? bool(a login-cookie, cookie nat64, expire-seconds nat64) summon
 	now = get-unix-time seconds-since-epoch
 	recent? = now - a.timestamp.seconds-since-epoch < expire-seconds.to-int64
-	if recent? not
+	if !recent?
 		info log "Cookie expired! now: {now}, then: {a.timestamp.seconds-since-epoch}, expire after: {expire-seconds}"
-	if a.cookie == cookie not
+	if a.cookie != cookie
 		info log "Wrong cookie! expected: {a cookie}, got: {cookie}"
 	recent? && a.cookie == cookie
 

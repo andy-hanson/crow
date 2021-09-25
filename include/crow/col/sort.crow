@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: not
+	..bool: !
 	..compare: ==, !=, <, <=, >, compare, comparison, equal, less
 	..exception: assert, forbid
 	..fun: subscript
@@ -58,7 +58,7 @@ sort-by! void(a mut-list ?a, f act ?b(?a)) compare<?b> trusted
 sort! void(a mut-arr ?a) compare<?a>
 	a sort! (x, y) => x <=> y
 sort! void(a mut-arr ?a, comparer act comparison(?a, ?a)) trusted
-	if a.empty? not
+	if !a.empty?
 		a.begin-ptr insertion-sort-recur! a.begin-ptr + 1, a.end-ptr, comparer
 sort-by! void(a mut-arr ?a, f act ?b(?a)) compare<?b>
 	a sort! (x, y) => f[x] <=> f[y]

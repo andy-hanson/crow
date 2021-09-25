@@ -8,7 +8,7 @@ import
 	...unistd: close, getcwd, lseek, read, readlink, rmdir, unlink, write
 	..bits: &, |, <<
 	..bytes-types: zero
-	..bool: &&, bool, false, not, to-nat64, true
+	..bool: !, &&, bool, false, to-nat64, true
 	..cell: cell, subscript
 	..col.arr: arr, begin-ptr, subscript
 	..col.arr-util: each
@@ -93,7 +93,7 @@ read-dir arr str(path str) summon
 	err = dirp readdir_r entry, result
 	# TODO: handle error
 	assert: err == 0
-	if result[].as-any-ptr.null? not
+	if !result[].as-any-ptr.null?
 		assert: result[] ref-eq? entry
 		name = entry.get-dirent-name
 		if name != "." && name != ".."

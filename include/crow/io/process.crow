@@ -12,7 +12,7 @@ import
 		status-t, waitpid, WEXITSTATUS, WIFCONTINUED, WIFEXITED, WIFSIGNALED,
 		WIFSTOPPED, WTERMSIG
 	...unistd: close, pipe, pipes, read, read-pipe, write-pipe
-	..bool: &&, ||, bool, not, to-nat64
+	..bool: !, &&, ||, bool, to-nat64
 	..bytes-types: zero
 	..cell: cell, subscript
 	..col.arr: ~, arr, begin-ptr, ref-of-val-at, size
@@ -135,7 +135,7 @@ body
 		b = stderr-pollfd handle-revents stderr-builder
 		assert: (a.any?.to-nat64 wrap-add b.any?.to-nat64) == n-pollfds-with-events.to-nat64
 		# Apparently stdout and stderr can hang up at slightly different times.
-		if not: a.hung-up? && b.hung-up?
+		if !(a.hung-up? && b.hung-up?)
 			keep-POLLINg: stdout-pipe, stderr-pipe, stdout-builder, stderr-builder
 
 .handle-revents-result record

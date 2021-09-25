@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: &&, bool, false, not, true
+	..bool: !, &&, bool, false, true
 	..compare: !=, <, <=, >, compare
 	..exception: assert, forbid, unreachable
 	..fun: subscript
@@ -256,7 +256,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 
 - tree-set ?a(a tree-set ?a, b tree-set ?a) trusted data<?a> compare<?a>
 	b-iter = b iter
-	a filter x => b-iter walk-iter-has? x not
+	a filter x => !(b-iter walk-iter-has? x)
 
 .iter<?a> record mut
 	cur mut arr ?a
@@ -597,7 +597,7 @@ test
 	folded = "s" fold s8, (x, y) => "{x}-{y}"
 	folded is "s-h-i-j-ji-jj-jk-k-l"
 
-	filtered = s8 filter x => x starts-with? "j" not
+	filtered = s8 filter x => !(x starts-with? "j")
 	filtered verify "[h i k l]"
 
 	mapped = s8 map x => x.chars[0 -> 1] str

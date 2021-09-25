@@ -563,16 +563,15 @@ immutable(TypeSizeAndFieldOffsets) recordSize(Alloc)(
 	immutable Nat16[] fieldOffsets = map(alloc, fields, (ref immutable ConcreteField field) {
 		immutable TypeSize fieldSize = sizeOrPointerSizeBytes(field.type);
 		maxFieldSize = max(maxFieldSize, fieldSize.size);
-		maxFieldAlignment = max(maxFieldAlignment, fieldSize.alignment);
-		if (!packed)
+		if (!packed) {
+			maxFieldAlignment = max(maxFieldAlignment, fieldSize.alignment);
 			offset = roundUp(offset, fieldSize.alignment.to16());
+		}
 		immutable Nat16 fieldOffset = offset;
 		offset += fieldSize.size;
 		return fieldOffset;
 	});
-	immutable TypeSize typeSize = immutable TypeSize(
-		packed ? offset : roundUp(offset, maxFieldAlignment.to16()),
-		maxFieldAlignment);
+	immutable TypeSize typeSize = immutable TypeSize(roundUp(offset, maxFieldAlignment.to16()), maxFieldAlignment);
 	return immutable TypeSizeAndFieldOffsets(typeSize, fieldOffsets);
 }
 

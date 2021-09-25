@@ -177,7 +177,7 @@ login! result<user-cookie, login-error>(db db, user-name str, password str) summ
 		db.env with-write-transaction txn =>
 			if user ?= db get-user txn, user-name
 				hash = txn get db.user-password-hash, user force
-				if password password-matches? hash not
+				if !(password password-matches? hash)
 					throw: "wrong password"
 				cookie = generate-login-cookie
 				txn set db.user-login-cookie, user, cookie

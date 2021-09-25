@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: &&, ?, bool, false, not, true
+	..bool: !, &&, ?, bool, false, true
 	..compare: <, >, <=, compare
 	..exception: assert
 	..fun: subscript
@@ -205,13 +205,13 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 	res move-to-str!
 .dbg-recur! void(out writer, a opt node<nat64, str>, first bool)
 	if node ?= a
-		if first not
+		if !first
 			out ~= "; "
 		out ~= node.min from
 		out ~= " "
 		out ~= node.min to
 		out ~= " ["
-		if node.pairs.empty? not
+		if !node.pairs.empty?
 			node.pairs each pair =>
 				out ~= pair from
 				out ~= " "

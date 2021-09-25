@@ -1,6 +1,6 @@
 no-std
 import
-	..bool: ?, bool, not
+	..bool: !, ?, bool
 	..compare: <
 	..exception: assert, forbid
 	..misc: ->, void
@@ -75,16 +75,16 @@ push! void(a mut-deque ?a, value ?a) trusted
 	a.right := a.right + 1
 
 first opt ?a(a mut-deque ?a) trusted
-	if a.left.null? not
+	if !a.left.null?
 		a.left[] some
 
 last opt ?a(a mut-deque ?a) trusted
-	if a.right.null? not
+	if !a.right.null?
 		fixed-right = a.right == a.inner.begin-ptr ? a.inner.end-ptr, a.right
 		(fixed-right - 1)[] some
 
 pop-left! opt ?a(a mut-deque ?a) trusted
-	if a.left.null? not
+	if !a.left.null?
 		res = a.left[]
 		a.left[] := zeroed
 		a.left := a.left + 1
@@ -97,7 +97,7 @@ pop-left! opt ?a(a mut-deque ?a) trusted
 		res some
 
 pop-right! opt ?a(a mut-deque ?a) trusted
-	if a.right.null? not
+	if !a.right.null?
 		if a.right == a.inner.begin-ptr
 			a.right := a.inner end-ptr
 		a.right := a.right - 1
@@ -149,7 +149,7 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 			out ~= "L-> "
 		out ~= ptr[] to-str
 		out ~= " "
-	if a.inner.empty? not
+	if !a.inner.empty?
 		out backup!
 	out move-to-str!
 

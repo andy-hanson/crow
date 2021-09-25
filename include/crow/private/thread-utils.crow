@@ -9,7 +9,7 @@ import
 		pthread_mutex_destroy, pthread_mutex_init, pthread_mutex_lock, pthread_mutex_t,
 		pthread_mutex_unlock, pthread_t, pthread_yield
 	...time: CLOCK_MONOTONIC
-	..bool: ?, bool, false, not, true
+	..bool: !, ?, bool, false, true
 	..cell: cell, subscript
 	..compare: !=
 	..extra-types: err-t
@@ -30,7 +30,7 @@ atomic-bool by-val atomic-bool() noctx
 compare-exchange-strong bool(value-ptr ptr bool, expected-ptr ptr bool, desired bool) noctx builtin
 
 try-change! bool(a atomic-bool, old-value bool) noctx trusted
-	a.value.ptr-to compare-exchange-strong old-value.ptr-to, old-value.not
+	a.value.ptr-to compare-exchange-strong old-value.ptr-to, !old-value
 
 try-set! bool(a atomic-bool) noctx
 	a try-change! false
@@ -55,7 +55,7 @@ acquire! void(a lock) noctx unsafe
 	a acquire-recur! 0
 
 .acquire-recur! void(a lock, n-tries nat64) noctx unsafe
-	if a.try-acquire! not
+	if !a.try-acquire!
 		if n-tries == 10000
 			todo
 		else
