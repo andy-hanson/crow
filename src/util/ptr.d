@@ -10,15 +10,11 @@ import util.util : verify;
 struct Ptr(T) {
 	@safe @nogc pure nothrow:
 	@disable this(); // No nulls!
-	this(T* p) {
-		ptr = p;
-		verify(ptr != null);
-	}
-	this(const T* p) const {
-		ptr = p;
-		verify(ptr != null);
-	}
 	this(immutable T* p) immutable {
+		ptr = p;
+		verify(ptr != null);
+	}
+	this(inout T* p) inout {
 		ptr = p;
 		verify(ptr != null);
 	}

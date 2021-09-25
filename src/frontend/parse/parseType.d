@@ -6,8 +6,9 @@ import frontend.parse.ast : NameAndRange, range, TypeAst;
 import frontend.parse.lexer : addDiag, curPos, Lexer, range, takeNameAndRange, takeOrAddDiagExpected, tryTake;
 import model.parseDiag : ParseDiag;
 import util.collection.arr : ArrWithSize, at, empty, emptyArrWithSize, toArr;
-import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, finishArr;
+import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrWithSizeLiteral;
+import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : shortSymAlphaLiteralValue, Sym;
@@ -46,7 +47,7 @@ private immutable(ArrWithSize!TypeAst) parseTypesWithCommas(Alloc, SymAlloc)(
 ) {
 	ArrWithSizeBuilder!TypeAst res;
 	parseTypesWithCommas(alloc, lexer, res);
-	return finishArr(alloc, res);
+	return finishArrWithSize(alloc, res);
 }
 
 private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(Alloc, SymAlloc)(

@@ -14,7 +14,7 @@ struct ArrWithSize(T) {
 	@system immutable this(immutable ubyte* p) { sizeAndBegin_ = p; }
 }
 
-@trusted immutable(T[]) toArr(T)(ref immutable ArrWithSize!T a) {
+@trusted immutable(T[]) toArr(T)(return scope immutable ArrWithSize!T a) {
 	immutable T* begin = cast(immutable T*) (a.sizeAndBegin_ + size_t.sizeof);
 	immutable size_t size = *(cast(immutable size_t*) a.sizeAndBegin_);
 	return begin[0 .. size];
@@ -75,11 +75,11 @@ immutable(Nat64) sizeNat(T)(const T[] a) {
 	return immutable Nat64(a.length);
 }
 
-immutable(size_t) size(T)(const T[] a) {
+immutable(size_t) size(T)(scope const T[] a) {
 	return a.length;
 }
 
-immutable(bool) sizeEq(T, U)(const T[] a, const U[] b) {
+immutable(bool) sizeEq(T, U)(scope const T[] a, scope const U[] b) {
 	return size(a) == size(b);
 }
 
@@ -87,20 +87,11 @@ immutable(bool) empty(T)(const T[] a) {
 	return size(a) == 0;
 }
 
-@trusted Ptr!T ptrAt(T)(return scope ref T[] a, immutable size_t index) {
+@trusted inout(Ptr!T) ptrAt(T)(inout T[] a, immutable size_t index) {
 	verify(index < size(a));
-	return Ptr!T(&a[index]);
+	return inout Ptr!T(&a[index]);
 }
 
-@trusted const(Ptr!T) ptrAt(T)(const T[] a, immutable size_t index) {
-	verify(index < size(a));
-	return const Ptr!T(&a[index]);
-}
-
-@trusted immutable(Ptr!T) ptrAt(T)(immutable T[] a, immutable size_t index) {
-	verify(index < size(a));
-	return immutable Ptr!T(&a[index]);
-}
 @trusted ref T at(T)(return scope T[] a, immutable size_t index) {
 	verify(index < size(a));
 	return a[index];
@@ -112,7 +103,7 @@ immutable(bool) empty(T)(const T[] a) {
 	return at(a, index.raw());
 }
 
-@trusted void setAt(T)(ref T[] a, immutable size_t index, T value) {
+@trusted void setAt(T)(scope ref T[] a, immutable size_t index, T value) {
 	verify(index < size(a));
 	overwriteMemory(&a[index], value);
 }

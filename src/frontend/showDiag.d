@@ -40,6 +40,7 @@ import util.writer :
 	writeBold,
 	writeChar,
 	writeEscapedChar,
+	writeInt,
 	writeNat,
 	writeQuotedStr,
 	writeReset,
@@ -549,6 +550,13 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeStatic(writer, "type ");
 			writeStructInst(writer, d.actual);
 			writeStatic(writer, " cannot be used to back an enum");
+		},
+		(ref immutable Diag.EnumDuplicateValue d) {
+			writeStatic(writer, "duplicate enum value ");
+			if (d.signed)
+				writeInt(writer, d.value);
+			else
+				writeNat(writer, cast(ulong) d.value);
 		},
 		(ref immutable Diag.ExpectedTypeIsNotALambda d) {
 			if (has(d.expectedType)) {

@@ -10,6 +10,11 @@ main fut nat(_ arr str) summon
 	print: (f0 | f2).to-nat8.to-str
 	0 resolved
 
+e enum<nat8>
+	x = 1
+	y = 2
+	z = 1
+
 f flags<nat8>
 	a = 1
 	b = 2

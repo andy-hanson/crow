@@ -59,7 +59,8 @@ import frontend.parse.parseType : tryParseTypeArgsBracketed;
 import model.parseDiag : EqLikeKind, ParseDiag;
 import util.collection.arr : ArrWithSize, empty, emptyArr, emptyArrWithSize, toArr;
 import util.collection.arrUtil : append, arrLiteral, arrWithSizeLiteral, prepend;
-import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, finishArr;
+import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
 import util.collection.str : CStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
@@ -306,7 +307,7 @@ immutable(ArgsAndMaybeNameOrDedent) parseArgsRecur(Alloc, SymAlloc)(
 	add(alloc, args, ad.expr);
 	return isNone(ad.nameOrDedent) && tryTake(lexer, ", ")
 		? parseArgsRecur(alloc, lexer, ctx, args)
-		: immutable ArgsAndMaybeNameOrDedent(finishArr(alloc, args), ad.nameOrDedent);
+		: immutable ArgsAndMaybeNameOrDedent(finishArrWithSize(alloc, args), ad.nameOrDedent);
 }
 
 immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
@@ -812,32 +813,10 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 	immutable AllowedBlock allowedBlock,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable(RangeWithinFile) getRange() {
-		return range(lexer, start);
-	}
-
-	immutable(ExprAndMaybeDedent) blockNotAllowed(immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind kind) {
-		return exprBlockNotAllowed(alloc, lexer, start, kind);
-	}
 
 	immutable(ExprAndMaybeDedent) handleLiteral(immutable LiteralAst literal) {
-		immutable ExprAst expr = immutable ExprAst(getRange(), immutable ExprAstKind(literal));
+		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(literal));
 		return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
-	}
-
-	immutable(ExprAndMaybeDedent) handleName(immutable NameAndRange name) {
-		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
-		if (!empty(toArr(typeArgs))) {
-			return noDedent(immutable ExprAst(
-				getRange(),
-				immutable ExprAstKind(
-					immutable CallAst(CallAst.Style.single, name, typeArgs, emptyArrWithSize!ExprAst))));
-		} else {
-			immutable ExprAst expr = immutable ExprAst(
-				getRange(),
-				immutable ExprAstKind(immutable IdentifierAst(name.name)));
-			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
-		}
 	}
 
 	immutable CStr begin = lexer.ptr;
@@ -850,7 +829,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				immutable ExprAst inner = parseExprNoBlock(alloc, lexer);
 				takeOrAddDiagExpected(alloc, lexer, ')', ParseDiag.Expected.Kind.closingParen);
 				immutable ExprAst expr = immutable ExprAst(
-					getRange(),
+					range(lexer, start),
 					immutable ExprAstKind(immutable ParenthesizedAst(allocate(alloc, inner))));
 				return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 			}
@@ -863,7 +842,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 		case '&':
 			immutable Sym name = takeName(alloc, lexer);
 			return noDedent(immutable ExprAst(
-				getRange(),
+				range(lexer, start),
 				immutable ExprAstKind(immutable FunPtrAst(name))));
 		case '"': {
 			immutable StringPart part = takeStringPart(alloc, lexer);
@@ -879,10 +858,10 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 		case '-':
 			return isDigit(*lexer.ptr)
 				? handleLiteral(takeNumberAfterSign(lexer, some(c == '+' ? Sign.plus : Sign.minus)))
-				: handleName(takeOperator(alloc, lexer, begin));
+				: handleName(alloc, lexer, start, takeOperator(alloc, lexer, begin));
 		default:
 			if (isOperatorChar(c))
-				return handleName(takeOperator(alloc, lexer, begin));
+				return handleName(alloc, lexer, start, takeOperator(alloc, lexer, begin));
 			else if (isAlphaIdentifierStart(c)) {
 				immutable string nameStr = takeNameRest(lexer, begin);
 				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
@@ -891,11 +870,11 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 						case shortSymAlphaLiteralValue("if"):
 							return isAllowBlock(allowedBlock)
 								? toMaybeDedent(parseIf(alloc, lexer, start, asAllowBlock(allowedBlock).curIndent))
-								: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.if_);
+								: exprBlockNotAllowed(alloc, lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.if_);
 						case shortSymAlphaLiteralValue("match"):
 							return isAllowBlock(allowedBlock)
 								? toMaybeDedent(parseMatch(alloc, lexer, start, asAllowBlock(allowedBlock).curIndent))
-								: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match);
+								: exprBlockNotAllowed(alloc, lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match);
 						default:
 							addDiagOnReservedName(alloc, lexer, immutable NameAndRange(start, name));
 							return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
@@ -908,7 +887,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 						allowedBlock,
 						arrLiteral!(LambdaAst.Param)(alloc, [immutable LambdaAst.Param(start, name)]));
 				else
-					return handleName(immutable NameAndRange(start, name));
+					return handleName(alloc, lexer, start, immutable NameAndRange(start, name));
 			} else if (isDigit(c)) {
 				backUp(lexer);
 				return handleLiteral(takeNumberAfterSign(lexer, none!Sign));
@@ -917,6 +896,26 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				addDiagUnexpected(alloc, lexer);
 				return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 			}
+	}
+}
+
+immutable(ExprAndMaybeDedent) handleName(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable Pos start,
+	immutable NameAndRange name,
+) {
+	immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
+	if (!empty(toArr(typeArgs))) {
+		return noDedent(immutable ExprAst(
+			range(lexer, start),
+			immutable ExprAstKind(
+				immutable CallAst(CallAst.Style.single, name, typeArgs, emptyArrWithSize!ExprAst))));
+	} else {
+		immutable ExprAst expr = immutable ExprAst(
+			range(lexer, start),
+			immutable ExprAstKind(immutable IdentifierAst(name.name)));
+		return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 	}
 }
 

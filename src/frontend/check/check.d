@@ -128,7 +128,6 @@ import model.model :
 	Type,
 	TypeParam,
 	typeParams;
-import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr :
 	ArrWithSize,
 	at,
@@ -142,20 +141,18 @@ import util.collection.arr :
 	size,
 	sizeEq,
 	toArr;
-import util.collection.arrBuilder :
-	add,
-	ArrBuilder,
-	ArrWithSizeBuilder,
-	arrWithSizeBuilderAsTempArr,
-	arrWithSizeBuilderSize,
-	finishArr;
+import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
 	cat,
 	count,
+	eachPair,
 	exists,
 	fillArr_mut,
 	map,
+	mapAndFold,
+	MapAndFold,
+	MapAndFoldResult,
 	mapOp,
 	mapOpWithSize,
 	mapOrNone,
@@ -168,6 +165,12 @@ import util.collection.arrUtil :
 	zipFirstMut,
 	zipMutPtrFirst,
 	zipPtrFirst;
+import util.collection.arrWithSizeBuilder :
+	add,
+	ArrWithSizeBuilder,
+	arrWithSizeBuilderAsTempArr,
+	arrWithSizeBuilderSize,
+	finishArrWithSize;
 import util.collection.dict : Dict, dictEach, getAt, hasKey, KeyValuePair;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDict;
 import util.collection.dictUtil : buildMultiDict;
@@ -493,7 +496,7 @@ immutable(Ptr!StructDecl) bogusStructDecl(Alloc)(ref Alloc alloc, immutable size
 		fileAndRange,
 		emptySafeCStr,
 		shortSymAlphaLiteral("bogus"),
-		finishArr(alloc, typeParams),
+		finishArrWithSize(alloc, typeParams),
 		true,
 		Purity.data,
 		false);
@@ -509,14 +512,11 @@ immutable(ArrWithSize!TypeParam) checkTypeParams(Alloc)(
 	immutable ArrWithSize!TypeParam res =
 		mapWithSizeWithIndex(alloc, toArr(asts), (immutable size_t index, ref immutable TypeParamAst ast) =>
 			immutable TypeParam(rangeInFile(ctx, ast.range), ast.name, index));
-	immutable TypeParam[] typeParams = toArr(res);
-	foreach (immutable size_t i; 0 .. size(typeParams))
-		foreach (immutable size_t prev_i; 0 .. i) {
-			immutable TypeParam tp = at(typeParams, i);
-			if (symEq(tp.name, at(typeParams, prev_i).name))
-				addDiag(alloc, ctx, tp.range, immutable Diag(
-					immutable Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.typeParam, tp.name)));
-		}
+	eachPair!TypeParam(toArr(res), (ref immutable TypeParam a, ref immutable TypeParam b) {
+		if (symEq(a.name, b.name))
+			addDiag(alloc, ctx, b.range, immutable Diag(
+				immutable Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.typeParam, b.name)));
+	});
 	return res;
 }
 
@@ -553,7 +553,7 @@ immutable(ArrWithSize!TypeParam) collectTypeParams(Alloc)(
 	collectTypeParamsInAst(alloc, ctx, ast.returnType, res);
 	foreach (ref immutable ParamAst p; toArr(ast.params))
 		collectTypeParamsInAst(alloc, ctx, p.type, res);
-	return finishArr(alloc, res);
+	return finishArrWithSize(alloc, res);
 }
 
 immutable(Param[]) checkParams(Alloc)(
@@ -887,35 +887,40 @@ immutable(EnumTypeAndMembers) checkEnumMembers(Alloc)(
 		: immutable Type(commonTypes.integrals.nat32);
 	immutable EnumBackingType enumType = getEnumTypeFromType(alloc, ctx, range, commonTypes, implementationType);
 
-	Cell!(Opt!EnumValue) lastValue = Cell!(Opt!EnumValue)(none!EnumValue);
-	immutable StructBody.Enum.Member[] members = mapWithSoFar!(StructBody.Enum.Member, StructDeclAst.Body.Enum.Member)(
-		alloc,
-		toArr(memberAsts),
-		(ref immutable StructDeclAst.Body.Enum.Member member,
-		 ref immutable StructBody.Enum.Member[] prevMembers,
-		 immutable size_t) {
-			immutable ValueAndOverflow valueAndOverflow = () {
-				if (has(member.value)) {
-					if (isSignedType(enumType))
-						return todo!(immutable ValueAndOverflow)("!");
-					else
-						return matchLiteralIntOrNat!(immutable ValueAndOverflow)(
-							force(member.value),
-							(ref immutable LiteralAst.Int) =>
-								todo!(immutable ValueAndOverflow)("signed value in unsigned enum"),
-							(ref immutable LiteralAst.Nat n) =>
-								immutable ValueAndOverflow(immutable EnumValue(n.value), n.overflow));
-				} else
-					return cbGetNextValue(cellGet(lastValue), enumType);
-			}();
-			immutable EnumValue value = valueAndOverflow.value;
-			cellSet(lastValue, some(value));
-			if (valueAndOverflow.overflow || valueOverflows(enumType, value))
-				todo!void("enum member overflows");
-			foreach (ref immutable StructBody.Enum.Member prevMember; prevMembers)
-				if (prevMember.value == value)
-					todo!void("duplicate enum member");
-			return immutable StructBody.Enum.Member(rangeInFile(ctx, member.range), member.name, value);
+	immutable StructBody.Enum.Member[] members =
+		mapAndFold!(StructBody.Enum.Member, Opt!EnumValue, StructDeclAst.Body.Enum.Member, Alloc)(
+			alloc,
+			none!EnumValue,
+			toArr(memberAsts),
+			(ref immutable StructDeclAst.Body.Enum.Member memberAst, immutable Opt!EnumValue lastValue) {
+				immutable ValueAndOverflow valueAndOverflow = () {
+					if (has(memberAst.value)) {
+						if (isSignedType(enumType))
+							return todo!(immutable ValueAndOverflow)("!");
+						else
+							return matchLiteralIntOrNat!(immutable ValueAndOverflow)(
+								force(memberAst.value),
+								(ref immutable LiteralAst.Int) =>
+									todo!(immutable ValueAndOverflow)("signed value in unsigned enum"),
+								(ref immutable LiteralAst.Nat n) =>
+									immutable ValueAndOverflow(immutable EnumValue(n.value), n.overflow));
+					} else
+						return cbGetNextValue(lastValue, enumType);
+				}();
+				immutable EnumValue value = valueAndOverflow.value;
+				if (valueAndOverflow.overflow || valueOverflows(enumType, value))
+					todo!void("enum member overflows");
+				return immutable MapAndFold!(StructBody.Enum.Member, Opt!EnumValue)(
+					immutable StructBody.Enum.Member(rangeInFile(ctx, memberAst.range), memberAst.name, value),
+					some(value));
+			}).output;
+
+	eachPair!(StructBody.Enum.Member)(
+		members,
+		(ref immutable StructBody.Enum.Member a, ref immutable StructBody.Enum.Member b) {
+			if (a.value == b.value)
+				addDiag(alloc, ctx, b.range, immutable Diag(
+					immutable Diag.EnumDuplicateValue(isSignedType(enumType), b.value.value)));
 		});
 	return immutable EnumTypeAndMembers(enumType, members);
 }

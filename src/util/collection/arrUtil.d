@@ -276,7 +276,7 @@ immutable(T[]) copyArr(T, Alloc)(ref Alloc alloc, immutable T[] a) {
 	if (has(optFirst))
 		initMemory(res, force(optFirst));
 	foreach (immutable size_t i; 0 .. size(a))
-		initMemory(res + offset + i, cb(i, ptrAt(a, i)));
+		initMemory(res + offset + i, cb(i, ptrAt!In(a, i)));
 	return cast(immutable) res[0 .. offset + size(a)];
 }
 
@@ -750,6 +750,42 @@ immutable(Comparison) compareArr(T)(
 		});
 }
 
+struct MapAndFoldResult(Out, State) {
+	immutable Out[] output;
+	immutable State state;
+}
+
+struct MapAndFold(Out, State) {
+	immutable Out output;
+	immutable State state;
+}
+
+@trusted immutable(MapAndFoldResult!(Out, State)) mapAndFold(Out, State, In, Alloc)(
+	ref Alloc alloc,
+	immutable State start,
+	scope immutable In[] a,
+	scope immutable(MapAndFold!(Out, State)) delegate(ref immutable In, immutable State) @safe @nogc pure nothrow cb,
+) {
+	Out* res = cast(Out*) allocateBytes(alloc, Out.sizeof * size(a));
+	immutable State endState = mapAndFoldRecur!(Out, State, In)(res, start, a.ptr, a.ptr + size(a), cb);
+	return immutable MapAndFoldResult!(Out, State)(cast(immutable) res[0 .. size(a)], endState);
+}
+
+private @system immutable(State) mapAndFoldRecur(Out, State, In)(
+	Out* res,
+	immutable State state,
+	immutable In* curIn,
+	immutable In* endIn,
+	scope immutable(MapAndFold!(Out, State)) delegate(ref immutable In, immutable State) @safe @nogc pure nothrow cb,
+) {
+	if (curIn != endIn) {
+		immutable MapAndFold!(Out, State) mf = cb(*curIn, state);
+		initMemory(res, mf.output);
+		return mapAndFoldRecur(res + 1, mf.state, curIn + 1, endIn, cb);
+	} else
+		return state;
+}
+
 immutable(T) fold(T, U)(
 	immutable T start,
 	immutable U[] arr,
@@ -842,4 +878,13 @@ private immutable(size_t) arrMaxIndexRecur(T, U)(
 			? arrMaxIndexRecur!(T, U)(index + 0, valueHere, a, index + 1, cb, compare)
 			: arrMaxIndexRecur!(T, U)(indexOfMax, maxValue, a, index + 1, cb, compare);
 	}
+}
+
+void eachPair(T)(
+	immutable T[] a,
+	scope void delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	foreach (immutable size_t i; 0 .. size(a))
+		foreach (immutable size_t j; i + 1 .. size(a))
+			cb(at(a, i), at(a, j));
 }

@@ -60,7 +60,8 @@ import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseType : parseType, parseTypeInstStruct, takeTypeArgsEnd, tryParseTypeArgsBracketed;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
-import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, arrWithSizeBuilderIsEmpty, finishArr;
+import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, arrWithSizeBuilderIsEmpty, finishArrWithSize;
 import util.collection.str : CStr, NulTerminatedStr, SafeCStr;
 import util.memory : allocate, nu;
 import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some, somePtr;
@@ -98,7 +99,7 @@ immutable(ArrWithSize!TypeParamAst) parseTypeParams(Alloc, SymAlloc)(ref Alloc a
 			add(alloc, res, immutable TypeParamAst(range(lexer, start), name));
 		} while (tryTake(lexer, ", "));
 		takeTypeArgsEnd(alloc, lexer);
-		return finishArr(alloc, res);
+		return finishArrWithSize(alloc, res);
 	} else
 		return emptyArrWithSize!TypeParamAst;
 }
@@ -294,7 +295,7 @@ immutable(ArrWithSize!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(
 				break;
 			}
 		}
-		return finishArr(alloc, res);
+		return finishArrWithSize(alloc, res);
 	}
 }
 
@@ -304,7 +305,7 @@ immutable(ParamsAndMaybeDedent) parseIndentedParams(Alloc, SymAlloc)(ref Alloc a
 		add(alloc, res, parseSingleParam(alloc, lexer));
 		immutable size_t dedents = takeNewlineOrDedentAmount(alloc, lexer, 1);
 		if (dedents != 0)
-			return ParamsAndMaybeDedent(finishArr(alloc, res), some(dedents - 1));
+			return ParamsAndMaybeDedent(finishArrWithSize(alloc, res), some(dedents - 1));
 	}
 }
 
@@ -482,7 +483,7 @@ immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) parseEnumOrFlagsMembers(
 			case NewlineOrDedent.newline:
 				return recur();
 			case NewlineOrDedent.dedent:
-				return finishArr(alloc, res);
+				return finishArrWithSize(alloc, res);
 		}
 	}
 	return recur();
@@ -527,7 +528,7 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
 			case NewlineOrDedent.dedent:
 				return immutable StructDeclAst.Body.Record(
 					newModifiers.any() ? somePtr(allocate(alloc, newModifiers)) : nonePtr!RecordModifiers,
-					finishArr(alloc, res));
+					finishArrWithSize(alloc, res));
 		}
 	}
 	return recur(immutable RecordModifiers(none!Pos, none!ExplicitByValOrRefAndRange));

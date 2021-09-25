@@ -126,6 +126,10 @@ struct Diag {
 	struct EnumBackingTypeInvalid {
 		immutable Ptr!StructInst actual;
 	}
+	struct EnumDuplicateValue {
+		immutable bool signed;
+		immutable long value;
+	}
 	struct ExpectedTypeIsNotALambda {
 		immutable Opt!Type expectedType;
 	}
@@ -269,7 +273,8 @@ struct Diag {
 		duplicateDeclaration,
 		duplicateExports,
 		duplicateImports,
-		EnumBackingTypeInvalid,
+		enumBackingTypeInvalid,
+		enumDuplicateValue,
 		expectedTypeIsNotALambda,
 		externPtrHasTypeParams,
 		ifNeedsOpt,
@@ -324,6 +329,7 @@ struct Diag {
 		immutable DuplicateExports duplicateExports;
 		immutable DuplicateImports duplicateImports;
 		immutable EnumBackingTypeInvalid enumBackingTypeInvalid;
+		immutable EnumDuplicateValue enumDuplicateValue;
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
 		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
 		immutable IfNeedsOpt ifNeedsOpt;
@@ -393,8 +399,9 @@ struct Diag {
 	@trusted immutable this(immutable DuplicateExports a) { kind = Kind.duplicateExports; duplicateExports = a; }
 	@trusted immutable this(immutable DuplicateImports a) { kind = Kind.duplicateImports; duplicateImports = a; }
 	@trusted immutable this(immutable EnumBackingTypeInvalid a) {
-		kind = Kind.EnumBackingTypeInvalid; enumBackingTypeInvalid = a;
+		kind = Kind.enumBackingTypeInvalid; enumBackingTypeInvalid = a;
 	}
+	immutable this(immutable EnumDuplicateValue a) { kind = Kind.enumDuplicateValue; enumDuplicateValue = a; }
 	@trusted immutable this(immutable ExpectedTypeIsNotALambda a) {
 		kind = Kind.expectedTypeIsNotALambda; expectedTypeIsNotALambda = a;
 	}
@@ -516,6 +523,7 @@ static assert(Diag.sizeof <= 32);
 	scope immutable(Out) delegate(
 		ref immutable Diag.EnumBackingTypeInvalid
 	) @safe @nogc pure nothrow cbEnumBackingTypeInvalid,
+	scope immutable(Out) delegate(ref immutable Diag.EnumDuplicateValue) @safe @nogc pure nothrow cbEnumDuplicateValue,
 	scope immutable(Out) delegate(
 		ref immutable Diag.ExpectedTypeIsNotALambda
 	) @safe @nogc pure nothrow cbExpectedTypeIsNotALambda,
@@ -639,8 +647,10 @@ static assert(Diag.sizeof <= 32);
 			return cbDuplicateExports(a.duplicateExports);
 		case Diag.Kind.duplicateImports:
 			return cbDuplicateImports(a.duplicateImports);
-		case Diag.Kind.EnumBackingTypeInvalid:
+		case Diag.Kind.enumBackingTypeInvalid:
 			return cbEnumBackingTypeInvalid(a.enumBackingTypeInvalid);
+		case Diag.Kind.enumDuplicateValue:
+			return cbEnumDuplicateValue(a.enumDuplicateValue);
 		case Diag.Kind.expectedTypeIsNotALambda:
 			return cbExpectedTypeIsNotALambda(a.expectedTypeIsNotALambda);
 		case Diag.Kind.externPtrHasTypeParams:
