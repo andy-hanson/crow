@@ -49,16 +49,16 @@ export
 
 unsafe-mod nat64(a nat64, b nat64) noctx unsafe builtin
 
-unsafe-to-nat8 nat8(a nat64) noctx builtin
-unsafe-to-nat16 nat16(a nat64) noctx builtin
-unsafe-to-nat32 nat32(a nat64) noctx builtin
-unsafe-to-nat64 nat64(a int64) noctx builtin
+unsafe-to-nat8 nat8(a nat64) noctx unsafe builtin
+unsafe-to-nat16 nat16(a nat64) noctx unsafe builtin
+unsafe-to-nat32 nat32(a nat64) noctx unsafe builtin
+unsafe-to-nat64 nat64(a int64) noctx unsafe builtin
 
 # UB for positive numbers >= 2 ** 63
-unsafe-to-int8 int8(a int64) noctx builtin
-unsafe-to-int16 int16(a int64) noctx builtin
-unsafe-to-int32 int32(a int64) noctx builtin
-unsafe-to-int64 int64(a nat64) noctx builtin
+unsafe-to-int8 int8(a int64) noctx unsafe builtin
+unsafe-to-int16 int16(a int64) noctx unsafe builtin
+unsafe-to-int32 int32(a int64) noctx unsafe builtin
+unsafe-to-int64 int64(a nat64) noctx unsafe builtin
 
 to-nat64 nat64(n nat8) noctx builtin
 to-nat64 nat64(n nat16) noctx builtin

@@ -308,6 +308,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 					addName();
 					addExprsTokens(alloc, tokens, tail(args));
 					break;
+				case CallAst.style.prefixOperator:
 				case CallAst.Style.prefix:
 				case CallAst.Style.setSingle:
 				case CallAst.Style.single:

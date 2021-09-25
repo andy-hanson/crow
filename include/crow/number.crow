@@ -6,7 +6,7 @@ import
 	.misc: ->, arrow, from, to, void
 	.opt: opt, some
 	.private.number-low-level:
-		unsafe-div, unsafe-to-int64, unsafe-to-int32, unsafe-to-nat64, unsafe-to-nat32, unsafe-mod,
+		unsafe-div, unsafe-to-int64, unsafe-to-int8, unsafe-to-int16, unsafe-to-int32, unsafe-to-nat64, unsafe-to-nat32, unsafe-mod,
 		wrap-add, wrap-mul, wrap-sub
 	.ptr: size-of
 	.private.exception-low-level: assert, forbid
@@ -135,11 +135,24 @@ mod nat64(a int64, b nat64)
 	# TODO: safety check
 	a wrap-sub b
 
+* int8(a int8, b int8)
+	a.to-int64 wrap-mul b.to-int64 to-int8
+* int16(a int16, b int16)
+	a.to-int64 wrap-mul b.to-int64 to-int16
 * int32(a int32, b int32)
 	a.to-int64 wrap-mul b.to-int64 to-int32
 * int64(a int64, b int64)
 	# TODO: safety check
 	a wrap-mul b
+
+- int8(a int8)
+	a * -1
+- int16(a int16)
+	a * -1
+- int32(a int32)
+	a * -1
+- int64(a int64)
+	a * -1
 
 / int64(a int64, b int64) trusted
 	forbid: b == 0
@@ -147,11 +160,20 @@ mod nat64(a int64, b nat64)
 	a unsafe-div b
 
 # Convert a nat64 to an int64. Fail if the result would overflow.
-to-int64 int64(a nat64)
+to-int64 int64(a nat64) trusted
 	assert: a < max-int64.to-nat64
 	a unsafe-to-int64
+
+to-int8 int8(a int64) trusted
+	assert: a >= min-int8.to-int64
+	assert: a <= max-int8.to-int64
+	a unsafe-to-int8
+to-int16 int16(a int64) trusted
+	assert: a >= min-int16.to-int64
+	assert: a <= max-int16.to-int64
+	a unsafe-to-int16
 # Convert an int to 32 bits. Fail if the result would overflow.
-to-int32 int32(a int64)
+to-int32 int32(a int64) trusted
 	assert: a >= min-int32.to-int64
 	assert: a <= max-int32.to-int64
 	a unsafe-to-int32
@@ -162,7 +184,7 @@ to-int32 int32(a nat16)
 to-int32 int32(a nat64)
 	a.to-int64 to-int32
 
-clamp-to-nat nat64(a int64)
+clamp-to-nat64 nat64(a int64) trusted
 	if a < 0
 		0
 	else
@@ -180,20 +202,20 @@ clamp-add int32(a int32, b int32) noctx
 	a.to-int64 wrap-add b.to-int64 clamp-to-int32
 
 # Convert an int to a nat. Fail if it's negative.
-to-nat64 nat64(a int64)
+to-nat64 nat64(a int64) trusted
 	forbid: a < 0
 	a unsafe-to-nat64
 to-nat64 nat64(a int32)
 	a.to-int64 to-nat64
 
-to-nat8 nat8(a nat64)
+to-nat8 nat8(a nat64) trusted
 	assert: a <= max-nat8.to-nat64
 	a unsafe-to-nat8
 to-nat32 nat32(a nat16) noctx trusted
 	a.to-nat64 unsafe-to-nat32
 
 # Convert a nat to 32 bits. Fail if the result would overflow.
-to-nat32 nat32(a nat64)
+to-nat32 nat32(a nat64) trusted
 	assert: a < max-nat32.to-nat64
 	a unsafe-to-nat32
 
@@ -203,10 +225,12 @@ wrap-to-nat32 nat32(a nat64) noctx trusted
 
 # Absolute value of an int, as a nat.
 abs nat64(a int64)
-	to-nat64: a < 0 ? a * -1, a
+	to-nat64: a < 0 ? -a, a
 
+abs float32(a float32) noctx
+	a < 0 ? -a, a
 abs float64(a float64) noctx
-	a < 0 ? a * -1, a
+	a < 0 ? -a, a
 
 ^ nat64(a nat64, b nat64)
 	if b == 0
@@ -221,6 +245,11 @@ region float
 # Add two floats. Never fails.
 + float32(a float32, b float32) noctx builtin
 + float64(a float64, b float64) noctx builtin
+# Negate a float. Never fails.
+- float32(a float32) noctx
+	a * -1
+- float64(a float64) noctx
+	a * -1
 # Subtract two floats. Never fails.
 - float32(a float32, b float32) noctx builtin
 - float64(a float64, b float64) noctx builtin

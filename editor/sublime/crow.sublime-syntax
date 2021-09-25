@@ -271,6 +271,9 @@ contexts:
     - match: '{{unindented_line}}'
       pop: true
 
+    # '-' in '-x'
+    - match: '-'
+      scope: variable.function.crow
     # Lambda () =>
     - match: '\(\) =>'
       scope: comment

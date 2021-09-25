@@ -140,7 +140,7 @@ score-cache alias
 			elif ai-depth == 0
 				0
 			else
-				(cache strategy-score new-board, ai-depth - 1) * -1
+				-(cache strategy-score new-board, ai-depth - 1)
 				#if log?
 				#	info log "{ai-depth indent}Depth {ai-depth}: Other player's outcome: {other-player-score}"
 			new-strategy = if score > best.score

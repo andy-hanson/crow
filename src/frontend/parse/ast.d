@@ -122,6 +122,7 @@ struct CallAst {
 		dot, // `a.b`
 		infix, // `a b`, `a b c`, `a b c, d`, etc.
 		prefix, // `a: b`, `a: b, c`, etc.
+		prefixOperator, // `-x`, `!x`, `~x`
 		setDot,
 		setSingle,
 		setSubscript,
@@ -1296,6 +1297,8 @@ immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 			return shortSymAlphaLiteral("infix");
 		case CallAst.Style.prefix:
 			return shortSymAlphaLiteral("prefix");
+		case CallAst.Style.prefixOperator:
+			return shortSymAlphaLiteral("prefix-op");
 		case CallAst.Style.setDot:
 			return shortSymAlphaLiteral("set-dot");
 		case CallAst.Style.setSingle:

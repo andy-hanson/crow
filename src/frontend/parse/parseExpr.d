@@ -76,7 +76,8 @@ import util.sym :
 	prependSet,
 	shortSymAlphaLiteral,
 	shortSymAlphaLiteralValue,
-	Sym;
+	Sym,
+	symForOperator;
 import util.util : max, todo, unreachable, verify;
 
 immutable(ExprAst) parseFunExprBody(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -344,6 +345,9 @@ immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
 							return CallAst.Style.setSingle;
 						case CallAst.Style.subscript:
 							return CallAst.Style.setSubscript;
+						case CallAst.Style.prefixOperator:
+							// This is `-x = foo`. Have a diagnostic for this.
+							return todo!(immutable CallAst.Style)("!");
 						case CallAst.Style.infix:
 						case CallAst.Style.prefix:
 						case CallAst.Style.setDot:
@@ -814,11 +818,6 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 ) {
 	immutable Pos start = curPos(lexer);
 
-	immutable(ExprAndMaybeDedent) handleLiteral(immutable LiteralAst literal) {
-		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(literal));
-		return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
-	}
-
 	immutable CStr begin = lexer.ptr;
 	immutable char c = next(lexer);
 	switch (c) {
@@ -848,7 +847,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			immutable StringPart part = takeStringPart(alloc, lexer);
 			final switch (part.after) {
 				case StringPart.After.quote:
-					return handleLiteral(immutable LiteralAst(part.text));
+					return handleLiteral(alloc, lexer, start, immutable LiteralAst(part.text));
 				case StringPart.After.lbrace:
 					immutable ExprAst interpolated = takeInterpolated(alloc, lexer, start, part.text);
 					return noDedent(tryParseDotsAndSubscripts(alloc, lexer, interpolated));
@@ -856,13 +855,21 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 		}
 		case '+':
 		case '-':
-			return isDigit(*lexer.ptr)
-				? handleLiteral(takeNumberAfterSign(lexer, some(c == '+' ? Sign.plus : Sign.minus)))
-				: handleName(alloc, lexer, start, takeOperator(alloc, lexer, begin));
+			if (isDigit(*lexer.ptr))
+				return handleLiteral(alloc, lexer, start, takeNumberAfterSign(lexer, some(c == '+' ? Sign.plus : Sign.minus)));
+			else if (c == '-') {
+				immutable ExprAndMaybeDedent arg = parseExprBeforeCall(alloc, lexer, allowedBlock);
+				immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(
+					immutable CallAst(
+						CallAst.Style.prefixOperator,
+						immutable NameAndRange(start, symForOperator(Operator.minus)),
+						emptyArrWithSize!TypeAst,
+						arrWithSizeLiteral!ExprAst(alloc, [arg.expr]))));
+				return immutable ExprAndMaybeDedent(expr, arg.dedents);
+			} else
+				return handleUnexpectedChar(alloc, lexer, start);
 		default:
-			if (isOperatorChar(c))
-				return handleName(alloc, lexer, start, takeOperator(alloc, lexer, begin));
-			else if (isAlphaIdentifierStart(c)) {
+			if (isAlphaIdentifierStart(c)) {
 				immutable string nameStr = takeNameRest(lexer, begin);
 				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
 				if (isReservedName(name))
@@ -870,11 +877,13 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 						case shortSymAlphaLiteralValue("if"):
 							return isAllowBlock(allowedBlock)
 								? toMaybeDedent(parseIf(alloc, lexer, start, asAllowBlock(allowedBlock).curIndent))
-								: exprBlockNotAllowed(alloc, lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.if_);
+								: exprBlockNotAllowed(
+									alloc, lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.if_);
 						case shortSymAlphaLiteralValue("match"):
 							return isAllowBlock(allowedBlock)
 								? toMaybeDedent(parseMatch(alloc, lexer, start, asAllowBlock(allowedBlock).curIndent))
-								: exprBlockNotAllowed(alloc, lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match);
+								: exprBlockNotAllowed(
+									alloc, lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match);
 						default:
 							addDiagOnReservedName(alloc, lexer, immutable NameAndRange(start, name));
 							return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
@@ -890,13 +899,27 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 					return handleName(alloc, lexer, start, immutable NameAndRange(start, name));
 			} else if (isDigit(c)) {
 				backUp(lexer);
-				return handleLiteral(takeNumberAfterSign(lexer, none!Sign));
+				return handleLiteral(alloc, lexer, start, takeNumberAfterSign(lexer, none!Sign));
 			} else {
-				backUp(lexer);
-				addDiagUnexpected(alloc, lexer);
-				return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
+				return handleUnexpectedChar(alloc, lexer, start);
 			}
 	}
+}
+
+immutable(ExprAndMaybeDedent) handleUnexpectedChar(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer, immutable Pos start) {
+	backUp(lexer);
+	addDiagUnexpected(alloc, lexer);
+	return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
+}
+
+immutable(ExprAndMaybeDedent) handleLiteral(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable Pos start,
+	immutable LiteralAst literal,
+) {
+	immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(literal));
+	return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 }
 
 immutable(ExprAndMaybeDedent) handleName(Alloc, SymAlloc)(

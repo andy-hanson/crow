@@ -8,7 +8,7 @@ term-color str(r float64, g float64, b float64)
 	"\x1b[38;2;{r to-color};{g to-color};{b to-color}m"
 
 .to-color nat64(f float)
-	(f * 255.0).truncate-to-int64.clamp-to-nat clamp 0, 255
+	(f * 255.0).truncate-to-int64.clamp-to-nat64 clamp 0, 255
 
 term-red str()
 	"\x1b[31m"
