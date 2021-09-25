@@ -1040,6 +1040,8 @@ immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(ref immutable Type t) {
 					none!EnumOrUnionAndMembers,
 				(ref immutable StructBody.Enum it) =>
 					some(immutable EnumOrUnionAndMembers(immutable EnumAndMembers(it.members))),
+				(ref immutable StructBody.Flags) =>
+					none!EnumOrUnionAndMembers,
 				(ref immutable StructBody.ExternPtr) =>
 					none!EnumOrUnionAndMembers,
 				(ref immutable StructBody.Record) =>

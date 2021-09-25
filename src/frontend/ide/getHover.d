@@ -81,6 +81,9 @@ void getHover(TempAlloc, Alloc, PathAlloc)(
 				(ref immutable StructBody.Enum) {
 					writeStatic(writer, "enum type ");
 				},
+				(ref immutable StructBody.Flags) {
+					writeStatic(writer, "flags type ");
+				},
 				(ref immutable StructBody.ExternPtr) {
 					writeStatic(writer, "extern type ");
 				},

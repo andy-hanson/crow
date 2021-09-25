@@ -88,7 +88,7 @@ contexts:
     - match: builtin
       scope: comment
       pop: true
-    - match: enum
+    - match: enum|flags
       scope: comment
       push: enum
     - match: extern-ptr

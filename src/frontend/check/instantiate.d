@@ -163,6 +163,8 @@ immutable(StructBody) instantiateStructBody(Alloc)(
 			immutable StructBody(immutable StructBody.Builtin()),
 		(ref immutable StructBody.Enum e) =>
 			immutable StructBody(e),
+		(ref immutable StructBody.Flags f) =>
+			immutable StructBody(f),
 		(ref immutable StructBody.ExternPtr) =>
 			immutable StructBody(immutable StructBody.ExternPtr()),
 		(ref immutable StructBody.Record r) =>

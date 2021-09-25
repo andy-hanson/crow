@@ -131,6 +131,9 @@ void writeStructDecl(Alloc)(ref Writer!Alloc writer, ref immutable StructDecl a)
 		(ref immutable(StructBody.Enum)) {
 			todo!void("!");
 		},
+		(ref immutable(StructBody.Flags)) {
+			todo!void("!");
+		},
 		(ref immutable(StructBody.ExternPtr)) {
 			writeStatic(writer, "\n\t\t+externPtrType(");
 			writeQuotedSym(writer, a.name);

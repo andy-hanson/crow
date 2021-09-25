@@ -499,6 +499,7 @@ void writeUnion(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immut
 			}
 		},
 		(ref immutable(ConcreteStructBody.Enum)) {},
+		(ref immutable(ConcreteStructBody.Flags)) {},
 		(ref immutable(ConcreteStructBody.ExternPtr)) {},
 		(ref immutable(ConcreteStructBody.Record)) {},
 		(ref immutable(ConcreteStructBody.Union)) {});

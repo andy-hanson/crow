@@ -4,14 +4,13 @@ import
 main fut nat(_ arr str) summon
 	f0 = a
 	f1 = b
-	print: "{f0 to-nat8}"
-	print: "{f1 to-nat8}"
-	print: "{a | b to-nat8}"
-
+	f2 = c
+	drop: f0
+	drop: f1
+	print: (f0 | f2).to-nat8.to-str
 	0 resolved
 
-f enum<nat8> flags
+f flags<nat8>
 	a = 1
 	b = 2
 	c = 4
-

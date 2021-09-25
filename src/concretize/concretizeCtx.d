@@ -39,6 +39,8 @@ import model.model :
 	body_,
 	CommonTypes,
 	decl,
+	EnumBackingType,
+	EnumFunction,
 	Expr,
 	ForcedByValOrRefOrNone,
 	FunBody,
@@ -598,7 +600,14 @@ void initializeConcreteStruct(Alloc)(
 			lateSet(res.info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(getConcreteStructBodyForEnum(alloc, it)),
 				false));
-			lateSet(res.typeSize_, immutable TypeSize(immutable Nat16(4), immutable Nat8(4)));
+			lateSet(res.typeSize_, typeSizeForEnumOrFlags(it.backingType));
+		},
+		(ref immutable StructBody.Flags it) {
+			lateSet(res.defaultIsPointer_, false);
+			lateSet(res.info_, immutable ConcreteStructInfo(
+				immutable ConcreteStructBody(getConcreteStructBodyForFlags(alloc, it)),
+				false));
+			lateSet(res.typeSize_, typeSizeForEnumOrFlags(it.backingType));
 		},
 		(ref immutable StructBody.ExternPtr it) {
 			// defaultIsPointer is false because the 'extern' type *is* a pointer
@@ -651,6 +660,27 @@ void initializeConcreteStruct(Alloc)(
 		});
 }
 
+immutable(TypeSize) typeSizeForEnumOrFlags(immutable EnumBackingType a) {
+	immutable ubyte size = sizeForEnumOrFlags(a);
+	return immutable TypeSize(immutable Nat16(size), immutable Nat8(size));
+}
+immutable(ubyte) sizeForEnumOrFlags(immutable EnumBackingType a) {
+	final switch (a) {
+		case EnumBackingType.int8:
+		case EnumBackingType.nat8:
+			return 1;
+		case EnumBackingType.int16:
+		case EnumBackingType.nat16:
+			return 2;
+		case EnumBackingType.int32:
+		case EnumBackingType.nat32:
+			return 4;
+		case EnumBackingType.int64:
+		case EnumBackingType.nat64:
+			return 8;
+	}
+}
+
 immutable(ConcreteStructBody.Enum) getConcreteStructBodyForEnum(Alloc)(
 	ref Alloc alloc,
 	ref immutable StructBody.Enum a,
@@ -660,8 +690,20 @@ immutable(ConcreteStructBody.Enum) getConcreteStructBodyForEnum(Alloc)(
 		(ref immutable StructBody.Enum.Member member, immutable size_t index) =>
 			member.value.value == index);
 	return simple
-		? immutable ConcreteStructBody.Enum(size(a.members))
-		: immutable ConcreteStructBody.Enum(map(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>
+		? immutable ConcreteStructBody.Enum(a.backingType, size(a.members))
+		: immutable ConcreteStructBody.Enum(
+			a.backingType,
+			map(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>
+				member.value));
+}
+
+immutable(ConcreteStructBody.Flags) getConcreteStructBodyForFlags(Alloc)(
+	ref Alloc alloc,
+	ref immutable StructBody.Flags a,
+) {
+	return immutable ConcreteStructBody.Flags(
+		a.backingType,
+		map(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>
 			member.value));
 }
 
@@ -715,10 +757,8 @@ void fillInConcreteFunBody(Alloc)(
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateEnum(it.value)),
 			(ref immutable FunBody.CreateRecord) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateRecord()),
-			(ref immutable FunBody.EnumEqual) =>
-				immutable ConcreteFunBody(immutable ConcreteFunBody.EnumEqual()),
-			(ref immutable FunBody.EnumToIntegral) =>
-				immutable ConcreteFunBody(immutable ConcreteFunBody.EnumToIntegral()),
+			(immutable EnumFunction it) =>
+				immutable ConcreteFunBody(it),
 			(ref immutable FunBody.EnumToStr) =>
 				bodyForEnumToStr(alloc, ctx, castImmutable(cf)),
 			(ref immutable FunBody.Extern e) {

@@ -74,6 +74,7 @@ import model.model :
 	CommonTypes,
 	decl,
 	EnumBackingType,
+	EnumFunction,
 	EnumValue,
 	ForcedByValOrRefOrNone,
 	FunBody,
@@ -180,7 +181,7 @@ import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.collection.mutDict : insertOrUpdate, moveToDict, MutDict;
 import util.collection.str : copySafeCStr, copyStr, emptySafeCStr;
 import util.memory : allocate, nu, nuMut, overwriteMemory;
-import util.opt : force, has, none, noneMut, Opt, some, someMut, toOpt;
+import util.opt : force, has, none, noneMut, Opt, OptPtr, some, someMut, toOpt;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, fileAndPosFromFileAndRange, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym :
@@ -699,6 +700,8 @@ immutable(PurityAndForced) getPurityFromAst(Alloc)(
 			Purity.data,
 		(ref immutable StructDeclAst.Body.Enum) =>
 			Purity.data,
+		(ref immutable StructDeclAst.Body.Flags) =>
+			Purity.data,
 		(ref immutable StructDeclAst.Body.ExternPtr) =>
 			Purity.mut,
 		(ref immutable StructDeclAst.Body.Record) =>
@@ -734,6 +737,7 @@ immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) {
 		a,
 		(ref immutable StructDeclAst.Body.Builtin) => TypeKind.builtin,
 		(ref immutable StructDeclAst.Body.Enum) => TypeKind.enum_,
+		(ref immutable StructDeclAst.Body.Flags) => TypeKind.flags,
 		(ref immutable StructDeclAst.Body.ExternPtr) => TypeKind.externPtr,
 		(ref immutable StructDeclAst.Body.Record) => TypeKind.record,
 		(ref immutable StructDeclAst.Body.Union) => TypeKind.union_);
@@ -813,7 +817,7 @@ void everyPair(T)(
 			cb(at(a, i), at(a, j));
 }
 
-immutable(StructBody) checkEnum(Alloc)(
+immutable(StructBody.Enum) checkEnum(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -822,8 +826,60 @@ immutable(StructBody) checkEnum(Alloc)(
 	ref immutable StructDeclAst.Body.Enum e,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
+	immutable EnumTypeAndMembers tm = checkEnumMembers!Alloc(
+		alloc, ctx, commonTypes, structsAndAliasesDict, range, e.typeArg, e.members, delayStructInsts,
+		(immutable Opt!EnumValue lastValue, immutable EnumBackingType enumType) =>
+			has(lastValue)
+				? immutable ValueAndOverflow(
+					immutable EnumValue(force(lastValue).value + 1),
+					force(lastValue) == maxValue(enumType))
+				: immutable ValueAndOverflow(immutable EnumValue(0), false));
+	return immutable StructBody.Enum(tm.backingType, tm.memers);
+}
+
+immutable(StructBody.Flags) checkFlags(Alloc)(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
+	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	immutable RangeWithinFile range,
+	ref immutable StructDeclAst.Body.Flags f,
+	ref MutArr!(Ptr!StructInst) delayStructInsts,
+) {
+	immutable EnumTypeAndMembers tm = checkEnumMembers(
+		alloc, ctx, commonTypes, structsAndAliasesDict, range, f.typeArg, f.members, delayStructInsts,
+		(immutable Opt!EnumValue lastValue, immutable EnumBackingType enumType) =>
+			has(lastValue)
+				? immutable ValueAndOverflow(
+					//TODO: if the last value isn't a power of 2, there should be a diagnostic
+					immutable EnumValue(force(lastValue).value * 2),
+					force(lastValue).value >= maxValue(enumType).value / 2)
+				: immutable ValueAndOverflow(immutable EnumValue(1), false));
+	return immutable StructBody.Flags(tm.backingType, tm.memers);
+}
+
+
+struct EnumTypeAndMembers {
+	immutable EnumBackingType backingType;
+	immutable StructBody.Enum.Member[] memers;
+}
+
+immutable(EnumTypeAndMembers) checkEnumMembers(Alloc)(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
+	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	immutable RangeWithinFile range,
+	immutable OptPtr!TypeAst optPtrTypeArg,
+	immutable ArrWithSize!(StructDeclAst.Body.Enum.Member) memberAsts,
+	ref MutArr!(Ptr!StructInst) delayStructInsts,
+	scope immutable(ValueAndOverflow) delegate(
+		immutable Opt!EnumValue,
+		immutable EnumBackingType,
+	) @safe @nogc pure nothrow cbGetNextValue,
+) {
 	immutable TypeParamsScope typeParamsScope = immutable TypeParamsScope(emptyArr!TypeParam);
-	immutable Opt!(Ptr!TypeAst) typeAst = toOpt(e.typeArg);
+	immutable Opt!(Ptr!TypeAst) typeAst = toOpt(optPtrTypeArg);
 	immutable Type implementationType = has(typeAst)
 		? typeFromAst(
 			alloc, ctx, commonTypes, force(typeAst), structsAndAliasesDict, typeParamsScope,
@@ -834,7 +890,7 @@ immutable(StructBody) checkEnum(Alloc)(
 	Cell!(Opt!EnumValue) lastValue = Cell!(Opt!EnumValue)(none!EnumValue);
 	immutable StructBody.Enum.Member[] members = mapWithSoFar!(StructBody.Enum.Member, StructDeclAst.Body.Enum.Member)(
 		alloc,
-		toArr(e.members),
+		toArr(memberAsts),
 		(ref immutable StructDeclAst.Body.Enum.Member member,
 		 ref immutable StructBody.Enum.Member[] prevMembers,
 		 immutable size_t) {
@@ -850,11 +906,7 @@ immutable(StructBody) checkEnum(Alloc)(
 							(ref immutable LiteralAst.Nat n) =>
 								immutable ValueAndOverflow(immutable EnumValue(n.value), n.overflow));
 				} else
-					return has(cellGet(lastValue))
-						? immutable ValueAndOverflow(
-							immutable EnumValue(force(cellGet(lastValue)).value + 1),
-							force(cellGet(lastValue)) == maxValue(enumType))
-						: immutable ValueAndOverflow(immutable EnumValue(0), false);
+					return cbGetNextValue(cellGet(lastValue), enumType);
 			}();
 			immutable EnumValue value = valueAndOverflow.value;
 			cellSet(lastValue, some(value));
@@ -865,7 +917,7 @@ immutable(StructBody) checkEnum(Alloc)(
 					todo!void("duplicate enum member");
 			return immutable StructBody.Enum.Member(rangeInFile(ctx, member.range), member.name, value);
 		});
-	return immutable StructBody(immutable StructBody.Enum(enumType, members));
+	return immutable EnumTypeAndMembers(enumType, members);
 }
 
 immutable(bool) valueOverflows(immutable EnumBackingType type, immutable EnumValue value) {
@@ -951,7 +1003,10 @@ immutable(EnumBackingType) getEnumTypeFromType(Alloc)(
 				})());
 }
 
-immutable(Ptr!StructInst) getTypeFromEnumType(immutable EnumBackingType a, ref immutable CommonTypes commonTypes) {
+immutable(Ptr!StructInst) getBackingTypeFromEnumType(
+	immutable EnumBackingType a,
+	ref immutable CommonTypes commonTypes,
+) {
 	immutable IntegralTypes integrals = commonTypes.integrals;
 	final switch (a) {
 		case EnumBackingType.int8:
@@ -1000,7 +1055,7 @@ immutable(ForcedByValOrRefOrNone) getForcedByValOrRef(immutable Opt!ExplicitByVa
 		return ForcedByValOrRefOrNone.none;
 }
 
-immutable(StructBody) checkRecord(Alloc)(
+immutable(StructBody.Record) checkRecord(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -1044,9 +1099,7 @@ immutable(StructBody) checkRecord(Alloc)(
 				immutable Diag(immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.field, a.name)));
 	});
 
-	return immutable StructBody(immutable StructBody.Record(
-		immutable RecordFlags(has(r.packed), forcedByValOrRef),
-		fields));
+	return immutable StructBody.Record(immutable RecordFlags(has(r.packed), forcedByValOrRef), fields);
 }
 
 immutable(StructBody) checkUnion(Alloc)(
@@ -1112,21 +1165,25 @@ void checkStructBodies(Alloc)(
 				(ref immutable StructDeclAst.Body.Builtin) =>
 					immutable StructBody(immutable StructBody.Builtin()),
 				(ref immutable StructDeclAst.Body.Enum it) =>
-					checkEnum!Alloc(alloc, ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts),
+					immutable StructBody(
+						checkEnum(alloc, ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts)),
+				(ref immutable StructDeclAst.Body.Flags it) =>
+					immutable StructBody(
+						checkFlags(alloc, ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts)),
 				(ref immutable StructDeclAst.Body.ExternPtr) {
 					if (!empty(toArr(ast.typeParams)))
 						addDiag(alloc, ctx, ast.range, immutable Diag(immutable Diag.ExternPtrHasTypeParams()));
 					return immutable StructBody(immutable StructBody.ExternPtr());
 				},
 				(ref immutable StructDeclAst.Body.Record it) =>
-					checkRecord(
+					immutable StructBody(checkRecord(
 						alloc,
 						ctx,
 						commonTypes,
 						structsAndAliasesDict,
 						castImmutable(struct_),
 						it,
-						delayStructInsts),
+						delayStructInsts)),
 				(ref immutable StructDeclAst.Body.Union it) =>
 					checkUnion(
 						alloc,
@@ -1145,6 +1202,7 @@ void checkStructBodies(Alloc)(
 			(ref immutable StructBody.Bogus) {},
 			(ref immutable StructBody.Builtin) {},
 			(ref immutable StructBody.Enum) {},
+			(ref immutable StructBody.Flags) {},
 			(ref immutable StructBody.ExternPtr) {},
 			(ref immutable StructBody.Record) {},
 			(ref immutable StructBody.Union u) {
@@ -1404,6 +1462,10 @@ immutable(size_t) countFunsForStruct(
 			(ref immutable StructBody.Enum it) =>
 				// '==', 'to-intXX'/'to-natXX', 'to-str', and a constructor for each member
 				3 + size(it.members),
+			(ref immutable StructBody.Flags it) =>
+				// '==', '|', '&', 'to-intXX'/'to-natXX', and a constructor for each member
+				// TODO: '~'
+				4 + size(it.members),
 			(ref immutable StructBody.ExternPtr) =>
 				immutable size_t(0),
 			(ref immutable StructBody.Record it) {
@@ -1431,6 +1493,9 @@ void addFunsForStruct(Alloc, SymAlloc)(
 		(ref immutable StructBody.Enum it) {
 			addFunsForEnum(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_, it);
 		},
+		(ref immutable StructBody.Flags it) {
+			addFunsForFlags(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_, it);
+		},
 		(ref immutable StructBody.ExternPtr) {},
 		(ref immutable StructBody.Record it) {
 			addFunsForRecord(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_, it);
@@ -1449,45 +1514,19 @@ void addFunsForEnum(Alloc, SymAlloc)(
 ) {
 	immutable Type enumType =
 		immutable Type(instantiateNonTemplateStructDeclNeverDelay(alloc, ctx.programState, struct_));
-	immutable Type implementationType = getTypeFromEnumType(enum_.backingType, commonTypes);
-	immutable FileAndPos structFileAndPos = fileAndPosFromFileAndRange(struct_.range);
-
-	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-		emptySafeCStr,
-		struct_.isPublic,
-		FunFlags.generatedNoCtx,
-		allocate(alloc, immutable Sig(
-			structFileAndPos,
-			symForOperator(Operator.equal),
-			immutable Type(commonTypes.bool_),
-			arrLiteral!Param(alloc, [
-				immutable Param(struct_.range, some(shortSymAlphaLiteral("a")), enumType, 0),
-				immutable Param(struct_.range, some(shortSymAlphaLiteral("b")), enumType, 1)]))),
-		emptyArrWithSize!TypeParam,
-		emptyArrWithSize!(Ptr!SpecInst),
-		immutable FunBody(immutable FunBody.EnumEqual())));
-
-	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-		emptySafeCStr,
-		struct_.isPublic,
-		FunFlags.generatedNoCtx,
-		allocate(alloc, immutable Sig(
-			structFileAndPos,
-			enumToIntegralName(enum_.backingType),
-			implementationType,
-			arrLiteral!Param(alloc, [immutable Param(struct_.range, some(shortSymAlphaLiteral("a")), enumType, 0)]))),
-		emptyArrWithSize!TypeParam,
-		emptyArrWithSize!(Ptr!SpecInst),
-		immutable FunBody(immutable FunBody.EnumToIntegral())));
-
+	exactSizeArrBuilderAdd(
+		funsBuilder,
+		enumEqualFunction(alloc, struct_.isPublic, struct_.range, enumType, commonTypes));
+	exactSizeArrBuilderAdd(
+		funsBuilder,
+		enumToIntegralFunction(alloc, struct_.isPublic, struct_.range, enum_.backingType, enumType, commonTypes));
 	//TODO: also to-e (prepend 'to-' to the enum name)
-
 	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 		emptySafeCStr,
 		struct_.isPublic,
 		FunFlags.generatedNoCtx,
 		allocate(alloc, immutable Sig(
-			structFileAndPos,
+			fileAndPosFromFileAndRange(struct_.range),
 			shortSymAlphaLiteral("to-str"),
 			immutable Type(commonTypes.str),
 			arrLiteral!Param(alloc, [immutable Param(struct_.range, some(shortSymAlphaLiteral("a")), enumType, 0)]))),
@@ -1496,18 +1535,121 @@ void addFunsForEnum(Alloc, SymAlloc)(
 		immutable FunBody(immutable FunBody.EnumToStr())));
 
 	foreach (ref immutable StructBody.Enum.Member member; enum_.members)
-		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-			emptySafeCStr,
-			struct_.isPublic,
-			FunFlags.generatedNoCtx,
-			allocate(alloc, immutable Sig(
-				fileAndPosFromFileAndRange(member.range),
-				member.name,
-				enumType,
-				emptyArr!Param)),
-			emptyArrWithSize!TypeParam,
-			emptyArrWithSize!(Ptr!SpecInst),
-			immutable FunBody(immutable FunBody.CreateEnum(member.value))));
+		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(alloc, struct_.isPublic, enumType, member));
+}
+
+void addFunsForFlags(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	ref CheckCtx ctx,
+	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	ref immutable CommonTypes commonTypes,
+	immutable Ptr!StructDecl struct_,
+	ref immutable StructBody.Flags flags,
+) {
+	immutable Type type =
+		immutable Type(instantiateNonTemplateStructDeclNeverDelay(alloc, ctx.programState, struct_));
+	exactSizeArrBuilderAdd(
+		funsBuilder,
+		enumEqualFunction(alloc, struct_.isPublic, struct_.range, type, commonTypes));
+	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
+		alloc, struct_.isPublic, struct_.range, type, Operator.or1, EnumFunction.union_));
+	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
+		alloc, struct_.isPublic, struct_.range, type, Operator.and1, EnumFunction.intersect));
+	exactSizeArrBuilderAdd(funsBuilder, enumToIntegralFunction(
+		alloc, struct_.isPublic, struct_.range, flags.backingType, type, commonTypes));
+
+	foreach (ref immutable StructBody.Enum.Member member; flags.members)
+		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(alloc, struct_.isPublic, type, member));
+}
+
+FunDecl enumOrFlagsConstructor(Alloc)(
+	ref Alloc alloc,
+	immutable bool isPublic,
+	ref immutable Type enumType,
+	ref immutable StructBody.Enum.Member member,
+) {
+	return FunDecl(
+		emptySafeCStr,
+		isPublic,
+		FunFlags.generatedNoCtx,
+		allocate(alloc, immutable Sig(
+			fileAndPosFromFileAndRange(member.range),
+			member.name,
+			enumType,
+			emptyArr!Param)),
+		emptyArrWithSize!TypeParam,
+		emptyArrWithSize!(Ptr!SpecInst),
+		immutable FunBody(immutable FunBody.CreateEnum(member.value)));
+}
+
+FunDecl enumEqualFunction(Alloc)(
+	ref Alloc alloc,
+	immutable bool isPublic,
+	immutable FileAndRange fileAndRange,
+	ref immutable Type enumType,
+	ref immutable CommonTypes commonTypes,
+) {
+	return FunDecl(
+		emptySafeCStr,
+		isPublic,
+		FunFlags.generatedNoCtx,
+		allocate(alloc, immutable Sig(
+			fileAndPosFromFileAndRange(fileAndRange),
+			symForOperator(Operator.equal),
+			immutable Type(commonTypes.bool_),
+			arrLiteral!Param(alloc, [
+				immutable Param(fileAndRange, some(shortSymAlphaLiteral("a")), enumType, 0),
+				immutable Param(fileAndRange, some(shortSymAlphaLiteral("b")), enumType, 1)]))),
+		emptyArrWithSize!TypeParam,
+		emptyArrWithSize!(Ptr!SpecInst),
+		immutable FunBody(EnumFunction.equal));
+}
+
+FunDecl enumToIntegralFunction(Alloc)(
+	ref Alloc alloc,
+	immutable bool isPublic,
+	immutable FileAndRange fileAndRange,
+	immutable EnumBackingType enumBackingType,
+	immutable Type enumType,
+	ref immutable CommonTypes commonTypes,
+) {
+	return FunDecl(
+		emptySafeCStr,
+		isPublic,
+		FunFlags.generatedNoCtx,
+		allocate(alloc, immutable Sig(
+			fileAndPosFromFileAndRange(fileAndRange),
+			enumToIntegralName(enumBackingType),
+			immutable Type(getBackingTypeFromEnumType(enumBackingType, commonTypes)),
+			arrLiteral!Param(alloc, [immutable Param(fileAndRange, some(shortSymAlphaLiteral("a")), enumType, 0)]))),
+		emptyArrWithSize!TypeParam,
+		emptyArrWithSize!(Ptr!SpecInst),
+		immutable FunBody(EnumFunction.toIntegral));
+}
+
+FunDecl flagsUnionOrIntersectFunction(Alloc)(
+	ref Alloc alloc,
+	immutable bool isPublic,
+	immutable FileAndRange fileAndRange,
+	immutable Type enumType,
+	immutable Operator operator,
+	immutable EnumFunction fn,
+) {
+	return FunDecl(
+		emptySafeCStr,
+		isPublic,
+		FunFlags.generatedNoCtx,
+		allocate(alloc, immutable Sig(
+			fileAndPosFromFileAndRange(fileAndRange),
+			symForOperator(operator),
+			enumType,
+			arrLiteral!Param(alloc, [
+				immutable Param(fileAndRange, some(shortSymAlphaLiteral("a")), enumType, 0),
+				immutable Param(fileAndRange, some(shortSymAlphaLiteral("b")), enumType, 0)]))),
+		emptyArrWithSize!TypeParam,
+		emptyArrWithSize!(Ptr!SpecInst),
+		immutable FunBody(fn));
 }
 
 //TODO: actually, we should record the type name used,

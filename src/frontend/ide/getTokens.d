@@ -56,7 +56,8 @@ import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : tail;
 import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : compareNat32, Comparison;
-import util.opt : force, has, Opt;
+import util.opt : force, has, Opt, OptPtr, toOpt;
+import util.ptr : Ptr;
 import util.repr : Repr, nameAndRepr, reprArr, reprNamedRecord, reprSym;
 import util.sourceRange : Pos, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
@@ -225,17 +226,10 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 		a.body_,
 		(ref immutable StructDeclAst.Body.Builtin) {},
 		(ref immutable StructDeclAst.Body.Enum it) {
-			foreach (ref immutable StructDeclAst.Body.Enum.Member member; toArr(it.members)) {
-				add(alloc, tokens, immutable Token(
-					Token.Kind.fieldDef, // TODO: enumMemberREf
-					member.range));
-				if (has(member.value)) {
-					immutable Pos pos = safeSizeTToU32(member.range.start + symSize(member.name) + " = ".length);
-					add(alloc, tokens, immutable Token(
-						Token.Kind.literalNumber,
-						immutable RangeWithinFile(pos, member.range.end)));
-				}
-			}
+			addEnumOrFlagsTokens!Alloc(alloc, tokens, it.typeArg, it.members);
+		},
+		(ref immutable StructDeclAst.Body.Flags it) {
+			addEnumOrFlagsTokens!Alloc(alloc, tokens, it.typeArg, it.members);
 		},
 		(ref immutable StructDeclAst.Body.ExternPtr) {},
 		(ref immutable StructDeclAst.Body.Record record) {
@@ -256,6 +250,27 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 			foreach (ref immutable TypeAst.InstStruct member; union_.members)
 				addInstStructTokens(alloc, tokens, member);
 		});
+}
+
+void addEnumOrFlagsTokens(Alloc)(
+	ref Alloc alloc,
+	ref ArrBuilder!Token tokens,
+	scope immutable OptPtr!TypeAst ptrTypeArg,
+	scope immutable ArrWithSize!(StructDeclAst.Body.Enum.Member) members,
+) {
+	immutable Opt!(Ptr!TypeAst) typeArg = toOpt(ptrTypeArg);
+	if (has(typeArg)) addTypeTokens(alloc, tokens, force(typeArg));
+	foreach (ref immutable StructDeclAst.Body.Enum.Member member; toArr(members)) {
+		add(alloc, tokens, immutable Token(
+			Token.Kind.fieldDef, // TODO: enumMemberREf
+			member.range));
+		if (has(member.value)) {
+			immutable Pos pos = safeSizeTToU32(member.range.start + symSize(member.name) + " = ".length);
+			add(alloc, tokens, immutable Token(
+				Token.Kind.literalNumber,
+				immutable RangeWithinFile(pos, member.range.end)));
+		}
+	}
 }
 
 void addFunTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable FunDeclAst a) {

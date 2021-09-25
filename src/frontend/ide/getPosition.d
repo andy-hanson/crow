@@ -134,9 +134,7 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 				none!Position,
 			(ref immutable FunBody.CreateRecord) =>
 				none!Position,
-			(ref immutable FunBody.EnumEqual) =>
-				none!Position,
-			(ref immutable FunBody.EnumToIntegral) =>
+			(immutable EnumFunction) =>
 				none!Position,
 			(ref immutable FunBody.EnumToStr) =>
 				none!Position,
@@ -193,7 +191,9 @@ immutable(Position) positionInStruct(immutable Ptr!StructDecl a, immutable Pos p
 		(ref immutable StructBody.Builtin) =>
 			none!Position,
 		(ref immutable StructBody.Enum) =>
-			none!Position,
+			none!Position, // TODO
+		(ref immutable StructBody.Flags) =>
+			none!Position, // TODO
 		(ref immutable StructBody.ExternPtr) =>
 			none!Position,
 		(ref immutable StructBody.Record it) {

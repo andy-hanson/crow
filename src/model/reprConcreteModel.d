@@ -33,7 +33,7 @@ import model.concreteModel :
 	returnType,
 	symOfBuiltinStructKind;
 import model.constant : Constant;
-import model.model : FunInst, name, Local, Param;
+import model.model : EnumFunction, enumFunctionName, FunInst, name, Local, Param;
 import model.reprConstant : reprOfConstant;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.opt : force, has;
@@ -97,7 +97,11 @@ immutable(Repr) reprOfConcreteStructBody(Alloc)(ref Alloc alloc, ref immutable C
 		(ref immutable ConcreteStructBody.Builtin it) =>
 			reprOfConcreteStructBodyBuiltin(alloc, it),
 		(ref immutable ConcreteStructBody.Enum it) =>
+			//TODO:MORE DETAIL
 			reprSym("enum"),
+		(ref immutable ConcreteStructBody.Flags it) =>
+			//TODO:MORE DETAIL
+			reprSym("flags"),
 		(ref immutable ConcreteStructBody.ExternPtr it) =>
 			reprSym("extern-ptr"),
 		(ref immutable ConcreteStructBody.Record it) =>
@@ -188,10 +192,8 @@ immutable(Repr) reprOfConcreteFunBody(Alloc)(ref Alloc alloc, ref immutable Conc
 			reprRecord(alloc, "create-enum", [reprInt(it.value.value)]),
 		(ref immutable ConcreteFunBody.CreateRecord) =>
 			reprSym("new-record"),
-		(ref immutable ConcreteFunBody.EnumEqual) =>
-			reprSym("enum-equal"),
-		(ref immutable ConcreteFunBody.EnumToIntegral) =>
-			reprSym("enum-to-int"),
+		(immutable EnumFunction it) =>
+			reprRecord(alloc, "enum-fn", [reprSym(enumFunctionName(it))]),
 		(ref immutable ConcreteFunBody.Extern it) =>
 			reprRecord(alloc, "extern", [reprBool(it.isGlobal)]),
 		(ref immutable ConcreteFunExprBody it) =>

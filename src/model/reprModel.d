@@ -7,6 +7,8 @@ import model.model :
 	Called,
 	ClosureField,
 	decl,
+	EnumFunction,
+	enumFunctionName,
 	Expr,
 	FunBody,
 	FunDecl,
@@ -184,10 +186,8 @@ immutable(Repr) reprFunBody(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable F
 			reprRecord(alloc, "new-enum", [reprInt(it.value.value)]),
 		(ref immutable FunBody.CreateRecord) =>
 			reprSym("new-record"),
-		(ref immutable FunBody.EnumEqual) =>
-			reprSym("enum-equal"),
-		(ref immutable FunBody.EnumToIntegral) =>
-			reprSym("enum-to-int"),
+		(immutable EnumFunction it) =>
+			reprRecord(alloc, "enum-fn", [reprSym(enumFunctionName(it))]),
 		(ref immutable FunBody.EnumToStr) =>
 			reprSym("enum-to-str"),
 		(ref immutable FunBody.Extern it) =>

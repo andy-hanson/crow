@@ -26,7 +26,7 @@ import util.repr :
 import util.sourceRange : Pos, reprRangeWithinFile, rangeOfStartAndName, RangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32;
-import util.util : todo, verify;
+import util.util : verify;
 
 struct NameAndRange {
 	@safe @nogc pure nothrow:
@@ -604,6 +604,11 @@ struct StructDeclAst {
 			immutable OptPtr!TypeAst typeArg;
 			immutable ArrWithSize!Member members;
 		}
+		struct Flags {
+			alias Member = Enum.Member;
+			immutable OptPtr!TypeAst typeArg;
+			immutable ArrWithSize!Member members;
+		}
 		struct ExternPtr {}
 		struct Record {
 			@safe @nogc pure nothrow:
@@ -643,6 +648,7 @@ struct StructDeclAst {
 		enum Kind {
 			builtin,
 			enum_,
+			flags,
 			externPtr,
 			record,
 			union_,
@@ -652,6 +658,7 @@ struct StructDeclAst {
 		union {
 			immutable Builtin builtin;
 			immutable Enum enum_;
+			immutable Flags flags;
 			immutable ExternPtr externPtr;
 			immutable Record record;
 			immutable Union union_;
@@ -661,6 +668,7 @@ struct StructDeclAst {
 
 		immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 		@trusted immutable this(immutable Enum a) { kind = Kind.enum_; enum_ = a; }
+		@trusted immutable this(immutable Flags a) { kind = Kind.flags; flags = a; }
 		immutable this(immutable ExternPtr a) { kind = Kind.externPtr; externPtr = a; }
 		@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
 		@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
@@ -688,6 +696,7 @@ immutable(bool) isUnion(ref immutable StructDeclAst.Body a) {
 	ref immutable StructDeclAst.Body a,
 	scope T delegate(ref immutable StructDeclAst.Body.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope T delegate(ref immutable StructDeclAst.Body.Enum) @safe @nogc pure nothrow cbEnum,
+	scope T delegate(ref immutable StructDeclAst.Body.Flags) @safe @nogc pure nothrow cbFlags,
 	scope T delegate(ref immutable StructDeclAst.Body.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
 	scope T delegate(ref immutable StructDeclAst.Body.Record) @safe @nogc pure nothrow cbRecord,
 	scope T delegate(ref immutable StructDeclAst.Body.Union) @safe @nogc pure nothrow cbUnion,
@@ -697,6 +706,8 @@ immutable(bool) isUnion(ref immutable StructDeclAst.Body a) {
 			return cbBuiltin(a.builtin);
 		case StructDeclAst.Body.Kind.enum_:
 			return cbEnum(a.enum_);
+		case StructDeclAst.Body.Kind.flags:
+			return cbFlags(a.flags);
 		case StructDeclAst.Body.Kind.externPtr:
 			return cbExternPtr(a.externPtr);
 		case StructDeclAst.Body.Kind.record:
@@ -980,8 +991,56 @@ immutable(Repr) reprOptExplicitByValOrRefAndRange(Alloc)(
 		reprRecord(alloc, "by-val-ref", [reprNat(it.start), reprSym(symOfExplicitByValOrRef(it.byValOrRef))]));
 }
 
-immutable(Repr) reprEnum(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Enum a) {
-	return todo!(immutable Repr)("!");
+immutable(Repr) reprEnumOrFlags(Alloc)(
+	ref Alloc alloc,
+	immutable string name,
+	immutable OptPtr!TypeAst typeArg,
+	immutable ArrWithSize!(StructDeclAst.Body.Enum.Member) members,
+) {
+	return reprRecord(alloc, name, [
+		reprOpt(alloc, toOpt(typeArg), (ref immutable Ptr!TypeAst it) =>
+			reprTypeAst(alloc, it)),
+		reprArr(alloc, toArr(members), (ref immutable StructDeclAst.Body.Enum.Member it) =>
+			reprEnumMember(alloc, it))]);
+}
+
+immutable(Repr) reprEnumMember(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Enum.Member a) {
+	return reprRecord(alloc, "member", [
+		reprRangeWithinFile(alloc, a.range),
+		reprSym(a.name),
+		reprOpt(alloc, a.value, (ref immutable LiteralIntOrNat v) =>
+			reprLiteralIntOrNat(alloc, v))]);
+}
+
+immutable(Repr) reprLiteralAst(Alloc)(ref Alloc alloc, ref immutable LiteralAst a) {
+	return reprRecord(alloc, "literal", [
+		matchLiteralAst!(immutable Repr)(
+			a,
+			(ref immutable LiteralAst.Float it) =>
+				reprRecord(alloc, "float", [reprFloat(it.value), reprBool(it.overflow)]),
+			(ref immutable LiteralAst.Int it) =>
+				reprLiteralInt(alloc, it),
+			(ref immutable LiteralAst.Nat it) =>
+				reprLiteralNat(alloc, it),
+			(ref immutable string it) =>
+				reprStr(it))]);
+}
+
+immutable(Repr) reprLiteralInt(Alloc)(ref Alloc alloc, ref immutable LiteralAst.Int a) {
+	return reprRecord(alloc, "int", [reprInt(a.value), reprBool(a.overflow)]);
+}
+
+immutable(Repr) reprLiteralNat(Alloc)(ref Alloc alloc, ref immutable LiteralAst.Nat a) {
+	return reprRecord(alloc, "nat", [reprNat(a.value), reprBool(a.overflow)]);
+}
+
+immutable(Repr) reprLiteralIntOrNat(Alloc)(ref Alloc alloc, ref immutable LiteralIntOrNat a) {
+	return matchLiteralIntOrNat(
+		a,
+		(ref immutable LiteralAst.Int it) =>
+			reprLiteralInt(alloc, it),
+		(ref immutable LiteralAst.Nat it) =>
+			reprLiteralNat(alloc, it));
 }
 
 immutable(Repr) reprField(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Record.Field a) {
@@ -1006,12 +1065,14 @@ immutable(Repr) reprUnion(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Bo
 }
 
 immutable(Repr) reprStructBodyAst(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body a) {
-	return matchStructDeclAstBody(
+	return matchStructDeclAstBody!(immutable Repr)(
 		a,
 		(ref immutable StructDeclAst.Body.Builtin) =>
 			reprSym("builtin"),
 		(ref immutable StructDeclAst.Body.Enum e) =>
-			reprEnum(alloc, e),
+			reprEnumOrFlags!Alloc(alloc, "enum", e.typeArg, e.members),
+		(ref immutable StructDeclAst.Body.Flags e) =>
+			reprEnumOrFlags!Alloc(alloc, "flags", e.typeArg, e.members),
 		(ref immutable StructDeclAst.Body.ExternPtr) =>
 			reprSym("extern-ptr"),
 		(ref immutable StructDeclAst.Body.Record a) =>
@@ -1192,17 +1253,7 @@ immutable(Repr) reprExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKin
 				reprExprAst(alloc, a.initializer),
 				reprExprAst(alloc, a.then)]),
 		(ref immutable LiteralAst a) =>
-			reprRecord(alloc, "literal", [
-				matchLiteralAst!(immutable Repr)(
-					a,
-					(ref immutable LiteralAst.Float it) =>
-						reprRecord(alloc, "float", [reprFloat(it.value), reprBool(it.overflow)]),
-					(ref immutable LiteralAst.Int it) =>
-						reprRecord(alloc, "int", [reprInt(it.value), reprBool(it.overflow)]),
-					(ref immutable LiteralAst.Nat it) =>
-						reprRecord(alloc, "nat", [reprNat(it.value), reprBool(it.overflow)]),
-					(ref immutable string it) =>
-						reprStr(it))]),
+			reprLiteralAst(alloc, a),
 		(ref immutable MatchAst it) =>
 			reprRecord(alloc, "match", [
 				reprExprAst(alloc, it.matched),

@@ -5,6 +5,7 @@ module lower.lowExprHelpers;
 import model.constant : Constant;
 import model.lowModel :
 	asGcOrRawPointee,
+	asPrimitive,
 	AllLowTypes,
 	asPtrRaw,
 	LowExpr,
@@ -25,7 +26,7 @@ import util.memory : allocate, nu;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
-import util.util : verify;
+import util.util : unreachable, verify;
 
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
 private immutable LowType charType = immutable LowType(PrimitiveType.char_);
@@ -218,15 +219,109 @@ immutable(LowExpr) genPtrEq(Alloc)(
 		allocate(alloc, b))));
 }
 
-immutable(LowExprKind) genEnumEq(Alloc)(
-	ref Alloc alloc,
-	immutable LowExpr a,
-	immutable LowExpr b,
-) {
+immutable(LowExprKind) genEnumEq(Alloc)(ref Alloc alloc, immutable LowExpr a, immutable LowExpr b) {
+	verify(asPrimitive(a.type) == asPrimitive(b.type));
 	return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
-		LowExprKind.SpecialBinary.Kind.eqInt32,
+		eqForType(asPrimitive(a.type)),
 		allocate(alloc, a),
 		allocate(alloc, b)));
+}
+
+immutable(LowExprKind) genEnumIntersect(Alloc)(ref Alloc alloc, immutable LowExpr a, immutable LowExpr b) {
+	verify(asPrimitive(a.type) == asPrimitive(b.type));
+	return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
+		intersectForType(asPrimitive(a.type)),
+		allocate(alloc, a),
+		allocate(alloc, b)));
+}
+
+immutable(LowExprKind) genEnumUnion(Alloc)(ref Alloc alloc, immutable LowExpr a, immutable LowExpr b) {
+	verify(asPrimitive(a.type) == asPrimitive(b.type));
+	return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
+		unionForType(asPrimitive(a.type)),
+		allocate(alloc, a),
+		allocate(alloc, b)));
+}
+
+private immutable(LowExprKind.SpecialBinary.Kind) eqForType(immutable PrimitiveType a) {
+	final switch (a) {
+		case PrimitiveType.bool_:
+		case PrimitiveType.char_:
+		case PrimitiveType.float32:
+		case PrimitiveType.float64:
+		case PrimitiveType.void_:
+			return unreachable!(LowExprKind.SpecialBinary.Kind);
+		case PrimitiveType.int8:
+			return LowExprKind.SpecialBinary.Kind.eqInt8;
+		case PrimitiveType.int16:
+			return LowExprKind.SpecialBinary.Kind.eqInt16;
+		case PrimitiveType.int32:
+			return LowExprKind.SpecialBinary.Kind.eqInt32;
+		case PrimitiveType.int64:
+			return LowExprKind.SpecialBinary.Kind.eqInt64;
+		case PrimitiveType.nat8:
+			return LowExprKind.SpecialBinary.Kind.eqNat8;
+		case PrimitiveType.nat16:
+			return LowExprKind.SpecialBinary.Kind.eqNat16;
+		case PrimitiveType.nat32:
+			return LowExprKind.SpecialBinary.Kind.eqNat32;
+		case PrimitiveType.nat64:
+			return LowExprKind.SpecialBinary.Kind.eqNat64;
+	}
+}
+
+private immutable(LowExprKind.SpecialBinary.Kind) intersectForType(immutable PrimitiveType a) {
+	final switch (a) {
+		case PrimitiveType.bool_:
+		case PrimitiveType.char_:
+		case PrimitiveType.float32:
+		case PrimitiveType.float64:
+		case PrimitiveType.void_:
+			return unreachable!(LowExprKind.SpecialBinary.Kind);
+		case PrimitiveType.int8:
+			return LowExprKind.SpecialBinary.Kind.bitwiseAndInt8;
+		case PrimitiveType.int16:
+			return LowExprKind.SpecialBinary.Kind.bitwiseAndInt16;
+		case PrimitiveType.int32:
+			return LowExprKind.SpecialBinary.Kind.bitwiseAndInt32;
+		case PrimitiveType.int64:
+			return LowExprKind.SpecialBinary.Kind.bitwiseAndInt64;
+		case PrimitiveType.nat8:
+			return LowExprKind.SpecialBinary.Kind.bitwiseAndNat8;
+		case PrimitiveType.nat16:
+			return LowExprKind.SpecialBinary.Kind.bitwiseAndNat16;
+		case PrimitiveType.nat32:
+			return LowExprKind.SpecialBinary.Kind.bitwiseAndNat32;
+		case PrimitiveType.nat64:
+			return LowExprKind.SpecialBinary.Kind.bitwiseAndNat64;
+	}
+}
+
+private immutable(LowExprKind.SpecialBinary.Kind) unionForType(immutable PrimitiveType a) {
+	final switch (a) {
+		case PrimitiveType.bool_:
+		case PrimitiveType.char_:
+		case PrimitiveType.float32:
+		case PrimitiveType.float64:
+		case PrimitiveType.void_:
+			return unreachable!(LowExprKind.SpecialBinary.Kind);
+		case PrimitiveType.int8:
+			return LowExprKind.SpecialBinary.Kind.bitwiseOrInt8;
+		case PrimitiveType.int16:
+			return LowExprKind.SpecialBinary.Kind.bitwiseOrInt16;
+		case PrimitiveType.int32:
+			return LowExprKind.SpecialBinary.Kind.bitwiseOrInt32;
+		case PrimitiveType.int64:
+			return LowExprKind.SpecialBinary.Kind.bitwiseOrInt64;
+		case PrimitiveType.nat8:
+			return LowExprKind.SpecialBinary.Kind.bitwiseOrNat8;
+		case PrimitiveType.nat16:
+			return LowExprKind.SpecialBinary.Kind.bitwiseOrNat16;
+		case PrimitiveType.nat32:
+			return LowExprKind.SpecialBinary.Kind.bitwiseOrNat32;
+		case PrimitiveType.nat64:
+			return LowExprKind.SpecialBinary.Kind.bitwiseOrNat64;
+	}
 }
 
 immutable(LowExprKind) genEnumToIntegral(Alloc)(ref Alloc alloc, immutable LowExpr inner) {

@@ -36,6 +36,7 @@ import util.writerUtils : writePathRelativeToCwd, writePos, writeRangeWithinFile
 enum TypeKind {
 	builtin,
 	enum_,
+	flags,
 	externPtr,
 	record,
 	union_,

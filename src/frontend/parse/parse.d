@@ -379,6 +379,7 @@ enum NonFunKeyword {
 	builtin,
 	builtinSpec,
 	enum_,
+	flags,
 	externPtr,
 	record,
 	spec,
@@ -428,23 +429,19 @@ immutable(Opt!NonFunKeywordAndIndent) parseNonFunKeyword(Alloc, SymAlloc)(ref Al
 				? res
 				: tryTakeKw(alloc, lexer, "builtin-spec ", "builtin-spec\n", NonFunKeyword.builtinSpec);
 		case 'e':
-			if (tryTake(lexer, "enum<")) {
-				immutable TypeAst typeArg = parseType(alloc, lexer);
-				takeTypeArgsEnd(alloc, lexer);
-				immutable SpaceOrNewlineOrIndent after = tryTake(lexer, ' ')
-					? SpaceOrNewlineOrIndent.space
-					: spaceOrNewlineOrIndentFromNewlineOrIndent(takeNewlineOrIndent_topLevel(alloc, lexer));
-				return some(immutable NonFunKeywordAndIndent(
-					NonFunKeyword.enum_,
-					somePtr(allocate(alloc, typeArg)),
-					after));
-			} else {
+			if (tryTake(lexer, "enum<"))
+				return some(parseEnumTypeArgAndAfter(alloc, lexer, NonFunKeyword.enum_));
+			else {
 				immutable Opt!NonFunKeywordAndIndent res =
 					tryTakeKw(alloc, lexer, "enum ", "enum\n", NonFunKeyword.enum_);
 				return has(res)
 					? res
 					: tryTakeKw(alloc, lexer, "extern-ptr ", "extern-ptr\n", NonFunKeyword.externPtr);
 			}
+		case 'f':
+			return tryTake(lexer, "flags<")
+				? some(parseEnumTypeArgAndAfter(alloc, lexer, NonFunKeyword.flags))
+				: tryTakeKw(alloc, lexer, "flags ", "flags\n", NonFunKeyword.flags);
 		case 'r':
 			return tryTakeKw(alloc, lexer, "record ", "record\n", NonFunKeyword.record);
 		case 's':
@@ -456,13 +453,25 @@ immutable(Opt!NonFunKeywordAndIndent) parseNonFunKeyword(Alloc, SymAlloc)(ref Al
 	}
 }
 
-immutable(StructDeclAst.Body.Enum) parseEnumBody(Alloc, SymAlloc)(
+immutable(NonFunKeywordAndIndent) parseEnumTypeArgAndAfter(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable OptPtr!TypeAst typeArg,
+	immutable NonFunKeyword kw,
+) {
+	immutable TypeAst typeArg = parseType(alloc, lexer);
+	takeTypeArgsEnd(alloc, lexer);
+	immutable SpaceOrNewlineOrIndent after = tryTake(lexer, ' ')
+		? SpaceOrNewlineOrIndent.space
+		: spaceOrNewlineOrIndentFromNewlineOrIndent(takeNewlineOrIndent_topLevel(alloc, lexer));
+	return immutable NonFunKeywordAndIndent(kw, somePtr(allocate(alloc, typeArg)), after);
+}
+
+immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) parseEnumOrFlagsMembers(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
 ) {
 	ArrWithSizeBuilder!(StructDeclAst.Body.Enum.Member) res;
-	immutable(StructDeclAst.Body.Enum) recur() {
+	immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) recur() {
 		immutable Pos start = curPos(lexer);
 		immutable Sym name = takeName(alloc, lexer);
 		immutable Opt!LiteralIntOrNat value = tryTake(lexer, " = ")
@@ -473,7 +482,7 @@ immutable(StructDeclAst.Body.Enum) parseEnumBody(Alloc, SymAlloc)(
 			case NewlineOrDedent.newline:
 				return recur();
 			case NewlineOrDedent.dedent:
-				return immutable StructDeclAst.Body.Enum(typeArg, finishArr(alloc, res));
+				return finishArr(alloc, res);
 		}
 	}
 	return recur();
@@ -874,6 +883,7 @@ void handleNonFunKeywordAndIndent(Alloc, SymAlloc)(
 			break;
 		case NonFunKeyword.builtin:
 		case NonFunKeyword.enum_:
+		case NonFunKeyword.flags:
 		case NonFunKeyword.externPtr:
 		case NonFunKeyword.record:
 		case NonFunKeyword.union_:
@@ -888,11 +898,17 @@ void handleNonFunKeywordAndIndent(Alloc, SymAlloc)(
 							todo!void("shouldn't indent after builtin");
 						return immutable StructDeclAst.Body(immutable StructDeclAst.Body.Builtin());
 					case NonFunKeyword.enum_:
-						return immutable StructDeclAst.Body(tookIndent
-							? parseEnumBody(alloc, lexer, typeArg)
-							: immutable StructDeclAst.Body.Enum(
-								nonePtr!TypeAst,
-								emptyArrWithSize!(StructDeclAst.Body.Enum.Member)));
+						return immutable StructDeclAst.Body(immutable StructDeclAst.Body.Enum(
+							typeArg,
+							tookIndent
+								? parseEnumOrFlagsMembers(alloc, lexer)
+								: emptyArrWithSize!(StructDeclAst.Body.Enum.Member)));
+					case NonFunKeyword.flags:
+						return immutable StructDeclAst.Body(immutable StructDeclAst.Body.Flags(
+							typeArg,
+							tookIndent
+								? parseEnumOrFlagsMembers(alloc, lexer)
+								: emptyArrWithSize!(StructDeclAst.Body.Enum.Member)));
 					case NonFunKeyword.externPtr:
 						if (tookIndent)
 							todo!void("shouldn't indent after 'extern'");

@@ -287,6 +287,11 @@ struct StructBody {
 		immutable EnumBackingType backingType;
 		immutable Member[] members;
 	}
+	struct Flags {
+		alias Member = Enum.Member;
+		immutable EnumBackingType backingType;
+		immutable Member[] members;
+	}
 	struct ExternPtr {}
 	struct Record {
 		immutable RecordFlags flags;
@@ -301,6 +306,7 @@ struct StructBody {
 		bogus,
 		builtin,
 		enum_,
+		flags,
 		externPtr,
 		record,
 		union_,
@@ -310,6 +316,7 @@ struct StructBody {
 		immutable Bogus bogus;
 		immutable Builtin builtin;
 		immutable Enum enum_;
+		immutable Flags flags;
 		immutable ExternPtr externPtr;
 		immutable Record record;
 		immutable Union union_;
@@ -319,6 +326,7 @@ struct StructBody {
 	immutable this(immutable Bogus a) { kind = Kind.bogus; bogus = a; }
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	@trusted immutable this(immutable Enum a) { kind = Kind.enum_; enum_ = a; }
+	@trusted immutable this(immutable Flags a) { kind = Kind.flags; flags = a; }
 	immutable this(immutable ExternPtr a) { kind = Kind.externPtr; externPtr = a; }
 	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
 	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a;}
@@ -352,6 +360,7 @@ immutable(bool) isUnion(ref immutable StructBody a) {
 	scope T delegate(ref immutable StructBody.Bogus) @safe @nogc pure nothrow cbBogus,
 	scope T delegate(ref immutable StructBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope T delegate(ref immutable StructBody.Enum) @safe @nogc pure nothrow cbEnum,
+	scope T delegate(ref immutable StructBody.Flags) @safe @nogc pure nothrow cbFlags,
 	scope T delegate(ref immutable StructBody.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
 	scope T delegate(ref immutable StructBody.Record) @safe @nogc pure nothrow cbRecord,
 	scope T delegate(ref immutable StructBody.Union) @safe @nogc pure nothrow cbUnion,
@@ -363,6 +372,8 @@ immutable(bool) isUnion(ref immutable StructBody a) {
 			return cbBuiltin(a.builtin);
 		case StructBody.Kind.enum_:
 			return cbEnum(a.enum_);
+		case StructBody.Kind.flags:
+			return cbFlags(a.flags);
 		case StructBody.Kind.externPtr:
 			return cbExternPtr(a.externPtr);
 		case StructBody.Kind.record:
@@ -582,6 +593,26 @@ immutable(Sym) name(ref immutable SpecInst a) {
 	return decl(a).name;
 }
 
+enum EnumFunction {
+	equal,
+	intersect,
+	toIntegral,
+	union_,
+}
+
+immutable(Sym) enumFunctionName(immutable EnumFunction a) {
+	final switch (a) {
+		case EnumFunction.equal:
+			return symForOperator(Operator.equal);
+		case EnumFunction.intersect:
+			return symForOperator(Operator.and1);
+		case EnumFunction.toIntegral:
+			return shortSymAlphaLiteral("to-integral");
+		case EnumFunction.union_:
+			return symForOperator(Operator.or1);
+	}
+}
+
 struct FunBody {
 	@safe @nogc pure nothrow:
 
@@ -590,8 +621,6 @@ struct FunBody {
 		immutable EnumValue value;
 	}
 	struct CreateRecord {}
-	struct EnumEqual {}
-	struct EnumToIntegral {}
 	struct EnumToStr {}
 	struct Extern {
 		immutable bool isGlobal;
@@ -609,8 +638,7 @@ struct FunBody {
 		builtin,
 		createEnum,
 		createRecord,
-		enumEqual,
-		enumToIntegral,
+		enumFunction,
 		enumToStr,
 		extern_,
 		expr,
@@ -622,8 +650,7 @@ struct FunBody {
 		immutable Builtin builtin;
 		immutable CreateEnum createEnum;
 		immutable CreateRecord createRecord;
-		immutable EnumEqual enumEqual;
-		immutable EnumToIntegral enumToIntegral;
+		immutable EnumFunction enumFunction;
 		immutable EnumToStr enumToStr;
 		immutable Ptr!Extern extern_;
 		immutable Ptr!Expr expr;
@@ -635,8 +662,7 @@ struct FunBody {
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	immutable this(immutable CreateEnum a) { kind = Kind.createEnum; createEnum = a; }
 	immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
-	immutable this(immutable EnumEqual a) { kind = Kind.enumEqual; enumEqual = a; }
-	immutable this(immutable EnumToIntegral a) { kind = Kind.enumToIntegral; enumToIntegral = a; }
+	immutable this(immutable EnumFunction a) { kind = Kind.enumFunction; enumFunction = a; }
 	immutable this(immutable EnumToStr a) { kind = Kind.enumToStr; enumToStr = a; }
 	@trusted immutable this(immutable Ptr!Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
@@ -654,8 +680,7 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 	scope T delegate(ref immutable FunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope T delegate(ref immutable FunBody.CreateEnum) @safe @nogc pure nothrow cbCreateEnum,
 	scope T delegate(ref immutable FunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
-	scope T delegate(ref immutable FunBody.EnumEqual) @safe @nogc pure nothrow cbEnumEqual,
-	scope T delegate(ref immutable FunBody.EnumToIntegral) @safe @nogc pure nothrow cbEnumToIntegral,
+	scope T delegate(immutable EnumFunction) @safe @nogc pure nothrow cbEnumFunction,
 	scope T delegate(ref immutable FunBody.EnumToStr) @safe @nogc pure nothrow cbEnumToStr,
 	scope T delegate(ref immutable FunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(immutable Ptr!Expr) @safe @nogc pure nothrow cbExpr,
@@ -669,10 +694,8 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 			return cbCreateEnum(a.createEnum);
 		case FunBody.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
-		case FunBody.Kind.enumEqual:
-			return cbEnumEqual(a.enumEqual);
-		case FunBody.Kind.enumToIntegral:
-			return cbEnumToIntegral(a.enumToIntegral);
+		case FunBody.Kind.enumFunction:
+			return cbEnumFunction(a.enumFunction);
 		case FunBody.Kind.enumToStr:
 			return cbEnumToStr(a.enumToStr);
 		case FunBody.Kind.extern_:

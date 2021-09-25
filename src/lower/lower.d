@@ -17,7 +17,9 @@ import lower.lowExprHelpers :
 	constantNat64,
 	genAddPtr,
 	genEnumEq,
+	genEnumIntersect,
 	genEnumToIntegral,
+	genEnumUnion,
 	getElementPtrTypeFromArrType,
 	getSizeOf,
 	int32Type,
@@ -98,7 +100,7 @@ import model.lowModel :
 	matchLowType,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
-import model.model : decl, EnumValue, FunInst, name, range;
+import model.model : decl, EnumBackingType, EnumFunction, EnumValue, FunInst, name, range;
 import util.collection.arr : at, empty, emptyArr, first, only, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
@@ -256,8 +258,10 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(
 						return some(immutable LowType(PrimitiveType.void_));
 				}
 			},
-			(ref immutable ConcreteStructBody.Enum) =>
-				some(immutable LowType(PrimitiveType.int32)),
+			(ref immutable ConcreteStructBody.Enum it) =>
+				some(immutable LowType(typeForEnum(it.backingType))),
+			(ref immutable ConcreteStructBody.Flags it) =>
+				some(immutable LowType(typeForEnum(it.backingType))),
 			(ref immutable ConcreteStructBody.ExternPtr it) {
 				immutable size_t i = arrBuilderSize(allExternPtrTypes);
 				add(alloc, allExternPtrTypes, immutable LowExternPtrType(s));
@@ -315,6 +319,27 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(
 		getLowTypeCtx);
 }
 
+immutable(PrimitiveType) typeForEnum(immutable EnumBackingType a) {
+	final switch (a) {
+		case EnumBackingType.int8:
+			return PrimitiveType.int8;
+		case EnumBackingType.int16:
+			return PrimitiveType.int16;
+		case EnumBackingType.int32:
+			return PrimitiveType.int32;
+		case EnumBackingType.int64:
+			return PrimitiveType.int64;
+		case EnumBackingType.nat8:
+			return PrimitiveType.nat8;
+		case EnumBackingType.nat16:
+			return PrimitiveType.nat16;
+		case EnumBackingType.nat32:
+			return PrimitiveType.nat32;
+		case EnumBackingType.nat64:
+			return PrimitiveType.nat64;
+	}
+}
+
 immutable(LowUnion) getLowUnion(Alloc)(
 	ref Alloc alloc,
 	ref immutable ConcreteProgram program,
@@ -328,9 +353,10 @@ immutable(LowUnion) getLowUnion(Alloc)(
 			return map(alloc, mustGetAt(program.funStructToImpls, s), (ref immutable ConcreteLambdaImpl impl) =>
 				lowTypeFromConcreteType(alloc, getLowTypeCtx, impl.closureType));
 		},
-		(ref immutable ConcreteStructBody.Enum) => unreachable!(immutable LowType[])(),
-		(ref immutable ConcreteStructBody.ExternPtr) => unreachable!(immutable LowType[])(),
-		(ref immutable ConcreteStructBody.Record) => unreachable!(immutable LowType[])(),
+		(ref immutable(ConcreteStructBody.Enum)) => unreachable!(immutable LowType[])(),
+		(ref immutable(ConcreteStructBody.Flags)) => unreachable!(immutable LowType[])(),
+		(ref immutable(ConcreteStructBody.ExternPtr)) => unreachable!(immutable LowType[])(),
+		(ref immutable(ConcreteStructBody.Record)) => unreachable!(immutable LowType[])(),
 		(ref immutable ConcreteStructBody.Union it) =>
 			map(alloc, it.members, (ref immutable ConcreteType member) =>
 				lowTypeFromConcreteType(alloc, getLowTypeCtx, member)));
@@ -634,9 +660,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.CreateRecord) =>
 				none!LowFunIndex,
-			(ref immutable ConcreteFunBody.EnumEqual) =>
-				none!LowFunIndex,
-			(ref immutable ConcreteFunBody.EnumToIntegral) =>
+			(immutable EnumFunction) =>
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.Extern) =>
 				some(addLowFun(immutable LowFunCause(fun))),
@@ -881,9 +905,7 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.CreateRecord) =>
 			unreachable!(immutable LowFunBody),
-		(ref immutable ConcreteFunBody.EnumEqual) =>
-			unreachable!(immutable LowFunBody),
-		(ref immutable ConcreteFunBody.EnumToIntegral) =>
+		(immutable EnumFunction) =>
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.Extern it) =>
 			immutable LowFunBody(nu!(LowFunBody.Extern)(alloc, it.isGlobal)),
@@ -1114,12 +1136,8 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 				} else
 					return create;
 			},
-			(ref immutable ConcreteFunBody.EnumEqual) =>
-				genEnumEq(alloc,
-					getLowExpr(alloc, ctx, at(a.args, 0), ExprPos.nonTail),
-					getLowExpr(alloc, ctx, at(a.args, 1), ExprPos.nonTail)),
-			(ref immutable ConcreteFunBody.EnumToIntegral) =>
-				genEnumToIntegral(alloc, getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail)),
+			(immutable EnumFunction it) =>
+				genEnumFunction(alloc, ctx, it, a.args),
 			(ref immutable ConcreteFunBody.Extern) =>
 				unreachable!(immutable LowExprKind),
 			(ref immutable ConcreteFunExprBody) =>
@@ -1135,6 +1153,30 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 					it.fieldIndex,
 					allocate(alloc, getLowExpr(alloc, ctx, at(a.args, 1), ExprPos.nonTail))));
 			});
+}
+
+immutable(LowExprKind) genEnumFunction(Alloc)(
+	ref Alloc alloc,
+	ref GetLowExprCtx ctx,
+	immutable EnumFunction a,
+	ref immutable ConcreteExpr[] args,
+) {
+	immutable(LowExpr) arg0() { return getLowExpr(alloc, ctx, at(args, 0), ExprPos.nonTail); }
+	immutable(LowExpr) arg1() { return getLowExpr(alloc, ctx, at(args, 1), ExprPos.nonTail); }
+	final switch (a) {
+		case EnumFunction.equal:
+			verify(size(args) == 2);
+			return genEnumEq(alloc, arg0(), arg1());
+		case EnumFunction.intersect:
+			verify(size(args) == 2);
+			return genEnumIntersect(alloc, arg0(), arg1());
+		case EnumFunction.toIntegral:
+			verify(size(args) == 1);
+			return genEnumToIntegral(alloc, arg0());
+		case EnumFunction.union_:
+			verify(size(args) == 2);
+			return genEnumUnion(alloc, arg0(), arg1());
+	}
 }
 
 immutable(LowExpr[]) getArgs(Alloc)(

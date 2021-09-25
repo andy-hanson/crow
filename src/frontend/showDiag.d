@@ -803,6 +803,8 @@ immutable(string) aOrAnTypeKind(immutable TypeKind a) {
 			return "a builtin";
 		case TypeKind.enum_:
 			return "an enum";
+		case TypeKind.flags:
+			return "a flags type";
 		case TypeKind.externPtr:
 			return "an extern-ptr";
 		case TypeKind.record:
