@@ -599,8 +599,8 @@ struct TimeSpec {
 enum FnOp : ubyte {
 	addFloat32,
 	addFloat64,
-	bitsNotNat64,
 	bitwiseAnd,
+	bitwiseNot,
 	bitwiseOr,
 	bitwiseXor,
 	compareExchangeStrongBool,
@@ -700,8 +700,8 @@ private immutable(string) strOfFnOp(immutable FnOp fnOp) {
 			return "add-float-32";
 		case FnOp.addFloat64:
 			return "add-float-64";
-		case FnOp.bitsNotNat64:
-			return "bits-not (nat64)";
+		case FnOp.bitwiseNot:
+			return "bitwise-not";
 		case FnOp.bitwiseAnd:
 			return "bitwise-and";
 		case FnOp.bitwiseOr:

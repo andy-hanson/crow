@@ -16,6 +16,7 @@ import lower.lowExprHelpers :
 	charPtrPtrType,
 	constantNat64,
 	genAddPtr,
+	genBitwiseNegate,
 	genEnumEq,
 	genEnumIntersect,
 	genEnumToIntegral,
@@ -666,6 +667,8 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				some(addLowFun(immutable LowFunCause(fun))),
 			(ref immutable ConcreteFunExprBody) =>
 				some(addLowFun(immutable LowFunCause(fun))),
+			(ref immutable ConcreteFunBody.FlagsNegate) =>
+				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.RecordFieldGet) =>
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.RecordFieldSet) =>
@@ -927,6 +930,8 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 					exprCtx.hasTailRecur,
 					allocate(alloc, expr)));
 		},
+		(ref immutable ConcreteFunBody.FlagsNegate) =>
+			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.RecordFieldGet) =>
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.RecordFieldSet) =>
@@ -1142,6 +1147,12 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 				unreachable!(immutable LowExprKind),
 			(ref immutable ConcreteFunExprBody) =>
 				unreachable!(immutable LowExprKind),
+			(ref immutable ConcreteFunBody.FlagsNegate it) =>
+				genFlagsNegate(
+					alloc,
+					range,
+					it.allValue,
+					getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail)),
 			(ref immutable ConcreteFunBody.RecordFieldGet it) =>
 				immutable LowExprKind(immutable LowExprKind.RecordFieldGet(
 					allocate(alloc, getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail)),
@@ -1153,6 +1164,19 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 					it.fieldIndex,
 					allocate(alloc, getLowExpr(alloc, ctx, at(a.args, 1), ExprPos.nonTail))));
 			});
+}
+
+immutable(LowExprKind) genFlagsNegate(Alloc)(
+	ref Alloc alloc,
+	ref immutable FileAndRange range,
+	immutable ulong allValue,
+	immutable LowExpr a,
+) {
+	return genEnumIntersect(
+		alloc,
+		immutable LowExpr(a.type, range, genBitwiseNegate(alloc, a)),
+		immutable LowExpr(a.type, range, immutable LowExprKind(
+			immutable Constant(immutable Constant.Integral(allValue)))));
 }
 
 immutable(LowExprKind) genEnumFunction(Alloc)(

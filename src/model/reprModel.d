@@ -194,6 +194,8 @@ immutable(Repr) reprFunBody(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable F
 			reprRecord(alloc, "extern", [reprBool(it.isGlobal)]),
 		(immutable Ptr!Expr it) =>
 			reprExpr(alloc, ctx, it),
+		(ref immutable FunBody.FlagsNegate) =>
+			reprSym("flags-not"),
 		(ref immutable FunBody.RecordFieldGet it) =>
 			reprRecord(alloc, "field-get", [reprNat(it.fieldIndex)]),
 		(ref immutable FunBody.RecordFieldSet it) =>

@@ -573,7 +573,7 @@ program(
 						expr(
 							nat-64
 							file-range(20, range(1657, 1659))
-							unary("bits-not (nat-64)", expr(nat-64, file-range(20, range(1658, 1659)), 7)))))))
+							unary("bitwise-not (nat64)", expr(nat-64, file-range(20, range(1658, 1659)), 7)))))))
 		6: fun(
 			-
 			nat-64
@@ -3075,7 +3075,7 @@ program(
 															int-64
 															file-range(24, range(615, 624))
 															unary(
-																"to-int (from int-32)"
+																"to-int (from int32)"
 																expr(
 																	int-32
 																	file-range(24, range(543, 614))
@@ -10068,7 +10068,7 @@ program(
 																																				2789
 																																				2798))
 																																		unary(
-																																			"to-int (from int-32)"
+																																			"to-int (from int32)"
 																																			expr(
 																																				int-32
 																																				file-range(

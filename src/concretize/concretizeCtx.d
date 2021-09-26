@@ -5,8 +5,10 @@ module concretize.concretizeCtx;
 import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantStr, getConstantStrOfSym;
 import concretize.concretizeExpr : concretizeExpr;
 import model.concreteModel :
+	asFlags,
 	asFunInst,
 	asInst,
+	body_,
 	BuiltinStructKind,
 	byVal,
 	compareConcreteType,
@@ -702,8 +704,8 @@ immutable(ConcreteStructBody.Flags) getConcreteStructBodyForFlags(Alloc)(
 ) {
 	return immutable ConcreteStructBody.Flags(
 		a.backingType,
-		map(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>
-			member.value));
+		map!ulong(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>
+			member.value.asUnsigned().raw()));
 }
 
 public void deferredFillRecordAndUnionBodies(Alloc)(ref Alloc alloc, ref ConcretizeCtx ctx) {
@@ -771,12 +773,20 @@ void fillInConcreteFunBody(Alloc)(
 					allocate(
 						alloc,
 						concretizeExpr(alloc, ctx, inputs.containing, castImmutable(cf), e.deref)))),
+			(ref immutable FunBody.FlagsNegate) =>
+				immutable ConcreteFunBody(immutable ConcreteFunBody.FlagsNegate(
+					getAllValue(asFlags(body_(mustBeNonPointer(castImmutable(cf).returnType).deref()))))),
 			(ref immutable FunBody.RecordFieldGet it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
 			(ref immutable FunBody.RecordFieldSet it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldSet(it.fieldIndex)));
 		lateSetOverwrite(cf._body_, allocate(alloc, body_));
 	}
+}
+
+immutable(ulong) getAllValue(ref immutable ConcreteStructBody.Flags flags) {
+	return fold(0, flags.values, (ref immutable ulong a, ref immutable ulong b) =>
+		a | b);
 }
 
 immutable(ConcreteFunBody) bodyForEnumToStr(Alloc)(

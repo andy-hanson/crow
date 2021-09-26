@@ -895,8 +895,11 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 			generateArg();
 			break;
 
-		case LowExprKind.SpecialUnary.Kind.bitsNotNat64:
-			fn(FnOp.bitsNotNat64);
+		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:
+		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat16:
+		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat32:
+		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat64:
+			fn(FnOp.bitwiseNot);
 			break;
 		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
 			fn(FnOp.countOnesNat64);

@@ -1830,7 +1830,10 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 					writeTempOrInline(writer, tempAlloc, ctx, a.arg, temp);
 					writeChar(writer, ')');
 				});
-		case LowExprKind.SpecialUnary.Kind.bitsNotNat64:
+		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:
+		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat16:
+		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat32:
+		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat64:
 			return prefix("~");
 		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
 			return specialCall("__builtin_popcountl");

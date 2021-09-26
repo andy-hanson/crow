@@ -227,6 +227,12 @@ immutable(LowExprKind) genEnumEq(Alloc)(ref Alloc alloc, immutable LowExpr a, im
 		allocate(alloc, b)));
 }
 
+immutable(LowExprKind) genBitwiseNegate(Alloc)(ref Alloc alloc, immutable LowExpr a) {
+	return immutable LowExprKind(immutable LowExprKind.SpecialUnary(
+		bitwiseNegateForType(asPrimitive(a.type)),
+		allocate(alloc, a)));
+}
+
 immutable(LowExprKind) genEnumIntersect(Alloc)(ref Alloc alloc, immutable LowExpr a, immutable LowExpr b) {
 	verify(asPrimitive(a.type) == asPrimitive(b.type));
 	return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
@@ -241,6 +247,29 @@ immutable(LowExprKind) genEnumUnion(Alloc)(ref Alloc alloc, immutable LowExpr a,
 		unionForType(asPrimitive(a.type)),
 		allocate(alloc, a),
 		allocate(alloc, b)));
+}
+
+private immutable(LowExprKind.SpecialUnary.Kind) bitwiseNegateForType(immutable PrimitiveType a) {
+	final switch (a) {
+		case PrimitiveType.bool_:
+		case PrimitiveType.char_:
+		case PrimitiveType.float32:
+		case PrimitiveType.float64:
+		case PrimitiveType.void_:
+		case PrimitiveType.int8:
+		case PrimitiveType.int16:
+		case PrimitiveType.int32:
+		case PrimitiveType.int64:
+			return unreachable!(LowExprKind.SpecialUnary.Kind);
+		case PrimitiveType.nat8:
+			return LowExprKind.SpecialUnary.Kind.bitwiseNotNat8;
+		case PrimitiveType.nat16:
+			return LowExprKind.SpecialUnary.Kind.bitwiseNotNat16;
+		case PrimitiveType.nat32:
+			return LowExprKind.SpecialUnary.Kind.bitwiseNotNat32;
+		case PrimitiveType.nat64:
+			return LowExprKind.SpecialUnary.Kind.bitwiseNotNat64;
+	}
 }
 
 private immutable(LowExprKind.SpecialBinary.Kind) eqForType(immutable PrimitiveType a) {

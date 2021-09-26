@@ -120,7 +120,7 @@ struct ConcreteStructBody {
 	}
 	struct Flags {
 		immutable EnumBackingType backingType;
-		immutable EnumValue[] values;
+		immutable ulong[] values;
 	}
 	struct ExternPtr {}
 	struct Record {
@@ -181,6 +181,11 @@ struct ConcreteStructBody {
 	return a.enum_;
 }
 
+@trusted ref immutable(ConcreteStructBody.Flags) asFlags(return scope ref immutable ConcreteStructBody a) {
+	verify(a.kind == ConcreteStructBody.Kind.flags);
+	return a.flags;
+}
+
 @trusted ref immutable(ConcreteStructBody.Record) asRecord(return scope ref immutable ConcreteStructBody a) {
 	verify(a.kind == ConcreteStructBody.Kind.record);
 	return a.record;
@@ -231,7 +236,7 @@ immutable(Purity) purity(immutable ConcreteType a) {
 	return a.struct_.purity;
 }
 
-immutable(Ptr!ConcreteStruct) mustBeNonPointer(ref immutable ConcreteType a) {
+immutable(Ptr!ConcreteStruct) mustBeNonPointer(immutable ConcreteType a) {
 	verify(!a.isPointer);
 	return a.struct_;
 }
@@ -514,6 +519,9 @@ struct ConcreteFunBody {
 	struct Extern {
 		immutable bool isGlobal;
 	}
+	struct FlagsNegate {
+		immutable ulong allValue;
+	}
 	struct RecordFieldGet {
 		immutable ubyte fieldIndex;
 	}
@@ -528,6 +536,7 @@ struct ConcreteFunBody {
 		createRecord,
 		enumFunction,
 		extern_,
+		flagsNegate,
 		concreteFunExprBody,
 		recordFieldGet,
 		recordFieldSet,
@@ -539,6 +548,7 @@ struct ConcreteFunBody {
 		immutable CreateRecord createRecord;
 		immutable EnumFunction enumFunction;
 		immutable Extern extern_;
+		immutable FlagsNegate flagsNegate;
 		immutable ConcreteFunExprBody concreteFunExprBody;
 		immutable RecordFieldGet recordFieldGet;
 		immutable RecordFieldSet recordFieldSet;
@@ -553,6 +563,7 @@ struct ConcreteFunBody {
 	@trusted immutable this(immutable ConcreteFunExprBody a) {
 		kind = Kind.concreteFunExprBody; concreteFunExprBody = a;
 	}
+	immutable this(immutable FlagsNegate a) { kind = Kind.flagsNegate; flagsNegate = a; }
 	immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 	immutable this(immutable RecordFieldSet a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
 }
@@ -579,6 +590,7 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref
 	scope T delegate(immutable EnumFunction) @safe @nogc pure nothrow cbEnumFunction,
 	scope T delegate(ref immutable ConcreteFunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(ref immutable ConcreteFunExprBody) @safe @nogc pure nothrow cbConcreteFunExprBody,
+	scope T delegate(ref immutable ConcreteFunBody.FlagsNegate) @safe @nogc pure nothrow cbFlagsNegate,
 	scope T delegate(ref immutable ConcreteFunBody.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
 	scope T delegate(ref immutable ConcreteFunBody.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
 ) {
@@ -593,6 +605,8 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref
 			return cbEnumFunction(a.enumFunction);
 		case ConcreteFunBody.Kind.extern_:
 			return cbExtern(a.extern_);
+		case ConcreteFunBody.Kind.flagsNegate:
+			return cbFlagsNegate(a.flagsNegate);
 		case ConcreteFunBody.Kind.concreteFunExprBody:
 			return cbConcreteFunExprBody(a.concreteFunExprBody);
 		case ConcreteFunBody.Kind.recordFieldGet:

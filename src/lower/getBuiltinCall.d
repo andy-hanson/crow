@@ -199,8 +199,14 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialBinary.Kind.bitwiseAndNat64
 				: failBinary());
 		case operatorSymValue(Operator.tilde):
-			return unary(isNat64(rt)
-				? LowExprKind.SpecialUnary.Kind.bitsNotNat64
+			return unary(isNat8(rt)
+				? LowExprKind.SpecialUnary.Kind.bitwiseNotNat8
+				: isNat16(rt)
+				? LowExprKind.SpecialUnary.Kind.bitwiseNotNat16
+				: isNat32(rt)
+				? LowExprKind.SpecialUnary.Kind.bitwiseNotNat32
+				: isNat64(rt)
+				? LowExprKind.SpecialUnary.Kind.bitwiseNotNat64
 				: failUnary());
 		case operatorSymValue(Operator.or1):
 			return binary(isInt8(rt)

@@ -5,6 +5,7 @@ module frontend.ide.getPosition;
 import model.model :
 	body_,
 	decl,
+	EnumFunction,
 	Expr,
 	FunBody,
 	FunDecl,
@@ -134,7 +135,7 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 				none!Position,
 			(ref immutable FunBody.CreateRecord) =>
 				none!Position,
-			(immutable EnumFunction) =>
+			(immutable(EnumFunction)) =>
 				none!Position,
 			(ref immutable FunBody.EnumToStr) =>
 				none!Position,
@@ -145,6 +146,8 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 					//TODO: delve inside!
 					? some(immutable Position(it))
 					: none!Position,
+			(ref immutable FunBody.FlagsNegate) =>
+				none!Position,
 			(ref immutable FunBody.RecordFieldGet) =>
 				none!Position,
 			(ref immutable FunBody.RecordFieldSet) =>

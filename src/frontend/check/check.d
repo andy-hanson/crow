@@ -1466,9 +1466,8 @@ immutable(size_t) countFunsForStruct(
 				// '==', 'to-intXX'/'to-natXX', 'to-str', and a constructor for each member
 				3 + size(it.members),
 			(ref immutable StructBody.Flags it) =>
-				// '==', '|', '&', 'to-intXX'/'to-natXX', and a constructor for each member
-				// TODO: '~'
-				4 + size(it.members),
+				// '==', '~', '|', '&', 'to-intXX'/'to-natXX', and a constructor for each member
+				5 + size(it.members),
 			(ref immutable StructBody.ExternPtr) =>
 				immutable size_t(0),
 			(ref immutable StructBody.Record it) {
@@ -1555,6 +1554,7 @@ void addFunsForFlags(Alloc, SymAlloc)(
 	exactSizeArrBuilderAdd(
 		funsBuilder,
 		enumEqualFunction(alloc, struct_.isPublic, struct_.range, type, commonTypes));
+	exactSizeArrBuilderAdd(funsBuilder, flagsNegateFunction(alloc, struct_.isPublic, struct_.range, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
 		alloc, struct_.isPublic, struct_.range, type, Operator.or1, EnumFunction.union_));
 	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
@@ -1607,6 +1607,26 @@ FunDecl enumEqualFunction(Alloc)(
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
 		immutable FunBody(EnumFunction.equal));
+}
+
+FunDecl flagsNegateFunction(Alloc)(
+	ref Alloc alloc,
+	immutable bool isPublic,
+	immutable FileAndRange fileAndRange,
+	ref immutable Type enumType,
+) {
+	return FunDecl(
+		emptySafeCStr,
+		isPublic,
+		FunFlags.generatedNoCtx,
+		allocate(alloc, immutable Sig(
+			fileAndPosFromFileAndRange(fileAndRange),
+			symForOperator(Operator.tilde),
+			enumType,
+			arrLiteral!Param(alloc, [immutable Param(fileAndRange, some(shortSymAlphaLiteral("a")), enumType, 0)]))),
+		emptyArrWithSize!TypeParam,
+		emptyArrWithSize!(Ptr!SpecInst),
+		immutable FunBody(immutable FunBody.FlagsNegate()));
 }
 
 FunDecl enumToIntegralFunction(Alloc)(

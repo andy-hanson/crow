@@ -27,7 +27,7 @@ void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 			binaryFloat64s(dataStack, (immutable double a, immutable double b) =>
 				a + b);
 			break;
-		case FnOp.bitsNotNat64:
+		case FnOp.bitwiseNot:
 			unary(dataStack, (immutable ulong a) =>
 				immutable Nat64(~a));
 			break;

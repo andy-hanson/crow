@@ -705,7 +705,10 @@ struct LowExprKind {
 		enum Kind {
 			asAnyPtr,
 			asRef,
-			bitsNotNat64,
+			bitwiseNotNat8,
+			bitwiseNotNat16,
+			bitwiseNotNat32,
+			bitwiseNotNat64,
 			countOnesNat64,
 			deref,
 			enumToIntegral,

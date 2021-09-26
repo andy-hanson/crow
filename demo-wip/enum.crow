@@ -7,15 +7,17 @@ main fut nat(_ arr str) summon
 	f2 = c
 	drop: f0
 	drop: f1
-	print: (f0 | f2).to-nat8.to-str
+	f02 = f0 | f2
+	fnot = ~f02
+	print: fnot.to-nat8.to-str
 	0 resolved
 
 e enum<nat8>
 	x = 1
 	y = 2
-	z = 1
+	z = 3
 
 f flags<nat8>
-	a = 1
-	b = 2
-	c = 4
+	a
+	b
+	c

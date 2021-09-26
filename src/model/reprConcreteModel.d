@@ -198,6 +198,8 @@ immutable(Repr) reprOfConcreteFunBody(Alloc)(ref Alloc alloc, ref immutable Conc
 			reprRecord(alloc, "extern", [reprBool(it.isGlobal)]),
 		(ref immutable ConcreteFunExprBody it) =>
 			reprOfConcreteFunExprBody(alloc, it),
+		(ref immutable ConcreteFunBody.FlagsNegate it) =>
+			reprRecord(alloc, "flags-not", [reprNat(it.allValue)]),
 		(ref immutable ConcreteFunBody.RecordFieldGet it) =>
 			reprRecord(alloc, "field-get", [reprNat(it.fieldIndex)]),
 		(ref immutable ConcreteFunBody.RecordFieldSet it) =>
