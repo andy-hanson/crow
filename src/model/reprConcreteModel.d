@@ -33,7 +33,7 @@ import model.concreteModel :
 	returnType,
 	symOfBuiltinStructKind;
 import model.constant : Constant;
-import model.model : EnumFunction, enumFunctionName, FunInst, name, Local, Param;
+import model.model : EnumFunction, enumFunctionName, flagsFunctionName, FunInst, name, Local, Param;
 import model.reprConstant : reprOfConstant;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.opt : force, has;
@@ -198,8 +198,11 @@ immutable(Repr) reprOfConcreteFunBody(Alloc)(ref Alloc alloc, ref immutable Conc
 			reprRecord(alloc, "extern", [reprBool(it.isGlobal)]),
 		(ref immutable ConcreteFunExprBody it) =>
 			reprOfConcreteFunExprBody(alloc, it),
-		(ref immutable ConcreteFunBody.FlagsNegate it) =>
-			reprRecord(alloc, "flags-not", [reprNat(it.allValue)]),
+		(ref immutable ConcreteFunBody.FlagsFn it) =>
+			reprRecord(alloc, "flags-fn", [
+				reprNat(it.allValue),
+				reprSym(flagsFunctionName(it.fn)),
+			]),
 		(ref immutable ConcreteFunBody.RecordFieldGet it) =>
 			reprRecord(alloc, "field-get", [reprNat(it.fieldIndex)]),
 		(ref immutable ConcreteFunBody.RecordFieldSet it) =>

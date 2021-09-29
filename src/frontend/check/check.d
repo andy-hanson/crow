@@ -76,6 +76,7 @@ import model.model :
 	EnumBackingType,
 	EnumFunction,
 	EnumValue,
+	FlagsFunction,
 	ForcedByValOrRefOrNone,
 	FunBody,
 	FunDecl,
@@ -1470,8 +1471,8 @@ immutable(size_t) countFunsForStruct(
 				// '==', 'to-intXX'/'to-natXX', 'to-str', and a constructor for each member
 				3 + size(it.members),
 			(ref immutable StructBody.Flags it) =>
-				// '==', '~', '|', '&', 'to-intXX'/'to-natXX', and a constructor for each member
-				5 + size(it.members),
+				// 'empty', 'all', '==', '~', '|', '&', 'to-intXX'/'to-natXX', and a constructor for each member
+				7 + size(it.members),
 			(ref immutable StructBody.ExternPtr) =>
 				immutable size_t(0),
 			(ref immutable StructBody.Record it) {
@@ -1555,19 +1556,23 @@ void addFunsForFlags(Alloc, SymAlloc)(
 ) {
 	immutable Type type =
 		immutable Type(instantiateNonTemplateStructDeclNeverDelay(alloc, ctx.programState, struct_));
+	immutable bool isPublic = struct_.isPublic;
+	immutable FileAndRange range = struct_.range;
+	exactSizeArrBuilderAdd(funsBuilder, flagsEmptyFunction(alloc, isPublic, range, type));
+	exactSizeArrBuilderAdd(funsBuilder, flagsAllFunction(alloc, isPublic, range, type));
 	exactSizeArrBuilderAdd(
 		funsBuilder,
-		enumEqualFunction(alloc, struct_.isPublic, struct_.range, type, commonTypes));
-	exactSizeArrBuilderAdd(funsBuilder, flagsNegateFunction(alloc, struct_.isPublic, struct_.range, type));
+		enumEqualFunction(alloc, isPublic, range, type, commonTypes));
+	exactSizeArrBuilderAdd(funsBuilder, flagsNegateFunction(alloc, isPublic, range, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
-		alloc, struct_.isPublic, struct_.range, type, Operator.or1, EnumFunction.union_));
+		alloc, isPublic, range, type, Operator.or1, EnumFunction.union_));
 	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
-		alloc, struct_.isPublic, struct_.range, type, Operator.and1, EnumFunction.intersect));
+		alloc, isPublic, range, type, Operator.and1, EnumFunction.intersect));
 	exactSizeArrBuilderAdd(funsBuilder, enumToIntegralFunction(
-		alloc, struct_.isPublic, struct_.range, flags.backingType, type, commonTypes));
+		alloc, isPublic, range, flags.backingType, type, commonTypes));
 
 	foreach (ref immutable StructBody.Enum.Member member; flags.members)
-		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(alloc, struct_.isPublic, type, member));
+		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(alloc, isPublic, type, member));
 }
 
 FunDecl enumOrFlagsConstructor(Alloc)(
@@ -1613,6 +1618,46 @@ FunDecl enumEqualFunction(Alloc)(
 		immutable FunBody(EnumFunction.equal));
 }
 
+FunDecl flagsEmptyFunction(Alloc)(
+	ref Alloc alloc,
+	immutable bool isPublic,
+	immutable FileAndRange fileAndRange,
+	ref immutable Type enumType,
+) {
+	return FunDecl(
+		emptySafeCStr,
+		isPublic,
+		FunFlags.generatedNoCtx,.
+		allocate(alloc, immutable Sig(
+			fileAndPosFromFileAndRange(fileAndRange),
+			shortSymAlphaLiteral("empty"),
+			enumType,
+			emptyArr!Param)),
+		emptyArrWithSize!TypeParam,
+		emptyArrWithSize!(Ptr!SpecInst),
+		immutable FunBody(FlagsFunction.empty));
+}
+
+FunDecl flagsAllFunction(Alloc)(
+	ref Alloc alloc,
+	immutable bool isPublic,
+	immutable FileAndRange fileAndRange,
+	ref immutable Type enumType,
+) {
+	return FunDecl(
+		emptySafeCStr,
+		isPublic,
+		FunFlags.generatedNoCtx,.
+		allocate(alloc, immutable Sig(
+			fileAndPosFromFileAndRange(fileAndRange),
+			shortSymAlphaLiteral("all"),
+			enumType,
+			emptyArr!Param)),
+		emptyArrWithSize!TypeParam,
+		emptyArrWithSize!(Ptr!SpecInst),
+		immutable FunBody(FlagsFunction.all));
+}
+
 FunDecl flagsNegateFunction(Alloc)(
 	ref Alloc alloc,
 	immutable bool isPublic,
@@ -1630,7 +1675,7 @@ FunDecl flagsNegateFunction(Alloc)(
 			arrLiteral!Param(alloc, [immutable Param(fileAndRange, some(shortSymAlphaLiteral("a")), enumType, 0)]))),
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
-		immutable FunBody(immutable FunBody.FlagsNegate()));
+		immutable FunBody(FlagsFunction.negate));
 }
 
 FunDecl enumToIntegralFunction(Alloc)(

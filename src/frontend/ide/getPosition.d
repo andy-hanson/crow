@@ -7,6 +7,7 @@ import model.model :
 	decl,
 	EnumFunction,
 	Expr,
+	FlagsFunction,
 	FunBody,
 	FunDecl,
 	matchFunBody,
@@ -146,7 +147,7 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 					//TODO: delve inside!
 					? some(immutable Position(it))
 					: none!Position,
-			(ref immutable FunBody.FlagsNegate) =>
+			(immutable(FlagsFunction)) =>
 				none!Position,
 			(ref immutable FunBody.RecordFieldGet) =>
 				none!Position,

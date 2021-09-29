@@ -1,0 +1,28 @@
+import
+	crow.io.print: print
+
+main fut nat(_ arr str) summon
+	alice = all & ~hat
+	print: alice flags-to-str
+	print: alice.naked? to-str
+	print: alice.service? to-str
+	0 resolved
+
+clothed flags
+	shoes
+	pants
+	shirt
+	hat
+
+# TODO: Compiler-generated
+all-values arr clothed()
+	[shoes, pants, shirt, hat]
+# TODO: compiler-generated
+all-names arr str()
+	["shoes", "pants", "shirt", "hat"]
+
+naked? bool(a clothed)
+	a == empty
+
+service? bool(a clothed)
+	(shoes | shirt) in a

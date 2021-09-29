@@ -7,13 +7,13 @@ main fut nat(_ arr str) summon
 	print: up == down to-str
 	0 resolved
 
+direction enum
+	up
+	down
+
 opposite direction(a direction)
 	match a
 	as up
 		down
 	as down
 		up
-
-direction enum
-	up
-	down

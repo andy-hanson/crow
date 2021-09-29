@@ -1,10 +1,10 @@
 include ../pug-include/tutorial.pug
-+tutorialPage("union")
++tutorialPage("enum")
 	section
 		h2 Enums
 
 		p.
-			An enum is a value with a specific set of possibilities.
+			An enum type is a value with a specific set of possibilities.
 
 		crow-runnable(src="enum")
 
@@ -17,7 +17,7 @@ include ../pug-include/tutorial.pug
 				functions for creating enum values.
 			li.
 				<code class="fun-def">==</code> for comparing values.
-				(There is a <code class="fun-def">!=</code> template
+				(It does not generate <code class="fun-def">!=</code> because that already exists as a template
 				that works on any type with <code class="fun-def">==</code>)
 			li.
 				<code class="fun-def">to-str</code> which gives the name from an enum member.
@@ -26,7 +26,7 @@ include ../pug-include/tutorial.pug
 			Again as with records, the functions have no special connection to the type
 			other than being auto-generated from it.
 
-	h3 match
+		h3 match
 		p.
 			There is also a <code class="keyword">match</code> syntax for using enums.
 			<br />
@@ -42,9 +42,19 @@ include ../pug-include/tutorial.pug
 			<br />
 			The cases must have the same order as the enum does, and there must be a case for every enum member.
 
-	h3 C-style enums
+	section
+		h2 Flags
+
 		p.
-			For compatibility with C libraries, you can also explicitly specify the values used in an enum.
+			A flags type is like an enum that can have any combination of the available values,
+			where enums must have exactly one value.
+
+		crow-runnable(src="flags")
+
+		h3 C-style enums
+		p.
+			For compatibility with C libraries, you can also explicitly specify the values used in an
+			<code class="keyword">enum</code> or <code class="keyword">flags</code> type.
 			<br />
 			It's a compile error to repeat a value.
 			<br />

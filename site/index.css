@@ -75,7 +75,7 @@ header nav {
 }
 
 #side-nav-wrapper nav {
-	height: 19em;
+	height: 25em;
 	width: 13rem;
 	display: flex;
 	flex-direction: column;

@@ -4,6 +4,7 @@ export
 	.col.arr
 	.compare
 	.exception
+	.flags
 	.fun
 	.fut
 	.hash

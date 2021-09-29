@@ -44,6 +44,7 @@ import model.model :
 	EnumBackingType,
 	EnumFunction,
 	Expr,
+	FlagsFunction,
 	ForcedByValOrRefOrNone,
 	FunBody,
 	FunDecl,
@@ -773,9 +774,10 @@ void fillInConcreteFunBody(Alloc)(
 					allocate(
 						alloc,
 						concretizeExpr(alloc, ctx, inputs.containing, castImmutable(cf), e.deref)))),
-			(ref immutable FunBody.FlagsNegate) =>
-				immutable ConcreteFunBody(immutable ConcreteFunBody.FlagsNegate(
-					getAllValue(asFlags(body_(mustBeNonPointer(castImmutable(cf).returnType).deref()))))),
+			(immutable FlagsFunction it) =>
+				immutable ConcreteFunBody(immutable ConcreteFunBody.FlagsFn(
+					getAllValue(asFlags(body_(mustBeNonPointer(castImmutable(cf).returnType).deref()))),
+					it)),
 			(ref immutable FunBody.RecordFieldGet it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
 			(ref immutable FunBody.RecordFieldSet it) =>

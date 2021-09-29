@@ -614,6 +614,23 @@ immutable(Sym) enumFunctionName(immutable EnumFunction a) {
 	}
 }
 
+enum FlagsFunction {
+	all,
+	empty,
+	negate,
+}
+
+immutable(Sym) flagsFunctionName(immutable FlagsFunction a) {
+	final switch (a) {
+		case FlagsFunction.all:
+			return shortSymAlphaLiteral("all");
+		case FlagsFunction.empty:
+			return shortSymAlphaLiteral("empty");
+		case FlagsFunction.negate:
+			return symForOperator(Operator.tilde);
+	}
+}
+
 struct FunBody {
 	@safe @nogc pure nothrow:
 
@@ -627,7 +644,6 @@ struct FunBody {
 		immutable bool isGlobal;
 		immutable Opt!string libraryName;
 	}
-	struct FlagsNegate {}
 	struct RecordFieldGet {
 		immutable ubyte fieldIndex;
 	}
@@ -644,7 +660,7 @@ struct FunBody {
 		enumToStr,
 		extern_,
 		expr,
-		flagsNegate,
+		flagsFunction,
 		recordFieldGet,
 		recordFieldSet,
 	}
@@ -657,7 +673,7 @@ struct FunBody {
 		immutable EnumToStr enumToStr;
 		immutable Ptr!Extern extern_;
 		immutable Ptr!Expr expr;
-		immutable FlagsNegate flagsNegate;
+		immutable FlagsFunction flagsFunction;
 		immutable RecordFieldGet recordFieldGet;
 		immutable RecordFieldSet recordFieldSet;
 	}
@@ -670,7 +686,7 @@ struct FunBody {
 	immutable this(immutable EnumToStr a) { kind = Kind.enumToStr; enumToStr = a; }
 	@trusted immutable this(immutable Ptr!Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
-	immutable this(immutable FlagsNegate a) { kind = Kind.flagsNegate; flagsNegate = a; }
+	immutable this(immutable FlagsFunction a) { kind = Kind.flagsFunction; flagsFunction = a; }
 	immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 	immutable this(immutable RecordFieldSet a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
 }
@@ -689,7 +705,7 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 	scope T delegate(ref immutable FunBody.EnumToStr) @safe @nogc pure nothrow cbEnumToStr,
 	scope T delegate(ref immutable FunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(immutable Ptr!Expr) @safe @nogc pure nothrow cbExpr,
-	scope T delegate(ref immutable FunBody.FlagsNegate) @safe @nogc pure nothrow cbFlagsNegate,
+	scope T delegate(immutable FlagsFunction) @safe @nogc pure nothrow cbFlagsFunction,
 	scope T delegate(ref immutable FunBody.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
 	scope T delegate(ref immutable FunBody.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
 ) {
@@ -706,8 +722,8 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 			return cbEnumToStr(a.enumToStr);
 		case FunBody.Kind.extern_:
 			return cbExtern(a.extern_);
-		case FunBody.Kind.flagsNegate:
-			return cbFlagsNegate(a.flagsNegate);
+		case FunBody.Kind.flagsFunction:
+			return cbFlagsFunction(a.flagsFunction);
 		case FunBody.Kind.expr:
 			return cbExpr(a.expr);
 		case FunBody.Kind.recordFieldGet:

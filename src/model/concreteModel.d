@@ -9,6 +9,7 @@ import model.model :
 	EnumBackingType,
 	EnumFunction,
 	EnumValue,
+	FlagsFunction,
 	FunInst,
 	isArr,
 	isCallWithCtxFun,
@@ -519,8 +520,9 @@ struct ConcreteFunBody {
 	struct Extern {
 		immutable bool isGlobal;
 	}
-	struct FlagsNegate {
+	struct FlagsFn {
 		immutable ulong allValue;
+		immutable FlagsFunction fn;
 	}
 	struct RecordFieldGet {
 		immutable ubyte fieldIndex;
@@ -536,7 +538,7 @@ struct ConcreteFunBody {
 		createRecord,
 		enumFunction,
 		extern_,
-		flagsNegate,
+		flagsFn,
 		concreteFunExprBody,
 		recordFieldGet,
 		recordFieldSet,
@@ -548,7 +550,7 @@ struct ConcreteFunBody {
 		immutable CreateRecord createRecord;
 		immutable EnumFunction enumFunction;
 		immutable Extern extern_;
-		immutable FlagsNegate flagsNegate;
+		immutable FlagsFn flagsFn;
 		immutable ConcreteFunExprBody concreteFunExprBody;
 		immutable RecordFieldGet recordFieldGet;
 		immutable RecordFieldSet recordFieldSet;
@@ -563,7 +565,7 @@ struct ConcreteFunBody {
 	@trusted immutable this(immutable ConcreteFunExprBody a) {
 		kind = Kind.concreteFunExprBody; concreteFunExprBody = a;
 	}
-	immutable this(immutable FlagsNegate a) { kind = Kind.flagsNegate; flagsNegate = a; }
+	immutable this(immutable FlagsFn a) { kind = Kind.flagsFn; flagsFn = a; }
 	immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 	immutable this(immutable RecordFieldSet a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
 }
@@ -590,7 +592,7 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref
 	scope T delegate(immutable EnumFunction) @safe @nogc pure nothrow cbEnumFunction,
 	scope T delegate(ref immutable ConcreteFunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(ref immutable ConcreteFunExprBody) @safe @nogc pure nothrow cbConcreteFunExprBody,
-	scope T delegate(ref immutable ConcreteFunBody.FlagsNegate) @safe @nogc pure nothrow cbFlagsNegate,
+	scope T delegate(ref immutable ConcreteFunBody.FlagsFn) @safe @nogc pure nothrow cbFlagsFn,
 	scope T delegate(ref immutable ConcreteFunBody.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
 	scope T delegate(ref immutable ConcreteFunBody.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
 ) {
@@ -605,8 +607,8 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref
 			return cbEnumFunction(a.enumFunction);
 		case ConcreteFunBody.Kind.extern_:
 			return cbExtern(a.extern_);
-		case ConcreteFunBody.Kind.flagsNegate:
-			return cbFlagsNegate(a.flagsNegate);
+		case ConcreteFunBody.Kind.flagsFn:
+			return cbFlagsFn(a.flagsFn);
 		case ConcreteFunBody.Kind.concreteFunExprBody:
 			return cbConcreteFunExprBody(a.concreteFunExprBody);
 		case ConcreteFunBody.Kind.recordFieldGet:

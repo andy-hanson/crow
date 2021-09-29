@@ -1,0 +1,28 @@
+no-std
+import
+	.bool: bool
+	.col.arr: arr
+	.col.arr-util: flatten, zip
+	.str: str
+	.str-util: join
+
+flags<?a> spec
+	empty ?a()
+	all ?a()
+	all-values arr ?a()
+	all-names arr str()
+	== bool(a ?a, b ?a)
+	~ ?a(a ?a)
+	& ?a(a ?a, b ?a)
+	| ?a(a ?a, b ?a)
+
+in bool(a ?a, b ?a) flags<?a>
+	a & b == a
+
+flags-to-str str(a ?a) flags<?a>
+	names = flatten: all-values zip all-names, (value, name) =>
+		if value in a
+			[name]
+		else
+			[]
+	names join " | "

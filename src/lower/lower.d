@@ -101,7 +101,7 @@ import model.lowModel :
 	matchLowType,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
-import model.model : decl, EnumBackingType, EnumFunction, EnumValue, FunInst, name, range;
+import model.model : decl, EnumBackingType, EnumFunction, EnumValue, FlagsFunction, FunInst, name, range;
 import util.collection.arr : at, empty, emptyArr, first, only, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
@@ -667,7 +667,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				some(addLowFun(immutable LowFunCause(fun))),
 			(ref immutable ConcreteFunExprBody) =>
 				some(addLowFun(immutable LowFunCause(fun))),
-			(ref immutable ConcreteFunBody.FlagsNegate) =>
+			(ref immutable ConcreteFunBody.FlagsFn) =>
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.RecordFieldGet) =>
 				none!LowFunIndex,
@@ -930,7 +930,7 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 					exprCtx.hasTailRecur,
 					allocate(alloc, expr)));
 		},
-		(ref immutable ConcreteFunBody.FlagsNegate) =>
+		(ref immutable ConcreteFunBody.FlagsFn) =>
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.RecordFieldGet) =>
 			unreachable!(immutable LowFunBody),
@@ -1147,12 +1147,20 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 				unreachable!(immutable LowExprKind),
 			(ref immutable ConcreteFunExprBody) =>
 				unreachable!(immutable LowExprKind),
-			(ref immutable ConcreteFunBody.FlagsNegate it) =>
-				genFlagsNegate(
-					alloc,
-					range,
-					it.allValue,
-					getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail)),
+			(ref immutable ConcreteFunBody.FlagsFn it) {
+				final switch (it.fn) {
+					case FlagsFunction.all:
+						return immutable LowExprKind(immutable Constant(immutable Constant.Integral(it.allValue)));
+					case FlagsFunction.empty:
+						return immutable LowExprKind(immutable Constant(immutable Constant.Integral(0)));
+					case FlagsFunction.negate:
+						return genFlagsNegate(
+							alloc,
+							range,
+							it.allValue,
+							getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail));
+				}
+			},
 			(ref immutable ConcreteFunBody.RecordFieldGet it) =>
 				immutable LowExprKind(immutable LowExprKind.RecordFieldGet(
 					allocate(alloc, getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail)),
