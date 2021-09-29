@@ -9,6 +9,7 @@
 variables:
   name: '(([a-zA-Z_][a-zA-Z0-9\-_\?\!]*)|[\=\!\<\>\+\-\*\/\^\~\&\|]+)'
   type_name: '\??{{name}}'
+  number: '[\+\-]?((0((b[01]+)|(o[0-8]+)|(x[\da-fA-F]+)))|(\d+(\.\d+)?))'
   # Declarations end at the next unindented line.
   # We don't want to consume any characters at that line,
   # so use lookahead to match the beginning of a line, then any non-whitespace character.
@@ -146,7 +147,7 @@ contexts:
   enum_body:
     - match: '{{unindented_line}}'
       pop: true
-    - match: '{{name}}( \= (\d+))?'
+    - match: '{{name}}( \= ({{number}}))?'
       scope: identifier
       captures:
         3: comment
@@ -317,7 +318,7 @@ contexts:
       captures:
         1: comment # punctuation.accessor
     # numbers
-    - match: '[\+\-]?((0((b[01]+)|(o[0-8]+)|(x[\da-f]+)))|(\d+(\.\d+)?))'
+    - match: '{{number}}'
       scope: constant.numeric
 
     # `foo. ` in a multiline new record

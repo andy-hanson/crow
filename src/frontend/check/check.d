@@ -892,17 +892,21 @@ immutable(EnumTypeAndMembers) checkEnumMembers(Alloc)(
 			toArr(memberAsts),
 			(ref immutable StructDeclAst.Body.Enum.Member memberAst, immutable Opt!EnumValue lastValue) {
 				immutable ValueAndOverflow valueAndOverflow = () {
-					if (has(memberAst.value)) {
-						if (isSignedType(enumType))
-							return todo!(immutable ValueAndOverflow)("!");
-						else
-							return matchLiteralIntOrNat!(immutable ValueAndOverflow)(
+					if (has(memberAst.value))
+						return isSignedType(enumType)
+							? matchLiteralIntOrNat!(immutable ValueAndOverflow)(
+								force(memberAst.value),
+								(ref immutable LiteralAst.Int i) =>
+									immutable ValueAndOverflow(immutable EnumValue(i.value), i.overflow),
+								(ref immutable LiteralAst.Nat n) =>
+									immutable ValueAndOverflow(immutable EnumValue(n.value), n.value > long.max))
+							: matchLiteralIntOrNat!(immutable ValueAndOverflow)(
 								force(memberAst.value),
 								(ref immutable LiteralAst.Int) =>
 									todo!(immutable ValueAndOverflow)("signed value in unsigned enum"),
 								(ref immutable LiteralAst.Nat n) =>
 									immutable ValueAndOverflow(immutable EnumValue(n.value), n.overflow));
-					} else
+					else
 						return cbGetNextValue(lastValue, enumType);
 				}();
 				immutable EnumValue value = valueAndOverflow.value;

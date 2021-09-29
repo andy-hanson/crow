@@ -1,5 +1,4 @@
 import
-	crow.bits: |
 	crow.cell: as-ptr, cell, subscript
 	crow.col.mut-arr: begin-ptr, map-to-arr, mut-arr, set-subscript, size, subscript
 	crow.c-types: c-int
@@ -18,23 +17,23 @@ import
 	SDL2.SDL:
 		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
 	SDL2.SDL_events:
-		SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
+		==, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
 	SDL2.SDL_keyboard:
 		SDL_GetKeyboardState
 	SDL2.SDL_scancode:
-		SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN
+		SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to-nat32
 	SDL2.SDL_video:
-		SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
+		|, SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
 		SDL_GL_DOUBLEBUFFER, SDL_GL_CONTEXT_MAJOR_VERSION, SDL_GL_CONTEXT_MINOR_VERSION,
 		SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_SetAttribute, SDL_GL_SwapWindow, SDL_Window,
-		SDL_WINDOW_OPENGL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN
+		SDL_WINDOW_OPENGL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN, to-int32
 	.shader: shader-prog-destroy, shader-prog-load
 	.texture: load-texture, free-texture
 
 main fut nat(_ arr str) summon trusted
 	"SDL_INIT_VIDEO" handle-sdl-error: SDL_INIT_VIDEO SDL_Init
 
-	"set GL ES" handle-sdl-error: SDL_GL_CONTEXT_PROFILE_MASK SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_ES
+	"set GL ES" handle-sdl-error: SDL_GL_CONTEXT_PROFILE_MASK SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_ES.to-int32
 	"set major version" handle-sdl-error: SDL_GL_CONTEXT_MAJOR_VERSION SDL_GL_SetAttribute 3
 	"set minor version" handle-sdl-error: SDL_GL_CONTEXT_MINOR_VERSION SDL_GL_SetAttribute 0
 	"set double buffer" handle-sdl-error: SDL_GL_DOUBLEBUFFER SDL_GL_SetAttribute 1
@@ -58,7 +57,6 @@ main fut nat(_ arr str) summon trusted
 
 	tex-sampler-uniform-loc = shader-prog glGetUniformLocation "texSampler".to-c-str
 	"after tex-sampler-uniform-loc" gl-check-error
-	print: "tex-sampler-uniform-loc is {tex-sampler-uniform-loc}"
 	assert: tex-sampler-uniform-loc >= 0
 	tex-sampler-uniform-loc glUniform1i 0
 	"after glUniform1i" gl-check-error
@@ -132,8 +130,8 @@ blue color-32()
 		quit
 	else
 		key-states-ptr = null SDL_GetKeyboardState
-		key-states = arr: SDL_NUM_SCANCODES, key-states-ptr
-		print: key-states[SDL_SCANCODE_RETURN to-nat64] == 0 ? "no return", "return is pressed"
+		key-states = arr: SDL_NUM_SCANCODES.to-nat32.to-nat64, key-states-ptr
+		print: key-states[SDL_SCANCODE_RETURN.to-nat32 to-nat64] == 0 ? "no return", "return is pressed"
 
 		v0 = renderer.vertices[0]
 		renderer.vertices[0] := (v0.pos + (0.003 vec-2-32 0)) vertex v0.color, v0.tex-coord

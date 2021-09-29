@@ -322,9 +322,11 @@ immutable(SymAndIsReserved) takeNameAllowReserved(Alloc, SymAlloc)(ref Alloc all
 		immutable Opt!Sym op = getSymFromOperator(lexer.allSymbols.deref(), s.str);
 		if (has(op))
 			return immutable SymAndIsReserved(immutable NameAndRange(s.start, force(op)), false);
-		else
-			// diagnostic: invalid operator
-			return todo!(immutable SymAndIsReserved)("!");
+		else {
+			addDiag(alloc, lexer, range(lexer, s.start), immutable ParseDiag(
+				immutable ParseDiag.InvalidName(copyStr(alloc, s.str))));
+			return immutable SymAndIsReserved(immutable NameAndRange(s.start, shortSymAlphaLiteral("bogus")), false);
+		}
 	} else {
 		immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, s.str);
 		return immutable SymAndIsReserved(immutable NameAndRange(s.start, name), isReservedName(name));
@@ -513,6 +515,8 @@ immutable(ulong) charToNat(immutable char c) {
 		? c - '0'
 		: 'a' <= c && c <= 'f'
 		? 10 + (c - 'a')
+		: 'A' <= c && c <= 'F'
+		? 10 + (c - 'A')
 		: ulong.max;
 }
 
@@ -543,25 +547,6 @@ immutable(bool) isOperatorChar(immutable char c) {
 	}
 }
 
-immutable(NameAndRange) takeOperator(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
-	immutable CStr begin,
-) {
-	immutable Pos start = posOfPtr(lexer, begin);
-	immutable string name = takeOperatorRest(lexer, begin);
-	immutable Opt!Sym op = getSymFromOperator(lexer.allSymbols, name);
-	immutable Sym operator = () {
-		if (has(op))
-			return force(op);
-		else {
-			addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(
-				immutable ParseDiag.InvalidName(copyStr(alloc, name))));
-			return shortSymAlphaLiteral("bogus");
-		}
-	}();
-	return immutable NameAndRange(start, operator);
-}
 
 immutable(size_t) toHexDigit(immutable char c) {
 	if ('0' <= c && c <= '9')

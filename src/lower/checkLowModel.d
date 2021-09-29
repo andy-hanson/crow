@@ -2,7 +2,7 @@ module lower.checkLowModel;
 
 @safe @nogc pure nothrow:
 
-import lower.lowExprHelpers : boolType, int32Type, nat64Type, voidType;
+import lower.lowExprHelpers : boolType, nat64Type, voidType;
 import model.constant : Constant;
 import model.lowModel :
 	asFunPtrType,
@@ -204,15 +204,12 @@ void checkLowExpr(Alloc)(
 			}
 		},
 		(ref immutable LowExprKind.Switch0ToN it) {
-			//TODO: want to allow all integral types here
-			immutable LowType switchedType = lowTypeEqual(int32Type, it.value.type) ? int32Type : nat64Type;
-			checkLowExpr(alloc, ctx, switchedType, it.value);
+			checkLowExpr(alloc, ctx, it.value.type, it.value);
 			foreach (ref immutable LowExpr case_; it.cases)
 				checkLowExpr(alloc, ctx, type, case_);
 		},
 		(ref immutable LowExprKind.SwitchWithValues it) {
-			immutable LowType switchedType = lowTypeEqual(int32Type, it.value.type) ? int32Type : nat64Type;
-			checkLowExpr(alloc, ctx, switchedType, it.value);
+			checkLowExpr(alloc, ctx, it.value.type, it.value);
 			foreach (ref immutable LowExpr case_; it.cases)
 				checkLowExpr(alloc, ctx, type, case_);
 		},

@@ -2,19 +2,22 @@
 
 no-std
 import
-	..crow.bits: <<
 	..crow.c-types: c-int
 	..crow.misc: void
 	..crow.number: nat32
 	..crow.str: c-str
 
-SDL_Init c-int(flags nat32) extern<"SDL2"> noctx summon
+SDL_Init c-int(flags SDL_Init_flags) extern<"SDL2"> noctx summon
 
-SDL_INIT_VIDEO nat32()
-	1 << 5
-
-SDL_INIT_JOYSTICK nat32()
-	1 << 9
+SDL_Init_flags flags<nat32>
+	SDL_INIT_TIMER = 0x00000001
+	SDL_INIT_AUDIO = 0x00000010
+	SDL_INIT_VIDEO = 0x00000020
+	SDL_INIT_CDROM = 0x00000100
+	SDL_INIT_JOYSTICK = 0x00000200
+	SDL_INIT_NOPARACHUTE = 0x00100000
+	SDL_INIT_EVENTTHREAD = 0x01000000
+	SDL_INIT_EVERYTHING = 0x0000FFFF
 
 SDL_Quit void() extern<"SDL2"> noctx summon
 

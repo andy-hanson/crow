@@ -750,7 +750,7 @@ immutable(Comparison) compareArr(T)(
 		});
 }
 
-struct MapAndFoldResult(Out, State) {
+private struct MapAndFoldResult(Out, State) {
 	immutable Out[] output;
 	immutable State state;
 }

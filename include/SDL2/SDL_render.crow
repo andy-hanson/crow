@@ -11,7 +11,7 @@ import
 SDL_CreateRenderer SDL_Renderer
 	window SDL_Window
 	index c-int
-	flags nat32
+	flags SDL_RendererFlags
 spec
 	extern<"SDL2">
 	noctx
@@ -46,17 +46,11 @@ spec
 
 SDL_Renderer extern-ptr
 
-SDL_RENDERER_SOFTWARE nat32()
-	1
-
-SDL_RENDERER_ACCELERATED nat32()
-	2
-
-SDL_RENDERER_PRESENTVSYNC nat32()
-	4
-
-SDL_RENDERER_TARGETTEXTURE nat32()
-	8
+SDL_RendererFlags flags<u-int>
+	SDL_RENDERER_SOFTWARE = 1
+	SDL_RENDERER_ACCELERATED = 2
+	SDL_RENDERER_PRESENTVSYNC = 4
+	SDL_RENDERER_TARGETTEXTURE = 8
 
 SDL_RenderPresent void(renderer SDL_Renderer) extern<"SDL2"> noctx summon unsafe
 
