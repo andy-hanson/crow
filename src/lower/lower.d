@@ -1209,6 +1209,10 @@ immutable(LowExprKind) genEnumFunction(Alloc)(
 		case EnumFunction.union_:
 			verify(size(args) == 2);
 			return genEnumUnion(alloc, arg0(), arg1());
+		case EnumFunction.toSym:
+		case EnumFunction.values:
+			// In concretize, these were translated to a different ConcreteExpr
+			return unreachable!(immutable LowExprKind);
 	}
 }
 

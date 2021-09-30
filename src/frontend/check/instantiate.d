@@ -7,6 +7,7 @@ import model.model :
 	bestCasePurity,
 	body_,
 	bodyIsSet,
+	CommonTypes,
 	decl,
 	FunDeclAndArgs,
 	FunInst,
@@ -32,7 +33,7 @@ import model.model :
 	worsePurity,
 	worstCasePurity;
 import util.collection.arr : ptrAt, size, sizeEq;
-import util.collection.arrUtil : fold, map;
+import util.collection.arrUtil : arrLiteral, fold, map;
 import util.collection.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
 import util.collection.mutArr : MutArr, push;
 import util.memory : nu, nuMut;
@@ -248,6 +249,18 @@ immutable(Ptr!StructInst) instantiateStructNeverDelay(Alloc)(
 	immutable StructDeclAndArgs declAndArgs,
 ) {
 	return instantiateStruct(alloc, programState, declAndArgs, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
+}
+
+immutable(Ptr!StructInst) makeArrayType(Alloc)(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	ref immutable CommonTypes commonTypes,
+	ref immutable Type elementType,
+) {
+	return instantiateStructNeverDelay(
+		alloc,
+		programState,
+		immutable StructDeclAndArgs(commonTypes.arr, arrLiteral!Type(alloc, [elementType])));
 }
 
 immutable(Ptr!SpecInst) instantiateSpec(Alloc)(

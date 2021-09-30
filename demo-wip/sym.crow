@@ -1,7 +1,12 @@
 import
+	crow.col.arr-util: each
 	crow.io.print: print
 
 main fut nat(_ arr str) summon
-	s = 'my-sym'
-	print: s to-str
+	enum-values each v =>
+		print: v.to-sym.to-str
 	0 resolved
+
+e enum
+	x
+	y

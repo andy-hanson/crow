@@ -22,12 +22,14 @@ import util.collection.str : compareStr;
 import util.memory : allocate;
 import util.opt : force, has, Opt;
 import util.ptr : comparePtr, Ptr, ptrTrustMe_mut;
-import util.sym : mapSymChars, Sym;
+import util.sym : compareSym, strOfSym, Sym;
 import util.util : verify;
 
 struct AllConstantsBuilder {
 	private:
-	MutDict!(immutable string, immutable Constant.CString, compareStr) cStrings;
+	MutDict!(immutable string, immutable Constant.CString, compareStr) cStringsByString;
+	// cStringsByString is the primary, this is just to speed up getting a cString from a sym
+	MutDict!(immutable Sym, immutable Constant.CString, compareSym) cStringsBySym;
 	MutArr!(immutable string) cStringValues;
 	MutDict!(immutable ConcreteType, ArrTypeAndConstants, compareConcreteType) arrs;
 	MutDict!(immutable Ptr!ConcreteStruct, PointerTypeAndConstants, comparePtr!ConcreteStruct) pointers;
@@ -132,24 +134,11 @@ immutable(Constant) getConstantStr(Alloc)(
 	ref immutable ConcreteType charType,
 	immutable string str,
 ) {
-	return getConstantStrOfChars(
-		alloc, allConstants, strStruct, charType,
-		map!Constant(alloc, str, (ref immutable char it) =>
-			constantChar(it)));
-}
-
-//TODO:KILL, use getConstantSym; these things should be typed as sym
-immutable(Constant) getConstantStrOfSym(Alloc)(
-	ref Alloc alloc,
-	ref AllConstantsBuilder allConstants,
-	immutable Ptr!ConcreteStruct strStruct,
-	ref immutable ConcreteType charType,
-	immutable Sym sym,
-) {
-	return getConstantStrOfChars(
-		alloc, allConstants, strStruct, charType,
-		mapSymChars!Constant(alloc, sym, (immutable char it) =>
-			constantChar(it)));
+	immutable Constant[] chars = map!Constant(alloc, str, (ref immutable char it) =>
+		constantChar(it));
+	immutable Ptr!ConcreteStruct arrCharStruct = mustBeNonPointer(only(asRecord(body_(strStruct)).fields).type);
+	immutable Constant arr = getConstantArr(alloc, allConstants, arrCharStruct, charType, chars);
+	return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [arr])));
 }
 
 immutable(Constant) getConstantSym(Alloc)(
@@ -157,41 +146,52 @@ immutable(Constant) getConstantSym(Alloc)(
 	ref AllConstantsBuilder allConstants,
 	immutable string value,
 ) {
-	immutable Constant.CString inner = getConstantCStrInner(alloc, allConstants, value);
-	return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [immutable Constant(inner)])));
+	return constantSymFromConstantCStr(alloc, getConstantCStr(alloc, allConstants, value));
 }
 
-private immutable(Constant.CString) getConstantCStrInner(Alloc)(
+immutable(Constant) getConstantSymForSym(Alloc)(
+	ref Alloc alloc,
+	ref AllConstantsBuilder allConstants,
+	immutable Sym value,
+) {
+	return constantSymFromConstantCStr(alloc, getConstantCStrFromSym(alloc, allConstants, value));
+}
+
+private immutable(Constant) constantSymFromConstantCStr(Alloc)(ref Alloc alloc, immutable Constant.CString a) {
+	return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [immutable Constant(a)])));
+}
+
+private immutable(Constant.CString) getConstantCStr(Alloc)(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	immutable string value,
 ) {
 	return getOrAdd!(Alloc, immutable string, immutable Constant.CString, compareStr)(
 		alloc,
-		allConstants.cStrings,
+		allConstants.cStringsByString,
 		value,
 		() {
 			immutable size_t index = mutArrSize(allConstants.cStringValues);
-			verify(mutDictSize(allConstants.cStrings) == index);
+			verify(mutDictSize(allConstants.cStringsByString) == index);
 			push(alloc, allConstants.cStringValues, value);
 			return immutable Constant.CString(index);
 		});
 }
 
-private immutable(Constant) constantChar(immutable char a) {
-	return immutable Constant(immutable Constant.Integral(a));
-}
-
-private immutable(Constant) getConstantStrOfChars(Alloc)(
+private immutable(Constant.CString) getConstantCStrFromSym(Alloc)(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
-	immutable Ptr!ConcreteStruct strStruct,
-	ref immutable ConcreteType charType,
-	immutable Constant[] chars,
+	immutable Sym value,
 ) {
-	immutable Ptr!ConcreteStruct arrCharStruct = mustBeNonPointer(only(asRecord(body_(strStruct)).fields).type);
-	immutable Constant arr = getConstantArr(alloc, allConstants, arrCharStruct, charType, chars);
-	return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [arr])));
+	return getOrAdd!(Alloc, immutable Sym, immutable Constant.CString, compareSym)(
+		alloc,
+		allConstants.cStringsBySym,
+		value,
+		() => getConstantCStr(alloc, allConstants, strOfSym(alloc, value)));
+}
+
+private immutable(Constant) constantChar(immutable char a) {
+	return immutable Constant(immutable Constant.Integral(a));
 }
 
 immutable(Constant) constantEmptyStr() {

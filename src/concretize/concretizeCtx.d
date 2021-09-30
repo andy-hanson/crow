@@ -2,7 +2,12 @@ module concretize.concretizeCtx;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantStr, getConstantStrOfSym, getConstantSym;
+import concretize.allConstantsBuilder :
+	AllConstantsBuilder,
+	getConstantArr,
+	getConstantStr,
+	getConstantSym,
+	getConstantSymForSym;
 import concretize.concretizeExpr : concretizeExpr;
 import model.concreteModel :
 	asFlags,
@@ -297,15 +302,12 @@ immutable(Constant) constantStr(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, imm
 	return getConstantStr(alloc, a.allConstants, strStruct, charType, value);
 }
 
-immutable(Constant) constantSym(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, immutable string value) {
-	return getConstantSym(alloc, a.allConstants, value);
+private immutable(Constant) constantSymForSym(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, immutable Sym value) {
+	return getConstantSymForSym(alloc, a.allConstants, value);
 }
 
-private immutable(Constant) constantStrOfSym(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, immutable Sym value) {
-	immutable ConcreteType charType = charType(alloc, a);
-	immutable ConcreteType strType = strType(alloc, a);
-	immutable Ptr!ConcreteStruct strStruct = mustBeNonPointer(strType);
-	return getConstantStrOfSym(alloc, a.allConstants, strStruct, charType, value);
+immutable(Constant) constantSym(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, immutable string value) {
+	return getConstantSym(alloc, a.allConstants, value);
 }
 
 immutable(Ptr!ConcreteFun) getOrAddConcreteFunAndFillBody(Alloc)(
@@ -767,10 +769,19 @@ void fillInConcreteFunBody(Alloc)(
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateEnum(it.value)),
 			(ref immutable FunBody.CreateRecord) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateRecord()),
-			(immutable EnumFunction it) =>
-				immutable ConcreteFunBody(it),
-			(ref immutable FunBody.EnumToStr) =>
-				bodyForEnumToStr(alloc, ctx, castImmutable(cf)),
+			(immutable EnumFunction it) {
+				final switch (it) {
+					case EnumFunction.equal:
+					case EnumFunction.intersect:
+					case EnumFunction.toIntegral:
+					case EnumFunction.union_:
+						return immutable ConcreteFunBody(it);
+					case EnumFunction.toSym:
+						return bodyForEnumToSym(alloc, ctx, castImmutable(cf));
+					case EnumFunction.values:
+						return bodyForEnumValues!Alloc(alloc, ctx, castImmutable(cf).returnType);
+				}
+			},
 			(ref immutable FunBody.Extern e) {
 				if (has(e.libraryName))
 					//TODO: don't always copy
@@ -799,31 +810,52 @@ immutable(ulong) getAllValue(ref immutable ConcreteStructBody.Flags flags) {
 		a | b);
 }
 
-immutable(ConcreteFunBody) bodyForEnumToStr(Alloc)(
+immutable(ConcreteFunBody) bodyForEnumValues(Alloc)(
+	ref Alloc alloc,
+	ref ConcretizeCtx ctx,
+	immutable ConcreteType returnType,
+) {
+	immutable Ptr!ConcreteStruct arrayStruct = mustBeNonPointer(returnType);
+	immutable ConcreteType elementType = only(asInst(arrayStruct.source).typeArgs);
+	immutable Constant[] elements = map!Constant(
+		alloc,
+		mustBeEnumType(elementType).members,
+		(ref immutable StructBody.Enum.Member member) =>
+			immutable Constant(immutable Constant.Integral(member.value.value)));
+	immutable Constant arr = getConstantArr(alloc, ctx.allConstants, arrayStruct, elementType, elements);
+	return immutable ConcreteFunBody(immutable ConcreteFunExprBody(
+		immutable ConcreteExpr(returnType, FileAndRange.empty, immutable ConcreteExprKind(arr))));
+}
+
+immutable(ConcreteFunBody) bodyForEnumToSym(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	immutable Ptr!ConcreteFun cf,
 ) {
-	immutable ConcreteType strType = cf.returnType;
+	immutable ConcreteType symType = cf.returnType;
 	immutable Ptr!ConcreteParam param = onlyPtr(cf.paramsExcludingCtxAndClosure);
 	immutable ConcreteType enumType = param.type;
 	immutable ConcreteExpr[] cases = map!(ConcreteExpr, StructBody.Enum.Member, Alloc)(
 		alloc,
-		asEnum(body_(decl(asInst(mustBeNonPointer(enumType).source).inst).deref())).members,
+		mustBeEnumType(enumType).members,
 		(ref immutable StructBody.Enum.Member member) =>
 			immutable ConcreteExpr(
-				strType,
+				symType,
 				FileAndRange.empty,
-				immutable ConcreteExprKind(constantStrOfSym(alloc, ctx, member.name))));
+				immutable ConcreteExprKind(constantSymForSym(alloc, ctx, member.name))));
 	immutable ConcreteExpr matchedValue = immutable ConcreteExpr(
 		enumType,
 		FileAndRange.empty,
 		immutable ConcreteExprKind(immutable ConcreteExprKind.ParamRef(param)));
 	immutable ConcreteExpr body_ = immutable ConcreteExpr(
-		strType,
+		symType,
 		FileAndRange.empty,
 		immutable ConcreteExprKind(immutable ConcreteExprKind.MatchEnum(allocate(alloc, matchedValue), cases)));
 	return immutable ConcreteFunBody(immutable ConcreteFunExprBody(allocate(alloc, body_)));
+}
+
+immutable(StructBody.Enum) mustBeEnumType(immutable ConcreteType enumType) {
+	return asEnum(body_(decl(asInst(mustBeNonPointer(enumType).source).inst).deref()));
 }
 
 immutable(ConcreteFunBody) bodyForAllTests(Alloc)(

@@ -26,7 +26,7 @@ import frontend.check.inferringType :
 	tryGetDeeplyInstantiatedType,
 	tryGetDeeplyInstantiatedTypeFor,
 	tryGetInferred;
-import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay;
+import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, makeArrayType;
 import frontend.check.typeFromAst : makeFutType;
 import frontend.parse.ast :
 	BogusAst,
@@ -484,10 +484,8 @@ immutable(CheckedExpr) checkCreateArr(Alloc)(
 		immutable ExprAst[] restArgs = tail(argAsts);
 		immutable Expr[] args = mapWithFirst!Expr(alloc, firstArg.expr, restArgs, (ref immutable ExprAst it) =>
 			checkAndExpect(alloc, ctx, it, elementType));
-		immutable Ptr!StructInst arrType = instantiateStructNeverDelay(
-			alloc,
-			ctx.checkCtx.programState,
-			immutable StructDeclAndArgs(ctx.commonTypes.arr, arrLiteral!Type(alloc, [elementType])));
+		immutable Ptr!StructInst arrType =
+			makeArrayType(alloc, ctx.checkCtx.programState, ctx.commonTypes, elementType);
 		immutable Expr expr = immutable Expr(range, immutable Expr.CreateArr(arrType, args));
 		return check!Alloc(alloc, ctx, expected, immutable Type(arrType), expr);
 	}

@@ -28,6 +28,7 @@ import frontend.check.instantiate :
 	instantiateStruct,
 	instantiateStructBody,
 	instantiateStructNeverDelay,
+	makeArrayType,
 	TypeParamsScope;
 import frontend.check.typeFromAst : instStructFromAst, tryFindSpec, typeArgsFromAsts, typeFromAst;
 import frontend.parse.ast :
@@ -1470,8 +1471,8 @@ immutable(size_t) countFunsForStruct(
 			(ref immutable StructBody.Builtin) =>
 				immutable size_t(0),
 			(ref immutable StructBody.Enum it) =>
-				// '==', 'to-intXX'/'to-natXX', 'to-str', and a constructor for each member
-				3 + size(it.members),
+				// '==', 'to-intXX'/'to-natXX', 'enum-values', 'to-str', and a constructor for each member
+				4 + size(it.members),
 			(ref immutable StructBody.Flags it) =>
 				// 'empty', 'all', '==', '~', '|', '&', 'to-intXX'/'to-natXX', and a constructor for each member
 				7 + size(it.members),
@@ -1523,29 +1524,23 @@ void addFunsForEnum(Alloc, SymAlloc)(
 ) {
 	immutable Type enumType =
 		immutable Type(instantiateNonTemplateStructDeclNeverDelay(alloc, ctx.programState, struct_));
+	immutable bool isPublic = struct_.isPublic;
+	immutable FileAndRange range = struct_.range;
 	exactSizeArrBuilderAdd(
 		funsBuilder,
-		enumEqualFunction(alloc, struct_.isPublic, struct_.range, enumType, commonTypes));
+		enumEqualFunction(alloc, isPublic, range, enumType, commonTypes));
 	exactSizeArrBuilderAdd(
 		funsBuilder,
-		enumToIntegralFunction(alloc, struct_.isPublic, struct_.range, enum_.backingType, enumType, commonTypes));
-	//TODO: also to-e (prepend 'to-' to the enum name)
-	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-		emptySafeCStr,
-		struct_.isPublic,
-		FunFlags.generatedNoCtx,
-		allocate(alloc, immutable Sig(
-			fileAndPosFromFileAndRange(struct_.range),
-			shortSymAlphaLiteral("to-str"),
-			immutable Type(commonTypes.str),
-			arrLiteral!Param(alloc, [immutable Param(struct_.range, some(shortSymAlphaLiteral("a")), enumType, 0)]))),
-		emptyArrWithSize!TypeParam,
-		emptyArrWithSize!(Ptr!SpecInst),
-		immutable FunBody(immutable FunBody.EnumToStr())));
+		enumToIntegralFunction(alloc, isPublic, range, enum_.backingType, enumType, commonTypes));
+	exactSizeArrBuilderAdd(
+		funsBuilder,
+		enumValuesFunction(alloc, ctx.programState, isPublic, range, enumType, commonTypes));
+	exactSizeArrBuilderAdd(funsBuilder, enumToSymFunction(alloc, isPublic, range, enumType, commonTypes));
 
 	foreach (ref immutable StructBody.Enum.Member member; enum_.members)
 		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(alloc, struct_.isPublic, enumType, member));
 }
+
 
 void addFunsForFlags(Alloc, SymAlloc)(
 	ref Alloc alloc,
@@ -1700,6 +1695,49 @@ FunDecl enumToIntegralFunction(Alloc)(
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
 		immutable FunBody(EnumFunction.toIntegral));
+}
+
+FunDecl enumValuesFunction(Alloc)(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	immutable bool isPublic,
+	ref immutable FileAndRange fileAndRange,
+	ref immutable Type enumType,
+	ref immutable CommonTypes commonTypes,
+) {
+	return FunDecl(
+		emptySafeCStr,
+		isPublic,
+		FunFlags.generatedNoCtx,
+		allocate(alloc, immutable Sig(
+			fileAndPosFromFileAndRange(fileAndRange),
+			shortSymAlphaLiteral("enum-values"),
+			immutable Type(makeArrayType(alloc, programState, commonTypes, enumType)),
+			emptyArr!Param)),
+		emptyArrWithSize!TypeParam,
+		emptyArrWithSize!(Ptr!SpecInst),
+		immutable FunBody(EnumFunction.values));
+}
+
+FunDecl enumToSymFunction(Alloc)(
+	ref Alloc alloc,
+	immutable bool isPublic,
+	ref immutable FileAndRange range,
+	ref immutable Type enumType,
+	ref immutable CommonTypes commonTypes,
+) {
+	return FunDecl(
+		emptySafeCStr,
+		isPublic,
+		FunFlags.generatedNoCtx,
+		allocate(alloc, immutable Sig(
+			fileAndPosFromFileAndRange(range),
+			shortSymAlphaLiteral("to-sym"),
+			immutable Type(commonTypes.sym),
+			arrLiteral!Param(alloc, [immutable Param(range, some(shortSymAlphaLiteral("a")), enumType, 0)]))),
+		emptyArrWithSize!TypeParam,
+		emptyArrWithSize!(Ptr!SpecInst),
+		immutable FunBody(EnumFunction.toSym));
 }
 
 FunDecl flagsUnionOrIntersectFunction(Alloc)(

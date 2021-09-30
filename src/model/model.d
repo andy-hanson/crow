@@ -598,7 +598,9 @@ enum EnumFunction {
 	equal,
 	intersect,
 	toIntegral,
+	toSym,
 	union_,
+	values,
 }
 
 immutable(Sym) enumFunctionName(immutable EnumFunction a) {
@@ -609,8 +611,12 @@ immutable(Sym) enumFunctionName(immutable EnumFunction a) {
 			return symForOperator(Operator.and1);
 		case EnumFunction.toIntegral:
 			return shortSymAlphaLiteral("to-integral");
+		case EnumFunction.toSym:
+			return shortSymAlphaLiteral("to-sym");
 		case EnumFunction.union_:
 			return symForOperator(Operator.or1);
+		case EnumFunction.values:
+			return shortSymAlphaLiteral("values");
 	}
 }
 
@@ -639,7 +645,6 @@ struct FunBody {
 		immutable EnumValue value;
 	}
 	struct CreateRecord {}
-	struct EnumToStr {}
 	struct Extern {
 		immutable bool isGlobal;
 		immutable Opt!string libraryName;
@@ -657,7 +662,6 @@ struct FunBody {
 		createEnum,
 		createRecord,
 		enumFunction,
-		enumToStr,
 		extern_,
 		expr,
 		flagsFunction,
@@ -670,7 +674,6 @@ struct FunBody {
 		immutable CreateEnum createEnum;
 		immutable CreateRecord createRecord;
 		immutable EnumFunction enumFunction;
-		immutable EnumToStr enumToStr;
 		immutable Ptr!Extern extern_;
 		immutable Ptr!Expr expr;
 		immutable FlagsFunction flagsFunction;
@@ -683,7 +686,6 @@ struct FunBody {
 	immutable this(immutable CreateEnum a) { kind = Kind.createEnum; createEnum = a; }
 	immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	immutable this(immutable EnumFunction a) { kind = Kind.enumFunction; enumFunction = a; }
-	immutable this(immutable EnumToStr a) { kind = Kind.enumToStr; enumToStr = a; }
 	@trusted immutable this(immutable Ptr!Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
 	immutable this(immutable FlagsFunction a) { kind = Kind.flagsFunction; flagsFunction = a; }
@@ -702,7 +704,6 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 	scope T delegate(ref immutable FunBody.CreateEnum) @safe @nogc pure nothrow cbCreateEnum,
 	scope T delegate(ref immutable FunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(immutable EnumFunction) @safe @nogc pure nothrow cbEnumFunction,
-	scope T delegate(ref immutable FunBody.EnumToStr) @safe @nogc pure nothrow cbEnumToStr,
 	scope T delegate(ref immutable FunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(immutable Ptr!Expr) @safe @nogc pure nothrow cbExpr,
 	scope T delegate(immutable FlagsFunction) @safe @nogc pure nothrow cbFlagsFunction,
@@ -718,8 +719,6 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 			return cbCreateRecord(a.createRecord);
 		case FunBody.Kind.enumFunction:
 			return cbEnumFunction(a.enumFunction);
-		case FunBody.Kind.enumToStr:
-			return cbEnumToStr(a.enumToStr);
 		case FunBody.Kind.extern_:
 			return cbExtern(a.extern_);
 		case FunBody.Kind.flagsFunction:

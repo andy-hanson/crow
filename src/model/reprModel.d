@@ -190,8 +190,6 @@ immutable(Repr) reprFunBody(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable F
 			reprSym("new-record"),
 		(immutable EnumFunction it) =>
 			reprRecord(alloc, "enum-fn", [reprSym(enumFunctionName(it))]),
-		(ref immutable FunBody.EnumToStr) =>
-			reprSym("enum-to-str"),
 		(ref immutable FunBody.Extern it) =>
 			reprRecord(alloc, "extern", [reprBool(it.isGlobal)]),
 		(immutable Ptr!Expr it) =>
