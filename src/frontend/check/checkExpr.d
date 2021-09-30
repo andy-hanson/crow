@@ -780,6 +780,10 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 				immutable Expr e = immutable Expr(range, immutable Expr.StringLiteral(copyStr(alloc, it)));
 				return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.str), e);
 			}
+		},
+		(ref immutable LiteralAst.Symbol it) {
+			immutable Expr e = immutable Expr(range, immutable Expr.SymbolLiteral(copyStr(alloc, it.value)));
+			return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.sym), e);
 		});
 }
 

@@ -174,6 +174,7 @@ immutable(AllConstantsLow) convertAllConstants(Alloc)(
 	ref GetLowTypeCtx ctx,
 	ref immutable AllConstantsConcrete a,
 ) {
+	immutable string[] cStrings = a.cStrings;
 	immutable ArrTypeAndConstantsLow[] arrs =
 		map!ArrTypeAndConstantsLow(alloc, a.arrs, (ref immutable ArrTypeAndConstantsConcrete it) {
 			immutable LowType arrType = lowTypeFromConcreteStruct(alloc, ctx, it.arrType);
@@ -183,7 +184,7 @@ immutable(AllConstantsLow) convertAllConstants(Alloc)(
 	immutable PointerTypeAndConstantsLow[] records =
 		map(alloc, a.pointers, (ref immutable PointerTypeAndConstantsConcrete it) =>
 			immutable PointerTypeAndConstantsLow(lowTypeFromConcreteStruct(alloc, ctx, it.pointeeType), it.constants));
-	return immutable AllConstantsLow(arrs, records);
+	return immutable AllConstantsLow(cStrings, arrs, records);
 }
 
 struct AllLowTypesWithCtx {

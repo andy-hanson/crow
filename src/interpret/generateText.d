@@ -19,8 +19,8 @@ import model.lowModel :
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
 import model.typeLayout : optPack, sizeOfType;
-import util.collection.arr : at, castImmutable, empty, ptrAt, setAt, size;
-import util.collection.arrUtil : mapToMut, sum, zip;
+import util.collection.arr : at, castImmutable, empty, emptyArr, ptrAt, setAt, size;
+import util.collection.arrUtil : map, mapToMut, sum, zip;
 import util.collection.exactSizeArrBuilder :
 	exactSizeArrBuilderAdd,
 	add0Bytes,
@@ -28,6 +28,7 @@ import util.collection.exactSizeArrBuilder :
 	add32,
 	add64,
 	add64TextPtr,
+	addStringAndNulTerminate,
 	ExactSizeArrBuilder,
 	exactSizeArrBuilderCurSize,
 	finish,
@@ -40,6 +41,7 @@ import util.util : todo, unreachable, verify;
 
 struct TextAndInfo {
 	immutable ubyte[] text;
+	immutable size_t[] cStringIndexToTextIndex;
 	immutable size_t[][] arrTypeIndexToConstantIndexToTextIndex;
 	immutable size_t[][] pointeeTypeIndexToIndexToTextIndex;
 }
@@ -64,6 +66,10 @@ immutable(ubyte*) getTextPointer(ref immutable TextAndInfo info, immutable Const
 	return ptrAt(info.text, textIndex).rawPtr();
 }
 
+immutable(ubyte*) getTextPointerForCString(ref immutable TextAndInfo info, immutable Constant.CString a) {
+	return ptrAt(info.text, at(info.cStringIndexToTextIndex, a.index)).rawPtr();
+}
+
 immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
@@ -75,6 +81,7 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 		ptrTrustMe(allConstants),
 		// '1 +' because we add a dummy byte at 0
 		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(program, allConstants)),
+		emptyArr!size_t, // cStringIndexToTextIndex will be overwritten just below this
 		mapToMut!(size_t[], ArrTypeAndConstantsLow, Alloc)(
 			alloc,
 			allConstants.arrs,
@@ -88,6 +95,12 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 
 	// Ensure 0 is not a valid text index
 	exactSizeArrBuilderAdd(ctx.text, 0);
+
+	ctx.cStringIndexToTextIndex = map!size_t(alloc, allConstants.cStrings, (ref immutable string value) {
+		immutable size_t textIndex = exactSizeArrBuilderCurSize(ctx.text);
+		addStringAndNulTerminate(ctx.text, value);
+		return textIndex;
+	});
 
 	foreach (immutable size_t arrTypeIndex; 0 .. size(allConstants.arrs)) {
 		immutable Ptr!ArrTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.arrs, arrTypeIndex);
@@ -114,6 +127,7 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 
 	return immutable TextAndInfo(
 		castImmutable(finish(ctx.text)),
+		castImmutable(ctx.cStringIndexToTextIndex),
 		castImmutable(ctx.arrTypeIndexToConstantIndexToTextIndex),
 		castImmutable(ctx.pointeeTypeIndexToIndexToTextIndex));
 }
@@ -124,6 +138,7 @@ struct Ctx {
 	immutable Ptr!LowProgram program;
 	immutable Ptr!AllConstantsLow allConstants;
 	ExactSizeArrBuilder!ubyte text;
+	immutable(size_t)[] cStringIndexToTextIndex;
 	size_t[][] arrTypeIndexToConstantIndexToTextIndex;
 	size_t[][] pointeeTypeIndexToIndexToTextIndex;
 }
@@ -143,6 +158,9 @@ void ensureConstant(TempAlloc)(
 			recurWriteArr(tempAlloc, ctx, it.typeIndex, arrs.elementType, it.index, at(arrs.constants, it.index));
 		},
 		(immutable Constant.BoolConstant) {},
+		(ref immutable Constant.CString) {
+			todo!void("!");
+		},
 		(immutable double) {},
 		(immutable Constant.Integral) {},
 		(immutable Constant.Null) {},
@@ -210,12 +228,14 @@ void recurWritePointer(TempAlloc)(
 }
 
 immutable(size_t) getAllConstantsSize(ref immutable LowProgram program, ref immutable AllConstantsLow allConstants) {
+	immutable size_t cStringsSize = sum(allConstants.cStrings, (ref immutable string s) =>
+		size(s) + 1);
 	immutable size_t arrsSize = sum(allConstants.arrs, (ref immutable ArrTypeAndConstantsLow arrs) =>
 		sizeOfType(program, arrs.elementType).size.raw() *
 		sum(arrs.constants, (ref immutable Constant[] elements) => size(elements)));
 	immutable size_t pointersSize = sum(allConstants.pointers, (ref immutable PointerTypeAndConstantsLow pointers) =>
 		sizeOfType(program, pointers.pointeeType).size.raw() * size(pointers.constants));
-	return arrsSize + pointersSize;
+	return cStringsSize + arrsSize + pointersSize;
 }
 
 void writeConstant(TempAlloc)(
@@ -235,6 +255,10 @@ void writeConstant(TempAlloc)(
 		},
 		(immutable Constant.BoolConstant it) {
 			exactSizeArrBuilderAdd(ctx.text, it.value ? 1 : 0);
+		},
+		(ref immutable Constant.CString) {
+			// Use ctx.cStringIndexToTextIndex
+			todo!void("!");
 		},
 		(immutable double it) {
 			switch (asPrimitive(type)) {

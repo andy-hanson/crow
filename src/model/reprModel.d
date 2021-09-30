@@ -295,7 +295,9 @@ immutable(Repr) reprExpr(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Expr
 				reprExpr(alloc, ctx, a.first),
 				reprExpr(alloc, ctx, a.then)]),
 		(ref immutable Expr.StringLiteral it) =>
-			reprRecord(alloc, "string-lit", [reprStr(it.literal)]));
+			reprRecord(alloc, "string-lit", [reprStr(it.literal)]),
+		(ref immutable Expr.SymbolLiteral it) =>
+			reprRecord(alloc, "sym-lit", [reprStr(it.value)]));
 }
 
 immutable(Repr) reprClosureField(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable ClosureField a) {

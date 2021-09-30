@@ -1043,6 +1043,7 @@ struct PointerTypeAndConstantsConcrete {
 
 // TODO: rename -- this is not all constants, just the ones by-ref
 struct AllConstantsConcrete {
+	immutable string[] cStrings;
 	immutable ArrTypeAndConstantsConcrete[] arrs;
 	// These are just the by-ref records
 	immutable PointerTypeAndConstantsConcrete[] pointers;
@@ -1066,7 +1067,6 @@ struct ConcreteProgram {
 	immutable(Ptr!ConcreteFun) userMain() immutable { return commonFuns.userMain; }
 	immutable(Ptr!ConcreteFun) allocFun() immutable { return commonFuns.allocFun; }
 }
-static assert(ConcreteProgram.sizeof <= 128);
 
 struct ConcreteCommonFuns {
 	immutable Ptr!ConcreteFun markFun;

@@ -238,11 +238,15 @@ struct LiteralAst {
 		immutable ulong value;
 		immutable bool overflow;
 	}
+	struct Symbol {
+		immutable string value;
+	}
 
 	immutable this(immutable Float a) { kind = Kind.float_; float_ = a; }
 	immutable this(immutable Int a) { kind = Kind.int_; int_ = a; }
 	immutable this(immutable Nat a) { kind = Kind.nat; nat = a; }
 	@trusted immutable this(immutable string a) { kind = Kind.str; str = a; }
+	@trusted immutable this(immutable Symbol a) { kind = Kind.symbol; symbol = a; }
 
 	private:
 	enum Kind {
@@ -250,6 +254,7 @@ struct LiteralAst {
 		int_,
 		nat,
 		str,
+		symbol,
 	}
 	immutable Kind kind;
 	union {
@@ -257,6 +262,7 @@ struct LiteralAst {
 		immutable Int int_;
 		immutable Nat nat;
 		immutable string str;
+		immutable Symbol symbol;
 	}
 }
 
@@ -266,6 +272,7 @@ struct LiteralAst {
 	scope immutable(T) delegate(ref immutable LiteralAst.Int) @safe @nogc pure nothrow cbInt,
 	scope immutable(T) delegate(ref immutable LiteralAst.Nat) @safe @nogc pure nothrow cbNat,
 	scope immutable(T) delegate(ref immutable string) @safe @nogc pure nothrow cbStr,
+	scope immutable(T) delegate(ref immutable LiteralAst.Symbol) @safe @nogc pure nothrow cbSymbol,
 ) {
 	final switch (a.kind) {
 		case LiteralAst.Kind.float_:
@@ -276,6 +283,8 @@ struct LiteralAst {
 			return cbNat(a.nat);
 		case LiteralAst.Kind.str:
 			return cbStr(a.str);
+		case LiteralAst.Kind.symbol:
+			return cbSymbol(a.symbol);
 	}
 }
 
@@ -1024,7 +1033,9 @@ immutable(Repr) reprLiteralAst(Alloc)(ref Alloc alloc, ref immutable LiteralAst 
 			(ref immutable LiteralAst.Nat it) =>
 				reprLiteralNat(alloc, it),
 			(ref immutable string it) =>
-				reprStr(it))]);
+				reprStr(it),
+			(ref immutable LiteralAst.Symbol it) =>
+				reprRecord(alloc, "symbol", [reprStr(it.value)]))]);
 }
 
 immutable(Repr) reprLiteralInt(Alloc)(ref Alloc alloc, ref immutable LiteralAst.Int a) {

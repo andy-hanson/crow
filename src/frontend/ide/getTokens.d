@@ -77,6 +77,7 @@ struct Token {
 		localDef,
 		literalNumber,
 		literalString,
+		literalSymbol,
 		paramDef,
 		purity,
 		specDef,
@@ -401,7 +402,9 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 				(ref immutable LiteralAst.Nat) =>
 					Token.Kind.literalNumber,
 				(ref immutable string) =>
-					Token.Kind.literalString);
+					Token.Kind.literalString,
+				(ref immutable LiteralAst.Symbol) =>
+					Token.Kind.literalSymbol);
 			add(alloc, tokens, immutable Token(kind, a.range));
 		},
 		(ref immutable MatchAst it) {
@@ -478,6 +481,8 @@ immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 			return shortSymAlphaLiteral("lit-num");
 		case Token.Kind.literalString:
 			return shortSymAlphaLiteral("lit-str");
+		case Token.Kind.literalSymbol:
+			return shortSymAlphaLiteral("lit-sym");
 		case Token.Kind.localDef:
 			return shortSymAlphaLiteral("local-def");
 		case Token.Kind.paramDef:

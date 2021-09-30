@@ -52,6 +52,7 @@ import frontend.parse.lexer :
 	takeNumberAfterSign,
 	takeOrAddDiagExpected,
 	takeStringPart,
+	takeSymbolLiteral,
 	tryTake;
 import frontend.parse.parseType : tryParseTypeArgsBracketed;
 import model.parseDiag : EqLikeKind, ParseDiag;
@@ -849,7 +850,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				range(lexer, start),
 				immutable ExprAstKind(immutable FunPtrAst(name))));
 		case '"': {
-			immutable StringPart part = takeStringPart(alloc, lexer);
+			immutable StringPart part = takeStringPart(alloc, lexer, '"');
 			final switch (part.after) {
 				case StringPart.After.quote:
 					return handleLiteral(alloc, lexer, start, immutable LiteralAst(part.text));
@@ -858,6 +859,12 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 					return noDedent(tryParseDotsAndSubscripts(alloc, lexer, interpolated));
 			}
 		}
+		case '\'':
+			immutable string symbol = takeSymbolLiteral(alloc, lexer);
+			immutable ExprAst expr = immutable ExprAst(
+				range(lexer, start),
+				immutable ExprAstKind(immutable LiteralAst(immutable LiteralAst.Symbol(symbol))));
+			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 		case '+':
 			return isDigit(*lexer.ptr)
 				? handleLiteral(alloc, lexer, start, takeNumberAfterSign(lexer, some(Sign.plus)))
@@ -987,7 +994,7 @@ immutable(ExprAst) takeInterpolatedRecur(Alloc, SymAlloc)(
 	add(alloc, parts, immutable InterpolatedPart(e));
 	if (!tryTake(lexer, '}'))
 		todo!void("!");
-	immutable StringPart part = takeStringPart(alloc, lexer);
+	immutable StringPart part = takeStringPart(alloc, lexer, '"');
 	if (!empty(part.text))
 		add(alloc, parts, immutable InterpolatedPart(part.text));
 	final switch (part.after) {

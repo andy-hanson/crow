@@ -12,6 +12,8 @@ immutable(Repr) reprOfConstant(Alloc)(ref Alloc alloc, ref immutable Constant a)
 			reprRecord(alloc, "arr", [reprNat(it.typeIndex), reprNat(it.index)]),
 		(immutable Constant.BoolConstant it) =>
 			reprBool(it.value),
+		(ref immutable Constant.CString it) =>
+			reprRecord(alloc, "c-str", [reprNat(it.index)]),
 		(immutable double it) =>
 			reprFloat(it),
 		(immutable Constant.Integral it) =>

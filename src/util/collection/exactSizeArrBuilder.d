@@ -3,8 +3,8 @@ module util.collection.exactSizeArrBuilder;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : allocateBytes;
-import util.collection.arr : arrOfRange_mut;
-import util.memory : initMemory_mut, memset;
+import util.collection.arr : arrOfRange_mut, size;
+import util.memory : initMemory_mut, memcpy, memset;
 import util.util : verify;
 
 //TODO:MOVE
@@ -59,6 +59,16 @@ immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T 
 
 @trusted void add64TextPtr(ref ExactSizeArrBuilder!ubyte a, immutable size_t textIndex) {
 	add64(a, cast(immutable ulong) (a.begin + textIndex));
+}
+
+@trusted void addStringAndNulTerminate(ref ExactSizeArrBuilder!ubyte a, immutable string value) {
+	//TODO:PERF
+	verify(a.cur + size(value) + 1 <= a.end);
+	verify(ubyte.sizeof == char.sizeof);
+	memcpy(a.cur, cast(immutable ubyte*) value.ptr, size(value));
+	a.cur += size(value);
+	*a.cur = '\0';
+	a.cur++;
 }
 
 @trusted T[] finish(T)(ref ExactSizeArrBuilder!T a) {

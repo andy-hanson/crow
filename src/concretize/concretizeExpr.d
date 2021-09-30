@@ -9,6 +9,7 @@ import concretize.concretizeCtx :
 	concreteTypeFromClosure,
 	concretizeParams,
 	constantStr,
+	constantSym,
 	ContainingFunInfo,
 	getOrAddNonTemplateConcreteFunAndFillBody,
 	getConcreteType_fromConcretizeCtx = getConcreteType,
@@ -17,6 +18,7 @@ import concretize.concretizeCtx :
 	getOrAddConcreteFunAndFillBody,
 	getConcreteFunForLambdaAndFillBody,
 	strType,
+	symType,
 	typeArgsScope,
 	TypeArgsScope,
 	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes;
@@ -720,7 +722,12 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 			immutable ConcreteExpr(
 				strType(alloc, ctx.concretizeCtx),
 				range,
-				immutable ConcreteExprKind(constantStr(alloc, ctx.concretizeCtx, e.literal))));
+				immutable ConcreteExprKind(constantStr(alloc, ctx.concretizeCtx, e.literal))),
+		(ref immutable Expr.SymbolLiteral e) =>
+			immutable ConcreteExpr(
+				symType(alloc, ctx.concretizeCtx),
+				range,
+				immutable ConcreteExprKind(constantSym(alloc, ctx.concretizeCtx, e.value))));
 }
 
 immutable(Constant) evalConstant(ref immutable ConcreteFun fn, immutable Constant[] /*parameters*/) {

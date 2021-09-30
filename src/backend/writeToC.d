@@ -1680,6 +1680,12 @@ void writeConstantRef(Alloc)(
 		(immutable Constant.BoolConstant it) {
 			writeChar(writer, it.value ? '1' : '0');
 		},
+		(ref immutable Constant.CString it) {
+			writeChar(writer, '"');
+			foreach (immutable char c; at(ctx.program.allConstants.cStrings, it.index))
+				writeEscapedChar_inner(writer, c);
+			writeChar(writer, '"');
+		},
 		(immutable double it) {
 			writeFloatLiteral(writer, it);
 		},

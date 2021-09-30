@@ -54,6 +54,7 @@ crow/crypto/random
 crow/db/lmdb
 crow/exception
 crow/extra-types
+crow/flags
 crow/fun
 crow/fut
 crow/hash
@@ -104,6 +105,7 @@ crow/std
 crow/str-conv
 crow/str-util
 crow/str
+crow/sym
 crow/test/spy
 crow/test/test-runner
 crow/test

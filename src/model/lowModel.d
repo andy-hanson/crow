@@ -1083,6 +1083,7 @@ struct PointerTypeAndConstantsLow {
 
 // TODO: rename -- this is not all constants, just the ones by-ref
 struct AllConstantsLow {
+	immutable string[] cStrings;
 	immutable ArrTypeAndConstantsLow[] arrs;
 	// These are just the by-ref records
 	immutable PointerTypeAndConstantsLow[] pointers;

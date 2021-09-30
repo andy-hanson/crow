@@ -53,7 +53,13 @@ import interpret.bytecodeWriter :
 	writeSwitchWithValuesDelay,
 	writeWrite;
 import interpret.debugging : writeLowType;
-import interpret.generateText : generateText, getTextInfoForArray, getTextPointer, TextAndInfo, TextArrInfo;
+import interpret.generateText :
+	generateText,
+	getTextInfoForArray,
+	getTextPointer,
+	getTextPointerForCString,
+	TextAndInfo,
+	TextArrInfo;
 import model.concreteModel : TypeSize;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
@@ -792,6 +798,9 @@ void generateConstant(Debug, CodeAlloc, TempAlloc)(
 		},
 		(immutable Constant.BoolConstant it) {
 			writeBoolConstant(dbg, writer, source, it.value);
+		},
+		(ref immutable Constant.CString it) {
+			writePushConstantPointer(dbg, writer, source, getTextPointerForCString(ctx.textInfo, it));
 		},
 		(immutable double it) {
 			switch (asPrimitiveType(type)) {

@@ -2,7 +2,7 @@ module concretize.concretizeCtx;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantStr, getConstantStrOfSym;
+import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantStr, getConstantStrOfSym, getConstantSym;
 import concretize.concretizeExpr : concretizeExpr;
 import model.concreteModel :
 	asFlags,
@@ -250,6 +250,7 @@ struct ConcretizeCtx {
 	Late!(immutable ConcreteType) _anyPtrType;
 	Late!(immutable ConcreteType) _ctxType;
 	Late!(immutable ConcreteType) _strType;
+	Late!(immutable ConcreteType) _symType;
 }
 
 immutable(ConcreteType) boolType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
@@ -273,10 +274,13 @@ immutable(ConcreteType) anyPtrType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) 
 }
 
 immutable(ConcreteType) strType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
-	return lazilySet(a._strType, () {
-		immutable ConcreteType charType = charType(alloc, a);
-		return getConcreteType_forStructInst(alloc, a, a.commonTypes.str, TypeArgsScope.empty);
-	});
+	return lazilySet(a._strType, () =>
+		getConcreteType_forStructInst(alloc, a, a.commonTypes.str, TypeArgsScope.empty));
+}
+
+immutable(ConcreteType) symType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
+	return lazilySet(a._symType, () =>
+		getConcreteType_forStructInst(alloc, a, a.commonTypes.sym, TypeArgsScope.empty));
 }
 
 immutable(ConcreteType) ctxType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
@@ -291,6 +295,10 @@ immutable(Constant) constantStr(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, imm
 	immutable ConcreteType strType = strType(alloc, a);
 	immutable Ptr!ConcreteStruct strStruct = mustBeNonPointer(strType);
 	return getConstantStr(alloc, a.allConstants, strStruct, charType, value);
+}
+
+immutable(Constant) constantSym(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, immutable string value) {
+	return getConstantSym(alloc, a.allConstants, value);
 }
 
 private immutable(Constant) constantStrOfSym(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, immutable Sym value) {

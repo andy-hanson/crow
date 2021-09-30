@@ -20,6 +20,10 @@ struct Constant {
 	struct BoolConstant { // TODO: just use Integral?
 		immutable bool value;
 	}
+	// Nul-terminated string identified only by its begin pointer.
+	struct CString {
+		immutable size_t index; // Index into AllConstants#cStrings
+	}
 	// For int and nat types.
 	// For a large nat, this may wrap around to negative.
 	struct Integral {
@@ -44,6 +48,7 @@ struct Constant {
 	enum Kind {
 		arr,
 		bool_,
+		cString,
 		float_,
 		integral,
 		null_,
@@ -56,8 +61,9 @@ struct Constant {
 	union {
 		immutable ArrConstant arr_;
 		immutable BoolConstant bool_;
+		immutable CString cString;
 		immutable double float_;
-		immutable Integral integral_;
+		immutable Integral integral;
 		immutable Null null_;
 		immutable Pointer pointer;
 		immutable Record record;
@@ -67,9 +73,10 @@ struct Constant {
 	public:
 	@trusted immutable this(immutable ArrConstant a) { kind = Kind.arr; arr_ = a; }
 	immutable this(immutable BoolConstant a) { kind = Kind.bool_; bool_ = a; }
+	immutable this(immutable CString a) { kind = Kind.cString; cString = a; }
 	// used for both float32 and float64
 	immutable this(immutable double a) { kind = Kind.float_; float_ = a; }
-	immutable this(immutable Integral a) { kind = Kind.integral; integral_ = a; }
+	immutable this(immutable Integral a) { kind = Kind.integral; integral = a; }
 	immutable this(immutable Null a) { kind = Kind.null_; null_ = a; }
 	@trusted immutable this(immutable Pointer a) { kind = Kind.pointer; pointer = a; }
 	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
@@ -85,7 +92,7 @@ immutable(bool) asBool(ref immutable Constant a) {
 
 immutable(Constant.Integral) asIntegral(ref immutable Constant a) {
 	verify(a.kind == Constant.Kind.integral);
-	return a.integral_;
+	return a.integral;
 }
 
 immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
@@ -111,11 +118,13 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 			return a.arr_.index == b.arr_.index;
 		case Constant.Kind.bool_:
 			return a.bool_.value == b.bool_.value;
+		case Constant.Kind.cString:
+			return a.cString.index == b.cString.index;
 		case Constant.Kind.float_:
 			//TODO: handle NaN
 			return a.float_ == b.float_;
 		case Constant.Kind.integral:
-			return a.integral_.value == b.integral_.value;
+			return a.integral.value == b.integral.value;
 		case Constant.Kind.null_:
 		case Constant.Kind.void_:
 			return true;
@@ -136,6 +145,7 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 	ref immutable Constant a,
 	scope T delegate(ref immutable Constant.ArrConstant) @safe @nogc pure nothrow cbArr,
 	scope T delegate(immutable Constant.BoolConstant) @safe @nogc pure nothrow cbBool,
+	scope T delegate(ref immutable Constant.CString) @safe @nogc pure nothrow cbCString,
 	scope T delegate(immutable double) @safe @nogc pure nothrow cbFloat,
 	scope T delegate(immutable Constant.Integral) @safe @nogc pure nothrow cbIntegral,
 	scope T delegate(immutable Constant.Null) @safe @nogc pure nothrow cbNull,
@@ -149,10 +159,12 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 			return cbArr(a.arr_);
 		case Constant.Kind.bool_:
 			return cbBool(a.bool_);
+		case Constant.Kind.cString:
+			return cbCString(a.cString);
 		case Constant.Kind.float_:
 			return cbFloat(a.float_);
 		case Constant.Kind.integral:
-			return cbIntegral(a.integral_);
+			return cbIntegral(a.integral);
 		case Constant.Kind.null_:
 			return cbNull(a.null_);
 		case Constant.Kind.pointer:

@@ -1,0 +1,9 @@
+no-std
+import
+	.str: str
+	.str-util: to-str
+export
+	.private.bootstrap: sym, to-c-str
+
+to-str str(a sym) noctx trusted
+	a.to-c-str to-str

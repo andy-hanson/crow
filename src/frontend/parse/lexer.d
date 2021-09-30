@@ -346,7 +346,7 @@ immutable(Sym) takeName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lex
 
 immutable(string) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
 	if (takeOrAddDiagExpected(alloc, lexer, '"', ParseDiag.Expected.Kind.quote)) {
-		immutable StringPart sp = takeStringPart(alloc, lexer);
+		immutable StringPart sp = takeStringPart(alloc, lexer, '"');
 		final switch (sp.after) {
 			case StringPart.After.quote:
 				return sp.text;
@@ -437,7 +437,8 @@ public @trusted immutable(LiteralIntOrNat) takeIntOrNat(SymAlloc)(ref Lexer!SymA
 		(ref immutable LiteralAst.Float f) => todo!(immutable LiteralIntOrNat)("no float in enum"),
 		(ref immutable LiteralAst.Int i) => immutable LiteralIntOrNat(i),
 		(ref immutable LiteralAst.Nat n) => immutable LiteralIntOrNat(n),
-		(ref immutable string) => unreachable!(immutable LiteralIntOrNat));
+		(ref immutable(string)) => unreachable!(immutable LiteralIntOrNat),
+		(ref immutable LiteralAst.Symbol) => unreachable!(immutable LiteralIntOrNat));
 }
 
 public @trusted immutable(LiteralAst) takeNumberAfterSign(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Opt!Sign sign) {
@@ -567,35 +568,50 @@ public struct StringPart {
 	}
 }
 
-immutable(bool) allowedStringPartCharacter(immutable char c) {
+immutable(bool) allowedStringPartCharacter(immutable char c, immutable char endQuote) {
 	switch (c) {
 		case '\n':
 		case '\0':
-		case '"':
 		case '{':
+		case endQuote:
 			return false;
 		default:
 			return true;
 	}
 }
 
+public immutable(string) takeSymbolLiteral(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+) {
+	immutable StringPart part = takeStringPart(alloc, lexer, '\'');
+	final switch (part.after) {
+		case StringPart.After.quote:
+			return part.text;
+		case StringPart.After.lbrace:
+			// Diagnostic: '{' should be escaped to avoid confusion with interpolation
+			return todo!(immutable string)("!");
+	}
+}
+
 public @trusted immutable(StringPart) takeStringPart(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
+	immutable char endQuote,
 ) {
 	immutable CStr begin = lexer.ptr;
 	size_t nEscapedCharacters = 0;
 	// First get the max size
-	while (allowedStringPartCharacter(*lexer.ptr)) {
+	while (allowedStringPartCharacter(*lexer.ptr, endQuote)) {
 		if (*lexer.ptr == '\\') {
 			lexer.ptr++;
 			nEscapedCharacters++;
 			if (*lexer.ptr == 'x') {
 				lexer.ptr++;
-				if (allowedStringPartCharacter(*lexer.ptr)) {
+				if (allowedStringPartCharacter(*lexer.ptr, endQuote)) {
 					lexer.ptr++;
 					nEscapedCharacters++;
-					if (allowedStringPartCharacter(*lexer.ptr)) {
+					if (allowedStringPartCharacter(*lexer.ptr, endQuote)) {
 						lexer.ptr++;
 						nEscapedCharacters++;
 					}
@@ -613,7 +629,7 @@ public @trusted immutable(StringPart) takeStringPart(Alloc, SymAlloc)(
 
 	size_t outI = 0;
 	lexer.ptr = begin;
-	while (allowedStringPartCharacter(*lexer.ptr)) {
+	while (allowedStringPartCharacter(*lexer.ptr, endQuote)) {
 		if (*lexer.ptr == '\\') {
 			lexer.ptr++;
 			immutable char c = () {
@@ -634,14 +650,14 @@ public @trusted immutable(StringPart) takeStringPart(Alloc, SymAlloc)(
 						return '\r';
 					case 't':
 						return '\t';
-					case '"':
-						return '"';
 					case '\\':
 						return '\\';
 					case '{':
 						return '{';
 					case '0':
 						return '\0';
+					case endQuote:
+						return endQuote;
 					default:
 						addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.InvalidStringEscape(esc)));
 						return 'a';
@@ -658,10 +674,10 @@ public @trusted immutable(StringPart) takeStringPart(Alloc, SymAlloc)(
 
 	immutable StringPart.After after = () {
 		switch (*lexer.ptr) {
-			case '"':
-				return StringPart.After.quote;
 			case '{':
 				return StringPart.After.lbrace;
+			case endQuote:
+				return StringPart.After.quote;
 			default:
 				return unreachable!(immutable StringPart.After);
 		}

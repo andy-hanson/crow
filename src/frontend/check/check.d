@@ -381,6 +381,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 	immutable Ptr!StructInst nat32 = nonTemplate("nat32");
 	immutable Ptr!StructInst nat64 = nonTemplate("nat64");
 	immutable Ptr!StructInst str = nonTemplate("str");
+	immutable Ptr!StructInst sym = nonTemplate("sym");
 	immutable Ptr!StructInst void_ = nonTemplate("void");
 	immutable Ptr!StructInst ctxStructInst = nonTemplate("ctx");
 
@@ -449,6 +450,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 			nat32,
 			nat64),
 		str,
+		sym,
 		void_,
 		ctxStructInst,
 		byVal,

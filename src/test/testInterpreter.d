@@ -130,7 +130,10 @@ void doInterpret(Debug, Alloc)(
 			emptyArr!LowParam),
 		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc.deref(), false)))];
 	immutable LowProgram lowProgram = immutable LowProgram(
-		immutable AllConstantsLow(emptyArr!ArrTypeAndConstantsLow, emptyArr!PointerTypeAndConstantsLow),
+		immutable AllConstantsLow(
+			emptyArr!string,
+			emptyArr!ArrTypeAndConstantsLow,
+			emptyArr!PointerTypeAndConstantsLow),
 		nu!AllLowTypes(
 			test.alloc.deref(),
 			emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),

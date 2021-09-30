@@ -345,6 +345,9 @@ contexts:
     # `x = y` or `x <- y`
     - match: '\s+(\=|<-)\s+'
       scope: keyword
+    # `'foo'`
+    - match: "'.*'"
+      scope: constant.character.escape
     # `"foo"`
     - match: '"'
       push: string
@@ -374,8 +377,6 @@ contexts:
     - meta_include_prototype: false
     - match: '"'
       pop: true
-    - match: ASS
-      scope: constant.character.escape
     - match: \\.
       scope: constant.character.escape
     #- match: '\{'
