@@ -11,14 +11,14 @@ import
 	..fut: delay, fut, handle-exceptions, then-void
 	..io.process: exit-code
 	..misc: as, void
-	..opt: value
+	..opt: none, value
 	..ptr:
 		+, any-ptr, as-any-ptr, as-ref, by-val, null, ptr, ptr-to, ref-of-val, set-subscript,
 		subscript
 	..str: c-str, str
 	..str-util: to-str
 	.alloc
-	.bootstrap: call-with-ctx, ctx, get-ctx, state, thread-local-stuff
+	.bootstrap: call-with-ctx, ctx, get-ctx, lock, state, thread-local-stuff
 	.exception-low-level: exception-ctx
 	.log-low-level: log-ctx
 	.number-low-level:
@@ -38,7 +38,7 @@ import
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
 	n-threads = get_nprocs
 	f = false
-	gctx-by-val = as<by-val global-ctx>: global-ctx: lock-by-val, lock-by-val, [], n-threads, create-condition, f, f
+	gctx-by-val = as<by-val global-ctx>: global-ctx: lbv, lbv, lbv, none, [], n-threads, create-condition, f, f
 	gctx = gctx-by-val ref-of-val
 	island-by-val = island: gctx, 0, n-threads
 	island = island-by-val ref-of-val
@@ -64,6 +64,9 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	as exception
 		# 'handle-exceptions' should have logged the error
 		1
+
+.lbv by-val lock() noctx
+	lock-by-val
 
 .add-main-task fut nat64
 	gctx global-ctx

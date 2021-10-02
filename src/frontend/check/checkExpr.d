@@ -692,7 +692,7 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 
 	return matchLiteralAst!(immutable CheckedExpr)(
 		ast,
-		(ref immutable LiteralAst.Float it) {
+		(immutable LiteralAst.Float it) {
 			if (it.overflow)
 				todo!void("literal overflow");
 
@@ -700,7 +700,7 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 				? asFloat32(it.value)
 				: asFloat64(it.value);
 		},
-		(ref immutable LiteralAst.Int it) {
+		(immutable LiteralAst.Int it) {
 			if (ptrEquals(expectedStruct, ctx.commonTypes.float32))
 				return asFloat32(cast(immutable float) it.value);
 			if (ptrEquals(expectedStruct, ctx.commonTypes.float64))
@@ -727,7 +727,7 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 				}
 			}
 		},
-		(ref immutable LiteralAst.Nat it) {
+		(immutable LiteralAst.Nat it) {
 			if (ptrEquals(expectedStruct, ctx.commonTypes.float32))
 				return asFloat32(cast(immutable float) it.value);
 			if (ptrEquals(expectedStruct, ctx.commonTypes.float64))
@@ -764,7 +764,7 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 				}
 			}
 		},
-		(ref immutable string it) {
+		(immutable string it) {
 			if (ptrEquals(expectedStruct, ctx.commonTypes.char_)) {
 				if (size(it) != 1)
 					todo!void("char literal must be one char");
@@ -779,8 +779,8 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 				return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.str), e);
 			}
 		},
-		(ref immutable LiteralAst.Symbol it) {
-			immutable Expr e = immutable Expr(range, immutable Expr.SymbolLiteral(copyStr(alloc, it.value)));
+		(immutable Sym it) {
+			immutable Expr e = immutable Expr(range, immutable Expr.SymbolLiteral(it));
 			return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.sym), e);
 		});
 }

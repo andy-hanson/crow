@@ -51,13 +51,56 @@ include ../pug-include/tutorial.pug
 
 		crow-runnable(src="flags")
 
-		h3 C-style enums
+
+	section
+		h2 Other enum/flags features
+
+		h3 Explicit backing type
+		p.
+			If you like, you can specify the backing type of the enum.
+		crow-runnable(src="enum-explicit-backing-type")
+
+		p.
+			(<code class="fun-def">main</code> had to be <code class="keyword">trusted</code>
+			because <code class="fun-ref">size-of</code> is unsafe.)
+
+		h3 Explicit values
 		p.
 			For compatibility with C libraries, you can also explicitly specify the values used in an
 			<code class="keyword">enum</code> or <code class="keyword">flags</code> type.
 			<br />
 			It's a compile error to repeat a value.
 			<br />
-			Each ommitted value is 1 greater than the previous value.
+			Like in C, Each ommitted value is 1 greater than the previous value.
+		p.
+			You can get the number back using <code class="fun-ref">to-nat32</code> which is automatically generated.
+			If the enum has an explicit type, this function will match, e.g. <code class="fun-ref">to-nat8</code>.
 
 		crow-runnable(src="enum-explicit-value")
+
+		p.
+			The same is true of flags.
+
+	section
+		h3 Sym
+
+		p.
+			TODO TODO TODO
+
+		crow-runnable(src="sym")
+
+	section
+		h3 Sym and enum
+
+		p.
+			The <code class="module">crow.enum</code> module (which is auto-imported)
+			defines helpful functions for working with enums and syms.
+		p.
+			<code class="fun-ref">to-sym</code> converts any enum to a sym.
+			This is useful for printing the value of an enum.
+		p.
+			<code class="fun-ref">to-enum</code> converts a sym to an enum.
+			It returns an <code class="struct-ref">opt</code> since the name might not appear in the enum.
+
+		crow-runnable(src="sym-and-enum")
+

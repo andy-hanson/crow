@@ -8,7 +8,8 @@ import concretize.concretizeCtx :
 	constantStr,
 	ctxType,
 	deferredFillRecordAndUnionBodies,
-	getOrAddNonTemplateConcreteFunAndFillBody;
+	getOrAddNonTemplateConcreteFunAndFillBody,
+	symType;
 import interpret.debugging : writeConcreteFunName;
 import model.concreteModel :
 	ConcreteCommonFuns,
@@ -16,7 +17,8 @@ import model.concreteModel :
 	ConcreteFunToName,
 	ConcreteLambdaImpl,
 	ConcreteProgram,
-	ConcreteStruct;
+	ConcreteStruct,
+	mustBeNonPointer;
 import model.constant : Constant;
 import model.model :
 	asStructInst,
@@ -72,6 +74,8 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getUserMainFun(alloc, program));
 	immutable Ptr!ConcreteFun allocFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getAllocFun(alloc, program));
+	immutable Ptr!ConcreteFun staticSymsFun =
+		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getStaticSymsFun(alloc, program));
 	// We remove items from these dicts when we process them.
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 
@@ -82,7 +86,7 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 
 	return nu!ConcreteProgram(
 		alloc,
-		finishAllConstants(alloc, ctx.allConstants),
+		finishAllConstants(alloc, ctx.allConstants, mustBeNonPointer(staticSymsFun.returnType), symType(alloc, ctx)),
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		allConcreteFuns,
 		funToName,
@@ -207,6 +211,13 @@ immutable(Ptr!FunInst) getAllocFun(Alloc)(ref Alloc alloc, ref immutable Program
 	immutable Ptr!FunDecl allocFun = only(allocFuns);
 	// TODO: check the signature!
 	return nonTemplateFunInst(alloc, allocFun);
+}
+
+immutable(Ptr!FunInst) getStaticSymsFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
+	immutable Ptr!FunDecl[] funs = getFuns(program.specialModules.bootstrapModule, shortSymAlphaLiteral("static-syms"));
+	if (size(funs) != 1)
+		todo!void("wrong number static-syms funs");
+	return nonTemplateFunInst(alloc, only(funs));
 }
 
 immutable(Ptr!FunInst) getCurIslandAndExclusionFun(Alloc, SymAlloc)(

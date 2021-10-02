@@ -28,7 +28,8 @@ import util.sym :
 	isDigit,
 	shortSymAlphaLiteral,
 	shortSymAlphaLiteralValue,
-	Sym;
+	Sym,
+	symOfStr;
 import util.types : safeI32FromU32, safeSizeTToU32;
 import util.util : drop, todo, unreachable, verify;
 
@@ -434,11 +435,11 @@ public @trusted immutable(LiteralIntOrNat) takeIntOrNat(SymAlloc)(ref Lexer!SymA
 	immutable LiteralAst res = takeNumberAfterSign(lexer, sign);
 	return matchLiteralAst!(LiteralIntOrNat)(
 		res,
-		(ref immutable LiteralAst.Float f) => todo!(immutable LiteralIntOrNat)("no float in enum"),
-		(ref immutable LiteralAst.Int i) => immutable LiteralIntOrNat(i),
-		(ref immutable LiteralAst.Nat n) => immutable LiteralIntOrNat(n),
-		(ref immutable(string)) => unreachable!(immutable LiteralIntOrNat),
-		(ref immutable LiteralAst.Symbol) => unreachable!(immutable LiteralIntOrNat));
+		(immutable LiteralAst.Float) => todo!(immutable LiteralIntOrNat)("no float in enum"),
+		(immutable LiteralAst.Int i) => immutable LiteralIntOrNat(i),
+		(immutable LiteralAst.Nat n) => immutable LiteralIntOrNat(n),
+		(immutable(string)) => unreachable!(immutable LiteralIntOrNat),
+		(immutable(Sym)) => unreachable!(immutable LiteralIntOrNat));
 }
 
 public @trusted immutable(LiteralAst) takeNumberAfterSign(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Opt!Sign sign) {
@@ -580,17 +581,17 @@ immutable(bool) allowedStringPartCharacter(immutable char c, immutable char endQ
 	}
 }
 
-public immutable(string) takeSymbolLiteral(Alloc, SymAlloc)(
+public immutable(Sym) takeSymbolLiteral(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
 	immutable StringPart part = takeStringPart(alloc, lexer, '\'');
 	final switch (part.after) {
 		case StringPart.After.quote:
-			return part.text;
+			return symOfStr(lexer.allSymbols, part.text);
 		case StringPart.After.lbrace:
 			// Diagnostic: '{' should be escaped to avoid confusion with interpolation
-			return todo!(immutable string)("!");
+			return todo!(immutable Sym)("!");
 	}
 }
 

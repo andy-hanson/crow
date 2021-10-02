@@ -8,6 +8,7 @@ import model.model :
 	bestCasePurity,
 	CalledDecl,
 	decl,
+	EnumBackingType,
 	FunDecl,
 	matchCalledDecl,
 	name,
@@ -558,6 +559,12 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			else
 				writeNat(writer, cast(ulong) d.value);
 		},
+		(ref immutable Diag.EnumMemberOverflows d) {
+			writeStatic(writer, "enum member is not in the allowed range ");
+			writeInt(writer, minValue(d.backingType));
+			writeStatic(writer, " to ");
+			writeNat(writer, maxValue(d.backingType));
+		},
 		(ref immutable Diag.ExpectedTypeIsNotALambda d) {
 			if (has(d.expectedType)) {
 				writeStatic(writer, "the expected type at the lambda is ");
@@ -819,5 +826,44 @@ immutable(string) aOrAnTypeKind(immutable TypeKind a) {
 			return "a record";
 		case TypeKind.union_:
 			return "a union";
+	}
+}
+
+immutable(long) minValue(immutable EnumBackingType type) {
+	final switch (type) {
+		case EnumBackingType.int8:
+			return byte.min;
+		case EnumBackingType.int16:
+			return short.min;
+		case EnumBackingType.int32:
+			return int.min;
+		case EnumBackingType.int64:
+			return long.min;
+		case EnumBackingType.nat8:
+		case EnumBackingType.nat16:
+		case EnumBackingType.nat32:
+		case EnumBackingType.nat64:
+			return 0;
+	}
+}
+
+immutable(ulong) maxValue(immutable EnumBackingType type) {
+	final switch (type) {
+		case EnumBackingType.int8:
+			return byte.max;
+		case EnumBackingType.int16:
+			return short.max;
+		case EnumBackingType.int32:
+			return int.max;
+		case EnumBackingType.int64:
+			return long.max;
+		case EnumBackingType.nat8:
+			return ubyte.max;
+		case EnumBackingType.nat16:
+			return ushort.max;
+		case EnumBackingType.nat32:
+			return uint.max;
+		case EnumBackingType.nat64:
+			return ulong.max;
 	}
 }

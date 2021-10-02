@@ -52,6 +52,7 @@ crow/crypto/password
 crow/crypto/private/sodium
 crow/crypto/random
 crow/db/lmdb
+crow/enum
 crow/exception
 crow/extra-types
 crow/flags

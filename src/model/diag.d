@@ -8,6 +8,7 @@ import model.model :
 	AbsolutePathsGetter,
 	CalledDecl,
 	ClosureField,
+	EnumBackingType,
 	FunDecl,
 	getAbsolutePath,
 	LineAndColumnGetters,
@@ -129,6 +130,9 @@ struct Diag {
 	struct EnumDuplicateValue {
 		immutable bool signed;
 		immutable long value;
+	}
+	struct EnumMemberOverflows {
+		immutable EnumBackingType backingType;
 	}
 	struct ExpectedTypeIsNotALambda {
 		immutable Opt!Type expectedType;
@@ -275,6 +279,7 @@ struct Diag {
 		duplicateImports,
 		enumBackingTypeInvalid,
 		enumDuplicateValue,
+		enumMemberOverflows,
 		expectedTypeIsNotALambda,
 		externPtrHasTypeParams,
 		ifNeedsOpt,
@@ -330,6 +335,7 @@ struct Diag {
 		immutable DuplicateImports duplicateImports;
 		immutable EnumBackingTypeInvalid enumBackingTypeInvalid;
 		immutable EnumDuplicateValue enumDuplicateValue;
+		immutable EnumMemberOverflows enumMemberOverflows;
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
 		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
 		immutable IfNeedsOpt ifNeedsOpt;
@@ -402,6 +408,7 @@ struct Diag {
 		kind = Kind.enumBackingTypeInvalid; enumBackingTypeInvalid = a;
 	}
 	immutable this(immutable EnumDuplicateValue a) { kind = Kind.enumDuplicateValue; enumDuplicateValue = a; }
+	immutable this(immutable EnumMemberOverflows a) { kind = Kind.enumMemberOverflows; enumMemberOverflows = a; }
 	@trusted immutable this(immutable ExpectedTypeIsNotALambda a) {
 		kind = Kind.expectedTypeIsNotALambda; expectedTypeIsNotALambda = a;
 	}
@@ -524,6 +531,9 @@ static assert(Diag.sizeof <= 32);
 		ref immutable Diag.EnumBackingTypeInvalid
 	) @safe @nogc pure nothrow cbEnumBackingTypeInvalid,
 	scope immutable(Out) delegate(ref immutable Diag.EnumDuplicateValue) @safe @nogc pure nothrow cbEnumDuplicateValue,
+	scope immutable(Out) delegate(
+		ref immutable Diag.EnumMemberOverflows
+	) @safe @nogc pure nothrow cbEnumMemberOverflows,
 	scope immutable(Out) delegate(
 		ref immutable Diag.ExpectedTypeIsNotALambda
 	) @safe @nogc pure nothrow cbExpectedTypeIsNotALambda,
@@ -651,6 +661,8 @@ static assert(Diag.sizeof <= 32);
 			return cbEnumBackingTypeInvalid(a.enumBackingTypeInvalid);
 		case Diag.Kind.enumDuplicateValue:
 			return cbEnumDuplicateValue(a.enumDuplicateValue);
+		case Diag.Kind.enumMemberOverflows:
+			return cbEnumMemberOverflows(a.enumMemberOverflows);
 		case Diag.Kind.expectedTypeIsNotALambda:
 			return cbExpectedTypeIsNotALambda(a.expectedTypeIsNotALambda);
 		case Diag.Kind.externPtrHasTypeParams:

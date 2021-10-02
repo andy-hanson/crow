@@ -4,7 +4,7 @@ module test.testSym;
 
 import test.testUtil : Test;
 import util.collection.str : strEq;
-import util.opt : force, has, Opt;
+import util.opt : force, Opt;
 import util.sym :
 	AllSymbols,
 	isShortAlphaSym,
@@ -16,24 +16,20 @@ import util.sym :
 	Sym,
 	symEq,
 	symForOperator,
-	tryGetSymFromStr;
+	symOfStr;
 import util.util : verify;
 
 void testSym(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(test.alloc);
 
 	immutable(Sym) getSym(immutable string a) {
-		immutable Opt!Sym opt = tryGetSymFromStr(allSymbols, a);
-		immutable Sym res = force(opt);
+		immutable Sym res = symOfStr(allSymbols, a);
 		verify(strEq(strOfSym(test.alloc.deref(), res), a));
 		return res;
 	}
 
 	immutable Sym nat8 = getSym("nat8");
 	verify(isShortAlphaSym(nat8));
-
-	immutable Opt!Sym invalid = tryGetSymFromStr(allSymbols, "abc|def");
-	verify(!has(invalid));
 
 	immutable Sym shortAlpha = getSym("abc-def-gh9?");
 	verify(isShortAlphaSym(shortAlpha));
@@ -43,9 +39,6 @@ void testSym(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	verify(force(optOperator) == Operator.plus);
 	verify(symEq(operator, symForOperator(Operator.plus)));
 	verify(!symEq(shortAlpha, operator));
-
-	immutable Opt!Sym invalidOperator = tryGetSymFromStr(allSymbols, "+=");
-	verify(!has(invalidOperator));
 
 	immutable Sym longAlpha = getSym("a9aa");
 	verify(isLongAlphaSym(longAlpha));

@@ -92,11 +92,20 @@ program(
 				[
 					field(lk, false, type(false, lock))
 					field(print-lock, false, type(false, lock))
+					field(syms-lock, false, type(false, lock))
+					field(dynamic-syms, true, type(false, opt))
 					field(islands, true, type(false, arr))
 					field(n-live-threads, true, type(false, nat64))
 					field(may-be-work-to-do, false, type(false, condition))
 					field(shut-down?, true, type(false, bool))
 					field(any-unhandled-exceptions?, true, type(false, bool))]))
+		struct(
+			name: dynamic-sym-node
+			ptr?: true
+			body: record([field(sym, false, type(false, sym)), field(next, false, type(false, opt))]))
+		struct(name: sym, body: record([field(to-c-str, false, type(false, ptr))]))
+		struct(name: opt, body: union([type(false, none), type(false, some)]))
+		struct(name: some, body: record([field(value, false, type(true, dynamic-sym-node))]))
 		struct(
 			name: island
 			mut?: true
@@ -432,7 +441,11 @@ program(
 			name: rect
 			body: record([field(width, false, type(false, float64)), field(height, false, type(false, float64))]))
 		struct(name: float64, body: builtin(float-64, []))
-		struct(name: interp, body: record([field(inner, false, type(true, mut-list))]))]
+		struct(name: interp, body: record([field(inner, false, type(true, mut-list))]))
+		struct(
+			name: arr
+			body: record([field(size, false, type(false, nat64)), field(begin-ptr, false, type(false, ptr))]))
+		struct(name: ptr, body: builtin(ptr, [type(false, sym)]))]
 	[
 		fun(
 			false
@@ -709,8 +722,10 @@ program(
 									call(
 										global-ctx
 										[
-											call(lock-by-val, [])
-											call(lock-by-val, [])
+											call(lbv, [])
+											call(lbv, [])
+											call(lbv, [])
+											to-union(0, call(none, []))
 											record([0, null])
 											local-ref(n-threads)
 											call(create-condition, [])
@@ -789,16 +804,20 @@ program(
 			[
 				param(lk, type(false, lock))
 				param(print-lock, type(false, lock))
+				param(syms-lock, type(false, lock))
+				param(dynamic-syms, type(false, opt))
 				param(islands, type(false, arr))
 				param(n-live-threads, type(false, nat64))
 				param(may-be-work-to-do, type(false, condition))
 				param(shut-down?, type(false, bool))
 				param(any-unhandled-exceptions?, type(false, bool))]
 			new-record)
+		fun(false, lbv, type(false, lock), none, [], expr-body(call(lock-by-val, [])))
 		fun(false, lock-by-val, type(false, lock), none, [], expr-body(call(lock, [call(atomic-bool, [])])))
 		fun(false, lock, type(false, lock), none, [param(is-locked, type(false, atomic-bool))], new-record)
 		fun(false, atomic-bool, type(false, atomic-bool), none, [], expr-body(call(atomic-bool, [call(false, [])])))
 		fun(false, atomic-bool, type(false, atomic-bool), none, [param(value, type(false, bool))], new-record)
+		fun(false, none, type(false, none), none, [], new-record)
 		fun(
 			false
 			create-condition
@@ -1026,7 +1045,6 @@ program(
 			none
 			[param(head, type(false, opt)), param(currently-running-exclusions, type(false, mut-list))]
 			new-record)
-		fun(false, none, type(false, none), none, [], new-record)
 		fun(
 			false
 			mut-list-by-val-with-capacity-from-unmanaged-memory
@@ -2778,7 +2796,7 @@ program(
 			type(false, void)
 			none
 			[param(a, type(true, global-ctx)), param(any-unhandled-exceptions?, type(false, bool))]
-			field-set(6))
+			field-set(8))
 		fun(
 			true
 			get-global-ctx
@@ -3116,7 +3134,7 @@ program(
 			type(false, void)
 			none
 			[param(a, type(true, global-ctx)), param(islands, type(false, arr))]
-			field-set(2))
+			field-set(4))
 		fun(
 			false
 			arr
@@ -3896,7 +3914,7 @@ program(
 			[param(a, type(false, ptr)), param(offset, type(false, nat64))]
 			builtin([type(true, island)]))
 		fun(false, begin-ptr, type(false, ptr), none, [param(a, type(false, arr))], field-get(1))
-		fun(false, islands, type(false, arr), none, [param(a, type(true, global-ctx))], field-get(2))
+		fun(false, islands, type(false, arr), none, [param(a, type(true, global-ctx))], field-get(4))
 		fun(false, island, type(false, nat64), none, [param(a, type(false, island-and-exclusion))], field-get(0))
 		fun(
 			false
@@ -4133,7 +4151,7 @@ program(
 			none
 			[param(mutex, type(true, pthread_mutex_t))]
 			extern(false))
-		fun(false, may-be-work-to-do, type(false, condition), none, [param(a, type(true, global-ctx))], field-get(4))
+		fun(false, may-be-work-to-do, type(false, condition), none, [param(a, type(true, global-ctx))], field-get(6))
 		fun(false, gctx, type(true, global-ctx), none, [param(a, type(true, island))], field-get(0))
 		fun(false, no-timestamp, type(false, nat64), none, [], expr-body(0))
 		fun(false, exclusion, type(false, nat64), none, [param(a, type(false, island-and-exclusion))], field-get(1))
@@ -5140,7 +5158,7 @@ program(
 															call(wrap-add, [call(n-live-threads, [param-ref(gctx)]), 1])]))
 												call(release!, [call(ref-of-val, [call(lk, [param-ref(gctx)])])])))])
 								call(thread-function-recur, [param-ref(gctx), param-ref(tls)])))))))
-		fun(false, shut-down?, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(5))
+		fun(false, shut-down?, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(7))
 		fun(false, lk, type(false, lock), none, [param(a, type(true, global-ctx))], field-get(0))
 		fun(
 			false
@@ -5148,8 +5166,8 @@ program(
 			type(false, void)
 			none
 			[param(a, type(true, global-ctx)), param(n-live-threads, type(false, nat64))]
-			field-set(3))
-		fun(false, n-live-threads, type(false, nat64), none, [param(a, type(true, global-ctx))], field-get(3))
+			field-set(5))
+		fun(false, n-live-threads, type(false, nat64), none, [param(a, type(true, global-ctx))], field-get(5))
 		fun(
 			false
 			assert-islands-are-shut-down
@@ -6099,7 +6117,7 @@ program(
 			type(false, void)
 			none
 			[param(a, type(true, global-ctx)), param(shut-down?, type(false, bool))]
-			field-set(5))
+			field-set(7))
 		fun(
 			false
 			wait-on
@@ -6332,7 +6350,7 @@ program(
 			none
 			[param(cond, type(true, pthread_cond_t))]
 			extern(false))
-		fun(false, any-unhandled-exceptions?, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(6))
+		fun(false, any-unhandled-exceptions?, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(8))
 		fun(
 			true
 			main
@@ -6770,7 +6788,8 @@ program(
 			type(true, fut)
 			none
 			[param(value, type(false, nat64))]
-			expr-body(call(fut, [call(lock-by-val, []), to-union(2, call(fut-state-resolved, [param-ref(value)]))])))]
+			expr-body(call(fut, [call(lock-by-val, []), to-union(2, call(fut-state-resolved, [param-ref(value)]))])))
+		fun(false, static-syms, type(false, arr), none, [], builtin([]))]
 	rt-main
 	main
 	ctx)

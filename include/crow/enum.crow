@@ -1,0 +1,34 @@
+no-std
+import
+	.bool: bool
+	.col.arr: arr
+	.col.arr-util: first-some
+	.exception: throw
+	.misc: name, named-val, val
+	.opt: opt, some
+	.sym: ==, sym
+
+enum<?a> spec
+	enum-members arr named-val<?a>()
+	== bool(a ?a, b ?a)
+
+to-sym sym(a ?a) enum<?a>
+	res = enum-members first-some<sym, named-val ?a> member =>
+		if member.val == a
+			member.name some
+	if name ?= res
+		name
+	else
+		"Invalid enum value" throw
+
+to-enum opt ?a(a sym) enum<?a>
+	enum-members first-some<?a, named-val ?a> member =>
+		if member.name == a
+			member.val some
+
+enum-convert opt ?out(a ?in) enum<?in> enum<?out>
+	a.to-sym to-enum
+
+# TODO: requires better overloading
+# to-str str(a ?a) enum<?a>
+#	a.to-sym to-str

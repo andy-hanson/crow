@@ -251,11 +251,23 @@ immutable(Ptr!StructInst) instantiateStructNeverDelay(Alloc)(
 	return instantiateStruct(alloc, programState, declAndArgs, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }
 
+immutable(Ptr!StructInst) makeNamedValType(Alloc)(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	ref immutable CommonTypes commonTypes,
+	immutable Type valueType,
+) {
+	return instantiateStructNeverDelay!Alloc(
+		alloc,
+		programState,
+		immutable StructDeclAndArgs(commonTypes.namedVal, arrLiteral!Type(alloc, [valueType])));
+}
+
 immutable(Ptr!StructInst) makeArrayType(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable CommonTypes commonTypes,
-	ref immutable Type elementType,
+	immutable Type elementType,
 ) {
 	return instantiateStructNeverDelay(
 		alloc,

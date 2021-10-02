@@ -395,15 +395,15 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		(ref immutable LiteralAst literal) {
 			immutable Token.Kind kind = matchLiteralAst!(immutable Token.Kind)(
 				literal,
-				(ref immutable LiteralAst.Float) =>
+				(immutable LiteralAst.Float) =>
 					Token.Kind.literalNumber,
-				(ref immutable LiteralAst.Int) =>
+				(immutable LiteralAst.Int) =>
 					Token.Kind.literalNumber,
-				(ref immutable LiteralAst.Nat) =>
+				(immutable LiteralAst.Nat) =>
 					Token.Kind.literalNumber,
-				(ref immutable string) =>
+				(immutable(string)) =>
 					Token.Kind.literalString,
-				(ref immutable LiteralAst.Symbol) =>
+				(immutable(Sym)) =>
 					Token.Kind.literalSymbol);
 			add(alloc, tokens, immutable Token(kind, a.range));
 		},

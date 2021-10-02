@@ -238,15 +238,12 @@ struct LiteralAst {
 		immutable ulong value;
 		immutable bool overflow;
 	}
-	struct Symbol {
-		immutable string value;
-	}
 
 	immutable this(immutable Float a) { kind = Kind.float_; float_ = a; }
 	immutable this(immutable Int a) { kind = Kind.int_; int_ = a; }
 	immutable this(immutable Nat a) { kind = Kind.nat; nat = a; }
 	@trusted immutable this(immutable string a) { kind = Kind.str; str = a; }
-	@trusted immutable this(immutable Symbol a) { kind = Kind.symbol; symbol = a; }
+	@trusted immutable this(immutable Sym a) { kind = Kind.sym; sym = a; }
 
 	private:
 	enum Kind {
@@ -254,7 +251,7 @@ struct LiteralAst {
 		int_,
 		nat,
 		str,
-		symbol,
+		sym,
 	}
 	immutable Kind kind;
 	union {
@@ -262,17 +259,17 @@ struct LiteralAst {
 		immutable Int int_;
 		immutable Nat nat;
 		immutable string str;
-		immutable Symbol symbol;
+		immutable Sym sym;
 	}
 }
 
 @trusted T matchLiteralAst(T)(
 	ref immutable LiteralAst a,
-	scope immutable(T) delegate(ref immutable LiteralAst.Float) @safe @nogc pure nothrow cbFloat,
-	scope immutable(T) delegate(ref immutable LiteralAst.Int) @safe @nogc pure nothrow cbInt,
-	scope immutable(T) delegate(ref immutable LiteralAst.Nat) @safe @nogc pure nothrow cbNat,
-	scope immutable(T) delegate(ref immutable string) @safe @nogc pure nothrow cbStr,
-	scope immutable(T) delegate(ref immutable LiteralAst.Symbol) @safe @nogc pure nothrow cbSymbol,
+	scope immutable(T) delegate(immutable LiteralAst.Float) @safe @nogc pure nothrow cbFloat,
+	scope immutable(T) delegate(immutable LiteralAst.Int) @safe @nogc pure nothrow cbInt,
+	scope immutable(T) delegate(immutable LiteralAst.Nat) @safe @nogc pure nothrow cbNat,
+	scope immutable(T) delegate(immutable string) @safe @nogc pure nothrow cbStr,
+	scope immutable(T) delegate(immutable Sym) @safe @nogc pure nothrow cbSym,
 ) {
 	final switch (a.kind) {
 		case LiteralAst.Kind.float_:
@@ -283,8 +280,8 @@ struct LiteralAst {
 			return cbNat(a.nat);
 		case LiteralAst.Kind.str:
 			return cbStr(a.str);
-		case LiteralAst.Kind.symbol:
-			return cbSymbol(a.symbol);
+		case LiteralAst.Kind.sym:
+			return cbSym(a.sym);
 	}
 }
 
@@ -1026,16 +1023,16 @@ immutable(Repr) reprLiteralAst(Alloc)(ref Alloc alloc, ref immutable LiteralAst 
 	return reprRecord(alloc, "literal", [
 		matchLiteralAst!(immutable Repr)(
 			a,
-			(ref immutable LiteralAst.Float it) =>
+			(immutable LiteralAst.Float it) =>
 				reprRecord(alloc, "float", [reprFloat(it.value), reprBool(it.overflow)]),
-			(ref immutable LiteralAst.Int it) =>
+			(immutable LiteralAst.Int it) =>
 				reprLiteralInt(alloc, it),
-			(ref immutable LiteralAst.Nat it) =>
+			(immutable LiteralAst.Nat it) =>
 				reprLiteralNat(alloc, it),
-			(ref immutable string it) =>
+			(immutable string it) =>
 				reprStr(it),
-			(ref immutable LiteralAst.Symbol it) =>
-				reprRecord(alloc, "symbol", [reprStr(it.value)]))]);
+			(immutable Sym it) =>
+				reprRecord(alloc, "symbol", [reprSym(it)]))]);
 }
 
 immutable(Repr) reprLiteralInt(Alloc)(ref Alloc alloc, ref immutable LiteralAst.Int a) {

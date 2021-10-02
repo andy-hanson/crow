@@ -11,7 +11,7 @@ import
 		==, <=>, +, -, any-ptr, as-any-ptr, as-ref, by-val, null?, ptr, ptr-cast, ref-of-val,
 		set-subscript, size-of, subscript, to-nat64
 	.bootstrap:
-		as, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, lock, nat8, nat64, none, opt, some,
+		as, begin-ptr, chars, c-str, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, lock, nat8, nat64, none, opt, some,
 		todo, void
 	.number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
 	.thread-utils: acquire!, lock-by-val, release!
@@ -136,17 +136,18 @@ run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	drop: gc.mark-begin.as-any-ptr memset 0, gc.size-words
 	mark-ctx = as<by-val<mark-ctx>>: mark-ctx: gc.size-words, gc.mark-begin, gc.data-begin
 	mark-ctx.ref-of-val mark-visit gc-root
+	prev-mark-cur = gc.mark-cur
 	gc.mark-cur := gc.mark-begin
 	gc.data-cur := gc.data-begin
-	clear-free-mem: gc.mark-begin, gc.mark-end, gc.data-begin
+	gc.mark-begin clear-free-mem! prev-mark-cur, gc.data-begin
 	gc validate-gc
 	gc.needs-gc? := false
 
-.clear-free-mem void(mark-ptr ptr bool, mark-end ptr bool, data-ptr ptr nat64) noctx unsafe
+.clear-free-mem! void(mark-ptr ptr bool, mark-end ptr bool, data-ptr ptr nat64) noctx unsafe
 	if mark-ptr != mark-end
 		if !mark-ptr[]
 			data-ptr[] := 0xfadefadefadefade
-		clear-free-mem: mark-ptr + 1, mark-end, data-ptr
+		mark-ptr + 1 clear-free-mem! mark-end, data-ptr
 
 ###
 GC info specific to a ctx.
@@ -156,7 +157,7 @@ gc-ctx record mut
 	gc mut gc
 	next-ctx mut opt gc-ctx
 
-force-needs-gc void(gc gc) unsafe
+force-needs-gc! void(gc gc) unsafe
 	gc.needs-gc? := true
 
 get-gc-ctx gc-ctx(gc gc) noctx unsafe
@@ -263,6 +264,9 @@ alloc-uninitialized ptr ?a(size nat64) unsafe
 try-alloc-uninitialized opt ptr ?a(size nat64) unsafe
 	if res ?= size wrap-mul size-of<?a> try-alloc
 		res.ptr-cast<?a, nat8> some
+
+unmanaged-alloc-uninitialized ptr ?a() noctx unsafe
+	1 unmanaged-alloc-elements<?a>
 
 unmanaged-alloc-bytes any-ptr(size nat64) noctx unsafe
 	res = size malloc

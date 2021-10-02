@@ -3,6 +3,7 @@ export
 	.bool
 	.col.arr
 	.compare
+	.enum
 	.exception
 	.flags
 	.fun

@@ -2,7 +2,7 @@ module util.sym;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : at, empty, first, last, only, size;
+import util.collection.arr : at, first, last, only, size;
 import util.collection.arrUtil : contains, every, findIndex, tail;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
 import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
@@ -60,41 +60,24 @@ immutable(Sym) prependSet(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Sym 
 
 	if (isShortAlphaSym(a) && newSize <= alphaIdentifierMaxChars) {
 		immutable Sym res = prefixAlphaIdentifierWithSet(a, oldSize);
-		immutable Opt!Sym op = tryGetSymFromStr(allSymbols, str);
-		verify(symEq(force(op), res));
+		verify(symEq(symOfStr(allSymbols, str), res));
 		return res;
 	} else
 		return getSymFromLongStr(allSymbols, str);
 }
 
-immutable(Opt!Sym) tryGetSymFromStr(Alloc)(ref AllSymbols!Alloc allSymbols, scope immutable string str) {
-	return empty(str)
-		? none!Sym
-		: isAlphaIdentifier(str)
-		? some(getSymFromAlphaIdentifier(allSymbols, str))
-		: getSymFromOperator(allSymbols, str);
+immutable(Sym) symOfStr(Alloc)(ref AllSymbols!Alloc allSymbols, scope immutable string str) {
+	immutable Opt!Sym op = getSymFromOperator(allSymbols, str);
+	return has(op) ? force(op) : getSymFromAlphaIdentifier(allSymbols, str);
 }
 
 immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols, scope immutable string str) {
-	verify(isAlphaIdentifier(str));
 	immutable Sym res = canPackAlphaIdentifier(str)
 		? immutable Sym(packAlphaIdentifier(str))
 		: getSymFromLongStr(allSymbols, str);
 	assertSym(res, str);
 	verify(!isSymOperator(res));
 	return res;
-}
-
-private immutable(bool) isAlphaIdentifier(scope immutable string a) {
-	if (empty(a))
-		return true;
-	else if (!isAlphaIdentifierStart(first(a)))
-		return false;
-	else {
-		immutable string t = tail(a);
-		return every!char(t, (ref immutable char c) =>
-			isAlphaIdentifierContinue(c));
-	}
 }
 
 enum Operator {

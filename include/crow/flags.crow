@@ -2,15 +2,18 @@ no-std
 import
 	.bool: bool
 	.col.arr: arr
-	.col.arr-util: flatten, zip
+	.col.arr-util: each, map
+	.col.mut-list: ~=, move-to-arr!, mut-list
+	.fun: subscript
+	.misc: name, named-val, val
 	.str: str
 	.str-util: join
+	.sym: sym, to-str
 
 flags<?a> spec
 	empty ?a()
 	all ?a()
-	all-values arr ?a()
-	all-names arr str()
+	flags-members arr named-val<?a>()
 	== bool(a ?a, b ?a)
 	~ ?a(a ?a)
 	& ?a(a ?a, b ?a)
@@ -19,10 +22,19 @@ flags<?a> spec
 in bool(a ?a, b ?a) flags<?a>
 	a & b == a
 
-flags-to-str str(a ?a) flags<?a>
-	names = flatten: all-values zip all-names, (value, name) =>
-		if value in a
-			[name]
+to-syms arr sym(a ?a) flags<?a>
+	flags-members flat-map member =>
+		if member.val in a
+			[member name]
 		else
 			[]
-	names join " | "
+
+flags-to-str str(a ?a) flags<?a>
+	a.to-syms map (x => x to-str) join " | "
+
+# TODO:MOVE
+.flat-map arr ?out(a arr ?in, f act arr ?out(?in))
+	res = mut-list<?out>
+	a each x =>
+		res ~= f[x]
+	res move-to-arr!

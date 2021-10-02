@@ -1,0 +1,9 @@
+import
+	crow.io.print: print
+
+main fut nat(_ arr str) summon
+	x = 'flabbergast'
+	print: x to-str
+	print: x == 'glabberfast' to-str
+	print: x == ("flabber" ~ "gast").str-to-sym to-str
+	0 resolved

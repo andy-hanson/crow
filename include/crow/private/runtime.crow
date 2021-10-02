@@ -12,7 +12,7 @@ import
 	.bool-low-level: !, &&, ||, bool, false, true
 	.bootstrap:
 		call-with-ctx, ctx, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
-		island-and-exclusion, island-id, lock, log-ctx-ptr, nat64, thread-local-stuff
+		island-and-exclusion, island-id, lock, log-ctx-ptr, nat64, sym, thread-local-stuff
 	.exception-low-level: exception-ctx
 	.log-low-level: default-log-handler, log-ctx, log-handler, set-handler
 	.number-low-level: ==, <=>, wrap-add, wrap-sub
@@ -38,9 +38,18 @@ cur-island-and-exclusion island-and-exclusion() unsafe
 	c = get-ctx
 	island-and-exclusion: c.island-id, c.exclusion
 
+dynamic-sym-node record
+	by-ref
+	sym sym
+	# bullable
+	next opt dynamic-sym-node
+
 global-ctx record mut
 	lk by-val lock
 	print-lock by-val lock
+	syms-lock by-val lock
+	# Dynamically allocated array. Terminated by a null sym. Capacity is a power of 2.
+	dynamic-syms mut opt dynamic-sym-node
 	# TODO: mut-arr
 	islands mut arr island
 	# if a thread finds no work to do, it decrements this and waits on 'may-be-work-to-do'.

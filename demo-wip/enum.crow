@@ -1,15 +1,33 @@
 import
+	crow.col.arr-util: each
 	crow.io.print: print
+	crow.private.bootstrap: static-syms
 
 main fut nat(_ arr str) summon
-	f0 = a
-	f1 = b
-	f2 = c
-	drop: f0
-	drop: f1
-	f02 = f0 | f2
-	fnot = ~f02
-	print: fnot.to-nat8.to-str
+	drop: 'pop'
+	drop: 'hop'
+	drop: 'pop'
+
+	fosho = "fosho" str-to-sym
+	print: fosho to-str
+
+	static-syms each s =>
+		print: s.to-str
+
+	print: (fosho == "fosho".str-to-sym).to-str
+	print: (fosho == "foshoe".str-to-sym).to-str
+
+	#enum-members each m =>
+	#	print: "{m name} = {m.val to-sym}"
+
+	#f0 = a
+	#f1 = b
+	#f2 = c
+	#drop: f0
+	#drop: f1
+	#f02 = f0 | f2
+	#fnot = ~f02
+	#print: fnot.to-nat8.to-str
 	0 resolved
 
 e enum<nat8>
@@ -17,7 +35,7 @@ e enum<nat8>
 	y = 2
 	z = 3
 
-f flags<nat8>
-	a
-	b
-	c
+#f flags<nat8>
+#	a
+#	b
+#	c

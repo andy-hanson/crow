@@ -14,13 +14,6 @@ clothed flags
 	shirt
 	hat
 
-# TODO: Compiler-generated
-all-values arr clothed()
-	[shoes, pants, shirt, hat]
-# TODO: compiler-generated
-all-names arr str()
-	["shoes", "pants", "shirt", "hat"]
-
 naked? bool(a clothed)
 	a == empty
 

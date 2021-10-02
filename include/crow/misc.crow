@@ -1,6 +1,6 @@
 no-std
 export
-	.private.bootstrap: as, data, void
+	.private.bootstrap: as, data, name, named-val, val, void
 
 ###
 Generic record returned by `from -> to`.

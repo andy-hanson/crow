@@ -51,6 +51,12 @@ immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T 
 	a.cur = cast(ubyte*) (ptr + 1);
 }
 
+void padTo(ref ExactSizeArrBuilder!ubyte a, immutable size_t desiredSize) {
+	if (exactSizeArrBuilderCurSize(a) < desiredSize)
+		add0Bytes(a, desiredSize - exactSizeArrBuilderCurSize(a));
+	verify(exactSizeArrBuilderCurSize(a) == desiredSize);
+}
+
 @trusted void add0Bytes(ref ExactSizeArrBuilder!ubyte a, immutable size_t nBytes) {
 	verify(a.cur + nBytes <= a.end);
 	memset(a.cur, 0, nBytes);
@@ -72,6 +78,13 @@ immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T 
 }
 
 @trusted T[] finish(T)(ref ExactSizeArrBuilder!T a) {
+	debug {
+		import core.stdc.stdio : printf;
+		if (a.cur != a.end) {
+			immutable long diff = a.cur - a.end;
+			printf("Missed it by this much: %ld\n", diff);
+		}
+	}
 	verify(a.cur == a.end);
 	T[] res = arrOfRange_mut(a.begin, a.end);
 	a.begin = null;

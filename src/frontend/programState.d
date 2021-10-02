@@ -15,10 +15,11 @@ import model.model :
 import util.collection.mutDict : MutDict;
 import util.memory : nuMut;
 import util.ptr : Ptr;
-import util.sym : MutSymSet;
+import util.sym : AllSymbols, symOfStr, MutSymSet, Sym;
 
 struct ProgramState {
-	this(Alloc)(ref Alloc alloc) {
+	this(Alloc, SymAlloc)(ref Alloc alloc, ref AllSymbols!SymAlloc allSymbols) {
+		symFlagsMembers = symOfStr(allSymbols, "flags-members");
 		names = nuMut!ProgramNames(
 			alloc,
 			nuMut!MutSymSet(alloc),
@@ -30,12 +31,12 @@ struct ProgramState {
 		specInsts = nuMut!(MutDict!(immutable SpecDeclAndArgs, immutable Ptr!SpecInst, compareSpecDeclAndArgs))(alloc);
 	}
 
+	immutable Sym symFlagsMembers;
 	Ptr!ProgramNames names;
 	Ptr!(MutDict!(immutable FunDeclAndArgs, immutable Ptr!FunInst, compareFunDeclAndArgs)) funInsts;
 	Ptr!(MutDict!(immutable StructDeclAndArgs, Ptr!StructInst, compareStructDeclAndArgs)) structInsts;
 	Ptr!(MutDict!(immutable SpecDeclAndArgs, immutable Ptr!SpecInst, compareSpecDeclAndArgs)) specInsts;
 }
-static assert(ProgramState.sizeof <= 32);
 
 private struct ProgramNames {
 	// These sets store all names seen *so far*.
@@ -44,4 +45,3 @@ private struct ProgramNames {
 	Ptr!MutSymSet funNames;
 	Ptr!MutSymSet recordFieldNames;
 }
-static assert(ProgramNames.sizeof <= 32);

@@ -593,7 +593,7 @@ immutable(Ptr!Program) checkEverything(ModelAlloc, SymAlloc)(
 	immutable Ptr!FilesInfo filesInfo,
 	ref immutable CommonModuleIndices moduleIndices,
 ) {
-	ProgramState programState = ProgramState(modelAlloc);
+	ProgramState programState = ProgramState(modelAlloc, allSymbols);
 	immutable ModulesAndCommonTypes modulesAndCommonTypes =
 		getModules(modelAlloc, allSymbols, diagsBuilder, programState, moduleIndices.std, allAsts);
 	immutable Ptr!Module[] modules = modulesAndCommonTypes.modules;

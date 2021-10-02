@@ -22,6 +22,7 @@ struct BuiltinKind {
 	struct GetCtx {}
 	struct PtrCast {}
 	struct SizeOf {}
+	struct StaticSyms {}
 	struct Zeroed {}
 
 	immutable this(immutable As a) { kind_ = Kind.as; as_ = a; }
@@ -33,6 +34,7 @@ struct BuiltinKind {
 	immutable this(immutable LowExprKind.SpecialNAry.Kind a) { kind_ = Kind.nary; nary_ = a; }
 	immutable this(immutable PtrCast a) { kind_ = Kind.ptrCast; ptrCast_ = a; }
 	immutable this(immutable SizeOf a) { kind_ = Kind.sizeOf; sizeOf_ = a; }
+	immutable this(immutable StaticSyms a) { kind_ = Kind.staticSyms; staticSyms_ = a; }
 	immutable this(immutable Zeroed a) { kind_ = Kind.zeroed; zeroed_ = a; }
 
 	private:
@@ -46,6 +48,7 @@ struct BuiltinKind {
 		nary,
 		ptrCast,
 		sizeOf,
+		staticSyms,
 		zeroed,
 	}
 	immutable Kind kind_;
@@ -59,6 +62,7 @@ struct BuiltinKind {
 		immutable LowExprKind.SpecialNAry.Kind nary_;
 		immutable PtrCast ptrCast_;
 		immutable SizeOf sizeOf_;
+		immutable StaticSyms staticSyms_;
 		immutable Zeroed zeroed_;
 	}
 }
@@ -74,6 +78,7 @@ struct BuiltinKind {
 	scope T delegate(immutable LowExprKind.SpecialNAry.Kind) @safe @nogc pure nothrow cbNary,
 	scope T delegate(ref immutable BuiltinKind.PtrCast) @safe @nogc pure nothrow cbPtrCast,
 	scope T delegate(ref immutable BuiltinKind.SizeOf) @safe @nogc pure nothrow cbSizeOf,
+	scope T delegate(ref immutable BuiltinKind.StaticSyms) @safe @nogc pure nothrow cbStaticSyms,
 	scope T delegate(ref immutable BuiltinKind.Zeroed) @safe @nogc pure nothrow cbZeroed,
 ) {
 	final switch (a.kind_) {
@@ -95,6 +100,8 @@ struct BuiltinKind {
 			return cbPtrCast(a.ptrCast_);
 		case BuiltinKind.Kind.sizeOf:
 			return cbSizeOf(a.sizeOf_);
+		case BuiltinKind.Kind.staticSyms:
+			return cbStaticSyms(a.staticSyms_);
 		case BuiltinKind.Kind.zeroed:
 			return cbZeroed(a.zeroed_);
 	}
@@ -287,6 +294,8 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isPtrRaw(p0)
 				? unary(LowExprKind.SpecialUnary.Kind.deref)
 				: fail();
+		case shortSymAlphaLiteralValue("static-syms"):
+			return immutable BuiltinKind(immutable BuiltinKind.StaticSyms());
 		case shortSymAlphaLiteralValue("to-char"):
 			return unary(isNat8(p0)
 				? LowExprKind.SpecialUnary.Kind.toCharFromNat8

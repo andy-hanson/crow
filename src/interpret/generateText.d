@@ -2,7 +2,6 @@ module interpret.generateText;
 
 @safe @nogc pure nothrow:
 
-import interpret.bytecode : Operation;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	AllConstantsLow,
@@ -18,7 +17,7 @@ import model.lowModel :
 	lowTypeEqual,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
-import model.typeLayout : optPack, sizeOfType;
+import model.typeLayout : sizeOfType;
 import util.collection.arr : at, castImmutable, empty, emptyArr, ptrAt, setAt, size;
 import util.collection.arrUtil : map, mapToMut, sum, zip;
 import util.collection.exactSizeArrBuilder :
@@ -32,9 +31,9 @@ import util.collection.exactSizeArrBuilder :
 	ExactSizeArrBuilder,
 	exactSizeArrBuilderCurSize,
 	finish,
-	newExactSizeArrBuilder;
+	newExactSizeArrBuilder,
+	padTo;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.opt : has, Opt;
 import util.ptr : Ptr, ptrTrustMe;
 import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat16, u32OfFloat32Bits, u64OfFloat64Bits;
 import util.util : todo, unreachable, verify;
@@ -159,7 +158,7 @@ void ensureConstant(TempAlloc)(
 		},
 		(immutable Constant.BoolConstant) {},
 		(ref immutable Constant.CString) {
-			todo!void("!");
+			// We wrote out all CStrings first, so no need to do anything here.
 		},
 		(immutable double) {},
 		(immutable Constant.Integral) {},
@@ -227,6 +226,7 @@ void recurWritePointer(TempAlloc)(
 	}
 }
 
+//TODO: should we align things?
 immutable(size_t) getAllConstantsSize(ref immutable LowProgram program, ref immutable AllConstantsLow allConstants) {
 	immutable size_t cStringsSize = sum(allConstants.cStrings, (ref immutable string s) =>
 		size(s) + 1);
@@ -244,6 +244,9 @@ void writeConstant(TempAlloc)(
 	ref immutable LowType type,
 	ref immutable Constant constant,
 ) {
+	debug immutable size_t sizeBefore = exactSizeArrBuilderCurSize(ctx.text);
+	immutable size_t typeSize = sizeOfType(ctx.program, type).size.raw();
+
 	matchConstant!void(
 		constant,
 		(ref immutable Constant.ArrConstant it) {
@@ -256,9 +259,8 @@ void writeConstant(TempAlloc)(
 		(immutable Constant.BoolConstant it) {
 			exactSizeArrBuilderAdd(ctx.text, it.value ? 1 : 0);
 		},
-		(ref immutable Constant.CString) {
-			// Use ctx.cStringIndexToTextIndex
-			todo!void("!");
+		(ref immutable Constant.CString it) {
+			add64TextPtr(ctx.text, at(ctx.cStringIndexToTextIndex, it.index));
 		},
 		(immutable double it) {
 			switch (asPrimitive(type)) {
@@ -311,16 +313,15 @@ void writeConstant(TempAlloc)(
 		(ref immutable Constant.Record it) {
 			immutable LowType.Record recordType = asRecordType(type);
 			immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, recordType);
+			immutable size_t start = exactSizeArrBuilderCurSize(ctx.text);
 			zip!(LowField, Constant)(
 				record.fields,
 				it.args,
 				(ref immutable LowField field, ref immutable Constant fieldValue) {
+					padTo(ctx.text, start + field.offset.raw());
 					writeConstant(tempAlloc, ctx, field.type, fieldValue);
 				});
-			immutable Opt!(Operation.Pack) pack = optPack(tempAlloc, ctx.program, recordType);
-			if (has(pack))
-				//TODO: we should be writing each constant at the appropriate offset, so no need to pack.
-				todo!void("pack it");
+			padTo(ctx.text, start + typeSize);
 		},
 		(ref immutable Constant.Union it) {
 			add64(ctx.text, it.memberIndex);
@@ -334,4 +335,26 @@ void writeConstant(TempAlloc)(
 		(immutable Constant.Void) {
 			todo!void("write void"); // should only happen if there's a pointer to void..
 		});
+
+	debug {
+		if (false) {
+			import model.reprConstant : reprOfConstant;
+			import util.ptr : ptrTrustMe_mut;
+			import util.repr : writeRepr;
+			import util.writer : finishWriterToCStr, Writer;
+			import util.util : drop;
+
+			immutable size_t sizeAfter = exactSizeArrBuilderCurSize(ctx.text);
+			immutable size_t bytesUsed = sizeAfter - sizeBefore;
+			if (typeSize != bytesUsed) {
+				Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+				writeRepr(writer, reprOfConstant(tempAlloc, constant));
+				immutable char *str = finishWriterToCStr(writer);
+				drop(str);
+				//import core.stdc.stdio : printf;
+				//printf("Expected this constant to use %lu bytes, but used %lu. Constant is: %s\n",
+				// typeSize, bytesUsed, str);
+			}
+		}
+	}
 }

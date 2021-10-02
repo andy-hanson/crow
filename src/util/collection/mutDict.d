@@ -27,6 +27,11 @@ struct MutDict(K, V, alias cmp) {
 	MutArr!(KeyValuePair!(K, V)) pairs;
 }
 
+immutable(V[]) valuesArray(K, V, alias cmp, Alloc)(ref Alloc alloc, ref MutDict!(K, V, cmp) a) {
+	return map_mut!(V, KeyValuePair!(K, V), Alloc)(alloc, tempPairs_mut(a), (ref KeyValuePair!(K, V) pair) =>
+		pair.value);
+}
+
 @trusted immutable(Dict!(K, V, cmp)) moveToDict(K, V, alias cmp, Alloc)(
 	ref Alloc alloc,
 	ref MutDict!(immutable K, immutable V, cmp) a,

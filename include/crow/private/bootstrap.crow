@@ -109,6 +109,7 @@ true bool() noctx builtin
 region sym.crow
 
 sym record force-data
+	by-val
 	to-c-str c-str
 
 region bootstrap arithmetic
@@ -332,3 +333,12 @@ atomic-bool record force-sendable
 lock record sendable
 	by-ref
 	is-locked by-val atomic-bool
+
+region reflect
+
+named-val<?a> record
+	by-val
+	name sym
+	val ?a
+
+static-syms arr sym() noctx builtin

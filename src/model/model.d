@@ -337,10 +337,6 @@ static assert(StructBody.sizeof <= 32);
 immutable(bool) isBogus(ref immutable StructBody a) {
 	return a.kind == StructBody.Kind.bogus;
 }
-@trusted ref immutable(StructBody.Enum) asEnum(return scope ref immutable StructBody a) {
-	verify(a.kind == StructBody.Kind.enum_);
-	return a.enum_;
-}
 immutable(bool) isRecord(ref const StructBody a) {
 	return a.kind == StructBody.Kind.record;
 }
@@ -597,10 +593,9 @@ immutable(Sym) name(ref immutable SpecInst a) {
 enum EnumFunction {
 	equal,
 	intersect,
+	members,
 	toIntegral,
-	toSym,
 	union_,
-	values,
 }
 
 immutable(Sym) enumFunctionName(immutable EnumFunction a) {
@@ -609,14 +604,12 @@ immutable(Sym) enumFunctionName(immutable EnumFunction a) {
 			return symForOperator(Operator.equal);
 		case EnumFunction.intersect:
 			return symForOperator(Operator.and1);
+		case EnumFunction.members:
+			return shortSymAlphaLiteral("members");
 		case EnumFunction.toIntegral:
 			return shortSymAlphaLiteral("to-integral");
-		case EnumFunction.toSym:
-			return shortSymAlphaLiteral("to-sym");
 		case EnumFunction.union_:
 			return symForOperator(Operator.or1);
-		case EnumFunction.values:
-			return shortSymAlphaLiteral("values");
 	}
 }
 
@@ -1281,6 +1274,7 @@ struct CommonTypes {
 	immutable Ptr!StructDecl byVal;
 	immutable Ptr!StructDecl arr;
 	immutable Ptr!StructDecl fut;
+	immutable Ptr!StructDecl namedVal;
 	immutable Ptr!StructDecl opt;
 	immutable Ptr!StructDecl[] funPtrStructs; // Indexed by arity
 	immutable FunKindAndStructs[] funKindsAndStructs;
@@ -1459,7 +1453,7 @@ struct Expr {
 	}
 
 	struct SymbolLiteral {
-		immutable string value;
+		immutable Sym value;
 	}
 
 	private:

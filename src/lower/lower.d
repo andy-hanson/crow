@@ -700,6 +700,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 					alloc,
 					program.funToName,
 					allTypes,
+					program.allConstants.staticSyms,
 					getLowTypeCtx,
 					allocFunIndex,
 					ctxType,
@@ -725,6 +726,7 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 	ref Alloc alloc,
 	ref immutable ConcreteFunToName funToName,
 	ref immutable AllLowTypes allTypes,
+	immutable Constant staticSyms,
 	ref GetLowTypeCtx getLowTypeCtx,
 	immutable LowFunIndex allocFunIndex,
 	ref immutable LowType ctxType,
@@ -778,9 +780,10 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 				returnType,
 				immutable LowFunParamsKind(has(ctxParam), has(closureParam)),
 				params);
-			immutable LowFunBody body_ = getLowFunBody!Alloc(
+			immutable LowFunBody body_ = getLowFunBody(
 				alloc,
 				allTypes,
+				staticSyms,
 				getLowTypeCtx,
 				concreteFunToLowFunIndex,
 				allocFunIndex,
@@ -889,6 +892,7 @@ alias ConcreteFunToLowFunIndex = immutable Dict!(Ptr!ConcreteFun, LowFunIndex, c
 immutable(LowFunBody) getLowFunBody(Alloc)(
 	ref Alloc alloc,
 	ref immutable AllLowTypes allTypes,
+	immutable Constant staticSyms,
 	ref GetLowTypeCtx getLowTypeCtx,
 	ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	immutable LowFunIndex allocFunIndex,
@@ -917,6 +921,7 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 			GetLowExprCtx exprCtx = GetLowExprCtx(
 				thisFunIndex,
 				ptrTrustMe(allTypes),
+				staticSyms,
 				ptrTrustMe_mut(getLowTypeCtx),
 				concreteFunToLowFunIndex,
 				allocFunIndex,
@@ -942,6 +947,7 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 struct GetLowExprCtx {
 	immutable LowFunIndex currentFun;
 	immutable Ptr!AllLowTypes allTypes;
+	immutable Constant staticSyms;
 	Ptr!GetLowTypeCtx getLowTypeCtx;
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	immutable LowFunIndex allocFunIndex;
@@ -1209,9 +1215,8 @@ immutable(LowExprKind) genEnumFunction(Alloc)(
 		case EnumFunction.union_:
 			verify(size(args) == 2);
 			return genEnumUnion(alloc, arg0(), arg1());
-		case EnumFunction.toSym:
-		case EnumFunction.values:
-			// In concretize, these were translated to a different ConcreteExpr
+		case EnumFunction.members:
+			// In concretize, this was translated to a constant
 			return unreachable!(immutable LowExprKind);
 	}
 }
@@ -1311,6 +1316,9 @@ immutable(LowExprKind) getCallBuiltinExpr(Alloc)(
 			immutable LowType typeArg =
 				lowTypeFromConcreteType(alloc, ctx.getLowTypeCtx, only(asBuiltin(body_(a.called)).typeArgs));
 			return immutable LowExprKind(immutable LowExprKind.SizeOf(typeArg));
+		},
+		(ref immutable BuiltinKind.StaticSyms) {
+			return immutable LowExprKind(ctx.staticSyms);
 		},
 		(ref immutable BuiltinKind.Zeroed) {
 			return immutable LowExprKind(immutable LowExprKind.Zeroed());

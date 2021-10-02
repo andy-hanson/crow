@@ -860,10 +860,10 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			}
 		}
 		case '\'':
-			immutable string symbol = takeSymbolLiteral(alloc, lexer);
+			immutable Sym sym = takeSymbolLiteral(alloc, lexer);
 			immutable ExprAst expr = immutable ExprAst(
 				range(lexer, start),
-				immutable ExprAstKind(immutable LiteralAst(immutable LiteralAst.Symbol(symbol))));
+				immutable ExprAstKind(immutable LiteralAst(sym)));
 			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 		case '+':
 			return isDigit(*lexer.ptr)

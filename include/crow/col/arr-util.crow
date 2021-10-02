@@ -288,6 +288,13 @@ index-of-subseq opt nat64(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
 	else
 		a index-of-subseq-recur subseq, i + 1
 
+find opt ?a(a arr ?a, f act bool(?a))
+	if !a.empty?
+		if f[a[0]]
+			a[0] some
+		else
+			a.tail find f
+
 ###
 Equivalent to `f[a[0]] ? 0.some, f[a[1]] ? 1.some, ...`.
 Returns the first index for which `f[a[i]]` is true, or returns `none`.
