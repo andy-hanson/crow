@@ -1,12 +1,12 @@
 import
-	crow.cell: cell, swap, subscript
-	crow.col.arr-util: contains?, each-with-index, exists?
-	crow.col.mut-list: ~=, move-to-arr!, mut-list
-	crow.io.file: each-child-recursive, read-file
-	crow.io.path: base-name, get-extension
-	crow.io.print: print
-	crow.str-util: ends-with?, has-substr?, starts-with?, try-remove-start
-	.failure: failure, flat-map-with-max-size, max-failures, print-tests?, test-options
+	crow/cell: cell, swap, subscript
+	crow/col/arr-util: contains?, each-with-index, exists?
+	crow/col/mut-list: ~=, move-to-arr!, mut-list
+	crow/io/file: each-child-recursive, read-file
+	crow/io/path: base-name, get-extension
+	crow/io/print: print
+	crow/str-util: ends-with?, has-substr?, starts-with?, try-remove-start
+	./failure: failure, flat-map-with-max-size, max-failures, print-tests?, test-options
 
 lint result<str, arr failure>(path str, options test-options) summon
 	files = path list-lintable-files

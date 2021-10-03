@@ -1,9 +1,9 @@
 no-std
 import
-	..io.duration: duration, nsec
-	..col.mut-arr: mut-arr
-	..ptr: by-val
-	.bootstrap: arr, nat64, str
+	../io/duration: duration, nsec
+	../col/mut-arr: mut-arr
+	../ptr: by-val
+	./bootstrap: arr, nat64, str
 
 perf-time record
 	by-val

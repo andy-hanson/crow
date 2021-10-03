@@ -1,12 +1,12 @@
 no-std
 import
-	..crow.cell: cell
-	..crow.c-types: c-int, size_t
-	..crow.extra-types: err-t, fd-t
-	..crow.number: int32, nat16
-	..crow.ptr: any-ptr
-	..unistd: ssize_t
-	.types: socklen_t
+	crow/cell: cell
+	crow/c-types: c-int, size_t
+	crow/extra-types: err-t, fd-t
+	crow/number: int32, nat16
+	crow/ptr: any-ptr
+	unistd: ssize_t
+	./types: socklen_t
 
 AF_UNSPEC nat16() noctx
 	0

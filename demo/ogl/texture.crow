@@ -1,19 +1,19 @@
 no-std
 import
-	crow.cell: as-ptr, cell, subscript
-	crow.compare: !=
-	crow.exception: throw
-	crow.io.print: print
-	crow.misc: void
-	crow.number: to-int32
-	crow.ptr: ptr-to
-	crow.str: str
-	crow.str-conv: finish, interp, to-str, with-str, with-value
-	GLES2.gl2:
+	crow/cell: as-ptr, cell, subscript
+	crow/compare: !=
+	crow/exception: throw
+	crow/io/print: print
+	crow/misc: void
+	crow/number: to-int32
+	crow/ptr: ptr-to
+	crow/str: str
+	crow/str-conv: finish, interp, to-str, with-str, with-value
+	GLES2/gl2:
 		==, glBindTexture, glDeleteTextures, glGetError, glGenTextures, GL_LINEAR, GL_NO_ERROR,
 		GL_RGBA, glTexImage2D, glTexParameteri, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_MIN_FILTER,
 		GL_TEXTURE_2D, GLuint, GL_UNSIGNED_BYTE, to-str
-	.load-webp: data, height, width, with-webp
+	./load-webp: data, height, width, with-webp
 
 # Remember to call 'free-texture'
 load-texture GLuint(path str) unsafe summon

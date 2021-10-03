@@ -1,38 +1,38 @@
 no-std
 import
-	...poll:
+	poll:
 		fd, has-POLLIN?, has-POLLERR?, has-POLLHUP?, has-POLLNVAL?, has-POLLOUT?, has-POLLPRI?,
 		poll, pollfd, POLLIN, revents
-	...spawn:
+	spawn:
 		posix_spawn, posix_spawn_file_actions_addclose, posix_spawn_file_actions_adddup2,
 		posix_spawn_file_actions_init, posix_spawn_file_actions_t
-	...stdio: stderr, stdout
-	...sys.types: pid_t
-	...sys.wait:
+	stdio: stderr, stdout
+	sys/types: pid_t
+	sys/wait:
 		status-t, waitpid, WEXITSTATUS, WIFCONTINUED, WIFEXITED, WIFSIGNALED,
 		WIFSTOPPED, WTERMSIG
-	...unistd: close, pipe, pipes, read, read-pipe, write-pipe
-	..bool: !, &&, ||, bool, to-nat64
-	..bytes-types: zero
-	..cell: cell, subscript
-	..col.arr: ~, arr, begin-ptr, ref-of-val-at, size
-	..col.arr-util: fold, map
-	..col.mut-list: begin-ptr, move-to-arr!, mut-list, size, unsafe-set-size!
-	..compare: <=
-	..exception: assert, throw
-	..extra-types: fd-t
-	..misc: as, void
-	..number: to-nat64
-	..ptr: +, as-any-ptr, as-ref, by-val, null, ptr
-	..str: char, c-str, str
-	..str-conv: finish, interp, to-str, with-str, with-value
-	..str-util: to-c-str
-	..private.bootstrap: todo
-	..private.number-low-level: ==, <=>, int32, to-int64, wrap-add
-	.environ: convert-environ, environ
-	.file: is-file?
-	.posix-util: check-posix-error
-	.print: print
+	unistd: close, pipe, pipes, read, read-pipe, write-pipe
+	../bool: !, &&, ||, bool, to-nat64
+	../bytes-types: zero
+	../cell: cell, subscript
+	../col/arr: ~, arr, begin-ptr, ref-of-val-at, size
+	../col/arr-util: fold, map
+	../col/mut-list: begin-ptr, move-to-arr!, mut-list, size, unsafe-set-size!
+	../compare: <=
+	../exception: assert, throw
+	../extra-types: fd-t
+	../misc: as, void
+	../number: to-nat64
+	../ptr: +, as-any-ptr, as-ref, by-val, null, ptr
+	../str: char, c-str, str
+	../str-conv: finish, interp, to-str, with-str, with-value
+	../str-util: to-c-str
+	../private/bootstrap: todo
+	../private/number-low-level: ==, <=>, int32, to-int64, wrap-add
+	./environ: convert-environ, environ
+	./file: is-file?
+	./posix-util: check-posix-error
+	./print: print
 
 # Alias for the exit code of a process.
 exit-code alias

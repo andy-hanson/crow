@@ -1,15 +1,15 @@
 no-std
 import
-	...stdio: stderr, stdout
-	...unistd: write
-	..col.arr: begin-ptr
-	..compare: !=
-	..extra-types: fd-t
-	..misc: void
-	..ptr: as-any-ptr, size-of
-	..str: char, chars, size-bytes, str
-	..private.bootstrap: hard-assert, todo
-	..private.number-low-level: ==, nat8, unsafe-to-int64
+	stdio: stderr, stdout
+	unistd: write
+	../col/arr: begin-ptr
+	../compare: !=
+	../extra-types: fd-t
+	../misc: void
+	../ptr: as-any-ptr, size-of
+	../str: char, chars, size-bytes, str
+	../private/bootstrap: hard-assert, todo
+	../private/number-low-level: ==, nat8, unsafe-to-int64
 
 # Print to stdout, including a newline.
 print void(a str) summon noctx

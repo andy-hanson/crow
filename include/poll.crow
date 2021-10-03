@@ -1,11 +1,11 @@
 no-std
 import
-	.crow.bits: bits-intersect?
-	.crow.bool: bool
-	.crow.c-types: u-long
-	.crow.extra-types: fd-t
-	.crow.number: int16, int32
-	.crow.ptr: by-val, ptr
+	crow/bits: bits-intersect?
+	crow/bool: bool
+	crow/c-types: u-long
+	crow/extra-types: fd-t
+	crow/number: int16, int32
+	crow/ptr: by-val, ptr
 
 pollfd record mut
 	fd fd-t

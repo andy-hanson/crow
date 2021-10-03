@@ -1,18 +1,18 @@
 no-std
 import
-	..bool: &&, ==, bool, false
-	..compare: !=
-	..exception: assert
-	..fun: subscript
-	..misc: ->, void
-	..opt: force, has?, opt, some
-	..ptr: ==, +, -, set-subscript
-	..test: is
-	..private.number-low-level: ==, nat64, wrap-add
-	.arr: ==, arr, empty?, size
-	.arr-util: each, first, fold, tail
-	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
-	.stack: ~, arr, each, empty?, fold, size, stack
+	../bool: &&, ==, bool, false
+	../compare: !=
+	../exception: assert
+	../fun: subscript
+	../misc: ->, void
+	../opt: force, has?, opt, some
+	../ptr: ==, +, -, set-subscript
+	../test: is
+	../private/number-low-level: ==, nat64, wrap-add
+	./arr: ==, arr, empty?, size
+	./arr-util: each, first, fold, tail
+	./mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
+	./stack: ~, arr, each, empty?, fold, size, stack
 
 queue<?a> record
 	left arr ?a

@@ -1,10 +1,10 @@
 no-std
 import
-	..bool: !, bool
-	..misc: void
-	..opt: opt
-	.arr: arr
-	.mut-list: ~=, arr, copy, each, empty?, filter!, fold, last, map!, mut-list, pop!
+	../bool: !, bool
+	../misc: void
+	../opt: opt
+	./arr: arr
+	./mut-list: ~=, arr, copy, each, empty?, filter!, fold, last, map!, mut-list, pop!
 
 ###
 Unlike `mut-list`, this is not guaranteed to be represented as an array.

@@ -10,7 +10,7 @@ import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
 import util.opt : has, force, forceOrTodo, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
-import util.types : safeSizeTToU16;
+import util.types : Nat8, safeSizeTToU16;
 import util.util : todo, verify;
 
 struct AllPaths(Alloc) {
@@ -92,13 +92,29 @@ immutable(Path) childPath(Alloc)(ref AllPaths!Alloc allPaths, immutable Path par
 	return getOrAddChild(allPaths, mutArrAt(allPaths.pathToChildren, parent.index), some(parent), name);
 }
 
-struct RelPath {
+struct AbsOrRelPath {
 	private:
-	immutable ubyte nParents_;
+	immutable Opt!Nat8 nParents_;
 	immutable Path path_;
 }
 
-immutable(ubyte) nParents(ref immutable RelPath a) {
+immutable(T) matchAbsOrRelPath(T)(
+	ref immutable AbsOrRelPath a,
+	scope immutable(T) delegate(immutable Path) @safe @nogc pure nothrow cbGlobal,
+	scope immutable(T) delegate(immutable RelPath) @safe @nogc pure nothrow cbRel,
+) {
+	return has(a.nParents_)
+		? cbRel(immutable RelPath(force(a.nParents_), a.path_))
+		: cbGlobal(a.path_);
+}
+
+struct RelPath {
+	private:
+	immutable Nat8 nParents_;
+	immutable Path path_;
+}
+
+immutable(Nat8) nParents(ref immutable RelPath a) {
 	return a.nParents_;
 }
 immutable(Path) path(ref immutable RelPath a) {
@@ -110,7 +126,7 @@ immutable(Opt!Path) resolvePath(Alloc)(
 	immutable Opt!Path path,
 	immutable RelPath relPath,
 ) {
-	return relPath.nParents_ == 0
+	return relPath.nParents_ == immutable Nat8(0)
 		? some(has(path)
 			? addManyChildren(allPaths, force(path), relPath.path_)
 			: relPath.path_)
@@ -118,7 +134,7 @@ immutable(Opt!Path) resolvePath(Alloc)(
 			? resolvePath(
 				allPaths,
 				parent(allPaths, force(path)),
-				immutable RelPath(cast(ubyte) (relPath.nParents_ - 1), relPath.path_))
+				immutable RelPath(relPath.nParents_ - immutable Nat8(1), relPath.path_))
 			: none!Path;
 }
 
@@ -166,11 +182,15 @@ private @trusted immutable(string) pathToStrWorker(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref const AllPaths!PathAlloc allPaths,
 	immutable string root,
+	immutable uint rootMultiple,
 	immutable Path path,
 	immutable string extension,
 	immutable bool nulTerminated,
 ) {
-	immutable size_t sz = size(root) + pathToStrSize(allPaths, path) + size(extension) + (nulTerminated ? 1 : 0);
+	immutable size_t sz = size(root) * rootMultiple +
+		pathToStrSize(allPaths, path) +
+		size(extension) +
+		(nulTerminated ? 1 : 0);
 	char* begin = cast(char*) allocateBytes(alloc, char.sizeof * sz);
 	char* cur = begin + sz;
 	if (nulTerminated) {
@@ -181,7 +201,7 @@ private @trusted immutable(string) pathToStrWorker(Alloc, PathAlloc)(
 		cur--;
 		*cur = c;
 	}
-	verify(cur == begin + size(root) + pathToStrSize(allPaths, path));
+	verify(cur == begin + size(root) * rootMultiple + pathToStrSize(allPaths, path));
 	@trusted void onPart(immutable string part) {
 		cur -= size(part);
 		char* j = cur;
@@ -194,13 +214,38 @@ private @trusted immutable(string) pathToStrWorker(Alloc, PathAlloc)(
 		*cur = '/';
 	}
 	walkPathBackwards(allPaths, path, &onPart);
-	verify(cur == begin + size(root));
-	foreach_reverse (immutable char c; root) {
-		cur--;
-		*cur = c;
+	verify(cur == begin + size(root) * rootMultiple);
+	foreach (immutable size_t i; 0 .. rootMultiple) {
+		foreach_reverse (immutable char c; root) {
+			cur--;
+			*cur = c;
+		}
 	}
 	verify(cur == begin);
 	return cast(immutable) begin[0 .. sz];
+}
+
+immutable(string) absOrRelPathToStr(Alloc, PathAlloc)(
+	ref Alloc alloc,
+	ref const AllPaths!PathAlloc allPaths,
+	ref immutable AbsOrRelPath a,
+) {
+	return matchAbsOrRelPath(
+		a,
+		(immutable Path global) =>
+			pathToStr(alloc, allPaths, "", global, ""),
+		(immutable RelPath relPath) =>
+			relPathToStr(alloc, allPaths, relPath));
+}
+
+private immutable(string) relPathToStr(Alloc, PathAlloc)(
+	ref Alloc alloc,
+	ref const AllPaths!PathAlloc allPaths,
+	ref immutable RelPath a,
+) {
+	return a.nParents_ == immutable Nat8(0)
+		? pathToStrWorker(alloc, allPaths, "./", 1, a.path_, "", false)
+		: pathToStrWorker(alloc, allPaths, "../", a.nParents_.raw(), a.path_, "", false);
 }
 
 immutable(string) pathToStr(Alloc, PathAlloc)(
@@ -210,7 +255,7 @@ immutable(string) pathToStr(Alloc, PathAlloc)(
 	immutable Path path,
 	immutable string extension,
 ) {
-	return pathToStrWorker(alloc, allPaths, root, path, extension, false);
+	return pathToStrWorker(alloc, allPaths, root, 1, path, extension, false);
 }
 
 immutable(CStr) pathToCStr(Alloc, PathAlloc)(
@@ -238,7 +283,7 @@ private immutable(NulTerminatedStr) pathToNulTerminatedStr(Alloc, PathAlloc)(
 	immutable Path path,
 	immutable string extension,
 ) {
-	return immutable NulTerminatedStr(pathToStrWorker(alloc, allPaths, root, path, extension, true));
+	return immutable NulTerminatedStr(pathToStrWorker(alloc, allPaths, root, 1, path, extension, true));
 }
 
 immutable(string) pathToStr(Alloc, PathAlloc)(
@@ -294,13 +339,12 @@ private immutable(RelPath) parseRelPath(Alloc)(ref AllPaths!Alloc allPaths, immu
 			return parseRelPath(allPaths, s[2 .. $]);
 		else if (at(s, 1) == '.' && at(s, 2) == '/') {
 			immutable RelPath r = parseRelPath(allPaths, s[3 .. $]);
-			verify(r.nParents_ < 255);
-			return immutable RelPath(cast(ubyte) (r.nParents_ + 1), r.path_);
+			return immutable RelPath(r.nParents_ + immutable Nat8(1), r.path_);
 		} else
 			// Path component happens to start with '.' but is not '.' or '..'
-			return immutable RelPath(0, parsePath(allPaths, s));
+			return immutable RelPath(immutable Nat8(0), parsePath(allPaths, s));
 	else
-		return immutable RelPath(0, parsePath(allPaths, s));
+		return immutable RelPath(immutable Nat8(0), parsePath(allPaths, s));
 }
 
 immutable(Opt!AbsolutePath) parent(Alloc)(ref const AllPaths!Alloc allPaths, ref immutable AbsolutePath a) {
@@ -350,13 +394,13 @@ private immutable(RootAndPath) parseAbsoluteOrRelPathWithoutExtension(Alloc)(
 private immutable(string) dropParents(Alloc)(
 	ref const AllPaths!Alloc allPaths,
 	immutable string path,
-	immutable ubyte nParents,
+	immutable Nat8 nParents,
 ) {
-	if (nParents == 0)
+	if (nParents == immutable Nat8(0))
 		return path;
 	else {
 		immutable Opt!string p = pathParent(path);
-		return dropParents(allPaths, forceOrTodo(p), cast(ubyte) (nParents - 1));
+		return dropParents(allPaths, forceOrTodo(p), nParents - immutable Nat8(1));
 	}
 }
 

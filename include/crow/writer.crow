@@ -1,12 +1,12 @@
 no-std
 import
-	.bool: bool
-	.col.arr-util: each
-	.col.mut-list: ~=, move-to-arr!, mut-list, pop-n!
-	.misc: void
-	.number: float64, int64, nat64
-	.str: ==, char, chars, str
-	.str-conv: to-str
+	./bool: bool
+	./col/arr-util: each
+	./col/mut-list: ~=, move-to-arr!, mut-list, pop-n!
+	./misc: void
+	./number: float64, int64, nat64
+	./str: ==, char, chars, str
+	./str-conv: to-str
 
 writer record mut
 	# TODO:PRIVATE

@@ -1,17 +1,17 @@
 no-std
 import
-	crow.cell: cell, subscript
-	crow.col.arr: begin-ptr, size
-	crow.col.mut-arr: begin-ptr, copy-to-arr, uninitialized-mut-arr
-	crow.compare: !=
-	crow.exception: assert, throw
-	crow.io.file: read-file
-	crow.misc: void
-	crow.number: ==, to-int32, to-nat64
-	crow.ptr: null
-	crow.str: str
-	crow.str-util: to-c-str
-	GLES2.gl2:
+	crow/cell: cell, subscript
+	crow/col/arr: begin-ptr, size
+	crow/col/mut-arr: begin-ptr, copy-to-arr, uninitialized-mut-arr
+	crow/compare: !=
+	crow/exception: assert, throw
+	crow/io/file: read-file
+	crow/misc: void
+	crow/number: ==, to-int32, to-nat64
+	crow/ptr: null
+	crow/str: str
+	crow/str-util: to-c-str
+	GLES2/gl2:
 		glAttachShader, GLchar, glCompileShader, GL_COMPILE_STATUS, glCreateProgram, glCreateShader,
 		glDeleteProgram, glDeleteShader, GLenum, GL_FALSE, GL_FRAGMENT_SHADER,
 		glGetProgramInfoLog, glGetProgramiv, glGetShaderInfoLog, glGetShaderiv,

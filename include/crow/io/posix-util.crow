@@ -1,10 +1,10 @@
 no-std
 import
-	...errno: errno
-	..exception: assert
-	..extra-types: err-t
-	..misc: void
-	..number: ==
+	errno: errno
+	../exception: assert
+	../extra-types: err-t
+	../misc: void
+	../number: ==
 
 # Fail if `errno != 0`.
 check-errno void() unsafe

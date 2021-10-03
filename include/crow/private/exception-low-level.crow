@@ -1,17 +1,17 @@
 no-std
 import
-	...setjmp: jmp_buf, __jmp_buf_tag, longjmp, setjmp
-	..bool: !, bool
-	..bytes-types: zero
-	..fun: subscript
-	..ptr: as-ref, by-val, null, null?, ptr-to
-	.backtrace: backtrace, get-backtrace
-	.bootstrap:
+	setjmp: jmp_buf, __jmp_buf_tag, longjmp, setjmp
+	../bool: !, bool
+	../bytes-types: zero
+	../fun: subscript
+	../ptr: as-ref, by-val, null, null?, ptr-to
+	./backtrace: backtrace, get-backtrace
+	./bootstrap:
 		arr, as, err, exception-ctx-ptr, get-ctx, hard-assert, hard-forbid,
 		hard-unreachable, int32, ok, result, str, thread-local-stuff, void
-	.number-low-level: ==
+	./number-low-level: ==
 export
-	.bootstrap: exception, message
+	./bootstrap: exception, message
 
 exception-ctx record mut
 	jmp-buf-ptr mut jmp_buf

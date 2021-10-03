@@ -1,24 +1,24 @@
 no-std
 import
-	..bool: !, &&, ==, ?, bool, false, true
-	..compare: <, <=, >=, compare, comparison, equal, max, min
-	..exception: assert
-	..fun: subscript
-	..misc: ->, arrow, as, data, from, to, void
-	..number: ==, <=>, +, -, even?, nat64
-	..opt: ==, has?, none, opt, opt-or, or-default, some
-	..ptr: ==, <=>, +, -, ptr, set-subscript, subscript
-	..str: ==, chars, empty?, size-bytes, str
-	..str-conv: interp, finish, to-str, with-str, with-value
-	..test: is
-	..writer: ~=, backup!, move-to-str!, writer
-	.arr: arr, arr-equal?, begin-ptr, empty?, end-ptr, size, subscript
-	.arr-util: each, filter, fold, map, tail
-	.mut-arr:
+	../bool: !, &&, ==, ?, bool, false, true
+	../compare: <, <=, >=, compare, comparison, equal, max, min
+	../exception: assert
+	../fun: subscript
+	../misc: ->, arrow, as, data, from, to, void
+	../number: ==, <=>, +, -, even?, nat64
+	../opt: ==, has?, none, opt, opt-or, or-default, some
+	../ptr: ==, <=>, +, -, ptr, set-subscript, subscript
+	../str: ==, chars, empty?, size-bytes, str
+	../str-conv: interp, finish, to-str, with-str, with-value
+	../test: is
+	../writer: ~=, backup!, move-to-str!, writer
+	./arr: arr, arr-equal?, begin-ptr, empty?, end-ptr, size, subscript
+	./arr-util: each, filter, fold, map, tail
+	./mut-arr:
 		begin-ptr, cast-immutable, copy-from!, empty?, end-ptr, fold, mut-arr,
 		mut-arr-from-begin-end, set-subscript, size, subscript, tail, uninitialized-mut-arr
-	.sort: sort-by
-	.private.sort-utils: binary-search-value
+	./sort: sort-by
+	./private/sort-utils: binary-search-value
 
 dict<?k, ?v> record
 	by-val

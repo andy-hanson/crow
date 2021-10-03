@@ -2,10 +2,10 @@
 
 no-std
 import
-	..crow.c-types: c-int
-	..crow.misc: void
-	..crow.number: nat32
-	..crow.str: c-str
+	crow/c-types: c-int
+	crow/misc: void
+	crow/number: nat32
+	crow/str: c-str
 
 SDL_Init c-int(flags SDL_Init_flags) extern<"SDL2"> noctx summon
 

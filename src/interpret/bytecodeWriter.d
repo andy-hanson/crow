@@ -590,7 +590,7 @@ void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeS
 			case ExternOp.setjmp:
 				return 0;
 			case ExternOp.getNProcs:
-			case ExternOp.pthreadYield:
+			case ExternOp.schedYield:
 				return 1;
 		}
 	}();

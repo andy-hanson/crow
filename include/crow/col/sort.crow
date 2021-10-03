@@ -1,17 +1,17 @@
 no-std
 import
-	..bool: !
-	..compare: ==, !=, <, <=, >, compare, comparison, equal, less
-	..exception: assert, forbid
-	..fun: subscript
-	..misc: ->, as, void
-	..number: ==, <=>, +, -, /, nat64
-	..ptr: ==, +, -, ptr, set-subscript, subscript
-	..str: ==, <=>, chars
-	..test: is
-	.arr: ==, arr, subscript
-	.mut-arr: arr, begin-ptr, cast-immutable, empty?, end-ptr, mut-arr, size, set-subscript, subscript
-	.mut-list: mut-list, temp-as-mut-arr
+	../bool: !
+	../compare: ==, !=, <, <=, >, compare, comparison, equal, less
+	../exception: assert, forbid
+	../fun: subscript
+	../misc: ->, as, void
+	../number: ==, <=>, +, -, /, nat64
+	../ptr: ==, +, -, ptr, set-subscript, subscript
+	../str: ==, <=>, chars
+	../test: is
+	./arr: ==, arr, subscript
+	./mut-arr: arr, begin-ptr, cast-immutable, empty?, end-ptr, mut-arr, size, set-subscript, subscript
+	./mut-list: mut-list, temp-as-mut-arr
 
 ###
 Returns a new array containing the same elements as `a`, but in sorted order.

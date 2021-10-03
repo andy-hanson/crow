@@ -1,6 +1,6 @@
 no-std
 import
-	.private.bootstrap: char, float32, int32, int64, nat32, nat64
+	./private/bootstrap: char, float32, int32, int64, nat32, nat64
 
 c-char alias
 	char

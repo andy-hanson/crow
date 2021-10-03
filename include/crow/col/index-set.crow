@@ -1,28 +1,28 @@
 no-std
 import
-	..bits:
+	../bits:
 		&, |, <<, >>, add-bit, bit?, bits-diff, count-ones,
 		filter-bits, fold-one-bits, nth-bit, sub-bit
-	..bool: !, &&, ==, bool, false, true
-	..compare: !=, <, <=
-	..exception: assert
-	..fun: subscript
-	..log: info, log
-	..misc: ->, drop, void
-	..number: deep-size-bytes, each
-	..opt: has?, none, opt, or-default, some
-	..ptr: ==, +, set-subscript
-	..str: ==, str
-	..str-conv: to-hex
-	..test: is
-	..writer: ~=, backup!, move-to-str!, writer
-	..private.number-low-level:
+	../bool: !, &&, ==, bool, false, true
+	../compare: !=, <, <=
+	../exception: assert
+	../fun: subscript
+	../log: info, log
+	../misc: ->, drop, void
+	../number: deep-size-bytes, each
+	../opt: has?, none, opt, or-default, some
+	../ptr: ==, +, set-subscript
+	../str: ==, str
+	../str-conv: to-hex
+	../test: is
+	../writer: ~=, backup!, move-to-str!, writer
+	../private/number-low-level:
 		==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
-	.arr: ==, arr, empty?, size, subscript
-	.arr-util:
+	./arr: ==, arr, empty?, size, subscript
+	./arr-util:
 		alloc-count, deep-size-bytes, each, fold, fold-with-index, last, make-arr, map-with-index,
 		rtail, update, zip-larger, zip-smaller
-	.mut-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-mut-arr
+	./mut-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-mut-arr
 
 index-set record
 	# TODO:PRIVATE

@@ -1,6 +1,6 @@
 import
-	crow.str-util: join
-	crow.io.print: print
+	crow/str-util: join
+	crow/io/print: print
 
 main fut nat(_ arr str) summon
 	chili = ["beans", "garlic", "onion", "pepper", "cumin"]

@@ -137,7 +137,7 @@ import util.collection.mutArr :
 	tempAsArr,
 	tempAsArr_mut;
 import util.collection.str : copyStr;
-import util.memory : nu;
+import util.memory : allocate, nu;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
@@ -954,7 +954,7 @@ immutable(CheckedExpr) checkLambdaCommon(Alloc)(
 			instFunStruct,
 			kind,
 			actualPossiblyFutReturnType);
-		return CheckedExpr(immutable Expr(range, lambda));
+		return immutable CheckedExpr(immutable Expr(range, allocate(alloc, lambda)));
 	}
 }
 

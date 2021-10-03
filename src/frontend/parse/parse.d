@@ -7,8 +7,6 @@ import frontend.parse.ast :
 	ExplicitByValOrRefAndRange,
 	ExprAst,
 	FileAst,
-	FileAstPart0,
-	FileAstPart1,
 	FunBodyAst,
 	FunDeclAst,
 	ImportAst,
@@ -65,10 +63,11 @@ import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, arrWithSize
 import util.collection.str : CStr, NulTerminatedStr, SafeCStr;
 import util.memory : allocate, nu;
 import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some, somePtr;
-import util.path : AllPaths, childPath, Path, rootPath;
+import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
+import util.types : Nat8;
 import util.util : todo, unreachable, verify;
 
 struct FileAstAndParseDiagnostics {
@@ -138,28 +137,36 @@ struct NamesAndDedent {
 	immutable NewlineOrDedent dedented;
 }
 
-struct NDotsAndPath {
-	immutable ubyte nDots;
-	immutable Path path;
-}
-
-immutable(NDotsAndPath) parseImportPath(Alloc, PathAlloc, SymAlloc)(
+immutable(AbsOrRelPath) parseImportPath(Alloc, PathAlloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
 	ref Lexer!SymAlloc lexer,
 ) {
-	ubyte nDots = 0;
-	while (tryTake(lexer, '.')) {
-		verify(nDots < 255);
-		nDots++;
-	}
-	immutable(Path) addPathComponents(immutable Path path) {
-		return tryTake(lexer, '.')
-			? addPathComponents(childPath(allPaths, path, takeNameAsTempStr(alloc, lexer).str))
-			: path;
-	}
-	immutable Path path = addPathComponents(rootPath(allPaths, takeNameAsTempStr(alloc, lexer).str));
-	return immutable NDotsAndPath(nDots, path);
+	immutable Opt!Nat8 nParents = tryTake(lexer, "./")
+		? some(immutable Nat8(0))
+		: tryTake(lexer, "../")
+		? some(takeDotDotSlashes(lexer, immutable Nat8(1)))
+		: none!Nat8;
+	return immutable AbsOrRelPath(
+		nParents,
+		addPathComponents(alloc, allPaths, lexer, rootPath(allPaths, takeNameAsTempStr(alloc, lexer).str)));
+}
+
+immutable(Nat8) takeDotDotSlashes(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Nat8 acc) {
+	return tryTake(lexer, "../")
+		? takeDotDotSlashes(lexer, acc + immutable Nat8(1))
+		: acc;
+}
+
+immutable(Path) addPathComponents(Alloc, PathAlloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
+	ref Lexer!SymAlloc lexer,
+	immutable Path acc,
+) {
+	return tryTake(lexer, '/')
+		? addPathComponents(alloc, allPaths, lexer, childPath(allPaths, acc, takeNameAsTempStr(alloc, lexer).str))
+		: acc;
 }
 
 immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(Alloc, PathAlloc, SymAlloc)(
@@ -168,7 +175,7 @@ immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(Alloc, PathAlloc, Sy
 	ref Lexer!SymAlloc lexer,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable NDotsAndPath path = parseImportPath(alloc, allPaths, lexer);
+	immutable AbsOrRelPath path = parseImportPath(alloc, allPaths, lexer);
 	immutable NamesAndDedent names = () {
 		if (tryTake(lexer, ':')) {
 			if (tryTake(lexer, ' ')) {
@@ -192,9 +199,7 @@ immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(Alloc, PathAlloc, Sy
 		}
 		return immutable NamesAndDedent(none!(Sym[]), range(lexer, start), takeNewlineOrSingleDedent(alloc, lexer));
 	}();
-	return immutable ImportAndDedent(
-		immutable ImportAst(names.range, path.nDots, path.path, names.names),
-		names.dedented);
+	return immutable ImportAndDedent(immutable ImportAst(names.range, path, names.names), names.dedented);
 }
 
 immutable(NewlineOrDedent) newlineOrDedentFromNumber(immutable uint dedent) {
@@ -986,23 +991,32 @@ immutable(Ptr!FileAst) parseFileInner(Alloc, PathAlloc, SymAlloc)(
 	ArrBuilder!StructDeclAst structs;
 	ArrBuilder!FunDeclAst funs;
 	ArrBuilder!TestAst tests;
-
-	for (;;) {
-		immutable SafeCStr docComment = skipBlankLinesAndGetDocComment(alloc, lexer);
-		if (tryTake(lexer, '\0'))
-			break;
-		parseSpecOrStructOrFunOrTest(alloc, lexer, specs, structAliases, structs, funs, tests, docComment);
-	}
-
+	parseFileRecur(alloc, lexer, specs, structAliases, structs, funs, tests);
 	return nu!FileAst(
 		alloc,
 		moduleDocComment,
 		noStd,
-		nu!FileAstPart0(alloc, imports, exports, finishArr(alloc, specs)),
-		nu!FileAstPart1(
-			alloc,
-			finishArr(alloc, structAliases),
-			finishArr(alloc, structs),
-			finishArr(alloc, funs),
-			finishArr(alloc, tests)));
+		imports,
+		exports,
+		finishArr(alloc, specs),
+		finishArr(alloc, structAliases),
+		finishArr(alloc, structs),
+		finishArr(alloc, funs),
+		finishArr(alloc, tests));
+}
+
+void parseFileRecur(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	ref ArrBuilder!SpecDeclAst specs,
+	ref ArrBuilder!StructAliasAst structAliases,
+	ref ArrBuilder!StructDeclAst structs,
+	ref ArrBuilder!FunDeclAst funs,
+	ref ArrBuilder!TestAst tests,
+) {
+	immutable SafeCStr docComment = skipBlankLinesAndGetDocComment(alloc, lexer);
+	if (!tryTake(lexer, '\0')) {
+		parseSpecOrStructOrFunOrTest(alloc, lexer, specs, structAliases, structs, funs, tests, docComment);
+		parseFileRecur(alloc, lexer, specs, structAliases, structs, funs, tests);
+	}
 }

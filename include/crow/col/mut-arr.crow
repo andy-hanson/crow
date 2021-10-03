@@ -1,17 +1,17 @@
 no-std
 import
-	...string: memcpy
-	..bool: !, bool
-	..compare: !=, <, <=, equal
-	..fun: subscript
-	..misc: ->, arrow, drop, from, to, void
-	..opt: opt, some
-	..ptr: ==, <=>, +, -, as-any-ptr, ptr, set-subscript, size-of, subscript
-	..private.alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
-	..private.exception-low-level: assert, forbid
-	..private.number-low-level: ==, <=>, nat64, wrap-mul, wrap-sub
-	.arr: arr, arr-from-begin-end, begin-ptr, size, subscript
-	.arr-util: each, each-with-index, exists?, find-index, fold, fold-reverse
+	string: memcpy
+	../bool: !, bool
+	../compare: !=, <, <=, equal
+	../fun: subscript
+	../misc: ->, arrow, drop, from, to, void
+	../opt: opt, some
+	../ptr: ==, <=>, +, -, as-any-ptr, ptr, set-subscript, size-of, subscript
+	../private/alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
+	../private/exception-low-level: assert, forbid
+	../private/number-low-level: ==, <=>, nat64, wrap-mul, wrap-sub
+	./arr: arr, arr-from-begin-end, begin-ptr, size, subscript
+	./arr-util: each, each-with-index, exists?, find-index, fold, fold-reverse
 
 ###
 Like `arr` but mutable.

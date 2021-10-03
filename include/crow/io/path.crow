@@ -1,12 +1,12 @@
 no-std
 import
-	..col.arr: subscript
-	..col.arr-util: last, r-index-of, rtail
-	..misc: ->
-	..number: +, -, nat64
-	..opt: opt, some
-	..str: ==, char, chars, size-bytes, str
-	..str-conv: finish, interp, to-str, with-str, with-value
+	../col/arr: subscript
+	../col/arr-util: last, r-index-of, rtail
+	../misc: ->
+	../number: +, -, nat64
+	../opt: opt, some
+	../str: ==, char, chars, size-bytes, str
+	../str-conv: finish, interp, to-str, with-str, with-value
 
 ###
 Gets the paremt of a path.

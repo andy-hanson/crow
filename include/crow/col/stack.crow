@@ -1,19 +1,19 @@
 no-std
 import
-	..bool: ?, bool
-	..compare: !=
-	..exception: assert, forbid, throw
-	..fun: subscript
-	..misc: drop, void
-	..opt: ==, empty?, has?, none, opt, some
-	..ptr: ==, +, -, set-subscript
-	..str: str
-	..test: is
-	..test.spy: calls, fn, spy-act
-	..private.number-low-level: ==, nat64, wrap-add
-	.arr: ==, arr
-	.arr-util: fold
-	.mut-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-mut-arr
+	../bool: ?, bool
+	../compare: !=
+	../exception: assert, forbid, throw
+	../fun: subscript
+	../misc: drop, void
+	../opt: ==, empty?, has?, none, opt, some
+	../ptr: ==, +, -, set-subscript
+	../str: str
+	../test: is
+	../test/spy: calls, fn, spy-act
+	../private/number-low-level: ==, nat64, wrap-add
+	./arr: ==, arr
+	./arr-util: fold
+	./mut-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-mut-arr
 
 ###
 Immutable stack ype.

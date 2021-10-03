@@ -1,22 +1,22 @@
 no-std
 import
-	.col.arr: arr, size
-	.cell: cell, set-subscript, subscript
-	.col.arr-util: each-with-index, first-some, map
-	.exception: catch, exception
-	.fun: subscript
-	.misc: as, void
-	.opt: none, opt, some
-	.result: result
-	.private.bootstrap:
+	./col/arr: arr, size
+	./cell: cell, set-subscript, subscript
+	./col/arr-util: each-with-index, first-some, map
+	./exception: catch, exception
+	./fun: subscript
+	./misc: as, void
+	./opt: none, opt, some
+	./result: result
+	./private/bootstrap:
 		exclusion, fun, fut-state-resolved, hard-unreachable, island, island-and-exclusion, nat64,
 		send, state, value
-	.private.fut-low-level: callback!, reject!, resolve!, resolve-or-reject!, unresolved
-	.private.number-low-level: ==, wrap-sub
-	.private.runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
-	.private.thread-utils: lock, lock-by-val, with-lock
+	./private/fut-low-level: callback!, reject!, resolve!, resolve-or-reject!, unresolved
+	./private/number-low-level: ==, wrap-sub
+	./private/runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
+	./private/thread-utils: lock, lock-by-val, with-lock
 export
-	.private.bootstrap: fut
+	./private/bootstrap: fut
 
 # A future that resolves immediately.
 # Used to make code run in another task (to break up a big task).

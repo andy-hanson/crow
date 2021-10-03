@@ -1,6 +1,6 @@
 no-std
 import
-	..number: *, /, nat64
+	../number: *, /, nat64
 
 # Represents an amount of time.
 duration record

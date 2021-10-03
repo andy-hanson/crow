@@ -1,17 +1,17 @@
 no-std
 import
-	..bool: bool
-	..compare: compare
-	..fun: subscript
-	..misc: ->, data, from, void
-	..number: nat64
-	..opt: has?
-	.arr: arr
-	.arr-util: each, map
-	.mut-dict:
+	../bool: bool
+	../compare: compare
+	../fun: subscript
+	../misc: ->, data, from, void
+	../number: nat64
+	../opt: has?
+	./arr: arr
+	./arr-util: each, map
+	./mut-dict:
 		each, empty?, empty!, filter, filter!, fold, map, map!, move-to-arr!, mut-dict,
 		remove-key!, set-subscript, size, subscript
-	.set: set
+	./set: set
 
 ###
 Mutable sorted set of unique values.

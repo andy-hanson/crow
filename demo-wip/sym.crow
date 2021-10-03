@@ -1,6 +1,6 @@
 import
-	crow.col.arr-util: each
-	crow.io.print: print
+	crow/col/arr-util: each
+	crow/io/print: print
 
 main fut nat(_ arr str) summon
 	enum-values each v =>

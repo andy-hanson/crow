@@ -1,17 +1,17 @@
 no-std
 import
-	..bool: &&, ==, bool, false, true
-	..compare: !=, <=, compare
-	..fun: subscript
-	..hash: hash, hash-mix
-	..misc: data, void
-	..opt: has?, opt, some
-	..ptr: ==, <=>, +, -, ptr, set-subscript, size-of, subscript, swap!
-	..test: is
-	..private.number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
-	.arr: ==, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, size, unsafe-at
-	.arr-util: alloc-count, fold, fold-with-index, index-of, map, overhead-bytes, ptr-of
-	.mut-arr:
+	../bool: &&, ==, bool, false, true
+	../compare: !=, <=, compare
+	../fun: subscript
+	../hash: hash, hash-mix
+	../misc: data, void
+	../opt: has?, opt, some
+	../ptr: ==, <=>, +, -, ptr, set-subscript, size-of, subscript, swap!
+	../test: is
+	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
+	./arr: ==, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, size, unsafe-at
+	./arr-util: alloc-count, fold, fold-with-index, index-of, map, overhead-bytes, ptr-of
+	./mut-arr:
 		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-mut-arr, mut-arr,
 		size, uninitialized-mut-arr, unsafe-at, unsafe-set-at!
 

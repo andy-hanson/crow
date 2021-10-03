@@ -1,15 +1,15 @@
 no-std
 import
-	...time: time, time_t
-	..fut: fut
-	..misc: void
-	..number: +
-	..ptr: null
-	..private.fut-low-level: resolve!, unresolved
-	..private.runtime: add-task, get-cur-island, new-exclusion
-	.duration: duration, nsec
+	time: time, time_t
+	../fut: fut
+	../misc: void
+	../number: +
+	../ptr: null
+	../private/fut-low-level: resolve!, unresolved
+	../private/runtime: add-task, get-cur-island, new-exclusion
+	./duration: duration, nsec
 export
-	.time-low-level: get-monotime-nsec
+	./time-low-level: get-monotime-nsec
 
 unix-time record
 	seconds-since-epoch time_t

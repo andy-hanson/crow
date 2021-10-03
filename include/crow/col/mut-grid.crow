@@ -1,19 +1,19 @@
 no-std
 import
-	..bool: !, &&, bool
-	..compare: !=, <
-	..exception: assert
-	..fun: subscript
-	..log: info, log
-	..misc: ->, void
-	..number: *
-	..ptr: ==, +, ptr, set-subscript, subscript
-	..private.number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
-	..str: ==, str
-	..str-conv: interp, finish, to-str, with-str, with-value
-	..test: is
-	..writer: ~=, backup!, move-to-str!, write, writer
-	.mut-arr:
+	../bool: !, &&, bool
+	../compare: !=, <
+	../exception: assert
+	../fun: subscript
+	../log: info, log
+	../misc: ->, void
+	../number: *
+	../ptr: ==, +, ptr, set-subscript, subscript
+	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
+	../str: ==, str
+	../str-conv: interp, finish, to-str, with-str, with-value
+	../test: is
+	../writer: ~=, backup!, move-to-str!, write, writer
+	./mut-arr:
 		begin-ptr, copy, each, empty?, end-ptr, exists?, fold, map!, mut-arr, set-subscript, size,
 		subscript, uninitialized-mut-arr
 

@@ -1,15 +1,15 @@
 no-std
 import
-	...time: gmtime, localtime, strftime
-	..bool
-	..col.arr: subscript
-	..col.mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
-	..misc: ->
-	..number: +, nat64
-	..ptr: ptr-to
-	..str: char, str
-	..str-util: to-c-str
-	.time: seconds-since-epoch, unix-time
+	time: gmtime, localtime, strftime
+	../bool
+	../col/arr: subscript
+	../col/mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
+	../misc: ->
+	../number: +, nat64
+	../ptr: ptr-to
+	../str: char, str
+	../str-util: to-c-str
+	./time: seconds-since-epoch, unix-time
 	
 time-locale record
 	# TODO:PRIVATE

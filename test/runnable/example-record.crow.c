@@ -1257,7 +1257,7 @@ char constantarr_0_188[5];
 char constantarr_0_189[23];
 char constantarr_0_190[9];
 char constantarr_0_191[12];
-char constantarr_0_192[13];
+char constantarr_0_192[11];
 char constantarr_0_193[16];
 char constantarr_0_194[2];
 char constantarr_0_195[18];
@@ -1627,7 +1627,7 @@ char constantarr_0_558[20];
 char constantarr_0_559[8];
 char constantarr_0_560[14];
 char constantarr_0_561[20];
-char constantarr_0_562[14];
+char constantarr_0_562[15];
 char constantarr_0_563[13];
 char constantarr_0_564[14];
 char constantarr_0_565[7];
@@ -1876,7 +1876,7 @@ char constantarr_0_188[5] = "value";
 char constantarr_0_189[23] = "ref-of-val<atomic-bool>";
 char constantarr_0_190[9] = "is-locked";
 char constantarr_0_191[12] = "yield-thread";
-char constantarr_0_192[13] = "pthread_yield";
+char constantarr_0_192[11] = "sched_yield";
 char constantarr_0_193[16] = "ref-of-val<lock>";
 char constantarr_0_194[2] = "lk";
 char constantarr_0_195[18] = "try-gc-alloc-recur";
@@ -2246,7 +2246,7 @@ char constantarr_0_558[20] = "as<by-val<mark-ctx>>";
 char constantarr_0_559[8] = "mark-ctx";
 char constantarr_0_560[14] = "mark-visit<?a>";
 char constantarr_0_561[20] = "ref-of-val<mark-ctx>";
-char constantarr_0_562[14] = "clear-free-mem";
+char constantarr_0_562[15] = "clear-free-mem!";
 char constantarr_0_563[13] = "!=<ptr<bool>>";
 char constantarr_0_564[14] = "set-shut-down?";
 char constantarr_0_565[7] = "wait-on";
@@ -2388,7 +2388,7 @@ uint8_t try_acquire__e(struct lock* a);
 uint8_t try_set__e(struct _atomic_bool* a);
 uint8_t try_change__e(struct _atomic_bool* a, uint8_t old_value);
 struct void_ yield_thread(void);
-extern int32_t pthread_yield(void);
+extern int32_t sched_yield(void);
 struct opt_6 try_gc_alloc_recur(struct gc* gc, uint64_t size_bytes);
 struct comparison _compare_1(uint64_t* a, uint64_t* b);
 uint8_t _less_1(uint64_t* a, uint64_t* b);
@@ -2695,7 +2695,7 @@ struct void_ mark_visit_388(struct mark_ctx* mark_ctx, struct task_queue_node* v
 struct void_ mark_visit_389(struct mark_ctx* mark_ctx, struct mut_list_0 value);
 struct void_ mark_visit_390(struct mark_ctx* mark_ctx, struct mut_arr_0 value);
 struct void_ mark_arr_391(struct mark_ctx* mark_ctx, struct arr_2 a);
-struct void_ clear_free_mem(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data_ptr);
+struct void_ clear_free_mem__e(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data_ptr);
 uint8_t _notEqual_5(uint8_t* a, uint8_t* b);
 struct void_ wait_on(struct condition* a, struct opt_10 until_time, uint64_t last_sequence);
 extern int32_t pthread_cond_wait(struct pthread_cond_t* cond, struct pthread_mutex_t* mutex);
@@ -3476,7 +3476,7 @@ uint8_t try_change__e(struct _atomic_bool* a, uint8_t old_value) {
 /* yield-thread void() */
 struct void_ yield_thread(void) {
 	int32_t err0;
-	err0 = pthread_yield();
+	err0 = sched_yield();
 	
 	return hard_assert((err0 == 0));
 }
@@ -3911,7 +3911,7 @@ uint8_t* get_fun_ptr_104(uint64_t fun_id) {switch (fun_id) {
 			return ((uint8_t*) yield_thread);
 		}
 		case 85: {
-			return ((uint8_t*) pthread_yield);
+			return ((uint8_t*) sched_yield);
 		}
 		case 86: {
 			return ((uint8_t*) try_gc_alloc_recur);
@@ -4832,7 +4832,7 @@ uint8_t* get_fun_ptr_104(uint64_t fun_id) {switch (fun_id) {
 			return ((uint8_t*) mark_arr_391);
 		}
 		case 392: {
-			return ((uint8_t*) clear_free_mem);
+			return ((uint8_t*) clear_free_mem__e);
 		}
 		case 393: {
 			return ((uint8_t*) _notEqual_5);
@@ -5250,7 +5250,7 @@ struct str get_fun_name_106(uint64_t fun_id) {switch (fun_id) {
 			return (struct str) {{12, constantarr_0_191}};
 		}
 		case 85: {
-			return (struct str) {{13, constantarr_0_192}};
+			return (struct str) {{11, constantarr_0_192}};
 		}
 		case 86: {
 			return (struct str) {{18, constantarr_0_195}};
@@ -6171,7 +6171,7 @@ struct str get_fun_name_106(uint64_t fun_id) {switch (fun_id) {
 			return (struct str) {{0u, NULL}};
 		}
 		case 392: {
-			return (struct str) {{14, constantarr_0_562}};
+			return (struct str) {{15, constantarr_0_562}};
 		}
 		case 393: {
 			return (struct str) {{13, constantarr_0_563}};
@@ -8836,9 +8836,12 @@ struct void_ run_garbage_collection(struct gc* gc, struct island_gc_root gc_root
 	mark_ctx0 = (struct mark_ctx) {gc->size_words, gc->mark_begin, gc->data_begin};
 	
 	mark_visit_334((&mark_ctx0), gc_root);
+	uint8_t* prev_mark_cur1;
+	prev_mark_cur1 = gc->mark_cur;
+	
 	gc->mark_cur = gc->mark_begin;
 	gc->data_cur = gc->data_begin;
-	clear_free_mem(gc->mark_begin, gc->mark_end, gc->data_begin);
+	clear_free_mem__e(gc->mark_begin, prev_mark_cur1, gc->data_begin);
 	validate_gc(gc);
 	return (gc->needs_gc__q = 0, (struct void_) {});
 }
@@ -9344,8 +9347,8 @@ struct void_ mark_arr_391(struct mark_ctx* mark_ctx, struct arr_2 a) {
 	
 	return (struct void_) {};
 }
-/* clear-free-mem void(mark-ptr ptr<bool>, mark-end ptr<bool>, data-ptr ptr<nat64>) */
-struct void_ clear_free_mem(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data_ptr) {
+/* clear-free-mem! void(mark-ptr ptr<bool>, mark-end ptr<bool>, data-ptr ptr<nat64>) */
+struct void_ clear_free_mem__e(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data_ptr) {
 	top:;
 	uint8_t _0 = _notEqual_5(mark_ptr, mark_end);
 	if (_0) {

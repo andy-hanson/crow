@@ -1,5 +1,5 @@
 import
-	crow.io.print: print
+	crow/io/print: print
 
 main fut nat(_ arr str) summon
 	if n ?= 'bishop'.to-enum<chess-piece>

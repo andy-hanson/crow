@@ -1,10 +1,10 @@
 file-ast(
-	imports: ports(range(0, 28), [import-ast(1, "/circular-import-a", none)])
+	imports: ports(range(0, 29), [import-ast(".//circular-import-a", none)])
 	specs: []
 	aliases: []
 	structs: []
 	funs: [
 		fun-decl(
 			public?: true
-			sig: sig-ast(range(28, 35), b, inststruct(range(30, 33), name-range(30, int)), [])
+			sig: sig-ast(range(29, 36), b, inststruct(range(31, 34), name-range(31, int)), [])
 			body: literal(nat(0, false)))])

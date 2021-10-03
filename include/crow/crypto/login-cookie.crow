@@ -1,20 +1,20 @@
 no-std
 import
-	..bool: !, &&, bool
-	..col.arr: ~, arr, size, subscript
-	..compare: !=, <
-	..exception: assert
-	..io.time: get-unix-time, seconds-since-epoch, unix-time
-	..log: info, log
-	..misc: ->
-	..number: ==, <=>, -, nat8, nat64, to-int64
-	..opt: opt, opt-join
-	..serialize: from-bytes, to-8-bytes
-	..str: str
-	..str-conv: interp, finish, parse-int, parse-nat, to-str, with-str, with-value
-	..str-util: try-split-once
-	..tuple: a, b
-	.random: random-nat64
+	../bool: !, &&, bool
+	../col/arr: ~, arr, size, subscript
+	../compare: !=, <
+	../exception: assert
+	../io/time: get-unix-time, seconds-since-epoch, unix-time
+	../log: info, log
+	../misc: ->
+	../number: ==, <=>, -, nat8, nat64, to-int64
+	../opt: opt, opt-join
+	../serialize: from-bytes, to-8-bytes
+	../str: str
+	../str-conv: interp, finish, parse-int, parse-nat, to-str, with-str, with-value
+	../str-util: try-split-once
+	../tuple: a, b
+	./random: random-nat64
 
 login-cookie record
 	timestamp unix-time

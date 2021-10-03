@@ -1,12 +1,12 @@
 no-std
 import
-	.fun: subscript
-	.misc: as, void
-	.str: str
-	.private.exception-low-level: catch, throw
-	.private.log-low-level: set-log-handler
+	./fun: subscript
+	./misc: as, void
+	./str: str
+	./private/exception-low-level: catch, throw
+	./private/log-low-level: set-log-handler
 export
-	.private.log-low-level:
+	./private/log-low-level:
 		error, get-log-handler, info, logged, log-handler, log-level, to-str, warn
 
 ###

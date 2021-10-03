@@ -1,9 +1,9 @@
 no-std
 import
-	..crow.misc: void
-	..crow.number: nat32
-	..crow.c-types: c-int, u-int
-	..crow.str: c-str
+	crow/misc: void
+	crow/number: nat32
+	crow/c-types: c-int, u-int
+	crow/str: c-str
 
 SDL_DestroyWindow void(window SDL_Window) extern<"SDL2"> noctx summon unsafe
 

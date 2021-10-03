@@ -1,5 +1,5 @@
 import
-	.circular-import-b
+	./circular-import-b
 
 a int()
 	0

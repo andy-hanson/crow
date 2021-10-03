@@ -1,12 +1,12 @@
 no-std
 import
-	..crow.c-types: c-int
-	..crow.misc: void
-	..crow.number: nat32
-	..crow.ptr: ptr
-	.SDL_rect: SDL_Rect
-	.SDL_surface: SDL_Surface
-	.SDL_video: SDL_Window
+	crow/c-types: c-int
+	crow/misc: void
+	crow/number: nat32
+	crow/ptr: ptr
+	./SDL_rect: SDL_Rect
+	./SDL_surface: SDL_Surface
+	./SDL_video: SDL_Window
 
 SDL_CreateRenderer SDL_Renderer
 	window SDL_Window

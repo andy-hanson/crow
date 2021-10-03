@@ -1,7 +1,7 @@
 no-std
 import
-	.private.bool-low-level: !, ?, bool, false, true
-	.private.bootstrap: str
+	./private/bool-low-level: !, ?, bool, false, true
+	./private/bootstrap: str
 
 # Comparison for `a < b`
 less record

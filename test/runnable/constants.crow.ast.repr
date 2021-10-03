@@ -1,5 +1,5 @@
 file-ast(
-	imports: ports(range(0, 30), [import-ast(0, "/crow/io/print", some([print]))])
+	imports: ports(range(0, 30), [import-ast("/crow/io/print", some([print]))])
 	specs: []
 	aliases: []
 	structs: [

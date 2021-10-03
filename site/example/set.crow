@@ -1,8 +1,8 @@
 import
-	crow.col.mut-set: ~=, move-to-set!, mut-set, remove!, subscript
-	crow.col.set: -, ~, arr, intersect, set, size, subscript
-	crow.io.print: print
-	crow.str-util: join
+	crow/col/mut-set: ~=, move-to-set!, mut-set, remove!, subscript
+	crow/col/set: -, ~, arr, intersect, set, size, subscript
+	crow/io/print: print
+	crow/str-util: join
 
 main fut nat(_ arr str) summon
 	chili = set: ["beans", "pepper", "onion", "beans"]

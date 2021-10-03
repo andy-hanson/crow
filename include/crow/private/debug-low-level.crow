@@ -1,14 +1,14 @@
 no-std
 import
-	...unistd: write
-	..compare: ==, !=, >=
-	..extra-types: fd-t
-	..ptr: as-any-ptr, size-of
-	.bootstrap:
+	unistd: write
+	../compare: ==, !=, >=
+	../extra-types: fd-t
+	../ptr: as-any-ptr, size-of
+	./bootstrap:
 		begin-ptr, bool, char, get-ctx, hard-assert, lock, nat8, nat64, print-lock, size, str, thread-id,
 		thread-local-stuff, todo, unsafe-div, unsafe-to-int, void
-	.number-low-level: unsafe-mod
-	.thread-utils: acquire!, release!
+	./number-low-level: unsafe-mod
+	./thread-utils: acquire!, release!
 
 debug-printer record mut
 	by-val

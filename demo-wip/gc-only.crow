@@ -1,6 +1,6 @@
 import
-	crow.private.alloc: get-gc, force-needs-gc!
-	crow.io.print: print
+	crow/private/alloc: get-gc, force-needs-gc!
+	crow/io/print: print
 
 main fut nat(_ arr str) summon unsafe
 	print: "BEFORE"

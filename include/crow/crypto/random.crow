@@ -1,9 +1,9 @@
 no-std
 import
-	...sodium: randombytes_random
-	..bits: bits-cat
-	..number: nat32, nat64
-	.private.sodium: ensure-sodium-initialized
+	sodium: randombytes_random
+	../bits: bits-cat
+	../number: nat32, nat64
+	./private/sodium: ensure-sodium-initialized
 
 random-nat32 nat32() trusted summon
 	ensure-sodium-initialized

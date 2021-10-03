@@ -1,5 +1,5 @@
 no-std
 import
-	..crow.number: nat
+	crow/number: nat
 
 get_nprocs nat() summon extern noctx

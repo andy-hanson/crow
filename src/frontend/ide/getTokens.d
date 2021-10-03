@@ -7,17 +7,14 @@ import frontend.parse.ast :
 	CallAst,
 	CreateArrAst,
 	ExplicitByValOrRefAndRange,
-	exports,
 	ExprAst,
 	FileAst,
 	FunBodyAst,
 	FunDeclAst,
-	funs,
 	IdentifierAst,
 	IfAst,
 	IfOptionAst,
 	ImportAst,
-	imports,
 	ImportsOrExportsAst,
 	InterpolatedAst,
 	LambdaAst,
@@ -41,12 +38,9 @@ import frontend.parse.ast :
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
-	specs,
 	SpecUseAst,
-	structAliases,
 	StructAliasAst,
 	StructDeclAst,
-	structs,
 	ThenAst,
 	ThenVoidAst,
 	TypeAst,
@@ -99,23 +93,24 @@ immutable(Repr) reprTokens(Alloc)(ref Alloc alloc, ref immutable Token[] tokens)
 immutable(Token[]) tokensOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast) {
 	ArrBuilder!Token tokens;
 
-	addImportTokens!Alloc(alloc, tokens, imports(ast), shortSymAlphaLiteral("import"));
-	addImportTokens!Alloc(alloc, tokens, exports(ast), shortSymAlphaLiteral("export"));
+	addImportTokens!Alloc(alloc, tokens, ast.imports, shortSymAlphaLiteral("import"));
+	addImportTokens!Alloc(alloc, tokens, ast.exports, shortSymAlphaLiteral("export"));
 
+	//TODO: also tests...
 	eachSorted!(RangeWithinFile, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst)(
 		RangeWithinFile.max,
 		(ref immutable RangeWithinFile a, ref immutable RangeWithinFile b) =>
 			compareRangeWithinFile(a, b),
-		specs(ast), (ref immutable SpecDeclAst it) => it.range, (ref immutable SpecDeclAst it) {
+		ast.specs, (ref immutable SpecDeclAst it) => it.range, (ref immutable SpecDeclAst it) {
 			addSpecTokens(alloc, tokens, it);
 		},
-		structAliases(ast), (ref immutable StructAliasAst it) => it.range, (ref immutable StructAliasAst it) {
+		ast.structAliases, (ref immutable StructAliasAst it) => it.range, (ref immutable StructAliasAst it) {
 			addStructAliasTokens(alloc, tokens, it);
 		},
-		structs(ast), (ref immutable StructDeclAst it) => it.range, (ref immutable StructDeclAst it) {
+		ast.structs, (ref immutable StructDeclAst it) => it.range, (ref immutable StructDeclAst it) {
 			addStructTokens(alloc, tokens, it);
 		},
-		funs(ast), (ref immutable FunDeclAst it) => it.range, (ref immutable FunDeclAst it) {
+		ast.funs, (ref immutable FunDeclAst it) => it.range, (ref immutable FunDeclAst it) {
 			addFunTokens(alloc, tokens, it);
 		});
 	immutable Token[] res = finishArr(alloc, tokens);
@@ -141,7 +136,7 @@ void addImportTokens(Alloc)(
 		foreach (ref immutable ImportAst path; force(a).paths)
 			add(alloc, tokens, immutable Token(
 				Token.Kind.importPath,
-				immutable RangeWithinFile(path.range.start + path.nDots, path.range.end)));
+				path.range));
 	}
 }
 

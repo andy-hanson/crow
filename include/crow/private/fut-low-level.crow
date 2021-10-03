@@ -1,13 +1,13 @@
 no-std
 import
-	..fun: subscript
-	..opt: none, some, value
-	..ptr: ref-of-val
-	..result: err, ok, result
-	.bootstrap:
+	../fun: subscript
+	../opt: none, some, value
+	../ptr: ref-of-val
+	../result: err, ok, result
+	./bootstrap:
 		cb, exception, fut, fut-state-callbacks, fut-state-no-callbacks, fut-state-resolved,
 		hard-unreachable, lk, next, set-state, state, void
-	.thread-utils: lock-by-val, with-lock
+	./thread-utils: lock-by-val, with-lock
 
 unresolved fut ?a() unsafe
 	fut: lock-by-val, fut-state-no-callbacks

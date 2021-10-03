@@ -399,8 +399,8 @@ immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
 					? some(ExternOp.pthreadMutexLock)
 				: symEqLongAlphaLiteral(a, "pthread_mutex_unlock")
 					? some(ExternOp.pthreadMutexUnlock)
-				: symEqLongAlphaLiteral(a, "pthread_yield")
-					? some(ExternOp.pthreadYield)
+				: symEqLongAlphaLiteral(a, "sched_yield")
+					? some(ExternOp.schedYield)
 				: none!ExternOp;
 	}
 }

@@ -1,7 +1,7 @@
 no-std
 import
-	.crow.extra-types: err-t
-	.crow.ptr: ptr, subscript
+	crow/extra-types: err-t
+	crow/ptr: ptr, subscript
 
 errno err-t() unsafe noctx
 	__errno_location[]

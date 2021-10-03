@@ -1,18 +1,18 @@
 no-std
 import
-	.bool: !, ==, bool, false, true
-	.col.dict: dict, dict-equal?, each, empty?
-	.col.list: each, empty?, list, list-equal?
-	.col.mut-dict: move-to-dict!, mut-dict, set-subscript
-	.col.mut-list: ~=, move-to-arr!, mut-list
-	.misc: ->, void
-	.number: ==, float64
-	.opt: none, opt, some
-	.reader:
+	./bool: !, ==, bool, false, true
+	./col/dict: dict, dict-equal?, each, empty?
+	./col/list: each, empty?, list, list-equal?
+	./col/mut-dict: move-to-dict!, mut-dict, set-subscript
+	./col/mut-list: ~=, move-to-arr!, mut-list
+	./misc: ->, void
+	./number: ==, float64
+	./opt: none, opt, some
+	./reader:
 		reader, skip-whitespace!, take-char?, take-float!, take-quoted-str!, take-str?, with-reader
-	.str: ==, <=>, str
-	.test: is
-	.writer: ~=, backup!, move-to-str!, writer, write-quoted-str!
+	./str: ==, <=>, str
+	./test: is
+	./writer: ~=, backup!, move-to-str!, writer, write-quoted-str!
 
 json union
 	bool

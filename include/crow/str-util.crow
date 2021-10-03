@@ -1,17 +1,17 @@
 no-std
 import
-	.bool: &&, ||, bool
-	.col.arr: arr, arr-cast, arr-from-begin-end, begin-ptr
-	.col.arr-util:
+	./bool: &&, ||, bool
+	./col/arr: arr, arr-cast, arr-from-begin-end, begin-ptr
+	./col/arr-util:
 		contains-subseq?, ends-with?, first, flatten, last, map, reverse, rtail, split-by-subseq,
 		starts-with?, tail, try-remove-end, try-remove-start, try-split-once
-	.compare: <=
-	.number: ==, <=>, +, -, nat8
-	.opt: none, opt, some
-	.ptr: +, subscript
-	.str: ==, ~, char, chars, c-str, str, to-char, to-nat8
-	.tuple: a, b, pair
-	.private.bootstrap: hard-unreachable
+	./compare: <=
+	./number: ==, <=>, +, -, nat8
+	./opt: none, opt, some
+	./ptr: +, subscript
+	./str: ==, ~, char, chars, c-str, str, to-char, to-nat8
+	./tuple: a, b, pair
+	./private/bootstrap: hard-unreachable
 
 # Treats bytes as a string.
 as-str str(bytes arr nat8) unsafe noctx

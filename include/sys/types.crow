@@ -1,7 +1,7 @@
 no-std
 import
-	..crow.c-types: s-long-long, u-int, u-long, u-long-long
-	..crow.private.bootstrap: int32, nat32
+	crow/c-types: s-long-long, u-int, u-long, u-long-long
+	crow/private/bootstrap: int32, nat32
 
 blkcnt_t alias
 	u-long

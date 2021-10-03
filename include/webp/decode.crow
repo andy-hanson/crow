@@ -1,9 +1,9 @@
 no-std
 import
-	..crow.cell: cell
-	..crow.c-types: c-int, size_t
-	..crow.number: nat8
-	..crow.ptr: ptr
+	crow/cell: cell
+	crow/c-types: c-int, size_t
+	crow/number: nat8
+	crow/ptr: ptr
 
 WebPDecodeRGBA ptr nat8
 	data ptr nat8

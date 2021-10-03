@@ -1,11 +1,11 @@
 no-std
 import
-	..io.print: print
-	..ptr: as-ref, by-val
-	..misc: void
-	..ptr: zeroed
-	..str: ~, str
-	.bootstrap: get-ctx, log-ctx-ptr, thread-local-stuff
+	../io/print: print
+	../ptr: as-ref, by-val
+	../misc: void
+	../ptr: zeroed
+	../str: ~, str
+	./bootstrap: get-ctx, log-ctx-ptr, thread-local-stuff
 
 # Lowest-priority log level.
 info record

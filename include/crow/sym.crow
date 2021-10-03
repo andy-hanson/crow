@@ -1,23 +1,25 @@
 no-std
 import
 	string: memcpy
-	.bool: bool
-	.col.arr: begin-ptr, size
-	.col.arr-util: find
-	.compare: comparison
-	.misc: drop
-	.opt: opt, some
-	.ptr: ==, by-val, ptr-cast, ref-of-ptr, ref-of-val, set-subscript
-	.str: ==, <=>, char, chars, c-str, str
-	.str-util: to-str
-	.private.alloc: unmanaged-alloc-elements, unmanaged-alloc-uninitialized
-	.private.bootstrap: static-syms
-	.private.number-low-level: nat8, wrap-add
-	.private.runtime: dynamic-sym-node, dynamic-syms, get-global-ctx, global-ctx, next, set-dynamic-syms, sym, syms-lock
-	.private.thread-utils: with-lock
+	./bool: bool
+	./col/arr: begin-ptr, size
+	./col/arr-util: find
+	./compare: comparison
+	./misc: drop
+	./opt: opt, some
+	./ptr: ==, by-val, ptr-cast, ref-of-ptr, ref-of-val, set-subscript
+	./str: ==, <=>, char, chars, c-str, str
+	./str-util: to-str
+	./private/alloc: unmanaged-alloc-elements, unmanaged-alloc-uninitialized
+	./private/bootstrap: static-syms
+	./private/number-low-level: nat8, wrap-add
+	./private/runtime:
+		dynamic-sym-node, dynamic-syms, get-global-ctx, global-ctx, next, set-dynamic-syms, sym,
+		syms-lock
+	./private/thread-utils: with-lock
 export
 	# TODO: ensure that 'sym' constructor from c-str is not exported
-	.private.bootstrap: sym, to-c-str
+	./private/bootstrap: sym, to-c-str
 
 == bool(a sym, b sym) noctx trusted
 	# (this is pointer equality)

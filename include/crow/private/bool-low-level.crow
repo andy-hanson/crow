@@ -1,6 +1,6 @@
 no-std
 export
-	.bootstrap: bool, false, true
+	./bootstrap: bool, false, true
 
 # Changes `true` to `false`, and `false` to `true`.
 ! bool(a bool) noctx

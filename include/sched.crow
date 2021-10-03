@@ -1,0 +1,6 @@
+no-std
+import
+	crow/c-types: c-int
+
+# TODO: summon
+sched_yield c-int() extern noctx

@@ -1,16 +1,16 @@
 import
-	crow.col.arr-util: each, index-of
-	crow.col.dict: dict, subscript
-	crow.col.mut-arr: fill-mut-arr, map-to-arr-with-index, set-subscript
-	crow.io.file: read-file
-	crow.io.net.http-server: http-handler, start-http-server
-	crow.io.net.http-types:
+	crow/col/arr-util: each, index-of
+	crow/col/dict: dict, subscript
+	crow/col/mut-arr: fill-mut-arr, map-to-arr-with-index, set-subscript
+	crow/io/file: read-file
+	crow/io/net/http-server: http-handler, start-http-server
+	crow/io/net/http-types:
 		body, headers, http-bad-query, http-not-found, http-request, http-response, method, url
-	crow.io.print: print
-	crow.str-util: split-by, try-split-once
-	crow.tuple: a, b
-	crow.writer: ~=, backup!, move-to-str!, writer
-	.db:
+	crow/io/print: print
+	crow/str-util: split-by, try-split-once
+	crow/tuple: a, b
+	crow/writer: ~=, backup!, move-to-str!, writer
+	./db:
 		add-post!, close-real-db, content, cookie-expire-seconds, db, list-posts, list-users,
 		login!, post, post-info, new-user-id, open-real-db, parse-user-cookie, register-user!,
 		to-str, user, user-info, user-name

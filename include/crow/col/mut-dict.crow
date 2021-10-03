@@ -1,24 +1,24 @@
 no-std
 import
-	..bool: !, &&, ?, bool, false, true
-	..compare: !=, <, >, <=, compare
-	..exception: assert
-	..fun: subscript
-	..misc: ->, arrow, as, data, from, to, void
-	..number: ==, <=>, +, -, *, nat64
-	..opt: ==, empty?, force, has?, none, opt, or-default, some
-	..ptr: ==, -, ptr, set-subscript, subscript
-	..str: ==, chars, str
-	..test: is
-	..writer: ~=, backup!, move-to-str!, writer
-	.arr: arr, subscript
-	.arr-util: each
-	.dict: dict
-	.mut-list:
+	../bool: !, &&, ?, bool, false, true
+	../compare: !=, <, >, <=, compare
+	../exception: assert
+	../fun: subscript
+	../misc: ->, arrow, as, data, from, to, void
+	../number: ==, <=>, +, -, *, nat64
+	../opt: ==, empty?, force, has?, none, opt, or-default, some
+	../ptr: ==, -, ptr, set-subscript, subscript
+	../str: ==, chars, str
+	../test: is
+	../writer: ~=, backup!, move-to-str!, writer
+	./arr: arr, subscript
+	./arr-util: each
+	./dict: dict
+	./mut-list:
 		~=, begin-ptr, each, empty?, empty!, end-ptr, filter, filter!, fold, map, map!, map-to-arr,
 		mut-list, remove-at!, set-subscript, size, subscript
-	.sort: sort-by!
-	.private.sort-utils:
+	./sort: sort-by!
+	./private/sort-utils:
 		assert-comparison-not-equal, binary-search-exact-ptr, binary-search-insert-ptr,
 		merge-no-duplicates!
 

@@ -1,13 +1,13 @@
 no-std
 import
-	.crow.cell: cell
-	.crow.c-types: c-int
-	.crow.misc: void
-	.crow.number: int32
-	.crow.ptr: ptr
-	.crow.str: c-str
-	.sys.socket: sockaddr
-	.sys.types: socklen_t
+	crow/cell: cell
+	crow/c-types: c-int
+	crow/misc: void
+	crow/number: int32
+	crow/ptr: ptr
+	crow/str: c-str
+	sys/socket: sockaddr
+	sys/types: socklen_t
 
 addrinfo record mut
 	by-val

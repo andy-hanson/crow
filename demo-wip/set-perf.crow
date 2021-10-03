@@ -1,13 +1,13 @@
 import
-	#crow.col.set: ~, alloc-count, deep-size-bytes, overhead-bytes, set, size
-	#crow.col.tree-set: ~, alloc-count, arr, dbg, deep-size-bytes, overhead-bytes, size, tree-set
-	#crow.col.unordered-set: ~, alloc-count, overhead-bytes, unordered-set, size
-	crow.col.unordered-set-2: ~, alloc-count, overhead-bytes, unordered-set, size
-	#crow.col.lookup: dbg
-	#crow.io.duration: msec
-	crow.io.print: print
-	crow.io.time: get-monotime-nsec
-	#perf: count, perf-get-measure, perf-reset, total-duration
+	#crow/col/set: ~, alloc-count, deep-size-bytes, overhead-bytes, set, size
+	#crow/col/tree-set: ~, alloc-count, arr, dbg, deep-size-bytes, overhead-bytes, size, tree-set
+	#crow/col/unordered-set: ~, alloc-count, overhead-bytes, unordered-set, size
+	crow/col/unordered-set-2: ~, alloc-count, overhead-bytes, unordered-set, size
+	#crow/col/lookup: dbg
+	#crow/io/duration: msec
+	crow/io/print: print
+	crow/io/time: get-monotime-nsec
+	#crow/perf: count, perf-get-measure, perf-reset, total-duration
 
 main fut nat(_ arr str) unsafe summon
 	42 srand

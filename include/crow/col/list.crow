@@ -1,20 +1,20 @@
 no-std
 import
-	..bool: ?, bool, false, true
-	..compare: !=, <, >, equal, min
-	..exception: assert, forbid
-	..fun: subscript
-	..misc: ->, drop, void
-	..opt: ==, empty?, has?, none, opt, some
-	..ptr: ==, +, -, ptr, set-subscript, subscript
-	..str: ==, str
-	..test: is
-	..writer: ~=, backup!, move-to-str!, writer
-	..private.bootstrap: hard-assert, hard-unreachable
-	..private.number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
-	.arr: ==, arr, arr-equal?, begin-ptr, end-ptr, empty?, size, unsafe-slice
-	.arr-util: each, each-with-index, first, first-some, fold, last, rtail
-	.mut-arr:
+	../bool: ?, bool, false, true
+	../compare: !=, <, >, equal, min
+	../exception: assert, forbid
+	../fun: subscript
+	../misc: ->, drop, void
+	../opt: ==, empty?, has?, none, opt, some
+	../ptr: ==, +, -, ptr, set-subscript, subscript
+	../str: ==, str
+	../test: is
+	../writer: ~=, backup!, move-to-str!, writer
+	../private/bootstrap: hard-assert, hard-unreachable
+	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
+	./arr: ==, arr, arr-equal?, begin-ptr, end-ptr, empty?, size, unsafe-slice
+	./arr-util: each, each-with-index, first, first-some, fold, last, rtail
+	./mut-arr:
 		begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end,
 		set-subscript, size, subscript, uninitialized-mut-arr
 

@@ -1,10 +1,10 @@
 no-std
 import
-	.crow.c-types: u-long, u-long-long
-	.crow.extra-types: err-t
-	.crow.number: int32, nat32
-	.crow.str: c-str
-	.sys.types: blkcnt_t, blksize_t, dev_t, gid_t, ino_t, mode_t, nlink_t, off_t, time_t, uid_t
+	crow/c-types: u-long, u-long-long
+	crow/extra-types: err-t
+	crow/number: int32, nat32
+	crow/str: c-str
+	sys/types: blkcnt_t, blksize_t, dev_t, gid_t, ino_t, mode_t, nlink_t, off_t, time_t, uid_t
 
 stat record mut
 	by-ref

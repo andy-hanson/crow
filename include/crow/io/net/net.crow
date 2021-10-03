@@ -1,25 +1,25 @@
 no-std
 import
-	....bits.socket_type: SOCK_STREAM
-	....netdb:
+	bits/socket_type: SOCK_STREAM
+	netdb:
 		addrinfo, ai_addr, ai_addrlen, ai_family, ai_next, ai-passive, ai_protocol, ai_socktype,
 		freeaddrinfo, getaddrinfo
-	....sys.socket: AF_INET, AF_UNSPEC, bind, connect, socket
-	....unistd: close
-	...bool: !
-	...cell: cell, subscript
-	...compare: !=
-	...exception: assert
-	...extra-types: fd-t
-	...number: ==, nat16, to-int32
-	...opt: force, opt, some
-	...ptr: as-ref, null, null?, ptr, ptr-to, subscript
-	...str: str
-	...str-conv: finish, interp, to-str, with-str, with-value
-	...str-util: to-c-str
-	...private.bootstrap: todo
-	..posix-util: check-posix-error
-	..print: print
+	sys/socket: AF_INET, AF_UNSPEC, bind, connect, socket
+	unistd: close
+	../../bool: !
+	../../cell: cell, subscript
+	../../compare: !=
+	../../exception: assert
+	../../extra-types: fd-t
+	../../number: ==, nat16, to-int32
+	../../opt: force, opt, some
+	../../ptr: as-ref, null, null?, ptr, ptr-to, subscript
+	../../str: str
+	../../str-conv: finish, interp, to-str, with-str, with-value
+	../../str-util: to-c-str
+	../../private/bootstrap: todo
+	../posix-util: check-posix-error
+	../print: print
 
 # Uniform Resource Identifier
 uri record

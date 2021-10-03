@@ -1,25 +1,25 @@
 no-std
 import
-	..bool: !, &&, ?, bool, false, true
-	..compare: <, >, <=, compare
-	..exception: assert
-	..fun: subscript
-	..misc: ->, arrow, as, data, from, to, void
-	..opt: empty?, force, none, opt, some
-	..ptr: ==, +, -, ptr, set-subscript
-	..str: ==, str
-	..str-conv: finish, interp, to-str, with-str, with-value
-	..test: is
-	..test.spy: calls, fn, spy-act
-	..tuple: a, b, pair
-	..writer: ~=, backup!, move-to-str!, writer
-	..private.number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
-	.arr: ==, arr, empty?, size
-	.arr-util: each, first, fold, map, tail
-	.mut-arr:
+	../bool: !, &&, ?, bool, false, true
+	../compare: <, >, <=, compare
+	../exception: assert
+	../fun: subscript
+	../misc: ->, arrow, as, data, from, to, void
+	../opt: empty?, force, none, opt, some
+	../ptr: ==, +, -, ptr, set-subscript
+	../str: ==, str
+	../str-conv: finish, interp, to-str, with-str, with-value
+	../test: is
+	../test/spy: calls, fn, spy-act
+	../tuple: a, b, pair
+	../writer: ~=, backup!, move-to-str!, writer
+	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
+	./arr: ==, arr, empty?, size
+	./arr-util: each, first, fold, map, tail
+	./mut-arr:
 		begin-ptr, cast-immutable, end-ptr, first, mut-arr, set-subscript, size, subscript,
 		tail, uninitialized-mut-arr
-	.sort: sort-by, sort-by!
+	./sort: sort-by, sort-by!
 
 priority-queue<?k, ?v> record
 	# TODO: PRIVATE

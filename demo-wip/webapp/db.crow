@@ -1,19 +1,19 @@
 import
-	crow.col.arr-util: each
-	crow.crypto.login-cookie:
+	crow/col/arr-util: each
+	crow/crypto/login-cookie:
 		cookie, cookie-matches?, from-bytes, generate-login-cookie, login-cookie,
 		parse-login-cookie, to-bytes, to-str
-	crow.crypto.password: password-hash, password-matches?, quality-moderate
-	crow.db.lmdb:
+	crow/crypto/password: password-hash, password-matches?, quality-moderate
+	crow/db/lmdb:
 		add, close-db, count, from-lmdb-key, get, lmdb-close-env, lmdb-db, lmdb-env,
 		lmdb-key-flags, lmdb-open-env, lmdb-open-options, lMDB_txn, map, open-db, set, to-lmdb-key,
 		transaction-abort, transaction-commit, try-add, with-abortable-write-transaction, with-env,
 		with-read-transaction, with-test-env, with-write-transaction, zip
-	crow.io.print: print
-	crow.log: info, log
-	crow.serialize: from-bytes, to-bytes
-	crow.str-util: try-split-once
-	crow.tuple: a, b
+	crow/io/print: print
+	crow/log: info, log
+	crow/serialize: from-bytes, to-bytes
+	crow/str-util: try-split-once
+	crow/tuple: a, b
 
 main fut nat(_ arr str) unsafe summon
 	print: "Hello, world!"

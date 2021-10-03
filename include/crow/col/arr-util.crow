@@ -1,18 +1,18 @@
 no-std
 import
-	..bool: !, &&, ||, ==, bool, false, to-nat64, true
-	..compare: !=, <, <=, >=, equal, max, min
-	..fun: subscript
-	..misc: ->, void
-	..number: +, -, nat64
-	..opt: has?, none, opt, some
-	..ptr: ==, +, -, deep-size-bytes, ptr, set-subscript, size-of, subscript
-	..test: is
-	..tuple: pair
-	..private.alloc: alloc-uninitialized, fill-ptr-range
-	..private.exception-low-level: assert, forbid
-	..private.number-low-level: ==, <=>, unsafe-mod, wrap-add, wrap-mul
-	.arr: ==, ~, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, noctx-at, size, subscript
+	../bool: !, &&, ||, ==, bool, false, to-nat64, true
+	../compare: !=, <, <=, >=, equal, max, min
+	../fun: subscript
+	../misc: ->, void
+	../number: +, -, nat64
+	../opt: has?, none, opt, some
+	../ptr: ==, +, -, deep-size-bytes, ptr, set-subscript, size-of, subscript
+	../test: is
+	../tuple: pair
+	../private/alloc: alloc-uninitialized, fill-ptr-range
+	../private/exception-low-level: assert, forbid
+	../private/number-low-level: ==, <=>, unsafe-mod, wrap-add, wrap-mul
+	./arr: ==, ~, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, noctx-at, size, subscript
 
 alloc-count nat64(a arr ?a) unsafe
 	if a empty?

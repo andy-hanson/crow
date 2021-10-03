@@ -1,24 +1,24 @@
 no-std
 import
-	..bool: !, &&, bool, false, true
-	..compare: !=, <, <=, >, compare
-	..exception: assert, forbid, unreachable
-	..fun: subscript
-	..misc: ->, as, data, drop, void
-	..opt: none, opt, some
-	..ptr: ==, <=>, +, -, deep-size-bytes, ptr, set-subscript, size-of, subscript
-	..str: ==, <=>, chars, str
-	..str-conv: interp, finish, to-str, with-str, with-value
-	..str-util: starts-with?
-	..test: is
-	..writer: ~=, backup!, move-to-str!, writer
-	..private.number-low-level: ==, <=>, nat64, unsafe-div, wrap-add, wrap-sub
-	.arr: arr, begin-ptr, empty?, end-ptr, size, subscript
-	.arr-util: deep-size-bytes, each, fold, insert, last, overhead-bytes, rtail, tail, try-remove
-	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
-	.mut-stack: ~=, mut-stack, last, pop!
-	.sort: sort-unique, sort-unique!
-	.private.sort-utils: binary-search-has?, binary-search-insert-ptr
+	../bool: !, &&, bool, false, true
+	../compare: !=, <, <=, >, compare
+	../exception: assert, forbid, unreachable
+	../fun: subscript
+	../misc: ->, as, data, drop, void
+	../opt: none, opt, some
+	../ptr: ==, <=>, +, -, deep-size-bytes, ptr, set-subscript, size-of, subscript
+	../str: ==, <=>, chars, str
+	../str-conv: interp, finish, to-str, with-str, with-value
+	../str-util: starts-with?
+	../test: is
+	../writer: ~=, backup!, move-to-str!, writer
+	../private/number-low-level: ==, <=>, nat64, unsafe-div, wrap-add, wrap-sub
+	./arr: arr, begin-ptr, empty?, end-ptr, size, subscript
+	./arr-util: deep-size-bytes, each, fold, insert, last, overhead-bytes, rtail, tail, try-remove
+	./mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
+	./mut-stack: ~=, mut-stack, last, pop!
+	./sort: sort-unique, sort-unique!
+	./private/sort-utils: binary-search-has?, binary-search-insert-ptr
 
 ###
 Set of unique values.

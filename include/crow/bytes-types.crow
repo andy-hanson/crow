@@ -1,6 +1,6 @@
 no-std
 import
-	.private.bootstrap: nat16, nat32, nat64
+	./private/bootstrap: nat16, nat32, nat64
 
 bytes2 alias
 	nat16

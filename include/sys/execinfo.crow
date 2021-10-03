@@ -1,7 +1,7 @@
 no-std
 import
-	..crow.c-types: c-int
-	..crow.ptr: any-ptr, ptr
+	crow/c-types: c-int
+	crow/ptr: any-ptr, ptr
 
 # Crow interpreter overrides this
 backtrace c-int(array ptr any-ptr, size c-int) unsafe noctx extern

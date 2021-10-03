@@ -1317,12 +1317,10 @@ immutable(LowExprKind) getCallBuiltinExpr(Alloc)(
 				lowTypeFromConcreteType(alloc, ctx.getLowTypeCtx, only(asBuiltin(body_(a.called)).typeArgs));
 			return immutable LowExprKind(immutable LowExprKind.SizeOf(typeArg));
 		},
-		(ref immutable BuiltinKind.StaticSyms) {
-			return immutable LowExprKind(ctx.staticSyms);
-		},
-		(ref immutable BuiltinKind.Zeroed) {
-			return immutable LowExprKind(immutable LowExprKind.Zeroed());
-		});
+		(ref immutable BuiltinKind.StaticSyms) =>
+			immutable LowExprKind(ctx.staticSyms),
+		(ref immutable BuiltinKind.Zeroed) =>
+			immutable LowExprKind(immutable LowExprKind.Zeroed()));
 }
 
 immutable(LowExprKind) getCreateArrExpr(Alloc)(

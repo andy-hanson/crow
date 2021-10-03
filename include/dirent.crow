@@ -1,10 +1,10 @@
 no-std
 import
-	.crow.bytes-types: bytes256
-	.crow.cell: cell
-	.crow.number: int32, nat16
-	.crow.str: char, c-str
-	.sys.types: ino_t, off_t
+	crow/bytes-types: bytes256
+	crow/cell: cell
+	crow/number: int32, nat16
+	crow/str: char, c-str
+	sys/types: ino_t, off_t
 
 dir extern-ptr
 

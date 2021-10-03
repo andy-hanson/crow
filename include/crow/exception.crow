@@ -1,15 +1,15 @@
 no-std
 import
-	.bool: !, ?, bool
-	.col.arr-util: each
-	.fun: subscript
-	.misc: void
-	.str: empty?, str
-	.writer: ~=, move-to-str!, writer
-	.private.backtrace: return-stack
-	.private.bootstrap: backtrace
+	./bool: !, ?, bool
+	./col/arr-util: each
+	./fun: subscript
+	./misc: void
+	./str: empty?, str
+	./writer: ~=, move-to-str!, writer
+	./private/backtrace: return-stack
+	./private/bootstrap: backtrace
 export
-	.private.exception-low-level: assert, catch, exception, forbid, message, throw
+	./private/exception-low-level: assert, catch, exception, forbid, message, throw
 
 region throwing
 

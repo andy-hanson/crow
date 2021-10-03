@@ -1,14 +1,14 @@
 import
-	crow.col.arr-util: first-some, tail
-	crow.col.mut-list: ~=, move-to-arr!, mut-list
-	crow.io.environ: environ
-	crow.io.file: each-child-recursive
-	crow.io.path: base-name, get-extension
-	crow.io.print: print
-	crow.io.process: exit-code, spawn-and-wait-result, stderr, stdout
-	crow.str-util: has-substr?, try-remove-start
-	crow.writer: ~=, move-to-str!, writer
-	.failure:
+	crow/col/arr-util: first-some, tail
+	crow/col/mut-list: ~=, move-to-arr!, mut-list
+	crow/io/environ: environ
+	crow/io/file: each-child-recursive
+	crow/io/path: base-name, get-extension
+	crow/io/print: print
+	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
+	crow/str-util: has-substr?, try-remove-start
+	crow/writer: ~=, move-to-str!, writer
+	./failure:
 		failure, flat-map-with-max-size, handle-output, max-failures, match-test, overwrite-output?,
 		print-tests?, test-options
 

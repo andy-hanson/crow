@@ -1,11 +1,11 @@
 no-std
 import
-	.bool: bool
-	.compare: comparison, less, equal, greater
-	.private.bootstrap: nat64, void
-	.private.number-low-level: unsafe-div, wrap-sub
+	./bool: bool
+	./compare: comparison, less, equal, greater
+	./private/bootstrap: nat64, void
+	./private/number-low-level: unsafe-div, wrap-sub
 export
-	.private.bootstrap: any-ptr, by-val, ptr, zeroed
+	./private/bootstrap: any-ptr, by-val, ptr, zeroed
 
 # Null pointer.
 null ptr ?a() noctx builtin

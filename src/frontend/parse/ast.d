@@ -7,7 +7,7 @@ import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
 import util.collection.str : emptySafeCStr, SafeCStr, safeCStrIsEmpty;
 import util.opt : force, has, none, Opt, OptPtr, some, toOpt;
-import util.path : AllPaths, Path, pathToStr;
+import util.path : AbsOrRelPath, absOrRelPathToStr, AllPaths;
 import util.ptr : Ptr;
 import util.repr :
 	NameAndRepr,
@@ -831,9 +831,7 @@ struct TestAst {
 
 struct ImportAst {
 	immutable RangeWithinFile range;
-	// Not using RelPath here because if nDots == 0, it's not a relative path
-	immutable ubyte nDots;
-	immutable Path path;
+	immutable AbsOrRelPath path;
 	immutable Opt!(Sym[]) names;
 }
 
@@ -842,67 +840,31 @@ struct ImportsOrExportsAst {
 	immutable ImportAst[] paths;
 }
 
-// TODO: I'm doing this because the wasm compilation generates a call to 'memset' whenever there's a big struct.
-struct FileAstPart0 {
+struct FileAst {
+	immutable SafeCStr docComment;
+	immutable bool noStd;
 	immutable Opt!ImportsOrExportsAst imports;
 	immutable Opt!ImportsOrExportsAst exports;
 	immutable SpecDeclAst[] specs;
-}
-
-struct FileAstPart1 {
 	immutable StructAliasAst[] structAliases;
 	immutable StructDeclAst[] structs;
 	immutable FunDeclAst[] funs;
 	immutable TestAst[] tests;
 }
 
-struct FileAst {
-	immutable SafeCStr docComment;
-	immutable bool noStd;
-	immutable Ptr!FileAstPart0 part0;
-	immutable Ptr!FileAstPart1 part1;
-}
-
 private immutable ImportsOrExportsAst emptyImportsOrExports =
 	immutable ImportsOrExportsAst(RangeWithinFile.empty, emptyArr!ImportAst);
-private immutable FileAstPart0 emptyFileAstPart0 =
-	immutable FileAstPart0(some(emptyImportsOrExports), some(emptyImportsOrExports), emptyArr!SpecDeclAst);
-private immutable FileAstPart1 emptyFileAstPart1 =
-	immutable FileAstPart1(emptyArr!StructAliasAst, emptyArr!StructDeclAst, emptyArr!FunDeclAst, emptyArr!TestAst);
 private immutable FileAst emptyFileAstStorage = immutable FileAst(
 	emptySafeCStr,
 	true,
-	immutable Ptr!FileAstPart0(&emptyFileAstPart0),
-	immutable Ptr!FileAstPart1(&emptyFileAstPart1));
+	some(emptyImportsOrExports),
+	some(emptyImportsOrExports),
+	emptyArr!SpecDeclAst,
+	emptyArr!StructAliasAst,
+	emptyArr!StructDeclAst,
+	emptyArr!FunDeclAst,
+	emptyArr!TestAst);
 immutable Ptr!FileAst emptyFileAst = immutable Ptr!FileAst(&emptyFileAstStorage);
-
-ref immutable(Opt!ImportsOrExportsAst) imports(return scope ref immutable FileAst a) {
-	return a.part0.imports;
-}
-
-ref immutable(Opt!ImportsOrExportsAst) exports(return scope ref immutable FileAst a) {
-	return a.part0.exports;
-}
-
-ref immutable(SpecDeclAst[]) specs(return scope ref immutable FileAst a) {
-	return a.part0.specs;
-}
-
-ref immutable(StructAliasAst[]) structAliases(return scope ref immutable FileAst a) {
-	return a.part1.structAliases;
-}
-
-ref immutable(StructDeclAst[]) structs(return scope ref immutable FileAst a) {
-	return a.part1.structs;
-}
-
-ref immutable(FunDeclAst[]) funs(return scope ref immutable FileAst a) {
-	return a.part1.funs;
-}
-
-ref immutable(TestAst[]) tests(return scope ref immutable FileAst a) {
-	return a.part1.tests;
-}
 
 immutable(Repr) reprAst(Alloc, PathAlloc)(
 	ref Alloc alloc,
@@ -944,8 +906,7 @@ immutable(Repr) reprImportAst(Alloc, PathAlloc)(
 	ref immutable ImportAst a,
 ) {
 	return reprRecord(alloc, "import-ast", [
-		reprNat(a.nDots),
-		reprStr(pathToStr(alloc, allPaths, "", a.path, "")),
+		reprStr(absOrRelPathToStr(alloc, allPaths, a.path)),
 		reprOpt!(Alloc, Sym[])(alloc, a.names, (ref immutable Sym[] names) =>
 			reprArr(alloc, names, (ref immutable Sym name) =>
 				reprSym(name)))]);

@@ -1,13 +1,13 @@
 no-std
 import
-	.crow.bytes-types: bytes4, bytes40, bytes48
-	.crow.cell: cell
-	.crow.c-types: u-long
-	.crow.extra-types: err-t
-	.crow.fun: fun-ptr1
-	.crow.ptr: any-ptr, ptr
-	.crow.private.bootstrap: int32
-	.time: __clockid_t, timespec
+	crow/bytes-types: bytes4, bytes40, bytes48
+	crow/cell: cell
+	crow/c-types: u-long
+	crow/extra-types: err-t
+	crow/fun: fun-ptr1
+	crow/ptr: any-ptr, ptr
+	crow/private/bootstrap: int32
+	time: __clockid_t, timespec
 
 pthread_t alias
 	u-long
@@ -27,9 +27,6 @@ spec
 
 # writes to `thread-return`
 pthread_join err-t(thread pthread_t, thread-return cell any-ptr) unsafe extern noctx summon
-
-# TODO: summon?
-pthread_yield err-t() unsafe extern noctx
 
 region mutex
 

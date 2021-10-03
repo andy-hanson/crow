@@ -1,14 +1,14 @@
 no-std
 import
-	.bool: bool
-	.col.arr: arr
-	.col.arr-util: each, map
-	.col.mut-list: ~=, move-to-arr!, mut-list
-	.fun: subscript
-	.misc: name, named-val, val
-	.str: str
-	.str-util: join
-	.sym: sym, to-str
+	./bool: bool
+	./col/arr: arr
+	./col/arr-util: each, map
+	./col/mut-list: ~=, move-to-arr!, mut-list
+	./fun: subscript
+	./misc: name, named-val, val
+	./str: str
+	./str-util: join
+	./sym: sym, to-str
 
 flags<?a> spec
 	empty ?a()

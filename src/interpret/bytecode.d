@@ -585,7 +585,7 @@ enum ExternOp : ubyte {
 	pthreadMutexInit,
 	pthreadMutexLock,
 	pthreadMutexUnlock,
-	pthreadYield,
+	schedYield,
 	setjmp,
 	write,
 }
@@ -685,8 +685,8 @@ private immutable(string) strOfExternOp(immutable ExternOp op) {
 			return "pthread_mutex_lock";
 		case ExternOp.pthreadMutexUnlock:
 			return "pthread_mutex_unlock";
-		case ExternOp.pthreadYield:
-			return "pthread_yield";
+		case ExternOp.schedYield:
+			return "sched_yield";
 		case ExternOp.setjmp:
 			return "setjmp";
 		case ExternOp.write:

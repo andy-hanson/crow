@@ -1,6 +1,6 @@
 import
-	crow.io.print: print
-	crow.math.vec: -, length-squared, vec-2, x, y
+	crow/io/print: print
+	crow/math/vec: -, length-squared, vec-2, x, y
 
 main fut nat(_ arr str) summon
 	c = (1.0 vec-2 1.0) circle 1.0

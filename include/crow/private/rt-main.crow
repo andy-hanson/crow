@@ -1,34 +1,34 @@
 no-std
 import
-	...pthread: pthread_t
-	...sys.sysinfo: get_nprocs
-	..bool: ?, false
-	..cell: as-cell
-	..col.arr: arr
-	..col.arr-util: map, tail
-	..compare: !=
-	..fun: fun-ptr2, subscript
-	..fut: delay, fut, handle-exceptions, then-void
-	..io.process: exit-code
-	..misc: as, void
-	..opt: none, value
-	..ptr:
+	pthread: pthread_t
+	sys/sysinfo: get_nprocs
+	../bool: ?, false
+	../cell: as-cell
+	../col/arr: arr
+	../col/arr-util: map, tail
+	../compare: !=
+	../fun: fun-ptr2, subscript
+	../fut: delay, fut, handle-exceptions, then-void
+	../io/process: exit-code
+	../misc: as, void
+	../opt: none, value
+	../ptr:
 		+, any-ptr, as-any-ptr, as-ref, by-val, null, ptr, ptr-to, ref-of-val, set-subscript,
 		subscript
-	..str: c-str, str
-	..str-util: to-str
-	.alloc
-	.bootstrap: call-with-ctx, ctx, get-ctx, lock, state, thread-local-stuff
-	.exception-low-level: exception-ctx
-	.log-low-level: log-ctx
-	.number-low-level:
+	../str: c-str, str
+	../str-util: to-str
+	./alloc
+	./bootstrap: call-with-ctx, ctx, get-ctx, lock, state, thread-local-stuff
+	./exception-low-level: exception-ctx
+	./log-low-level: log-ctx
+	./number-low-level:
 		==, int32, nat64, to-int64, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat64, wrap-add,
 		wrap-sub
-	.perf-low-level: perf-ctx
-	.runtime:
+	./perf-low-level: perf-ctx
+	./runtime:
 		any-unhandled-exceptions?, ctx, global-ctx, island, may-be-work-to-do, print-lock,
 		set-islands, thread-function
-	.thread-utils:
+	./thread-utils:
 		create-one-thread, create-condition, destroy-condition, join-one-thread, lock-by-val
 
 .main-ptr alias

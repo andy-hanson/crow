@@ -1,7 +1,7 @@
 import
-	crow.col.arr-util: each
-	crow.io.print: print
-	crow.private.bootstrap: static-syms
+	crow/col/arr-util: each
+	crow/io/print: print
+	crow/private/bootstrap: static-syms
 
 main fut nat(_ arr str) summon
 	drop: 'pop'

@@ -1,8 +1,8 @@
 no-std
 import
-	...col.dict: dict
-	...number: nat64
-	...str: ==, <=>, str
+	../../col/dict: dict
+	../../number: nat64
+	../../str: ==, <=>, str
 
 # Parse of a single HTTP request.
 http-request record

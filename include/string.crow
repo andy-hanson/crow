@@ -1,8 +1,8 @@
 no-std
 import
-	.crow.c-types: c-int, size_t
-	.crow.ptr: any-ptr
-	.crow.private.bootstrap: c-str
+	crow/c-types: c-int, size_t
+	crow/ptr: any-ptr
+	crow/private/bootstrap: c-str
 
 memcpy any-ptr(dest any-ptr, src any-ptr, size size_t) extern noctx unsafe
 

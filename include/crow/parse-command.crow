@@ -1,19 +1,19 @@
 no-std
 import
-	.bool: !, bool, false, true
-	.cell: cell, set-subscript, subscript
-	.col.arr: arr, empty?, size, subscript
-	.col.arr-util: find-index, index-of, tail
-	.col.dict: dict, each
-	.col.mut-dict: move-to-dict!, mut-dict, set-subscript
-	.col.mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
-	.exception: assert, forbid, throw
-	.misc: ->, void
-	.number: ==, +
-	.opt: force, has?, none, opt, some
-	.str: ==, <=>, str
-	.str-conv: interp, finish, to-str, with-str, with-value
-	.str-util: starts-with?, try-remove-start
+	./bool: !, bool, false, true
+	./cell: cell, set-subscript, subscript
+	./col/arr: arr, empty?, size, subscript
+	./col/arr-util: find-index, index-of, tail
+	./col/dict: dict, each
+	./col/mut-dict: move-to-dict!, mut-dict, set-subscript
+	./col/mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
+	./exception: assert, forbid, throw
+	./misc: ->, void
+	./number: ==, +
+	./opt: force, has?, none, opt, some
+	./str: ==, <=>, str
+	./str-conv: interp, finish, to-str, with-str, with-value
+	./str-util: starts-with?, try-remove-start
 
 ###
 Returns none on failure to parse.

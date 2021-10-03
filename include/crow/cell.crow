@@ -1,6 +1,6 @@
 no-std
 import
-	.ptr: as-any-ptr, as-ref, ptr, ptr-cast
+	./ptr: as-any-ptr, as-ref, ptr, ptr-cast
 
 ###
 Mutable reference to a single value.

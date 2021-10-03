@@ -1,10 +1,10 @@
 no-std
 import
-	...time: clock_gettime, CLOCK_MONOTONIC, timespec, tv-nsec, tv-sec
-	..cell: cell, subscript
-	..ptr: by-val, ref-of-val
-	..private.bootstrap: as, nat64, todo
-	..private.number-low-level:
+	time: clock_gettime, CLOCK_MONOTONIC, timespec, tv-nsec, tv-sec
+	../cell: cell, subscript
+	../ptr: by-val, ref-of-val
+	../private/bootstrap: as, nat64, todo
+	../private/number-low-level:
 		==, unsafe-div, unsafe-mod, unsafe-to-int64, unsafe-to-nat64, wrap-add, wrap-mul
 
 # Monotime in nanoseconds.

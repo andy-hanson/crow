@@ -1,19 +1,19 @@
 no-std
 export
-	.bool
-	.col.arr
-	.compare
-	.enum
-	.exception
-	.flags
-	.fun
-	.fut
-	.hash
-	.misc
-	.number
-	.opt
-	.result
-	.str
-	.str-conv
-	.sym
-	.test
+	./bool
+	./col/arr
+	./compare
+	./enum
+	./exception
+	./flags
+	./fun
+	./fut
+	./hash
+	./misc
+	./number
+	./opt
+	./result
+	./str
+	./str-conv
+	./sym
+	./test

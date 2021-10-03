@@ -1,34 +1,34 @@
 import
-	crow.col.deque: deque
-	crow.col.dict: dict
-	crow.col.frozen-unordered-set: frozen-unordered-set
-	crow.col.index-set: index-set
-	crow.col.list: list
-	crow.col.lookup: lookup
-	crow.col.mut-deque: mut-deque
-	crow.col.mut-dict: mut-dict
-	crow.col.mut-grid: mut-grid
-	crow.col.mut-list: mut-list
-	crow.col.mut-lookup: mut-lookup
-	crow.col.mut-priority-queue: mut-priority-queue
-	crow.col.mut-set: mut-set
-	crow.col.mut-stack: mut-stack
-	crow.col.priority-queue: priority-queue
-	crow.col.set: set
-	crow.col.stack: stack
-	crow.col.tree-set: tree-set
-	crow.col.unordered-set-2: unordered-set
-	crow.col.queue: queue
-	crow.crypto.password: password-hash, quality-moderate
-	crow.io.time-format: gmt
-	crow.iter: iter
-	crow.json: parse-json
-	crow.log: info, log
-	crow.parse-command: parse-named-args
-	crow.perf: perf-now
-	crow.reader: reader, take-quoted-str!
-	crow.serialize: from-bytes
-	crow.test.test-runner: run-all-tests
+	crow/col/deque: deque
+	crow/col/dict: dict
+	crow/col/frozen-unordered-set: frozen-unordered-set
+	crow/col/index-set: index-set
+	crow/col/list: list
+	crow/col/lookup: lookup
+	crow/col/mut-deque: mut-deque
+	crow/col/mut-dict: mut-dict
+	crow/col/mut-grid: mut-grid
+	crow/col/mut-list: mut-list
+	crow/col/mut-lookup: mut-lookup
+	crow/col/mut-priority-queue: mut-priority-queue
+	crow/col/mut-set: mut-set
+	crow/col/mut-stack: mut-stack
+	crow/col/priority-queue: priority-queue
+	crow/col/set: set
+	crow/col/stack: stack
+	crow/col/tree-set: tree-set
+	crow/col/unordered-set-2: unordered-set
+	crow/col/queue: queue
+	crow/crypto/password: password-hash, quality-moderate
+	crow/io/time-format: gmt
+	crow/iter: iter
+	crow/json: parse-json
+	crow/log: info, log
+	crow/parse-command: parse-named-args
+	crow/perf: perf-now
+	crow/reader: reader, take-quoted-str!
+	crow/serialize: from-bytes
+	crow/test/test-runner: run-all-tests
 
 main fut nat(_ arr str) summon
 	drop: [].from-bytes as<arr nat8>

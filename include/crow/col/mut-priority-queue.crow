@@ -1,23 +1,23 @@
 no-std
 import
-	..bool: !, &&, ==, bool, false, true
-	..compare: <, compare
-	..exception: assert
-	..misc: ->, arrow, data, from, to, void
-	..opt: force, has?, none, opt, some
-	..ptr: +, -, ptr, set-subscript
-	..str: ==, str
-	..test: is
-	..writer: ~=, backup!, move-to-str!, writer
-	..private.number-low-level: ==, <=>, nat64, wrap-add
-	.arr: ==, arr
-	.arr-util: map
-	.mut-arr: begin-ptr, cast-immutable, copy, mut-arr, reverse!, uninitialized-mut-arr
-	.mut-list:
+	../bool: !, &&, ==, bool, false, true
+	../compare: <, compare
+	../exception: assert
+	../misc: ->, arrow, data, from, to, void
+	../opt: force, has?, none, opt, some
+	../ptr: +, -, ptr, set-subscript
+	../str: ==, str
+	../test: is
+	../writer: ~=, backup!, move-to-str!, writer
+	../private/number-low-level: ==, <=>, nat64, wrap-add
+	./arr: ==, arr
+	./arr-util: map
+	./mut-arr: begin-ptr, cast-immutable, copy, mut-arr, reverse!, uninitialized-mut-arr
+	./mut-list:
 		~=, begin-ptr, each, each-with-index, empty?, empty!, fold, fold-reverse, mut-list,
 		pop!, reverse!, size, subscript
-	.sort: sort-by!
-	.private.sort-utils: binary-search-insert-ptr
+	./sort: sort-by!
+	./private/sort-utils: binary-search-insert-ptr
 
 mut-priority-queue<?k, ?v> record mut
 	by-ref

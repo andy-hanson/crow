@@ -1,15 +1,15 @@
 no-std
 import
-	...sys.execinfo: backtrace
-	..compare: !=, <, <=, >
-	..ptr: +, ==, <=>, any-ptr, ptr, set-subscript, subscript
-	.alloc: try-alloc-uninitialized
-	.bootstrap: arr, as, hard-assert, nat64, opt, some, str, void
-	.number-low-level:
+	sys/execinfo: backtrace
+	../compare: !=, <, <=, >
+	../ptr: +, ==, <=>, any-ptr, ptr, set-subscript, subscript
+	./alloc: try-alloc-uninitialized
+	./bootstrap: arr, as, hard-assert, nat64, opt, some, str, void
+	./number-low-level:
 		==, <=>, to-int64, unsafe-div, unsafe-to-int64, unsafe-to-int32, unsafe-to-nat64, wrap-add,
 		wrap-sub
 export
-	.bootstrap: backtrace, return-stack
+	./bootstrap: backtrace, return-stack
 
 get-backtrace backtrace() unsafe
 	# Being careful to avoid calling functions that may throw here

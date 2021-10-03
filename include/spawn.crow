@@ -1,12 +1,12 @@
 no-std
 import
-	.crow.bytes-types: bytes64
-	.crow.cell: cell
-	.crow.extra-types: err-t, fd-t
-	.crow.number: int32
-	.crow.ptr: any-ptr, ptr
-	.crow.str: c-str
-	.sys.types: mode_t, pid_t
+	crow/bytes-types: bytes64
+	crow/cell: cell
+	crow/extra-types: err-t, fd-t
+	crow/number: int32
+	crow/ptr: any-ptr, ptr
+	crow/str: c-str
+	sys/types: mode_t, pid_t
 
 posix_spawn_file_actions_t record mut
 	by-ref

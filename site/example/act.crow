@@ -1,7 +1,7 @@
 import
-	crow.col.arr-util: map
-	crow.io.print: print
-	crow.str-util: join
+	crow/col/arr-util: map
+	crow/io/print: print
+	crow/str-util: join
 
 main fut nat(_ arr str) summon
 	ingredients = ["plaintain", "potato"]

@@ -1,16 +1,16 @@
 no-std
 import
-	.bool: !, bool, false, true
-	.compare: equal
-	.fun: subscript
-	.misc: void
-	.str: ==, str
-	.tuple: pair
-	.private.bootstrap: char
-	.private.exception-low-level: throw
-	.private.number-low-level: ==, int64, nat64
+	./bool: !, bool, false, true
+	./compare: equal
+	./fun: subscript
+	./misc: void
+	./str: ==, str
+	./tuple: pair
+	./private/bootstrap: char
+	./private/exception-low-level: throw
+	./private/number-low-level: ==, int64, nat64
 export
-	.private.bootstrap: none, opt, some, value
+	./private/bootstrap: none, opt, some, value
 
 == bool(a opt int64, b opt int64) noctx
 	a opt-equal? b

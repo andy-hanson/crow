@@ -1819,8 +1819,8 @@ program(
 			type(false, void)
 			none
 			[]
-			expr-body(let(err, call(pthread_yield, []), call(hard-assert, [call(==, [local-ref(err), 0])]))))
-		fun(false, pthread_yield, type(false, int32), none, [], extern(false))
+			expr-body(let(err, call(sched_yield, []), call(hard-assert, [call(==, [local-ref(err), 0])]))))
+		fun(false, sched_yield, type(false, int32), none, [], extern(false))
 		fun(false, ref-of-val, type(true, lock), none, [param(a, type(false, lock))], builtin([type(true, lock)]))
 		fun(false, lk, type(false, lock), none, [param(a, type(true, gc))], field-get(0))
 		fun(
@@ -6029,23 +6029,24 @@ program(
 										call(mark-begin, [param-ref(gc)])
 										call(data-begin, [param-ref(gc)])])])
 						seq(
-							seq(
+							call(mark-visit, [call(ref-of-val, [local-ref(mark-ctx)]), param-ref(gc-root)])
+							let(
+								prev-mark-cur
+								call(mark-cur, [param-ref(gc)])
 								seq(
 									seq(
 										seq(
+											seq(
+												call(set-mark-cur, [param-ref(gc), call(mark-begin, [param-ref(gc)])])
+												call(set-data-cur, [param-ref(gc), call(data-begin, [param-ref(gc)])]))
 											call(
-												mark-visit
-												[call(ref-of-val, [local-ref(mark-ctx)]), param-ref(gc-root)])
-											call(set-mark-cur, [param-ref(gc), call(mark-begin, [param-ref(gc)])]))
-										call(set-data-cur, [param-ref(gc), call(data-begin, [param-ref(gc)])]))
-									call(
-										clear-free-mem
-										[
-											call(mark-begin, [param-ref(gc)])
-											call(mark-end, [param-ref(gc)])
-											call(data-begin, [param-ref(gc)])]))
-								call(validate-gc, [param-ref(gc)]))
-							call(set-needs-gc?, [param-ref(gc), call(false, [])]))))))
+												clear-free-mem!
+												[
+													call(mark-begin, [param-ref(gc)])
+													local-ref(prev-mark-cur)
+													call(data-begin, [param-ref(gc)])]))
+										call(validate-gc, [param-ref(gc)]))
+									call(set-needs-gc?, [param-ref(gc), call(false, [])]))))))))
 		fun(
 			false
 			set-gc-count
@@ -6087,7 +6088,7 @@ program(
 			builtin([type(true, mark-ctx)]))
 		fun(
 			false
-			clear-free-mem
+			clear-free-mem!
 			type(false, void)
 			none
 			[param(mark-ptr, type(false, ptr)), param(mark-end, type(false, ptr)), param(data-ptr, type(false, ptr))]
@@ -6100,7 +6101,7 @@ program(
 							call(set-subscript, [param-ref(data-ptr), -369582283799201058])
 							void)
 						call(
-							clear-free-mem
+							clear-free-mem!
 							[call(+, [param-ref(mark-ptr), 1]), param-ref(mark-end), param-ref(data-ptr)]))
 					void)))
 		fun(

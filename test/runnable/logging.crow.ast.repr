@@ -1,7 +1,5 @@
 file-ast(
-	imports: ports(
-		range(0, 83)
-		[import-ast(0, "/crow/log", some([get-log-handler, info, log, log-handler, warn, with-log-handler]))])
+	imports: ports(range(0, 83), [import-ast("/crow/log", some([get-log-handler, info, log, log-handler, warn, with-log-handler]))])
 	specs: []
 	aliases: []
 	structs: []

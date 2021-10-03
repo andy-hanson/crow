@@ -51,7 +51,7 @@ void writeRelPath(Alloc, PathAlloc)(
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable RelPath p,
 ) {
-	repeat(nParents(p), {
+	repeat(nParents(p).raw(), {
 		writeStatic(writer, "../");
 	});
 	writePath(writer, allPaths, p.path);

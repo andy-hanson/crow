@@ -1,13 +1,13 @@
 #!/usr/bin/env crow
 
 import
-	crow.io.environ: get-environ
-	crow.io.path: child-path, parent-path
-	crow.io.print: print
-	crow.parse-command: parse-named-args
-	.failure: first-failures, print-failures, test-options
-	.lint: lint
-	.crow-tests: run-crow-tests
+	crow/io/environ: get-environ
+	crow/io/path: child-path, parent-path
+	crow/io/print: print
+	crow/parse-command: parse-named-args
+	./failure: first-failures, print-failures, test-options
+	./lint: lint
+	./crow-tests: run-crow-tests
 
 main fut nat(args arr str) summon
 	option-names = ["print-tests", "overwrite-output", "max-failures", "match"]

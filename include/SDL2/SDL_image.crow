@@ -1,8 +1,8 @@
 no-std
 import
-	..crow.c-types: c-int
-	..crow.str: c-str
-	.SDL_surface: SDL_Surface
+	crow/c-types: c-int
+	crow/str: c-str
+	./SDL_surface: SDL_Surface
 
 IMG_Init IMG_InitFlags(flags IMG_InitFlags) extern<"SDL2"> noctx summon unsafe
 

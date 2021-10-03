@@ -1,12 +1,12 @@
 no-std
 import
-	.bool: bool
-	.col.arr: arr
-	.col.arr-util: first-some
-	.exception: throw
-	.misc: name, named-val, val
-	.opt: opt, some
-	.sym: ==, sym
+	./bool: bool
+	./col/arr: arr
+	./col/arr-util: first-some
+	./exception: throw
+	./misc: name, named-val, val
+	./opt: opt, some
+	./sym: ==, sym
 
 enum<?a> spec
 	enum-members arr named-val<?a>()

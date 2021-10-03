@@ -1,31 +1,31 @@
 no-std
 import
-	....unistd: write
-	...bool: !, bool, false, true
-	...col.arr: arr, begin-ptr, size, subscript
-	...col.arr-util: rtail
-	...col.dict: dict, each, has-key?
-	...col.mut-dict: move-to-dict!, mut-dict, remove-key!, set-subscript, subscript
-	...col.mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
-	...compare: !=, <=, >=
-	...exception: assert, forbid, to-str
-	...fut: fut, fut-catch, resolved, subscript, then
-	...log: error, log
-	...misc: as, drop, void
-	...number: ==, <=>, +, nat8, nat64, to-int64
-	...opt: opt, or-default, some, value
-	...extra-types: fd-t
-	...ptr: ptr-cast
-	...str: ==, <=>, char, chars, empty?, size-bytes, str
-	...str-conv: parse-nat, to-str
-	...str-util: as-str, has-substr?, split-by, try-remove-end
-	...writer: ~=, move-to-str!, writer
-	...private.bootstrap: todo
-	..print: print
-	.http-types:
+	unistd: write
+	../../bool: !, bool, false, true
+	../../col/arr: arr, begin-ptr, size, subscript
+	../../col/arr-util: rtail
+	../../col/dict: dict, each, has-key?
+	../../col/mut-dict: move-to-dict!, mut-dict, remove-key!, set-subscript, subscript
+	../../col/mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
+	../../compare: !=, <=, >=
+	../../exception: assert, forbid, to-str
+	../../fut: fut, fut-catch, resolved, subscript, then
+	../../log: error, log
+	../../misc: as, drop, void
+	../../number: ==, <=>, +, nat8, nat64, to-int64
+	../../opt: opt, or-default, some, value
+	../../extra-types: fd-t
+	../../ptr: ptr-cast
+	../../str: ==, <=>, char, chars, empty?, size-bytes, str
+	../../str-conv: parse-nat, to-str
+	../../str-util: as-str, has-substr?, split-by, try-remove-end
+	../../writer: ~=, move-to-str!, writer
+	../../private/bootstrap: todo
+	../print: print
+	./http-types:
 		body, headers, http-get, http-method, http-post, http-request, http-response, status,
 		status-desc
-	.tcp-server: close-client, start-tcp-server, stop, tcp-handler
+	./tcp-server: close-client, start-tcp-server, stop, tcp-handler
 
 # Represents the state of the server.
 http-server record sendable

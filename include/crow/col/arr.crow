@@ -1,16 +1,16 @@
 no-std
 import
-	..bool: !, &&, bool
-	..compare: !=, <, <=, compare, comparison, equal, greater, less
-	..fun: subscript
-	..misc: arrow, from, to
-	..ptr: ==, <=>, +, -, by-val, ptr, ptr-cast, ref-of-ptr, size-of, subscript
-	..private.alloc: alloc-uninitialized, copy-data-from
-	..private.bootstrap: hard-assert
-	..private.exception-low-level: assert
-	..private.number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
+	../bool: !, &&, bool
+	../compare: !=, <, <=, compare, comparison, equal, greater, less
+	../fun: subscript
+	../misc: arrow, from, to
+	../ptr: ==, <=>, +, -, by-val, ptr, ptr-cast, ref-of-ptr, size-of, subscript
+	../private/alloc: alloc-uninitialized, copy-data-from
+	../private/bootstrap: hard-assert
+	../private/exception-low-level: assert
+	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
 export
-	..private.bootstrap: arr, begin-ptr, size
+	../private/bootstrap: arr, begin-ptr, size
 
 end-ptr ptr ?a(a arr ?a) noctx unsafe
 	a.begin-ptr + a.size

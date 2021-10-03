@@ -1,18 +1,18 @@
 no-std
 import
-	...stdio: stdin
-	...unistd: read
-	..col.mut-arr: begin-ptr, cast-immutable, size, subscript, uninitialized-mut-arr
-	..compare: >=
-	..exception: assert
-	..fun: subscript
-	..misc: ->
-	..number: ==, <=>, nat8, to-nat64
-	..opt: opt
-	..str: str
-	..str-util: as-str, strip
-	..private.bootstrap: todo
-	.print: print
+	stdio: stdin
+	unistd: read
+	../col/mut-arr: begin-ptr, cast-immutable, size, subscript, uninitialized-mut-arr
+	../compare: >=
+	../exception: assert
+	../fun: subscript
+	../misc: ->
+	../number: ==, <=>, nat8, to-nat64
+	../opt: opt
+	../str: str
+	../str-util: as-str, strip
+	../private/bootstrap: todo
+	./print: print
 
 ###
 Reads from stdin.

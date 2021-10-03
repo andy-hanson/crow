@@ -1,6 +1,6 @@
 no-std
 import
-	..crow.c-types: c-int
+	crow/c-types: c-int
 
 SDL_Rect record
 	by-val

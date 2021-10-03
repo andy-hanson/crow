@@ -1,13 +1,13 @@
 no-std
 import
-	....sodium: sodium_init
-	...bool: ||
-	...exception: assert
-	...misc: void
-	...ptr: ref-of-val
-	...private.number-low-level: ==
-	...private.runtime: get-global-ctx, print-lock
-	...private.thread-utils: with-lock
+	sodium: sodium_init
+	../../bool: ||
+	../../exception: assert
+	../../misc: void
+	../../ptr: ref-of-val
+	../../private/number-low-level: ==
+	../../private/runtime: get-global-ctx, print-lock
+	../../private/thread-utils: with-lock
 
 ensure-sodium-initialized void() trusted
 	gctx = get-global-ctx

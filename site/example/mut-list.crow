@@ -1,7 +1,7 @@
 import
-	crow.col.mut-list: ~=, empty?, move-to-arr!, mut-list
-	crow.io.print: print
-	crow.str-util: join
+	crow/col/mut-list: ~=, empty?, move-to-arr!, mut-list
+	crow/io/print: print
+	crow/str-util: join
 
 main fut nat(_ arr str) summon
 	xs = mut-list: ["a", "b", "c"]

@@ -1,6 +1,6 @@
 no-std
 import
-	..crow.str: c-str
+	crow/str: c-str
 
 SDL_RWops extern-ptr
 

@@ -1,10 +1,10 @@
 no-std
 import
-	.crow.c-types: c-int, size_t
-	.crow.extra-types: err-t, fd-t
-	.crow.ptr: any-ptr, ptr
-	.crow.private.bootstrap: c-str, int32, int64, nat32
-	.sys.types: off_t
+	crow/c-types: c-int, size_t
+	crow/extra-types: err-t, fd-t
+	crow/ptr: any-ptr, ptr
+	crow/private/bootstrap: c-str, int32, int64, nat32
+	sys/types: off_t
 
 getcwd c-str(buf c-str, size size_t) unsafe extern noctx summon
 

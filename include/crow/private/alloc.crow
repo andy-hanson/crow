@@ -1,20 +1,20 @@
 no-std
 import
-	...stdlib: free, malloc
-	...string: memcpy, memset
-	..bits: ~, &
-	..bool: !, ||, bool, false, to-nat64, true
-	..compare: !=, <, <=, >
-	..fun: subscript
-	..misc: drop
-	..ptr:
+	stdlib: free, malloc
+	string: memcpy, memset
+	../bits: ~, &
+	../bool: !, ||, bool, false, to-nat64, true
+	../compare: !=, <, <=, >
+	../fun: subscript
+	../misc: drop
+	../ptr:
 		==, <=>, +, -, any-ptr, as-any-ptr, as-ref, by-val, null?, ptr, ptr-cast, ref-of-val,
 		set-subscript, size-of, subscript, to-nat64
-	.bootstrap:
-		as, begin-ptr, chars, c-str, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, lock, nat8, nat64, none, opt, some,
+	./bootstrap:
+		as, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, lock, nat8, nat64, none, opt, some,
 		todo, void
-	.number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
-	.thread-utils: acquire!, lock-by-val, release!
+	./number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
+	./thread-utils: acquire!, lock-by-val, release!
 
 set-zero-range void(begin ptr ?a, size nat64) noctx unsafe
 	# TODO: wrap-mul is unsafe

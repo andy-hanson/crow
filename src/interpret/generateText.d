@@ -244,7 +244,7 @@ void writeConstant(TempAlloc)(
 	ref immutable LowType type,
 	ref immutable Constant constant,
 ) {
-	debug immutable size_t sizeBefore = exactSizeArrBuilderCurSize(ctx.text);
+	immutable size_t sizeBefore = exactSizeArrBuilderCurSize(ctx.text);
 	immutable size_t typeSize = sizeOfType(ctx.program, type).size.raw();
 
 	matchConstant!void(
@@ -336,25 +336,6 @@ void writeConstant(TempAlloc)(
 			todo!void("write void"); // should only happen if there's a pointer to void..
 		});
 
-	debug {
-		if (false) {
-			import model.reprConstant : reprOfConstant;
-			import util.ptr : ptrTrustMe_mut;
-			import util.repr : writeRepr;
-			import util.writer : finishWriterToCStr, Writer;
-			import util.util : drop;
-
-			immutable size_t sizeAfter = exactSizeArrBuilderCurSize(ctx.text);
-			immutable size_t bytesUsed = sizeAfter - sizeBefore;
-			if (typeSize != bytesUsed) {
-				Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
-				writeRepr(writer, reprOfConstant(tempAlloc, constant));
-				immutable char *str = finishWriterToCStr(writer);
-				drop(str);
-				//import core.stdc.stdio : printf;
-				//printf("Expected this constant to use %lu bytes, but used %lu. Constant is: %s\n",
-				// typeSize, bytesUsed, str);
-			}
-		}
-	}
+	immutable size_t sizeAfter = exactSizeArrBuilderCurSize(ctx.text);
+	verify(typeSize == sizeAfter - sizeBefore);
 }

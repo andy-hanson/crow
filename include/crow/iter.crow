@@ -1,12 +1,12 @@
 no-std
 import
-	.bool: bool
-	.cell: cell, set-subscript, subscript
-	.compare: <
-	.fun: subscript
-	.misc: arrow, from, to, void
-	.number: ==, <=>, +, nat64
-	.opt: opt, some
+	./bool: bool
+	./cell: cell, set-subscript, subscript
+	./compare: <
+	./fun: subscript
+	./misc: arrow, from, to, void
+	./number: ==, <=>, +, nat64
+	./opt: opt, some
 
 ###
 Function to get an iterator.

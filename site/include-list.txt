@@ -37,7 +37,6 @@ crow/col/mut-priority-queue
 crow/col/mut-set
 crow/col/mut-stack
 crow/col/priority-queue
-crow/col/private/perfect-hash
 crow/col/private/sort-utils
 crow/col/queue
 crow/col/set
@@ -121,6 +120,7 @@ netinet/in
 openssl
 poll
 pthread
+sched
 setjmp
 signal
 sodium

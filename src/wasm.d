@@ -27,8 +27,8 @@ import util.writer : finishWriterToCStr, writeChar, writeNat, writeQuotedStr, Wr
 // seems to be the required entry point
 extern(C) void _start() {}
 
-extern(C) @system pure void memset(scope ubyte* s, immutable int c, immutable size_t n) {
-	utilMemset(s, cast(immutable ubyte) c, n);
+extern(C) @system pure ubyte* memset(return scope ubyte* s, immutable int c, immutable size_t n) {
+	return utilMemset(s, cast(immutable ubyte) c, n);
 }
 
 extern (C) @system pure int memcmp(scope const ubyte* s1, scope const ubyte* s2, immutable size_t n) {

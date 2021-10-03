@@ -1,18 +1,18 @@
 no-std
 import
-	...bool: !, ?, bool
-	...compare: ==, !=, <, >=, compare, comparison, equal, less, greater
-	...exception: assert, unreachable
-	...fun: subscript
-	...misc: void
-	...opt: none, opt, some
-	...ptr: ==, +, -, null, null?, ptr, set-subscript, subscript
-	...test: is
-	...private.bootstrap: nat64
-	...private.number-low-level: ==, <=>, unsafe-div, wrap-add
-	..arr: ==, arr, begin-ptr, end-ptr
-	..mut-arr: begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end
-	..mut-list: arr, begin-ptr, empty?, empty!, end-ptr, mut-list, size, swap!, temp-as-mut-arr, unsafe-set-size!
+	../../bool: !, ?, bool
+	../../compare: ==, !=, <, >=, compare, comparison, equal, less, greater
+	../../exception: assert, unreachable
+	../../fun: subscript
+	../../misc: void
+	../../opt: none, opt, some
+	../../ptr: ==, +, -, null, null?, ptr, set-subscript, subscript
+	../../test: is
+	../../private/bootstrap: nat64
+	../../private/number-low-level: ==, <=>, unsafe-div, wrap-add
+	../arr: ==, arr, begin-ptr, end-ptr
+	../mut-arr: begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end
+	../mut-list: arr, begin-ptr, empty?, empty!, end-ptr, mut-list, size, swap!, temp-as-mut-arr, unsafe-set-size!
 
 binary-search-has? bool(a arr ?a, value ?a) compare<?a> trusted
 	!(a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value null?)

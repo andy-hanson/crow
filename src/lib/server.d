@@ -166,7 +166,7 @@ immutable(RunResult) run(Debug, Alloc, ServerAlloc)(
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
 	immutable ExitCode err = buildAndInterpret(
 		dbg, alloc, server.allPaths, server.allSymbols, storage, extern_, showDiagOptions, main, programArgs);
-	return RunResult(err, extern_.moveStdout(), extern_.moveStderr());
+	return immutable RunResult(err, extern_.moveStdout(), extern_.moveStderr());
 }
 
 private:

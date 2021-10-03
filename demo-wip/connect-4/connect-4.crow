@@ -1,10 +1,10 @@
 import
-	crow.col.arr-util: repeat
-	crow.io.print: clear-screen, print
-	crow.io.stdin: read-stdin-until-parse
+	crow/col/arr-util: repeat
+	crow/io/print: clear-screen, print
+	crow/io/stdin: read-stdin-until-parse
 	#log: info, log
-	crow.str-util: strip
-	.board:
+	crow/str-util: strip
+	./board:
 		board, board-cache, can-place?, color, empty-board, has-empty?, just-won?, opposite, place,
 		red, set-subscript, subscript, to-str, width
 

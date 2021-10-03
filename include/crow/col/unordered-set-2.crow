@@ -1,28 +1,28 @@
 no-std
 import
-	..bool: !, ==, bool, false, true
-	..compare: !=, <=, >, >=, compare
-	..exception: assert
-	..fun: subscript
-	..hash: hash-mix
-	..misc: data, void
-	..opt: force, none, opt, or-default, some
-	..ptr: ==, <=>, +, ptr, set-subscript, size-of, subscript
-	..str: ==, str
-	..str-conv: to-str
-	..test: is
-	..writer: ~=, backup!, move-to-str!, writer
-	..private.number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
-	.arr: ==, arr
-	.arr-util: fold
-	.frozen-unordered-set:
+	../bool: !, ==, bool, false, true
+	../compare: !=, <=, >, >=, compare
+	../exception: assert
+	../fun: subscript
+	../hash: hash-mix
+	../misc: data, void
+	../opt: force, none, opt, or-default, some
+	../ptr: ==, <=>, +, ptr, set-subscript, size-of, subscript
+	../str: ==, str
+	../str-conv: to-str
+	../test: is
+	../writer: ~=, backup!, move-to-str!, writer
+	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
+	./arr: ==, arr
+	./arr-util: fold
+	./frozen-unordered-set:
 		alloc-count, begin-ptr, each-unordered, empty?, end-ptr, fold-unordered-with-index,
 		frozen-unordered-set, overhead-bytes, size, try-get-unordered-index,
 		unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
-	.index-set:
+	./index-set:
 		alloc-count, count-greater-or-equal, deep-size-bytes, each, empty?, filter-less, index-set,
 		size, subscript, try-remove
-	.mut-arr: begin-ptr, cast-immutable, end-ptr, mut-arr-from-begin-end, uninitialized-mut-arr
+	./mut-arr: begin-ptr, cast-immutable, end-ptr, mut-arr-from-begin-end, uninitialized-mut-arr
 
 unordered-set<?a> record
 	# TODO:PRIVATE

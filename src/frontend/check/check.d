@@ -35,13 +35,10 @@ import frontend.check.typeFromAst : instStructFromAst, tryFindSpec, typeArgsFrom
 import frontend.parse.ast :
 	ExplicitByValOrRef,
 	ExplicitByValOrRefAndRange,
-	exports,
 	ExprAst,
 	FileAst,
 	FunBodyAst,
 	FunDeclAst,
-	funs,
-	imports,
 	LiteralAst,
 	matchFunBodyAst,
 	matchLiteralIntOrNat,
@@ -54,14 +51,10 @@ import frontend.parse.ast :
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
-	specs,
 	SpecUseAst,
 	StructAliasAst,
 	StructDeclAst,
-	structAliases,
-	structs,
 	TestAst,
-	tests,
 	TypeAst,
 	TypeParamAst;
 import frontend.programState : ProgramState;

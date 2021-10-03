@@ -1,14 +1,14 @@
 no-std
 import
-	..bool: bool
-	..compare: compare
-	..hash: hash-mix
-	..misc: ->, data, void
-	..number: nat64
-	..opt: has?, none, opt, some
-	.arr: arr
-	.arr-util: map
-	.lookup:
+	../bool: bool
+	../compare: compare
+	../hash: hash-mix
+	../misc: ->, data, void
+	../number: nat64
+	../opt: has?, none, opt, some
+	./arr: arr
+	./arr-util: map
+	./lookup:
 		alloc-count, empty?, each-key-unordered, fold-keys-unordered, lookup, new-lookup, overhead-bytes, size,
 		subscript, try-add, try-remove
 

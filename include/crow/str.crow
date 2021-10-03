@@ -1,11 +1,11 @@
 no-std
 import
-	.bool: bool
-	.compare: comparison
-	.col.arr: ~, arr, arr-compare, arr-equal?, empty?, size
-	.private.number-low-level: ==, <=>, nat64
+	./bool: bool
+	./compare: comparison
+	./col/arr: ~, arr, arr-compare, arr-equal?, empty?, size
+	./private/number-low-level: ==, <=>, nat64
 export
-	.private.bootstrap: char, chars, c-str, str, to-char, to-nat8
+	./private/bootstrap: char, chars, c-str, str, to-char, to-nat8
 
 ~ str(a str, b str)
 	a.chars ~ b.chars str

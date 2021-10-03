@@ -1,6 +1,6 @@
 no-std
 import
-	..crow.c-types: u-int
+	crow/c-types: u-int
 
 SDL_Scancode enum<u-int>
 	SDL_SCANCODE_UNKNOWN = 0

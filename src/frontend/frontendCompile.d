@@ -7,13 +7,7 @@ import model.model : CommonTypes, LineAndColumnGetters, Module, ModuleAndNames, 
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, PathAndAst;
 import frontend.check.inferringType : CommonFuns;
-import frontend.parse.ast :
-	emptyFileAst,
-	exports,
-	FileAst,
-	ImportAst,
-	imports,
-	ImportsOrExportsAst;
+import frontend.parse.ast : emptyFileAst, FileAst, ImportAst, ImportsOrExportsAst;
 import frontend.lang : crowExtension;
 import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
@@ -31,6 +25,7 @@ import util.path :
 	AllPaths,
 	childPath,
 	comparePathAndStorageKind,
+	matchAbsOrRelPath,
 	parent,
 	Path,
 	PathAndRange,
@@ -439,20 +434,21 @@ immutable(ResolvedImportAndDiags) tryResolveImport(Alloc, PathAlloc)(
 			immutable ResolvedImport(ast.range, some(pk), names),
 			emptyArr!ParseDiagnostic);
 	}
-	if (ast.nDots == 0)
-		return resolved(immutable PathAndStorageKind(ast.path, StorageKind.global));
-	else {
-		immutable RelPath relPath = immutable RelPath(cast(ubyte) (ast.nDots - 1), ast.path);
-		immutable Opt!Path rel = resolvePath(allPaths, parent(allPaths, fromPath.path), relPath);
-		return has(rel)
-			? resolved(immutable PathAndStorageKind(force(rel), fromPath.storageKind))
-			: immutable ResolvedImportAndDiags(
-				immutable ResolvedImport(ast.range, none!PathAndStorageKind, names),
-				arrLiteral!ParseDiagnostic(modelAlloc, [
-					immutable ParseDiagnostic(
-						ast.range,
-						immutable ParseDiag(ParseDiag.RelativeImportReachesPastRoot(relPath)))]));
-	}
+	return matchAbsOrRelPath!(immutable ResolvedImportAndDiags)(
+		ast.path,
+		(immutable Path global) =>
+			resolved(immutable PathAndStorageKind(global, StorageKind.global)),
+		(immutable RelPath relPath) {
+			immutable Opt!Path rel = resolvePath(allPaths, parent(allPaths, fromPath.path), relPath);
+			return has(rel)
+				? resolved(immutable PathAndStorageKind(force(rel), fromPath.storageKind))
+				: immutable ResolvedImportAndDiags(
+					immutable ResolvedImport(ast.range, none!PathAndStorageKind, names),
+					arrLiteral!ParseDiagnostic(modelAlloc, [
+						immutable ParseDiagnostic(
+							ast.range,
+							immutable ParseDiag(ParseDiag.RelativeImportReachesPastRoot(relPath)))]));
+		});
 }
 
 struct ImportAndExportPaths {

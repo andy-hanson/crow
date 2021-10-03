@@ -1,16 +1,16 @@
 no-std
 import
-	..bool: bool, false, true
-	..col.mut-list:
+	../bool: bool, false, true
+	../col/mut-list:
 		contains?, mut-list, mut-list-by-val-with-capacity-from-unmanaged-memory,
 		noctx-must-remove-unordered!, push-capacity-must-be-sufficient!
-	..compare: !=, <=
-	..io.time-low-level: timestamp
-	..misc: as, void
-	..opt: empty?, none, opt, some
-	..ptr: by-val, ref-of-val
-	.bootstrap: exclusion, hard-assert
-	.number-low-level: ==, <=>, nat64, wrap-add
+	../compare: !=, <=
+	../io/time-low-level: timestamp
+	../misc: as, void
+	../opt: empty?, none, opt, some
+	../ptr: by-val, ref-of-val
+	./bootstrap: exclusion, hard-assert
+	./number-low-level: ==, <=>, nat64, wrap-add
 
 # TODO: use a heap, not a list
 

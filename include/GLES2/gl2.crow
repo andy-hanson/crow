@@ -2,11 +2,11 @@
 
 no-std
 import
-	..crow.bool: bool
-	..crow.cell: cell
-	..crow.c-types: c-char, c-float, c-int, s-long, u-int
-	..crow.misc: void
-	..crow.ptr: any-ptr, ptr
+	crow/bool: bool
+	crow/cell: cell
+	crow/c-types: c-char, c-float, c-int, s-long, u-int
+	crow/misc: void
+	crow/ptr: any-ptr, ptr
 
 GLbitfield alias
 	u-int

@@ -1,38 +1,38 @@
 no-std
 import
-	....errno: EAGAIN, errno, EWOULDBLOCK
-	....fcntl: fcntl, F_GETFL, F_SETFL, O_NONBLOCK
-	....netinet.in: sockaddr_in
-	....stdio: perror
-	....sys.epoll:
+	errno: EAGAIN, errno, EWOULDBLOCK
+	fcntl: fcntl, F_GETFL, F_SETFL, O_NONBLOCK
+	netinet/in: sockaddr_in
+	stdio: perror
+	sys/epoll:
 		data, epoll_create1, epoll_ctl, EPOLL_CTL_ADD, EPOLLERR, EPOLLET, epoll_event, EPOLLHUP,
 		EPOLLIN, epoll_wait, events
-	....sys.socket: accept, listen, shutdown, SHUT_RDWR, sockaddr
-	....sys.types: socklen_t
-	....unistd: close, read
-	...bits: |, bits-intersect?
-	...bool: !, &&, ||, bool, false, true
-	...cell: cell
-	...col.arr: arr, begin-ptr, subscript
-	...col.mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
-	...compare: !=, <
-	...c-types: c-int
-	...exception: assert, message
-	...extra-types: fd-t
-	...fut: fut, handle-exceptions, then-void, fut-catch, resolved, subscript
-	...misc: ->, as, drop, void
-	...number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64
-	...opt: value
-	...private.bootstrap: todo
+	sys/socket: accept, listen, shutdown, SHUT_RDWR, sockaddr
+	sys/types: socklen_t
+	unistd: close, read
+	../../bits: |, bits-intersect?
+	../../bool: !, &&, ||, bool, false, true
+	../../cell: cell
+	../../col/arr: arr, begin-ptr, subscript
+	../../col/mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
+	../../compare: !=, <
+	../../c-types: c-int
+	../../exception: assert, message
+	../../extra-types: fd-t
+	../../fut: fut, handle-exceptions, then-void, fut-catch, resolved, subscript
+	../../misc: ->, as, drop, void
+	../../number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64
+	../../opt: value
+	../../private/bootstrap: todo
 	# TODO: don't use this
-	...private.fut-low-level: callback!
-	...ptr: by-val, ptr-cast-to-extern, ptr-to, ref-of-val, size-of
-	...str: chars, str
-	..duration: msec
-	..posix-util: check-posix-error
-	..print: print
-	..time: delay
-	.net: bind-to-port
+	../../private/fut-low-level: callback!
+	../../ptr: by-val, ptr-cast-to-extern, ptr-to, ref-of-val, size-of
+	../../str: chars, str
+	../duration: msec
+	../posix-util: check-posix-error
+	../print: print
+	../time: delay
+	./net: bind-to-port
 
 # Represents the state of the server.
 tcp-server record sendable

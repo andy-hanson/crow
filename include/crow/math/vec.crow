@@ -1,8 +1,8 @@
 no-std
 import
-	..number: +, -, *, **, float32, float64, square-root
-	..str: str
-	..str-conv: finish, interp, to-str, with-str, with-value
+	../number: +, -, *, **, float32, float64, square-root
+	../str: str
+	../str-conv: finish, interp, to-str, with-str, with-value
 
 ###
 2-dimensional vector.

@@ -1,20 +1,20 @@
 no-std
 import
-	.bool: ||
-	.col.arr: arr, size, subscript
-	.col.mut-arr: fill-mut-arr, set-subscript, subscript
-	.compare: !=
-	.io.time-low-level: get-monotime-nsec
-	.misc: void
-	.ptr: as-ref
-	.str: ==, str
-	.private.bootstrap: get-ctx, nat64, perf-ctx-ptr, thread-local-stuff
-	.private.number-low-level: ==, wrap-add, wrap-sub
-	.private.perf-low-level:
+	./bool: ||
+	./col/arr: arr, size, subscript
+	./col/mut-arr: fill-mut-arr, set-subscript, subscript
+	./compare: !=
+	./io/time-low-level: get-monotime-nsec
+	./misc: void
+	./ptr: as-ref
+	./str: ==, str
+	./private/bootstrap: get-ctx, nat64, perf-ctx-ptr, thread-local-stuff
+	./private/number-low-level: ==, wrap-add, wrap-sub
+	./private/perf-low-level:
 		measure-names, measure-values, ns, perf-ctx, perf-time, set-measure-names,
 		set-measure-values, total-ns
 export
-	.private.perf-low-level: count, measure-value, total-duration
+	./private/perf-low-level: count, measure-value, total-duration
 
 perf-reset void(names arr str) summon
 	perf = get-perf-ctx

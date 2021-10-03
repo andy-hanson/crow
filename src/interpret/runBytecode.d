@@ -582,7 +582,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			pop(a.dataStack);
 			push(a.dataStack, immutable Nat64(0));
 			break;
-		case ExternOp.pthreadYield:
+		case ExternOp.schedYield:
 			push(a.dataStack, immutable Nat64(0));
 			break;
 		case ExternOp.setjmp:

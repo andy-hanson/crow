@@ -872,7 +872,7 @@ struct FunDeclAndArgs {
 		decl = d;
 		typeArgs = ta;
 		specImpls = si;
-		verify(typeArgs.sizeEq(decl.typeParams));
+		verify(sizeEq(typeArgs, decl.typeParams));
 		verify(size(specImpls) == nSpecImpls(decl));
 	}
 }
@@ -1397,7 +1397,7 @@ struct Expr {
 	// type is the lambda's type (not the body's return type), e.g. a Fun1 or sendFun1 instance.
 	struct Lambda {
 		immutable Param[] params;
-		immutable Ptr!Expr body_;
+		immutable Expr body_;
 		immutable Ptr!ClosureField[] closure;
 		// This is the funN type;
 		immutable Ptr!StructInst type;
@@ -1489,7 +1489,7 @@ struct Expr {
 		immutable ImplicitConvertToUnion implicitConvertToUnion;
 		immutable FunPtr funPtr;
 		immutable IfOption ifOption;
-		immutable Lambda lambda;
+		immutable Ptr!Lambda lambda;
 		immutable Let let;
 		immutable Ptr!Literal literal;
 		immutable LocalRef localRef;
@@ -1520,7 +1520,7 @@ struct Expr {
 	@trusted immutable this(immutable FileAndRange r, immutable IfOption a) {
 		range_ = r; kind = Kind.ifOption; ifOption = a;
 	}
-	@trusted immutable this(immutable FileAndRange r, immutable Lambda a) {
+	@trusted immutable this(immutable FileAndRange r, immutable Ptr!Lambda a) {
 		range_ = r; kind = Kind.lambda; lambda = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable Let a) { range_ = r; kind = Kind.let; let = a; }

@@ -1,12 +1,12 @@
 no-std
 import
-	.bool: bool, to-nat64
-	.col.arr-util: each
-	.misc: as, void
-	.number: nat64, to-nat64
-	.ptr: by-val, ref-of-val
-	.str: chars, str, to-nat8
-	.private.number-low-level: wrap-add
+	./bool: bool, to-nat64
+	./col/arr-util: each
+	./misc: as, void
+	./number: nat64, to-nat64
+	./ptr: by-val, ref-of-val
+	./str: chars, str, to-nat8
+	./private/number-low-level: wrap-add
 
 hash nat64(a ?a) trusted hash-mix<?a>
 	hasher = as<by-val hasher>: hasher: 0
