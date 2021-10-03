@@ -2,8 +2,9 @@ module model.constant;
 
 @safe @nogc pure nothrow:
 
+import model.concreteModel : ConcreteFun;
 import util.collection.arrUtil : eachCorresponds;
-import util.ptr : Ptr;
+import util.ptr : Ptr, ptrEquals;
 import util.util : verify;
 
 // WARN: The type of a constant is implicit (given by context).
@@ -23,6 +24,9 @@ struct Constant {
 	// Nul-terminated string identified only by its begin pointer.
 	struct CString {
 		immutable size_t index; // Index into AllConstants#cStrings
+	}
+	struct FunPtr {
+		immutable Ptr!ConcreteFun fun;
 	}
 	// For int and nat types.
 	// For a large nat, this may wrap around to negative.
@@ -50,6 +54,7 @@ struct Constant {
 		bool_,
 		cString,
 		float_,
+		funPtr,
 		integral,
 		null_,
 		pointer,
@@ -63,6 +68,7 @@ struct Constant {
 		immutable BoolConstant bool_;
 		immutable CString cString;
 		immutable double float_;
+		immutable FunPtr funPtr;
 		immutable Integral integral;
 		immutable Null null_;
 		immutable Pointer pointer;
@@ -76,6 +82,7 @@ struct Constant {
 	immutable this(immutable CString a) { kind = Kind.cString; cString = a; }
 	// used for both float32 and float64
 	immutable this(immutable double a) { kind = Kind.float_; float_ = a; }
+	immutable this(immutable FunPtr a) { kind = Kind.funPtr; funPtr = a; }
 	immutable this(immutable Integral a) { kind = Kind.integral; integral = a; }
 	immutable this(immutable Null a) { kind = Kind.null_; null_ = a; }
 	@trusted immutable this(immutable Pointer a) { kind = Kind.pointer; pointer = a; }
@@ -123,6 +130,8 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 		case Constant.Kind.float_:
 			//TODO: handle NaN
 			return a.float_ == b.float_;
+		case Constant.Kind.funPtr:
+			return ptrEquals(a.funPtr.fun, b.funPtr.fun);
 		case Constant.Kind.integral:
 			return a.integral.value == b.integral.value;
 		case Constant.Kind.null_:
@@ -147,6 +156,7 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 	scope T delegate(immutable Constant.BoolConstant) @safe @nogc pure nothrow cbBool,
 	scope T delegate(ref immutable Constant.CString) @safe @nogc pure nothrow cbCString,
 	scope T delegate(immutable double) @safe @nogc pure nothrow cbFloat,
+	scope T delegate(immutable Constant.FunPtr) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(immutable Constant.Integral) @safe @nogc pure nothrow cbIntegral,
 	scope T delegate(immutable Constant.Null) @safe @nogc pure nothrow cbNull,
 	scope T delegate(immutable Constant.Pointer) @safe @nogc pure nothrow cbPointer,
@@ -163,6 +173,8 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 			return cbCString(a.cString);
 		case Constant.Kind.float_:
 			return cbFloat(a.float_);
+		case Constant.Kind.funPtr:
+			return cbFunPtr(a.funPtr);
 		case Constant.Kind.integral:
 			return cbIntegral(a.integral);
 		case Constant.Kind.null_:

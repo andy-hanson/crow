@@ -17,10 +17,11 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model : asRecord, body_, EnumValue;
+import util.collection.dict : Dict;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.comparison : compareEnum, compareSizeT, Comparison;
 import util.opt : none, Opt;
-import util.ptr : Ptr;
+import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Nat16;
@@ -1089,22 +1090,27 @@ struct AllConstantsLow {
 	immutable PointerTypeAndConstantsLow[] pointers;
 }
 
+alias ConcreteFunToLowFunIndex = immutable Dict!(Ptr!ConcreteFun, LowFunIndex, comparePtr!ConcreteFun);
+
 struct LowProgram {
 	@safe @nogc pure nothrow:
 
 	@disable this(ref const LowProgram);
 	immutable this(
+		immutable ConcreteFunToLowFunIndex cflf,
 		immutable AllConstantsLow ac,
 		immutable Ptr!AllLowTypes at,
 		immutable FullIndexDict!(LowFunIndex, LowFun) af,
 		immutable LowFunIndex m,
 	) {
+		concreteFunToLowFunIndex = cflf;
 		allConstants = ac;
 		allTypes = at;
 		allFuns = af;
 		main = m;
 	}
 
+	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	immutable AllConstantsLow allConstants;
 	immutable Ptr!AllLowTypes allTypes;
 	immutable FullIndexDict!(LowFunIndex, LowFun) allFuns;

@@ -67,7 +67,7 @@ import model.model : EnumValue, FunInst, Local, name, Param;
 import model.typeLayout : sizeOfType;
 import util.collection.arr : at, empty, emptyArr, first, only, setAt, size, sizeEq;
 import util.collection.arrUtil : arrLiteral, every, fillArr_mut, map, tail, zip;
-import util.collection.dict : Dict, getAt;
+import util.collection.dict : Dict, getAt, mustGetAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.fullIndexDict :
 	FullIndexDict,
@@ -119,13 +119,13 @@ immutable(string) writeToC(Alloc, TempAlloc)(
 
 	writeStructs(alloc, writer, ctx);
 
-	writeConstants(writer, ctx, program.allConstants);
-
 	fullIndexDictEach!(LowFunIndex, LowFun)(
 		program.allFuns,
 		(immutable LowFunIndex funIndex, ref immutable LowFun fun) {
 			writeFunDeclaration(writer, ctx, funIndex, fun);
 		});
+
+	writeConstants(writer, ctx, program.allConstants);
 
 	fullIndexDictEach!(LowFunIndex, LowFun)(
 		program.allFuns,
@@ -1179,7 +1179,7 @@ immutable(WriteExprResult) writeExpr(Alloc, TempAlloc)(
 			}),
 		(ref immutable LowExprKind.FunPtr it) =>
 			inlineableSimple(() {
-				writeFunPtr(writer, ctx.ctx, it);
+				writeFunPtr(writer, ctx.ctx, it.fun);
 			}),
 		(ref immutable LowExprKind.Let it) {
 			if (!isInline(writeKind)) {
@@ -1492,8 +1492,8 @@ void writeConvertToUnion(Alloc)(
 	writeChar(writer, '}');
 }
 
-void writeFunPtr(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowExprKind.FunPtr a) {
-	writeLowFunMangledName(writer, ctx, a.fun, fullIndexDictGet(ctx.program.allFuns, a.fun));
+void writeFunPtr(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable LowFunIndex a) {
+	writeLowFunMangledName(writer, ctx, a, fullIndexDictGet(ctx.program.allFuns, a));
 }
 
 void writeLocalRef(Alloc)(ref Writer!Alloc writer, ref immutable LowLocal a) {
@@ -1688,6 +1688,12 @@ void writeConstantRef(Alloc)(
 		},
 		(immutable double it) {
 			writeFloatLiteral(writer, it);
+		},
+		(immutable Constant.FunPtr it) {
+			// TODO: The cast should be elsewhere ... need a Constant.Cast type
+			writeStatic(writer, "((uint8_t*)");
+			writeFunPtr(writer, ctx, mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun));
+			writeChar(writer, ')');
 		},
 		(immutable Constant.Integral it) {
 			if (isSignedIntegral(asPrimitive(type))) {

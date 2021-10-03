@@ -8,7 +8,7 @@ import
 	./backtrace: backtrace, get-backtrace
 	./bootstrap:
 		arr, as, err, exception-ctx-ptr, get-ctx, hard-assert, hard-forbid,
-		hard-unreachable, int32, ok, result, str, thread-local-stuff, void
+		hard-unreachable, int32, ok, result, str, sym, thread-local-stuff, void
 	./number-low-level: ==
 export
 	./bootstrap: exception, message
@@ -19,7 +19,8 @@ exception-ctx record mut
 
 exception-ctx by-val exception-ctx() noctx unsafe
 	# Nothing on the exception-ctx initially
-	exception-ctx: null, exception: "", backtrace: as<arr str>: []
+	# TODO: should not need `as<arr sym>`
+	exception-ctx: null, exception: "", backtrace: as<arr sym>: []
 
 get-exception-ctx exception-ctx() unsafe
 	get-ctx.thread-local-stuff.exception-ctx-ptr as-ref<exception-ctx>

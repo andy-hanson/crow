@@ -99,6 +99,7 @@ import model.model : FunDecl, Module, name, Program, range;
 import model.typeLayout : nStackEntriesForType, optPack, sizeOfType;
 import util.collection.arr : at, only, size, sizeNat;
 import util.collection.arrUtil : map, mapOpWithIndex;
+import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict :
 	FullIndexDict,
 	fullIndexDictEach,
@@ -814,6 +815,10 @@ void generateConstant(Debug, CodeAlloc, TempAlloc)(
 					unreachable!void();
 					break;
 			}
+		},
+		(immutable Constant.FunPtr it) {
+			immutable LowFunIndex index = mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun);
+			todo!void("!");
 		},
 		(immutable Constant.Integral it) {
 			writePushConstant(dbg, writer, source, immutable Nat64(it.value));

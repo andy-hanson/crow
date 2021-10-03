@@ -5,8 +5,9 @@ import
 	./col/mut-list: ~=, move-to-arr!, mut-list, pop-n!
 	./misc: void
 	./number: float64, int64, nat64
-	./str: ==, char, chars, str
+	./str: ==, char, chars, c-str, str
 	./str-conv: to-str
+	./str-util: to-str
 
 writer record mut
 	# TODO:PRIVATE
@@ -29,6 +30,9 @@ backup! void(a writer, n nat64)
 
 ~= void(a writer, b char)
 	a.chars ~= b
+
+~= void(a writer, b c-str) unsafe
+	a ~= b to-str
 
 ~= void(a writer, b str)
 	a.chars ~= b chars

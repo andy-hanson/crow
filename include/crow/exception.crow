@@ -7,7 +7,7 @@ import
 	./str: empty?, str
 	./writer: ~=, move-to-str!, writer
 	./private/backtrace: return-stack
-	./private/bootstrap: backtrace
+	./private/bootstrap: backtrace, to-c-str
 export
 	./private/exception-low-level: assert, catch, exception, forbid, message, throw
 
@@ -73,10 +73,10 @@ do-if-error ?a(on-error act void(), try act ?a())
 		on-error[]
 		err throw
 
-to-str str(a exception)
+to-str str(a exception) unsafe
 	res = writer
 	res ~= a.message.empty? ? "<<empty message>>", a.message
 	a.backtrace.return-stack each x =>
 		res ~= "\n\tat "
-		res ~= x
+		res ~= x.to-c-str
 	res move-to-str!

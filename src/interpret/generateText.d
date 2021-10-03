@@ -11,6 +11,7 @@ import model.lowModel :
 	asRecordType,
 	asUnionType,
 	LowField,
+	LowFunIndex,
 	LowProgram,
 	LowRecord,
 	LowType,
@@ -20,6 +21,7 @@ import model.lowModel :
 import model.typeLayout : sizeOfType;
 import util.collection.arr : at, castImmutable, empty, emptyArr, ptrAt, setAt, size;
 import util.collection.arrUtil : map, mapToMut, sum, zip;
+import util.collection.dict : mustGetAt;
 import util.collection.exactSizeArrBuilder :
 	exactSizeArrBuilderAdd,
 	add0Bytes,
@@ -161,6 +163,7 @@ void ensureConstant(TempAlloc)(
 			// We wrote out all CStrings first, so no need to do anything here.
 		},
 		(immutable double) {},
+		(immutable Constant.FunPtr) {},
 		(immutable Constant.Integral) {},
 		(immutable Constant.Null) {},
 		(immutable Constant.Pointer it) {
@@ -274,6 +277,10 @@ void writeConstant(TempAlloc)(
 					unreachable!void();
 					break;
 			}
+		},
+		(immutable Constant.FunPtr it) {
+			immutable LowFunIndex index = mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun);
+			todo!void("!");
 		},
 		(immutable Constant.Integral it) {
 			final switch (asPrimitive(type)) {

@@ -295,7 +295,7 @@ region fut
 
 backtrace record
 	by-val
-	return-stack arr str
+	return-stack arr sym
 
 exception record
 	by-val
@@ -341,4 +341,8 @@ named-val<?a> record
 	name sym
 	val ?a
 
+# all symbols that exist in the compiled code, in arbitrary order
 static-syms arr sym() noctx builtin
+
+# all named functions in arbitrary order
+all-funs arr named-val any-ptr() noctx unsafe builtin

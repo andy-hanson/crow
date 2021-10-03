@@ -1,104 +1,88 @@
 no-std
 import
+	string: memcpy
 	sys/execinfo: backtrace
-	../compare: !=, <, <=, >
-	../ptr: +, ==, <=>, any-ptr, ptr, set-subscript, subscript
+	../compare: <, <=, >
+	../misc: drop, name, named-val, val
+	../ptr: +, ==, <=>, any-ptr, ptr, ptr-cast, set-subscript, size-of, subscript
 	./alloc: try-alloc-uninitialized
-	./bootstrap: arr, as, hard-assert, nat64, opt, some, str, void
+	./bootstrap: arr, as, begin-ptr, hard-assert, nat64, opt, size, some, sym, void
 	./number-low-level:
-		==, <=>, to-int64, unsafe-div, unsafe-to-int64, unsafe-to-int32, unsafe-to-nat64, wrap-add,
-		wrap-sub
+		==, <=>, nat8, to-int64, unsafe-div, unsafe-to-int64, unsafe-to-int32, unsafe-to-nat64, wrap-add,
+		wrap-mul, wrap-sub
 export
-	./bootstrap: backtrace, return-stack
+	./bootstrap: all-funs, backtrace, return-stack
 
 get-backtrace backtrace() unsafe
 	# Being careful to avoid calling functions that may throw here
 	if arrs ?= try-alloc-backtrace-arrs
 		n-code-ptrs = (arrs.code-ptrs backtrace code-ptrs-size.unsafe-to-int64.unsafe-to-int32).to-int64.unsafe-to-nat64
 		hard-assert: n-code-ptrs <= code-ptrs-size
-		0 fill-fun-ptrs-names-recur arrs.fun-ptrs, arrs.fun-names
-		sort-together: arrs.fun-ptrs, arrs.fun-names, funs-count
+		drop: arrs.funs.ptr-cast<nat8, named-val any-ptr> memcpy: all-funs.begin-ptr.ptr-cast<nat8, named-val any-ptr>, size-of<named-val any-ptr> wrap-mul all-funs.size
+		arrs.funs sort! all-funs.size
 		end-code-names = arrs.code-names + n-code-ptrs
-		fill-code-names-recur: arrs.code-names, end-code-names, arrs.code-ptrs, arrs.fun-ptrs, arrs.fun-names
-		backtrace: arr<str>: n-code-ptrs, arrs.code-names
+		arrs.code-names fill-code-names! end-code-names, arrs.code-ptrs, arrs.funs
+		backtrace: arr<sym>: n-code-ptrs, arrs.code-names
 	else
-		backtrace: as<arr str>: []
+		backtrace: as<arr sym>: []
 
-.funs-count nat64() noctx unsafe builtin
-
-.get-fun-name str(fun-id nat64) noctx unsafe builtin
-
-.get-fun-ptr any-ptr(fun-id nat64) noctx unsafe builtin
-
-.fill-code-names-recur void
-	code-names ptr str
-	end-code-names ptr str
+.fill-code-names! void
+	code-names ptr sym
+	end-code-names ptr sym
 	code-ptrs ptr any-ptr
-	fun-ptrs ptr any-ptr
-	fun-names ptr str
+	funs ptr named-val any-ptr
 spec
 	unsafe
 body
 	if code-names < end-code-names
-		code-names[] := code-ptrs[] get-fun-name fun-ptrs, fun-names, funs-count
-		code-names + 1 fill-code-names-recur end-code-names, code-ptrs + 1, fun-ptrs, fun-names
+		code-names[] := code-ptrs[] get-fun-name funs, all-funs.size
+		code-names + 1 fill-code-names! end-code-names, code-ptrs + 1, funs
 
 .code-ptrs-size nat64()
 	8
 
 .backtrace-arrs record mut
 	code-ptrs ptr any-ptr
-	code-names ptr str
-	fun-ptrs ptr any-ptr
-	fun-names ptr str
+	code-names ptr sym
+	funs ptr named-val any-ptr
 
 .try-alloc-backtrace-arrs opt backtrace-arrs() unsafe
 	size = 8
 	if code-ptrs ?= size try-alloc-uninitialized<any-ptr>
-		if code-names ?= size try-alloc-uninitialized<str>
-			if fun-ptrs ?= funs-count try-alloc-uninitialized<any-ptr>
-				if fun-names ?= funs-count try-alloc-uninitialized<str>
-					some: backtrace-arrs: code-ptrs, code-names, fun-ptrs, fun-names
-		
-.fill-fun-ptrs-names-recur void(i nat64, fun-ptrs ptr any-ptr, fun-names ptr str) unsafe noctx
-	if i != funs-count
-		fun-ptrs[i] := i.get-fun-ptr
-		fun-names[i] := i.get-fun-name
-		i wrap-add 1 fill-fun-ptrs-names-recur fun-ptrs, fun-names
+		if code-names ?= size try-alloc-uninitialized<sym>
+			if funs ?= all-funs.size try-alloc-uninitialized<named-val any-ptr>
+				some: backtrace-arrs: code-ptrs, code-names, funs
 
-.get-fun-name str(code-ptr any-ptr, fun-ptrs ptr any-ptr, fun-names ptr str, size nat64) unsafe noctx
+.get-fun-name sym(code-ptr any-ptr, funs ptr named-val any-ptr, size nat64) unsafe noctx
 	# TODO: this will fail to give a name for the last function
 	if size < 2
-		"<<UNKNOWN>>"
-	elif code-ptr < fun-ptrs[1]
-		fun-names[]
+		'<<UNKNOWN>>'
+	elif code-ptr < funs[1].val
+		funs[].name
 	else
-		code-ptr get-fun-name: fun-ptrs + 1, fun-names + 1, size wrap-sub 1
+		code-ptr get-fun-name: funs + 1, size wrap-sub 1
 
-.sort-together void(a ptr any-ptr, b ptr str, size nat64) unsafe
+# TODO: use the one from sort.crow
+.sort! void(a ptr named-val any-ptr, size nat64) noctx unsafe
 	if size > 1
-		swap: a, 0, size unsafe-div 2
-		swap: b, 0, size unsafe-div 2
-		after-pivot = a partition-recur-together: b, a[], 1, size wrap-sub 1
+		a swap!: 0, size unsafe-div 2
+		after-pivot = a partition! a[].val, 1, (size wrap-sub 1)
 		new-pivot-index = after-pivot wrap-sub 1
-		a swap 0, new-pivot-index
-		b swap 0, new-pivot-index
-		
-		sort-together: a, b, new-pivot-index
-		sort-together: (a + after-pivot), (b + after-pivot), size wrap-sub after-pivot
+		a swap! 0, new-pivot-index
+		a sort! new-pivot-index
+		a + after-pivot sort!: size wrap-sub after-pivot
 
-.partition-recur-together nat64(a ptr any-ptr, b ptr str, pivot any-ptr, l nat64, r nat64) unsafe
+.partition! nat64(a ptr named-val any-ptr, pivot any-ptr, l nat64, r nat64) noctx unsafe
 	if l <= r
-		if a[l] < pivot
-			a partition-recur-together b, pivot, (l wrap-add 1), r
+		if a[l].val < pivot
+			a partition! pivot, (l wrap-add 1), r
 		else
-			a swap l, r
-			b swap l, r
-			a partition-recur-together: b, pivot, l, r wrap-sub 1
+			a swap! l, r
+			a partition! pivot, l, (r wrap-sub 1)
 	else
 		l
 
-.swap void(a ptr ?a, lo nat64, hi nat64) unsafe
+.swap! void(a ptr ?a, lo nat64, hi nat64) noctx unsafe
 	temp = a[lo]
 	a[lo] := a[hi]
 	a[hi] := temp

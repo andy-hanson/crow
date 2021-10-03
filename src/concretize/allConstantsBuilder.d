@@ -2,31 +2,36 @@ module concretize.allConstantsBuilder;
 
 @safe @nogc pure nothrow:
 
+import lower.lower : concreteFunWillBecomeLowFun;
 import model.concreteModel :
 	AllConstantsConcrete,
 	ArrTypeAndConstantsConcrete,
+	asInst,
 	asRecord,
 	body_,
+	ConcreteFun,
 	ConcreteStruct,
 	ConcreteType,
 	compareConcreteType,
 	mustBeNonPointer,
+	name,
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantEqual;
 import util.collection.arr : empty, only;
-import util.collection.arrUtil : arrEqual, arrLiteral, findIndex_const, map, map_mut;
+import util.collection.arrUtil : arrEqual, arrLiteral, findIndex_const, map, mapOp, map_mut;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push, tempAsArr;
 import util.collection.mutDict : getOrAdd, MutDict, mustGetAt_mut, mutDictSize, tempPairs_mut, valuesArray;
 import util.collection.str : compareStr;
 import util.memory : allocate;
-import util.opt : force, has, Opt;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe_mut;
 import util.sym : compareSym, strOfSym, Sym;
-import util.util : verify;
+import util.util : todo, verify;
 
 struct AllConstantsBuilder {
 	private:
+	@disable this(ref const AllConstantsBuilder);
 	MutDict!(immutable string, immutable Constant.CString, compareStr) cStrings;
 	MutDict!(immutable Sym, immutable Constant, compareSym) syms;
 	MutArr!(immutable string) cStringValues;
@@ -49,12 +54,13 @@ private struct PointerTypeAndConstants {
 immutable(AllConstantsConcrete) finishAllConstants(Alloc)(
 	ref Alloc alloc,
 	ref AllConstantsBuilder a,
+	immutable Ptr!ConcreteFun[] allConcreteFuns,
+	immutable Ptr!ConcreteStruct arrNamedValFunPtrStruct,
 	immutable Ptr!ConcreteStruct arrSymStruct,
-	immutable ConcreteType symType,
 ) {
-	immutable string[] cStrings = moveToArr(alloc, a.cStringValues);
+	immutable Constant allFuns = makeAllFuns(alloc, a, allConcreteFuns, arrNamedValFunPtrStruct);
 	immutable Constant[] syms = valuesArray(alloc, a.syms);
-	immutable Constant staticSyms = getConstantArr(alloc, a, arrSymStruct, symType, syms);
+	immutable Constant staticSyms = getConstantArr(alloc, a, arrSymStruct, getArrElementType(arrSymStruct), syms);
 	immutable ArrTypeAndConstantsConcrete[] arrs =
 		map_mut(alloc, tempPairs_mut(a.arrs), (ref KeyValuePair!(immutable ConcreteType, ArrTypeAndConstants) pair) =>
 			immutable ArrTypeAndConstantsConcrete(
@@ -69,7 +75,29 @@ immutable(AllConstantsConcrete) finishAllConstants(Alloc)(
 				immutable PointerTypeAndConstantsConcrete(
 					pair.key,
 					moveToArr!(immutable Ptr!Constant, Alloc)(alloc, pair.value.constants)));
-	return immutable AllConstantsConcrete(cStrings, staticSyms, arrs, records);
+	return immutable AllConstantsConcrete(moveToArr(alloc, a.cStringValues), allFuns, staticSyms, arrs, records);
+}
+
+immutable(Constant) makeAllFuns(Alloc)(
+	ref Alloc alloc,
+	ref AllConstantsBuilder a,
+	immutable Ptr!ConcreteFun[] allConcreteFuns,
+	immutable Ptr!ConcreteStruct arrNamedValFunPtrStruct,
+) {
+	immutable Constant[] elements = mapOp!Constant(alloc, allConcreteFuns, (ref immutable Ptr!ConcreteFun it) {
+		immutable Opt!Sym name = name(it.deref());
+		return has(name) && concreteFunWillBecomeLowFun(it)
+			? some(immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
+				getConstantSym(alloc, a, force(name)),
+				immutable Constant(immutable Constant.FunPtr(it))]))))
+			: none!Constant;
+	});
+	return getConstantArr!Alloc(alloc, a, arrNamedValFunPtrStruct, getArrElementType(arrNamedValFunPtrStruct), elements);
+}
+
+//TODO: use this in getConstantArr
+immutable(ConcreteType) getArrElementType(ref immutable ConcreteStruct a) {
+	return only(asInst(a.source).typeArgs);
 }
 
 ref immutable(Constant) derefConstantPointer(
@@ -104,7 +132,7 @@ immutable(Constant) getConstantArr(Alloc)(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	immutable Ptr!ConcreteStruct arrStruct,
-	ref immutable ConcreteType elementType,
+	immutable ConcreteType elementType,
 	ref immutable Constant[] elements,
 ) {
 	if (empty(elements))

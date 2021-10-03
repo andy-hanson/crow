@@ -9,7 +9,6 @@ import lower.generateMarkVisitFun :
 	generateMarkVisitArrOuter,
 	generateMarkVisitNonArr,
 	generateMarkVisitGcPtr;
-import lower.generateSpecialBuiltin : generateSpecialBuiltin, getSpecialBuiltinKind, SpecialBuiltinKind;
 import lower.getBuiltinCall : BuiltinKind, getBuiltinKind, matchBuiltinKind;
 import lower.lowExprHelpers :
 	anyPtrType,
@@ -75,6 +74,7 @@ import model.lowModel :
 	asPtrRaw,
 	asRecordType,
 	compareLowType,
+	ConcreteFunToLowFunIndex,
 	isArr,
 	isPtrGc,
 	LowExpr,
@@ -129,10 +129,10 @@ import util.util : unreachable, verify;
 
 immutable(Ptr!LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a);
+	immutable AllLowFuns allFuns = getAllLowFuns(alloc, allTypes.allTypes, allTypes.getLowTypeCtx, a);
 	immutable AllConstantsLow allConstants = convertAllConstants(alloc, allTypes.getLowTypeCtx, a.allConstants);
-	immutable AllLowFuns allFuns = getAllLowFuns!Alloc(alloc, allTypes.allTypes, allTypes.getLowTypeCtx, a);
 	immutable Ptr!LowProgram res =
-		nu!LowProgram(alloc, allConstants, allTypes.allTypes, allFuns.allLowFuns, allFuns.main);
+		nu!LowProgram(alloc, allFuns.concreteFunToLowFunIndex, allConstants, allTypes.allTypes, allFuns.allLowFuns, allFuns.main);
 	checkLowProgram(alloc, res);
 	return res;
 }
@@ -193,6 +193,7 @@ struct AllLowTypesWithCtx {
 }
 
 struct AllLowFuns {
+	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	immutable FullIndexDict!(LowFunIndex, LowFun) allLowFuns;
 	immutable LowFunIndex main;
 }
@@ -431,9 +432,6 @@ struct LowFunCause {
 		immutable LowType.PtrGc pointerType;
 		immutable Opt!LowFunIndex visitPointee;
 	}
-	struct SpecialBuiltin {
-		immutable SpecialBuiltinKind kind;
-	}
 
 	@trusted immutable this(immutable CallWithCtx a) { kind = Kind.callWithCtx; callWithCtx_ = a; }
 	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind = Kind.concreteFun; concreteFun_ = a; }
@@ -441,7 +439,6 @@ struct LowFunCause {
 	@trusted immutable this(immutable MarkVisitArrOuter a) { kind = Kind.markVisitArrOuter; markVisitArrOuter_ = a; }
 	@trusted immutable this(immutable MarkVisitNonArr a) { kind = Kind.markVisitNonArr; markVisitNonArr_ = a; }
 	@trusted immutable this(immutable MarkVisitGcPtr a) { kind = Kind.markVisitGcPtr; markVisitGcPtr_ = a; }
-	immutable this(immutable SpecialBuiltin a) { kind = Kind.specialBuiltin; specialBuiltin_ = a; }
 
 	private:
 	enum Kind {
@@ -451,7 +448,6 @@ struct LowFunCause {
 		markVisitArrOuter,
 		markVisitNonArr,
 		markVisitGcPtr,
-		specialBuiltin,
 	}
 	immutable Kind kind;
 	union {
@@ -461,7 +457,6 @@ struct LowFunCause {
 		immutable MarkVisitArrInner markVisitArrInner_;
 		immutable MarkVisitNonArr markVisitNonArr_;
 		immutable MarkVisitGcPtr markVisitGcPtr_;
-		immutable SpecialBuiltin specialBuiltin_;
 	}
 }
 
@@ -482,7 +477,6 @@ immutable(bool) isConcreteFun(ref immutable LowFunCause a) {
 	scope T delegate(ref immutable LowFunCause.MarkVisitArrOuter) @safe @nogc pure nothrow cbMarkVisitArrOuter,
 	scope T delegate(ref immutable LowFunCause.MarkVisitNonArr) @safe @nogc pure nothrow cbMarkVisitNonArr,
 	scope T delegate(ref immutable LowFunCause.MarkVisitGcPtr) @safe @nogc pure nothrow cbMarkVisitGcPtr,
-	scope T delegate(ref immutable LowFunCause.SpecialBuiltin) @safe @nogc pure nothrow cbSpecialBuiltin,
 ) {
 	final switch (a.kind) {
 		case LowFunCause.Kind.callWithCtx:
@@ -497,8 +491,6 @@ immutable(bool) isConcreteFun(ref immutable LowFunCause a) {
 			return cbMarkVisitNonArr(a.markVisitNonArr_);
 		case LowFunCause.Kind.markVisitGcPtr:
 			return cbMarkVisitGcPtr(a.markVisitGcPtr_);
-		case LowFunCause.Kind.specialBuiltin:
-			return cbSpecialBuiltin(a.specialBuiltin_);
 	}
 }
 
@@ -616,7 +608,6 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 	}
 
 	Late!(immutable LowType) markCtxTypeLate = late!(immutable LowType);
-	Late!(immutable LowType) strTypeLate = late!(immutable LowType);
 
 	foreach (immutable Ptr!ConcreteFun fun; program.allFuns) {
 		immutable Opt!LowFunIndex opIndex = matchConcreteFunBody!(immutable Opt!LowFunIndex)(
@@ -647,16 +638,8 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 					immutable LowFunIndex res =
 						generateMarkVisitForType(lowTypeFromConcreteType(alloc, getLowTypeCtx, only(it.typeArgs)));
 					return some(res);
-				} else {
-					immutable Opt!SpecialBuiltinKind kind = getSpecialBuiltinKind(fun);
-					if (has(kind)) {
-						if (!lateIsSet(strTypeLate) && force(kind) == SpecialBuiltinKind.getFunName)
-							lateSet(strTypeLate, lowTypeFromConcreteType(alloc, getLowTypeCtx, fun.returnType));
-						return some(addLowFun(immutable LowFunCause(
-							immutable LowFunCause.SpecialBuiltin(force(kind)))));
-					} else
-						return none!LowFunIndex;
-				}
+				} else
+					return none!LowFunIndex;
 			},
 			(ref immutable ConcreteFunBody.CreateEnum) =>
 				none!LowFunIndex,
@@ -674,13 +657,13 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.RecordFieldSet) =>
 				none!LowFunIndex);
+		verify(has(opIndex) == concreteFunWillBecomeLowFun(fun));
 		if (has(opIndex)) {
 			addToDict(alloc, concreteFunToLowFunIndexBuilder, fun, force(opIndex));
 		}
 	}
 
 	immutable LowType markCtxType = lateIsSet(markCtxTypeLate) ? lateGet(markCtxTypeLate) : voidType;
-	immutable LowType strType = lateIsSet(strTypeLate) ? lateGet(strTypeLate) : voidType;
 
 	immutable LowFunCause[] lowFunCauses = finishArr(alloc, lowFunCausesBuilder);
 	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex =
@@ -700,11 +683,11 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 					alloc,
 					program.funToName,
 					allTypes,
+					program.allConstants.allFuns,
 					program.allConstants.staticSyms,
 					getLowTypeCtx,
 					allocFunIndex,
 					ctxType,
-					strType,
 					concreteFunToLowFunIndex,
 					lowFunCauses,
 					markVisitFuns,
@@ -719,18 +702,41 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				mustGetAt(concreteFunToLowFunIndex, program.userMain),
 				userMainFunPtrType)));
 
-	return immutable AllLowFuns(allLowFuns, immutable LowFunIndex(size(lowFunCauses)));
+	return immutable AllLowFuns(concreteFunToLowFunIndex, allLowFuns, immutable LowFunIndex(size(lowFunCauses)));
+}
+
+public immutable(bool) concreteFunWillBecomeLowFun()(ref immutable ConcreteFun a) {
+	return matchConcreteFunBody!(immutable bool)(
+		body_(a),
+		(ref immutable ConcreteFunBody.Builtin it) =>
+			isCallWithCtxFun(a) || isMarkVisitFun(a),
+		(ref immutable ConcreteFunBody.CreateEnum) =>
+			false,
+		(ref immutable ConcreteFunBody.CreateRecord) =>
+			false,
+		(immutable EnumFunction) =>
+			false,
+		(ref immutable ConcreteFunBody.Extern) =>
+			true,
+		(ref immutable ConcreteFunExprBody) =>
+			true,
+		(ref immutable ConcreteFunBody.FlagsFn) =>
+			false,
+		(ref immutable ConcreteFunBody.RecordFieldGet) =>
+			false,
+		(ref immutable ConcreteFunBody.RecordFieldSet) =>
+			false);
 }
 
 immutable(LowFun) lowFunFromCause(Alloc)(
 	ref Alloc alloc,
 	ref immutable ConcreteFunToName funToName,
 	ref immutable AllLowTypes allTypes,
-	immutable Constant staticSyms,
+	ref immutable Constant allFuns,
+	ref immutable Constant staticSyms,
 	ref GetLowTypeCtx getLowTypeCtx,
 	immutable LowFunIndex allocFunIndex,
 	ref immutable LowType ctxType,
-	ref immutable LowType strType,
 	ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	ref immutable LowFunCause[] lowFunCauses,
 	ref const MarkVisitFuns markVisitFuns,
@@ -783,6 +789,7 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 			immutable LowFunBody body_ = getLowFunBody(
 				alloc,
 				allTypes,
+				allFuns,
 				staticSyms,
 				getLowTypeCtx,
 				concreteFunToLowFunIndex,
@@ -810,9 +817,7 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 		(ref immutable LowFunCause.MarkVisitNonArr it) =>
 			generateMarkVisitNonArr(alloc, allTypes, markVisitFuns, markCtxType, it.type),
 		(ref immutable LowFunCause.MarkVisitGcPtr it) =>
-			generateMarkVisitGcPtr(alloc, markCtxType, markFun, it.pointerType, it.visitPointee),
-		(ref immutable LowFunCause.SpecialBuiltin it) =>
-			generateSpecialBuiltin(alloc, funToName, lowFunCauses, strType, it.kind));
+			generateMarkVisitGcPtr(alloc, markCtxType, markFun, it.pointerType, it.visitPointee));
 }
 
 immutable(LowFun) mainFun(Alloc)(
@@ -887,12 +892,11 @@ immutable(T) withOptLowLocal(T, Alloc)(
 		: cb(none!(Ptr!LowLocal));
 }
 
-alias ConcreteFunToLowFunIndex = immutable Dict!(Ptr!ConcreteFun, LowFunIndex, comparePtr!ConcreteFun);
-
 immutable(LowFunBody) getLowFunBody(Alloc)(
 	ref Alloc alloc,
 	ref immutable AllLowTypes allTypes,
-	immutable Constant staticSyms,
+	ref immutable Constant allFuns,
+	ref immutable Constant staticSyms,
 	ref GetLowTypeCtx getLowTypeCtx,
 	ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	immutable LowFunIndex allocFunIndex,
@@ -921,6 +925,7 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 			GetLowExprCtx exprCtx = GetLowExprCtx(
 				thisFunIndex,
 				ptrTrustMe(allTypes),
+				allFuns,
 				staticSyms,
 				ptrTrustMe_mut(getLowTypeCtx),
 				concreteFunToLowFunIndex,
@@ -947,6 +952,7 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 struct GetLowExprCtx {
 	immutable LowFunIndex currentFun;
 	immutable Ptr!AllLowTypes allTypes;
+	immutable Constant allFuns;
 	immutable Constant staticSyms;
 	Ptr!GetLowTypeCtx getLowTypeCtx;
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
@@ -1262,6 +1268,8 @@ immutable(LowExprKind) getCallBuiltinExpr(Alloc)(
 	}
 	return matchBuiltinKind!(immutable LowExprKind)(
 		builtinKind,
+		(ref immutable BuiltinKind.AllFuns) =>
+			immutable LowExprKind(ctx.allFuns),
 		(ref immutable BuiltinKind.As) =>
 			getLowExpr(alloc, ctx, at(a.args, 0), exprPos).kind,
 		(ref immutable BuiltinKind.GetCtx) =>

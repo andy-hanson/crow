@@ -18,6 +18,7 @@ import util.util : todo;
 struct BuiltinKind {
 	@safe @nogc pure nothrow:
 
+	struct AllFuns {}
 	struct As {}
 	struct GetCtx {}
 	struct PtrCast {}
@@ -25,6 +26,7 @@ struct BuiltinKind {
 	struct StaticSyms {}
 	struct Zeroed {}
 
+	immutable this(immutable AllFuns a) { kind_ = Kind.allFuns; allFuns_ = a; }
 	immutable this(immutable As a) { kind_ = Kind.as; as_ = a; }
 	immutable this(immutable GetCtx a) { kind_ = Kind.getCtx; getCtx_ = a; }
 	@trusted immutable this(immutable Constant a) { kind_ = Kind.constant; constant_ = a; }
@@ -39,6 +41,7 @@ struct BuiltinKind {
 
 	private:
 	enum Kind {
+		allFuns,
 		as,
 		getCtx,
 		constant,
@@ -53,6 +56,7 @@ struct BuiltinKind {
 	}
 	immutable Kind kind_;
 	union {
+		immutable AllFuns allFuns_;
 		immutable As as_;
 		immutable GetCtx getCtx_;
 		immutable Constant constant_;
@@ -69,6 +73,7 @@ struct BuiltinKind {
 
 @trusted T matchBuiltinKind(T)(
 	ref immutable BuiltinKind a,
+	scope T delegate(ref immutable BuiltinKind.AllFuns) @safe @nogc pure nothrow cbAllFuns,
 	scope T delegate(ref immutable BuiltinKind.As) @safe @nogc pure nothrow cbAs,
 	scope T delegate(ref immutable BuiltinKind.GetCtx) @safe @nogc pure nothrow cbGetCtx,
 	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
@@ -82,6 +87,8 @@ struct BuiltinKind {
 	scope T delegate(ref immutable BuiltinKind.Zeroed) @safe @nogc pure nothrow cbZeroed,
 ) {
 	final switch (a.kind_) {
+		case BuiltinKind.Kind.allFuns:
+			return cbAllFuns(a.allFuns_);
 		case BuiltinKind.Kind.as:
 			return cbAs(a.as_);
 		case BuiltinKind.Kind.getCtx:
@@ -251,6 +258,8 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseXorNat64
 				: failBinary());
+		case shortSymAlphaLiteralValue("all-funs"):
+			return immutable BuiltinKind(immutable BuiltinKind.AllFuns());
 		case shortSymAlphaLiteralValue("count-ones"):
 			return unary(isNat64(p0)
 				? LowExprKind.SpecialUnary.Kind.countOnesNat64

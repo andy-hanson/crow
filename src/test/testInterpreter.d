@@ -46,6 +46,7 @@ import model.lowModel :
 	AllConstantsLow,
 	AllLowTypes,
 	ArrTypeAndConstantsLow,
+	ConcreteFunToLowFunIndex,
 	LowExternPtrType,
 	LowFun,
 	LowFunBody,
@@ -130,6 +131,7 @@ void doInterpret(Debug, Alloc)(
 			emptyArr!LowParam),
 		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc.deref(), false)))];
 	immutable LowProgram lowProgram = immutable LowProgram(
+		ConcreteFunToLowFunIndex(),
 		immutable AllConstantsLow(
 			emptyArr!string,
 			emptyArr!ArrTypeAndConstantsLow,

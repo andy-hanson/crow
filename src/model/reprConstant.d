@@ -2,8 +2,10 @@ module model.reprConstant;
 
 @safe @nogc pure nothrow:
 
+import model.concreteModel : name;
 import model.constant : Constant, matchConstant;
-import util.repr : Repr, reprArr, reprBool, reprFloat, reprNat, reprRecord, reprSym;
+import util.sym : Sym;
+import util.repr : Repr, reprArr, reprBool, reprFloat, reprNat, reprOpt, reprRecord, reprSym;
 
 immutable(Repr) reprOfConstant(Alloc)(ref Alloc alloc, ref immutable Constant a) {
 	return matchConstant!(immutable Repr)(
@@ -16,6 +18,9 @@ immutable(Repr) reprOfConstant(Alloc)(ref Alloc alloc, ref immutable Constant a)
 			reprRecord(alloc, "c-str", [reprNat(it.index)]),
 		(immutable double it) =>
 			reprFloat(it),
+		(immutable Constant.FunPtr it) =>
+			reprRecord(alloc, "fun-ptr", [
+				reprOpt(alloc, name(it.fun), (ref immutable Sym name) => reprSym(name))]),
 		(immutable Constant.Integral it) =>
 			reprNat(it.value),
 		(immutable Constant.Null) =>
