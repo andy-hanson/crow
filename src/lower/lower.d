@@ -131,8 +131,8 @@ immutable(Ptr!LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcretePr
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a);
 	immutable AllLowFuns allFuns = getAllLowFuns(alloc, allTypes.allTypes, allTypes.getLowTypeCtx, a);
 	immutable AllConstantsLow allConstants = convertAllConstants(alloc, allTypes.getLowTypeCtx, a.allConstants);
-	immutable Ptr!LowProgram res =
-		nu!LowProgram(alloc, allFuns.concreteFunToLowFunIndex, allConstants, allTypes.allTypes, allFuns.allLowFuns, allFuns.main);
+	immutable Ptr!LowProgram res = nu!LowProgram(
+		alloc, allFuns.concreteFunToLowFunIndex, allConstants, allTypes.allTypes, allFuns.allLowFuns, allFuns.main);
 	checkLowProgram(alloc, res);
 	return res;
 }
@@ -657,7 +657,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.RecordFieldSet) =>
 				none!LowFunIndex);
-		verify(has(opIndex) == concreteFunWillBecomeLowFun(fun));
+		if (concreteFunWillBecomeNonExternLowFun(fun)) verify(has(opIndex));
 		if (has(opIndex)) {
 			addToDict(alloc, concreteFunToLowFunIndexBuilder, fun, force(opIndex));
 		}
@@ -699,13 +699,13 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				alloc,
 				getLowTypeCtx,
 				mustGetAt(concreteFunToLowFunIndex, program.rtMain),
-				mustGetAt(concreteFunToLowFunIndex, program.userMain),
+				program.userMain,
 				userMainFunPtrType)));
 
 	return immutable AllLowFuns(concreteFunToLowFunIndex, allLowFuns, immutable LowFunIndex(size(lowFunCauses)));
 }
 
-public immutable(bool) concreteFunWillBecomeLowFun()(ref immutable ConcreteFun a) {
+public immutable(bool) concreteFunWillBecomeNonExternLowFun()(ref immutable ConcreteFun a) {
 	return matchConcreteFunBody!(immutable bool)(
 		body_(a),
 		(ref immutable ConcreteFunBody.Builtin it) =>
@@ -717,7 +717,7 @@ public immutable(bool) concreteFunWillBecomeLowFun()(ref immutable ConcreteFun a
 		(immutable EnumFunction) =>
 			false,
 		(ref immutable ConcreteFunBody.Extern) =>
-			true,
+			false,
 		(ref immutable ConcreteFunExprBody) =>
 			true,
 		(ref immutable ConcreteFunBody.FlagsFn) =>
@@ -824,7 +824,7 @@ immutable(LowFun) mainFun(Alloc)(
 	ref Alloc alloc,
 	ref const GetLowTypeCtx ctx,
 	immutable LowFunIndex rtMainIndex,
-	immutable LowFunIndex userMainIndex,
+	immutable Ptr!ConcreteFun userMain,
 	ref immutable LowType userMainFunPtrType,
 ) {
 	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
@@ -839,7 +839,7 @@ immutable(LowFun) mainFun(Alloc)(
 	immutable LowExpr userMainFunPtr = immutable LowExpr(
 		userMainFunPtrType,
 		FileAndRange.empty,
-		immutable LowExprKind(immutable LowExprKind.FunPtr(userMainIndex)));
+		immutable LowExprKind(immutable Constant(immutable Constant.FunPtr(userMain))));
 	immutable LowExpr call = immutable LowExpr(
 		int32Type,
 		FileAndRange.empty,
@@ -979,11 +979,6 @@ immutable(LowExpr) getCtxParamRef(Alloc)(
 	return paramRef(range, ctx.ctxType, force(ctx.ctxParam));
 }
 
-immutable(LowFunIndex) getLowFunIndex(ref const GetLowExprCtx ctx, immutable Ptr!ConcreteFun it) {
-	immutable Opt!LowFunIndex op = tryGetLowFunIndex(ctx, it);
-	return force(op);
-}
-
 immutable(Opt!LowFunIndex) tryGetLowFunIndex(ref const GetLowExprCtx ctx, immutable Ptr!ConcreteFun it) {
 	return getAt(ctx.concreteFunToLowFunIndex, it);
 }
@@ -1044,8 +1039,6 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 				allocate(alloc, getLowExpr(alloc, ctx, it.arg, ExprPos.nonTail)))),
 		(ref immutable ConcreteExprKind.Lambda it) =>
 			getLambdaExpr(alloc, ctx, type, expr.range, it),
-		(ref immutable ConcreteExprKind.LambdaFunPtr it) =>
-			immutable LowExprKind(immutable LowExprKind.FunPtr(getLowFunIndex(ctx, it.fun))),
 		(ref immutable ConcreteExprKind.Let it) =>
 			getLetExpr(alloc, ctx, exprPos, expr.range, it),
 		(ref immutable ConcreteExprKind.LocalRef it) =>

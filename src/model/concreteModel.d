@@ -865,11 +865,6 @@ struct ConcreteExprKind {
 		immutable Ptr!ConcreteExpr closure;
 	}
 
-	//TODO: don't have 'lambda' in the name
-	struct LambdaFunPtr {
-		immutable Ptr!ConcreteFun fun;
-	}
-
 	struct LocalRef {
 		immutable Ptr!ConcreteLocal local;
 	}
@@ -914,7 +909,6 @@ struct ConcreteExprKind {
 		createRecord,
 		convertToUnion,
 		lambda,
-		lambdaFunPtr,
 		let,
 		localRef,
 		matchEnum,
@@ -933,7 +927,6 @@ struct ConcreteExprKind {
 		immutable CreateRecord createRecord;
 		immutable ConvertToUnion convertToUnion;
 		immutable Lambda lambda;
-		immutable LambdaFunPtr lambdaFunPtr;
 		immutable Let let;
 		immutable LocalRef localRef;
 		immutable MatchEnum matchEnum;
@@ -952,7 +945,6 @@ struct ConcreteExprKind {
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	@trusted immutable this(immutable ConvertToUnion a) { kind = Kind.convertToUnion; convertToUnion = a; }
 	@trusted immutable this(immutable Lambda a) { kind = Kind.lambda; lambda = a; }
-	@trusted immutable this(immutable LambdaFunPtr a) { kind = Kind.lambdaFunPtr; lambdaFunPtr = a; }
 	@trusted immutable this(immutable Let a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
 	@trusted immutable this(immutable MatchEnum a) { kind = Kind.matchEnum; matchEnum = a; }
@@ -985,7 +977,6 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 	scope T delegate(ref immutable ConcreteExprKind.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(ref immutable ConcreteExprKind.ConvertToUnion) @safe @nogc pure nothrow cbConvertToUnion,
 	scope T delegate(ref immutable ConcreteExprKind.Lambda) @safe @nogc pure nothrow cbLambda,
-	scope T delegate(ref immutable ConcreteExprKind.LambdaFunPtr) @safe @nogc pure nothrow cbLambdaFunPtr,
 	scope T delegate(ref immutable ConcreteExprKind.Let) @safe @nogc pure nothrow cbLet,
 	scope T delegate(ref immutable ConcreteExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
 	scope T delegate(ref immutable ConcreteExprKind.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
@@ -1011,8 +1002,6 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 			return cbConvertToUnion(a.convertToUnion);
 		case ConcreteExprKind.Kind.lambda:
 			return cbLambda(a.lambda);
-		case ConcreteExprKind.Kind.lambdaFunPtr:
-			return cbLambdaFunPtr(a.lambdaFunPtr);
 		case ConcreteExprKind.Kind.let:
 			return cbLet(a.let);
 		case ConcreteExprKind.Kind.localRef:

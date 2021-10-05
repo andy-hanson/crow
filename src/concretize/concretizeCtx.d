@@ -847,33 +847,28 @@ immutable(ConcreteFunBody) bodyForAllTests(Alloc)(
 	ref ConcretizeCtx ctx,
 	immutable ConcreteType returnType,
 ) {
-	ArrBuilder!Test allTestsBuilder;
-	foreach (immutable Ptr!Module m; ctx.program.allModules)
-		addAll(alloc, allTestsBuilder, m.tests);
-	immutable Test[] allTests = finishArr(alloc, allTestsBuilder);
-
-	immutable Ptr!ConcreteFun[] funs = mapWithIndex(
+	immutable Test[] allTests = () {
+		ArrBuilder!Test allTestsBuilder;
+		foreach (immutable Ptr!Module m; ctx.program.allModules)
+			addAll(alloc, allTestsBuilder, m.tests);
+		return finishArr(alloc, allTestsBuilder);
+	}();
+	immutable Constant arr = getConstantArr(
 		alloc,
-		allTests,
-		(immutable size_t index, ref immutable Test it) =>
-			concreteFunForTest(alloc, ctx, it, index));
-	immutable Ptr!ConcreteStruct arrType = mustBeNonPointer(returnType);
-	immutable ConcreteType elementType = elementTypeFromArrType(arrType);
-
-	immutable ConcreteExpr[] args = map(alloc, funs, (ref immutable Ptr!ConcreteFun it) =>
-		immutable ConcreteExpr(
-			elementType,
-			FileAndRange.empty,
-			immutable ConcreteExprKind(immutable ConcreteExprKind.LambdaFunPtr(it))));
-
+		ctx.allConstants,
+		mustBeNonPointer(returnType),
+		elementTypeFromArrType(mustBeNonPointer(returnType)),
+		mapWithIndex(alloc, allTests, (immutable size_t index, ref immutable Test it) =>
+			immutable Constant(immutable Constant.FunPtr(concreteFunForTest(alloc, ctx, it, index)))));
 	immutable ConcreteExpr body_ = immutable ConcreteExpr(
 		returnType,
 		FileAndRange.empty,
-		immutable ConcreteExprKind(nu!(ConcreteExprKind.CreateArr)(alloc, arrType, elementType, args)));
+		immutable ConcreteExprKind(arr));
 	return immutable ConcreteFunBody(immutable ConcreteFunExprBody(allocate(alloc, body_)));
 }
 
-immutable(ConcreteType) elementTypeFromArrType(ref immutable ConcreteStruct arrType) {
+//TODO: use inside of 'getConstantArr'
+immutable(ConcreteType) elementTypeFromArrType(immutable ConcreteStruct arrType) {
 	return only(asInst(arrType.source).typeArgs);
 }
 

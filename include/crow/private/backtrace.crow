@@ -1,15 +1,14 @@
 no-std
 import
-	string: memcpy
 	sys/execinfo: backtrace
 	../compare: <, <=, >
-	../misc: drop, name, named-val, val
-	../ptr: +, ==, <=>, any-ptr, ptr, ptr-cast, set-subscript, size-of, subscript
-	./alloc: try-alloc-uninitialized
+	../misc: name, named-val, val
+	../ptr: +, ==, <=>, any-ptr, ptr, set-subscript, subscript
+	./alloc: copy-data-from!, try-alloc-uninitialized
 	./bootstrap: arr, as, begin-ptr, hard-assert, nat64, opt, size, some, sym, void
 	./number-low-level:
-		==, <=>, nat8, to-int64, unsafe-div, unsafe-to-int64, unsafe-to-int32, unsafe-to-nat64, wrap-add,
-		wrap-mul, wrap-sub
+		==, <=>, to-int64, unsafe-div, unsafe-to-int64, unsafe-to-int32, unsafe-to-nat64, wrap-add,
+		wrap-sub
 export
 	./bootstrap: all-funs, backtrace, return-stack
 
@@ -18,7 +17,7 @@ get-backtrace backtrace() unsafe
 	if arrs ?= try-alloc-backtrace-arrs
 		n-code-ptrs = (arrs.code-ptrs backtrace code-ptrs-size.unsafe-to-int64.unsafe-to-int32).to-int64.unsafe-to-nat64
 		hard-assert: n-code-ptrs <= code-ptrs-size
-		drop: arrs.funs.ptr-cast<nat8, named-val any-ptr> memcpy: all-funs.begin-ptr.ptr-cast<nat8, named-val any-ptr>, size-of<named-val any-ptr> wrap-mul all-funs.size
+		arrs.funs copy-data-from! all-funs.begin-ptr, all-funs.size
 		arrs.funs sort! all-funs.size
 		end-code-names = arrs.code-names + n-code-ptrs
 		arrs.code-names fill-code-names! end-code-names, arrs.code-ptrs, arrs.funs

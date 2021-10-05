@@ -2,7 +2,7 @@ module concretize.allConstantsBuilder;
 
 @safe @nogc pure nothrow:
 
-import lower.lower : concreteFunWillBecomeLowFun;
+import lower.lower : concreteFunWillBecomeNonExternLowFun;
 import model.concreteModel :
 	AllConstantsConcrete,
 	ArrTypeAndConstantsConcrete,
@@ -27,7 +27,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe_mut;
 import util.sym : compareSym, strOfSym, Sym;
-import util.util : todo, verify;
+import util.util : verify;
 
 struct AllConstantsBuilder {
 	private:
@@ -78,7 +78,7 @@ immutable(AllConstantsConcrete) finishAllConstants(Alloc)(
 	return immutable AllConstantsConcrete(moveToArr(alloc, a.cStringValues), allFuns, staticSyms, arrs, records);
 }
 
-immutable(Constant) makeAllFuns(Alloc)(
+private immutable(Constant) makeAllFuns(Alloc)(
 	ref Alloc alloc,
 	ref AllConstantsBuilder a,
 	immutable Ptr!ConcreteFun[] allConcreteFuns,
@@ -86,17 +86,17 @@ immutable(Constant) makeAllFuns(Alloc)(
 ) {
 	immutable Constant[] elements = mapOp!Constant(alloc, allConcreteFuns, (ref immutable Ptr!ConcreteFun it) {
 		immutable Opt!Sym name = name(it.deref());
-		return has(name) && concreteFunWillBecomeLowFun(it)
+		return has(name) && concreteFunWillBecomeNonExternLowFun(it)
 			? some(immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
 				getConstantSym(alloc, a, force(name)),
 				immutable Constant(immutable Constant.FunPtr(it))]))))
 			: none!Constant;
 	});
-	return getConstantArr!Alloc(alloc, a, arrNamedValFunPtrStruct, getArrElementType(arrNamedValFunPtrStruct), elements);
+	return getConstantArr(alloc, a, arrNamedValFunPtrStruct, getArrElementType(arrNamedValFunPtrStruct), elements);
 }
 
 //TODO: use this in getConstantArr
-immutable(ConcreteType) getArrElementType(ref immutable ConcreteStruct a) {
+private immutable(ConcreteType) getArrElementType(ref immutable ConcreteStruct a) {
 	return only(asInst(a.source).typeArgs);
 }
 
@@ -133,7 +133,7 @@ immutable(Constant) getConstantArr(Alloc)(
 	ref AllConstantsBuilder allConstants,
 	immutable Ptr!ConcreteStruct arrStruct,
 	immutable ConcreteType elementType,
-	ref immutable Constant[] elements,
+	immutable Constant[] elements,
 ) {
 	if (empty(elements))
 		return constantEmptyArr();
@@ -209,11 +209,6 @@ immutable(Constant) getConstantSym(Alloc)(
 
 private immutable(Constant) constantChar(immutable char a) {
 	return immutable Constant(immutable Constant.Integral(a));
-}
-
-immutable(Constant) constantEmptyStr() {
-	static immutable Constant[1] fields = [constantEmptyArr()];
-	return immutable Constant(immutable Constant.Record(fields));
 }
 
 private:

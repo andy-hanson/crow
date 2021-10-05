@@ -8,8 +8,7 @@ import concretize.concretizeCtx :
 	constantStr,
 	ctxType,
 	deferredFillRecordAndUnionBodies,
-	getOrAddNonTemplateConcreteFunAndFillBody,
-	symType;
+	getOrAddNonTemplateConcreteFunAndFillBody;
 import interpret.debugging : writeConcreteFunName;
 import model.concreteModel :
 	ConcreteCommonFuns,

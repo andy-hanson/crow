@@ -58,6 +58,7 @@ import model.lowModel :
 	matchLowFunSource,
 	matchLowLocalSource,
 	matchLowParamSource,
+	matchLowType,
 	matchLowTypeCombinePtr,
 	name,
 	PointerTypeAndConstantsLow,
@@ -1177,10 +1178,6 @@ immutable(WriteExprResult) writeExpr(Alloc, TempAlloc)(
 					writeTempOrInline(writer, tempAlloc, ctx, it.arg, arg);
 				});
 			}),
-		(ref immutable LowExprKind.FunPtr it) =>
-			inlineableSimple(() {
-				writeFunPtr(writer, ctx.ctx, it.fun);
-			}),
 		(ref immutable LowExprKind.Let it) {
 			if (!isInline(writeKind)) {
 				writeDeclareLocal(writer, indent, ctx, it.local);
@@ -1690,10 +1687,18 @@ void writeConstantRef(Alloc)(
 			writeFloatLiteral(writer, it);
 		},
 		(immutable Constant.FunPtr it) {
-			// TODO: The cast should be elsewhere ... need a Constant.Cast type
-			writeStatic(writer, "((uint8_t*)");
+			immutable bool isRawPtr = matchLowType!(immutable bool)(
+				type,
+				(immutable LowType.ExternPtr) => unreachable!bool,
+				(immutable LowType.FunPtr) => false,
+				(immutable PrimitiveType) => unreachable!bool,
+				(immutable LowType.PtrGc) => unreachable!bool,
+				(immutable LowType.PtrRaw) => true,
+				(immutable LowType.Record) => unreachable!bool,
+				(immutable LowType.Union) => unreachable!bool);
+			if (isRawPtr) writeStatic(writer, "((uint8_t*)");
 			writeFunPtr(writer, ctx, mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun));
-			writeChar(writer, ')');
+			if (isRawPtr) writeChar(writer, ')');
 		},
 		(immutable Constant.Integral it) {
 			if (isSignedIntegral(asPrimitive(type))) {
@@ -1870,7 +1875,6 @@ void writeLValue(Alloc)(ref Writer!Alloc writer, ref const FunBodyCtx ctx, ref i
 		(ref immutable LowExprKind.Call) => unreachable!void(),
 		(ref immutable LowExprKind.CreateRecord) => unreachable!void(),
 		(ref immutable LowExprKind.ConvertToUnion) => unreachable!void(),
-		(ref immutable LowExprKind.FunPtr) => unreachable!void(),
 		(ref immutable LowExprKind.Let) => unreachable!void(),
 		(ref immutable LowExprKind.LocalRef it) {
 			writeLocalRef(writer, it.local);

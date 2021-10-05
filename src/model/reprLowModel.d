@@ -192,8 +192,6 @@ immutable(Repr) reprOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExprK
 					reprOfLowExpr(alloc, e))]),
 		(ref immutable LowExprKind.ConvertToUnion it) =>
 			reprRecord(alloc, "to-union", [reprNat(it.memberIndex), reprOfLowExpr(alloc, it.arg)]),
-		(ref immutable LowExprKind.FunPtr it) =>
-			reprRecord(alloc, "fun-ptr", [reprNat(it.fun.index)]),
 		(ref immutable LowExprKind.Let it) =>
 			reprRecord(alloc, "let", [
 				reprOfLowLocalSource(alloc, it.local.source),

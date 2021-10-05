@@ -5,7 +5,7 @@ import
 	../fun: subscript
 	../misc: arrow, from, to
 	../ptr: ==, <=>, +, -, by-val, ptr, ptr-cast, ref-of-ptr, size-of, subscript
-	../private/alloc: alloc-uninitialized, copy-data-from
+	../private/alloc: alloc-uninitialized, copy-data-from!
 	../private/bootstrap: hard-assert
 	../private/exception-low-level: assert
 	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
@@ -124,6 +124,6 @@ If you need to concatenate often, consider using `mut-list`.
 ~ arr ?a(a arr ?a, b arr ?a) trusted
 	res-size = a.size wrap-add b.size
 	res = res-size alloc-uninitialized<?a>
-	res copy-data-from a.begin-ptr, a.size
-	res + a.size copy-data-from b.begin-ptr, b.size
+	res copy-data-from! a.begin-ptr, a.size
+	res + a.size copy-data-from! b.begin-ptr, b.size
 	arr: res-size, res

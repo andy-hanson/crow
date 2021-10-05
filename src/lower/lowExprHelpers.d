@@ -450,14 +450,3 @@ immutable(LowType.PtrRaw) getElementPtrTypeFromArrType(
 	verify(symEq(name(at(arrRecord.fields, 1)), shortSymAlphaLiteral("begin-ptr")));
 	return asPtrRaw(at(arrRecord.fields, 1).type);
 }
-
-immutable(LowExpr) genSwitch0ToN(Alloc)(
-	ref Alloc alloc,
-	ref immutable LowType type,
-	ref immutable FileAndRange range,
-	ref immutable LowExpr value,
-	ref immutable LowExpr[] cases,
-) {
-	return immutable LowExpr(type, range, immutable LowExprKind(
-		immutable LowExprKind.Switch0ToN(allocate(alloc, value), cases)));
-}

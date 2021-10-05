@@ -285,7 +285,7 @@ unmanaged-alloc-elements ptr ?a(size-elements nat64) noctx unsafe
 unmanaged-free void(p ptr ?a) noctx unsafe
 	p.ptr-cast free
 
-copy-data-from void(to ptr ?a, from ptr ?a, len nat64) unsafe
+copy-data-from! void(to ptr ?a, from ptr ?a, len nat64) unsafe
 	drop: to.as-any-ptr memcpy: from.as-any-ptr, len wrap-mul size-of<?a>
 
 fill-ptr-range void(begin ptr ?a, size nat64, f act ?a(nat64)) unsafe

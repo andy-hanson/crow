@@ -2,6 +2,7 @@ module interpret.generateText;
 
 @safe @nogc pure nothrow:
 
+import interpret.bytecode : ByteCodeIndex;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	AllConstantsLow,
@@ -18,7 +19,7 @@ import model.lowModel :
 	lowTypeEqual,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
-import model.typeLayout : sizeOfType;
+import model.typeLayout : funPtrSize, sizeOfType;
 import util.collection.arr : at, castImmutable, empty, emptyArr, ptrAt, setAt, size;
 import util.collection.arrUtil : map, mapToMut, sum, zip;
 import util.collection.dict : mustGetAt;
@@ -35,13 +36,30 @@ import util.collection.exactSizeArrBuilder :
 	finish,
 	newExactSizeArrBuilder,
 	padTo;
-import util.collection.fullIndexDict : fullIndexDictGet;
+import util.collection.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
+import util.collection.mutIndexMultiDict : MutIndexMultiDict, mutIndexMultiDictAdd, newMutIndexMultiDict;
 import util.ptr : Ptr, ptrTrustMe;
 import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat16, u32OfFloat32Bits, u64OfFloat64Bits;
 import util.util : todo, unreachable, verify;
 
+struct InterpreterFunPtr {
+	immutable ByteCodeIndex index;
+	uint padding;
+}
+static assert(InterpreterFunPtr.sizeof == funPtrSize.size.raw());
+
+struct TextIndex {
+	immutable size_t index;
+}
+
 struct TextAndInfo {
-	immutable ubyte[] text;
+	ubyte[] text; // mutable since it contains function pointers that must be filled in later
+	MutIndexMultiDict!(LowFunIndex, TextIndex) funToTextReferences;
+	immutable TextInfo info;
+}
+
+struct TextInfo {
+	immutable ubyte[] text; //NOTE: this is the same as the mutable one, immutable for convenience
 	immutable size_t[] cStringIndexToTextIndex;
 	immutable size_t[][] arrTypeIndexToConstantIndexToTextIndex;
 	immutable size_t[][] pointeeTypeIndexToIndexToTextIndex;
@@ -53,7 +71,7 @@ struct TextArrInfo {
 }
 
 immutable(TextArrInfo) getTextInfoForArray(
-	ref immutable TextAndInfo info,
+	ref immutable TextInfo info,
 	ref immutable AllConstantsLow allConstants,
 	immutable Constant.ArrConstant a,
 ) {
@@ -62,16 +80,16 @@ immutable(TextArrInfo) getTextInfoForArray(
 	return immutable TextArrInfo(constantSize, ptrAt(info.text, textIndex).rawPtr());
 }
 
-immutable(ubyte*) getTextPointer(ref immutable TextAndInfo info, immutable Constant.Pointer a) {
+immutable(ubyte*) getTextPointer(ref immutable TextInfo info, immutable Constant.Pointer a) {
 	immutable size_t textIndex = at(at(info.pointeeTypeIndexToIndexToTextIndex, a.typeIndex), a.index);
 	return ptrAt(info.text, textIndex).rawPtr();
 }
 
-immutable(ubyte*) getTextPointerForCString(ref immutable TextAndInfo info, immutable Constant.CString a) {
+immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutable Constant.CString a) {
 	return ptrAt(info.text, at(info.cStringIndexToTextIndex, a.index)).rawPtr();
 }
 
-immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
+TextAndInfo generateText(Alloc, TempAlloc)(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref immutable LowProgram program,
@@ -82,6 +100,7 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 		ptrTrustMe(allConstants),
 		// '1 +' because we add a dummy byte at 0
 		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(program, allConstants)),
+		newMutIndexMultiDict!(LowFunIndex, TextIndex)(alloc, fullIndexDictSize(program.allFuns)),
 		emptyArr!size_t, // cStringIndexToTextIndex will be overwritten just below this
 		mapToMut!(size_t[], ArrTypeAndConstantsLow, Alloc)(
 			alloc,
@@ -107,6 +126,7 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 		immutable Ptr!ArrTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.arrs, arrTypeIndex);
 		foreach (immutable size_t constantIndex; 0 .. size(typeAndConstants.constants))
 			recurWriteArr(
+				alloc,
 				tempAlloc,
 				ctx,
 				arrTypeIndex,
@@ -118,6 +138,7 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 		immutable Ptr!PointerTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.pointers, pointeeTypeIndex);
 		foreach (immutable size_t constantIndex; 0 .. size(typeAndConstants.constants))
 			recurWritePointer(
+				alloc,
 				tempAlloc,
 				ctx,
 				pointeeTypeIndex,
@@ -125,12 +146,15 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 				constantIndex,
 				at(typeAndConstants.constants, constantIndex));
 	}
-
-	return immutable TextAndInfo(
-		castImmutable(finish(ctx.text)),
-		castImmutable(ctx.cStringIndexToTextIndex),
-		castImmutable(ctx.arrTypeIndexToConstantIndexToTextIndex),
-		castImmutable(ctx.pointeeTypeIndexToIndexToTextIndex));
+	ubyte[] text = finish(ctx.text);
+	return TextAndInfo(
+		text,
+		ctx.funToTextReferences,
+		immutable TextInfo(
+			castImmutable(text),
+			castImmutable(ctx.cStringIndexToTextIndex),
+			castImmutable(ctx.arrTypeIndexToConstantIndexToTextIndex),
+			castImmutable(ctx.pointeeTypeIndexToIndexToTextIndex)));
 }
 
 private:
@@ -139,13 +163,15 @@ struct Ctx {
 	immutable Ptr!LowProgram program;
 	immutable Ptr!AllConstantsLow allConstants;
 	ExactSizeArrBuilder!ubyte text;
+	MutIndexMultiDict!(LowFunIndex, TextIndex) funToTextReferences;
 	immutable(size_t)[] cStringIndexToTextIndex;
 	size_t[][] arrTypeIndexToConstantIndexToTextIndex;
 	size_t[][] pointeeTypeIndexToIndexToTextIndex;
 }
 
 // Write out any constants that this points to.
-void ensureConstant(TempAlloc)(
+void ensureConstant(Alloc, TempAlloc)(
+	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref Ctx ctx,
 	ref immutable LowType t,
@@ -156,7 +182,8 @@ void ensureConstant(TempAlloc)(
 		(ref immutable Constant.ArrConstant it) {
 			immutable Ptr!ArrTypeAndConstantsLow arrs = ptrAt(ctx.allConstants.arrs, it.typeIndex);
 			verify(arrs.arrType == asRecordType(t));
-			recurWriteArr(tempAlloc, ctx, it.typeIndex, arrs.elementType, it.index, at(arrs.constants, it.index));
+			recurWriteArr(
+				alloc, tempAlloc, ctx, it.typeIndex, arrs.elementType, it.index, at(arrs.constants, it.index));
 		},
 		(immutable Constant.BoolConstant) {},
 		(ref immutable Constant.CString) {
@@ -169,7 +196,8 @@ void ensureConstant(TempAlloc)(
 		(immutable Constant.Pointer it) {
 			immutable Ptr!PointerTypeAndConstantsLow ptrs = ptrAt(ctx.allConstants.pointers, it.typeIndex);
 			verify(lowTypeEqual(ptrs.pointeeType, asPtrGc(t).pointee));
-			recurWritePointer(tempAlloc, ctx, it.typeIndex, ptrs.pointeeType, it.index, at(ptrs.constants, it.index));
+			recurWritePointer(
+				alloc, tempAlloc, ctx, it.typeIndex, ptrs.pointeeType, it.index, at(ptrs.constants, it.index));
 		},
 		(ref immutable Constant.Record it) {
 			immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, asRecordType(t));
@@ -177,11 +205,11 @@ void ensureConstant(TempAlloc)(
 				record.fields,
 				it.args,
 				(ref immutable LowField field, ref immutable Constant arg) {
-					ensureConstant(tempAlloc, ctx, field.type, arg);
+					ensureConstant(alloc, tempAlloc, ctx, field.type, arg);
 				});
 		},
 		(ref immutable Constant.Union it) {
-			ensureConstant(tempAlloc, ctx, unionMemberType(ctx.program, asUnionType(t), it.memberIndex), it.arg);
+			ensureConstant(alloc, tempAlloc, ctx, unionMemberType(ctx.program, asUnionType(t), it.memberIndex), it.arg);
 		},
 		(immutable Constant.Void) {});
 }
@@ -194,7 +222,8 @@ ref immutable(LowType) unionMemberType(
 	return at(fullIndexDictGet(program.allUnions, t).members, memberIndex);
 }
 
-void recurWriteArr(TempAlloc)(
+void recurWriteArr(Alloc, TempAlloc)(
+	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref Ctx ctx,
 	immutable size_t arrTypeIndex,
@@ -206,14 +235,15 @@ void recurWriteArr(TempAlloc)(
 	size_t[] indexToTextIndex = at(ctx.arrTypeIndexToConstantIndexToTextIndex, arrTypeIndex);
 	if (at(indexToTextIndex, index) == 0) {
 		foreach (ref immutable Constant it; elements)
-			ensureConstant(tempAlloc, ctx, elementType, it);
+			ensureConstant(alloc, tempAlloc, ctx, elementType, it);
 		setAt(indexToTextIndex, index, exactSizeArrBuilderCurSize(ctx.text));
 		foreach (ref immutable Constant it; elements)
-			writeConstant(tempAlloc, ctx, elementType, it);
+			writeConstant(alloc, tempAlloc, ctx, elementType, it);
 	}
 }
 
-void recurWritePointer(TempAlloc)(
+void recurWritePointer(Alloc, TempAlloc)(
+	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref Ctx ctx,
 	immutable size_t pointeeTypeIndex,
@@ -223,9 +253,9 @@ void recurWritePointer(TempAlloc)(
 ) {
 	size_t[] indexToTextIndex = at(ctx.pointeeTypeIndexToIndexToTextIndex, pointeeTypeIndex);
 	if (at(indexToTextIndex, index) == 0) {
-		ensureConstant(tempAlloc, ctx, pointeeType, pointee);
+		ensureConstant(alloc, tempAlloc, ctx, pointeeType, pointee);
 		setAt(indexToTextIndex, index, exactSizeArrBuilderCurSize(ctx.text));
-		writeConstant(tempAlloc, ctx, pointeeType, pointee);
+		writeConstant(alloc, tempAlloc, ctx, pointeeType, pointee);
 	}
 }
 
@@ -241,7 +271,8 @@ immutable(size_t) getAllConstantsSize(ref immutable LowProgram program, ref immu
 	return cStringsSize + arrsSize + pointersSize;
 }
 
-void writeConstant(TempAlloc)(
+void writeConstant(Alloc, TempAlloc)(
+	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref Ctx ctx,
 	ref immutable LowType type,
@@ -280,7 +311,12 @@ void writeConstant(TempAlloc)(
 		},
 		(immutable Constant.FunPtr it) {
 			immutable LowFunIndex index = mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun);
-			todo!void("!");
+			mutIndexMultiDictAdd(
+				alloc,
+				ctx.funToTextReferences,
+				index,
+				immutable TextIndex(exactSizeArrBuilderCurSize(ctx.text)));
+			add64(ctx.text, 0);
 		},
 		(immutable Constant.Integral it) {
 			final switch (asPrimitive(type)) {
@@ -326,14 +362,14 @@ void writeConstant(TempAlloc)(
 				it.args,
 				(ref immutable LowField field, ref immutable Constant fieldValue) {
 					padTo(ctx.text, start + field.offset.raw());
-					writeConstant(tempAlloc, ctx, field.type, fieldValue);
+					writeConstant(alloc, tempAlloc, ctx, field.type, fieldValue);
 				});
 			padTo(ctx.text, start + typeSize);
 		},
 		(ref immutable Constant.Union it) {
 			add64(ctx.text, it.memberIndex);
 			immutable LowType memberType = unionMemberType(ctx.program, asUnionType(type), it.memberIndex);
-			writeConstant(tempAlloc, ctx, memberType, it.arg);
+			writeConstant(alloc, tempAlloc, ctx, memberType, it.arg);
 			immutable Nat16 unionSize = sizeOfType(ctx.program, type).size;
 			immutable Nat16 memberSize = sizeOfType(ctx.program, memberType).size;
 			immutable Nat16 padding = unionSize - immutable Nat16(8) - memberSize;

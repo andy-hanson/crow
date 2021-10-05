@@ -1,9 +1,9 @@
 uncaught exception: FOO
 	at get-backtrace
-	at throw<void>
+	at throw
 	at bar
 	at foo
 	at main
-	at add-first-task.lambda0
-	at 
-	at subscript<fut<?r>>
+	at subscript
+	at call-with-ctx
+	at subscript

@@ -336,7 +336,7 @@ immutable(ConcreteExpr) concretizeFunPtr(Alloc)(
 	immutable Ptr!ConcreteFun fun = getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx.concretizeCtx, e.funInst);
 	immutable ConcreteType concreteType = getConcreteType_forStructInst(alloc, ctx, e.structInst);
 	return immutable ConcreteExpr(concreteType, range, immutable ConcreteExprKind(
-		immutable ConcreteExprKind.LambdaFunPtr(fun)));
+		immutable Constant(immutable Constant.FunPtr(fun))));
 }
 
 immutable(ConcreteExpr) concretizeLambda(Alloc)(

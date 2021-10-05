@@ -321,6 +321,7 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.CallFunPtr it) {
+			//TODO: handle a real function pointer being here?
 			immutable ByteCodeIndex address = immutable ByteCodeIndex(
 				removeAtStackOffset(a, immutable StackOffset(it.parametersSize)).to32());
 			call(a, address, it.parametersSize);

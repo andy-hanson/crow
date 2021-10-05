@@ -71,11 +71,12 @@ immutable(Opt!(Operation.Pack)) optPack(TempAlloc)(
 	}
 }
 
+immutable TypeSize funPtrSize = ptrSize;
+
 private:
 
 immutable TypeSize ptrSize = immutable TypeSize(immutable Nat16(8), immutable Nat8(8));
 immutable TypeSize externPtrSize = ptrSize;
-immutable TypeSize funPtrSize = ptrSize;
 
 immutable(TypeSize) primitiveSize(immutable PrimitiveType a) {
 	final switch (a) {

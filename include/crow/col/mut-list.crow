@@ -9,7 +9,7 @@ import
 	../opt: opt, some
 	../ptr: ==, +, -, as-any-ptr, by-val, ptr, set-subscript, size-of, subscript, zeroed
 	../private/alloc:
-		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
+		alloc-uninitialized, copy-data-from!, set-zero-range, unmanaged-alloc-zeroed-elements
 	../private/bootstrap: hard-assert, todo
 	../private/exception-low-level: assert
 	../private/number-low-level: ==, <=>, wrap-add, wrap-sub
@@ -255,7 +255,7 @@ push-capacity-must-be-sufficient! void(a mut-list ?a, value ?a) noctx unsafe
 	assert: new-capacity > a.capacity
 	old-begin = a begin-ptr
 	a.backing := new-capacity uninitialized-mut-arr<?a>
-	a.begin-ptr copy-data-from old-begin, a.size
+	a.begin-ptr copy-data-from! old-begin, a.size
 	a.backing[a.size + 1 -> a.backing.size] set-zero-elements
 
 .ensure-capacity void(a mut-list ?a, min-capacity nat64) unsafe

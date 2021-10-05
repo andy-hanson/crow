@@ -623,10 +623,6 @@ struct LowExprKind {
 		immutable Ptr!LowExpr arg;
 	}
 
-	struct FunPtr {
-		immutable LowFunIndex fun;
-	}
-
 	struct Let {
 		immutable Ptr!LowLocal local;
 		immutable Ptr!LowExpr value;
@@ -876,7 +872,6 @@ struct LowExprKind {
 		call,
 		createRecord,
 		convertToUnion,
-		funPtr,
 		let,
 		localRef,
 		matchUnion,
@@ -900,7 +895,6 @@ struct LowExprKind {
 	union {
 		immutable Call call;
 		immutable CreateRecord createRecord;
-		immutable FunPtr funPtr;
 		immutable ConvertToUnion convertToUnion;
 		immutable Let let;
 		immutable LocalRef localRef;
@@ -925,7 +919,6 @@ struct LowExprKind {
 	public:
 	@trusted immutable this(immutable Call a) { kind = Kind.call; call = a; }
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
-	immutable this(immutable FunPtr a) { kind = Kind.funPtr; funPtr = a; }
 	@trusted immutable this(immutable ConvertToUnion a) { kind = Kind.convertToUnion; convertToUnion = a; }
 	@trusted immutable this(immutable Let a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
@@ -953,7 +946,6 @@ static assert(LowExprKind.sizeof <= 32);
 	scope T delegate(ref immutable LowExprKind.Call) @safe @nogc pure nothrow cbCall,
 	scope T delegate(ref immutable LowExprKind.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(ref immutable LowExprKind.ConvertToUnion) @safe @nogc pure nothrow cbConvertToUnion,
-	scope T delegate(ref immutable LowExprKind.FunPtr) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(ref immutable LowExprKind.Let) @safe @nogc pure nothrow cbLet,
 	scope T delegate(ref immutable LowExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
 	scope T delegate(ref immutable LowExprKind.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
@@ -980,8 +972,6 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbCreateRecord(a.createRecord);
 		case LowExprKind.Kind.convertToUnion:
 			return cbConvertToUnion(a.convertToUnion);
-		case LowExprKind.Kind.funPtr:
-			return cbFunPtr(a.funPtr);
 		case LowExprKind.Kind.let:
 			return cbLet(a.let);
 		case LowExprKind.Kind.localRef:

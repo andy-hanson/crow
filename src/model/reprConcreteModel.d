@@ -272,8 +272,6 @@ immutable(Repr) reprOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Con
 			reprRecord(alloc, "lambda", [
 				reprNat(it.memberIndex),
 				reprOfConcreteExpr(alloc, it.closure)]),
-		(ref immutable ConcreteExprKind.LambdaFunPtr it) =>
-			reprRecord(alloc, "fun-ptr", [reprOfConcreteFunRef(alloc, it.fun)]),
 		(ref immutable ConcreteExprKind.Let it) =>
 			reprRecord(alloc, "let", [
 				reprOfConcreteLocalRef(it.local),

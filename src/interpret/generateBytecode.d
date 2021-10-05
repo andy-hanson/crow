@@ -58,8 +58,11 @@ import interpret.generateText :
 	getTextInfoForArray,
 	getTextPointer,
 	getTextPointerForCString,
+	InterpreterFunPtr,
 	TextAndInfo,
-	TextArrInfo;
+	TextArrInfo,
+	TextIndex,
+	TextInfo;
 import model.concreteModel : TypeSize;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
@@ -97,7 +100,7 @@ import model.lowModel :
 	PrimitiveType;
 import model.model : FunDecl, Module, name, Program, range;
 import model.typeLayout : nStackEntriesForType, optPack, sizeOfType;
-import util.collection.arr : at, only, size, sizeNat;
+import util.collection.arr : at, castImmutable, only, size, sizeNat;
 import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict :
@@ -113,6 +116,7 @@ import util.collection.mutIndexMultiDict :
 	mutIndexMultiDictAdd,
 	mutIndexMultiDictMustGetAt,
 	newMutIndexMultiDict;
+import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
@@ -136,7 +140,7 @@ immutable(ByteCode) generateBytecode(Debug, CodeAlloc, TempAlloc)(
 	ref immutable Program modelProgram,
 	ref immutable LowProgram program,
 ) {
-	immutable TextAndInfo text = generateText(codeAlloc, tempAlloc, program, program.allConstants);
+	TextAndInfo text = generateText(codeAlloc, tempAlloc, program, program.allConstants);
 
 	MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences =
 		newMutIndexMultiDict!(LowFunIndex, ByteCodeIndex)(tempAlloc, fullIndexDictSize(program.allFuns));
@@ -154,7 +158,7 @@ immutable(ByteCode) generateBytecode(Debug, CodeAlloc, TempAlloc)(
 					tempAlloc,
 					writer,
 					funToReferences,
-					text,
+					text.info,
 					program,
 					funIndex,
 					fun);
@@ -164,18 +168,26 @@ immutable(ByteCode) generateBytecode(Debug, CodeAlloc, TempAlloc)(
 	fullIndexDictEach!(LowFunIndex, ByteCodeIndex)(
 		funToDefinition,
 		(immutable LowFunIndex index, ref immutable ByteCodeIndex definition) {
+			foreach (immutable TextIndex reference; mutIndexMultiDictMustGetAt(text.funToTextReferences, index))
+				overwriteMemory(
+					trustedCast!(InterpreterFunPtr, ubyte)(&text.text[reference.index]),
+					immutable InterpreterFunPtr(definition));
 			foreach (immutable ByteCodeIndex reference; mutIndexMultiDictMustGetAt(funToReferences, index))
 				fillDelayedCall(writer, reference, definition);
 		});
 
 	return finishByteCode(
 		writer,
-		text.text,
+		castImmutable(text.text),
 		fullIndexDictGet(funToDefinition, program.main),
 		fileToFuns(codeAlloc, modelProgram));
 }
 
 private:
+
+@trusted Out* trustedCast(Out, In)(In* ptr) {
+	return cast(Out*) ptr;
+}
 
 immutable(FileToFuns) fileToFuns(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	immutable FullIndexDict!(FileIndex, Ptr!Module) modulesDict =
@@ -211,7 +223,7 @@ void generateBytecodeForFun(Debug, TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences,
-	ref immutable TextAndInfo textInfo,
+	ref immutable TextInfo textInfo,
 	ref immutable LowProgram program,
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
@@ -409,7 +421,7 @@ immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
 
 struct ExprCtx {
 	immutable Ptr!LowProgram program;
-	immutable Ptr!TextAndInfo textInfo;
+	immutable Ptr!TextInfo textInfo;
 	immutable LowFunIndex curFunIndex;
 	immutable Nat8 returnTypeSizeInStackEntries;
 	Ptr!(MutIndexMultiDict!(LowFunIndex, ByteCodeIndex)) funToReferences;
@@ -443,9 +455,6 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
 			generateConvertToUnion(dbg, tempAlloc, writer, ctx, asUnionType(expr.type), source, it);
-		},
-		(ref immutable LowExprKind.FunPtr it) {
-			registerFunAddress(tempAlloc, ctx, it.fun, writePushFunPtrDelayed(dbg, writer, source));
 		},
 		(ref immutable LowExprKind.Let it) {
 			immutable StackEntries localEntries =
@@ -774,7 +783,7 @@ void generateConstant(Debug, CodeAlloc, TempAlloc)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
-	ref const ExprCtx ctx,
+	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
 	ref immutable LowType type,
 	ref immutable Constant constant,
@@ -818,7 +827,7 @@ void generateConstant(Debug, CodeAlloc, TempAlloc)(
 		},
 		(immutable Constant.FunPtr it) {
 			immutable LowFunIndex index = mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun);
-			todo!void("!");
+			registerFunAddress(tempAlloc, ctx, index, writePushFunPtrDelayed(dbg, writer, source));
 		},
 		(immutable Constant.Integral it) {
 			writePushConstant(dbg, writer, source, immutable Nat64(it.value));
