@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: !, bool, false, true
+	./bool: ?, bool, false, true
 	./compare: equal
 	./fun: subscript
 	./misc: void
@@ -29,7 +29,7 @@ opt-equal? bool(a opt ?a, b opt ?a) equal<?a> noctx
 		else
 			false
 	else
-		!b.has?
+		b empty?
 
 # True iff a is `none`.
 empty? bool(a opt ?a) noctx
@@ -39,9 +39,8 @@ empty? bool(a opt ?a) noctx
 	as some
 		false
 
-# True iff a is `some`.
-has? bool(a opt ?a) noctx
-	!a.empty?
+size nat64(a opt ?a) noctx
+	a.empty? ? 0, 1
 
 # Calls `f` on the value in a `some`, or does nothing.
 each void(a opt ?in, f act void(?in))
@@ -55,10 +54,10 @@ map opt ?out(a opt ?in, f act ?out(?in))
 
 # Takes the leftmost `some` value.
 opt-or opt ?a(a opt ?a, b opt ?a)
-	if a has?
-		a
-	else
+	if a empty?
 		b
+	else
+		a
 
 # Converts an option to a value by supplying a default to handle `none`.
 or-default ?a(a opt ?a, default act ?a())

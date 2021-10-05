@@ -5,7 +5,7 @@ import
 	../exception: assert, forbid
 	../fun: subscript
 	../misc: ->, drop, void
-	../opt: ==, empty?, has?, none, opt, some
+	../opt: ==, empty?, none, opt, some
 	../ptr: ==, +, -, ptr, set-subscript, subscript
 	../str: ==, str
 	../test: is
@@ -297,10 +297,10 @@ first-some opt ?out(a list ?in, f act opt ?out(?in))
 	before = if prev ?= a prev
 		prev first-some f
 
-	if before has?
-		before
-	else
+	if before empty?
 		a.values first-some f
+	else
+		before
 
 .dbg str(a list nat64)
 	res = writer

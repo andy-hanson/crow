@@ -5,7 +5,7 @@ import
 	../fun: subscript
 	../misc: ->, void
 	../number: +, -, nat64
-	../opt: has?, none, opt, some
+	../opt: empty?, none, opt, some
 	../ptr: ==, +, -, deep-size-bytes, ptr, set-subscript, size-of, subscript
 	../test: is
 	../tuple: pair
@@ -159,10 +159,10 @@ Returns `none` if every call to `f` returned `none`.
 first-some opt ?out(a arr ?in, f act opt ?out(?in))
 	if !a.empty?
 		res = f[a[0]]
-		if res has?
-			res
-		else
+		if res empty?
 			a.tail first-some f
+		else
+			res
 
 ###
 Equivalent to `f[a[0]] or f[a[1]] or or ...`
@@ -222,7 +222,7 @@ True iff the sub-sequence appears in `a`.
 Equivalent to `a[0 -> subseq.size] == subseq or a[1 -> 1 + subseq.size] == subseq or ...`
 ###
 contains-subseq? bool(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
-	a index-of-subseq subseq has?
+	!(a index-of-subseq subseq empty?)
 
 # TODO: equal<arr ?a> should be unnecessary
 # True iff the first elements of `a` are `start`, meaning `a[0 -> start.size] == start`.

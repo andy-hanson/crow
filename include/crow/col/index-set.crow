@@ -10,7 +10,7 @@ import
 	../log: info, log
 	../misc: ->, drop, void
 	../number: deep-size-bytes, each
-	../opt: has?, none, opt, or-default, some
+	../opt: empty?, none, opt, or-default, some
 	../ptr: ==, +, set-subscript
 	../str: ==, str
 	../str-conv: to-hex
@@ -265,8 +265,8 @@ test
 	c verify "[x310]", [4, 8, 9]
 
 	# TODO: 'is none'
-	(c try-remove 7).has? is false
-	(c try-add 8).has? is false
+	(c try-remove 7).empty? is true
+	(c try-add 8).empty? is true
 
 	d = c - 8
 	d verify "[x210]", [4, 9]

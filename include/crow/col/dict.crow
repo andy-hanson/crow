@@ -6,7 +6,7 @@ import
 	../fun: subscript
 	../misc: ->, arrow, as, data, from, to, void
 	../number: ==, <=>, +, -, even?, nat64
-	../opt: ==, has?, none, opt, opt-or, or-default, some
+	../opt: ==, empty?, none, opt, opt-or, or-default, some
 	../ptr: ==, <=>, +, -, ptr, set-subscript, subscript
 	../str: ==, chars, empty?, size-bytes, str
 	../str-conv: interp, finish, to-str, with-str, with-value
@@ -121,7 +121,7 @@ subscript opt ?v(a dict<?k, ?v>, key ?k) data<?k> compare<?k>
 			pair.to some
 
 has-key? bool(a dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
-	a[key] has?
+	!a[key].empty?
 
 .add-or-remove dict-impl<?k, ?v>(a dict-impl<?k, ?v>, key ?k, value opt ?v) data<?k> compare<?k>
 	merge-as-needed: overlay: [key -> value], a

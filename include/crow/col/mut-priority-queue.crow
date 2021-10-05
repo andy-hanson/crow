@@ -4,7 +4,7 @@ import
 	../compare: <, compare
 	../exception: assert
 	../misc: ->, arrow, data, from, to, void
-	../opt: force, has?, none, opt, some
+	../opt: empty?, force, none, opt, some
 	../ptr: +, -, ptr, set-subscript
 	../str: ==, str
 	../test: is
@@ -192,4 +192,4 @@ test
 		else
 			false
 	else
-		!b.has?
+		b empty?

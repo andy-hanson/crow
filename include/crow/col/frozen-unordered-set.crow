@@ -1,11 +1,11 @@
 no-std
 import
-	../bool: &&, ==, bool, false, true
+	../bool: !, &&, ==, bool, false, true
 	../compare: !=, <=, compare
 	../fun: subscript
 	../hash: hash, hash-mix
 	../misc: data, void
-	../opt: has?, opt, some
+	../opt: empty?, opt, some
 	../ptr: ==, <=>, +, -, ptr, set-subscript, size-of, subscript, swap!
 	../test: is
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
@@ -51,7 +51,7 @@ unordered-arr arr ?a(a frozen-unordered-set ?a)
 	a values
 
 subscript bool(a frozen-unordered-set ?a, value ?a) trusted data<?a> compare<?a> hash-mix<?a>
-	a try-get-unordered-index value has?
+	!(a try-get-unordered-index value empty?)
 
 # WARN: The order of values is arbitrary,
 # but consistent for *identical* (not ==) sets.

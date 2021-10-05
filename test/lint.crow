@@ -14,10 +14,10 @@ lint result<str, arr failure>(path str, options test-options) summon
 		if options.print-tests?
 			print: "lint {file}"
 		file lint-file
-	if failures has?
-		err: failures
-	else
+	if failures empty?
 		ok: "linted {files size} files"
+	else
+		err: failures
 
 .list-lintable-files arr str(path str) summon
 	res = mut-list<str>

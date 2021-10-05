@@ -1,11 +1,11 @@
 no-std
 import
-	../bool: bool
+	../bool: !, bool
 	../compare: compare
 	../fun: subscript
 	../misc: ->, data, from, void
 	../number: nat64
-	../opt: has?
+	../opt: empty?
 	./arr: arr
 	./arr-util: each, map
 	./mut-dict:
@@ -49,7 +49,7 @@ size nat64(a mut-set ?a) data<?a> compare<?a>
 
 # True iff the value is in the set.
 subscript bool(a mut-set ?a, value ?a) data<?a> compare<?a>
-	a.inner[value] has?
+	!a.inner[value].empty?
 
 ###
 Adds a value to the set.
@@ -69,7 +69,7 @@ If the value was present, removes it and returns `true`.
 If the value was not present, does nothing and returns `false`.
 ###
 remove! bool(a mut-set ?a, value ?a) data<?a> compare<?a>
-	a.inner remove-key! value has?
+	!(a.inner remove-key! value empty?)
 
 # Convert to an `arr`, clearing the original `mut-set` in the process.
 move-to-arr! arr ?a(a mut-set ?a) data<?a> compare<?a>

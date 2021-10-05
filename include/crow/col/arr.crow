@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, &&, bool
+	../bool: &&, bool
 	../compare: !=, <, <=, compare, comparison, equal, greater, less
 	../fun: subscript
 	../misc: arrow, from, to
@@ -77,10 +77,6 @@ arr-cast arr ?out(a arr ?in) unsafe noctx
 # True iff `a.size == 0`.
 empty? bool(a arr ?a) noctx
 	a.size == 0
-
-# True iff `a.size != 0`.
-has? bool(a arr ?a) noctx
-	!a.empty?
 
 noctx-at ?a(a arr ?a, index nat64) unsafe noctx
 	hard-assert: index < a.size

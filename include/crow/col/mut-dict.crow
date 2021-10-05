@@ -1,12 +1,12 @@
 no-std
 import
-	../bool: !, &&, ?, bool, false, true
+	../bool: !, &&, bool, false, true
 	../compare: !=, <, >, <=, compare
 	../exception: assert
 	../fun: subscript
 	../misc: ->, arrow, as, data, from, to, void
 	../number: ==, <=>, +, -, *, nat64
-	../opt: ==, empty?, force, has?, none, opt, or-default, some
+	../opt: ==, empty?, force, none, opt, or-default, size, some
 	../ptr: ==, -, ptr, set-subscript, subscript
 	../str: ==, chars, str
 	../test: is
@@ -166,7 +166,7 @@ Returns true if it succeeded.
 
 # If there's something here, move it so something else can be inserted.
 .move-right! void(a mut-list arrow<?k, opt ?v>, index nat64)
-	if a[index].to has?
+	if !a[index].to.empty?
 		# If this is the last value, push it
 		if index == a.size - 1
 			a ~= a[index]
@@ -196,7 +196,7 @@ remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 			old-value = ptr[] to
 			ptr[] := key -> none
 			old-value
-		if res has?
+		if !res.empty?
 			a.node-size := a.node-size - 1
 		a compact-if-needed!
 		res
@@ -222,7 +222,7 @@ remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 .compact! void(a mut-dict<?k, ?v>) data<?k> compare<?k>
 	if next ?= a next
 		next compact!
-		a.pairs filter! pair => pair.to has?
+		a.pairs filter! pair => !pair.to.empty?
 		a.pairs merge-no-duplicates! next.pairs, (x, y) =>
 			x.from <=> y.from assert-comparison-not-equal
 		a.next := none
@@ -330,7 +330,7 @@ map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k> compare<?k>
 
 .verify-node-size void(a mut-dict<?k, ?v>)
 	actual = 0 fold a.pairs, (acc, x) =>
-		acc + (x.to.has? ? 1, 0)
+		acc + x.to.size
 	a.node-size is actual
 	if next ?= a next
 		next verify-node-size

@@ -16,10 +16,10 @@ run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ,
 	tests = path list-tests options.match-test
 	failures = tests flat-map-with-max-size options.max-failures, test =>
 		path-to-crow run-single-crow-test env, test, options
-	if failures has?
-		failures err
-	else
+	if failures empty?
 		ok: "ran {tests size} tests in {path}"
+	else
+		failures err
 
 .list-tests arr str(path str, match-test str) summon
 	res = mut-list<str>

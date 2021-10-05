@@ -1,10 +1,10 @@
 no-std
 import
-	../bool: &&, ==, bool, false
+	../bool: &&, ==, bool, true
 	../exception: assert
 	../fun: subscript
 	../misc: ->, void
-	../opt: force, has?, opt, some
+	../opt: empty?, force, opt, some
 	../ptr: ==, +, -, set-subscript
 	../str: ==, str
 	../str-conv: to-str
@@ -133,8 +133,8 @@ test
 	a.dbg is "[]"
 	a.arr is []
 	# TODO: 'is none'
-	a.pop-left.has? is false
-	a.pop-right.has? is false
+	a.pop-left.empty? is true
+	a.pop-right.empty? is true
 
 	bl = 1 ~ a
 	bl.dbg is "1 []"

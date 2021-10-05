@@ -7,11 +7,11 @@ import
 	./fun: subscript
 	./misc: drop, void
 	./number: ==, <=>, +, *, **, float64, int64, nat64, to-float64, to-int64
-	./opt: has?, none, opt, some
+	./opt: empty?, none, opt, some
 	./ptr: ==, <=>, +, -, ptr, subscript
 	./str: ==, char, chars, size-bytes, str
 	./test: is
-	./private/exception-low-level: assert
+	./private/exception-low-level: assert, forbid
 
 reader record mut
 	# TODO:PRIVATE
@@ -24,28 +24,25 @@ reader reader(a str) trusted
 with-reader opt ?a(a str, f act opt ?a(reader))
 	reader = a reader
 	res = f[reader]
-	if res.has? && reader.empty?
+	if !res.empty? && reader.empty?
 		res
 
 empty? bool(a reader) trusted
 	assert: a.cur <= a.end
 	a.cur == a.end
 
-has? bool(a reader)
-	!a.empty?
-
 peek char(a reader) trusted
-	assert: a has?
+	forbid: a empty?
 	a.cur[]
 
 next! char(a reader) trusted
-	assert: a has?
+	forbid: a empty?
 	res = a.cur[]
 	a.cur := a.cur + 1
 	res
 
 take-char? bool(a reader, c char)
-	if a.has? && a.peek == c
+	if !a.empty? && a.peek == c
 		a.next! drop
 		true
 	else
@@ -63,7 +60,7 @@ take-str? bool(a reader, s str) trusted
 		false
 
 take-nat! opt nat64(a reader)
-	if a.has?
+	if !a.empty?
 		if first-digit ?= a.peek.char-to-nat64
 			a.next! drop
 			first-digit take-nat-recur! a some
@@ -116,7 +113,7 @@ take-quoted-str! opt str(a reader)
 	if a take-char? "\""
 		start = a.cur
 		res = a take-quoted-str-recur! mut-list
-		if !res.has?
+		if res empty?
 			a.cur := start
 		res
 

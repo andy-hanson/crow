@@ -1,11 +1,11 @@
 no-std
 import
-	../bool: &&, ==, bool, false
+	../bool: &&, ==, bool, true
 	../compare: !=
 	../exception: assert
 	../fun: subscript
 	../misc: ->, void
-	../opt: force, has?, opt, some
+	../opt: empty?, force, opt, some
 	../ptr: ==, +, -, set-subscript
 	../test: is
 	../private/number-low-level: ==, nat64, wrap-add
@@ -89,7 +89,7 @@ test
 	a = queue<nat64>
 	assert: a empty?
 	a.arr is []
-	a.dequeue.has? is false
+	a.dequeue.empty? is true
 
 	b = a ~ 1
 	b.arr is [1]

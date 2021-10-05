@@ -20,7 +20,7 @@ import
 	../fun: subscript
 	../misc: ->, as, void
 	../number: ==, <=>, +, int32, nat8, nat16, nat32, to-int64, to-nat32, to-nat64
-	../opt: has?, opt, some
+	../opt: empty?, opt, some
 	../ptr: ==, +, any-ptr, as-any-ptr, null?, ptr-cast, ptr-cast-from-extern, ref-eq?, size-of
 	../str: ==, <=>, char, chars, c-str, size-bytes, str
 	../str-conv: finish, interp, to-str, with-str, with-value
@@ -55,7 +55,7 @@ path-exists? bool(path str) summon
 	path.to-c-str path-exists?
 
 .path-exists? bool(path c-str) summon
-	path.get-stat has?
+	!path.get-stat.empty?
 
 .get-dirent-name str(d dirent) unsafe
 	# TODO: this is offsetof(d, d_name)

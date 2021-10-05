@@ -7,7 +7,7 @@ import
 	../fun: subscript
 	../hash: hash, hash-mix
 	../misc: ->, arrow, as, data, from, to, void
-	../opt: ==, force, has?, none, opt, some
+	../opt: ==, empty?, force, none, opt, some
 	../ptr: size-of
 	../str: ==, ~, str
 	../str-conv: to-str
@@ -152,10 +152,10 @@ already-has-key<?v> record
 # Adds a value if the key doesn't already exist
 try-add try-add-result<?k, ?v>(a lookup<?k, ?v>, key ?k, get-value act ?v()) data<?k> compare<?k> hash-mix<?k>
 	res = a get-or-update key, old-value =>
-		if old-value has?
-			no-change
-		else
+		if old-value empty?
 			get-value[] insert
+		else
+			no-change
 	if value ?= res old-value
 		value already-has-key
 	else

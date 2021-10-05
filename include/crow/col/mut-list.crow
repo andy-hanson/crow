@@ -164,10 +164,6 @@ temp-as-arr arr ?a(a mut-list ?a) noctx unsafe
 empty? bool(a mut-list ?a) noctx
 	a.size == 0
 
-# True iff `a.size != 0`.
-has? bool(a mut-list ?a) noctx
-	!a.empty?
-
 ###
 Sets the element at the index.
 Throws if `index >= a.size`.

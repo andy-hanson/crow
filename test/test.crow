@@ -16,7 +16,7 @@ main fut nat(args arr str) summon
 		overwrite-output-strs = values[1]
 		max-failures-strs = values[2]
 		match-test-strs = values[3]
-		print-tests? = print-tests-strs has?
+		print-tests? = !print-tests-strs.empty?
 		overwrite-output? = if strs ?= overwrite-output-strs
 			# TODO: handle it..
 			assert: strs empty?

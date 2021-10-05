@@ -6419,7 +6419,7 @@ program(
 				match-union(
 					param-ref(a)
 					[
-						case(none, call(!, [call(has?, [param-ref(b)])]))
+						case(none, call(empty?, [param-ref(b)]))
 						case(
 							some("<<matched>>")
 							let(
@@ -6435,13 +6435,6 @@ program(
 												vb
 												get-field(local-ref("<<matched>>"), value)
 												call(==, [local-ref(va), local-ref(vb)])))])))])))
-		fun(
-			false
-			has?
-			type(false, bool)
-			none
-			[param(a, type(false, opt))]
-			expr-body(call(!, [call(empty?, [param-ref(a)])])))
 		fun(
 			false
 			empty?
@@ -6477,7 +6470,7 @@ program(
 						res
 						call(subscript, [param-ref(f), local-ref(reader)])
 						cond(
-							call(&&, [call(has?, [local-ref(res)]), call(empty?, [local-ref(reader)])])
+							call(&&, [call(!, [call(empty?, [local-ref(res)])]), call(empty?, [local-ref(reader)])])
 							local-ref(res)
 							to-union(0, call(none, [])))))))
 		fun(
@@ -6531,7 +6524,7 @@ program(
 			[param(a, type(true, reader))]
 			expr-body(
 				cond(
-					call(has?, [param-ref(a)])
+					call(!, [call(empty?, [param-ref(a)])])
 					match-union(
 						call(char-to-nat64, [call(peek, [param-ref(a)])])
 						[
@@ -6547,13 +6540,6 @@ program(
 											1
 											call(some, [call(take-nat-recur!, [local-ref(first-digit), param-ref(a)])])))))])
 					to-union(0, call(none, [])))))
-		fun(
-			true
-			has?
-			type(false, bool)
-			none
-			[param(a, type(true, reader))]
-			expr-body(call(!, [call(empty?, [param-ref(a)])])))
 		fun(
 			true
 			char-to-nat64
@@ -6598,7 +6584,7 @@ program(
 			type(false, char)
 			none
 			[param(a, type(true, reader))]
-			expr-body(seq(call(assert, [call(has?, [param-ref(a)])]), call(subscript, [call(cur, [param-ref(a)])]))))
+			expr-body(seq(call(forbid, [call(empty?, [param-ref(a)])]), call(subscript, [call(cur, [param-ref(a)])]))))
 		fun(false, drop, type(false, void), none, [param("_", type(false, char))], expr-body(call(void, [])))
 		fun(
 			true
@@ -6608,7 +6594,7 @@ program(
 			[param(a, type(true, reader))]
 			expr-body(
 				seq(
-					call(assert, [call(has?, [param-ref(a)])])
+					call(forbid, [call(empty?, [param-ref(a)])])
 					let(
 						res
 						call(subscript, [call(cur, [param-ref(a)])])
@@ -6668,7 +6654,7 @@ program(
 				match-union(
 					param-ref(a)
 					[
-						case(none, call(!, [call(has?, [param-ref(b)])]))
+						case(none, call(empty?, [param-ref(b)]))
 						case(
 							some("<<matched>>")
 							let(
@@ -6684,13 +6670,6 @@ program(
 												vb
 												get-field(local-ref("<<matched>>"), value)
 												call(==, [local-ref(va), local-ref(vb)])))])))])))
-		fun(
-			false
-			has?
-			type(false, bool)
-			none
-			[param(a, type(false, opt))]
-			expr-body(call(!, [call(empty?, [param-ref(a)])])))
 		fun(
 			false
 			empty?
@@ -6726,7 +6705,7 @@ program(
 						res
 						call(subscript, [param-ref(f), local-ref(reader)])
 						cond(
-							call(&&, [call(has?, [local-ref(res)]), call(empty?, [local-ref(reader)])])
+							call(&&, [call(!, [call(empty?, [local-ref(res)])]), call(empty?, [local-ref(reader)])])
 							local-ref(res)
 							to-union(0, call(none, [])))))))
 		fun(
@@ -6796,7 +6775,9 @@ program(
 			[param(a, type(true, reader)), param(c, type(false, char))]
 			expr-body(
 				cond(
-					call(&&, [call(has?, [param-ref(a)]), call(==, [call(peek, [param-ref(a)]), param-ref(c)])])
+					call(
+						&&
+						[call(!, [call(empty?, [param-ref(a)])]), call(==, [call(peek, [param-ref(a)]), param-ref(c)])])
 					seq(call(drop, [call(next!, [param-ref(a)])]), call(true, []))
 					call(false, []))))
 		fun(false, drop, type(false, void), none, [param("_", type(false, bool))], expr-body(call(void, [])))

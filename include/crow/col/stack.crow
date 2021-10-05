@@ -5,7 +5,7 @@ import
 	../exception: assert, forbid, throw
 	../fun: subscript
 	../misc: drop, void
-	../opt: ==, empty?, has?, none, opt, some
+	../opt: ==, empty?, none, opt, some
 	../ptr: ==, +, -, set-subscript
 	../str: str
 	../test: is
@@ -167,10 +167,10 @@ first-some opt ?out(a stack ?in, f act opt ?out(?in))
 .first-some-recur opt ?out(a opt node ?in, f act opt ?out(?in))
 	if node ?= a
 		res = node.prev first-some-recur f
-		if res has?
-			res
-		else
+		if res empty?
 			f[node value]
+		else
+			res
 
 test
 	a = stack<nat64>

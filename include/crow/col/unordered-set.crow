@@ -1,11 +1,11 @@
 no-std
 import
-	../bool: bool
+	../bool: !, bool
 	../compare: compare
 	../hash: hash-mix
 	../misc: ->, data, void
 	../number: nat64
-	../opt: has?, none, opt, some
+	../opt: empty?, none, opt, some
 	./arr: arr
 	./arr-util: map
 	./lookup:
@@ -34,7 +34,7 @@ size nat64(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
 	a.inner size
 
 subscript bool(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
-	a.inner[value] has?
+	!a.inner[value].empty?
 
 ~ unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
 	if res ?= a try-add value

@@ -7,10 +7,10 @@ import
 	./col/dict: dict, each
 	./col/mut-dict: move-to-dict!, mut-dict, set-subscript
 	./col/mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
-	./exception: assert, forbid, throw
+	./exception: assert, throw
 	./misc: ->, void
 	./number: ==, +
-	./opt: force, has?, none, opt, some
+	./opt: empty?, force, none, opt, some
 	./str: ==, <=>, str
 	./str-conv: interp, finish, to-str, with-str, with-value
 	./str-util: starts-with?, try-remove-start
@@ -33,7 +33,7 @@ parse-named-args opt arr opt arr str(args arr str, arg-names arr str)
 	parsed.named each (key, value) =>
 		if index ?= arg-names index-of key
 			# TODO: duplicate argument error
-			forbid: values[index] has?
+			assert: values[index] empty?
 			values[index] := value.some
 		elif key == "help"
 			help[] := true
