@@ -23,6 +23,7 @@ import model.model :
 	RecordField,
 	StructInst,
 	summon;
+import util.collection.arr : only;
 import util.collection.dict : Dict;
 import util.comparison : compareBool, Comparison;
 import util.late : Late, lateGet, lateIsSet, lateSet;
@@ -838,7 +839,6 @@ struct ConcreteExprKind {
 
 	struct CreateArr {
 		immutable Ptr!ConcreteStruct arrType;
-		immutable ConcreteType elementType;
 		immutable ConcreteExpr[] args;
 	}
 
@@ -952,6 +952,10 @@ struct ConcreteExprKind {
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
 	@trusted immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 	@trusted immutable this(immutable Seq a) { kind = Kind.seq; seq = a; }
+}
+
+immutable(ConcreteType) elementType(return scope ref immutable ConcreteExprKind.CreateArr a) {
+	return only(asInst(a.arrType.source).typeArgs);
 }
 
 immutable(ConcreteType) returnType(return scope ref immutable ConcreteExprKind.Call a) {

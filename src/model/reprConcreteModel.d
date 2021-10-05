@@ -258,7 +258,6 @@ immutable(Repr) reprOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Con
 		(ref immutable ConcreteExprKind.CreateArr it) =>
 			reprRecord(alloc, "create-arr", [
 				reprOfConcreteStructRef(alloc, it.arrType),
-				reprOfConcreteType(alloc, it.elementType),
 				reprArr(alloc, it.args, (ref immutable ConcreteExpr arg) =>
 					reprOfConcreteExpr(alloc, arg))]),
 		(ref immutable ConcreteExprKind.CreateRecord it) =>

@@ -59,8 +59,7 @@ immutable(AllConstantsConcrete) finishAllConstants(Alloc)(
 	immutable Ptr!ConcreteStruct arrSymStruct,
 ) {
 	immutable Constant allFuns = makeAllFuns(alloc, a, allConcreteFuns, arrNamedValFunPtrStruct);
-	immutable Constant[] syms = valuesArray(alloc, a.syms);
-	immutable Constant staticSyms = getConstantArr(alloc, a, arrSymStruct, getArrElementType(arrSymStruct), syms);
+	immutable Constant staticSyms = getConstantArr(alloc, a, arrSymStruct, valuesArray(alloc, a.syms));
 	immutable ArrTypeAndConstantsConcrete[] arrs =
 		map_mut(alloc, tempPairs_mut(a.arrs), (ref KeyValuePair!(immutable ConcreteType, ArrTypeAndConstants) pair) =>
 			immutable ArrTypeAndConstantsConcrete(
@@ -84,20 +83,18 @@ private immutable(Constant) makeAllFuns(Alloc)(
 	immutable Ptr!ConcreteFun[] allConcreteFuns,
 	immutable Ptr!ConcreteStruct arrNamedValFunPtrStruct,
 ) {
-	immutable Constant[] elements = mapOp!Constant(alloc, allConcreteFuns, (ref immutable Ptr!ConcreteFun it) {
-		immutable Opt!Sym name = name(it.deref());
-		return has(name) && concreteFunWillBecomeNonExternLowFun(it)
-			? some(immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
-				getConstantSym(alloc, a, force(name)),
-				immutable Constant(immutable Constant.FunPtr(it))]))))
-			: none!Constant;
-	});
-	return getConstantArr(alloc, a, arrNamedValFunPtrStruct, getArrElementType(arrNamedValFunPtrStruct), elements);
-}
-
-//TODO: use this in getConstantArr
-private immutable(ConcreteType) getArrElementType(ref immutable ConcreteStruct a) {
-	return only(asInst(a.source).typeArgs);
+	return getConstantArr(
+		alloc,
+		a,
+		arrNamedValFunPtrStruct,
+		mapOp!Constant(alloc, allConcreteFuns, (ref immutable Ptr!ConcreteFun it) {
+			immutable Opt!Sym name = name(it.deref());
+			return has(name) && concreteFunWillBecomeNonExternLowFun(it)
+				? some(immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
+					getConstantSym(alloc, a, force(name)),
+					immutable Constant(immutable Constant.FunPtr(it))]))))
+				: none!Constant;
+		}));
 }
 
 ref immutable(Constant) derefConstantPointer(
@@ -132,12 +129,12 @@ immutable(Constant) getConstantArr(Alloc)(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	immutable Ptr!ConcreteStruct arrStruct,
-	immutable ConcreteType elementType,
 	immutable Constant[] elements,
 ) {
 	if (empty(elements))
 		return constantEmptyArr();
 	else {
+		immutable ConcreteType elementType = only(asInst(arrStruct.source).typeArgs);
 		Ptr!ArrTypeAndConstants d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.arrs, elementType, () =>
 			ArrTypeAndConstants(
 				arrStruct,
@@ -165,13 +162,12 @@ immutable(Constant) getConstantStr(Alloc)(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	immutable Ptr!ConcreteStruct strStruct,
-	ref immutable ConcreteType charType,
 	immutable string str,
 ) {
 	immutable Constant[] chars = map!Constant(alloc, str, (ref immutable char it) =>
 		constantChar(it));
 	immutable Ptr!ConcreteStruct arrCharStruct = mustBeNonPointer(only(asRecord(body_(strStruct)).fields).type);
-	immutable Constant arr = getConstantArr(alloc, allConstants, arrCharStruct, charType, chars);
+	immutable Constant arr = getConstantArr(alloc, allConstants, arrCharStruct, chars);
 	return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [arr])));
 }
 

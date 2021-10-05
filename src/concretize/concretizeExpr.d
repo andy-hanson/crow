@@ -53,7 +53,6 @@ import model.constant : asBool, asRecord, asUnion, Constant;
 import model.model :
 	Called,
 	ClosureField,
-	elementType,
 	Expr,
 	FunInst,
 	FunKind,
@@ -726,15 +725,14 @@ immutable(ConcreteExpr) concretizeCreateArr(Alloc)(
 	immutable ConstantsOrExprs args = getConstantsOrExprs(alloc, ctx, e.args);
 	immutable ConcreteType arrayType = getConcreteType_forStructInst(alloc, ctx, e.arrType);
 	immutable Ptr!ConcreteStruct arrayStruct = mustBeNonPointer(arrayType);
-	immutable ConcreteType elementType = getConcreteType(alloc, ctx, elementType(e));
 	return matchConstantsOrExprs!(immutable ConcreteExpr)(
 		args,
 		(ref immutable Constant[] constants) =>
 			immutable ConcreteExpr(arrayType, range, immutable ConcreteExprKind(
-				getConstantArr(alloc, ctx.concretizeCtx.allConstants, arrayStruct, elementType, constants))),
+				getConstantArr(alloc, ctx.concretizeCtx.allConstants, arrayStruct, constants))),
 		(ref immutable ConcreteExpr[] exprs) {
 			return immutable ConcreteExpr(arrayType, range, immutable ConcreteExprKind(
-				allocate(alloc, immutable ConcreteExprKind.CreateArr(arrayStruct, elementType, exprs))));
+				allocate(alloc, immutable ConcreteExprKind.CreateArr(arrayStruct, exprs))));
 		});
 }
 

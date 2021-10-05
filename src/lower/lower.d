@@ -54,6 +54,7 @@ import model.concreteModel :
 	ConcreteStructBody,
 	ConcreteType,
 	ConcreteFunToName,
+	elementType,
 	fieldOffsets,
 	isCallWithCtxFun,
 	isClosure,
@@ -1335,7 +1336,7 @@ immutable(LowExprKind) getCreateArrExpr(Alloc)(
 	// *(temp + 1) = b,
 	// arr_foo{2, temp})
 	immutable LowType arrType = lowTypeFromConcreteStruct(alloc, typeCtx(ctx), a.arrType);
-	immutable LowType elementType = lowTypeFromConcreteType(alloc, typeCtx(ctx), a.elementType);
+	immutable LowType elementType = lowTypeFromConcreteType(alloc, typeCtx(ctx), elementType(a));
 	immutable LowType elementPtrType = getLowRawPtrType(alloc, typeCtx(ctx), elementType);
 	immutable LowExpr elementSize = getSizeOf(range, elementType);
 	immutable LowExpr nElements = constantNat64(range, size(a.args));

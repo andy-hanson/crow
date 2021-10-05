@@ -1548,10 +1548,6 @@ struct Expr {
 	}
 }
 
-ref immutable(Type) elementType(return scope ref immutable Expr.CreateArr a) {
-	return only(typeArgs(a.arrType));
-}
-
 ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	return a.range_;
 }

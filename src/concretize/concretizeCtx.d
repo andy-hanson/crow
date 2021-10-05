@@ -249,7 +249,6 @@ struct ConcretizeCtx {
 	) funStructToImpls;
 	// TODO: do these eagerly
 	Late!(immutable ConcreteType) _boolType;
-	Late!(immutable ConcreteType) _charType;
 	Late!(immutable ConcreteType) _voidType;
 	Late!(immutable ConcreteType) _anyPtrType;
 	Late!(immutable ConcreteType) _ctxType;
@@ -260,11 +259,6 @@ struct ConcretizeCtx {
 immutable(ConcreteType) boolType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
 	return lazilySet(a._boolType, () =>
 		getConcreteType_forStructInst(alloc, a, a.commonTypes.bool_, TypeArgsScope.empty));
-}
-
-private immutable(ConcreteType) charType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
-	return lazilySet(a._charType, () =>
-		getConcreteType_forStructInst(alloc, a, a.commonTypes.char_, TypeArgsScope.empty));
 }
 
 immutable(ConcreteType) voidType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
@@ -295,10 +289,9 @@ immutable(ConcreteType) ctxType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
 }
 
 immutable(Constant) constantStr(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, immutable string value) {
-	immutable ConcreteType charType = charType(alloc, a);
 	immutable ConcreteType strType = strType(alloc, a);
 	immutable Ptr!ConcreteStruct strStruct = mustBeNonPointer(strType);
-	return getConstantStr(alloc, a.allConstants, strStruct, charType, value);
+	return getConstantStr(alloc, a.allConstants, strStruct, value);
 }
 
 immutable(Constant) constantSym(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, immutable Sym value) {
@@ -818,7 +811,7 @@ immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(Alloc)(
 			immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
 				constantSym(alloc, ctx, member.name),
 				immutable Constant(immutable Constant.Integral(member.value.value))]))));
-	immutable Constant arr = getConstantArr(alloc, ctx.allConstants, arrayStruct, elementType, elements);
+	immutable Constant arr = getConstantArr(alloc, ctx.allConstants, arrayStruct, elements);
 	return immutable ConcreteFunBody(immutable ConcreteFunExprBody(
 		immutable ConcreteExpr(returnType, FileAndRange.empty, immutable ConcreteExprKind(arr))));
 }
@@ -857,7 +850,6 @@ immutable(ConcreteFunBody) bodyForAllTests(Alloc)(
 		alloc,
 		ctx.allConstants,
 		mustBeNonPointer(returnType),
-		elementTypeFromArrType(mustBeNonPointer(returnType)),
 		mapWithIndex(alloc, allTests, (immutable size_t index, ref immutable Test it) =>
 			immutable Constant(immutable Constant.FunPtr(concreteFunForTest(alloc, ctx, it, index)))));
 	immutable ConcreteExpr body_ = immutable ConcreteExpr(
@@ -865,11 +857,6 @@ immutable(ConcreteFunBody) bodyForAllTests(Alloc)(
 		FileAndRange.empty,
 		immutable ConcreteExprKind(arr));
 	return immutable ConcreteFunBody(immutable ConcreteFunExprBody(allocate(alloc, body_)));
-}
-
-//TODO: use inside of 'getConstantArr'
-immutable(ConcreteType) elementTypeFromArrType(immutable ConcreteStruct arrType) {
-	return only(asInst(arrType.source).typeArgs);
 }
 
 immutable(ConcreteParam[]) concretizeParams(Alloc)(
