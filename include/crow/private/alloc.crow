@@ -8,11 +8,10 @@ import
 	../fun: subscript
 	../misc: drop
 	../ptr:
-		==, <=>, +, -, any-ptr, as-any-ptr, as-ref, by-val, null?, ptr, ptr-cast, ref-of-val,
+		==, <=>, +, -, any-ptr, as-any-ptr, as-ref, by-val, null, ptr, ptr-cast, ref-of-val,
 		set-subscript, size-of, subscript, to-nat64
 	./bootstrap:
-		as, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, lock, nat8, nat64, none, opt, some,
-		todo, void
+		as, gc-ctx-ptr, get-ctx, hard-assert, lock, nat8, nat64, none, opt, some, todo, void
 	./number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
 	./thread-utils: acquire!, lock-by-val, release!
 
@@ -270,7 +269,7 @@ unmanaged-alloc-uninitialized ptr ?a() noctx unsafe
 
 unmanaged-alloc-bytes any-ptr(size nat64) noctx unsafe
 	res = size malloc
-	hard-forbid: res null?
+	hard-assert: res != null
 	res
 
 unmanaged-alloc-zeroed-elements ptr ?a(size-elements nat64) noctx unsafe

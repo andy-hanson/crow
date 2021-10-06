@@ -1100,22 +1100,8 @@ program(
 				let(
 					res
 					call(malloc, [param-ref(size)])
-					seq(call(hard-forbid, [call(null?, [local-ref(res)])]), local-ref(res)))))
+					seq(call(hard-assert, [call(!=, [local-ref(res), call(null, [])])]), local-ref(res)))))
 		fun(false, malloc, type(false, ptr), none, [param(size, type(false, nat64))], extern(false))
-		fun(
-			false
-			hard-forbid
-			type(false, void)
-			none
-			[param(condition, type(false, bool))]
-			expr-body(cond(param-ref(condition), call(abort, []), void)))
-		fun(
-			false
-			null?
-			type(false, bool)
-			none
-			[param(a, type(false, ptr))]
-			expr-body(call(==, [param-ref(a), call(null, [])])))
 		fun(
 			false
 			==
@@ -1123,6 +1109,13 @@ program(
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			builtin([type(false, nat8)]))
+		fun(
+			false
+			!=
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(call(!, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(false, null, type(false, ptr), none, [], builtin([type(false, nat8)]))
 		fun(
 			false
@@ -1505,7 +1498,7 @@ program(
 					seq(
 						seq(
 							seq(
-								call(hard-forbid, [call(null?, [call(jmp-buf-ptr, [local-ref(exn-ctx)])])])
+								call(hard-assert, [call(!=, [call(jmp-buf-ptr, [local-ref(exn-ctx)]), call(null, [])])])
 								call(set-thrown-exception, [local-ref(exn-ctx), param-ref(e)]))
 							call(longjmp, [call(jmp-buf-ptr, [local-ref(exn-ctx)]), call(number-to-throw, [])]))
 						call(hard-unreachable, [])))))
@@ -1527,20 +1520,20 @@ program(
 		fun(false, thread-local-stuff, type(true, thread-local-stuff), none, [param(a, type(true, ctx))], field-get(4))
 		fun(
 			false
-			null?
-			type(false, bool)
-			none
-			[param(a, type(false, ptr))]
-			expr-body(call(==, [param-ref(a), call(null, [])])))
-		fun(
-			false
 			==
 			type(false, bool)
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			builtin([type(false, __jmp_buf_tag)]))
-		fun(false, null, type(false, ptr), none, [], builtin([type(false, __jmp_buf_tag)]))
+		fun(
+			false
+			!=
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(call(!, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(false, jmp-buf-ptr, type(false, ptr), none, [param(a, type(true, exception-ctx))], field-get(0))
+		fun(false, null, type(false, ptr), none, [], builtin([type(false, __jmp_buf_tag)]))
 		fun(
 			false
 			set-thrown-exception
@@ -5188,6 +5181,13 @@ program(
 				seq(
 					call(hard-assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
 					call(unsafe-at, [param-ref(a), param-ref(index)]))))
+		fun(
+			false
+			hard-forbid
+			type(false, void)
+			none
+			[param(condition, type(false, bool))]
+			expr-body(cond(param-ref(condition), call(abort, []), void)))
 		fun(false, needs-gc?, type(false, bool), none, [param(a, type(true, gc))], field-get(3))
 		fun(false, n-threads-running, type(false, nat64), none, [param(a, type(true, island))], field-get(5))
 		fun(
@@ -6230,7 +6230,12 @@ program(
 								void)
 							call(
 								hard-assert
-								[call(null?, [call(subscript, [call(ref-of-val, [local-ref(thread-return)])])])]))))))
+								[
+									call(
+										==
+										[
+											call(subscript, [call(ref-of-val, [local-ref(thread-return)])])
+											call(null, [])])]))))))
 		fun(false, as, type(false, cell), none, [param(value, type(false, cell))], builtin([type(false, cell)]))
 		fun(false, cell, type(false, cell), none, [param(subscript, type(false, ptr))], new-record)
 		fun(

@@ -3,12 +3,13 @@ import
 	setjmp: jmp_buf, __jmp_buf_tag, longjmp, setjmp
 	../bool: !, bool
 	../bytes-types: zero
+	../compare: !=
 	../fun: subscript
-	../ptr: as-ref, by-val, null, null?, ptr-to
+	../ptr: ==, as-ref, by-val, null, ptr-to
 	./backtrace: backtrace, get-backtrace
 	./bootstrap:
-		arr, as, err, exception-ctx-ptr, get-ctx, hard-assert, hard-forbid,
-		hard-unreachable, int32, ok, result, str, sym, thread-local-stuff, void
+		arr, as, err, exception-ctx-ptr, get-ctx, hard-assert, hard-unreachable, int32, ok, result,
+		str, sym, thread-local-stuff, void
 	./number-low-level: ==
 export
 	./bootstrap: exception, message
@@ -56,7 +57,7 @@ Throwing an exception does not modify its backtrace.
 ###
 throw ?a(e exception) trusted
 	exn-ctx = get-exception-ctx
-	hard-forbid: exn-ctx.jmp-buf-ptr null?
+	hard-assert: exn-ctx.jmp-buf-ptr != null
 	exn-ctx.thrown-exception := e
 	exn-ctx.jmp-buf-ptr longjmp number-to-throw
 	hard-unreachable

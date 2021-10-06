@@ -10,10 +10,6 @@ export
 # Null pointer.
 null ptr ?a() noctx builtin
 
-# True if the pointer is `null`.
-null? bool(a ptr ?a) noctx trusted
-	a == null<?a>
-
 # Advance the pointer by `offset`.
 + ptr ?a(a ptr ?a, offset nat64) noctx unsafe builtin
 # Back up the pointer by `offset`.

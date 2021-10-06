@@ -1,11 +1,11 @@
 no-std
 import
 	../bool: !, bool
-	../compare: <
+	../compare: !=, <
 	../exception: assert, forbid
 	../misc: ->, void
 	../opt: ==, none, opt, some
-	../ptr: ==, <=>, +, -, null, null?, ptr, set-subscript, subscript, zeroed
+	../ptr: ==, <=>, +, -, null, ptr, set-subscript, subscript, zeroed
 	../str: ==, str
 	../str-conv: to-str
 	../test: is
@@ -44,15 +44,15 @@ copy mut-deque ?a(a mut-deque ?a) trusted
 	inner = a mut-arr
 	mut-deque: inner, inner.begin-ptr, inner.begin-ptr
 
-empty? bool(a mut-deque ?a)
-	a.left null?
+empty? bool(a mut-deque ?a) trusted
+	a.left == null
 
 size nat64(a mut-deque ?a) trusted
 	match a.left <=> a.right
 	as less
 		a.right - a.left
 	as equal
-		if a.left null?
+		if a.left == null
 			0
 		else
 			a.inner size
@@ -75,11 +75,11 @@ push! void(a mut-deque ?a, value ?a) trusted
 	a.right := a.right + 1
 
 first opt ?a(a mut-deque ?a) trusted
-	if !a.left.null?
+	if a.left != null
 		a.left[] some
 
 last opt ?a(a mut-deque ?a) trusted
-	if !a.right.null?
+	if a.right != null
 		fixed-right = if a.right == a.inner.begin-ptr
 			a.inner end-ptr
 		else
@@ -87,7 +87,7 @@ last opt ?a(a mut-deque ?a) trusted
 		(fixed-right - 1)[] some
 
 pop-left! opt ?a(a mut-deque ?a) trusted
-	if !a.left.null?
+	if a.left != null
 		res = a.left[]
 		a.left[] := zeroed
 		a.left := a.left + 1
@@ -100,7 +100,7 @@ pop-left! opt ?a(a mut-deque ?a) trusted
 		res some
 
 pop-right! opt ?a(a mut-deque ?a) trusted
-	if !a.right.null?
+	if a.right != null
 		if a.right == a.inner.begin-ptr
 			a.right := a.inner end-ptr
 		a.right := a.right - 1
@@ -114,14 +114,14 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 
 # This temporarily breaks the invariant that a.left and a.right are null for an empty queue.
 .ensure-capacity! void(a mut-deque ?a) unsafe
-	if a.left null?
-		assert: a.right null?
+	if a.left == null
+		assert: a.right == null
 		if a.inner empty?
 			a.inner := 2 zeroed-mut-arr<?a>
 		a.left := a.inner begin-ptr
 		a.right := a.left
 	else
-		forbid: a.right null?
+		assert: a.right != null
 		forbid: a.inner empty?
 		if a.left == a.right
 			old-inner = a inner
@@ -180,8 +180,8 @@ test
 	a verify [1], "<-R 0 L-> 1"
 
 	a.pop-right! is 1.some
-	assert: a.left null?
-	assert: a.right null?
+	assert: a.left == null
+	assert: a.right == null
 	a verify [], "0 0"
 
 	a push! 1

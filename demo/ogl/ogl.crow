@@ -6,7 +6,7 @@ import
 	crow/io/print: print
 	crow/io/time: delay
 	crow/math/vec: +, vec-2-32
-	crow/ptr: as-any-ptr, null, null?, ptr-cast, ptr-to, size-of, to-ptr
+	crow/ptr: ==, as-any-ptr, null, ptr-cast, ptr-to, size-of, to-ptr
 	crow/str-util: join, to-c-str, to-str
 	GLES2/gl2:
 		==, glActiveTexture, GL_ARRAY_BUFFER, glBindBuffer, glBindTexture, glBufferData,
@@ -40,11 +40,11 @@ main fut nat(_ arr str) summon trusted
 
 	wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
 	window = "my game".to-c-str SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, wflags
-	if window.as-any-ptr null?
+	if window.as-any-ptr == null
 		"SDL_CreateWindow" fail-sdl-error
 
 	context = window SDL_GL_CreateContext
-	if context.as-any-ptr null?
+	if context.as-any-ptr == null
 		"SDL_GL_CreateContext" fail-sdl-error
 
 	#0.0 glClearColor 0.0, 0.0, 1.0

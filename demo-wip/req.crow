@@ -2,7 +2,7 @@ import
 	crow/col/mut-arr: begin-ptr, cast-immutable, size, subscript, uninitialized-mut-arr
 	crow/extra-types: fd-t
 	crow/io/print: print
-	crow/ptr: as-any-ptr, null?, ptr-cast, ptr-cast-to-extern, ptr-to, size-of, subscript
+	crow/ptr: ==, as-any-ptr, null, ptr-cast, ptr-cast-to-extern, ptr-to, size-of, subscript
 	crow/str-util: as-str, bytes, to-c-str
 	arpa/inet: inet_addr, inet_ntoa
 	netdb: gethostbyname, getprotobyname, h_addr_list, p_proto
@@ -25,14 +25,14 @@ main fut nat(_ arr str) unsafe summon
 
 .get-tcp-socket fd-t() unsafe summon
 	protoent = "tcp".to-c-str getprotobyname
-	forbid: protoent.as-any-ptr null?
+	assert: protoent.as-any-ptr != null
 	socket-file-descriptor = AF_INET socket SOCK_STREAM, protoent.p_proto
 	forbid: socket-file-descriptor == -1
 	socket-file-descriptor
 
 .connect-socket! void(socket fd-t, hostname str, server-port nat16) unsafe summon
 	hostent = hostname.to-c-str gethostbyname
-	forbid: hostent.as-any-ptr null?
+	assert: hostent.as-any-ptr != null
 	in_addr0 = hostent.h_addr_list[].ptr-cast<in_addr, char>
 	in_addr = in_addr0[].inet_ntoa inet_addr
 

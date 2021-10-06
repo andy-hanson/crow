@@ -21,7 +21,7 @@ import
 	../misc: ->, as, void
 	../number: ==, <=>, +, int32, nat8, nat16, nat32, to-int64, to-nat32, to-nat64
 	../opt: empty?, opt, some
-	../ptr: ==, +, any-ptr, as-any-ptr, null?, ptr-cast, ptr-cast-from-extern, ref-eq?, size-of
+	../ptr: ==, +, any-ptr, as-any-ptr, null, ptr-cast, ptr-cast-from-extern, ref-eq?, size-of
 	../str: ==, <=>, char, chars, c-str, size-bytes, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: bytes, to-c-str, to-str
@@ -80,7 +80,7 @@ read-dir arr str(path str) summon
 .read-dir arr str(path c-str) trusted summon
 	dirp = path opendir
 	# TODO: handle errors
-	forbid: dirp.ptr-cast-from-extern<any-ptr, dir> null?
+	assert: dirp.ptr-cast-from-extern<any-ptr, dir> != null
 	res = mut-list<str>
 	dirp read-dir-recur res
 	res.move-to-arr! sort
@@ -93,7 +93,7 @@ read-dir arr str(path str) summon
 	err = dirp readdir_r entry, result
 	# TODO: handle error
 	assert: err == 0
-	if !result[].as-any-ptr.null?
+	if result[].as-any-ptr != null
 		assert: result[] ref-eq? entry
 		name = entry.get-dirent-name
 		if name != "." && name != ".."
@@ -203,7 +203,7 @@ try-read-file opt str(path str) summon
 current-directory str() summon trusted
 	buff = 256 uninitialized-mut-arr<char>
 	b = buff.begin-ptr getcwd buff.size
-	if b null?
+	if b == null
 		todo
 	else
 		assert: b == buff.begin-ptr

@@ -6,14 +6,13 @@ import
 		freeaddrinfo, getaddrinfo
 	sys/socket: AF_INET, AF_UNSPEC, bind, connect, socket
 	unistd: close
-	../../bool: !
 	../../cell: cell, subscript
 	../../compare: !=
 	../../exception: assert
 	../../extra-types: fd-t
 	../../number: ==, nat16, to-int32
 	../../opt: force, opt, some
-	../../ptr: as-ref, null, null?, ptr, ptr-to, subscript
+	../../ptr: ==, as-ref, null, ptr, ptr-to, subscript
 	../../str: str
 	../../str-conv: finish, interp, to-str, with-str, with-value
 	../../str-util: to-c-str
@@ -40,7 +39,7 @@ connect-to-uri fd-t(u uri) trusted summon
 	op-sock force
 
 .find-and-connect-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
-	if !ap.null?
+	if ap != null
 		a = ap[]
 		sock = socket: a.ai_family, a.ai_socktype, a.ai_protocol
 		print: "sock is {sock}"
@@ -73,7 +72,7 @@ bind-to-port fd-t(port str) unsafe summon
 		todo
 
 .find-and-bind-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
-	if !ap.null?
+	if ap != null
 		a = ap[]
 		listen-fd = socket: a.ai_family, a.ai_socktype, 0
 		if listen-fd != -1

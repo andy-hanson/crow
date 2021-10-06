@@ -16,7 +16,7 @@ import
 	../extra-types: err-t
 	../fun: fun-ptr1, subscript
 	../io/time-low-level: timestamp, to-timespec
-	../ptr: any-ptr, by-val, null, null?, ptr, ptr-to, ref-of-val
+	../ptr: ==, any-ptr, by-val, null, ptr, ptr-to, ref-of-val
 	./bootstrap:
 		as, atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat64, opt, todo, value, void,
 		zeroed
@@ -196,4 +196,4 @@ join-one-thread void(tid pthread_t) noctx unsafe summon
 			todo
 		else
 			todo
-	hard-assert: thread-return.ref-of-val[] null?
+	hard-assert: thread-return.ref-of-val[] == null

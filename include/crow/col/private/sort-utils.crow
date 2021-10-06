@@ -6,7 +6,7 @@ import
 	../../fun: subscript
 	../../misc: void
 	../../opt: none, opt, some
-	../../ptr: ==, +, -, null, null?, ptr, set-subscript, subscript
+	../../ptr: ==, +, -, null, ptr, set-subscript, subscript
 	../../test: is
 	../../private/bootstrap: nat64
 	../../private/number-low-level: ==, <=>, unsafe-div, wrap-add
@@ -15,7 +15,7 @@ import
 	../mut-list: arr, begin-ptr, empty?, empty!, end-ptr, mut-list, size, swap!, temp-as-mut-arr, unsafe-set-size!
 
 binary-search-has? bool(a arr ?a, value ?a) compare<?a> trusted
-	!(a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value null?)
+	(a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value) != null
 
 binary-search-value opt ?a(a arr ?a, compare act comparison(?a)) trusted
 	if ptr ?= a binary-search-exact-ptr compare
@@ -23,7 +23,7 @@ binary-search-value opt ?a(a arr ?a, compare act comparison(?a)) trusted
 
 binary-search-exact-index opt nat64(a arr ?a, value ?a) trusted compare<?a>
 	ptr = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
-	if ptr null?
+	if ptr == null
 		none
 	else
 		ptr - a.begin-ptr some
@@ -36,7 +36,7 @@ binary-search-exact-ptr opt ptr ?a(a mut-arr ?a, compare act comparison(?a)) uns
 
 binary-search-exact-ptr opt ptr ?a(a arr ?a, value ?a) compare<?a> unsafe
 	res = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
-	if !res.null?
+	if res != null
 		res some
 
 binary-search-exact-ptr opt ptr ?a(a arr ?a, compare act comparison(?a)) unsafe
