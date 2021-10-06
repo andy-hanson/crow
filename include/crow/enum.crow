@@ -6,7 +6,8 @@ import
 	./exception: throw
 	./misc: name, named-val, val
 	./opt: opt, some
-	./sym: ==, sym
+	./sym: ==, sym, to-str
+	./str: str
 
 enum<?a> spec
 	enum-members arr named-val<?a>()
@@ -29,6 +30,6 @@ to-enum opt ?a(a sym) enum<?a>
 enum-convert opt ?out(a ?in) enum<?in> enum<?out>
 	a.to-sym to-enum
 
-# TODO: requires better overloading
-# to-str str(a ?a) enum<?a>
-#	a.to-sym to-str
+# TODO: should just be called to-str, but that requires better overloading
+enum-to-str str(a ?a) enum<?a>
+	a.to-sym to-str

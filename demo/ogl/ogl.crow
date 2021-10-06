@@ -2,9 +2,9 @@ import
 	crow/cell: as-ptr, cell, subscript
 	crow/col/mut-arr: begin-ptr, map-to-arr, mut-arr, set-subscript, size, subscript
 	crow/c-types: c-int
-	crow/io.duration: duration, msec
-	crow/io.print: print
-	crow/io.time: delay
+	crow/io/duration: duration, msec
+	crow/io/print: print
+	crow/io/time: delay
 	crow/math/vec: +, vec-2-32
 	crow/ptr: as-any-ptr, null, null?, ptr-cast, ptr-to, size-of, to-ptr
 	crow/str-util: join, to-c-str, to-str
@@ -228,4 +228,3 @@ n-bytes nat(vertices mut-arr vertex) unsafe
 	err = glGetError
 	if err != GL_NO_ERROR
 		"Gl error at {desc}: code {err}" throw
-

@@ -5,8 +5,10 @@ import
 	crow/bool: bool
 	crow/cell: cell
 	crow/c-types: c-char, c-float, c-int, s-long, u-int
+	crow/enum: enum-to-str
 	crow/misc: void
 	crow/ptr: any-ptr, ptr
+	crow/str: str
 
 GLbitfield alias
 	u-int
@@ -195,6 +197,9 @@ GLenum enum
 	GL_TEXTURE_SWIZZLE_G = 0x8e43
 	GL_TEXTURE_SWIZZLE_B = 0x8e44
 	GL_TEXTURE_SWIZZLE_A = 0x8e45
+
+to-str str(a GLenum)
+	a enum-to-str
 
 GL_COLOR_BUFFER_BIT GLbitfield() noctx
 	0x00004000
