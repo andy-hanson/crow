@@ -5,7 +5,7 @@ import
 	#log: info, log
 	crow/str-util: strip
 	./board:
-		board, board-cache, can-place?, color, empty-board, has-empty?, just-won?, opposite, place,
+		board, board-cache, can-place, color, empty-board, has-empty, just-won, opposite, place,
 		red, set-subscript, subscript, to-str, width
 
 main fut nat(_ arr str) summon
@@ -58,9 +58,9 @@ parse-settings opt ai-settings(a str)
 	new-board = board place x
 	other-player = cur-player opposite
 	new-board print-board other-player, x.some
-	if new-board just-won?
+	if new-board just-won
 		cur-player.some resolved
-	elif new-board has-empty?
+	elif new-board has-empty
 		new-board play-recur other-player, ai-settings
 	else
 		none resolved
@@ -74,7 +74,7 @@ parse-settings opt ai-settings(a str)
 	board human-player-move-recur
 .human-player-move-recur nat(board board) summon
 	column = "Not a valid column." read-stdin-until-parse it => it column-of-str
-	if board can-place? column
+	if board can-place column
 		column
 	else
 		print: "Can't, column is full."
@@ -127,35 +127,21 @@ score-cache alias
 	if x == width
 		best.x strategy sum-score.clamp-to-int32
 	else
-		#log? = true
-		#ai-depth >= 8
-		score-and-best = if board can-place? x
+		score-and-best = if board can-place x
 			new-board = board place x
-			#if log?
-			#	info log "{ai-depth indent}Depth {ai-depth}: Thinking about {x}"
-			score = if new-board just-won?
-				#if log?
-				#	info log "{ai-depth indent}Depth {ai-depth}: I'll win!"
+			score = if new-board just-won
 				(width ** ai-depth).to-int64 clamp-to-int32
 			elif ai-depth == 0
 				0
 			else
 				-(cache strategy-score new-board, ai-depth - 1)
-				#if log?
-				#	info log "{ai-depth indent}Depth {ai-depth}: Other player's outcome: {other-player-score}"
 			new-strategy = if score > best.score
-				#if log?
-				#	info log "{ai-depth indent}Depth {ai-depth}: Will use this new strategy at {x} with score {score}"
 				x strategy score
 			else
 				best
 			score score-and-best new-strategy
 		else
-			#if log?
-			#	info log "{ai-depth indent}Depth {ai-depth}: Can't place at {x}"
 			0 score-and-best best
-		#if log?
-		#	info log "{ai-depth indent}Depth {ai-depth}: Score at {x} is {score-and-best score}"
 		cache strategy-recur board, ai-depth, score-and-best.best, (sum-score + score-and-best.score.to-int64), x + 1
 
 indent str(depth nat)

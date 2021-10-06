@@ -13,7 +13,7 @@ import
 	
 time-locale record
 	# TODO:PRIVATE
-	local-time? bool
+	is-local-time bool
 
 # User's local time formatting preferences.
 local-time time-locale()
@@ -44,7 +44,7 @@ Date formatted by local preferences
 E.g. "2020-01-30" or "01/30/20".
 ###
 date str(locale time-locale, time unix-time) summon
-	if locale local-time?
+	if locale is-local-time
 		locale format time, "%x", 10
 	else
 		locale iso-date time
@@ -113,7 +113,7 @@ second str(locale time-locale, time unix-time) summon
 	locale format time, "%S", 2
 
 .format str(locale time-locale, time unix-time, format str, max-size nat64) trusted summon
-	tm = if locale local-time?
+	tm = if locale is-local-time
 		time.seconds-since-epoch.ptr-to localtime
 	else
 		time.seconds-since-epoch.ptr-to gmtime

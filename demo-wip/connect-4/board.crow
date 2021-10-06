@@ -1,5 +1,5 @@
 import
-	crow/bits: &, ^, |, <<, >>, bit?, bits-intersect?
+	crow/bits: &, ^, |, <<, >>, has-bit, bits-intersect
 	crow/col/mut-arr: fill-mut-arr, mut-arr, set-subscript, size, subscript
 	crow/col/mut-grid: coord, x, y
 	crow/io/terminal-color: term-bold, term-blue, term-red, term-reset
@@ -95,19 +95,19 @@ width nat()
 height nat()
 	6
 
-.grid-has? bool(a nat, x nat, y nat)
-	x < width && y < height && a bit?: x bit-index y
-.grid-has? bool(a nat, c coord)
-	a grid-has? c.x, c.y
+.grid-has bool(a nat, x nat, y nat)
+	x < width && y < height && a has-bit: x bit-index y
+.grid-has bool(a nat, c coord)
+	a grid-has c.x, c.y
 
 .bit-index nat(x nat, y nat)
 	x * (height + 1) + y
 
-can-place? bool(a board, x nat)
-	!(a.both-players bits-intersect? x.top-mask)
+can-place bool(a board, x nat)
+	!(a.both-players bits-intersect x.top-mask)
 
 place board(a board, x nat)
-	assert: a can-place? x
+	assert: a can-place x
 	new-current-player = a.current-player ^ a.both-players
 	# Since the column is 111, adding a 1 makes it 1000
 	new-both-players = a.both-players |: a.both-players + x.bottom-mask
@@ -118,8 +118,8 @@ empty-board board()
 
 .subscript opt color(a board, x nat, y nat, cur-player color)
 	pos = x coord y
-	if a.both-players grid-has? pos
-		some: if a.current-player grid-has? pos
+	if a.both-players grid-has pos
+		some: if a.current-player grid-has pos
 			cur-player
 		else
 			cur-player opposite
@@ -147,21 +147,21 @@ to-str str(a board, cur-player color, last-column opt nat)
 	# TODO: shouldn't need as<char>
 	("A".as<char>.to-nat8 + a.to-nat8).to-char to-str
 
-just-won? bool(a board)
-	a.current-player ^ a.both-players win?
+just-won bool(a board)
+	a.current-player ^ a.both-players is-win
 
-.win? bool(a nat)
+.is-win bool(a nat)
 	horiz-mask = a & a >> height + 1
-	horiz-win? = horiz-mask bits-intersect?: horiz-mask >> height * 2 + 2
+	horiz-win = horiz-mask bits-intersect: horiz-mask >> height * 2 + 2
 	diag-0-mask = a & a >> height
-	diag-0-win? = diag-0-mask bits-intersect?: diag-0-mask >> height * 2
+	diag-0-win = diag-0-mask bits-intersect: diag-0-mask >> height * 2
 	diag-1-mask = a & a >> height + 2
-	diag-1-win? = diag-1-mask bits-intersect?: diag-1-mask >> height * 2 + 4
+	diag-1-win = diag-1-mask bits-intersect: diag-1-mask >> height * 2 + 4
 	verti-mask = a &: a >> 1
-	verti-win? = verti-mask bits-intersect?: verti-mask >> 2
-	horiz-win? || diag-0-win? || diag-1-win? || verti-win?
+	verti-win = verti-mask bits-intersect: verti-mask >> 2
+	horiz-win || diag-0-win || diag-1-win || verti-win
 
-has-empty? bool(a board)
+has-empty bool(a board)
 	a.both-players != full-grid
 
 .full-grid nat()

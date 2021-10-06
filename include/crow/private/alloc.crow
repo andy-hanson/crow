@@ -26,12 +26,11 @@ mark-ctx record mut
 
 # Returns true if the range is GC-allocated memory and was not already marked
 mark bool(ctx mark-ctx, ptr-any any-ptr, size-bytes nat64) noctx unsafe summon
-	hard-assert: ptr-any word-aligned?
+	hard-assert: ptr-any is-word-aligned
 	size-words = size-bytes words-of-bytes
 	ptr = ptr-any ptr-cast<nat64, nat8>
 	index = ptr - ctx.memory-start
-	gc-memory? = index < ctx.memory-size-words
-	if gc-memory?
+	if index < ctx.memory-size-words
 		hard-assert: (index wrap-add size-words) <= ctx.memory-size-words
 		mark-start = ctx.marks + index
 		mark-end = mark-start + size-words
@@ -40,7 +39,7 @@ mark bool(ctx mark-ctx, ptr-any any-ptr, size-bytes nat64) noctx unsafe summon
 		hard-assert: (index wrap-add size-words) > ctx.memory-size-words
 		false
 
-.word-aligned? bool(a any-ptr) noctx unsafe
+.is-word-aligned bool(a any-ptr) noctx unsafe
 	a.to-nat64 & 7 == 0
 
 words-of-bytes nat64(size-bytes nat64) noctx trusted
@@ -49,13 +48,13 @@ words-of-bytes nat64(size-bytes nat64) noctx trusted
 round-up-to-multiple-of-8 nat64(n nat64) noctx
 	(n wrap-add 7) & ~7
 
-mark-range-recur bool(marked-anything? bool, cur ptr bool, end ptr bool) noctx unsafe
+mark-range-recur bool(marked-anything bool, cur ptr bool, end ptr bool) noctx unsafe
 	if cur == end
-		marked-anything?
+		marked-anything
 	else
-		new-marked-anything? = marked-anything? || !cur[]
+		new-marked-anything = marked-anything || !cur[]
 		cur[] := true
-		mark-range-recur: new-marked-anything?, cur + 1, end
+		mark-range-recur: new-marked-anything, cur + 1, end
 
 mark-visit void(mark-ctx mark-ctx, value ?a) noctx unsafe builtin
 
@@ -63,7 +62,7 @@ gc record mut
 	lk by-val lock
 	gc-count mut nat64
 	context-head mut opt gc-ctx
-	needs-gc? mut bool
+	needs-gc mut bool
 	size-words mut nat64
 	# 'mark-cur' and 'data-cur' run in parallel
 	# mark-end must be `mark-begin + size-words` and similar for data-end
@@ -120,7 +119,7 @@ gc by-val gc() noctx unsafe
 	mark = ptr-cast<bool, nat8>: malloc: size-words
 	mark-end = mark + size-words
 	data = ptr-cast<nat64, nat8>: malloc: size-words wrap-mul size-of<nat64>
-	hard-assert: data.as-any-ptr word-aligned?
+	hard-assert: data.as-any-ptr is-word-aligned
 	data-end = data + size-words
 
 	drop: mark.as-any-ptr memset 0, size-words
@@ -130,7 +129,7 @@ gc by-val gc() noctx unsafe
 	res
 
 run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
-	hard-assert: gc needs-gc?
+	hard-assert: gc needs-gc
 	gc.gc-count := gc.gc-count wrap-add 1
 	drop: gc.mark-begin.as-any-ptr memset 0, gc.size-words
 	mark-ctx = as<by-val<mark-ctx>>: mark-ctx: gc.size-words, gc.mark-begin, gc.data-begin
@@ -140,7 +139,7 @@ run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	gc.data-cur := gc.data-begin
 	gc.mark-begin clear-free-mem! prev-mark-cur, gc.data-begin
 	gc validate-gc
-	gc.needs-gc? := false
+	gc.needs-gc := false
 
 .clear-free-mem! void(mark-ptr ptr bool, mark-end ptr bool, data-ptr ptr nat64) noctx unsafe
 	if mark-ptr != mark-end
@@ -157,7 +156,7 @@ gc-ctx record mut
 	next-ctx mut opt gc-ctx
 
 force-needs-gc! void(gc gc) unsafe
-	gc.needs-gc? := true
+	gc.needs-gc := true
 
 get-gc-ctx gc-ctx(gc gc) noctx unsafe
 	gc.lk.ref-of-val acquire!
@@ -195,9 +194,9 @@ fill-ptr-range void(cur ptr ?a, end ptr ?a, value ?a) noctx unsafe
 		cur + 1 fill-ptr-range end, value
 
 validate-gc void(gc gc) noctx unsafe
-	hard-assert: gc.mark-begin.as-any-ptr word-aligned?
-	hard-assert: gc.data-begin.as-any-ptr word-aligned?
-	hard-assert: gc.data-cur.as-any-ptr word-aligned?
+	hard-assert: gc.mark-begin.as-any-ptr is-word-aligned
+	hard-assert: gc.data-begin.as-any-ptr is-word-aligned
+	hard-assert: gc.data-cur.as-any-ptr is-word-aligned
 	hard-assert: gc.mark-begin <= gc.mark-cur
 	hard-assert: gc.mark-cur <= gc.mark-end
 	hard-assert: gc.data-begin <= gc.data-cur
@@ -218,7 +217,7 @@ validate-gc void(gc gc) noctx unsafe
 .maybe-set-needs-gc! void(gc gc) noctx unsafe
 	cur-word = gc.mark-cur - gc.mark-begin
 	if cur-word > (gc.size-words unsafe-div 2)
-		gc.needs-gc? := true
+		gc.needs-gc := true
 
 .try-gc-alloc-recur opt any-ptr(gc gc, size-bytes nat64) noctx unsafe
 	# gc validate-gc
@@ -226,7 +225,7 @@ validate-gc void(gc gc) noctx unsafe
 	cur = gc data-cur
 	next = cur + size-words
 	if next < gc.data-end
-		if gc.mark-cur range-free? gc.mark-cur + size-words
+		if gc.mark-cur range-free gc.mark-cur + size-words
 			gc.mark-cur := gc.mark-cur + size-words
 			gc.data-cur := next
 			cur.ptr-cast<nat8, nat64> some<ptr nat8>
@@ -235,13 +234,13 @@ validate-gc void(gc gc) noctx unsafe
 			gc.data-cur := gc.data-cur + 1
 			gc try-gc-alloc-recur size-bytes
 
-range-free? bool(mark ptr bool, end ptr bool) noctx unsafe
+range-free bool(mark ptr bool, end ptr bool) noctx unsafe
 	if mark == end
 		true
 	elif mark[]
 		false
 	else
-		mark + 1 range-free? end
+		mark + 1 range-free end
 
 gc-alloc any-ptr(gc gc, size nat64) trusted
 	if res ?= gc try-gc-alloc size

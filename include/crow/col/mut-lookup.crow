@@ -16,10 +16,10 @@ import
 	./arr: ==, arr, size
 	./arr-util: each, map
 	./mut-arr:
-		begin-ptr, cast-immutable, each, empty?, end-ptr, fill!, fill-mut-arr, fold, map, mut-arr,
-		set-subscript, size, subscript, uninitialized-mut-arr
+		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-mut-arr, fold, is-empty, map,
+		mut-arr, set-subscript, size, subscript, uninitialized-mut-arr
 	./mut-list:
-		~=, at-capacity?, copy, each, empty?, filter!, find-index, fold, map!, mut-list,
+		~=, copy, each, filter!, find-index, fold, is-at-capacity, is-empty, map!, mut-list,
 		remove-unordered-at!, set-subscript, size, subscript
 
 mut-lookup<?k, ?v> record mut
@@ -73,14 +73,14 @@ test
 	a verify "(6 -> 6) (1 -> 1) [2 -> 2, 5 -> 5]"
 	b verify "_ (1 -> 1) [2 -> 2, 5 -> 5]"
 
-empty? bool(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
+is-empty bool(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a.size == 0
 
 size nat64(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a total-size
 
 subscript opt ?v(a mut-lookup<?k, ?v>, key ?k) trusted data<?k> compare<?k> hash-mix<?k>
-	if !a.empty?
+	if !a.is-empty
 		match a.entries[key.hash unsafe-mod a.entries.size]
 		as none
 			none
@@ -114,7 +114,7 @@ f: Takes the value (if it exists), returns the new value (or none to remove).
 Returns the old value (if it exists).
 ###
 .update! opt ?v(a mut-lookup<?k, ?v>, key ?k, f act opt ?v(opt ?v)) trusted data<?k> compare<?k> hash-mix<?k>
-	if a.entries empty?
+	if a.entries is-empty
 		if value ?= f[none]
 			a.entries := mut-arr: [key -> value]
 			a.total-size := 1
@@ -137,7 +137,7 @@ Returns the old value (if it exists).
 				ar.to some
 			else
 				if value ?= f[none]
-					if a should-expand?
+					if a should-expand
 						a expand!
 						a[key] := value
 					else
@@ -151,7 +151,7 @@ Returns the old value (if it exists).
 					m[index] := key -> value
 				else
 					drop: m remove-unordered-at! index
-					if m empty?
+					if m is-empty
 						a.entries[entry-index] := none
 					elif m.size == 1
 						# TODO: should not need a local
@@ -161,7 +161,7 @@ Returns the old value (if it exists).
 				old-value some
 			else
 				if value ?= f[none]
-					if m.at-capacity? && a.should-expand?
+					if m.is-at-capacity && a.should-expand
 						a expand!
 						a[key] := value
 					else
@@ -174,7 +174,7 @@ Returns the old value (if it exists).
 		a[pair from] := pair to
 
 # Called when we're about to allocate a bigger bucket -- maybe we should expand the table instead
-.should-expand? bool(a mut-lookup<?k, ?v>)
+.should-expand bool(a mut-lookup<?k, ?v>)
 	a.total-size >= a.entries.size
 
 .expand! void(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
@@ -213,7 +213,7 @@ filter! void(a mut-lookup<?k, ?v>, f act bool(?k, ?v)) trusted data<?k> compare<
 				entry-ptr[] := none
 		as mut-list m
 			m filter! pair => f[pair.from, pair.to]
-			if m empty?
+			if m is-empty
 				entry-ptr[] := none
 			elif m.size == 1
 				# TODO: should not need a local

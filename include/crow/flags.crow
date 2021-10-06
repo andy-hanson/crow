@@ -19,12 +19,12 @@ flags<?a> spec
 	& ?a(a ?a, b ?a)
 	| ?a(a ?a, b ?a)
 
-in bool(a ?a, b ?a) flags<?a>
+is-in bool(a ?a, b ?a) flags<?a>
 	a & b == a
 
 to-syms arr sym(a ?a) flags<?a>
 	flags-members flat-map member =>
-		if member.val in a
+		if member.val is-in a
 			[member name]
 		else
 			[]

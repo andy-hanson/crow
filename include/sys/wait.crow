@@ -1,6 +1,6 @@
 no-std
 import
-	crow/bits: &, >>, bits-intersect?
+	crow/bits: &, >>, bits-intersect
 	crow/bool: &&, bool
 	crow/cell: cell
 	crow/compare: !=
@@ -29,7 +29,7 @@ WIFSIGNALED bool(status status-t)
 	ts != 0 && ts != 0x7f
 
 WCOREDUMP bool(status status-t)
-	status bits-intersect? 0x80
+	status bits-intersect 0x80
 
 WIFSTOPPED bool(status status-t)
 	status & 0xff == 0x7f

@@ -4,7 +4,7 @@ import
 	./col/arr-util: each
 	./fun: subscript
 	./misc: void
-	./str: empty?, str
+	./str: is-empty, str
 	./writer: ~=, move-to-str!, writer
 	./private/backtrace: return-stack
 	./private/bootstrap: backtrace, to-c-str
@@ -75,7 +75,7 @@ do-if-error ?a(on-error act void(), try act ?a())
 
 to-str str(a exception) unsafe
 	res = writer
-	res ~= if a.message.empty?
+	res ~= if a.message.is-empty
 		"<<empty message>>"
 	else
 		a.message

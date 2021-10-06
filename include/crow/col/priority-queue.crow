@@ -5,7 +5,7 @@ import
 	../exception: assert
 	../fun: subscript
 	../misc: ->, arrow, as, data, from, to, void
-	../opt: empty?, force, none, opt, some
+	../opt: force, is-empty, none, opt, some
 	../ptr: ==, +, -, ptr, set-subscript
 	../str: ==, str
 	../str-conv: finish, interp, to-str, with-str, with-value
@@ -14,7 +14,7 @@ import
 	../tuple: a, b, pair
 	../writer: ~=, backup!, move-to-str!, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
-	./arr: ==, arr, empty?, size
+	./arr: ==, arr, is-empty, size
 	./arr-util: each, first, fold, map, tail
 	./mut-arr:
 		begin-ptr, cast-immutable, end-ptr, first, mut-arr, set-subscript, size, subscript,
@@ -53,14 +53,14 @@ priority-queue priority-queue<?k, ?v>() data<?k> compare<?k>
 	priority-queue: void, none
 
 priority-queue priority-queue<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
-	if a empty?
+	if a is-empty
 		priority-queue
 	else
 		sorted = a sort-by pair => pair from
 		priority-queue: void, some: node: sorted.first.force, sorted.tail, none
 
-empty? bool(a priority-queue<?k, ?v>) data<?k> compare<?k>
-	a.root empty?
+is-empty bool(a priority-queue<?k, ?v>) data<?k> compare<?k>
+	a.root is-empty
 
 size nat64(a priority-queue<?k, ?v>) data<?k> compare<?k>
 	0 size-recur a.root
@@ -100,15 +100,15 @@ pop opt popped<?k, ?v>(a priority-queue<?k, ?v>) data<?k> compare<?k>
 
 # Returns none if this (or any following node) did not have a lower min.
 .pop-no-compact-recur opt popped<?k, ?v>(a node<?k, ?v>, min ?k) compare<?k>
-	is-min? = a.min.from < min
+	is-min = a.min.from < min
 	next-popped = if next ?= a next
-		next pop-no-compact-recur if is-min?
+		next pop-no-compact-recur if is-min
 			a.min from
 		else
 			min
 	if next ?= next-popped
 		a combine-with-popped next some
-	elif is-min?
+	elif is-min
 		a.pop-from-node some
 	else
 		none
@@ -137,7 +137,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 # Also returns the # of nodes before that
 .find-mid found-mid<?k, ?v>(a opt node<?k, ?v>, n-before nat64)
 	if node ?= a
-		if node.pairs empty?
+		if node.pairs is-empty
 			node.next find-mid: n-before wrap-add 1
 		else
 			found-mid: node.some, n-before
@@ -182,7 +182,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 	node: arr.first.force, arr.tail, none
 
 .compact-singles! ptr arrow<?k, ?v>(out ptr arrow<?k, ?v>, a node<?k, ?v>) unsafe
-	if a.pairs empty?
+	if a.pairs is-empty
 		# Output later nodes first to preserve insertion order (since they're inserted to the front)
 		pos = if next ?= a next
 			out compact-singles! next
@@ -215,7 +215,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 		out ~= " "
 		out ~= node.min to
 		out ~= " ["
-		if !node.pairs.empty?
+		if !node.pairs.is-empty
 			node.pairs each pair =>
 				out ~= pair from
 				out ~= " "

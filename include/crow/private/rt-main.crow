@@ -26,7 +26,7 @@ import
 		wrap-sub
 	./perf-low-level: perf-ctx
 	./runtime:
-		any-unhandled-exceptions?, ctx, global-ctx, island, may-be-work-to-do, print-lock,
+		any-unhandled-exceptions, ctx, global-ctx, island, may-be-work-to-do, print-lock,
 		set-islands, thread-function
 	./thread-utils:
 		create-one-thread, create-condition, destroy-condition, join-one-thread, lock-by-val
@@ -60,7 +60,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 		1
 	as fut-state-resolved r
 		# TODO: handle nat64 too big for int32
-		if gctx.any-unhandled-exceptions?
+		if gctx any-unhandled-exceptions
 			1
 		else
 			r.value.unsafe-to-int64.unsafe-to-int32

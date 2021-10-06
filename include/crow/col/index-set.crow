@@ -1,7 +1,7 @@
 no-std
 import
 	../bits:
-		&, |, <<, >>, add-bit, bit?, bits-diff, count-ones,
+		&, |, <<, >>, add-bit, has-bit, bits-diff, count-ones,
 		filter-bits, fold-one-bits, nth-bit, sub-bit
 	../bool: !, &&, ==, bool, false, true
 	../compare: !=, <, <=
@@ -10,7 +10,7 @@ import
 	../log: info, log
 	../misc: ->, drop, void
 	../number: deep-size-bytes, each
-	../opt: empty?, none, opt, or-default, some
+	../opt: is-empty, none, opt, or-default, some
 	../ptr: ==, +, set-subscript
 	../str: ==, str
 	../str-conv: to-hex
@@ -18,7 +18,7 @@ import
 	../writer: ~=, backup!, move-to-str!, writer
 	../private/number-low-level:
 		==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
-	./arr: ==, arr, empty?, size, subscript
+	./arr: ==, arr, is-empty, size, subscript
 	./arr-util:
 		alloc-count, deep-size-bytes, each, fold, fold-with-index, last, make-arr, map-with-index,
 		rtail, update, zip-larger, zip-smaller
@@ -30,8 +30,8 @@ index-set record
 	# TODO: use 'vector' type that supports efficient inserts to the middle
 	values arr nat64
 
-empty? bool(a index-set)
-	a.values empty?
+is-empty bool(a index-set)
+	a.values is-empty
 
 size nat64(a index-set)
 	a.values count-ones-in-arr
@@ -61,7 +61,7 @@ arr arr nat64(a index-set)
 subscript bool(a index-set, index nat64)
 	nat64-index = index word-index
 	if nat64-index < a.values.size
-		a.values[nat64-index] bit? index.bit-index
+		a.values[nat64-index] has-bit index.bit-index
 	else
 		false
 
@@ -72,7 +72,7 @@ try-add opt index-set(a index-set, index nat64)
 	nat64-index = index word-index
 	bit-index = index bit-index
 	if nat64-index < a.values.size
-		if !(a.values[nat64-index] bit? bit-index)
+		if !(a.values[nat64-index] has-bit bit-index)
 			new-values = a.values update: nat64-index, a.values[nat64-index] add-bit bit-index
 			some: index-set: void, new-values
 	else
@@ -209,7 +209,7 @@ map-to-arr arr ?a(a index-set, f act ?a(nat64)) trusted
 	res cast-immutable
 
 debug str(a index-set)
-	if a empty?
+	if a is-empty
 		"[]"
 	else
 		out = writer
@@ -222,7 +222,7 @@ debug str(a index-set)
 		out move-to-str!
 
 .dbg str(a index-set)
-	if a empty?
+	if a is-empty
 		"[]"
 	else
 		out = writer
@@ -265,8 +265,8 @@ test
 	c verify "[x310]", [4, 8, 9]
 
 	# TODO: 'is none'
-	(c try-remove 7).empty? is true
-	(c try-add 8).empty? is true
+	(c try-remove 7).is-empty is true
+	(c try-add 8).is-empty is true
 
 	d = c - 8
 	d verify "[x210]", [4, 9]

@@ -3,21 +3,21 @@ import
 	crow/math/vec: -, length-squared, vec-2, x, y
 
 main fut nat(_ arr str) summon
-	c = (1.0 vec-2 1.0) circle 1.0
-	print: c contains? (1.7 vec-2 1.7) to-str
-	print: c contains? (1.7 vec-2 1.8) to-str
+	c = as<hitbox>: (1.0 vec-2 1.0) circle 1.0
+	print: 1.7 vec-2 1.7 in c to-str
+	print: 1.7 vec-2 1.8 in c to-str
 	r = rect: 1.0, 2.0, 3.0, 4.0
-	print: r contains? (1.1 vec-2 3.0) to-str
-	print: r contains? (1.1 vec-2 2.9) to-str
-	print: empty contains? (0.0 vec-2 0.0) to-str
+	print: 1.1 vec-2 3.0 in r to-str
+	print: 1.1 vec-2 2.9 in r to-str
+	print: 0.0 vec-2 0.0 in empty to-str
 	0 resolved
 
-contains? bool(a hitbox, p vec-2)
-	match a
+in bool(v vec-2, h hitbox)
+	match h
 	as circle c
-		(p - c.center).length-squared <= c.radius ** 2
+		(v - c.center).length-squared <= c.radius ** 2
 	as rect r
-		r.left <= p.x && p.x <= r.right && r.bottom <= p.y && p.y <= r.top
+		r.left <= v.x && v.x <= r.right && r.bottom <= v.y && v.y <= r.top
 	as empty
 		false
 

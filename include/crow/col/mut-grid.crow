@@ -14,7 +14,7 @@ import
 	../test: is
 	../writer: ~=, backup!, move-to-str!, write, writer
 	./mut-arr:
-		begin-ptr, copy, each, empty?, end-ptr, exists?, fold, map!, mut-arr, set-subscript, size,
+		begin-ptr, copy, each, end-ptr, exists, fold, is-empty, map!, mut-arr, set-subscript, size,
 		subscript, uninitialized-mut-arr
 
 ###
@@ -32,7 +32,7 @@ coord record
 	x nat64
 	y nat64
 
-has-coord? bool(a mut-grid ?a, coord coord)
+has-coord bool(a mut-grid ?a, coord coord)
 	coord.x < a.width && coord.y < a.height
 
 to-str str(a coord)
@@ -93,7 +93,7 @@ to-str str(a mut-grid ?a) write<?a>
 		row each value =>
 			res ~= value
 			res ~= " "
-		if !row.empty?
+		if !row.is-empty
 			res backup!
 		res ~= "\n"
 	if a.height != 0
@@ -127,8 +127,8 @@ fold-with-coords ?a(acc ?a, a mut-grid ?b, f act ?a(?a, ?b, coord)) trusted
 	else
 		f[acc, cur[], coord] fold-with-coords-recur cur + 1, end, (coord next-coord width), width, f
 
-exists? bool(a mut-grid ?a, f act bool(?a))
-	a.elements exists? f
+exists bool(a mut-grid ?a, f act bool(?a))
+	a.elements exists f
 
 map! void(a mut-grid ?a, f act ?a(?a))
 	a.elements map! f

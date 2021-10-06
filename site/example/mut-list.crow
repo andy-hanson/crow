@@ -1,5 +1,5 @@
 import
-	crow/col/mut-list: ~=, empty?, move-to-arr!, mut-list
+	crow/col/mut-list: ~=, is-empty, move-to-arr!, mut-list
 	crow/io/print: print
 	crow/str-util: join
 
@@ -9,5 +9,5 @@ main fut nat(_ arr str) summon
 	xs ~= ["e", "f"]
 	a = xs move-to-arr!
 	print: a join ", "
-	print: xs.empty? to-str
+	print: xs.is-empty to-str
 	0 resolved

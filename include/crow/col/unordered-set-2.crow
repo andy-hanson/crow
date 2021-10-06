@@ -16,11 +16,11 @@ import
 	./arr: ==, arr
 	./arr-util: fold
 	./frozen-unordered-set:
-		alloc-count, begin-ptr, each-unordered, empty?, end-ptr, fold-unordered-with-index,
-		frozen-unordered-set, overhead-bytes, size, try-get-unordered-index,
+		alloc-count, begin-ptr, each-unordered, end-ptr, fold-unordered-with-index,
+		frozen-unordered-set, is-empty, overhead-bytes, size, try-get-unordered-index,
 		unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
 	./index-set:
-		alloc-count, count-greater-or-equal, deep-size-bytes, each, empty?, filter-less, index-set,
+		alloc-count, count-greater-or-equal, deep-size-bytes, each, is-empty, filter-less, index-set,
 		size, subscript, try-remove
 	./mut-arr: begin-ptr, cast-immutable, end-ptr, mut-arr-from-begin-end, uninitialized-mut-arr
 
@@ -60,8 +60,8 @@ overhead-bytes nat64(a unordered-set ?a) unsafe
 	else
 		mid
 
-empty? bool(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
-	a.add.here empty?
+is-empty bool(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
+	a.add.here is-empty
 
 size nat64(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
 	a.remove.size add-size-recur a.add
@@ -126,7 +126,7 @@ try-add opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> 
 	size-here = a.here size
 	size-left = size-here-and-left wrap-sub size-here
 	removals-here-and-right = remove count-greater-or-equal size-left
-	if size-here should-compact? size-right, removals-here-and-right
+	if size-here should-compact size-right, removals-here-and-right
 		size-here-and-right = size-here wrap-add size-right
 		if left ?= a left
 			size-left add-and-compact-plan left, remove, size-here-and-right
@@ -135,7 +135,7 @@ try-add opt unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> 
 	else
 		size-here-and-left compact-plan size-right
 
-.should-compact? bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
+.should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right wrap-add (removals-here-and-right wrap-mul 2)) >= size-here
 
 .add-and-compact unordered-set ?a
@@ -224,7 +224,7 @@ map-to-arr-unordered arr ?out(a unordered-set ?in, f act ?out(?in)) trusted data
 .dbg str(a unordered-set ?a) to-str<?a>
 	out = writer
 	out dbg-add-recur! a.add
-	if !a.remove.empty?
+	if !a.remove.is-empty
 		out ~= " - ["
 		a.remove each i =>
 			out ~= i to-str
@@ -238,7 +238,7 @@ map-to-arr-unordered arr ?out(a unordered-set ?in, f act ?out(?in)) trusted data
 		out dbg-add-recur! left
 		out ~= ", "
 
-	if a.here empty?
+	if a.here is-empty
 		out ~= "[]"
 	else
 		out ~= "["
@@ -253,12 +253,12 @@ map-to-arr-unordered arr ?out(a unordered-set ?in, f act ?out(?in)) trusted data
 
 test
 	a = unordered-set<nat64>
-	a.empty? is true
+	a.is-empty is true
 	a.size is 0
 	a verify "[]"
 
 	b = a ~ 5
-	b.empty? is false
+	b.is-empty is false
 	b.size is 1
 	b.unordered-arr is [5]
 	b verify "[5]"

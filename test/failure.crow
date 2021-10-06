@@ -9,20 +9,20 @@ handle-output arr failure
 	original-path str
 	output-path str
 	actual str
-	overwrite-output? bool
+	overwrite-output bool
 spec
 	summon
 body
 	if text ?= output-path try-read-file
 		if text == actual
 			[]
-		elif overwrite-output?
+		elif overwrite-output
 			output-path write-file actual
 			[]
 		else
 			message = "{output-path base-name} was not as expected. actual:\n{actual}"
 			[original-path failure message]
-	elif overwrite-output?
+	elif overwrite-output
 		output-path write-file actual
 		[]
 	else
@@ -37,8 +37,8 @@ flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper act arr<?out>(?i
 	res move-to-arr!
 
 test-options record
-	print-tests? bool
-	overwrite-output? bool
+	print-tests bool
+	overwrite-output bool
 	max-failures nat
 	match-test str
 

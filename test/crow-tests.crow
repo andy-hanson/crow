@@ -6,17 +6,17 @@ import
 	crow/io/path: base-name, get-extension
 	crow/io/print: print
 	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
-	crow/str-util: has-substr?, try-remove-start
+	crow/str-util: has-substr, try-remove-start
 	crow/writer: ~=, move-to-str!, writer
 	./failure:
-		failure, flat-map-with-max-size, handle-output, max-failures, match-test, overwrite-output?,
-		print-tests?, test-options
+		failure, flat-map-with-max-size, handle-output, max-failures, match-test, overwrite-output,
+		print-tests, test-options
 
 run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ, options test-options) summon
 	tests = path list-tests options.match-test
 	failures = tests flat-map-with-max-size options.max-failures, test =>
 		path-to-crow run-single-crow-test env, test, options
-	if failures empty?
+	if failures is-empty
 		ok: "ran {tests size} tests in {path}"
 	else
 		failures err
@@ -24,11 +24,11 @@ run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ,
 .list-tests arr str(path str, match-test str) summon
 	res = mut-list<str>
 	path each-child-recursive child =>
-		if child has-substr? match-test && child.ext-is-crow?
+		if child has-substr match-test && child.ext-is-crow
 			res ~= child
 	res move-to-arr!
 
-.ext-is-crow? bool(a str)
+.ext-is-crow bool(a str)
 	a.base-name.get-extension == "crow".some
 
 .run-single-crow-test arr failure
@@ -40,24 +40,24 @@ spec
 	summon
 body
 	op = ["ast", "model", "concrete-model", "low-model"] first-some<arr<failure>, str> print-kind =>
-		if options.print-tests?
+		if options print-tests
 			print: "crow print {print-kind} {path}"
-		res = print-kind run-print-test path-to-crow, env, path, options.overwrite-output?
-		if res should-stop?
+		res = print-kind run-print-test path-to-crow, env, path, options.overwrite-output
+		if res should-stop
 			res.failures some
 	if res ?= op
 		res
 	else
-		if options.print-tests?
+		if options.print-tests
 			print: "crow run {path}"
-		interpret-failures = path-to-crow run-single-runnable-test env, path, true, options.overwrite-output?
-		if interpret-failures.empty?
-			path-to-crow run-single-runnable-test env, path, false, options.overwrite-output?
+		interpret-failures = path-to-crow run-single-runnable-test env, path, true, options.overwrite-output
+		if interpret-failures is-empty
+			path-to-crow run-single-runnable-test env, path, false, options.overwrite-output
 		else
 			interpret-failures
 
 .print-test-result record
-	should-stop? bool
+	should-stop bool
 	failures arr failure
 
 .run-print-test print-test-result
@@ -65,20 +65,20 @@ body
 	path-to-crow str
 	env environ
 	path str
-	overwrite-output? bool
+	overwrite-output bool
 spec
 	summon
 body
 	res = path-to-crow spawn-and-wait-result ["print", print-kind, path], env
 	output-path = "{path}.{print-kind}.repr"
 	# NOTE: compiler may have both stderr and stdout!
-	output-failures = if res.stdout.empty? && res.exit-code != 0
+	output-failures = if res.stdout.is-empty && res.exit-code != 0
 		# Just have a file for the err
 		[] as<arr failure>
 	else
-		path handle-output output-path, res.stdout, overwrite-output?
+		path handle-output output-path, res.stdout, overwrite-output
 
-	if !output-failures.empty?
+	if !output-failures.is-empty
 		print-test-result: true, output-failures
 	elif res.exit-code == 0
 		assert: res.stderr == ""
@@ -86,7 +86,7 @@ body
 	elif res.exit-code == 1
 		stderr-no-color = res.stderr remove-colors
 		# We should stop even if no test failure in handling the output
-		print-test-result: true, handle-output: path, "{output-path}.err", stderr-no-color, overwrite-output?
+		print-test-result: true, handle-output: path, "{output-path}.err", stderr-no-color, overwrite-output
 	else
 		message = "unexpected exit code: {res exit-code}"
 		print-test-result: true, [path failure message]
@@ -95,21 +95,21 @@ body
 	path-to-crow str
 	env environ
 	path str
-	interpret? bool
-	overwrite-output? bool
+	interpret bool
+	overwrite-output bool
 spec
 	summon
 body
-	args = if interpret?
+	args = if interpret
 		["run", path, "--interpret"]
 	else
 		["run", path, "--out", "{path}.c"]
 	res = path-to-crow spawn-and-wait-result args, env
-	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output?
+	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output
 	stderr-failures = if res.exit-code == 0 && res.stderr == ""
 		[] as<arr failure>
 	else
-		path handle-output ("{path}.stderr"), res.stderr, overwrite-output?
+		path handle-output ("{path}.stderr"), res.stderr, overwrite-output
 	stdout-failures ~ stderr-failures
 
 .remove-colors str(s str)
@@ -118,7 +118,7 @@ body
 	res move-to-str!
 
 .remove-colors-recur! void(s str, out writer)
-	if s empty?
+	if s is-empty
 		void
 	elif rest ?= s try-remove-start "\x1b"
 		rest remove-colors-recur-2! out
@@ -127,7 +127,7 @@ body
 		s.chars.tail.str remove-colors-recur! out
 
 .remove-colors-recur-2! void(s str, out writer)
-	if s empty?
+	if s is-empty
 		void
 	elif rest ?= s try-remove-start "m"
 		rest remove-colors-recur! out

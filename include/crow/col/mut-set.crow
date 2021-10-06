@@ -5,11 +5,11 @@ import
 	../fun: subscript
 	../misc: ->, data, from, void
 	../number: nat64
-	../opt: empty?
+	../opt: is-empty
 	./arr: arr
 	./arr-util: each, map
 	./mut-dict:
-		each, empty?, empty!, filter, filter!, fold, map, map!, move-to-arr!, mut-dict,
+		each, empty!, filter, filter!, fold, is-empty, map, map!, move-to-arr!, mut-dict,
 		remove-key!, set-subscript, size, subscript
 	./set: set
 
@@ -36,8 +36,8 @@ mut-set mut-set ?a(a arr ?a) data<?a> compare<?a>
 	mut-set: void, a map (x => x -> void) mut-dict
 
 # True iff the set has no elements.
-empty? bool(a mut-set ?a) data<?a> compare<?a>
-	a.inner empty?
+is-empty bool(a mut-set ?a) data<?a> compare<?a>
+	a.inner is-empty
 
 # Removes all elements.
 empty! void(a mut-set ?a) data<?a> compare<?a>
@@ -49,7 +49,7 @@ size nat64(a mut-set ?a) data<?a> compare<?a>
 
 # True iff the value is in the set.
 subscript bool(a mut-set ?a, value ?a) data<?a> compare<?a>
-	!a.inner[value].empty?
+	!a.inner[value].is-empty
 
 ###
 Adds a value to the set.
@@ -69,7 +69,7 @@ If the value was present, removes it and returns `true`.
 If the value was not present, does nothing and returns `false`.
 ###
 remove! bool(a mut-set ?a, value ?a) data<?a> compare<?a>
-	!(a.inner remove-key! value empty?)
+	!(a.inner remove-key! value is-empty)
 
 # Convert to an `arr`, clearing the original `mut-set` in the process.
 move-to-arr! arr ?a(a mut-set ?a) data<?a> compare<?a>

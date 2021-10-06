@@ -8,7 +8,7 @@ import
 	../misc: as, void
 	../opt: none, opt, some
 	../ptr: as-any-ptr, as-ref, by-val, ref-of-val
-	./alloc: gc, get-gc-ctx, needs-gc?, return-gc-ctx, run-garbage-collection
+	./alloc: gc, get-gc-ctx, needs-gc, return-gc-ctx, run-garbage-collection
 	./bool-low-level: !, &&, ||, bool, false, true
 	./bootstrap:
 		call-with-ctx, ctx, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
@@ -18,7 +18,7 @@ import
 	./number-low-level: ==, <=>, wrap-add, wrap-sub
 	./perf-low-level: perf-ctx
 	./task-queue:
-		action, any-tasks?, empty?, exclusion, first-task-time, insert-task!, no-task,
+		action, any-tasks, exclusion, first-task-time, insert-task!, is-empty, no-task,
 		no-timestamp, pop-task!, return-task!, task, task-queue, task-queue-node
 	./thread-utils:
 		acquire!, broadcast!, condition, get-and-increment!, get-sequence, lock-by-val,
@@ -57,10 +57,10 @@ global-ctx record mut
 	# But if there's no work to do, it can set 'is-shut-down' and wake up the other threads so they can shut down too.
 	n-live-threads mut nat64
 	may-be-work-to-do by-val condition
-	shut-down? mut bool
+	is-shut-down mut bool
 	# Set to true the first time the default exception handler is invoked.
 	# Can never be unset.
-	any-unhandled-exceptions? mut bool
+	any-unhandled-exceptions mut bool
 
 island record mut
 	gctx global-ctx
@@ -101,9 +101,9 @@ island by-val island(gctx global-ctx, id island-id, max-threads nat64) summon no
 default-exception-handler void(e exception) summon unsafe
 	print-err-no-newline: "uncaught exception: "
 	print-err: e to-str
-	get-global-ctx.any-unhandled-exceptions? := true
+	get-global-ctx.any-unhandled-exceptions := true
 
-# TODO: move to exception.crow?
+# TODO: move to exception.crow ?
 set-this-islands-exception-handler void(exception-handler fun void(exception)) summon trusted
 	get-cur-island.gc-root.ref-of-val.exception-handler := exception-handler
 
@@ -132,7 +132,7 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 	gctx thread-function-recur tls.ref-of-val
 
 .thread-function-recur void(gctx global-ctx, tls thread-local-stuff) noctx unsafe summon
-	if gctx shut-down?
+	if gctx is-shut-down
 		gctx.lk.ref-of-val acquire!
 		# Remove this thread from live threads for good.
 		gctx.n-live-threads := gctx.n-live-threads wrap-sub 1
@@ -147,9 +147,9 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 		as chosen-task t
 			do-task: gctx, tls, t
 		as no-chosen-task n
-			if n no-tasks-and-last-thread-out?
-				hard-forbid: gctx shut-down?
-				gctx.shut-down? := true
+			if n no-tasks-and-last-thread-out
+				hard-forbid: gctx is-shut-down
+				gctx.is-shut-down := true
 				# Wake up sleeping threads so they can shut down
 				gctx.may-be-work-to-do.ref-of-val broadcast!
 			else
@@ -183,7 +183,7 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 		ctx.ref-of-val return-ctx
 	as do-a-gc
 		# We avoid running GC twice at once because 'n-threads-running' will be 1 here
-		# and 'needs-gc?' won't be set to false until the GC is complete
+		# and 'needs-gc' won't be set to false until the GC is complete
 		island.gc.ref-of-val run-garbage-collection island.gc-root
 		# We might have avoided doing a task because GC was running.
 		# Now those tasks can be done.
@@ -209,7 +209,7 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 .no-chosen-task record
 	by-val
 	# If true, no threads are doing any work and we should exit the program.
-	no-tasks-and-last-thread-out? bool
+	no-tasks-and-last-thread-out bool
 	# WARN: there may be tasks with exclusions before this time
 	# This is here to ensure that we stop waiting on 'may-be-work-to-do' when we get to that time
 	first-task-time opt timestamp
@@ -230,12 +230,12 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 		c
 	as no-chosen-task n
 		gctx.n-live-threads := gctx.n-live-threads wrap-sub 1
-		no-task-and-last-thread-out? = n.no-tasks-and-last-thread-out? && gctx.n-live-threads == 0
+		no-task-and-last-thread-out = n.no-tasks-and-last-thread-out && gctx.n-live-threads == 0
 		# Did not find a task to do.
 		# (Tasks may have been added concurrently;
 		# this is fine as we're about to wait on a condition and will immediately wake up if so.)
 		# Need to do this here while we hold the lock
-		no-chosen-task: no-task-and-last-thread-out?, n.first-task-time
+		no-task-and-last-thread-out no-chosen-task n.first-task-time
 
 	gctx.lk.ref-of-val release!
 
@@ -245,14 +245,14 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 	islands arr island
 	i nat64
 	cur-time timestamp
-	any-tasks? bool
+	any-tasks bool
 	first-task-time opt timestamp
 spec
 	noctx
 	unsafe
 body
 	if i == islands.size
-		!any-tasks? no-chosen-task first-task-time
+		!any-tasks no-chosen-task first-task-time
 	else
 		island = islands noctx-at i
 		match island choose-task-in-island cur-time
@@ -261,9 +261,9 @@ body
 		as do-a-gc g
 			chosen-task: island, g
 		as no-task n
-			new-any-tasks? = any-tasks? || n.any-tasks?
+			new-any-tasks = any-tasks || n.any-tasks
 			new-first-task-time = first-task-time min-time n.first-task-time
-			islands choose-task-recur: (i wrap-add 1), cur-time, new-any-tasks?, new-first-task-time
+			islands choose-task-recur: (i wrap-add 1), cur-time, new-any-tasks, new-first-task-time
 
 .min-time opt timestamp(a opt timestamp, b opt timestamp) noctx
 	if ta ?= a
@@ -277,7 +277,7 @@ body
 	do-a-gc
 	no-task
 
-.is-no-task? bool(a choose-task-in-island-result) noctx
+.is-no-task bool(a choose-task-in-island-result) noctx
 	match a
 	as task
 		false
@@ -289,8 +289,8 @@ body
 .choose-task-in-island choose-task-in-island-result(island island, cur-time timestamp) noctx unsafe
 	island.tasks-lock.ref-of-val acquire!
 
-	# TODO: ref-of-val should be unnecessary for property access?
-	res = as<choose-task-in-island-result>: if island.gc.ref-of-val.needs-gc?
+	# TODO: ref-of-val should be unnecessary for property access ?
+	res = as<choose-task-in-island-result>: if island.gc.ref-of-val.needs-gc
 		if island.n-threads-running == 0
 			do-a-gc
 		else
@@ -305,7 +305,7 @@ body
 		as no-task n
 			n
 
-	if !res.is-no-task?
+	if !res.is-no-task
 		island.n-threads-running := island.n-threads-running wrap-add 1
 
 	island.tasks-lock.ref-of-val release!
@@ -318,9 +318,9 @@ body
 		island = islands noctx-at i
 
 		island.tasks-lock.ref-of-val acquire!
-		hard-forbid: island.gc.ref-of-val needs-gc?
+		hard-forbid: island.gc.ref-of-val needs-gc
 		hard-assert: island.n-threads-running == 0
-		hard-assert: island.tasks empty?
+		hard-assert: island.tasks is-empty
 		island.tasks-lock.ref-of-val release!
 
 		i wrap-add 1 assert-islands-are-shut-down islands

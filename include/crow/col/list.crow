@@ -5,14 +5,14 @@ import
 	../exception: assert, forbid
 	../fun: subscript
 	../misc: ->, as, drop, void
-	../opt: ==, empty?, none, opt, some
+	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, -, ptr, set-subscript, subscript
 	../str: ==, str
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
 	../private/bootstrap: hard-assert, hard-unreachable
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
-	./arr: ==, arr, arr-equal?, begin-ptr, end-ptr, empty?, size, unsafe-slice
+	./arr: ==, arr, arr-equal, begin-ptr, end-ptr, is-empty, size, unsafe-slice
 	./arr-util: each, each-with-index, first, first-some, fold, last, rtail
 	./mut-arr:
 		begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end,
@@ -42,17 +42,17 @@ list list ?a(a arr ?a)
 	list: void, none, a
 
 # TODO:KILL
-list-equal? bool(a list ?a, b list ?a, eq act bool(?a, ?a))
-	a.arr arr-equal? b.arr, eq
+list-equal bool(a list ?a, b list ?a, eq act bool(?a, ?a))
+	a.arr arr-equal b.arr, eq
 
 # TODO: should be generic
-list-equal? bool(a list ?a, b list ?a) trusted noctx equal<?a>
+list-equal bool(a list ?a, b list ?a) trusted noctx equal<?a>
 	if a.size == b.size
 		match a equal-recur b
 		as not-equal
 			false
 		as left-longer ll
-			hard-assert: ll.remainder empty?
+			hard-assert: ll.remainder is-empty
 			true
 		as right-longer
 			hard-unreachable
@@ -115,7 +115,7 @@ list-equal? bool(a list ?a, b list ?a) trusted noctx equal<?a>
 # WARN: For simplicity, this returns empty 'remainder'
 .equal-with-remainder equal-with-remainder ?a(a arr ?a, b arr ?a) unsafe noctx equal<?a>
 	size = a.size min b.size
-	if (a unsafe-slice 0, size) arr-equal? (b unsafe-slice 0, size)
+	if (a unsafe-slice 0, size) arr-equal (b unsafe-slice 0, size)
 		if a.size < size
 			b unsafe-slice size, b.size right-longer
 		else
@@ -125,7 +125,7 @@ list-equal? bool(a list ?a, b list ?a) trusted noctx equal<?a>
 
 .equal-with-remainder equal-with-remainder ?a(a0 arr ?a, a1 arr ?a, b arr ?a) unsafe noctx equal<?a>
 	hard-assert: a0.size < b.size
-	if a0 arr-equal? (b unsafe-slice 0, a0.size)
+	if a0 arr-equal (b unsafe-slice 0, a0.size)
 		a1 equal-with-remainder: b unsafe-slice a0.size, b.size
 	else
 		not-equal
@@ -168,10 +168,10 @@ every 4 steps it allocates an array of size 4, etc.
 		res
 
 # True iff the list is empty.
-empty? bool(a list ?a)
-	res = a.values empty?
+is-empty bool(a list ?a)
+	res = a.values is-empty
 	if res
-		assert: a.prev empty?
+		assert: a.prev is-empty
 	res
 
 ###
@@ -223,7 +223,7 @@ Concatenate an array to a list.
 This is O(1).
 ###
 ~ list ?a(a list ?a, b arr ?a)
-	prev = as<opt list ?a>: if a empty?
+	prev = as<opt list ?a>: if a is-empty
 		none
 	else
 		a some
@@ -301,7 +301,7 @@ first-some opt ?out(a list ?in, f act opt ?out(?in))
 	before = if prev ?= a prev
 		prev first-some f
 
-	if before empty?
+	if before is-empty
 		a.values first-some f
 	else
 		before
@@ -315,7 +315,7 @@ first-some opt ?out(a list ?in, f act opt ?out(?in))
 		out dbg-recur! prev
 		out ~= " "
 	out ~= "["
-	if a.values empty?
+	if a.values is-empty
 		out ~= "]"
 	else
 		a.values each x =>
@@ -326,7 +326,7 @@ first-some opt ?out(a list ?in, f act opt ?out(?in))
 
 test
 	a = list<nat64>
-	assert: a empty?
+	assert: a is-empty
 	a.arr is []
 	a.dbg is "[]"
 	a.last is none
@@ -335,7 +335,7 @@ test
 	b.dbg is "[1]"
 	b.last is 1.some
 	b.rtail.arr is []
-	forbid: b empty?
+	forbid: b is-empty
 
 	c = b ~ 2
 	c.dbg is "[1 2]"

@@ -7,7 +7,7 @@ import
 	../fun: subscript
 	../hash: hash, hash-mix
 	../misc: ->, arrow, as, data, from, to, void
-	../opt: ==, empty?, force, none, opt, some
+	../opt: ==, force, is-empty, none, opt, some
 	../ptr: size-of
 	../str: ==, ~, str
 	../str-conv: to-str
@@ -15,9 +15,9 @@ import
 	../writer: ~=, backup!, move-to-str!, writer
 	../private/bootstrap: todo
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
-	./arr: ~, arr, empty?, size, subscript
+	./arr: ~, arr, is-empty, size, subscript
 	./arr-util:
-		each, each-with-index, every?, find-index, fold, fold-with-index,
+		each, each-with-index, every, find-index, fold, fold-with-index,
 		remove-at, rtail, tail, update, update-with-default
 	./mut-arr:
 		cast-immutable, copy-from!, fill-mut-arr, set-subscript, size, subscript,
@@ -78,26 +78,26 @@ lookup lookup<?k, ?v>() data<?k> compare<?k> hash-mix<?k>
 	lookup: void, empty-leaf-node
 
 lookup lookup<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
-	if a.size <= 4 && a.no-duplicate-keys?
+	if a.size <= 4 && a.no-duplicate-keys
 		lookup: void, leaf-node: a
 	else
 		lookup fold a, (cur, x) => cur ~ x
 
-.no-duplicate-keys? bool(a arr arrow<?k, ?v>) compare<?k>
+.no-duplicate-keys bool(a arr arrow<?k, ?v>) compare<?k>
 	if a.size <= 1
 		true
 	else
 		key = a[0] from
-		a.tail every? (it => it.from != key) && a.tail.no-duplicate-keys?
+		a.tail every (it => it.from != key) && a.tail.no-duplicate-keys
 
-empty? bool(a lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
-	a.root node-empty?
-.node-empty? bool(a node<?k, ?v>)
+is-empty bool(a lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
+	a.root node-is-empty
+.node-is-empty bool(a node<?k, ?v>)
 	match a
 	as inner-node
 		false
 	as leaf-node l
-		l.pairs empty?
+		l.pairs is-empty
 
 size nat64(a lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	0 size-recur a.root
@@ -124,7 +124,7 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 	as leaf-node l
 		l.pairs subscript-leaf-recur key
 .subscript-leaf-recur opt ?v(a arr arrow<?k, ?v>, key ?k) compare<?k>
-	if a empty?
+	if a is-empty
 		none
 	elif a[0].from == key
 		a[0].to some
@@ -152,7 +152,7 @@ already-has-key<?v> record
 # Adds a value if the key doesn't already exist
 try-add try-add-result<?k, ?v>(a lookup<?k, ?v>, key ?k, get-value act ?v()) data<?k> compare<?k> hash-mix<?k>
 	res = a get-or-update key, old-value =>
-		if old-value empty?
+		if old-value is-empty
 			get-value[] insert
 		else
 			no-change
@@ -253,7 +253,7 @@ body
 .update-child node<?k, ?v>(a inner-node<?k, ?v>, which nat64, new-child node<?k, ?v>)
 	if leaf ?= a inner-node-to-leaf which, new-child
 		leaf
-	elif new-child node-empty?
+	elif new-child node-is-empty
 		if which ==: a.children.size wrap-sub 1
 			new-children = a.children rtail
 			if new-children.size == 1
@@ -300,8 +300,8 @@ inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat64, new-
 		some: leaf-node: out cast-immutable
 
 .find-only-non-empty-child opt node<?k, ?v>(children arr node<?k, ?v>)
-	first-non-empty-index = force: children find-index it => !it.node-empty?
-	if children[(first-non-empty-index wrap-add 1) -> children.size] every? it => it node-empty?
+	first-non-empty-index = force: children find-index it => !it.node-is-empty
+	if children[(first-non-empty-index wrap-add 1) -> children.size] every it => it node-is-empty
 		children[first-non-empty-index] some
 
 .get-or-update-leaf get-or-update-result<?k, ?v>
@@ -334,7 +334,7 @@ body
 			some: if a.pairs.size >= leaf-max-size
 				if hash-shift >= 64
 					# We've exhausted the hash.
-					# TODO: fall back to a sorted dict?
+					# TODO: fall back to a sorted dict ?
 					todo
 				# If we get here, it's guaranteed that we don't need to recursively create leaves.
 				# Just group by hash.
@@ -398,7 +398,7 @@ fold-keys-unordered ?a(acc ?a, a lookup<?k, ?v>, f act ?a(?a, ?k))
 	match a
 	as inner-node i
 		i.children each-with-index (child, index) =>
-			if !child.node-empty?
+			if !child.node-is-empty
 				out dbg-recur child, path ~ index.to-str
 				out ~= " "
 		out backup!
@@ -410,7 +410,7 @@ fold-keys-unordered ?a(acc ?a, a lookup<?k, ?v>, f act ?a(?a, ?k))
 			out ~= " -> "
 			out ~= pair to
 			out ~= ", "
-		if l.pairs empty?
+		if l.pairs is-empty
 			out ~= "]"
 		else
 			out backup! 2
@@ -426,7 +426,7 @@ dbg str(a lookup<nat64, void>)
 	match a
 	as inner-node i
 		i.children each-with-index (child, index) =>
-			if !child.node-empty?
+			if !child.node-is-empty
 				out dbg-recur child, path ~ index.to-str
 				out ~= " "
 		out backup!
@@ -436,7 +436,7 @@ dbg str(a lookup<nat64, void>)
 		l.pairs each pair =>
 			out ~= pair from
 			out ~= ", "
-		if l.pairs empty?
+		if l.pairs is-empty
 			out ~= "]"
 		else
 			out backup! 2
@@ -447,13 +447,13 @@ verify void(a lookup<nat64, str>, expected str)
 
 test
 	l0 = lookup<nat64, str>
-	l0.empty? is true
+	l0.is-empty is true
 	l0.size is 0
 	l0 verify "[]"
 	l0[0] is none
 
 	l1 = l0 ~ (5 -> "5")
-	l1.empty? is false
+	l1.is-empty is false
 	l1.size is 1
 	l1 verify "[5 -> 5]"
 	

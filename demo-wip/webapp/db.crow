@@ -1,9 +1,9 @@
 import
 	crow/col/arr-util: each
 	crow/crypto/login-cookie:
-		cookie, cookie-matches?, from-bytes, generate-login-cookie, login-cookie,
+		cookie, cookie-matches, from-bytes, generate-login-cookie, login-cookie,
 		parse-login-cookie, to-bytes, to-str
-	crow/crypto/password: password-hash, password-matches?, quality-moderate
+	crow/crypto/password: password-hash, password-matches, quality-moderate
 	crow/db/lmdb:
 		add, close-db, count, from-lmdb-key, get, lmdb-close-env, lmdb-db, lmdb-env,
 		lmdb-key-flags, lmdb-open-env, lmdb-open-options, lMDB_txn, map, open-db, set, to-lmdb-key,
@@ -171,13 +171,13 @@ empty-name-or-password record
 user-does-not-exist record
 
 login! result<user-cookie, login-error>(db db, user-name str, password str) summon
-	if user-name.empty? || password.empty?
+	if user-name.is-empty || password.is-empty
 		empty-name-or-password err
 	else
 		db.env with-write-transaction txn =>
 			if user ?= db get-user txn, user-name
 				hash = txn get db.user-password-hash, user force
-				if !(password password-matches? hash)
+				if !(password password-matches hash)
 					throw: "wrong password"
 				cookie = generate-login-cookie
 				txn set db.user-login-cookie, user, cookie
@@ -204,14 +204,14 @@ add-post! post(db db, cookie user-cookie, content str) summon
 	txn get db.user-from-name, user-name
 
 .authenticate user(db db, txn lMDB_txn, cookie user-cookie) summon
-	if db authenticate? txn, cookie
+	if db try-authenticate txn, cookie
 		cookie user
 	else
 		"Login cookie invalid (may have expired)" throw
 
-.authenticate? bool(db db, txn lMDB_txn, cookie user-cookie) summon
+.try-authenticate bool(db db, txn lMDB_txn, cookie user-cookie) summon
 	if login-cookie ?= txn get db.user-login-cookie, cookie.user
-		login-cookie cookie-matches? cookie.inner.cookie, cookie-expire-seconds
+		login-cookie cookie-matches cookie.inner.cookie, cookie-expire-seconds
 	else
 		false
 

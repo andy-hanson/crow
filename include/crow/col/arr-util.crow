@@ -5,17 +5,17 @@ import
 	../fun: subscript
 	../misc: ->, void
 	../number: +, -, nat64
-	../opt: empty?, none, opt, some
+	../opt: is-empty, none, opt, some
 	../ptr: ==, +, -, deep-size-bytes, ptr, set-subscript, size-of, subscript
 	../test: is
 	../tuple: pair
 	../private/alloc: alloc-uninitialized, fill-ptr-range
 	../private/exception-low-level: assert, forbid
 	../private/number-low-level: ==, <=>, unsafe-mod, wrap-add, wrap-mul
-	./arr: ==, ~, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, noctx-at, size, subscript
+	./arr: ==, ~, arr, arr-from-begin-end, begin-ptr, is-empty, end-ptr, noctx-at, size, subscript
 
 alloc-count nat64(a arr ?a) unsafe
-	if a empty?
+	if a is-empty
 		0
 	else
 		1
@@ -103,7 +103,7 @@ filter-with-index arr ?a(a arr ?a, f act bool(?a, nat64)) trusted
 Like 'filter', but keeps everything after the first time `f` returns true.
 ###
 strip-left-while arr ?a(a arr ?a, f act bool(?a))
-	if a.empty? || !f[a[0]]
+	if a.is-empty || !f[a[0]]
 		a
 	else
 		a.tail strip-left-while f
@@ -129,27 +129,27 @@ map-with-index arr ?out(a arr ?in, f act ?out(?in, nat64))
 		f[a[i], i]
 
 first opt ?a(a arr ?a)
-	if !a.empty?
+	if !a.is-empty
 		a[0] some
 
 last opt ?a(a arr ?a)
-	if !a.empty?
+	if !a.is-empty
 		a[a.size - 1] some
 
 ###
 All but the first element of an arr.
-Throws if `a empty?`.
+Throws if `a is-empty`.
 ###
 tail arr ?a(a arr ?a)
-	forbid: a empty?
+	forbid: a is-empty
 	a[1 -> a.size]
 
 ###
 All but the last element of an arr.
-Throws if `a empty?`.
+Throws if `a is-empty`.
 ###
 rtail arr ?a(a arr ?a)
-	forbid: a empty?
+	forbid: a is-empty
 	a[0 -> a.size - 1]
 
 ###
@@ -157,9 +157,9 @@ Calls `f` on each element of `a` and returns the first result that is `some`.
 Returns `none` if every call to `f` returned `none`.
 ###
 first-some opt ?out(a arr ?in, f act opt ?out(?in))
-	if !a.empty?
+	if !a.is-empty
 		res = f[a[0]]
-		if res empty?
+		if res is-empty
 			a.tail first-some f
 		else
 			res
@@ -168,39 +168,39 @@ first-some opt ?out(a arr ?in, f act opt ?out(?in))
 Equivalent to `f[a[0]] or f[a[1]] or or ...`
 Calls `f` on each element of `a` and returns `true` the first time `f` does.
 ###
-exists? bool(a arr ?a, f act bool(?a))
-	if a empty?
+exists bool(a arr ?a, f act bool(?a))
+	if a is-empty
 		false
 	elif f[a[0]]
 		true
 	else
-		a.tail exists? f
+		a.tail exists f
 
-every? bool(a arr ?a, f act bool(?a))
-	if a empty?
+every bool(a arr ?a, f act bool(?a))
+	if a is-empty
 		true
 	elif f[a[0]]
-		a.tail every? f
+		a.tail every f
 	else
 		false
 
-# TODO: only written this way to be `noctx`, else could defer to `exists?`
+# TODO: only written this way to be `noctx`, else could defer to `exists`
 ###
-Equivalent to `a exists? it => it == value`.
+Equivalent to `a exists it => it == value`.
 Also equivalent to `a[0] == value or a[1] == value or ...`.
 ###
-contains? bool(a arr ?a, value ?a) noctx equal<?a>
-	a contains-recur? value, 0
-.contains-recur? bool(a arr ?a, value ?a, i nat64) noctx trusted equal<?a>
+in bool(value ?a, a arr ?a) noctx equal<?a>
+	value in-recur a, 0
+.in-recur bool(value ?a, a arr ?a, i nat64) noctx trusted equal<?a>
 	if i == a.size
 		false
 	elif (a noctx-at i) == value
 		true
 	else
-		a contains-recur?: value, i wrap-add 1
+		value in-recur a, (i wrap-add 1)
 test
-	[1, 2, 3] contains? 2 is true
-	[1, 3] contains? 2 is false
+	2 in [1, 2, 3] is true
+	2 in [1, 3] is false
 
 try-remove opt arr ?a(a arr ?a, value ?a) equal<?a>
 	a try-remove-recur 0, value
@@ -221,29 +221,29 @@ remove-index arr ?a(a arr ?a, index nat64)
 True iff the sub-sequence appears in `a`.
 Equivalent to `a[0 -> subseq.size] == subseq or a[1 -> 1 + subseq.size] == subseq or ...`
 ###
-contains-subseq? bool(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
-	!(a index-of-subseq subseq empty?)
+contains-subseq bool(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
+	!(a index-of-subseq subseq is-empty)
 
 # TODO: equal<arr ?a> should be unnecessary
 # True iff the first elements of `a` are `start`, meaning `a[0 -> start.size] == start`.
-starts-with? bool(a arr ?a, start arr ?a) equal<?a> equal<arr ?a>
+starts-with bool(a arr ?a, start arr ?a) equal<?a> equal<arr ?a>
 	a.size >= start.size && a[0 -> start.size] == start
 
 # TODO: equal<arr ?a> should be unnecessary
 # True iff the last elements of `a` are `end`, meaning `a[a.size - end.size -> a.size] == end`.
-ends-with? bool(a arr ?a, end arr ?a) equal<?a> equal<arr ?a>
+ends-with bool(a arr ?a, end arr ?a) equal<?a> equal<arr ?a>
 	a.size >= end.size && a[a.size - end.size -> a.size] == end
 
 # TODO: equal<arr ?a> should be unnecessary
 # If `a` starts with `start`, returns the remaining elements, else returns `none`.
 try-remove-start opt arr ?a(a arr ?a, start arr ?a) equal<?a> equal<arr ?a>
-	if a starts-with? start
+	if a starts-with start
 		a[start.size -> a.size] some
 
 # TODO: equal<arr ?a> should be unnecessary
 # If `a` ends with `end`, returns the preceding elements, else returns `none`.
 try-remove-end opt arr ?a(a arr ?a, end arr ?a) equal<?a> equal<arr ?a>
-	if a ends-with? end
+	if a ends-with end
 		a[0 -> a.size - end.size] some
 
 ###
@@ -283,13 +283,13 @@ index-of-subseq opt nat64(a arr ?a, subseq arr ?a) equal<?a> equal<arr ?a>
 .index-of-subseq-recur opt nat64(a arr ?a, subseq arr ?a, i nat64) equal<?a> equal<arr ?a>
 	if i == a.size
 		none
-	elif a[i -> a.size] starts-with? subseq
+	elif a[i -> a.size] starts-with subseq
 		i some
 	else
 		a index-of-subseq-recur subseq, i + 1
 
 find opt ?a(a arr ?a, f act bool(?a))
-	if !a.empty?
+	if !a.is-empty
 		if f[a[0]]
 			a[0] some
 		else
@@ -312,7 +312,7 @@ find-index opt nat64(a arr ?a, f act bool(?a))
 Like `find-index`, but starts from the end.
 ###
 find-rindex opt nat64(a arr ?a, f act bool(?a))
-	if !a.empty?
+	if !a.is-empty
 		a find-rindex-recur a.size - 1, f
 .find-rindex-recur opt nat64(a arr ?a, index nat64, f act bool(?a))
 	if f[a[index]]
@@ -359,7 +359,7 @@ Concatenates many arrays into a single array, with `joiner` in between.
 Equivalent to `a[0] ~ joiner ~ a[1] ~ joiner ~ ... ~ a[a.size - 1]`.
 ###
 flatten arr ?a(a arr arr ?a, joiner arr ?a)
-	if a empty?
+	if a is-empty
 		[]
 	elif a.size == 1
 		a[0]

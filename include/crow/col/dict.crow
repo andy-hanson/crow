@@ -5,17 +5,17 @@ import
 	../exception: assert
 	../fun: subscript
 	../misc: ->, arrow, as, data, from, to, void
-	../number: ==, <=>, +, -, even?, nat64
-	../opt: ==, empty?, none, opt, opt-or, or-default, some
+	../number: ==, <=>, +, -, is-even, nat64
+	../opt: ==, is-empty, none, opt, opt-or, or-default, some
 	../ptr: ==, <=>, +, -, ptr, set-subscript, subscript
-	../str: ==, chars, empty?, size-bytes, str
+	../str: ==, chars, is-empty, size-bytes, str
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
-	./arr: arr, arr-equal?, begin-ptr, empty?, end-ptr, size, subscript
+	./arr: arr, arr-equal, begin-ptr, is-empty, end-ptr, size, subscript
 	./arr-util: each, filter, fold, map, tail
 	./mut-arr:
-		begin-ptr, cast-immutable, copy-from!, empty?, end-ptr, fold, mut-arr,
+		begin-ptr, cast-immutable, copy-from!, is-empty, end-ptr, fold, mut-arr,
 		mut-arr-from-begin-end, set-subscript, size, subscript, tail, uninitialized-mut-arr
 	./sort: sort-by
 	./private/sort-utils: binary-search-value
@@ -27,9 +27,9 @@ dict<?k, ?v> record
 	impl dict-impl<?k, ?v>
 
 # TODO: comparison should be generic
-dict-equal? bool(a dict<?k, ?v>, b dict<?k, ?v>) data<?k> compare<?k> equal<?v>
+dict-equal bool(a dict<?k, ?v>, b dict<?k, ?v>) data<?k> compare<?k> equal<?v>
 	# TODO:PERF
-	a.arr arr-equal? b.arr, (x, y) =>
+	a.arr arr-equal b.arr, (x, y) =>
 		x.from == y.from && x.to == y.to
 
 .dict-impl<?k, ?v> union
@@ -55,12 +55,12 @@ dict dict<?k, ?v>() data<?k> compare<?k>
 dict dict<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
 	dict: void, end-node: a sort-by pair => pair from
 
-empty? bool(a dict<?k, ?v>) data<?k> compare<?k>
+is-empty bool(a dict<?k, ?v>) data<?k> compare<?k>
 	match a impl
 	as overlay
 		false
 	as end-node e
-		e.pairs empty?
+		e.pairs is-empty
 
 ###
 Number of pairs.
@@ -88,9 +88,9 @@ arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> compare<?k> trusted
 	a ~ b.arr
 
 ~ dict<?k, ?v>(a dict<?k, ?v>, b arr arrow<?k, ?v>) data<?k> compare<?k>
-	if b empty?
+	if b is-empty
 		a
-	elif a empty?
+	elif a is-empty
 		dict: b
 	else
 		# TODO: 'as' should be unnecessary
@@ -98,7 +98,7 @@ arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> compare<?k> trusted
 		dict: void, merge-as-needed: pairs overlay a.impl
 
 - dict<?k, ?v>(a dict<?k, ?v>, key ?k) data<?k> compare<?k>
-	if a has-key? key
+	if a has-key key
 		dict: void, a.impl add-or-remove key, none
 	else
 		a
@@ -120,8 +120,8 @@ subscript opt ?v(a dict<?k, ?v>, key ?k) data<?k> compare<?k>
 		if pair ?= e.pairs binary-search-value pair => key <=> pair.from
 			pair.to some
 
-has-key? bool(a dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
-	!a[key].empty?
+has-key bool(a dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
+	!a[key].is-empty
 
 .add-or-remove dict-impl<?k, ?v>(a dict-impl<?k, ?v>, key ?k, value opt ?v) data<?k> compare<?k>
 	merge-as-needed: overlay: [key -> value], a
@@ -129,19 +129,19 @@ has-key? bool(a dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 .merge-as-needed dict-impl<?k, ?v>(a overlay<?k, ?v>) data<?k> compare<?k>
 	match a prev
 	as overlay o
-		if o.pairs.size should-merge? a.pairs.size
+		if o.pairs.size should-merge a.pairs.size
 			new-pairs = o.pairs merge-overlays a.pairs
 			merge-as-needed: overlay: new-pairs, o.prev
 		else
 			a
 	as end-node e
-		if e.pairs.size should-merge? a.pairs.size
+		if e.pairs.size should-merge a.pairs.size
 			new-pairs = e.pairs merge-to-end a.pairs
 			end-node: new-pairs
 		else
 			a
 
-.should-merge? bool(prev-size nat64, overlay-size nat64)
+.should-merge bool(prev-size nat64, overlay-size nat64)
 	prev-size <=: overlay-size max 3
 
 .merge-overlays arr arrow<?k, opt ?v>(l arr arrow<?k, opt ?v>, r arr arrow<?k, opt ?v>) trusted data<?k> compare<?k>
@@ -186,7 +186,7 @@ body
 
 .merge-to-end arr arrow<?k, ?v>(l arr arrow<?k, ?v>, r arr arrow<?k, opt ?v>) trusted data<?k> compare<?k>
 	res = l.size + r.size uninitialized-mut-arr<arrow<?k, ?v>>
-	end = if l empty?
+	end = if l is-empty
 		res.begin-ptr finish-rest-ignore-none r.begin-ptr, r.end-ptr
 	else
 		res.begin-ptr merge-to-end-recur l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
@@ -280,22 +280,22 @@ spec
 	compare<?k>
 body
 	# Invariant: Nothing in 'overlays' is empty.
-	if overlays empty?
-		if end-node empty?
+	if overlays is-empty
+		if end-node is-empty
 			acc
 		else
 			pair = end-node[0]
 			f[acc, pair.from, pair.to] fold-recur end-node.tail, overlays, f
 	else
-		least-key = if end-node empty?
+		least-key = if end-node is-empty
 			overlays[0][0].from find-least-key overlays.tail
 		else
 			end-node[0].from
-		take-from-end-node? = !end-node.empty? && least-key == end-node[0].from
+		take-from-end-node = !end-node.is-empty && least-key == end-node[0].from
 		# TODO: should not need 'as'
-		val-from-end-node = as<opt ?v>: if take-from-end-node?
+		val-from-end-node = as<opt ?v>: if take-from-end-node
 			end-node[0].to some
-		new-end-node = if take-from-end-node?
+		new-end-node = if take-from-end-node
 			end-node tail
 		else
 			end-node
@@ -336,7 +336,7 @@ body
 	elif overlays[index][0].from == key
 		new-rightmost-value = overlays[index][0] to
 		new-overlay = overlays[index] tail
-		if new-overlay empty?
+		if new-overlay is-empty
 			overlays[index] := overlays[overlays.size - 1]
 			overlays[0 -> overlays.size - 1] take-key-recur key, index + 1, new-rightmost-value
 		else
@@ -416,7 +416,7 @@ map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k>
 			out ~= " -> "
 			out ~= pair.to or-default "_"
 			out ~= ", "
-		if o.pairs empty?
+		if o.pairs is-empty
 			out ~= "]"
 		else
 			out backup! 2
@@ -428,7 +428,7 @@ map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k>
 			out ~= " -> "
 			out ~= pair to
 			out ~= ", "
-		if e.pairs empty?
+		if e.pairs is-empty
 			out ~= "]"
 		else
 			out backup! 2
@@ -439,7 +439,7 @@ verify void(a dict<nat64, str>, expected str)
 
 test
 	a = dict<nat64, str>
-	a.empty? is true
+	a.is-empty is true
 	a.size is 0
 	a verify "[]"
 	a[10] is none
@@ -479,14 +479,14 @@ test
 
 	j-folded = "" fold j, (cur, key, value) =>
 		pair = "{key} -> {value}"
-		if cur.empty?
+		if cur.is-empty
 			pair
 		else
 			"{cur}, {pair}"
 	j-folded is "5 -> 5, 10 -> 10b, 15 -> 15, 20 -> 20"
 
 	j-filtered = j filter (k, v) =>
-		k even?
+		k is-even
 	j-filtered verify "[10 -> 10b, 20 -> 20]"
 
 	j-mapped = j map-values (k, v) =>

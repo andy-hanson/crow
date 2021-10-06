@@ -17,7 +17,7 @@ null ptr ?a() noctx builtin
 # Get the difference between two pointers, measured in strides of `?a`.
 # UB if `a < b` or if `size-of<?a> == 0`.
 - nat64(a ptr ?a, b ptr ?a) noctx unsafe
-	# TODO: what if ?a is an empty type?
+	# TODO: what if ?a is an empty type ?
 	a.to-nat64 wrap-sub b.to-nat64 unsafe-div size-of<?a>
 
 ###
@@ -78,10 +78,10 @@ True iff two pointers are identical.
 ###
 == bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
 # True iff `a.to-nat64 < b.to-nat64`.
-.less? bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
+.is-less bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
 # Equal to `a.to-nat64 <=> b.to-nat64`.
 <=> comparison(a ptr ?a, b ptr ?a) noctx unsafe
-	if a less? b
+	if a is-less b
 		less
 	elif a == b
 		equal
@@ -92,7 +92,7 @@ True iff two pointers are identical.
 True if two references have the same pointer.
 Contrast with `a == b` which can also e true for different pointers with equal contents.
 ###
-ref-eq? bool(a ?a, b ?a) noctx unsafe
+ref-eq bool(a ?a, b ?a) noctx unsafe
 	a.as-any-ptr == b.as-any-ptr
 
 ###

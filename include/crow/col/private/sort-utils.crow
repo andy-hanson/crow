@@ -12,9 +12,9 @@ import
 	../../private/number-low-level: ==, <=>, unsafe-div, wrap-add
 	../arr: ==, arr, begin-ptr, end-ptr
 	../mut-arr: begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end
-	../mut-list: arr, begin-ptr, empty?, empty!, end-ptr, mut-list, size, swap!, temp-as-mut-arr, unsafe-set-size!
+	../mut-list: arr, begin-ptr, empty!, end-ptr, is-empty, mut-list, size, swap!, temp-as-mut-arr, unsafe-set-size!
 
-binary-search-has? bool(a arr ?a, value ?a) compare<?a> trusted
+binary-search-has bool(a arr ?a, value ?a) compare<?a> trusted
 	(a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value) != null
 
 binary-search-value opt ?a(a arr ?a, compare act comparison(?a)) trusted
@@ -139,7 +139,7 @@ merge-no-duplicates! void(a mut-list ?a, b mut-list ?a, compare act unique-compa
 	if a.size < b.size
 		a swap! b
 	assert: a.size >= b.size
-	if !b.empty?
+	if !b.is-empty
 		a-old-size = a size
 		a unsafe-set-size!: a-old-size wrap-add b.size
 		a-read = a.begin-ptr + a-old-size - 1

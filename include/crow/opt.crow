@@ -13,26 +13,26 @@ export
 	./private/bootstrap: none, opt, some, value
 
 == bool(a opt int64, b opt int64) noctx
-	a opt-equal? b
+	a opt-equal b
 == bool(a opt nat64, b opt nat64) noctx
-	a opt-equal? b
+	a opt-equal b
 == bool(a opt str, b opt str) noctx
-	a opt-equal? b
+	a opt-equal b
 == bool(a opt char, b opt char) noctx
-	a opt-equal? b
+	a opt-equal b
 
 # TODO:GENERIC
-opt-equal? bool(a opt ?a, b opt ?a) equal<?a> noctx
+.opt-equal bool(a opt ?a, b opt ?a) equal<?a> noctx
 	if va ?= a
 		if vb ?= b
 			va == vb
 		else
 			false
 	else
-		b empty?
+		b is-empty
 
 # True iff a is `none`.
-empty? bool(a opt ?a) noctx
+is-empty bool(a opt ?a) noctx
 	match a
 	as none
 		true
@@ -40,7 +40,7 @@ empty? bool(a opt ?a) noctx
 		false
 
 size nat64(a opt ?a) noctx
-	if a.empty?
+	if a.is-empty
 		0
 	else
 		1
@@ -57,7 +57,7 @@ map opt ?out(a opt ?in, f act ?out(?in))
 
 # Takes the leftmost `some` value.
 opt-or opt ?a(a opt ?a, b opt ?a)
-	if a empty?
+	if a is-empty
 		b
 	else
 		a

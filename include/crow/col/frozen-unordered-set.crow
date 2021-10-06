@@ -5,11 +5,11 @@ import
 	../fun: subscript
 	../hash: hash, hash-mix
 	../misc: data, void
-	../opt: empty?, opt, some
+	../opt: is-empty, opt, some
 	../ptr: ==, <=>, +, -, ptr, set-subscript, size-of, subscript, swap!
 	../test: is
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
-	./arr: ==, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, size, unsafe-at
+	./arr: ==, arr, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, unsafe-at
 	./arr-util: alloc-count, fold, fold-with-index, index-of, map, overhead-bytes, ptr-of
 	./mut-arr:
 		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-mut-arr, mut-arr,
@@ -41,8 +41,8 @@ overhead-bytes nat64(a frozen-unordered-set ?a) unsafe
 	buckets-size = a.bucket-starts.size wrap-mul size-of<ptr ?a>
 	a.values.overhead-bytes wrap-add a.bucket-starts.overhead-bytes wrap-add buckets-size
 
-empty? bool(a frozen-unordered-set ?a)
-	a.values empty?
+is-empty bool(a frozen-unordered-set ?a)
+	a.values is-empty
 
 size nat64(a frozen-unordered-set ?a)
 	a.values size
@@ -51,12 +51,12 @@ unordered-arr arr ?a(a frozen-unordered-set ?a)
 	a values
 
 subscript bool(a frozen-unordered-set ?a, value ?a) trusted data<?a> compare<?a> hash-mix<?a>
-	!(a try-get-unordered-index value empty?)
+	!(a try-get-unordered-index value is-empty)
 
 # WARN: The order of values is arbitrary,
 # but consistent for *identical* (not ==) sets.
 try-get-unordered-index opt nat64(a frozen-unordered-set ?a, value ?a) trusted data<?a> compare<?a> hash-mix<?a>
-	if a.bucket-starts empty?
+	if a.bucket-starts is-empty
 		a.values index-of value
 	else
 		bucket-index = value.hash unsafe-mod a.bucket-starts.size
@@ -148,7 +148,7 @@ fold-unordered-with-index ?a(acc ?a, a frozen-unordered-set ?b, f act ?a(?a, ?b,
 
 test
 	a = frozen-unordered-set<nat64>
-	a.empty? is true
+	a.is-empty is true
 	a.size is 0
 	a verify [], []
 	a[0] is false

@@ -5,11 +5,11 @@ import
 	../hash: hash-mix
 	../misc: ->, data, void
 	../number: nat64
-	../opt: empty?, none, opt, some
+	../opt: is-empty, none, opt, some
 	./arr: arr
 	./arr-util: map
 	./lookup:
-		alloc-count, empty?, each-key-unordered, fold-keys-unordered, lookup, new-lookup, overhead-bytes, size,
+		alloc-count, each-key-unordered, fold-keys-unordered, is-empty, lookup, new-lookup, overhead-bytes, size,
 		subscript, try-add, try-remove
 
 unordered-set<?a> record
@@ -27,14 +27,14 @@ alloc-count nat64(a unordered-set ?a) unsafe
 overhead-bytes nat64(a unordered-set ?a) unsafe
 	a.inner overhead-bytes
 
-empty? bool(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
-	a.inner empty?
+is-empty bool(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
+	a.inner is-empty
 
 size nat64(a unordered-set ?a) data<?a> compare<?a> hash-mix<?a>
 	a.inner size
 
 subscript bool(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
-	!a.inner[value].empty?
+	!a.inner[value].is-empty
 
 ~ unordered-set ?a(a unordered-set ?a, value ?a) data<?a> compare<?a> hash-mix<?a>
 	if res ?= a try-add value

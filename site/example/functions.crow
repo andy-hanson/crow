@@ -1,6 +1,6 @@
 import
 	crow/io/print: print
-	crow/str-util: ends-with?
+	crow/str-util: ends-with
 
 main fut nat(_ arr str) summon
 	print: "albatross".greet
@@ -16,9 +16,9 @@ greeting str()
 	"Hello"
 
 plural str(name str)
-	suffix = if name ends-with? "s" || name == "fox"
+	suffix = if name ends-with "s" || name == "fox"
 		"es"
-	elif name ends-with? "x"
+	elif name ends-with "x"
 		"en"
 	else
 		"s"

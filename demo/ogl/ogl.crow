@@ -155,7 +155,7 @@ blue color-32()
 
 	GL_ARRAY_BUFFER glBindBuffer renderer.triangle-vbo
 	GL_ARRAY_BUFFER glBufferSubData 0, renderer.vertices.n-bytes.to-int64, renderer.vertices.begin-ptr.ptr-cast
-	# TODO: don't do this every frame?
+	# TODO: don't do this every frame
 	stride = (to-int32: size-of<vertex>)
 	0 glVertexAttribPointer 2, GL_FLOAT, false, stride, 0.to-ptr
 	0 glEnableVertexAttribArray

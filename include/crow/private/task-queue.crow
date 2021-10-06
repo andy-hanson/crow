@@ -2,12 +2,12 @@ no-std
 import
 	../bool: bool, false, true
 	../col/mut-list:
-		contains?, mut-list, mut-list-by-val-with-capacity-from-unmanaged-memory,
+		in, mut-list, mut-list-by-val-with-capacity-from-unmanaged-memory,
 		noctx-must-remove-unordered!, push-capacity-must-be-sufficient!
 	../compare: !=, <=
 	../io/time-low-level: timestamp
 	../misc: as, void
-	../opt: empty?, none, opt, some
+	../opt: is-empty, none, opt, some
 	../ptr: by-val, ref-of-val
 	./bootstrap: exclusion, hard-assert
 	./number-low-level: ==, <=>, nat64, wrap-add
@@ -35,8 +35,8 @@ task-queue record mut
 	task task
 	next mut opt task-queue-node
 
-empty? bool(a task-queue) noctx
-	a.head empty?
+is-empty bool(a task-queue) noctx
+	a.head is-empty
 
 task-queue by-val task-queue(max-threads nat64) unsafe noctx
 	task-queue: none, max-threads mut-list-by-val-with-capacity-from-unmanaged-memory<exclusion>
@@ -47,7 +47,7 @@ task-queue-node task-queue-node(task task)
 
 no-task record
 	by-val
-	any-tasks? bool
+	any-tasks bool
 	first-task-time opt timestamp
 
 pop-task-result union mut
@@ -60,7 +60,7 @@ pop-task! pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 	res = as<pop-task-result>: if head ?= a.head
 		task = head task
 		if task.time <= cur-time
-			if exclusions contains? task.exclusion
+			if task.exclusion in exclusions
 				pop-recur!: head, exclusions, cur-time, task.time to-opt-time
 			else
 				a.head := head.next
@@ -97,7 +97,7 @@ body
 	if cur ?= prev next
 		task = cur task
 		if task.time <= cur-time
-			if exclusions contains? task.exclusion
+			if task.exclusion in exclusions
 				pop-recur!: cur, exclusions, cur-time, if t ?= first-task-time
 					t some
 				else

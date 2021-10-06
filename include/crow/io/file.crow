@@ -20,8 +20,8 @@ import
 	../fun: subscript
 	../misc: ->, as, void
 	../number: ==, <=>, +, int32, nat8, nat16, nat32, to-int64, to-nat32, to-nat64
-	../opt: empty?, opt, some
-	../ptr: ==, +, any-ptr, as-any-ptr, null, ptr-cast, ptr-cast-from-extern, ref-eq?, size-of
+	../opt: is-empty, opt, some
+	../ptr: ==, +, any-ptr, as-any-ptr, null, ptr-cast, ptr-cast-from-extern, ref-eq, size-of
 	../str: ==, <=>, char, chars, c-str, size-bytes, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: bytes, to-c-str, to-str
@@ -31,31 +31,31 @@ import
 	./print: print
 
 # True if this is the path of a directory.
-is-dir? bool(path str) summon trusted
-	path.to-c-str is-dir?
+is-dir bool(path str) summon trusted
+	path.to-c-str is-dir
 
-.is-dir? bool(path c-str) summon unsafe
+.is-dir bool(path c-str) summon unsafe
 	if stat ?= path get-stat
 		stat.st_mode & S_IFMT == S_IFDIR
 	else
 		throw: "path does not exist: {path}"
 
 # True if this is the path of a file.
-is-file? bool(path str) summon
-	path.to-c-str is-file?
+is-file bool(path str) summon
+	path.to-c-str is-file
 
-.is-file? bool(path c-str) summon
+.is-file bool(path c-str) summon
 	if stat ?= path get-stat
 		stat.st_mode & S_IFMT == S_IFREG
 	else
 		false
 
 # True if something (like a file or directory) exists at the path.
-path-exists? bool(path str) summon
-	path.to-c-str path-exists?
+path-exists bool(path str) summon
+	path.to-c-str path-exists
 
-.path-exists? bool(path c-str) summon
-	!path.get-stat.empty?
+.path-exists bool(path c-str) summon
+	!path.get-stat.is-empty
 
 .get-dirent-name str(d dirent) unsafe
 	# TODO: this is offsetof(d, d_name)
@@ -94,7 +94,7 @@ read-dir arr str(path str) summon
 	# TODO: handle error
 	assert: err == 0
 	if result[].as-any-ptr != null
-		assert: result[] ref-eq? entry
+		assert: result[] ref-eq entry
 		name = entry.get-dirent-name
 		if name != "." && name != ".."
 			res ~= entry.get-dirent-name
@@ -169,7 +169,7 @@ try-read-file opt str(path str) summon
 	path.to-c-str try-read-file
 
 .try-read-file opt str(path c-str) summon trusted
-	if path is-file?
+	if path is-file
 		fd = path open O_RDONLY, 0
 		if fd == -1
 			if errno != ENOENT
@@ -230,7 +230,7 @@ each-child-recursive void(path str, f act void(str)) summon
 
 # `each-child-recursive` that does not descend into a child if `f[child_name]` returns false.
 each-child-recursive void(path str, filter act bool(str), f act void(str)) summon
-	if path is-dir?
+	if path is-dir
 		path.read-dir each child_name =>
 			if filter[child_name]
 				path child-path child_name each-child-recursive filter, f

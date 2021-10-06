@@ -12,9 +12,9 @@ import
 	./private/exception-low-level: assert, forbid
 export
 	./private/number-low-level:
-		==, <=>, even?, float32, float64, int8, int16, int32, int64, max-int8, max-int16, max-int32,
-		max-int64, max-nat8, max-nat16, max-nat32, max-nat64, min-int8, min-int16, min-int32,
-		min-int64, nat8, nat16, nat32, nat64, odd?, to-int64, to-nat64, unsafe-to-nat8
+		==, <=>, float32, float64, int8, int16, int32, int64, is-even, is-odd, max-int8, max-int16,
+		max-int32, max-int64, max-nat8, max-nat16, max-nat32, max-nat64, min-int8, min-int16,
+		min-int32, min-int64, nat8, nat16, nat32, nat64, to-int64, to-nat64, unsafe-to-nat8
 
 int alias
 	int64
@@ -47,7 +47,7 @@ truncate-to-int64 int64(a float64) noctx builtin
 region arithmetic
 
 # True if `b * c == a` for some `c`.
-multiple-of? bool(a nat64, b nat64)
+is-multiple-of bool(a nat64, b nat64)
 	(a mod b) == 0
 
 # Add two nats. Fail if the result would overflow.
@@ -223,7 +223,7 @@ to-nat32 nat32(a nat64) trusted
 	a unsafe-to-nat32
 
 wrap-to-nat32 nat32(a nat64) noctx trusted
-	# TODO: safe?
+	# TODO: safe ?
 	a unsafe-to-nat32
 
 # Absolute value of an int, as a nat.
@@ -247,7 +247,7 @@ abs float64(a float64) noctx
 ** nat64(a nat64, b nat64)
 	if b == 0
 		1
-	elif b even?
+	elif b is-even
 		(a * a) ** (b / 2)
 	else
 		a * a ** (b - 1)
@@ -300,8 +300,8 @@ square-root float32(a float32) noctx
 .sqrt float32(a float32) noctx extern
 
 # True if the float is "Not A Number".
-nan? bool(a float64) noctx builtin
-nan? bool(a float32) noctx builtin
+is-nan bool(a float64) noctx builtin
+is-nan bool(a float32) noctx builtin
 
 region number iteration
 
@@ -323,9 +323,9 @@ each-reverse void(a arrow<nat64, nat64>, f act void(nat64))
 	if cur != low
 		low each-reverse-recur (cur wrap-sub 1), f
 
-exists? bool(a arrow<nat64, nat64>, f act bool(nat64))
+exists bool(a arrow<nat64, nat64>, f act bool(nat64))
 	if a.from < a.to
-		f[a from] || (a.from wrap-add 1) -> a.to exists? f
+		f[a from] || (a.from wrap-add 1) -> a.to exists f
 	else
 		false
 

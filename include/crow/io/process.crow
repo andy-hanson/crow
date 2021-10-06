@@ -1,7 +1,7 @@
 no-std
 import
 	poll:
-		fd, has-POLLIN?, has-POLLERR?, has-POLLHUP?, has-POLLNVAL?, has-POLLOUT?, has-POLLPRI?,
+		fd, has-POLLIN, has-POLLERR, has-POLLHUP, has-POLLNVAL, has-POLLOUT, has-POLLPRI,
 		poll, pollfd, POLLIN, revents
 	spawn:
 		posix_spawn, posix_spawn_file_actions_addclose, posix_spawn_file_actions_adddup2,
@@ -30,7 +30,7 @@ import
 	../private/bootstrap: todo
 	../private/number-low-level: ==, <=>, int32, to-int64, wrap-add
 	./environ: convert-environ, environ
-	./file: is-file?
+	./file: is-file
 	./posix-util: check-posix-error
 	./print: print
 
@@ -54,7 +54,7 @@ spawn-and-wait-result process-result(exe str, args arr str, environ environ) tru
 		"{a} {b}"
 
 	# TODO: kill, handle that error properly
-	if exe is-file?
+	if exe is-file
 		exe-c-str = exe to-c-str
 		exe-c-str spawn-and-wait-result (exe-c-str convert-args args), environ.convert-environ
 	else
@@ -66,7 +66,7 @@ The child process shares stdout and stderr with the parent process.
 ###
 spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
 	# TODO: kill, handle that error properly
-	if exe is-file?
+	if exe is-file
 		# First argument should be the executable path
 		# TODO: &to-c-str
 		exe-c-str = exe.to-c-str
@@ -128,33 +128,32 @@ body
 	# timeout == -1 means we block
 	n-pollfds-with-events = to-int64: poll: poll-fds.begin-ptr, poll-fds.size, -1
 	if n-pollfds-with-events == 0
-		# TODO: is this even possible to reach? I think we always get has-POLLHUP? instead.
+		# TODO: is this even possible to reach ? I think we always get has-POLLHUP instead.
 		void
 	else
 		a = stdout-pollfd handle-revents stdout-builder
 		b = stderr-pollfd handle-revents stderr-builder
-		assert: (a.any?.to-nat64 wrap-add b.any?.to-nat64) == n-pollfds-with-events.to-nat64
+		assert: (a.any.to-nat64 wrap-add b.any.to-nat64) == n-pollfds-with-events.to-nat64
 		# Apparently stdout and stderr can hang up at slightly different times.
-		if !(a.hung-up? && b.hung-up?)
+		if !(a.hung-up && b.hung-up)
 			keep-POLLINg: stdout-pipe, stderr-pipe, stdout-builder, stderr-builder
 
 .handle-revents-result record
-	had-POLLIN? bool
-	hung-up? bool
+	had-POLLIN bool
+	hung-up bool
 
-.any? bool(r handle-revents-result)
-	r.had-POLLIN? || r.hung-up?
+.any bool(r handle-revents-result)
+	r.had-POLLIN || r.hung-up
 
 .handle-revents handle-revents-result(pollfd pollfd, builder mut-list char) summon
 	revents = pollfd revents
-	had-POLLIN? = revents has-POLLIN?
-	if had-POLLIN?
+	had-POLLIN = revents has-POLLIN
+	if had-POLLIN
 		pollfd.fd read-to-buffer-until-eof builder
-	hung-up? = revents has-POLLHUP?
-	if revents.has-POLLPRI? || revents.has-POLLOUT? || revents.has-POLLERR? || revents.has-POLLNVAL?
+	hung-up = revents has-POLLHUP
+	if revents.has-POLLPRI || revents.has-POLLOUT || revents.has-POLLERR || revents.has-POLLNVAL
 		todo
-	# TODO: shouldn't need parens?
-	handle-revents-result: had-POLLIN?, hung-up?
+	had-POLLIN handle-revents-result hung-up
 
 .read-to-buffer-until-eof void(fd fd-t, buffer mut-list char) trusted summon
 	read-max = 1024
@@ -204,5 +203,5 @@ body
 	elif wait-status WIFCONTINUED
 		todo
 	else
-		# What other statuses are there?
+		# What other statuses are there ?
 		todo

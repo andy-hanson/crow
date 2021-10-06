@@ -4,8 +4,8 @@ import
 main fut nat(_ arr str) summon
 	alice = all & ~hat
 	print: alice flags-to-str
-	print: alice.naked? to-str
-	print: alice.service? to-str
+	print: alice.naked to-str
+	print: alice.service to-str
 	0 resolved
 
 clothed flags
@@ -14,8 +14,8 @@ clothed flags
 	shirt
 	hat
 
-naked? bool(a clothed)
+naked bool(a clothed)
 	a == empty
 
-service? bool(a clothed)
-	(shoes | shirt) in a
+service bool(a clothed)
+	(shoes | shirt) is-in a

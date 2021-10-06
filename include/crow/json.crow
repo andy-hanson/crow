@@ -1,15 +1,15 @@
 no-std
 import
 	./bool: !, ==, bool, false, true
-	./col/dict: dict, dict-equal?, each, empty?
-	./col/list: each, empty?, list, list-equal?
+	./col/dict: dict, dict-equal, each, is-empty
+	./col/list: each, is-empty, list, list-equal
 	./col/mut-dict: move-to-dict!, mut-dict, set-subscript
 	./col/mut-list: ~=, move-to-arr!, mut-list
 	./misc: ->, void
 	./number: ==, float64
 	./opt: none, opt, some
 	./reader:
-		reader, skip-whitespace!, take-char?, take-float!, take-quoted-str!, take-str?, with-reader
+		reader, skip-whitespace!, try-take-char, take-float!, take-quoted-str!, try-take-str, with-reader
 	./str: ==, <=>, str
 	./test: is
 	./writer: ~=, backup!, move-to-str!, writer, write-quoted-str!
@@ -40,13 +40,13 @@ json union
 			false
 	as list aa
 		if ab ?= b as-list
-			aa list-equal? ab, (x, y) =>
+			aa list-equal ab, (x, y) =>
 				x == y
 		else
 			false
 	as dict da
 		if db ?= b as-dict
-			da dict-equal? db
+			da dict-equal db
 		else
 			false
 
@@ -142,7 +142,7 @@ to-str str(a json)
 		l each x =>
 			out to-str-recur! x
 			out ~= ","
-		if !l.empty?
+		if !l.is-empty
 			out backup!
 		out ~= "]"
 	as dict d
@@ -152,7 +152,7 @@ to-str str(a json)
 			out ~= ":"
 			out to-str-recur! value
 			out ~= ","
-		if !d.empty?
+		if !d.is-empty
 			out backup!
 		out ~= "}"
 
@@ -160,21 +160,21 @@ take-json! opt json(a reader)
 	a skip-whitespace!
 	if f ?= a take-float!
 		f some
-	elif a take-str? "true"
+	elif a try-take-str "true"
 		true some
-	elif a take-str? "false"
+	elif a try-take-str "false"
 		false some
 	elif s ?= a take-quoted-str!
 		s some
-	elif a take-char? "["
+	elif a try-take-char "["
 		a skip-whitespace!
-		if a take-char? "]"
+		if a try-take-char "]"
 			list some
 		else
 			a take-list-recur! mut-list
-	elif a take-char? "\{"
+	elif a try-take-char "\{"
 		a skip-whitespace!
-		if a take-char? "}"
+		if a try-take-char "}"
 			dict some
 		else
 			a take-object-recur! mut-dict
@@ -183,23 +183,23 @@ take-json! opt json(a reader)
 	if j ?= a take-json!
 		res ~= j
 		a skip-whitespace!
-		if a take-char? ","
+		if a try-take-char ","
 			a skip-whitespace!
 			a take-list-recur! res
-		elif a take-char? "]"
+		elif a try-take-char "]"
 			res.move-to-arr!.list some
 
 .take-object-recur! opt json(a reader, res mut-dict<str, json>)
 	if key ?= a take-quoted-str!
 		a skip-whitespace!
-		if a take-char? ":"
+		if a try-take-char ":"
 			if j ?= a take-json!
 				res[key] := j
 				a skip-whitespace!
-				if a take-char? ","
+				if a try-take-char ","
 					a skip-whitespace!
 					a take-object-recur! res
-				elif a take-char? "}"
+				elif a try-take-char "}"
 					res.move-to-dict! some
 				else
 					a take-object-recur! res

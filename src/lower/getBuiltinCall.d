@@ -268,7 +268,7 @@ immutable(BuiltinKind) getBuiltinKind(
 			return constantBool(false);
 		case shortSymAlphaLiteralValue("get-ctx"):
 			return immutable BuiltinKind(immutable BuiltinKind.GetCtx());
-		case shortSymAlphaLiteralValue("less?"):
+		case shortSymAlphaLiteralValue("is-less"):
 			return binary(
 				isInt8(p0) ? LowExprKind.SpecialBinary.Kind.lessInt8 :
 				isInt16(p0) ? LowExprKind.SpecialBinary.Kind.lessInt16 :

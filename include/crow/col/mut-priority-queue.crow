@@ -4,7 +4,7 @@ import
 	../compare: <, compare
 	../exception: assert
 	../misc: ->, arrow, data, from, to, void
-	../opt: empty?, force, none, opt, some
+	../opt: force, is-empty, none, opt, some
 	../ptr: +, -, ptr, set-subscript
 	../str: ==, str
 	../test: is
@@ -14,7 +14,7 @@ import
 	./arr-util: map
 	./mut-arr: begin-ptr, cast-immutable, copy, mut-arr, reverse!, uninitialized-mut-arr
 	./mut-list:
-		~=, begin-ptr, each, each-with-index, empty?, empty!, fold, fold-reverse, mut-list,
+		~=, begin-ptr, each, each-with-index, empty!, fold, fold-reverse, is-empty, mut-list,
 		pop!, reverse!, size, subscript
 	./sort: sort-by!
 	./private/sort-utils: binary-search-insert-ptr
@@ -40,8 +40,8 @@ empty! void(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 	a.mins empty!
 	a.buckets empty!
 
-empty? bool(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
-	a.mins empty?
+is-empty bool(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
+	a.mins is-empty
 
 size nat64(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 	n-in-buckets = 0 fold a.buckets, (acc, b) =>
@@ -124,7 +124,7 @@ pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 		out write-pair! min
 		if index < a.buckets.size
 			bucket = a.buckets[index]
-			if !bucket.empty?
+			if !bucket.is-empty
 				out ~= " ["
 				bucket each pair =>
 					out write-pair! pair
@@ -132,7 +132,7 @@ pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 				out backup! 2
 				out ~= "]"
 		out ~= ", "
-	if !a.mins.empty?
+	if !a.mins.is-empty
 		out backup! 2
 	out move-to-str!
 
@@ -146,12 +146,12 @@ pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 
 test
 	a = mut-priority-queue<nat64, str>
-	a.empty? is true
+	a.is-empty is true
 	a.pop! is none
 	a verify ""
 
 	a ~= 5 -> "5"
-	a.empty? is false
+	a.is-empty is false
 	a verify "5 -> 5"
 
 	a ~= 6 -> "6"
@@ -192,4 +192,4 @@ test
 		else
 			false
 	else
-		b empty?
+		b is-empty

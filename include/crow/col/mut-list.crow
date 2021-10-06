@@ -14,7 +14,7 @@ import
 	../private/exception-low-level: assert
 	../private/number-low-level: ==, <=>, wrap-add, wrap-sub
 	./arr: arr
-	./arr-util: contains?, each, each-with-index, exists?, find-index, fold, fold-reverse, index-of
+	./arr-util: each, each-with-index, exists, find-index, fold, fold-reverse, in, index-of
 	./mut-arr:
 		begin-ptr, cast-immutable, each, fill-mut-arr, map!, make-mut-arr,
 		mut-arr, reverse!, set-zero-elements, size, subscript, temp-as-arr, uninitialized-mut-arr
@@ -44,7 +44,7 @@ begin-ptr ptr ?a(a mut-list ?a) noctx unsafe
 end-ptr ptr ?a(a mut-list ?a) noctx unsafe
 	a.begin-ptr + a.size
 
-at-capacity? bool(a mut-list ?a) noctx unsafe
+is-at-capacity bool(a mut-list ?a) noctx unsafe
 	a.capacity == a.size
 
 capacity nat64(a mut-list ?a) noctx unsafe
@@ -132,11 +132,11 @@ subscript ?a(a mut-list ?a, index nat64) trusted
 	a.begin-ptr[index]
 
 first opt ?a(a mut-list ?a)
-	if !a.empty?
+	if !a.is-empty
 		a[0] some
 
 last opt ?a(a mut-list ?a)
-	if !a.empty?
+	if !a.is-empty
 		a[a.size - 1] some
 
 ###
@@ -161,7 +161,7 @@ temp-as-arr arr ?a(a mut-list ?a) noctx unsafe
 	a.temp-as-mut-arr temp-as-arr
 
 # True iff `a.size == 0`.
-empty? bool(a mut-list ?a) noctx
+is-empty bool(a mut-list ?a) noctx
 	a.size == 0
 
 ###
@@ -175,8 +175,8 @@ set-subscript void(a mut-list ?a, index nat64, value ?a) trusted
 ###
 True iff `a[i] == value` for some `i`.
 ###
-contains? bool(a mut-list ?a, value ?a) noctx trusted equal<?a>
-	a.temp-as-arr contains? value
+in bool(value ?a, a mut-list ?a) noctx trusted equal<?a>
+	value in a.temp-as-arr
 
 copy-range-to-arr arr ?a(a mut-list ?a, begin nat64, size nat64) trusted
 	assert: begin + size <= a.size
@@ -205,7 +205,7 @@ Removes the last element and returns it.
 Returns `none` if `a` is empty.
 ###
 pop! opt ?a(a mut-list ?a) trusted
-	if !a.empty?
+	if !a.is-empty
 		new-size = a.size wrap-sub 1
 		res = a[new-size]
 		# Ensure GC doesn't hold on to the memory there
@@ -372,7 +372,7 @@ reverse! void(a mut-list ?a) trusted
 
 region iteration
 
-# TODO: What if it's mutated while searching?
+# TODO: What if it's mutated while searching ?
 find-index opt nat64(a mut-list ?a, f act bool(?a)) trusted
 	a.temp-as-arr find-index f
 
@@ -383,8 +383,8 @@ each void(a mut-list ?a, f act void(?a)) trusted
 each-with-index void(a mut-list ?a, f act void(?a, nat64)) trusted
 	a.temp-as-arr each-with-index f
 
-exists? bool(a mut-list ?a, f act bool(?a)) trusted
-	a.temp-as-arr exists? f
+exists bool(a mut-list ?a, f act bool(?a)) trusted
+	a.temp-as-arr exists f
 
 fold ?a(acc ?a, a mut-list ?b, f act ?a(?a, ?b)) trusted
 	acc fold a.temp-as-arr, f

@@ -6,7 +6,7 @@ import
 	../fun: subscript
 	../misc: ->, arrow, as, data, from, to, void
 	../number: ==, <=>, +, -, *, nat64
-	../opt: ==, empty?, force, none, opt, or-default, size, some
+	../opt: ==, force, is-empty, none, opt, or-default, size, some
 	../ptr: ==, -, ptr, set-subscript, subscript
 	../str: ==, chars, str
 	../test: is
@@ -15,8 +15,8 @@ import
 	./arr-util: each
 	./dict: dict
 	./mut-list:
-		~=, begin-ptr, each, empty?, empty!, end-ptr, filter, filter!, fold, map, map!, map-to-arr,
-		mut-list, remove-at!, set-subscript, size, subscript
+		~=, begin-ptr, each, empty!, end-ptr, filter, filter!, fold, is-empty, map, map!,
+		map-to-arr, mut-list, remove-at!, set-subscript, size, subscript
 	./sort: sort-by!
 	./private/sort-utils:
 		assert-comparison-not-equal, binary-search-exact-ptr, binary-search-insert-ptr,
@@ -51,8 +51,8 @@ mut-dict mut-dict<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
 True if the `mut-dict` has no elements.
 This is O(1).
 ###
-empty? bool(a mut-dict<?k, ?v>)
-	a.pairs empty?
+is-empty bool(a mut-dict<?k, ?v>)
+	a.pairs is-empty
 
 empty! void(a mut-dict<?k, ?v>)
 	a.next := none
@@ -100,26 +100,26 @@ Returns true if it succeeded.
 ###
 .insert-into-key-match-or-empty-slot! bool(a mut-dict<?k, ?v>, key ?k, value ?v) trusted data<?k> compare<?k>
 	insert-ptr = a find-insert-ptr key
-	can-insert? = insert-ptr != a.pairs.end-ptr
-	if can-insert? && insert-ptr[].from == key
-		if insert-ptr[].to empty?
+	can-insert = insert-ptr != a.pairs.end-ptr
+	if can-insert && insert-ptr[].from == key
+		if insert-ptr[].to is-empty
 			a.node-size := a.node-size + 1
 		insert-ptr[] := key -> value.some
 		true
 	else
-		inserted? = if next ?= a next
+		inserted = if next ?= a next
 			next insert-into-key-match-or-empty-slot! key, value
 		else
 			false
 
-		if inserted?
+		if inserted
 			true
-		elif can-insert? && insert-ptr[].to.empty?
+		elif can-insert && insert-ptr[].to.is-empty
 			assert: key < insert-ptr[].from
 			a.node-size := a.node-size + 1
 			insert-ptr[] := key -> value.some
 			true
-		elif can-insert? && insert-ptr != a.pairs.begin-ptr && (insert-ptr - 1)[].to.empty?
+		elif can-insert && insert-ptr != a.pairs.begin-ptr && (insert-ptr - 1)[].to.is-empty
 			assert: key < insert-ptr[].from
 			# overwrite empty slot even though key doesn't match
 			a.node-size := a.node-size + 1
@@ -131,7 +131,7 @@ Returns true if it succeeded.
 # Returns the new physical size of this node and all nodes to the right
 .add-pair! void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k> compare<?k>
 	if a.node-size < 4
-		if a.pairs empty?
+		if a.pairs is-empty
 			# TODO: '.as<opt ?v>' should not be necessary
 			a.pairs ~= key -> value.some.as<opt ?v>
 		else
@@ -166,7 +166,7 @@ Returns true if it succeeded.
 
 # If there's something here, move it so something else can be inserted.
 .move-right! void(a mut-list arrow<?k, opt ?v>, index nat64)
-	if !a[index].to.empty?
+	if !a[index].to.is-empty
 		# If this is the last value, push it
 		if index == a.size - 1
 			a ~= a[index]
@@ -196,7 +196,7 @@ remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 			old-value = ptr[] to
 			ptr[] := key -> none
 			old-value
-		if !res.empty?
+		if !res.is-empty
 			a.node-size := a.node-size - 1
 		a compact-if-needed!
 		res
@@ -222,7 +222,7 @@ remove-key! opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 .compact! void(a mut-dict<?k, ?v>) data<?k> compare<?k>
 	if next ?= a next
 		next compact!
-		a.pairs filter! pair => !pair.to.empty?
+		a.pairs filter! pair => !pair.to.is-empty
 		a.pairs merge-no-duplicates! next.pairs, (x, y) =>
 			x.from <=> y.from assert-comparison-not-equal
 		a.next := none
@@ -314,7 +314,7 @@ map-values! void(a mut-dict<?k, ?v>, f act ?v(?k, ?v)) data<?k> compare<?k>
 		out ~= " -> "
 		out ~= pair.to or-default "_"
 		out ~= ", "
-	if a.pairs empty?
+	if a.pairs is-empty
 		out ~= "]"
 	else
 		out backup! 2

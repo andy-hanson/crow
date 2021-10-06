@@ -14,7 +14,7 @@ import
 	./arr: ==, arr, arr-from-begin-end, size
 	./arr-util: each-ptr, first, last
 	./mut-arr:
-		begin-ptr, cast-immutable, copy-from!, empty?, end-ptr, mut-arr, set-zero-elements, size,
+		begin-ptr, cast-immutable, copy-from!, end-ptr, is-empty, mut-arr, set-zero-elements, size,
 		subscript, uninitialized-mut-arr, zeroed-mut-arr
 
 mut-deque<?a> record mut
@@ -33,7 +33,7 @@ arr arr ?a(a mut-deque ?a) trusted
 	a.mut-arr cast-immutable
 
 mut-arr mut-arr ?a(a mut-deque ?a) trusted
-	if a empty?
+	if a is-empty
 		mut-arr
 	else
 		res = a.size uninitialized-mut-arr<?a>
@@ -44,7 +44,7 @@ copy mut-deque ?a(a mut-deque ?a) trusted
 	inner = a mut-arr
 	mut-deque: inner, inner.begin-ptr, inner.begin-ptr
 
-empty? bool(a mut-deque ?a) trusted
+is-empty bool(a mut-deque ?a) trusted
 	a.left == null
 
 size nat64(a mut-deque ?a) trusted
@@ -116,13 +116,13 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 .ensure-capacity! void(a mut-deque ?a) unsafe
 	if a.left == null
 		assert: a.right == null
-		if a.inner empty?
+		if a.inner is-empty
 			a.inner := 2 zeroed-mut-arr<?a>
 		a.left := a.inner begin-ptr
 		a.right := a.left
 	else
 		assert: a.right != null
-		forbid: a.inner empty?
+		forbid: a.inner is-empty
 		if a.left == a.right
 			old-inner = a inner
 			old-capacity = old-inner size
@@ -152,7 +152,7 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 			out ~= "L-> "
 		out ~= ptr[] to-str
 		out ~= " "
-	if !a.inner.empty?
+	if !a.inner.is-empty
 		out backup!
 	out move-to-str!
 

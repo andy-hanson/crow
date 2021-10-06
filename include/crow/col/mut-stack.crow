@@ -4,7 +4,7 @@ import
 	../misc: void
 	../opt: opt
 	./arr: arr
-	./mut-list: ~=, arr, copy, each, empty?, filter!, fold, last, map!, mut-list, pop!
+	./mut-list: ~=, arr, copy, each, filter!, fold, is-empty, last, map!, mut-list, pop!
 
 ###
 Unlike `mut-list`, this is not guaranteed to be represented as an array.
@@ -26,8 +26,8 @@ mut-stack mut-stack ?a(a arr ?a)
 arr arr ?a(a mut-stack ?a)
 	a.inner arr
 
-empty? bool(a mut-stack ?a)
-	a.inner empty?
+is-empty bool(a mut-stack ?a)
+	a.inner is-empty
 
 ~= void(a mut-stack ?a, value ?a)
 	a.inner ~= value
@@ -36,7 +36,7 @@ empty? bool(a mut-stack ?a)
 	a.inner ~= values
 
 last opt ?a(a mut-stack ?a)
-	if !a.empty?
+	if !a.is-empty
 		a.inner last
 
 pop! opt ?a(a mut-stack ?a)

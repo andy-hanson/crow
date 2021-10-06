@@ -14,7 +14,7 @@ import
 	../bits: |
 	../bool: !, &&, ||, bool, false, true
 	../cell: cell, subscript
-	../col/arr: arr, begin-ptr, empty?, size
+	../col/arr: arr, begin-ptr, is-empty, size
 	../col/mut-arr:
 		begin-ptr, cast-immutable, copy-to-arr, end-ptr, mut-arr-from-begin-end,
 		uninitialized-mut-arr
@@ -23,7 +23,7 @@ import
 	../exception: assert, do-if-error, finally, forbid, throw
 	../extra-types: err-t
 	../fun: subscript
-	../io/file: make-directory, path-exists?, remove-directory-and-contents-non-recursive
+	../io/file: make-directory, path-exists, remove-directory-and-contents-non-recursive
 	../log: info, log
 	../misc: as, data, void
 	../number: ==, *, nat, nat8, nat32, nat64, to-nat64
@@ -47,7 +47,7 @@ lMDB_txn record mut
 	txn MDB_txn
 
 lmdb-open-options record
-	create-if-not-exists? bool
+	create-if-not-exists bool
 
 ###
 Implemented for nat32, nat64 and str.
@@ -101,8 +101,8 @@ lmdb-open-env lmdb-env(db-dir str, options lmdb-open-options) unsafe summon
 	mapsize = 1024 * 1024 * 100000
 	check-lmdb-error: env mdb_env_set_mapsize mapsize
 
-	if options create-if-not-exists?
-		if !db-dir.path-exists?
+	if options create-if-not-exists
+		if !db-dir.path-exists
 			info log "Creating database directory {db-dir}"
 			db-dir make-directory
 
@@ -297,7 +297,7 @@ get opt ?v(txn lMDB_txn, db lmdb-db<?k, ?v>, key ?k) trusted summon lmdb-key<?k>
 	# TODO: this check should be unnecessary...
 	if (txn count db) != 0
 		lmdb-key = key to-lmdb-key
-		lmdb-key.empty? forbid "Empty key is not allowed"
+		lmdb-key.is-empty forbid "Empty key is not allowed"
 		err = txn.txn mdb_get db.dbi, lmdb-key.val-of-bytes, value
 		if err != MDB_NOTFOUND
 			err check-lmdb-error

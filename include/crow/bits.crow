@@ -53,17 +53,17 @@ Output bits will be 1 iff either input bit is.
 ^ int64(a int64, b int64) noctx builtin
 
 # True if the numbers have at least one bit in common.
-bits-intersect? bool(a int16, b int16) noctx
+bits-intersect bool(a int16, b int16) noctx
 	a & b != 0
-bits-intersect? bool(a int32, b int32) noctx
+bits-intersect bool(a int32, b int32) noctx
 	a & b != 0
-bits-intersect? bool(a nat32, b nat32) noctx
+bits-intersect bool(a nat32, b nat32) noctx
 	a & b != 0
-bits-intersect? bool(a nat64, b nat64) noctx
+bits-intersect bool(a nat64, b nat64) noctx
 	a & b != 0
 
 # True if all 1 bits in 'b' are 1 bits in 'a'.
-has-all-bits? bool(a nat64, b nat64) noctx
+has-all-bits bool(a nat64, b nat64) noctx
 	a & b == b
 
 unsafe-bit-shift-left nat64(a nat64, b nat64) noctx builtin unsafe
@@ -128,8 +128,8 @@ unsafe-bit-shift-right nat64(a nat64, b nat64) noctx builtin unsafe
 nth-bit nat64(bit-index nat64)
 	1 << bit-index
 
-bit? bool(a nat64, bit-index nat64)
-	a bits-intersect? bit-index.nth-bit
+has-bit bool(a nat64, bit-index nat64)
+	a bits-intersect bit-index.nth-bit
 
 add-bit nat64(a nat64, bit-index nat64)
 	a | bit-index.nth-bit
@@ -143,12 +143,12 @@ count-ones nat64(a nat64) noctx builtin
 # Calls 'f' on the index of each '1' bit.
 fold-one-bits ?a(acc ?a, a nat64, f act ?a(?a, nat64))
 	acc fold-one-bits-recur a, 0, f
-# TODO:PERF faster way?
+# TODO:PERF
 .fold-one-bits-recur ?a(acc ?a, a nat64, offset nat64, f act ?a(?a, nat64)) trusted
 	if a == 0
 		acc
 	else
-		new-acc = if a bits-intersect? 1
+		new-acc = if a bits-intersect 1
 			f[acc, offset]
 		else
 			acc
@@ -160,7 +160,7 @@ filter-bits nat64(a nat64, f act bool(nat64))
 	if a == 0
 		acc
 	else
-		new-acc = if a bits-intersect? 1 && f[offset]
+		new-acc = if a bits-intersect 1 && f[offset]
 			acc add-bit offset
 		else
 			acc

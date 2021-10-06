@@ -5,7 +5,7 @@ import
 	../exception: assert, forbid, throw
 	../fun: subscript
 	../misc: drop, void
-	../opt: ==, empty?, none, opt, some
+	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, -, set-subscript
 	../str: str
 	../test: is
@@ -56,8 +56,8 @@ arr-reverse arr ?a(a stack ?a) trusted
 	res cast-immutable
 
 # True iff `a.size == 0`.
-empty? bool(a stack ?a)
-	a.last-node empty?
+is-empty bool(a stack ?a)
+	a.last-node is-empty
 
 ###
 Appends an element to the stack.
@@ -167,14 +167,14 @@ first-some opt ?out(a stack ?in, f act opt ?out(?in))
 .first-some-recur opt ?out(a opt node ?in, f act opt ?out(?in))
 	if node ?= a
 		res = node.prev first-some-recur f
-		if res empty?
+		if res is-empty
 			f[node value]
 		else
 			res
 
 test
 	a = stack<nat64>
-	assert: a empty?
+	assert: a is-empty
 	a.arr is []
 	a.last is none
 
@@ -182,7 +182,7 @@ test
 	b.arr is [1]
 	b.last is 1.some
 	b.rtail.arr is []
-	forbid: b empty?
+	forbid: b is-empty
 
 	c = b ~ 2
 	c.arr is [1, 2]

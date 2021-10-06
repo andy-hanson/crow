@@ -1,46 +1,46 @@
 import
 	crow/cell: cell, swap, subscript
-	crow/col/arr-util: contains?, each-with-index, exists?
+	crow/col/arr-util: each-with-index, exists, in
 	crow/col/mut-list: ~=, move-to-arr!, mut-list
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
 	crow/io/print: print
-	crow/str-util: ends-with?, has-substr?, starts-with?, try-remove-start
-	./failure: failure, flat-map-with-max-size, max-failures, print-tests?, test-options
+	crow/str-util: ends-with, has-substr, starts-with, try-remove-start
+	./failure: failure, flat-map-with-max-size, max-failures, print-tests, test-options
 
 lint result<str, arr failure>(path str, options test-options) summon
 	files = path list-lintable-files
 	failures = files flat-map-with-max-size options.max-failures, file =>
-		if options.print-tests?
+		if options print-tests
 			print: "lint {file}"
 		file lint-file
-	if failures empty?
+	if failures is-empty
 		ok: "linted {files size} files"
 	else
 		err: failures
 
 .list-lintable-files arr str(path str) summon
 	res = mut-list<str>
-	path each-child-recursive (child => !child.excluded-from-lint?), child =>
-		if !child.base-name.ignore-extension-of-name?
+	path each-child-recursive (child => !child.excluded-from-lint), child =>
+		if !child.base-name.should-ignore-extension-of-name
 			res ~= child
 	res move-to-arr!
 
-.excluded-from-lint? bool(name str)
+.excluded-from-lint bool(name str)
 	exclude-exts = [".bmp", ".err", ".html", ".mdb", ".png", ".repr", ".svg", ".ttf", ".wasm", ".webp", ".xz"]
 	exclude-names = ["documentation", "dyncall", "libfirm", "node_modules", "package-lock.json"]
-	name starts-with? "." || exclude-names contains? name || exclude-exts exists? ext => name ends-with? ext
+	name starts-with "." || name in exclude-names || exclude-exts exists ext => name ends-with ext
 
 # Returns numner of errors
 .lint-file arr failure(path str) summon
 	text = path read-file
 	res = mut-list<failure>
 	ext = path.get-extension force
-	allow-double-space? = ext == "err" || ext == "sublime-syntax"
+	allow-double-space = ext == "err" || ext == "sublime-syntax"
 	text.lines each-with-index (line, line-num) =>
 		ln = line-num + 1 to-str
 		space-space = " " ~ " "
-		if !allow-double-space? && line has-substr? space-space
+		if !allow-double-space && line has-substr space-space
 			message = "line {ln} contains a double space"
 			res ~=: failure: path, message
 		width = line line-len
@@ -52,12 +52,12 @@ lint result<str, arr failure>(path str, options test-options) summon
 .ignored-extensions arr str()
 	["c", "data", "o", "out", "repr", "tmLanguage"]
 
-.ignore-extension? bool(ext str)
-	ignored-extensions contains? ext
+.should-ignore-extension bool(ext str)
+	ext in ignored-extensions
 
-.ignore-extension-of-name? bool(name str)
+.should-ignore-extension-of-name bool(name str)
 	if ext ?= name get-extension
-		ext ignore-extension?
+		ext should-ignore-extension
 	else
 		# Ignore extensionless files
 		true

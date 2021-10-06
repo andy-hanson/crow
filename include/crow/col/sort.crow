@@ -10,7 +10,7 @@ import
 	../str: ==, <=>, chars
 	../test: is
 	./arr: ==, arr, subscript
-	./mut-arr: arr, begin-ptr, cast-immutable, empty?, end-ptr, mut-arr, size, set-subscript, subscript
+	./mut-arr: arr, begin-ptr, cast-immutable, end-ptr, is-empty, mut-arr, size, set-subscript, subscript
 	./mut-list: mut-list, temp-as-mut-arr
 
 ###
@@ -58,7 +58,7 @@ sort-by! void(a mut-list ?a, f act ?b(?a)) compare<?b> trusted
 sort! void(a mut-arr ?a) compare<?a>
 	a sort! (x, y) => x <=> y
 sort! void(a mut-arr ?a, comparer act comparison(?a, ?a)) trusted
-	if !a.empty?
+	if !a.is-empty
 		a.begin-ptr insertion-sort-recur! a.begin-ptr + 1, a.end-ptr, comparer
 sort-by! void(a mut-arr ?a, f act ?b(?a)) compare<?b>
 	a sort! (x, y) => f[x] <=> f[y]
@@ -84,7 +84,7 @@ sort-by! void(a mut-arr ?a, f act ?b(?a)) compare<?b>
 sort-unique! mut-arr ?a(a mut-arr ?a) compare<?a>
 	a sort-unique! (x, y) => x <=> y
 sort-unique! mut-arr ?a(a mut-arr ?a, comparer act comparison(?a, ?a)) trusted
-	if a empty?
+	if a is-empty
 		a
 	else
 		a sort! comparer

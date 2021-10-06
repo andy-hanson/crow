@@ -11,7 +11,7 @@ import
 	../private/exception-low-level: assert, forbid
 	../private/number-low-level: ==, <=>, nat64, wrap-mul, wrap-sub
 	./arr: arr, arr-from-begin-end, begin-ptr, size, subscript
-	./arr-util: each, each-with-index, exists?, find-index, fold, fold-reverse
+	./arr-util: each, each-with-index, exists, find-index, fold, fold-reverse
 
 ###
 Like `arr` but mutable.
@@ -67,7 +67,7 @@ copy-from! void(dest mut-arr ?a, source arr ?a) trusted
 copy-from! void(dest mut-arr ?a, source mut-arr ?a) trusted
 	dest copy-from! source.cast-immutable
 
-empty? bool(a mut-arr ?a) noctx
+is-empty bool(a mut-arr ?a) noctx
 	a.size == 0
 
 size nat64(a mut-arr ?a) noctx
@@ -120,19 +120,19 @@ unsafe-set-at! void(a mut-arr ?a, index nat64, value ?a) unsafe
 
 
 first opt ?a(a mut-arr ?a)
-	if !a.empty?
+	if !a.is-empty
 		a[0] some
 
 last opt ?a(a mut-arr ?a)
-	if !a.empty?
+	if !a.is-empty
 		a[0] some
 
 tail mut-arr ?a(a mut-arr ?a)
-	forbid: a empty?
+	forbid: a is-empty
 	a[1 -> a.size]
 
 rtail mut-arr ?a(a mut-arr ?a)
-	forbid: a empty?
+	forbid: a is-empty
 	a[0 -> (a.size wrap-sub 1)]
 
 # Allocates a `mut-arr` without initializing any of its elements.
@@ -205,8 +205,8 @@ reverse! void(a mut-arr ?a) trusted
 
 region iteration
 
-exists? bool(a mut-arr ?a, f act bool(?a)) trusted
-	a.temp-as-arr exists? f
+exists bool(a mut-arr ?a, f act bool(?a)) trusted
+	a.temp-as-arr exists f
 
 # Calls 'f' on each element in the mut-arr.
 each void(a mut-arr ?a, f act void(?a)) trusted

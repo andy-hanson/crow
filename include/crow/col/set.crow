@@ -13,13 +13,13 @@ import
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul, wrap-sub
-	./arr: arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, size, subscript
+	./arr: arr, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, subscript
 	./arr-util: alloc-count, deep-size-bytes, each, tail
 	./index-set:
-		~, alloc-count, count-greater-or-equal, count-range, deep-size-bytes, each, empty?,
-		filter-less, index-set, size, subscript, try-remove
+		~, alloc-count, count-greater-or-equal, count-range, deep-size-bytes, each, filter-less,
+		index-set, is-empty, size, subscript, try-remove
 	./mut-arr:
-		begin-ptr, cast-immutable, empty?, end-ptr, mut-arr, set-subscript, size, subscript,
+		begin-ptr, cast-immutable, end-ptr, is-empty, mut-arr, set-subscript, size, subscript,
 		uninitialized-mut-arr
 	./sort: sort
 	./private/sort-utils: binary-search-exact-index
@@ -85,9 +85,9 @@ alloc-count nat64(a set ?a) unsafe
 		acc wrap-add 1
 
 
-empty? bool(a set ?a)
+is-empty bool(a set ?a)
 	# Compaction ensures that this is the only case where we store empty values.
-	a.add.values empty?
+	a.add.values is-empty
 
 size nat64(a set ?a)
 	a.remove.size add-size-recur a.add
@@ -147,7 +147,7 @@ try-add opt set ?a(a set ?a, value ?a) data<?a> compare<?a>
 try-remove opt set ?a(a set ?a, value ?a) trusted data<?a> compare<?a>
 	if r ?= a.add find-in-add-for-remove value, 0
 		removals-here-and-right = 1 wrap-add: a.remove count-greater-or-equal r.size-left
-		some: if r.size-here should-compact? r.size-right, removals-here-and-right
+		some: if r.size-here should-compact r.size-right, removals-here-and-right
 			compacted-size = r.size-here wrap-add r.size-right wrap-sub 1
 			a remove-and-compact (compact-plan: r.size-left, compacted-size), r.value-index
 		else
@@ -184,7 +184,7 @@ Or a combination of the two.
 	size-here = a.values size
 	size-left = size-here-and-left wrap-sub size-here
 	removals-here-and-right = remove count-greater-or-equal size-left
-	if size-here should-compact? size-right, removals-here-and-right
+	if size-here should-compact size-right, removals-here-and-right
 		size-here-and-right = size-here wrap-add size-right
 		if left ?= a left
 			size-left add-and-compact-plan left, remove, size-here-and-right
@@ -193,7 +193,7 @@ Or a combination of the two.
 	else
 		size-here-and-left compact-plan size-right
 
-.should-compact? bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
+.should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right wrap-add (removals-here-and-right wrap-mul 2) wrap-mul 2) >= size-here
 
 .add-and-compact set ?a(a set ?a, add-size nat64, plan compact-plan, value ?a) unsafe compare<?a>
@@ -311,13 +311,13 @@ each void(a set ?a, f act void(?a)) data<?a> compare<?a>
 fold ?a(acc ?a, a set ?b, f act ?a(?a, ?b)) data<?b> compare<?b>
 	acc fold-recur a.init-iters, a.remove, f
 .fold-recur ?a(acc ?a, iters mut-arr iter-part ?b, remove index-set, f act ?a(?a, ?b)) compare<?b>
-	if iters empty?
+	if iters is-empty
 		acc
 	else
 		least-iter-index = iters[0].values[0] find-least-iter 0, 1, iters
 		least-value = iters[least-iter-index].values[0]
 		iters[least-iter-index] := iters[least-iter-index] tail remove
-		new-iters = if iters[least-iter-index] empty?
+		new-iters = if iters[least-iter-index] is-empty
 			iters[least-iter-index] := iters[iters.size wrap-sub 1]
 			iters[0 ->: iters.size wrap-sub 1]
 		else
@@ -346,8 +346,8 @@ body
 	values arr ?a
 	remove-index nat64
 
-.empty? bool(a iter-part ?a)
-	a.values empty?
+.is-empty bool(a iter-part ?a)
+	a.values is-empty
 
 .tail iter-part ?a(a iter-part ?a, remove index-set)
 	a.values.tail iter-part (a.remove-index wrap-add 1) remove-from-front remove
@@ -368,7 +368,7 @@ body
 	else
 		0 init-iters-result out
 	here = a.values iter-part prev.next-remove-index remove-from-front remove
-	new-out = if here empty?
+	new-out = if here is-empty
 		prev.out
 	else
 		prev.out[] := here
@@ -376,7 +376,7 @@ body
 	init-iters-result: (prev.next-remove-index wrap-add a.values.size), new-out
 
 .remove-from-front iter-part ?a(a iter-part ?a, remove index-set)
-	if !a.values.empty? && remove[a.remove-index]
+	if !a.values.is-empty && remove[a.remove-index]
 		a.values.tail iter-part (a.remove-index wrap-add 1) remove-from-front remove
 	else
 		a
@@ -399,7 +399,7 @@ map-to-arr arr ?out(a set ?in, f act ?out(?in)) trusted data<?in> compare<?in>
 dbg str(a set ?a) to-str<?a>
 	out = writer
 	out dbg-add-recur! a.add
-	if !a.remove.empty?
+	if !a.remove.is-empty
 		out ~= " - ["
 		a.remove each i =>
 			out ~= i to-str
@@ -413,7 +413,7 @@ dbg str(a set ?a) to-str<?a>
 		out dbg-add-recur! left
 		out ~= ", "
 
-	if a.values empty?
+	if a.values is-empty
 		out ~= "[]"
 	else
 		out ~= "["
@@ -430,12 +430,12 @@ test
 	info log "SET TEST START"
 	# TODO: be sure to test removing and then adding back
 	a = set<str>
-	a.empty? is true
+	a.is-empty is true
 	a.size is 0
 	a verify "[]"
 
 	b = a ~ "r"
-	b.empty? is false
+	b.is-empty is false
 	b.size is 1
 	b verify "[r]"
 

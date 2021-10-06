@@ -3,8 +3,8 @@ import
 	./bool: &&, ||, bool
 	./col/arr: arr, arr-cast, arr-from-begin-end, begin-ptr
 	./col/arr-util:
-		contains-subseq?, ends-with?, first, flatten, last, map, reverse, rtail, split-by-subseq,
-		starts-with?, tail, try-remove-end, try-remove-start, try-split-once
+		contains-subseq, ends-with, first, flatten, last, map, reverse, rtail, split-by-subseq,
+		starts-with, tail, try-remove-end, try-remove-start, try-split-once
 	./compare: <=
 	./number: ==, <=>, +, -, nat8
 	./opt: none, opt, some
@@ -55,7 +55,7 @@ strip str(a str)
 # Strips whitespace from the front.
 lstrip str(a str)
 	if c ?= a.chars first
-		if c whitespace?
+		if c is-whitespace
 			a.chars.tail.str lstrip
 		else
 			a
@@ -64,24 +64,24 @@ lstrip str(a str)
 
 rstrip str(a str)
 	if c ?= a.chars last
-		if c whitespace?
+		if c is-whitespace
 			a.chars.rtail.str rstrip
 		else
 			a
 	else
 		a
 
-.whitespace? bool(a char)
+.is-whitespace bool(a char)
 	a == " " || a == "\n" || a == "\t"
 
-has-substr? bool(a str, b str)
-	a.chars contains-subseq? b.chars
+has-substr bool(a str, b str)
+	a.chars contains-subseq b.chars
 
-starts-with? bool(a str, b str)
-	a.chars starts-with? b.chars
+starts-with bool(a str, b str)
+	a.chars starts-with b.chars
 
-ends-with? bool(a str, b str)
-	a.chars ends-with? b.chars
+ends-with bool(a str, b str)
+	a.chars ends-with b.chars
 
 try-remove-start opt str(a str, b str)
 	if res ?= a.chars try-remove-start b.chars

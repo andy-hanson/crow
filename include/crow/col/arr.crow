@@ -16,21 +16,21 @@ end-ptr ptr ?a(a arr ?a) noctx unsafe
 	a.begin-ptr + a.size
 
 # TODO: arr comparison should be generic
-arr-equal? bool(a arr ?a, b arr ?a) trusted noctx equal<?a>
-	a.begin-ptr equal-recur? a.end-ptr, b.begin-ptr, b.end-ptr
-.equal-recur? bool(a ptr ?a, a-end ptr ?a, b ptr ?a, b-end ptr ?a) unsafe noctx equal<?a>
+arr-equal bool(a arr ?a, b arr ?a) trusted noctx equal<?a>
+	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr
+.equal-recur bool(a ptr ?a, a-end ptr ?a, b ptr ?a, b-end ptr ?a) unsafe noctx equal<?a>
 	if a == a-end
 		b == b-end
 	else
-		b != b-end && a[] == b[] && a + 1 equal-recur? a-end, b + 1, b-end
+		b != b-end && a[] == b[] && a + 1 equal-recur a-end, b + 1, b-end
 
-arr-equal? bool(a arr ?a, b arr ?a, eq act bool(?a, ?a)) trusted
-	a.begin-ptr equal-recur? a.end-ptr, b.begin-ptr, b.end-ptr, eq
-.equal-recur? bool(a ptr ?a, a-end ptr ?a, b ptr ?a, b-end ptr ?a, eq act bool(?a, ?a)) unsafe
+arr-equal bool(a arr ?a, b arr ?a, eq act bool(?a, ?a)) trusted
+	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr, eq
+.equal-recur bool(a ptr ?a, a-end ptr ?a, b ptr ?a, b-end ptr ?a, eq act bool(?a, ?a)) unsafe
 	if a == a-end
 		b == b-end
 	else
-		b != b-end && eq[a[], b[]] && a + 1 equal-recur? a-end, b + 1, b-end, eq
+		b != b-end && eq[a[], b[]] && a + 1 equal-recur a-end, b + 1, b-end, eq
 
 arr-compare comparison(a arr ?a, b arr ?a) trusted noctx compare<?a>
 	a.begin-ptr compare-recur a.end-ptr, b.begin-ptr, b.end-ptr
@@ -52,12 +52,12 @@ arr-compare comparison(a arr ?a, b arr ?a) trusted noctx compare<?a>
 			greater
 
 == bool(a arr nat8, b arr nat8) noctx
-	a arr-equal? b
+	a arr-equal b
 <=> comparison(a arr nat8, b arr nat8) noctx
 	a arr-compare b
 
 == bool(a arr nat64, b arr nat64) noctx
-	a arr-equal? b
+	a arr-equal b
 <=> comparison(a arr nat64, b arr nat64) noctx
 	a arr-compare b
 
@@ -75,7 +75,7 @@ arr-cast arr ?out(a arr ?in) unsafe noctx
 	arr: a.size, a.begin-ptr.ptr-cast<?out, ?in>
 
 # True iff `a.size == 0`.
-empty? bool(a arr ?a) noctx
+is-empty bool(a arr ?a) noctx
 	a.size == 0
 
 noctx-at ?a(a arr ?a, index nat64) unsafe noctx

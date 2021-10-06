@@ -41,7 +41,7 @@ main fut nat(_ arr str) unsafe summon
 	assert: (socket connect sockaddr, sockaddr_in.size-of.to-nat32) == 0
 
 .send-request! void(socket fd-t, request str) unsafe summon
-	forbid: request empty?
+	forbid: request is-empty
 	socket send-request-recur! request.bytes
 .send-request-recur! void(socket fd-t, bytes arr nat8)
 	bytes-sent = socket write bytes.begin-ptr, bytes.size
@@ -58,7 +58,7 @@ main fut nat(_ arr str) unsafe summon
 	bytes-read = socket read buffer.begin-ptr, buffer.size
 	assert: bytes-read >= 0
 	if bytes-read > 0
-		print: "Read (partial?) response:"
+		print: "Read (possibly partial) response:"
 		print: buffer[0 -> bytes-read.to-nat].cast-immutable as-str
 		# TODO: Response might be partial. The parser will have to tell us that.
 

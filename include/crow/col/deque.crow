@@ -4,18 +4,18 @@ import
 	../exception: assert
 	../fun: subscript
 	../misc: ->, void
-	../opt: empty?, force, opt, some
+	../opt: force, is-empty, opt, some
 	../ptr: ==, +, -, set-subscript
 	../str: ==, str
 	../str-conv: to-str
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
-	../private/number-low-level: ==, even?, nat64, wrap-add
-	./arr: ==, arr, empty?, size
+	../private/number-low-level: ==, is-even, nat64, wrap-add
+	./arr: ==, arr, is-empty, size
 	./arr-util: each, first, fold, last, rtail, tail
 	./mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
 	./stack:
-		~, arr, arr-reverse, each, each-reverse, empty?, fold, fold-reverse, pop, rest, size,
+		~, arr, arr-reverse, each, each-reverse, is-empty, fold, fold-reverse, pop, rest, size,
 		stack, value
 
 deque<?a> record
@@ -44,8 +44,8 @@ arr arr ?a(a deque ?a) trusted
 	assert: end == res.end-ptr
 	res cast-immutable
 
-empty? bool(a deque ?a)
-	a.left.empty? && a.mid.empty? && a.right.empty?
+is-empty bool(a deque ?a)
+	a.left.is-empty && a.mid.is-empty && a.right.is-empty
 
 size nat64(a deque ?a)
 	a.left.size wrap-add a.mid.size wrap-add a.right.size
@@ -114,7 +114,7 @@ map deque ?out(a deque ?in, f act ?out(?in)) trusted
 		out ~= x
 		out ~= " "
 	out ~= "["
-	if a.mid empty?
+	if a.mid is-empty
 		out ~= "]"
 	else
 		a.mid each x =>
@@ -129,12 +129,12 @@ map deque ?out(a deque ?in, f act ?out(?in)) trusted
 
 test
 	a = deque<nat64>
-	assert: a empty?
+	assert: a is-empty
 	a.dbg is "[]"
 	a.arr is []
 	# TODO: 'is none'
-	a.pop-left.empty? is true
-	a.pop-right.empty? is true
+	a.pop-left.is-empty is true
+	a.pop-right.is-empty is true
 
 	bl = 1 ~ a
 	bl.dbg is "1 []"
@@ -185,5 +185,5 @@ test
 	six.dbg is "1 2 [3 4] 5 6"
 	folded = 10 fold six, (x, y) => x wrap-add y
 	folded is 31
-	(six filter it => it even?).arr is [2, 4, 6]
+	(six filter it => it is-even).arr is [2, 4, 6]
 	(six map it => it wrap-add 10).arr is [11, 12, 13, 14, 15, 16]

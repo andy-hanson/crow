@@ -27,7 +27,7 @@ export
 	a cmp b
 
 .cmp comparison(a ?a, b ?a) noctx less<?a>
-	if a less? b
+	if a is-less b
 		less
 	elif a == b
 		equal
@@ -35,19 +35,19 @@ export
 		greater
 
 .less<?a> spec
-	less? bool(a ?a, b ?a)
+	is-less bool(a ?a, b ?a)
 	== bool(a ?a, b ?a)
 
-.less? bool(a nat8, b nat8) noctx builtin
-.less? bool(a nat16, b nat16) noctx builtin
-.less? bool(a nat32, b nat32) noctx builtin
-.less? bool(a nat64, b nat64) noctx builtin
-.less? bool(a int8, b int8) noctx builtin
-.less? bool(a int16, b int16) noctx builtin
-.less? bool(a int32, b int32) noctx builtin
-.less? bool(a int64, b int64) noctx builtin
-.less? bool(a float32, b float32) noctx builtin
-.less? bool(a float64, b float64) noctx builtin
+.is-less bool(a nat8, b nat8) noctx builtin
+.is-less bool(a nat16, b nat16) noctx builtin
+.is-less bool(a nat32, b nat32) noctx builtin
+.is-less bool(a nat64, b nat64) noctx builtin
+.is-less bool(a int8, b int8) noctx builtin
+.is-less bool(a int16, b int16) noctx builtin
+.is-less bool(a int32, b int32) noctx builtin
+.is-less bool(a int64, b int64) noctx builtin
+.is-less bool(a float32, b float32) noctx builtin
+.is-less bool(a float64, b float64) noctx builtin
 == bool(a nat8, b nat8) noctx builtin
 == bool(a nat16, b nat16) noctx builtin
 == bool(a nat32, b nat32) noctx builtin
@@ -110,13 +110,13 @@ wrap-mul nat64(a nat64, b nat64) noctx builtin
 unsafe-div nat64(a nat64, b nat64) noctx unsafe builtin
 unsafe-div int64(a int64, b int64) noctx unsafe builtin
 
-# Equivlaent to `a multiple-of? 2`
-even? bool(a nat64) trusted
+# Equivlaent to `a is-multiple-of 2`
+is-even bool(a nat64) trusted
 	(a unsafe-mod 2) == 0
 
 # Not even
-odd? bool(a nat64)
-	!a.even?
+is-odd bool(a nat64)
+	!a.is-even
 
 region constants
 

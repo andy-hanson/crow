@@ -9,16 +9,16 @@ import
 	../ptr: ==, <=>, +, -, deep-size-bytes, ptr, set-subscript, size-of, subscript
 	../str: ==, <=>, chars, str
 	../str-conv: interp, finish, to-str, with-str, with-value
-	../str-util: starts-with?
+	../str-util: starts-with
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, wrap-add, wrap-sub
-	./arr: arr, begin-ptr, empty?, end-ptr, size, subscript
+	./arr: arr, begin-ptr, end-ptr, is-empty, size, subscript
 	./arr-util: deep-size-bytes, each, fold, insert, last, overhead-bytes, rtail, tail, try-remove
 	./mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
 	./mut-stack: ~=, mut-stack, last, pop!
 	./sort: sort-unique, sort-unique!
-	./private/sort-utils: binary-search-has?, binary-search-insert-ptr
+	./private/sort-utils: binary-search-has, binary-search-insert-ptr
 
 ###
 Set of unique values.
@@ -41,7 +41,7 @@ tree-set<?a> record
 	right node ?a
 
 # True iff the set is empty.
-empty? bool(a tree-set ?a) data<?a> compare<?a>
+is-empty bool(a tree-set ?a) data<?a> compare<?a>
 	a.total-size == 0
 
 # Number of values in the set.
@@ -101,19 +101,19 @@ arr arr ?a(a tree-set ?a) data<?a> compare<?a>
 
 # True iff the value is in the set.
 subscript bool(a tree-set ?a, value ?a) data<?a> compare<?a>
-	a.root has? value
-.has? bool(a node ?a, value ?a) trusted compare<?a>
+	a.root has value
+.has bool(a node ?a, value ?a) trusted compare<?a>
 	match a
 	as inner-node i
 		match value <=> i.value
 		as less
-			i.left has? value
+			i.left has value
 		as equal
 			true
 		as greater
-			i.right has? value
+			i.right has value
 	as arr arr
-		arr binary-search-has? value
+		arr binary-search-has value
 
 ###
 Add a value to the set.
@@ -171,9 +171,9 @@ This is O(a.size + b.size).
 
 intersect tree-set ?a(a tree-set ?a, b tree-set ?a) trusted data<?a> compare<?a>
 	b-iter = b iter
-	a filter x => b-iter walk-iter-has? x
+	a filter x => b-iter walk-iter-has x
 
-.walk-iter-has? bool(a iter ?a, value ?a) unsafe data<?a> compare<?a>
+.walk-iter-has bool(a iter ?a, value ?a) unsafe data<?a> compare<?a>
 	if peek ?= a peek
 		match value <=> peek
 		as less
@@ -183,7 +183,7 @@ intersect tree-set ?a(a tree-set ?a, b tree-set ?a) trusted data<?a> compare<?a>
 			true
 		as greater
 			a.next! drop
-			a walk-iter-has? value
+			a walk-iter-has value
 	else
 		false
 
@@ -215,7 +215,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 			if new-left ?= i.left try-remove-recur b
 				some: inner-node: i.value, new-left, i.right
 		as equal
-			some: if i.right node-empty?
+			some: if i.right node-is-empty
 				i left
 			else
 				# Remove the base of the tree -- making one of the sides take over.
@@ -231,12 +231,12 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		if arr2 ?= arr try-remove b
 			arr2.as<node ?a> some
 
-.node-empty? bool(a node ?a)
+.node-is-empty bool(a node ?a)
 	match a
 	as inner-node
 		false
 	as arr r
-		r empty?
+		r is-empty
 
 .popped<?a> record
 	value ?a
@@ -256,7 +256,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 
 - tree-set ?a(a tree-set ?a, b tree-set ?a) trusted data<?a> compare<?a>
 	b-iter = b iter
-	a filter x => !(b-iter walk-iter-has? x)
+	a filter x => !(b-iter walk-iter-has x)
 
 .iter<?a> record mut
 	cur mut arr ?a
@@ -276,13 +276,13 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	as arr arr
 		arr
 .peek opt ?a(a iter ?a)
-	if a.cur empty?
+	if a.cur is-empty
 		if last ?= a.stack last
 			last.value some
 	else
 		a.cur[0] some
 .next! opt ?a(a iter ?a) trusted
-	if a.cur empty?
+	if a.cur is-empty
 		if node ?= a.stack pop!
 			res = node value
 			match node right
@@ -376,8 +376,8 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		assert: mid-index < a.size
 		left-arr = a[0 -> mid-index]
 		right-arr = a[(mid-index wrap-add 1) -> a.size]
-		forbid: left-arr empty?
-		forbid: right-arr empty?
+		forbid: left-arr is-empty
+		forbid: right-arr is-empty
 		if insert-ptr < mid-ptr
 			# TODO:PERF: This redundantly finds insert-ptr again
 			match left-arr add-to-arr: value, max-height wrap-sub 1
@@ -525,7 +525,7 @@ dbg str(a tree-set ?a) to-str<?a>
 		res dbg-recur! i.right
 		res ~= ")"
 	as arr arr
-		if arr empty?
+		if arr is-empty
 			res ~= "[]"
 		else
 			res ~= "["
@@ -597,7 +597,7 @@ test
 	folded = "s" fold s8, (x, y) => "{x}-{y}"
 	folded is "s-h-i-j-ji-jj-jk-k-l"
 
-	filtered = s8 filter x => !(x starts-with? "j")
+	filtered = s8 filter x => !(x starts-with "j")
 	filtered verify "[h i k l]"
 
 	mapped = s8 map x => x.chars[0 -> 1] str
