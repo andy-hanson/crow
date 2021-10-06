@@ -296,7 +296,6 @@ find opt ?a(a arr ?a, f act bool(?a))
 			a.tail find f
 
 ###
-Equivalent to `f[a[0]] ? 0.some, f[a[1]] ? 1.some, ...`.
 Returns the first index for which `f[a[i]]` is true, or returns `none`.
 ###
 find-index opt nat64(a arr ?a, f act bool(?a))
@@ -311,7 +310,6 @@ find-index opt nat64(a arr ?a, f act bool(?a))
 
 ###
 Like `find-index`, but starts from the end.
-Equivalent to `f[a[a.size - 1]] ? (a.size - 1 some), f[a[a.size - 2]] ? (a.size - 2 some), ...`.
 ###
 find-rindex opt nat64(a arr ?a, f act bool(?a))
 	if !a.empty?

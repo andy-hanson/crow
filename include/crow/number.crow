@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: &&, ||, ?, bool, false
+	./bool: &&, ||, bool, false
 	./compare: !=, <, <=, >, >=
 	./fun: subscript
 	./misc: ->, arrow, from, to, void
@@ -119,7 +119,10 @@ mod nat64(a int64, b nat64)
 	forbid: b == 0
 	if a < 0
 		abs-mod = a.abs mod b
-		abs-mod == 0 ? 0, b - abs-mod
+		if abs-mod == 0
+			0
+		else
+			b - abs-mod
 	else
 		a.to-nat64 mod b
 
@@ -225,12 +228,21 @@ wrap-to-nat32 nat32(a nat64) noctx trusted
 
 # Absolute value of an int, as a nat.
 abs nat64(a int64)
-	to-nat64: a < 0 ? -a, a
+	to-nat64: if a < 0
+		-a
+	else
+		a
 
 abs float32(a float32) noctx
-	a < 0 ? -a, a
+	if a < 0
+		-a
+	else
+		a
 abs float64(a float64) noctx
-	a < 0 ? -a, a
+	if a < 0
+		-a
+	else
+		a
 
 ** nat64(a nat64, b nat64)
 	if b == 0

@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: !, &&, ||, ?, bool, false, true
+	./bool: !, &&, ||, bool, false, true
 	./col/arr: arr-from-begin-end, begin-ptr, end-ptr
 	./col/mut-list: ~=, move-to-arr!, mut-list
 	./compare: <=, >=
@@ -75,7 +75,10 @@ take-nat! opt nat64(a reader)
 
 take-int! opt int64(a reader) trusted
 	start = a cur
-	sign = a.take-sign? ? +1, -1
+	sign = if a.take-sign?
+		+1
+	else
+		-1
 	if n ?= a take-nat!
 		n.to-int64 * sign some
 	else
@@ -94,7 +97,10 @@ skip-whitespace! void(a reader)
 		true
 
 take-float! opt float64(a reader) trusted
-	sign = a.take-sign? ? 1.0, -1.0
+	sign = if a.take-sign?
+		1.0
+	else
+		-1.0
 	if whole-nat ?= a take-nat!
 		whole-part = whole-nat to-float64
 		before-dot = a cur

@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, &&, ?, bool, false, true
+	../bool: !, &&, bool, false, true
 	../compare: <, >, <=, compare
 	../exception: assert
 	../fun: subscript
@@ -102,12 +102,16 @@ pop opt popped<?k, ?v>(a priority-queue<?k, ?v>) data<?k> compare<?k>
 .pop-no-compact-recur opt popped<?k, ?v>(a node<?k, ?v>, min ?k) compare<?k>
 	is-min? = a.min.from < min
 	next-popped = if next ?= a next
-		next pop-no-compact-recur: is-min? ? a.min.from, min
-
+		next pop-no-compact-recur if is-min?
+			a.min from
+		else
+			min
 	if next ?= next-popped
 		a combine-with-popped next some
+	elif is-min?
+		a.pop-from-node some
 	else
-		is-min? ? a.pop-from-node.some, none
+		none
 
 combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 	node = node<?k, ?v>: a.min, a.pairs, popped.rest.root

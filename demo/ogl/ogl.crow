@@ -131,7 +131,10 @@ blue color-32()
 	else
 		key-states-ptr = null SDL_GetKeyboardState
 		key-states = arr: SDL_NUM_SCANCODES.to-nat32.to-nat64, key-states-ptr
-		print: key-states[SDL_SCANCODE_RETURN.to-nat32 to-nat64] == 0 ? "no return", "return is pressed"
+		print: if key-states[SDL_SCANCODE_RETURN.to-nat32 to-nat64] == 0
+			"no return"
+		else
+			"return is pressed"
 
 		v0 = renderer.vertices[0]
 		renderer.vertices[0] := (v0.pos + (0.003 vec-2-32 0)) vertex v0.color, v0.tex-coord

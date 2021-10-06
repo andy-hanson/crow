@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: &&, ?, bool
+	./bool: &&, bool
 	./compare: !=, <
 	./fun: subscript
 	./private/bootstrap:
@@ -148,7 +148,10 @@ fold-one-bits ?a(acc ?a, a nat64, f act ?a(?a, nat64))
 	if a == 0
 		acc
 	else
-		new-acc = a bits-intersect? 1 ? f[acc, offset], acc
+		new-acc = if a bits-intersect? 1
+			f[acc, offset]
+		else
+			acc
 		new-acc fold-one-bits-recur (a unsafe-bit-shift-right 1), (offset wrap-add 1), f
 
 filter-bits nat64(a nat64, f act bool(nat64))

@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: ?, bool
+	../bool: bool
 	../compare: !=
 	../exception: assert, forbid, throw
 	../fun: subscript
@@ -208,5 +208,9 @@ test
 	folded = 5 fold d, (x, y) => x wrap-add y
 	folded is 11
 
-	(d first-some<str, nat64> x => x == 2 ? "two".some, none) is "two".some
-	(d first-some<str, nat64> x => x == 5 ? "five".some, none) is none
+	(d first-some<str, nat64> x => x if-eq 2, "two") is "two".some
+	(d first-some<str, nat64> x => x if-eq 5, "five") is none
+
+.if-eq opt str(actual nat64, expected nat64, result str)
+	if actual == expected
+		result some

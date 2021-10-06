@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: ?, bool, false, true
+	./bool: bool, false, true
 	./col/mut-list: ~=, move-to-arr!, mut-list
 	./compare: <
 	./number:
@@ -12,7 +12,10 @@ import
 
 # "true" or "false".
 to-str str(b bool) noctx
-	b ? "true", "false"
+	if b
+		"true"
+	else
+		"false"
 
 # Str containing a single character.
 to-str str(c char)
@@ -118,14 +121,20 @@ to-str str(a int32)
 
 to-str str(a int64)
 	s = a.abs to-str
-	a < 0 ? "-{s}", s
+	if a < 0
+		"-{s}"
+	else
+		s
 
 to-str str(a float32)
 	a.to-float64 to-str
 
 to-str str(a float64)
 	pos = a.abs to-str-positive
-	a < 0 ? "-{pos}", pos
+	if a < 0
+		"-{pos}"
+	else
+		pos
 
 .to-str-positive str(a float64)
 	# TODO: Use a real float to str algorithm

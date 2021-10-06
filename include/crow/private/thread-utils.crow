@@ -10,7 +10,7 @@ import
 		pthread_mutex_unlock, pthread_t
 	sched: sched_yield
 	time: CLOCK_MONOTONIC
-	../bool: !, ?, bool, false, true
+	../bool: !, bool, false, true
 	../cell: cell, subscript
 	../compare: !=
 	../extra-types: err-t
@@ -132,7 +132,10 @@ wait-on void(a condition, until-time opt timestamp, last-sequence sequence-id) n
 		hard-assert-posix-error: if t ?= until-time
 			abstime = t to-timespec
 			err = a.cond.ref-of-val pthread_cond_timedwait a.mutex.ref-of-val, abstime.ptr-to
-			err == ETIMEDOUT ? 0, err
+			if err == ETIMEDOUT
+				0
+			else
+				err
 		else
 			a.cond.ref-of-val pthread_cond_wait a.mutex.ref-of-val
 	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_unlock

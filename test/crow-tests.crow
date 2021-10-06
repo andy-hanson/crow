@@ -43,7 +43,8 @@ body
 		if options.print-tests?
 			print: "crow print {print-kind} {path}"
 		res = print-kind run-print-test path-to-crow, env, path, options.overwrite-output?
-		res.should-stop? ? res.failures.some, none
+		if res should-stop?
+			res.failures some
 	if res ?= op
 		res
 	else
@@ -99,7 +100,10 @@ body
 spec
 	summon
 body
-	args = interpret? ? ["run", path, "--interpret"], ["run", path, "--out", "{path}.c"]
+	args = if interpret?
+		["run", path, "--interpret"]
+	else
+		["run", path, "--out", "{path}.c"]
 	res = path-to-crow spawn-and-wait-result args, env
 	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output?
 	stderr-failures = if res.exit-code == 0 && res.stderr == ""

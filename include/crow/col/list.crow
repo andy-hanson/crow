@@ -1,10 +1,10 @@
 no-std
 import
-	../bool: ?, bool, false, true
+	../bool: bool, false, true
 	../compare: !=, <, >, equal, min
 	../exception: assert, forbid
 	../fun: subscript
-	../misc: ->, drop, void
+	../misc: ->, as, drop, void
 	../opt: ==, empty?, none, opt, some
 	../ptr: ==, +, -, ptr, set-subscript, subscript
 	../str: ==, str
@@ -223,7 +223,11 @@ Concatenate an array to a list.
 This is O(1).
 ###
 ~ list ?a(a list ?a, b arr ?a)
-	list: void, (a.empty? ? none, a.some), b
+	prev = as<opt list ?a>: if a empty?
+		none
+	else
+		a some
+	list: void, prev, b
 
 ###
 Concatenate two lists.
@@ -363,5 +367,9 @@ test
 	folded is 15
 
 	# TODO: compiler crashes without a type argument here
-	(e first-some<str, nat64> it => it == 3 ? "three".some, none) is "three".some
-	(e first-some<str, nat64> it => it == 5 ? "five".some, none) is none
+	(e first-some<str, nat64> x => x if-eq 3, "three") is "three".some
+	(e first-some<str, nat64> x => x if-eq 5, "five") is none
+
+.if-eq opt str(actual nat64, expected nat64, result str)
+	if actual == expected
+		result some

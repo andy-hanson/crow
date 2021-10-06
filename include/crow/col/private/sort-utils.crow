@@ -1,6 +1,6 @@
 no-std
 import
-	../../bool: !, ?, bool
+	../../bool: !, bool
 	../../compare: ==, !=, <, >=, compare, comparison, equal, less, greater
 	../../exception: assert, unreachable
 	../../fun: subscript
@@ -36,7 +36,8 @@ binary-search-exact-ptr opt ptr ?a(a mut-arr ?a, compare act comparison(?a)) uns
 
 binary-search-exact-ptr opt ptr ?a(a arr ?a, value ?a) compare<?a> unsafe
 	res = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
-	res.null? ? none, res.some
+	if !res.null?
+		res some
 
 binary-search-exact-ptr opt ptr ?a(a arr ?a, compare act comparison(?a)) unsafe
 	ptr = a.begin-ptr binary-search-compare-recur a.end-ptr, compare

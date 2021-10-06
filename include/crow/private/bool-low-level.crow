@@ -20,9 +20,3 @@ If `a` is `true`, returns `true` immediately and does not evaluate `a`.
 Else, returns `b`.
 ###
 || bool(a bool, b bool) noctx builtin
-
-###
-If `cond` is true, evaluates `if-true` and returns the result, without evaluating `if-false`.
-If `cond` is false, evaluates `if-false` and returns the result, without evaluating `if-true`.
-###
-? ?a(cond bool, if-true ?a, if-false ?a) noctx builtin

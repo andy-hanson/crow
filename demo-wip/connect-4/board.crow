@@ -119,7 +119,10 @@ empty-board board()
 .subscript opt color(a board, x nat, y nat, cur-player color)
 	pos = x coord y
 	if a.both-players grid-has? pos
-		some: a.current-player grid-has? pos ? cur-player, cur-player.opposite
+		some: if a.current-player grid-has? pos
+			cur-player
+		else
+			cur-player opposite
 
 to-str str(a board, cur-player color, last-column opt nat)
 	res = writer

@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, &&, ==, ?, bool, false, true
+	../bool: !, &&, ==, bool, false, true
 	../compare: <, <=, >=, compare, comparison, equal, max, min
 	../exception: assert
 	../fun: subscript
@@ -292,8 +292,13 @@ body
 		else
 			end-node[0].from
 		take-from-end-node? = !end-node.empty? && least-key == end-node[0].from
-		val-from-end-node = as<opt ?v>: take-from-end-node? ? end-node[0].to.some, none
-		new-end-node = take-from-end-node? ? end-node.tail, end-node
+		# TODO: should not need 'as'
+		val-from-end-node = as<opt ?v>: if take-from-end-node?
+			end-node[0].to some
+		new-end-node = if take-from-end-node?
+			end-node tail
+		else
+			end-node
 		took-from-overlays = overlays take-key least-key
 		new-acc = if val ?= took-from-overlays.rightmost-value opt-or val-from-end-node
 			f[acc, least-key, val]
@@ -474,7 +479,10 @@ test
 
 	j-folded = "" fold j, (cur, key, value) =>
 		pair = "{key} -> {value}"
-		cur.empty? ? pair, "{cur}, {pair}"
+		if cur.empty?
+			pair
+		else
+			"{cur}, {pair}"
 	j-folded is "5 -> 5, 10 -> 10b, 15 -> 15, 20 -> 20"
 
 	j-filtered = j filter (k, v) =>

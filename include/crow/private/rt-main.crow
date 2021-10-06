@@ -2,7 +2,7 @@ no-std
 import
 	pthread: pthread_t
 	sys/sysinfo: get_nprocs
-	../bool: ?, false
+	../bool: false
 	../cell: as-cell
 	../col/arr: arr
 	../col/arr-util: map, tail
@@ -60,7 +60,10 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 		1
 	as fut-state-resolved r
 		# TODO: handle nat64 too big for int32
-		gctx.any-unhandled-exceptions? ? 1, r.value.unsafe-to-int64.unsafe-to-int32
+		if gctx.any-unhandled-exceptions?
+			1
+		else
+			r.value.unsafe-to-int64.unsafe-to-int32
 	as exception
 		# 'handle-exceptions' should have logged the error
 		1

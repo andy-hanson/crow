@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: ?, bool, false, true
+	./bool: bool, false, true
 	./compare: equal
 	./fun: subscript
 	./misc: void
@@ -40,7 +40,10 @@ empty? bool(a opt ?a) noctx
 		false
 
 size nat64(a opt ?a) noctx
-	a.empty? ? 0, 1
+	if a.empty?
+		0
+	else
+		1
 
 # Calls `f` on the value in a `some`, or does nothing.
 each void(a opt ?in, f act void(?in))

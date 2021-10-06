@@ -1,7 +1,7 @@
 no-std
 import
 	../bits: &, unsafe-bit-shift-right
-	../bool: !, &&, ==, ?, bool, false, true
+	../bool: !, &&, ==, bool, false, true
 	../compare: !=, <, <=, >=, compare, max
 	../exception: assert, unreachable
 	../fun: subscript
@@ -272,7 +272,11 @@ body
 # Returns 'some' if we should change this to a leaf.
 inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat64, new-child node<?k, ?v>) trusted
 	total-size = 0 fold-with-index a.children, (cur, child, child-index) =>
-		match child-index == which ? new-child, child
+		new-child-here = if child-index == which
+			new-child
+		else
+			child
+		match new-child-here
 		as inner-node
 			99
 		as leaf-node l
@@ -281,7 +285,11 @@ inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat64, new-
 		# TODO: if only one non-empty leaf, don't copy..
 		out = total-size uninitialized-mut-arr<arrow<?k, ?v>>
 		end = 0 fold-with-index a.children, (out-index, child, child-index) =>
-			match child-index == which ? new-child, child
+			new-child-here = if child-index == which
+				new-child
+			else
+				child
+			match new-child-here
 			as inner-node
 				unreachable
 			as leaf-node l

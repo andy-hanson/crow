@@ -1,6 +1,6 @@
 no-std
 import
-	./private/bool-low-level: !, ?, bool, false, true
+	./private/bool-low-level: !, bool, false, true
 	./private/bootstrap: str
 
 # Comparison for `a < b`
@@ -76,11 +76,17 @@ compare<?a> spec
 
 # Returns the lesser argument
 min ?a(a ?a, b ?a) noctx compare<?a>
-	a < b ? a, b
+	if a < b
+		a
+	else
+		b
 
 # Returns the greater argument
 max ?a(a ?a, b ?a) noctx compare<?a>
-	a < b ? b, a
+	if a < b
+		b
+	else
+		a
 
 max ?a(a ?a, b ?a, c ?a) noctx compare<?a>
 	a max b max c

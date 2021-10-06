@@ -10,7 +10,11 @@ import
 	crow/serialize: from-bytes, to-bytes
 
 main fut nat(args arr str) unsafe summon
-	if command ?= parse-command_name: args.empty? ? "", args[0]
+	command-name = if args empty?
+		""
+	else
+		args[0]
+	if command ?= command-name.parse-command_name
 		match command
 		as get
 			named-args = args.tail parse-named-args ["db-path", "db-name", "key"] force

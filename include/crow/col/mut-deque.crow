@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, ?, bool
+	../bool: !, bool
 	../compare: <
 	../exception: assert, forbid
 	../misc: ->, void
@@ -80,7 +80,10 @@ first opt ?a(a mut-deque ?a) trusted
 
 last opt ?a(a mut-deque ?a) trusted
 	if !a.right.null?
-		fixed-right = a.right == a.inner.begin-ptr ? a.inner.end-ptr, a.right
+		fixed-right = if a.right == a.inner.begin-ptr
+			a.inner end-ptr
+		else
+			a right
 		(fixed-right - 1)[] some
 
 pop-left! opt ?a(a mut-deque ?a) trusted

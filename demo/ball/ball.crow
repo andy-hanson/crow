@@ -46,7 +46,10 @@ main fut nat(_ arr str) summon trusted
 	else
 		key-states-ptr = null SDL_GetKeyboardState
 		key-states = arr: SDL_NUM_SCANCODES, key-states-ptr
-		print: key-states[SDL_SCANCODE_RETURN] == 0 ? "no return", "return is pressed"
+		print: if key-states[SDL_SCANCODE_RETURN] == 0
+			"no return"
+		else
+			"return is pressed"
 
 		"SDL_RenderClear" handle-sdl-error: renderer SDL_RenderClear
 		"SDL_RenderCopy" handle-sdl-error: renderer SDL_RenderCopy texture, null, null
