@@ -4,7 +4,7 @@ file-ast(
 	structs: []
 	funs: [
 		fun-decl(
-			public?: true
+			public: true
 			sig: sig-ast(range(0, 8), f, inststruct(range(2, 6), name-range(2, void)), [])
 			body: seq-ast(
 				seq-ast(

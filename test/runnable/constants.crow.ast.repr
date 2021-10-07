@@ -16,7 +16,7 @@ file-ast(
 					field(range(157, 162), false, b, inststruct(range(159, 162), name-range(159, str)))]))]
 	funs: [
 		fun-decl(
-			public?: true
+			public: true
 			sig: sig-ast(
 				range(30, 53)
 				main
@@ -38,7 +38,7 @@ file-ast(
 						call(prefix, name-range(107, print), [], [call(infix, name-range(116, b), [], [r])]))
 					call(prefix, name-range(119, resolved), [], [literal(nat(0, false))]))))
 		fun-decl(
-			public?: true
+			public: true
 			sig: sig-ast(
 				range(164, 185)
 				foo

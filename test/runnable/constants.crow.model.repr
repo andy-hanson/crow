@@ -1,10 +1,10 @@
 module(
 	path: 75
 	imports: [import(none, 57, none), import(some(range(8, 28)), 44, some([print]))]
-	structs: [struct(range: file-range(75, range(132, 164)), public?: true, name: my-record)]
+	structs: [struct(range: file-range(75, range(132, 164)), public: true, name: my-record)]
 	funs: [
 		fun(
-			public?: true
+			public: true
 			summon: true
 			sig: sig(file-pos(75, 30), main, fut(nat64()), [param(file-range(75, range(43, 52)), none, arr(str()))])
 			body: let(
@@ -18,14 +18,14 @@ module(
 						call(fun-inst(name: print), [call(fun-inst(name: b), [local-ref(r)])]))
 					call(fun-inst(name: resolved, type-args: [nat64()]), [literal(nat64(), 0)]))))
 		fun(
-			public?: true
+			public: true
 			summon: true
 			sig: sig(file-pos(75, 164), foo, void(), [param(file-range(75, range(173, 184)), some(r), my-record())])
 			body: seq(
 				call(fun-inst(name: print), [call(fun-inst(name: a), [param-ref(r)])])
 				call(fun-inst(name: print), [call(fun-inst(name: b), [param-ref(r)])])))
 		fun(
-			public?: true
+			public: true
 			preferred: true
 			sig: sig(
 				file-pos(75, 132)
@@ -34,7 +34,7 @@ module(
 				[param(file-range(75, range(150, 155)), some(a), str()), param(file-range(75, range(157, 162)), some(b), str())])
 			body: new-record)
 		fun(
-			public?: true
+			public: true
 			no-ctx: true
 			sig: sig(
 				file-pos(75, 132)
@@ -43,12 +43,12 @@ module(
 				[param(file-range(75, range(150, 155)), some(a), str()), param(file-range(75, range(157, 162)), some(b), str())])
 			body: new-record)
 		fun(
-			public?: true
+			public: true
 			no-ctx: true
 			sig: sig(file-pos(75, 150), a, str(), [param(file-range(75, range(150, 155)), some(a), my-record())])
 			body: field-get(0))
 		fun(
-			public?: true
+			public: true
 			no-ctx: true
 			sig: sig(file-pos(75, 157), b, str(), [param(file-range(75, range(157, 162)), some(a), my-record())])
 			body: field-get(1))])

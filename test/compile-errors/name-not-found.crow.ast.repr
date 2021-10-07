@@ -17,6 +17,6 @@ file-ast(
 		struct(range(29, 41), "", true, [], none, union([inststruct(range(38, 39), name-range(38, t))]))]
 	funs: [
 		fun-decl(
-			public?: true
+			public: true
 			sig: sig-ast(range(41, 48), foo, inststruct(range(45, 46), name-range(45, t)), [])
 			body: seq-ast(seq-ast(x, call(infix, name-range(55, y), [], [a])), call(infix, name-range(60, z), [], [a, b])))])

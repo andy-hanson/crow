@@ -112,7 +112,7 @@ immutable(Repr) reprStructDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutabl
 	add(alloc, fields, nameAndRepr("range", reprFileAndRange(alloc, a.range)));
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr("public?", reprBool(a.isPublic)));
+	add(alloc, fields, nameAndRepr("public", reprBool(a.isPublic)));
 	add(alloc, fields, nameAndRepr("name", reprSym(a.name)));
 	if (!empty(typeParams(a)))
 		add(alloc, fields, nameAndRepr("typeparams", reprArr(alloc, typeParams(a), (ref immutable TypeParam it) =>
@@ -132,7 +132,7 @@ immutable(Repr) reprFunDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable F
 	ArrBuilder!NameAndRepr fields;
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr("public?", reprBool(a.isPublic)));
+	add(alloc, fields, nameAndRepr("public", reprBool(a.isPublic)));
 	if (noCtx(a))
 		add(alloc, fields, nameAndRepr("no-ctx", reprBool(true)));
 	if (summon(a))
@@ -208,7 +208,7 @@ immutable(Repr) reprType(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Type
 		(ref immutable Type.Bogus) =>
 			reprSym("bogus"),
 		(immutable Ptr!TypeParam p) =>
-			reprRecord(alloc, "?", [reprSym(p.name)]),
+			reprRecord(alloc, "type-param", [reprSym(p.name)]),
 		(immutable Ptr!StructInst a) =>
 			reprStructInst(alloc, ctx, a));
 }

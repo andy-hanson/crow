@@ -22,7 +22,7 @@ immutable(bool) containsSym(ref immutable Sym[] a, immutable Sym b) {
 }
 
 immutable(bool) isAlphaIdentifierStart(immutable char c) {
-	return ('a' <= c && c <= 'z') || c == '?' || ('A' <= c && c <= 'Z') || c == '_';
+	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
 }
 
 immutable(bool) isDigit(immutable char c) {
@@ -30,8 +30,8 @@ immutable(bool) isDigit(immutable char c) {
 }
 
 immutable(bool) isAlphaIdentifierContinue(immutable char c) {
-	//TODO: only last character should be '?' or '!'
-	return isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '?' || c == '!';
+	//TODO: only last character should be '!'
+	return isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '!';
 }
 
 struct Sym {
@@ -349,7 +349,7 @@ immutable(bool) canPackAlphaChar5(immutable char c) {
 }
 
 immutable(bool) canPackAlphaChar6(immutable char c) {
-	return canPackAlphaChar5(c) || ('4' <= c && c <= '9') || c == '?' || c == '!';
+	return canPackAlphaChar5(c) || ('4' <= c && c <= '9') || c == '!';
 }
 
 immutable(ulong) packAlphaChar5(immutable char c) {
@@ -364,8 +364,7 @@ immutable(ulong) packAlphaChar6(immutable char c) {
 	return 'a' <= c && c <= 'z' ? 1 + c - 'a' :
 		c == '-' ? 1 + 26 :
 		'0' <= c && c <= '9' ? 1 + 26 + 1 + c - '0' :
-		c == '?' ? 1 + 26 + 1 + 10 :
-		c == '!' ? 1 + 26 + 1 + 10 + 1 :
+		c == '!' ? 1 + 26 + 1 + 10 :
 		unreachable!ulong;
 }
 
@@ -374,8 +373,7 @@ immutable(char) unpackAlphaChar(immutable ulong n) {
 	return n < 1 + 26 ? cast(char) ('a' + (n - 1)) :
 		n == 1 + 26 ? '-' :
 		n < 1 + 26 + 1 + 10 ? cast(char) ('0' + (n - 1 - 26 - 1)) :
-		n == 1 + 26 + 1 + 10 ? '?' :
-		n == 1 + 26 + 1 + 10 + 1 ? '!' :
+		n == 1 + 26 + 1 + 10 ? '!' :
 		unreachable!char;
 }
 

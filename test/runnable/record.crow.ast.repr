@@ -16,7 +16,7 @@ file-ast(
 					field(range(195, 200), false, y, inststruct(range(197, 200), name-range(197, nat)))]))]
 	funs: [
 		fun-decl(
-			public?: true
+			public: true
 			sig: sig-ast(
 				range(30, 53)
 				main

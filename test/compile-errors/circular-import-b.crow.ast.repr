@@ -5,6 +5,6 @@ file-ast(
 	structs: []
 	funs: [
 		fun-decl(
-			public?: true
+			public: true
 			sig: sig-ast(range(29, 36), b, inststruct(range(31, 34), name-range(31, int)), [])
 			body: literal(nat(0, false)))])

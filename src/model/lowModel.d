@@ -832,8 +832,8 @@ struct LowExprKind {
 
 	struct SpecialTrinary {
 		enum Kind {
-			if_,
 			compareExchangeStrongBool,
+			if_,
 		}
 		immutable Kind kind;
 		immutable Ptr!LowExpr p0;

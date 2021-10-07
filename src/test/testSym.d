@@ -31,7 +31,7 @@ void testSym(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	immutable Sym nat8 = getSym("nat8");
 	verify(isShortAlphaSym(nat8));
 
-	immutable Sym shortAlpha = getSym("abc-def-gh9?");
+	immutable Sym shortAlpha = getSym("abc-def-gh64");
 	verify(isShortAlphaSym(shortAlpha));
 
 	immutable Sym operator = getSym("+");

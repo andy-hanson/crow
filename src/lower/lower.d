@@ -1294,11 +1294,11 @@ immutable(LowExprKind) getCallBuiltinExpr(Alloc)(
 		(immutable LowExprKind.SpecialTrinary.Kind kind) {
 			verify(size(a.args) == 3);
 			immutable ExprPos arg12Pos = () {
-				switch (kind) {
+				final switch (kind) {
+					case LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool:
+						return ExprPos.nonTail;
 					case LowExprKind.SpecialTrinary.Kind.if_:
 						return exprPos;
-					default:
-						return ExprPos.nonTail;
 				}
 			}();
 			return immutable LowExprKind(nu!(LowExprKind.SpecialTrinary)(

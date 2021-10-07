@@ -71,9 +71,9 @@ immutable(Repr) reprOfConcreteStruct(Alloc)(ref Alloc alloc, ref immutable Concr
 	ArrBuilder!NameAndRepr fields;
 	add(alloc, fields, nameAndRepr("name", reprOfConcreteStructSource(alloc, a.source)));
 	if (isSelfMutable(a))
-		add(alloc, fields, nameAndRepr("mut?", reprBool(true)));
+		add(alloc, fields, nameAndRepr("mut", reprBool(true)));
 	if (defaultIsPointer(a))
-		add(alloc, fields, nameAndRepr("ptr?", reprBool(true)));
+		add(alloc, fields, nameAndRepr("ptr", reprBool(true)));
 	add(alloc, fields, nameAndRepr("body", reprOfConcreteStructBody(alloc, body_(a))));
 	return reprNamedRecord("struct", finishArr(alloc, fields));
 }

@@ -1066,7 +1066,7 @@ immutable(Repr) reprFunDeclAst(Alloc)(ref Alloc alloc, ref immutable FunDeclAst 
 	ArrBuilder!NameAndRepr fields;
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr("public?", reprBool(a.isPublic)));
+	add(alloc, fields, nameAndRepr("public", reprBool(a.isPublic)));
 	if (!empty(toArr(a.typeParams)))
 		add(alloc, fields, nameAndRepr(
 			"typeparams",

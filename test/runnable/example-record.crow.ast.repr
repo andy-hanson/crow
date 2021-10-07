@@ -16,7 +16,7 @@ file-ast(
 					field(range(56, 68), false, height, inststruct(range(63, 68), name-range(63, float)))]))]
 	funs: [
 		fun-decl(
-			public?: true
+			public: true
 			sig: sig-ast(
 				range(70, 88)
 				area
@@ -28,7 +28,7 @@ file-ast(
 				[]
 				[call(dot, name-range(92, width), [], [a]), call(dot, name-range(102, height), [], [a])]))
 		fun-decl(
-			public?: true
+			public: true
 			sig: sig-ast(
 				range(110, 133)
 				main

@@ -691,7 +691,7 @@ public @trusted immutable(StringPart) takeStringPart(Alloc, SymAlloc)(
 public @trusted immutable(string) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
 	while (isAlphaIdentifierContinue(*lexer.ptr))
 		lexer.ptr++;
-	if (*lexer.ptr == '?' || *lexer.ptr == '!')
+	if (*lexer.ptr == '!')
 		lexer.ptr++;
 	return arrOfRange(begin, lexer.ptr);
 }

@@ -182,8 +182,6 @@ immutable(BuiltinKind) getBuiltinKind(
 				isFloat64(p0) ? LowExprKind.SpecialBinary.Kind.eqFloat64 :
 				isPtrRaw(p0) ? LowExprKind.SpecialBinary.Kind.eqPtr :
 				failBinary());
-		case shortSymAlphaLiteralValue("?"):
-			return trinary(LowExprKind.SpecialTrinary.Kind.if_);
 		case shortSymAlphaLiteralValue("as-any-ptr"):
 			return unary(LowExprKind.SpecialUnary.Kind.asAnyPtr);
 		case operatorSymValue(Operator.and2):
@@ -282,7 +280,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				isFloat64(p0) ? LowExprKind.SpecialBinary.Kind.lessFloat64 :
 				isPtrRaw(p0) ? LowExprKind.SpecialBinary.Kind.lessPtr :
 				failBinary());
-		case shortSymAlphaLiteralValue("nan?"):
+		case shortSymAlphaLiteralValue("is-nan"):
 			return unary(
 				isFloat32(p0) ? LowExprKind.SpecialUnary.Kind.isNanFloat32 :
 				isFloat64(p0) ? LowExprKind.SpecialUnary.Kind.isNanFloat64 :

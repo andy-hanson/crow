@@ -33,7 +33,7 @@ file-ast(
 					field(range(802, 807), false, c, inststruct(range(804, 807), name-range(804, nat)))]))]
 	funs: [
 		fun-decl(
-			public?: true
+			public: true
 			sig: sig-ast(
 				range(200, 223)
 				main
@@ -191,7 +191,7 @@ file-ast(
 															call(infix, name-range(752, get-stats), [], [gc])])]))
 										call(infix, name-range(768, resolved), [], [literal(nat(0, false))])))))))))
 		fun-decl(
-			public?: true
+			public: true
 			sig: sig-ast(
 				range(809, 824)
 				to-str
@@ -206,7 +206,7 @@ file-ast(
 					", c="
 					call(infix, name-range(850, c), [], [a])]))
 		fun-decl(
-			public?: true
+			public: true
 			sig: sig-ast(
 				range(855, 877)
 				to-str
