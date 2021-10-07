@@ -51,7 +51,7 @@ global-ctx record mut
 	# Dynamically allocated array. Terminated by a null sym. Capacity is a power of 2.
 	dynamic-syms mut opt dynamic-sym-node
 	# TODO: mut-arr
-	islands mut arr island
+	islands mut island[]
 	# if a thread finds no work to do, it decrements this and waits on 'may-be-work-to-do'.
 	# if the last thread decrements this, it can't go to sleep!
 	# But if there's no work to do, it can set 'is-shut-down' and wake up the other threads so they can shut down too.
@@ -242,7 +242,7 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 	res
 
 .choose-task-recur choose-task-result
-	islands arr island
+	islands island[]
 	i nat64
 	cur-time timestamp
 	any-tasks bool
@@ -313,7 +313,7 @@ body
 	res
 
 
-.assert-islands-are-shut-down void(i nat64, islands arr island) noctx unsafe
+.assert-islands-are-shut-down void(i nat64, islands island[]) noctx unsafe
 	if i != islands.size
 		island = islands noctx-at i
 

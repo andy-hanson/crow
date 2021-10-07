@@ -88,7 +88,7 @@ char builtin
 # String type.
 str record
 	by-val
-	chars arr char
+	chars char[]
 ###
 C-style string.
 This should be a valid pointer whose content ends in a "\0", though this is not enforced.
@@ -295,7 +295,7 @@ region fut
 
 backtrace record
 	by-val
-	return-stack arr sym
+	return-stack sym[]
 
 exception record
 	by-val
@@ -342,7 +342,7 @@ named-val<?a> record
 	val ?a
 
 # all symbols that exist in the compiled code, in arbitrary order
-static-syms arr sym() noctx builtin
+static-syms sym[]() noctx builtin
 
 # all named functions in arbitrary order
-all-funs arr named-val any-ptr() noctx unsafe builtin
+all-funs named-val<any-ptr>[]() noctx unsafe builtin

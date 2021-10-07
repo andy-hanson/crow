@@ -14,14 +14,14 @@ import
 	../mut-arr: begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end
 	../mut-list: arr, begin-ptr, empty!, end-ptr, is-empty, mut-list, size, swap!, temp-as-mut-arr, unsafe-set-size!
 
-binary-search-has bool(a arr ?a, value ?a) compare<?a> trusted
+binary-search-has bool(a ?a[], value ?a) compare<?a> trusted
 	(a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value) != null
 
-binary-search-value opt ?a(a arr ?a, compare act comparison(?a)) trusted
+binary-search-value opt ?a(a ?a[], compare act comparison(?a)) trusted
 	if ptr ?= a binary-search-exact-ptr compare
 		ptr[] some
 
-binary-search-exact-index opt nat64(a arr ?a, value ?a) trusted compare<?a>
+binary-search-exact-index opt nat64(a ?a[], value ?a) trusted compare<?a>
 	ptr = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
 	if ptr == null
 		none
@@ -34,12 +34,12 @@ binary-search-exact-ptr opt ptr ?a(a mut-list ?a, compare act comparison(?a)) un
 binary-search-exact-ptr opt ptr ?a(a mut-arr ?a, compare act comparison(?a)) unsafe
 	a.cast-immutable binary-search-exact-ptr compare
 
-binary-search-exact-ptr opt ptr ?a(a arr ?a, value ?a) compare<?a> unsafe
+binary-search-exact-ptr opt ptr ?a(a ?a[], value ?a) compare<?a> unsafe
 	res = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
 	if res != null
 		res some
 
-binary-search-exact-ptr opt ptr ?a(a arr ?a, compare act comparison(?a)) unsafe
+binary-search-exact-ptr opt ptr ?a(a ?a[], compare act comparison(?a)) unsafe
 	ptr = a.begin-ptr binary-search-compare-recur a.end-ptr, compare
 	if ptr == a.end-ptr
 		none
@@ -56,7 +56,7 @@ Returns `a end-ptr` if all values compare less.
 binary-search-insert-ptr ptr ?a(a mut-arr ?a, compare act comparison(?a)) unsafe
 	a.begin-ptr binary-search-compare-recur a.end-ptr, compare
 
-binary-search-insert-ptr ptr ?a(a arr ?a, value ?a) unsafe compare<?a>
+binary-search-insert-ptr ptr ?a(a ?a[], value ?a) unsafe compare<?a>
 	a.begin-ptr binary-search-insert-ptr-recur a.end-ptr, value
 
 test
@@ -176,7 +176,7 @@ body
 		else
 			a-begin merge-reverse-recur! a-read - 1, a-write - 1, b-begin, b-read, compare
 
-.test-one void(a arr nat64, b arr nat64, expected arr nat64)
+.test-one void(a nat64[], b nat64[], expected nat64[])
 	a-mut = mut-list: a
 	b-mut = mut-list: b
 	a-mut merge-no-duplicates! b-mut, (x, y) =>

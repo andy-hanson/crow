@@ -3,7 +3,7 @@ Crashes the compiler because '<' is marked 'noctx', but depends on a spec whose 
 The fix will be to infer noctx from the specs.
 ###
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	drop: my-type < my-type
 	0 resolved
 

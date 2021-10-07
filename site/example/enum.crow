@@ -1,7 +1,7 @@
 import
 	crow/io/print: print
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	print: up.opposite to-str
 	print: up == up to-str
 	print: up == down to-str

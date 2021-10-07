@@ -41,18 +41,18 @@ dict-equal bool(a dict<?k, ?v>, b dict<?k, ?v>) data<?k> compare<?k> equal<?v>
 	# TODO: consider tracking the number of keys that are new, or change a value, or remove a value.
 	# We should merge more frequently if removing keys, less frequently if adding keys.
 	# never empty
-	pairs arr arrow<?k, opt ?v>
+	pairs arrow<?k, opt ?v>[]
 	prev dict-impl<?k, ?v>
 
 # Leftmost node. Values are non-optional as there is nothing left of this to remove from.
 .end-node<?k, ?v> record
 	by-val
-	pairs arr arrow<?k, ?v>
+	pairs arrow<?k, ?v>[]
 
 dict dict<?k, ?v>() data<?k> compare<?k>
 	dict: void, end-node: []
 
-dict dict<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
+dict dict<?k, ?v>(a arrow<?k, ?v>[]) data<?k> compare<?k>
 	dict: void, end-node: a sort-by pair => pair from
 
 is-empty bool(a dict<?k, ?v>) data<?k> compare<?k>
@@ -69,7 +69,7 @@ This is O(n).
 size nat64(a dict<?k, ?v>) data<?k> compare<?k>
 	0 fold a, (acc, k, v) => acc + 1
 
-arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> compare<?k> trusted
+arr arrow<?k, ?v>[](a dict<?k, ?v>) data<?k> compare<?k> trusted
 	match a impl
 	as overlay
 		out = a.size uninitialized-mut-arr<arrow<?k, ?v>>
@@ -87,14 +87,14 @@ arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> compare<?k> trusted
 ~ dict<?k, ?v>(a dict<?k, ?v>, b dict<?k, ?v>) data<?k> compare<?k>
 	a ~ b.arr
 
-~ dict<?k, ?v>(a dict<?k, ?v>, b arr arrow<?k, ?v>) data<?k> compare<?k>
+~ dict<?k, ?v>(a dict<?k, ?v>, b arrow<?k, ?v>[]) data<?k> compare<?k>
 	if b is-empty
 		a
 	elif a is-empty
 		dict: b
 	else
 		# TODO: 'as' should be unnecessary
-		pairs = as<arr arrow<?k, opt ?v>>: b map (it => it.from -> it.to.some) sort-by it => it from
+		pairs = as<arrow<?k, opt ?v>[]>: b map (it => it.from -> it.to.some) sort-by it => it from
 		dict: void, merge-as-needed: pairs overlay a.impl
 
 - dict<?k, ?v>(a dict<?k, ?v>, key ?k) data<?k> compare<?k>
@@ -103,7 +103,7 @@ arr arr arrow<?k, ?v>(a dict<?k, ?v>) data<?k> compare<?k> trusted
 	else
 		a
 
-- dict<?k, ?v>(a dict<?k, ?v>, keys arr ?k) data<?k> compare<?k>
+- dict<?k, ?v>(a dict<?k, ?v>, keys ?k[]) data<?k> compare<?k>
 	a fold keys, (cur, key) =>
 		cur - key
 
@@ -144,7 +144,7 @@ has-key bool(a dict<?k, ?v>, key ?k) trusted data<?k> compare<?k>
 .should-merge bool(prev-size nat64, overlay-size nat64)
 	prev-size <=: overlay-size max 3
 
-.merge-overlays arr arrow<?k, opt ?v>(l arr arrow<?k, opt ?v>, r arr arrow<?k, opt ?v>) trusted data<?k> compare<?k>
+.merge-overlays arrow<?k, opt ?v>[](l arrow<?k, opt ?v>[], r arrow<?k, opt ?v>[]) trusted data<?k> compare<?k>
 	res = l.size + r.size uninitialized-mut-arr<arrow<?k, opt ?v>>
 	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr, (x, y) =>
 		x.from <=> y.from
@@ -184,7 +184,7 @@ body
 		else
 			out + 1 merge-keep-right l, l-end, r + 1, r-end, compare
 
-.merge-to-end arr arrow<?k, ?v>(l arr arrow<?k, ?v>, r arr arrow<?k, opt ?v>) trusted data<?k> compare<?k>
+.merge-to-end arrow<?k, ?v>[](l arrow<?k, ?v>[], r arrow<?k, opt ?v>[]) trusted data<?k> compare<?k>
 	res = l.size + r.size uninitialized-mut-arr<arrow<?k, ?v>>
 	end = if l is-empty
 		res.begin-ptr finish-rest-ignore-none r.begin-ptr, r.end-ptr
@@ -272,8 +272,8 @@ fold ?a(acc ?a, a dict<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare<?k>
 
 .fold-recur ?a
 	acc ?a
-	end-node arr arrow<?k, ?v>
-	overlays mut-arr arr arrow<?k, opt ?v>
+	end-node arrow<?k, ?v>[]
+	overlays mut-arr arrow<?k, opt ?v>[]
 	f act ?a(?a, ?k, ?v)
 spec
 	data<?k>
@@ -306,23 +306,23 @@ body
 			acc
 		new-acc fold-recur new-end-node, took-from-overlays.overlays, f
 
-.find-least-key ?k(current-least-key ?k, overlays mut-arr arr arrow<?k, ?v>) data<?k> compare<?k>
+.find-least-key ?k(current-least-key ?k, overlays mut-arr arrow<?k, ?v>[]) data<?k> compare<?k>
 	current-least-key fold overlays, (cur, overlay) =>
 		cur min overlay[0].from
 
 .took-key<?k, ?v> record mut
 	rightmost-value opt ?v
-	overlays mut-arr arr arrow<?k, opt ?v>
+	overlays mut-arr arrow<?k, opt ?v>[]
 
 ###
 Takes the key from the front of every overlay that has it.
 Removes rightmost overlays from the mut-arr (by returning a new, smaller mut-arr).
 Returns the rightmost value associated with that key.
 ###
-.take-key took-key<?k, ?v>(overlays mut-arr arr arrow<?k, opt ?v>, key ?k) data<?k> compare<?k>
+.take-key took-key<?k, ?v>(overlays mut-arr arrow<?k, opt ?v>[], key ?k) data<?k> compare<?k>
 	overlays take-key-recur key, 0, none
 .take-key-recur took-key<?k, ?v>
-	overlays mut-arr arr arrow<?k, opt ?v>
+	overlays mut-arr arrow<?k, opt ?v>[]
 	key ?k
 	index nat64
 	rightmost-value opt ?v
@@ -353,11 +353,11 @@ body
 		e
 
 .iters<?k, ?v> record mut
-	end-pairs arr arrow<?k, ?v>
-	overlays mut-arr arr arrow<?k, opt ?v>
+	end-pairs arrow<?k, ?v>[]
+	overlays mut-arr arrow<?k, opt ?v>[]
 
 .init-iters iters<?k, ?v>(a dict<?k, ?v>) trusted
-	overlay-iters = 0 overlay-count a.impl uninitialized-mut-arr<arr arrow<?k, opt ?v>>
+	overlay-iters = 0 overlay-count a.impl uninitialized-mut-arr<arrow<?k, opt ?v>[]>
 	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur! a.impl
 	iters: end-pairs, overlay-iters
 
@@ -368,7 +368,7 @@ body
 	as end-node
 		acc
 
-.init-overlay-iters-recur! arr arrow<?k, ?v>(out ptr arr arrow<?k, opt ?v>, a dict-impl<?k, ?v>) unsafe
+.init-overlay-iters-recur! arrow<?k, ?v>[](out ptr arrow<?k, opt ?v>[], a dict-impl<?k, ?v>) unsafe
 	match a
 	as overlay o
 		out[] := o.pairs
@@ -392,7 +392,7 @@ spec
 body
 	dict: a map-to-arr f
 
-map-to-arr arr<?out>(a dict<?k, ?v>, f act ?out(?k, ?v)) data<?k> compare<?k>
+map-to-arr ?out[](a dict<?k, ?v>, f act ?out(?k, ?v)) data<?k> compare<?k>
 	a.arr map pair => f[pair.from, pair.to]
 
 map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) data<?k> compare<?k>

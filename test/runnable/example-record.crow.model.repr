@@ -12,9 +12,9 @@ module(
 		fun(
 			public: true
 			summon: true
-			sig: sig(file-pos(75, 110), main, fut(nat64()), [param(file-range(75, range(123, 132)), none, arr(str()))])
+			sig: sig(file-pos(75, 110), main, fut(nat64()), [param(file-range(75, range(123, 130)), none, arr(str()))])
 			body: let(
-				local(file-range(75, range(142, 143)), r, rect())
+				local(file-range(75, range(140, 141)), r, rect())
 				call(
 					fun-inst(name: rect)
 					[

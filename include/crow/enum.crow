@@ -10,7 +10,7 @@ import
 	./str: str
 
 enum<?a> spec
-	enum-members arr named-val<?a>()
+	enum-members named-val<?a>[]()
 	== bool(a ?a, b ?a)
 
 to-sym sym(a ?a) enum<?a>

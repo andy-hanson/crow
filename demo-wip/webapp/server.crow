@@ -15,7 +15,7 @@ import
 		login!, post, post-info, new-user-id, open-real-db, parse-user-cookie, register-user!,
 		to-str, user, user-info, user-name
 
-main fut nat(args arr str) unsafe summon
+main fut nat(args str[]) unsafe summon
 	if args.size != 1
 		print: "Usage: server PORT"
 		1 resolved
@@ -99,7 +99,7 @@ split-url url(url-str str)
 		url-str url ""
 
 # Extra cookies are ignored
-parse-cookies arr str(s str, cookie-names arr str)
+parse-cookies str[](s str, cookie-names str[])
 	res = cookie-names.size fill-mut-arr<opt str> none
 	s split-by "; " each part =>
 		if pair ?= part try-split-once "="
@@ -108,7 +108,7 @@ parse-cookies arr str(s str, cookie-names arr str)
 	res map-to-arr-with-index (x, index) =>
 		x or-throw () => "Did not get cookie value for {cookie-names[index]}"
 
-parse-query arr str(s str, arg-names arr str)
+parse-query str[](s str, arg-names str[])
 	res = arg-names.size fill-mut-arr<opt str> none
 	s split-by "&" each part =>
 		if pair ?= part try-split-once "="
@@ -121,7 +121,7 @@ parse-query arr str(s str, arg-names arr str)
 	res map-to-arr-with-index (x, index) =>
 		x or-throw () => "Did not get argument for {arg-names[index]}"
 
-.format-users-as-json str(users arr user-info)
+.format-users-as-json str(users user-info[])
 	res = writer
 	res ~= "\{\"users\":["
 	users each user =>
@@ -135,7 +135,7 @@ parse-query arr str(s str, arg-names arr str)
 	res ~= "]}"
 	res move-to-str!
 
-.format-posts-as-json str(posts arr post-info)
+.format-posts-as-json str(posts post-info[])
 	res = writer
 	res ~= "\{\"posts\":["
 	posts each post =>

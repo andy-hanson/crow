@@ -9,7 +9,7 @@ import
 	crow/parse-command: parse-named-args, single-str-or-throw
 	crow/serialize: from-bytes, to-bytes
 
-main fut nat(args arr str) unsafe summon
+main fut nat(args str[]) unsafe summon
 	command-name = if args is-empty
 		""
 	else

@@ -2,7 +2,7 @@ import
 	crow/io/print: print
 	crow/math/vec: -, length-squared, vec-2, x, y
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	c = as<hitbox>: (1.0 vec-2 1.0) circle 1.0
 	print: 1.7 vec-2 1.7 in c to-str
 	print: 1.7 vec-2 1.8 in c to-str

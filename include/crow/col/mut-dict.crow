@@ -41,7 +41,7 @@ mut-dict mut-dict<?k, ?v>() data<?k> compare<?k>
 	mut-dict: mut-list, 0, none
 
 # Copies an `arr` to a `mut-dict`.
-mut-dict mut-dict<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
+mut-dict mut-dict<?k, ?v>(a arrow<?k, ?v>[]) data<?k> compare<?k>
 	res = mut-dict<?k, ?v>
 	a each pair =>
 		res[pair from] := pair to
@@ -89,7 +89,7 @@ set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k> compare<?k>
 Adds many key-value pairs, replacing existing ones with the same keys.
 Equivalent to adding each element of `b` separately.
 ###
-~= void(a mut-dict<?k, ?v>, b arr arrow<?k, ?v>) data<?k> compare<?k>
+~= void(a mut-dict<?k, ?v>, b arrow<?k, ?v>[]) data<?k> compare<?k>
 	b each pair =>
 		a[pair from] := pair to
 
@@ -175,7 +175,7 @@ Returns true if it succeeded.
 			a[index + 1] := a[index]
 
 # Convert to an `arr`, clearning the original `mut-dict` in the process.
-move-to-arr! arr arrow<?k, ?v>(a mut-dict<?k, ?v>) data<?k> compare<?k>
+move-to-arr! arrow<?k, ?v>[](a mut-dict<?k, ?v>) data<?k> compare<?k>
 	res = a map-to-arr (key, value) => key -> value
 	a empty!
 	res
@@ -270,7 +270,7 @@ map-values mut-dict<?k, ?v-out>(a mut-dict<?k, ?v-in>, f act ?v-out(?k, ?v-in)) 
 .from-sorted-pairs mut-dict<?k, ?v>(a mut-list<arrow<?k, opt ?v>>)
 	mut-dict: a, a.size, none
 
-map-to-arr arr ?out(a mut-dict<?k, ?v>, f act ?out(?k, ?v)) data<?k> compare<?k>
+map-to-arr ?out[](a mut-dict<?k, ?v>, f act ?out(?k, ?v)) data<?k> compare<?k>
 	a compact!
 	a.pairs map-to-arr pair =>
 		f[pair.from, pair.to.force]

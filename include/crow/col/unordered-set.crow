@@ -18,7 +18,7 @@ unordered-set<?a> record
 unordered-set unordered-set ?a() data<?a> compare<?a> hash-mix<?a>
 	unordered-set: lookup<?a, void>
 
-unordered-set unordered-set ?a(a arr ?a) data<?a> compare<?a> hash-mix<?a>
+unordered-set unordered-set ?a(a ?a[]) data<?a> compare<?a> hash-mix<?a>
 	unordered-set: lookup: a map x => x -> void
 
 alloc-count nat64(a unordered-set ?a) unsafe

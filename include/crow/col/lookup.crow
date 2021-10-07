@@ -35,11 +35,11 @@ node<?k, ?v> union
 .inner-node<?k, ?v> record
 	# Nodes keyed by the next 3 bits of the hash.
 	# An inner-node should always have at least 2 non-empty children.
-	children arr node<?k, ?v>
+	children node<?k, ?v>[]
 
 .leaf-node<?k, ?v> record
 	# Unordered
-	pairs arr arrow<?k, ?v>
+	pairs arrow<?k, ?v>[]
 
 .empty-leaf-node leaf-node<?k, ?v>()
 	leaf-node: []
@@ -77,13 +77,13 @@ overhead-bytes nat64(a lookup<?k, ?v>) unsafe
 lookup lookup<?k, ?v>() data<?k> compare<?k> hash-mix<?k>
 	lookup: void, empty-leaf-node
 
-lookup lookup<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
+lookup lookup<?k, ?v>(a arrow<?k, ?v>[]) data<?k> compare<?k> hash-mix<?k>
 	if a.size <= 4 && a.no-duplicate-keys
 		lookup: void, leaf-node: a
 	else
 		lookup fold a, (cur, x) => cur ~ x
 
-.no-duplicate-keys bool(a arr arrow<?k, ?v>) compare<?k>
+.no-duplicate-keys bool(a arrow<?k, ?v>[]) compare<?k>
 	if a.size <= 1
 		true
 	else
@@ -123,7 +123,7 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 			i.children[which] subscript-recur: key, remaining-hash unsafe-bit-shift-right inner-node-n-bits
 	as leaf-node l
 		l.pairs subscript-leaf-recur key
-.subscript-leaf-recur opt ?v(a arr arrow<?k, ?v>, key ?k) compare<?k>
+.subscript-leaf-recur opt ?v(a arrow<?k, ?v>[], key ?k) compare<?k>
 	if a is-empty
 		none
 	elif a[0].from == key
@@ -139,7 +139,7 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 	else
 		a
 
-~ lookup<?k, ?v>(a lookup<?k, ?v>, pairs arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
+~ lookup<?k, ?v>(a lookup<?k, ?v>, pairs arrow<?k, ?v>[]) data<?k> compare<?k> hash-mix<?k>
 	a fold pairs, (cur, pair) => cur ~ pair
 
 try-add-result<?k, ?v> union
@@ -299,7 +299,7 @@ inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat64, new-
 		assert: end == out.size
 		some: leaf-node: out cast-immutable
 
-.find-only-non-empty-child opt node<?k, ?v>(children arr node<?k, ?v>)
+.find-only-non-empty-child opt node<?k, ?v>(children node<?k, ?v>[])
 	first-non-empty-index = force: children find-index it => !it.node-is-empty
 	if children[(first-non-empty-index wrap-add 1) -> children.size] every it => it node-is-empty
 		children[first-non-empty-index] some

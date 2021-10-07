@@ -13,7 +13,7 @@ import
 flags<?a> spec
 	empty ?a()
 	all ?a()
-	flags-members arr named-val<?a>()
+	flags-members named-val<?a>[]()
 	== bool(a ?a, b ?a)
 	~ ?a(a ?a)
 	& ?a(a ?a, b ?a)
@@ -22,7 +22,7 @@ flags<?a> spec
 is-in bool(a ?a, b ?a) flags<?a>
 	a & b == a
 
-to-syms arr sym(a ?a) flags<?a>
+to-syms sym[](a ?a) flags<?a>
 	flags-members flat-map member =>
 		if member.val is-in a
 			[member name]
@@ -33,7 +33,7 @@ flags-to-str str(a ?a) flags<?a>
 	a.to-syms map (x => x to-str) join " | "
 
 # TODO:MOVE
-.flat-map arr ?out(a arr ?in, f act arr ?out(?in))
+.flat-map ?out[](a ?in[], f act ?out[](?in))
 	res = mut-list<?out>
 	a each x =>
 		res ~= f[x]

@@ -17,13 +17,13 @@ import
 Returns a new array containing the same elements as `a`, but in sorted order.
 That means `res[i] <= res[i + 1]` for each element in the result.
 ###
-sort arr ?a(a arr ?a) compare<?a>
+sort ?a[](a ?a[]) compare<?a>
 	a sort (x, y) => x <=> y
-sort arr ?a(a arr ?a, comparer act comparison(?a, ?a)) trusted
+sort ?a[](a ?a[], comparer act comparison(?a, ?a)) trusted
 	res = a mut-arr
 	res sort! comparer
 	res cast-immutable
-sort-by arr ?a(a arr ?a, f act ?b(?a)) compare<?b>
+sort-by ?a[](a ?a[], f act ?b(?a)) compare<?b>
 	a sort (x, y) => f[x] <=> f[y]
 
 # TODO: try https://github.com/BonzaiThePenguin/WikiSort
@@ -33,11 +33,11 @@ Sort and remove duplicates.
 That means `res[i] < res[i + 1]` for each element in the result.
 `[2, 1, 2] sort-unique` is `[1, 2]`.
 ###
-sort-unique arr ?a(a arr ?a) compare<?a> trusted
+sort-unique ?a[](a ?a[]) compare<?a> trusted
 	a.mut-arr.sort-unique! cast-immutable
 
 test
-	(sort: as<arr nat64>: []) is []
+	(sort: as<nat64[]>: []) is []
 	[3, 1, 2].sort is [1, 2, 3]
 
 	# Test that it's a stable sort
@@ -109,11 +109,11 @@ sort-unique-by! mut-arr ?a(a mut-arr ?a, f act ?b(?a)) compare<?b>
 	a[y] := old-x
 
 sorted-by-first<?a, ?b> record
-	a arr ?a
-	b arr ?b
+	a ?a[]
+	b ?b[]
 
 # Sort `a`, and apply the same permutation to `b`.
-sort-by-first sorted-by-first<?a, ?b>(a arr ?a, b arr ?b) compare<?a> trusted
+sort-by-first sorted-by-first<?a, ?b>(a ?a[], b ?b[]) compare<?a> trusted
 	mut-a = a mut-arr
 	mut-b = b mut-arr
 	mut-a sort-by-first! mut-b

@@ -31,7 +31,7 @@ mut-priority-queue<?k, ?v> record mut
 mut-priority-queue mut-priority-queue<?k, ?v>() data<?k> compare<?k>
 	mut-priority-queue: mut-list, mut-list
 
-mut-priority-queue mut-priority-queue<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
+mut-priority-queue mut-priority-queue<?k, ?v>(a arrow<?k, ?v>[]) data<?k> compare<?k>
 	mins = mut-list: a
 	mins sort-by! pair => pair from
 	mut-priority-queue: mins, mut-list
@@ -64,7 +64,7 @@ copy mut-priority-queue<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?
 	a.buckets empty!
 	mut-priority-queue: mins.mut-list, mut-list
 
-arr arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) trusted data<?k> compare<?k>
+arr arrow<?k, ?v>[](a mut-priority-queue<?k, ?v>) trusted data<?k> compare<?k>
 	a.mut-arr cast-immutable
 
 mut-arr mut-arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>

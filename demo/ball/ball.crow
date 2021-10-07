@@ -19,7 +19,7 @@ import
 	SDL2/SDL_surface: SDL_FreeSurface, SDL_LoadBMP
 	SDL2/SDL_video: SDL_CreateWindow, SDL_DestroyWindow, SDL_Window, SDL_WINDOW_SHOWN
 
-main fut nat(_ arr str) summon trusted
+main fut nat(_ str[]) summon trusted
 	"SDL_INIT_VIDEO" handle-sdl-error: SDL_INIT_VIDEO SDL_Init
 	window = "Hello World!".to-c-str SDL_CreateWindow 100, 100, 640, 480, SDL_WINDOW_SHOWN
 	if window.as-any-ptr == null

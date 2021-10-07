@@ -14,10 +14,10 @@ import
 	./private/bootstrap: hard-unreachable
 
 # Treats bytes as a string.
-as-str str(bytes arr nat8) unsafe noctx
+as-str str(bytes nat8[]) unsafe noctx
 	bytes.arr-cast str
 
-bytes arr nat8(a str) trusted noctx
+bytes nat8[](a str) trusted noctx
 	a.chars arr-cast
 
 # Converts a str to a c-str by appending "\0".
@@ -95,10 +95,10 @@ try-split-once opt pair<str, str>(a str, b char)
 	if res ?= a.chars try-split-once b
 		res.a.str pair res.b.str some
 
-split-by arr str(a str, b str)
+split-by str[](a str, b str)
 	a.chars split-by-subseq b.chars map chars => chars str
 
-join str(a arr str, b str)
+join str(a str[], b str)
 	a map (it => it chars) flatten b.chars str
 
 lower-case str(a str)

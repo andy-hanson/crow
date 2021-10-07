@@ -1,7 +1,7 @@
 import
 	crow/io/print: print
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	print: "1" rate-my-number
 	print: "1.5" rate-my-number
 	0 resolved

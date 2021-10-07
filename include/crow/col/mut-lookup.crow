@@ -36,7 +36,7 @@ mut-lookup<?k, ?v> record mut
 mut-lookup mut-lookup<?k, ?v>() data<?k> compare<?k> hash-mix<?k>
 	mut-lookup: void, mut-arr, 0
 
-mut-lookup mut-lookup<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
+mut-lookup mut-lookup<?k, ?v>(a arrow<?k, ?v>[]) data<?k> compare<?k> hash-mix<?k>
 	res = a.size mut-lookup-with-capacity<?k, ?v>
 	a each pair =>
 		res[pair from] := pair to
@@ -49,7 +49,7 @@ WARN: Due to hash conflicts, this doesn't guarantee that allocations won't be ne
 mut-lookup-with-capacity mut-lookup<?k, ?v>(capacity nat64) data<?k> compare<?k> hash-mix<?k>
 	mut-lookup: void, (capacity fill-mut-arr none), 0
 
-arr-unordered arr arrow<?k, ?v>(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
+arr-unordered arrow<?k, ?v>[](a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
 	a map-to-arr-unordered (key, value) => key -> value
 
 copy mut-lookup<?k, ?v>(a mut-lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
@@ -169,7 +169,7 @@ Returns the old value (if it exists).
 						a.total-size := a.total-size wrap-add 1
 				none
 
-~= void(a mut-lookup<?k, ?v>, b arr arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
+~= void(a mut-lookup<?k, ?v>, b arrow<?k, ?v>[]) data<?k> compare<?k> hash-mix<?k>
 	b each pair =>
 		a[pair from] := pair to
 
@@ -222,7 +222,7 @@ filter! void(a mut-lookup<?k, ?v>, f act bool(?k, ?v)) trusted data<?k> compare<
 		entry-ptr + 1 filter-recur! entry-end, f
 
 
-map-to-arr-unordered arr ?out(a mut-lookup<?k, ?v>, f act ?out(?k, ?v)) trusted data<?k> compare<?k> hash-mix<?k>
+map-to-arr-unordered ?out[](a mut-lookup<?k, ?v>, f act ?out(?k, ?v)) trusted data<?k> compare<?k> hash-mix<?k>
 	out = a.size uninitialized-mut-arr<?out>
 	end = out.begin-ptr fold-unordered a, (cur, key, value) =>
 		cur[] := f[key, value]

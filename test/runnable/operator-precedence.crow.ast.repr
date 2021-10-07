@@ -7,57 +7,53 @@ file-ast(
 		fun-decl(
 			public: true
 			sig: sig-ast(
-				range(30, 53)
+				range(30, 51)
 				main
 				inststruct(range(35, 42), name-range(35, fut), [inststruct(range(39, 42), name-range(39, nat))])
-				[
-					param(
-						range(43, 52)
-						none
-						inststruct(range(45, 52), name-range(45, arr), [inststruct(range(49, 52), name-range(49, str))]))])
+				[param(range(43, 50), none, suffix(inststruct(range(45, 48), name-range(45, str)), arr))])
 			summon: true
 			body: seq-ast(
 				seq-ast(
 					call(
 						prefix
-						name-range(62, print)
+						name-range(60, print)
 						[]
 						[
 							call(
 								prefix
-								name-range(69, to-str)
+								name-range(67, to-str)
 								[]
 								[
 									call(
 										infix
-										name-range(79, *)
+										name-range(77, *)
 										[]
 										[
 											literal(nat(1, false))
 											call(
 												infix
-												name-range(84, +)
+												name-range(82, +)
 												[]
 												[literal(nat(2, false)), literal(nat(3, false))])])])])
 					call(
 						prefix
-						name-range(89, print)
+						name-range(87, print)
 						[]
 						[
 							call(
 								infix
-								name-range(106, to-str)
+								name-range(104, to-str)
 								[]
 								[
 									call(
 										infix
-										name-range(98, +)
+										name-range(96, +)
 										[]
 										[
 											literal(nat(1, false))
 											call(
 												infix
-												name-range(102, *)
+												name-range(100, *)
 												[]
 												[literal(nat(2, false)), literal(nat(3, false))])])])]))
-				call(infix, name-range(116, resolved), [], [literal(nat(0, false))])))])
+				call(infix, name-range(114, resolved), [], [literal(nat(0, false))])))])

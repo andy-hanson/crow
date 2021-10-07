@@ -1,7 +1,7 @@
 import
 	crow/io/print: print
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	nats = node<nat>: 1, some: node: 2, some: node: 3, none
 	floats = node<float>: 1.1, some: node: 2.2, none
 	print: "nats size: {nats size}"

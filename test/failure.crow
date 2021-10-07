@@ -5,7 +5,7 @@ import
 	crow/io/path: base-name
 	crow/io/print: print, print-no-newline
 
-handle-output arr failure
+handle-output failure[]
 	original-path str
 	output-path str
 	actual str
@@ -28,7 +28,7 @@ body
 	else
 		[original-path failure "{output-path base-name} does not exist. actual was:\n{actual}"]
 
-flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper act arr<?out>(?in)) trusted
+flat-map-with-max-size ?out[](a ?in[], max-size nat, mapper act ?out[](?in)) trusted
 	res = mut-list<?out>
 	a each x =>
 		if res.size < max-size
@@ -46,7 +46,7 @@ failure record
 	path str
 	message str
 
-first-failures result<str, arr failure>(a result<str, arr failure>, b fun result<str, arr failure>())
+first-failures result<str, failure[]>(a result<str, failure[]>, b fun result<str, failure[]>())
 	match a
 	as ok ok-a
 		match b[]
@@ -57,7 +57,7 @@ first-failures result<str, arr failure>(a result<str, arr failure>, b fun result
 	as err e
 		e
 
-print-failures nat(failures result<str, arr failure>, options test-options) summon
+print-failures nat(failures result<str, failure[]>, options test-options) summon
 	match failures
 	as ok o
 		print: o value

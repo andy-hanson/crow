@@ -34,11 +34,11 @@ stack stack ?a()
 	stack: void, none
 
 # Copy an arr to a stack.
-stack stack ?a(a arr ?a)
+stack stack ?a(a ?a[])
 	stack<?a> fold a, (stack, x) => stack ~ x
 
 # Copy a stack to an arr.
-arr arr ?a(a stack ?a) trusted
+arr ?a[](a stack ?a) trusted
 	res = a.size uninitialized-mut-arr<?a>
 	begin = res.end-ptr fold-reverse a, (out, x) =>
 		new-out = out - 1
@@ -47,7 +47,7 @@ arr arr ?a(a stack ?a) trusted
 	assert: begin == res.begin-ptr
 	res cast-immutable
 
-arr-reverse arr ?a(a stack ?a) trusted
+arr-reverse ?a[](a stack ?a) trusted
 	res = a.size uninitialized-mut-arr<?a>
 	end = res.begin-ptr fold-reverse a, (out, x) =>
 		out[] := x

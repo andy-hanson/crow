@@ -1,7 +1,7 @@
 import
 	crow/io/print: print
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	if n ?= 'bishop'.to-enum<chess-piece>
 		print: "bishop is {n to-nat32}"
 	if face ?= queen.as<chess-piece>.to-sym.to-enum<face-card>

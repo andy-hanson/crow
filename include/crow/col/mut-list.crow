@@ -73,7 +73,7 @@ mut-list mut-list ?a()
 Copies an `arr` to a `mut-list`.
 Writes to the `mut-list` won't affect the `arr`.
 ###
-mut-list mut-list ?a(a arr ?a)
+mut-list mut-list ?a(a ?a[])
 	res = mut-list<?a>
 	res ~= a
 	res
@@ -102,14 +102,14 @@ copy mut-list ?a(a mut-list ?a) trusted
 Copies a `mut-list` to an `arr`.
 Writes to the `mut-list` won't affect the `arr`.
 ###
-arr arr ?a(a mut-list ?a)
+arr ?a[](a mut-list ?a)
 	a.copy move-to-arr!
 
 ###
 Convert to a `dict`, clearning the original `mut-list` in the process.
 (This avoids copying but still ensures that the result is immutable.)
 ###
-move-to-arr! arr ?a(a mut-list ?a) noctx trusted
+move-to-arr! ?a[](a mut-list ?a) noctx trusted
 	res = arr: a.size, a.begin-ptr
 	a.backing := mut-arr
 	a.size := 0
@@ -157,7 +157,7 @@ temp-as-mut-arr mut-arr ?a(a mut-list ?a) noctx unsafe
 Converts to an `arr`.
 "Temp" because it's UB if the result is used after `a` is written to.
 ###
-temp-as-arr arr ?a(a mut-list ?a) noctx unsafe
+temp-as-arr ?a[](a mut-list ?a) noctx unsafe
 	a.temp-as-mut-arr temp-as-arr
 
 # True iff `a.size == 0`.
@@ -178,7 +178,7 @@ True iff `a[i] == value` for some `i`.
 in bool(value ?a, a mut-list ?a) noctx trusted equal<?a>
 	value in a.temp-as-arr
 
-copy-range-to-arr arr ?a(a mut-list ?a, begin nat64, size nat64) trusted
+copy-range-to-arr ?a[](a mut-list ?a, begin nat64, size nat64) trusted
 	assert: begin + size <= a.size
 	res = alloc-uninitialized<?a>: size
 	src = a.begin-ptr + begin
@@ -190,7 +190,7 @@ Removes the first `n` elements and returns them as an array.
 This is O(a.size - n) because of the cost of copying, and all remaining elements must be shifted.
 Throws if `n > a.size`.
 ###
-pop-n-from-start! arr ?a(a mut-list ?a, n nat64) trusted
+pop-n-from-start! ?a[](a mut-list ?a, n nat64) trusted
 	assert: n <= a.size
 	res = a copy-range-to-arr 0, n
 	dest = a.begin-ptr as-any-ptr
@@ -232,7 +232,7 @@ pop-n! void(a mut-list ?a, n nat64) trusted
 
 # TODO: Use an 'each' spec..
 # Push multiple values onto the end of the list.
-~= void(a mut-list ?a, values arr ?a)
+~= void(a mut-list ?a, values ?a[])
 	values each x => a ~= x
 ~= void(a mut-list ?a, values mut-arr ?a)
 	values each x => a ~= x
@@ -400,7 +400,7 @@ filter mut-list ?a(a mut-list ?a, f act bool(?a)) trusted
 map mut-list ?out(a mut-list ?in, f act ?out(?in)) trusted
 	a map-to-mut-arr f as-mut-list
 
-map-to-arr arr ?out(a mut-list ?in, f act ?out(?in)) trusted
+map-to-arr ?out[](a mut-list ?in, f act ?out(?in)) trusted
 	a map-to-mut-arr f cast-immutable
 
 map-to-mut-arr mut-arr ?out(a mut-list ?in, f act ?out(?in))

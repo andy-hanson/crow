@@ -1,7 +1,7 @@
 import
 	crow/io/print: print
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	r = my-record: "a", "b"
 	foo: r
 	print: r a

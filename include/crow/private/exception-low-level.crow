@@ -20,8 +20,8 @@ exception-ctx record mut
 
 exception-ctx by-val exception-ctx() noctx unsafe
 	# Nothing on the exception-ctx initially
-	# TODO: should not need `as<arr sym>`
-	exception-ctx: null, exception: "", backtrace: as<arr sym>: []
+	# TODO: should not need `as<sym[]>`
+	exception-ctx: null, exception: "", backtrace: as<sym[]>: []
 
 get-exception-ctx exception-ctx() unsafe
 	get-ctx.thread-local-stuff.exception-ctx-ptr as-ref<exception-ctx>

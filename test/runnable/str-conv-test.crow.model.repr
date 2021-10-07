@@ -5,7 +5,7 @@ module(
 		fun(
 			public: true
 			summon: true
-			sig: sig(file-pos(75, 30), main, fut(nat64()), [param(file-range(75, range(43, 52)), none, arr(str()))])
+			sig: sig(file-pos(75, 30), main, fut(nat64()), [param(file-range(75, range(43, 50)), none, arr(str()))])
 			body: seq(
 				seq(
 					seq(

@@ -17,14 +17,14 @@ import
 
 frozen-unordered-set<?a> record force-data
 	# TODO:PRIVATE
-	values arr ?a
+	values ?a[]
 	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
-	bucket-starts arr ptr ?a
+	bucket-starts ptr<?a>[]
 
 frozen-unordered-set frozen-unordered-set ?a() data<?a> compare<?a> hash-mix<?a>
 	frozen-unordered-set: [], []
 
-frozen-unordered-set frozen-unordered-set ?a(a arr ?a) trusted data<?a> compare<?a> hash-mix<?a>
+frozen-unordered-set frozen-unordered-set ?a(a ?a[]) trusted data<?a> compare<?a> hash-mix<?a>
 	a.mut-arr unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
 
 # Values are stored as a contiguous array; order is arbitrary.
@@ -47,7 +47,7 @@ is-empty bool(a frozen-unordered-set ?a)
 size nat64(a frozen-unordered-set ?a)
 	a.values size
 
-unordered-arr arr ?a(a frozen-unordered-set ?a)
+unordered-arr ?a[](a frozen-unordered-set ?a)
 	a values
 
 subscript bool(a frozen-unordered-set ?a, value ?a) trusted data<?a> compare<?a> hash-mix<?a>
@@ -97,7 +97,7 @@ body
 	value-ptr ptr ?a
 	value-end ptr ?a
 	bucket-counts mut-arr nat64
-	bucket-starts arr ptr ?a
+	bucket-starts ptr<?a>[]
 spec
 	unsafe
 	hash-mix<?a>
@@ -121,7 +121,7 @@ body
 .get-bucket-index nat64(value ?a, n-buckets nat64) unsafe hash-mix<?a>
 	value.hash unsafe-mod n-buckets
 
-.running-sum arr ptr ?a(acc ptr ?a, a mut-arr nat64) trusted
+.running-sum ptr<?a>[](acc ptr ?a, a mut-arr nat64) trusted
 	out = a.size uninitialized-mut-arr<ptr ?a>
 	acc running-sum-recur! out.begin-ptr, out.end-ptr, a.begin-ptr
 	out cast-immutable
@@ -142,7 +142,7 @@ fold-unordered ?a(acc ?a, a frozen-unordered-set ?b, f act ?a(?a, ?b))
 fold-unordered-with-index ?a(acc ?a, a frozen-unordered-set ?b, f act ?a(?a, ?b, nat64))
 	acc fold-with-index a.values, f
 
-.verify void(a frozen-unordered-set nat64, values arr nat64, bucket-starts arr nat64) unsafe
+.verify void(a frozen-unordered-set nat64, values nat64[], bucket-starts nat64[]) unsafe
 	a.values is values
 	a.bucket-starts map (ptr => ptr - a.values.begin-ptr) is bucket-starts
 

@@ -74,10 +74,10 @@ path-exists bool(path str) summon
 Returns the basename of all children of the directory.
 Does not include ".." or ".".
 ###
-read-dir arr str(path str) summon
+read-dir str[](path str) summon
 	path.to-c-str read-dir
 
-.read-dir arr str(path c-str) trusted summon
+.read-dir str[](path c-str) trusted summon
 	dirp = path opendir
 	# TODO: handle errors
 	assert: dirp.ptr-cast-from-extern<any-ptr, dir> != null
@@ -118,7 +118,7 @@ If you are using the interpreter, this will be the path to `crow`.
 current-executable-path str() summon trusted
 	"/proc/self/exe" read-link
 
-read-file-binary arr nat8(path str) summon
+read-file-binary nat8[](path str) summon
 	path.read-file bytes
 
 # Gets the full contents of the file as a string.

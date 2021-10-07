@@ -29,7 +29,7 @@ mut-deque<?a> record mut
 mut-deque mut-deque ?a()
 	mut-deque: mut-arr<?a>, null, null
 
-arr arr ?a(a mut-deque ?a) trusted
+arr ?a[](a mut-deque ?a) trusted
 	a.mut-arr cast-immutable
 
 mut-arr mut-arr ?a(a mut-deque ?a) trusted
@@ -156,7 +156,7 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 		out backup!
 	out move-to-str!
 
-.verify void(a mut-deque nat64, arr arr nat64, expected str)
+.verify void(a mut-deque nat64, arr nat64[], expected str)
 	a.first is arr.first
 	a.last is arr.last
 	a.size is arr.size

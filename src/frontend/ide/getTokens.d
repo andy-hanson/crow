@@ -31,6 +31,7 @@ import frontend.parse.ast :
 	NameAndRange,
 	ParamAst,
 	ParenthesizedAst,
+	range,
 	rangeOfExplicitByValOrRef,
 	rangeOfNameAndRange,
 	rangeOfPuritySpecifier,
@@ -172,6 +173,10 @@ void addTypeTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		},
 		(ref immutable TypeAst.InstStruct it) {
 			addInstStructTokens(alloc, tokens, it);
+		},
+		(ref immutable TypeAst.Suffix it) {
+			addTypeTokens(alloc, tokens, it.left.deref());
+			add(alloc, tokens, immutable Token(Token.Kind.keyword, range(it)));
 		},
 		(ref immutable TypeAst.TypeParam it) {
 			add(alloc, tokens, immutable Token(Token.Kind.typeParamRef, it.range));

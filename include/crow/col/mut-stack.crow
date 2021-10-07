@@ -20,10 +20,10 @@ mut-stack mut-stack ?a()
 copy mut-stack ?a(a mut-stack ?a)
 	mut-stack: a.inner copy
 
-mut-stack mut-stack ?a(a arr ?a)
+mut-stack mut-stack ?a(a ?a[])
 	mut-stack: mut-list: a
 
-arr arr ?a(a mut-stack ?a)
+arr ?a[](a mut-stack ?a)
 	a.inner arr
 
 is-empty bool(a mut-stack ?a)
@@ -32,7 +32,7 @@ is-empty bool(a mut-stack ?a)
 ~= void(a mut-stack ?a, value ?a)
 	a.inner ~= value
 
-~= void(a mut-stack ?a, values arr ?a)
+~= void(a mut-stack ?a, values ?a[])
 	a.inner ~= values
 
 last opt ?a(a mut-stack ?a)

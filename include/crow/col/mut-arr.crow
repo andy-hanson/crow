@@ -22,7 +22,7 @@ mut-arr<?a> record mut
 	# Adding a dummy field so the constructor won't conflict with mut-arr from arr
 	ignore void
 	# TODO:PRIVATE
-	inner arr ?a
+	inner ?a[]
 
 # Empty `mut-arr`.
 mut-arr mut-arr ?a() noctx
@@ -36,14 +36,14 @@ mut-arr mut-arr ?a(size nat64, begin-ptr ptr ?a) noctx unsafe
 Copies an `arr` to a `mut-arr`.
 Writing to the result won't affect the original.
 ###
-mut-arr mut-arr ?a(a arr ?a)
+mut-arr mut-arr ?a(a ?a[])
 	a.size make-mut-arr<?a> i => a[i]
 
 ###
 Copies a `mut-arr` to an `arr`.
 Further writes to the `mut-arr` won't affect the `arr` that was copied from it.
 ###
-arr arr ?a(a mut-arr ?a)
+arr ?a[](a mut-arr ?a)
 	a.copy.inner
 
 mut-arr-from-begin-end mut-arr ?a(begin ptr ?a, end ptr ?a) unsafe
@@ -57,10 +57,10 @@ Writing to the result won't affect the original.
 copy mut-arr ?a(a mut-arr ?a)
 	a.size make-mut-arr<?a> i => a[i]
 
-copy-to-arr arr ?a(a mut-arr ?a) trusted
+copy-to-arr ?a[](a mut-arr ?a) trusted
 	a.copy cast-immutable
 
-copy-from! void(dest mut-arr ?a, source arr ?a) trusted
+copy-from! void(dest mut-arr ?a, source ?a[]) trusted
 	assert: dest.size == source.size
 	drop: memcpy: dest.begin-ptr.as-any-ptr, source.begin-ptr.as-any-ptr, dest.size wrap-mul size-of<?a>
 
@@ -167,7 +167,7 @@ fill! void(a mut-arr ?a, value ?a)
 Unsafe cast a mut-arr to arr.
 Called "temp" because it is UB if the mut-arr is written to while the `arr` is in use.
 ###
-temp-as-arr arr ?a(a mut-arr ?a) noctx unsafe
+temp-as-arr ?a[](a mut-arr ?a) noctx unsafe
 	a inner
 
 ###
@@ -175,7 +175,7 @@ Unsafe cast a mut-arr to arr.
 Equivalent to `temp-as-arr`, but the implication is that
 the `mut-arr` will never be written to again, so the `arr` can be used forever.
 ###
-cast-immutable arr ?a(a mut-arr ?a) noctx unsafe
+cast-immutable ?a[](a mut-arr ?a) noctx unsafe
 	a inner
 
 ###
@@ -233,8 +233,8 @@ map mut-arr ?out(a mut-arr ?in, f act ?out(?in)) trusted
 map-with-index mut-arr ?out(a mut-arr ?in, f act ?out(?in, nat64)) trusted
 	a.size make-mut-arr i => f[a[i], i]
 
-map-to-arr arr ?out(a mut-arr ?in, f act ?out(?in)) trusted
+map-to-arr ?out[](a mut-arr ?in, f act ?out(?in)) trusted
 	a map f cast-immutable
 
-map-to-arr-with-index arr ?out(a mut-arr ?in, f act ?out(?in, nat64)) trusted
+map-to-arr-with-index ?out[](a mut-arr ?in, f act ?out(?in, nat64)) trusted
 	a map-with-index f cast-immutable

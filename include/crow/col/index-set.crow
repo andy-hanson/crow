@@ -28,14 +28,14 @@ index-set record
 	# TODO:PRIVATE
 	ignore void
 	# TODO: use 'vector' type that supports efficient inserts to the middle
-	values arr nat64
+	values nat64[]
 
 is-empty bool(a index-set)
 	a.values is-empty
 
 size nat64(a index-set)
 	a.values count-ones-in-arr
-.count-ones-in-arr nat64(a arr nat64)
+.count-ones-in-arr nat64(a nat64[])
 	0 fold a, (acc, x) =>
 		acc wrap-add x.count-ones
 
@@ -52,10 +52,10 @@ index-set index-set()
 index-set index-set(a nat64)
 	index-set: [a]
 
-index-set index-set(a arr nat64)
+index-set index-set(a nat64[])
 	index-set fold a, (acc, x) => acc ~ x
 
-arr arr nat64(a index-set)
+arr nat64[](a index-set)
 	a map-to-arr (it => it)
 
 subscript bool(a index-set, index nat64)
@@ -84,7 +84,7 @@ try-add opt index-set(a index-set, index nat64)
 			else
 				0
 
-~ index-set(a index-set, indices arr nat64)
+~ index-set(a index-set, indices nat64[])
 	a fold indices, (cur, index) => cur ~ index
 
 - index-set(a index-set, index nat64)
@@ -115,9 +115,9 @@ intersect index-set(a index-set, b index-set)
 	strip-trailing-zeroes: a.values zip-larger b.values, (x, y) =>
 		x or-default 0 bits-diff: y or-default 0
 
-.strip-trailing-zeroes index-set(a arr nat64)
+.strip-trailing-zeroes index-set(a nat64[])
 	index-set: void, a.strip-trailing-zeroes
-.strip-trailing-zeroes arr nat64(a arr nat64)
+.strip-trailing-zeroes nat64[](a nat64[])
 	if last ?= a last
 		if last == 0
 			a.rtail strip-trailing-zeroes
@@ -200,7 +200,7 @@ filter index-set(a index-set, f act bool(nat64))
 map index-set(a index-set, f act nat64(nat64))
 	a map-to-arr f index-set
 
-map-to-arr arr ?a(a index-set, f act ?a(nat64)) trusted
+map-to-arr ?a[](a index-set, f act ?a(nat64)) trusted
 	res = a.size uninitialized-mut-arr<?a>
 	end = res.begin-ptr fold a, (cur, x) =>
 		cur[] := f[x]
@@ -235,7 +235,7 @@ debug str(a index-set)
 		out ~= "]"
 		out move-to-str!
 
-.verify void(a index-set, expected str, expected-arr arr nat64)
+.verify void(a index-set, expected str, expected-arr nat64[])
 	a.dbg is expected
 	r = a arr
 	r is expected-arr

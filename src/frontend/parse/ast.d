@@ -64,6 +64,16 @@ struct TypeAst {
 		immutable ArrWithSize!TypeAst typeArgs;
 	}
 
+	struct Suffix {
+		@safe @nogc pure nothrow:
+
+		enum Kind {
+			arr,
+		}
+		immutable Kind kind;
+		immutable Ptr!TypeAst left;
+	}
+
 	struct TypeParam {
 		immutable RangeWithinFile range;
 		immutable Sym name;
@@ -71,6 +81,7 @@ struct TypeAst {
 
 	@trusted immutable this(immutable Fun a) { kind = Kind.fun; fun = a; }
 	@trusted immutable this(immutable InstStruct a) { kind = Kind.instStruct; instStruct = a; }
+	immutable this(immutable Suffix a) { kind = Kind.suffix; suffix = a; }
 	@trusted immutable this(immutable TypeParam a) { kind = Kind.typeParam; typeParam = a; }
 
 	private:
@@ -78,13 +89,15 @@ struct TypeAst {
 	enum Kind {
 		fun,
 		instStruct,
+		suffix,
 		typeParam,
 	}
 	immutable Kind kind;
 	union {
 		immutable Fun fun;
-		immutable TypeParam typeParam;
 		immutable InstStruct instStruct;
+		immutable Suffix suffix;
+		immutable TypeParam typeParam;
 	}
 }
 static assert(TypeAst.sizeof <= 40);
@@ -93,6 +106,7 @@ static assert(TypeAst.sizeof <= 40);
 	ref immutable TypeAst a,
 	scope T delegate(ref immutable TypeAst.Fun) @safe @nogc pure nothrow cbFun,
 	scope T delegate(ref immutable TypeAst.InstStruct) @safe @nogc pure nothrow cbInstStruct,
+	scope T delegate(ref immutable TypeAst.Suffix) @safe @nogc pure nothrow cbSuffix,
 	scope T delegate(ref immutable TypeAst.TypeParam) @safe @nogc pure nothrow cbTypeParam,
 ) {
 	final switch (a.kind) {
@@ -100,6 +114,8 @@ static assert(TypeAst.sizeof <= 40);
 			return cbFun(a.fun);
 		case TypeAst.Kind.instStruct:
 			return cbInstStruct(a.instStruct);
+		case TypeAst.Kind.suffix:
+			return cbSuffix(a.suffix);
 		case TypeAst.Kind.typeParam:
 			return cbTypeParam(a.typeParam);
 	}
@@ -110,7 +126,26 @@ immutable(RangeWithinFile) range(ref immutable TypeAst a) {
 		a,
 		(ref immutable TypeAst.Fun it) => it.range,
 		(ref immutable TypeAst.InstStruct it) => it.range,
+		(ref immutable TypeAst.Suffix it) => range(it),
 		(ref immutable TypeAst.TypeParam it) => it.range);
+}
+
+immutable(RangeWithinFile) range(ref immutable TypeAst.Suffix a) {
+	immutable RangeWithinFile leftRange = range(a.left);
+	immutable uint suffixLength = () {
+		final switch (a.kind) {
+			case TypeAst.Suffix.Kind.arr:
+				return cast(uint) "[]".length;
+		}
+	}();
+	return immutable RangeWithinFile(leftRange.start, leftRange.end + suffixLength);
+}
+
+immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
+	final switch (a) {
+		case TypeAst.Suffix.Kind.arr:
+			return shortSymAlphaLiteral("arr");
+	}
 }
 
 struct BogusAst {}
@@ -1119,6 +1154,10 @@ immutable(Repr) reprTypeAst(Alloc)(ref Alloc alloc, ref immutable TypeAst a) {
 					reprTypeAst(alloc, t))]),
 		(ref immutable TypeAst.InstStruct i) =>
 			reprInstStructAst(alloc, i),
+		(ref immutable TypeAst.Suffix it) =>
+			reprRecord(alloc, "suffix", [
+				reprTypeAst(alloc, it.left),
+				reprSym(symForTypeAstSuffix(it.kind))]),
 		(ref immutable TypeAst.TypeParam p) =>
 			reprRecord(alloc, "type-param", [reprRangeWithinFile(alloc, p.range), reprSym(p.name)]));
 }

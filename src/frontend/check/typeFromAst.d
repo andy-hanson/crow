@@ -12,7 +12,7 @@ import frontend.check.checkCtx :
 	markUsedStructOrAlias;
 import frontend.check.dicts : SpecDeclAndIndex, SpecsDict, StructsAndAliasesDict, StructOrAliasAndIndex;
 import frontend.check.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
-import frontend.parse.ast : matchTypeAst, TypeAst;
+import frontend.parse.ast : matchTypeAst, range, symForTypeAstSuffix, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -38,7 +38,7 @@ import util.collection.dict : getAt;
 import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
-import util.sym : Sym, symEq;
+import util.sym : shortSymAlphaLiteralValue, Sym, symEq;
 import util.types : safeSizeTToU8;
 import util.util : todo;
 
@@ -51,7 +51,29 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
-	immutable Sym name = ast.name.name;
+	return instStructFromAstInner!Alloc(
+		alloc,
+		ctx,
+		commonTypes,
+		ast.name.name,
+		ast.range,
+		toArr(ast.typeArgs),
+		structsAndAliasesDict,
+		typeParamsScope,
+		delayStructInsts);
+}
+
+private immutable(Opt!(Ptr!StructInst)) instStructFromAstInner(Alloc)(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
+	immutable Sym name,
+	immutable RangeWithinFile range,
+	scope immutable TypeAst[] typeArgAsts,
+	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	immutable TypeParamsScope typeParamsScope,
+	DelayStructInsts delayStructInsts,
+) {
 	immutable Opt!StructOrAliasAndIndex opDeclFromHere = getAt(structsAndAliasesDict, name);
 	if (has(opDeclFromHere))
 		markUsedStructOrAlias(ctx, force(opDeclFromHere));
@@ -61,7 +83,7 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 		alloc,
 		ctx,
 		name,
-		ast.range,
+		range,
 		here,
 		Diag.DuplicateImports.Kind.type,
 		Diag.NameNotFound.Kind.type,
@@ -72,11 +94,10 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 	else {
 		immutable StructOrAlias sOrA = force(opDecl);
 		immutable size_t nExpectedTypeArgs = size(typeParams(sOrA));
-		immutable TypeAst[] typeArgAsts = toArr(ast.typeArgs);
 		immutable Type[] typeArgs = () {
 			immutable size_t nActualTypeArgs = size(typeArgAsts);
 			if (nActualTypeArgs != nExpectedTypeArgs) {
-				addDiag(alloc, ctx, ast.range, immutable Diag(
+				addDiag(alloc, ctx, range, immutable Diag(
 					immutable Diag.WrongNumberTypeArgsForStruct(
 						sOrA,
 						safeSizeTToU8(nExpectedTypeArgs),
@@ -123,16 +144,35 @@ immutable(Type) typeFromAst(Alloc)(
 		(ref immutable TypeAst.Fun it) =>
 			typeFromFunAst(alloc, ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts),
 		(ref immutable TypeAst.InstStruct iAst) {
-			immutable Opt!(Ptr!StructInst) i = instStructFromAst(
+			// Not doing this in instStructFromAst since that is called for unions, which can't use `a[]` syntax
+			switch (iAst.name.name.value) {
+				case shortSymAlphaLiteralValue("arr"):
+					addDiag(alloc, ctx, iAst.range, immutable Diag(
+						immutable Diag.TypeShouldUseSuffix(TypeAst.Suffix.Kind.arr)));
+					break;
+				default:
+					break;
+			}
+			return typeFromOptInst(instStructFromAst(
 				alloc,
 				ctx,
 				commonTypes,
 				iAst,
 				structsAndAliasesDict,
 				typeParamsScope,
-				delayStructInsts);
-			return has(i) ? immutable Type(force(i)) : immutable Type(Type.Bogus());
+				delayStructInsts));
 		},
+		(ref immutable TypeAst.Suffix it) =>
+			typeFromOptInst(instStructFromAstInner(
+				alloc,
+				ctx,
+				commonTypes,
+				symForTypeAstSuffix(it.kind),
+				range(it),
+				[it.left],
+				structsAndAliasesDict,
+				typeParamsScope,
+				delayStructInsts)),
 		(ref immutable TypeAst.TypeParam p) {
 			immutable Opt!(Ptr!TypeParam) found =
 				findPtr!TypeParam(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>
@@ -145,6 +185,10 @@ immutable(Type) typeFromAst(Alloc)(
 				return immutable Type(Type.Bogus());
 			}
 		});
+}
+
+private immutable(Type) typeFromOptInst(immutable Opt!(Ptr!StructInst) a) {
+	return has(a) ? immutable Type(force(a)) : immutable Type(Type.Bogus());
 }
 
 private immutable(Type) typeFromFunAst(Alloc)(

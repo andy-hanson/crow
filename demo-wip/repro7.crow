@@ -1,7 +1,7 @@
 import
 	io.print: print
 
-main fut nat(_ arr str) summon trusted
+main fut nat(_ str[]) summon trusted
 	p = 0 vec-2-32 0
 	c = 0 color-32 0, 0
 	v = p vertex c, p

@@ -3,7 +3,7 @@ import
 	crow/io/print: print
 	crow/private/bootstrap: static-syms
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	drop: 'pop'
 	drop: 'hop'
 	drop: 'pop'

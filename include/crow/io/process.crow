@@ -49,7 +49,7 @@ Launches a process and synchronously waits on the result.
 The child process' stdout and stderr will be sent to the `process-result`,
 not to the parent's stdout and stderr.
 ###
-spawn-and-wait-result process-result(exe str, args arr str, environ environ) trusted summon
+spawn-and-wait-result process-result(exe str, args str[], environ environ) trusted summon
 	print: "spawn-and-wait-result: {exe}" fold args, (a, b) =>
 		"{a} {b}"
 
@@ -64,7 +64,7 @@ spawn-and-wait-result process-result(exe str, args arr str, environ environ) tru
 Launches a process and synchronously waits on the result.
 The child process shares stdout and stderr with the parent process.
 ###
-spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
+spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	# TODO: kill, handle that error properly
 	if exe is-file
 		# First argument should be the executable path
@@ -74,7 +74,7 @@ spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
 	else
 		throw: "{exe} is not a file"
 
-.convert-args ptr c-str(exe-c-str c-str, args arr str)
+.convert-args ptr c-str(exe-c-str c-str, args str[])
 	begin-ptr: [exe-c-str] ~ (args map x => x to-c-str) ~ [null]
 
 .spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
@@ -122,7 +122,7 @@ spec
 	summon
 	unsafe
 body
-	poll-fds = as<arr by-val pollfd>: [(pollfd: stdout-pipe, POLLIN, 0), (pollfd: stderr-pipe, POLLIN, 0)]
+	poll-fds = as<by-val<pollfd>[]>: [(pollfd: stdout-pipe, POLLIN, 0), (pollfd: stderr-pipe, POLLIN, 0)]
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
 	# timeout == -1 means we block

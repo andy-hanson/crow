@@ -35,16 +35,16 @@ Add nodes are a linked list where links point to the left. Largest node is on th
 ###
 
 .add-node<?a> record
-	values arr ?a
+	values ?a[]
 	left opt add-node ?a
 
 set set ?a() data<?a> compare<?a>
 	[] set
 
-set set ?a(a arr ?a) data<?a> compare<?a>
+set set ?a(a ?a[]) data<?a> compare<?a>
 	a.sort add-node none set index-set
 
-arr arr ?a(a set ?a) data<?a> compare<?a>
+arr ?a[](a set ?a) data<?a> compare<?a>
 	a map-to-arr x => x
 
 deep-size-bytes nat64(a set ?a) unsafe deep-size-bytes<?a>
@@ -242,7 +242,7 @@ body
 		new-l = add-size-here-and-left wrap-sub a.values.size
 		compactor do-compact-recur! a.left.force, new-l, remove
 
-.merge! void(a compactor ?a, values arr ?a, add-size-here-and-left nat64, remove index-set) unsafe compare<?a>
+.merge! void(a compactor ?a, values ?a[], add-size-here-and-left nat64, remove index-set) unsafe compare<?a>
 	n-remove = remove count-range (add-size-here-and-left wrap-sub values.size), add-size-here-and-left
 	n-added = values.size wrap-sub n-remove
 	if n-added != 0
@@ -299,7 +299,7 @@ body
 	if b-read != b-begin
 		new-a-write copy-from-b-recur! b-begin, b-read - 1, (b-remove-index wrap-sub 1), b-remove
 
-.finish arr ?a(a compactor ?a) unsafe
+.finish ?a[](a compactor ?a) unsafe
 	assert: a.cur == a.end
 	a.begin arr-from-begin-end a.end
 
@@ -343,7 +343,7 @@ body
 
 .iter-part<?a> record
 	by-val
-	values arr ?a
+	values ?a[]
 	remove-index nat64
 
 .is-empty bool(a iter-part ?a)
@@ -386,7 +386,7 @@ body
 map set ?out(a set ?in, f act ?out(?in)) data<?out> compare<?out> data<?in> compare<?in>
 	set: a map-to-arr f
 
-map-to-arr arr ?out(a set ?in, f act ?out(?in)) trusted data<?in> compare<?in>
+map-to-arr ?out[](a set ?in, f act ?out(?in)) trusted data<?in> compare<?in>
 	out = a.size uninitialized-mut-arr<?out>
 	end = out.begin-ptr fold a, (cur, x) =>
 		cur[] := f[x]

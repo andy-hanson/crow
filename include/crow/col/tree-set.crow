@@ -80,11 +80,11 @@ alloc-count nat64(a tree-set ?a) unsafe
 
 # Empty `tree-set`.
 tree-set tree-set ?a()
-	root = [] as<arr ?a>
+	root = [] as<?a[]>
 	tree-set: root, 0
 
 # Copy an `arr` to a `tree-set`.
-tree-set tree-set ?a(a arr ?a) data<?a> compare<?a>
+tree-set tree-set ?a(a ?a[]) data<?a> compare<?a>
 	values = a sort-unique
 	tree-set: values, values.size
 
@@ -92,7 +92,7 @@ tree-set tree-set ?a(a arr ?a) data<?a> compare<?a>
 Array of all values in the set, in sorted order.
 This is O(a size).
 ###
-arr arr ?a(a tree-set ?a) data<?a> compare<?a>
+arr ?a[](a tree-set ?a) data<?a> compare<?a>
 	match a.root
 	as inner-node i
 		i tree-to-arr a.size
@@ -134,7 +134,7 @@ This is O(a.size ln)
 Add many values to the set.
 This is O(a.size + b.size).
 ###
-~ tree-set ?a(a tree-set ?a, b arr ?a) data<?a> compare<?a>
+~ tree-set ?a(a tree-set ?a, b ?a[]) data<?a> compare<?a>
 	a ~ b.tree-set
 
 ###
@@ -259,7 +259,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	a filter x => !(b-iter walk-iter-has x)
 
 .iter<?a> record mut
-	cur mut arr ?a
+	cur mut ?a[]
 	# If a node is on the stack, we have yet to write out the middle and right.
 	# TODO:PERF use a mut-arr, initialized to the tree's height
 	stack mut-stack inner-node ?a
@@ -268,7 +268,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	stack = mut-stack<inner-node ?a>
 	cur = stack init-iter-recur! a.root
 	iter: cur, stack
-.init-iter-recur! arr ?a(stack mut-stack inner-node ?a, node node ?a)
+.init-iter-recur! ?a[](stack mut-stack inner-node ?a, node node ?a)
 	match node
 	as inner-node i
 		stack ~= i
@@ -351,7 +351,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		as find-scapegoat f
 			a handle-scapegoat value, a.left, f
 
-.add-to-arr add-result ?a(a arr ?a, value ?a, max-height nat64) trusted compare<?a>
+.add-to-arr add-result ?a(a ?a[], value ?a, max-height nat64) trusted compare<?a>
 	insert-ptr = a binary-search-insert-ptr value
 	if insert-ptr != a.end-ptr && insert-ptr[] == value
 		none
@@ -363,7 +363,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	else
 		a break-up-arr value, insert-ptr, max-height
 
-.break-up-arr add-result ?a(a arr ?a, value ?a, insert-ptr ptr ?a, max-height nat64) unsafe compare<?a>
+.break-up-arr add-result ?a(a ?a[], value ?a, insert-ptr ptr ?a, max-height nat64) unsafe compare<?a>
 	assert: a.begin-ptr <= insert-ptr
 	assert: insert-ptr <= a.end-ptr
 	# Break it up into nodes, adding to height
@@ -411,12 +411,12 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	as arr arr
 		arr.size
 
-.tree-to-arr arr ?a(a inner-node ?a, value ?a, size nat64) trusted compare<?a>
+.tree-to-arr ?a[](a inner-node ?a, value ?a, size nat64) trusted compare<?a>
 	out = size uninitialized-mut-arr<?a>
 	end = out.begin-ptr tree-to-arr-recur! a, value
 	assert: end == out.end-ptr
 	out cast-immutable
-.tree-to-arr arr ?a(a inner-node ?a, size nat64) trusted compare<?a>
+.tree-to-arr ?a[](a inner-node ?a, size nat64) trusted compare<?a>
 	out = size uninitialized-mut-arr<?a>
 	end = out.begin-ptr tree-to-arr-recur! a
 	assert: end == out.end-ptr
@@ -452,7 +452,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		out copy-out! arr
 
 # TODO:PERF
-.copy-out! ptr ?a(out ptr ?a, a arr ?a) unsafe
+.copy-out! ptr ?a(out ptr ?a, a ?a[]) unsafe
 	out fold a, (cur, x) =>
 		cur[] := x
 		cur + 1

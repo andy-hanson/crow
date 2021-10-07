@@ -9,6 +9,7 @@ import util.collection.arr : ArrWithSize, at, empty, emptyArrWithSize, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrWithSizeLiteral;
 import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
+import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : shortSymAlphaLiteralValue, Sym;
@@ -60,6 +61,10 @@ private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(Alloc, SymAllo
 }
 
 immutable(TypeAst) parseType(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	return parseTypeSuffixes(alloc, lexer, parseTypeBeforeSuffixes(alloc, lexer));
+}
+
+private immutable(TypeAst) parseTypeBeforeSuffixes(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable bool isTypeParam = tryTake(lexer, '?');
 	immutable NameAndRange name = takeNameAndRange(alloc, lexer);
@@ -67,6 +72,7 @@ immutable(TypeAst) parseType(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAllo
 	immutable Opt!(TypeAst.Fun.Kind) funKind = funKindFromName(name.name);
 
 	if (has(funKind) && tryTake(lexer, ' ')) {
+		//TODO: handle isTypeParam here
 		ArrBuilder!TypeAst returnAndParamTypes;
 		add(alloc, returnAndParamTypes, parseType(alloc, lexer));
 		if (tryTake(lexer, '(')) {
@@ -90,6 +96,16 @@ immutable(TypeAst) parseType(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAllo
 			? immutable TypeAst(immutable TypeAst.TypeParam(rng, name.name))
 			: immutable TypeAst(immutable TypeAst.InstStruct(rng, name, typeArgs));
 	}
+}
+
+private immutable(TypeAst) parseTypeSuffixes(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable TypeAst ast) {
+	return tryTake(lexer, "[]")
+		? parseTypeSuffixes(alloc, lexer, immutable TypeAst(
+			immutable TypeAst.Suffix(TypeAst.Suffix.Kind.arr, allocate(alloc, ast))))
+		: ast;
 }
 
 private immutable(Opt!(TypeAst.Fun.Kind)) funKindFromName(immutable Sym name) {

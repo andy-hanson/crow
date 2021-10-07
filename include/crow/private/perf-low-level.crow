@@ -11,7 +11,7 @@ perf-time record
 	ns nat64
 
 perf-ctx record mut
-	measure-names mut arr str
+	measure-names mut str[]
 	measure-values mut mut-arr measure-value
 
 perf-ctx by-val perf-ctx() noctx

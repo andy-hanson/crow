@@ -46,13 +46,13 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 
 .node<?k, ?v> record
 	min arrow<?k, ?v>
-	pairs arr arrow<?k, ?v>
+	pairs arrow<?k, ?v>[]
 	next opt node<?k, ?v>
 
 priority-queue priority-queue<?k, ?v>() data<?k> compare<?k>
 	priority-queue: void, none
 
-priority-queue priority-queue<?k, ?v>(a arr arrow<?k, ?v>) data<?k> compare<?k>
+priority-queue priority-queue<?k, ?v>(a arrow<?k, ?v>[]) data<?k> compare<?k>
 	if a is-empty
 		priority-queue
 	else
@@ -235,7 +235,7 @@ fold ?a(acc ?a, a priority-queue<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare
 
 .each-part<?k, ?v> record mut
 	min mut arrow<?k, ?v>
-	pairs mut arr arrow<?k, ?v>
+	pairs mut arrow<?k, ?v>[]
 
 .each-arr mut-arr each-part<?k, ?v>(a priority-queue<?k, ?v>) trusted compare<?k>
 	res = a.node-count uninitialized-mut-arr<each-part<?k, ?v>>
@@ -302,7 +302,7 @@ spec
 body
 	a map-to-arr f priority-queue
 
-map-to-arr arr ?out(a priority-queue<?k, ?v>, f act ?out(?k, ?v)) data<?k> compare<?k> trusted
+map-to-arr ?out[](a priority-queue<?k, ?v>, f act ?out(?k, ?v)) data<?k> compare<?k> trusted
 	out = a.size uninitialized-mut-arr<?out>
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		cur[] := f[k, v]
@@ -311,10 +311,10 @@ map-to-arr arr ?out(a priority-queue<?k, ?v>, f act ?out(?k, ?v)) data<?k> compa
 	arr = out.cast-immutable
 	arr
 
-keys arr ?k(a priority-queue<?k, ?v>) data<?k> compare<?k>
+keys ?k[](a priority-queue<?k, ?v>) data<?k> compare<?k>
 	a map-to-arr (k, v) => k
 
-values arr ?v(a priority-queue<?k, ?v>) data<?k> compare<?k>
+values ?v[](a priority-queue<?k, ?v>) data<?k> compare<?k>
 	a map-to-arr (k, v) => v
 
 test

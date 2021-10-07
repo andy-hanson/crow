@@ -27,7 +27,7 @@ size-bytes nat64(a str) noctx
 	a.to-nat8 <=> b.to-nat8
 
 # TODO: this should be generic on all arrs
-== bool(a arr char, b arr char) noctx
+== bool(a char[], b char[]) noctx
 	a arr-equal b
-== bool(a arr str, b arr str) noctx
+== bool(a str[], b str[]) noctx
 	a arr-equal b

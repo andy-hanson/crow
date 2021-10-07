@@ -16,7 +16,7 @@ import
 export
 	./private/perf-low-level: count, measure-value, total-duration
 
-perf-reset void(names arr str) summon
+perf-reset void(names str[]) summon
 	perf = get-perf-ctx
 	perf.measure-names := names
 	perf.measure-values := names.size fill-mut-arr: measure-value: 0, 0
@@ -43,9 +43,9 @@ perf-measure void(start perf-time, name str)
 .get-perf-ctx perf-ctx() trusted
 	get-ctx.thread-local-stuff.perf-ctx-ptr as-ref<perf-ctx>
 
-.find-index nat64(names arr str, name str)
+.find-index nat64(names str[], name str)
 	names find-index name, 0
-.find-index nat64(names arr str, name str, index nat64)
+.find-index nat64(names str[], name str, index nat64)
 	if index == names.size || names[index] == name
 		index
 	else

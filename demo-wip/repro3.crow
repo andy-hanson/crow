@@ -10,6 +10,6 @@ foo blarg()
 foo nat()
 	0
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	drop: use-spec
 	0 resolved

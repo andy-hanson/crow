@@ -2,7 +2,7 @@ import
 	crow/col/mut-arr: arr, mut-arr, set-subscript, subscript
 	crow/io/print: print
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	ingredients = mut-arr: ["beans", "garlic", "onion", "pepper", "cinnamon"]
 	print: ingredients[2]
 	ingredients[2] := "chocolate"

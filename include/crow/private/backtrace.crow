@@ -21,9 +21,9 @@ get-backtrace backtrace() unsafe
 		arrs.funs sort! all-funs.size
 		end-code-names = arrs.code-names + n-code-ptrs
 		arrs.code-names fill-code-names! end-code-names, arrs.code-ptrs, arrs.funs
-		backtrace: arr<sym>: n-code-ptrs, arrs.code-names
+		backtrace: n-code-ptrs arr<sym> arrs.code-names
 	else
-		backtrace: as<arr sym>: []
+		backtrace: as<sym[]>: []
 
 .fill-code-names! void
 	code-names ptr sym

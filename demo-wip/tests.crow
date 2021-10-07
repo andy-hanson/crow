@@ -30,8 +30,8 @@ import
 	crow/serialize: from-bytes
 	crow/test/test-runner: run-all-tests
 
-main fut nat(_ arr str) summon
-	drop: [].from-bytes as<arr nat8>
+main fut nat(_ str[]) summon
+	drop: [].from-bytes as<nat8[]>
 	drop: "" password-hash quality-moderate
 	drop: deque<nat>
 	drop: dict<nat, nat>

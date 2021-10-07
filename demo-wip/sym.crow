@@ -2,7 +2,7 @@ import
 	crow/col/arr-util: each
 	crow/io/print: print
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	enum-values each v =>
 		print: v.to-sym.to-str
 	0 resolved

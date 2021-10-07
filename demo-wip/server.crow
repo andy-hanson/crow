@@ -5,7 +5,7 @@ import
 	crow/io/net.http-types: body, headers, http-request, http-response, method, to-str, url
 	crow/io/print: print
 
-main fut nat(args arr str) unsafe summon
+main fut nat(args str[]) unsafe summon
 	if args.size != 1
 		print: "Usage: server PORT"
 		1 resolved

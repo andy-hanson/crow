@@ -10,7 +10,7 @@ import
 	sys/socket: AF_INET, connect, sockaddr, socket, SOCK_STREAM
 	unistd: read, write
 
-main fut nat(_ arr str) unsafe summon
+main fut nat(_ str[]) unsafe summon
 	hostname = "duckduckgo.com"
 	socket = get-tcp-socket
 	socket connect-socket! hostname, 80
@@ -43,7 +43,7 @@ main fut nat(_ arr str) unsafe summon
 .send-request! void(socket fd-t, request str) unsafe summon
 	forbid: request is-empty
 	socket send-request-recur! request.bytes
-.send-request-recur! void(socket fd-t, bytes arr nat8)
+.send-request-recur! void(socket fd-t, bytes nat8[])
 	bytes-sent = socket write bytes.begin-ptr, bytes.size
 	# TODO: might be 0 if the socket is overloaded -- delay and try again
 	assert: bytes-sent > 0

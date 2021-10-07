@@ -534,6 +534,9 @@ void collectTypeParamsInAst(Alloc)(
 			foreach (ref immutable TypeAst arg; toArr(i.typeArgs))
 				collectTypeParamsInAst(alloc, ctx, arg, res);
 		},
+		(ref immutable TypeAst.Suffix s) {
+			collectTypeParamsInAst(alloc, ctx, s.left, res);
+		},
 		(ref immutable TypeAst.TypeParam tp) {
 			immutable TypeParam[] a = arrWithSizeBuilderAsTempArr(res);
 			if (!exists!TypeParam(a, (ref immutable TypeParam it) => symEq(it.name, tp.name))) {

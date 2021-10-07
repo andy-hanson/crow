@@ -12,7 +12,7 @@ import
 		failure, flat-map-with-max-size, handle-output, max-failures, match-test, overwrite-output,
 		print-tests, test-options
 
-run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ, options test-options) summon
+run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, options test-options) summon
 	tests = path list-tests options.match-test
 	failures = tests flat-map-with-max-size options.max-failures, test =>
 		path-to-crow run-single-crow-test env, test, options
@@ -21,7 +21,7 @@ run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ,
 	else
 		failures err
 
-.list-tests arr str(path str, match-test str) summon
+.list-tests str[](path str, match-test str) summon
 	res = mut-list<str>
 	path each-child-recursive child =>
 		if child has-substr match-test && child.ext-is-crow
@@ -31,7 +31,7 @@ run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ,
 .ext-is-crow bool(a str)
 	a.base-name.get-extension == "crow".some
 
-.run-single-crow-test arr failure
+.run-single-crow-test failure[]
 	path-to-crow str
 	env environ
 	path str
@@ -39,7 +39,7 @@ run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ,
 spec
 	summon
 body
-	op = ["ast", "model", "concrete-model", "low-model"] first-some<arr<failure>, str> print-kind =>
+	op = ["ast", "model", "concrete-model", "low-model"] first-some<failure[], str> print-kind =>
 		if options print-tests
 			print: "crow print {print-kind} {path}"
 		res = print-kind run-print-test path-to-crow, env, path, options.overwrite-output
@@ -58,7 +58,7 @@ body
 
 .print-test-result record
 	should-stop bool
-	failures arr failure
+	failures failure[]
 
 .run-print-test print-test-result
 	print-kind str
@@ -74,7 +74,7 @@ body
 	# NOTE: compiler may have both stderr and stdout!
 	output-failures = if res.stdout.is-empty && res.exit-code != 0
 		# Just have a file for the err
-		[] as<arr failure>
+		[] as<failure[]>
 	else
 		path handle-output output-path, res.stdout, overwrite-output
 
@@ -91,7 +91,7 @@ body
 		message = "unexpected exit code: {res exit-code}"
 		print-test-result: true, [path failure message]
 
-.run-single-runnable-test arr failure
+.run-single-runnable-test failure[]
 	path-to-crow str
 	env environ
 	path str
@@ -107,7 +107,7 @@ body
 	res = path-to-crow spawn-and-wait-result args, env
 	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output
 	stderr-failures = if res.exit-code == 0 && res.stderr == ""
-		[] as<arr failure>
+		[] as<failure[]>
 	else
 		path handle-output ("{path}.stderr"), res.stderr, overwrite-output
 	stdout-failures ~ stderr-failures

@@ -28,7 +28,7 @@ list<?a> record
 	# TODO:PRIVATE
 	ignore void
 	prev opt list ?a
-	values arr ?a
+	values ?a[]
 
 # Empty list.
 list list ?a()
@@ -38,7 +38,7 @@ list list ?a()
 Convert an arr to a list.
 This is O(1).
 ###
-list list ?a(a arr ?a)
+list list ?a(a ?a[])
 	list: void, none, a
 
 # TODO:KILL
@@ -66,10 +66,10 @@ list-equal bool(a list ?a, b list ?a) trusted noctx equal<?a>
 .not-equal record
 .left-longer<?a> record
 	by-val
-	remainder arr ?a
+	remainder ?a[]
 .right-longer<?a> record
 	by-val
-	remainder arr ?a
+	remainder ?a[]
 
 .mirror equal-with-remainder ?a(a equal-with-remainder ?a) noctx
 	match a
@@ -113,7 +113,7 @@ list-equal bool(a list ?a, b list ?a) trusted noctx equal<?a>
 		a.values equal-with-remainder b.values
 
 # WARN: For simplicity, this returns empty 'remainder'
-.equal-with-remainder equal-with-remainder ?a(a arr ?a, b arr ?a) unsafe noctx equal<?a>
+.equal-with-remainder equal-with-remainder ?a(a ?a[], b ?a[]) unsafe noctx equal<?a>
 	size = a.size min b.size
 	if (a unsafe-slice 0, size) arr-equal (b unsafe-slice 0, size)
 		if a.size < size
@@ -123,7 +123,7 @@ list-equal bool(a list ?a, b list ?a) trusted noctx equal<?a>
 	else
 		not-equal
 
-.equal-with-remainder equal-with-remainder ?a(a0 arr ?a, a1 arr ?a, b arr ?a) unsafe noctx equal<?a>
+.equal-with-remainder equal-with-remainder ?a(a0 ?a[], a1 ?a[], b ?a[]) unsafe noctx equal<?a>
 	hard-assert: a0.size < b.size
 	if a0 arr-equal (b unsafe-slice 0, a0.size)
 		a1 equal-with-remainder: b unsafe-slice a0.size, b.size
@@ -134,7 +134,7 @@ list-equal bool(a list ?a, b list ?a) trusted noctx equal<?a>
 Copy a list to an arr.
 This is O(n).
 ###
-arr arr ?a(a list ?a) trusted
+arr ?a[](a list ?a) trusted
 	res = a.size uninitialized-mut-arr<?a>
 	res.end-ptr write-out! a
 	res cast-immutable
@@ -222,7 +222,7 @@ size nat64(a list ?a) noctx
 Concatenate an array to a list.
 This is O(1).
 ###
-~ list ?a(a list ?a, b arr ?a)
+~ list ?a(a list ?a, b ?a[])
 	prev = as<opt list ?a>: if a is-empty
 		none
 	else

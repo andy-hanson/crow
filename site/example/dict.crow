@@ -3,7 +3,7 @@ import
 	crow/col/mut-dict: mut-dict, remove-key!, set-subscript, subscript
 	crow/io/print: print
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	a = dict: [10 -> "ten", 1 -> "one"]
 	print: a[1] to-str
 	print: a[3] to-str

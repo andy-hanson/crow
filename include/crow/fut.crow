@@ -72,9 +72,9 @@ join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out>
 ###
 Returns a `fut` that is resolved when every element of the input has resolved.
 ###
-join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
-	# TODO: send<arr ?a> should be unnecessary
-	res = unresolved<arr ?a>
+join fut ?a[](a fut<?a>[]) trusted send<?a> send<?a[]> summon
+	# TODO: send<?a[]> should be unnecessary
+	res = unresolved<?a[]>
 	lock = lock
 	remaining = cell<nat64>: a.size
 	a each-with-index (in, index) =>
@@ -85,8 +85,8 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 					res finish-join! a
 	res
 
-# TODO: send<arr ?a> should be unnecessary
-.finish-join! void(res fut arr ?a, a arr fut ?a) unsafe send<?a> send<arr ?a> summon
+# TODO: send<?a[]> should be unnecessary
+.finish-join! void(res fut ?a[], a fut<?a>[]) unsafe send<?a> send<?a[]> summon
 	exception = a first-some x =>
 		match x state
 		as fut-state-no-callbacks

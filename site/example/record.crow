@@ -1,7 +1,7 @@
 import
 	crow/io/print: print
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	a = "bruschetta" dinner "wine"
 	b = "chili" dinner "milk"
 	print: a to-str

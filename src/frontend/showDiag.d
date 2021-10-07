@@ -2,6 +2,7 @@ module frontend.showDiag;
 
 @safe @nogc pure nothrow:
 
+import frontend.parse.ast : TypeAst;
 import model.diag : Diagnostic, Diag, Diags, FilesInfo, matchDiag, TypeKind, writeFileAndRange;
 import model.model :
 	arity,
@@ -738,6 +739,12 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 		},
 		(ref immutable Diag.TypeNotSendable) {
 			writeStatic(writer, "this type is not sendable and should not appear in an interface");
+		},
+		(ref immutable Diag.TypeShouldUseSuffix it) {
+			final switch (it.kind) {
+				case TypeAst.Suffix.Kind.arr:
+					writeStatic(writer, "prefer to write 'a[]' instead of 'arr a'");
+			}
 		},
 		(ref immutable Diag.UnusedImport it) {
 			if (has(it.importedName)) {

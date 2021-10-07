@@ -12,11 +12,11 @@ import
 export
 	../private/bootstrap: arr, begin-ptr, size
 
-end-ptr ptr ?a(a arr ?a) noctx unsafe
+end-ptr ptr ?a(a ?a[]) noctx unsafe
 	a.begin-ptr + a.size
 
 # TODO: arr comparison should be generic
-arr-equal bool(a arr ?a, b arr ?a) trusted noctx equal<?a>
+arr-equal bool(a ?a[], b ?a[]) trusted noctx equal<?a>
 	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr
 .equal-recur bool(a ptr ?a, a-end ptr ?a, b ptr ?a, b-end ptr ?a) unsafe noctx equal<?a>
 	if a == a-end
@@ -24,7 +24,7 @@ arr-equal bool(a arr ?a, b arr ?a) trusted noctx equal<?a>
 	else
 		b != b-end && a[] == b[] && a + 1 equal-recur a-end, b + 1, b-end
 
-arr-equal bool(a arr ?a, b arr ?a, eq act bool(?a, ?a)) trusted
+arr-equal bool(a ?a[], b ?a[], eq act bool(?a, ?a)) trusted
 	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr, eq
 .equal-recur bool(a ptr ?a, a-end ptr ?a, b ptr ?a, b-end ptr ?a, eq act bool(?a, ?a)) unsafe
 	if a == a-end
@@ -32,7 +32,7 @@ arr-equal bool(a arr ?a, b arr ?a, eq act bool(?a, ?a)) trusted
 	else
 		b != b-end && eq[a[], b[]] && a + 1 equal-recur a-end, b + 1, b-end, eq
 
-arr-compare comparison(a arr ?a, b arr ?a) trusted noctx compare<?a>
+arr-compare comparison(a ?a[], b ?a[]) trusted noctx compare<?a>
 	a.begin-ptr compare-recur a.end-ptr, b.begin-ptr, b.end-ptr
 .compare-recur comparison(a ptr ?a, a-end ptr ?a, b ptr ?a, b-end ptr ?a) unsafe noctx compare<?a>
 	if a == a-end
@@ -51,14 +51,14 @@ arr-compare comparison(a arr ?a, b arr ?a) trusted noctx compare<?a>
 		as greater
 			greater
 
-== bool(a arr nat8, b arr nat8) noctx
+== bool(a nat8[], b nat8[]) noctx
 	a arr-equal b
-<=> comparison(a arr nat8, b arr nat8) noctx
+<=> comparison(a nat8[], b nat8[]) noctx
 	a arr-compare b
 
-== bool(a arr nat64, b arr nat64) noctx
+== bool(a nat64[], b nat64[]) noctx
 	a arr-equal b
-<=> comparison(a arr nat64, b arr nat64) noctx
+<=> comparison(a nat64[], b nat64[]) noctx
 	a arr-compare b
 
 ###
@@ -66,30 +66,30 @@ Arr or the range from begin to end.
 `begin` is inclusive and `end` is exclusive.
 UB if begin > end.
 ###
-arr-from-begin-end arr ?a(begin ptr ?a, end ptr ?a) unsafe noctx
+arr-from-begin-end ?a[](begin ptr ?a, end ptr ?a) unsafe noctx
 	hard-assert: begin <= end
 	arr: end - begin, begin
 
-arr-cast arr ?out(a arr ?in) unsafe noctx
+arr-cast ?out[](a ?in[]) unsafe noctx
 	hard-assert: size-of<?out> == size-of<?in>
 	arr: a.size, a.begin-ptr.ptr-cast<?out, ?in>
 
 # True iff `a.size == 0`.
-is-empty bool(a arr ?a) noctx
+is-empty bool(a ?a[]) noctx
 	a.size == 0
 
-noctx-at ?a(a arr ?a, index nat64) unsafe noctx
+noctx-at ?a(a ?a[], index nat64) unsafe noctx
 	hard-assert: index < a.size
 	a unsafe-at index
 
-unsafe-at ?a(a arr ?a, index nat64) unsafe noctx
+unsafe-at ?a(a ?a[], index nat64) unsafe noctx
 	a.begin-ptr[index]
 
 ###
 Gets the element at the index.
 Fails if `index >= a.size`.
 ###
-subscript ?a(a arr ?a, index nat64) trusted
+subscript ?a(a ?a[], index nat64) trusted
 	assert: index < a.size
 	a unsafe-at index
 
@@ -100,15 +100,15 @@ This works in O(1) without copying any elements.
 Fails if `range.from > range.to`.
 Fails if the slice would exceed the bounds of the arr.
 ###
-subscript arr ?a(a arr ?a, range arrow<nat64, nat64>) trusted
+subscript ?a[](a ?a[], range arrow<nat64, nat64>) trusted
 	assert: range.from <= range.to
 	assert: range.to <= a.size
 	range.to wrap-sub range.from arr a.begin-ptr + range.from
 
-unsafe-slice arr ?a(a arr ?a, begin nat64, end nat64) unsafe noctx
+unsafe-slice ?a[](a ?a[], begin nat64, end nat64) unsafe noctx
 	a.begin-ptr + begin arr-from-begin-end a.begin-ptr + end
 
-ref-of-val-at ?a(a arr by-val<?a>, index nat64) trusted
+ref-of-val-at ?a(a by-val<?a>[], index nat64) trusted
 	assert: index < a.size
 	a.begin-ptr + index ref-of-ptr
 
@@ -117,7 +117,7 @@ Concatenates two arrs.
 This involves copying every element from both arrs into the new arr.
 If you need to concatenate often, consider using `mut-list`.
 ###
-~ arr ?a(a arr ?a, b arr ?a) trusted
+~ ?a[](a ?a[], b ?a[]) trusted
 	res-size = a.size wrap-add b.size
 	res = res-size alloc-uninitialized<?a>
 	res copy-data-from! a.begin-ptr, a.size

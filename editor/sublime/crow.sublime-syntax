@@ -50,7 +50,7 @@ contexts:
     - match: '>|\)'
       scope: comment # punctuation.definition.generic.end
       pop: true
-    # string in type arg: this happens with extern<"mangledName">
+    # string in type arg: this happens with e.g. extern<"GL">
     - match: '"'
       push: string
     - match: '{{type_name}}'
@@ -201,7 +201,9 @@ contexts:
       pop: true
 
   function:
-    - match: '\s+{{type_name}}'
+    - match: '\[\]'
+      scope: keyword
+    - match: '\s+{{type_name}}(\[\])?'
       scope: storage.type
     - match: '(?=\()'
       push: fun_signature_starting_at_l_paren
@@ -261,6 +263,8 @@ contexts:
     - match: '\('
       scope: comment
       push: type_args
+    - match: '\[\]'
+      scope: keyword
     - match: ','
       scope: comment # punctuation.separator
       pop: true

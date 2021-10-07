@@ -9,7 +9,7 @@ import
 	crow/io/time: get-monotime-nsec
 	#crow/perf: count, perf-get-measure, perf-reset, total-duration
 
-main fut nat(_ arr str) unsafe summon
+main fut nat(_ str[]) unsafe summon
 	42 srand
 	
 	max-value = 2000000

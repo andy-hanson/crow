@@ -15,7 +15,7 @@ import
 	crow/str-util: try-split-once
 	crow/tuple: a, b
 
-main fut nat(_ arr str) unsafe summon
+main fut nat(_ str[]) unsafe summon
 	print: "Hello, world!"
 	db-path with-env true.lmdb-open-options, env =>
 		env with-db db =>
@@ -82,7 +82,7 @@ db record mut
 	env lmdb-env
 	user-from-name lmdb-db<str, user>
 	user-name lmdb-db<user, str>
-	user-password-hash lmdb-db<user, arr nat8>
+	user-password-hash lmdb-db<user, nat8[]>
 	user-login-cookie lmdb-db<user, login-cookie>
 	post-user lmdb-db<post, user>
 	post-content lmdb-db<post, str>
@@ -102,7 +102,7 @@ close-real-db void(db db) unsafe summon
 .db-open db(env lmdb-env) unsafe summon
 	user-from-name = env open-db<str, user> "user-from-name"
 	user-name = env open-db<user, str> "user-name"
-	user-password-hash = env open-db<user, arr nat8> "user-password-hash"
+	user-password-hash = env open-db<user, nat8[]> "user-password-hash"
 	user-login-cookie = env open-db<user, login-cookie> "user-login-cookie"
 	post-user = env open-db<post, user> "post-user"
 	post-content = env open-db<post, str> "post-content"
@@ -115,7 +115,7 @@ close-real-db void(db db) unsafe summon
 	db.env close-db db.post-user
 	db.env close-db db.post-content
 
-list-users arr user-info(db db) summon
+list-users user-info[](db db) summon
 	db.env with-read-transaction txn =>
 		txn map db.user-name, (user, name) =>
 			user-info: user, name
@@ -124,7 +124,7 @@ user-name str(db db, user user) summon
 	db.env with-read-transaction txn =>
 		txn get db.user-name, user force
 
-list-posts arr post-info(db db) summon
+list-posts post-info[](db db) summon
 	db.env with-read-transaction txn =>
 		txn zip db.post-user, db.post-content, (post, user, content) =>
 			user-name = txn get db.user-name, user force

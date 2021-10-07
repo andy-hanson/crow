@@ -11,7 +11,7 @@ spy-act1<?out, ?in> record mut
 	fn act ?out(?in)
 
 # Empties the list of calls and returns it.
-calls arr ?in(a spy-act1<?out, ?in>)
+calls ?in[](a spy-act1<?out, ?in>)
 	a.calls-builder move-to-arr!
 
 spy-act spy-act1<?out, ?in>(f act ?out(?in))
@@ -32,7 +32,7 @@ spy-act2<?out, ?in0, ?in1> record mut
 	fn act ?out(?in0, ?in1)
 
 # Empties the list of calls and returns it.
-calls arr pair<?in0, ?in1>(a spy-act2<?out, ?in0, ?in1>)
+calls pair<?in0, ?in1>[](a spy-act2<?out, ?in0, ?in1>)
 	a.calls-builder move-to-arr!
 
 spy-act spy-act2<?out, ?in0, ?in1>(f act ?out(?in0, ?in1))

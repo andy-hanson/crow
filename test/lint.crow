@@ -8,7 +8,7 @@ import
 	crow/str-util: ends-with, has-substr, starts-with, try-remove-start
 	./failure: failure, flat-map-with-max-size, max-failures, print-tests, test-options
 
-lint result<str, arr failure>(path str, options test-options) summon
+lint result<str, failure[]>(path str, options test-options) summon
 	files = path list-lintable-files
 	failures = files flat-map-with-max-size options.max-failures, file =>
 		if options print-tests
@@ -19,7 +19,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 	else
 		err: failures
 
-.list-lintable-files arr str(path str) summon
+.list-lintable-files str[](path str) summon
 	res = mut-list<str>
 	path each-child-recursive (child => !child.excluded-from-lint), child =>
 		if !child.base-name.should-ignore-extension-of-name
@@ -32,7 +32,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 	name starts-with "." || name in exclude-names || exclude-exts exists ext => name ends-with ext
 
 # Returns numner of errors
-.lint-file arr failure(path str) summon
+.lint-file failure[](path str) summon
 	text = path read-file
 	res = mut-list<failure>
 	ext = path.get-extension force
@@ -49,7 +49,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 			res ~=: failure: path, message
 	res move-to-arr!
 
-.ignored-extensions arr str()
+.ignored-extensions str[]()
 	["c", "data", "o", "out", "repr", "tmLanguage"]
 
 .should-ignore-extension bool(ext str)
@@ -63,7 +63,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 		true
 
 # TODO: move to str-util, make a generic 'split' function
-.lines arr str(s str)
+.lines str[](s str)
 	res = mut-list<str>
 	last-nl = 0 cell<nat>
 	s.chars each-with-index (c, index) =>

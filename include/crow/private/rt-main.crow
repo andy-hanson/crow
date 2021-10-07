@@ -32,7 +32,7 @@ import
 		create-one-thread, create-condition, destroy-condition, join-one-thread, lock-by-val
 
 .main-ptr alias
-	fun-ptr2<fut nat64, ctx, arr str>
+	fun-ptr2<fut nat64, ctx, str[]>
 
 # Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
@@ -94,7 +94,7 @@ body
 	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: thread-id, print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
 	ctx-by-val = ctx: gctx, tls.ref-of-val, island, 0
 	ctx = ctx-by-val ref-of-val
-	add = as<act fut nat64(arr c-str, main-ptr)>: (all-args, main-ptr) =>
+	add = as<act fut nat64(c-str[], main-ptr)>: (all-args, main-ptr) =>
 		all-args add-first-task main-ptr
 	all-args = arr: argc.to-int64.unsafe-to-nat64, argv
 	add call-with-ctx ctx, all-args, main-ptr
@@ -107,7 +107,7 @@ body
 # TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 # We want main-fut to be available immediately, not after having run some user code.
 # So we create main-fut now, and forward the result of 'main' to that.
-.add-first-task fut nat64(all-args arr c-str, main-ptr fun-ptr2<fut nat64, ctx, arr str>) unsafe
+.add-first-task fut nat64(all-args c-str[], main-ptr fun-ptr2<fut nat64, ctx, str[]>) unsafe
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for fut<void> taking lambda with 0 params
 	res = delay then-void () =>

@@ -3,7 +3,7 @@ import
 	crow/io/print: print
 	crow/str-util: join, reverse
 
-main fut nat(_ arr str) summon
+main fut nat(_ str[]) summon
 	print: call-it: x => x + 1 to-str
 	print: call-it: x =>
 		twice = x * 2

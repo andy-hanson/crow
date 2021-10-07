@@ -30,20 +30,16 @@ file-ast(
 		fun-decl(
 			public: true
 			sig: sig-ast(
-				range(110, 133)
+				range(110, 131)
 				main
 				inststruct(range(115, 122), name-range(115, fut), [inststruct(range(119, 122), name-range(119, nat))])
-				[
-					param(
-						range(123, 132)
-						none
-						inststruct(range(125, 132), name-range(125, arr), [inststruct(range(129, 132), name-range(129, str))]))])
+				[param(range(123, 130), none, suffix(inststruct(range(125, 128), name-range(125, str)), arr))])
 			summon: true
 			body: let(
-				name-range(142, r)
+				name-range(140, r)
 				call(
 					prefix
-					name-range(146, rect)
+					name-range(144, rect)
 					[]
 					[
 						literal(
@@ -57,7 +53,7 @@ file-ast(
 				seq-ast(
 					call(
 						prefix
-						name-range(162, print)
+						name-range(160, print)
 						[]
-						[call(infix, name-range(176, to-str), [], [call(dot, name-range(171, area), [], [r])])])
-					call(infix, name-range(186, resolved), [], [literal(nat(0, false))]))))])
+						[call(infix, name-range(174, to-str), [], [call(dot, name-range(169, area), [], [r])])])
+					call(infix, name-range(184, resolved), [], [literal(nat(0, false))]))))])

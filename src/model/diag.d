@@ -2,6 +2,7 @@ module model.diag;
 
 @safe @nogc pure nothrow:
 
+import frontend.parse.ast : TypeAst;
 import frontend.lang : crowExtension;
 import frontend.showDiag : ShowDiagOptions;
 import model.model :
@@ -228,6 +229,9 @@ struct Diag {
 		immutable Type actual;
 	}
 	struct TypeNotSendable {}
+	struct TypeShouldUseSuffix {
+		immutable TypeAst.Suffix.Kind kind;
+	}
 	struct UnusedImport {
 		immutable Ptr!Module importedModule;
 		immutable Opt!Sym importedName;
@@ -306,6 +310,7 @@ struct Diag {
 		specImplNotFound,
 		typeConflict,
 		typeNotSendable,
+		typeShouldUseSuffix,
 		unusedImport,
 		unusedLocal,
 		unusedParam,
@@ -362,6 +367,7 @@ struct Diag {
 		immutable SpecImplNotFound specImplNotFound;
 		immutable Ptr!TypeConflict typeConflict;
 		immutable TypeNotSendable typeNotSendable;
+		immutable TypeShouldUseSuffix typeShouldUseSuffix;
 		immutable UnusedImport unusedImport;
 		immutable UnusedLocal unusedLocal;
 		immutable UnusedParam unusedParam;
@@ -471,6 +477,7 @@ struct Diag {
 	@trusted immutable this(immutable SpecImplNotFound a) { kind = Kind.specImplNotFound; specImplNotFound = a; }
 	@trusted immutable this(immutable Ptr!TypeConflict a) { kind = Kind.typeConflict; typeConflict = a; }
 	@trusted immutable this(immutable TypeNotSendable a) { kind = Kind.typeNotSendable; typeNotSendable = a; }
+	immutable this(immutable TypeShouldUseSuffix a) { kind = Kind.typeShouldUseSuffix; typeShouldUseSuffix = a; }
 	@trusted immutable this(immutable UnusedImport a) { kind = Kind.unusedImport; unusedImport = a; }
 	@trusted immutable this(immutable UnusedLocal a) { kind = Kind.unusedLocal; unusedLocal = a; }
 	@trusted immutable this(immutable UnusedParam a) { kind = Kind.unusedParam; unusedParam = a; }
@@ -607,6 +614,9 @@ static assert(Diag.sizeof <= 32);
 		ref immutable Diag.TypeNotSendable
 	) @safe @nogc pure nothrow cbTypeNotSendable,
 	scope immutable(Out) delegate(
+		ref immutable Diag.TypeShouldUseSuffix
+	) @safe @nogc pure nothrow cbTypeShouldUseSuffix,
+	scope immutable(Out) delegate(
 		ref immutable Diag.UnusedImport
 	) @safe @nogc pure nothrow cbUnusedImport,
 	scope immutable(Out) delegate(ref immutable Diag.UnusedLocal) @safe @nogc pure nothrow cbUnusedLocal,
@@ -715,6 +725,8 @@ static assert(Diag.sizeof <= 32);
 			return cbTypeConflict(a.typeConflict);
 		case Diag.Kind.typeNotSendable:
 			return cbTypeNotSendable(a.typeNotSendable);
+		case Diag.Kind.typeShouldUseSuffix:
+			return cbTypeShouldUseSuffix(a.typeShouldUseSuffix);
 		case Diag.Kind.unusedImport:
 			return cbUnusedImport(a.unusedImport);
 		case Diag.Kind.unusedLocal:
