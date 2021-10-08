@@ -180,7 +180,6 @@ struct Diag {
 		enum Kind {
 			spec,
 			type,
-			typeParam,
 		}
 		immutable Kind kind;
 		immutable Sym name;
@@ -229,6 +228,7 @@ struct Diag {
 		immutable Type actual;
 	}
 	struct TypeNotSendable {}
+	struct TypeParamCantHaveTypeArgs {}
 	struct TypeShouldUseSuffix {
 		immutable TypeAst.Suffix.Kind kind;
 	}
@@ -310,6 +310,7 @@ struct Diag {
 		specImplNotFound,
 		typeConflict,
 		typeNotSendable,
+		typeParamCantHaveTypeArgs,
 		typeShouldUseSuffix,
 		unusedImport,
 		unusedLocal,
@@ -367,6 +368,7 @@ struct Diag {
 		immutable SpecImplNotFound specImplNotFound;
 		immutable Ptr!TypeConflict typeConflict;
 		immutable TypeNotSendable typeNotSendable;
+		immutable TypeParamCantHaveTypeArgs typeParamCantHaveTypeArgs;
 		immutable TypeShouldUseSuffix typeShouldUseSuffix;
 		immutable UnusedImport unusedImport;
 		immutable UnusedLocal unusedLocal;
@@ -477,6 +479,9 @@ struct Diag {
 	@trusted immutable this(immutable SpecImplNotFound a) { kind = Kind.specImplNotFound; specImplNotFound = a; }
 	@trusted immutable this(immutable Ptr!TypeConflict a) { kind = Kind.typeConflict; typeConflict = a; }
 	@trusted immutable this(immutable TypeNotSendable a) { kind = Kind.typeNotSendable; typeNotSendable = a; }
+	immutable this(immutable TypeParamCantHaveTypeArgs a) {
+		kind = Kind.typeParamCantHaveTypeArgs; typeParamCantHaveTypeArgs = a;
+	}
 	immutable this(immutable TypeShouldUseSuffix a) { kind = Kind.typeShouldUseSuffix; typeShouldUseSuffix = a; }
 	@trusted immutable this(immutable UnusedImport a) { kind = Kind.unusedImport; unusedImport = a; }
 	@trusted immutable this(immutable UnusedLocal a) { kind = Kind.unusedLocal; unusedLocal = a; }
@@ -614,6 +619,9 @@ static assert(Diag.sizeof <= 32);
 		ref immutable Diag.TypeNotSendable
 	) @safe @nogc pure nothrow cbTypeNotSendable,
 	scope immutable(Out) delegate(
+		ref immutable Diag.TypeParamCantHaveTypeArgs
+	) @safe @nogc pure nothrow cbTypeParamCantHaveTypeArgs,
+	scope immutable(Out) delegate(
 		ref immutable Diag.TypeShouldUseSuffix
 	) @safe @nogc pure nothrow cbTypeShouldUseSuffix,
 	scope immutable(Out) delegate(
@@ -725,6 +733,8 @@ static assert(Diag.sizeof <= 32);
 			return cbTypeConflict(a.typeConflict);
 		case Diag.Kind.typeNotSendable:
 			return cbTypeNotSendable(a.typeNotSendable);
+		case Diag.Kind.typeParamCantHaveTypeArgs:
+			return cbTypeParamCantHaveTypeArgs(a.typeParamCantHaveTypeArgs);
 		case Diag.Kind.typeShouldUseSuffix:
 			return cbTypeShouldUseSuffix(a.typeShouldUseSuffix);
 		case Diag.Kind.unusedImport:

@@ -8,13 +8,13 @@ import
 	./str: chars, str, to-nat8
 	./private/number-low-level: wrap-add
 
-hash nat64(a ?a) trusted hash-mix<?a>
+hash<a> nat64(a a) trusted hash-mix<a>
 	hasher = as<by-val hasher>: hasher: 0
 	hasher.ref-of-val hash-mix a
 	hasher.ref-of-val cur
 
-hash-mix<?a> spec
-	hash-mix void(hasher hasher, a ?a)
+hash-mix<a> spec
+	hash-mix void(hasher hasher, a a)
 
 hash nat64(a bool)
 	a to-nat64

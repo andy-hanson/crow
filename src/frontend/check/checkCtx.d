@@ -164,7 +164,7 @@ immutable(FileAndPos) posInFile(ref const CheckCtx ctx, ref immutable Pos pos) {
 	return immutable FileAndPos(ctx.fileIndex, pos);
 }
 
-immutable(FileAndRange) rangeInFile(ref const CheckCtx ctx, ref immutable RangeWithinFile range) {
+immutable(FileAndRange) rangeInFile(ref const CheckCtx ctx, immutable RangeWithinFile range) {
 	return immutable FileAndRange(ctx.fileIndex, range);
 }
 

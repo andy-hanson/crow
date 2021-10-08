@@ -5,17 +5,27 @@ file-ast(
 	funs: [
 		fun-decl(
 			public: true
+			typeparams: [name-range(6, out), name-range(11, in)]
 			sig: sig-ast(
-				range(0, 25)
+				range(0, 32)
 				magic
-				inststruct(range(6, 14), name-range(6, opt), [type-param(range(10, 14), out)])
-				[param(range(15, 24), some(a), inststruct(range(17, 24), name-range(17, opt), [type-param(range(21, 24), in)]))])
+				inststruct(range(15, 22), name-range(15, opt), [inststruct(range(19, 22), name-range(19, out))])
+				[
+					param(
+						range(23, 31)
+						some(a)
+						inststruct(range(25, 31), name-range(25, opt), [inststruct(range(29, 31), name-range(29, in))]))])
 			body: todo)
 		fun-decl(
 			public: true
+			typeparams: [name-range(47, out), name-range(52, in)]
 			sig: sig-ast(
-				range(33, 57)
-				test
-				inststruct(range(38, 46), name-range(38, opt), [type-param(range(42, 46), out)])
-				[param(range(47, 56), some(a), inststruct(range(49, 56), name-range(49, opt), [type-param(range(53, 56), in)]))])
-			body: call(infix, name-range(61, magic), [type-param(range(67, 71), out)], [a]))])
+				range(40, 73)
+				use-it
+				inststruct(range(56, 63), name-range(56, opt), [inststruct(range(60, 63), name-range(60, out))])
+				[
+					param(
+						range(64, 72)
+						some(a)
+						inststruct(range(66, 72), name-range(66, opt), [inststruct(range(70, 72), name-range(70, in))]))])
+			body: call(infix, name-range(77, magic), [inststruct(range(83, 86), name-range(83, out))], [a]))])

@@ -33,7 +33,7 @@ read-stdin str() trusted summon
 Keep reading from stdin until `parse` succeeds.
 Print `error-message` after every failure.
 ###
-read-stdin-until-parse ?a(error-message str, parse act opt ?a(str)) summon
+read-stdin-until-parse<a> a(error-message str, parse act opt a(str)) summon
 	if res ?= parse[read-stdin]
 		res
 	else

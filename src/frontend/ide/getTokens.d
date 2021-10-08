@@ -44,8 +44,7 @@ import frontend.parse.ast :
 	StructDeclAst,
 	ThenAst,
 	ThenVoidAst,
-	TypeAst,
-	TypeParamAst;
+	TypeAst;
 import util.collection.arr : ArrWithSize, at, empty, first, last, size, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : tail;
@@ -177,9 +176,6 @@ void addTypeTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		(ref immutable TypeAst.Suffix it) {
 			addTypeTokens(alloc, tokens, it.left.deref());
 			add(alloc, tokens, immutable Token(Token.Kind.keyword, range(it)));
-		},
-		(ref immutable TypeAst.TypeParam it) {
-			add(alloc, tokens, immutable Token(Token.Kind.typeParamRef, it.range));
 		});
 }
 
@@ -206,10 +202,10 @@ void addParamTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref imm
 void addTypeParamsTokens(Alloc)(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
-	ref immutable ArrWithSize!TypeParamAst a,
+	ref immutable ArrWithSize!NameAndRange a,
 ) {
-	foreach (ref immutable TypeParamAst typeParam; toArr(a))
-		add(alloc, tokens, immutable Token(Token.Kind.typeParamDef, typeParam.range));
+	foreach (ref immutable NameAndRange typeParam; toArr(a))
+		add(alloc, tokens, immutable Token(Token.Kind.typeParamDef, rangeOfNameAndRange(typeParam)));
 }
 
 void addStructAliasTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable StructAliasAst a) {

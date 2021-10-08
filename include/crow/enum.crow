@@ -9,12 +9,12 @@ import
 	./sym: ==, sym, to-str
 	./str: str
 
-enum<?a> spec
-	enum-members named-val<?a>[]()
-	== bool(a ?a, b ?a)
+enum<a> spec
+	enum-members named-val<a>[]()
+	== bool(a a, b a)
 
-to-sym sym(a ?a) enum<?a>
-	res = enum-members first-some<sym, named-val ?a> member =>
+to-sym<a> sym(a a) enum<a>
+	res = enum-members first-some<sym, named-val a> member =>
 		if member.val == a
 			member.name some
 	if name ?= res
@@ -22,14 +22,14 @@ to-sym sym(a ?a) enum<?a>
 	else
 		"Invalid enum value" throw
 
-to-enum opt ?a(a sym) enum<?a>
-	enum-members first-some<?a, named-val ?a> member =>
+to-enum<a> opt a(a sym) enum<a>
+	enum-members first-some<a, named-val a> member =>
 		if member.name == a
 			member.val some
 
-enum-convert opt ?out(a ?in) enum<?in> enum<?out>
+enum-convert<out, in> opt out(a in) enum<in> enum<out>
 	a.to-sym to-enum
 
 # TODO: should just be called to-str, but that requires better overloading
-enum-to-str str(a ?a) enum<?a>
+enum-to-str<a> str(a a) enum<a>
 	a.to-sym to-str

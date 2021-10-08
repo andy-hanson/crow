@@ -24,9 +24,9 @@ import
 	./sort: sort
 	./private/sort-utils: binary-search-exact-index
 
-set<?a> record
+set<a> record
 	# TODO:PRIVATE
-	add add-node ?a
+	add add-node a
 	remove index-set
 
 ###
@@ -34,22 +34,22 @@ We store add/remove separately.
 Add nodes are a linked list where links point to the left. Largest node is on the left. Nodes are added to the right.
 ###
 
-.add-node<?a> record
-	values ?a[]
-	left opt add-node ?a
+.add-node<a> record
+	values a[]
+	left opt add-node a
 
-set set ?a() data<?a> compare<?a>
+set<a> set a() data<a> compare<a>
 	[] set
 
-set set ?a(a ?a[]) data<?a> compare<?a>
+set<a> set a(a a[]) data<a> compare<a>
 	a.sort add-node none set index-set
 
-arr ?a[](a set ?a) data<?a> compare<?a>
+arr<a> a[](a set a) data<a> compare<a>
 	a map-to-arr x => x
 
-deep-size-bytes nat64(a set ?a) unsafe deep-size-bytes<?a>
+deep-size-bytes<a> nat64(a set a) unsafe deep-size-bytes<a>
 	a.remove.deep-size-bytes deep-size-bytes-recur a.add
-.deep-size-bytes-recur nat64(acc nat64, a add-node ?a) unsafe deep-size-bytes<?a>
+.deep-size-bytes-recur<a> nat64(acc nat64, a add-node a) unsafe deep-size-bytes<a>
 	mid = acc wrap-add a.values.deep-size-bytes wrap-add a.left.size-of
 	if left ?= a left
 		mid deep-size-bytes-recur left
@@ -57,18 +57,18 @@ deep-size-bytes nat64(a set ?a) unsafe deep-size-bytes<?a>
 		mid
 
 # TODO: any value that is removed is overhead too
-overhead-bytes nat64(a set ?a) unsafe
+overhead-bytes<a> nat64(a set a) unsafe
 	a.remove.deep-size-bytes overhead-bytes-recur a.add
-.overhead-bytes-recur nat64(acc nat64, a add-node ?a) unsafe
+.overhead-bytes-recur<a> nat64(acc nat64, a add-node a) unsafe
 	mid = acc wrap-add a.size-of
 	if left ?= a left
 		mid overhead-bytes-recur left
 	else
 		mid
 
-alloc-count nat64(a set ?a) unsafe
+alloc-count<a> nat64(a set a) unsafe
 	a.remove.alloc-count alloc-count-recur a.add
-.alloc-count-recur nat64(acc nat64, a add-node ?a) unsafe
+.alloc-count-recur<a> nat64(acc nat64, a add-node a) unsafe
 	mid = acc wrap-add a.values.alloc-count
 	if left ?= a left
 		# + 1 to allocate the left node
@@ -76,40 +76,40 @@ alloc-count nat64(a set ?a) unsafe
 	else
 		mid
 
-.add-node-count nat64(a set ?a)
+.add-node-count<a> nat64(a set a)
 	0 add-node-count-recur a.add
-.add-node-count-recur nat64(acc nat64, a add-node ?a)
+.add-node-count-recur<a> nat64(acc nat64, a add-node a)
 	if left ?= a left
 		acc wrap-add 1 add-node-count-recur left
 	else
 		acc wrap-add 1
 
 
-is-empty bool(a set ?a)
+is-empty<a> bool(a set a)
 	# Compaction ensures that this is the only case where we store empty values.
 	a.add.values is-empty
 
-size nat64(a set ?a)
+size<a> nat64(a set a)
 	a.remove.size add-size-recur a.add
-.add-size nat64(a add-node ?a)
+.add-size<a> nat64(a add-node a)
 	0 add-size-recur a
-.add-size-recur nat64(acc nat64, a add-node ?a)
+.add-size-recur<a> nat64(acc nat64, a add-node a)
 	acc wrap-add a.values.size add-size-left-recur a
-.add-size-left nat64(a add-node ?a)
+.add-size-left<a> nat64(a add-node a)
 	0 add-size-left-recur a
-.add-size-left-recur nat64(acc nat64, a add-node ?a)
+.add-size-left-recur<a> nat64(acc nat64, a add-node a)
 	if left ?= a left
 		acc add-size-recur left
 	else
 		acc
 
-subscript bool(a set ?a, value ?a) data<?a> compare<?a>
+subscript<a> bool(a set a, value a) data<a> compare<a>
 	if index ?= a.add find-in-add value
 		!a.remove[index]
 	else
 		false
 
-.find-in-add opt nat64(a add-node ?a, value ?a) compare<?a>
+.find-in-add<a> opt nat64(a add-node a, value a) compare<a>
 	if index ?= a.values binary-search-exact-index value
 		a.add-size-left wrap-add index some
 	elif left ?= a left
@@ -121,7 +121,7 @@ subscript bool(a set ?a, value ?a) data<?a> compare<?a>
 	size-here nat64
 	size-right nat64
 
-.find-in-add-for-remove opt find-in-add-for-remove-result(a add-node ?a, value ?a, size-right nat64) compare<?a>
+.find-in-add-for-remove<a> opt find-in-add-for-remove-result(a add-node a, value a, size-right nat64) compare<a>
 	if index ?= a.values binary-search-exact-index value
 		sl = a add-size-left
 		some: find-in-add-for-remove-result: (sl wrap-add index), sl, a.values.size, size-right
@@ -130,10 +130,10 @@ subscript bool(a set ?a, value ?a) data<?a> compare<?a>
 		new-size-right = size-right wrap-add a.values.size
 		left find-in-add-for-remove: value, new-size-right
 
-~ set ?a(a set ?a, value ?a) data<?a> compare<?a>
+~ <a> set a(a set a, value a) data<a> compare<a>
 	a try-add value or-default a
 
-try-add opt set ?a(a set ?a, value ?a) data<?a> compare<?a>
+try-add<a> opt set a(a set a, value a) data<a> compare<a>
 	if index ?= a.add find-in-add value
 		# In 'add', but may need to remove from removals
 		if new-remove ?= a.remove try-remove index
@@ -141,10 +141,10 @@ try-add opt set ?a(a set ?a, value ?a) data<?a> compare<?a>
 	else
 		a add-and-maybe-compact value some
 
-- set ?a(a set ?a, value ?a) data<?a> compare<?a>
+- <a> set a(a set a, value a) data<a> compare<a>
 	a try-remove value or-default a
 
-try-remove opt set ?a(a set ?a, value ?a) trusted data<?a> compare<?a>
+try-remove<a> opt set a(a set a, value a) trusted data<a> compare<a>
 	if r ?= a.add find-in-add-for-remove value, 0
 		removals-here-and-right = 1 wrap-add: a.remove count-greater-or-equal r.size-left
 		some: if r.size-here should-compact r.size-right, removals-here-and-right
@@ -153,7 +153,7 @@ try-remove opt set ?a(a set ?a, value ?a) trusted data<?a> compare<?a>
 		else
 			set: a.add, a.remove ~ r.value-index
 
-.add-and-maybe-compact set ?a(a set ?a, value ?a) trusted compare<?a>
+.add-and-maybe-compact<a> set a(a set a, value a) trusted compare<a>
 	add-size = a.add add-size
 	if add-size == 0
 		set: (add-node: [value], none), index-set
@@ -180,7 +180,7 @@ We compact a node if:
 * Half of the values of this node have been removed
 Or a combination of the two.	
 ###
-.add-and-compact-plan compact-plan(size-here-and-left nat64, a add-node ?a, remove index-set, size-right nat64)
+.add-and-compact-plan<a> compact-plan(size-here-and-left nat64, a add-node a, remove index-set, size-right nat64)
 	size-here = a.values size
 	size-left = size-here-and-left wrap-sub size-here
 	removals-here-and-right = remove count-greater-or-equal size-left
@@ -196,15 +196,15 @@ Or a combination of the two.
 .should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right wrap-add (removals-here-and-right wrap-mul 2) wrap-mul 2) >= size-here
 
-.add-and-compact set ?a(a set ?a, add-size nat64, plan compact-plan, value ?a) unsafe compare<?a>
+.add-and-compact<a> set a(a set a, add-size nat64, plan compact-plan, value a) unsafe compare<a>
 	assert: plan.compacted-size > 1
-	compacted = plan.compacted-size uninitialized-mut-arr<?a>
+	compacted = plan.compacted-size uninitialized-mut-arr<a>
 	compacted.begin-ptr[] := value
-	compactor = compactor<?a>: compacted.begin-ptr, compacted.begin-ptr + 1, compacted.end-ptr
+	compactor = compactor<a>: compacted.begin-ptr, compacted.begin-ptr + 1, compacted.end-ptr
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
 	set: new-add, a.remove filter-less plan.add-size-left
 
-.remove-and-compact set ?a(a set ?a, plan compact-plan, extra-removal nat64) unsafe data<?a> compare<?a>
+.remove-and-compact<a> set a(a set a, plan compact-plan, extra-removal nat64) unsafe data<a> compare<a>
 	new-remove = a.remove filter-less plan.add-size-left
 	if plan.compacted-size == 0
 		if left ?= a.add left
@@ -212,26 +212,26 @@ Or a combination of the two.
 		else
 			set
 	else
-		compacted = plan.compacted-size uninitialized-mut-arr<?a>
-		compactor = compactor<?a>: compacted.begin-ptr, compacted.begin-ptr, compacted.end-ptr
+		compacted = plan.compacted-size uninitialized-mut-arr<a>
+		compactor = compactor<a>: compacted.begin-ptr, compacted.begin-ptr, compacted.end-ptr
 		old-size = plan.add-size-left wrap-add plan.compacted-size wrap-add 1
 		new-add = compactor do-compact-recur! a.add, old-size, a.remove ~ extra-removal
 		new-add set new-remove
 
-.compactor<?a> record mut
-	begin ptr ?a
-	cur mut ptr ?a
-	end ptr ?a
+.compactor<a> record mut
+	begin ptr a
+	cur mut ptr a
+	end ptr a
 
 # NOTE: size-here-and-left is the old size, used to index into remove
-.do-compact-recur! add-node ?a
-	compactor compactor ?a
-	a add-node ?a
+.do-compact-recur!<a> add-node a
+	compactor compactor a
+	a add-node a
 	add-size-here-and-left nat64
 	remove index-set
 spec
 	unsafe
-	compare<?a>
+	compare<a>
 body
 	compactor merge! a.values, add-size-here-and-left, remove
 	assert: compactor.cur <= compactor.end
@@ -242,7 +242,7 @@ body
 		new-l = add-size-here-and-left wrap-sub a.values.size
 		compactor do-compact-recur! a.left.force, new-l, remove
 
-.merge! void(a compactor ?a, values ?a[], add-size-here-and-left nat64, remove index-set) unsafe compare<?a>
+.merge!<a> void(a compactor a, values a[], add-size-here-and-left nat64, remove index-set) unsafe compare<a>
 	n-remove = remove count-range (add-size-here-and-left wrap-sub values.size), add-size-here-and-left
 	n-added = values.size wrap-sub n-remove
 	if n-added != 0
@@ -254,17 +254,17 @@ body
 			a.begin merge-recur! a.cur - 1, new-cur - 1, values.begin-ptr, values.end-ptr - 1, remove-index, remove
 		a.cur := new-cur
 
-.merge-recur! void
-	a-begin ptr ?a
-	a-read ptr ?a
-	a-write ptr ?a
-	b-begin ptr ?a
-	b-read ptr ?a
+.merge-recur!<a> void
+	a-begin ptr a
+	a-read ptr a
+	a-write ptr a
+	b-begin ptr a
+	b-read ptr a
 	b-remove-index nat64
 	b-remove index-set
 spec
 	unsafe
-	compare<?a>
+	compare<a>
 body
 	forbid: a-read < a-begin
 	forbid: b-read < b-begin
@@ -290,7 +290,7 @@ body
 		else
 			a-begin merge-recur! a-read - 1, a-write - 1, b-begin, b-read, b-remove-index, b-remove
 
-.copy-from-b-recur! void(a-write ptr ?a, b-begin ptr ?a, b-read ptr ?a, b-remove-index nat64, b-remove index-set) unsafe
+.copy-from-b-recur!<a> void(a-write ptr a, b-begin ptr a, b-read ptr a, b-remove-index nat64, b-remove index-set) unsafe
 	new-a-write = if b-remove[b-remove-index]
 		a-write
 	else
@@ -299,18 +299,18 @@ body
 	if b-read != b-begin
 		new-a-write copy-from-b-recur! b-begin, b-read - 1, (b-remove-index wrap-sub 1), b-remove
 
-.finish ?a[](a compactor ?a) unsafe
+.finish<a> a[](a compactor a) unsafe
 	assert: a.cur == a.end
 	a.begin arr-from-begin-end a.end
 
 region iteration
 
-each void(a set ?a, f act void(?a)) data<?a> compare<?a>
+each<a> void(a set a, f act void(a)) data<a> compare<a>
 	void fold a, (ignore, x) => f[x]
 
-fold ?a(acc ?a, a set ?b, f act ?a(?a, ?b)) data<?b> compare<?b>
+fold<a, b> a(acc a, a set b, f act a(a, b)) data<b> compare<b>
 	acc fold-recur a.init-iters, a.remove, f
-.fold-recur ?a(acc ?a, iters mut-arr iter-part ?b, remove index-set, f act ?a(?a, ?b)) compare<?b>
+.fold-recur<a, b> a(acc a, iters mut-arr iter-part b, remove index-set, f act a(a, b)) compare<b>
 	if iters is-empty
 		acc
 	else
@@ -324,13 +324,13 @@ fold ?a(acc ?a, a set ?b, f act ?a(?a, ?b)) data<?b> compare<?b>
 			iters
 		f[acc, least-value] fold-recur new-iters, remove, f
 
-.find-least-iter nat64
-	current-least ?a
+.find-least-iter<a> nat64
+	current-least a
 	current-least-index nat64
 	iter-index nat64
-	iters mut-arr iter-part ?a
+	iters mut-arr iter-part a
 spec
-	compare<?a>
+	compare<a>
 body
 	if iter-index == iters.size
 		current-least-index
@@ -341,28 +341,28 @@ body
 		else
 			current-least find-least-iter current-least-index, (iter-index wrap-add 1), iters
 
-.iter-part<?a> record
+.iter-part<a> record
 	by-val
-	values ?a[]
+	values a[]
 	remove-index nat64
 
-.is-empty bool(a iter-part ?a)
+.is-empty<a> bool(a iter-part a)
 	a.values is-empty
 
-.tail iter-part ?a(a iter-part ?a, remove index-set)
+.tail<a> iter-part a(a iter-part a, remove index-set)
 	a.values.tail iter-part (a.remove-index wrap-add 1) remove-from-front remove
 
-.init-iters mut-arr iter-part ?a(a set ?a) trusted
-	iters = a.add-node-count uninitialized-mut-arr<iter-part<?a>>
+.init-iters<a> mut-arr iter-part a(a set a) trusted
+	iters = a.add-node-count uninitialized-mut-arr<iter-part<a>>
 	res = iters.begin-ptr init-iters-recur! a.add, a.remove
 	iters[0 -> res.out - iters.begin-ptr]
 
-.init-iters-result<?a> record mut
+.init-iters-result<a> record mut
 	by-val
 	next-remove-index nat64
-	out ptr iter-part ?a
+	out ptr iter-part a
 
-.init-iters-recur! init-iters-result ?a(out ptr iter-part ?a, a add-node ?a, remove index-set) unsafe
+.init-iters-recur!<a> init-iters-result a(out ptr iter-part a, a add-node a, remove index-set) unsafe
 	prev = if left ?= a left
 		out init-iters-recur! left, remove
 	else
@@ -375,7 +375,7 @@ body
 		prev.out + 1
 	init-iters-result: (prev.next-remove-index wrap-add a.values.size), new-out
 
-.remove-from-front iter-part ?a(a iter-part ?a, remove index-set)
+.remove-from-front<a> iter-part a(a iter-part a, remove index-set)
 	if !a.values.is-empty && remove[a.remove-index]
 		a.values.tail iter-part (a.remove-index wrap-add 1) remove-from-front remove
 	else
@@ -383,20 +383,19 @@ body
 
 # TODO: filter
 
-map set ?out(a set ?in, f act ?out(?in)) data<?out> compare<?out> data<?in> compare<?in>
+map<out, in> set out(a set in, f act out(in)) data<out> compare<out> data<in> compare<in>
 	set: a map-to-arr f
 
-map-to-arr ?out[](a set ?in, f act ?out(?in)) trusted data<?in> compare<?in>
-	out = a.size uninitialized-mut-arr<?out>
+map-to-arr<out, in> out[](a set in, f act out(in)) trusted data<in> compare<in>
+	out = a.size uninitialized-mut-arr<out>
 	end = out.begin-ptr fold a, (cur, x) =>
 		cur[] := f[x]
 		cur + 1
-
 	assert: end == out.end-ptr
 	out cast-immutable
 
 # TODO:PRIVATE
-dbg str(a set ?a) to-str<?a>
+dbg<a> str(a set a) to-str<a>
 	out = writer
 	out dbg-add-recur! a.add
 	if !a.remove.is-empty
@@ -408,7 +407,7 @@ dbg str(a set ?a) to-str<?a>
 		out ~= "]"
 	out move-to-str!
 
-.dbg-add-recur! void(out writer, a add-node ?a) to-str<?a>
+.dbg-add-recur!<a> void(out writer, a add-node a) to-str<a>
 	if left ?= a left
 		out dbg-add-recur! left
 		out ~= ", "

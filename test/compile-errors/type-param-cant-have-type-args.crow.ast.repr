@@ -1,0 +1,18 @@
+file-ast(
+	specs: []
+	aliases: []
+	structs: []
+	funs: [
+		fun-decl(
+			public: true
+			typeparams: [name-range(2, a)]
+			sig: sig-ast(
+				range(0, 18)
+				f
+				inststruct(range(5, 9), name-range(5, void))
+				[
+					param(
+						range(10, 17)
+						none
+						inststruct(range(12, 17), name-range(12, a), [inststruct(range(14, 17), name-range(14, nat))]))])
+			body: void)])

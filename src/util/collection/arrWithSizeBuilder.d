@@ -34,16 +34,8 @@ private @system const(T*) begin(T)(ref const ArrWithSizeBuilder!T a) {
 	a.size_ += 1;
 }
 
-immutable(size_t) arrWithSizeBuilderSize(T)(ref const ArrWithSizeBuilder!T a) {
-	return a.size_;
-}
-
 immutable(bool) arrWithSizeBuilderIsEmpty(T)(ref const ArrWithSizeBuilder!T a) {
 	return a.size_ == 0;
-}
-
-@trusted immutable(T[]) arrWithSizeBuilderAsTempArr(T)(ref const ArrWithSizeBuilder!T a) {
-	return cast(immutable) begin(a)[0 .. a.size_];
 }
 
 @trusted immutable(ArrWithSize!T) finishArrWithSize(T, Alloc)(ref Alloc alloc, ref ArrWithSizeBuilder!T a) {

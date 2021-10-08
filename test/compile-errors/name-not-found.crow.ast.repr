@@ -3,7 +3,7 @@ file-ast(
 	aliases: []
 	structs: [
 		struct(
-			range(0, 29)
+			range(0, 24)
 			""
 			true
 			[]
@@ -12,11 +12,14 @@ file-ast(
 				none
 				[
 					field(range(10, 13), false, f, inststruct(range(12, 13), name-range(12, t)))
-					field(range(15, 19), false, g, type-param(range(17, 19), a))
-					field(range(21, 27), false, h, inststruct(range(23, 27), name-range(23, t), [type-param(range(25, 27), a)]))]))
-		struct(range(29, 41), "", true, [], none, union([inststruct(range(38, 39), name-range(38, t))]))]
+					field(
+						range(15, 22)
+						false
+						h
+						inststruct(range(17, 22), name-range(17, arr), [inststruct(range(21, 22), name-range(21, x))]))]))
+		struct(range(24, 36), "", true, [], none, union([inststruct(range(33, 34), name-range(33, t))]))]
 	funs: [
 		fun-decl(
 			public: true
-			sig: sig-ast(range(41, 48), foo, inststruct(range(45, 46), name-range(45, t)), [])
-			body: seq-ast(seq-ast(x, call(infix, name-range(55, y), [], [a])), call(infix, name-range(60, z), [], [a, b])))])
+			sig: sig-ast(range(36, 43), foo, inststruct(range(40, 41), name-range(40, t)), [])
+			body: seq-ast(seq-ast(x, call(infix, name-range(50, y), [], [a])), call(infix, name-range(55, z), [], [a, b])))])

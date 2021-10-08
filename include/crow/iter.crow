@@ -12,20 +12,20 @@ import
 Function to get an iterator.
 The iterator returned should be equivalent each time, so this can be used to iterate multiple times.
 ###
-iterable<?a> record mut
-	get-iter act iterator ?a()
+iterable<a> record mut
+	get-iter act iterator a()
 
 # Get a new iterator at the beginning.
-iter iterator ?a(s iterable ?a)
+iter<a> iterator a(s iterable a)
 	s.get-iter[]
 
 # Converts anything with an `iter` function to an `iterable`.
-to-iterable<?a, ?e> iterable ?e(a ?a) iter<?a, ?e>
+to-iterable<a, e> iterable e(a a) iter<a, e>
 	iterable: () => a iter
 
 # Spec for anything that has an iterator.
-iter<?a, ?e> spec
-	iter iterator ?e(t ?a)
+iter<a, e> spec
+	iter iterator e(t a)
 
 ###
 An iterator is a value that could iterate over anything.
@@ -35,11 +35,11 @@ it could iterate an abstract sequence (such as numbers in a range) with no backi
 An iterator mutates itself when `next` is called to advance.
 Once it returns `none`, all future calls should also return `none`.
 ###
-iterator<?a> record mut
-	get-next act opt ?a()
+iterator<a> record mut
+	get-next act opt a()
 
 # Returns the current element and advances to the next.
-next opt ?a(i iterator ?a)
+next<a> opt a(i iterator a)
 	i.get-next[]
 
 ###
@@ -57,19 +57,19 @@ iter iterator nat64(r arrow<nat64, nat64>)
 			res some
 
 # Calls a function for each element of an iterable.
-each void(a iterable ?a, f act void(?a))
+each<a> void(a iterable a, f act void(a))
 	a.iter each-recur f
-.each-recur void(i iterator ?a, f act void(?a))
+.each-recur<a> void(i iterator a, f act void(a))
 	if v ?= i next
 		f[v]
 		i each-recur f
 
 # Returns a new iterable containing just the elements of the input for which `pred` returns true.
-filter iterable ?a(a iterable ?a, pred act bool(?a))
+filter<a> iterable a(a iterable a, pred act bool(a))
 	iterable: () =>
 		itr = a iter
 		iterator: () => itr filter-recur pred
-.filter-recur opt ?a(a iterator ?a, pred act bool(?a))
+.filter-recur<a> opt a(a iterator a, pred act bool(a))
 	if v ?= a next
 		if pred[v]
 			v some
@@ -78,10 +78,10 @@ filter iterable ?a(a iterable ?a, pred act bool(?a))
 			a filter-recur pred
 
 # Returns a new iterable which yields f[x] for each x in the input.
-map iterable ?b(a iterable ?a, f act ?b(?a))
+map<out, in> iterable out(a iterable in, f act out(in))
 	iterable: () =>
 		itr = a iter
 		iterator: () => itr map-recur f
-.map-recur opt ?b(a iterator ?a, f act ?b(?a))
+.map-recur<out, in> opt out(a iterator in, f act out(in))
 	if v ?= a next
 		f[v] some

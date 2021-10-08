@@ -26,7 +26,7 @@ export
 <=> comparison(a float32, b float32) noctx
 	a cmp b
 
-.cmp comparison(a ?a, b ?a) noctx less<?a>
+.cmp<a> comparison(a a, b a) noctx less<a>
 	if a is-less b
 		less
 	elif a == b
@@ -34,9 +34,9 @@ export
 	else
 		greater
 
-.less<?a> spec
-	is-less bool(a ?a, b ?a)
-	== bool(a ?a, b ?a)
+.less<a> spec
+	is-less bool(a a, b a)
+	== bool(a a, b a)
 
 .is-less bool(a nat8, b nat8) noctx builtin
 .is-less bool(a nat16, b nat16) noctx builtin

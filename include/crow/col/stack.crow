@@ -20,26 +20,26 @@ Immutable stack ype.
 Appending a value with `~`, removing the last value with `rtail`, and `last` are always O(1).
 Accessing the first element of the stack is O(n).
 ###
-stack<?a> record
+stack<a> record
 	# TODO:PRIVATE
 	ignore void
-	last-node opt node ?a
+	last-node opt node a
 
-.node<?a> record
-	prev opt node ?a
-	value ?a
+.node<a> record
+	prev opt node a
+	value a
 
 # Empty stack.
-stack stack ?a()
+stack<a> stack a()
 	stack: void, none
 
 # Copy an arr to a stack.
-stack stack ?a(a ?a[])
-	stack<?a> fold a, (stack, x) => stack ~ x
+stack<a> stack a(a a[])
+	stack<a> fold a, (stack, x) => stack ~ x
 
 # Copy a stack to an arr.
-arr ?a[](a stack ?a) trusted
-	res = a.size uninitialized-mut-arr<?a>
+arr<a> a[](a stack a) trusted
+	res = a.size uninitialized-mut-arr<a>
 	begin = res.end-ptr fold-reverse a, (out, x) =>
 		new-out = out - 1
 		new-out[] := x
@@ -47,8 +47,8 @@ arr ?a[](a stack ?a) trusted
 	assert: begin == res.begin-ptr
 	res cast-immutable
 
-arr-reverse ?a[](a stack ?a) trusted
-	res = a.size uninitialized-mut-arr<?a>
+arr-reverse<a> a[](a stack a) trusted
+	res = a.size uninitialized-mut-arr<a>
 	end = res.begin-ptr fold-reverse a, (out, x) =>
 		out[] := x
 		out + 1
@@ -56,21 +56,21 @@ arr-reverse ?a[](a stack ?a) trusted
 	res cast-immutable
 
 # True iff `a.size == 0`.
-is-empty bool(a stack ?a)
+is-empty<a> bool(a stack a)
 	a.last-node is-empty
 
 ###
 Appends an element to the stack.
 This is O(1).
 ###
-~ stack ?a(a stack ?a, b ?a)
+~ <a> stack a(a stack a, b a)
 	stack: void, some: node: a.last-node, b
 
 ###
 Number of elements in the stack.
 This is O(1).
 ###
-size nat64(a stack ?a)
+size<a> nat64(a stack a)
 	0 fold a, (acc, ignore) =>
 		drop: ignore
 		acc wrap-add 1
@@ -79,14 +79,14 @@ size nat64(a stack ?a)
 Oldest element.
 This is O(a size).
 ###
-first opt ?a(a stack ?a)
+first<a> opt a(a stack a)
 	none fold-reverse a, (ignore, x) => x some
 
 ###
 Most recently appended element.
 This is O(1).
 ###
-last opt ?a(a stack ?a)
+last<a> opt a(a stack a)
 	if node ?= a last-node
 		node.value some
 
@@ -95,49 +95,49 @@ All but the last element.
 This is O(1).
 Throws if the stack is empty.
 ###
-rtail stack ?a(a stack ?a)
+rtail<a> stack a(a stack a)
 	if node ?= a last-node
 		stack: void, node prev
 	else
 		throw: "Stack is empty"
 
-popped<?a> record
-	value ?a
-	rest stack ?a
+popped<a> record
+	value a
+	rest stack a
 
-pop opt popped ?a(a stack ?a)
+pop<a> opt popped a(a stack a)
 	if node ?= a last-node
 		some: popped: node.value, stack: void, node.prev
 
 region iteration
 
-each void(a stack ?a, f act void(?a))
+each<a> void(a stack a, f act void(a))
 	a.last-node each-recur f
-.each-recur void(a opt node ?a, f act void(?a))
+.each-recur<a> void(a opt node a, f act void(a))
 	if node ?= a
 		node.prev each-recur f
 		f[node value]
 
-each-reverse void(a stack ?a, f act void(?a))
+each-reverse<a> void(a stack a, f act void(a))
 	a.last-node each-reverse-recur f
-.each-reverse-recur void(a opt node ?a, f act void(?a))
+.each-reverse-recur<a> void(a opt node a, f act void(a))
 	if node ?= a
 		f[node value]
 		node.prev each-reverse-recur f
 
 # Call a function for each element in the stack and accumulate.
-fold ?a(acc ?a, a stack ?b, f act ?a(?a, ?b))
+fold<a, b> a(acc a, a stack b, f act a(a, b))
 	acc fold-recur a.last-node, f
-.fold-recur ?a(acc ?a, a opt node ?b, f act ?a(?a, ?b))
+.fold-recur<a, b> a(acc a, a opt node b, f act a(a, b))
 	if node ?= a
 		prev-val = acc fold-recur node.prev, f
 		f[prev-val, node.value]
 	else
 		acc
 
-fold-reverse ?a(acc ?a, a stack ?b, f act ?a(?a, ?b))
+fold-reverse<a, b> a(acc a, a stack b, f act a(a, b))
 	acc fold-reverse-recur a.last-node, f
-.fold-reverse-recur ?a(acc ?a, a opt node ?b, f act ?a(?a, ?b))
+.fold-reverse-recur<a, b> a(acc a, a opt node b, f act a(a, b))
 	if node ?= a
 		f[acc, node.value] fold-reverse-recur node.prev, f
 	else
@@ -145,16 +145,16 @@ fold-reverse ?a(acc ?a, a stack ?b, f act ?a(?a, ?b))
 
 
 # Produce a stack with `f[x]` applied to each element `x` in the input.
-map stack ?out(a stack ?in, f act ?out(?in))
+map<out, in> stack out(a stack in, f act out(in))
 	stack: void, a.last-node map-recur f
-.map-recur opt node ?out(a opt node ?in, f act ?out(?in))
+.map-recur<out, in> opt node out(a opt node in, f act out(in))
 	if node ?= a
 		prev = node.prev map-recur f
 		some: node: prev, f[node value]
 
-filter stack ?a(a stack ?a, f act bool(?a))
+filter<a> stack a(a stack a, f act bool(a))
 	stack: void, a.last-node filter-recur f
-.filter-recur opt node ?a(a opt node ?a, f act bool(?a))
+.filter-recur<a> opt node a(a opt node a, f act bool(a))
 	if node ?= a
 		prev = node.prev filter-recur f
 		if f[node value]
@@ -162,9 +162,9 @@ filter stack ?a(a stack ?a, f act bool(?a))
 		else
 			prev
 
-first-some opt ?out(a stack ?in, f act opt ?out(?in))
+first-some<out, in> opt out(a stack in, f act opt out(in))
 	a.last-node first-some-recur f
-.first-some-recur opt ?out(a opt node ?in, f act opt ?out(?in))
+.first-some-recur<out, in> opt out(a opt node in, f act opt out(in))
 	if node ?= a
 		res = node.prev first-some-recur f
 		if res is-empty

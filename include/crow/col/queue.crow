@@ -14,43 +14,43 @@ import
 	./mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
 	./stack: ~, arr, each, fold, is-empty, size, stack
 
-queue<?a> record
-	left ?a[]
-	right stack ?a
+queue<a> record
+	left a[]
+	right stack a
 
 # Empty queue.
-queue queue ?a()
+queue<a> queue a()
 	queue: [], stack
 
 ###
 Convert an arr to a queue.
 This is O(1).
 ###
-queue queue ?a(a ?a[])
+queue<a> queue a(a a[])
 	queue: a, stack
 
-arr ?a[](a queue ?a) trusted
-	res = a.size uninitialized-mut-arr<?a>
+arr<a> a[](a queue a) trusted
+	res = a.size uninitialized-mut-arr<a>
 	end = res.begin-ptr fold a, (out, x) =>
 		out[] := x
 		out + 1
 	assert: end == res.end-ptr
 	res cast-immutable
 
-size nat64(a queue ?a)
+size<a> nat64(a queue a)
 	a.left.size wrap-add a.right.size
 
-~ queue ?a(a queue ?a, value ?a)
+~ <a> queue a(a queue a, value a)
 	queue: a.left, a.right ~ value
 
-is-empty bool(a queue ?a)
+is-empty<a> bool(a queue a)
 	a.left.is-empty && a.right.is-empty
 
-dequeued<?a> record
-	value ?a
-	rest queue ?a
+dequeued<a> record
+	value a
+	rest queue a
 
-dequeue opt dequeued ?a(a queue ?a)
+dequeue<a> opt dequeued a(a queue a)
 	if first ?= a.left first
 		some: dequeued: first, queue: a.left.tail, a.right
 	else
@@ -60,15 +60,15 @@ dequeue opt dequeued ?a(a queue ?a)
 
 region iteration
 
-each void(a queue ?a, f act void(?a))
+each<a> void(a queue a, f act void(a))
 	a.left each f
 	a.right each f
 
-fold ?a(acc ?a, a queue ?b, f act ?a(?a, ?b))
+fold<a, b> a(acc a, a queue b, f act a(a, b))
 	acc fold a.left, f fold a.right, f
 
-filter queue ?a(a queue ?a, f act bool(?a)) trusted
-	res = a.size uninitialized-mut-arr<?a>
+filter<a> queue a(a queue a, f act bool(a)) trusted
+	res = a.size uninitialized-mut-arr<a>
 	end = res.begin-ptr fold a, (out, x) =>
 		if f[x]
 			out[] := x
@@ -77,8 +77,8 @@ filter queue ?a(a queue ?a, f act bool(?a)) trusted
 			out
 	queue: res[0 -> end - res.begin-ptr] cast-immutable
 
-map queue ?out(a queue ?in, f act ?out(?in)) trusted
-	res = a.size uninitialized-mut-arr<?out>
+map<out, in> queue out(a queue in, f act out(in)) trusted
+	res = a.size uninitialized-mut-arr<out>
 	end = res.begin-ptr fold a, (out, x) =>
 		out[] := f[x]
 		out + 1

@@ -40,13 +40,13 @@ struct ParseDiag {
 			quote,
 			space,
 			typeArgsEnd,
-			typeParamQuestionMark,
 		}
 		immutable Kind kind;
 	}
 	struct FileDoesNotExist {
 		immutable Opt!PathAndRange importedFrom;
 	}
+	struct FunctionTypeMissingParens {}
 	struct IndentNotDivisible {
 		immutable uint nSpaces;
 		immutable uint nSpacesPerIndent;
@@ -76,7 +76,6 @@ struct ParseDiag {
 	struct ReservedName {
 		immutable Sym name;
 	}
-	struct TypeParamCantHaveTypeArgs {}
 	struct Unexpected {
 		enum Kind {
 			dedent,
@@ -96,6 +95,7 @@ struct ParseDiag {
 		circularImport,
 		expected,
 		fileDoesNotExist,
+		functionTypeMissingParens,
 		indentNotDivisible,
 		indentTooMuch,
 		indentWrongCharacter,
@@ -105,7 +105,6 @@ struct ParseDiag {
 		matchWhenOrLambdaNeedsBlockCtx,
 		relativeImportReachesPastRoot,
 		reservedName,
-		typeParamCantHaveTypeArgs,
 		unexpected,
 		unexpectedCharacter,
 		unionCantBeEmpty,
@@ -116,7 +115,8 @@ struct ParseDiag {
 		immutable CantPrecedeEqLike cantPrecedeEqLike;
 		immutable Ptr!CircularImport circularImport;
 		immutable Expected expected;
-		immutable Ptr!FileDoesNotExist fileDoesNotExist;
+		immutable FileDoesNotExist fileDoesNotExist;
+		immutable FunctionTypeMissingParens functionTypeMissingParens;
 		immutable IndentNotDivisible indentNotDivisible;
 		immutable IndentTooMuch indentTooMuch;
 		immutable IndentWrongCharacter indentWrongCharacter;
@@ -126,7 +126,6 @@ struct ParseDiag {
 		immutable MatchWhenOrLambdaNeedsBlockCtx matchWhenOrLambdaNeedsBlockCtx;
 		immutable RelativeImportReachesPastRoot relativeImportReachesPastRoot;
 		immutable ReservedName reservedName;
-		immutable TypeParamCantHaveTypeArgs typeParamCantHaveTypeArgs;
 		immutable Unexpected unexpected;
 		immutable UnexpectedCharacter unexpectedCharacter;
 		immutable UnionCantBeEmpty unionCantBeEmpty;
@@ -137,7 +136,10 @@ struct ParseDiag {
 	immutable this(immutable CantPrecedeEqLike a) { kind = Kind.cantPrecedeEqLike; cantPrecedeEqLike = a; }
 	@trusted immutable this(immutable Ptr!CircularImport a) { kind = Kind.circularImport; circularImport = a; }
 	immutable this(immutable Expected a) { kind = Kind.expected; expected = a; }
-	@trusted immutable this(immutable Ptr!FileDoesNotExist a) { kind = Kind.fileDoesNotExist; fileDoesNotExist = a; }
+	immutable this(immutable FileDoesNotExist a) { kind = Kind.fileDoesNotExist; fileDoesNotExist = a; }
+	immutable this(immutable FunctionTypeMissingParens a) {
+		kind = Kind.functionTypeMissingParens; functionTypeMissingParens = a;
+	}
 	immutable this(immutable IndentNotDivisible a) { kind = Kind.indentNotDivisible; indentNotDivisible = a; }
 	immutable this(immutable IndentTooMuch a) { kind = Kind.indentTooMuch; indentTooMuch = a; }
 	immutable this(immutable IndentWrongCharacter a) { kind = Kind.indentWrongCharacter; indentWrongCharacter = a; }
@@ -151,9 +153,6 @@ struct ParseDiag {
 		kind = Kind.relativeImportReachesPastRoot; relativeImportReachesPastRoot = a;
 	}
 	immutable this(immutable ReservedName a) { kind = Kind.reservedName; reservedName = a; }
-	immutable this(immutable TypeParamCantHaveTypeArgs a) {
-		kind = Kind.typeParamCantHaveTypeArgs; typeParamCantHaveTypeArgs = a;
-	}
 	immutable this(immutable Unexpected a) { kind = Kind.unexpected; unexpected = a; }
 	immutable this(immutable UnexpectedCharacter a) { kind = Kind.unexpectedCharacter; unexpectedCharacter = a; }
 	immutable this(immutable UnionCantBeEmpty a) { kind = Kind.unionCantBeEmpty; unionCantBeEmpty = a; }
@@ -167,6 +166,9 @@ static assert(ParseDiag.sizeof <= 32);
 	scope T delegate(ref immutable ParseDiag.CircularImport) @safe @nogc pure nothrow cbCircularImport,
 	scope T delegate(ref immutable ParseDiag.Expected) @safe @nogc pure nothrow cbExpected,
 	scope T delegate(ref immutable ParseDiag.FileDoesNotExist) @safe @nogc pure nothrow cbFileDoesNotExist,
+	scope T delegate(
+		ref immutable ParseDiag.FunctionTypeMissingParens
+	) @safe @nogc pure nothrow cbFunctionTypeMissingParens,
 	scope T delegate(ref immutable ParseDiag.IndentNotDivisible) @safe @nogc pure nothrow cbIndentNotDivisible,
 	scope T delegate(ref immutable ParseDiag.IndentTooMuch) @safe @nogc pure nothrow cbIndentTooMuch,
 	scope T delegate(ref immutable ParseDiag.IndentWrongCharacter) @safe @nogc pure nothrow cbIndentWrongCharacter,
@@ -180,9 +182,6 @@ static assert(ParseDiag.sizeof <= 32);
 		ref immutable ParseDiag.RelativeImportReachesPastRoot
 	) @safe @nogc pure nothrow cbRelativeImportReachesPastRoot,
 	scope T delegate(ref immutable ParseDiag.ReservedName) @safe @nogc pure nothrow cbReservedName,
-	scope T delegate(
-		ref immutable ParseDiag.TypeParamCantHaveTypeArgs
-	) @safe @nogc pure nothrow cbTypeParamCantHaveTypeArgs,
 	scope T delegate(ref immutable ParseDiag.Unexpected) @safe @nogc pure nothrow cbUnexpected,
 	scope T delegate(ref immutable ParseDiag.UnexpectedCharacter) @safe @nogc pure nothrow cbUnexpectedCharacter,
 	scope T delegate(ref immutable ParseDiag.UnionCantBeEmpty) @safe @nogc pure nothrow cbUnionCantBeEmpty,
@@ -197,6 +196,8 @@ static assert(ParseDiag.sizeof <= 32);
 			return cbExpected(a.expected);
 		case ParseDiag.Kind.fileDoesNotExist:
 			return cbFileDoesNotExist(a.fileDoesNotExist);
+		case ParseDiag.Kind.functionTypeMissingParens:
+			return cbFunctionTypeMissingParens(a.functionTypeMissingParens);
 		case ParseDiag.Kind.indentNotDivisible:
 			return cbIndentNotDivisible(a.indentNotDivisible);
 		case ParseDiag.Kind.indentTooMuch:
@@ -215,8 +216,6 @@ static assert(ParseDiag.sizeof <= 32);
 			return cbRelativeImportReachesPastRoot(a.relativeImportReachesPastRoot);
 		case ParseDiag.Kind.reservedName:
 			return cbReservedName(a.reservedName);
-		case ParseDiag.Kind.typeParamCantHaveTypeArgs:
-			return cbTypeParamCantHaveTypeArgs(a.typeParamCantHaveTypeArgs);
 		case ParseDiag.Kind.unexpected:
 			return cbUnexpected(a.unexpected);
 		case ParseDiag.Kind.unexpectedCharacter:
@@ -232,4 +231,3 @@ struct ParseDiagnostic {
 	immutable RangeWithinFile range;
 	immutable ParseDiag diag;
 }
-static assert(ParseDiagnostic.sizeof <= 32);

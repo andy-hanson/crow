@@ -19,36 +19,36 @@ import
 	./sort: sort-by!
 	./private/sort-utils: binary-search-insert-ptr
 
-mut-priority-queue<?k, ?v> record mut
+mut-priority-queue<k, v> record mut
 	by-ref
 	# TODO:PRIVATE
 	# TODO: Use by-val
 	# The smallest value goes on the right
-	mins mut-list arrow<?k, ?v>
+	mins mut-list arrow<k, v>
 	# This may be shorter than mins -- buckets on the right considered missing.
-	buckets mut-list mut-list arrow<?k, ?v>
+	buckets mut-list mut-list arrow<k, v>
 
-mut-priority-queue mut-priority-queue<?k, ?v>() data<?k> compare<?k>
+mut-priority-queue<k, v> mut-priority-queue<k, v>() data<k> compare<k>
 	mut-priority-queue: mut-list, mut-list
 
-mut-priority-queue mut-priority-queue<?k, ?v>(a arrow<?k, ?v>[]) data<?k> compare<?k>
+mut-priority-queue<k, v> mut-priority-queue<k, v>(a arrow<k, v>[]) data<k> compare<k>
 	mins = mut-list: a
 	mins sort-by! pair => pair from
 	mut-priority-queue: mins, mut-list
 
-empty! void(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
+empty!<k, v> void(a mut-priority-queue<k, v>) data<k> compare<k>
 	a.mins empty!
 	a.buckets empty!
 
-is-empty bool(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
+is-empty<k, v> bool(a mut-priority-queue<k, v>) data<k> compare<k>
 	a.mins is-empty
 
-size nat64(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
+size<k, v> nat64(a mut-priority-queue<k, v>) data<k> compare<k>
 	n-in-buckets = 0 fold a.buckets, (acc, b) =>
 		acc wrap-add b.size
 	a.mins.size wrap-add n-in-buckets
 
-~= void(a mut-priority-queue<?k, ?v>, pair arrow<?k, ?v>) trusted data<?k> compare<?k>
+~= <k, v> void(a mut-priority-queue<k, v>, pair arrow<k, v>) trusted data<k> compare<k>
 	# Highest min is on the right, so comparing in reverse
 	ptr = a.mins binary-search-insert-ptr it => it.from <=> pair.from
 	index = ptr - a.mins.begin-ptr
@@ -57,17 +57,17 @@ size nat64(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 	else
 		a.buckets add-to-bucket! index, pair
 
-copy mut-priority-queue<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
+copy<k, v> mut-priority-queue<k, v>(a mut-priority-queue<k, v>) data<k> compare<k>
 	mins = a spread-all-buckets
 	a.mins empty!
 	a.mins ~= mins
 	a.buckets empty!
 	mut-priority-queue: mins.mut-list, mut-list
 
-arr arrow<?k, ?v>[](a mut-priority-queue<?k, ?v>) trusted data<?k> compare<?k>
+arr<k, v> arrow<k, v>[](a mut-priority-queue<k, v>) trusted data<k> compare<k>
 	a.mut-arr cast-immutable
 
-mut-arr mut-arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
+mut-arr<k, v> mut-arr arrow<k, v>(a mut-priority-queue<k, v>) data<k> compare<k>
 	mins = a spread-all-buckets
 	a.mins empty!
 	a.mins ~= mins
@@ -77,11 +77,11 @@ mut-arr mut-arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 	res
 
 # Output is high-to-low
-.spread-all-buckets mut-arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) trusted data<?k> compare<?k>
-	new-mins = a.size uninitialized-mut-arr<arrow<?k, ?v>>
+.spread-all-buckets<k, v> mut-arr arrow<k, v>(a mut-priority-queue<k, v>) trusted data<k> compare<k>
+	new-mins = a.size uninitialized-mut-arr<arrow<k, v>>
 	new-mins.begin-ptr spread-all-buckets-recur! a, 0
 	new-mins
-.spread-all-buckets-recur! void(out ptr arrow<?k, ?v>, a mut-priority-queue<?k, ?v>, index nat64) unsafe compare<?k>
+.spread-all-buckets-recur!<k, v> void(out ptr arrow<k, v>, a mut-priority-queue<k, v>, index nat64) unsafe compare<k>
 	if index < a.mins.size
 		mid = if index < a.buckets.size
 			a.buckets[index] sort-by! it => it from
@@ -93,19 +93,19 @@ mut-arr mut-arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
 		mid[] := a.mins[index]
 		mid + 1 spread-all-buckets-recur!: a, index wrap-add 1
 
-.add-to-bucket! void(buckets mut-list mut-list arrow<?k, ?v>, index nat64, pair arrow<?k, ?v>)
+.add-to-bucket!<k, v> void(buckets mut-list mut-list arrow<k, v>, index nat64, pair arrow<k, v>)
 	if index < buckets.size
 		buckets[index] ~= pair
 	else
 		# TODO: type args should be unnecessary
-		buckets ~= mut-list<arrow<?k, ?v>>
+		buckets ~= mut-list<arrow<k, v>>
 		buckets add-to-bucket! index, pair
 
-pop-value! opt ?v(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
+pop-value!<k, v> opt v(a mut-priority-queue<k, v>) data<k> compare<k>
 	if pair ?= a pop!
 		pair.to some
 
-pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> compare<?k>
+pop!<k, v> opt arrow<k, v>(a mut-priority-queue<k, v>) data<k> compare<k>
 	res = a.mins pop!
 	if a.mins.size < a.buckets.size
 		assert: (a.mins.size wrap-add 1) == a.buckets.size

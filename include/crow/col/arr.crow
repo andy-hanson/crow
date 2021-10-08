@@ -12,29 +12,29 @@ import
 export
 	../private/bootstrap: arr, begin-ptr, size
 
-end-ptr ptr ?a(a ?a[]) noctx unsafe
+end-ptr<a> ptr a(a a[]) noctx unsafe
 	a.begin-ptr + a.size
 
 # TODO: arr comparison should be generic
-arr-equal bool(a ?a[], b ?a[]) trusted noctx equal<?a>
+arr-equal<a> bool(a a[], b a[]) trusted noctx equal<a>
 	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr
-.equal-recur bool(a ptr ?a, a-end ptr ?a, b ptr ?a, b-end ptr ?a) unsafe noctx equal<?a>
+.equal-recur<a> bool(a ptr a, a-end ptr a, b ptr a, b-end ptr a) unsafe noctx equal<a>
 	if a == a-end
 		b == b-end
 	else
 		b != b-end && a[] == b[] && a + 1 equal-recur a-end, b + 1, b-end
 
-arr-equal bool(a ?a[], b ?a[], eq act bool(?a, ?a)) trusted
+arr-equal<a> bool(a a[], b a[], eq act bool(a, a)) trusted
 	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr, eq
-.equal-recur bool(a ptr ?a, a-end ptr ?a, b ptr ?a, b-end ptr ?a, eq act bool(?a, ?a)) unsafe
+.equal-recur<a> bool(a ptr a, a-end ptr a, b ptr a, b-end ptr a, eq act bool(a, a)) unsafe
 	if a == a-end
 		b == b-end
 	else
 		b != b-end && eq[a[], b[]] && a + 1 equal-recur a-end, b + 1, b-end, eq
 
-arr-compare comparison(a ?a[], b ?a[]) trusted noctx compare<?a>
+arr-compare<a> comparison(a a[], b a[]) trusted noctx compare<a>
 	a.begin-ptr compare-recur a.end-ptr, b.begin-ptr, b.end-ptr
-.compare-recur comparison(a ptr ?a, a-end ptr ?a, b ptr ?a, b-end ptr ?a) unsafe noctx compare<?a>
+.compare-recur<a> comparison(a ptr a, a-end ptr a, b ptr a, b-end ptr a) unsafe noctx compare<a>
 	if a == a-end
 		if b == b-end
 			equal
@@ -66,30 +66,30 @@ Arr or the range from begin to end.
 `begin` is inclusive and `end` is exclusive.
 UB if begin > end.
 ###
-arr-from-begin-end ?a[](begin ptr ?a, end ptr ?a) unsafe noctx
+arr-from-begin-end<a> a[](begin ptr a, end ptr a) unsafe noctx
 	hard-assert: begin <= end
 	arr: end - begin, begin
 
-arr-cast ?out[](a ?in[]) unsafe noctx
-	hard-assert: size-of<?out> == size-of<?in>
-	arr: a.size, a.begin-ptr.ptr-cast<?out, ?in>
+arr-cast<out, in> out[](a in[]) unsafe noctx
+	hard-assert: size-of<out> == size-of<in>
+	arr: a.size, a.begin-ptr.ptr-cast<out, in>
 
 # True iff `a.size == 0`.
-is-empty bool(a ?a[]) noctx
+is-empty<a> bool(a a[]) noctx
 	a.size == 0
 
-noctx-at ?a(a ?a[], index nat64) unsafe noctx
+noctx-at<a> a(a a[], index nat64) unsafe noctx
 	hard-assert: index < a.size
 	a unsafe-at index
 
-unsafe-at ?a(a ?a[], index nat64) unsafe noctx
+unsafe-at<a> a(a a[], index nat64) unsafe noctx
 	a.begin-ptr[index]
 
 ###
 Gets the element at the index.
 Fails if `index >= a.size`.
 ###
-subscript ?a(a ?a[], index nat64) trusted
+subscript<a> a(a a[], index nat64) trusted
 	assert: index < a.size
 	a unsafe-at index
 
@@ -100,15 +100,15 @@ This works in O(1) without copying any elements.
 Fails if `range.from > range.to`.
 Fails if the slice would exceed the bounds of the arr.
 ###
-subscript ?a[](a ?a[], range arrow<nat64, nat64>) trusted
+subscript<a> a[](a a[], range arrow<nat64, nat64>) trusted
 	assert: range.from <= range.to
 	assert: range.to <= a.size
 	range.to wrap-sub range.from arr a.begin-ptr + range.from
 
-unsafe-slice ?a[](a ?a[], begin nat64, end nat64) unsafe noctx
+unsafe-slice<a> a[](a a[], begin nat64, end nat64) unsafe noctx
 	a.begin-ptr + begin arr-from-begin-end a.begin-ptr + end
 
-ref-of-val-at ?a(a by-val<?a>[], index nat64) trusted
+ref-of-val-at<a> a(a by-val<a>[], index nat64) trusted
 	assert: index < a.size
 	a.begin-ptr + index ref-of-ptr
 
@@ -117,9 +117,9 @@ Concatenates two arrs.
 This involves copying every element from both arrs into the new arr.
 If you need to concatenate often, consider using `mut-list`.
 ###
-~ ?a[](a ?a[], b ?a[]) trusted
+~ <a> a[](a a[], b a[]) trusted
 	res-size = a.size wrap-add b.size
-	res = res-size alloc-uninitialized<?a>
+	res = res-size alloc-uninitialized<a>
 	res copy-data-from! a.begin-ptr, a.size
 	res + a.size copy-data-from! b.begin-ptr, b.size
 	arr: res-size, res

@@ -41,19 +41,19 @@ comparison union
 		as greater
 			true
 
-equal<?a> spec
-	== bool(a ?a, b ?a)
+equal<a> spec
+	== bool(a a, b a)
 
-compare<?a> spec
-	== bool(a ?a, b ?a)
-	<=> comparison(a ?a, b ?a)
+compare<a> spec
+	== bool(a a, b a)
+	<=> comparison(a a, b a)
 
 # True iff `!(a == b)`.
-!= bool(a ?a, b ?a) noctx equal<?a>
+!= <a> bool(a a, b a) noctx equal<a>
 	!(a == b)
 
 # True iff `(a <=> b) == less`.
-< bool(a ?a, b ?a) noctx compare<?a>
+< <a> bool(a a, b a) noctx compare<a>
 	match a <=> b
 	as less
 		true
@@ -63,35 +63,35 @@ compare<?a> spec
 		false
 
 # True iff `!(a > b)`
-<= bool(a ?a, b ?a) noctx compare<?a>
+<= <a> bool(a a, b a) noctx compare<a>
 	!(b < a)
 
 # True iff `(a <=> b) == greater`.
-> bool(a ?a, b ?a) noctx compare<?a>
+> <a> bool(a a, b a) noctx compare<a>
 	b < a
 
 # True iff `!(a < b)`.
->= bool(a ?a, b ?a) noctx compare<?a>
+>= <a> bool(a a, b a) noctx compare<a>
 	!(a < b)
 
 # Returns the lesser argument
-min ?a(a ?a, b ?a) noctx compare<?a>
+min<a> a(a a, b a) noctx compare<a>
 	if a < b
 		a
 	else
 		b
 
 # Returns the greater argument
-max ?a(a ?a, b ?a) noctx compare<?a>
+max<a> a(a a, b a) noctx compare<a>
 	if a < b
 		b
 	else
 		a
 
-max ?a(a ?a, b ?a, c ?a) noctx compare<?a>
+max<a> a(a a, b a, c a) noctx compare<a>
 	a max b max c
 
-max ?a(a ?a, b ?a, c ?a, d ?a) noctx compare<?a>
+max<a> a(a a, b a, c a, d a) noctx compare<a>
 	a max b max c max d
 
 # Returns "less", "equal", or "greater"
@@ -104,7 +104,7 @@ to-str str(a comparison)
 	as greater
 		"greater"
 
-clamp ?a(a ?a, min ?a, max ?a) noctx compare<?a>
+clamp<a> a(a a, min a, max a) noctx compare<a>
 	if a < min
 		min
 	elif a > max

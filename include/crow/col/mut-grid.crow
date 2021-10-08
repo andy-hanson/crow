@@ -22,17 +22,18 @@ Mutable grid (matrix) type.
 Not really intended for linear algebra.
 Rows are stored contiguously.
 ###
-mut-grid<?a> record mut
+mut-grid<a> record mut
 	# TODO:PRIVATE
-	elements mut-arr ?a
+	elements mut-arr a
 	width nat64
 	height nat64
 
+# TODO: OWN FILE?
 coord record
 	x nat64
 	y nat64
 
-has-coord bool(a mut-grid ?a, coord coord)
+has-coord<a> bool(a mut-grid a, coord coord)
 	coord.x < a.width && coord.y < a.height
 
 to-str str(a coord)
@@ -41,43 +42,43 @@ to-str str(a coord)
 zero coord()
 	0 coord 0
 
-row mut-arr ?a(a mut-grid ?a, y nat64)
+row<a> mut-arr a(a mut-grid a, y nat64)
 	assert: y < a.height
 	begin = y wrap-mul a.width
 	a.elements[begin -> (begin wrap-add a.width)]
 
-mut-grid mut-grid ?a()
+mut-grid<a> mut-grid a()
 	mut-arr mut-grid 0, 0
 
-size nat64(a mut-grid ?a)
+size<a> nat64(a mut-grid a)
 	a.elements size
 
-fill-mut-grid mut-grid ?a(width nat64, height nat64, value ?a)
+fill-mut-grid<a> mut-grid a(width nat64, height nat64, value a)
 	width make-mut-grid height, (ignore, ignore2) => value
 
-make-mut-grid mut-grid ?a(width nat64, height nat64, f act ?a(nat64, nat64)) trusted
-	res = (width * height).uninitialized-mut-arr mut-grid<?a> width, height
+make-mut-grid<a> mut-grid a(width nat64, height nat64, f act a(nat64, nat64)) trusted
+	res = (width * height).uninitialized-mut-arr mut-grid<a> width, height
 	res map-with-coords! (ignore, coord) => f[coord.x, coord.y]
 	res
 
-copy mut-grid ?a(a mut-grid ?a)
+copy<a> mut-grid a(a mut-grid a)
 	a.elements.copy mut-grid a.width, a.height
 
-subscript ?a(a mut-grid ?a, x nat64, y nat64)
+subscript<a> a(a mut-grid a, x nat64, y nat64)
 	index = a index-for x, y
 	a.elements[index]
 
-subscript ?a(a mut-grid ?a, coord coord)
+subscript<a> a(a mut-grid a, coord coord)
 	a[coord.x, coord.y]
 
-set-subscript void(a mut-grid ?a, x nat64, y nat64, value ?a)
+set-subscript<a> void(a mut-grid a, x nat64, y nat64, value a)
 	index = a index-for x, y
 	a.elements[index] := value
 
-set-subscript void(a mut-grid ?a, coord coord, value ?a)
+set-subscript<a> void(a mut-grid a, coord coord, value a)
 	a[coord.x, coord.y] := value
 
-.index-for nat64(a mut-grid ?a, x nat64, y nat64)
+.index-for<a> nat64(a mut-grid a, x nat64, y nat64)
 	assert: x < a.width
 	assert: y < a.height
 	res = y wrap-mul a.width wrap-add x
@@ -87,7 +88,7 @@ set-subscript void(a mut-grid ?a, coord coord, value ?a)
 ###
 Represented with row 0 coming first.
 ###
-to-str str(a mut-grid ?a) write<?a>
+to-str<a> str(a mut-grid a) write<a>
 	res = writer
 	a each-row row =>
 		row each value =>
@@ -102,40 +103,40 @@ to-str str(a mut-grid ?a) write<?a>
 
 region iteration
 
-each void(a mut-grid ?a, f act void(?a))
+each<a> void(a mut-grid a, f act void(a))
 	void fold a, (ignore, value) => f[value]
 
-each-row void(a mut-grid ?a, f act void(mut-arr ?a))
+each-row<a> void(a mut-grid a, f act void(mut-arr a))
 	void fold-rows a, (ignore, row) => f[row]
 
-fold-rows ?a(acc ?a, a mut-grid ?b, f act ?a(?a, mut-arr ?b))
+fold-rows<a, b> a(acc a, a mut-grid b, f act a(a, mut-arr b))
 	acc fold-rows-recur a, 0, f
-.fold-rows-recur ?a(acc ?a, a mut-grid ?b, y nat64, f act ?a(?a, mut-arr ?b))
+.fold-rows-recur<a, b> a(acc a, a mut-grid b, y nat64, f act a(a, mut-arr b))
 	if y == a.height
 		acc
 	else
 		f[acc, a row y] fold-rows-recur a, (y wrap-add 1), f
 
-fold ?a(acc ?a, a mut-grid ?b, f act ?a(?a, ?b))
+fold<a, b> a(acc a, a mut-grid b, f act a(a, b))
 	acc fold a.elements, f
 
-fold-with-coords ?a(acc ?a, a mut-grid ?b, f act ?a(?a, ?b, coord)) trusted
+fold-with-coords<a, b> a(acc a, a mut-grid b, f act a(a, b, coord)) trusted
 	acc fold-with-coords-recur a.elements.begin-ptr, a.elements.end-ptr, zero, a.width, f
-.fold-with-coords-recur ?a(acc ?a, cur ptr ?b, end ptr ?b, coord coord, width nat64, f act ?a(?a, ?b, coord)) unsafe
+.fold-with-coords-recur<a, b> a(acc a, cur ptr b, end ptr b, coord coord, width nat64, f act a(a, b, coord)) unsafe
 	if cur == end
 		acc
 	else
 		f[acc, cur[], coord] fold-with-coords-recur cur + 1, end, (coord next-coord width), width, f
 
-exists bool(a mut-grid ?a, f act bool(?a))
+exists<a> bool(a mut-grid a, f act bool(a))
 	a.elements exists f
 
-map! void(a mut-grid ?a, f act ?a(?a))
+map!<a> void(a mut-grid a, f act a(a))
 	a.elements map! f
 
-map-with-coords! void(a mut-grid ?a, f act ?a(?a, coord)) trusted
+map-with-coords!<a> void(a mut-grid a, f act a(a, coord)) trusted
 	a.elements.begin-ptr map-with-coords-recur! a.elements.end-ptr, zero, a.width, f
-.map-with-coords-recur! void(cur ptr ?a, end ptr ?a, coord coord, width nat64, f act ?a(?a, coord)) unsafe
+.map-with-coords-recur!<a> void(cur ptr a, end ptr a, coord coord, width nat64, f act a(a, coord)) unsafe
 	if cur == end
 		void
 	else

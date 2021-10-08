@@ -7,10 +7,10 @@ import
 	./private/exception-low-level: assert, catch, message, throw
 	./str: ==, str
 
-is void(a ?a, b ?a) equal<?a>
+is<a> void(a a, b a) equal<a>
 	assert: a == b
 
-throws void(f act ?a(), message str)
+throws<a> void(f act a(), message str)
 	match f catch
 	as ok
 		throw: "Expected to throw an exception"

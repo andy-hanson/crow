@@ -10,31 +10,31 @@ import
 	./str-util: join
 	./sym: sym, to-str
 
-flags<?a> spec
-	empty ?a()
-	all ?a()
-	flags-members named-val<?a>[]()
-	== bool(a ?a, b ?a)
-	~ ?a(a ?a)
-	& ?a(a ?a, b ?a)
-	| ?a(a ?a, b ?a)
+flags<a> spec
+	empty a()
+	all a()
+	flags-members named-val<a>[]()
+	== bool(a a, b a)
+	~ a(a a)
+	& a(a a, b a)
+	| a(a a, b a)
 
-is-in bool(a ?a, b ?a) flags<?a>
+is-in<a> bool(a a, b a) flags<a>
 	a & b == a
 
-to-syms sym[](a ?a) flags<?a>
+to-syms<a> sym[](a a) flags<a>
 	flags-members flat-map member =>
 		if member.val is-in a
 			[member name]
 		else
 			[]
 
-flags-to-str str(a ?a) flags<?a>
+flags-to-str<a> str(a a) flags<a>
 	a.to-syms map (x => x to-str) join " | "
 
 # TODO:MOVE
-.flat-map ?out[](a ?in[], f act ?out[](?in))
-	res = mut-list<?out>
+.flat-map<out, in> out[](a in[], f act out[](in))
+	res = mut-list<out>
 	a each x =>
 		res ~= f[x]
 	res move-to-arr!

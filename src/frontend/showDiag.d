@@ -189,8 +189,6 @@ void writeParseDiag(Alloc, PathAlloc)(
 				case ParseDiag.Expected.Kind.typeArgsEnd:
 					writeStatic(writer, "expected '>'");
 					break;
-				case ParseDiag.Expected.Kind.typeParamQuestionMark:
-					writeStatic(writer, "expected type parameter name to start with '?'");
 			}
 		},
 		(ref immutable ParseDiag.FileDoesNotExist d) {
@@ -200,6 +198,9 @@ void writeParseDiag(Alloc, PathAlloc)(
 				writePathAndStorageKind(writer, allPaths, force(d.importedFrom).path);
 				writeChar(writer, ')');
 			}
+		},
+		(ref immutable ParseDiag.FunctionTypeMissingParens) {
+			writeStatic(writer, "function type missing parentheses");
 		},
 		(ref immutable ParseDiag.IndentNotDivisible d) {
 			writeStatic(writer, "expected indentation by ");
@@ -253,9 +254,6 @@ void writeParseDiag(Alloc, PathAlloc)(
 		(ref immutable ParseDiag.ReservedName d) {
 			writeName(writer, d.name);
 			writeStatic(writer, " is a reserved word and can't be used as a name");
-		},
-		(ref immutable ParseDiag.TypeParamCantHaveTypeArgs) {
-			writeStatic(writer, "a type parameter can't have type arguments");
 		},
 		(ref immutable ParseDiag.Unexpected it) {
 			final switch (it.kind) {
@@ -644,8 +642,6 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 						return "spec";
 					case Diag.NameNotFound.Kind.type:
 						return "type";
-					case Diag.NameNotFound.Kind.typeParam:
-						return "type parameter";
 				}
 			}();
 			writeStatic(writer, kind);
@@ -739,6 +735,9 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 		},
 		(ref immutable Diag.TypeNotSendable) {
 			writeStatic(writer, "this type is not sendable and should not appear in an interface");
+		},
+		(ref immutable Diag.TypeParamCantHaveTypeArgs) {
+			writeStatic(writer, "a type parameter can't take type arguments");
 		},
 		(ref immutable Diag.TypeShouldUseSuffix it) {
 			final switch (it.kind) {

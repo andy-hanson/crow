@@ -15,9 +15,9 @@ import
 	./number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
 	./thread-utils: acquire!, lock-by-val, release!
 
-set-zero-range void(begin ptr ?a, size nat64) noctx unsafe
+set-zero-range<a> void(begin ptr a, size nat64) noctx unsafe
 	# TODO: wrap-mul is unsafe
-	drop: begin.as-any-ptr memset: 0, size wrap-mul size-of<?a>
+	drop: begin.as-any-ptr memset: 0, size wrap-mul size-of<a>
 
 mark-ctx record mut
 	memory-size-words nat64
@@ -56,7 +56,7 @@ mark-range-recur bool(marked-anything bool, cur ptr bool, end ptr bool) noctx un
 		cur[] := true
 		mark-range-recur: new-marked-anything, cur + 1, end
 
-mark-visit void(mark-ctx mark-ctx, value ?a) noctx unsafe builtin
+mark-visit<a> void(mark-ctx mark-ctx, value a) noctx unsafe builtin
 
 gc record mut
 	lk by-val lock
@@ -128,7 +128,7 @@ gc by-val gc() noctx unsafe
 	res.ref-of-val validate-gc
 	res
 
-run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
+run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 	hard-assert: gc needs-gc
 	gc.gc-count := gc.gc-count wrap-add 1
 	drop: gc.mark-begin.as-any-ptr memset 0, gc.size-words
@@ -188,7 +188,7 @@ get-gc-ctx gc-ctx() unsafe
 get-gc gc() unsafe
 	get-gc-ctx.gc
 
-fill-ptr-range void(cur ptr ?a, end ptr ?a, value ?a) noctx unsafe
+fill-ptr-range<a> void(cur ptr a, end ptr a, value a) noctx unsafe
 	if cur != end
 		cur[] := value
 		cur + 1 fill-ptr-range end, value
@@ -255,41 +255,41 @@ alloc any-ptr(size-bytes nat64) unsafe
 try-alloc opt any-ptr(size-bytes nat64) unsafe
 	get-gc try-gc-alloc size-bytes
 
-alloc-uninitialized ptr ?a(size nat64) unsafe
+alloc-uninitialized<a> ptr a(size nat64) unsafe
 	# TODO: wrap-mul is unsafe!
-	ptr-cast<?a, nat8>: alloc: size wrap-mul size-of<?a>
+	ptr-cast<a, nat8>: alloc: size wrap-mul size-of<a>
 
-try-alloc-uninitialized opt ptr ?a(size nat64) unsafe
-	if res ?= size wrap-mul size-of<?a> try-alloc
-		res.ptr-cast<?a, nat8> some
+try-alloc-uninitialized<a> opt ptr a(size nat64) unsafe
+	if res ?= size wrap-mul size-of<a> try-alloc
+		res.ptr-cast<a, nat8> some
 
-unmanaged-alloc-uninitialized ptr ?a() noctx unsafe
-	1 unmanaged-alloc-elements<?a>
+unmanaged-alloc-uninitialized<a> ptr a() noctx unsafe
+	1 unmanaged-alloc-elements<a>
 
 unmanaged-alloc-bytes any-ptr(size nat64) noctx unsafe
 	res = size malloc
 	hard-assert: res != null
 	res
 
-unmanaged-alloc-zeroed-elements ptr ?a(size-elements nat64) noctx unsafe
-	res = size-elements unmanaged-alloc-elements<?a>
+unmanaged-alloc-zeroed-elements<a> ptr a(size-elements nat64) noctx unsafe
+	res = size-elements unmanaged-alloc-elements<a>
 	res set-zero-range size-elements
 	res
 
-unmanaged-alloc-elements ptr ?a(size-elements nat64) noctx unsafe
+unmanaged-alloc-elements<a> ptr a(size-elements nat64) noctx unsafe
 	# TODO: wrap-mul is unsafe!
-	ptr-cast: size-elements wrap-mul size-of<?a> unmanaged-alloc-bytes
+	ptr-cast: size-elements wrap-mul size-of<a> unmanaged-alloc-bytes
 
-unmanaged-free void(p ptr ?a) noctx unsafe
+unmanaged-free<a> void(p ptr a) noctx unsafe
 	p.ptr-cast free
 
-copy-data-from! void(to ptr ?a, from ptr ?a, len nat64) unsafe
-	drop: to.as-any-ptr memcpy: from.as-any-ptr, len wrap-mul size-of<?a>
+copy-data-from!<a> void(to ptr a, from ptr a, len nat64) unsafe
+	drop: to.as-any-ptr memcpy: from.as-any-ptr, len wrap-mul size-of<a>
 
-fill-ptr-range void(begin ptr ?a, size nat64, f act ?a(nat64)) unsafe
+fill-ptr-range<a> void(begin ptr a, size nat64, f act a(nat64)) unsafe
 	begin fill-ptr-range-recur 0, size, f
 
-.fill-ptr-range-recur void(begin ptr ?a, i nat64, size nat64, f act ?a(nat64)) unsafe
+.fill-ptr-range-recur<a> void(begin ptr a, i nat64, size nat64, f act a(nat64)) unsafe
 	if i != size
 		begin[i] := f[i]
 		begin fill-ptr-range-recur (i wrap-add 1), size, f

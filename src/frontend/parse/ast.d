@@ -74,15 +74,9 @@ struct TypeAst {
 		immutable Ptr!TypeAst left;
 	}
 
-	struct TypeParam {
-		immutable RangeWithinFile range;
-		immutable Sym name;
-	}
-
 	@trusted immutable this(immutable Fun a) { kind = Kind.fun; fun = a; }
 	@trusted immutable this(immutable InstStruct a) { kind = Kind.instStruct; instStruct = a; }
 	immutable this(immutable Suffix a) { kind = Kind.suffix; suffix = a; }
-	@trusted immutable this(immutable TypeParam a) { kind = Kind.typeParam; typeParam = a; }
 
 	private:
 
@@ -90,14 +84,12 @@ struct TypeAst {
 		fun,
 		instStruct,
 		suffix,
-		typeParam,
 	}
 	immutable Kind kind;
 	union {
 		immutable Fun fun;
 		immutable InstStruct instStruct;
 		immutable Suffix suffix;
-		immutable TypeParam typeParam;
 	}
 }
 static assert(TypeAst.sizeof <= 40);
@@ -107,7 +99,6 @@ static assert(TypeAst.sizeof <= 40);
 	scope T delegate(ref immutable TypeAst.Fun) @safe @nogc pure nothrow cbFun,
 	scope T delegate(ref immutable TypeAst.InstStruct) @safe @nogc pure nothrow cbInstStruct,
 	scope T delegate(ref immutable TypeAst.Suffix) @safe @nogc pure nothrow cbSuffix,
-	scope T delegate(ref immutable TypeAst.TypeParam) @safe @nogc pure nothrow cbTypeParam,
 ) {
 	final switch (a.kind) {
 		case TypeAst.Kind.fun:
@@ -116,8 +107,6 @@ static assert(TypeAst.sizeof <= 40);
 			return cbInstStruct(a.instStruct);
 		case TypeAst.Kind.suffix:
 			return cbSuffix(a.suffix);
-		case TypeAst.Kind.typeParam:
-			return cbTypeParam(a.typeParam);
 	}
 }
 
@@ -126,8 +115,7 @@ immutable(RangeWithinFile) range(ref immutable TypeAst a) {
 		a,
 		(ref immutable TypeAst.Fun it) => it.range,
 		(ref immutable TypeAst.InstStruct it) => it.range,
-		(ref immutable TypeAst.Suffix it) => range(it),
-		(ref immutable TypeAst.TypeParam it) => it.range);
+		(ref immutable TypeAst.Suffix it) => range(it));
 }
 
 immutable(RangeWithinFile) range(ref immutable TypeAst.Suffix a) {
@@ -491,12 +479,6 @@ struct ExprAst {
 }
 static assert(ExprAst.sizeof <= 56);
 
-// This is the declaration, TypeAst.TypeParam is the use
-struct TypeParamAst {
-	immutable RangeWithinFile range;
-	immutable Sym name;
-}
-
 struct ParamAst {
 	immutable RangeWithinFile range;
 	immutable Opt!Sym name;
@@ -555,7 +537,7 @@ struct StructAliasAst {
 	immutable SafeCStr docComment;
 	immutable bool isPublic;
 	immutable Sym name;
-	immutable ArrWithSize!TypeParamAst typeParams;
+	immutable ArrWithSize!NameAndRange typeParams;
 	immutable Ptr!TypeAst target;
 }
 
@@ -720,7 +702,7 @@ struct StructDeclAst {
 	immutable SafeCStr docComment;
 	immutable bool isPublic;
 	immutable Sym name; // start is range.start
-	immutable ArrWithSize!TypeParamAst typeParams;
+	immutable ArrWithSize!NameAndRange typeParams;
 	immutable Opt!PuritySpecifierAndRange purity;
 	immutable Body body_;
 }
@@ -798,7 +780,7 @@ struct SpecDeclAst {
 	immutable SafeCStr docComment;
 	immutable bool isPublic;
 	immutable Sym name;
-	immutable ArrWithSize!TypeParamAst typeParams;
+	immutable ArrWithSize!NameAndRange typeParams;
 	immutable SpecBodyAst body_;
 }
 
@@ -849,7 +831,7 @@ struct FunBodyAst {
 struct FunDeclAst {
 	immutable RangeWithinFile range;
 	immutable SafeCStr docComment;
-	immutable ArrWithSize!TypeParamAst typeParams; // If this is empty, infer type params
+	immutable ArrWithSize!NameAndRange typeParams;
 	immutable Ptr!SigAst sig; // Ptr to keep this struct from getting too big
 	immutable SpecUseAst[] specUses;
 	immutable bool isPublic;
@@ -953,8 +935,7 @@ immutable(Repr) reprSpecDeclAst(Alloc)(ref Alloc alloc, ref immutable SpecDeclAs
 		reprStr(a.docComment),
 		reprBool(a.isPublic),
 		reprSym(a.name),
-		reprArr(alloc, toArr(a.typeParams), (ref immutable TypeParamAst it) =>
-			reprTypeParamAst(alloc, it)),
+		reprTypeParams(alloc, a.typeParams),
 		reprSpecBodyAst(alloc, a.body_)]);
 }
 
@@ -974,8 +955,7 @@ immutable(Repr) reprStructAliasAst(Alloc)(ref Alloc alloc, ref immutable StructA
 		reprStr(a.docComment),
 		reprBool(a.isPublic),
 		reprSym(a.name),
-		reprArr(alloc, toArr(a.typeParams), (ref immutable TypeParamAst it) =>
-			reprTypeParamAst(alloc, it)),
+		reprTypeParams(alloc, a.typeParams),
 		reprTypeAst(alloc, a.target)]);
 }
 
@@ -1091,8 +1071,7 @@ immutable(Repr) reprStructDeclAst(Alloc)(ref Alloc alloc, ref immutable StructDe
 		reprRangeWithinFile(alloc, a.range),
 		reprStr(a.docComment),
 		reprBool(a.isPublic),
-		reprArr(alloc, toArr(a.typeParams), (ref immutable TypeParamAst a) =>
-			reprTypeParamAst(alloc, a)),
+		reprTypeParams(alloc, a.typeParams),
 		reprOptPurity(alloc, a.purity),
 		reprStructBodyAst(alloc, a.body_)]);
 }
@@ -1105,8 +1084,7 @@ immutable(Repr) reprFunDeclAst(Alloc)(ref Alloc alloc, ref immutable FunDeclAst 
 	if (!empty(toArr(a.typeParams)))
 		add(alloc, fields, nameAndRepr(
 			"typeparams",
-			reprArr(alloc, toArr(a.typeParams), (ref immutable TypeParamAst t) =>
-				reprTypeParamAst(alloc, t))));
+			reprTypeParams(alloc, a.typeParams)));
 	add(alloc, fields, nameAndRepr("sig", reprSig(alloc, a.sig)));
 	if (!empty(a.specUses))
 		add(alloc, fields, nameAndRepr("spec-uses", reprArr(alloc, a.specUses, (ref immutable SpecUseAst s) =>
@@ -1121,10 +1099,6 @@ immutable(Repr) reprFunDeclAst(Alloc)(ref Alloc alloc, ref immutable FunDeclAst 
 		add(alloc, fields, nameAndRepr("trusted", reprBool(true)));
 	add(alloc, fields, nameAndRepr("body", reprFunBodyAst(alloc, a.body_)));
 	return reprNamedRecord("fun-decl", finishArr(alloc, fields));
-}
-
-immutable(Repr) reprTypeParamAst(Alloc)(ref Alloc alloc, ref immutable TypeParamAst a) {
-	return reprRecord(alloc, "type-param", [reprRangeWithinFile(alloc, a.range), reprSym(a.name)]);
 }
 
 immutable(Repr) reprSig(Alloc)(ref Alloc alloc, ref immutable SigAst a) {
@@ -1157,9 +1131,7 @@ immutable(Repr) reprTypeAst(Alloc)(ref Alloc alloc, ref immutable TypeAst a) {
 		(ref immutable TypeAst.Suffix it) =>
 			reprRecord(alloc, "suffix", [
 				reprTypeAst(alloc, it.left),
-				reprSym(symForTypeAstSuffix(it.kind))]),
-		(ref immutable TypeAst.TypeParam p) =>
-			reprRecord(alloc, "type-param", [reprRangeWithinFile(alloc, p.range), reprSym(p.name)]));
+				reprSym(symForTypeAstSuffix(it.kind))]));
 }
 
 immutable(Sym) symOfFunKind(immutable TypeAst.Fun.Kind a) {
@@ -1318,4 +1290,9 @@ immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 		case CallAst.Style.subscript:
 			return shortSymAlphaLiteral("subscript");
 	}
+}
+
+immutable(Repr) reprTypeParams(Alloc)(ref Alloc alloc, immutable ArrWithSize!NameAndRange typeParams) {
+	return reprArr(alloc, toArr(typeParams), (ref immutable NameAndRange a) =>
+		reprNameAndRange(alloc, a));
 }

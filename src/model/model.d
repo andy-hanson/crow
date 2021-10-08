@@ -1682,7 +1682,6 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Type type) {
 			writeStatic(writer, "<<bogus>>");
 		},
 		(immutable Ptr!TypeParam p) {
-			writeChar(writer, '?');
 			writeSym(writer, p.name);
 		},
 		(immutable Ptr!StructInst s) {

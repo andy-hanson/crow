@@ -23,25 +23,25 @@ import
 		cast-immutable, copy-from!, fill-mut-arr, set-subscript, size, subscript,
 		uninitialized-mut-arr
 
-lookup<?k, ?v> record
+lookup<k, v> record
 	# TODO:PRIVATE
 	ignore void
-	root node<?k, ?v>
+	root node<k, v>
 
-node<?k, ?v> union
-	inner-node<?k, ?v>
-	leaf-node<?k, ?v>
+node<k, v> union
+	inner-node<k, v>
+	leaf-node<k, v>
 
-.inner-node<?k, ?v> record
+.inner-node<k, v> record
 	# Nodes keyed by the next 3 bits of the hash.
 	# An inner-node should always have at least 2 non-empty children.
-	children node<?k, ?v>[]
+	children node<k, v>[]
 
-.leaf-node<?k, ?v> record
+.leaf-node<k, v> record
 	# Unordered
-	pairs arrow<?k, ?v>[]
+	pairs arrow<k, v>[]
 
-.empty-leaf-node leaf-node<?k, ?v>()
+.empty-leaf-node<k, v> leaf-node<k, v>()
 	leaf-node: []
 
 .low-bits nat64(a nat64)
@@ -53,9 +53,9 @@ node<?k, ?v> union
 .leaf-max-size nat64()
 	8
 
-alloc-count nat64(a lookup<?k, ?v>) unsafe
+alloc-count<k, v> nat64(a lookup<k, v>) unsafe
 	0 alloc-count-recur a.root
-.alloc-count-recur nat64(acc nat64, a node<?k, ?v>) unsafe
+.alloc-count-recur<k, v> nat64(acc nat64, a node<k, v>) unsafe
 	match a
 	as inner-node i
 		acc wrap-add 1 fold i.children, (cur, child) =>
@@ -63,10 +63,10 @@ alloc-count nat64(a lookup<?k, ?v>) unsafe
 	as leaf-node
 		acc wrap-add 1
 
-overhead-bytes nat64(a lookup<?k, ?v>) unsafe
+overhead-bytes<k, v> nat64(a lookup<k, v>) unsafe
 	0 overhead-bytes-recur a.root
-.overhead-bytes-recur nat64(acc nat64, a node<?k, ?v>) unsafe
-	mid = acc wrap-add size-of<node<?k, ?v>>
+.overhead-bytes-recur<k, v> nat64(acc nat64, a node<k, v>) unsafe
+	mid = acc wrap-add size-of<node<k, v>>
 	match a
 	as inner-node i
 		mid fold i.children, (cur, child) =>
@@ -74,48 +74,48 @@ overhead-bytes nat64(a lookup<?k, ?v>) unsafe
 	as leaf-node
 		mid
 
-lookup lookup<?k, ?v>() data<?k> compare<?k> hash-mix<?k>
+lookup<k, v> lookup<k, v>() data<k> compare<k> hash-mix<k>
 	lookup: void, empty-leaf-node
 
-lookup lookup<?k, ?v>(a arrow<?k, ?v>[]) data<?k> compare<?k> hash-mix<?k>
+lookup<k, v> lookup<k, v>(a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	if a.size <= 4 && a.no-duplicate-keys
 		lookup: void, leaf-node: a
 	else
 		lookup fold a, (cur, x) => cur ~ x
 
-.no-duplicate-keys bool(a arrow<?k, ?v>[]) compare<?k>
+.no-duplicate-keys<k, v> bool(a arrow<k, v>[]) compare<k>
 	if a.size <= 1
 		true
 	else
 		key = a[0] from
 		a.tail every (it => it.from != key) && a.tail.no-duplicate-keys
 
-is-empty bool(a lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
+is-empty<k, v> bool(a lookup<k, v>) data<k> compare<k> hash-mix<k>
 	a.root node-is-empty
-.node-is-empty bool(a node<?k, ?v>)
+.node-is-empty<k, v> bool(a node<k, v>)
 	match a
 	as inner-node
 		false
 	as leaf-node l
 		l.pairs is-empty
 
-size nat64(a lookup<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
+size<k, v> nat64(a lookup<k, v>) data<k> compare<k> hash-mix<k>
 	0 size-recur a.root
-.size-recur nat64(acc nat64, a node<?k, ?v>)
+.size-recur<k, v> nat64(acc nat64, a node<k, v>)
 	match a
 	as inner-node i
 		acc fold i.children, (cur, child) => cur size-recur child
 	as leaf-node l
 		acc wrap-add l.pairs.size
 
-subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
+subscript<k, v> opt v(a lookup<k, v>, key k) data<k> compare<k> hash-mix<k>
 	match a root
 	as inner-node
 		hash = key hash
 		a.root subscript-recur key, hash
 	as leaf-node l
 		l.pairs subscript-leaf-recur key
-.subscript-recur opt ?v(a node<?k, ?v>, key ?k, remaining-hash nat64) trusted data<?k> compare<?k> hash-mix<?k>
+.subscript-recur<k, v> opt v(a node<k, v>, key k, remaining-hash nat64) trusted data<k> compare<k> hash-mix<k>
 	match a
 	as inner-node i
 		which = remaining-hash low-bits
@@ -123,7 +123,7 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 			i.children[which] subscript-recur: key, remaining-hash unsafe-bit-shift-right inner-node-n-bits
 	as leaf-node l
 		l.pairs subscript-leaf-recur key
-.subscript-leaf-recur opt ?v(a arrow<?k, ?v>[], key ?k) compare<?k>
+.subscript-leaf-recur<k, v> opt v(a arrow<k, v>[], key k) compare<k>
 	if a is-empty
 		none
 	elif a[0].from == key
@@ -131,7 +131,7 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 	else
 		a.tail subscript-leaf-recur key
 
-~ lookup<?k, ?v>(a lookup<?k, ?v>, pair arrow<?k, ?v>) data<?k> compare<?k> hash-mix<?k>
+~ <k, v> lookup<k, v>(a lookup<k, v>, pair arrow<k, v>) data<k> compare<k> hash-mix<k>
 	res = a get-or-update pair.from, (old-value) =>
 		pair.to insert
 	if node ?= res new-node
@@ -139,18 +139,18 @@ subscript opt ?v(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
 	else
 		a
 
-~ lookup<?k, ?v>(a lookup<?k, ?v>, pairs arrow<?k, ?v>[]) data<?k> compare<?k> hash-mix<?k>
+~ <k, v> lookup<k, v>(a lookup<k, v>, pairs arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	a fold pairs, (cur, pair) => cur ~ pair
 
-try-add-result<?k, ?v> union
-	already-has-key<?v>
-	lookup<?k, ?v>
+try-add-result<k, v> union
+	already-has-key<v>
+	lookup<k, v>
 
-already-has-key<?v> record
-	value ?v
+already-has-key<v> record
+	value v
 
 # Adds a value if the key doesn't already exist
-try-add try-add-result<?k, ?v>(a lookup<?k, ?v>, key ?k, get-value act ?v()) data<?k> compare<?k> hash-mix<?k>
+try-add<k, v> try-add-result<k, v>(a lookup<k, v>, key k, get-value act v()) data<k> compare<k> hash-mix<k>
 	res = a get-or-update key, old-value =>
 		if old-value is-empty
 			get-value[] insert
@@ -161,48 +161,47 @@ try-add try-add-result<?k, ?v>(a lookup<?k, ?v>, key ?k, get-value act ?v()) dat
 	else
 		lookup: void, res.new-node.force
 
-- lookup<?k, ?v>(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
+- <k, v> lookup<k, v>(a lookup<k, v>, key k) data<k> compare<k> hash-mix<k>
 	if res ?= a try-remove key
 		res new-lookup
 	else
 		a
 
-try-remove-result<?k, ?v> record
+try-remove-result<k, v> record
 	by-val
-	old-value ?v
-	new-lookup lookup<?k, ?v>
+	old-value v
+	new-lookup lookup<k, v>
 
-try-remove opt try-remove-result<?k, ?v>(a lookup<?k, ?v>, key ?k) data<?k> compare<?k> hash-mix<?k>
+try-remove<k, v> opt try-remove-result<k, v>(a lookup<k, v>, key k) data<k> compare<k> hash-mix<k>
 	res = a get-or-update key, old-value => remove
 	if value ?= res old-value
 		some: try-remove-result: value, lookup: void, res.new-node.force
 
-.get-or-update-result<?k, ?v> record
+.get-or-update-result<k, v> record
 	by-val
 	# If none, don't update anything
-	new-node opt node<?k, ?v>
-	old-value opt ?v
+	new-node opt node<k, v>
+	old-value opt v
 
-
-.get-or-update-action<?v> union
+.get-or-update-action<v> union
 	no-change
 	remove
-	insert<?v>
+	insert<v>
 .no-change record
 .remove record
-.insert<?v> record
-	value ?v
+.insert<v> record
+	value v
 
 ###
 `f` takes the old value and returns the new value, or 'none' to choose to preserve the old value.
 ###
-.get-or-update get-or-update-result<?k, ?v>
-	a lookup<?k, ?v>
-	key ?k
-	f act get-or-update-action ?v(opt ?v)
+.get-or-update<k, v> get-or-update-result<k, v>
+	a lookup<k, v>
+	key k
+	f act get-or-update-action v(opt v)
 spec
-	compare<?k>
-	hash-mix<?k>
+	compare<k>
+	hash-mix<k>
 body
 	hash = key hash
 	match a root
@@ -211,16 +210,16 @@ body
 	as leaf-node l
 		l get-or-update-leaf key, hash, 0, f
 
-.get-or-update-recur get-or-update-result<?k, ?v>
-	a node<?k, ?v>
-	key ?k
+.get-or-update-recur<k, v> get-or-update-result<k, v>
+	a node<k, v>
+	key k
 	remaining-hash nat64
 	hash-shift nat64
-	f act get-or-update-action ?v(opt ?v)
+	f act get-or-update-action v(opt v)
 spec
 	trusted
-	compare<?k>
-	hash-mix<?k>
+	compare<k>
+	hash-mix<k>
 body
 	match a
 	as inner-node i
@@ -243,14 +242,14 @@ body
 				# TODO: should be able to write this inline
 				pair = key -> ins.value
 				# TODO: type args should not be necessary
-				new-leaf = leaf-node<?k, ?v>: [pair]
+				new-leaf = leaf-node<k, v>: [pair]
 				# TODO: type args should not be necessary
-				new-node = inner-node<?k, ?v>: i.children update-with-default which, new-leaf, empty-leaf-node
+				new-node = inner-node<k, v>: i.children update-with-default which, new-leaf, empty-leaf-node
 				get-or-update-result: new-node.some, none
 	as leaf-node l
 		l get-or-update-leaf key, remaining-hash, hash-shift, f
 
-.update-child node<?k, ?v>(a inner-node<?k, ?v>, which nat64, new-child node<?k, ?v>)
+.update-child<k, v> node<k, v>(a inner-node<k, v>, which nat64, new-child node<k, v>)
 	if leaf ?= a inner-node-to-leaf which, new-child
 		leaf
 	elif new-child node-is-empty
@@ -270,7 +269,7 @@ body
 		inner-node: a.children update which, new-child
 
 # Returns 'some' if we should change this to a leaf.
-inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat64, new-child node<?k, ?v>) trusted
+.inner-node-to-leaf<k, v> opt leaf-node<k, v>(a inner-node<k, v>, which nat64, new-child node<k, v>) trusted
 	total-size = 0 fold-with-index a.children, (cur, child, child-index) =>
 		new-child-here = if child-index == which
 			new-child
@@ -283,7 +282,7 @@ inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat64, new-
 			cur wrap-add l.pairs.size
 	if total-size <= leaf-max-size
 		# TODO: if only one non-empty leaf, don't copy..
-		out = total-size uninitialized-mut-arr<arrow<?k, ?v>>
+		out = total-size uninitialized-mut-arr<arrow<k, v>>
 		end = 0 fold-with-index a.children, (out-index, child, child-index) =>
 			new-child-here = if child-index == which
 				new-child
@@ -299,33 +298,33 @@ inner-node-to-leaf opt leaf-node<?k, ?v>(a inner-node<?k, ?v>, which nat64, new-
 		assert: end == out.size
 		some: leaf-node: out cast-immutable
 
-.find-only-non-empty-child opt node<?k, ?v>(children node<?k, ?v>[])
+.find-only-non-empty-child<k, v> opt node<k, v>(children node<k, v>[])
 	first-non-empty-index = force: children find-index it => !it.node-is-empty
 	if children[(first-non-empty-index wrap-add 1) -> children.size] every it => it node-is-empty
 		children[first-non-empty-index] some
 
-.get-or-update-leaf get-or-update-result<?k, ?v>
-	a leaf-node<?k, ?v>
-	key ?k
+.get-or-update-leaf<k, v> get-or-update-result<k, v>
+	a leaf-node<k, v>
+	key k
 	remaining-hash nat64
 	hash-shift nat64
-	f act get-or-update-action ?v(opt ?v)
+	f act get-or-update-action v(opt v)
 spec
-	compare<?k>
-	hash-mix<?k>
+	compare<k>
+	hash-mix<k>
 body
 	if index ?= a.pairs find-index it => it.from == key
 		old-value = a.pairs[index] to
 		new-node = match f[old-value some]
 		as no-change
-			none as<opt node<?k, ?v>>
+			none as<opt node<k, v>>
 		as remove
 			some: leaf-node: a.pairs remove-at index
 		as insert ins
 			some: leaf-node: a.pairs update index, key -> ins.value
 		get-or-update-result: new-node, old-value.some
 	else
-		new-node = as<opt node<?k, ?v>>: match f[none]
+		new-node = as<opt node<k, v>>: match f[none]
 		as no-change
 			none
 		as remove
@@ -344,20 +343,20 @@ body
 		get-or-update-result: new-node, none
 
 # In order to get the hash, we need to know the shift amount
-.new-inner-node inner-node<?k, ?v>
-	a leaf-node<?k, ?v>
-	key ?k
-	value ?v
+.new-inner-node<k, v> inner-node<k, v>
+	a leaf-node<k, v>
+	key k
+	value v
 	hash nat64
 	hash-shift nat64
 spec
 	trusted
-	hash-mix<?k>
+	hash-mix<k>
 body
 	key-hash = hash low-bits
 	max-hash = key-hash fold a.pairs, (cur, pair) =>
 		cur max: pair.from.hash unsafe-bit-shift-right hash-shift low-bits
-	res = max-hash wrap-add 1 fill-mut-arr<node<?k, ?v>> empty-leaf-node
+	res = max-hash wrap-add 1 fill-mut-arr<node<k, v>> empty-leaf-node
 	# TODO: avoid allocating the same leaf twice...
 	res[key-hash] := leaf-node: [key -> value]
 	a.pairs each pair =>
@@ -371,22 +370,22 @@ body
 
 region iteration
 
-each-unordered void(a lookup<?k, ?v>, f act void(?k, ?v))
+each-unordered<k, v> void(a lookup<k, v>, f act void(k, v))
 	void fold-unordered a, (ignore, key, value) => f[key, value]
 
-each-key-unordered void(a lookup<?k, ?v>, f act void(?k))
+each-key-unordered<k, v> void(a lookup<k, v>, f act void(k))
 	void fold-keys-unordered a, (ignore, key) => f[key]
 
-fold-unordered ?a(acc ?a, a lookup<?k, ?v>, f act ?a(?a, ?k, ?v))
+fold-unordered<a, k, v> a(acc a, a lookup<k, v>, f act a(a, k, v))
 	acc fold-unordered-recur a.root, f
-.fold-unordered-recur ?a(acc ?a, a node<?k, ?v>, f act ?a(?a, ?k, ?v))
+.fold-unordered-recur<a, k, v> a(acc a, a node<k, v>, f act a(a, k, v))
 	match a
 	as inner-node i
 		acc fold i.children, (cur, child) => cur fold-unordered-recur child, f
 	as leaf-node l
 		acc fold l.pairs, (cur, pair) => f[cur, pair.from, pair.to]
 
-fold-keys-unordered ?a(acc ?a, a lookup<?k, ?v>, f act ?a(?a, ?k))
+fold-keys-unordered<a, k, v> a(acc a, a lookup<k, v>, f act a(a, k))
 	acc fold-unordered a, (cur, key, value) => f[cur, key]
 
 .dbg str(a lookup<nat64, str>)

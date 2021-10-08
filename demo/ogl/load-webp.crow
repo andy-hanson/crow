@@ -19,7 +19,7 @@ webp-rgba-image record mut
 	width nat
 	height nat
 
-with-webp ?a(path str, cb act ?a(webp-rgba-image)) unsafe summon
+with-webp<a> a(path str, cb act a(webp-rgba-image)) unsafe summon
 	image = path load-webp
 	(() => image free-webp) finally () => cb[image]
 

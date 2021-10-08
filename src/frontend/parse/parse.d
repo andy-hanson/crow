@@ -12,6 +12,7 @@ import frontend.parse.ast :
 	ImportAst,
 	ImportsOrExportsAst,
 	LiteralIntOrNat,
+	NameAndRange,
 	ParamAst,
 	PuritySpecifier,
 	PuritySpecifierAndRange,
@@ -23,8 +24,7 @@ import frontend.parse.ast :
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
-	TypeAst,
-	TypeParamAst;
+	TypeAst;
 import frontend.parse.lexer :
 	addDiagAtChar,
 	addDiagOnReservedName,
@@ -46,6 +46,7 @@ import frontend.parse.lexer :
 	takeIntOrNat,
 	takeName,
 	takeNameAllowReserved,
+	takeNameAndRange,
 	takeNameAsTempStr,
 	takeNewlineOrDedentAmount,
 	takeNewlineOrIndent_topLevel,
@@ -66,7 +67,7 @@ import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some
 import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : AllSymbols, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
+import util.sym : AllSymbols, isSymOperator, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
 import util.types : Nat8;
 import util.util : todo, unreachable, verify;
 
@@ -88,19 +89,20 @@ immutable(FileAstAndParseDiagnostics) parseFile(Alloc, PathAlloc, SymAlloc)(
 
 private:
 
-immutable(ArrWithSize!TypeParamAst) parseTypeParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	if (tryTake(lexer, '<')) {
-		ArrWithSizeBuilder!TypeParamAst res;
+immutable(ArrWithSize!NameAndRange) parseTypeParams(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable bool afterOperator,
+) {
+	if (afterOperator ? tryTake(lexer, " <") : tryTake(lexer, '<')) {
+		ArrWithSizeBuilder!NameAndRange res;
 		do {
-			immutable Pos start = curPos(lexer);
-			takeOrAddDiagExpected(alloc, lexer, '?', ParseDiag.Expected.Kind.typeParamQuestionMark);
-			immutable Sym name = takeName(alloc, lexer);
-			add(alloc, res, immutable TypeParamAst(range(lexer, start), name));
+			add(alloc, res, takeNameAndRange(alloc, lexer));
 		} while (tryTake(lexer, ", "));
 		takeTypeArgsEnd(alloc, lexer);
 		return finishArrWithSize(alloc, res);
 	} else
-		return emptyArrWithSize!TypeParamAst;
+		return emptyArrWithSize!NameAndRange;
 }
 
 immutable(Opt!PuritySpecifierAndRange) parsePurity(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -742,7 +744,7 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 	immutable bool isPublic,
 	immutable Pos start,
 	immutable Sym name,
-	immutable ArrWithSize!TypeParamAst typeParams,
+	immutable ArrWithSize!NameAndRange typeParams,
 ) {
 	immutable SigAstAndMaybeDedent sig = parseSigAfterNameAndSpace(alloc, lexer, start, name);
 	immutable FunDeclStuff stuff = () {
@@ -792,7 +794,7 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 	immutable Pos start = curPos(lexer);
 	immutable bool isPublic = !tryTake(lexer, '.');
 	immutable Sym name = takeName(alloc, lexer);
-	immutable ArrWithSize!TypeParamAst typeParams = parseTypeParams(alloc, lexer);
+	immutable ArrWithSize!NameAndRange typeParams = parseTypeParams(alloc, lexer, isSymOperator(name));
 	if (!tryTake(lexer, ' ')) {
 		if (symEq(name, shortSymAlphaLiteral("test"))) {
 			immutable ExprAst body_ = parseFunExprBody(alloc, lexer);
@@ -823,7 +825,7 @@ void handleNonFunKeywordAndIndent(Alloc, SymAlloc)(
 	immutable Pos start,
 	immutable bool isPublic,
 	immutable Sym name,
-	immutable ArrWithSize!TypeParamAst typeParams,
+	immutable ArrWithSize!NameAndRange typeParams,
 	immutable NonFunKeywordAndIndent kwAndIndent,
 ) {
 	immutable NonFunKeyword kw = kwAndIndent.keyword;

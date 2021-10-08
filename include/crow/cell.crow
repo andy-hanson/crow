@@ -12,21 +12,21 @@ c[] := c[] + 1
 c[] is 2
 ```
 ###
-cell<?a> record mut
-	subscript mut ?a
+cell<a> record mut
+	subscript mut a
 
 ###
 Treats a pointer as a cell.
 UB if the pointer does not point to a mutable value.
 ###
-as-cell cell ?a(a ptr ?a) noctx unsafe
+as-cell<a> cell a(a ptr a) noctx unsafe
 	a.as-any-ptr as-ref
 
-as-ptr ptr ?a(a cell ?a) noctx unsafe
+as-ptr<a> ptr a(a cell a) noctx unsafe
 	a.as-any-ptr ptr-cast
 
 # Put `v` into the cell, and return the old value.
-swap ?a(c cell ?a, v ?a) noctx
+swap<a> a(c cell a, v a) noctx
 	res = c[]
 	c[] := v
 	res

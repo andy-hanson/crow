@@ -49,7 +49,7 @@ forbid void(condition bool, message fun str())
 Fail unconditionally.
 This function is used to mark part of an `if` or `match` that should not be possible.
 ###
-unreachable ?a()
+unreachable<a> a()
 	"should be unreachable" throw
 
 region handling
@@ -58,7 +58,7 @@ region handling
 Run `try`, and then run `after`, even if `try` threw an exception.
 (The exception is only temporarily caught to run `after` and is then rethrown.)
 ###
-finally ?a(after act void(), try act ?a())
+finally<a> a(after act void(), try act a())
 	res = after do-if-error try
 	after[]
 	res
@@ -68,7 +68,7 @@ Run `try`, and if there is an exception run `on-error`.
 Unlike `finally` this does not run in the successful case.
 (The exception is only temporarily caught to run `after` and is then rethrown.)
 ###
-do-if-error ?a(on-error act void(), try act ?a())
+do-if-error<a> a(on-error act void(), try act a())
 	try catch err =>
 		on-error[]
 		err throw

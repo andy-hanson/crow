@@ -19,47 +19,47 @@ This is like a `set` but mutable, or like a `mut-dict` with no values.
 Unlike `mut-list`, values are in sorted order, not insertion order,
 and it never stores two of the same value.
 ###
-mut-set<?a> record mut
+mut-set<a> record mut
 	# TODO:PRIVATE
 	ignore void
-	inner mut-dict<?a, void>
+	inner mut-dict<a, void>
 
 # New empty `mut-set`.
-mut-set mut-set ?a() data<?a> compare<?a>
+mut-set<a> mut-set a() data<a> compare<a>
 	mut-set: void, mut-dict
 
 ###
 Copies the arr to a new mut-set.
 Result won't include any duplicated elements.
 ###
-mut-set mut-set ?a(a ?a[]) data<?a> compare<?a>
+mut-set<a> mut-set a(a a[]) data<a> compare<a>
 	mut-set: void, a map (x => x -> void) mut-dict
 
 # True iff the set has no elements.
-is-empty bool(a mut-set ?a) data<?a> compare<?a>
+is-empty<a> bool(a mut-set a) data<a> compare<a>
 	a.inner is-empty
 
 # Removes all elements.
-empty! void(a mut-set ?a) data<?a> compare<?a>
+empty!<a> void(a mut-set a) data<a> compare<a>
 	a.inner empty!
 
 # Number of values in the set.
-size nat64(a mut-set ?a) data<?a> compare<?a>
+size<a> nat64(a mut-set a) data<a> compare<a>
 	a.inner size
 
 # True iff the value is in the set.
-subscript bool(a mut-set ?a, value ?a) data<?a> compare<?a>
+subscript<a> bool(a mut-set a, value a) data<a> compare<a>
 	!a.inner[value].is-empty
 
 ###
 Adds a value to the set.
 Does nothing if the value is already in the set.
 ###
-~= void(a mut-set ?a, value ?a) data<?a> compare<?a>
+~= <a> void(a mut-set a, value a) data<a> compare<a>
 	a.inner[value] := void
 
 # Adds multiple values to the set.
-~= void(a mut-set ?a, values ?a[]) data<?a> compare<?a>
+~= <a> void(a mut-set a, values a[]) data<a> compare<a>
 	values each value =>
 		a ~= value
 
@@ -68,35 +68,35 @@ Removes a value from the set.
 If the value was present, removes it and returns `true`.
 If the value was not present, does nothing and returns `false`.
 ###
-remove! bool(a mut-set ?a, value ?a) data<?a> compare<?a>
+remove!<a> bool(a mut-set a, value a) data<a> compare<a>
 	!(a.inner remove-key! value is-empty)
 
 # Convert to an `arr`, clearing the original `mut-set` in the process.
-move-to-arr! ?a[](a mut-set ?a) data<?a> compare<?a>
+move-to-arr!<a> a[](a mut-set a) data<a> compare<a>
 	a.inner.move-to-arr! map pair => pair from
 
 # Convert to a `set`, clearning the original `mut-set` in the process.
-move-to-set! set ?a(a mut-set ?a) data<?a> compare<?a>
+move-to-set!<a> set a(a mut-set a) data<a> compare<a>
 	set: a.move-to-arr!
 
 region iteration
 
-each void(a mut-set ?a, f act void(?a)) data<?a> compare<?a>
+each<a> void(a mut-set a, f act void(a)) data<a> compare<a>
 	a.inner each (k, v) => f[k]
 
-fold ?a(acc ?a, a mut-set ?b, f act ?a(?a, ?b)) data<?b> compare<?b>
+fold<a, b> a(acc a, a mut-set b, f act a(a, b)) data<b> compare<b>
 	acc fold a.inner, (cur, k, v) => f[cur, k]
 
-filter mut-set ?a(a mut-set ?a, f act bool(?a)) data<?a> compare<?a>
+filter<a> mut-set a(a mut-set a, f act bool(a)) data<a> compare<a>
 	mut-set: void, a.inner filter (k, v) => f[k]
 
-map mut-set ?out(a mut-set ?in, f act ?out(?in)) data<?in> compare<?in> data<?out> compare<?out>
+map<out, in> mut-set out(a mut-set in, f act out(in)) data<in> compare<in> data<out> compare<out>
 	mut-set: void, a.inner map (k, v) => f[k] -> void
 
 region mutating iteration
 
-filter! void(a mut-set ?a, f act bool(?a)) data<?a> compare<?a>
+filter!<a> void(a mut-set a, f act bool(a)) data<a> compare<a>
 	a.inner filter! (k, v) => f[k]
 
-map! void(a mut-set ?a, f act ?a(?a)) data<?a> compare<?a>
+map!<a> void(a mut-set a, f act a(a)) data<a> compare<a>
 	a.inner map! (k, v) => f[k] -> void

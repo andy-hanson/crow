@@ -21,7 +21,7 @@ reader record mut
 reader reader(a str) trusted
 	a.chars.begin-ptr reader a.chars.end-ptr
 
-with-reader opt ?a(a str, f act opt ?a(reader))
+with-reader<a> opt a(a str, f act opt a(reader))
 	reader = a reader
 	res = f[reader]
 	if !res.is-empty && reader.is-empty

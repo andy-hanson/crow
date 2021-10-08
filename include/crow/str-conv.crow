@@ -88,14 +88,14 @@ to-hex str(a nat8)
 	a.to-nat64 to-base base
 
 # Spec of any type that could be converted to a str.
-to-str<?a> spec
-	to-str str(a ?a)
+to-str<a> spec
+	to-str str(a a)
 
 # Identity function to satisfy the `to-str` spec.
 to-str str(a str)
 	a
 
-to-str str(a opt ?a) to-str<?a>
+to-str<a> str(a opt a) to-str<a>
 	if v ?= a
 		"some({v})"
 	else
@@ -182,7 +182,7 @@ with-str interp(a interp, b str)
 	a.inner ~= b chars
 	a
 
-with-value interp(a interp, b ?a) to-str<?a>
+with-value<a> interp(a interp, b a) to-str<a>
 	a with-str b.to-str
 
 finish str(a interp)

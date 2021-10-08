@@ -24,19 +24,19 @@ delay fut void()
 	void resolved
 
 # Converts a value to a `fut` resolved with that value.
-resolved fut ?a(value ?a)
+resolved<a> fut a(value a)
 	fut: lock-by-val, fut-state-resolved: value
 
 # Returns a `fut` resolved with an exception.
-rejected fut ?a(err exception)
+rejected<a> fut a(err exception)
 	fut: lock-by-val, err
 
 ###
 Calls `f` after both `a` and `b` have resolved.
 Returns a fut that will be resolved by the result of `f`.
 ###
-join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out> send<?in0> send<?in1>
-	res = unresolved<?out>
+join<out, in0, in1> fut out(a fut in0, b fut in1, f ref out(in0, in1)) trusted send<out> send<in0> send<in1>
+	res = unresolved<out>
 	lock = lock
 	remaining = cell<nat64>: 2
 	decr-remaining = as<act void()>: () =>
@@ -50,7 +50,17 @@ join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out>
 		decr-remaining[]
 	res
 
-.finish-join! void(res fut ?out, a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) unsafe send<?out> send<?in0> send<?in1>
+.finish-join!<out, in0, in1> void
+	res fut out
+	a fut in0
+	b fut in1
+	f ref out(in0, in1)
+spec
+	unsafe
+	send<out>
+	send<in0>
+	send<in1>
+body
 	match a state
 	as fut-state-no-callbacks
 		hard-unreachable<void>
@@ -72,9 +82,9 @@ join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out>
 ###
 Returns a `fut` that is resolved when every element of the input has resolved.
 ###
-join fut ?a[](a fut<?a>[]) trusted send<?a> send<?a[]> summon
-	# TODO: send<?a[]> should be unnecessary
-	res = unresolved<?a[]>
+join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
+	# TODO: send<a[]> should be unnecessary
+	res = unresolved<a[]>
 	lock = lock
 	remaining = cell<nat64>: a.size
 	a each-with-index (in, index) =>
@@ -85,8 +95,8 @@ join fut ?a[](a fut<?a>[]) trusted send<?a> send<?a[]> summon
 					res finish-join! a
 	res
 
-# TODO: send<?a[]> should be unnecessary
-.finish-join! void(res fut ?a[], a fut<?a>[]) unsafe send<?a> send<?a[]> summon
+# TODO: send<a[]> should be unnecessary
+.finish-join!<a> void(res fut a[], a fut<a>[]) unsafe send<a> send<a[]> summon
 	exception = a first-some x =>
 		match x state
 		as fut-state-no-callbacks
@@ -102,7 +112,7 @@ join fut ?a[](a fut<?a>[]) trusted send<?a> send<?a[]> summon
 	else
 		res resolve!: a map (it => it must-be-resolved)
 
-.must-be-resolved ?a(a fut ?a) unsafe
+.must-be-resolved<a> a(a fut a) unsafe
 	match a state
 	as fut-state-no-callbacks
 		hard-unreachable
@@ -113,15 +123,15 @@ join fut ?a[](a fut<?a>[]) trusted send<?a> send<?a[]> summon
 	as exception
 		hard-unreachable
 
-.forward-to! void(from fut ?a, to fut ?a) unsafe
+.forward-to!<a> void(from fut a, to fut a) unsafe
 	from callback! it => to resolve-or-reject! it
 
 ###
 Converts a `fut` that may be resolved with an exception
 to a `fut result` that can only be successfully resolved.
 ###
-fut-catch fut result<?a, exception>(a fut ?a) trusted
-	res = unresolved<result<?a, exception>>
+fut-catch<a> fut result<a, exception>(a fut a) trusted
+	res = unresolved<result<a, exception>>
 	a callback! value => res resolve! value
 	res
 
@@ -131,8 +141,8 @@ Returns a fut for the result of `cb`.
 If `a` is resolved with an exception, never calls `cb`,
 and the result of `then` will have the same exception as `a`.
 ###
-then fut ?out(a fut ?in, cb ref ?out(?in)) trusted send<?out> send<?in>
-	res = unresolved<?out>
+then<out, in> fut out(a fut in, cb ref out(in)) trusted send<out> send<in>
+	res = unresolved<out>
 	a callback! result =>
 		match result
 		as ok o
@@ -146,15 +156,15 @@ then fut ?out(a fut ?in, cb ref ?out(?in)) trusted send<?out> send<?in>
 # and choose just one based on the arity of a lambda.
 
 # Like `then`, but `cb` takes no parameter (since it will be `void` anyway.)
-then-void fut ?out(a fut void, cb ref ?out()) send<?out>
+then-void<out> fut out(a fut void, cb ref out()) send<out>
 	a then ignore =>
 		cb[]
 
 ###
 Run `f` in a parallel task and return a `fut` for its result.
 ###
-launch fut ?a(f fun fut ?a()) trusted
-	res = unresolved<?a>
+launch<a> fut a(f fun fut a()) trusted
+	res = unresolved<a>
 	island = get-cur-island
 	island add-task island.new-exclusion, () =>
 		f[] forward-to! res
@@ -164,22 +174,22 @@ launch fut ?a(f fun fut ?a()) trusted
 Enqueues a task that will call the function,
 and returns a `fut` for the result of that task.
 ###
-subscript fut ?r(f ref ?r()) trusted send<?r>
-	res = unresolved<?r>
+subscript<r> fut r(f ref r()) trusted send<r>
+	res = unresolved<r>
 	f.island-and-exclusion.island.get-island add-task f.island-and-exclusion.exclusion, () =>
 		(() => f.fun[] forward-to! res) catch err => res reject! err
 	res
 
-subscript fut ?r(f ref ?r(?p0), p0 ?p0) trusted send<?r> send<?p0>
+subscript<r, p0> fut r(f ref r(p0), p0 p0) trusted send<r> send<p0>
 	island = f.island-and-exclusion.island get-island
-	res = unresolved<?r>
+	res = unresolved<r>
 	island add-task f.island-and-exclusion.exclusion, () =>
 		(() => f.fun[p0] forward-to! res) catch err => res reject! err
 	res
 
-subscript fut ?r(f ref ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> send<?p1>
+subscript<r, p0, p1> fut r(f ref r(p0, p1), p0 p0, p1 p1) trusted send<r> send<p0> send<p1>
 	island = f.island-and-exclusion.island get-island
-	res = unresolved<?r>
+	res = unresolved<r>
 	island add-task f.island-and-exclusion.exclusion, () =>
 		(() => f.fun[p0, p1] forward-to! res) catch err => res reject! err
 	res
@@ -188,7 +198,7 @@ subscript fut ?r(f ref ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> 
 If the fut resolves successfully, does nothing.
 Else, this will call the default exception handler.
 ###
-handle-exceptions void(a fut ?a) trusted
+handle-exceptions<a> void(a fut a) trusted
 	a callback! result =>
 		match result
 		as ok

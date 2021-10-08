@@ -17,37 +17,37 @@ import
 		begin-ptr, cast-immutable, copy-from!, end-ptr, is-empty, mut-arr, set-zero-elements, size,
 		subscript, uninitialized-mut-arr, zeroed-mut-arr
 
-mut-deque<?a> record mut
+mut-deque<a> record mut
 	# TODO:PRIVATE
-	inner mut mut-arr ?a
+	inner mut mut-arr a
 	# Points to the first element. Null for an empty queue.
-	left mut ptr ?a
+	left mut ptr a
 	# Points to the element after the last. Null for an empty queue.
 	# This should never be inner.end-ptr, it wraps around to inner.begin-ptr
-	right mut ptr ?a
+	right mut ptr a
 
-mut-deque mut-deque ?a()
-	mut-deque: mut-arr<?a>, null, null
+mut-deque<a> mut-deque a()
+	mut-deque: mut-arr<a>, null, null
 
-arr ?a[](a mut-deque ?a) trusted
+arr<a> a[](a mut-deque a) trusted
 	a.mut-arr cast-immutable
 
-mut-arr mut-arr ?a(a mut-deque ?a) trusted
+mut-arr<a> mut-arr a(a mut-deque a) trusted
 	if a is-empty
 		mut-arr
 	else
-		res = a.size uninitialized-mut-arr<?a>
+		res = a.size uninitialized-mut-arr<a>
 		res copy-from-deque! a
 		res
 
-copy mut-deque ?a(a mut-deque ?a) trusted
+copy<a> mut-deque a(a mut-deque a) trusted
 	inner = a mut-arr
 	mut-deque: inner, inner.begin-ptr, inner.begin-ptr
 
-is-empty bool(a mut-deque ?a) trusted
+is-empty<a> bool(a mut-deque a) trusted
 	a.left == null
 
-size nat64(a mut-deque ?a) trusted
+size<a> nat64(a mut-deque a) trusted
 	match a.left <=> a.right
 	as less
 		a.right - a.left
@@ -60,7 +60,7 @@ size nat64(a mut-deque ?a) trusted
 		a.inner.end-ptr - a.left wrap-add a.right - a.inner.begin-ptr
 
 # Push a value to the left.
-push! void(value ?a, a mut-deque ?a) trusted
+push!<a> void(value a, a mut-deque a) trusted
 	a ensure-capacity!
 	if a.left == a.inner.begin-ptr
 		a.left := a.inner end-ptr
@@ -68,17 +68,17 @@ push! void(value ?a, a mut-deque ?a) trusted
 	a.left[] := value
 
 # Push a value to the right.
-push! void(a mut-deque ?a, value ?a) trusted
+push!<a> void(a mut-deque a, value a) trusted
 	a ensure-capacity!
 	assert: a.right < a.inner.end-ptr
 	a.right[] := value
 	a.right := a.right + 1
 
-first opt ?a(a mut-deque ?a) trusted
+first<a> opt a(a mut-deque a) trusted
 	if a.left != null
 		a.left[] some
 
-last opt ?a(a mut-deque ?a) trusted
+last<a> opt a(a mut-deque a) trusted
 	if a.right != null
 		fixed-right = if a.right == a.inner.begin-ptr
 			a.inner end-ptr
@@ -86,7 +86,7 @@ last opt ?a(a mut-deque ?a) trusted
 			a right
 		(fixed-right - 1)[] some
 
-pop-left! opt ?a(a mut-deque ?a) trusted
+pop-left!<a> opt a(a mut-deque a) trusted
 	if a.left != null
 		res = a.left[]
 		a.left[] := zeroed
@@ -99,7 +99,7 @@ pop-left! opt ?a(a mut-deque ?a) trusted
 			# Still hold on to `a inner`
 		res some
 
-pop-right! opt ?a(a mut-deque ?a) trusted
+pop-right!<a> opt a(a mut-deque a) trusted
 	if a.right != null
 		if a.right == a.inner.begin-ptr
 			a.right := a.inner end-ptr
@@ -113,11 +113,11 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 		res some
 
 # This temporarily breaks the invariant that a.left and a.right are null for an empty queue.
-.ensure-capacity! void(a mut-deque ?a) unsafe
+.ensure-capacity!<a> void(a mut-deque a) unsafe
 	if a.left == null
 		assert: a.right == null
 		if a.inner is-empty
-			a.inner := 2 zeroed-mut-arr<?a>
+			a.inner := 2 zeroed-mut-arr<a>
 		a.left := a.inner begin-ptr
 		a.right := a.left
 	else
@@ -127,14 +127,14 @@ pop-right! opt ?a(a mut-deque ?a) trusted
 			old-inner = a inner
 			old-capacity = old-inner size
 			new-capacity = old-capacity wrap-mul 2
-			new-inner = new-capacity uninitialized-mut-arr<?a>
+			new-inner = new-capacity uninitialized-mut-arr<a>
 			new-inner[0 -> old-capacity] copy-from-deque! a
 			new-inner[old-capacity -> new-capacity] set-zero-elements
 			a.inner := new-inner
 			a.left := a.inner begin-ptr
 			a.right := a.left + old-capacity
 
-.copy-from-deque! void(dest mut-arr ?a, a mut-deque ?a) trusted
+.copy-from-deque!<a> void(dest mut-arr a, a mut-deque a) trusted
 	assert: dest.size == a.size
 	if a.left < a.right
 		dest copy-from!: a.left arr-from-begin-end a.right

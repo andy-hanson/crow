@@ -404,7 +404,7 @@ immutable(FileAstAndArrDiagnosticAndLineAndColumnGetter) parseSingle(ModelAlloc,
 			arrLiteral!ParseDiagnostic(modelAlloc, [
 				immutable ParseDiagnostic(
 					RangeWithinFile.empty,
-					immutable ParseDiag(nu!(ParseDiag.FileDoesNotExist)(modelAlloc, importedFrom)))]),
+					immutable ParseDiag(immutable ParseDiag.FileDoesNotExist(importedFrom)))]),
 			lcg);
 }
 

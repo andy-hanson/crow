@@ -21,10 +21,10 @@ import
 		tail, uninitialized-mut-arr
 	./sort: sort-by, sort-by!
 
-priority-queue<?k, ?v> record
+priority-queue<k, v> record
 	# TODO: PRIVATE
 	ignore void
-	root opt node<?k, ?v>
+	root opt node<k, v>
 
 ###
 Priority queue consists of a linked list of nodes with two parts.
@@ -44,27 +44,27 @@ they would join with the `1` on the right to size 4, then with the `2` on the ri
 then with the `4` to size 10, then with the `8` to size 18, leaving only one node.)
 ###
 
-.node<?k, ?v> record
-	min arrow<?k, ?v>
-	pairs arrow<?k, ?v>[]
-	next opt node<?k, ?v>
+.node<k, v> record
+	min arrow<k, v>
+	pairs arrow<k, v>[]
+	next opt node<k, v>
 
-priority-queue priority-queue<?k, ?v>() data<?k> compare<?k>
+priority-queue<k, v> priority-queue<k, v>() data<k> compare<k>
 	priority-queue: void, none
 
-priority-queue priority-queue<?k, ?v>(a arrow<?k, ?v>[]) data<?k> compare<?k>
+priority-queue<k, v> priority-queue<k, v>(a arrow<k, v>[]) data<k> compare<k>
 	if a is-empty
 		priority-queue
 	else
 		sorted = a sort-by pair => pair from
 		priority-queue: void, some: node: sorted.first.force, sorted.tail, none
 
-is-empty bool(a priority-queue<?k, ?v>) data<?k> compare<?k>
+is-empty<k, v> bool(a priority-queue<k, v>) data<k> compare<k>
 	a.root is-empty
 
-size nat64(a priority-queue<?k, ?v>) data<?k> compare<?k>
+size<k, v> nat64(a priority-queue<k, v>) data<k> compare<k>
 	0 size-recur a.root
-.size-recur nat64(acc nat64, a opt node<?k, ?v>)
+.size-recur<k, v> nat64(acc nat64, a opt node<k, v>)
 	if node ?= a
 		acc wrap-add 1 wrap-add node.pairs.size size-recur node.next
 	else
@@ -74,14 +74,14 @@ size nat64(a priority-queue<?k, ?v>) data<?k> compare<?k>
 Add a pair to the queue.
 This is O(1).
 ###
-~ priority-queue<?k, ?v>(a priority-queue<?k, ?v>, b arrow<?k, ?v>) data<?k> compare<?k>
+~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b arrow<k, v>) data<k> compare<k>
 	priority-queue: void, some: node: b, [], a.root
 
-popped<?k, ?v> record
-	popped arrow<?k, ?v>
-	rest priority-queue<?k, ?v>
+popped<k, v> record
+	popped arrow<k, v>
+	rest priority-queue<k, v>
 
-pop opt popped<?k, ?v>(a priority-queue<?k, ?v>) data<?k> compare<?k>
+pop<k, v> opt popped<k, v>(a priority-queue<k, v>) data<k> compare<k>
 	if root ?= a.compact-leading-nodes root
 		if next ?= root next
 			some: if popped ?= next pop-no-compact-recur root.min.from
@@ -91,15 +91,15 @@ pop opt popped<?k, ?v>(a priority-queue<?k, ?v>) data<?k> compare<?k>
 		else
 			root.pop-from-node some
 
-.pop-from-node popped<?k, ?v>(a node<?k, ?v>)
-	rest = as<opt node<?k, ?v>>: if first ?= a.pairs first
+.pop-from-node<k, v> popped<k, v>(a node<k, v>)
+	rest = as<opt node<k, v>>: if first ?= a.pairs first
 		some: node: first, a.pairs.tail, a.next
 	else
 		a next
 	popped: a.min, priority-queue: void, rest
 
 # Returns none if this (or any following node) did not have a lower min.
-.pop-no-compact-recur opt popped<?k, ?v>(a node<?k, ?v>, min ?k) compare<?k>
+.pop-no-compact-recur<k, v> opt popped<k, v>(a node<k, v>, min k) compare<k>
 	is-min = a.min.from < min
 	next-popped = if next ?= a next
 		next pop-no-compact-recur if is-min
@@ -113,11 +113,11 @@ pop opt popped<?k, ?v>(a priority-queue<?k, ?v>) data<?k> compare<?k>
 	else
 		none
 
-combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
-	node = node<?k, ?v>: a.min, a.pairs, popped.rest.root
+combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
+	node = node<k, v>: a.min, a.pairs, popped.rest.root
 	popped: popped.popped, priority-queue: void, node.some
 
-.compact-leading-nodes priority-queue<?k, ?v>(a priority-queue<?k, ?v>) compare<?k> trusted
+.compact-leading-nodes<k, v> priority-queue<k, v>(a priority-queue<k, v>) compare<k> trusted
 	mid = a.root find-mid 0
 	if mid.n-before-mid == 0
 		a
@@ -129,13 +129,13 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 		as plan-will-compact w
 			root do-compact w.n-elements-to-compact, mid.mid
 
-.found-mid<?k, ?v> record
-	mid opt node<?k, ?v>
+.found-mid<k, v> record
+	mid opt node<k, v>
 	n-before-mid nat64
 
 # Finds the first node with 'pairs' non-empty.
 # Also returns the # of nodes before that
-.find-mid found-mid<?k, ?v>(a opt node<?k, ?v>, n-before nat64)
+.find-mid<k, v> found-mid<k, v>(a opt node<k, v>, n-before nat64)
 	if node ?= a
 		if node.pairs is-empty
 			node.next find-mid: n-before wrap-add 1
@@ -144,23 +144,23 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 	else
 		found-mid: none, n-before
 
-.plan-did-compact<?k, ?v> record
-	node node<?k, ?v>
+.plan-did-compact<k, v> record
+	node node<k, v>
 
-.plan-will-compact<?k, ?v> record
+.plan-will-compact<k, v> record
 	n-elements-to-compact nat64
 
-.plan<?k, ?v> union
-	plan-did-compact<?k, ?v>
-	plan-will-compact<?k, ?v>
+.plan<k, v> union
+	plan-did-compact<k, v>
+	plan-will-compact<k, v>
 
 # We only call this if we will definitely compact something,
 # TODO: 'plan' is misnamed, this now does the compaction during the recursion
-.plan plan<?k, ?v>(a opt node<?k, ?v>, root node<?k, ?v>, n-singles nat64) compare<?k>
+.plan<k, v> plan<k, v>(a opt node<k, v>, root node<k, v>, n-singles nat64) compare<k>
 	if node ?= a
 		match node.next plan root, n-singles
 		as plan-did-compact d
-			new-node = node<?k, ?v>: node.min, node.pairs, d.node.some
+			new-node = node<k, v>: node.min, node.pairs, d.node.some
 			plan-did-compact: new-node
 		as plan-will-compact c
 			node-size-here = 1 wrap-add node.pairs.size
@@ -170,10 +170,10 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 				compacted = root do-compact c.n-elements-to-compact, node.next
 				plan-did-compact: node: node.min, node.pairs, some: compacted
 	else
-		plan-will-compact<?k, ?v>: n-singles
+		plan-will-compact<k, v>: n-singles
 
-.do-compact node<?k, ?v>(root node<?k, ?v>, n-to-compact nat64, nodes-to-compact opt node<?k, ?v>) trusted compare<?k>
-	compacted = n-to-compact uninitialized-mut-arr<arrow<?k, ?v>>
+.do-compact<k, v> node<k, v>(root node<k, v>, n-to-compact nat64, nodes-to-compact opt node<k, v>) trusted compare<k>
+	compacted = n-to-compact uninitialized-mut-arr<arrow<k, v>>
 	mid = compacted.begin-ptr compact-non-singles! nodes-to-compact
 	end = mid compact-singles! root
 	assert: end == compacted.end-ptr
@@ -181,7 +181,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 	arr = compacted cast-immutable
 	node: arr.first.force, arr.tail, none
 
-.compact-singles! ptr arrow<?k, ?v>(out ptr arrow<?k, ?v>, a node<?k, ?v>) unsafe
+.compact-singles!<k, v> ptr arrow<k, v>(out ptr arrow<k, v>, a node<k, v>) unsafe
 	if a.pairs is-empty
 		# Output later nodes first to preserve insertion order (since they're inserted to the front)
 		pos = if next ?= a next
@@ -193,7 +193,7 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 	else
 		out
 
-.compact-non-singles! ptr arrow<?k, ?v>(out ptr arrow<?k, ?v>, a opt node<?k, ?v>) unsafe
+.compact-non-singles!<k, v> ptr arrow<k, v>(out ptr arrow<k, v>, a opt node<k, v>) unsafe
 	if node ?= a
 		out[] := node min
 		out2 = out + 1 fold node.pairs, (cur, x) =>
@@ -227,40 +227,40 @@ combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
 
 region iteration
 
-each void(a priority-queue<?k, ?v>, f act void(?k, ?v)) data<?k> compare<?k>
+each<k, v> void(a priority-queue<k, v>, f act void(k, v)) data<k> compare<k>
 	void fold a, (ignore, k, v) => f[k, v]
 
-fold ?a(acc ?a, a priority-queue<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare<?k>
+fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) data<k> compare<k>
 	acc walk-fold a.each-arr, f
 
-.each-part<?k, ?v> record mut
-	min mut arrow<?k, ?v>
-	pairs mut arrow<?k, ?v>[]
+.each-part<k, v> record mut
+	min mut arrow<k, v>
+	pairs mut arrow<k, v>[]
 
-.each-arr mut-arr each-part<?k, ?v>(a priority-queue<?k, ?v>) trusted compare<?k>
-	res = a.node-count uninitialized-mut-arr<each-part<?k, ?v>>
+.each-arr<k, v> mut-arr each-part<k, v>(a priority-queue<k, v>) trusted compare<k>
+	res = a.node-count uninitialized-mut-arr<each-part<k, v>>
 	end = res.begin-ptr fill-each-arr! a.root
 	assert: end == res.end-ptr
 	res sort-by! it => it.min from
 	res
 
-.node-count nat64(a priority-queue<?k, ?v>)
+.node-count<k, v> nat64(a priority-queue<k, v>)
 	0 node-count a.root
 
-.node-count nat64(acc nat64, a opt node<?k, ?v>)
+.node-count<k, v> nat64(acc nat64, a opt node<k, v>)
 	if node ?= a
 		acc wrap-add 1 node-count node.next
 	else
 		acc
 
-.fill-each-arr! ptr each-part<?k, ?v>(out ptr each-part<?k, ?v>, a opt node<?k, ?v>) unsafe
+.fill-each-arr!<k, v> ptr each-part<k, v>(out ptr each-part<k, v>, a opt node<k, v>) unsafe
 	if node ?= a
 		out[] := each-part: node.min, node.pairs
 		out + 1 fill-each-arr! node.next
 	else
 		out
 
-.walk-fold ?a(acc ?a, a mut-arr each-part<?k, ?v>, f act ?a(?a, ?k, ?v)) compare<?k>
+.walk-fold<a, k, v> a(acc a, a mut-arr each-part<k, v>, f act a(a, k, v)) compare<k>
 	if head ?= a first
 		min = head min
 		next-acc = f[acc, min from, min to]
@@ -274,15 +274,15 @@ fold ?a(acc ?a, a priority-queue<?k, ?v>, f act ?a(?a, ?k, ?v)) data<?k> compare
 	else
 		acc
 
-.swap-sorted! void(a mut-arr each-part<?k, ?v>) compare<?k>
+.swap-sorted!<k, v> void(a mut-arr each-part<k, v>) compare<k>
 	if a.size > 1 && a[0].min.from > a[1].min.from
 		temp = a[0]
 		a[0] := a[1]
 		a[1] := temp
 		a.tail swap-sorted!
 
-filter priority-queue<?k, ?v>(a priority-queue<?k, ?v>, f act bool(?k, ?v)) trusted data<?k> compare<?k>
-	out = a.size uninitialized-mut-arr<arrow<?k, ?v>>
+filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trusted data<k> compare<k>
+	out = a.size uninitialized-mut-arr<arrow<k, v>>
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		if f[k, v]
 			cur[] := k -> v
@@ -291,19 +291,19 @@ filter priority-queue<?k, ?v>(a priority-queue<?k, ?v>, f act bool(?k, ?v)) trus
 			cur
 	out[0 -> end - out.begin-ptr].cast-immutable priority-queue
 
-map priority-queue<?k-out, ?v-out>
-	a priority-queue<?k-in, ?v-in>
-	f act arrow<?k-out, ?v-out>(?k-in, ?v-in)
+map<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>
+	a priority-queue<k-in, v-in>
+	f act arrow<k-out, v-out>(k-in, v-in)
 spec
-	data<?k-in>
-	compare<?k-in>
-	data<?k-out>
-	compare<?k-out>
+	data<k-in>
+	compare<k-in>
+	data<k-out>
+	compare<k-out>
 body
 	a map-to-arr f priority-queue
 
-map-to-arr ?out[](a priority-queue<?k, ?v>, f act ?out(?k, ?v)) data<?k> compare<?k> trusted
-	out = a.size uninitialized-mut-arr<?out>
+map-to-arr<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) data<k> compare<k> trusted
+	out = a.size uninitialized-mut-arr<out>
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		cur[] := f[k, v]
 		cur + 1
@@ -311,10 +311,10 @@ map-to-arr ?out[](a priority-queue<?k, ?v>, f act ?out(?k, ?v)) data<?k> compare
 	arr = out.cast-immutable
 	arr
 
-keys ?k[](a priority-queue<?k, ?v>) data<?k> compare<?k>
+keys<k, v> k[](a priority-queue<k, v>) data<k> compare<k>
 	a map-to-arr (k, v) => k
 
-values ?v[](a priority-queue<?k, ?v>) data<?k> compare<?k>
+values<k, v> v[](a priority-queue<k, v>) data<k> compare<k>
 	a map-to-arr (k, v) => v
 
 test

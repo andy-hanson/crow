@@ -141,10 +141,10 @@ sub-bit nat64(a nat64, bit-index nat64)
 count-ones nat64(a nat64) noctx builtin
 
 # Calls 'f' on the index of each '1' bit.
-fold-one-bits ?a(acc ?a, a nat64, f act ?a(?a, nat64))
+fold-one-bits<a> a(acc a, a nat64, f act a(a, nat64))
 	acc fold-one-bits-recur a, 0, f
 # TODO:PERF
-.fold-one-bits-recur ?a(acc ?a, a nat64, offset nat64, f act ?a(?a, nat64)) trusted
+.fold-one-bits-recur<a> a(acc a, a nat64, offset nat64, f act a(a, nat64)) trusted
 	if a == 0
 		acc
 	else

@@ -1,0 +1,1 @@
+./test/compile-errors/type-param-cant-have-type-args.crow 1:13-1:18 a type parameter can't take type arguments

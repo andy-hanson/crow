@@ -1,5 +1,1 @@
-file-ast(
-	specs: []
-	aliases: []
-	structs: [struct(range(0, 17), "", true, [type-param(range(2, 4), a)], none, extern-ptr)]
-	funs: [])
+file-ast(specs: [], aliases: [], structs: [struct(range(0, 16), "", true, [name-range(2, a)], none, extern-ptr)], funs: [])

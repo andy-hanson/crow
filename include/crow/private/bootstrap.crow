@@ -6,58 +6,58 @@ void builtin
 
 void void() noctx builtin
 
-as ?a(value ?a) noctx builtin
+as<a> a(value a) noctx builtin
 
 ###
 A type is data if it is:
 * A primitive
 * A record or union of pure types
 ###
-data<?a> builtin-spec
+data<a> builtin-spec
 
 # A type is sendable if it does not have any thread-unsafe mutable state.
-send<?a> builtin-spec
+send<a> builtin-spec
 
-## TODO: extern<?a> builtin-spec for extern ptr types
+## TODO: extern<a> builtin-spec for extern ptr types
 
 region opt.crow
 
-opt<?a> union
+opt<a> union
 	none
-	some<?a>
+	some<a>
 
-some<?a> record
+some<a> record
 	by-val
-	value ?a
+	value a
 
 none record
 
 region result.crow
 
 # Union that represents a value that may have failed.
-result<?ok, ?err> union
-	ok<?ok>
-	err<?err>
+result<ok, err> union
+	ok<ok>
+	err<err>
 
 # Successful case of a result.
-ok<?a> record
+ok<a> record
 	by-val
-	value ?a
+	value a
 
 # Error case of a result.
-err<?a> record
+err<a> record
 	by-val
-	value ?a
+	value a
 
 region ptr.crow
 
-by-val<?a> builtin
+by-val<a> builtin
 
 ###
 A raw pointer. GC will not trace these.
-WARN: If ?a is a reference type, ptr<?a> is a pointer to a pointer to ?a
+WARN: If a is a reference type, ptr<a> is a pointer to a pointer to a
 ###
-ptr<?a> builtin mut
+ptr<a> builtin mut
 
 any-ptr alias
 	ptr nat8
@@ -75,10 +75,10 @@ This means this is also the type for a slice of an array, and slicing is O(1).
 A slice does not keep the whole array alive, only the elements it can reach;
 elements not reachable by any slice will be garbage collected.
 ###
-arr<?a> record force-data
+arr<a> record force-data
 	by-val
 	size nat64
-	begin-ptr ptr ?a
+	begin-ptr ptr a
 
 region str
 
@@ -135,13 +135,13 @@ abort void() noctx unsafe extern
 Zeroed data isn't safe as it would contain null pointers.
 It's GC-safe though, since the GC treats a null pointer same as any external pointer.
 ###
-zeroed ?a() noctx unsafe builtin
+zeroed<a> a() noctx unsafe builtin
 
-hard-unreachable ?a() unsafe noctx
+hard-unreachable<a> a() unsafe noctx
 	abort
 	zeroed
 
-todo ?a() trusted noctx
+todo<a> a() trusted noctx
 	## TODO: soft-fail, remove 'trusted noctx' above
 	abort
 	zeroed
@@ -192,104 +192,114 @@ island-and-exclusion record
 region fun
 
 # Low-level function pointer type. Must point to `noctx` code.
-fun-ptr0<?r> builtin
-fun-ptr1<?r, ?p0> builtin
-fun-ptr2<?r, ?p0, ?p1> builtin
-fun-ptr3<?r, ?p0, ?p1, ?p2> builtin
-fun-ptr4<?r, ?p0, ?p1, ?p2, ?p3> builtin
-fun-ptr5<?r, ?p0, ?p1, ?p2, ?p3, ?p4> builtin
-fun-ptr6<?r, ?p0, ?p1, ?p2, ?p3, ?p4, ?p5> builtin
+fun-ptr0<r> builtin
+fun-ptr1<r, p0> builtin
+fun-ptr2<r, p0, p1> builtin
+fun-ptr3<r, p0, p1, p2> builtin
+fun-ptr4<r, p0, p1, p2, p3> builtin
+fun-ptr5<r, p0, p1, p2, p3, p4> builtin
+fun-ptr6<r, p0, p1, p2, p3, p4, p5> builtin
 
 ###
-Don't reference directly, instead use syntax `fun ?r(?p0, ?p1)`
+Don't reference directly, instead use syntax `fun r(p0, p1)`
 Contrasted with `act`, a fun can't close over mutable data, so is thread-safe.
 It can still close over `send` data and perform I/O, so it's not a completely pure function.
 ###
-fun0<?r> builtin sendable
-fun1<?r, ?p0> builtin sendable
-fun2<?r, ?p0, ?p1> builtin sendable
-fun3<?r, ?p0, ?p1, ?p2> builtin sendable
-fun4<?r, ?p0, ?p1, ?p2, ?p3> builtin sendable
+fun0<r> builtin sendable
+fun1<r, p0> builtin sendable
+fun2<r, p0, p1> builtin sendable
+fun3<r, p0, p1, p2> builtin sendable
+fun4<r, p0, p1, p2, p3> builtin sendable
 
 ###
-Don't reference directly, instead use syntax `act ?r(?p0, ?p1)`
+Don't reference directly, instead use syntax `act r(p0, p1)`
 Can close over anything. Can only be run by the exclusion context that created it.
 ###
-fun-act0<?r> builtin mut
-fun-act1<?r, ?p0> builtin mut
-fun-act2<?r, ?p0, ?p1> builtin mut
-fun-act3<?r, ?p0, ?p1, ?p2> builtin mut
-fun-act4<?r, ?p0, ?p1, ?p2, ?p3> builtin mut
+fun-act0<r> builtin mut
+fun-act1<r, p0> builtin mut
+fun-act2<r, p0, p1> builtin mut
+fun-act3<r, p0, p1, p2> builtin mut
+fun-act4<r, p0, p1, p2, p3> builtin mut
 
 ###
-Don't reference directly, instead use syntax `act ?r(?p0, ?p1)`
+Don't reference directly, instead use syntax `act r(p0, p1)`
 This wraps an `act` combined with the island/exclusion it came from, and becomes sendable
 since the `act` can't be called directly. Instead, it adds a task to the island.
 ###
-fun-ref0<?r> record force-sendable
+fun-ref0<r> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun act fut ?r()
-fun-ref1<?r, ?p0> record force-sendable
+	fun act fut r()
+fun-ref1<r, p0> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun act fut ?r(?p0)
-fun-ref2<?r, ?p0, ?p1> record force-sendable
+	fun act fut r(p0)
+fun-ref2<r, p0, p1> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun act fut ?r(?p0, ?p1)
-fun-ref3<?r, ?p0, ?p1, ?p2> record force-sendable
+	fun act fut r(p0, p1)
+fun-ref3<r, p0, p1, p2> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun act fut ?r(?p0, ?p1, ?p2)
-fun-ref4<?r, ?p0, ?p1, ?p2, ?p3> record force-sendable
+	fun act fut r(p0, p1, p2)
+fun-ref4<r, p0, p1, p2, p3> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun act fut ?r(?p0, ?p1, ?p2, ?p3)
+	fun act fut r(p0, p1, p2, p3)
 
-# Calls the function (immediately) and returns its return value.
-subscript ?r(a fun-ptr0 ?r) noctx builtin
-subscript ?r(a fun-ptr1<?r, ?p0>, p0 ?p0) noctx builtin
-subscript ?r(a fun-ptr2<?r, ?p0, ?p1>, p0 ?p0, p1 ?p1) noctx builtin
-subscript ?r(a fun-ptr3<?r, ?p0, ?p1, ?p2>, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
-subscript ?r(a fun-ptr4<?r, ?p0, ?p1, ?p2, ?p3>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
-subscript ?r(a fun-ptr5<?r, ?p0, ?p1, ?p2, ?p3, ?p4>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4) noctx builtin
-subscript ?r(a fun-ptr6<?r, ?p0, ?p1, ?p2, ?p3, ?p4, ?p5>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4, p5 ?p5) noctx builtin
+# Calls the function and returns its return value.
+subscript<r, p0, p1> r(a fun-ptr0 r) noctx builtin
+subscript<r, p0> r(a fun-ptr1<r, p0>, p0 p0) noctx builtin
+subscript<r, p0, p1> r(a fun-ptr2<r, p0, p1>, p0 p0, p1 p1) noctx builtin
+subscript<r, p0, p1, p2> r(a fun-ptr3<r, p0, p1, p2>, p0 p0, p1 p1, p2 p2) noctx builtin
+subscript<r, p0, p1, p2, p3> r(a fun-ptr4<r, p0, p1, p2, p3>, p0 p0, p1 p1, p2 p2, p3 p3) noctx builtin
+subscript<r, p0, p1, p2, p3, p4> r(a fun-ptr5<r, p0, p1, p2, p3, p4>, p0 p0, p1 p1, p2 p2, p3 p3, p4 p4) noctx builtin
+subscript<r, p0, p1, p2, p3, p4, p5> r
+	a fun-ptr6<r, p0, p1, p2, p3, p4, p5>
+	p0 p0
+	p1 p1
+	p2 p2
+	p3 p3
+	p4 p4
+	p5 p5
+spec
+	noctx
+	builtin
 
-# Calls the function (immediately) and returns its return value.
-subscript ?r(a fun ?r()) trusted
+# Calls the function and returns its return value.
+subscript<r> r(a fun r()) trusted
 	a call-with-ctx get-ctx
-subscript ?r(a fun ?r(?p0), p0 ?p0) trusted
+subscript<r, p0> r(a fun r(p0), p0 p0) trusted
 	a call-with-ctx get-ctx, p0
-subscript ?r(a fun ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted
+subscript<r, p0, p1> r(a fun r(p0, p1), p0 p0, p1 p1) trusted
 	a call-with-ctx get-ctx, p0, p1
-subscript ?r(a fun ?r(?p0, ?p1, ?p2), p0 ?p0, p1 ?p1, p2 ?p2) trusted
+subscript<r, p0, p1, p2> r(a fun r(p0, p1, p2), p0 p0, p1 p1, p2 p2) trusted
 	a call-with-ctx get-ctx, p0, p1, p2
-subscript ?r(a fun ?r(?p0, ?p1, ?p2, ?p3), p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) trusted
+subscript<r, p0, p1, p2, p3> r(a fun r(p0, p1, p2, p3), p0 p0, p1 p1, p2 p2, p3 p3) trusted
 	a call-with-ctx get-ctx, p0, p1, p2, p3
 
-# Calls the function (immediately) and returns its return value.
-subscript ?r(a act ?r()) trusted
+# Calls the function and returns its return value.
+subscript<r> r(a act r()) trusted
 	a call-with-ctx get-ctx
-subscript ?r(a act ?r(?p0), p0 ?p0) trusted
+subscript<r, p0> r(a act r(p0), p0 p0) trusted
 	a call-with-ctx get-ctx, p0
-subscript ?r(a act ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted
+subscript<r, p0, p1> r(a act r(p0, p1), p0 p0, p1 p1) trusted
 	a call-with-ctx get-ctx, p0, p1
-subscript ?r(a act ?r(?p0, ?p1, ?p2), p0 ?p0, p1 ?p1, p2 ?p2) trusted
+subscript<r, p0, p1, p2> r(a act r(p0, p1, p2), p0 p0, p1 p1, p2 p2) trusted
 	a call-with-ctx get-ctx, p0, p1, p2
-subscript ?r(a act ?r(?p0, ?p1, ?p2, ?p3), p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) trusted
+subscript<r, p0, p1, p2, p3> r(a act r(p0, p1, p2, p3), p0 p0, p1 p1, p2 p2, p3 p3) trusted
 	a call-with-ctx get-ctx, p0, p1, p2, p3
 
-call-with-ctx ?r(f fun ?r(), c ctx) noctx builtin
-call-with-ctx ?r(f act ?r(), c ctx) noctx builtin
-call-with-ctx ?r(f fun ?r(?p0), c ctx, p0 ?p0) noctx builtin
-call-with-ctx ?r(f act ?r(?p0), c ctx, p0 ?p0) noctx builtin
-call-with-ctx ?r(f fun ?r(?p0, ?p1), c ctx, p0 ?p0, p1 ?p1) noctx builtin
-call-with-ctx ?r(f act ?r(?p0, ?p1), c ctx, p0 ?p0, p1 ?p1) noctx builtin
-call-with-ctx ?r(f fun ?r(?p0, ?p1, ?p2), c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
-call-with-ctx ?r(f act ?r(?p0, ?p1, ?p2), c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
-call-with-ctx ?r(f fun ?r(?p0, ?p1, ?p2, ?p3), c ctx, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
-call-with-ctx ?r(f act ?r(?p0, ?p1, ?p2, ?p3), c ctx, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
+call-with-ctx<r> r(f fun r(), c ctx) noctx builtin
+call-with-ctx<r> r(f act r(), c ctx) noctx builtin
+call-with-ctx<r, p0> r(f fun r(p0), c ctx, p0 p0) noctx builtin
+call-with-ctx<r, p0> r(f act r(p0), c ctx, p0 p0) noctx builtin
+call-with-ctx<r, p0, p1> r(f fun r(p0, p1), c ctx, p0 p0, p1 p1) noctx builtin
+call-with-ctx<r, p0, p1> r(f act r(p0, p1), c ctx, p0 p0, p1 p1) noctx builtin
+call-with-ctx<r, p0, p1, p2> r(f fun r(p0, p1, p2), c ctx, p0 p0, p1 p1, p2 p2) noctx builtin
+call-with-ctx<r, p0, p1, p2> r(f act r(p0, p1, p2), c ctx, p0 p0, p1 p1, p2 p2) noctx builtin
+call-with-ctx<r, p0, p1, p2, p3> r(f fun r(p0, p1, p2, p3), c ctx, p0 p0, p1 p1, p2 p2, p3 p3) noctx builtin
+call-with-ctx<r, p0, p1, p2, p3> r(f act r(p0, p1, p2, p3), c ctx, p0 p0, p1 p1, p2 p2, p3 p3) noctx builtin
 
 region fut
 
@@ -303,26 +313,26 @@ exception record
 	## TODO: accessing backtrace should be unsafe
 	backtrace backtrace
 
-fut<?a> record force-sendable
+fut<a> record force-sendable
 	lk by-val lock
-	state mut fut-state ?a
+	state mut fut-state a
 
-fut-state<?a> union mut
+fut-state<a> union mut
 	fut-state-no-callbacks
-	fut-state-callbacks<?a>
-	fut-state-resolved<?a>
+	fut-state-callbacks<a>
+	fut-state-resolved<a>
 	exception
 
 fut-state-no-callbacks record
 
-fut-state-callbacks<?a> record mut
+fut-state-callbacks<a> record mut
 	by-ref
 	# WARN: the cb will be called with whatever ctx resolves the fut, not the ctx that created it
-	cb act void(result<?a, exception>)
-	next opt fut-state-callbacks ?a
+	cb act void(result<a, exception>)
+	next opt fut-state-callbacks a
 
-fut-state-resolved<?a> record
-	value ?a
+fut-state-resolved<a> record
+	value a
 
 region lock
 
@@ -336,10 +346,10 @@ lock record sendable
 
 region reflect
 
-named-val<?a> record
+named-val<a> record
 	by-val
 	name sym
-	val ?a
+	val a
 
 # all symbols that exist in the compiled code, in arbitrary order
 static-syms sym[]() noctx builtin

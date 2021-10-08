@@ -32,7 +32,7 @@ import model.model :
 	Type,
 	TypeParam,
 	typeParams;
-import util.collection.arr : at, size, toArr;
+import util.collection.arr : at, empty, size, toArr;
 import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map;
 import util.collection.dict : getAt;
 import util.opt : force, has, mapOption, none, Opt, some;
@@ -153,14 +153,23 @@ immutable(Type) typeFromAst(Alloc)(
 				default:
 					break;
 			}
-			return typeFromOptInst(instStructFromAst(
-				alloc,
-				ctx,
-				commonTypes,
-				iAst,
-				structsAndAliasesDict,
-				typeParamsScope,
-				delayStructInsts));
+
+			immutable Opt!(Ptr!TypeParam) found =
+				findPtr!TypeParam(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>
+					symEq(it.name, iAst.name.name));
+			if (has(found)) {
+				if (!empty(toArr(iAst.typeArgs)))
+					addDiag(alloc, ctx, iAst.range, immutable Diag(immutable Diag.TypeParamCantHaveTypeArgs()));
+				return immutable Type(force(found));
+			} else
+				return typeFromOptInst(instStructFromAst(
+					alloc,
+					ctx,
+					commonTypes,
+					iAst,
+					structsAndAliasesDict,
+					typeParamsScope,
+					delayStructInsts));
 		},
 		(ref immutable TypeAst.Suffix it) =>
 			typeFromOptInst(instStructFromAstInner(
@@ -172,19 +181,7 @@ immutable(Type) typeFromAst(Alloc)(
 				[it.left],
 				structsAndAliasesDict,
 				typeParamsScope,
-				delayStructInsts)),
-		(ref immutable TypeAst.TypeParam p) {
-			immutable Opt!(Ptr!TypeParam) found =
-				findPtr!TypeParam(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>
-					symEq(it.name, p.name));
-			if (has(found))
-				return immutable Type(force(found));
-			else {
-				addDiag(alloc, ctx, p.range, immutable Diag(
-					Diag.NameNotFound(Diag.NameNotFound.Kind.typeParam, p.name)));
-				return immutable Type(Type.Bogus());
-			}
-		});
+				delayStructInsts)));
 }
 
 private immutable(Type) typeFromOptInst(immutable Opt!(Ptr!StructInst) a) {

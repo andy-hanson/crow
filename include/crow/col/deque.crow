@@ -18,49 +18,49 @@ import
 		~, arr, arr-reverse, each, each-reverse, is-empty, fold, fold-reverse, pop, rest, size,
 		stack, value
 
-deque<?a> record
+deque<a> record
 	# TODO:PRIVATE
 	# NOTE: This is in reverse (top of the stack furthest left)
-	left stack ?a
-	mid ?a[]
-	right stack ?a
+	left stack a
+	mid a[]
+	right stack a
 
 # Empty deque.
-deque deque ?a()
+deque<a> deque a()
 	deque: []
 
 ###
 Convert an arr to a deque.
 This is O(1).
 ###
-deque deque ?a(a ?a[])
+deque<a> deque a(a a[])
 	deque: stack, a, stack
 
-arr ?a[](a deque ?a) trusted
-	res = a.size uninitialized-mut-arr<?a>
+arr<a> a[](a deque a) trusted
+	res = a.size uninitialized-mut-arr<a>
 	end = res.begin-ptr fold a, (out, x) =>
 		out[] := x
 		out + 1
 	assert: end == res.end-ptr
 	res cast-immutable
 
-is-empty bool(a deque ?a)
+is-empty<a> bool(a deque a)
 	a.left.is-empty && a.mid.is-empty && a.right.is-empty
 
-size nat64(a deque ?a)
+size<a> nat64(a deque a)
 	a.left.size wrap-add a.mid.size wrap-add a.right.size
 
-~ deque ?a(a deque ?a, value ?a)
+~ <a> deque a(a deque a, value a)
 	deque: a.left, a.mid, a.right ~ value
 
-~ deque ?a(value ?a, a deque ?a)
+~ <a> deque a(value a, a deque a)
 	deque: a.left ~ value, a.mid, a.right
 
-popped<?a> record
-	value ?a
-	rest deque ?a
+popped<a> record
+	value a
+	rest deque a
 
-pop-left opt popped ?a(a deque ?a)
+pop-left<a> opt popped a(a deque a)
 	if popped ?= a.left pop
 		some: popped: popped.value, deque: popped.rest, a.mid, a.right
 	elif first ?= a.mid first
@@ -70,7 +70,7 @@ pop-left opt popped ?a(a deque ?a)
 		if first ?= right-arr first
 			some: popped: first, deque: stack, right-arr.tail, stack
 
-pop-right opt popped ?a(a deque ?a)
+pop-right<a> opt popped a(a deque a)
 	if popped ?= a.right pop
 		some: popped: popped.value, deque: a.left, a.mid, popped.rest
 	elif last ?= a.mid last
@@ -82,16 +82,16 @@ pop-right opt popped ?a(a deque ?a)
 
 region iteration
 
-each void(a deque ?a, f act void(?a))
+each<a> void(a deque a, f act void(a))
 	a.left each-reverse f
 	a.mid each f
 	a.right each f
 
-fold ?a(acc ?a, a deque ?b, f act ?a(?a, ?b))
+fold<a, b> a(acc a, a deque b, f act a(a, b))
 	acc fold-reverse a.left, f fold a.mid, f fold a.right, f
 
-filter deque ?a(a deque ?a, f act bool(?a)) trusted
-	res = a.size uninitialized-mut-arr<?a>
+filter<a> deque a(a deque a, f act bool(a)) trusted
+	res = a.size uninitialized-mut-arr<a>
 	end = res.begin-ptr fold a, (out, x) =>
 		if f[x]
 			out[] := x
@@ -100,8 +100,8 @@ filter deque ?a(a deque ?a, f act bool(?a)) trusted
 			out
 	deque: res[0 -> end - res.begin-ptr] cast-immutable
 
-map deque ?out(a deque ?in, f act ?out(?in)) trusted
-	res = a.size uninitialized-mut-arr<?out>
+map<out, in> deque out(a deque in, f act out(in)) trusted
+	res = a.size uninitialized-mut-arr<out>
 	end = res.begin-ptr fold a, (out, x) =>
 		out[] := f[x]
 		out + 1

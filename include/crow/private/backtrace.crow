@@ -81,7 +81,7 @@ body
 	else
 		l
 
-.swap! void(a ptr ?a, lo nat64, hi nat64) noctx unsafe
+.swap!<a> void(a ptr a, lo nat64, hi nat64) noctx unsafe
 	temp = a[lo]
 	a[lo] := a[hi]
 	a[hi] := temp

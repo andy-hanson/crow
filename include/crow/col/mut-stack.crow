@@ -9,49 +9,49 @@ import
 ###
 Unlike `mut-list`, this is not guaranteed to be represented as an array.
 ###
-mut-stack<?a> record mut
+mut-stack<a> record mut
 	# TODO: PRIVATE
-	inner mut-list ?a
+	inner mut-list a
 
 # New empty `mut-stack`.
-mut-stack mut-stack ?a()
-	mut-stack: mut-list<?a>
+mut-stack<a> mut-stack a()
+	mut-stack: mut-list<a>
 
-copy mut-stack ?a(a mut-stack ?a)
+copy<a> mut-stack a(a mut-stack a)
 	mut-stack: a.inner copy
 
-mut-stack mut-stack ?a(a ?a[])
+mut-stack<a> mut-stack a(a a[])
 	mut-stack: mut-list: a
 
-arr ?a[](a mut-stack ?a)
+arr<a> a[](a mut-stack a)
 	a.inner arr
 
-is-empty bool(a mut-stack ?a)
+is-empty<a> bool(a mut-stack a)
 	a.inner is-empty
 
-~= void(a mut-stack ?a, value ?a)
+~= <a> void(a mut-stack a, value a)
 	a.inner ~= value
 
-~= void(a mut-stack ?a, values ?a[])
+~= <a> void(a mut-stack a, values a[])
 	a.inner ~= values
 
-last opt ?a(a mut-stack ?a)
+last<a> opt a(a mut-stack a)
 	if !a.is-empty
 		a.inner last
 
-pop! opt ?a(a mut-stack ?a)
+pop!<a> opt a(a mut-stack a)
 	a.inner pop!
 
 region iteration
 
-each void(a mut-stack ?a, f act void(?a))
+each<a> void(a mut-stack a, f act void(a))
 	a.inner each f
 
-fold ?a(acc ?a, a mut-stack ?b, f act ?a(?a, ?b))
+fold<a, b> a(acc a, a mut-stack b, f act a(a, b))
 	acc fold a.inner, f
 
-filter! void(a mut-stack ?a, f act bool(?a))
+filter!<a> void(a mut-stack a, f act bool(a))
 	a.inner filter! f
 
-map! void(a mut-stack ?a, f act ?a(?a))
+map!<a> void(a mut-stack a, f act a(a))
 	a.inner map! f

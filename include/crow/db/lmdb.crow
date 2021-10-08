@@ -38,7 +38,7 @@ lmdb-env record mut
 	# TODO:PRIVATE
 	env MDB_env
 
-lmdb-db<?k, ?v> record mut
+lmdb-db<k, v> record mut
 	# TODO:PRIVATE
 	dbi MDB_dbi
 
@@ -53,13 +53,13 @@ lmdb-open-options record
 Implemented for nat32, nat64 and str.
 Not recommended to implement this yourself.
 ###
-lmdb-key<?k> spec
-	== bool(a ?k, b ?k)
+lmdb-key<k> spec
+	== bool(a k, b k)
 	# NOTE: Parameter is a dummy, don't actually use it
-	lmdb-key-flags u-int(_ ?k)
+	lmdb-key-flags u-int(_ k)
 	# Don't use `serialize`, because lmdb expects integers to be fixed size
-	to-lmdb-key nat8[](key ?k)
-	from-lmdb-key ?k(a nat8[])
+	to-lmdb-key nat8[](key k)
+	from-lmdb-key k(a nat8[])
 
 lmdb-key-flags u-int(_ nat64)
 	MDB_INTEGERKEY
@@ -82,13 +82,13 @@ from-lmdb-key nat32(a nat8[])
 from-lmdb-key str(a nat8[])
 	a from-bytes
 
-with-test-env ?a(f act ?a(lmdb-env)) trusted summon
+with-test-env<a> a(f act a(lmdb-env)) trusted summon
 	test-path = "TEST-LMDB"
 	test-path make-directory
 	(() => test-path remove-directory-and-contents-non-recursive) finally () =>
 		test-path with-env true.lmdb-open-options, f
 
-with-env ?a(db-dir str, options lmdb-open-options, f act ?a(lmdb-env)) trusted summon
+with-env<a> a(db-dir str, options lmdb-open-options, f act a(lmdb-env)) trusted summon
 	env = db-dir lmdb-open-env options
 	(() => env lmdb-close-env) finally () => f[env]
 
@@ -115,62 +115,62 @@ lmdb-open-env lmdb-env(db-dir str, options lmdb-open-options) unsafe summon
 lmdb-close-env void(env lmdb-env) unsafe summon
 	env.env mdb_env_close
 
-with-db ?a
+with-db<a, k, v> a
 	env lmdb-env
 	db-name str
-	f act ?a(lmdb-db<?k, ?v>)
+	f act a(lmdb-db<k, v>)
 spec
 	trusted
 	summon
-	lmdb-key<?k>
-	serialize<?v>
+	lmdb-key<k>
+	serialize<v>
 body
-	db = env open-db<?k, ?v> db-name
+	db = env open-db<k, v> db-name
 	(() => env close-db db) finally () => f[db]
 
 # WARN: Should call 'close-db' when done
-open-db lmdb-db<?k, ?v>(env lmdb-env, db-name str) unsafe summon lmdb-key<?k> serialize<?v>
+open-db<k, v> lmdb-db<k, v>(env lmdb-env, db-name str) unsafe summon lmdb-key<k> serialize<v>
 	parent-transaction = null ptr-cast-to-extern<MDB_txn, nat8>
 	transaction-cell = cell<MDB_txn>: null ptr-cast-to-extern<MDB_txn, nat8>
 	check-lmdb-error: env.env mdb_txn_begin parent-transaction, 0, transaction-cell
 	transaction = transaction-cell[]
 
 	dbi-cell = cell<MDB_dbi>: zeroed<MDB_dbi>
-	# TODO: Should be able to parse `zeroed<?k>.lmdb-key-flags`
-	flags = MDB_CREATE | (zeroed<?k> lmdb-key-flags)
+	# TODO: Should be able to parse `zeroed<k>.lmdb-key-flags`
+	flags = MDB_CREATE | (zeroed<k> lmdb-key-flags)
 	check-lmdb-error: transaction mdb_dbi_open db-name.to-c-str, flags, dbi-cell
 
 	check-lmdb-error: transaction mdb_txn_commit
 	dbi-cell[] lmdb-db
 
-close-db void(env lmdb-env, db lmdb-db<?k, ?v>) unsafe summon
+close-db<k, v> void(env lmdb-env, db lmdb-db<k, v>) unsafe summon
 	env.env mdb_dbi_close db.dbi
 
-transaction-result<?a> union
-	transaction-abort<?a>
-	transaction-commit<?a>
+transaction-result<a> union
+	transaction-abort<a>
+	transaction-commit<a>
 
-transaction-abort<?a> record
-	value ?a
-transaction-commit<?a> record
-	value ?a
+transaction-abort<a> record
+	value a
+transaction-commit<a> record
+	value a
 
-each void(txn lMDB_txn, db lmdb-db<?k, ?v>, f act void(?k, ?v)) summon lmdb-key<?k> serialize<?v>
+each<k, v> void(txn lMDB_txn, db lmdb-db<k, v>, f act void(k, v)) summon lmdb-key<k> serialize<v>
 	void fold txn, db, (ignore, key, value) => f[key, value]
 
-map ?out[](txn lMDB_txn, db lmdb-db<?k, ?v>, f act ?out(?k, ?v)) trusted summon lmdb-key<?k> serialize<?v>
-	out = txn count db uninitialized-mut-arr<?out>
+map<out, k, v> out[](txn lMDB_txn, db lmdb-db<k, v>, f act out(k, v)) trusted summon lmdb-key<k> serialize<v>
+	out = txn count db uninitialized-mut-arr<out>
 	end = out.begin-ptr fold txn, db, (cur, key, value) =>
 		cur[] := f[key, value]
 		cur + 1
 	assert: end == out.end-ptr
 	out cast-immutable
 
-fold ?a(acc ?a, txn lMDB_txn, db lmdb-db<?k, ?v>, f act ?a(?a, ?k, ?v)) trusted summon lmdb-key<?k> serialize<?v>
+fold<a, k, v> a(acc a, txn lMDB_txn, db lmdb-db<k, v>, f act a(a, k, v)) trusted summon lmdb-key<k> serialize<v>
 	txn with-cursor db, cursor =>
 		check-lmdb-error: cursor mdb_cursor_get empty-val, empty-val, MDB_FIRST
 		acc fold-recur cursor, f
-.fold-recur ?a(acc ?a, cursor MDB_cursor, f act ?a(?a, ?k, ?v)) unsafe summon lmdb-key<?k> serialize<?v>
+.fold-recur<a, k, v> a(acc a, cursor MDB_cursor, f act a(a, k, v)) unsafe summon lmdb-key<k> serialize<v>
 	key = empty-val
 	value = empty-val
 	check-lmdb-error: cursor mdb_cursor_get key, value, MDB_GET_CURRENT
@@ -182,18 +182,18 @@ fold ?a(acc ?a, txn lMDB_txn, db lmdb-db<?k, ?v>, f act ?a(?a, ?k, ?v)) trusted 
 		check-lmdb-error: err
 		new-acc fold-recur cursor, f
 
-zip ?out[]
+zip<out, k, v0, v1> out[]
 	txn lMDB_txn
-	db0 lmdb-db<?k, ?v0>
-	db1 lmdb-db<?k, ?v1>
-	f act ?out(?k, ?v0, ?v1)
+	db0 lmdb-db<k, v0>
+	db1 lmdb-db<k, v1>
+	f act out(k, v0, v1)
 spec
 	trusted
 	summon
-	data<?k>
-	lmdb-key<?k>
-	serialize<?v0>
-	serialize<?v1>
+	data<k>
+	lmdb-key<k>
+	serialize<v0>
+	serialize<v1>
 body
 	db0-count = txn count db0
 	db1-count = txn count db1
@@ -201,26 +201,26 @@ body
 	if db0-count == 0
 		[]
 	else
-		res = db0-count uninitialized-mut-arr<?out>
+		res = db0-count uninitialized-mut-arr<out>
 		end = res.begin-ptr zip-fold-non-empty txn, db0, db1, (cur, key, value0, value1) =>
 			cur[] := f[key, value0, value1]
 			cur + 1
 		assert: end == res.end-ptr
 		res cast-immutable
 
-zip-fold ?a
-	acc ?a
+zip-fold<a, k, v0, v1> a
+	acc a
 	txn lMDB_txn
-	db0 lmdb-db<?k, ?v0>
-	db1 lmdb-db<?k, ?v1>
-	f act ?a(?a, ?k, ?v0, ?v1)
+	db0 lmdb-db<k, v0>
+	db1 lmdb-db<k, v1>
+	f act a(a, k, v0, v1)
 spec
 	trusted
 	summon
-	data<?k>
-	lmdb-key<?k>
-	serialize<?v0>
-	serialize<?v1>
+	data<k>
+	lmdb-key<k>
+	serialize<v0>
+	serialize<v1>
 body
 	db0-count = txn count db0
 	db1-count = txn count db1
@@ -230,48 +230,48 @@ body
 	else
 		acc zip-fold-non-empty txn, db0, db1, f
 
-.zip-fold-non-empty ?a
-	acc ?a
+.zip-fold-non-empty<a, k, v0, v1> a
+	acc a
 	txn lMDB_txn
-	db0 lmdb-db<?k, ?v0>
-	db1 lmdb-db<?k, ?v1>
-	f act ?a(?a, ?k, ?v0, ?v1)
+	db0 lmdb-db<k, v0>
+	db1 lmdb-db<k, v1>
+	f act a(a, k, v0, v1)
 spec
 	trusted
 	summon
-	data<?k>
-	lmdb-key<?k>
-	serialize<?v0>
-	serialize<?v1>
+	data<k>
+	lmdb-key<k>
+	serialize<v0>
+	serialize<v1>
 body
 	txn with-cursor db0, cursor0 =>
 		txn with-cursor db1, cursor1 =>
 			check-lmdb-error: cursor0 mdb_cursor_get empty-val, empty-val, MDB_FIRST
 			check-lmdb-error: cursor1 mdb_cursor_get empty-val, empty-val, MDB_FIRST
 			acc zip-fold-recur cursor0, cursor1, f
-.zip-fold-recur ?a
-	acc ?a
+.zip-fold-recur<a, k, v0, v1> a
+	acc a
 	cursor0 MDB_cursor
 	cursor1 MDB_cursor
-	f act ?a(?a, ?k, ?v0, ?v1)
+	f act a(a, k, v0, v1)
 spec
 	unsafe
 	summon
-	data<?k>
-	lmdb-key<?k>
-	serialize<?v0>
-	serialize<?v1>
+	data<k>
+	lmdb-key<k>
+	serialize<v0>
+	serialize<v1>
 body
 	key0-val = empty-val
 	value0-val = empty-val
 	check-lmdb-error: cursor0 mdb_cursor_get key0-val, value0-val, MDB_GET_CURRENT
-	key0 = key0-val.bytes-of-val.from-lmdb-key as<?k>
-	value0 = value0-val.bytes-of-val.from-bytes as<?v0>
+	key0 = key0-val.bytes-of-val.from-lmdb-key as<k>
+	value0 = value0-val.bytes-of-val.from-bytes as<v0>
 	key1-val = empty-val
 	value1-val = empty-val
 	check-lmdb-error: cursor1 mdb_cursor_get key1-val, value1-val, MDB_GET_CURRENT
-	key1 = key1-val.bytes-of-val.from-lmdb-key as<?k>
-	value1 = value1-val.bytes-of-val.from-bytes as<?v1>
+	key1 = key1-val.bytes-of-val.from-lmdb-key as<k>
+	value1 = value1-val.bytes-of-val.from-bytes as<v1>
 	assert: key0 == key1
 	new-acc = f[acc, key0, value0, value1]
 	err0 = cursor0 mdb_cursor_get empty-val, empty-val, MDB_NEXT
@@ -284,7 +284,7 @@ body
 		check-lmdb-error: err1
 		new-acc zip-fold-recur cursor0, cursor1, f
 
-.with-cursor ?a(txn lMDB_txn, db lmdb-db<?k, ?v>, f act ?a(MDB_cursor)) unsafe summon
+.with-cursor<a, k, v> a(txn lMDB_txn, db lmdb-db<k, v>, f act a(MDB_cursor)) unsafe summon
 	cursor-cell = cell<MDB_cursor>: null ptr-cast-to-extern<MDB_cursor, nat8>
 	open-err = txn.txn mdb_cursor_open db.dbi, cursor-cell
 	cursor = cursor-cell[]
@@ -292,7 +292,7 @@ body
 		check-lmdb-error: open-err
 		f[cursor]
 
-get opt ?v(txn lMDB_txn, db lmdb-db<?k, ?v>, key ?k) trusted summon lmdb-key<?k> serialize<?v>
+get<k, v> opt v(txn lMDB_txn, db lmdb-db<k, v>, key k) trusted summon lmdb-key<k> serialize<v>
 	value = empty-val
 	# TODO: this check should be unnecessary...
 	if (txn count db) != 0
@@ -301,18 +301,18 @@ get opt ?v(txn lMDB_txn, db lmdb-db<?k, ?v>, key ?k) trusted summon lmdb-key<?k>
 		err = txn.txn mdb_get db.dbi, lmdb-key.val-of-bytes, value
 		if err != MDB_NOTFOUND
 			err check-lmdb-error
-			# TODO:PERF For some ?v, the copy in 'bytes-of-val' is unnecessary.
+			# TODO:PERF For some v types, the copy in 'bytes-of-val' is unnecessary.
 			value.bytes-of-val.from-bytes some
 
 ###
 Fails if the key already exists.
 Use `set` to overwrite existing keys.
 ###
-add void(txn lMDB_txn, db lmdb-db<?k, ?v>, key ?k, value ?v) summon lmdb-key<?k> serialize<?v>
+add<k, v> void(txn lMDB_txn, db lmdb-db<k, v>, key k, value v) summon lmdb-key<k> serialize<v>
 	if !(txn try-add db, key, value)
 		throw: "key already exists"
 
-try-add bool(txn lMDB_txn, db lmdb-db<?k, ?v>, key ?k, value ?v) summon lmdb-key<?k> serialize<?v>
+try-add<k, v> bool(txn lMDB_txn, db lmdb-db<k, v>, key k, value v) summon lmdb-key<k> serialize<v>
 	err = txn put-inner db, key, value, MDB_NOOVERWRITE
 	if err == MDB_KEYEXIST
 		false
@@ -320,20 +320,20 @@ try-add bool(txn lMDB_txn, db lmdb-db<?k, ?v>, key ?k, value ?v) summon lmdb-key
 		check-lmdb-error: err
 		true
 
-set void(txn lMDB_txn, db lmdb-db<?k, ?v>, key ?k, value ?v) summon lmdb-key<?k> serialize<?v>
+set<k, v> void(txn lMDB_txn, db lmdb-db<k, v>, key k, value v) summon lmdb-key<k> serialize<v>
 	check-lmdb-error: txn put-inner db, key, value, 0
 
-.put-inner err-t
+.put-inner<k, v> err-t
 	txn lMDB_txn
-	db lmdb-db<?k, ?v>
-	key ?k
-	value ?v
+	db lmdb-db<k, v>
+	key k
+	value v
 	flags u-int
 spec
 	trusted
 	summon
-	lmdb-key<?k>
-	serialize<?v>
+	lmdb-key<k>
+	serialize<v>
 body
 	txn.txn mdb_put db.dbi, key.to-lmdb-key.val-of-bytes, value.to-bytes.val-of-bytes, flags
 
@@ -352,28 +352,28 @@ to-str str(a lmdb_stat)
 	z = "	entries = {a entries}"
 	"lmdb_stat:\n{x}\n{y}\n{z}"
 
-count nat(txn lMDB_txn, db lmdb-db<?k, ?v>) summon
+count<k, v> nat(txn lMDB_txn, db lmdb-db<k, v>) summon
 	txn stat db entries
 
-stat lmdb_stat(txn lMDB_txn, db lmdb-db<?k, ?v>) trusted summon
+stat<k, v> lmdb_stat(txn lMDB_txn, db lmdb-db<k, v>) trusted summon
 	s = mdb_stat: 0, 0, 0, 0, 0, 0
 	check-lmdb-error: txn.txn mdb_stat db.dbi, s
 	psize = s.ms_psize to-nat64
 	depth = s.ms_depth to-nat64
 	lmdb_stat: psize, depth, s.ms_branch_pages, s.ms_leaf_pages, s.ms_overflow_pages, s.ms_entries
 
-with-read-transaction ?a(env lmdb-env, f act ?a(lMDB_txn)) trusted summon
+with-read-transaction<a> a(env lmdb-env, f act a(lMDB_txn)) trusted summon
 	env with-transaction MDB_RDONLY, txn =>
 		transaction-abort: f[txn]
 
-with-write-transaction ?a(env lmdb-env, f act ?a(lMDB_txn)) trusted summon
+with-write-transaction<a> a(env lmdb-env, f act a(lMDB_txn)) trusted summon
 	env with-abortable-write-transaction txn =>
 		transaction-commit: f[txn]
 
-with-abortable-write-transaction ?a(env lmdb-env, f act transaction-result ?a(lMDB_txn)) trusted summon
+with-abortable-write-transaction<a> a(env lmdb-env, f act transaction-result a(lMDB_txn)) trusted summon
 	env with-transaction 0, f
 
-.with-transaction ?a(env lmdb-env, flags u-int, f act transaction-result ?a(lMDB_txn)) unsafe summon
+.with-transaction<a> a(env lmdb-env, flags u-int, f act transaction-result a(lMDB_txn)) unsafe summon
 	parent-transaction = null ptr-cast-to-extern<MDB_txn, nat8>
 	transaction-cell = cell<MDB_txn>: null ptr-cast-to-extern<MDB_txn, nat8>
 	check-lmdb-error: env.env mdb_txn_begin parent-transaction, flags, transaction-cell

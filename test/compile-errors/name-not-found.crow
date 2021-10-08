@@ -1,7 +1,6 @@
 r record
 	f t
-	g ?a
-	h t ?a
+	h arr x
 
 u union
 	t

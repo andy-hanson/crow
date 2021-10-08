@@ -2,9 +2,9 @@ main fut nat(_ str[]) summon
 	0 f
 	0 resolved
 
-f void(_ u ?a)
+f<a> void(_ u a)
 	void
 
-u<?a> union
+u<a> union
 	nat
-	arr<?a>
+	arr<a>

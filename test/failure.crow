@@ -28,8 +28,8 @@ body
 	else
 		[original-path failure "{output-path base-name} does not exist. actual was:\n{actual}"]
 
-flat-map-with-max-size ?out[](a ?in[], max-size nat, mapper act ?out[](?in)) trusted
-	res = mut-list<?out>
+flat-map-with-max-size<out, in> out[](a in[], max-size nat, mapper act out[](in)) trusted
+	res = mut-list<out>
 	a each x =>
 		if res.size < max-size
 			res ~= mapper[x]

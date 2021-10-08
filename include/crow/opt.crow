@@ -22,7 +22,7 @@ export
 	a opt-equal b
 
 # TODO:GENERIC
-.opt-equal bool(a opt ?a, b opt ?a) equal<?a> noctx
+.opt-equal<a> bool(a opt a, b opt a) equal<a> noctx
 	if va ?= a
 		if vb ?= b
 			va == vb
@@ -32,61 +32,61 @@ export
 		b is-empty
 
 # True iff a is `none`.
-is-empty bool(a opt ?a) noctx
+is-empty<a> bool(a opt a) noctx
 	match a
 	as none
 		true
 	as some
 		false
 
-size nat64(a opt ?a) noctx
+size<a> nat64(a opt a) noctx
 	if a.is-empty
 		0
 	else
 		1
 
 # Calls `f` on the value in a `some`, or does nothing.
-each void(a opt ?in, f act void(?in))
+each<a> void(a opt a, f act void(a))
 	if v ?= a
 		f[v]
 
 # Converts `none` to `none`, or `some` to another `some` with `f` applied.
-map opt ?out(a opt ?in, f act ?out(?in))
+map<out, in> opt out(a opt in, f act out(in))
 	if v ?= a
 		f[v] some
 
 # Takes the leftmost `some` value.
-opt-or opt ?a(a opt ?a, b opt ?a)
+opt-or<a> opt a(a opt a, b opt a)
 	if a is-empty
 		b
 	else
 		a
 
 # Converts an option to a value by supplying a default to handle `none`.
-or-default ?a(a opt ?a, default act ?a())
+or-default<a> a(a opt a, default act a())
 	if v ?= a
 		v
 	else
 		default[]
 
-or-default ?a(a opt ?a, default ?a)
+or-default<a> a(a opt a, default a)
 	if v ?= a
 		v
 	else
 		default
 
 # Converts an option to a value by failing on `none`.
-force ?a(a opt ?a)
+force<a> a(a opt a)
 	a force "tried to force empty option"
 
-force ?a(a opt ?a, message str)
+force<a> a(a opt a, message str)
 	if v ?= a
 		v
 	else
 		message throw
 
 # TODO: Should be called 'force' too, but that loses the expected type
-or-throw ?a(a opt ?a, get-message act str())
+or-throw<a> a(a opt a, get-message act str())
 	if v ?= a
 		v
 	else
@@ -96,7 +96,7 @@ or-throw ?a(a opt ?a, get-message act str())
 If both `a` and `b` are non-empty, combines them using `f`.
 Else, returns the non-empty one.
 ###
-opt-combine opt ?a(a opt ?a, b opt ?a, f act ?a(?a, ?a))
+opt-combine<a> opt a(a opt a, b opt a, f act a(a, a))
 	if va ?= a
 		if vb ?= b
 			f[va, vb] some
@@ -105,14 +105,14 @@ opt-combine opt ?a(a opt ?a, b opt ?a, f act ?a(?a, ?a))
 	else
 		b
 
-opt-join opt pair<?in-0, ?in-1>(a opt ?in-0, b opt ?in-1)
+opt-join<in0, in1> opt pair<in0, in1>(a opt in0, b opt in1)
 	a opt-join b, (x, y) =>
 		x pair y
 
 ###
 Returns `some: f[a.force, b.force]` iff both `a` and `b` are `some`, else returns `none`.
 ###
-opt-join opt ?out(a opt ?in-0, b opt ?in-1, f act ?out(?in-0, ?in-1))
+opt-join<out, in0, in1> opt out(a opt in0, b opt in1, f act out(in0, in1))
 	if va ?= a
 		if vb ?= b
 			f[va, vb] some

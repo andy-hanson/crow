@@ -5,7 +5,7 @@ module frontend.parse.parseType;
 import frontend.parse.ast : NameAndRange, range, TypeAst;
 import frontend.parse.lexer : addDiag, curPos, Lexer, range, takeNameAndRange, takeOrAddDiagExpected, tryTake;
 import model.parseDiag : ParseDiag;
-import util.collection.arr : ArrWithSize, at, empty, emptyArrWithSize, toArr;
+import util.collection.arr : ArrWithSize, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrWithSizeLiteral;
 import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
@@ -66,13 +66,9 @@ immutable(TypeAst) parseType(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAllo
 
 private immutable(TypeAst) parseTypeBeforeSuffixes(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
-	immutable bool isTypeParam = tryTake(lexer, '?');
 	immutable NameAndRange name = takeNameAndRange(alloc, lexer);
-
 	immutable Opt!(TypeAst.Fun.Kind) funKind = funKindFromName(name.name);
-
 	if (has(funKind) && tryTake(lexer, ' ')) {
-		//TODO: handle isTypeParam here
 		ArrBuilder!TypeAst returnAndParamTypes;
 		add(alloc, returnAndParamTypes, parseType(alloc, lexer));
 		if (tryTake(lexer, '(')) {
@@ -81,20 +77,15 @@ private immutable(TypeAst) parseTypeBeforeSuffixes(Alloc, SymAlloc)(ref Alloc al
 				if (!tryTake(lexer, ')'))
 					todo!void("diagnostic -- missing closing paren");
 			}
-			return immutable TypeAst(
-				immutable TypeAst.Fun(range(lexer, start), force(funKind), finishArr(alloc, returnAndParamTypes)));
 		} else
-			return todo!(immutable TypeAst)("diagnostic -- function type missing parens");
+			addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(
+				immutable ParseDiag.FunctionTypeMissingParens()));
+		return immutable TypeAst(
+			immutable TypeAst.Fun(range(lexer, start), force(funKind), finishArr(alloc, returnAndParamTypes)));
 	} else {
 		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsAllowSpace(alloc, lexer);
-		immutable TypeAst[] typeArgsArr = toArr(typeArgs);
-		if (isTypeParam && !empty(typeArgsArr))
-			addDiag(alloc, lexer, at(typeArgsArr, 0).range,
-				immutable ParseDiag(immutable ParseDiag.TypeParamCantHaveTypeArgs()));
 		immutable RangeWithinFile rng = range(lexer, start);
-		return isTypeParam
-			? immutable TypeAst(immutable TypeAst.TypeParam(rng, name.name))
-			: immutable TypeAst(immutable TypeAst.InstStruct(rng, name, typeArgs));
+		return immutable TypeAst(immutable TypeAst.InstStruct(rng, name, typeArgs));
 	}
 }
 

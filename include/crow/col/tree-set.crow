@@ -24,33 +24,33 @@ import
 Set of unique values.
 Unlike `arr`, the values are always in sorted order, and there are never two of the same value.
 ###
-tree-set<?a> record
+tree-set<a> record
 	# TODO: PRIVATE
-	root node ?a
+	root node a
 	total-size nat64
 
-.node<?a> union
+.node<a> union
 	# TODO: SYNTAX should not require <>
-	inner-node<?a>
-	arr<?a>
+	inner-node<a>
+	arr<a>
 
-.inner-node<?a> record
+.inner-node<a> record
 	by-ref
-	value ?a
-	left node ?a
-	right node ?a
+	value a
+	left node a
+	right node a
 
 # True iff the set is empty.
-is-empty bool(a tree-set ?a) data<?a> compare<?a>
+is-empty<a> bool(a tree-set a) data<a> compare<a>
 	a.total-size == 0
 
 # Number of values in the set.
-size nat64(a tree-set ?a) data<?a> compare<?a>
+size<a> nat64(a tree-set a) data<a> compare<a>
 	a total-size
 
-deep-size-bytes nat64(a tree-set ?a) unsafe deep-size-bytes<?a>
+deep-size-bytes<a> nat64(a tree-set a) unsafe deep-size-bytes<a>
 	a.size-of deep-size-bytes-recur a.root
-.deep-size-bytes-recur nat64(acc nat64, a node ?a) unsafe deep-size-bytes<?a>
+.deep-size-bytes-recur<a> nat64(acc nat64, a node a) unsafe deep-size-bytes<a>
 	match a
 	as inner-node i
 		mid = acc wrap-add i.value.deep-size-bytes wrap-add i.left.size-of wrap-add i.right.size-of
@@ -59,18 +59,18 @@ deep-size-bytes nat64(a tree-set ?a) unsafe deep-size-bytes<?a>
 		acc wrap-add r.deep-size-bytes
 
 # Number of bytes that does not go into storing the values.
-overhead-bytes nat64(a tree-set ?a) unsafe
+overhead-bytes<a> nat64(a tree-set a) unsafe
 	a.size-of overhead-bytes-recur a.root
-.overhead-bytes-recur nat64(acc nat64, a node ?a) unsafe
+.overhead-bytes-recur<a> nat64(acc nat64, a node a) unsafe
 	match a
 	as inner-node i
 		acc wrap-add i.left.size-of wrap-add i.right.size-of overhead-bytes-recur i.left overhead-bytes-recur i.right
 	as arr r
 		acc wrap-add r.overhead-bytes
 
-alloc-count nat64(a tree-set ?a) unsafe
+alloc-count<a> nat64(a tree-set a) unsafe
 	0 alloc-count-recur a.root
-.alloc-count-recur nat64(acc nat64, a node ?a) unsafe
+.alloc-count-recur<a> nat64(acc nat64, a node a) unsafe
 	mid = acc wrap-add 1
 	match a
 	as inner-node i
@@ -79,12 +79,12 @@ alloc-count nat64(a tree-set ?a) unsafe
 		mid
 
 # Empty `tree-set`.
-tree-set tree-set ?a()
-	root = [] as<?a[]>
+tree-set<a> tree-set a()
+	root = [] as<a[]>
 	tree-set: root, 0
 
 # Copy an `arr` to a `tree-set`.
-tree-set tree-set ?a(a ?a[]) data<?a> compare<?a>
+tree-set<a> tree-set a(a a[]) data<a> compare<a>
 	values = a sort-unique
 	tree-set: values, values.size
 
@@ -92,7 +92,7 @@ tree-set tree-set ?a(a ?a[]) data<?a> compare<?a>
 Array of all values in the set, in sorted order.
 This is O(a size).
 ###
-arr ?a[](a tree-set ?a) data<?a> compare<?a>
+arr<a> a[](a tree-set a) data<a> compare<a>
 	match a.root
 	as inner-node i
 		i tree-to-arr a.size
@@ -100,9 +100,9 @@ arr ?a[](a tree-set ?a) data<?a> compare<?a>
 		arr
 
 # True iff the value is in the set.
-subscript bool(a tree-set ?a, value ?a) data<?a> compare<?a>
+subscript<a> bool(a tree-set a, value a) data<a> compare<a>
 	a.root has value
-.has bool(a node ?a, value ?a) trusted compare<?a>
+.has<a> bool(a node a, value a) trusted compare<a>
 	match a
 	as inner-node i
 		match value <=> i.value
@@ -120,7 +120,7 @@ Add a value to the set.
 No effect if the value is already in the set.
 This is O(a.size ln)
 ###
-~ tree-set ?a(a tree-set ?a, value ?a) data<?a> compare<?a>
+~ <a> tree-set a(a tree-set a, value a) data<a> compare<a>
 	new-size = a.size wrap-add 1
 	match a.root add-recur value, new-size.get-max-height
 	as none
@@ -134,15 +134,15 @@ This is O(a.size ln)
 Add many values to the set.
 This is O(a.size + b.size).
 ###
-~ tree-set ?a(a tree-set ?a, b ?a[]) data<?a> compare<?a>
+~ <a> tree-set a(a tree-set a, b a[]) data<a> compare<a>
 	a ~ b.tree-set
 
 ###
 Union of two sets.
 This is O(a.size + b.size).
 ###
-~ tree-set ?a(a tree-set ?a, b tree-set ?a) trusted data<?a> compare<?a>
-	out = a.size wrap-add b.size uninitialized-mut-arr<?a>
+~ <a> tree-set a(a tree-set a, b tree-set a) trusted data<a> compare<a>
+	out = a.size wrap-add b.size uninitialized-mut-arr<a>
 	b-iter = b iter
 	end = out.begin-ptr fold a, (cur, value) =>
 		cur walk-iter-union! value, b-iter
@@ -151,7 +151,7 @@ This is O(a.size + b.size).
 		cur + 1
 	tree-set: out[0 -> end2 - out.begin-ptr] cast-immutable
 
-.walk-iter-union! ptr ?a(out ptr ?a, value ?a, a iter ?a) unsafe data<?a> compare<?a>
+.walk-iter-union!<a> ptr a(out ptr a, value a, a iter a) unsafe data<a> compare<a>
 	if peek ?= a peek
 		match value <=> peek
 		as less
@@ -169,11 +169,11 @@ This is O(a.size + b.size).
 		out[] := value
 		out + 1
 
-intersect tree-set ?a(a tree-set ?a, b tree-set ?a) trusted data<?a> compare<?a>
+intersect<a> tree-set a(a tree-set a, b tree-set a) trusted data<a> compare<a>
 	b-iter = b iter
 	a filter x => b-iter walk-iter-has x
 
-.walk-iter-has bool(a iter ?a, value ?a) unsafe data<?a> compare<?a>
+.walk-iter-has<a> bool(a iter a, value a) unsafe data<a> compare<a>
 	if peek ?= a peek
 		match value <=> peek
 		as less
@@ -192,7 +192,7 @@ Returns a set that does not contain 'b'.
 If 'b' is not in the set, returns it unmodified.
 This is O(a.size ln).
 ###
-- tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
+- <a> tree-set a(a tree-set a, b a) data<a> compare<a>
 	if res ?= a try-remove b
 		res
 	else
@@ -203,11 +203,11 @@ If 'b' is in the set, returns `none~.
 Else, returns a set with 'b' removed.
 This is O(a.size ln).
 ###
-try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
+try-remove<a> opt tree-set a(a tree-set a, b a) data<a> compare<a>
 	if node ?= a.root try-remove-recur b
 		some: tree-set: node, a.size wrap-sub 1
 
-.try-remove-recur opt node ?a(a node ?a, b ?a) compare<?a>
+.try-remove-recur<a> opt node a(a node a, b a) compare<a>
 	match a
 	as inner-node i
 		match b <=> i.value
@@ -229,20 +229,20 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	as arr arr
 		# TODO: use a binary search (try-remove uses linear search since it's for arbitrary arr)
 		if arr2 ?= arr try-remove b
-			arr2.as<node ?a> some
+			arr2.as<node a> some
 
-.node-is-empty bool(a node ?a)
+.node-is-empty<a> bool(a node a)
 	match a
 	as inner-node
 		false
 	as arr r
 		r is-empty
 
-.popped<?a> record
-	value ?a
-	rest node ?a
+.popped<a> record
+	value a
+	rest node a
 
-.pop-right opt popped ?a(a node ?a)
+.pop-right<a> opt popped a(a node a)
 	match a
 	as inner-node i
 		if popped ?= i.right pop-right
@@ -254,34 +254,34 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		if last ?= arr last
 			last popped arr.rtail some
 
-- tree-set ?a(a tree-set ?a, b tree-set ?a) trusted data<?a> compare<?a>
+- <a> tree-set a(a tree-set a, b tree-set a) trusted data<a> compare<a>
 	b-iter = b iter
 	a filter x => !(b-iter walk-iter-has x)
 
-.iter<?a> record mut
-	cur mut ?a[]
+.iter<a> record mut
+	cur mut a[]
 	# If a node is on the stack, we have yet to write out the middle and right.
 	# TODO:PERF use a mut-arr, initialized to the tree's height
-	stack mut-stack inner-node ?a
+	stack mut-stack inner-node a
 
-.iter iter ?a(a tree-set ?a) trusted
-	stack = mut-stack<inner-node ?a>
+.iter<a> iter a(a tree-set a) trusted
+	stack = mut-stack<inner-node a>
 	cur = stack init-iter-recur! a.root
 	iter: cur, stack
-.init-iter-recur! ?a[](stack mut-stack inner-node ?a, node node ?a)
+.init-iter-recur!<a> a[](stack mut-stack inner-node a, node node a)
 	match node
 	as inner-node i
 		stack ~= i
 		stack init-iter-recur! i.left
 	as arr arr
 		arr
-.peek opt ?a(a iter ?a)
+.peek<a> opt a(a iter a)
 	if a.cur is-empty
 		if last ?= a.stack last
 			last.value some
 	else
 		a.cur[0] some
-.next! opt ?a(a iter ?a) trusted
+.next!<a> opt a(a iter a) trusted
 	if a.cur is-empty
 		if node ?= a.stack pop!
 			res = node value
@@ -297,19 +297,19 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		res some
 
 # Folds the remaining elements from the iter
-.fold-iter ?a(acc ?a, a iter ?b, f act ?a(?a, ?b))
+.fold-iter<a, b> a(acc a, a iter b, f act a(a, b))
 	mid = acc fold a.cur, f
 	mid fold-iter-recur a.stack, f
-.fold-iter-recur ?a(acc ?a, stack mut-stack inner-node ?b, f act ?a(?a, ?b))
+.fold-iter-recur<a, b> a(acc a, stack mut-stack inner-node b, f act a(a, b))
 	if popped ?= stack pop!
 		mid = acc fold-recur-inner-node popped, f
 		mid fold-iter-recur stack, f
 	else
 		acc
 
-.inserted<?a> record
+.inserted<a> record
 	by-val
-	node node ?a
+	node node a
 
 .find-scapegoat record
 	# size of this subtree (including the new value)
@@ -317,20 +317,20 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	# height of this subtree
 	height nat64
 
-.add-result<?a> union
+.add-result<a> union
 	none
 	# TODO: SYNTAX should not require <>
-	inserted<?a>
+	inserted<a>
 	find-scapegoat
 
-.add-recur add-result ?a(a node ?a, value ?a, max-height nat64) compare<?a>
+.add-recur<a> add-result a(a node a, value a, max-height nat64) compare<a>
 	match a
 	as inner-node i
 		i add-to-inner value, max-height
 	as arr arr
 		arr add-to-arr value, max-height
 
-.add-to-inner add-result ?a(a inner-node ?a, value ?a, max-height nat64) compare<?a>
+.add-to-inner<a> add-result a(a inner-node a, value a, max-height nat64) compare<a>
 	match value <=> a.value
 	as less
 		match a.left add-recur: value, max-height wrap-sub 1
@@ -351,7 +351,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		as find-scapegoat f
 			a handle-scapegoat value, a.left, f
 
-.add-to-arr add-result ?a(a ?a[], value ?a, max-height nat64) trusted compare<?a>
+.add-to-arr<a> add-result a(a a[], value a, max-height nat64) trusted compare<a>
 	insert-ptr = a binary-search-insert-ptr value
 	if insert-ptr != a.end-ptr && insert-ptr[] == value
 		none
@@ -363,7 +363,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	else
 		a break-up-arr value, insert-ptr, max-height
 
-.break-up-arr add-result ?a(a ?a[], value ?a, insert-ptr ptr ?a, max-height nat64) unsafe compare<?a>
+.break-up-arr<a> add-result a(a a[], value a, insert-ptr ptr a, max-height nat64) unsafe compare<a>
 	assert: a.begin-ptr <= insert-ptr
 	assert: insert-ptr <= a.end-ptr
 	# Break it up into nodes, adding to height
@@ -384,7 +384,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 			as none
 				unreachable
 			as inserted i
-				inserted: inner-node: mid, i.node, right-arr.as<node ?a>
+				inserted: inner-node: mid, i.node, right-arr.as<node a>
 			as find-scapegoat f
 				a.size wrap-add 1 find-scapegoat: f.height wrap-add 1
 		else
@@ -396,7 +396,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 			as find-scapegoat f
 				a.size wrap-add 1 find-scapegoat: f.height wrap-add 1
 
-.handle-scapegoat add-result ?a(a inner-node ?a, value ?a, other-subtree node ?a, f find-scapegoat) compare<?a>
+.handle-scapegoat<a> add-result a(a inner-node a, value a, other-subtree node a, f find-scapegoat) compare<a>
 	size-here = f.size wrap-add 1 wrap-add other-subtree.walk-size
 	height-here = f.height wrap-add 1
 	if height-here > size-here.get-max-height
@@ -404,24 +404,24 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 	else
 		find-scapegoat: size-here, height-here
 
-.walk-size nat64(a node ?a)
+.walk-size<a> nat64(a node a)
 	match a
 	as inner-node i
 		i.left.walk-size wrap-add 1 wrap-add i.right.walk-size
 	as arr arr
 		arr.size
 
-.tree-to-arr ?a[](a inner-node ?a, value ?a, size nat64) trusted compare<?a>
-	out = size uninitialized-mut-arr<?a>
+.tree-to-arr<a> a[](a inner-node a, value a, size nat64) trusted compare<a>
+	out = size uninitialized-mut-arr<a>
 	end = out.begin-ptr tree-to-arr-recur! a, value
 	assert: end == out.end-ptr
 	out cast-immutable
-.tree-to-arr ?a[](a inner-node ?a, size nat64) trusted compare<?a>
-	out = size uninitialized-mut-arr<?a>
+.tree-to-arr<a> a[](a inner-node a, size nat64) trusted compare<a>
+	out = size uninitialized-mut-arr<a>
 	end = out.begin-ptr tree-to-arr-recur! a
 	assert: end == out.end-ptr
 	out cast-immutable
-.tree-to-arr-recur! ptr ?a(out ptr ?a, a node ?a, value ?a) compare<?a> unsafe
+.tree-to-arr-recur!<a> ptr a(out ptr a, a node a, value a) compare<a> unsafe
 	match a
 	as inner-node i
 		match value <=> i.value
@@ -442,7 +442,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		mid[] := value
 		mid + 1 copy-out! arr[index -> arr.size]
 # Version where we know we don't have to insert value
-.tree-to-arr-recur! ptr ?a(out ptr ?a, a node ?a) unsafe
+.tree-to-arr-recur!<a> ptr a(out ptr a, a node a) unsafe
 	match a
 	as inner-node i
 		mid = out tree-to-arr-recur! i.left
@@ -452,7 +452,7 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 		out copy-out! arr
 
 # TODO:PERF
-.copy-out! ptr ?a(out ptr ?a, a ?a[]) unsafe
+.copy-out!<a> ptr a(out ptr a, a a[]) unsafe
 	out fold a, (cur, x) =>
 		cur[] := x
 		cur + 1
@@ -466,9 +466,9 @@ try-remove opt tree-set ?a(a tree-set ?a, b ?a) data<?a> compare<?a>
 
 region iteration
 
-each void(a tree-set ?a, f act void(?a)) data<?a> compare<?a>
+each<a> void(a tree-set a, f act void(a)) data<a> compare<a>
 	a.root each-recur f
-.each-recur void(a node ?a, f act void(?a))
+.each-recur<a> void(a node a, f act void(a))
 	match a
 	as inner-node i
 		i.left each-recur f
@@ -477,20 +477,20 @@ each void(a tree-set ?a, f act void(?a)) data<?a> compare<?a>
 	as arr arr
 		arr each f
 
-fold ?a(acc ?a, a tree-set ?b, f act ?a(?a, ?b)) data<?b> compare<?b>
+fold<a, b> a(acc a, a tree-set b, f act a(a, b)) data<b> compare<b>
 	acc fold-recur a.root, f
-.fold-recur ?a(acc ?a, a node ?b, f act ?a(?a, ?b))
+.fold-recur<a, b> a(acc a, a node b, f act a(a, b))
 	match a
 	as inner-node i
 		acc fold-recur-inner-node i, f
 	as arr arr
 		acc fold arr, f
-.fold-recur-inner-node ?a(acc ?a, a inner-node ?b, f act ?a(?a, ?b))
+.fold-recur-inner-node<a, b> a(acc a, a inner-node b, f act a(a, b))
 	left-value = acc fold-recur a.left, f
 	f[left-value, a.value] fold-recur a.right, f
 
-filter tree-set ?a(a tree-set ?a, f act bool(?a)) trusted data<?a> compare<?a>
-	out = a.size uninitialized-mut-arr<?a>
+filter<a> tree-set a(a tree-set a, f act bool(a)) trusted data<a> compare<a>
+	out = a.size uninitialized-mut-arr<a>
 	end = out.begin-ptr fold a, (cur, value) =>
 		if f[value]
 			cur[] := value
@@ -501,8 +501,8 @@ filter tree-set ?a(a tree-set ?a, f act bool(?a)) trusted data<?a> compare<?a>
 
 # TODO: first-some
 
-map tree-set ?out(a tree-set ?in, f act ?out(?in)) data<?in> compare<?in> data<?out> compare<?out> trusted
-	out = a.size uninitialized-mut-arr<?out>
+map<out, in> tree-set out(a tree-set in, f act out(in)) data<in> compare<in> data<out> compare<out> trusted
+	out = a.size uninitialized-mut-arr<out>
 	end = out.begin-ptr fold a, (cur, value) =>
 		cur[] := f[value]
 		cur + 1
@@ -510,11 +510,11 @@ map tree-set ?out(a tree-set ?in, f act ?out(?in)) data<?in> compare<?in> data<?
 	tree-set: out[0 -> end - out.begin-ptr].sort-unique! cast-immutable
 
 # TODO:PRIVATE
-dbg str(a tree-set ?a) to-str<?a>
+dbg<a> str(a tree-set a) to-str<a>
 	res = writer
 	res dbg-recur! a.root
 	res move-to-str!
-.dbg-recur! void(res writer, a node ?a) to-str<?a>
+.dbg-recur!<a> void(res writer, a node a) to-str<a>
 	match a
 	as inner-node i
 		res ~= "("

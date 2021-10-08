@@ -17,36 +17,36 @@ import
 Like `arr` but mutable.
 `mut-arr` is fixed-size, unlike `mut-list`. It can change elements but can't add or remove them.
 ###
-mut-arr<?a> record mut
+mut-arr<a> record mut
 	by-val
 	# Adding a dummy field so the constructor won't conflict with mut-arr from arr
 	ignore void
 	# TODO:PRIVATE
-	inner ?a[]
+	inner a[]
 
 # Empty `mut-arr`.
-mut-arr mut-arr ?a() noctx
+mut-arr<a> mut-arr a() noctx
 	mut-arr: void, []
 
 # `mut-arr` from a pointer and size.
-mut-arr mut-arr ?a(size nat64, begin-ptr ptr ?a) noctx unsafe
+mut-arr<a> mut-arr a(size nat64, begin-ptr ptr a) noctx unsafe
 	mut-arr: void, arr: size, begin-ptr
 
 ###
 Copies an `arr` to a `mut-arr`.
 Writing to the result won't affect the original.
 ###
-mut-arr mut-arr ?a(a ?a[])
-	a.size make-mut-arr<?a> i => a[i]
+mut-arr<a> mut-arr a(a a[])
+	a.size make-mut-arr<a> i => a[i]
 
 ###
 Copies a `mut-arr` to an `arr`.
 Further writes to the `mut-arr` won't affect the `arr` that was copied from it.
 ###
-arr ?a[](a mut-arr ?a)
+arr<a> a[](a mut-arr a)
 	a.copy.inner
 
-mut-arr-from-begin-end mut-arr ?a(begin ptr ?a, end ptr ?a) unsafe
+mut-arr-from-begin-end<a> mut-arr a(begin ptr a, end ptr a) unsafe
 	assert: begin <= end
 	mut-arr: void, arr-from-begin-end: begin, end
 
@@ -54,45 +54,45 @@ mut-arr-from-begin-end mut-arr ?a(begin ptr ?a, end ptr ?a) unsafe
 Copies the elements of a `mut-arr`.
 Writing to the result won't affect the original.
 ###
-copy mut-arr ?a(a mut-arr ?a)
-	a.size make-mut-arr<?a> i => a[i]
+copy<a> mut-arr a(a mut-arr a)
+	a.size make-mut-arr<a> i => a[i]
 
-copy-to-arr ?a[](a mut-arr ?a) trusted
+copy-to-arr<a> a[](a mut-arr a) trusted
 	a.copy cast-immutable
 
-copy-from! void(dest mut-arr ?a, source ?a[]) trusted
+copy-from!<a> void(dest mut-arr a, source a[]) trusted
 	assert: dest.size == source.size
-	drop: memcpy: dest.begin-ptr.as-any-ptr, source.begin-ptr.as-any-ptr, dest.size wrap-mul size-of<?a>
+	drop: memcpy: dest.begin-ptr.as-any-ptr, source.begin-ptr.as-any-ptr, dest.size wrap-mul size-of<a>
 
-copy-from! void(dest mut-arr ?a, source mut-arr ?a) trusted
+copy-from!<a> void(dest mut-arr a, source mut-arr a) trusted
 	dest copy-from! source.cast-immutable
 
-is-empty bool(a mut-arr ?a) noctx
+is-empty<a> bool(a mut-arr a) noctx
 	a.size == 0
 
-size nat64(a mut-arr ?a) noctx
+size<a> nat64(a mut-arr a) noctx
 	a.inner size
 
 # Pointer to the beginning of the `mut-arr`.
-begin-ptr ptr ?a(a mut-arr ?a) noctx unsafe
+begin-ptr<a> ptr a(a mut-arr a) noctx unsafe
 	a.inner begin-ptr
 
 ###
 Pointer to the end of the `mut-arr`.
 This is one past the last valid pointer.
 ###
-end-ptr ptr ?a(a mut-arr ?a) noctx unsafe
+end-ptr<a> ptr a(a mut-arr a) noctx unsafe
 	a.begin-ptr + a.size
 
 ###
 Gets the element at the index.
 Throws if `index >= a.size`.
 ###
-subscript ?a(a mut-arr ?a, index nat64) trusted
+subscript<a> a(a mut-arr a, index nat64) trusted
 	assert: index < a.size
 	a unsafe-at index
 
-unsafe-at ?a(a mut-arr ?a, index nat64) unsafe
+unsafe-at<a> a(a mut-arr a, index nat64) unsafe
 	a.begin-ptr[index]
 
 ###
@@ -102,7 +102,7 @@ Writes to the slice will affect the original. (If you don't want that, use `copy
 Throws if `range.from > range.to`.
 Throws if the slice would exceed the bounds of the `mut-arr`.
 ###
-subscript mut-arr ?a(a mut-arr ?a, range arrow<nat64, nat64>)
+subscript<a> mut-arr a(a mut-arr a, range arrow<nat64, nat64>)
 	assert: range.from <= range.to
 	assert: range.to <= a.size
 	mut-arr: void, a.inner[range]
@@ -111,40 +111,40 @@ subscript mut-arr ?a(a mut-arr ?a, range arrow<nat64, nat64>)
 Write to a single element.
 Throws if `index >= a.size`.
 ###
-set-subscript void(a mut-arr ?a, index nat64, value ?a) trusted
+set-subscript<a> void(a mut-arr a, index nat64, value a) trusted
 	assert: index < a.size
 	a unsafe-set-at! index, value
 
-unsafe-set-at! void(a mut-arr ?a, index nat64, value ?a) unsafe
+unsafe-set-at!<a> void(a mut-arr a, index nat64, value a) unsafe
 	a.begin-ptr[index] := value
 
 
-first opt ?a(a mut-arr ?a)
+first<a> opt a(a mut-arr a)
 	if !a.is-empty
 		a[0] some
 
-last opt ?a(a mut-arr ?a)
+last<a> opt a(a mut-arr a)
 	if !a.is-empty
 		a[0] some
 
-tail mut-arr ?a(a mut-arr ?a)
+tail<a> mut-arr a(a mut-arr a)
 	forbid: a is-empty
 	a[1 -> a.size]
 
-rtail mut-arr ?a(a mut-arr ?a)
+rtail<a> mut-arr a(a mut-arr a)
 	forbid: a is-empty
 	a[0 -> (a.size wrap-sub 1)]
 
 # Allocates a `mut-arr` without initializing any of its elements.
-uninitialized-mut-arr mut-arr ?a(size nat64) unsafe
-	mut-arr: size, alloc-uninitialized<?a>: size
+uninitialized-mut-arr<a> mut-arr a(size nat64) unsafe
+	mut-arr: size, alloc-uninitialized<a>: size
 
 ###
 `mut-arr` where each element is `f[i]`.
 Equivalent to `mut-arr: [f[0], f[1], ...]`.
 ###
-make-mut-arr mut-arr ?a(size nat64, f act ?a(nat64)) trusted
-	res = size uninitialized-mut-arr<?a>
+make-mut-arr<a> mut-arr a(size nat64, f act a(nat64)) trusted
+	res = size uninitialized-mut-arr<a>
 	res.begin-ptr fill-ptr-range size, f
 	res
 
@@ -152,22 +152,22 @@ make-mut-arr mut-arr ?a(size nat64, f act ?a(nat64)) trusted
 `mut-arr` where every element is `value`.
 Equivalent to `mut-arr: [value, value, ...]`.
 ###
-fill-mut-arr mut-arr ?a(size nat64, value ?a)
+fill-mut-arr<a> mut-arr a(size nat64, value a)
 	size make-mut-arr ignore => value
 
-zeroed-mut-arr mut-arr ?a(size nat64) unsafe
-	res = size uninitialized-mut-arr<?a>
+zeroed-mut-arr<a> mut-arr a(size nat64) unsafe
+	res = size uninitialized-mut-arr<a>
 	res set-zero-elements
 	res
 
-fill! void(a mut-arr ?a, value ?a)
+fill!<a> void(a mut-arr a, value a)
 	a map! ignore => value
 
 ###
 Unsafe cast a mut-arr to arr.
 Called "temp" because it is UB if the mut-arr is written to while the `arr` is in use.
 ###
-temp-as-arr ?a[](a mut-arr ?a) noctx unsafe
+temp-as-arr<a> a[](a mut-arr a) noctx unsafe
 	a inner
 
 ###
@@ -175,7 +175,7 @@ Unsafe cast a mut-arr to arr.
 Equivalent to `temp-as-arr`, but the implication is that
 the `mut-arr` will never be written to again, so the `arr` can be used forever.
 ###
-cast-immutable ?a[](a mut-arr ?a) noctx unsafe
+cast-immutable<a> a[](a mut-arr a) noctx unsafe
 	a inner
 
 ###
@@ -183,20 +183,20 @@ Fill the `mut-arr` with 0 bits.
 This prevents the garbage collector from tracing those elements.
 Data structures that use a `mut-arr` should `set-zero-elements` on any elements they don't use.
 ###
-set-zero-elements void(a mut-arr ?a) noctx unsafe
+set-zero-elements<a> void(a mut-arr a) noctx unsafe
 	a.begin-ptr set-zero-range a.size
 
 # Equivalent to `a.temp-as-arr index-of value`.
-index-of opt nat64(a mut-arr ?a, value ?a) equal<?a>
+index-of<a> opt nat64(a mut-arr a, value a) equal<a>
 	a find-index x => x == value
 
 # Equivalent to `a.temp-as-arr find-index f`.
-find-index opt nat64(a mut-arr ?a, f act bool(?a)) trusted
+find-index<a> opt nat64(a mut-arr a, f act bool(a)) trusted
 	a.temp-as-arr find-index f
 
-reverse! void(a mut-arr ?a) trusted
+reverse!<a> void(a mut-arr a) trusted
 	a.begin-ptr reverse-recur! a.end-ptr - 1
-.reverse-recur! void(left ptr ?a, right ptr ?a) unsafe
+.reverse-recur!<a> void(left ptr a, right ptr a) unsafe
 	if left < right
 		tmp = left[]
 		left[] := right[]
@@ -205,36 +205,36 @@ reverse! void(a mut-arr ?a) trusted
 
 region iteration
 
-exists bool(a mut-arr ?a, f act bool(?a)) trusted
+exists<a> bool(a mut-arr a, f act bool(a)) trusted
 	a.temp-as-arr exists f
 
 # Calls 'f' on each element in the mut-arr.
-each void(a mut-arr ?a, f act void(?a)) trusted
+each<a> void(a mut-arr a, f act void(a)) trusted
 	a.temp-as-arr each f
 
-each-with-index void(a mut-arr ?a, f act void(?a, nat64)) trusted
+each-with-index<a> void(a mut-arr a, f act void(a, nat64)) trusted
 	a.temp-as-arr each-with-index f
 
-fold ?a(acc ?a, a mut-arr ?b, f act ?a(?a, ?b)) trusted
+fold<a, b> a(acc a, a mut-arr b, f act a(a, b)) trusted
 	acc fold a.temp-as-arr, f
-fold-reverse ?a(acc ?a, a mut-arr ?b, f act ?a(?a, ?b)) trusted
+fold-reverse<a, b> a(acc a, a mut-arr b, f act a(a, b)) trusted
 	acc fold-reverse a.temp-as-arr, f
 
-map! void(a mut-arr ?a, f act ?a(?a)) trusted
+map!<a> void(a mut-arr a, f act a(a)) trusted
 	a.begin-ptr map-recur! a.end-ptr, f
-.map-recur! void(cur ptr ?a, end ptr ?a, f act ?a(?a)) unsafe
+.map-recur!<a> void(cur ptr a, end ptr a, f act a(a)) unsafe
 	if cur != end
 		cur[] := f[cur[]]
 		cur + 1 map-recur! end, f
 
-map mut-arr ?out(a mut-arr ?in, f act ?out(?in)) trusted
+map<out, in> mut-arr out(a mut-arr in, f act out(in)) trusted
 	a.size make-mut-arr i => f[a[i]]
 
-map-with-index mut-arr ?out(a mut-arr ?in, f act ?out(?in, nat64)) trusted
+map-with-index<out, in> mut-arr out(a mut-arr in, f act out(in, nat64)) trusted
 	a.size make-mut-arr i => f[a[i], i]
 
-map-to-arr ?out[](a mut-arr ?in, f act ?out(?in)) trusted
+map-to-arr<out, in> out[](a mut-arr in, f act out(in)) trusted
 	a map f cast-immutable
 
-map-to-arr-with-index ?out[](a mut-arr ?in, f act ?out(?in, nat64)) trusted
+map-to-arr-with-index<out, in> out[](a mut-arr in, f act out(in, nat64)) trusted
 	a map-with-index f cast-immutable

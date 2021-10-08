@@ -9,16 +9,16 @@ import
 		hard-unreachable, lk, next, set-state, state, void
 	./thread-utils: lock-by-val, with-lock
 
-unresolved fut ?a() unsafe
+unresolved<a> fut a() unsafe
 	fut: lock-by-val, fut-state-no-callbacks
 
-resolve! void(f fut ?a, value ?a) unsafe
+resolve!<a> void(f fut a, value a) unsafe
 	f resolve-or-reject! value.ok
 
-reject! void(f fut ?a, e exception) unsafe
+reject!<a> void(f fut a, e exception) unsafe
 	f resolve-or-reject! e.err
 
-resolve-or-reject! void(f fut ?a, result result<?a, exception>) unsafe
+resolve-or-reject!<a> void(f fut a, result result<a, exception>) unsafe
 	old-state = f.lk.ref-of-val with-lock () =>
 		old = f.state
 		f.state := match result
@@ -40,14 +40,14 @@ resolve-or-reject! void(f fut ?a, result result<?a, exception>) unsafe
 	as exception
 		hard-unreachable
 
-.call-callbacks! void(cbs fut-state-callbacks ?a, value result<?a, exception>)
+.call-callbacks!<a> void(cbs fut-state-callbacks a, value result<a, exception>)
 	cbs.cb[value]
 	if next ?= cbs next
 		next call-callbacks! value
 
 # TODO: PRIVATE
 # WARN: Calls the callback immediately if possible
-callback! void(f fut ?a, cb act void(result<?a, exception>)) unsafe
+callback!<a> void(f fut a, cb act void(result<a, exception>)) unsafe
 	f.lk.ref-of-val with-lock () =>
 		match f state
 		as fut-state-no-callbacks

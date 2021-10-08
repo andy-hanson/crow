@@ -10,26 +10,26 @@ main fut nat(_ str[]) summon
 	print: "floats sum: {floats sum}"
 	0 resolved
 
-node<?a> record
-	head ?a
-	tail opt node ?a
+node<a> record
+	head a
+	tail opt node a
 
-size nat(a node ?a)
+size<a> nat(a node a)
 	1 size a.tail
 
-size nat(acc nat, a opt node ?a)
+size<a> nat(acc nat, a opt node a)
 	if node ?= a
 		acc + 1 size node.tail
 	else
 		acc
 
-plus<?a> spec
-	+ ?a(a ?a, b ?a)
+plus<a> spec
+	+ a(a a, b a)
 
-sum ?a(a node ?a) plus<?a>
+sum<a> a(a node a) plus<a>
 	a.head sum a.tail
 
-sum ?a(acc ?a, a opt node ?a) plus<?a>
+sum<a> a(acc a, a opt node a) plus<a>
 	if node ?= a
 		acc + node.head sum node.tail
 	else

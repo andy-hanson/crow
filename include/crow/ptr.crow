@@ -8,79 +8,79 @@ export
 	./private/bootstrap: any-ptr, by-val, ptr, zeroed
 
 # Null pointer.
-null ptr ?a() noctx builtin
+null<a> ptr a() noctx builtin
 
 # Advance the pointer by `offset`.
-+ ptr ?a(a ptr ?a, offset nat64) noctx unsafe builtin
++ <a> ptr a(a ptr a, offset nat64) noctx unsafe builtin
 # Back up the pointer by `offset`.
-- ptr ?a(p ptr ?a, offset nat64) noctx unsafe builtin
-# Get the difference between two pointers, measured in strides of `?a`.
-# UB if `a < b` or if `size-of<?a> == 0`.
-- nat64(a ptr ?a, b ptr ?a) noctx unsafe
-	# TODO: what if ?a is an empty type ?
-	a.to-nat64 wrap-sub b.to-nat64 unsafe-div size-of<?a>
+- <a> ptr a(p ptr a, offset nat64) noctx unsafe builtin
+# Get the difference between two pointers, measured in strides of `a`.
+# UB if `a < b` or if `size-of<a> == 0`.
+- <a> nat64(a ptr a, b ptr a) noctx unsafe
+	# TODO: what if a is an empty type ?
+	a.to-nat64 wrap-sub b.to-nat64 unsafe-div size-of<a>
 
 ###
 Get the value pointed to.
 UB if this is not a valid pointer.
 ###
-subscript ?a(a ptr ?a) noctx unsafe builtin
+subscript<a> a(a ptr a) noctx unsafe builtin
 ###
 Get the value pointed to at the offset.
 UB if that is not a valid pointer.
 ###
-subscript ?a(a ptr ?a, n nat64) noctx unsafe
+subscript<a> a(a ptr a, n nat64) noctx unsafe
 	(a + n)[]
 ###
 Set the value pointed to.
 UB if this is not a valid pointer.
 ###
-set-subscript void(a ptr ?a, value ?a) noctx unsafe builtin
+set-subscript<a> void(a ptr a, value a) noctx unsafe builtin
 ###
 Set the value pointed to at the offset.
 UB if that is not a valid pointer.
 ###
-set-subscript void(a ptr ?a, n nat64, value ?a) noctx unsafe
+set-subscript<a> void(a ptr a, n nat64, value a) noctx unsafe
 	(a + n)[] := value
 
 ###
 Reinterpret a pointer to a ref.
 Does nothing at runtime, just changes the type.
 ###
-ref-of-ptr ?a(p ptr by-val<?a>) noctx unsafe
+ref-of-ptr<a> a(p ptr by-val a) noctx unsafe
 	p[] ref-of-val
 
 ###
 Take a reference to something stored by-val.
 Unsafe because the ref will only be valid as long as `a` is.
 ###
-ref-of-val ?a(a by-val ?a) noctx unsafe builtin
+ref-of-val<a> a(a by-val a) noctx unsafe builtin
 
 ###
 Gets a pointer to something stored on the stack.
-WARN: If '?a' is a reference type already, this is a pointer to a pointer!
+WARN: If 'a' is a reference type already, this is a pointer to a pointer!
 ###
-ptr-to ptr ?a(t ?a) noctx unsafe builtin
+ptr-to<a> ptr a(t a) noctx unsafe builtin
 
 # TODO: this function only works for by-ref types -- currently that is not checked by the type checker
 # Convert a reference to `any-ptr`.
-as-any-ptr any-ptr(ref ?a) noctx unsafe builtin
+as-any-ptr<a> any-ptr(ref a) noctx unsafe builtin
 # TODO: this function only works for by-ref types -- currently that is not checked by the type checker
 ###
 Convert a pointer to a reference of the chosen type.
 UB if a value of that type was not stored at the pointer.
 ###
-as-ref ?a(a any-ptr) noctx unsafe builtin
+as-ref<a> a(a any-ptr) noctx unsafe builtin
 
 ###
 True iff two pointers are identical.
 (False if they point to equal values but are different pointers.)
 ###
-== bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
+== <a> bool(a ptr a, b ptr a) noctx unsafe builtin
 # True iff `a.to-nat64 < b.to-nat64`.
-.is-less bool(a ptr ?a, b ptr ?a) noctx unsafe builtin
+.is-less<a> bool(a ptr a, b ptr a) noctx unsafe builtin
 # Equal to `a.to-nat64 <=> b.to-nat64`.
-<=> comparison(a ptr ?a, b ptr ?a) noctx unsafe
+<=> <a> comparison(a ptr a, b ptr a) noctx unsafe
 	if a is-less b
 		less
 	elif a == b
@@ -92,7 +92,7 @@ True iff two pointers are identical.
 True if two references have the same pointer.
 Contrast with `a == b` which can also e true for different pointers with equal contents.
 ###
-ref-eq bool(a ?a, b ?a) noctx unsafe
+ref-eq<a> bool(a a, b a) noctx unsafe
 	a.as-any-ptr == b.as-any-ptr
 
 ###
@@ -100,44 +100,44 @@ Number of bytes taken up by a type.
 For a reference type, this is the size of a pointer.
 0 for empty types like `void`.
 ###
-size-of<?a> nat64() noctx unsafe builtin
+size-of<a> nat64() noctx unsafe builtin
 
 # Sometimes this is more convenient than writing the type
-size-of nat64(_ ?a) noctx unsafe
-	size-of<?a>
+size-of<a> nat64(_ a) noctx unsafe
+	size-of<a>
 
-deep-size-bytes<?a> spec
-	deep-size-bytes nat64(a ?a)
+deep-size-bytes<a> spec
+	deep-size-bytes nat64(a a)
 
-# TODO: require that ?out be an extern-ptr type
+# TODO: require that out be an extern-ptr type
 ###
 Convert a pointer to an `extern-ptr` type.
 Does nothing at runtime, just changes the type.
 ###
-ptr-cast-to-extern ?out(p ptr ?in) noctx unsafe builtin
+ptr-cast-to-extern<out, in> out(p ptr in) noctx unsafe builtin
 
-# TODO: require that ?in be an extern-ptr type
+# TODO: require that in be an extern-ptr type
 ###
 Convert an extern-ptr to another pointer.
 Does nothing at runtime, just changes the type.
 ###
-ptr-cast-from-extern ptr ?out(p ?in) noctx unsafe builtin
+ptr-cast-from-extern<out, in> ptr out(p in) noctx unsafe builtin
 
 ###
 Change the type pointed to.
 Does nothing at runtime, just changes the type.
 ###
-ptr-cast ptr ?out(p ptr ?in) noctx unsafe builtin
+ptr-cast<out, in> ptr out(p ptr in) noctx unsafe builtin
 
 # nat64 value of a pointer.
-to-nat64 nat64(p ptr ?a) noctx unsafe builtin
-to-ptr ptr ?a(a nat64) noctx unsafe builtin
+to-nat64<a> nat64(p ptr a) noctx unsafe builtin
+to-ptr<a> ptr a(a nat64) noctx unsafe builtin
 
 # Swap the pointees. Does not change the pointer itself.
-swap! void(a ptr ?a, b ptr ?a) noctx unsafe
+swap!<a> void(a ptr a, b ptr a) noctx unsafe
 	temp = a[]
 	a[] := b[]
 	b[] := temp
 
-max-ptr ptr ?a() noctx unsafe
+max-ptr<a> ptr a() noctx unsafe
 	null + 0xffffffffffffffff

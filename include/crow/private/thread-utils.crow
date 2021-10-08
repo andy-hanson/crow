@@ -70,7 +70,7 @@ yield-thread void() noctx unsafe
 release! void(a lock) noctx unsafe
 	a.is-locked.ref-of-val must-unset!
 
-with-lock ?a(a lock, f act ?a()) trusted
+with-lock<a> a(a lock, f act a()) trusted
 	a acquire!
 	res = f[]
 	a release!

@@ -44,7 +44,7 @@ import frontend.parse.ast :
 	matchLiteralIntOrNat,
 	matchSpecBodyAst,
 	matchStructDeclAstBody,
-	matchTypeAst,
+	NameAndRange,
 	ParamAst,
 	PuritySpecifier,
 	rangeOfNameAndRange,
@@ -55,8 +55,7 @@ import frontend.parse.ast :
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
-	TypeAst,
-	TypeParamAst;
+	TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag, Diagnostic, TypeKind;
 import model.model :
@@ -143,7 +142,6 @@ import util.collection.arrUtil :
 	cat,
 	count,
 	eachPair,
-	exists,
 	fillArr_mut,
 	map,
 	mapAndFold,
@@ -159,12 +157,7 @@ import util.collection.arrUtil :
 	zipFirstMut,
 	zipMutPtrFirst,
 	zipPtrFirst;
-import util.collection.arrWithSizeBuilder :
-	add,
-	ArrWithSizeBuilder,
-	arrWithSizeBuilderAsTempArr,
-	arrWithSizeBuilderSize,
-	finishArrWithSize;
+import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
 import util.collection.dict : Dict, dictEach, getAt, hasKey, KeyValuePair;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDict;
 import util.collection.dictUtil : buildMultiDict;
@@ -505,56 +498,17 @@ immutable(Ptr!StructDecl) bogusStructDecl(Alloc)(ref Alloc alloc, immutable size
 immutable(ArrWithSize!TypeParam) checkTypeParams(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
-	ref immutable ArrWithSize!TypeParamAst asts,
+	ref immutable ArrWithSize!NameAndRange asts,
 ) {
 	immutable ArrWithSize!TypeParam res =
-		mapWithSizeWithIndex(alloc, toArr(asts), (immutable size_t index, ref immutable TypeParamAst ast) =>
-			immutable TypeParam(rangeInFile(ctx, ast.range), ast.name, index));
+		mapWithSizeWithIndex(alloc, toArr(asts), (immutable size_t index, ref immutable NameAndRange ast) =>
+			immutable TypeParam(rangeInFile(ctx, rangeOfNameAndRange(ast)), ast.name, index));
 	eachPair!TypeParam(toArr(res), (ref immutable TypeParam a, ref immutable TypeParam b) {
 		if (symEq(a.name, b.name))
 			addDiag(alloc, ctx, b.range, immutable Diag(
 				immutable Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.typeParam, b.name)));
 	});
 	return res;
-}
-
-void collectTypeParamsInAst(Alloc)(
-	ref Alloc alloc,
-	ref const CheckCtx ctx,
-	ref immutable TypeAst ast,
-	ref ArrWithSizeBuilder!TypeParam res,
-) {
-	matchTypeAst!void(
-		ast,
-		(ref immutable TypeAst.Fun it) {
-			foreach (ref immutable TypeAst paramType; it.returnAndParamTypes)
-				collectTypeParamsInAst(alloc, ctx, paramType, res);
-		},
-		(ref immutable TypeAst.InstStruct i) {
-			foreach (ref immutable TypeAst arg; toArr(i.typeArgs))
-				collectTypeParamsInAst(alloc, ctx, arg, res);
-		},
-		(ref immutable TypeAst.Suffix s) {
-			collectTypeParamsInAst(alloc, ctx, s.left, res);
-		},
-		(ref immutable TypeAst.TypeParam tp) {
-			immutable TypeParam[] a = arrWithSizeBuilderAsTempArr(res);
-			if (!exists!TypeParam(a, (ref immutable TypeParam it) => symEq(it.name, tp.name))) {
-				add(alloc, res, immutable TypeParam(rangeInFile(ctx, tp.range), tp.name, arrWithSizeBuilderSize(res)));
-			}
-		});
-}
-
-immutable(ArrWithSize!TypeParam) collectTypeParams(Alloc)(
-	ref Alloc alloc,
-	ref const CheckCtx ctx,
-	ref immutable SigAst ast,
-) {
-	ArrWithSizeBuilder!TypeParam res;
-	collectTypeParamsInAst(alloc, ctx, ast.returnType, res);
-	foreach (ref immutable ParamAst p; toArr(ast.params))
-		collectTypeParamsInAst(alloc, ctx, p.type, res);
-	return finishArrWithSize(alloc, res);
 }
 
 immutable(Param[]) checkParams(Alloc)(
@@ -1310,9 +1264,7 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 ) {
 	ExactSizeArrBuilder!FunDecl funsBuilder = newExactSizeArrBuilder!FunDecl(alloc, countFunsForStruct(asts, structs));
 	foreach (ref immutable FunDeclAst funAst; asts) {
-		immutable ArrWithSize!TypeParam typeParams = empty(toArr(funAst.typeParams))
-			? collectTypeParams(alloc, ctx, funAst.sig)
-			: checkTypeParams(alloc, ctx, funAst.typeParams);
+		immutable ArrWithSize!TypeParam typeParams = checkTypeParams(alloc, ctx, funAst.typeParams);
 		immutable Ptr!Sig sig = allocate(alloc, checkSig(
 			alloc,
 			ctx,

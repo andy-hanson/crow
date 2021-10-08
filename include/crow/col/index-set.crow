@@ -185,7 +185,7 @@ region iteration
 each void(a index-set, f act void(nat64))
 	void fold a, (ignore, x) => f[x]
 
-fold ?a(acc ?a, a index-set, f act ?a(?a, nat64))
+fold<a> a(acc a, a index-set, f act a(a, nat64))
 	acc fold-with-index a.values, (cur, value, nat64-index) =>
 		bit-index-offset = nat64-index wrap-mul 64
 		cur fold-one-bits value, (inner-acc, bit-index) =>
@@ -200,8 +200,8 @@ filter index-set(a index-set, f act bool(nat64))
 map index-set(a index-set, f act nat64(nat64))
 	a map-to-arr f index-set
 
-map-to-arr ?a[](a index-set, f act ?a(nat64)) trusted
-	res = a.size uninitialized-mut-arr<?a>
+map-to-arr<a> a[](a index-set, f act a(nat64)) trusted
+	res = a.size uninitialized-mut-arr<a>
 	end = res.begin-ptr fold a, (cur, x) =>
 		cur[] := f[x]
 		cur + 1

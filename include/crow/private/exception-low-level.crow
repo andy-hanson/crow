@@ -26,7 +26,7 @@ exception-ctx by-val exception-ctx() noctx unsafe
 get-exception-ctx exception-ctx() unsafe
 	get-ctx.thread-local-stuff.exception-ctx-ptr as-ref<exception-ctx>
 
-catch-with-exception-ctx ?a(ec exception-ctx, try act ?a(), catcher act ?a(exception)) unsafe
+catch-with-exception-ctx<a> a(ec exception-ctx, try act a(), catcher act a(exception)) unsafe
 	old-thrown-exception = ec thrown-exception
 	old-jmp-buf = ec jmp-buf-ptr
 	store = __jmp_buf_tag: zero, 0, zero
@@ -55,7 +55,7 @@ If you want to create and throw an exception, use `fail` instead.
 `throw` is useful for rethrowing an exception that was already caught.
 Throwing an exception does not modify its backtrace.
 ###
-throw ?a(e exception) trusted
+throw<a> a(e exception) trusted
 	exn-ctx = get-exception-ctx
 	hard-assert: exn-ctx.jmp-buf-ptr != null
 	exn-ctx.thrown-exception := e
@@ -63,7 +63,7 @@ throw ?a(e exception) trusted
 	hard-unreachable
 
 # Create amd throw an exception with the given message.
-throw ?a(message str) trusted
+throw<a> a(message str) trusted
 	throw: exception: message, get-backtrace
 
 .number-to-throw int32()
@@ -83,12 +83,12 @@ forbid void(condition bool)
 Run `try` and return `ok` containing its return value,
 or `err` containing an exception if it threw one.
 ###
-catch result<?a, exception>(try act ?a())
+catch<a> result<a, exception>(try act a())
 	(() => try[] ok) catch e => e err
 
 ###
 Run `try` and return what it returns, or return the result of `catcher` if `try` threw an exception.
 (An exception thrown by `catcher` will not be caught.)
 ###
-catch ?a(try act ?a(), catcher act ?a(exception)) trusted
+catch<a> a(try act a(), catcher act a(exception)) trusted
 	get-exception-ctx catch-with-exception-ctx try, catcher

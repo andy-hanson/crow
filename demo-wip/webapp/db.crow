@@ -95,7 +95,7 @@ close-real-db void(db db) unsafe summon
 	db db-close
 	db.env lmdb-close-env
 
-.with-db ?a(env lmdb-env, f act ?a(db)) trusted summon
+.with-db<a> a(env lmdb-env, f act a(db)) trusted summon
 	db = env db-open
 	(() => db db-close) finally () => f[db]
 
