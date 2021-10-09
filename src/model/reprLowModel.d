@@ -84,8 +84,10 @@ immutable(Repr) reprOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) {
 			reprSym(symOfPrimitiveType(it)),
 		(immutable LowType.PtrGc it) =>
 			reprRecord(alloc, "gc-ptr", [reprOfLowType(alloc, it.pointee)]),
-		(immutable LowType.PtrRaw it) =>
-			reprRecord(alloc, "raw-ptr", [reprOfLowType(alloc, it.pointee)]),
+		(immutable LowType.PtrRawConst it) =>
+			reprRecord(alloc, "ptr-const", [reprOfLowType(alloc, it.pointee)]),
+		(immutable LowType.PtrRawMut it) =>
+			reprRecord(alloc, "ptr-mut", [reprOfLowType(alloc, it.pointee)]),
 		(immutable LowType.Record it) =>
 			reprRecord(alloc, "record", [reprNat(it.index)]),
 		(immutable LowType.Union it) =>

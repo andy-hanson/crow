@@ -55,12 +55,15 @@ by-val<a> builtin
 
 ###
 A raw pointer. GC will not trace these.
-WARN: If a is a reference type, ptr<a> is a pointer to a pointer to a
+WARN: If a is a reference type, mut-ptr<a> is a pointer to a pointer to a
 ###
-ptr<a> builtin mut
+mut-ptr<a> builtin
+const-ptr<a> builtin
 
-any-ptr alias
-	ptr nat8
+any-const-ptr alias
+	const-ptr nat8
+any-mut-ptr alias
+	mut-ptr nat8
 
 region arr
 
@@ -75,10 +78,10 @@ This means this is also the type for a slice of an array, and slicing is O(1).
 A slice does not keep the whole array alive, only the elements it can reach;
 elements not reachable by any slice will be garbage collected.
 ###
-arr<a> record force-data
+arr<a> record
 	by-val
 	size nat64
-	begin-ptr ptr a
+	begin-ptr const-ptr a
 
 region str
 
@@ -90,12 +93,12 @@ str record
 	by-val
 	chars char[]
 ###
-C-style string.
+C-style string. Always const.
 This should be a valid pointer whose content ends in a "\0", though this is not enforced.
 Thus, all operations on `c-str` are unsafe.
 ###
 c-str alias
-	ptr char
+	const-ptr char
 
 to-char char(a nat8) noctx builtin
 to-nat8 nat8(c char) noctx builtin
@@ -161,22 +164,22 @@ region bootstrap runtime
 # Since this fun is not marked 'noctx', it simply returns the ctx that already exists.
 get-ctx ctx() unsafe builtin
 
-# The ctx only exists temporarily, so can use 'any-ptr' without worrying about GC
+# The ctx only exists temporarily, so can use 'any-const-ptr' without worrying about GC
 ctx record mut
 	by-ref
-	gctx-ptr any-ptr
+	gctx-ptr any-mut-ptr
 	island-id island-id
 	exclusion exclusion
-	gc-ctx-ptr any-ptr
+	gc-ctx-ptr any-mut-ptr
 	thread-local-stuff thread-local-stuff
 
 thread-local-stuff record mut
 	by-ref
 	thread-id nat64
 	print-lock lock
-	exception-ctx-ptr any-ptr
-	log-ctx-ptr any-ptr
-	perf-ctx-ptr any-ptr
+	exception-ctx-ptr any-mut-ptr
+	log-ctx-ptr any-mut-ptr
+	perf-ctx-ptr any-mut-ptr
 
 island-id alias
 	nat64
@@ -355,4 +358,4 @@ named-val<a> record
 static-syms sym[]() noctx builtin
 
 # all named functions in arbitrary order
-all-funs named-val<any-ptr>[]() noctx unsafe builtin
+all-funs named-val<any-const-ptr>[]() noctx unsafe builtin

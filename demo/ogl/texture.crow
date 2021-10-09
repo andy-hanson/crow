@@ -6,7 +6,7 @@ import
 	crow/io/print: print
 	crow/misc: void
 	crow/number: to-int32
-	crow/ptr: ptr-to
+	crow/ptr: as-const, ptr-to
 	crow/str: str
 	crow/str-conv: finish, interp, to-str, with-str, with-value
 	GLES2/gl2:
@@ -25,7 +25,7 @@ load-texture GLuint(path str) unsafe summon
 		GL_TEXTURE_2D glBindTexture texture
 		w = image.width to-int32
 		h = image.height to-int32
-		data = image data
+		data = image.data as-const
 		print: "width is {w}, height is {h}"
 		GL_TEXTURE_2D glTexImage2D 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
 

@@ -7,7 +7,7 @@ import
 	./compare: comparison
 	./misc: drop
 	./opt: opt, some
-	./ptr: ==, by-val, ptr-cast, ref-of-ptr, ref-of-val, set-subscript
+	./ptr: ==, as-const, by-val, ptr-cast, ref-of-ptr, ref-of-val, set-subscript
 	./str: ==, <=>, char, chars, c-str, str
 	./str-util: to-str
 	./private/alloc: unmanaged-alloc-elements, unmanaged-alloc-uninitialized
@@ -62,4 +62,4 @@ str-to-sym sym(a str) trusted
 	res = n-chars wrap-add 1 unmanaged-alloc-elements<char>
 	drop: res.ptr-cast<nat8, char> memcpy a.chars.begin-ptr.ptr-cast<nat8, char>, n-chars
 	res[n-chars] := "\0"
-	res
+	res as-const

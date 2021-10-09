@@ -28,7 +28,7 @@ import
 	../misc: as, data, void
 	../number: ==, *, nat, nat8, nat32, nat64, to-nat64
 	../opt: opt, some
-	../ptr: ==, +, null, ptr-cast-to-extern, set-subscript, zeroed
+	../ptr: ==, +, as-mut, null, ptr-cast-to-extern, set-subscript, zeroed
 	../serialize: from-bytes, serialize, to-4-bytes, to-8-bytes, to-bytes
 	../str: str
 	../str-conv: interp, finish, to-str, with-str, with-value
@@ -387,11 +387,11 @@ with-abortable-write-transaction<a> a(env lmdb-env, f act transaction-result a(l
 			check-lmdb-error: transaction mdb_txn_commit
 			c value
 
-.empty-val MDB_val()
-	MDB_val: 0, null
+.empty-val MDB_val() unsafe
+	0 MDB_val null
 
-.val-of-bytes MDB_val(a nat8[])
-	MDB_val: a.size, a.begin-ptr
+.val-of-bytes MDB_val(a nat8[]) unsafe
+	a.size MDB_val a.begin-ptr.as-mut
 
 .bytes-of-val nat8[](a MDB_val) unsafe
 	a.mv_data mut-arr-from-begin-end a.mv_data + a.mv_size copy-to-arr

@@ -2,7 +2,7 @@ no-std
 import
 	crow/c-types: c-int, u-int
 	crow/misc: void
-	crow/ptr: ptr
+	crow/ptr: const-ptr
 	./SDL_rect: SDL_Rect
 	./SDL_surface: SDL_Surface
 	./SDL_video: SDL_Window
@@ -35,8 +35,8 @@ SDL_RenderClear c-int(renderer SDL_Renderer) extern<"SDL2"> noctx summon unsafe
 SDL_RenderCopy c-int
 	renderer SDL_Renderer
 	texture SDL_Texture
-	src-rect ptr SDL_Rect
-	dest-rect ptr SDL_Rect
+	src-rect const-ptr SDL_Rect
+	dest-rect const-ptr SDL_Rect
 spec
 	extern<"SDL2">
 	noctx

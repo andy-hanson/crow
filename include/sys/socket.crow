@@ -4,7 +4,7 @@ import
 	crow/c-types: c-int, size_t
 	crow/extra-types: err-t, fd-t
 	crow/number: int32, nat16
-	crow/ptr: any-ptr
+	crow/ptr: any-mut-ptr
 	unistd: ssize_t
 	./types: socklen_t
 
@@ -22,7 +22,7 @@ accept err-t(fd fd-t, addr sockaddr, addrlen cell socklen_t) unsafe extern noctx
 
 bind err-t(fd fd-t, addr sockaddr, len socklen_t) unsafe extern noctx summon
 
-recv ssize_t(fd fd-t, buf any-ptr, n size_t, flags int32) unsafe extern noctx summon
+recv ssize_t(fd fd-t, buf any-mut-ptr, n size_t, flags int32) unsafe extern noctx summon
 
 socket fd-t(domain c-int, type c-int, protocol c-int) unsafe extern noctx summon
 

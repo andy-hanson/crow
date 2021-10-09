@@ -1,8 +1,8 @@
 no-std
 import
 	crow/c-types: size_t
-	crow/ptr: any-ptr
+	crow/ptr: any-mut-ptr
 	crow/private/bootstrap: void
 
-malloc any-ptr(size size_t) unsafe extern noctx
-free void(p any-ptr) unsafe extern noctx
+malloc any-mut-ptr(size size_t) unsafe extern noctx
+free void(p any-mut-ptr) unsafe extern noctx

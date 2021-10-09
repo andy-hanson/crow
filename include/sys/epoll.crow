@@ -3,7 +3,7 @@ import
 	crow/c-types: c-int
 	crow/extra-types: err-t, fd-t
 	crow/number: nat32, nat64
-	crow/ptr: ptr
+	crow/ptr: mut-ptr
 
 epoll_create1 fd-t(flags c-int) unsafe noctx extern summon
 
@@ -13,11 +13,11 @@ epoll_event record
 	events nat32
 	data nat64
 
-epoll_ctl err-t(epfd fd-t, op c-int, fd fd-t, event ptr epoll_event) unsafe noctx extern summon
+epoll_ctl err-t(epfd fd-t, op c-int, fd fd-t, event mut-ptr epoll_event) unsafe noctx extern summon
 
 epoll_wait err-t
 	epfd fd-t
-	events ptr epoll_event
+	events mut-ptr epoll_event
 	max-events c-int
 	timeout c-int
 spec

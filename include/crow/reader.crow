@@ -8,15 +8,15 @@ import
 	./misc: drop, void
 	./number: ==, <=>, +, *, **, float64, int64, nat64, to-float64, to-int64
 	./opt: is-empty, none, opt, some
-	./ptr: ==, <=>, +, -, ptr, subscript
+	./ptr: ==, <=>, +, -, const-ptr, subscript
 	./str: ==, char, chars, size-bytes, str
 	./test: is
 	./private/exception-low-level: assert, forbid
 
 reader record mut
 	# TODO:PRIVATE
-	cur mut ptr char
-	end ptr char
+	cur mut const-ptr char
+	end const-ptr char
 
 reader reader(a str) trusted
 	a.chars.begin-ptr reader a.chars.end-ptr

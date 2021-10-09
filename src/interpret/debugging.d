@@ -108,8 +108,13 @@ void writeLowType(Alloc)(ref Writer!Alloc writer, ref immutable AllLowTypes lowT
 			writeLowType(writer, lowTypes, it.pointee);
 			writeChar(writer, ')');
 		},
-		(immutable LowType.PtrRaw it) {
-			writeStatic(writer, "raw-ptr(");
+		(immutable LowType.PtrRawConst it) {
+			writeStatic(writer, "raw-ptr-const(");
+			writeLowType(writer, lowTypes, it.pointee);
+			writeChar(writer, ')');
+		},
+		(immutable LowType.PtrRawMut it) {
+			writeStatic(writer, "raw-ptr-mut(");
 			writeLowType(writer, lowTypes, it.pointee);
 			writeChar(writer, ')');
 		},

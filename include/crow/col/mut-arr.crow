@@ -6,7 +6,9 @@ import
 	../fun: subscript
 	../misc: ->, arrow, drop, from, to, void
 	../opt: opt, some
-	../ptr: ==, <=>, +, -, as-any-ptr, ptr, set-subscript, size-of, subscript
+	../ptr:
+		==, <=>, +, -, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,
+		ref-of-ptr, set-subscript, size-of, subscript
 	../private/alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
 	../private/exception-low-level: assert, forbid
 	../private/number-low-level: ==, <=>, nat64, wrap-mul, wrap-sub
@@ -29,8 +31,8 @@ mut-arr<a> mut-arr a() noctx
 	mut-arr: void, []
 
 # `mut-arr` from a pointer and size.
-mut-arr<a> mut-arr a(size nat64, begin-ptr ptr a) noctx unsafe
-	mut-arr: void, arr: size, begin-ptr
+mut-arr<a> mut-arr a(size nat64, begin-ptr mut-ptr a) noctx unsafe
+	void mut-arr (size arr begin-ptr.as-const)
 
 ###
 Copies an `arr` to a `mut-arr`.
@@ -46,9 +48,9 @@ Further writes to the `mut-arr` won't affect the `arr` that was copied from it.
 arr<a> a[](a mut-arr a)
 	a.copy.inner
 
-mut-arr-from-begin-end<a> mut-arr a(begin ptr a, end ptr a) unsafe
+mut-arr-from-begin-end<a> mut-arr a(begin mut-ptr a, end mut-ptr a) unsafe
 	assert: begin <= end
-	mut-arr: void, arr-from-begin-end: begin, end
+	void mut-arr (begin.as-const arr-from-begin-end end.as-const)
 
 ###
 Copies the elements of a `mut-arr`.
@@ -62,7 +64,7 @@ copy-to-arr<a> a[](a mut-arr a) trusted
 
 copy-from!<a> void(dest mut-arr a, source a[]) trusted
 	assert: dest.size == source.size
-	drop: memcpy: dest.begin-ptr.as-any-ptr, source.begin-ptr.as-any-ptr, dest.size wrap-mul size-of<a>
+	drop: memcpy: dest.begin-ptr.as-any-mut-ptr, source.begin-ptr.as-any-const-ptr, dest.size wrap-mul size-of<a>
 
 copy-from!<a> void(dest mut-arr a, source mut-arr a) trusted
 	dest copy-from! source.cast-immutable
@@ -74,14 +76,14 @@ size<a> nat64(a mut-arr a) noctx
 	a.inner size
 
 # Pointer to the beginning of the `mut-arr`.
-begin-ptr<a> ptr a(a mut-arr a) noctx unsafe
-	a.inner begin-ptr
+begin-ptr<a> mut-ptr a(a mut-arr a) noctx unsafe
+	a.inner.begin-ptr as-mut
 
 ###
 Pointer to the end of the `mut-arr`.
 This is one past the last valid pointer.
 ###
-end-ptr<a> ptr a(a mut-arr a) noctx unsafe
+end-ptr<a> mut-ptr a(a mut-arr a) noctx unsafe
 	a.begin-ptr + a.size
 
 ###
@@ -196,7 +198,7 @@ find-index<a> nat64?(a mut-arr a, f act bool(a)) trusted
 
 reverse!<a> void(a mut-arr a) trusted
 	a.begin-ptr reverse-recur! a.end-ptr - 1
-.reverse-recur!<a> void(left ptr a, right ptr a) unsafe
+.reverse-recur!<a> void(left mut-ptr a, right mut-ptr a) unsafe
 	if left < right
 		tmp = left[]
 		left[] := right[]
@@ -222,7 +224,7 @@ fold-reverse<a, b> a(acc a, a mut-arr b, f act a(a, b)) trusted
 
 map!<a> void(a mut-arr a, f act a(a)) trusted
 	a.begin-ptr map-recur! a.end-ptr, f
-.map-recur!<a> void(cur ptr a, end ptr a, f act a(a)) unsafe
+.map-recur!<a> void(cur mut-ptr a, end mut-ptr a, f act a(a)) unsafe
 	if cur != end
 		cur[] := f[cur[]]
 		cur + 1 map-recur! end, f
@@ -238,3 +240,7 @@ map-to-arr<out, in> out[](a mut-arr in, f act out(in)) trusted
 
 map-to-arr-with-index<out, in> out[](a mut-arr in, f act out(in, nat64)) trusted
 	a map-with-index f cast-immutable
+
+ref-of-val-at<a> a(a mut-arr by-val a, index nat64) unsafe
+	assert: index < a.size
+	a.begin-ptr + index ref-of-ptr

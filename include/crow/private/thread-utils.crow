@@ -16,7 +16,7 @@ import
 	../extra-types: err-t
 	../fun: fun-ptr1, subscript
 	../io/time-low-level: timestamp, to-timespec
-	../ptr: ==, any-ptr, by-val, null, ptr, ptr-to, ref-of-val
+	../ptr: ==, any-mut-ptr, by-val, mut-ptr, null, ptr-to, ref-of-val
 	./bootstrap:
 		as, atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat64, opt, todo, value, void,
 		zeroed
@@ -28,7 +28,7 @@ atomic-bool by-val atomic-bool() noctx
 	atomic-bool: false
 
 # TODO: works on any primitive type, not just bool
-compare-exchange-strong bool(value-ptr ptr bool, expected-ptr ptr bool, desired bool) noctx builtin
+compare-exchange-strong bool(value-ptr mut-ptr bool, expected-ptr mut-ptr bool, desired bool) noctx builtin
 
 try-change! bool(a atomic-bool, old-value bool) noctx trusted
 	a.value.ptr-to compare-exchange-strong old-value.ptr-to, !old-value
@@ -170,8 +170,8 @@ get-and-decrement! nat64(t thread-safe-counter) noctx unsafe
 
 create-one-thread void
 	tid cell pthread_t
-	thread-arg any-ptr
-	thread-fun fun-ptr1<any-ptr, any-ptr>
+	thread-arg any-mut-ptr
+	thread-fun fun-ptr1<any-mut-ptr, any-mut-ptr>
 spec
 	noctx
 	unsafe
@@ -187,7 +187,7 @@ body
 			todo
 
 join-one-thread void(tid pthread_t) noctx unsafe summon
-	thread-return = as<by-val<cell<any-ptr>>>: cell: null
+	thread-return = as<by-val<cell<any-mut-ptr>>>: cell: null
 	err = tid pthread_join thread-return.ref-of-val
 	if err != 0
 		if err == EINVAL

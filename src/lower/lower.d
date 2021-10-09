@@ -11,8 +11,8 @@ import lower.generateMarkVisitFun :
 	generateMarkVisitGcPtr;
 import lower.getBuiltinCall : BuiltinKind, getBuiltinKind, matchBuiltinKind;
 import lower.lowExprHelpers :
-	anyPtrType,
-	charPtrPtrType,
+	anyPtrMutType,
+	charPtrPtrConstType,
 	constantNat64,
 	genAddPtr,
 	genBitwiseNegate,
@@ -72,7 +72,7 @@ import model.lowModel :
 	AllLowTypes,
 	ArrTypeAndConstantsLow,
 	asPtrGc,
-	asPtrRaw,
+	asPtrRawConst,
 	asRecordType,
 	compareLowType,
 	ConcreteFunToLowFunIndex,
@@ -160,7 +160,9 @@ immutable(Opt!LowFunIndex) tryGetMarkVisitFun(ref const MarkVisitFuns funs, ref 
 			none!LowFunIndex,
 		(immutable LowType.PtrGc it) =>
 			asImmutable(getAt_mut(funs.gcPointeeToVisit, it.pointee)),
-		(immutable LowType.PtrRaw) =>
+		(immutable LowType.PtrRawConst) =>
+			none!LowFunIndex,
+		(immutable LowType.PtrRawMut) =>
 			none!LowFunIndex,
 		(immutable LowType.Record it) =>
 			asImmutable(getAt(funs.recordValToVisit, it)),
@@ -256,7 +258,8 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(
 						return some(immutable LowType(PrimitiveType.nat32));
 					case BuiltinStructKind.nat64:
 						return some(immutable LowType(PrimitiveType.nat64));
-					case BuiltinStructKind.ptr:
+					case BuiltinStructKind.ptrConst:
+					case BuiltinStructKind.ptrMut:
 						return none!LowType;
 					case BuiltinStructKind.void_:
 						return some(immutable LowType(PrimitiveType.void_));
@@ -367,13 +370,13 @@ immutable(LowUnion) getLowUnion(Alloc)(
 	return immutable LowUnion(s, members);
 }
 
-immutable(LowType) getLowRawPtrType(Alloc)(
+immutable(LowType) getLowRawPtrConstType(Alloc)(
 	ref Alloc alloc,
 	ref GetLowTypeCtx ctx,
 	immutable LowType pointee,
 ) {
 	//TODO:PERF Cache creation of pointer types by pointee
-	return immutable LowType(immutable LowType.PtrRaw(allocate(alloc, pointee)));
+	return immutable LowType(immutable LowType.PtrRawConst(allocate(alloc, pointee)));
 }
 
 immutable(LowType) getLowGcPtrType(Alloc)(
@@ -392,10 +395,17 @@ immutable(LowType) lowTypeFromConcreteStruct(Alloc)(
 ) {
 	return optOr!LowType(getAt(ctx.concreteStructToType, it), () {
 		immutable ConcreteStructBody.Builtin builtin = asBuiltin(body_(it));
-		verify(builtin.kind == BuiltinStructKind.ptr);
+		verify(builtin.kind == BuiltinStructKind.ptrConst || builtin.kind == BuiltinStructKind.ptrMut);
 		//TODO: cache the creation.. don't want an allocation for every BuiltinStructKind.ptr to the same target type
-		return immutable LowType(
-			immutable LowType.PtrRaw(allocate(alloc, lowTypeFromConcreteType(alloc, ctx, only(builtin.typeArgs)))));
+		immutable Ptr!LowType inner = allocate(alloc, lowTypeFromConcreteType(alloc, ctx, only(builtin.typeArgs)));
+		switch (builtin.kind) {
+			case BuiltinStructKind.ptrConst:
+				return immutable LowType(immutable LowType.PtrRawConst(inner));
+			case BuiltinStructKind.ptrMut:
+				return immutable LowType(immutable LowType.PtrRawMut(inner));
+			default:
+				return unreachable!(immutable LowType);
+		}
 	});
 }
 
@@ -420,7 +430,7 @@ struct LowFunCause {
 		immutable ConcreteLambdaImpl[] impls;
 	}
 	struct MarkVisitArrInner {
-		immutable LowType.PtrRaw elementPtrType;
+		immutable LowType.PtrRawConst elementPtrType;
 	}
 	struct MarkVisitArrOuter {
 		immutable LowType.Record arrType;
@@ -506,7 +516,9 @@ immutable(bool) needsMarkVisitFun(ref immutable AllLowTypes allTypes, ref immuta
 			false,
 		(immutable LowType.PtrGc) =>
 			true,
-		(immutable LowType.PtrRaw) =>
+		(immutable LowType.PtrRawConst) =>
+			false,
+		(immutable LowType.PtrRawMut) =>
 			false,
 		(immutable LowType.Record it) {
 			immutable LowRecord record = fullIndexDictGet(allTypes.allRecords, it);
@@ -567,12 +579,14 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 					() =>
 						addLowFun(immutable LowFunCause(immutable LowFunCause.MarkVisitGcPtr(it, visitPointee))));
 			},
-			(immutable LowType.PtrRaw) =>
+			(immutable LowType.PtrRawConst) =>
+				unreachable!(immutable LowFunIndex),
+			(immutable LowType.PtrRawMut) =>
 				unreachable!(immutable LowFunIndex),
 			(immutable LowType.Record it) {
 				immutable LowRecord record = fullIndexDictGet(allTypes.allRecords, it);
 				if (isArr(record)) {
-					immutable LowType.PtrRaw elementPtrType = getElementPtrTypeFromArrType(allTypes, it);
+					immutable LowType.PtrRawConst elementPtrType = getElementPtrTypeFromArrType(allTypes, it);
 					immutable ValueAndDidAdd!(immutable LowFunIndex) outerIndex = getOrAddAndDidAdd(
 						markVisitFuns.recordValToVisit,
 						it,
@@ -834,7 +848,7 @@ immutable(LowFun) mainFun(Alloc)(
 			int32Type),
 		immutable LowParam(
 			immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("argv"))),
-			charPtrPtrType)]);
+			charPtrPtrConstType)]);
 	immutable LowParamIndex argc = immutable LowParamIndex(0);
 	immutable LowParamIndex argv = immutable LowParamIndex(1);
 	immutable LowExpr userMainFunPtr = immutable LowExpr(
@@ -848,7 +862,7 @@ immutable(LowFun) mainFun(Alloc)(
 			rtMainIndex,
 			arrLiteral!LowExpr(alloc, [
 				paramRef(FileAndRange.empty, int32Type, argc),
-				paramRef(FileAndRange.empty, charPtrPtrType, argv),
+				paramRef(FileAndRange.empty, charPtrPtrConstType, argv),
 				userMainFunPtr]))));
 	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(false, allocate(alloc, call)));
 	return immutable LowFun(
@@ -1068,7 +1082,7 @@ immutable(LowExpr) getAllocateExpr(Alloc)(
 	ref immutable LowExpr size,
 ) {
 	immutable LowExpr allocate = immutable LowExpr(
-		anyPtrType,
+		anyPtrMutType, //TODO: ensure this will definitely be the return type of allocFunIndex
 		range,
 		immutable LowExprKind(immutable LowExprKind.Call(
 			allocFunIndex,
@@ -1337,7 +1351,7 @@ immutable(LowExprKind) getCreateArrExpr(Alloc)(
 	// arr_foo{2, temp})
 	immutable LowType arrType = lowTypeFromConcreteStruct(alloc, typeCtx(ctx), a.arrType);
 	immutable LowType elementType = lowTypeFromConcreteType(alloc, typeCtx(ctx), elementType(a));
-	immutable LowType elementPtrType = getLowRawPtrType(alloc, typeCtx(ctx), elementType);
+	immutable LowType elementPtrType = getLowRawPtrConstType(alloc, typeCtx(ctx), elementType);
 	immutable LowExpr elementSize = getSizeOf(range, elementType);
 	immutable LowExpr nElements = constantNat64(range, size(a.args));
 	immutable LowExpr sizeBytes = wrapMulNat64(alloc, range, elementSize, nElements);
@@ -1359,7 +1373,7 @@ immutable(LowExprKind) getCreateArrExpr(Alloc)(
 			immutable LowExpr arg = getLowExpr(alloc, ctx, at(a.args, index), ExprPos.nonTail);
 			immutable LowExpr elementPtr = genAddPtr!Alloc(
 				alloc,
-				asPtrRaw(elementPtrType),
+				asPtrRawConst(elementPtrType),
 				range,
 				getTemp,
 				constantNat64(range, index));

@@ -6,7 +6,7 @@ import
 	crow/io/print: print
 	crow/io/time: delay
 	crow/math/vec: +, vec-2-32
-	crow/ptr: ==, as-any-ptr, null, ptr-cast, ptr-to, size-of, to-ptr
+	crow/ptr: ==, as-any-const-ptr, as-const, null, ptr-cast, ptr-to, size-of, to-const-ptr
 	crow/str-util: join, to-c-str, to-str
 	GLES2/gl2:
 		==, glActiveTexture, GL_ARRAY_BUFFER, glBindBuffer, glBindTexture, glBufferData,
@@ -40,11 +40,11 @@ main fut nat(_ str[]) summon trusted
 
 	wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
 	window = "my game".to-c-str SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, wflags
-	if window.as-any-ptr == null
+	if window.as-any-const-ptr == null
 		"SDL_CreateWindow" fail-sdl-error
 
 	context = window SDL_GL_CreateContext
-	if context.as-any-ptr == null
+	if context.as-any-const-ptr == null
 		"SDL_GL_CreateContext" fail-sdl-error
 
 	#0.0 glClearColor 0.0, 0.0, 1.0
@@ -154,14 +154,14 @@ blue color-32()
 	renderer.shader-prog glUseProgram
 
 	GL_ARRAY_BUFFER glBindBuffer renderer.triangle-vbo
-	GL_ARRAY_BUFFER glBufferSubData 0, renderer.vertices.n-bytes.to-int64, renderer.vertices.begin-ptr.ptr-cast
+	GL_ARRAY_BUFFER glBufferSubData 0, renderer.vertices.n-bytes.to-int64, renderer.vertices.begin-ptr.as-const.ptr-cast
 	# TODO: don't do this every frame
 	stride = (to-int32: size-of<vertex>)
-	0 glVertexAttribPointer 2, GL_FLOAT, false, stride, 0.to-ptr
+	0 glVertexAttribPointer 2, GL_FLOAT, false, stride, 0.to-const-ptr
 	0 glEnableVertexAttribArray
-	1 glVertexAttribPointer 3, GL_FLOAT, false, stride, (2 * size-of<float32>).to-ptr
+	1 glVertexAttribPointer 3, GL_FLOAT, false, stride, (2 * size-of<float32>).to-const-ptr
 	1 glEnableVertexAttribArray
-	2 glVertexAttribPointer 2, GL_FLOAT, false, stride, (5 * size-of<float32>).to-ptr
+	2 glVertexAttribPointer 2, GL_FLOAT, false, stride, (5 * size-of<float32>).to-const-ptr
 	2 glEnableVertexAttribArray
 
 	GL_TEXTURE0 glActiveTexture
@@ -210,11 +210,11 @@ continue-or-quit union
 	n-buffers glGenBuffers vbo-cell.as-ptr
 	vbo = vbo-cell[]
 	GL_ARRAY_BUFFER glBindBuffer vbo
-	GL_ARRAY_BUFFER glBufferData vertices.n-bytes.to-int64, vertices.begin-ptr.ptr-cast, GL_STATIC_DRAW
+	GL_ARRAY_BUFFER glBufferData vertices.n-bytes.to-int64, vertices.begin-ptr.as-const.ptr-cast, GL_STATIC_DRAW
 	GL_ARRAY_BUFFER glBindBuffer 0
 	err = glGetError
 	if err != GL_NO_ERROR
-		n-buffers glDeleteBuffers vbo-cell.as-ptr
+		n-buffers glDeleteBuffers vbo-cell.as-ptr.as-const
 		"Creating VBO failed: Code {err}" throw
 	vbo
 

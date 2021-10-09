@@ -2,7 +2,7 @@ no-std
 import
 	crow/c-types: c-int
 	crow/number: nat8, nat16, nat32
-	crow/ptr: ptr
+	crow/ptr: mut-ptr
 
 SDL_Color record
 	by-val
@@ -14,7 +14,7 @@ SDL_Color record
 SDL_Palette record mut
 	by-ref
 	ncolors c-int
-	colors ptr SDL_Color
+	colors mut-ptr SDL_Color
 	version nat32
 	refcount c-int
 
@@ -38,4 +38,4 @@ SDL_PixelFormat record mut
 	Bshift nat8
 	Ashift nat8
 	refcount c-int
-	next ptr SDL_PixelFormat
+	next mut-ptr SDL_PixelFormat

@@ -1693,7 +1693,8 @@ void writeConstantRef(Alloc)(
 				(immutable LowType.FunPtr) => false,
 				(immutable PrimitiveType) => unreachable!bool,
 				(immutable LowType.PtrGc) => unreachable!bool,
-				(immutable LowType.PtrRaw) => true,
+				(immutable LowType.PtrRawConst) => true,
+				(immutable LowType.PtrRawMut) => true,
 				(immutable LowType.Record) => unreachable!bool,
 				(immutable LowType.Union) => unreachable!bool);
 			if (isRawPtr) writeStatic(writer, "((uint8_t*)");

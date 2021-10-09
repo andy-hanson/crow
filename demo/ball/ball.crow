@@ -2,7 +2,7 @@ import
 	crow/io/duration: duration, msec
 	crow/io/print: print
 	crow/io/time: delay
-	crow/ptr: ==, as-any-ptr, null
+	crow/ptr: ==, as-any-const-ptr, null
 	crow/str-util: to-c-str, to-str
 	crow/c-types: c-int
 	SDL2/SDL:
@@ -22,7 +22,7 @@ import
 main fut nat(_ str[]) summon trusted
 	"SDL_INIT_VIDEO" handle-sdl-error: SDL_INIT_VIDEO SDL_Init
 	window = "Hello World!".to-c-str SDL_CreateWindow 100, 100, 640, 480, SDL_WINDOW_SHOWN
-	if window.as-any-ptr == null
+	if window.as-any-const-ptr == null
 		"SDL_CreateWindow" fail-sdl-error
 	renderer = window renderer
 	texture = renderer create-texture
@@ -68,18 +68,18 @@ main fut nat(_ str[]) summon trusted
 
 .renderer SDL_Renderer(window SDL_Window) summon trusted
 	renderer = window SDL_CreateRenderer: -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
-	if renderer.as-any-ptr == null
+	if renderer.as-any-const-ptr == null
 		"SDL_CreateRenderer" fail-sdl-error
 	renderer
 
 .create-texture SDL_Texture(renderer SDL_Renderer) summon trusted
 	image-path = "demo/ball/hello.bmp"
 	bmp = image-path SDL_LoadBMP
-	if bmp.as-any-ptr == null
+	if bmp.as-any-const-ptr == null
 		"sdl-loadbmp-error" fail-sdl-error
 	texture = renderer SDL_CreateTextureFromSurface bmp
 	bmp SDL_FreeSurface
-	if texture.as-any-ptr == null
+	if texture.as-any-const-ptr == null
 		"SDL_CreateTextureFromSurface" fail-sdl-error
 	texture
 

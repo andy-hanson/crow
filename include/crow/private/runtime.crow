@@ -7,7 +7,7 @@ import
 	../io/time-low-level: get-monotime-nsec, timestamp
 	../misc: as, void
 	../opt: none, opt, some
-	../ptr: as-any-ptr, as-ref, by-val, ref-of-val
+	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val
 	./alloc: gc, get-gc-ctx, needs-gc, return-gc-ctx, run-garbage-collection
 	./bool-low-level: !, &&, ||, bool, false, true
 	./bootstrap:
@@ -124,9 +124,9 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 	log-ctx = log-ctx
 	perf-ctx = perf-ctx
 	print-lock = gctx.print-lock ref-of-val
-	ectx-ptr = ectx.ref-of-val as-any-ptr
-	log-ctx-ptr = log-ctx.ref-of-val as-any-ptr
-	perf-ptr = perf-ctx.ref-of-val as-any-ptr
+	ectx-ptr = ectx.ref-of-val as-any-mut-ptr
+	log-ctx-ptr = log-ctx.ref-of-val as-any-mut-ptr
+	perf-ptr = perf-ctx.ref-of-val as-any-mut-ptr
 	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: thread-id, print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
 	gctx thread-function-recur tls.ref-of-val
 
@@ -165,7 +165,7 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion exclusion) noctx unsafe
 	gc-ctx = island.gc.ref-of-val get-gc-ctx
 	tls.log-ctx-ptr.as-ref<log-ctx>.handler := island.gc-root.ref-of-val.log-handler
-	ctx: gctx.as-any-ptr, island.id, exclusion, gc-ctx.as-any-ptr, tls
+	ctx: gctx.as-any-mut-ptr, island.id, exclusion, gc-ctx.as-any-mut-ptr, tls
 
 .return-ctx void(c ctx) noctx unsafe
 	c.gc-ctx-ptr.as-ref return-gc-ctx

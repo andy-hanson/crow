@@ -6,9 +6,9 @@ import
 	../col/mut-dict: move-to-dict!, mut-dict, set-subscript
 	../col/mut-list: ~=, move-to-arr!, mut-list
 	../compare: !=
-	../misc: ->, arrow, from, to, void
+	../misc: ->, arrow, as, from, to, void
 	../private/bootstrap: todo
-	../ptr: ==, +, null, ptr, subscript
+	../ptr: ==, +, const-ptr, null, subscript
 	../str: ==, <=>, ~, char, c-str, str
 	../str-util: find-char-in-cstr, find-cstr-end, to-c-str
 
@@ -22,7 +22,7 @@ get-environ environ() summon trusted
 	environ get-environ-recur res
 	res move-to-dict!
 
-.get-environ-recur void(env ptr c-str, res mut-dict<str, str>) unsafe
+.get-environ-recur void(env const-ptr c-str, res mut-dict<str, str>) unsafe
 	if env[] != null
 		entry = env[].parse-environ-entry
 		res[entry.from] := entry to
@@ -39,9 +39,10 @@ get-environ environ() summon trusted
 		todo
 
 # Get an environment string from environment variables.
-convert-environ ptr c-str(environ environ)
+convert-environ const-ptr c-str(environ environ) unsafe
 	res = mut-list<c-str>
 	environ each (key, value) =>
 		res ~=: key ~ "=" ~ value to-c-str
-	res ~= null<char>
+	# TODO: 'as' should be unnecessary
+	res ~= null<char> as<const-ptr char>
 	res.move-to-arr! begin-ptr

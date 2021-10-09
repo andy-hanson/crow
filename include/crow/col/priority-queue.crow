@@ -6,7 +6,7 @@ import
 	../fun: subscript
 	../misc: ->, arrow, as, data, from, to, void
 	../opt: force, is-empty, none, opt, some
-	../ptr: ==, +, -, ptr, set-subscript
+	../ptr: ==, +, -, mut-ptr, set-subscript
 	../str: ==, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test: is
@@ -181,7 +181,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	arr = compacted cast-immutable
 	node: arr.first.force, arr.tail, none
 
-.compact-singles!<k, v> ptr arrow<k, v>(out ptr arrow<k, v>, a node<k, v>) unsafe
+.compact-singles!<k, v> mut-ptr arrow<k, v>(out mut-ptr arrow<k, v>, a node<k, v>) unsafe
 	if a.pairs is-empty
 		# Output later nodes first to preserve insertion order (since they're inserted to the front)
 		pos = if next ?= a next
@@ -193,7 +193,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	else
 		out
 
-.compact-non-singles!<k, v> ptr arrow<k, v>(out ptr arrow<k, v>, a node<k, v>?) unsafe
+.compact-non-singles!<k, v> mut-ptr arrow<k, v>(out mut-ptr arrow<k, v>, a node<k, v>?) unsafe
 	if node ?= a
 		out[] := node min
 		out2 = out + 1 fold node.pairs, (cur, x) =>
@@ -253,7 +253,7 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) data<k> compare
 	else
 		acc
 
-.fill-each-arr!<k, v> ptr each-part<k, v>(out ptr each-part<k, v>, a node<k, v>?) unsafe
+.fill-each-arr!<k, v> mut-ptr each-part<k, v>(out mut-ptr each-part<k, v>, a node<k, v>?) unsafe
 	if node ?= a
 		out[] := each-part: node.min, node.pairs
 		out + 1 fill-each-arr! node.next

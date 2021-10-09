@@ -7,12 +7,12 @@ import
 	../misc: ->, arrow, as, data, from, to, void
 	../number: ==, <=>, +, -, is-even, nat64
 	../opt: ==, is-empty, none, opt, opt-or, or-default, some
-	../ptr: ==, <=>, +, -, ptr, set-subscript, subscript
+	../ptr: ==, <=>, +, -, const-ptr, mut-ptr, set-subscript, subscript
 	../str: ==, chars, is-empty, size-bytes, str
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
-	./arr: arr, arr-equal, begin-ptr, is-empty, end-ptr, size, subscript
+	./arr: arr, arr-equal, arr-from-begin-end, begin-ptr, is-empty, end-ptr, size, subscript
 	./arr-util: each, filter, fold, map, tail
 	./mut-arr:
 		begin-ptr, cast-immutable, copy-from!, is-empty, end-ptr, fold, mut-arr,
@@ -150,12 +150,12 @@ has-key<k, v> bool(a dict<k, v>, key k) trusted data<k> compare<k>
 		x.from <=> y.from
 	res[0 -> end - res.begin-ptr] cast-immutable
 
-.merge-keep-right<a> ptr a
-	out ptr a
-	l ptr a
-	l-end ptr a
-	r ptr a
-	r-end ptr a
+.merge-keep-right<a> mut-ptr a
+	out mut-ptr a
+	l const-ptr a
+	l-end const-ptr a
+	r const-ptr a
+	r-end const-ptr a
 	compare act comparison(a, a)
 spec
 	unsafe
@@ -192,12 +192,12 @@ body
 		res.begin-ptr merge-to-end-recur l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
 	res[0 -> end - res.begin-ptr] cast-immutable
 
-.merge-to-end-recur<k, v> ptr arrow<k, v>
-	out ptr arrow<k, v>
-	l ptr arrow<k, v>
-	l-end ptr arrow<k, v>
-	r ptr arrow<k, v?>
-	r-end ptr arrow<k, v?>
+.merge-to-end-recur<k, v> mut-ptr arrow<k, v>
+	out mut-ptr arrow<k, v>
+	l const-ptr arrow<k, v>
+	l-end const-ptr arrow<k, v>
+	r const-ptr arrow<k, v?>
+	r-end const-ptr arrow<k, v?>
 spec
 	unsafe
 	data<k>
@@ -237,16 +237,16 @@ body
 		else
 			new-out merge-to-end-recur l, l-end, r + 1, r-end
 
-.finish-rest<a> ptr a(out ptr a, cur ptr a, end ptr a) unsafe
+.finish-rest<a> mut-ptr a(out mut-ptr a, cur const-ptr a, end const-ptr a) unsafe
 	rest-size = end - cur
 	out-end = out + rest-size
-	out mut-arr-from-begin-end out-end copy-from!: cur mut-arr-from-begin-end end
+	out mut-arr-from-begin-end out-end copy-from!: cur arr-from-begin-end end
 	out-end
 
-.finish-rest-ignore-none<k, v> ptr arrow<k, v>
-	out ptr arrow<k, v>
-	r ptr arrow<k, v?>
-	r-end ptr arrow<k, v?>
+.finish-rest-ignore-none<k, v> mut-ptr arrow<k, v>
+	out mut-ptr arrow<k, v>
+	r const-ptr arrow<k, v?>
+	r-end const-ptr arrow<k, v?>
 spec
 	unsafe
 body
@@ -368,7 +368,7 @@ body
 	as end-node
 		acc
 
-.init-overlay-iters-recur!<k, v> arrow<k, v>[](out ptr arrow<k, v?>[], a dict-impl<k, v>) unsafe
+.init-overlay-iters-recur!<k, v> arrow<k, v>[](out mut-ptr arrow<k, v?>[], a dict-impl<k, v>) unsafe
 	match a
 	as overlay o
 		out[] := o.pairs

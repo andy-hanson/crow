@@ -6,20 +6,20 @@ import
 	../hash: hash, hash-mix
 	../misc: data, void
 	../opt: is-empty, opt, some
-	../ptr: ==, <=>, +, -, ptr, set-subscript, size-of, subscript, swap!
+	../ptr: ==, <=>, +, -, const-ptr, mut-ptr, set-subscript, size-of, subscript, swap!
 	../test: is
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
-	./arr: ==, arr, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, unsafe-at
+	./arr: ==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, unsafe-at
 	./arr-util: alloc-count, fold, fold-with-index, index-of, map, overhead-bytes, ptr-of
 	./mut-arr:
 		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-mut-arr, mut-arr,
-		size, uninitialized-mut-arr, unsafe-at, unsafe-set-at!
+		size, temp-as-arr, uninitialized-mut-arr, unsafe-at, unsafe-set-at!
 
 frozen-unordered-set<a> record force-data
 	# TODO:PRIVATE
 	values a[]
 	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
-	bucket-starts ptr<a>[]
+	bucket-starts const-ptr<a>[]
 
 frozen-unordered-set<a> frozen-unordered-set a() data<a> compare<a> hash-mix<a>
 	frozen-unordered-set: [], []
@@ -28,17 +28,17 @@ frozen-unordered-set<a> frozen-unordered-set a(a a[]) trusted data<a> compare<a>
 	a.mut-arr unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
 
 # Values are stored as a contiguous array; order is arbitrary.
-begin-ptr<a> ptr a(a frozen-unordered-set a) unsafe
+begin-ptr<a> const-ptr a(a frozen-unordered-set a) unsafe
 	a.values begin-ptr
 
-end-ptr<a> ptr a(a frozen-unordered-set a) unsafe
+end-ptr<a> const-ptr a(a frozen-unordered-set a) unsafe
 	a.values end-ptr
 
 alloc-count<a> nat64(a frozen-unordered-set a) unsafe
 	a.values.alloc-count wrap-add a.bucket-starts.alloc-count
 
 overhead-bytes<a> nat64(a frozen-unordered-set a) unsafe
-	buckets-size = a.bucket-starts.size wrap-mul size-of<ptr a>
+	buckets-size = a.bucket-starts.size wrap-mul size-of<const-ptr a>
 	a.values.overhead-bytes wrap-add a.bucket-starts.overhead-bytes wrap-add buckets-size
 
 is-empty<a> bool(a frozen-unordered-set a)
@@ -81,10 +81,10 @@ body
 	else
 		n-buckets = a.size unsafe-div 2
 		bucket-counts = a get-bucket-counts n-buckets
-		bucket-starts = a.begin-ptr running-sum bucket-counts
+		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-arr
 		bucket-counts fill! 0
 		a.begin-ptr move-values-to-buckets-recur! a.end-ptr, bucket-counts, bucket-starts
-		frozen-unordered-set: a.cast-immutable, bucket-starts
+		a.cast-immutable frozen-unordered-set bucket-starts.arr-cast<const-ptr a, mut-ptr a>
 
 .get-bucket-counts<a> mut-arr nat64(a mut-arr a, n-buckets nat64) unsafe hash-mix<a>
 	res = n-buckets fill-mut-arr 0
@@ -94,10 +94,10 @@ body
 	res
 
 .move-values-to-buckets-recur!<a> void
-	value-ptr ptr a
-	value-end ptr a
+	value-ptr mut-ptr a
+	value-end mut-ptr a
 	bucket-counts mut-arr nat64
-	bucket-starts ptr<a>[]
+	bucket-starts mut-ptr<a>[]
 spec
 	unsafe
 	hash-mix<a>
@@ -121,11 +121,18 @@ body
 .get-bucket-index<a> nat64(value a, n-buckets nat64) unsafe hash-mix<a>
 	value.hash unsafe-mod n-buckets
 
-.running-sum<a> ptr<a>[](acc ptr a, a mut-arr nat64) trusted
-	out = a.size uninitialized-mut-arr<ptr a>
+.running-sum<a> mut-ptr<a>[](acc mut-ptr a, a nat64[]) trusted
+	out = a.size uninitialized-mut-arr<mut-ptr a>
 	acc running-sum-recur! out.begin-ptr, out.end-ptr, a.begin-ptr
 	out cast-immutable
-.running-sum-recur!<a> void(acc ptr a, out ptr ptr a, out-end ptr ptr a, read ptr nat64) unsafe
+.running-sum-recur!<a> void
+	acc mut-ptr a
+	out mut-ptr mut-ptr a
+	out-end mut-ptr mut-ptr a
+	read const-ptr nat64
+spec
+	unsafe
+body
 	out[] := acc
 	if out + 1 != out-end
 		acc + read[] running-sum-recur! out + 1, out-end, read + 1

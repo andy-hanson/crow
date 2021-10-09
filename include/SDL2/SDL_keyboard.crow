@@ -1,6 +1,6 @@
 no-std
 import
 	crow/number: int, nat8
-	crow/ptr: ptr
+	crow/ptr: const-ptr, mut-ptr
 
-SDL_GetKeyboardState ptr nat8(num-keys ptr int) extern<"SDL2"> noctx summon
+SDL_GetKeyboardState const-ptr nat8(num-keys mut-ptr int) extern<"SDL2"> noctx summon

@@ -5,7 +5,7 @@ import
 	crow/c-types: u-long
 	crow/extra-types: err-t
 	crow/fun: fun-ptr1
-	crow/ptr: any-ptr, ptr
+	crow/ptr: any-const-ptr, any-mut-ptr, const-ptr, mut-ptr
 	crow/private/bootstrap: int32
 	time: __clockid_t, timespec
 
@@ -13,20 +13,19 @@ pthread_t alias
 	u-long
 
 # writes to `thread`
-# attr -- not typing this as currently I only pass null
+# TODO: attr -- not typing this as currently I only pass null
 pthread_create err-t
 	thread cell pthread_t
-	attr any-ptr
-	start-routine fun-ptr1<any-ptr, any-ptr>
-	arg any-ptr
+	attr any-const-ptr
+	start-routine fun-ptr1<any-mut-ptr, any-mut-ptr>
+	arg any-mut-ptr
 spec
 	unsafe
 	extern
 	noctx
 	summon
 
-# writes to `thread-return`
-pthread_join err-t(thread pthread_t, thread-return cell any-ptr) unsafe extern noctx summon
+pthread_join err-t(thread pthread_t, thread-return cell any-mut-ptr) unsafe extern noctx summon
 
 region mutex
 
@@ -42,7 +41,7 @@ pthread_mutexattr_init err-t(attr pthread_mutexattr_t) unsafe extern noctx
 pthread_mutexattr_destroy err-t(attr pthread_mutexattr_t) unsafe extern noctx
 pthread_mutexattr_getpshared err-t
 	attr pthread_mutexattr_t
-	pshared ptr int32
+	pshared mut-ptr int32
 spec
 	unsafe
 	extern
@@ -73,9 +72,9 @@ pthread_condattr_t record
 
 pthread_condattr_init err-t(attr pthread_condattr_t) unsafe extern noctx
 pthread_condattr_destroy err-t(attr pthread_condattr_t) unsafe extern noctx
-pthread_condattr_getpshared err-t(attr pthread_condattr_t, pshared ptr int32) unsafe extern noctx
-pthread_condattr_setpshared err-t(attr pthread_condattr_t, pshared ptr int32) unsafe extern noctx
-pthread_condattr_getclock err-t(attr pthread_condattr_t, clock-id ptr __clockid_t) unsafe extern noctx
+pthread_condattr_getpshared err-t(attr pthread_condattr_t, pshared mut-ptr int32) unsafe extern noctx
+pthread_condattr_setpshared err-t(attr pthread_condattr_t, pshared int32) unsafe extern noctx
+pthread_condattr_getclock err-t(attr pthread_condattr_t, clock-id mut-ptr __clockid_t) unsafe extern noctx
 pthread_condattr_setclock err-t(attr pthread_condattr_t, clock-id __clockid_t) unsafe extern noctx
 
 pthread_cond_init err-t(cond pthread_cond_t, cond-attr pthread_condattr_t) unsafe extern noctx
@@ -83,4 +82,4 @@ pthread_cond_destroy err-t(cond pthread_cond_t) unsafe extern noctx
 pthread_cond_signal err-t(cond pthread_cond_t) unsafe extern noctx
 pthread_cond_broadcast err-t(cond pthread_cond_t) unsafe extern noctx
 pthread_cond_wait err-t(cond pthread_cond_t, mutex pthread_mutex_t) unsafe extern noctx
-pthread_cond_timedwait err-t(cond pthread_cond_t, mutex pthread_mutex_t, abstime ptr timespec) unsafe extern noctx
+pthread_cond_timedwait err-t(cond pthread_cond_t, mutex pthread_mutex_t, abstime const-ptr timespec) unsafe extern noctx

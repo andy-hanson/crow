@@ -1,11 +1,11 @@
 no-std
 import
 	crow/extra-types: err-t
-	crow/ptr: ptr, subscript
+	crow/ptr: mut-ptr, subscript
 
 errno err-t() unsafe noctx
 	__errno_location[]
-.__errno_location ptr err-t() extern noctx unsafe
+.__errno_location mut-ptr err-t() extern noctx unsafe
 
 ENOENT err-t() noctx
 	2

@@ -7,7 +7,7 @@ import
 	../log: info, log
 	../misc: ->, void
 	../number: *
-	../ptr: ==, +, ptr, set-subscript, subscript
+	../ptr: ==, +, as-const, const-ptr, mut-ptr, set-subscript, subscript
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
 	../str: ==, str
 	../str-conv: interp, finish, to-str, with-str, with-value
@@ -121,8 +121,17 @@ fold<a, b> a(acc a, a mut-grid b, f act a(a, b))
 	acc fold a.elements, f
 
 fold-with-coords<a, b> a(acc a, a mut-grid b, f act a(a, b, coord)) trusted
-	acc fold-with-coords-recur a.elements.begin-ptr, a.elements.end-ptr, zero, a.width, f
-.fold-with-coords-recur<a, b> a(acc a, cur ptr b, end ptr b, coord coord, width nat64, f act a(a, b, coord)) unsafe
+	acc fold-with-coords-recur a.elements.begin-ptr.as-const, a.elements.end-ptr.as-const, zero, a.width, f
+.fold-with-coords-recur<a, b> a
+	acc a
+	cur const-ptr b
+	end const-ptr b
+	coord coord
+	width nat64
+	f act a(a, b, coord)
+spec
+	unsafe
+body
 	if cur == end
 		acc
 	else
@@ -136,7 +145,7 @@ map!<a> void(a mut-grid a, f act a(a))
 
 map-with-coords!<a> void(a mut-grid a, f act a(a, coord)) trusted
 	a.elements.begin-ptr map-with-coords-recur! a.elements.end-ptr, zero, a.width, f
-.map-with-coords-recur!<a> void(cur ptr a, end ptr a, coord coord, width nat64, f act a(a, coord)) unsafe
+.map-with-coords-recur!<a> void(cur mut-ptr a, end mut-ptr a, coord coord, width nat64, f act a(a, coord)) unsafe
 	if cur == end
 		void
 	else

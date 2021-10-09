@@ -8,14 +8,14 @@ import
 	crow/io/file: read-file-binary
 	crow/misc: void
 	crow/number: nat, nat8, to-nat64
-	crow/ptr: ptr
+	crow/ptr: mut-ptr
 	crow/str: str
 	webp/decode: WebPDecodeRGBA
 	webp/types: WebPFree
 
 # WARN: Remember to free
 webp-rgba-image record mut
-	data ptr nat8
+	data mut-ptr nat8
 	width nat
 	height nat
 

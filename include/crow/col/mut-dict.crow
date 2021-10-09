@@ -7,7 +7,7 @@ import
 	../misc: ->, arrow, as, data, from, to, void
 	../number: ==, <=>, +, -, *, nat64
 	../opt: ==, force, is-empty, none, opt, or-default, size, some
-	../ptr: ==, -, ptr, set-subscript, subscript
+	../ptr: ==, -, mut-ptr, set-subscript, subscript
 	../str: ==, chars, str
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
@@ -228,10 +228,10 @@ remove-key!<k, v> v?(a mut-dict<k, v>, key k) trusted data<k> compare<k>
 		a.next := none
 		a.node-size := a.pairs.size
 
-.find-exact-ptr<k, v> ptr<arrow<k, v?>>?(a mut-dict<k, v>, key k) data<k> compare<k> unsafe
+.find-exact-ptr<k, v> mut-ptr<arrow<k, v?>>?(a mut-dict<k, v>, key k) data<k> compare<k> unsafe
 	a.pairs binary-search-exact-ptr pair => key <=> pair.from
 
-.find-insert-ptr<k, v> ptr arrow<k, v?>(a mut-dict<k, v>, key k) data<k> compare<k> unsafe
+.find-insert-ptr<k, v> mut-ptr arrow<k, v?>(a mut-dict<k, v>, key k) data<k> compare<k> unsafe
 	a.pairs binary-search-insert-ptr pair => key <=> pair.from
 
 region iteration

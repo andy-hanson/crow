@@ -7,7 +7,9 @@ import
 	../misc: ->, drop, void
 	../number: +, -, *, nat64
 	../opt: opt, some
-	../ptr: ==, +, -, as-any-ptr, by-val, ptr, set-subscript, size-of, subscript, zeroed
+	../ptr:
+		==, +, -, as-any-const-ptr, as-any-mut-ptr, as-const, by-val, const-ptr, mut-ptr,
+		set-subscript, size-of, subscript, zeroed
 	../private/alloc:
 		alloc-uninitialized, copy-data-from!, set-zero-range, unmanaged-alloc-zeroed-elements
 	../private/bootstrap: hard-assert, todo
@@ -38,10 +40,10 @@ Pointer to the first element.
 Since `mut-list` changes its underlying data occasionally,
 it's UB if this is used after the size of `a` changes.
 ###
-begin-ptr<a> ptr a(a mut-list a) noctx unsafe
+begin-ptr<a> mut-ptr a(a mut-list a) noctx unsafe
 	a.backing begin-ptr
 
-end-ptr<a> ptr a(a mut-list a) noctx unsafe
+end-ptr<a> mut-ptr a(a mut-list a) noctx unsafe
 	a.begin-ptr + a.size
 
 is-at-capacity<a> bool(a mut-list a) noctx unsafe
@@ -110,7 +112,7 @@ Convert to a `dict`, clearning the original `mut-list` in the process.
 (This avoids copying but still ensures that the result is immutable.)
 ###
 move-to-arr!<a> a[](a mut-list a) noctx trusted
-	res = arr: a.size, a.begin-ptr
+	res = a.size arr a.begin-ptr.as-const
 	a.backing := mut-arr
 	a.size := 0
 	res
@@ -182,8 +184,8 @@ copy-range-to-arr<a> a[](a mut-list a, begin nat64, size nat64) trusted
 	assert: begin + size <= a.size
 	res = alloc-uninitialized<a>: size
 	src = a.begin-ptr + begin
-	drop: memcpy: res.as-any-ptr, src.as-any-ptr, size * size-of<a>
-	arr: size, res
+	drop: memcpy: res.as-any-mut-ptr, src.as-any-const-ptr, size * size-of<a>
+	size arr res.as-const
 
 ###
 Removes the first `n` elements and returns them as an array.
@@ -193,8 +195,8 @@ Throws if `n > a.size`.
 pop-n-from-start!<a> a[](a mut-list a, n nat64) trusted
 	assert: n <= a.size
 	res = a copy-range-to-arr 0, n
-	dest = a.begin-ptr as-any-ptr
-	src = a.begin-ptr + n as-any-ptr
+	dest = a.begin-ptr as-any-mut-ptr
+	src = a.begin-ptr + n as-any-const-ptr
 	new-size = a.size - n
 	drop: memmove: dest, src, new-size * size-of<a>
 	a.size := new-size
@@ -251,7 +253,7 @@ push-capacity-must-be-sufficient!<a> void(a mut-list a, value a) noctx unsafe
 	assert: new-capacity > a.capacity
 	old-begin = a begin-ptr
 	a.backing := new-capacity uninitialized-mut-arr<a>
-	a.begin-ptr copy-data-from! old-begin, a.size
+	a.begin-ptr copy-data-from! old-begin.as-const, a.size
 	a.backing[a.size + 1 -> a.backing.size] set-zero-elements
 
 .ensure-capacity<a> void(a mut-list a, min-capacity nat64) unsafe
@@ -339,12 +341,12 @@ insert-at!<a> void(a mut-list a, index nat64, value a) trusted
 	dest = a.begin-ptr + index + 1
 	src = a.begin-ptr + index
 	n = a.size - index
-	drop: memmove: dest.as-any-ptr, src.as-any-ptr, n * size-of<a>
+	drop: memmove: dest.as-any-mut-ptr, src.as-any-const-ptr, n * size-of<a>
 	a.size := a.size + 1
 	a[index] := value
 	assert: a.size <= a.capacity
 
-insert-at!<a> void(a mut-list a, ptr ptr a, value a) unsafe
+insert-at!<a> void(a mut-list a, ptr mut-ptr a, value a) unsafe
 	a insert-at! ptr - a.begin-ptr, value
 
 ###
@@ -360,11 +362,11 @@ remove-at!<a> a(a mut-list a, index nat64) trusted
 	dest = a.begin-ptr + index
 	src = a.begin-ptr + index + 1
 	n = a.size - index - 1
-	drop: memmove: dest.as-any-ptr, src.as-any-ptr, n * size-of<a>
+	drop: memmove: dest.as-any-mut-ptr, src.as-any-const-ptr, n * size-of<a>
 	a.size := a.size - 1
 	res
 
-remove-at!<a> a(a mut-list a, ptr ptr a) unsafe
+remove-at!<a> a(a mut-list a, ptr mut-ptr a) unsafe
 	a remove-at! ptr - a.begin-ptr
 
 reverse!<a> void(a mut-list a) trusted
@@ -426,11 +428,11 @@ map-opt-to-mut-arr<out, in> mut-arr out(a mut-list in, f act out?(in)) trusted
 region mutating iteration
 
 filter!<a> void(a mut-list a, f act bool(a)) trusted
-	new-end = a.begin-ptr filter-recur! a.begin-ptr, a.end-ptr, f
+	new-end = a.begin-ptr filter-recur! a.begin-ptr.as-const, a.end-ptr.as-const, f
 	new-size = new-end - a.begin-ptr
 	a.backing[new-size -> a.size] set-zero-elements
 	a.size := new-size
-.filter-recur!<a> ptr a(out ptr a, in ptr a, end ptr a, f act bool(a)) unsafe
+.filter-recur!<a> mut-ptr a(out mut-ptr a, in const-ptr a, end const-ptr a, f act bool(a)) unsafe
 	if in == end
 		out
 	else

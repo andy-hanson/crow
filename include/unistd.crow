@@ -2,19 +2,20 @@ no-std
 import
 	crow/c-types: c-int, size_t
 	crow/extra-types: err-t, fd-t
-	crow/ptr: any-ptr, ptr
+	crow/ptr: any-const-ptr, any-mut-ptr, const-ptr, mut-ptr
 	crow/private/bootstrap: c-str, int32, int64, nat32
+	crow/str: char
 	sys/types: off_t
 
-getcwd c-str(buf c-str, size size_t) unsafe extern noctx summon
+getcwd mut-ptr char(buf mut-ptr char, size size_t) unsafe extern noctx summon
 
-readlink ssize_t(path c-str, buf c-str, len size_t) summon extern noctx
+readlink ssize_t(path c-str, buf mut-ptr char, len size_t) summon extern noctx
 
 close err-t(fd fd-t) summon extern noctx
 lseek off_t(f fd-t, offset off_t, whence int32) summon extern noctx
-read ssize_t(fd fd-t, buff any-ptr, n-bytes size_t) summon extern noctx
+read ssize_t(fd fd-t, buff any-mut-ptr, n-bytes size_t) summon extern noctx
 # TODO: summon
-write ssize_t(fd fd-t, buf any-ptr, n-bytes size_t) extern noctx
+write ssize_t(fd fd-t, buf any-const-ptr, n-bytes size_t) extern noctx
 
 pipe err-t(pipes pipes) summon extern noctx
 
@@ -23,7 +24,7 @@ pipes record mut
 	write-pipe mut fd-t
 	read-pipe mut fd-t
 
-environ ptr c-str() unsafe global noctx
+environ const-ptr c-str() unsafe global noctx
 
 usleep c-int(micro-seconds nat32) unsafe extern noctx
 

@@ -5,7 +5,7 @@ import
 	../exception: assert, forbid
 	../misc: ->, void
 	../opt: ==, none, opt, some
-	../ptr: ==, <=>, +, -, null, ptr, set-subscript, subscript, zeroed
+	../ptr: ==, <=>, +, -, as-const, mut-ptr, null, set-subscript, subscript, zeroed
 	../str: ==, str
 	../str-conv: to-str
 	../test: is
@@ -21,12 +21,12 @@ mut-deque<a> record mut
 	# TODO:PRIVATE
 	inner mut mut-arr a
 	# Points to the first element. Null for an empty queue.
-	left mut ptr a
+	left mut mut-ptr a
 	# Points to the element after the last. Null for an empty queue.
 	# This should never be inner.end-ptr, it wraps around to inner.begin-ptr
-	right mut ptr a
+	right mut mut-ptr a
 
-mut-deque<a> mut-deque a()
+mut-deque<a> mut-deque a() trusted
 	mut-deque: mut-arr<a>, null, null
 
 arr<a> a[](a mut-deque a) trusted
@@ -137,18 +137,18 @@ pop-right!<a> a?(a mut-deque a) trusted
 .copy-from-deque!<a> void(dest mut-arr a, a mut-deque a) trusted
 	assert: dest.size == a.size
 	if a.left < a.right
-		dest copy-from!: a.left arr-from-begin-end a.right
+		dest copy-from! (a.left.as-const arr-from-begin-end a.right.as-const)
 	else
 		left-to-end-size = a.inner.end-ptr - a.left
-		dest[0 -> left-to-end-size] copy-from!: a.left arr-from-begin-end a.inner.end-ptr
-		dest[left-to-end-size -> dest.size] copy-from!: a.inner.begin-ptr arr-from-begin-end a.right
+		dest[0 -> left-to-end-size] copy-from! (a.left.as-const arr-from-begin-end a.inner.end-ptr.as-const)
+		dest[left-to-end-size -> dest.size] copy-from! (a.inner.begin-ptr.as-const arr-from-begin-end a.right.as-const)
 
 .dbg str(a mut-deque nat64) trusted
 	out = writer
-	a.inner.begin-ptr arr-from-begin-end a.inner.end-ptr each-ptr ptr =>
-		if ptr == a.right
+	a.inner.begin-ptr.as-const arr-from-begin-end a.inner.end-ptr.as-const each-ptr ptr =>
+		if ptr == a.right.as-const
 			out ~= "<-R "
-		if ptr == a.left
+		if ptr == a.left.as-const
 			out ~= "L-> "
 		out ~= ptr[] to-str
 		out ~= " "

@@ -6,13 +6,15 @@ import
 	../../fun: subscript
 	../../misc: void
 	../../opt: none, opt, some
-	../../ptr: ==, +, -, null, ptr, set-subscript, subscript
+	../../ptr: ==, +, -, as-const, as-mut, const-ptr, mut-ptr, null, set-subscript, subscript
 	../../test: is
 	../../private/bootstrap: nat64
 	../../private/number-low-level: ==, <=>, unsafe-div, wrap-add
-	../arr: ==, arr, begin-ptr, end-ptr
+	../arr: ==, arr, arr-from-begin-end, begin-ptr, end-ptr
 	../mut-arr: begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end
-	../mut-list: arr, begin-ptr, empty!, end-ptr, is-empty, mut-list, size, swap!, temp-as-mut-arr, unsafe-set-size!
+	../mut-list:
+		arr, begin-ptr, empty!, end-ptr, is-empty, mut-list, size, swap!, temp-as-mut-arr,
+		unsafe-set-size!
 
 binary-search-has<a> bool(a a[], value a) compare<a> trusted
 	(a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value) != null
@@ -28,35 +30,36 @@ binary-search-exact-index<a> nat64?(a a[], value a) trusted compare<a>
 	else
 		ptr - a.begin-ptr some
 
-binary-search-exact-ptr<a> ptr<a>?(a mut-list a, compare act comparison(a)) unsafe
+binary-search-exact-ptr<a> mut-ptr<a>?(a mut-list a, compare act comparison(a)) unsafe
 	a.temp-as-mut-arr binary-search-exact-ptr compare
 
-binary-search-exact-ptr<a> ptr<a>?(a mut-arr a, compare act comparison(a)) unsafe
-	a.cast-immutable binary-search-exact-ptr compare
+binary-search-exact-ptr<a> mut-ptr<a>?(a mut-arr a, compare act comparison(a)) unsafe
+	if x ?= a.cast-immutable binary-search-exact-ptr compare
+		x.as-mut some
 
-binary-search-exact-ptr<a> ptr<a>?(a a[], value a) compare<a> unsafe
+binary-search-exact-ptr<a> const-ptr<a>?(a a[], value a) compare<a> unsafe
 	res = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
 	if res != null
 		res some
 
-binary-search-exact-ptr<a> ptr<a>?(a a[], compare act comparison(a)) unsafe
+binary-search-exact-ptr<a> const-ptr<a>?(a a[], compare act comparison(a)) unsafe
 	ptr = a.begin-ptr binary-search-compare-recur a.end-ptr, compare
 	if ptr == a.end-ptr
 		none
 	elif compare[ptr[]] == equal
 		ptr some
 
-binary-search-insert-ptr<a> ptr a(a mut-list a, compare act comparison(a)) unsafe
+binary-search-insert-ptr<a> mut-ptr a(a mut-list a, compare act comparison(a)) unsafe
 	a.temp-as-mut-arr binary-search-insert-ptr compare
 
 ###
 Returns the pointer to the least value that is compared equal or greater.
 Returns `a end-ptr` if all values compare less.
 ###
-binary-search-insert-ptr<a> ptr a(a mut-arr a, compare act comparison(a)) unsafe
-	a.begin-ptr binary-search-compare-recur a.end-ptr, compare
+binary-search-insert-ptr<a> mut-ptr a(a mut-arr a, compare act comparison(a)) unsafe
+	a.begin-ptr.as-const binary-search-compare-recur a.end-ptr.as-const, compare as-mut
 
-binary-search-insert-ptr<a> ptr a(a a[], value a) unsafe compare<a>
+binary-search-insert-ptr<a> const-ptr a(a a[], value a) unsafe compare<a>
 	a.begin-ptr binary-search-insert-ptr-recur a.end-ptr, value
 
 test
@@ -70,7 +73,7 @@ test
 	(a binary-search-insert-ptr x => 8 <=> x) - a.begin-ptr is 4
 
 # Left inclusive, right exclusive
-.binary-search-exact-ptr-recur<a> ptr a(left ptr a, right ptr a, value a) unsafe compare<a>
+.binary-search-exact-ptr-recur<a> const-ptr a(left const-ptr a, right const-ptr a, value a) unsafe compare<a>
 	diff = right - left
 	if diff < 4
 		left linear-search-exact-ptr-recur right, value
@@ -84,7 +87,7 @@ test
 		as greater
 			mid + 1 binary-search-exact-ptr-recur right, value
 
-.linear-search-exact-ptr-recur<a> ptr a(left ptr a, right ptr a, value a) unsafe compare<a>
+.linear-search-exact-ptr-recur<a> const-ptr a(left const-ptr a, right const-ptr a, value a) unsafe compare<a>
 	if left == right
 		null
 	elif left[] == value
@@ -93,7 +96,7 @@ test
 		left + 1 linear-search-exact-ptr-recur right, value
 
 # Left inclusive, right exclusive
-.binary-search-insert-ptr-recur<a> ptr a(left ptr a, right ptr a, value a) unsafe compare<a>
+.binary-search-insert-ptr-recur<a> const-ptr a(left const-ptr a, right const-ptr a, value a) unsafe compare<a>
 	if left == right
 		left
 	else
@@ -108,7 +111,7 @@ test
 
 
 # Left inclusive, right exclusive
-.binary-search-compare-recur<a> ptr a(left ptr a, right ptr a, compare act comparison(a)) unsafe
+.binary-search-compare-recur<a> const-ptr a(left const-ptr a, right const-ptr a, compare act comparison(a)) unsafe
 	if left == right
 		left
 	else
@@ -142,9 +145,9 @@ merge-no-duplicates!<a> void(a mut-list a, b mut-list a, compare act unique-comp
 	if !b.is-empty
 		a-old-size = a size
 		a unsafe-set-size!: a-old-size wrap-add b.size
-		a-read = a.begin-ptr + a-old-size - 1
+		a-read = a.begin-ptr.as-const + a-old-size - 1
 		a-write = a.end-ptr - 1
-		a.begin-ptr merge-reverse-recur! a-read, a-write, b.begin-ptr, b.end-ptr - 1, compare
+		a.begin-ptr merge-reverse-recur! a-read, a-write, b.begin-ptr.as-const, b.end-ptr.as-const - 1, compare
 		b empty!
 
 ###
@@ -152,11 +155,11 @@ Merge right-to-left so we never overwrite anything we still have to read.
 In condition: a-read, a-write, b-read are all valid pointers.
 ###
 .merge-reverse-recur!<a> void
-	a-begin ptr a
-	a-read ptr a
-	a-write ptr a
-	b-begin ptr a
-	b-read ptr a
+	a-begin mut-ptr a
+	a-read const-ptr a
+	a-write mut-ptr a
+	b-begin const-ptr a
+	b-read const-ptr a
 	compare act unique-comparison(a, a)
 spec
 	unsafe
@@ -169,9 +172,9 @@ body
 		# Else -- we are done, don't need to touch 'a' any more
 	as greater
 		a-write[] := a-read[]
-		if a-read == a-begin
+		if a-read == a-begin.as-const
 			dest = a-begin mut-arr-from-begin-end a-write
-			src = b-begin mut-arr-from-begin-end b-read + 1
+			src = b-begin arr-from-begin-end b-read + 1
 			dest copy-from! src
 		else
 			a-begin merge-reverse-recur! a-read - 1, a-write - 1, b-begin, b-read, compare

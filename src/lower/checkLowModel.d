@@ -53,6 +53,17 @@ struct FunCtx {
 }
 
 void checkLowFun(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, ref immutable LowFun fun) {
+	//debug {
+	//	import core.stdc.stdio : printf;
+	//	import interpret.debugging : writeFunName;
+	//	import util.ptr : ptrTrustMe_mut;
+	//	import util.writer : Writer, finishWriterToCStr;
+	//
+	//	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	//	writeFunName(writer, ctx.program, fun);
+	//	printf("Will check function %s\n", finishWriterToCStr(writer));
+	//}
+
 	matchLowFunBody!void(
 		fun.body_,
 		(ref immutable LowFunBody.Extern) {},
@@ -203,22 +214,20 @@ void checkTypeEqual(Alloc)(
 	ref immutable LowType expected,
 	ref immutable LowType actual,
 ) {
-	/*
-	debug {
-		if (!lowTypeEqual(expected, actual)) {
-			import core.stdc.stdio : printf;
-			import util.repr : writeRepr;
-			import util.writer : finishWriterToCStr, Writer, writeStatic;
-			import util.ptr : ptrTrustMe_mut;
-			Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-			writeStatic(writer, "Type is not as expected. Expected:\n");
-			writeRepr(writer, reprOfLowType2(alloc, ctx, expected));
-			writeStatic(writer, "Actual:\n");
-			writeRepr(writer, reprOfLowType2(alloc, ctx, actual));
-			printf("%s\n", finishWriterToCStr(writer));
-		}
-	}
-	*/
+	//debug {
+	//	if (!lowTypeEqual(expected, actual)) {
+	//		import core.stdc.stdio : printf;
+	//		import util.repr : writeRepr;
+	//		import util.writer : finishWriterToCStr, Writer, writeStatic;
+	//		import util.ptr : ptrTrustMe_mut;
+	//		Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	//		writeStatic(writer, "Type is not as expected. Expected:\n");
+	//		writeRepr(writer, reprOfLowType2(alloc, ctx, expected));
+	//		writeStatic(writer, "Actual:\n");
+	//		writeRepr(writer, reprOfLowType2(alloc, ctx, actual));
+	//		printf("%s\n", finishWriterToCStr(writer));
+	//	}
+	//}
 	verify(lowTypeEqual(expected, actual));
 }
 
@@ -233,8 +242,10 @@ immutable(Repr) reprOfLowType2(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, im
 			reprSym(symOfPrimitiveType(it)),
 		(immutable LowType.PtrGc it) =>
 			reprRecord(alloc, "gc-ptr", [reprOfLowType2(alloc, ctx, it.pointee)]),
-		(immutable LowType.PtrRaw it) =>
-			reprRecord(alloc, "raw-ptr", [reprOfLowType2(alloc, ctx, it.pointee)]),
+		(immutable LowType.PtrRawConst it) =>
+			reprRecord(alloc, "ptr-const", [reprOfLowType2(alloc, ctx, it.pointee)]),
+		(immutable LowType.PtrRawMut it) =>
+			reprRecord(alloc, "ptr-mut", [reprOfLowType2(alloc, ctx, it.pointee)]),
 		(immutable LowType.Record it) =>
 			reprOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allRecords, it).source),
 		(immutable LowType.Union it) =>

@@ -69,7 +69,7 @@ import model.lowModel :
 	asLocalRef,
 	asParamRef,
 	asPrimitiveType,
-	asPtrRaw,
+	asPtrRawPointee,
 	asRecordFieldGet,
 	asRecordType,
 	asSpecialUnary,
@@ -351,7 +351,9 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 		},
 		(immutable LowType.PtrGc) =>
 			DynCallType.pointer,
-		(immutable LowType.PtrRaw) =>
+		(immutable LowType.PtrRawConst) =>
+			DynCallType.pointer,
+		(immutable LowType.PtrRawMut) =>
 			DynCallType.pointer,
 		(immutable LowType.Record) =>
 			unreachable!(immutable DynCallType),
@@ -1088,7 +1090,7 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 	final switch (a.kind) {
 		case LowExprKind.SpecialBinary.Kind.addPtr:
 		case LowExprKind.SpecialBinary.Kind.subPtrNat:
-			immutable LowType pointee = asPtrRaw(a.left.type).pointee;
+			immutable LowType pointee = asPtrRawPointee(a.left.type);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.left);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.right);
 			immutable Nat16 pointeeSize = sizeOfType(ctx, pointee).size;

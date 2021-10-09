@@ -7,7 +7,7 @@ import
 	crow/c-types: c-char, c-float, c-int, s-long, u-int
 	crow/enum: enum-to-str
 	crow/misc: void
-	crow/ptr: any-ptr, ptr
+	crow/ptr: any-const-ptr, const-ptr, mut-ptr
 	crow/str: str
 
 GLbitfield alias
@@ -40,7 +40,7 @@ glBindTexture void(target GLenum, texture GLuint) extern<"GL"> noctx summon unsa
 glBufferData void
 	target GLenum
 	size GLsizeiptr
-	data any-ptr
+	data any-const-ptr
 	usage GLenum
 spec
 	extern<"GL">
@@ -52,7 +52,7 @@ glBufferSubData void
 	target GLenum
 	offset GLintptr
 	size GLsizeiptr
-	data any-ptr
+	data any-const-ptr
 spec
 	extern<"GL">
 	noctx
@@ -69,29 +69,29 @@ glCreateProgram GLuint() extern<"GL"> noctx summon unsafe
 
 glCreateShader GLuint(type GLenum) extern<"GL"> noctx summon unsafe
 
-glDeleteBuffers void(n GLsizei, buffers ptr GLuint) extern<"GL"> noctx summon unsafe
+glDeleteBuffers void(n GLsizei, buffers const-ptr GLuint) extern<"GL"> noctx summon unsafe
 
 glDeleteProgram void(program GLuint) extern<"GL"> noctx summon unsafe
 
 glDeleteShader void(shader GLuint) extern<"GL"> noctx summon unsafe
 
-glDeleteTextures void(n GLsizei, textures ptr GLuint) extern<"GL"> noctx summon unsafe
+glDeleteTextures void(n GLsizei, textures const-ptr GLuint) extern<"GL"> noctx summon unsafe
 
 glDrawArrays void(mode GLenum, first GLint, count GLsizei) extern noctx summon unsafe
 
 glEnableVertexAttribArray void(index GLuint) extern<"GL"> noctx summon unsafe
 
-glGenBuffers void(n GLsizei, buffers ptr GLuint) extern<"GL"> noctx summon unsafe
+glGenBuffers void(n GLsizei, buffers mut-ptr GLuint) extern<"GL"> noctx summon unsafe
 
-glGenTextures void(n GLsizei, textures ptr GLuint) extern<"GL"> noctx summon unsafe
+glGenTextures void(n GLsizei, textures mut-ptr GLuint) extern<"GL"> noctx summon unsafe
 
 glGetError GLenum() extern<"GL"> noctx summon
 
 glGetProgramInfoLog void
 	program GLuint
-	buf-size GLsizei
+	bufSize GLsizei
 	length cell GLsizei
-	info-log ptr GLchar
+	infoLog mut-ptr GLchar
 spec
 	extern<"GL">
 	noctx
@@ -102,9 +102,9 @@ glGetProgramiv void(program GLuint, pname GLenum, params cell GLint) extern<"GL"
 
 glGetShaderInfoLog void
 	shader GLuint
-	buf-size GLsizei
+	bufSize GLsizei
 	length cell GLsizei
-	info-log ptr GLchar
+	infoLog mut-ptr GLchar
 spec
 	extern<"GL">
 	noctx
@@ -113,15 +113,15 @@ spec
 
 glGetShaderiv void(reader GLuint, pname GLenum, params cell GLint) extern<"GL"> noctx summon unsafe
 
-glGetUniformLocation GLint(program GLuint, name ptr GLchar) extern<"GL"> noctx summon unsafe
+glGetUniformLocation GLint(program GLuint, name const-ptr GLchar) extern<"GL"> noctx summon unsafe
 
 glLinkProgram void(program GLuint) extern<"GL"> noctx summon unsafe
 
 glShaderSource void
 	shader GLuint
 	count GLsizei
-	string ptr ptr GLchar
-	length ptr GLint
+	string const-ptr const-ptr GLchar
+	length const-ptr GLint
 spec
 	extern<"GL">
 	noctx
@@ -137,7 +137,7 @@ glTexImage2D void
 	border GLint
 	format GLenum
 	type GLenum
-	pixels any-ptr
+	pixels any-const-ptr
 spec
 	extern<"GL">
 	noctx
@@ -156,7 +156,7 @@ glVertexAttribPointer void
 	type GLenum
 	normalized GLboolean
 	stride GLsizei
-	pointer any-ptr
+	pointer any-const-ptr
 spec
 	extern<"GL">
 	noctx

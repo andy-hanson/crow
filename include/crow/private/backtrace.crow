@@ -3,7 +3,7 @@ import
 	sys/execinfo: backtrace
 	../compare: <, <=, >
 	../misc: name, named-val, val
-	../ptr: +, ==, <=>, any-ptr, ptr, set-subscript, subscript
+	../ptr: +, ==, <=>, any-const-ptr, as-const, const-ptr, mut-ptr, set-subscript, subscript
 	./alloc: copy-data-from!, try-alloc-uninitialized
 	./bootstrap: arr, as, begin-ptr, hard-assert, nat64, opt, size, some, sym, void
 	./number-low-level:
@@ -20,16 +20,16 @@ get-backtrace backtrace() unsafe
 		arrs.funs copy-data-from! all-funs.begin-ptr, all-funs.size
 		arrs.funs sort! all-funs.size
 		end-code-names = arrs.code-names + n-code-ptrs
-		arrs.code-names fill-code-names! end-code-names, arrs.code-ptrs, arrs.funs
-		backtrace: n-code-ptrs arr<sym> arrs.code-names
+		arrs.code-names fill-code-names! end-code-names, arrs.code-ptrs.as-const, arrs.funs.as-const
+		backtrace: n-code-ptrs arr arrs.code-names.as-const
 	else
 		backtrace: as<sym[]>: []
 
 .fill-code-names! void
-	code-names ptr sym
-	end-code-names ptr sym
-	code-ptrs ptr any-ptr
-	funs ptr named-val any-ptr
+	code-names mut-ptr sym
+	end-code-names mut-ptr sym
+	code-ptrs const-ptr any-const-ptr
+	funs const-ptr named-val any-const-ptr
 spec
 	unsafe
 body
@@ -41,18 +41,18 @@ body
 	8
 
 .backtrace-arrs record mut
-	code-ptrs ptr any-ptr
-	code-names ptr sym
-	funs ptr named-val any-ptr
+	code-ptrs mut-ptr any-const-ptr
+	code-names mut-ptr sym
+	funs mut-ptr named-val any-const-ptr
 
 .try-alloc-backtrace-arrs backtrace-arrs?() unsafe
 	size = 8
-	if code-ptrs ?= size try-alloc-uninitialized<any-ptr>
+	if code-ptrs ?= size try-alloc-uninitialized<any-const-ptr>
 		if code-names ?= size try-alloc-uninitialized<sym>
-			if funs ?= all-funs.size try-alloc-uninitialized<named-val any-ptr>
+			if funs ?= all-funs.size try-alloc-uninitialized<named-val any-const-ptr>
 				some: backtrace-arrs: code-ptrs, code-names, funs
 
-.get-fun-name sym(code-ptr any-ptr, funs ptr named-val any-ptr, size nat64) unsafe noctx
+.get-fun-name sym(code-ptr any-const-ptr, funs const-ptr named-val any-const-ptr, size nat64) unsafe noctx
 	# TODO: this will fail to give a name for the last function
 	if size < 2
 		'<<UNKNOWN>>'
@@ -62,7 +62,7 @@ body
 		code-ptr get-fun-name: funs + 1, size wrap-sub 1
 
 # TODO: use the one from sort.crow
-.sort! void(a ptr named-val any-ptr, size nat64) noctx unsafe
+.sort! void(a mut-ptr named-val any-const-ptr, size nat64) noctx unsafe
 	if size > 1
 		a swap!: 0, size unsafe-div 2
 		after-pivot = a partition! a[].val, 1, (size wrap-sub 1)
@@ -71,7 +71,7 @@ body
 		a sort! new-pivot-index
 		a + after-pivot sort!: size wrap-sub after-pivot
 
-.partition! nat64(a ptr named-val any-ptr, pivot any-ptr, l nat64, r nat64) noctx unsafe
+.partition! nat64(a mut-ptr named-val any-const-ptr, pivot any-const-ptr, l nat64, r nat64) noctx unsafe
 	if l <= r
 		if a[l].val < pivot
 			a partition! pivot, (l wrap-add 1), r
@@ -81,7 +81,7 @@ body
 	else
 		l
 
-.swap!<a> void(a ptr a, lo nat64, hi nat64) noctx unsafe
+.swap!<a> void(a mut-ptr a, lo nat64, hi nat64) noctx unsafe
 	temp = a[lo]
 	a[lo] := a[hi]
 	a[hi] := temp

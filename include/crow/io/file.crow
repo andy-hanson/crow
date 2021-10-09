@@ -21,7 +21,9 @@ import
 	../misc: ->, as, void
 	../number: ==, <=>, +, int32, nat8, nat16, nat32, to-int64, to-nat32, to-nat64
 	../opt: is-empty, opt, some
-	../ptr: ==, +, any-ptr, as-any-ptr, null, ptr-cast, ptr-cast-from-extern, ref-eq, size-of
+	../ptr:
+		==, +, any-const-ptr, as-any-const-ptr, as-const, null, ptr-cast, ptr-cast-from-extern,
+		ref-eq, size-of
 	../str: ==, <=>, char, chars, c-str, size-bytes, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: bytes, to-c-str, to-str
@@ -60,7 +62,7 @@ path-exists bool(path str) summon
 .get-dirent-name str(d dirent) unsafe
 	# TODO: this is offsetof(d, d_name)
 	name-offset = size-of<ino_t> + size-of<off_t> + size-of<nat16> + size-of<char>
-	name-ptr = d.as-any-ptr + name-offset
+	name-ptr = d.as-any-const-ptr + name-offset
 	name-ptr.ptr-cast<char, nat8> to-str
 
 .seek-set int32()
@@ -80,7 +82,7 @@ read-dir str[](path str) summon
 .read-dir str[](path c-str) trusted summon
 	dirp = path opendir
 	# TODO: handle errors
-	assert: dirp.ptr-cast-from-extern<any-ptr, dir> != null
+	assert: dirp.ptr-cast-from-extern<any-const-ptr, dir> != null
 	res = mut-list<str>
 	dirp read-dir-recur res
 	res.move-to-arr! sort
@@ -93,7 +95,7 @@ read-dir str[](path str) summon
 	err = dirp readdir_r entry, result
 	# TODO: handle error
 	assert: err == 0
-	if result[].as-any-ptr != null
+	if result[].as-any-const-ptr != null
 		assert: result[] ref-eq entry
 		name = entry.get-dirent-name
 		if name != "." && name != ".."
@@ -207,7 +209,7 @@ current-directory str() summon trusted
 		todo
 	else
 		assert: b == buff.begin-ptr
-		b to-str
+		b.as-const to-str
 
 .get-stat stat?(path c-str) summon trusted
 	# Initial value doesn't really matter

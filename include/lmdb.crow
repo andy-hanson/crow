@@ -4,7 +4,7 @@ import
 	crow/c-types: c-int, size_t, u-int
 	crow/extra-types: err-t
 	crow/misc: void
-	crow/ptr: any-ptr
+	crow/ptr: any-mut-ptr
 	crow/str: c-str
 	sys/types: mode_t
 
@@ -15,7 +15,7 @@ MDB_dbi alias
 MDB_val record mut
 	by-ref
 	mv_size mut size_t
-	mv_data mut any-ptr
+	mv_data mut any-mut-ptr
 
 mdb_env_create err-t(env cell MDB_env) noctx extern<"lmdb"> unsafe summon
 mdb_env_open err-t

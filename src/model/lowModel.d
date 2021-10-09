@@ -25,7 +25,7 @@ import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Nat16;
-import util.util : verify;
+import util.util : unreachable, verify;
 
 struct LowExternPtrType {
 	immutable Ptr!ConcreteStruct source;
@@ -133,7 +133,10 @@ struct LowType {
 	struct PtrGc {
 		immutable Ptr!LowType pointee;
 	}
-	struct PtrRaw {
+	struct PtrRawConst {
+		immutable Ptr!LowType pointee;
+	}
+	struct PtrRawMut {
 		immutable Ptr!LowType pointee;
 	}
 	struct Record {
@@ -149,7 +152,8 @@ struct LowType {
 		funPtr,
 		primitive,
 		ptrGc,
-		ptrRaw,
+		ptrRawConst,
+		ptrRawMut,
 		record,
 		union_,
 	}
@@ -159,7 +163,8 @@ struct LowType {
 		immutable FunPtr funPtr_;
 		immutable PrimitiveType primitive_;
 		immutable PtrGc ptrGc_;
-		immutable PtrRaw ptrRaw_;
+		immutable PtrRawConst ptrRawConst_;
+		immutable PtrRawMut ptrRawMut_;
 		immutable Record record_;
 		immutable Union union_;
 	}
@@ -168,7 +173,8 @@ struct LowType {
 	immutable this(immutable ExternPtr a) { kind_ = Kind.externPtr; externPtr_ = a; }
 	immutable this(immutable FunPtr a) { kind_ = Kind.funPtr; funPtr_ = a; }
 	@trusted immutable this(immutable PtrGc a) { kind_ = Kind.ptrGc; ptrGc_ = a; }
-	@trusted immutable this(immutable PtrRaw a) { kind_ = Kind.ptrRaw; ptrRaw_ = a; }
+	@trusted immutable this(immutable PtrRawConst a) { kind_ = Kind.ptrRawConst; ptrRawConst_ = a; }
+	@trusted immutable this(immutable PtrRawMut a) { kind_ = Kind.ptrRawMut; ptrRawMut_ = a; }
 	immutable this(immutable PrimitiveType a) { kind_ = Kind.primitive; primitive_ = a; }
 	immutable this(immutable Record a) { kind_ = Kind.record; record_ = a; }
 	immutable this(immutable Union a) { kind_ = Kind.union_; union_ = a; }
@@ -189,8 +195,10 @@ static assert(LowType.sizeof <= 16);
 				return compareEnum(a.primitive_, b.primitive_);
 			case LowType.Kind.ptrGc:
 				return compareLowType(a.ptrGc_.pointee, b.ptrGc_.pointee);
-			case LowType.Kind.ptrRaw:
-				return compareLowType(a.ptrRaw_.pointee, b.ptrRaw_.pointee);
+			case LowType.Kind.ptrRawConst:
+				return compareLowType(a.ptrRawConst_.pointee, b.ptrRawConst_.pointee);
+			case LowType.Kind.ptrRawMut:
+				return compareLowType(a.ptrRawMut_.pointee, b.ptrRawMut_.pointee);
 			case LowType.Kind.record:
 				return compareSizeT(a.record_.index, b.record_.index);
 			case LowType.Kind.union_:
@@ -210,8 +218,10 @@ immutable(bool) lowTypeEqual(ref immutable LowType a, ref immutable LowType b) {
 				return a.primitive_ == b.primitive_;
 			case LowType.Kind.ptrGc:
 				return lowTypeEqual(a.ptrGc_.pointee, b.ptrGc_.pointee);
-			case LowType.Kind.ptrRaw:
-				return lowTypeEqual(a.ptrRaw_.pointee, b.ptrRaw_.pointee);
+			case LowType.Kind.ptrRawConst:
+				return lowTypeEqual(a.ptrRawConst_.pointee, b.ptrRawConst_.pointee);
+			case LowType.Kind.ptrRawMut:
+				return lowTypeEqual(a.ptrRawMut_.pointee, b.ptrRawMut_.pointee);
 			case LowType.Kind.record:
 				return a.record_.index == b.record_.index;
 			case LowType.Kind.union_:
@@ -245,8 +255,16 @@ immutable(bool) isPtrGc(ref immutable LowType a) {
 	return a.kind_ == LowType.Kind.ptrGc;
 }
 
-immutable(bool) isPtrRaw(ref immutable LowType a) {
-	return a.kind_ == LowType.Kind.ptrRaw;
+private immutable(bool) isPtrRawConst(ref immutable LowType a) {
+	return a.kind_ == LowType.Kind.ptrRawConst;
+}
+
+immutable(bool) isPtrRawMut(ref immutable LowType a) {
+	return a.kind_ == LowType.Kind.ptrRawMut;
+}
+
+private immutable(bool) isPtrRawConstOrMut(ref immutable LowType a) {
+	return isPtrRawConst(a) || isPtrRawMut(a);
 }
 
 @trusted immutable(LowType.PtrGc) asPtrGc(ref immutable LowType a) {
@@ -254,18 +272,30 @@ immutable(bool) isPtrRaw(ref immutable LowType a) {
 	return a.ptrGc_;
 }
 
-@trusted immutable(LowType.PtrRaw) asPtrRaw(ref immutable LowType a) {
-	verify(isPtrRaw(a));
-	return a.ptrRaw_;
+@trusted immutable(LowType.PtrRawConst) asPtrRawConst(ref immutable LowType a) {
+	verify(isPtrRawConst(a));
+	return a.ptrRawConst_;
 }
 
 private immutable(bool) isPtrGcOrRaw(ref immutable LowType a) {
-	return isPtrGc(a) || isPtrRaw(a);
+	return isPtrGc(a) || isPtrRawConst(a) || isPtrRawMut(a);
 }
 
 @trusted immutable(Ptr!LowType) asGcOrRawPointee(ref immutable LowType a) {
 	verify(isPtrGcOrRaw(a));
-	return isPtrGc(a) ? a.ptrGc_.pointee : a.ptrRaw_.pointee;
+	return matchLowTypeCombinePtr!(immutable Ptr!LowType)(
+		a,
+		(immutable LowType.ExternPtr) => unreachable!(immutable Ptr!LowType),
+		(immutable LowType.FunPtr) => unreachable!(immutable Ptr!LowType),
+		(immutable PrimitiveType) => unreachable!(immutable Ptr!LowType),
+		(immutable Ptr!LowType it) => it,
+		(immutable LowType.Record) => unreachable!(immutable Ptr!LowType),
+		(immutable LowType.Union) => unreachable!(immutable Ptr!LowType));
+}
+
+immutable(Ptr!LowType) asPtrRawPointee(ref immutable LowType a) {
+	verify(isPtrRawConstOrMut(a));
+	return asGcOrRawPointee(a);
 }
 
 immutable(LowType.FunPtr) asFunPtrType(ref immutable LowType a) {
@@ -294,7 +324,8 @@ immutable(LowType.Union) asUnionType(ref immutable LowType a) {
 	scope T delegate(immutable LowType.FunPtr) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(immutable PrimitiveType) @safe @nogc pure nothrow cbPrimitive,
 	scope T delegate(immutable LowType.PtrGc) @safe @nogc pure nothrow cbPtrGc,
-	scope T delegate(immutable LowType.PtrRaw) @safe @nogc pure nothrow cbPtrRaw,
+	scope T delegate(immutable LowType.PtrRawConst) @safe @nogc pure nothrow cbPtrRawConst,
+	scope T delegate(immutable LowType.PtrRawMut) @safe @nogc pure nothrow cbPtrRawMut,
 	scope T delegate(immutable LowType.Record) @safe @nogc pure nothrow cbRecord,
 	scope T delegate(immutable LowType.Union) @safe @nogc pure nothrow cbUnion,
 ) {
@@ -307,8 +338,10 @@ immutable(LowType.Union) asUnionType(ref immutable LowType a) {
 			return cbPrimitive(a.primitive_);
 		case LowType.Kind.ptrGc:
 			return cbPtrGc(a.ptrGc_);
-		case LowType.Kind.ptrRaw:
-			return cbPtrRaw(a.ptrRaw_);
+		case LowType.Kind.ptrRawConst:
+			return cbPtrRawConst(a.ptrRawConst_);
+		case LowType.Kind.ptrRawMut:
+			return cbPtrRawMut(a.ptrRawMut_);
 		case LowType.Kind.record:
 			return cbRecord(a.record_);
 		case LowType.Kind.union_:
@@ -331,7 +364,8 @@ immutable(LowType.Union) asUnionType(ref immutable LowType a) {
 		cbFunPtr,
 		cbPrimitive,
 		(immutable LowType.PtrGc it) => cbPtr(it.pointee),
-		(immutable LowType.PtrRaw it) => cbPtr(it.pointee),
+		(immutable LowType.PtrRawConst it) => cbPtr(it.pointee),
+		(immutable LowType.PtrRawMut it) => cbPtr(it.pointee),
 		cbRecord,
 		cbUnion);
 }

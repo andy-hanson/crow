@@ -7,7 +7,7 @@ import
 	../hash: hash-mix
 	../misc: data, void
 	../opt: force, none, opt, or-default, some
-	../ptr: ==, <=>, +, ptr, set-subscript, size-of, subscript
+	../ptr: ==, <=>, +, const-ptr, mut-ptr, set-subscript, size-of, subscript
 	../str: ==, str
 	../str-conv: to-str
 	../test: is
@@ -151,14 +151,14 @@ body
 	assert: plan.compacted-size > 1
 	compacted = plan.compacted-size uninitialized-mut-arr<a>
 	compacted.begin-ptr[] := value
-	compactor = compactor<a>: compacted.begin-ptr, compacted.begin-ptr + 1, compacted.end-ptr
+	compactor = compacted.begin-ptr compactor<a> compacted.begin-ptr + 1, compacted.end-ptr
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
 	unordered-set: new-add, a.remove filter-less plan.add-size-left
 
 .compactor<a> record mut
-	begin ptr a
-	cur mut ptr a
-	end ptr a
+	begin mut-ptr a
+	cur mut mut-ptr a
+	end mut-ptr a
 
 .do-compact-recur!<a> add-node a
 	compactor compactor a
@@ -182,7 +182,7 @@ body
 
 .push!<a> void(a compactor a, here frozen-unordered-set a, add-size-here-and-left nat64, remove index-set) unsafe
 	a push-recur! here.begin-ptr, here.end-ptr, add-size-here-and-left, remove
-.push-recur!<a> void(a compactor a, cur ptr a, end ptr a, remove-index nat64, remove index-set) unsafe
+.push-recur!<a> void(a compactor a, cur const-ptr a, end const-ptr a, remove-index nat64, remove index-set) unsafe
 	if cur != end
 		if !remove[remove-index]
 			a.cur[] := cur[]
@@ -192,7 +192,7 @@ body
 
 .finish<a> frozen-unordered-set a(a compactor a) unsafe data<a> compare<a> hash-mix<a>
 	assert: a.cur == a.end
-	unsafe-frozen-unordered-set-from-mut-arr-cast-immutable: a.begin mut-arr-from-begin-end a.end
+	a.begin mut-arr-from-begin-end a.end unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
 
 region iteration
 

@@ -15,15 +15,16 @@ import
 	../bool: !, &&, ||, bool, to-nat64
 	../bytes-types: zero
 	../cell: cell, subscript
-	../col/arr: ~, arr, begin-ptr, ref-of-val-at, size
+	../col/arr: ~, arr, begin-ptr
 	../col/arr-util: fold, map
+	../col/mut-arr: begin-ptr, mut-arr, ref-of-val-at, size
 	../col/mut-list: begin-ptr, move-to-arr!, mut-list, size, unsafe-set-size!
 	../compare: <=
 	../exception: assert, throw
 	../extra-types: fd-t
 	../misc: as, void
 	../number: to-nat64
-	../ptr: +, as-any-ptr, as-ref, by-val, null, ptr
+	../ptr: +, any-const-ptr, as-any-mut-ptr, as-ref, by-val, const-ptr, null
 	../str: char, c-str, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: to-c-str
@@ -74,10 +75,10 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	else
 		throw: "{exe} is not a file"
 
-.convert-args ptr c-str(exe-c-str c-str, args str[])
+.convert-args const-ptr c-str(exe-c-str c-str, args str[]) unsafe
 	begin-ptr: [exe-c-str] ~ (args map x => x to-c-str) ~ [null]
 
-.spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
+.spawn-and-wait-result process-result(exe c-str, args const-ptr c-str, environ const-ptr c-str) summon unsafe
 	stdout-pipes = make-pipes
 	stderr-pipes = make-pipes
 
@@ -122,7 +123,7 @@ spec
 	summon
 	unsafe
 body
-	poll-fds = as<by-val<pollfd>[]>: [(pollfd: stdout-pipe, POLLIN, 0), (pollfd: stderr-pipe, POLLIN, 0)]
+	poll-fds = mut-arr: as<by-val<pollfd>[]>: [(pollfd: stdout-pipe, POLLIN, 0), (pollfd: stderr-pipe, POLLIN, 0)]
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
 	# timeout == -1 means we block
@@ -161,7 +162,7 @@ body
 	old-size = buffer.size
 	buffer unsafe-set-size!: old-size wrap-add read-max
 	add-data-to = buffer.begin-ptr + old-size
-	n-bytes-read = fd read add-data-to.as-any-ptr, read-max
+	n-bytes-read = fd read add-data-to.as-any-mut-ptr, read-max
 	if n-bytes-read == -1
 		# Error
 		todo
@@ -178,9 +179,10 @@ body
 # Args should be terminated by null.
 # Each entry in environ looks like "name=value", and final entry is null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
-.spawn-and-wait exit-code(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
+.spawn-and-wait exit-code(exe c-str, args const-ptr c-str, environ const-ptr c-str) summon unsafe
 	pid-cell = 0 cell<pid_t>
-	check-posix-error: posix_spawn: pid-cell, exe, null.as-ref, null, args, environ
+	# TODO: null.as-ref is bad. If it's nullable it shouldn't be a ref.
+	check-posix-error: posix_spawn: pid-cell, exe, null.as<any-const-ptr>.as-ref, null, args, environ
 	pid-cell[] wait-and-get-exit-code
 
 .wait-and-get-exit-code exit-code(pid pid_t) summon unsafe

@@ -49,7 +49,8 @@ enum BuiltinStructKind {
 	nat16,
 	nat32,
 	nat64,
-	ptr,
+	ptrConst,
+	ptrMut,
 	void_,
 }
 
@@ -83,8 +84,10 @@ immutable(Sym) symOfBuiltinStructKind(immutable BuiltinStructKind a) {
 			return shortSymAlphaLiteral("nat-32");
 		case BuiltinStructKind.nat64:
 			return shortSymAlphaLiteral("nat-64");
-		case BuiltinStructKind.ptr:
-			return shortSymAlphaLiteral("ptr");
+		case BuiltinStructKind.ptrConst:
+			return shortSymAlphaLiteral("ptr-const");
+		case BuiltinStructKind.ptrMut:
+			return shortSymAlphaLiteral("ptr-mut");
 		case BuiltinStructKind.void_:
 			return shortSymAlphaLiteral("void");
 	}

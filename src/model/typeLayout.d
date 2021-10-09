@@ -9,18 +9,19 @@ import model.lowModel :
 	LowProgram,
 	LowRecord,
 	LowType,
-	matchLowType,
+	matchLowTypeCombinePtr,
 	PrimitiveType,
 	typeSize;
 import util.collection.arr : size;
 import util.collection.arrUtil : every, map;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.opt : none, Opt, some;
+import util.ptr : Ptr;
 import util.types : Nat8, Nat16;
 import util.util : divRoundUp;
 
 immutable(TypeSize) sizeOfType(ref immutable LowProgram program, immutable LowType t) {
-	return matchLowType!(immutable TypeSize)(
+	return matchLowTypeCombinePtr!(immutable TypeSize)(
 		t,
 		(immutable LowType.ExternPtr) =>
 			externPtrSize,
@@ -28,9 +29,7 @@ immutable(TypeSize) sizeOfType(ref immutable LowProgram program, immutable LowTy
 			funPtrSize,
 		(immutable PrimitiveType it) =>
 			primitiveSize(it),
-		(immutable LowType.PtrGc) =>
-			ptrSize,
-		(immutable LowType.PtrRaw) =>
+		(immutable Ptr!LowType) =>
 			ptrSize,
 		(immutable LowType.Record index) =>
 			typeSize(fullIndexDictGet(program.allRecords, index)),

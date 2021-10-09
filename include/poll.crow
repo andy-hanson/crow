@@ -5,7 +5,7 @@ import
 	crow/c-types: u-long
 	crow/extra-types: fd-t
 	crow/number: int16, int32
-	crow/ptr: by-val, ptr
+	crow/ptr: by-val, mut-ptr
 
 pollfd record mut
 	fd fd-t
@@ -26,8 +26,7 @@ POLLHUP int16()
 POLLNVAL int16()
 	0x20
 
-# /usr/include/x86_64-linux-gnu/sys/poll.h
-poll int32(fds ptr by-val<pollfd>, nfds u-long, timeout int32) summon extern noctx
+poll int32(fds mut-ptr by-val<pollfd>, nfds u-long, timeout int32) unsafe summon extern noctx
 
 has-POLLIN bool(revents int16)
 	revents bits-intersect POLLIN

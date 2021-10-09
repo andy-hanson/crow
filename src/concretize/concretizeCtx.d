@@ -250,7 +250,6 @@ struct ConcretizeCtx {
 	// TODO: do these eagerly
 	Late!(immutable ConcreteType) _boolType;
 	Late!(immutable ConcreteType) _voidType;
-	Late!(immutable ConcreteType) _anyPtrType;
 	Late!(immutable ConcreteType) _ctxType;
 	Late!(immutable ConcreteType) _strType;
 	Late!(immutable ConcreteType) _symType;
@@ -264,11 +263,6 @@ immutable(ConcreteType) boolType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
 immutable(ConcreteType) voidType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
 	return lazilySet(a._voidType, () =>
 		getConcreteType_forStructInst(alloc, a, a.commonTypes.void_, TypeArgsScope.empty));
-}
-
-immutable(ConcreteType) anyPtrType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
-	return lazilySet(a._anyPtrType, () =>
-		getConcreteType_forStructInst(alloc, a, a.commonTypes.anyPtr, TypeArgsScope.empty));
 }
 
 immutable(ConcreteType) strType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
@@ -615,7 +609,7 @@ void initializeConcreteStruct(Alloc)(
 			lateSet(res.info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(immutable ConcreteStructBody.ExternPtr()),
 				false));
-			lateSet(res.typeSize_, getBuiltinStructSize(BuiltinStructKind.ptr));
+			lateSet(res.typeSize_, getBuiltinStructSize(BuiltinStructKind.ptrMut));
 		},
 		(ref immutable StructBody.Record r) {
 			// Initially make this a by-ref type, so we don't recurse infinitely when computing size
@@ -917,8 +911,10 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 			return BuiltinStructKind.nat32;
 		case shortSymAlphaLiteralValue("nat64"):
 			return BuiltinStructKind.nat64;
-		case shortSymAlphaLiteralValue("ptr"):
-			return BuiltinStructKind.ptr;
+		case shortSymAlphaLiteralValue("const-ptr"):
+			return BuiltinStructKind.ptrConst;
+		case shortSymAlphaLiteralValue("mut-ptr"):
+			return BuiltinStructKind.ptrMut;
 		case shortSymAlphaLiteralValue("void"):
 			return BuiltinStructKind.void_;
 		default:
@@ -946,7 +942,8 @@ immutable(TypeSize) getBuiltinStructSize(immutable BuiltinStructKind kind) {
 		case BuiltinStructKind.funPtrN:
 		case BuiltinStructKind.int64:
 		case BuiltinStructKind.nat64:
-		case BuiltinStructKind.ptr:
+		case BuiltinStructKind.ptrConst:
+		case BuiltinStructKind.ptrMut:
 			return immutable TypeSize(immutable Nat16(8), immutable Nat8(8));
 		case BuiltinStructKind.fun:
 			return immutable TypeSize(immutable Nat16(16), immutable Nat8(8));

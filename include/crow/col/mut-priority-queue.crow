@@ -5,7 +5,7 @@ import
 	../exception: assert
 	../misc: ->, arrow, data, from, to, void
 	../opt: force, is-empty, none, opt, some
-	../ptr: +, -, ptr, set-subscript
+	../ptr: +, -, mut-ptr, set-subscript
 	../str: ==, str
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
@@ -81,7 +81,14 @@ mut-arr<k, v> mut-arr arrow<k, v>(a mut-priority-queue<k, v>) data<k> compare<k>
 	new-mins = a.size uninitialized-mut-arr<arrow<k, v>>
 	new-mins.begin-ptr spread-all-buckets-recur! a, 0
 	new-mins
-.spread-all-buckets-recur!<k, v> void(out ptr arrow<k, v>, a mut-priority-queue<k, v>, index nat64) unsafe compare<k>
+.spread-all-buckets-recur!<k, v> void
+	out mut-ptr arrow<k, v>
+	a mut-priority-queue<k, v>
+	index nat64
+spec
+	unsafe
+	compare<k>
+body
 	if index < a.mins.size
 		mid = if index < a.buckets.size
 			a.buckets[index] sort-by! it => it from

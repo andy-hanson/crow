@@ -3,8 +3,8 @@ import
 	crow/cell: cell
 	crow/c-types: c-int, size_t, s-long
 	crow/extra-types: err-t
-	crow/private/bootstrap: c-str
-	crow/ptr: ptr
+	crow/private/bootstrap: char, c-str
+	crow/ptr: const-ptr, mut-ptr
 
 timespec record
 	by-val
@@ -16,13 +16,13 @@ tm extern-ptr
 # TODO:SUMMON
 clock_gettime err-t(clock-id __clockid_t, timespec cell timespec) noctx extern
 
-gmtime tm(timer ptr time_t) noctx summon unsafe extern
+gmtime tm(timer const-ptr time_t) noctx summon unsafe extern
 
-localtime tm(timer ptr time_t) noctx summon unsafe extern
+localtime tm(timer const-ptr time_t) noctx summon unsafe extern
 
-time time_t(timer ptr time_t) noctx summon unsafe extern
+time time_t(timer mut-ptr time_t) noctx summon unsafe extern
 
-strftime size_t(s c-str, max-size size_t, format c-str, tp tm) noctx summon extern
+strftime size_t(s mut-ptr char, max-size size_t, format c-str, tp tm) noctx summon extern
 
 CLOCK_MONOTONIC __clockid_t() noctx
 	1

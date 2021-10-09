@@ -3,10 +3,10 @@ import
 	crow/cell: cell
 	crow/c-types: c-int, size_t
 	crow/number: nat8
-	crow/ptr: ptr
+	crow/ptr: const-ptr, mut-ptr
 
-WebPDecodeRGBA ptr nat8
-	data ptr nat8
+WebPDecodeRGBA mut-ptr nat8
+	data const-ptr nat8
 	data-size size_t
 	width cell c-int
 	height cell c-int

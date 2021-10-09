@@ -13,8 +13,8 @@ import
 	../misc: as, void
 	../opt: none, value
 	../ptr:
-		+, any-ptr, as-any-ptr, as-ref, by-val, null, ptr, ptr-to, ref-of-val, set-subscript,
-		subscript
+		+, any-mut-ptr, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, null, ptr-to,
+		ref-of-val, set-subscript, subscript
 	../str: c-str, str
 	../str-util: to-str
 	./alloc
@@ -35,7 +35,7 @@ import
 	fun-ptr2<fut nat64, ctx, str[]>
 
 # Treated specially by the compiler
-rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
+rt-main exit-code(argc int32, argv const-ptr c-str, main-ptr main-ptr) trusted noctx summon
 	n-threads = get_nprocs
 	f = false
 	gctx-by-val = as<by-val global-ctx>: global-ctx: lbv, lbv, lbv, none, [], n-threads, create-condition, f, f
@@ -76,7 +76,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	thread-id nat64
 	island island
 	argc int32
-	argv ptr c-str
+	argv const-ptr c-str
 	main-ptr main-ptr
 spec
 	trusted
@@ -87,9 +87,9 @@ body
 	ectx = exception-ctx
 	log-ctx = log-ctx
 	perf-ctx = perf-ctx
-	ectx-ptr = ectx.ref-of-val as-any-ptr
-	log-ctx-ptr = log-ctx.ref-of-val as-any-ptr
-	perf-ptr = perf-ctx.ref-of-val as-any-ptr
+	ectx-ptr = ectx.ref-of-val as-any-mut-ptr
+	log-ctx-ptr = log-ctx.ref-of-val as-any-mut-ptr
+	perf-ptr = perf-ctx.ref-of-val as-any-mut-ptr
 	print-lock = gctx.print-lock.ref-of-val
 	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: thread-id, print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
 	ctx-by-val = ctx: gctx, tls.ref-of-val, island, 0
@@ -126,7 +126,7 @@ body
 
 	start-threads-recur: 0, actual-n-threads, threads, thread-args, gctx
 	thread-function: actual-n-threads, gctx
-	join-threads-recur: 0, actual-n-threads, threads
+	join-threads-recur: 0, actual-n-threads, threads.as-const
 
 	threads unmanaged-free
 	thread-args unmanaged-free
@@ -134,8 +134,8 @@ body
 .start-threads-recur void
 	i nat64
 	n-threads nat64
-	threads ptr pthread_t
-	thread-args-begin ptr by-val<thread-args>
+	threads mut-ptr pthread_t
+	thread-args-begin mut-ptr by-val<thread-args>
 	gctx global-ctx
 spec
 	noctx
@@ -144,17 +144,17 @@ spec
 body
 	if i != n-threads
 		thread-arg-ptr = thread-args-begin + i
-		thread-arg-ptr[] := thread-args: i, gctx
+		thread-arg-ptr[] := i thread-args gctx
 		thread-ptr = threads + i
-		thread-ptr.as-cell create-one-thread thread-arg-ptr.as-any-ptr, &thread-fun
+		thread-ptr.as-cell create-one-thread thread-arg-ptr.as-any-mut-ptr, &thread-fun
 		i wrap-add 1 start-threads-recur n-threads, threads, thread-args-begin, gctx
 
-.thread-fun any-ptr(args-ptr any-ptr) noctx unsafe summon
+.thread-fun any-mut-ptr(args-ptr any-mut-ptr) noctx unsafe summon
 	args = args-ptr as-ref<thread-args>
 	args.thread-id thread-function args.gctx
 	null
 
-.join-threads-recur void(i nat64, n-threads nat64, threads ptr pthread_t) noctx unsafe summon
+.join-threads-recur void(i nat64, n-threads nat64, threads const-ptr pthread_t) noctx unsafe summon
 	if i != n-threads
 		threads[i] join-one-thread
 		i wrap-add 1 join-threads-recur n-threads, threads
