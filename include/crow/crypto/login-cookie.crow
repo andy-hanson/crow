@@ -42,7 +42,7 @@ from-bytes login-cookie(a nat8[])
 to-str str(a login-cookie)
 	"{a.timestamp seconds-since-epoch}|{a cookie}"
 
-parse-login-cookie opt login-cookie(a str)
+parse-login-cookie login-cookie?(a str)
 	if split ?= a try-split-once "|"
 		split.a.parse-int opt-join split.b.parse-nat, (time, cookie) =>
 			time.unix-time login-cookie cookie

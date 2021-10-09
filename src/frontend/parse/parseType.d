@@ -92,11 +92,21 @@ private immutable(TypeAst) parseTypeBeforeSuffixes(Alloc, SymAlloc)(ref Alloc al
 private immutable(TypeAst) parseTypeSuffixes(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable TypeAst ast) {
-	return tryTake(lexer, "[]")
+	immutable TypeAst ast,
+) {
+	immutable Opt!(TypeAst.Suffix.Kind) suffix = tryTakeTypeSuffix(lexer);
+	return has(suffix)
 		? parseTypeSuffixes(alloc, lexer, immutable TypeAst(
-			immutable TypeAst.Suffix(TypeAst.Suffix.Kind.arr, allocate(alloc, ast))))
+			immutable TypeAst.Suffix(force(suffix), allocate(alloc, ast))))
 		: ast;
+}
+
+private immutable(Opt!(TypeAst.Suffix.Kind)) tryTakeTypeSuffix(SymAlloc)(ref Lexer!SymAlloc lexer) {
+	return tryTake(lexer, '?')
+		? some(TypeAst.Suffix.Kind.opt)
+		: tryTake(lexer, "[]")
+		? some(TypeAst.Suffix.Kind.arr)
+		: none!(TypeAst.Suffix.Kind);
 }
 
 private immutable(Opt!(TypeAst.Fun.Kind)) funKindFromName(immutable Sym name) {

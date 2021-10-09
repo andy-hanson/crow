@@ -12,12 +12,12 @@ main fut nat(_ str[]) summon
 
 node<a> record
 	head a
-	tail opt node a
+	tail node<a>?
 
 size<a> nat(a node a)
 	1 size a.tail
 
-size<a> nat(acc nat, a opt node a)
+size<a> nat(acc nat, a node<a>?)
 	if node ?= a
 		acc + 1 size node.tail
 	else
@@ -29,7 +29,7 @@ plus<a> spec
 sum<a> a(a node a) plus<a>
 	a.head sum a.tail
 
-sum<a> a(acc a, a opt node a) plus<a>
+sum<a> a(acc a, a node<a>?) plus<a>
 	if node ?= a
 		acc + node.head sum node.tail
 	else

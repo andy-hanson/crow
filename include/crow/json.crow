@@ -51,7 +51,7 @@ json union
 			false
 
 # TODO: opt equality should be generic
-== bool(a opt json, b opt json)
+== bool(a json?, b json?)
 	if va ?= a
 		if vb ?= b
 			va == vb
@@ -60,7 +60,7 @@ json union
 	else
 		false
 
-as-bool opt bool(a json) noctx
+as-bool bool?(a json) noctx
 	match a
 	as bool b
 		b some
@@ -72,7 +72,7 @@ as-bool opt bool(a json) noctx
 		none
 	as dict
 		none
-as-float opt float64(a json) noctx
+as-float float64?(a json) noctx
 	match a
 	as bool
 		none
@@ -84,7 +84,7 @@ as-float opt float64(a json) noctx
 		none
 	as dict
 		none
-as-str opt str(a json) noctx
+as-str str?(a json) noctx
 	match a
 	as bool
 		none
@@ -96,7 +96,7 @@ as-str opt str(a json) noctx
 		none
 	as dict
 		none
-as-list opt list json(a json) noctx
+as-list list<json>?(a json) noctx
 	match a
 	as bool
 		none
@@ -108,7 +108,7 @@ as-list opt list json(a json) noctx
 		l some
 	as dict
 		none
-as-dict opt dict<str, json>(a json) noctx
+as-dict dict<str, json>?(a json) noctx
 	match a
 	as bool
 		none
@@ -121,7 +121,7 @@ as-dict opt dict<str, json>(a json) noctx
 	as dict d
 		d some
 
-parse-json opt json(a str)
+parse-json json?(a str)
 	a with-reader r => r take-json!
 
 to-str str(a json)
@@ -156,7 +156,7 @@ to-str str(a json)
 			out backup!
 		out ~= "}"
 
-take-json! opt json(a reader)
+take-json! json?(a reader)
 	a skip-whitespace!
 	if f ?= a take-float!
 		f some
@@ -179,7 +179,7 @@ take-json! opt json(a reader)
 		else
 			a take-object-recur! mut-dict
 
-.take-list-recur! opt json(a reader, res mut-list json)
+.take-list-recur! json?(a reader, res mut-list json)
 	if j ?= a take-json!
 		res ~= j
 		a skip-whitespace!
@@ -189,7 +189,7 @@ take-json! opt json(a reader)
 		elif a try-take-char "]"
 			res.move-to-arr!.list some
 
-.take-object-recur! opt json(a reader, res mut-dict<str, json>)
+.take-object-recur! json?(a reader, res mut-dict<str, json>)
 	if key ?= a take-quoted-str!
 		a skip-whitespace!
 		if a try-take-char ":"

@@ -42,7 +42,7 @@ subscript<a> bool(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
 	else
 		a
 
-try-add<a> opt unordered-set a(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
+try-add<a> unordered-set<a>?(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
 	match a.inner try-add value, () => void
 	as already-has-key
 		none
@@ -55,7 +55,7 @@ try-add<a> opt unordered-set a(a unordered-set a, value a) data<a> compare<a> ha
 	else
 		a
 
-try-remove<a> opt unordered-set a(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
+try-remove<a> unordered-set<a>?(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
 	if res ?= a.inner try-remove value
 		res.new-lookup.unordered-set some
 

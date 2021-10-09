@@ -4,4 +4,4 @@ main fut nat(_ str[]) summon trusted
 	0 resolved
 
 r record
-	next opt r
+	next r?

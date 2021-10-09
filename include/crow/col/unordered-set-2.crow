@@ -31,7 +31,7 @@ unordered-set<a> record
 
 .add-node<a> record
 	here frozen-unordered-set a
-	left opt add-node a
+	left add-node<a>?
 
 unordered-set<a> unordered-set a() data<a> compare<a> hash-mix<a>
 	unordered-set: (add-node: frozen-unordered-set, none), index-set
@@ -84,7 +84,7 @@ subscript<a> bool(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
 	else
 		false
 
-.find-in-add<a> opt nat64(a add-node a, value a) data<a> compare<a> hash-mix<a>
+.find-in-add<a> nat64?(a add-node a, value a) data<a> compare<a> hash-mix<a>
 	if index ?= a.here try-get-unordered-index value
 		a.add-size-left wrap-add index some
 	elif left ?= a left
@@ -96,7 +96,7 @@ subscript<a> bool(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
 ~ <a> unordered-set a(a unordered-set a, values a[]) data<a> compare<a> hash-mix<a>
 	a fold values, (cur, value) => cur ~ value
 
-try-add<a> opt unordered-set a(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
+try-add<a> unordered-set<a>?(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
 	if index ?= a.add find-in-add value
 		if new-remove ?= a.remove try-remove index
 			a.add unordered-set new-remove some

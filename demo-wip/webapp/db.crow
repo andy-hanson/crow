@@ -69,7 +69,7 @@ user-cookie record
 	user nat
 	inner login-cookie
 
-parse-user-cookie opt user-cookie(a str)
+parse-user-cookie user-cookie?(a str)
 	if split ?= a try-split-once "|"
 		split.a.parse-nat opt-join split.b.parse-login-cookie, (user, inner) =>
 			user user-cookie inner
@@ -200,7 +200,7 @@ add-post! post(db db, cookie user-cookie, content str) summon
 		txn add db.post-content, post, content
 		post
 
-.get-user opt user(db db, txn lMDB_txn, user-name str) summon
+.get-user user?(db db, txn lMDB_txn, user-name str) summon
 	txn get db.user-from-name, user-name
 
 .authenticate user(db db, txn lMDB_txn, cookie user-cookie) summon

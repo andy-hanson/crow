@@ -68,7 +68,7 @@ subscript bool(a index-set, index nat64)
 ~ index-set(a index-set, index nat64)
 	a try-add index or-default a
 
-try-add opt index-set(a index-set, index nat64)
+try-add index-set?(a index-set, index nat64)
 	nat64-index = index word-index
 	bit-index = index bit-index
 	if nat64-index < a.values.size
@@ -90,7 +90,7 @@ try-add opt index-set(a index-set, index nat64)
 - index-set(a index-set, index nat64)
 	a try-remove index or-default a
 
-try-remove opt index-set(a index-set, index nat64)
+try-remove index-set?(a index-set, index nat64)
 	nat64-index = index word-index
 	if nat64-index < a.values.size
 		bit-index = index bit-index

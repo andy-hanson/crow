@@ -5,7 +5,7 @@ main fut nat(_ str[]) summon
 	x = if true
 		1
 	y = if true
-		2.some as<opt nat>
+		2.some as<nat?>
 	print: x to-str
 	print: y to-str
 	0 resolved

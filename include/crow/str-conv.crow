@@ -22,7 +22,7 @@ to-str str(c char)
 	[c] str
 
 # Parses "true" or "false".
-parse-bool opt bool(a str)
+parse-bool bool?(a str)
 	if a == "true"
 		true some
 	elif a == "false"
@@ -95,7 +95,7 @@ to-str<a> spec
 to-str str(a str)
 	a
 
-to-str<a> str(a opt a) to-str<a>
+to-str<a> str(a a?) to-str<a>
 	if v ?= a
 		"some({v})"
 	else
@@ -153,21 +153,21 @@ to-str str(a float64)
 Parse digits as a nat64.
 Return none if the str contains any punctuation or whitespace.
 ###
-parse-nat opt nat64(a str)
+parse-nat nat64?(a str)
 	a with-reader r => r take-nat!
 
 ###
 The str should be a series of digits, optionally preceded by "-" or "+".
 If not, this returns `none`.
 ###
-parse-int opt int64(a str)
+parse-int int64?(a str)
 	a with-reader r => r take-int!
 
 ###
 The str should be a valid int, optionally followed by a "." and then a valid int.
 If not, this returns `none`.
 ###
-parse-float opt float64(a str)
+parse-float float64?(a str)
 	a with-reader r => r take-float!
 
 region Interpolation

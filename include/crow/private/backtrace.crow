@@ -45,7 +45,7 @@ body
 	code-names ptr sym
 	funs ptr named-val any-ptr
 
-.try-alloc-backtrace-arrs opt backtrace-arrs() unsafe
+.try-alloc-backtrace-arrs backtrace-arrs?() unsafe
 	size = 8
 	if code-ptrs ?= size try-alloc-uninitialized<any-ptr>
 		if code-names ?= size try-alloc-uninitialized<sym>

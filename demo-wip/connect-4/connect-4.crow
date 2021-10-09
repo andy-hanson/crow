@@ -19,7 +19,7 @@ main fut nat(_ str[]) summon
 	0 resolved
 
 # TODO:PRIVATE
-parse-settings opt ai-settings(a str)
+parse-settings ai-settings?(a str)
 	if a == "2"
 		none ai-settings none some
 	elif a == "E"
@@ -33,24 +33,24 @@ parse-settings opt ai-settings(a str)
 	elif a == "CPU"
 		10.some ai-settings 10.some some
 
-.show-winner str(winner opt color)
+.show-winner str(winner color?)
 	if w ?= winner
 		"{w} wins!"
 	else
 		"It's a tie."
 
 .ai-settings record
-	ai-depth-red opt nat
-	ai-depth-blue opt nat
+	ai-depth-red nat?
+	ai-depth-blue nat?
 
-.ai-depth-for-color opt nat(color color, ai-settings ai-settings)
+.ai-depth-for-color nat?(color color, ai-settings ai-settings)
 	match color
 	as red
 		ai-settings ai-depth-red
 	as blue
 		ai-settings ai-depth-blue
 
-.play-recur fut opt color(board board, cur-player color, ai-settings ai-settings) summon
+.play-recur fut color?(board board, cur-player color, ai-settings ai-settings) summon
 	x <- if depth ?= cur-player ai-depth-for-color ai-settings
 		board ai-best-x depth
 	else
@@ -65,7 +65,7 @@ parse-settings opt ai-settings(a str)
 	else
 		none resolved
 
-.print-board void(a board, cur-player color, last-x opt nat) summon
+.print-board void(a board, cur-player color, last-x nat?) summon
 	clear-screen
 	print: a to-str cur-player, last-x
 
@@ -80,12 +80,12 @@ parse-settings opt ai-settings(a str)
 		print: "Can't, column is full."
 		board human-player-move-recur
 
-.column-of-str opt nat(a str)
+.column-of-str nat?(a str)
 	if n ?= a.strip letter-to-number
 		if n < width
 			n some
 
-.letter-to-number opt nat(a str)
+.letter-to-number nat?(a str)
 	if a.size-bytes == 1
 		n = a.chars[0] to-nat8
 		# TODO: shouldn't need as<char>

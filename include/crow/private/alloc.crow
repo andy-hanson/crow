@@ -61,7 +61,7 @@ mark-visit<a> void(mark-ctx mark-ctx, value a) noctx unsafe builtin
 gc record mut
 	lk by-val lock
 	gc-count mut nat64
-	context-head mut opt gc-ctx
+	context-head mut gc-ctx?
 	needs-gc mut bool
 	size-words mut nat64
 	# 'mark-cur' and 'data-cur' run in parallel
@@ -153,7 +153,7 @@ Currently they all share the common GC and must take a lock every time they allo
 ###
 gc-ctx record mut
 	gc mut gc
-	next-ctx mut opt gc-ctx
+	next-ctx mut gc-ctx?
 
 force-needs-gc! void(gc gc) unsafe
 	gc.needs-gc := true
@@ -207,7 +207,7 @@ validate-gc void(gc gc) noctx unsafe
 	hard-assert: gc.data-end - gc.data-begin == gc.size-words
 	hard-assert: mark-idx == data-idx
 
-.try-gc-alloc opt any-ptr(gc gc, size-bytes nat64) noctx trusted
+.try-gc-alloc any-ptr?(gc gc, size-bytes nat64) noctx trusted
 	gc.lk.ref-of-val acquire!
 	res = gc try-gc-alloc-recur size-bytes
 	gc maybe-set-needs-gc!
@@ -219,7 +219,7 @@ validate-gc void(gc gc) noctx unsafe
 	if cur-word > (gc.size-words unsafe-div 2)
 		gc.needs-gc := true
 
-.try-gc-alloc-recur opt any-ptr(gc gc, size-bytes nat64) noctx unsafe
+.try-gc-alloc-recur any-ptr?(gc gc, size-bytes nat64) noctx unsafe
 	# gc validate-gc
 	size-words = size-bytes words-of-bytes
 	cur = gc data-cur
@@ -252,14 +252,14 @@ gc-alloc any-ptr(gc gc, size nat64) trusted
 alloc any-ptr(size-bytes nat64) unsafe
 	get-gc gc-alloc size-bytes
 
-try-alloc opt any-ptr(size-bytes nat64) unsafe
+try-alloc any-ptr?(size-bytes nat64) unsafe
 	get-gc try-gc-alloc size-bytes
 
 alloc-uninitialized<a> ptr a(size nat64) unsafe
 	# TODO: wrap-mul is unsafe!
 	ptr-cast<a, nat8>: alloc: size wrap-mul size-of<a>
 
-try-alloc-uninitialized<a> opt ptr a(size nat64) unsafe
+try-alloc-uninitialized<a> ptr<a>?(size nat64) unsafe
 	if res ?= size wrap-mul size-of<a> try-alloc
 		res.ptr-cast<a, nat8> some
 

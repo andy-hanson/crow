@@ -165,10 +165,10 @@ write-file void(path str, content str) summon
 Like `read-file`, but returns `none` if the file does not exist.
 Other errors (like permission errors) still throw.
 ###
-try-read-file opt str(path str) summon
+try-read-file str?(path str) summon
 	path.to-c-str try-read-file
 
-.try-read-file opt str(path c-str) summon trusted
+.try-read-file str?(path c-str) summon trusted
 	if path is-file
 		fd = path open O_RDONLY, 0
 		if fd == -1
@@ -209,7 +209,7 @@ current-directory str() summon trusted
 		assert: b == buff.begin-ptr
 		b to-str
 
-.get-stat opt stat(path c-str) summon trusted
+.get-stat stat?(path c-str) summon trusted
 	# Initial value doesn't really matter
 	s = stat
 	err = path stat s

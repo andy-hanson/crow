@@ -128,11 +128,11 @@ map-with-index<out, in> out[](a in[], f act out(in, nat64))
 	a.size make-arr i =>
 		f[a[i], i]
 
-first<a> opt a(a a[])
+first<a> a?(a a[])
 	if !a.is-empty
 		a[0] some
 
-last<a> opt a(a a[])
+last<a> a?(a a[])
 	if !a.is-empty
 		a[a.size - 1] some
 
@@ -156,7 +156,7 @@ rtail<a> a[](a a[])
 Calls `f` on each element of `a` and returns the first result that is `some`.
 Returns `none` if every call to `f` returned `none`.
 ###
-first-some<out, in> opt out(a in[], f act opt out(in))
+first-some<out, in> out?(a in[], f act out?(in))
 	if !a.is-empty
 		res = f[a[0]]
 		if res is-empty
@@ -202,9 +202,9 @@ test
 	2 in [1, 2, 3] is true
 	2 in [1, 3] is false
 
-try-remove<a> opt a[](a a[], value a) equal<a>
+try-remove<a> a[]?(a a[], value a) equal<a>
 	a try-remove-recur 0, value
-.try-remove-recur<a> opt a[](a a[], index nat64, value a) equal<a>
+.try-remove-recur<a> a[]?(a a[], index nat64, value a) equal<a>
 	if index == a.size
 		none
 	elif a[index] == value
@@ -236,13 +236,13 @@ ends-with<a> bool(a a[], end a[]) equal<a> equal<a[]>
 
 # TODO: equal<a[]> should be unnecessary
 # If `a` starts with `start`, returns the remaining elements, else returns `none`.
-try-remove-start<a> opt a[](a a[], start a[]) equal<a> equal<a[]>
+try-remove-start<a> a[]?(a a[], start a[]) equal<a> equal<a[]>
 	if a starts-with start
 		a[start.size -> a.size] some
 
 # TODO: equal<a[]> should be unnecessary
 # If `a` ends with `end`, returns the preceding elements, else returns `none`.
-try-remove-end<a> opt a[](a a[], end a[]) equal<a> equal<a[]>
+try-remove-end<a> a[]?(a a[], end a[]) equal<a> equal<a[]>
 	if a ends-with end
 		a[0 -> a.size - end.size] some
 
@@ -277,10 +277,10 @@ fold-reverse<a, b> a(acc a, a b[], f act a(a, b)) trusted
 
 # TODO: equal<a[]> should be unnecessary
 # Finds the first index where `a[i -> i + subseq.size] == subseq`.
-index-of-subseq<a> opt nat64(a a[], subseq a[]) equal<a> equal<a[]>
+index-of-subseq<a> nat64?(a a[], subseq a[]) equal<a> equal<a[]>
 	a index-of-subseq-recur subseq, 0
 # TODO: equal<a[]> should be unnecessary
-.index-of-subseq-recur<a> opt nat64(a a[], subseq a[], i nat64) equal<a> equal<a[]>
+.index-of-subseq-recur<a> nat64?(a a[], subseq a[], i nat64) equal<a> equal<a[]>
 	if i == a.size
 		none
 	elif a[i -> a.size] starts-with subseq
@@ -288,7 +288,7 @@ index-of-subseq<a> opt nat64(a a[], subseq a[]) equal<a> equal<a[]>
 	else
 		a index-of-subseq-recur subseq, i + 1
 
-find<a> opt a(a a[], f act bool(a))
+find<a> a?(a a[], f act bool(a))
 	if !a.is-empty
 		if f[a[0]]
 			a[0] some
@@ -298,9 +298,9 @@ find<a> opt a(a a[], f act bool(a))
 ###
 Returns the first index for which `f[a[i]]` is true, or returns `none`.
 ###
-find-index<a> opt nat64(a a[], f act bool(a))
+find-index<a> nat64?(a a[], f act bool(a))
 	a find-index-recur 0, f
-.find-index-recur<a> opt nat64(a a[], index nat64, f act bool(a))
+.find-index-recur<a> nat64?(a a[], index nat64, f act bool(a))
 	if index == a.size
 		none
 	elif f[a[index]]
@@ -311,10 +311,10 @@ find-index<a> opt nat64(a a[], f act bool(a))
 ###
 Like `find-index`, but starts from the end.
 ###
-find-rindex<a> opt nat64(a a[], f act bool(a))
+find-rindex<a> nat64?(a a[], f act bool(a))
 	if !a.is-empty
 		a find-rindex-recur a.size - 1, f
-.find-rindex-recur<a> opt nat64(a a[], index nat64, f act bool(a))
+.find-rindex-recur<a> nat64?(a a[], index nat64, f act bool(a))
 	if f[a[index]]
 		index some
 	elif index != 0
@@ -324,15 +324,15 @@ find-rindex<a> opt nat64(a a[], f act bool(a))
 Returns the first index where `a[i] == value`.
 Equivalent to `a find-index it => it == value`.
 ###
-index-of<a> opt nat64(a a[], value a) trusted equal<a>
+index-of<a> nat64?(a a[], value a) trusted equal<a>
 	if v ?= a ptr-of value
 		v - a.begin-ptr some
 
 # Like `index-of` but returns a ptr.
-ptr-of<a> opt ptr a(a a[], value a) unsafe equal<a>
+ptr-of<a> ptr<a>?(a a[], value a) unsafe equal<a>
 	a.begin-ptr ptr-of-recur a.end-ptr, value
 
-.ptr-of-recur<a> opt ptr a(cur ptr a, end ptr a, value a) unsafe equal<a>
+.ptr-of-recur<a> ptr<a>?(cur ptr a, end ptr a, value a) unsafe equal<a>
 	if cur == end
 		none
 	elif cur[] == value
@@ -344,7 +344,7 @@ ptr-of<a> opt ptr a(a a[], value a) unsafe equal<a>
 Returns the last index where `a[i] == value`.
 Equivalent to `a find-rindex it => it == value`.
 ###
-r-index-of<a> opt nat64(a a[], value a) equal<a>
+r-index-of<a> nat64?(a a[], value a) equal<a>
 	a find-rindex it => it == value
 
 ###
@@ -366,7 +366,7 @@ flatten<a> a[](a a[][], joiner a[])
 	else
 		a[0] ~ joiner ~: a.tail flatten joiner
 
-try-split-once<a> opt pair<a[], a[]>(a a[], splitter a) equal<a>
+try-split-once<a> pair<a[], a[]>?(a a[], splitter a) equal<a>
 	if index ?= a index-of splitter
 		some: a[0 -> index] pair a[index + 1 -> a.size]
 
@@ -429,11 +429,11 @@ zip-smaller<out, a, b> out[](a a[], b b[], f act out(a, b))
 Returns an array as big as the bigger of 'a' and 'b'.
 Calls 'f' using corresponding elements, or 'none' if the arr is too short.
 ###
-zip-larger<out, a, b> out[](a a[], b b[], f act out(opt a, opt b))
+zip-larger<out, a, b> out[](a a[], b b[], f act out(a?, b?))
 	a.size max b.size make-arr i =>
 		f[(a opt-subscript i), (b opt-subscript i)]
 
-.opt-subscript<a> opt a(a a[], index nat64)
+.opt-subscript<a> a?(a a[], index nat64)
 	if index < a.size
 		a[index] some
 

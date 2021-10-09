@@ -126,7 +126,7 @@ WARN: May wake up early. Use only to be avoid consuming CPU.
 `until-time`, if set, should be from `get-monotime-nsec`.
 'last-sequence' is to ensure that we don't wait at all if the condition has already triggered.
 ###
-wait-on void(a condition, until-time opt timestamp, last-sequence sequence-id) noctx unsafe summon
+wait-on void(a condition, until-time timestamp?, last-sequence sequence-id) noctx unsafe summon
 	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_lock
 	if a.sequence == last-sequence
 		hard-assert-posix-error: if t ?= until-time

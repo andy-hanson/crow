@@ -61,7 +61,7 @@ main fut nat(args str[]) unsafe summon
 	g = "	crow run db -- get --db-path foo.db --db-name capitals --key indiana"
 	"{a}\n{b}\n{c}\n{d}\n{e}\n{f}\n{g}\n"
 
-.parse-command_name opt command(a str)
+.parse-command_name command?(a str)
 	if a == "get"
 		get some
 	elif a == "set"

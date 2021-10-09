@@ -329,7 +329,7 @@ fut-state-callbacks<a> record mut
 	by-ref
 	# WARN: the cb will be called with whatever ctx resolves the fut, not the ctx that created it
 	cb act void(result<a, exception>)
-	next opt fut-state-callbacks a
+	next fut-state-callbacks<a>?
 
 fut-state-resolved<a> record
 	value a

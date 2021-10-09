@@ -79,7 +79,7 @@ is-empty<k, v> bool(a mut-lookup<k, v>) data<k> compare<k> hash-mix<k>
 size<k, v> nat64(a mut-lookup<k, v>) data<k> compare<k> hash-mix<k>
 	a total-size
 
-subscript<k, v> opt v(a mut-lookup<k, v>, key k) trusted data<k> compare<k> hash-mix<k>
+subscript<k, v> v?(a mut-lookup<k, v>, key k) trusted data<k> compare<k> hash-mix<k>
 	if !a.is-empty
 		match a.entries[key.hash unsafe-mod a.entries.size]
 		as none
@@ -106,14 +106,14 @@ swap!<k, v> void(a mut-lookup<k, v>, b mut-lookup<k, v>) data<k> compare<k> hash
 	a.total-size := b.total-size
 	b.total-size := temp-size
 
-remove-key!<k, v> opt v(a mut-lookup<k, v>, key k) data<k> compare<k> hash-mix<k>
+remove-key!<k, v> v?(a mut-lookup<k, v>, key k) data<k> compare<k> hash-mix<k>
 	a update! key, ignore => none
 
 ###
 f: Takes the value (if it exists), returns the new value (or none to remove).
 Returns the old value (if it exists).
 ###
-.update!<k, v> opt v(a mut-lookup<k, v>, key k, f act opt v(opt v)) trusted data<k> compare<k> hash-mix<k>
+.update!<k, v> v?(a mut-lookup<k, v>, key k, f act v?(v?)) trusted data<k> compare<k> hash-mix<k>
 	if a.entries is-empty
 		if value ?= f[none]
 			a.entries := mut-arr: [key -> value]

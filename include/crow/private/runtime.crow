@@ -41,15 +41,14 @@ cur-island-and-exclusion island-and-exclusion() unsafe
 dynamic-sym-node record
 	by-ref
 	sym sym
-	# bullable
-	next opt dynamic-sym-node
+	next dynamic-sym-node?
 
 global-ctx record mut
 	lk by-val lock
 	print-lock by-val lock
 	syms-lock by-val lock
 	# Dynamically allocated array. Terminated by a null sym. Capacity is a power of 2.
-	dynamic-syms mut opt dynamic-sym-node
+	dynamic-syms mut dynamic-sym-node?
 	# TODO: mut-arr
 	islands mut island[]
 	# if a thread finds no work to do, it decrements this and waits on 'may-be-work-to-do'.
@@ -212,7 +211,7 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 	no-tasks-and-last-thread-out bool
 	# WARN: there may be tasks with exclusions before this time
 	# This is here to ensure that we stop waiting on 'may-be-work-to-do' when we get to that time
-	first-task-time opt timestamp
+	first-task-time timestamp?
 
 .choose-task-result union mut
 	chosen-task
@@ -246,7 +245,7 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 	i nat64
 	cur-time timestamp
 	any-tasks bool
-	first-task-time opt timestamp
+	first-task-time timestamp?
 spec
 	noctx
 	unsafe
@@ -265,7 +264,7 @@ body
 			new-first-task-time = first-task-time min-time n.first-task-time
 			islands choose-task-recur: (i wrap-add 1), cur-time, new-any-tasks, new-first-task-time
 
-.min-time opt timestamp(a opt timestamp, b opt timestamp) noctx
+.min-time timestamp?(a timestamp?, b timestamp?) noctx
 	if ta ?= a
 		if tb ?= b
 			ta min tb some

@@ -23,7 +23,7 @@ child-path str(a str, child_name str)
 	"{a}/{child_name}"
 
 # TODO:MOVE
-.last-index-of opt nat64(a str, c char)
+.last-index-of nat64?(a str, c char)
 	if last-char ?= a.chars last
 		if last-char == c
 			a.size-bytes - 1 some
@@ -32,7 +32,7 @@ child-path str(a str, child_name str)
 
 # Gets the extension from a file name or path.
 # Returns none if there is no extension.
-get-extension opt str(name str)
+get-extension str?(name str)
 	if index ?= name last-index-of "."
 		name.chars[index + 1 -> name.size-bytes].str some
 

@@ -35,11 +35,11 @@ is-empty<a> bool(a mut-stack a)
 ~= <a> void(a mut-stack a, values a[])
 	a.inner ~= values
 
-last<a> opt a(a mut-stack a)
+last<a> a?(a mut-stack a)
 	if !a.is-empty
 		a.inner last
 
-pop!<a> opt a(a mut-stack a)
+pop!<a> a?(a mut-stack a)
 	a.inner pop!
 
 region iteration

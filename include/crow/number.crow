@@ -329,7 +329,7 @@ exists bool(a arrow<nat64, nat64>, f act bool(nat64))
 	else
 		false
 
-find opt nat64(a arrow<nat64, nat64>, f act bool(nat64))
+find nat64?(a arrow<nat64, nat64>, f act bool(nat64))
 	if a.from < a.to
 		if f[a from]
 			a.from some

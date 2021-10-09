@@ -1,8 +1,12 @@
+./test/compile-errors/wrong-number-type-args.crow 1:23-1:29 prefer to write 'a?' instead of 'opt a'
+
+./test/compile-errors/wrong-number-type-args.crow 4:24-4:30 prefer to write 'a?' instead of 'opt a'
+
 ./test/compile-errors/wrong-number-type-args.crow 2:5-2:9 there is no function or variable named 'todo'
 
-./test/compile-errors/wrong-number-type-args.crow 1:24-1:32 parameter a is unused
+./test/compile-errors/wrong-number-type-args.crow 1:21-1:29 parameter a is unused
 
 ./test/compile-errors/wrong-number-type-args.crow 5:7-5:12 there are functions named 'magic', but none takes 1 type arguments. candidates:
 	magic opt<out>(opt<in>) (from test/compile-errors/wrong-number-type-args.crow line 1)
 
-./test/compile-errors/wrong-number-type-args.crow 4:25-4:33 parameter a is unused
+./test/compile-errors/wrong-number-type-args.crow 4:22-4:30 parameter a is unused

@@ -21,7 +21,7 @@ reader record mut
 reader reader(a str) trusted
 	a.chars.begin-ptr reader a.chars.end-ptr
 
-with-reader<a> opt a(a str, f act opt a(reader))
+with-reader<a> a?(a str, f act a?(reader))
 	reader = a reader
 	res = f[reader]
 	if !res.is-empty && reader.is-empty
@@ -59,7 +59,7 @@ try-take-str bool(a reader, s str) trusted
 	else
 		false
 
-take-nat! opt nat64(a reader)
+take-nat! nat64?(a reader)
 	if !a.is-empty
 		if first-digit ?= a.peek.char-to-nat64
 			a.next! drop
@@ -73,7 +73,7 @@ take-nat! opt nat64(a reader)
 	else
 		acc
 
-take-int! opt int64(a reader) trusted
+take-int! int64?(a reader) trusted
 	start = a cur
 	sign = if a.try-take-sign
 		+1
@@ -96,7 +96,7 @@ skip-whitespace! void(a reader)
 		a try-take-char "+" drop
 		true
 
-take-float! opt float64(a reader) trusted
+take-float! float64?(a reader) trusted
 	sign = if a.try-take-sign
 		1.0
 	else
@@ -115,7 +115,7 @@ take-float! opt float64(a reader) trusted
 		else
 			sign * whole-part
 
-take-quoted-str! opt str(a reader)
+take-quoted-str! str?(a reader)
 	if a try-take-char "\""
 		start = a.cur
 		res = a take-quoted-str-recur! mut-list
@@ -123,7 +123,7 @@ take-quoted-str! opt str(a reader)
 			a.cur := start
 		res
 
-.take-quoted-str-recur! opt str(a reader, res mut-list char)
+.take-quoted-str-recur! str?(a reader, res mut-list char)
 	if a is-empty
 		none
 	elif a try-take-char "\""
@@ -136,7 +136,7 @@ take-quoted-str! opt str(a reader)
 		res ~= a next!
 		a take-quoted-str-recur! res
 
-.escape opt char(a char)
+.escape char?(a char)
 	if a == "n"
 		"\n" some
 	elif a == "r"
@@ -150,7 +150,7 @@ take-quoted-str! opt str(a reader)
 	elif a == "0"
 		"\0" some
 
-.char-to-nat64 opt nat64(c char)
+.char-to-nat64 nat64?(c char)
 	if c == "0"
 		0 some
 	elif c == "1"

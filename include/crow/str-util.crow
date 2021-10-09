@@ -32,7 +32,7 @@ to-str str(a c-str) unsafe noctx
 Walk a c-str and return a pointer to the first occurrence of `c`.
 If that is not found, return `none`.
 ###
-find-char-in-cstr opt c-str(a c-str, c char) unsafe noctx
+find-char-in-cstr c-str?(a c-str, c char) unsafe noctx
 	if a[] == c
 		a some
 	elif a[] == "\0"
@@ -83,15 +83,15 @@ starts-with bool(a str, b str)
 ends-with bool(a str, b str)
 	a.chars ends-with b.chars
 
-try-remove-start opt str(a str, b str)
+try-remove-start str?(a str, b str)
 	if res ?= a.chars try-remove-start b.chars
 		res.str some
 
-try-remove-end opt str(a str, b str)
+try-remove-end str?(a str, b str)
 	if res ?= a.chars try-remove-end b.chars
 		res.str some
 
-try-split-once opt pair<str, str>(a str, b char)
+try-split-once pair<str, str>?(a str, b char)
 	if res ?= a.chars try-split-once b
 		res.a.str pair res.b.str some
 

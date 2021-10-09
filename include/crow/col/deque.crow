@@ -60,7 +60,7 @@ popped<a> record
 	value a
 	rest deque a
 
-pop-left<a> opt popped a(a deque a)
+pop-left<a> popped<a>?(a deque a)
 	if popped ?= a.left pop
 		some: popped: popped.value, deque: popped.rest, a.mid, a.right
 	elif first ?= a.mid first
@@ -70,7 +70,7 @@ pop-left<a> opt popped a(a deque a)
 		if first ?= right-arr first
 			some: popped: first, deque: stack, right-arr.tail, stack
 
-pop-right<a> opt popped a(a deque a)
+pop-right<a> popped<a>?(a deque a)
 	if popped ?= a.right pop
 		some: popped: popped.value, deque: a.left, a.mid, popped.rest
 	elif last ?= a.mid last

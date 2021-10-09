@@ -36,10 +36,10 @@ An iterator mutates itself when `next` is called to advance.
 Once it returns `none`, all future calls should also return `none`.
 ###
 iterator<a> record mut
-	get-next act opt a()
+	get-next act a?()
 
 # Returns the current element and advances to the next.
-next<a> opt a(i iterator a)
+next<a> a?(i iterator a)
 	i.get-next[]
 
 ###
@@ -69,7 +69,7 @@ filter<a> iterable a(a iterable a, pred act bool(a))
 	iterable: () =>
 		itr = a iter
 		iterator: () => itr filter-recur pred
-.filter-recur<a> opt a(a iterator a, pred act bool(a))
+.filter-recur<a> a?(a iterator a, pred act bool(a))
 	if v ?= a next
 		if pred[v]
 			v some
@@ -82,6 +82,6 @@ map<out, in> iterable out(a iterable in, f act out(in))
 	iterable: () =>
 		itr = a iter
 		iterator: () => itr map-recur f
-.map-recur<out, in> opt out(a iterator in, f act out(in))
+.map-recur<out, in> out?(a iterator in, f act out(in))
 	if v ?= a next
 		f[v] some

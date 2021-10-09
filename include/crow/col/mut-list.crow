@@ -131,11 +131,11 @@ subscript<a> a(a mut-list a, index nat64) trusted
 	assert: index < a.size
 	a.begin-ptr[index]
 
-first<a> opt a(a mut-list a)
+first<a> a?(a mut-list a)
 	if !a.is-empty
 		a[0] some
 
-last<a> opt a(a mut-list a)
+last<a> a?(a mut-list a)
 	if !a.is-empty
 		a[a.size - 1] some
 
@@ -204,7 +204,7 @@ pop-n-from-start!<a> a[](a mut-list a, n nat64) trusted
 Removes the last element and returns it.
 Returns `none` if `a` is empty.
 ###
-pop!<a> opt a(a mut-list a) trusted
+pop!<a> a?(a mut-list a) trusted
 	if !a.is-empty
 		new-size = a.size wrap-sub 1
 		res = a[new-size]
@@ -324,7 +324,7 @@ reduce-size-if-more-than!<a> void(a mut-list a, new-size nat64)
 		acc * 2 round-up-to-power-of-two-recur n
 
 # Returns the first index where `a[i] == value`, or returns `none`.
-index-of<a> opt nat64(a mut-list a, value a) equal<a> trusted
+index-of<a> nat64?(a mut-list a, value a) equal<a> trusted
 	a.temp-as-arr index-of value
 
 ###
@@ -373,7 +373,7 @@ reverse!<a> void(a mut-list a) trusted
 region iteration
 
 # TODO: What if it's mutated while searching ?
-find-index<a> opt nat64(a mut-list a, f act bool(a)) trusted
+find-index<a> nat64?(a mut-list a, f act bool(a)) trusted
 	a.temp-as-arr find-index f
 
 # Calls `f` for each element in `a`.
@@ -406,11 +406,11 @@ map-to-arr<out, in> out[](a mut-list in, f act out(in)) trusted
 map-to-mut-arr<out, in> mut-arr out(a mut-list in, f act out(in))
 	a.size make-mut-arr i => f[a[i]]
 
-map-opt<out, in> mut-list out(a mut-list in, f act opt out(in)) trusted
+map-opt<out, in> mut-list out(a mut-list in, f act out?(in)) trusted
 	a map-opt-to-mut-arr f as-mut-list
 
 # TODO: this works on anything supporting 'fold' .. don't want to repeat for every collection
-map-opt-to-mut-arr<out, in> mut-arr out(a mut-list in, f act opt out(in)) trusted
+map-opt-to-mut-arr<out, in> mut-arr out(a mut-list in, f act out?(in)) trusted
 	out = a.size uninitialized-mut-arr<out>
 	end = out.begin-ptr fold a, (cur, x) =>
 		if fx ?= f[x]

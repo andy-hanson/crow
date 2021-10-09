@@ -203,11 +203,11 @@ If 'b' is in the set, returns `none~.
 Else, returns a set with 'b' removed.
 This is O(a.size ln).
 ###
-try-remove<a> opt tree-set a(a tree-set a, b a) data<a> compare<a>
+try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 	if node ?= a.root try-remove-recur b
 		some: tree-set: node, a.size wrap-sub 1
 
-.try-remove-recur<a> opt node a(a node a, b a) compare<a>
+.try-remove-recur<a> node<a>?(a node a, b a) compare<a>
 	match a
 	as inner-node i
 		match b <=> i.value
@@ -242,7 +242,7 @@ try-remove<a> opt tree-set a(a tree-set a, b a) data<a> compare<a>
 	value a
 	rest node a
 
-.pop-right<a> opt popped a(a node a)
+.pop-right<a> popped<a>?(a node a)
 	match a
 	as inner-node i
 		if popped ?= i.right pop-right
@@ -275,13 +275,13 @@ try-remove<a> opt tree-set a(a tree-set a, b a) data<a> compare<a>
 		stack init-iter-recur! i.left
 	as arr arr
 		arr
-.peek<a> opt a(a iter a)
+.peek<a> a?(a iter a)
 	if a.cur is-empty
 		if last ?= a.stack last
 			last.value some
 	else
 		a.cur[0] some
-.next!<a> opt a(a iter a) trusted
+.next!<a> a?(a iter a) trusted
 	if a.cur is-empty
 		if node ?= a.stack pop!
 			res = node value

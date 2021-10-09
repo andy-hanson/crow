@@ -119,11 +119,11 @@ unsafe-set-at!<a> void(a mut-arr a, index nat64, value a) unsafe
 	a.begin-ptr[index] := value
 
 
-first<a> opt a(a mut-arr a)
+first<a> a?(a mut-arr a)
 	if !a.is-empty
 		a[0] some
 
-last<a> opt a(a mut-arr a)
+last<a> a?(a mut-arr a)
 	if !a.is-empty
 		a[0] some
 
@@ -187,11 +187,11 @@ set-zero-elements<a> void(a mut-arr a) noctx unsafe
 	a.begin-ptr set-zero-range a.size
 
 # Equivalent to `a.temp-as-arr index-of value`.
-index-of<a> opt nat64(a mut-arr a, value a) equal<a>
+index-of<a> nat64?(a mut-arr a, value a) equal<a>
 	a find-index x => x == value
 
 # Equivalent to `a.temp-as-arr find-index f`.
-find-index<a> opt nat64(a mut-arr a, f act bool(a)) trusted
+find-index<a> nat64?(a mut-arr a, f act bool(a)) trusted
 	a.temp-as-arr find-index f
 
 reverse!<a> void(a mut-arr a) trusted

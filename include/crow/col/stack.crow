@@ -23,10 +23,10 @@ Accessing the first element of the stack is O(n).
 stack<a> record
 	# TODO:PRIVATE
 	ignore void
-	last-node opt node a
+	last-node node<a>?
 
 .node<a> record
-	prev opt node a
+	prev node<a>?
 	value a
 
 # Empty stack.
@@ -79,14 +79,14 @@ size<a> nat64(a stack a)
 Oldest element.
 This is O(a size).
 ###
-first<a> opt a(a stack a)
+first<a> a?(a stack a)
 	none fold-reverse a, (ignore, x) => x some
 
 ###
 Most recently appended element.
 This is O(1).
 ###
-last<a> opt a(a stack a)
+last<a> a?(a stack a)
 	if node ?= a last-node
 		node.value some
 
@@ -105,7 +105,7 @@ popped<a> record
 	value a
 	rest stack a
 
-pop<a> opt popped a(a stack a)
+pop<a> popped<a>?(a stack a)
 	if node ?= a last-node
 		some: popped: node.value, stack: void, node.prev
 
@@ -113,14 +113,14 @@ region iteration
 
 each<a> void(a stack a, f act void(a))
 	a.last-node each-recur f
-.each-recur<a> void(a opt node a, f act void(a))
+.each-recur<a> void(a node<a>?, f act void(a))
 	if node ?= a
 		node.prev each-recur f
 		f[node value]
 
 each-reverse<a> void(a stack a, f act void(a))
 	a.last-node each-reverse-recur f
-.each-reverse-recur<a> void(a opt node a, f act void(a))
+.each-reverse-recur<a> void(a node<a>?, f act void(a))
 	if node ?= a
 		f[node value]
 		node.prev each-reverse-recur f
@@ -128,7 +128,7 @@ each-reverse<a> void(a stack a, f act void(a))
 # Call a function for each element in the stack and accumulate.
 fold<a, b> a(acc a, a stack b, f act a(a, b))
 	acc fold-recur a.last-node, f
-.fold-recur<a, b> a(acc a, a opt node b, f act a(a, b))
+.fold-recur<a, b> a(acc a, a node<b>?, f act a(a, b))
 	if node ?= a
 		prev-val = acc fold-recur node.prev, f
 		f[prev-val, node.value]
@@ -137,7 +137,7 @@ fold<a, b> a(acc a, a stack b, f act a(a, b))
 
 fold-reverse<a, b> a(acc a, a stack b, f act a(a, b))
 	acc fold-reverse-recur a.last-node, f
-.fold-reverse-recur<a, b> a(acc a, a opt node b, f act a(a, b))
+.fold-reverse-recur<a, b> a(acc a, a node<b>?, f act a(a, b))
 	if node ?= a
 		f[acc, node.value] fold-reverse-recur node.prev, f
 	else
@@ -147,14 +147,14 @@ fold-reverse<a, b> a(acc a, a stack b, f act a(a, b))
 # Produce a stack with `f[x]` applied to each element `x` in the input.
 map<out, in> stack out(a stack in, f act out(in))
 	stack: void, a.last-node map-recur f
-.map-recur<out, in> opt node out(a opt node in, f act out(in))
+.map-recur<out, in> node<out>?(a node<in>?, f act out(in))
 	if node ?= a
 		prev = node.prev map-recur f
 		some: node: prev, f[node value]
 
 filter<a> stack a(a stack a, f act bool(a))
 	stack: void, a.last-node filter-recur f
-.filter-recur<a> opt node a(a opt node a, f act bool(a))
+.filter-recur<a> node<a>?(a node<a>?, f act bool(a))
 	if node ?= a
 		prev = node.prev filter-recur f
 		if f[node value]
@@ -162,9 +162,9 @@ filter<a> stack a(a stack a, f act bool(a))
 		else
 			prev
 
-first-some<out, in> opt out(a stack in, f act opt out(in))
+first-some<out, in> out?(a stack in, f act out?(in))
 	a.last-node first-some-recur f
-.first-some-recur<out, in> opt out(a opt node in, f act opt out(in))
+.first-some-recur<out, in> out?(a node<in>?, f act out?(in))
 	if node ?= a
 		res = node.prev first-some-recur f
 		if res is-empty
@@ -211,6 +211,6 @@ test
 	(d first-some<str, nat64> x => x if-eq 2, "two") is "two".some
 	(d first-some<str, nat64> x => x if-eq 5, "five") is none
 
-.if-eq opt str(actual nat64, expected nat64, result str)
+.if-eq str?(actual nat64, expected nat64, result str)
 	if actual == expected
 		result some

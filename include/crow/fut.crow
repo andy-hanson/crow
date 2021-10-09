@@ -100,9 +100,9 @@ join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
 	exception = a first-some x =>
 		match x state
 		as fut-state-no-callbacks
-			hard-unreachable<opt exception>
+			hard-unreachable<exception?>
 		as fut-state-callbacks
-			hard-unreachable<opt exception>
+			hard-unreachable<exception?>
 		as fut-state-resolved
 			none
 		as exception e

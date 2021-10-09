@@ -292,7 +292,7 @@ body
 		check-lmdb-error: open-err
 		f[cursor]
 
-get<k, v> opt v(txn lMDB_txn, db lmdb-db<k, v>, key k) trusted summon lmdb-key<k> serialize<v>
+get<k, v> v?(txn lMDB_txn, db lmdb-db<k, v>, key k) trusted summon lmdb-key<k> serialize<v>
 	value = empty-val
 	# TODO: this check should be unnecessary...
 	if (txn count db) != 0

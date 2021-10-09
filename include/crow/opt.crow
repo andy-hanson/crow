@@ -12,17 +12,17 @@ import
 export
 	./private/bootstrap: none, opt, some, value
 
-== bool(a opt int64, b opt int64) noctx
+== bool(a int64?, b int64?) noctx
 	a opt-equal b
-== bool(a opt nat64, b opt nat64) noctx
+== bool(a nat64?, b nat64?) noctx
 	a opt-equal b
-== bool(a opt str, b opt str) noctx
+== bool(a str?, b str?) noctx
 	a opt-equal b
-== bool(a opt char, b opt char) noctx
+== bool(a char?, b char?) noctx
 	a opt-equal b
 
 # TODO:GENERIC
-.opt-equal<a> bool(a opt a, b opt a) equal<a> noctx
+.opt-equal<a> bool(a a?, b a?) equal<a> noctx
 	if va ?= a
 		if vb ?= b
 			va == vb
@@ -32,61 +32,61 @@ export
 		b is-empty
 
 # True iff a is `none`.
-is-empty<a> bool(a opt a) noctx
+is-empty<a> bool(a a?) noctx
 	match a
 	as none
 		true
 	as some
 		false
 
-size<a> nat64(a opt a) noctx
+size<a> nat64(a a?) noctx
 	if a.is-empty
 		0
 	else
 		1
 
 # Calls `f` on the value in a `some`, or does nothing.
-each<a> void(a opt a, f act void(a))
+each<a> void(a a?, f act void(a))
 	if v ?= a
 		f[v]
 
 # Converts `none` to `none`, or `some` to another `some` with `f` applied.
-map<out, in> opt out(a opt in, f act out(in))
+map<out, in> out?(a in?, f act out(in))
 	if v ?= a
 		f[v] some
 
 # Takes the leftmost `some` value.
-opt-or<a> opt a(a opt a, b opt a)
+opt-or<a> a?(a a?, b a?)
 	if a is-empty
 		b
 	else
 		a
 
 # Converts an option to a value by supplying a default to handle `none`.
-or-default<a> a(a opt a, default act a())
+or-default<a> a(a a?, default act a())
 	if v ?= a
 		v
 	else
 		default[]
 
-or-default<a> a(a opt a, default a)
+or-default<a> a(a a?, default a)
 	if v ?= a
 		v
 	else
 		default
 
 # Converts an option to a value by failing on `none`.
-force<a> a(a opt a)
+force<a> a(a a?)
 	a force "tried to force empty option"
 
-force<a> a(a opt a, message str)
+force<a> a(a a?, message str)
 	if v ?= a
 		v
 	else
 		message throw
 
 # TODO: Should be called 'force' too, but that loses the expected type
-or-throw<a> a(a opt a, get-message act str())
+or-throw<a> a(a a?, get-message act str())
 	if v ?= a
 		v
 	else
@@ -96,7 +96,7 @@ or-throw<a> a(a opt a, get-message act str())
 If both `a` and `b` are non-empty, combines them using `f`.
 Else, returns the non-empty one.
 ###
-opt-combine<a> opt a(a opt a, b opt a, f act a(a, a))
+opt-combine<a> a?(a a?, b a?, f act a(a, a))
 	if va ?= a
 		if vb ?= b
 			f[va, vb] some
@@ -105,14 +105,14 @@ opt-combine<a> opt a(a opt a, b opt a, f act a(a, a))
 	else
 		b
 
-opt-join<in0, in1> opt pair<in0, in1>(a opt in0, b opt in1)
+opt-join<in0, in1> pair<in0, in1>?(a in0?, b in1?)
 	a opt-join b, (x, y) =>
 		x pair y
 
 ###
 Returns `some: f[a.force, b.force]` iff both `a` and `b` are `some`, else returns `none`.
 ###
-opt-join<out, in0, in1> opt out(a opt in0, b opt in1, f act out(in0, in1))
+opt-join<out, in0, in1> out?(a in0?, b in1?, f act out(in0, in1))
 	if va ?= a
 		if vb ?= b
 			f[va, vb] some

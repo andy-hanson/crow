@@ -24,7 +24,7 @@ import util.repr :
 	reprStr,
 	reprSym;
 import util.sourceRange : Pos, reprRangeWithinFile, rangeOfStartAndName, RangeWithinFile;
-import util.sym : shortSymAlphaLiteral, Sym, symSize;
+import util.sym : shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symSize;
 import util.types : safeSizeTToU32;
 import util.util : verify;
 
@@ -69,6 +69,7 @@ struct TypeAst {
 
 		enum Kind {
 			arr,
+			opt,
 		}
 		immutable Kind kind;
 		immutable Ptr!TypeAst left;
@@ -124,6 +125,8 @@ immutable(RangeWithinFile) range(ref immutable TypeAst.Suffix a) {
 		final switch (a.kind) {
 			case TypeAst.Suffix.Kind.arr:
 				return cast(uint) "[]".length;
+			case TypeAst.Suffix.Kind.opt:
+				return cast(uint) "?".length;
 		}
 	}();
 	return immutable RangeWithinFile(leftRange.start, leftRange.end + suffixLength);
@@ -133,6 +136,19 @@ immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
 		case TypeAst.Suffix.Kind.arr:
 			return shortSymAlphaLiteral("arr");
+		case TypeAst.Suffix.Kind.opt:
+			return shortSymAlphaLiteral("opt");
+	}
+}
+
+immutable(Opt!(TypeAst.Suffix.Kind)) typeAstSuffixForSym(immutable Sym a) {
+	switch (a.value) {
+		case shortSymAlphaLiteralValue("arr"):
+			return some(TypeAst.Suffix.Kind.arr);
+		case shortSymAlphaLiteralValue("opt"):
+			return some(TypeAst.Suffix.Kind.opt);
+		default:
+			return none!(TypeAst.Suffix.Kind);
 	}
 }
 

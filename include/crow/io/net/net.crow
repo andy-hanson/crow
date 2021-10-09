@@ -38,7 +38,7 @@ connect-to-uri fd-t(u uri) trusted summon
 	# TODO: handle failure
 	op-sock force
 
-.find-and-connect-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
+.find-and-connect-working-socket fd-t?(ap ptr addrinfo) unsafe summon
 	if ap != null
 		a = ap[]
 		sock = socket: a.ai_family, a.ai_socktype, a.ai_protocol
@@ -71,7 +71,7 @@ bind-to-port fd-t(port str) unsafe summon
 		print: "Failed to bind to port {port}"
 		todo
 
-.find-and-bind-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
+.find-and-bind-working-socket fd-t?(ap ptr addrinfo) unsafe summon
 	if ap != null
 		a = ap[]
 		listen-fd = socket: a.ai_family, a.ai_socktype, 0

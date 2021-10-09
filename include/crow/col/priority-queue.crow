@@ -24,7 +24,7 @@ import
 priority-queue<k, v> record
 	# TODO: PRIVATE
 	ignore void
-	root opt node<k, v>
+	root node<k, v>?
 
 ###
 Priority queue consists of a linked list of nodes with two parts.
@@ -47,7 +47,7 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 .node<k, v> record
 	min arrow<k, v>
 	pairs arrow<k, v>[]
-	next opt node<k, v>
+	next node<k, v>?
 
 priority-queue<k, v> priority-queue<k, v>() data<k> compare<k>
 	priority-queue: void, none
@@ -64,7 +64,7 @@ is-empty<k, v> bool(a priority-queue<k, v>) data<k> compare<k>
 
 size<k, v> nat64(a priority-queue<k, v>) data<k> compare<k>
 	0 size-recur a.root
-.size-recur<k, v> nat64(acc nat64, a opt node<k, v>)
+.size-recur<k, v> nat64(acc nat64, a node<k, v>?)
 	if node ?= a
 		acc wrap-add 1 wrap-add node.pairs.size size-recur node.next
 	else
@@ -81,7 +81,7 @@ popped<k, v> record
 	popped arrow<k, v>
 	rest priority-queue<k, v>
 
-pop<k, v> opt popped<k, v>(a priority-queue<k, v>) data<k> compare<k>
+pop<k, v> popped<k, v>?(a priority-queue<k, v>) data<k> compare<k>
 	if root ?= a.compact-leading-nodes root
 		if next ?= root next
 			some: if popped ?= next pop-no-compact-recur root.min.from
@@ -92,14 +92,14 @@ pop<k, v> opt popped<k, v>(a priority-queue<k, v>) data<k> compare<k>
 			root.pop-from-node some
 
 .pop-from-node<k, v> popped<k, v>(a node<k, v>)
-	rest = as<opt node<k, v>>: if first ?= a.pairs first
+	rest = as<node<k, v>?>: if first ?= a.pairs first
 		some: node: first, a.pairs.tail, a.next
 	else
 		a next
 	popped: a.min, priority-queue: void, rest
 
 # Returns none if this (or any following node) did not have a lower min.
-.pop-no-compact-recur<k, v> opt popped<k, v>(a node<k, v>, min k) compare<k>
+.pop-no-compact-recur<k, v> popped<k, v>?(a node<k, v>, min k) compare<k>
 	is-min = a.min.from < min
 	next-popped = if next ?= a next
 		next pop-no-compact-recur if is-min
@@ -130,12 +130,12 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 			root do-compact w.n-elements-to-compact, mid.mid
 
 .found-mid<k, v> record
-	mid opt node<k, v>
+	mid node<k, v>?
 	n-before-mid nat64
 
 # Finds the first node with 'pairs' non-empty.
 # Also returns the # of nodes before that
-.find-mid<k, v> found-mid<k, v>(a opt node<k, v>, n-before nat64)
+.find-mid<k, v> found-mid<k, v>(a node<k, v>?, n-before nat64)
 	if node ?= a
 		if node.pairs is-empty
 			node.next find-mid: n-before wrap-add 1
@@ -156,7 +156,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 
 # We only call this if we will definitely compact something,
 # TODO: 'plan' is misnamed, this now does the compaction during the recursion
-.plan<k, v> plan<k, v>(a opt node<k, v>, root node<k, v>, n-singles nat64) compare<k>
+.plan<k, v> plan<k, v>(a node<k, v>?, root node<k, v>, n-singles nat64) compare<k>
 	if node ?= a
 		match node.next plan root, n-singles
 		as plan-did-compact d
@@ -172,7 +172,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	else
 		plan-will-compact<k, v>: n-singles
 
-.do-compact<k, v> node<k, v>(root node<k, v>, n-to-compact nat64, nodes-to-compact opt node<k, v>) trusted compare<k>
+.do-compact<k, v> node<k, v>(root node<k, v>, n-to-compact nat64, nodes-to-compact node<k, v>?) trusted compare<k>
 	compacted = n-to-compact uninitialized-mut-arr<arrow<k, v>>
 	mid = compacted.begin-ptr compact-non-singles! nodes-to-compact
 	end = mid compact-singles! root
@@ -193,7 +193,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	else
 		out
 
-.compact-non-singles!<k, v> ptr arrow<k, v>(out ptr arrow<k, v>, a opt node<k, v>) unsafe
+.compact-non-singles!<k, v> ptr arrow<k, v>(out ptr arrow<k, v>, a node<k, v>?) unsafe
 	if node ?= a
 		out[] := node min
 		out2 = out + 1 fold node.pairs, (cur, x) =>
@@ -207,7 +207,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	res = writer
 	res dbg-recur! a.root, true
 	res move-to-str!
-.dbg-recur! void(out writer, a opt node<nat64, str>, first bool)
+.dbg-recur! void(out writer, a node<nat64, str>?, first bool)
 	if node ?= a
 		if !first
 			out ~= "; "
@@ -247,13 +247,13 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) data<k> compare
 .node-count<k, v> nat64(a priority-queue<k, v>)
 	0 node-count a.root
 
-.node-count<k, v> nat64(acc nat64, a opt node<k, v>)
+.node-count<k, v> nat64(acc nat64, a node<k, v>?)
 	if node ?= a
 		acc wrap-add 1 node-count node.next
 	else
 		acc
 
-.fill-each-arr!<k, v> ptr each-part<k, v>(out ptr each-part<k, v>, a opt node<k, v>) unsafe
+.fill-each-arr!<k, v> ptr each-part<k, v>(out ptr each-part<k, v>, a node<k, v>?) unsafe
 	if node ?= a
 		out[] := each-part: node.min, node.pairs
 		out + 1 fill-each-arr! node.next

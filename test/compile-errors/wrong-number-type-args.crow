@@ -1,5 +1,5 @@
-magic<out, in> opt out(a opt in)
+magic<out, in> out?(a opt in)
 	todo
 
-use-it<out, in> opt out(a opt in)
+use-it<out, in> out?(a opt in)
 	a magic<out>

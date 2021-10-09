@@ -108,14 +108,14 @@ size<k, v> nat64(a lookup<k, v>) data<k> compare<k> hash-mix<k>
 	as leaf-node l
 		acc wrap-add l.pairs.size
 
-subscript<k, v> opt v(a lookup<k, v>, key k) data<k> compare<k> hash-mix<k>
+subscript<k, v> v?(a lookup<k, v>, key k) data<k> compare<k> hash-mix<k>
 	match a root
 	as inner-node
 		hash = key hash
 		a.root subscript-recur key, hash
 	as leaf-node l
 		l.pairs subscript-leaf-recur key
-.subscript-recur<k, v> opt v(a node<k, v>, key k, remaining-hash nat64) trusted data<k> compare<k> hash-mix<k>
+.subscript-recur<k, v> v?(a node<k, v>, key k, remaining-hash nat64) trusted data<k> compare<k> hash-mix<k>
 	match a
 	as inner-node i
 		which = remaining-hash low-bits
@@ -123,7 +123,7 @@ subscript<k, v> opt v(a lookup<k, v>, key k) data<k> compare<k> hash-mix<k>
 			i.children[which] subscript-recur: key, remaining-hash unsafe-bit-shift-right inner-node-n-bits
 	as leaf-node l
 		l.pairs subscript-leaf-recur key
-.subscript-leaf-recur<k, v> opt v(a arrow<k, v>[], key k) compare<k>
+.subscript-leaf-recur<k, v> v?(a arrow<k, v>[], key k) compare<k>
 	if a is-empty
 		none
 	elif a[0].from == key
@@ -172,7 +172,7 @@ try-remove-result<k, v> record
 	old-value v
 	new-lookup lookup<k, v>
 
-try-remove<k, v> opt try-remove-result<k, v>(a lookup<k, v>, key k) data<k> compare<k> hash-mix<k>
+try-remove<k, v> try-remove-result<k, v>?(a lookup<k, v>, key k) data<k> compare<k> hash-mix<k>
 	res = a get-or-update key, old-value => remove
 	if value ?= res old-value
 		some: try-remove-result: value, lookup: void, res.new-node.force
@@ -180,8 +180,8 @@ try-remove<k, v> opt try-remove-result<k, v>(a lookup<k, v>, key k) data<k> comp
 .get-or-update-result<k, v> record
 	by-val
 	# If none, don't update anything
-	new-node opt node<k, v>
-	old-value opt v
+	new-node node<k, v>?
+	old-value v?
 
 .get-or-update-action<v> union
 	no-change
@@ -198,7 +198,7 @@ try-remove<k, v> opt try-remove-result<k, v>(a lookup<k, v>, key k) data<k> comp
 .get-or-update<k, v> get-or-update-result<k, v>
 	a lookup<k, v>
 	key k
-	f act get-or-update-action v(opt v)
+	f act get-or-update-action v(v?)
 spec
 	compare<k>
 	hash-mix<k>
@@ -215,7 +215,7 @@ body
 	key k
 	remaining-hash nat64
 	hash-shift nat64
-	f act get-or-update-action v(opt v)
+	f act get-or-update-action v(v?)
 spec
 	trusted
 	compare<k>
@@ -269,7 +269,7 @@ body
 		inner-node: a.children update which, new-child
 
 # Returns 'some' if we should change this to a leaf.
-.inner-node-to-leaf<k, v> opt leaf-node<k, v>(a inner-node<k, v>, which nat64, new-child node<k, v>) trusted
+.inner-node-to-leaf<k, v> leaf-node<k, v>?(a inner-node<k, v>, which nat64, new-child node<k, v>) trusted
 	total-size = 0 fold-with-index a.children, (cur, child, child-index) =>
 		new-child-here = if child-index == which
 			new-child
@@ -298,7 +298,7 @@ body
 		assert: end == out.size
 		some: leaf-node: out cast-immutable
 
-.find-only-non-empty-child<k, v> opt node<k, v>(children node<k, v>[])
+.find-only-non-empty-child<k, v> node<k, v>?(children node<k, v>[])
 	first-non-empty-index = force: children find-index it => !it.node-is-empty
 	if children[(first-non-empty-index wrap-add 1) -> children.size] every it => it node-is-empty
 		children[first-non-empty-index] some
@@ -308,7 +308,7 @@ body
 	key k
 	remaining-hash nat64
 	hash-shift nat64
-	f act get-or-update-action v(opt v)
+	f act get-or-update-action v(v?)
 spec
 	compare<k>
 	hash-mix<k>
@@ -317,14 +317,14 @@ body
 		old-value = a.pairs[index] to
 		new-node = match f[old-value some]
 		as no-change
-			none as<opt node<k, v>>
+			none as<node<k, v>?>
 		as remove
 			some: leaf-node: a.pairs remove-at index
 		as insert ins
 			some: leaf-node: a.pairs update index, key -> ins.value
 		get-or-update-result: new-node, old-value.some
 	else
-		new-node = as<opt node<k, v>>: match f[none]
+		new-node = as<node<k, v>?>: match f[none]
 		as no-change
 			none
 		as remove

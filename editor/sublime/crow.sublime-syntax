@@ -45,9 +45,9 @@ contexts:
   type_args:
     # TODO: this shouldn't be necessary to explicitly include the prototype, right?
     - include: prototype
-    - match: ','
+    - match: ', '
       scope: comment # punctuation.separator
-    - match: '>|\)'
+    - match: '(>|\))\??'
       scope: comment # punctuation.definition.generic.end
       pop: true
     # string in type arg: this happens with e.g. extern<"GL">
@@ -55,6 +55,8 @@ contexts:
       push: string
     - match: '{{type_name}}'
       scope: storage.type
+    - match: '\[\]|\?'
+      scope: keyword
 
   main:
     - match: '\#\!.*$'

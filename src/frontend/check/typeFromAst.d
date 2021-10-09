@@ -12,7 +12,7 @@ import frontend.check.checkCtx :
 	markUsedStructOrAlias;
 import frontend.check.dicts : SpecDeclAndIndex, SpecsDict, StructsAndAliasesDict, StructOrAliasAndIndex;
 import frontend.check.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
-import frontend.parse.ast : matchTypeAst, range, symForTypeAstSuffix, TypeAst;
+import frontend.parse.ast : matchTypeAst, range, symForTypeAstSuffix, TypeAst, typeAstSuffixForSym;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -38,7 +38,7 @@ import util.collection.dict : getAt;
 import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
-import util.sym : shortSymAlphaLiteralValue, Sym, symEq;
+import util.sym : Sym, symEq;
 import util.types : safeSizeTToU8;
 import util.util : todo;
 
@@ -145,14 +145,10 @@ immutable(Type) typeFromAst(Alloc)(
 			typeFromFunAst(alloc, ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts),
 		(ref immutable TypeAst.InstStruct iAst) {
 			// Not doing this in instStructFromAst since that is called for unions, which can't use `a[]` syntax
-			switch (iAst.name.name.value) {
-				case shortSymAlphaLiteralValue("arr"):
-					addDiag(alloc, ctx, iAst.range, immutable Diag(
-						immutable Diag.TypeShouldUseSuffix(TypeAst.Suffix.Kind.arr)));
-					break;
-				default:
-					break;
-			}
+			immutable Opt!(TypeAst.Suffix.Kind) optSuffix = typeAstSuffixForSym(iAst.name.name);
+			if (has(optSuffix))
+				addDiag(alloc, ctx, iAst.range, immutable Diag(
+					immutable Diag.TypeShouldUseSuffix(force(optSuffix))));
 
 			immutable Opt!(Ptr!TypeParam) found =
 				findPtr!TypeParam(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>

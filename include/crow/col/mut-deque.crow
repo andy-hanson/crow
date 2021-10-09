@@ -74,11 +74,11 @@ push!<a> void(a mut-deque a, value a) trusted
 	a.right[] := value
 	a.right := a.right + 1
 
-first<a> opt a(a mut-deque a) trusted
+first<a> a?(a mut-deque a) trusted
 	if a.left != null
 		a.left[] some
 
-last<a> opt a(a mut-deque a) trusted
+last<a> a?(a mut-deque a) trusted
 	if a.right != null
 		fixed-right = if a.right == a.inner.begin-ptr
 			a.inner end-ptr
@@ -86,7 +86,7 @@ last<a> opt a(a mut-deque a) trusted
 			a right
 		(fixed-right - 1)[] some
 
-pop-left!<a> opt a(a mut-deque a) trusted
+pop-left!<a> a?(a mut-deque a) trusted
 	if a.left != null
 		res = a.left[]
 		a.left[] := zeroed
@@ -99,7 +99,7 @@ pop-left!<a> opt a(a mut-deque a) trusted
 			# Still hold on to `a inner`
 		res some
 
-pop-right!<a> opt a(a mut-deque a) trusted
+pop-right!<a> a?(a mut-deque a) trusted
 	if a.right != null
 		if a.right == a.inner.begin-ptr
 			a.right := a.inner end-ptr

@@ -50,7 +50,7 @@ dequeued<a> record
 	value a
 	rest queue a
 
-dequeue<a> opt dequeued a(a queue a)
+dequeue<a> dequeued<a>?(a queue a)
 	if first ?= a.left first
 		some: dequeued: first, queue: a.left.tail, a.right
 	else

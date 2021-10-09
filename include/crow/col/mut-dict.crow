@@ -30,11 +30,11 @@ mut-dict<k, v> record mut
 	# TODO:PRIVATE
 	# TODO: by-val
 	# Values are none if they have been deleted.
-	pairs mut-list arrow<k, opt v>
+	pairs mut-list arrow<k, v?>
 	# Number of pairs in this node that are not `none`.
 	# Does not include sizes of other nodes.
 	node-size mut nat64
-	next mut opt mut-dict<k, v>
+	next mut mut-dict<k, v>?
 
 # New empty `mut-dict`.
 mut-dict<k, v> mut-dict<k, v>() data<k> compare<k>
@@ -76,7 +76,7 @@ Look up a value from a key.
 Returns `none` if the key is not in the dict.
 This is O(a.size ln).
 ###
-subscript<k, v> opt v(a mut-dict<k, v>, key k) trusted data<k> compare<k>
+subscript<k, v> v?(a mut-dict<k, v>, key k) trusted data<k> compare<k>
 	if ptr ?= a find-exact-ptr key
 		ptr[] to
 
@@ -132,8 +132,8 @@ Returns true if it succeeded.
 .add-pair!<k, v> void(a mut-dict<k, v>, key k, value v) data<k> compare<k>
 	if a.node-size < 4
 		if a.pairs is-empty
-			# TODO: '.as<opt v>' should not be necessary
-			a.pairs ~= key -> value.some.as<opt v>
+			# TODO: '.as<v?>' should not be necessary
+			a.pairs ~= key -> value.some.as<v?>
 		else
 			# List has a small absolute size, so even if we can't insert near the end,
 			# there's an empty slot somewhere so we don't have to do much moving.
@@ -148,24 +148,24 @@ Returns true if it succeeded.
 			next add-pair! key, value
 			a compact-if-needed!
 		else
-			new-pairs = mut-list<arrow<k, opt v>>
-			# TODO: '.as<opt v>' should not be necessary
-			new-pairs ~= key -> value.some.as<opt v>
+			new-pairs = mut-list<arrow<k, v?>>
+			# TODO: '.as<v?>' should not be necessary
+			new-pairs ~= key -> value.some.as<v?>
 			a.next := some: mut-dict: new-pairs, 1, none
 
 # Insert at the last place where the key is < that value.
-.insert-linear!<k, v> void(a mut-list arrow<k, opt v>, index nat64, key k, value v) data<k> compare<k>
+.insert-linear!<k, v> void(a mut-list arrow<k, v?>, index nat64, key k, value v) data<k> compare<k>
 	if key < a[index].from
 		a move-right! index
 		a[index] := key -> value.some
 	elif index == a.size - 1
-		# TODO: '.as<opt v>' should not be necessary
-		a ~= key -> value.some.as<opt v>
+		# TODO: '.as<v?>' should not be necessary
+		a ~= key -> value.some.as<v?>
 	else
 		a insert-linear! index + 1, key, value
 
 # If there's something here, move it so something else can be inserted.
-.move-right!<k, v> void(a mut-list arrow<k, opt v>, index nat64)
+.move-right!<k, v> void(a mut-list arrow<k, v?>, index nat64)
 	if !a[index].to.is-empty
 		# If this is the last value, push it
 		if index == a.size - 1
@@ -188,7 +188,7 @@ move-to-dict!<k, v> dict<k, v>(a mut-dict<k, v>) data<k> compare<k>
 Remove the pair with the given key, if it exists.
 Returns the old value (if it exists).
 ###
-remove-key!<k, v> opt v(a mut-dict<k, v>, key k) trusted data<k> compare<k>
+remove-key!<k, v> v?(a mut-dict<k, v>, key k) trusted data<k> compare<k>
 	if ptr ?= a find-exact-ptr key
 		res = if a.pairs.end-ptr - ptr < 4
 			a.pairs remove-at! ptr to
@@ -228,10 +228,10 @@ remove-key!<k, v> opt v(a mut-dict<k, v>, key k) trusted data<k> compare<k>
 		a.next := none
 		a.node-size := a.pairs.size
 
-.find-exact-ptr<k, v> opt ptr arrow<k, opt v>(a mut-dict<k, v>, key k) data<k> compare<k> unsafe
+.find-exact-ptr<k, v> ptr<arrow<k, v?>>?(a mut-dict<k, v>, key k) data<k> compare<k> unsafe
 	a.pairs binary-search-exact-ptr pair => key <=> pair.from
 
-.find-insert-ptr<k, v> ptr arrow<k, opt v>(a mut-dict<k, v>, key k) data<k> compare<k> unsafe
+.find-insert-ptr<k, v> ptr arrow<k, v?>(a mut-dict<k, v>, key k) data<k> compare<k> unsafe
 	a.pairs binary-search-insert-ptr pair => key <=> pair.from
 
 region iteration
@@ -265,9 +265,9 @@ map-values<v-out, k, v-in> mut-dict<k, v-out>(a mut-dict<k, v-in>, f act v-out(k
 	a compact!
 	from-sorted-pairs: a.pairs map pair =>
 		# TODO: 'as' should be unnecessary
-		pair.from -> f[pair.from, pair.to.force].some.as<opt v-out>
+		pair.from -> f[pair.from, pair.to.force].some.as<v-out?>
 
-.from-sorted-pairs<k, v> mut-dict<k, v>(a mut-list<arrow<k, opt v>>)
+.from-sorted-pairs<k, v> mut-dict<k, v>(a mut-list<arrow<k, v?>>)
 	mut-dict: a, a.size, none
 
 map-to-arr<out, k, v> out[](a mut-dict<k, v>, f act out(k, v)) data<k> compare<k>

@@ -38,7 +38,7 @@ board-cache<a> board-cache a() trusted
 	# Use max-nat as an impossible key
 	size fill-mut-arr max-nat32 board-cache: size fill-mut-arr zeroed<a>
 
-subscript<a> opt a(a board-cache a, key board)
+subscript<a> a?(a board-cache a, key board)
 	small-key = key board-key
 	index = small-key mod a.keys.size
 	if a.keys[index] == small-key.wrap-to-nat32
@@ -80,7 +80,7 @@ to-str str(a color)
 	as blue
 		"{term-blue}blue{term-reset}"
 
-.to-short-str str(a opt color)
+.to-short-str str(a color?)
 	if c ?= a
 		match c
 		as red
@@ -116,7 +116,7 @@ place board(a board, x nat)
 empty-board board()
 	0 board 0
 
-.subscript opt color(a board, x nat, y nat, cur-player color)
+.subscript color?(a board, x nat, y nat, cur-player color)
 	pos = x coord y
 	if a.both-players grid-has pos
 		some: if a.current-player grid-has pos
@@ -124,12 +124,12 @@ empty-board board()
 		else
 			cur-player opposite
 
-to-str str(a board, cur-player color, last-column opt nat)
+to-str str(a board, cur-player color, last-column nat?)
 	res = writer
 	0 -> width each x =>
 		text = " {x letter-of-alphabet}"
 		# TODO: shouldn't need 'as'
-		res ~= if x.some.as<opt nat> == last-column
+		res ~= if x.some.as<nat?> == last-column
 			"{term-bold}{text}{term-reset}"
 		else
 			text

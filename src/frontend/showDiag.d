@@ -740,10 +740,14 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeStatic(writer, "a type parameter can't take type arguments");
 		},
 		(ref immutable Diag.TypeShouldUseSuffix it) {
-			final switch (it.kind) {
-				case TypeAst.Suffix.Kind.arr:
-					writeStatic(writer, "prefer to write 'a[]' instead of 'arr a'");
-			}
+			writeStatic(writer, () {
+				final switch (it.kind) {
+					case TypeAst.Suffix.Kind.arr:
+						return "prefer to write 'a[]' instead of 'arr a'";
+					case TypeAst.Suffix.Kind.opt:
+						return "prefer to write 'a?' instead of 'opt a'";
+				}
+			}());
 		},
 		(ref immutable Diag.UnusedImport it) {
 			if (has(it.importedName)) {

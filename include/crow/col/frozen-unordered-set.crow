@@ -55,7 +55,7 @@ subscript<a> bool(a frozen-unordered-set a, value a) trusted data<a> compare<a> 
 
 # WARN: The order of values is arbitrary,
 # but consistent for *identical* (not ==) sets.
-try-get-unordered-index<a> opt nat64(a frozen-unordered-set a, value a) trusted data<a> compare<a> hash-mix<a>
+try-get-unordered-index<a> nat64?(a frozen-unordered-set a, value a) trusted data<a> compare<a> hash-mix<a>
 	if a.bucket-starts is-empty
 		a.values index-of value
 	else

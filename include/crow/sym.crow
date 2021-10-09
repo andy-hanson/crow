@@ -50,7 +50,7 @@ str-to-sym sym(a str) trusted
 		gctx.dynamic-syms := node-ptr.ref-of-ptr some
 		sym
 
-.find-dynamic-sym opt sym(a opt dynamic-sym-node, s str) unsafe noctx
+.find-dynamic-sym sym?(a dynamic-sym-node?, s str) unsafe noctx
 	if node ?= a
 		if node.sym.to-c-str.to-str == s
 			node.sym some

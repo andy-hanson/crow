@@ -101,11 +101,11 @@ mut-arr<k, v> mut-arr arrow<k, v>(a mut-priority-queue<k, v>) data<k> compare<k>
 		buckets ~= mut-list<arrow<k, v>>
 		buckets add-to-bucket! index, pair
 
-pop-value!<k, v> opt v(a mut-priority-queue<k, v>) data<k> compare<k>
+pop-value!<k, v> v?(a mut-priority-queue<k, v>) data<k> compare<k>
 	if pair ?= a pop!
 		pair.to some
 
-pop!<k, v> opt arrow<k, v>(a mut-priority-queue<k, v>) data<k> compare<k>
+pop!<k, v> arrow<k, v>?(a mut-priority-queue<k, v>) data<k> compare<k>
 	res = a.mins pop!
 	if a.mins.size < a.buckets.size
 		assert: (a.mins.size wrap-add 1) == a.buckets.size
@@ -185,7 +185,7 @@ test
 	a verify "6 -> 6, 5 -> 5, 4 -> 4b"
 
 # TODO: opt should have generic ==
-.== bool(a opt arrow<nat64, str>, b opt arrow<nat64, str>) noctx
+.== bool(a arrow<nat64, str>?, b arrow<nat64, str>?) noctx
 	if va ?= a
 		if vb ?= b
 			va.from == vb.from && va.to == vb.to
