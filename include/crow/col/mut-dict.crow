@@ -228,10 +228,10 @@ remove-key!<k, v> v?(a mut-dict<k, v>, key k) trusted data<k> compare<k>
 		a.next := none
 		a.node-size := a.pairs.size
 
-.find-exact-ptr<k, v> mut-ptr<arrow<k, v?>>?(a mut-dict<k, v>, key k) data<k> compare<k> unsafe
+.find-exact-ptr<k, v> arrow<k, v?> mut*?(a mut-dict<k, v>, key k) data<k> compare<k> unsafe
 	a.pairs binary-search-exact-ptr pair => key <=> pair.from
 
-.find-insert-ptr<k, v> mut-ptr arrow<k, v?>(a mut-dict<k, v>, key k) data<k> compare<k> unsafe
+.find-insert-ptr<k, v> arrow<k, v?> mut*(a mut-dict<k, v>, key k) data<k> compare<k> unsafe
 	a.pairs binary-search-insert-ptr pair => key <=> pair.from
 
 region iteration

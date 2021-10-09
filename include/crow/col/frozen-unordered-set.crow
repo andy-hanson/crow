@@ -19,7 +19,7 @@ frozen-unordered-set<a> record force-data
 	# TODO:PRIVATE
 	values a[]
 	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
-	bucket-starts const-ptr<a>[]
+	bucket-starts a*[]
 
 frozen-unordered-set<a> frozen-unordered-set a() data<a> compare<a> hash-mix<a>
 	frozen-unordered-set: [], []
@@ -28,17 +28,17 @@ frozen-unordered-set<a> frozen-unordered-set a(a a[]) trusted data<a> compare<a>
 	a.mut-arr unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
 
 # Values are stored as a contiguous array; order is arbitrary.
-begin-ptr<a> const-ptr a(a frozen-unordered-set a) unsafe
+begin-ptr<a> a*(a frozen-unordered-set a) unsafe
 	a.values begin-ptr
 
-end-ptr<a> const-ptr a(a frozen-unordered-set a) unsafe
+end-ptr<a> a*(a frozen-unordered-set a) unsafe
 	a.values end-ptr
 
 alloc-count<a> nat64(a frozen-unordered-set a) unsafe
 	a.values.alloc-count wrap-add a.bucket-starts.alloc-count
 
 overhead-bytes<a> nat64(a frozen-unordered-set a) unsafe
-	buckets-size = a.bucket-starts.size wrap-mul size-of<const-ptr a>
+	buckets-size = a.bucket-starts.size wrap-mul size-of<a*>
 	a.values.overhead-bytes wrap-add a.bucket-starts.overhead-bytes wrap-add buckets-size
 
 is-empty<a> bool(a frozen-unordered-set a)
@@ -84,7 +84,7 @@ body
 		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-arr
 		bucket-counts fill! 0
 		a.begin-ptr move-values-to-buckets-recur! a.end-ptr, bucket-counts, bucket-starts
-		a.cast-immutable frozen-unordered-set bucket-starts.arr-cast<const-ptr a, mut-ptr a>
+		a.cast-immutable frozen-unordered-set bucket-starts.arr-cast<a*, a mut*>
 
 .get-bucket-counts<a> mut-arr nat64(a mut-arr a, n-buckets nat64) unsafe hash-mix<a>
 	res = n-buckets fill-mut-arr 0
@@ -94,10 +94,10 @@ body
 	res
 
 .move-values-to-buckets-recur!<a> void
-	value-ptr mut-ptr a
-	value-end mut-ptr a
+	value-ptr a mut*
+	value-end a mut*
 	bucket-counts mut-arr nat64
-	bucket-starts mut-ptr<a>[]
+	bucket-starts a mut*[]
 spec
 	unsafe
 	hash-mix<a>
@@ -121,15 +121,15 @@ body
 .get-bucket-index<a> nat64(value a, n-buckets nat64) unsafe hash-mix<a>
 	value.hash unsafe-mod n-buckets
 
-.running-sum<a> mut-ptr<a>[](acc mut-ptr a, a nat64[]) trusted
-	out = a.size uninitialized-mut-arr<mut-ptr a>
+.running-sum<a> a mut*[](acc a mut*, a nat64[]) trusted
+	out = a.size uninitialized-mut-arr<a mut*>
 	acc running-sum-recur! out.begin-ptr, out.end-ptr, a.begin-ptr
 	out cast-immutable
 .running-sum-recur!<a> void
-	acc mut-ptr a
-	out mut-ptr mut-ptr a
-	out-end mut-ptr mut-ptr a
-	read const-ptr nat64
+	acc a mut*
+	out a mut* mut*
+	out-end a mut* mut*
+	read nat64*
 spec
 	unsafe
 body

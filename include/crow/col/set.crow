@@ -219,9 +219,9 @@ Or a combination of the two.
 		new-add set new-remove
 
 .compactor<a> record mut
-	begin const-ptr a
-	cur mut mut-ptr a
-	end const-ptr a
+	begin a*
+	cur mut a mut*
+	end a*
 
 # NOTE: size-here-and-left is the old size, used to index into remove
 .do-compact-recur!<a> add-node a
@@ -256,11 +256,11 @@ body
 		a.cur := new-cur
 
 .merge-recur!<a> void
-	a-begin const-ptr a
-	a-read const-ptr a
-	a-write mut-ptr a
-	b-begin const-ptr a
-	b-read const-ptr a
+	a-begin a*
+	a-read a*
+	a-write a mut*
+	b-begin a*
+	b-read a*
 	b-remove-index nat64
 	b-remove index-set
 spec
@@ -292,9 +292,9 @@ body
 			a-begin merge-recur! a-read - 1, a-write - 1, b-begin, b-read, b-remove-index, b-remove
 
 .copy-from-b-recur!<a> void
-	a-write mut-ptr a
-	b-begin const-ptr a
-	b-read const-ptr a
+	a-write a mut*
+	b-begin a*
+	b-read a*
 	b-remove-index nat64
 	b-remove index-set
 spec
@@ -369,9 +369,9 @@ body
 .init-iters-result<a> record mut
 	by-val
 	next-remove-index nat64
-	out mut-ptr iter-part a
+	out iter-part<a> mut*
 
-.init-iters-recur!<a> init-iters-result a(out mut-ptr iter-part a, a add-node a, remove index-set) unsafe
+.init-iters-recur!<a> init-iters-result a(out iter-part<a> mut*, a add-node a, remove index-set) unsafe
 	prev = if left ?= a left
 		out init-iters-recur! left, remove
 	else

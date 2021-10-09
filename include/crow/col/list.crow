@@ -240,7 +240,7 @@ This is O(n).
 	res.begin-ptr + a-size write-out! a
 	list: res.cast-immutable
 
-.write-out!<a> void(end mut-ptr a, a list a) unsafe
+.write-out!<a> void(end a mut*, a list a) unsafe
 	new-end = end - a.values.size
 	new-end mut-arr-from-begin-end end copy-from! a.values
 	if prev ?= a prev
@@ -267,7 +267,7 @@ map<out, in> list out(a list in, f act out(in)) trusted
 	res = a.size uninitialized-mut-arr<out>
 	drop: res.begin-ptr map-recur a, f
 	list: res.cast-immutable
-.map-recur<out, in> mut-ptr out(out mut-ptr out, a list in, f act out(in)) unsafe
+.map-recur<out, in> out mut*(out out mut*, a list in, f act out(in)) unsafe
 	next-out = if prev ?= a prev
 		out map-recur prev, f
 	else
@@ -280,13 +280,13 @@ filter<a> list a(a list a, f act bool(a)) trusted
 	res = a.size uninitialized-mut-arr<a>
 	end = res.begin-ptr filter-recur a, f
 	list: res[0 -> end - res.begin-ptr] cast-immutable
-.filter-recur<a> mut-ptr a(out mut-ptr a, a list a, f act bool(a)) unsafe
+.filter-recur<a> a mut*(out a mut*, a list a, f act bool(a)) unsafe
 	new-out = if prev ?= a prev
 		out filter-recur prev, f
 	else
 		out
 	new-out filter-recur-arr a.values.begin-ptr, a.values.end-ptr, f
-.filter-recur-arr<a> mut-ptr a(out mut-ptr a, cur const-ptr a, end const-ptr a, f act bool(a)) unsafe
+.filter-recur-arr<a> a mut*(out a mut*, cur a*, end a*, f act bool(a)) unsafe
 	if cur == end
 		out
 	else

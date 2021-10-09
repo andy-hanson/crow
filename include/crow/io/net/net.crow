@@ -33,14 +33,14 @@ uri record
 connect-to-uri fd-t(u uri) trusted summon
 	# TODO: null.as-ref is evil
 	hints = addrinfo: 0, AF_UNSPEC.to-int32, SOCK_STREAM, 0, 0, null.as<any-const-ptr>.as-ref, null, null
-	result = null cell<mut-ptr addrinfo>
+	result = null cell<addrinfo mut*>
 	check-posix-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
 	op-sock = result[].as-const find-and-connect-working-socket
 	result[] freeaddrinfo
 	# TODO: handle failure
 	op-sock force
 
-.find-and-connect-working-socket fd-t?(ap const-ptr addrinfo) unsafe summon
+.find-and-connect-working-socket fd-t?(ap addrinfo*) unsafe summon
 	if ap != null
 		a = ap[]
 		sock = socket: a.ai_family, a.ai_socktype, a.ai_protocol
@@ -64,7 +64,7 @@ connect-to-uri fd-t(u uri) trusted summon
 bind-to-port fd-t(port str) unsafe summon
 	# TODO: null.as-ref is evil
 	hints = addrinfo: ai-passive, AF_INET, SOCK_STREAM, 0, 0, null.as<any-const-ptr>.as-ref, null, null
-	result = null cell<mut-ptr addrinfo>
+	result = null cell<addrinfo mut*>
 	check-posix-error: getaddrinfo: null, port.to-c-str, hints.ptr-to, result
 	op-sock = result[].as-const find-and-bind-working-socket
 	result[] freeaddrinfo
@@ -74,7 +74,7 @@ bind-to-port fd-t(port str) unsafe summon
 		print: "Failed to bind to port {port}"
 		todo
 
-.find-and-bind-working-socket fd-t?(ap const-ptr addrinfo) unsafe summon
+.find-and-bind-working-socket fd-t?(ap addrinfo*) unsafe summon
 	if ap != null
 		a = ap[]
 		listen-fd = socket: a.ai_family, a.ai_socktype, 0

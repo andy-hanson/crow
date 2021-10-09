@@ -151,7 +151,7 @@ This is O(a.size + b.size).
 		cur + 1
 	tree-set: out[0 -> end2 - out.begin-ptr] cast-immutable
 
-.walk-iter-union!<a> mut-ptr a(out mut-ptr a, value a, a iter a) unsafe data<a> compare<a>
+.walk-iter-union!<a> a mut*(out a mut*, value a, a iter a) unsafe data<a> compare<a>
 	if peek ?= a peek
 		match value <=> peek
 		as less
@@ -363,7 +363,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 	else
 		a break-up-arr value, insert-ptr, max-height
 
-.break-up-arr<a> add-result a(a a[], value a, insert-ptr const-ptr a, max-height nat64) unsafe compare<a>
+.break-up-arr<a> add-result a(a a[], value a, insert-ptr a*, max-height nat64) unsafe compare<a>
 	assert: a.begin-ptr <= insert-ptr
 	assert: insert-ptr <= a.end-ptr
 	# Break it up into nodes, adding to height
@@ -421,7 +421,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 	end = out.begin-ptr tree-to-arr-recur! a
 	assert: end == out.end-ptr
 	out cast-immutable
-.tree-to-arr-recur!<a> mut-ptr a(out mut-ptr a, a node a, value a) compare<a> unsafe
+.tree-to-arr-recur!<a> a mut*(out a mut*, a node a, value a) compare<a> unsafe
 	match a
 	as inner-node i
 		match value <=> i.value
@@ -442,7 +442,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 		mid[] := value
 		mid + 1 copy-out! arr[index -> arr.size]
 # Version where we know we don't have to insert value
-.tree-to-arr-recur!<a> mut-ptr a(out mut-ptr a, a node a) unsafe
+.tree-to-arr-recur!<a> a mut*(out a mut*, a node a) unsafe
 	match a
 	as inner-node i
 		mid = out tree-to-arr-recur! i.left
@@ -452,7 +452,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 		out copy-out! arr
 
 # TODO:PERF (use memcpy)
-.copy-out!<a> mut-ptr a(out mut-ptr a, a a[]) unsafe
+.copy-out!<a> a mut*(out a mut*, a a[]) unsafe
 	out fold a, (cur, x) =>
 		cur[] := x
 		cur + 1

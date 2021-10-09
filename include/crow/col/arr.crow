@@ -12,13 +12,13 @@ import
 export
 	../private/bootstrap: arr, begin-ptr, size
 
-end-ptr<a> const-ptr a(a a[]) noctx unsafe
+end-ptr<a> a*(a a[]) noctx unsafe
 	a.begin-ptr + a.size
 
 # TODO: arr comparison should be generic
 arr-equal<a> bool(a a[], b a[]) trusted noctx equal<a>
 	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr
-.equal-recur<a> bool(a const-ptr a, a-end const-ptr a, b const-ptr a, b-end const-ptr a) unsafe noctx equal<a>
+.equal-recur<a> bool(a a*, a-end a*, b a*, b-end a*) unsafe noctx equal<a>
 	if a == a-end
 		b == b-end
 	else
@@ -26,7 +26,7 @@ arr-equal<a> bool(a a[], b a[]) trusted noctx equal<a>
 
 arr-equal<a> bool(a a[], b a[], eq act bool(a, a)) trusted
 	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr, eq
-.equal-recur<a> bool(a const-ptr a, a-end const-ptr a, b const-ptr a, b-end const-ptr a, eq act bool(a, a)) unsafe
+.equal-recur<a> bool(a a*, a-end a*, b a*, b-end a*, eq act bool(a, a)) unsafe
 	if a == a-end
 		b == b-end
 	else
@@ -34,7 +34,7 @@ arr-equal<a> bool(a a[], b a[], eq act bool(a, a)) trusted
 
 arr-compare<a> comparison(a a[], b a[]) trusted noctx compare<a>
 	a.begin-ptr compare-recur a.end-ptr, b.begin-ptr, b.end-ptr
-.compare-recur<a> comparison(a const-ptr a, a-end const-ptr a, b const-ptr a, b-end const-ptr a) unsafe noctx compare<a>
+.compare-recur<a> comparison(a a*, a-end a*, b a*, b-end a*) unsafe noctx compare<a>
 	if a == a-end
 		if b == b-end
 			equal
@@ -66,7 +66,7 @@ Arr or the range from begin to end.
 `begin` is inclusive and `end` is exclusive.
 UB if begin > end.
 ###
-arr-from-begin-end<a> a[](begin const-ptr a, end const-ptr a) unsafe noctx
+arr-from-begin-end<a> a[](begin a*, end a*) unsafe noctx
 	hard-assert: begin <= end
 	arr: end - begin, begin
 

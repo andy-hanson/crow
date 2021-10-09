@@ -28,7 +28,7 @@ atomic-bool by-val atomic-bool() noctx
 	atomic-bool: false
 
 # TODO: works on any primitive type, not just bool
-compare-exchange-strong bool(value-ptr mut-ptr bool, expected-ptr mut-ptr bool, desired bool) noctx builtin
+compare-exchange-strong bool(value-ptr bool mut*, expected-ptr bool mut*, desired bool) noctx builtin
 
 try-change! bool(a atomic-bool, old-value bool) noctx trusted
 	a.value.ptr-to compare-exchange-strong old-value.ptr-to, !old-value

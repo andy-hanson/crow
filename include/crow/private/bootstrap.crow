@@ -61,9 +61,9 @@ mut-ptr<a> builtin
 const-ptr<a> builtin
 
 any-const-ptr alias
-	const-ptr nat8
+	nat8*
 any-mut-ptr alias
-	mut-ptr nat8
+	nat8 mut*
 
 region arr
 
@@ -81,7 +81,7 @@ elements not reachable by any slice will be garbage collected.
 arr<a> record
 	by-val
 	size nat64
-	begin-ptr const-ptr a
+	begin-ptr a*
 
 region str
 
@@ -98,7 +98,7 @@ This should be a valid pointer whose content ends in a "\0", though this is not 
 Thus, all operations on `c-str` are unsafe.
 ###
 c-str alias
-	const-ptr char
+	char*
 
 to-char char(a nat8) noctx builtin
 to-nat8 nat8(c char) noctx builtin

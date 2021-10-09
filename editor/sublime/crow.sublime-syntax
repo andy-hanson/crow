@@ -55,7 +55,7 @@ contexts:
       push: string
     - match: '{{type_name}}'
       scope: storage.type
-    - match: '\[\]|\?'
+    - match: '\[\]|\?|\*'
       scope: keyword
 
   main:

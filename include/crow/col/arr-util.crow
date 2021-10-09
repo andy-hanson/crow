@@ -55,7 +55,7 @@ Calls `f` for each element in `a`.
 ###
 each<a> void(a a[], f act void(a)) trusted
 	a.begin-ptr each-recur a.end-ptr, f
-.each-recur<a> void(cur const-ptr a, end const-ptr a, f act void(a)) unsafe
+.each-recur<a> void(cur a*, end a*, f act void(a)) unsafe
 	if cur != end
 		f[cur[]]
 		cur + 1 each-recur end, f
@@ -71,9 +71,9 @@ each-with-index<a> void(a a[], f act void(a, nat64))
 		f[a[n], n]
 		a each-with-index-recur f, n + 1
 
-each-ptr<a> void(a a[], f act void(const-ptr a)) unsafe
+each-ptr<a> void(a a[], f act void(a*)) unsafe
 	a.begin-ptr each-ptr-recur a.end-ptr, f
-.each-ptr-recur<a> void(cur const-ptr a, end const-ptr a, f act void(const-ptr a)) unsafe
+.each-ptr-recur<a> void(cur a*, end a*, f act void(a*)) unsafe
 	if cur != end
 		f[cur]
 		cur + 1 each-ptr-recur end, f
@@ -89,10 +89,10 @@ filter-with-index<a> a[](a a[], f act bool(a, nat64)) trusted
 	res = a.size alloc-uninitialized<a>
 	end = res filter-with-index-recur a.begin-ptr, a.end-ptr, 0, f
 	res.as-const arr-from-begin-end end.as-const
-.filter-with-index-recur<a> mut-ptr a
-	out mut-ptr a
-	cur const-ptr a
-	end const-ptr a
+.filter-with-index-recur<a> a mut*
+	out a mut*
+	cur a*
+	end a*
 	index nat64
 	f act bool(a, nat64)
 spec
@@ -261,7 +261,7 @@ For example, for a 2-element array, this is equivalent to `f[f[val, a[0]], a[1]]
 ###
 fold<a, b> a(acc a, a b[], f act a(a, b)) trusted
 	acc fold-recur a.begin-ptr, a.end-ptr, f
-.fold-recur<a, b> a(acc a, cur const-ptr b, end const-ptr b, f act a(a, b)) unsafe
+.fold-recur<a, b> a(acc a, cur b*, end b*, f act a(a, b)) unsafe
 	if cur == end
 		acc
 	else
@@ -269,7 +269,7 @@ fold<a, b> a(acc a, a b[], f act a(a, b)) trusted
 
 fold-with-index<a, b> a(acc a, a b[], f act a(a, b, nat64)) trusted
 	acc fold-with-index-recur 0, a.begin-ptr, a.end-ptr, f
-.fold-with-index-recur<a, b> a(acc a, index nat64, cur const-ptr b, end const-ptr b, f act a(a, b, nat64)) unsafe
+.fold-with-index-recur<a, b> a(acc a, index nat64, cur b*, end b*, f act a(a, b, nat64)) unsafe
 	if cur == end
 		acc
 	else
@@ -277,7 +277,7 @@ fold-with-index<a, b> a(acc a, a b[], f act a(a, b, nat64)) trusted
 
 fold-reverse<a, b> a(acc a, a b[], f act a(a, b)) trusted
 	acc fold-reverse-recur a.begin-ptr, a.end-ptr, f
-.fold-reverse-recur<a, b> a(acc a, begin const-ptr b, cur const-ptr b, f act a(a, b)) unsafe
+.fold-reverse-recur<a, b> a(acc a, begin b*, cur b*, f act a(a, b)) unsafe
 	if cur == begin
 		acc
 	else
@@ -338,10 +338,9 @@ index-of<a> nat64?(a a[], value a) trusted equal<a>
 		v - a.begin-ptr some
 
 # Like `index-of` but returns a ptr.
-ptr-of<a> const-ptr<a>?(a a[], value a) unsafe equal<a>
+ptr-of<a> a*?(a a[], value a) unsafe equal<a>
 	a.begin-ptr ptr-of-recur a.end-ptr, value
-
-.ptr-of-recur<a> const-ptr<a>?(cur const-ptr a, end const-ptr a, value a) unsafe equal<a>
+.ptr-of-recur<a> a*?(cur a*, end a*, value a) unsafe equal<a>
 	if cur == end
 		none
 	elif cur[] == value
@@ -396,7 +395,7 @@ split-by-subseq<a> a[][](a a[], splitter a[]) equal<a> equal<a[]> trusted
 	res split-by-subseq-recur a, splitter
 	size arr res.as-const
 # TODO: equal<a[]> should be unnecessary
-.split-by-subseq-recur<a> void(out mut-ptr a[], a a[], splitter a[]) equal<a> equal<a[]> unsafe
+.split-by-subseq-recur<a> void(out a[] mut*, a a[], splitter a[]) equal<a> equal<a[]> unsafe
 	if index ?= a index-of-subseq splitter
 		out[] := a[0 -> index]
 		rest = a[index + splitter.size -> a.size]
@@ -469,7 +468,7 @@ insert<a> a[](a a[], index nat64, value a)
 	# TODO:PERF (only concat once)
 	a[0 -> index] ~ [value] ~ a[index -> a.size]
 
-insert<a> a[](a a[], ptr const-ptr a, value a) unsafe
+insert<a> a[](a a[], ptr a*, value a) unsafe
 	a insert ptr - a.begin-ptr, value
 
 remove-at<a> a[](a a[], index nat64)

@@ -63,12 +63,12 @@ sort!<a> void(a mut-arr a, comparer act comparison(a, a)) trusted
 sort-by!<a, b> void(a mut-arr a, f act b(a)) compare<b>
 	a sort! (x, y) => f[x] <=> f[y]
 
-.insertion-sort-recur!<a> void(begin mut-ptr a, cur mut-ptr a, end mut-ptr a, comparer act comparison(a, a)) unsafe
+.insertion-sort-recur!<a> void(begin a mut*, cur a mut*, end a mut*, comparer act comparison(a, a)) unsafe
 	if cur != end
 		begin insert! cur, cur[], comparer
 		begin insertion-sort-recur! cur + 1, end, comparer
 
-.insert!<a> void(begin mut-ptr a, cur mut-ptr a, value a, comparer act comparison(a, a)) unsafe
+.insert!<a> void(begin a mut*, cur a mut*, value a, comparer act comparison(a, a)) unsafe
 	forbid: begin == cur
 	prev = cur - 1
 	if comparer[value, prev[]] == less
@@ -92,11 +92,11 @@ sort-unique!<a> mut-arr a(a mut-arr a, comparer act comparison(a, a)) trusted
 		a[0 -> end - a.begin-ptr]
 sort-unique-by!<a, b> mut-arr a(a mut-arr a, f act b(a)) compare<b>
 	a sort-unique! (x, y) => f[x] <=> f[y]
-.unique-recur!<a> mut-ptr a
+.unique-recur!<a> a mut*
 	prev a
-	read mut-ptr a
-	write mut-ptr a
-	end mut-ptr a
+	read a mut*
+	write a mut*
+	end a mut*
 	comparer act comparison(a, a)
 spec
 	unsafe

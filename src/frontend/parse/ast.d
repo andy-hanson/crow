@@ -70,6 +70,8 @@ struct TypeAst {
 		enum Kind {
 			arr,
 			opt,
+			ptr,
+			ptrMut,
 		}
 		immutable Kind kind;
 		immutable Ptr!TypeAst left;
@@ -127,6 +129,10 @@ immutable(RangeWithinFile) range(ref immutable TypeAst.Suffix a) {
 				return cast(uint) "[]".length;
 			case TypeAst.Suffix.Kind.opt:
 				return cast(uint) "?".length;
+			case TypeAst.Suffix.Kind.ptr:
+				return cast(uint) "*".length;
+			case TypeAst.Suffix.Kind.ptrMut:
+				return cast(uint) " mut*".length;
 		}
 	}();
 	return immutable RangeWithinFile(leftRange.start, leftRange.end + suffixLength);
@@ -138,6 +144,10 @@ immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 			return shortSymAlphaLiteral("arr");
 		case TypeAst.Suffix.Kind.opt:
 			return shortSymAlphaLiteral("opt");
+		case TypeAst.Suffix.Kind.ptr:
+			return shortSymAlphaLiteral("const-ptr");
+		case TypeAst.Suffix.Kind.ptrMut:
+			return shortSymAlphaLiteral("mut-ptr");
 	}
 }
 
@@ -147,6 +157,10 @@ immutable(Opt!(TypeAst.Suffix.Kind)) typeAstSuffixForSym(immutable Sym a) {
 			return some(TypeAst.Suffix.Kind.arr);
 		case shortSymAlphaLiteralValue("opt"):
 			return some(TypeAst.Suffix.Kind.opt);
+		case shortSymAlphaLiteralValue("const-ptr"):
+			return some(TypeAst.Suffix.Kind.ptr);
+		case shortSymAlphaLiteralValue("mut-ptr"):
+			return some(TypeAst.Suffix.Kind.ptrMut);
 		default:
 			return none!(TypeAst.Suffix.Kind);
 	}

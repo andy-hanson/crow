@@ -40,10 +40,10 @@ Pointer to the first element.
 Since `mut-list` changes its underlying data occasionally,
 it's UB if this is used after the size of `a` changes.
 ###
-begin-ptr<a> mut-ptr a(a mut-list a) noctx unsafe
+begin-ptr<a> a mut*(a mut-list a) noctx unsafe
 	a.backing begin-ptr
 
-end-ptr<a> mut-ptr a(a mut-list a) noctx unsafe
+end-ptr<a> a mut*(a mut-list a) noctx unsafe
 	a.begin-ptr + a.size
 
 is-at-capacity<a> bool(a mut-list a) noctx unsafe
@@ -346,7 +346,7 @@ insert-at!<a> void(a mut-list a, index nat64, value a) trusted
 	a[index] := value
 	assert: a.size <= a.capacity
 
-insert-at!<a> void(a mut-list a, ptr mut-ptr a, value a) unsafe
+insert-at!<a> void(a mut-list a, ptr a mut*, value a) unsafe
 	a insert-at! ptr - a.begin-ptr, value
 
 ###
@@ -366,7 +366,7 @@ remove-at!<a> a(a mut-list a, index nat64) trusted
 	a.size := a.size - 1
 	res
 
-remove-at!<a> a(a mut-list a, ptr mut-ptr a) unsafe
+remove-at!<a> a(a mut-list a, ptr a mut*) unsafe
 	a remove-at! ptr - a.begin-ptr
 
 reverse!<a> void(a mut-list a) trusted
@@ -432,7 +432,7 @@ filter!<a> void(a mut-list a, f act bool(a)) trusted
 	new-size = new-end - a.begin-ptr
 	a.backing[new-size -> a.size] set-zero-elements
 	a.size := new-size
-.filter-recur!<a> mut-ptr a(out mut-ptr a, in const-ptr a, end const-ptr a, f act bool(a)) unsafe
+.filter-recur!<a> a mut*(out a mut*, in a*, end a*, f act bool(a)) unsafe
 	if in == end
 		out
 	else

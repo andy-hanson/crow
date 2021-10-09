@@ -203,7 +203,7 @@ fold-unordered<a, k, v> a(acc a, a mut-lookup<k, v>, f act a(a, k, v)) data<k> c
 
 filter!<k, v> void(a mut-lookup<k, v>, f act bool(k, v)) trusted data<k> compare<k> hash-mix<k>
 	a.entries.begin-ptr filter-recur! a.entries.end-ptr, f
-.filter-recur!<k, v> void(entry-ptr mut-ptr entry<k, v>, entry-end mut-ptr entry<k, v>, f act bool(k, v)) unsafe
+.filter-recur!<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act bool(k, v)) unsafe
 	if entry-ptr != entry-end
 		match entry-ptr[]
 		as none
@@ -232,7 +232,7 @@ map-to-arr-unordered<out, k, v> out[](a mut-lookup<k, v>, f act out(k, v)) trust
 
 map-values!<k, v> void(a mut-lookup<k, v>, f act v(k, v)) trusted data<k> compare<k> hash-mix<k>
 	a.entries.begin-ptr map-values-recur! a.entries.end-ptr, f
-.map-values-recur!<k, v> void(entry-ptr mut-ptr entry<k, v>, entry-end mut-ptr entry<k, v>, f act v(k, v)) unsafe
+.map-values-recur!<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act v(k, v)) unsafe
 	if entry-ptr != entry-end
 		match entry-ptr[]
 		as none

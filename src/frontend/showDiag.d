@@ -746,6 +746,10 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 						return "prefer to write 'a[]' instead of 'arr a'";
 					case TypeAst.Suffix.Kind.opt:
 						return "prefer to write 'a?' instead of 'opt a'";
+					case TypeAst.Suffix.Kind.ptr:
+						return "prefer to write 'a*' instead of 'const-ptr a'";
+					case TypeAst.Suffix.Kind.ptrMut:
+						return "prefer to write 'a mut*' instead of 'mut-ptr a'";
 				}
 			}());
 		},

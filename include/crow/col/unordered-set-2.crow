@@ -156,9 +156,9 @@ body
 	unordered-set: new-add, a.remove filter-less plan.add-size-left
 
 .compactor<a> record mut
-	begin mut-ptr a
-	cur mut mut-ptr a
-	end mut-ptr a
+	begin a mut*
+	cur mut a mut*
+	end a mut*
 
 .do-compact-recur!<a> add-node a
 	compactor compactor a
@@ -182,7 +182,7 @@ body
 
 .push!<a> void(a compactor a, here frozen-unordered-set a, add-size-here-and-left nat64, remove index-set) unsafe
 	a push-recur! here.begin-ptr, here.end-ptr, add-size-here-and-left, remove
-.push-recur!<a> void(a compactor a, cur const-ptr a, end const-ptr a, remove-index nat64, remove index-set) unsafe
+.push-recur!<a> void(a compactor a, cur a*, end a*, remove-index nat64, remove index-set) unsafe
 	if cur != end
 		if !remove[remove-index]
 			a.cur[] := cur[]

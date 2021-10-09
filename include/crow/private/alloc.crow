@@ -16,14 +16,14 @@ import
 	./number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
 	./thread-utils: acquire!, lock-by-val, release!
 
-set-zero-range<a> void(begin mut-ptr a, size nat64) noctx unsafe
+set-zero-range<a> void(begin a mut*, size nat64) noctx unsafe
 	# TODO: wrap-mul is unsafe
 	drop: begin.as-any-mut-ptr memset: 0, size wrap-mul size-of<a>
 
 mark-ctx record mut
 	memory-size-words nat64
-	marks mut-ptr bool
-	memory-start mut-ptr nat64
+	marks bool mut*
+	memory-start nat64 mut*
 
 # Returns true if the range is GC-allocated memory and was not already marked
 mark bool(ctx mark-ctx, ptr-any any-const-ptr, size-bytes nat64) noctx unsafe summon
@@ -51,7 +51,7 @@ words-of-bytes nat64(size-bytes nat64) noctx trusted
 round-up-to-multiple-of-8 nat64(n nat64) noctx
 	(n wrap-add 7) & ~7
 
-mark-range-recur bool(marked-anything bool, cur mut-ptr bool, end mut-ptr bool) noctx unsafe
+mark-range-recur bool(marked-anything bool, cur bool mut*, end bool mut*) noctx unsafe
 	if cur == end
 		marked-anything
 	else
@@ -69,13 +69,13 @@ gc record mut
 	size-words mut nat64
 	# 'mark-cur' and 'data-cur' run in parallel
 	# mark-end must be `mark-begin + size-words` and similar for data-end
-	mark-begin mut-ptr bool
-	mark-cur mut mut-ptr bool
-	mark-end mut mut-ptr bool
+	mark-begin bool mut*
+	mark-cur mut bool mut*
+	mark-end mut bool mut*
 	# We allocate data in increments of nat64
-	data-begin mut-ptr nat64
-	data-cur mut mut-ptr nat64
-	data-end mut mut-ptr nat64
+	data-begin nat64 mut*
+	data-cur mut nat64 mut*
+	data-end mut nat64 mut*
 
 gc-stats record
 	by-val
@@ -108,7 +108,7 @@ get-stats gc-stats(gc gc) noctx unsafe
 	gc.lk.ref-of-val release!
 	gc-stats: cur-word, total-words, cur-word wrap-add used-words-remaining
 
-words-used-in-range nat64(acc nat64, cur mut-ptr bool, end mut-ptr bool) noctx unsafe
+words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) noctx unsafe
 	if cur == end
 		acc
 	else
@@ -145,7 +145,7 @@ run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 	gc.needs-gc := false
 
 # TODO: use memset
-.clear-free-mem! void(mark-ptr mut-ptr bool, mark-end mut-ptr bool, data-ptr mut-ptr nat64) noctx unsafe
+.clear-free-mem! void(mark-ptr bool mut*, mark-end bool mut*, data-ptr nat64 mut*) noctx unsafe
 	if mark-ptr != mark-end
 		if !mark-ptr[]
 			data-ptr[] := 0xfadefadefadefade
@@ -193,7 +193,7 @@ get-gc gc() unsafe
 	get-gc-ctx.gc
 
 # TODO: use memset
-fill-ptr-range<a> void(cur mut-ptr a, end mut-ptr a, value a) noctx unsafe
+fill-ptr-range<a> void(cur a mut*, end a mut*, value a) noctx unsafe
 	if cur != end
 		cur[] := value
 		cur + 1 fill-ptr-range end, value
@@ -233,13 +233,13 @@ validate-gc void(gc gc) noctx unsafe
 		if gc.mark-cur range-free gc.mark-cur + size-words
 			gc.mark-cur := gc.mark-cur + size-words
 			gc.data-cur := next
-			cur.ptr-cast<nat8, nat64> some<mut-ptr nat8>
+			cur.ptr-cast<nat8, nat64> some<nat8 mut*>
 		else
 			gc.mark-cur := gc.mark-cur + 1
 			gc.data-cur := gc.data-cur + 1
 			gc try-gc-alloc-recur size-bytes
 
-range-free bool(mark mut-ptr bool, end mut-ptr bool) noctx unsafe
+range-free bool(mark bool mut*, end bool mut*) noctx unsafe
 	if mark == end
 		true
 	elif mark[]
@@ -260,15 +260,15 @@ alloc any-mut-ptr(size-bytes nat64) unsafe
 try-alloc any-mut-ptr?(size-bytes nat64) unsafe
 	get-gc try-gc-alloc size-bytes
 
-alloc-uninitialized<a> mut-ptr a(size nat64) unsafe
+alloc-uninitialized<a> a mut*(size nat64) unsafe
 	# TODO: wrap-mul is unsafe!
 	ptr-cast<a, nat8>: alloc: size wrap-mul size-of<a>
 
-try-alloc-uninitialized<a> mut-ptr<a>?(size nat64) unsafe
+try-alloc-uninitialized<a> a mut*?(size nat64) unsafe
 	if res ?= size wrap-mul size-of<a> try-alloc
 		res.ptr-cast<a, nat8> some
 
-unmanaged-alloc-uninitialized<a> mut-ptr a() noctx unsafe
+unmanaged-alloc-uninitialized<a> a mut*() noctx unsafe
 	1 unmanaged-alloc-elements<a>
 
 unmanaged-alloc-bytes any-mut-ptr(size nat64) noctx unsafe
@@ -276,25 +276,25 @@ unmanaged-alloc-bytes any-mut-ptr(size nat64) noctx unsafe
 	hard-assert: res != null
 	res
 
-unmanaged-alloc-zeroed-elements<a> mut-ptr a(size-elements nat64) noctx unsafe
+unmanaged-alloc-zeroed-elements<a> a mut*(size-elements nat64) noctx unsafe
 	res = size-elements unmanaged-alloc-elements<a>
 	res set-zero-range size-elements
 	res
 
-unmanaged-alloc-elements<a> mut-ptr a(size-elements nat64) noctx unsafe
+unmanaged-alloc-elements<a> a mut*(size-elements nat64) noctx unsafe
 	# TODO: wrap-mul is unsafe!
 	ptr-cast: size-elements wrap-mul size-of<a> unmanaged-alloc-bytes
 
-unmanaged-free<a> void(p mut-ptr a) noctx unsafe
+unmanaged-free<a> void(p a mut*) noctx unsafe
 	p.as-any-mut-ptr free
 
-copy-data-from!<a> void(to mut-ptr a, from const-ptr a, len nat64) unsafe
+copy-data-from!<a> void(to a mut*, from a*, len nat64) unsafe
 	drop: to.as-any-mut-ptr memcpy: from.as-any-const-ptr, len wrap-mul size-of<a>
 
-fill-ptr-range<a> void(begin mut-ptr a, size nat64, f act a(nat64)) unsafe
+fill-ptr-range<a> void(begin a mut*, size nat64, f act a(nat64)) unsafe
 	begin fill-ptr-range-recur 0, size, f
 
-.fill-ptr-range-recur<a> void(begin mut-ptr a, i nat64, size nat64, f act a(nat64)) unsafe
+.fill-ptr-range-recur<a> void(begin a mut*, i nat64, size nat64, f act a(nat64)) unsafe
 	if i != size
 		begin[i] := f[i]
 		begin fill-ptr-range-recur (i wrap-add 1), size, f

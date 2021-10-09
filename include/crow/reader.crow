@@ -15,8 +15,8 @@ import
 
 reader record mut
 	# TODO:PRIVATE
-	cur mut const-ptr char
-	end const-ptr char
+	cur mut char*
+	end char*
 
 reader reader(a str) trusted
 	a.chars.begin-ptr reader a.chars.end-ptr

@@ -22,8 +22,8 @@ posix_spawn err-t
 	executable-path c-str
 	file-actions posix_spawn_file_actions_t
 	attrp any-const-ptr
-	argv const-ptr c-str
-	environ const-ptr c-str
+	argv c-str*
+	environ c-str*
 spec
 	unsafe
 	extern

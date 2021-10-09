@@ -26,10 +26,10 @@ get-backtrace backtrace() unsafe
 		backtrace: as<sym[]>: []
 
 .fill-code-names! void
-	code-names mut-ptr sym
-	end-code-names mut-ptr sym
-	code-ptrs const-ptr any-const-ptr
-	funs const-ptr named-val any-const-ptr
+	code-names sym mut*
+	end-code-names sym mut*
+	code-ptrs any-const-ptr*
+	funs named-val<any-const-ptr>*
 spec
 	unsafe
 body
@@ -41,9 +41,9 @@ body
 	8
 
 .backtrace-arrs record mut
-	code-ptrs mut-ptr any-const-ptr
-	code-names mut-ptr sym
-	funs mut-ptr named-val any-const-ptr
+	code-ptrs any-const-ptr mut*
+	code-names sym mut*
+	funs named-val<any-const-ptr> mut*
 
 .try-alloc-backtrace-arrs backtrace-arrs?() unsafe
 	size = 8
@@ -52,7 +52,7 @@ body
 			if funs ?= all-funs.size try-alloc-uninitialized<named-val any-const-ptr>
 				some: backtrace-arrs: code-ptrs, code-names, funs
 
-.get-fun-name sym(code-ptr any-const-ptr, funs const-ptr named-val any-const-ptr, size nat64) unsafe noctx
+.get-fun-name sym(code-ptr any-const-ptr, funs named-val<any-const-ptr>*, size nat64) unsafe noctx
 	# TODO: this will fail to give a name for the last function
 	if size < 2
 		'<<UNKNOWN>>'
@@ -62,7 +62,7 @@ body
 		code-ptr get-fun-name: funs + 1, size wrap-sub 1
 
 # TODO: use the one from sort.crow
-.sort! void(a mut-ptr named-val any-const-ptr, size nat64) noctx unsafe
+.sort! void(a named-val<any-const-ptr> mut*, size nat64) noctx unsafe
 	if size > 1
 		a swap!: 0, size unsafe-div 2
 		after-pivot = a partition! a[].val, 1, (size wrap-sub 1)
@@ -71,7 +71,7 @@ body
 		a sort! new-pivot-index
 		a + after-pivot sort!: size wrap-sub after-pivot
 
-.partition! nat64(a mut-ptr named-val any-const-ptr, pivot any-const-ptr, l nat64, r nat64) noctx unsafe
+.partition! nat64(a named-val<any-const-ptr> mut*, pivot any-const-ptr, l nat64, r nat64) noctx unsafe
 	if l <= r
 		if a[l].val < pivot
 			a partition! pivot, (l wrap-add 1), r
@@ -81,7 +81,7 @@ body
 	else
 		l
 
-.swap!<a> void(a mut-ptr a, lo nat64, hi nat64) noctx unsafe
+.swap!<a> void(a a mut*, lo nat64, hi nat64) noctx unsafe
 	temp = a[lo]
 	a[lo] := a[hi]
 	a[hi] := temp

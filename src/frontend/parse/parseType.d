@@ -3,7 +3,15 @@ module frontend.parse.parseType;
 @safe @nogc pure nothrow:
 
 import frontend.parse.ast : NameAndRange, range, TypeAst;
-import frontend.parse.lexer : addDiag, curPos, Lexer, range, takeNameAndRange, takeOrAddDiagExpected, tryTake;
+import frontend.parse.lexer :
+	addDiag,
+	curPos,
+	Lexer,
+	peekExact,
+	range,
+	takeNameAndRange,
+	takeOrAddDiagExpected,
+	tryTake;
 import model.parseDiag : ParseDiag;
 import util.collection.arr : ArrWithSize, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -55,7 +63,7 @@ private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(Alloc, SymAllo
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
-	return tryTake(lexer, ' ')
+	return !peekExact(lexer, " mut*") && tryTake(lexer, ' ')
 		? arrWithSizeLiteral(alloc, [parseType(alloc, lexer)])
 		: tryParseTypeArgsBracketed(alloc, lexer);
 }
@@ -106,6 +114,10 @@ private immutable(Opt!(TypeAst.Suffix.Kind)) tryTakeTypeSuffix(SymAlloc)(ref Lex
 		? some(TypeAst.Suffix.Kind.opt)
 		: tryTake(lexer, "[]")
 		? some(TypeAst.Suffix.Kind.arr)
+		: tryTake(lexer, "*")
+		? some(TypeAst.Suffix.Kind.ptr)
+		: tryTake(lexer, " mut*")
+		? some(TypeAst.Suffix.Kind.ptrMut)
 		: none!(TypeAst.Suffix.Kind);
 }
 

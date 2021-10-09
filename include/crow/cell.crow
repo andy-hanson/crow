@@ -19,10 +19,10 @@ cell<a> record mut
 Treats a pointer as a cell.
 UB if the pointer does not point to a mutable value.
 ###
-as-cell<a> cell a(a mut-ptr a) noctx unsafe
+as-cell<a> cell a(a a mut*) noctx unsafe
 	a.as-any-mut-ptr as-ref
 
-as-ptr<a> mut-ptr a(a cell a) noctx unsafe
+as-ptr<a> a mut*(a cell a) noctx unsafe
 	a.as-any-mut-ptr ptr-cast
 
 # Put `v` into the cell, and return the old value.

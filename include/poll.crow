@@ -26,7 +26,7 @@ POLLHUP int16()
 POLLNVAL int16()
 	0x20
 
-poll int32(fds mut-ptr by-val<pollfd>, nfds u-long, timeout int32) unsafe summon extern noctx
+poll int32(fds by-val<pollfd> mut*, nfds u-long, timeout int32) unsafe summon extern noctx
 
 has-POLLIN bool(revents int16)
 	revents bits-intersect POLLIN

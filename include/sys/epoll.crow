@@ -13,11 +13,11 @@ epoll_event record
 	events nat32
 	data nat64
 
-epoll_ctl err-t(epfd fd-t, op c-int, fd fd-t, event mut-ptr epoll_event) unsafe noctx extern summon
+epoll_ctl err-t(epfd fd-t, op c-int, fd fd-t, event epoll_event mut*) unsafe noctx extern summon
 
 epoll_wait err-t
 	epfd fd-t
-	events mut-ptr epoll_event
+	events epoll_event mut*
 	max-events c-int
 	timeout c-int
 spec

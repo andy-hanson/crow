@@ -69,21 +69,21 @@ glCreateProgram GLuint() extern<"GL"> noctx summon unsafe
 
 glCreateShader GLuint(type GLenum) extern<"GL"> noctx summon unsafe
 
-glDeleteBuffers void(n GLsizei, buffers const-ptr GLuint) extern<"GL"> noctx summon unsafe
+glDeleteBuffers void(n GLsizei, buffers GLuint*) extern<"GL"> noctx summon unsafe
 
 glDeleteProgram void(program GLuint) extern<"GL"> noctx summon unsafe
 
 glDeleteShader void(shader GLuint) extern<"GL"> noctx summon unsafe
 
-glDeleteTextures void(n GLsizei, textures const-ptr GLuint) extern<"GL"> noctx summon unsafe
+glDeleteTextures void(n GLsizei, textures GLuint*) extern<"GL"> noctx summon unsafe
 
 glDrawArrays void(mode GLenum, first GLint, count GLsizei) extern noctx summon unsafe
 
 glEnableVertexAttribArray void(index GLuint) extern<"GL"> noctx summon unsafe
 
-glGenBuffers void(n GLsizei, buffers mut-ptr GLuint) extern<"GL"> noctx summon unsafe
+glGenBuffers void(n GLsizei, buffers GLuint mut*) extern<"GL"> noctx summon unsafe
 
-glGenTextures void(n GLsizei, textures mut-ptr GLuint) extern<"GL"> noctx summon unsafe
+glGenTextures void(n GLsizei, textures GLuint mut*) extern<"GL"> noctx summon unsafe
 
 glGetError GLenum() extern<"GL"> noctx summon
 
@@ -91,7 +91,7 @@ glGetProgramInfoLog void
 	program GLuint
 	bufSize GLsizei
 	length cell GLsizei
-	infoLog mut-ptr GLchar
+	infoLog GLchar mut*
 spec
 	extern<"GL">
 	noctx
@@ -104,7 +104,7 @@ glGetShaderInfoLog void
 	shader GLuint
 	bufSize GLsizei
 	length cell GLsizei
-	infoLog mut-ptr GLchar
+	infoLog GLchar mut*
 spec
 	extern<"GL">
 	noctx
@@ -113,15 +113,15 @@ spec
 
 glGetShaderiv void(reader GLuint, pname GLenum, params cell GLint) extern<"GL"> noctx summon unsafe
 
-glGetUniformLocation GLint(program GLuint, name const-ptr GLchar) extern<"GL"> noctx summon unsafe
+glGetUniformLocation GLint(program GLuint, name GLchar*) extern<"GL"> noctx summon unsafe
 
 glLinkProgram void(program GLuint) extern<"GL"> noctx summon unsafe
 
 glShaderSource void
 	shader GLuint
 	count GLsizei
-	string const-ptr const-ptr GLchar
-	length const-ptr GLint
+	string GLchar**
+	length GLint*
 spec
 	extern<"GL">
 	noctx

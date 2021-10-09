@@ -41,7 +41,7 @@ pthread_mutexattr_init err-t(attr pthread_mutexattr_t) unsafe extern noctx
 pthread_mutexattr_destroy err-t(attr pthread_mutexattr_t) unsafe extern noctx
 pthread_mutexattr_getpshared err-t
 	attr pthread_mutexattr_t
-	pshared mut-ptr int32
+	pshared int32 mut*
 spec
 	unsafe
 	extern
@@ -72,9 +72,9 @@ pthread_condattr_t record
 
 pthread_condattr_init err-t(attr pthread_condattr_t) unsafe extern noctx
 pthread_condattr_destroy err-t(attr pthread_condattr_t) unsafe extern noctx
-pthread_condattr_getpshared err-t(attr pthread_condattr_t, pshared mut-ptr int32) unsafe extern noctx
+pthread_condattr_getpshared err-t(attr pthread_condattr_t, pshared int32 mut*) unsafe extern noctx
 pthread_condattr_setpshared err-t(attr pthread_condattr_t, pshared int32) unsafe extern noctx
-pthread_condattr_getclock err-t(attr pthread_condattr_t, clock-id mut-ptr __clockid_t) unsafe extern noctx
+pthread_condattr_getclock err-t(attr pthread_condattr_t, clock-id __clockid_t mut*) unsafe extern noctx
 pthread_condattr_setclock err-t(attr pthread_condattr_t, clock-id __clockid_t) unsafe extern noctx
 
 pthread_cond_init err-t(cond pthread_cond_t, cond-attr pthread_condattr_t) unsafe extern noctx
@@ -82,4 +82,4 @@ pthread_cond_destroy err-t(cond pthread_cond_t) unsafe extern noctx
 pthread_cond_signal err-t(cond pthread_cond_t) unsafe extern noctx
 pthread_cond_broadcast err-t(cond pthread_cond_t) unsafe extern noctx
 pthread_cond_wait err-t(cond pthread_cond_t, mutex pthread_mutex_t) unsafe extern noctx
-pthread_cond_timedwait err-t(cond pthread_cond_t, mutex pthread_mutex_t, abstime const-ptr timespec) unsafe extern noctx
+pthread_cond_timedwait err-t(cond pthread_cond_t, mutex pthread_mutex_t, abstime timespec*) unsafe extern noctx

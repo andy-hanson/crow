@@ -18,7 +18,7 @@ addrinfo record mut
 	ai_addrlen socklen_t
 	ai_addr sockaddr
 	ai_canonname c-str
-	ai_next const-ptr addrinfo
+	ai_next addrinfo*
 
 ai-passive int32()
 	1
@@ -28,31 +28,30 @@ ai-passive int32()
 getaddrinfo int32
 	name c-str
 	service c-str
-	req const-ptr addrinfo
-	pai cell mut-ptr<addrinfo>
+	req addrinfo*
+	pai cell<addrinfo mut*>
 spec
 	unsafe
 	extern
 	noctx
 	summon
-freeaddrinfo void(ai mut-ptr addrinfo) unsafe extern noctx
+freeaddrinfo void(ai addrinfo mut*) unsafe extern noctx
 gai_strerror c-str(ecode int32) extern noctx
 
 hostent record mut
 	by-ref
 	h_name c-str
-	h_aliases mut-ptr c-str
+	h_aliases c-str mut*
 	h_addrtype c-int
 	h_length c-int
-	h_addr_list mut-ptr c-str
+	h_addr_list c-str mut*
 
 gethostbyname hostent(name c-str) unsafe extern noctx
 
 protoent record mut
 	by-ref
 	p_name c-str
-	p_aliases mut-ptr c-str
+	p_aliases c-str mut*
 	p_proto c-int
 
 getprotobyname protoent(name c-str) unsafe extern noctx
-

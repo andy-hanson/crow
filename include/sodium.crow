@@ -17,7 +17,7 @@ crypto_pwhash_memlimit_sensitive size_t() noctx extern<"sodium">
 
 crypto_pwhash_str err-t
 	# Length should be crypto_pwhash_strbytes
-	output mut-ptr char
+	output char mut*
 	passwd c-str
 	passwdlen u-long-long
 	opslimit u-long-long
@@ -29,7 +29,7 @@ spec
 
 crypto_pwhash_str_verify err-t
 	# Length should be crypto_pwhash_strbytes
-	str const-ptr char
+	str char*
 	passwd c-str
 	passwdlen u-long-long
 spec

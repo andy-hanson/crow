@@ -14,7 +14,7 @@ SDL_Color record
 SDL_Palette record mut
 	by-ref
 	ncolors c-int
-	colors mut-ptr SDL_Color
+	colors SDL_Color mut*
 	version nat32
 	refcount c-int
 
@@ -38,4 +38,4 @@ SDL_PixelFormat record mut
 	Bshift nat8
 	Ashift nat8
 	refcount c-int
-	next mut-ptr SDL_PixelFormat
+	next SDL_PixelFormat mut*

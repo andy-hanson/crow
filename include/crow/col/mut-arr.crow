@@ -31,7 +31,7 @@ mut-arr<a> mut-arr a() noctx
 	mut-arr: void, []
 
 # `mut-arr` from a pointer and size.
-mut-arr<a> mut-arr a(size nat64, begin-ptr mut-ptr a) noctx unsafe
+mut-arr<a> mut-arr a(size nat64, begin-ptr a mut*) noctx unsafe
 	void mut-arr (size arr begin-ptr.as-const)
 
 ###
@@ -48,7 +48,7 @@ Further writes to the `mut-arr` won't affect the `arr` that was copied from it.
 arr<a> a[](a mut-arr a)
 	a.copy.inner
 
-mut-arr-from-begin-end<a> mut-arr a(begin mut-ptr a, end mut-ptr a) unsafe
+mut-arr-from-begin-end<a> mut-arr a(begin a mut*, end a mut*) unsafe
 	assert: begin <= end
 	void mut-arr (begin.as-const arr-from-begin-end end.as-const)
 
@@ -76,14 +76,14 @@ size<a> nat64(a mut-arr a) noctx
 	a.inner size
 
 # Pointer to the beginning of the `mut-arr`.
-begin-ptr<a> mut-ptr a(a mut-arr a) noctx unsafe
+begin-ptr<a> a mut*(a mut-arr a) noctx unsafe
 	a.inner.begin-ptr as-mut
 
 ###
 Pointer to the end of the `mut-arr`.
 This is one past the last valid pointer.
 ###
-end-ptr<a> mut-ptr a(a mut-arr a) noctx unsafe
+end-ptr<a> a mut*(a mut-arr a) noctx unsafe
 	a.begin-ptr + a.size
 
 ###
@@ -198,7 +198,7 @@ find-index<a> nat64?(a mut-arr a, f act bool(a)) trusted
 
 reverse!<a> void(a mut-arr a) trusted
 	a.begin-ptr reverse-recur! a.end-ptr - 1
-.reverse-recur!<a> void(left mut-ptr a, right mut-ptr a) unsafe
+.reverse-recur!<a> void(left a mut*, right a mut*) unsafe
 	if left < right
 		tmp = left[]
 		left[] := right[]
@@ -224,7 +224,7 @@ fold-reverse<a, b> a(acc a, a mut-arr b, f act a(a, b)) trusted
 
 map!<a> void(a mut-arr a, f act a(a)) trusted
 	a.begin-ptr map-recur! a.end-ptr, f
-.map-recur!<a> void(cur mut-ptr a, end mut-ptr a, f act a(a)) unsafe
+.map-recur!<a> void(cur a mut*, end a mut*, f act a(a)) unsafe
 	if cur != end
 		cur[] := f[cur[]]
 		cur + 1 map-recur! end, f

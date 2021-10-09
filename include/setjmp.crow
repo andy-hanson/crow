@@ -15,7 +15,7 @@ __jmp_buf_tag record
 # WARNING: This is declared as `typedef struct __jmp_buf_tag jmp_buf[1];`
 # So in some cases it's by value, in others by reference
 jmp_buf alias
-	mut-ptr __jmp_buf_tag
+	__jmp_buf_tag mut*
 
 # TODO: this is marked __THROWNL, what does that do?
 setjmp int32(env jmp_buf) unsafe extern noctx

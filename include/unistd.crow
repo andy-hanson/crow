@@ -7,9 +7,9 @@ import
 	crow/str: char
 	sys/types: off_t
 
-getcwd mut-ptr char(buf mut-ptr char, size size_t) unsafe extern noctx summon
+getcwd char mut*(buf char mut*, size size_t) unsafe extern noctx summon
 
-readlink ssize_t(path c-str, buf mut-ptr char, len size_t) summon extern noctx
+readlink ssize_t(path c-str, buf char mut*, len size_t) summon extern noctx
 
 close err-t(fd fd-t) summon extern noctx
 lseek off_t(f fd-t, offset off_t, whence int32) summon extern noctx
@@ -24,7 +24,7 @@ pipes record mut
 	write-pipe mut fd-t
 	read-pipe mut fd-t
 
-environ const-ptr c-str() unsafe global noctx
+environ c-str*() unsafe global noctx
 
 usleep c-int(micro-seconds nat32) unsafe extern noctx
 

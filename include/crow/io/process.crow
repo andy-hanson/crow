@@ -75,10 +75,10 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	else
 		throw: "{exe} is not a file"
 
-.convert-args const-ptr c-str(exe-c-str c-str, args str[]) unsafe
+.convert-args c-str*(exe-c-str c-str, args str[]) unsafe
 	begin-ptr: [exe-c-str] ~ (args map x => x to-c-str) ~ [null]
 
-.spawn-and-wait-result process-result(exe c-str, args const-ptr c-str, environ const-ptr c-str) summon unsafe
+.spawn-and-wait-result process-result(exe c-str, args c-str*, environ c-str*) summon unsafe
 	stdout-pipes = make-pipes
 	stderr-pipes = make-pipes
 
@@ -179,7 +179,7 @@ body
 # Args should be terminated by null.
 # Each entry in environ looks like "name=value", and final entry is null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
-.spawn-and-wait exit-code(exe c-str, args const-ptr c-str, environ const-ptr c-str) summon unsafe
+.spawn-and-wait exit-code(exe c-str, args c-str*, environ c-str*) summon unsafe
 	pid-cell = 0 cell<pid_t>
 	# TODO: null.as-ref is bad. If it's nullable it shouldn't be a ref.
 	check-posix-error: posix_spawn: pid-cell, exe, null.as<any-const-ptr>.as-ref, null, args, environ

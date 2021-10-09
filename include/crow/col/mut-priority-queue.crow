@@ -82,7 +82,7 @@ mut-arr<k, v> mut-arr arrow<k, v>(a mut-priority-queue<k, v>) data<k> compare<k>
 	new-mins.begin-ptr spread-all-buckets-recur! a, 0
 	new-mins
 .spread-all-buckets-recur!<k, v> void
-	out mut-ptr arrow<k, v>
+	out arrow<k, v> mut*
 	a mut-priority-queue<k, v>
 	index nat64
 spec

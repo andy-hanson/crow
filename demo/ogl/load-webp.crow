@@ -15,7 +15,7 @@ import
 
 # WARN: Remember to free
 webp-rgba-image record mut
-	data mut-ptr nat8
+	data nat8 mut*
 	width nat
 	height nat
 

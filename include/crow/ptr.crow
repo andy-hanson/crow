@@ -7,27 +7,27 @@ import
 export
 	./private/bootstrap: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, zeroed
 
-as-const<a> const-ptr a(a mut-ptr a) noctx unsafe builtin
-as-mut<a> mut-ptr a(a const-ptr a) noctx unsafe builtin
+as-const<a> a*(a a mut*) noctx unsafe builtin
+as-mut<a> a mut*(a a*) noctx unsafe builtin
 
 # Null pointer.
-null<a> const-ptr a() noctx unsafe
+null<a> a*() noctx unsafe
 	null.as-const
-null<a> mut-ptr a() noctx unsafe builtin
+null<a> a mut*() noctx unsafe builtin
 
 # Advance the pointer by `offset`.
-+ <a> const-ptr a(a const-ptr a, offset nat64) noctx unsafe
++ <a> a*(a a*, offset nat64) noctx unsafe
 	a.as-mut + offset as-const
-+ <a> mut-ptr a(a mut-ptr a, offset nat64) noctx unsafe builtin
++ <a> a mut*(a a mut*, offset nat64) noctx unsafe builtin
 # Back up the pointer by `offset`.
-- <a> const-ptr a(a const-ptr a, offset nat64) noctx unsafe
+- <a> a*(a a*, offset nat64) noctx unsafe
 	a.as-mut - offset as-const
-- <a> mut-ptr a(a mut-ptr a, offset nat64) noctx unsafe builtin
+- <a> a mut*(a a mut*, offset nat64) noctx unsafe builtin
 # Get the difference between two pointers, measured in strides of `a`.
 # UB if `a < b` or if `size-of<a> == 0`.
-- <a> nat64(a const-ptr a, b const-ptr a) noctx unsafe
+- <a> nat64(a a*, b a*) noctx unsafe
 	a.as-mut - b.as-mut
-- <a> nat64(a mut-ptr a, b mut-ptr a) noctx unsafe
+- <a> nat64(a a mut*, b a mut*) noctx unsafe
 	# TODO: what if a is an empty type ?
 	a.to-nat64 wrap-sub b.to-nat64 unsafe-div size-of<a>
 
@@ -36,36 +36,36 @@ null<a> mut-ptr a() noctx unsafe builtin
 Get the value pointed to.
 UB if this is not a valid pointer.
 ###
-subscript<a> a(a const-ptr a) noctx unsafe
+subscript<a> a(a a*) noctx unsafe
 	a.as-mut[]
-subscript<a> a(a mut-ptr a) noctx unsafe builtin
+subscript<a> a(a a mut*) noctx unsafe builtin
 ###
 Get the value pointed to at the offset.
 UB if that is not a valid pointer.
 ###
-subscript<a> a(a const-ptr a, n nat64) noctx unsafe
+subscript<a> a(a a*, n nat64) noctx unsafe
 	(a + n)[]
-subscript<a> a(a mut-ptr a, n nat64) noctx unsafe
+subscript<a> a(a a mut*, n nat64) noctx unsafe
 	(a + n)[]
 ###
 Set the value pointed to.
 UB if this is not a valid pointer.
 ###
-set-subscript<a> void(a mut-ptr a, value a) noctx unsafe builtin
+set-subscript<a> void(a a mut*, value a) noctx unsafe builtin
 ###
 Set the value pointed to at the offset.
 UB if that is not a valid pointer.
 ###
-set-subscript<a> void(a mut-ptr a, n nat64, value a) noctx unsafe
+set-subscript<a> void(a a mut*, n nat64, value a) noctx unsafe
 	(a + n)[] := value
 
 ###
 Reinterpret a pointer to a ref.
 Does nothing at runtime, just changes the type.
 ###
-ref-of-ptr<a> a(p const-ptr by-val a) noctx unsafe
+ref-of-ptr<a> a(p by-val<a>*) noctx unsafe
 	p[] ref-of-val
-ref-of-ptr<a> a(p mut-ptr by-val a) noctx unsafe
+ref-of-ptr<a> a(p by-val<a> mut*) noctx unsafe
 	p[] ref-of-val
 
 ###
@@ -78,8 +78,8 @@ ref-of-val<a> a(a by-val a) noctx unsafe builtin
 Gets a pointer to something stored on the stack.
 WARN: If 'a' is a reference type already, this is a pointer to a pointer!
 ###
-ptr-to<a> const-ptr a(a a) noctx unsafe builtin
-ptr-to<a> mut-ptr a(a a) noctx unsafe builtin
+ptr-to<a> a*(a a) noctx unsafe builtin
+ptr-to<a> a mut*(a a) noctx unsafe builtin
 
 # TODO: this function only works for by-ref types -- currently that is not checked by the type checker
 # Convert a reference to `any-ptr`.
@@ -100,15 +100,15 @@ as-ref<a> a(a any-mut-ptr) noctx unsafe builtin
 True iff two pointers are identical.
 (False if they point to equal values but are different pointers.)
 ###
-== <a> bool(a const-ptr a, b const-ptr a) noctx unsafe
+== <a> bool(a a*, b a*) noctx unsafe
 	a.as-mut == b.as-mut
-== <a> bool(a mut-ptr a, b mut-ptr a) noctx unsafe builtin
+== <a> bool(a a mut*, b a mut*) noctx unsafe builtin
 # True iff `a.to-nat64 < b.to-nat64`.
-.is-less<a> bool(a mut-ptr a, b mut-ptr a) noctx unsafe builtin
+.is-less<a> bool(a a mut*, b a mut*) noctx unsafe builtin
 # Equal to `a.to-nat64 <=> b.to-nat64`.
-<=> <a> comparison(a const-ptr a, b const-ptr a) noctx unsafe
+<=> <a> comparison(a a*, b a*) noctx unsafe
 	a.as-mut <=> b.as-mut
-<=> <a> comparison(a mut-ptr a, b mut-ptr a) noctx unsafe
+<=> <a> comparison(a a mut*, b a mut*) noctx unsafe
 	if a is-less b
 		less
 	elif a == b
@@ -142,38 +142,38 @@ deep-size-bytes<a> spec
 Convert a pointer to an `extern-ptr` type.
 Does nothing at runtime, just changes the type.
 ###
-ptr-cast-to-extern<out, in> out(p mut-ptr in) noctx unsafe builtin
+ptr-cast-to-extern<out, in> out(p in mut*) noctx unsafe builtin
 
 # TODO: require that in be an extern-ptr type
 ###
 Convert an extern-ptr to another pointer.
 Does nothing at runtime, just changes the type.
 ###
-ptr-cast-from-extern<out, in> mut-ptr out(p in) noctx unsafe builtin
+ptr-cast-from-extern<out, in> out mut*(p in) noctx unsafe builtin
 
 ###
 Change the type pointed to.
 Does nothing at runtime, just changes the type.
 ###
-ptr-cast<out, in> const-ptr out(a const-ptr in) noctx unsafe
+ptr-cast<out, in> out*(a in*) noctx unsafe
 	a.as-mut.ptr-cast<out, in> as-const
-ptr-cast<out, in> mut-ptr out(a mut-ptr in) noctx unsafe builtin
+ptr-cast<out, in> out mut*(a in mut*) noctx unsafe builtin
 
 # nat64 value of a pointer.
-to-nat64<a> nat64(a const-ptr a) noctx unsafe
+to-nat64<a> nat64(a a*) noctx unsafe
 	a.as-mut to-nat64
-to-nat64<a> nat64(a mut-ptr a) noctx unsafe builtin
-to-const-ptr<a> const-ptr a(a nat64) noctx unsafe
+to-nat64<a> nat64(a a mut*) noctx unsafe builtin
+to-const-ptr<a> a*(a nat64) noctx unsafe
 	a.to-mut-ptr as-const
-to-mut-ptr<a> mut-ptr a(a nat64) noctx unsafe builtin
+to-mut-ptr<a> a mut*(a nat64) noctx unsafe builtin
 
 # Swap the pointees. Does not change the pointer itself.
-swap!<a> void(a mut-ptr a, b mut-ptr a) noctx unsafe
+swap!<a> void(a a mut*, b a mut*) noctx unsafe
 	temp = a[]
 	a[] := b[]
 	b[] := temp
 
-max-ptr<a> const-ptr a() noctx unsafe
+max-ptr<a> a*() noctx unsafe
 	max-ptr.as-const
-max-ptr<a> mut-ptr a() noctx unsafe
+max-ptr<a> a mut*() noctx unsafe
 	null + 0xffffffffffffffff

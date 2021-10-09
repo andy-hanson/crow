@@ -21,10 +21,10 @@ mut-deque<a> record mut
 	# TODO:PRIVATE
 	inner mut mut-arr a
 	# Points to the first element. Null for an empty queue.
-	left mut mut-ptr a
+	left mut a mut*
 	# Points to the element after the last. Null for an empty queue.
 	# This should never be inner.end-ptr, it wraps around to inner.begin-ptr
-	right mut mut-ptr a
+	right mut a mut*
 
 mut-deque<a> mut-deque a() trusted
 	mut-deque: mut-arr<a>, null, null

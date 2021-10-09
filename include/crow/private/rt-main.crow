@@ -35,7 +35,7 @@ import
 	fun-ptr2<fut nat64, ctx, str[]>
 
 # Treated specially by the compiler
-rt-main exit-code(argc int32, argv const-ptr c-str, main-ptr main-ptr) trusted noctx summon
+rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 	n-threads = get_nprocs
 	f = false
 	gctx-by-val = as<by-val global-ctx>: global-ctx: lbv, lbv, lbv, none, [], n-threads, create-condition, f, f
@@ -76,7 +76,7 @@ rt-main exit-code(argc int32, argv const-ptr c-str, main-ptr main-ptr) trusted n
 	thread-id nat64
 	island island
 	argc int32
-	argv const-ptr c-str
+	argv c-str*
 	main-ptr main-ptr
 spec
 	trusted
@@ -134,8 +134,8 @@ body
 .start-threads-recur void
 	i nat64
 	n-threads nat64
-	threads mut-ptr pthread_t
-	thread-args-begin mut-ptr by-val<thread-args>
+	threads pthread_t mut*
+	thread-args-begin by-val<thread-args> mut*
 	gctx global-ctx
 spec
 	noctx
@@ -154,7 +154,7 @@ body
 	args.thread-id thread-function args.gctx
 	null
 
-.join-threads-recur void(i nat64, n-threads nat64, threads const-ptr pthread_t) noctx unsafe summon
+.join-threads-recur void(i nat64, n-threads nat64, threads pthread_t*) noctx unsafe summon
 	if i != n-threads
 		threads[i] join-one-thread
 		i wrap-add 1 join-threads-recur n-threads, threads
