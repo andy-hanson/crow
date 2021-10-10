@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: bool
-	./cell: cell, set-subscript, subscript
+	./cell: *, cell, set-deref
 	./compare: <
 	./fun: subscript
 	./misc: arrow, from, to, void
@@ -51,9 +51,9 @@ iter iterator nat64(r arrow<nat64, nat64>)
 	# TODO: should not need a type argument here
 	n = r.from cell<nat64>
 	iterator: () =>
-		if n[] < r.to
-			res = n[]
-			n[] := res + 1
+		if *n < r.to
+			res = *n
+			*n := res + 1
 			res some
 
 # Calls a function for each element of an iterable.

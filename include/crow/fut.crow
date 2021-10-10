@@ -1,7 +1,7 @@
 no-std
 import
 	./col/arr: arr, size
-	./cell: cell, set-subscript, subscript
+	./cell: *, cell, set-deref
 	./col/arr-util: each-with-index, first-some, map
 	./exception: catch, exception
 	./fun: subscript
@@ -41,8 +41,8 @@ join<out, in0, in1> fut out(a fut in0, b fut in1, f ref out(in0, in1)) trusted s
 	remaining = cell<nat64>: 2
 	decr-remaining = as<act void()>: () =>
 		lock with-lock () =>
-			remaining[] := remaining[] wrap-sub 1
-			if remaining[] == 0
+			*remaining := *remaining wrap-sub 1
+			if *remaining == 0
 				res finish-join! a, b, f
 	a callback! ignore =>
 		decr-remaining[]
@@ -90,8 +90,8 @@ join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
 	a each-with-index (in, index) =>
 		in callback! value =>
 			lock with-lock () =>
-				remaining[] := remaining[] wrap-sub 1
-				if remaining[] == 0
+				*remaining := *remaining wrap-sub 1
+				if *remaining == 0
 					res finish-join! a
 	res
 

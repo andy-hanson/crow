@@ -11,7 +11,7 @@ import
 	sched: sched_yield
 	time: CLOCK_MONOTONIC
 	../bool: !, bool, false, true
-	../cell: cell, subscript
+	../cell: *, cell
 	../compare: !=
 	../extra-types: err-t
 	../fun: fun-ptr1, subscript
@@ -196,4 +196,4 @@ join-one-thread void(tid pthread_t) noctx unsafe summon
 			todo
 		else
 			todo
-	hard-assert: thread-return.ref-of-val[] == null
+	hard-assert: *thread-return.ref-of-val == null

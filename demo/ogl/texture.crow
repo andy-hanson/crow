@@ -1,6 +1,6 @@
 no-std
 import
-	crow/cell: as-ptr, cell, subscript
+	crow/cell: *, as-ptr, cell
 	crow/compare: !=
 	crow/exception: throw
 	crow/io/print: print
@@ -20,7 +20,7 @@ load-texture GLuint(path str) unsafe summon
 	path with-webp image =>
 		texture-cell = 0 cell<GLuint>
 		1 glGenTextures texture-cell.as-ptr
-		texture = texture-cell[]
+		texture = *texture-cell
 
 		GL_TEXTURE_2D glBindTexture texture
 		w = image.width to-int32

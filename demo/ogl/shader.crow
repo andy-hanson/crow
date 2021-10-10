@@ -1,6 +1,6 @@
 no-std
 import
-	crow/cell: cell, subscript
+	crow/cell: *, cell
 	crow/col/arr: begin-ptr, size
 	crow/col/mut-arr: begin-ptr, copy-to-arr, uninitialized-mut-arr
 	crow/compare: !=
@@ -31,13 +31,13 @@ shader-prog-load GLuint(vert-file-name str, frag-file-name str) summon unsafe
 	shader-prog glGetProgramiv GL_LINK_STATUS, linking-succeeded
 	vert-shader glDeleteShader
 	frag-shader glDeleteShader
-	if linking-succeeded[] == GL_TRUE
+	if *linking-succeeded == GL_TRUE
 		shader-prog
 	else
 		log-length = 0 cell<GLint>
 		shader-prog glGetProgramiv GL_INFO_LOG_LENGTH, log-length
-		err-log = log-length[].to-nat64 uninitialized-mut-arr<GLchar>
-		shader-prog glGetProgramInfoLog log-length[], log-length, err-log.begin-ptr
+		err-log = (*log-length).to-nat64 uninitialized-mut-arr<GLchar>
+		shader-prog glGetProgramInfoLog *log-length, log-length, err-log.begin-ptr
 		shader-prog glDeleteProgram
 		err-log.copy-to-arr.str throw
 
@@ -49,13 +49,13 @@ shader-prog-destroy void(shader-prog GLuint) summon unsafe
 	shader glCompileShader
 	compile-succeeded = GL_FALSE cell<GLint>
 	shader glGetShaderiv GL_COMPILE_STATUS, compile-succeeded
-	if compile-succeeded[] == GL_TRUE
+	if *compile-succeeded == GL_TRUE
 		shader
 	else
 		log-length = 0 cell<GLint>
 		shader glGetShaderiv GL_INFO_LOG_LENGTH, log-length
-		err-log = log-length[].to-nat64 uninitialized-mut-arr<GLchar>
-		shader glGetShaderInfoLog log-length[], log-length, err-log.begin-ptr
+		err-log = (*log-length).to-nat64 uninitialized-mut-arr<GLchar>
+		shader glGetShaderInfoLog *log-length, log-length, err-log.begin-ptr
 		shader glDeleteShader
 		err-log.copy-to-arr.str throw
 

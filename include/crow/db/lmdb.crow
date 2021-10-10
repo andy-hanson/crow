@@ -13,7 +13,7 @@ import
 		mv_size
 	../bits: |
 	../bool: !, &&, ||, bool, false, true
-	../cell: cell, subscript
+	../cell: *, cell
 	../col/arr: arr, begin-ptr, is-empty, size
 	../col/mut-arr:
 		begin-ptr, cast-immutable, copy-to-arr, end-ptr, mut-arr-from-begin-end,
@@ -96,7 +96,7 @@ with-env<a> a(db-dir str, options lmdb-open-options, f act a(lmdb-env)) trusted 
 lmdb-open-env lmdb-env(db-dir str, options lmdb-open-options) unsafe summon
 	env-cell = cell<MDB_env>: null ptr-cast-to-extern<MDB_env, nat8>
 	check-lmdb-error: env-cell mdb_env_create
-	env = env-cell[]
+	env = *env-cell
 	check-lmdb-error: env mdb_env_set_maxdbs 50
 	mapsize = 1024 * 1024 * 100000
 	check-lmdb-error: env mdb_env_set_mapsize mapsize
@@ -133,7 +133,7 @@ open-db<k, v> lmdb-db<k, v>(env lmdb-env, db-name str) unsafe summon lmdb-key<k>
 	parent-transaction = null ptr-cast-to-extern<MDB_txn, nat8>
 	transaction-cell = cell<MDB_txn>: null ptr-cast-to-extern<MDB_txn, nat8>
 	check-lmdb-error: env.env mdb_txn_begin parent-transaction, 0, transaction-cell
-	transaction = transaction-cell[]
+	transaction = *transaction-cell
 
 	dbi-cell = cell<MDB_dbi>: zeroed<MDB_dbi>
 	# TODO: Should be able to parse `zeroed<k>.lmdb-key-flags`
@@ -141,7 +141,7 @@ open-db<k, v> lmdb-db<k, v>(env lmdb-env, db-name str) unsafe summon lmdb-key<k>
 	check-lmdb-error: transaction mdb_dbi_open db-name.to-c-str, flags, dbi-cell
 
 	check-lmdb-error: transaction mdb_txn_commit
-	dbi-cell[] lmdb-db
+	*dbi-cell lmdb-db
 
 close-db<k, v> void(env lmdb-env, db lmdb-db<k, v>) unsafe summon
 	env.env mdb_dbi_close db.dbi
@@ -287,7 +287,7 @@ body
 .with-cursor<a, k, v> a(txn lMDB_txn, db lmdb-db<k, v>, f act a(MDB_cursor)) unsafe summon
 	cursor-cell = cell<MDB_cursor>: null ptr-cast-to-extern<MDB_cursor, nat8>
 	open-err = txn.txn mdb_cursor_open db.dbi, cursor-cell
-	cursor = cursor-cell[]
+	cursor = *cursor-cell
 	(() => cursor mdb_cursor_close) finally () =>
 		check-lmdb-error: open-err
 		f[cursor]
@@ -377,7 +377,7 @@ with-abortable-write-transaction<a> a(env lmdb-env, f act transaction-result a(l
 	parent-transaction = null ptr-cast-to-extern<MDB_txn, nat8>
 	transaction-cell = cell<MDB_txn>: null ptr-cast-to-extern<MDB_txn, nat8>
 	check-lmdb-error: env.env mdb_txn_begin parent-transaction, flags, transaction-cell
-	transaction = transaction-cell[]
+	transaction = *transaction-cell
 	(() => transaction mdb_txn_abort) do-if-error () =>
 		match f[transaction lMDB_txn]
 		as transaction-abort a

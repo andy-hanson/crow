@@ -430,7 +430,7 @@ program(
 			ptr: true
 			body: record([field(thread-id, false, type(false, nat64)), field(gctx, false, type(true, global-ctx))]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, thread-args)]))
-		struct(name: cell, mut: true, ptr: true, body: record([field(subscript, true, type(false, nat64))]))
+		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, true, type(false, nat64))]))
 		struct(name: fun-ptr1, body: builtin(fun-ptr, [type(false, mut-ptr), type(false, mut-ptr)]))
 		struct(name: choose-task-result, body: union([type(false, chosen-task), type(false, no-chosen-task)]))
 		struct(
@@ -449,7 +449,7 @@ program(
 		struct(
 			name: timespec
 			body: record([field(tv-sec, false, type(false, int64)), field(tv-nsec, false, type(false, int64))]))
-		struct(name: cell, mut: true, ptr: true, body: record([field(subscript, true, type(false, timespec))]))
+		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, true, type(false, timespec))]))
 		struct(
 			name: choose-task-in-island-result
 			body: union([type(false, task), type(false, do-a-gc), type(false, no-task)]))
@@ -458,7 +458,7 @@ program(
 			body: record([field(any-tasks, false, type(false, bool)), field(first-task-time, false, type(false, opt))]))
 		struct(name: pop-task-result, body: union([type(false, task), type(false, no-task)]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, timespec)]))
-		struct(name: cell, mut: true, ptr: true, body: record([field(subscript, true, type(false, mut-ptr))]))
+		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, true, type(false, mut-ptr))]))
 		struct(
 			name: my-record
 			body: record([field(x, false, type(false, nat64)), field(y, false, type(false, nat64))]))]
@@ -5649,7 +5649,7 @@ program(
 							call(==, [local-ref(err), 0])
 							let(
 								time
-								call(subscript, [call(ref-of-val, [local-ref(time-cell)])])
+								call(*, [call(ref-of-val, [local-ref(time-cell)])])
 								call(
 									unsafe-to-nat64
 									[
@@ -5660,7 +5660,7 @@ program(
 												call(tv-nsec, [local-ref(time)])])]))
 							call(todo, []))))))
 		fun(false, as, type(false, cell), none, [param(value, type(false, cell))], builtin([type(false, cell)]))
-		fun(false, cell, type(false, cell), none, [param(subscript, type(false, timespec))], new-record)
+		fun(false, cell, type(false, cell), none, [param(inner-value, type(false, timespec))], new-record)
 		fun(
 			false
 			timespec
@@ -5676,7 +5676,14 @@ program(
 			[param(clock-id, type(false, int32)), param(timespec, type(true, cell))]
 			extern(false))
 		fun(false, ref-of-val, type(true, cell), none, [param(a, type(false, cell))], builtin([type(true, cell)]))
-		fun(false, subscript, type(false, timespec), none, [param(a, type(true, cell))], field-get(0))
+		fun(
+			false
+			*
+			type(false, timespec)
+			none
+			[param(a, type(true, cell))]
+			expr-body(call(inner-value, [param-ref(a)])))
+		fun(false, inner-value, type(false, timespec), none, [param(a, type(true, cell))], field-get(0))
 		fun(
 			false
 			wrap-add
@@ -6615,14 +6622,9 @@ program(
 								void)
 							call(
 								hard-assert
-								[
-									call(
-										==
-										[
-											call(subscript, [call(ref-of-val, [local-ref(thread-return)])])
-											call(null, [])])]))))))
+								[call(==, [call(*, [call(ref-of-val, [local-ref(thread-return)])]), call(null, [])])]))))))
 		fun(false, as, type(false, cell), none, [param(value, type(false, cell))], builtin([type(false, cell)]))
-		fun(false, cell, type(false, cell), none, [param(subscript, type(false, mut-ptr))], new-record)
+		fun(false, cell, type(false, cell), none, [param(inner-value, type(false, mut-ptr))], new-record)
 		fun(
 			false
 			pthread_join
@@ -6633,7 +6635,14 @@ program(
 		fun(false, ref-of-val, type(true, cell), none, [param(a, type(false, cell))], builtin([type(true, cell)]))
 		fun(false, EINVAL, type(false, int32), none, [], expr-body(22))
 		fun(false, ESRCH, type(false, int32), none, [], expr-body(3))
-		fun(false, subscript, type(false, mut-ptr), none, [param(a, type(true, cell))], field-get(0))
+		fun(
+			false
+			*
+			type(false, mut-ptr)
+			none
+			[param(a, type(true, cell))]
+			expr-body(call(inner-value, [param-ref(a)])))
+		fun(false, inner-value, type(false, mut-ptr), none, [param(a, type(true, cell))], field-get(0))
 		fun(
 			false
 			unmanaged-free

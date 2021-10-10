@@ -1,7 +1,7 @@
 no-std
 import
 	crow/c-types: c-int
-	crow/cell: cell, subscript
+	crow/cell: *, cell
 	crow/col/arr: begin-ptr, size
 	crow/exception: finally
 	crow/fun: subscript
@@ -28,9 +28,7 @@ with-webp<a> a(path str, cb act a(webp-rgba-image)) unsafe summon
 	width = 0 cell<c-int>
 	height = 0 cell<c-int>
 	uncompressed = compressed.begin-ptr WebPDecodeRGBA compressed.size, width, height
-	uncompressed webp-rgba-image width[].to-nat64, height[].to-nat64
+	uncompressed webp-rgba-image (*width).to-nat64, (*height).to-nat64
 
 .free-webp void(a webp-rgba-image) unsafe summon
 	a.data WebPFree
-
-

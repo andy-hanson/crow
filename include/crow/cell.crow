@@ -1,5 +1,6 @@
 no-std
 import
+	./misc: void
 	./ptr: as-any-mut-ptr, as-ref, mut-ptr, ptr-cast
 
 ###
@@ -7,13 +8,20 @@ Mutable reference to a single value.
 Example:
 ```
 c = cell<nat>: 1
-c[] is 1
-c[] := c[] + 1
-c[] is 2
+*c is 1
+*c := *c + 1
+*c is 2
 ```
 ###
 cell<a> record mut
-	subscript mut a
+	# TOOD:PRIVATE
+	inner-value mut a
+
+* <a> a(a cell a) noctx
+	a inner-value
+
+set-deref<a> void(a cell a, value a) noctx
+	a.inner-value := value
 
 ###
 Treats a pointer as a cell.
@@ -27,6 +35,6 @@ as-ptr<a> a mut*(a cell a) noctx unsafe
 
 # Put `v` into the cell, and return the old value.
 swap<a> a(c cell a, v a) noctx
-	res = c[]
-	c[] := v
+	res = *c
+	*c := v
 	res

@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: !, bool, false, true
-	./cell: cell, set-subscript, subscript
+	./cell: *, cell, set-deref
 	./col/arr: arr, is-empty, size, subscript
 	./col/arr-util: find-index, index-of, tail
 	./col/dict: dict, each
@@ -36,11 +36,11 @@ parse-named-args str[]?[]?(args str[], arg-names str[])
 			assert: values[index] is-empty
 			values[index] := value.some
 		elif key == "help"
-			help[] := true
+			*help := true
 		else
 			throw: "Unexpected arg {key}"
 
-	if !help[]
+	if !*help
 		values.move-to-arr! some
 
 single-str-or-throw str(a str[]?, option-name str)

@@ -1,5 +1,5 @@
 import
-	crow/cell: cell, swap, subscript
+	crow/cell: *, cell, swap
 	crow/col/arr-util: each-with-index, exists, in
 	crow/col/mut-list: ~=, move-to-arr!, mut-list
 	crow/io/file: each-child-recursive, read-file
@@ -70,7 +70,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 		if c == "\n"
 			nl = last-nl swap index + 1
 			res ~= s.chars[nl -> index] str
-	res ~= s.chars[last-nl[] -> s.size-bytes] str
+	res ~= s.chars[*last-nl -> s.size-bytes] str
 	res move-to-arr!
 
 .max-line-length nat()

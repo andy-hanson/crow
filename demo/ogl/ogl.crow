@@ -1,5 +1,5 @@
 import
-	crow/cell: as-ptr, cell, subscript
+	crow/cell: *, as-ptr, cell
 	crow/col/mut-arr: begin-ptr, map-to-arr, mut-arr, set-subscript, size, subscript
 	crow/c-types: c-int
 	crow/io/duration: duration, msec
@@ -208,7 +208,7 @@ continue-or-quit union
 	vbo-cell = 0 cell<GLuint>
 	n-buffers = 1 to-int32
 	n-buffers glGenBuffers vbo-cell.as-ptr
-	vbo = vbo-cell[]
+	vbo = *vbo-cell
 	GL_ARRAY_BUFFER glBindBuffer vbo
 	GL_ARRAY_BUFFER glBufferData vertices.n-bytes.to-int64, vertices.begin-ptr.as-const.ptr-cast, GL_STATIC_DRAW
 	GL_ARRAY_BUFFER glBindBuffer 0
