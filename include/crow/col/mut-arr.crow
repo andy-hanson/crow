@@ -7,8 +7,8 @@ import
 	../misc: ->, arrow, drop, from, to, void
 	../opt: opt, some
 	../ptr:
-		==, <=>, +, -, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,
-		ref-of-ptr, set-subscript, size-of, subscript
+		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,
+		ref-of-ptr, set-deref, set-subscript, size-of, subscript, swap!
 	../private/alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
 	../private/exception-low-level: assert, forbid
 	../private/number-low-level: ==, <=>, nat64, wrap-mul, wrap-sub
@@ -200,9 +200,7 @@ reverse!<a> void(a mut-arr a) trusted
 	a.begin-ptr reverse-recur! a.end-ptr - 1
 .reverse-recur!<a> void(left a mut*, right a mut*) unsafe
 	if left < right
-		tmp = left[]
-		left[] := right[]
-		right[] := tmp
+		left swap! right
 		left + 1 reverse-recur! right - 1
 
 region iteration
@@ -226,7 +224,7 @@ map!<a> void(a mut-arr a, f act a(a)) trusted
 	a.begin-ptr map-recur! a.end-ptr, f
 .map-recur!<a> void(cur a mut*, end a mut*, f act a(a)) unsafe
 	if cur != end
-		cur[] := f[cur[]]
+		*cur := f[*cur]
 		cur + 1 map-recur! end, f
 
 map<out, in> mut-arr out(a mut-arr in, f act out(in)) trusted

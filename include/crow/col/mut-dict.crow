@@ -7,7 +7,7 @@ import
 	../misc: ->, arrow, as, data, from, to, void
 	../number: ==, <=>, +, -, *, nat64
 	../opt: ==, force, is-empty, none, opt, or-default, size, some
-	../ptr: ==, -, mut-ptr, set-subscript, subscript
+	../ptr: ==, -, *, mut-ptr, set-deref
 	../str: ==, chars, str
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
@@ -78,7 +78,7 @@ This is O(a.size ln).
 ###
 subscript<k, v> v?(a mut-dict<k, v>, key k) trusted data<k> compare<k>
 	if ptr ?= a find-exact-ptr key
-		ptr[] to
+		*ptr to
 
 # Adds a key-value pair, replacing any existing one with that key.
 set-subscript<k, v> void(a mut-dict<k, v>, key k, value v) data<k> compare<k>
@@ -101,10 +101,10 @@ Returns true if it succeeded.
 .insert-into-key-match-or-empty-slot!<k, v> bool(a mut-dict<k, v>, key k, value v) trusted data<k> compare<k>
 	insert-ptr = a find-insert-ptr key
 	can-insert = insert-ptr != a.pairs.end-ptr
-	if can-insert && insert-ptr[].from == key
-		if insert-ptr[].to is-empty
+	if can-insert && (*insert-ptr).from == key
+		if (*insert-ptr).to is-empty
 			a.node-size := a.node-size + 1
-		insert-ptr[] := key -> value.some
+		*insert-ptr := key -> value.some
 		true
 	else
 		inserted = if next ?= a next
@@ -114,16 +114,16 @@ Returns true if it succeeded.
 
 		if inserted
 			true
-		elif can-insert && insert-ptr[].to.is-empty
-			assert: key < insert-ptr[].from
+		elif can-insert && (*insert-ptr).to.is-empty
+			assert: key < (*insert-ptr).from
 			a.node-size := a.node-size + 1
-			insert-ptr[] := key -> value.some
+			*insert-ptr := key -> value.some
 			true
-		elif can-insert && insert-ptr != a.pairs.begin-ptr && (insert-ptr - 1)[].to.is-empty
-			assert: key < insert-ptr[].from
+		elif can-insert && insert-ptr != a.pairs.begin-ptr && (*(insert-ptr - 1)).to.is-empty
+			assert: key < (*insert-ptr).from
 			# overwrite empty slot even though key doesn't match
 			a.node-size := a.node-size + 1
-			(insert-ptr - 1)[] := key -> value.some
+			*(insert-ptr - 1) := key -> value.some
 			true
 		else
 			false
@@ -193,8 +193,8 @@ remove-key!<k, v> v?(a mut-dict<k, v>, key k) trusted data<k> compare<k>
 		res = if a.pairs.end-ptr - ptr < 4
 			a.pairs remove-at! ptr to
 		else
-			old-value = ptr[] to
-			ptr[] := key -> none
+			old-value = *ptr to
+			*ptr := key -> none
 			old-value
 		if !res.is-empty
 			a.node-size := a.node-size - 1

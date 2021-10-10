@@ -7,7 +7,7 @@ import
 	../log: info, log
 	../misc: ->, void
 	../number: *
-	../ptr: ==, +, as-const, const-ptr, mut-ptr, set-subscript, subscript
+	../ptr: ==, +, *, as-const, const-ptr, mut-ptr, set-deref
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
 	../str: ==, str
 	../str-conv: interp, finish, to-str, with-str, with-value
@@ -135,7 +135,7 @@ body
 	if cur == end
 		acc
 	else
-		f[acc, cur[], coord] fold-with-coords-recur cur + 1, end, (coord next-coord width), width, f
+		f[acc, *cur, coord] fold-with-coords-recur cur + 1, end, (coord next-coord width), width, f
 
 exists<a> bool(a mut-grid a, f act bool(a))
 	a.elements exists f
@@ -149,7 +149,7 @@ map-with-coords!<a> void(a mut-grid a, f act a(a, coord)) trusted
 	if cur == end
 		void
 	else
-		cur[] := f[cur[], coord]
+		*cur := f[*cur, coord]
 		cur + 1 map-with-coords-recur! end, (coord next-coord width), width, f
 
 .next-coord coord(a coord, width nat64)

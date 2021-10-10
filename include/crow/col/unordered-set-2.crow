@@ -7,7 +7,7 @@ import
 	../hash: hash-mix
 	../misc: data, void
 	../opt: force, none, opt, or-default, some
-	../ptr: ==, <=>, +, const-ptr, mut-ptr, set-subscript, size-of, subscript
+	../ptr: ==, <=>, +, *, const-ptr, mut-ptr, set-deref, size-of
 	../str: ==, str
 	../str-conv: to-str
 	../test: is
@@ -150,7 +150,7 @@ spec
 body
 	assert: plan.compacted-size > 1
 	compacted = plan.compacted-size uninitialized-mut-arr<a>
-	compacted.begin-ptr[] := value
+	*compacted.begin-ptr := value
 	compactor = compacted.begin-ptr compactor<a> compacted.begin-ptr + 1, compacted.end-ptr
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
 	unordered-set: new-add, a.remove filter-less plan.add-size-left
@@ -185,7 +185,7 @@ body
 .push-recur!<a> void(a compactor a, cur a*, end a*, remove-index nat64, remove index-set) unsafe
 	if cur != end
 		if !remove[remove-index]
-			a.cur[] := cur[]
+			*a.cur := *cur
 			a.cur := a.cur + 1
 		a push-recur! cur + 1, end, (remove-index wrap-add 1), remove
 
@@ -215,7 +215,7 @@ fold-unordered<a, b> a(acc a, a unordered-set b, f act a(a, b)) data<b> compare<
 map-to-arr-unordered<out, in> out[](a unordered-set in, f act out(in)) trusted data<in> compare<in> hash-mix<in>
 	out = a.size uninitialized-mut-arr<out>
 	end = out.begin-ptr fold-unordered a, (cur, x) =>
-		cur[] := f[x]
+		*cur := f[x]
 		cur + 1
 	assert: end == out.end-ptr
 	out cast-immutable

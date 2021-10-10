@@ -8,9 +8,9 @@ import
 	../fun: subscript
 	../misc: drop
 	../ptr:
-		==, <=>, +, -, any-const-ptr, any-mut-ptr, as-any-const-ptr, as-any-mut-ptr, as-const,
-		as-mut, as-ref, by-val, const-ptr, mut-ptr, null, ptr-cast, ref-of-val, set-subscript,
-		size-of, subscript, to-nat64
+		==, <=>, +, -, *, any-const-ptr, any-mut-ptr, as-any-const-ptr, as-any-mut-ptr, as-const,
+		as-mut, as-ref, by-val, const-ptr, mut-ptr, null, ptr-cast, ref-of-val, set-deref,
+		set-subscript, size-of, to-nat64
 	./bootstrap:
 		as, gc-ctx-ptr, get-ctx, hard-assert, lock, nat8, nat64, none, opt, some, todo, void
 	./number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
@@ -55,8 +55,8 @@ mark-range-recur bool(marked-anything bool, cur bool mut*, end bool mut*) noctx 
 	if cur == end
 		marked-anything
 	else
-		new-marked-anything = marked-anything || !cur[]
-		cur[] := true
+		new-marked-anything = marked-anything || !*cur
+		*cur := true
 		mark-range-recur: new-marked-anything, cur + 1, end
 
 mark-visit<a> void(mark-ctx mark-ctx, value a) noctx unsafe builtin
@@ -112,7 +112,7 @@ words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) noctx unsafe
 	if cur == end
 		acc
 	else
-		acc wrap-add cur[].to-nat64 words-used-in-range cur + 1, end
+		acc wrap-add (*cur).to-nat64 words-used-in-range cur + 1, end
 
 gc by-val gc() noctx unsafe
 	# TODO: handle malloc failure
@@ -147,8 +147,8 @@ run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 # TODO: use memset
 .clear-free-mem! void(mark-ptr bool mut*, mark-end bool mut*, data-ptr nat64 mut*) noctx unsafe
 	if mark-ptr != mark-end
-		if !mark-ptr[]
-			data-ptr[] := 0xfadefadefadefade
+		if !*mark-ptr
+			*data-ptr := 0xfadefadefadefade
 		mark-ptr + 1 clear-free-mem! mark-end, data-ptr
 
 ###
@@ -195,7 +195,7 @@ get-gc gc() unsafe
 # TODO: use memset
 fill-ptr-range<a> void(cur a mut*, end a mut*, value a) noctx unsafe
 	if cur != end
-		cur[] := value
+		*cur := value
 		cur + 1 fill-ptr-range end, value
 
 validate-gc void(gc gc) noctx unsafe
@@ -242,7 +242,7 @@ validate-gc void(gc gc) noctx unsafe
 range-free bool(mark bool mut*, end bool mut*) noctx unsafe
 	if mark == end
 		true
-	elif mark[]
+	elif *mark
 		false
 	else
 		mark + 1 range-free end

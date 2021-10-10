@@ -8,7 +8,7 @@ import
 	./misc: drop, void
 	./number: ==, <=>, +, *, **, float64, int64, nat64, to-float64, to-int64
 	./opt: is-empty, none, opt, some
-	./ptr: ==, <=>, +, -, const-ptr, subscript
+	./ptr: ==, <=>, +, -, *, const-ptr
 	./str: ==, char, chars, size-bytes, str
 	./test: is
 	./private/exception-low-level: assert, forbid
@@ -33,11 +33,11 @@ is-empty bool(a reader) trusted
 
 peek char(a reader) trusted
 	forbid: a is-empty
-	a.cur[]
+	*a.cur
 
 next! char(a reader) trusted
 	forbid: a is-empty
-	res = a.cur[]
+	res = *a.cur
 	a.cur := a.cur + 1
 	res
 

@@ -7,7 +7,7 @@ import
 	./compare: comparison
 	./misc: drop
 	./opt: opt, some
-	./ptr: ==, as-const, by-val, ptr-cast, ref-of-ptr, ref-of-val, set-subscript
+	./ptr: ==, as-const, by-val, ptr-cast, ref-of-ptr, ref-of-val, set-deref, set-subscript
 	./str: ==, <=>, char, chars, c-str, str
 	./str-util: to-str
 	./private/alloc: unmanaged-alloc-elements, unmanaged-alloc-uninitialized
@@ -46,7 +46,7 @@ str-to-sym sym(a str) trusted
 	else
 		sym = a.to-malloced-c-str sym
 		node-ptr = unmanaged-alloc-uninitialized<by-val dynamic-sym-node>
-		node-ptr[] := sym dynamic-sym-node gctx.dynamic-syms
+		*node-ptr := sym dynamic-sym-node gctx.dynamic-syms
 		gctx.dynamic-syms := node-ptr.ref-of-ptr some
 		sym
 

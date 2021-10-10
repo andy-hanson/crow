@@ -5,7 +5,7 @@ import
 	../exception: assert
 	../misc: ->, arrow, data, from, to, void
 	../opt: force, is-empty, none, opt, some
-	../ptr: +, -, mut-ptr, set-subscript
+	../ptr: +, -, mut-ptr, set-deref
 	../str: ==, str
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
@@ -93,11 +93,11 @@ body
 		mid = if index < a.buckets.size
 			a.buckets[index] sort-by! it => it from
 			out fold-reverse a.buckets[index], (cur, x) =>
-				cur[] := x
+				*cur := x
 				cur + 1
 		else
 			out
-		mid[] := a.mins[index]
+		*mid := a.mins[index]
 		mid + 1 spread-all-buckets-recur!: a, index wrap-add 1
 
 .add-to-bucket!<k, v> void(buckets mut-list mut-list arrow<k, v>, index nat64, pair arrow<k, v>)

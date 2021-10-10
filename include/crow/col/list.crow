@@ -6,7 +6,7 @@ import
 	../fun: subscript
 	../misc: ->, as, drop, void
 	../opt: ==, is-empty, none, opt, some
-	../ptr: ==, +, -, const-ptr, mut-ptr, set-subscript, subscript
+	../ptr: ==, +, -, *, const-ptr, mut-ptr, set-deref, set-subscript
 	../str: ==, str
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
@@ -290,8 +290,8 @@ filter<a> list a(a list a, f act bool(a)) trusted
 	if cur == end
 		out
 	else
-		new-out = if f[cur[]]
-			out[] := cur[]
+		new-out = if f[*cur]
+			*out := *cur
 			out + 1
 		else
 			out

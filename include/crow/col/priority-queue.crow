@@ -6,7 +6,7 @@ import
 	../fun: subscript
 	../misc: ->, arrow, as, data, from, to, void
 	../opt: force, is-empty, none, opt, some
-	../ptr: ==, +, -, mut-ptr, set-subscript
+	../ptr: ==, +, -, mut-ptr, set-deref
 	../str: ==, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test: is
@@ -188,16 +188,16 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 			out compact-singles! next
 		else
 			out
-		pos[] := a.min
+		*pos := a.min
 		pos + 1
 	else
 		out
 
 .compact-non-singles!<k, v> arrow<k, v> mut*(out arrow<k, v> mut*, a node<k, v>?) unsafe
 	if node ?= a
-		out[] := node min
+		*out := node min
 		out2 = out + 1 fold node.pairs, (cur, x) =>
-			cur[] := x
+			*cur := x
 			cur + 1
 		out2 compact-non-singles! node.next
 	else
@@ -255,7 +255,7 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) data<k> compare
 
 .fill-each-arr!<k, v> each-part<k, v> mut*(out each-part<k, v> mut*, a node<k, v>?) unsafe
 	if node ?= a
-		out[] := each-part: node.min, node.pairs
+		*out := node.min each-part node.pairs
 		out + 1 fill-each-arr! node.next
 	else
 		out
@@ -276,6 +276,7 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) data<k> compare
 
 .swap-sorted!<k, v> void(a mut-arr each-part<k, v>) compare<k>
 	if a.size > 1 && a[0].min.from > a[1].min.from
+		# TODO: use a swap! function
 		temp = a[0]
 		a[0] := a[1]
 		a[1] := temp
@@ -285,7 +286,7 @@ filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trus
 	out = a.size uninitialized-mut-arr<arrow<k, v>>
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		if f[k, v]
-			cur[] := k -> v
+			*cur := k -> v
 			cur + 1
 		else
 			cur
@@ -305,7 +306,7 @@ body
 map-to-arr<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) data<k> compare<k> trusted
 	out = a.size uninitialized-mut-arr<out>
 	end = out.begin-ptr fold a, (cur, k, v) =>
-		cur[] := f[k, v]
+		*cur := f[k, v]
 		cur + 1
 	assert: end == out.end-ptr
 	arr = out.cast-immutable

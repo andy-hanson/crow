@@ -76,6 +76,7 @@ import util.sym :
 	shortSymAlphaLiteral,
 	shortSymAlphaLiteralValue,
 	Sym,
+	symEq,
 	symForOperator;
 import util.util : max, todo, unreachable, verify;
 
@@ -345,10 +346,14 @@ immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
 						case CallAst.Style.subscript:
 							return CallAst.Style.setSubscript;
 						case CallAst.Style.prefixOperator:
-							// This is `-x = foo`. Have a diagnostic for this.
-							return todo!(immutable CallAst.Style)("!");
+							if (symEq(beforeCall.funName.name, symForOperator(Operator.times)))
+								return CallAst.Style.setDeref;
+							else
+								// This is `~x := foo` or `-x := foo`. Have a diagnostic for this.
+								return todo!(immutable CallAst.Style)("!");
 						case CallAst.Style.infix:
 						case CallAst.Style.prefix:
+						case CallAst.Style.setDeref:
 						case CallAst.Style.setDot:
 						case CallAst.Style.setSingle:
 						case CallAst.Style.setSubscript:
@@ -367,12 +372,16 @@ immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
 					CallAst.Style.setSingle);
 			}
 		}();
+		// TODO: range is wrong..
 		immutable ExprAst call = immutable ExprAst(
 			range(lexer, start),
 			immutable ExprAstKind(immutable CallAst(
 				fromBefore.style,
-				// TODO: range is wrong..
-				immutable NameAndRange(before.range.start, prependSet(lexer.allSymbols, fromBefore.name)),
+				immutable NameAndRange(
+					before.range.start,
+					fromBefore.style == CallAst.Style.setDeref
+						? shortSymAlphaLiteral("set-deref")
+						: prependSet(lexer.allSymbols, fromBefore.name)),
 				fromBefore.typeArgs,
 				append(alloc, fromBefore.args, init))));
 		return immutable ExprAndDedent(call, initAndDedent.dedents);
@@ -877,6 +886,8 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			return handlePrefixOperator(alloc, lexer, allowedBlock, start, Operator.not);
 		case '~':
 			return handlePrefixOperator(alloc, lexer, allowedBlock, start, Operator.tilde);
+		case '*':
+			return handlePrefixOperator(alloc, lexer, allowedBlock, start, Operator.times);
 		default:
 			if (isAlphaIdentifierStart(c)) {
 				immutable string nameStr = takeNameRest(lexer, begin);

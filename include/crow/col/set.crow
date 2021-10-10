@@ -7,7 +7,7 @@ import
 	../log: info, log
 	../misc: ->, data, void
 	../opt: force, none, opt, or-default, some
-	../ptr: ==, <=>, +, -, as-const, deep-size-bytes, const-ptr, mut-ptr, set-subscript, size-of, subscript
+	../ptr: ==, <=>, +, -, *, as-const, deep-size-bytes, const-ptr, mut-ptr, set-deref, size-of
 	../str: ==, <=>, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test: is
@@ -199,7 +199,7 @@ Or a combination of the two.
 .add-and-compact<a> set a(a set a, add-size nat64, plan compact-plan, value a) unsafe compare<a>
 	assert: plan.compacted-size > 1
 	compacted = plan.compacted-size uninitialized-mut-arr<a>
-	compacted.begin-ptr[] := value
+	*compacted.begin-ptr := value
 	compactor = compacted.begin-ptr.as-const compactor<a> compacted.begin-ptr + 1, compacted.end-ptr.as-const
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
 	set: new-add, a.remove filter-less plan.add-size-left
@@ -271,12 +271,12 @@ body
 	forbid: b-read < b-begin
 	forbid: a-write.as-const < a-begin
 	# merging from right, so take the greater value
-	match a-read[] <=> b-read[]
+	match *a-read <=> *b-read
 	as less
 		new-a-write = if b-remove[b-remove-index]
 			a-write
 		else
-			a-write[] := b-read[]
+			*a-write := *b-read
 			a-write - 1
 		if b-read != b-begin
 			a-begin merge-recur! a-read, new-a-write, b-begin, b-read - 1, (b-remove-index wrap-sub 1), b-remove
@@ -285,7 +285,7 @@ body
 		# We shouldn't store the same value twice.
 		unreachable
 	as greater
-		a-write[] := a-read[]
+		*a-write := *a-read
 		if a-read == a-begin
 			a-write - 1 copy-from-b-recur! b-begin, b-read, b-remove-index, b-remove
 		else
@@ -303,7 +303,7 @@ body
 	new-a-write = if b-remove[b-remove-index]
 		a-write
 	else
-		a-write[] := b-read[]
+		*a-write := *b-read
 		a-write - 1
 	if b-read != b-begin
 		new-a-write copy-from-b-recur! b-begin, b-read - 1, (b-remove-index wrap-sub 1), b-remove
@@ -380,7 +380,7 @@ body
 	new-out = if here is-empty
 		prev.out
 	else
-		prev.out[] := here
+		*prev.out := here
 		prev.out + 1
 	init-iters-result: (prev.next-remove-index wrap-add a.values.size), new-out
 
@@ -398,7 +398,7 @@ map<out, in> set out(a set in, f act out(in)) data<out> compare<out> data<in> co
 map-to-arr<out, in> out[](a set in, f act out(in)) trusted data<in> compare<in>
 	out = a.size uninitialized-mut-arr<out>
 	end = out.begin-ptr fold a, (cur, x) =>
-		cur[] := f[x]
+		*cur := f[x]
 		cur + 1
 	assert: end == out.end-ptr
 	out cast-immutable

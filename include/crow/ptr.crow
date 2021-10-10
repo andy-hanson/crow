@@ -7,7 +7,7 @@ import
 export
 	./private/bootstrap: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, zeroed
 
-as-const<a> a*(a a mut*) noctx unsafe builtin
+as-const<a> a*(a a mut*) noctx builtin
 as-mut<a> a mut*(a a*) noctx unsafe builtin
 
 # Null pointer.
@@ -36,37 +36,37 @@ null<a> a mut*() noctx unsafe builtin
 Get the value pointed to.
 UB if this is not a valid pointer.
 ###
-subscript<a> a(a a*) noctx unsafe
-	a.as-mut[]
-subscript<a> a(a a mut*) noctx unsafe builtin
+* <a> a(a a*) noctx unsafe
+	*a.as-mut
+* <a> a(a a mut*) noctx unsafe builtin
 ###
 Get the value pointed to at the offset.
 UB if that is not a valid pointer.
 ###
 subscript<a> a(a a*, n nat64) noctx unsafe
-	(a + n)[]
+	*(a + n)
 subscript<a> a(a a mut*, n nat64) noctx unsafe
-	(a + n)[]
+	*(a + n)
 ###
 Set the value pointed to.
 UB if this is not a valid pointer.
 ###
-set-subscript<a> void(a a mut*, value a) noctx unsafe builtin
+set-deref<a> void(a a mut*, value a) noctx unsafe builtin
 ###
 Set the value pointed to at the offset.
 UB if that is not a valid pointer.
 ###
 set-subscript<a> void(a a mut*, n nat64, value a) noctx unsafe
-	(a + n)[] := value
+	*(a + n) := value
 
 ###
 Reinterpret a pointer to a ref.
 Does nothing at runtime, just changes the type.
 ###
 ref-of-ptr<a> a(p by-val<a>*) noctx unsafe
-	p[] ref-of-val
+	*p ref-of-val
 ref-of-ptr<a> a(p by-val<a> mut*) noctx unsafe
-	p[] ref-of-val
+	*p ref-of-val
 
 ###
 Take a reference to something stored by-val.
@@ -169,9 +169,9 @@ to-mut-ptr<a> a mut*(a nat64) noctx unsafe builtin
 
 # Swap the pointees. Does not change the pointer itself.
 swap!<a> void(a a mut*, b a mut*) noctx unsafe
-	temp = a[]
-	a[] := b[]
-	b[] := temp
+	temp = *a
+	*a := *b
+	*b := temp
 
 max-ptr<a> a*() noctx unsafe
 	max-ptr.as-const

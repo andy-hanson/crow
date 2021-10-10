@@ -6,7 +6,7 @@ import
 	../fun: subscript
 	../misc: ->, void
 	../opt: force, is-empty, opt, some
-	../ptr: ==, +, -, set-subscript
+	../ptr: ==, +, -, set-deref
 	../test: is
 	../private/number-low-level: ==, nat64, wrap-add
 	./arr: ==, arr, is-empty, size
@@ -32,7 +32,7 @@ queue<a> queue a(a a[])
 arr<a> a[](a queue a) trusted
 	res = a.size uninitialized-mut-arr<a>
 	end = res.begin-ptr fold a, (out, x) =>
-		out[] := x
+		*out := x
 		out + 1
 	assert: end == res.end-ptr
 	res cast-immutable
@@ -71,7 +71,7 @@ filter<a> queue a(a queue a, f act bool(a)) trusted
 	res = a.size uninitialized-mut-arr<a>
 	end = res.begin-ptr fold a, (out, x) =>
 		if f[x]
-			out[] := x
+			*out := x
 			out + 1
 		else
 			out
@@ -80,7 +80,7 @@ filter<a> queue a(a queue a, f act bool(a)) trusted
 map<out, in> queue out(a queue in, f act out(in)) trusted
 	res = a.size uninitialized-mut-arr<out>
 	end = res.begin-ptr fold a, (out, x) =>
-		out[] := f[x]
+		*out := f[x]
 		out + 1
 	assert: end == res.end-ptr
 	queue: res.cast-immutable

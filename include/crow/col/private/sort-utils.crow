@@ -6,7 +6,7 @@ import
 	../../fun: subscript
 	../../misc: void
 	../../opt: none, opt, some
-	../../ptr: ==, +, -, as-const, as-mut, const-ptr, mut-ptr, null, set-subscript, subscript
+	../../ptr: ==, +, -, *, as-const, as-mut, const-ptr, mut-ptr, null, set-deref
 	../../test: is
 	../../private/bootstrap: nat64
 	../../private/number-low-level: ==, <=>, unsafe-div, wrap-add
@@ -21,7 +21,7 @@ binary-search-has<a> bool(a a[], value a) compare<a> trusted
 
 binary-search-value<a> a?(a a[], compare act comparison(a)) trusted
 	if ptr ?= a binary-search-exact-ptr compare
-		ptr[] some
+		*ptr some
 
 binary-search-exact-index<a> nat64?(a a[], value a) trusted compare<a>
 	ptr = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
@@ -46,7 +46,7 @@ binary-search-exact-ptr<a> a*?(a a[], compare act comparison(a)) unsafe
 	ptr = a.begin-ptr binary-search-compare-recur a.end-ptr, compare
 	if ptr == a.end-ptr
 		none
-	elif compare[ptr[]] == equal
+	elif compare[*ptr] == equal
 		ptr some
 
 binary-search-insert-ptr<a> a mut*(a mut-list a, compare act comparison(a)) unsafe
@@ -79,7 +79,7 @@ test
 		left linear-search-exact-ptr-recur right, value
 	else
 		mid = left + ((right - left) unsafe-div 2)
-		match value <=> mid[]
+		match value <=> *mid
 		as less
 			left binary-search-exact-ptr-recur mid, value
 		as equal
@@ -90,7 +90,7 @@ test
 .linear-search-exact-ptr-recur<a> a*(left a*, right a*, value a) unsafe compare<a>
 	if left == right
 		null
-	elif left[] == value
+	elif *left == value
 		left
 	else
 		left + 1 linear-search-exact-ptr-recur right, value
@@ -101,7 +101,7 @@ test
 		left
 	else
 		mid = left + ((right - left) unsafe-div 2)
-		match value <=> mid[]
+		match value <=> *mid
 		as less
 			left binary-search-insert-ptr-recur mid, value
 		as equal
@@ -116,7 +116,7 @@ test
 		left
 	else
 		mid = left + ((right - left) unsafe-div 2)
-		match compare[mid[]]
+		match compare[*mid]
 		as less
 			left binary-search-compare-recur mid, compare
 		as equal
@@ -164,14 +164,14 @@ In condition: a-read, a-write, b-read are all valid pointers.
 spec
 	unsafe
 body
-	match compare[a-read[], b-read[]]
+	match compare[*a-read, *b-read]
 	as less
-		a-write[] := b-read[]
+		*a-write := *b-read
 		if b-read != b-begin
 			a-begin merge-reverse-recur! a-read, a-write - 1, b-begin, b-read - 1, compare
 		# Else -- we are done, don't need to touch 'a' any more
 	as greater
-		a-write[] := a-read[]
+		*a-write := *a-read
 		if a-read == a-begin.as-const
 			dest = a-begin mut-arr-from-begin-end a-write
 			src = b-begin arr-from-begin-end b-read + 1

@@ -7,7 +7,7 @@ import
 	../hash: hash, hash-mix
 	../misc: ->, arrow, as, data, drop, from, to, void
 	../opt: ==, none, opt, some
-	../ptr: ==, +, mut-ptr, set-subscript, subscript
+	../ptr: ==, +, *, mut-ptr, set-deref
 	../str: ==, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test: is
@@ -205,27 +205,27 @@ filter!<k, v> void(a mut-lookup<k, v>, f act bool(k, v)) trusted data<k> compare
 	a.entries.begin-ptr filter-recur! a.entries.end-ptr, f
 .filter-recur!<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act bool(k, v)) unsafe
 	if entry-ptr != entry-end
-		match entry-ptr[]
+		match *entry-ptr
 		as none
 			void
 		as arrow ar
 			if !f[ar.from, ar.to]
-				entry-ptr[] := none
+				*entry-ptr := none
 		as mut-list m
 			m filter! pair => f[pair.from, pair.to]
 			if m is-empty
-				entry-ptr[] := none
+				*entry-ptr := none
 			elif m.size == 1
 				# TODO: should not need a local
 				z = m[0]
-				entry-ptr[] := z
+				*entry-ptr := z
 		entry-ptr + 1 filter-recur! entry-end, f
 
 
 map-to-arr-unordered<out, k, v> out[](a mut-lookup<k, v>, f act out(k, v)) trusted data<k> compare<k> hash-mix<k>
 	out = a.size uninitialized-mut-arr<out>
 	end = out.begin-ptr fold-unordered a, (cur, key, value) =>
-		cur[] := f[key, value]
+		*cur := f[key, value]
 		cur + 1
 	assert: end == out.end-ptr
 	out cast-immutable
@@ -234,11 +234,11 @@ map-values!<k, v> void(a mut-lookup<k, v>, f act v(k, v)) trusted data<k> compar
 	a.entries.begin-ptr map-values-recur! a.entries.end-ptr, f
 .map-values-recur!<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act v(k, v)) unsafe
 	if entry-ptr != entry-end
-		match entry-ptr[]
+		match *entry-ptr
 		as none
 			void
 		as arrow ar
-			entry-ptr[] := ar.from -> f[ar.from, ar.to]
+			*entry-ptr := ar.from -> f[ar.from, ar.to]
 		as mut-list m
 			m map! pair => pair.from -> f[pair.from, pair.to]
 		entry-ptr + 1 map-values-recur! entry-end, f

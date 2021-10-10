@@ -5,7 +5,7 @@ import
 	../exception: assert, forbid
 	../misc: ->, void
 	../opt: ==, none, opt, some
-	../ptr: ==, <=>, +, -, as-const, mut-ptr, null, set-subscript, subscript, zeroed
+	../ptr: ==, <=>, +, -, *, as-const, mut-ptr, null, set-deref, zeroed
 	../str: ==, str
 	../str-conv: to-str
 	../test: is
@@ -65,18 +65,18 @@ push!<a> void(value a, a mut-deque a) trusted
 	if a.left == a.inner.begin-ptr
 		a.left := a.inner end-ptr
 	a.left := a.left - 1
-	a.left[] := value
+	*a.left := value
 
 # Push a value to the right.
 push!<a> void(a mut-deque a, value a) trusted
 	a ensure-capacity!
 	assert: a.right < a.inner.end-ptr
-	a.right[] := value
+	*a.right := value
 	a.right := a.right + 1
 
 first<a> a?(a mut-deque a) trusted
 	if a.left != null
-		a.left[] some
+		*a.left some
 
 last<a> a?(a mut-deque a) trusted
 	if a.right != null
@@ -84,12 +84,12 @@ last<a> a?(a mut-deque a) trusted
 			a.inner end-ptr
 		else
 			a right
-		(fixed-right - 1)[] some
+		*(fixed-right - 1) some
 
 pop-left!<a> a?(a mut-deque a) trusted
 	if a.left != null
-		res = a.left[]
-		a.left[] := zeroed
+		res = *a.left
+		*a.left := zeroed
 		a.left := a.left + 1
 		if a.left == a.inner.end-ptr
 			a.left := a.inner begin-ptr
@@ -104,8 +104,8 @@ pop-right!<a> a?(a mut-deque a) trusted
 		if a.right == a.inner.begin-ptr
 			a.right := a.inner end-ptr
 		a.right := a.right - 1
-		res = a.right[]
-		a.right[] := zeroed
+		res = *a.right
+		*a.right := zeroed
 		if a.right == a.left
 			a.left := null
 			a.right := null
@@ -150,7 +150,7 @@ pop-right!<a> a?(a mut-deque a) trusted
 			out ~= "<-R "
 		if ptr == a.left.as-const
 			out ~= "L-> "
-		out ~= ptr[] to-str
+		out ~= *ptr to-str
 		out ~= " "
 	if !a.inner.is-empty
 		out backup!

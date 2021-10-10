@@ -11,7 +11,7 @@ import
 	../misc: ->, drop, void
 	../number: deep-size-bytes, each
 	../opt: is-empty, none, opt, or-default, some
-	../ptr: ==, +, set-subscript
+	../ptr: ==, +, set-deref
 	../str: ==, str
 	../str-conv: to-hex
 	../test: is
@@ -203,7 +203,7 @@ map index-set(a index-set, f act nat64(nat64))
 map-to-arr<a> a[](a index-set, f act a(nat64)) trusted
 	res = a.size uninitialized-mut-arr<a>
 	end = res.begin-ptr fold a, (cur, x) =>
-		cur[] := f[x]
+		*cur := f[x]
 		cur + 1
 	assert: end == res.end-ptr
 	res cast-immutable

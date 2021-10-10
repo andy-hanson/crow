@@ -8,7 +8,7 @@ import
 	./compare: <=
 	./number: ==, <=>, +, -, nat8
 	./opt: none, opt, some
-	./ptr: +, subscript
+	./ptr: +, *
 	./str: ==, ~, char, chars, c-str, str, to-char, to-nat8
 	./tuple: a, b, pair
 	./private/bootstrap: hard-unreachable
@@ -33,9 +33,9 @@ Walk a c-str and return a pointer to the first occurrence of `c`.
 If that is not found, return `none`.
 ###
 find-char-in-cstr c-str?(a c-str, c char) unsafe noctx
-	if a[] == c
+	if *a == c
 		a some
-	elif a[] == "\0"
+	elif *a == "\0"
 		# Did not find the char
 		none
 	else

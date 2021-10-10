@@ -4,7 +4,7 @@ import
 	../compare: !=, <, <=, compare, comparison, equal, greater, less
 	../fun: subscript
 	../misc: arrow, from, to
-	../ptr: ==, <=>, +, -, as-const, by-val, const-ptr, ptr-cast, ref-of-ptr, size-of, subscript
+	../ptr: *, ==, <=>, +, -, as-const, by-val, const-ptr, ptr-cast, ref-of-ptr, size-of, subscript
 	../private/alloc: alloc-uninitialized, copy-data-from!
 	../private/bootstrap: hard-assert
 	../private/exception-low-level: assert
@@ -22,7 +22,7 @@ arr-equal<a> bool(a a[], b a[]) trusted noctx equal<a>
 	if a == a-end
 		b == b-end
 	else
-		b != b-end && a[] == b[] && a + 1 equal-recur a-end, b + 1, b-end
+		b != b-end && *a == *b && a + 1 equal-recur a-end, b + 1, b-end
 
 arr-equal<a> bool(a a[], b a[], eq act bool(a, a)) trusted
 	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr, eq
@@ -30,7 +30,7 @@ arr-equal<a> bool(a a[], b a[], eq act bool(a, a)) trusted
 	if a == a-end
 		b == b-end
 	else
-		b != b-end && eq[a[], b[]] && a + 1 equal-recur a-end, b + 1, b-end, eq
+		b != b-end && eq[*a, *b] && a + 1 equal-recur a-end, b + 1, b-end, eq
 
 arr-compare<a> comparison(a a[], b a[]) trusted noctx compare<a>
 	a.begin-ptr compare-recur a.end-ptr, b.begin-ptr, b.end-ptr
@@ -43,7 +43,7 @@ arr-compare<a> comparison(a a[], b a[]) trusted noctx compare<a>
 	elif b == b-end
 		greater
 	else
-		match a[] <=> b[]
+		match *a <=> *b
 		as less
 			less
 		as equal

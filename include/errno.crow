@@ -1,10 +1,10 @@
 no-std
 import
 	crow/extra-types: err-t
-	crow/ptr: mut-ptr, subscript
+	crow/ptr: *, mut-ptr
 
 errno err-t() unsafe noctx
-	__errno_location[]
+	*__errno_location
 .__errno_location err-t mut*() extern noctx unsafe
 
 ENOENT err-t() noctx

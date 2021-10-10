@@ -6,7 +6,7 @@ import
 	../fun: subscript
 	../misc: ->, as, data, drop, void
 	../opt: none, opt, some
-	../ptr: ==, <=>, +, -, const-ptr, deep-size-bytes, mut-ptr, set-subscript, size-of, subscript
+	../ptr: ==, <=>, +, -, *, const-ptr, deep-size-bytes, mut-ptr, set-deref, size-of
 	../str: ==, <=>, chars, str
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../str-util: starts-with
@@ -147,7 +147,7 @@ This is O(a.size + b.size).
 	end = out.begin-ptr fold a, (cur, value) =>
 		cur walk-iter-union! value, b-iter
 	end2 = end fold-iter b-iter, (cur, value) =>
-		cur[] := value
+		*cur := value
 		cur + 1
 	tree-set: out[0 -> end2 - out.begin-ptr] cast-immutable
 
@@ -155,18 +155,18 @@ This is O(a.size + b.size).
 	if peek ?= a peek
 		match value <=> peek
 		as less
-			out[] := value
+			*out := value
 			out + 1
 		as equal
-			out[] := value
+			*out := value
 			a.next! drop
 			out + 1
 		as greater
-			out[] := peek
+			*out := peek
 			a.next! drop
 			out + 1 walk-iter-union! value, a
 	else
-		out[] := value
+		*out := value
 		out + 1
 
 intersect<a> tree-set a(a tree-set a, b tree-set a) trusted data<a> compare<a>
@@ -353,7 +353,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 
 .add-to-arr<a> add-result a(a a[], value a, max-height nat64) trusted compare<a>
 	insert-ptr = a binary-search-insert-ptr value
-	if insert-ptr != a.end-ptr && insert-ptr[] == value
+	if insert-ptr != a.end-ptr && *insert-ptr == value
 		none
 	elif a.size < 4
 		inserted: a insert insert-ptr, value
@@ -372,7 +372,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 	if insert-ptr == mid-ptr
 		inserted: inner-node: value, a[0 -> mid-index], a[mid-index -> a.size]
 	else
-		mid = mid-ptr[]
+		mid = *mid-ptr
 		assert: mid-index < a.size
 		left-arr = a[0 -> mid-index]
 		right-arr = a[(mid-index wrap-add 1) -> a.size]
@@ -427,26 +427,26 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 		match value <=> i.value
 		as less
 			mid = out tree-to-arr-recur! i.left, value
-			mid[] := i.value
+			*mid := i.value
 			mid + 1 tree-to-arr-recur! i.right
 		as equal
 			unreachable
 		as greater
 			mid = out tree-to-arr-recur! i.left
-			mid[] := i.value
+			*mid := i.value
 			mid + 1 tree-to-arr-recur! i.right, value
 	as arr arr
 		# Find first x > value, insert it before there
 		index = (arr binary-search-insert-ptr value) - arr.begin-ptr
 		mid = out copy-out! arr[0 -> index]
-		mid[] := value
+		*mid := value
 		mid + 1 copy-out! arr[index -> arr.size]
 # Version where we know we don't have to insert value
 .tree-to-arr-recur!<a> a mut*(out a mut*, a node a) unsafe
 	match a
 	as inner-node i
 		mid = out tree-to-arr-recur! i.left
-		mid[] := i.value
+		*mid := i.value
 		mid + 1 tree-to-arr-recur! i.right
 	as arr arr
 		out copy-out! arr
@@ -454,7 +454,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 # TODO:PERF (use memcpy)
 .copy-out!<a> a mut*(out a mut*, a a[]) unsafe
 	out fold a, (cur, x) =>
-		cur[] := x
+		*cur := x
 		cur + 1
 
 # TODO:PERF
@@ -493,7 +493,7 @@ filter<a> tree-set a(a tree-set a, f act bool(a)) trusted data<a> compare<a>
 	out = a.size uninitialized-mut-arr<a>
 	end = out.begin-ptr fold a, (cur, value) =>
 		if f[value]
-			cur[] := value
+			*cur := value
 			cur + 1
 		else
 			cur
@@ -504,7 +504,7 @@ filter<a> tree-set a(a tree-set a, f act bool(a)) trusted data<a> compare<a>
 map<out, in> tree-set out(a tree-set in, f act out(in)) data<in> compare<in> data<out> compare<out> trusted
 	out = a.size uninitialized-mut-arr<out>
 	end = out.begin-ptr fold a, (cur, value) =>
-		cur[] := f[value]
+		*cur := f[value]
 		cur + 1
 	assert: end == out.end-ptr
 	tree-set: out[0 -> end - out.begin-ptr].sort-unique! cast-immutable

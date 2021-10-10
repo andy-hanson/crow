@@ -6,7 +6,7 @@ import
 	../fun: subscript
 	../misc: ->, as, void
 	../number: ==, <=>, +, -, /, nat64
-	../ptr: ==, +, -, mut-ptr, set-subscript, subscript
+	../ptr: ==, +, -, *, mut-ptr, set-deref
 	../str: ==, <=>, chars
 	../test: is
 	./arr: ==, arr, subscript
@@ -65,20 +65,20 @@ sort-by!<a, b> void(a mut-arr a, f act b(a)) compare<b>
 
 .insertion-sort-recur!<a> void(begin a mut*, cur a mut*, end a mut*, comparer act comparison(a, a)) unsafe
 	if cur != end
-		begin insert! cur, cur[], comparer
+		begin insert! cur, *cur, comparer
 		begin insertion-sort-recur! cur + 1, end, comparer
 
 .insert!<a> void(begin a mut*, cur a mut*, value a, comparer act comparison(a, a)) unsafe
 	forbid: begin == cur
 	prev = cur - 1
-	if comparer[value, prev[]] == less
-		cur[] := prev[]
+	if comparer[value, *prev] == less
+		*cur := *prev
 		if begin == prev
-			prev[] := value
+			*prev := value
 		else
 			begin insert! prev, value, comparer
 	else
-		cur[] := value
+		*cur := value
 
 # Sort a mut-list in place, remove unique elements, and return the (now shorter) mut-arr.
 sort-unique!<a> mut-arr a(a mut-arr a) compare<a>
@@ -88,7 +88,7 @@ sort-unique!<a> mut-arr a(a mut-arr a, comparer act comparison(a, a)) trusted
 		a
 	else
 		a sort! comparer
-		end = a.begin-ptr[] unique-recur! a.begin-ptr + 1, a.begin-ptr + 1, a.end-ptr, comparer
+		end = *a.begin-ptr unique-recur! a.begin-ptr + 1, a.begin-ptr + 1, a.end-ptr, comparer
 		a[0 -> end - a.begin-ptr]
 sort-unique-by!<a, b> mut-arr a(a mut-arr a, f act b(a)) compare<b>
 	a sort-unique! (x, y) => f[x] <=> f[y]
@@ -104,11 +104,11 @@ body
 	if read == end
 		write
 	else
-		here = read[]
+		here = *read
 		if comparer[here, prev] == equal
 			prev unique-recur! read + 1, write, end, comparer
 		else
-			write[] := here
+			*write := here
 			here unique-recur! read + 1, write + 1, end, comparer
 
 .swap<a> void(a mut-arr a, x nat64, y nat64)

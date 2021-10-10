@@ -8,8 +8,8 @@ import
 	../number: +, -, *, nat64
 	../opt: opt, some
 	../ptr:
-		==, +, -, as-any-const-ptr, as-any-mut-ptr, as-const, by-val, const-ptr, mut-ptr,
-		set-subscript, size-of, subscript, zeroed
+		==, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, by-val, const-ptr, mut-ptr,
+		set-deref, set-subscript, size-of, subscript, zeroed
 	../private/alloc:
 		alloc-uninitialized, copy-data-from!, set-zero-range, unmanaged-alloc-zeroed-elements
 	../private/bootstrap: hard-assert, todo
@@ -416,7 +416,7 @@ map-opt-to-mut-arr<out, in> mut-arr out(a mut-list in, f act out?(in)) trusted
 	out = a.size uninitialized-mut-arr<out>
 	end = out.begin-ptr fold a, (cur, x) =>
 		if fx ?= f[x]
-			cur[] := fx
+			*cur := fx
 			cur + 1
 		else
 			cur
@@ -436,8 +436,8 @@ filter!<a> void(a mut-list a, f act bool(a)) trusted
 	if in == end
 		out
 	else
-		new-out = if f[in[]]
-			out[] := in[]
+		new-out = if f[*in]
+			*out := *in
 			out + 1
 		else
 			out

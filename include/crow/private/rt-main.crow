@@ -14,7 +14,7 @@ import
 	../opt: none, value
 	../ptr:
 		+, any-mut-ptr, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, null, ptr-to,
-		ref-of-val, set-subscript, subscript
+		ref-of-val, set-deref, subscript
 	../str: c-str, str
 	../str-util: to-str
 	./alloc
@@ -144,7 +144,7 @@ spec
 body
 	if i != n-threads
 		thread-arg-ptr = thread-args-begin + i
-		thread-arg-ptr[] := i thread-args gctx
+		*thread-arg-ptr := i thread-args gctx
 		thread-ptr = threads + i
 		thread-ptr.as-cell create-one-thread thread-arg-ptr.as-any-mut-ptr, &thread-fun
 		i wrap-add 1 start-threads-recur n-threads, threads, thread-args-begin, gctx

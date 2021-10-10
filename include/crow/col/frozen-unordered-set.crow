@@ -6,7 +6,7 @@ import
 	../hash: hash, hash-mix
 	../misc: data, void
 	../opt: is-empty, opt, some
-	../ptr: ==, <=>, +, -, const-ptr, mut-ptr, set-subscript, size-of, subscript, swap!
+	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, size-of, swap!
 	../test: is
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	./arr: ==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, unsafe-at
@@ -103,7 +103,7 @@ spec
 	hash-mix<a>
 body
 	if value-ptr != value-end
-		bucket-index = value-ptr[] get-bucket-index bucket-counts.size
+		bucket-index = *value-ptr get-bucket-index bucket-counts.size
 		bucket-count = bucket-counts unsafe-at bucket-index
 		bucket-start = bucket-starts unsafe-at bucket-index
 		bucket-cur-end = bucket-start + bucket-count
@@ -133,9 +133,9 @@ body
 spec
 	unsafe
 body
-	out[] := acc
+	*out := acc
 	if out + 1 != out-end
-		acc + read[] running-sum-recur! out + 1, out-end, read + 1
+		acc + *read running-sum-recur! out + 1, out-end, read + 1
 
 region iteration
 

@@ -7,7 +7,7 @@ import
 	../misc: ->, arrow, as, data, from, to, void
 	../number: ==, <=>, +, -, is-even, nat64
 	../opt: ==, is-empty, none, opt, opt-or, or-default, some
-	../ptr: ==, <=>, +, -, const-ptr, mut-ptr, set-subscript, subscript
+	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
 	../str: ==, chars, is-empty, size-bytes, str
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../test: is
@@ -74,7 +74,7 @@ arr<k, v> arrow<k, v>[](a dict<k, v>) data<k> compare<k> trusted
 	as overlay
 		out = a.size uninitialized-mut-arr<arrow<k, v>>
 		end = out.begin-ptr fold a, (cur, k, v) =>
-			cur[] := k -> v
+			*cur := k -> v
 			cur + 1
 		assert: end == out.end-ptr
 		out cast-immutable
@@ -162,15 +162,15 @@ spec
 body
 	assert: l < l-end
 	assert: r < r-end
-	match compare[l[], r[]]
+	match compare[*l, *r]
 	as less
-		out[] := l[]
+		*out := *l
 		if l + 1 == l-end
 			out + 1 finish-rest r, r-end
 		else
 			out + 1 merge-keep-right l + 1, l-end, r, r-end, compare
 	as equal
-		out[] := r[]
+		*out := *r
 		if l + 1 == l-end
 			out + 1 finish-rest r + 1, r-end
 		elif r + 1 == r-end
@@ -178,7 +178,7 @@ body
 		else
 			out + 1 merge-keep-right l + 1, l-end, r + 1, r-end, compare
 	as greater
-		out[] := r[]
+		*out := *r
 		if r + 1 == r-end
 			out + 1 finish-rest l, l-end
 		else
@@ -205,16 +205,16 @@ spec
 body
 	assert: l < l-end
 	assert: r < r-end
-	match l[].from <=> r[].from
+	match (*l).from <=> (*r).from
 	as less
-		out[] := l[]
+		*out := *l
 		if l + 1 == l-end
 			out + 1 finish-rest-ignore-none r, r-end
 		else
 			out + 1 merge-to-end-recur l + 1, l-end, r, r-end
 	as equal
-		new-out = if r-value ?= r[] to
-			out[] := r[].from -> r-value
+		new-out = if r-value ?= *r to
+			*out := (*r).from -> r-value
 			out + 1
 		else
 			out
@@ -226,8 +226,8 @@ body
 		else
 			new-out merge-to-end-recur l + 1, l-end, r + 1, r-end
 	as greater
-		new-out = if r-value ?= r[] to
-			out[] := r[].from -> r-value
+		new-out = if r-value ?= *r to
+			*out := (*r).from -> r-value
 			out + 1
 		else
 			out
@@ -253,8 +253,8 @@ body
 	if r == r-end
 		out
 	else
-		new-out = if r-value ?= r[] to
-			out[] := r[].from -> r-value
+		new-out = if r-value ?= *r to
+			*out := (*r).from -> r-value
 			out + 1
 		else
 			out
@@ -371,7 +371,7 @@ body
 .init-overlay-iters-recur!<k, v> arrow<k, v>[](out arrow<k, v?>[] mut*, a dict-impl<k, v>) unsafe
 	match a
 	as overlay o
-		out[] := o.pairs
+		*out := o.pairs
 		out + 1 init-overlay-iters-recur! o.prev
 	as end-node e
 		e pairs

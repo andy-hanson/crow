@@ -3,7 +3,9 @@ import
 	sys/execinfo: backtrace
 	../compare: <, <=, >
 	../misc: name, named-val, val
-	../ptr: +, ==, <=>, any-const-ptr, as-const, const-ptr, mut-ptr, set-subscript, subscript
+	../ptr:
+		==, <=>, +, *, any-const-ptr, as-const, const-ptr, mut-ptr, set-deref, set-subscript,
+		subscript
 	./alloc: copy-data-from!, try-alloc-uninitialized
 	./bootstrap: arr, as, begin-ptr, hard-assert, nat64, opt, size, some, sym, void
 	./number-low-level:
@@ -34,7 +36,7 @@ spec
 	unsafe
 body
 	if code-names < end-code-names
-		code-names[] := code-ptrs[] get-fun-name funs, all-funs.size
+		*code-names := *code-ptrs get-fun-name funs, all-funs.size
 		code-names + 1 fill-code-names! end-code-names, code-ptrs + 1, funs
 
 .code-ptrs-size nat64()
@@ -57,7 +59,7 @@ body
 	if size < 2
 		'<<UNKNOWN>>'
 	elif code-ptr < funs[1].val
-		funs[].name
+		(*funs).name
 	else
 		code-ptr get-fun-name: funs + 1, size wrap-sub 1
 
@@ -65,7 +67,7 @@ body
 .sort! void(a named-val<any-const-ptr> mut*, size nat64) noctx unsafe
 	if size > 1
 		a swap!: 0, size unsafe-div 2
-		after-pivot = a partition! a[].val, 1, (size wrap-sub 1)
+		after-pivot = a partition! (*a).val, 1, (size wrap-sub 1)
 		new-pivot-index = after-pivot wrap-sub 1
 		a swap! 0, new-pivot-index
 		a sort! new-pivot-index

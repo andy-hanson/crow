@@ -5,7 +5,7 @@ import
 	../fun: subscript
 	../misc: ->, void
 	../opt: force, is-empty, opt, some
-	../ptr: ==, +, -, set-subscript
+	../ptr: ==, +, -, set-deref
 	../str: ==, str
 	../str-conv: to-str
 	../test: is
@@ -39,7 +39,7 @@ deque<a> deque a(a a[])
 arr<a> a[](a deque a) trusted
 	res = a.size uninitialized-mut-arr<a>
 	end = res.begin-ptr fold a, (out, x) =>
-		out[] := x
+		*out := x
 		out + 1
 	assert: end == res.end-ptr
 	res cast-immutable
@@ -94,7 +94,7 @@ filter<a> deque a(a deque a, f act bool(a)) trusted
 	res = a.size uninitialized-mut-arr<a>
 	end = res.begin-ptr fold a, (out, x) =>
 		if f[x]
-			out[] := x
+			*out := x
 			out + 1
 		else
 			out
@@ -103,7 +103,7 @@ filter<a> deque a(a deque a, f act bool(a)) trusted
 map<out, in> deque out(a deque in, f act out(in)) trusted
 	res = a.size uninitialized-mut-arr<out>
 	end = res.begin-ptr fold a, (out, x) =>
-		out[] := f[x]
+		*out := f[x]
 		out + 1
 	assert: end == res.end-ptr
 	deque: res.cast-immutable

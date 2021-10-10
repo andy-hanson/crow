@@ -4,6 +4,6 @@ uncaught exception: FOO
 	at bar
 	at foo
 	at main
-	at subscript
+	at *
 	at call-with-ctx
 	at subscript

@@ -168,7 +168,9 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialBinary.Kind.subPtrNat
 				: failBinary());
 		case operatorSymValue(Operator.times):
-			return binary(isFloat64(rt) ? LowExprKind.SpecialBinary.Kind.mulFloat64 : failBinary());
+			return isPtrRawMut(p0)
+				? unary(LowExprKind.SpecialUnary.Kind.deref)
+				: binary(isFloat64(rt) ? LowExprKind.SpecialBinary.Kind.mulFloat64 : failBinary());
 		case operatorSymValue(Operator.equal):
 			return binary(
 				isNat8(p0) ? LowExprKind.SpecialBinary.Kind.eqNat8 :
@@ -293,13 +295,13 @@ immutable(BuiltinKind) getBuiltinKind(
 			return unary(LowExprKind.SpecialUnary.Kind.ptrTo);
 		case shortSymAlphaLiteralValue("ref-of-val"):
 			return unary(LowExprKind.SpecialUnary.Kind.refOfVal);
+		case shortSymAlphaLiteralValue("set-deref"):
+			return binary(isPtrRawMut(p0) ? LowExprKind.SpecialBinary.Kind.writeToPtr : failBinary());
 		case shortSymAlphaLiteralValue("size-of"):
 			return immutable BuiltinKind(immutable BuiltinKind.SizeOf());
 		case shortSymAlphaLiteralValue("subscript"):
 			return isFunPtrType(p0)
 				? nAry(LowExprKind.SpecialNAry.Kind.callFunPtr)
-				: isPtrRawMut(p0)
-				? unary(LowExprKind.SpecialUnary.Kind.deref)
 				: fail();
 		case shortSymAlphaLiteralValue("static-syms"):
 			return immutable BuiltinKind(immutable BuiltinKind.StaticSyms());
@@ -411,8 +413,6 @@ immutable(BuiltinKind) getBuiltinKind(
 			else if (symEqLongAlphaLiteral(name, "ptr-cast-from-extern")
 				|| symEqLongAlphaLiteral(name, "ptr-cast-to-extern"))
 				return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
-			else if (symEqLongAlphaLiteral(name, "set-subscript"))
-				return isPtrRawMut(p0) ? binary(LowExprKind.SpecialBinary.Kind.writeToPtr) : fail();
 			else if (symEqLongAlphaLiteral(name, "truncate-to-int64"))
 				return unary(isFloat64(p0)
 					? LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64

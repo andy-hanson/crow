@@ -7,7 +7,7 @@ import
 	../number: +, -, nat64
 	../opt: is-empty, none, opt, some
 	../ptr:
-		==, +, -, as-const, const-ptr, deep-size-bytes, mut-ptr, set-subscript, size-of, subscript
+		==, +, -, *, as-const, const-ptr, deep-size-bytes, mut-ptr, set-deref, size-of
 	../test: is
 	../tuple: pair
 	../private/alloc: alloc-uninitialized, fill-ptr-range
@@ -57,7 +57,7 @@ each<a> void(a a[], f act void(a)) trusted
 	a.begin-ptr each-recur a.end-ptr, f
 .each-recur<a> void(cur a*, end a*, f act void(a)) unsafe
 	if cur != end
-		f[cur[]]
+		f[*cur]
 		cur + 1 each-recur end, f
 
 ###
@@ -101,8 +101,8 @@ body
 	if cur == end
 		out
 	else
-		new-out = if f[cur[], index]
-			out[] := cur[]
+		new-out = if f[*cur, index]
+			*out := *cur
 			out + 1
 		else
 			out
@@ -265,7 +265,7 @@ fold<a, b> a(acc a, a b[], f act a(a, b)) trusted
 	if cur == end
 		acc
 	else
-		f[acc, cur[]] fold-recur cur + 1, end, f
+		f[acc, *cur] fold-recur cur + 1, end, f
 
 fold-with-index<a, b> a(acc a, a b[], f act a(a, b, nat64)) trusted
 	acc fold-with-index-recur 0, a.begin-ptr, a.end-ptr, f
@@ -273,7 +273,7 @@ fold-with-index<a, b> a(acc a, a b[], f act a(a, b, nat64)) trusted
 	if cur == end
 		acc
 	else
-		f[acc, cur[], index] fold-with-index-recur index + 1, cur + 1, end, f
+		f[acc, *cur, index] fold-with-index-recur index + 1, cur + 1, end, f
 
 fold-reverse<a, b> a(acc a, a b[], f act a(a, b)) trusted
 	acc fold-reverse-recur a.begin-ptr, a.end-ptr, f
@@ -282,7 +282,7 @@ fold-reverse<a, b> a(acc a, a b[], f act a(a, b)) trusted
 		acc
 	else
 		prev = cur - 1
-		f[acc, prev[]] fold-reverse-recur begin, prev, f
+		f[acc, *prev] fold-reverse-recur begin, prev, f
 
 # TODO: equal<a[]> should be unnecessary
 # Finds the first index where `a[i -> i + subseq.size] == subseq`.
@@ -343,7 +343,7 @@ ptr-of<a> a*?(a a[], value a) unsafe equal<a>
 .ptr-of-recur<a> a*?(cur a*, end a*, value a) unsafe equal<a>
 	if cur == end
 		none
-	elif cur[] == value
+	elif *cur == value
 		cur some
 	else
 		cur + 1 ptr-of-recur end, value
@@ -397,11 +397,11 @@ split-by-subseq<a> a[][](a a[], splitter a[]) equal<a> equal<a[]> trusted
 # TODO: equal<a[]> should be unnecessary
 .split-by-subseq-recur<a> void(out a[] mut*, a a[], splitter a[]) equal<a> equal<a[]> unsafe
 	if index ?= a index-of-subseq splitter
-		out[] := a[0 -> index]
+		*out := a[0 -> index]
 		rest = a[index + splitter.size -> a.size]
 		out + 1 split-by-subseq-recur rest, splitter
 	else
-		out[] := a
+		*out := a
 
 # TODO: equal<a[]> should be unnecessary
 # Returns the number of indices for which `a[i -> i + subseq.size] == subseq`.

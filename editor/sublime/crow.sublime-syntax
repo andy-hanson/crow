@@ -279,7 +279,7 @@ contexts:
       pop: true
 
     # '!' in '!x' or '-' in '-x' or '~' in '~x'
-    - match: '\!|-|~'
+    - match: '\!|-|~|\*'
       scope: variable.function.crow
     # Lambda () =>
     - match: '\(\) =>'
