@@ -16,6 +16,9 @@ import
 	./number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
 	./thread-utils: acquire!, lock-by-val, release!
 
+mem-copy!<a> void(dest a mut*, src a*, size nat64) unsafe noctx
+	drop: dest.as-any-mut-ptr memcpy src.as-any-const-ptr, (size wrap-mul size-of<a>)
+
 set-zero-range<a> void(begin a mut*, size nat64) noctx unsafe
 	# TODO: wrap-mul is unsafe
 	drop: begin.as-any-mut-ptr memset: 0, size wrap-mul size-of<a>
@@ -119,6 +122,8 @@ gc by-val gc() noctx unsafe
 	# 3 * 2**24 words = 3 * 2**27 bytes = 3 * 2**8 MB = 1.5 GB
 	# If changing this, be sure `globalBuffer` in `wasm.d` is big enough
 	size-words = 0x3000000
+	# 8 GB
+	#size-words = 0x40000000
 	mark = ptr-cast<bool, nat8>: malloc: size-words
 	mark-end = mark + size-words
 	data = ptr-cast<nat64, nat8>: malloc: size-words wrap-mul size-of<nat64>

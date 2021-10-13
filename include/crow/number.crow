@@ -8,7 +8,6 @@ import
 	./private/number-low-level:
 		unsafe-div, unsafe-to-int64, unsafe-to-int8, unsafe-to-int16, unsafe-to-int32,
 		unsafe-to-nat64, unsafe-to-nat32, unsafe-mod, wrap-add, wrap-mul, wrap-sub
-	./ptr: size-of
 	./private/exception-low-level: assert, forbid
 export
 	./private/number-low-level:
@@ -22,9 +21,6 @@ nat alias
 	nat64
 float alias
 	float64
-
-deep-size-bytes nat64(a nat64) unsafe
-	a size-of
 
 region conversion
 

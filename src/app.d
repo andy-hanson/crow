@@ -377,6 +377,7 @@ immutable(string[]) cCompilerArgs(ref immutable CCompileOptions options) {
 		"-Wall",
 		"-ansi",
 		"-std=c11",
+		"-Wno-maybe-uninitialized",
 		"-Wno-unused-parameter",
 		"-Wno-unused-but-set-variable",
 		"-Wno-unused-variable",

@@ -6,8 +6,8 @@ import
 	./private/bootstrap:
 		int8, int16, int32, int64, nat8, nat16, nat32, nat64, todo
 	./private/number-low-level:
-		==, <=>, to-int64, to-nat64, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat8, unsafe-to-nat64,
-		unsafe-to-nat16, unsafe-to-nat32, wrap-add, wrap-mul
+		==, <=>, to-int64, to-nat64, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat8,
+		unsafe-to-nat64, unsafe-to-nat16, unsafe-to-nat32, wrap-add, wrap-mul, wrap-sub
 
 ###
 Negates each bit in parallel.
@@ -168,3 +168,17 @@ filter-bits nat64(a nat64, f act bool(nat64))
 
 bits-cat nat64(a nat32, b nat32)
 	a.to-nat64 << 32 | b.to-nat64
+
+high-n-bits nat64(n nat64)
+	if n < 64
+		~(64 wrap-sub n).low-n-bits
+	else
+		# TODO: warn if n > 64
+		0xffffffffffffffff
+
+low-n-bits nat64(n nat64)
+	if n < 64
+		(1 << n) wrap-sub 1
+	else
+		# TODO: warn if n > 64
+		0xffffffffffffffff

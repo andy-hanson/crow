@@ -6,7 +6,7 @@ import
 	../fun: subscript
 	../hash: hash, hash-mix
 	../misc: ->, arrow, as, data, drop, from, to, void
-	../opt: ==, none, opt, some
+	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, *, mut-ptr, set-deref
 	../str: ==, str
 	../str-conv: finish, interp, to-str, with-str, with-value
@@ -91,8 +91,11 @@ subscript<k, v> v?(a mut-lookup<k, v>, key k) trusted data<k> compare<k> hash-mi
 			if index ?= m find-index pair => pair.from == key
 				m[index].to some
 
+in<k, v> bool(key k, a mut-lookup<k, v>) data<k> compare<k> hash-mix<k>
+	!a[key].is-empty
+
 set-subscript<k, v> void(a mut-lookup<k, v>, key k, value v) data<k> compare<k> hash-mix<k>
-	drop: a update! key, ignore => value some
+	drop: a update! key, value.some
 
 clear!<k, v> void(a mut-lookup<k, v>) data<k> compare<k> hash-mix<k>
 	a.entries fill! none
@@ -107,15 +110,15 @@ swap!<k, v> void(a mut-lookup<k, v>, b mut-lookup<k, v>) data<k> compare<k> hash
 	b.total-size := temp-size
 
 remove-key!<k, v> v?(a mut-lookup<k, v>, key k) data<k> compare<k> hash-mix<k>
-	a update! key, ignore => none
+	a update! key, none
 
 ###
 f: Takes the value (if it exists), returns the new value (or none to remove).
 Returns the old value (if it exists).
 ###
-.update!<k, v> v?(a mut-lookup<k, v>, key k, f act v?(v?)) trusted data<k> compare<k> hash-mix<k>
+.update!<k, v> v?(a mut-lookup<k, v>, key k, new-value v?) trusted data<k> compare<k> hash-mix<k>
 	if a.entries is-empty
-		if value ?= f[none]
+		if value ?= new-value
 			a.entries := mut-arr: [key -> value]
 			a.total-size := 1
 		none
@@ -123,20 +126,20 @@ Returns the old value (if it exists).
 		entry-index = key.hash unsafe-mod a.entries.size
 		match a.entries[entry-index]
 		as none
-			if value ?= f[none]
+			if value ?= new-value
 				a.entries[entry-index] := key -> value
 				a.total-size := a.total-size wrap-add 1
 			none
 		as arrow ar
 			if ar.from == key
-				a.entries[entry-index] := if value ?= f[ar.to some]
+				a.entries[entry-index] := if value ?= new-value
 					key -> value
 				else
 					a.total-size := a.total-size wrap-sub 1
 					none
 				ar.to some
 			else
-				if value ?= f[none]
+				if value ?= new-value
 					if a should-expand
 						a expand!
 						a[key] := value
@@ -147,7 +150,7 @@ Returns the old value (if it exists).
 		as mut-list m
 			if index ?= m find-index pair => pair.from == key
 				old-value = m[index] to
-				if value ?= f[old-value some]
+				if value ?= new-value
 					m[index] := key -> value
 				else
 					drop: m remove-unordered-at! index
@@ -160,7 +163,7 @@ Returns the old value (if it exists).
 					a.total-size := a.total-size wrap-sub 1
 				old-value some
 			else
-				if value ?= f[none]
+				if value ?= new-value
 					if m.is-at-capacity && a.should-expand
 						a expand!
 						a[key] := value
@@ -169,9 +172,12 @@ Returns the old value (if it exists).
 						a.total-size := a.total-size wrap-add 1
 				none
 
+~= <k, v> void(a mut-lookup<k, v>, b arrow<k, v>) data<k> compare<k> hash-mix<k>
+	a[b from] := b to
+
 ~= <k, v> void(a mut-lookup<k, v>, b arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	b each pair =>
-		a[pair from] := pair to
+		a ~= pair
 
 # Called when we're about to allocate a bigger bucket -- maybe we should expand the table instead
 .should-expand<k, v> bool(a mut-lookup<k, v>)

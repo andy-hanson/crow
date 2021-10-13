@@ -130,13 +130,6 @@ For a reference type, this is the size of a pointer.
 ###
 size-of<a> nat64() noctx unsafe builtin
 
-# Sometimes this is more convenient than writing the type
-size-of<a> nat64(_ a) noctx unsafe
-	size-of<a>
-
-deep-size-bytes<a> spec
-	deep-size-bytes nat64(a a)
-
 # TODO: require that out be an extern-ptr type
 ###
 Convert a pointer to an `extern-ptr` type.

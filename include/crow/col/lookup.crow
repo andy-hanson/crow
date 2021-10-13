@@ -131,6 +131,9 @@ subscript<k, v> v?(a lookup<k, v>, key k) data<k> compare<k> hash-mix<k>
 	else
 		a.tail subscript-leaf-recur key
 
+in<k, v> bool(key k, a lookup<k, v>) data<k> compare<k> hash-mix<k>
+	!a[key].is-empty
+
 ~ <k, v> lookup<k, v>(a lookup<k, v>, pair arrow<k, v>) data<k> compare<k> hash-mix<k>
 	res = a get-or-update pair.from, (old-value) =>
 		pair.to insert

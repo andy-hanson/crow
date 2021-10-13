@@ -6,7 +6,7 @@ import
 	../fun: subscript
 	../misc: ->, as, data, drop, void
 	../opt: none, opt, some
-	../ptr: ==, <=>, +, -, *, const-ptr, deep-size-bytes, mut-ptr, set-deref, size-of
+	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
 	../str: ==, <=>, chars, str
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../str-util: starts-with
@@ -14,7 +14,7 @@ import
 	../writer: ~=, backup!, move-to-str!, writer
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, wrap-add, wrap-sub
 	./arr: arr, begin-ptr, end-ptr, is-empty, size, subscript
-	./arr-util: deep-size-bytes, each, fold, insert, last, overhead-bytes, rtail, tail, try-remove
+	./arr-util: each, fold, insert, last, rtail, tail, try-remove
 	./mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
 	./mut-stack: ~=, mut-stack, last, pop!
 	./sort: sort-unique, sort-unique!
@@ -48,36 +48,6 @@ is-empty<a> bool(a tree-set a) data<a> compare<a>
 size<a> nat64(a tree-set a) data<a> compare<a>
 	a total-size
 
-deep-size-bytes<a> nat64(a tree-set a) unsafe deep-size-bytes<a>
-	a.size-of deep-size-bytes-recur a.root
-.deep-size-bytes-recur<a> nat64(acc nat64, a node a) unsafe deep-size-bytes<a>
-	match a
-	as inner-node i
-		mid = acc wrap-add i.value.deep-size-bytes wrap-add i.left.size-of wrap-add i.right.size-of
-		mid deep-size-bytes-recur i.left deep-size-bytes-recur i.right
-	as arr r
-		acc wrap-add r.deep-size-bytes
-
-# Number of bytes that does not go into storing the values.
-overhead-bytes<a> nat64(a tree-set a) unsafe
-	a.size-of overhead-bytes-recur a.root
-.overhead-bytes-recur<a> nat64(acc nat64, a node a) unsafe
-	match a
-	as inner-node i
-		acc wrap-add i.left.size-of wrap-add i.right.size-of overhead-bytes-recur i.left overhead-bytes-recur i.right
-	as arr r
-		acc wrap-add r.overhead-bytes
-
-alloc-count<a> nat64(a tree-set a) unsafe
-	0 alloc-count-recur a.root
-.alloc-count-recur<a> nat64(acc nat64, a node a) unsafe
-	mid = acc wrap-add 1
-	match a
-	as inner-node i
-		mid alloc-count-recur i.left alloc-count-recur i.right
-	as arr
-		mid
-
 # Empty `tree-set`.
 tree-set<a> tree-set a()
 	root = [] as<a[]>
@@ -100,7 +70,7 @@ arr<a> a[](a tree-set a) data<a> compare<a>
 		arr
 
 # True iff the value is in the set.
-subscript<a> bool(a tree-set a, value a) data<a> compare<a>
+in<a> bool(value a, a tree-set a) data<a> compare<a>
 	a.root has value
 .has<a> bool(a node a, value a) trusted compare<a>
 	match a
@@ -559,7 +529,7 @@ test
 	s4 = s3 ~ "j"
 	s4 verify "[h i j k]"
 
-	assert: s4["h"]
+	assert: "h" in s4
 	s4 ~ "i" verify "[h i j k]"
 
 	s5 = s4 ~ "l"

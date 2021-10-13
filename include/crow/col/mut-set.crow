@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, bool
+	../bool: !, bool, false, true
 	../compare: compare
 	../fun: subscript
 	../misc: ->, data, from, void
@@ -9,7 +9,7 @@ import
 	./arr: arr
 	./arr-util: each, map
 	./mut-dict:
-		each, empty!, filter, filter!, fold, is-empty, map, map!, move-to-arr!, mut-dict,
+		each, empty!, filter, filter!, fold, in, is-empty, map, map!, move-to-arr!, mut-dict,
 		remove-key!, set-subscript, size, subscript
 	./set: set
 
@@ -49,6 +49,9 @@ size<a> nat64(a mut-set a) data<a> compare<a>
 
 # True iff the value is in the set.
 subscript<a> bool(a mut-set a, value a) data<a> compare<a>
+	value in a
+
+in<a> bool(value a, a mut-set a) data<a> compare<a>
 	!a.inner[value].is-empty
 
 ###
@@ -62,6 +65,14 @@ Does nothing if the value is already in the set.
 ~= <a> void(a mut-set a, values a[]) data<a> compare<a>
 	values each value =>
 		a ~= value
+
+try-add!<a> bool(a mut-set a, value a) data<a> compare<a>
+	# TODO:PERF do it without two lookups
+	if value in a.inner
+		false
+	else
+		a.inner[value] := void
+		true
 
 ###
 Removes a value from the set.

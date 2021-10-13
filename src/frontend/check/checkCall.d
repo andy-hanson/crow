@@ -526,6 +526,7 @@ immutable(Opt!Called) findSpecSigImplementation(Alloc)(
 	const Candidate[] candidatesArr = moveToArr_const(alloc, candidates);
 	switch (size(candidatesArr)) {
 		case 0:
+			// TODO: use initial candidates in the error message
 			addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.SpecImplNotFound(specSig.name)));
 			return none!Called;
 		case 1:

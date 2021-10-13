@@ -7,7 +7,7 @@ import util.util : roundUp, verify;
 struct RangeAlloc {
 	@safe @nogc pure nothrow:
 
-	@trusted this(ubyte* s, immutable size_t size) {
+	@trusted this(return scope ubyte* s, immutable size_t size) {
 		verify(size % 8 == 0);
 		start = s;
 		cur = s;

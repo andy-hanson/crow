@@ -33,7 +33,7 @@ is-empty<a> bool(a unordered-set a) data<a> compare<a> hash-mix<a>
 size<a> nat64(a unordered-set a) data<a> compare<a> hash-mix<a>
 	a.inner size
 
-subscript<a> bool(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
+in<a> bool(value a, a unordered-set a) data<a> compare<a> hash-mix<a>
 	!a.inner[value].is-empty
 
 ~ <a> unordered-set a(a unordered-set a, value a) data<a> compare<a> hash-mix<a>

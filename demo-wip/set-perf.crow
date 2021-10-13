@@ -1,89 +1,378 @@
 import
-	#crow/col/set: ~, alloc-count, deep-size-bytes, overhead-bytes, set, size
-	#crow/col/tree-set: ~, alloc-count, arr, dbg, deep-size-bytes, overhead-bytes, size, tree-set
-	#crow/col/unordered-set: ~, alloc-count, overhead-bytes, unordered-set, size
-	crow/col/unordered-set-2: ~, alloc-count, overhead-bytes, unordered-set, size
-	#crow/col/lookup: dbg
-	#crow/io/duration: msec
+	crow/col/dict: -, ~, dict, in, size
+	crow/col/frozen-unordered-dict:
+		frozen-unordered-dict, in, size
+	crow/col/frozen-unordered-set:
+		bucket-starts, frozen-unordered-set, in, unsafe-frozen-unordered-set-from-mut-arr-cast-immutable, size
+	crow/col/index-set: -, ~, index-set, in, size
+	crow/col/lookup: -, ~, in, lookup, size
+	crow/col/mut-list: ~=, move-to-arr!, move-to-mut-arr!, mut-list
+	crow/col/set: -, ~, in, set, size
+	crow/col/tree-set: -, ~, in, size, tree-set
+	crow/col/unordered-dict-2: -, ~, in, node-count, size, unordered-dict-2
+	crow/col/unordered-set: -, ~, in, size, unordered-set
+	crow/col/unordered-set-2: ~, in, node-count, size, unordered-set-2
 	crow/io/print: print
 	crow/io/time: get-monotime-nsec
-	#crow/perf: count, perf-get-measure, perf-reset, total-duration
+	crow/log: info, log
+	crow/private/alloc: force-needs-gc!, gc, get-gc, get-stats, words-used
+	crow/private/bootstrap: todo
+	crow/private/number-low-level: wrap-add
 
-main fut nat(_ str[]) unsafe summon
-	42 srand
-	
-	max-value = 2000000
-	iters = 1000000
+main fut nat(args str[]) summon unsafe
+	if args.size < 4
+		print: "Usage: set-perf dict add iters max-value"
+		0 resolved
+	else
+		col-kind = args[0].str-to-sym.to-enum<col-kind> force
+		test-kind = args[1].str-to-sym.to-enum<test-kind> force
+		iters = args[2].parse-nat force
+		max-value = args[3].parse-nat force
 
-	#start-s = get-monotime-nsec
-	#perf-reset: ["bin-search"]
-	#s = set<nat> add-test-recur iters, max-value
-	#end-s = get-monotime-nsec
-	#print: "s took: {(end-s - start-s) / 1000000}ms"
-	#m = "bin-search" perf-get-measure
-	#print: "bin-search: {m count} times, {m.total-duration msec}ms"
-	#print: "s size is: {s size}"
-	#print: "s deep-size-bytes is {s deep-size-bytes}"
-	#print: "s overhead-bytes is {s overhead-bytes}"
-	#print: "s alloc-count is {s alloc-count}"
-	#perf-reset: []
+		42 srand
+		gc = get-gc
+		assert: gc.current-kb == 0
+		start-us = get-monotime-nsec
+		get-result = col-kind run-test test-kind, iters, max-value
+		result = get-result[]
+		end-us = get-monotime-nsec
 
-	42 srand
-	start-us = get-monotime-nsec
-	us = unordered-set<nat> add-test-recur iters, max-value
-	end-us = get-monotime-nsec
-	print: "us took: {(end-us - start-us) / 1000000}ms"
 
-	print: "us size is: {us size}"
-	print: "us overhead-bytes is {us overhead-bytes}"
-	print: "us alloc-count is {us alloc-count}"
-	#print: "us dbg is:"
-	#print: us.inner dbg
+		print: "result is {result}"
+		print: "took {(end-us - start-us) / 1000000}ms"
+		print: "allocated {gc current-kb}KB"
 
-	#if false
-	#	42 srand
-	#	start-ts = get-monotime-nsec
-	#	ts = tree-set<nat> add-test-recur iters, max-value
-	#	end-ts = get-monotime-nsec
-	#	print: "ts took: {(end-ts - start-ts) / 1000000}ms"
-	#	print: "ts size is {ts size}"
-	#	print: "ts deep-size-bytes is {ts deep-size-bytes}"
-	#	print: "ts overhead-bytes is {ts overhead-bytes}"
-	#	print: "ts alloc-count is {ts alloc-count}"
-	#	print: "ts dbg is {ts dbg}"
-	#
-	#	s-arr = s arr
-	#	ts-arr = ts arr
-	#
-	#	s-arr is ts-arr
+		gc force-needs-gc!
+		<- delay
 
-	0 resolved
+		print: "size after GC is {gc current-kb}KB"
+		assert: result == get-result[]
 
-#.add-test-recur set nat(a set nat, iters nat, max-value nat) summon
-#	if iters == 0
-#		a
-#	else
-#		a ~ max-value.rand-nat add-test-recur iters - 1, max-value
+		0 resolved
 
-.add-test-recur unordered-set nat(a unordered-set nat, iters nat, max-value nat) summon
+.current-kb nat(gc gc) unsafe
+	gc.get-stats.words-used words-to-kb
+
+.words-to-kb nat(words nat)
+	words * 8 / 1024
+
+col-kind enum
+	dict
+	frozen-unordered-dict
+	frozen-unordered-set
+	index-set
+	lookup
+	set
+	tree-set
+	unordered-dict-2
+	unordered-set
+	unordered-set-2
+
+test-kind enum
+	add
+	get
+	rm
+
+###
+Returns a function for getting the size.
+This ensures the collection is kept in memory.
+###
+.run-test fun nat()(col-kind col-kind, test-kind test-kind, iters nat64, max-value nat64) summon
+	match col-kind
+	as dict
+		a = match test-kind
+		as add
+			dict<nat, void> add-test iters, max-value
+		as get
+			a = dict<nat, void> add-test iters, max-value
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			a
+		as rm
+			dict<nat, void> rm-test iters, max-value
+		() => a size
+	as frozen-unordered-dict
+		a = match test-kind
+		as add
+			mut-list frozen-unordered-dict-add-test iters, max-value
+		as get
+			a = mut-list frozen-unordered-dict-add-test iters, max-value
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			a
+		as rm
+			todo
+		() => a size
+	as frozen-unordered-set
+		a = match test-kind
+		as add
+			mut-list frozen-unordered-set-add-test iters, max-value
+		as get
+			a = mut-list frozen-unordered-set-add-test iters, max-value
+			info log "Using {a.bucket-starts size} buckets"
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			a
+		as rm
+			todo
+		() => a size
+	as index-set
+		a = match test-kind
+		as add
+			index-set.as<index-set> add-test iters, max-value
+		as get
+			a = index-set.as<index-set> add-test iters, max-value
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			a
+		as rm
+			index-set.as<index-set> rm-test iters, max-value
+		() => a size
+	as lookup
+		a = match test-kind
+		as add
+			lookup<nat, void> add-test iters, max-value
+		as get
+			a = lookup<nat, void> add-test iters, max-value
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			a
+		as rm
+			lookup<nat, void> rm-test iters, max-value
+		() => a size
+	as set
+		a = match test-kind
+		as add
+			set<nat> add-test iters, max-value
+		as get
+			a = set<nat> add-test iters, max-value
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			a
+		as rm
+			set<nat> rm-test iters, max-value
+		() => a size
+	as tree-set
+		a = match test-kind
+		as add
+			tree-set<nat> add-test iters, max-value
+		as get
+			a = tree-set<nat> add-test iters, max-value
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			a
+		as rm
+			tree-set<nat> rm-test iters, max-value
+		() => a size
+	as unordered-dict-2
+		a = match test-kind
+		as add
+			unordered-dict-2<nat, void> add-test iters, max-value
+		as get
+			a = unordered-dict-2<nat, void> add-test iters, max-value
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			info log "node count is {a.node-count}"
+			a
+		as rm
+			unordered-dict-2<nat, void> rm-test iters, max-value
+		() => a size
+	as unordered-set
+		a = match test-kind
+		as add
+			unordered-set<nat> add-test iters, max-value
+		as get
+			a = unordered-set<nat> add-test iters, max-value
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			a
+		as rm
+			unordered-set<nat> rm-test iters, max-value
+		() => a size
+	as unordered-set-2
+		a = match test-kind
+		as add
+			unordered-set-2<nat> add-test iters, max-value
+		as get
+			a = unordered-set-2<nat> add-test iters, max-value
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			info log "node count is {a.node-count}"
+			a
+		as rm
+			todo
+		() => a size
+
+.get-factor nat()
+	100
+
+.add-test dict<nat, void>(a dict<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		a ~ (max-value.rand-nat -> void) add-test iters - 1, max-value
+
+.add-test index-set(a index-set, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		a ~ max-value.rand-nat add-test iters - 1, max-value
+
+.add-test lookup<nat, void>(a lookup<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		a ~ (max-value.rand-nat -> void) add-test iters - 1, max-value
+
+.add-test set nat(a set nat, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		a ~ max-value.rand-nat add-test iters - 1, max-value
+
+.add-test tree-set nat(a tree-set nat, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		a ~ max-value.rand-nat add-test iters - 1, max-value
+
+.add-test unordered-dict-2<nat, void>(a unordered-dict-2<nat, void>, iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
 		n = max-value.rand-nat
-		#print: "Add {n}"
-		an = a ~ n
-		#print: an.inner.dbg
-		an add-test-recur iters - 1, max-value
+		a ~ (n -> void) add-test iters - 1, max-value
 
-#.add-test-recur tree-set nat(a tree-set nat, iters nat, max-value nat) summon
-#	if iters == 0
-#		a
-#	else
-#		a ~ max-value.rand-nat add-test-recur iters - 1, max-value
+.add-test unordered-set nat(a unordered-set nat, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		an = a ~ max-value.rand-nat
+		an add-test iters - 1, max-value
 
-rand-nat nat(max nat) summon
-	rand.to-nat mod max
+.add-test unordered-set-2 nat(a unordered-set-2 nat, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		an = a ~ max-value.rand-nat
+		an add-test iters - 1, max-value
 
-rand int32() noctx extern summon
+.frozen-unordered-dict-add-test frozen-unordered-dict<nat, void>
+	a mut-list arrow<nat, void>
+	iters nat
+	max-value nat
+spec
+	trusted
+	summon
+body
+	if iters == 0
+		a.move-to-arr! frozen-unordered-dict
+	else
+		a ~= max-value.rand-nat -> void
+		a frozen-unordered-dict-add-test iters - 1, max-value
 
-srand void(a nat32) noctx extern summon
+.frozen-unordered-set-add-test frozen-unordered-set nat(a mut-list nat, iters nat, max-value nat) trusted summon
+	if iters == 0
+		a.move-to-mut-arr! unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
+	else
+		a ~= max-value rand-nat
+		a frozen-unordered-set-add-test iters - 1, max-value
+
+.rm-test dict<nat, void>(a dict<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		(a ~ (max-value.rand-nat -> void)) - max-value.rand-nat rm-test iters - 1, max-value
+
+.rm-test index-set(a index-set, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		(a ~ max-value.rand-nat) - max-value.rand-nat rm-test iters - 1, max-value
+
+.rm-test lookup<nat, void>(a lookup<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		(a ~ (max-value.rand-nat -> void)) - max-value.rand-nat rm-test iters - 1, max-value
+
+.rm-test unordered-dict-2<nat, void>(a unordered-dict-2<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		(a ~ (max-value.rand-nat -> void)) - max-value.rand-nat rm-test iters - 1, max-value
+
+.rm-test set nat(a set nat, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		(a ~ max-value.rand-nat) - max-value.rand-nat rm-test iters - 1, max-value
+
+.rm-test tree-set nat(a tree-set nat, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		(a ~ max-value.rand-nat) - max-value.rand-nat rm-test iters - 1, max-value
+
+.rm-test unordered-set nat(a unordered-set nat, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		(a ~ max-value.rand-nat) - max-value.rand-nat rm-test iters - 1, max-value
+
+.get-test nat(acc nat, a dict<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		acc
+	else
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+
+.get-test nat(acc nat, a frozen-unordered-dict<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		acc
+	else
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+
+.get-test nat(acc nat, a frozen-unordered-set nat, iters nat, max-value nat) summon
+	if iters == 0
+		acc
+	else
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+
+.get-test nat(acc nat, a index-set, iters nat, max-value nat) summon
+	if iters == 0
+		acc
+	else
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+
+.get-test nat(acc nat, a lookup<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		acc
+	else
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+
+.get-test nat(acc nat, a set nat, iters nat, max-value nat) summon
+	if iters == 0
+		acc
+	else
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+
+.get-test nat(acc nat, a tree-set nat, iters nat, max-value nat) summon
+	if iters == 0
+		acc
+	else
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+
+.get-test nat(acc nat, a unordered-dict-2<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		acc
+	else
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+
+.get-test nat(acc nat, a unordered-set nat, iters nat, max-value nat) summon
+	if iters == 0
+		acc
+	else
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+
+.get-test nat(acc nat, a unordered-set-2 nat, iters nat, max-value nat) summon
+	if iters == 0
+		acc
+	else
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+
+.rand-nat nat(max nat) summon
+	rand.to-nat64 mod max
+
+.rand int32() noctx extern summon
+
+.srand void(a nat32) noctx extern summon

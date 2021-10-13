@@ -1,24 +1,27 @@
 no-std
 import
 	../bool: !, &&, ==, bool, false, true
-	../compare: <, <=, >=, compare, comparison, equal, max, min
-	../exception: assert
+	../compare: <, <=, >=, compare, equal, max, min
+	../exception: unreachable
 	../fun: subscript
 	../misc: ->, arrow, as, data, from, to, void
 	../number: ==, <=>, +, -, is-even, nat64
-	../opt: ==, is-empty, none, opt, opt-or, or-default, some
-	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
+	../opt: ==, is-empty, none, opt, opt-or, some
+	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
 	../str: ==, chars, is-empty, size-bytes, str
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
-	./arr: arr, arr-equal, arr-from-begin-end, begin-ptr, is-empty, end-ptr, size, subscript
+	../private/alloc: mem-copy!
+	../private/bootstrap: hard-assert
+	../private/number-low-level: wrap-add
+	./arr: arr, arr-equal, begin-ptr, is-empty, end-ptr, size, subscript
 	./arr-util: each, filter, fold, map, tail
 	./mut-arr:
-		begin-ptr, cast-immutable, copy-from!, is-empty, end-ptr, fold, mut-arr,
-		mut-arr-from-begin-end, set-subscript, size, subscript, tail, uninitialized-mut-arr
+		begin-ptr, cast-immutable, is-empty, fold, mut-arr, set-subscript, size, subscript, tail,
+		uninitialized-mut-arr
 	./sort: sort-by
-	./private/sort-utils: binary-search-value
+	./private/sort-utils: binary-search-key
 
 dict<k, v> record
 	by-val
@@ -50,10 +53,10 @@ dict-equal<k, v> bool(a dict<k, v>, b dict<k, v>) data<k> compare<k> equal<v>
 	pairs arrow<k, v>[]
 
 dict<k, v> dict<k, v>() data<k> compare<k>
-	dict: void, end-node: []
+	void dict [].end-node
 
 dict<k, v> dict<k, v>(a arrow<k, v>[]) data<k> compare<k>
-	dict: void, end-node: a sort-by pair => pair from
+	void dict (a sort-by (pair => pair from) end-node)
 
 is-empty<k, v> bool(a dict<k, v>) data<k> compare<k>
 	match a impl
@@ -69,20 +72,16 @@ This is O(n).
 size<k, v> nat64(a dict<k, v>) data<k> compare<k>
 	0 fold a, (acc, k, v) => acc + 1
 
-arr<k, v> arrow<k, v>[](a dict<k, v>) data<k> compare<k> trusted
-	match a impl
+arr<k, v> arrow<k, v>[](a dict<k, v>) data<k> compare<k>
+	# TODO:PERF Just use 'fold'?
+	match a.compact.impl
 	as overlay
-		out = a.size uninitialized-mut-arr<arrow<k, v>>
-		end = out.begin-ptr fold a, (cur, k, v) =>
-			*cur := k -> v
-			cur + 1
-		assert: end == out.end-ptr
-		out cast-immutable
+		unreachable
 	as end-node e
-		e pairs
+		e.pairs
 
 ~ <k, v> dict<k, v>(a dict<k, v>, pair arrow<k, v>) data<k> compare<k>
-	dict: void, a.impl add-or-remove pair.from, pair.to.some
+	void dict (a.impl add-or-remove pair.from, pair.to.some)
 
 ~ <k, v> dict<k, v>(a dict<k, v>, b dict<k, v>) data<k> compare<k>
 	a ~ b.arr
@@ -91,15 +90,15 @@ arr<k, v> arrow<k, v>[](a dict<k, v>) data<k> compare<k> trusted
 	if b is-empty
 		a
 	elif a is-empty
-		dict: b
+		b dict
 	else
 		# TODO: 'as' should be unnecessary
 		pairs = as<arrow<k, v?>[]>: b map (it => it.from -> it.to.some) sort-by it => it from
-		dict: void, merge-as-needed: pairs overlay a.impl
+		void dict (pairs overlay a.impl merge-as-needed)
 
 - <k, v> dict<k, v>(a dict<k, v>, key k) data<k> compare<k>
-	if a has-key key
-		dict: void, a.impl add-or-remove key, none
+	if key in a
+		void dict (a.impl add-or-remove key, none)
 	else
 		a
 
@@ -109,66 +108,72 @@ arr<k, v> arrow<k, v>[](a dict<k, v>) data<k> compare<k> trusted
 
 subscript<k, v> v?(a dict<k, v>, key k) data<k> compare<k>
 	a.impl subscript-recur key
-.subscript-recur<k, v> v?(a dict-impl<k, v>, key k) trusted data<k> compare<k>
+.subscript-recur<k, v> v?(a dict-impl<k, v>, key k) data<k> compare<k>
 	match a
 	as overlay o
-		if pair ?= o.pairs binary-search-value pair => key <=> pair.from
-			pair to
+		if v ?= o.pairs binary-search-key key
+			v
 		else
 			o.prev subscript-recur key
 	as end-node e
-		if pair ?= e.pairs binary-search-value pair => key <=> pair.from
-			pair.to some
+		if v ?= e.pairs binary-search-key key
+			v some
 
-has-key<k, v> bool(a dict<k, v>, key k) trusted data<k> compare<k>
+in<k, v> bool(key k, a dict<k, v>) data<k> compare<k>
 	!a[key].is-empty
 
 .add-or-remove<k, v> dict-impl<k, v>(a dict-impl<k, v>, key k, value v?) data<k> compare<k>
-	merge-as-needed: overlay: [key -> value], a
+	[key -> value] overlay a merge-as-needed
 
 .merge-as-needed<k, v> dict-impl<k, v>(a overlay<k, v>) data<k> compare<k>
 	match a prev
 	as overlay o
 		if o.pairs.size should-merge a.pairs.size
 			new-pairs = o.pairs merge-overlays a.pairs
-			merge-as-needed: overlay: new-pairs, o.prev
+			new-pairs overlay o.prev merge-as-needed
 		else
 			a
 	as end-node e
 		if e.pairs.size should-merge a.pairs.size
-			new-pairs = e.pairs merge-to-end a.pairs
-			end-node: new-pairs
+			e.pairs merge-to-end a.pairs end-node
 		else
 			a
 
+.merge-unconditionally<k, v> end-node<k, v>(a overlay<k, v>) data<k> compare<k>
+	match a prev
+	as overlay o
+		o.pairs merge-overlays a.pairs overlay o.prev merge-unconditionally
+	as end-node e
+		e.pairs merge-to-end a.pairs end-node
+
 .should-merge bool(prev-size nat64, overlay-size nat64)
-	prev-size <=: overlay-size max 3
+	prev-size <= (overlay-size max 3)
 
 .merge-overlays<k, v> arrow<k, v?>[](l arrow<k, v?>[], r arrow<k, v?>[]) trusted data<k> compare<k>
 	res = l.size + r.size uninitialized-mut-arr<arrow<k, v?>>
-	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr, (x, y) =>
-		x.from <=> y.from
+	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
 	res[0 -> end - res.begin-ptr] cast-immutable
 
-.merge-keep-right<a> a mut*
-	out a mut*
-	l a*
-	l-end a*
-	r a*
-	r-end a*
-	compare act comparison(a, a)
+.merge-keep-right<k, v> arrow<k, v> mut*
+	out arrow<k, v> mut*
+	l arrow<k, v>*
+	l-end arrow<k, v>*
+	r arrow<k, v>*
+	r-end arrow<k, v>*
 spec
+	noctx
 	unsafe
+	compare<k>
 body
-	assert: l < l-end
-	assert: r < r-end
-	match compare[*l, *r]
+	hard-assert: l < l-end
+	hard-assert: r < r-end
+	match (*l).from <=> (*r).from
 	as less
 		*out := *l
 		if l + 1 == l-end
 			out + 1 finish-rest r, r-end
 		else
-			out + 1 merge-keep-right l + 1, l-end, r, r-end, compare
+			out + 1 merge-keep-right l + 1, l-end, r, r-end
 	as equal
 		*out := *r
 		if l + 1 == l-end
@@ -176,13 +181,13 @@ body
 		elif r + 1 == r-end
 			out + 1 finish-rest l + 1, l-end
 		else
-			out + 1 merge-keep-right l + 1, l-end, r + 1, r-end, compare
+			out + 1 merge-keep-right l + 1, l-end, r + 1, r-end
 	as greater
 		*out := *r
 		if r + 1 == r-end
 			out + 1 finish-rest l, l-end
 		else
-			out + 1 merge-keep-right l, l-end, r + 1, r-end, compare
+			out + 1 merge-keep-right l, l-end, r + 1, r-end
 
 .merge-to-end<k, v> arrow<k, v>[](l arrow<k, v>[], r arrow<k, v?>[]) trusted data<k> compare<k>
 	res = l.size + r.size uninitialized-mut-arr<arrow<k, v>>
@@ -200,11 +205,12 @@ body
 	r-end arrow<k, v?>*
 spec
 	unsafe
+	noctx
 	data<k>
 	compare<k>
 body
-	assert: l < l-end
-	assert: r < r-end
+	hard-assert: l < l-end
+	hard-assert: r < r-end
 	match (*l).from <=> (*r).from
 	as less
 		*out := *l
@@ -220,9 +226,9 @@ body
 			out
 
 		if l + 1 == l-end
-			new-out finish-rest-ignore-none r, r-end
+			new-out finish-rest-ignore-none r + 1, r-end
 		elif r + 1 == r-end
-			new-out finish-rest l, l-end
+			new-out finish-rest l + 1, l-end
 		else
 			new-out merge-to-end-recur l + 1, l-end, r + 1, r-end
 	as greater
@@ -237,11 +243,10 @@ body
 		else
 			new-out merge-to-end-recur l, l-end, r + 1, r-end
 
-.finish-rest<a> a mut*(out a mut*, cur a*, end a*) unsafe
+.finish-rest<a> a mut*(out a mut*, cur a*, end a*) unsafe noctx
 	rest-size = end - cur
-	out-end = out + rest-size
-	out mut-arr-from-begin-end out-end copy-from!: cur arr-from-begin-end end
-	out-end
+	out mem-copy! cur, rest-size
+	out + rest-size
 
 .finish-rest-ignore-none<k, v> arrow<k, v> mut*
 	out arrow<k, v> mut*
@@ -249,6 +254,7 @@ body
 	r-end arrow<k, v?>*
 spec
 	unsafe
+	noctx
 body
 	if r == r-end
 		out
@@ -259,6 +265,14 @@ body
 		else
 			out
 		new-out finish-rest-ignore-none r + 1, r-end
+
+# Returns an equal dictionary that takes up less space.
+compact<k, v> dict<k, v>(a dict<k, v>) data<k> compare<k>
+	void dict match a.impl
+	as overlay o
+		o merge-unconditionally
+	as end-node e
+		e
 
 region iteration
 
@@ -279,18 +293,13 @@ spec
 	data<k>
 	compare<k>
 body
-	# Invariant: Nothing in 'overlays' is empty.
 	if overlays is-empty
-		if end-node is-empty
-			acc
-		else
-			pair = end-node[0]
-			f[acc, pair.from, pair.to] fold-recur end-node.tail, overlays, f
+		acc fold end-node, (cur, pair) => f[cur, pair.from, pair.to]
 	else
 		least-key = if end-node is-empty
 			overlays[0][0].from find-least-key overlays.tail
 		else
-			end-node[0].from
+			end-node[0].from find-least-key overlays
 		take-from-end-node = !end-node.is-empty && least-key == end-node[0].from
 		# TODO: should not need 'as'
 		val-from-end-node = as<v?>: if take-from-end-node
@@ -359,19 +368,20 @@ body
 .init-iters<k, v> iters<k, v>(a dict<k, v>) trusted
 	overlay-iters = 0 overlay-count a.impl uninitialized-mut-arr<arrow<k, v?>[]>
 	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur! a.impl
-	iters: end-pairs, overlay-iters
+	end-pairs iters overlay-iters
 
-.overlay-count<k, v> nat64(acc nat64, a dict-impl<k, v>)
+.overlay-count<k, v> nat64(acc nat64, a dict-impl<k, v>) noctx
 	match a
 	as overlay o
-		acc + 1 overlay-count o.prev
+		acc wrap-add 1 overlay-count o.prev
 	as end-node
 		acc
 
-.init-overlay-iters-recur!<k, v> arrow<k, v>[](out arrow<k, v?>[] mut*, a dict-impl<k, v>) unsafe
+# incidentally returns the end node pairs
+.init-overlay-iters-recur!<k, v> arrow<k, v>[](out arrow<k, v?>[] mut*, a dict-impl<k, v>) noctx unsafe
 	match a
 	as overlay o
-		*out := o.pairs
+		*out := o pairs
 		out + 1 init-overlay-iters-recur! o.prev
 	as end-node e
 		e pairs
@@ -392,6 +402,9 @@ spec
 body
 	dict: a map-to-arr f
 
+keys<k, v> k[](a dict<k, v>) data<k> compare<k>
+	a map-to-arr (k, v) => k
+
 map-to-arr<out, k, v> out[](a dict<k, v>, f act out(k, v)) data<k> compare<k>
 	a.arr map pair => f[pair.from, pair.to]
 
@@ -400,33 +413,34 @@ map-values<v-out, k, v-in> dict<k, v-out>(a dict<k, v-in>, f act v-out(k, v-in))
 	dict: void, end-node: a.arr map pair =>
 		pair.from -> f[pair.from, pair.to]
 
-.dbg str(a dict<nat64, str>)
+# TODO:PRIVATE
+dbg<k, v> str(a dict<k, v>) to-str<k> to-str<v>
 	out = writer
 	out dbg-recur! a.impl
 	out move-to-str!
 
-.dbg-recur! void(out writer, a dict-impl<nat64, str>)
+.dbg-recur!<k, v> void(out writer, a dict-impl<k, v>) to-str<k> to-str<v>
 	match a
 	as overlay o
 		out dbg-recur! o.prev
-		out ~= ", "
-		out ~= "["
+		out ~= ", ["
 		o.pairs each pair =>
-			out ~= pair.from
+			out ~= pair.from.to-str
 			out ~= " -> "
-			out ~= pair.to or-default "_"
+			out ~= if t ?= pair.to
+				t to-str
+			else
+				"_"
 			out ~= ", "
-		if o.pairs is-empty
-			out ~= "]"
-		else
+		if !o.pairs.is-empty
 			out backup! 2
-			out ~= "]"
+		out ~= "]"
 	as end-node e
 		out ~= "["
 		e.pairs each pair =>
 			out ~= pair.from to-str
 			out ~= " -> "
-			out ~= pair to
+			out ~= pair.to to-str
 			out ~= ", "
 		if e.pairs is-empty
 			out ~= "]"
@@ -436,6 +450,24 @@ map-values<v-out, k, v-in> dict<k, v-out>(a dict<k, v-in>, f act v-out(k, v-in))
 
 verify void(a dict<nat64, str>, expected str)
 	a.dbg is expected
+
+.arr-ref-eq<a> bool(a a[], b a[]) unsafe
+	a.begin-ptr == b.begin-ptr && a.size == b.size
+
+.exact-eq<k, v> bool(a dict<k, v>, b dict<k, v>) unsafe
+	match a impl
+	as overlay oa
+		match b impl
+		as overlay ob
+			oa ref-eq ob
+		as end-node
+			false
+	as end-node ea
+		match b impl
+		as overlay
+			false
+		as end-node eb
+			ea.pairs arr-ref-eq eb.pairs
 
 test
 	a = dict<nat64, str>
@@ -457,38 +489,39 @@ test
 	e = d - 15
 	e verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [11 -> 11, 15 -> _]"
 
-	f = e - 16
-	f verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [11 -> 11, 15 -> _]"
+	e - 15 exact-eq e is true
+	e - 16 exact-eq e is true
 
-	g = f - 15
-	g verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [11 -> 11, 15 -> _]"
+	f = e - 10
+	f verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> _, 11 -> 11, 15 -> _]"
 
-	h = g - 10
-	h verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> _, 11 -> 11, 15 -> _]"
+	g = f ~ (10 -> "10b")
+	g verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> 11, 15 -> _]"
 
-	i = h ~ (10 -> "10b")
-	i verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> 11, 15 -> _]"
-
-	j = i - [11, 12]
+	h = g - [11, 12]
 	# Unfortunately we leave an unnecessary '11 -> _',
 	# because we don't keep track of what a removal removes from, and it might be removing from the leftmost node.
-	j verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> _, 15 -> _]"
+	h verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> _, 15 -> _]"
 
-	k = j ~ [11 -> "11", 25 -> "25"]
-	k verify "[5 -> 5, 10 -> 10b, 11 -> 11, 20 -> 20, 25 -> 25]"
+	i = h ~ [11 -> "11", 25 -> "25"]
+	i verify "[5 -> 5, 10 -> 10b, 11 -> 11, 20 -> 20, 25 -> 25]"
 
-	j-folded = "" fold j, (cur, key, value) =>
+	h-folded = "" fold h, (cur, key, value) =>
 		pair = "{key} -> {value}"
 		if cur.is-empty
 			pair
 		else
 			"{cur}, {pair}"
-	j-folded is "5 -> 5, 10 -> 10b, 15 -> 15, 20 -> 20"
+	h-folded is "5 -> 5, 10 -> 10b, 15 -> 15, 20 -> 20"
 
-	j-filtered = j filter (k, v) =>
+	h-filtered = h filter (k, v) =>
 		k is-even
-	j-filtered verify "[10 -> 10b, 20 -> 20]"
+	h-filtered verify "[10 -> 10b, 20 -> 20]"
 
-	j-mapped = j map-values (k, v) =>
+	h-mapped = h map-values (k, v) =>
 		v.chars[v.size-bytes - 1 -> v.size-bytes] str
-	j-mapped verify "[5 -> 5, 10 -> b, 15 -> 5, 20 -> 0]"
+	h-mapped verify "[5 -> 5, 10 -> b, 20 -> 0]"
+
+test
+	a = [84 -> "84"].dict ~ (84 -> "84b")
+	a verify "[84 -> 84b]"

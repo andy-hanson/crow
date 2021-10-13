@@ -1,0 +1,320 @@
+no-std
+import
+	../bool: !, ==, bool, false, true
+	../compare: !=, <=, compare, max
+	../fun: subscript
+	../hash: hash-mix
+	../log: info, log
+	../misc: ->, arrow, data, from, to, void
+	../opt: ==, is-empty, none, opt, some
+	../ptr: ==, +, ref-eq, set-deref
+	../str: ==, str
+	../str-conv: to-str
+	../test: is
+	../writer: ~=, backup!, move-to-str!, writer
+	../private/bootstrap: hard-assert
+	../private/number-low-level: ==, <=>, nat64, wrap-add
+	./arr: arr
+	./arr-util: fold
+	./frozen-unordered-dict:
+		each, frozen-unordered-dict, fold, in, is-empty,
+		mut-arr-to-frozen-dict-promise-no-duplicates, size, subscript
+	./mut-arr: begin-ptr, cast-immutable, end-ptr, mut-arr-from-begin-end, uninitialized-mut-arr
+	./mut-unordered-set: in, mut-unordered-set, try-add!
+
+unordered-dict-2<k, v> record
+	by-val
+	ignore void
+	impl impl<k, v>
+
+# TODO:KILL
+node-count<k, v> nat64(a unordered-dict-2<k, v>)
+	0 node-count a.impl
+.node-count<k, v> nat64(acc nat64, a impl<k, v>)
+	match a
+	as overlay o
+		acc wrap-add 1 node-count o.prev
+	as end-node
+		acc wrap-add 1
+
+.impl<k, v> union
+	overlay<k, v>
+	end-node<k, v>
+
+.overlay<k, v> record
+	by-ref
+	pairs frozen-unordered-dict<k, v?>
+	prev impl<k, v>
+
+.end-node<k, v> record
+	by-ref
+	pairs frozen-unordered-dict<k, v>
+
+unordered-dict-2<k, v> unordered-dict-2<k, v>() data<k> compare<k> hash-mix<k>
+	void unordered-dict-2 frozen-unordered-dict.end-node
+
+unordered-dict-2<k, v> unordered-dict-2<k, v>(a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+	void unordered-dict-2 a.frozen-unordered-dict.end-node
+
+keys<k, v> k[](a unordered-dict-2<k, v>) data<k> compare<k> hash-mix<k>
+	a map-to-arr (k, v) => k
+
+values<k, v> v[](a unordered-dict-2<k, v>) data<k> compare<k> hash-mix<k>
+	a map-to-arr (k, v) => v
+
+is-empty<k, v> bool(a unordered-dict-2<k, v>) data<k> compare<k> hash-mix<k>
+	match a impl
+	as overlay
+		false
+	as end-node e
+		e.pairs is-empty
+
+###
+Number of pairs.
+This is O(n).
+###
+
+size<k, v> nat64(a unordered-dict-2<k, v>) data<k> compare<k> hash-mix<k>
+	0 fold a, (acc, k, v) => acc wrap-add 1
+
+~ <k, v> unordered-dict-2<k, v>(a unordered-dict-2<k, v>, pair arrow<k, v>) data<k> compare<k> hash-mix<k>
+	a add-or-remove pair.from, pair.to.some
+
+###
+TODO
+~ <k, v> unordered-dict-2<k, v>(a unordered-dict-2<k, v>, b unordered-dict-2<k, v>) data<k> compare<k> hash-mix<k>
+	a ~ b.arr
+###
+
+~ <k, v> unordered-dict-2<k, v>(a unordered-dict-2<k, v>, b arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+	a fold b, (cur, pair) => cur ~ pair
+
+- <k, v> unordered-dict-2<k, v>(a unordered-dict-2<k, v>, key k) data<k> compare<k> hash-mix<k>
+	if key in a
+		a add-or-remove key, none
+	else
+		a
+
+- <k, v> unordered-dict-2<k, v>(a unordered-dict-2<k, v>, keys k[]) data<k> compare<k> hash-mix<k>
+	a fold keys, (cur, key) =>
+		cur - key
+
+subscript<k, v> v?(a unordered-dict-2<k, v>, key k) data<k> compare<k> hash-mix<k>
+	a.impl subscript-recur key
+.subscript-recur<k, v> v?(a impl<k, v>, key k) data<k> compare<k> hash-mix<k>
+	match a
+	as overlay o
+		# TODO: use option || operator
+		if v ?= o.pairs[key]
+			v
+		else
+			o.prev subscript-recur key
+	as end-node e
+		e.pairs[key]
+
+in<k, v> bool(key k, a unordered-dict-2<k, v>) data<k> compare<k> hash-mix<k>
+	!a[key].is-empty
+
+.add-or-remove<k, v> unordered-dict-2<k, v>(a unordered-dict-2<k, v>, key k, value v?) data<k> compare<k> hash-mix<k>
+	void unordered-dict-2 ([key -> value].frozen-unordered-dict overlay a.impl merge-as-needed)
+
+.merge-as-needed<k, v> impl<k, v>(a overlay<k, v>) data<k> compare<k> hash-mix<k>
+	match a prev
+	as overlay o
+		if o.pairs.size should-merge a.pairs.size
+			new-pairs = o.pairs merge-overlays a.pairs
+			new-pairs overlay o.prev merge-as-needed
+		else
+			a
+	as end-node e
+		if e.pairs.size should-merge a.pairs.size
+			e.pairs merge-to-end a.pairs end-node
+		else
+			a
+
+.should-merge bool(prev-size nat64, overlay-size nat64)
+	prev-size <= (overlay-size max 3)
+
+.merge-overlays<k, v> frozen-unordered-dict<k, v?>
+	l frozen-unordered-dict<k, v?>
+	r frozen-unordered-dict<k, v?>
+spec
+	trusted
+	data<k>
+	compare<k>
+	hash-mix<k>
+body
+	res = l.size wrap-add r.size uninitialized-mut-arr<arrow<k, v?>>
+	begin = res begin-ptr
+	mid = begin fold l, (cur, k, vl) =>
+		if !(k in r)
+			*cur := k -> vl
+			cur + 1
+		else
+			cur
+	end = mid fold r, (cur, k, vr) =>
+		*cur := k -> vr
+		cur + 1
+	begin mut-arr-from-begin-end end mut-arr-to-frozen-dict-promise-no-duplicates
+
+.merge-to-end<k, v> frozen-unordered-dict<k, v>
+	l frozen-unordered-dict<k, v>
+	r frozen-unordered-dict<k, v?>
+spec
+	trusted
+	data<k>
+	compare<k>
+	hash-mix<k>
+body
+	res = l.size wrap-add r.size uninitialized-mut-arr<arrow<k, v>>
+	begin = res begin-ptr
+	mid = begin fold l, (cur, k, vl) =>
+		if !(k in r)
+			*cur := k -> vl
+			cur + 1
+		else
+			cur
+	end = mid fold r, (cur, k, vr) =>
+		if v ?= vr
+			*cur := k -> v
+			cur + 1
+		else
+			cur
+	begin mut-arr-from-begin-end end mut-arr-to-frozen-dict-promise-no-duplicates
+
+region iteration
+
+each<k, v> void(a unordered-dict-2<k, v>, f act void(k, v)) data<k> compare<k> hash-mix<k>
+	void fold a, (ignore, k, v) =>
+		f[k, v]
+
+fold<a, k, v> a(acc a, a unordered-dict-2<k, v>, f act a(a, k, v)) data<k> compare<k> hash-mix<k>
+	acc fold-recur a.impl, mut-unordered-set, f
+.fold-recur<a, k, v> a(acc a, a impl<k, v>, seen mut-unordered-set k, f act a(a, k, v)) data<k> compare<k> hash-mix<k>
+	match a
+	as overlay o
+		mid = acc fold o.pairs, (cur, k, v-opt) =>
+			if seen try-add! k
+				if v ?= v-opt
+					f[cur, k, v]
+				else
+					cur
+			else
+				cur
+		mid fold-recur o.prev, seen, f
+	as end-node e
+		acc fold e.pairs, (cur, k, v) =>
+			if k in seen
+				cur
+			else
+				# Don't need to add to 'seen' because this is the last node.
+				f[cur, k, v]
+
+map-to-arr<a, k, v> a[](a unordered-dict-2<k, v>, f act a(k, v)) trusted data<k> compare<k> hash-mix<k>
+	res = a.size uninitialized-mut-arr<a>
+	end = res.begin-ptr fold a, (cur, k, v) =>
+		*cur := f[k, v]
+		cur + 1
+	hard-assert: end == res.end-ptr
+	res cast-immutable
+
+# TODO:PRIVATE
+dbg<k, v> str(a unordered-dict-2<k, v>) to-str<k> to-str<v>
+	out = writer
+	out dbg-recur! a.impl
+	out move-to-str!
+
+.dbg-recur!<k, v> void(out writer, a impl<k, v>) to-str<k> to-str<v>
+	match a
+	as overlay o
+		out dbg-recur! o.prev
+		out ~= ", ["
+		o.pairs each (k, v) =>
+			out ~= k to-str
+			out ~= " -> "
+			if val ?= v
+				out ~= val to-str
+			else
+				out ~= "_"
+			out ~= ", "
+		if !o.pairs.is-empty
+			out backup! 2
+		out ~= "]"
+	as end-node e
+		out ~= "["
+		e.pairs each (k, v) =>
+			out ~= k to-str
+			out ~= " -> "
+			out ~= v to-str
+			out ~= ", "
+		if !e.pairs.is-empty
+			out backup! 2
+		out ~= "]"
+
+verify void(a unordered-dict-2<nat64, str>, expected str)
+	dbg = a dbg
+	if dbg != expected
+		info log "expected:"
+		info log expected
+		info log "but wss:"
+		info log dbg
+	dbg is expected
+	a each (k, v) =>
+		a[k] is v.some
+
+.exact-eq<k, v> bool(a unordered-dict-2<k, v>, b unordered-dict-2<k, v>) unsafe
+	match a impl
+	as overlay oa
+		match b impl
+		as overlay ob
+			oa ref-eq ob
+		as end-node
+			false
+	as end-node ea
+		match b impl
+		as overlay
+			false
+		as end-node eb
+			ea ref-eq eb
+
+test
+	a = unordered-dict-2<nat64, str>
+	a.is-empty is true
+	a.size is 0
+	a verify "[]"
+	a[0] is none
+
+	b = a ~ (10 -> "10")
+	b.is-empty is false
+	b.size is 1
+	b verify "[10 -> 10]"
+	b[10] is "10".some
+
+	c = b ~ [15 -> "15", 5 -> "5", 20 -> "20"]
+	c verify "[10 -> 10, 15 -> 15, 5 -> 5, 20 -> 20]"
+
+	d = c ~ (11 -> "11")
+	d verify "[10 -> 10, 15 -> 15, 5 -> 5, 20 -> 20], [11 -> 11]"
+
+	e = d - 15
+	e verify "[10 -> 10, 15 -> 15, 5 -> 5, 20 -> 20], [11 -> 11, 15 -> _]"
+	e[10] is "10".some
+	e[11] is "11".some
+	e[15] is none
+
+	e - 15 exact-eq e is true
+	e - 16 exact-eq e is true
+
+	f = e - 10
+	f verify "[10 -> 10, 15 -> 15, 5 -> 5, 20 -> 20], [11 -> 11, 15 -> _, 10 -> _]"
+	f[10] is none
+	10 in f is false
+
+	g = f ~ (10 -> "10b")
+	g verify "[10 -> 10, 15 -> 15, 5 -> 5, 20 -> 20], [11 -> 11, 15 -> _, 10 -> 10b]"
+
+	h = g - [11, 12]
+	h verify "[10 -> 10, 15 -> 15, 5 -> 5, 20 -> 20], [15 -> _, 10 -> 10b, 11 -> _]"
+
+	i = h ~ [11 -> "11", 25 -> "25"]
+	i verify "[10 -> 10b, 20 -> 20, 5 -> 5, 11 -> 11, 25 -> 25]"

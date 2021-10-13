@@ -3,12 +3,16 @@ import
 	./bool: bool, false, true
 	./col/mut-list: ~=, move-to-arr!, mut-list
 	./compare: <
+	./misc: void
 	./number:
 		==, <=>, *, /, abs, float64, float32, int8, int16, int32, int64, is-multiple-of, mod, nat8,
 		nat16, nat32, nat64, to-float64, to-int64, to-nat64, truncate-to-int64
 	./opt: opt, some
 	./reader: take-float!, take-int!, take-nat!, with-reader
 	./str: ==, ~, char, chars, str
+
+to-str str(_ void)
+	"void"
 
 # "true" or "false".
 to-str str(b bool) noctx

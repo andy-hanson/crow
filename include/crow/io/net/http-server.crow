@@ -4,7 +4,7 @@ import
 	../../bool: !, bool, false, true
 	../../col/arr: arr, begin-ptr, size, subscript
 	../../col/arr-util: rtail
-	../../col/dict: dict, each, has-key
+	../../col/dict: dict, each, in
 	../../col/mut-dict: move-to-dict!, mut-dict, remove-key!, set-subscript, subscript
 	../../col/mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
 	../../compare: !=, <=, >=
@@ -107,7 +107,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		res ~= k
 		res ~= ": "
 		res ~= v
-	forbid: a.headers has-key "Content-Length"
+	forbid: "Content-Length" in a.headers
 	if !a.body.is-empty
 		res ~= "\r\n"
 		res ~= "Content-Length: "

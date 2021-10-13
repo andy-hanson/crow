@@ -10,6 +10,7 @@ import
 		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,
 		ref-of-ptr, set-deref, set-subscript, size-of, subscript, swap!
 	../private/alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
+	../private/bootstrap: hard-assert
 	../private/exception-low-level: assert, forbid
 	../private/number-low-level: ==, <=>, nat64, wrap-mul, wrap-sub
 	./arr: arr, arr-from-begin-end, begin-ptr, size, subscript
@@ -48,8 +49,8 @@ Further writes to the `mut-arr` won't affect the `arr` that was copied from it.
 arr<a> a[](a mut-arr a)
 	a.copy.inner
 
-mut-arr-from-begin-end<a> mut-arr a(begin a mut*, end a mut*) unsafe
-	assert: begin <= end
+mut-arr-from-begin-end<a> mut-arr a(begin a mut*, end a mut*) unsafe noctx
+	hard-assert: begin <= end
 	void mut-arr (begin.as-const arr-from-begin-end end.as-const)
 
 ###
@@ -139,7 +140,7 @@ rtail<a> mut-arr a(a mut-arr a)
 
 # Allocates a `mut-arr` without initializing any of its elements.
 uninitialized-mut-arr<a> mut-arr a(size nat64) unsafe
-	mut-arr: size, alloc-uninitialized<a>: size
+	size mut-arr size.alloc-uninitialized<a>
 
 ###
 `mut-arr` where each element is `f[i]`.

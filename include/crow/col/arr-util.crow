@@ -6,31 +6,13 @@ import
 	../misc: ->, void
 	../number: +, -, nat64
 	../opt: is-empty, none, opt, some
-	../ptr:
-		==, +, -, *, as-const, const-ptr, deep-size-bytes, mut-ptr, set-deref, size-of
+	../ptr: ==, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../test: is
 	../tuple: pair
 	../private/alloc: alloc-uninitialized, fill-ptr-range
 	../private/exception-low-level: assert, forbid
 	../private/number-low-level: ==, <=>, unsafe-mod, wrap-add, wrap-mul
 	./arr: ==, ~, arr, arr-from-begin-end, begin-ptr, is-empty, end-ptr, noctx-at, size, subscript
-
-alloc-count<a> nat64(a a[]) unsafe
-	if a is-empty
-		0
-	else
-		1
-
-###
-Number of bytes that does not go into storing the values.
-For an 'arr' this is a constant 16 bytes.
-###
-overhead-bytes<a> nat64(a a[]) unsafe
-	a size-of
-
-deep-size-bytes<a> nat64(a a[]) unsafe deep-size-bytes<a>
-	a.overhead-bytes fold a, (acc, x) =>
-		acc + x.deep-size-bytes
 
 ###
 Equivalent to `[f[0], f[1], ..., f[size - 1]]`.
@@ -372,7 +354,7 @@ flatten<a> a[](a a[][], joiner a[])
 	elif a.size == 1
 		a[0]
 	else
-		a[0] ~ joiner ~: a.tail flatten joiner
+		a[0] ~ joiner ~ (a.tail flatten joiner)
 
 try-split-once<a> pair<a[], a[]>?(a a[], splitter a) equal<a>
 	if index ?= a index-of splitter

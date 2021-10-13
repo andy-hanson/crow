@@ -5,9 +5,10 @@ import
 	../exception: assert
 	../fun: subscript
 	../hash: hash-mix
+	../log: info, log
 	../misc: data, void
 	../opt: force, none, opt, or-default, some
-	../ptr: ==, <=>, +, *, const-ptr, mut-ptr, set-deref, size-of
+	../ptr: ==, <=>, +, *, const-ptr, mut-ptr, set-deref
 	../str: ==, str
 	../str-conv: to-str
 	../test: is
@@ -16,54 +17,43 @@ import
 	./arr: ==, arr
 	./arr-util: fold
 	./frozen-unordered-set:
-		alloc-count, begin-ptr, each-unordered, end-ptr, fold-unordered-with-index,
-		frozen-unordered-set, is-empty, overhead-bytes, size, try-get-unordered-index,
+		begin-ptr, each-unordered, end-ptr, fold-unordered-with-index, frozen-unordered-set,
+		is-empty, size, try-get-unordered-index,
 		unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
 	./index-set:
-		alloc-count, count-greater-or-equal, deep-size-bytes, each, is-empty, filter-less, index-set,
-		size, subscript, try-remove
+		count-greater-or-equal, each, is-empty, filter-less, in, index-set,
+		size, try-remove
 	./mut-arr: begin-ptr, cast-immutable, end-ptr, mut-arr-from-begin-end, uninitialized-mut-arr
 
-unordered-set<a> record
+unordered-set-2<a> record
 	# TODO:PRIVATE
 	add add-node a
 	remove index-set
+
+# TODO:KILL
+node-count<a> nat64(a unordered-set-2<a>)
+	0 node-count a.add
+.node-count<a> nat64(acc nat64, a add-node<a>)
+	if left ?= a.left
+		acc wrap-add 1 node-count left
+	else
+		acc wrap-add 1
 
 .add-node<a> record
 	here frozen-unordered-set a
 	left add-node<a>?
 
-unordered-set<a> unordered-set a() data<a> compare<a> hash-mix<a>
-	unordered-set: (add-node: frozen-unordered-set, none), index-set
+unordered-set-2<a> unordered-set-2 a() data<a> compare<a> hash-mix<a>
+	unordered-set-2: (add-node: frozen-unordered-set, none), index-set
 
-unordered-arr<a> a[](a unordered-set a) data<a> compare<a> hash-mix<a>
+unordered-arr<a> a[](a unordered-set-2 a) data<a> compare<a> hash-mix<a>
 	# TODO: If a has a single add node and no remove, just return that
 	a map-to-arr-unordered x => x
 
-alloc-count<a> nat64(a unordered-set a) unsafe
-	a.remove.alloc-count alloc-count-recur a.add
-.alloc-count-recur<a> nat64(acc nat64, a add-node a) unsafe
-	mid = acc wrap-add a.here.alloc-count
-	if left ?= a left
-		# + 1 to allocate the left node
-		mid wrap-add 1 alloc-count-recur left
-	else
-		mid
-
-# TODO: any value that is removed is overhead too
-overhead-bytes<a> nat64(a unordered-set a) unsafe
-	a.remove.deep-size-bytes overhead-bytes-recur a.add
-.overhead-bytes-recur<a> nat64(acc nat64, a add-node a) unsafe
-	mid = acc wrap-add a.here.overhead-bytes wrap-add a.left.size-of
-	if left ?= a left
-		mid overhead-bytes-recur left
-	else
-		mid
-
-is-empty<a> bool(a unordered-set a) data<a> compare<a> hash-mix<a>
+is-empty<a> bool(a unordered-set-2 a) data<a> compare<a> hash-mix<a>
 	a.add.here is-empty
 
-size<a> nat64(a unordered-set a) data<a> compare<a> hash-mix<a>
+size<a> nat64(a unordered-set-2 a) data<a> compare<a> hash-mix<a>
 	a.remove.size add-size-recur a.add
 
 .add-size<a> nat64(a add-node a)
@@ -78,11 +68,14 @@ size<a> nat64(a unordered-set a) data<a> compare<a> hash-mix<a>
 	else
 		acc
 
-subscript<a> bool(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
+subscript<a> bool(a unordered-set-2 a, value a) data<a> compare<a> hash-mix<a>
 	if index ?= a.add find-in-add value
-		!a.remove[index]
+		!(index in a.remove)
 	else
 		false
+
+in<a> bool(value a, a unordered-set-2 a) data<a> compare<a> hash-mix<a>
+	a[value]
 
 .find-in-add<a> nat64?(a add-node a, value a) data<a> compare<a> hash-mix<a>
 	if index ?= a.here try-get-unordered-index value
@@ -90,28 +83,28 @@ subscript<a> bool(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
 	elif left ?= a left
 		left find-in-add value
 
-~ <a> unordered-set a(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
+~ <a> unordered-set-2 a(a unordered-set-2 a, value a) data<a> compare<a> hash-mix<a>
 	a try-add value or-default a
 
-~ <a> unordered-set a(a unordered-set a, values a[]) data<a> compare<a> hash-mix<a>
+~ <a> unordered-set-2 a(a unordered-set-2 a, values a[]) data<a> compare<a> hash-mix<a>
 	a fold values, (cur, value) => cur ~ value
 
-try-add<a> unordered-set<a>?(a unordered-set a, value a) data<a> compare<a> hash-mix<a>
+try-add<a> unordered-set-2<a>?(a unordered-set-2 a, value a) data<a> compare<a> hash-mix<a>
 	if index ?= a.add find-in-add value
 		if new-remove ?= a.remove try-remove index
-			a.add unordered-set new-remove some
+			a.add unordered-set-2 new-remove some
 	else
 		a add-and-maybe-compact value some
 
-.add-and-maybe-compact<a> unordered-set a(a unordered-set a, value a) trusted data<a> compare<a> hash-mix<a>
+.add-and-maybe-compact<a> unordered-set-2 a(a unordered-set-2 a, value a) trusted data<a> compare<a> hash-mix<a>
 	add-size = a.add add-size
 	if add-size == 0
-		unordered-set: (add-node: [value].frozen-unordered-set, none), index-set
+		unordered-set-2: (add-node: [value].frozen-unordered-set, none), index-set
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
 		if plan.compacted-size == 1
-			unordered-set: (add-node: [value].frozen-unordered-set, a.add.some), a.remove
+			unordered-set-2: (add-node: [value].frozen-unordered-set, a.add.some), a.remove
 		else
 			a add-and-compact add-size, plan, value
 
@@ -137,8 +130,8 @@ try-add<a> unordered-set<a>?(a unordered-set a, value a) data<a> compare<a> hash
 .should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right wrap-add (removals-here-and-right wrap-mul 2)) >= size-here
 
-.add-and-compact<a> unordered-set a
-	a unordered-set a
+.add-and-compact<a> unordered-set-2 a
+	a unordered-set-2 a
 	add-size nat64
 	plan compact-plan
 	value a
@@ -153,7 +146,7 @@ body
 	*compacted.begin-ptr := value
 	compactor = compacted.begin-ptr compactor<a> compacted.begin-ptr + 1, compacted.end-ptr
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
-	unordered-set: new-add, a.remove filter-less plan.add-size-left
+	unordered-set-2: new-add, a.remove filter-less plan.add-size-left
 
 .compactor<a> record mut
 	begin a mut*
@@ -184,7 +177,7 @@ body
 	a push-recur! here.begin-ptr, here.end-ptr, add-size-here-and-left, remove
 .push-recur!<a> void(a compactor a, cur a*, end a*, remove-index nat64, remove index-set) unsafe
 	if cur != end
-		if !remove[remove-index]
+		if !(remove-index in remove)
 			*a.cur := *cur
 			a.cur := a.cur + 1
 		a push-recur! cur + 1, end, (remove-index wrap-add 1), remove
@@ -196,12 +189,12 @@ body
 
 region iteration
 
-fold-unordered<a, b> a(acc a, a unordered-set b, f act a(a, b)) data<b> compare<b> hash-mix<b>
+fold-unordered<a, b> a(acc a, a unordered-set-2 b, f act a(a, b)) data<b> compare<b> hash-mix<b>
 	acc fold-unordered-recur a.add, a.add.add-size-left, a.remove, f
 
 .fold-unordered-recur<a, b> a(acc a, a add-node b, add-size-left nat64, remove index-set, f act a(a, b))
 	mid = acc fold-unordered-with-index a.here, (cur, x, index) =>
-		if remove[add-size-left wrap-add index]
+		if add-size-left wrap-add index in remove
 			cur
 		else
 			f[cur, x]
@@ -212,7 +205,7 @@ fold-unordered<a, b> a(acc a, a unordered-set b, f act a(a, b)) data<b> compare<
 	else
 		mid
 
-map-to-arr-unordered<out, in> out[](a unordered-set in, f act out(in)) trusted data<in> compare<in> hash-mix<in>
+map-to-arr-unordered<out, in> out[](a unordered-set-2 in, f act out(in)) trusted data<in> compare<in> hash-mix<in>
 	out = a.size uninitialized-mut-arr<out>
 	end = out.begin-ptr fold-unordered a, (cur, x) =>
 		*cur := f[x]
@@ -220,7 +213,7 @@ map-to-arr-unordered<out, in> out[](a unordered-set in, f act out(in)) trusted d
 	assert: end == out.end-ptr
 	out cast-immutable
 
-.dbg<a> str(a unordered-set a) to-str<a>
+.dbg<a> str(a unordered-set-2 a) to-str<a>
 	out = writer
 	out dbg-add-recur! a.add
 	if !a.remove.is-empty
@@ -247,11 +240,17 @@ map-to-arr-unordered<out, in> out[](a unordered-set in, f act out(in)) trusted d
 		out backup!
 		out ~= "]"
 
-.verify void(a unordered-set nat64, expected str)
-	a.dbg is expected
+.verify void(a unordered-set-2 nat64, expected str)
+	dbg = a dbg
+	if dbg != expected
+		info log "expected:"
+		info log expected
+		info log "but was:"
+		info log dbg
+	dbg is expected
 
 test
-	a = unordered-set<nat64>
+	a = unordered-set-2<nat64>
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"

@@ -1,6 +1,7 @@
 import
 	crow/col/deque: deque
 	crow/col/dict: dict
+	crow/col/frozen-unordered-dict: frozen-unordered-dict
 	crow/col/frozen-unordered-set: frozen-unordered-set
 	crow/col/index-set: index-set
 	crow/col/list: list
@@ -17,7 +18,9 @@ import
 	crow/col/set: set
 	crow/col/stack: stack
 	crow/col/tree-set: tree-set
-	crow/col/unordered-set-2: unordered-set
+	crow/col/unordered-dict-2: unordered-dict-2
+	crow/col/unordered-set: unordered-set
+	crow/col/unordered-set-2: unordered-set-2
 	crow/col/queue: queue
 	crow/crypto/password: password-hash, quality-moderate
 	crow/io/time-format: gmt
@@ -35,6 +38,7 @@ main fut nat(_ str[]) summon
 	drop: "" password-hash quality-moderate
 	drop: deque<nat>
 	drop: dict<nat, nat>
+	drop: frozen-unordered-dict<nat, nat>
 	drop: frozen-unordered-set<nat>
 	drop: index-set
 	drop: list<nat>
@@ -52,7 +56,9 @@ main fut nat(_ str[]) summon
 	drop: set<nat>
 	drop: stack<nat>
 	drop: tree-set<nat>
+	drop: unordered-dict-2<nat, nat>
 	drop: unordered-set<nat>
+	drop: unordered-set-2<nat>
 	drop: queue<nat>
 	drop: gmt
 	drop: 0 -> 0 iter

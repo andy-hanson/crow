@@ -291,14 +291,20 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 ) {
 	immutable ByteCodeSource source = nextSource(a);
 	if (dbg.enabled()) {
-		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+		import util.alloc.rangeAlloc : RangeAlloc;
+		ubyte[10_000] mem;
+		scope RangeAlloc dbgAlloc = RangeAlloc(&mem[0], mem.length);
+		scope Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(dbgAlloc));
 		showStack(writer, a);
 		showReturnStack(writer, a);
 		log(dbg, finishWriter(writer));
 	}
 	immutable Operation operation = readOperation(a.reader);
 	if (dbg.enabled()) {
-		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+		import util.alloc.rangeAlloc : RangeAlloc;
+		ubyte[10_000] mem;
+		scope RangeAlloc dbgAlloc = RangeAlloc(&mem[0], mem.length);
+		scope Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(dbgAlloc));
 		writeStatic(writer, "STEP: ");
 		immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);
 		writeByteCodeSource(writer, allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
@@ -435,14 +441,13 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	if (!contains(stackPtrRange(a.dataStack), ptrRange)
 		&& !a.extern_.hasMallocedPtr(ptrRange)
 		&& !contains(ptrRangeOfArr(a.byteCode.text), ptrRange)) {
-		debug {
-			Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
-			writeStatic(writer, "accessing potentially invalid pointer: ");
-			writePtrRange(writer, ptrRange);
-			writePtrRanges(writer, a);
-			//print()
-			finishWriter(writer);
-		}
+		// TODO: the pointer might have been returned by a 3rd-party library. We'd need to track those too.
+		//debug {
+		//	Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+		//	writePtrRange(writer, ptrRange);
+		//	writePtrRanges(writer, a);
+		//	printf("accessing potentially invalid pointer: %s\n", finishWriterToCStr(writer));
+		//}
 		//todo!void("ptr not valid");
 	}
 }
@@ -464,6 +469,7 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	immutable Nat16 size,
 ) {
 	if (size < immutable Nat16(8)) { //TODO:UNNECESSARY?
+		verify(size != immutable Nat16(0));
 		immutable Nat64 value = pop(a.dataStack);
 		ubyte* ptr = cast(ubyte*) pop(a.dataStack).raw();
 		checkPtr(tempAlloc, a, ptr, offset, size);

@@ -2728,7 +2728,7 @@ program(
 							call(wrap-sub, [call(to, [param-ref(range)]), call(from, [param-ref(range)])])
 							call(+, [call(begin-ptr, [param-ref(a)]), call(from, [param-ref(range)])])]))))
 		fun(
-			true
+			false
 			->
 			type(false, arrow)
 			none
@@ -3094,10 +3094,24 @@ program(
 			type(false, arr)
 			none
 			[param(a, type(true, mut-list))]
+			expr-body(call(cast-immutable, [call(move-to-mut-arr!, [param-ref(a)])])))
+		fun(
+			false
+			cast-immutable
+			type(false, arr)
+			none
+			[param(a, type(false, mut-arr))]
+			expr-body(call(inner, [param-ref(a)])))
+		fun(
+			false
+			move-to-mut-arr!
+			type(false, mut-arr)
+			none
+			[param(a, type(true, mut-list))]
 			expr-body(
 				let(
 					res
-					call(arr, [call(size, [param-ref(a)]), call(as-const, [call(begin-ptr, [param-ref(a)])])])
+					call(mut-arr, [call(size, [param-ref(a)]), call(begin-ptr, [param-ref(a)])])
 					seq(
 						seq(call(set-backing, [param-ref(a), call(mut-arr, [])]), call(set-size, [param-ref(a), 0]))
 						local-ref(res)))))

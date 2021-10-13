@@ -112,7 +112,10 @@ Convert to a `dict`, clearning the original `mut-list` in the process.
 (This avoids copying but still ensures that the result is immutable.)
 ###
 move-to-arr!<a> a[](a mut-list a) noctx trusted
-	res = a.size arr a.begin-ptr.as-const
+	a.move-to-mut-arr! cast-immutable
+
+move-to-mut-arr!<a> mut-arr a(a mut-list a) noctx trusted
+	res = a.size mut-arr a.begin-ptr
 	a.backing := mut-arr
 	a.size := 0
 	res

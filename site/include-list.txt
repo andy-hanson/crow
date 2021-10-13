@@ -23,6 +23,7 @@ crow/col/arr-util
 crow/col/arr
 crow/col/deque
 crow/col/dict
+crow/col/frozen-unordered-dict
 crow/col/frozen-unordered-set
 crow/col/index-set
 crow/col/list
@@ -36,6 +37,7 @@ crow/col/mut-lookup
 crow/col/mut-priority-queue
 crow/col/mut-set
 crow/col/mut-stack
+crow/col/mut-unordered-set
 crow/col/priority-queue
 crow/col/private/sort-utils
 crow/col/queue
@@ -43,6 +45,7 @@ crow/col/set
 crow/col/sort
 crow/col/stack
 crow/col/tree-set
+crow/col/unordered-dict-2
 crow/col/unordered-set-2
 crow/col/unordered-set
 crow/compare

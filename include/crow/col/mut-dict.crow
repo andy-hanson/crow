@@ -85,6 +85,9 @@ set-subscript<k, v> void(a mut-dict<k, v>, key k, value v) data<k> compare<k>
 	if !(a insert-into-key-match-or-empty-slot! key, value)
 		a add-pair! key, value
 
+in<k, v> bool(key k, a mut-dict<k, v>) trusted data<k> compare<k>
+	!(a find-exact-ptr key is-empty)
+
 ###
 Adds many key-value pairs, replacing existing ones with the same keys.
 Equivalent to adding each element of `b` separately.

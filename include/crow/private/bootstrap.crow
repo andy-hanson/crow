@@ -57,7 +57,7 @@ by-val<a> builtin
 A raw pointer. GC will not trace these.
 WARN: If a is a reference type, mut-ptr<a> is a pointer to a pointer to a
 ###
-mut-ptr<a> builtin
+mut-ptr<a> builtin mut
 const-ptr<a> builtin
 
 any-const-ptr alias
@@ -111,7 +111,7 @@ true bool() noctx builtin
 
 region sym.crow
 
-sym record force-data
+sym record
 	by-val
 	to-c-str c-str
 

@@ -1,45 +1,39 @@
 no-std
 import
-	../bool: !, &&, ==, bool, false, true
+	../bool: &&, ==, bool, false, true
 	../compare: !=, <=, compare
 	../fun: subscript
 	../hash: hash, hash-mix
 	../misc: data, void
-	../opt: is-empty, opt, some
-	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, size-of, swap!
+	../opt: opt, some
+	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap!
 	../test: is
-	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
+	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
 	./arr: ==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, unsafe-at
-	./arr-util: alloc-count, fold, fold-with-index, index-of, map, overhead-bytes, ptr-of
+	./arr-util: fold, fold-with-index, in, index-of, map, ptr-of
 	./mut-arr:
 		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-mut-arr, mut-arr,
 		size, temp-as-arr, uninitialized-mut-arr, unsafe-at, unsafe-set-at!
 
-frozen-unordered-set<a> record force-data
+frozen-unordered-set<a> record
 	# TODO:PRIVATE
 	values a[]
 	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
 	bucket-starts a*[]
 
 frozen-unordered-set<a> frozen-unordered-set a() data<a> compare<a> hash-mix<a>
-	frozen-unordered-set: [], []
+	[] frozen-unordered-set []
 
 frozen-unordered-set<a> frozen-unordered-set a(a a[]) trusted data<a> compare<a> hash-mix<a>
 	a.mut-arr unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
 
+# TODO:INTERNAL
 # Values are stored as a contiguous array; order is arbitrary.
 begin-ptr<a> a*(a frozen-unordered-set a) unsafe
 	a.values begin-ptr
 
 end-ptr<a> a*(a frozen-unordered-set a) unsafe
 	a.values end-ptr
-
-alloc-count<a> nat64(a frozen-unordered-set a) unsafe
-	a.values.alloc-count wrap-add a.bucket-starts.alloc-count
-
-overhead-bytes<a> nat64(a frozen-unordered-set a) unsafe
-	buckets-size = a.bucket-starts.size wrap-mul size-of<a*>
-	a.values.overhead-bytes wrap-add a.bucket-starts.overhead-bytes wrap-add buckets-size
 
 is-empty<a> bool(a frozen-unordered-set a)
 	a.values is-empty
@@ -50,9 +44,22 @@ size<a> nat64(a frozen-unordered-set a)
 unordered-arr<a> a[](a frozen-unordered-set a)
 	a values
 
-subscript<a> bool(a frozen-unordered-set a, value a) trusted data<a> compare<a> hash-mix<a>
-	!(a try-get-unordered-index value is-empty)
+in<a> bool(value a, a frozen-unordered-set a) data<a> compare<a> hash-mix<a>
+	value in (a bucket-for value)
 
+.bucket-for<a> a[](a frozen-unordered-set a, value a) trusted data<a> compare<a> hash-mix<a>
+	if a.bucket-starts is-empty
+		a values
+	else
+		bucket-index = value.hash unsafe-mod a.bucket-starts.size
+		bucket-start = a.bucket-starts unsafe-at bucket-index
+		bucket-end = if bucket-index == (a.bucket-starts.size wrap-sub 1)
+			a.values end-ptr
+		else
+			a.bucket-starts unsafe-at (bucket-index wrap-add 1)
+		bucket-start arr-from-begin-end bucket-end
+
+# TODO: no-doc
 # WARN: The order of values is arbitrary,
 # but consistent for *identical* (not ==) sets.
 try-get-unordered-index<a> nat64?(a frozen-unordered-set a, value a) trusted data<a> compare<a> hash-mix<a>
@@ -64,7 +71,7 @@ try-get-unordered-index<a> nat64?(a frozen-unordered-set a, value a) trusted dat
 		bucket-end = if bucket-index == (a.bucket-starts.size wrap-sub 1)
 			a.values end-ptr
 		else
-			a.bucket-starts unsafe-at: bucket-index wrap-add 1
+			a.bucket-starts unsafe-at (bucket-index wrap-add 1)
 		if ptr ?= bucket-start arr-from-begin-end bucket-end ptr-of value
 			ptr - a.begin-ptr some
 
@@ -94,29 +101,28 @@ body
 	res
 
 .move-values-to-buckets-recur!<a> void
-	value-ptr a mut*
-	value-end a mut*
+	cur a mut*
+	end a mut*
 	bucket-counts mut-arr nat64
 	bucket-starts a mut*[]
 spec
 	unsafe
 	hash-mix<a>
 body
-	if value-ptr != value-end
-		bucket-index = *value-ptr get-bucket-index bucket-counts.size
+	if cur != end
+		bucket-index = *cur get-bucket-index bucket-counts.size
 		bucket-count = bucket-counts unsafe-at bucket-index
 		bucket-start = bucket-starts unsafe-at bucket-index
 		bucket-cur-end = bucket-start + bucket-count
-		if bucket-start <= value-ptr && value-ptr <= bucket-cur-end
-			if value-ptr == bucket-cur-end
-				bucket-counts unsafe-set-at!: bucket-index, bucket-count wrap-add 1
-				value-ptr + 1 move-values-to-buckets-recur! value-end, bucket-counts, bucket-starts
-			else
-				value-ptr + 1 move-values-to-buckets-recur! value-end, bucket-counts, bucket-starts
+		new-cur = if bucket-start <= cur && cur <= bucket-cur-end
+			if cur == bucket-cur-end
+				bucket-counts unsafe-set-at! bucket-index, (bucket-count wrap-add 1)
+			cur + 1
 		else
-			bucket-counts unsafe-set-at!: bucket-index, bucket-count wrap-add 1
-			value-ptr swap! bucket-cur-end
-			value-ptr + 1 move-values-to-buckets-recur! value-end, bucket-counts, bucket-starts
+			bucket-counts unsafe-set-at! bucket-index, (bucket-count wrap-add 1)
+			cur swap! bucket-cur-end
+			cur
+		new-cur move-values-to-buckets-recur! end, bucket-counts, bucket-starts
 
 .get-bucket-index<a> nat64(value a, n-buckets nat64) unsafe hash-mix<a>
 	value.hash unsafe-mod n-buckets
@@ -158,27 +164,27 @@ test
 	a.is-empty is true
 	a.size is 0
 	a verify [], []
-	a[0] is false
+	0 in a is false
 
 	b = frozen-unordered-set: [3, 1, 5, 2]
 	b verify [3, 1, 5, 2], []
-	b[0] is false
-	b[1] is true
-	b[2] is true
-	b[3] is true
-	b[4] is false
-	b[5] is true
-	b[6] is false
+	0 in b is false
+	1 in b is true
+	2 in b is true
+	3 in b is true
+	4 in b is false
+	5 in b is true
+	6 in b is false
 
 	c = frozen-unordered-set: [3, 1, 5, 2, 8]
-	c verify [8, 2, 3, 1, 5], [0, 2]
-	c[0] is false
-	c[1] is true
-	c[2] is true
-	c[3] is true
-	c[4] is false
-	c[5] is true
-	c[6] is false
-	c[7] is false
-	c[8] is true
-	c[9] is false
+	c verify [2, 8, 3, 5, 1], [0, 2]
+	0 in c is false
+	1 in c is true
+	2 in c is true
+	3 in c is true
+	4 in c is false
+	5 in c is true
+	6 in c is false
+	7 in c is false
+	8 in c is true
+	9 in c is false
