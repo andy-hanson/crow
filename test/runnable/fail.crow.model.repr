@@ -1,12 +1,12 @@
 module(
-	path: 75
+	path: 74
 	imports: [import(none, 57, none)]
 	funs: [
 		fun(
 			public: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(75, 0), main, fut(nat64()), [param(file-range(75, range(13, 20)), none, arr(str()))])
+			sig: sig(file-pos(74, 0), main, fut(nat64()), [param(file-range(74, range(13, 20)), none, arr(str()))])
 			body: seq(
 				call(fun-inst(name: foo), [])
 				call(fun-inst(name: resolved, type-args: [nat64()]), [literal(nat64(), 0)])))
@@ -14,11 +14,11 @@ module(
 			public: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(75, 54), foo, void(), [])
+			sig: sig(file-pos(74, 54), foo, void(), [])
 			body: call(fun-inst(name: bar), []))
 		fun(
 			public: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(75, 85), bar, void(), [])
+			sig: sig(file-pos(74, 85), bar, void(), [])
 			body: call(fun-inst(name: throw, type-args: [void()]), [string-lit("FOO")]))])

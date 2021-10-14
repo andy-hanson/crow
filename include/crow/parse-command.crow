@@ -8,6 +8,7 @@ import
 	./col/mut-dict: move-to-dict!, mut-dict, set-subscript
 	./col/mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
 	./exception: assert, throw
+	./hash: hash-mix
 	./misc: ->, void
 	./number: ==, +
 	./opt: force, is-empty, none, opt, some

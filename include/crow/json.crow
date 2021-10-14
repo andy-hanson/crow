@@ -5,6 +5,7 @@ import
 	./col/list: each, is-empty, list, list-equal
 	./col/mut-dict: move-to-dict!, mut-dict, set-subscript
 	./col/mut-list: ~=, move-to-arr!, mut-list
+	./hash: hash-mix
 	./misc: ->, void
 	./number: ==, float64
 	./opt: none, opt, some

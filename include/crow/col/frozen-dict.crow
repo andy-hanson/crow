@@ -17,47 +17,47 @@ import
 		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-mut-arr, mut-arr,
 		mut-arr-from-begin-end, size, temp-as-arr, uninitialized-mut-arr, unsafe-at, unsafe-set-at!
 
-frozen-unordered-dict<k, v> record
+frozen-dict<k, v> record
 	by-val
 	# TODO:PRIVATE
 	pairs arrow<k, v>[]
 	bucket-starts arrow<k, v>*[]
 
-frozen-unordered-dict<k, v> frozen-unordered-dict<k, v>() data<k> compare<k> hash-mix<k>
-	[] frozen-unordered-dict []
+frozen-dict<k, v> frozen-dict<k, v>() data<k> compare<k> hash-mix<k>
+	[] frozen-dict []
 
-frozen-unordered-dict<k, v> frozen-unordered-dict<k, v>(a arrow<k, v>[]) trusted data<k> compare<k> hash-mix<k>
+frozen-dict<k, v> frozen-dict<k, v>(a arrow<k, v>[]) trusted data<k> compare<k> hash-mix<k>
 	a.mut-arr.mut-arr-to-frozen-dict-promise-no-duplicates remove-duplicates
 
 # TODO:INTERNAL
-begin-ptr<k, v> arrow<k, v>*(a frozen-unordered-dict<k, v>) unsafe
+begin-ptr<k, v> arrow<k, v>*(a frozen-dict<k, v>) unsafe
 	a.pairs begin-ptr
 
-end-ptr<k, v> arrow<k, v>*(a frozen-unordered-dict<k, v>) unsafe
+end-ptr<k, v> arrow<k, v>*(a frozen-dict<k, v>) unsafe
 	a.pairs end-ptr
 
-is-empty<k, v> bool(a frozen-unordered-dict<k, v>)
+is-empty<k, v> bool(a frozen-dict<k, v>)
 	a.pairs is-empty
 
-size<k, v> nat64(a frozen-unordered-dict<k, v>)
+size<k, v> nat64(a frozen-dict<k, v>)
 	a.pairs size
 
-to-arr<k, v> arrow<k, v>[](a frozen-unordered-dict<k, v>)
+to-arr<k, v> arrow<k, v>[](a frozen-dict<k, v>)
 	a pairs
 
-subscript<k, v> v?(a frozen-unordered-dict<k, v>, key k) trusted data<k> compare<k> hash-mix<k>
+subscript<k, v> v?(a frozen-dict<k, v>, key k) trusted data<k> compare<k> hash-mix<k>
 	if ptr ?= a find-ptr key
 		(*ptr).to some
 
-in<k, v> bool(key k, a frozen-unordered-dict<k, v>) trusted data<k> compare<k> hash-mix<k>
+in<k, v> bool(key k, a frozen-dict<k, v>) trusted data<k> compare<k> hash-mix<k>
 	!(a find-ptr key is-empty)
 
 # TODO:INTERNAL
-try-get-unordered-index<k, v> nat64?(a frozen-unordered-dict<k, v>, key k) trusted data<k> compare<k> hash-mix<k>
+try-get-unordered-index<k, v> nat64?(a frozen-dict<k, v>, key k) trusted data<k> compare<k> hash-mix<k>
 	if ptr ?= a find-ptr key
 		ptr - a.pairs.begin-ptr some
 
-.find-ptr<k, v> arrow<k, v>*?(a frozen-unordered-dict<k, v>, key k) unsafe data<k> compare<k> hash-mix<k>
+.find-ptr<k, v> arrow<k, v>*?(a frozen-dict<k, v>, key k) unsafe data<k> compare<k> hash-mix<k>
 	bucket = if a.bucket-starts is-empty
 		a pairs
 	else
@@ -83,7 +83,7 @@ find-ptr<k, v> arrow<k, v>*?(cur arrow<k, v>*, end arrow<k, v>*, key k) unsafe d
 	else
 		cur + 1 find-ptr end, key
 
-mut-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-unordered-dict<k, v>
+mut-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>
 	a mut-arr arrow<k, v>
 spec
 	unsafe
@@ -92,17 +92,17 @@ spec
 	hash-mix<k>
 body
 	if a.size <= 4
-		a.cast-immutable frozen-unordered-dict []
+		a.cast-immutable frozen-dict []
 	else
 		n-buckets = a.size unsafe-div 2
 		bucket-counts = a get-bucket-counts n-buckets
 		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-arr
 		bucket-counts fill! 0
 		a.begin-ptr move-values-to-buckets-recur! a.end-ptr, bucket-counts, bucket-starts
-		a.cast-immutable frozen-unordered-dict bucket-starts.arr-cast<arrow<k, v>*, arrow<k, v> mut*>
+		a.cast-immutable frozen-dict bucket-starts.arr-cast<arrow<k, v>*, arrow<k, v> mut*>
 
-.remove-duplicates<k, v> frozen-unordered-dict<k, v>
-	a frozen-unordered-dict<k, v>
+.remove-duplicates<k, v> frozen-dict<k, v>
+	a frozen-dict<k, v>
 spec
 	unsafe
 	data<k>
@@ -118,7 +118,7 @@ body
 	else
 		a
 
-.write-without-duplicates<k, v> arrow<k, v> mut*(out arrow<k, v> mut*, a frozen-unordered-dict<k, v>) trusted equal<k>
+.write-without-duplicates<k, v> arrow<k, v> mut*(out arrow<k, v> mut*, a frozen-dict<k, v>) trusted equal<k>
 	if a.bucket-starts is-empty
 		out write-bucket-without-duplicates a.pairs.begin-ptr, a.pairs.end-ptr
 	else
@@ -159,7 +159,7 @@ body
 			out + 1
 		mid write-bucket-without-duplicates begin + 1, end
 
-.has-duplicates<k, v> bool(a frozen-unordered-dict<k, v>) trusted equal<k>
+.has-duplicates<k, v> bool(a frozen-dict<k, v>) trusted equal<k>
 	if a.bucket-starts is-empty
 		a.pairs.begin-ptr bucket-has-duplicates a.pairs.end-ptr
 	else
@@ -250,30 +250,30 @@ body
 
 region iteration
 
-each<k, v> void(a frozen-unordered-dict<k, v>, f act void(k, v))
+each<k, v> void(a frozen-dict<k, v>, f act void(k, v))
 	a.pairs each pair =>
 		f[pair from, pair to]
 
-fold<a, k, v> a(acc a, a frozen-unordered-dict<k, v>, f act a(a, k, v))
+fold<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v))
 	acc fold a.pairs, (acc, pair) =>
 		f[acc, pair from, pair to]
 
-fold-with-index<a, k, v> a(acc a, a frozen-unordered-dict<k, v>, f act a(a, k, v, nat64))
+fold-with-index<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
 	acc fold-with-index a.pairs, (acc, pair, index) =>
 		f[acc, pair from, pair to, index]
 
-.verify void(a frozen-unordered-dict<nat64, str>, keys-order nat64[], bucket-starts nat64[]) unsafe
+.verify void(a frozen-dict<nat64, str>, keys-order nat64[], bucket-starts nat64[]) unsafe
 	a.pairs map (pair => pair from) is keys-order
 	a.bucket-starts map (ptr => ptr - a.pairs.begin-ptr) is bucket-starts
 
 test
-	a = frozen-unordered-dict<nat64, str>
+	a = frozen-dict<nat64, str>
 	a.is-empty is true
 	a.size is 0
 	a verify [], []
 	a[0] is none
 	
-	b = [3 -> "3", 1 -> "1", 5 -> "5", 2 -> "2"] frozen-unordered-dict
+	b = [3 -> "3", 1 -> "1", 5 -> "5", 2 -> "2"] frozen-dict
 	b verify [3, 1, 5, 2], []
 	b[0] is none
 	b[1] is "1".some
@@ -283,7 +283,7 @@ test
 	b[5] is "5".some
 	b[6] is none
 
-	c = [3 -> "3", 1 -> "1", 5 -> "5", 2 -> "2", 8 -> "8"] frozen-unordered-dict
+	c = [3 -> "3", 1 -> "1", 5 -> "5", 2 -> "2", 8 -> "8"] frozen-dict
 	c verify [2, 8, 3, 5, 1], [0, 2]
 	c[0] is none
 	c[1] is "1".some
@@ -297,7 +297,7 @@ test
 	c[9] is none
 
 test
-	a = [1 -> "1", 1 -> "2"] frozen-unordered-dict
+	a = [1 -> "1", 1 -> "2"] frozen-dict
 	a.size is 1
 	a verify [1], []
 	a[1] is "2".some

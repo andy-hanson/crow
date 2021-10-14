@@ -1,0 +1,60 @@
+no-std
+import
+	../../bool: !, bool
+	../../compare: compare
+	../../hash: hash-mix
+	../../misc: ->, data, void
+	../../number: nat64
+	../../opt: is-empty, none, opt, some
+	../arr: arr
+	../arr-util: map
+	../dict: dict, each-key, fold-keys, is-empty, new-dict, size, subscript, try-add, try-remove
+
+hamt-set<a> record
+	inner dict<a, void>
+
+hamt-set<a> hamt-set a() data<a> compare<a> hash-mix<a>
+	dict<a, void> hamt-set
+
+hamt-set<a> hamt-set a(a a[]) data<a> compare<a> hash-mix<a>
+	hamt-set: a map (x => x -> void) dict
+
+is-empty<a> bool(a hamt-set a) data<a> compare<a> hash-mix<a>
+	a.inner is-empty
+
+size<a> nat64(a hamt-set a) data<a> compare<a> hash-mix<a>
+	a.inner size
+
+in<a> bool(value a, a hamt-set a) data<a> compare<a> hash-mix<a>
+	!a.inner[value].is-empty
+
+~ <a> hamt-set a(a hamt-set a, value a) data<a> compare<a> hash-mix<a>
+	if res ?= a try-add value
+		res
+	else
+		a
+
+try-add<a> hamt-set<a>?(a hamt-set a, value a) data<a> compare<a> hash-mix<a>
+	match a.inner try-add value, () => void
+	as already-has-key
+		none
+	as dict l
+		l.hamt-set some
+
+- <a> hamt-set a(a hamt-set a, value a) data<a> compare<a> hash-mix<a>
+	if res ?= a try-remove value
+		res
+	else
+		a
+
+try-remove<a> hamt-set<a>?(a hamt-set a, value a) data<a> compare<a> hash-mix<a>
+	if res ?= a.inner try-remove value
+		res.new-dict.hamt-set some
+
+region iteration
+
+each<a> void(a hamt-set a, f act void(a)) data<a> compare<a> hash-mix<a>
+	a.inner each-key f
+
+fold<a, b> a(acc a, a hamt-set b, f act a(a, b)) data<b> compare<b> hash-mix<b>
+	acc fold-keys a.inner, f

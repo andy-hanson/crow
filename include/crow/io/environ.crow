@@ -6,6 +6,7 @@ import
 	../col/mut-dict: move-to-dict!, mut-dict, set-subscript
 	../col/mut-list: ~=, move-to-arr!, mut-list
 	../compare: !=
+	../hash: hash-mix
 	../misc: ->, arrow, as, from, to, void
 	../private/bootstrap: todo
 	../ptr: ==, +, *, const-ptr, null

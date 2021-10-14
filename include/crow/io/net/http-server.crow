@@ -10,6 +10,7 @@ import
 	../../compare: !=, <=, >=
 	../../exception: assert, forbid, to-str
 	../../fut: fut, fut-catch, resolved, subscript, then
+	../../hash: hash-mix
 	../../log: error, log
 	../../misc: as, drop, void
 	../../number: ==, <=>, +, nat8, nat64, to-int64

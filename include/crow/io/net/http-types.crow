@@ -1,6 +1,7 @@
 no-std
 import
 	../../col/dict: dict
+	../../hash: hash-mix
 	../../number: nat64
 	../../str: ==, <=>, str
 

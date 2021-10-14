@@ -1,0 +1,527 @@
+no-std
+import
+	../../bool: !, &&, ==, bool, false, true
+	../../compare: <, <=, >=, compare, max, min
+	../../exception: unreachable
+	../../fun: subscript
+	../../misc: ->, arrow, as, data, from, to, void
+	../../number: ==, <=>, +, -, is-even, nat64
+	../../opt: ==, is-empty, none, opt, opt-or, some
+	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
+	../../str: ==, chars, is-empty, size-bytes, str
+	../../str-conv: interp, finish, to-str, with-str, with-value
+	../../test: is
+	../../writer: ~=, backup!, move-to-str!, writer
+	../../private/alloc: mem-copy!
+	../../private/bootstrap: hard-assert
+	../../private/number-low-level: wrap-add
+	../arr: arr, begin-ptr, is-empty, end-ptr, size, subscript
+	../arr-util: each, filter, fold, map, tail
+	../mut-arr:
+		begin-ptr, cast-immutable, is-empty, fold, mut-arr, set-subscript, size, subscript, tail,
+		uninitialized-mut-arr
+	../sort: sort-by
+	../private/sort-utils: binary-search-key
+
+compact-sorted-dict<k, v> record
+	by-val
+	# TODO:PRIVATE
+	ignore void
+	impl impl<k, v>
+
+.impl<k, v> union
+	overlay<k, v>
+	end-node<k, v>
+
+.overlay<k, v> record
+	by-ref
+	# TODO: consider tracking the number of keys that are new, or change a value, or remove a value.
+	# We should merge more frequently if removing keys, less frequently if adding keys.
+	# never empty
+	pairs arrow<k, v?>[]
+	prev impl<k, v>
+
+# Leftmost node. Values are non-optional as there is nothing left of this to remove from.
+.end-node<k, v> record
+	by-val
+	pairs arrow<k, v>[]
+
+compact-sorted-dict<k, v> compact-sorted-dict<k, v>() data<k> compare<k>
+	void compact-sorted-dict [].end-node
+
+compact-sorted-dict<k, v> compact-sorted-dict<k, v>(a arrow<k, v>[]) data<k> compare<k>
+	void compact-sorted-dict (a sort-by (pair => pair from) end-node)
+
+is-empty<k, v> bool(a compact-sorted-dict<k, v>) data<k> compare<k>
+	match a impl
+	as overlay
+		false
+	as end-node e
+		e.pairs is-empty
+
+###
+Number of pairs.
+This is O(n).
+###
+size<k, v> nat64(a compact-sorted-dict<k, v>) data<k> compare<k>
+	0 fold a, (acc, k, v) => acc + 1
+
+arr<k, v> arrow<k, v>[](a compact-sorted-dict<k, v>) data<k> compare<k>
+	# TODO:PERF Just use 'fold'?
+	match a.compact.impl
+	as overlay
+		unreachable
+	as end-node e
+		e.pairs
+
+~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, pair arrow<k, v>) data<k> compare<k>
+	void compact-sorted-dict (a.impl add-or-remove pair.from, pair.to.some)
+
+~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b compact-sorted-dict<k, v>) data<k> compare<k>
+	a ~ b.arr
+
+~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b arrow<k, v>[]) data<k> compare<k>
+	if b is-empty
+		a
+	elif a is-empty
+		b compact-sorted-dict
+	else
+		# TODO: 'as' should be unnecessary
+		pairs = as<arrow<k, v?>[]>: b map (it => it.from -> it.to.some) sort-by it => it from
+		void compact-sorted-dict (pairs overlay a.impl merge-as-needed)
+
+- <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, key k) data<k> compare<k>
+	if key in a
+		void compact-sorted-dict (a.impl add-or-remove key, none)
+	else
+		a
+
+- <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, keys k[]) data<k> compare<k>
+	a fold keys, (cur, key) =>
+		cur - key
+
+subscript<k, v> v?(a compact-sorted-dict<k, v>, key k) data<k> compare<k>
+	a.impl subscript-recur key
+.subscript-recur<k, v> v?(a impl<k, v>, key k) data<k> compare<k>
+	match a
+	as overlay o
+		if v ?= o.pairs binary-search-key key
+			v
+		else
+			o.prev subscript-recur key
+	as end-node e
+		if v ?= e.pairs binary-search-key key
+			v some
+
+in<k, v> bool(key k, a compact-sorted-dict<k, v>) data<k> compare<k>
+	!a[key].is-empty
+
+.add-or-remove<k, v> impl<k, v>(a impl<k, v>, key k, value v?) data<k> compare<k>
+	[key -> value] overlay a merge-as-needed
+
+.merge-as-needed<k, v> impl<k, v>(a overlay<k, v>) data<k> compare<k>
+	match a prev
+	as overlay o
+		if o.pairs.size should-merge a.pairs.size
+			new-pairs = o.pairs merge-overlays a.pairs
+			new-pairs overlay o.prev merge-as-needed
+		else
+			a
+	as end-node e
+		if e.pairs.size should-merge a.pairs.size
+			e.pairs merge-to-end a.pairs end-node
+		else
+			a
+
+.merge-unconditionally<k, v> end-node<k, v>(a overlay<k, v>) data<k> compare<k>
+	match a prev
+	as overlay o
+		o.pairs merge-overlays a.pairs overlay o.prev merge-unconditionally
+	as end-node e
+		e.pairs merge-to-end a.pairs end-node
+
+.should-merge bool(prev-size nat64, overlay-size nat64)
+	prev-size <= (overlay-size max 3)
+
+.merge-overlays<k, v> arrow<k, v?>[](l arrow<k, v?>[], r arrow<k, v?>[]) trusted data<k> compare<k>
+	res = l.size + r.size uninitialized-mut-arr<arrow<k, v?>>
+	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
+	res[0 -> end - res.begin-ptr] cast-immutable
+
+.merge-keep-right<k, v> arrow<k, v> mut*
+	out arrow<k, v> mut*
+	l arrow<k, v>*
+	l-end arrow<k, v>*
+	r arrow<k, v>*
+	r-end arrow<k, v>*
+spec
+	noctx
+	unsafe
+	compare<k>
+body
+	hard-assert: l < l-end
+	hard-assert: r < r-end
+	match (*l).from <=> (*r).from
+	as less
+		*out := *l
+		if l + 1 == l-end
+			out + 1 finish-rest r, r-end
+		else
+			out + 1 merge-keep-right l + 1, l-end, r, r-end
+	as equal
+		*out := *r
+		if l + 1 == l-end
+			out + 1 finish-rest r + 1, r-end
+		elif r + 1 == r-end
+			out + 1 finish-rest l + 1, l-end
+		else
+			out + 1 merge-keep-right l + 1, l-end, r + 1, r-end
+	as greater
+		*out := *r
+		if r + 1 == r-end
+			out + 1 finish-rest l, l-end
+		else
+			out + 1 merge-keep-right l, l-end, r + 1, r-end
+
+.merge-to-end<k, v> arrow<k, v>[](l arrow<k, v>[], r arrow<k, v?>[]) trusted data<k> compare<k>
+	res = l.size + r.size uninitialized-mut-arr<arrow<k, v>>
+	end = if l is-empty
+		res.begin-ptr finish-rest-ignore-none r.begin-ptr, r.end-ptr
+	else
+		res.begin-ptr merge-to-end-recur l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
+	res[0 -> end - res.begin-ptr] cast-immutable
+
+.merge-to-end-recur<k, v> arrow<k, v> mut*
+	out arrow<k, v> mut*
+	l arrow<k, v>*
+	l-end arrow<k, v>*
+	r arrow<k, v?>*
+	r-end arrow<k, v?>*
+spec
+	unsafe
+	noctx
+	data<k>
+	compare<k>
+body
+	hard-assert: l < l-end
+	hard-assert: r < r-end
+	match (*l).from <=> (*r).from
+	as less
+		*out := *l
+		if l + 1 == l-end
+			out + 1 finish-rest-ignore-none r, r-end
+		else
+			out + 1 merge-to-end-recur l + 1, l-end, r, r-end
+	as equal
+		new-out = if r-value ?= *r to
+			*out := (*r).from -> r-value
+			out + 1
+		else
+			out
+
+		if l + 1 == l-end
+			new-out finish-rest-ignore-none r + 1, r-end
+		elif r + 1 == r-end
+			new-out finish-rest l + 1, l-end
+		else
+			new-out merge-to-end-recur l + 1, l-end, r + 1, r-end
+	as greater
+		new-out = if r-value ?= *r to
+			*out := (*r).from -> r-value
+			out + 1
+		else
+			out
+
+		if r + 1 == r-end
+			new-out finish-rest l, l-end
+		else
+			new-out merge-to-end-recur l, l-end, r + 1, r-end
+
+.finish-rest<a> a mut*(out a mut*, cur a*, end a*) unsafe noctx
+	rest-size = end - cur
+	out mem-copy! cur, rest-size
+	out + rest-size
+
+.finish-rest-ignore-none<k, v> arrow<k, v> mut*
+	out arrow<k, v> mut*
+	r arrow<k, v?>*
+	r-end arrow<k, v?>*
+spec
+	unsafe
+	noctx
+body
+	if r == r-end
+		out
+	else
+		new-out = if r-value ?= *r to
+			*out := (*r).from -> r-value
+			out + 1
+		else
+			out
+		new-out finish-rest-ignore-none r + 1, r-end
+
+# Returns an equal dictionary that takes up less space.
+compact<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>) data<k> compare<k>
+	void compact-sorted-dict match a.impl
+	as overlay o
+		o merge-unconditionally
+	as end-node e
+		e
+
+region iteration
+
+each<k, v> void(a compact-sorted-dict<k, v>, f act void(k, v)) data<k> compare<k>
+	void fold a, (ignore, k, v) =>
+		f[k, v]
+
+fold<a, k, v> a(acc a, a compact-sorted-dict<k, v>, f act a(a, k, v)) data<k> compare<k>
+	iters = a init-iters
+	acc fold-recur iters.end-pairs, iters.overlays, f
+
+.fold-recur<a, k, v> a
+	acc a
+	end-node arrow<k, v>[]
+	overlays mut-arr arrow<k, v?>[]
+	f act a(a, k, v)
+spec
+	data<k>
+	compare<k>
+body
+	if overlays is-empty
+		acc fold end-node, (cur, pair) => f[cur, pair.from, pair.to]
+	else
+		least-key = if end-node is-empty
+			overlays[0][0].from find-least-key overlays.tail
+		else
+			end-node[0].from find-least-key overlays
+		take-from-end-node = !end-node.is-empty && least-key == end-node[0].from
+		# TODO: should not need 'as'
+		val-from-end-node = as<v?>: if take-from-end-node
+			end-node[0].to some
+		new-end-node = if take-from-end-node
+			end-node tail
+		else
+			end-node
+		took-from-overlays = overlays take-key least-key
+		new-acc = if val ?= took-from-overlays.rightmost-value opt-or val-from-end-node
+			f[acc, least-key, val]
+		else
+			acc
+		new-acc fold-recur new-end-node, took-from-overlays.overlays, f
+
+.find-least-key<k, v> k(current-least-key k, overlays mut-arr arrow<k, v>[]) data<k> compare<k>
+	current-least-key fold overlays, (cur, overlay) =>
+		cur min overlay[0].from
+
+.took-key<k, v> record mut
+	rightmost-value v?
+	overlays mut-arr arrow<k, v?>[]
+
+###
+Takes the key from the front of every overlay that has it.
+Removes rightmost overlays from the mut-arr (by returning a new, smaller mut-arr).
+Returns the rightmost value associated with that key.
+###
+.take-key<k, v> took-key<k, v>(overlays mut-arr arrow<k, v?>[], key k) data<k> compare<k>
+	overlays take-key-recur key, 0, none
+.take-key-recur<k, v> took-key<k, v>
+	overlays mut-arr arrow<k, v?>[]
+	key k
+	index nat64
+	rightmost-value v?
+spec
+	data<k>
+	compare<k>
+body
+	# Index can overshoot due to removing overlays
+	if index >= overlays.size
+		took-key: rightmost-value, overlays
+	elif overlays[index][0].from == key
+		new-rightmost-value = overlays[index][0] to
+		new-overlay = overlays[index] tail
+		if new-overlay is-empty
+			overlays[index] := overlays[overlays.size - 1]
+			overlays[0 -> overlays.size - 1] take-key-recur key, index + 1, new-rightmost-value
+		else
+			overlays[index] := new-overlay
+			overlays take-key-recur key, index + 1, new-rightmost-value
+	else
+		overlays take-key-recur key, index + 1, rightmost-value
+
+.get-end<k, v> end-node<k, v>(a impl<k, v>)
+	match a
+	as overlay o
+		o.prev get-end
+	as end-node e
+		e
+
+.iters<k, v> record mut
+	end-pairs arrow<k, v>[]
+	overlays mut-arr arrow<k, v?>[]
+
+.init-iters<k, v> iters<k, v>(a compact-sorted-dict<k, v>) trusted
+	overlay-iters = 0 overlay-count a.impl uninitialized-mut-arr<arrow<k, v?>[]>
+	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur! a.impl
+	end-pairs iters overlay-iters
+
+.overlay-count<k, v> nat64(acc nat64, a impl<k, v>) noctx
+	match a
+	as overlay o
+		acc wrap-add 1 overlay-count o.prev
+	as end-node
+		acc
+
+# incidentally returns the end node pairs
+.init-overlay-iters-recur!<k, v> arrow<k, v>[](out arrow<k, v?>[] mut*, a impl<k, v>) noctx unsafe
+	match a
+	as overlay o
+		*out := o pairs
+		out + 1 init-overlay-iters-recur! o.prev
+	as end-node e
+		e pairs
+
+filter<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, f act bool(k, v)) data<k> compare<k>
+	# No need to re-sort
+	compact-sorted-dict: void, end-node: a.arr filter pair =>
+		f[pair.from, pair.to]
+
+map<k-out, v-out, k-in, v-in> compact-sorted-dict<k-out, v-out>
+	a compact-sorted-dict<k-in, v-in>
+	f act arrow<k-out, v-out>(k-in, v-in)
+spec
+	data<k-in>
+	compare<k-in>
+	data<k-out>
+	compare<k-out>
+body
+	a map-to-arr f compact-sorted-dict
+
+keys<k, v> k[](a compact-sorted-dict<k, v>) data<k> compare<k>
+	a map-to-arr (k, v) => k
+
+map-to-arr<out, k, v> out[](a compact-sorted-dict<k, v>, f act out(k, v)) data<k> compare<k>
+	a.arr map pair => f[pair.from, pair.to]
+
+map-values<v-out, k, v-in> compact-sorted-dict<k, v-out>
+	a compact-sorted-dict<k, v-in>
+	f act v-out(k, v-in)
+spec
+	data<k>
+	compare<k>
+body
+	# No need to re-sort
+	compact-sorted-dict: void, end-node: a.arr map pair =>
+		pair.from -> f[pair.from, pair.to]
+
+# TODO:PRIVATE
+dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
+	out = writer
+	out dbg-recur! a.impl
+	out move-to-str!
+
+.dbg-recur!<k, v> void(out writer, a impl<k, v>) to-str<k> to-str<v>
+	match a
+	as overlay o
+		out dbg-recur! o.prev
+		out ~= ", ["
+		o.pairs each pair =>
+			out ~= pair.from.to-str
+			out ~= " -> "
+			out ~= if t ?= pair.to
+				t to-str
+			else
+				"_"
+			out ~= ", "
+		if !o.pairs.is-empty
+			out backup! 2
+		out ~= "]"
+	as end-node e
+		out ~= "["
+		e.pairs each pair =>
+			out ~= pair.from to-str
+			out ~= " -> "
+			out ~= pair.to to-str
+			out ~= ", "
+		if e.pairs is-empty
+			out ~= "]"
+		else
+			out backup! 2
+			out ~= "]"
+
+verify void(a compact-sorted-dict<nat64, str>, expected str)
+	a.dbg is expected
+
+.arr-ref-eq<a> bool(a a[], b a[]) unsafe
+	a.begin-ptr == b.begin-ptr && a.size == b.size
+
+.exact-eq<k, v> bool(a compact-sorted-dict<k, v>, b compact-sorted-dict<k, v>) unsafe
+	match a impl
+	as overlay oa
+		match b impl
+		as overlay ob
+			oa ref-eq ob
+		as end-node
+			false
+	as end-node ea
+		match b impl
+		as overlay
+			false
+		as end-node eb
+			ea.pairs arr-ref-eq eb.pairs
+
+test
+	a = compact-sorted-dict<nat64, str>
+	a.is-empty is true
+	a.size is 0
+	a verify "[]"
+	a[10] is none
+
+	b = a ~ (10 -> "10")
+	b verify "[10 -> 10]"
+	b[10] is "10".some
+
+	c = b ~ [15 -> "15", 5 -> "5", 20 -> "20"]
+	c verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20]"
+
+	d = c ~ (11 -> "11")
+	d verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [11 -> 11]"
+
+	e = d - 15
+	e verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [11 -> 11, 15 -> _]"
+
+	e - 15 exact-eq e is true
+	e - 16 exact-eq e is true
+
+	f = e - 10
+	f verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> _, 11 -> 11, 15 -> _]"
+
+	g = f ~ (10 -> "10b")
+	g verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> 11, 15 -> _]"
+
+	h = g - [11, 12]
+	# Unfortunately we leave an unnecessary '11 -> _',
+	# because we don't keep track of what a removal removes from, and it might be removing from the leftmost node.
+	h verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> _, 15 -> _]"
+
+	i = h ~ [11 -> "11", 25 -> "25"]
+	i verify "[5 -> 5, 10 -> 10b, 11 -> 11, 20 -> 20, 25 -> 25]"
+
+	h-folded = "" fold h, (cur, key, value) =>
+		pair = "{key} -> {value}"
+		if cur.is-empty
+			pair
+		else
+			"{cur}, {pair}"
+	h-folded is "5 -> 5, 10 -> 10b, 15 -> 15, 20 -> 20"
+
+	h-filtered = h filter (k, v) =>
+		k is-even
+	h-filtered verify "[10 -> 10b, 20 -> 20]"
+
+	h-mapped = h map-values (k, v) =>
+		v.chars[v.size-bytes - 1 -> v.size-bytes] str
+	h-mapped verify "[5 -> 5, 10 -> b, 20 -> 0]"
+
+test
+	a = [84 -> "84"].compact-sorted-dict ~ (84 -> "84b")
+	a verify "[84 -> 84b]"

@@ -1,34 +1,34 @@
 no-std
 import
-	../bool: !, ==, bool, false, true
-	../compare: !=, <=, compare, max
-	../fun: subscript
-	../hash: hash-mix
-	../log: info, log
-	../misc: ->, arrow, data, from, to, void
-	../opt: ==, is-empty, none, opt, some
-	../ptr: ==, +, ref-eq, set-deref
-	../str: ==, str
-	../str-conv: to-str
-	../test: is
-	../writer: ~=, backup!, move-to-str!, writer
-	../private/bootstrap: hard-assert
-	../private/number-low-level: ==, <=>, nat64, wrap-add
-	./arr: arr
-	./arr-util: fold
-	./frozen-unordered-dict:
-		each, frozen-unordered-dict, fold, in, is-empty,
+	../../bool: !, ==, bool, false, true
+	../../compare: !=, <=, compare, max
+	../../fun: subscript
+	../../hash: hash-mix
+	../../log: info, log
+	../../misc: ->, arrow, data, from, to, void
+	../../opt: ==, is-empty, none, opt, some
+	../../ptr: ==, +, ref-eq, set-deref
+	../../str: ==, str
+	../../str-conv: to-str
+	../../test: is
+	../../writer: ~=, backup!, move-to-str!, writer
+	../../private/bootstrap: hard-assert
+	../../private/number-low-level: ==, <=>, nat64, wrap-add
+	../arr: arr
+	../arr-util: fold
+	../frozen-dict:
+		each, frozen-dict, fold, in, is-empty,
 		mut-arr-to-frozen-dict-promise-no-duplicates, size, subscript
-	./mut-arr: begin-ptr, cast-immutable, end-ptr, mut-arr-from-begin-end, uninitialized-mut-arr
-	./mut-unordered-set: in, mut-unordered-set, try-add!
+	../mut-arr: begin-ptr, cast-immutable, end-ptr, mut-arr-from-begin-end, uninitialized-mut-arr
+	../mut-set: in, mut-set, try-add!
 
-unordered-dict-2<k, v> record
+compact-dict<k, v> record
 	by-val
 	ignore void
 	impl impl<k, v>
 
 # TODO:KILL
-node-count<k, v> nat64(a unordered-dict-2<k, v>)
+node-count<k, v> nat64(a compact-dict<k, v>)
 	0 node-count a.impl
 .node-count<k, v> nat64(acc nat64, a impl<k, v>)
 	match a
@@ -43,26 +43,26 @@ node-count<k, v> nat64(a unordered-dict-2<k, v>)
 
 .overlay<k, v> record
 	by-ref
-	pairs frozen-unordered-dict<k, v?>
+	pairs frozen-dict<k, v?>
 	prev impl<k, v>
 
 .end-node<k, v> record
 	by-ref
-	pairs frozen-unordered-dict<k, v>
+	pairs frozen-dict<k, v>
 
-unordered-dict-2<k, v> unordered-dict-2<k, v>() data<k> compare<k> hash-mix<k>
-	void unordered-dict-2 frozen-unordered-dict.end-node
+compact-dict<k, v> compact-dict<k, v>() data<k> compare<k> hash-mix<k>
+	void compact-dict frozen-dict.end-node
 
-unordered-dict-2<k, v> unordered-dict-2<k, v>(a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
-	void unordered-dict-2 a.frozen-unordered-dict.end-node
+compact-dict<k, v> compact-dict<k, v>(a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+	void compact-dict a.frozen-dict.end-node
 
-keys<k, v> k[](a unordered-dict-2<k, v>) data<k> compare<k> hash-mix<k>
+keys<k, v> k[](a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, v) => k
 
-values<k, v> v[](a unordered-dict-2<k, v>) data<k> compare<k> hash-mix<k>
+values<k, v> v[](a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, v) => v
 
-is-empty<k, v> bool(a unordered-dict-2<k, v>) data<k> compare<k> hash-mix<k>
+is-empty<k, v> bool(a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
 	match a impl
 	as overlay
 		false
@@ -74,32 +74,32 @@ Number of pairs.
 This is O(n).
 ###
 
-size<k, v> nat64(a unordered-dict-2<k, v>) data<k> compare<k> hash-mix<k>
+size<k, v> nat64(a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
 	0 fold a, (acc, k, v) => acc wrap-add 1
 
-~ <k, v> unordered-dict-2<k, v>(a unordered-dict-2<k, v>, pair arrow<k, v>) data<k> compare<k> hash-mix<k>
+~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, pair arrow<k, v>) data<k> compare<k> hash-mix<k>
 	a add-or-remove pair.from, pair.to.some
 
 ###
 TODO
-~ <k, v> unordered-dict-2<k, v>(a unordered-dict-2<k, v>, b unordered-dict-2<k, v>) data<k> compare<k> hash-mix<k>
+~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, b compact-dict<k, v>) data<k> compare<k> hash-mix<k>
 	a ~ b.arr
 ###
 
-~ <k, v> unordered-dict-2<k, v>(a unordered-dict-2<k, v>, b arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, b arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	a fold b, (cur, pair) => cur ~ pair
 
-- <k, v> unordered-dict-2<k, v>(a unordered-dict-2<k, v>, key k) data<k> compare<k> hash-mix<k>
+- <k, v> compact-dict<k, v>(a compact-dict<k, v>, key k) data<k> compare<k> hash-mix<k>
 	if key in a
 		a add-or-remove key, none
 	else
 		a
 
-- <k, v> unordered-dict-2<k, v>(a unordered-dict-2<k, v>, keys k[]) data<k> compare<k> hash-mix<k>
+- <k, v> compact-dict<k, v>(a compact-dict<k, v>, keys k[]) data<k> compare<k> hash-mix<k>
 	a fold keys, (cur, key) =>
 		cur - key
 
-subscript<k, v> v?(a unordered-dict-2<k, v>, key k) data<k> compare<k> hash-mix<k>
+subscript<k, v> v?(a compact-dict<k, v>, key k) data<k> compare<k> hash-mix<k>
 	a.impl subscript-recur key
 .subscript-recur<k, v> v?(a impl<k, v>, key k) data<k> compare<k> hash-mix<k>
 	match a
@@ -112,11 +112,11 @@ subscript<k, v> v?(a unordered-dict-2<k, v>, key k) data<k> compare<k> hash-mix<
 	as end-node e
 		e.pairs[key]
 
-in<k, v> bool(key k, a unordered-dict-2<k, v>) data<k> compare<k> hash-mix<k>
+in<k, v> bool(key k, a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
 	!a[key].is-empty
 
-.add-or-remove<k, v> unordered-dict-2<k, v>(a unordered-dict-2<k, v>, key k, value v?) data<k> compare<k> hash-mix<k>
-	void unordered-dict-2 ([key -> value].frozen-unordered-dict overlay a.impl merge-as-needed)
+.add-or-remove<k, v> compact-dict<k, v>(a compact-dict<k, v>, key k, value v?) data<k> compare<k> hash-mix<k>
+	void compact-dict ([key -> value].frozen-dict overlay a.impl merge-as-needed)
 
 .merge-as-needed<k, v> impl<k, v>(a overlay<k, v>) data<k> compare<k> hash-mix<k>
 	match a prev
@@ -135,9 +135,9 @@ in<k, v> bool(key k, a unordered-dict-2<k, v>) data<k> compare<k> hash-mix<k>
 .should-merge bool(prev-size nat64, overlay-size nat64)
 	prev-size <= (overlay-size max 3)
 
-.merge-overlays<k, v> frozen-unordered-dict<k, v?>
-	l frozen-unordered-dict<k, v?>
-	r frozen-unordered-dict<k, v?>
+.merge-overlays<k, v> frozen-dict<k, v?>
+	l frozen-dict<k, v?>
+	r frozen-dict<k, v?>
 spec
 	trusted
 	data<k>
@@ -157,9 +157,9 @@ body
 		cur + 1
 	begin mut-arr-from-begin-end end mut-arr-to-frozen-dict-promise-no-duplicates
 
-.merge-to-end<k, v> frozen-unordered-dict<k, v>
-	l frozen-unordered-dict<k, v>
-	r frozen-unordered-dict<k, v?>
+.merge-to-end<k, v> frozen-dict<k, v>
+	l frozen-dict<k, v>
+	r frozen-dict<k, v?>
 spec
 	trusted
 	data<k>
@@ -184,13 +184,13 @@ body
 
 region iteration
 
-each<k, v> void(a unordered-dict-2<k, v>, f act void(k, v)) data<k> compare<k> hash-mix<k>
+each<k, v> void(a compact-dict<k, v>, f act void(k, v)) data<k> compare<k> hash-mix<k>
 	void fold a, (ignore, k, v) =>
 		f[k, v]
 
-fold<a, k, v> a(acc a, a unordered-dict-2<k, v>, f act a(a, k, v)) data<k> compare<k> hash-mix<k>
-	acc fold-recur a.impl, mut-unordered-set, f
-.fold-recur<a, k, v> a(acc a, a impl<k, v>, seen mut-unordered-set k, f act a(a, k, v)) data<k> compare<k> hash-mix<k>
+fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) data<k> compare<k> hash-mix<k>
+	acc fold-recur a.impl, mut-set, f
+.fold-recur<a, k, v> a(acc a, a impl<k, v>, seen mut-set k, f act a(a, k, v)) data<k> compare<k> hash-mix<k>
 	match a
 	as overlay o
 		mid = acc fold o.pairs, (cur, k, v-opt) =>
@@ -210,7 +210,7 @@ fold<a, k, v> a(acc a, a unordered-dict-2<k, v>, f act a(a, k, v)) data<k> compa
 				# Don't need to add to 'seen' because this is the last node.
 				f[cur, k, v]
 
-map-to-arr<a, k, v> a[](a unordered-dict-2<k, v>, f act a(k, v)) trusted data<k> compare<k> hash-mix<k>
+map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted data<k> compare<k> hash-mix<k>
 	res = a.size uninitialized-mut-arr<a>
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
@@ -219,7 +219,7 @@ map-to-arr<a, k, v> a[](a unordered-dict-2<k, v>, f act a(k, v)) trusted data<k>
 	res cast-immutable
 
 # TODO:PRIVATE
-dbg<k, v> str(a unordered-dict-2<k, v>) to-str<k> to-str<v>
+dbg<k, v> str(a compact-dict<k, v>) to-str<k> to-str<v>
 	out = writer
 	out dbg-recur! a.impl
 	out move-to-str!
@@ -251,7 +251,7 @@ dbg<k, v> str(a unordered-dict-2<k, v>) to-str<k> to-str<v>
 			out backup! 2
 		out ~= "]"
 
-verify void(a unordered-dict-2<nat64, str>, expected str)
+verify void(a compact-dict<nat64, str>, expected str)
 	dbg = a dbg
 	if dbg != expected
 		info log "expected:"
@@ -262,7 +262,7 @@ verify void(a unordered-dict-2<nat64, str>, expected str)
 	a each (k, v) =>
 		a[k] is v.some
 
-.exact-eq<k, v> bool(a unordered-dict-2<k, v>, b unordered-dict-2<k, v>) unsafe
+.exact-eq<k, v> bool(a compact-dict<k, v>, b compact-dict<k, v>) unsafe
 	match a impl
 	as overlay oa
 		match b impl
@@ -278,7 +278,7 @@ verify void(a unordered-dict-2<nat64, str>, expected str)
 			ea ref-eq eb
 
 test
-	a = unordered-dict-2<nat64, str>
+	a = compact-dict<nat64, str>
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"

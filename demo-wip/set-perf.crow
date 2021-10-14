@@ -1,17 +1,17 @@
 import
 	crow/col/dict: -, ~, dict, in, size
-	crow/col/frozen-unordered-dict:
-		frozen-unordered-dict, in, size
-	crow/col/frozen-unordered-set:
-		bucket-starts, frozen-unordered-set, in, unsafe-frozen-unordered-set-from-mut-arr-cast-immutable, size
+	crow/col/experimental/compact-dict: -, ~, compact-dict, in, node-count, size
+	crow/col/frozen-dict:
+		frozen-dict, in, size
+	crow/col/frozen-set:
+		bucket-starts, frozen-set, in, unsafe-frozen-set-from-mut-arr-cast-immutable, size
 	crow/col/index-set: -, ~, index-set, in, size
-	crow/col/lookup: -, ~, in, lookup, size
+	crow/col/experimental/compact-sorted-dict: -, ~, compact-sorted-dict, in, size
+	crow/col/experimental/hamt-set: -, ~, hamt-set, in, size
+	crow/col/experimental/tree-set: -, ~, in, size, tree-set
 	crow/col/mut-list: ~=, move-to-arr!, move-to-mut-arr!, mut-list
-	crow/col/set: -, ~, in, set, size
-	crow/col/tree-set: -, ~, in, size, tree-set
-	crow/col/unordered-dict-2: -, ~, in, node-count, size, unordered-dict-2
-	crow/col/unordered-set: -, ~, in, size, unordered-set
-	crow/col/unordered-set-2: ~, in, node-count, size, unordered-set-2
+	crow/col/set: ~, in, node-count, set, size
+	crow/col/sorted-set: -, ~, in, sorted-set, size
 	crow/io/print: print
 	crow/io/time: get-monotime-nsec
 	crow/log: info, log
@@ -57,16 +57,16 @@ main fut nat(args str[]) summon unsafe
 	words * 8 / 1024
 
 col-kind enum
+	compact-dict
+	compact-sorted-dict
 	dict
-	frozen-unordered-dict
-	frozen-unordered-set
+	frozen-dict
+	frozen-set
+	hamt-set
 	index-set
-	lookup
 	set
+	sorted-set
 	tree-set
-	unordered-dict-2
-	unordered-set
-	unordered-set-2
 
 test-kind enum
 	add
@@ -79,6 +79,29 @@ This ensures the collection is kept in memory.
 ###
 .run-test fun nat()(col-kind col-kind, test-kind test-kind, iters nat64, max-value nat64) summon
 	match col-kind
+	as compact-dict
+		a = match test-kind
+		as add
+			compact-dict<nat, void> add-test iters, max-value
+		as get
+			a = compact-dict<nat, void> add-test iters, max-value
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			info log "node count is {a.node-count}"
+			a
+		as rm
+			compact-dict<nat, void> rm-test iters, max-value
+		() => a size
+	as compact-sorted-dict
+		a = match test-kind
+		as add
+			compact-sorted-dict<nat, void> add-test iters, max-value
+		as get
+			a = compact-sorted-dict<nat, void> add-test iters, max-value
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			a
+		as rm
+			compact-sorted-dict<nat, void> rm-test iters, max-value
+		() => a size
 	as dict
 		a = match test-kind
 		as add
@@ -90,28 +113,39 @@ This ensures the collection is kept in memory.
 		as rm
 			dict<nat, void> rm-test iters, max-value
 		() => a size
-	as frozen-unordered-dict
+	as frozen-dict
 		a = match test-kind
 		as add
-			mut-list frozen-unordered-dict-add-test iters, max-value
+			mut-list frozen-dict-add-test iters, max-value
 		as get
-			a = mut-list frozen-unordered-dict-add-test iters, max-value
+			a = mut-list frozen-dict-add-test iters, max-value
 			info log "{0 get-test a, iters * get-factor, max-value}"
 			a
 		as rm
 			todo
 		() => a size
-	as frozen-unordered-set
+	as frozen-set
 		a = match test-kind
 		as add
-			mut-list frozen-unordered-set-add-test iters, max-value
+			mut-list frozen-set-add-test iters, max-value
 		as get
-			a = mut-list frozen-unordered-set-add-test iters, max-value
+			a = mut-list frozen-set-add-test iters, max-value
 			info log "Using {a.bucket-starts size} buckets"
 			info log "{0 get-test a, iters * get-factor, max-value}"
 			a
 		as rm
 			todo
+		() => a size
+	as hamt-set
+		a = match test-kind
+		as add
+			hamt-set<nat> add-test iters, max-value
+		as get
+			a = hamt-set<nat> add-test iters, max-value
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			a
+		as rm
+			hamt-set<nat> rm-test iters, max-value
 		() => a size
 	as index-set
 		a = match test-kind
@@ -124,17 +158,6 @@ This ensures the collection is kept in memory.
 		as rm
 			index-set.as<index-set> rm-test iters, max-value
 		() => a size
-	as lookup
-		a = match test-kind
-		as add
-			lookup<nat, void> add-test iters, max-value
-		as get
-			a = lookup<nat, void> add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
-			a
-		as rm
-			lookup<nat, void> rm-test iters, max-value
-		() => a size
 	as set
 		a = match test-kind
 		as add
@@ -142,9 +165,21 @@ This ensures the collection is kept in memory.
 		as get
 			a = set<nat> add-test iters, max-value
 			info log "{0 get-test a, iters * get-factor, max-value}"
+			info log "node count is {a.node-count}"
 			a
 		as rm
-			set<nat> rm-test iters, max-value
+			todo
+		() => a size
+	as sorted-set
+		a = match test-kind
+		as add
+			sorted-set<nat> add-test iters, max-value
+		as get
+			a = sorted-set<nat> add-test iters, max-value
+			info log "{0 get-test a, iters * get-factor, max-value}"
+			a
+		as rm
+			sorted-set<nat> rm-test iters, max-value
 		() => a size
 	as tree-set
 		a = match test-kind
@@ -157,44 +192,22 @@ This ensures the collection is kept in memory.
 		as rm
 			tree-set<nat> rm-test iters, max-value
 		() => a size
-	as unordered-dict-2
-		a = match test-kind
-		as add
-			unordered-dict-2<nat, void> add-test iters, max-value
-		as get
-			a = unordered-dict-2<nat, void> add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
-			info log "node count is {a.node-count}"
-			a
-		as rm
-			unordered-dict-2<nat, void> rm-test iters, max-value
-		() => a size
-	as unordered-set
-		a = match test-kind
-		as add
-			unordered-set<nat> add-test iters, max-value
-		as get
-			a = unordered-set<nat> add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
-			a
-		as rm
-			unordered-set<nat> rm-test iters, max-value
-		() => a size
-	as unordered-set-2
-		a = match test-kind
-		as add
-			unordered-set-2<nat> add-test iters, max-value
-		as get
-			a = unordered-set-2<nat> add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
-			info log "node count is {a.node-count}"
-			a
-		as rm
-			todo
-		() => a size
 
 .get-factor nat()
 	100
+
+.add-test compact-dict<nat, void>(a compact-dict<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		n = max-value.rand-nat
+		a ~ (n -> void) add-test iters - 1, max-value
+
+.add-test compact-sorted-dict<nat, void>(a compact-sorted-dict<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		a ~ (max-value.rand-nat -> void) add-test iters - 1, max-value
 
 .add-test dict<nat, void>(a dict<nat, void>, iters nat, max-value nat) summon
 	if iters == 0
@@ -202,19 +215,27 @@ This ensures the collection is kept in memory.
 	else
 		a ~ (max-value.rand-nat -> void) add-test iters - 1, max-value
 
+.add-test hamt-set nat(a hamt-set nat, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		an = a ~ max-value.rand-nat
+		an add-test iters - 1, max-value
+
 .add-test index-set(a index-set, iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
 		a ~ max-value.rand-nat add-test iters - 1, max-value
 
-.add-test lookup<nat, void>(a lookup<nat, void>, iters nat, max-value nat) summon
+.add-test set nat(a set nat, iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
-		a ~ (max-value.rand-nat -> void) add-test iters - 1, max-value
+		an = a ~ max-value.rand-nat
+		an add-test iters - 1, max-value
 
-.add-test set nat(a set nat, iters nat, max-value nat) summon
+.add-test sorted-set nat(a sorted-set nat, iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
@@ -226,28 +247,7 @@ This ensures the collection is kept in memory.
 	else
 		a ~ max-value.rand-nat add-test iters - 1, max-value
 
-.add-test unordered-dict-2<nat, void>(a unordered-dict-2<nat, void>, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		n = max-value.rand-nat
-		a ~ (n -> void) add-test iters - 1, max-value
-
-.add-test unordered-set nat(a unordered-set nat, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		an = a ~ max-value.rand-nat
-		an add-test iters - 1, max-value
-
-.add-test unordered-set-2 nat(a unordered-set-2 nat, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		an = a ~ max-value.rand-nat
-		an add-test iters - 1, max-value
-
-.frozen-unordered-dict-add-test frozen-unordered-dict<nat, void>
+.frozen-dict-add-test frozen-dict<nat, void>
 	a mut-list arrow<nat, void>
 	iters nat
 	max-value nat
@@ -256,17 +256,29 @@ spec
 	summon
 body
 	if iters == 0
-		a.move-to-arr! frozen-unordered-dict
+		a.move-to-arr! frozen-dict
 	else
 		a ~= max-value.rand-nat -> void
-		a frozen-unordered-dict-add-test iters - 1, max-value
+		a frozen-dict-add-test iters - 1, max-value
 
-.frozen-unordered-set-add-test frozen-unordered-set nat(a mut-list nat, iters nat, max-value nat) trusted summon
+.frozen-set-add-test frozen-set nat(a mut-list nat, iters nat, max-value nat) trusted summon
 	if iters == 0
-		a.move-to-mut-arr! unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
+		a.move-to-mut-arr! unsafe-frozen-set-from-mut-arr-cast-immutable
 	else
 		a ~= max-value rand-nat
-		a frozen-unordered-set-add-test iters - 1, max-value
+		a frozen-set-add-test iters - 1, max-value
+
+.rm-test compact-dict<nat, void>(a compact-dict<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		(a ~ (max-value.rand-nat -> void)) - max-value.rand-nat rm-test iters - 1, max-value
+
+.rm-test compact-sorted-dict<nat, void>(a compact-sorted-dict<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		(a ~ (max-value.rand-nat -> void)) - max-value.rand-nat rm-test iters - 1, max-value
 
 .rm-test dict<nat, void>(a dict<nat, void>, iters nat, max-value nat) summon
 	if iters == 0
@@ -274,25 +286,19 @@ body
 	else
 		(a ~ (max-value.rand-nat -> void)) - max-value.rand-nat rm-test iters - 1, max-value
 
+.rm-test hamt-set nat(a hamt-set nat, iters nat, max-value nat) summon
+	if iters == 0
+		a
+	else
+		(a ~ max-value.rand-nat) - max-value.rand-nat rm-test iters - 1, max-value
+
 .rm-test index-set(a index-set, iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
 		(a ~ max-value.rand-nat) - max-value.rand-nat rm-test iters - 1, max-value
 
-.rm-test lookup<nat, void>(a lookup<nat, void>, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		(a ~ (max-value.rand-nat -> void)) - max-value.rand-nat rm-test iters - 1, max-value
-
-.rm-test unordered-dict-2<nat, void>(a unordered-dict-2<nat, void>, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		(a ~ (max-value.rand-nat -> void)) - max-value.rand-nat rm-test iters - 1, max-value
-
-.rm-test set nat(a set nat, iters nat, max-value nat) summon
+.rm-test sorted-set nat(a sorted-set nat, iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
@@ -304,11 +310,17 @@ body
 	else
 		(a ~ max-value.rand-nat) - max-value.rand-nat rm-test iters - 1, max-value
 
-.rm-test unordered-set nat(a unordered-set nat, iters nat, max-value nat) summon
+.get-test nat(acc nat, a compact-dict<nat, void>, iters nat, max-value nat) summon
 	if iters == 0
-		a
+		acc
 	else
-		(a ~ max-value.rand-nat) - max-value.rand-nat rm-test iters - 1, max-value
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+
+.get-test nat(acc nat, a compact-sorted-dict<nat, void>, iters nat, max-value nat) summon
+	if iters == 0
+		acc
+	else
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
 .get-test nat(acc nat, a dict<nat, void>, iters nat, max-value nat) summon
 	if iters == 0
@@ -316,13 +328,19 @@ body
 	else
 		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
-.get-test nat(acc nat, a frozen-unordered-dict<nat, void>, iters nat, max-value nat) summon
+.get-test nat(acc nat, a frozen-dict<nat, void>, iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else
 		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
-.get-test nat(acc nat, a frozen-unordered-set nat, iters nat, max-value nat) summon
+.get-test nat(acc nat, a frozen-set nat, iters nat, max-value nat) summon
+	if iters == 0
+		acc
+	else
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+
+.get-test nat(acc nat, a hamt-set nat, iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else
@@ -334,37 +352,19 @@ body
 	else
 		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
-.get-test nat(acc nat, a lookup<nat, void>, iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
-
 .get-test nat(acc nat, a set nat, iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else
 		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
+.get-test nat(acc nat, a sorted-set nat, iters nat, max-value nat) summon
+	if iters == 0
+		acc
+	else
+		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+
 .get-test nat(acc nat, a tree-set nat, iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
-
-.get-test nat(acc nat, a unordered-dict-2<nat, void>, iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
-
-.get-test nat(acc nat, a unordered-set nat, iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
-
-.get-test nat(acc nat, a unordered-set-2 nat, iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else

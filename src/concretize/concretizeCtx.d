@@ -93,7 +93,7 @@ import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, must
 import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
 import util.collection.str : compareStr, copyStr;
 import util.comparison : Comparison;
-import util.late : Late, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
+import util.late : Late, lateIsSet, lateSet, lateSetMaybeOverwrite, lateSetOverwrite, lazilySet;
 import util.memory : allocate, nu, nuMut;
 import util.opt : force, has, none, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals;
@@ -412,15 +412,33 @@ immutable(ConcreteType) concreteTypeFromClosure(Alloc)(
 			});
 		Ptr!ConcreteStruct cs = nuMut!ConcreteStruct(alloc, purity, source);
 		lateSet(cs.info_, getConcreteStructInfoForFields(closureFields));
-		immutable TypeSizeAndFieldOffsets size = recordSize(alloc, false, closureFields);
-		lateSet(
-			cs.defaultIsPointer_,
-			getDefaultIsPointerForFields(ForcedByValOrRefOrNone.none, size.typeSize, false, FieldsType.closure));
-		lateSet(cs.typeSize_, size.typeSize);
-		lateSet(cs.fieldOffsets_, size.fieldOffsets);
+		setConcreteStructRecordSize(
+			alloc, ctx, cs, false, closureFields, false, ForcedByValOrRefOrNone.none, FieldsType.closure);
 		add(alloc, ctx.allConcreteStructs, castImmutable(cs));
 		// TODO: consider passing closure by value
 		return immutable ConcreteType(true, castImmutable(cs));
+	}
+}
+
+void setConcreteStructRecordSize(Alloc)(
+	ref Alloc alloc,
+	ref ConcretizeCtx ctx,
+	Ptr!ConcreteStruct cs,
+	immutable bool packed,
+	immutable ConcreteField[] fields,
+	immutable bool isSelfMutable,
+	immutable ForcedByValOrRefOrNone forcedByValOrRef,
+	immutable FieldsType fieldsType,
+) {
+	if (canGetRecordSize(fields)) {
+		immutable TypeSizeAndFieldOffsets size = recordSize(alloc, packed, fields);
+		lateSetMaybeOverwrite(
+			cs.defaultIsPointer_,
+			getDefaultIsPointerForFields(forcedByValOrRef, size.typeSize, isSelfMutable, fieldsType));
+		lateSet(cs.typeSize_, size.typeSize);
+		lateSet(cs.fieldOffsets_, size.fieldOffsets);
+	} else {
+		push(alloc, ctx.deferredRecords, DeferredRecordBody(cs, packed, fields));
 	}
 }
 
@@ -628,18 +646,8 @@ void initializeConcreteStruct(Alloc)(
 			immutable bool packed = r.flags.packed;
 			immutable ConcreteStructInfo info = getConcreteStructInfoForFields(fields);
 			lateSet(res.info_, info);
-			if (canGetRecordSize(fields)) {
-				immutable TypeSizeAndFieldOffsets size = recordSize(alloc, packed, fields);
-				lateSetOverwrite(res.defaultIsPointer_, getDefaultIsPointerForFields(
-					r.flags.forcedByValOrRef,
-					size.typeSize,
-					info.isSelfMutable,
-					FieldsType.record));
-				lateSet(res.typeSize_, size.typeSize);
-				lateSet(res.fieldOffsets_, size.fieldOffsets);
-			} else {
-				push(alloc, ctx.deferredRecords, DeferredRecordBody(res, packed, fields));
-			}
+			setConcreteStructRecordSize(
+				alloc, ctx, res, packed, fields, info.isSelfMutable, r.flags.forcedByValOrRef, FieldsType.record);
 		},
 		(ref immutable StructBody.Union u) {
 			lateSet(res.defaultIsPointer_, false);

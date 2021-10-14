@@ -35,6 +35,11 @@ immutable(bool) lateIsSet(T)(ref const Late!T a) {
 	a.isSet_ = true;
 }
 
+@trusted void lateSetMaybeOverwrite(T)(ref Late!T a, T value) {
+	initMemory(&a.value_, value);
+	a.isSet_ = true;
+}
+
 @trusted void lateSetOverwrite(T)(ref Late!T a, T value) {
 	verify(lateIsSet(a));
 	initMemory(&a.value_, value);

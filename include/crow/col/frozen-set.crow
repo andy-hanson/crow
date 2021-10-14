@@ -15,39 +15,39 @@ import
 		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-mut-arr, mut-arr,
 		size, temp-as-arr, uninitialized-mut-arr, unsafe-at, unsafe-set-at!
 
-frozen-unordered-set<a> record
+frozen-set<a> record
 	# TODO:PRIVATE
 	values a[]
 	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
 	bucket-starts a*[]
 
-frozen-unordered-set<a> frozen-unordered-set a() data<a> compare<a> hash-mix<a>
-	[] frozen-unordered-set []
+frozen-set<a> frozen-set a() data<a> compare<a> hash-mix<a>
+	[] frozen-set []
 
-frozen-unordered-set<a> frozen-unordered-set a(a a[]) trusted data<a> compare<a> hash-mix<a>
-	a.mut-arr unsafe-frozen-unordered-set-from-mut-arr-cast-immutable
+frozen-set<a> frozen-set a(a a[]) trusted data<a> compare<a> hash-mix<a>
+	a.mut-arr unsafe-frozen-set-from-mut-arr-cast-immutable
 
 # TODO:INTERNAL
 # Values are stored as a contiguous array; order is arbitrary.
-begin-ptr<a> a*(a frozen-unordered-set a) unsafe
+begin-ptr<a> a*(a frozen-set a) unsafe
 	a.values begin-ptr
 
-end-ptr<a> a*(a frozen-unordered-set a) unsafe
+end-ptr<a> a*(a frozen-set a) unsafe
 	a.values end-ptr
 
-is-empty<a> bool(a frozen-unordered-set a)
+is-empty<a> bool(a frozen-set a)
 	a.values is-empty
 
-size<a> nat64(a frozen-unordered-set a)
+size<a> nat64(a frozen-set a)
 	a.values size
 
-unordered-arr<a> a[](a frozen-unordered-set a)
+arr<a> a[](a frozen-set a)
 	a values
 
-in<a> bool(value a, a frozen-unordered-set a) data<a> compare<a> hash-mix<a>
+in<a> bool(value a, a frozen-set a) data<a> compare<a> hash-mix<a>
 	value in (a bucket-for value)
 
-.bucket-for<a> a[](a frozen-unordered-set a, value a) trusted data<a> compare<a> hash-mix<a>
+.bucket-for<a> a[](a frozen-set a, value a) trusted data<a> compare<a> hash-mix<a>
 	if a.bucket-starts is-empty
 		a values
 	else
@@ -62,7 +62,7 @@ in<a> bool(value a, a frozen-unordered-set a) data<a> compare<a> hash-mix<a>
 # TODO: no-doc
 # WARN: The order of values is arbitrary,
 # but consistent for *identical* (not ==) sets.
-try-get-unordered-index<a> nat64?(a frozen-unordered-set a, value a) trusted data<a> compare<a> hash-mix<a>
+try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted data<a> compare<a> hash-mix<a>
 	if a.bucket-starts is-empty
 		a.values index-of value
 	else
@@ -75,7 +75,7 @@ try-get-unordered-index<a> nat64?(a frozen-unordered-set a, value a) trusted dat
 		if ptr ?= bucket-start arr-from-begin-end bucket-end ptr-of value
 			ptr - a.begin-ptr some
 
-unsafe-frozen-unordered-set-from-mut-arr-cast-immutable<a> frozen-unordered-set a
+unsafe-frozen-set-from-mut-arr-cast-immutable<a> frozen-set a
 	a mut-arr a
 spec
 	unsafe
@@ -84,14 +84,14 @@ spec
 	hash-mix<a>
 body
 	if a.size <= 4
-		frozen-unordered-set: a.cast-immutable, []
+		frozen-set: a.cast-immutable, []
 	else
 		n-buckets = a.size unsafe-div 2
 		bucket-counts = a get-bucket-counts n-buckets
 		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-arr
 		bucket-counts fill! 0
 		a.begin-ptr move-values-to-buckets-recur! a.end-ptr, bucket-counts, bucket-starts
-		a.cast-immutable frozen-unordered-set bucket-starts.arr-cast<a*, a mut*>
+		a.cast-immutable frozen-set bucket-starts.arr-cast<a*, a mut*>
 
 .get-bucket-counts<a> mut-arr nat64(a mut-arr a, n-buckets nat64) unsafe hash-mix<a>
 	res = n-buckets fill-mut-arr 0
@@ -145,28 +145,28 @@ body
 
 region iteration
 
-each-unordered<a> void(a frozen-unordered-set a, f act void(a))
-	void fold-unordered a, (ignore, x) =>
+each<a> void(a frozen-set a, f act void(a))
+	void fold a, (ignore, x) =>
 		f[x]
 
-fold-unordered<a, b> a(acc a, a frozen-unordered-set b, f act a(a, b))
+fold<a, b> a(acc a, a frozen-set b, f act a(a, b))
 	acc fold a.values, f
 
-fold-unordered-with-index<a, b> a(acc a, a frozen-unordered-set b, f act a(a, b, nat64))
+fold-with-index<a, b> a(acc a, a frozen-set b, f act a(a, b, nat64))
 	acc fold-with-index a.values, f
 
-.verify void(a frozen-unordered-set nat64, values nat64[], bucket-starts nat64[]) unsafe
+.verify void(a frozen-set nat64, values nat64[], bucket-starts nat64[]) unsafe
 	a.values is values
 	a.bucket-starts map (ptr => ptr - a.values.begin-ptr) is bucket-starts
 
 test
-	a = frozen-unordered-set<nat64>
+	a = frozen-set<nat64>
 	a.is-empty is true
 	a.size is 0
 	a verify [], []
 	0 in a is false
 
-	b = frozen-unordered-set: [3, 1, 5, 2]
+	b = frozen-set: [3, 1, 5, 2]
 	b verify [3, 1, 5, 2], []
 	0 in b is false
 	1 in b is true
@@ -176,7 +176,7 @@ test
 	5 in b is true
 	6 in b is false
 
-	c = frozen-unordered-set: [3, 1, 5, 2, 8]
+	c = frozen-set: [3, 1, 5, 2, 8]
 	c verify [2, 8, 3, 5, 1], [0, 2]
 	0 in c is false
 	1 in c is true

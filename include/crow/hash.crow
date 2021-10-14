@@ -3,10 +3,10 @@ import
 	./bool: bool, to-nat64
 	./col/arr-util: each
 	./misc: as, void
-	./number: nat64, to-nat64
+	./number: int8, int16, int32, int64, nat8, nat16, nat32, nat64, to-int64, to-nat64
 	./ptr: by-val, ref-of-val
 	./str: chars, str, to-nat8
-	./private/number-low-level: wrap-add
+	./private/number-low-level: unsafe-to-nat64, wrap-add
 
 hash<a> nat64(a a) trusted hash-mix<a>
 	hasher = as<by-val hasher>: hasher: 0
@@ -22,9 +22,23 @@ hash nat64(a bool)
 hasher record mut
 	cur mut nat64
 
+hash-mix void(hasher hasher, a nat8)
+	hasher hash-mix a.to-nat64
+hash-mix void(hasher hasher, a nat16)
+	hasher hash-mix a.to-nat64
+hash-mix void(hasher hasher, a nat32)
+	hasher hash-mix a.to-nat64
 hash-mix void(hasher hasher, a nat64)
 	# TODO: better hash mixing algorithm
 	hasher.cur := hasher.cur wrap-add a
+hash-mix void(hasher hasher, a int8)
+	hasher hash-mix a.to-int64
+hash-mix void(hasher hasher, a int16)
+	hasher hash-mix a.to-int64
+hash-mix void(hasher hasher, a int32)
+	hasher hash-mix a.to-int64
+hash-mix void(hasher hasher, a int64) trusted
+	hasher hash-mix a.unsafe-to-nat64
 
 hash-mix void(hasher hasher, a bool)
 	hasher hash-mix a.to-nat64
