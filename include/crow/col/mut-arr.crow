@@ -40,22 +40,22 @@ Pointer to the first element.
 Since `mut-arr` changes its underlying data occasionally,
 it's UB if this is used after the size of `a` changes.
 ###
-begin-ptr<a> a mut*(a mut-arr a) noctx unsafe
+begin-ptr<a> a mut*(a a mut[]) noctx unsafe
 	a.backing begin-ptr
 
-end-ptr<a> a mut*(a mut-arr a) noctx unsafe
+end-ptr<a> a mut*(a a mut[]) noctx unsafe
 	a.begin-ptr + a.size
 
-is-at-capacity<a> bool(a mut-arr a) noctx unsafe
+is-at-capacity<a> bool(a a mut[]) noctx unsafe
 	a.capacity == a.size
 
-capacity<a> nat64(a mut-arr a) noctx unsafe
+capacity<a> nat64(a a mut[]) noctx unsafe
 	a.backing size
 
-mut-arr-by-val<a> by-val mut-arr a() noctx trusted
+mut-arr-by-val<a> by-val a mut[]() noctx trusted
 	mut-arr<a>: fix-arr, 0
 
-mut-arr-by-val-with-capacity-from-unmanaged-memory<a> by-val mut-arr a(capacity nat64) noctx unsafe
+mut-arr-by-val-with-capacity-from-unmanaged-memory<a> by-val<a mut[]>(capacity nat64) noctx unsafe
 	backing = fix-arr<a>: capacity, capacity unmanaged-alloc-zeroed-elements<a>
 	mut-arr<a>: backing, 0
 
@@ -63,19 +63,19 @@ mut-arr-by-val-with-capacity-from-unmanaged-memory<a> by-val mut-arr a(capacity 
 mut-arr where every element is `value`.
 Equivalent to `mut-arr: [value, value, ...]`.
 ###
-fill-mut-arr<a> mut-arr a(size nat64, value a)
+fill-mut-arr<a> a mut[](size nat64, value a)
 	backing = size fill-fix-arr value
 	mut-arr: backing, size
 
 # New empty `mut-arr`.
-mut-arr<a> mut-arr a()
+mut-arr<a> a mut[]()
 	mut-arr: fix-arr, 0
 
 ###
 Copies an `arr` to a `mut-arr`.
 Writes to the `mut-arr` won't affect the `arr`.
 ###
-mut-arr<a> mut-arr a(a a[])
+mut-arr<a> a mut[](a a[])
 	res = mut-arr<a>
 	res ~= a
 	res
@@ -85,42 +85,42 @@ mut-arr<a> mut-arr a(a a[])
 Copies a `fix-arr` to a `mut-arr`.
 Writes to the `mut-arr` won't affect the `fix-arr`.
 ###
-mut-arr<a> mut-arr a(a fix-arr a)
+mut-arr<a> a mut[](a fix-arr a)
 	res = mut-arr<a>
 	res ~= a
 	res
 
-empty!<a> void(a mut-arr a)
+empty!<a> void(a a mut[])
 	a pop-n! a.size
 
 ###
 Copies the `mut-arr`.
 Writes to the original won't affect the copy.
 ###
-copy<a> mut-arr a(a mut-arr a) trusted
+copy<a> a mut[](a a mut[]) trusted
 	a.temp-as-arr mut-arr
 
 ###
 Copies a `mut-arr` to an `arr`.
 Writes to the `mut-arr` won't affect the `arr`.
 ###
-arr<a> a[](a mut-arr a)
+arr<a> a[](a a mut[])
 	a.copy move-to-arr!
 
 ###
 Convert to a `dict`, clearning the original `mut-arr` in the process.
 (This avoids copying but still ensures that the result is immutable.)
 ###
-move-to-arr!<a> a[](a mut-arr a) noctx trusted
+move-to-arr!<a> a[](a a mut[]) noctx trusted
 	a.move-to-fix-arr! cast-immutable
 
-move-to-fix-arr!<a> fix-arr a(a mut-arr a) noctx trusted
+move-to-fix-arr!<a> fix-arr a(a a mut[]) noctx trusted
 	res = a.size fix-arr a.begin-ptr
 	a.backing := fix-arr
 	a.size := 0
 	res
 
-swap!<a> void(a mut-arr a, b mut-arr a)
+swap!<a> void(a a mut[], b a mut[])
 	a-backing = a backing
 	a-size = a size
 	a.backing := b backing
@@ -132,15 +132,15 @@ swap!<a> void(a mut-arr a, b mut-arr a)
 Gets the element at the index.
 Throws if `index >= a.size`.
 ###
-subscript<a> a(a mut-arr a, index nat64) trusted
+subscript<a> a(a a mut[], index nat64) trusted
 	assert: index < a.size
 	a.begin-ptr[index]
 
-first<a> a?(a mut-arr a)
+first<a> a?(a a mut[])
 	if !a.is-empty
 		a[0] some
 
-last<a> a?(a mut-arr a)
+last<a> a?(a a mut[])
 	if !a.is-empty
 		a[a.size - 1] some
 
@@ -148,42 +148,42 @@ last<a> a?(a mut-arr a)
 Sets the last element.
 Throws if the list is empty.
 ###
-set-last<a> void(a mut-arr a, value a)
+set-last<a> void(a a mut[], value a)
 	a[a.size - 1] := value
 
 ###
 Converts to an `fix-arr`.
 "Temp" because it's UB if the result is used after ths size of `a` changes.
 ###
-temp-as-fix-arr<a> fix-arr a(a mut-arr a) noctx unsafe
+temp-as-fix-arr<a> fix-arr a(a a mut[]) noctx unsafe
 	fix-arr: a.size, a.begin-ptr
 
 ###
 Converts to an `arr`.
 "Temp" because it's UB if the result is used after `a` is written to.
 ###
-temp-as-arr<a> a[](a mut-arr a) noctx unsafe
+temp-as-arr<a> a[](a a mut[]) noctx unsafe
 	a.temp-as-fix-arr temp-as-arr
 
 # True iff `a.size == 0`.
-is-empty<a> bool(a mut-arr a) noctx
+is-empty<a> bool(a a mut[]) noctx
 	a.size == 0
 
 ###
 Sets the element at the index.
 Throws if `index >= a.size`.
 ###
-set-subscript<a> void(a mut-arr a, index nat64, value a) trusted
+set-subscript<a> void(a a mut[], index nat64, value a) trusted
 	assert: index < a.size
 	a.begin-ptr[index] := value
 
 ###
 True iff `a[i] == value` for some `i`.
 ###
-in<a> bool(value a, a mut-arr a) noctx trusted equal<a>
+in<a> bool(value a, a a mut[]) noctx trusted equal<a>
 	value in a.temp-as-arr
 
-copy-range-to-arr<a> a[](a mut-arr a, begin nat64, size nat64) trusted
+copy-range-to-arr<a> a[](a a mut[], begin nat64, size nat64) trusted
 	assert: begin + size <= a.size
 	res = alloc-uninitialized<a>: size
 	src = a.begin-ptr + begin
@@ -195,7 +195,7 @@ Removes the first `n` elements and returns them as an array.
 This is O(a.size - n) because of the cost of copying, and all remaining elements must be shifted.
 Throws if `n > a.size`.
 ###
-pop-n-from-start!<a> a[](a mut-arr a, n nat64) trusted
+pop-n-from-start!<a> a[](a a mut[], n nat64) trusted
 	assert: n <= a.size
 	res = a copy-range-to-arr 0, n
 	dest = a.begin-ptr as-any-mut-ptr
@@ -209,7 +209,7 @@ pop-n-from-start!<a> a[](a mut-arr a, n nat64) trusted
 Removes the last element and returns it.
 Returns `none` if `a` is empty.
 ###
-pop!<a> a?(a mut-arr a) trusted
+pop!<a> a?(a a mut[]) trusted
 	if !a.is-empty
 		new-size = a.size wrap-sub 1
 		res = a[new-size]
@@ -222,14 +222,14 @@ pop!<a> a?(a mut-arr a) trusted
 Pops `n` times, discarding the result.
 Throws if `n > a.size`.
 ###
-pop-n!<a> void(a mut-arr a, n nat64) trusted
+pop-n!<a> void(a a mut[], n nat64) trusted
 	assert: n <= a.size
 	new-size = a.size - n
 	a.begin-ptr + new-size set-zero-range n
 	a.size := new-size
 
 # Push a value onto the end of the list.
-~= <a> void(a mut-arr a, value a) trusted
+~= <a> void(a a mut[], value a) trusted
 	a incr-capacity!
 	a.size < a.capacity assert
 	a.begin-ptr[a size] := value
@@ -237,29 +237,29 @@ pop-n!<a> void(a mut-arr a, n nat64) trusted
 
 # TODO: Use an 'each' spec..
 # Push multiple values onto the end of the list.
-~= <a> void(a mut-arr a, values a[])
+~= <a> void(a a mut[], values a[])
 	values each x => a ~= x
-~= <a> void(a mut-arr a, values fix-arr a)
+~= <a> void(a a mut[], values fix-arr a)
 	values each x => a ~= x
-~= <a> void(a mut-arr a, values mut-arr a)
+~= <a> void(a a mut[], values a mut[])
 	values each x => a ~= x
 
-.incr-capacity!<a> void(a mut-arr a) unsafe
+.incr-capacity!<a> void(a a mut[]) unsafe
 	a ensure-capacity: a.size + 1 round-up-to-power-of-two
 
-push-capacity-must-be-sufficient!<a> void(a mut-arr a, value a) noctx unsafe
+push-capacity-must-be-sufficient!<a> void(a a mut[], value a) noctx unsafe
 	hard-assert: a.size < a.capacity
 	a.begin-ptr[a size] := value
 	a.size := a.size wrap-add 1
 
-.increase-capacity-to!<a> void(a mut-arr a, new-capacity nat64) unsafe
+.increase-capacity-to!<a> void(a a mut[], new-capacity nat64) unsafe
 	assert: new-capacity > a.capacity
 	old-begin = a begin-ptr
 	a.backing := new-capacity uninitialized-fix-arr<a>
 	a.begin-ptr copy-data-from! old-begin.as-const, a.size
 	a.backing[a.size + 1 -> a.backing.size] set-zero-elements
 
-.ensure-capacity<a> void(a mut-arr a, min-capacity nat64) unsafe
+.ensure-capacity<a> void(a a mut[], min-capacity nat64) unsafe
 	if a.capacity < min-capacity
 		a increase-capacity-to! min-capacity
 
@@ -269,7 +269,7 @@ Does nothing if the capacity is already sufficient.
 This may reserve more space than requested, so calling `reserve` repeatedly for slowly increasing sizes
 doesn't reallocate every time, and is no worse than pushing repeatedly.
 ###
-.reserve<a> void(a mut-arr a, reserved nat64) unsafe
+.reserve<a> void(a a mut[], reserved nat64) unsafe
 	a ensure-capacity reserved.round-up-to-power-of-two
 
 ###
@@ -279,11 +279,11 @@ This is more efficient than `a remove-at! index`,
 which has to shift all values past `index` to the left.
 Throws if `index >= a.size`.
 ###
-remove-unordered-at!<a> a(a mut-arr a, index nat64) trusted
+remove-unordered-at!<a> a(a a mut[], index nat64) trusted
 	assert: index < a.size
 	a noctx-remove-unordered-at! index
 
-noctx-remove-unordered-at!<a> a(a mut-arr a, index nat64) noctx unsafe
+noctx-remove-unordered-at!<a> a(a a mut[], index nat64) noctx unsafe
 	hard-assert: index < a.size
 	res = a.begin-ptr[index]
 	new-size = a.size wrap-sub 1
@@ -291,9 +291,9 @@ noctx-remove-unordered-at!<a> a(a mut-arr a, index nat64) noctx unsafe
 	a.size := new-size
 	res
 
-noctx-must-remove-unordered!<a> void(a mut-arr a, value a) noctx unsafe equal<a>
+noctx-must-remove-unordered!<a> void(a a mut[], value a) noctx unsafe equal<a>
 	a noctx-must-remove-unordered-recur! 0, value
-.noctx-must-remove-unordered-recur!<a> void(a mut-arr a, index nat64, value a) noctx unsafe equal<a>
+.noctx-must-remove-unordered-recur!<a> void(a a mut[], index nat64, value a) noctx unsafe equal<a>
 	if index == a.size
 		todo
 	elif a.begin-ptr[index] == value
@@ -306,7 +306,7 @@ Directly sets the `size` without touching the data.
 Unsafe because if this increases the size, it exposes uninitialized data.
 If this decreases the size, it doesn't zero out the rest of the data, so the garbage collector will keep it alive.
 ###
-unsafe-set-size!<a> void(a mut-arr a, new-size nat64) unsafe
+unsafe-set-size!<a> void(a a mut[], new-size nat64) unsafe
 	a reserve new-size
 	a.size := new-size
 
@@ -314,7 +314,7 @@ unsafe-set-size!<a> void(a mut-arr a, new-size nat64) unsafe
 Pops elements until the size is <= `new-size`.
 Does nothing if `a.size <= new-size` already.
 ###
-reduce-size-if-more-than!<a> void(a mut-arr a, new-size nat64)
+reduce-size-if-more-than!<a> void(a a mut[], new-size nat64)
 	if new-size < a.size
 		a.pop! drop
 		a reduce-size-if-more-than! new-size
@@ -329,7 +329,7 @@ reduce-size-if-more-than!<a> void(a mut-arr a, new-size nat64)
 		acc * 2 round-up-to-power-of-two-recur n
 
 # Returns the first index where `a[i] == value`, or returns `none`.
-index-of<a> nat64?(a mut-arr a, value a) equal<a> trusted
+index-of<a> nat64?(a a mut[], value a) equal<a> trusted
 	a.temp-as-arr index-of value
 
 ###
@@ -338,7 +338,7 @@ Increases the size by 1.
 This is O(a.size - index) due to having to move other elements.
 Throws if `index > a.size`.
 ###
-insert-at!<a> void(a mut-arr a, index nat64, value a) trusted
+insert-at!<a> void(a a mut[], index nat64, value a) trusted
 	assert: index <= a.size
 	a incr-capacity!
 	dest = a.begin-ptr + index + 1
@@ -349,7 +349,7 @@ insert-at!<a> void(a mut-arr a, index nat64, value a) trusted
 	a[index] := value
 	assert: a.size <= a.capacity
 
-insert-at!<a> void(a mut-arr a, ptr a mut*, value a) unsafe
+insert-at!<a> void(a a mut[], ptr a mut*, value a) unsafe
 	a insert-at! ptr - a.begin-ptr, value
 
 ###
@@ -359,7 +359,7 @@ Decreases the size by 1.
 This is O(a.size - index) due to having to move other elements.
 Throws if `index >= a.size`.
 ###
-remove-at!<a> a(a mut-arr a, index nat64) trusted
+remove-at!<a> a(a a mut[], index nat64) trusted
 	assert: index < a.size
 	res = a[index]
 	dest = a.begin-ptr + index
@@ -369,53 +369,53 @@ remove-at!<a> a(a mut-arr a, index nat64) trusted
 	a.size := a.size - 1
 	res
 
-remove-at!<a> a(a mut-arr a, ptr a mut*) unsafe
+remove-at!<a> a(a a mut[], ptr a mut*) unsafe
 	a remove-at! ptr - a.begin-ptr
 
-reverse!<a> void(a mut-arr a) trusted
+reverse!<a> void(a a mut[]) trusted
 	a.temp-as-fix-arr reverse!
 
 region iteration
 
 # TODO: What if it's mutated while searching ?
-find-index<a> nat64?(a mut-arr a, f act bool(a)) trusted
+find-index<a> nat64?(a a mut[], f act bool(a)) trusted
 	a.temp-as-arr find-index f
 
 # Calls `f` for each element in `a`.
-each<a> void(a mut-arr a, f act void(a)) trusted
+each<a> void(a a mut[], f act void(a)) trusted
 	a.temp-as-arr each f
 
-each-with-index<a> void(a mut-arr a, f act void(a, nat64)) trusted
+each-with-index<a> void(a a mut[], f act void(a, nat64)) trusted
 	a.temp-as-arr each-with-index f
 
-exists<a> bool(a mut-arr a, f act bool(a)) trusted
+exists<a> bool(a a mut[], f act bool(a)) trusted
 	a.temp-as-arr exists f
 
-fold<a, b> a(acc a, a mut-arr b, f act a(a, b)) trusted
+fold<a, b> a(acc a, a b mut[], f act a(a, b)) trusted
 	acc fold a.temp-as-arr, f
 
-fold-reverse<a, b> a(acc a, a mut-arr b, f act a(a, b)) trusted
+fold-reverse<a, b> a(acc a, a b mut[], f act a(a, b)) trusted
 	acc fold-reverse a.temp-as-arr, f
 
-filter<a> mut-arr a(a mut-arr a, f act bool(a)) trusted
+filter<a> a mut[](a a mut[], f act bool(a)) trusted
 	res = a copy
 	res filter! f
 	res
 
-map<out, in> mut-arr out(a mut-arr in, f act out(in)) trusted
+map<out, in> out mut[](a in mut[], f act out(in)) trusted
 	a map-to-fix-arr f as-mut-arr
 
-map-to-arr<out, in> out[](a mut-arr in, f act out(in)) trusted
+map-to-arr<out, in> out[](a in mut[], f act out(in)) trusted
 	a map-to-fix-arr f cast-immutable
 
-map-to-fix-arr<out, in> fix-arr out(a mut-arr in, f act out(in))
+map-to-fix-arr<out, in> fix-arr out(a in mut[], f act out(in))
 	a.size make-fix-arr i => f[a[i]]
 
-map-opt<out, in> mut-arr out(a mut-arr in, f act out?(in)) trusted
+map-opt<out, in> out mut[](a in mut[], f act out?(in)) trusted
 	a map-opt-to-fix-arr f as-mut-arr
 
 # TODO: this works on anything supporting 'fold' .. don't want to repeat for every collection
-map-opt-to-fix-arr<out, in> fix-arr out(a mut-arr in, f act out?(in)) trusted
+map-opt-to-fix-arr<out, in> fix-arr out(a in mut[], f act out?(in)) trusted
 	out = a.size uninitialized-fix-arr<out>
 	end = out.begin-ptr fold a, (cur, x) =>
 		if fx ?= f[x]
@@ -425,12 +425,12 @@ map-opt-to-fix-arr<out, in> fix-arr out(a mut-arr in, f act out?(in)) trusted
 			cur
 	out[0 -> end - out.begin-ptr]
 
-.as-mut-arr<a> mut-arr a(a fix-arr a) unsafe
+.as-mut-arr<a> a mut[](a fix-arr a) unsafe
 	mut-arr: a, a.size
 
 region mutating iteration
 
-filter!<a> void(a mut-arr a, f act bool(a)) trusted
+filter!<a> void(a a mut[], f act bool(a)) trusted
 	new-end = a.begin-ptr filter-recur! a.begin-ptr.as-const, a.end-ptr.as-const, f
 	new-size = new-end - a.begin-ptr
 	a.backing[new-size -> a.size] set-zero-elements
@@ -446,5 +446,5 @@ filter!<a> void(a mut-arr a, f act bool(a)) trusted
 			out
 		new-out filter-recur! in + 1, end, f
 
-map!<a> void(a mut-arr a, f act a(a)) trusted
+map!<a> void(a a mut[], f act a(a)) trusted
 	a.temp-as-fix-arr map! f

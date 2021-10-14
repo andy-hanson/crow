@@ -744,6 +744,8 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 				final switch (it.kind) {
 					case TypeAst.Suffix.Kind.arr:
 						return "prefer to write 'a[]' instead of 'arr a'";
+					case TypeAst.Suffix.Kind.arrMut:
+						return "prefer to write 'a mut[]' instead of 'mut-arr a'";
 					case TypeAst.Suffix.Kind.opt:
 						return "prefer to write 'a?' instead of 'opt a'";
 					case TypeAst.Suffix.Kind.ptr:

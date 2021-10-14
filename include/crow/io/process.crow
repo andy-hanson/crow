@@ -117,8 +117,8 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 .keep-POLLINg void
 	stdout-pipe fd-t
 	stderr-pipe fd-t
-	stdout-builder mut-arr char
-	stderr-builder mut-arr char
+	stdout-builder char mut[]
+	stderr-builder char mut[]
 spec
 	summon
 	unsafe
@@ -146,7 +146,7 @@ body
 .any bool(r handle-revents-result)
 	r.had-POLLIN || r.hung-up
 
-.handle-revents handle-revents-result(pollfd pollfd, builder mut-arr char) summon
+.handle-revents handle-revents-result(pollfd pollfd, builder char mut[]) summon
 	revents = pollfd revents
 	had-POLLIN = revents has-POLLIN
 	if had-POLLIN
@@ -156,7 +156,7 @@ body
 		todo
 	had-POLLIN handle-revents-result hung-up
 
-.read-to-buffer-until-eof void(fd fd-t, buffer mut-arr char) trusted summon
+.read-to-buffer-until-eof void(fd fd-t, buffer char mut[]) trusted summon
 	read-max = 1024
 	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	old-size = buffer.size

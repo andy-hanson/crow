@@ -49,7 +49,7 @@ binary-search-exact-index<a> nat64?(a a[], value a) trusted compare<a>
 	else
 		ptr - a.begin-ptr some
 
-binary-search-exact-ptr<a> a mut*?(a mut-arr a, compare act comparison(a)) unsafe
+binary-search-exact-ptr<a> a mut*?(a a mut[], compare act comparison(a)) unsafe
 	a.temp-as-fix-arr binary-search-exact-ptr compare
 
 binary-search-exact-ptr<a> a mut*?(a fix-arr a, compare act comparison(a)) unsafe
@@ -68,7 +68,7 @@ binary-search-exact-ptr<a> a*?(a a[], compare act comparison(a)) unsafe
 	elif compare[*ptr] == equal
 		ptr some
 
-binary-search-insert-ptr<a> a mut*(a mut-arr a, compare act comparison(a)) unsafe
+binary-search-insert-ptr<a> a mut*(a a mut[], compare act comparison(a)) unsafe
 	a.temp-as-fix-arr binary-search-insert-ptr compare
 
 ###
@@ -157,7 +157,7 @@ assert-comparison-not-equal unique-comparison(a comparison)
 		greater
 
 # 'a' and 'b' must be sorted. Moves contents of 'b' into 'a' and preserves sorting.
-merge-no-duplicates!<a> void(a mut-arr a, b mut-arr a, compare act unique-comparison(a, a)) trusted
+merge-no-duplicates!<a> void(a a mut[], b a mut[], compare act unique-comparison(a, a)) trusted
 	if a.size < b.size
 		a swap! b
 	assert: a.size >= b.size

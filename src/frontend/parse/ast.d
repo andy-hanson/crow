@@ -69,6 +69,7 @@ struct TypeAst {
 
 		enum Kind {
 			arr,
+			arrMut,
 			opt,
 			ptr,
 			ptrMut,
@@ -127,6 +128,8 @@ immutable(RangeWithinFile) range(ref immutable TypeAst.Suffix a) {
 		final switch (a.kind) {
 			case TypeAst.Suffix.Kind.arr:
 				return cast(uint) "[]".length;
+			case TypeAst.Suffix.Kind.arrMut:
+				return cast(uint) " mut[]".length;
 			case TypeAst.Suffix.Kind.opt:
 				return cast(uint) "?".length;
 			case TypeAst.Suffix.Kind.ptr:
@@ -142,6 +145,8 @@ immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
 		case TypeAst.Suffix.Kind.arr:
 			return shortSymAlphaLiteral("arr");
+		case TypeAst.Suffix.Kind.arrMut:
+			return shortSymAlphaLiteral("mut-arr");
 		case TypeAst.Suffix.Kind.opt:
 			return shortSymAlphaLiteral("opt");
 		case TypeAst.Suffix.Kind.ptr:
@@ -155,6 +160,8 @@ immutable(Opt!(TypeAst.Suffix.Kind)) typeAstSuffixForSym(immutable Sym a) {
 	switch (a.value) {
 		case shortSymAlphaLiteralValue("arr"):
 			return some(TypeAst.Suffix.Kind.arr);
+		case shortSymAlphaLiteralValue("mut-arr"):
+			return some(TypeAst.Suffix.Kind.arrMut);
 		case shortSymAlphaLiteralValue("opt"):
 			return some(TypeAst.Suffix.Kind.opt);
 		case shortSymAlphaLiteralValue("const-ptr"):

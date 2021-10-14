@@ -161,7 +161,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	else
 		todo
 
-.try-take-first-line str?(a mut-arr char)
+.try-take-first-line str?(a char mut[])
 	if index ?= a index-of "\n"
 		line = a pop-n-from-start! index + 1 rtail
 		line.str try-remove-end "\r" or-default line.str some
@@ -173,7 +173,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	# This is not set until after the end of headers
 	content-length mut nat64
 	# TODO:PERF: Use a circular buffer as we often take content off the front
-	unparsed mut-arr char
+	unparsed char mut[]
 
 .http-parse-state http-parse-state()
 	http-parse-state: http-get, "", mut-dict, 0, mut-arr

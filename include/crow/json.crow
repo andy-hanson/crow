@@ -180,7 +180,7 @@ take-json! json?(a reader)
 		else
 			a take-object-recur! mut-dict
 
-.take-list-recur! json?(a reader, res mut-arr json)
+.take-list-recur! json?(a reader, res json mut[])
 	if j ?= a take-json!
 		res ~= j
 		a skip-whitespace!

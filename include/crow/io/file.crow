@@ -87,7 +87,7 @@ read-dir str[](path str) summon
 	dirp read-dir-recur res
 	res.move-to-arr! sort
 
-.read-dir-recur void(dirp dir, res mut-arr str) unsafe summon
+.read-dir-recur void(dirp dir, res str mut[]) unsafe summon
 	# Initial value of entry / result should not matter
 	entry = dirent: 0, 0, 0, "\0", zero
 	# TODO: should not need a type argument here

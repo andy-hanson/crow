@@ -29,7 +29,7 @@ mut-sorted-dict<k, v> record mut
 	# TODO:PRIVATE
 	# TODO: by-val
 	# Values are none if they have been deleted.
-	pairs mut-arr arrow<k, v?>
+	pairs arrow<k, v?> mut[]
 	# Number of pairs in this node that are not `none`.
 	# Does not include sizes of other nodes.
 	node-size mut nat64
@@ -156,7 +156,7 @@ Returns true if it succeeded.
 			a.next := some: mut-sorted-dict: new-pairs, 1, none
 
 # Insert at the last place where the key is < that value.
-.insert-linear!<k, v> void(a mut-arr arrow<k, v?>, index nat64, key k, value v) data<k> compare<k>
+.insert-linear!<k, v> void(a arrow<k, v?> mut[], index nat64, key k, value v) data<k> compare<k>
 	if key < a[index].from
 		a move-right! index
 		a[index] := key -> value.some
@@ -167,7 +167,7 @@ Returns true if it succeeded.
 		a insert-linear! index + 1, key, value
 
 # If there's something here, move it so something else can be inserted.
-.move-right!<k, v> void(a mut-arr arrow<k, v?>, index nat64)
+.move-right!<k, v> void(a arrow<k, v?> mut[], index nat64)
 	if !a[index].to.is-empty
 		# If this is the last value, push it
 		if index == a.size - 1
@@ -271,7 +271,7 @@ body
 		# TODO: 'as' should be unnecessary
 		pair.from -> f[pair.from, pair.to.force].some.as<v-out?>
 
-.from-sorted-pairs<k, v> mut-sorted-dict<k, v>(a mut-arr<arrow<k, v?>>)
+.from-sorted-pairs<k, v> mut-sorted-dict<k, v>(a arrow<k, v?> mut[])
 	mut-sorted-dict: a, a.size, none
 
 map-to-arr<out, k, v> out[](a mut-sorted-dict<k, v>, f act out(k, v)) data<k> compare<k>

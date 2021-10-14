@@ -11,7 +11,7 @@ Unlike `mut-arr`, this is not guaranteed to be represented as an array.
 ###
 mut-stack<a> record mut
 	# TODO: PRIVATE
-	inner mut-arr a
+	inner a mut[]
 
 # New empty `mut-stack`.
 mut-stack<a> mut-stack a()
@@ -21,7 +21,7 @@ copy<a> mut-stack a(a mut-stack a)
 	mut-stack: a.inner copy
 
 mut-stack<a> mut-stack a(a a[])
-	mut-stack: mut-arr: a
+	a.mut-arr mut-stack
 
 arr<a> a[](a mut-stack a)
 	a.inner arr

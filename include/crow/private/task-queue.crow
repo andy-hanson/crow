@@ -29,7 +29,7 @@ task-queue record mut
 	# Very first node is a sentinel
 	head mut task-queue-node?
 	# This is allocated with max-threads capacity on init, so never needs further allocation
-	currently-running-exclusions by-val mut-arr exclusion
+	currently-running-exclusions by-val<exclusion mut[]>
 
 .task-queue-node record mut
 	task task
@@ -87,7 +87,7 @@ return-task! void(a task-queue, task task) noctx unsafe
 
 .pop-recur! pop-task-result
 	prev task-queue-node
-	exclusions mut-arr exclusion
+	exclusions exclusion mut[]
 	cur-time timestamp
 	first-task-time timestamp?
 spec

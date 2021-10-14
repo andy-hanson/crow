@@ -11,7 +11,7 @@ import
 
 writer record mut
 	# TODO:PRIVATE
-	chars mut-arr char
+	chars char mut[]
 
 write<a> spec
 	~= void(writer writer, value a)

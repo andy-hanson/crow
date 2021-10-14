@@ -63,7 +63,7 @@ private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(Alloc, SymAllo
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
-	return !peekExact(lexer, " mut*") && tryTake(lexer, ' ')
+	return !peekExact(lexer, " mut[]") && !peekExact(lexer, " mut*") && tryTake(lexer, ' ')
 		? arrWithSizeLiteral(alloc, [parseType(alloc, lexer)])
 		: tryParseTypeArgsBracketed(alloc, lexer);
 }
@@ -114,6 +114,8 @@ private immutable(Opt!(TypeAst.Suffix.Kind)) tryTakeTypeSuffix(SymAlloc)(ref Lex
 		? some(TypeAst.Suffix.Kind.opt)
 		: tryTake(lexer, "[]")
 		? some(TypeAst.Suffix.Kind.arr)
+		: tryTake(lexer, " mut[]")
+		? some(TypeAst.Suffix.Kind.arrMut)
 		: tryTake(lexer, "*")
 		? some(TypeAst.Suffix.Kind.ptr)
 		: tryTake(lexer, " mut*")

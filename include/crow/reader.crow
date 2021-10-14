@@ -123,7 +123,7 @@ take-quoted-str! str?(a reader)
 			a.cur := start
 		res
 
-.take-quoted-str-recur! str?(a reader, res mut-arr char)
+.take-quoted-str-recur! str?(a reader, res char mut[])
 	if a is-empty
 		none
 	elif a try-take-char "\""

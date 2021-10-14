@@ -7,7 +7,7 @@ import
 
 spy-act1<out, in> record mut
 	# TODO:PRIVATE
-	calls-builder mut-arr in
+	calls-builder in mut[]
 	fn act out(in)
 
 # Empties the list of calls and returns it.
@@ -28,7 +28,7 @@ spy-act<out, in> spy-act1<out, in>(value out)
 
 spy-act2<out, in0, in1> record mut
 	# TODO:PRIVATE
-	calls-builder mut-arr pair<in0, in1>
+	calls-builder pair<in0, in1> mut[]
 	fn act out(in0, in1)
 
 # Empties the list of calls and returns it.

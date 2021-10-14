@@ -177,10 +177,10 @@ parse-float float64?(a str)
 region Interpolation
 
 interp record mut
-	inner mut-arr char
+	inner char mut[]
 
 interp interp()
-	interp: mut-arr
+	mut-arr interp
 
 with-str interp(a interp, b str)
 	a.inner ~= b chars

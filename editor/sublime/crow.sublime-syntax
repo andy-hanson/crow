@@ -44,6 +44,8 @@ contexts:
   type_args:
     # TODO: this shouldn't be necessary to explicitly include the prototype, right?
     - include: prototype
+    - match: ' mut\[\]| mut\*'
+      scope: keyword
     - match: ' '
       scope: comment
     - match: ', '
@@ -56,8 +58,6 @@ contexts:
       push: string
     - match: '{{name}}\*?'
       scope: storage.type
-    - match: ' mut\*'
-      scope: keyword
 
   main:
     - match: '\#\!.*$'
@@ -196,10 +196,12 @@ contexts:
       pop: true
 
   type_ending_in_nl:
-    - match: '\smut\s'
+    - match: ' mut '
       scope: keyword
     - match: '{{name}}'
       scope: storage.type
+    - match: '\?|\[\]|\*| mut\[\]| mut\*'
+      scope: keyword
     - match: $
       pop: true
 
@@ -266,7 +268,7 @@ contexts:
     - match: '\('
       scope: comment
       push: type_args
-    - match: '\[\]'
+    - match: '\*|\?|\[\]| mut\*| mut\[\]'
       scope: keyword
     - match: ','
       scope: comment # punctuation.separator

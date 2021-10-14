@@ -47,11 +47,11 @@ test
 
 
 # Sort a mut-arr in place.
-sort!<a> void(a mut-arr a) compare<a> trusted
+sort!<a> void(a a mut[]) compare<a> trusted
 	a.temp-as-fix-arr sort!
-sort!<a> void(a mut-arr a, comparer act comparison(a, a)) trusted
+sort!<a> void(a a mut[], comparer act comparison(a, a)) trusted
 	a.temp-as-fix-arr sort! comparer
-sort-by!<a, b> void(a mut-arr a, f act b(a)) compare<b> trusted
+sort-by!<a, b> void(a a mut[], f act b(a)) compare<b> trusted
 	a.temp-as-fix-arr sort-by! f
 
 # Sort a fix-arr in place.
@@ -128,7 +128,7 @@ sort-by-first<a, b> sorted-by-first<a, b>(a a[], b b[]) compare<a> trusted
 	mut-a.cast-immutable sorted-by-first mut-b.cast-immutable
 
 # Sort `a` in place, and apply the same permutation to `b` in place.
-sort-by-first!<a, b> void(a mut-arr a, b mut-arr b) compare<a> trusted
+sort-by-first!<a, b> void(a a mut[], b b mut[]) compare<a> trusted
 	a.temp-as-fix-arr sort-by-first! b.temp-as-fix-arr
 
 # Sort `a` in place, and apply the same permutation to `b` in place.
