@@ -68,10 +68,12 @@ bin/crow.wasm: $(src_deps)
 	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm $(d_flags) $(wasm_flags) $(wasm_files) -L=--strip-all
 	rm bin/crow.o
 
-bin/crow.tar.xz: bin/crow demo/* include/* include/*/*
+ALL_INCLUDE = include/*.crow include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
+
+bin/crow.tar.xz: bin/crow demo/* $(ALL_INCLUDE)
 	tar -C .. -cJf bin/crow.tar.xz crow/bin/crow crow/demo crow/include
 
-site/include-list.txt: bin/crow include/*.crow
+site/include-list.txt: bin/crow $(ALL_INCLUDE)
 	./bin/crow run script/gen-include-list.crow > site/include-list.txt
 
 INCLUDE_TO_DOCUMENT = $(wildcard include/crow/*.crow include/crow/crypto/*.crow include/crow/db/*.crow  include/crow/col/*.crow include/crow/io/*.crow include/crow/io/*/*.crow include/crow/math/*.crow include/crow/test/*.crow)

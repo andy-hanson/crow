@@ -6,7 +6,7 @@ import
 	../../col/arr-util: rtail
 	../../col/dict: dict, each, in
 	../../col/mut-dict: move-to-dict!, mut-dict, remove-key!, set-subscript, subscript
-	../../col/mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
+	../../col/mut-arr: ~=, index-of, move-to-arr!, mut-arr, pop-n-from-start!, size
 	../../compare: !=, <=, >=
 	../../exception: assert, forbid, to-str
 	../../fut: fut, fut-catch, resolved, subscript, then
@@ -161,7 +161,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	else
 		todo
 
-.try-take-first-line str?(a mut-list char)
+.try-take-first-line str?(a mut-arr char)
 	if index ?= a index-of "\n"
 		line = a pop-n-from-start! index + 1 rtail
 		line.str try-remove-end "\r" or-default line.str some
@@ -173,7 +173,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	# This is not set until after the end of headers
 	content-length mut nat64
 	# TODO:PERF: Use a circular buffer as we often take content off the front
-	unparsed mut-list char
+	unparsed mut-arr char
 
 .http-parse-state http-parse-state()
-	http-parse-state: http-get, "", mut-dict, 0, mut-list
+	http-parse-state: http-get, "", mut-dict, 0, mut-arr

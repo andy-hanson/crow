@@ -1,0 +1,245 @@
+no-std
+import
+	string: memcpy
+	../bool: !, bool
+	../compare: !=, <, <=, equal
+	../fun: subscript
+	../misc: ->, arrow, drop, from, to, void
+	../opt: opt, some
+	../ptr:
+		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,
+		ref-of-ptr, set-deref, set-subscript, size-of, subscript, swap!
+	../private/alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
+	../private/bootstrap: hard-assert
+	../private/exception-low-level: assert, forbid
+	../private/number-low-level: ==, <=>, nat64, wrap-mul, wrap-sub
+	./arr: arr, arr-from-begin-end, begin-ptr, size, subscript
+	./arr-util: each, each-with-index, exists, find-index, fold, fold-reverse
+
+###
+Like `arr` but mutable.
+`fix-arr` is fixed-size, unlike `mut-arr`. It can change elements but can't add or remove them.
+###
+fix-arr<a> record mut
+	by-val
+	# Adding a dummy field so the constructor won't conflict with fix-arr from arr
+	ignore void
+	# TODO:PRIVATE
+	inner a[]
+
+# Empty `fix-arr`.
+fix-arr<a> fix-arr a() noctx
+	fix-arr: void, []
+
+# `fix-arr` from a pointer and size.
+fix-arr<a> fix-arr a(size nat64, begin-ptr a mut*) noctx unsafe
+	void fix-arr (size arr begin-ptr.as-const)
+
+###
+Copies an `arr` to a `fix-arr`.
+Writing to the result won't affect the original.
+###
+fix-arr<a> fix-arr a(a a[])
+	a.size make-fix-arr<a> i => a[i]
+
+###
+Copies a `fix-arr` to an `arr`.
+Further writes to the `fix-arr` won't affect the `arr` that was copied from it.
+###
+arr<a> a[](a fix-arr a)
+	a.copy.inner
+
+fix-arr-from-begin-end<a> fix-arr a(begin a mut*, end a mut*) unsafe noctx
+	hard-assert: begin <= end
+	void fix-arr (begin.as-const arr-from-begin-end end.as-const)
+
+###
+Copies the elements of a `fix-arr`.
+Writing to the result won't affect the original.
+###
+copy<a> fix-arr a(a fix-arr a)
+	a.size make-fix-arr<a> i => a[i]
+
+copy-to-arr<a> a[](a fix-arr a) trusted
+	a.copy cast-immutable
+
+copy-from!<a> void(dest fix-arr a, source a[]) trusted
+	assert: dest.size == source.size
+	drop: memcpy: dest.begin-ptr.as-any-mut-ptr, source.begin-ptr.as-any-const-ptr, dest.size wrap-mul size-of<a>
+
+copy-from!<a> void(dest fix-arr a, source fix-arr a) trusted
+	dest copy-from! source.cast-immutable
+
+is-empty<a> bool(a fix-arr a) noctx
+	a.size == 0
+
+size<a> nat64(a fix-arr a) noctx
+	a.inner size
+
+# Pointer to the beginning of the `fix-arr`.
+begin-ptr<a> a mut*(a fix-arr a) noctx unsafe
+	a.inner.begin-ptr as-mut
+
+###
+Pointer to the end of the `fix-arr`.
+This is one past the last valid pointer.
+###
+end-ptr<a> a mut*(a fix-arr a) noctx unsafe
+	a.begin-ptr + a.size
+
+###
+Gets the element at the index.
+Throws if `index >= a.size`.
+###
+subscript<a> a(a fix-arr a, index nat64) trusted
+	assert: index < a.size
+	a unsafe-at index
+
+unsafe-at<a> a(a fix-arr a, index nat64) unsafe
+	a.begin-ptr[index]
+
+###
+Slices the fix-arr.
+This is O(1).
+Writes to the slice will affect the original. (If you don't want that, use `copy`.)
+Throws if `range.from > range.to`.
+Throws if the slice would exceed the bounds of the `fix-arr`.
+###
+subscript<a> fix-arr a(a fix-arr a, range arrow<nat64, nat64>)
+	assert: range.from <= range.to
+	assert: range.to <= a.size
+	fix-arr: void, a.inner[range]
+
+###
+Write to a single element.
+Throws if `index >= a.size`.
+###
+set-subscript<a> void(a fix-arr a, index nat64, value a) trusted
+	assert: index < a.size
+	a unsafe-set-at! index, value
+
+unsafe-set-at!<a> void(a fix-arr a, index nat64, value a) unsafe
+	a.begin-ptr[index] := value
+
+
+first<a> a?(a fix-arr a)
+	if !a.is-empty
+		a[0] some
+
+last<a> a?(a fix-arr a)
+	if !a.is-empty
+		a[0] some
+
+tail<a> fix-arr a(a fix-arr a)
+	forbid: a is-empty
+	a[1 -> a.size]
+
+rtail<a> fix-arr a(a fix-arr a)
+	forbid: a is-empty
+	a[0 -> (a.size wrap-sub 1)]
+
+# Allocates a `fix-arr` without initializing any of its elements.
+uninitialized-fix-arr<a> fix-arr a(size nat64) unsafe
+	size fix-arr size.alloc-uninitialized<a>
+
+###
+`fix-arr` where each element is `f[i]`.
+Equivalent to `fix-arr: [f[0], f[1], ...]`.
+###
+make-fix-arr<a> fix-arr a(size nat64, f act a(nat64)) trusted
+	res = size uninitialized-fix-arr<a>
+	res.begin-ptr fill-ptr-range size, f
+	res
+
+###
+`fix-arr` where every element is `value`.
+Equivalent to `fix-arr: [value, value, ...]`.
+###
+fill-fix-arr<a> fix-arr a(size nat64, value a)
+	size make-fix-arr ignore => value
+
+zeroed-fix-arr<a> fix-arr a(size nat64) unsafe
+	res = size uninitialized-fix-arr<a>
+	res set-zero-elements
+	res
+
+fill!<a> void(a fix-arr a, value a)
+	a map! ignore => value
+
+###
+Unsafe cast a fix-arr to arr.
+Called "temp" because it is UB if the fix-arr is written to while the `arr` is in use.
+###
+temp-as-arr<a> a[](a fix-arr a) noctx unsafe
+	a inner
+
+###
+Unsafe cast a fix-arr to arr.
+Equivalent to `temp-as-arr`, but the implication is that
+the `fix-arr` will never be written to again, so the `arr` can be used forever.
+###
+cast-immutable<a> a[](a fix-arr a) noctx unsafe
+	a inner
+
+###
+Fill the `fix-arr` with 0 bits.
+This prevents the garbage collector from tracing those elements.
+Data structures that use a `fix-arr` should `set-zero-elements` on any elements they don't use.
+###
+set-zero-elements<a> void(a fix-arr a) noctx unsafe
+	a.begin-ptr set-zero-range a.size
+
+# Equivalent to `a.temp-as-arr index-of value`.
+index-of<a> nat64?(a fix-arr a, value a) equal<a>
+	a find-index x => x == value
+
+# Equivalent to `a.temp-as-arr find-index f`.
+find-index<a> nat64?(a fix-arr a, f act bool(a)) trusted
+	a.temp-as-arr find-index f
+
+reverse!<a> void(a fix-arr a) trusted
+	a.begin-ptr reverse-recur! a.end-ptr - 1
+.reverse-recur!<a> void(left a mut*, right a mut*) unsafe
+	if left < right
+		left swap! right
+		left + 1 reverse-recur! right - 1
+
+region iteration
+
+exists<a> bool(a fix-arr a, f act bool(a)) trusted
+	a.temp-as-arr exists f
+
+# Calls 'f' on each element in the fix-arr.
+each<a> void(a fix-arr a, f act void(a)) trusted
+	a.temp-as-arr each f
+
+each-with-index<a> void(a fix-arr a, f act void(a, nat64)) trusted
+	a.temp-as-arr each-with-index f
+
+fold<a, b> a(acc a, a fix-arr b, f act a(a, b)) trusted
+	acc fold a.temp-as-arr, f
+fold-reverse<a, b> a(acc a, a fix-arr b, f act a(a, b)) trusted
+	acc fold-reverse a.temp-as-arr, f
+
+map!<a> void(a fix-arr a, f act a(a)) trusted
+	a.begin-ptr map-recur! a.end-ptr, f
+.map-recur!<a> void(cur a mut*, end a mut*, f act a(a)) unsafe
+	if cur != end
+		*cur := f[*cur]
+		cur + 1 map-recur! end, f
+
+map<out, in> fix-arr out(a fix-arr in, f act out(in)) trusted
+	a.size make-fix-arr i => f[a[i]]
+
+map-with-index<out, in> fix-arr out(a fix-arr in, f act out(in, nat64)) trusted
+	a.size make-fix-arr i => f[a[i], i]
+
+map-to-arr<out, in> out[](a fix-arr in, f act out(in)) trusted
+	a map f cast-immutable
+
+map-to-arr-with-index<out, in> out[](a fix-arr in, f act out(in, nat64)) trusted
+	a map-with-index f cast-immutable
+
+ref-of-val-at<a> a(a fix-arr by-val a, index nat64) unsafe
+	assert: index < a.size
+	a.begin-ptr + index ref-of-ptr

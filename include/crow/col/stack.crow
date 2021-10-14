@@ -13,7 +13,7 @@ import
 	../private/number-low-level: ==, nat64, wrap-add
 	./arr: ==, arr
 	./arr-util: fold
-	./mut-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-mut-arr
+	./fix-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-fix-arr
 
 ###
 Immutable stack ype.
@@ -39,7 +39,7 @@ stack<a> stack a(a a[])
 
 # Copy a stack to an arr.
 arr<a> a[](a stack a) trusted
-	res = a.size uninitialized-mut-arr<a>
+	res = a.size uninitialized-fix-arr<a>
 	begin = res.end-ptr fold-reverse a, (out, x) =>
 		new-out = out - 1
 		*new-out := x
@@ -48,7 +48,7 @@ arr<a> a[](a stack a) trusted
 	res cast-immutable
 
 arr-reverse<a> a[](a stack a) trusted
-	res = a.size uninitialized-mut-arr<a>
+	res = a.size uninitialized-fix-arr<a>
 	end = res.begin-ptr fold-reverse a, (out, x) =>
 		*out := x
 		out + 1

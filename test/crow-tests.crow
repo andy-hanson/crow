@@ -1,6 +1,6 @@
 import
 	crow/col/arr-util: first-some, tail
-	crow/col/mut-list: ~=, move-to-arr!, mut-list
+	crow/col/mut-arr: ~=, move-to-arr!, mut-arr
 	crow/io/environ: environ
 	crow/io/file: each-child-recursive
 	crow/io/path: base-name, get-extension
@@ -22,7 +22,7 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, o
 		failures err
 
 .list-tests str[](path str, match-test str) summon
-	res = mut-list<str>
+	res = mut-arr<str>
 	path each-child-recursive child =>
 		if child has-substr match-test && child.ext-is-crow
 			res ~= child

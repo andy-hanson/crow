@@ -2,7 +2,7 @@ no-std
 import
 	./bool: bool
 	./col/arr-util: each
-	./col/mut-list: ~=, move-to-arr!, mut-list, pop-n!
+	./col/mut-arr: ~=, move-to-arr!, mut-arr, pop-n!
 	./misc: void
 	./number: float64, int64, nat64
 	./str: ==, char, chars, c-str, str
@@ -11,13 +11,13 @@ import
 
 writer record mut
 	# TODO:PRIVATE
-	chars mut-list char
+	chars mut-arr char
 
 write<a> spec
 	~= void(writer writer, value a)
 
 writer writer()
-	mut-list writer
+	mut-arr writer
 
 move-to-str! str(a writer)
 	a.chars.move-to-arr! str

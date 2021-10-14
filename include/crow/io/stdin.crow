@@ -2,7 +2,7 @@ no-std
 import
 	stdio: stdin
 	unistd: read
-	../col/mut-arr: begin-ptr, cast-immutable, size, subscript, uninitialized-mut-arr
+	../col/fix-arr: begin-ptr, cast-immutable, size, subscript, uninitialized-fix-arr
 	../compare: >=
 	../exception: assert
 	../fun: subscript
@@ -20,7 +20,7 @@ If that comes from the user typing at the terminal, this will block until they h
 Result is `strip`ped.
 ###
 read-stdin str() trusted summon
-	buffer = 0x2000 uninitialized-mut-arr<nat8>
+	buffer = 0x2000 uninitialized-fix-arr<nat8>
 	bytes-read-or-err = stdin read buffer.begin-ptr, buffer.size
 	assert: bytes-read-or-err >= 0
 	bytes-read = bytes-read-or-err to-nat64

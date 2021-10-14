@@ -4,7 +4,7 @@ import
 	./col/dict: dict, dict-equal, each, is-empty
 	./col/list: each, is-empty, list, list-equal
 	./col/mut-dict: move-to-dict!, mut-dict, set-subscript
-	./col/mut-list: ~=, move-to-arr!, mut-list
+	./col/mut-arr: ~=, move-to-arr!, mut-arr
 	./hash: hash-mix
 	./misc: ->, void
 	./number: ==, float64
@@ -172,7 +172,7 @@ take-json! json?(a reader)
 		if a try-take-char "]"
 			list some
 		else
-			a take-list-recur! mut-list
+			a take-list-recur! mut-arr
 	elif a try-take-char "\{"
 		a skip-whitespace!
 		if a try-take-char "}"
@@ -180,7 +180,7 @@ take-json! json?(a reader)
 		else
 			a take-object-recur! mut-dict
 
-.take-list-recur! json?(a reader, res mut-list json)
+.take-list-recur! json?(a reader, res mut-arr json)
 	if j ?= a take-json!
 		res ~= j
 		a skip-whitespace!

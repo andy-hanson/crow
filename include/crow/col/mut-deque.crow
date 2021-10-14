@@ -13,13 +13,13 @@ import
 	../private/number-low-level: ==, nat64, wrap-add, wrap-mul
 	./arr: ==, arr, arr-from-begin-end, size
 	./arr-util: each-ptr, first, last
-	./mut-arr:
-		begin-ptr, cast-immutable, copy-from!, end-ptr, is-empty, mut-arr, set-zero-elements, size,
-		subscript, uninitialized-mut-arr, zeroed-mut-arr
+	./fix-arr:
+		begin-ptr, cast-immutable, copy-from!, end-ptr, is-empty, fix-arr, set-zero-elements, size,
+		subscript, uninitialized-fix-arr, zeroed-fix-arr
 
 mut-deque<a> record mut
 	# TODO:PRIVATE
-	inner mut mut-arr a
+	inner mut fix-arr a
 	# Points to the first element. Null for an empty queue.
 	left mut a mut*
 	# Points to the element after the last. Null for an empty queue.
@@ -27,21 +27,21 @@ mut-deque<a> record mut
 	right mut a mut*
 
 mut-deque<a> mut-deque a() trusted
-	mut-deque: mut-arr<a>, null, null
+	mut-deque: fix-arr<a>, null, null
 
 arr<a> a[](a mut-deque a) trusted
-	a.mut-arr cast-immutable
+	a.fix-arr cast-immutable
 
-mut-arr<a> mut-arr a(a mut-deque a) trusted
+fix-arr<a> fix-arr a(a mut-deque a) trusted
 	if a is-empty
-		mut-arr
+		fix-arr
 	else
-		res = a.size uninitialized-mut-arr<a>
+		res = a.size uninitialized-fix-arr<a>
 		res copy-from-deque! a
 		res
 
 copy<a> mut-deque a(a mut-deque a) trusted
-	inner = a mut-arr
+	inner = a fix-arr
 	mut-deque: inner, inner.begin-ptr, inner.begin-ptr
 
 is-empty<a> bool(a mut-deque a) trusted
@@ -117,7 +117,7 @@ pop-right!<a> a?(a mut-deque a) trusted
 	if a.left == null
 		assert: a.right == null
 		if a.inner is-empty
-			a.inner := 2 zeroed-mut-arr<a>
+			a.inner := 2 zeroed-fix-arr<a>
 		a.left := a.inner begin-ptr
 		a.right := a.left
 	else
@@ -127,14 +127,14 @@ pop-right!<a> a?(a mut-deque a) trusted
 			old-inner = a inner
 			old-capacity = old-inner size
 			new-capacity = old-capacity wrap-mul 2
-			new-inner = new-capacity uninitialized-mut-arr<a>
+			new-inner = new-capacity uninitialized-fix-arr<a>
 			new-inner[0 -> old-capacity] copy-from-deque! a
 			new-inner[old-capacity -> new-capacity] set-zero-elements
 			a.inner := new-inner
 			a.left := a.inner begin-ptr
 			a.right := a.left + old-capacity
 
-.copy-from-deque!<a> void(dest mut-arr a, a mut-deque a) trusted
+.copy-from-deque!<a> void(dest fix-arr a, a mut-deque a) trusted
 	assert: dest.size == a.size
 	if a.left < a.right
 		dest copy-from! (a.left.as-const arr-from-begin-end a.right.as-const)

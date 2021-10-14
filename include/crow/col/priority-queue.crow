@@ -16,9 +16,9 @@ import
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	./arr: ==, arr, is-empty, size
 	./arr-util: each, first, fold, map, tail
-	./mut-arr:
-		begin-ptr, cast-immutable, end-ptr, first, mut-arr, set-subscript, size, subscript,
-		tail, uninitialized-mut-arr
+	./fix-arr:
+		begin-ptr, cast-immutable, end-ptr, first, fix-arr, set-subscript, size, subscript,
+		tail, uninitialized-fix-arr
 	./sort: sort-by, sort-by!
 
 priority-queue<k, v> record
@@ -173,7 +173,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 		plan-will-compact<k, v>: n-singles
 
 .do-compact<k, v> node<k, v>(root node<k, v>, n-to-compact nat64, nodes-to-compact node<k, v>?) trusted compare<k>
-	compacted = n-to-compact uninitialized-mut-arr<arrow<k, v>>
+	compacted = n-to-compact uninitialized-fix-arr<arrow<k, v>>
 	mid = compacted.begin-ptr compact-non-singles! nodes-to-compact
 	end = mid compact-singles! root
 	assert: end == compacted.end-ptr
@@ -237,8 +237,8 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) data<k> compare
 	min mut arrow<k, v>
 	pairs mut arrow<k, v>[]
 
-.each-arr<k, v> mut-arr each-part<k, v>(a priority-queue<k, v>) trusted compare<k>
-	res = a.node-count uninitialized-mut-arr<each-part<k, v>>
+.each-arr<k, v> fix-arr each-part<k, v>(a priority-queue<k, v>) trusted compare<k>
+	res = a.node-count uninitialized-fix-arr<each-part<k, v>>
 	end = res.begin-ptr fill-each-arr! a.root
 	assert: end == res.end-ptr
 	res sort-by! it => it.min from
@@ -260,7 +260,7 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) data<k> compare
 	else
 		out
 
-.walk-fold<a, k, v> a(acc a, a mut-arr each-part<k, v>, f act a(a, k, v)) compare<k>
+.walk-fold<a, k, v> a(acc a, a fix-arr each-part<k, v>, f act a(a, k, v)) compare<k>
 	if head ?= a first
 		min = head min
 		next-acc = f[acc, min from, min to]
@@ -274,7 +274,7 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) data<k> compare
 	else
 		acc
 
-.swap-sorted!<k, v> void(a mut-arr each-part<k, v>) compare<k>
+.swap-sorted!<k, v> void(a fix-arr each-part<k, v>) compare<k>
 	if a.size > 1 && a[0].min.from > a[1].min.from
 		# TODO: use a swap! function
 		temp = a[0]
@@ -283,7 +283,7 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) data<k> compare
 		a.tail swap-sorted!
 
 filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trusted data<k> compare<k>
-	out = a.size uninitialized-mut-arr<arrow<k, v>>
+	out = a.size uninitialized-fix-arr<arrow<k, v>>
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		if f[k, v]
 			*cur := k -> v
@@ -304,7 +304,7 @@ body
 	a map-to-arr f priority-queue
 
 map-to-arr<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) data<k> compare<k> trusted
-	out = a.size uninitialized-mut-arr<out>
+	out = a.size uninitialized-fix-arr<out>
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1

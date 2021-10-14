@@ -16,26 +16,26 @@ import
 	./arr: ==, arr, size
 	./arr-util: each, map
 	./dict: dict
+	./fix-arr:
+		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-fix-arr, fold, is-empty, map,
+		fix-arr, set-subscript, size, subscript, uninitialized-fix-arr
 	./mut-arr:
-		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-mut-arr, fold, is-empty, map,
-		mut-arr, set-subscript, size, subscript, uninitialized-mut-arr
-	./mut-list:
-		~=, copy, each, filter!, find-index, fold, is-at-capacity, is-empty, map!, mut-list,
+		~=, copy, each, filter!, find-index, fold, is-at-capacity, is-empty, map!, mut-arr,
 		remove-unordered-at!, set-subscript, size, subscript
 
 mut-dict<k, v> record mut
 	# TODO:PRIVATE
 	ignore void
-	entries mut mut-arr entry<k, v>
+	entries mut fix-arr entry<k, v>
 	total-size mut nat64
 
 .entry<k, v> union mut
 	none
 	arrow<k, v>
-	mut-list<arrow<k, v>>
+	mut-arr<arrow<k, v>>
 
 mut-dict<k, v> mut-dict<k, v>() data<k> compare<k> hash-mix<k>
-	mut-dict: void, mut-arr, 0
+	mut-dict: void, fix-arr, 0
 
 mut-dict<k, v> mut-dict<k, v>(a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	res = a.size mut-dict-with-capacity<k, v>
@@ -48,7 +48,7 @@ New dict with `capacity` empty entries.
 WARN: Due to hash conflicts, this doesn't guarantee that allocations won't be needed.
 ###
 mut-dict-with-capacity<k, v> mut-dict<k, v>(capacity nat64) data<k> compare<k> hash-mix<k>
-	mut-dict: void, (capacity fill-mut-arr none), 0
+	mut-dict: void, (capacity fill-fix-arr none), 0
 
 arr<k, v> arrow<k, v>[](a mut-dict<k, v>) data<k> compare<k> hash-mix<k>
 	a map-to-arr (key, value) => key -> value
@@ -60,7 +60,7 @@ copy<k, v> mut-dict<k, v>(a mut-dict<k, v>) data<k> compare<k> hash-mix<k>
 			none as<entry<k, v>>
 		as arrow ar
 			ar
-		as mut-list m
+		as mut-arr m
 			m copy
 	mut-dict: void, entries, a.total-size
 test
@@ -88,7 +88,7 @@ subscript<k, v> v?(a mut-dict<k, v>, key k) trusted data<k> compare<k> hash-mix<
 		as arrow ar
 			if ar.from == key
 				ar.to some
-		as mut-list m
+		as mut-arr m
 			if index ?= m find-index pair => pair.from == key
 				m[index].to some
 
@@ -120,7 +120,7 @@ Returns the old value (if it exists).
 .update!<k, v> v?(a mut-dict<k, v>, key k, new-value v?) trusted data<k> compare<k> hash-mix<k>
 	if a.entries is-empty
 		if value ?= new-value
-			a.entries := mut-arr: [key -> value]
+			a.entries := fix-arr: [key -> value]
 			a.total-size := 1
 		none
 	else
@@ -145,10 +145,10 @@ Returns the old value (if it exists).
 						a expand!
 						a[key] := value
 					else
-						a.entries[entry-index] := mut-list: [ar, key -> value]
+						a.entries[entry-index] := mut-arr: [ar, key -> value]
 						a.total-size := a.total-size wrap-add 1
 				none
-		as mut-list m
+		as mut-arr m
 			if index ?= m find-index pair => pair.from == key
 				old-value = m[index] to
 				if value ?= new-value
@@ -205,7 +205,7 @@ fold<a, k, v> a(acc a, a mut-dict<k, v>, f act a(a, k, v)) data<k> compare<k> ha
 			cur
 		as arrow ar
 			f[cur, ar.from, ar.to]
-		as mut-list m
+		as mut-arr m
 			cur fold m, (cur2, pair) => f[cur2, pair.from, pair.to]
 
 filter!<k, v> void(a mut-dict<k, v>, f act bool(k, v)) trusted data<k> compare<k> hash-mix<k>
@@ -218,7 +218,7 @@ filter!<k, v> void(a mut-dict<k, v>, f act bool(k, v)) trusted data<k> compare<k
 		as arrow ar
 			if !f[ar.from, ar.to]
 				*entry-ptr := none
-		as mut-list m
+		as mut-arr m
 			m filter! pair => f[pair.from, pair.to]
 			if m is-empty
 				*entry-ptr := none
@@ -230,7 +230,7 @@ filter!<k, v> void(a mut-dict<k, v>, f act bool(k, v)) trusted data<k> compare<k
 
 
 map-to-arr<out, k, v> out[](a mut-dict<k, v>, f act out(k, v)) trusted data<k> compare<k> hash-mix<k>
-	out = a.size uninitialized-mut-arr<out>
+	out = a.size uninitialized-fix-arr<out>
 	end = out.begin-ptr fold a, (cur, key, value) =>
 		*cur := f[key, value]
 		cur + 1
@@ -251,7 +251,7 @@ map-values!<k, v> void(a mut-dict<k, v>, f act v(k, v)) trusted data<k> compare<
 			void
 		as arrow ar
 			*entry-ptr := ar.from -> f[ar.from, ar.to]
-		as mut-list m
+		as mut-arr m
 			m map! pair => pair.from -> f[pair.from, pair.to]
 		entry-ptr + 1 map-values-recur! entry-end, f
 
@@ -267,7 +267,7 @@ map-values!<k, v> void(a mut-dict<k, v>, f act v(k, v)) trusted data<k> compare<
 			out ~= " -> "
 			out ~= ar to
 			out ~= ")"
-		as mut-list m
+		as mut-arr m
 			out ~= "["
 			m each pair =>
 				out ~= pair.from to-str

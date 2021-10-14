@@ -1,6 +1,6 @@
 import
 	crow/col/arr-util: each
-	crow/col/mut-list: ~=, move-to-arr!, mut-list, reduce-size-if-more-than!, size
+	crow/col/mut-arr: ~=, move-to-arr!, mut-arr, reduce-size-if-more-than!, size
 	crow/io/file: try-read-file, write-file
 	crow/io/path: base-name
 	crow/io/print: print, print-no-newline
@@ -29,7 +29,7 @@ body
 		[original-path failure "{output-path base-name} does not exist. actual was:\n{actual}"]
 
 flat-map-with-max-size<out, in> out[](a in[], max-size nat, mapper act out[](in)) trusted
-	res = mut-list<out>
+	res = mut-arr<out>
 	a each x =>
 		if res.size < max-size
 			res ~= mapper[x]

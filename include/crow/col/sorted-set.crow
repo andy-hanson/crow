@@ -15,12 +15,12 @@ import
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul, wrap-sub
 	./arr: arr, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, subscript
 	./arr-util: each, tail
+	./fix-arr:
+		begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, set-subscript, size, subscript,
+		uninitialized-fix-arr
 	./index-set:
 		~, count-greater-or-equal, count-range, each, filter-less, in, index-set, is-empty, size,
 		try-remove
-	./mut-arr:
-		begin-ptr, cast-immutable, end-ptr, is-empty, mut-arr, set-subscript, size, subscript,
-		uninitialized-mut-arr
 	./sort: sort
 	./private/sort-utils: binary-search-exact-index
 
@@ -160,7 +160,7 @@ Or a combination of the two.
 
 .add-and-compact<a> sorted-set a(a sorted-set a, add-size nat64, plan compact-plan, value a) unsafe compare<a>
 	assert: plan.compacted-size > 1
-	compacted = plan.compacted-size uninitialized-mut-arr<a>
+	compacted = plan.compacted-size uninitialized-fix-arr<a>
 	*compacted.begin-ptr := value
 	compactor = compacted.begin-ptr.as-const compactor<a> compacted.begin-ptr + 1, compacted.end-ptr.as-const
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
@@ -174,7 +174,7 @@ Or a combination of the two.
 		else
 			sorted-set
 	else
-		compacted = plan.compacted-size uninitialized-mut-arr<a>
+		compacted = plan.compacted-size uninitialized-fix-arr<a>
 		compactor = compacted.begin-ptr.as-const compactor<a> compacted.begin-ptr, compacted.end-ptr.as-const
 		old-size = plan.add-size-left wrap-add plan.compacted-size wrap-add 1
 		new-add = compactor do-compact-recur! a.add, old-size, a.remove ~ extra-removal
@@ -281,7 +281,7 @@ each<a> void(a sorted-set a, f act void(a)) data<a> compare<a>
 
 fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) data<b> compare<b>
 	acc fold-recur a.init-iters, a.remove, f
-.fold-recur<a, b> a(acc a, iters mut-arr iter-part b, remove index-set, f act a(a, b)) compare<b>
+.fold-recur<a, b> a(acc a, iters fix-arr iter-part b, remove index-set, f act a(a, b)) compare<b>
 	if iters is-empty
 		acc
 	else
@@ -299,7 +299,7 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) data<b> compare<b>
 	current-least a
 	current-least-index nat64
 	iter-index nat64
-	iters mut-arr iter-part a
+	iters fix-arr iter-part a
 spec
 	compare<a>
 body
@@ -323,8 +323,8 @@ body
 .tail<a> iter-part a(a iter-part a, remove index-set)
 	a.values.tail iter-part (a.remove-index wrap-add 1) remove-from-front remove
 
-.init-iters<a> mut-arr iter-part a(a sorted-set a) trusted
-	iters = a.add-node-count uninitialized-mut-arr<iter-part<a>>
+.init-iters<a> fix-arr iter-part a(a sorted-set a) trusted
+	iters = a.add-node-count uninitialized-fix-arr<iter-part<a>>
 	res = iters.begin-ptr init-iters-recur! a.add, a.remove
 	iters[0 -> res.out - iters.begin-ptr]
 
@@ -366,7 +366,7 @@ map<out, in> sorted-set out(a sorted-set in, f act out(in)) data<out> compare<ou
 	a map-to-arr f sorted-set
 
 map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted data<in> compare<in>
-	out = a.size uninitialized-mut-arr<out>
+	out = a.size uninitialized-fix-arr<out>
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1

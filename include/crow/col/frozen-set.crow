@@ -11,9 +11,9 @@ import
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
 	./arr: ==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, unsafe-at
 	./arr-util: fold, fold-with-index, in, index-of, map, ptr-of
-	./mut-arr:
-		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-mut-arr, mut-arr,
-		size, temp-as-arr, uninitialized-mut-arr, unsafe-at, unsafe-set-at!
+	./fix-arr:
+		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-fix-arr, fix-arr,
+		size, temp-as-arr, uninitialized-fix-arr, unsafe-at, unsafe-set-at!
 
 frozen-set<a> record
 	# TODO:PRIVATE
@@ -25,7 +25,7 @@ frozen-set<a> frozen-set a() data<a> compare<a> hash-mix<a>
 	[] frozen-set []
 
 frozen-set<a> frozen-set a(a a[]) trusted data<a> compare<a> hash-mix<a>
-	a.mut-arr unsafe-frozen-set-from-mut-arr-cast-immutable
+	a.fix-arr unsafe-frozen-set-from-fix-arr-cast-immutable
 
 # TODO:INTERNAL
 # Values are stored as a contiguous array; order is arbitrary.
@@ -75,8 +75,8 @@ try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted data<a> compa
 		if ptr ?= bucket-start arr-from-begin-end bucket-end ptr-of value
 			ptr - a.begin-ptr some
 
-unsafe-frozen-set-from-mut-arr-cast-immutable<a> frozen-set a
-	a mut-arr a
+unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a
+	a fix-arr a
 spec
 	unsafe
 	data<a>
@@ -93,8 +93,8 @@ body
 		a.begin-ptr move-values-to-buckets-recur! a.end-ptr, bucket-counts, bucket-starts
 		a.cast-immutable frozen-set bucket-starts.arr-cast<a*, a mut*>
 
-.get-bucket-counts<a> mut-arr nat64(a mut-arr a, n-buckets nat64) unsafe hash-mix<a>
-	res = n-buckets fill-mut-arr 0
+.get-bucket-counts<a> fix-arr nat64(a fix-arr a, n-buckets nat64) unsafe hash-mix<a>
+	res = n-buckets fill-fix-arr 0
 	a each value =>
 		bucket-index = value get-bucket-index n-buckets
 		res unsafe-set-at!: bucket-index, res unsafe-at bucket-index wrap-add 1
@@ -103,7 +103,7 @@ body
 .move-values-to-buckets-recur!<a> void
 	cur a mut*
 	end a mut*
-	bucket-counts mut-arr nat64
+	bucket-counts fix-arr nat64
 	bucket-starts a mut*[]
 spec
 	unsafe
@@ -128,7 +128,7 @@ body
 	value.hash unsafe-mod n-buckets
 
 .running-sum<a> a mut*[](acc a mut*, a nat64[]) trusted
-	out = a.size uninitialized-mut-arr<a mut*>
+	out = a.size uninitialized-fix-arr<a mut*>
 	acc running-sum-recur! out.begin-ptr, out.end-ptr, a.begin-ptr
 	out cast-immutable
 .running-sum-recur!<a> void

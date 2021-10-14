@@ -1,7 +1,7 @@
 no-std
 import
 	../io/duration: duration, nsec
-	../col/mut-arr: mut-arr
+	../col/fix-arr: fix-arr
 	../ptr: by-val
 	./bootstrap: arr, nat64, str
 
@@ -12,10 +12,10 @@ perf-time record
 
 perf-ctx record mut
 	measure-names mut str[]
-	measure-values mut mut-arr measure-value
+	measure-values mut fix-arr measure-value
 
 perf-ctx by-val perf-ctx() noctx
-	perf-ctx: [], mut-arr
+	perf-ctx: [], fix-arr
 
 measure-value record
 	by-val

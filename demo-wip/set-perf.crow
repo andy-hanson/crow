@@ -4,12 +4,12 @@ import
 	crow/col/frozen-dict:
 		frozen-dict, in, size
 	crow/col/frozen-set:
-		bucket-starts, frozen-set, in, unsafe-frozen-set-from-mut-arr-cast-immutable, size
+		bucket-starts, frozen-set, in, unsafe-frozen-set-from-fix-arr-cast-immutable, size
 	crow/col/index-set: -, ~, index-set, in, size
 	crow/col/experimental/compact-sorted-dict: -, ~, compact-sorted-dict, in, size
 	crow/col/experimental/hamt-set: -, ~, hamt-set, in, size
 	crow/col/experimental/tree-set: -, ~, in, size, tree-set
-	crow/col/mut-list: ~=, move-to-arr!, move-to-mut-arr!, mut-list
+	crow/col/mut-arr: ~=, move-to-arr!, move-to-fix-arr!, mut-arr
 	crow/col/set: ~, in, node-count, set, size
 	crow/col/sorted-set: -, ~, in, sorted-set, size
 	crow/io/print: print
@@ -116,9 +116,9 @@ This ensures the collection is kept in memory.
 	as frozen-dict
 		a = match test-kind
 		as add
-			mut-list frozen-dict-add-test iters, max-value
+			mut-arr frozen-dict-add-test iters, max-value
 		as get
-			a = mut-list frozen-dict-add-test iters, max-value
+			a = mut-arr frozen-dict-add-test iters, max-value
 			info log "{0 get-test a, iters * get-factor, max-value}"
 			a
 		as rm
@@ -127,9 +127,9 @@ This ensures the collection is kept in memory.
 	as frozen-set
 		a = match test-kind
 		as add
-			mut-list frozen-set-add-test iters, max-value
+			mut-arr frozen-set-add-test iters, max-value
 		as get
-			a = mut-list frozen-set-add-test iters, max-value
+			a = mut-arr frozen-set-add-test iters, max-value
 			info log "Using {a.bucket-starts size} buckets"
 			info log "{0 get-test a, iters * get-factor, max-value}"
 			a
@@ -248,7 +248,7 @@ This ensures the collection is kept in memory.
 		a ~ max-value.rand-nat add-test iters - 1, max-value
 
 .frozen-dict-add-test frozen-dict<nat, void>
-	a mut-list arrow<nat, void>
+	a mut-arr arrow<nat, void>
 	iters nat
 	max-value nat
 spec
@@ -261,9 +261,9 @@ body
 		a ~= max-value.rand-nat -> void
 		a frozen-dict-add-test iters - 1, max-value
 
-.frozen-set-add-test frozen-set nat(a mut-list nat, iters nat, max-value nat) trusted summon
+.frozen-set-add-test frozen-set nat(a mut-arr nat, iters nat, max-value nat) trusted summon
 	if iters == 0
-		a.move-to-mut-arr! unsafe-frozen-set-from-mut-arr-cast-immutable
+		a.move-to-fix-arr! unsafe-frozen-set-from-fix-arr-cast-immutable
 	else
 		a ~= max-value rand-nat
 		a frozen-set-add-test iters - 1, max-value

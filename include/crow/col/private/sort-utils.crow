@@ -11,9 +11,9 @@ import
 	../../private/bootstrap: nat64
 	../../private/number-low-level: ==, <=>, unsafe-div, wrap-add
 	../arr: ==, arr, arr-from-begin-end, begin-ptr, end-ptr
-	../mut-arr: begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end
-	../mut-list:
-		arr, begin-ptr, empty!, end-ptr, is-empty, mut-list, size, swap!, temp-as-mut-arr,
+	../fix-arr: begin-ptr, cast-immutable, copy-from!, end-ptr, fix-arr, fix-arr-from-begin-end
+	../mut-arr:
+		arr, begin-ptr, empty!, end-ptr, is-empty, mut-arr, size, swap!, temp-as-fix-arr,
 		unsafe-set-size!
 
 binary-search-has<a> bool(a a[], value a) compare<a> trusted
@@ -49,10 +49,10 @@ binary-search-exact-index<a> nat64?(a a[], value a) trusted compare<a>
 	else
 		ptr - a.begin-ptr some
 
-binary-search-exact-ptr<a> a mut*?(a mut-list a, compare act comparison(a)) unsafe
-	a.temp-as-mut-arr binary-search-exact-ptr compare
-
 binary-search-exact-ptr<a> a mut*?(a mut-arr a, compare act comparison(a)) unsafe
+	a.temp-as-fix-arr binary-search-exact-ptr compare
+
+binary-search-exact-ptr<a> a mut*?(a fix-arr a, compare act comparison(a)) unsafe
 	if x ?= a.cast-immutable binary-search-exact-ptr compare
 		x.as-mut some
 
@@ -68,21 +68,21 @@ binary-search-exact-ptr<a> a*?(a a[], compare act comparison(a)) unsafe
 	elif compare[*ptr] == equal
 		ptr some
 
-binary-search-insert-ptr<a> a mut*(a mut-list a, compare act comparison(a)) unsafe
-	a.temp-as-mut-arr binary-search-insert-ptr compare
+binary-search-insert-ptr<a> a mut*(a mut-arr a, compare act comparison(a)) unsafe
+	a.temp-as-fix-arr binary-search-insert-ptr compare
 
 ###
 Returns the pointer to the least value that is compared equal or greater.
 Returns `a end-ptr` if all values compare less.
 ###
-binary-search-insert-ptr<a> a mut*(a mut-arr a, compare act comparison(a)) unsafe
+binary-search-insert-ptr<a> a mut*(a fix-arr a, compare act comparison(a)) unsafe
 	a.begin-ptr.as-const binary-search-compare-recur a.end-ptr.as-const, compare as-mut
 
 binary-search-insert-ptr<a> a*(a a[], value a) unsafe compare<a>
 	a.begin-ptr binary-search-insert-ptr-recur a.end-ptr, value
 
 test
-	a = mut-arr: [1, 3, 5, 7]
+	a = fix-arr: [1, 3, 5, 7]
 	(a binary-search-insert-ptr x => 0 <=> x) - a.begin-ptr is 0
 	(a binary-search-insert-ptr x => 3 <=> x) - a.begin-ptr is 1
 	(a binary-search-insert-ptr x => 4 <=> x) - a.begin-ptr is 2
@@ -157,7 +157,7 @@ assert-comparison-not-equal unique-comparison(a comparison)
 		greater
 
 # 'a' and 'b' must be sorted. Moves contents of 'b' into 'a' and preserves sorting.
-merge-no-duplicates!<a> void(a mut-list a, b mut-list a, compare act unique-comparison(a, a)) trusted
+merge-no-duplicates!<a> void(a mut-arr a, b mut-arr a, compare act unique-comparison(a, a)) trusted
 	if a.size < b.size
 		a swap! b
 	assert: a.size >= b.size
@@ -192,15 +192,15 @@ body
 	as greater
 		*a-write := *a-read
 		if a-read == a-begin.as-const
-			dest = a-begin mut-arr-from-begin-end a-write
+			dest = a-begin fix-arr-from-begin-end a-write
 			src = b-begin arr-from-begin-end b-read + 1
 			dest copy-from! src
 		else
 			a-begin merge-reverse-recur! a-read - 1, a-write - 1, b-begin, b-read, compare
 
 .test-one void(a nat64[], b nat64[], expected nat64[])
-	a-mut = mut-list: a
-	b-mut = mut-list: b
+	a-mut = mut-arr: a
+	b-mut = mut-arr: b
 	a-mut merge-no-duplicates! b-mut, (x, y) =>
 		x <=> y assert-comparison-not-equal
 	a-mut.arr is expected

@@ -17,9 +17,9 @@ import
 	../../private/number-low-level: wrap-add
 	../arr: arr, begin-ptr, is-empty, end-ptr, size, subscript
 	../arr-util: each, filter, fold, map, tail
-	../mut-arr:
-		begin-ptr, cast-immutable, is-empty, fold, mut-arr, set-subscript, size, subscript, tail,
-		uninitialized-mut-arr
+	../fix-arr:
+		begin-ptr, cast-immutable, is-empty, fold, fix-arr, set-subscript, size, subscript, tail,
+		uninitialized-fix-arr
 	../sort: sort-by
 	../private/sort-utils: binary-search-key
 
@@ -144,7 +144,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) data<k> compare<k>
 	prev-size <= (overlay-size max 3)
 
 .merge-overlays<k, v> arrow<k, v?>[](l arrow<k, v?>[], r arrow<k, v?>[]) trusted data<k> compare<k>
-	res = l.size + r.size uninitialized-mut-arr<arrow<k, v?>>
+	res = l.size + r.size uninitialized-fix-arr<arrow<k, v?>>
 	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
 	res[0 -> end - res.begin-ptr] cast-immutable
 
@@ -184,7 +184,7 @@ body
 			out + 1 merge-keep-right l, l-end, r + 1, r-end
 
 .merge-to-end<k, v> arrow<k, v>[](l arrow<k, v>[], r arrow<k, v?>[]) trusted data<k> compare<k>
-	res = l.size + r.size uninitialized-mut-arr<arrow<k, v>>
+	res = l.size + r.size uninitialized-fix-arr<arrow<k, v>>
 	end = if l is-empty
 		res.begin-ptr finish-rest-ignore-none r.begin-ptr, r.end-ptr
 	else
@@ -281,7 +281,7 @@ fold<a, k, v> a(acc a, a compact-sorted-dict<k, v>, f act a(a, k, v)) data<k> co
 .fold-recur<a, k, v> a
 	acc a
 	end-node arrow<k, v>[]
-	overlays mut-arr arrow<k, v?>[]
+	overlays fix-arr arrow<k, v?>[]
 	f act a(a, k, v)
 spec
 	data<k>
@@ -309,23 +309,23 @@ body
 			acc
 		new-acc fold-recur new-end-node, took-from-overlays.overlays, f
 
-.find-least-key<k, v> k(current-least-key k, overlays mut-arr arrow<k, v>[]) data<k> compare<k>
+.find-least-key<k, v> k(current-least-key k, overlays fix-arr arrow<k, v>[]) data<k> compare<k>
 	current-least-key fold overlays, (cur, overlay) =>
 		cur min overlay[0].from
 
 .took-key<k, v> record mut
 	rightmost-value v?
-	overlays mut-arr arrow<k, v?>[]
+	overlays fix-arr arrow<k, v?>[]
 
 ###
 Takes the key from the front of every overlay that has it.
-Removes rightmost overlays from the mut-arr (by returning a new, smaller mut-arr).
+Removes rightmost overlays from the fix-arr (by returning a new, smaller fix-arr).
 Returns the rightmost value associated with that key.
 ###
-.take-key<k, v> took-key<k, v>(overlays mut-arr arrow<k, v?>[], key k) data<k> compare<k>
+.take-key<k, v> took-key<k, v>(overlays fix-arr arrow<k, v?>[], key k) data<k> compare<k>
 	overlays take-key-recur key, 0, none
 .take-key-recur<k, v> took-key<k, v>
-	overlays mut-arr arrow<k, v?>[]
+	overlays fix-arr arrow<k, v?>[]
 	key k
 	index nat64
 	rightmost-value v?
@@ -357,10 +357,10 @@ body
 
 .iters<k, v> record mut
 	end-pairs arrow<k, v>[]
-	overlays mut-arr arrow<k, v?>[]
+	overlays fix-arr arrow<k, v?>[]
 
 .init-iters<k, v> iters<k, v>(a compact-sorted-dict<k, v>) trusted
-	overlay-iters = 0 overlay-count a.impl uninitialized-mut-arr<arrow<k, v?>[]>
+	overlay-iters = 0 overlay-count a.impl uninitialized-fix-arr<arrow<k, v?>[]>
 	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur! a.impl
 	end-pairs iters overlay-iters
 

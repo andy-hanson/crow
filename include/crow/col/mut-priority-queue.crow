@@ -12,9 +12,9 @@ import
 	../private/number-low-level: ==, <=>, nat64, wrap-add
 	./arr: ==, arr
 	./arr-util: map
-	./mut-arr: begin-ptr, cast-immutable, copy, mut-arr, reverse!, uninitialized-mut-arr
-	./mut-list:
-		~=, begin-ptr, each, each-with-index, empty!, fold, fold-reverse, is-empty, mut-list,
+	./fix-arr: begin-ptr, cast-immutable, copy, fix-arr, reverse!, uninitialized-fix-arr
+	./mut-arr:
+		~=, begin-ptr, each, each-with-index, empty!, fold, fold-reverse, is-empty, mut-arr,
 		pop!, reverse!, size, subscript
 	./sort: sort-by!
 	./private/sort-utils: binary-search-insert-ptr
@@ -24,17 +24,17 @@ mut-priority-queue<k, v> record mut
 	# TODO:PRIVATE
 	# TODO: Use by-val
 	# The smallest value goes on the right
-	mins mut-list arrow<k, v>
+	mins mut-arr arrow<k, v>
 	# This may be shorter than mins -- buckets on the right considered missing.
-	buckets mut-list mut-list arrow<k, v>
+	buckets mut-arr mut-arr arrow<k, v>
 
 mut-priority-queue<k, v> mut-priority-queue<k, v>() data<k> compare<k>
-	mut-priority-queue: mut-list, mut-list
+	mut-priority-queue: mut-arr, mut-arr
 
 mut-priority-queue<k, v> mut-priority-queue<k, v>(a arrow<k, v>[]) data<k> compare<k>
-	mins = mut-list: a
+	mins = mut-arr: a
 	mins sort-by! pair => pair from
-	mut-priority-queue: mins, mut-list
+	mut-priority-queue: mins, mut-arr
 
 empty!<k, v> void(a mut-priority-queue<k, v>) data<k> compare<k>
 	a.mins empty!
@@ -62,12 +62,12 @@ copy<k, v> mut-priority-queue<k, v>(a mut-priority-queue<k, v>) data<k> compare<
 	a.mins empty!
 	a.mins ~= mins
 	a.buckets empty!
-	mut-priority-queue: mins.mut-list, mut-list
+	mut-priority-queue: mins.mut-arr, mut-arr
 
 arr<k, v> arrow<k, v>[](a mut-priority-queue<k, v>) trusted data<k> compare<k>
-	a.mut-arr cast-immutable
+	a.fix-arr cast-immutable
 
-mut-arr<k, v> mut-arr arrow<k, v>(a mut-priority-queue<k, v>) data<k> compare<k>
+fix-arr<k, v> fix-arr arrow<k, v>(a mut-priority-queue<k, v>) data<k> compare<k>
 	mins = a spread-all-buckets
 	a.mins empty!
 	a.mins ~= mins
@@ -77,8 +77,8 @@ mut-arr<k, v> mut-arr arrow<k, v>(a mut-priority-queue<k, v>) data<k> compare<k>
 	res
 
 # Output is high-to-low
-.spread-all-buckets<k, v> mut-arr arrow<k, v>(a mut-priority-queue<k, v>) trusted data<k> compare<k>
-	new-mins = a.size uninitialized-mut-arr<arrow<k, v>>
+.spread-all-buckets<k, v> fix-arr arrow<k, v>(a mut-priority-queue<k, v>) trusted data<k> compare<k>
+	new-mins = a.size uninitialized-fix-arr<arrow<k, v>>
 	new-mins.begin-ptr spread-all-buckets-recur! a, 0
 	new-mins
 .spread-all-buckets-recur!<k, v> void
@@ -100,12 +100,12 @@ body
 		*mid := a.mins[index]
 		mid + 1 spread-all-buckets-recur!: a, index wrap-add 1
 
-.add-to-bucket!<k, v> void(buckets mut-list mut-list arrow<k, v>, index nat64, pair arrow<k, v>)
+.add-to-bucket!<k, v> void(buckets mut-arr mut-arr arrow<k, v>, index nat64, pair arrow<k, v>)
 	if index < buckets.size
 		buckets[index] ~= pair
 	else
 		# TODO: type args should be unnecessary
-		buckets ~= mut-list<arrow<k, v>>
+		buckets ~= mut-arr<arrow<k, v>>
 		buckets add-to-bucket! index, pair
 
 pop-value!<k, v> v?(a mut-priority-queue<k, v>) data<k> compare<k>

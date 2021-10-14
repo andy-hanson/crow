@@ -2,7 +2,7 @@ no-std
 import
 	./bool: ||
 	./col/arr: arr, size, subscript
-	./col/mut-arr: fill-mut-arr, set-subscript, subscript
+	./col/fix-arr: fill-fix-arr, set-subscript, subscript
 	./compare: !=
 	./io/time-low-level: get-monotime-nsec
 	./misc: void
@@ -19,7 +19,7 @@ export
 perf-reset void(names str[]) summon
 	perf = get-perf-ctx
 	perf.measure-names := names
-	perf.measure-values := names.size fill-mut-arr: measure-value: 0, 0
+	perf.measure-values := names.size fill-fix-arr: measure-value: 0, 0
 
 perf-get-measure measure-value(name str) summon
 	perf = get-perf-ctx

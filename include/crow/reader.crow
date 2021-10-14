@@ -2,7 +2,7 @@ no-std
 import
 	./bool: !, &&, ||, bool, false, true
 	./col/arr: arr-from-begin-end, begin-ptr, end-ptr
-	./col/mut-list: ~=, move-to-arr!, mut-list
+	./col/mut-arr: ~=, move-to-arr!, mut-arr
 	./compare: <=, >=
 	./fun: subscript
 	./misc: drop, void
@@ -118,12 +118,12 @@ take-float! float64?(a reader) trusted
 take-quoted-str! str?(a reader)
 	if a try-take-char "\""
 		start = a.cur
-		res = a take-quoted-str-recur! mut-list
+		res = a take-quoted-str-recur! mut-arr
 		if res is-empty
 			a.cur := start
 		res
 
-.take-quoted-str-recur! str?(a reader, res mut-list char)
+.take-quoted-str-recur! str?(a reader, res mut-arr char)
 	if a is-empty
 		none
 	elif a try-take-char "\""

@@ -61,15 +61,15 @@ include ../pug-include/tutorial.pug
 			and slicing it changes the pointer and size without changing the data.
 
 	section
-		h3 mut-arr
+		h3 fix-arr
 
 		p.
-			The <code class="struct-ref">mut-arr</code> type is like <code class="struct-ref">arr</code>
+			The <code class="struct-ref">fix-arr</code> type is like <code class="struct-ref">arr</code>
 			but <code class="keyword">mut</code>.
 			It has mutable contents, but the size is not mutable,
 			so it's mostly useful for implementing other data structures.
 
-		crow-runnable(src="mut-arr")
+		crow-runnable(src="fix-arr")
 		p.
 			<code class="struct-ref">opt</code> and <code class="struct-ref">arr</code>
 			are the only auto-imported collections; all others need to be explicitly imported.
@@ -81,28 +81,28 @@ include ../pug-include/tutorial.pug
 
 		h4 conversion
 		p.
-			The <code class="fun-ref">arr</code> function imported from <code class="import">collection.mut-arr</code>
+			The <code class="fun-ref">arr</code> function imported from <code class="import">crow/col/fix-arr</code>
 			converts to an <code class="struct-ref">arr</code>.
 			<code class="struct-ref">arr</code> is immutable, so this creates a copy.
 
-			Since it's also just a pointer and size, <code class="struct-ref">mut-arr</code> can be sliced just like
+			Since it's also just a pointer and size, <code class="struct-ref">fix-arr</code> can be sliced just like
 			<code class="struct-ref">arr</code>, and the slice will share the same mutable data.
 			(If you don't want that, there's a <code class="fun-ref">copy</code> function.)
 
 	section
-		h3 mut-list
+		h3 mut-arr
 
 		p.
-			<code class="struct-ref">mut-list</code> is like <code class="struct-ref">mut-arr</code>
+			<code class="struct-ref">mut-arr</code> is like <code class="struct-ref">fix-arr</code>
 			but with mutable size.
 			(It retains an excess capacity, so not every increase to the size requires a new allocation.)
 
-		crow-runnable(src="mut-list")
+		crow-runnable(src="mut-arr")
 
 		p.
-			Like all collections, there's a function <code class="fun-ref">mut-list</code>
-			to conert from <code class="struct-ref">arr</code>;
-			it can also take no arguments for an empty <code class="fun-ref">mut-arr</code>.
+			Like all collections, there's a function <code class="fun-ref">mut-arr</code>
+			to convert from <code class="struct-ref">arr</code>;
+			it can also take no arguments for an empty <code class="fun-ref">fix-arr</code>.
 
 			The <code class="fun-ref">~=</code> operator pushes elements; it can take one or multiple.
 

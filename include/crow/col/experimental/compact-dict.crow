@@ -18,8 +18,8 @@ import
 	../arr-util: fold
 	../frozen-dict:
 		each, frozen-dict, fold, in, is-empty,
-		mut-arr-to-frozen-dict-promise-no-duplicates, size, subscript
-	../mut-arr: begin-ptr, cast-immutable, end-ptr, mut-arr-from-begin-end, uninitialized-mut-arr
+		fix-arr-to-frozen-dict-promise-no-duplicates, size, subscript
+	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr-from-begin-end, uninitialized-fix-arr
 	../mut-set: in, mut-set, try-add!
 
 compact-dict<k, v> record
@@ -144,7 +144,7 @@ spec
 	compare<k>
 	hash-mix<k>
 body
-	res = l.size wrap-add r.size uninitialized-mut-arr<arrow<k, v?>>
+	res = l.size wrap-add r.size uninitialized-fix-arr<arrow<k, v?>>
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>
 		if !(k in r)
@@ -155,7 +155,7 @@ body
 	end = mid fold r, (cur, k, vr) =>
 		*cur := k -> vr
 		cur + 1
-	begin mut-arr-from-begin-end end mut-arr-to-frozen-dict-promise-no-duplicates
+	begin fix-arr-from-begin-end end fix-arr-to-frozen-dict-promise-no-duplicates
 
 .merge-to-end<k, v> frozen-dict<k, v>
 	l frozen-dict<k, v>
@@ -166,7 +166,7 @@ spec
 	compare<k>
 	hash-mix<k>
 body
-	res = l.size wrap-add r.size uninitialized-mut-arr<arrow<k, v>>
+	res = l.size wrap-add r.size uninitialized-fix-arr<arrow<k, v>>
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>
 		if !(k in r)
@@ -180,7 +180,7 @@ body
 			cur + 1
 		else
 			cur
-	begin mut-arr-from-begin-end end mut-arr-to-frozen-dict-promise-no-duplicates
+	begin fix-arr-from-begin-end end fix-arr-to-frozen-dict-promise-no-duplicates
 
 region iteration
 
@@ -211,7 +211,7 @@ fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) data<k> compare<k
 				f[cur, k, v]
 
 map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted data<k> compare<k> hash-mix<k>
-	res = a.size uninitialized-mut-arr<a>
+	res = a.size uninitialized-fix-arr<a>
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1

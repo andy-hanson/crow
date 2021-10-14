@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: bool, false, true
-	./col/mut-list: ~=, move-to-arr!, mut-list
+	./col/mut-arr: ~=, move-to-arr!, mut-arr
 	./compare: <
 	./misc: void
 	./number:
@@ -177,10 +177,10 @@ parse-float float64?(a str)
 region Interpolation
 
 interp record mut
-	inner mut-list char
+	inner mut-arr char
 
 interp interp()
-	interp: mut-list
+	interp: mut-arr
 
 with-str interp(a interp, b str)
 	a.inner ~= b chars

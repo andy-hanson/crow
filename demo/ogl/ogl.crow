@@ -1,6 +1,6 @@
 import
 	crow/cell: *, as-ptr, cell
-	crow/col/mut-arr: begin-ptr, map-to-arr, mut-arr, set-subscript, size, subscript
+	crow/col/fix-arr: begin-ptr, fix-arr, map-to-arr, set-subscript, size, subscript
 	crow/c-types: c-int
 	crow/io/duration: duration, msec
 	crow/io/print: print
@@ -71,7 +71,7 @@ main fut nat(_ str[]) summon trusted
 	t1 = 1.0 vec-2-32 0.0
 	t2 = 1.0 vec-2-32 1.0
 	t3 = 0.0 vec-2-32 1.0
-	vertices = mut-arr: [(v0 vertex red, t0), (v1 vertex green, t1), (v2 vertex blue, t2), (v3 vertex white, t3)]
+	vertices = fix-arr: [(v0 vertex red, t0), (v1 vertex green, t1), (v2 vertex blue, t2), (v3 vertex white, t3)]
 	triangle-vbo = vertices vbo-create
 	assert: triangle-vbo != 0
 
@@ -120,7 +120,7 @@ blue color-32()
 .renderer record mut
 	window SDL_Window
 	shader-prog GLuint
-	vertices mut-arr vertex
+	vertices fix-arr vertex
 	triangle-vbo GLuint
 	texture GLuint
 
@@ -204,7 +204,7 @@ continue-or-quit union
 	as quit
 		void resolved
 
-.vbo-create GLuint(vertices mut-arr vertex) summon unsafe
+.vbo-create GLuint(vertices fix-arr vertex) summon unsafe
 	vbo-cell = 0 cell<GLuint>
 	n-buffers = 1 to-int32
 	n-buffers glGenBuffers vbo-cell.as-ptr
@@ -218,7 +218,7 @@ continue-or-quit union
 		"Creating VBO failed: Code {err}" throw
 	vbo
 
-n-bytes nat(vertices mut-arr vertex) unsafe
+n-bytes nat(vertices fix-arr vertex) unsafe
 	vertices.size * size-of<vertex>
 
 .vbo-free void(vbo GLuint) summon unsafe

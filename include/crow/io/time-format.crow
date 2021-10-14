@@ -3,7 +3,7 @@ import
 	time: gmtime, localtime, strftime
 	../bool
 	../col/arr: subscript
-	../col/mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
+	../col/fix-arr: cast-immutable, begin-ptr, size, uninitialized-fix-arr
 	../misc: ->
 	../number: +, nat64
 	../ptr: ptr-to
@@ -117,6 +117,6 @@ second str(locale time-locale, time unix-time) summon
 		time.seconds-since-epoch.ptr-to localtime
 	else
 		time.seconds-since-epoch.ptr-to gmtime
-	res = uninitialized-mut-arr<char>: max-size + 1
+	res = uninitialized-fix-arr<char>: max-size + 1
 	len = strftime: res.begin-ptr, res.size, format.to-c-str, tm
 	res.cast-immutable[0 -> len] str

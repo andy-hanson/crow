@@ -19,9 +19,9 @@ import
 	./arr-util:
 		each, each-with-index, every, find-index, fold, fold-with-index,
 		remove-at, rtail, tail, update, update-with-default
-	./mut-arr:
-		begin-ptr, cast-immutable, copy-from!, end-ptr, fill-mut-arr, set-subscript, size,
-		subscript, uninitialized-mut-arr
+	./fix-arr:
+		begin-ptr, cast-immutable, copy-from!, end-ptr, fill-fix-arr, set-subscript, size,
+		subscript, uninitialized-fix-arr
 	./sort: sort-by
 
 dict<k, v> record
@@ -280,7 +280,7 @@ body
 			cur wrap-add l.pairs.size
 	if total-size <= leaf-max-size
 		# TODO: if only one non-empty leaf, don't copy..
-		out = total-size uninitialized-mut-arr<arrow<k, v>>
+		out = total-size uninitialized-fix-arr<arrow<k, v>>
 		end = 0 fold-with-index a.children, (out-index, child, child-index) =>
 			new-child-here = if child-index == which
 				new-child
@@ -354,7 +354,7 @@ body
 	key-hash = hash low-bits
 	max-hash = key-hash fold a.pairs, (cur, pair) =>
 		cur max: pair.from.hash unsafe-bit-shift-right hash-shift low-bits
-	res = max-hash wrap-add 1 fill-mut-arr<node<k, v>> empty-leaf-node
+	res = max-hash wrap-add 1 fill-fix-arr<node<k, v>> empty-leaf-node
 	# TODO: avoid allocating the same leaf twice...
 	res[key-hash] := leaf-node: [key -> value]
 	a.pairs each pair =>
@@ -390,7 +390,7 @@ fold-keys<a, k, v> a(acc a, a dict<k, v>, f act a(a, k)) data<k> compare<k> hash
 # TODO: map-values
 
 map-to-arr<a, k, v> a[](a dict<k, v>, f act a(k, v)) trusted data<k> compare<k> hash-mix<k>
-	res = a.size uninitialized-mut-arr<a>
+	res = a.size uninitialized-fix-arr<a>
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1

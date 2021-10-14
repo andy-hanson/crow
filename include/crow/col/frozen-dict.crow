@@ -13,9 +13,9 @@ import
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
 	./arr: ==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, unsafe-at
 	./arr-util: each, fold, fold-with-index, map
-	./mut-arr:
-		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-mut-arr, mut-arr,
-		mut-arr-from-begin-end, size, temp-as-arr, uninitialized-mut-arr, unsafe-at, unsafe-set-at!
+	./fix-arr:
+		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-fix-arr, fix-arr,
+		fix-arr-from-begin-end, size, temp-as-arr, uninitialized-fix-arr, unsafe-at, unsafe-set-at!
 
 frozen-dict<k, v> record
 	by-val
@@ -27,7 +27,7 @@ frozen-dict<k, v> frozen-dict<k, v>() data<k> compare<k> hash-mix<k>
 	[] frozen-dict []
 
 frozen-dict<k, v> frozen-dict<k, v>(a arrow<k, v>[]) trusted data<k> compare<k> hash-mix<k>
-	a.mut-arr.mut-arr-to-frozen-dict-promise-no-duplicates remove-duplicates
+	a.fix-arr.fix-arr-to-frozen-dict-promise-no-duplicates remove-duplicates
 
 # TODO:INTERNAL
 begin-ptr<k, v> arrow<k, v>*(a frozen-dict<k, v>) unsafe
@@ -83,8 +83,8 @@ find-ptr<k, v> arrow<k, v>*?(cur arrow<k, v>*, end arrow<k, v>*, key k) unsafe d
 	else
 		cur + 1 find-ptr end, key
 
-mut-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>
-	a mut-arr arrow<k, v>
+fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>
+	a fix-arr arrow<k, v>
 spec
 	unsafe
 	data<k>
@@ -110,11 +110,11 @@ spec
 	hash-mix<k>
 body
 	if a has-duplicates
-		# Write out pairs from each bucket to a mut-arr, omitting a pair if its key appears later in the same bucket.
-		# Then call mut-arr-to-frozen-dict-promise-no-duplicates 
+		# Write out pairs from each bucket to a fix-arr, omitting a pair if its key appears later in the same bucket.
+		# Then call fix-arr-to-frozen-dict-promise-no-duplicates 
 		out-pairs = a.size alloc-uninitialized<arrow<k, v>>
 		end = out-pairs write-without-duplicates a
-		out-pairs mut-arr-from-begin-end end mut-arr-to-frozen-dict-promise-no-duplicates
+		out-pairs fix-arr-from-begin-end end fix-arr-to-frozen-dict-promise-no-duplicates
 	else
 		a
 
@@ -198,8 +198,8 @@ body
 	else
 		key key-in-range begin + 1, end
 
-.get-bucket-counts<k, v> mut-arr nat64(a mut-arr arrow<k, v>, n-buckets nat64) unsafe hash-mix<k>
-	res = n-buckets fill-mut-arr 0
+.get-bucket-counts<k, v> fix-arr nat64(a fix-arr arrow<k, v>, n-buckets nat64) unsafe hash-mix<k>
+	res = n-buckets fill-fix-arr 0
 	a each pair =>
 		bucket-index = pair.from get-bucket-index n-buckets
 		res unsafe-set-at! bucket-index, (res unsafe-at bucket-index wrap-add 1)
@@ -208,7 +208,7 @@ body
 .move-values-to-buckets-recur!<k, v> void
 	cur arrow<k, v> mut*
 	end arrow<k, v> mut*
-	bucket-counts mut-arr nat64
+	bucket-counts fix-arr nat64
 	bucket-starts arrow<k, v> mut*[]
 spec
 	unsafe
@@ -233,7 +233,7 @@ body
 	key.hash unsafe-mod n-buckets
 
 .running-sum<k, v> arrow<k, v> mut*[](acc arrow<k, v> mut*, a nat64[]) trusted
-	out = a.size uninitialized-mut-arr<arrow<k, v> mut*>
+	out = a.size uninitialized-fix-arr<arrow<k, v> mut*>
 	acc running-sum-recur! out.begin-ptr, out.end-ptr, a.begin-ptr
 	out cast-immutable
 .running-sum-recur!<k, v> void

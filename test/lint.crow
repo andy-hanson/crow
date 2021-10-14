@@ -1,7 +1,7 @@
 import
 	crow/cell: *, cell, swap
 	crow/col/arr-util: each-with-index, exists, in
-	crow/col/mut-list: ~=, move-to-arr!, mut-list
+	crow/col/mut-arr: ~=, move-to-arr!, mut-arr
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
 	crow/io/print: print
@@ -20,7 +20,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 		err: failures
 
 .list-lintable-files str[](path str) summon
-	res = mut-list<str>
+	res = mut-arr<str>
 	path each-child-recursive (child => !child.excluded-from-lint), child =>
 		if !child.base-name.should-ignore-extension-of-name
 			res ~= child
@@ -34,7 +34,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 # Returns numner of errors
 .lint-file failure[](path str) summon
 	text = path read-file
-	res = mut-list<failure>
+	res = mut-arr<failure>
 	ext = path.get-extension force
 	allow-double-space = ext == "err" || ext == "sublime-syntax"
 	text.lines each-with-index (line, line-num) =>
@@ -64,7 +64,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 
 # TODO: move to str-util, make a generic 'split' function
 .lines str[](s str)
-	res = mut-list<str>
+	res = mut-arr<str>
 	last-nl = 0 cell<nat>
 	s.chars each-with-index (c, index) =>
 		if c == "\n"

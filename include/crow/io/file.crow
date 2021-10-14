@@ -12,8 +12,8 @@ import
 	../cell: *, cell
 	../col/arr: arr, begin-ptr, subscript
 	../col/arr-util: each
-	../col/mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
-	../col/mut-list: ~=, move-to-arr!, mut-list
+	../col/fix-arr: cast-immutable, begin-ptr, size, uninitialized-fix-arr
+	../col/mut-arr: ~=, move-to-arr!, mut-arr
 	../col/sort: sort
 	../compare: !=, <
 	../exception: assert, forbid, throw
@@ -83,11 +83,11 @@ read-dir str[](path str) summon
 	dirp = path opendir
 	# TODO: handle errors
 	assert: dirp.ptr-cast-from-extern<any-const-ptr, dir> != null
-	res = mut-list<str>
+	res = mut-arr<str>
 	dirp read-dir-recur res
 	res.move-to-arr! sort
 
-.read-dir-recur void(dirp dir, res mut-list str) unsafe summon
+.read-dir-recur void(dirp dir, res mut-arr str) unsafe summon
 	# Initial value of entry / result should not matter
 	entry = dirent: 0, 0, 0, "\0", zero
 	# TODO: should not need a type argument here
@@ -105,7 +105,7 @@ read-dir str[](path str) summon
 # Gets the path a link refers to.
 read-link str(path str) summon trusted
 	# TODO: smart small and retry if necessAry
-	buff = 1000 uninitialized-mut-arr<char>
+	buff = 1000 uninitialized-fix-arr<char>
 	size = path.to-c-str readlink buff.begin-ptr, buff.size
 	if size == -1
 		check-errno
@@ -193,7 +193,7 @@ try-read-file str?(path str) summon
 
 				# TODO: allocation can fail, then 'fd' is left open. Need finalizers
 				file-size-nat = file-size to-nat64
-				res = file-size-nat uninitialized-mut-arr<char>
+				res = file-size-nat uninitialized-fix-arr<char>
 				n-bytes-read = fd read res.begin-ptr.ptr-cast, file-size-nat
 				# TODO: handle errors
 				forbid: n-bytes-read == -1
@@ -203,7 +203,7 @@ try-read-file str?(path str) summon
 
 # Gets the current directory (of the user that ran the program).
 current-directory str() summon trusted
-	buff = 256 uninitialized-mut-arr<char>
+	buff = 256 uninitialized-fix-arr<char>
 	b = buff.begin-ptr getcwd buff.size
 	if b == null
 		todo

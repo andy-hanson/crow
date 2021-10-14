@@ -49,7 +49,7 @@ global-ctx record mut
 	syms-lock by-val lock
 	# Dynamically allocated array. Terminated by a null sym. Capacity is a power of 2.
 	dynamic-syms mut dynamic-sym-node?
-	# TODO: mut-arr
+	# TODO: fix-arr
 	islands mut island[]
 	# if a thread finds no work to do, it decrements this and waits on 'may-be-work-to-do'.
 	# if the last thread decrements this, it can't go to sleep!

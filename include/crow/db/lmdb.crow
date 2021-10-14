@@ -15,9 +15,9 @@ import
 	../bool: !, &&, ||, bool, false, true
 	../cell: *, cell
 	../col/arr: arr, begin-ptr, is-empty, size
-	../col/mut-arr:
-		begin-ptr, cast-immutable, copy-to-arr, end-ptr, mut-arr-from-begin-end,
-		uninitialized-mut-arr
+	../col/fix-arr:
+		begin-ptr, cast-immutable, copy-to-arr, end-ptr, fix-arr-from-begin-end,
+		uninitialized-fix-arr
 	../compare: !=
 	../c-types: u-int
 	../exception: assert, do-if-error, finally, forbid, throw
@@ -159,7 +159,7 @@ each<k, v> void(txn lMDB_txn, db lmdb-db<k, v>, f act void(k, v)) summon lmdb-ke
 	void fold txn, db, (ignore, key, value) => f[key, value]
 
 map<out, k, v> out[](txn lMDB_txn, db lmdb-db<k, v>, f act out(k, v)) trusted summon lmdb-key<k> serialize<v>
-	out = txn count db uninitialized-mut-arr<out>
+	out = txn count db uninitialized-fix-arr<out>
 	end = out.begin-ptr fold txn, db, (cur, key, value) =>
 		*cur := f[key, value]
 		cur + 1
@@ -201,7 +201,7 @@ body
 	if db0-count == 0
 		[]
 	else
-		res = db0-count uninitialized-mut-arr<out>
+		res = db0-count uninitialized-fix-arr<out>
 		end = res.begin-ptr zip-fold-non-empty txn, db0, db1, (cur, key, value0, value1) =>
 			*cur := f[key, value0, value1]
 			cur + 1
@@ -394,7 +394,7 @@ with-abortable-write-transaction<a> a(env lmdb-env, f act transaction-result a(l
 	a.size MDB_val a.begin-ptr.as-mut
 
 .bytes-of-val nat8[](a MDB_val) unsafe
-	a.mv_data mut-arr-from-begin-end a.mv_data + a.mv_size copy-to-arr
+	a.mv_data fix-arr-from-begin-end a.mv_data + a.mv_size copy-to-arr
 
 .check-lmdb-error void(a err-t)
 	if a != MDB_SUCCESS

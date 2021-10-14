@@ -14,9 +14,9 @@ import
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	./arr: ==, arr, arr-equal, begin-ptr, end-ptr, is-empty, size, unsafe-slice
 	./arr-util: each, each-with-index, first, first-some, fold, last, rtail
-	./mut-arr:
-		begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end,
-		set-subscript, size, subscript, uninitialized-mut-arr
+	./fix-arr:
+		begin-ptr, cast-immutable, copy-from!, end-ptr, fix-arr, fix-arr-from-begin-end,
+		set-subscript, size, subscript, uninitialized-fix-arr
 
 ###
 Immutable list type.
@@ -135,7 +135,7 @@ Copy a list to an arr.
 This is O(n).
 ###
 arr<a> a[](a list a) trusted
-	res = a.size uninitialized-mut-arr<a>
+	res = a.size uninitialized-fix-arr<a>
 	res.end-ptr write-out! a
 	res cast-immutable
 
@@ -152,17 +152,17 @@ every 4 steps it allocates an array of size 4, etc.
 
 .list-builder<a> record mut
 	prev-list list<a>?
-	values mut-arr a
+	values fix-arr a
 
 .push-recur<a> list-builder a(a list a, size-right nat64) unsafe
 	if a.values.size > size-right
-		list-builder: a.some, size-right.uninitialized-mut-arr
+		list-builder: a.some, size-right.uninitialized-fix-arr
 	else
 		new-size-right = size-right wrap-add a.values.size
 		res = if prev ?= a prev
 			prev push-recur new-size-right
 		else
-			list-builder<a>: none, new-size-right.uninitialized-mut-arr
+			list-builder<a>: none, new-size-right.uninitialized-fix-arr
 		offset = res.values.size wrap-sub size-right wrap-sub a.values.size
 		res.values[offset ->: offset wrap-add a.values.size] copy-from! a.values
 		res
@@ -235,14 +235,14 @@ This is O(n).
 ###
 ~ <a> list a(a list a, b list a) trusted
 	a-size = a size
-	res = a-size wrap-add b.size uninitialized-mut-arr<a>
+	res = a-size wrap-add b.size uninitialized-fix-arr<a>
 	res.end-ptr write-out! b
 	res.begin-ptr + a-size write-out! a
 	list: res.cast-immutable
 
 .write-out!<a> void(end a mut*, a list a) unsafe
 	new-end = end - a.values.size
-	new-end mut-arr-from-begin-end end copy-from! a.values
+	new-end fix-arr-from-begin-end end copy-from! a.values
 	if prev ?= a prev
 		new-end write-out! prev
 
@@ -264,7 +264,7 @@ fold<a, b> a(acc a, a list b, f act a(a, b))
 
 # Produce a list with `f[x]` applied to each element `x` in the input.
 map<out, in> list out(a list in, f act out(in)) trusted
-	res = a.size uninitialized-mut-arr<out>
+	res = a.size uninitialized-fix-arr<out>
 	drop: res.begin-ptr map-recur a, f
 	list: res.cast-immutable
 .map-recur<out, in> out mut*(out out mut*, a list in, f act out(in)) unsafe
@@ -277,7 +277,7 @@ map<out, in> list out(a list in, f act out(in)) trusted
 	next-out + a.values.size
 
 filter<a> list a(a list a, f act bool(a)) trusted
-	res = a.size uninitialized-mut-arr<a>
+	res = a.size uninitialized-fix-arr<a>
 	end = res.begin-ptr filter-recur a, f
 	list: res[0 -> end - res.begin-ptr] cast-immutable
 .filter-recur<a> a mut*(out a mut*, a list a, f act bool(a)) unsafe

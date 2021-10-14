@@ -115,7 +115,7 @@ ref-of-val-at<a> a(a by-val<a>[], index nat64) trusted
 ###
 Concatenates two arrs.
 This involves copying every element from both arrs into the new arr.
-If you need to concatenate often, consider using `mut-list`.
+If you need to concatenate often, consider using `mut-arr`.
 ###
 ~ <a> a[](a a[], b a[]) trusted
 	res-size = a.size wrap-add b.size

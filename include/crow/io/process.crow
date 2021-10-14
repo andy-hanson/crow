@@ -17,8 +17,8 @@ import
 	../cell: *, cell
 	../col/arr: ~, arr, begin-ptr
 	../col/arr-util: fold, map
-	../col/mut-arr: begin-ptr, mut-arr, ref-of-val-at, size
-	../col/mut-list: begin-ptr, move-to-arr!, mut-list, size, unsafe-set-size!
+	../col/fix-arr: begin-ptr, fix-arr, ref-of-val-at, size
+	../col/mut-arr: begin-ptr, move-to-arr!, mut-arr, size, unsafe-set-size!
 	../compare: <=
 	../exception: assert, throw
 	../extra-types: fd-t
@@ -101,8 +101,8 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	check-posix-error: stderr-pipes.read-pipe close
 
 	# Read from pipes
-	stdout-builder = mut-list<char>
-	stderr-builder = mut-list<char>
+	stdout-builder = mut-arr<char>
+	stderr-builder = mut-arr<char>
 	keep-POLLINg: stdout-pipes.write-pipe, stderr-pipes.write-pipe, stdout-builder, stderr-builder
 
 	exit-code = pid wait-and-get-exit-code
@@ -117,13 +117,13 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 .keep-POLLINg void
 	stdout-pipe fd-t
 	stderr-pipe fd-t
-	stdout-builder mut-list char
-	stderr-builder mut-list char
+	stdout-builder mut-arr char
+	stderr-builder mut-arr char
 spec
 	summon
 	unsafe
 body
-	poll-fds = mut-arr: as<by-val<pollfd>[]>: [(pollfd: stdout-pipe, POLLIN, 0), (pollfd: stderr-pipe, POLLIN, 0)]
+	poll-fds = fix-arr: as<by-val<pollfd>[]>: [(pollfd: stdout-pipe, POLLIN, 0), (pollfd: stderr-pipe, POLLIN, 0)]
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
 	# timeout == -1 means we block
@@ -146,7 +146,7 @@ body
 .any bool(r handle-revents-result)
 	r.had-POLLIN || r.hung-up
 
-.handle-revents handle-revents-result(pollfd pollfd, builder mut-list char) summon
+.handle-revents handle-revents-result(pollfd pollfd, builder mut-arr char) summon
 	revents = pollfd revents
 	had-POLLIN = revents has-POLLIN
 	if had-POLLIN
@@ -156,7 +156,7 @@ body
 		todo
 	had-POLLIN handle-revents-result hung-up
 
-.read-to-buffer-until-eof void(fd fd-t, buffer mut-list char) trusted summon
+.read-to-buffer-until-eof void(fd fd-t, buffer mut-arr char) trusted summon
 	read-max = 1024
 	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	old-size = buffer.size

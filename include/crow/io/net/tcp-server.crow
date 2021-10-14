@@ -14,7 +14,7 @@ import
 	../../bool: !, &&, ||, bool, false, true
 	../../cell: cell
 	../../col/arr: arr, begin-ptr, subscript
-	../../col/mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
+	../../col/fix-arr: cast-immutable, begin-ptr, size, uninitialized-fix-arr
 	../../compare: !=, <
 	../../c-types: c-int
 	../../exception: assert, message
@@ -155,7 +155,7 @@ close-client void(client-fd fd-t) unsafe summon
 		accept-clients: listen-fd, epoll-fd, on-accepted-client
 
 .handle-client void(fd fd-t, on-received-chunk ref void(fd-t, nat8[])) unsafe summon
-	buf = uninitialized-mut-arr<nat8>: 256
+	buf = uninitialized-fix-arr<nat8>: 256
 	count = fd read buf.begin-ptr, buf.size
 	if count < 0
 		err = errno
