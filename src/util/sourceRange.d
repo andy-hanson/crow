@@ -32,7 +32,11 @@ immutable(bool) hasPos(immutable RangeWithinFile a, immutable Pos p) {
 }
 
 immutable(RangeWithinFile) rangeOfStartAndName(immutable Pos start, immutable Sym name) {
-	return immutable RangeWithinFile(start, safeSizeTToU32(start + symSize(name)));
+	return rangeOfStartAndLength(start, symSize(name));
+}
+
+immutable(RangeWithinFile) rangeOfStartAndLength(immutable Pos start, immutable size_t length) {
+	return immutable RangeWithinFile(start, safeSizeTToU32(start + length));
 }
 
 struct FileAndPos {

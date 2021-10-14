@@ -53,7 +53,7 @@ import util.comparison : compareNat32, Comparison;
 import util.opt : force, has, Opt, OptPtr, toOpt;
 import util.ptr : Ptr;
 import util.repr : Repr, nameAndRepr, reprArr, reprNamedRecord, reprSym;
-import util.sourceRange : Pos, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
+import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32;
 import util.util : todo;
@@ -163,6 +163,16 @@ void addSigReturnTypeAndParamsTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Toke
 void addTypeTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable TypeAst a) {
 	matchTypeAst!void(
 		a,
+		(ref immutable TypeAst.Dict it) {
+			addTypeTokens(alloc, tokens, it.v);
+			add(alloc, tokens, immutable Token(
+				Token.Kind.keyword,
+				immutable RangeWithinFile(range(it.v).end, range(it.k).start)));
+			addTypeTokens(alloc, tokens, it.k);
+			add(alloc, tokens, immutable Token(
+				Token.Kind.keyword,
+				rangeOfStartAndLength(range(it.k).end, "]".length)));
+		},
 		(ref immutable TypeAst.Fun it) {
 			add(alloc, tokens, immutable Token(
 				Token.Kind.keyword,

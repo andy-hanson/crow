@@ -2,7 +2,6 @@ module model.diag;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : TypeAst;
 import frontend.lang : crowExtension;
 import frontend.showDiag : ShowDiagOptions;
 import model.model :
@@ -229,8 +228,17 @@ struct Diag {
 	}
 	struct TypeNotSendable {}
 	struct TypeParamCantHaveTypeArgs {}
-	struct TypeShouldUseSuffix {
-		immutable TypeAst.Suffix.Kind kind;
+	struct TypeShouldUseSyntax {
+		enum Kind {
+			arr,
+			arrMut,
+			dict,
+			dictMut,
+			opt,
+			ptr,
+			ptrMut,
+		}
+		immutable Kind kind;
 	}
 	struct UnusedImport {
 		immutable Ptr!Module importedModule;
@@ -311,7 +319,7 @@ struct Diag {
 		typeConflict,
 		typeNotSendable,
 		typeParamCantHaveTypeArgs,
-		typeShouldUseSuffix,
+		typeShouldUseSyntax,
 		unusedImport,
 		unusedLocal,
 		unusedParam,
@@ -369,7 +377,7 @@ struct Diag {
 		immutable Ptr!TypeConflict typeConflict;
 		immutable TypeNotSendable typeNotSendable;
 		immutable TypeParamCantHaveTypeArgs typeParamCantHaveTypeArgs;
-		immutable TypeShouldUseSuffix typeShouldUseSuffix;
+		immutable TypeShouldUseSyntax typeShouldUseSyntax;
 		immutable UnusedImport unusedImport;
 		immutable UnusedLocal unusedLocal;
 		immutable UnusedParam unusedParam;
@@ -482,7 +490,7 @@ struct Diag {
 	immutable this(immutable TypeParamCantHaveTypeArgs a) {
 		kind = Kind.typeParamCantHaveTypeArgs; typeParamCantHaveTypeArgs = a;
 	}
-	immutable this(immutable TypeShouldUseSuffix a) { kind = Kind.typeShouldUseSuffix; typeShouldUseSuffix = a; }
+	immutable this(immutable TypeShouldUseSyntax a) { kind = Kind.typeShouldUseSyntax; typeShouldUseSyntax = a; }
 	@trusted immutable this(immutable UnusedImport a) { kind = Kind.unusedImport; unusedImport = a; }
 	@trusted immutable this(immutable UnusedLocal a) { kind = Kind.unusedLocal; unusedLocal = a; }
 	@trusted immutable this(immutable UnusedParam a) { kind = Kind.unusedParam; unusedParam = a; }
@@ -622,8 +630,8 @@ static assert(Diag.sizeof <= 32);
 		ref immutable Diag.TypeParamCantHaveTypeArgs
 	) @safe @nogc pure nothrow cbTypeParamCantHaveTypeArgs,
 	scope immutable(Out) delegate(
-		ref immutable Diag.TypeShouldUseSuffix
-	) @safe @nogc pure nothrow cbTypeShouldUseSuffix,
+		ref immutable Diag.TypeShouldUseSyntax
+	) @safe @nogc pure nothrow cbTypeShouldUseSyntax,
 	scope immutable(Out) delegate(
 		ref immutable Diag.UnusedImport
 	) @safe @nogc pure nothrow cbUnusedImport,
@@ -735,8 +743,8 @@ static assert(Diag.sizeof <= 32);
 			return cbTypeNotSendable(a.typeNotSendable);
 		case Diag.Kind.typeParamCantHaveTypeArgs:
 			return cbTypeParamCantHaveTypeArgs(a.typeParamCantHaveTypeArgs);
-		case Diag.Kind.typeShouldUseSuffix:
-			return cbTypeShouldUseSuffix(a.typeShouldUseSuffix);
+		case Diag.Kind.typeShouldUseSyntax:
+			return cbTypeShouldUseSyntax(a.typeShouldUseSyntax);
 		case Diag.Kind.unusedImport:
 			return cbUnusedImport(a.unusedImport);
 		case Diag.Kind.unusedLocal:

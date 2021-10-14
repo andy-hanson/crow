@@ -24,7 +24,7 @@ import util.repr :
 	reprStr,
 	reprSym;
 import util.sourceRange : Pos, reprRangeWithinFile, rangeOfStartAndName, RangeWithinFile;
-import util.sym : shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symSize;
+import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32;
 import util.util : verify;
 
@@ -47,6 +47,17 @@ immutable(RangeWithinFile) rangeOfNameAndRange(immutable NameAndRange a) {
 
 struct TypeAst {
 	@safe @nogc pure nothrow:
+
+	struct Dict {
+		enum Kind {
+			data,
+			mut,
+		}
+		immutable Kind kind;
+		immutable Ptr!TypeAst v;
+		immutable Ptr!TypeAst k;
+	}
+
 	struct Fun {
 		enum Kind {
 			act,
@@ -78,6 +89,7 @@ struct TypeAst {
 		immutable Ptr!TypeAst left;
 	}
 
+	immutable this(immutable Dict a) { kind = Kind.dict; dict = a; }
 	@trusted immutable this(immutable Fun a) { kind = Kind.fun; fun = a; }
 	@trusted immutable this(immutable InstStruct a) { kind = Kind.instStruct; instStruct = a; }
 	immutable this(immutable Suffix a) { kind = Kind.suffix; suffix = a; }
@@ -85,12 +97,14 @@ struct TypeAst {
 	private:
 
 	enum Kind {
+		dict,
 		fun,
 		instStruct,
 		suffix,
 	}
 	immutable Kind kind;
 	union {
+		immutable Dict dict;
 		immutable Fun fun;
 		immutable InstStruct instStruct;
 		immutable Suffix suffix;
@@ -100,11 +114,14 @@ static assert(TypeAst.sizeof <= 40);
 
 @trusted T matchTypeAst(T)(
 	ref immutable TypeAst a,
+	scope T delegate(ref immutable TypeAst.Dict) @safe @nogc pure nothrow cbDict,
 	scope T delegate(ref immutable TypeAst.Fun) @safe @nogc pure nothrow cbFun,
 	scope T delegate(ref immutable TypeAst.InstStruct) @safe @nogc pure nothrow cbInstStruct,
 	scope T delegate(ref immutable TypeAst.Suffix) @safe @nogc pure nothrow cbSuffix,
 ) {
 	final switch (a.kind) {
+		case TypeAst.Kind.dict:
+			return cbDict(a.dict);
 		case TypeAst.Kind.fun:
 			return cbFun(a.fun);
 		case TypeAst.Kind.instStruct:
@@ -117,9 +134,14 @@ static assert(TypeAst.sizeof <= 40);
 immutable(RangeWithinFile) range(ref immutable TypeAst a) {
 	return matchTypeAst!(immutable RangeWithinFile)(
 		a,
+		(ref immutable TypeAst.Dict it) => range(it),
 		(ref immutable TypeAst.Fun it) => it.range,
 		(ref immutable TypeAst.InstStruct it) => it.range,
 		(ref immutable TypeAst.Suffix it) => range(it));
+}
+
+immutable(RangeWithinFile) range(ref immutable TypeAst.Dict a) {
+	return immutable RangeWithinFile(range(a.v).start, safeSizeTToU32(range(a.k).end + "]".length));
 }
 
 immutable(RangeWithinFile) range(ref immutable TypeAst.Suffix a) {
@@ -141,6 +163,15 @@ immutable(RangeWithinFile) range(ref immutable TypeAst.Suffix a) {
 	return immutable RangeWithinFile(leftRange.start, leftRange.end + suffixLength);
 }
 
+immutable(Sym) symForTypeAstDict(immutable TypeAst.Dict.Kind a) {
+	final switch (a) {
+		case TypeAst.Dict.Kind.data:
+			return shortSymAlphaLiteral("dict");
+		case TypeAst.Dict.Kind.mut:
+			return shortSymAlphaLiteral("mut-dict");
+	}
+}
+
 immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
 		case TypeAst.Suffix.Kind.arr:
@@ -153,23 +184,6 @@ immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 			return shortSymAlphaLiteral("const-ptr");
 		case TypeAst.Suffix.Kind.ptrMut:
 			return shortSymAlphaLiteral("mut-ptr");
-	}
-}
-
-immutable(Opt!(TypeAst.Suffix.Kind)) typeAstSuffixForSym(immutable Sym a) {
-	switch (a.value) {
-		case shortSymAlphaLiteralValue("arr"):
-			return some(TypeAst.Suffix.Kind.arr);
-		case shortSymAlphaLiteralValue("mut-arr"):
-			return some(TypeAst.Suffix.Kind.arrMut);
-		case shortSymAlphaLiteralValue("opt"):
-			return some(TypeAst.Suffix.Kind.opt);
-		case shortSymAlphaLiteralValue("const-ptr"):
-			return some(TypeAst.Suffix.Kind.ptr);
-		case shortSymAlphaLiteralValue("mut-ptr"):
-			return some(TypeAst.Suffix.Kind.ptrMut);
-		default:
-			return none!(TypeAst.Suffix.Kind);
 	}
 }
 
@@ -1158,6 +1172,10 @@ immutable(Repr) reprSpecUseAst(Alloc)(ref Alloc alloc, ref immutable SpecUseAst 
 immutable(Repr) reprTypeAst(Alloc)(ref Alloc alloc, ref immutable TypeAst a) {
 	return matchTypeAst!(immutable Repr)(
 		a,
+		(ref immutable TypeAst.Dict it) =>
+			reprRecord(alloc, "dict", [
+				reprTypeAst(alloc, it.v),
+				reprTypeAst(alloc, it.k)]),
 		(ref immutable TypeAst.Fun it) =>
 			reprRecord(alloc, "fun", [
 				reprRangeWithinFile(alloc, it.range),

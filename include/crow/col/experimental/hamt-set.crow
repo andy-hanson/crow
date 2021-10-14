@@ -11,7 +11,7 @@ import
 	../dict: dict, each-key, fold-keys, is-empty, new-dict, size, subscript, try-add, try-remove
 
 hamt-set<a> record
-	inner dict<a, void>
+	inner void[a]
 
 hamt-set<a> hamt-set a() data<a> compare<a> hash-mix<a>
 	dict<a, void> hamt-set

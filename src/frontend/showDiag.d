@@ -2,7 +2,6 @@ module frontend.showDiag;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : TypeAst;
 import model.diag : Diagnostic, Diag, Diags, FilesInfo, matchDiag, TypeKind, writeFileAndRange;
 import model.model :
 	arity,
@@ -739,18 +738,22 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 		(ref immutable Diag.TypeParamCantHaveTypeArgs) {
 			writeStatic(writer, "a type parameter can't take type arguments");
 		},
-		(ref immutable Diag.TypeShouldUseSuffix it) {
+		(ref immutable Diag.TypeShouldUseSyntax it) {
 			writeStatic(writer, () {
 				final switch (it.kind) {
-					case TypeAst.Suffix.Kind.arr:
+					case Diag.TypeShouldUseSyntax.Kind.arr:
 						return "prefer to write 'a[]' instead of 'arr a'";
-					case TypeAst.Suffix.Kind.arrMut:
+					case Diag.TypeShouldUseSyntax.Kind.arrMut:
 						return "prefer to write 'a mut[]' instead of 'mut-arr a'";
-					case TypeAst.Suffix.Kind.opt:
+					case Diag.TypeShouldUseSyntax.Kind.dict:
+						return "prefer to write 'v[k]' instead of 'dict<k, v>'";
+					case Diag.TypeShouldUseSyntax.Kind.dictMut:
+						return "prefer to write 'v mut[k]' instead of 'mut-dict<k, v>'";
+					case Diag.TypeShouldUseSyntax.Kind.opt:
 						return "prefer to write 'a?' instead of 'opt a'";
-					case TypeAst.Suffix.Kind.ptr:
+					case Diag.TypeShouldUseSyntax.Kind.ptr:
 						return "prefer to write 'a*' instead of 'const-ptr a'";
-					case TypeAst.Suffix.Kind.ptrMut:
+					case Diag.TypeShouldUseSyntax.Kind.ptrMut:
 						return "prefer to write 'a mut*' instead of 'mut-ptr a'";
 				}
 			}());

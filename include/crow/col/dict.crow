@@ -31,7 +31,7 @@ dict<k, v> record
 	root node<k, v>
 
 # TODO: comparison should be generic
-dict-equal<k, v> bool(a dict<k, v>, b dict<k, v>) data<k> compare<k> hash-mix<k> equal<v>
+dict-equal<k, v> bool(a v[k], b v[k]) data<k> compare<k> hash-mix<k> equal<v>
 	# TODO:PERF
 	a.arr-sorted arr-equal b.arr-sorted, (x, y) =>
 		x.from == y.from && x.to == y.to
@@ -63,19 +63,19 @@ node<k, v> union
 .leaf-max-size nat64()
 	8
 
-dict<k, v> dict<k, v>() data<k> compare<k> hash-mix<k>
+dict<k, v> v[k]() data<k> compare<k> hash-mix<k>
 	void dict empty-leaf-node
 
-dict<k, v> dict<k, v>(a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+dict<k, v> v[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	if a.size <= 4 && a.no-duplicate-keys
 		void dict a.leaf-node
 	else
 		dict fold a, (cur, x) => cur ~ x
 
-arr<k, v> arrow<k, v>[](a dict<k, v>) data<k> compare<k> hash-mix<k>
+arr<k, v> arrow<k, v>[](a v[k]) data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, v) => k -> v
 
-arr-sorted<k, v> arrow<k, v>[](a dict<k, v>) data<k> compare<k> hash-mix<k>
+arr-sorted<k, v> arrow<k, v>[](a v[k]) data<k> compare<k> hash-mix<k>
 	a.arr sort-by pair => pair.from
 
 .no-duplicate-keys<k, v> bool(a arrow<k, v>[]) compare<k>
@@ -85,7 +85,7 @@ arr-sorted<k, v> arrow<k, v>[](a dict<k, v>) data<k> compare<k> hash-mix<k>
 		key = a[0] from
 		a.tail every (it => it.from != key) && a.tail.no-duplicate-keys
 
-is-empty<k, v> bool(a dict<k, v>) data<k> compare<k> hash-mix<k>
+is-empty<k, v> bool(a v[k]) data<k> compare<k> hash-mix<k>
 	a.root node-is-empty
 .node-is-empty<k, v> bool(a node<k, v>)
 	match a
@@ -94,7 +94,7 @@ is-empty<k, v> bool(a dict<k, v>) data<k> compare<k> hash-mix<k>
 	as leaf-node l
 		l.pairs is-empty
 
-size<k, v> nat64(a dict<k, v>) data<k> compare<k> hash-mix<k>
+size<k, v> nat64(a v[k]) data<k> compare<k> hash-mix<k>
 	0 size-recur a.root
 .size-recur<k, v> nat64(acc nat64, a node<k, v>)
 	match a
@@ -103,7 +103,7 @@ size<k, v> nat64(a dict<k, v>) data<k> compare<k> hash-mix<k>
 	as leaf-node l
 		acc wrap-add l.pairs.size
 
-subscript<k, v> v?(a dict<k, v>, key k) data<k> compare<k> hash-mix<k>
+subscript<k, v> v?(a v[k], key k) data<k> compare<k> hash-mix<k>
 	match a root
 	as inner-node
 		hash = key hash
@@ -126,10 +126,10 @@ subscript<k, v> v?(a dict<k, v>, key k) data<k> compare<k> hash-mix<k>
 	else
 		a.tail subscript-leaf-recur key
 
-in<k, v> bool(key k, a dict<k, v>) data<k> compare<k> hash-mix<k>
+in<k, v> bool(key k, a v[k]) data<k> compare<k> hash-mix<k>
 	!a[key].is-empty
 
-~ <k, v> dict<k, v>(a dict<k, v>, pair arrow<k, v>) data<k> compare<k> hash-mix<k>
+~ <k, v> v[k](a v[k], pair arrow<k, v>) data<k> compare<k> hash-mix<k>
 	res = a get-or-update pair.from, old-value =>
 		pair.to insert
 	if node ?= res new-node
@@ -137,7 +137,7 @@ in<k, v> bool(key k, a dict<k, v>) data<k> compare<k> hash-mix<k>
 	else
 		a
 
-~ <k, v> dict<k, v>(a dict<k, v>, pairs arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+~ <k, v> v[k](a v[k], pairs arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	a fold pairs, (cur, pair) => cur ~ pair
 
 try-add-result<k, v> union
@@ -148,7 +148,7 @@ already-has-key<v> record
 	value v
 
 # Adds a value if the key doesn't already exist
-try-add<k, v> try-add-result<k, v>(a dict<k, v>, key k, get-value act v()) data<k> compare<k> hash-mix<k>
+try-add<k, v> try-add-result<k, v>(a v[k], key k, get-value act v()) data<k> compare<k> hash-mix<k>
 	res = a get-or-update key, old-value =>
 		if old-value is-empty
 			get-value[] insert
@@ -159,7 +159,7 @@ try-add<k, v> try-add-result<k, v>(a dict<k, v>, key k, get-value act v()) data<
 	else
 		void dict res.new-node.force
 
-- <k, v> dict<k, v>(a dict<k, v>, key k) data<k> compare<k> hash-mix<k>
+- <k, v> v[k](a v[k], key k) data<k> compare<k> hash-mix<k>
 	if res ?= a try-remove key
 		res new-dict
 	else
@@ -168,9 +168,9 @@ try-add<k, v> try-add-result<k, v>(a dict<k, v>, key k, get-value act v()) data<
 try-remove-result<k, v> record
 	by-val
 	old-value v
-	new-dict dict<k, v>
+	new-dict v[k]
 
-try-remove<k, v> try-remove-result<k, v>?(a dict<k, v>, key k) data<k> compare<k> hash-mix<k>
+try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) data<k> compare<k> hash-mix<k>
 	res = a get-or-update key, old-value => remove
 	if value ?= res old-value
 		value try-remove-result (void dict res.new-node.force) some
@@ -194,7 +194,7 @@ try-remove<k, v> try-remove-result<k, v>?(a dict<k, v>, key k) data<k> compare<k
 `f` takes the old value and returns the new value, or 'none' to choose to preserve the old value.
 ###
 .get-or-update<k, v> get-or-update-result<k, v>
-	a dict<k, v>
+	a v[k]
 	key k
 	f act get-or-update-action v(v?)
 spec
@@ -368,13 +368,13 @@ body
 
 region iteration
 
-each<k, v> void(a dict<k, v>, f act void(k, v)) data<k> compare<k> hash-mix<k>
+each<k, v> void(a v[k], f act void(k, v)) data<k> compare<k> hash-mix<k>
 	void fold a, (ignore, key, value) => f[key, value]
 
-each-key<k, v> void(a dict<k, v>, f act void(k)) data<k> compare<k> hash-mix<k>
+each-key<k, v> void(a v[k], f act void(k)) data<k> compare<k> hash-mix<k>
 	void fold-keys a, (ignore, key) => f[key]
 
-fold<a, k, v> a(acc a, a dict<k, v>, f act a(a, k, v)) data<k> compare<k> hash-mix<k>
+fold<a, k, v> a(acc a, a v[k], f act a(a, k, v)) data<k> compare<k> hash-mix<k>
 	acc fold-recur a.root, f
 .fold-recur<a, k, v> a(acc a, a node<k, v>, f act a(a, k, v))
 	match a
@@ -383,13 +383,13 @@ fold<a, k, v> a(acc a, a dict<k, v>, f act a(a, k, v)) data<k> compare<k> hash-m
 	as leaf-node l
 		acc fold l.pairs, (cur, pair) => f[cur, pair.from, pair.to]
 
-fold-keys<a, k, v> a(acc a, a dict<k, v>, f act a(a, k)) data<k> compare<k> hash-mix<k>
+fold-keys<a, k, v> a(acc a, a v[k], f act a(a, k)) data<k> compare<k> hash-mix<k>
 	acc fold a, (cur, key, value) => f[cur, key]
 
 # TODO: map
 # TODO: map-values
 
-map-to-arr<a, k, v> a[](a dict<k, v>, f act a(k, v)) trusted data<k> compare<k> hash-mix<k>
+map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted data<k> compare<k> hash-mix<k>
 	res = a.size uninitialized-fix-arr<a>
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
@@ -397,7 +397,7 @@ map-to-arr<a, k, v> a[](a dict<k, v>, f act a(k, v)) trusted data<k> compare<k> 
 	hard-assert: end == res.end-ptr
 	res cast-immutable
 
-.dbg str(a dict<nat64, str>)
+.dbg str(a str[nat64])
 	res = writer
 	res dbg-recur a.root, ""
 	res move-to-str!
@@ -425,7 +425,7 @@ map-to-arr<a, k, v> a[](a dict<k, v>, f act a(k, v)) trusted data<k> compare<k> 
 			out ~= "]"
 
 # TODO:PRIVATE
-dbg str(a dict<nat64, void>)
+dbg str(a void[nat64])
 	res = writer
 	res dbg-recur a.root, ""
 	res move-to-str!
@@ -450,7 +450,7 @@ dbg str(a dict<nat64, void>)
 			out backup! 2
 			out ~= "]"
 
-verify void(a dict<nat64, str>, expected str)
+verify void(a str[nat64], expected str)
 	a.dbg is expected
 
 test

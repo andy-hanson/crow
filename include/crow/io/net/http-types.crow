@@ -9,14 +9,14 @@ import
 http-request record
 	method http-method
 	url str
-	headers dict<str, str>
+	headers str[str]
 	body str
 
 # Response to send to a single HTTP request.
 http-response record
 	status nat64
 	status-desc str
-	headers dict<str, str>
+	headers str[str]
 	body str
 
 http-bad-query http-response(message str)

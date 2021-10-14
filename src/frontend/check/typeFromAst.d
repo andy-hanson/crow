@@ -12,7 +12,7 @@ import frontend.check.checkCtx :
 	markUsedStructOrAlias;
 import frontend.check.dicts : SpecDeclAndIndex, SpecsDict, StructsAndAliasesDict, StructOrAliasAndIndex;
 import frontend.check.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
-import frontend.parse.ast : matchTypeAst, range, symForTypeAstSuffix, TypeAst, typeAstSuffixForSym;
+import frontend.parse.ast : matchTypeAst, range, symForTypeAstDict, symForTypeAstSuffix, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -38,7 +38,7 @@ import util.collection.dict : getAt;
 import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
-import util.sym : Sym, symEq;
+import util.sym : shortSymAlphaLiteralValue, Sym, symEq;
 import util.types : safeSizeTToU8;
 import util.util : todo;
 
@@ -141,14 +141,24 @@ immutable(Type) typeFromAst(Alloc)(
 ) {
 	return matchTypeAst!(immutable Type)(
 		ast,
+		(ref immutable TypeAst.Dict it) =>
+			typeFromOptInst(instStructFromAstInner!Alloc(
+				alloc,
+				ctx,
+				commonTypes,
+				symForTypeAstDict(it.kind),
+				range(it),
+				[it.k, it.v],
+				structsAndAliasesDict,
+				typeParamsScope,
+				delayStructInsts)),
 		(ref immutable TypeAst.Fun it) =>
 			typeFromFunAst(alloc, ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts),
 		(ref immutable TypeAst.InstStruct iAst) {
 			// Not doing this in instStructFromAst since that is called for unions, which can't use `a[]` syntax
-			immutable Opt!(TypeAst.Suffix.Kind) optSuffix = typeAstSuffixForSym(iAst.name.name);
-			if (has(optSuffix))
-				addDiag(alloc, ctx, iAst.range, immutable Diag(
-					immutable Diag.TypeShouldUseSuffix(force(optSuffix))));
+			immutable Opt!(Diag.TypeShouldUseSyntax.Kind) optSyntax = typeSyntaxKind(iAst.name.name);
+			if (has(optSyntax))
+				addDiag(alloc, ctx, iAst.range, immutable Diag(immutable Diag.TypeShouldUseSyntax(force(optSyntax))));
 
 			immutable Opt!(Ptr!TypeParam) found =
 				findPtr!TypeParam(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>
@@ -158,11 +168,13 @@ immutable(Type) typeFromAst(Alloc)(
 					addDiag(alloc, ctx, iAst.range, immutable Diag(immutable Diag.TypeParamCantHaveTypeArgs()));
 				return immutable Type(force(found));
 			} else
-				return typeFromOptInst(instStructFromAst(
+				return typeFromOptInst(instStructFromAstInner(
 					alloc,
 					ctx,
 					commonTypes,
-					iAst,
+					iAst.name.name,
+					iAst.range,
+					toArr(iAst.typeArgs),
 					structsAndAliasesDict,
 					typeParamsScope,
 					delayStructInsts));
@@ -178,6 +190,27 @@ immutable(Type) typeFromAst(Alloc)(
 				structsAndAliasesDict,
 				typeParamsScope,
 				delayStructInsts)));
+}
+
+private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable Sym a) {
+	switch (a.value) {
+		case shortSymAlphaLiteralValue("arr"):
+			return some(Diag.TypeShouldUseSyntax.Kind.arr);
+		case shortSymAlphaLiteralValue("const-ptr"):
+			return some(Diag.TypeShouldUseSyntax.Kind.ptr);
+		case shortSymAlphaLiteralValue("dict"):
+			return some(Diag.TypeShouldUseSyntax.Kind.dict);
+		case shortSymAlphaLiteralValue("mut-arr"):
+			return some(Diag.TypeShouldUseSyntax.Kind.arrMut);
+		case shortSymAlphaLiteralValue("mut-dict"):
+			return some(Diag.TypeShouldUseSyntax.Kind.dictMut);
+		case shortSymAlphaLiteralValue("opt"):
+			return some(Diag.TypeShouldUseSyntax.Kind.opt);
+		case shortSymAlphaLiteralValue("mut-ptr"):
+			return some(Diag.TypeShouldUseSyntax.Kind.ptrMut);
+		default:
+			return none!(Diag.TypeShouldUseSyntax.Kind);
+	}
 }
 
 private immutable(Type) typeFromOptInst(immutable Opt!(Ptr!StructInst) a) {

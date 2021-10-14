@@ -63,7 +63,7 @@ private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(Alloc, SymAllo
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
-	return !peekExact(lexer, " mut[]") && !peekExact(lexer, " mut*") && tryTake(lexer, ' ')
+	return !peekExact(lexer, " mut[") && !peekExact(lexer, " mut*") && tryTake(lexer, ' ')
 		? arrWithSizeLiteral(alloc, [parseType(alloc, lexer)])
 		: tryParseTypeArgsBracketed(alloc, lexer);
 }
@@ -103,10 +103,19 @@ private immutable(TypeAst) parseTypeSuffixes(Alloc, SymAlloc)(
 	immutable TypeAst ast,
 ) {
 	immutable Opt!(TypeAst.Suffix.Kind) suffix = tryTakeTypeSuffix(lexer);
-	return has(suffix)
-		? parseTypeSuffixes(alloc, lexer, immutable TypeAst(
-			immutable TypeAst.Suffix(force(suffix), allocate(alloc, ast))))
-		: ast;
+	if (has(suffix))
+		return parseTypeSuffixes(alloc, lexer, immutable TypeAst(
+			immutable TypeAst.Suffix(force(suffix), allocate(alloc, ast))));
+	else {
+		immutable Opt!(TypeAst.Dict.Kind) dictKind = tryTakeDictKind(lexer);
+		if (has(dictKind)) {
+			immutable TypeAst inner = parseType(alloc, lexer);
+			takeOrAddDiagExpected(alloc, lexer, ']', ParseDiag.Expected.Kind.closingBracket);
+			return parseTypeSuffixes(alloc, lexer, immutable TypeAst(
+				immutable TypeAst.Dict(force(dictKind), allocate(alloc, ast), allocate(alloc, inner))));
+		} else
+			return ast;
+	}
 }
 
 private immutable(Opt!(TypeAst.Suffix.Kind)) tryTakeTypeSuffix(SymAlloc)(ref Lexer!SymAlloc lexer) {
@@ -121,6 +130,14 @@ private immutable(Opt!(TypeAst.Suffix.Kind)) tryTakeTypeSuffix(SymAlloc)(ref Lex
 		: tryTake(lexer, " mut*")
 		? some(TypeAst.Suffix.Kind.ptrMut)
 		: none!(TypeAst.Suffix.Kind);
+}
+
+private immutable(Opt!(TypeAst.Dict.Kind)) tryTakeDictKind(SymAlloc)(ref Lexer!SymAlloc lexer) {
+	return tryTake(lexer, '[')
+		? some(TypeAst.Dict.Kind.data)
+		: tryTake(lexer, " mut[")
+		? some(TypeAst.Dict.Kind.mut)
+		: none!(TypeAst.Dict.Kind);
 }
 
 private immutable(Opt!(TypeAst.Fun.Kind)) funKindFromName(immutable Sym name) {

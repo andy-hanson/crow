@@ -8,7 +8,7 @@ import
 
 mut-set<a> record mut
 	# TODO:PRIVATE
-	inner mut-dict<a, void>
+	inner void mut[a]
 
 mut-set<a> mut-set a() data<a> compare<a> hash-mix<a>
 	mut-dict mut-set

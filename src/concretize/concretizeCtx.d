@@ -420,7 +420,7 @@ immutable(ConcreteType) concreteTypeFromClosure(Alloc)(
 	}
 }
 
-void setConcreteStructRecordSize(Alloc)(
+private void setConcreteStructRecordSize(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	Ptr!ConcreteStruct cs,

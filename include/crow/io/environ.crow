@@ -15,7 +15,7 @@ import
 
 # Represents all environment variables.
 environ alias
-	dict<str, str>
+	str[str]
 
 # Get the environment variables for this process.
 get-environ environ() summon trusted
@@ -23,7 +23,7 @@ get-environ environ() summon trusted
 	environ get-environ-recur res
 	res move-to-dict!
 
-.get-environ-recur void(env c-str*, res mut-dict<str, str>) unsafe
+.get-environ-recur void(env c-str*, res str mut[str]) unsafe
 	if *env != null
 		entry = (*env).parse-environ-entry
 		res[entry from] := entry to

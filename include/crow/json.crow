@@ -109,7 +109,7 @@ as-list list<json>?(a json) noctx
 		l some
 	as dict
 		none
-as-dict dict<str, json>?(a json) noctx
+as-dict json[str]?(a json) noctx
 	match a
 	as bool
 		none
@@ -190,7 +190,7 @@ take-json! json?(a reader)
 		elif a try-take-char "]"
 			res.move-to-arr!.list some
 
-.take-object-recur! json?(a reader, res mut-dict<str, json>)
+.take-object-recur! json?(a reader, res json mut[str])
 	if key ?= a take-quoted-str!
 		a skip-whitespace!
 		if a try-take-char ":"
