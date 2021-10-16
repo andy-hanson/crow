@@ -37,6 +37,7 @@ import frontend.parse.lexer :
 	curPos,
 	isReservedName,
 	Lexer,
+	lookaheadWillTakeEqualsOrThen,
 	lookaheadWillTakeArrow,
 	next,
 	range,
@@ -54,15 +55,15 @@ import frontend.parse.lexer :
 	takeStringPart,
 	takeSymbolLiteral,
 	tryTake;
-import frontend.parse.parseType : tryParseTypeArgsBracketed;
-import model.parseDiag : EqLikeKind, ParseDiag;
+import frontend.parse.parseType : parseType, tryParseTypeArgsBracketed;
+import model.parseDiag : ParseDiag;
 import util.collection.arr : ArrWithSize, empty, emptyArr, emptyArrWithSize, toArr;
 import util.collection.arrUtil : append, arrLiteral, arrWithSizeLiteral, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
 import util.collection.str : CStr;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, nonePtr, Opt, OptPtr, some, somePtr;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
@@ -311,95 +312,76 @@ immutable(ArgsAndMaybeNameOrDedent) parseArgsRecur(Alloc, SymAlloc)(
 		: immutable ArgsAndMaybeNameOrDedent(finishArrWithSize(alloc, args), ad.nameOrDedent);
 }
 
-immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
+immutable(ExprAndDedent) parseMutEquals(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
 	ref immutable ExprAst before,
-	immutable EqLikeKind kind,
 	immutable uint curIndent,
 ) {
 	immutable ExprAndDedent initAndDedent = parseExprNoLet(alloc, lexer, curIndent);
-	immutable ExprAst init = initAndDedent.expr;
-	if (kind == EqLikeKind.mutEquals) {
-		struct FromBefore {
-			immutable Sym name;
-			immutable ArrWithSize!ExprAst args;
-			immutable ArrWithSize!TypeAst typeArgs;
-			immutable CallAst.Style style;
-		}
-		immutable FromBefore fromBefore = () {
-			if (isIdentifier(before.kind))
-				return immutable FromBefore(
-					asIdentifier(before.kind).name,
-					emptyArrWithSize!ExprAst,
-					emptyArrWithSize!TypeAst,
-					CallAst.Style.setSingle);
-			else if (isCall(before.kind)) {
-				immutable CallAst beforeCall = asCall(before.kind);
-				immutable CallAst.Style style = () {
-					final switch (beforeCall.style) {
-						case CallAst.Style.dot:
-							return CallAst.Style.setDot;
-						case CallAst.Style.single:
-							return CallAst.Style.setSingle;
-						case CallAst.Style.subscript:
-							return CallAst.Style.setSubscript;
-						case CallAst.Style.prefixOperator:
-							if (symEq(beforeCall.funName.name, symForOperator(Operator.times)))
-								return CallAst.Style.setDeref;
-							else
-								// This is `~x := foo` or `-x := foo`. Have a diagnostic for this.
-								return todo!(immutable CallAst.Style)("!");
-						case CallAst.Style.infix:
-						case CallAst.Style.prefix:
-						case CallAst.Style.setDeref:
-						case CallAst.Style.setDot:
-						case CallAst.Style.setSingle:
-						case CallAst.Style.setSubscript:
-							// We did parseExprBeforeCall before this, which can't parse any of these
-							return unreachable!(immutable CallAst.Style)();
-					}
-				}();
-				return immutable FromBefore(beforeCall.funNameName, beforeCall.args, beforeCall.typeArgs, style);
-			} else {
-				addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(
-					immutable ParseDiag.CantPrecedeEqLike(kind)));
-				return immutable FromBefore(
-					shortSymAlphaLiteral("bogus"),
-					emptyArrWithSize!ExprAst,
-					emptyArrWithSize!TypeAst,
-					CallAst.Style.setSingle);
-			}
-		}();
-		// TODO: range is wrong..
-		immutable ExprAst call = immutable ExprAst(
-			range(lexer, start),
-			immutable ExprAstKind(immutable CallAst(
-				fromBefore.style,
-				immutable NameAndRange(
-					before.range.start,
-					fromBefore.style == CallAst.Style.setDeref
-						? shortSymAlphaLiteral("set-deref")
-						: prependSet(lexer.allSymbols, fromBefore.name)),
-				fromBefore.typeArgs,
-				append(alloc, fromBefore.args, init))));
-		return immutable ExprAndDedent(call, initAndDedent.dedents);
-	} else {
-		immutable ExprAndDedent thenAndDedent = mustParseNextLines(
-			alloc,
-			lexer,
-			start,
-			initAndDedent.dedents,
-			curIndent);
-		immutable ExprAstKind exprKind = letOrThen(
-			alloc,
-			kind,
-			asIdentifierOrDiagnostic(alloc, lexer, before, kind),
-			init,
-			thenAndDedent.expr);
-		return immutable ExprAndDedent(immutable ExprAst(range(lexer, start), exprKind), thenAndDedent.dedents);
+	struct FromBefore {
+		immutable Sym name;
+		immutable ArrWithSize!ExprAst args;
+		immutable ArrWithSize!TypeAst typeArgs;
+		immutable CallAst.Style style;
 	}
+	immutable FromBefore fromBefore = () {
+		if (isIdentifier(before.kind))
+			return immutable FromBefore(
+				asIdentifier(before.kind).name,
+				emptyArrWithSize!ExprAst,
+				emptyArrWithSize!TypeAst,
+				CallAst.Style.setSingle);
+		else if (isCall(before.kind)) {
+			immutable CallAst beforeCall = asCall(before.kind);
+			immutable CallAst.Style style = () {
+				final switch (beforeCall.style) {
+					case CallAst.Style.dot:
+						return CallAst.Style.setDot;
+					case CallAst.Style.single:
+						return CallAst.Style.setSingle;
+					case CallAst.Style.subscript:
+						return CallAst.Style.setSubscript;
+					case CallAst.Style.prefixOperator:
+						if (symEq(beforeCall.funName.name, symForOperator(Operator.times)))
+							return CallAst.Style.setDeref;
+						else
+							// This is `~x := foo` or `-x := foo`. Have a diagnostic for this.
+							return todo!(immutable CallAst.Style)("!");
+					case CallAst.Style.infix:
+					case CallAst.Style.prefix:
+					case CallAst.Style.setDeref:
+					case CallAst.Style.setDot:
+					case CallAst.Style.setSingle:
+					case CallAst.Style.setSubscript:
+						// We did parseExprBeforeCall before this, which can't parse any of these
+						return unreachable!(immutable CallAst.Style)();
+				}
+			}();
+			return immutable FromBefore(beforeCall.funNameName, beforeCall.args, beforeCall.typeArgs, style);
+		} else {
+			addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(immutable ParseDiag.CantPrecedeMutEquals()));
+			return immutable FromBefore(
+				shortSymAlphaLiteral("bogus"),
+				emptyArrWithSize!ExprAst,
+				emptyArrWithSize!TypeAst,
+				CallAst.Style.setSingle);
+		}
+	}();
+	// TODO: range is wrong..
+	immutable ExprAst call = immutable ExprAst(
+		range(lexer, start),
+		immutable ExprAstKind(immutable CallAst(
+			fromBefore.style,
+			immutable NameAndRange(
+				before.range.start,
+				fromBefore.style == CallAst.Style.setDeref
+					? shortSymAlphaLiteral("set-deref")
+					: prependSet(lexer.allSymbols, fromBefore.name)),
+			fromBefore.typeArgs,
+			append(alloc, fromBefore.args, initAndDedent.expr))));
+	return immutable ExprAndDedent(call, initAndDedent.dedents);
 }
 
 immutable(ExprAndDedent) mustParseNextLines(Alloc, SymAlloc)(
@@ -417,34 +399,15 @@ immutable(ExprAndDedent) mustParseNextLines(Alloc, SymAlloc)(
 		return parseStatementsAndDedents(alloc, lexer, curIndent);
 }
 
-immutable(ExprAstKind) letOrThen(Alloc)(
-	ref Alloc alloc,
-	immutable EqLikeKind kind,
-	immutable NameAndRange nameAndRange,
-	ref immutable ExprAst init,
-	ref immutable ExprAst then,
-) {
-	final switch (kind) {
-		case EqLikeKind.equals:
-			return immutable ExprAstKind(immutable LetAst(nameAndRange, allocate(alloc, init), allocate(alloc, then)));
-		case EqLikeKind.mutEquals:
-		case EqLikeKind.optEquals:
-			return unreachable!(immutable ExprAstKind)();
-		case EqLikeKind.then:
-			return immutable ExprAstKind(immutable ThenAst(nameAndRange, allocate(alloc, init), allocate(alloc, then)));
-	}
-}
-
 immutable(NameAndRange) asIdentifierOrDiagnostic(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	ref immutable ExprAst a,
-	immutable EqLikeKind kind,
 ) {
 	if (isIdentifier(a.kind))
 		return identifierAsNameAndRange(a);
 	else {
-		addDiag(alloc, lexer, a.range, immutable ParseDiag(immutable ParseDiag.CantPrecedeEqLike(kind)));
+		addDiag(alloc, lexer, a.range, immutable ParseDiag(immutable ParseDiag.CantPrecedeOptEquals()));
 		return immutable NameAndRange(a.range.start, shortSymAlphaLiteral("a"));
 	}
 }
@@ -698,7 +661,7 @@ immutable(ExprAndDedent) parseIfRecur(Alloc, SymAlloc)(
 
 	immutable ExprAstKind kind = isOption
 		? immutable ExprAstKind(allocate(alloc, immutable IfOptionAst(
-			asIdentifierOrDiagnostic(alloc, lexer, beforeCall, EqLikeKind.optEquals),
+			asIdentifierOrDiagnostic(alloc, lexer, beforeCall),
 			optionOrCondition,
 			then,
 			has(else_.expr) ? some(force(else_.expr).deref()) : none!ExprAst)))
@@ -1070,7 +1033,9 @@ immutable(ExprAndDedent) parseSingleStatementLine(Alloc, SymAlloc)(
 	immutable uint curIndent,
 ) {
 	immutable Pos start = curPos(lexer);
-	if (tryTake(lexer, "<- ")) {
+	if (lookaheadWillTakeEqualsOrThen(lexer))
+		return parseEqualsOrThen(alloc, lexer, curIndent);
+	else if (tryTake(lexer, "<- ")) {
 		immutable ExprAndDedent init = parseExprNoLet(alloc, lexer, curIndent);
 		immutable ExprAndDedent then = mustParseNextLines(alloc, lexer, start, init.dedents, curIndent);
 		return immutable ExprAndDedent(
@@ -1080,11 +1045,8 @@ immutable(ExprAndDedent) parseSingleStatementLine(Alloc, SymAlloc)(
 			then.dedents);
 	} else {
 		immutable ExprAndMaybeDedent expr = parseExprBeforeCall(alloc, lexer, allowBlock(curIndent));
-		if (!has(expr.dedents)) {
-			immutable Opt!EqLikeKind kind = tryTakeEqLikeKind(lexer);
-			if (has(kind))
-				return parseLetOrThen!(Alloc, SymAlloc)(alloc, lexer, start, expr.expr, force(kind), curIndent);
-		}
+		if (!has(expr.dedents) && tryTake(lexer, " := "))
+			return parseMutEquals(alloc, lexer, start, expr.expr, curIndent);
 		return addDedent(
 			alloc,
 			lexer,
@@ -1100,6 +1062,75 @@ immutable(ExprAndDedent) parseSingleStatementLine(Alloc, SymAlloc)(
 	}
 }
 
+immutable(ExprAndDedent) parseEqualsOrThen(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable uint curIndent,
+) {
+	immutable Pos start = curPos(lexer);
+	immutable NameAndRange name = takeNameAndRange(alloc, lexer);
+	immutable TypeAndEqualsOrThen te = parseTypeAndEqualsOrThen(alloc, lexer);
+	immutable ExprAndDedent initAndDedent = parseExprNoLet(alloc, lexer, curIndent);
+	immutable ExprAndDedent thenAndDedent = mustParseNextLines(alloc, lexer, start, initAndDedent.dedents, curIndent);
+	immutable ExprAstKind exprKind =
+		letOrThen(alloc, name, te.type, te.equalsOrThen, initAndDedent.expr, thenAndDedent.expr);
+	return immutable ExprAndDedent(immutable ExprAst(range(lexer, start), exprKind), thenAndDedent.dedents);
+}
+
+immutable(ExprAstKind) letOrThen(Alloc)(
+	ref Alloc alloc,
+	immutable NameAndRange name,
+	immutable OptPtr!TypeAst type,
+	immutable EqualsOrThen kind,
+	immutable ExprAst init,
+	immutable ExprAst then,
+) {
+	immutable Ptr!ExprAst ptrInit = allocate(alloc, init);
+	immutable Ptr!ExprAst ptrThen = allocate(alloc, then);
+	final switch (kind) {
+		case EqualsOrThen.equals:
+			return immutable ExprAstKind(immutable LetAst(name.name, type, ptrInit, ptrThen));
+		case EqualsOrThen.then:
+			// TODO: use the type
+			return immutable ExprAstKind(immutable ThenAst(name, ptrInit, ptrThen));
+	}
+}
+
+enum EqualsOrThen { equals, then }
+struct TypeAndEqualsOrThen {
+	immutable OptPtr!TypeAst type;
+	immutable EqualsOrThen equalsOrThen;
+}
+immutable(TypeAndEqualsOrThen) parseTypeAndEqualsOrThen(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	immutable Opt!EqualsOrThen res = tryTakeEqualsOrThen(lexer);
+	if (has(res))
+		return immutable TypeAndEqualsOrThen(nonePtr!TypeAst, force(res));
+	else {
+		takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
+		immutable TypeAst type = parseType(alloc, lexer);
+		immutable Opt!EqualsOrThen optEqualsOrThen = tryTakeEqualsOrThen(lexer);
+		immutable EqualsOrThen equalsOrThen = () {
+			if (has(optEqualsOrThen))
+				return force(optEqualsOrThen);
+			else {
+				addDiagAtChar(alloc, lexer, immutable ParseDiag(
+					immutable ParseDiag.Expected(ParseDiag.Expected.Kind.spaceEqualsSpace)));
+				return EqualsOrThen.equals;
+			}
+		}();
+		return immutable TypeAndEqualsOrThen(somePtr(allocate(alloc, type)), equalsOrThen);
+	}
+}
+
+immutable(Opt!EqualsOrThen) tryTakeEqualsOrThen(SymAlloc)(ref Lexer!SymAlloc lexer) {
+	return tryTake(lexer, " = ")
+		? some(EqualsOrThen.equals)
+		: tryTake(lexer, " <- ")
+		? some(EqualsOrThen.then)
+		: none!EqualsOrThen;
+}
+
+
 immutable(ExprAndDedent) addDedent(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
@@ -1111,15 +1142,6 @@ immutable(ExprAndDedent) addDedent(Alloc, SymAlloc)(
 		has(e.dedents) ? force(e.dedents) : takeNewlineOrDedentAmount(alloc, lexer, curIndent));
 }
 
-immutable(Opt!EqLikeKind) tryTakeEqLikeKind(SymAlloc)(ref Lexer!SymAlloc lexer) {
-	return tryTake(lexer, " = ")
-		? some(EqLikeKind.equals)
-		: tryTake(lexer, " := ")
-		? some(EqLikeKind.mutEquals)
-		: tryTake(lexer, " <- ")
-		? some(EqLikeKind.then)
-		: none!EqLikeKind;
-}
 
 immutable(ExprAndDedent) parseStatementsAndDedents(Alloc, SymAlloc)(
 	ref Alloc alloc,

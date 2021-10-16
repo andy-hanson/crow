@@ -901,10 +901,38 @@ public immutable(bool) isReservedName(immutable Sym name) {
 	}
 }
 
+public @trusted immutable(bool) lookaheadWillTakeEqualsOrThen(SymAlloc)(ref Lexer!SymAlloc lexer) {
+	immutable(char)* ptr = lexer.ptr;
+	while (true) {
+		switch (*ptr) {
+			case ' ':
+				if ((ptr[1] == '=' && ptr[2] == ' ') || (ptr[1] == '<' && ptr[2] == '-' && ptr[3] == ' '))
+					return true;
+				break;
+			// characters that appear in typse
+			case '<':
+			case '>':
+			case ',':
+			case '?':
+			case '*':
+			case '[':
+			case ']':
+			case '(':
+			case ')':
+				break;
+			default:
+				if (!isAlphaIdentifierContinue(*ptr))
+					return false;
+				break;
+		}
+		ptr++;
+	}
+}
+
 public @trusted immutable(bool) lookaheadWillTakeArrow(SymAlloc)(ref Lexer!SymAlloc lexer) {
 	immutable(char)* ptr = lexer.ptr;
 	while (true) {
-		switch (ptr[0]) {
+		switch (*ptr) {
 			case '(':
 				// Arrow function parameters never have '(' in them
 				return false;

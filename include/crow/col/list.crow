@@ -4,7 +4,7 @@ import
 	../compare: !=, <, >, equal, min
 	../exception: assert, forbid
 	../fun: subscript
-	../misc: as, drop, void
+	../misc: drop, void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, -, *, const-ptr, mut-ptr, set-deref, set-subscript
 	../range: ..
@@ -224,7 +224,7 @@ Concatenate an array to a list.
 This is O(1).
 ###
 ~ <a> list a(a list a, b a[])
-	prev = as<list<a>?>: if a is-empty
+	prev list<a>? = if a is-empty
 		none
 	else
 		a some

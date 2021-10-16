@@ -12,7 +12,7 @@ import
 	../../fut: fut, fut-catch, resolved, subscript, then
 	../../hash: hash-mix
 	../../log: error, log
-	../../misc: as, drop, void
+	../../misc: drop, void
 	../../number: ==, <=>, +, nat8, nat64, to-int64
 	../../opt: opt, or-default, some, value
 	../../extra-types: fd-t
@@ -43,10 +43,10 @@ Once the future is resolved, it is already serving requests.
 start-http-server fut http-server(port str, handler http-handler) trusted summon
 	client-states = mut-dict<fd-t, http-parse-state>
 
-	on-accepted-client = as<ref void(fd-t)>: fd =>
+	on-accepted-client ref void(fd-t) = fd =>
 		client-states[fd] := http-parse-state
 		void resolved
-	on-received-chunk = as<ref void(fd-t, nat8[])>: (fd, bytes) =>
+	on-received-chunk ref void(fd-t, nat8[]) = (fd, bytes) =>
 		if state ?= client-states[fd]
 			closed <- fd handle-chunk state, bytes.as-str, handler
 			if closed

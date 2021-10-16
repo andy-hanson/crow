@@ -63,7 +63,11 @@ private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(Alloc, SymAllo
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
-	return !peekExact(lexer, " mut[") && !peekExact(lexer, " mut*") && tryTake(lexer, ' ')
+	return !peekExact(lexer, " mut[") &&
+		!peekExact(lexer, " mut*") &&
+		!peekExact(lexer, " <- ") &&
+		!peekExact(lexer, " = ") &&
+		tryTake(lexer, ' ')
 		? arrWithSizeLiteral(alloc, [parseType(alloc, lexer)])
 		: tryParseTypeArgsBracketed(alloc, lexer);
 }

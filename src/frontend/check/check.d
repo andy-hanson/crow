@@ -729,7 +729,7 @@ void checkStructAliasTargets(Alloc)(
 		aliases,
 		asts,
 		(ref StructAlias structAlias, ref immutable StructAliasAst ast) {
-			immutable Type type = typeFromAst!Alloc(
+			immutable Type type = typeFromAst(
 				alloc,
 				ctx,
 				commonTypes,

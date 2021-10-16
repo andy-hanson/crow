@@ -3,7 +3,7 @@ import
 	time: clock_gettime, CLOCK_MONOTONIC, timespec, tv-nsec, tv-sec
 	../cell: *, cell
 	../ptr: by-val, ref-of-val
-	../private/bootstrap: as, nat64, todo
+	../private/bootstrap: nat64, todo
 	../private/number-low-level:
 		==, unsafe-div, unsafe-mod, unsafe-to-int64, unsafe-to-nat64, wrap-add, wrap-mul
 
@@ -14,7 +14,7 @@ timestamp alias
 # Get the value from a monotonic clock.
 # TODO: SUMMON
 get-monotime-nsec timestamp() noctx trusted
-	time-cell = as<by-val<cell<timespec>>>: cell: timespec: 0, 0
+	time-cell by-val<cell<timespec>> = 0 timespec 0 cell
 	err = CLOCK_MONOTONIC clock_gettime time-cell.ref-of-val
 	if err == 0
 		time = *time-cell.ref-of-val

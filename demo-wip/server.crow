@@ -11,7 +11,7 @@ main fut nat(args str[]) unsafe summon
 		1 resolved
 	else
 		port = args[0]
-		handler = as<http-handler>: req =>
+		handler http-handler = req =>
 			descr = req describe-request
 			print: descr
 			resolved: http-response: 200, "OK", dict, "Your request:\n{descr}"

@@ -7,7 +7,7 @@ import
 	../exception: assert
 	../fun: subscript
 	../log: info, log
-	../misc: as, drop, void
+	../misc: drop, void
 	../opt: is-empty, none, opt, or-default, some
 	../ptr: ==, +, *, const-ptr, ptr-to, set-deref
 	../range: .., each
@@ -165,7 +165,7 @@ try-add index-set?(a index-set, index nat64) trusted
 		if new-word != word
 			l update-leaf word-index, new-word some
 	as empty
-		new-node = as<node>: if n == bits-in-leaf-node
+		new-node node = if n == bits-in-leaf-node
 			empty-leaf-node
 		else
 			empty-inner-node
@@ -189,7 +189,7 @@ try-remove index-set?(a index-set, index nat64) trusted
 		half = n unsafe-div 2
 		quarter = half unsafe-div 2
 		# TODO: should not need 'as'
-		opt-new-node = as<inner-node?>: if index < half
+		opt-new-node inner-node? = if index < half
 			if index < quarter
 				if res ?= i.a try-remove index, quarter
 					i with-a res some

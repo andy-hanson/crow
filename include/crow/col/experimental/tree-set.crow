@@ -52,6 +52,7 @@ size<a> nat64(a tree-set a) data<a> compare<a>
 
 # Empty `tree-set`.
 tree-set<a> tree-set a()
+	# TODO: should not need 'as'
 	root = [] as<a[]>
 	root tree-set 0
 
@@ -356,6 +357,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 			as none
 				unreachable
 			as inserted i
+				# TODO: should not need 'as'
 				mid inner-node i.node, right-arr.as<node a> inserted
 			as find-scapegoat f
 				a.size wrap-add 1 find-scapegoat (f.height wrap-add 1)

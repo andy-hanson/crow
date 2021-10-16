@@ -10,7 +10,7 @@ import
 	../fun: fun-ptr2, subscript
 	../fut: delay, fut, handle-exceptions, then-void
 	../io/process: exit-code
-	../misc: as, void
+	../misc: void
 	../opt: none, value
 	../ptr:
 		+, any-mut-ptr, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, null, ptr-to,
@@ -38,7 +38,7 @@ import
 rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 	n-threads = get_nprocs
 	f = false
-	gctx-by-val = as<by-val global-ctx>: global-ctx: lbv, lbv, lbv, none, [], n-threads, create-condition, f, f
+	gctx-by-val by-val global-ctx = lbv global-ctx lbv, lbv, none, [], n-threads, create-condition, f, f
 	gctx = gctx-by-val ref-of-val
 	island-by-val = island: gctx, 0, n-threads
 	island = island-by-val ref-of-val
@@ -91,10 +91,10 @@ body
 	log-ctx-ptr = log-ctx.ref-of-val as-any-mut-ptr
 	perf-ptr = perf-ctx.ref-of-val as-any-mut-ptr
 	print-lock = gctx.print-lock.ref-of-val
-	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: thread-id, print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
-	ctx-by-val = ctx: gctx, tls.ref-of-val, island, 0
+	tls by-val thread-local-stuff = thread-id thread-local-stuff print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
+	ctx-by-val = gctx ctx tls.ref-of-val, island, 0
 	ctx = ctx-by-val ref-of-val
-	add = as<act fut nat64(c-str[], main-ptr)>: (all-args, main-ptr) =>
+	add act fut nat64(c-str[], main-ptr) = (all-args, main-ptr) =>
 		all-args add-first-task main-ptr
 	all-args = arr: argc.to-int64.unsafe-to-nat64, argv
 	add call-with-ctx ctx, all-args, main-ptr

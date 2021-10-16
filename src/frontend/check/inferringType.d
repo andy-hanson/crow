@@ -43,7 +43,7 @@ import util.collection.arr : at, emptyArr, emptyArr_mut, setAt, size, sizeEq;
 import util.collection.arrUtil : find, findIndex, map, mapOrNone, mapZipOrNone;
 import util.collection.mutArr : MutArr;
 import util.memory : allocate, nu;
-import util.opt : has, force, none, noneMut, Opt, some;
+import util.opt : has, force, none, noneMut, Opt, OptPtr, some, toOpt;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : FileAndRange, RangeWithinFile;
 import util.types : safeSizeTToU8;
@@ -113,14 +113,23 @@ ref immutable(ProgramState) programState(return scope ref immutable ExprCtx ctx)
 
 immutable(Type[]) typeArgsFromAsts(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst[] typeAsts) {
 	return map!Type(alloc, typeAsts, (ref immutable TypeAst it) =>
-		typeFromAst!Alloc(
-			alloc,
-			ctx.checkCtx.deref,
-			ctx.commonTypes,
-			it,
-			ctx.structsAndAliasesDict,
-			immutable TypeParamsScope(ctx.outermostFunTypeParams),
-			noneMut!(Ptr!(MutArr!(Ptr!(StructInst))))));
+		typeFromAstInner(alloc, ctx, it));
+}
+
+immutable(Opt!Type) typeFromOptAst(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable OptPtr!TypeAst ast) {
+	immutable Opt!(Ptr!TypeAst) opt = toOpt(ast);
+	return has(opt) ? some(typeFromAstInner(alloc, ctx, force(opt))) : none!Type;
+}
+
+private immutable(Type) typeFromAstInner(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst ast) {
+	return typeFromAst(
+		alloc,
+		ctx.checkCtx.deref,
+		ctx.commonTypes,
+		ast,
+		ctx.structsAndAliasesDict,
+		immutable TypeParamsScope(ctx.outermostFunTypeParams),
+		noneMut!(Ptr!(MutArr!(Ptr!(StructInst)))));
 }
 
 struct SingleInferringType {

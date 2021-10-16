@@ -209,7 +209,7 @@ This ensures the collection is kept in memory.
 	else
 		a ~ (max-value.rand-nat -> void) add-test iters - 1, max-value
 
-.add-test dict<nat, void>(a dict<nat, void>, iters nat, max-value nat) summon
+.add-test void[nat](a void[nat], iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
@@ -280,7 +280,7 @@ body
 	else
 		(a ~ (max-value.rand-nat -> void)) - max-value.rand-nat rm-test iters - 1, max-value
 
-.rm-test dict<nat, void>(a dict<nat, void>, iters nat, max-value nat) summon
+.rm-test void[nat](a void[nat], iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
@@ -322,7 +322,7 @@ body
 	else
 		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
-.get-test nat(acc nat, a dict<nat, void>, iters nat, max-value nat) summon
+.get-test nat(acc nat, a void[nat], iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else

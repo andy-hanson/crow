@@ -2,14 +2,14 @@ no-std
 import
 	./bool: bool, to-nat64
 	./col/arr-util: each
-	./misc: as, void
+	./misc: void
 	./number: int8, int16, int32, int64, nat8, nat16, nat32, nat64, to-int64, to-nat64
 	./ptr: by-val, ref-of-val
 	./str: chars, str, to-nat8
 	./private/number-low-level: unsafe-to-nat64, wrap-add
 
 hash<a> nat64(a a) trusted hash-mix<a>
-	hasher = as<by-val hasher>: hasher: 0
+	hasher by-val hasher = 0 hasher
 	hasher.ref-of-val hash-mix a
 	hasher.ref-of-val cur
 

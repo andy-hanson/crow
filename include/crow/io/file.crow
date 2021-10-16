@@ -18,7 +18,7 @@ import
 	../compare: !=, <
 	../exception: assert, forbid, throw
 	../fun: subscript
-	../misc: as, void
+	../misc: void
 	../number: ==, <=>, +, int32, nat8, nat16, nat32, to-int64, to-nat32, to-nat64
 	../opt: is-empty, opt, some
 	../ptr:
@@ -141,8 +141,8 @@ write-file void(path str, content str) summon
 	path.to-c-str write-file content
 
 .write-file void(path c-str, content str) summon trusted
-	permission-rdwr = 6 as<nat32>
-	permission-rd = 4 as<nat32>
+	permission-rdwr nat32 = 6
+	permission-rd nat32 = 4
 	permission = permission-rdwr << 6 | permission-rd << 3 | permission-rd
 	flags = O_CREAT | O_WRONLY | O_TRUNC
 	fd = path open flags, permission
@@ -228,7 +228,7 @@ If `path` is a directory, calls `each-child-recursive` on every child of the dir
 Else, calls `f[path]`.
 ###
 each-child-recursive void(path str, f act void(str)) summon
-	filter = as<act bool(str)>: ignore => true
+	filter act bool(str) = ignore => true
 	path each-child-recursive filter, f
 
 # `each-child-recursive` that does not descend into a child if `f[child_name]` returns false.

@@ -5,7 +5,7 @@ import
 	../exception: assert, forbid
 	../fun: subscript
 	../hash: hash, hash-mix
-	../misc: ->, arrow, as, data, drop, from, to, void
+	../misc: ->, arrow, data, drop, from, to, void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, *, mut-ptr, set-deref
 	../str: ==, str
@@ -54,10 +54,10 @@ arr<k, v> arrow<k, v>[](a v mut[k]) data<k> compare<k> hash-mix<k>
 	a map-to-arr (key, value) => key -> value
 
 copy<k, v> v mut[k](a v mut[k]) data<k> compare<k> hash-mix<k>
-	entries = a.entries map entry =>
+	entries fix-arr entry<k, v> = a.entries map entry =>
 		match entry
 		as none
-			none as<entry<k, v>>
+			none
 		as arrow ar
 			ar
 		as mut-arr m

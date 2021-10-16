@@ -4,7 +4,7 @@ import
 main fut nat(_ str[]) summon
 	info log "Logged once"
 	lh = get-log-handler
-	doubler = as<log-handler>: logged =>
+	doubler log-handler = logged =>
 		lh[logged]
 		lh[logged]
 	doubler with-log-handler () =>

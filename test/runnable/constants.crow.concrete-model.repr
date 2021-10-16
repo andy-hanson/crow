@@ -773,20 +773,17 @@ program(
 						let(
 							gctx-by-val
 							call(
-								as
+								global-ctx
 								[
-									call(
-										global-ctx
-										[
-											call(lbv, [])
-											call(lbv, [])
-											call(lbv, [])
-											to-union(0, call(none, []))
-											record([0, null])
-											local-ref(n-threads)
-											call(create-condition, [])
-											local-ref(f)
-											local-ref(f)])])
+									call(lbv, [])
+									call(lbv, [])
+									call(lbv, [])
+									to-union(0, call(none, []))
+									record([0, null])
+									local-ref(n-threads)
+									call(create-condition, [])
+									local-ref(f)
+									local-ref(f)])
 							let(
 								gctx
 								call(ref-of-val, [local-ref(gctx-by-val)])
@@ -843,13 +840,6 @@ program(
 		fun(false, get_nprocs, type(false, nat64), none, [], extern(false))
 		fun(
 			false
-			as
-			type(false, global-ctx)
-			none
-			[param(value, type(false, global-ctx))]
-			builtin([type(false, global-ctx)]))
-		fun(
-			false
 			global-ctx
 			type(false, global-ctx)
 			none
@@ -879,9 +869,7 @@ program(
 			expr-body(
 				let(
 					res
-					call(
-						as
-						[call(condition, [call(zeroed, []), call(zeroed, []), call(zeroed, []), call(zeroed, []), 0])])
+					call(condition, [call(zeroed, []), call(zeroed, []), call(zeroed, []), call(zeroed, []), 0])
 					seq(
 						seq(
 							seq(
@@ -936,13 +924,6 @@ program(
 											call(ref-of-val, [call(cond, [call(ref-of-val, [local-ref(res)])])])
 											call(ref-of-val, [call(cond-attr, [call(ref-of-val, [local-ref(res)])])])])]))
 						local-ref(res)))))
-		fun(
-			false
-			as
-			type(false, condition)
-			none
-			[param(value, type(false, condition))]
-			builtin([type(false, condition)]))
 		fun(
 			false
 			condition
@@ -1067,7 +1048,7 @@ program(
 					call(task-queue, [param-ref(max-threads)])
 					let(
 						gc-root
-						call(as, [call(island-gc-root, [local-ref(q), lambda(0, void), lambda(0, void)])])
+						call(island-gc-root, [local-ref(q), lambda(0, void), lambda(0, void)])
 						call(
 							island
 							[
@@ -1223,13 +1204,6 @@ program(
 			none
 			[param(backing, type(false, fix-arr)), param(size, type(false, nat64))]
 			new-record)
-		fun(
-			false
-			as
-			type(false, island-gc-root)
-			none
-			[param(value, type(false, island-gc-root))]
-			builtin([type(false, island-gc-root)]))
 		fun(
 			false
 			island-gc-root
@@ -3267,22 +3241,19 @@ program(
 										let(
 											res
 											call(
-												as
+												gc
 												[
-													call(
-														gc
-														[
-															call(lock-by-val, [])
-															0
-															to-union(0, call(none, []))
-															call(false, [])
-															50331648
-															local-ref(mark)
-															local-ref(mark)
-															local-ref(mark-end)
-															local-ref(data)
-															local-ref(data)
-															local-ref(data-end)])])
+													call(lock-by-val, [])
+													0
+													to-union(0, call(none, []))
+													call(false, [])
+													50331648
+													local-ref(mark)
+													local-ref(mark)
+													local-ref(mark-end)
+													local-ref(data)
+													local-ref(data)
+													local-ref(data-end)])
 											seq(call(validate-gc, [call(ref-of-val, [local-ref(res)])]), local-ref(res)))))))))))
 		fun(
 			false
@@ -3298,7 +3269,6 @@ program(
 			none
 			[param(ref, type(false, mut-ptr))]
 			builtin([type(false, mut-ptr)]))
-		fun(false, as, type(false, gc), none, [param(value, type(false, gc))], builtin([type(false, gc)]))
 		fun(
 			false
 			gc
@@ -3516,16 +3486,13 @@ program(
 											let(
 												tls
 												call(
-													as
+													thread-local-stuff
 													[
-														call(
-															thread-local-stuff
-															[
-																param-ref(thread-id)
-																local-ref(print-lock)
-																local-ref(ectx-ptr)
-																local-ref(log-ctx-ptr)
-																local-ref(perf-ptr)])])
+														param-ref(thread-id)
+														local-ref(print-lock)
+														local-ref(ectx-ptr)
+														local-ref(log-ctx-ptr)
+														local-ref(perf-ptr)])
 												let(
 													ctx-by-val
 													call(
@@ -3540,7 +3507,7 @@ program(
 														call(ref-of-val, [local-ref(ctx-by-val)])
 														let(
 															add
-															call(as, [lambda(0, void)])
+															lambda(0, void)
 															let(
 																all-args
 																call(
@@ -3650,13 +3617,6 @@ program(
 			[param(a, type(false, perf-ctx))]
 			builtin([type(true, perf-ctx)]))
 		fun(false, print-lock, type(false, lock), none, [param(a, type(true, global-ctx))], field-get(1))
-		fun(
-			false
-			as
-			type(false, thread-local-stuff)
-			none
-			[param(value, type(false, thread-local-stuff))]
-			builtin([type(false, thread-local-stuff)]))
 		fun(
 			false
 			thread-local-stuff
@@ -3810,13 +3770,6 @@ program(
 			[param(a, type(false, thread-local-stuff))]
 			builtin([type(true, thread-local-stuff)]))
 		fun(false, ref-of-val, type(true, ctx), none, [param(a, type(false, ctx))], builtin([type(true, ctx)]))
-		fun(
-			false
-			as
-			type(false, fun-act2)
-			none
-			[param(value, type(false, fun-act2))]
-			builtin([type(false, fun-act2)]))
 		fun(
 			true
 			add-first-task
@@ -5427,16 +5380,13 @@ program(
 											let(
 												tls
 												call(
-													as
+													thread-local-stuff
 													[
-														call(
-															thread-local-stuff
-															[
-																param-ref(thread-id)
-																local-ref(print-lock)
-																local-ref(ectx-ptr)
-																local-ref(log-ctx-ptr)
-																local-ref(perf-ptr)])])
+														param-ref(thread-id)
+														local-ref(print-lock)
+														local-ref(ectx-ptr)
+														local-ref(log-ctx-ptr)
+														local-ref(perf-ptr)])
 												call(
 													thread-function-recur
 													[param-ref(gctx), call(ref-of-val, [local-ref(tls)])])))))))))))
@@ -5609,42 +5559,39 @@ program(
 						call(get-monotime-nsec, [])
 						let(
 							res
-							call(
-								as
+							match-union(
+								call(
+									choose-task-recur
+									[
+										call(islands, [param-ref(gctx)])
+										0
+										local-ref(cur-time)
+										call(false, [])
+										to-union(0, call(none, []))])
 								[
-									match-union(
-										call(
-											choose-task-recur
-											[
-												call(islands, [param-ref(gctx)])
-												0
-												local-ref(cur-time)
-												call(false, [])
-												to-union(0, call(none, []))])
-										[
-											case(some(c), to-union(0, local-ref(c)))
-											case(
-												some(n)
-												seq(
+									case(some(c), to-union(0, local-ref(c)))
+									case(
+										some(n)
+										seq(
+											call(
+												set-n-live-threads
+												[
+													param-ref(gctx)
+													call(wrap-sub, [call(n-live-threads, [param-ref(gctx)]), 1])])
+											let(
+												no-task-and-last-thread-out
+												call(
+													&&
+													[
+														call(no-tasks-and-last-thread-out, [local-ref(n)])
+														call(==, [call(n-live-threads, [param-ref(gctx)]), 0])])
+												to-union(
+													1
 													call(
-														set-n-live-threads
+														no-chosen-task
 														[
-															param-ref(gctx)
-															call(wrap-sub, [call(n-live-threads, [param-ref(gctx)]), 1])])
-													let(
-														no-task-and-last-thread-out
-														call(
-															&&
-															[
-																call(no-tasks-and-last-thread-out, [local-ref(n)])
-																call(==, [call(n-live-threads, [param-ref(gctx)]), 0])])
-														to-union(
-															1
-															call(
-																no-chosen-task
-																[
-																	local-ref(no-task-and-last-thread-out)
-																	call(first-task-time, [local-ref(n)])])))))])])
+															local-ref(no-task-and-last-thread-out)
+															call(first-task-time, [local-ref(n)])])))))])
 							seq(call(release!, [call(ref-of-val, [call(lk, [param-ref(gctx)])])]), local-ref(res)))))))
 		fun(
 			false
@@ -5655,7 +5602,7 @@ program(
 			expr-body(
 				let(
 					time-cell
-					call(as, [call(cell, [call(timespec, [0, 0])])])
+					call(cell, [call(timespec, [0, 0])])
 					let(
 						err
 						call(clock_gettime, [call(CLOCK_MONOTONIC, []), call(ref-of-val, [local-ref(time-cell)])])
@@ -5673,7 +5620,6 @@ program(
 												call(wrap-mul, [call(tv-sec, [local-ref(time)]), 1000000000])
 												call(tv-nsec, [local-ref(time)])])]))
 							call(todo, []))))))
-		fun(false, as, type(false, cell), none, [param(value, type(false, cell))], builtin([type(false, cell)]))
 		fun(false, cell, type(false, cell), none, [param(inner-value, type(false, timespec))], new-record)
 		fun(
 			false
@@ -5716,13 +5662,6 @@ program(
 		fun(false, tv-nsec, type(false, int64), none, [param(a, type(false, timespec))], field-get(1))
 		fun(false, todo, type(false, nat64), none, [], expr-body(seq(call(abort, []), call(zeroed, []))))
 		fun(false, zeroed, type(false, nat64), none, [], builtin([type(false, nat64)]))
-		fun(
-			false
-			as
-			type(false, choose-task-result)
-			none
-			[param(value, type(false, choose-task-result))]
-			builtin([type(false, choose-task-result)]))
 		fun(
 			false
 			choose-task-recur
@@ -5786,20 +5725,15 @@ program(
 					call(acquire!, [call(ref-of-val, [call(tasks-lock, [param-ref(island)])])])
 					let(
 						res
-						call(
-							as
-							[
-								cond(
-									call(needs-gc, [call(ref-of-val, [call(gc, [param-ref(island)])])])
-									cond(
-										call(==, [call(n-threads-running, [param-ref(island)]), 0])
-										to-union(1, call(do-a-gc, []))
-										to-union(2, call(no-task, [call(true, []), to-union(0, call(none, []))])))
-									match-union(
-										call(pop-task!, [call(tasks, [param-ref(island)]), param-ref(cur-time)])
-										[
-											case(some(t), to-union(0, local-ref(t)))
-											case(some(n), to-union(2, local-ref(n)))]))])
+						cond(
+							call(needs-gc, [call(ref-of-val, [call(gc, [param-ref(island)])])])
+							cond(
+								call(==, [call(n-threads-running, [param-ref(island)]), 0])
+								to-union(1, call(do-a-gc, []))
+								to-union(2, call(no-task, [call(true, []), to-union(0, call(none, []))])))
+							match-union(
+								call(pop-task!, [call(tasks, [param-ref(island)]), param-ref(cur-time)])
+								[case(some(t), to-union(0, local-ref(t))), case(some(n), to-union(2, local-ref(n)))]))
 						seq(
 							seq(
 								cond(
@@ -5812,13 +5746,6 @@ program(
 									void)
 								call(release!, [call(ref-of-val, [call(tasks-lock, [param-ref(island)])])]))
 							local-ref(res))))))
-		fun(
-			false
-			as
-			type(false, choose-task-in-island-result)
-			none
-			[param(value, type(false, choose-task-in-island-result))]
-			builtin([type(false, choose-task-in-island-result)]))
 		fun(false, do-a-gc, type(false, do-a-gc), none, [], new-record)
 		fun(
 			false
@@ -5839,52 +5766,41 @@ program(
 					call(ref-of-val, [call(currently-running-exclusions, [param-ref(a)])])
 					let(
 						res
-						call(
-							as
+						match-union(
+							call(head, [param-ref(a)])
 							[
-								match-union(
-									call(head, [param-ref(a)])
-									[
-										case(
-											none
-											to-union(1, call(no-task, [call(false, []), to-union(0, call(none, []))])))
-										case(
-											some("<<matched>>")
-											let(
-												head
-												get-field(local-ref("<<matched>>"), value)
-												let(
-													task
-													call(task, [local-ref(head)])
-													cond(
-														call(<=, [call(time, [local-ref(task)]), param-ref(cur-time)])
-														cond(
-															call(
-																in
-																[
-																	call(exclusion, [local-ref(task)])
-																	local-ref(exclusions)])
-															call(
-																pop-recur!
-																[
-																	local-ref(head)
-																	local-ref(exclusions)
-																	param-ref(cur-time)
-																	call(to-opt-time, [call(time, [local-ref(task)])])])
-															seq(
-																call(
-																	set-head
-																	[param-ref(a), call(next, [local-ref(head)])])
-																to-union(0, call(task, [local-ref(head)]))))
-														to-union(
-															1
-															call(
-																no-task
-																[
-																	call(true, [])
-																	to-union(
-																		1
-																		call(some, [call(time, [local-ref(task)])]))]))))))])])
+								case(none, to-union(1, call(no-task, [call(false, []), to-union(0, call(none, []))])))
+								case(
+									some("<<matched>>")
+									let(
+										head
+										get-field(local-ref("<<matched>>"), value)
+										let(
+											task
+											call(task, [local-ref(head)])
+											cond(
+												call(<=, [call(time, [local-ref(task)]), param-ref(cur-time)])
+												cond(
+													call(
+														in
+														[call(exclusion, [local-ref(task)]), local-ref(exclusions)])
+													call(
+														pop-recur!
+														[
+															local-ref(head)
+															local-ref(exclusions)
+															param-ref(cur-time)
+															call(to-opt-time, [call(time, [local-ref(task)])])])
+													seq(
+														call(set-head, [param-ref(a), call(next, [local-ref(head)])])
+														to-union(0, call(task, [local-ref(head)]))))
+												to-union(
+													1
+													call(
+														no-task
+														[
+															call(true, [])
+															to-union(1, call(some, [call(time, [local-ref(task)])]))]))))))])
 						seq(
 							match-union(
 								local-ref(res)
@@ -5910,13 +5826,6 @@ program(
 			none
 			[param(a, type(true, task-queue))]
 			field-get(1))
-		fun(
-			false
-			as
-			type(false, pop-task-result)
-			none
-			[param(value, type(false, pop-task-result))]
-			builtin([type(false, pop-task-result)]))
 		fun(
 			false
 			in
@@ -6398,14 +6307,11 @@ program(
 					let(
 						mark-ctx
 						call(
-							as
+							mark-ctx
 							[
-								call(
-									mark-ctx
-									[
-										call(size-words, [param-ref(gc)])
-										call(mark-begin, [param-ref(gc)])
-										call(data-begin, [param-ref(gc)])])])
+								call(size-words, [param-ref(gc)])
+								call(mark-begin, [param-ref(gc)])
+								call(data-begin, [param-ref(gc)])])
 						seq(
 							call(mark-visit, [call(ref-of-val, [local-ref(mark-ctx)]), param-ref(gc-root)])
 							let(
@@ -6433,13 +6339,6 @@ program(
 			[param(a, type(true, gc)), param(gc-count, type(false, nat64))]
 			field-set(1))
 		fun(false, gc-count, type(false, nat64), none, [param(a, type(true, gc))], field-get(1))
-		fun(
-			false
-			as
-			type(false, mark-ctx)
-			none
-			[param(value, type(false, mark-ctx))]
-			builtin([type(false, mark-ctx)]))
 		fun(
 			false
 			mark-ctx
@@ -6622,7 +6521,7 @@ program(
 			expr-body(
 				let(
 					thread-return
-					call(as, [call(cell, [call(null, [])])])
+					call(cell, [call(null, [])])
 					let(
 						err
 						call(pthread_join, [param-ref(tid), call(ref-of-val, [local-ref(thread-return)])])
@@ -6637,7 +6536,6 @@ program(
 							call(
 								hard-assert
 								[call(==, [call(*, [call(ref-of-val, [local-ref(thread-return)])]), call(null, [])])]))))))
-		fun(false, as, type(false, cell), none, [param(value, type(false, cell))], builtin([type(false, cell)]))
 		fun(false, cell, type(false, cell), none, [param(inner-value, type(false, mut-ptr))], new-record)
 		fun(
 			false

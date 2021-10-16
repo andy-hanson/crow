@@ -4,7 +4,7 @@ import
 	../../compare: <, <=, >=, compare, max, min
 	../../exception: unreachable
 	../../fun: subscript
-	../../misc: ->, arrow, as, data, from, to, void
+	../../misc: ->, arrow, data, from, to, void
 	../../number: ==, <=>, +, -, is-even, nat64
 	../../opt: ==, is-empty, none, opt, opt-or, some
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
@@ -87,8 +87,8 @@ arr<k, v> arrow<k, v>[](a compact-sorted-dict<k, v>) data<k> compare<k>
 	elif a is-empty
 		b compact-sorted-dict
 	else
-		# TODO: 'as' should be unnecessary
-		pairs = as<arrow<k, v?>[]>: b map (it => it.from -> it.to.some) sort-by it => it from
+		# TODO: 'arrow<k, v?>[]' should be unnecessary
+		pairs arrow<k, v?>[] = b map (it => it.from -> it.to.some) sort-by it => it from
 		void compact-sorted-dict (pairs overlay a.impl merge-as-needed)
 
 - <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, key k) data<k> compare<k>
@@ -296,8 +296,8 @@ body
 		else
 			end-node[0].from find-least-key overlays
 		take-from-end-node = !end-node.is-empty && least-key == end-node[0].from
-		# TODO: should not need 'as'
-		val-from-end-node = as<v?>: if take-from-end-node
+		# TODO: should not need 'v?'
+		val-from-end-node v? = if take-from-end-node
 			end-node[0].to some
 		new-end-node = if take-from-end-node
 			end-node tail

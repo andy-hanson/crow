@@ -103,7 +103,7 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	# Read from pipes
 	stdout-builder = mut-arr<char>
 	stderr-builder = mut-arr<char>
-	keep-POLLINg: stdout-pipes.write-pipe, stderr-pipes.write-pipe, stdout-builder, stderr-builder
+	keep-polling: stdout-pipes.write-pipe, stderr-pipes.write-pipe, stdout-builder, stderr-builder
 
 	exit-code = pid wait-and-get-exit-code
 
@@ -114,7 +114,7 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	check-posix-error: res pipe
 	res
 
-.keep-POLLINg void
+.keep-polling void
 	stdout-pipe fd-t
 	stderr-pipe fd-t
 	stdout-builder char mut[]
@@ -123,7 +123,7 @@ spec
 	summon
 	unsafe
 body
-	poll-fds = fix-arr: as<by-val<pollfd>[]>: [(pollfd: stdout-pipe, POLLIN, 0), (pollfd: stderr-pipe, POLLIN, 0)]
+	poll-fds fix-arr by-val<pollfd> = [(pollfd: stdout-pipe, POLLIN, 0), (pollfd: stderr-pipe, POLLIN, 0)] fix-arr
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
 	# timeout == -1 means we block
@@ -137,7 +137,7 @@ body
 		assert: (a.any.to-nat64 wrap-add b.any.to-nat64) == n-pollfds-with-events.to-nat64
 		# Apparently stdout and stderr can hang up at slightly different times.
 		if !(a.hung-up && b.hung-up)
-			keep-POLLINg: stdout-pipe, stderr-pipe, stdout-builder, stderr-builder
+			keep-polling: stdout-pipe, stderr-pipe, stdout-builder, stderr-builder
 
 .handle-revents-result record
 	had-POLLIN bool

@@ -3,7 +3,7 @@ import
 	../bool: !, &&, bool, false, true
 	../compare: <, >, <=, compare
 	../fun: subscript
-	../misc: ->, arrow, as, data, from, to, void
+	../misc: ->, arrow, data, from, to, void
 	../opt: force, is-empty, none, opt, some
 	../ptr: ==, +, -, mut-ptr, set-deref
 	../range: ..
@@ -93,7 +93,8 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) data<k> compare<k>
 			root.pop-from-node some
 
 .pop-from-node<k, v> popped<k, v>(a node<k, v>)
-	rest = as<node<k, v>?>: if first ?= a.pairs first
+	# TODO: node<k, v>? should not be necessary
+	rest node<k, v>? = if first ?= a.pairs first
 		first node a.pairs.tail, a.next some
 	else
 		a next

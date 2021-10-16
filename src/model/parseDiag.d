@@ -8,18 +8,10 @@ import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym;
 
-enum EqLikeKind {
-	equals,
-	mutEquals,
-	optEquals,
-	then,
-}
-
 struct ParseDiag {
 	@safe @nogc pure nothrow:
-	struct CantPrecedeEqLike {
-		immutable EqLikeKind kind;
-	}
+	struct CantPrecedeMutEquals {}
+	struct CantPrecedeOptEquals {}
 	struct CircularImport {
 		immutable PathAndStorageKind from;
 		immutable PathAndStorageKind to;
@@ -39,6 +31,7 @@ struct ParseDiag {
 			purity,
 			quote,
 			space,
+			spaceEqualsSpace,
 			typeArgsEnd,
 		}
 		immutable Kind kind;
@@ -91,7 +84,8 @@ struct ParseDiag {
 
 	private:
 	enum Kind {
-		cantPrecedeEqLike,
+		cantPrecedeMutEquals,
+		cantPrecedeOptEquals,
 		circularImport,
 		expected,
 		fileDoesNotExist,
@@ -112,7 +106,8 @@ struct ParseDiag {
 	}
 	immutable Kind kind;
 	union {
-		immutable CantPrecedeEqLike cantPrecedeEqLike;
+		immutable CantPrecedeMutEquals cantPrecedeMutEquals;
+		immutable CantPrecedeOptEquals cantPrecedeOptEquals;
 		immutable Ptr!CircularImport circularImport;
 		immutable Expected expected;
 		immutable FileDoesNotExist fileDoesNotExist;
@@ -133,7 +128,8 @@ struct ParseDiag {
 	}
 
 	public:
-	immutable this(immutable CantPrecedeEqLike a) { kind = Kind.cantPrecedeEqLike; cantPrecedeEqLike = a; }
+	immutable this(immutable CantPrecedeMutEquals a) { kind = Kind.cantPrecedeMutEquals; cantPrecedeMutEquals = a; }
+	immutable this(immutable CantPrecedeOptEquals a) { kind = Kind.cantPrecedeOptEquals; cantPrecedeOptEquals = a; }
 	@trusted immutable this(immutable Ptr!CircularImport a) { kind = Kind.circularImport; circularImport = a; }
 	immutable this(immutable Expected a) { kind = Kind.expected; expected = a; }
 	immutable this(immutable FileDoesNotExist a) { kind = Kind.fileDoesNotExist; fileDoesNotExist = a; }
@@ -162,7 +158,8 @@ static assert(ParseDiag.sizeof <= 32);
 
 @trusted T matchParseDiag(T)(
 	ref immutable ParseDiag a,
-	scope T delegate(ref immutable ParseDiag.CantPrecedeEqLike) @safe @nogc pure nothrow cbCantPrecedeEqLike,
+	scope T delegate(ref immutable ParseDiag.CantPrecedeMutEquals) @safe @nogc pure nothrow cbCantPrecedeMutEquals,
+	scope T delegate(ref immutable ParseDiag.CantPrecedeOptEquals) @safe @nogc pure nothrow cbCantPrecedeOptEquals,
 	scope T delegate(ref immutable ParseDiag.CircularImport) @safe @nogc pure nothrow cbCircularImport,
 	scope T delegate(ref immutable ParseDiag.Expected) @safe @nogc pure nothrow cbExpected,
 	scope T delegate(ref immutable ParseDiag.FileDoesNotExist) @safe @nogc pure nothrow cbFileDoesNotExist,
@@ -188,8 +185,10 @@ static assert(ParseDiag.sizeof <= 32);
 	scope T delegate(ref immutable ParseDiag.WhenMustHaveElse) @safe @nogc pure nothrow cbWhenMustHaveElse,
 ) {
 	final switch (a.kind) {
-		case ParseDiag.Kind.cantPrecedeEqLike:
-			return cbCantPrecedeEqLike(a.cantPrecedeEqLike);
+		case ParseDiag.Kind.cantPrecedeMutEquals:
+			return cbCantPrecedeMutEquals(a.cantPrecedeMutEquals);
+		case ParseDiag.Kind.cantPrecedeOptEquals:
+			return cbCantPrecedeOptEquals(a.cantPrecedeOptEquals);
 		case ParseDiag.Kind.circularImport:
 			return cbCircularImport(a.circularImport);
 		case ParseDiag.Kind.expected:

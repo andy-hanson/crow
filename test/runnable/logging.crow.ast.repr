@@ -15,34 +15,29 @@ file-ast(
 			body: seq-ast(
 				call(infix, name-range(118, log), [], [info, literal("Logged once")])
 				let(
-					name-range(137, lh)
+					lh
 					get-log-handler
 					let(
-						name-range(159, doubler)
-						call(
-							prefix
-							name-range(169, as)
-							[inststruct(range(172, 183), name-range(172, log-handler))]
-							[
-								lambda(
-									[name-range(186, logged)]
-									seq-ast(
-										call(subscript, name-range(200, subscript), [], [lh, logged])
-										call(subscript, name-range(213, subscript), [], [lh, logged])))])
+						doubler
+						lambda(
+							[name-range(181, logged)]
+							seq-ast(
+								call(subscript, name-range(195, subscript), [], [lh, logged])
+								call(subscript, name-range(208, subscript), [], [lh, logged])))
 						seq-ast(
 							seq-ast(
 								call(
 									infix
-									name-range(231, with-log-handler)
+									name-range(226, with-log-handler)
 									[]
 									[
 										doubler
-										lambda([], call(infix, name-range(261, log), [], [warn, literal("Logged twice")]))])
+										lambda([], call(infix, name-range(256, log), [], [warn, literal("Logged twice")]))])
 								call(
 									infix
-									name-range(298, with-log-handler)
+									name-range(293, with-log-handler)
 									[]
 									[
-										paren(lambda([name-range(282, ignore)], void))
-										lambda([], call(infix, name-range(328, log), [], [warn, literal("Logged never")]))]))
-							call(infix, name-range(350, resolved), [], [literal(nat(0, false))]))))))])
+										paren(lambda([name-range(277, ignore)], void))
+										lambda([], call(infix, name-range(323, log), [], [warn, literal("Logged never")]))]))
+							call(infix, name-range(345, resolved), [], [literal(nat(0, false))]))))))])

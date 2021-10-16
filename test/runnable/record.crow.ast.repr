@@ -24,7 +24,7 @@ file-ast(
 				[param(range(43, 50), none, suffix(inststruct(range(45, 48), name-range(45, str)), arr))])
 			summon: true
 			body: let(
-				name-range(60, m)
+				m
 				call(prefix, name-range(64, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])
 				seq-ast(
 					seq-ast(

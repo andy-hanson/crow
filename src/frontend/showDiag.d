@@ -25,7 +25,7 @@ import model.model :
 	Type,
 	writeStructInst,
 	writeType;
-import model.parseDiag : EqLikeKind, matchParseDiag, ParseDiag;
+import model.parseDiag : matchParseDiag, ParseDiag;
 import util.collection.arr : empty, only, size;
 import util.collection.arrUtil : exists, map, sort;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -121,23 +121,11 @@ void writeParseDiag(Alloc, PathAlloc)(
 ) {
 	matchParseDiag!void(
 		d,
-		(ref immutable ParseDiag.CantPrecedeEqLike it) {
-			writeStatic(writer, "this expression can't appear in front of '");
-			final switch (it.kind) {
-				case EqLikeKind.equals:
-					writeStatic(writer, "=");
-					break;
-				case EqLikeKind.mutEquals:
-					writeStatic(writer, ":=");
-					break;
-				case EqLikeKind.optEquals:
-					writeStatic(writer, "?=");
-					break;
-				case EqLikeKind.then:
-					writeStatic(writer, "<-");
-					break;
-			}
-			writeChar(writer, '\'');
+		(ref immutable ParseDiag.CantPrecedeMutEquals) {
+			writeStatic(writer, "this expression can't appear in front of ':='");
+		},
+		(ref immutable ParseDiag.CantPrecedeOptEquals) {
+			writeStatic(writer, "only a plain identifier can appear in front of '?='");
 		},
 		(ref immutable ParseDiag.CircularImport it) {
 			writeStatic(writer, "circular import from ");
@@ -184,6 +172,9 @@ void writeParseDiag(Alloc, PathAlloc)(
 					break;
 				case ParseDiag.Expected.Kind.space:
 					writeStatic(writer, "expected a space");
+					break;
+				case ParseDiag.Expected.Kind.spaceEqualsSpace:
+					writeStatic(writer, "expected ' = '");
 					break;
 				case ParseDiag.Expected.Kind.typeArgsEnd:
 					writeStatic(writer, "expected '>'");

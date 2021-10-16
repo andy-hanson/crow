@@ -12,7 +12,7 @@ import
 		as-mut, as-ref, by-val, const-ptr, mut-ptr, null, ptr-cast, ref-of-val, set-deref,
 		set-subscript, size-of, to-nat64
 	./bootstrap:
-		as, gc-ctx-ptr, get-ctx, hard-assert, lock, nat8, nat64, none, opt, some, todo, void
+		gc-ctx-ptr, get-ctx, hard-assert, lock, nat8, nat64, none, opt, some, todo, void
 	./number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
 	./thread-utils: acquire!, lock-by-val, release!
 
@@ -132,7 +132,7 @@ gc by-val gc() noctx unsafe
 
 	drop: mark.as-any-mut-ptr memset 0, size-words
 
-	res = as<by-val gc>: gc: lock-by-val, 0, none, false, size-words, mark, mark, mark-end, data, data, data-end
+	res by-val gc = lock-by-val gc 0, none, false, size-words, mark, mark, mark-end, data, data, data-end
 	res.ref-of-val validate-gc
 	res
 
@@ -140,7 +140,7 @@ run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 	hard-assert: gc needs-gc
 	gc.gc-count := gc.gc-count wrap-add 1
 	drop: gc.mark-begin.as-any-mut-ptr memset 0, gc.size-words
-	mark-ctx = as<by-val<mark-ctx>>: mark-ctx: gc.size-words, gc.mark-begin, gc.data-begin
+	mark-ctx by-val mark-ctx = gc.size-words mark-ctx gc.mark-begin, gc.data-begin
 	mark-ctx.ref-of-val mark-visit gc-root
 	prev-mark-cur = gc.mark-cur
 	gc.mark-cur := gc.mark-begin

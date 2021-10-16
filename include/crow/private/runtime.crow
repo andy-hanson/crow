@@ -5,7 +5,7 @@ import
 	../exception: exception, to-str
 	../io/print: print-err, print-err-no-newline
 	../io/time-low-level: get-monotime-nsec, timestamp
-	../misc: as, void
+	../misc: void
 	../opt: none, opt, some
 	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val
 	./alloc: gc, get-gc-ctx, needs-gc, return-gc-ctx, run-garbage-collection
@@ -93,7 +93,7 @@ new-exclusion exclusion(v island) noctx trusted
 
 island by-val island(gctx global-ctx, id island-id, max-threads nat64) summon noctx unsafe
 	q = max-threads task-queue
-	gc-root = as<by-val<island-gc-root>>: island-gc-root: q, (exn => exn default-exception-handler), log =>
+	gc-root by-val island-gc-root = q island-gc-root (exn => exn default-exception-handler), log =>
 		log default-log-handler
 	island: gctx, id, gc, gc-root, lock-by-val, 0, thread-safe-counter
 
@@ -127,7 +127,7 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 	ectx-ptr = ectx.ref-of-val as-any-mut-ptr
 	log-ctx-ptr = log-ctx.ref-of-val as-any-mut-ptr
 	perf-ptr = perf-ctx.ref-of-val as-any-mut-ptr
-	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: thread-id, print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
+	tls by-val thread-local-stuff = thread-id thread-local-stuff print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
 	gctx thread-function-recur tls.ref-of-val
 
 .thread-function-recur void(gctx global-ctx, tls thread-local-stuff) noctx unsafe summon
@@ -224,7 +224,8 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 	# This looks for the first island with some work to do.
 	# (That is unfair as island 0 will tend to get the most attention.)
 	cur-time = get-monotime-nsec
-	res = as<choose-task-result>: match gctx.islands choose-task-recur 0, cur-time, false, none
+	# TODO: should not need type annotation
+	res choose-task-result = match gctx.islands choose-task-recur 0, cur-time, false, none
 	as chosen-task c
 		c
 	as no-chosen-task n
@@ -289,7 +290,8 @@ body
 	island.tasks-lock.ref-of-val acquire!
 
 	# TODO: ref-of-val should be unnecessary for property access ?
-	res = as<choose-task-in-island-result>: if island.gc.ref-of-val.needs-gc
+	# TODO: should not need type annotation
+	res choose-task-in-island-result = if island.gc.ref-of-val.needs-gc
 		if island.n-threads-running == 0
 			do-a-gc
 		else

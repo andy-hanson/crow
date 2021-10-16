@@ -42,19 +42,19 @@ file-ast(
 			summon: true
 			unsafe: true
 			body: let(
-				name-range(243, gc)
+				gc
 				get-gc
 				seq-ast(
 					call(set-dot, name-range(288, set-hard-limit), [], [gc, literal(nat(512, false))])
 					let(
-						name-range(344, a)
+						a
 						call(
 							prefix
 							name-range(348, r)
 							[]
 							[literal(nat(1, false)), literal(nat(2, false)), literal(nat(3, false))])
 						let(
-							name-range(360, b)
+							b
 							call(
 								prefix
 								name-range(364, r)

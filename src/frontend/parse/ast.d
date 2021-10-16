@@ -146,21 +146,26 @@ immutable(RangeWithinFile) range(ref immutable TypeAst.Dict a) {
 
 immutable(RangeWithinFile) range(ref immutable TypeAst.Suffix a) {
 	immutable RangeWithinFile leftRange = range(a.left);
-	immutable uint suffixLength = () {
-		final switch (a.kind) {
-			case TypeAst.Suffix.Kind.arr:
-				return cast(uint) "[]".length;
-			case TypeAst.Suffix.Kind.arrMut:
-				return cast(uint) " mut[]".length;
-			case TypeAst.Suffix.Kind.opt:
-				return cast(uint) "?".length;
-			case TypeAst.Suffix.Kind.ptr:
-				return cast(uint) "*".length;
-			case TypeAst.Suffix.Kind.ptrMut:
-				return cast(uint) " mut*".length;
-		}
-	}();
-	return immutable RangeWithinFile(leftRange.start, leftRange.end + suffixLength);
+	return immutable RangeWithinFile(leftRange.start, leftRange.end + suffixLength(a.kind));
+}
+immutable(RangeWithinFile) suffixRange(ref immutable TypeAst.Suffix a) {
+	immutable uint leftEnd = range(a.left).end;
+	return immutable RangeWithinFile(leftEnd, leftEnd + suffixLength(a.kind));
+}
+
+immutable(uint) suffixLength(immutable TypeAst.Suffix.Kind a) {
+	final switch (a) {
+		case TypeAst.Suffix.Kind.arr:
+			return cast(uint) "[]".length;
+		case TypeAst.Suffix.Kind.arrMut:
+			return cast(uint) " mut[]".length;
+		case TypeAst.Suffix.Kind.opt:
+			return cast(uint) "?".length;
+		case TypeAst.Suffix.Kind.ptr:
+			return cast(uint) "*".length;
+		case TypeAst.Suffix.Kind.ptrMut:
+			return cast(uint) " mut*".length;
+	}
 }
 
 immutable(Sym) symForTypeAstDict(immutable TypeAst.Dict.Kind a) {
@@ -293,7 +298,8 @@ struct LambdaAst {
 }
 
 struct LetAst {
-	immutable NameAndRange name;
+	immutable Sym name;
+	immutable OptPtr!TypeAst type;
 	immutable Ptr!ExprAst initializer;
 	immutable Ptr!ExprAst then;
 }
@@ -1286,7 +1292,7 @@ immutable(Repr) reprExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKin
 				reprExprAst(alloc, it.body_)]),
 		(ref immutable LetAst a) =>
 			reprRecord(alloc, "let", [
-				reprNameAndRange(alloc, a.name),
+				reprSym(a.name),
 				reprExprAst(alloc, a.initializer),
 				reprExprAst(alloc, a.then)]),
 		(ref immutable LiteralAst a) =>

@@ -22,7 +22,7 @@ main fut nat(args str[]) unsafe summon
 	else
 		port = args[0]
 		db = open-real-db
-		handler = as<http-handler>: req =>
+		handler http-handler = req =>
 			req handle-request db resolved
 		server = port start-http-server handler
 		# TODO: do this after we've stopped the server

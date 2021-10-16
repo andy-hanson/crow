@@ -42,6 +42,7 @@ import frontend.parse.ast :
 	SpecUseAst,
 	StructAliasAst,
 	StructDeclAst,
+	suffixRange,
 	ThenAst,
 	ThenVoidAst,
 	TypeAst;
@@ -185,7 +186,7 @@ void addTypeTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		},
 		(ref immutable TypeAst.Suffix it) {
 			addTypeTokens(alloc, tokens, it.left.deref());
-			add(alloc, tokens, immutable Token(Token.Kind.keyword, range(it)));
+			add(alloc, tokens, immutable Token(Token.Kind.keyword, suffixRange(it)));
 		});
 }
 
@@ -395,7 +396,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			addExprTokens(alloc, tokens, it.body_);
 		},
 		(ref immutable LetAst it) {
-			add(alloc, tokens, localDefOfNameAndRange(it.name));
+			add(alloc, tokens, localDefOfNameAndRange(immutable NameAndRange(a.range.start, it.name)));
 			addExprTokens(alloc, tokens, it.initializer);
 			addExprTokens(alloc, tokens, it.then);
 		},
@@ -441,7 +442,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		});
 }
 
-immutable(Token) localDefOfNameAndRange(ref immutable NameAndRange a) {
+immutable(Token) localDefOfNameAndRange(immutable NameAndRange a) {
 	return immutable Token(Token.Kind.localDef, rangeOfNameAndRange(a));
 }
 

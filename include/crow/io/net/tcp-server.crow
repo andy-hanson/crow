@@ -20,7 +20,7 @@ import
 	../../exception: assert, message
 	../../extra-types: fd-t
 	../../fut: fut, handle-exceptions, then-void, fut-catch, resolved, subscript
-	../../misc: as, drop, void
+	../../misc: drop, void
 	../../number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../../opt: value
 	../../private/bootstrap: todo
@@ -53,7 +53,7 @@ Once the function returns, it is already serving requests.
 ###
 start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 	port-fd = port bind-to-port
-	max-connections = 1000 as<int32>
+	max-connections int32 = 1000
 	check-posix-error: port-fd listen max-connections
 	set-non-blocking: port-fd
 
@@ -62,7 +62,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		perror: "epoll-create1 failed\0".chars.begin-ptr
 		todo
 	else
-		event-flags = as<nat32>: EPOLLIN | EPOLLET
+		event-flags = EPOLLIN | EPOLLET
 		accept-event = epoll_event: event-flags, port-fd.to-int64.to-nat64
 		ctl-err = epoll-fd epoll_ctl EPOLL_CTL_ADD, port-fd, accept-event.ptr-to
 		if ctl-err != 0
@@ -115,7 +115,7 @@ close-client void(client-fd fd-t) unsafe summon
 		void resolved
 	else
 		event = epoll_event: 0, 0
-		timeout = 0 as<c-int>
+		timeout c-int = 0
 		num-events = state.epoll-fd epoll_wait event.ptr-to, 1, timeout
 		if num-events < 0
 			print: "error in epoll_wait"
@@ -140,7 +140,8 @@ close-client void(client-fd fd-t) unsafe summon
 .accept-clients void(listen-fd fd-t, epoll-fd fd-t, on-accepted-client ref void(fd-t)) unsafe summon
 	clientaddr = sockaddr_in
 	clientaddr-as-sockaddr = clientaddr.ptr-to ptr-cast-to-extern<sockaddr, sockaddr_in>
-	addrlen = as<by-val<cell<socklen_t>>>: cell<socklen_t>: size-of<sockaddr_in> to-nat32
+	# TODO: should be able to write `size-of<sockaddr_in>.to-nat32`
+	addrlen by-val cell socklen_t = (size-of<sockaddr_in>).to-nat32 cell
 	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val
 	if client-fd < 0
 		e = errno

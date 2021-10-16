@@ -6,7 +6,7 @@ import
 	../exception: assert, unreachable
 	../fun: subscript
 	../hash: hash, hash-mix
-	../misc: ->, arrow, as, data, from, to, void
+	../misc: ->, arrow, data, from, to, void
 	../opt: ==, force, is-empty, none, opt, some
 	../ptr: ==, +, set-deref
 	../range: ..
@@ -314,16 +314,16 @@ spec
 body
 	if index ?= a.pairs find-index it => it.from == key
 		old-value = a.pairs[index] to
-		new-node = match f[old-value some]
+		new-node node<k, v>? = match f[old-value some]
 		as no-change
-			none as<node<k, v>?>
+			none
 		as remove
 			some: leaf-node: a.pairs remove-at index
 		as insert ins
 			some: leaf-node: a.pairs update index, key -> ins.value
 		get-or-update-result: new-node, old-value.some
 	else
-		new-node = as<node<k, v>?>: match f[none]
+		new-node node<k, v>? = match f[none]
 		as no-change
 			none
 		as remove

@@ -36,7 +36,7 @@ file-ast(
 				[param(range(123, 130), none, suffix(inststruct(range(125, 128), name-range(125, str)), arr))])
 			summon: true
 			body: let(
-				name-range(140, r)
+				r
 				call(
 					prefix
 					name-range(144, rect)

@@ -18,7 +18,7 @@ import
 	../io/time-low-level: timestamp, to-timespec
 	../ptr: ==, any-mut-ptr, by-val, mut-ptr, null, ptr-to, ref-of-val
 	./bootstrap:
-		as, atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat64, opt, todo, value, void,
+		atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat64, opt, todo, value, void,
 		zeroed
 	./number-low-level: ==, wrap-add, wrap-sub
 
@@ -89,7 +89,7 @@ condition record mut
 
 # Unsafe because you must remember to 'destroy-condition'
 create-condition by-val condition() noctx unsafe
-	res = as<by-val condition>: condition: zeroed, zeroed, zeroed, zeroed, 0
+	res by-val condition = zeroed condition zeroed, zeroed, zeroed, 0
 	hard-assert-posix-error: res.ref-of-val.mutex-attr.ref-of-val pthread_mutexattr_init
 	hard-assert-posix-error: res.ref-of-val.mutex.ref-of-val pthread_mutex_init res.ref-of-val.mutex-attr.ref-of-val
 	hard-assert-posix-error: res.ref-of-val.cond-attr.ref-of-val pthread_condattr_init
@@ -187,7 +187,7 @@ body
 			todo
 
 join-one-thread void(tid pthread_t) noctx unsafe summon
-	thread-return = as<by-val<cell<any-mut-ptr>>>: cell: null
+	thread-return by-val cell any-mut-ptr = null cell
 	err = tid pthread_join thread-return.ref-of-val
 	if err != 0
 		if err == EINVAL

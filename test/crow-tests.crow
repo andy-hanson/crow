@@ -72,9 +72,9 @@ body
 	res = path-to-crow spawn-and-wait-result ["print", print-kind, path], env
 	output-path = "{path}.{print-kind}.repr"
 	# NOTE: compiler may have both stderr and stdout!
-	output-failures = if res.stdout.is-empty && res.exit-code != 0
+	output-failures failure[] = if res.stdout.is-empty && res.exit-code != 0
 		# Just have a file for the err
-		[] as<failure[]>
+		[]
 	else
 		path handle-output output-path, res.stdout, overwrite-output
 
@@ -106,8 +106,8 @@ body
 		["run", path, "--out", "{path}.c"]
 	res = path-to-crow spawn-and-wait-result args, env
 	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output
-	stderr-failures = if res.exit-code == 0 && res.stderr == ""
-		[] as<failure[]>
+	stderr-failures failure[] = if res.exit-code == 0 && res.stderr == ""
+		[]
 	else
 		path handle-output ("{path}.stderr"), res.stderr, overwrite-output
 	stdout-failures ~ stderr-failures

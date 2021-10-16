@@ -6,7 +6,7 @@ import
 		noctx-must-remove-unordered!, push-capacity-must-be-sufficient!
 	../compare: !=, <=
 	../io/time-low-level: timestamp
-	../misc: as, void
+	../misc: void
 	../opt: is-empty, none, opt, some
 	../ptr: by-val, ref-of-val
 	./bootstrap: exclusion, hard-assert
@@ -57,7 +57,8 @@ pop-task-result union mut
 # Caller should call 'return-task' after running the task
 pop-task! pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 	exclusions = a.currently-running-exclusions ref-of-val
-	res = as<pop-task-result>: if head ?= a.head
+	# TODO: should not need type annotation
+	res pop-task-result = if head ?= a.head
 		task = head task
 		if task.time <= cur-time
 			if task.exclusion in exclusions

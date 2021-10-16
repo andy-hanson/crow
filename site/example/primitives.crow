@@ -5,7 +5,7 @@ main fut nat(_ str[]) summon
 	my-nat = 3
 	print: my-nat / 2 to-str
 	my-int = +3
-	also-an-int = 2 as<int>
+	also-an-int int = 2
 	print: my-int / also-an-int to-str
 	my-float = 3.0
 	print: my-float / 2.0 to-str

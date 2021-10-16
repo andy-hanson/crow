@@ -25,7 +25,8 @@ import frontend.check.inferringType :
 	shallowInstantiateType,
 	tryGetDeeplyInstantiatedType,
 	tryGetDeeplyInstantiatedTypeFor,
-	tryGetInferred;
+	tryGetInferred,
+	typeFromOptAst;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, makeArrayType;
 import frontend.check.typeFromAst : makeFutType;
 import frontend.parse.ast :
@@ -225,14 +226,15 @@ immutable(ExprAndType) checkAndInfer(Alloc)(
 	return immutable ExprAndType(expr, inferred(expected));
 }
 
-immutable(Expr) checkAndExpect(Alloc)(
+immutable(ExprAndType) checkAndExpect(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable ExprAst ast,
 	immutable Opt!Type expected,
 ) {
 	Expected et = Expected(expected);
-	return checkExpr(alloc, ctx, ast, et);
+	immutable Expr expr = checkExpr(alloc, ctx, ast, et);
+	return immutable ExprAndType(expr, inferred(et));
 }
 
 immutable(Expr) checkAndExpect(Alloc)(
@@ -241,7 +243,7 @@ immutable(Expr) checkAndExpect(Alloc)(
 	ref immutable ExprAst ast,
 	immutable Type expected,
 ) {
-	return checkAndExpect(alloc, ctx, ast, some(expected));
+	return checkAndExpect(alloc, ctx, ast, some(expected)).expr;
 }
 
 immutable(Expr) checkAndExpect(Alloc)(
@@ -965,11 +967,11 @@ immutable(CheckedExpr) checkLet(Alloc)(
 	ref immutable LetAst ast,
 	ref Expected expected,
 ) {
-	immutable ExprAndType init = checkAndInfer(alloc, ctx, ast.initializer);
+	immutable ExprAndType init = checkAndExpect(alloc, ctx, ast.initializer, typeFromOptAst(alloc, ctx, ast.type));
 	immutable Ptr!Local local = nu!Local(
 		alloc,
-		rangeInFile2(ctx, rangeOfNameAndRange(ast.name)),
-		ast.name.name,
+		rangeInFile2(ctx, rangeOfNameAndRange(immutable NameAndRange(range.start, ast.name))),
+		ast.name,
 		init.type);
 	immutable Ptr!Expr then = allocExpr(alloc, checkWithLocal(alloc, ctx, local, ast.then, expected));
 	return CheckedExpr(immutable Expr(range, immutable Expr.Let(local, allocExpr(alloc, init.expr), then)));
