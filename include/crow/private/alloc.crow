@@ -21,7 +21,7 @@ mem-copy!<a> void(dest a mut*, src a*, size nat64) unsafe noctx
 
 set-zero-range<a> void(begin a mut*, size nat64) noctx unsafe
 	# TODO: wrap-mul is unsafe
-	drop: begin.as-any-mut-ptr memset: 0, size wrap-mul size-of<a>
+	drop: begin.as-any-mut-ptr memset 0, (size wrap-mul size-of<a>)
 
 mark-ctx record mut
 	memory-size-words nat64
@@ -294,7 +294,7 @@ unmanaged-free<a> void(p a mut*) noctx unsafe
 	p.as-any-mut-ptr free
 
 copy-data-from!<a> void(to a mut*, from a*, len nat64) unsafe
-	drop: to.as-any-mut-ptr memcpy: from.as-any-const-ptr, len wrap-mul size-of<a>
+	drop: to.as-any-mut-ptr memcpy from.as-any-const-ptr, (len wrap-mul size-of<a>)
 
 fill-ptr-range<a> void(begin a mut*, size nat64, f act a(nat64)) unsafe
 	begin fill-ptr-range-recur 0, size, f

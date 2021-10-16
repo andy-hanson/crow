@@ -2,13 +2,12 @@ no-std
 import
 	../../bool: !, bool
 	../../compare: ==, !=, <, >=, compare, comparison, equal, less, greater
-	../../exception: assert, unreachable
 	../../fun: subscript
 	../../misc: arrow, from, to, void
 	../../opt: none, opt, some
 	../../ptr: ==, +, -, *, as-const, as-mut, const-ptr, mut-ptr, null, set-deref
 	../../test: is
-	../../private/bootstrap: nat64
+	../../private/bootstrap: hard-assert, hard-unreachable, nat64
 	../../private/number-low-level: ==, <=>, unsafe-div, wrap-add
 	../arr: ==, arr, arr-from-begin-end, begin-ptr, end-ptr
 	../fix-arr: begin-ptr, cast-immutable, copy-from!, end-ptr, fix-arr, fix-arr-from-begin-end
@@ -82,7 +81,7 @@ binary-search-insert-ptr<a> a*(a a[], value a) unsafe compare<a>
 	a.begin-ptr binary-search-insert-ptr-recur a.end-ptr, value
 
 test
-	a = fix-arr: [1, 3, 5, 7]
+	a = [1, 3, 5, 7] fix-arr
 	(a binary-search-insert-ptr x => 0 <=> x) - a.begin-ptr is 0
 	(a binary-search-insert-ptr x => 3 <=> x) - a.begin-ptr is 1
 	(a binary-search-insert-ptr x => 4 <=> x) - a.begin-ptr is 2
@@ -147,12 +146,12 @@ unique-comparison union
 	less
 	greater
 
-assert-comparison-not-equal unique-comparison(a comparison)
+hard-assert-comparison-not-equal unique-comparison(a comparison) unsafe
 	match a
 	as less
 		less
 	as equal
-		unreachable
+		hard-unreachable
 	as greater
 		greater
 
@@ -160,10 +159,10 @@ assert-comparison-not-equal unique-comparison(a comparison)
 merge-no-duplicates!<a> void(a a mut[], b a mut[], compare act unique-comparison(a, a)) trusted
 	if a.size < b.size
 		a swap! b
-	assert: a.size >= b.size
+	hard-assert: a.size >= b.size
 	if !b.is-empty
 		a-old-size = a size
-		a unsafe-set-size!: a-old-size wrap-add b.size
+		a unsafe-set-size! (a-old-size wrap-add b.size)
 		a-read = a.begin-ptr.as-const + a-old-size - 1
 		a-write = a.end-ptr - 1
 		a.begin-ptr merge-reverse-recur! a-read, a-write, b.begin-ptr.as-const, b.end-ptr.as-const - 1, compare
@@ -198,11 +197,11 @@ body
 		else
 			a-begin merge-reverse-recur! a-read - 1, a-write - 1, b-begin, b-read, compare
 
-.test-one void(a nat64[], b nat64[], expected nat64[])
-	a-mut = mut-arr: a
-	b-mut = mut-arr: b
+.test-one void(a nat64[], b nat64[], expected nat64[]) unsafe
+	a-mut = a mut-arr
+	b-mut = b mut-arr
 	a-mut merge-no-duplicates! b-mut, (x, y) =>
-		x <=> y assert-comparison-not-equal
+		x <=> y hard-assert-comparison-not-equal
 	a-mut.arr is expected
 
 test

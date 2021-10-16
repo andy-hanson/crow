@@ -182,7 +182,7 @@ try-remove index-set?(a index-set, index nat64) trusted
 		if removed ?= a.root try-remove index, a.capacity
 			removed simplify-after-remove-or-filter a.capacity some
 .try-remove node?(a node, index nat64, n nat64) unsafe
-	assert: index < n
+	hard-assert: index < n
 	match a
 	as inner-node i
 		assert: n > bits-in-leaf-node
@@ -333,7 +333,7 @@ count-greater-or-equal nat64(a index-set, n nat64)
 	a count-range n, max-nat64
 
 .count-range-in-nat64 nat64(a nat64, lo-bit-index nat64, hi-bit-index nat64)
-	a >> lo-bit-index count-less-in-nat64: hi-bit-index wrap-sub lo-bit-index
+	a >> lo-bit-index count-less-in-nat64 (hi-bit-index wrap-sub lo-bit-index)
 
 .count-less-in-nat64 nat64(a nat64, bit-index nat64)
 	a << (64 wrap-sub bit-index) count-ones
@@ -455,7 +455,7 @@ map-to-arr<a> a[](a index-set, f act a(nat64)) trusted
 	end = res.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1
-	assert: end == res.end-ptr
+	hard-assert: end == res.end-ptr
 	res cast-immutable
 
 .dbg str(a index-set)

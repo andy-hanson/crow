@@ -156,7 +156,7 @@ map-with-coords!<a> void(a mut-grid a, f act a(a, coord)) trusted
 .next-coord coord(a coord, width nat64)
 	new-x = a.x wrap-add 1
 	if new-x == width
-		0 coord: a.y wrap-add 1
+		0 coord (a.y wrap-add 1)
 	else
 		new-x coord a.y
 

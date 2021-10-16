@@ -19,13 +19,13 @@ export
 perf-reset void(names str[]) summon
 	perf = get-perf-ctx
 	perf.measure-names := names
-	perf.measure-values := names.size fill-fix-arr: measure-value: 0, 0
+	perf.measure-values := names.size fill-fix-arr (0 measure-value 0)
 
 perf-get-measure measure-value(name str) summon
 	perf = get-perf-ctx
 	index = perf.measure-names find-index name
 	if index == perf.measure-names.size
-		measure-value: 0, 0
+		0 measure-value 0
 	else
 		perf.measure-values[index]
 
@@ -38,7 +38,7 @@ perf-measure void(start perf-time, name str)
 	if index != perf.measure-names.size
 		ns = perf-now.ns wrap-sub start.ns
 		old = perf.measure-values[index]
-		perf.measure-values[index] := measure-value: (old.count wrap-add 1), (old.total-ns wrap-add ns)
+		perf.measure-values[index] := (old.count wrap-add 1) measure-value (old.total-ns wrap-add ns)
 
 .get-perf-ctx perf-ctx() trusted
 	get-ctx.thread-local-stuff.perf-ctx-ptr as-ref<perf-ctx>

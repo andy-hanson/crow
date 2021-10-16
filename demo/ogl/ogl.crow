@@ -31,12 +31,12 @@ import
 	./texture: load-texture, free-texture
 
 main fut nat(_ str[]) summon trusted
-	"SDL_INIT_VIDEO" handle-sdl-error: SDL_INIT_VIDEO SDL_Init
+	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 
-	"set GL ES" handle-sdl-error: SDL_GL_CONTEXT_PROFILE_MASK SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_ES.to-int32
-	"set major version" handle-sdl-error: SDL_GL_CONTEXT_MAJOR_VERSION SDL_GL_SetAttribute 3
-	"set minor version" handle-sdl-error: SDL_GL_CONTEXT_MINOR_VERSION SDL_GL_SetAttribute 0
-	"set double buffer" handle-sdl-error: SDL_GL_DOUBLEBUFFER SDL_GL_SetAttribute 1
+	SDL_GL_CONTEXT_PROFILE_MASK SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_ES.to-int32 handle-sdl-error "set GL ES"
+	SDL_GL_CONTEXT_MAJOR_VERSION SDL_GL_SetAttribute 3 handle-sdl-error "set major version"
+	SDL_GL_CONTEXT_MINOR_VERSION SDL_GL_SetAttribute 0 handle-sdl-error "set minor version"
+	SDL_GL_DOUBLEBUFFER SDL_GL_SetAttribute 1 handle-sdl-error "set double buffer"
 
 	wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
 	window = "my game".to-c-str SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, wflags
@@ -138,12 +138,7 @@ blue color-32()
 
 		v0 = renderer.vertices[0]
 		renderer.vertices[0] := (v0.pos + (0.003 vec-2-32 0)) vertex v0.color, v0.tex-coord
-
 		renderer draw-it
-
-		#"SDL_RenderClear" handle-sdl-error: renderer SDL_RenderClear
-		#"SDL_RenderCopy" handle-sdl-error: renderer SDL_RenderCopy texture, null, null
-		#renderer SDL_RenderPresent
 		continue
 
 
@@ -181,12 +176,12 @@ blue color-32()
 		else
 			look-for-quit-event
 
-.handle-sdl-error void(operation str, err c-int) summon trusted
+.handle-sdl-error void(err c-int, description str) summon trusted
 	if err != 0
-		operation fail-sdl-error
+		description fail-sdl-error
 
-.fail-sdl-error void(operation str) summon trusted
-	throw: "sdl error in {operation}: {SDL_GetError}"
+.fail-sdl-error void(description str) summon trusted
+	throw: "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit
 
 continue record

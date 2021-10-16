@@ -61,7 +61,7 @@ acquire! void(a lock) noctx unsafe
 			todo
 		else
 			yield-thread
-			a acquire-recur!: n-tries wrap-add 1
+			a acquire-recur! (n-tries wrap-add 1)
 
 yield-thread void() noctx unsafe
 	err = sched_yield

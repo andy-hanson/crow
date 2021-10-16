@@ -84,7 +84,7 @@ spec
 	hash-mix<a>
 body
 	if a.size <= 4
-		frozen-set: a.cast-immutable, []
+		a.cast-immutable frozen-set []
 	else
 		n-buckets = a.size unsafe-div 2
 		bucket-counts = a get-bucket-counts n-buckets
@@ -97,7 +97,7 @@ body
 	res = n-buckets fill-fix-arr 0
 	a each value =>
 		bucket-index = value get-bucket-index n-buckets
-		res unsafe-set-at!: bucket-index, res unsafe-at bucket-index wrap-add 1
+		res unsafe-set-at! bucket-index, (res unsafe-at bucket-index wrap-add 1)
 	res
 
 .move-values-to-buckets-recur!<a> void
@@ -166,7 +166,7 @@ test
 	a verify [], []
 	0 in a is false
 
-	b = frozen-set: [3, 1, 5, 2]
+	b = [3, 1, 5, 2] frozen-set
 	b verify [3, 1, 5, 2], []
 	0 in b is false
 	1 in b is true
@@ -176,7 +176,7 @@ test
 	5 in b is true
 	6 in b is false
 
-	c = frozen-set: [3, 1, 5, 2, 8]
+	c = [3, 1, 5, 2, 8] frozen-set
 	c verify [2, 8, 3, 5, 1], [0, 2]
 	0 in c is false
 	1 in c is true

@@ -43,7 +43,7 @@ get-environ environ() summon trusted
 convert-environ c-str*(environ environ) unsafe
 	res = mut-arr<c-str>
 	environ each (key, value) =>
-		res ~=: key ~ "=" ~ value to-c-str
+		res ~= key ~ "=" ~ value to-c-str
 	# TODO: 'as' should be unnecessary
 	res ~= null<char> as<c-str>
 	res.move-to-arr! begin-ptr

@@ -173,7 +173,7 @@ close-client void(client-fd fd-t) unsafe summon
 		perror: "fcntl() error\0".chars.begin-ptr
 		todo
 	else
-		err = fd fcntl: F_SETFL, flags | O_NONBLOCK
+		err = fd fcntl F_SETFL, flags | O_NONBLOCK
 		if err < 0
 			perror: "fcntl() error\0".chars.begin-ptr
 			todo

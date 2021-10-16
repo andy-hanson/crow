@@ -480,10 +480,7 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterName(Alloc, SymAlloc)(
 	if (precedence > argCtx.allowedCalls.minPrecedenceExclusive) {
 		//TODO: don't do this for operators
 		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
-		immutable bool tookColon = tryTake(lexer, ':');
-		immutable ArgCtx innerCtx = tookColon
-			? immutable ArgCtx(argCtx.allowedBlock, allowAllCalls())
-			: requirePrecedenceGt(argCtx, precedence);
+		immutable ArgCtx innerCtx = requirePrecedenceGt(argCtx, precedence);
 		immutable ArgsAndMaybeNameOrDedent args = isSymOperator(funName.name)
 			? parseArgsForOperator(alloc, lexer, innerCtx)
 			: parseArgs(alloc, lexer, innerCtx);

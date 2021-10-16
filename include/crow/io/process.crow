@@ -160,7 +160,7 @@ body
 	read-max = 1024
 	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	old-size = buffer.size
-	buffer unsafe-set-size!: old-size wrap-add read-max
+	buffer unsafe-set-size! (old-size wrap-add read-max)
 	add-data-to = buffer.begin-ptr + old-size
 	n-bytes-read = fd read add-data-to.as-any-mut-ptr, read-max
 	if n-bytes-read == -1

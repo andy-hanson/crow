@@ -139,6 +139,6 @@ insert-task! void(a task-queue, inserted task-queue-node) noctx unsafe
 
 .size-recur nat64(node task-queue-node?, acc nat64) noctx
 	if n ?= node
-		n.next size-recur: acc wrap-add 1
+		n.next size-recur (acc wrap-add 1)
 	else
 		acc

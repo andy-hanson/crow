@@ -19,7 +19,7 @@ import
 		map-to-arr, mut-arr, remove-at!, set-subscript, size, subscript
 	./sort: sort-by!
 	./private/sort-utils:
-		assert-comparison-not-equal, binary-search-exact-ptr, binary-search-insert-ptr,
+		binary-search-exact-ptr, binary-search-insert-ptr, hard-assert-comparison-not-equal,
 		merge-no-duplicates!
 
 ###
@@ -217,13 +217,12 @@ remove-key!<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted data<k> compare<k>
 	else
 		mid
 
-
-.compact!<k, v> void(a mut-sorted-dict<k, v>) data<k> compare<k>
+.compact!<k, v> void(a mut-sorted-dict<k, v>) trusted data<k> compare<k>
 	if next ?= a next
 		next compact!
 		a.pairs filter! pair => !pair.to.is-empty
 		a.pairs merge-no-duplicates! next.pairs, (x, y) =>
-			x.from <=> y.from assert-comparison-not-equal
+			x.from <=> y.from hard-assert-comparison-not-equal
 		a.next := none
 		a.node-size := a.pairs.size
 

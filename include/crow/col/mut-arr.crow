@@ -70,7 +70,7 @@ fill-mut-arr<a> a mut[](size nat64, value a)
 
 # New empty `mut-arr`.
 mut-arr<a> a mut[]()
-	mut-arr: fix-arr, 0
+	fix-arr mut-arr 0
 
 ###
 Copies an `arr` to a `mut-arr`.
@@ -246,7 +246,7 @@ pop-n!<a> void(a a mut[], n nat64) trusted
 	values each x => a ~= x
 
 .incr-capacity!<a> void(a a mut[]) unsafe
-	a ensure-capacity: a.size + 1 round-up-to-power-of-two
+	a ensure-capacity (a.size + 1 round-up-to-power-of-two)
 
 push-capacity-must-be-sufficient!<a> void(a a mut[], value a) noctx unsafe
 	hard-assert: a.size < a.capacity

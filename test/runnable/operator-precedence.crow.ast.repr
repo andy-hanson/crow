@@ -26,34 +26,34 @@ file-ast(
 								[
 									call(
 										infix
-										name-range(77, *)
+										name-range(81, +)
 										[]
 										[
-											literal(nat(1, false))
 											call(
 												infix
-												name-range(82, +)
+												name-range(77, *)
 												[]
-												[literal(nat(2, false)), literal(nat(3, false))])])])])
+												[literal(nat(1, false)), literal(nat(2, false))])
+											literal(nat(3, false))])])])
 					call(
 						prefix
-						name-range(87, print)
+						name-range(86, print)
 						[]
 						[
 							call(
 								infix
-								name-range(104, to-str)
+								name-range(103, to-str)
 								[]
 								[
 									call(
 										infix
-										name-range(96, +)
+										name-range(95, +)
 										[]
 										[
 											literal(nat(1, false))
 											call(
 												infix
-												name-range(100, *)
+												name-range(99, *)
 												[]
 												[literal(nat(2, false)), literal(nat(3, false))])])])]))
-				call(infix, name-range(114, resolved), [], [literal(nat(0, false))])))])
+				call(infix, name-range(113, resolved), [], [literal(nat(0, false))])))])

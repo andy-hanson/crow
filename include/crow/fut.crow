@@ -110,7 +110,7 @@ join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
 	if e ?= exception
 		res reject! e
 	else
-		res resolve!: a map (it => it must-be-resolved)
+		res resolve! (a map (it => it must-be-resolved))
 
 .must-be-resolved<a> a(a fut a) unsafe
 	match a state

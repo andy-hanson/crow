@@ -15,10 +15,10 @@ module(
 								fun-inst(name: to-str)
 								[
 									call(
-										fun-inst(name: *)
+										fun-inst(name: +)
 										[
-											literal(nat64(), 1)
-											call(fun-inst(name: +), [literal(nat64(), 2), literal(nat64(), 3)])])])])
+											call(fun-inst(name: *), [literal(nat64(), 1), literal(nat64(), 2)])
+											literal(nat64(), 3)])])])
 					call(
 						fun-inst(name: print)
 						[

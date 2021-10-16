@@ -116,7 +116,7 @@ subscript<k, v> v?(a v[k], key k) data<k> compare<k> hash-mix<k>
 	as inner-node i
 		which = remaining-hash low-bits
 		if which < i.children.size
-			i.children[which] subscript-recur: key, remaining-hash unsafe-bit-shift-right inner-node-n-bits
+			i.children[which] subscript-recur key, (remaining-hash unsafe-bit-shift-right inner-node-n-bits)
 	as leaf-node l
 		l.pairs subscript-leaf-recur key
 .subscript-leaf-recur<k, v> v?(a arrow<k, v>[], key k) compare<k>
@@ -225,26 +225,26 @@ body
 		which = remaining-hash low-bits
 		if which < i.children.size
 			next-hash = remaining-hash unsafe-bit-shift-right 3
-			child-res = i.children[which] get-or-update-recur: key, next-hash, (hash-shift wrap-add 3), f
+			child-res = i.children[which] get-or-update-recur key, next-hash, (hash-shift wrap-add 3), f
 			if node ?= child-res new-node
 				new-inner = i update-child which, node
-				get-or-update-result: new-inner.some, child-res.old-value
+				new-inner.some get-or-update-result child-res.old-value
 			else
 				child-res
 		else
 			match f[none]
 			as no-change
-				get-or-update-result: none, none
+				none get-or-update-result none
 			as remove
-				get-or-update-result: none, none
+				none get-or-update-result none
 			as insert ins
 				# TODO: should be able to write this inline
 				pair = key -> ins.value
 				# TODO: type args should not be necessary
-				new-leaf = leaf-node<k, v>: [pair]
+				new-leaf = [pair] leaf-node<k, v>
 				# TODO: type args should not be necessary
-				new-node = inner-node<k, v>: i.children update-with-default which, new-leaf, empty-leaf-node
-				get-or-update-result: new-node.some, none
+				new-node = i.children update-with-default which, new-leaf, empty-leaf-node inner-node<k, v>
+				new-node.some get-or-update-result none
 	as leaf-node l
 		l get-or-update-leaf key, remaining-hash, hash-shift, f
 
@@ -252,12 +252,12 @@ body
 	if leaf ?= a inner-node-to-leaf which, new-child
 		leaf
 	elif new-child node-is-empty
-		if which ==: a.children.size wrap-sub 1
+		if which == (a.children.size wrap-sub 1)
 			new-children = a.children rtail
 			if new-children.size == 1
 				new-children[0]
 			else
-				inner-node: new-children
+				new-children inner-node
 		else
 			new-children = a.children update which, new-child
 			if child ?= new-children find-only-non-empty-child
@@ -265,7 +265,7 @@ body
 			else
 				new-children inner-node
 	else
-		inner-node: a.children update which, new-child
+		a.children update which, new-child inner-node
 
 # Returns 'some' if we should change this to a leaf.
 .inner-node-to-leaf<k, v> leaf-node<k, v>?(a inner-node<k, v>, which nat64, new-child node<k, v>) trusted
@@ -295,7 +295,7 @@ body
 				out[out-index .. new-out-index] copy-from! l.pairs
 				new-out-index
 		assert: end == out.size
-		some: leaf-node: out cast-immutable
+		out.cast-immutable.leaf-node some
 
 .find-only-non-empty-child<k, v> node<k, v>?(children node<k, v>[])
 	first-non-empty-index = force: children find-index it => !it.node-is-empty
@@ -338,8 +338,8 @@ body
 				# Just group by hash.
 				a new-inner-node key, ins.value, remaining-hash, hash-shift
 			else
-				leaf-node: a.pairs ~ [key -> ins.value]
-		get-or-update-result: new-node, none
+				a.pairs ~ [key -> ins.value] leaf-node
+		new-node get-or-update-result none
 
 # In order to get the hash, we need to know the shift amount
 .new-inner-node<k, v> inner-node<k, v>
@@ -354,18 +354,18 @@ spec
 body
 	key-hash = hash low-bits
 	max-hash = key-hash fold a.pairs, (cur, pair) =>
-		cur max: pair.from.hash unsafe-bit-shift-right hash-shift low-bits
+		cur max (pair.from.hash unsafe-bit-shift-right hash-shift low-bits)
 	res = max-hash wrap-add 1 fill-fix-arr<node<k, v>> empty-leaf-node
 	# TODO: avoid allocating the same leaf twice...
-	res[key-hash] := leaf-node: [key -> value]
+	res[key-hash] := [key -> value] leaf-node
 	a.pairs each pair =>
 		x = pair.from.hash unsafe-bit-shift-right hash-shift low-bits
 		res[x] := match res[x]
 		as inner-node
 			unreachable
 		as leaf-node l
-			leaf-node: l.pairs ~ [pair]
-	inner-node: res cast-immutable
+			l.pairs ~ [pair] leaf-node
+	res.cast-immutable inner-node
 
 region iteration
 

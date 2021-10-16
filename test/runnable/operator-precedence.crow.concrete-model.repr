@@ -6731,7 +6731,7 @@ program(
 			expr-body(
 				seq(
 					seq(
-						call(print, [call(to-str, [call(*, [1, call(+, [2, 3])])])])
+						call(print, [call(to-str, [call(+, [call(*, [1, 2]), 3])])])
 						call(print, [call(to-str, [call(+, [1, call(*, [2, 3])])])]))
 					call(resolved, [0]))))
 		fun(

@@ -20,7 +20,7 @@ import
 	SDL2/SDL_video: SDL_CreateWindow, SDL_DestroyWindow, SDL_Window, SDL_WINDOW_SHOWN
 
 main fut nat(_ str[]) summon trusted
-	"SDL_INIT_VIDEO" handle-sdl-error: SDL_INIT_VIDEO SDL_Init
+	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 	window = "Hello World!".to-c-str SDL_CreateWindow 100, 100, 640, 480, SDL_WINDOW_SHOWN
 	if window.as-any-const-ptr == null
 		"SDL_CreateWindow" fail-sdl-error
@@ -51,8 +51,8 @@ main fut nat(_ str[]) summon trusted
 		else
 			"return is pressed"
 
-		"SDL_RenderClear" handle-sdl-error: renderer SDL_RenderClear
-		"SDL_RenderCopy" handle-sdl-error: renderer SDL_RenderCopy texture, null, null
+		renderer.SDL_RenderClear handle-sdl-error "SDL_RenderClear"
+		renderer SDL_RenderCopy texture, null, null handle-sdl-error "SDL_RenderCopy"
 		renderer SDL_RenderPresent
 		continue
 
@@ -67,7 +67,7 @@ main fut nat(_ str[]) summon trusted
 			look-for-quit-event
 
 .renderer SDL_Renderer(window SDL_Window) summon trusted
-	renderer = window SDL_CreateRenderer: -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+	renderer = window SDL_CreateRenderer -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
 	if renderer.as-any-const-ptr == null
 		"SDL_CreateRenderer" fail-sdl-error
 	renderer
@@ -83,12 +83,12 @@ main fut nat(_ str[]) summon trusted
 		"SDL_CreateTextureFromSurface" fail-sdl-error
 	texture
 
-.handle-sdl-error void(operation str, err c-int) summon trusted
+.handle-sdl-error void(err c-int, description str) summon trusted
 	if err != 0
-		operation fail-sdl-error
+		description fail-sdl-error
 
-.fail-sdl-error void(operation str) summon trusted
-	throw: "sdl error in {operation}: {SDL_GetError}"
+.fail-sdl-error void(description str) summon trusted
+	throw: "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit
 
 continue record

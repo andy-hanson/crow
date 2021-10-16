@@ -93,7 +93,7 @@ unsafe-bit-shift-right nat64(a nat64, b nat64) noctx builtin unsafe
 
 << nat64(a nat64, b int64) noctx trusted
 	if b < 0
-		a >>: b wrap-mul -1 unsafe-to-nat64
+		a >> (b wrap-mul -1 unsafe-to-nat64)
 	else
 		a << b.unsafe-to-nat64
 
@@ -111,7 +111,7 @@ unsafe-bit-shift-right nat64(a nat64, b nat64) noctx builtin unsafe
 
 >> nat64(a nat64, b int64) noctx trusted
 	if b < 0
-		a <<: b wrap-mul -1 unsafe-to-nat64
+		a << (b wrap-mul -1 unsafe-to-nat64)
 	else
 		a >> b.unsafe-to-nat64
 

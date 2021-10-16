@@ -29,7 +29,7 @@ mut-priority-queue<k, v> record mut
 	buckets arrow<k, v> mut[] mut[]
 
 mut-priority-queue<k, v> mut-priority-queue<k, v>() data<k> compare<k>
-	mut-priority-queue: mut-arr, mut-arr
+	mut-arr mut-priority-queue mut-arr
 
 mut-priority-queue<k, v> mut-priority-queue<k, v>(a arrow<k, v>[]) data<k> compare<k>
 	mins = a mut-arr
@@ -98,7 +98,7 @@ body
 		else
 			out
 		*mid := a.mins[index]
-		mid + 1 spread-all-buckets-recur!: a, index wrap-add 1
+		mid + 1 spread-all-buckets-recur! a, (index wrap-add 1)
 
 .add-to-bucket!<k, v> void(buckets arrow<k, v> mut[] mut[], index nat64, pair arrow<k, v>)
 	if index < buckets.size

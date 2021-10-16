@@ -2,7 +2,6 @@ no-std
 import
 	../bool: !, &&, bool, false, true
 	../compare: <, >, <=, compare
-	../exception: assert
 	../fun: subscript
 	../misc: ->, arrow, as, data, from, to, void
 	../opt: force, is-empty, none, opt, some
@@ -14,6 +13,7 @@ import
 	../test/spy: calls, fn, spy-act
 	../tuple: a, b, pair
 	../writer: ~=, backup!, move-to-str!, writer
+	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	./arr: ==, arr, is-empty, size
 	./arr-util: each, first, fold, map, tail
@@ -51,14 +51,14 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 	next node<k, v>?
 
 priority-queue<k, v> priority-queue<k, v>() data<k> compare<k>
-	priority-queue: void, none
+	void priority-queue none
 
 priority-queue<k, v> priority-queue<k, v>(a arrow<k, v>[]) data<k> compare<k>
 	if a is-empty
 		priority-queue
 	else
 		sorted = a sort-by pair => pair from
-		priority-queue: void, some: node: sorted.first.force, sorted.tail, none
+		void priority-queue (sorted.first.force node sorted.tail, none).some
 
 is-empty<k, v> bool(a priority-queue<k, v>) data<k> compare<k>
 	a.root is-empty
@@ -76,7 +76,7 @@ Add a pair to the queue.
 This is O(1).
 ###
 ~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b arrow<k, v>) data<k> compare<k>
-	priority-queue: void, some: node: b, [], a.root
+	void priority-queue (b node [], a.root).some
 
 popped<k, v> record
 	popped arrow<k, v>
@@ -94,10 +94,10 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) data<k> compare<k>
 
 .pop-from-node<k, v> popped<k, v>(a node<k, v>)
 	rest = as<node<k, v>?>: if first ?= a.pairs first
-		some: node: first, a.pairs.tail, a.next
+		first node a.pairs.tail, a.next some
 	else
 		a next
-	popped: a.min, priority-queue: void, rest
+	a.min popped (void priority-queue rest)
 
 # Returns none if this (or any following node) did not have a lower min.
 .pop-no-compact-recur<k, v> popped<k, v>?(a node<k, v>, min k) compare<k>
@@ -115,8 +115,8 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) data<k> compare<k>
 		none
 
 combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
-	node = node<k, v>: a.min, a.pairs, popped.rest.root
-	popped: popped.popped, priority-queue: void, node.some
+	node = a.min node<k, v> a.pairs, popped.rest.root
+	popped.popped popped (void priority-queue node.some)
 
 .compact-leading-nodes<k, v> priority-queue<k, v>(a priority-queue<k, v>) compare<k> trusted
 	mid = a.root find-mid 0
@@ -124,7 +124,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 		a
 	else
 		root = a.root force
-		priority-queue: void, some: match mid.mid plan root, mid.n-before-mid
+		void priority-queue some: match mid.mid plan root, mid.n-before-mid
 		as plan-did-compact p
 			p node
 		as plan-will-compact w
@@ -139,11 +139,11 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 .find-mid<k, v> found-mid<k, v>(a node<k, v>?, n-before nat64)
 	if node ?= a
 		if node.pairs is-empty
-			node.next find-mid: n-before wrap-add 1
+			node.next find-mid (n-before wrap-add 1)
 		else
-			found-mid: node.some, n-before
+			node.some found-mid n-before
 	else
-		found-mid: none, n-before
+		none found-mid n-before
 
 .plan-did-compact<k, v> record
 	node node<k, v>
@@ -161,26 +161,25 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	if node ?= a
 		match node.next plan root, n-singles
 		as plan-did-compact d
-			new-node = node<k, v>: node.min, node.pairs, d.node.some
-			plan-did-compact: new-node
+			node.min node<k, v> node.pairs, d.node.some plan-did-compact
 		as plan-will-compact c
 			node-size-here = 1 wrap-add node.pairs.size
 			if node-size-here <= c.n-elements-to-compact
-				plan-will-compact: c.n-elements-to-compact wrap-add node-size-here
+				c.n-elements-to-compact wrap-add node-size-here plan-will-compact
 			else
 				compacted = root do-compact c.n-elements-to-compact, node.next
-				plan-did-compact: node: node.min, node.pairs, some: compacted
+				node.min node node.pairs, compacted.some plan-did-compact
 	else
-		plan-will-compact<k, v>: n-singles
+		n-singles plan-will-compact<k, v>
 
 .do-compact<k, v> node<k, v>(root node<k, v>, n-to-compact nat64, nodes-to-compact node<k, v>?) trusted compare<k>
 	compacted = n-to-compact uninitialized-fix-arr<arrow<k, v>>
 	mid = compacted.begin-ptr compact-non-singles! nodes-to-compact
 	end = mid compact-singles! root
-	assert: end == compacted.end-ptr
+	hard-assert: end == compacted.end-ptr
 	compacted sort-by! pair => pair from
 	arr = compacted cast-immutable
-	node: arr.first.force, arr.tail, none
+	arr.first.force node arr.tail, none
 
 .compact-singles!<k, v> arrow<k, v> mut*(out arrow<k, v> mut*, a node<k, v>) unsafe
 	if a.pairs is-empty
@@ -241,7 +240,7 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) data<k> compare
 .each-arr<k, v> fix-arr each-part<k, v>(a priority-queue<k, v>) trusted compare<k>
 	res = a.node-count uninitialized-fix-arr<each-part<k, v>>
 	end = res.begin-ptr fill-each-arr! a.root
-	assert: end == res.end-ptr
+	hard-assert: end == res.end-ptr
 	res sort-by! it => it.min from
 	res
 
@@ -309,7 +308,7 @@ map-to-arr<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) data<k> com
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1
-	assert: end == out.end-ptr
+	hard-assert: end == out.end-ptr
 	arr = out.cast-immutable
 	arr
 
@@ -364,16 +363,16 @@ test
 	filtered = p6 filter filter-order.fn
 	filter-calls = filter-order calls
 	# TODO: filter-order.calls is p6-pairs
-	filter-calls map (x => x a) is: p6-pairs map x => x a
-	filter-calls map (x => x b) is: p6-pairs map x => x b
+	filter-calls map (x => x a) is (p6-pairs map x => x a)
+	filter-calls map (x => x b) is (p6-pairs map x => x b)
 	filtered.dbg is "6 6 [6 6b, 6 6c]"
 
 	map-order = spy-act<arrow<nat64, str>, nat64, str>: (k, v) => (10 wrap-sub k) -> "{v}x"
 	mapped = p6 map map-order.fn
 	map-calls = map-order calls
 	# TODO: map-order.calls is p6-pairs
-	map-calls map (x => x a) is: p6-pairs map x => x a
-	map-calls map (x => x b) is: p6-pairs map x => x b
+	map-calls map (x => x a) is (p6-pairs map x => x a)
+	map-calls map (x => x b) is (p6-pairs map x => x b)
 	mapped.dbg is "2 8x [3 7x, 3 7bx, 4 6x, 4 6bx, 4 6cx]"
 
 	p6.keys is [6, 6, 6, 7, 7, 8]

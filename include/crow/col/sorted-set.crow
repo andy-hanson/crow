@@ -2,7 +2,6 @@ no-std
 import
 	../bool: !, &&, ==, bool, false, true
 	../compare: !=, <, <=, >, >=, compare
-	../exception: assert, forbid, unreachable
 	../fun: subscript
 	../log: info, log
 	../misc: data, void
@@ -13,6 +12,7 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
+	../private/bootstrap: hard-assert, hard-forbid, hard-unreachable
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul, wrap-sub
 	./arr: arr, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, subscript
 	./arr-util: each, tail
@@ -87,11 +87,11 @@ in<a> bool(value a, a sorted-set a) data<a> compare<a>
 .find-in-add-for-remove<a> find-in-add-for-remove-result?(a add-node a, value a, size-right nat64) compare<a>
 	if index ?= a.values binary-search-exact-index value
 		sl = a add-size-left
-		some: find-in-add-for-remove-result: (sl wrap-add index), sl, a.values.size, size-right
+		(sl wrap-add index) find-in-add-for-remove-result sl, a.values.size, size-right some
 	elif left ?= a left
 		# TODO: should be able to write this inline
 		new-size-right = size-right wrap-add a.values.size
-		left find-in-add-for-remove: value, new-size-right
+		left find-in-add-for-remove value, new-size-right
 
 ~ <a> sorted-set a(a sorted-set a, value a) data<a> compare<a>
 	a try-add value or-default a
@@ -109,10 +109,10 @@ try-add<a> sorted-set<a>?(a sorted-set a, value a) data<a> compare<a>
 
 try-remove<a> sorted-set<a>?(a sorted-set a, value a) trusted data<a> compare<a>
 	if r ?= a.add find-in-add-for-remove value, 0
-		removals-here-and-right = 1 wrap-add: a.remove count-greater-or-equal r.size-left
+		removals-here-and-right = 1 wrap-add (a.remove count-greater-or-equal r.size-left)
 		some: if r.size-here should-compact r.size-right, removals-here-and-right
 			compacted-size = r.size-here wrap-add r.size-right wrap-sub 1
-			a remove-and-compact (compact-plan: r.size-left, compacted-size), r.value-index
+			a remove-and-compact (r.size-left compact-plan compacted-size), r.value-index
 		else
 			a.add sorted-set a.remove ~ r.value-index
 
@@ -160,7 +160,7 @@ Or a combination of the two.
 	(size-right wrap-add (removals-here-and-right wrap-mul 2) wrap-mul 2) >= size-here
 
 .add-and-compact<a> sorted-set a(a sorted-set a, add-size nat64, plan compact-plan, value a) unsafe compare<a>
-	assert: plan.compacted-size > 1
+	hard-assert: plan.compacted-size > 1
 	compacted = plan.compacted-size uninitialized-fix-arr<a>
 	*compacted.begin-ptr := value
 	compactor = compacted.begin-ptr.as-const compactor<a> compacted.begin-ptr + 1, compacted.end-ptr.as-const
@@ -197,9 +197,9 @@ spec
 	compare<a>
 body
 	compactor merge! a.values, add-size-here-and-left, remove
-	assert: compactor.cur.as-const <= compactor.end
+	hard-assert: compactor.cur.as-const <= compactor.end
 	if compactor.cur.as-const == compactor.end
-		add-node: compactor.finish, a left
+		compactor.finish add-node a.left
 	else
 		# TODO: should be able to write this inline
 		new-l = add-size-here-and-left wrap-sub a.values.size
@@ -230,9 +230,9 @@ spec
 	unsafe
 	compare<a>
 body
-	forbid: a-read < a-begin
-	forbid: b-read < b-begin
-	forbid: a-write.as-const < a-begin
+	hard-forbid: a-read < a-begin
+	hard-forbid: b-read < b-begin
+	hard-forbid: a-write.as-const < a-begin
 	# merging from right, so take the greater value
 	match *a-read <=> *b-read
 	as less
@@ -246,7 +246,7 @@ body
 		# Else -- done, everything from 'a' is in place
 	as equal
 		# We shouldn't store the same value twice.
-		unreachable
+		hard-unreachable
 	as greater
 		*a-write := *a-read
 		if a-read == a-begin
@@ -272,7 +272,7 @@ body
 		new-a-write copy-from-b-recur! b-begin, b-read - 1, (b-remove-index wrap-sub 1), b-remove
 
 .finish<a> a[](a compactor a) unsafe
-	assert: a.cur.as-const == a.end
+	hard-assert: a.cur.as-const == a.end
 	a.begin arr-from-begin-end a.end
 
 region iteration
@@ -353,7 +353,7 @@ body
 	else
 		*prev.out := here
 		prev.out + 1
-	init-iters-result: (prev.next-remove-index wrap-add a.values.size), new-out
+	(prev.next-remove-index wrap-add a.values.size) init-iters-result new-out
 
 .remove-from-front<a> iter-part a(a iter-part a, remove index-set)
 	if !a.values.is-empty && a.remove-index in remove
@@ -371,7 +371,7 @@ map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted data<in> compa
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1
-	assert: end == out.end-ptr
+	hard-assert: end == out.end-ptr
 	out cast-immutable
 
 # TODO:PRIVATE

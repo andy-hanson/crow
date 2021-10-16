@@ -6948,8 +6948,8 @@ struct void_ destroy_condition(struct condition* a) {
 }
 /* main fut<nat64>(_ arr<str>) */
 struct fut_0* main_0(struct ctx* ctx, struct arr_2 _p0) {
-	uint64_t _0 = _plus_3(ctx, 2u, 3u);
-	uint64_t _1 = _times_3(ctx, 1u, _0);
+	uint64_t _0 = _times_3(ctx, 1u, 2u);
+	uint64_t _1 = _plus_3(ctx, _0, 3u);
 	struct str _2 = to_str_3(ctx, _1);
 	print(_2);
 	uint64_t _3 = _times_3(ctx, 2u, 3u);

@@ -42,11 +42,11 @@ lint result<str, failure[]>(path str, options test-options) summon
 		space-space = " " ~ " "
 		if !allow-double-space && line has-substr space-space
 			message = "line {ln} contains a double space"
-			res ~=: failure: path, message
+			res ~= path failure message
 		width = line line-len
 		if width > max-line-length
 			message = "line {ln} is {width} columns long, should be <= {max-line-length}"
-			res ~=: failure: path, message
+			res ~= path failure message
 	res move-to-arr!
 
 .ignored-extensions str[]()

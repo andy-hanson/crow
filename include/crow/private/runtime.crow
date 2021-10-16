@@ -262,7 +262,7 @@ body
 		as no-task n
 			new-any-tasks = any-tasks || n.any-tasks
 			new-first-task-time = first-task-time min-time n.first-task-time
-			islands choose-task-recur: (i wrap-add 1), cur-time, new-any-tasks, new-first-task-time
+			islands choose-task-recur (i wrap-add 1), cur-time, new-any-tasks, new-first-task-time
 
 .min-time timestamp?(a timestamp?, b timestamp?) noctx
 	if ta ?= a
