@@ -7,7 +7,7 @@
 # In a '.crow' file, use ctrl-alt-shift-p to see the scope at the cursor.
 
 variables:
-  name: '(([a-zA-Z_][a-zA-Z0-9\-_\?\!]*)|[\=\!\<\>\+\-\*\/\^\~\&\|]+)'
+  name: '(([a-zA-Z_][a-zA-Z0-9\-_\?\!]*)|[\=\!\<\>\+\-\*\/\^\~\&\|]+|\.\.)'
   number: '[\+\-]?((0((b[01]+)|(o[0-8]+)|(x[\da-fA-F]+)))|(\d+(\.\d+)?))'
   # Declarations end at the next unindented line.
   # We don't want to consume any characters at that line,

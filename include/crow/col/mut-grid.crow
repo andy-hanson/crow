@@ -5,10 +5,11 @@ import
 	../exception: assert
 	../fun: subscript
 	../log: info, log
-	../misc: ->, void
+	../misc: void
 	../number: *
 	../ptr: ==, +, *, as-const, const-ptr, mut-ptr, set-deref
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
+	../range: ..
 	../str: ==, str
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../test: is
@@ -45,7 +46,7 @@ zero coord()
 row<a> fix-arr a(a mut-grid a, y nat64)
 	assert: y < a.height
 	begin = y wrap-mul a.width
-	a.elements[begin -> (begin wrap-add a.width)]
+	a.elements[begin .. (begin wrap-add a.width)]
 
 mut-grid<a> mut-grid a()
 	fix-arr mut-grid 0, 0

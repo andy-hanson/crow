@@ -8,6 +8,7 @@ import
 	../../number: ==, <=>, +, -, is-even, nat64
 	../../opt: ==, is-empty, none, opt, opt-or, some
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
+	../../range: ..
 	../../str: ==, chars, is-empty, size-bytes, str
 	../../str-conv: interp, finish, to-str, with-str, with-value
 	../../test: is
@@ -146,7 +147,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) data<k> compare<k>
 .merge-overlays<k, v> arrow<k, v?>[](l arrow<k, v?>[], r arrow<k, v?>[]) trusted data<k> compare<k>
 	res = l.size + r.size uninitialized-fix-arr<arrow<k, v?>>
 	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
-	res[0 -> end - res.begin-ptr] cast-immutable
+	res[0 .. end - res.begin-ptr] cast-immutable
 
 .merge-keep-right<k, v> arrow<k, v> mut*
 	out arrow<k, v> mut*
@@ -189,7 +190,7 @@ body
 		res.begin-ptr finish-rest-ignore-none r.begin-ptr, r.end-ptr
 	else
 		res.begin-ptr merge-to-end-recur l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
-	res[0 -> end - res.begin-ptr] cast-immutable
+	res[0 .. end - res.begin-ptr] cast-immutable
 
 .merge-to-end-recur<k, v> arrow<k, v> mut*
 	out arrow<k, v> mut*
@@ -341,7 +342,7 @@ body
 		new-overlay = overlays[index] tail
 		if new-overlay is-empty
 			overlays[index] := overlays[overlays.size - 1]
-			overlays[0 -> overlays.size - 1] take-key-recur key, index + 1, new-rightmost-value
+			overlays[0 .. overlays.size - 1] take-key-recur key, index + 1, new-rightmost-value
 		else
 			overlays[index] := new-overlay
 			overlays take-key-recur key, index + 1, new-rightmost-value
@@ -519,7 +520,7 @@ test
 	h-filtered verify "[10 -> 10b, 20 -> 20]"
 
 	h-mapped = h map-values (k, v) =>
-		v.chars[v.size-bytes - 1 -> v.size-bytes] str
+		v.chars[v.size-bytes - 1 .. v.size-bytes] str
 	h-mapped verify "[5 -> 5, 10 -> b, 20 -> 0]"
 
 test

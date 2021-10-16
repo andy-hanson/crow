@@ -3,12 +3,12 @@ import
 	../bool: &&, bool
 	../compare: !=, <, <=, compare, comparison, equal, greater, less
 	../fun: subscript
-	../misc: arrow, from, to
 	../ptr: *, ==, <=>, +, -, as-const, by-val, const-ptr, ptr-cast, ref-of-ptr, size-of, subscript
 	../private/alloc: alloc-uninitialized, copy-data-from!
 	../private/bootstrap: hard-assert
 	../private/exception-low-level: assert
 	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
+	../private/range-low-level: low, high, range
 export
 	../private/bootstrap: arr, begin-ptr, size
 
@@ -95,15 +95,13 @@ subscript<a> a(a a[], index nat64) trusted
 
 ###
 Slices the arr.
-`range.from` is inclusive and `range.to` is exclusive.
 This works in O(1) without copying any elements.
 Fails if `range.from > range.to`.
 Fails if the slice would exceed the bounds of the arr.
 ###
-subscript<a> a[](a a[], range arrow<nat64, nat64>) trusted
-	assert: range.from <= range.to
-	assert: range.to <= a.size
-	range.to wrap-sub range.from arr a.begin-ptr + range.from
+subscript<a> a[](a a[], range range nat64) trusted
+	assert: range.high <= a.size
+	range.high wrap-sub range.low arr a.begin-ptr + range.low
 
 unsafe-slice<a> a[](a a[], begin nat64, end nat64) unsafe noctx
 	a.begin-ptr + begin arr-from-begin-end a.begin-ptr + end

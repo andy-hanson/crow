@@ -2,9 +2,9 @@ no-std
 import
 	../col/arr: subscript
 	../col/arr-util: last, r-index-of, rtail
-	../misc: ->
-	../number: +, -, nat64
+	../number: ==, <=>, +, -, nat64
 	../opt: opt, some
+	../range: ..
 	../str: ==, char, chars, size-bytes, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 
@@ -14,7 +14,7 @@ Returns "" if the path has no parent.
 ###
 parent-path str(a str)
 	if index ?= a.chars r-index-of "/"
-		a.chars[0 -> index] str
+		a.chars[0 .. index] str
 	else
 		""
 
@@ -34,12 +34,12 @@ child-path str(a str, child_name str)
 # Returns none if there is no extension.
 get-extension str?(name str)
 	if index ?= name last-index-of "."
-		name.chars[index + 1 -> name.size-bytes].str some
+		name.chars[index + 1 .. name.size-bytes].str some
 
 # Removes the extension from a file name or path.
 remove-extension str(name str)
 	if index ?= name last-index-of "."
-		name.chars[0 -> index] str
+		name.chars[0 .. index] str
 	else
 		name
 
@@ -57,6 +57,6 @@ change-extension str(name str, ext str)
 # Gets just the file name without any directory names in from of it.
 base-name str(path str)
 	if index ?= path last-index-of "/"
-		path.chars[index + 1 -> path.size-bytes] str
+		path.chars[index + 1 .. path.size-bytes] str
 	else
 		path

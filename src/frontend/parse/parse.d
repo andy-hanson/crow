@@ -35,6 +35,7 @@ import frontend.parse.lexer :
 	Lexer,
 	NewlineOrDedent,
 	NewlineOrIndent,
+	peekExact,
 	range,
 	skipBlankLinesAndGetDocComment,
 	skipUntilNewlineNoDiag,
@@ -792,7 +793,8 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 	immutable SafeCStr docComment,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable bool isPublic = !tryTake(lexer, '.');
+	// '..' is always public
+	immutable bool isPublic = peekExact(lexer, "..") || !tryTake(lexer, '.');
 	immutable Sym name = takeName(alloc, lexer);
 	immutable ArrWithSize!NameAndRange typeParams = parseTypeParams(alloc, lexer, isSymOperator(name));
 	if (!tryTake(lexer, ' ')) {

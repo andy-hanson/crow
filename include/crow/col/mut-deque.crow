@@ -3,14 +3,15 @@ import
 	../bool: !, bool
 	../compare: !=, <
 	../exception: assert, forbid
-	../misc: ->, void
+	../misc: void
 	../opt: ==, none, opt, some
 	../ptr: ==, <=>, +, -, *, as-const, mut-ptr, null, set-deref, zeroed
+	../range: ..
 	../str: ==, str
 	../str-conv: to-str
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
-	../private/number-low-level: ==, nat64, wrap-add, wrap-mul
+	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
 	./arr: ==, arr, arr-from-begin-end, size
 	./arr-util: each-ptr, first, last
 	./fix-arr:
@@ -128,8 +129,8 @@ pop-right!<a> a?(a mut-deque a) trusted
 			old-capacity = old-inner size
 			new-capacity = old-capacity wrap-mul 2
 			new-inner = new-capacity uninitialized-fix-arr<a>
-			new-inner[0 -> old-capacity] copy-from-deque! a
-			new-inner[old-capacity -> new-capacity] set-zero-elements
+			new-inner[0 .. old-capacity] copy-from-deque! a
+			new-inner[old-capacity .. new-capacity] set-zero-elements
 			a.inner := new-inner
 			a.left := a.inner begin-ptr
 			a.right := a.left + old-capacity
@@ -140,8 +141,8 @@ pop-right!<a> a?(a mut-deque a) trusted
 		dest copy-from! (a.left.as-const arr-from-begin-end a.right.as-const)
 	else
 		left-to-end-size = a.inner.end-ptr - a.left
-		dest[0 -> left-to-end-size] copy-from! (a.left.as-const arr-from-begin-end a.inner.end-ptr.as-const)
-		dest[left-to-end-size -> dest.size] copy-from! (a.inner.begin-ptr.as-const arr-from-begin-end a.right.as-const)
+		dest[0 .. left-to-end-size] copy-from! (a.left.as-const arr-from-begin-end a.inner.end-ptr.as-const)
+		dest[left-to-end-size .. dest.size] copy-from! (a.inner.begin-ptr.as-const arr-from-begin-end a.right.as-const)
 
 .dbg str(a mut-deque nat64) trusted
 	out = writer

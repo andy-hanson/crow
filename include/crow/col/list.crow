@@ -4,9 +4,10 @@ import
 	../compare: !=, <, >, equal, min
 	../exception: assert, forbid
 	../fun: subscript
-	../misc: ->, as, drop, void
+	../misc: as, drop, void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, -, *, const-ptr, mut-ptr, set-deref, set-subscript
+	../range: ..
 	../str: ==, str
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
@@ -164,7 +165,7 @@ every 4 steps it allocates an array of size 4, etc.
 		else
 			list-builder<a>: none, new-size-right.uninitialized-fix-arr
 		offset = res.values.size wrap-sub size-right wrap-sub a.values.size
-		res.values[offset ->: offset wrap-add a.values.size] copy-from! a.values
+		res.values[offset .. (offset wrap-add a.values.size)] copy-from! a.values
 		res
 
 # True iff the list is empty.
@@ -279,7 +280,7 @@ map<out, in> list out(a list in, f act out(in)) trusted
 filter<a> list a(a list a, f act bool(a)) trusted
 	res = a.size uninitialized-fix-arr<a>
 	end = res.begin-ptr filter-recur a, f
-	list: res[0 -> end - res.begin-ptr] cast-immutable
+	res[0 .. end - res.begin-ptr].cast-immutable list
 .filter-recur<a> a mut*(out a mut*, a list a, f act bool(a)) unsafe
 	new-out = if prev ?= a prev
 		out filter-recur prev, f

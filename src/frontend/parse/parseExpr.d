@@ -518,6 +518,7 @@ immutable(int) operatorPrecedence(immutable Operator a) {
 		case Operator.greaterOrEqual:
 		case Operator.compare:
 		case Operator.arrow:
+		case Operator.range:
 		case Operator.tilde:
 			return 1;
 		case Operator.or1:

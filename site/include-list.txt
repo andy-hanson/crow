@@ -96,11 +96,13 @@ crow/private/fut-low-level
 crow/private/log-low-level
 crow/private/number-low-level
 crow/private/perf-low-level
+crow/private/range-low-level
 crow/private/rt-main
 crow/private/runtime
 crow/private/task-queue
 crow/private/thread-utils
 crow/ptr
+crow/range
 crow/reader
 crow/result
 crow/serialize

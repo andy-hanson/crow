@@ -5,9 +5,10 @@ import
 	../exception: assert, forbid, unreachable
 	../fun: subscript
 	../log: info, log
-	../misc: ->, data, void
+	../misc: data, void
 	../opt: force, none, opt, or-default, some
 	../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
+	../range: ..
 	../str: ==, <=>, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test: is
@@ -290,7 +291,7 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) data<b> compare<b>
 		iters[least-iter-index] := iters[least-iter-index] tail remove
 		new-iters = if iters[least-iter-index] is-empty
 			iters[least-iter-index] := iters[iters.size wrap-sub 1]
-			iters[0 ->: iters.size wrap-sub 1]
+			iters[0 .. (iters.size wrap-sub 1)]
 		else
 			iters
 		f[acc, least-value] fold-recur new-iters, remove, f
@@ -326,7 +327,7 @@ body
 .init-iters<a> fix-arr iter-part a(a sorted-set a) trusted
 	iters = a.add-node-count uninitialized-fix-arr<iter-part<a>>
 	res = iters.begin-ptr init-iters-recur! a.add, a.remove
-	iters[0 -> res.out - iters.begin-ptr]
+	iters[0 .. res.out - iters.begin-ptr]
 
 .add-node-count<a> nat64(a sorted-set a)
 	0 add-node-count-recur a.add

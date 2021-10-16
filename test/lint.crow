@@ -69,8 +69,8 @@ lint result<str, failure[]>(path str, options test-options) summon
 	s.chars each-with-index (c, index) =>
 		if c == "\n"
 			nl = last-nl swap index + 1
-			res ~= s.chars[nl -> index] str
-	res ~= s.chars[*last-nl -> s.size-bytes] str
+			res ~= s.chars[nl .. index] str
+	res ~= s.chars[*last-nl .. s.size-bytes] str
 	res move-to-arr!
 
 .max-line-length nat()

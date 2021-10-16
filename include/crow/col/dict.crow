@@ -9,6 +9,7 @@ import
 	../misc: ->, arrow, as, data, from, to, void
 	../opt: ==, force, is-empty, none, opt, some
 	../ptr: ==, +, set-deref
+	../range: ..
 	../str: ==, ~, str
 	../str-conv: to-str
 	../test: is
@@ -291,14 +292,14 @@ body
 				unreachable
 			as leaf-node l
 				new-out-index = out-index wrap-add l.pairs.size
-				out[out-index -> new-out-index] copy-from! l.pairs
+				out[out-index .. new-out-index] copy-from! l.pairs
 				new-out-index
 		assert: end == out.size
 		some: leaf-node: out cast-immutable
 
 .find-only-non-empty-child<k, v> node<k, v>?(children node<k, v>[])
 	first-non-empty-index = force: children find-index it => !it.node-is-empty
-	if children[(first-non-empty-index wrap-add 1) -> children.size] every it => it node-is-empty
+	if children[(first-non-empty-index wrap-add 1) .. children.size] every it => it node-is-empty
 		children[first-non-empty-index] some
 
 .get-or-update-leaf<k, v> get-or-update-result<k, v>

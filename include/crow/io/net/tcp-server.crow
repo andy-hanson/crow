@@ -20,13 +20,14 @@ import
 	../../exception: assert, message
 	../../extra-types: fd-t
 	../../fut: fut, handle-exceptions, then-void, fut-catch, resolved, subscript
-	../../misc: ->, as, drop, void
+	../../misc: as, drop, void
 	../../number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../../opt: value
 	../../private/bootstrap: todo
 	# TODO: don't use this
 	../../private/fut-low-level: callback!
 	../../ptr: by-val, ptr-cast-to-extern, ptr-to, ref-of-val, size-of
+	../../range: ..
 	../../str: chars, str
 	../duration: msec
 	../posix-util: check-posix-error
@@ -162,7 +163,7 @@ close-client void(client-fd fd-t) unsafe summon
 		if err != EAGAIN
 			perror: "read() failed\0".chars.begin-ptr
 	elif count != 0
-		chunk = buf.cast-immutable[0 -> count.to-nat64]
+		chunk = buf.cast-immutable[0 .. count.to-nat64]
 		on-received-chunk[fd, chunk] handle-exceptions
 		fd handle-client on-received-chunk
 

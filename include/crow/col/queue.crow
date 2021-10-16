@@ -4,11 +4,12 @@ import
 	../compare: !=
 	../exception: assert
 	../fun: subscript
-	../misc: ->, void
+	../misc: void
 	../opt: force, is-empty, opt, some
+	../private/number-low-level: ==, <=>, nat64, wrap-add
 	../ptr: ==, +, -, set-deref
 	../test: is
-	../private/number-low-level: ==, nat64, wrap-add
+	../range: ..
 	./arr: ==, arr, is-empty, size
 	./arr-util: each, first, fold, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-fix-arr
@@ -75,7 +76,7 @@ filter<a> queue a(a queue a, f act bool(a)) trusted
 			out + 1
 		else
 			out
-	queue: res[0 -> end - res.begin-ptr] cast-immutable
+	res[0 .. end - res.begin-ptr].cast-immutable queue
 
 map<out, in> queue out(a queue in, f act out(in)) trusted
 	res = a.size uninitialized-fix-arr<out>

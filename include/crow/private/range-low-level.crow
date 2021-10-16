@@ -1,0 +1,24 @@
+no-std
+import
+	../compare: <, compare
+	../misc: void
+
+# `low` is inclusive and `high` is exclusive.
+range<a> record
+	# TODO: private constructor
+	ignore void
+	low a
+	high a
+
+.. <a> range<a>(low a, high a) compare<a>
+	if low < high
+		void range low, high
+	else
+		# TODO:WARN
+		void range high, high
+
+size<a> a(a range a) minus<a>
+	a.high - a.low
+
+.minus<a> spec
+	- a(a a, b a)

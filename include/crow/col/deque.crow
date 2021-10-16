@@ -3,14 +3,15 @@ import
 	../bool: &&, ==, bool, true
 	../exception: assert
 	../fun: subscript
-	../misc: ->, void
+	../misc: void
 	../opt: force, is-empty, opt, some
 	../ptr: ==, +, -, set-deref
+	../range: ..
 	../str: ==, str
 	../str-conv: to-str
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
-	../private/number-low-level: ==, is-even, nat64, wrap-add
+	../private/number-low-level: ==, <=>, is-even, nat64, wrap-add
 	./arr: ==, arr, is-empty, size
 	./arr-util: each, first, fold, last, rtail, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-fix-arr
@@ -98,7 +99,7 @@ filter<a> deque a(a deque a, f act bool(a)) trusted
 			out + 1
 		else
 			out
-	deque: res[0 -> end - res.begin-ptr] cast-immutable
+	res[0 .. end - res.begin-ptr].cast-immutable deque
 
 map<out, in> deque out(a deque in, f act out(in)) trusted
 	res = a.size uninitialized-fix-arr<out>

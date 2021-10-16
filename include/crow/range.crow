@@ -1,0 +1,55 @@
+no-std
+import
+	./bool: ||, bool, false
+	./cell: *, cell, set-deref
+	./compare: !=
+	./fun: subscript
+	./iter: iterator
+	./misc: void
+	./number: ==, <=>, nat64
+	./opt: opt, some
+	./private/number-low-level: wrap-add, wrap-sub
+export
+	./private/range-low-level: .., low, high, range, size
+
+region iteration
+
+###
+Iterator for a number range.
+The beginning is inclusive and the end is exclusive.
+The beginning must be less than the end.
+###
+iter iterator nat64(r range nat64)
+	# TODO: should not need a type argument here
+	n = r.low cell<nat64>
+	iterator: () =>
+		if *n != r.high
+			res = *n
+			*n := res wrap-add 1
+			res some
+
+each void(a range nat64, f act void(nat64))
+	if a.low != a.high
+		f[a low]
+		(a.low wrap-add 1) .. a.high each f
+
+each-reverse void(a range nat64, f act void(nat64))
+	if a.low != a.high
+		a.low each-reverse-recur (a.high wrap-sub 1), f
+.each-reverse-recur void(low nat64, cur nat64, f act void(nat64))
+	f[cur]
+	if cur != low
+		low each-reverse-recur (cur wrap-sub 1), f
+
+exists bool(a range nat64, f act bool(nat64))
+	if a.low != a.high
+		f[a low] || (a.low wrap-add 1) .. a.high exists f
+	else
+		false
+
+find nat64?(a range nat64, f act bool(nat64))
+	if a.low != a.high
+		if f[a low]
+			a.low some
+		else
+			(a.low wrap-add 1) .. a.high find f

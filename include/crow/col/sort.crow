@@ -4,9 +4,10 @@ import
 	../compare: ==, !=, <, <=, >, compare, comparison, equal, less
 	../exception: assert, forbid
 	../fun: subscript
-	../misc: ->, as, void
+	../misc: as, void
 	../number: ==, <=>, +, -, /, nat64
 	../ptr: ==, +, -, *, mut-ptr, set-deref
+	../range: ..
 	../str: ==, <=>, chars
 	../test: is
 	./arr: ==, arr, subscript
@@ -89,7 +90,7 @@ sort-unique!<a> fix-arr a(a fix-arr a, comparer act comparison(a, a)) trusted
 	else
 		a sort! comparer
 		end = *a.begin-ptr unique-recur! a.begin-ptr + 1, a.begin-ptr + 1, a.end-ptr, comparer
-		a[0 -> end - a.begin-ptr]
+		a[0 .. end - a.begin-ptr]
 sort-unique-by!<a, b> fix-arr a(a fix-arr a, f act b(a)) compare<b>
 	a sort-unique! (x, y) => f[x] <=> f[y]
 .unique-recur!<a> a mut*
@@ -140,8 +141,8 @@ sort-by-first!<a, b> void(a fix-arr a, b fix-arr b) compare<a>
 		new-pivot-index = (a partition-by-first! b, pivot, 1, a.size - 1) - 1
 		a swap 0, new-pivot-index
 		b swap 0, new-pivot-index
-		a[0 -> new-pivot-index] sort-by-first! b[0 -> new-pivot-index]
-		a[new-pivot-index + 1 -> a.size] sort-by-first! b[new-pivot-index + 1 -> b.size]
+		a[0 .. new-pivot-index] sort-by-first! b[0 .. new-pivot-index]
+		a[new-pivot-index + 1 .. a.size] sort-by-first! b[new-pivot-index + 1 .. b.size]
 
 .partition-by-first!<a, b> nat64(a fix-arr a, b fix-arr b, pivot a, l nat64, r nat64) compare<a>
 	assert: l <= a.size

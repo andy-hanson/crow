@@ -6,9 +6,9 @@ import
 	../compare: >=
 	../exception: assert
 	../fun: subscript
-	../misc: ->
 	../number: ==, <=>, nat8, to-nat64
 	../opt: opt
+	../range: ..
 	../str: str
 	../str-util: as-str, strip
 	../private/bootstrap: todo
@@ -16,7 +16,7 @@ import
 
 ###
 Reads from stdin.
-If that comes from the user typing at the terminal, this will block until they hit enter.
+If that comes from the user typifng at the terminal, this will block until they hit enter.
 Result is `strip`ped.
 ###
 read-stdin str() trusted summon
@@ -27,7 +27,7 @@ read-stdin str() trusted summon
 	if bytes-read >= buffer.size
 		todo
 	else
-		buffer[0 -> bytes-read].cast-immutable.as-str strip
+		buffer[0 .. bytes-read].cast-immutable.as-str strip
 
 ###
 Keep reading from stdin until `parse` succeeds.

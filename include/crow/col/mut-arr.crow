@@ -4,7 +4,7 @@ import
 	../bool: !, bool
 	../compare: <, <=, >, >=, equal
 	../fun: subscript
-	../misc: ->, drop, void
+	../misc: drop, void
 	../number: +, -, *, nat64
 	../opt: opt, some
 	../ptr:
@@ -15,6 +15,7 @@ import
 	../private/bootstrap: hard-assert, todo
 	../private/exception-low-level: assert
 	../private/number-low-level: ==, <=>, wrap-add, wrap-sub
+	../private/range-low-level: ..
 	./arr: arr
 	./arr-util: each, each-with-index, exists, find-index, fold, fold-reverse, in, index-of
 	./fix-arr:
@@ -257,7 +258,7 @@ push-capacity-must-be-sufficient!<a> void(a a mut[], value a) noctx unsafe
 	old-begin = a begin-ptr
 	a.backing := new-capacity uninitialized-fix-arr<a>
 	a.begin-ptr copy-data-from! old-begin.as-const, a.size
-	a.backing[a.size + 1 -> a.backing.size] set-zero-elements
+	a.backing[a.size + 1 .. a.backing.size] set-zero-elements
 
 .ensure-capacity<a> void(a a mut[], min-capacity nat64) unsafe
 	if a.capacity < min-capacity
@@ -423,7 +424,7 @@ map-opt-to-fix-arr<out, in> fix-arr out(a in mut[], f act out?(in)) trusted
 			cur + 1
 		else
 			cur
-	out[0 -> end - out.begin-ptr]
+	out[0 .. end - out.begin-ptr]
 
 .as-mut-arr<a> a mut[](a fix-arr a) unsafe
 	mut-arr: a, a.size
@@ -433,7 +434,7 @@ region mutating iteration
 filter!<a> void(a a mut[], f act bool(a)) trusted
 	new-end = a.begin-ptr filter-recur! a.begin-ptr.as-const, a.end-ptr.as-const, f
 	new-size = new-end - a.begin-ptr
-	a.backing[new-size -> a.size] set-zero-elements
+	a.backing[new-size .. a.size] set-zero-elements
 	a.size := new-size
 .filter-recur!<a> a mut*(out a mut*, in a*, end a*, f act bool(a)) unsafe
 	if in == end

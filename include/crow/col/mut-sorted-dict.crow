@@ -8,6 +8,7 @@ import
 	../number: ==, <=>, +, -, *, nat64
 	../opt: ==, force, is-empty, none, opt, or-default, size, some
 	../ptr: ==, -, *, mut-ptr, set-deref
+	../range: ..
 	../str: ==, chars, str
 	../test: is
 	../writer: ~=, backup!, move-to-str!, writer
@@ -297,7 +298,7 @@ test
 	a = mut-sorted-dict: [3 -> "30", 6 -> "60"]
 	a verify "[3 -> 30, 6 -> 60]"
 	a map! (k, v) =>
-		10 - k -> v.chars[0 -> 1].str
+		10 - k -> v.chars[0 .. 1].str
 	a verify "[4 -> 6, 7 -> 3]"
 
 map-values!<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) data<k> compare<k>

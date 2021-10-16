@@ -1,11 +1,8 @@
 no-std
 import
 	./bool: bool
-	./cell: *, cell, set-deref
-	./compare: <
 	./fun: subscript
-	./misc: arrow, from, to, void
-	./number: ==, <=>, +, nat64
+	./misc: void
 	./opt: opt, some
 
 ###
@@ -41,20 +38,6 @@ iterator<a> record mut
 # Returns the current element and advances to the next.
 next<a> a?(i iterator a)
 	i.get-next[]
-
-###
-Iterator for a number range.
-The beginning is inclusive and the end is exclusive.
-The beginning must be less than the end.
-###
-iter iterator nat64(r arrow<nat64, nat64>)
-	# TODO: should not need a type argument here
-	n = r.from cell<nat64>
-	iterator: () =>
-		if *n < r.to
-			res = *n
-			*n := res + 1
-			res some
 
 # Calls a function for each element of an iterable.
 each<a> void(a iterable a, f act void(a))

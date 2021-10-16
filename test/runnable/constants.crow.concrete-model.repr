@@ -300,8 +300,12 @@ program(
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, named-val)]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, const-ptr)]))
 		struct(
-			name: arrow
-			body: record([field(from, false, type(false, nat64)), field(to, false, type(false, nat64))]))
+			name: range
+			body: record(
+				[
+					field(ignore, false, type(false, void))
+					field(low, false, type(false, nat64))
+					field(high, false, type(false, nat64))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, sym)]))
 		struct(name: lambda(to-str, 0), body: record([field(res, false, type(false, writer))]))
 		struct(name: opt, body: union([type(false, none), type(false, some)]))
@@ -1582,7 +1586,7 @@ program(
 										[
 											call(backing, [param-ref(a)])
 											call(
-												->
+												..
 												[
 													call(+, [call(size, [param-ref(a)]), 1])
 													call(size, [call(backing, [param-ref(a)])])])])]))))))
@@ -2703,44 +2707,41 @@ program(
 			subscript
 			type(false, fix-arr)
 			none
-			[param(a, type(false, fix-arr)), param(range, type(false, arrow))]
-			expr-body(
-				seq(
-					seq(
-						call(assert, [call(<=, [call(from, [param-ref(range)]), call(to, [param-ref(range)])])])
-						call(assert, [call(<=, [call(to, [param-ref(range)]), call(size, [param-ref(a)])])]))
-					call(fix-arr, [call(void, []), call(subscript, [call(inner, [param-ref(a)]), param-ref(range)])]))))
-		fun(false, from, type(false, nat64), none, [param(a, type(false, arrow))], field-get(0))
-		fun(false, to, type(false, nat64), none, [param(a, type(false, arrow))], field-get(1))
+			[param(a, type(false, fix-arr)), param(range, type(false, range))]
+			expr-body(call(fix-arr, [call(void, []), call(subscript, [call(inner, [param-ref(a)]), param-ref(range)])])))
 		fun(
 			true
 			subscript
 			type(false, arr)
 			none
-			[param(a, type(false, arr)), param(range, type(false, arrow))]
+			[param(a, type(false, arr)), param(range, type(false, range))]
 			expr-body(
 				seq(
-					seq(
-						call(assert, [call(<=, [call(from, [param-ref(range)]), call(to, [param-ref(range)])])])
-						call(assert, [call(<=, [call(to, [param-ref(range)]), call(size, [param-ref(a)])])]))
+					call(assert, [call(<=, [call(high, [param-ref(range)]), call(size, [param-ref(a)])])])
 					call(
 						arr
 						[
-							call(wrap-sub, [call(to, [param-ref(range)]), call(from, [param-ref(range)])])
-							call(+, [call(begin-ptr, [param-ref(a)]), call(from, [param-ref(range)])])]))))
+							call(wrap-sub, [call(high, [param-ref(range)]), call(low, [param-ref(range)])])
+							call(+, [call(begin-ptr, [param-ref(a)]), call(low, [param-ref(range)])])]))))
+		fun(false, high, type(false, nat64), none, [param(a, type(false, range))], field-get(2))
+		fun(false, low, type(false, nat64), none, [param(a, type(false, range))], field-get(1))
 		fun(
-			false
-			->
-			type(false, arrow)
+			true
+			..
+			type(false, range)
 			none
-			[param(from, type(false, nat64)), param(to, type(false, nat64))]
-			expr-body(call(arrow, [param-ref(from), param-ref(to)])))
+			[param(low, type(false, nat64)), param(high, type(false, nat64))]
+			expr-body(
+				cond(
+					call(<, [param-ref(low), param-ref(high)])
+					call(range, [call(void, []), param-ref(low), param-ref(high)])
+					call(range, [call(void, []), param-ref(high), param-ref(high)]))))
 		fun(
-			false
-			arrow
-			type(false, arrow)
+			true
+			range
+			type(false, range)
 			none
-			[param(from, type(false, nat64)), param(to, type(false, nat64))]
+			[param(ignore, type(false, void)), param(low, type(false, nat64)), param(high, type(false, nat64))]
 			new-record)
 		fun(
 			true
@@ -4873,7 +4874,7 @@ program(
 			expr-body(
 				seq(
 					call(forbid, [call(is-empty, [param-ref(a)])])
-					call(subscript, [param-ref(a), call(->, [1, call(size, [param-ref(a)])])]))))
+					call(subscript, [param-ref(a), call(.., [1, call(size, [param-ref(a)])])]))))
 		fun(
 			false
 			is-empty
@@ -4887,17 +4888,15 @@ program(
 			subscript
 			type(false, arr)
 			none
-			[param(a, type(false, arr)), param(range, type(false, arrow))]
+			[param(a, type(false, arr)), param(range, type(false, range))]
 			expr-body(
 				seq(
-					seq(
-						call(assert, [call(<=, [call(from, [param-ref(range)]), call(to, [param-ref(range)])])])
-						call(assert, [call(<=, [call(to, [param-ref(range)]), call(size, [param-ref(a)])])]))
+					call(assert, [call(<=, [call(high, [param-ref(range)]), call(size, [param-ref(a)])])])
 					call(
 						arr
 						[
-							call(wrap-sub, [call(to, [param-ref(range)]), call(from, [param-ref(range)])])
-							call(+, [call(begin-ptr, [param-ref(a)]), call(from, [param-ref(range)])])]))))
+							call(wrap-sub, [call(high, [param-ref(range)]), call(low, [param-ref(range)])])
+							call(+, [call(begin-ptr, [param-ref(a)]), call(low, [param-ref(range)])])]))))
 		fun(
 			false
 			arr

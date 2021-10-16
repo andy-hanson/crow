@@ -4,14 +4,16 @@ import
 	../../compare: !=, <, <=, >, compare
 	../../exception: assert, forbid, unreachable
 	../../fun: subscript
-	../../misc: ->, as, data, drop, void
+	../../misc: as, data, drop, void
 	../../opt: none, opt, some
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
+	../../range: ..
 	../../str: ==, <=>, chars, str
 	../../str-conv: interp, finish, to-str, with-str, with-value
 	../../str-util: starts-with
 	../../test: is
 	../../writer: ~=, backup!, move-to-str!, writer
+	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, unsafe-div, wrap-add, wrap-sub
 	../arr: arr, begin-ptr, end-ptr, is-empty, size, subscript
 	../arr-util: each, fold, insert, last, rtail, tail, try-remove
@@ -119,7 +121,7 @@ This is O(a.size + b.size).
 	end2 = end fold-iter b-iter, (cur, value) =>
 		*cur := value
 		cur + 1
-	tree-set: out[0 -> end2 - out.begin-ptr] cast-immutable
+	out[0 .. end2 - out.begin-ptr].cast-immutable tree-set
 
 .walk-iter-union!<a> a mut*(out a mut*, value a, a iter a) unsafe data<a> compare<a>
 	if peek ?= a peek
@@ -334,18 +336,18 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 		a break-up-arr value, insert-ptr, max-height
 
 .break-up-arr<a> add-result a(a a[], value a, insert-ptr a*, max-height nat64) unsafe compare<a>
-	assert: a.begin-ptr <= insert-ptr
-	assert: insert-ptr <= a.end-ptr
+	hard-assert: a.begin-ptr <= insert-ptr
+	hard-assert: insert-ptr <= a.end-ptr
 	# Break it up into nodes, adding to height
 	mid-ptr = a.begin-ptr +: (a.end-ptr - a.begin-ptr) unsafe-div 2
 	mid-index = mid-ptr - a.begin-ptr
 	if insert-ptr == mid-ptr
-		inserted: inner-node: value, a[0 -> mid-index], a[mid-index -> a.size]
+		inserted: inner-node: value, a[0 .. mid-index], a[mid-index .. a.size]
 	else
 		mid = *mid-ptr
-		assert: mid-index < a.size
-		left-arr = a[0 -> mid-index]
-		right-arr = a[(mid-index wrap-add 1) -> a.size]
+		hard-assert: mid-index < a.size
+		left-arr = a[0 .. mid-index]
+		right-arr = a[(mid-index wrap-add 1) .. a.size]
 		forbid: left-arr is-empty
 		forbid: right-arr is-empty
 		if insert-ptr < mid-ptr
@@ -408,9 +410,9 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 	as arr arr
 		# Find first x > value, insert it before there
 		index = (arr binary-search-insert-ptr value) - arr.begin-ptr
-		mid = out copy-out! arr[0 -> index]
+		mid = out copy-out! arr[0 .. index]
 		*mid := value
-		mid + 1 copy-out! arr[index -> arr.size]
+		mid + 1 copy-out! arr[index .. arr.size]
 # Version where we know we don't have to insert value
 .tree-to-arr-recur!<a> a mut*(out a mut*, a node a) unsafe
 	match a
@@ -467,7 +469,7 @@ filter<a> tree-set a(a tree-set a, f act bool(a)) trusted data<a> compare<a>
 			cur + 1
 		else
 			cur
-	tree-set: out[0 -> end - out.begin-ptr] cast-immutable
+	out[0 .. end - out.begin-ptr].cast-immutable tree-set
 
 # TODO: first-some
 
@@ -476,8 +478,8 @@ map<out, in> tree-set out(a tree-set in, f act out(in)) data<in> compare<in> dat
 	end = out.begin-ptr fold a, (cur, value) =>
 		*cur := f[value]
 		cur + 1
-	assert: end == out.end-ptr
-	tree-set: out[0 -> end - out.begin-ptr].sort-unique! cast-immutable
+	hard-assert: end == out.end-ptr
+	out[0 .. end - out.begin-ptr].sort-unique!.cast-immutable tree-set
 
 # TODO:PRIVATE
 dbg<a> str(a tree-set a) to-str<a>
@@ -570,5 +572,5 @@ test
 	filtered = s8 filter x => !(x starts-with "j")
 	filtered verify "[h i k l]"
 
-	mapped = s8 map x => x.chars[0 -> 1] str
+	mapped = s8 map x => x.chars[0 .. 1] str
 	mapped verify "[h i j k l]"

@@ -7,10 +7,10 @@ import
 	../exception: assert
 	../fun: subscript
 	../log: info, log
-	../misc: ->, as, drop, void
-	../number: each
+	../misc: as, drop, void
 	../opt: is-empty, none, opt, or-default, some
 	../ptr: ==, +, *, const-ptr, ptr-to, set-deref
+	../range: .., each
 	../str: ==, str
 	../str-conv: to-hex, to-str
 	../test: is
@@ -286,7 +286,7 @@ intersect index-set(a index-set, b index-set)
 ###
 
 # hi exclusive
-# TODO: use 'arrow' type
+# TODO: use 'range' type
 count-range nat64(a index-set, low nat64, high nat64) trusted
 	if high < low
 		0
@@ -320,7 +320,7 @@ count-range nat64(a index-set, low nat64, high nat64) trusted
 				values[low-word-index] count-range-in-nat64 low-bit-index, high-bit-index
 			else
 				first-word = values[low-word-index] count-gte-in-nat64 low-bit-index
-				mid-words = values[(low-word-index wrap-add 1) -> high-word-index] count-ones-in-arr
+				mid-words = values[(low-word-index wrap-add 1) .. high-word-index] count-ones-in-arr
 				last-word = values[high-word-index] count-less-in-nat64 high-bit-index
 				first-word wrap-add mid-words wrap-add last-word
 		as empty
@@ -501,7 +501,7 @@ verify void(a index-set, expected str, expected-arr nat64[])
 	r = a arr
 	r is expected-arr
 	drop: 0 fold a, (prev, cur) =>
-		prev -> cur each x =>
+		prev .. cur each x =>
 			x in a is false
 		cur in a is true
 		cur wrap-add 1

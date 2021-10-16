@@ -96,6 +96,7 @@ enum Operator {
 	and1,
 	tilde,
 	arrow,
+	range,
 	shiftLeft,
 	shiftRight,
 	plus,
@@ -175,6 +176,8 @@ private immutable(Opt!Operator) operatorFromStr(scope immutable string str) {
 			? some(Operator.shiftRight)
 			: strEq(str, "**")
 			? some(Operator.exponent)
+			: strEq(str, "..")
+			? some(Operator.range)
 			: none!Operator;
 }
 
@@ -208,6 +211,8 @@ private immutable(string) strOfOperator(immutable Operator a) {
 			return "&";
 		case Operator.arrow:
 			return "->";
+		case Operator.range:
+			return "..";
 		case Operator.tilde:
 			return "~";
 		case Operator.shiftLeft:

@@ -1,10 +1,7 @@
 no-std
 import
-	./bool: &&, ||, bool, false
-	./compare: !=, <, <=, >, >=
-	./fun: subscript
-	./misc: ->, arrow, from, to, void
-	./opt: opt, some
+	./bool: &&, ||, bool
+	./compare: <, <=, >, >=
 	./private/number-low-level:
 		unsafe-div, unsafe-to-int64, unsafe-to-int8, unsafe-to-int16, unsafe-to-int32,
 		unsafe-to-nat64, unsafe-to-nat32, unsafe-mod, wrap-add, wrap-mul, wrap-sub
@@ -298,36 +295,3 @@ square-root float32(a float32) noctx
 # True if the float is "Not A Number".
 is-nan bool(a float64) noctx builtin
 is-nan bool(a float32) noctx builtin
-
-region number iteration
-
-###
-Calls a function for each number from `a.from` to `a.to`.
-`a.from` is inclusive and `a.to` is exclusive.
-Does nothing if `a.from` is not less than `a.to`.
-###
-each void(a arrow<nat64, nat64>, f act void(nat64))
-	if a.from < a.to
-		f[a from]
-		a.from + 1 -> a.to each f
-
-each-reverse void(a arrow<nat64, nat64>, f act void(nat64))
-	if a.from < a.to
-		a.from each-reverse-recur (a.to wrap-sub 1), f
-.each-reverse-recur void(low nat64, cur nat64, f act void(nat64))
-	f[cur]
-	if cur != low
-		low each-reverse-recur (cur wrap-sub 1), f
-
-exists bool(a arrow<nat64, nat64>, f act bool(nat64))
-	if a.from < a.to
-		f[a from] || (a.from wrap-add 1) -> a.to exists f
-	else
-		false
-
-find nat64?(a arrow<nat64, nat64>, f act bool(nat64))
-	if a.from < a.to
-		if f[a from]
-			a.from some
-		else
-			(a.from wrap-add 1) -> a.to find f

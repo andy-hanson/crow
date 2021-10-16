@@ -18,12 +18,13 @@ import
 	../compare: !=, <
 	../exception: assert, forbid, throw
 	../fun: subscript
-	../misc: ->, as, void
+	../misc: as, void
 	../number: ==, <=>, +, int32, nat8, nat16, nat32, to-int64, to-nat32, to-nat64
 	../opt: is-empty, opt, some
 	../ptr:
 		==, +, any-const-ptr, as-any-const-ptr, as-const, null, ptr-cast, ptr-cast-from-extern,
 		ref-eq, size-of
+	../range: ..
 	../str: ==, <=>, char, chars, c-str, size-bytes, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: bytes, to-c-str, to-str
@@ -109,7 +110,7 @@ read-link str(path str) summon trusted
 	size = path.to-c-str readlink buff.begin-ptr, buff.size
 	if size == -1
 		check-errno
-	buff.cast-immutable[0 -> size.to-nat64] str
+	buff.cast-immutable[0 .. size.to-nat64] str
 
 ###
 Gets the path of the current executable.

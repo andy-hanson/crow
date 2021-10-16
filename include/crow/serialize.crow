@@ -5,8 +5,9 @@ import
 	./col/arr-util: fold, strip-left-while
 	./compare: <, <=
 	./exception: assert
-	./misc: ->, as
+	./misc: as
 	./number: to-int64, to-nat32, to-nat64
+	./range: ..
 	./str: chars, str
 	./test: is
 	./private/bootstrap: todo
@@ -51,7 +52,7 @@ test
 	0x500.to-bytes is [5, 0]
 
 to-4-bytes nat8[](a nat32)
-	a.to-nat64.to-8-bytes[4 -> 8]
+	a.to-nat64.to-8-bytes[4 .. 8]
 to-bytes nat8[](a nat32)
 	a.to-nat64 to-bytes
 from-bytes nat32(a nat8[])

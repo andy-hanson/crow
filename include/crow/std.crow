@@ -12,6 +12,7 @@ export
 	./misc
 	./number
 	./opt
+	./range
 	./result
 	./str
 	./str-conv

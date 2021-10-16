@@ -6,9 +6,9 @@ import
 	../exception: assert
 	../io/time: get-unix-time, seconds-since-epoch, unix-time
 	../log: info, log
-	../misc: ->
 	../number: ==, <=>, -, nat8, nat64, to-int64
 	../opt: opt, opt-join
+	../range: ..
 	../serialize: from-bytes, to-8-bytes
 	../str: str
 	../str-conv: interp, finish, parse-int, parse-nat, to-str, with-str, with-value
@@ -37,7 +37,7 @@ to-bytes nat8[](a login-cookie)
 
 from-bytes login-cookie(a nat8[])
 	assert: a.size == 16
-	login-cookie: a[0 -> 8].from-bytes.unix-time, a[8 -> 16].from-bytes
+	login-cookie: a[0 .. 8].from-bytes.unix-time, a[8 .. 16].from-bytes
 
 to-str str(a login-cookie)
 	"{a.timestamp seconds-since-epoch}|{a cookie}"
