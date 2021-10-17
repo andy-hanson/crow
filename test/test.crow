@@ -33,7 +33,7 @@ main fut nat(args str[]) summon
 			strs[0]
 		else
 			""
-		do-test: test-options: should-print-tests, overwrite-output, max-failures, match-test
+		should-print-tests test-options overwrite-output, max-failures, match-test do-test
 	else
 		print-help
 		1

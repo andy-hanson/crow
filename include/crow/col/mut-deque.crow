@@ -28,7 +28,7 @@ mut-deque<a> record mut
 	right mut a mut*
 
 mut-deque<a> mut-deque a() trusted
-	mut-deque: fix-arr<a>, null, null
+	fix-arr<a> mut-deque null, null
 
 arr<a> a[](a mut-deque a) trusted
 	a.fix-arr cast-immutable
@@ -43,7 +43,7 @@ fix-arr<a> fix-arr a(a mut-deque a) trusted
 
 copy<a> mut-deque a(a mut-deque a) trusted
 	inner = a fix-arr
-	mut-deque: inner, inner.begin-ptr, inner.begin-ptr
+	inner mut-deque inner.begin-ptr, inner.begin-ptr
 
 is-empty<a> bool(a mut-deque a) trusted
 	a.left == null

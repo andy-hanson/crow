@@ -30,7 +30,7 @@ fix-arr<a> record mut
 
 # Empty `fix-arr`.
 fix-arr<a> fix-arr a() noctx
-	fix-arr: void, []
+	void fix-arr []
 
 # `fix-arr` from a pointer and size.
 fix-arr<a> fix-arr a(size nat64, begin-ptr a mut*) noctx unsafe
@@ -66,7 +66,7 @@ copy-to-arr<a> a[](a fix-arr a) trusted
 
 copy-from!<a> void(dest fix-arr a, source a[]) trusted
 	assert: dest.size == source.size
-	drop: memcpy: dest.begin-ptr.as-any-mut-ptr, source.begin-ptr.as-any-const-ptr, dest.size wrap-mul size-of<a>
+	drop: dest.begin-ptr.as-any-mut-ptr memcpy source.begin-ptr.as-any-const-ptr, (dest.size wrap-mul size-of<a>)
 
 copy-from!<a> void(dest fix-arr a, source fix-arr a) trusted
 	dest copy-from! source.cast-immutable

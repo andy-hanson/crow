@@ -42,14 +42,19 @@ file-ast(
 					name-range(144, rect)
 					[]
 					[
-						literal(
-							float(
-								1.5
-								false))
-						literal(
-							float(
-								2.5
-								false))])
+						call(
+							comma
+							name-range(150, new)
+							[]
+							[
+								literal(
+									float(
+										1.5
+										false))
+								literal(
+									float(
+										2.5
+										false))])])
 				seq-ast(
 					call(
 						prefix

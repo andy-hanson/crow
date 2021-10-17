@@ -26,4 +26,4 @@ to-timespec timespec(a timestamp) noctx unsafe
 	second = 1000000000
 	seconds = a unsafe-div second unsafe-to-int64
 	ns = a unsafe-mod second unsafe-to-int64
-	timespec: seconds, ns
+	seconds timespec ns

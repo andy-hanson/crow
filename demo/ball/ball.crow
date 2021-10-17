@@ -45,7 +45,7 @@ main fut nat(_ str[]) summon trusted
 	else
 		key-states-ptr = null SDL_GetKeyboardState
 		# TODO: use a mut-enum-lookup type
-		key-states = arr: SDL_NUM_SCANCODES.to-nat32.to-nat64, key-states-ptr
+		key-states = SDL_NUM_SCANCODES.to-nat32.to-nat64 arr key-states-ptr
 		print: if key-states[SDL_SCANCODE_RETURN.to-nat32.to-nat64] == 0
 			"no return"
 		else

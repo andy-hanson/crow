@@ -79,17 +79,17 @@ body
 		path handle-output output-path, res.stdout, overwrite-output
 
 	if !output-failures.is-empty
-		print-test-result: true, output-failures
+		true print-test-result output-failures
 	elif res.exit-code == 0
 		assert: res.stderr == ""
-		print-test-result: false, []
+		false print-test-result []
 	elif res.exit-code == 1
 		stderr-no-color = res.stderr remove-colors
 		# We should stop even if no test failure in handling the output
-		print-test-result: true, handle-output: path, "{output-path}.err", stderr-no-color, overwrite-output
+		true print-test-result handle-output: path, "{output-path}.err", stderr-no-color, overwrite-output
 	else
 		message = "unexpected exit code: {res exit-code}"
-		print-test-result: true, [path failure message]
+		true print-test-result [path failure message]
 
 .run-single-runnable-test failure[]
 	path-to-crow str

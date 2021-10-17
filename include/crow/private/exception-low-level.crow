@@ -29,7 +29,7 @@ get-exception-ctx exception-ctx() unsafe
 catch-with-exception-ctx<a> a(ec exception-ctx, try act a(), catcher act a(exception)) unsafe
 	old-thrown-exception = ec thrown-exception
 	old-jmp-buf = ec jmp-buf-ptr
-	store = __jmp_buf_tag: zero, 0, zero
+	store = zero __jmp_buf_tag 0, zero
 	ec.jmp-buf-ptr := store ptr-to
 	setjmp-result = ec.jmp-buf-ptr setjmp
 	if setjmp-result == 0
@@ -64,7 +64,7 @@ throw<a> a(e exception) trusted
 
 # Create amd throw an exception with the given message.
 throw<a> a(message str) trusted
-	throw: exception: message, get-backtrace
+	throw: message exception get-backtrace
 
 .number-to-throw int32()
 	7

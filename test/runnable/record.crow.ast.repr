@@ -25,7 +25,11 @@ file-ast(
 			summon: true
 			body: let(
 				m
-				call(prefix, name-range(64, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])
+				call(
+					prefix
+					name-range(64, my-record)
+					[]
+					[call(comma, name-range(75, new), [], [literal(nat(1, false)), literal(nat(2, false))])])
 				seq-ast(
 					seq-ast(
 						seq-ast(

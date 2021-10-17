@@ -90,7 +90,7 @@ read-dir str[](path str) summon
 
 .read-dir-recur void(dirp dir, res str mut[]) unsafe summon
 	# Initial value of entry / result should not matter
-	entry = dirent: 0, 0, 0, "\0", zero
+	entry = 0 dirent 0, 0, "\0", zero
 	# TODO: should not need a type argument here
 	result = entry cell<dirent>
 	err = dirp readdir_r entry, result
@@ -250,10 +250,10 @@ permissions record
 	a.read.to-nat64 << 2 | a.write.to-nat64 << 1 | a.execute.to-nat64 to-nat32
 
 no-permissions permissions()
-	permissions: false, false, false
+	false permissions false, false
 
 all-permissions permissions()
-	permissions: true, true, true
+	true permissions true, true
 
 file-permissions record
 	user permissions
@@ -261,7 +261,7 @@ file-permissions record
 	public permissions
 
 user-only file-permissions(user-permissions permissions)
-	file-permissions: user-permissions, no-permissions, no-permissions
+	user-permissions file-permissions no-permissions, no-permissions
 
 to-mode mode_t(a file-permissions)
 	a.user.to-mode << 6 | a.group.to-mode << 3 | a.public.to-mode

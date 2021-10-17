@@ -44,7 +44,8 @@ struct Lexer(SymAlloc) {
 	Ptr!(AllSymbols!SymAlloc) allSymbols;
 	private:
 	ArrBuilder!ParseDiagnostic diags;
-	immutable CStr sourceBegin;
+	//TODO:PRIVATE
+	public immutable CStr sourceBegin;
 	//TODO:PRIVATE
 	public CStr ptr;
 	immutable IndentKind indentKind;

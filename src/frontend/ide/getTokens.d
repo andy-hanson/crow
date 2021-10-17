@@ -323,6 +323,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 					addName();
 					addExprsTokens(alloc, tokens, args);
 					break;
+				case CallAst.Style.comma:
 				case CallAst.Style.setDeref:
 				case CallAst.Style.setSubscript:
 				case CallAst.Style.subscript:

@@ -39,11 +39,11 @@ is-empty bool(a task-queue) noctx
 	a.head is-empty
 
 task-queue by-val task-queue(max-threads nat64) unsafe noctx
-	task-queue: none, max-threads mut-arr-by-val-with-capacity-from-unmanaged-memory<exclusion>
+	none task-queue max-threads.mut-arr-by-val-with-capacity-from-unmanaged-memory<exclusion>
 
 # Expose construction of nodes, because it's better to do this outside of a lock
 task-queue-node task-queue-node(task task)
-	task-queue-node: task, none
+	task task-queue-node none
 
 no-task record
 	by-val
@@ -62,14 +62,14 @@ pop-task! pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 		task = head task
 		if task.time <= cur-time
 			if task.exclusion in exclusions
-				pop-recur!: head, exclusions, cur-time, task.time to-opt-time
+				head pop-recur! exclusions, cur-time, task.time.to-opt-time
 			else
 				a.head := head.next
 				head.task
 		else
-			no-task: true, task.time some
+			true no-task task.time.some
 	else
-		no-task: false, none
+		false no-task none
 
 	match res
 	as task t
@@ -99,7 +99,7 @@ body
 		task = cur task
 		if task.time <= cur-time
 			if task.exclusion in exclusions
-				pop-recur!: cur, exclusions, cur-time, if t ?= first-task-time
+				cur pop-recur! exclusions, cur-time, if t ?= first-task-time
 					t some
 				else
 					task.time to-opt-time
@@ -107,15 +107,15 @@ body
 				prev.next := cur.next
 				task
 		else
-			no-task: true, task.time some
+			true no-task task.time.some
 	else
-		no-task: true, first-task-time
+		true no-task first-task-time
 
 insert-task! void(a task-queue, inserted task-queue-node) noctx unsafe
 	size-before = a size
 	if head ?= a head
 		if head.task.time <= inserted.task.time
-			insert-recur: head, inserted
+			head insert-recur inserted
 		else
 			inserted.next := head some
 			a.head := inserted some
@@ -127,13 +127,12 @@ insert-task! void(a task-queue, inserted task-queue-node) noctx unsafe
 .insert-recur void(prev task-queue-node, inserted task-queue-node) noctx
 	if cur ?= prev next
 		if cur.task.time <= inserted.task.time
-			insert-recur: cur, inserted
+			cur insert-recur inserted
 		else
 			inserted.next := cur some
 			prev.next := inserted some
 	else
 		prev.next := inserted some
-
 
 .size nat64(a task-queue) noctx
 	a.head size-recur 0

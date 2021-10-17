@@ -35,7 +35,7 @@ Convert an arr to a deque.
 This is O(1).
 ###
 deque<a> deque a(a a[])
-	deque: stack, a, stack
+	stack deque a, stack
 
 arr<a> a[](a deque a) trusted
 	res = a.size uninitialized-fix-arr<a>
@@ -52,10 +52,10 @@ size<a> nat64(a deque a)
 	a.left.size wrap-add a.mid.size wrap-add a.right.size
 
 ~ <a> deque a(a deque a, value a)
-	deque: a.left, a.mid, a.right ~ value
+	a.left deque a.mid, a.right ~ value
 
 ~ <a> deque a(value a, a deque a)
-	deque: a.left ~ value, a.mid, a.right
+	a.left ~ value deque a.mid, a.right
 
 popped<a> record
 	value a
@@ -63,23 +63,23 @@ popped<a> record
 
 pop-left<a> popped<a>?(a deque a)
 	if popped ?= a.left pop
-		some: popped: popped.value, deque: popped.rest, a.mid, a.right
+		popped.value popped (popped.rest deque a.mid, a.right) some
 	elif first ?= a.mid first
-		some: popped: first, deque: stack, a.mid.tail, a.right
+		first popped (stack deque a.mid.tail, a.right) some
 	else
 		right-arr = a.right arr
 		if first ?= right-arr first
-			some: popped: first, deque: stack, right-arr.tail, stack
+			first popped (stack deque right-arr.tail, stack) some
 
 pop-right<a> popped<a>?(a deque a)
 	if popped ?= a.right pop
-		some: popped: popped.value, deque: a.left, a.mid, popped.rest
+		popped.value popped (a.left deque a.mid, popped.rest) some
 	elif last ?= a.mid last
-		some: popped: last, deque: a.left, a.mid.rtail, stack
+		last popped (a.left deque a.mid.rtail, stack) some
 	else
 		left-arr = a.left arr-reverse
 		if last ?= left-arr last
-			some: popped: last, deque: stack, left-arr.rtail, stack
+			last popped (stack deque left-arr.rtail, stack) some
 
 region iteration
 
@@ -107,7 +107,7 @@ map<out, in> deque out(a deque in, f act out(in)) trusted
 		*out := f[x]
 		out + 1
 	assert: end == res.end-ptr
-	deque: res.cast-immutable
+	res.cast-immutable deque
 
 .dbg str(a deque nat64)
 	out = writer

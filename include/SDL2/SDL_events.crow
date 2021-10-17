@@ -16,7 +16,7 @@ SDL_Event record
 	padding bytes48
 
 SDL_Event SDL_Event()
-	SDL_Event: SDL_FIRSTEVENT, 0, zero
+	SDL_FIRSTEVENT SDL_Event 0, zero
 
 SDL_EventType enum<u-int>
 	SDL_FIRSTEVENT = 0

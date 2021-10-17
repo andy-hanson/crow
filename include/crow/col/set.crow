@@ -102,12 +102,12 @@ try-add<a> set<a>?(a set a, value a) data<a> compare<a> hash-mix<a>
 .add-and-maybe-compact<a> set a(a set a, value a) trusted data<a> compare<a> hash-mix<a>
 	add-size = a.add add-size
 	if add-size == 0
-		set: (add-node: [value].frozen-set, none), index-set
+		([value].frozen-set add-node none) set index-set
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
 		if plan.compacted-size == 1
-			set: (add-node: [value].frozen-set, a.add.some), a.remove
+			([value].frozen-set add-node a.add.some) set a.remove
 		else
 			a add-and-compact add-size, plan, value
 
@@ -149,7 +149,7 @@ body
 	*compacted.begin-ptr := value
 	compactor = compacted.begin-ptr compactor<a> compacted.begin-ptr + 1, compacted.end-ptr
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
-	set: new-add, a.remove filter-less plan.add-size-left
+	new-add set (a.remove filter-less plan.add-size-left)
 
 .compactor<a> record mut
 	begin a mut*
@@ -170,7 +170,7 @@ body
 	compactor push! a.here, add-size-here-and-left, remove
 	assert: compactor.cur <= compactor.end
 	if compactor.cur == compactor.end
-		add-node: compactor.finish, a.left
+		compactor.finish add-node a.left
 	else
 		# TODO: should be able to write this inline
 		new-l = add-size-here-and-left wrap-sub a.here.size

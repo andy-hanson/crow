@@ -13905,14 +13905,12 @@ struct void_ assert_1(struct ctx* ctx, uint8_t condition, struct str message) {
 }
 /* fill-mut-arr<opt<arr<str>>> mut-arr<opt<arr<str>>>(size nat64, value opt<arr<str>>) */
 struct mut_arr_3* fill_mut_arr(struct ctx* ctx, uint64_t size, struct opt_12 value) {
-	struct fix_arr_6 backing0;
-	backing0 = fill_fix_arr_2(ctx, size, value);
-	
 	struct mut_arr_3* temp0;
 	uint8_t* _0 = alloc(ctx, sizeof(struct mut_arr_3));
 	temp0 = ((struct mut_arr_3*) _0);
 	
-	*temp0 = (struct mut_arr_3) {backing0, size};
+	struct fix_arr_6 _1 = fill_fix_arr_2(ctx, size, value);
+	*temp0 = (struct mut_arr_3) {_1, size};
 	return temp0;
 }
 /* fill-fix-arr<a> fix-arr<opt<arr<str>>>(size nat64, value opt<arr<str>>) */

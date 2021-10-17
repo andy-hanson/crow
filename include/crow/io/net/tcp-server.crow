@@ -63,13 +63,13 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		todo
 	else
 		event-flags = EPOLLIN | EPOLLET
-		accept-event = epoll_event: event-flags, port-fd.to-int64.to-nat64
+		accept-event = event-flags epoll_event port-fd.to-int64.to-nat64
 		ctl-err = epoll-fd epoll_ctl EPOLL_CTL_ADD, port-fd, accept-event.ptr-to
 		if ctl-err != 0
 			perror: "epoll_ctl failed\0".chars.begin-ptr
 			todo
 
-		state = tcp-server-state: false, false, 0, port-fd, epoll-fd, 0, handler
+		state = false tcp-server-state false, 0, port-fd, epoll-fd, 0, handler
 		drop: state.pad-0
 		drop: state.pad-1
 		drop: state.pad-2
@@ -114,7 +114,7 @@ close-client void(client-fd fd-t) unsafe summon
 	if state should-stop
 		void resolved
 	else
-		event = epoll_event: 0, 0
+		event = 0 epoll_event 0
 		timeout c-int = 0
 		num-events = state.epoll-fd epoll_wait event.ptr-to, 1, timeout
 		if num-events < 0
@@ -132,7 +132,7 @@ close-client void(client-fd fd-t) unsafe summon
 				err = fd close
 				assert: err == 0
 			elif fd == state.port-fd
-				accept-clients: state.port-fd, state.epoll-fd, state.handler.on-accepted-client
+				state.port-fd accept-clients state.epoll-fd, state.handler.on-accepted-client
 			else
 				fd handle-client state.handler.on-received-chunk
 			state tcp-server-loop
@@ -150,11 +150,11 @@ close-client void(client-fd fd-t) unsafe summon
 			todo
 	else
 		client-fd set-non-blocking
-		client-event = epoll_event: EPOLLIN | EPOLLET, client-fd.to-int64.to-nat64
+		client-event = EPOLLIN | EPOLLET epoll_event client-fd.to-int64.to-nat64
 		err = epoll-fd epoll_ctl EPOLL_CTL_ADD, client-fd, client-event.ptr-to
 		assert: err == 0
 		on-accepted-client[client-fd] handle-exceptions
-		accept-clients: listen-fd, epoll-fd, on-accepted-client
+		listen-fd accept-clients epoll-fd, on-accepted-client
 
 .handle-client void(fd fd-t, on-received-chunk ref void(fd-t, nat8[])) unsafe summon
 	buf = uninitialized-fix-arr<nat8>: 256

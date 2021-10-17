@@ -1,0 +1,5 @@
+./test/runnable/example-record.crow 12:9-12:13 there are functions named 'rect', but none takes 1 arguments. candidates:
+	rect rect(float64, float64) (from test/runnable/example-record.crow line 4)
+	rect by-val<rect>(float64, float64) (from test/runnable/example-record.crow line 4)
+
+./test/runnable/example-record.crow 2:5-2:25 imported name print is unused

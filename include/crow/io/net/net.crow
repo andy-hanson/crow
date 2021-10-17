@@ -32,7 +32,7 @@ uri record
 # Opens a socket, connects to the URI, and returns the fd.
 connect-to-uri fd-t(u uri) trusted summon
 	# TODO: null.as-ref is evil
-	hints = addrinfo: 0, AF_UNSPEC.to-int32, SOCK_STREAM, 0, 0, null.as<any-const-ptr>.as-ref, null, null
+	hints = 0 addrinfo AF_UNSPEC.to-int32, SOCK_STREAM, 0, 0, null.as<any-const-ptr>.as-ref, null, null
 	result = null cell<addrinfo mut*>
 	check-posix-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
 	op-sock = (*result).as-const find-and-connect-working-socket
@@ -43,7 +43,7 @@ connect-to-uri fd-t(u uri) trusted summon
 .find-and-connect-working-socket fd-t?(ap addrinfo*) unsafe summon
 	if ap != null
 		a = *ap
-		sock = socket: a.ai_family, a.ai_socktype, a.ai_protocol
+		sock = a.ai_family socket a.ai_socktype, a.ai_protocol
 		print: "sock is {sock}"
 		if sock == -1
 			# Ignore error and try again
@@ -63,9 +63,9 @@ connect-to-uri fd-t(u uri) trusted summon
 # Returns an fd bound to the given port.
 bind-to-port fd-t(port str) unsafe summon
 	# TODO: null.as-ref is evil
-	hints = addrinfo: ai-passive, AF_INET, SOCK_STREAM, 0, 0, null.as<any-const-ptr>.as-ref, null, null
+	hints = ai-passive addrinfo AF_INET, SOCK_STREAM, 0, 0, null.as<any-const-ptr>.as-ref, null, null
 	result = null cell<addrinfo mut*>
-	check-posix-error: getaddrinfo: null, port.to-c-str, hints.ptr-to, result
+	null getaddrinfo port.to-c-str, hints.ptr-to, result check-posix-error
 	op-sock = (*result).as-const find-and-bind-working-socket
 	*result freeaddrinfo
 	if res ?= op-sock
@@ -77,7 +77,7 @@ bind-to-port fd-t(port str) unsafe summon
 .find-and-bind-working-socket fd-t?(ap addrinfo*) unsafe summon
 	if ap != null
 		a = *ap
-		listen-fd = socket: a.ai_family, a.ai_socktype, 0
+		listen-fd = a.ai_family socket a.ai_socktype, 0
 		if listen-fd != -1
 			if (listen-fd bind a.ai_addr, a.ai_addrlen) == 0
 				print: "Connected!"

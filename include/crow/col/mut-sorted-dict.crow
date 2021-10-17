@@ -38,7 +38,7 @@ mut-sorted-dict<k, v> record mut
 
 # New empty `mut-sorted-dict`.
 mut-sorted-dict<k, v> mut-sorted-dict<k, v>() data<k> compare<k>
-	mut-sorted-dict: mut-arr, 0, none
+	mut-arr mut-sorted-dict 0, none
 
 # Copies an `arr` to a `mut-sorted-dict`.
 mut-sorted-dict<k, v> mut-sorted-dict<k, v>(a arrow<k, v>[]) data<k> compare<k>
@@ -154,7 +154,7 @@ Returns true if it succeeded.
 			new-pairs = mut-arr<arrow<k, v?>>
 			# TODO: '.as<v?>' should not be necessary
 			new-pairs ~= key -> value.some.as<v?>
-			a.next := some: mut-sorted-dict: new-pairs, 1, none
+			a.next := new-pairs mut-sorted-dict 1, none some
 
 # Insert at the last place where the key is < that value.
 .insert-linear!<k, v> void(a arrow<k, v?> mut[], index nat64, key k, value v) data<k> compare<k>
@@ -272,7 +272,7 @@ body
 		pair.from -> f[pair.from, pair.to.force].some.as<v-out?>
 
 .from-sorted-pairs<k, v> mut-sorted-dict<k, v>(a arrow<k, v?> mut[])
-	mut-sorted-dict: a, a.size, none
+	a mut-sorted-dict a.size, none
 
 map-to-arr<out, k, v> out[](a mut-sorted-dict<k, v>, f act out(k, v)) data<k> compare<k>
 	a compact!

@@ -57,7 +57,7 @@ import frontend.parse.lexer :
 	tryTake;
 import frontend.parse.parseType : parseType, tryParseTypeArgsBracketed;
 import model.parseDiag : ParseDiag;
-import util.collection.arr : ArrWithSize, empty, emptyArr, emptyArrWithSize, toArr;
+import util.collection.arr : ArrWithSize, empty, emptyArr, emptyArrWithSize, only, toArr;
 import util.collection.arrUtil : append, arrLiteral, arrWithSizeLiteral, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
@@ -147,6 +147,10 @@ immutable(AllowedCalls) allowAllCalls() {
 	return immutable AllowedCalls(int.min);
 }
 
+immutable(AllowedCalls) allowAllCallsExceptComma() {
+	return immutable AllowedCalls(commaPrecedence);
+}
+
 struct ArgCtx {
 	// Allow things like 'if', 'match', '\' that continue into an indented block.
 	immutable AllowedBlock allowedBlock;
@@ -175,22 +179,26 @@ struct ExprAndMaybeDedent {
 struct OptNameOrDedent {
 	@safe @nogc pure nothrow:
 
+	struct Comma {}
 	struct Dedent { immutable uint dedents; }
 	struct None {}
 
 	immutable this(immutable NameAndRange a) { kind = Kind.name; name = a; }
+	immutable this(immutable Comma a) { kind = Kind.comma; comma = a; }
 	immutable this(immutable Dedent a) { kind = Kind.dedent; dedent = a; }
 	immutable this(immutable None a) { kind = Kind.none; none = a; }
 
 	private:
 	enum Kind {
 		name,
+		comma,
 		dedent,
 		none,
 	}
 	immutable Kind kind;
 	union {
 		immutable NameAndRange name;
+		immutable Comma comma;
 		immutable Dedent dedent;
 		immutable None none;
 	}
@@ -204,24 +212,18 @@ immutable(bool) isNone(ref immutable OptNameOrDedent a) {
 	return a.kind == OptNameOrDedent.Kind.none;
 }
 
-immutable(bool) isName(ref immutable OptNameOrDedent a) {
-	return a.kind == OptNameOrDedent.Kind.name;
-}
-
-ref immutable(NameAndRange) asName(return scope ref immutable OptNameOrDedent a) {
-	verify(isName(a));
-	return a.name;
-}
-
 T matchOptNameOrDedent(T)(
 	ref immutable OptNameOrDedent a,
 	scope T delegate(ref immutable OptNameOrDedent.None) @safe @nogc pure nothrow cbNone,
+	scope T delegate(ref immutable OptNameOrDedent.Comma) @safe @nogc pure nothrow cbComma,
 	scope T delegate(ref immutable NameAndRange) @safe @nogc pure nothrow cbName,
 	scope T delegate(ref immutable OptNameOrDedent.Dedent) @safe @nogc pure nothrow cbDedent,
 ) {
 	final switch (a.kind) {
 		case OptNameOrDedent.Kind.none:
 			return cbNone(a.none);
+		case OptNameOrDedent.Kind.comma:
+			return cbComma(a.comma);
 		case OptNameOrDedent.Kind.name:
 			return cbName(a.name);
 		case OptNameOrDedent.Kind.dedent:
@@ -233,11 +235,14 @@ struct ExprAndMaybeNameOrDedent {
 	immutable ExprAst expr;
 	immutable OptNameOrDedent nameOrDedent;
 }
-static assert(ExprAndMaybeNameOrDedent.sizeof <= 80);
 
 immutable(ExprAst) assertNoNameOrDedent(immutable ExprAndMaybeNameOrDedent a) {
 	verify(isNone(a.nameOrDedent));
 	return a.expr;
+}
+immutable(ArrWithSize!ExprAst) assertNoNameOrDedent(immutable ArgsAndMaybeNameOrDedent a) {
+	verify(isNone(a.nameOrDedent));
+	return a.args;
 }
 
 struct OptExprAndDedent {
@@ -260,16 +265,16 @@ immutable(ExprAndMaybeDedent) toMaybeDedent(immutable ExprAndDedent a) {
 
 immutable(ArrWithSize!ExprAst) parseSubscriptArgs(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	if (tryTake(lexer, ']'))
+		//TODO: syntax error
 		return emptyArrWithSize!ExprAst;
 	else {
 		ArrWithSizeBuilder!ExprAst builder;
-		immutable ArgCtx argCtx = immutable ArgCtx(noBlock(), allowAllCalls());
+		immutable ArgCtx argCtx = immutable ArgCtx(noBlock(), allowAllCallsExceptComma());
 		immutable ArgsAndMaybeNameOrDedent res = parseArgsRecur(alloc, lexer, argCtx, builder);
-		verify(isNone(res.nameOrDedent));
 		if (!tryTake(lexer, ']'))
 			addDiagAtChar(alloc, lexer, immutable ParseDiag(
 				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.closingBracket)));
-		return res.args;
+		return assertNoNameOrDedent(res);
 	}
 }
 
@@ -291,12 +296,15 @@ immutable(ArgsAndMaybeNameOrDedent) parseArgs(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	ref immutable ArgCtx ctx,
 ) {
-	if (!tryTake(lexer, ' '))
-		return immutable ArgsAndMaybeNameOrDedent(emptyArrWithSize!ExprAst, noNameOrDedent());
-	else {
+	if (tryTake(lexer, ' ')) {
 		ArrWithSizeBuilder!ExprAst builder;
 		return parseArgsRecur(alloc, lexer, ctx, builder);
-	}
+	} else if (tryTake(lexer, ", "))
+		return immutable ArgsAndMaybeNameOrDedent(
+			emptyArrWithSize!ExprAst,
+			immutable OptNameOrDedent(immutable OptNameOrDedent.Comma()));
+	else
+		return immutable ArgsAndMaybeNameOrDedent(emptyArrWithSize!ExprAst, noNameOrDedent());
 }
 
 immutable(ArgsAndMaybeNameOrDedent) parseArgsRecur(Alloc, SymAlloc)(
@@ -307,9 +315,19 @@ immutable(ArgsAndMaybeNameOrDedent) parseArgsRecur(Alloc, SymAlloc)(
 ) {
 	immutable ExprAndMaybeNameOrDedent ad = parseExprAndCalls(alloc, lexer, ctx);
 	add(alloc, args, ad.expr);
-	return isNone(ad.nameOrDedent) && tryTake(lexer, ", ")
-		? parseArgsRecur(alloc, lexer, ctx, args)
-		: immutable ArgsAndMaybeNameOrDedent(finishArrWithSize(alloc, args), ad.nameOrDedent);
+	immutable(ArgsAndMaybeNameOrDedent) finish() {
+		return immutable ArgsAndMaybeNameOrDedent(finishArrWithSize(alloc, args), ad.nameOrDedent);
+	}
+	return matchOptNameOrDedent!(immutable ArgsAndMaybeNameOrDedent)(
+		ad.nameOrDedent,
+		(ref immutable OptNameOrDedent.None) =>
+			finish(),
+		(ref immutable OptNameOrDedent.Comma) =>
+			parseArgsRecur(alloc, lexer, ctx, args),
+		(ref immutable NameAndRange) =>
+			finish(),
+		(ref immutable OptNameOrDedent.Dedent) =>
+			finish());
 }
 
 immutable(ExprAndDedent) parseMutEquals(Alloc, SymAlloc)(
@@ -349,6 +367,7 @@ immutable(ExprAndDedent) parseMutEquals(Alloc, SymAlloc)(
 						else
 							// This is `~x := foo` or `-x := foo`. Have a diagnostic for this.
 							return todo!(immutable CallAst.Style)("!");
+					case CallAst.Style.comma:
 					case CallAst.Style.infix:
 					case CallAst.Style.prefix:
 					case CallAst.Style.setDeref:
@@ -423,12 +442,44 @@ immutable(ExprAndMaybeNameOrDedent) parseCalls(Alloc, SymAlloc)(
 	ref immutable ExprAst lhs,
 	immutable ArgCtx argCtx,
 ) {
-	if (!tryTake(lexer, ' '))
-		return immutable ExprAndMaybeNameOrDedent(lhs, noNameOrDedent());
-	else {
+	if (tryTake(lexer, ", ")) {
+		if (canParseCommaExpr(argCtx))
+			return parseCallsAfterComma(alloc, lexer, start, lhs, argCtx);
+		else
+			return immutable ExprAndMaybeNameOrDedent(
+				lhs,
+				immutable OptNameOrDedent(immutable OptNameOrDedent.Comma()));
+	} else if (tryTake(lexer, ' ')) {
 		immutable NameAndRange funName = takeNameAndRange(alloc, lexer);
 		return parseCallsAfterName(alloc, lexer, start, lhs, funName, argCtx);
-	}
+	} else
+		return immutable ExprAndMaybeNameOrDedent(lhs, noNameOrDedent());
+}
+
+immutable(bool) canParseCommaExpr(ref immutable ArgCtx argCtx) {
+	return commaPrecedence > argCtx.allowedCalls.minPrecedenceExclusive;
+}
+
+immutable(ExprAndMaybeNameOrDedent) parseCallsAfterComma(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable Pos start,
+	ref immutable ExprAst lhs,
+	immutable ArgCtx argCtx,
+) {
+	ArrWithSizeBuilder!ExprAst builder;
+	add(alloc, builder, lhs);
+	immutable ArgsAndMaybeNameOrDedent args = parseArgsRecur(alloc, lexer, argCtx, builder);
+	immutable RangeWithinFile range = range(lexer, start);
+	return immutable ExprAndMaybeNameOrDedent(
+		immutable ExprAst(range, immutable ExprAstKind(
+			immutable CallAst(
+				CallAst.Style.comma,
+				//TODO: range is wrong..
+				immutable NameAndRange(range.start, shortSymAlphaLiteral("new")),
+				emptyArrWithSize!TypeAst,
+				args.args))),
+		args.nameOrDedent);
 }
 
 immutable(ExprAndMaybeNameOrDedent) parseCallsAfterName(Alloc, SymAlloc)(
@@ -450,9 +501,19 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterName(Alloc, SymAlloc)(
 		immutable ExprAstKind exprKind = immutable ExprAstKind(
 			immutable CallAst(CallAst.Style.infix, funName, typeArgs, prepend!(ExprAst, Alloc)(alloc, lhs, args.args)));
 		immutable ExprAst expr = immutable ExprAst(range(lexer, start), exprKind);
-		return isName(args.nameOrDedent)
-			? parseCallsAfterName(alloc, lexer, start, expr, asName(args.nameOrDedent), argCtx)
-			: immutable ExprAndMaybeNameOrDedent(expr, args.nameOrDedent);
+		immutable ExprAndMaybeNameOrDedent stopHere = immutable ExprAndMaybeNameOrDedent(expr, args.nameOrDedent);
+		return matchOptNameOrDedent(
+			args.nameOrDedent,
+			(ref immutable OptNameOrDedent.None) =>
+				stopHere,
+			(ref immutable OptNameOrDedent.Comma) =>
+				canParseCommaExpr(argCtx)
+					? parseCallsAfterComma(alloc, lexer, start, expr, argCtx)
+					: stopHere,
+			(ref immutable NameAndRange name) =>
+				parseCallsAfterName(alloc, lexer, start, expr, name, argCtx),
+			(ref immutable OptNameOrDedent.Dedent) =>
+				stopHere);
 	} else
 		return immutable ExprAndMaybeNameOrDedent(lhs, immutable OptNameOrDedent(funName));
 }
@@ -461,6 +522,9 @@ immutable(int) symPrecedence(immutable Sym a) {
 	immutable Opt!Operator operator = operatorForSym(a);
 	return has(operator) ? operatorPrecedence(force(operator)) : 0;
 }
+
+// This is for the , in `1, 2`, not the comma between args
+immutable int commaPrecedence = -4;
 
 immutable(int) operatorPrecedence(immutable Operator a) {
 	final switch (a) {
@@ -980,16 +1044,21 @@ immutable(ExprAst) takeInterpolatedRecur(Alloc, SymAlloc)(
 }
 
 immutable(ExprAndMaybeDedent) assertNoNameAfter(immutable ExprAndMaybeNameOrDedent a) {
-	immutable Opt!uint dedent = matchOptNameOrDedent!(immutable Opt!uint)(
-		a.nameOrDedent,
+	return immutable ExprAndMaybeDedent(a.expr, assertNoName(a.nameOrDedent));
+}
+
+immutable(Opt!uint) assertNoName(immutable OptNameOrDedent a) {
+	return matchOptNameOrDedent!(immutable Opt!uint)(
+		a,
 		(ref immutable OptNameOrDedent.None) =>
 			none!uint,
+		(ref immutable OptNameOrDedent.Comma) =>
+			unreachable!(immutable Opt!uint),
 		(ref immutable NameAndRange) =>
 			// We allowed all calls, so should be no dangling names
 			unreachable!(immutable Opt!uint),
 		(ref immutable OptNameOrDedent.Dedent it) =>
 			some(it.dedents));
-	return immutable ExprAndMaybeDedent(a.expr, dedent);
 }
 
 immutable(ExprAst) parseExprNoBlock(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -1047,18 +1116,17 @@ immutable(ExprAndDedent) parseSingleStatementLine(Alloc, SymAlloc)(
 		immutable ExprAndMaybeDedent expr = parseExprBeforeCall(alloc, lexer, allowBlock(curIndent));
 		if (!has(expr.dedents) && tryTake(lexer, " := "))
 			return parseMutEquals(alloc, lexer, start, expr.expr, curIndent);
-		return addDedent(
-			alloc,
-			lexer,
-			has(expr.dedents)
+		else {
+			immutable ExprAndMaybeDedent fullExpr = has(expr.dedents)
 				? expr
 				: assertNoNameAfter(parseCallsAfterSimpleExpr(
 					alloc,
 					lexer,
 					start,
 					expr.expr,
-					immutable ArgCtx(allowBlock(curIndent), allowAllCalls()))),
-			curIndent);
+					immutable ArgCtx(allowBlock(curIndent), allowAllCalls())));
+			return addDedent(alloc, lexer, fullExpr, curIndent);
+		}
 	}
 }
 

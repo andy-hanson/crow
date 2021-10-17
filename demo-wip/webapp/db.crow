@@ -106,7 +106,7 @@ close-real-db void(db db) unsafe summon
 	user-login-cookie = env open-db<user, login-cookie> "user-login-cookie"
 	post-user = env open-db<post, user> "post-user"
 	post-content = env open-db<post, str> "post-content"
-	db: env, user-from-name, user-name, user-password-hash, user-login-cookie, post-user, post-content
+	env db user-from-name, user-name, user-password-hash, user-login-cookie, post-user, post-content
 
 .db-close void(db db) unsafe summon
 	db.env close-db db.user-from-name
@@ -118,7 +118,7 @@ close-real-db void(db db) unsafe summon
 list-users user-info[](db db) summon
 	db.env with-read-transaction txn =>
 		txn map db.user-name, (user, name) =>
-			user-info: user, name
+			user user-info name
 
 user-name str(db db, user user) summon
 	db.env with-read-transaction txn =>
@@ -128,7 +128,7 @@ list-posts post-info[](db db) summon
 	db.env with-read-transaction txn =>
 		txn zip db.post-user, db.post-content, (post, user, content) =>
 			user-name = txn get db.user-name, user force
-			post-info: post, user, user-name, content
+			post post-info user, user-name, content
 
 register-user-result union
 	register-user-success
@@ -190,7 +190,7 @@ login! result<user-cookie, login-error>(db db, user-name str, password str) summ
 		user = txn get db.post-user, post force
 		user-name = txn get db.user-name, user force
 		content = txn get db.post-content, post force
-		post-info: post, user, user-name, content
+		post post-info user, user-name, content
 
 add-post! post(db db, cookie user-cookie, content str) summon
 	db.env with-write-transaction txn =>

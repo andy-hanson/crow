@@ -1,0 +1,11 @@
+./test/runnable/gc.crow 13:9-13:10 there are functions named 'r', but none takes 1 arguments. candidates:
+	r r(nat64, nat64, nat64) (from test/runnable/gc.crow line 34)
+	r by-val<r>(nat64, nat64, nat64) (from test/runnable/gc.crow line 34)
+
+./test/runnable/gc.crow 14:9-14:10 there are functions named 'r', but none takes 1 arguments. candidates:
+	r r(nat64, nat64, nat64) (from test/runnable/gc.crow line 34)
+	r by-val<r>(nat64, nat64, nat64) (from test/runnable/gc.crow line 34)
+
+./test/runnable/gc.crow 5:5-5:51 imported name - is unused
+
+./test/runnable/gc.crow 5:5-5:51 imported name as-any-const-ptr is unused

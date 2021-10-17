@@ -35,7 +35,7 @@ mut-dict<k, v> record mut
 	mut-arr<arrow<k, v>>
 
 mut-dict<k, v> v mut[k]() data<k> compare<k> hash-mix<k>
-	mut-dict: void, fix-arr, 0
+	void mut-dict fix-arr, 0
 
 mut-dict<k, v> v mut[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	res = a.size mut-dict-with-capacity<k, v>
@@ -48,7 +48,7 @@ New dict with `capacity` empty entries.
 WARN: Due to hash conflicts, this doesn't guarantee that allocations won't be needed.
 ###
 mut-dict-with-capacity<k, v> v mut[k](capacity nat64) data<k> compare<k> hash-mix<k>
-	mut-dict: void, (capacity fill-fix-arr none), 0
+	void mut-dict (capacity fill-fix-arr none), 0
 
 arr<k, v> arrow<k, v>[](a v mut[k]) data<k> compare<k> hash-mix<k>
 	a map-to-arr (key, value) => key -> value
@@ -62,7 +62,7 @@ copy<k, v> v mut[k](a v mut[k]) data<k> compare<k> hash-mix<k>
 			ar
 		as mut-arr m
 			m copy
-	mut-dict: void, entries, a.total-size
+	void mut-dict entries, a.total-size
 test
 	a = [1 -> "1", 2 -> "2", 5 -> "5"] mut-dict
 	a verify "_ (1 -> 1) [2 -> 2, 5 -> 5]"

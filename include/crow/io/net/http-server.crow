@@ -79,7 +79,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 			o value
 		as err e
 			error log e.value.to-str
-			http-response: 500, "Internal server error", dict, "Internal server error"
+			500 http-response "Internal server error", dict, "Internal server error"
 		res-str = response response-to-str
 		wrote = fd write res-str.chars.begin-ptr.ptr-cast<nat8, char>, res-str.size-bytes
 		assert: wrote == res-str.size-bytes.to-int64
@@ -89,7 +89,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		false resolved
 
 .finish-request http-request(state http-parse-state)
-	http-request: state.method, state.url, state.headers.move-to-dict!, state.unparsed.move-to-arr!.str
+	state.method http-request state.url, state.headers.move-to-dict!, state.unparsed.move-to-arr!.str
 
 # TODO: write out to a stream, not str
 .response-to-str str(a http-response)
@@ -176,4 +176,4 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	unparsed char mut[]
 
 .http-parse-state http-parse-state()
-	http-parse-state: http-get, "", mut-dict, 0, mut-arr
+	http-get http-parse-state "", mut-dict, 0, mut-arr

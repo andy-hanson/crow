@@ -40,10 +40,10 @@ rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summ
 	f = false
 	gctx-by-val by-val global-ctx = lbv global-ctx lbv, lbv, none, [], n-threads, create-condition, f, f
 	gctx = gctx-by-val ref-of-val
-	island-by-val = island: gctx, 0, n-threads
+	island-by-val = gctx island 0, n-threads
 	island = island-by-val ref-of-val
 
-	gctx.islands := arr: 1, island.ptr-to
+	gctx.islands := 1 arr island.ptr-to
 
 	main-fut = gctx add-main-task (n-threads wrap-sub 1), island, argc, argv, main-ptr
 
@@ -96,7 +96,7 @@ body
 	ctx = ctx-by-val ref-of-val
 	add act fut nat64(c-str[], main-ptr) = (all-args, main-ptr) =>
 		all-args add-first-task main-ptr
-	all-args = arr: argc.to-int64.unsafe-to-nat64, argv
+	all-args = argc.to-int64.unsafe-to-nat64 arr argv
 	add call-with-ctx ctx, all-args, main-ptr
 
 .thread-args record mut
@@ -124,9 +124,9 @@ body
 
 	actual-n-threads = n-threads wrap-sub 1
 
-	start-threads-recur: 0, actual-n-threads, threads, thread-args, gctx
-	thread-function: actual-n-threads, gctx
-	join-threads-recur: 0, actual-n-threads, threads.as-const
+	0 start-threads-recur actual-n-threads, threads, thread-args, gctx
+	actual-n-threads thread-function gctx
+	0 join-threads-recur actual-n-threads, threads.as-const
 
 	threads unmanaged-free
 	thread-args unmanaged-free

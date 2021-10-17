@@ -36,7 +36,7 @@ get-cur-island island() unsafe
 # This fun is required by the compiler.
 cur-island-and-exclusion island-and-exclusion() unsafe
 	c = get-ctx
-	island-and-exclusion: c.island-id, c.exclusion
+	c.island-id island-and-exclusion c.exclusion
 
 dynamic-sym-node record
 	by-ref
@@ -95,7 +95,7 @@ island by-val island(gctx global-ctx, id island-id, max-threads nat64) summon no
 	q = max-threads task-queue
 	gc-root by-val island-gc-root = q island-gc-root (exn => exn default-exception-handler), log =>
 		log default-log-handler
-	island: gctx, id, gc, gc-root, lock-by-val, 0, thread-safe-counter
+	gctx island id, gc, gc-root, lock-by-val, 0, thread-safe-counter
 
 default-exception-handler void(e exception) summon unsafe
 	print-err-no-newline: "uncaught exception: "
@@ -108,7 +108,7 @@ set-this-islands-exception-handler void(exception-handler fun void(exception)) s
 
 add-task void(a island, timestamp timestamp, exclusion exclusion, action act void()) unsafe
 	# Do allocation outside of the lock
-	node = task-queue-node: task: timestamp, exclusion, action
+	node = task-queue-node: timestamp task exclusion, action
 
 	a.tasks-lock.ref-of-val acquire!
 	a.tasks insert-task! node
@@ -135,7 +135,7 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 		gctx.lk.ref-of-val acquire!
 		# Remove this thread from live threads for good.
 		gctx.n-live-threads := gctx.n-live-threads wrap-sub 1
-		assert-islands-are-shut-down: 0, gctx.islands
+		0 assert-islands-are-shut-down gctx.islands
 		gctx.lk.ref-of-val release!
 	else
 		hard-assert: gctx.n-live-threads > 0
@@ -144,7 +144,7 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 
 		match gctx choose-task
 		as chosen-task t
-			do-task: gctx, tls, t
+			gctx do-task tls, t
 		as no-chosen-task n
 			if n no-tasks-and-last-thread-out
 				hard-forbid: gctx is-shut-down
@@ -160,12 +160,12 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 			gctx.lk.ref-of-val release!
 
 		# Do another task
-		thread-function-recur: gctx, tls
+		gctx thread-function-recur tls
 
 ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion exclusion) noctx unsafe
 	gc-ctx = island.gc.ref-of-val get-gc-ctx
 	tls.log-ctx-ptr.as-ref<log-ctx>.handler := island.gc-root.ref-of-val.log-handler
-	ctx: gctx.as-any-mut-ptr, island.id, exclusion, gc-ctx.as-any-mut-ptr, tls
+	gctx.as-any-mut-ptr ctx island.id, exclusion, gc-ctx.as-any-mut-ptr, tls
 
 .return-ctx void(c ctx) noctx unsafe
 	c.gc-ctx-ptr.as-ref return-gc-ctx
@@ -174,7 +174,7 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 	island = chosen-task task-island
 	match chosen-task.task-or-gc
 	as task task
-		ctx = ctx: gctx, tls, island, task.exclusion
+		ctx = gctx ctx tls, island, task.exclusion
 		task.action call-with-ctx ctx.ref-of-val
 		island.tasks-lock.ref-of-val acquire!
 		island.tasks return-task! task
@@ -257,9 +257,9 @@ body
 		island = islands noctx-at i
 		match island choose-task-in-island cur-time
 		as task t
-			chosen-task: island, t
+			island chosen-task t
 		as do-a-gc g
-			chosen-task: island, g
+			island chosen-task g
 		as no-task n
 			new-any-tasks = any-tasks || n.any-tasks
 			new-first-task-time = first-task-time min-time n.first-task-time
@@ -298,7 +298,7 @@ body
 			# do nothing -- a thread is running on this island
 			# we can't do a GC now, but don't want to start a new task either
 			# because that would block GC
-			no-task: true, none
+			true no-task none
 	else
 		match island.tasks pop-task! cur-time
 		as task t

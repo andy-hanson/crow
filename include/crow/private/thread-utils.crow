@@ -149,7 +149,7 @@ thread-safe-counter by-val thread-safe-counter() noctx
 	0 thread-safe-counter
 
 thread-safe-counter by-val thread-safe-counter(init nat64) noctx
-	thread-safe-counter: lock-by-val, init
+	lock-by-val thread-safe-counter init
 
 # Returns the old value
 get-and-increment! nat64(t thread-safe-counter) noctx unsafe

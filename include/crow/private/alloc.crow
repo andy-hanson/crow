@@ -38,7 +38,7 @@ mark bool(ctx mark-ctx, ptr-any any-const-ptr, size-bytes nat64) noctx unsafe su
 		hard-assert: (index wrap-add size-words) <= ctx.memory-size-words
 		mark-start = ctx.marks + index
 		mark-end = mark-start + size-words
-		mark-range-recur: false, mark-start, mark-end
+		false mark-range-recur mark-start, mark-end
 	else
 		hard-assert: (index wrap-add size-words) > ctx.memory-size-words
 		false
@@ -60,7 +60,7 @@ mark-range-recur bool(marked-anything bool, cur bool mut*, end bool mut*) noctx 
 	else
 		new-marked-anything = marked-anything || !*cur
 		*cur := true
-		mark-range-recur: new-marked-anything, cur + 1, end
+		new-marked-anything mark-range-recur cur + 1, end
 
 mark-visit<a> void(mark-ctx mark-ctx, value a) noctx unsafe builtin
 
@@ -106,10 +106,10 @@ get-stats gc-stats(gc gc) noctx unsafe
 	gc validate-gc
 	gc.lk.ref-of-val acquire!
 	cur-word = gc.mark-cur - gc.mark-begin
-	used-words-remaining = words-used-in-range: 0, gc.mark-cur, gc.mark-end
+	used-words-remaining = 0 words-used-in-range gc.mark-cur, gc.mark-end
 	total-words = gc.mark-end - gc.mark-begin
 	gc.lk.ref-of-val release!
-	gc-stats: cur-word, total-words, cur-word wrap-add used-words-remaining
+	cur-word gc-stats total-words, (cur-word wrap-add used-words-remaining)
 
 words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) noctx unsafe
 	if cur == end

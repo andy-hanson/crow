@@ -25,11 +25,11 @@ delay fut void()
 
 # Converts a value to a `fut` resolved with that value.
 resolved<a> fut a(value a)
-	fut: lock-by-val, fut-state-resolved: value
+	lock-by-val fut value.fut-state-resolved
 
 # Returns a `fut` resolved with an exception.
 rejected<a> fut a(err exception)
-	fut: lock-by-val, err
+	lock-by-val fut err
 
 ###
 Calls `f` after both `a` and `b` have resolved.

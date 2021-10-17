@@ -54,19 +54,18 @@ capacity<a> nat64(a a mut[]) noctx unsafe
 	a.backing size
 
 mut-arr-by-val<a> by-val a mut[]() noctx trusted
-	mut-arr<a>: fix-arr, 0
+	fix-arr mut-arr<a> 0
 
 mut-arr-by-val-with-capacity-from-unmanaged-memory<a> by-val<a mut[]>(capacity nat64) noctx unsafe
-	backing = fix-arr<a>: capacity, capacity unmanaged-alloc-zeroed-elements<a>
-	mut-arr<a>: backing, 0
+	backing = capacity fix-arr<a> capacity.unmanaged-alloc-zeroed-elements<a>
+	backing mut-arr<a> 0
 
 ###
 mut-arr where every element is `value`.
 Equivalent to `mut-arr: [value, value, ...]`.
 ###
 fill-mut-arr<a> a mut[](size nat64, value a)
-	backing = size fill-fix-arr value
-	mut-arr: backing, size
+	size fill-fix-arr value mut-arr size
 
 # New empty `mut-arr`.
 mut-arr<a> a mut[]()
@@ -157,7 +156,7 @@ Converts to an `fix-arr`.
 "Temp" because it's UB if the result is used after ths size of `a` changes.
 ###
 temp-as-fix-arr<a> fix-arr a(a a mut[]) noctx unsafe
-	fix-arr: a.size, a.begin-ptr
+	a.size fix-arr a.begin-ptr
 
 ###
 Converts to an `arr`.
@@ -188,7 +187,7 @@ copy-range-to-arr<a> a[](a a mut[], begin nat64, size nat64) trusted
 	assert: begin + size <= a.size
 	res = alloc-uninitialized<a>: size
 	src = a.begin-ptr + begin
-	drop: memcpy: res.as-any-mut-ptr, src.as-any-const-ptr, size * size-of<a>
+	drop: res.as-any-mut-ptr memcpy src.as-any-const-ptr, size * size-of<a>
 	size arr res.as-const
 
 ###
@@ -202,7 +201,7 @@ pop-n-from-start!<a> a[](a a mut[], n nat64) trusted
 	dest = a.begin-ptr as-any-mut-ptr
 	src = a.begin-ptr + n as-any-const-ptr
 	new-size = a.size - n
-	drop: memmove: dest, src, new-size * size-of<a>
+	drop: dest memmove src, new-size * size-of<a>
 	a.size := new-size
 	res
 
@@ -345,7 +344,7 @@ insert-at!<a> void(a a mut[], index nat64, value a) trusted
 	dest = a.begin-ptr + index + 1
 	src = a.begin-ptr + index
 	n = a.size - index
-	drop: memmove: dest.as-any-mut-ptr, src.as-any-const-ptr, n * size-of<a>
+	drop: dest.as-any-mut-ptr memmove src.as-any-const-ptr, n * size-of<a>
 	a.size := a.size + 1
 	a[index] := value
 	assert: a.size <= a.capacity
@@ -366,7 +365,7 @@ remove-at!<a> a(a a mut[], index nat64) trusted
 	dest = a.begin-ptr + index
 	src = a.begin-ptr + index + 1
 	n = a.size - index - 1
-	drop: memmove: dest.as-any-mut-ptr, src.as-any-const-ptr, n * size-of<a>
+	drop: dest.as-any-mut-ptr memmove src.as-any-const-ptr, n * size-of<a>
 	a.size := a.size - 1
 	res
 
@@ -427,7 +426,7 @@ map-opt-to-fix-arr<out, in> fix-arr out(a in mut[], f act out?(in)) trusted
 	out[0 .. end - out.begin-ptr]
 
 .as-mut-arr<a> a mut[](a fix-arr a) unsafe
-	mut-arr: a, a.size
+	a mut-arr a.size
 
 region mutating iteration
 

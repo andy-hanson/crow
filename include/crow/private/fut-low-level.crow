@@ -10,7 +10,7 @@ import
 	./thread-utils: lock-by-val, with-lock
 
 unresolved<a> fut a() unsafe
-	fut: lock-by-val, fut-state-no-callbacks
+	lock-by-val fut fut-state-no-callbacks
 
 resolve!<a> void(f fut a, value a) unsafe
 	f resolve-or-reject! value.ok
@@ -51,9 +51,9 @@ callback!<a> void(f fut a, cb act void(result<a, exception>)) unsafe
 	f.lk.ref-of-val with-lock () =>
 		match f state
 		as fut-state-no-callbacks
-			f.state := fut-state-callbacks: cb, none
+			f.state := cb fut-state-callbacks none
 		as fut-state-callbacks cbs
-			f.state := fut-state-callbacks: cb, some: cbs
+			f.state := cb fut-state-callbacks cbs.some
 		as fut-state-resolved r
 			cb[r.value ok]
 		as exception e

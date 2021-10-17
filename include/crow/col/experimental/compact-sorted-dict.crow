@@ -336,7 +336,7 @@ spec
 body
 	# Index can overshoot due to removing overlays
 	if index >= overlays.size
-		took-key: rightmost-value, overlays
+		rightmost-value took-key overlays
 	elif overlays[index][0].from == key
 		new-rightmost-value = overlays[index][0] to
 		new-overlay = overlays[index] tail
@@ -383,8 +383,7 @@ body
 
 filter<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, f act bool(k, v)) data<k> compare<k>
 	# No need to re-sort
-	compact-sorted-dict: void, end-node: a.arr filter pair =>
-		f[pair.from, pair.to]
+	void compact-sorted-dict (a.arr filter (pair => f[pair.from, pair.to]) end-node)
 
 map<k-out, v-out, k-in, v-in> compact-sorted-dict<k-out, v-out>
 	a compact-sorted-dict<k-in, v-in>
@@ -411,8 +410,7 @@ spec
 	compare<k>
 body
 	# No need to re-sort
-	compact-sorted-dict: void, end-node: a.arr map pair =>
-		pair.from -> f[pair.from, pair.to]
+	void compact-sorted-dict ((a.arr map pair => pair.from -> f[pair.from, pair.to]) end-node)
 
 # TODO:PRIVATE
 dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>

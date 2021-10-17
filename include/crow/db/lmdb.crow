@@ -356,11 +356,11 @@ count<k, v> nat(txn lMDB_txn, db lmdb-db<k, v>) summon
 	txn stat db entries
 
 stat<k, v> lmdb_stat(txn lMDB_txn, db lmdb-db<k, v>) trusted summon
-	s = mdb_stat: 0, 0, 0, 0, 0, 0
+	s = 0 mdb_stat 0, 0, 0, 0, 0
 	check-lmdb-error: txn.txn mdb_stat db.dbi, s
 	psize = s.ms_psize to-nat64
 	depth = s.ms_depth to-nat64
-	lmdb_stat: psize, depth, s.ms_branch_pages, s.ms_leaf_pages, s.ms_overflow_pages, s.ms_entries
+	psize lmdb_stat depth, s.ms_branch_pages, s.ms_leaf_pages, s.ms_overflow_pages, s.ms_entries
 
 with-read-transaction<a> a(env lmdb-env, f act a(lMDB_txn)) trusted summon
 	env with-transaction MDB_RDONLY, txn =>

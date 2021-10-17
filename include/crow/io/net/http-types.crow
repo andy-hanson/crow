@@ -20,13 +20,13 @@ http-response record
 	body str
 
 http-bad-query http-response(message str)
-	http-response: 400, message, dict, message
+	400 http-response message, dict, message
 
 http-not-found http-response()
 	"Not found" http-not-found
 
 http-not-found http-response(message str)
-	http-response: 404, message, dict, message
+	404 http-response message, dict, message
 
 # Method used by an HTTP request.
 http-method union

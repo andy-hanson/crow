@@ -16,13 +16,13 @@ calls<out, in> in[](a spy-act1<out, in>)
 
 spy-act<out, in> spy-act1<out, in>(f act out(in))
 	calls = mut-arr<in>
-	spy-act1: calls, in =>
+	calls spy-act1 in =>
 		calls ~= in
 		f[in]
 
 spy-act<out, in> spy-act1<out, in>(value out)
 	calls = mut-arr<in>
-	spy-act1: calls, in =>
+	calls spy-act1 in =>
 		calls ~= in
 		value
 
@@ -37,6 +37,6 @@ calls<out, in0, in1> pair<in0, in1>[](a spy-act2<out, in0, in1>)
 
 spy-act<out, in0, in1> spy-act2<out, in0, in1>(f act out(in0, in1))
 	calls = mut-arr<pair<in0, in1>>
-	spy-act2: calls, (a, b) =>
+	calls spy-act2 (a, b) =>
 		calls ~= pair<in0, in1>: a, b
 		f[a, b]

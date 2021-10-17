@@ -83,7 +83,7 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	stderr-pipes = make-pipes
 
 	# TODO: Neater, move to own function
-	actions = posix_spawn_file_actions_t: 0, 0, null, zero
+	actions = 0 posix_spawn_file_actions_t 0, null, zero
 	check-posix-error: actions posix_spawn_file_actions_init
 	check-posix-error: actions posix_spawn_file_actions_addclose stdout-pipes.write-pipe
 	check-posix-error: actions posix_spawn_file_actions_addclose stderr-pipes.write-pipe
@@ -93,7 +93,7 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	check-posix-error: actions posix_spawn_file_actions_addclose stderr-pipes.read-pipe
 
 	pid-cell = 0 cell<pid_t>
-	check-posix-error: posix_spawn: pid-cell, exe, actions, null, args, environ
+	check-posix-error: pid-cell posix_spawn exe, actions, null, args, environ
 	pid = *pid-cell
 
 	# Close child-side of pipes (from this process, child still has them)
@@ -103,14 +103,14 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	# Read from pipes
 	stdout-builder = mut-arr<char>
 	stderr-builder = mut-arr<char>
-	keep-polling: stdout-pipes.write-pipe, stderr-pipes.write-pipe, stdout-builder, stderr-builder
+	stdout-pipes.write-pipe keep-polling stderr-pipes.write-pipe, stdout-builder, stderr-builder
 
 	exit-code = pid wait-and-get-exit-code
 
-	process-result: exit-code, stdout-builder.move-to-arr!.str, stderr-builder.move-to-arr!.str
+	exit-code process-result stdout-builder.move-to-arr!.str, stderr-builder.move-to-arr!.str
 
 .make-pipes pipes() summon
-	res = pipes: 0, 0
+	res = 0 pipes 0
 	check-posix-error: res pipe
 	res
 
@@ -123,11 +123,11 @@ spec
 	summon
 	unsafe
 body
-	poll-fds fix-arr by-val<pollfd> = [(pollfd: stdout-pipe, POLLIN, 0), (pollfd: stderr-pipe, POLLIN, 0)] fix-arr
+	poll-fds fix-arr by-val<pollfd> = [(stdout-pipe pollfd POLLIN, 0), (stderr-pipe pollfd POLLIN, 0)] fix-arr
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
 	# timeout == -1 means we block
-	n-pollfds-with-events = to-int64: poll: poll-fds.begin-ptr, poll-fds.size, -1
+	n-pollfds-with-events = to-int64: poll-fds.begin-ptr poll poll-fds.size, -1
 	if n-pollfds-with-events == 0
 		# TODO: is this even possible to reach ? I think we always get has-POLLHUP instead.
 		void
@@ -137,7 +137,7 @@ body
 		assert: (a.any.to-nat64 wrap-add b.any.to-nat64) == n-pollfds-with-events.to-nat64
 		# Apparently stdout and stderr can hang up at slightly different times.
 		if !(a.hung-up && b.hung-up)
-			keep-polling: stdout-pipe, stderr-pipe, stdout-builder, stderr-builder
+			stdout-pipe keep-polling stderr-pipe, stdout-builder, stderr-builder
 
 .handle-revents-result record
 	had-POLLIN bool
@@ -182,7 +182,7 @@ body
 .spawn-and-wait exit-code(exe c-str, args c-str*, environ c-str*) summon unsafe
 	pid-cell = 0 cell<pid_t>
 	# TODO: null.as-ref is bad. If it's nullable it shouldn't be a ref.
-	check-posix-error: posix_spawn: pid-cell, exe, null.as<any-const-ptr>.as-ref, null, args, environ
+	check-posix-error: pid-cell posix_spawn exe, null.as<any-const-ptr>.as-ref, null, args, environ
 	*pid-cell wait-and-get-exit-code
 
 .wait-and-get-exit-code exit-code(pid pid_t) summon unsafe

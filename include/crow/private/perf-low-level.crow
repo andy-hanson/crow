@@ -15,7 +15,7 @@ perf-ctx record mut
 	measure-values mut fix-arr measure-value
 
 perf-ctx by-val perf-ctx() noctx
-	perf-ctx: [], fix-arr
+	[] perf-ctx fix-arr
 
 measure-value record
 	by-val

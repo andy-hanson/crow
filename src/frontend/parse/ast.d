@@ -153,7 +153,7 @@ immutable(RangeWithinFile) suffixRange(ref immutable TypeAst.Suffix a) {
 	return immutable RangeWithinFile(leftEnd, leftEnd + suffixLength(a.kind));
 }
 
-immutable(uint) suffixLength(immutable TypeAst.Suffix.Kind a) {
+private immutable(uint) suffixLength(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
 		case TypeAst.Suffix.Kind.arr:
 			return cast(uint) "[]".length;
@@ -198,6 +198,7 @@ struct CallAst {
 	@safe @nogc pure nothrow:
 
 	enum Style {
+		comma, // `a, b`, `a, b, c`, etc.
 		dot, // `a.b`
 		infix, // `a b`, `a b c`, `a b c, d`, etc.
 		prefix, // `a: b`, `a: b, c`, etc.
@@ -1333,6 +1334,8 @@ immutable(Repr) reprInterpolatedPart(Alloc)(ref Alloc alloc, ref immutable Inter
 
 immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 	final switch (a) {
+		case CallAst.Style.comma:
+			return shortSymAlphaLiteral("comma");
 		case CallAst.Style.dot:
 			return shortSymAlphaLiteral("dot");
 		case CallAst.Style.infix:

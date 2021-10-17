@@ -36,7 +36,7 @@ board-cache<a> board-cache a() trusted
 	# If their product is > the max key, then we know the key.
 	assert: 2 ** 32 * size > max-key
 	# Use max-nat as an impossible key
-	size fill-fix-arr max-nat32 board-cache: size fill-fix-arr zeroed<a>
+	size fill-fix-arr max-nat32 board-cache (size fill-fix-arr zeroed<a>)
 
 subscript<a> a?(a board-cache a, key board)
 	small-key = key board-key
@@ -96,7 +96,7 @@ height nat()
 	6
 
 .grid-has bool(a nat, x nat, y nat)
-	x < width && y < height && a has-bit: x bit-index y
+	x < width && y < height && a has-bit (x bit-index y)
 .grid-has bool(a nat, c coord)
 	a grid-has c.x, c.y
 
@@ -110,7 +110,7 @@ place board(a board, x nat)
 	assert: a can-place x
 	new-current-player = a.current-player ^ a.both-players
 	# Since the column is 111, adding a 1 makes it 1000
-	new-both-players = a.both-players |: a.both-players + x.bottom-mask
+	new-both-players = a.both-players | (a.both-players + x.bottom-mask)
 	new-current-player board new-both-players
 
 empty-board board()
@@ -126,7 +126,7 @@ empty-board board()
 
 to-str str(a board, cur-player color, last-column nat?)
 	res = writer
-	0 -> width each x =>
+	0 .. width each x =>
 		text = " {x letter-of-alphabet}"
 		# TODO: shouldn't need 'as'
 		res ~= if x.some.as<nat?> == last-column
@@ -134,9 +134,9 @@ to-str str(a board, cur-player color, last-column nat?)
 		else
 			text
 	res ~= "\n"
-	0 -> height each-reverse y =>
+	0 .. height each-reverse y =>
 		res ~= "│"
-		0 -> width each x =>
+		0 .. width each x =>
 			res ~= a[x, y, cur-player] to-short-str
 			res ~= "│"
 		res ~= "\n"
@@ -152,13 +152,13 @@ just-won bool(a board)
 
 .is-win bool(a nat)
 	horiz-mask = a & a >> height + 1
-	horiz-win = horiz-mask bits-intersect: horiz-mask >> height * 2 + 2
+	horiz-win = horiz-mask bits-intersect horiz-mask >> height * 2 + 2
 	diag-0-mask = a & a >> height
-	diag-0-win = diag-0-mask bits-intersect: diag-0-mask >> height * 2
+	diag-0-win = diag-0-mask bits-intersect diag-0-mask >> height * 2
 	diag-1-mask = a & a >> height + 2
-	diag-1-win = diag-1-mask bits-intersect: diag-1-mask >> height * 2 + 4
-	verti-mask = a &: a >> 1
-	verti-win = verti-mask bits-intersect: verti-mask >> 2
+	diag-1-win = diag-1-mask bits-intersect diag-1-mask >> height * 2 + 4
+	verti-mask = a & a >> 1
+	verti-win = verti-mask bits-intersect verti-mask >> 2
 	horiz-win || diag-0-win || diag-1-win || verti-win
 
 has-empty bool(a board)

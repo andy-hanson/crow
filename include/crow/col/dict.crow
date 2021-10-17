@@ -321,7 +321,7 @@ body
 			some: leaf-node: a.pairs remove-at index
 		as insert ins
 			some: leaf-node: a.pairs update index, key -> ins.value
-		get-or-update-result: new-node, old-value.some
+		new-node get-or-update-result old-value.some
 	else
 		new-node node<k, v>? = match f[none]
 		as no-change

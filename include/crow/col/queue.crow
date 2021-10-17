@@ -21,14 +21,14 @@ queue<a> record
 
 # Empty queue.
 queue<a> queue a()
-	queue: [], stack
+	[] queue stack
 
 ###
 Convert an arr to a queue.
 This is O(1).
 ###
 queue<a> queue a(a a[])
-	queue: a, stack
+	a queue stack
 
 arr<a> a[](a queue a) trusted
 	res = a.size uninitialized-fix-arr<a>
@@ -42,7 +42,7 @@ size<a> nat64(a queue a)
 	a.left.size wrap-add a.right.size
 
 ~ <a> queue a(a queue a, value a)
-	queue: a.left, a.right ~ value
+	a.left queue a.right ~ value
 
 is-empty<a> bool(a queue a)
 	a.left.is-empty && a.right.is-empty
@@ -53,11 +53,11 @@ dequeued<a> record
 
 dequeue<a> dequeued<a>?(a queue a)
 	if first ?= a.left first
-		some: dequeued: first, queue: a.left.tail, a.right
+		first dequeued (a.left.tail queue a.right) some
 	else
 		right-arr = a.right arr
 		if first ?= right-arr first
-			some: dequeued: first, queue: right-arr.tail, stack
+			first dequeued (right-arr.tail queue stack) some
 
 region iteration
 
@@ -84,7 +84,7 @@ map<out, in> queue out(a queue in, f act out(in)) trusted
 		*out := f[x]
 		out + 1
 	assert: end == res.end-ptr
-	queue: res.cast-immutable
+	res.cast-immutable queue
 
 test
 	a = queue<nat64>

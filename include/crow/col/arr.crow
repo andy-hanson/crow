@@ -68,11 +68,11 @@ UB if begin > end.
 ###
 arr-from-begin-end<a> a[](begin a*, end a*) unsafe noctx
 	hard-assert: begin <= end
-	arr: end - begin, begin
+	end - begin arr begin
 
 arr-cast<out, in> out[](a in[]) unsafe noctx
 	hard-assert: size-of<out> == size-of<in>
-	arr: a.size, a.begin-ptr.ptr-cast<out, in>
+	a.size arr a.begin-ptr.ptr-cast<out, in>
 
 # True iff `a.size == 0`.
 is-empty<a> bool(a a[]) noctx

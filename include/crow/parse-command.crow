@@ -26,7 +26,7 @@ If the command line is "--a --c d" and arg-names are ["a", "b", "c"],
 ###
 parse-named-args str[]?[]?(args str[], arg-names str[])
 	parsed = args parse-command-dynamic
-	assert: parsed.nameless is-empty, "Should be no nameless args"
+	parsed.nameless.is-empty assert "Should be no nameless args"
 	assert: parsed.after is-empty
 
 	values = arg-names.size fill-mut-arr<str[]?> none
@@ -73,11 +73,11 @@ single-str-or-throw str(a str[]?, option-name str)
 		rest = args[first-named-arg-index .. args.size]
 		if sep-index ?= rest find-index arg => arg == "--"
 			named-args = rest[0 .. sep-index] parse-named-args
-			parsed-command: nameless, named-args, rest[sep-index + 1 .. rest.size]
+			nameless parsed-command named-args, rest[sep-index + 1 .. rest.size]
 		else
-			parsed-command: nameless, rest.parse-named-args, []
+			nameless parsed-command rest.parse-named-args, []
 	else
-		parsed-command: args, [].dict, []
+		args parsed-command [].dict, []
 
 .parse-named-args str[][str](args str[])
 	res = mut-dict<str, str[]>
