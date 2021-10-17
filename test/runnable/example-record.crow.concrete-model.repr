@@ -39,10 +39,7 @@ program(
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, nat8)]))
 		struct(name: void, body: builtin(void, []))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, nat64)]))
-		struct(name: comparison, body: union([type(false, less), type(false, equal), type(false, greater)]))
-		struct(name: less, body: record([]))
-		struct(name: equal, body: record([]))
-		struct(name: greater, body: record([]))
+		struct(name: comparison, body: enum)
 		struct(name: int32, body: builtin(int-32, []))
 		struct(name: char, body: builtin(char, []))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, char)]))
@@ -54,13 +51,7 @@ program(
 			body: record([field(lk, false, type(false, lock)), field(state, true, type(false, fut-state))]))
 		struct(
 			name: fut-state
-			body: union(
-				[
-					type(false, fut-state-no-callbacks)
-					type(true, fut-state-callbacks)
-					type(false, fut-state-resolved)
-					type(false, exception)]))
-		struct(name: fut-state-no-callbacks, body: record([]))
+			body: union([none, some(type(true, fut-state-callbacks)), some(type(false, nat64)), some(type(false, exception))]))
 		struct(
 			name: fut-state-callbacks
 			ptr: true
@@ -78,14 +69,9 @@ program(
 			name: arr
 			body: record([field(size, false, type(false, nat64)), field(begin-ptr, false, type(false, const-ptr))]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, sym)]))
-		struct(name: result, body: union([type(false, ok), type(false, err)]))
-		struct(name: ok, body: record([field(value, false, type(false, nat64))]))
-		struct(name: err, body: record([field(value, false, type(false, exception))]))
+		struct(name: result, body: union([some(type(false, nat64)), some(type(false, exception))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, result)]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: none, body: record([]))
-		struct(name: some, body: record([field(value, false, type(true, fut-state-callbacks))]))
-		struct(name: fut-state-resolved, body: record([field(value, false, type(false, nat64))]))
+		struct(name: opt, body: union([none, some(type(true, fut-state-callbacks))]))
 		struct(
 			name: arr
 			body: record([field(size, false, type(false, nat64)), field(begin-ptr, false, type(false, const-ptr))]))
@@ -110,8 +96,7 @@ program(
 			name: dynamic-sym-node
 			ptr: true
 			body: record([field(sym, false, type(false, sym)), field(next, false, type(false, opt))]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(true, dynamic-sym-node))]))
+		struct(name: opt, body: union([none, some(type(true, dynamic-sym-node))]))
 		struct(
 			name: island
 			mut: true
@@ -147,8 +132,7 @@ program(
 			mut: true
 			ptr: true
 			body: record([field(gc, true, type(true, gc)), field(next-ctx, true, type(false, opt))]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(true, gc-ctx))]))
+		struct(name: opt, body: union([none, some(type(true, gc-ctx))]))
 		struct(
 			name: island-gc-root
 			mut: true
@@ -177,8 +161,7 @@ program(
 					field(exclusion, false, type(false, nat64))
 					field(action, false, type(false, fun-act0))]))
 		struct(name: fun-act0, body: builtin(fun, [type(false, void)]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(true, task-queue-node))]))
+		struct(name: opt, body: union([none, some(type(true, task-queue-node))]))
 		struct(
 			name: mut-arr
 			mut: true
@@ -195,10 +178,7 @@ program(
 			name: logged
 			ptr: true
 			body: record([field(level, false, type(false, log-level)), field(message, false, type(false, str))]))
-		struct(name: log-level, body: union([type(false, info), type(false, warn), type(false, error)]))
-		struct(name: info, body: record([]))
-		struct(name: warn, body: record([]))
-		struct(name: error, body: record([]))
+		struct(name: log-level, body: enum)
 		struct(name: fun1, body: builtin(fun, [type(false, void), type(true, logged)]))
 		struct(
 			name: thread-safe-counter
@@ -284,16 +264,11 @@ program(
 			name: named-val
 			body: record([field(name, false, type(false, sym)), field(val, false, type(false, const-ptr))]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, named-val)]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(true, backtrace-arrs))]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(false, mut-ptr))]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(false, mut-ptr))]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(false, mut-ptr))]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(false, mut-ptr))]))
+		struct(name: opt, body: union([none, some(type(true, backtrace-arrs))]))
+		struct(name: opt, body: union([none, some(type(false, mut-ptr))]))
+		struct(name: opt, body: union([none, some(type(false, mut-ptr))]))
+		struct(name: opt, body: union([none, some(type(false, mut-ptr))]))
+		struct(name: opt, body: union([none, some(type(false, mut-ptr))]))
 		struct(
 			name: arr
 			body: record([field(size, false, type(false, nat64)), field(begin-ptr, false, type(false, const-ptr))]))
@@ -308,8 +283,7 @@ program(
 					field(high, false, type(false, nat64))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, sym)]))
 		struct(name: lambda(to-str, 0), body: record([field(res, false, type(false, writer))]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(false, const-ptr))]))
+		struct(name: opt, body: union([none, some(type(false, const-ptr))]))
 		struct(name: log-ctx, mut: true, ptr: true, body: record([field(handler, true, type(false, fun1))]))
 		struct(
 			name: perf-ctx
@@ -337,22 +311,14 @@ program(
 			body: record([field(lk, false, type(false, lock)), field(state, true, type(false, fut-state))]))
 		struct(
 			name: fut-state
-			body: union(
-				[
-					type(false, fut-state-no-callbacks)
-					type(true, fut-state-callbacks)
-					type(false, fut-state-resolved)
-					type(false, exception)]))
+			body: union([none, some(type(true, fut-state-callbacks)), some(type(false, void)), some(type(false, exception))]))
 		struct(
 			name: fut-state-callbacks
 			ptr: true
 			body: record([field(cb, false, type(false, fun-act1)), field(next, false, type(false, opt))]))
-		struct(name: result, body: union([type(false, ok), type(false, err)]))
-		struct(name: ok, body: record([field(value, false, type(false, void))]))
+		struct(name: result, body: union([some(type(false, void)), some(type(false, exception))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, result)]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(true, fut-state-callbacks))]))
-		struct(name: fut-state-resolved, body: record([field(value, false, type(false, void))]))
+		struct(name: opt, body: union([none, some(type(true, fut-state-callbacks))]))
 		struct(
 			name: fun-ref0
 			body: record(
@@ -436,31 +402,31 @@ program(
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, thread-args)]))
 		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, true, type(false, nat64))]))
 		struct(name: fun-ptr1, body: builtin(fun-ptr, [type(false, mut-ptr), type(false, mut-ptr)]))
-		struct(name: choose-task-result, body: union([type(false, chosen-task), type(false, no-chosen-task)]))
+		struct(
+			name: choose-task-result
+			body: union([some(type(false, chosen-task)), some(type(false, no-chosen-task))]))
 		struct(
 			name: chosen-task
 			body: record([field(task-island, false, type(true, island)), field(task-or-gc, false, type(false, task-or-gc))]))
-		struct(name: task-or-gc, body: union([type(false, task), type(false, do-a-gc)]))
-		struct(name: do-a-gc, body: record([]))
+		struct(name: task-or-gc, body: union([some(type(false, task)), none]))
 		struct(
 			name: no-chosen-task
 			body: record(
 				[
 					field(no-tasks-and-last-thread-out, false, type(false, bool))
 					field(first-task-time, false, type(false, opt))]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(false, nat64))]))
+		struct(name: opt, body: union([none, some(type(false, nat64))]))
 		struct(
 			name: timespec
 			body: record([field(tv-sec, false, type(false, int64)), field(tv-nsec, false, type(false, int64))]))
 		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, true, type(false, timespec))]))
 		struct(
 			name: choose-task-in-island-result
-			body: union([type(false, task), type(false, do-a-gc), type(false, no-task)]))
+			body: union([some(type(false, task)), none, some(type(false, no-task))]))
 		struct(
 			name: no-task
 			body: record([field(any-tasks, false, type(false, bool)), field(first-task-time, false, type(false, opt))]))
-		struct(name: pop-task-result, body: union([type(false, task), type(false, no-task)]))
+		struct(name: pop-task-result, body: union([some(type(false, task)), some(type(false, no-task))]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, timespec)]))
 		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, true, type(false, mut-ptr))]))
 		struct(
@@ -668,14 +634,11 @@ program(
 			expr-body(
 				cond(
 					call(is-less, [param-ref(a), param-ref(b)])
-					to-union(0, call(less, []))
-					cond(
-						call(==, [param-ref(a), param-ref(b)])
-						to-union(1, call(equal, []))
-						to-union(2, call(greater, []))))))
-		fun(false, less, type(false, less), none, [], new-record)
-		fun(false, equal, type(false, equal), none, [], new-record)
-		fun(false, greater, type(false, greater), none, [], new-record)
+					call(less, [])
+					cond(call(==, [param-ref(a), param-ref(b)]), call(equal, []), call(greater, [])))))
+		fun(false, less, type(false, comparison), none, [], create-enum(0))
+		fun(false, equal, type(false, comparison), none, [], create-enum(1))
+		fun(false, greater, type(false, comparison), none, [], create-enum(2))
 		fun(
 			false
 			<
@@ -683,9 +646,7 @@ program(
 			none
 			[param(a, type(false, nat64)), param(b, type(false, nat64))]
 			expr-body(
-				match-union(
-					call(<=>, [param-ref(a), param-ref(b)])
-					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
+				match-enum(call(<=>, [param-ref(a), param-ref(b)]), [call(true, []), call(false, []), call(false, [])])))
 		fun(false, true, type(false, bool), none, [], builtin([]))
 		fun(false, false, type(false, bool), none, [], builtin([]))
 		fun(false, memory-size-words, type(false, nat64), none, [param(a, type(true, mark-ctx))], field-get(0))
@@ -779,7 +740,7 @@ program(
 									call(lbv, [])
 									call(lbv, [])
 									call(lbv, [])
-									to-union(0, call(none, []))
+									call(none, [])
 									record([0, null])
 									local-ref(n-threads)
 									call(create-condition, [])
@@ -833,10 +794,7 @@ program(
 																	1
 																	call(
 																		unsafe-to-int32
-																		[
-																			call(
-																				unsafe-to-int64
-																				[call(value, [local-ref(r)])])])))
+																		[call(unsafe-to-int64, [local-ref(r)])])))
 															case(none, 1)]))))))))))))
 		fun(false, get_nprocs, type(false, nat64), none, [], extern(false))
 		fun(
@@ -860,7 +818,7 @@ program(
 		fun(false, lock, type(false, lock), none, [param(is-locked, type(false, atomic-bool))], new-record)
 		fun(false, atomic-bool, type(false, atomic-bool), none, [], expr-body(call(atomic-bool, [call(false, [])])))
 		fun(false, atomic-bool, type(false, atomic-bool), none, [param(value, type(false, bool))], new-record)
-		fun(false, none, type(false, none), none, [], new-record)
+		fun(false, none, type(false, opt), none, [], new-union)
 		fun(
 			false
 			create-condition
@@ -1069,9 +1027,7 @@ program(
 			expr-body(
 				call(
 					task-queue
-					[
-						to-union(0, call(none, []))
-						call(mut-arr-by-val-with-capacity-from-unmanaged-memory, [param-ref(max-threads)])])))
+					[call(none, []), call(mut-arr-by-val-with-capacity-from-unmanaged-memory, [param-ref(max-threads)])])))
 		fun(
 			false
 			task-queue
@@ -1079,6 +1035,7 @@ program(
 			none
 			[param(head, type(false, opt)), param(currently-running-exclusions, type(false, mut-arr))]
 			new-record)
+		fun(false, none, type(false, opt), none, [], new-union)
 		fun(
 			false
 			mut-arr-by-val-with-capacity-from-unmanaged-memory
@@ -1671,57 +1628,56 @@ program(
 						case(
 							some("<<matched>>")
 							let(
-								arrs
-								get-field(local-ref("<<matched>>"), value)
-								let(
-									n-code-ptrs
-									call(
-										unsafe-to-nat64
-										[
-											call(
-												to-int64
-												[
-													call(
-														backtrace
-														[
-															call(code-ptrs, [local-ref(arrs)])
-															call(
-																unsafe-to-int32
-																[call(unsafe-to-int64, [call(code-ptrs-size, [])])])])])])
-									seq(
-										seq(
-											seq(
-												call(
-													hard-assert
-													[call(<=, [local-ref(n-code-ptrs), call(code-ptrs-size, [])])])
-												call(
-													copy-data-from!
-													[
-														call(funs, [local-ref(arrs)])
-														call(begin-ptr, [call(all-funs, [])])
-														call(size, [call(all-funs, [])])]))
-											call(
-												sort!
-												[call(funs, [local-ref(arrs)]), call(size, [call(all-funs, [])])]))
-										let(
-											end-code-names
-											call(+, [call(code-names, [local-ref(arrs)]), local-ref(n-code-ptrs)])
-											seq(
-												call(
-													fill-code-names!
-													[
-														call(code-names, [local-ref(arrs)])
-														local-ref(end-code-names)
-														call(as-const, [call(code-ptrs, [local-ref(arrs)])])
-														call(as-const, [call(funs, [local-ref(arrs)])])])
+								n-code-ptrs
+								call(
+									unsafe-to-nat64
+									[
+										call(
+											to-int64
+											[
 												call(
 													backtrace
 													[
+														call(code-ptrs, [local-ref("<<matched>>")])
 														call(
-															arr
-															[
-																local-ref(n-code-ptrs)
-																call(as-const, [call(code-names, [local-ref(arrs)])])])])))))))])))
+															unsafe-to-int32
+															[call(unsafe-to-int64, [call(code-ptrs-size, [])])])])])])
+								seq(
+									seq(
+										seq(
+											call(
+												hard-assert
+												[call(<=, [local-ref(n-code-ptrs), call(code-ptrs-size, [])])])
+											call(
+												copy-data-from!
+												[
+													call(funs, [local-ref("<<matched>>")])
+													call(begin-ptr, [call(all-funs, [])])
+													call(size, [call(all-funs, [])])]))
+										call(
+											sort!
+											[call(funs, [local-ref("<<matched>>")]), call(size, [call(all-funs, [])])]))
+									let(
+										end-code-names
+										call(+, [call(code-names, [local-ref("<<matched>>")]), local-ref(n-code-ptrs)])
+										seq(
+											call(
+												fill-code-names!
+												[
+													call(code-names, [local-ref("<<matched>>")])
+													local-ref(end-code-names)
+													call(as-const, [call(code-ptrs, [local-ref("<<matched>>")])])
+													call(as-const, [call(funs, [local-ref("<<matched>>")])])])
+											call(
+												backtrace
+												[
+													call(
+														arr
+														[
+															local-ref(n-code-ptrs)
+															call(
+																as-const
+																[call(code-names, [local-ref("<<matched>>")])])])]))))))])))
 		fun(
 			true
 			try-alloc-backtrace-arrs
@@ -1732,41 +1688,30 @@ program(
 				match-union(
 					call(try-alloc-uninitialized, [8])
 					[
-						case(none, to-union(0, call(none, [])))
+						case(none, call(none, []))
 						case(
 							some("<<matched>>")
-							let(
-								code-ptrs
-								get-field(local-ref("<<matched>>"), value)
-								match-union(
-									call(try-alloc-uninitialized, [8])
-									[
-										case(none, to-union(0, call(none, [])))
-										case(
-											some("<<matched>>")
-											let(
-												code-names
-												get-field(local-ref("<<matched>>"), value)
-												match-union(
-													call(try-alloc-uninitialized, [call(size, [call(all-funs, [])])])
-													[
-														case(none, to-union(0, call(none, [])))
-														case(
-															some("<<matched>>")
-															let(
-																funs
-																get-field(local-ref("<<matched>>"), value)
-																to-union(
-																	1
-																	call(
-																		some
-																		[
-																			call(
-																				backtrace-arrs
-																				[
-																					local-ref(code-ptrs)
-																					local-ref(code-names)
-																					local-ref(funs)])]))))])))])))])))
+							match-union(
+								call(try-alloc-uninitialized, [8])
+								[
+									case(none, call(none, []))
+									case(
+										some("<<matched>>")
+										match-union(
+											call(try-alloc-uninitialized, [call(size, [call(all-funs, [])])])
+											[
+												case(none, call(none, []))
+												case(
+													some("<<matched>>")
+													call(
+														some
+														[
+															call(
+																backtrace-arrs
+																[
+																	local-ref("<<matched>>")
+																	local-ref("<<matched>>")
+																	local-ref("<<matched>>")])]))]))]))])))
 		fun(
 			true
 			try-alloc-uninitialized
@@ -1777,13 +1722,8 @@ program(
 				match-union(
 					call(try-alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
 					[
-						case(none, to-union(0, call(none, [])))
-						case(
-							some("<<matched>>")
-							let(
-								res
-								get-field(local-ref("<<matched>>"), value)
-								to-union(1, call(some, [call(ptr-cast, [local-ref(res)])]))))])))
+						case(none, call(none, []))
+						case(some("<<matched>>"), call(some, [call(ptr-cast, [local-ref("<<matched>>")])]))])))
 		fun(
 			true
 			try-alloc
@@ -1920,7 +1860,7 @@ program(
 													param-ref(gc)
 													call(+, [call(mark-cur, [param-ref(gc)]), local-ref(size-words)])])
 											call(set-data-cur, [param-ref(gc), local-ref(next)]))
-										to-union(1, call(some, [call(ptr-cast, [local-ref(cur)])])))
+										call(some, [call(ptr-cast, [local-ref(cur)])]))
 									seq(
 										seq(
 											call(
@@ -1930,7 +1870,7 @@ program(
 												set-data-cur
 												[param-ref(gc), call(+, [call(data-cur, [param-ref(gc)]), 1])]))
 										call(try-gc-alloc-recur, [param-ref(gc), param-ref(size-bytes)])))
-								to-union(0, call(none, []))))))))
+								call(none, [])))))))
 		fun(false, data-cur, type(false, mut-ptr), none, [param(a, type(true, gc))], field-get(9))
 		fun(
 			false
@@ -1955,11 +1895,8 @@ program(
 			expr-body(
 				cond(
 					call(is-less, [param-ref(a), param-ref(b)])
-					to-union(0, call(less, []))
-					cond(
-						call(==, [param-ref(a), param-ref(b)])
-						to-union(1, call(equal, []))
-						to-union(2, call(greater, []))))))
+					call(less, [])
+					cond(call(==, [param-ref(a), param-ref(b)]), call(equal, []), call(greater, [])))))
 		fun(
 			false
 			is-less
@@ -1974,9 +1911,7 @@ program(
 			none
 			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
 			expr-body(
-				match-union(
-					call(<=>, [param-ref(a), param-ref(b)])
-					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
+				match-enum(call(<=>, [param-ref(a), param-ref(b)]), [call(true, []), call(false, []), call(false, [])])))
 		fun(false, data-end, type(false, mut-ptr), none, [param(a, type(true, gc))], field-get(10))
 		fun(
 			false
@@ -2007,7 +1942,7 @@ program(
 			none
 			[param(a, type(true, gc)), param(data-cur, type(false, mut-ptr))]
 			field-set(9))
-		fun(false, some, type(false, some), none, [param(value, type(false, mut-ptr))], new-record)
+		fun(false, some, type(false, opt), none, [param(a, type(false, mut-ptr))], new-union)
 		fun(
 			false
 			ptr-cast
@@ -2015,6 +1950,7 @@ program(
 			none
 			[param(a, type(false, mut-ptr))]
 			builtin([type(false, nat8), type(false, nat64)]))
+		fun(false, none, type(false, opt), none, [], new-union)
 		fun(
 			false
 			maybe-set-needs-gc!
@@ -2085,7 +2021,8 @@ program(
 		fun(false, as-ref, type(true, gc-ctx), none, [param(a, type(false, mut-ptr))], builtin([type(true, gc-ctx)]))
 		fun(false, gc-ctx-ptr, type(false, mut-ptr), none, [param(a, type(true, ctx))], field-get(3))
 		fun(false, size-of, type(false, nat64), none, [], builtin([type(false, const-ptr)]))
-		fun(false, some, type(false, some), none, [param(value, type(false, mut-ptr))], new-record)
+		fun(false, none, type(false, opt), none, [], new-union)
+		fun(false, some, type(false, opt), none, [param(a, type(false, mut-ptr))], new-union)
 		fun(
 			false
 			ptr-cast
@@ -2093,6 +2030,7 @@ program(
 			none
 			[param(a, type(false, mut-ptr))]
 			builtin([type(false, const-ptr), type(false, nat8)]))
+		fun(false, none, type(false, opt), none, [], new-union)
 		fun(
 			true
 			try-alloc-uninitialized
@@ -2103,15 +2041,11 @@ program(
 				match-union(
 					call(try-alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
 					[
-						case(none, to-union(0, call(none, [])))
-						case(
-							some("<<matched>>")
-							let(
-								res
-								get-field(local-ref("<<matched>>"), value)
-								to-union(1, call(some, [call(ptr-cast, [local-ref(res)])]))))])))
+						case(none, call(none, []))
+						case(some("<<matched>>"), call(some, [call(ptr-cast, [local-ref("<<matched>>")])]))])))
 		fun(false, size-of, type(false, nat64), none, [], builtin([type(false, sym)]))
-		fun(false, some, type(false, some), none, [param(value, type(false, mut-ptr))], new-record)
+		fun(false, none, type(false, opt), none, [], new-union)
+		fun(false, some, type(false, opt), none, [param(a, type(false, mut-ptr))], new-union)
 		fun(
 			false
 			ptr-cast
@@ -2129,15 +2063,11 @@ program(
 				match-union(
 					call(try-alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
 					[
-						case(none, to-union(0, call(none, [])))
-						case(
-							some("<<matched>>")
-							let(
-								res
-								get-field(local-ref("<<matched>>"), value)
-								to-union(1, call(some, [call(ptr-cast, [local-ref(res)])]))))])))
+						case(none, call(none, []))
+						case(some("<<matched>>"), call(some, [call(ptr-cast, [local-ref("<<matched>>")])]))])))
 		fun(false, size-of, type(false, nat64), none, [], builtin([type(false, named-val)]))
-		fun(false, some, type(false, some), none, [param(value, type(false, mut-ptr))], new-record)
+		fun(false, none, type(false, opt), none, [], new-union)
+		fun(false, some, type(false, opt), none, [param(a, type(false, mut-ptr))], new-union)
 		fun(
 			false
 			ptr-cast
@@ -2147,7 +2077,7 @@ program(
 			builtin([type(false, named-val), type(false, nat8)]))
 		fun(false, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
 		fun(false, all-funs, type(false, arr), none, [], builtin([]))
-		fun(false, some, type(false, some), none, [param(value, type(true, backtrace-arrs))], new-record)
+		fun(false, some, type(false, opt), none, [param(a, type(true, backtrace-arrs))], new-union)
 		fun(
 			true
 			backtrace-arrs
@@ -2342,11 +2272,8 @@ program(
 			expr-body(
 				cond(
 					call(is-less, [param-ref(a), param-ref(b)])
-					to-union(0, call(less, []))
-					cond(
-						call(==, [param-ref(a), param-ref(b)])
-						to-union(1, call(equal, []))
-						to-union(2, call(greater, []))))))
+					call(less, [])
+					cond(call(==, [param-ref(a), param-ref(b)]), call(equal, []), call(greater, [])))))
 		fun(
 			false
 			is-less
@@ -2361,9 +2288,7 @@ program(
 			none
 			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
 			expr-body(
-				match-union(
-					call(<=>, [param-ref(a), param-ref(b)])
-					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
+				match-enum(call(<=>, [param-ref(a), param-ref(b)]), [call(true, []), call(false, []), call(false, [])])))
 		fun(false, val, type(false, const-ptr), none, [param(a, type(false, named-val))], field-get(1))
 		fun(
 			false
@@ -2418,11 +2343,8 @@ program(
 			expr-body(
 				cond(
 					call(is-less, [param-ref(a), param-ref(b)])
-					to-union(0, call(less, []))
-					cond(
-						call(==, [param-ref(a), param-ref(b)])
-						to-union(1, call(equal, []))
-						to-union(2, call(greater, []))))))
+					call(less, [])
+					cond(call(==, [param-ref(a), param-ref(b)]), call(equal, []), call(greater, [])))))
 		fun(
 			false
 			is-less
@@ -2437,9 +2359,7 @@ program(
 			none
 			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
 			expr-body(
-				match-union(
-					call(<=>, [param-ref(a), param-ref(b)])
-					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
+				match-enum(call(<=>, [param-ref(a), param-ref(b)]), [call(true, []), call(false, []), call(false, [])])))
 		fun(
 			false
 			set-deref
@@ -2625,9 +2545,7 @@ program(
 			expr-body(
 				match-union(
 					call(try-gc-alloc, [param-ref(gc), param-ref(size)])
-					[
-						case(none, call(todo, []))
-						case(some("<<matched>>"), let(res, get-field(local-ref("<<matched>>"), value), local-ref(res)))])))
+					[case(none, call(todo, [])), case(some("<<matched>>"), local-ref("<<matched>>"))])))
 		fun(false, todo, type(false, mut-ptr), none, [], expr-body(seq(call(abort, []), call(zeroed, []))))
 		fun(false, zeroed, type(false, mut-ptr), none, [], builtin([type(false, mut-ptr)]))
 		fun(
@@ -2954,11 +2872,8 @@ program(
 			expr-body(
 				cond(
 					call(is-less, [param-ref(a), param-ref(b)])
-					to-union(0, call(less, []))
-					cond(
-						call(==, [param-ref(a), param-ref(b)])
-						to-union(1, call(equal, []))
-						to-union(2, call(greater, []))))))
+					call(less, [])
+					cond(call(==, [param-ref(a), param-ref(b)]), call(equal, []), call(greater, [])))))
 		fun(
 			false
 			is-less
@@ -2980,9 +2895,7 @@ program(
 			none
 			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
 			expr-body(
-				match-union(
-					call(<=>, [param-ref(a), param-ref(b)])
-					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
+				match-enum(call(<=>, [param-ref(a), param-ref(b)]), [call(true, []), call(false, []), call(false, [])])))
 		fun(
 			false
 			-
@@ -3012,9 +2925,7 @@ program(
 			expr-body(
 				match-union(
 					call(find-char-in-cstr, [param-ref(a), 0])
-					[
-						case(none, call(hard-unreachable, []))
-						case(some("<<matched>>"), let(v, get-field(local-ref("<<matched>>"), value), local-ref(v)))])))
+					[case(none, call(hard-unreachable, [])), case(some("<<matched>>"), local-ref("<<matched>>"))])))
 		fun(
 			false
 			find-char-in-cstr
@@ -3024,10 +2935,10 @@ program(
 			expr-body(
 				cond(
 					call(==, [call(*, [param-ref(a)]), param-ref(c)])
-					to-union(1, call(some, [param-ref(a)]))
+					call(some, [param-ref(a)])
 					cond(
 						call(==, [call(*, [param-ref(a)]), 0])
-						to-union(0, call(none, []))
+						call(none, [])
 						call(find-char-in-cstr, [call(+, [param-ref(a), 1]), param-ref(c)])))))
 		fun(
 			false
@@ -3038,7 +2949,8 @@ program(
 			expr-body(call(==, [call(to-nat8, [param-ref(a)]), call(to-nat8, [param-ref(b)])])))
 		fun(false, ==, type(false, bool), none, [param(a, type(false, nat8)), param(b, type(false, nat8))], builtin([]))
 		fun(false, to-nat8, type(false, nat8), none, [param(c, type(false, char))], builtin([]))
-		fun(false, some, type(false, some), none, [param(value, type(false, const-ptr))], new-record)
+		fun(false, some, type(false, opt), none, [param(a, type(false, const-ptr))], new-union)
+		fun(false, none, type(false, opt), none, [], new-union)
 		fun(
 			false
 			hard-unreachable
@@ -3189,10 +3101,7 @@ program(
 			type(false, str)
 			none
 			[param(a, type(false, log-level))]
-			expr-body(
-				match-union(
-					param-ref(a)
-					[case(none, record([arr(0, 6)])), case(none, record([arr(0, 7)])), case(none, record([arr(0, 8)]))])))
+			expr-body(match-enum(param-ref(a), [record([arr(0, 6)]), record([arr(0, 7)]), record([arr(0, 8)])])))
 		fun(false, level, type(false, log-level), none, [param(a, type(true, logged))], field-get(0))
 		fun(false, message, type(false, str), none, [param(a, type(true, logged))], field-get(1))
 		fun(
@@ -3246,7 +3155,7 @@ program(
 												[
 													call(lock-by-val, [])
 													0
-													to-union(0, call(none, []))
+													call(none, [])
 													call(false, [])
 													50331648
 													local-ref(mark)
@@ -3288,6 +3197,7 @@ program(
 				param(data-cur, type(false, mut-ptr))
 				param(data-end, type(false, mut-ptr))]
 			new-record)
+		fun(false, none, type(false, opt), none, [], new-union)
 		fun(
 			false
 			validate-gc
@@ -3375,11 +3285,8 @@ program(
 			expr-body(
 				cond(
 					call(is-less, [param-ref(a), param-ref(b)])
-					to-union(0, call(less, []))
-					cond(
-						call(==, [param-ref(a), param-ref(b)])
-						to-union(1, call(equal, []))
-						to-union(2, call(greater, []))))))
+					call(less, [])
+					cond(call(==, [param-ref(a), param-ref(b)]), call(equal, []), call(greater, [])))))
 		fun(
 			false
 			is-less
@@ -3401,9 +3308,7 @@ program(
 			none
 			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
 			expr-body(
-				match-union(
-					call(<=>, [param-ref(a), param-ref(b)])
-					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
+				match-enum(call(<=>, [param-ref(a), param-ref(b)]), [call(true, []), call(false, []), call(false, [])])))
 		fun(false, mark-end, type(false, mut-ptr), none, [param(a, type(true, gc))], field-get(7))
 		fun(
 			false
@@ -3680,18 +3585,17 @@ program(
 										seq(
 											seq(
 												call(set-gc, [local-ref(c), param-ref(gc)])
-												call(set-next-ctx, [local-ref(c), to-union(0, call(none, []))]))
+												call(set-next-ctx, [local-ref(c), call(none, [])]))
 											local-ref(c))))
 								case(
 									some("<<matched>>")
-									let(
-										c
-										get-field(local-ref("<<matched>>"), value)
+									seq(
 										seq(
-											seq(
-												call(set-context-head, [param-ref(gc), call(next-ctx, [local-ref(c)])])
-												call(set-next-ctx, [local-ref(c), to-union(0, call(none, []))]))
-											local-ref(c))))])
+											call(
+												set-context-head
+												[param-ref(gc), call(next-ctx, [local-ref("<<matched>>")])])
+											call(set-next-ctx, [local-ref("<<matched>>"), call(none, [])]))
+										local-ref("<<matched>>")))])
 						seq(call(release!, [call(ref-of-val, [call(lk, [param-ref(gc)])])]), local-ref(res))))))
 		fun(false, context-head, type(false, opt), none, [param(a, type(true, gc))], field-get(2))
 		fun(false, size-of, type(false, nat64), none, [], builtin([type(false, gc-ctx)]))
@@ -3820,7 +3724,7 @@ program(
 			type(true, fut)
 			none
 			[]
-			expr-body(call(fut, [call(lock-by-val, []), to-union(0, call(fut-state-no-callbacks, []))])))
+			expr-body(call(fut, [call(lock-by-val, []), call(fut-state-no-callbacks, [])])))
 		fun(
 			true
 			fut
@@ -3828,7 +3732,7 @@ program(
 			none
 			[param(lk, type(false, lock)), param(state, type(false, fut-state))]
 			new-record)
-		fun(false, fut-state-no-callbacks, type(false, fut-state-no-callbacks), none, [], new-record)
+		fun(false, fut-state-no-callbacks, type(false, fut-state), none, [], new-union)
 		fun(
 			true
 			callback!
@@ -3875,13 +3779,21 @@ program(
 			[param(a, type(true, fut)), param(state, type(false, fut-state))]
 			field-set(1))
 		fun(
+			false
+			fut-state-callbacks
+			type(false, fut-state)
+			none
+			[param(a, type(true, fut-state-callbacks))]
+			new-union)
+		fun(
 			true
 			fut-state-callbacks
 			type(true, fut-state-callbacks)
 			none
 			[param(cb, type(false, fun-act1)), param(next, type(false, opt))]
 			new-record)
-		fun(false, some, type(false, some), none, [param(value, type(true, fut-state-callbacks))], new-record)
+		fun(false, none, type(false, opt), none, [], new-union)
+		fun(false, some, type(false, opt), none, [param(a, type(true, fut-state-callbacks))], new-union)
 		fun(
 			true
 			subscript
@@ -3896,9 +3808,8 @@ program(
 			none
 			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, result))]
 			builtin([type(false, void), type(false, result)]))
-		fun(false, ok, type(false, ok), none, [param(value, type(false, void))], new-record)
-		fun(false, value, type(false, void), none, [param(a, type(false, fut-state-resolved))], field-get(0))
-		fun(false, err, type(false, err), none, [param(value, type(false, exception))], new-record)
+		fun(false, ok, type(false, result), none, [param(a, type(false, void))], new-union)
+		fun(false, err, type(false, result), none, [param(a, type(false, exception))], new-union)
 		fun(
 			true
 			lambda(callback!, 0)
@@ -3915,36 +3826,30 @@ program(
 								set-state
 								[
 									get-field(param-ref("<<closure>>"), f)
-									to-union(
-										1
-										call(
-											fut-state-callbacks
-											[get-field(param-ref("<<closure>>"), cb), to-union(0, call(none, []))]))]))
+									call(
+										fut-state-callbacks
+										[
+											call(
+												fut-state-callbacks
+												[get-field(param-ref("<<closure>>"), cb), call(none, [])])])]))
 						case(
 							some(cbs)
 							call(
 								set-state
 								[
 									get-field(param-ref("<<closure>>"), f)
-									to-union(
-										1
-										call(
-											fut-state-callbacks
-											[
-												get-field(param-ref("<<closure>>"), cb)
-												to-union(1, call(some, [local-ref(cbs)]))]))]))
+									call(
+										fut-state-callbacks
+										[
+											call(
+												fut-state-callbacks
+												[get-field(param-ref("<<closure>>"), cb), call(some, [local-ref(cbs)])])])]))
 						case(
 							some(r)
-							call(
-								subscript
-								[
-									get-field(param-ref("<<closure>>"), cb)
-									to-union(0, call(ok, [call(value, [local-ref(r)])]))]))
+							call(subscript, [get-field(param-ref("<<closure>>"), cb), call(ok, [local-ref(r)])]))
 						case(
 							some(e)
-							call(
-								subscript
-								[get-field(param-ref("<<closure>>"), cb), to-union(1, call(err, [local-ref(e)]))]))])))
+							call(subscript, [get-field(param-ref("<<closure>>"), cb), call(err, [local-ref(e)])]))])))
 		fun(
 			true
 			forward-to!
@@ -3974,13 +3879,21 @@ program(
 			[param(a, type(true, fut)), param(state, type(false, fut-state))]
 			field-set(1))
 		fun(
+			false
+			fut-state-callbacks
+			type(false, fut-state)
+			none
+			[param(a, type(true, fut-state-callbacks))]
+			new-union)
+		fun(
 			true
 			fut-state-callbacks
 			type(true, fut-state-callbacks)
 			none
 			[param(cb, type(false, fun-act1)), param(next, type(false, opt))]
 			new-record)
-		fun(false, some, type(false, some), none, [param(value, type(true, fut-state-callbacks))], new-record)
+		fun(false, none, type(false, opt), none, [], new-union)
+		fun(false, some, type(false, opt), none, [param(a, type(true, fut-state-callbacks))], new-union)
 		fun(
 			true
 			subscript
@@ -3995,8 +3908,8 @@ program(
 			none
 			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, result))]
 			builtin([type(false, void), type(false, result)]))
-		fun(false, ok, type(false, ok), none, [param(value, type(false, nat64))], new-record)
-		fun(false, value, type(false, nat64), none, [param(a, type(false, fut-state-resolved))], field-get(0))
+		fun(false, ok, type(false, result), none, [param(a, type(false, nat64))], new-union)
+		fun(false, err, type(false, result), none, [param(a, type(false, exception))], new-union)
 		fun(
 			true
 			lambda(callback!, 0)
@@ -4013,36 +3926,30 @@ program(
 								set-state
 								[
 									get-field(param-ref("<<closure>>"), f)
-									to-union(
-										1
-										call(
-											fut-state-callbacks
-											[get-field(param-ref("<<closure>>"), cb), to-union(0, call(none, []))]))]))
+									call(
+										fut-state-callbacks
+										[
+											call(
+												fut-state-callbacks
+												[get-field(param-ref("<<closure>>"), cb), call(none, [])])])]))
 						case(
 							some(cbs)
 							call(
 								set-state
 								[
 									get-field(param-ref("<<closure>>"), f)
-									to-union(
-										1
-										call(
-											fut-state-callbacks
-											[
-												get-field(param-ref("<<closure>>"), cb)
-												to-union(1, call(some, [local-ref(cbs)]))]))]))
+									call(
+										fut-state-callbacks
+										[
+											call(
+												fut-state-callbacks
+												[get-field(param-ref("<<closure>>"), cb), call(some, [local-ref(cbs)])])])]))
 						case(
 							some(r)
-							call(
-								subscript
-								[
-									get-field(param-ref("<<closure>>"), cb)
-									to-union(0, call(ok, [call(value, [local-ref(r)])]))]))
+							call(subscript, [get-field(param-ref("<<closure>>"), cb), call(ok, [local-ref(r)])]))
 						case(
 							some(e)
-							call(
-								subscript
-								[get-field(param-ref("<<closure>>"), cb), to-union(1, call(err, [local-ref(e)]))]))])))
+							call(subscript, [get-field(param-ref("<<closure>>"), cb), call(err, [local-ref(e)])]))])))
 		fun(
 			true
 			resolve-or-reject!
@@ -4088,15 +3995,8 @@ program(
 			none
 			[param(f, type(false, fun-act0)), param(c, type(true, ctx))]
 			builtin([type(false, fut-state)]))
-		fun(
-			true
-			fut-state-resolved
-			type(false, fut-state-resolved)
-			none
-			[param(value, type(false, nat64))]
-			new-record)
-		fun(false, value, type(false, nat64), none, [param(a, type(false, ok))], field-get(0))
-		fun(false, value, type(false, exception), none, [param(a, type(false, err))], field-get(0))
+		fun(false, fut-state-resolved, type(false, fut-state), none, [param(a, type(false, nat64))], new-union)
+		fun(false, fut-state-exception, type(false, fut-state), none, [param(a, type(false, exception))], new-union)
 		fun(
 			true
 			lambda(resolve-or-reject!, 0)
@@ -4115,10 +4015,8 @@ program(
 								match-union(
 									get-field(param-ref("<<closure>>"), result)
 									[
-										case(
-											some(o)
-											to-union(2, call(fut-state-resolved, [call(value, [local-ref(o)])])))
-										case(some(e), let(ex, call(value, [local-ref(e)]), to-union(3, local-ref(ex))))])])
+										case(some(o), call(fut-state-resolved, [local-ref(o)]))
+										case(some(e), call(fut-state-exception, [local-ref(e)]))])])
 						local-ref(old)))))
 		fun(
 			true
@@ -4135,10 +4033,7 @@ program(
 							case(none, void)
 							case(
 								some("<<matched>>")
-								let(
-									next
-									get-field(local-ref("<<matched>>"), value)
-									call(call-callbacks!, [local-ref(next), param-ref(value)])))]))))
+								call(call-callbacks!, [local-ref("<<matched>>"), param-ref(value)]))]))))
 		fun(false, cb, type(false, fun-act1), none, [param(a, type(true, fut-state-callbacks))], field-get(0))
 		fun(false, next, type(false, opt), none, [param(a, type(true, fut-state-callbacks))], field-get(1))
 		fun(
@@ -4281,7 +4176,7 @@ program(
 			type(true, task-queue-node)
 			none
 			[param(task, type(false, task))]
-			expr-body(call(task-queue-node, [param-ref(task), to-union(0, call(none, []))])))
+			expr-body(call(task-queue-node, [param-ref(task), call(none, [])])))
 		fun(
 			true
 			task-queue-node
@@ -4314,28 +4209,21 @@ program(
 						match-union(
 							call(head, [param-ref(a)])
 							[
-								case(
-									none
-									call(set-head, [param-ref(a), to-union(1, call(some, [param-ref(inserted)]))]))
+								case(none, call(set-head, [param-ref(a), call(some, [param-ref(inserted)])]))
 								case(
 									some("<<matched>>")
-									let(
-										head
-										get-field(local-ref("<<matched>>"), value)
-										cond(
+									cond(
+										call(
+											<=
+											[
+												call(time, [call(task, [local-ref("<<matched>>")])])
+												call(time, [call(task, [param-ref(inserted)])])])
+										call(insert-recur, [local-ref("<<matched>>"), param-ref(inserted)])
+										seq(
 											call(
-												<=
-												[
-													call(time, [call(task, [local-ref(head)])])
-													call(time, [call(task, [param-ref(inserted)])])])
-											call(insert-recur, [local-ref(head), param-ref(inserted)])
-											seq(
-												call(
-													set-next
-													[param-ref(inserted), to-union(1, call(some, [local-ref(head)]))])
-												call(
-													set-head
-													[param-ref(a), to-union(1, call(some, [param-ref(inserted)]))])))))])
+												set-next
+												[param-ref(inserted), call(some, [local-ref("<<matched>>")])])
+											call(set-head, [param-ref(a), call(some, [param-ref(inserted)])]))))])
 						let(
 							size-after
 							call(size, [param-ref(a)])
@@ -4362,10 +4250,9 @@ program(
 						case(none, param-ref(acc))
 						case(
 							some("<<matched>>")
-							let(
-								n
-								get-field(local-ref("<<matched>>"), value)
-								call(size-recur, [call(next, [local-ref(n)]), call(wrap-add, [param-ref(acc), 1])])))])))
+							call(
+								size-recur
+								[call(next, [local-ref("<<matched>>")]), call(wrap-add, [param-ref(acc), 1])]))])))
 		fun(false, next, type(false, opt), none, [param(a, type(true, task-queue-node))], field-get(1))
 		fun(false, head, type(false, opt), none, [param(a, type(true, task-queue))], field-get(0))
 		fun(
@@ -4375,7 +4262,7 @@ program(
 			none
 			[param(a, type(true, task-queue)), param(head, type(false, opt))]
 			field-set(0))
-		fun(false, some, type(false, some), none, [param(value, type(true, task-queue-node))], new-record)
+		fun(false, some, type(false, opt), none, [param(a, type(true, task-queue-node))], new-union)
 		fun(false, time, type(false, nat64), none, [param(a, type(false, task))], field-get(0))
 		fun(false, task, type(false, task), none, [param(a, type(true, task-queue-node))], field-get(0))
 		fun(
@@ -4388,22 +4275,19 @@ program(
 				match-union(
 					call(next, [param-ref(prev)])
 					[
-						case(none, call(set-next, [param-ref(prev), to-union(1, call(some, [param-ref(inserted)]))]))
+						case(none, call(set-next, [param-ref(prev), call(some, [param-ref(inserted)])]))
 						case(
 							some("<<matched>>")
-							let(
-								cur
-								get-field(local-ref("<<matched>>"), value)
-								cond(
-									call(
-										<=
-										[
-											call(time, [call(task, [local-ref(cur)])])
-											call(time, [call(task, [param-ref(inserted)])])])
-									call(insert-recur, [local-ref(cur), param-ref(inserted)])
-									seq(
-										call(set-next, [param-ref(inserted), to-union(1, call(some, [local-ref(cur)]))])
-										call(set-next, [param-ref(prev), to-union(1, call(some, [param-ref(inserted)]))])))))])))
+							cond(
+								call(
+									<=
+									[
+										call(time, [call(task, [local-ref("<<matched>>")])])
+										call(time, [call(task, [param-ref(inserted)])])])
+								call(insert-recur, [local-ref("<<matched>>"), param-ref(inserted)])
+								seq(
+									call(set-next, [param-ref(inserted), call(some, [local-ref("<<matched>>")])])
+									call(set-next, [param-ref(prev), call(some, [param-ref(inserted)])]))))])))
 		fun(
 			false
 			set-next
@@ -4645,7 +4529,7 @@ program(
 			type(false, void)
 			none
 			[param(f, type(true, fut)), param(e, type(false, exception))]
-			expr-body(call(resolve-or-reject!, [param-ref(f), to-union(1, call(err, [param-ref(e)]))])))
+			expr-body(call(resolve-or-reject!, [param-ref(f), call(err, [param-ref(e)])])))
 		fun(
 			true
 			lambda(lambda(subscript, 0), 1)
@@ -4672,7 +4556,6 @@ program(
 										get-field(param-ref("<<closure>>"), p0)
 										get-field(param-ref("<<closure>>"), res)])))
 						lambda(0, alloc(record([get-field(param-ref("<<closure>>"), res)])))])))
-		fun(false, value, type(false, void), none, [param(a, type(false, ok))], field-get(0))
 		fun(
 			true
 			lambda(then, 0)
@@ -4688,13 +4571,9 @@ program(
 							call(
 								forward-to!
 								[
-									call(
-										subscript
-										[get-field(param-ref("<<closure>>"), cb), call(value, [local-ref(o)])])
+									call(subscript, [get-field(param-ref("<<closure>>"), cb), local-ref(o)])
 									get-field(param-ref("<<closure>>"), res)]))
-						case(
-							some(e)
-							call(reject!, [get-field(param-ref("<<closure>>"), res), call(value, [local-ref(e)])]))])))
+						case(some(e), call(reject!, [get-field(param-ref("<<closure>>"), res), local-ref(e)]))])))
 		fun(
 			true
 			subscript
@@ -4804,7 +4683,7 @@ program(
 			type(true, fut)
 			none
 			[param(value, type(false, void))]
-			expr-body(call(fut, [call(lock-by-val, []), to-union(2, call(fut-state-resolved, [param-ref(value)]))])))
+			expr-body(call(fut, [call(lock-by-val, []), call(fut-state-resolved, [param-ref(value)])])))
 		fun(
 			true
 			fut
@@ -4812,13 +4691,7 @@ program(
 			none
 			[param(lk, type(false, lock)), param(state, type(false, fut-state))]
 			new-record)
-		fun(
-			true
-			fut-state-resolved
-			type(false, fut-state-resolved)
-			none
-			[param(value, type(false, void))]
-			new-record)
+		fun(false, fut-state-resolved, type(false, fut-state), none, [param(a, type(false, void))], new-union)
 		fun(
 			true
 			tail
@@ -5144,9 +5017,7 @@ program(
 						case(none, call(void, []))
 						case(
 							some(e)
-							call(
-								subscript
-								[call(exception-handler, [call(get-cur-island, [])]), call(value, [local-ref(e)])]))])))
+							call(subscript, [call(exception-handler, [call(get-cur-island, [])]), local-ref(e)]))])))
 		fun(
 			true
 			lambda(add-main-task, 0)
@@ -5526,7 +5397,13 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, opt))]
-			expr-body(match-union(param-ref(a), [case(none, call(true, [])), case(none, call(false, []))])))
+			expr-body(
+				match-union(
+					param-ref(a)
+					[
+						case(none, call(true, []))
+						case(some("<<matched>>"), seq(call(drop, [local-ref("<<matched>>")]), call(false, [])))])))
+		fun(false, drop, type(false, void), none, [param("_", type(true, task-queue-node))], expr-body(call(void, [])))
 		fun(
 			false
 			get-sequence
@@ -5568,9 +5445,9 @@ program(
 										0
 										local-ref(cur-time)
 										call(false, [])
-										to-union(0, call(none, []))])
+										call(none, [])])
 								[
-									case(some(c), to-union(0, local-ref(c)))
+									case(some(c), call(rslt-chosen-task, [local-ref(c)]))
 									case(
 										some(n)
 										seq(
@@ -5586,13 +5463,14 @@ program(
 													[
 														call(no-tasks-and-last-thread-out, [local-ref(n)])
 														call(==, [call(n-live-threads, [param-ref(gctx)]), 0])])
-												to-union(
-													1
-													call(
-														no-chosen-task
-														[
-															local-ref(no-task-and-last-thread-out)
-															call(first-task-time, [local-ref(n)])])))))])
+												call(
+													rslt-no-chosen-task
+													[
+														call(
+															no-chosen-task
+															[
+																local-ref(no-task-and-last-thread-out)
+																call(first-task-time, [local-ref(n)])])]))))])
 							seq(call(release!, [call(ref-of-val, [call(lk, [param-ref(gctx)])])]), local-ref(res)))))))
 		fun(
 			false
@@ -5677,37 +5555,53 @@ program(
 			expr-body(
 				cond(
 					call(==, [param-ref(i), call(size, [param-ref(islands)])])
-					to-union(1, call(no-chosen-task, [call(!, [param-ref(any-tasks)]), param-ref(first-task-time)]))
+					call(
+						rslt-no-chosen-task
+						[call(no-chosen-task, [call(!, [param-ref(any-tasks)]), param-ref(first-task-time)])])
 					let(
 						island
 						call(noctx-at, [param-ref(islands), param-ref(i)])
-						match-union(
+						let(
+							chose
 							call(choose-task-in-island, [local-ref(island), param-ref(cur-time)])
-							[
-								case(
-									some(t)
-									to-union(0, call(chosen-task, [local-ref(island), to-union(0, local-ref(t))])))
-								case(
-									some(g)
-									to-union(0, call(chosen-task, [local-ref(island), to-union(1, local-ref(g))])))
-								case(
-									some(n)
-									let(
-										new-any-tasks
-										call(||, [param-ref(any-tasks), call(any-tasks, [local-ref(n)])])
+							match-union(
+								local-ref(chose)
+								[
+									case(
+										some(t)
+										call(
+											rslt-chosen-task
+											[call(chosen-task, [local-ref(island), call(togc-task, [local-ref(t)])])]))
+									case(
+										none
+										call(
+											rslt-chosen-task
+											[call(chosen-task, [local-ref(island), call(do-a-gc, [])])]))
+									case(
+										some(n)
 										let(
-											new-first-task-time
-											call(
-												min-time
-												[param-ref(first-task-time), call(first-task-time, [local-ref(n)])])
-											call(
-												choose-task-recur
-												[
-													param-ref(islands)
-													call(wrap-add, [param-ref(i), 1])
-													param-ref(cur-time)
-													local-ref(new-any-tasks)
-													local-ref(new-first-task-time)]))))])))))
+											new-any-tasks
+											call(||, [param-ref(any-tasks), call(any-tasks, [local-ref(n)])])
+											let(
+												new-first-task-time
+												call(
+													min-time
+													[param-ref(first-task-time), call(first-task-time, [local-ref(n)])])
+												call(
+													choose-task-recur
+													[
+														param-ref(islands)
+														call(wrap-add, [param-ref(i), 1])
+														param-ref(cur-time)
+														local-ref(new-any-tasks)
+														local-ref(new-first-task-time)]))))]))))))
+		fun(
+			false
+			rslt-no-chosen-task
+			type(false, choose-task-result)
+			none
+			[param(a, type(false, no-chosen-task))]
+			new-union)
 		fun(
 			false
 			no-chosen-task
@@ -5730,11 +5624,13 @@ program(
 							call(needs-gc, [call(ref-of-val, [call(gc, [param-ref(island)])])])
 							cond(
 								call(==, [call(n-threads-running, [param-ref(island)]), 0])
-								to-union(1, call(do-a-gc, []))
-								to-union(2, call(no-task, [call(true, []), to-union(0, call(none, []))])))
+								call(do-a-gc, [])
+								call(tii-no-task, [call(no-task, [call(true, []), call(none, [])])]))
 							match-union(
 								call(pop-task!, [call(tasks, [param-ref(island)]), param-ref(cur-time)])
-								[case(some(t), to-union(0, local-ref(t))), case(some(n), to-union(2, local-ref(n)))]))
+								[
+									case(some(t), call(tii-task, [local-ref(t)]))
+									case(some(n), call(tii-no-task, [local-ref(n)]))]))
 						seq(
 							seq(
 								cond(
@@ -5747,7 +5643,14 @@ program(
 									void)
 								call(release!, [call(ref-of-val, [call(tasks-lock, [param-ref(island)])])]))
 							local-ref(res))))))
-		fun(false, do-a-gc, type(false, do-a-gc), none, [], new-record)
+		fun(false, do-a-gc, type(false, choose-task-in-island-result), none, [], new-union)
+		fun(
+			false
+			tii-no-task
+			type(false, choose-task-in-island-result)
+			none
+			[param(a, type(false, no-task))]
+			new-union)
 		fun(
 			false
 			no-task
@@ -5755,6 +5658,7 @@ program(
 			none
 			[param(any-tasks, type(false, bool)), param(first-task-time, type(false, opt))]
 			new-record)
+		fun(false, none, type(false, opt), none, [], new-union)
 		fun(
 			false
 			pop-task!
@@ -5770,38 +5674,34 @@ program(
 						match-union(
 							call(head, [param-ref(a)])
 							[
-								case(none, to-union(1, call(no-task, [call(false, []), to-union(0, call(none, []))])))
+								case(none, call(ptr-no-task, [call(no-task, [call(false, []), call(none, [])])]))
 								case(
 									some("<<matched>>")
 									let(
-										head
-										get-field(local-ref("<<matched>>"), value)
-										let(
-											task
-											call(task, [local-ref(head)])
+										task
+										call(task, [local-ref("<<matched>>")])
+										cond(
+											call(<=, [call(time, [local-ref(task)]), param-ref(cur-time)])
 											cond(
-												call(<=, [call(time, [local-ref(task)]), param-ref(cur-time)])
-												cond(
+												call(in, [call(exclusion, [local-ref(task)]), local-ref(exclusions)])
+												call(
+													pop-recur!
+													[
+														local-ref("<<matched>>")
+														local-ref(exclusions)
+														param-ref(cur-time)
+														call(to-opt-time, [call(time, [local-ref(task)])])])
+												seq(
 													call(
-														in
-														[call(exclusion, [local-ref(task)]), local-ref(exclusions)])
-													call(
-														pop-recur!
-														[
-															local-ref(head)
-															local-ref(exclusions)
-															param-ref(cur-time)
-															call(to-opt-time, [call(time, [local-ref(task)])])])
-													seq(
-														call(set-head, [param-ref(a), call(next, [local-ref(head)])])
-														to-union(0, call(task, [local-ref(head)]))))
-												to-union(
-													1
+														set-head
+														[param-ref(a), call(next, [local-ref("<<matched>>")])])
+													call(ptr-task, [call(task, [local-ref("<<matched>>")])])))
+											call(
+												ptr-no-task
+												[
 													call(
 														no-task
-														[
-															call(true, [])
-															to-union(1, call(some, [call(time, [local-ref(task)])]))]))))))])
+														[call(true, []), call(some, [call(time, [local-ref(task)])])])]))))])
 						seq(
 							match-union(
 								local-ref(res)
@@ -5827,6 +5727,7 @@ program(
 			none
 			[param(a, type(true, task-queue))]
 			field-get(1))
+		fun(false, ptr-no-task, type(false, pop-task-result), none, [param(a, type(false, no-task))], new-union)
 		fun(
 			false
 			in
@@ -5949,47 +5850,35 @@ program(
 				match-union(
 					call(next, [param-ref(prev)])
 					[
-						case(none, to-union(1, call(no-task, [call(true, []), param-ref(first-task-time)])))
+						case(none, call(ptr-no-task, [call(no-task, [call(true, []), param-ref(first-task-time)])]))
 						case(
 							some("<<matched>>")
 							let(
-								cur
-								get-field(local-ref("<<matched>>"), value)
-								let(
-									task
-									call(task, [local-ref(cur)])
+								task
+								call(task, [local-ref("<<matched>>")])
+								cond(
+									call(<=, [call(time, [local-ref(task)]), param-ref(cur-time)])
 									cond(
-										call(<=, [call(time, [local-ref(task)]), param-ref(cur-time)])
-										cond(
-											call(in, [call(exclusion, [local-ref(task)]), param-ref(exclusions)])
-											call(
-												pop-recur!
-												[
-													local-ref(cur)
-													param-ref(exclusions)
-													param-ref(cur-time)
-													match-union(
-														param-ref(first-task-time)
-														[
-															case(
-																none
-																call(to-opt-time, [call(time, [local-ref(task)])]))
-															case(
-																some("<<matched>>")
-																let(
-																	t
-																	get-field(local-ref("<<matched>>"), value)
-																	to-union(1, call(some, [local-ref(t)]))))])])
-											seq(
-												call(set-next, [param-ref(prev), call(next, [local-ref(cur)])])
-												to-union(0, local-ref(task))))
-										to-union(
-											1
-											call(
-												no-task
-												[
-													call(true, [])
-													to-union(1, call(some, [call(time, [local-ref(task)])]))]))))))])))
+										call(in, [call(exclusion, [local-ref(task)]), param-ref(exclusions)])
+										call(
+											pop-recur!
+											[
+												local-ref("<<matched>>")
+												param-ref(exclusions)
+												param-ref(cur-time)
+												match-union(
+													param-ref(first-task-time)
+													[
+														case(none, call(to-opt-time, [call(time, [local-ref(task)])]))
+														case(
+															some("<<matched>>")
+															call(some, [local-ref("<<matched>>")]))])])
+										seq(
+											call(set-next, [param-ref(prev), call(next, [local-ref("<<matched>>")])])
+											call(ptr-task, [local-ref(task)])))
+									call(
+										ptr-no-task
+										[call(no-task, [call(true, []), call(some, [call(time, [local-ref(task)])])])]))))])))
 		fun(
 			false
 			to-opt-time
@@ -5997,11 +5886,9 @@ program(
 			none
 			[param(a, type(false, nat64))]
 			expr-body(
-				cond(
-					call(!=, [param-ref(a), call(no-timestamp, [])])
-					to-union(1, call(some, [param-ref(a)]))
-					to-union(0, call(none, [])))))
-		fun(false, some, type(false, some), none, [param(value, type(false, nat64))], new-record)
+				cond(call(!=, [param-ref(a), call(no-timestamp, [])]), call(some, [param-ref(a)]), call(none, []))))
+		fun(false, some, type(false, opt), none, [param(a, type(false, nat64))], new-union)
+		fun(false, ptr-task, type(false, pop-task-result), none, [param(a, type(false, task))], new-union)
 		fun(
 			false
 			push-capacity-must-be-sufficient!
@@ -6051,6 +5938,7 @@ program(
 			none
 			[param(a, type(true, mut-arr)), param(size, type(false, nat64))]
 			field-set(1))
+		fun(false, tii-task, type(false, choose-task-in-island-result), none, [param(a, type(false, task))], new-union)
 		fun(
 			false
 			is-no-task
@@ -6070,11 +5958,20 @@ program(
 			field-set(5))
 		fun(
 			false
+			rslt-chosen-task
+			type(false, choose-task-result)
+			none
+			[param(a, type(false, chosen-task))]
+			new-union)
+		fun(
+			false
 			chosen-task
 			type(false, chosen-task)
 			none
 			[param(task-island, type(true, island)), param(task-or-gc, type(false, task-or-gc))]
 			new-record)
+		fun(false, togc-task, type(false, task-or-gc), none, [param(a, type(false, task))], new-union)
+		fun(false, do-a-gc, type(false, task-or-gc), none, [], new-union)
 		fun(false, any-tasks, type(false, bool), none, [param(a, type(false, no-task))], field-get(0))
 		fun(
 			false
@@ -6089,19 +5986,13 @@ program(
 						case(none, param-ref(b))
 						case(
 							some("<<matched>>")
-							let(
-								ta
-								get-field(local-ref("<<matched>>"), value)
-								match-union(
-									param-ref(b)
-									[
-										case(none, to-union(0, call(none, [])))
-										case(
-											some("<<matched>>")
-											let(
-												tb
-												get-field(local-ref("<<matched>>"), value)
-												to-union(1, call(some, [call(min, [local-ref(ta), local-ref(tb)])]))))])))])))
+							match-union(
+								param-ref(b)
+								[
+									case(none, call(none, []))
+									case(
+										some("<<matched>>")
+										call(some, [call(min, [local-ref("<<matched>>"), local-ref("<<matched>>")])]))]))])))
 		fun(
 			false
 			min
@@ -6281,9 +6172,9 @@ program(
 							seq(
 								call(acquire!, [call(ref-of-val, [call(lk, [local-ref(gc)])])])
 								call(set-next-ctx, [param-ref(gc-ctx), call(context-head, [local-ref(gc)])]))
-							call(set-context-head, [local-ref(gc), to-union(1, call(some, [param-ref(gc-ctx)]))]))
+							call(set-context-head, [local-ref(gc), call(some, [param-ref(gc-ctx)])]))
 						call(release!, [call(ref-of-val, [call(lk, [local-ref(gc)])])])))))
-		fun(false, some, type(false, some), none, [param(value, type(true, gc-ctx))], new-record)
+		fun(false, some, type(false, opt), none, [param(a, type(true, gc-ctx))], new-union)
 		fun(
 			false
 			run-garbage-collection
@@ -6429,23 +6320,20 @@ program(
 											case(
 												some("<<matched>>")
 												let(
-													t
-													get-field(local-ref("<<matched>>"), value)
+													abstime
+													call(to-timespec, [local-ref("<<matched>>")])
 													let(
-														abstime
-														call(to-timespec, [local-ref(t)])
-														let(
-															err
-															call(
-																pthread_cond_timedwait
-																[
-																	call(ref-of-val, [call(cond, [param-ref(a)])])
-																	call(ref-of-val, [call(mutex, [param-ref(a)])])
-																	call(ptr-to, [local-ref(abstime)])])
-															cond(
-																call(==, [local-ref(err), call(ETIMEDOUT, [])])
-																0
-																local-ref(err))))))])])
+														err
+														call(
+															pthread_cond_timedwait
+															[
+																call(ref-of-val, [call(cond, [param-ref(a)])])
+																call(ref-of-val, [call(mutex, [param-ref(a)])])
+																call(ptr-to, [local-ref(abstime)])])
+														cond(
+															call(==, [local-ref(err), call(ETIMEDOUT, [])])
+															0
+															local-ref(err)))))])])
 							void))
 					call(
 						hard-assert-posix-error
@@ -6758,11 +6646,8 @@ program(
 			expr-body(
 				cond(
 					call(is-less, [param-ref(a), param-ref(b)])
-					to-union(0, call(less, []))
-					cond(
-						call(==, [param-ref(a), param-ref(b)])
-						to-union(1, call(equal, []))
-						to-union(2, call(greater, []))))))
+					call(less, [])
+					cond(call(==, [param-ref(a), param-ref(b)]), call(equal, []), call(greater, [])))))
 		fun(
 			false
 			<
@@ -6770,9 +6655,7 @@ program(
 			none
 			[param(a, type(false, int64)), param(b, type(false, int64))]
 			expr-body(
-				match-union(
-					call(<=>, [param-ref(a), param-ref(b)])
-					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
+				match-enum(call(<=>, [param-ref(a), param-ref(b)]), [call(true, []), call(false, []), call(false, [])])))
 		fun(
 			true
 			mod
@@ -7008,11 +6891,8 @@ program(
 			expr-body(
 				cond(
 					call(is-less, [param-ref(a), param-ref(b)])
-					to-union(0, call(less, []))
-					cond(
-						call(==, [param-ref(a), param-ref(b)])
-						to-union(1, call(equal, []))
-						to-union(2, call(greater, []))))))
+					call(less, [])
+					cond(call(==, [param-ref(a), param-ref(b)]), call(equal, []), call(greater, [])))))
 		fun(
 			false
 			<
@@ -7020,9 +6900,7 @@ program(
 			none
 			[param(a, type(false, float64)), param(b, type(false, float64))]
 			expr-body(
-				match-union(
-					call(<=>, [param-ref(a), param-ref(b)])
-					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
+				match-enum(call(<=>, [param-ref(a), param-ref(b)]), [call(true, []), call(false, []), call(false, [])])))
 		fun(false, -, type(false, float64), none, [param(a, type(false, float64))], expr-body(call(*, [param-ref(a), -1.0])))
 		fun(
 			true
@@ -7039,7 +6917,7 @@ program(
 			type(true, fut)
 			none
 			[param(value, type(false, nat64))]
-			expr-body(call(fut, [call(lock-by-val, []), to-union(2, call(fut-state-resolved, [param-ref(value)]))])))
+			expr-body(call(fut, [call(lock-by-val, []), call(fut-state-resolved, [param-ref(value)])])))
 		fun(false, static-syms, type(false, arr), none, [], builtin([]))]
 	rt-main
 	main

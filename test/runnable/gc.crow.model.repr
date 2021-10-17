@@ -7,7 +7,7 @@ module(
 			some(range(30, 156))
 			21
 			some([cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc!, set-hard-limit, words-free, words-used]))
-		import(some(range(158, 204)), 6, some([-, as-any-const-ptr, by-val, size-of]))]
+		import(some(range(158, 204)), 7, some([-, as-any-const-ptr, by-val, size-of]))]
 	structs: [struct(range: file-range(77, range(794, 825)), public: true, name: r)]
 	funs: [
 		fun(

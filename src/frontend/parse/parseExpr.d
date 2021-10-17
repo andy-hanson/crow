@@ -166,6 +166,10 @@ immutable(ArgCtx) requirePrecedenceGt(ref immutable ArgCtx a, immutable int prec
 		immutable AllowedCalls(max(a.allowedCalls.minPrecedenceExclusive, precedence)));
 }
 
+immutable(ArgCtx) requirePrecedenceGtComma(ref immutable ArgCtx a) {
+	return requirePrecedenceGt(a, commaPrecedence);
+}
+
 struct ExprAndDedent {
 	immutable ExprAst expr;
 	immutable uint dedents;
@@ -296,7 +300,7 @@ immutable(ArgsAndMaybeNameOrDedent) parseArgsForOperator(Alloc, SymAlloc)(
 immutable(ArgsAndMaybeNameOrDedent) parseArgs(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	ref immutable ArgCtx ctx,
+	immutable ArgCtx ctx,
 ) {
 	if (tryTake(lexer, ' ')) {
 		ArrWithSizeBuilder!ExprAst builder;
@@ -315,6 +319,7 @@ immutable(ArgsAndMaybeNameOrDedent) parseArgsRecur(Alloc, SymAlloc)(
 	immutable ArgCtx ctx,
 	ref ArrWithSizeBuilder!ExprAst args,
 ) {
+	verify(ctx.allowedCalls.minPrecedenceExclusive >= commaPrecedence);
 	immutable ExprAndMaybeNameOrDedent ad = parseExprAndCalls(alloc, lexer, ctx);
 	add(alloc, args, ad.expr);
 	immutable(ArgsAndMaybeNameOrDedent) finish() {
@@ -471,7 +476,7 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterComma(Alloc, SymAlloc)(
 ) {
 	ArrWithSizeBuilder!ExprAst builder;
 	add(alloc, builder, lhs);
-	immutable ArgsAndMaybeNameOrDedent args = parseArgsRecur(alloc, lexer, argCtx, builder);
+	immutable ArgsAndMaybeNameOrDedent args = parseArgsRecur(alloc, lexer, requirePrecedenceGtComma(argCtx), builder);
 	immutable RangeWithinFile range = range(lexer, start);
 	return immutable ExprAndMaybeNameOrDedent(
 		immutable ExprAst(range, immutable ExprAstKind(
@@ -592,7 +597,7 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterSimpleExpr(Alloc, SymAlloc)(
 					immutable NameAndRange(lhs.range.start, asIdentifier(kind).name),
 					emptyArrWithSize!TypeAst);
 		}();
-		immutable ArgsAndMaybeNameOrDedent ad = parseArgs(alloc, lexer, argCtx);
+		immutable ArgsAndMaybeNameOrDedent ad = parseArgs(alloc, lexer, requirePrecedenceGtComma(argCtx));
 		immutable CallAst call = immutable CallAst(
 			CallAst.Style.prefix,
 			nameAndTypeArgs.name,

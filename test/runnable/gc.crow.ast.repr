@@ -52,36 +52,14 @@ file-ast(
 							prefix
 							name-range(348, r)
 							[]
-							[
-								call(
-									comma
-									name-range(351, new)
-									[]
-									[
-										literal(nat(1, false))
-										call(
-											comma
-											name-range(354, new)
-											[]
-											[literal(nat(2, false)), literal(nat(3, false))])])])
+							[literal(nat(1, false)), literal(nat(2, false)), literal(nat(3, false))])
 						let(
 							b
 							call(
 								prefix
 								name-range(364, r)
 								[]
-								[
-									call(
-										comma
-										name-range(367, new)
-										[]
-										[
-											literal(nat(4, false))
-											call(
-												comma
-												name-range(370, new)
-												[]
-												[literal(nat(5, false)), literal(nat(6, false))])])])
+								[literal(nat(4, false)), literal(nat(5, false)), literal(nat(6, false))])
 							seq-ast(
 								seq-ast(
 									seq-ast(
