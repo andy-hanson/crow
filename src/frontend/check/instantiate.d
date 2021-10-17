@@ -29,6 +29,7 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	typeParams,
+	UnionMember,
 	withType,
 	worsePurity,
 	worstCasePurity;
@@ -169,14 +170,18 @@ immutable(StructBody) instantiateStructBody(Alloc)(
 		(ref immutable StructBody.ExternPtr) =>
 			immutable StructBody(immutable StructBody.ExternPtr()),
 		(ref immutable StructBody.Record r) =>
-			immutable StructBody(StructBody.Record(
+			immutable StructBody(immutable StructBody.Record(
 				r.flags,
 				map!RecordField(alloc, r.fields, (ref immutable RecordField f) =>
 					withType(f, instantiateType(alloc, programState, f.type, typeParamsAndArgs, delayStructInsts))))),
 		(ref immutable StructBody.Union u) =>
-			immutable StructBody(StructBody.Union(
-				map!(Ptr!StructInst)(alloc, u.members, (ref immutable Ptr!StructInst i) =>
-					instantiateStructInst(alloc, programState, i, typeParamsAndArgs, delayStructInsts)))));
+			immutable StructBody(immutable StructBody.Union(
+				map!UnionMember(alloc, u.members, (ref immutable UnionMember it) =>
+					has(it.type)
+						? withType(
+							it,
+							instantiateType(alloc, programState, force(it.type), typeParamsAndArgs, delayStructInsts))
+						: it))));
 }
 
 immutable(Ptr!StructInst) instantiateStruct(Alloc)(
@@ -216,7 +221,7 @@ immutable(Ptr!StructInst) instantiateStruct(Alloc)(
 	return castImmutable(res.value);
 }
 
-immutable(Ptr!StructInst) instantiateStructInst(Alloc)(
+private immutable(Ptr!StructInst) instantiateStructInst(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Ptr!StructInst structInst,
@@ -231,7 +236,7 @@ immutable(Ptr!StructInst) instantiateStructInst(Alloc)(
 		alloc, programState, immutable StructDeclAndArgs(decl(structInst), itsTypeArgs), delayStructInsts);
 }
 
-immutable(Ptr!StructInst) instantiateStructInst(Alloc)(
+private immutable(Ptr!StructInst) instantiateStructInst(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Ptr!StructInst structInst,

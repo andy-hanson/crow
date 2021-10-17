@@ -192,7 +192,7 @@ immutable(Repr) reprOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExprK
 			reprRecord(alloc, "record", [
 				reprArr(alloc, it.args, (ref immutable LowExpr e) =>
 					reprOfLowExpr(alloc, e))]),
-		(ref immutable LowExprKind.ConvertToUnion it) =>
+		(ref immutable LowExprKind.CreateUnion it) =>
 			reprRecord(alloc, "to-union", [reprNat(it.memberIndex), reprOfLowExpr(alloc, it.arg)]),
 		(ref immutable LowExprKind.Let it) =>
 			reprRecord(alloc, "let", [

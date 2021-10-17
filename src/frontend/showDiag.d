@@ -610,6 +610,16 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 				writeName(writer, name);
 			});
 		},
+		(ref immutable Diag.MatchCaseShouldHaveLocal d) {
+			writeStatic(writer, "union member ");
+			writeName(writer, d.name);
+			writeStatic(writer, " has an associated value that should be declared (or use '_')");
+		},
+		(ref immutable Diag.MatchCaseShouldNotHaveLocal d) {
+			writeStatic(writer, "union member ");
+			writeName(writer, d.name);
+			writeStatic(writer, " has no associated value");
+		},
 		(ref immutable Diag.MatchOnNonUnion d) {
 			writeStatic(writer, "can't match on non-union type ");
 			writeType(writer, d.type);
@@ -653,25 +663,15 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 		(ref immutable ParseDiag pd) {
 			writeParseDiag(writer, allPaths, pd);
 		},
-		(ref immutable Diag.PurityOfFieldWorseThanRecord d) {
+		(ref immutable Diag.PurityWorseThanParent d) {
 			writeStatic(writer, "struct ");
-			writeName(writer, d.strukt.name);
+			writeName(writer, d.parent.name);
 			writeStatic(writer, " has purity ");
-			writePurity(writer, d.strukt.purity);
-			writeStatic(writer, ", but field type ");
-			writeType(writer, d.fieldType);
+			writePurity(writer, d.parent.purity);
+			writeStatic(writer, ", but member of type ");
+			writeType(writer, d.child);
 			writeStatic(writer, " has purity ");
-			writePurity(writer, d.fieldType.bestCasePurity());
-		},
-		(ref immutable Diag.PurityOfMemberWorseThanUnion d) {
-			writeStatic(writer, "union ");
-			writeName(writer, d.strukt.name);
-			writeStatic(writer, " has purity ");
-			writePurity(writer, d.strukt.purity);
-			writeStatic(writer, ", but member type ");
-			writeStructInst(writer, d.member);
-			writeStatic(writer, " has purity ");
-			writePurity(writer, d.member.bestCasePurity);
+			writePurity(writer, d.child.bestCasePurity());
 		},
 		(ref immutable Diag.PuritySpecifierRedundant d) {
 			writeStatic(writer, "redundant purity specifier of ");

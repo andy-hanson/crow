@@ -91,9 +91,7 @@ main fut nat(_ str[]) summon trusted
 	throw: "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit
 
-continue record
-quit record
-continue-or-quit union
+continue-or-quit enum
 	continue
 	quit
 

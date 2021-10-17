@@ -1,13 +1,14 @@
 no-std
 import
 	crow/c-types: c-int, size_t
-	crow/ptr: any-const-ptr, any-mut-ptr
-	crow/private/bootstrap: c-str
+	crow/private/bootstrap: any-const-ptr, any-mut-ptr, c-str
 
 memcpy any-mut-ptr(dest any-mut-ptr, src any-const-ptr, size size_t) extern noctx unsafe
 
 memmove any-mut-ptr(dest any-mut-ptr, src any-const-ptr, size size_t) extern noctx unsafe
 
 memset any-mut-ptr(begin any-mut-ptr, value c-int, size size_t) extern noctx unsafe
+
+memcmp c-int(s1 any-const-ptr, s2 any-const-ptr, n size_t) extern noctx unsafe
 
 strlen size_t(a c-str) extern noctx unsafe

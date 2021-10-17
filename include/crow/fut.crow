@@ -5,12 +5,12 @@ import
 	./col/arr-util: each-with-index, first-some, map
 	./exception: catch, exception
 	./fun: subscript
-	./misc: as, void
+	./misc: as, drop, void
 	./opt: none, opt, some
 	./result: result
 	./private/bootstrap:
-		exclusion, fun, fut-state-resolved, hard-unreachable, island, island-and-exclusion, nat64,
-		send, state, value
+		exclusion, fun, fut-state-exception, fut-state-resolved, hard-unreachable, island,
+		island-and-exclusion, nat64, send, state
 	./private/fut-low-level: callback!, reject!, resolve!, resolve-or-reject!, unresolved
 	./private/number-low-level: ==, wrap-sub
 	./private/runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
@@ -29,7 +29,7 @@ resolved<a> fut a(value a)
 
 # Returns a `fut` resolved with an exception.
 rejected<a> fut a(err exception)
-	lock-by-val fut err
+	lock-by-val fut err.fut-state-exception
 
 ###
 Calls `f` after both `a` and `b` have resolved.
@@ -64,19 +64,23 @@ body
 	match a state
 	as fut-state-no-callbacks
 		hard-unreachable<void>
-	as fut-state-callbacks
+	as fut-state-callbacks c
+		# TODO: use '_'
+		drop: c
 		hard-unreachable<void>
 	as fut-state-resolved resolved-a
 		match b state
 		as fut-state-no-callbacks
 			hard-unreachable<void>
-		as fut-state-callbacks
+		as fut-state-callbacks c
+			# TODO: use '_'
+			drop: c
 			hard-unreachable<void>
 		as fut-state-resolved resolved-b
-			f[resolved-a value, resolved-b value] forward-to! res
-		as exception e
+			f[resolved-a, resolved-b] forward-to! res
+		as fut-state-exception e
 			res reject! e
-	as exception e
+	as fut-state-exception e
 		res reject! e
 
 ###
@@ -101,11 +105,15 @@ join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
 		match x state
 		as fut-state-no-callbacks
 			hard-unreachable<exception?>
-		as fut-state-callbacks
+		as fut-state-callbacks c
+			# TODO: use '_'
+			drop: c
 			hard-unreachable<exception?>
-		as fut-state-resolved
+		as fut-state-resolved r
+			# TODO: use '_'
+			drop: r
 			none
-		as exception e
+		as fut-state-exception e
 			e some
 	if e ?= exception
 		res reject! e
@@ -116,11 +124,15 @@ join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
 	match a state
 	as fut-state-no-callbacks
 		hard-unreachable
-	as fut-state-callbacks
+	as fut-state-callbacks c
+		# TODO: use '_'
+		drop: c
 		hard-unreachable
 	as fut-state-resolved r
-		r value
-	as exception
+		r
+	as fut-state-exception e
+		# TODO: use '_'
+		drop: e
 		hard-unreachable
 
 .forward-to!<a> void(from fut a, to fut a) unsafe
@@ -146,9 +158,9 @@ then<out, in> fut out(a fut in, cb ref out(in)) trusted send<out> send<in>
 	a callback! result =>
 		match result
 		as ok o
-			cb[o.value] forward-to! res
+			cb[o] forward-to! res
 		as err e
-			res reject! e.value
+			res reject! e
 	res
 
 # TODO: rename to just 'then'
@@ -201,7 +213,9 @@ Else, this will call the default exception handler.
 handle-exceptions<a> void(a fut a) trusted
 	a callback! result =>
 		match result
-		as ok
+		as ok o
+			# TODO: use '_'
+			drop: o
 			void
 		as err e
-			get-cur-island.exception-handler[e value]
+			get-cur-island.exception-handler[e]

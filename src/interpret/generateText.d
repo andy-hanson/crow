@@ -217,7 +217,7 @@ void ensureConstant(Alloc, TempAlloc)(
 ref immutable(LowType) unionMemberType(
 	ref immutable LowProgram program,
 	immutable LowType.Union t,
-	immutable ubyte memberIndex,
+	immutable Nat16 memberIndex,
 ) {
 	return at(fullIndexDictGet(program.allUnions, t).members, memberIndex);
 }
@@ -367,7 +367,7 @@ void writeConstant(Alloc, TempAlloc)(
 			padTo(ctx.text, start + typeSize);
 		},
 		(ref immutable Constant.Union it) {
-			add64(ctx.text, it.memberIndex);
+			add64(ctx.text, it.memberIndex.raw());
 			immutable LowType memberType = unionMemberType(ctx.program, asUnionType(type), it.memberIndex);
 			writeConstant(alloc, tempAlloc, ctx, memberType, it.arg);
 			immutable Nat16 unionSize = sizeOfType(ctx.program, type).size;

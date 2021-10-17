@@ -724,7 +724,12 @@ struct StructDeclAst {
 			}
 		}
 		struct Union {
-			immutable TypeAst.InstStruct[] members;
+			struct Member {
+				immutable RangeWithinFile range;
+				immutable Sym name;
+				immutable Opt!TypeAst type;
+			}
+			immutable Member[] members;
 		}
 
 		private:
@@ -770,9 +775,6 @@ static assert(StructDeclAst.sizeof <= 88);
 
 immutable(bool) isRecord(ref immutable StructDeclAst.Body a) {
 	return a.kind == StructDeclAst.Body.Kind.record;
-}
-immutable(bool) isUnion(ref immutable StructDeclAst.Body a) {
-	return a.kind == StructDeclAst.Body.Kind.union_;
 }
 
 @trusted T matchStructDeclAstBody(T)(
@@ -1104,8 +1106,11 @@ immutable(Repr) reprRecord(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.B
 
 immutable(Repr) reprUnion(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Union a) {
 	return reprRecord(alloc, "union", [
-		reprArr(alloc, a.members, (ref immutable TypeAst.InstStruct member) =>
-			reprInstStructAst(alloc, member))]);
+		reprArr(alloc, a.members, (ref immutable StructDeclAst.Body.Union.Member it) =>
+			reprRecord(alloc, "member", [
+				reprSym(it.name),
+				reprOpt(alloc, it.type, (ref immutable TypeAst t) =>
+					reprTypeAst(alloc, t))]))]);
 }
 
 immutable(Repr) reprStructBodyAst(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body a) {

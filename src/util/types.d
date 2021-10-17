@@ -236,11 +236,6 @@ immutable(ushort) safeU32ToU16(immutable uint u) {
 	return cast(immutable ushort) u;
 }
 
-immutable(ubyte) safeU16ToU8(immutable ushort u) {
-	verify(u <= ubyte.max);
-	return cast(immutable ubyte) u;
-}
-
 immutable(ushort) safeSizeTToU16(immutable size_t s) {
 	verify(s <= ushort.max);
 	return cast(immutable ushort) s;

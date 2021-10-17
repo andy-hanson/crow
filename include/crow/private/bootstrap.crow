@@ -24,30 +24,14 @@ region opt.crow
 
 opt<a> union
 	none
-	some<a>
-
-some<a> record
-	by-val
-	value a
-
-none record
+	some a
 
 region result.crow
 
 # Union that represents a value that may have failed.
 result<ok, err> union
-	ok<ok>
-	err<err>
-
-# Successful case of a result.
-ok<a> record
-	by-val
-	value a
-
-# Error case of a result.
-err<a> record
-	by-val
-	value a
+	ok ok
+	err err
 
 region ptr.crow
 
@@ -322,20 +306,15 @@ fut<a> record force-sendable
 
 fut-state<a> union mut
 	fut-state-no-callbacks
-	fut-state-callbacks<a>
-	fut-state-resolved<a>
-	exception
-
-fut-state-no-callbacks record
+	fut-state-callbacks fut-state-callbacks<a>
+	fut-state-resolved a
+	fut-state-exception exception
 
 fut-state-callbacks<a> record mut
 	by-ref
 	# WARN: the cb will be called with whatever ctx resolves the fut, not the ctx that created it
 	cb act void(result<a, exception>)
 	next fut-state-callbacks<a>?
-
-fut-state-resolved<a> record
-	value a
 
 region lock
 

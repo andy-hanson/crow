@@ -132,7 +132,8 @@ struct ConcreteStructBody {
 		immutable ConcreteField[] fields;
 	}
 	struct Union {
-		immutable ConcreteType[] members;
+		// In the concrete model we identify members by index, so don't care about their names
+		immutable Opt!ConcreteType[] members;
 	}
 
 	private:
@@ -521,6 +522,9 @@ struct ConcreteFunBody {
 		immutable EnumValue value;
 	}
 	struct CreateRecord {}
+	struct CreateUnion {
+		immutable Nat16 memberIndex;
+	}
 	struct Extern {
 		immutable bool isGlobal;
 	}
@@ -540,6 +544,7 @@ struct ConcreteFunBody {
 		builtin,
 		createEnum,
 		createRecord,
+		createUnion,
 		enumFunction,
 		extern_,
 		flagsFn,
@@ -552,6 +557,7 @@ struct ConcreteFunBody {
 		immutable Builtin builtin;
 		immutable CreateEnum createEnum;
 		immutable CreateRecord createRecord;
+		immutable CreateUnion createUnion;
 		immutable EnumFunction enumFunction;
 		immutable Extern extern_;
 		immutable FlagsFn flagsFn;
@@ -564,6 +570,7 @@ struct ConcreteFunBody {
 	@trusted immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	immutable this(immutable CreateEnum a) { kind = Kind.createEnum; createEnum = a; }
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
+	immutable this(immutable CreateUnion a) { kind = Kind.createUnion; createUnion = a; }
 	immutable this(immutable EnumFunction a) { kind = Kind.enumFunction; enumFunction = a; }
 	@trusted immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable ConcreteFunExprBody a) {
@@ -593,6 +600,7 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref
 	scope T delegate(ref immutable ConcreteFunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope T delegate(ref immutable ConcreteFunBody.CreateEnum) @safe @nogc pure nothrow cbCreateEnum,
 	scope T delegate(ref immutable ConcreteFunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
+	scope T delegate(ref immutable ConcreteFunBody.CreateUnion) @safe @nogc pure nothrow cbCreateUnion,
 	scope T delegate(immutable EnumFunction) @safe @nogc pure nothrow cbEnumFunction,
 	scope T delegate(ref immutable ConcreteFunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(ref immutable ConcreteFunExprBody) @safe @nogc pure nothrow cbConcreteFunExprBody,
@@ -607,6 +615,8 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref
 			return cbCreateEnum(a.createEnum);
 		case ConcreteFunBody.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
+		case ConcreteFunBody.Kind.createUnion:
+			return cbCreateUnion(a.createUnion);
 		case ConcreteFunBody.Kind.enumFunction:
 			return cbEnumFunction(a.enumFunction);
 		case ConcreteFunBody.Kind.extern_:
@@ -850,11 +860,6 @@ struct ConcreteExprKind {
 		immutable ConcreteExpr[] args;
 	}
 
-	struct ConvertToUnion {
-		immutable ubyte memberIndex;
-		immutable Ptr!ConcreteExpr arg;
-	}
-
 	struct Let {
 		immutable Ptr!ConcreteLocal local;
 		immutable Ptr!ConcreteExpr value; // If a constant, we just use 'then' in place of the Let
@@ -864,7 +869,7 @@ struct ConcreteExprKind {
 	// May be a fun or run-mut.
 	// (A fun-ref is a lambda wrapped in CreateRecord.)
 	struct Lambda {
-		immutable ushort memberIndex; // Member index of a Union (which hasn't been created yet)
+		immutable Nat16 memberIndex; // Member index of a Union (which hasn't been created yet)
 		immutable Ptr!ConcreteExpr closure;
 	}
 
@@ -910,7 +915,6 @@ struct ConcreteExprKind {
 		constant,
 		createArr,
 		createRecord,
-		convertToUnion,
 		lambda,
 		let,
 		localRef,
@@ -928,7 +932,6 @@ struct ConcreteExprKind {
 		immutable Ptr!CreateArr createArr;
 		immutable Constant constant;
 		immutable CreateRecord createRecord;
-		immutable ConvertToUnion convertToUnion;
 		immutable Lambda lambda;
 		immutable Let let;
 		immutable LocalRef localRef;
@@ -946,7 +949,6 @@ struct ConcreteExprKind {
 	@trusted immutable this(immutable Ptr!CreateArr a) { kind = Kind.createArr; createArr = a; }
 	@trusted immutable this(immutable Constant a) { kind = Kind.constant; constant = a; }
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
-	@trusted immutable this(immutable ConvertToUnion a) { kind = Kind.convertToUnion; convertToUnion = a; }
 	@trusted immutable this(immutable Lambda a) { kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable Let a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
@@ -982,7 +984,6 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
 	scope T delegate(ref immutable ConcreteExprKind.CreateArr) @safe @nogc pure nothrow cbCreateArr,
 	scope T delegate(ref immutable ConcreteExprKind.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
-	scope T delegate(ref immutable ConcreteExprKind.ConvertToUnion) @safe @nogc pure nothrow cbConvertToUnion,
 	scope T delegate(ref immutable ConcreteExprKind.Lambda) @safe @nogc pure nothrow cbLambda,
 	scope T delegate(ref immutable ConcreteExprKind.Let) @safe @nogc pure nothrow cbLet,
 	scope T delegate(ref immutable ConcreteExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
@@ -1005,8 +1006,6 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 			return cbCreateArr(a.createArr);
 		case ConcreteExprKind.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
-		case ConcreteExprKind.Kind.convertToUnion:
-			return cbConvertToUnion(a.convertToUnion);
 		case ConcreteExprKind.Kind.lambda:
 			return cbLambda(a.lambda);
 		case ConcreteExprKind.Kind.let:

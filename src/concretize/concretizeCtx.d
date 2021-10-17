@@ -73,6 +73,7 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	typeParams,
+	UnionMember,
 	worsePurity;
 import util.collection.arr : at, empty, emptyArr, only, ptrAt, size, sizeEq;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
@@ -95,7 +96,7 @@ import util.collection.str : compareStr, copyStr;
 import util.comparison : Comparison;
 import util.late : Late, lateIsSet, lateSet, lateSetMaybeOverwrite, lateSetOverwrite, lazilySet;
 import util.memory : allocate, nu, nuMut;
-import util.opt : force, has, none, some;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
@@ -212,7 +213,7 @@ private struct DeferredRecordBody {
 
 private struct DeferredUnionBody {
 	Ptr!ConcreteStruct struct_;
-	immutable ConcreteType[] members;
+	immutable Opt!ConcreteType[] members;
 }
 
 struct ConcretizeCtx {
@@ -507,17 +508,15 @@ immutable(Comparison) compareConcreteTypeArr(ref immutable ConcreteType[] a, ref
 		compareConcreteType(x, y));
 }
 
-immutable(bool) canGetUnionSize(ref immutable ConcreteType[] members) {
-	return every!ConcreteType(members, (ref immutable ConcreteType type) =>
-		hasSizeOrPointerSizeBytes(type));
+immutable(bool) canGetUnionSize(ref immutable Opt!ConcreteType[] members) {
+	return every!(Opt!ConcreteType)(members, (ref immutable Opt!ConcreteType type) =>
+		!has(type) || hasSizeOrPointerSizeBytes(force(type)));
 }
 
-immutable(TypeSize) unionSize(ref immutable ConcreteType[] members) {
+immutable(TypeSize) unionSize(ref immutable Opt!ConcreteType[] members) {
 	immutable Nat8 unionAlign = immutable Nat8(8);
-	immutable Nat16 maxMember = arrMax(
-		immutable Nat16(0),
-		members,
-		(ref immutable ConcreteType t) => sizeOrPointerSizeBytes(t).size);
+	immutable Nat16 maxMember = arrMax(immutable Nat16(0), members, (ref immutable Opt!ConcreteType t) =>
+		has(t) ? sizeOrPointerSizeBytes(force(t)).size : immutable Nat16(0));
 	immutable Nat16 sizeBytes = roundUp(immutable Nat16(8) + maxMember, unionAlign.to16());
 	return immutable TypeSize(sizeBytes, unionAlign);
 }
@@ -651,8 +650,13 @@ void initializeConcreteStruct(Alloc)(
 		},
 		(ref immutable StructBody.Union u) {
 			lateSet(res.defaultIsPointer_, false);
-			immutable ConcreteType[] members = map!ConcreteType(alloc, u.members, (ref immutable Ptr!StructInst si) =>
-				getConcreteType_forStructInst(alloc, ctx, si, typeArgsScope));
+			immutable Opt!ConcreteType[] members = map!(Opt!ConcreteType)(
+				alloc,
+				u.members,
+				(ref immutable UnionMember it) =>
+					has(it.type)
+						? some(getConcreteType(alloc, ctx, force(it.type), typeArgsScope))
+						: none!ConcreteType);
 			lateSet(res.info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(ConcreteStructBody.Union(members)), false));
 			if (canGetUnionSize(members))
@@ -759,6 +763,8 @@ void fillInConcreteFunBody(Alloc)(
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateEnum(it.value)),
 			(ref immutable FunBody.CreateRecord) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateRecord()),
+			(ref immutable FunBody.CreateUnion it) =>
+				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateUnion(it.memberIndex)),
 			(immutable EnumFunction it) {
 				final switch (it) {
 					case EnumFunction.equal:

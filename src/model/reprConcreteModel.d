@@ -36,7 +36,7 @@ import model.constant : Constant;
 import model.model : EnumFunction, enumFunctionName, flagsFunctionName, FunInst, name, Local, Param;
 import model.reprConstant : reprOfConstant;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.opt : force, has;
+import util.opt : force, has, Opt;
 import util.ptr : Ptr;
 import util.repr :
 	NameAndRepr,
@@ -135,8 +135,9 @@ immutable(Repr) reprOfConcreteField(Alloc)(ref Alloc alloc, ref immutable Concre
 }
 
 immutable(Repr) reprOfConcreteStructBodyUnion(Alloc)(ref Alloc alloc, ref immutable ConcreteStructBody.Union a) {
-	return reprRecord(alloc, "union", [reprArr(alloc, a.members, (ref immutable ConcreteType it) =>
-		reprOfConcreteType(alloc, it))]);
+	return reprRecord(alloc, "union", [reprArr(alloc, a.members, (ref immutable Opt!ConcreteType it) =>
+		reprOpt(alloc, it, (ref immutable ConcreteType t) =>
+			reprOfConcreteType(alloc, t)))]);
 }
 
 immutable(Repr) reprOfConcreteFun(Alloc)(ref Alloc alloc, ref immutable ConcreteFun a) {
@@ -192,6 +193,9 @@ immutable(Repr) reprOfConcreteFunBody(Alloc)(ref Alloc alloc, ref immutable Conc
 			reprRecord(alloc, "create-enum", [reprInt(it.value.value)]),
 		(ref immutable ConcreteFunBody.CreateRecord) =>
 			reprSym("new-record"),
+		(ref immutable ConcreteFunBody.CreateUnion) =>
+			//TODO: more detail
+			reprSym("new-union"),
 		(immutable EnumFunction it) =>
 			reprRecord(alloc, "enum-fn", [reprSym(enumFunctionName(it))]),
 		(ref immutable ConcreteFunBody.Extern it) =>
@@ -263,10 +267,6 @@ immutable(Repr) reprOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Con
 		(ref immutable ConcreteExprKind.CreateRecord it) =>
 			reprRecord(alloc, "record", [reprArr(alloc, it.args, (ref immutable ConcreteExpr arg) =>
 				reprOfConcreteExpr(alloc, arg))]),
-		(ref immutable ConcreteExprKind.ConvertToUnion it) =>
-			reprRecord(alloc, "to-union", [
-				reprNat(it.memberIndex),
-				reprOfConcreteExpr(alloc, it.arg)]),
 		(ref immutable ConcreteExprKind.Lambda it) =>
 			reprRecord(alloc, "lambda", [
 				reprNat(it.memberIndex),

@@ -136,6 +136,8 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 				none!Position,
 			(ref immutable FunBody.CreateRecord) =>
 				none!Position,
+			(ref immutable FunBody.CreateUnion) =>
+				none!Position,
 			(immutable(EnumFunction)) =>
 				none!Position,
 			(ref immutable FunBody.Extern) =>

@@ -137,6 +137,17 @@ mixin externPtrType(name, typeParams)
 				=" extern-ptr"
 		block
 
+mixin enum(name, members)
+	section.doc.enum
+		h4
+			div
+				span.struct-def=name
+				= " enum"
+				ul.members
+					each member in members
+						li
+							span=member
+
 mixin record(name, typeParams, fields)
 	section.doc.record
 		h4

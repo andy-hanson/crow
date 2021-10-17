@@ -10,8 +10,8 @@ import
 	../fun: fun-ptr2, subscript
 	../fut: delay, fut, handle-exceptions, then-void
 	../io/process: exit-code
-	../misc: void
-	../opt: none, value
+	../misc: drop, void
+	../opt: none
 	../ptr:
 		+, any-mut-ptr, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, null, ptr-to,
 		ref-of-val, set-deref, subscript
@@ -55,7 +55,9 @@ rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summ
 	as fut-state-no-callbacks
 		# Should never happen
 		1
-	as fut-state-callbacks
+	as fut-state-callbacks c
+		# TODO: use '_'
+		drop: c
 		# Should never happen
 		1
 	as fut-state-resolved r
@@ -63,8 +65,10 @@ rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summ
 		if gctx any-unhandled-exceptions
 			1
 		else
-			r.value.unsafe-to-int64.unsafe-to-int32
-	as exception
+			r.unsafe-to-int64.unsafe-to-int32
+	as fut-state-exception e
+		# TODO: use '_'
+		drop: e
 		# 'handle-exceptions' should have logged the error
 		1
 

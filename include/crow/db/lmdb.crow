@@ -147,13 +147,8 @@ close-db<k, v> void(env lmdb-env, db lmdb-db<k, v>) unsafe summon
 	env.env mdb_dbi_close db.dbi
 
 transaction-result<a> union
-	transaction-abort<a>
-	transaction-commit<a>
-
-transaction-abort<a> record
-	value a
-transaction-commit<a> record
-	value a
+	transaction-abort a
+	transaction-commit a
 
 each<k, v> void(txn lMDB_txn, db lmdb-db<k, v>, f act void(k, v)) summon lmdb-key<k> serialize<v>
 	void fold txn, db, (ignore, key, value) => f[key, value]
@@ -382,10 +377,10 @@ with-abortable-write-transaction<a> a(env lmdb-env, f act transaction-result a(l
 		match f[transaction lMDB_txn]
 		as transaction-abort a
 			transaction mdb_txn_abort
-			a value
+			a
 		as transaction-commit c
 			check-lmdb-error: transaction mdb_txn_commit
-			c value
+			c
 
 .empty-val MDB_val() unsafe
 	0 MDB_val null

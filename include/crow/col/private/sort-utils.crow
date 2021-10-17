@@ -1,7 +1,7 @@
 no-std
 import
 	../../bool: !, bool
-	../../compare: ==, !=, <, >=, compare, comparison, equal, less, greater
+	../../compare: ==, !=, <, >=, compare, comparison, equal
 	../../fun: subscript
 	../../misc: arrow, from, to, void
 	../../opt: none, opt, some
@@ -142,7 +142,7 @@ test
 		as greater
 			mid + 1 binary-search-compare-recur right, compare
 
-unique-comparison union
+unique-comparison enum
 	less
 	greater
 

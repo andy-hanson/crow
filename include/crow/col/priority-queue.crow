@@ -126,10 +126,10 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	else
 		root = a.root force
 		void priority-queue some: match mid.mid plan root, mid.n-before-mid
-		as plan-did-compact p
-			p node
-		as plan-will-compact w
-			root do-compact w.n-elements-to-compact, mid.mid
+		as plan-did-compact compacted
+			compacted
+		as plan-will-compact n
+			root do-compact n, mid.mid
 
 .found-mid<k, v> record
 	mid node<k, v>?
@@ -146,29 +146,24 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	else
 		none found-mid n-before
 
-.plan-did-compact<k, v> record
-	node node<k, v>
-
-.plan-will-compact<k, v> record
-	n-elements-to-compact nat64
-
 .plan<k, v> union
-	plan-did-compact<k, v>
-	plan-will-compact<k, v>
+	plan-did-compact node<k, v>
+	# has the number of elements to compact
+	plan-will-compact nat64
 
 # We only call this if we will definitely compact something,
 # TODO: 'plan' is misnamed, this now does the compaction during the recursion
 .plan<k, v> plan<k, v>(a node<k, v>?, root node<k, v>, n-singles nat64) compare<k>
 	if node ?= a
 		match node.next plan root, n-singles
-		as plan-did-compact d
-			node.min node<k, v> node.pairs, d.node.some plan-did-compact
-		as plan-will-compact c
+		as plan-did-compact compacted
+			node.min node<k, v> node.pairs, compacted.some plan-did-compact
+		as plan-will-compact n-elements-to-compact
 			node-size-here = 1 wrap-add node.pairs.size
-			if node-size-here <= c.n-elements-to-compact
-				c.n-elements-to-compact wrap-add node-size-here plan-will-compact
+			if node-size-here <= n-elements-to-compact
+				n-elements-to-compact wrap-add node-size-here plan-will-compact
 			else
-				compacted = root do-compact c.n-elements-to-compact, node.next
+				compacted = root do-compact n-elements-to-compact, node.next
 				node.min node node.pairs, compacted.some plan-did-compact
 	else
 		n-singles plan-will-compact<k, v>

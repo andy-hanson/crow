@@ -29,7 +29,7 @@ http-not-found http-response(message str)
 	404 http-response message, dict, message
 
 # Method used by an HTTP request.
-http-method union
+http-method enum
 	http-get
 	http-post
 

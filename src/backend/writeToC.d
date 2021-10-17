@@ -1172,9 +1172,9 @@ immutable(WriteExprResult) writeExpr(Alloc, TempAlloc)(
 				writeTempOrInlines(writer, tempAlloc, ctx, it.args, args);
 				writeChar(writer, '}');
 			}),
-		(ref immutable LowExprKind.ConvertToUnion it) =>
+		(ref immutable LowExprKind.CreateUnion it) =>
 			inlineableSingleArg(it.arg, (ref immutable WriteExprResult arg) {
-				writeConvertToUnion(writer, ctx.ctx, ConstantRefPos.outer, type, it.memberIndex, () {
+				writeCreateUnion(writer, ctx.ctx, ConstantRefPos.outer, type, it.memberIndex, () {
 					writeTempOrInline(writer, tempAlloc, ctx, it.arg, arg);
 				});
 			}),
@@ -1471,12 +1471,12 @@ void writeTailRecur(Alloc, TempAlloc)(
 	writeStatic(writer, "goto top;");
 }
 
-void writeConvertToUnion(Alloc)(
+void writeCreateUnion(Alloc)(
 	ref Writer!Alloc writer,
 	ref immutable Ctx ctx,
 	immutable ConstantRefPos pos,
 	ref immutable LowType type,
-	immutable size_t memberIndex,
+	immutable Nat16 memberIndex,
 	scope void delegate() @safe @nogc pure nothrow cbWriteMember,
 ) {
 	if (pos == ConstantRefPos.outer) writeCastToType(writer, ctx, type);
@@ -1737,7 +1737,7 @@ void writeConstantRef(Alloc)(
 			immutable LowType memberType = at(
 				fullIndexDictGet(ctx.program.allUnions, asUnionType(type)).members,
 				it.memberIndex);
-			writeConvertToUnion(writer, ctx, pos, type, it.memberIndex, () {
+			writeCreateUnion(writer, ctx, pos, type, it.memberIndex, () {
 				writeConstantRef(writer, ctx, ConstantRefPos.inner, memberType, it.arg);
 			});
 		},
@@ -1875,7 +1875,7 @@ void writeLValue(Alloc)(ref Writer!Alloc writer, ref const FunBodyCtx ctx, ref i
 		expr.kind,
 		(ref immutable LowExprKind.Call) => unreachable!void(),
 		(ref immutable LowExprKind.CreateRecord) => unreachable!void(),
-		(ref immutable LowExprKind.ConvertToUnion) => unreachable!void(),
+		(ref immutable LowExprKind.CreateUnion) => unreachable!void(),
 		(ref immutable LowExprKind.Let) => unreachable!void(),
 		(ref immutable LowExprKind.LocalRef it) {
 			writeLocalRef(writer, it.local);

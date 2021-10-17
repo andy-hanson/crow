@@ -1,12 +1,13 @@
 no-std
 import
 	../fun: subscript
-	../opt: none, some, value
+	../opt: none, some
+	../misc: drop
 	../ptr: ref-of-val
 	../result: err, ok, result
 	./bootstrap:
-		cb, exception, fut, fut-state-callbacks, fut-state-no-callbacks, fut-state-resolved,
-		hard-unreachable, lk, next, set-state, state, void
+		cb, exception, fut, fut-state-callbacks, fut-state-exception, fut-state-no-callbacks,
+		fut-state-resolved, hard-unreachable, lk, next, set-state, state, void
 	./thread-utils: lock-by-val, with-lock
 
 unresolved<a> fut a() unsafe
@@ -23,11 +24,9 @@ resolve-or-reject!<a> void(f fut a, result result<a, exception>) unsafe
 		old = f.state
 		f.state := match result
 		as ok o
-			fut-state-resolved: o.value
+			o fut-state-resolved
 		as err e
-			# TODO: should work without this variable
-			ex = e value
-			ex
+			e fut-state-exception
 		old
 
 	match old-state
@@ -35,9 +34,13 @@ resolve-or-reject!<a> void(f fut a, result result<a, exception>) unsafe
 		void
 	as fut-state-callbacks cbs
 		cbs call-callbacks! result
-	as fut-state-resolved
+	as fut-state-resolved x
+		# TODO: use '_'
+		drop: x
 		hard-unreachable
-	as exception
+	as fut-state-exception e
+		# TODO: use '_'
+		drop: e
 		hard-unreachable
 
 .call-callbacks!<a> void(cbs fut-state-callbacks a, value result<a, exception>)
@@ -51,10 +54,10 @@ callback!<a> void(f fut a, cb act void(result<a, exception>)) unsafe
 	f.lk.ref-of-val with-lock () =>
 		match f state
 		as fut-state-no-callbacks
-			f.state := cb fut-state-callbacks none
+			f.state := cb fut-state-callbacks none fut-state-callbacks
 		as fut-state-callbacks cbs
-			f.state := cb fut-state-callbacks cbs.some
+			f.state := cb fut-state-callbacks cbs.some fut-state-callbacks
 		as fut-state-resolved r
-			cb[r.value ok]
-		as exception e
+			cb[r ok]
+		as fut-state-exception e
 			cb[e err]

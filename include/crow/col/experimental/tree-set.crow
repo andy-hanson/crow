@@ -4,8 +4,8 @@ import
 	../../compare: !=, <, <=, >, compare
 	../../exception: assert, forbid, unreachable
 	../../fun: subscript
-	../../misc: as, data, drop, void
-	../../opt: none, opt, some
+	../../misc: data, drop, void
+	../../opt: opt, some
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
 	../../range: ..
 	../../str: ==, <=>, chars, str
@@ -33,8 +33,8 @@ tree-set<a> record
 
 .node<a> union
 	# TODO: SYNTAX should not require <>
-	inner-node<a>
-	arr<a>
+	inner inner-node<a>
+	leaf a[]
 
 .inner-node<a> record
 	by-ref
@@ -52,14 +52,12 @@ size<a> nat64(a tree-set a) data<a> compare<a>
 
 # Empty `tree-set`.
 tree-set<a> tree-set a()
-	# TODO: should not need 'as'
-	root = [] as<a[]>
-	root tree-set 0
+	[].leaf tree-set 0
 
 # Copy an `arr` to a `tree-set`.
 tree-set<a> tree-set a(a a[]) data<a> compare<a>
 	values = a sort-unique
-	values tree-set values.size
+	values.leaf tree-set values.size
 
 ###
 Array of all values in the set, in sorted order.
@@ -67,17 +65,17 @@ This is O(a size).
 ###
 arr<a> a[](a tree-set a) data<a> compare<a>
 	match a.root
-	as inner-node i
+	as inner i
 		i tree-to-arr a.size
-	as arr arr
-		arr
+	as leaf l
+		l
 
 # True iff the value is in the set.
 in<a> bool(value a, a tree-set a) data<a> compare<a>
 	a.root has value
 .has<a> bool(a node a, value a) trusted compare<a>
 	match a
-	as inner-node i
+	as inner i
 		match value <=> i.value
 		as less
 			i.left has value
@@ -85,8 +83,8 @@ in<a> bool(value a, a tree-set a) data<a> compare<a>
 			true
 		as greater
 			i.right has value
-	as arr arr
-		arr binary-search-has value
+	as leaf l
+		l binary-search-has value
 
 ###
 Add a value to the set.
@@ -99,8 +97,10 @@ This is O(a.size ln)
 	as none
 		a
 	as inserted i
-		i.node tree-set (a.size wrap-add 1)
-	as find-scapegoat
+		i tree-set (a.size wrap-add 1)
+	as find-scapegoat f
+		# TODO: use '_'
+		drop: f
 		unreachable
 
 ###
@@ -182,34 +182,36 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 
 .try-remove-recur<a> node<a>?(a node a, b a) compare<a>
 	match a
-	as inner-node i
+	as inner i
 		match b <=> i.value
 		as less
 			if new-left ?= i.left try-remove-recur b
-				i.value inner-node new-left, i.right some
+				(i.value inner-node new-left, i.right).inner some
 		as equal
 			some: if i.right node-is-empty
 				i left
 			else
 				# Remove the base of the tree -- making one of the sides take over.
 				if popped ?= i.left pop-right
-					popped.value inner-node popped.rest, i.right
+					popped.value inner-node popped.rest, i.right inner
 				else
 					i right
 		as greater
 			if new-right ?= i.right try-remove-recur b
-				i.value inner-node i.left, new-right some
-	as arr arr
+				(i.value inner-node i.left, new-right).inner some
+	as leaf l
 		# TODO: use a binary search (try-remove uses linear search since it's for arbitrary arr)
-		if arr2 ?= arr try-remove b
-			arr2.as<node a> some
+		if l2 ?= l try-remove b
+			l2.leaf some
 
 .node-is-empty<a> bool(a node a)
 	match a
-	as inner-node
+	as inner i
+		# TODO: use '_'
+		drop: i
 		false
-	as arr r
-		r is-empty
+	as leaf l
+		l is-empty
 
 .popped<a> record
 	value a
@@ -217,15 +219,15 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 
 .pop-right<a> popped<a>?(a node a)
 	match a
-	as inner-node i
+	as inner i
 		if popped ?= i.right pop-right
-			popped.value popped (i.value inner-node i.left, popped.rest) some
+			popped.value popped (i.value inner-node i.left, popped.rest).inner some
 		else
 			# Then this is rightmost
 			i.value popped i.left some
-	as arr arr
-		if last ?= arr last
-			last popped arr.rtail some
+	as leaf l
+		if last ?= l last
+			last popped l.rtail.leaf some
 
 - <a> tree-set a(a tree-set a, b tree-set a) trusted data<a> compare<a>
 	b-iter = b iter
@@ -243,11 +245,11 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 	cur iter stack
 .init-iter-recur!<a> a[](stack mut-stack inner-node a, node node a)
 	match node
-	as inner-node i
+	as inner i
 		stack ~= i
 		stack init-iter-recur! i.left
-	as arr arr
-		arr
+	as leaf l
+		l
 .peek<a> a?(a iter a)
 	if a.cur is-empty
 		if last ?= a.stack last
@@ -259,10 +261,10 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 		if node ?= a.stack pop!
 			res = node value
 			match node right
-			as inner-node i
+			as inner i
 				a.stack ~= i
-			as arr arr
-				a.cur := arr
+			as leaf l
+				a.cur := l
 			res some
 	else
 		res = a.cur[0]
@@ -280,10 +282,6 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 	else
 		acc
 
-.inserted<a> record
-	by-val
-	node node a
-
 .find-scapegoat record
 	# size of this subtree (including the new value)
 	size nat64
@@ -292,16 +290,15 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 
 .add-result<a> union
 	none
-	# TODO: SYNTAX should not require <>
-	inserted<a>
-	find-scapegoat
+	inserted node a
+	find-scapegoat find-scapegoat
 
 .add-recur<a> add-result a(a node a, value a, max-height nat64) compare<a>
 	match a
-	as inner-node i
+	as inner i
 		i add-to-inner value, max-height
-	as arr arr
-		arr add-to-arr value, max-height
+	as leaf l
+		l add-to-arr value, max-height
 
 .add-to-inner<a> add-result a(a inner-node a, value a, max-height nat64) compare<a>
 	match value <=> a.value
@@ -310,7 +307,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 		as none
 			none
 		as inserted new-left
-			a.value inner-node new-left.node, a.right inserted
+			(a.value inner-node new-left, a.right).inner inserted
 		as find-scapegoat f
 			a handle-scapegoat value, a.right, f
 	as equal
@@ -320,7 +317,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 		as none
 			none
 		as inserted new-right
-			a.value inner-node a.left, new-right.node inserted
+			(a.value inner-node a.left, new-right).inner inserted
 		as find-scapegoat f
 			a handle-scapegoat value, a.left, f
 
@@ -329,10 +326,10 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 	if insert-ptr != a.end-ptr && *insert-ptr == value
 		none
 	elif a.size < 4
-		a insert insert-ptr, value inserted
+		(a insert insert-ptr, value).leaf inserted
 	elif max-height == 0
 		# Can't add new nodes
-		a.size wrap-add 1 find-scapegoat 1
+		(a.size wrap-add 1 find-scapegoat 1) find-scapegoat
 	else
 		a break-up-arr value, insert-ptr, max-height
 
@@ -343,7 +340,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 	mid-ptr = a.begin-ptr + ((a.end-ptr - a.begin-ptr) unsafe-div 2)
 	mid-index = mid-ptr - a.begin-ptr
 	if insert-ptr == mid-ptr
-		value inner-node a[0 .. mid-index], a[mid-index .. a.size] inserted
+		(value inner-node a[0 .. mid-index].leaf, a[mid-index .. a.size].leaf).inner inserted
 	else
 		mid = *mid-ptr
 		hard-assert: mid-index < a.size
@@ -357,47 +354,46 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 			as none
 				unreachable
 			as inserted i
-				# TODO: should not need 'as'
-				mid inner-node i.node, right-arr.as<node a> inserted
+				(mid inner-node i, right-arr.leaf).inner inserted
 			as find-scapegoat f
-				a.size wrap-add 1 find-scapegoat (f.height wrap-add 1)
+				a.size wrap-add 1 find-scapegoat (f.height wrap-add 1) find-scapegoat
 		else
 			match right-arr add-to-arr value, (max-height wrap-sub 1)
 			as none
 				unreachable
 			as inserted i
-				mid inner-node left-arr, i.node inserted
+				(mid inner-node left-arr.leaf, i).inner inserted
 			as find-scapegoat f
-				a.size wrap-add 1 find-scapegoat (f.height wrap-add 1)
+				a.size wrap-add 1 find-scapegoat (f.height wrap-add 1) find-scapegoat
 
 .handle-scapegoat<a> add-result a(a inner-node a, value a, other-subtree node a, f find-scapegoat) compare<a>
 	size-here = f.size wrap-add 1 wrap-add other-subtree.walk-size
 	height-here = f.height wrap-add 1
 	if height-here > size-here.get-max-height
-		a tree-to-arr value, size-here inserted
+		(a tree-to-arr value, size-here).leaf inserted
 	else
-		size-here find-scapegoat height-here
+		size-here find-scapegoat height-here find-scapegoat
 
 .walk-size<a> nat64(a node a)
 	match a
-	as inner-node i
+	as inner i
 		i.left.walk-size wrap-add 1 wrap-add i.right.walk-size
-	as arr arr
-		arr.size
+	as leaf l
+		l size
 
 .tree-to-arr<a> a[](a inner-node a, value a, size nat64) trusted compare<a>
 	out = size uninitialized-fix-arr<a>
-	end = out.begin-ptr tree-to-arr-recur! a, value
+	end = out.begin-ptr tree-to-arr-recur! a.inner, value
 	hard-assert: end == out.end-ptr
 	out cast-immutable
 .tree-to-arr<a> a[](a inner-node a, size nat64) trusted compare<a>
 	out = size uninitialized-fix-arr<a>
-	end = out.begin-ptr tree-to-arr-recur! a
+	end = out.begin-ptr tree-to-arr-recur! a.inner
 	hard-assert: end == out.end-ptr
 	out cast-immutable
 .tree-to-arr-recur!<a> a mut*(out a mut*, a node a, value a) compare<a> unsafe
 	match a
-	as inner-node i
+	as inner i
 		match value <=> i.value
 		as less
 			mid = out tree-to-arr-recur! i.left, value
@@ -409,21 +405,21 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 			mid = out tree-to-arr-recur! i.left
 			*mid := i.value
 			mid + 1 tree-to-arr-recur! i.right, value
-	as arr arr
+	as leaf l
 		# Find first x > value, insert it before there
-		index = (arr binary-search-insert-ptr value) - arr.begin-ptr
-		mid = out copy-out! arr[0 .. index]
+		index = (l binary-search-insert-ptr value) - l.begin-ptr
+		mid = out copy-out! l[0 .. index]
 		*mid := value
-		mid + 1 copy-out! arr[index .. arr.size]
+		mid + 1 copy-out! l[index .. l.size]
 # Version where we know we don't have to insert value
 .tree-to-arr-recur!<a> a mut*(out a mut*, a node a) unsafe
 	match a
-	as inner-node i
+	as inner i
 		mid = out tree-to-arr-recur! i.left
 		*mid := i.value
 		mid + 1 tree-to-arr-recur! i.right
-	as arr arr
-		out copy-out! arr
+	as leaf l
+		out copy-out! l
 
 # TODO:PERF (use memcpy)
 .copy-out!<a> a mut*(out a mut*, a a[]) unsafe
@@ -444,21 +440,21 @@ each<a> void(a tree-set a, f act void(a)) data<a> compare<a>
 	a.root each-recur f
 .each-recur<a> void(a node a, f act void(a))
 	match a
-	as inner-node i
+	as inner i
 		i.left each-recur f
 		f[i.value]
 		i.right each-recur f
-	as arr arr
-		arr each f
+	as leaf l
+		l each f
 
 fold<a, b> a(acc a, a tree-set b, f act a(a, b)) data<b> compare<b>
 	acc fold-recur a.root, f
 .fold-recur<a, b> a(acc a, a node b, f act a(a, b))
 	match a
-	as inner-node i
+	as inner i
 		acc fold-recur-inner-node i, f
-	as arr arr
-		acc fold arr, f
+	as leaf l
+		acc fold l, f
 .fold-recur-inner-node<a, b> a(acc a, a inner-node b, f act a(a, b))
 	left-value = acc fold-recur a.left, f
 	f[left-value, a.value] fold-recur a.right, f
@@ -490,7 +486,7 @@ dbg<a> str(a tree-set a) to-str<a>
 	res move-to-str!
 .dbg-recur!<a> void(res writer, a node a) to-str<a>
 	match a
-	as inner-node i
+	as inner i
 		res ~= "("
 		res dbg-recur! i.left
 		res ~= " "
@@ -498,12 +494,12 @@ dbg<a> str(a tree-set a) to-str<a>
 		res ~= " "
 		res dbg-recur! i.right
 		res ~= ")"
-	as arr arr
-		if arr is-empty
+	as leaf l
+		if l is-empty
 			res ~= "[]"
 		else
 			res ~= "["
-			arr each x =>
+			l each x =>
 				res ~= x to-str
 				res ~= " "
 			res backup!

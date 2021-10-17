@@ -53,33 +53,28 @@ list-equal<a> bool(a list a, b list a) trusted noctx equal<a>
 		as not-equal
 			false
 		as left-longer ll
-			hard-assert: ll.remainder is-empty
+			hard-assert: ll is-empty
 			true
-		as right-longer
+		as right-longer r
+			# TODO: use '_'
+			drop: r
 			hard-unreachable
 	else
 		false
 
 .equal-with-remainder<a> union
 	not-equal
-	left-longer<a>
-	right-longer<a>
-.not-equal record
-.left-longer<a> record
-	by-val
-	remainder a[]
-.right-longer<a> record
-	by-val
-	remainder a[]
+	left-longer a[]
+	right-longer a[]
 
 .mirror<a> equal-with-remainder a(a equal-with-remainder a) noctx
 	match a
 	as not-equal
 		not-equal
 	as left-longer ll
-		ll.remainder right-longer
+		ll right-longer
 	as right-longer rl
-		rl.remainder left-longer
+		rl left-longer
 
 .equal-recur<a> equal-with-remainder a(a list a, b list a) unsafe noctx equal<a>
 	if ap ?= a prev
@@ -89,26 +84,30 @@ list-equal<a> bool(a list a, b list a) trusted noctx equal<a>
 			as not-equal
 				not-equal
 			as left-longer ll
-				ll.remainder equal-with-remainder a.values, b.values
+				ll equal-with-remainder a.values, b.values
 			as right-longer rl
-				rl.remainder equal-with-remainder b.values, a.values mirror
+				rl equal-with-remainder b.values, a.values mirror
 		else
 			match ap equal-recur b
 			as not-equal
 				not-equal
-			as left-longer
+			as left-longer l
+				# TODO: use '_'
+				drop: l
 				# Shouldn't happen if they are the same total size
 				hard-unreachable
 			as right-longer rl
-				a.values equal-with-remainder rl.remainder
+				a.values equal-with-remainder rl
 	elif bp ?= b prev
 		match a equal-recur bp
 		as not-equal
 			not-equal
 		as left-longer ll
 			# Shouldn't happen if they are the same total size
-			ll.remainder equal-with-remainder b.values
-		as right-longer
+			ll equal-with-remainder b.values
+		as right-longer r
+			# TODO: use '_'
+			drop: r
 			hard-unreachable
 	else
 		a.values equal-with-remainder b.values

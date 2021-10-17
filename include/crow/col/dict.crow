@@ -6,7 +6,7 @@ import
 	../exception: assert, unreachable
 	../fun: subscript
 	../hash: hash, hash-mix
-	../misc: ->, arrow, data, from, to, void
+	../misc: ->, arrow, data, drop, from, to, void
 	../opt: ==, force, is-empty, none, opt, some
 	../ptr: ==, +, set-deref
 	../range: ..
@@ -38,21 +38,10 @@ dict-equal<k, v> bool(a v[k], b v[k]) data<k> compare<k> hash-mix<k> equal<v>
 		x.from == y.from && x.to == y.to
 
 node<k, v> union
-	inner-node<k, v>
-	leaf-node<k, v>
+	inner-node node<k, v>[]
+	leaf-node arrow<k, v>[]
 
-.inner-node<k, v> record
-	by-val
-	# Nodes keyed by the next 3 bits of the hash.
-	# An inner-node should always have at least 2 non-empty children.
-	children node<k, v>[]
-
-.leaf-node<k, v> record
-	by-val
-	# No particular order
-	pairs arrow<k, v>[]
-
-.empty-leaf-node<k, v> leaf-node<k, v>()
+.empty-leaf-node<k, v> node<k, v>()
 	[] leaf-node
 
 .low-bits nat64(a nat64)
@@ -90,35 +79,39 @@ is-empty<k, v> bool(a v[k]) data<k> compare<k> hash-mix<k>
 	a.root node-is-empty
 .node-is-empty<k, v> bool(a node<k, v>)
 	match a
-	as inner-node
+	as inner-node i
+		# TODO: use '_'
+		drop: i
 		false
 	as leaf-node l
-		l.pairs is-empty
+		l is-empty
 
 size<k, v> nat64(a v[k]) data<k> compare<k> hash-mix<k>
 	0 size-recur a.root
 .size-recur<k, v> nat64(acc nat64, a node<k, v>)
 	match a
 	as inner-node i
-		acc fold i.children, (cur, child) => cur size-recur child
+		acc fold i, (cur, child) => cur size-recur child
 	as leaf-node l
-		acc wrap-add l.pairs.size
+		acc wrap-add l.size
 
 subscript<k, v> v?(a v[k], key k) data<k> compare<k> hash-mix<k>
 	match a root
-	as inner-node
+	as inner-node i
+		# TODO: use '_'
+		drop: i
 		hash = key hash
 		a.root subscript-recur key, hash
 	as leaf-node l
-		l.pairs subscript-leaf-recur key
+		l subscript-leaf-recur key
 .subscript-recur<k, v> v?(a node<k, v>, key k, remaining-hash nat64) trusted data<k> compare<k> hash-mix<k>
 	match a
 	as inner-node i
 		which = remaining-hash low-bits
-		if which < i.children.size
-			i.children[which] subscript-recur key, (remaining-hash unsafe-bit-shift-right inner-node-n-bits)
+		if which < i.size
+			i[which] subscript-recur key, (remaining-hash unsafe-bit-shift-right inner-node-n-bits)
 	as leaf-node l
-		l.pairs subscript-leaf-recur key
+		l subscript-leaf-recur key
 .subscript-leaf-recur<k, v> v?(a arrow<k, v>[], key k) compare<k>
 	if a is-empty
 		none
@@ -142,8 +135,8 @@ in<k, v> bool(key k, a v[k]) data<k> compare<k> hash-mix<k>
 	a fold pairs, (cur, pair) => cur ~ pair
 
 try-add-result<k, v> union
-	already-has-key<v>
-	dict<k, v>
+	already-has-key v
+	added v[k]
 
 already-has-key<v> record
 	value v
@@ -158,7 +151,7 @@ try-add<k, v> try-add-result<k, v>(a v[k], key k, get-value act v()) data<k> com
 	if value ?= res old-value
 		value already-has-key
 	else
-		void dict res.new-node.force
+		void dict res.new-node.force added
 
 - <k, v> v[k](a v[k], key k) data<k> compare<k> hash-mix<k>
 	if res ?= a try-remove key
@@ -185,11 +178,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) data<k> compare<k> hash
 .get-or-update-action<v> union
 	no-change
 	remove
-	insert<v>
-.no-change record
-.remove record
-.insert<v> record
-	value v
+	insert v
 
 ###
 `f` takes the old value and returns the new value, or 'none' to choose to preserve the old value.
@@ -204,7 +193,9 @@ spec
 body
 	hash = key hash
 	match a root
-	as inner-node
+	as inner-node i
+		# TODO: use '_'
+		drop: i
 		a.root get-or-update-recur key, hash, 0, f
 	as leaf-node l
 		l get-or-update-leaf key, hash, 0, f
@@ -223,9 +214,9 @@ body
 	match a
 	as inner-node i
 		which = remaining-hash low-bits
-		if which < i.children.size
+		if which < i.size
 			next-hash = remaining-hash unsafe-bit-shift-right 3
-			child-res = i.children[which] get-or-update-recur key, next-hash, (hash-shift wrap-add 3), f
+			child-res = i[which] get-or-update-recur key, next-hash, (hash-shift wrap-add 3), f
 			if node ?= child-res new-node
 				new-inner = i update-child which, node
 				new-inner.some get-or-update-result child-res.old-value
@@ -239,60 +230,64 @@ body
 				none get-or-update-result none
 			as insert ins
 				# TODO: should be able to write this inline
-				pair = key -> ins.value
+				pair = key -> ins
 				# TODO: type args should not be necessary
 				new-leaf = [pair] leaf-node<k, v>
 				# TODO: type args should not be necessary
-				new-node = i.children update-with-default which, new-leaf, empty-leaf-node inner-node<k, v>
+				new-node = i update-with-default which, new-leaf, empty-leaf-node inner-node<k, v>
 				new-node.some get-or-update-result none
 	as leaf-node l
 		l get-or-update-leaf key, remaining-hash, hash-shift, f
 
-.update-child<k, v> node<k, v>(a inner-node<k, v>, which nat64, new-child node<k, v>)
+.update-child<k, v> node<k, v>(a node<k, v>[], which nat64, new-child node<k, v>)
 	if leaf ?= a inner-node-to-leaf which, new-child
 		leaf
 	elif new-child node-is-empty
-		if which == (a.children.size wrap-sub 1)
-			new-children = a.children rtail
+		if which == (a.size wrap-sub 1)
+			new-children = a rtail
 			if new-children.size == 1
 				new-children[0]
 			else
 				new-children inner-node
 		else
-			new-children = a.children update which, new-child
+			new-children = a update which, new-child
 			if child ?= new-children find-only-non-empty-child
 				child
 			else
 				new-children inner-node
 	else
-		a.children update which, new-child inner-node
+		a update which, new-child inner-node
 
 # Returns 'some' if we should change this to a leaf.
-.inner-node-to-leaf<k, v> leaf-node<k, v>?(a inner-node<k, v>, which nat64, new-child node<k, v>) trusted
-	total-size = 0 fold-with-index a.children, (cur, child, child-index) =>
+.inner-node-to-leaf<k, v> node<k, v>?(a node<k, v>[], which nat64, new-child node<k, v>) trusted
+	total-size = 0 fold-with-index a, (cur, child, child-index) =>
 		new-child-here = if child-index == which
 			new-child
 		else
 			child
 		match new-child-here
-		as inner-node
+		as inner-node i
+			# TODO: use '_'
+			drop: i
 			99
 		as leaf-node l
-			cur wrap-add l.pairs.size
+			cur wrap-add l.size
 	if total-size <= leaf-max-size
 		# TODO: if only one non-empty leaf, don't copy..
 		out = total-size uninitialized-fix-arr<arrow<k, v>>
-		end = 0 fold-with-index a.children, (out-index, child, child-index) =>
+		end = 0 fold-with-index a, (out-index, child, child-index) =>
 			new-child-here = if child-index == which
 				new-child
 			else
 				child
 			match new-child-here
-			as inner-node
+			as inner-node i
+				# TODO: use '_'
+				drop: i
 				unreachable
 			as leaf-node l
-				new-out-index = out-index wrap-add l.pairs.size
-				out[out-index .. new-out-index] copy-from! l.pairs
+				new-out-index = out-index wrap-add l.size
+				out[out-index .. new-out-index] copy-from! l
 				new-out-index
 		assert: end == out.size
 		out.cast-immutable.leaf-node some
@@ -303,7 +298,7 @@ body
 		children[first-non-empty-index] some
 
 .get-or-update-leaf<k, v> get-or-update-result<k, v>
-	a leaf-node<k, v>
+	a arrow<k, v>[]
 	key k
 	remaining-hash nat64
 	hash-shift nat64
@@ -312,15 +307,15 @@ spec
 	compare<k>
 	hash-mix<k>
 body
-	if index ?= a.pairs find-index it => it.from == key
-		old-value = a.pairs[index] to
+	if index ?= a find-index it => it.from == key
+		old-value = a[index] to
 		new-node node<k, v>? = match f[old-value some]
 		as no-change
 			none
 		as remove
-			some: leaf-node: a.pairs remove-at index
+			some: leaf-node: a remove-at index
 		as insert ins
-			some: leaf-node: a.pairs update index, key -> ins.value
+			some: leaf-node: a update index, key -> ins
 		new-node get-or-update-result old-value.some
 	else
 		new-node node<k, v>? = match f[none]
@@ -329,21 +324,21 @@ body
 		as remove
 			none
 		as insert ins
-			some: if a.pairs.size >= leaf-max-size
+			some: if a.size >= leaf-max-size
 				if hash-shift >= 64
 					# We've exhausted the hash.
 					# TODO: fall back to a sorted dict ?
 					todo
 				# If we get here, it's guaranteed that we don't need to recursively create leaves.
 				# Just group by hash.
-				a new-inner-node key, ins.value, remaining-hash, hash-shift
+				a new-inner-node key, ins, remaining-hash, hash-shift
 			else
-				a.pairs ~ [key -> ins.value] leaf-node
+				a ~ [key -> ins] leaf-node
 		new-node get-or-update-result none
 
 # In order to get the hash, we need to know the shift amount
-.new-inner-node<k, v> inner-node<k, v>
-	a leaf-node<k, v>
+.new-inner-node<k, v> node<k, v>
+	a arrow<k, v>[]
 	key k
 	value v
 	hash nat64
@@ -353,18 +348,20 @@ spec
 	hash-mix<k>
 body
 	key-hash = hash low-bits
-	max-hash = key-hash fold a.pairs, (cur, pair) =>
+	max-hash = key-hash fold a, (cur, pair) =>
 		cur max (pair.from.hash unsafe-bit-shift-right hash-shift low-bits)
 	res = max-hash wrap-add 1 fill-fix-arr<node<k, v>> empty-leaf-node
 	# TODO: avoid allocating the same leaf twice...
 	res[key-hash] := [key -> value] leaf-node
-	a.pairs each pair =>
+	a each pair =>
 		x = pair.from.hash unsafe-bit-shift-right hash-shift low-bits
 		res[x] := match res[x]
-		as inner-node
+		as inner-node i
+			# TODO: use '_'
+			drop: i
 			unreachable
 		as leaf-node l
-			l.pairs ~ [pair] leaf-node
+			l ~ [pair] leaf-node
 	res.cast-immutable inner-node
 
 region iteration
@@ -380,9 +377,9 @@ fold<a, k, v> a(acc a, a v[k], f act a(a, k, v)) data<k> compare<k> hash-mix<k>
 .fold-recur<a, k, v> a(acc a, a node<k, v>, f act a(a, k, v))
 	match a
 	as inner-node i
-		acc fold i.children, (cur, child) => cur fold-recur child, f
+		acc fold i, (cur, child) => cur fold-recur child, f
 	as leaf-node l
-		acc fold l.pairs, (cur, pair) => f[cur, pair.from, pair.to]
+		acc fold l, (cur, pair) => f[cur, pair.from, pair.to]
 
 fold-keys<a, k, v> a(acc a, a v[k], f act a(a, k)) data<k> compare<k> hash-mix<k>
 	acc fold a, (cur, key, value) => f[cur, key]
@@ -406,7 +403,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted data<k> compare<k> hash-m
 .dbg-recur void(out writer, a node<nat64, str>, path str)
 	match a
 	as inner-node i
-		i.children each-with-index (child, index) =>
+		i each-with-index (child, index) =>
 			if !child.node-is-empty
 				out dbg-recur child, path ~ index.to-str
 				out ~= " "
@@ -414,12 +411,12 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted data<k> compare<k> hash-m
 	as leaf-node l
 		out ~= path
 		out ~= "["
-		l.pairs each pair =>
+		l each pair =>
 			out ~= pair from
 			out ~= " -> "
 			out ~= pair to
 			out ~= ", "
-		if l.pairs is-empty
+		if l is-empty
 			out ~= "]"
 		else
 			out backup! 2
@@ -434,7 +431,7 @@ dbg str(a void[nat64])
 .dbg-recur void(out writer, a node<nat64, void>, path str)
 	match a
 	as inner-node i
-		i.children each-with-index (child, index) =>
+		i each-with-index (child, index) =>
 			if !child.node-is-empty
 				out dbg-recur child, path ~ index.to-str
 				out ~= " "
@@ -442,10 +439,10 @@ dbg str(a void[nat64])
 	as leaf-node l
 		out ~= path
 		out ~= "["
-		l.pairs each pair =>
+		l each pair =>
 			out ~= pair from
 			out ~= ", "
-		if l.pairs is-empty
+		if l is-empty
 			out ~= "]"
 		else
 			out backup! 2

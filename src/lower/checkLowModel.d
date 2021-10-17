@@ -96,7 +96,7 @@ void checkLowExpr(Alloc)(
 				checkLowExpr(alloc, ctx, field.type, arg);
 			});
 		},
-		(ref immutable LowExprKind.ConvertToUnion it) {
+		(ref immutable LowExprKind.CreateUnion it) {
 			immutable LowType member = at(
 				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(type)).members,
 				it.memberIndex);

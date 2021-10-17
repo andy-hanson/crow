@@ -1,12 +1,13 @@
 no-std
 import
 	./bool: !, ==, bool, false, true
+	./col/arr: arr, arr-equal, is-empty
+	./col/arr-util: each
 	./col/dict: dict, dict-equal, each, is-empty
-	./col/list: each, is-empty, list, list-equal
 	./col/mut-dict: move-to-dict!, mut-dict, set-subscript
 	./col/mut-arr: ~=, move-to-arr!, mut-arr
 	./hash: hash-mix
-	./misc: ->, void
+	./misc: ->, drop, void
 	./number: ==, float64
 	./opt: none, opt, some
 	./reader:
@@ -16,38 +17,38 @@ import
 	./writer: ~=, backup!, move-to-str!, writer, write-quoted-str!
 
 json union
-	bool
-	float64
-	str
-	list<json>
-	dict<str, json>
+	json-bool bool
+	json-number float64
+	json-str str
+	json-arr json[]
+	json-object json[str]
 
 == bool(a json, b json)
 	match a
-	as bool ba
+	as json-bool ba
 		if bb ?= b as-bool
 			ba == bb
 		else
 			false
-	as float64 fa
-		if fb ?= b as-float
+	as json-number fa
+		if fb ?= b as-number
 			fa == fb
 		else
 			false
-	as str sa
+	as json-str sa
 		if sb ?= b as-str
 			sa == sb
 		else
 			false
-	as list aa
-		if ab ?= b as-list
-			aa list-equal ab, (x, y) =>
+	as json-arr aa
+		if ab ?= b as-arr
+			aa arr-equal ab, (x, y) =>
 				x == y
 		else
 			false
-	as dict da
-		if db ?= b as-dict
-			da dict-equal db
+	as json-object oa
+		if ob ?= b as-object
+			oa dict-equal ob
 		else
 			false
 
@@ -63,64 +64,104 @@ json union
 
 as-bool bool?(a json) noctx
 	match a
-	as bool b
+	as json-bool b
 		b some
-	as float64
+	as json-number j
+		# TODO: use '_'
+		drop: j
 		none
-	as str
+	as json-str j
+		# TODO: use '_'
+		drop: j
 		none
-	as list
+	as json-arr j
+		# TODO: use '_'
+		drop: j
 		none
-	as dict
+	as json-object j
+		# TODO: use '_'
+		drop: j
 		none
-as-float float64?(a json) noctx
+as-number float64?(a json) noctx
 	match a
-	as bool
+	as json-bool j
+		# TODO: use '_'
+		drop: j
 		none
-	as float64 f
-		f some
-	as str
+	as json-number n
+		n some
+	as json-str j
+		# TODO: use '_'
+		drop: j
 		none
-	as list
+	as json-arr j
+		# TODO: use '_'
+		drop: j
 		none
-	as dict
+	as json-object j
+		# TODO: use '_'
+		drop: j
 		none
 as-str str?(a json) noctx
 	match a
-	as bool
+	as json-bool j
+		# TODO: use '_'
+		drop: j
 		none
-	as float64
+	as json-number j
+		# TODO: use '_'
+		drop: j
 		none
-	as str s
+	as json-str s
 		s some
-	as list
+	as json-arr j
+		# TODO: use '_'
+		drop: j
 		none
-	as dict
+	as json-object j
+		# TODO: use '_'
+		drop: j
 		none
-as-list list<json>?(a json) noctx
+as-arr json[]?(a json) noctx
 	match a
-	as bool
+	as json-bool j
+		# TODO: use '_'
+		drop: j
 		none
-	as float64
+	as json-number j
+		# TODO: use '_'
+		drop: j
 		none
-	as str
+	as json-str j
+		# TODO: use '_'
+		drop: j
 		none
-	as list l
-		l some
-	as dict
+	as json-arr arr
+		arr some
+	as json-object j
+		# TODO: use '_'
+		drop: j
 		none
-as-dict json[str]?(a json) noctx
+as-object json[str]?(a json) noctx
 	match a
-	as bool
+	as json-bool j
+		# TODO: use '_'
+		drop: j
 		none
-	as float64
+	as json-number j
+		# TODO: use '_'
+		drop: j
 		none
-	as str
+	as json-str j
+		# TODO: use '_'
+		drop: j
 		none
-	as list
+	as json-arr j
+		# TODO: use '_'
+		drop: j
 		none
-	as dict d
-		d some
+	as json-object o
+		o some
 
 parse-json json?(a str)
 	a with-reader r => r take-json!
@@ -132,63 +173,63 @@ to-str str(a json)
 
 .to-str-recur! void(out writer, a json)
 	match a
-	as bool b
+	as json-bool b
 		out ~= b
-	as float64 f
+	as json-number f
 		out ~= f
-	as str s
+	as json-str s
 		out write-quoted-str! s
-	as list l
+	as json-arr xs
 		out ~= "["
-		l each x =>
+		xs each x =>
 			out to-str-recur! x
 			out ~= ","
-		if !l.is-empty
+		if !xs.is-empty
 			out backup!
 		out ~= "]"
-	as dict d
+	as json-object o
 		out ~= "\{"
-		d each (key, value) =>
+		o each (key, value) =>
 			out write-quoted-str! key
 			out ~= ":"
 			out to-str-recur! value
 			out ~= ","
-		if !d.is-empty
+		if !o.is-empty
 			out backup!
 		out ~= "}"
 
 take-json! json?(a reader)
 	a skip-whitespace!
 	if f ?= a take-float!
-		f some
+		f.json-number some
 	elif a try-take-str "true"
-		true some
+		true.json-bool some
 	elif a try-take-str "false"
-		false some
+		false.json-bool some
 	elif s ?= a take-quoted-str!
-		s some
+		s.json-str some
 	elif a try-take-char "["
 		a skip-whitespace!
 		if a try-take-char "]"
-			list some
+			[].json-arr some
 		else
-			a take-list-recur! mut-arr
+			a take-arr-recur! mut-arr
 	elif a try-take-char "\{"
 		a skip-whitespace!
 		if a try-take-char "}"
-			dict some
+			dict.json-object some
 		else
 			a take-object-recur! mut-dict
 
-.take-list-recur! json?(a reader, res json mut[])
+.take-arr-recur! json?(a reader, res json mut[])
 	if j ?= a take-json!
 		res ~= j
 		a skip-whitespace!
 		if a try-take-char ","
 			a skip-whitespace!
-			a take-list-recur! res
+			a take-arr-recur! res
 		elif a try-take-char "]"
-			res.move-to-arr!.list some
+			res.move-to-arr!.json-arr some
 
 .take-object-recur! json?(a reader, res json mut[str])
 	if key ?= a take-quoted-str!
@@ -201,7 +242,7 @@ take-json! json?(a reader)
 					a skip-whitespace!
 					a take-object-recur! res
 				elif a try-take-char "}"
-					res.move-to-dict! some
+					res.move-to-dict!.json-object some
 				else
 					a take-object-recur! res
 
@@ -210,18 +251,18 @@ take-json! json?(a reader)
 	a.to-str is s
 
 test
-	true verify "true"
-	false verify "false"
-	-3.0 verify "-3"
-	1.5 verify "1.5"
-	-1.5 verify "-1.5"
-	"j" verify "\"j\""
-	"a\nb" verify "\"a\\nb\""
+	true.json-bool verify "true"
+	false.json-bool verify "false"
+	-3.0.json-number verify "-3"
+	1.5.json-number verify "1.5"
+	-1.5.json-number verify "-1.5"
+	"j".json-str verify "\"j\""
+	"a\nb".json-str verify "\"a\\nb\""
 
-	list verify "[]"
-	[1.0].list verify "[1]"
-	[1.0, true].list verify "[1,true]"
+	[].json-arr verify "[]"
+	[1.0.json-number].json-arr verify "[1]"
+	[1.0.json-number, true.json-bool].json-arr verify "[1,true]"
 
-	dict verify "\{}"
-	["a" -> 1.0].dict verify "\{\"a\":1}"
-	["a" -> 1.0, "x\ny" -> true].dict verify "\{\"a\":1,\"x\\ny\":true}"
+	dict.json-object verify "\{}"
+	["a" -> 1.0.json-number].dict.json-object verify "\{\"a\":1}"
+	["a" -> 1.0.json-number, "x\ny" -> true.json-bool].dict.json-object verify "\{\"a\":1,\"x\\ny\":true}"

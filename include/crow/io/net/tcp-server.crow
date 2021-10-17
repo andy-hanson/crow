@@ -22,7 +22,6 @@ import
 	../../fut: fut, handle-exceptions, then-void, fut-catch, resolved, subscript
 	../../misc: drop, void
 	../../number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64
-	../../opt: value
 	../../private/bootstrap: todo
 	# TODO: don't use this
 	../../private/fut-low-level: callback!
@@ -78,11 +77,13 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		done = state tcp-server-loop
 		done.fut-catch callback! r =>
 			match r
-			as ok
+			as ok o
+				# TODO: use '_'
+				drop: o
 				print: "stopped normally"
 			as err e
 				print: "An exception occurred in server"
-				print: e.value message
+				print: e message
 
 		done handle-exceptions
 

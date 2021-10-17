@@ -255,8 +255,13 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 			}
 		},
 		(ref immutable StructDeclAst.Body.Union union_) {
-			foreach (ref immutable TypeAst.InstStruct member; union_.members)
-				addInstStructTokens(alloc, tokens, member);
+			foreach (ref immutable StructDeclAst.Body.Union.Member member; union_.members) {
+				add(alloc, tokens, immutable Token(
+					Token.Kind.fieldDef, // TODO: Token.Kind.unionMember?
+					rangeAtName(true, member.range.start, member.name)));
+				if (has(member.type))
+					addTypeTokens(alloc, tokens, force(member.type));
+			}
 		});
 }
 

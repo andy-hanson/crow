@@ -57,7 +57,7 @@ import frontend.parse.lexer :
 	tryTake,
 	tryTakeIndentAfterNewline_topLevel;
 import frontend.parse.parseExpr : parseFunExprBody;
-import frontend.parse.parseType : parseType, parseTypeInstStruct, takeTypeArgsEnd, tryParseTypeArgsBracketed;
+import frontend.parse.parseType : parseType, takeTypeArgsEnd, tryParseTypeArgsBracketed;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -542,13 +542,16 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
 	return recur(immutable RecordModifiers(none!Pos, none!ExplicitByValOrRefAndRange));
 }
 
-immutable(TypeAst.InstStruct[]) parseUnionMembers(Alloc, SymAlloc)(
+immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembers(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
-	ArrBuilder!(TypeAst.InstStruct) res;
+	ArrBuilder!(StructDeclAst.Body.Union.Member) res;
 	do {
-		add(alloc, res, parseTypeInstStruct(alloc, lexer));
+		immutable Pos start = curPos(lexer);
+		immutable Sym name = takeName(alloc, lexer);
+		immutable Opt!TypeAst type = tryTake(lexer, ' ') ? some(parseType(alloc, lexer)) : none!TypeAst;
+		add(alloc, res, immutable StructDeclAst.Body.Union.Member(range(lexer, start), name, type));
 	} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
 	return finishArr(alloc, res);
 }
@@ -937,7 +940,7 @@ void handleNonFunKeywordAndIndent(Alloc, SymAlloc)(
 								else {
 									addDiagAtChar(alloc, lexer, immutable ParseDiag(
 										immutable ParseDiag.UnionCantBeEmpty()));
-									return emptyArr!(TypeAst.InstStruct);
+									return emptyArr!(StructDeclAst.Body.Union.Member);
 								}
 							}()));
 				}

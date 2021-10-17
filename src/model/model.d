@@ -14,7 +14,7 @@ import util.comparison : compareOr, Comparison, ptrEquals;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.memory : nu;
-import util.opt : Opt;
+import util.opt : Opt, some;
 import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, rangeOfStartAndName, RangeWithinFile;
@@ -28,7 +28,7 @@ import util.sym :
 	symForOperator,
 	symSize,
 	writeSym;
-import util.types : Int64, Nat64, safeSizeTToU32;
+import util.types : Int64, Nat16, Nat64, safeSizeTToU32;
 import util.util : todo, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
@@ -249,7 +249,18 @@ struct RecordField {
 }
 
 immutable(RecordField) withType(ref immutable RecordField a, immutable Type t) {
-	return RecordField(a.range, a.isMutable, a.name, t, a.index);
+	return immutable RecordField(a.range, a.isMutable, a.name, t, a.index);
+}
+
+struct UnionMember {
+	//TODO: use NameAndRange (more compact)
+	immutable FileAndRange range;
+	immutable Sym name;
+	immutable Opt!Type type;
+}
+
+immutable(UnionMember) withType(ref immutable UnionMember a, immutable Type t) {
+	return immutable UnionMember(a.range, a.name, some(t));
 }
 
 enum ForcedByValOrRefOrNone {
@@ -299,7 +310,7 @@ struct StructBody {
 		immutable RecordField[] fields;
 	}
 	struct Union {
-		immutable Ptr!StructInst[] members;
+		immutable UnionMember[] members;
 	}
 
 	private:
@@ -344,7 +355,7 @@ immutable(bool) isRecord(ref const StructBody a) {
 	verify(isRecord(a));
 	return a.record;
 }
-immutable(bool) isUnion(ref immutable StructBody a) {
+private immutable(bool) isUnion(ref immutable StructBody a) {
 	return a.kind == StructBody.Kind.union_;
 }
 @trusted ref immutable(StructBody.Union) asUnion(return scope ref immutable StructBody a) {
@@ -638,6 +649,9 @@ struct FunBody {
 		immutable EnumValue value;
 	}
 	struct CreateRecord {}
+	struct CreateUnion {
+		immutable Nat16 memberIndex;
+	}
 	struct Extern {
 		immutable bool isGlobal;
 		immutable Opt!string libraryName;
@@ -654,6 +668,7 @@ struct FunBody {
 		builtin,
 		createEnum,
 		createRecord,
+		createUnion,
 		enumFunction,
 		extern_,
 		expr,
@@ -666,6 +681,7 @@ struct FunBody {
 		immutable Builtin builtin;
 		immutable CreateEnum createEnum;
 		immutable CreateRecord createRecord;
+		immutable CreateUnion createUnion;
 		immutable EnumFunction enumFunction;
 		immutable Ptr!Extern extern_;
 		immutable Ptr!Expr expr;
@@ -678,6 +694,7 @@ struct FunBody {
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	immutable this(immutable CreateEnum a) { kind = Kind.createEnum; createEnum = a; }
 	immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
+	immutable this(immutable CreateUnion a) { kind = Kind.createUnion; createUnion = a; }
 	immutable this(immutable EnumFunction a) { kind = Kind.enumFunction; enumFunction = a; }
 	@trusted immutable this(immutable Ptr!Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
@@ -696,6 +713,7 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 	scope T delegate(ref immutable FunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope T delegate(ref immutable FunBody.CreateEnum) @safe @nogc pure nothrow cbCreateEnum,
 	scope T delegate(ref immutable FunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
+	scope T delegate(ref immutable FunBody.CreateUnion) @safe @nogc pure nothrow cbCreateUnion,
 	scope T delegate(immutable EnumFunction) @safe @nogc pure nothrow cbEnumFunction,
 	scope T delegate(ref immutable FunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(immutable Ptr!Expr) @safe @nogc pure nothrow cbExpr,
@@ -710,6 +728,8 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 			return cbCreateEnum(a.createEnum);
 		case FunBody.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
+		case FunBody.Kind.createUnion:
+			return cbCreateUnion(a.createUnion);
 		case FunBody.Kind.enumFunction:
 			return cbEnumFunction(a.enumFunction);
 		case FunBody.Kind.extern_:
@@ -1388,12 +1408,6 @@ struct Expr {
 		immutable Ptr!Expr else_;
 	}
 
-	struct ImplicitConvertToUnion {
-		immutable Ptr!StructInst unionType;
-		immutable ubyte memberIndex;
-		immutable Ptr!Expr inner;
-	}
-
 	// type is the lambda's type (not the body's return type), e.g. a Fun1 or sendFun1 instance.
 	struct Lambda {
 		immutable Param[] params;
@@ -1465,7 +1479,6 @@ struct Expr {
 		createArr,
 		funPtr,
 		ifOption,
-		implicitConvertToUnion,
 		lambda,
 		let,
 		literal,
@@ -1486,7 +1499,6 @@ struct Expr {
 		immutable ClosureFieldRef closureFieldRef;
 		immutable Cond cond;
 		immutable CreateArr createArr;
-		immutable ImplicitConvertToUnion implicitConvertToUnion;
 		immutable FunPtr funPtr;
 		immutable IfOption ifOption;
 		immutable Ptr!Lambda lambda;
@@ -1510,9 +1522,6 @@ struct Expr {
 	@trusted immutable this(immutable FileAndRange r, immutable Cond a) { range_ = r; kind = Kind.cond; cond = a; }
 	@trusted immutable this(immutable FileAndRange r, immutable CreateArr a) {
 		range_ = r; kind = Kind.createArr; createArr = a;
-	}
-	@trusted immutable this(immutable FileAndRange r, immutable ImplicitConvertToUnion a) {
-		range_ = r; kind = Kind.implicitConvertToUnion; implicitConvertToUnion = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable FunPtr a) {
 		range_ = r; kind = Kind.funPtr; funPtr = a;
@@ -1561,7 +1570,6 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	scope T delegate(ref immutable Expr.CreateArr) @safe @nogc pure nothrow cbCreateArr,
 	scope T delegate(ref immutable Expr.FunPtr) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(ref immutable Expr.IfOption) @safe @nogc pure nothrow cbIfOption,
-	scope T delegate(ref immutable Expr.ImplicitConvertToUnion) @safe @nogc pure nothrow cbImplicitConvertToUnion,
 	scope T delegate(ref immutable Expr.Lambda) @safe @nogc pure nothrow cbLambda,
 	scope T delegate(ref immutable Expr.Let) @safe @nogc pure nothrow cbLet,
 	scope T delegate(ref immutable Expr.Literal) @safe @nogc pure nothrow cbLiteral,
@@ -1588,8 +1596,6 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 			return cbFunPtr(a.funPtr);
 		case Expr.Kind.ifOption:
 			return cbIfOption(a.ifOption);
-		case Expr.Kind.implicitConvertToUnion:
-			return cbImplicitConvertToUnion(a.implicitConvertToUnion);
 		case Expr.Kind.lambda:
 			return cbLambda(a.lambda);
 		case Expr.Kind.let:
@@ -1623,7 +1629,6 @@ immutable(bool) typeIsBogus(ref immutable Expr a) {
 		(ref immutable Expr.CreateArr) => false,
 		(ref immutable Expr.FunPtr) => false,
 		(ref immutable Expr.IfOption e) => isBogus(e.type),
-		(ref immutable Expr.ImplicitConvertToUnion) => false,
 		(ref immutable Expr.Lambda) => false,
 		(ref immutable Expr.Let e) => typeIsBogus(e.then),
 		(ref immutable Expr.Literal) => false,
@@ -1646,7 +1651,6 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.CreateArr e) => immutable Type(e.arrType),
 		(ref immutable Expr.FunPtr e) => immutable Type(e.structInst),
 		(ref immutable Expr.IfOption e) => e.type,
-		(ref immutable Expr.ImplicitConvertToUnion e) => immutable Type(e.unionType),
 		(ref immutable Expr.Lambda e) => immutable Type(e.type),
 		(ref immutable Expr.Let e) => getType(e.then, commonTypes),
 		(ref immutable Expr.Literal e) => immutable Type(e.structInst),

@@ -23,7 +23,6 @@ import frontend.check.dicts :
 import frontend.check.inferringType : CommonFuns;
 import frontend.check.instantiate :
 	DelayStructInsts,
-	instantiateFun,
 	instantiateSpec,
 	instantiateStruct,
 	instantiateStructBody,
@@ -31,7 +30,7 @@ import frontend.check.instantiate :
 	makeArrayType,
 	makeNamedValType,
 	TypeParamsScope;
-import frontend.check.typeFromAst : instStructFromAst, tryFindSpec, typeArgsFromAsts, typeFromAst;
+import frontend.check.typeFromAst : tryFindSpec, typeArgsFromAsts, typeFromAst;
 import frontend.parse.ast :
 	ExplicitByValOrRef,
 	ExplicitByValOrRefAndRange,
@@ -74,9 +73,7 @@ import model.model :
 	ForcedByValOrRefOrNone,
 	FunBody,
 	FunDecl,
-	FunDeclAndArgs,
 	FunFlags,
-	FunInst,
 	FunKind,
 	FunKindAndStructs,
 	IntegralTypes,
@@ -85,7 +82,6 @@ import model.model :
 	isPurityWorse,
 	isRecord,
 	isStructInst,
-	isUnion,
 	matchStructBody,
 	matchStructOrAlias,
 	matchType,
@@ -122,7 +118,8 @@ import model.model :
 	Test,
 	Type,
 	TypeParam,
-	typeParams;
+	typeParams,
+	UnionMember;
 import util.collection.arr :
 	ArrWithSize,
 	at,
@@ -148,7 +145,6 @@ import util.collection.arrUtil :
 	MapAndFold,
 	mapOp,
 	mapOpWithSize,
-	mapOrNone,
 	mapPtrs,
 	mapToMut,
 	mapWithIndex,
@@ -186,7 +182,7 @@ import util.sym :
 	Sym,
 	symEq,
 	symForOperator;
-import util.types : safeSizeTToU8;
+import util.types : Nat16, safeSizeTToU8, safeSizeTToU16;
 import util.util : todo, unreachable, verify;
 
 struct PathAndAst { //TODO:RENAME
@@ -319,14 +315,6 @@ immutable(Ptr!StructInst) instantiateNonTemplateStructDecl(Alloc)(
 		programState,
 		immutable StructDeclAndArgs(structDecl, emptyArr!Type),
 		someMut(ptrTrustMe_mut(delayedStructInsts)));
-}
-
-immutable(Ptr!FunInst) instantiateNonTemplateFunInst(Alloc)(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	immutable Ptr!FunDecl funDecl,
-) {
-	return instantiateFun(alloc, programState, immutable FunDeclAndArgs(funDecl, [], []));
 }
 
 immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
@@ -748,21 +736,6 @@ void checkStructAliasTargets(Alloc)(
 }
 
 //TODO:MOVE
-void everyPairWithIndex(T)(
-	immutable T[] a,
-	scope void delegate(
-		ref immutable T,
-		ref immutable T,
-		immutable size_t,
-		immutable size_t,
-	) @safe @nogc pure nothrow cb,
-) {
-	foreach (immutable size_t i; 0 .. size(a))
-		foreach (immutable size_t j; 0 .. i)
-			cb(at(a, j), at(a, i), j, i);
-}
-
-//TODO:MOVE
 void everyPair(T)(
 	ref immutable T[] a,
 	scope void delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow cb,
@@ -1044,7 +1017,7 @@ immutable(StructBody.Record) checkRecord(Alloc)(
 				someMut(ptrTrustMe_mut(delayStructInsts)));
 			if (isPurityWorse(bestCasePurity(fieldType), struct_.purity) && !struct_.purityIsForced)
 				addDiag(alloc, ctx, field.range, immutable Diag(
-					immutable Diag.PurityOfFieldWorseThanRecord(struct_, fieldType)));
+					immutable Diag.PurityWorseThanParent(struct_, fieldType)));
 			if (field.isMutable) {
 				immutable Opt!(Diag.MutFieldNotAllowed.Reason) reason =
 					struct_.purity != Purity.mut && !struct_.purityIsForced
@@ -1062,11 +1035,10 @@ immutable(StructBody.Record) checkRecord(Alloc)(
 			addDiag(alloc, ctx, b.range,
 				immutable Diag(immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.field, a.name)));
 	});
-
 	return immutable StructBody.Record(immutable RecordFlags(has(r.packed), forcedByValOrRef), fields);
 }
 
-immutable(StructBody) checkUnion(Alloc)(
+immutable(StructBody.Union) checkUnion(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -1075,40 +1047,29 @@ immutable(StructBody) checkUnion(Alloc)(
 	ref immutable StructDeclAst.Body.Union un,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	immutable Opt!(Ptr!StructInst[]) members = mapOrNone!(Ptr!StructInst)(
+	immutable UnionMember[] members = map!UnionMember(
 		alloc,
 		un.members,
-		(ref immutable TypeAst.InstStruct it) {
-			immutable Opt!(Ptr!StructInst) res = instStructFromAst(
+		(ref immutable StructDeclAst.Body.Union.Member it) {
+			immutable Opt!Type type = !has(it.type) ? none!Type : some(typeFromAst(
 				alloc,
 				ctx,
 				commonTypes,
-				it,
+				force(it.type),
 				structsAndAliasesDict,
 				TypeParamsScope(struct_.typeParams),
-				someMut(ptrTrustMe_mut(delayStructInsts)));
-			if (has(res) && isPurityWorse(force(res).bestCasePurity, struct_.purity))
+				someMut(ptrTrustMe_mut(delayStructInsts))));
+			if (has(type) && isPurityWorse(force(type).bestCasePurity, struct_.purity))
 				addDiag(alloc, ctx, it.range, immutable Diag(
-					immutable Diag.PurityOfMemberWorseThanUnion(struct_, force(res))));
-			return res;
+					immutable Diag.PurityWorseThanParent(struct_, force(type))));
+			return immutable UnionMember(rangeInFile(ctx, it.range), it.name, type);
 		});
-	if (has(members)) {
-		everyPairWithIndex!(Ptr!StructInst)(
-			force(members),
-			// Must name the ignored parameter due to https://issues.dlang.org/show_bug.cgi?id=21165
-			(ref immutable Ptr!StructInst a,
-			ref immutable Ptr!StructInst b,
-			immutable size_t _,
-			immutable size_t bIndex) {
-				if (ptrEquals(decl(a), decl(b))) {
-					immutable Diag diag = immutable Diag(
-						immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.decl.name));
-					addDiag(alloc, ctx, at(un.members, bIndex).range, diag);
-				}
-			});
-		return immutable StructBody(StructBody.Union(force(members)));
-	} else
-		return immutable StructBody(StructBody.Bogus());
+	everyPair!UnionMember(members, (ref immutable UnionMember a, ref immutable UnionMember b) {
+		if (symEq(a.name, b.name))
+			addDiag(alloc, ctx, b.range, immutable Diag(
+				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.name)));
+	});
+	return immutable StructBody.Union(members);
 }
 
 void checkStructBodies(Alloc)(
@@ -1149,32 +1110,16 @@ void checkStructBodies(Alloc)(
 						it,
 						delayStructInsts)),
 				(ref immutable StructDeclAst.Body.Union it) =>
-					checkUnion(
+					immutable StructBody(checkUnion(
 						alloc,
 						ctx,
 						commonTypes,
 						structsAndAliasesDict,
 						castImmutable(struct_),
 						it,
-						delayStructInsts));
+						delayStructInsts)));
 			setBody(struct_, body_);
 		});
-
-	foreach (ref immutable StructDecl struct_; castImmutable(structs)) {
-		matchStructBody!void(
-			body_(struct_),
-			(ref immutable StructBody.Bogus) {},
-			(ref immutable StructBody.Builtin) {},
-			(ref immutable StructBody.Enum) {},
-			(ref immutable StructBody.Flags) {},
-			(ref immutable StructBody.ExternPtr) {},
-			(ref immutable StructBody.Record) {},
-			(ref immutable StructBody.Union u) {
-				foreach (ref immutable Ptr!StructInst member; u.members)
-					if (isUnion(body_(member.decl.deref)))
-						todo!void("unions can't contain unions");
-			});
-	}
 }
 
 immutable(StructsAndAliasesDict) buildStructsAndAliasesDict(Alloc)(
@@ -1401,13 +1346,9 @@ immutable(Ptr!CommonFuns) getCommonFuns(Alloc)(
 		} else
 			return only(funs).decl;
 	}
-	immutable(Ptr!FunInst) commonFunInst(immutable string name) {
-		return instantiateNonTemplateFunInst(alloc, ctx.programState, commonFunDecl(name));
-	}
 
-	immutable Ptr!FunDecl someFun = commonFunDecl("some");
-	immutable Ptr!FunInst noneFun = commonFunInst("none");
-	return allocate(alloc, immutable CommonFuns(someFun, noneFun));
+	immutable Ptr!FunDecl noneFun = commonFunDecl("none");
+	return allocate(alloc, immutable CommonFuns(noneFun));
 }
 
 immutable(size_t) countFunsForStruct(
@@ -1436,8 +1377,8 @@ immutable(size_t) countFunsForStruct(
 					field.isMutable);
 				return nConstructors + size(it.fields) + nMutableFields;
 			},
-			(ref immutable StructBody.Union) =>
-				immutable size_t(0)));
+			(ref immutable StructBody.Union it) =>
+				size(it.members)));
 }
 
 void addFunsForStruct(Alloc, SymAlloc)(
@@ -1462,7 +1403,9 @@ void addFunsForStruct(Alloc, SymAlloc)(
 		(ref immutable StructBody.Record it) {
 			addFunsForRecord(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_, it);
 		},
-		(ref immutable StructBody.Union) {});
+		(ref immutable StructBody.Union it) {
+			addFunsForUnion(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_, it);
+		});
 }
 
 void addFunsForEnum(Alloc, SymAlloc)(
@@ -1744,7 +1687,7 @@ void addFunsForRecord(Alloc, SymAlloc)(
 	immutable ArrWithSize!TypeParam typeParams = struct_.typeParams_;
 	immutable Type[] typeArgs = mapPtrs(alloc, toArr(typeParams), (immutable Ptr!TypeParam p) =>
 		immutable Type(p));
-	immutable Type structType = immutable Type(instantiateStructNeverDelay!Alloc(
+	immutable Type structType = immutable Type(instantiateStructNeverDelay(
 		alloc,
 		ctx.programState,
 		immutable StructDeclAndArgs(struct_, typeArgs)));
@@ -1812,6 +1755,43 @@ void addFunsForRecord(Alloc, SymAlloc)(
 				emptyArrWithSize!(Ptr!SpecInst),
 				immutable FunBody(immutable FunBody.RecordFieldSet(fieldIndex))));
 		}
+	}
+}
+
+void addFunsForUnion(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	ref CheckCtx ctx,
+	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	ref immutable CommonTypes commonTypes,
+	immutable Ptr!StructDecl struct_,
+	ref immutable StructBody.Union union_,
+) {
+	immutable ArrWithSize!TypeParam typeParams = struct_.typeParams_;
+	immutable Type[] typeArgs = mapPtrs(alloc, toArr(typeParams), (immutable Ptr!TypeParam p) =>
+		immutable Type(p));
+	immutable Type structType = immutable Type(instantiateStructNeverDelay(
+		alloc,
+		ctx.programState,
+		immutable StructDeclAndArgs(struct_, typeArgs)));
+	foreach (immutable size_t memberIndex, ref immutable UnionMember member; union_.members) {
+		immutable Param[] params = has(member.type)
+			? arrLiteral!Param(alloc, [
+				immutable Param(member.range, some(shortSymAlphaLiteral("a")), force(member.type), 0)])
+			: emptyArr!Param;
+		immutable Ptr!Sig ctorSig = allocate(alloc, immutable Sig(
+			fileAndPosFromFileAndRange(member.range),
+			member.name,
+			structType,
+			params));
+		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+			emptySafeCStr,
+			struct_.isPublic,
+			FunFlags.generatedNoCtx,
+			ctorSig,
+			typeParams,
+			emptyArrWithSize!(Ptr!SpecInst),
+			immutable FunBody(immutable FunBody.CreateUnion(immutable Nat16(safeSizeTToU16(memberIndex))))));
 	}
 }
 

@@ -5,5 +5,5 @@ file-ast(
 		struct(range(0, 16), "", true, [], some(purity(10, data)), builtin)
 		struct(range(16, 34), "", true, [], some(purity(29, mut)), extern-ptr)
 		struct(range(34, 49), "", true, [], some(purity(43, data)), record(none, []))
-		struct(range(49, 65), "", true, [], some(purity(57, data)), union([inststruct(range(63, 64), name-range(63, r))]))]
+		struct(range(49, 65), "", true, [], some(purity(57, data)), union([member(r, none)]))]
 	funs: [])

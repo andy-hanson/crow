@@ -69,10 +69,7 @@ main fut nat(args str[]) unsafe summon
 	elif a == "stat"
 		stat some
 
-.command union
+.command enum
 	get
 	set
 	stat
-get record
-set record
-stat record

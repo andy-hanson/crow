@@ -9,9 +9,7 @@ module(
 			summon: true
 			sig: sig(file-pos(78, 83), main, fut(nat64()), [param(file-range(78, range(96, 103)), none, arr(str()))])
 			body: seq(
-				call(
-					fun-inst(name: log)
-					[to-union(log-level(), 0, call(fun-inst(name: info), [])), string-lit("Logged once")])
+				call(fun-inst(name: log), [call(fun-inst(name: info), []), string-lit("Logged once")])
 				let(
 					local(file-range(78, range(137, 139)), lh, fun1(void(), logged()))
 					call(fun-inst(name: get-log-handler), [])
@@ -40,9 +38,7 @@ module(
 											[]
 											call(
 												fun-inst(name: log)
-												[
-													to-union(log-level(), 1, call(fun-inst(name: warn), []))
-													string-lit("Logged twice")])
+												[call(fun-inst(name: warn), []), string-lit("Logged twice")])
 											[]
 											fun-act0(void())
 											mut
@@ -61,9 +57,7 @@ module(
 											[]
 											call(
 												fun-inst(name: log)
-												[
-													to-union(log-level(), 1, call(fun-inst(name: warn), []))
-													string-lit("Logged never")])
+												[call(fun-inst(name: warn), []), string-lit("Logged never")])
 											[]
 											fun-act0(void())
 											mut

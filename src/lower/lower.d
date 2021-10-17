@@ -20,6 +20,7 @@ import lower.lowExprHelpers :
 	genEnumIntersect,
 	genEnumToIntegral,
 	genEnumUnion,
+	genVoid,
 	getElementPtrTypeFromArrType,
 	getSizeOf,
 	int32Type,
@@ -125,7 +126,7 @@ import util.opt : asImmutable, force, has, mapOption, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Nat16, safeU16ToU8;
+import util.types : Nat16;
 import util.util : unreachable, verify;
 
 immutable(Ptr!LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
@@ -365,8 +366,10 @@ immutable(LowUnion) getLowUnion(Alloc)(
 		(ref immutable(ConcreteStructBody.ExternPtr)) => unreachable!(immutable LowType[])(),
 		(ref immutable(ConcreteStructBody.Record)) => unreachable!(immutable LowType[])(),
 		(ref immutable ConcreteStructBody.Union it) =>
-			map(alloc, it.members, (ref immutable ConcreteType member) =>
-				lowTypeFromConcreteType(alloc, getLowTypeCtx, member)));
+			map(alloc, it.members, (ref immutable Opt!ConcreteType member) =>
+				has(member)
+					? lowTypeFromConcreteType(alloc, getLowTypeCtx, force(member))
+					: immutable LowType(PrimitiveType.void_)));
 	return immutable LowUnion(s, members);
 }
 
@@ -660,6 +663,8 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.CreateRecord) =>
 				none!LowFunIndex,
+			(ref immutable ConcreteFunBody.CreateUnion) =>
+				none!LowFunIndex,
 			(immutable EnumFunction) =>
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.Extern) =>
@@ -728,6 +733,8 @@ public immutable(bool) concreteFunWillBecomeNonExternLowFun()(ref immutable Conc
 		(ref immutable ConcreteFunBody.CreateEnum) =>
 			false,
 		(ref immutable ConcreteFunBody.CreateRecord) =>
+			false,
+		(ref immutable ConcreteFunBody.CreateUnion) =>
 			false,
 		(immutable EnumFunction) =>
 			false,
@@ -932,6 +939,8 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.CreateRecord) =>
 			unreachable!(immutable LowFunBody),
+		(ref immutable ConcreteFunBody.CreateUnion) =>
+			unreachable!(immutable LowFunBody),
 		(immutable EnumFunction) =>
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.Extern it) =>
@@ -1048,10 +1057,6 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 		(ref immutable ConcreteExprKind.CreateRecord it) =>
 			immutable LowExprKind(immutable LowExprKind.CreateRecord(
 				getArgs(alloc, ctx, it.args))),
-		(ref immutable ConcreteExprKind.ConvertToUnion it) =>
-			immutable LowExprKind(immutable LowExprKind.ConvertToUnion(
-				it.memberIndex,
-				allocate(alloc, getLowExpr(alloc, ctx, it.arg, ExprPos.nonTail)))),
 		(ref immutable ConcreteExprKind.Lambda it) =>
 			getLambdaExpr(alloc, ctx, type, expr.range, it),
 		(ref immutable ConcreteExprKind.Let it) =>
@@ -1161,6 +1166,12 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 					return getAllocExpr2!Alloc(alloc, ctx, range, inner, type);
 				} else
 					return create;
+			},
+			(ref immutable ConcreteFunBody.CreateUnion it) {
+				immutable LowExpr arg = empty(a.args)
+					? genVoid(range)
+					: getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail);
+				return immutable LowExprKind(immutable LowExprKind.CreateUnion(it.memberIndex, allocate(alloc, arg)));
 			},
 			(immutable EnumFunction it) =>
 				genEnumFunction(alloc, ctx, it, a.args),
@@ -1400,8 +1411,8 @@ immutable(LowExprKind) getLambdaExpr(Alloc)(
 	ref immutable FileAndRange range,
 	ref immutable ConcreteExprKind.Lambda a,
 ) {
-	return immutable LowExprKind(immutable LowExprKind.ConvertToUnion(
-		safeU16ToU8(a.memberIndex),
+	return immutable LowExprKind(immutable LowExprKind.CreateUnion(
+		a.memberIndex,
 		allocate(alloc, getLowExpr(alloc, ctx, a.closure, ExprPos.nonTail))));
 }
 

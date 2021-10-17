@@ -31,8 +31,8 @@ mut-dict<k, v> record mut
 
 .entry<k, v> union mut
 	none
-	arrow<k, v>
-	mut-arr<arrow<k, v>>
+	one arrow<k, v>
+	many arrow<k, v> mut[]
 
 mut-dict<k, v> v mut[k]() data<k> compare<k> hash-mix<k>
 	void mut-dict fix-arr, 0
@@ -58,10 +58,10 @@ copy<k, v> v mut[k](a v mut[k]) data<k> compare<k> hash-mix<k>
 		match entry
 		as none
 			none
-		as arrow ar
-			ar
-		as mut-arr m
-			m copy
+		as one ar
+			ar one
+		as many m
+			m.copy many
 	void mut-dict entries, a.total-size
 test
 	a = [1 -> "1", 2 -> "2", 5 -> "5"] mut-dict
@@ -85,10 +85,10 @@ subscript<k, v> v?(a v mut[k], key k) trusted data<k> compare<k> hash-mix<k>
 		match a.entries[key.hash unsafe-mod a.entries.size]
 		as none
 			none
-		as arrow ar
+		as one ar
 			if ar.from == key
 				ar.to some
-		as mut-arr m
+		as many m
 			if index ?= m find-index pair => pair.from == key
 				m[index].to some
 
@@ -120,7 +120,7 @@ Returns the old value (if it exists).
 .update!<k, v> v?(a v mut[k], key k, new-value v?) trusted data<k> compare<k> hash-mix<k>
 	if a.entries is-empty
 		if value ?= new-value
-			a.entries := fix-arr: [key -> value]
+			a.entries := [key -> value one].fix-arr
 			a.total-size := 1
 		none
 	else
@@ -128,13 +128,13 @@ Returns the old value (if it exists).
 		match a.entries[entry-index]
 		as none
 			if value ?= new-value
-				a.entries[entry-index] := key -> value
+				a.entries[entry-index] := key -> value one
 				a.total-size := a.total-size wrap-add 1
 			none
-		as arrow ar
+		as one ar
 			if ar.from == key
 				a.entries[entry-index] := if value ?= new-value
-					key -> value
+					key -> value one
 				else
 					a.total-size := a.total-size wrap-sub 1
 					none
@@ -145,10 +145,10 @@ Returns the old value (if it exists).
 						a expand!
 						a[key] := value
 					else
-						a.entries[entry-index] := mut-arr: [ar, key -> value]
+						a.entries[entry-index] := [ar, key -> value].mut-arr many
 						a.total-size := a.total-size wrap-add 1
 				none
-		as mut-arr m
+		as many m
 			if index ?= m find-index pair => pair.from == key
 				old-value = m[index] to
 				if value ?= new-value
@@ -160,7 +160,7 @@ Returns the old value (if it exists).
 					elif m.size == 1
 						# TODO: should not need a local
 						z = m[0]
-						a.entries[entry-index] := z
+						a.entries[entry-index] := z one
 					a.total-size := a.total-size wrap-sub 1
 				old-value some
 			else
@@ -203,9 +203,9 @@ fold<a, k, v> a(acc a, a v mut[k], f act a(a, k, v)) data<k> compare<k> hash-mix
 		match entry
 		as none
 			cur
-		as arrow ar
+		as one ar
 			f[cur, ar.from, ar.to]
-		as mut-arr m
+		as many m
 			cur fold m, (cur2, pair) => f[cur2, pair.from, pair.to]
 
 filter!<k, v> void(a v mut[k], f act bool(k, v)) trusted data<k> compare<k> hash-mix<k>
@@ -215,17 +215,17 @@ filter!<k, v> void(a v mut[k], f act bool(k, v)) trusted data<k> compare<k> hash
 		match *entry-ptr
 		as none
 			void
-		as arrow ar
+		as one ar
 			if !f[ar.from, ar.to]
 				*entry-ptr := none
-		as mut-arr m
+		as many m
 			m filter! pair => f[pair.from, pair.to]
 			if m is-empty
 				*entry-ptr := none
 			elif m.size == 1
 				# TODO: should not need a local
 				z = m[0]
-				*entry-ptr := z
+				*entry-ptr := z one
 		entry-ptr + 1 filter-recur! entry-end, f
 
 
@@ -249,9 +249,9 @@ map-values!<k, v> void(a v mut[k], f act v(k, v)) trusted data<k> compare<k> has
 		match *entry-ptr
 		as none
 			void
-		as arrow ar
-			*entry-ptr := ar.from -> f[ar.from, ar.to]
-		as mut-arr m
+		as one ar
+			*entry-ptr := ar.from -> f[ar.from, ar.to] one
+		as many m
 			m map! pair => pair.from -> f[pair.from, pair.to]
 		entry-ptr + 1 map-values-recur! entry-end, f
 
@@ -261,13 +261,13 @@ map-values!<k, v> void(a v mut[k], f act v(k, v)) trusted data<k> compare<k> has
 		match entry
 		as none
 			out ~= "_"
-		as arrow ar
+		as one ar
 			out ~= "("
 			out ~= ar.from to-str
 			out ~= " -> "
 			out ~= ar to
 			out ~= ")"
-		as mut-arr m
+		as many m
 			out ~= "["
 			m each pair =>
 				out ~= pair.from to-str

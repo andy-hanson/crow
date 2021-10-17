@@ -184,9 +184,7 @@ blue color-32()
 	throw: "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit
 
-continue record
-quit record
-continue-or-quit union
+continue-or-quit enum
 	continue
 	quit
 

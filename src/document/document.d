@@ -30,7 +30,8 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
-	typeParams;
+	typeParams,
+	UnionMember;
 import util.collection.arr : empty, only, size;
 import util.collection.arrUtil : findIndex;
 import util.collection.dict : dictEach;
@@ -128,8 +129,8 @@ void writeStructDecl(Alloc)(ref Writer!Alloc writer, ref immutable StructDecl a)
 			writeTypeParams(writer, typeParams(a));
 			writeStatic(writer, ")");
 		},
-		(ref immutable(StructBody.Enum)) {
-			todo!void("!");
+		(ref immutable StructBody.Enum it) {
+			writeEnum(writer, a, it);
 		},
 		(ref immutable(StructBody.Flags)) {
 			todo!void("!");
@@ -147,6 +148,16 @@ void writeStructDecl(Alloc)(ref Writer!Alloc writer, ref immutable StructDecl a)
 			writeUnion(writer, a, it);
 		});
 	writeDocComment(writer, a.docComment);
+}
+
+void writeEnum(Alloc)(ref Writer!Alloc writer, ref immutable StructDecl a, ref immutable StructBody.Enum e) {
+	writeStatic(writer, "\n\t\t+enum(");
+	writeQuotedSym(writer, a.name);
+	writeStatic(writer, ", [");
+	writeWithCommas!(StructBody.Enum.Member)(writer, e.members, (ref immutable StructBody.Enum.Member member) {
+		writeQuotedSym(writer, member.name);
+	});
+	writeStatic(writer, "])");
 }
 
 void writeRecord(Alloc)(ref Writer!Alloc writer, ref immutable StructDecl a, ref immutable StructBody.Record r) {
@@ -171,8 +182,15 @@ void writeUnion(Alloc)(ref Writer!Alloc writer, ref immutable StructDecl a, ref 
 	writeQuotedSym(writer, a.name);
 	writeTypeParams(writer, typeParams(a));
 	writeStatic(writer, ", [");
-	writeWithCommas!(Ptr!StructInst)(writer, u.members, (ref immutable Ptr!StructInst member) {
-		writeQuotedType(writer, immutable Type(member));
+	writeWithCommas!UnionMember(writer, u.members, (ref immutable UnionMember member) {
+		writeChar(writer, '[');
+		writeQuotedSym(writer, member.name);
+		writeStatic(writer, ", ");
+		if (has(member.type))
+			writeQuotedType(writer, force(member.type));
+		else
+			writeStatic(writer, "null");
+		writeChar(writer, ']');
 	});
 	writeStatic(writer, "])");
 }

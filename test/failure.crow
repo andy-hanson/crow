@@ -51,20 +51,20 @@ first-failures result<str, failure[]>(a result<str, failure[]>, b fun result<str
 	as ok ok-a
 		match b[]
 		as ok ok-b
-			ok: "{ok-a value}\n{ok-b value}"
+			"{ok-a}\n{ok-b}" ok
 		as err e
-			e
+			e err
 	as err e
-		e
+		e err
 
 print-failures nat(failures result<str, failure[]>, options test-options) summon
 	match failures
 	as ok o
-		print: o value
+		print: o
 		0
 	as err e
-		e.value each failure => failure print-failure
-		n-failures = e.value.size
+		e each failure => failure print-failure
+		n-failures = e size
 		print: if n-failures == options.max-failures
 			"hit maximum of {options max-failures} failures"
 		else

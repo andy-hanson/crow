@@ -5,9 +5,9 @@ import
 	../../fun: subscript
 	../../hash: hash-mix
 	../../log: info, log
-	../../misc: ->, arrow, data, from, to, void
+	../../misc: ->, arrow, data, drop, from, to, void
 	../../opt: ==, is-empty, none, opt, some
-	../../ptr: ==, +, ref-eq, set-deref
+	../../ptr: ==, +, bits-equal, ref-eq, set-deref
 	../../str: ==, str
 	../../str-conv: to-str
 	../../test: is
@@ -34,21 +34,19 @@ node-count<k, v> nat64(a compact-dict<k, v>)
 	match a
 	as overlay o
 		acc wrap-add 1 node-count o.prev
-	as end-node
+	as end-node e
+		# TODO: use '_'
+		drop: e
 		acc wrap-add 1
 
 .impl<k, v> union
-	overlay<k, v>
-	end-node<k, v>
+	overlay overlay<k, v>
+	end-node frozen-dict<k, v>
 
 .overlay<k, v> record
 	by-ref
 	pairs frozen-dict<k, v?>
 	prev impl<k, v>
-
-.end-node<k, v> record
-	by-ref
-	pairs frozen-dict<k, v>
 
 compact-dict<k, v> compact-dict<k, v>() data<k> compare<k> hash-mix<k>
 	void compact-dict frozen-dict.end-node
@@ -64,10 +62,12 @@ values<k, v> v[](a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
 
 is-empty<k, v> bool(a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
 	match a impl
-	as overlay
+	as overlay o
+		# TODO: use '_'
+		drop: o
 		false
 	as end-node e
-		e.pairs is-empty
+		e is-empty
 
 ###
 Number of pairs.
@@ -110,7 +110,7 @@ subscript<k, v> v?(a compact-dict<k, v>, key k) data<k> compare<k> hash-mix<k>
 		else
 			o.prev subscript-recur key
 	as end-node e
-		e.pairs[key]
+		e[key]
 
 in<k, v> bool(key k, a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
 	!a[key].is-empty
@@ -125,12 +125,12 @@ in<k, v> bool(key k, a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
 			new-pairs = o.pairs merge-overlays a.pairs
 			new-pairs overlay o.prev merge-as-needed
 		else
-			a
+			a overlay
 	as end-node e
-		if e.pairs.size should-merge a.pairs.size
-			e.pairs merge-to-end a.pairs end-node
+		if e.size should-merge a.pairs.size
+			e merge-to-end a.pairs end-node
 		else
-			a
+			a overlay
 
 .should-merge bool(prev-size nat64, overlay-size nat64)
 	prev-size <= (overlay-size max 3)
@@ -203,7 +203,7 @@ fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) data<k> compare<k
 				cur
 		mid fold-recur o.prev, seen, f
 	as end-node e
-		acc fold e.pairs, (cur, k, v) =>
+		acc fold e, (cur, k, v) =>
 			if k in seen
 				cur
 			else
@@ -242,12 +242,12 @@ dbg<k, v> str(a compact-dict<k, v>) to-str<k> to-str<v>
 		out ~= "]"
 	as end-node e
 		out ~= "["
-		e.pairs each (k, v) =>
+		e each (k, v) =>
 			out ~= k to-str
 			out ~= " -> "
 			out ~= v to-str
 			out ~= ", "
-		if !e.pairs.is-empty
+		if !e.is-empty
 			out backup! 2
 		out ~= "]"
 
@@ -268,14 +268,18 @@ verify void(a compact-dict<nat64, str>, expected str)
 		match b impl
 		as overlay ob
 			oa ref-eq ob
-		as end-node
+		as end-node e
+			# TODO: use '_'
+			drop: e
 			false
 	as end-node ea
 		match b impl
-		as overlay
+		as overlay o
+			# TODO: use '_'
+			drop: o
 			false
 		as end-node eb
-			ea ref-eq eb
+			ea bits-equal eb
 
 test
 	a = compact-dict<nat64, str>

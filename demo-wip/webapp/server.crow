@@ -12,8 +12,8 @@ import
 	crow/writer: ~=, backup!, move-to-str!, writer
 	./db:
 		add-post!, close-real-db, content, cookie-expire-seconds, db, list-posts, list-users,
-		login!, post, post-info, new-user-id, open-real-db, parse-user-cookie, register-user!,
-		to-str, user, user-info, user-name
+		login!, post, post-info, open-real-db, parse-user-cookie, register-user!, to-str, user,
+		user-info, user-name
 
 main fut nat(args str[]) unsafe summon
 	if args.size != 1
@@ -56,9 +56,9 @@ main fut nat(args str[]) unsafe summon
 			user-name = args[0]
 			password = args[1]
 			match db register-user! user-name, password
-			as register-user-success s
+			as register-user-success user-id
 				# We need to get: user-name and password
-				200 http-response "OK", dict, "\{\"userId\":{s new-user-id}}"
+				200 http-response "OK", dict, "\{\"userId\":{user-id}}"
 			as user-already-exists
 				400 http-response "User already exists", dict, "User already exists"
 		elif path == "/login"
@@ -66,12 +66,11 @@ main fut nat(args str[]) unsafe summon
 			user-name = args[0]
 			password = args[1]
 			match db login! user-name, password
-			as ok o
-				cookie = o value
+			as ok cookie
 				headers = dict: ["Set-Cookie" -> "login={cookie}; Max-Age={cookie-expire-seconds}"]
 				200 http-response "OK", headers, "Logged in as {user-name}"
 			as err e
-				match e value
+				match e
 				as empty-name-or-password
 					"Invalid user or password" http-bad-query
 				as user-does-not-exist

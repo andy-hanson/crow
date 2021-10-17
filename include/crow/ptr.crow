@@ -1,9 +1,10 @@
 no-std
 import
+	string: memcmp
 	./bool: bool
 	./compare: comparison, less, equal, greater
 	./private/bootstrap: nat64, void
-	./private/number-low-level: unsafe-div, wrap-sub
+	./private/number-low-level: ==, unsafe-div, wrap-sub
 export
 	./private/bootstrap: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, zeroed
 
@@ -31,6 +32,14 @@ null<a> a mut*() noctx unsafe builtin
 	# TODO: what if a is an empty type ?
 	a.to-nat64 wrap-sub b.to-nat64 unsafe-div size-of<a>
 
+###
+True if the bits of two values are equal.
+For reference types, this is true if the pointers are equal.
+###
+bits-equal<a> bool(a a, b a) noctx unsafe
+	ap a* = a ptr-to
+	bp a* = b ptr-to
+	(ap.as-any-const-ptr memcmp bp.as-any-const-ptr, size-of<a>) == 0
 
 ###
 Get the value pointed to.

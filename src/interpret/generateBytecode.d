@@ -455,8 +455,8 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 		(ref immutable LowExprKind.CreateRecord it) {
 			generateCreateRecord(dbg, tempAlloc, writer, ctx, asRecordType(expr.type), source, it);
 		},
-		(ref immutable LowExprKind.ConvertToUnion it) {
-			generateConvertToUnion(dbg, tempAlloc, writer, ctx, asUnionType(expr.type), source, it);
+		(ref immutable LowExprKind.CreateUnion it) {
+			generateCreateUnion(dbg, tempAlloc, writer, ctx, asUnionType(expr.type), source, it);
 		},
 		(ref immutable LowExprKind.Let it) {
 			immutable StackEntries localEntries =
@@ -712,16 +712,16 @@ void generateCreateRecordOrConstantRecord(Debug, CodeAlloc, TempAlloc)(
 	verify(after.entry - before.entry == stackEntriesForType.to16());
 }
 
-void generateConvertToUnion(Debug, CodeAlloc, TempAlloc)(
+void generateCreateUnion(Debug, CodeAlloc, TempAlloc)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
 	immutable LowType.Union type,
 	ref immutable ByteCodeSource source,
-	ref immutable LowExprKind.ConvertToUnion it,
+	ref immutable LowExprKind.CreateUnion it,
 ) {
-	generateConvertToUnionOrConstantUnion(
+	generateCreateUnionOrConstantUnion(
 		dbg,
 		tempAlloc,
 		writer,
@@ -734,19 +734,19 @@ void generateConvertToUnion(Debug, CodeAlloc, TempAlloc)(
 		});
 }
 
-void generateConvertToUnionOrConstantUnion(Debug, CodeAlloc, TempAlloc)(
+void generateCreateUnionOrConstantUnion(Debug, CodeAlloc, TempAlloc)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref const ExprCtx ctx,
 	immutable LowType.Union type,
-	immutable ubyte memberIndex,
+	immutable Nat16 memberIndex,
 	ref immutable ByteCodeSource source,
 	scope void delegate(ref immutable LowType) @safe @nogc pure nothrow cbGenerateMember,
 ) {
 	immutable StackEntry before = getNextStackEntry(writer);
 	immutable Nat8 size = nStackEntriesForUnionType(ctx, type);
-	writePushConstant(dbg, writer, source, immutable Nat8(memberIndex));
+	writePushConstant(dbg, writer, source, memberIndex);
 	immutable LowType memberType = at(fullIndexDictGet(ctx.program.allUnions, type).members, memberIndex);
 	cbGenerateMember(memberType);
 	immutable StackEntry after = getNextStackEntry(writer);
@@ -854,7 +854,7 @@ void generateConstant(Debug, CodeAlloc, TempAlloc)(
 				});
 		},
 		(ref immutable Constant.Union it) {
-			generateConvertToUnionOrConstantUnion(
+			generateCreateUnionOrConstantUnion(
 				dbg,
 				tempAlloc,
 				writer,

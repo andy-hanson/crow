@@ -23,13 +23,6 @@ import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : shortSymAlphaLiteralValue, Sym;
 import util.util : todo;
 
-immutable(TypeAst.InstStruct) parseTypeInstStruct(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	immutable Pos start = curPos(lexer);
-	immutable NameAndRange name = takeNameAndRange(alloc, lexer);
-	immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
-	return immutable TypeAst.InstStruct(range(lexer, start), name, typeArgs);
-}
-
 immutable(ArrWithSize!TypeAst) tryParseTypeArgsBracketed(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	if (tryTake(lexer, '<')) {
 		immutable ArrWithSize!TypeAst res = parseTypesWithCommas(alloc, lexer);

@@ -164,6 +164,12 @@ struct Diag {
 	struct MatchCaseNamesDoNotMatch {
 		immutable Sym[] expectedNames;
 	}
+	struct MatchCaseShouldHaveLocal {
+		immutable Sym name;
+	}
+	struct MatchCaseShouldNotHaveLocal {
+		immutable Sym name;
+	}
 	struct MatchOnNonUnion {
 		immutable Type type;
 	}
@@ -191,13 +197,9 @@ struct Diag {
 		immutable Kind kind;
 		immutable Sym name;
 	}
-	struct PurityOfFieldWorseThanRecord {
-		immutable Ptr!StructDecl strukt;
-		immutable Type fieldType;
-	}
-	struct PurityOfMemberWorseThanUnion {
-		immutable Ptr!StructDecl strukt;
-		immutable Ptr!StructInst member;
+	struct PurityWorseThanParent {
+		immutable Ptr!StructDecl parent;
+		immutable Type child;
 	}
 	struct PuritySpecifierRedundant {
 		immutable Purity purity;
@@ -303,13 +305,14 @@ struct Diag {
 		literalOverflow,
 		localShadowsPrevious,
 		matchCaseNamesDoNotMatch,
+		matchCaseShouldHaveLocal,
+		matchCaseShouldNotHaveLocal,
 		matchOnNonUnion,
 		mutFieldNotAllowed,
 		nameNotFound,
 		paramShadowsPrevious,
 		parseDiag,
-		purityOfFieldWorseThanRecord,
-		purityOfMemberWorseThanUnion,
+		purityWorseThanParent,
 		puritySpecifierRedundant,
 		sendFunDoesNotReturnFut,
 		specBuiltinNotSatisfied,
@@ -361,13 +364,14 @@ struct Diag {
 		immutable LiteralOverflow literalOverflow;
 		immutable LocalShadowsPrevious localShadowsPrevious;
 		immutable MatchCaseNamesDoNotMatch matchCaseNamesDoNotMatch;
+		immutable MatchCaseShouldHaveLocal matchCaseShouldHaveLocal;
+		immutable MatchCaseShouldNotHaveLocal matchCaseShouldNotHaveLocal;
 		immutable MatchOnNonUnion matchOnNonUnion;
 		immutable MutFieldNotAllowed mutFieldNotAllowed;
 		immutable NameNotFound nameNotFound;
 		immutable ParamShadowsPrevious paramShadowsPrevious;
 		immutable Ptr!ParseDiag parseDiag;
-		immutable PurityOfFieldWorseThanRecord purityOfFieldWorseThanRecord;
-		immutable PurityOfMemberWorseThanUnion purityOfMemberWorseThanUnion;
+		immutable PurityWorseThanParent purityWorseThanParent;
 		immutable PuritySpecifierRedundant puritySpecifierRedundant;
 		immutable SendFunDoesNotReturnFut sendFunDoesNotReturnFut;
 		immutable Ptr!SpecBuiltinNotSatisfied specBuiltinNotSatisfied;
@@ -450,6 +454,12 @@ struct Diag {
 	@trusted immutable this(immutable MatchCaseNamesDoNotMatch a) {
 		kind = Kind.matchCaseNamesDoNotMatch; matchCaseNamesDoNotMatch = a;
 	}
+	@trusted immutable this(immutable MatchCaseShouldHaveLocal a) {
+		kind = Kind.matchCaseShouldHaveLocal; matchCaseShouldHaveLocal = a;
+	}
+	@trusted immutable this(immutable MatchCaseShouldNotHaveLocal a) {
+		kind = Kind.matchCaseShouldNotHaveLocal; matchCaseShouldNotHaveLocal = a;
+	}
 	@trusted immutable this(immutable MatchOnNonUnion a) {
 		kind = Kind.matchOnNonUnion; matchOnNonUnion = a;
 	}
@@ -465,11 +475,8 @@ struct Diag {
 	@trusted immutable this(immutable Ptr!ParseDiag a) {
 		kind = Kind.parseDiag; parseDiag = a;
 	}
-	@trusted immutable this(immutable PurityOfFieldWorseThanRecord a) {
-		kind = Kind.purityOfFieldWorseThanRecord; purityOfFieldWorseThanRecord = a;
-	}
-	@trusted immutable this(immutable PurityOfMemberWorseThanUnion a) {
-		kind = Kind.purityOfMemberWorseThanUnion; purityOfMemberWorseThanUnion = a;
+	@trusted immutable this(immutable PurityWorseThanParent a) {
+		kind = Kind.purityWorseThanParent; purityWorseThanParent = a;
 	}
 	immutable this(immutable PuritySpecifierRedundant a) {
 		kind = Kind.puritySpecifierRedundant; puritySpecifierRedundant = a;
@@ -582,6 +589,12 @@ static assert(Diag.sizeof <= 32);
 		ref immutable Diag.MatchCaseNamesDoNotMatch
 	) @safe @nogc pure nothrow cbMatchCaseNamesDoNotMatch,
 	scope immutable(Out) delegate(
+		ref immutable Diag.MatchCaseShouldHaveLocal
+	) @safe @nogc pure nothrow cbMatchCaseShouldHaveLocal,
+	scope immutable(Out) delegate(
+		ref immutable Diag.MatchCaseShouldNotHaveLocal
+	) @safe @nogc pure nothrow cbMatchCaseShouldNotHaveLocal,
+	scope immutable(Out) delegate(
 		ref immutable Diag.MatchOnNonUnion
 	) @safe @nogc pure nothrow cbMatchOnNonUnion,
 	scope immutable(Out) delegate(
@@ -597,11 +610,8 @@ static assert(Diag.sizeof <= 32);
 		ref immutable ParseDiag)
 	 @safe @nogc pure nothrow cbParseDiag,
 	scope immutable(Out) delegate(
-		ref immutable Diag.PurityOfFieldWorseThanRecord
-	) @safe @nogc pure nothrow cbPurityOfFieldWorseThanRecord,
-	scope immutable(Out) delegate(
-		ref immutable Diag.PurityOfMemberWorseThanUnion
-	) @safe @nogc pure nothrow cbPurityOfMemberWorseThanUnion,
+		ref immutable Diag.PurityWorseThanParent
+	) @safe @nogc pure nothrow cbPurityWorseThanParent,
 	scope immutable(Out) delegate(
 		ref immutable Diag.PuritySpecifierRedundant
 	) @safe @nogc pure nothrow cbPuritySpecifierRedundant,
@@ -711,6 +721,10 @@ static assert(Diag.sizeof <= 32);
 			return cbLocalShadowsPrevious(a.localShadowsPrevious);
 		case Diag.Kind.matchCaseNamesDoNotMatch:
 			return cbMatchCaseNamesDoNotMatch(a.matchCaseNamesDoNotMatch);
+		case Diag.Kind.matchCaseShouldHaveLocal:
+			return cbMatchCaseShouldHaveLocal(a.matchCaseShouldHaveLocal);
+		case Diag.Kind.matchCaseShouldNotHaveLocal:
+			return cbMatchCaseShouldNotHaveLocal(a.matchCaseShouldNotHaveLocal);
 		case Diag.Kind.matchOnNonUnion:
 			return cbMatchOnNonUnion(a.matchOnNonUnion);
 		case Diag.Kind.mutFieldNotAllowed:
@@ -721,10 +735,8 @@ static assert(Diag.sizeof <= 32);
 			return cbParamShadowsPrevious(a.paramShadowsPrevious);
 		case Diag.Kind.parseDiag:
 			return cbParseDiag(a.parseDiag);
-		case Diag.Kind.purityOfFieldWorseThanRecord:
-			return cbPurityOfFieldWorseThanRecord(a.purityOfFieldWorseThanRecord);
-		case Diag.Kind.purityOfMemberWorseThanUnion:
-			return cbPurityOfMemberWorseThanUnion(a.purityOfMemberWorseThanUnion);
+		case Diag.Kind.purityWorseThanParent:
+			return cbPurityWorseThanParent(a.purityWorseThanParent);
 		case Diag.Kind.puritySpecifierRedundant:
 			return cbPuritySpecifierRedundant(a.puritySpecifierRedundant);
 		case Diag.Kind.sendFunDoesNotReturnFut:

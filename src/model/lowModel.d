@@ -24,7 +24,7 @@ import util.opt : none, Opt;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Nat16;
+import util.types : Nat8, Nat16;
 import util.util : unreachable, verify;
 
 struct LowExternPtrType {
@@ -652,8 +652,8 @@ struct LowExprKind {
 		immutable LowExpr[] args;
 	}
 
-	struct ConvertToUnion {
-		immutable ubyte memberIndex;
+	struct CreateUnion {
+		immutable Nat16 memberIndex;
 		immutable Ptr!LowExpr arg;
 	}
 
@@ -905,7 +905,7 @@ struct LowExprKind {
 	enum Kind {
 		call,
 		createRecord,
-		convertToUnion,
+		createUnion,
 		let,
 		localRef,
 		matchUnion,
@@ -929,7 +929,7 @@ struct LowExprKind {
 	union {
 		immutable Call call;
 		immutable CreateRecord createRecord;
-		immutable ConvertToUnion convertToUnion;
+		immutable CreateUnion createUnion;
 		immutable Let let;
 		immutable LocalRef localRef;
 		immutable Ptr!MatchUnion matchUnion;
@@ -953,7 +953,7 @@ struct LowExprKind {
 	public:
 	@trusted immutable this(immutable Call a) { kind = Kind.call; call = a; }
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
-	@trusted immutable this(immutable ConvertToUnion a) { kind = Kind.convertToUnion; convertToUnion = a; }
+	@trusted immutable this(immutable CreateUnion a) { kind = Kind.createUnion; createUnion = a; }
 	@trusted immutable this(immutable Let a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
 	@trusted immutable this(immutable Ptr!MatchUnion a) { kind = Kind.matchUnion; matchUnion = a; }
@@ -979,7 +979,7 @@ static assert(LowExprKind.sizeof <= 32);
 	ref immutable LowExprKind a,
 	scope T delegate(ref immutable LowExprKind.Call) @safe @nogc pure nothrow cbCall,
 	scope T delegate(ref immutable LowExprKind.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
-	scope T delegate(ref immutable LowExprKind.ConvertToUnion) @safe @nogc pure nothrow cbConvertToUnion,
+	scope T delegate(ref immutable LowExprKind.CreateUnion) @safe @nogc pure nothrow cbCreateUnion,
 	scope T delegate(ref immutable LowExprKind.Let) @safe @nogc pure nothrow cbLet,
 	scope T delegate(ref immutable LowExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
 	scope T delegate(ref immutable LowExprKind.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
@@ -1004,8 +1004,8 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbCall(a.call);
 		case LowExprKind.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
-		case LowExprKind.Kind.convertToUnion:
-			return cbConvertToUnion(a.convertToUnion);
+		case LowExprKind.Kind.createUnion:
+			return cbCreateUnion(a.createUnion);
 		case LowExprKind.Kind.let:
 			return cbLet(a.let);
 		case LowExprKind.Kind.localRef:

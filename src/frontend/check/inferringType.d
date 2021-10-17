@@ -4,34 +4,27 @@ module frontend.check.inferringType;
 
 import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.check.dicts : FunsDict, ModuleLocalFunIndex, StructsAndAliasesDict;
-import frontend.check.instantiate : instantiateStructNeverDelay, instantiateStructInst, tryGetTypeArg, TypeParamsScope;
+import frontend.check.instantiate : instantiateStructNeverDelay, tryGetTypeArg, TypeParamsScope;
 import frontend.check.typeFromAst : typeFromAst;
 import frontend.parse.ast : TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
-	asStructInst,
 	asTypeParam,
-	asUnion,
-	body_,
 	ClosureField,
 	CommonTypes,
 	decl,
 	Expr,
 	FunDecl,
 	FunFlags,
-	FunInst,
 	FunKind,
 	isBogus,
-	isStructInst,
 	isTypeParam,
-	isUnion,
 	Local,
 	matchType,
 	Param,
 	range,
 	SpecInst,
-	StructBody,
 	StructDecl,
 	StructDeclAndArgs,
 	StructInst,
@@ -40,14 +33,13 @@ import model.model :
 	TypeParam;
 import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr : at, emptyArr, emptyArr_mut, setAt, size, sizeEq;
-import util.collection.arrUtil : find, findIndex, map, mapOrNone, mapZipOrNone;
+import util.collection.arrUtil : map, mapOrNone, mapZipOrNone;
 import util.collection.mutArr : MutArr;
 import util.memory : allocate, nu;
 import util.opt : has, force, none, noneMut, Opt, OptPtr, some, toOpt;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : FileAndRange, RangeWithinFile;
-import util.types : safeSizeTToU8;
-import util.util : todo, verify;
+import util.util : verify;
 
 immutable(Ptr!Expr) allocExpr(Alloc)(ref Alloc alloc, immutable Expr e) {
 	return allocate!Expr(alloc, e);
@@ -82,8 +74,7 @@ struct ExprCtx {
 }
 
 struct CommonFuns {
-	immutable Ptr!FunDecl someFun;
-	immutable Ptr!FunInst noneFun;
+	immutable Ptr!FunDecl noneFun;
 }
 
 void markUsedLocalFun(ref ExprCtx a, immutable ModuleLocalFunIndex index) {
@@ -183,26 +174,15 @@ immutable(bool) matchTypesNoDiagnostic(Alloc)(
 	ref ProgramState programState,
 	ref immutable Type expectedType,
 	ref immutable Type setType,
-	ref InferringTypeArgs aInferringTypeArgs,
-	immutable bool allowConvertAToBUnion
+	ref InferringTypeArgs aInferringTypeArgs
 ) {
 	immutable SetTypeResult result =
-		checkAssignability(alloc, programState, expectedType, setType, aInferringTypeArgs, allowConvertAToBUnion);
+		checkAssignability(alloc, programState, expectedType, setType, aInferringTypeArgs);
 	return matchSetTypeResult!(immutable bool)(
 		result,
 		(ref immutable SetTypeResult.Set) => true,
 		(ref immutable SetTypeResult.Keep) => true,
 		(ref immutable SetTypeResult.Fail) => false);
-}
-
-immutable(bool) matchTypesNoDiagnostic(Alloc)(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	ref immutable Type a,
-	ref immutable Type b,
-	ref InferringTypeArgs aInferringTypeArgs,
-) {
-	return matchTypesNoDiagnostic(alloc, programState, a, b, aInferringTypeArgs, false);
 }
 
 struct Expected {
@@ -296,59 +276,11 @@ immutable(CheckedExpr) check(Alloc)(
 	immutable Type exprType,
 	ref immutable Expr expr,
 ) {
-	// Allow implicitly converting to union
-	// TODO: implicitly convert to Fut by wrapping in 'resolved'
-	immutable Opt!Type t = tryGetInferred(expected);
-	if (has(t) && isStructInst(force(t)) && isStructInst(exprType)) {
-		immutable Ptr!StructInst expectedStruct = asStructInst(force(t));
-		immutable Ptr!StructInst exprStruct = asStructInst(exprType);
-		immutable StructBody body_ = body_(expectedStruct.decl.deref);
-		if (isUnion(body_)) {
-			immutable Ptr!StructInst[] members = asUnion(body_).members;
-			// This is like 't' but with the union's type parameters
-			immutable Opt!size_t opMemberIndex = findIndex!(Ptr!StructInst)(
-				members,
-				(ref immutable Ptr!StructInst it) => ptrEquals(it.decl, exprStruct.decl));
-			if (has(opMemberIndex)) {
-				immutable ubyte memberIndex = safeSizeTToU8(force(opMemberIndex));
-				immutable Ptr!StructInst instantiatedExpectedUnionMember =
-					instantiateStructInst(alloc, programState(ctx), at(members, memberIndex), expectedStruct);
-				immutable(SetTypeResult) setTypeResult = setTypeNoDiagnosticWorker_forStructInst(
-					alloc,
-					programState(ctx),
-					instantiatedExpectedUnionMember,
-					exprStruct,
-					expected.inferringTypeArgs,
-					false);
-				return matchSetTypeResult!CheckedExpr(
-					setTypeResult,
-					(ref immutable SetTypeResult.Set) =>
-						todo!(immutable CheckedExpr)("should never happen?"),
-					(ref immutable SetTypeResult.Keep) {
-						immutable Opt!Type opU = tryGetDeeplyInstantiatedType(alloc, programState(ctx), expected);
-						if (!has(opU))
-							return todo!(immutable CheckedExpr)("expected check -- not deeply instantiated");
-						return immutable CheckedExpr(immutable Expr(range(expr), Expr.ImplicitConvertToUnion(
-							asStructInst(force(opU)),
-							memberIndex,
-							allocExpr(alloc, expr))));
-					},
-					(ref immutable SetTypeResult.Fail) {
-						addDiag2(
-							alloc,
-							ctx,
-							range(expr),
-							immutable Diag(nu!(Diag.TypeConflict)(alloc, force(t), exprType)));
-						return immutable CheckedExpr(Expr(range(expr), Expr.Bogus()));
-					});
-			}
-		}
-	}
-
 	if (setTypeNoDiagnostic(alloc, programState(ctx), expected, exprType))
 		return CheckedExpr(expr);
 	else {
 		// Failed to set type. This happens if there was already an inferred type.
+		immutable Opt!Type t = tryGetInferred(expected);
 		addDiag2(alloc, ctx, range(expr), immutable Diag(nu!(Diag.TypeConflict)(alloc, force(t), exprType)));
 		return bogus(expected, range(expr));
 	}
@@ -455,7 +387,7 @@ immutable(SetTypeResult) checkAssignabilityForStructInstsWithSameDecl(Alloc)(
 		as,
 		bs,
 		(ref immutable Type a, ref immutable Type b) {
-			immutable SetTypeResult res = checkAssignability(alloc, programState, a, b, aInferringTypeArgs, false);
+			immutable SetTypeResult res = checkAssignability(alloc, programState, a, b, aInferringTypeArgs);
 			return matchSetTypeResult(
 				res,
 				(ref immutable SetTypeResult.Set s) {
@@ -484,31 +416,14 @@ immutable(SetTypeResult) setTypeNoDiagnosticWorker_forStructInst(Alloc)(
 	immutable Ptr!StructInst a,
 	immutable Ptr!StructInst b,
 	ref InferringTypeArgs aInferringTypeArgs,
-	immutable bool allowConvertAToBUnion,
 ) {
 	// Handling a union expected type is done in Expected::check
 	// TODO: but it's done here to for case of call return type ...
 	if (ptrEquals(a.decl, b.decl))
 		return checkAssignabilityForStructInstsWithSameDecl!Alloc(
 			alloc, programState, a.decl, a.typeArgs, b.typeArgs, aInferringTypeArgs);
-	else {
-		immutable StructBody bBody = body_(b.decl.deref);
-		if (allowConvertAToBUnion && isUnion(bBody)) {
-			immutable Opt!(Ptr!StructInst) bMember = find!(Ptr!StructInst)(
-				asUnion(bBody).members,
-				(ref immutable Ptr!StructInst i) => ptrEquals(i.decl, a.decl));
-			return has(bMember)
-				? checkAssignabilityForStructInstsWithSameDecl(
-					alloc,
-					programState,
-					a.decl,
-					a.typeArgs,
-					typeArgs(instantiateStructInst(alloc, programState, force(bMember), b).deref),
-					aInferringTypeArgs)
-				: SetTypeResult(SetTypeResult.Fail());
-		} else
-			return SetTypeResult(SetTypeResult.Fail());
-	}
+	else
+		return SetTypeResult(SetTypeResult.Fail());
 }
 
 immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(Alloc)(
@@ -546,7 +461,7 @@ immutable(SetTypeResult) checkAssignabilityOpt(Alloc)(
 	ref InferringTypeArgs aInferringTypeArgs,
 ) {
 	return has(a)
-		? checkAssignability(alloc, programState, force(a), b, aInferringTypeArgs, false)
+		? checkAssignability(alloc, programState, force(a), b, aInferringTypeArgs)
 		: immutable SetTypeResult(immutable SetTypeResult.Set(b));
 }
 
@@ -580,7 +495,6 @@ immutable(SetTypeResult) checkAssignability(Alloc)(
 	ref immutable Type a,
 	ref immutable Type b,
 	ref InferringTypeArgs aInferringTypeArgs,
-	immutable bool allowConvertAToBUnion,
 ) {
 	return matchType!SetTypeResult(
 		a,
@@ -618,8 +532,7 @@ immutable(SetTypeResult) checkAssignability(Alloc)(
 						programState,
 						ai,
 						bi,
-						aInferringTypeArgs,
-						allowConvertAToBUnion)));
+						aInferringTypeArgs)));
 }
 
 

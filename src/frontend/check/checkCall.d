@@ -485,13 +485,7 @@ void filterByReturnType(Alloc)(
 	// Filter by return type. Also does type argument inference on the candidate.
 	filterUnordered!Candidate(candidates, (ref Candidate candidate) {
 		InferringTypeArgs ta = inferringTypeArgs(candidate);
-		return matchTypesNoDiagnostic!Alloc(
-			alloc,
-			programState,
-			returnType(candidate.called),
-			expectedReturnType,
-			ta,
-			true);
+		return matchTypesNoDiagnostic(alloc, programState, returnType(candidate.called), expectedReturnType, ta);
 	});
 }
 

@@ -4,7 +4,7 @@ import
 	../../compare: <, <=, >=, compare, max, min
 	../../exception: unreachable
 	../../fun: subscript
-	../../misc: ->, arrow, data, from, to, void
+	../../misc: ->, arrow, data, drop, from, to, void
 	../../number: ==, <=>, +, -, is-even, nat64
 	../../opt: ==, is-empty, none, opt, opt-or, some
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
@@ -31,8 +31,8 @@ compact-sorted-dict<k, v> record
 	impl impl<k, v>
 
 .impl<k, v> union
-	overlay<k, v>
-	end-node<k, v>
+	overlay overlay<k, v>
+	end-node arrow<k, v>[]
 
 .overlay<k, v> record
 	by-ref
@@ -42,11 +42,6 @@ compact-sorted-dict<k, v> record
 	pairs arrow<k, v?>[]
 	prev impl<k, v>
 
-# Leftmost node. Values are non-optional as there is nothing left of this to remove from.
-.end-node<k, v> record
-	by-val
-	pairs arrow<k, v>[]
-
 compact-sorted-dict<k, v> compact-sorted-dict<k, v>() data<k> compare<k>
 	void compact-sorted-dict [].end-node
 
@@ -55,10 +50,12 @@ compact-sorted-dict<k, v> compact-sorted-dict<k, v>(a arrow<k, v>[]) data<k> com
 
 is-empty<k, v> bool(a compact-sorted-dict<k, v>) data<k> compare<k>
 	match a impl
-	as overlay
+	as overlay o
+		# TODO: use '_'
+		drop: o
 		false
 	as end-node e
-		e.pairs is-empty
+		e is-empty
 
 ###
 Number of pairs.
@@ -70,10 +67,12 @@ size<k, v> nat64(a compact-sorted-dict<k, v>) data<k> compare<k>
 arr<k, v> arrow<k, v>[](a compact-sorted-dict<k, v>) data<k> compare<k>
 	# TODO:PERF Just use 'fold'?
 	match a.compact.impl
-	as overlay
+	as overlay o
+		# TODO: use '_'
+		drop: o
 		unreachable
 	as end-node e
-		e.pairs
+		e
 
 ~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, pair arrow<k, v>) data<k> compare<k>
 	void compact-sorted-dict (a.impl add-or-remove pair.from, pair.to.some)
@@ -111,7 +110,7 @@ subscript<k, v> v?(a compact-sorted-dict<k, v>, key k) data<k> compare<k>
 		else
 			o.prev subscript-recur key
 	as end-node e
-		if v ?= e.pairs binary-search-key key
+		if v ?= e binary-search-key key
 			v some
 
 in<k, v> bool(key k, a compact-sorted-dict<k, v>) data<k> compare<k>
@@ -127,19 +126,19 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) data<k> compare<k>
 			new-pairs = o.pairs merge-overlays a.pairs
 			new-pairs overlay o.prev merge-as-needed
 		else
-			a
+			a overlay
 	as end-node e
-		if e.pairs.size should-merge a.pairs.size
-			e.pairs merge-to-end a.pairs end-node
+		if e.size should-merge a.pairs.size
+			e merge-to-end a.pairs end-node
 		else
-			a
+			a overlay
 
-.merge-unconditionally<k, v> end-node<k, v>(a overlay<k, v>) data<k> compare<k>
+.merge-unconditionally<k, v> arrow<k, v>[](a overlay<k, v>) data<k> compare<k>
 	match a prev
 	as overlay o
 		o.pairs merge-overlays a.pairs overlay o.prev merge-unconditionally
 	as end-node e
-		e.pairs merge-to-end a.pairs end-node
+		e merge-to-end a.pairs
 
 .should-merge bool(prev-size nat64, overlay-size nat64)
 	prev-size <= (overlay-size max 3)
@@ -265,9 +264,9 @@ body
 compact<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>) data<k> compare<k>
 	void compact-sorted-dict match a.impl
 	as overlay o
-		o merge-unconditionally
+		o.merge-unconditionally end-node
 	as end-node e
-		e
+		e end-node
 
 region iteration
 
@@ -349,7 +348,7 @@ body
 	else
 		overlays take-key-recur key, index + 1, rightmost-value
 
-.get-end<k, v> end-node<k, v>(a impl<k, v>)
+.get-end<k, v> arrow<k, v>[](a impl<k, v>)
 	match a
 	as overlay o
 		o.prev get-end
@@ -369,7 +368,9 @@ body
 	match a
 	as overlay o
 		acc wrap-add 1 overlay-count o.prev
-	as end-node
+	as end-node e
+		# TODO: use '_'
+		drop: e
 		acc
 
 # incidentally returns the end node pairs
@@ -379,7 +380,7 @@ body
 		*out := o pairs
 		out + 1 init-overlay-iters-recur! o.prev
 	as end-node e
-		e pairs
+		e
 
 filter<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, f act bool(k, v)) data<k> compare<k>
 	# No need to re-sort
@@ -436,12 +437,12 @@ dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
 		out ~= "]"
 	as end-node e
 		out ~= "["
-		e.pairs each pair =>
+		e each pair =>
 			out ~= pair.from to-str
 			out ~= " -> "
 			out ~= pair.to to-str
 			out ~= ", "
-		if e.pairs is-empty
+		if e is-empty
 			out ~= "]"
 		else
 			out backup! 2
@@ -459,14 +460,18 @@ verify void(a compact-sorted-dict<nat64, str>, expected str)
 		match b impl
 		as overlay ob
 			oa ref-eq ob
-		as end-node
+		as end-node e
+			# TODO: use '_'
+			drop: e
 			false
 	as end-node ea
 		match b impl
-		as overlay
+		as overlay o
+			# TODO: use '_'
+			drop: o
 			false
 		as end-node eb
-			ea.pairs arr-ref-eq eb.pairs
+			ea arr-ref-eq eb
 
 test
 	a = compact-sorted-dict<nat64, str>

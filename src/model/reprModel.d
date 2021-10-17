@@ -188,6 +188,9 @@ immutable(Repr) reprFunBody(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable F
 			reprRecord(alloc, "new-enum", [reprInt(it.value.value)]),
 		(ref immutable FunBody.CreateRecord) =>
 			reprSym("new-record"),
+		(ref immutable FunBody.CreateUnion) =>
+			//TODO: more detail
+			reprSym("new-union"),
 		(immutable EnumFunction it) =>
 			reprRecord(alloc, "enum-fn", [reprSym(enumFunctionName(it))]),
 		(ref immutable FunBody.Extern it) =>
@@ -249,11 +252,6 @@ immutable(Repr) reprExpr(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Expr
 				reprLocal(alloc, ctx, it.local),
 				reprExpr(alloc, ctx, it.then),
 				reprExpr(alloc, ctx, it.else_)]),
-		(ref immutable Expr.ImplicitConvertToUnion e) =>
-			reprRecord(alloc, "to-union", [
-				reprStructInst(alloc, ctx, e.unionType),
-				reprNat(e.memberIndex),
-				reprExpr(alloc, ctx, e.inner)]),
 		(ref immutable Expr.Lambda a) =>
 			reprRecord(alloc, "lambda", [
 				reprArr(alloc, a.params, (ref immutable Param it) =>

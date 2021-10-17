@@ -149,16 +149,6 @@ immutable(bool) contains(T)(
 		equals(v, value));
 }
 
-immutable(Opt!T) find(T)(
-	immutable T[] a,
-	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
-) {
-	foreach (ref immutable T x; a)
-		if (cb(x))
-			return some!T(x);
-	return none!T;
-}
-
 immutable(Opt!size_t) findIndex(T)(
 	ref immutable T[] a,
 	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,

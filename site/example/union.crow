@@ -3,27 +3,27 @@ import
 	crow/math/vec: -, length-squared, vec-2, x, y
 
 main fut nat(_ str[]) summon
-	c hitbox = (1.0 vec-2 1.0) circle 1.0
+	c hitbox = (1.0 vec-2 1.0) circle 1.0 h-circle
 	print: 1.7 vec-2 1.7 in c to-str
 	print: 1.7 vec-2 1.8 in c to-str
-	r = rect: 1.0, 2.0, 3.0, 4.0
-	print: 1.1 vec-2 3.0 in r to-str
-	print: 1.1 vec-2 2.9 in r to-str
+	r = 1.0 rect 2.0, 3.0, 4.0
+	print: 1.1 vec-2 3.0 in r.h-rect to-str
+	print: 1.1 vec-2 2.9 in r.h-rect to-str
 	print: 0.0 vec-2 0.0 in empty to-str
 	0 resolved
 
 in bool(v vec-2, h hitbox)
 	match h
-	as circle c
+	as h-circle c
 		(v - c.center).length-squared <= c.radius ** 2
-	as rect r
+	as h-rect r
 		r.left <= v.x && v.x <= r.right && r.bottom <= v.y && v.y <= r.top
 	as empty
 		false
 
 hitbox union
-	circle
-	rect
+	h-circle circle
+	h-rect rect
 	empty
 
 circle record
@@ -35,5 +35,3 @@ rect record
 	right float
 	bottom float
 	top float
-
-empty record

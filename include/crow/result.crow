@@ -1,5 +1,3 @@
 no-std
 export
 	./private/bootstrap: err, ok, result
-
-# TODO: can't export 'value' here because opt.crow exports the same 'value'...

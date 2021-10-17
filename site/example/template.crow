@@ -2,8 +2,8 @@ import
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	nats = node<nat>: 1, some: node: 2, some: node: 3, none
-	floats = node<float>: 1.1, some: node: 2.2, none
+	nats = 1 node<nat> (2 node (3 node none).some).some
+	floats = 1.1 node<float> (2.2 node none).some
 	print: "nats size: {nats size}"
 	print: "nats sum: {nats sum}"
 	print: "floats size: {floats size}"

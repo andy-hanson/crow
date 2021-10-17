@@ -26,7 +26,7 @@ import
 	crow/crypto/password: password-hash, quality-moderate
 	crow/io/time-format: gmt
 	crow/iter: iterator
-	crow/json: json
+	crow/json: json-str
 	crow/log: info, log
 	crow/parse-command: parse-named-args
 	crow/perf: perf-now
@@ -64,7 +64,7 @@ main fut nat(_ str[]) summon
 	drop: queue<nat>
 	drop: gmt
 	drop: iterator<nat>: () => none
-	drop: "" as<json>
+	drop: "".json-str
 	drop: [] parse-named-args []
 	run-all-tests
 	0 resolved

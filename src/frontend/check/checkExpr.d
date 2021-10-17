@@ -96,6 +96,7 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
+	UnionMember,
 	worstCasePurity;
 import util.collection.arr :
 	at,
@@ -312,14 +313,18 @@ immutable(bool) isOptType(ref immutable CommonTypes commonTypes, ref immutable T
 
 immutable(Expr) makeNone(Alloc)(
 	ref Alloc alloc,
-	ref const ExprCtx ctx,
+	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
 	immutable Ptr!StructInst optStructInst,
 ) {
-	immutable Expr none = immutable Expr(
+	immutable Type typeArg = only(typeArgs(optStructInst));
+	immutable Ptr!FunInst noneInst = instantiateFun!Alloc(
+		alloc,
+		ctx.checkCtx.programState,
+		immutable FunDeclAndArgs(ctx.commonFuns.noneFun, arrLiteral!Type(alloc, [typeArg]), emptyArr!Called));
+	return immutable Expr(
 		range,
-		immutable Expr.Call(immutable Called(ctx.commonFuns.noneFun), emptyArr!Expr()));
-	return immutable Expr(range, immutable Expr.ImplicitConvertToUnion(optStructInst, 0, allocExpr(alloc, none)));
+		immutable Expr.Call(immutable Called(noneInst), emptyArr!Expr()));
 }
 
 immutable(bool) isVoid(ref const ExprCtx ctx, ref immutable Type type) {
@@ -995,7 +1000,7 @@ struct EnumAndMembers {
 
 struct UnionAndMembers {
 	immutable Ptr!StructInst structInst;
-	immutable Ptr!StructInst[] members;
+	immutable UnionMember[] members;
 }
 
 struct EnumOrUnionAndMembers {
@@ -1120,29 +1125,35 @@ immutable(CheckedExpr) checkMatchUnion(Alloc)(
 	ref Expected expected,
 	ref immutable Expr matched,
 	immutable Ptr!StructInst matchedUnion,
-	immutable Ptr!StructInst[] members,
+	immutable UnionMember[] members,
 ) {
-	immutable bool goodCases = arrsCorrespond!(Ptr!StructInst, MatchAst.CaseAst)(
+	immutable bool goodCases = arrsCorrespond!(UnionMember, MatchAst.CaseAst)(
 		members,
 		ast.cases,
-		(ref immutable Ptr!StructInst member, ref immutable MatchAst.CaseAst caseAst) =>
-			symEq(member.decl.name, caseAst.structName.name));
+		(ref immutable UnionMember member, ref immutable MatchAst.CaseAst caseAst) =>
+			symEq(member.name, caseAst.structName.name));
 	if (!goodCases) {
 		addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.MatchCaseNamesDoNotMatch(
-			map!Sym(alloc, members, (ref immutable Ptr!StructInst member) => decl(member).name))));
+			map!Sym(alloc, members, (ref immutable UnionMember member) => member.name))));
 		return bogus(expected, range);
 	} else {
 		immutable Expr.MatchUnion.Case[] cases = mapZip!(Expr.MatchUnion.Case)(
 			alloc,
 			members,
 			ast.cases,
-			(ref immutable Ptr!StructInst member, ref immutable MatchAst.CaseAst caseAst) {
-				immutable Opt!(Ptr!Local) local = has(caseAst.local)
+			(ref immutable UnionMember member, ref immutable MatchAst.CaseAst caseAst) {
+				if (has(member.type) != has(caseAst.local)) {
+					immutable Diag diag = has(member.type)
+						? immutable Diag(immutable Diag.MatchCaseShouldHaveLocal(member.name))
+						: immutable Diag(immutable Diag.MatchCaseShouldNotHaveLocal(member.name));
+					addDiag2(alloc, ctx, rangeInFile2(ctx, caseAst.range), diag);
+				}
+				immutable Opt!(Ptr!Local) local = has(caseAst.local) && has(member.type)
 					? some(nu!Local(
 						alloc,
 						rangeInFile2(ctx, rangeOfNameAndRange(force(caseAst.local))),
 						force(caseAst.local).name,
-						immutable Type(member)))
+						force(member.type)))
 					: none!(Ptr!Local);
 				immutable Expr then = isBogus(expected)
 					? bogus(expected, range).expr

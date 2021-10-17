@@ -5,7 +5,7 @@ import
 	../exception: exception, to-str
 	../io/print: print-err, print-err-no-newline
 	../io/time-low-level: get-monotime-nsec, timestamp
-	../misc: void
+	../misc: drop, void
 	../opt: none, opt, some
 	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val
 	./alloc: gc, get-gc-ctx, needs-gc, return-gc-ctx, run-garbage-collection
@@ -143,9 +143,9 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 		last-checked = gctx.may-be-work-to-do.ref-of-val get-sequence
 
 		match gctx choose-task
-		as chosen-task t
+		as rslt-chosen-task t
 			gctx do-task tls, t
-		as no-chosen-task n
+		as rslt-no-chosen-task n
 			if n no-tasks-and-last-thread-out
 				hard-forbid: gctx is-shut-down
 				gctx.is-shut-down := true
@@ -173,7 +173,7 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 .do-task void(gctx global-ctx, tls thread-local-stuff, chosen-task chosen-task) noctx unsafe summon
 	island = chosen-task task-island
 	match chosen-task.task-or-gc
-	as task task
+	as togc-task task
 		ctx = gctx ctx tls, island, task.exclusion
 		task.action call-with-ctx ctx.ref-of-val
 		island.tasks-lock.ref-of-val acquire!
@@ -193,10 +193,8 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 	island.n-threads-running := island.n-threads-running wrap-sub 1
 	island.tasks-lock.ref-of-val release!
 
-.do-a-gc record
-
 .task-or-gc union mut
-	task
+	togc-task task
 	do-a-gc
 
 .chosen-task record mut
@@ -214,8 +212,8 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 	first-task-time timestamp?
 
 .choose-task-result union mut
-	chosen-task
-	no-chosen-task
+	rslt-chosen-task chosen-task
+	rslt-no-chosen-task no-chosen-task
 
 .choose-task choose-task-result(gctx global-ctx) noctx unsafe summon
 	gctx.lk.ref-of-val acquire!
@@ -225,17 +223,17 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 	# (That is unfair as island 0 will tend to get the most attention.)
 	cur-time = get-monotime-nsec
 	# TODO: should not need type annotation
-	res choose-task-result = match gctx.islands choose-task-recur 0, cur-time, false, none
-	as chosen-task c
-		c
-	as no-chosen-task n
+	res = match gctx.islands choose-task-recur 0, cur-time, false, none
+	as rslt-chosen-task c
+		c rslt-chosen-task
+	as rslt-no-chosen-task n
 		gctx.n-live-threads := gctx.n-live-threads wrap-sub 1
 		no-task-and-last-thread-out = n.no-tasks-and-last-thread-out && gctx.n-live-threads == 0
 		# Did not find a task to do.
 		# (Tasks may have been added concurrently;
 		# this is fine as we're about to wait on a condition and will immediately wake up if so.)
 		# Need to do this here while we hold the lock
-		no-task-and-last-thread-out no-chosen-task n.first-task-time
+		no-task-and-last-thread-out no-chosen-task n.first-task-time rslt-no-chosen-task
 
 	gctx.lk.ref-of-val release!
 
@@ -252,15 +250,16 @@ spec
 	unsafe
 body
 	if i == islands.size
-		!any-tasks no-chosen-task first-task-time
+		!any-tasks no-chosen-task first-task-time rslt-no-chosen-task
 	else
 		island = islands noctx-at i
-		match island choose-task-in-island cur-time
-		as task t
-			island chosen-task t
-		as do-a-gc g
-			island chosen-task g
-		as no-task n
+		chose = island choose-task-in-island cur-time
+		match chose
+		as tii-task t
+			island chosen-task t.togc-task rslt-chosen-task
+		as do-a-gc
+			island chosen-task do-a-gc rslt-chosen-task
+		as tii-no-task n
 			new-any-tasks = any-tasks || n.any-tasks
 			new-first-task-time = first-task-time min-time n.first-task-time
 			islands choose-task-recur (i wrap-add 1), cur-time, new-any-tasks, new-first-task-time
@@ -273,17 +272,21 @@ body
 		b
 
 .choose-task-in-island-result union mut
-	task
+	tii-task task
 	do-a-gc
-	no-task
+	tii-no-task no-task
 
 .is-no-task bool(a choose-task-in-island-result) noctx
 	match a
-	as task
+	as tii-task t
+		# TODO: use '_'
+		drop: t
 		false
 	as do-a-gc
 		false
-	as no-task
+	as tii-no-task t
+		# TODO: use '_'
+		drop: t
 		true
 
 .choose-task-in-island choose-task-in-island-result(island island, cur-time timestamp) noctx unsafe
@@ -298,13 +301,13 @@ body
 			# do nothing -- a thread is running on this island
 			# we can't do a GC now, but don't want to start a new task either
 			# because that would block GC
-			true no-task none
+			true no-task none tii-no-task
 	else
 		match island.tasks pop-task! cur-time
-		as task t
-			t
-		as no-task n
-			n
+		as ptr-task t
+			t tii-task
+		as ptr-no-task n
+			n tii-no-task
 
 	if !res.is-no-task
 		island.n-threads-running := island.n-threads-running wrap-add 1

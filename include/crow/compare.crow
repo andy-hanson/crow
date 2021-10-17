@@ -3,43 +3,10 @@ import
 	./private/bool-low-level: !, bool, false, true
 	./private/bootstrap: str
 
-# Comparison for `a < b`
-less record
-# Comparison for `a == b`
-equal record
-# Comparison for `a > b`
-greater record
-comparison union
+comparison enum
 	less
 	equal
 	greater
-
-== bool(a comparison, b comparison) noctx
-	match a
-	as less
-		match b
-		as less
-			true
-		as equal
-			false
-		as greater
-			false
-	as equal
-		match b
-		as less
-			false
-		as equal
-			true
-		as greater
-			false
-	as greater
-		match b
-		as less
-			false
-		as equal
-			false
-		as greater
-			true
 
 equal<a> spec
 	== bool(a a, b a)

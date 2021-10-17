@@ -5,7 +5,7 @@ module util.collection.arr;
 import util.alloc.alloc : freeBytes;
 import util.ptr : Ptr;
 import util.memory : overwriteMemory;
-import util.types : Nat8, Nat32, Nat64;
+import util.types : NatN, Nat64;
 import util.util : verify;
 
 struct ArrWithSize(T) {
@@ -96,10 +96,7 @@ immutable(bool) empty(T)(const T[] a) {
 	verify(index < size(a));
 	return a[index];
 }
-@trusted ref immutable(T) at(T)(ref immutable T[] a, immutable Nat8 index) {
-	return at(a, index.raw());
-}
-@trusted ref immutable(T) at(T)(ref immutable T[] a, immutable Nat32 index) {
+@trusted ref immutable(T) at(T, N)(return scope immutable T[] a, immutable NatN!N index) {
 	return at(a, index.raw());
 }
 
@@ -119,11 +116,6 @@ ref immutable(T) only(T)(return scope ref immutable T[] a) {
 ref const(T) only_const(T)(ref const T[] a) {
 	verify(size(a) == 1);
 	return first(a);
-}
-
-immutable(Ptr!T) onlyPtr(T)(ref immutable T[] a) {
-	verify(a.size == 1);
-	return ptrAt(a, 0);
 }
 
 Ptr!T onlyPtr_mut(T)(ref T[] a) {
