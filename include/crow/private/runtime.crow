@@ -5,7 +5,7 @@ import
 	../exception: exception, to-str
 	../io/print: print-err, print-err-no-newline
 	../io/time-low-level: get-monotime-nsec, timestamp
-	../misc: drop, void
+	../misc: void
 	../opt: none, opt, some
 	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val
 	./alloc: gc, get-gc-ctx, needs-gc, return-gc-ctx, run-garbage-collection
@@ -278,15 +278,11 @@ body
 
 .is-no-task bool(a choose-task-in-island-result) noctx
 	match a
-	as tii-task t
-		# TODO: use '_'
-		drop: t
+	as tii-task _
 		false
 	as do-a-gc
 		false
-	as tii-no-task t
-		# TODO: use '_'
-		drop: t
+	as tii-no-task _
 		true
 
 .choose-task-in-island choose-task-in-island-result(island island, cur-time timestamp) noctx unsafe

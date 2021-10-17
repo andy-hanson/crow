@@ -4,7 +4,7 @@ import
 	../../compare: <, <=, >=, compare, max, min
 	../../exception: unreachable
 	../../fun: subscript
-	../../misc: ->, arrow, data, drop, from, to, void
+	../../misc: ->, arrow, data, from, to, void
 	../../number: ==, <=>, +, -, is-even, nat64
 	../../opt: ==, is-empty, none, opt, opt-or, some
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
@@ -50,9 +50,7 @@ compact-sorted-dict<k, v> compact-sorted-dict<k, v>(a arrow<k, v>[]) data<k> com
 
 is-empty<k, v> bool(a compact-sorted-dict<k, v>) data<k> compare<k>
 	match a impl
-	as overlay o
-		# TODO: use '_'
-		drop: o
+	as overlay _
 		false
 	as end-node e
 		e is-empty
@@ -67,9 +65,7 @@ size<k, v> nat64(a compact-sorted-dict<k, v>) data<k> compare<k>
 arr<k, v> arrow<k, v>[](a compact-sorted-dict<k, v>) data<k> compare<k>
 	# TODO:PERF Just use 'fold'?
 	match a.compact.impl
-	as overlay o
-		# TODO: use '_'
-		drop: o
+	as overlay _
 		unreachable
 	as end-node e
 		e
@@ -368,9 +364,7 @@ body
 	match a
 	as overlay o
 		acc wrap-add 1 overlay-count o.prev
-	as end-node e
-		# TODO: use '_'
-		drop: e
+	as end-node _
 		acc
 
 # incidentally returns the end node pairs
@@ -460,15 +454,11 @@ verify void(a compact-sorted-dict<nat64, str>, expected str)
 		match b impl
 		as overlay ob
 			oa ref-eq ob
-		as end-node e
-			# TODO: use '_'
-			drop: e
+		as end-node _
 			false
 	as end-node ea
 		match b impl
-		as overlay o
-			# TODO: use '_'
-			drop: o
+		as overlay _
 			false
 		as end-node eb
 			ea arr-ref-eq eb

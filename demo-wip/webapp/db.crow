@@ -29,9 +29,7 @@ main fut nat(_ str[]) unsafe summon
 			cookie = match db login! "alice", "swordfish"
 			as ok o
 				o
-			as err e
-				# TODO: use '_'
-				drop: e
+			as err _
 				throw: "TODO"
 			post = db add-post! cookie, "hello world"
 			pi = db get-post-info post
@@ -145,9 +143,7 @@ register-user-result union
 			false
 	as user-already-exists
 		match b
-		as register-user-success s
-			# TODO: use '_'
-			drop: s
+		as register-user-success _
 			false
 		as user-already-exists
 			true
@@ -237,9 +233,7 @@ test
 			alice-login = match db login! "alice", "swordfish"
 			as ok o
 				o
-			as err e
-				# TODO: use '_'
-				drop: e
+			as err _
 				"TODO" throw
 			info log "D"
 			post = db add-post! alice-login, "Curiouser and curiouser!"

@@ -781,7 +781,7 @@ program(
 														call(state, [local-ref(main-fut)])
 														[
 															case(none, 1)
-															case(some(c), seq(call(drop, [local-ref(c)]), 1))
+															case(none, 1)
 															case(
 																some(r)
 																cond(
@@ -790,7 +790,7 @@ program(
 																	call(
 																		unsafe-to-int32
 																		[call(unsafe-to-int64, [local-ref(r)])])))
-															case(some(e), seq(call(drop, [local-ref(e)]), 1))]))))))))))))
+															case(none, 1)]))))))))))))
 		fun(false, get_nprocs, type(false, nat64), none, [], extern(false))
 		fun(
 			false
@@ -3964,8 +3964,8 @@ program(
 						[
 							case(none, call(void, []))
 							case(some(cbs), call(call-callbacks!, [local-ref(cbs), param-ref(result)]))
-							case(some(x), seq(call(drop, [local-ref(x)]), call(hard-unreachable, [])))
-							case(some(e), seq(call(drop, [local-ref(e)]), call(hard-unreachable, [])))]))))
+							case(none, call(hard-unreachable, []))
+							case(none, call(hard-unreachable, []))]))))
 		fun(
 			true
 			with-lock
@@ -4031,8 +4031,6 @@ program(
 								call(call-callbacks!, [local-ref("<<matched>>"), param-ref(value)]))]))))
 		fun(false, cb, type(false, fun-act1), none, [param(a, type(true, fut-state-callbacks))], field-get(0))
 		fun(false, next, type(false, opt), none, [param(a, type(true, fut-state-callbacks))], field-get(1))
-		fun(false, drop, type(false, void), none, [param("_", type(false, nat64))], expr-body(call(void, [])))
-		fun(false, drop, type(false, void), none, [param("_", type(false, exception))], expr-body(call(void, [])))
 		fun(
 			true
 			lambda(forward-to!, 0)
@@ -5011,7 +5009,7 @@ program(
 				match-union(
 					param-ref(result)
 					[
-						case(some(o), seq(call(drop, [local-ref(o)]), call(void, [])))
+						case(none, call(void, []))
 						case(
 							some(e)
 							call(subscript, [call(exception-handler, [call(get-cur-island, [])]), local-ref(e)]))])))
@@ -5708,7 +5706,7 @@ program(
 										call(
 											push-capacity-must-be-sufficient!
 											[local-ref(exclusions), call(exclusion, [local-ref(t)])]))
-									case(some(x), seq(call(drop, [local-ref(x)]), call(void, [])))])
+									case(none, call(void, []))])
 							local-ref(res))))))
 		fun(
 			false
@@ -5935,7 +5933,6 @@ program(
 			none
 			[param(a, type(true, mut-arr)), param(size, type(false, nat64))]
 			field-set(1))
-		fun(false, drop, type(false, void), none, [param("_", type(false, no-task))], expr-body(call(void, [])))
 		fun(false, tii-task, type(false, choose-task-in-island-result), none, [param(a, type(false, task))], new-union)
 		fun(
 			false
@@ -5946,11 +5943,7 @@ program(
 			expr-body(
 				match-union(
 					param-ref(a)
-					[
-						case(some(t), seq(call(drop, [local-ref(t)]), call(false, [])))
-						case(none, call(false, []))
-						case(some(t), seq(call(drop, [local-ref(t)]), call(true, [])))])))
-		fun(false, drop, type(false, void), none, [param("_", type(false, task))], expr-body(call(void, [])))
+					[case(none, call(false, [])), case(none, call(false, [])), case(none, call(true, []))])))
 		fun(
 			false
 			set-n-threads-running
@@ -6126,6 +6119,7 @@ program(
 			none
 			[param(a, type(false, mut-ptr)), param(n, type(false, nat64))]
 			expr-body(call(*, [call(+, [param-ref(a), param-ref(n)])])))
+		fun(false, drop, type(false, void), none, [param("_", type(false, nat64))], expr-body(call(void, [])))
 		fun(
 			false
 			noctx-remove-unordered-at!
@@ -6513,13 +6507,6 @@ program(
 			none
 			[param(cond, type(true, pthread_cond_t))]
 			extern(false))
-		fun(
-			false
-			drop
-			type(false, void)
-			none
-			[param("_", type(true, fut-state-callbacks))]
-			expr-body(call(void, [])))
 		fun(false, any-unhandled-exceptions, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(8))
 		fun(
 			true

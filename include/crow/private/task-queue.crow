@@ -6,7 +6,7 @@ import
 		noctx-must-remove-unordered!, push-capacity-must-be-sufficient!
 	../compare: !=, <=
 	../io/time-low-level: timestamp
-	../misc: drop, void
+	../misc: void
 	../opt: is-empty, none, opt, some
 	../ptr: by-val, ref-of-val
 	./bootstrap: exclusion, hard-assert
@@ -74,9 +74,7 @@ pop-task! pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 	match res
 	as ptr-task t
 		exclusions push-capacity-must-be-sufficient! t.exclusion
-	as ptr-no-task x
-		# TODO: use '_'
-		drop: x
+	as ptr-no-task _
 		void
 
 	res

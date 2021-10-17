@@ -65,13 +65,9 @@ is-empty bool(a index-set)
 	a.capacity == 0
 .is-empty bool(a node)
 	match a
-	as inner i
-		# TODO: use '_'
-		drop: i
+	as inner _
 		false
-	as leaf l
-		# TODO: use '_'
-		drop: l
+	as leaf _
 		false
 	as empty
 		true
@@ -516,7 +512,6 @@ test
 
 	b = a ~ 8
 	b verify "[100 0 0 0]", [8]
-	drop: b
 
 	b count-less 8 is 0
 	b count-greater-or-equal 8 is 1

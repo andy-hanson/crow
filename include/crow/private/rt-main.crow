@@ -10,7 +10,7 @@ import
 	../fun: fun-ptr2, subscript
 	../fut: delay, fut, handle-exceptions, then-void
 	../io/process: exit-code
-	../misc: drop, void
+	../misc: void
 	../opt: none
 	../ptr:
 		+, any-mut-ptr, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, null, ptr-to,
@@ -55,9 +55,7 @@ rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summ
 	as fut-state-no-callbacks
 		# Should never happen
 		1
-	as fut-state-callbacks c
-		# TODO: use '_'
-		drop: c
+	as fut-state-callbacks _
 		# Should never happen
 		1
 	as fut-state-resolved r
@@ -66,9 +64,7 @@ rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summ
 			1
 		else
 			r.unsafe-to-int64.unsafe-to-int32
-	as fut-state-exception e
-		# TODO: use '_'
-		drop: e
+	as fut-state-exception _
 		# 'handle-exceptions' should have logged the error
 		1
 

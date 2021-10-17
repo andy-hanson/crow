@@ -5,7 +5,7 @@ import
 	./col/arr-util: each-with-index, first-some, map
 	./exception: catch, exception
 	./fun: subscript
-	./misc: as, drop, void
+	./misc: void
 	./opt: none, opt, some
 	./result: result
 	./private/bootstrap:
@@ -39,7 +39,7 @@ join<out, in0, in1> fut out(a fut in0, b fut in1, f ref out(in0, in1)) trusted s
 	res = unresolved<out>
 	lock = lock
 	remaining = cell<nat64>: 2
-	decr-remaining = as<act void()>: () =>
+	decr-remaining act void() = () =>
 		lock with-lock () =>
 			*remaining := *remaining wrap-sub 1
 			if *remaining == 0
@@ -64,17 +64,13 @@ body
 	match a state
 	as fut-state-no-callbacks
 		hard-unreachable<void>
-	as fut-state-callbacks c
-		# TODO: use '_'
-		drop: c
+	as fut-state-callbacks _
 		hard-unreachable<void>
 	as fut-state-resolved resolved-a
 		match b state
 		as fut-state-no-callbacks
 			hard-unreachable<void>
-		as fut-state-callbacks c
-			# TODO: use '_'
-			drop: c
+		as fut-state-callbacks _
 			hard-unreachable<void>
 		as fut-state-resolved resolved-b
 			f[resolved-a, resolved-b] forward-to! res
@@ -105,13 +101,9 @@ join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
 		match x state
 		as fut-state-no-callbacks
 			hard-unreachable<exception?>
-		as fut-state-callbacks c
-			# TODO: use '_'
-			drop: c
+		as fut-state-callbacks _
 			hard-unreachable<exception?>
-		as fut-state-resolved r
-			# TODO: use '_'
-			drop: r
+		as fut-state-resolved _
 			none
 		as fut-state-exception e
 			e some
@@ -124,15 +116,11 @@ join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
 	match a state
 	as fut-state-no-callbacks
 		hard-unreachable
-	as fut-state-callbacks c
-		# TODO: use '_'
-		drop: c
+	as fut-state-callbacks _
 		hard-unreachable
 	as fut-state-resolved r
 		r
-	as fut-state-exception e
-		# TODO: use '_'
-		drop: e
+	as fut-state-exception _
 		hard-unreachable
 
 .forward-to!<a> void(from fut a, to fut a) unsafe
@@ -213,9 +201,7 @@ Else, this will call the default exception handler.
 handle-exceptions<a> void(a fut a) trusted
 	a callback! result =>
 		match result
-		as ok o
-			# TODO: use '_'
-			drop: o
+		as ok _
 			void
 		as err e
 			get-cur-island.exception-handler[e]

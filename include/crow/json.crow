@@ -7,7 +7,7 @@ import
 	./col/mut-dict: move-to-dict!, mut-dict, set-subscript
 	./col/mut-arr: ~=, move-to-arr!, mut-arr
 	./hash: hash-mix
-	./misc: ->, drop, void
+	./misc: ->, void
 	./number: ==, float64
 	./opt: none, opt, some
 	./reader:
@@ -66,99 +66,59 @@ as-bool bool?(a json) noctx
 	match a
 	as json-bool b
 		b some
-	as json-number j
-		# TODO: use '_'
-		drop: j
+	as json-number _
 		none
-	as json-str j
-		# TODO: use '_'
-		drop: j
+	as json-str _
 		none
-	as json-arr j
-		# TODO: use '_'
-		drop: j
+	as json-arr _
 		none
-	as json-object j
-		# TODO: use '_'
-		drop: j
+	as json-object _
 		none
 as-number float64?(a json) noctx
 	match a
-	as json-bool j
-		# TODO: use '_'
-		drop: j
+	as json-bool _
 		none
 	as json-number n
 		n some
-	as json-str j
-		# TODO: use '_'
-		drop: j
+	as json-str _
 		none
-	as json-arr j
-		# TODO: use '_'
-		drop: j
+	as json-arr _
 		none
-	as json-object j
-		# TODO: use '_'
-		drop: j
+	as json-object _
 		none
 as-str str?(a json) noctx
 	match a
-	as json-bool j
-		# TODO: use '_'
-		drop: j
+	as json-bool _
 		none
-	as json-number j
-		# TODO: use '_'
-		drop: j
+	as json-number _
 		none
 	as json-str s
 		s some
-	as json-arr j
-		# TODO: use '_'
-		drop: j
+	as json-arr _
 		none
-	as json-object j
-		# TODO: use '_'
-		drop: j
+	as json-object _
 		none
 as-arr json[]?(a json) noctx
 	match a
-	as json-bool j
-		# TODO: use '_'
-		drop: j
+	as json-bool _
 		none
-	as json-number j
-		# TODO: use '_'
-		drop: j
+	as json-number _
 		none
-	as json-str j
-		# TODO: use '_'
-		drop: j
+	as json-str _
 		none
 	as json-arr arr
 		arr some
-	as json-object j
-		# TODO: use '_'
-		drop: j
+	as json-object _
 		none
 as-object json[str]?(a json) noctx
 	match a
-	as json-bool j
-		# TODO: use '_'
-		drop: j
+	as json-bool _
 		none
-	as json-number j
-		# TODO: use '_'
-		drop: j
+	as json-number _
 		none
-	as json-str j
-		# TODO: use '_'
-		drop: j
+	as json-str _
 		none
-	as json-arr j
-		# TODO: use '_'
-		drop: j
+	as json-arr _
 		none
 	as json-object o
 		o some

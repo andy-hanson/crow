@@ -23,6 +23,7 @@ import frontend.parse.ast :
 	LiteralAst,
 	MatchAst,
 	NameAndRange,
+	NameOrUnderscoreOrNone,
 	ParenthesizedAst,
 	SeqAst,
 	ThenAst,
@@ -48,6 +49,7 @@ import frontend.parse.lexer :
 	takeIndentOrFailGeneric,
 	takeName,
 	takeNameAndRange,
+	takeNameOrUnderscoreOrNone,
 	takeNameRest,
 	takeNewlineOrDedentAmount,
 	takeNumberAfterSign,
@@ -665,15 +667,13 @@ immutable(uint) parseMatchCases(Alloc, SymAlloc)(
 ) {
 	immutable Pos startCase = curPos(lexer);
 	if (tryTake(lexer, "as ")) {
-		immutable NameAndRange structName = takeNameAndRange(alloc, lexer);
-		immutable Opt!NameAndRange localName = tryTake(lexer, ' ')
-			? some(takeNameAndRange(alloc, lexer))
-			: none!NameAndRange;
+		immutable Sym memberName = takeName(alloc, lexer);
+		immutable NameOrUnderscoreOrNone localName = takeNameOrUnderscoreOrNone(alloc, lexer);
 		immutable ExprAndDedent ed = takeIndentOrFail_ExprAndDedent(alloc, lexer, curIndent, () =>
 			parseStatementsAndExtraDedents(alloc, lexer, curIndent + 1));
 		add(alloc, cases, immutable MatchAst.CaseAst(
 			range(lexer, startCase),
-			structName,
+			memberName,
 			localName,
 			allocExpr(alloc, ed.expr)));
 		return ed.dedents == 0 ? parseMatchCases(alloc, lexer, cases, curIndent) : ed.dedents;
@@ -917,7 +917,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			if (isAlphaIdentifierStart(c)) {
 				immutable string nameStr = takeNameRest(lexer, begin);
 				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
-				if (isReservedName(name))
+				if (isReservedName(lexer, name))
 					switch (name.value) {
 						case shortSymAlphaLiteralValue("if"):
 							return isAllowBlock(allowedBlock)

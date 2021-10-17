@@ -2,7 +2,13 @@ module frontend.parse.lexer;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : LiteralAst, LiteralIntOrNat, matchLiteralAst, NameAndRange, rangeOfNameAndRange;
+import frontend.parse.ast :
+	LiteralAst,
+	LiteralIntOrNat,
+	matchLiteralAst,
+	NameAndRange,
+	NameOrUnderscoreOrNone,
+	rangeOfNameAndRange;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : allocateBytes;
 import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
@@ -43,6 +49,7 @@ struct Lexer(SymAlloc) {
 	//TODO:PRIVATE
 	Ptr!(AllSymbols!SymAlloc) allSymbols;
 	private:
+	immutable Sym symUnderscore;
 	ArrBuilder!ParseDiagnostic diags;
 	//TODO:PRIVATE
 	public immutable CStr sourceBegin;
@@ -61,6 +68,7 @@ struct Lexer(SymAlloc) {
 	immutable string useStr = !empty(str) && last(str) == '\n' ? str : rtail(cat!char(alloc, str, "\n\0"));
 	return Lexer!SymAlloc(
 		allSymbols,
+		getSymFromAlphaIdentifier(allSymbols, "_"),
 		ArrBuilder!ParseDiagnostic(),
 		begin(useStr),
 		begin(useStr),
@@ -341,7 +349,7 @@ immutable(SymAndIsReserved) takeNameAllowReserved(Alloc, SymAlloc)(ref Alloc all
 		}
 	} else {
 		immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, s.str);
-		return immutable SymAndIsReserved(immutable NameAndRange(s.start, name), isReservedName(name));
+		return immutable SymAndIsReserved(immutable NameAndRange(s.start, name), isReservedName(lexer, name));
 	}
 }
 
@@ -354,6 +362,25 @@ immutable(NameAndRange) takeNameAndRange(Alloc, SymAlloc)(ref Alloc alloc, ref L
 
 immutable(Sym) takeName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	return takeNameAndRange(alloc, lexer).name;
+}
+
+immutable(NameOrUnderscoreOrNone) takeNameOrUnderscoreOrNone(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+) {
+	if (tryTake(lexer, ' ')) {
+		immutable SymAndIsReserved s = takeNameAllowReserved(alloc, lexer);
+		if (s.isReserved) {
+			if (s.name.name == lexer.symUnderscore)
+				return immutable NameOrUnderscoreOrNone(immutable NameOrUnderscoreOrNone.Underscore());
+			else {
+				addDiagOnReservedName(alloc, lexer, s.name);
+				return immutable NameOrUnderscoreOrNone(s.name.name);
+			}
+		} else
+			return immutable NameOrUnderscoreOrNone(s.name.name);
+	} else
+		return immutable NameOrUnderscoreOrNone(immutable NameOrUnderscoreOrNone.None());
 }
 
 immutable(string) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
@@ -874,7 +901,7 @@ struct StrAndIsOperator {
 	}
 }
 
-public immutable(bool) isReservedName(immutable Sym name) {
+public immutable(bool) isReservedName(SymAlloc)(ref const Lexer!SymAlloc lexer, immutable Sym name) {
 	switch (name.value) {
 		case shortSymAlphaLiteralValue("alias"):
 		case shortSymAlphaLiteralValue("builtin"):
@@ -898,7 +925,7 @@ public immutable(bool) isReservedName(immutable Sym name) {
 		case shortSymAlphaLiteralValue("unsafe"):
 			return true;
 		default:
-			return false;
+			return name == lexer.symUnderscore;
 	}
 }
 

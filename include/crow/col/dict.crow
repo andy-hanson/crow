@@ -6,7 +6,7 @@ import
 	../exception: assert, unreachable
 	../fun: subscript
 	../hash: hash, hash-mix
-	../misc: ->, arrow, data, drop, from, to, void
+	../misc: ->, arrow, data, from, to, void
 	../opt: ==, force, is-empty, none, opt, some
 	../ptr: ==, +, set-deref
 	../range: ..
@@ -79,9 +79,7 @@ is-empty<k, v> bool(a v[k]) data<k> compare<k> hash-mix<k>
 	a.root node-is-empty
 .node-is-empty<k, v> bool(a node<k, v>)
 	match a
-	as inner-node i
-		# TODO: use '_'
-		drop: i
+	as inner-node _
 		false
 	as leaf-node l
 		l is-empty
@@ -97,9 +95,7 @@ size<k, v> nat64(a v[k]) data<k> compare<k> hash-mix<k>
 
 subscript<k, v> v?(a v[k], key k) data<k> compare<k> hash-mix<k>
 	match a root
-	as inner-node i
-		# TODO: use '_'
-		drop: i
+	as inner-node _
 		hash = key hash
 		a.root subscript-recur key, hash
 	as leaf-node l
@@ -193,9 +189,7 @@ spec
 body
 	hash = key hash
 	match a root
-	as inner-node i
-		# TODO: use '_'
-		drop: i
+	as inner-node _
 		a.root get-or-update-recur key, hash, 0, f
 	as leaf-node l
 		l get-or-update-leaf key, hash, 0, f
@@ -266,9 +260,7 @@ body
 		else
 			child
 		match new-child-here
-		as inner-node i
-			# TODO: use '_'
-			drop: i
+		as inner-node _
 			99
 		as leaf-node l
 			cur wrap-add l.size
@@ -281,9 +273,7 @@ body
 			else
 				child
 			match new-child-here
-			as inner-node i
-				# TODO: use '_'
-				drop: i
+			as inner-node _
 				unreachable
 			as leaf-node l
 				new-out-index = out-index wrap-add l.size
@@ -356,9 +346,7 @@ body
 	a each pair =>
 		x = pair.from.hash unsafe-bit-shift-right hash-shift low-bits
 		res[x] := match res[x]
-		as inner-node i
-			# TODO: use '_'
-			drop: i
+		as inner-node _
 			unreachable
 		as leaf-node l
 			l ~ [pair] leaf-node

@@ -3,7 +3,7 @@ import
 	../../bool: !, bool
 	../../compare: compare
 	../../hash: hash-mix
-	../../misc: ->, data, drop, void
+	../../misc: ->, data, void
 	../../number: nat64
 	../../opt: is-empty, none, opt, some
 	../arr: arr
@@ -36,9 +36,7 @@ in<a> bool(value a, a hamt-set a) data<a> compare<a> hash-mix<a>
 
 try-add<a> hamt-set<a>?(a hamt-set a, value a) data<a> compare<a> hash-mix<a>
 	match a.inner try-add value, () => void
-	as already-has-key h
-		# TODO: use '_'
-		drop: h
+	as already-has-key _
 		none
 	as added res
 		res.hamt-set some

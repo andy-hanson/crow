@@ -98,9 +98,7 @@ This is O(a.size ln)
 		a
 	as inserted i
 		i tree-set (a.size wrap-add 1)
-	as find-scapegoat f
-		# TODO: use '_'
-		drop: f
+	as find-scapegoat _
 		unreachable
 
 ###
@@ -206,9 +204,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 
 .node-is-empty<a> bool(a node a)
 	match a
-	as inner i
-		# TODO: use '_'
-		drop: i
+	as inner _
 		false
 	as leaf l
 		l is-empty

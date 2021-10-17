@@ -126,8 +126,7 @@ to-str str(a board, cur-player color, last-column nat?)
 	res = writer
 	0 .. width each x =>
 		text = " {x letter-of-alphabet}"
-		# TODO: shouldn't need 'as'
-		res ~= if x.some.as<nat?> == last-column
+		res ~= if x.some == last-column
 			"{term-bold}{text}{term-reset}"
 		else
 			text

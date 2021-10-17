@@ -4,7 +4,7 @@ import
 	../compare: !=, <, >, equal, min
 	../exception: assert, forbid
 	../fun: subscript
-	../misc: drop, void
+	../misc: void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, -, *, const-ptr, mut-ptr, set-deref, set-subscript
 	../range: ..
@@ -55,9 +55,7 @@ list-equal<a> bool(a list a, b list a) trusted noctx equal<a>
 		as left-longer ll
 			hard-assert: ll is-empty
 			true
-		as right-longer r
-			# TODO: use '_'
-			drop: r
+		as right-longer _
 			hard-unreachable
 	else
 		false
@@ -91,9 +89,7 @@ list-equal<a> bool(a list a, b list a) trusted noctx equal<a>
 			match ap equal-recur b
 			as not-equal
 				not-equal
-			as left-longer l
-				# TODO: use '_'
-				drop: l
+			as left-longer _
 				# Shouldn't happen if they are the same total size
 				hard-unreachable
 			as right-longer rl
@@ -105,9 +101,7 @@ list-equal<a> bool(a list a, b list a) trusted noctx equal<a>
 		as left-longer ll
 			# Shouldn't happen if they are the same total size
 			ll equal-with-remainder b.values
-		as right-longer r
-			# TODO: use '_'
-			drop: r
+		as right-longer _
 			hard-unreachable
 	else
 		a.values equal-with-remainder b.values
@@ -265,7 +259,8 @@ fold<a, b> a(acc a, a list b, f act a(a, b))
 # Produce a list with `f[x]` applied to each element `x` in the input.
 map<out, in> list out(a list in, f act out(in)) trusted
 	res = a.size uninitialized-fix-arr<out>
-	res.begin-ptr map-recur a, f drop
+	end = res.begin-ptr map-recur a, f
+	hard-assert: end == res.end-ptr
 	res.cast-immutable list
 .map-recur<out, in> out mut*(out out mut*, a list in, f act out(in)) unsafe
 	next-out = if prev ?= a prev

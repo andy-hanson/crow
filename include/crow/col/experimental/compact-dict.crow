@@ -5,7 +5,7 @@ import
 	../../fun: subscript
 	../../hash: hash-mix
 	../../log: info, log
-	../../misc: ->, arrow, data, drop, from, to, void
+	../../misc: ->, arrow, data, from, to, void
 	../../opt: ==, is-empty, none, opt, some
 	../../ptr: ==, +, bits-equal, ref-eq, set-deref
 	../../str: ==, str
@@ -34,9 +34,7 @@ node-count<k, v> nat64(a compact-dict<k, v>)
 	match a
 	as overlay o
 		acc wrap-add 1 node-count o.prev
-	as end-node e
-		# TODO: use '_'
-		drop: e
+	as end-node _
 		acc wrap-add 1
 
 .impl<k, v> union
@@ -62,9 +60,7 @@ values<k, v> v[](a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
 
 is-empty<k, v> bool(a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
 	match a impl
-	as overlay o
-		# TODO: use '_'
-		drop: o
+	as overlay _
 		false
 	as end-node e
 		e is-empty
@@ -268,15 +264,11 @@ verify void(a compact-dict<nat64, str>, expected str)
 		match b impl
 		as overlay ob
 			oa ref-eq ob
-		as end-node e
-			# TODO: use '_'
-			drop: e
+		as end-node _
 			false
 	as end-node ea
 		match b impl
-		as overlay o
-			# TODO: use '_'
-			drop: o
+		as overlay _
 			false
 		as end-node eb
 			ea bits-equal eb

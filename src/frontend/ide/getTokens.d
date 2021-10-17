@@ -25,10 +25,12 @@ import frontend.parse.ast :
 	matchFunBodyAst,
 	matchInterpolatedPart,
 	matchLiteralAst,
+	matchNameOrUnderscoreOrNone,
 	matchSpecBodyAst,
 	matchStructDeclAstBody,
 	matchTypeAst,
 	NameAndRange,
+	NameOrUnderscoreOrNone,
 	ParamAst,
 	ParenthesizedAst,
 	range,
@@ -424,9 +426,14 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		(ref immutable MatchAst it) {
 			addExprTokens(alloc, tokens, it.matched);
 			foreach (ref immutable MatchAst.CaseAst case_; it.cases) {
-				add(alloc, tokens, immutable Token(Token.Kind.structRef, rangeOfNameAndRange(case_.structName)));
-				if (has(case_.local))
-					add(alloc, tokens, localDefOfNameAndRange(force(case_.local)));
+				add(alloc, tokens, immutable Token(Token.Kind.structRef, case_.memberNameRange()));
+				matchNameOrUnderscoreOrNone!void(
+					case_.local,
+					(immutable(Sym)) {
+						add(alloc, tokens, immutable Token(Token.Kind.localDef, case_.localRange()));
+					},
+					(ref immutable NameOrUnderscoreOrNone.Underscore) {},
+					(ref immutable NameOrUnderscoreOrNone.None) {});
 				addExprTokens(alloc, tokens, case_.then);
 			}
 		},

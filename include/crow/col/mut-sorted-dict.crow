@@ -4,7 +4,7 @@ import
 	../compare: !=, <, >, <=, compare
 	../exception: assert
 	../fun: subscript
-	../misc: ->, arrow, as, data, from, to, void
+	../misc: ->, arrow, data, from, to, void
 	../number: ==, <=>, +, -, *, nat64
 	../opt: ==, force, is-empty, none, opt, or-default, size, some
 	../ptr: ==, -, *, mut-ptr, set-deref
@@ -135,8 +135,7 @@ Returns true if it succeeded.
 .add-pair!<k, v> void(a mut-sorted-dict<k, v>, key k, value v) data<k> compare<k>
 	if a.node-size < 4
 		if a.pairs is-empty
-			# TODO: '.as<v?>' should not be necessary
-			a.pairs ~= key -> value.some.as<v?>
+			a.pairs ~= key -> value.some
 		else
 			# List has a small absolute size, so even if we can't insert near the end,
 			# there's an empty slot somewhere so we don't have to do much moving.
@@ -152,8 +151,7 @@ Returns true if it succeeded.
 			a compact-if-needed!
 		else
 			new-pairs = mut-arr<arrow<k, v?>>
-			# TODO: '.as<v?>' should not be necessary
-			new-pairs ~= key -> value.some.as<v?>
+			new-pairs ~= key -> value.some
 			a.next := new-pairs mut-sorted-dict 1, none some
 
 # Insert at the last place where the key is < that value.
@@ -162,8 +160,7 @@ Returns true if it succeeded.
 		a move-right! index
 		a[index] := key -> value.some
 	elif index == a.size - 1
-		# TODO: '.as<v?>' should not be necessary
-		a ~= key -> value.some.as<v?>
+		a ~= key -> value.some
 	else
 		a insert-linear! index + 1, key, value
 
@@ -269,7 +266,7 @@ body
 	a compact!
 	from-sorted-pairs: a.pairs map pair =>
 		# TODO: 'as' should be unnecessary
-		pair.from -> f[pair.from, pair.to.force].some.as<v-out?>
+		pair.from -> f[pair.from, pair.to.force].some
 
 .from-sorted-pairs<k, v> mut-sorted-dict<k, v>(a arrow<k, v?> mut[])
 	a mut-sorted-dict a.size, none

@@ -2,7 +2,6 @@ no-std
 import
 	../fun: subscript
 	../opt: none, some
-	../misc: drop
 	../ptr: ref-of-val
 	../result: err, ok, result
 	./bootstrap:
@@ -34,13 +33,9 @@ resolve-or-reject!<a> void(f fut a, result result<a, exception>) unsafe
 		void
 	as fut-state-callbacks cbs
 		cbs call-callbacks! result
-	as fut-state-resolved x
-		# TODO: use '_'
-		drop: x
+	as fut-state-resolved _
 		hard-unreachable
-	as fut-state-exception e
-		# TODO: use '_'
-		drop: e
+	as fut-state-exception _
 		hard-unreachable
 
 .call-callbacks!<a> void(cbs fut-state-callbacks a, value result<a, exception>)

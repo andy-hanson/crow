@@ -48,7 +48,9 @@ import frontend.parse.ast :
 	matchExprAstKind,
 	matchInterpolatedPart,
 	matchLiteralAst,
+	matchNameOrUnderscoreOrNone,
 	NameAndRange,
+	NameOrUnderscoreOrNone,
 	ParenthesizedAst,
 	rangeOfNameAndRange,
 	SeqAst,
@@ -1099,15 +1101,20 @@ immutable(CheckedExpr) checkMatchEnum(Alloc)(
 		members,
 		ast.cases,
 		(ref immutable StructBody.Enum.Member member, ref immutable MatchAst.CaseAst caseAst) =>
-			symEq(member.name, caseAst.structName.name));
+			symEq(member.name, caseAst.memberName));
 	if (!goodCases) {
 		addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.MatchCaseNamesDoNotMatch(
 			map!Sym(alloc, members, (ref immutable StructBody.Enum.Member member) => member.name))));
 		return bogus(expected, range);
 	} else {
 		immutable Expr[] cases = map!Expr(alloc, ast.cases, (ref immutable MatchAst.CaseAst caseAst) {
-			if (has(caseAst.local))
-				todo!void("diagnostic: no local for enum match");
+			matchNameOrUnderscoreOrNone!void(
+				caseAst.local,
+				(immutable(Sym)) =>
+					todo!void("diagnostic: no local for enum match"),
+				(ref immutable NameOrUnderscoreOrNone.Underscore) =>
+					todo!void("diagnostic: unnecessary underscore"),
+				(ref immutable NameOrUnderscoreOrNone.None) {});
 			return checkExpr(alloc, ctx, caseAst.then, expected);
 		});
 		return immutable CheckedExpr(immutable Expr(range, immutable Expr.MatchEnum(
@@ -1131,7 +1138,7 @@ immutable(CheckedExpr) checkMatchUnion(Alloc)(
 		members,
 		ast.cases,
 		(ref immutable UnionMember member, ref immutable MatchAst.CaseAst caseAst) =>
-			symEq(member.name, caseAst.structName.name));
+			symEq(member.name, caseAst.memberName));
 	if (!goodCases) {
 		addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.MatchCaseNamesDoNotMatch(
 			map!Sym(alloc, members, (ref immutable UnionMember member) => member.name))));
@@ -1141,31 +1148,50 @@ immutable(CheckedExpr) checkMatchUnion(Alloc)(
 			alloc,
 			members,
 			ast.cases,
-			(ref immutable UnionMember member, ref immutable MatchAst.CaseAst caseAst) {
-				if (has(member.type) != has(caseAst.local)) {
-					immutable Diag diag = has(member.type)
-						? immutable Diag(immutable Diag.MatchCaseShouldHaveLocal(member.name))
-						: immutable Diag(immutable Diag.MatchCaseShouldNotHaveLocal(member.name));
-					addDiag2(alloc, ctx, rangeInFile2(ctx, caseAst.range), diag);
-				}
-				immutable Opt!(Ptr!Local) local = has(caseAst.local) && has(member.type)
-					? some(nu!Local(
-						alloc,
-						rangeInFile2(ctx, rangeOfNameAndRange(force(caseAst.local))),
-						force(caseAst.local).name,
-						force(member.type)))
-					: none!(Ptr!Local);
-				immutable Expr then = isBogus(expected)
-					? bogus(expected, range).expr
-					: checkWithOptLocal(alloc, ctx, local, caseAst.then.deref, expected);
-				return immutable Expr.MatchUnion.Case(local, allocExpr(alloc, then));
-			});
+			(ref immutable UnionMember member, ref immutable MatchAst.CaseAst caseAst) =>
+				checkMatchCase(alloc, ctx, member, caseAst, expected));
 		return immutable CheckedExpr(immutable Expr(range, immutable Expr.MatchUnion(
 			allocExpr(alloc, matched),
 			matchedUnion,
 			cases,
 			inferred(expected))));
 	}
+}
+
+immutable(Expr.MatchUnion.Case) checkMatchCase(Alloc)(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	ref immutable UnionMember member,
+	ref immutable MatchAst.CaseAst caseAst,
+	ref Expected expected,
+) {
+	immutable Opt!(Ptr!Local) local = matchNameOrUnderscoreOrNone!(immutable Opt!(Ptr!Local))(
+		caseAst.local,
+		(immutable Sym name) {
+			immutable FileAndRange localRange = rangeInFile2(ctx, caseAst.localRange());
+			if (has(member.type))
+				return some(allocate(alloc, immutable Local(localRange, name, force(member.type))));
+			else {
+				addDiag2(alloc, ctx, localRange, immutable Diag(
+					immutable Diag.MatchCaseShouldNotHaveLocal(name)));
+				return none!(Ptr!Local);
+			}
+		},
+		(ref immutable NameOrUnderscoreOrNone.Underscore) {
+			if (!has(member.type))
+				todo!void("diagnostic: unnecessary underscore");
+			return none!(Ptr!Local);
+		},
+		(ref immutable NameOrUnderscoreOrNone.None) {
+			if (has(member.type))
+				addDiag2(alloc, ctx, rangeInFile2(ctx, caseAst.range), immutable Diag(
+					immutable Diag.MatchCaseShouldHaveLocal(member.name)));
+			return none!(Ptr!Local);
+		});
+	immutable Expr then = isBogus(expected)
+		? bogus(expected, rangeInFile2(ctx, caseAst.range)).expr
+		: checkWithOptLocal(alloc, ctx, local, caseAst.then.deref, expected);
+	return immutable Expr.MatchUnion.Case(local, allocExpr(alloc, then));
 }
 
 immutable(CheckedExpr) checkSeq(Alloc)(

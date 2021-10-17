@@ -1,7 +1,7 @@
 no-std
 import
 	./compare: equal
-	./misc: drop, void
+	./misc: void
 	./private/exception-low-level: assert, catch, message, throw
 	./str: ==, str
 
@@ -10,9 +10,7 @@ is<a> void(a a, b a) equal<a>
 
 throws<a> void(f act a(), message str)
 	match f catch
-	as ok o
-		# TODO: use '_'
-		drop: o
+	as ok _
 		throw: "Expected to throw an exception"
 	as err e
 		e.message is message

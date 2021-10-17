@@ -77,9 +77,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		done = state tcp-server-loop
 		done.fut-catch callback! r =>
 			match r
-			as ok o
-				# TODO: use '_'
-				drop: o
+			as ok _
 				print: "stopped normally"
 			as err e
 				print: "An exception occurred in server"

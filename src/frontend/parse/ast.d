@@ -23,7 +23,7 @@ import util.repr :
 	reprRecord,
 	reprStr,
 	reprSym;
-import util.sourceRange : Pos, reprRangeWithinFile, rangeOfStartAndName, RangeWithinFile;
+import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32;
 import util.util : verify;
@@ -367,12 +367,72 @@ struct LiteralAst {
 	}
 }
 
+struct NameOrUnderscoreOrNone {
+	@safe @nogc pure nothrow:
+
+	struct Underscore {}
+	struct None {}
+
+	immutable this(immutable Sym a) { kind = Kind.name; name = a; }
+	immutable this(immutable Underscore a) { kind = Kind.underscore; underscore = a; }
+	immutable this(immutable None a) { kind = Kind.none; none = a; }
+
+	private:
+	enum Kind {
+		name,
+		underscore,
+		none,
+	}
+	immutable Kind kind;
+	union {
+		immutable Sym name;
+		immutable Underscore underscore;
+		immutable None none;
+	}
+}
+
+@trusted immutable(T) matchNameOrUnderscoreOrNone(T)(
+	ref immutable NameOrUnderscoreOrNone a,
+	scope immutable(T) delegate(immutable Sym) @safe @nogc pure nothrow cbName,
+	scope immutable(T) delegate(ref immutable NameOrUnderscoreOrNone.Underscore) @safe @nogc pure nothrow cbUnderscore,
+	scope immutable(T) delegate(ref immutable NameOrUnderscoreOrNone.None) @safe @nogc pure nothrow cbNone,
+) {
+	final switch (a.kind) {
+		case NameOrUnderscoreOrNone.Kind.name:
+			return cbName(a.name);
+		case NameOrUnderscoreOrNone.Kind.underscore:
+			return cbUnderscore(a.underscore);
+		case NameOrUnderscoreOrNone.Kind.none:
+			return cbNone(a.none);
+	}
+}
+
+// Includes size of the ' ' before the name (but not for None)
+private immutable(size_t) nameOrUnderscoreOrNoneSize(ref immutable NameOrUnderscoreOrNone a) {
+	return matchNameOrUnderscoreOrNone!size_t(
+		a,
+		(immutable Sym s) => 1 + symSize(s),
+		(ref immutable NameOrUnderscoreOrNone.Underscore) => immutable size_t(2),
+		(ref immutable NameOrUnderscoreOrNone.None) => immutable size_t(0));
+}
+
 struct MatchAst {
 	struct CaseAst {
+		@safe @nogc pure nothrow:
+
 		immutable RangeWithinFile range;
-		immutable NameAndRange structName;
-		immutable Opt!NameAndRange local;
+		immutable Sym memberName;
+		immutable NameOrUnderscoreOrNone local;
 		immutable Ptr!ExprAst then;
+
+		//TODO: NOT INSTANCE
+		immutable(RangeWithinFile) memberNameRange() immutable {
+			return rangeOfStartAndName(safeSizeTToU32(range.start + "as ".length), memberName);
+		}
+
+		immutable(RangeWithinFile) localRange() immutable {
+			return rangeOfStartAndLength(memberNameRange().end, nameOrUnderscoreOrNoneSize(local));
+		}
 	}
 
 	immutable Ptr!ExprAst matched;
@@ -1309,9 +1369,15 @@ immutable(Repr) reprExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKin
 				reprArr(alloc, it.cases, (ref immutable MatchAst.CaseAst case_) =>
 					reprRecord(alloc, "case", [
 						reprRangeWithinFile(alloc, case_.range),
-						reprNameAndRange(alloc, case_.structName),
-						reprOpt(alloc, case_.local, (ref immutable NameAndRange nr) =>
-							reprNameAndRange(alloc, nr)),
+						reprSym(case_.memberName),
+						matchNameOrUnderscoreOrNone(
+							case_.local,
+							(immutable(Sym) it) =>
+								reprSym(it),
+							(ref immutable NameOrUnderscoreOrNone.Underscore) =>
+								reprStr("_"),
+							(ref immutable NameOrUnderscoreOrNone.None) =>
+								reprSym("none")),
 						reprExprAst(alloc, case_.then)]))]),
 		(ref immutable ParenthesizedAst it) =>
 			reprRecord(alloc, "paren", [reprExprAst(alloc, it.inner)]),
