@@ -1,8 +1,8 @@
 import
 	crow/str-util: join
-	crow/col/dict: dict, map-to-arr
+	crow/col/dict: map-to-arr, new
 	crow/io/net/http-server: http-handler, start-http-server
-	crow/io/net/http-types: body, headers, http-request, http-response, method, to-str, url
+	crow/io/net/http-types: body, headers, http-request, method, new, to-str, url
 	crow/io/print: print
 
 main fut nat(args str[]) unsafe summon
@@ -14,7 +14,7 @@ main fut nat(args str[]) unsafe summon
 		handler http-handler = req =>
 			descr = req describe-request
 			print: descr
-			200 http-response "OK", dict, "Your request:\n{descr}" resolved
+			(200, "OK", new, "Your request:\n{descr}") resolved
 		server = port start-http-server handler
 		drop: server
 		0 resolved

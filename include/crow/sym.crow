@@ -11,11 +11,11 @@ import
 	./str: ==, <=>, char, chars, c-str, str
 	./str-util: to-str
 	./private/alloc: unmanaged-alloc-elements, unmanaged-alloc-uninitialized
-	./private/bootstrap: static-syms
+	./private/bootstrap: new, static-syms
 	./private/number-low-level: nat8, wrap-add
 	./private/runtime:
-		dynamic-sym-node, dynamic-syms, get-global-ctx, global-ctx, next, set-dynamic-syms, sym,
-		syms-lock
+		dynamic-sym-node, dynamic-syms, get-global-ctx, global-ctx, new, next, set-dynamic-syms,
+		sym, syms-lock
 	./private/thread-utils: with-lock
 export
 	# TODO: ensure that 'sym' constructor from c-str is not exported
@@ -44,9 +44,9 @@ str-to-sym sym(a str) trusted
 	if sym ?= gctx.dynamic-syms find-dynamic-sym a
 		sym
 	else
-		sym = a.to-malloced-c-str sym
+		sym sym = a.to-malloced-c-str new
 		node-ptr = unmanaged-alloc-uninitialized<by-val dynamic-sym-node>
-		*node-ptr := sym dynamic-sym-node gctx.dynamic-syms
+		*node-ptr := sym, gctx.dynamic-syms
 		gctx.dynamic-syms := node-ptr.ref-of-ptr some
 		sym
 

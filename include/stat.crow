@@ -32,7 +32,7 @@ stat record mut
 stat int32(path c-str, buf stat) noctx extern unsafe summon
 
 stat stat()
-	0 stat 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 S_IFMT nat32() noctx
 	# TODO: "octal170000"

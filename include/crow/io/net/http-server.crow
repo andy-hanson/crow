@@ -4,9 +4,9 @@ import
 	../../bool: !, bool, false, true
 	../../col/arr: arr, begin-ptr, size, subscript
 	../../col/arr-util: rtail
-	../../col/dict: dict, each, in
-	../../col/mut-dict: move-to-dict!, mut-dict, remove-key!, set-subscript, subscript
-	../../col/mut-arr: ~=, index-of, move-to-arr!, mut-arr, pop-n-from-start!, size
+	../../col/dict: dict, each, in, new
+	../../col/mut-dict: move-to-dict!, mut-dict, new, remove-key!, set-subscript, subscript
+	../../col/mut-arr: ~=, index-of, move-to-arr!, mut-arr, new, pop-n-from-start!, size
 	../../compare: !=, <=, >=
 	../../exception: assert, forbid, to-str
 	../../fut: fut, fut-catch, resolved, subscript, then
@@ -20,13 +20,13 @@ import
 	../../str: ==, <=>, char, chars, is-empty, size-bytes, str
 	../../str-conv: parse-nat, to-str
 	../../str-util: as-str, has-substr, split-by, try-remove-end
-	../../writer: ~=, move-to-str!, writer
+	../../writer: ~=, move-to-str!, new, writer
 	../../private/bootstrap: todo
 	../print: print
 	./http-types:
-		body, headers, http-get, http-method, http-post, http-request, http-response, status,
+		body, headers, http-get, http-method, http-post, http-request, http-response, new, status,
 		status-desc
-	./tcp-server: close-client, start-tcp-server, stop, tcp-handler
+	./tcp-server: close-client, new, start-tcp-server, stop
 
 # Represents the state of the server.
 http-server record sendable
@@ -41,10 +41,10 @@ Starts running an HTTP server on the given port.
 Once the future is resolved, it is already serving requests.
 ###
 start-http-server fut http-server(port str, handler http-handler) trusted summon
-	client-states = mut-dict<fd-t, http-parse-state>
+	client-states http-parse-state mut[fd-t] = new
 
 	on-accepted-client ref void(fd-t) = fd =>
-		client-states[fd] := http-parse-state
+		client-states[fd] := new
 		void resolved
 	on-received-chunk ref void(fd-t, nat8[]) = (fd, bytes) =>
 		if state ?= client-states[fd]
@@ -55,13 +55,13 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		else
 			print: "Ignoring unrecognized client"
 			void resolved
-	tcp-server = port start-tcp-server tcp-handler: on-accepted-client, on-received-chunk
+	tcp-server = port start-tcp-server (on-accepted-client, on-received-chunk)
 
 	# TODO: KILL
-	ignore <- handler[http-request: http-get, "", [].dict, ""]
+	ignore <- handler[(http-get, "", [].dict, "")]
 	drop: ignore
 
-	resolved: http-server: tcp-server.stop
+	tcp-server.stop.new resolved
 
 # Returns true when closed client
 .handle-chunk fut bool(fd fd-t, state http-parse-state, chunk str, handler http-handler) summon trusted
@@ -79,7 +79,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 			o
 		as err e
 			error log e.to-str
-			500 http-response "Internal server error", dict, "Internal server error"
+			500, "Internal server error", new, "Internal server error"
 		res-str = response response-to-str
 		wrote = fd write res-str.chars.begin-ptr.ptr-cast<nat8, char>, res-str.size-bytes
 		assert: wrote == res-str.size-bytes.to-int64
@@ -89,11 +89,11 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		false resolved
 
 .finish-request http-request(state http-parse-state)
-	state.method http-request state.url, state.headers.move-to-dict!, state.unparsed.move-to-arr!.str
+	state.method, state.url, state.headers.move-to-dict!, state.unparsed.move-to-arr!.str
 
 # TODO: write out to a stream, not str
 .response-to-str str(a http-response)
-	res = writer
+	res writer = new
 	res ~= "HTTP/1.1 "
 	res ~= a.status to-str
 	res ~= " "
@@ -175,5 +175,5 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	# TODO:PERF: Use a circular buffer as we often take content off the front
 	unparsed char mut[]
 
-.http-parse-state http-parse-state()
-	http-get http-parse-state "", mut-dict, 0, mut-arr
+.new http-parse-state()
+	http-get, "", new, 0, new

@@ -12,7 +12,7 @@ import
 	../test: is
 	../test/spy: calls, fn, spy-act
 	../tuple: a, b, pair
-	../writer: ~=, backup!, move-to-str!, writer
+	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	./arr: ==, arr, is-empty, size
@@ -50,15 +50,15 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 	pairs arrow<k, v>[]
 	next node<k, v>?
 
-priority-queue<k, v> priority-queue<k, v>() data<k> compare<k>
-	void priority-queue none
+new<k, v> priority-queue<k, v>() data<k> compare<k>
+	void, none
 
 priority-queue<k, v> priority-queue<k, v>(a arrow<k, v>[]) data<k> compare<k>
 	if a is-empty
-		priority-queue
+		new
 	else
 		sorted = a sort-by pair => pair from
-		void priority-queue (sorted.first.force node sorted.tail, none).some
+		void, (sorted.first.force, sorted.tail, none).some
 
 is-empty<k, v> bool(a priority-queue<k, v>) data<k> compare<k>
 	a.root is-empty
@@ -76,7 +76,7 @@ Add a pair to the queue.
 This is O(1).
 ###
 ~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b arrow<k, v>) data<k> compare<k>
-	void priority-queue (b node [], a.root).some
+	void, (b, [], a.root).some
 
 popped<k, v> record
 	popped arrow<k, v>
@@ -95,10 +95,10 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) data<k> compare<k>
 .pop-from-node<k, v> popped<k, v>(a node<k, v>)
 	# TODO: node<k, v>? should not be necessary
 	rest node<k, v>? = if first ?= a.pairs first
-		first node a.pairs.tail, a.next some
+		(first, a.pairs.tail, a.next) some
 	else
 		a next
-	a.min popped (void priority-queue rest)
+	a.min, (void, rest)
 
 # Returns none if this (or any following node) did not have a lower min.
 .pop-no-compact-recur<k, v> popped<k, v>?(a node<k, v>, min k) compare<k>
@@ -116,8 +116,7 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) data<k> compare<k>
 		none
 
 combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
-	node = a.min node<k, v> a.pairs, popped.rest.root
-	popped.popped popped (void priority-queue node.some)
+	popped.popped, (void, (a.min, a.pairs, popped.rest.root).some)
 
 .compact-leading-nodes<k, v> priority-queue<k, v>(a priority-queue<k, v>) compare<k> trusted
 	mid = a.root find-mid 0
@@ -125,7 +124,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 		a
 	else
 		root = a.root force
-		void priority-queue some: match mid.mid plan root, mid.n-before-mid
+		void, some: match mid.mid plan root, mid.n-before-mid
 		as plan-did-compact compacted
 			compacted
 		as plan-will-compact n
@@ -142,9 +141,9 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 		if node.pairs is-empty
 			node.next find-mid (n-before wrap-add 1)
 		else
-			node.some found-mid n-before
+			node.some, n-before
 	else
-		none found-mid n-before
+		none, n-before
 
 .plan<k, v> union
 	plan-did-compact node<k, v>
@@ -157,14 +156,14 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	if node ?= a
 		match node.next plan root, n-singles
 		as plan-did-compact compacted
-			node.min node<k, v> node.pairs, compacted.some plan-did-compact
+			(node.min, node.pairs, compacted.some) plan-did-compact
 		as plan-will-compact n-elements-to-compact
 			node-size-here = 1 wrap-add node.pairs.size
 			if node-size-here <= n-elements-to-compact
 				n-elements-to-compact wrap-add node-size-here plan-will-compact
 			else
 				compacted = root do-compact n-elements-to-compact, node.next
-				node.min node node.pairs, compacted.some plan-did-compact
+				(node.min, node.pairs, compacted.some) plan-did-compact
 	else
 		n-singles plan-will-compact<k, v>
 
@@ -175,7 +174,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	hard-assert: end == compacted.end-ptr
 	compacted sort-by! pair => pair from
 	arr = compacted cast-immutable
-	arr.first.force node arr.tail, none
+	arr.first.force, arr.tail, none
 
 .compact-singles!<k, v> arrow<k, v> mut*(out arrow<k, v> mut*, a node<k, v>) unsafe
 	if a.pairs is-empty
@@ -200,7 +199,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 		out
 
 .dbg str(a priority-queue<nat64, str>)
-	res = writer
+	res writer = new
 	res dbg-recur! a.root, true
 	res move-to-str!
 .dbg-recur! void(out writer, a node<nat64, str>?, first bool)
@@ -251,7 +250,7 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) data<k> compare
 
 .fill-each-arr!<k, v> each-part<k, v> mut*(out each-part<k, v> mut*, a node<k, v>?) unsafe
 	if node ?= a
-		*out := node.min each-part node.pairs
+		*out := node.min, node.pairs
 		out + 1 fill-each-arr! node.next
 	else
 		out
@@ -315,7 +314,7 @@ values<k, v> v[](a priority-queue<k, v>) data<k> compare<k>
 	a map-to-arr (k, v) => v
 
 test
-	p = priority-queue<nat64, str>
+	p priority-queue<nat64, str> = new
 
 	p1 = p ~ (5 -> "5")
 	p1.dbg is "5 5 []"

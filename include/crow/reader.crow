@@ -2,7 +2,7 @@ no-std
 import
 	./bool: !, &&, ||, bool, false, true
 	./col/arr: arr-from-begin-end, begin-ptr, end-ptr
-	./col/mut-arr: ~=, move-to-arr!, mut-arr
+	./col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	./compare: <=, >=
 	./fun: subscript
 	./misc: drop, void
@@ -18,11 +18,11 @@ reader record mut
 	cur mut char*
 	end char*
 
-reader reader(a str) trusted
-	a.chars.begin-ptr reader a.chars.end-ptr
+new reader(a str) trusted
+	a.chars.begin-ptr, a.chars.end-ptr
 
 with-reader<a> a?(a str, f act a?(reader))
-	reader = a reader
+	reader reader = a new
 	res = f[reader]
 	if !res.is-empty && reader.is-empty
 		res
@@ -118,7 +118,7 @@ take-float! float64?(a reader) trusted
 take-quoted-str! str?(a reader)
 	if a try-take-char "\""
 		start = a.cur
-		res = a take-quoted-str-recur! mut-arr
+		res = a take-quoted-str-recur! new
 		if res is-empty
 			a.cur := start
 		res

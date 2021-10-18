@@ -1,7 +1,7 @@
 module(
 	path: 77
 	imports: [import(none, 60, none), import(some(range(8, 28)), 45, some([print]))]
-	structs: [struct(range: file-range(77, range(168, 199)), public: true, name: my-record)]
+	structs: [struct(range: file-range(77, range(167, 198)), public: true, name: my-record)]
 	funs: [
 		fun(
 			public: true
@@ -9,7 +9,7 @@ module(
 			sig: sig(file-pos(77, 30), main, fut(nat64()), [param(file-range(77, range(43, 50)), none, arr(str()))])
 			body: let(
 				local(file-range(77, range(60, 61)), m, my-record())
-				call(fun-inst(name: my-record), [literal(nat64(), 1), literal(nat64(), 2)])
+				call(fun-inst(name: new), [literal(nat64(), 1), literal(nat64(), 2)])
 				seq(
 					seq(
 						seq(
@@ -37,27 +37,27 @@ module(
 			public: true
 			preferred: true
 			sig: sig(
-				file-pos(77, 168)
-				my-record
+				file-pos(77, 167)
+				new
 				my-record()
-				[param(file-range(77, range(186, 191)), some(x), nat64()), param(file-range(77, range(193, 198)), some(y), nat64())])
+				[param(file-range(77, range(185, 190)), some(x), nat64()), param(file-range(77, range(192, 197)), some(y), nat64())])
 			body: new-record)
 		fun(
 			public: true
 			no-ctx: true
 			sig: sig(
-				file-pos(77, 168)
-				my-record
+				file-pos(77, 167)
+				new
 				by-val(my-record())
-				[param(file-range(77, range(186, 191)), some(x), nat64()), param(file-range(77, range(193, 198)), some(y), nat64())])
+				[param(file-range(77, range(185, 190)), some(x), nat64()), param(file-range(77, range(192, 197)), some(y), nat64())])
 			body: new-record)
 		fun(
 			public: true
 			no-ctx: true
-			sig: sig(file-pos(77, 186), x, nat64(), [param(file-range(77, range(186, 191)), some(a), my-record())])
+			sig: sig(file-pos(77, 185), x, nat64(), [param(file-range(77, range(185, 190)), some(a), my-record())])
 			body: field-get(0))
 		fun(
 			public: true
 			no-ctx: true
-			sig: sig(file-pos(77, 193), y, nat64(), [param(file-range(77, range(193, 198)), some(a), my-record())])
+			sig: sig(file-pos(77, 192), y, nat64(), [param(file-range(77, range(192, 197)), some(a), my-record())])
 			body: field-get(1))])

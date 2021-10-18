@@ -13,7 +13,7 @@ arrow<a, b> record
 
 # Creates an `arrow`.
 -> <a, b> arrow<a, b>(from a, to b) noctx
-	from arrow to
+	from, to
 
 # Ignores the value and returns void.
 drop<a> void(_ a) noctx

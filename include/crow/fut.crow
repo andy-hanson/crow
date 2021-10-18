@@ -1,7 +1,7 @@
 no-std
 import
 	./col/arr: arr, size
-	./cell: *, cell, set-deref
+	./cell: *, cell, new, set-deref
 	./col/arr-util: each-with-index, first-some, map
 	./exception: catch, exception
 	./fun: subscript
@@ -10,11 +10,11 @@ import
 	./result: result
 	./private/bootstrap:
 		exclusion, fun, fut-state-exception, fut-state-resolved, hard-unreachable, island,
-		island-and-exclusion, nat64, send, state
+		island-and-exclusion, nat64, new, send, state
 	./private/fut-low-level: callback!, reject!, resolve!, resolve-or-reject!, unresolved
 	./private/number-low-level: ==, wrap-sub
 	./private/runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
-	./private/thread-utils: lock, lock-by-val, with-lock
+	./private/thread-utils: lock, lock-by-val, new, with-lock
 export
 	./private/bootstrap: fut
 
@@ -25,11 +25,11 @@ delay fut void()
 
 # Converts a value to a `fut` resolved with that value.
 resolved<a> fut a(value a)
-	lock-by-val fut value.fut-state-resolved
+	lock-by-val, value.fut-state-resolved
 
 # Returns a `fut` resolved with an exception.
 rejected<a> fut a(err exception)
-	lock-by-val fut err.fut-state-exception
+	lock-by-val, err.fut-state-exception
 
 ###
 Calls `f` after both `a` and `b` have resolved.
@@ -37,8 +37,8 @@ Returns a fut that will be resolved by the result of `f`.
 ###
 join<out, in0, in1> fut out(a fut in0, b fut in1, f ref out(in0, in1)) trusted send<out> send<in0> send<in1>
 	res = unresolved<out>
-	lock = lock
-	remaining = cell<nat64>: 2
+	lock lock = new
+	remaining cell nat64 = 2 new
 	decr-remaining act void() = () =>
 		lock with-lock () =>
 			*remaining := *remaining wrap-sub 1
@@ -85,8 +85,8 @@ Returns a `fut` that is resolved when every element of the input has resolved.
 join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
 	# TODO: send<a[]> should be unnecessary
 	res = unresolved<a[]>
-	lock = lock
-	remaining = cell<nat64>: a.size
+	lock lock = new
+	remaining cell nat64 = a.size new
 	a each-with-index (in, index) =>
 		in callback! value =>
 			lock with-lock () =>

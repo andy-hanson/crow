@@ -1,69 +1,69 @@
 import
-	crow/col/deque: deque
-	crow/col/dict: dict
-	crow/col/experimental/compact-dict: compact-dict
-	crow/col/experimental/compact-sorted-dict: compact-sorted-dict
-	crow/col/experimental/hamt-set: hamt-set
-	crow/col/experimental/tree-set: tree-set
-	crow/col/frozen-dict: frozen-dict
-	crow/col/frozen-set: frozen-set
-	crow/col/index-set: index-set
+	crow/col/deque: deque, new
+	crow/col/dict: dict, new
+	crow/col/experimental/compact-dict: compact-dict, new
+	crow/col/experimental/compact-sorted-dict: compact-sorted-dict, new
+	crow/col/experimental/hamt-set: hamt-set, new
+	crow/col/experimental/tree-set: new, tree-set
+	crow/col/frozen-dict: frozen-dict, new
+	crow/col/frozen-set: frozen-set, new
+	crow/col/index-set: index-set, new
 	crow/col/list: list
-	crow/col/mut-arr: mut-arr
-	crow/col/mut-deque: mut-deque
-	crow/col/mut-dict: mut-dict
-	crow/col/mut-grid: mut-grid
-	crow/col/mut-priority-queue: mut-priority-queue
-	crow/col/mut-set: mut-set
-	crow/col/mut-sorted-dict: mut-sorted-dict
-	crow/col/mut-sorted-set: mut-sorted-set
-	crow/col/mut-stack: mut-stack
-	crow/col/priority-queue: priority-queue
-	crow/col/set: set
-	crow/col/sorted-set: sorted-set
-	crow/col/stack: stack
-	crow/col/queue: queue
+	crow/col/mut-arr: mut-arr, new
+	crow/col/mut-deque: mut-deque, new
+	crow/col/mut-dict: mut-dict, new
+	crow/col/mut-grid: mut-grid, new
+	crow/col/mut-priority-queue: mut-priority-queue, new
+	crow/col/mut-set: mut-set, new
+	crow/col/mut-sorted-dict: mut-sorted-dict, new
+	crow/col/mut-sorted-set: mut-sorted-set, new
+	crow/col/mut-stack: mut-stack, new
+	crow/col/priority-queue: new, priority-queue
+	crow/col/set: new, set
+	crow/col/sorted-set: new, sorted-set
+	crow/col/stack: new, stack
+	crow/col/queue: new, queue
 	crow/crypto/password: password-hash, quality-moderate
 	crow/io/time-format: gmt
-	crow/iter: iterator
+	crow/iter: iterator, new
 	crow/json: json-str
 	crow/log: info, log
 	crow/parse-command: parse-named-args
 	crow/perf: perf-now
-	crow/reader: reader, take-quoted-str!
+	crow/reader: new, reader, take-quoted-str!
 	crow/serialize: from-bytes
 	crow/test/test-runner: run-all-tests
 
 main fut nat(_ str[]) summon
 	drop: [].from-bytes as<nat8[]>
 	drop: "" password-hash quality-moderate
-	drop: compact-dict<nat, nat>
-	drop: compact-sorted-dict<nat, nat>
-	drop: deque<nat>
-	drop: dict<nat, nat>
-	drop: frozen-dict<nat, nat>
-	drop: frozen-set<nat>
-	drop: hamt-set<nat>
-	drop: index-set
+	drop: new.as<compact-dict<nat, nat>>
+	drop: new.as<compact-sorted-dict<nat, nat>>
+	drop: new.as<deque nat>
+	drop: new.as<nat[nat]>
+	drop: new.as<frozen-dict<nat, nat>>
+	drop: new.as<frozen-set nat>
+	drop: new.as<hamt-set nat>
+	drop: new.as<index-set>
 	drop: list<nat>
-	drop: mut-arr<nat>
-	drop: mut-deque<nat>
-	drop: mut-dict<nat, nat>
-	drop: mut-grid<nat>
-	drop: mut-priority-queue<nat, nat>
-	drop: mut-set<nat>
-	drop: mut-sorted-dict<nat, nat>
-	drop: mut-sorted-set<nat>
-	drop: mut-stack<nat>
+	drop: new.as<nat mut[]>
+	drop: new.as<mut-deque nat>
+	drop: new.as<nat mut[nat]>
+	drop: new.as<mut-grid nat>
+	drop: new.as<mut-priority-queue<nat, nat>>
+	drop: new.as<mut-set nat>
+	drop: new.as<mut-sorted-dict<nat, nat>>
+	drop: new.as<mut-sorted-set nat>
+	drop: new.as<mut-stack nat>
 	drop: perf-now
-	drop: priority-queue<nat, nat>
-	drop: set<nat>
-	drop: sorted-set<nat>
-	drop: stack<nat>
-	drop: tree-set<nat>
-	drop: queue<nat>
+	drop: new.as<priority-queue<nat, nat>>
+	drop: new.as<set nat>
+	drop: new.as<sorted-set nat>
+	drop: new.as<stack nat>
+	drop: new.as<tree-set nat>
+	drop: new.as<queue nat>
 	drop: gmt
-	drop: iterator<nat>: () => none
+	drop: as<iterator<nat>>: new: () => none
 	drop: "".json-str
 	drop: [] parse-named-args []
 	run-all-tests
@@ -76,7 +76,7 @@ test
 test
 	info log "READER TEST START"
 
-	r = "\"j\"" reader
+	r reader = "\"j\"" new
 	if s ?= r take-quoted-str!
 		info log "GOT A STRING: {s}"
 	else

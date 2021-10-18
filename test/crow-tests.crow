@@ -1,16 +1,16 @@
 import
 	crow/col/arr-util: first-some, tail
-	crow/col/mut-arr: ~=, move-to-arr!, mut-arr
+	crow/col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	crow/io/environ: environ
 	crow/io/file: each-child-recursive
 	crow/io/path: base-name, get-extension
 	crow/io/print: print
 	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
 	crow/str-util: has-substr, try-remove-start
-	crow/writer: ~=, move-to-str!, writer
+	crow/writer: ~=, move-to-str!, new, writer
 	./failure:
-		failure, flat-map-with-max-size, handle-output, max-failures, match-test, overwrite-output,
-		print-tests, test-options
+		failure, flat-map-with-max-size, handle-output, max-failures, match-test, new,
+		overwrite-output, print-tests, test-options
 
 run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, options test-options) summon
 	tests = path list-tests options.match-test
@@ -22,7 +22,7 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, o
 		failures err
 
 .list-tests str[](path str, match-test str) summon
-	res = mut-arr<str>
+	res str mut[] = new
 	path each-child-recursive child =>
 		if child has-substr match-test && child.ext-is-crow
 			res ~= child
@@ -79,17 +79,17 @@ body
 		path handle-output output-path, res.stdout, overwrite-output
 
 	if !output-failures.is-empty
-		true print-test-result output-failures
+		true, output-failures
 	elif res.exit-code == 0
 		assert: res.stderr == ""
-		false print-test-result []
+		false, []
 	elif res.exit-code == 1
 		stderr-no-color = res.stderr remove-colors
 		# We should stop even if no test failure in handling the output
-		true print-test-result handle-output: path, "{output-path}.err", stderr-no-color, overwrite-output
+		true, (path handle-output "{output-path}.err", stderr-no-color, overwrite-output)
 	else
 		message = "unexpected exit code: {res exit-code}"
-		true print-test-result [path failure message]
+		true, [(path, message)]
 
 .run-single-runnable-test failure[]
 	path-to-crow str
@@ -113,7 +113,7 @@ body
 	stdout-failures ~ stderr-failures
 
 .remove-colors str(s str)
-	res = writer
+	res writer = new
 	s remove-colors-recur! res
 	res move-to-str!
 

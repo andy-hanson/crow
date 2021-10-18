@@ -9,6 +9,6 @@ area float(a rect)
 	a.width * a.height
 
 main fut nat(_ str[]) summon
-	r = rect: 1.5, 2.5
+	r rect = 1.5, 2.5
 	print: r.area to-str
 	0 resolved

@@ -1,6 +1,6 @@
 no-std
 import
-	../../col/dict: dict
+	../../col/dict: dict, new
 	../../hash: hash-mix
 	../../number: nat64
 	../../str: ==, <=>, str
@@ -20,23 +20,18 @@ http-response record
 	body str
 
 http-bad-query http-response(message str)
-	400 http-response message, dict, message
+	400, message, new, message
 
 http-not-found http-response()
 	"Not found" http-not-found
 
 http-not-found http-response(message str)
-	404 http-response message, dict, message
+	404, message, new, message
 
 # Method used by an HTTP request.
 http-method enum
 	http-get
 	http-post
-
-# HTTP GET method.
-http-get record
-# HTTP POST method.
-http-post record
 
 to-str str(a http-method)
 	match a

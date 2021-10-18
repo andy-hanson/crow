@@ -3,12 +3,16 @@ import
 	./bool: bool
 	./compare: comparison
 	./col/arr: ~, arr, arr-compare, arr-equal, is-empty, size
+	./private/bootstrap: new
 	./private/number-low-level: ==, <=>, nat64
 export
 	./private/bootstrap: char, chars, c-str, str, to-char, to-nat8
 
+str str(a char[]) noctx
+	a new
+
 ~ str(a str, b str)
-	a.chars ~ b.chars str
+	a.chars ~ b.chars new
 
 is-empty bool(a str) noctx
 	a.chars is-empty

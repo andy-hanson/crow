@@ -1,10 +1,10 @@
 no-std
 import
 	./bool: ||, bool, false
-	./cell: *, cell, set-deref
+	./cell: *, cell, new, set-deref
 	./compare: !=
 	./fun: subscript
-	./iter: iterator
+	./iter: iterator, new
 	./misc: void
 	./number: ==, <=>, nat64
 	./opt: opt, some
@@ -20,9 +20,8 @@ The beginning is inclusive and the end is exclusive.
 The beginning must be less than the end.
 ###
 iter iterator nat64(r range nat64)
-	# TODO: should not need a type argument here
-	n = r.low cell<nat64>
-	iterator: () =>
+	n cell nat64 = r.low new
+	new: () =>
 		if *n != r.high
 			res = *n
 			*n := res wrap-add 1

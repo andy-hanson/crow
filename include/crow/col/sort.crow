@@ -126,7 +126,7 @@ sort-by-first<a, b> sorted-by-first<a, b>(a a[], b b[]) compare<a> trusted
 	mut-a = a fix-arr
 	mut-b = b fix-arr
 	mut-a sort-by-first! mut-b
-	mut-a.cast-immutable sorted-by-first mut-b.cast-immutable
+	mut-a.cast-immutable, mut-b.cast-immutable
 
 # Sort `a` in place, and apply the same permutation to `b` in place.
 sort-by-first!<a, b> void(a a mut[], b b mut[]) compare<a> trusted

@@ -1,11 +1,11 @@
 import
-	crow/cell: *, as-ptr, cell
+	crow/cell: *, as-ptr, cell, new
 	crow/col/fix-arr: begin-ptr, fix-arr, map-to-arr, set-subscript, size, subscript
 	crow/c-types: c-int
 	crow/io/duration: duration, msec
 	crow/io/print: print
 	crow/io/time: delay
-	crow/math/vec: +, vec-2-32
+	crow/math/vec: +, new, vec-2-32
 	crow/ptr: ==, as-any-const-ptr, as-const, null, ptr-cast, ptr-to, size-of, to-const-ptr
 	crow/str-util: join, to-c-str, to-str
 	GLES2/gl2:
@@ -63,22 +63,22 @@ main fut nat(_ str[]) summon trusted
 
 	texture = "demo/ogl/sprite.webp" load-texture
 
-	v0 = -0.9 vec-2-32 -0.9
-	v1 = 0.9 vec-2-32 -0.9
-	v2 = 0.9 vec-2-32 0.9
-	v3 = -0.9 vec-2-32 0.9
-	t0 = 0.0 vec-2-32 0.0
-	t1 = 1.0 vec-2-32 0.0
-	t2 = 1.0 vec-2-32 1.0
-	t3 = 0.0 vec-2-32 1.0
-	vertices = fix-arr: [(v0 vertex red, t0), (v1 vertex green, t1), (v2 vertex blue, t2), (v3 vertex white, t3)]
+	v0 vec-2-32 = -0.9, -0.9
+	v1 vec-2-32 = 0.9, -0.9
+	v2 vec-2-32 = 0.9, 0.9
+	v3 vec-2-32 = -0.9, 0.9
+	t0 vec-2-32 = 0.0, 0.0
+	t1 vec-2-32 = 1.0, 0.0
+	t2 vec-2-32 = 1.0, 1.0
+	t3 vec-2-32 = 0.0, 1.0
+	vertices = fix-arr: [(v0, red, t0), (v1, green, t1), (v2, blue, t2), (v3, white, t3)]
 	triangle-vbo = vertices vbo-create
 	assert: triangle-vbo != 0
 
 	colors = vertices map-to-arr (v => v.color to-str) join " | "
 	print: colors
 
-	renderer = window renderer shader-prog, vertices, triangle-vbo, texture
+	renderer renderer = window, shader-prog, vertices, triangle-vbo, texture
 
 	<- 100.msec repeat-interval () => renderer main-loop-body
 
@@ -109,13 +109,13 @@ to-str str(a color-32)
 	"<{a r}, {a g}, {a b}>"
 
 white color-32()
-	1 color-32 1, 1
+	1, 1, 1
 red color-32()
-	1 color-32 0, 0
+	1, 0, 0
 green color-32()
-	0 color-32 1, 0
+	0, 1, 0
 blue color-32()
-	0 color-32 0, 1
+	0, 0, 1
 
 .renderer record mut
 	window SDL_Window
@@ -130,14 +130,14 @@ blue color-32()
 		quit
 	else
 		key-states-ptr = null SDL_GetKeyboardState
-		key-states = SDL_NUM_SCANCODES.to-nat32.to-nat64 arr key-states-ptr
+		key-states = key-states-ptr[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
 		print: if key-states[SDL_SCANCODE_RETURN.to-nat32 to-nat64] == 0
 			"no return"
 		else
 			"return is pressed"
 
 		v0 = renderer.vertices[0]
-		renderer.vertices[0] := (v0.pos + (0.003 vec-2-32 0)) vertex v0.color, v0.tex-coord
+		renderer.vertices[0] := (v0.pos + (0.003, 0)), v0.color, v0.tex-coord
 		renderer draw-it
 		continue
 
@@ -198,7 +198,7 @@ continue-or-quit enum
 		void resolved
 
 .vbo-create GLuint(vertices fix-arr vertex) summon unsafe
-	vbo-cell = 0 cell<GLuint>
+	vbo-cell cell GLuint = 0 new
 	n-buffers = 1 to-int32
 	n-buffers glGenBuffers vbo-cell.as-ptr
 	vbo = *vbo-cell

@@ -38,8 +38,8 @@ file-ast(
 			body: let(
 				r
 				call(
-					prefix
-					name-range(144, rect)
+					comma
+					name-range(149, new)
 					[]
 					[
 						literal(
@@ -53,7 +53,7 @@ file-ast(
 				seq-ast(
 					call(
 						prefix
-						name-range(160, print)
+						name-range(159, print)
 						[]
-						[call(infix, name-range(174, to-str), [], [call(dot, name-range(169, area), [], [r])])])
-					call(infix, name-range(184, resolved), [], [literal(nat(0, false))]))))])
+						[call(infix, name-range(173, to-str), [], [call(dot, name-range(168, area), [], [r])])])
+					call(infix, name-range(183, resolved), [], [literal(nat(0, false))]))))])

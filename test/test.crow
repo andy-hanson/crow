@@ -5,7 +5,7 @@ import
 	crow/io/path: child-path, parent-path
 	crow/io/print: print
 	crow/parse-command: parse-named-args
-	./failure: first-failures, print-failures, test-options
+	./failure: first-failures, new, print-failures, test-options
 	./lint: lint
 	./crow-tests: run-crow-tests
 
@@ -33,7 +33,7 @@ main fut nat(args str[]) summon
 			strs[0]
 		else
 			""
-		should-print-tests test-options overwrite-output, max-failures, match-test do-test
+		(should-print-tests, overwrite-output, max-failures, match-test) do-test
 	else
 		print-help
 		1

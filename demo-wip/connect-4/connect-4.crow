@@ -5,14 +5,14 @@ import
 	#log: info, log
 	crow/str-util: strip
 	./board:
-		board, board-cache, can-place, color, empty-board, has-empty, just-won, opposite, place,
-		red, set-subscript, subscript, to-str, width
+		board, board-cache, can-place, color, empty-board, has-empty, just-won, new, opposite,
+		place, red, set-subscript, subscript, to-str, width
 
 main fut nat(_ str[]) summon
 	print: "Select a game:\n(If using hard CPU, compile with --optimize)\n"
 	print: "2: 2-player game\nE: Easy\nM: Medium\nH: Hard\nH2: Hard and CPU goes first\nCPU: CPU vs CPU\n"
 	#settings = "Invalid option" read-stdin-until-parse it => it parse-settings
-	settings = 11.some ai-settings 11.some
+	settings ai-settings = 11.some, 11.some
 	empty-board print-board red, none
 	winner <- empty-board play-recur red, settings
 	print: winner show-winner
@@ -21,17 +21,17 @@ main fut nat(_ str[]) summon
 # TODO:PRIVATE
 parse-settings ai-settings?(a str)
 	if a == "2"
-		none ai-settings none some
+		(none, none) some
 	elif a == "E"
-		none ai-settings 6.some some
+		(none, 6.some) some
 	elif a == "M"
-		none ai-settings 8.some some
+		(none, 8.some) some
 	elif a == "H"
-		none ai-settings 10.some some
+		(none, 10.some) some
 	elif a == "H2"
-		10.some ai-settings none some
+		(10.some, none) some
 	elif a == "CPU"
-		10.some ai-settings 10.some some
+		(10.some, 10.some) some
 
 .show-winner str(winner color?)
 	if w ?= winner
@@ -112,22 +112,22 @@ score-cache alias
 .ai-best-x fut nat(board board, ai-depth nat)
 	<- delay
 	# Use a new cache each time, since each turn we're exploring to a further depth.
-	cache = board-cache<int32>
-	resolved: cache strategy-recur board, ai-depth, (0 strategy min-int32), 0, 0 x
+	cache board-cache int32 = new
+	resolved: cache strategy-recur board, ai-depth, (0, min-int32), 0, 0 x
 
 .strategy-score int32(cache score-cache, board board, ai-depth nat)
 	if cached ?= cache[board]
 		cached
 	else
-		res = cache strategy-recur board, ai-depth, (0 strategy min-int32), 0, 0 score
+		res = cache strategy-recur board, ai-depth, (0, min-int32), 0, 0 score
 		cache[board] := res
 		res
 
 .strategy-recur strategy(cache score-cache, board board, ai-depth nat, best strategy, sum-score int, x nat)
 	if x == width
-		best.x strategy sum-score.clamp-to-int32
+		best.x, sum-score.clamp-to-int32
 	else
-		score-and-best = if board can-place x
+		score-and-best score-and-best = if board can-place x
 			new-board = board place x
 			score = if new-board just-won
 				(width ** ai-depth).to-int64 clamp-to-int32
@@ -135,13 +135,13 @@ score-cache alias
 				0
 			else
 				-(cache strategy-score new-board, ai-depth - 1)
-			new-strategy = if score > best.score
-				x strategy score
-			else
+			new-strategy = if score <= best.score
 				best
-			score score-and-best new-strategy
+			else
+				x, score
+			score, new-strategy
 		else
-			0 score-and-best best
+			0, best
 		cache strategy-recur board, ai-depth, score-and-best.best, (sum-score + score-and-best.score.to-int64), x + 1
 
 indent str(depth nat)

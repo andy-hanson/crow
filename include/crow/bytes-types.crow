@@ -53,19 +53,19 @@ bytes256 record
 	n1 bytes128
 
 zero bytes16() noctx
-	0 bytes16 0
+	0, 0
 
 zero bytes32() noctx
-	zero bytes32 zero
+	zero, zero
 
 zero bytes48() noctx
-	zero bytes48 zero
+	zero, zero
 
 zero bytes64() noctx
-	zero bytes64 zero
+	zero, zero
 
 zero bytes128() noctx
-	zero bytes128 zero
+	zero, zero
 
 zero bytes256() noctx
-	zero bytes256 zero
+	zero, zero

@@ -10,7 +10,7 @@ import
 	./opt: none, opt, some
 	./ptr: +, *
 	./str: ==, ~, char, chars, c-str, str, to-char, to-nat8
-	./tuple: a, b, pair
+	./tuple: a, b, new, pair
 	./private/bootstrap: hard-unreachable
 
 # Treats bytes as a string.
@@ -93,7 +93,7 @@ try-remove-end str?(a str, b str)
 
 try-split-once pair<str, str>?(a str, b char)
 	if res ?= a.chars try-split-once b
-		res.a.str pair res.b.str some
+		(res.a.str, res.b.str) some
 
 split-by str[](a str, b str)
 	a.chars split-by-subseq b.chars map chars => chars str

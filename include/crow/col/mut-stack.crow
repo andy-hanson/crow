@@ -4,7 +4,7 @@ import
 	../misc: void
 	../opt: opt
 	./arr: arr
-	./mut-arr: ~=, arr, copy, each, filter!, fold, is-empty, last, map!, mut-arr, pop!
+	./mut-arr: ~=, arr, copy, each, filter!, fold, is-empty, last, map!, mut-arr, new, pop!
 
 ###
 Unlike `mut-arr`, this is not guaranteed to be represented as an array.
@@ -14,14 +14,14 @@ mut-stack<a> record mut
 	inner a mut[]
 
 # New empty `mut-stack`.
-mut-stack<a> mut-stack a()
-	mut-stack: mut-arr<a>
+new<a> mut-stack a()
+	new new
 
 copy<a> mut-stack a(a mut-stack a)
-	mut-stack: a.inner copy
+	a.inner.copy new
 
 mut-stack<a> mut-stack a(a a[])
-	a.mut-arr mut-stack
+	a.mut-arr new
 
 arr<a> a[](a mut-stack a)
 	a.inner arr

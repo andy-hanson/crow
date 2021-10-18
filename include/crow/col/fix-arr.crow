@@ -29,12 +29,8 @@ fix-arr<a> record mut
 	inner a[]
 
 # Empty `fix-arr`.
-fix-arr<a> fix-arr a() noctx
-	void fix-arr []
-
-# `fix-arr` from a pointer and size.
-fix-arr<a> fix-arr a(size nat64, begin-ptr a mut*) noctx unsafe
-	void fix-arr (size arr begin-ptr.as-const)
+new<a> fix-arr a() noctx
+	void, []
 
 ###
 Copies an `arr` to a `fix-arr`.
@@ -52,7 +48,7 @@ arr<a> a[](a fix-arr a)
 
 fix-arr-from-begin-end<a> fix-arr a(begin a mut*, end a mut*) unsafe noctx
 	hard-assert: begin <= end
-	void fix-arr (begin.as-const arr-from-begin-end end.as-const)
+	void, (begin.as-const arr-from-begin-end end.as-const)
 
 ###
 Copies the elements of a `fix-arr`.
@@ -99,6 +95,9 @@ subscript<a> a(a fix-arr a, index nat64) trusted
 unsafe-at<a> a(a fix-arr a, index nat64) unsafe
 	a.begin-ptr[index]
 
+subscript<a> fix-arr a(a a mut*, range range nat64) noctx unsafe
+	void, a.as-const[range]
+
 ###
 Slices the fix-arr.
 This is O(1).
@@ -107,7 +106,7 @@ Throws if `range.from > range.to`.
 Throws if the slice would exceed the bounds of the `fix-arr`.
 ###
 subscript<a> fix-arr a(a fix-arr a, range range nat64)
-	void fix-arr a.inner[range]
+	void, a.inner[range]
 
 ###
 Write to a single element.
@@ -139,7 +138,7 @@ rtail<a> fix-arr a(a fix-arr a)
 
 # Allocates a `fix-arr` without initializing any of its elements.
 uninitialized-fix-arr<a> fix-arr a(size nat64) unsafe
-	size fix-arr size.alloc-uninitialized<a>
+	size.alloc-uninitialized<a>[0 .. size]
 
 ###
 `fix-arr` where each element is `f[i]`.

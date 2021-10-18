@@ -12,16 +12,16 @@ import
 	./bool-low-level: !, &&, ||, bool, false, true
 	./bootstrap:
 		call-with-ctx, ctx, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
-		island-and-exclusion, island-id, lock, log-ctx-ptr, nat64, sym, thread-local-stuff
+		island-and-exclusion, island-id, lock, log-ctx-ptr, nat64, new, sym, thread-local-stuff
 	./exception-low-level: exception-ctx
 	./log-low-level: default-log-handler, log-ctx, log-handler, set-handler
 	./number-low-level: ==, <=>, wrap-add, wrap-sub
 	./perf-low-level: perf-ctx
 	./task-queue:
-		action, any-tasks, exclusion, first-task-time, insert-task!, is-empty, no-task,
+		action, any-tasks, exclusion, first-task-time, insert-task!, is-empty, new, no-task,
 		no-timestamp, pop-task!, return-task!, task, task-queue, task-queue-node
 	./thread-utils:
-		acquire!, broadcast!, condition, get-and-increment!, get-sequence, lock-by-val,
+		acquire!, broadcast!, condition, get-and-increment!, get-sequence, lock-by-val, new,
 		release!, thread-safe-counter, wait-on
 
 get-global-ctx global-ctx() unsafe
@@ -36,7 +36,7 @@ get-cur-island island() unsafe
 # This fun is required by the compiler.
 cur-island-and-exclusion island-and-exclusion() unsafe
 	c = get-ctx
-	c.island-id island-and-exclusion c.exclusion
+	c.island-id, c.exclusion
 
 dynamic-sym-node record
 	by-ref
@@ -92,10 +92,10 @@ new-exclusion exclusion(v island) noctx trusted
 	v.next-exclusion.ref-of-val get-and-increment!
 
 island by-val island(gctx global-ctx, id island-id, max-threads nat64) summon noctx unsafe
-	q = max-threads task-queue
-	gc-root by-val island-gc-root = q island-gc-root (exn => exn default-exception-handler), log =>
+	q by-val task-queue = max-threads new
+	gc-root by-val island-gc-root = q, (exn => exn default-exception-handler), log =>
 		log default-log-handler
-	gctx island id, gc, gc-root, lock-by-val, 0, thread-safe-counter
+	gctx, id, gc, gc-root, lock-by-val, 0, new
 
 default-exception-handler void(e exception) summon unsafe
 	print-err-no-newline: "uncaught exception: "
@@ -108,7 +108,7 @@ set-this-islands-exception-handler void(exception-handler fun void(exception)) s
 
 add-task void(a island, timestamp timestamp, exclusion exclusion, action act void()) unsafe
 	# Do allocation outside of the lock
-	node = task-queue-node: timestamp task exclusion, action
+	node task-queue-node = (timestamp, exclusion, action) new
 
 	a.tasks-lock.ref-of-val acquire!
 	a.tasks insert-task! node
@@ -127,7 +127,7 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 	ectx-ptr = ectx.ref-of-val as-any-mut-ptr
 	log-ctx-ptr = log-ctx.ref-of-val as-any-mut-ptr
 	perf-ptr = perf-ctx.ref-of-val as-any-mut-ptr
-	tls by-val thread-local-stuff = thread-id thread-local-stuff print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
+	tls by-val thread-local-stuff = thread-id, print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
 	gctx thread-function-recur tls.ref-of-val
 
 .thread-function-recur void(gctx global-ctx, tls thread-local-stuff) noctx unsafe summon
@@ -165,7 +165,7 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion exclusion) noctx unsafe
 	gc-ctx = island.gc.ref-of-val get-gc-ctx
 	tls.log-ctx-ptr.as-ref<log-ctx>.handler := island.gc-root.ref-of-val.log-handler
-	gctx.as-any-mut-ptr ctx island.id, exclusion, gc-ctx.as-any-mut-ptr, tls
+	gctx.as-any-mut-ptr, island.id, exclusion, gc-ctx.as-any-mut-ptr, tls
 
 .return-ctx void(c ctx) noctx unsafe
 	c.gc-ctx-ptr.as-ref return-gc-ctx
@@ -233,7 +233,7 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 		# (Tasks may have been added concurrently;
 		# this is fine as we're about to wait on a condition and will immediately wake up if so.)
 		# Need to do this here while we hold the lock
-		no-task-and-last-thread-out no-chosen-task n.first-task-time rslt-no-chosen-task
+		(no-task-and-last-thread-out, n.first-task-time) rslt-no-chosen-task
 
 	gctx.lk.ref-of-val release!
 
@@ -250,15 +250,15 @@ spec
 	unsafe
 body
 	if i == islands.size
-		!any-tasks no-chosen-task first-task-time rslt-no-chosen-task
+		(!any-tasks, first-task-time) rslt-no-chosen-task
 	else
 		island = islands noctx-at i
 		chose = island choose-task-in-island cur-time
 		match chose
 		as tii-task t
-			island chosen-task t.togc-task rslt-chosen-task
+			(island, t.togc-task) rslt-chosen-task
 		as do-a-gc
-			island chosen-task do-a-gc rslt-chosen-task
+			(island, do-a-gc) rslt-chosen-task
 		as tii-no-task n
 			new-any-tasks = any-tasks || n.any-tasks
 			new-first-task-time = first-task-time min-time n.first-task-time
@@ -297,7 +297,7 @@ body
 			# do nothing -- a thread is running on this island
 			# we can't do a GC now, but don't want to start a new task either
 			# because that would block GC
-			true no-task none tii-no-task
+			(true, none) tii-no-task
 	else
 		match island.tasks pop-task! cur-time
 		as ptr-task t

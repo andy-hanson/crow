@@ -1,12 +1,12 @@
 import
-	crow/cell: *, cell, swap
+	crow/cell: *, cell, new, swap
 	crow/col/arr-util: each-with-index, exists, in
-	crow/col/mut-arr: ~=, move-to-arr!, mut-arr
+	crow/col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
 	crow/io/print: print
 	crow/str-util: ends-with, has-substr, starts-with, try-remove-start
-	./failure: failure, flat-map-with-max-size, max-failures, print-tests, test-options
+	./failure: failure, flat-map-with-max-size, max-failures, new, print-tests, test-options
 
 lint result<str, failure[]>(path str, options test-options) summon
 	files = path list-lintable-files
@@ -20,7 +20,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 		err: failures
 
 .list-lintable-files str[](path str) summon
-	res = mut-arr<str>
+	res str mut[] = new
 	path each-child-recursive (child => !child.excluded-from-lint), child =>
 		if !child.base-name.should-ignore-extension-of-name
 			res ~= child
@@ -34,7 +34,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 # Returns numner of errors
 .lint-file failure[](path str) summon
 	text = path read-file
-	res = mut-arr<failure>
+	res failure mut[] = new
 	ext = path.get-extension force
 	allow-double-space = ext == "err" || ext == "sublime-syntax"
 	text.lines each-with-index (line, line-num) =>
@@ -42,11 +42,11 @@ lint result<str, failure[]>(path str, options test-options) summon
 		space-space = " " ~ " "
 		if !allow-double-space && line has-substr space-space
 			message = "line {ln} contains a double space"
-			res ~= path failure message
+			res ~= (path, message)
 		width = line line-len
 		if width > max-line-length
 			message = "line {ln} is {width} columns long, should be <= {max-line-length}"
-			res ~= path failure message
+			res ~= (path, message)
 	res move-to-arr!
 
 .ignored-extensions str[]()
@@ -64,8 +64,8 @@ lint result<str, failure[]>(path str, options test-options) summon
 
 # TODO: move to str-util, make a generic 'split' function
 .lines str[](s str)
-	res = mut-arr<str>
-	last-nl = 0 cell<nat>
+	res str mut[] = new
+	last-nl cell nat = 0 new
 	s.chars each-with-index (c, index) =>
 		if c == "\n"
 			nl = last-nl swap index + 1

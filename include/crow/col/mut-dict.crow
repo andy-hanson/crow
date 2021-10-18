@@ -11,14 +11,14 @@ import
 	../str: ==, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test: is
-	../writer: ~=, backup!, move-to-str!, writer
+	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/number-low-level: ==, <=>, nat64, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	./arr: ==, arr, size
 	./arr-util: each, map
 	./dict: dict
 	./fix-arr:
-		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-fix-arr, fold, is-empty, map,
-		fix-arr, set-subscript, size, subscript, uninitialized-fix-arr
+		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-fix-arr, fix-arr, fold, is-empty,
+		map, new, set-subscript, size, subscript, uninitialized-fix-arr
 	./mut-arr:
 		~=, copy, each, filter!, find-index, fold, is-at-capacity, is-empty, map!, mut-arr,
 		remove-unordered-at!, set-subscript, size, subscript
@@ -34,8 +34,8 @@ mut-dict<k, v> record mut
 	one arrow<k, v>
 	many arrow<k, v> mut[]
 
-mut-dict<k, v> v mut[k]() data<k> compare<k> hash-mix<k>
-	void mut-dict fix-arr, 0
+new<k, v> v mut[k]() data<k> compare<k> hash-mix<k>
+	void, new, 0
 
 mut-dict<k, v> v mut[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	res = a.size mut-dict-with-capacity<k, v>
@@ -48,7 +48,7 @@ New dict with `capacity` empty entries.
 WARN: Due to hash conflicts, this doesn't guarantee that allocations won't be needed.
 ###
 mut-dict-with-capacity<k, v> v mut[k](capacity nat64) data<k> compare<k> hash-mix<k>
-	void mut-dict (capacity fill-fix-arr none), 0
+	void, (capacity fill-fix-arr none), 0
 
 arr<k, v> arrow<k, v>[](a v mut[k]) data<k> compare<k> hash-mix<k>
 	a map-to-arr (key, value) => key -> value
@@ -62,7 +62,7 @@ copy<k, v> v mut[k](a v mut[k]) data<k> compare<k> hash-mix<k>
 			ar one
 		as many m
 			m.copy many
-	void mut-dict entries, a.total-size
+	void, entries, a.total-size
 test
 	a = [1 -> "1", 2 -> "2", 5 -> "5"] mut-dict
 	a verify "_ (1 -> 1) [2 -> 2, 5 -> 5]"
@@ -256,7 +256,7 @@ map-values!<k, v> void(a v mut[k], f act v(k, v)) trusted data<k> compare<k> has
 		entry-ptr + 1 map-values-recur! entry-end, f
 
 .dbg str(a str mut[nat64])
-	out = writer
+	out writer = new
 	a.entries each entry =>
 		match entry
 		as none
@@ -284,7 +284,7 @@ map-values!<k, v> void(a v mut[k], f act v(k, v)) trusted data<k> compare<k> has
 	a.dbg is expected
 
 test
-	a = mut-dict<nat64, str>
+	a str mut[nat64] = new
 
 	a[6] := "6"
 	a[5] is none

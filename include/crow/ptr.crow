@@ -3,7 +3,7 @@ import
 	string: memcmp
 	./bool: bool
 	./compare: comparison, less, equal, greater
-	./private/bootstrap: nat64, void
+	./private/bootstrap: arr, nat64, new, void
 	./private/number-low-level: ==, unsafe-div, wrap-sub
 export
 	./private/bootstrap: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, zeroed
@@ -56,6 +56,7 @@ subscript<a> a(a a*, n nat64) noctx unsafe
 	*(a + n)
 subscript<a> a(a a mut*, n nat64) noctx unsafe
 	*(a + n)
+
 ###
 Set the value pointed to.
 UB if this is not a valid pointer.
@@ -179,3 +180,6 @@ max-ptr<a> a*() noctx unsafe
 	max-ptr.as-const
 max-ptr<a> a mut*() noctx unsafe
 	null + 0xffffffffffffffff
+
+arr-of-single<a> a[](a a*) noctx unsafe
+	1, a

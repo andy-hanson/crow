@@ -1696,7 +1696,7 @@ void addFunsForRecord(Alloc, SymAlloc)(
 	FunDecl constructor(immutable Type returnType, immutable FunFlags flags) {
 		immutable Ptr!Sig ctorSig = allocate(alloc, immutable Sig(
 			fileAndPosFromFileAndRange(struct_.range),
-			struct_.name,
+			shortSymAlphaLiteral("new"),
 			returnType,
 			ctorParams));
 		return FunDecl(

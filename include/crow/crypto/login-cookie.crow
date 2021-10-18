@@ -4,7 +4,7 @@ import
 	../col/arr: ~, arr, size, subscript
 	../compare: !=, <
 	../exception: assert
-	../io/time: get-unix-time, seconds-since-epoch, unix-time
+	../io/time: get-unix-time, new, seconds-since-epoch, unix-time
 	../log: info, log
 	../number: ==, <=>, -, nat8, nat64, to-int64
 	../opt: opt, opt-join
@@ -30,14 +30,14 @@ cookie-matches bool(a login-cookie, cookie nat64, expire-seconds nat64) summon
 	recent && a.cookie == cookie
 
 generate-login-cookie login-cookie() summon
-	get-unix-time login-cookie random-nat64
+	get-unix-time, random-nat64
 
 to-bytes nat8[](a login-cookie)
 	a.timestamp.seconds-since-epoch.to-8-bytes ~ a.cookie.to-8-bytes
 
 from-bytes login-cookie(a nat8[])
 	assert: a.size == 16
-	a[0 .. 8].from-bytes.unix-time login-cookie a[8 .. 16].from-bytes
+	a[0 .. 8].from-bytes.new, a[8 .. 16].from-bytes
 
 to-str str(a login-cookie)
 	"{a.timestamp seconds-since-epoch}|{a cookie}"
@@ -45,4 +45,4 @@ to-str str(a login-cookie)
 parse-login-cookie login-cookie?(a str)
 	if split ?= a try-split-once "|"
 		split.a.parse-int opt-join split.b.parse-nat, (time, cookie) =>
-			time.unix-time login-cookie cookie
+			time.new, cookie

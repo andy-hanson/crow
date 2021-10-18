@@ -6,7 +6,7 @@ import
 	crow/crypto/password: password-hash, password-matches, quality-moderate
 	crow/db/lmdb:
 		add, close-db, count, from-lmdb-key, get, lmdb-close-env, lmdb-db, lmdb-env,
-		lmdb-key-flags, lmdb-open-env, lmdb-open-options, lMDB_txn, map, open-db, set, to-lmdb-key,
+		lmdb-key-flags, lmdb-open-env, lMDB_txn, map, new, open-db, set, to-lmdb-key,
 		transaction-abort, transaction-commit, try-add, with-abortable-write-transaction, with-env,
 		with-read-transaction, with-test-env, with-write-transaction, zip
 	crow/io/print: print
@@ -17,7 +17,7 @@ import
 
 main fut nat(_ str[]) unsafe summon
 	print: "Hello, world!"
-	db-path with-env true.lmdb-open-options, env =>
+	db-path with-env true.new, env =>
 		env with-db db =>
 			if false
 				match db register-user! "alice", "swordfish"
@@ -72,7 +72,7 @@ user-cookie record
 parse-user-cookie user-cookie?(a str)
 	if split ?= a try-split-once "|"
 		split.a.parse-nat opt-join split.b.parse-login-cookie, (user, inner) =>
-			user user-cookie inner
+			user, inner
 
 to-str str(a user-cookie)
 	"{a user}|{a inner}"
@@ -88,7 +88,7 @@ db record mut
 	post-content lmdb-db<post, str>
 
 open-real-db db() unsafe summon
-	env = db-path lmdb-open-env true.lmdb-open-options
+	env = db-path lmdb-open-env true.new
 	env db-open
 
 close-real-db void(db db) unsafe summon
@@ -106,7 +106,7 @@ close-real-db void(db db) unsafe summon
 	user-login-cookie = env open-db<user, login-cookie> "user-login-cookie"
 	post-user = env open-db<post, user> "post-user"
 	post-content = env open-db<post, str> "post-content"
-	env db user-from-name, user-name, user-password-hash, user-login-cookie, post-user, post-content
+	env, user-from-name, user-name, user-password-hash, user-login-cookie, post-user, post-content
 
 .db-close void(db db) unsafe summon
 	db.env close-db db.user-from-name
@@ -118,7 +118,7 @@ close-real-db void(db db) unsafe summon
 list-users user-info[](db db) summon
 	db.env with-read-transaction txn =>
 		txn map db.user-name, (user, name) =>
-			user user-info name
+			user, name
 
 user-name str(db db, user user) summon
 	db.env with-read-transaction txn =>
@@ -128,7 +128,7 @@ list-posts post-info[](db db) summon
 	db.env with-read-transaction txn =>
 		txn zip db.post-user, db.post-content, (post, user, content) =>
 			user-name = txn get db.user-name, user force
-			post post-info user, user-name, content
+			post, user, user-name, content
 
 register-user-result union
 	register-user-success user
@@ -161,7 +161,7 @@ register-user! register-user-result(db db, user-name str, password str) summon
 		else
 			user-already-exists transaction-abort
 
-login-error union
+login-error enum
 	empty-name-or-password
 	user-does-not-exist
 
@@ -176,7 +176,7 @@ login! result<user-cookie, login-error>(db db, user-name str, password str) summ
 					throw: "wrong password"
 				cookie = generate-login-cookie
 				txn set db.user-login-cookie, user, cookie
-				user user-cookie cookie ok
+				(user, cookie) ok
 			else
 				user-does-not-exist err
 
@@ -185,7 +185,7 @@ login! result<user-cookie, login-error>(db db, user-name str, password str) summ
 		user = txn get db.post-user, post force
 		user-name = txn get db.user-name, user force
 		content = txn get db.post-content, post force
-		post post-info user, user-name, content
+		post, user, user-name, content
 
 add-post! post(db db, cookie user-cookie, content str) summon
 	db.env with-write-transaction txn =>

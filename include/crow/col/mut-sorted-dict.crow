@@ -11,12 +11,12 @@ import
 	../range: ..
 	../str: ==, chars, str
 	../test: is
-	../writer: ~=, backup!, move-to-str!, writer
+	../writer: ~=, backup!, move-to-str!, new, writer
 	./arr: arr, subscript
 	./arr-util: each
 	./mut-arr:
 		~=, begin-ptr, each, empty!, end-ptr, filter, filter!, fold, is-empty, map, map!,
-		map-to-arr, mut-arr, remove-at!, set-subscript, size, subscript
+		map-to-arr, mut-arr, new, remove-at!, set-subscript, size, subscript
 	./sort: sort-by!
 	./private/sort-utils:
 		binary-search-exact-ptr, binary-search-insert-ptr, hard-assert-comparison-not-equal,
@@ -37,12 +37,12 @@ mut-sorted-dict<k, v> record mut
 	next mut mut-sorted-dict<k, v>?
 
 # New empty `mut-sorted-dict`.
-mut-sorted-dict<k, v> mut-sorted-dict<k, v>() data<k> compare<k>
-	mut-arr mut-sorted-dict 0, none
+new<k, v> mut-sorted-dict<k, v>() data<k> compare<k>
+	new, 0, none
 
 # Copies an `arr` to a `mut-sorted-dict`.
 mut-sorted-dict<k, v> mut-sorted-dict<k, v>(a arrow<k, v>[]) data<k> compare<k>
-	res = mut-sorted-dict<k, v>
+	res mut-sorted-dict<k, v> = new
 	a each pair =>
 		res[pair from] := pair to
 	res
@@ -150,9 +150,9 @@ Returns true if it succeeded.
 			next add-pair! key, value
 			a compact-if-needed!
 		else
-			new-pairs = mut-arr<arrow<k, v?>>
+			new-pairs arrow<k, v?> mut[] = new
 			new-pairs ~= key -> value.some
-			a.next := new-pairs mut-sorted-dict 1, none some
+			a.next := (new-pairs, 1, none) some
 
 # Insert at the last place where the key is < that value.
 .insert-linear!<k, v> void(a arrow<k, v?> mut[], index nat64, key k, value v) data<k> compare<k>
@@ -269,7 +269,7 @@ body
 		pair.from -> f[pair.from, pair.to.force].some
 
 .from-sorted-pairs<k, v> mut-sorted-dict<k, v>(a arrow<k, v?> mut[])
-	a mut-sorted-dict a.size, none
+	a, a.size, none
 
 map-to-arr<out, k, v> out[](a mut-sorted-dict<k, v>, f act out(k, v)) data<k> compare<k>
 	a compact!
@@ -304,7 +304,7 @@ map-values!<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) data<k> compare<k
 
 
 .dbg str(a mut-sorted-dict<nat64, str>)
-	out = writer
+	out writer = new
 	out dbg-recur! a
 	out move-to-str!
 
@@ -353,7 +353,7 @@ test
 	a verify "[3 -> 3, 5 -> 5, 7 -> 7, 8 -> 8, 9 -> 9, 10 -> 10]"
 
 test
-	a = mut-sorted-dict<nat64, str>
+	a mut-sorted-dict<nat64, str> = new
 	a verify "[]"
 
 	a[5] := "5"

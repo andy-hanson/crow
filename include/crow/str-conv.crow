@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: bool, false, true
-	./col/mut-arr: ~=, move-to-arr!, mut-arr
+	./col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	./compare: <
 	./misc: void
 	./number:
@@ -180,7 +180,7 @@ interp record mut
 	inner char mut[]
 
 interp interp()
-	mut-arr interp
+	new new
 
 with-str interp(a interp, b str)
 	a.inner ~= b chars

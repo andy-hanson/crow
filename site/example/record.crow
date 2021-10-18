@@ -2,8 +2,8 @@ import
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	a = "bruschetta" dinner "wine"
-	b = "chili" dinner "milk"
+	a dinner = "bruschetta", "wine"
+	b dinner = "chili", "milk"
 	print: a to-str
 	print: b to-str
 	print: a mix b to-str
@@ -14,7 +14,7 @@ dinner record
 	drink str
 
 mix dinner(a dinner, b dinner)
-	a.food dinner b.drink
+	a.food, b.drink
 
 to-str str(a dinner)
 	"{a food} and {a drink}"

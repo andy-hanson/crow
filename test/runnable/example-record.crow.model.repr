@@ -16,7 +16,7 @@ module(
 			body: let(
 				local(file-range(77, range(140, 141)), r, rect())
 				call(
-					fun-inst(name: rect)
+					fun-inst(name: new)
 					[
 						literal(float64(), 1.5)
 						literal(float64(), 2.5)])
@@ -30,7 +30,7 @@ module(
 			preferred: true
 			sig: sig(
 				file-pos(77, 30)
-				rect
+				new
 				rect()
 				[
 					param(file-range(77, range(43, 54)), some(width), float64())
@@ -41,7 +41,7 @@ module(
 			no-ctx: true
 			sig: sig(
 				file-pos(77, 30)
-				rect
+				new
 				by-val(rect())
 				[
 					param(file-range(77, range(43, 54)), some(width), float64())

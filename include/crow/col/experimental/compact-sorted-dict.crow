@@ -12,7 +12,7 @@ import
 	../../str: ==, chars, is-empty, size-bytes, str
 	../../str-conv: interp, finish, to-str, with-str, with-value
 	../../test: is
-	../../writer: ~=, backup!, move-to-str!, writer
+	../../writer: ~=, backup!, move-to-str!, new, writer
 	../../private/alloc: mem-copy!
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: wrap-add
@@ -42,11 +42,11 @@ compact-sorted-dict<k, v> record
 	pairs arrow<k, v?>[]
 	prev impl<k, v>
 
-compact-sorted-dict<k, v> compact-sorted-dict<k, v>() data<k> compare<k>
-	void compact-sorted-dict [].end-node
+new<k, v> compact-sorted-dict<k, v>() data<k> compare<k>
+	void, [].end-node
 
 compact-sorted-dict<k, v> compact-sorted-dict<k, v>(a arrow<k, v>[]) data<k> compare<k>
-	void compact-sorted-dict (a sort-by (pair => pair from) end-node)
+	void, (a sort-by (pair => pair from) end-node)
 
 is-empty<k, v> bool(a compact-sorted-dict<k, v>) data<k> compare<k>
 	match a impl
@@ -71,7 +71,7 @@ arr<k, v> arrow<k, v>[](a compact-sorted-dict<k, v>) data<k> compare<k>
 		e
 
 ~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, pair arrow<k, v>) data<k> compare<k>
-	void compact-sorted-dict (a.impl add-or-remove pair.from, pair.to.some)
+	void, (a.impl add-or-remove pair.from, pair.to.some)
 
 ~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b compact-sorted-dict<k, v>) data<k> compare<k>
 	a ~ b.arr
@@ -84,11 +84,11 @@ arr<k, v> arrow<k, v>[](a compact-sorted-dict<k, v>) data<k> compare<k>
 	else
 		# TODO: 'arrow<k, v?>[]' should be unnecessary
 		pairs arrow<k, v?>[] = b map (it => it.from -> it.to.some) sort-by it => it from
-		void compact-sorted-dict (pairs overlay a.impl merge-as-needed)
+		void, ((pairs, a.impl) merge-as-needed)
 
 - <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, key k) data<k> compare<k>
 	if key in a
-		void compact-sorted-dict (a.impl add-or-remove key, none)
+		void, (a.impl add-or-remove key, none)
 	else
 		a
 
@@ -113,14 +113,14 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) data<k> compare<k>
 	!a[key].is-empty
 
 .add-or-remove<k, v> impl<k, v>(a impl<k, v>, key k, value v?) data<k> compare<k>
-	[key -> value] overlay a merge-as-needed
+	([key -> value], a) merge-as-needed
 
 .merge-as-needed<k, v> impl<k, v>(a overlay<k, v>) data<k> compare<k>
 	match a prev
 	as overlay o
 		if o.pairs.size should-merge a.pairs.size
 			new-pairs = o.pairs merge-overlays a.pairs
-			new-pairs overlay o.prev merge-as-needed
+			(new-pairs, o.prev) merge-as-needed
 		else
 			a overlay
 	as end-node e
@@ -132,7 +132,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) data<k> compare<k>
 .merge-unconditionally<k, v> arrow<k, v>[](a overlay<k, v>) data<k> compare<k>
 	match a prev
 	as overlay o
-		o.pairs merge-overlays a.pairs overlay o.prev merge-unconditionally
+		((o.pairs merge-overlays a.pairs), o.prev) merge-unconditionally
 	as end-node e
 		e merge-to-end a.pairs
 
@@ -258,7 +258,7 @@ body
 
 # Returns an equal dictionary that takes up less space.
 compact<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>) data<k> compare<k>
-	void compact-sorted-dict match a.impl
+	void, match a.impl
 	as overlay o
 		o.merge-unconditionally end-node
 	as end-node e
@@ -331,7 +331,7 @@ spec
 body
 	# Index can overshoot due to removing overlays
 	if index >= overlays.size
-		rightmost-value took-key overlays
+		rightmost-value, overlays
 	elif overlays[index][0].from == key
 		new-rightmost-value = overlays[index][0] to
 		new-overlay = overlays[index] tail
@@ -358,7 +358,7 @@ body
 .init-iters<k, v> iters<k, v>(a compact-sorted-dict<k, v>) trusted
 	overlay-iters = 0 overlay-count a.impl uninitialized-fix-arr<arrow<k, v?>[]>
 	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur! a.impl
-	end-pairs iters overlay-iters
+	end-pairs, overlay-iters
 
 .overlay-count<k, v> nat64(acc nat64, a impl<k, v>) noctx
 	match a
@@ -378,7 +378,7 @@ body
 
 filter<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, f act bool(k, v)) data<k> compare<k>
 	# No need to re-sort
-	void compact-sorted-dict (a.arr filter (pair => f[pair.from, pair.to]) end-node)
+	void, (a.arr filter (pair => f[pair.from, pair.to]) end-node)
 
 map<k-out, v-out, k-in, v-in> compact-sorted-dict<k-out, v-out>
 	a compact-sorted-dict<k-in, v-in>
@@ -405,11 +405,11 @@ spec
 	compare<k>
 body
 	# No need to re-sort
-	void compact-sorted-dict ((a.arr map pair => pair.from -> f[pair.from, pair.to]) end-node)
+	void, ((a.arr map pair => pair.from -> f[pair.from, pair.to]) end-node)
 
 # TODO:PRIVATE
 dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
-	out = writer
+	out writer = new
 	out dbg-recur! a.impl
 	out move-to-str!
 
@@ -464,7 +464,7 @@ verify void(a compact-sorted-dict<nat64, str>, expected str)
 			ea arr-ref-eq eb
 
 test
-	a = compact-sorted-dict<nat64, str>
+	a compact-sorted-dict<nat64, str> = new
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"

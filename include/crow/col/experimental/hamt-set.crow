@@ -8,16 +8,17 @@ import
 	../../opt: is-empty, none, opt, some
 	../arr: arr
 	../arr-util: map
-	../dict: dict, each-key, fold-keys, is-empty, new-dict, size, subscript, try-add, try-remove
+	../dict: dict, each-key, fold-keys, is-empty, new, new-dict, size, subscript, try-add, try-remove
 
 hamt-set<a> record
+	# TODO:PRIVATE
 	inner void[a]
 
-hamt-set<a> hamt-set a() data<a> compare<a> hash-mix<a>
-	dict<a, void> hamt-set
+new<a> hamt-set a() data<a> compare<a> hash-mix<a>
+	new new
 
 hamt-set<a> hamt-set a(a a[]) data<a> compare<a> hash-mix<a>
-	hamt-set: a map (x => x -> void) dict
+	(a map (x => x -> void) dict) new
 
 is-empty<a> bool(a hamt-set a) data<a> compare<a> hash-mix<a>
 	a.inner is-empty
@@ -39,7 +40,7 @@ try-add<a> hamt-set<a>?(a hamt-set a, value a) data<a> compare<a> hash-mix<a>
 	as already-has-key _
 		none
 	as added res
-		res.hamt-set some
+		res.new some
 
 - <a> hamt-set a(a hamt-set a, value a) data<a> compare<a> hash-mix<a>
 	if res ?= a try-remove value
@@ -49,7 +50,7 @@ try-add<a> hamt-set<a>?(a hamt-set a, value a) data<a> compare<a> hash-mix<a>
 
 try-remove<a> hamt-set<a>?(a hamt-set a, value a) data<a> compare<a> hash-mix<a>
 	if res ?= a.inner try-remove value
-		res.new-dict.hamt-set some
+		res.new-dict.new some
 
 region iteration
 

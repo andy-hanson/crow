@@ -12,18 +12,16 @@ import
 	../str: ==, str
 	../str-conv: to-str
 	../test: is
-	../writer: ~=, backup!, move-to-str!, writer
+	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
 	./arr: ==, arr
 	./arr-util: fold
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr-from-begin-end, uninitialized-fix-arr
 	./frozen-set:
-		begin-ptr, each, end-ptr, fold-with-index, frozen-set,
-		is-empty, size, try-get-unordered-index,
-		unsafe-frozen-set-from-fix-arr-cast-immutable
+		begin-ptr, each, end-ptr, fold-with-index, frozen-set, is-empty, new, size,
+		try-get-unordered-index, unsafe-frozen-set-from-fix-arr-cast-immutable
 	./index-set:
-		count-greater-or-equal, each, is-empty, filter-less, in, index-set,
-		size, try-remove
+		count-greater-or-equal, each, filter-less, is-empty, in, index-set, new, size, try-remove
 
 set<a> record
 	# TODO:PRIVATE
@@ -43,11 +41,11 @@ node-count<a> nat64(a set<a>)
 	here frozen-set a
 	left add-node<a>?
 
-set<a> set a() data<a> compare<a> hash-mix<a>
-	frozen-set add-node none set index-set
+new<a> set a() data<a> compare<a> hash-mix<a>
+	(new, none), new
 
 set<a> set a(a a[]) data<a> compare<a> hash-mix<a>
-	a.frozen-set add-node none set index-set
+	(a.frozen-set, none), new
 
 arr<a> a[](a set a) data<a> compare<a> hash-mix<a>
 	# TODO: If a has a single add node and no remove, just return that
@@ -95,19 +93,19 @@ in<a> bool(value a, a set a) data<a> compare<a> hash-mix<a>
 try-add<a> set<a>?(a set a, value a) data<a> compare<a> hash-mix<a>
 	if index ?= a.add find-in-add value
 		if new-remove ?= a.remove try-remove index
-			a.add set new-remove some
+			(a.add, new-remove) some
 	else
 		a add-and-maybe-compact value some
 
 .add-and-maybe-compact<a> set a(a set a, value a) trusted data<a> compare<a> hash-mix<a>
 	add-size = a.add add-size
 	if add-size == 0
-		([value].frozen-set add-node none) set index-set
+		([value].frozen-set, none), new
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
 		if plan.compacted-size == 1
-			([value].frozen-set add-node a.add.some) set a.remove
+			([value].frozen-set, a.add.some), a.remove
 		else
 			a add-and-compact add-size, plan, value
 
@@ -126,9 +124,9 @@ try-add<a> set<a>?(a set a, value a) data<a> compare<a> hash-mix<a>
 		if left ?= a left
 			size-left add-and-compact-plan left, remove, size-here-and-right
 		else
-			size-left compact-plan size-here-and-right
+			size-left, size-here-and-right
 	else
-		size-here-and-left compact-plan size-right
+		size-here-and-left, size-right
 
 .should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right wrap-add (removals-here-and-right wrap-mul 2)) >= size-here
@@ -147,9 +145,9 @@ body
 	assert: plan.compacted-size > 1
 	compacted = plan.compacted-size uninitialized-fix-arr<a>
 	*compacted.begin-ptr := value
-	compactor = compacted.begin-ptr compactor<a> compacted.begin-ptr + 1, compacted.end-ptr
+	compactor compactor a = compacted.begin-ptr, compacted.begin-ptr + 1, compacted.end-ptr
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
-	new-add set (a.remove filter-less plan.add-size-left)
+	new-add, (a.remove filter-less plan.add-size-left)
 
 .compactor<a> record mut
 	begin a mut*
@@ -170,7 +168,7 @@ body
 	compactor push! a.here, add-size-here-and-left, remove
 	assert: compactor.cur <= compactor.end
 	if compactor.cur == compactor.end
-		compactor.finish add-node a.left
+		compactor.finish, a.left
 	else
 		# TODO: should be able to write this inline
 		new-l = add-size-here-and-left wrap-sub a.here.size
@@ -217,7 +215,7 @@ map-to-arr<out, in> out[](a set in, f act out(in)) trusted data<in> compare<in> 
 	out cast-immutable
 
 .dbg<a> str(a set a) to-str<a>
-	out = writer
+	out writer = new
 	out dbg-add-recur! a.add
 	if !a.remove.is-empty
 		out ~= " - ["
@@ -253,7 +251,7 @@ map-to-arr<out, in> out[](a set in, f act out(in)) trusted data<in> compare<in> 
 	dbg is expected
 
 test
-	a = set<nat64>
+	a set nat64 = new
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"

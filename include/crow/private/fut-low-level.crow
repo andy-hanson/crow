@@ -6,11 +6,11 @@ import
 	../result: err, ok, result
 	./bootstrap:
 		cb, exception, fut, fut-state-callbacks, fut-state-exception, fut-state-no-callbacks,
-		fut-state-resolved, hard-unreachable, lk, next, set-state, state, void
+		fut-state-resolved, hard-unreachable, lk, new, next, set-state, state, void
 	./thread-utils: lock-by-val, with-lock
 
 unresolved<a> fut a() unsafe
-	lock-by-val fut fut-state-no-callbacks
+	lock-by-val, fut-state-no-callbacks
 
 resolve!<a> void(f fut a, value a) unsafe
 	f resolve-or-reject! value.ok
@@ -49,9 +49,9 @@ callback!<a> void(f fut a, cb act void(result<a, exception>)) unsafe
 	f.lk.ref-of-val with-lock () =>
 		match f state
 		as fut-state-no-callbacks
-			f.state := cb fut-state-callbacks none fut-state-callbacks
+			f.state := (cb, none) fut-state-callbacks
 		as fut-state-callbacks cbs
-			f.state := cb fut-state-callbacks cbs.some fut-state-callbacks
+			f.state := (cb, cbs.some) fut-state-callbacks
 		as fut-state-resolved r
 			cb[r ok]
 		as fut-state-exception e

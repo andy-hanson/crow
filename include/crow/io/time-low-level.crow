@@ -1,7 +1,7 @@
 no-std
 import
-	time: clock_gettime, CLOCK_MONOTONIC, timespec, tv-nsec, tv-sec
-	../cell: *, cell
+	time: clock_gettime, CLOCK_MONOTONIC, new, timespec, tv-nsec, tv-sec
+	../cell: *, cell, new
 	../ptr: by-val, ref-of-val
 	../private/bootstrap: nat64, todo
 	../private/number-low-level:
@@ -14,7 +14,7 @@ timestamp alias
 # Get the value from a monotonic clock.
 # TODO: SUMMON
 get-monotime-nsec timestamp() noctx trusted
-	time-cell by-val<cell<timespec>> = 0 timespec 0 cell
+	time-cell by-val cell timespec = (0, 0) new
 	err = CLOCK_MONOTONIC clock_gettime time-cell.ref-of-val
 	if err == 0
 		time = *time-cell.ref-of-val
@@ -26,4 +26,4 @@ to-timespec timespec(a timestamp) noctx unsafe
 	second = 1000000000
 	seconds = a unsafe-div second unsafe-to-int64
 	ns = a unsafe-mod second unsafe-to-int64
-	seconds timespec ns
+	seconds, ns

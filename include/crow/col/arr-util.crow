@@ -8,8 +8,9 @@ import
 	../opt: is-empty, none, opt, some
 	../ptr: ==, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../test: is
-	../tuple: pair
+	../tuple: new, pair
 	../private/alloc: alloc-uninitialized, fill-ptr-range
+	../private/bootstrap: new
 	../private/exception-low-level: assert, forbid
 	../private/number-low-level: ==, <=>, unsafe-mod, wrap-add, wrap-mul
 	../private/range-low-level: ..
@@ -22,7 +23,7 @@ Arr containing the result of `f` for each number 0 to size (exclusive).
 make-arr<a> a[](size nat64, f act a(nat64)) trusted
 	res = size alloc-uninitialized<a>
 	res fill-ptr-range size, f
-	size arr res.as-const
+	size, res.as-const
 
 ###
 Equivalent to `[value, value, ...]`.
@@ -359,7 +360,7 @@ flatten<a> a[](a a[][], joiner a[])
 
 try-split-once<a> pair<a[], a[]>?(a a[], splitter a) equal<a>
 	if index ?= a index-of splitter
-		some: a[0 .. index] pair a[index + 1 .. a.size]
+		(a[0 .. index], a[index + 1 .. a.size]) some
 
 # TODO: equal<a[]> should be unnecessary
 split-by<a> a[][](a a[], splitter a) equal<a> equal<a[]> trusted
@@ -376,7 +377,7 @@ split-by-subseq<a> a[][](a a[], splitter a[]) equal<a> equal<a[]> trusted
 	size = (a count-subseqs splitter) + 1
 	res = size alloc-uninitialized<a[]>
 	res split-by-subseq-recur a, splitter
-	size arr res.as-const
+	size, res.as-const
 # TODO: equal<a[]> should be unnecessary
 .split-by-subseq-recur<a> void(out a[] mut*, a a[], splitter a[]) equal<a> equal<a[]> unsafe
 	if index ?= a index-of-subseq splitter

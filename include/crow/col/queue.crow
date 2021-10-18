@@ -13,22 +13,22 @@ import
 	./arr: ==, arr, is-empty, size
 	./arr-util: each, first, fold, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-fix-arr
-	./stack: ~, arr, each, fold, is-empty, size, stack
+	./stack: ~, arr, each, fold, is-empty, new, size, stack
 
 queue<a> record
 	left a[]
 	right stack a
 
 # Empty queue.
-queue<a> queue a()
-	[] queue stack
+new<a> queue a()
+	[], new
 
 ###
 Convert an arr to a queue.
 This is O(1).
 ###
 queue<a> queue a(a a[])
-	a queue stack
+	a, new
 
 arr<a> a[](a queue a) trusted
 	res = a.size uninitialized-fix-arr<a>
@@ -42,7 +42,7 @@ size<a> nat64(a queue a)
 	a.left.size wrap-add a.right.size
 
 ~ <a> queue a(a queue a, value a)
-	a.left queue a.right ~ value
+	a.left, a.right ~ value
 
 is-empty<a> bool(a queue a)
 	a.left.is-empty && a.right.is-empty
@@ -53,11 +53,11 @@ dequeued<a> record
 
 dequeue<a> dequeued<a>?(a queue a)
 	if first ?= a.left first
-		first dequeued (a.left.tail queue a.right) some
+		(first, (a.left.tail, a.right)) some
 	else
 		right-arr = a.right arr
 		if first ?= right-arr first
-			first dequeued (right-arr.tail queue stack) some
+			(first, (right-arr.tail, new)) some
 
 region iteration
 
@@ -87,7 +87,7 @@ map<out, in> queue out(a queue in, f act out(in)) trusted
 	res.cast-immutable queue
 
 test
-	a = queue<nat64>
+	a queue nat64 = new
 	assert: a is-empty
 	a.arr is []
 	a.dequeue.is-empty is true

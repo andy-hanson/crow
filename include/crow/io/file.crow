@@ -1,6 +1,6 @@
 no-std
 import
-	dirent: dir, dirent, opendir, readdir_r
+	dirent: dir, dirent, new, opendir, readdir_r
 	errno: ENOENT, errno
 	fcntl: O_CREAT, O_RDONLY, O_TRUNC, O_WRONLY, open
 	stat: mkdir, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
@@ -9,11 +9,11 @@ import
 	../bits: &, |, <<
 	../bytes-types: zero
 	../bool: !, &&, bool, false, to-nat64, true
-	../cell: *, cell
+	../cell: *, cell, new
 	../col/arr: arr, begin-ptr, subscript
 	../col/arr-util: each
 	../col/fix-arr: cast-immutable, begin-ptr, size, uninitialized-fix-arr
-	../col/mut-arr: ~=, move-to-arr!, mut-arr
+	../col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	../col/sort: sort
 	../compare: !=, <
 	../exception: assert, forbid, throw
@@ -84,15 +84,14 @@ read-dir str[](path str) summon
 	dirp = path opendir
 	# TODO: handle errors
 	assert: dirp.ptr-cast-from-extern<any-const-ptr, dir> != null
-	res = mut-arr<str>
+	res str mut[] = new
 	dirp read-dir-recur res
 	res.move-to-arr! sort
 
 .read-dir-recur void(dirp dir, res str mut[]) unsafe summon
 	# Initial value of entry / result should not matter
-	entry = 0 dirent 0, 0, "\0", zero
-	# TODO: should not need a type argument here
-	result = entry cell<dirent>
+	entry dirent = 0, 0, 0, "\0", zero
+	result cell dirent = entry new
 	err = dirp readdir_r entry, result
 	# TODO: handle error
 	assert: err == 0
@@ -250,10 +249,10 @@ permissions record
 	a.read.to-nat64 << 2 | a.write.to-nat64 << 1 | a.execute.to-nat64 to-nat32
 
 no-permissions permissions()
-	false permissions false, false
+	false, false, false
 
 all-permissions permissions()
-	true permissions true, true
+	true, true, true
 
 file-permissions record
 	user permissions
@@ -261,7 +260,7 @@ file-permissions record
 	public permissions
 
 user-only file-permissions(user-permissions permissions)
-	user-permissions file-permissions no-permissions, no-permissions
+	user-permissions, no-permissions, no-permissions
 
 to-mode mode_t(a file-permissions)
 	a.user.to-mode << 6 | a.group.to-mode << 3 | a.public.to-mode

@@ -23,8 +23,8 @@ frozen-dict<k, v> record
 	pairs arrow<k, v>[]
 	bucket-starts arrow<k, v>*[]
 
-frozen-dict<k, v> frozen-dict<k, v>() data<k> compare<k> hash-mix<k>
-	[] frozen-dict []
+new<k, v> frozen-dict<k, v>() data<k> compare<k> hash-mix<k>
+	[], []
 
 frozen-dict<k, v> frozen-dict<k, v>(a arrow<k, v>[]) trusted data<k> compare<k> hash-mix<k>
 	a.fix-arr.fix-arr-to-frozen-dict-promise-no-duplicates remove-duplicates
@@ -92,14 +92,14 @@ spec
 	hash-mix<k>
 body
 	if a.size <= 4
-		a.cast-immutable frozen-dict []
+		a.cast-immutable, []
 	else
 		n-buckets = a.size unsafe-div 2
 		bucket-counts = a get-bucket-counts n-buckets
 		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-arr
 		bucket-counts fill! 0
 		a.begin-ptr move-values-to-buckets-recur! a.end-ptr, bucket-counts, bucket-starts
-		a.cast-immutable frozen-dict bucket-starts.arr-cast<arrow<k, v>*, arrow<k, v> mut*>
+		a.cast-immutable, bucket-starts.arr-cast<arrow<k, v>*, arrow<k, v> mut*>
 
 .remove-duplicates<k, v> frozen-dict<k, v>
 	a frozen-dict<k, v>
@@ -267,7 +267,7 @@ fold-with-index<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
 	a.bucket-starts map (ptr => ptr - a.pairs.begin-ptr) is bucket-starts
 
 test
-	a = frozen-dict<nat64, str>
+	a frozen-dict<nat64, str> = new
 	a.is-empty is true
 	a.size is 0
 	a verify [], []

@@ -1,3 +1,0 @@
-./test/runnable/constants.crow 5:9-5:18 there are functions named 'my-record', but none takes 1 arguments. candidates:
-	my-record my-record(str, str) (from test/runnable/constants.crow line 11)
-	my-record by-val<my-record>(str, str) (from test/runnable/constants.crow line 11)

@@ -13,7 +13,7 @@ import
 	../str: ==, ~, str
 	../str-conv: to-str
 	../test: is
-	../writer: ~=, backup!, move-to-str!, writer
+	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert, todo
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	./arr: ~, arr, arr-equal, is-empty, size, subscript
@@ -53,14 +53,14 @@ node<k, v> union
 .leaf-max-size nat64()
 	8
 
-dict<k, v> v[k]() data<k> compare<k> hash-mix<k>
-	void dict empty-leaf-node
+new<k, v> v[k]() data<k> compare<k> hash-mix<k>
+	void, empty-leaf-node
 
 dict<k, v> v[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	if a.size <= 4 && a.no-duplicate-keys
-		void dict a.leaf-node
+		void, a.leaf-node
 	else
-		dict fold a, (cur, x) => cur ~ x
+		new fold a, (cur, x) => cur ~ x
 
 arr<k, v> arrow<k, v>[](a v[k]) data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, v) => k -> v
@@ -123,7 +123,7 @@ in<k, v> bool(key k, a v[k]) data<k> compare<k> hash-mix<k>
 	res = a get-or-update pair.from, old-value =>
 		pair.to insert
 	if node ?= res new-node
-		void dict node
+		void, node
 	else
 		a
 
@@ -147,7 +147,7 @@ try-add<k, v> try-add-result<k, v>(a v[k], key k, get-value act v()) data<k> com
 	if value ?= res old-value
 		value already-has-key
 	else
-		void dict res.new-node.force added
+		(void, res.new-node.force) added
 
 - <k, v> v[k](a v[k], key k) data<k> compare<k> hash-mix<k>
 	if res ?= a try-remove key
@@ -163,7 +163,7 @@ try-remove-result<k, v> record
 try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) data<k> compare<k> hash-mix<k>
 	res = a get-or-update key, old-value => remove
 	if value ?= res old-value
-		value try-remove-result (void dict res.new-node.force) some
+		(value, (void, res.new-node.force)) some
 
 .get-or-update-result<k, v> record
 	by-val
@@ -213,15 +213,15 @@ body
 			child-res = i[which] get-or-update-recur key, next-hash, (hash-shift wrap-add 3), f
 			if node ?= child-res new-node
 				new-inner = i update-child which, node
-				new-inner.some get-or-update-result child-res.old-value
+				new-inner.some, child-res.old-value
 			else
 				child-res
 		else
 			match f[none]
 			as no-change
-				none get-or-update-result none
+				none, none
 			as remove
-				none get-or-update-result none
+				none, none
 			as insert ins
 				# TODO: should be able to write this inline
 				pair = key -> ins
@@ -229,7 +229,7 @@ body
 				new-leaf = [pair] leaf-node<k, v>
 				# TODO: type args should not be necessary
 				new-node = i update-with-default which, new-leaf, empty-leaf-node inner-node<k, v>
-				new-node.some get-or-update-result none
+				new-node.some, none
 	as leaf-node l
 		l get-or-update-leaf key, remaining-hash, hash-shift, f
 
@@ -306,7 +306,7 @@ body
 			some: leaf-node: a remove-at index
 		as insert ins
 			some: leaf-node: a update index, key -> ins
-		new-node get-or-update-result old-value.some
+		new-node, old-value.some
 	else
 		new-node node<k, v>? = match f[none]
 		as no-change
@@ -324,7 +324,7 @@ body
 				a new-inner-node key, ins, remaining-hash, hash-shift
 			else
 				a ~ [key -> ins] leaf-node
-		new-node get-or-update-result none
+		new-node, none
 
 # In order to get the hash, we need to know the shift amount
 .new-inner-node<k, v> node<k, v>
@@ -384,7 +384,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted data<k> compare<k> hash-m
 	res cast-immutable
 
 .dbg str(a str[nat64])
-	res = writer
+	res writer = new
 	res dbg-recur a.root, ""
 	res move-to-str!
 
@@ -412,7 +412,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted data<k> compare<k> hash-m
 
 # TODO:PRIVATE
 dbg str(a void[nat64])
-	res = writer
+	res writer = new
 	res dbg-recur a.root, ""
 	res move-to-str!
 
@@ -440,7 +440,7 @@ verify void(a str[nat64], expected str)
 	a.dbg is expected
 
 test
-	l0 = dict<nat64, str>
+	l0 str[nat64] = new
 	l0.is-empty is true
 	l0.size is 0
 	l0 verify "[]"

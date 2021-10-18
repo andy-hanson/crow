@@ -1,6 +1,6 @@
 no-std
 import
-	crow/cell: *, as-ptr, cell
+	crow/cell: *, as-ptr, cell, new
 	crow/compare: !=
 	crow/exception: throw
 	crow/io/print: print
@@ -18,7 +18,7 @@ import
 # Remember to call 'free-texture'
 load-texture GLuint(path str) unsafe summon
 	path with-webp image =>
-		texture-cell = 0 cell<GLuint>
+		texture-cell cell GLuint = 0 new
 		1 glGenTextures texture-cell.as-ptr
 		texture = *texture-cell
 

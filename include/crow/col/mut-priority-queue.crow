@@ -8,14 +8,14 @@ import
 	../ptr: +, -, mut-ptr, set-deref
 	../str: ==, str
 	../test: is
-	../writer: ~=, backup!, move-to-str!, writer
+	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add
 	./arr: ==, arr
 	./arr-util: map
 	./fix-arr: begin-ptr, cast-immutable, copy, fix-arr, reverse!, uninitialized-fix-arr
 	./mut-arr:
 		~=, begin-ptr, each, each-with-index, empty!, fold, fold-reverse, is-empty, mut-arr,
-		pop!, reverse!, size, subscript
+		new, pop!, reverse!, size, subscript
 	./sort: sort-by!
 	./private/sort-utils: binary-search-insert-ptr
 
@@ -28,13 +28,13 @@ mut-priority-queue<k, v> record mut
 	# This may be shorter than mins -- buckets on the right considered missing.
 	buckets arrow<k, v> mut[] mut[]
 
-mut-priority-queue<k, v> mut-priority-queue<k, v>() data<k> compare<k>
-	mut-arr mut-priority-queue mut-arr
+new<k, v> mut-priority-queue<k, v>() data<k> compare<k>
+	new, new
 
 mut-priority-queue<k, v> mut-priority-queue<k, v>(a arrow<k, v>[]) data<k> compare<k>
 	mins = a mut-arr
 	mins sort-by! pair => pair from
-	mins mut-priority-queue mut-arr
+	mins, new
 
 empty!<k, v> void(a mut-priority-queue<k, v>) data<k> compare<k>
 	a.mins empty!
@@ -62,7 +62,7 @@ copy<k, v> mut-priority-queue<k, v>(a mut-priority-queue<k, v>) data<k> compare<
 	a.mins empty!
 	a.mins ~= mins
 	a.buckets empty!
-	mins.mut-arr mut-priority-queue mut-arr
+	mins.mut-arr, new
 
 arr<k, v> arrow<k, v>[](a mut-priority-queue<k, v>) trusted data<k> compare<k>
 	a.fix-arr cast-immutable
@@ -105,7 +105,7 @@ body
 		buckets[index] ~= pair
 	else
 		# TODO: type args should be unnecessary
-		buckets ~= mut-arr<arrow<k, v>>
+		buckets ~= new<arrow<k, v>>
 		buckets add-to-bucket! index, pair
 
 pop-value!<k, v> v?(a mut-priority-queue<k, v>) data<k> compare<k>
@@ -126,7 +126,7 @@ pop!<k, v> arrow<k, v>?(a mut-priority-queue<k, v>) data<k> compare<k>
 	res
 
 .dbg str(a mut-priority-queue<nat64, str>)
-	out = writer
+	out writer = new
 	a.mins each-with-index (min, index) =>
 		out write-pair! min
 		if index < a.buckets.size
@@ -152,7 +152,7 @@ pop!<k, v> arrow<k, v>?(a mut-priority-queue<k, v>) data<k> compare<k>
 	a.dbg is expected
 
 test
-	a = mut-priority-queue<nat64, str>
+	a mut-priority-queue<nat64, str> = new
 	a.is-empty is true
 	a.pop! is none
 	a verify ""

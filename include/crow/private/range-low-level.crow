@@ -5,17 +5,18 @@ import
 
 # `low` is inclusive and `high` is exclusive.
 range<a> record
+	by-val
 	# TODO: private constructor
 	ignore void
 	low a
 	high a
 
-.. <a> range<a>(low a, high a) compare<a>
+.. <a> range<a>(low a, high a) noctx compare<a>
 	if low < high
-		void range low, high
+		void, low, high
 	else
 		# TODO:WARN
-		void range high, high
+		void, high, high
 
 size<a> a(a range a) minus<a>
 	a.high - a.low

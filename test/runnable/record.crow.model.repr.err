@@ -1,5 +1,0 @@
-./test/runnable/record.crow 5:9-5:18 there are functions named 'my-record', but none takes 1 arguments. candidates:
-	my-record my-record(nat64, nat64) (from test/runnable/record.crow line 12)
-	my-record by-val<my-record>(nat64, nat64) (from test/runnable/record.crow line 12)
-
-./test/runnable/record.crow 2:5-2:25 imported name print is unused

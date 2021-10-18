@@ -3,8 +3,8 @@ import
 	unistd: environ
 	../col/arr: begin-ptr, arr-from-begin-end
 	../col/dict: dict, each
-	../col/mut-dict: move-to-dict!, mut-dict, set-subscript
-	../col/mut-arr: ~=, move-to-arr!, mut-arr
+	../col/mut-dict: move-to-dict!, mut-dict, new, set-subscript
+	../col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	../compare: !=
 	../hash: hash-mix
 	../misc: ->, arrow, as, from, to, void
@@ -19,7 +19,7 @@ environ alias
 
 # Get the environment variables for this process.
 get-environ environ() summon trusted
-	res = mut-dict<str, str>
+	res str mut[str] = new
 	environ get-environ-recur res
 	res move-to-dict!
 
@@ -41,7 +41,7 @@ get-environ environ() summon trusted
 
 # Get an environment string from environment variables.
 convert-environ c-str*(environ environ) unsafe
-	res = mut-arr<c-str>
+	res c-str mut[] = new
 	environ each (key, value) =>
 		res ~= key ~ "=" ~ value to-c-str
 	# TODO: 'as' should be unnecessary

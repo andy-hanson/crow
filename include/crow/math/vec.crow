@@ -20,23 +20,23 @@ vec-2-32 record
 
 # Vector addition -- adds corresponding elements.
 + vec-2(a vec-2, b vec-2) noctx
-	a.x + b.x vec-2 a.y + b.y
+	a.x + b.x, a.y + b.y
 
 + vec-2-32(a vec-2-32, b vec-2-32) noctx
-	a.x + b.x vec-2-32 a.y + b.y
+	a.x + b.x, a.y + b.y
 
 # Vector subtraction -- subtracts corresponding elements.
 - vec-2(a vec-2, b vec-2) noctx
-	a.x - b.x vec-2 a.y - b.y
+	a.x - b.x, a.y - b.y
 
 - vec-2-32(a vec-2-32, b vec-2-32) noctx
-	a.x - b.x vec-2-32 a.y - b.y
+	a.x - b.x, a.y - b.y
 
 # Scales a vector by a scalar.
 * vec-2(a vec-2, b float64) noctx
-	a.x * b vec-2 a.y * b
+	a.x * b, a.y * b
 * vec-2-32(a vec-2-32, b float32) noctx
-	a.x * b vec-2-32 a.y * b
+	a.x * b, a.y * b
 
 # Equivalent to `a.length ** 2` (but more efficient).
 length-squared float64(a vec-2) noctx

@@ -4,14 +4,14 @@ import
 	../compare: compare
 	../hash: hash-mix
 	../misc: ->, data, void
-	./mut-dict: ~=, mut-dict, in
+	./mut-dict: ~=, mut-dict, new, in
 
 mut-set<a> record mut
 	# TODO:PRIVATE
 	inner void mut[a]
 
-mut-set<a> mut-set a() data<a> compare<a> hash-mix<a>
-	mut-dict mut-set
+new<a> mut-set a() data<a> compare<a> hash-mix<a>
+	new new
 
 ~= <a> void(a mut-set a, value a) data<a> compare<a> hash-mix<a>
 	a.inner ~= value -> void

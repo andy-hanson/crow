@@ -5,8 +5,7 @@ import
 	../fun: subscript
 	../ptr: *, ==, <=>, +, -, as-const, by-val, const-ptr, ptr-cast, ref-of-ptr, size-of, subscript
 	../private/alloc: alloc-uninitialized, copy-data-from!
-	../private/bootstrap: hard-assert
-	../private/exception-low-level: assert
+	../private/bootstrap: hard-assert, new
 	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
 	../private/range-low-level: low, high, range
 export
@@ -68,11 +67,11 @@ UB if begin > end.
 ###
 arr-from-begin-end<a> a[](begin a*, end a*) unsafe noctx
 	hard-assert: begin <= end
-	end - begin arr begin
+	end - begin, begin
 
 arr-cast<out, in> out[](a in[]) unsafe noctx
 	hard-assert: size-of<out> == size-of<in>
-	a.size arr a.begin-ptr.ptr-cast<out, in>
+	a.size, a.begin-ptr.ptr-cast<out, in>
 
 # True iff `a.size == 0`.
 is-empty<a> bool(a a[]) noctx
@@ -85,12 +84,16 @@ noctx-at<a> a(a a[], index nat64) unsafe noctx
 unsafe-at<a> a(a a[], index nat64) unsafe noctx
 	a.begin-ptr[index]
 
+subscript<a> a[](a a*, r range nat64) noctx unsafe
+	(r.high wrap-sub r.low), a + r.low
+
 ###
 Gets the element at the index.
 Fails if `index >= a.size`.
 ###
 subscript<a> a(a a[], index nat64) trusted
-	assert: index < a.size
+	# TODO: warn instead of hard-assert
+	hard-assert: index < a.size
 	a unsafe-at index
 
 ###
@@ -100,14 +103,16 @@ Fails if `range.from > range.to`.
 Fails if the slice would exceed the bounds of the arr.
 ###
 subscript<a> a[](a a[], range range nat64) trusted
-	assert: range.high <= a.size
-	range.high wrap-sub range.low arr a.begin-ptr + range.low
+	# TODO: warn instead of hard-assert
+	hard-assert: range.high <= a.size
+	(range.high wrap-sub range.low), a.begin-ptr + range.low
 
 unsafe-slice<a> a[](a a[], begin nat64, end nat64) unsafe noctx
 	a.begin-ptr + begin arr-from-begin-end a.begin-ptr + end
 
 ref-of-val-at<a> a(a by-val<a>[], index nat64) trusted
-	assert: index < a.size
+	# TODO: warn instead of hard-assert
+	hard-assert: index < a.size
 	a.begin-ptr + index ref-of-ptr
 
 ###
@@ -120,4 +125,4 @@ If you need to concatenate often, consider using `mut-arr`.
 	res = res-size alloc-uninitialized<a>
 	res copy-data-from! a.begin-ptr, a.size
 	res + a.size copy-data-from! b.begin-ptr, b.size
-	res-size arr res.as-const
+	res-size, res.as-const

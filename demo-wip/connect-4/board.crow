@@ -1,10 +1,10 @@
 import
 	crow/bits: &, ^, |, <<, >>, has-bit, bits-intersect
 	crow/col/fix-arr: fill-fix-arr, fix-arr, set-subscript, size, subscript
-	crow/col/mut-grid: coord, x, y
+	crow/col/mut-grid: coord, new, x, y
 	crow/io/terminal-color: term-bold, term-blue, term-red, term-reset
 	crow/ptr: zeroed
-	crow/writer: ~=, move-to-str!, writer
+	crow/writer: ~=, move-to-str!, new, writer
 
 ###
 Board representation is bits: 7 bits for a column (max of 6 entries), over 6 rows.
@@ -30,13 +30,13 @@ board-cache<a> record mut
 	keys fix-arr nat32
 	values fix-arr a
 
-board-cache<a> board-cache a() trusted
+new<a> board-cache a() trusted
 	size = 0xccce9
 	# Per the Chinese Remainder Theorem, if we know the key mod 2^32 and mod size, we know the key mod their product.
 	# If their product is > the max key, then we know the key.
 	assert: 2 ** 32 * size > max-key
 	# Use max-nat as an impossible key
-	size fill-fix-arr max-nat32 board-cache (size fill-fix-arr zeroed<a>)
+	(size fill-fix-arr max-nat32), (size fill-fix-arr zeroed<a>)
 
 subscript<a> a?(a board-cache a, key board)
 	small-key = key board-key
@@ -109,13 +109,13 @@ place board(a board, x nat)
 	new-current-player = a.current-player ^ a.both-players
 	# Since the column is 111, adding a 1 makes it 1000
 	new-both-players = a.both-players | (a.both-players + x.bottom-mask)
-	new-current-player board new-both-players
+	new-current-player, new-both-players
 
 empty-board board()
-	0 board 0
+	0, 0
 
 .subscript color?(a board, x nat, y nat, cur-player color)
-	pos = x coord y
+	pos coord = x, y
 	if a.both-players grid-has pos
 		some: if a.current-player grid-has pos
 			cur-player
@@ -123,7 +123,7 @@ empty-board board()
 			cur-player opposite
 
 to-str str(a board, cur-player color, last-column nat?)
-	res = writer
+	res writer = new
 	0 .. width each x =>
 		text = " {x letter-of-alphabet}"
 		res ~= if x.some == last-column

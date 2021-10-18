@@ -5,7 +5,7 @@ import
 	./fun: subscript
 	./misc: drop, void
 	./str: ==, str
-	./tuple: pair
+	./tuple: new, pair
 	./private/bootstrap: char
 	./private/exception-low-level: throw
 	./private/number-low-level: ==, int64, nat64
@@ -108,7 +108,7 @@ opt-combine<a> a?(a a?, b a?, f act a(a, a))
 
 opt-join<in0, in1> pair<in0, in1>?(a in0?, b in1?)
 	a opt-join b, (x, y) =>
-		x pair y
+		x, y
 
 ###
 Returns `some: f[a.force, b.force]` iff both `a` and `b` are `some`, else returns `none`.

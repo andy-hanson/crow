@@ -17,11 +17,11 @@ time-locale record
 
 # User's local time formatting preferences.
 local-time time-locale()
-	time-locale: true
+	true new
 
 # Not summon because getting GMT from a timestamp is a pure function
 gmt time-locale()
-	time-locale: false
+	false new
 
 # E.g. "-0500"
 timezone-offset str(locale time-locale, time unix-time) summon

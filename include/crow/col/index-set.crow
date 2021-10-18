@@ -7,14 +7,14 @@ import
 	../exception: assert
 	../fun: subscript
 	../log: info, log
-	../misc: drop, void
+	../misc: as, drop, void
 	../opt: is-empty, none, opt, or-default, some
 	../ptr: ==, +, *, const-ptr, ptr-to, set-deref
 	../range: .., each
 	../str: ==, str
 	../str-conv: to-hex, to-str
 	../test: is
-	../writer: ~=, backup!, move-to-str!, writer
+	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert, hard-unreachable
 	../private/number-low-level:
 		==, <=>, max-nat64, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
@@ -47,19 +47,16 @@ index-set record
 	d nat64
 
 .values nat64[](a leaf-node) trusted
-	4 arr a.a.ptr-to
+	a.a.ptr-to.as<nat64*>[0 .. 4]
 .bits-in-leaf-node nat64()
 	# 64 * 4
 	256
 
-index-set index-set()
-	0 index-set empty
-
-index-set index-set(a nat64)
-	index-set ~ a
+new index-set()
+	0, empty
 
 index-set index-set(a nat64[])
-	index-set fold a, (acc, x) => acc ~ x
+	new fold a, (acc, x) => acc ~ x
 
 is-empty bool(a index-set)
 	a.capacity == 0
@@ -119,20 +116,20 @@ in bool(index nat64, a index-set) trusted
 
 .quadruple-capacity index-set(a index-set)
 	if a.capacity == 0
-		bits-in-leaf-node index-set empty-leaf-node.leaf
+		bits-in-leaf-node, empty-leaf-node.leaf
 	else
-		a.capacity wrap-mul 4 index-set (a.root inner-node empty, empty, empty).inner
+		(a.capacity wrap-mul 4), (a.root, empty, empty, empty).inner
 
 .empty-inner-node inner-node()
-	empty inner-node empty, empty, empty
+	empty, empty, empty, empty
 .empty-leaf-node leaf-node()
-	0 leaf-node 0, 0, 0
+	0, 0, 0, 0
 
 try-add index-set?(a index-set, index nat64) trusted
 	if index >= a.capacity
 		a.quadruple-capacity try-add index
 	elif res ?= a.root try-add index, a.capacity
-		a.capacity index-set res some
+		(a.capacity, res) some
 .try-add node?(a node, index nat64, n nat64) unsafe
 	hard-assert: index < n
 	match a
@@ -227,36 +224,36 @@ try-remove index-set?(a index-set, index nat64) trusted
 			hard-assert: !i.a.is-empty
 			i.a simplify-after-remove-or-filter (capacity unsafe-div 4)
 		else
-			capacity index-set i.inner
+			capacity, i.inner
 	as leaf l
 		hard-assert: capacity == bits-in-leaf-node
 		hard-assert: l.a != 0 || l.b != 0 || l.c != 0 || l.d != 0
-		capacity index-set l.leaf
+		capacity, l.leaf
 	as empty
-		0 index-set empty
+		0, empty
 
 .is-all-empty bool(a inner-node)
 	a.a.is-empty && a.b.is-empty && a.c.is-empty && a.d.is-empty
 
 # TODO:MOVE
 .with-a inner-node(a inner-node, new-a node)
-	new-a inner-node a.b, a.c, a.d
+	new-a, a.b, a.c, a.d
 .with-b inner-node(a inner-node, new-b node)
-	a.a inner-node new-b, a.c, a.d
+	a.a, new-b, a.c, a.d
 .with-c inner-node(a inner-node, new-c node)
-	a.a inner-node a.b, new-c, a.d
+	a.a, a.b, new-c, a.d
 .with-d inner-node(a inner-node, new-d node)
-	a.a inner-node a.b, a.c, new-d
+	a.a, a.b, a.c, new-d
 
 .update-leaf leaf-node(a leaf-node, word-index nat64, new-word nat64) unsafe
 	if word-index == 0
-		new-word leaf-node a.b, a.c, a.d
+		new-word, a.b, a.c, a.d
 	elif word-index == 1
-		a.a leaf-node new-word, a.c, a.d
+		a.a, new-word, a.c, a.d
 	elif word-index == 2
-		a.a leaf-node a.b, new-word, a.d
+		a.a, a.b, new-word, a.d
 	elif word-index == 3
-		a.a leaf-node a.b, a.c, new-word
+		a.a, a.b, a.c, new-word
 	else
 		hard-unreachable
 
@@ -364,7 +361,7 @@ filter-less index-set(a index-set, limit nat64) trusted
 		new-b = i.b filter-less-recur quarter, limit, 0x40
 		new-c = i.c filter-less-recur quarter, limit, 0x80
 		new-d = i.c filter-less-recur quarter, limit, 0xc0
-		new-node = new-a inner-node new-b, new-c, new-d
+		new-node = new-a, new-b, new-c, new-d
 		if new-node is-all-empty
 			empty
 		else
@@ -375,7 +372,7 @@ filter-less index-set(a index-set, limit nat64) trusted
 		new-b = l.b filter-less-word limit, 0x40
 		new-c = l.c filter-less-word limit, 0x80
 		new-d = l.d filter-less-word limit, 0xc0
-		new-a leaf-node new-b, new-c, new-d leaf
+		(new-a, new-b, new-c, new-d) leaf
 	as empty
 		empty
 .filter-less-recur node(a node, n nat64, limit nat64, offset nat64) unsafe
@@ -400,7 +397,7 @@ filter-less index-set(a index-set, limit nat64) trusted
 	a unsafe-mod 64
 
 to-str str(a index-set)
-	out = writer
+	out writer = new
 	out ~= "["
 	a each x =>
 		out ~= x to-str
@@ -457,7 +454,7 @@ map-to-arr<a> a[](a index-set, f act a(nat64)) trusted
 	res cast-immutable
 
 .dbg str(a index-set)
-	out = writer
+	out writer = new
 	out dbg-recur! a.root
 	out move-to-str!
 
@@ -506,7 +503,7 @@ verify void(a index-set, expected str, expected-arr nat64[])
 	a.size is r.size
 
 test
-	a = index-set
+	a index-set = new
 	a verify "_", []
 	3 in a is false
 

@@ -1,0 +1,15 @@
+import
+	crow/col/mut-arr: ~=, new, mut-arr, size
+	crow/io/print: print
+	crow/tuple: new, pair
+
+main fut nat(_ str[]) summon
+	m pair<nat, nat> mut[] = new
+	m ~= (1, 1)
+	print: m.size.to-str
+	0 resolved
+
+
+some-other-record record
+	x nat
+	y nat

@@ -11,21 +11,23 @@ import
 	sched: sched_yield
 	time: CLOCK_MONOTONIC
 	../bool: !, bool, false, true
-	../cell: *, cell
+	../cell: *, cell, new
 	../compare: !=
 	../extra-types: err-t
 	../fun: fun-ptr1, subscript
 	../io/time-low-level: timestamp, to-timespec
 	../ptr: ==, any-mut-ptr, by-val, mut-ptr, null, ptr-to, ref-of-val
 	./bootstrap:
-		atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat64, opt, todo, value, void,
+		atomic-bool, hard-assert, hard-forbid, is-locked, nat64, new, opt, todo, value, void,
 		zeroed
 	./number-low-level: ==, wrap-add, wrap-sub
+export
+	./bootstrap: lock
 
 region atomic
 
-atomic-bool by-val atomic-bool() noctx
-	atomic-bool: false
+new by-val atomic-bool() noctx
+	false new
 
 # TODO: works on any primitive type, not just bool
 compare-exchange-strong bool(value-ptr bool mut*, expected-ptr bool mut*, desired bool) noctx builtin
@@ -43,11 +45,11 @@ must-unset! void(a atomic-bool) noctx unsafe
 	did-unset = a try-unset!
 	did-unset hard-assert
 
-lock lock()
-	lock: atomic-bool
+new lock()
+	new new
 
 lock-by-val by-val lock() noctx
-	lock: atomic-bool
+	new new
 
 try-acquire! bool(a lock) noctx trusted
 	a.is-locked.ref-of-val try-set!
@@ -89,7 +91,7 @@ condition record mut
 
 # Unsafe because you must remember to 'destroy-condition'
 create-condition by-val condition() noctx unsafe
-	res by-val condition = zeroed condition zeroed, zeroed, zeroed, 0
+	res by-val condition = zeroed, zeroed, zeroed, zeroed, 0
 	hard-assert-posix-error: res.ref-of-val.mutex-attr.ref-of-val pthread_mutexattr_init
 	hard-assert-posix-error: res.ref-of-val.mutex.ref-of-val pthread_mutex_init res.ref-of-val.mutex-attr.ref-of-val
 	hard-assert-posix-error: res.ref-of-val.cond-attr.ref-of-val pthread_condattr_init
@@ -145,11 +147,11 @@ thread-safe-counter record mut
 	lk by-val lock
 	value mut nat64
 
-thread-safe-counter by-val thread-safe-counter() noctx
-	0 thread-safe-counter
+new by-val thread-safe-counter() noctx
+	0 new
 
-thread-safe-counter by-val thread-safe-counter(init nat64) noctx
-	lock-by-val thread-safe-counter init
+new by-val thread-safe-counter(init nat64) noctx
+	lock-by-val, init
 
 # Returns the old value
 get-and-increment! nat64(t thread-safe-counter) noctx unsafe
@@ -187,7 +189,7 @@ body
 			todo
 
 join-one-thread void(tid pthread_t) noctx unsafe summon
-	thread-return by-val cell any-mut-ptr = null cell
+	thread-return by-val cell any-mut-ptr = null new
 	err = tid pthread_join thread-return.ref-of-val
 	if err != 0
 		if err == EINVAL

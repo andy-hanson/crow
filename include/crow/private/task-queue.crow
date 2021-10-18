@@ -31,19 +31,20 @@ task-queue record mut
 	# This is allocated with max-threads capacity on init, so never needs further allocation
 	currently-running-exclusions by-val<exclusion mut[]>
 
-.task-queue-node record mut
+task-queue-node record mut
+	# TODO: private
 	task task
 	next mut task-queue-node?
 
 is-empty bool(a task-queue) noctx
 	a.head is-empty
 
-task-queue by-val task-queue(max-threads nat64) unsafe noctx
-	none task-queue max-threads.mut-arr-by-val-with-capacity-from-unmanaged-memory<exclusion>
+new by-val task-queue(max-threads nat64) unsafe noctx
+	none, max-threads.mut-arr-by-val-with-capacity-from-unmanaged-memory<exclusion>
 
 # Expose construction of nodes, because it's better to do this outside of a lock
-task-queue-node task-queue-node(task task)
-	task task-queue-node none
+new task-queue-node(task task)
+	task, none
 
 no-task record
 	by-val
@@ -67,9 +68,9 @@ pop-task! pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 				a.head := head.next
 				head.task ptr-task
 		else
-			true no-task task.time.some ptr-no-task
+			(true, task.time.some) ptr-no-task
 	else
-		false no-task none ptr-no-task
+		(false, none) ptr-no-task
 
 	match res
 	as ptr-task t
@@ -107,9 +108,9 @@ body
 				prev.next := cur.next
 				task ptr-task
 		else
-			true no-task task.time.some ptr-no-task
+			(true, task.time.some) ptr-no-task
 	else
-		true no-task first-task-time ptr-no-task
+		(true, first-task-time) ptr-no-task
 
 insert-task! void(a task-queue, inserted task-queue-node) noctx unsafe
 	size-before = a size

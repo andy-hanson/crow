@@ -7,4 +7,4 @@ pair<a, b> record
 	b b
 
 pair<a, b> pair<a, b>(a arrow<a, b>)
-	a.from pair a.to
+	a.from, a.to

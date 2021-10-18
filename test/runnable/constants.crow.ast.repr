@@ -4,7 +4,7 @@ file-ast(
 	aliases: []
 	structs: [
 		struct(
-			range(130, 162)
+			range(129, 161)
 			""
 			true
 			[]
@@ -12,8 +12,8 @@ file-ast(
 			record(
 				none
 				[
-					field(range(148, 153), false, a, inststruct(range(150, 153), name-range(150, str)))
-					field(range(155, 160), false, b, inststruct(range(157, 160), name-range(157, str)))]))]
+					field(range(147, 152), false, a, inststruct(range(149, 152), name-range(149, str)))
+					field(range(154, 159), false, b, inststruct(range(156, 159), name-range(156, str)))]))]
 	funs: [
 		fun-decl(
 			public: true
@@ -25,22 +25,22 @@ file-ast(
 			summon: true
 			body: let(
 				r
-				call(prefix, name-range(64, my-record), [], [literal("a"), literal("b")])
+				call(comma, name-range(74, new), [], [literal("a"), literal("b")])
 				seq-ast(
 					seq-ast(
 						seq-ast(
-							call(prefix, name-range(85, foo), [], [r])
-							call(prefix, name-range(93, print), [], [call(infix, name-range(102, a), [], [r])]))
-						call(prefix, name-range(105, print), [], [call(infix, name-range(114, b), [], [r])]))
-					call(prefix, name-range(117, resolved), [], [literal(nat(0, false))]))))
+							call(prefix, name-range(84, foo), [], [r])
+							call(prefix, name-range(92, print), [], [call(infix, name-range(101, a), [], [r])]))
+						call(prefix, name-range(104, print), [], [call(infix, name-range(113, b), [], [r])]))
+					call(prefix, name-range(116, resolved), [], [literal(nat(0, false))]))))
 		fun-decl(
 			public: true
 			sig: sig-ast(
-				range(162, 183)
+				range(161, 182)
 				foo
-				inststruct(range(166, 170), name-range(166, void))
-				[param(range(171, 182), some(r), inststruct(range(173, 182), name-range(173, my-record)))])
+				inststruct(range(165, 169), name-range(165, void))
+				[param(range(170, 181), some(r), inststruct(range(172, 181), name-range(172, my-record)))])
 			summon: true
 			body: seq-ast(
-				call(prefix, name-range(192, print), [], [call(infix, name-range(201, a), [], [r])])
-				call(prefix, name-range(204, print), [], [call(infix, name-range(213, b), [], [r])])))])
+				call(prefix, name-range(191, print), [], [call(infix, name-range(200, a), [], [r])])
+				call(prefix, name-range(203, print), [], [call(infix, name-range(212, b), [], [r])])))])

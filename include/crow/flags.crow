@@ -3,7 +3,7 @@ import
 	./bool: bool
 	./col/arr: arr
 	./col/arr-util: each, map
-	./col/mut-arr: ~=, move-to-arr!, mut-arr
+	./col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	./fun: subscript
 	./misc: name, named-val, val
 	./str: str
@@ -34,7 +34,7 @@ flags-to-str<a> str(a a) flags<a>
 
 # TODO:MOVE
 .flat-map<out, in> out[](a in[], f act out[](in))
-	res = mut-arr<out>
+	res out mut[] = new
 	a each x =>
 		res ~= f[x]
 	res move-to-arr!

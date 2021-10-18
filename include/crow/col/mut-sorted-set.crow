@@ -9,8 +9,8 @@ import
 	./arr: arr
 	./arr-util: each, map
 	./mut-sorted-dict:
-		each, empty!, filter, filter!, fold, in, is-empty, map, map!, move-to-arr!, mut-sorted-dict,
-		remove-key!, set-subscript, size, subscript
+		each, empty!, filter, filter!, fold, in, is-empty, map, map!, move-to-arr!,
+		mut-sorted-dict, new, remove-key!, set-subscript, size, subscript
 	./sorted-set: sorted-set
 
 ###
@@ -25,15 +25,15 @@ mut-sorted-set<a> record mut
 	inner mut-sorted-dict<a, void>
 
 # New empty `mut-sorted-set`.
-mut-sorted-set<a> mut-sorted-set a() data<a> compare<a>
-	void mut-sorted-set mut-sorted-dict
+new<a> mut-sorted-set a() data<a> compare<a>
+	void, new
 
 ###
 Copies the arr to a new mut-sorted-set.
 Result won't include any duplicated elements.
 ###
 mut-sorted-set<a> mut-sorted-set a(a a[]) data<a> compare<a>
-	void mut-sorted-set (a map (x => x -> void) mut-sorted-dict)
+	void, (a map (x => x -> void) mut-sorted-dict)
 
 # True iff the set has no elements.
 is-empty<a> bool(a mut-sorted-set a) data<a> compare<a>
@@ -100,10 +100,10 @@ fold<a, b> a(acc a, a mut-sorted-set b, f act a(a, b)) data<b> compare<b>
 	acc fold a.inner, (cur, k, v) => f[cur, k]
 
 filter<a> mut-sorted-set a(a mut-sorted-set a, f act bool(a)) data<a> compare<a>
-	void mut-sorted-set (a.inner filter (k, v) => f[k])
+	void, (a.inner filter (k, v) => f[k])
 
 map<out, in> mut-sorted-set out(a mut-sorted-set in, f act out(in)) data<in> compare<in> data<out> compare<out>
-	void mut-sorted-set (a.inner map (k, v) => f[k] -> void)
+	void, (a.inner map (k, v) => f[k] -> void)
 
 region mutating iteration
 

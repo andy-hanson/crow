@@ -21,8 +21,8 @@ frozen-set<a> record
 	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
 	bucket-starts a*[]
 
-frozen-set<a> frozen-set a() data<a> compare<a> hash-mix<a>
-	[] frozen-set []
+new<a> frozen-set a() data<a> compare<a> hash-mix<a>
+	[], []
 
 frozen-set<a> frozen-set a(a a[]) trusted data<a> compare<a> hash-mix<a>
 	a.fix-arr unsafe-frozen-set-from-fix-arr-cast-immutable
@@ -84,14 +84,14 @@ spec
 	hash-mix<a>
 body
 	if a.size <= 4
-		a.cast-immutable frozen-set []
+		a.cast-immutable, []
 	else
 		n-buckets = a.size unsafe-div 2
 		bucket-counts = a get-bucket-counts n-buckets
 		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-arr
 		bucket-counts fill! 0
 		a.begin-ptr move-values-to-buckets-recur! a.end-ptr, bucket-counts, bucket-starts
-		a.cast-immutable frozen-set bucket-starts.arr-cast<a*, a mut*>
+		a.cast-immutable, bucket-starts.arr-cast<a*, a mut*>
 
 .get-bucket-counts<a> fix-arr nat64(a fix-arr a, n-buckets nat64) unsafe hash-mix<a>
 	res = n-buckets fill-fix-arr 0
@@ -160,7 +160,7 @@ fold-with-index<a, b> a(acc a, a frozen-set b, f act a(a, b, nat64))
 	a.bucket-starts map (ptr => ptr - a.values.begin-ptr) is bucket-starts
 
 test
-	a = frozen-set<nat64>
+	a frozen-set nat64 = new
 	a.is-empty is true
 	a.size is 0
 	a verify [], []

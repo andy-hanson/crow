@@ -2,17 +2,17 @@ no-std
 import
 	errno: EAGAIN, errno, EWOULDBLOCK
 	fcntl: fcntl, F_GETFL, F_SETFL, O_NONBLOCK
-	netinet/in: sockaddr_in
+	netinet/in: new, sockaddr_in
 	stdio: perror
 	sys/epoll:
 		data, epoll_create1, epoll_ctl, EPOLL_CTL_ADD, EPOLLERR, EPOLLET, epoll_event, EPOLLHUP,
-		EPOLLIN, epoll_wait, events
+		EPOLLIN, epoll_wait, events, new
 	sys/socket: accept, listen, shutdown, SHUT_RDWR, sockaddr
 	sys/types: socklen_t
 	unistd: close, read
 	../../bits: |, bits-intersect
 	../../bool: !, &&, ||, bool, false, true
-	../../cell: cell
+	../../cell: cell, new
 	../../col/arr: arr, begin-ptr, subscript
 	../../col/fix-arr: cast-immutable, begin-ptr, size, uninitialized-fix-arr
 	../../compare: !=, <
@@ -62,13 +62,13 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		todo
 	else
 		event-flags = EPOLLIN | EPOLLET
-		accept-event = event-flags epoll_event port-fd.to-int64.to-nat64
+		accept-event epoll_event = event-flags, port-fd.to-int64.to-nat64
 		ctl-err = epoll-fd epoll_ctl EPOLL_CTL_ADD, port-fd, accept-event.ptr-to
 		if ctl-err != 0
 			perror: "epoll_ctl failed\0".chars.begin-ptr
 			todo
 
-		state = false tcp-server-state false, 0, port-fd, epoll-fd, 0, handler
+		state tcp-server-state = false, false, 0, port-fd, epoll-fd, 0, handler
 		drop: state.pad-0
 		drop: state.pad-1
 		drop: state.pad-2
@@ -85,7 +85,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 
 		done handle-exceptions
 
-		tcp-server: () =>
+		new: () =>
 			print: "STOP CALLED"
 			state.should-stop := true
 			done
@@ -113,7 +113,7 @@ close-client void(client-fd fd-t) unsafe summon
 	if state should-stop
 		void resolved
 	else
-		event = 0 epoll_event 0
+		event epoll_event = 0, 0
 		timeout c-int = 0
 		num-events = state.epoll-fd epoll_wait event.ptr-to, 1, timeout
 		if num-events < 0
@@ -137,10 +137,10 @@ close-client void(client-fd fd-t) unsafe summon
 			state tcp-server-loop
 
 .accept-clients void(listen-fd fd-t, epoll-fd fd-t, on-accepted-client ref void(fd-t)) unsafe summon
-	clientaddr = sockaddr_in
+	clientaddr sockaddr_in = new
 	clientaddr-as-sockaddr = clientaddr.ptr-to ptr-cast-to-extern<sockaddr, sockaddr_in>
 	# TODO: should be able to write `size-of<sockaddr_in>.to-nat32`
-	addrlen by-val cell socklen_t = (size-of<sockaddr_in>).to-nat32 cell
+	addrlen by-val cell socklen_t = (size-of<sockaddr_in>).to-nat32 new
 	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val
 	if client-fd < 0
 		e = errno
@@ -149,7 +149,7 @@ close-client void(client-fd fd-t) unsafe summon
 			todo
 	else
 		client-fd set-non-blocking
-		client-event = EPOLLIN | EPOLLET epoll_event client-fd.to-int64.to-nat64
+		client-event epoll_event = EPOLLIN | EPOLLET, client-fd.to-int64.to-nat64
 		err = epoll-fd epoll_ctl EPOLL_CTL_ADD, client-fd, client-event.ptr-to
 		assert: err == 0
 		on-accepted-client[client-fd] handle-exceptions

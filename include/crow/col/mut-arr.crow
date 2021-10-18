@@ -12,14 +12,14 @@ import
 		set-deref, set-subscript, size-of, subscript, zeroed
 	../private/alloc:
 		alloc-uninitialized, copy-data-from!, set-zero-range, unmanaged-alloc-zeroed-elements
-	../private/bootstrap: hard-assert, todo
+	../private/bootstrap: hard-assert, new, todo
 	../private/exception-low-level: assert
 	../private/number-low-level: ==, <=>, wrap-add, wrap-sub
 	../private/range-low-level: ..
 	./arr: arr
 	./arr-util: each, each-with-index, exists, find-index, fold, fold-reverse, in, index-of
 	./fix-arr:
-		begin-ptr, cast-immutable, each, fill-fix-arr, map!, make-fix-arr,
+		begin-ptr, cast-immutable, each, fill-fix-arr, map!, make-fix-arr, new,
 		fix-arr, reverse!, set-zero-elements, size, subscript, temp-as-arr, uninitialized-fix-arr
 
 ###
@@ -54,29 +54,29 @@ capacity<a> nat64(a a mut[]) noctx unsafe
 	a.backing size
 
 mut-arr-by-val<a> by-val a mut[]() noctx trusted
-	fix-arr mut-arr<a> 0
+	new, 0
 
 mut-arr-by-val-with-capacity-from-unmanaged-memory<a> by-val<a mut[]>(capacity nat64) noctx unsafe
-	backing = capacity fix-arr<a> capacity.unmanaged-alloc-zeroed-elements<a>
-	backing mut-arr<a> 0
+	backing fix-arr a = capacity.unmanaged-alloc-zeroed-elements<a>[0 .. capacity]
+	backing, 0
 
 ###
 mut-arr where every element is `value`.
 Equivalent to `mut-arr: [value, value, ...]`.
 ###
 fill-mut-arr<a> a mut[](size nat64, value a)
-	size fill-fix-arr value mut-arr size
+	(size fill-fix-arr value), size
 
 # New empty `mut-arr`.
-mut-arr<a> a mut[]()
-	fix-arr mut-arr 0
+new<a> a mut[]()
+	new, 0
 
 ###
 Copies an `arr` to a `mut-arr`.
 Writes to the `mut-arr` won't affect the `arr`.
 ###
 mut-arr<a> a mut[](a a[])
-	res = mut-arr<a>
+	res a mut[] = new
 	res ~= a
 	res
 
@@ -86,7 +86,7 @@ Copies a `fix-arr` to a `mut-arr`.
 Writes to the `mut-arr` won't affect the `fix-arr`.
 ###
 mut-arr<a> a mut[](a fix-arr a)
-	res = mut-arr<a>
+	res a mut[] = new
 	res ~= a
 	res
 
@@ -115,8 +115,8 @@ move-to-arr!<a> a[](a a mut[]) noctx trusted
 	a.move-to-fix-arr! cast-immutable
 
 move-to-fix-arr!<a> fix-arr a(a a mut[]) noctx trusted
-	res = a.size fix-arr a.begin-ptr
-	a.backing := fix-arr
+	res = a.begin-ptr[0 .. a.size]
+	a.backing := new
 	a.size := 0
 	res
 
@@ -156,7 +156,7 @@ Converts to an `fix-arr`.
 "Temp" because it's UB if the result is used after ths size of `a` changes.
 ###
 temp-as-fix-arr<a> fix-arr a(a a mut[]) noctx unsafe
-	a.size fix-arr a.begin-ptr
+	a.begin-ptr[0 .. a.size]
 
 ###
 Converts to an `arr`.
@@ -188,7 +188,7 @@ copy-range-to-arr<a> a[](a a mut[], begin nat64, size nat64) trusted
 	res = alloc-uninitialized<a>: size
 	src = a.begin-ptr + begin
 	drop: res.as-any-mut-ptr memcpy src.as-any-const-ptr, size * size-of<a>
-	size arr res.as-const
+	size, res.as-const
 
 ###
 Removes the first `n` elements and returns them as an array.
@@ -426,7 +426,7 @@ map-opt-to-fix-arr<out, in> fix-arr out(a in mut[], f act out?(in)) trusted
 	out[0 .. end - out.begin-ptr]
 
 .as-mut-arr<a> a mut[](a fix-arr a) unsafe
-	a mut-arr a.size
+	a, a.size
 
 region mutating iteration
 

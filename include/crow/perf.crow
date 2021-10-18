@@ -11,7 +11,7 @@ import
 	./private/bootstrap: get-ctx, nat64, perf-ctx-ptr, thread-local-stuff
 	./private/number-low-level: ==, wrap-add, wrap-sub
 	./private/perf-low-level:
-		measure-names, measure-values, ns, perf-ctx, perf-time, set-measure-names,
+		measure-names, measure-values, new, ns, perf-ctx, perf-time, set-measure-names,
 		set-measure-values, total-ns
 export
 	./private/perf-low-level: count, measure-value, total-duration
@@ -19,18 +19,18 @@ export
 perf-reset void(names str[]) summon
 	perf = get-perf-ctx
 	perf.measure-names := names
-	perf.measure-values := names.size fill-fix-arr (0 measure-value 0)
+	perf.measure-values := names.size fill-fix-arr (0, 0)
 
 perf-get-measure measure-value(name str) summon
 	perf = get-perf-ctx
 	index = perf.measure-names find-index name
 	if index == perf.measure-names.size
-		0 measure-value 0
+		0, 0
 	else
 		perf.measure-values[index]
 
 perf-now perf-time() noctx
-	get-monotime-nsec perf-time
+	get-monotime-nsec new
 
 perf-measure void(start perf-time, name str)
 	perf = get-perf-ctx
@@ -38,7 +38,7 @@ perf-measure void(start perf-time, name str)
 	if index != perf.measure-names.size
 		ns = perf-now.ns wrap-sub start.ns
 		old = perf.measure-values[index]
-		perf.measure-values[index] := (old.count wrap-add 1) measure-value (old.total-ns wrap-add ns)
+		perf.measure-values[index] := (old.count wrap-add 1), (old.total-ns wrap-add ns)
 
 .get-perf-ctx perf-ctx() trusted
 	get-ctx.thread-local-stuff.perf-ctx-ptr as-ref<perf-ctx>

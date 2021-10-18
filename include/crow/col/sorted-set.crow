@@ -11,7 +11,7 @@ import
 	../str: ==, <=>, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test: is
-	../writer: ~=, backup!, move-to-str!, writer
+	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert, hard-forbid, hard-unreachable
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul, wrap-sub
 	./arr: arr, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, subscript
@@ -20,8 +20,8 @@ import
 		begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, set-subscript, size, subscript,
 		uninitialized-fix-arr
 	./index-set:
-		~, count-greater-or-equal, count-range, each, filter-less, in, index-set, is-empty, size,
-		try-remove
+		~, count-greater-or-equal, count-range, each, filter-less, in, index-set, is-empty, new,
+		size, try-remove
 	./sort: sort
 	./private/sort-utils: binary-search-exact-index
 
@@ -39,11 +39,11 @@ Add nodes are a linked list where links point to the left. Largest node is on th
 	values a[]
 	left add-node<a>?
 
-sorted-set<a> sorted-set a() data<a> compare<a>
+new<a> sorted-set a() data<a> compare<a>
 	[] sorted-set
 
 sorted-set<a> sorted-set a(a a[]) data<a> compare<a>
-	a.sort add-node none sorted-set index-set
+	(a.sort, none), new
 
 arr<a> a[](a sorted-set a) data<a> compare<a>
 	a map-to-arr x => x
@@ -87,7 +87,7 @@ in<a> bool(value a, a sorted-set a) data<a> compare<a>
 .find-in-add-for-remove<a> find-in-add-for-remove-result?(a add-node a, value a, size-right nat64) compare<a>
 	if index ?= a.values binary-search-exact-index value
 		sl = a add-size-left
-		(sl wrap-add index) find-in-add-for-remove-result sl, a.values.size, size-right some
+		((sl wrap-add index), sl, a.values.size, size-right) some
 	elif left ?= a left
 		# TODO: should be able to write this inline
 		new-size-right = size-right wrap-add a.values.size
@@ -100,7 +100,7 @@ try-add<a> sorted-set<a>?(a sorted-set a, value a) data<a> compare<a>
 	if index ?= a.add find-in-add value
 		# In 'add', but may need to remove from removals
 		if new-remove ?= a.remove try-remove index
-			a.add sorted-set new-remove some
+			(a.add, new-remove) some
 	else
 		a add-and-maybe-compact value some
 
@@ -112,19 +112,19 @@ try-remove<a> sorted-set<a>?(a sorted-set a, value a) trusted data<a> compare<a>
 		removals-here-and-right = 1 wrap-add (a.remove count-greater-or-equal r.size-left)
 		some: if r.size-here should-compact r.size-right, removals-here-and-right
 			compacted-size = r.size-here wrap-add r.size-right wrap-sub 1
-			a remove-and-compact (r.size-left compact-plan compacted-size), r.value-index
+			a remove-and-compact (r.size-left, compacted-size), r.value-index
 		else
-			a.add sorted-set a.remove ~ r.value-index
+			a.add, a.remove ~ r.value-index
 
 .add-and-maybe-compact<a> sorted-set a(a sorted-set a, value a) trusted compare<a>
 	add-size = a.add add-size
 	if add-size == 0
-		[value] add-node none sorted-set index-set
+		([value], none), new
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
 		if plan.compacted-size == 1
-			[value] add-node a.add.some sorted-set a.remove
+			([value], a.add.some), a.remove
 		else
 			a add-and-compact add-size, plan, value
 
@@ -152,9 +152,9 @@ Or a combination of the two.
 		if left ?= a left
 			size-left add-and-compact-plan left, remove, size-here-and-right
 		else
-			size-left compact-plan size-here-and-right
+			size-left, size-here-and-right
 	else
-		size-here-and-left compact-plan size-right
+		size-here-and-left, size-right
 
 .should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right wrap-add (removals-here-and-right wrap-mul 2) wrap-mul 2) >= size-here
@@ -163,23 +163,23 @@ Or a combination of the two.
 	hard-assert: plan.compacted-size > 1
 	compacted = plan.compacted-size uninitialized-fix-arr<a>
 	*compacted.begin-ptr := value
-	compactor = compacted.begin-ptr.as-const compactor<a> compacted.begin-ptr + 1, compacted.end-ptr.as-const
+	compactor compactor a = compacted.begin-ptr.as-const, compacted.begin-ptr + 1, compacted.end-ptr.as-const
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
-	new-add sorted-set (a.remove filter-less plan.add-size-left)
+	new-add, (a.remove filter-less plan.add-size-left)
 
 .remove-and-compact<a> sorted-set a(a sorted-set a, plan compact-plan, extra-removal nat64) unsafe data<a> compare<a>
 	new-remove = a.remove filter-less plan.add-size-left
 	if plan.compacted-size == 0
 		if left ?= a.add left
-			left sorted-set new-remove
+			left, new-remove
 		else
-			sorted-set
+			new
 	else
 		compacted = plan.compacted-size uninitialized-fix-arr<a>
-		compactor = compacted.begin-ptr.as-const compactor<a> compacted.begin-ptr, compacted.end-ptr.as-const
+		compactor compactor a = compacted.begin-ptr.as-const, compacted.begin-ptr, compacted.end-ptr.as-const
 		old-size = plan.add-size-left wrap-add plan.compacted-size wrap-add 1
 		new-add = compactor do-compact-recur! a.add, old-size, a.remove ~ extra-removal
-		new-add sorted-set new-remove
+		new-add, new-remove
 
 .compactor<a> record mut
 	begin a*
@@ -199,7 +199,7 @@ body
 	compactor merge! a.values, add-size-here-and-left, remove
 	hard-assert: compactor.cur.as-const <= compactor.end
 	if compactor.cur.as-const == compactor.end
-		compactor.finish add-node a.left
+		compactor.finish, a.left
 	else
 		# TODO: should be able to write this inline
 		new-l = add-size-here-and-left wrap-sub a.values.size
@@ -322,7 +322,7 @@ body
 	a.values is-empty
 
 .tail<a> iter-part a(a iter-part a, remove index-set)
-	a.values.tail iter-part (a.remove-index wrap-add 1) remove-from-front remove
+	(a.values.tail, (a.remove-index wrap-add 1)) remove-from-front remove
 
 .init-iters<a> fix-arr iter-part a(a sorted-set a) trusted
 	iters = a.add-node-count uninitialized-fix-arr<iter-part<a>>
@@ -346,18 +346,18 @@ body
 	prev = if left ?= a left
 		out init-iters-recur! left, remove
 	else
-		0 init-iters-result out
-	here = a.values iter-part prev.next-remove-index remove-from-front remove
+		0, out
+	here = (a.values, prev.next-remove-index) remove-from-front remove
 	new-out = if here is-empty
 		prev.out
 	else
 		*prev.out := here
 		prev.out + 1
-	(prev.next-remove-index wrap-add a.values.size) init-iters-result new-out
+	(prev.next-remove-index wrap-add a.values.size), new-out
 
 .remove-from-front<a> iter-part a(a iter-part a, remove index-set)
 	if !a.values.is-empty && a.remove-index in remove
-		a.values.tail iter-part (a.remove-index wrap-add 1) remove-from-front remove
+		(a.values.tail, (a.remove-index wrap-add 1)) remove-from-front remove
 	else
 		a
 
@@ -376,7 +376,7 @@ map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted data<in> compa
 
 # TODO:PRIVATE
 dbg<a> str(a sorted-set a) to-str<a>
-	out = writer
+	out writer = new
 	out dbg-add-recur! a.add
 	if !a.remove.is-empty
 		out ~= " - ["
@@ -408,7 +408,7 @@ dbg<a> str(a sorted-set a) to-str<a>
 test
 	info log "SET TEST START"
 	# TODO: be sure to test removing and then adding back
-	a = sorted-set<str>
+	a sorted-set str = new
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"

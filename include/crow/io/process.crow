@@ -1,24 +1,24 @@
 no-std
 import
 	poll:
-		fd, has-POLLIN, has-POLLERR, has-POLLHUP, has-POLLNVAL, has-POLLOUT, has-POLLPRI,
+		fd, has-POLLIN, has-POLLERR, has-POLLHUP, has-POLLNVAL, has-POLLOUT, has-POLLPRI, new,
 		poll, pollfd, POLLIN, revents
 	spawn:
-		posix_spawn, posix_spawn_file_actions_addclose, posix_spawn_file_actions_adddup2,
+		new, posix_spawn, posix_spawn_file_actions_addclose, posix_spawn_file_actions_adddup2,
 		posix_spawn_file_actions_init, posix_spawn_file_actions_t
 	stdio: stderr, stdout
 	sys/types: pid_t
 	sys/wait:
 		status-t, waitpid, WEXITSTATUS, WIFCONTINUED, WIFEXITED, WIFSIGNALED,
 		WIFSTOPPED, WTERMSIG
-	unistd: close, pipe, pipes, read, read-pipe, write-pipe
+	unistd: close, new, pipe, pipes, read, read-pipe, write-pipe
 	../bool: !, &&, ||, bool, to-nat64
 	../bytes-types: zero
-	../cell: *, cell
+	../cell: *, cell, new
 	../col/arr: ~, arr, begin-ptr
 	../col/arr-util: fold, map
 	../col/fix-arr: begin-ptr, fix-arr, ref-of-val-at, size
-	../col/mut-arr: begin-ptr, move-to-arr!, mut-arr, size, unsafe-set-size!
+	../col/mut-arr: begin-ptr, move-to-arr!, mut-arr, new, size, unsafe-set-size!
 	../compare: <=
 	../exception: assert, throw
 	../extra-types: fd-t
@@ -83,7 +83,7 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	stderr-pipes = make-pipes
 
 	# TODO: Neater, move to own function
-	actions = 0 posix_spawn_file_actions_t 0, null, zero
+	actions posix_spawn_file_actions_t = 0, 0, null, zero
 	check-posix-error: actions posix_spawn_file_actions_init
 	check-posix-error: actions posix_spawn_file_actions_addclose stdout-pipes.write-pipe
 	check-posix-error: actions posix_spawn_file_actions_addclose stderr-pipes.write-pipe
@@ -92,7 +92,7 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	check-posix-error: actions posix_spawn_file_actions_addclose stdout-pipes.read-pipe
 	check-posix-error: actions posix_spawn_file_actions_addclose stderr-pipes.read-pipe
 
-	pid-cell = 0 cell<pid_t>
+	pid-cell cell pid_t = 0 new
 	check-posix-error: pid-cell posix_spawn exe, actions, null, args, environ
 	pid = *pid-cell
 
@@ -101,16 +101,16 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	check-posix-error: stderr-pipes.read-pipe close
 
 	# Read from pipes
-	stdout-builder = mut-arr<char>
-	stderr-builder = mut-arr<char>
+	stdout-builder char mut[] = new
+	stderr-builder char mut[] = new
 	stdout-pipes.write-pipe keep-polling stderr-pipes.write-pipe, stdout-builder, stderr-builder
 
 	exit-code = pid wait-and-get-exit-code
 
-	exit-code process-result stdout-builder.move-to-arr!.str, stderr-builder.move-to-arr!.str
+	exit-code, stdout-builder.move-to-arr!.str, stderr-builder.move-to-arr!.str
 
 .make-pipes pipes() summon
-	res = 0 pipes 0
+	res pipes = 0, 0
 	check-posix-error: res pipe
 	res
 
@@ -123,7 +123,7 @@ spec
 	summon
 	unsafe
 body
-	poll-fds fix-arr by-val<pollfd> = [(stdout-pipe pollfd POLLIN, 0), (stderr-pipe pollfd POLLIN, 0)] fix-arr
+	poll-fds fix-arr by-val pollfd = [(stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)] fix-arr
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
 	# timeout == -1 means we block
@@ -154,7 +154,7 @@ body
 	hung-up = revents has-POLLHUP
 	if revents.has-POLLPRI || revents.has-POLLOUT || revents.has-POLLERR || revents.has-POLLNVAL
 		todo
-	had-POLLIN handle-revents-result hung-up
+	had-POLLIN, hung-up
 
 .read-to-buffer-until-eof void(fd fd-t, buffer char mut[]) trusted summon
 	read-max = 1024
@@ -180,13 +180,13 @@ body
 # Each entry in environ looks like "name=value", and final entry is null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
 .spawn-and-wait exit-code(exe c-str, args c-str*, environ c-str*) summon unsafe
-	pid-cell = 0 cell<pid_t>
+	pid-cell cell pid_t = 0 new
 	# TODO: null.as-ref is bad. If it's nullable it shouldn't be a ref.
 	check-posix-error: pid-cell posix_spawn exe, null.as<any-const-ptr>.as-ref, null, args, environ
 	*pid-cell wait-and-get-exit-code
 
 .wait-and-get-exit-code exit-code(pid pid_t) summon unsafe
-	wait-status-cell = 0 cell<status-t>
+	wait-status-cell cell status-t = 0 new
 	res-pid = pid waitpid wait-status-cell, 0
 	wait-status = *wait-status-cell
 	assert: res-pid == pid

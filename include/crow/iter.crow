@@ -18,7 +18,7 @@ iter<a> iterator a(s iterable a)
 
 # Converts anything with an `iter` function to an `iterable`.
 to-iterable<a, e> iterable e(a a) iter<a, e>
-	iterable: () => a iter
+	new: () => a iter
 
 # Spec for anything that has an iterator.
 iter<a, e> spec
@@ -49,9 +49,9 @@ each<a> void(a iterable a, f act void(a))
 
 # Returns a new iterable containing just the elements of the input for which `pred` returns true.
 filter<a> iterable a(a iterable a, pred act bool(a))
-	iterable: () =>
+	new: () =>
 		itr = a iter
-		iterator: () => itr filter-recur pred
+		new: () => itr filter-recur pred
 .filter-recur<a> a?(a iterator a, pred act bool(a))
 	if v ?= a next
 		if pred[v]
@@ -62,9 +62,9 @@ filter<a> iterable a(a iterable a, pred act bool(a))
 
 # Returns a new iterable which yields f[x] for each x in the input.
 map<out, in> iterable out(a iterable in, f act out(in))
-	iterable: () =>
+	new: () =>
 		itr = a iter
-		iterator: () => itr map-recur f
+		new: () => itr map-recur f
 .map-recur<out, in> out?(a iterator in, f act out(in))
 	if v ?= a next
 		f[v] some

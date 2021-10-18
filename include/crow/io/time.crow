@@ -15,7 +15,7 @@ unix-time record
 	seconds-since-epoch time_t
 
 get-unix-time unix-time() summon trusted
-	unix-time: null time
+	null.time new
 
 # Returns a `fut` that will resolve after `duration` has passed.
 delay fut void(duration duration) trusted summon

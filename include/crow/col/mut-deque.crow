@@ -10,13 +10,13 @@ import
 	../str: ==, str
 	../str-conv: to-str
 	../test: is
-	../writer: ~=, backup!, move-to-str!, writer
+	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
 	./arr: ==, arr, arr-from-begin-end, size
 	./arr-util: each-ptr, first, last
 	./fix-arr:
-		begin-ptr, cast-immutable, copy-from!, end-ptr, is-empty, fix-arr, set-zero-elements, size,
-		subscript, uninitialized-fix-arr, zeroed-fix-arr
+		begin-ptr, cast-immutable, copy-from!, end-ptr, fix-arr, is-empty, new, set-zero-elements,
+		size, subscript, uninitialized-fix-arr, zeroed-fix-arr
 
 mut-deque<a> record mut
 	# TODO:PRIVATE
@@ -27,15 +27,15 @@ mut-deque<a> record mut
 	# This should never be inner.end-ptr, it wraps around to inner.begin-ptr
 	right mut a mut*
 
-mut-deque<a> mut-deque a() trusted
-	fix-arr<a> mut-deque null, null
+new<a> mut-deque a() trusted
+	new, null, null
 
 arr<a> a[](a mut-deque a) trusted
 	a.fix-arr cast-immutable
 
 fix-arr<a> fix-arr a(a mut-deque a) trusted
 	if a is-empty
-		fix-arr
+		new
 	else
 		res = a.size uninitialized-fix-arr<a>
 		res copy-from-deque! a
@@ -43,7 +43,7 @@ fix-arr<a> fix-arr a(a mut-deque a) trusted
 
 copy<a> mut-deque a(a mut-deque a) trusted
 	inner = a fix-arr
-	inner mut-deque inner.begin-ptr, inner.begin-ptr
+	inner, inner.begin-ptr, inner.begin-ptr
 
 is-empty<a> bool(a mut-deque a) trusted
 	a.left == null
@@ -145,7 +145,7 @@ pop-right!<a> a?(a mut-deque a) trusted
 		dest[left-to-end-size .. dest.size] copy-from! (a.inner.begin-ptr.as-const arr-from-begin-end a.right.as-const)
 
 .dbg str(a mut-deque nat64) trusted
-	out = writer
+	out writer = new
 	a.inner.begin-ptr.as-const arr-from-begin-end a.inner.end-ptr.as-const each-ptr ptr =>
 		if ptr == a.right.as-const
 			out ~= "<-R "
@@ -165,7 +165,7 @@ pop-right!<a> a?(a mut-deque a) trusted
 	a.dbg is expected
 
 test
-	a = mut-deque<nat64>
+	a mut-deque nat64 = new
 	a.pop-left! is none
 	a.pop-right! is none
 	a verify [], ""

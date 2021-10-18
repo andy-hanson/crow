@@ -3,10 +3,10 @@ import
 	bits/socket_type: SOCK_STREAM
 	netdb:
 		addrinfo, ai_addr, ai_addrlen, ai_family, ai_next, ai-passive, ai_protocol, ai_socktype,
-		freeaddrinfo, getaddrinfo
+		freeaddrinfo, getaddrinfo, new
 	sys/socket: AF_INET, AF_UNSPEC, bind, connect, socket
 	unistd: close
-	../../cell: *, cell
+	../../cell: *, cell, new
 	../../compare: !=
 	../../exception: assert
 	../../extra-types: fd-t
@@ -32,8 +32,8 @@ uri record
 # Opens a socket, connects to the URI, and returns the fd.
 connect-to-uri fd-t(u uri) trusted summon
 	# TODO: null.as-ref is evil
-	hints = 0 addrinfo AF_UNSPEC.to-int32, SOCK_STREAM, 0, 0, null.as<any-const-ptr>.as-ref, null, null
-	result = null cell<addrinfo mut*>
+	hints addrinfo = 0 new AF_UNSPEC.to-int32, SOCK_STREAM, 0, 0, null.as<any-const-ptr>.as-ref, null, null
+	result cell addrinfo mut* = null new
 	check-posix-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
 	op-sock = (*result).as-const find-and-connect-working-socket
 	*result freeaddrinfo
@@ -63,8 +63,8 @@ connect-to-uri fd-t(u uri) trusted summon
 # Returns an fd bound to the given port.
 bind-to-port fd-t(port str) unsafe summon
 	# TODO: null.as-ref is evil
-	hints = ai-passive addrinfo AF_INET, SOCK_STREAM, 0, 0, null.as<any-const-ptr>.as-ref, null, null
-	result = null cell<addrinfo mut*>
+	hints addrinfo = ai-passive, AF_INET, SOCK_STREAM, 0, 0, null.as<any-const-ptr>.as-ref, null, null
+	result cell addrinfo mut* = null new
 	null getaddrinfo port.to-c-str, hints.ptr-to, result check-posix-error
 	op-sock = (*result).as-const find-and-bind-working-socket
 	*result freeaddrinfo

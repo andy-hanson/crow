@@ -10,14 +10,15 @@ import
 	../str: ==, str
 	../str-conv: to-str
 	../test: is
-	../writer: ~=, backup!, move-to-str!, writer
+	../writer: ~=, backup!, move-to-str!, new, writer
+	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, is-even, nat64, wrap-add
 	./arr: ==, arr, is-empty, size
 	./arr-util: each, first, fold, last, rtail, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-fix-arr
 	./stack:
-		~, arr, arr-reverse, each, each-reverse, is-empty, fold, fold-reverse, pop, rest, size,
-		stack, value
+		~, arr, arr-reverse, each, each-reverse, is-empty, fold, fold-reverse, new, pop, rest,
+		size, stack, value
 
 deque<a> record
 	# TODO:PRIVATE
@@ -27,7 +28,7 @@ deque<a> record
 	right stack a
 
 # Empty deque.
-deque<a> deque a()
+new<a> deque a()
 	deque: []
 
 ###
@@ -35,14 +36,14 @@ Convert an arr to a deque.
 This is O(1).
 ###
 deque<a> deque a(a a[])
-	stack deque a, stack
+	new, a, new
 
 arr<a> a[](a deque a) trusted
 	res = a.size uninitialized-fix-arr<a>
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := x
 		out + 1
-	assert: end == res.end-ptr
+	hard-assert: end == res.end-ptr
 	res cast-immutable
 
 is-empty<a> bool(a deque a)
@@ -52,10 +53,10 @@ size<a> nat64(a deque a)
 	a.left.size wrap-add a.mid.size wrap-add a.right.size
 
 ~ <a> deque a(a deque a, value a)
-	a.left deque a.mid, a.right ~ value
+	a.left, a.mid, a.right ~ value
 
 ~ <a> deque a(value a, a deque a)
-	a.left ~ value deque a.mid, a.right
+	a.left ~ value, a.mid, a.right
 
 popped<a> record
 	value a
@@ -63,23 +64,23 @@ popped<a> record
 
 pop-left<a> popped<a>?(a deque a)
 	if popped ?= a.left pop
-		popped.value popped (popped.rest deque a.mid, a.right) some
+		(popped.value, (popped.rest, a.mid, a.right)) some
 	elif first ?= a.mid first
-		first popped (stack deque a.mid.tail, a.right) some
+		(first, (new, a.mid.tail, a.right)) some
 	else
 		right-arr = a.right arr
 		if first ?= right-arr first
-			first popped (stack deque right-arr.tail, stack) some
+			(first, (new, right-arr.tail, new)) some
 
 pop-right<a> popped<a>?(a deque a)
 	if popped ?= a.right pop
-		popped.value popped (a.left deque a.mid, popped.rest) some
+		(popped.value, (a.left, a.mid, popped.rest)) some
 	elif last ?= a.mid last
-		last popped (a.left deque a.mid.rtail, stack) some
+		(last, (a.left, a.mid.rtail, new)) some
 	else
 		left-arr = a.left arr-reverse
 		if last ?= left-arr last
-			last popped (stack deque left-arr.rtail, stack) some
+			(last, (new, left-arr.rtail, new)) some
 
 region iteration
 
@@ -106,11 +107,11 @@ map<out, in> deque out(a deque in, f act out(in)) trusted
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
 		out + 1
-	assert: end == res.end-ptr
+	hard-assert: end == res.end-ptr
 	res.cast-immutable deque
 
 .dbg str(a deque nat64)
-	out = writer
+	out writer = new
 	a.left each-reverse x =>
 		out ~= x
 		out ~= " "
@@ -129,7 +130,7 @@ map<out, in> deque out(a deque in, f act out(in)) trusted
 	out move-to-str!
 
 test
-	a = deque<nat64>
+	a deque nat64 = new
 	assert: a is-empty
 	a.dbg is "[]"
 	a.arr is []

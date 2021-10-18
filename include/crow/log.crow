@@ -7,13 +7,13 @@ import
 	./private/log-low-level: set-log-handler
 export
 	./private/log-low-level:
-		error, get-log-handler, info, logged, log-handler, log-level, to-str, warn
+		error, get-log-handler, info, logged, log-handler, log-level, new, to-str, warn
 
 ###
 Sends a log to the current log handler.
 ###
 log void(level log-level, message str) trusted
-	get-log-handler[level logged message]
+	get-log-handler[(level, message)]
 
 ###
 Temporarily replaces the log handler for this task.

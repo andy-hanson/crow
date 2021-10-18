@@ -30,12 +30,12 @@ stack<a> record
 	value a
 
 # Empty stack.
-stack<a> stack a()
-	void stack none
+new<a> stack a()
+	void, none
 
 # Copy an arr to a stack.
 stack<a> stack a(a a[])
-	stack<a> fold a, (stack, x) => stack ~ x
+	new fold a, (stack, x) => stack ~ x
 
 # Copy a stack to an arr.
 arr<a> a[](a stack a) trusted
@@ -64,7 +64,7 @@ Appends an element to the stack.
 This is O(1).
 ###
 ~ <a> stack a(a stack a, b a)
-	void stack ((a.last-node node b) some)
+	void, ((a.last-node, b) some)
 
 ###
 Number of elements in the stack.
@@ -97,7 +97,7 @@ Throws if the stack is empty.
 ###
 rtail<a> stack a(a stack a)
 	if node ?= a last-node
-		void stack node.prev
+		void, node.prev
 	else
 		throw: "Stack is empty"
 
@@ -107,7 +107,7 @@ popped<a> record
 
 pop<a> popped<a>?(a stack a)
 	if node ?= a last-node
-		node.value popped (void stack node.prev) some
+		(node.value, (void, node.prev)) some
 
 region iteration
 
@@ -146,19 +146,18 @@ fold-reverse<a, b> a(acc a, a stack b, f act a(a, b))
 
 # Produce a stack with `f[x]` applied to each element `x` in the input.
 map<out, in> stack out(a stack in, f act out(in))
-	void stack (a.last-node map-recur f)
+	void, (a.last-node map-recur f)
 .map-recur<out, in> node<out>?(a node<in>?, f act out(in))
 	if node ?= a
-		prev = node.prev map-recur f
-		prev node f[node value] some
+		((node.prev map-recur f), f[node value]) some
 
 filter<a> stack a(a stack a, f act bool(a))
-	void stack (a.last-node filter-recur f)
+	void, (a.last-node filter-recur f)
 .filter-recur<a> node<a>?(a node<a>?, f act bool(a))
 	if node ?= a
 		prev = node.prev filter-recur f
 		if f[node value]
-			prev node node.value some
+			(prev, node.value) some
 		else
 			prev
 
@@ -173,7 +172,7 @@ first-some<out, in> out?(a stack in, f act out?(in))
 			res
 
 test
-	a = stack<nat64>
+	a stack nat64 = new
 	assert: a is-empty
 	a.arr is []
 	a.last is none

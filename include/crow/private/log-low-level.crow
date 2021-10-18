@@ -38,7 +38,7 @@ log-ctx record mut
 
 log-ctx by-val log-ctx() noctx unsafe
 	# Handler is set when creating 'ctx'
-	log-ctx: zeroed
+	zeroed new
 
 log-handler alias
 	fun void(logged)
