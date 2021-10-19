@@ -26,12 +26,14 @@ import frontend.parse.ast :
 	matchInterpolatedPart,
 	matchLiteralAst,
 	matchNameOrUnderscoreOrNone,
+	matchParamsAst,
 	matchSpecBodyAst,
 	matchStructDeclAstBody,
 	matchTypeAst,
 	NameAndRange,
 	NameOrUnderscoreOrNone,
 	ParamAst,
+	ParamsAst,
 	ParenthesizedAst,
 	range,
 	rangeOfExplicitByValOrRef,
@@ -159,8 +161,15 @@ void addSpecTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 
 void addSigReturnTypeAndParamsTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable SigAst a) {
 	addTypeTokens(alloc, tokens, a.returnType);
-	foreach (ref immutable ParamAst param; toArr(a.params))
-		addParamTokens(alloc, tokens, param);
+	matchParamsAst!void(
+		a.params,
+		(immutable ParamAst[] params) {
+			foreach (ref immutable ParamAst param; params)
+				addParamTokens(alloc, tokens, param);
+		},
+		(ref immutable ParamsAst.Varargs v) {
+			addParamTokens(alloc, tokens, v.param);
+		});
 }
 
 void addTypeTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable TypeAst a) {

@@ -45,6 +45,7 @@ import model.concreteModel :
 	ConcreteType,
 	isConstant,
 	isSummon,
+	isVariadic,
 	mustBeNonPointer,
 	name,
 	purity,
@@ -67,7 +68,7 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs;
-import util.collection.arr : at, empty, emptyArr, ptrAt, size;
+import util.collection.arr : at, empty, emptyArr, only, ptrAt, size;
 import util.collection.arrUtil : arrLiteral, every, map, mapWithIndex;
 import util.collection.mutArr : MutArr, mutArrSize, push;
 import util.collection.mutDict : addToMutDict, getOrAdd, mustDelete, mustGetAt_mut, MutDict;
@@ -184,8 +185,11 @@ immutable(ConcreteExpr) concretizeCall(Alloc)(
 		!isSummon(concreteCalled) && purity(concreteCalled.returnType) == Purity.data && false // TODO
 			? getConstantsOrExprs(alloc, ctx, e.args)
 			: immutable ConstantsOrExprs(getArgs(alloc, ctx, e.args));
+	immutable ConstantsOrExprs args2 = isVariadic(concreteCalled.deref())
+		? constantsOrExprsArr(alloc, ctx, range, args, only(concreteCalled.paramsExcludingCtxAndClosure()).type)
+		: args;
 	return matchConstantsOrExprs!(immutable ConcreteExpr)(
-		args,
+		args2,
 		(ref immutable Constant[] constants) => immutable ConcreteExpr(
 			concreteCalled.returnType,
 			range,
@@ -699,6 +703,25 @@ immutable(ConcreteExpr) concretizeCreateArr(Alloc)(
 			return immutable ConcreteExpr(arrayType, range, immutable ConcreteExprKind(
 				allocate(alloc, immutable ConcreteExprKind.CreateArr(arrayStruct, exprs))));
 		});
+}
+
+immutable(ConstantsOrExprs) constantsOrExprsArr(Alloc)(
+	ref Alloc alloc,
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	ref immutable ConstantsOrExprs args,
+	ref immutable ConcreteType arrayType,
+) {
+	immutable Ptr!ConcreteStruct arrayStruct = mustBeNonPointer(arrayType);
+	return matchConstantsOrExprs(
+		args,
+		(ref immutable Constant[] constants) =>
+			immutable ConstantsOrExprs(arrLiteral!Constant(alloc, [
+				getConstantArr(alloc, ctx.concretizeCtx.allConstants, arrayStruct, constants)])),
+		(ref immutable ConcreteExpr[] exprs) =>
+			immutable ConstantsOrExprs(arrLiteral!ConcreteExpr(alloc, [
+				immutable ConcreteExpr(arrayType, range, immutable ConcreteExprKind(
+					allocate(alloc, immutable ConcreteExprKind.CreateArr(arrayStruct, exprs))))])));
 }
 
 immutable(Constant) evalConstant(ref immutable ConcreteFun fn, immutable Constant[] /*parameters*/) {

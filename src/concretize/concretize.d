@@ -20,6 +20,7 @@ import model.concreteModel :
 	mustBeNonPointer;
 import model.constant : Constant;
 import model.model :
+	assertNonVariadic,
 	asStructInst,
 	CommonTypes,
 	decl,
@@ -159,7 +160,7 @@ void checkRtMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr!F
 		todo!void("rt main is template?");
 	if (!isInt32(commonTypes, returnType(mainFun)))
 		todo!void("checkRtMainSignature doesn't return int");
-	immutable Param[] params = params(mainFun);
+	immutable Param[] params = assertNonVariadic(params(mainFun));
 	if (size(params) != 3)
 		todo!void("checkRtMainSignature wrong number params");
 	if (!isInt32(commonTypes, at(params, 0).type))
@@ -175,7 +176,7 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr
 		todo!void("main is template?");
 	if (!isFutNat(commonTypes, returnType(mainFun)))
 		todo!void("checkUserMainSignature doesn't return fut nat");
-	immutable Param[] params = params(mainFun);
+	immutable Param[] params = assertNonVariadic(params(mainFun));
 	if (size(params) != 1)
 		todo!void("checkUserMainSignature should take 1 param");
 	if (!isArrStr(commonTypes, only(params).type))

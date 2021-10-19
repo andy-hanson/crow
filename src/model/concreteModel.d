@@ -16,8 +16,11 @@ import model.model :
 	isCompareFun,
 	isMarkVisitFun,
 	Local,
+	matchParams,
 	name,
 	Param,
+	Params,
+	params,
 	Purity,
 	range,
 	RecordField,
@@ -716,6 +719,22 @@ struct ConcreteFun {
 	ref immutable(ConcreteParam[]) paramsExcludingCtxAndClosure() return scope immutable {
 		return sig.paramsExcludingCtxAndClosure;
 	}
+}
+
+immutable(bool) isVariadic(ref immutable ConcreteFun a) {
+	return matchConcreteFunSource!(immutable bool)(
+		a.source,
+		(immutable Ptr!FunInst i) =>
+			matchParams!(immutable bool)(
+				params(i),
+				(immutable Param[]) =>
+					false,
+				(ref immutable Params.Varargs) =>
+					true),
+		(ref immutable ConcreteFunSource.Lambda) =>
+			false,
+		(ref immutable ConcreteFunSource.Test) =>
+			false);
 }
 
 immutable(Opt!Sym) name(ref immutable ConcreteFun a) {

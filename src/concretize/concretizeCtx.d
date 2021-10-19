@@ -60,6 +60,7 @@ import model.model :
 	noCtx,
 	Param,
 	params,
+	paramsArray,
 	Program,
 	Purity,
 	range,
@@ -470,7 +471,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(Alloc)(
 	immutable Ptr!FunDecl decl = key.inst.decl;
 	immutable TypeArgsScope typeScope = typeArgsScope(key);
 	immutable ConcreteType returnType = getConcreteType(alloc, ctx, returnType(decl), typeScope);
-	immutable ConcreteParam[] params = concretizeParams(alloc, ctx, params(decl), typeScope);
+	immutable ConcreteParam[] params = concretizeParams(alloc, ctx, paramsArray(params(decl)), typeScope);
 	Ptr!ConcreteFun res = nuMut!ConcreteFun(
 		alloc,
 		immutable ConcreteFunSource(key.inst),
@@ -870,7 +871,7 @@ immutable(ConcreteFunBody) bodyForAllTests(Alloc)(
 immutable(ConcreteParam[]) concretizeParams(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	ref immutable Param[] params,
+	immutable Param[] params,
 	ref immutable TypeArgsScope typeArgsScope,
 ) {
 	return mapPtrsWithIndex!ConcreteParam(alloc, params, (immutable size_t index, immutable Ptr!Param p) =>

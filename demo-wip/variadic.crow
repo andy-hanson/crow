@@ -1,0 +1,11 @@
+import
+	crow/col/arr-util: each
+	crow/io/print: print
+
+main fut nat(_ str[]) summon
+	"Hello" foo "variadic", "world"
+	0 resolved
+
+foo void(...a str[]) summon
+	a each s =>
+		print: s

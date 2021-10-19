@@ -28,7 +28,9 @@ import frontend.parse.ast : CallAst, ExprAst, NameAndRange, rangeOfNameAndRange,
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
+	Arity,
 	arity,
+	arityMatches,
 	body_,
 	Called,
 	CalledDecl,
@@ -38,12 +40,16 @@ import model.model :
 	FunDeclAndArgs,
 	FunFlags,
 	isDataOrSendable,
+	matchArity,
 	matchCalledDecl,
+	matchParams,
 	matchSpecBody,
 	matchType,
 	Module,
 	NameReferents,
 	nSigs,
+	Param,
+	Params,
 	params,
 	Purity,
 	returnType,
@@ -104,7 +110,7 @@ import util.memory : nu;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, symEq;
-import util.util : Empty, verify;
+import util.util : Empty, todo, verify;
 
 immutable(CheckedExpr) checkCall(Alloc)(
 	ref Alloc alloc,
@@ -314,7 +320,7 @@ MutArr!Candidate getInitialCandidates(Alloc)(
 	MutArr!Candidate res = MutArr!Candidate();
 	eachFunInScope(ctx, funName, (ref immutable Opt!UsedFun used, immutable CalledDecl called) {
 		immutable size_t nTypeParams = size(typeParams(called));
-		if (arity(called) == actualArity &&
+		if (arityMatches(arity(called), actualArity) &&
 			(empty(explicitTypeArgs) || nTypeParams == size(explicitTypeArgs))) {
 			SingleInferringType[] inferringTypeArgs = fillArr_mut!(SingleInferringType, Alloc)(
 				alloc,
@@ -347,7 +353,7 @@ immutable(Type) getCandidateExpectedParameterTypeRecur(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref const Candidate candidate,
-	ref immutable Type candidateParamType,
+	immutable Type candidateParamType,
 ) {
 	return matchType(
 		candidateParamType,
@@ -372,13 +378,22 @@ immutable(Type) getCandidateExpectedParameterType(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref const Candidate candidate,
-	ref immutable size_t argIdx,
+	immutable size_t argIdx,
 ) {
 	return getCandidateExpectedParameterTypeRecur(
 		alloc,
 		programState,
 		candidate,
-		at(params(candidate.called), argIdx).type);
+		paramTypeAt(params(candidate.called), argIdx));
+}
+
+immutable(Type) paramTypeAt(ref immutable Params params, immutable size_t argIdx) {
+	return matchParams!(immutable Type)(
+		params,
+		(immutable Param[] params) =>
+			at(params, argIdx).type,
+		(ref immutable Params.Varargs varargs) =>
+			varargs.elementType);
 }
 
 struct CommonOverloadExpected {
@@ -493,7 +508,7 @@ void filterByParamType(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref MutArr!Candidate candidates,
-	ref immutable Type actualArgType,
+	immutable Type actualArgType,
 	immutable size_t argIdx,
 ) {
 	// Remove candidates that can't accept this as a param. Also does type argument inference on the candidate.
@@ -511,10 +526,16 @@ immutable(Opt!Called) findSpecSigImplementation(Alloc)(
 	ref immutable Sig specSig,
 	immutable Ptr!FunDecl outerCalled,
 ) {
-	MutArr!Candidate candidates = getInitialCandidates(alloc, ctx, specSig.name, emptyArr!Type, arity(specSig));
+	immutable size_t nParams = matchArity!(immutable size_t)(
+		arity(specSig),
+		(immutable size_t n) =>
+			n,
+		(ref immutable Arity.Varargs) =>
+			todo!(immutable size_t)("varargs in spec?"));
+	MutArr!Candidate candidates = getInitialCandidates(alloc, ctx, specSig.name, emptyArr!Type, nParams);
 	filterByReturnType(alloc, programState(ctx), candidates, specSig.returnType);
-	foreach (immutable size_t argIdx; 0 .. arity(specSig))
-		filterByParamType(alloc, programState(ctx), candidates, at(specSig.params, argIdx).type, argIdx);
+	foreach (immutable size_t argIdx; 0 .. nParams)
+		filterByParamType(alloc, programState(ctx), candidates, paramTypeAt(specSig.params, argIdx), argIdx);
 
 	// If any candidates left take specs -- leave as a TODO
 	const Candidate[] candidatesArr = moveToArr_const(alloc, candidates);

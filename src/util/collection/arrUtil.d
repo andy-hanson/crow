@@ -273,7 +273,7 @@ immutable(T[]) copyArr(T, Alloc)(ref Alloc alloc, immutable T[] a) {
 @trusted immutable(Out[]) mapWithFirst(Out, In, Alloc)(
 	ref Alloc alloc,
 	immutable Out first,
-	ref immutable In[] a,
+	scope immutable In[] a,
 	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	immutable Opt!Out someFirst = some!Out(first);

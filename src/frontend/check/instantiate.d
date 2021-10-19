@@ -11,10 +11,12 @@ import model.model :
 	decl,
 	FunDeclAndArgs,
 	FunInst,
+	matchParams,
 	matchSpecBody,
 	matchStructBody,
 	matchType,
 	Param,
+	Params,
 	Purity,
 	RecordField,
 	setBody,
@@ -37,7 +39,7 @@ import util.collection.arr : ptrAt, size, sizeEq;
 import util.collection.arrUtil : arrLiteral, fold, map;
 import util.collection.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
 import util.collection.mutArr : MutArr, push;
-import util.memory : nu, nuMut;
+import util.memory : allocate, nu, nuMut;
 import util.opt : force, has, none, noneMut, Opt, some, someConst, someMut;
 import util.ptr : castImmutable, Ptr, ptrEquals;
 import util.util : verify;
@@ -120,6 +122,15 @@ private immutable(Type) instantiateType(Alloc)(
 		},
 		(immutable Ptr!StructInst i) =>
 			immutable Type(instantiateStructInst(alloc, programState, i, typeParamsAndArgs, delayStructInsts)));
+}
+
+private immutable(Type) instantiateTypeNoDelay(Alloc)(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	ref immutable Type type,
+	ref immutable TypeParamsAndArgs typeParamsAndArgs,
+) {
+	return instantiateType(alloc, programState, type, typeParamsAndArgs, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }
 
 private immutable(Type) instantiateType(Alloc)(
@@ -324,12 +335,23 @@ immutable(Sig) instantiateSig(Alloc)(
 ) {
 	immutable Type returnType = instantiateType(
 		alloc, programState, sig.returnType, typeParamsAndArgs, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
-	immutable Param[] params = map!Param(alloc, sig.params, (ref immutable Param p) =>
-		withType(p, instantiateType(
-			alloc,
-			programState,
-			p.type,
-			typeParamsAndArgs,
-			noneMut!(Ptr!(MutArr!(Ptr!StructInst))))));
+	immutable Params params = matchParams!(immutable Params)(
+		sig.params,
+		(immutable Param[] params) =>
+			immutable Params(map!Param(alloc, params, (ref immutable Param p) =>
+				instantiateParam(alloc, programState, typeParamsAndArgs, p))),
+		(ref immutable Params.Varargs v) =>
+			immutable Params(allocate(alloc, immutable Params.Varargs(
+				instantiateParam(alloc, programState, typeParamsAndArgs, v.param),
+				instantiateTypeNoDelay(alloc, programState, v.elementType, typeParamsAndArgs)))));
 	return immutable Sig(sig.fileAndPos, sig.name, returnType, params);
+}
+
+immutable(Param) instantiateParam(Alloc)(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	ref immutable TypeParamsAndArgs typeParamsAndArgs,
+	ref immutable Param a,
+) {
+	return withType(a, instantiateTypeNoDelay(alloc, programState, a.type, typeParamsAndArgs));
 }

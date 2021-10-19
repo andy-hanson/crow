@@ -29,7 +29,7 @@ import util.sym :
 	symSize,
 	writeSym;
 import util.types : Int64, Nat16, Nat64, safeSizeTToU32;
-import util.util : todo, verify;
+import util.util : todo, unreachable, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
 struct AbsolutePathsGetter {
@@ -215,19 +215,131 @@ immutable(Param) withType(ref immutable Param a, immutable Type t) {
 	return Param(a.range, a.name, t, a.index);
 }
 
+struct Params {
+	@safe @nogc pure nothrow:
+
+	struct Varargs {
+		immutable Param param;
+		immutable Type elementType;
+	}
+
+	immutable this(immutable Param[] a) { kind = Kind.regular; regular = a; }
+	immutable this(immutable Ptr!Varargs a) { kind = Kind.varargs; varargs = a; }
+
+	private:
+	enum Kind {
+		regular,
+		varargs,
+	}
+	immutable Kind kind;
+	union {
+		immutable Param[] regular;
+		immutable Ptr!Varargs varargs;
+	}
+}
+
+@trusted immutable(T) matchParams(T)(
+	ref immutable Params a,
+	scope immutable(T) delegate(immutable Param[]) @safe @nogc pure nothrow cbRegular,
+	scope immutable(T) delegate(ref immutable Params.Varargs) @safe @nogc pure nothrow cbVarargs,
+) {
+	final switch (a.kind) {
+		case Params.Kind.regular:
+			return cbRegular(a.regular);
+		case Params.Kind.varargs:
+			return cbVarargs(a.varargs);
+	}
+}
+
+@trusted immutable(Param[]) paramsArray(return scope ref immutable Params a) {
+	final switch (a.kind) {
+		case Params.Kind.regular:
+			return a.regular;
+		case Params.Kind.varargs:
+			return (&a.varargs.param)[0 .. 1];
+	}
+}
+
+immutable(Param[]) assertNonVariadic(ref immutable Params a) {
+	return matchParams!(immutable Param[])(
+		a,
+		(immutable Param[] p) =>
+			p,
+		(ref immutable Params.Varargs v) =>
+			unreachable!(immutable Param[]));
+}
+struct Arity {
+	@safe @nogc pure nothrow:
+
+	struct Varargs {}
+
+	immutable this(immutable size_t a) { kind = Kind.regular; regular = a; }
+	immutable this(immutable Varargs a) { kind = Kind.varargs; varargs = a; }
+
+	private:
+	enum Kind {
+		regular,
+		varargs,
+	}
+	immutable Kind kind;
+	union {
+		immutable size_t regular;
+		immutable Varargs varargs;
+	}
+}
+
+@trusted immutable(T) matchArity(T)(
+	immutable Arity a,
+	scope immutable(T) delegate(immutable size_t) @safe @nogc pure nothrow cbRegular,
+	scope immutable(T) delegate(ref immutable Arity.Varargs) @safe @nogc pure nothrow cbVarargs,
+) {
+	final switch (a.kind) {
+		case Arity.Kind.regular:
+			return cbRegular(a.regular);
+		case Arity.Kind.varargs:
+			return cbVarargs(a.varargs);
+	}
+}
+
+immutable(bool) arityIsNonZero(immutable Arity a) {
+	return matchArity!(immutable bool)(
+		a,
+		(immutable size_t size) =>
+			size != 0,
+		(ref immutable Arity.Varargs) =>
+			true);
+}
+
+immutable(bool) arityMatches(immutable Arity sigArity, immutable size_t nArgs) {
+	return matchArity!(immutable bool)(
+		sigArity,
+		(immutable size_t nParams) =>
+			nParams == nArgs,
+		(ref immutable Arity.Varargs) =>
+			true);
+}
+
+immutable(Arity) arity(ref immutable Params a) {
+	return matchParams(
+		a,
+		(immutable Param[] params) =>
+			immutable Arity(size(params)),
+		(ref immutable Params.Varargs) =>
+			immutable Arity(immutable Arity.Varargs()));
+}
+
 struct Sig {
 	@safe @nogc pure nothrow:
 
 	immutable FileAndPos fileAndPos;
 	immutable Sym name;
 	immutable Type returnType;
-	immutable Param[] params;
+	immutable Params params;
 
 	immutable(RangeWithinFile) range() immutable {
 		return rangeOfStartAndName(fileAndPos.pos, name);
 	}
 }
-static assert(Sig.sizeof <= 48);
 
 immutable(FileAndRange) range(ref immutable Sig a) {
 	return immutable FileAndRange(
@@ -235,8 +347,8 @@ immutable(FileAndRange) range(ref immutable Sig a) {
 		immutable RangeWithinFile(a.fileAndPos.pos, safeSizeTToU32(a.fileAndPos.pos + symSize(a.name))));
 }
 
-immutable(size_t) arity(ref const Sig a) {
-	return size(a.params);
+immutable(Arity) arity(ref const Sig a) {
+	return arity(a.params);
 }
 
 struct RecordField {
@@ -858,7 +970,7 @@ ref immutable(Type) returnType(return scope ref immutable FunDecl a) {
 	return a.sig.returnType;
 }
 
-ref immutable(Param[]) params(return scope ref immutable FunDecl a) {
+ref immutable(Params) params(return scope ref immutable FunDecl a) {
 	return a.sig.params;
 }
 
@@ -873,7 +985,7 @@ immutable(bool) isTemplate(ref immutable FunDecl a) {
 	return !empty(a.typeParams) || !empty(a.specs);
 }
 
-immutable(size_t) arity(ref const FunDecl a) {
+immutable(Arity) arity(ref const FunDecl a) {
 	return arity(a.sig);
 }
 
@@ -938,7 +1050,7 @@ ref immutable(Type) returnType(return scope ref immutable FunInst a) {
 	return a.sig.returnType;
 }
 
-ref immutable(Param[]) params(return scope ref immutable FunInst a) {
+ref immutable(Params) params(return scope ref immutable FunInst a) {
 	return a.sig.params;
 }
 
@@ -958,7 +1070,7 @@ immutable(bool) noCtx(ref immutable FunInst a) {
 	return decl(a).deref.noCtx;
 }
 
-immutable(size_t) arity(ref immutable FunInst a) {
+immutable(Arity) arity(ref immutable FunInst a) {
 	return arity(decl(a).deref);
 }
 
@@ -1034,7 +1146,7 @@ ref immutable(Type) returnType(return scope ref immutable CalledDecl a) {
 	return a.sig.returnType;
 }
 
-ref immutable(Param[]) params(return scope ref immutable CalledDecl a) {
+ref immutable(Params) params(return scope ref immutable CalledDecl a) {
 	return a.sig.params;
 }
 
@@ -1045,8 +1157,8 @@ immutable(TypeParam[]) typeParams(return scope ref immutable CalledDecl a) {
 		(ref immutable SpecSig) => emptyArr!TypeParam);
 }
 
-immutable(size_t) arity(ref immutable CalledDecl a) {
-	return size(params(a));
+immutable(Arity) arity(ref immutable CalledDecl a) {
+	return arity(params(a));
 }
 
 immutable(size_t) nTypeParams(ref immutable CalledDecl a) {
@@ -1122,15 +1234,15 @@ immutable(Sym) name(ref immutable Called a) {
 }
 
 ref immutable(Type) returnType(return scope ref immutable Called a) {
-	return a.sig.returnType;
+	return sig(a).returnType;
 }
 
-ref immutable(Param[]) params(return scope ref immutable Called a) {
-	return a.sig.params;
+ref immutable(Params) params(return scope ref immutable Called a) {
+	return sig(a).params;
 }
 
-immutable(size_t) arity(ref immutable Called a) {
-	return a.sig.arity;
+immutable(Arity) arity(ref immutable Called a) {
+	return arity(sig(a));
 }
 
 struct StructOrAlias {

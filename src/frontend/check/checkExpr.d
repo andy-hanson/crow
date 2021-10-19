@@ -60,7 +60,9 @@ import frontend.parse.ast :
 import model.constant : Constant;
 import model.diag : Diag;
 import model.model :
+	Arity,
 	arity,
+	assertNonVariadic,
 	asStructInst,
 	body_,
 	Called,
@@ -81,6 +83,7 @@ import model.model :
 	isStructInst,
 	isTemplate,
 	Local,
+	matchArity,
 	matchCalledDecl,
 	matchStructBody,
 	matchType,
@@ -862,7 +865,13 @@ immutable(CheckedExpr) checkFunPtr(Alloc)(
 		todo!void("can't point to template");
 	if (!funDecl.noCtx)
 		todo!void("fun-ptr can't take ctx");
-	if (arity(funDecl) >= size(ctx.commonTypes.funPtrStructs))
+	immutable size_t nParams = matchArity!(immutable size_t)(
+		arity(funDecl),
+		(immutable size_t n) =>
+			n,
+		(ref immutable Arity.Varargs) =>
+			todo!(immutable size_t)("ptr to variadic function?"));
+	if (nParams >= size(ctx.commonTypes.funPtrStructs))
 		todo!void("arity too high");
 
 	immutable Ptr!FunInst funInst = instantiateFun(
@@ -870,9 +879,10 @@ immutable(CheckedExpr) checkFunPtr(Alloc)(
 		ctx.programState,
 		immutable FunDeclAndArgs(funDecl, emptyArr!Type, emptyArr!Called));
 
-	immutable Ptr!StructDecl funPtrStruct = at(ctx.commonTypes.funPtrStructs, arity(funInst));
+	immutable Ptr!StructDecl funPtrStruct = at(ctx.commonTypes.funPtrStructs, nParams);
 	immutable Type[] returnTypeAndParamTypes =
-		mapWithFirst(alloc, returnType(funDecl), params(funInst), (ref immutable Param it) => it.type);
+		mapWithFirst(alloc, returnType(funDecl), assertNonVariadic(params(funInst)), (ref immutable Param it) =>
+			it.type);
 
 	immutable Ptr!StructInst structInst = instantiateStructNeverDelay(
 		alloc,

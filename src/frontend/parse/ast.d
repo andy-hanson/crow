@@ -611,13 +611,47 @@ struct SpecUseAst {
 	immutable ArrWithSize!TypeAst typeArgs;
 }
 
-struct SigAst {
+struct ParamsAst {
 	@safe @nogc pure nothrow:
 
+	struct Varargs {
+		immutable ParamAst param;
+	}
+
+	immutable this(immutable ArrWithSize!ParamAst a) { kind = Kind.regular; regular = a; }
+	immutable this(immutable Ptr!Varargs a) { kind = Kind.varargs; varargs = a; }
+
+	private:
+
+	enum Kind {
+		regular,
+		varargs,
+	}
+	immutable Kind kind;
+	union {
+		immutable ArrWithSize!ParamAst regular;
+		immutable Ptr!Varargs varargs;
+	}
+}
+
+@trusted immutable(T) matchParamsAst(T)(
+	ref immutable ParamsAst a,
+	scope immutable(T) delegate(immutable ParamAst[]) @safe @nogc pure nothrow cbRegular,
+	scope immutable(T) delegate(ref immutable ParamsAst.Varargs) @safe @nogc pure nothrow cbVarargs,
+) {
+	final switch (a.kind) {
+		case ParamsAst.Kind.regular:
+			return cbRegular(toArr(a.regular));
+		case ParamsAst.Kind.varargs:
+			return cbVarargs(a.varargs);
+	}
+}
+
+struct SigAst {
 	immutable RangeWithinFile range;
 	immutable Sym name; // Range starts at sig.range.start
 	immutable TypeAst returnType;
-	immutable ArrWithSize!ParamAst params;
+	immutable ParamsAst params;
 }
 
 enum PuritySpecifier {
@@ -1231,7 +1265,12 @@ immutable(Repr) reprSig(Alloc)(ref Alloc alloc, ref immutable SigAst a) {
 		reprRangeWithinFile(alloc, a.range),
 		reprSym(a.name),
 		reprTypeAst(alloc, a.returnType),
-		reprArr(alloc, toArr(a.params), (ref immutable ParamAst p) => reprParamAst(alloc, p))]);
+		matchParamsAst!(immutable Repr)(
+			a.params,
+			(immutable ParamAst[] params) =>
+				reprArr(alloc, params, (ref immutable ParamAst p) => reprParamAst(alloc, p)),
+			(ref immutable ParamsAst.Varargs v) =>
+				reprRecord(alloc, "varargs", [reprParamAst(alloc, v.param)]))]);
 }
 
 immutable(Repr) reprSpecUseAst(Alloc)(ref Alloc alloc, ref immutable SpecUseAst a) {

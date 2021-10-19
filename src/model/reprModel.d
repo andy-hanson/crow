@@ -20,12 +20,14 @@ import model.model :
 	matchCalled,
 	matchExpr,
 	matchFunBody,
+	matchParams,
 	matchType,
 	Module,
 	ModuleAndNames,
 	name,
 	noCtx,
 	Param,
+	Params,
 	Purity,
 	Sig,
 	SpecDecl,
@@ -163,8 +165,13 @@ immutable(Repr) reprSig(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Sig a
 		reprFileAndPos(alloc, a.fileAndPos),
 		reprSym(a.name),
 		reprType(alloc, ctx, a.returnType),
-		reprArr(alloc, a.params, (ref immutable Param it) =>
-			reprParam(alloc, ctx, it))]);
+		matchParams!(immutable Repr)(
+			a.params,
+			(immutable Param[] params) =>
+				reprArr(alloc, params, (ref immutable Param it) =>
+					reprParam(alloc, ctx, it)),
+			(ref immutable Params.Varargs v) =>
+				reprRecord(alloc, "varargs", [reprParam(alloc, ctx, v.param)]))]);
 }
 
 immutable(Repr) reprParam(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Param a) {

@@ -5,15 +5,18 @@ module frontend.showDiag;
 import model.diag : Diagnostic, Diag, Diags, FilesInfo, matchDiag, TypeKind, writeFileAndRange;
 import model.model :
 	arity,
+	arityMatches,
 	bestCasePurity,
 	CalledDecl,
 	decl,
 	EnumBackingType,
 	FunDecl,
 	matchCalledDecl,
+	matchParams,
 	name,
 	nTypeParams,
 	Param,
+	Params,
 	Purity,
 	range,
 	RecordField,
@@ -289,9 +292,17 @@ void writeSig(Alloc)(ref Writer!Alloc writer, ref immutable Sig s) {
 	writeChar(writer, ' ');
 	writeType(writer, s.returnType);
 	writeChar(writer, '(');
-	writeWithCommas!Param(writer, s.params, (ref immutable Param p) {
-		writeType(writer, p.type);
-	});
+	matchParams!void(
+		s.params,
+		(immutable Param[] params) {
+			writeWithCommas!Param(writer, params, (ref immutable Param p) {
+				writeType(writer, p.type);
+			});
+		},
+		(ref immutable Params.Varargs varargs) {
+			writeStatic(writer, "...");
+			writeType(writer, varargs.param.type);
+		});
 	writeChar(writer, ')');
 }
 
@@ -366,7 +377,7 @@ void writeCallNoMatch(Alloc, PathAlloc)(
 			nTypeParams(c) == d.actualNTypeArgs);
 	immutable bool someCandidateHasCorrectArity = exists!CalledDecl(d.allCandidates, (ref immutable CalledDecl c) =>
 		(d.actualNTypeArgs == 0 || nTypeParams(c) == d.actualNTypeArgs) &&
-		arity(c) == d.actualArity);
+		arityMatches(arity(c), d.actualArity));
 
 	if (empty(d.allCandidates)) {
 		writeStatic(writer, "there is no function ");
@@ -422,7 +433,7 @@ void writeCallNoMatch(Alloc, PathAlloc)(
 		writeNat(writer, d.actualArity);
 		writeStatic(writer, " arguments):");
 		writeCalledDecls(writer, allPaths, options, fi, d.allCandidates, (ref immutable CalledDecl c) =>
-			arity(c) == d.actualArity);
+			arityMatches(arity(c), d.actualArity));
 	}
 }
 

@@ -15,6 +15,7 @@ import model.model :
 	NameReferents,
 	Param,
 	params,
+	paramsArray,
 	Program,
 	RecordField,
 	returnType,
@@ -220,7 +221,8 @@ void writeFun(Alloc)(ref Writer!Alloc writer, ref immutable FunDecl a) {
 	writeStatic(writer, ", ");
 	writeQuotedType(writer, returnType(a));
 	writeStatic(writer, ", [");
-	writeWithCommas!(Param, Alloc)(writer, params(a), (ref immutable Param it) {
+	//TODO: handle variadic
+	writeWithCommas!(Param, Alloc)(writer, paramsArray(params(a)), (ref immutable Param it) {
 		writeChar(writer, '[');
 		writeQuotedOptSym(writer, it.name);
 		writeStatic(writer, ", ");

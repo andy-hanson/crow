@@ -14,6 +14,7 @@ import frontend.parse.ast :
 	LiteralIntOrNat,
 	NameAndRange,
 	ParamAst,
+	ParamsAst,
 	PuritySpecifier,
 	PuritySpecifierAndRange,
 	RecordModifiers,
@@ -271,7 +272,7 @@ void takeCommaSeparatedNames(Alloc, SymAlloc)(
 }
 
 struct ParamsAndMaybeDedent {
-	immutable ArrWithSize!ParamAst params;
+	immutable ParamsAst params;
 	// 0 if we took a newline but it didn't change the indent level from before parsing params.
 	immutable Opt!size_t dedents;
 }
@@ -286,13 +287,17 @@ immutable(ParamAst) parseSingleParam(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer
 	return immutable ParamAst(range(lexer, start), name, type);
 }
 
-immutable(ArrWithSize!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(
+immutable(ParamsAst) parseParenthesizedParams(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
 	if (tryTake(lexer, ')'))
-		return emptyArrWithSize!ParamAst;
-	else {
+		return immutable ParamsAst(emptyArrWithSize!ParamAst);
+	else if (tryTake(lexer, "...")) {
+		immutable ParamAst param = parseSingleParam(alloc, lexer);
+		takeOrAddDiagExpected(alloc, lexer, ')', ParseDiag.Expected.Kind.closingParen);
+		return immutable ParamsAst(allocate(alloc, immutable ParamsAst.Varargs(param)));
+	} else {
 		ArrWithSizeBuilder!ParamAst res;
 		for (;;) {
 			add(alloc, res, parseSingleParam(alloc, lexer));
@@ -303,7 +308,7 @@ immutable(ArrWithSize!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(
 				break;
 			}
 		}
-		return finishArrWithSize(alloc, res);
+		return immutable ParamsAst(finishArrWithSize(alloc, res));
 	}
 }
 
@@ -313,7 +318,9 @@ immutable(ParamsAndMaybeDedent) parseIndentedParams(Alloc, SymAlloc)(ref Alloc a
 		add(alloc, res, parseSingleParam(alloc, lexer));
 		immutable size_t dedents = takeNewlineOrDedentAmount(alloc, lexer, 1);
 		if (dedents != 0)
-			return ParamsAndMaybeDedent(finishArrWithSize(alloc, res), some(dedents - 1));
+			return immutable ParamsAndMaybeDedent(
+				immutable ParamsAst(finishArrWithSize(alloc, res)),
+				some(dedents - 1));
 	}
 }
 
@@ -323,7 +330,7 @@ immutable(ParamsAndMaybeDedent) parseParams(Alloc, SymAlloc)(ref Alloc alloc, re
 	else
 		final switch (takeNewlineOrIndent_topLevel(alloc, lexer)) {
 			case NewlineOrIndent.newline:
-				return ParamsAndMaybeDedent(emptyArrWithSize!ParamAst, some!size_t(0));
+				return immutable ParamsAndMaybeDedent(immutable ParamsAst(emptyArrWithSize!ParamAst), some!size_t(0));
 			case NewlineOrIndent.indent:
 				return parseIndentedParams(alloc, lexer);
 		}
@@ -347,8 +354,8 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(Alloc, SymAlloc)(
 ) {
 	immutable TypeAst returnType = parseType(alloc, lexer);
 	immutable ParamsAndMaybeDedent params = parseParams(alloc, lexer);
-	immutable Ptr!SigAst sigAst = nu!SigAst(alloc, range(lexer, start), name, returnType, params.params);
-	return SigAstAndMaybeDedent(sigAst, params.dedents);
+	immutable SigAst sigAst = allocate(alloc, immutable SigAst(range(lexer, start), name, returnType, params.params));
+	return immutable SigAstAndMaybeDedent(allocate(alloc, sigAst), params.dedents);
 }
 
 immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(
