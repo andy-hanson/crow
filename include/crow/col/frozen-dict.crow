@@ -267,7 +267,7 @@ fold-with-index<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
 	a.bucket-starts map (ptr => ptr - a.pairs.begin-ptr) is bucket-starts
 
 test
-	a frozen-dict<nat64, str> = new
+	a frozen-dict<nat64, str> = ()
 	a.is-empty is true
 	a.size is 0
 	a verify [], []

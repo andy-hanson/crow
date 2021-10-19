@@ -43,7 +43,7 @@ new<a> sorted-set a() data<a> compare<a>
 	[] sorted-set
 
 sorted-set<a> sorted-set a(a a[]) data<a> compare<a>
-	(a.sort, none), new
+	(a.sort, none), ()
 
 arr<a> a[](a sorted-set a) data<a> compare<a>
 	a map-to-arr x => x
@@ -119,7 +119,7 @@ try-remove<a> sorted-set<a>?(a sorted-set a, value a) trusted data<a> compare<a>
 .add-and-maybe-compact<a> sorted-set a(a sorted-set a, value a) trusted compare<a>
 	add-size = a.add add-size
 	if add-size == 0
-		([value], none), new
+		([value], none), ()
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
@@ -173,7 +173,7 @@ Or a combination of the two.
 		if left ?= a.add left
 			left, new-remove
 		else
-			new
+			()
 	else
 		compacted = plan.compacted-size uninitialized-fix-arr<a>
 		compactor compactor a = compacted.begin-ptr.as-const, compacted.begin-ptr, compacted.end-ptr.as-const
@@ -376,7 +376,7 @@ map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted data<in> compa
 
 # TODO:PRIVATE
 dbg<a> str(a sorted-set a) to-str<a>
-	out writer = new
+	out writer = ()
 	out dbg-add-recur! a.add
 	if !a.remove.is-empty
 		out ~= " - ["
@@ -408,7 +408,7 @@ dbg<a> str(a sorted-set a) to-str<a>
 test
 	info log "SET TEST START"
 	# TODO: be sure to test removing and then adding back
-	a sorted-set str = new
+	a sorted-set str = ()
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"

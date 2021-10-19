@@ -17,7 +17,7 @@ import
 
 main fut nat(_ str[]) unsafe summon
 	print: "Hello, world!"
-	db-path with-env true.new, env =>
+	db-path with-env (true,), env =>
 		env with-db db =>
 			if false
 				match db register-user! "alice", "swordfish"
@@ -88,7 +88,7 @@ db record mut
 	post-content lmdb-db<post, str>
 
 open-real-db db() unsafe summon
-	env = db-path lmdb-open-env true.new
+	env = db-path lmdb-open-env (true,)
 	env db-open
 
 close-real-db void(db db) unsafe summon

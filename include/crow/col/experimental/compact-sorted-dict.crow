@@ -409,7 +409,7 @@ body
 
 # TODO:PRIVATE
 dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
-	out writer = new
+	out writer = ()
 	out dbg-recur! a.impl
 	out move-to-str!
 
@@ -464,7 +464,7 @@ verify void(a compact-sorted-dict<nat64, str>, expected str)
 			ea arr-ref-eq eb
 
 test
-	a compact-sorted-dict<nat64, str> = new
+	a compact-sorted-dict<nat64, str> = ()
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"

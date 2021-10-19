@@ -1,7 +1,7 @@
 no-std
 import
 	sys/execinfo: backtrace
-	../col/arr: subscript
+	../col/arr: new, subscript
 	../compare: <, <=, >
 	../misc: name, named-val, val
 	../ptr:
@@ -25,10 +25,9 @@ get-backtrace backtrace() unsafe
 		arrs.funs sort! all-funs.size
 		end-code-names = arrs.code-names + n-code-ptrs
 		arrs.code-names fill-code-names! end-code-names, arrs.code-ptrs.as-const, arrs.funs.as-const
-		arrs.code-names.as-const[0 .. n-code-ptrs] new
+		arrs.code-names.as-const[0 .. n-code-ptrs],
 	else
-		# TODO: 'as' should be unnecessary
-		[].as<sym[]> new
+		().as<sym[]>,
 
 .fill-code-names! void
 	code-names sym mut*

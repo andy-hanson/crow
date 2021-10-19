@@ -26,7 +26,7 @@ mut-sorted-set<a> record mut
 
 # New empty `mut-sorted-set`.
 new<a> mut-sorted-set a() data<a> compare<a>
-	void, new
+	void, ()
 
 ###
 Copies the arr to a new mut-sorted-set.

@@ -30,7 +30,7 @@ perf-get-measure measure-value(name str) summon
 		perf.measure-values[index]
 
 perf-now perf-time() noctx
-	get-monotime-nsec new
+	get-monotime-nsec,
 
 perf-measure void(start perf-time, name str)
 	perf = get-perf-ctx

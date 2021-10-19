@@ -41,10 +41,10 @@ Starts running an HTTP server on the given port.
 Once the future is resolved, it is already serving requests.
 ###
 start-http-server fut http-server(port str, handler http-handler) trusted summon
-	client-states http-parse-state mut[fd-t] = new
+	client-states http-parse-state mut[fd-t] = ()
 
 	on-accepted-client ref void(fd-t) = fd =>
-		client-states[fd] := new
+		client-states[fd] := ()
 		void resolved
 	on-received-chunk ref void(fd-t, nat8[]) = (fd, bytes) =>
 		if state ?= client-states[fd]
@@ -61,7 +61,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	ignore <- handler[(http-get, "", [].dict, "")]
 	drop: ignore
 
-	tcp-server.stop.new resolved
+	(tcp-server.stop,) resolved
 
 # Returns true when closed client
 .handle-chunk fut bool(fd fd-t, state http-parse-state, chunk str, handler http-handler) summon trusted
@@ -79,7 +79,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 			o
 		as err e
 			error log e.to-str
-			500, "Internal server error", new, "Internal server error"
+			500, "Internal server error", (), "Internal server error"
 		res-str = response response-to-str
 		wrote = fd write res-str.chars.begin-ptr.ptr-cast<nat8, char>, res-str.size-bytes
 		assert: wrote == res-str.size-bytes.to-int64
@@ -93,7 +93,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 
 # TODO: write out to a stream, not str
 .response-to-str str(a http-response)
-	res writer = new
+	res writer = ()
 	res ~= "HTTP/1.1 "
 	res ~= a.status to-str
 	res ~= " "
@@ -176,4 +176,4 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	unparsed char mut[]
 
 .new http-parse-state()
-	http-get, "", new, 0, new
+	http-get, "", (), 0, ()

@@ -20,7 +20,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 		err: failures
 
 .list-lintable-files str[](path str) summon
-	res str mut[] = new
+	res str mut[] = ()
 	path each-child-recursive (child => !child.excluded-from-lint), child =>
 		if !child.base-name.should-ignore-extension-of-name
 			res ~= child
@@ -34,7 +34,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 # Returns numner of errors
 .lint-file failure[](path str) summon
 	text = path read-file
-	res failure mut[] = new
+	res failure mut[] = ()
 	ext = path.get-extension force
 	allow-double-space = ext == "err" || ext == "sublime-syntax"
 	text.lines each-with-index (line, line-num) =>
@@ -64,8 +64,8 @@ lint result<str, failure[]>(path str, options test-options) summon
 
 # TODO: move to str-util, make a generic 'split' function
 .lines str[](s str)
-	res str mut[] = new
-	last-nl cell nat = 0 new
+	res str mut[] = ()
+	last-nl cell nat = 0,
 	s.chars each-with-index (c, index) =>
 		if c == "\n"
 			nl = last-nl swap index + 1

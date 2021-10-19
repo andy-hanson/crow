@@ -236,7 +236,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 	stack mut-stack inner-node a
 
 .iter<a> iter a(a tree-set a) trusted
-	stack mut-stack inner-node a = new
+	stack mut-stack inner-node a = ()
 	cur = stack init-iter-recur! a.root
 	cur, stack
 .init-iter-recur!<a> a[](stack mut-stack inner-node a, node node a)
@@ -477,7 +477,7 @@ map<out, in> tree-set out(a tree-set in, f act out(in)) data<in> compare<in> dat
 
 # TODO:PRIVATE
 dbg<a> str(a tree-set a) to-str<a>
-	res writer = new
+	res writer = ()
 	res dbg-recur! a.root
 	res move-to-str!
 .dbg-recur!<a> void(res writer, a node a) to-str<a>

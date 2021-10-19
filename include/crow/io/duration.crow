@@ -8,16 +8,16 @@ duration record
 	nsec nat64
 
 seconds duration(a nat64)
-	a * 1000000000 new
+	a * 1000000000,
 
 msec duration(a nat64)
-	a * 1000000 new
+	a * 1000000,
 
 usec duration(a nat64)
-	a * 1000 new
+	a * 1000,
 
 nsec duration(a nat64)
-	a new
+	a,
 
 msec nat64(a duration)
 	# TODO:ROUND

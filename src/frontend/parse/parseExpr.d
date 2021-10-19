@@ -41,6 +41,7 @@ import frontend.parse.lexer :
 	lookaheadWillTakeEqualsOrThen,
 	lookaheadWillTakeArrow,
 	next,
+	peekExact,
 	range,
 	Sign,
 	skipUntilNewlineNoDiag,
@@ -364,6 +365,9 @@ immutable(ExprAndDedent) parseMutEquals(Alloc, SymAlloc)(
 				final switch (beforeCall.style) {
 					case CallAst.Style.dot:
 						return CallAst.Style.setDot;
+					case CallAst.style.emptyParens:
+						// `() := foo` is a syntax error
+						return todo!(immutable CallAst.Style)("!");
 					case CallAst.Style.single:
 						return CallAst.Style.setSingle;
 					case CallAst.Style.subscript:
@@ -449,7 +453,8 @@ immutable(ExprAndMaybeNameOrDedent) parseCalls(Alloc, SymAlloc)(
 	ref immutable ExprAst lhs,
 	immutable ArgCtx argCtx,
 ) {
-	if (tryTake(lexer, ", ")) {
+	if (tryTake(lexer, ',')) {
+		tryTake(lexer, ' ');
 		if (canParseCommaExpr(argCtx))
 			return parseCallsAfterComma(alloc, lexer, start, lhs, argCtx);
 		else
@@ -476,7 +481,11 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterComma(Alloc, SymAlloc)(
 ) {
 	ArrWithSizeBuilder!ExprAst builder;
 	add(alloc, builder, lhs);
-	immutable ArgsAndMaybeNameOrDedent args = parseArgsRecur(alloc, lexer, requirePrecedenceGtComma(argCtx), builder);
+	immutable ArgsAndMaybeNameOrDedent args = peekExact(lexer, '\n') || peekExact(lexer, ')')
+		? immutable ArgsAndMaybeNameOrDedent(
+			finishArrWithSize(alloc, builder),
+			immutable OptNameOrDedent(immutable OptNameOrDedent.None()))
+		: parseArgsRecur(alloc, lexer, requirePrecedenceGtComma(argCtx), builder);
 	immutable RangeWithinFile range = range(lexer, start);
 	return immutable ExprAndMaybeNameOrDedent(
 		immutable ExprAst(range, immutable ExprAstKind(
@@ -867,8 +876,18 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 	immutable char c = next(lexer);
 	switch (c) {
 		case '(':
-			if (lookaheadWillTakeArrow(lexer)) {
+			if (lookaheadWillTakeArrow(lexer))
 				return parseLambdaWithParenthesizedParameters(alloc, lexer, start, allowedBlock);
+			else if (tryTake(lexer, ')')) {
+				immutable ExprAst expr = immutable ExprAst(
+					range(lexer, start),
+					immutable ExprAstKind(immutable CallAst(
+						CallAst.Style.emptyParens,
+						//TODO: range is wrong..
+						immutable NameAndRange(start, shortSymAlphaLiteral("new")),
+						emptyArrWithSize!TypeAst,
+						emptyArrWithSize!ExprAst)));
+				return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 			} else {
 				immutable ExprAst inner = parseExprNoBlock(alloc, lexer);
 				takeOrAddDiagExpected(alloc, lexer, ')', ParseDiag.Expected.Kind.closingParen);

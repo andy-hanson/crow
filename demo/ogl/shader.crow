@@ -27,14 +27,14 @@ shader-prog-load GLuint(vert-file-name str, frag-file-name str) summon unsafe
 	shader-prog glAttachShader frag-shader
 	shader-prog glLinkProgram
 	# TODO: type arg should not be needed
-	linking-succeeded cell GLint = GL_FALSE new
+	linking-succeeded cell GLint = GL_FALSE,
 	shader-prog glGetProgramiv GL_LINK_STATUS, linking-succeeded
 	vert-shader glDeleteShader
 	frag-shader glDeleteShader
 	if *linking-succeeded == GL_TRUE
 		shader-prog
 	else
-		log-length cell GLint = 0 new
+		log-length cell GLint = 0,
 		shader-prog glGetProgramiv GL_INFO_LOG_LENGTH, log-length
 		err-log = (*log-length).to-nat64 uninitialized-fix-arr<GLchar>
 		shader-prog glGetProgramInfoLog *log-length, log-length, err-log.begin-ptr
@@ -47,12 +47,12 @@ shader-prog-destroy void(shader-prog GLuint) summon unsafe
 .shader-load GLuint(file-name str, shader-type GLenum) summon unsafe
 	shader = file-name create-shader-from-source shader-type
 	shader glCompileShader
-	compile-succeeded cell GLint = GL_FALSE new
+	compile-succeeded cell GLint = GL_FALSE,
 	shader glGetShaderiv GL_COMPILE_STATUS, compile-succeeded
 	if *compile-succeeded == GL_TRUE
 		shader
 	else
-		log-length cell GLint = 0 new
+		log-length cell GLint = 0,
 		shader glGetShaderiv GL_INFO_LOG_LENGTH, log-length
 		err-log = (*log-length).to-nat64 uninitialized-fix-arr<GLchar>
 		shader glGetShaderInfoLog *log-length, log-length, err-log.begin-ptr

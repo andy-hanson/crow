@@ -49,7 +49,7 @@ row<a> fix-arr a(a mut-grid a, y nat64)
 	a.elements[begin .. (begin wrap-add a.width)]
 
 new<a> mut-grid a()
-	new, 0, 0
+	(), 0, 0
 
 size<a> nat64(a mut-grid a)
 	a.elements size
@@ -90,7 +90,7 @@ set-subscript<a> void(a mut-grid a, coord coord, value a)
 Represented with row 0 coming first.
 ###
 to-str<a> str(a mut-grid a) write<a>
-	res writer = new
+	res writer = ()
 	a each-row row =>
 		row each value =>
 			res ~= value

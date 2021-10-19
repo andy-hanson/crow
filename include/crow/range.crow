@@ -20,7 +20,7 @@ The beginning is inclusive and the end is exclusive.
 The beginning must be less than the end.
 ###
 iter iterator nat64(r range nat64)
-	n cell nat64 = r.low new
+	n cell nat64 = r.low,
 	new: () =>
 		if *n != r.high
 			res = *n

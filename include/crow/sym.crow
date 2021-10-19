@@ -44,7 +44,7 @@ str-to-sym sym(a str) trusted
 	if sym ?= gctx.dynamic-syms find-dynamic-sym a
 		sym
 	else
-		sym sym = a.to-malloced-c-str new
+		sym sym = a.to-malloced-c-str,
 		node-ptr = unmanaged-alloc-uninitialized<by-val dynamic-sym-node>
 		*node-ptr := sym, gctx.dynamic-syms
 		gctx.dynamic-syms := node-ptr.ref-of-ptr some

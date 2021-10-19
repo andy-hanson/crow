@@ -17,7 +17,7 @@ write<a> spec
 	~= void(writer writer, value a)
 
 new writer()
-	new new
+	(),
 
 move-to-str! str(a writer)
 	a.chars.move-to-arr! str

@@ -137,10 +137,10 @@ close-client void(client-fd fd-t) unsafe summon
 			state tcp-server-loop
 
 .accept-clients void(listen-fd fd-t, epoll-fd fd-t, on-accepted-client ref void(fd-t)) unsafe summon
-	clientaddr sockaddr_in = new
+	clientaddr sockaddr_in = ()
 	clientaddr-as-sockaddr = clientaddr.ptr-to ptr-cast-to-extern<sockaddr, sockaddr_in>
 	# TODO: should be able to write `size-of<sockaddr_in>.to-nat32`
-	addrlen by-val cell socklen_t = (size-of<sockaddr_in>).to-nat32 new
+	addrlen by-val cell socklen_t = (size-of<sockaddr_in>).to-nat32,
 	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val
 	if client-fd < 0
 		e = errno

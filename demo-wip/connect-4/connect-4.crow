@@ -112,7 +112,7 @@ score-cache alias
 .ai-best-x fut nat(board board, ai-depth nat)
 	<- delay
 	# Use a new cache each time, since each turn we're exploring to a further depth.
-	cache board-cache int32 = new
+	cache board-cache int32 = ()
 	resolved: cache strategy-recur board, ai-depth, (0, min-int32), 0, 0 x
 
 .strategy-score int32(cache score-cache, board board, ai-depth nat)

@@ -37,33 +37,33 @@ import
 main fut nat(_ str[]) summon
 	drop: [].from-bytes as<nat8[]>
 	drop: "" password-hash quality-moderate
-	drop: new.as<compact-dict<nat, nat>>
-	drop: new.as<compact-sorted-dict<nat, nat>>
-	drop: new.as<deque nat>
-	drop: new.as<nat[nat]>
-	drop: new.as<frozen-dict<nat, nat>>
-	drop: new.as<frozen-set nat>
-	drop: new.as<hamt-set nat>
-	drop: new.as<index-set>
+	drop: ().as<compact-dict<nat, nat>>
+	drop: ().as<compact-sorted-dict<nat, nat>>
+	drop: ().as<deque nat>
+	drop: ().as<nat[nat]>
+	drop: ().as<frozen-dict<nat, nat>>
+	drop: ().as<frozen-set nat>
+	drop: ().as<hamt-set nat>
+	drop: ().as<index-set>
 	drop: list<nat>
-	drop: new.as<nat mut[]>
-	drop: new.as<mut-deque nat>
-	drop: new.as<nat mut[nat]>
-	drop: new.as<mut-grid nat>
-	drop: new.as<mut-priority-queue<nat, nat>>
-	drop: new.as<mut-set nat>
-	drop: new.as<mut-sorted-dict<nat, nat>>
-	drop: new.as<mut-sorted-set nat>
-	drop: new.as<mut-stack nat>
+	drop: ().as<nat mut[]>
+	drop: ().as<mut-deque nat>
+	drop: ().as<nat mut[nat]>
+	drop: ().as<mut-grid nat>
+	drop: ().as<mut-priority-queue<nat, nat>>
+	drop: ().as<mut-set nat>
+	drop: ().as<mut-sorted-dict<nat, nat>>
+	drop: ().as<mut-sorted-set nat>
+	drop: ().as<mut-stack nat>
 	drop: perf-now
-	drop: new.as<priority-queue<nat, nat>>
-	drop: new.as<set nat>
-	drop: new.as<sorted-set nat>
-	drop: new.as<stack nat>
-	drop: new.as<tree-set nat>
-	drop: new.as<queue nat>
+	drop: ().as<priority-queue<nat, nat>>
+	drop: ().as<set nat>
+	drop: ().as<sorted-set nat>
+	drop: ().as<stack nat>
+	drop: ().as<tree-set nat>
+	drop: ().as<queue nat>
 	drop: gmt
-	drop: as<iterator<nat>>: new: () => none
+	drop: ((() => none),) as<iterator<nat>>
 	drop: "".json-str
 	drop: [] parse-named-args []
 	run-all-tests
@@ -76,7 +76,7 @@ test
 test
 	info log "READER TEST START"
 
-	r reader = "\"j\"" new
+	r reader = "\"j\"",
 	if s ?= r take-quoted-str!
 		info log "GOT A STRING: {s}"
 	else

@@ -25,8 +25,8 @@ with-webp<a> a(path str, cb act a(webp-rgba-image)) unsafe summon
 
 .load-webp webp-rgba-image(path str) unsafe summon
 	compressed = path read-file-binary
-	width cell c-int = 0 new
-	height cell c-int = 0 new
+	width cell c-int = 0,
+	height cell c-int = 0,
 	uncompressed = compressed.begin-ptr WebPDecodeRGBA compressed.size, width, height
 	uncompressed, (*width).to-nat64, (*height).to-nat64
 

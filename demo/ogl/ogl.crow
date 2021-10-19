@@ -198,7 +198,7 @@ continue-or-quit enum
 		void resolved
 
 .vbo-create GLuint(vertices fix-arr vertex) summon unsafe
-	vbo-cell cell GLuint = 0 new
+	vbo-cell cell GLuint = 0,
 	n-buffers = 1 to-int32
 	n-buffers glGenBuffers vbo-cell.as-ptr
 	vbo = *vbo-cell

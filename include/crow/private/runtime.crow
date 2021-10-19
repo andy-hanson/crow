@@ -92,10 +92,10 @@ new-exclusion exclusion(v island) noctx trusted
 	v.next-exclusion.ref-of-val get-and-increment!
 
 island by-val island(gctx global-ctx, id island-id, max-threads nat64) summon noctx unsafe
-	q by-val task-queue = max-threads new
+	q by-val task-queue = max-threads,
 	gc-root by-val island-gc-root = q, (exn => exn default-exception-handler), log =>
 		log default-log-handler
-	gctx, id, gc, gc-root, lock-by-val, 0, new
+	gctx, id, gc, gc-root, lock-by-val, 0, ()
 
 default-exception-handler void(e exception) summon unsafe
 	print-err-no-newline: "uncaught exception: "
@@ -108,7 +108,7 @@ set-this-islands-exception-handler void(exception-handler fun void(exception)) s
 
 add-task void(a island, timestamp timestamp, exclusion exclusion, action act void()) unsafe
 	# Do allocation outside of the lock
-	node task-queue-node = (timestamp, exclusion, action) new
+	node task-queue-node = (timestamp, exclusion, action),
 
 	a.tasks-lock.ref-of-val acquire!
 	a.tasks insert-task! node

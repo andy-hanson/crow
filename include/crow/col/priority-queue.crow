@@ -55,7 +55,7 @@ new<k, v> priority-queue<k, v>() data<k> compare<k>
 
 priority-queue<k, v> priority-queue<k, v>(a arrow<k, v>[]) data<k> compare<k>
 	if a is-empty
-		new
+		()
 	else
 		sorted = a sort-by pair => pair from
 		void, (sorted.first.force, sorted.tail, none).some
@@ -199,7 +199,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 		out
 
 .dbg str(a priority-queue<nat64, str>)
-	res writer = new
+	res writer = ()
 	res dbg-recur! a.root, true
 	res move-to-str!
 .dbg-recur! void(out writer, a node<nat64, str>?, first bool)
@@ -314,7 +314,7 @@ values<k, v> v[](a priority-queue<k, v>) data<k> compare<k>
 	a map-to-arr (k, v) => v
 
 test
-	p priority-queue<nat64, str> = new
+	p priority-queue<nat64, str> = ()
 
 	p1 = p ~ (5 -> "5")
 	p1.dbg is "5 5 []"

@@ -54,7 +54,7 @@ capacity<a> nat64(a a mut[]) noctx unsafe
 	a.backing size
 
 mut-arr-by-val<a> by-val a mut[]() noctx trusted
-	new, 0
+	(), 0
 
 mut-arr-by-val-with-capacity-from-unmanaged-memory<a> by-val<a mut[]>(capacity nat64) noctx unsafe
 	backing fix-arr a = capacity.unmanaged-alloc-zeroed-elements<a>[0 .. capacity]
@@ -69,14 +69,14 @@ fill-mut-arr<a> a mut[](size nat64, value a)
 
 # New empty `mut-arr`.
 new<a> a mut[]()
-	new, 0
+	(), 0
 
 ###
 Copies an `arr` to a `mut-arr`.
 Writes to the `mut-arr` won't affect the `arr`.
 ###
 mut-arr<a> a mut[](a a[])
-	res a mut[] = new
+	res a mut[] = ()
 	res ~= a
 	res
 
@@ -86,7 +86,7 @@ Copies a `fix-arr` to a `mut-arr`.
 Writes to the `mut-arr` won't affect the `fix-arr`.
 ###
 mut-arr<a> a mut[](a fix-arr a)
-	res a mut[] = new
+	res a mut[] = ()
 	res ~= a
 	res
 
@@ -116,7 +116,7 @@ move-to-arr!<a> a[](a a mut[]) noctx trusted
 
 move-to-fix-arr!<a> fix-arr a(a a mut[]) noctx trusted
 	res = a.begin-ptr[0 .. a.size]
-	a.backing := new
+	a.backing := ()
 	a.size := 0
 	res
 

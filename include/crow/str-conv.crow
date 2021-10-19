@@ -180,7 +180,7 @@ interp record mut
 	inner char mut[]
 
 interp interp()
-	new new
+	(),
 
 with-str interp(a interp, b str)
 	a.inner ~= b chars

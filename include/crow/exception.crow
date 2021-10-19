@@ -74,7 +74,7 @@ do-if-error<a> a(on-error act void(), try act a())
 		err throw
 
 to-str str(a exception) unsafe
-	res writer = new
+	res writer = ()
 	res ~= if a.message.is-empty
 		"<<empty message>>"
 	else

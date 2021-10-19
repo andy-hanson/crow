@@ -11,6 +11,9 @@ import
 export
 	../private/bootstrap: arr, begin-ptr, size
 
+new<a> a[]() noctx
+	[]
+
 end-ptr<a> a*(a a[]) noctx unsafe
 	a.begin-ptr + a.size
 

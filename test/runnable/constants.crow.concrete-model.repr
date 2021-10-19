@@ -1668,7 +1668,7 @@ program(
 				match-union(
 					call(try-alloc-backtrace-arrs, [])
 					[
-						case(none, call(new, [call(as, [record([0, null])])]))
+						case(none, call(new, [call(as, [call(new, [])])]))
 						case(
 							some("<<matched>>")
 							let(
@@ -2127,6 +2127,7 @@ program(
 			new-record)
 		fun(false, new, type(false, backtrace), none, [param(return-stack, type(false, arr))], new-record)
 		fun(false, as, type(false, arr), none, [param(value, type(false, arr))], builtin([type(false, arr)]))
+		fun(false, new, type(false, arr), none, [], expr-body(record([0, null])))
 		fun(false, unsafe-to-nat64, type(false, nat64), none, [param(a, type(false, int64))], builtin([]))
 		fun(false, to-int64, type(false, int64), none, [param(i, type(false, int32))], builtin([]))
 		fun(
@@ -3482,10 +3483,7 @@ program(
 			type(false, exception-ctx)
 			none
 			[]
-			expr-body(
-				call(
-					new
-					[call(null, []), call(new, [record([record([0, null])]), call(new, [call(as, [record([0, null])])])])])))
+			expr-body(call(new, [call(null, []), call(new, [record([record([0, null])]), call(new, [call(new, [])])])])))
 		fun(
 			false
 			new
@@ -3496,7 +3494,7 @@ program(
 		fun(false, log-ctx, type(false, log-ctx), none, [], expr-body(call(new, [call(zeroed, [])])))
 		fun(false, new, type(false, log-ctx), none, [param(handler, type(false, fun1))], new-record)
 		fun(false, zeroed, type(false, fun1), none, [], builtin([type(false, fun1)]))
-		fun(false, perf-ctx, type(false, perf-ctx), none, [], expr-body(call(new, [record([0, null]), call(new, [])])))
+		fun(false, perf-ctx, type(false, perf-ctx), none, [], expr-body(call(new, [call(new, []), call(new, [])])))
 		fun(
 			false
 			new
@@ -3504,6 +3502,7 @@ program(
 			none
 			[param(measure-names, type(false, arr)), param(measure-values, type(false, fix-arr))]
 			new-record)
+		fun(false, new, type(false, arr), none, [], expr-body(record([0, null])))
 		fun(false, new, type(false, fix-arr), none, [], expr-body(call(new, [call(void, []), record([0, null])])))
 		fun(
 			false

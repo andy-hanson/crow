@@ -29,7 +29,7 @@ body
 		[(original-path, "{output-path base-name} does not exist. actual was:\n{actual}")]
 
 flat-map-with-max-size<out, in> out[](a in[], max-size nat, mapper act out[](in)) trusted
-	res out mut[] = new
+	res out mut[] = ()
 	a each x =>
 		if res.size < max-size
 			res ~= mapper[x]

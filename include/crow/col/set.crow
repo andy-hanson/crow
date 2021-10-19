@@ -42,10 +42,10 @@ node-count<a> nat64(a set<a>)
 	left add-node<a>?
 
 new<a> set a() data<a> compare<a> hash-mix<a>
-	(new, none), new
+	((), none), ()
 
 set<a> set a(a a[]) data<a> compare<a> hash-mix<a>
-	(a.frozen-set, none), new
+	(a.frozen-set, none), ()
 
 arr<a> a[](a set a) data<a> compare<a> hash-mix<a>
 	# TODO: If a has a single add node and no remove, just return that
@@ -100,7 +100,7 @@ try-add<a> set<a>?(a set a, value a) data<a> compare<a> hash-mix<a>
 .add-and-maybe-compact<a> set a(a set a, value a) trusted data<a> compare<a> hash-mix<a>
 	add-size = a.add add-size
 	if add-size == 0
-		([value].frozen-set, none), new
+		([value].frozen-set, none), ()
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
@@ -215,7 +215,7 @@ map-to-arr<out, in> out[](a set in, f act out(in)) trusted data<in> compare<in> 
 	out cast-immutable
 
 .dbg<a> str(a set a) to-str<a>
-	out writer = new
+	out writer = ()
 	out dbg-add-recur! a.add
 	if !a.remove.is-empty
 		out ~= " - ["
@@ -251,7 +251,7 @@ map-to-arr<out, in> out[](a set in, f act out(in)) trusted data<in> compare<in> 
 	dbg is expected
 
 test
-	a set nat64 = new
+	a set nat64 = ()
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"

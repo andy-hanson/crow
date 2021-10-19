@@ -302,7 +302,7 @@ first-some<out, in> out?(a list in, f act out?(in))
 		before
 
 .dbg str(a list nat64)
-	res writer = new
+	res writer = ()
 	res dbg-recur! a
 	res move-to-str!
 .dbg-recur! void(out writer, a list nat64)

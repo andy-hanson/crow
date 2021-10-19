@@ -1,6 +1,6 @@
 import
 	crow/col/arr-util: each, index-of
-	crow/col/dict: dict, subscript
+	crow/col/dict: dict, new, subscript
 	crow/col/fix-arr: fill-fix-arr, map-to-arr-with-index, set-subscript
 	crow/io/file: read-file
 	crow/io/net/http-server: http-handler, start-http-server
@@ -39,16 +39,16 @@ main fut nat(args str[]) unsafe summon
 	match req method
 	as http-get
 		if path == "/"
-			200, "OK", dict, "demo-wip/webapp/index.html".read-file
+			200, "OK", (), "demo-wip/webapp/index.html".read-file
 		elif path == "/index.js"
-			200, "OK", dict, "demo-wip/webapp/index.js".read-file
+			200, "OK", (), "demo-wip/webapp/index.js".read-file
 		elif path == "/posts"
-			200, "OK", dict, db.list-posts.format-posts-as-json
+			200, "OK", (), db.list-posts.format-posts-as-json
 		elif path == "/user-name"
 			user = (query parse-query ["user"])[0].parse-nat force
-			200, "OK", dict, (db user-name user)
+			200, "OK", (), (db user-name user)
 		elif path == "/users"
-			200, "OK", dict, db.list-users.format-users-as-json
+			200, "OK", (), db.list-users.format-users-as-json
 		else
 			http-not-found
 	as http-post
@@ -59,9 +59,9 @@ main fut nat(args str[]) unsafe summon
 			match db register-user! user-name, password
 			as register-user-success user-id
 				# We need to get: user-name and password
-				200, "OK", dict, "\{\"userId\":{user-id}}"
+				200, "OK", (), "\{\"userId\":{user-id}}"
 			as user-already-exists
-				400, "User already exists", dict, "User already exists"
+				400, "User already exists", (), "User already exists"
 		elif path == "/login"
 			args = req.body parse-query ["user-name", "password"]
 			user-name = args[0]
@@ -80,9 +80,9 @@ main fut nat(args str[]) unsafe summon
 			if cookie ?= req.headers["Cookie"]
 				user-cookie = (cookie parse-cookies ["login"])[0].parse-user-cookie force
 				post = db add-post! user-cookie, req.body
-				200, "OK", dict, "\{\"postId\":{post}}"
+				200, "OK", (), "\{\"postId\":{post}}"
 			else
-				403, "No login cookie", dict, "No login cookie"
+				403, "No login cookie", (), "No login cookie"
 		else
 			http-not-found
 	#descr = req describe-request
@@ -122,7 +122,7 @@ parse-query str[](s str, arg-names str[])
 		x or-throw () => "Did not get argument for {arg-names[index]}"
 
 .format-users-as-json str(users user-info[])
-	res writer = new
+	res writer = ()
 	res ~= "\{\"users\":["
 	users each user =>
 		res ~= "\{\"user\":"
@@ -136,7 +136,7 @@ parse-query str[](s str, arg-names str[])
 	res move-to-str!
 
 .format-posts-as-json str(posts post-info[])
-	res writer = new
+	res writer = ()
 	res ~= "\{\"posts\":["
 	posts each post =>
 		# TODO: module for proper json formatting

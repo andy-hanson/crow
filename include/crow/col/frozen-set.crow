@@ -160,7 +160,7 @@ fold-with-index<a, b> a(acc a, a frozen-set b, f act a(a, b, nat64))
 	a.bucket-starts map (ptr => ptr - a.values.begin-ptr) is bucket-starts
 
 test
-	a frozen-set nat64 = new
+	a frozen-set nat64 = ()
 	a.is-empty is true
 	a.size is 0
 	a verify [], []

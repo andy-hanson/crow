@@ -22,7 +22,7 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, o
 		failures err
 
 .list-tests str[](path str, match-test str) summon
-	res str mut[] = new
+	res str mut[] = ()
 	path each-child-recursive child =>
 		if child has-substr match-test && child.ext-is-crow
 			res ~= child
@@ -113,7 +113,7 @@ body
 	stdout-failures ~ stderr-failures
 
 .remove-colors str(s str)
-	res writer = new
+	res writer = ()
 	s remove-colors-recur! res
 	res move-to-str!
 

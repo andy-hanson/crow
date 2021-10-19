@@ -3,13 +3,14 @@ import
 	setjmp: jmp_buf, __jmp_buf_tag, longjmp, new, setjmp
 	../bool: !, bool
 	../bytes-types: zero
+	../col/arr: new
 	../compare: !=
 	../fun: subscript
 	../ptr: ==, as-ref, by-val, null, ptr-to
 	./backtrace: get-backtrace
 	./bootstrap:
-		arr, as, err, exception-ctx-ptr, get-ctx, hard-assert, hard-unreachable, int32, new, ok, result,
-		str, sym, thread-local-stuff, void
+		err, exception-ctx-ptr, get-ctx, hard-assert, hard-unreachable, int32, new, ok, result,
+		str, thread-local-stuff, void
 	./number-low-level: ==
 export
 	./bootstrap: exception, message
@@ -20,8 +21,7 @@ exception-ctx record mut
 
 exception-ctx by-val exception-ctx() noctx unsafe
 	# Nothing on the exception-ctx initially
-	# TODO: should not need `as<sym[]>`
-	null, ("", [].as<sym[]> new)
+	null, ("", ((),))
 
 get-exception-ctx exception-ctx() unsafe
 	get-ctx.thread-local-stuff.exception-ctx-ptr as-ref<exception-ctx>

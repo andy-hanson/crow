@@ -56,7 +56,7 @@ new index-set()
 	0, empty
 
 index-set index-set(a nat64[])
-	new fold a, (acc, x) => acc ~ x
+	() fold a, (acc, x) => acc ~ x
 
 is-empty bool(a index-set)
 	a.capacity == 0
@@ -397,7 +397,7 @@ filter-less index-set(a index-set, limit nat64) trusted
 	a unsafe-mod 64
 
 to-str str(a index-set)
-	out writer = new
+	out writer = ()
 	out ~= "["
 	a each x =>
 		out ~= x to-str
@@ -454,7 +454,7 @@ map-to-arr<a> a[](a index-set, f act a(nat64)) trusted
 	res cast-immutable
 
 .dbg str(a index-set)
-	out writer = new
+	out writer = ()
 	out dbg-recur! a.root
 	out move-to-str!
 
@@ -503,7 +503,7 @@ verify void(a index-set, expected str, expected-arr nat64[])
 	a.size is r.size
 
 test
-	a index-set = new
+	a index-set = ()
 	a verify "_", []
 	3 in a is false
 

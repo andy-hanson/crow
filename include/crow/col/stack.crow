@@ -35,7 +35,7 @@ new<a> stack a()
 
 # Copy an arr to a stack.
 stack<a> stack a(a a[])
-	new fold a, (stack, x) => stack ~ x
+	() fold a, (stack, x) => stack ~ x
 
 # Copy a stack to an arr.
 arr<a> a[](a stack a) trusted
@@ -172,7 +172,7 @@ first-some<out, in> out?(a stack in, f act out?(in))
 			res
 
 test
-	a stack nat64 = new
+	a stack nat64 = ()
 	assert: a is-empty
 	a.arr is []
 	a.last is none

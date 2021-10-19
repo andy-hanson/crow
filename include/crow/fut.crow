@@ -37,8 +37,8 @@ Returns a fut that will be resolved by the result of `f`.
 ###
 join<out, in0, in1> fut out(a fut in0, b fut in1, f ref out(in0, in1)) trusted send<out> send<in0> send<in1>
 	res = unresolved<out>
-	lock lock = new
-	remaining cell nat64 = 2 new
+	lock lock = ()
+	remaining cell nat64 = 2,
 	decr-remaining act void() = () =>
 		lock with-lock () =>
 			*remaining := *remaining wrap-sub 1
@@ -85,8 +85,8 @@ Returns a `fut` that is resolved when every element of the input has resolved.
 join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
 	# TODO: send<a[]> should be unnecessary
 	res = unresolved<a[]>
-	lock lock = new
-	remaining cell nat64 = a.size new
+	lock lock = ()
+	remaining cell nat64 = a.size,
 	a each-with-index (in, index) =>
 		in callback! value =>
 			lock with-lock () =>

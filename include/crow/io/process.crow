@@ -92,7 +92,7 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	check-posix-error: actions posix_spawn_file_actions_addclose stdout-pipes.read-pipe
 	check-posix-error: actions posix_spawn_file_actions_addclose stderr-pipes.read-pipe
 
-	pid-cell cell pid_t = 0 new
+	pid-cell cell pid_t = 0,
 	check-posix-error: pid-cell posix_spawn exe, actions, null, args, environ
 	pid = *pid-cell
 
@@ -101,8 +101,8 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	check-posix-error: stderr-pipes.read-pipe close
 
 	# Read from pipes
-	stdout-builder char mut[] = new
-	stderr-builder char mut[] = new
+	stdout-builder char mut[] = ()
+	stderr-builder char mut[] = ()
 	stdout-pipes.write-pipe keep-polling stderr-pipes.write-pipe, stdout-builder, stderr-builder
 
 	exit-code = pid wait-and-get-exit-code
@@ -180,13 +180,13 @@ body
 # Each entry in environ looks like "name=value", and final entry is null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
 .spawn-and-wait exit-code(exe c-str, args c-str*, environ c-str*) summon unsafe
-	pid-cell cell pid_t = 0 new
+	pid-cell cell pid_t = 0,
 	# TODO: null.as-ref is bad. If it's nullable it shouldn't be a ref.
 	check-posix-error: pid-cell posix_spawn exe, null.as<any-const-ptr>.as-ref, null, args, environ
 	*pid-cell wait-and-get-exit-code
 
 .wait-and-get-exit-code exit-code(pid pid_t) summon unsafe
-	wait-status-cell cell status-t = 0 new
+	wait-status-cell cell status-t = 0,
 	res-pid = pid waitpid wait-status-cell, 0
 	wait-status = *wait-status-cell
 	assert: res-pid == pid

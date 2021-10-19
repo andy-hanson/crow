@@ -127,7 +127,7 @@ parse-json json?(a str)
 	a with-reader r => r take-json!
 
 to-str str(a json)
-	res writer = new
+	res writer = ()
 	res to-str-recur! a
 	res move-to-str!
 
@@ -173,13 +173,13 @@ take-json! json?(a reader)
 		if a try-take-char "]"
 			[].json-arr some
 		else
-			a take-arr-recur! new
+			a take-arr-recur! ()
 	elif a try-take-char "\{"
 		a skip-whitespace!
 		if a try-take-char "}"
-			new.json-object some
+			().json-object some
 		else
-			a take-object-recur! new
+			a take-object-recur! ()
 
 .take-arr-recur! json?(a reader, res json mut[])
 	if j ?= a take-json!
@@ -223,6 +223,6 @@ test
 	[1.0.json-number].json-arr verify "[1]"
 	[1.0.json-number, true.json-bool].json-arr verify "[1,true]"
 
-	new.json-object verify "\{}"
+	().json-object verify "\{}"
 	["a" -> 1.0.json-number].dict.json-object verify "\{\"a\":1}"
 	["a" -> 1.0.json-number, "x\ny" -> true.json-bool].dict.json-object verify "\{\"a\":1,\"x\\ny\":true}"

@@ -9,7 +9,7 @@ import
 	./private/number-low-level: unsafe-to-nat64, wrap-add
 
 hash<a> nat64(a a) trusted hash-mix<a>
-	hasher by-val hasher = 0 new
+	hasher by-val hasher = 0,
 	hasher.ref-of-val hash-mix a
 	hasher.ref-of-val cur
 

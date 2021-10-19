@@ -15,13 +15,13 @@ mut-stack<a> record mut
 
 # New empty `mut-stack`.
 new<a> mut-stack a()
-	new new
+	(),
 
 copy<a> mut-stack a(a mut-stack a)
-	a.inner.copy new
+	a.inner.copy,
 
 mut-stack<a> mut-stack a(a a[])
-	a.mut-arr new
+	a.mut-arr,
 
 arr<a> a[](a mut-stack a)
 	a.inner arr

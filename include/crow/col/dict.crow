@@ -60,7 +60,7 @@ dict<k, v> v[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	if a.size <= 4 && a.no-duplicate-keys
 		void, a.leaf-node
 	else
-		new fold a, (cur, x) => cur ~ x
+		() fold a, (cur, x) => cur ~ x
 
 arr<k, v> arrow<k, v>[](a v[k]) data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, v) => k -> v
@@ -384,7 +384,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted data<k> compare<k> hash-m
 	res cast-immutable
 
 .dbg str(a str[nat64])
-	res writer = new
+	res writer = ()
 	res dbg-recur a.root, ""
 	res move-to-str!
 
@@ -412,7 +412,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted data<k> compare<k> hash-m
 
 # TODO:PRIVATE
 dbg str(a void[nat64])
-	res writer = new
+	res writer = ()
 	res dbg-recur a.root, ""
 	res move-to-str!
 
@@ -440,7 +440,7 @@ verify void(a str[nat64], expected str)
 	a.dbg is expected
 
 test
-	l0 str[nat64] = new
+	l0 str[nat64] = ()
 	l0.is-empty is true
 	l0.size is 0
 	l0 verify "[]"

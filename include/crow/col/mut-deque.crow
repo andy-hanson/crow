@@ -28,14 +28,14 @@ mut-deque<a> record mut
 	right mut a mut*
 
 new<a> mut-deque a() trusted
-	new, null, null
+	(), null, null
 
 arr<a> a[](a mut-deque a) trusted
 	a.fix-arr cast-immutable
 
 fix-arr<a> fix-arr a(a mut-deque a) trusted
 	if a is-empty
-		new
+		()
 	else
 		res = a.size uninitialized-fix-arr<a>
 		res copy-from-deque! a
@@ -145,7 +145,7 @@ pop-right!<a> a?(a mut-deque a) trusted
 		dest[left-to-end-size .. dest.size] copy-from! (a.inner.begin-ptr.as-const arr-from-begin-end a.right.as-const)
 
 .dbg str(a mut-deque nat64) trusted
-	out writer = new
+	out writer = ()
 	a.inner.begin-ptr.as-const arr-from-begin-end a.inner.end-ptr.as-const each-ptr ptr =>
 		if ptr == a.right.as-const
 			out ~= "<-R "
@@ -165,7 +165,7 @@ pop-right!<a> a?(a mut-deque a) trusted
 	a.dbg is expected
 
 test
-	a mut-deque nat64 = new
+	a mut-deque nat64 = ()
 	a.pop-left! is none
 	a.pop-right! is none
 	a verify [], ""

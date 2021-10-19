@@ -109,6 +109,10 @@ void addDiagUnexpected(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexe
 	addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.UnexpectedCharacter(curChar(lexer))));
 }
 
+@trusted immutable(bool) peekExact(SymAlloc)(ref const Lexer!SymAlloc lexer, immutable char c) {
+	return *lexer.ptr == c;
+}
+
 @trusted immutable(bool) peekExact(SymAlloc)(ref const Lexer!SymAlloc lexer, immutable CStr c) {
 	CStr ptr = lexer.ptr;
 	for (CStr cptr = c; *cptr != 0; cptr++) {

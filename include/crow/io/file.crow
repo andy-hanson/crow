@@ -84,14 +84,14 @@ read-dir str[](path str) summon
 	dirp = path opendir
 	# TODO: handle errors
 	assert: dirp.ptr-cast-from-extern<any-const-ptr, dir> != null
-	res str mut[] = new
+	res str mut[] = ()
 	dirp read-dir-recur res
 	res.move-to-arr! sort
 
 .read-dir-recur void(dirp dir, res str mut[]) unsafe summon
 	# Initial value of entry / result should not matter
 	entry dirent = 0, 0, 0, "\0", zero
-	result cell dirent = entry new
+	result cell dirent = entry,
 	err = dirp readdir_r entry, result
 	# TODO: handle error
 	assert: err == 0

@@ -35,7 +35,7 @@ mut-dict<k, v> record mut
 	many arrow<k, v> mut[]
 
 new<k, v> v mut[k]() data<k> compare<k> hash-mix<k>
-	void, new, 0
+	void, (), 0
 
 mut-dict<k, v> v mut[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	res = a.size mut-dict-with-capacity<k, v>
@@ -256,7 +256,7 @@ map-values!<k, v> void(a v mut[k], f act v(k, v)) trusted data<k> compare<k> has
 		entry-ptr + 1 map-values-recur! entry-end, f
 
 .dbg str(a str mut[nat64])
-	out writer = new
+	out writer = ()
 	a.entries each entry =>
 		match entry
 		as none
@@ -284,7 +284,7 @@ map-values!<k, v> void(a v mut[k], f act v(k, v)) trusted data<k> compare<k> has
 	a.dbg is expected
 
 test
-	a str mut[nat64] = new
+	a str mut[nat64] = ()
 
 	a[6] := "6"
 	a[5] is none

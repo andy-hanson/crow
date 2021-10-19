@@ -14,7 +14,7 @@ timestamp alias
 # Get the value from a monotonic clock.
 # TODO: SUMMON
 get-monotime-nsec timestamp() noctx trusted
-	time-cell by-val cell timespec = (0, 0) new
+	time-cell by-val cell timespec = (0, 0),
 	err = CLOCK_MONOTONIC clock_gettime time-cell.ref-of-val
 	if err == 0
 		time = *time-cell.ref-of-val

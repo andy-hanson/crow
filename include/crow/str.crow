@@ -9,10 +9,10 @@ export
 	./private/bootstrap: char, chars, c-str, str, to-char, to-nat8
 
 str str(a char[]) noctx
-	a new
+	a,
 
 ~ str(a str, b str)
-	a.chars ~ b.chars new
+	a.chars ~ b.chars,
 
 is-empty bool(a str) noctx
 	a.chars is-empty

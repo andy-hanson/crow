@@ -13,7 +13,7 @@ import
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, is-even, nat64, wrap-add
-	./arr: ==, arr, is-empty, size
+	./arr: ==, arr, is-empty, new, size
 	./arr-util: each, first, fold, last, rtail, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-fix-arr
 	./stack:
@@ -29,14 +29,14 @@ deque<a> record
 
 # Empty deque.
 new<a> deque a()
-	deque: []
+	() deque
 
 ###
 Convert an arr to a deque.
 This is O(1).
 ###
 deque<a> deque a(a a[])
-	new, a, new
+	(), a, ()
 
 arr<a> a[](a deque a) trusted
 	res = a.size uninitialized-fix-arr<a>
@@ -66,21 +66,21 @@ pop-left<a> popped<a>?(a deque a)
 	if popped ?= a.left pop
 		(popped.value, (popped.rest, a.mid, a.right)) some
 	elif first ?= a.mid first
-		(first, (new, a.mid.tail, a.right)) some
+		(first, ((), a.mid.tail, a.right)) some
 	else
 		right-arr = a.right arr
 		if first ?= right-arr first
-			(first, (new, right-arr.tail, new)) some
+			(first, ((), right-arr.tail, ())) some
 
 pop-right<a> popped<a>?(a deque a)
 	if popped ?= a.right pop
 		(popped.value, (a.left, a.mid, popped.rest)) some
 	elif last ?= a.mid last
-		(last, (a.left, a.mid.rtail, new)) some
+		(last, (a.left, a.mid.rtail, ())) some
 	else
 		left-arr = a.left arr-reverse
 		if last ?= left-arr last
-			(last, (new, left-arr.rtail, new)) some
+			(last, ((), left-arr.rtail, ())) some
 
 region iteration
 
@@ -111,7 +111,7 @@ map<out, in> deque out(a deque in, f act out(in)) trusted
 	res.cast-immutable deque
 
 .dbg str(a deque nat64)
-	out writer = new
+	out writer = ()
 	a.left each-reverse x =>
 		out ~= x
 		out ~= " "
@@ -130,7 +130,7 @@ map<out, in> deque out(a deque in, f act out(in)) trusted
 	out move-to-str!
 
 test
-	a deque nat64 = new
+	a deque nat64 = ()
 	assert: a is-empty
 	a.dbg is "[]"
 	a.arr is []

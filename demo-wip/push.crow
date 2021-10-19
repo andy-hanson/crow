@@ -4,7 +4,7 @@ import
 	crow/tuple: new, pair
 
 main fut nat(_ str[]) summon
-	m pair<nat, nat> mut[] = new
+	m pair<nat, nat> mut[] = ()
 	m ~= (1, 1)
 	print: m.size.to-str
 	0 resolved

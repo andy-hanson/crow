@@ -19,7 +19,7 @@ environ alias
 
 # Get the environment variables for this process.
 get-environ environ() summon trusted
-	res str mut[str] = new
+	res str mut[str] = ()
 	environ get-environ-recur res
 	res move-to-dict!
 
@@ -41,7 +41,7 @@ get-environ environ() summon trusted
 
 # Get an environment string from environment variables.
 convert-environ c-str*(environ environ) unsafe
-	res c-str mut[] = new
+	res c-str mut[] = ()
 	environ each (key, value) =>
 		res ~= key ~ "=" ~ value to-c-str
 	# TODO: 'as' should be unnecessary

@@ -200,6 +200,7 @@ struct CallAst {
 	enum Style {
 		comma, // `a, b`, `a, b, c`, etc.
 		dot, // `a.b`
+		emptyParens, // `()`
 		infix, // `a b`, `a b c`, `a b c, d`, etc.
 		prefix, // `a: b`, `a: b, c`, etc.
 		prefixOperator, // `-x`, `!x`, `~x`
@@ -1409,6 +1410,8 @@ immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 			return shortSymAlphaLiteral("comma");
 		case CallAst.Style.dot:
 			return shortSymAlphaLiteral("dot");
+		case CallAst.Style.emptyParens:
+			return shortSymAlphaLiteral("empty-parens");
 		case CallAst.Style.infix:
 			return shortSymAlphaLiteral("infix");
 		case CallAst.Style.prefix:

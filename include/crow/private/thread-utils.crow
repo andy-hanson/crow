@@ -27,7 +27,7 @@ export
 region atomic
 
 new by-val atomic-bool() noctx
-	false new
+	false,
 
 # TODO: works on any primitive type, not just bool
 compare-exchange-strong bool(value-ptr bool mut*, expected-ptr bool mut*, desired bool) noctx builtin
@@ -46,10 +46,10 @@ must-unset! void(a atomic-bool) noctx unsafe
 	did-unset hard-assert
 
 new lock()
-	new new
+	(),
 
 lock-by-val by-val lock() noctx
-	new new
+	(),
 
 try-acquire! bool(a lock) noctx trusted
 	a.is-locked.ref-of-val try-set!
@@ -148,7 +148,7 @@ thread-safe-counter record mut
 	value mut nat64
 
 new by-val thread-safe-counter() noctx
-	0 new
+	0,
 
 new by-val thread-safe-counter(init nat64) noctx
 	lock-by-val, init
@@ -189,7 +189,7 @@ body
 			todo
 
 join-one-thread void(tid pthread_t) noctx unsafe summon
-	thread-return by-val cell any-mut-ptr = null new
+	thread-return by-val cell any-mut-ptr = null,
 	err = tid pthread_join thread-return.ref-of-val
 	if err != 0
 		if err == EINVAL
