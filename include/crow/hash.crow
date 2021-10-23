@@ -4,8 +4,9 @@ import
 	./col/arr-util: each
 	./misc: void
 	./number: int8, int16, int32, int64, nat8, nat16, nat32, nat64, to-int64, to-nat64
-	./ptr: by-val, ref-of-val
+	./ptr: by-val, ref-of-val, to-nat64
 	./str: chars, str, to-nat8
+	./sym: sym, to-c-str
 	./private/number-low-level: unsafe-to-nat64, wrap-add
 
 hash<a> nat64(a a) trusted hash-mix<a>
@@ -46,3 +47,6 @@ hash-mix void(hasher hasher, a bool)
 hash-mix void(hasher hasher, a str)
 	a.chars each c =>
 		hasher hash-mix c.to-nat8.to-nat64
+
+hash-mix void(hasher hasher, a sym) trusted
+	hasher hash-mix a.to-c-str.to-nat64

@@ -14,7 +14,7 @@ import
 	../bits: |
 	../bool: !, &&, ||, bool, false, true
 	../cell: *, cell, new
-	../col/arr: arr, begin-ptr, is-empty, size
+	../col/arr: arr, begin-ptr, is-empty, new, size
 	../col/fix-arr:
 		begin-ptr, cast-immutable, copy-to-arr, end-ptr, fix-arr-from-begin-end,
 		uninitialized-fix-arr
@@ -194,7 +194,7 @@ body
 	db1-count = txn count db1
 	assert: db0-count == db1-count
 	if db0-count == 0
-		[]
+		()
 	else
 		res = db0-count uninitialized-fix-arr<out>
 		end = res.begin-ptr zip-fold-non-empty txn, db0, db1, (cur, key, value0, value1) =>

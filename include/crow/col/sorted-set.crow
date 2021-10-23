@@ -4,7 +4,7 @@ import
 	../compare: !=, <, <=, >, >=, compare
 	../fun: subscript
 	../log: info, log
-	../misc: data, void
+	../misc: as, data, void
 	../opt: force, none, opt, or-default, some
 	../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../range: ..
@@ -14,7 +14,7 @@ import
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert, hard-forbid, hard-unreachable
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul, wrap-sub
-	./arr: arr, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, subscript
+	./arr: arr, arr-from-begin-end, begin-ptr, end-ptr, is-empty, new, size, subscript
 	./arr-util: each, tail
 	./fix-arr:
 		begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, set-subscript, size, subscript,
@@ -39,11 +39,11 @@ Add nodes are a linked list where links point to the left. Largest node is on th
 	values a[]
 	left add-node<a>?
 
-new<a> sorted-set a() data<a> compare<a>
-	[] sorted-set
+new<a> sorted-set a(...a a[]) data<a> compare<a>
+	a to-sorted-set
 
-sorted-set<a> sorted-set a(a a[]) data<a> compare<a>
-	(a.sort, none), ()
+to-sorted-set<a> sorted-set a(a a[]) data<a> compare<a>
+	(a.sort, none).as<add-node a>, ()
 
 arr<a> a[](a sorted-set a) data<a> compare<a>
 	a map-to-arr x => x
@@ -119,12 +119,12 @@ try-remove<a> sorted-set<a>?(a sorted-set a, value a) trusted data<a> compare<a>
 .add-and-maybe-compact<a> sorted-set a(a sorted-set a, value a) trusted compare<a>
 	add-size = a.add add-size
 	if add-size == 0
-		([value], none), ()
+		((value,), none).as<add-node a>, ()
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
 		if plan.compacted-size == 1
-			([value], a.add.some), a.remove
+			((value,), a.add.some).as<add-node a>, a.remove
 		else
 			a add-and-compact add-size, plan, value
 
@@ -364,7 +364,7 @@ body
 # TODO: filter
 
 map<out, in> sorted-set out(a sorted-set in, f act out(in)) data<out> compare<out> data<in> compare<in>
-	a map-to-arr f sorted-set
+	a map-to-arr f to-sorted-set
 
 map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted data<in> compare<in>
 	out = a.size uninitialized-fix-arr<out>

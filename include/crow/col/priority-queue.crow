@@ -15,7 +15,7 @@ import
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
-	./arr: ==, arr, is-empty, size
+	./arr: ==, arr, is-empty, new, size
 	./arr-util: each, first, fold, map, tail
 	./fix-arr:
 		begin-ptr, cast-immutable, end-ptr, first, fix-arr, set-subscript, size, subscript,
@@ -76,7 +76,7 @@ Add a pair to the queue.
 This is O(1).
 ###
 ~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b arrow<k, v>) data<k> compare<k>
-	void, (b, [], a.root).some
+	void, (b, (), a.root).some
 
 popped<k, v> record
 	popped arrow<k, v>
@@ -353,7 +353,7 @@ test
 	folded = "init" fold p6, (acc, k, v) => "{acc}, {k} -> {v}"
 	folded is "init, 6 -> 6, 6 -> 6b, 6 -> 6c, 7 -> 7, 7 -> 7b, 8 -> 8"
 
-	p6-pairs = [6 -> "6", 6 -> "6b", 6 -> "6c", 7 -> "7", 7 -> "7b", 8 -> "8"] map x => x pair
+	p6-pairs pair<nat64, str>[] = (6 -> "6", 6 -> "6b", 6 -> "6c", 7 -> "7", 7 -> "7b", 8 -> "8") map x => x pair
 	filter-order = spy-act<bool, nat64, str>: (k, v) => k == 6
 	filtered = p6 filter filter-order.fn
 	filter-calls = filter-order calls
@@ -370,8 +370,8 @@ test
 	map-calls map (x => x b) is (p6-pairs map x => x b)
 	mapped.dbg is "2 8x [3 7x, 3 7bx, 4 6x, 4 6bx, 4 6cx]"
 
-	p6.keys is [6, 6, 6, 7, 7, 8]
-	p6.values is ["6", "6b", "6c", "7", "7b", "8"]
+	p6.keys is (6, 6, 6, 7, 7, 8)
+	p6.values is ("6", "6b", "6c", "7", "7b", "8")
 
 # TODO: arrow should be equatable
 == bool(a arrow<nat64, str>, b arrow<nat64, str>) noctx

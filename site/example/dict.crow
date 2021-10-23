@@ -1,14 +1,14 @@
 import
-	crow/col/dict: dict, subscript
-	crow/col/mut-dict: mut-dict, remove-key!, set-subscript, subscript
+	crow/col/dict
+	crow/col/mut-dict
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	a = dict: [10 -> "ten", 1 -> "one"]
+	a str[nat] = 10 -> "ten", 1 -> "one"
 	print: a[1] to-str
 	print: a[3] to-str
 
-	m = mut-dict: [1 -> "one", 2 -> "two"]
+	m str mut[nat] = 1 -> "one", 2 -> "two"
 	print: m remove-key! 1 to-str
 	print: m remove-key! 1 to-str
 	m[3] := "three"

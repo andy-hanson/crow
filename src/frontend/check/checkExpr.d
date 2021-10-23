@@ -9,7 +9,6 @@ import frontend.check.inferringType :
 	addDiag2,
 	allocExpr,
 	bogus,
-	bogusWithoutChangingExpected,
 	check,
 	CheckedExpr,
 	CommonFuns,
@@ -23,16 +22,14 @@ import frontend.check.inferringType :
 	programState,
 	rangeInFile2,
 	shallowInstantiateType,
-	tryGetDeeplyInstantiatedType,
 	tryGetDeeplyInstantiatedTypeFor,
 	tryGetInferred,
 	typeFromOptAst;
-import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, makeArrayType;
+import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay;
 import frontend.check.typeFromAst : makeFutType;
 import frontend.parse.ast :
 	BogusAst,
 	CallAst,
-	CreateArrAst,
 	ExprAst,
 	ExprAstKind,
 	FunPtrAst,
@@ -114,8 +111,7 @@ import util.collection.arr :
 	ptrsRange,
 	setAt,
 	size,
-	sizeEq,
-	toArr;
+	sizeEq;
 import util.collection.arrUtil :
 	arrLiteral,
 	arrsCorrespond,
@@ -450,56 +446,6 @@ immutable(CallAst) checkInterpolatedRecur(Alloc)(
 			immutable RangeWithinFile(pos, newPos),
 			immutable ExprAstKind(c));
 		return checkInterpolatedRecur(alloc, ctx, parts[1 .. $], newPos, newLeft);
-	}
-}
-
-
-struct ArrExpectedType {
-	immutable Ptr!StructInst arrType;
-	immutable Type elementType;
-}
-
-immutable(CheckedExpr) checkCreateArr(Alloc)(
-	ref Alloc alloc,
-	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
-	ref immutable CreateArrAst ast,
-	ref Expected expected,
-) {
-	immutable Opt!ArrExpectedType opAet = () {
-		immutable Opt!Type opT = tryGetDeeplyInstantiatedType(alloc, programState(ctx), expected);
-		if (has(opT)) {
-			immutable Type t = force(opT);
-			if (isStructInst(t)) {
-				immutable Ptr!StructInst si = asStructInst(t);
-				if (ptrEquals(decl(si), ctx.commonTypes.arr))
-					return some(immutable ArrExpectedType(si, only(typeArgs(si))));
-			}
-		}
-		return none!ArrExpectedType;
-	}();
-
-	immutable ExprAst[] argAsts = toArr(ast.args);
-	if (has(opAet)) {
-		immutable ArrExpectedType aet = force(opAet);
-		immutable Expr[] args = map!Expr(alloc, argAsts, (ref immutable ExprAst it) =>
-			checkAndExpect(alloc, ctx, it, aet.elementType));
-		immutable Expr expr = immutable Expr(range, immutable Expr.CreateArr(aet.arrType, args));
-		return immutable CheckedExpr(expr);
-	} else if (empty(argAsts)) {
-		addDiag2(alloc, ctx, range, Diag(Diag.CreateArrNoExpectedType()));
-		return bogusWithoutChangingExpected(expected, range);
-	} else {
-		// Get type from the first arg's type.
-		immutable ExprAndType firstArg = checkAndInfer(alloc, ctx, first(argAsts));
-		immutable Type elementType = firstArg.type;
-		immutable ExprAst[] restArgs = tail(argAsts);
-		immutable Expr[] args = mapWithFirst!Expr(alloc, firstArg.expr, restArgs, (ref immutable ExprAst it) =>
-			checkAndExpect(alloc, ctx, it, elementType));
-		immutable Ptr!StructInst arrType =
-			makeArrayType(alloc, ctx.checkCtx.programState, ctx.commonTypes, elementType);
-		immutable Expr expr = immutable Expr(range, immutable Expr.CreateArr(arrType, args));
-		return check!Alloc(alloc, ctx, expected, immutable Type(arrType), expr);
 	}
 }
 
@@ -1272,8 +1218,6 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 			unreachable!(immutable CheckedExpr),
 		(ref immutable CallAst a) =>
 			checkCall(alloc, ctx, range, a, expected),
-		(ref immutable CreateArrAst a) =>
-			checkCreateArr(alloc, ctx, range, a, expected),
 		(ref immutable FunPtrAst a) =>
 			checkFunPtr(alloc, ctx, range, a, expected),
 		(ref immutable IdentifierAst a) =>

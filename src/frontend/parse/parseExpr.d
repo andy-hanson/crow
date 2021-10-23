@@ -7,7 +7,6 @@ import frontend.parse.ast :
 	asIdentifier,
 	BogusAst,
 	CallAst,
-	CreateArrAst,
 	ExprAst,
 	ExprAstKind,
 	FunPtrAst,
@@ -896,12 +895,6 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 					immutable ExprAstKind(immutable ParenthesizedAst(allocate(alloc, inner))));
 				return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 			}
-		case '[':
-			immutable ArrWithSize!ExprAst args = parseSubscriptArgs(alloc, lexer);
-			immutable ExprAst expr = immutable ExprAst(
-				range(lexer, start),
-				immutable ExprAstKind(immutable CreateArrAst(args)));
-			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 		case '&':
 			immutable Sym name = takeName(alloc, lexer);
 			return noDedent(immutable ExprAst(

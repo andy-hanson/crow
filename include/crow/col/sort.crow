@@ -8,10 +8,12 @@ import
 	../number: ==, <=>, +, -, /, nat64
 	../ptr: ==, +, -, *, mut-ptr, set-deref
 	../range: ..
-	../str: ==, <=>, chars
+	../str: ==, <=>, chars, str
 	../test: is
-	./arr: ==, arr, subscript
-	./fix-arr: arr, begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, size, set-subscript, subscript
+	./arr: ==, arr, new, subscript
+	./fix-arr:
+		arr, begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, new, size, set-subscript,
+		subscript, to-fix-arr
 	./mut-arr: mut-arr, temp-as-fix-arr
 
 ###
@@ -21,7 +23,7 @@ That means `res[i] <= res[i + 1]` for each element in the result.
 sort<a> a[](a a[]) compare<a>
 	a sort (x, y) => x <=> y
 sort<a> a[](a a[], comparer act comparison(a, a)) trusted
-	res = a fix-arr
+	res = a to-fix-arr
 	res sort! comparer
 	res cast-immutable
 sort-by<a, b> a[](a a[], f act b(a)) compare<b>
@@ -35,17 +37,17 @@ That means `res[i] < res[i + 1]` for each element in the result.
 `[2, 1, 2] sort-unique` is `[1, 2]`.
 ###
 sort-unique<a> a[](a a[]) compare<a> trusted
-	a.fix-arr.sort-unique! cast-immutable
+	a.to-fix-arr.sort-unique! cast-immutable
 
 test
-	(sort: as<nat64[]>: []) is []
-	[3, 1, 2].sort is [1, 2, 3]
+	(sort: as<nat64[]>: ()) is ()
+	# TODO: 'as' should be unnecessary
+	(3, 1, 2).as<nat64[]>.sort is (1, 2, 3)
 
 	# Test that it's a stable sort
-	arr = fix-arr: ["2a", "2b", "1a", "1b"]
+	arr fix-arr str = "2a", "2b", "1a", "1b"
 	arr sort! (x, y) => x.chars[0] <=> y.chars[0]
-	arr.arr is ["1a", "1b", "2a", "2b"]
-
+	arr.arr is ("1a", "1b", "2a", "2b")
 
 # Sort a mut-arr in place.
 sort!<a> void(a a mut[]) compare<a> trusted
@@ -123,8 +125,8 @@ sorted-by-first<a, b> record
 
 # Sort `a`, and apply the same permutation to `b`.
 sort-by-first<a, b> sorted-by-first<a, b>(a a[], b b[]) compare<a> trusted
-	mut-a = a fix-arr
-	mut-b = b fix-arr
+	mut-a = a to-fix-arr
+	mut-b = b to-fix-arr
 	mut-a sort-by-first! mut-b
 	mut-a.cast-immutable, mut-b.cast-immutable
 

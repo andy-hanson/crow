@@ -9,11 +9,12 @@ import
 	../../test: is
 	../../private/bootstrap: hard-assert, hard-unreachable, nat64
 	../../private/number-low-level: ==, <=>, unsafe-div, wrap-add
-	../arr: ==, arr, arr-from-begin-end, begin-ptr, end-ptr
-	../fix-arr: begin-ptr, cast-immutable, copy-from!, end-ptr, fix-arr, fix-arr-from-begin-end
+	../arr: ==, arr, arr-from-begin-end, begin-ptr, end-ptr, new
+	../fix-arr:
+		begin-ptr, cast-immutable, copy-from!, end-ptr, fix-arr, fix-arr-from-begin-end, new
 	../mut-arr:
 		arr, begin-ptr, empty!, end-ptr, is-empty, mut-arr, size, swap!, temp-as-fix-arr,
-		unsafe-set-size!
+		to-mut-arr, unsafe-set-size!
 
 binary-search-has<a> bool(a a[], value a) compare<a> trusted
 	(a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value) != null
@@ -81,7 +82,7 @@ binary-search-insert-ptr<a> a*(a a[], value a) unsafe compare<a>
 	a.begin-ptr binary-search-insert-ptr-recur a.end-ptr, value
 
 test
-	a = [1, 3, 5, 7] fix-arr
+	a fix-arr nat64 = 1, 3, 5, 7
 	(a binary-search-insert-ptr x => 0 <=> x) - a.begin-ptr is 0
 	(a binary-search-insert-ptr x => 3 <=> x) - a.begin-ptr is 1
 	(a binary-search-insert-ptr x => 4 <=> x) - a.begin-ptr is 2
@@ -198,15 +199,15 @@ body
 			a-begin merge-reverse-recur! a-read - 1, a-write - 1, b-begin, b-read, compare
 
 .test-one void(a nat64[], b nat64[], expected nat64[]) unsafe
-	a-mut = a mut-arr
-	b-mut = b mut-arr
+	a-mut = a to-mut-arr
+	b-mut = b to-mut-arr
 	a-mut merge-no-duplicates! b-mut, (x, y) =>
 		x <=> y hard-assert-comparison-not-equal
 	a-mut.arr is expected
 
 test
-	[1, 2, 3] test-one [4, 5, 6], [1, 2, 3, 4, 5, 6]
-	[4, 5, 6] test-one [1, 2, 3], [1, 2, 3, 4, 5, 6]
-	[1, 3, 5] test-one [2, 4, 6], [1, 2, 3, 4, 5, 6]
-	[2, 4, 6] test-one [1, 3, 5], [1, 2, 3, 4, 5, 6]
-	[3, 4, 5] test-one [1, 2, 6], [1, 2, 3, 4, 5, 6]
+	(1, 2, 3) test-one (4, 5, 6), (1, 2, 3, 4, 5, 6)
+	(4, 5, 6) test-one (1, 2, 3), (1, 2, 3, 4, 5, 6)
+	(1, 3, 5) test-one (2, 4, 6), (1, 2, 3, 4, 5, 6)
+	(2, 4, 6) test-one (1, 3, 5), (1, 2, 3, 4, 5, 6)
+	(3, 4, 5) test-one (1, 2, 6), (1, 2, 3, 4, 5, 6)

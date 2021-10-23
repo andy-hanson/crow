@@ -19,8 +19,8 @@ import
 	./arr: arr
 	./arr-util: each, each-with-index, exists, find-index, fold, fold-reverse, in, index-of
 	./fix-arr:
-		begin-ptr, cast-immutable, each, fill-fix-arr, map!, make-fix-arr, new,
-		fix-arr, reverse!, set-zero-elements, size, subscript, temp-as-arr, uninitialized-fix-arr
+		begin-ptr, cast-immutable, each, empty-fix-arr, fill-fix-arr, fix-arr, map!, make-fix-arr,
+		reverse!, set-zero-elements, size, subscript, temp-as-arr, uninitialized-fix-arr
 
 ###
 Mutable array type that can change in size.
@@ -54,7 +54,7 @@ capacity<a> nat64(a a mut[]) noctx unsafe
 	a.backing size
 
 mut-arr-by-val<a> by-val a mut[]() noctx trusted
-	(), 0
+	empty-fix-arr, 0
 
 mut-arr-by-val-with-capacity-from-unmanaged-memory<a> by-val<a mut[]>(capacity nat64) noctx unsafe
 	backing fix-arr a = capacity.unmanaged-alloc-zeroed-elements<a>[0 .. capacity]
@@ -62,21 +62,19 @@ mut-arr-by-val-with-capacity-from-unmanaged-memory<a> by-val<a mut[]>(capacity n
 
 ###
 mut-arr where every element is `value`.
-Equivalent to `mut-arr: [value, value, ...]`.
 ###
 fill-mut-arr<a> a mut[](size nat64, value a)
 	(size fill-fix-arr value), size
-
-# New empty `mut-arr`.
-new<a> a mut[]()
-	(), 0
 
 ###
 Copies an `arr` to a `mut-arr`.
 Writes to the `mut-arr` won't affect the `arr`.
 ###
-mut-arr<a> a mut[](a a[])
-	res a mut[] = ()
+new<a> a mut[](...a a[])
+	a to-mut-arr
+
+to-mut-arr<a> a mut[](a a[])
+	res a mut[] = empty-fix-arr<a>, 0
 	res ~= a
 	res
 
@@ -98,7 +96,7 @@ Copies the `mut-arr`.
 Writes to the original won't affect the copy.
 ###
 copy<a> a mut[](a a mut[]) trusted
-	a.temp-as-arr mut-arr
+	a.temp-as-arr to-mut-arr
 
 ###
 Copies a `mut-arr` to an `arr`.
@@ -116,7 +114,7 @@ move-to-arr!<a> a[](a a mut[]) noctx trusted
 
 move-to-fix-arr!<a> fix-arr a(a a mut[]) noctx trusted
 	res = a.begin-ptr[0 .. a.size]
-	a.backing := ()
+	a.backing := empty-fix-arr
 	a.size := 0
 	res
 

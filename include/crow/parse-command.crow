@@ -2,9 +2,9 @@ no-std
 import
 	./bool: !, bool, false, true
 	./cell: *, cell, new, set-deref
-	./col/arr: arr, is-empty, size, subscript
+	./col/arr: arr, is-empty, new, size, subscript
 	./col/arr-util: find-index, index-of, tail
-	./col/dict: dict, each
+	./col/dict: dict, each, new
 	./col/mut-dict: move-to-dict!, mut-dict, new, set-subscript
 	./col/mut-arr: fill-mut-arr, move-to-arr!, set-subscript, subscript
 	./exception: assert, throw
@@ -21,8 +21,8 @@ import
 Returns none on failure to parse.
 On success, returns an array of corresponding arguments.
 Each argument will be 'none' if the argument was passed, else an array of argument values.
-If the command line is "--a --c d" and arg-names are ["a", "b", "c"],
-"a" will get `[].some`, "b" will get `none`, and "c" will get `["d"].some`.
+If the command line is "--a --c d" and arg-names are ("a", "b", "c"),
+"a" will get `().some`, "b" will get `none`, and "c" will get `("d",).some`.
 ###
 parse-named-args str[]?[]?(args str[], arg-names str[])
 	parsed = args parse-command-dynamic
@@ -75,9 +75,9 @@ single-str-or-throw str(a str[]?, option-name str)
 			named-args = rest[0 .. sep-index] parse-named-args
 			nameless, named-args, rest[sep-index + 1 .. rest.size]
 		else
-			nameless, rest.parse-named-args, []
+			nameless, rest.parse-named-args, ()
 	else
-		args, [].dict, []
+		args, (), ()
 
 .parse-named-args str[][str](args str[])
 	res str[] mut[str] = ()

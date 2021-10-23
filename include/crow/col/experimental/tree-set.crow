@@ -51,11 +51,11 @@ size<a> nat64(a tree-set a) data<a> compare<a>
 	a total-size
 
 # Empty `tree-set`.
-new<a> tree-set a()
-	[].leaf, 0
+new<a> tree-set a(...a a[]) data<a> compare<a>
+	a to-tree-set
 
 # Copy an `arr` to a `tree-set`.
-tree-set<a> tree-set a(a a[]) data<a> compare<a>
+to-tree-set<a> tree-set a(a a[]) data<a> compare<a>
 	values = a sort-unique
 	values.leaf, values.size
 
@@ -106,7 +106,7 @@ Add many values to the set.
 This is O(a.size + b.size).
 ###
 ~ <a> tree-set a(a tree-set a, b a[]) data<a> compare<a>
-	a ~ b.tree-set
+	a ~ b.to-tree-set
 
 ###
 Union of two sets.
@@ -120,7 +120,7 @@ This is O(a.size + b.size).
 	end2 = end fold-iter b-iter, (cur, value) =>
 		*cur := value
 		cur + 1
-	out[0 .. end2 - out.begin-ptr].cast-immutable tree-set
+	out[0 .. end2 - out.begin-ptr].cast-immutable to-tree-set
 
 .walk-iter-union!<a> a mut*(out a mut*, value a, a iter a) unsafe data<a> compare<a>
 	if peek ?= a peek
@@ -463,7 +463,7 @@ filter<a> tree-set a(a tree-set a, f act bool(a)) trusted data<a> compare<a>
 			cur + 1
 		else
 			cur
-	out[0 .. end - out.begin-ptr].cast-immutable tree-set
+	out[0 .. end - out.begin-ptr].cast-immutable to-tree-set
 
 # TODO: first-some
 
@@ -473,7 +473,7 @@ map<out, in> tree-set out(a tree-set in, f act out(in)) data<in> compare<in> dat
 		*cur := f[value]
 		cur + 1
 	hard-assert: end == out.end-ptr
-	out[0 .. end - out.begin-ptr].sort-unique!.cast-immutable tree-set
+	out[0 .. end - out.begin-ptr].sort-unique!.cast-immutable to-tree-set
 
 # TODO:PRIVATE
 dbg<a> str(a tree-set a) to-str<a>
@@ -506,7 +506,7 @@ dbg<a> str(a tree-set a) to-str<a>
 	a.dbg is expected
 
 test
-	s = ["a", "c", "e", "g"] tree-set
+	s tree-set str = "a", "c", "e", "g"
 	s ~ "d" verify "([a c] d [e g])"
 
 test
@@ -556,7 +556,7 @@ test
 	s11 = s10 ~ "o"
 	s11 verify "[h i j ji jj jk k l m n o]"
 
-	s8 ~ ["a", "jii", "z"].tree-set verify "[a h i j ji jii jj jk k l z]"
+	s8 ~ ("a", "jii", "z") verify "[a h i j ji jii jj jk k l z]"
 	s8 - s4 verify "[ji jj jk l]"
 	s8-k-l intersect s3 verify "[h i]"
 

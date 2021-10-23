@@ -3,7 +3,7 @@ import
 	../bool: &&, bool
 	../compare: !=, <, <=, compare, comparison, equal, greater, less
 	../fun: subscript
-	../ptr: *, ==, <=>, +, -, as-const, by-val, const-ptr, ptr-cast, ref-of-ptr, size-of, subscript
+	../ptr: *, ==, <=>, +, -, as-const, by-val, const-ptr, null, ptr-cast, ref-of-ptr, size-of, subscript
 	../private/alloc: alloc-uninitialized, copy-data-from!
 	../private/bootstrap: hard-assert, new
 	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
@@ -11,8 +11,13 @@ import
 export
 	../private/bootstrap: arr, begin-ptr, size
 
-new<a> a[]() noctx
-	[]
+new<a> a[](...a a[]) noctx
+	a
+
+# TODO:INTERNAL
+# This exists because noctx functions can't call `new` in general. But they can for empty arryas.
+empty-arr<a> a[]() noctx trusted
+	(0, null)
 
 end-ptr<a> a*(a a[]) noctx unsafe
 	a.begin-ptr + a.size

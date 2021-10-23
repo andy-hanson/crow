@@ -14,7 +14,7 @@ import
 	../private/exception-low-level: assert, forbid
 	../private/number-low-level: ==, <=>, unsafe-mod, wrap-add, wrap-mul
 	../private/range-low-level: ..
-	./arr: ==, ~, arr, arr-from-begin-end, begin-ptr, is-empty, end-ptr, noctx-at, size, subscript
+	./arr: ==, ~, arr, arr-from-begin-end, begin-ptr, is-empty, end-ptr, new, noctx-at, size, subscript
 
 ###
 Equivalent to `[f[0], f[1], ..., f[size - 1]]`.
@@ -101,8 +101,8 @@ strip-left-while<a> a[](a a[], f act bool(a))
 	else
 		a.tail strip-left-while f
 test
-	[3, 2, 1] strip-left-while (it => it < 3) is [3, 2, 1]
-	[1, 3, 5, 3, 1] strip-left-while (it => it < 5) is [5, 3, 1]
+	(3, 2, 1) strip-left-while (it => it < 3) is (3, 2, 1)
+	(1, 3, 5, 3, 1) strip-left-while (it => it < 5) is (5, 3, 1)
 
 # TODO: move to iter-utiil since this works with any foldable
 count<a> nat64(a a[], f act bool(a))
@@ -120,6 +120,13 @@ map<out, in> out[](a in[], f act out(in))
 map-with-index<out, in> out[](a in[], f act out(in, nat64))
 	a.size make-arr i =>
 		f[a[i], i]
+
+flat-map<out, in> out[](a in[], f act out[](in))
+	# TODO:PERF use a mut-arr
+	if a is-empty
+		()
+	else
+		f[a[0]] ~ (a.tail flat-map f)
 
 first<a> a?(a a[])
 	if !a.is-empty
@@ -192,8 +199,8 @@ in<a> bool(value a, a a[]) noctx equal<a>
 	else
 		value in-recur a, (i wrap-add 1)
 test
-	2 in [1, 2, 3] is true
-	2 in [1, 3] is false
+	2 in (1, 2, 3) is true
+	2 in (1, 3) is false
 
 try-remove<a> a[]?(a a[], value a) equal<a>
 	a try-remove-recur 0, value
@@ -344,19 +351,7 @@ Concatenates many arrays into a single array.
 Equivalent to `a[0] ~ a[1] ~ ...`.
 ###
 flatten<a> a[](a a[][])
-	a flatten []
-
-###
-Concatenates many arrays into a single array, with `joiner` in between.
-Equivalent to `a[0] ~ joiner ~ a[1] ~ joiner ~ ... ~ a[a.size - 1]`.
-###
-flatten<a> a[](a a[][], joiner a[])
-	if a is-empty
-		[]
-	elif a.size == 1
-		a[0]
-	else
-		a[0] ~ joiner ~ (a.tail flatten joiner)
+	a flat-map (x => x)
 
 try-split-once<a> pair<a[], a[]>?(a a[], splitter a) equal<a>
 	if index ?= a index-of splitter
@@ -365,13 +360,13 @@ try-split-once<a> pair<a[], a[]>?(a a[], splitter a) equal<a>
 # TODO: equal<a[]> should be unnecessary
 split-by<a> a[][](a a[], splitter a) equal<a> equal<a[]> trusted
 	# TODO:PERF
-	a split-by-subseq [splitter]
+	a split-by-subseq (splitter,)
 
 # TODO: equal<a[]> should be unnecessary
 ###
 Splits `a` each time it finds `splitter`.
 For example, "a rose is a hose is a nose" split-by-subseq "is" would be
-["a rose ", " a hose ", " a nose"].
+("a rose ", " a hose ", " a nose").
 ###
 split-by-subseq<a> a[][](a a[], splitter a[]) equal<a> equal<a[]> trusted
 	size = (a count-subseqs splitter) + 1
@@ -432,7 +427,8 @@ zip-larger<out, a, b> out[](a a[], b b[], f act out(a?, b?))
 # TODO: update-at
 update<a> a[](a a[], index nat64, new-value a)
 	assert: index < a.size
-	a[0 .. index] ~ [new-value] ~ a[index + 1 .. a.size]
+	# TODO:PERF (only concat once)
+	a[0 .. index] ~ (new-value,) ~ a[index + 1 .. a.size]
 
 update-with-default<a> a[](a a[], index nat64, new-value a, default a)
 	if index < a.size
@@ -450,7 +446,7 @@ update-with-default<a> a[](a a[], index nat64, new-value a, default a)
 insert<a> a[](a a[], index nat64, value a)
 	assert: index <= a.size
 	# TODO:PERF (only concat once)
-	a[0 .. index] ~ [value] ~ a[index .. a.size]
+	a[0 .. index] ~ (value,) ~ a[index .. a.size]
 
 insert<a> a[](a a[], ptr a*, value a) unsafe
 	a insert ptr - a.begin-ptr, value

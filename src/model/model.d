@@ -974,6 +974,13 @@ ref immutable(Params) params(return scope ref immutable FunDecl a) {
 	return a.sig.params;
 }
 
+immutable(bool) isVariadic(ref immutable FunDecl a) {
+	return matchParams!(immutable bool)(
+		params(a),
+		(immutable Param[]) => false,
+		(ref immutable Params.Varargs) => true);
+}
+
 private immutable(size_t) nSpecImpls(ref immutable FunDecl a) {
 	size_t n = 0;
 	foreach (immutable Ptr!SpecInst s; a.specs)
@@ -1502,11 +1509,6 @@ struct Expr {
 		immutable Ptr!Expr else_;
 	}
 
-	struct CreateArr {
-		immutable Ptr!StructInst arrType;
-		immutable Expr[] args;
-	}
-
 	struct FunPtr {
 		immutable Ptr!FunInst funInst;
 		immutable Ptr!StructInst structInst;
@@ -1588,7 +1590,6 @@ struct Expr {
 		call,
 		closureFieldRef,
 		cond,
-		createArr,
 		funPtr,
 		ifOption,
 		lambda,
@@ -1610,7 +1611,6 @@ struct Expr {
 		immutable Call call;
 		immutable ClosureFieldRef closureFieldRef;
 		immutable Cond cond;
-		immutable CreateArr createArr;
 		immutable FunPtr funPtr;
 		immutable IfOption ifOption;
 		immutable Ptr!Lambda lambda;
@@ -1632,9 +1632,6 @@ struct Expr {
 		range_ = r; kind = Kind.closureFieldRef; closureFieldRef = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable Cond a) { range_ = r; kind = Kind.cond; cond = a; }
-	@trusted immutable this(immutable FileAndRange r, immutable CreateArr a) {
-		range_ = r; kind = Kind.createArr; createArr = a;
-	}
 	@trusted immutable this(immutable FileAndRange r, immutable FunPtr a) {
 		range_ = r; kind = Kind.funPtr; funPtr = a;
 	}
@@ -1679,7 +1676,6 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	scope T delegate(ref immutable Expr.Call) @safe @nogc pure nothrow cbCall,
 	scope T delegate(ref immutable Expr.ClosureFieldRef) @safe @nogc pure nothrow cbClosureFieldRef,
 	scope T delegate(ref immutable Expr.Cond) @safe @nogc pure nothrow cbCond,
-	scope T delegate(ref immutable Expr.CreateArr) @safe @nogc pure nothrow cbCreateArr,
 	scope T delegate(ref immutable Expr.FunPtr) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(ref immutable Expr.IfOption) @safe @nogc pure nothrow cbIfOption,
 	scope T delegate(ref immutable Expr.Lambda) @safe @nogc pure nothrow cbLambda,
@@ -1702,8 +1698,6 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 			return cbClosureFieldRef(a.closureFieldRef);
 		case Expr.Kind.cond:
 			return cbCond(a.cond);
-		case Expr.Kind.createArr:
-			return cbCreateArr(a.createArr);
 		case Expr.Kind.funPtr:
 			return cbFunPtr(a.funPtr);
 		case Expr.Kind.ifOption:
@@ -1738,7 +1732,6 @@ immutable(bool) typeIsBogus(ref immutable Expr a) {
 		(ref immutable Expr.Call e) => isBogus(returnType(e.called)),
 		(ref immutable Expr.ClosureFieldRef e) => isBogus(e.field.type),
 		(ref immutable Expr.Cond e) => isBogus(e.type),
-		(ref immutable Expr.CreateArr) => false,
 		(ref immutable Expr.FunPtr) => false,
 		(ref immutable Expr.IfOption e) => isBogus(e.type),
 		(ref immutable Expr.Lambda) => false,
@@ -1760,7 +1753,6 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.Call e) => returnType(e.called),
 		(ref immutable Expr.ClosureFieldRef e) => e.field.type,
 		(ref immutable Expr.Cond) => todo!(immutable Type)("getType cond"),
-		(ref immutable Expr.CreateArr e) => immutable Type(e.arrType),
 		(ref immutable Expr.FunPtr e) => immutable Type(e.structInst),
 		(ref immutable Expr.IfOption e) => e.type,
 		(ref immutable Expr.Lambda e) => immutable Type(e.type),

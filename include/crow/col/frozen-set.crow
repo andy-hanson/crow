@@ -9,11 +9,12 @@ import
 	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap!
 	../test: is
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
-	./arr: ==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, unsafe-at
+	./arr:
+		==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, new, size, unsafe-at
 	./arr-util: fold, fold-with-index, in, index-of, map, ptr-of
 	./fix-arr:
 		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-fix-arr, fix-arr,
-		size, temp-as-arr, uninitialized-fix-arr, unsafe-at, unsafe-set-at!
+		size, temp-as-arr, to-fix-arr, uninitialized-fix-arr, unsafe-at, unsafe-set-at!
 
 frozen-set<a> record
 	# TODO:PRIVATE
@@ -21,11 +22,11 @@ frozen-set<a> record
 	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
 	bucket-starts a*[]
 
-new<a> frozen-set a() data<a> compare<a> hash-mix<a>
-	[], []
+new<a> frozen-set a(...a a[]) data<a> compare<a> hash-mix<a>
+	a to-frozen-set
 
-frozen-set<a> frozen-set a(a a[]) trusted data<a> compare<a> hash-mix<a>
-	a.fix-arr unsafe-frozen-set-from-fix-arr-cast-immutable
+to-frozen-set<a> frozen-set a(a a[]) trusted data<a> compare<a> hash-mix<a>
+	a.to-fix-arr unsafe-frozen-set-from-fix-arr-cast-immutable
 
 # TODO:INTERNAL
 # Values are stored as a contiguous array; order is arbitrary.
@@ -84,7 +85,7 @@ spec
 	hash-mix<a>
 body
 	if a.size <= 4
-		a.cast-immutable, []
+		a.cast-immutable, ()
 	else
 		n-buckets = a.size unsafe-div 2
 		bucket-counts = a get-bucket-counts n-buckets
@@ -163,11 +164,11 @@ test
 	a frozen-set nat64 = ()
 	a.is-empty is true
 	a.size is 0
-	a verify [], []
+	a verify (), ()
 	0 in a is false
 
-	b = [3, 1, 5, 2] frozen-set
-	b verify [3, 1, 5, 2], []
+	b frozen-set nat64 = 3, 1, 5, 2
+	b verify (3, 1, 5, 2), ()
 	0 in b is false
 	1 in b is true
 	2 in b is true
@@ -176,8 +177,8 @@ test
 	5 in b is true
 	6 in b is false
 
-	c = [3, 1, 5, 2, 8] frozen-set
-	c verify [2, 8, 3, 5, 1], [0, 2]
+	c frozen-set nat64 = 3, 1, 5, 2, 8
+	c verify (2, 8, 3, 5, 1), (0, 2)
 	0 in c is false
 	1 in c is true
 	2 in c is true

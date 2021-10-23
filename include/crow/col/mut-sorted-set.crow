@@ -10,8 +10,8 @@ import
 	./arr-util: each, map
 	./mut-sorted-dict:
 		each, empty!, filter, filter!, fold, in, is-empty, map, map!, move-to-arr!,
-		mut-sorted-dict, new, remove-key!, set-subscript, size, subscript
-	./sorted-set: sorted-set
+		mut-sorted-dict, new, remove-key!, set-subscript, size, subscript, to-mut-sorted-dict
+	./sorted-set: sorted-set, to-sorted-set
 
 ###
 Mutable sorted set of unique values.
@@ -33,7 +33,7 @@ Copies the arr to a new mut-sorted-set.
 Result won't include any duplicated elements.
 ###
 mut-sorted-set<a> mut-sorted-set a(a a[]) data<a> compare<a>
-	void, (a map (x => x -> void) mut-sorted-dict)
+	void, (a map (x => x -> void) to-mut-sorted-dict)
 
 # True iff the set has no elements.
 is-empty<a> bool(a mut-sorted-set a) data<a> compare<a>
@@ -89,7 +89,7 @@ move-to-arr!<a> a[](a mut-sorted-set a) data<a> compare<a>
 # Convert to a `sorted-set`, clearning the original `mut-sorted-set` in the process.
 move-to-sorted-set!<a> sorted-set a(a mut-sorted-set a) data<a> compare<a>
 	# TODO:PERF avoid a copy: return a 'mut-arr' which the sorted-set can move into to itself
-	a.move-to-arr! sorted-set
+	a.move-to-arr! to-sorted-set
 
 region iteration
 

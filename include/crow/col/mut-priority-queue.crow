@@ -3,19 +3,19 @@ import
 	../bool: !, &&, ==, bool, false, true
 	../compare: <, compare
 	../exception: assert
-	../misc: ->, arrow, data, from, to, void
+	../misc: ->, arrow, as, data, from, to, void
 	../opt: force, is-empty, none, opt, some
 	../ptr: +, -, mut-ptr, set-deref
 	../str: ==, str
 	../test: is
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add
-	./arr: ==, arr
+	./arr: ==, arr, new
 	./arr-util: map
 	./fix-arr: begin-ptr, cast-immutable, copy, fix-arr, reverse!, uninitialized-fix-arr
 	./mut-arr:
 		~=, begin-ptr, each, each-with-index, empty!, fold, fold-reverse, is-empty, mut-arr,
-		new, pop!, reverse!, size, subscript
+		new, pop!, reverse!, size, subscript, to-mut-arr
 	./sort: sort-by!
 	./private/sort-utils: binary-search-insert-ptr
 
@@ -32,7 +32,7 @@ new<k, v> mut-priority-queue<k, v>() data<k> compare<k>
 	(), ()
 
 mut-priority-queue<k, v> mut-priority-queue<k, v>(a arrow<k, v>[]) data<k> compare<k>
-	mins = a mut-arr
+	mins = a to-mut-arr
 	mins sort-by! pair => pair from
 	mins, ()
 
@@ -104,8 +104,8 @@ body
 	if index < buckets.size
 		buckets[index] ~= pair
 	else
-		# TODO: type args should be unnecessary
-		buckets ~= new<arrow<k, v>>
+		# TODO: 'as' should be unnecessary
+		buckets ~= ().as<arrow<k, v> mut[]>
 		buckets add-to-bucket! index, pair
 
 pop-value!<k, v> v?(a mut-priority-queue<k, v>) data<k> compare<k>
@@ -187,8 +187,8 @@ test
 	a verify "5 -> 5 [6 -> 6], 4 -> 4b"
 
 	# TODO: a.arr is [4 -> "4b", 5 -> "5", 6 -> "6"]
-	a.arr map (it => it from) is [4, 5, 6]
-	a.arr map (it => it to) is ["4b", "5", "6"]
+	a.arr map (it => it from) is (4, 5, 6)
+	a.arr map (it => it to) is ("4b", "5", "6")
 	a verify "6 -> 6, 5 -> 5, 4 -> 4b"
 
 # TODO: opt should have generic ==

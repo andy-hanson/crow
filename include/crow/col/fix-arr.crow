@@ -14,7 +14,7 @@ import
 	../private/exception-low-level: assert, forbid
 	../private/number-low-level: ==, <=>, nat64, wrap-mul, wrap-sub
 	../private/range-low-level: .., range
-	./arr: arr, arr-from-begin-end, begin-ptr, size, subscript
+	./arr: arr, arr-from-begin-end, begin-ptr, empty-arr, size, subscript
 	./arr-util: each, each-with-index, exists, find-index, fold, fold-reverse
 
 ###
@@ -28,16 +28,19 @@ fix-arr<a> record mut
 	# TODO:PRIVATE
 	inner a[]
 
-# Empty `fix-arr`.
-new<a> fix-arr a() noctx
-	void, []
+# TODO:INTERNAL (or fix-arr-low-level)
+empty-fix-arr<a> fix-arr a() noctx
+	void, empty-arr
 
 ###
 Copies an `arr` to a `fix-arr`.
 Writing to the result won't affect the original.
 ###
-fix-arr<a> fix-arr a(a a[])
-	a.size make-fix-arr<a> i => a[i]
+new<a> fix-arr a(...a a[])
+	a to-fix-arr
+
+to-fix-arr<a> fix-arr a(a a[])
+	a.size make-fix-arr i => a[i]
 
 ###
 Copies a `fix-arr` to an `arr`.

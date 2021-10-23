@@ -27,8 +27,8 @@ lint result<str, failure[]>(path str, options test-options) summon
 	res move-to-arr!
 
 .excluded-from-lint bool(name str)
-	exclude-exts = [".bmp", ".err", ".html", ".mdb", ".png", ".repr", ".svg", ".ttf", ".wasm", ".webp", ".xz"]
-	exclude-names = ["documentation", "dyncall", "libfirm", "node_modules", "package-lock.json"]
+	exclude-exts str[] = ".bmp", ".err", ".html", ".mdb", ".png", ".repr", ".svg", ".ttf", ".wasm", ".webp", ".xz"
+	exclude-names str[] = "documentation", "dyncall", "libfirm", "node_modules", "package-lock.json"
 	name starts-with "." || name in exclude-names || exclude-exts exists ext => name ends-with ext
 
 # Returns numner of errors
@@ -50,7 +50,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 	res move-to-arr!
 
 .ignored-extensions str[]()
-	["c", "data", "o", "out", "repr", "tmLanguage"]
+	"c", "data", "o", "out", "repr", "tmLanguage"
 
 .should-ignore-extension bool(ext str)
 	ext in ignored-extensions

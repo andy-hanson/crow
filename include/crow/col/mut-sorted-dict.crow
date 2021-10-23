@@ -4,7 +4,7 @@ import
 	../compare: !=, <, >, <=, compare
 	../exception: assert
 	../fun: subscript
-	../misc: ->, arrow, data, from, to, void
+	../misc: ->, arrow, as, data, from, to, void
 	../number: ==, <=>, +, -, *, nat64
 	../opt: ==, force, is-empty, none, opt, or-default, size, some
 	../ptr: ==, -, *, mut-ptr, set-deref
@@ -12,7 +12,7 @@ import
 	../str: ==, chars, str
 	../test: is
 	../writer: ~=, backup!, move-to-str!, new, writer
-	./arr: arr, subscript
+	./arr: arr, new, subscript
 	./arr-util: each
 	./mut-arr:
 		~=, begin-ptr, each, empty!, end-ptr, filter, filter!, fold, is-empty, map, map!,
@@ -36,13 +36,12 @@ mut-sorted-dict<k, v> record mut
 	node-size mut nat64
 	next mut mut-sorted-dict<k, v>?
 
-# New empty `mut-sorted-dict`.
-new<k, v> mut-sorted-dict<k, v>() data<k> compare<k>
-	(), 0, none
+new<k, v> mut-sorted-dict<k, v>(...a arrow<k, v>[]) data<k> compare<k>
+	a to-mut-sorted-dict
 
 # Copies an `arr` to a `mut-sorted-dict`.
-mut-sorted-dict<k, v> mut-sorted-dict<k, v>(a arrow<k, v>[]) data<k> compare<k>
-	res mut-sorted-dict<k, v> = ()
+to-mut-sorted-dict<k, v> mut-sorted-dict<k, v>(a arrow<k, v>[]) data<k> compare<k>
+	res mut-sorted-dict<k, v> = ().as<arrow<k, v?> mut[]>, 0, none
 	a each pair =>
 		res[pair from] := pair to
 	res
@@ -254,7 +253,7 @@ spec
 	data<k-out>
 	compare<k-out>
 body
-	mut-sorted-dict: a map-to-arr (k, v) => f[k, v]
+	a map-to-arr ((k, v) => f[k, v]) to-mut-sorted-dict
 
 map-values<v-out, k, v-in> mut-sorted-dict<k, v-out>
 	a mut-sorted-dict<k, v-in>
@@ -291,7 +290,7 @@ map!<k, v> void(a mut-sorted-dict<k, v>, f act arrow<k, v>(k, v)) data<k> compar
 	a.pairs sort-by! pair => pair from
 
 test
-	a = mut-sorted-dict: [3 -> "30", 6 -> "60"]
+	a mut-sorted-dict<nat64, str> = 3 -> "30", 6 -> "60"
 	a verify "[3 -> 30, 6 -> 60]"
 	a map! (k, v) =>
 		10 - k -> v.chars[0 .. 1].str
@@ -337,7 +336,7 @@ map-values!<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) data<k> compare<k
 		next verify-node-size
 
 test
-	a = mut-sorted-dict<nat64, str>: [3 -> "3", 5 -> "5", 7 -> "7", 8 -> "8", 9 -> "9", 10 -> "10"]
+	a mut-sorted-dict<nat64, str> = 3 -> "3", 5 -> "5", 7 -> "7", 8 -> "8", 9 -> "9", 10 -> "10"
 	a verify "[3 -> 3, 5 -> 5, 7 -> 7, 8 -> 8, 9 -> 9, 10 -> 10]"
 
 	# Insert into the previous slot
@@ -387,7 +386,8 @@ test
 	a remove-key! 1 is none
 
 	# Adding some more values so removals can't fully remove
-	a ~= [13 -> "13", 15 -> "15", 17 -> "17"]
+	# TODO: should not need 'as'
+	a ~= (13 -> "13", 15 -> "15", 17 -> "17").as<arrow<nat64, str>[]>
 	a verify "[5 -> 5, 7 -> 7, 8 -> 8, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], [0 -> 0, 2 -> 2, 6 -> 6]"
 
 	a remove-key! 5 is "5".some
@@ -419,7 +419,7 @@ test
 	a verify "[0 -> 0, 2 -> 2, 6 -> 6, 7 -> _, 11 -> 11, 17 -> 17]"
 
 	# Now physical size of a is 6, logical size is 5.
-	a ~= [1 -> "1", 5 -> "5", 3 -> "3"]
+	a ~= (1 -> "1", 5 -> "5", 3 -> "3")
 	a verify "[0 -> 0, 2 -> 2, 6 -> 6, 7 -> _, 11 -> 11, 17 -> 17], [1 -> 1, 3 -> 3, 5 -> 5]"
 
 	a[4] := "4"

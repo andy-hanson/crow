@@ -4,7 +4,7 @@ import
 	../compare: !=, <, >, equal, min
 	../exception: assert, forbid
 	../fun: subscript
-	../misc: void
+	../misc: as, void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, -, *, const-ptr, mut-ptr, set-deref, set-subscript
 	../range: ..
@@ -13,7 +13,7 @@ import
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert, hard-unreachable
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
-	./arr: ==, arr, arr-equal, begin-ptr, end-ptr, is-empty, size, unsafe-slice
+	./arr: ==, arr, arr-equal, begin-ptr, end-ptr, is-empty, new, size, unsafe-slice
 	./arr-util: each, each-with-index, first, first-some, fold, last, rtail
 	./fix-arr:
 		begin-ptr, cast-immutable, copy-from!, end-ptr, fix-arr, fix-arr-from-begin-end,
@@ -31,15 +31,14 @@ list<a> record
 	prev list<a>?
 	values a[]
 
-# Empty list.
-list<a> list a()
-	[] list
+new<a> list a(...a a[])
+	a to-list
 
 ###
 Convert an arr to a list.
 This is O(1).
 ###
-list<a> list a(a a[])
+to-list<a> list a(a a[])
 	void, none, a
 
 # TODO:KILL
@@ -196,7 +195,7 @@ rtail<a> list a(a list a)
 		if prev ?= a prev
 			prev
 		else
-			list
+			()
 	else
 		void, a.prev, a.values.rtail
 		
@@ -232,7 +231,7 @@ This is O(n).
 	res = a-size wrap-add b.size uninitialized-fix-arr<a>
 	res.end-ptr write-out! b
 	res.begin-ptr + a-size write-out! a
-	res.cast-immutable list
+	res.cast-immutable to-list
 
 .write-out!<a> void(end a mut*, a list a) unsafe
 	new-end = end - a.values.size
@@ -261,7 +260,7 @@ map<out, in> list out(a list in, f act out(in)) trusted
 	res = a.size uninitialized-fix-arr<out>
 	end = res.begin-ptr map-recur a, f
 	hard-assert: end == res.end-ptr
-	res.cast-immutable list
+	res.cast-immutable to-list
 .map-recur<out, in> out mut*(out out mut*, a list in, f act out(in)) unsafe
 	next-out = if prev ?= a prev
 		out map-recur prev, f
@@ -274,7 +273,7 @@ map<out, in> list out(a list in, f act out(in)) trusted
 filter<a> list a(a list a, f act bool(a)) trusted
 	res = a.size uninitialized-fix-arr<a>
 	end = res.begin-ptr filter-recur a, f
-	res[0 .. end - res.begin-ptr].cast-immutable list
+	res[0 .. end - res.begin-ptr].cast-immutable to-list
 .filter-recur<a> a mut*(out a mut*, a list a, f act bool(a)) unsafe
 	new-out = if prev ?= a prev
 		out filter-recur prev, f
@@ -320,27 +319,27 @@ first-some<out, in> out?(a list in, f act out?(in))
 		out ~= "]"
 
 test
-	a = list<nat64>
+	a list nat64 = ()
 	assert: a is-empty
-	a.arr is []
+	a.arr is ()
 	a.dbg is "[]"
 	a.last is none
 
 	b = a ~ 1
 	b.dbg is "[1]"
 	b.last is 1.some
-	b.rtail.arr is []
+	b.rtail.arr is ()
 	forbid: b is-empty
 
 	c = b ~ 2
 	c.dbg is "[1 2]"
 	c.last is 2.some
-	c.rtail.arr is [1]
+	c.rtail.arr is (1,)
 
 	d = c ~ 3
 	d.dbg is "[1 2] [3]"
 	d.last is 3.some
-	d.rtail.arr is [1, 2]
+	d.rtail.arr is (1, 2)
 
 	e = d ~ 4
 	e.dbg is "[1 2 3 4]"
@@ -348,7 +347,8 @@ test
 	e.rtail.arr is d.arr
 	e.size is 4
 
-	e56 = e ~ [5, 6]
+	# TODO: should not need 'as'
+	e56 = e ~ (5, 6).as<nat64[]>
 	e56.dbg is "[1 2 3 4] [5 6]"
 	(c ~ d).dbg is "[1 2 1 2 3]"
 

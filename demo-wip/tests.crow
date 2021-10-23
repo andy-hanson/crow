@@ -8,7 +8,7 @@ import
 	crow/col/frozen-dict: frozen-dict, new
 	crow/col/frozen-set: frozen-set, new
 	crow/col/index-set: index-set, new
-	crow/col/list: list
+	crow/col/list: list, new
 	crow/col/mut-arr: mut-arr, new
 	crow/col/mut-deque: mut-deque, new
 	crow/col/mut-dict: mut-dict, new
@@ -35,7 +35,7 @@ import
 	crow/test/test-runner: run-all-tests
 
 main fut nat(_ str[]) summon
-	drop: [].from-bytes as<nat8[]>
+	drop: ().from-bytes as<nat8[]>
 	drop: "" password-hash quality-moderate
 	drop: ().as<compact-dict<nat, nat>>
 	drop: ().as<compact-sorted-dict<nat, nat>>
@@ -45,7 +45,7 @@ main fut nat(_ str[]) summon
 	drop: ().as<frozen-set nat>
 	drop: ().as<hamt-set nat>
 	drop: ().as<index-set>
-	drop: list<nat>
+	drop: ().as<list nat>
 	drop: ().as<nat mut[]>
 	drop: ().as<mut-deque nat>
 	drop: ().as<nat mut[nat]>
@@ -65,7 +65,7 @@ main fut nat(_ str[]) summon
 	drop: gmt
 	drop: ((() => none),) as<iterator<nat>>
 	drop: "".json-str
-	drop: [] parse-named-args []
+	drop: () parse-named-args ()
 	run-all-tests
 	0 resolved
 

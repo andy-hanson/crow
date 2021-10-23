@@ -17,7 +17,7 @@ main fut nat(args str[]) unsafe summon
 	if command ?= command-name.parse-command_name
 		match command
 		as get
-			named-args = args.tail parse-named-args ["db-path", "db-name", "key"] force
+			named-args = args.tail parse-named-args ("db-path", "db-name", "key") force
 			db-path = named-args[0] single-str-or-throw "db-path"
 			db-name = named-args[1] single-str-or-throw "db-name"
 			key = named-args[2] single-str-or-throw "key"
@@ -26,7 +26,7 @@ main fut nat(args str[]) unsafe summon
 					print: env with-read-transaction txn =>
 						txn get db, key or-default "none"
 		as set
-			named-args = args.tail parse-named-args ["db-path", "db-name", "key", "value"] force
+			named-args = args.tail parse-named-args ("db-path", "db-name", "key", "value") force
 			db-path = named-args[0] single-str-or-throw "db-path"
 			db-name = named-args[1] single-str-or-throw "db-name"
 			key = named-args[2] single-str-or-throw "key"
@@ -36,7 +36,7 @@ main fut nat(args str[]) unsafe summon
 					env with-write-transaction txn =>
 						txn set db, key, value
 		as stat
-			named-args = args.tail parse-named-args ["db-path", "db-name"] force
+			named-args = args.tail parse-named-args ("db-path", "db-name") force
 			db-path = named-args[0] single-str-or-throw "db-path"
 			db-name = named-args[1] single-str-or-throw "db-name"
 			db-path with-env true.lmdb-open-options, env =>

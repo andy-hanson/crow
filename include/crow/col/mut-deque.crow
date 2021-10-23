@@ -12,7 +12,7 @@ import
 	../test: is
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
-	./arr: ==, arr, arr-from-begin-end, size
+	./arr: ==, arr, arr-from-begin-end, new, size
 	./arr-util: each-ptr, first, last
 	./fix-arr:
 		begin-ptr, cast-immutable, copy-from!, end-ptr, fix-arr, is-empty, new, set-zero-elements,
@@ -168,28 +168,28 @@ test
 	a mut-deque nat64 = ()
 	a.pop-left! is none
 	a.pop-right! is none
-	a verify [], ""
+	a verify (), ""
 	1 push! a
-	a verify [1], "<-R 0 L-> 1"
+	a verify (1,), "<-R 0 L-> 1"
 	a push! 2
-	a verify [1, 2], "2 <-R L-> 1"
+	a verify (1, 2), "2 <-R L-> 1"
 
 	a-copy = a copy
-	a-copy verify [1, 2], "<-R L-> 1 2"
+	a-copy verify (1, 2), "<-R L-> 1 2"
 
 	a.pop-right! is 2.some
-	a verify [1], "<-R 0 L-> 1"
+	a verify (1,), "<-R 0 L-> 1"
 
 	a.pop-right! is 1.some
 	assert: a.left == null
 	assert: a.right == null
-	a verify [], "0 0"
+	a verify (), "0 0"
 
 	a push! 1
-	a verify [1], "L-> 1 <-R 0"
+	a verify (1,), "L-> 1 <-R 0"
 
 	2 push! a
-	a verify [2, 1], "1 <-R L-> 2"
+	a verify (2, 1), "1 <-R L-> 2"
 
 	3 push! a
-	a verify [3, 2, 1], "2 1 <-R 0 L-> 3"
+	a verify (3, 2, 1), "2 1 <-R 0 L-> 3"

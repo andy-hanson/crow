@@ -244,11 +244,6 @@ immutable(Repr) reprExpr(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Expr
 			reprRecord(alloc, "closure-rf", [reprSym(a.field.name)]),
 		(ref immutable Expr.Cond) =>
 			todo!(immutable Repr)("cond"),
-		(ref immutable Expr.CreateArr it) =>
-			reprRecord(alloc, "create-arr", [
-				reprStructInst(alloc, ctx, it.arrType),
-				reprArr(alloc, it.args, (ref immutable Expr arg) =>
-					reprExpr(alloc, ctx, arg))]),
 		(ref immutable Expr.FunPtr it) =>
 			reprRecord(alloc, "fun-ptr", [
 				reprFunInst(alloc, ctx, it.funInst),

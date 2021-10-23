@@ -39,7 +39,7 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, o
 spec
 	summon
 body
-	op = ["ast", "model", "concrete-model", "low-model"] first-some<failure[], str> print-kind =>
+	op = ("ast", "model", "concrete-model", "low-model") first-some<failure[], str> print-kind =>
 		if options print-tests
 			print: "crow print {print-kind} {path}"
 		res = print-kind run-print-test path-to-crow, env, path, options.overwrite-output
@@ -69,12 +69,12 @@ body
 spec
 	summon
 body
-	res = path-to-crow spawn-and-wait-result ["print", print-kind, path], env
+	res = path-to-crow spawn-and-wait-result ("print", print-kind, path), env
 	output-path = "{path}.{print-kind}.repr"
 	# NOTE: compiler may have both stderr and stdout!
 	output-failures failure[] = if res.stdout.is-empty && res.exit-code != 0
 		# Just have a file for the err
-		[]
+		()
 	else
 		path handle-output output-path, res.stdout, overwrite-output
 
@@ -82,14 +82,14 @@ body
 		true, output-failures
 	elif res.exit-code == 0
 		assert: res.stderr == ""
-		false, []
+		false, ()
 	elif res.exit-code == 1
 		stderr-no-color = res.stderr remove-colors
 		# We should stop even if no test failure in handling the output
 		true, (path handle-output "{output-path}.err", stderr-no-color, overwrite-output)
 	else
 		message = "unexpected exit code: {res exit-code}"
-		true, [(path, message)]
+		true, ((path, message),)
 
 .run-single-runnable-test failure[]
 	path-to-crow str
@@ -100,14 +100,14 @@ body
 spec
 	summon
 body
-	args = if interpret
-		["run", path, "--interpret"]
+	args str[] = if interpret
+		"run", path, "--interpret"
 	else
-		["run", path, "--out", "{path}.c"]
+		"run", path, "--out", "{path}.c"
 	res = path-to-crow spawn-and-wait-result args, env
 	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output
 	stderr-failures failure[] = if res.exit-code == 0 && res.stderr == ""
-		[]
+		()
 	else
 		path handle-output ("{path}.stderr"), res.stderr, overwrite-output
 	stdout-failures ~ stderr-failures

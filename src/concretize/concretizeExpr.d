@@ -636,8 +636,6 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 						allocExpr(alloc, concretizeExpr(alloc, ctx, e.then)),
 						allocExpr(alloc, concretizeExpr(alloc, ctx, e.else_)))));
 		},
-		(ref immutable Expr.CreateArr e) =>
-			concretizeCreateArr(alloc, ctx, range, e),
 		(ref immutable Expr.FunPtr e) =>
 			concretizeFunPtr(alloc, ctx, range, e),
 		(ref immutable Expr.IfOption e) =>
@@ -683,26 +681,6 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 				symType(alloc, ctx.concretizeCtx),
 				range,
 				immutable ConcreteExprKind(constantSym(alloc, ctx.concretizeCtx, e.value))));
-}
-
-immutable(ConcreteExpr) concretizeCreateArr(Alloc)(
-	ref Alloc alloc,
-	ref ConcretizeExprCtx ctx,
-	immutable FileAndRange range,
-	ref immutable Expr.CreateArr e,
-) {
-	immutable ConstantsOrExprs args = getConstantsOrExprs(alloc, ctx, e.args);
-	immutable ConcreteType arrayType = getConcreteType_forStructInst(alloc, ctx, e.arrType);
-	immutable Ptr!ConcreteStruct arrayStruct = mustBeNonPointer(arrayType);
-	return matchConstantsOrExprs!(immutable ConcreteExpr)(
-		args,
-		(ref immutable Constant[] constants) =>
-			immutable ConcreteExpr(arrayType, range, immutable ConcreteExprKind(
-				getConstantArr(alloc, ctx.concretizeCtx.allConstants, arrayStruct, constants))),
-		(ref immutable ConcreteExpr[] exprs) {
-			return immutable ConcreteExpr(arrayType, range, immutable ConcreteExprKind(
-				allocate(alloc, immutable ConcreteExprKind.CreateArr(arrayStruct, exprs))));
-		});
 }
 
 immutable(ConstantsOrExprs) constantsOrExprsArr(Alloc)(

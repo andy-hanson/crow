@@ -4,7 +4,7 @@ import
 	sys/sysinfo: get_nprocs
 	../bool: false
 	../cell: as-cell
-	../col/arr: arr, subscript
+	../col/arr: arr, empty-arr, subscript
 	../col/arr-util: map, tail
 	../compare: !=
 	../fun: fun-ptr2, subscript
@@ -39,7 +39,7 @@ import
 rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 	n-threads = get_nprocs
 	f = false
-	gctx-by-val by-val global-ctx = lbv, lbv, lbv, none, [], n-threads, create-condition, f, f
+	gctx-by-val by-val global-ctx = lbv, lbv, lbv, none, empty-arr, n-threads, create-condition, f, f
 	gctx = gctx-by-val ref-of-val
 	island-by-val = gctx island 0, n-threads
 	island = island-by-val ref-of-val

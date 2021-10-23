@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: !, ==, bool, false, true
-	./col/arr: arr, arr-equal, is-empty
+	./col/arr: arr, arr-equal, is-empty, new
 	./col/arr-util: each
 	./col/dict: dict, dict-equal, each, is-empty, new
 	./col/mut-dict: move-to-dict!, mut-dict, new, set-subscript
@@ -171,7 +171,7 @@ take-json! json?(a reader)
 	elif a try-take-char "["
 		a skip-whitespace!
 		if a try-take-char "]"
-			[].json-arr some
+			().json-arr some
 		else
 			a take-arr-recur! ()
 	elif a try-take-char "\{"
@@ -219,10 +219,10 @@ test
 	"j".json-str verify "\"j\""
 	"a\nb".json-str verify "\"a\\nb\""
 
-	[].json-arr verify "[]"
-	[1.0.json-number].json-arr verify "[1]"
-	[1.0.json-number, true.json-bool].json-arr verify "[1,true]"
+	().json-arr verify "[]"
+	(1.0.json-number,).json-arr verify "[1]"
+	(1.0.json-number, true.json-bool).json-arr verify "[1,true]"
 
 	().json-object verify "\{}"
-	["a" -> 1.0.json-number].dict.json-object verify "\{\"a\":1}"
-	["a" -> 1.0.json-number, "x\ny" -> true.json-bool].dict.json-object verify "\{\"a\":1,\"x\\ny\":true}"
+	("a" -> 1.0.json-number,).json-object verify "\{\"a\":1}"
+	("a" -> 1.0.json-number, "x\ny" -> true.json-bool).json-object verify "\{\"a\":1,\"x\\ny\":true}"

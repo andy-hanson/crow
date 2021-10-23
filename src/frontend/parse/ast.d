@@ -233,10 +233,6 @@ struct CallAst {
 	}
 }
 
-struct CreateArrAst {
-	immutable ArrWithSize!ExprAst args;
-}
-
 struct FunPtrAst {
 	immutable Sym name;
 }
@@ -467,7 +463,6 @@ struct ExprAstKind {
 	enum Kind {
 		bogus,
 		call,
-		createArr,
 		funPtr,
 		identifier,
 		if_,
@@ -486,7 +481,6 @@ struct ExprAstKind {
 	union {
 		immutable BogusAst bogus;
 		immutable CallAst call;
-		immutable CreateArrAst createArr;
 		immutable FunPtrAst funPtr;
 		immutable IdentifierAst identifier;
 		immutable IfAst if_;
@@ -505,7 +499,6 @@ struct ExprAstKind {
 	public:
 	@trusted immutable this(immutable BogusAst a) { kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
-	@trusted immutable this(immutable CreateArrAst a) { kind = Kind.createArr; createArr = a; }
 	@trusted immutable this(immutable FunPtrAst a) { kind = Kind.funPtr; funPtr = a; }
 	@trusted immutable this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
 	@trusted immutable this(immutable IfAst a) { kind = Kind.if_; if_ = a; }
@@ -542,7 +535,6 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	scope ref immutable ExprAstKind a,
 	scope T delegate(ref immutable BogusAst) @safe @nogc pure nothrow cbBogus,
 	scope T delegate(ref immutable CallAst) @safe @nogc pure nothrow cbCall,
-	scope T delegate(ref immutable CreateArrAst) @safe @nogc pure nothrow cbCreateArr,
 	scope T delegate(ref immutable FunPtrAst) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
 	scope T delegate(ref immutable IfAst) @safe @nogc pure nothrow cbIf,
@@ -562,8 +554,6 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbBogus(a.bogus);
 		case ExprAstKind.Kind.call:
 			return cbCall(a.call);
-		case ExprAstKind.Kind.createArr:
-			return cbCreateArr(a.createArr);
 		case ExprAstKind.Kind.funPtr:
 			return cbFunPtr(a.funPtr);
 		case ExprAstKind.Kind.identifier:
@@ -1364,10 +1354,6 @@ immutable(Repr) reprExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKin
 				reprNameAndRange(alloc, e.funName),
 				reprArr(alloc, toArr(e.typeArgs), (ref immutable TypeAst it) =>
 					reprTypeAst(alloc, it)),
-				reprArr(alloc, toArr(e.args), (ref immutable ExprAst it) =>
-					reprExprAst(alloc, it))]),
-		(ref immutable CreateArrAst e) =>
-			reprRecord(alloc, "create-arr", [
 				reprArr(alloc, toArr(e.args), (ref immutable ExprAst it) =>
 					reprExprAst(alloc, it))]),
 		(ref immutable FunPtrAst a) =>

@@ -71,6 +71,7 @@ struct Diag {
 			nonNoCtx,
 			summon,
 			unsafe,
+			variadicFromNoctx,
 		}
 
 		immutable Reason reason;

@@ -1,7 +1,7 @@
 no-std
 import
 	./bits: &, |, <<, >>
-	./col/arr: ==, arr, arr-cast, size, subscript
+	./col/arr: ==, arr, arr-cast, new, size, subscript
 	./col/arr-util: fold, strip-left-while
 	./compare: <, <=
 	./exception: assert
@@ -38,7 +38,7 @@ to-8-bytes nat8[](a nat64) trusted
 	b5 = a >> 0x28 & 0xff unsafe-to-nat8
 	b6 = a >> 0x30 & 0xff unsafe-to-nat8
 	b7 = a >> 0x38 & 0xff unsafe-to-nat8
-	[b7, b6, b5, b4, b3, b2, b1, b0]
+	b7, b6, b5, b4, b3, b2, b1, b0
 from-bytes nat64(a nat8[])
 	assert: a.size <= 8
 	0 fold a, (cur, x) =>
@@ -46,10 +46,10 @@ from-bytes nat64(a nat8[])
 test
 	n = 0x0123456789abcdef
 	bytes = n to-bytes
-	bytes is [0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef]
+	bytes is (0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef)
 	bytes.from-bytes.as<nat64> is n
-	0x500.to-8-bytes is [0, 0, 0, 0, 0, 0, 5, 0]
-	0x500.to-bytes is [5, 0]
+	0x500.to-8-bytes is (0, 0, 0, 0, 0, 0, 5, 0)
+	0x500.to-bytes is (5, 0)
 
 to-4-bytes nat8[](a nat32)
 	a.to-nat64.to-8-bytes[4 .. 8]

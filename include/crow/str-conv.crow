@@ -1,6 +1,7 @@
 no-std
 import
 	./bool: bool, false, true
+	./col/arr: new
 	./col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	./compare: <
 	./misc: void
@@ -23,7 +24,7 @@ to-str str(b bool) noctx
 
 # Str containing a single character.
 to-str str(c char)
-	[c] str
+	(c,) str
 
 # Parses "true" or "false".
 parse-bool bool?(a str)

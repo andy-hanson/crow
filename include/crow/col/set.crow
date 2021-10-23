@@ -6,7 +6,7 @@ import
 	../fun: subscript
 	../hash: hash-mix
 	../log: info, log
-	../misc: data, void
+	../misc: as, data, void
 	../opt: force, none, opt, or-default, some
 	../ptr: ==, <=>, +, *, const-ptr, mut-ptr, set-deref
 	../str: ==, str
@@ -14,14 +14,15 @@ import
 	../test: is
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
-	./arr: ==, arr
+	./arr: ==, arr, new
 	./arr-util: fold
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr-from-begin-end, uninitialized-fix-arr
 	./frozen-set:
-		begin-ptr, each, end-ptr, fold-with-index, frozen-set, is-empty, new, size,
+		begin-ptr, each, end-ptr, fold-with-index, frozen-set, is-empty, new, size, to-frozen-set,
 		try-get-unordered-index, unsafe-frozen-set-from-fix-arr-cast-immutable
 	./index-set:
 		count-greater-or-equal, each, filter-less, is-empty, in, index-set, new, size, try-remove
+	./mut-arr: ~=, move-to-arr!, mut-arr, new
 
 set<a> record
 	# TODO:PRIVATE
@@ -41,13 +42,13 @@ node-count<a> nat64(a set<a>)
 	here frozen-set a
 	left add-node<a>?
 
-new<a> set a() data<a> compare<a> hash-mix<a>
-	((), none), ()
+new<a> set a(...a a[]) data<a> compare<a> hash-mix<a>
+	a to-set
 
-set<a> set a(a a[]) data<a> compare<a> hash-mix<a>
-	(a.frozen-set, none), ()
+to-set<a> set a(a a[]) data<a> compare<a> hash-mix<a>
+	(a.to-frozen-set, none).as<add-node a>, ()
 
-arr<a> a[](a set a) data<a> compare<a> hash-mix<a>
+to-arr<a> a[](a set a) data<a> compare<a> hash-mix<a>
 	# TODO: If a has a single add node and no remove, just return that
 	a map-to-arr x => x
 
@@ -90,6 +91,17 @@ in<a> bool(value a, a set a) data<a> compare<a> hash-mix<a>
 ~ <a> set a(a set a, values a[]) data<a> compare<a> hash-mix<a>
 	a fold values, (cur, value) => cur ~ value
 
+| <a> set a(a set a, b set a) data<a> compare<a> hash-mix<a>
+	# TODO:PERF
+	a ~ b.to-arr
+
+& <a> set a(a set a, b set a) data<a> compare<a> hash-mix<a>
+	# TODO:PERF
+	a filter x => x in b
+
+- <a> set a(a set a, b set a) data<a> compare<a> hash-mix<a>
+	a filter x => !(x in b)
+
 try-add<a> set<a>?(a set a, value a) data<a> compare<a> hash-mix<a>
 	if index ?= a.add find-in-add value
 		if new-remove ?= a.remove try-remove index
@@ -100,12 +112,12 @@ try-add<a> set<a>?(a set a, value a) data<a> compare<a> hash-mix<a>
 .add-and-maybe-compact<a> set a(a set a, value a) trusted data<a> compare<a> hash-mix<a>
 	add-size = a.add add-size
 	if add-size == 0
-		([value].frozen-set, none), ()
+		((value,), none).as<add-node a>, ()
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
 		if plan.compacted-size == 1
-			([value].frozen-set, a.add.some), a.remove
+			((value,), a.add.some).as<add-node a>, a.remove
 		else
 			a add-and-compact add-size, plan, value
 
@@ -190,6 +202,10 @@ body
 
 region iteration
 
+each<a> void(a set a, f act void(a)) data<a> compare<a> hash-mix<a>
+	void fold a, (ignore, x) =>
+		f[x]
+
 fold<a, b> a(acc a, a set b, f act a(a, b)) data<b> compare<b> hash-mix<b>
 	acc fold-recur a.add, a.add.add-size-left, a.remove, f
 
@@ -205,6 +221,14 @@ fold<a, b> a(acc a, a set b, f act a(a, b)) data<b> compare<b> hash-mix<b>
 		mid fold-recur left, l, remove, f
 	else
 		mid
+
+filter<a> set a(a set a, f act bool(a)) data<a> compare<a> hash-mix<a>
+	# TODO:PERF
+	res a mut[] = ()
+	a each x =>
+		if f[x]
+			res ~= x
+	res.move-to-arr! to-set
 
 map-to-arr<out, in> out[](a set in, f act out(in)) trusted data<in> compare<in> hash-mix<in>
 	out = a.size uninitialized-fix-arr<out>
@@ -259,16 +283,19 @@ test
 	b = a ~ 5
 	b.is-empty is false
 	b.size is 1
-	b.arr is [5]
+	b.to-arr is (5,)
 	b verify "[5]"
 
-	c = b ~ [6, 4, 1]
+	# TODO: should not need 'as'
+	c = b ~ (6, 4, 1).as<nat64[]>
 	c verify "[1 4 6 5]"
 
-	d = c ~ [8]
+	# TODO: should not need 'as'
+	d = c ~ (8,).as<nat64[]>
 	d verify "[1 4 6 5], [8]"
 
-	e = d ~ [4, 10]
+	# TODO: should not need 'as'
+	e = d ~ (4, 10).as<nat64[]>
 	e verify "[1 4 6 5], [10 8]"
 	e.size is 6
 	e[0] is false

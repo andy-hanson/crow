@@ -4,7 +4,7 @@ import
 	crow/str-util: join
 
 main fut nat(_ str[]) summon
-	ingredients = ["plaintain", "potato"]
+	ingredients str[] = "plaintain", "potato"
 	fried = ingredients map ing => "fried {ing}"
 	print: fried join ", "
 	0 resolved

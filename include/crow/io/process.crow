@@ -15,10 +15,10 @@ import
 	../bool: !, &&, ||, bool, to-nat64
 	../bytes-types: zero
 	../cell: *, cell, new
-	../col/arr: ~, arr, begin-ptr
-	../col/arr-util: fold, map
-	../col/fix-arr: begin-ptr, fix-arr, ref-of-val-at, size
-	../col/mut-arr: begin-ptr, move-to-arr!, mut-arr, new, size, unsafe-set-size!
+	../col/arr: arr, begin-ptr
+	../col/arr-util: each, fold
+	../col/fix-arr: begin-ptr, fix-arr, new, ref-of-val-at, size
+	../col/mut-arr: ~=, begin-ptr, move-to-arr!, mut-arr, new, size, unsafe-set-size!
 	../compare: <=
 	../exception: assert, throw
 	../extra-types: fd-t
@@ -76,7 +76,12 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 		throw: "{exe} is not a file"
 
 .convert-args c-str*(exe-c-str c-str, args str[]) unsafe
-	begin-ptr: [exe-c-str] ~ (args map x => x to-c-str) ~ [null]
+	res c-str mut[] = ()
+	res ~= exe-c-str
+	args each x =>
+		res ~= x to-c-str
+	res ~= null.as<c-str>
+	res.move-to-arr! begin-ptr
 
 .spawn-and-wait-result process-result(exe c-str, args c-str*, environ c-str*) summon unsafe
 	stdout-pipes = make-pipes
@@ -123,7 +128,11 @@ spec
 	summon
 	unsafe
 body
-	poll-fds fix-arr by-val pollfd = [(stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)] fix-arr
+	# TODO: `as` should be unnecessary
+	# (It is because currently fix-arr exposes the constructor, which should be private)
+	pfd1 = (stdout-pipe, POLLIN, 0).as<by-val pollfd>
+	pfd2 = (stderr-pipe, POLLIN, 0).as<by-val pollfd>
+	poll-fds fix-arr by-val pollfd = pfd1, pfd2
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
 	# timeout == -1 means we block

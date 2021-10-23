@@ -1,6 +1,6 @@
 import
 	crow/cell: *, as-ptr, cell, new
-	crow/col/fix-arr: begin-ptr, fix-arr, map-to-arr, set-subscript, size, subscript
+	crow/col/fix-arr: begin-ptr, fix-arr, map-to-arr, new, set-subscript, size, subscript
 	crow/c-types: c-int
 	crow/io/duration: duration, msec
 	crow/io/print: print
@@ -71,7 +71,7 @@ main fut nat(_ str[]) summon trusted
 	t1 vec-2-32 = 1.0, 0.0
 	t2 vec-2-32 = 1.0, 1.0
 	t3 vec-2-32 = 0.0, 1.0
-	vertices = fix-arr: [(v0, red, t0), (v1, green, t1), (v2, blue, t2), (v3, white, t3)]
+	vertices fix-arr vertex = (v0, red, t0), (v1, green, t1), (v2, blue, t2), (v3, white, t3)
 	triangle-vbo = vertices vbo-create
 	assert: triangle-vbo != 0
 

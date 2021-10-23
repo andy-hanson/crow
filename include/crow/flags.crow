@@ -1,10 +1,8 @@
 no-std
 import
 	./bool: bool
-	./col/arr: arr
-	./col/arr-util: each, map
-	./col/mut-arr: ~=, move-to-arr!, mut-arr, new
-	./fun: subscript
+	./col/arr: arr, new
+	./col/arr-util: flat-map, map
 	./misc: name, named-val, val
 	./str: str
 	./str-util: join
@@ -25,16 +23,9 @@ is-in<a> bool(a a, b a) flags<a>
 to-syms<a> sym[](a a) flags<a>
 	flags-members flat-map member =>
 		if member.val is-in a
-			[member name]
+			member.name,
 		else
-			[]
+			()
 
 flags-to-str<a> str(a a) flags<a>
 	a.to-syms map (x => x to-str) join " | "
-
-# TODO:MOVE
-.flat-map<out, in> out[](a in[], f act out[](in))
-	res out mut[] = new
-	a each x =>
-		res ~= f[x]
-	res move-to-arr!

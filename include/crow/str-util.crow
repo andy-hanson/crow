@@ -1,13 +1,14 @@
 no-std
 import
 	./bool: &&, ||, bool
-	./col/arr: arr, arr-cast, arr-from-begin-end, begin-ptr
+	./col/arr: arr, arr-cast, arr-from-begin-end, begin-ptr, is-empty
 	./col/arr-util:
-		contains-subseq, ends-with, first, flatten, last, map, reverse, rtail, split-by-subseq,
+		contains-subseq, each, ends-with, first, last, map, reverse, rtail, split-by-subseq,
 		starts-with, tail, try-remove-end, try-remove-start, try-split-once
+	./col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	./compare: <=
 	./number: ==, <=>, +, -, nat8
-	./opt: none, opt, some
+	./opt: force, none, opt, some
 	./ptr: +, *
 	./str: ==, ~, char, chars, c-str, str, to-char, to-nat8
 	./tuple: a, b, new, pair
@@ -99,7 +100,15 @@ split-by str[](a str, b str)
 	a.chars split-by-subseq b.chars map chars => chars str
 
 join str(a str[], b str)
-	a map (it => it chars) flatten b.chars str
+	if a is-empty
+		""
+	else
+		res char mut[] = ()
+		a.rtail each x =>
+			res ~= x chars
+			res ~= b chars
+		res ~= a.last.force.chars
+		res.move-to-arr! str
 
 lower-case str(a str)
 	a.chars map (it => it lower-case-char) str

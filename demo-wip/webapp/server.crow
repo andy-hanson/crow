@@ -45,7 +45,7 @@ main fut nat(args str[]) unsafe summon
 		elif path == "/posts"
 			200, "OK", (), db.list-posts.format-posts-as-json
 		elif path == "/user-name"
-			user = (query parse-query ["user"])[0].parse-nat force
+			user = (query parse-query ("user",))[0].parse-nat force
 			200, "OK", (), (db user-name user)
 		elif path == "/users"
 			200, "OK", (), db.list-users.format-users-as-json
@@ -53,7 +53,7 @@ main fut nat(args str[]) unsafe summon
 			http-not-found
 	as http-post
 		if path == "/register"
-			args = req.body parse-query ["user-name", "password"]
+			args = req.body parse-query ("user-name", "password")
 			user-name = args[0]
 			password = args[1]
 			match db register-user! user-name, password
@@ -63,12 +63,12 @@ main fut nat(args str[]) unsafe summon
 			as user-already-exists
 				400, "User already exists", (), "User already exists"
 		elif path == "/login"
-			args = req.body parse-query ["user-name", "password"]
+			args = req.body parse-query ("user-name", "password")
 			user-name = args[0]
 			password = args[1]
 			match db login! user-name, password
 			as ok cookie
-				headers = dict: ["Set-Cookie" -> "login={cookie}; Max-Age={cookie-expire-seconds}"]
+				headers str[str] = "Set-Cookie" -> "login={cookie}; Max-Age={cookie-expire-seconds}",
 				200, "OK", headers, "Logged in as {user-name}"
 			as err e
 				match e
@@ -78,7 +78,7 @@ main fut nat(args str[]) unsafe summon
 					"User does not exist" http-not-found
 		elif path == "/post"
 			if cookie ?= req.headers["Cookie"]
-				user-cookie = (cookie parse-cookies ["login"])[0].parse-user-cookie force
+				user-cookie = (cookie parse-cookies ("login",))[0].parse-user-cookie force
 				post = db add-post! user-cookie, req.body
 				200, "OK", (), "\{\"postId\":{post}}"
 			else

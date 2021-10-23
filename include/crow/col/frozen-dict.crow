@@ -11,11 +11,12 @@ import
 	../test: is
 	../private/alloc: alloc-uninitialized
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
-	./arr: ==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, size, unsafe-at
+	./arr: ==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, new, size, unsafe-at
 	./arr-util: each, fold, fold-with-index, map
 	./fix-arr:
 		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-fix-arr, fix-arr,
-		fix-arr-from-begin-end, size, temp-as-arr, uninitialized-fix-arr, unsafe-at, unsafe-set-at!
+		fix-arr-from-begin-end, size, temp-as-arr, to-fix-arr, uninitialized-fix-arr, unsafe-at,
+		unsafe-set-at!
 
 frozen-dict<k, v> record
 	by-val
@@ -23,11 +24,11 @@ frozen-dict<k, v> record
 	pairs arrow<k, v>[]
 	bucket-starts arrow<k, v>*[]
 
-new<k, v> frozen-dict<k, v>() data<k> compare<k> hash-mix<k>
-	[], []
+new<k, v> frozen-dict<k, v>(...a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+	a to-frozen-dict
 
-frozen-dict<k, v> frozen-dict<k, v>(a arrow<k, v>[]) trusted data<k> compare<k> hash-mix<k>
-	a.fix-arr.fix-arr-to-frozen-dict-promise-no-duplicates remove-duplicates
+to-frozen-dict<k, v> frozen-dict<k, v>(a arrow<k, v>[]) trusted data<k> compare<k> hash-mix<k>
+	a.to-fix-arr.fix-arr-to-frozen-dict-promise-no-duplicates remove-duplicates
 
 # TODO:INTERNAL
 begin-ptr<k, v> arrow<k, v>*(a frozen-dict<k, v>) unsafe
@@ -92,7 +93,7 @@ spec
 	hash-mix<k>
 body
 	if a.size <= 4
-		a.cast-immutable, []
+		a.cast-immutable, ()
 	else
 		n-buckets = a.size unsafe-div 2
 		bucket-counts = a get-bucket-counts n-buckets
@@ -270,11 +271,11 @@ test
 	a frozen-dict<nat64, str> = ()
 	a.is-empty is true
 	a.size is 0
-	a verify [], []
+	a verify (), ()
 	a[0] is none
 	
-	b = [3 -> "3", 1 -> "1", 5 -> "5", 2 -> "2"] frozen-dict
-	b verify [3, 1, 5, 2], []
+	b frozen-dict<nat64, str> = 3 -> "3", 1 -> "1", 5 -> "5", 2 -> "2"
+	b verify (3, 1, 5, 2), ()
 	b[0] is none
 	b[1] is "1".some
 	b[2] is "2".some
@@ -283,8 +284,8 @@ test
 	b[5] is "5".some
 	b[6] is none
 
-	c = [3 -> "3", 1 -> "1", 5 -> "5", 2 -> "2", 8 -> "8"] frozen-dict
-	c verify [2, 8, 3, 5, 1], [0, 2]
+	c frozen-dict<nat64, str> = 3 -> "3", 1 -> "1", 5 -> "5", 2 -> "2", 8 -> "8"
+	c verify (2, 8, 3, 5, 1), (0, 2)
 	c[0] is none
 	c[1] is "1".some
 	c[2] is "2".some
@@ -297,7 +298,7 @@ test
 	c[9] is none
 
 test
-	a = [1 -> "1", 1 -> "2"] frozen-dict
+	a frozen-dict<nat64, str> = 1 -> "1", 1 -> "2"
 	a.size is 1
-	a verify [1], []
+	a verify (1,), ()
 	a[1] is "2".some

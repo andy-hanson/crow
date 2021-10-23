@@ -40,6 +40,7 @@ import model.model :
 	FunDeclAndArgs,
 	FunFlags,
 	isDataOrSendable,
+	isVariadic,
 	matchArity,
 	matchCalledDecl,
 	matchParams,
@@ -448,6 +449,7 @@ CommonOverloadExpected getCommonOverloadParamExpected(Alloc)(
 }
 
 immutable(Opt!(Diag.CantCall.Reason)) getCantCallReason(
+	immutable bool calledIsVariadic,
 	immutable FunFlags calledFlags,
 	immutable FunFlags callerFlags,
 	immutable bool inLambda,
@@ -459,6 +461,8 @@ immutable(Opt!(Diag.CantCall.Reason)) getCantCallReason(
 		? some(Diag.CantCall.Reason.summon)
 		: calledFlags.unsafe && !callerFlags.trusted && !callerFlags.unsafe
 		? some(Diag.CantCall.Reason.unsafe)
+		: calledIsVariadic && callerFlags.noCtx
+		? some(Diag.CantCall.Reason.variadicFromNoctx)
 		: none!(Diag.CantCall.Reason);
 }
 
@@ -470,7 +474,8 @@ void checkCallFlags(Alloc)(
 	immutable FunFlags caller,
 	const Opt!(Ptr!LambdaInfo) callerLambda,
 ) {
-	immutable Opt!(Diag.CantCall.Reason) reason = getCantCallReason(called.flags, caller, has(callerLambda));
+	immutable Opt!(Diag.CantCall.Reason) reason =
+		getCantCallReason(isVariadic(called), called.flags, caller, has(callerLambda));
 	if (has(reason))
 		addDiag(alloc, ctx, range, immutable Diag(Diag.CantCall(force(reason), called)));
 }

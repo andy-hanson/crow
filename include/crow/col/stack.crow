@@ -11,7 +11,7 @@ import
 	../test: is
 	../test/spy: calls, fn, spy-act
 	../private/number-low-level: ==, nat64, wrap-add
-	./arr: ==, arr
+	./arr: ==, arr, new
 	./arr-util: fold
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-fix-arr
 
@@ -174,35 +174,35 @@ first-some<out, in> out?(a stack in, f act out?(in))
 test
 	a stack nat64 = ()
 	assert: a is-empty
-	a.arr is []
+	a.arr is ()
 	a.last is none
 
 	b = a ~ 1
-	b.arr is [1]
+	b.arr is (1,)
 	b.last is 1.some
-	b.rtail.arr is []
+	b.rtail.arr is ()
 	forbid: b is-empty
 
 	c = b ~ 2
-	c.arr is [1, 2]
+	c.arr is (1, 2)
 	c.last is 2.some
-	c.rtail.arr is [1]
+	c.rtail.arr is (1,)
 
 	d = c ~ 3
-	d.arr is [1, 2, 3]
+	d.arr is (1, 2, 3)
 
 	each-spy = spy-act<void, nat64>: void
 	d each each-spy.fn
-	each-spy.calls is [1, 2, 3]
+	each-spy.calls is (1, 2, 3)
 
 	d each-reverse each-spy.fn
-	each-spy.calls is [3, 2, 1]
+	each-spy.calls is (3, 2, 1)
 
 	d2 = d map x => x wrap-add 10
-	d2.arr is [11, 12, 13]
+	d2.arr is (11, 12, 13)
 
 	d3 = d filter x => x != 2
-	d3.arr is [1, 3]
+	d3.arr is (1, 3)
 
 	folded = 5 fold d, (x, y) => x wrap-add y
 	folded is 11

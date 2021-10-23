@@ -1,12 +1,13 @@
 import
-	crow/col/mut-arr: ~=, is-empty, move-to-arr!, mut-arr
+	crow/col/mut-arr
 	crow/io/print: print
 	crow/str-util: join
 
 main fut nat(_ str[]) summon
-	xs = mut-arr: ["a", "b", "c"]
+	xs str mut[] = "a", "b", "c"
 	xs ~= "d"
-	xs ~= ["e", "f"]
+	# TODO: should not need 'as'
+	xs ~= ("e", "f").as<str[]>
 	a = xs move-to-arr!
 	print: a join ", "
 	print: xs.is-empty to-str

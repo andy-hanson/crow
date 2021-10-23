@@ -460,11 +460,13 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			immutable string descr = () {
 				final switch (it.reason) {
 					case Diag.CantCall.Reason.nonNoCtx:
-						return "'noctx' fun can't call non-'noctx' fun";
+						return "a 'noctx' function can't call a non-'noctx' function";
 					case Diag.CantCall.Reason.summon:
-						return "non-'summon' fun can't call 'summon' fun";
+						return "a non-'summon' function can't call a 'summon' function";
 					case Diag.CantCall.Reason.unsafe:
-						return "non-'trusted' and non-'unsafe' fun can't call 'unsafe' fun";
+						return "a non-'trusted' and non-'unsafe' function can't call an 'unsafe' function";
+					case Diag.CantCall.Reason.variadicFromNoctx:
+						return "a 'noctx' function can't call a variadic function";
 				}
 			}();
 			writeStatic(writer, descr);

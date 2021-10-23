@@ -4,7 +4,7 @@ import
 	../../compare: <, <=, >=, compare, max, min
 	../../exception: unreachable
 	../../fun: subscript
-	../../misc: ->, arrow, data, from, to, void
+	../../misc: ->, arrow, as, data, from, to, void
 	../../number: ==, <=>, +, -, is-even, nat64
 	../../opt: ==, is-empty, none, opt, opt-or, some
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
@@ -16,7 +16,7 @@ import
 	../../private/alloc: mem-copy!
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: wrap-add
-	../arr: arr, begin-ptr, is-empty, end-ptr, size, subscript
+	../arr: arr, begin-ptr, is-empty, end-ptr, new, size, subscript
 	../arr-util: each, filter, fold, map, tail
 	../fix-arr:
 		begin-ptr, cast-immutable, is-empty, fold, fix-arr, set-subscript, size, subscript, tail,
@@ -42,10 +42,10 @@ compact-sorted-dict<k, v> record
 	pairs arrow<k, v?>[]
 	prev impl<k, v>
 
-new<k, v> compact-sorted-dict<k, v>() data<k> compare<k>
-	void, [].end-node
+new<k, v> compact-sorted-dict<k, v>(...a arrow<k, v>[]) data<k> compare<k>
+	a to-compact-sorted-dict
 
-compact-sorted-dict<k, v> compact-sorted-dict<k, v>(a arrow<k, v>[]) data<k> compare<k>
+to-compact-sorted-dict<k, v> compact-sorted-dict<k, v>(a arrow<k, v>[]) data<k> compare<k>
 	void, (a sort-by (pair => pair from) end-node)
 
 is-empty<k, v> bool(a compact-sorted-dict<k, v>) data<k> compare<k>
@@ -73,14 +73,11 @@ arr<k, v> arrow<k, v>[](a compact-sorted-dict<k, v>) data<k> compare<k>
 ~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, pair arrow<k, v>) data<k> compare<k>
 	void, (a.impl add-or-remove pair.from, pair.to.some)
 
-~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b compact-sorted-dict<k, v>) data<k> compare<k>
-	a ~ b.arr
-
 ~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b arrow<k, v>[]) data<k> compare<k>
 	if b is-empty
 		a
 	elif a is-empty
-		b compact-sorted-dict
+		b to-compact-sorted-dict
 	else
 		# TODO: 'arrow<k, v?>[]' should be unnecessary
 		pairs arrow<k, v?>[] = b map (it => it.from -> it.to.some) sort-by it => it from
@@ -113,7 +110,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) data<k> compare<k>
 	!a[key].is-empty
 
 .add-or-remove<k, v> impl<k, v>(a impl<k, v>, key k, value v?) data<k> compare<k>
-	([key -> value], a) merge-as-needed
+	((key -> value,), a) merge-as-needed
 
 .merge-as-needed<k, v> impl<k, v>(a overlay<k, v>) data<k> compare<k>
 	match a prev
@@ -389,7 +386,7 @@ spec
 	data<k-out>
 	compare<k-out>
 body
-	a map-to-arr f compact-sorted-dict
+	a map-to-arr f to-compact-sorted-dict
 
 keys<k, v> k[](a compact-sorted-dict<k, v>) data<k> compare<k>
 	a map-to-arr (k, v) => k
@@ -474,7 +471,8 @@ test
 	b verify "[10 -> 10]"
 	b[10] is "10".some
 
-	c = b ~ [15 -> "15", 5 -> "5", 20 -> "20"]
+	# TODO: should not need 'as'
+	c = b ~ (15 -> "15", 5 -> "5", 20 -> "20").as<arrow<nat64, str>[]>
 	c verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20]"
 
 	d = c ~ (11 -> "11")
@@ -492,12 +490,13 @@ test
 	g = f ~ (10 -> "10b")
 	g verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> 11, 15 -> _]"
 
-	h = g - [11, 12]
+	h = g - (11, 12)
 	# Unfortunately we leave an unnecessary '11 -> _',
 	# because we don't keep track of what a removal removes from, and it might be removing from the leftmost node.
 	h verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> _, 15 -> _]"
 
-	i = h ~ [11 -> "11", 25 -> "25"]
+	# TODO: should not need 'as'
+	i = h ~ (11 -> "11", 25 -> "25").as<arrow<nat64, str>[]>
 	i verify "[5 -> 5, 10 -> 10b, 11 -> 11, 20 -> 20, 25 -> 25]"
 
 	h-folded = "" fold h, (cur, key, value) =>
@@ -517,5 +516,6 @@ test
 	h-mapped verify "[5 -> 5, 10 -> b, 20 -> 0]"
 
 test
-	a = [84 -> "84"].compact-sorted-dict ~ (84 -> "84b")
-	a verify "[84 -> 84b]"
+	a compact-sorted-dict<nat64, str> = 84 -> "84",
+	b = a ~ (84 -> "84b")
+	b verify "[84 -> 84b]"

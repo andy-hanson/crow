@@ -4,7 +4,7 @@ import
 	../../bool: !, bool, false, true
 	../../col/arr: arr, begin-ptr, size, subscript
 	../../col/arr-util: rtail
-	../../col/dict: dict, each, in, new
+	../../col/dict: each, in, new
 	../../col/mut-dict: move-to-dict!, mut-dict, new, remove-key!, set-subscript, subscript
 	../../col/mut-arr: ~=, index-of, move-to-arr!, mut-arr, new, pop-n-from-start!, size
 	../../compare: !=, <=, >=
@@ -58,7 +58,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	tcp-server = port start-tcp-server (on-accepted-client, on-received-chunk)
 
 	# TODO: KILL
-	ignore <- handler[(http-get, "", [].dict, "")]
+	ignore <- handler[(http-get, "", (), "")]
 	drop: ignore
 
 	(tcp-server.stop,) resolved

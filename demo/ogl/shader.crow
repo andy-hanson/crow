@@ -1,7 +1,7 @@
 no-std
 import
 	crow/cell: *, cell, new
-	crow/col/arr: begin-ptr, size
+	crow/col/arr: arr, begin-ptr, new, size
 	crow/col/fix-arr: begin-ptr, copy-to-arr, uninitialized-fix-arr
 	crow/compare: !=
 	crow/exception: assert, throw
@@ -9,7 +9,7 @@ import
 	crow/misc: void
 	crow/number: ==, to-int32, to-nat64
 	crow/ptr: null
-	crow/str: str
+	crow/str: c-str, str
 	crow/str-util: to-c-str
 	GLES2/gl2:
 		glAttachShader, GLchar, glCompileShader, GL_COMPILE_STATUS, glCreateProgram, glCreateShader,
@@ -61,7 +61,6 @@ shader-prog-destroy void(shader-prog GLuint) summon unsafe
 
 .create-shader-from-source GLuint(file-name str, shader-type GLenum) summon unsafe
 	shader = shader-type glCreateShader
-	ccc = file-name.read-file
-	shader-sources = [ccc.to-c-str]
+	shader-sources c-str[] = file-name.read-file.to-c-str,
 	shader glShaderSource shader-sources.size.to-int32, shader-sources.begin-ptr, null
 	shader

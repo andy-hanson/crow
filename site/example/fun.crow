@@ -13,7 +13,7 @@ main fut nat(_ str[]) summon
 		product = x * y
 		product to-str
 
-	xs = ["crow", "crime"]
+	xs str[] = "crow", "crime"
 	print: xs map (x => x reverse) join ", "
 
 	0 resolved

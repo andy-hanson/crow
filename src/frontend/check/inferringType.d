@@ -249,19 +249,9 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedType(Alloc)(
 		: none!Type;
 }
 
-private immutable(CheckedExpr) bogusWithoutAffectingExpected(immutable FileAndRange range) {
-	return CheckedExpr(immutable Expr(range, immutable Expr.Bogus()));
-}
-
 immutable(CheckedExpr) bogus(ref Expected expected, immutable FileAndRange range) {
 	cellSet(expected.type, some(immutable Type(immutable Type.Bogus())));
-	return bogusWithoutAffectingExpected(range);
-}
-
-immutable(CheckedExpr) bogusWithoutChangingExpected(ref Expected expected, ref immutable FileAndRange range) {
-	return has(tryGetInferred(expected))
-		? bogusWithoutAffectingExpected(range)
-		: bogus(expected, range);
+	return immutable CheckedExpr(immutable Expr(range, immutable Expr.Bogus()));
 }
 
 immutable(Type) inferred(ref const Expected expected) {

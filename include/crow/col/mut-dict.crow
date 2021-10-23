@@ -13,14 +13,14 @@ import
 	../test: is
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/number-low-level: ==, <=>, nat64, unsafe-mod, wrap-add, wrap-mul, wrap-sub
-	./arr: ==, arr, size
+	./arr: ==, arr, new, size
 	./arr-util: each, map
-	./dict: dict
+	./dict: dict, to-dict
 	./fix-arr:
 		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-fix-arr, fix-arr, fold, is-empty,
 		map, new, set-subscript, size, subscript, uninitialized-fix-arr
 	./mut-arr:
-		~=, copy, each, filter!, find-index, fold, is-at-capacity, is-empty, map!, mut-arr,
+		~=, copy, each, filter!, find-index, fold, is-at-capacity, is-empty, map!, mut-arr, new,
 		remove-unordered-at!, set-subscript, size, subscript
 
 mut-dict<k, v> record mut
@@ -34,10 +34,10 @@ mut-dict<k, v> record mut
 	one arrow<k, v>
 	many arrow<k, v> mut[]
 
-new<k, v> v mut[k]() data<k> compare<k> hash-mix<k>
-	void, (), 0
+new<k, v> v mut[k](...a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+	a to-mut-dict
 
-mut-dict<k, v> v mut[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+to-mut-dict<k, v> v mut[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	res = a.size mut-dict-with-capacity<k, v>
 	a each pair =>
 		res[pair from] := pair to
@@ -64,7 +64,7 @@ copy<k, v> v mut[k](a v mut[k]) data<k> compare<k> hash-mix<k>
 			m.copy many
 	void, entries, a.total-size
 test
-	a = [1 -> "1", 2 -> "2", 5 -> "5"] mut-dict
+	a str mut[nat64] = 1 -> "1", 2 -> "2", 5 -> "5"
 	a verify "_ (1 -> 1) [2 -> 2, 5 -> 5]"
 
 	b = a copy
@@ -110,7 +110,10 @@ swap!<k, v> void(a v mut[k], b v mut[k]) data<k> compare<k> hash-mix<k>
 	a.total-size := b.total-size
 	b.total-size := temp-size
 
-remove-key!<k, v> v?(a v mut[k], key k) data<k> compare<k> hash-mix<k>
+remove-key!<k, v> void(a v mut[k], key k) data<k> compare<k> hash-mix<k>
+	drop: a try-remove-key! key
+
+try-remove-key!<k, v> v?(a v mut[k], key k) data<k> compare<k> hash-mix<k>
 	a update! key, none
 
 ###
@@ -120,7 +123,7 @@ Returns the old value (if it exists).
 .update!<k, v> v?(a v mut[k], key k, new-value v?) trusted data<k> compare<k> hash-mix<k>
 	if a.entries is-empty
 		if value ?= new-value
-			a.entries := [key -> value one].fix-arr
+			a.entries := (key -> value).one,
 			a.total-size := 1
 		none
 	else
@@ -145,7 +148,7 @@ Returns the old value (if it exists).
 						a expand!
 						a[key] := value
 					else
-						a.entries[entry-index] := [ar, key -> value].mut-arr many
+						a.entries[entry-index] := (ar, key -> value) many
 						a.total-size := a.total-size wrap-add 1
 				none
 		as many m
@@ -238,7 +241,7 @@ map-to-arr<out, k, v> out[](a v mut[k], f act out(k, v)) trusted data<k> compare
 	out cast-immutable
 
 move-to-dict!<k, v> v[k](a v mut[k]) data<k> compare<k> hash-mix<k>
-	res = a map-to-arr ((k, v) => k -> v) dict
+	res = a map-to-arr ((k, v) => k -> v) to-dict
 	a empty!
 	res
 
@@ -291,8 +294,8 @@ test
 	a[6] is "6".some
 	a.size is 1
 	# TODO: a.arr is [6 -> "6"]
-	a.arr map (pair => pair from) is [6]
-	a.arr map (pair => pair to) is ["6"]
+	a.arr map (pair => pair from) is (6,)
+	a.arr map (pair => pair to) is ("6",)
 
 	a verify "(6 -> 6)"
 
@@ -313,14 +316,14 @@ test
 	a[5] is none
 
 	# TODO: a.arr is [4 -> "4", 8 -> "8", 6 -> "six", 3 -> "3"]
-	a.arr map (pair => pair from) is [4, 8, 6, 3]
-	a.arr map (pair => pair to) is ["4", "8", "six", "3"]
+	a.arr map (pair => pair from) is (4, 8, 6, 3)
+	a.arr map (pair => pair to) is ("4", "8", "six", "3")
 
 	a[12] := "12"
 	a verify "(8 -> 8) _ _ (3 -> 3) [4 -> 4, 12 -> 12] _ (6 -> six) _"
 
-	a remove-key! 5 is none
-	a remove-key! 4 is "4".some
+	a try-remove-key! 5 is none
+	a try-remove-key! 4 is "4".some
 
 	a verify "(8 -> 8) _ _ (3 -> 3) (12 -> 12) _ (6 -> six) _"
 

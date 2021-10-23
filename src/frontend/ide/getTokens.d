@@ -5,7 +5,6 @@ module frontend.ide.getTokens;
 import frontend.parse.ast :
 	BogusAst,
 	CallAst,
-	CreateArrAst,
 	ExplicitByValOrRefAndRange,
 	ExprAst,
 	FileAst,
@@ -348,9 +347,6 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 					addExprsTokens(alloc, tokens, args);
 					break;
 			}
-		},
-		(ref immutable CreateArrAst it) {
-			addExprsTokens(alloc, tokens, toArr(it.args));
 		},
 		(ref immutable FunPtrAst) {
 			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));
