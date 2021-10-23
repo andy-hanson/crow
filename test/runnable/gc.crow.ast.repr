@@ -22,7 +22,7 @@ file-ast(
 		struct(
 			range(792, 823)
 			""
-			true
+			public
 			[]
 			none
 			record(
@@ -33,7 +33,7 @@ file-ast(
 					field(range(816, 821), false, c, inststruct(range(818, 821), name-range(818, nat)))]))]
 	funs: [
 		fun-decl(
-			public: true
+			visibility: public
 			sig: sig-ast(
 				range(206, 227)
 				main
@@ -187,7 +187,7 @@ file-ast(
 															call(infix, name-range(766, get-stats), [], [gc])])]))
 										call(infix, name-range(782, resolved), [], [literal(nat(0, false))])))))))))
 		fun-decl(
-			public: true
+			visibility: public
 			sig: sig-ast(
 				range(823, 838)
 				to-str
@@ -202,7 +202,7 @@ file-ast(
 					", c="
 					call(infix, name-range(864, c), [], [a])]))
 		fun-decl(
-			public: true
+			visibility: public
 			sig: sig-ast(
 				range(869, 891)
 				to-str

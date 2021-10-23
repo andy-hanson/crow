@@ -81,7 +81,6 @@ import model.model :
 	FunKindAndStructs,
 	IntegralTypes,
 	isBogus,
-	isPublic,
 	isPurityWorse,
 	isRecord,
 	isStructInst,
@@ -125,7 +124,9 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	typeParams,
-	UnionMember;
+	UnionMember,
+	Visibility,
+	visibility;
 import util.collection.arr :
 	ArrWithSize,
 	at,
@@ -482,7 +483,7 @@ immutable(Ptr!StructDecl) bogusStructDecl(Alloc)(ref Alloc alloc, immutable size
 		emptySafeCStr,
 		shortSymAlphaLiteral("bogus"),
 		finishArrWithSize(alloc, typeParams),
-		true,
+		Visibility.public_,
 		Purity.data,
 		false);
 	setBody(res, immutable StructBody(immutable StructBody.Bogus()));
@@ -648,7 +649,7 @@ immutable(SpecDecl[]) checkSpecDecls(Alloc)(
 		return immutable SpecDecl(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(alloc, ast.docComment),
-			ast.isPublic,
+			ast.visibility,
 			ast.name,
 			typeParams,
 			body_);
@@ -664,7 +665,7 @@ StructAlias[] checkStructAliasesInitial(Alloc)(
 		StructAlias(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(alloc, ast.docComment),
-			ast.isPublic,
+			ast.visibility,
 			ast.name,
 			checkTypeParams(alloc, ctx, ast.typeParams)));
 }
@@ -740,7 +741,7 @@ StructDecl[] checkStructsInitial(Alloc)(
 			copySafeCStr(alloc, ast.docComment),
 			ast.name,
 			checkTypeParams(alloc, ctx, ast.typeParams),
-			ast.isPublic,
+			ast.visibility,
 			p.purity,
 			p.forced);
 	});
@@ -1272,7 +1273,7 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 			immutable FunFlags(funAst.noCtx, funAst.summon, funAst.unsafe, funAst.trusted, false, false, false);
 		exactSizeArrBuilderAdd(
 			funsBuilder,
-			FunDecl(copySafeCStr(alloc, funAst.docComment), funAst.isPublic, flags, sig, typeParams, specUses));
+			FunDecl(copySafeCStr(alloc, funAst.docComment), funAst.visibility, flags, sig, typeParams, specUses));
 	}
 	foreach (immutable Ptr!StructDecl struct_; ptrsRange(structs))
 		addFunsForStruct(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_);
@@ -1352,8 +1353,13 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 		castImmutable(funs),
 		castImmutable(usedFuns),
 		(immutable Ptr!FunDecl fun, ref immutable bool used) {
-			if (!used && !fun.isPublic && !okIfUnused(fun))
-				addDiag(alloc, ctx, range(fun), immutable Diag(immutable Diag.UnusedPrivateFun(fun)));
+			final switch (fun.visibility) {
+				case Visibility.public_:
+					break;
+				case Visibility.private_:
+					if (!used && !okIfUnused(fun))
+						addDiag(alloc, ctx, range(fun), immutable Diag(immutable Diag.UnusedPrivateFun(fun)));
+			}
 		});
 
 	return immutable FunsAndDict(castImmutable(funs), tests, funsDict, commonFuns);
@@ -1376,7 +1382,7 @@ immutable(Ptr!CommonFuns) getCommonFuns(Alloc)(
 			return castImmutable(nuMut!FunDecl(
 				alloc,
 				emptySafeCStr,
-				true,
+				Visibility.public_,
 				FunFlags.none,
 				allocate(alloc, immutable Sig(
 					immutable FileAndPos(ctx.fileIndex, 0),
@@ -1461,13 +1467,13 @@ void addFunsForEnum(Alloc, SymAlloc)(
 ) {
 	immutable Type enumType =
 		immutable Type(instantiateNonTemplateStructDeclNeverDelay(alloc, ctx.programState, struct_));
-	immutable bool isPublic = struct_.isPublic;
+	immutable Visibility visibility = struct_.visibility;
 	immutable FileAndRange range = struct_.range;
 	addEnumFlagsCommonFunctions(
-		alloc, funsBuilder, ctx.programState, isPublic, range, enumType, enum_.backingType, commonTypes,
+		alloc, funsBuilder, ctx.programState, visibility, range, enumType, enum_.backingType, commonTypes,
 		shortSymAlphaLiteral("enum-members"));
 	foreach (ref immutable StructBody.Enum.Member member; enum_.members)
-		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(alloc, struct_.isPublic, enumType, member));
+		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(alloc, visibility, enumType, member));
 }
 
 void addFunsForFlags(Alloc, SymAlloc)(
@@ -1481,50 +1487,52 @@ void addFunsForFlags(Alloc, SymAlloc)(
 ) {
 	immutable Type type =
 		immutable Type(instantiateNonTemplateStructDeclNeverDelay(alloc, ctx.programState, struct_));
-	immutable bool isPublic = struct_.isPublic;
+	immutable Visibility visibility = struct_.visibility;
 	immutable FileAndRange range = struct_.range;
 	addEnumFlagsCommonFunctions(
-		alloc, funsBuilder, ctx.programState, isPublic, range, type, flags.backingType, commonTypes,
+		alloc, funsBuilder, ctx.programState, visibility, range, type, flags.backingType, commonTypes,
 		ctx.programState.symFlagsMembers);
-	exactSizeArrBuilderAdd(funsBuilder, flagsEmptyFunction(alloc, isPublic, range, type));
-	exactSizeArrBuilderAdd(funsBuilder, flagsAllFunction(alloc, isPublic, range, type));
-	exactSizeArrBuilderAdd(funsBuilder, flagsNegateFunction(alloc, isPublic, range, type));
+	exactSizeArrBuilderAdd(funsBuilder, flagsEmptyFunction(alloc, visibility, range, type));
+	exactSizeArrBuilderAdd(funsBuilder, flagsAllFunction(alloc, visibility, range, type));
+	exactSizeArrBuilderAdd(funsBuilder, flagsNegateFunction(alloc, visibility, range, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
-		alloc, isPublic, range, type, Operator.or1, EnumFunction.union_));
+		alloc, visibility, range, type, Operator.or1, EnumFunction.union_));
 	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
-		alloc, isPublic, range, type, Operator.and1, EnumFunction.intersect));
+		alloc, visibility, range, type, Operator.and1, EnumFunction.intersect));
 
 	foreach (ref immutable StructBody.Enum.Member member; flags.members)
-		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(alloc, isPublic, type, member));
+		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(alloc, visibility, type, member));
 }
 
 void addEnumFlagsCommonFunctions(Alloc)(
 	ref Alloc alloc,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref ProgramState programState,
-	immutable bool isPublic,
+	immutable Visibility visibility,
 	ref immutable FileAndRange range,
 	ref immutable Type type,
 	immutable EnumBackingType backingType,
 	ref immutable CommonTypes commonTypes,
 	immutable Sym membersName,
 ) {
-	exactSizeArrBuilderAdd(funsBuilder, enumEqualFunction(alloc, isPublic, range, type, commonTypes));
-	exactSizeArrBuilderAdd(funsBuilder, enumToIntegralFunction(alloc, isPublic, range, backingType, type, commonTypes));
+	exactSizeArrBuilderAdd(funsBuilder, enumEqualFunction(alloc, visibility, range, type, commonTypes));
 	exactSizeArrBuilderAdd(
 		funsBuilder,
-		enumOrFlagsMembersFunction(alloc, programState, isPublic, range, membersName, type, commonTypes));
+		enumToIntegralFunction(alloc, visibility, range, backingType, type, commonTypes));
+	exactSizeArrBuilderAdd(
+		funsBuilder,
+		enumOrFlagsMembersFunction(alloc, programState, visibility, range, membersName, type, commonTypes));
 }
 
 FunDecl enumOrFlagsConstructor(Alloc)(
 	ref Alloc alloc,
-	immutable bool isPublic,
+	immutable Visibility visibility,
 	ref immutable Type enumType,
 	ref immutable StructBody.Enum.Member member,
 ) {
 	return FunDecl(
 		emptySafeCStr,
-		isPublic,
+		visibility,
 		FunFlags.generatedNoCtx,
 		allocate(alloc, immutable Sig(
 			fileAndPosFromFileAndRange(member.range),
@@ -1538,14 +1546,14 @@ FunDecl enumOrFlagsConstructor(Alloc)(
 
 FunDecl enumEqualFunction(Alloc)(
 	ref Alloc alloc,
-	immutable bool isPublic,
+	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
 	ref immutable Type enumType,
 	ref immutable CommonTypes commonTypes,
 ) {
 	return FunDecl(
 		emptySafeCStr,
-		isPublic,
+		visibility,
 		FunFlags.generatedNoCtx,
 		allocate(alloc, immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
@@ -1561,13 +1569,13 @@ FunDecl enumEqualFunction(Alloc)(
 
 FunDecl flagsEmptyFunction(Alloc)(
 	ref Alloc alloc,
-	immutable bool isPublic,
+	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
 	ref immutable Type enumType,
 ) {
 	return FunDecl(
 		emptySafeCStr,
-		isPublic,
+		visibility,
 		FunFlags.generatedNoCtx,.
 		allocate(alloc, immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
@@ -1581,13 +1589,13 @@ FunDecl flagsEmptyFunction(Alloc)(
 
 FunDecl flagsAllFunction(Alloc)(
 	ref Alloc alloc,
-	immutable bool isPublic,
+	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
 	ref immutable Type enumType,
 ) {
 	return FunDecl(
 		emptySafeCStr,
-		isPublic,
+		visibility,
 		FunFlags.generatedNoCtx,.
 		allocate(alloc, immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
@@ -1601,13 +1609,13 @@ FunDecl flagsAllFunction(Alloc)(
 
 FunDecl flagsNegateFunction(Alloc)(
 	ref Alloc alloc,
-	immutable bool isPublic,
+	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
 	ref immutable Type enumType,
 ) {
 	return FunDecl(
 		emptySafeCStr,
-		isPublic,
+		visibility,
 		FunFlags.generatedNoCtx,
 		allocate(alloc, immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
@@ -1622,7 +1630,7 @@ FunDecl flagsNegateFunction(Alloc)(
 
 FunDecl enumToIntegralFunction(Alloc)(
 	ref Alloc alloc,
-	immutable bool isPublic,
+	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
 	immutable EnumBackingType enumBackingType,
 	immutable Type enumType,
@@ -1630,7 +1638,7 @@ FunDecl enumToIntegralFunction(Alloc)(
 ) {
 	return FunDecl(
 		emptySafeCStr,
-		isPublic,
+		visibility,
 		FunFlags.generatedNoCtx,
 		allocate(alloc, immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
@@ -1646,7 +1654,7 @@ FunDecl enumToIntegralFunction(Alloc)(
 FunDecl enumOrFlagsMembersFunction(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable bool isPublic,
+	immutable Visibility visibility,
 	ref immutable FileAndRange fileAndRange,
 	immutable Sym name,
 	ref immutable Type enumType,
@@ -1654,7 +1662,7 @@ FunDecl enumOrFlagsMembersFunction(Alloc)(
 ) {
 	return FunDecl(
 		emptySafeCStr,
-		isPublic,
+		visibility,
 		FunFlags.generatedNoCtx,
 		allocate(alloc, immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
@@ -1672,7 +1680,7 @@ FunDecl enumOrFlagsMembersFunction(Alloc)(
 
 FunDecl flagsUnionOrIntersectFunction(Alloc)(
 	ref Alloc alloc,
-	immutable bool isPublic,
+	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
 	immutable Type enumType,
 	immutable Operator operator,
@@ -1680,7 +1688,7 @@ FunDecl flagsUnionOrIntersectFunction(Alloc)(
 ) {
 	return FunDecl(
 		emptySafeCStr,
-		isPublic,
+		visibility,
 		FunFlags.generatedNoCtx,
 		allocate(alloc, immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
@@ -1745,7 +1753,7 @@ void addFunsForRecord(Alloc, SymAlloc)(
 			immutable Params(ctorParams)));
 		return FunDecl(
 			emptySafeCStr,
-			struct_.isPublic,
+			struct_.visibility,
 			flags.withOkIfUnused(),
 			ctorSig,
 			typeParams,
@@ -1775,7 +1783,7 @@ void addFunsForRecord(Alloc, SymAlloc)(
 				immutable Param(field.range, some(shortSymAlphaLiteral("a")), structType, 0)]))));
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			emptySafeCStr,
-			struct_.isPublic,
+			struct_.visibility,
 			FunFlags.generatedNoCtx,
 			getterSig,
 			typeParams,
@@ -1792,7 +1800,7 @@ void addFunsForRecord(Alloc, SymAlloc)(
 					immutable Param(field.range, some(field.name), field.type, 1)]))));
 			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 				emptySafeCStr,
-				struct_.isPublic,
+				struct_.visibility,
 				FunFlags.generatedNoCtx,
 				setterSig,
 				typeParams,
@@ -1830,7 +1838,7 @@ void addFunsForUnion(Alloc, SymAlloc)(
 			immutable Params(params)));
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			emptySafeCStr,
-			struct_.isPublic,
+			struct_.visibility,
 			FunFlags.generatedNoCtx,
 			ctorSig,
 			typeParams,
@@ -1978,20 +1986,30 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
 	dictEach!(Sym, StructOrAliasAndIndex, compareSym)(
 		structsAndAliasesDict,
 		(ref immutable Sym name, ref immutable StructOrAliasAndIndex it) {
-			if (isPublic(it.structOrAlias))
-				addExport(
-					name,
-					immutable NameReferents(some(it.structOrAlias), none!(Ptr!SpecDecl), emptyArr!(Ptr!FunDecl)),
-					range(it.structOrAlias));
+			final switch (visibility(it.structOrAlias)) {
+				case Visibility.public_:
+					addExport(
+						name,
+						immutable NameReferents(some(it.structOrAlias), none!(Ptr!SpecDecl), emptyArr!(Ptr!FunDecl)),
+						range(it.structOrAlias));
+					break;
+				case Visibility.private_:
+					break;
+			}
 		});
 	dictEach!(Sym, SpecDeclAndIndex, compareSym)(
 		specsDict,
 		(ref immutable Sym name, ref immutable SpecDeclAndIndex it) {
-			if (it.decl.isPublic)
-				addExport(
-					name,
-					immutable NameReferents(none!StructOrAlias, some(it.decl), emptyArr!(Ptr!FunDecl)),
-					it.decl.range);
+			final switch (it.decl.visibility) {
+				case Visibility.public_:
+					addExport(
+						name,
+						immutable NameReferents(none!StructOrAlias, some(it.decl), emptyArr!(Ptr!FunDecl)),
+						it.decl.range);
+					break;
+				case Visibility.private_:
+					break;
+			}
 		});
 	multiDictEach!(Sym, FunDeclAndIndex, compareSym)(
 		funsDict,
@@ -1999,8 +2017,14 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
 			immutable Ptr!FunDecl[] funDecls = mapOp!(Ptr!FunDecl)(
 				alloc,
 				funs,
-				(ref immutable FunDeclAndIndex it) =>
-					it.decl.isPublic ? some(it.decl) : none!(Ptr!FunDecl));
+				(ref immutable FunDeclAndIndex it) {
+					final switch (it.decl.visibility) {
+						case Visibility.public_:
+							return some(it.decl);
+						case Visibility.private_:
+							return none!(Ptr!FunDecl);
+					}
+				});
 			if (!empty(funDecls))
 				addExport(
 					name,

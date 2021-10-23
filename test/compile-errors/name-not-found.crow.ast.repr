@@ -5,7 +5,7 @@ file-ast(
 		struct(
 			range(0, 24)
 			""
-			true
+			public
 			[]
 			none
 			record(
@@ -17,9 +17,9 @@ file-ast(
 						false
 						h
 						inststruct(range(17, 22), name-range(17, arr), [inststruct(range(21, 22), name-range(21, x))]))]))
-		struct(range(24, 36), "", true, [], none, union([member(t, none)]))]
+		struct(range(24, 36), "", public, [], none, union([member(t, none)]))]
 	funs: [
 		fun-decl(
-			public: true
+			visibility: public
 			sig: sig-ast(range(36, 43), foo, inststruct(range(40, 41), name-range(40, t)), [])
 			body: seq-ast(seq-ast(x, call(infix, name-range(50, y), [], [a])), call(infix, name-range(55, z), [], [a, b])))])

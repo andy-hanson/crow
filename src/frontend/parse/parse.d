@@ -59,6 +59,7 @@ import frontend.parse.lexer :
 	tryTakeIndentAfterNewline_topLevel;
 import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseType : parseType, takeTypeArgsEnd, tryParseTypeArgsBracketed;
+import model.model : Visibility;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -752,7 +753,7 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable SafeCStr docComment,
-	immutable bool isPublic,
+	immutable Visibility visibility,
 	immutable Pos start,
 	immutable Sym name,
 	immutable ArrWithSize!NameAndRange typeParams,
@@ -784,7 +785,7 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 		typeParams,
 		sig.sig,
 		extra.specUses,
-		isPublic,
+		visibility,
 		extra.noCtx,
 		extra.summon,
 		extra.unsafe,
@@ -804,7 +805,9 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 ) {
 	immutable Pos start = curPos(lexer);
 	// '..' is always public
-	immutable bool isPublic = peekExact(lexer, "..") || !tryTake(lexer, '.');
+	immutable Visibility visibility = peekExact(lexer, "..") || !tryTake(lexer, '.')
+		? Visibility.public_
+		: Visibility.private_;
 	immutable Sym name = takeName(alloc, lexer);
 	immutable ArrWithSize!NameAndRange typeParams = parseTypeParams(alloc, lexer, isSymOperator(name));
 	if (!tryTake(lexer, ' ')) {
@@ -821,9 +824,9 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 		if (has(opKwAndIndent))
 			handleNonFunKeywordAndIndent(
 				alloc, lexer, specs, structAliases, structs, docComment, start,
-				isPublic, name, typeParams, force(opKwAndIndent));
+				visibility, name, typeParams, force(opKwAndIndent));
 		else
-			add(alloc, funs, parseFun(alloc, lexer, docComment, isPublic, start, name, typeParams));
+			add(alloc, funs, parseFun(alloc, lexer, docComment, visibility, start, name, typeParams));
 	}
 }
 
@@ -835,7 +838,7 @@ void handleNonFunKeywordAndIndent(Alloc, SymAlloc)(
 	ref ArrBuilder!StructDeclAst structs,
 	immutable SafeCStr docComment,
 	immutable Pos start,
-	immutable bool isPublic,
+	immutable Visibility visibility,
 	immutable Sym name,
 	immutable ArrWithSize!NameAndRange typeParams,
 	immutable NonFunKeywordAndIndent kwAndIndent,
@@ -869,7 +872,7 @@ void handleNonFunKeywordAndIndent(Alloc, SymAlloc)(
 			add(
 				alloc,
 				structAliases,
-				immutable StructAliasAst(range(lexer, start), docComment, isPublic, name, typeParams, target));
+				immutable StructAliasAst(range(lexer, start), docComment, visibility, name, typeParams, target));
 			break;
 		case NonFunKeyword.builtinSpec:
 			if (tookIndent)
@@ -879,7 +882,7 @@ void handleNonFunKeywordAndIndent(Alloc, SymAlloc)(
 			add(alloc, specs, immutable SpecDeclAst(
 				range(lexer, start),
 				docComment,
-				isPublic,
+				visibility,
 				name,
 				typeParams,
 				SpecBodyAst(SpecBodyAst.Builtin())));
@@ -896,7 +899,7 @@ void handleNonFunKeywordAndIndent(Alloc, SymAlloc)(
 				immutable SpecDeclAst(
 					range(lexer, start),
 					docComment,
-					isPublic,
+					visibility,
 					name,
 					typeParams,
 					immutable SpecBodyAst(sigs)));
@@ -958,7 +961,7 @@ void handleNonFunKeywordAndIndent(Alloc, SymAlloc)(
 				immutable StructDeclAst(
 					range(lexer, start),
 					docComment,
-					isPublic,
+					visibility,
 					name,
 					typeParams,
 					purity,

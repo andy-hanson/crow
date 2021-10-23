@@ -508,7 +508,7 @@ struct StructAlias {
 	// TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
 	immutable SafeCStr docComment;
-	immutable bool isPublic;
+	immutable Visibility visibility;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParam typeParams_;
 
@@ -534,7 +534,7 @@ struct StructDecl {
 	immutable SafeCStr docComment;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParam typeParams_;
-	immutable bool isPublic;
+	immutable Visibility visibility;
 	// Note: purity on the decl does not take type args into account
 	immutable Purity purity;
 	immutable bool purityIsForced;
@@ -673,7 +673,7 @@ struct SpecDecl {
 	// TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
 	immutable SafeCStr docComment;
-	immutable bool isPublic;
+	immutable Visibility visibility;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParam typeParams_;
 	immutable SpecBody body_;
@@ -886,14 +886,14 @@ struct FunDecl {
 	@disable this(ref const FunDecl);
 	this(
 		immutable SafeCStr dc,
-		immutable bool ip,
+		immutable Visibility v,
 		immutable FunFlags f,
 		immutable Ptr!Sig s,
 		immutable ArrWithSize!TypeParam tps,
 		immutable ArrWithSize!(Ptr!SpecInst) sps,
 	) {
 		docComment = dc;
-		isPublic = ip;
+		visibility = v;
 		flags = f;
 		sig = s;
 		typeParams_ = tps;
@@ -902,7 +902,7 @@ struct FunDecl {
 	}
 	this(
 		immutable SafeCStr dc,
-		immutable bool ip,
+		immutable Visibility v,
 		immutable FunFlags f,
 		immutable Ptr!Sig s,
 		immutable ArrWithSize!TypeParam tps,
@@ -910,7 +910,7 @@ struct FunDecl {
 		immutable FunBody b,
 	) {
 		docComment = dc;
-		isPublic = ip;
+		visibility = v;
 		flags = f;
 		sig = s;
 		typeParams_ = tps;
@@ -919,7 +919,7 @@ struct FunDecl {
 	}
 
 	immutable SafeCStr docComment;
-	immutable bool isPublic;
+	immutable Visibility visibility;
 	immutable FunFlags flags;
 	immutable Ptr!Sig sig;
 	immutable ArrWithSize!TypeParam typeParams_;
@@ -1306,11 +1306,11 @@ immutable(FileAndRange) range(ref immutable StructOrAlias a) {
 		(immutable Ptr!StructDecl d) => d.range);
 }
 
-immutable(bool) isPublic(ref immutable StructOrAlias a) {
+immutable(Visibility) visibility(ref immutable StructOrAlias a) {
 	return matchStructOrAlias(
 		a,
-		(immutable Ptr!StructAlias al) => al.isPublic,
-		(immutable Ptr!StructDecl d) => d.isPublic);
+		(immutable Ptr!StructAlias al) => al.visibility,
+		(immutable Ptr!StructDecl d) => d.visibility);
 }
 
 immutable(Sym) name(ref immutable StructOrAlias a) {
@@ -1795,4 +1795,18 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Type type) {
 		(immutable Ptr!StructInst s) {
 			writeStructInst(writer, s);
 		});
+}
+
+enum Visibility : ubyte {
+	public_,
+	private_,
+}
+
+immutable(Sym) symOfVisibility(immutable Visibility a) {
+	final switch (a) {
+		case Visibility.public_:
+			return shortSymAlphaLiteral("public");
+		case Visibility.private_:
+			return shortSymAlphaLiteral("private");
+	}
 }

@@ -3,7 +3,7 @@ module(
 	imports: [import(none, 60, none)]
 	funs: [
 		fun(
-			public: true
+			visibility: public
 			summon: true
 			unsafe: true
 			sig: sig(file-pos(77, 0), main, fut(nat64()), [param(file-range(77, range(13, 20)), none, arr(str()))])
@@ -11,13 +11,13 @@ module(
 				call(fun-inst(name: foo), [])
 				call(fun-inst(name: resolved, type-args: [nat64()]), [literal(nat64(), 0)])))
 		fun(
-			public: true
+			visibility: public
 			summon: true
 			unsafe: true
 			sig: sig(file-pos(77, 54), foo, void(), [])
 			body: call(fun-inst(name: bar), []))
 		fun(
-			public: true
+			visibility: public
 			summon: true
 			unsafe: true
 			sig: sig(file-pos(77, 85), bar, void(), [])

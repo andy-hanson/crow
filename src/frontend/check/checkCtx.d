@@ -5,7 +5,15 @@ module frontend.check.checkCtx;
 import frontend.check.dicts : ModuleLocalSpecIndex, StructOrAliasAndIndex;
 import frontend.programState : ProgramState;
 import model.diag : Diag, Diagnostic;
-import model.model : matchStructOrAlias, Module, ModuleAndNames, NameReferents, SpecDecl, StructAlias, StructDecl;
+import model.model :
+	matchStructOrAlias,
+	Module,
+	ModuleAndNames,
+	NameReferents,
+	SpecDecl,
+	StructAlias,
+	StructDecl,
+	Visibility;
 import util.collection.arr : at, castImmutable, setAt, size;
 import util.collection.arrBuilder : add, ArrBuilder;
 import util.collection.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
@@ -57,24 +65,40 @@ void checkForUnused(Alloc)(
 		structAliases,
 		castImmutable(ctx.structAliasesUsed),
 		(immutable Ptr!StructAlias alias_, ref immutable bool used) {
-			if (!used && !alias_.isPublic)
-				addDiag(alloc, ctx, alias_.range, immutable Diag(immutable Diag.UnusedPrivateStructAlias(alias_)));
+			final switch (alias_.visibility) {
+				case Visibility.public_:
+					break;
+				case Visibility.private_:
+					if (!used)
+						addDiag(alloc, ctx, alias_.range, immutable Diag(
+							immutable Diag.UnusedPrivateStructAlias(alias_)));
+			}
 		});
 
 	zipPtrFirst!(StructDecl, bool)(
 		structDecls,
 		castImmutable(ctx.structsUsed),
 		(immutable Ptr!StructDecl struct_, ref immutable bool used) {
-			if (!used & !struct_.isPublic)
-				addDiag(alloc, ctx, struct_.range, immutable Diag(immutable Diag.UnusedPrivateStruct(struct_)));
+			final switch (struct_.visibility) {
+				case Visibility.public_:
+					break;
+				case Visibility.private_:
+					if (!used)
+						addDiag(alloc, ctx, struct_.range, immutable Diag(immutable Diag.UnusedPrivateStruct(struct_)));
+			}
 		});
 
 	zipPtrFirst!(SpecDecl, bool)(
 		specDecls,
 		castImmutable(ctx.specsUsed),
 		(immutable Ptr!SpecDecl spec, ref immutable bool used) {
-			if (!used && !spec.isPublic)
-				addDiag(alloc, ctx, spec.range, immutable Diag(immutable Diag.UnusedPrivateSpec(spec)));
+			final switch (spec.visibility) {
+				case Visibility.public_:
+					break;
+				case Visibility.private_:
+					if (!used)
+						addDiag(alloc, ctx, spec.range, immutable Diag(immutable Diag.UnusedPrivateSpec(spec)));
+			}
 		});
 }
 

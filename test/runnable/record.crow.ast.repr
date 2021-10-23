@@ -6,7 +6,7 @@ file-ast(
 		struct(
 			range(167, 198)
 			""
-			true
+			public
 			[]
 			none
 			record(
@@ -16,7 +16,7 @@ file-ast(
 					field(range(192, 197), false, y, inststruct(range(194, 197), name-range(194, nat)))]))]
 	funs: [
 		fun-decl(
-			public: true
+			visibility: public
 			sig: sig-ast(
 				range(30, 51)
 				main

@@ -4,7 +4,7 @@ file-ast(
 	structs: []
 	funs: [
 		fun-decl(
-			public: true
+			visibility: public
 			sig: sig-ast(
 				range(0, 21)
 				main
@@ -14,13 +14,13 @@ file-ast(
 			unsafe: true
 			body: seq-ast(foo, call(infix, name-range(44, resolved), [], [literal(nat(0, false))])))
 		fun-decl(
-			public: true
+			visibility: public
 			sig: sig-ast(range(54, 64), foo, inststruct(range(58, 62), name-range(58, void)), [])
 			summon: true
 			unsafe: true
 			body: bar)
 		fun-decl(
-			public: true
+			visibility: public
 			sig: sig-ast(range(85, 95), bar, inststruct(range(89, 93), name-range(89, void)), [])
 			summon: true
 			unsafe: true

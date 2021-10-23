@@ -49,6 +49,7 @@ import frontend.parse.ast :
 	ThenAst,
 	ThenVoidAst,
 	TypeAst;
+import model.model : Visibility;
 import util.collection.arr : ArrWithSize, at, empty, first, last, size, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : tail;
@@ -124,9 +125,21 @@ immutable(Token[]) tokensOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast
 
 private:
 
-immutable(RangeWithinFile) rangeAtName(immutable bool isPublic, immutable Pos start, immutable Sym name) {
-	immutable Pos afterDot = start + (isPublic ? 0 : 1);
+immutable(RangeWithinFile) rangeAtName(immutable Visibility visibility, immutable Pos start, immutable Sym name) {
+	immutable uint offset = () {
+		final switch (visibility) {
+			case Visibility.public_:
+				return 0;
+			case Visibility.private_:
+				return 1;
+		}
+	}();
+	immutable Pos afterDot = start + offset;
 	return immutable RangeWithinFile(afterDot, safeSizeTToU32(afterDot + symSize(name)));
+}
+
+immutable(RangeWithinFile) rangeAtName(immutable Pos start, immutable Sym name) {
+	return rangeAtName(Visibility.public_, start, name);
 }
 
 void addImportTokens(Alloc)(
@@ -136,7 +149,7 @@ void addImportTokens(Alloc)(
 	immutable Sym keyword,
 ) {
 	if (has(a)) {
-		add(alloc, tokens, immutable Token(Token.Kind.keyword, rangeAtName(true, force(a).range.start, keyword)));
+		add(alloc, tokens, immutable Token(Token.Kind.keyword, rangeAtName(force(a).range.start, keyword)));
 		foreach (ref immutable ImportAst path; force(a).paths)
 			add(alloc, tokens, immutable Token(
 				Token.Kind.importPath,
@@ -145,14 +158,14 @@ void addImportTokens(Alloc)(
 }
 
 void addSpecTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable SpecDeclAst a) {
-	add(alloc, tokens, immutable Token(Token.Kind.specDef, rangeAtName(a.isPublic, a.range.start, a.name)));
+	add(alloc, tokens, immutable Token(Token.Kind.specDef, rangeAtName(a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, a.typeParams);
 	matchSpecBodyAst!void(
 		a.body_,
 		(ref immutable SpecBodyAst.Builtin) {},
 		(ref immutable SigAst[] sigs) {
 			foreach (ref immutable SigAst sig; sigs) {
-				add(alloc, tokens, immutable Token(Token.Kind.funDef, rangeAtName(true, sig.range.start, sig.name)));
+				add(alloc, tokens, immutable Token(Token.Kind.funDef, rangeAtName(sig.range.start, sig.name)));
 				addSigReturnTypeAndParamsTokens(alloc, tokens, sig);
 			}
 		});
@@ -230,13 +243,13 @@ void addTypeParamsTokens(Alloc)(
 }
 
 void addStructAliasTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable StructAliasAst a) {
-	add(alloc, tokens, immutable Token(Token.Kind.structDef, rangeAtName(a.isPublic, a.range.start, a.name)));
+	add(alloc, tokens, immutable Token(Token.Kind.structDef, rangeAtName(a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, a.typeParams);
 	addTypeTokens(alloc, tokens, a.target);
 }
 
 void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable StructDeclAst a) {
-	add(alloc, tokens, immutable Token(Token.Kind.structDef, rangeAtName(a.isPublic, a.range.start, a.name)));
+	add(alloc, tokens, immutable Token(Token.Kind.structDef, rangeAtName(a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, a.typeParams);
 	if (has(a.purity))
 		add(alloc, tokens, immutable Token(Token.Kind.purity, rangeOfPuritySpecifier(force(a.purity))));
@@ -260,7 +273,7 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 			foreach (ref immutable StructDeclAst.Body.Record.Field field; toArr(record.fields)) {
 				add(alloc, tokens, immutable Token(
 					Token.Kind.fieldDef,
-					rangeAtName(true, field.range.start, field.name)));
+					rangeAtName(field.range.start, field.name)));
 				addTypeTokens(alloc, tokens, field.type);
 			}
 		},
@@ -268,7 +281,7 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 			foreach (ref immutable StructDeclAst.Body.Union.Member member; union_.members) {
 				add(alloc, tokens, immutable Token(
 					Token.Kind.fieldDef, // TODO: Token.Kind.unionMember?
-					rangeAtName(true, member.range.start, member.name)));
+					rangeAtName(member.range.start, member.name)));
 				if (has(member.type))
 					addTypeTokens(alloc, tokens, force(member.type));
 			}
@@ -297,7 +310,7 @@ void addEnumOrFlagsTokens(Alloc)(
 }
 
 void addFunTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable FunDeclAst a) {
-	add(alloc, tokens, immutable Token(Token.Kind.funDef, rangeAtName(a.isPublic, a.range.start, a.sig.name)));
+	add(alloc, tokens, immutable Token(Token.Kind.funDef, rangeAtName(a.visibility, a.range.start, a.sig.name)));
 	addTypeParamsTokens(alloc, tokens, a.typeParams);
 	addSigReturnTypeAndParamsTokens(alloc, tokens, a.sig);
 	foreach (ref immutable SpecUseAst specUse; a.specUses) {

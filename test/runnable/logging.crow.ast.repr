@@ -5,7 +5,7 @@ file-ast(
 	structs: []
 	funs: [
 		fun-decl(
-			public: true
+			visibility: public
 			sig: sig-ast(
 				range(83, 104)
 				main

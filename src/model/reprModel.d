@@ -39,12 +39,14 @@ import model.model :
 	StructInst,
 	summon,
 	symOfPurity,
+	symOfVisibility,
 	trusted,
 	Type,
 	typeArgs,
 	TypeParam,
 	typeParams,
-	unsafe;
+	unsafe,
+	Visibility;
 import model.reprConstant : reprOfConstant;
 import util.collection.arr : empty;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -114,7 +116,7 @@ immutable(Repr) reprStructDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutabl
 	add(alloc, fields, nameAndRepr("range", reprFileAndRange(alloc, a.range)));
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr("public", reprBool(a.isPublic)));
+	add(alloc, fields, nameAndRepr("visibility", reprVisibility(a.visibility)));
 	add(alloc, fields, nameAndRepr("name", reprSym(a.name)));
 	if (!empty(typeParams(a)))
 		add(alloc, fields, nameAndRepr("typeparams", reprArr(alloc, typeParams(a), (ref immutable TypeParam it) =>
@@ -134,7 +136,7 @@ immutable(Repr) reprFunDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable F
 	ArrBuilder!NameAndRepr fields;
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr("public", reprBool(a.isPublic)));
+	add(alloc, fields, nameAndRepr("visibility", reprVisibility(a.visibility)));
 	if (noCtx(a))
 		add(alloc, fields, nameAndRepr("no-ctx", reprBool(true)));
 	if (summon(a))
@@ -353,4 +355,8 @@ immutable(Repr) reprFunInst(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable F
 
 immutable(Repr) reprSpecSig(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable SpecSig a) {
 	return reprRecord(alloc, "spec-sig", [reprSym(name(a.specInst)), reprSym(a.sig.name)]);
+}
+
+public immutable(Repr) reprVisibility(immutable Visibility a) {
+	return reprSym(symOfVisibility(a));
 }

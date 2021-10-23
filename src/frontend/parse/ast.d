@@ -2,6 +2,8 @@ module frontend.parse.ast;
 
 @safe @nogc pure nothrow:
 
+import model.model : Visibility;
+import model.reprModel : reprVisibility;
 import util.collection.arr : ArrWithSize, empty, emptyArr, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
@@ -679,7 +681,7 @@ immutable(RangeWithinFile) rangeOfPuritySpecifier(ref immutable PuritySpecifierA
 struct StructAliasAst {
 	immutable RangeWithinFile range;
 	immutable SafeCStr docComment;
-	immutable bool isPublic;
+	immutable Visibility visibility;
 	immutable Sym name;
 	immutable ArrWithSize!NameAndRange typeParams;
 	immutable Ptr!TypeAst target;
@@ -849,7 +851,7 @@ struct StructDeclAst {
 
 	immutable RangeWithinFile range;
 	immutable SafeCStr docComment;
-	immutable bool isPublic;
+	immutable Visibility visibility;
 	immutable Sym name; // start is range.start
 	immutable ArrWithSize!NameAndRange typeParams;
 	immutable Opt!PuritySpecifierAndRange purity;
@@ -924,7 +926,7 @@ struct SpecBodyAst {
 struct SpecDeclAst {
 	immutable RangeWithinFile range;
 	immutable SafeCStr docComment;
-	immutable bool isPublic;
+	immutable Visibility visibility;
 	immutable Sym name;
 	immutable ArrWithSize!NameAndRange typeParams;
 	immutable SpecBodyAst body_;
@@ -980,7 +982,7 @@ struct FunDeclAst {
 	immutable ArrWithSize!NameAndRange typeParams;
 	immutable Ptr!SigAst sig; // Ptr to keep this struct from getting too big
 	immutable SpecUseAst[] specUses;
-	immutable bool isPublic;
+	immutable Visibility visibility;
 	immutable bool noCtx;
 	immutable bool summon;
 	immutable bool unsafe;
@@ -1079,7 +1081,7 @@ immutable(Repr) reprSpecDeclAst(Alloc)(ref Alloc alloc, ref immutable SpecDeclAs
 	return reprRecord(alloc, "spec-decl", [
 		reprRangeWithinFile(alloc, a.range),
 		reprStr(a.docComment),
-		reprBool(a.isPublic),
+		reprVisibility(a.visibility),
 		reprSym(a.name),
 		reprTypeParams(alloc, a.typeParams),
 		reprSpecBodyAst(alloc, a.body_)]);
@@ -1099,7 +1101,7 @@ immutable(Repr) reprStructAliasAst(Alloc)(ref Alloc alloc, ref immutable StructA
 	return reprRecord(alloc, "alias", [
 		reprRangeWithinFile(alloc, a.range),
 		reprStr(a.docComment),
-		reprBool(a.isPublic),
+		reprVisibility(a.visibility),
 		reprSym(a.name),
 		reprTypeParams(alloc, a.typeParams),
 		reprTypeAst(alloc, a.target)]);
@@ -1219,7 +1221,7 @@ immutable(Repr) reprStructDeclAst(Alloc)(ref Alloc alloc, ref immutable StructDe
 	return reprRecord(alloc, "struct", [
 		reprRangeWithinFile(alloc, a.range),
 		reprStr(a.docComment),
-		reprBool(a.isPublic),
+		reprVisibility(a.visibility),
 		reprTypeParams(alloc, a.typeParams),
 		reprOptPurity(alloc, a.purity),
 		reprStructBodyAst(alloc, a.body_)]);
@@ -1229,7 +1231,7 @@ immutable(Repr) reprFunDeclAst(Alloc)(ref Alloc alloc, ref immutable FunDeclAst 
 	ArrBuilder!NameAndRepr fields;
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr("public", reprBool(a.isPublic)));
+	add(alloc, fields, nameAndRepr("visibility", reprVisibility(a.visibility)));
 	if (!empty(toArr(a.typeParams)))
 		add(alloc, fields, nameAndRepr(
 			"typeparams",

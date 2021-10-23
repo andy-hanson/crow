@@ -4,7 +4,7 @@ file-ast(
 	structs: []
 	funs: [
 		fun-decl(
-			public: true
+			visibility: public
 			typeparams: [name-range(6, out), name-range(11, in)]
 			sig: sig-ast(
 				range(0, 29)
@@ -17,7 +17,7 @@ file-ast(
 						inststruct(range(22, 28), name-range(22, opt), [inststruct(range(26, 28), name-range(26, in))]))])
 			body: todo)
 		fun-decl(
-			public: true
+			visibility: public
 			typeparams: [name-range(44, out), name-range(49, in)]
 			sig: sig-ast(
 				range(37, 67)

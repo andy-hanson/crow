@@ -5,7 +5,7 @@ module(
 		import(some(range(8, 81)), 77, some([get-log-handler, info, log, log-handler, warn, with-log-handler]))]
 	funs: [
 		fun(
-			public: true
+			visibility: public
 			summon: true
 			sig: sig(file-pos(78, 83), main, fut(nat64()), [param(file-range(78, range(96, 103)), none, arr(str()))])
 			body: seq(
