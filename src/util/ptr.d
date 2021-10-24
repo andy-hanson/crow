@@ -12,17 +12,17 @@ struct TaggedPtr(E) {
 	immutable this(immutable E tag, immutable void* ptr) {
 		immutable size_t tagValue = cast(size_t) tag;
 		immutable size_t ptrValue = cast(size_t) ptr;
-		verify(tagValue < 8);
+		verify(tagValue < 4);
 		// Ptr must be word-aligned.
-		verify((ptrValue & 0b111) == 0);
+		verify((ptrValue & 0b11) == 0);
 		value = ptrValue | tagValue;
 	}
 
 	immutable(E) tag() immutable {
-		return cast(E) (value & 0b111);
+		return cast(E) (value & 0b11);
 	}
 	@system immutable(void*) ptr() immutable {
-		return cast(immutable void*) cast(void*) (value & ~0b111);
+		return cast(immutable void*) cast(void*) (value & ~0b11);
 	}
 	@system immutable(T[]) arrWithSize(T)() immutable {
 		return toArr(immutable ArrWithSize!T(cast(immutable ubyte*) ptr()));
