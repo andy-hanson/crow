@@ -21,12 +21,12 @@ import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWi
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : shortSymAlphaLiteralValue, Sym;
+import util.sym : AllSymbols, shortSymAlphaLiteralValue, Sym;
 import util.util : todo;
 
-immutable(ArrWithSize!TypeAst) tryParseTypeArgsBracketed(ref Alloc alloc, ref Lexer lexer) {
+immutable(ArrWithSize!TypeAst) tryParseTypeArgsBracketed(ref Alloc alloc, ref AllSymbols allSymbols, ref Lexer lexer) {
 	if (tryTake(lexer, '<')) {
-		immutable ArrWithSize!TypeAst res = parseTypesWithCommas(alloc, lexer);
+		immutable ArrWithSize!TypeAst res = parseTypesWithCommas(alloc, allSymbols, lexer);
 		takeTypeArgsEnd(alloc, lexer);
 		return res;
 	} else
@@ -35,26 +35,29 @@ immutable(ArrWithSize!TypeAst) tryParseTypeArgsBracketed(ref Alloc alloc, ref Le
 
 private void parseTypesWithCommas(Builder)(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	ref Builder output,
 ) {
 	do {
-		add(alloc, output, parseType(alloc, lexer));
+		add(alloc, output, parseType(alloc, allSymbols, lexer));
 	} while (tryTake(lexer, ", "));
 
 }
 
 private immutable(ArrWithSize!TypeAst) parseTypesWithCommas(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 ) {
 	ArrWithSizeBuilder!TypeAst res;
-	parseTypesWithCommas(alloc, lexer, res);
+	parseTypesWithCommas(alloc, allSymbols, lexer, res);
 	return finishArrWithSize(alloc, res);
 }
 
 private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 ) {
 	return !peekExact(lexer, " mut[") &&
@@ -62,24 +65,24 @@ private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(
 		!peekExact(lexer, " <- ") &&
 		!peekExact(lexer, " = ") &&
 		tryTake(lexer, ' ')
-		? arrWithSizeLiteral(alloc, [parseType(alloc, lexer)])
-		: tryParseTypeArgsBracketed(alloc, lexer);
+		? arrWithSizeLiteral(alloc, [parseType(alloc, allSymbols, lexer)])
+		: tryParseTypeArgsBracketed(alloc, allSymbols, lexer);
 }
 
-immutable(TypeAst) parseType(ref Alloc alloc, ref Lexer lexer) {
-	return parseTypeSuffixes(alloc, lexer, parseTypeBeforeSuffixes(alloc, lexer));
+immutable(TypeAst) parseType(ref Alloc alloc, ref AllSymbols allSymbols, ref Lexer lexer) {
+	return parseTypeSuffixes(alloc, allSymbols, lexer, parseTypeBeforeSuffixes(alloc, allSymbols, lexer));
 }
 
-private immutable(TypeAst) parseTypeBeforeSuffixes(ref Alloc alloc, ref Lexer lexer) {
+private immutable(TypeAst) parseTypeBeforeSuffixes(ref Alloc alloc, ref AllSymbols allSymbols, ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
-	immutable NameAndRange name = takeNameAndRange(alloc, lexer);
+	immutable NameAndRange name = takeNameAndRange(alloc, allSymbols, lexer);
 	immutable Opt!(TypeAst.Fun.Kind) funKind = funKindFromName(name.name);
 	if (has(funKind) && tryTake(lexer, ' ')) {
 		ArrBuilder!TypeAst returnAndParamTypes;
-		add(alloc, returnAndParamTypes, parseType(alloc, lexer));
+		add(alloc, returnAndParamTypes, parseType(alloc, allSymbols, lexer));
 		if (tryTake(lexer, '(')) {
 			if (!tryTake(lexer, ')')) {
-				parseTypesWithCommas(alloc, lexer, returnAndParamTypes);
+				parseTypesWithCommas(alloc, allSymbols, lexer, returnAndParamTypes);
 				if (!tryTake(lexer, ')'))
 					todo!void("diagnostic -- missing closing paren");
 			}
@@ -89,7 +92,7 @@ private immutable(TypeAst) parseTypeBeforeSuffixes(ref Alloc alloc, ref Lexer le
 		return immutable TypeAst(
 			immutable TypeAst.Fun(range(lexer, start), force(funKind), finishArr(alloc, returnAndParamTypes)));
 	} else {
-		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsAllowSpace(alloc, lexer);
+		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsAllowSpace(alloc, allSymbols, lexer);
 		immutable RangeWithinFile rng = range(lexer, start);
 		return immutable TypeAst(immutable TypeAst.InstStruct(rng, name, typeArgs));
 	}
@@ -97,19 +100,20 @@ private immutable(TypeAst) parseTypeBeforeSuffixes(ref Alloc alloc, ref Lexer le
 
 private immutable(TypeAst) parseTypeSuffixes(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable TypeAst ast,
 ) {
 	immutable Opt!(TypeAst.Suffix.Kind) suffix = tryTakeTypeSuffix(lexer);
 	if (has(suffix))
-		return parseTypeSuffixes(alloc, lexer, immutable TypeAst(
+		return parseTypeSuffixes(alloc, allSymbols, lexer, immutable TypeAst(
 			immutable TypeAst.Suffix(force(suffix), allocate(alloc, ast))));
 	else {
 		immutable Opt!(TypeAst.Dict.Kind) dictKind = tryTakeDictKind(lexer);
 		if (has(dictKind)) {
-			immutable TypeAst inner = parseType(alloc, lexer);
+			immutable TypeAst inner = parseType(alloc, allSymbols, lexer);
 			takeOrAddDiagExpected(alloc, lexer, ']', ParseDiag.Expected.Kind.closingBracket);
-			return parseTypeSuffixes(alloc, lexer, immutable TypeAst(
+			return parseTypeSuffixes(alloc, allSymbols, lexer, immutable TypeAst(
 				immutable TypeAst.Dict(force(dictKind), allocate(alloc, ast), allocate(alloc, inner))));
 		} else
 			return ast;

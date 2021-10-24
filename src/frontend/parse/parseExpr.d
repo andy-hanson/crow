@@ -70,6 +70,7 @@ import util.opt : force, has, none, nonePtr, Opt, OptPtr, some, somePtr;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
+	AllSymbols,
 	getSymFromAlphaIdentifier,
 	isAlphaIdentifierStart,
 	isDigit,
@@ -84,10 +85,10 @@ import util.sym :
 	symForOperator;
 import util.util : max, todo, unreachable, verify;
 
-immutable(ExprAst) parseFunExprBody(ref Alloc alloc, ref Lexer lexer) {
+immutable(ExprAst) parseFunExprBody(ref Alloc alloc, ref AllSymbols allSymbols, ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
 	if (takeIndentOrDiagTopLevel(alloc, lexer)) {
-		immutable ExprAndDedent ed = parseStatementsAndExtraDedents(alloc, lexer, 1);
+		immutable ExprAndDedent ed = parseStatementsAndExtraDedents(alloc, allSymbols, lexer, 1);
 		verify(ed.dedents == 0); // Since we started at the root, can't dedent more
 		return ed.expr;
 	} else
@@ -270,14 +271,14 @@ immutable(ExprAndMaybeDedent) toMaybeDedent(immutable ExprAndDedent a) {
 	return immutable ExprAndMaybeDedent(a.expr, some(a.dedents));
 }
 
-immutable(ArrWithSize!ExprAst) parseSubscriptArgs(ref Alloc alloc, ref Lexer lexer) {
+immutable(ArrWithSize!ExprAst) parseSubscriptArgs(ref Alloc alloc, ref AllSymbols allSymbols, ref Lexer lexer) {
 	if (tryTake(lexer, ']'))
 		//TODO: syntax error
 		return emptyArrWithSize!ExprAst;
 	else {
 		ArrWithSizeBuilder!ExprAst builder;
 		immutable ArgCtx argCtx = immutable ArgCtx(noBlock(), allowAllCallsExceptComma());
-		immutable ArgsAndMaybeNameOrDedent res = parseArgsRecur(alloc, lexer, argCtx, builder);
+		immutable ArgsAndMaybeNameOrDedent res = parseArgsRecur(alloc, allSymbols, lexer, argCtx, builder);
 		if (!tryTake(lexer, ']'))
 			addDiagAtChar(alloc, lexer, immutable ParseDiag(
 				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.closingBracket)));
@@ -287,25 +288,27 @@ immutable(ArrWithSize!ExprAst) parseSubscriptArgs(ref Alloc alloc, ref Lexer lex
 
 immutable(ArgsAndMaybeNameOrDedent) parseArgsForOperator(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	ref immutable ArgCtx ctx,
 ) {
 	if (!tryTake(lexer, ' '))
 		return immutable ArgsAndMaybeNameOrDedent(emptyArrWithSize!ExprAst, noNameOrDedent());
 	else {
-		immutable ExprAndMaybeNameOrDedent ad = parseExprAndCalls(alloc, lexer, ctx);
+		immutable ExprAndMaybeNameOrDedent ad = parseExprAndCalls(alloc, allSymbols, lexer, ctx);
 		return immutable ArgsAndMaybeNameOrDedent(arrWithSizeLiteral!ExprAst(alloc, [ad.expr]), ad.nameOrDedent);
 	}
 }
 
 immutable(ArgsAndMaybeNameOrDedent) parseArgs(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable ArgCtx ctx,
 ) {
 	if (tryTake(lexer, ' ')) {
 		ArrWithSizeBuilder!ExprAst builder;
-		return parseArgsRecur(alloc, lexer, ctx, builder);
+		return parseArgsRecur(alloc, allSymbols, lexer, ctx, builder);
 	} else if (tryTake(lexer, ", "))
 		return immutable ArgsAndMaybeNameOrDedent(
 			emptyArrWithSize!ExprAst,
@@ -316,12 +319,13 @@ immutable(ArgsAndMaybeNameOrDedent) parseArgs(
 
 immutable(ArgsAndMaybeNameOrDedent) parseArgsRecur(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable ArgCtx ctx,
 	ref ArrWithSizeBuilder!ExprAst args,
 ) {
 	verify(ctx.allowedCalls.minPrecedenceExclusive >= commaPrecedence);
-	immutable ExprAndMaybeNameOrDedent ad = parseExprAndCalls(alloc, lexer, ctx);
+	immutable ExprAndMaybeNameOrDedent ad = parseExprAndCalls(alloc, allSymbols, lexer, ctx);
 	add(alloc, args, ad.expr);
 	immutable(ArgsAndMaybeNameOrDedent) finish() {
 		return immutable ArgsAndMaybeNameOrDedent(finishArrWithSize(alloc, args), ad.nameOrDedent);
@@ -331,7 +335,7 @@ immutable(ArgsAndMaybeNameOrDedent) parseArgsRecur(
 		(ref immutable OptNameOrDedent.None) =>
 			finish(),
 		(ref immutable OptNameOrDedent.Comma) =>
-			parseArgsRecur(alloc, lexer, ctx, args),
+			parseArgsRecur(alloc, allSymbols, lexer, ctx, args),
 		(ref immutable NameAndRange) =>
 			finish(),
 		(ref immutable OptNameOrDedent.Dedent) =>
@@ -340,12 +344,13 @@ immutable(ArgsAndMaybeNameOrDedent) parseArgsRecur(
 
 immutable(ExprAndDedent) parseMutEquals(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	ref immutable ExprAst before,
 	immutable uint curIndent,
 ) {
-	immutable ExprAndDedent initAndDedent = parseExprNoLet(alloc, lexer, curIndent);
+	immutable ExprAndDedent initAndDedent = parseExprNoLet(alloc, allSymbols, lexer, curIndent);
 	struct FromBefore {
 		immutable Sym name;
 		immutable ArrWithSize!ExprAst args;
@@ -408,7 +413,7 @@ immutable(ExprAndDedent) parseMutEquals(
 				before.range.start,
 				fromBefore.style == CallAst.Style.setDeref
 					? shortSymAlphaLiteral("set-deref")
-					: prependSet(lexer.allSymbols, fromBefore.name)),
+					: prependSet(allSymbols, fromBefore.name)),
 			fromBefore.typeArgs,
 			append(alloc, fromBefore.args, initAndDedent.expr))));
 	return immutable ExprAndDedent(call, initAndDedent.dedents);
@@ -416,6 +421,7 @@ immutable(ExprAndDedent) parseMutEquals(
 
 immutable(ExprAndDedent) mustParseNextLines(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	immutable uint dedentsBefore,
@@ -426,7 +432,7 @@ immutable(ExprAndDedent) mustParseNextLines(
 		addDiag(alloc, lexer, range, immutable ParseDiag(immutable ParseDiag.LetMustHaveThen()));
 		return immutable ExprAndDedent(bogusExpr(range), dedentsBefore);
 	} else
-		return parseStatementsAndDedents(alloc, lexer, curIndent);
+		return parseStatementsAndDedents(alloc, allSymbols, lexer, curIndent);
 }
 
 immutable(NameAndRange) asIdentifierOrDiagnostic(
@@ -448,6 +454,7 @@ immutable(NameAndRange) identifierAsNameAndRange(ref immutable ExprAst a) {
 
 immutable(ExprAndMaybeNameOrDedent) parseCalls(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	ref immutable ExprAst lhs,
@@ -456,14 +463,14 @@ immutable(ExprAndMaybeNameOrDedent) parseCalls(
 	if (tryTake(lexer, ',')) {
 		tryTake(lexer, ' ');
 		if (canParseCommaExpr(argCtx))
-			return parseCallsAfterComma(alloc, lexer, start, lhs, argCtx);
+			return parseCallsAfterComma(alloc, allSymbols, lexer, start, lhs, argCtx);
 		else
 			return immutable ExprAndMaybeNameOrDedent(
 				lhs,
 				immutable OptNameOrDedent(immutable OptNameOrDedent.Comma()));
 	} else if (tryTake(lexer, ' ')) {
-		immutable NameAndRange funName = takeNameAndRange(alloc, lexer);
-		return parseCallsAfterName(alloc, lexer, start, lhs, funName, argCtx);
+		immutable NameAndRange funName = takeNameAndRange(alloc, allSymbols, lexer);
+		return parseCallsAfterName(alloc, allSymbols, lexer, start, lhs, funName, argCtx);
 	} else
 		return immutable ExprAndMaybeNameOrDedent(lhs, noNameOrDedent());
 }
@@ -474,6 +481,7 @@ immutable(bool) canParseCommaExpr(ref immutable ArgCtx argCtx) {
 
 immutable(ExprAndMaybeNameOrDedent) parseCallsAfterComma(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	ref immutable ExprAst lhs,
@@ -485,7 +493,7 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterComma(
 		? immutable ArgsAndMaybeNameOrDedent(
 			finishArrWithSize(alloc, builder),
 			immutable OptNameOrDedent(immutable OptNameOrDedent.None()))
-		: parseArgsRecur(alloc, lexer, requirePrecedenceGtComma(argCtx), builder);
+		: parseArgsRecur(alloc, allSymbols, lexer, requirePrecedenceGtComma(argCtx), builder);
 	immutable RangeWithinFile range = range(lexer, start);
 	return immutable ExprAndMaybeNameOrDedent(
 		immutable ExprAst(range, immutable ExprAstKind(
@@ -500,6 +508,7 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterComma(
 
 immutable(ExprAndMaybeNameOrDedent) parseCallsAfterName(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	ref immutable ExprAst lhs,
@@ -509,11 +518,11 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterName(
 	immutable int precedence = symPrecedence(funName.name);
 	if (precedence > argCtx.allowedCalls.minPrecedenceExclusive) {
 		//TODO: don't do this for operators
-		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
+		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, allSymbols, lexer);
 		immutable ArgCtx innerCtx = requirePrecedenceGt(argCtx, precedence);
 		immutable ArgsAndMaybeNameOrDedent args = isSymOperator(funName.name)
-			? parseArgsForOperator(alloc, lexer, innerCtx)
-			: parseArgs(alloc, lexer, innerCtx);
+			? parseArgsForOperator(alloc, allSymbols, lexer, innerCtx)
+			: parseArgs(alloc, allSymbols, lexer, innerCtx);
 		immutable ExprAstKind exprKind = immutable ExprAstKind(
 			immutable CallAst(CallAst.Style.infix, funName, typeArgs, prepend!ExprAst(alloc, lhs, args.args)));
 		immutable ExprAst expr = immutable ExprAst(range(lexer, start), exprKind);
@@ -524,10 +533,10 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterName(
 				stopHere,
 			(ref immutable OptNameOrDedent.Comma) =>
 				canParseCommaExpr(argCtx)
-					? parseCallsAfterComma(alloc, lexer, start, expr, argCtx)
+					? parseCallsAfterComma(alloc, allSymbols, lexer, start, expr, argCtx)
 					: stopHere,
 			(ref immutable NameAndRange name) =>
-				parseCallsAfterName(alloc, lexer, start, expr, name, argCtx),
+				parseCallsAfterName(alloc, allSymbols, lexer, start, expr, name, argCtx),
 			(ref immutable OptNameOrDedent.Dedent) =>
 				stopHere);
 	} else
@@ -586,6 +595,7 @@ immutable(int) operatorPrecedence(immutable Operator a) {
 
 immutable(ExprAndMaybeNameOrDedent) parseCallsAfterSimpleExpr(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	ref immutable ExprAst lhs,
@@ -606,7 +616,7 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterSimpleExpr(
 					immutable NameAndRange(lhs.range.start, asIdentifier(kind).name),
 					emptyArrWithSize!TypeAst);
 		}();
-		immutable ArgsAndMaybeNameOrDedent ad = parseArgs(alloc, lexer, requirePrecedenceGtComma(argCtx));
+		immutable ArgsAndMaybeNameOrDedent ad = parseArgs(alloc, allSymbols, lexer, requirePrecedenceGtComma(argCtx));
 		immutable CallAst call = immutable CallAst(
 			CallAst.Style.prefix,
 			nameAndTypeArgs.name,
@@ -616,7 +626,7 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterSimpleExpr(
 			immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)),
 			ad.nameOrDedent);
 	} else
-		return parseCalls(alloc, lexer, start, lhs, argCtx);
+		return parseCalls(alloc, allSymbols, lexer, start, lhs, argCtx);
 }
 
 immutable(OptNameOrDedent) nameOrDedentFromOptDedents(immutable Opt!uint dedents) {
@@ -627,19 +637,20 @@ immutable(OptNameOrDedent) nameOrDedentFromOptDedents(immutable Opt!uint dedents
 
 immutable(ExprAst) tryParseDotsAndSubscripts(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	ref immutable ExprAst initial
 ) {
 	immutable Pos start = curPos(lexer);
 	if (tryTake(lexer, '.')) {
-		immutable NameAndRange name = takeNameAndRange(alloc, lexer);
-		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
+		immutable NameAndRange name = takeNameAndRange(alloc, allSymbols, lexer);
+		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, allSymbols, lexer);
 		immutable CallAst call = immutable CallAst(
 			CallAst.Style.dot, name, typeArgs, arrWithSizeLiteral!ExprAst(alloc, [initial]));
 		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(call));
-		return tryParseDotsAndSubscripts(alloc, lexer, expr);
+		return tryParseDotsAndSubscripts(alloc, allSymbols, lexer, expr);
 	} else if (tryTake(lexer, '[')) {
-		immutable ArrWithSize!ExprAst args = parseSubscriptArgs(alloc, lexer);
+		immutable ArrWithSize!ExprAst args = parseSubscriptArgs(alloc, allSymbols, lexer);
 		immutable CallAst call = immutable CallAst(
 			//TODO: the range is wrong..
 			CallAst.Style.subscript,
@@ -647,25 +658,26 @@ immutable(ExprAst) tryParseDotsAndSubscripts(
 			emptyArrWithSize!TypeAst,
 			prepend(alloc, initial, args));
 		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(call));
-		return tryParseDotsAndSubscripts(alloc, lexer, expr);
+		return tryParseDotsAndSubscripts(alloc, allSymbols, lexer, expr);
 	} else
 		return initial;
 }
 
 immutable(ExprAndDedent) parseMatch(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	immutable uint curIndent,
 ) {
 	immutable Ptr!ExprAst matched = tryTake(lexer, ' ')
-		? allocate(alloc, parseExprNoBlock(alloc, lexer))
+		? allocate(alloc, parseExprNoBlock(alloc, allSymbols, lexer))
 		: allocate(alloc, immutable ExprAst(range(lexer, start), immutable ExprAstKind(immutable BogusAst())));
 	immutable uint dedentsAfterMatched = takeNewlineOrDedentAmount(alloc, lexer, curIndent);
 	ArrBuilder!(MatchAst.CaseAst) cases;
 	immutable uint dedents = dedentsAfterMatched != 0
 		? dedentsAfterMatched
-		: parseMatchCases(alloc, lexer, cases, curIndent);
+		: parseMatchCases(alloc, allSymbols, lexer, cases, curIndent);
 	return immutable ExprAndDedent(
 		immutable ExprAst(
 			range(lexer, start),
@@ -675,35 +687,37 @@ immutable(ExprAndDedent) parseMatch(
 
 immutable(uint) parseMatchCases(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	ref ArrBuilder!(MatchAst.CaseAst) cases,
 	immutable uint curIndent,
 ) {
 	immutable Pos startCase = curPos(lexer);
 	if (tryTake(lexer, "as ")) {
-		immutable Sym memberName = takeName(alloc, lexer);
-		immutable NameOrUnderscoreOrNone localName = takeNameOrUnderscoreOrNone(alloc, lexer);
-		immutable ExprAndDedent ed = takeIndentOrFail_ExprAndDedent(alloc, lexer, curIndent, () =>
-			parseStatementsAndExtraDedents(alloc, lexer, curIndent + 1));
+		immutable Sym memberName = takeName(alloc, allSymbols, lexer);
+		immutable NameOrUnderscoreOrNone localName = takeNameOrUnderscoreOrNone(alloc, allSymbols, lexer);
+		immutable ExprAndDedent ed = takeIndentOrFail_ExprAndDedent(alloc, allSymbols, lexer, curIndent, () =>
+			parseStatementsAndExtraDedents(alloc, allSymbols, lexer, curIndent + 1));
 		add(alloc, cases, immutable MatchAst.CaseAst(
 			range(lexer, startCase),
 			memberName,
 			localName,
 			allocExpr(alloc, ed.expr)));
-		return ed.dedents == 0 ? parseMatchCases(alloc, lexer, cases, curIndent) : ed.dedents;
+		return ed.dedents == 0 ? parseMatchCases(alloc, allSymbols, lexer, cases, curIndent) : ed.dedents;
 	} else
 		return 0;
 }
 
 immutable(ExprAndDedent) parseIf(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	immutable uint curIndent,
 ) {
 	if (!tryTake(lexer, ' '))
 		return todo!(immutable ExprAndDedent)("!");
-	return parseIfRecur(alloc, lexer, start, curIndent);
+	return parseIfRecur(alloc, allSymbols, lexer, start, curIndent);
 }
 
 immutable(OptExprAndDedent) toOptExprAndDedent(ref Alloc alloc, immutable ExprAndDedent a) {
@@ -712,29 +726,30 @@ immutable(OptExprAndDedent) toOptExprAndDedent(ref Alloc alloc, immutable ExprAn
 
 immutable(ExprAndDedent) parseIfRecur(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	immutable uint curIndent,
 ) {
-	immutable ExprAndMaybeDedent beforeCallAndDedent = parseExprBeforeCall(alloc, lexer, noBlock());
+	immutable ExprAndMaybeDedent beforeCallAndDedent = parseExprBeforeCall(alloc, allSymbols, lexer, noBlock());
 	assert(!has(beforeCallAndDedent.dedents));
 	immutable ExprAst beforeCall = beforeCallAndDedent.expr;
 	immutable bool isOption = tryTake(lexer, " ?= ");
 	immutable ExprAst optionOrCondition = isOption
-		? parseExprNoBlock(alloc, lexer)
-		: assertNoNameOrDedent(
-			parseCallsAfterSimpleExpr(alloc, lexer, start, beforeCall, immutable ArgCtx(noBlock(), allowAllCalls())));
-	immutable ExprAndDedent thenAndDedent = takeIndentOrFail_ExprAndDedent(alloc, lexer, curIndent, () =>
-		parseStatementsAndExtraDedents(alloc, lexer, curIndent + 1));
+		? parseExprNoBlock(alloc, allSymbols, lexer)
+		: assertNoNameOrDedent(parseCallsAfterSimpleExpr(
+			alloc, allSymbols, lexer, start, beforeCall, immutable ArgCtx(noBlock(), allowAllCalls())));
+	immutable ExprAndDedent thenAndDedent = takeIndentOrFail_ExprAndDedent(alloc, allSymbols, lexer, curIndent, () =>
+		parseStatementsAndExtraDedents(alloc, allSymbols, lexer, curIndent + 1));
 	immutable ExprAst then = thenAndDedent.expr;
 	immutable Pos elifStart = curPos(lexer);
 	immutable OptExprAndDedent else_ = thenAndDedent.dedents != 0
 		? immutable OptExprAndDedent(none!(Ptr!ExprAst), thenAndDedent.dedents)
 		: tryTake(lexer, "elif ")
-		? toOptExprAndDedent(alloc, parseIfRecur(alloc, lexer, elifStart, curIndent))
+		? toOptExprAndDedent(alloc, parseIfRecur(alloc, allSymbols, lexer, elifStart, curIndent))
 		: tryTake(lexer, "else")
-		? toOptExprAndDedent(alloc, takeIndentOrFail_ExprAndDedent(alloc, lexer, curIndent, () =>
-			parseStatementsAndExtraDedents(alloc, lexer, curIndent + 1)))
+		? toOptExprAndDedent(alloc, takeIndentOrFail_ExprAndDedent(alloc, allSymbols, lexer, curIndent, () =>
+			parseStatementsAndExtraDedents(alloc, allSymbols, lexer, curIndent + 1)))
 		: immutable OptExprAndDedent(none!(Ptr!ExprAst), 0);
 
 	immutable ExprAstKind kind = isOption
@@ -752,6 +767,7 @@ immutable(ExprAndDedent) parseIfRecur(
 
 immutable(ExprAndDedent) takeIndentOrFail_ExprAndDedent(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable uint curIndent,
 	scope immutable(ExprAndDedent) delegate() @safe @nogc pure nothrow cbIndent,
@@ -767,39 +783,42 @@ immutable(ExprAndDedent) takeIndentOrFail_ExprAndDedent(
 
 immutable(ExprAndMaybeDedent) parseLambdaWithParenthesizedParameters(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	immutable AllowedBlock allowedBlock,
 ) {
-	immutable LambdaAst.Param[] parameters = parseParenthesizedLambdaParameters(alloc, lexer);
+	immutable LambdaAst.Param[] parameters = parseParenthesizedLambdaParameters(alloc, allSymbols, lexer);
 	if (!tryTake(lexer, " =>"))
 		addDiagAtChar(alloc, lexer, immutable ParseDiag(
 			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.lambdaArrow)));
-	return parseLambdaAfterArrow(alloc, lexer, start, allowedBlock, parameters);
+	return parseLambdaAfterArrow(alloc, allSymbols, lexer, start, allowedBlock, parameters);
 }
 
 immutable(LambdaAst.Param[]) parseParenthesizedLambdaParameters(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 ) {
 	if (tryTake(lexer, ')'))
 		return emptyArr!(LambdaAst.Param);
 	else {
 		ArrBuilder!(LambdaAst.Param) parameters;
-		return parseParenthesizedLambdaParametersRecur(alloc, lexer, parameters);
+		return parseParenthesizedLambdaParametersRecur(alloc, allSymbols, lexer, parameters);
 	}
 }
 
 immutable(LambdaAst.Param[]) parseParenthesizedLambdaParametersRecur(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	ref ArrBuilder!(LambdaAst.Param) parameters,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable Sym name = takeName(alloc, lexer);
+	immutable Sym name = takeName(alloc, allSymbols, lexer);
 	add(alloc, parameters, immutable LambdaAst.Param(start, name));
 	if (tryTake(lexer, ", "))
-		return parseParenthesizedLambdaParametersRecur(alloc, lexer, parameters);
+		return parseParenthesizedLambdaParametersRecur(alloc, allSymbols, lexer, parameters);
 	else {
 		if (!tryTake(lexer, ')'))
 			addDiagAtChar(alloc, lexer, immutable ParseDiag(
@@ -810,6 +829,7 @@ immutable(LambdaAst.Param[]) parseParenthesizedLambdaParametersRecur(
 
 immutable(ExprAndMaybeDedent) parseLambdaAfterArrow(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	immutable AllowedBlock allowedBlock,
@@ -820,12 +840,12 @@ immutable(ExprAndMaybeDedent) parseLambdaAfterArrow(
 		if (isAllowBlock(allowedBlock)) {
 			immutable uint curIndent = asAllowBlock(allowedBlock).curIndent;
 			return inLine
-				? toMaybeDedent(parseExprNoLet(alloc, lexer, curIndent))
-				: toMaybeDedent(takeIndentOrFail_ExprAndDedent(alloc, lexer, curIndent, () =>
-					parseStatementsAndExtraDedents(alloc, lexer, curIndent + 1)));
+				? toMaybeDedent(parseExprNoLet(alloc, allSymbols, lexer, curIndent))
+				: toMaybeDedent(takeIndentOrFail_ExprAndDedent(alloc, allSymbols, lexer, curIndent, () =>
+					parseStatementsAndExtraDedents(alloc, allSymbols, lexer, curIndent + 1)));
 		} else
 			return inLine
-				? noDedent(parseExprNoBlock(alloc, lexer))
+				? noDedent(parseExprNoBlock(alloc, allSymbols, lexer))
 				: exprBlockNotAllowed(alloc, lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda);
 	}();
 	immutable LambdaAst lambda = immutable LambdaAst(parameters, allocExpr(alloc, body_.expr));
@@ -867,6 +887,7 @@ immutable(ExprAndMaybeDedent) exprBlockNotAllowed(
 
 immutable(ExprAndMaybeDedent) parseExprBeforeCall(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable AllowedBlock allowedBlock,
 ) {
@@ -877,7 +898,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(
 	switch (c) {
 		case '(':
 			if (lookaheadWillTakeArrow(lexer))
-				return parseLambdaWithParenthesizedParameters(alloc, lexer, start, allowedBlock);
+				return parseLambdaWithParenthesizedParameters(alloc, allSymbols, lexer, start, allowedBlock);
 			else if (tryTake(lexer, ')')) {
 				immutable ExprAst expr = immutable ExprAst(
 					range(lexer, start),
@@ -887,17 +908,17 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(
 						immutable NameAndRange(start, shortSymAlphaLiteral("new")),
 						emptyArrWithSize!TypeAst,
 						emptyArrWithSize!ExprAst)));
-				return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
+				return noDedent(tryParseDotsAndSubscripts(alloc, allSymbols, lexer, expr));
 			} else {
-				immutable ExprAst inner = parseExprNoBlock(alloc, lexer);
+				immutable ExprAst inner = parseExprNoBlock(alloc, allSymbols, lexer);
 				takeOrAddDiagExpected(alloc, lexer, ')', ParseDiag.Expected.Kind.closingParen);
 				immutable ExprAst expr = immutable ExprAst(
 					range(lexer, start),
 					immutable ExprAstKind(immutable ParenthesizedAst(allocate(alloc, inner))));
-				return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
+				return noDedent(tryParseDotsAndSubscripts(alloc, allSymbols, lexer, expr));
 			}
 		case '&':
-			immutable Sym name = takeName(alloc, lexer);
+			immutable Sym name = takeName(alloc, allSymbols, lexer);
 			return noDedent(immutable ExprAst(
 				range(lexer, start),
 				immutable ExprAstKind(immutable FunPtrAst(name))));
@@ -905,46 +926,48 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(
 			immutable StringPart part = takeStringPart(alloc, lexer, '"');
 			final switch (part.after) {
 				case StringPart.After.quote:
-					return handleLiteral(alloc, lexer, start, immutable LiteralAst(part.text));
+					return handleLiteral(alloc, allSymbols, lexer, start, immutable LiteralAst(part.text));
 				case StringPart.After.lbrace:
-					immutable ExprAst interpolated = takeInterpolated(alloc, lexer, start, part.text);
-					return noDedent(tryParseDotsAndSubscripts(alloc, lexer, interpolated));
+					immutable ExprAst interpolated = takeInterpolated(alloc, allSymbols, lexer, start, part.text);
+					return noDedent(tryParseDotsAndSubscripts(alloc, allSymbols, lexer, interpolated));
 			}
 		}
 		case '\'':
-			immutable Sym sym = takeSymbolLiteral(alloc, lexer);
+			immutable Sym sym = takeSymbolLiteral(alloc, allSymbols, lexer);
 			immutable ExprAst expr = immutable ExprAst(
 				range(lexer, start),
 				immutable ExprAstKind(immutable LiteralAst(sym)));
-			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
+			return noDedent(tryParseDotsAndSubscripts(alloc, allSymbols, lexer, expr));
 		case '+':
 			return isDigit(*lexer.ptr)
-				? handleLiteral(alloc, lexer, start, takeNumberAfterSign(lexer, some(Sign.plus)))
+				? handleLiteral(alloc, allSymbols, lexer, start, takeNumberAfterSign(lexer, some(Sign.plus)))
 				: handleUnexpectedChar(alloc, lexer, start);
 		case '-':
 			return isDigit(*lexer.ptr)
-				? handleLiteral(alloc, lexer, start, takeNumberAfterSign(lexer, some(Sign.minus)))
-				: handlePrefixOperator(alloc, lexer, allowedBlock, start, Operator.minus);
+				? handleLiteral(alloc, allSymbols, lexer, start, takeNumberAfterSign(lexer, some(Sign.minus)))
+				: handlePrefixOperator(alloc, allSymbols, lexer, allowedBlock, start, Operator.minus);
 		case '!':
-			return handlePrefixOperator(alloc, lexer, allowedBlock, start, Operator.not);
+			return handlePrefixOperator(alloc, allSymbols, lexer, allowedBlock, start, Operator.not);
 		case '~':
-			return handlePrefixOperator(alloc, lexer, allowedBlock, start, Operator.tilde);
+			return handlePrefixOperator(alloc, allSymbols, lexer, allowedBlock, start, Operator.tilde);
 		case '*':
-			return handlePrefixOperator(alloc, lexer, allowedBlock, start, Operator.times);
+			return handlePrefixOperator(alloc, allSymbols, lexer, allowedBlock, start, Operator.times);
 		default:
 			if (isAlphaIdentifierStart(c)) {
 				immutable string nameStr = takeNameRest(lexer, begin);
-				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
+				immutable Sym name = getSymFromAlphaIdentifier(allSymbols, nameStr);
 				if (isReservedName(lexer, name))
 					switch (name.value) {
 						case shortSymAlphaLiteralValue("if"):
 							return isAllowBlock(allowedBlock)
-								? toMaybeDedent(parseIf(alloc, lexer, start, asAllowBlock(allowedBlock).curIndent))
+								? toMaybeDedent(
+									parseIf(alloc, allSymbols, lexer, start, asAllowBlock(allowedBlock).curIndent))
 								: exprBlockNotAllowed(
 									alloc, lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.if_);
 						case shortSymAlphaLiteralValue("match"):
 							return isAllowBlock(allowedBlock)
-								? toMaybeDedent(parseMatch(alloc, lexer, start, asAllowBlock(allowedBlock).curIndent))
+								? toMaybeDedent(
+									parseMatch(alloc, allSymbols, lexer, start, asAllowBlock(allowedBlock).curIndent))
 								: exprBlockNotAllowed(
 									alloc, lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match);
 						default:
@@ -954,29 +977,30 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(
 				else if (tryTake(lexer, " =>"))
 					return parseLambdaAfterArrow(
 						alloc,
+						allSymbols,
 						lexer,
 						start,
 						allowedBlock,
 						arrLiteral!(LambdaAst.Param)(alloc, [immutable LambdaAst.Param(start, name)]));
 				else
-					return handleName(alloc, lexer, start, immutable NameAndRange(start, name));
+					return handleName(alloc, allSymbols, lexer, start, immutable NameAndRange(start, name));
 			} else if (isDigit(c)) {
 				backUp(lexer);
-				return handleLiteral(alloc, lexer, start, takeNumberAfterSign(lexer, none!Sign));
-			} else {
+				return handleLiteral(alloc, allSymbols, lexer, start, takeNumberAfterSign(lexer, none!Sign));
+			} else
 				return handleUnexpectedChar(alloc, lexer, start);
-			}
 	}
 }
 
 immutable(ExprAndMaybeDedent) handlePrefixOperator(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable AllowedBlock allowedBlock,
 	immutable Pos start,
 	immutable Operator operator,
 ) {
-	immutable ExprAndMaybeDedent arg = parseExprBeforeCall(alloc, lexer, allowedBlock);
+	immutable ExprAndMaybeDedent arg = parseExprBeforeCall(alloc, allSymbols, lexer, allowedBlock);
 	immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(
 		immutable CallAst(
 			CallAst.Style.prefixOperator,
@@ -998,21 +1022,23 @@ immutable(ExprAndMaybeDedent) handleUnexpectedChar(
 
 immutable(ExprAndMaybeDedent) handleLiteral(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	immutable LiteralAst literal,
 ) {
 	immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(literal));
-	return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
+	return noDedent(tryParseDotsAndSubscripts(alloc, allSymbols, lexer, expr));
 }
 
 immutable(ExprAndMaybeDedent) handleName(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	immutable NameAndRange name,
 ) {
-	immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
+	immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, allSymbols, lexer);
 	if (!empty(toArr(typeArgs))) {
 		return noDedent(immutable ExprAst(
 			range(lexer, start),
@@ -1022,12 +1048,13 @@ immutable(ExprAndMaybeDedent) handleName(
 		immutable ExprAst expr = immutable ExprAst(
 			range(lexer, start),
 			immutable ExprAstKind(immutable IdentifierAst(name.name)));
-		return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
+		return noDedent(tryParseDotsAndSubscripts(alloc, allSymbols, lexer, expr));
 	}
 }
 
 immutable(ExprAst) takeInterpolated(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	immutable string firstText,
@@ -1035,16 +1062,17 @@ immutable(ExprAst) takeInterpolated(
 	ArrBuilder!InterpolatedPart parts;
 	if (!empty(firstText))
 		add(alloc, parts, immutable InterpolatedPart(firstText));
-	return takeInterpolatedRecur(alloc, lexer, start, parts);
+	return takeInterpolatedRecur(alloc, allSymbols, lexer, start, parts);
 }
 
 immutable(ExprAst) takeInterpolatedRecur(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	ref ArrBuilder!InterpolatedPart parts,
 ) {
-	immutable ExprAst e = parseExprNoBlock(alloc, lexer);
+	immutable ExprAst e = parseExprNoBlock(alloc, allSymbols, lexer);
 	add(alloc, parts, immutable InterpolatedPart(e));
 	if (!tryTake(lexer, '}'))
 		todo!void("!");
@@ -1057,7 +1085,7 @@ immutable(ExprAst) takeInterpolatedRecur(
 				range(lexer, start),
 				immutable ExprAstKind(immutable InterpolatedAst(finishArr(alloc, parts))));
 		case StringPart.After.lbrace:
-			return takeInterpolatedRecur(alloc, lexer, start, parts);
+			return takeInterpolatedRecur(alloc, allSymbols, lexer, start, parts);
 	}
 }
 
@@ -1079,66 +1107,71 @@ immutable(Opt!uint) assertNoName(immutable OptNameOrDedent a) {
 			some(it.dedents));
 }
 
-immutable(ExprAst) parseExprNoBlock(ref Alloc alloc, ref Lexer lexer) {
-	immutable ExprAndMaybeDedent ed = parseExprAndAllCalls(alloc, lexer, noBlock());
+immutable(ExprAst) parseExprNoBlock(ref Alloc alloc, ref AllSymbols allSymbols, ref Lexer lexer) {
+	immutable ExprAndMaybeDedent ed = parseExprAndAllCalls(alloc, allSymbols, lexer, noBlock());
 	verify(!has(ed.dedents));
 	return ed.expr;
 }
 
 immutable(ExprAndMaybeDedent) parseExprAndAllCalls(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable AllowedBlock allowedBlock,
 ) {
 	immutable ArgCtx argCtx = immutable ArgCtx(allowedBlock, allowAllCalls());
-	return assertNoNameAfter(parseExprAndCalls(alloc, lexer, argCtx));
+	return assertNoNameAfter(parseExprAndCalls(alloc, allSymbols, lexer, argCtx));
 }
 
 immutable(ExprAndMaybeNameOrDedent) parseExprAndCalls(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	ref immutable ArgCtx argCtx,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable ExprAndMaybeDedent ed = parseExprBeforeCall(alloc, lexer, argCtx.allowedBlock);
+	immutable ExprAndMaybeDedent ed = parseExprBeforeCall(alloc, allSymbols, lexer, argCtx.allowedBlock);
 	return has(ed.dedents)
 		? immutable ExprAndMaybeNameOrDedent(ed.expr, nameOrDedentFromOptDedents(ed.dedents))
-		: parseCallsAfterSimpleExpr(alloc, lexer, start, ed.expr, argCtx);
+		: parseCallsAfterSimpleExpr(alloc, allSymbols, lexer, start, ed.expr, argCtx);
 }
 
 immutable(ExprAndDedent) parseExprNoLet(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable uint curIndent,
 ) {
-	return addDedent(alloc, lexer, parseExprAndAllCalls(alloc, lexer, allowBlock(curIndent)), curIndent);
+	return addDedent(alloc, lexer, parseExprAndAllCalls(alloc, allSymbols, lexer, allowBlock(curIndent)), curIndent);
 }
 
 immutable(ExprAndDedent) parseSingleStatementLine(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable uint curIndent,
 ) {
 	immutable Pos start = curPos(lexer);
 	if (lookaheadWillTakeEqualsOrThen(lexer))
-		return parseEqualsOrThen(alloc, lexer, curIndent);
+		return parseEqualsOrThen(alloc, allSymbols, lexer, curIndent);
 	else if (tryTake(lexer, "<- ")) {
-		immutable ExprAndDedent init = parseExprNoLet(alloc, lexer, curIndent);
-		immutable ExprAndDedent then = mustParseNextLines(alloc, lexer, start, init.dedents, curIndent);
+		immutable ExprAndDedent init = parseExprNoLet(alloc, allSymbols, lexer, curIndent);
+		immutable ExprAndDedent then = mustParseNextLines(alloc, allSymbols, lexer, start, init.dedents, curIndent);
 		return immutable ExprAndDedent(
 			immutable ExprAst(
 				range(lexer, start),
 				immutable ExprAstKind(immutable ThenVoidAst(allocate(alloc, init.expr), allocate(alloc, then.expr)))),
 			then.dedents);
 	} else {
-		immutable ExprAndMaybeDedent expr = parseExprBeforeCall(alloc, lexer, allowBlock(curIndent));
+		immutable ExprAndMaybeDedent expr = parseExprBeforeCall(alloc, allSymbols, lexer, allowBlock(curIndent));
 		if (!has(expr.dedents) && tryTake(lexer, " := "))
-			return parseMutEquals(alloc, lexer, start, expr.expr, curIndent);
+			return parseMutEquals(alloc, allSymbols, lexer, start, expr.expr, curIndent);
 		else {
 			immutable ExprAndMaybeDedent fullExpr = has(expr.dedents)
 				? expr
 				: assertNoNameAfter(parseCallsAfterSimpleExpr(
 					alloc,
+					allSymbols,
 					lexer,
 					start,
 					expr.expr,
@@ -1150,14 +1183,16 @@ immutable(ExprAndDedent) parseSingleStatementLine(
 
 immutable(ExprAndDedent) parseEqualsOrThen(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable uint curIndent,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable NameAndRange name = takeNameAndRange(alloc, lexer);
-	immutable TypeAndEqualsOrThen te = parseTypeAndEqualsOrThen(alloc, lexer);
-	immutable ExprAndDedent initAndDedent = parseExprNoLet(alloc, lexer, curIndent);
-	immutable ExprAndDedent thenAndDedent = mustParseNextLines(alloc, lexer, start, initAndDedent.dedents, curIndent);
+	immutable NameAndRange name = takeNameAndRange(alloc, allSymbols, lexer);
+	immutable TypeAndEqualsOrThen te = parseTypeAndEqualsOrThen(alloc, allSymbols, lexer);
+	immutable ExprAndDedent initAndDedent = parseExprNoLet(alloc, allSymbols, lexer, curIndent);
+	immutable ExprAndDedent thenAndDedent =
+		mustParseNextLines(alloc, allSymbols, lexer, start, initAndDedent.dedents, curIndent);
 	immutable ExprAstKind exprKind =
 		letOrThen(alloc, name, te.type, te.equalsOrThen, initAndDedent.expr, thenAndDedent.expr);
 	return immutable ExprAndDedent(immutable ExprAst(range(lexer, start), exprKind), thenAndDedent.dedents);
@@ -1187,13 +1222,13 @@ struct TypeAndEqualsOrThen {
 	immutable OptPtr!TypeAst type;
 	immutable EqualsOrThen equalsOrThen;
 }
-immutable(TypeAndEqualsOrThen) parseTypeAndEqualsOrThen(ref Alloc alloc, ref Lexer lexer) {
+immutable(TypeAndEqualsOrThen) parseTypeAndEqualsOrThen(ref Alloc alloc, ref AllSymbols allSymbols, ref Lexer lexer) {
 	immutable Opt!EqualsOrThen res = tryTakeEqualsOrThen(lexer);
 	if (has(res))
 		return immutable TypeAndEqualsOrThen(nonePtr!TypeAst, force(res));
 	else {
 		takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
-		immutable TypeAst type = parseType(alloc, lexer);
+		immutable TypeAst type = parseType(alloc, allSymbols, lexer);
 		immutable Opt!EqualsOrThen optEqualsOrThen = tryTakeEqualsOrThen(lexer);
 		immutable EqualsOrThen equalsOrThen = () {
 			if (has(optEqualsOrThen))
@@ -1216,7 +1251,6 @@ immutable(Opt!EqualsOrThen) tryTakeEqualsOrThen(ref Lexer lexer) {
 		: none!EqualsOrThen;
 }
 
-
 immutable(ExprAndDedent) addDedent(
 	ref Alloc alloc,
 	ref Lexer lexer,
@@ -1231,10 +1265,11 @@ immutable(ExprAndDedent) addDedent(
 
 immutable(ExprAndDedent) parseStatementsAndDedents(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable uint curIndent,
 ) {
-	immutable ExprAndDedent res = parseStatementsAndExtraDedents(alloc, lexer, curIndent);
+	immutable ExprAndDedent res = parseStatementsAndExtraDedents(alloc, allSymbols, lexer, curIndent);
 	// Since we don't always expect a dedent here,
 	// the dedent isn't *extra*, so increment to get the correct number of dedents.
 	return immutable ExprAndDedent(res.expr, res.dedents + 1);
@@ -1243,16 +1278,18 @@ immutable(ExprAndDedent) parseStatementsAndDedents(
 // Return value is number of dedents - 1; the number of *extra* dedents
 immutable(ExprAndDedent) parseStatementsAndExtraDedents(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable uint curIndent,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable ExprAndDedent ed = parseSingleStatementLine(alloc, lexer, curIndent);
-	return parseStatementsAndExtraDedentsRecur(alloc, lexer, start, ed.expr, curIndent, ed.dedents);
+	immutable ExprAndDedent ed = parseSingleStatementLine(alloc, allSymbols, lexer, curIndent);
+	return parseStatementsAndExtraDedentsRecur(alloc, allSymbols, lexer, start, ed.expr, curIndent, ed.dedents);
 }
 
 immutable(ExprAndDedent) parseStatementsAndExtraDedentsRecur(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable Pos start,
 	immutable ExprAst expr,
@@ -1260,10 +1297,11 @@ immutable(ExprAndDedent) parseStatementsAndExtraDedentsRecur(
 	immutable uint dedents,
 ) {
 	if (dedents == 0) {
-		immutable ExprAndDedent ed = parseSingleStatementLine(alloc, lexer, curIndent);
+		immutable ExprAndDedent ed = parseSingleStatementLine(alloc, allSymbols, lexer, curIndent);
 		immutable SeqAst seq = immutable SeqAst(allocExpr(alloc, expr), allocExpr(alloc, ed.expr));
 		return parseStatementsAndExtraDedentsRecur(
 			alloc,
+			allSymbols,
 			lexer,
 			start,
 			immutable ExprAst(range(lexer, start), immutable ExprAstKind(seq)),

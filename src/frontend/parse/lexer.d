@@ -23,7 +23,6 @@ import util.collection.str :
 	SafeCStr,
 	strOfNulTerminatedStr;
 import util.opt : force, has, none, Opt, optOr, some;
-import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
 	AllSymbols,
@@ -46,8 +45,6 @@ private enum IndentKind {
 }
 
 struct Lexer {
-	//TODO:PRIVATE
-	Ptr!(AllSymbols) allSymbols;
 	private:
 	immutable Sym symUnderscore;
 	ArrBuilder!ParseDiagnostic diags;
@@ -60,14 +57,13 @@ struct Lexer {
 
 @trusted Lexer createLexer(
 	ref Alloc alloc,
-	Ptr!AllSymbols allSymbols,
+	ref AllSymbols allSymbols,
 	immutable NulTerminatedStr source,
 ) {
 	// Note: We *are* relying on the nul terminator to stop the lexer.
 	immutable string str = strOfNulTerminatedStr(source);
 	immutable string useStr = !empty(str) && last(str) == '\n' ? str : rtail(cat!char(alloc, str, "\n\0"));
 	return Lexer(
-		allSymbols,
 		getSymFromAlphaIdentifier(allSymbols, "_"),
 		ArrBuilder!ParseDiagnostic(),
 		begin(useStr),
@@ -340,10 +336,10 @@ struct SymAndIsReserved {
 	immutable bool isReserved;
 }
 
-immutable(SymAndIsReserved) takeNameAllowReserved(ref Alloc alloc, ref Lexer lexer) {
+immutable(SymAndIsReserved) takeNameAllowReserved(ref Alloc alloc, ref AllSymbols allSymbols, ref Lexer lexer) {
 	immutable StrAndIsOperator s = takeNameAsTempStr(alloc, lexer);
 	if (s.isOperator) {
-		immutable Opt!Sym op = getSymFromOperator(lexer.allSymbols.deref(), s.str);
+		immutable Opt!Sym op = getSymFromOperator(allSymbols, s.str);
 		if (has(op))
 			return immutable SymAndIsReserved(immutable NameAndRange(s.start, force(op)), false);
 		else {
@@ -352,28 +348,29 @@ immutable(SymAndIsReserved) takeNameAllowReserved(ref Alloc alloc, ref Lexer lex
 			return immutable SymAndIsReserved(immutable NameAndRange(s.start, shortSymAlphaLiteral("bogus")), false);
 		}
 	} else {
-		immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, s.str);
+		immutable Sym name = getSymFromAlphaIdentifier(allSymbols, s.str);
 		return immutable SymAndIsReserved(immutable NameAndRange(s.start, name), isReservedName(lexer, name));
 	}
 }
 
-immutable(NameAndRange) takeNameAndRange(ref Alloc alloc, ref Lexer lexer) {
-	immutable SymAndIsReserved s = takeNameAllowReserved(alloc, lexer);
+immutable(NameAndRange) takeNameAndRange(ref Alloc alloc, ref AllSymbols allSymbols, ref Lexer lexer) {
+	immutable SymAndIsReserved s = takeNameAllowReserved(alloc, allSymbols, lexer);
 	if (s.isReserved)
 		addDiagOnReservedName(alloc, lexer, s.name);
 	return s.name;
 }
 
-immutable(Sym) takeName(ref Alloc alloc, ref Lexer lexer) {
-	return takeNameAndRange(alloc, lexer).name;
+immutable(Sym) takeName(ref Alloc alloc, ref AllSymbols allSymbols, ref Lexer lexer) {
+	return takeNameAndRange(alloc, allSymbols, lexer).name;
 }
 
 immutable(NameOrUnderscoreOrNone) takeNameOrUnderscoreOrNone(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 ) {
 	if (tryTake(lexer, ' ')) {
-		immutable SymAndIsReserved s = takeNameAllowReserved(alloc, lexer);
+		immutable SymAndIsReserved s = takeNameAllowReserved(alloc, allSymbols, lexer);
 		if (s.isReserved) {
 			if (s.name.name == lexer.symUnderscore)
 				return immutable NameOrUnderscoreOrNone(immutable NameOrUnderscoreOrNone.Underscore());
@@ -626,12 +623,13 @@ immutable(bool) allowedStringPartCharacter(immutable char c, immutable char endQ
 
 public immutable(Sym) takeSymbolLiteral(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 ) {
 	immutable StringPart part = takeStringPart(alloc, lexer, '\'');
 	final switch (part.after) {
 		case StringPart.After.quote:
-			return symOfStr(lexer.allSymbols, part.text);
+			return symOfStr(allSymbols, part.text);
 		case StringPart.After.lbrace:
 			// Diagnostic: '{' should be escaped to avoid confusion with interpolation
 			return todo!(immutable Sym)("!");
