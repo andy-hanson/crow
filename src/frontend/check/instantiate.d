@@ -37,7 +37,7 @@ import model.model :
 	worstCasePurity;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : ptrAt, size, sizeEq;
-import util.collection.arrUtil : arrLiteral, fold, map;
+import util.collection.arrUtil : arrLiteral, fold, map, mapWithSize;
 import util.collection.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
 import util.collection.mutArr : MutArr, push;
 import util.memory : allocate, nu, nuMut;
@@ -331,7 +331,7 @@ immutable(Sig) instantiateSig(
 	immutable Params params = matchParams!(immutable Params)(
 		sig.params,
 		(immutable Param[] params) =>
-			immutable Params(map!Param(alloc, params, (ref immutable Param p) =>
+			immutable Params(mapWithSize!Param(alloc, params, (ref immutable Param p) =>
 				instantiateParam(alloc, programState, typeParamsAndArgs, p))),
 		(ref immutable Params.Varargs v) =>
 			immutable Params(allocate(alloc, immutable Params.Varargs(

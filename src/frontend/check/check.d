@@ -146,6 +146,7 @@ import util.collection.arr :
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
+	arrWithSizeLiteral,
 	cat,
 	count,
 	eachPair,
@@ -159,6 +160,7 @@ import util.collection.arrUtil :
 	mapPtrs,
 	mapToMut,
 	mapWithIndex,
+	mapWithSize,
 	mapWithSizeWithIndex,
 	sum,
 	zipFirstMut,
@@ -522,13 +524,14 @@ immutable(Params) checkParams(
 	return matchParamsAst!(immutable Params)(
 		ast,
 		(immutable ParamAst[] asts) {
-			immutable Param[] params = mapWithIndex!Param(
+			immutable ArrWithSize!Param paramsWithSize = mapWithSizeWithIndex!Param(
 				alloc,
 				asts,
 				(immutable size_t index, ref immutable ParamAst ast) =>
 					checkParam(
 						alloc, ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts,
 						ast, index));
+			immutable Param[] params = toArr(paramsWithSize);
 			foreach (immutable size_t i; 0 .. size(params))
 				foreach (immutable size_t prev_i; 0 .. i) {
 					immutable Ptr!Param param = ptrAt(params, i);
@@ -537,7 +540,7 @@ immutable(Params) checkParams(
 						addDiag(alloc, ctx, param.range, immutable Diag(immutable Diag.ParamShadowsPrevious(
 							Diag.ParamShadowsPrevious.Kind.param, force(param.name))));
 				}
-			return immutable Params(params);
+			return immutable Params(paramsWithSize);
 		},
 		(ref immutable ParamsAst.Varargs varargs) {
 			immutable Param param = checkParam(
@@ -1420,7 +1423,7 @@ immutable(Ptr!CommonFuns) getCommonFuns(
 					immutable FileAndPos(ctx.fileIndex, 0),
 					nameSym,
 					immutable Type(immutable Type.Bogus()),
-					immutable Params(emptyArr!Param))),
+					immutable Params(emptyArrWithSize!Param))),
 				emptyArrWithSize!TypeParam(),
 				emptyArrWithSize!(Ptr!SpecInst)()));
 		} else
@@ -1570,7 +1573,7 @@ FunDecl enumOrFlagsConstructor(
 			fileAndPosFromFileAndRange(member.range),
 			member.name,
 			enumType,
-			immutable Params(emptyArr!Param))),
+			immutable Params(emptyArrWithSize!Param))),
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
 		immutable FunBody(immutable FunBody.CreateEnum(member.value)));
@@ -1591,7 +1594,7 @@ FunDecl enumEqualFunction(
 			fileAndPosFromFileAndRange(fileAndRange),
 			symForOperator(Operator.equal),
 			immutable Type(commonTypes.bool_),
-			immutable Params(arrLiteral!Param(alloc, [
+			immutable Params(arrWithSizeLiteral!Param(alloc, [
 				immutable Param(fileAndRange, some(shortSymAlphaLiteral("a")), enumType, 0),
 				immutable Param(fileAndRange, some(shortSymAlphaLiteral("b")), enumType, 1)])))),
 		emptyArrWithSize!TypeParam,
@@ -1613,7 +1616,7 @@ FunDecl flagsEmptyFunction(
 			fileAndPosFromFileAndRange(fileAndRange),
 			shortSymAlphaLiteral("empty"),
 			enumType,
-			immutable Params(emptyArr!Param))),
+			immutable Params(emptyArrWithSize!Param))),
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
 		immutable FunBody(FlagsFunction.empty));
@@ -1633,7 +1636,7 @@ FunDecl flagsAllFunction(
 			fileAndPosFromFileAndRange(fileAndRange),
 			shortSymAlphaLiteral("all"),
 			enumType,
-			immutable Params(emptyArr!Param))),
+			immutable Params(emptyArrWithSize!Param))),
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
 		immutable FunBody(FlagsFunction.all));
@@ -1653,7 +1656,7 @@ FunDecl flagsNegateFunction(
 			fileAndPosFromFileAndRange(fileAndRange),
 			symForOperator(Operator.tilde),
 			enumType,
-			immutable Params(arrLiteral!Param(alloc, [
+			immutable Params(arrWithSizeLiteral!Param(alloc, [
 				immutable Param(fileAndRange, some(shortSymAlphaLiteral("a")), enumType, 0)])))),
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
@@ -1676,7 +1679,7 @@ FunDecl enumToIntegralFunction(
 			fileAndPosFromFileAndRange(fileAndRange),
 			enumToIntegralName(enumBackingType),
 			immutable Type(getBackingTypeFromEnumType(enumBackingType, commonTypes)),
-			immutable Params(arrLiteral!Param(alloc, [
+			immutable Params(arrWithSizeLiteral!Param(alloc, [
 				immutable Param(fileAndRange, some(shortSymAlphaLiteral("a")), enumType, 0)])))),
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
@@ -1704,7 +1707,7 @@ FunDecl enumOrFlagsMembersFunction(
 				programState,
 				commonTypes,
 				immutable Type(makeNamedValType(alloc, programState, commonTypes, enumType)))),
-			immutable Params(emptyArr!Param))),
+			immutable Params(emptyArrWithSize!Param))),
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
 		immutable FunBody(EnumFunction.members));
@@ -1726,7 +1729,7 @@ FunDecl flagsUnionOrIntersectFunction(
 			fileAndPosFromFileAndRange(fileAndRange),
 			symForOperator(operator),
 			enumType,
-			immutable Params(arrLiteral!Param(alloc, [
+			immutable Params(arrWithSizeLiteral!Param(alloc, [
 				immutable Param(fileAndRange, some(shortSymAlphaLiteral("a")), enumType, 0),
 				immutable Param(fileAndRange, some(shortSymAlphaLiteral("b")), enumType, 0)])))),
 		emptyArrWithSize!TypeParam,
@@ -1775,7 +1778,7 @@ void addFunsForRecord(
 		alloc,
 		ctx.programState,
 		immutable StructDeclAndArgs(struct_, typeArgs)));
-	immutable Param[] ctorParams = map(alloc, record.fields, (ref immutable RecordField it) =>
+	immutable ArrWithSize!Param ctorParams = mapWithSize(alloc, record.fields, (ref immutable RecordField it) =>
 		immutable Param(it.range, some(it.name), it.type, it.index));
 	FunDecl constructor(immutable Type returnType, immutable FunFlags flags) {
 		immutable Ptr!Sig ctorSig = allocate(alloc, immutable Sig(
@@ -1812,7 +1815,7 @@ void addFunsForRecord(
 			fileAndPosFromFileAndRange(field.range),
 			field.name,
 			field.type,
-			immutable Params(arrLiteral!Param(alloc, [
+			immutable Params(arrWithSizeLiteral!Param(alloc, [
 				immutable Param(field.range, some(shortSymAlphaLiteral("a")), structType, 0)]))));
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			emptySafeCStr,
@@ -1829,7 +1832,7 @@ void addFunsForRecord(
 				fileAndPosFromFileAndRange(field.range),
 				prependSet(allSymbols, field.name),
 				immutable Type(commonTypes.void_),
-				immutable Params(arrLiteral!Param(alloc, [
+				immutable Params(arrWithSizeLiteral!Param(alloc, [
 					immutable Param(field.range, some(shortSymAlphaLiteral("a")), structType, 0),
 					immutable Param(field.range, some(field.name), field.type, 1)]))));
 			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
@@ -1872,10 +1875,10 @@ void addFunsForUnion(
 		ctx.programState,
 		immutable StructDeclAndArgs(struct_, typeArgs)));
 	foreach (immutable size_t memberIndex, ref immutable UnionMember member; union_.members) {
-		immutable Param[] params = has(member.type)
-			? arrLiteral!Param(alloc, [
+		immutable ArrWithSize!Param params = has(member.type)
+			? arrWithSizeLiteral!Param(alloc, [
 				immutable Param(member.range, some(shortSymAlphaLiteral("a")), force(member.type), 0)])
-			: emptyArr!Param;
+			: emptyArrWithSize!Param;
 		immutable Ptr!Sig ctorSig = allocate(alloc, immutable Sig(
 			fileAndPosFromFileAndRange(member.range),
 			member.name,

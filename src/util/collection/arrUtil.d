@@ -400,6 +400,14 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	return cast(immutable) res[0 .. size(a)];
 }
 
+immutable(ArrWithSize!Out) mapWithSize(Out, In)(
+	ref Alloc alloc,
+	immutable In[] a,
+	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
+) {
+	return mapWithSizeWithIndex!(Out, In)(alloc, a, (immutable size_t ignore, ref immutable In x) => cb(x));
+}
+
 @trusted immutable(ArrWithSize!Out) mapWithSizeWithIndex(Out, In)(
 	ref Alloc alloc,
 	immutable In[] a,

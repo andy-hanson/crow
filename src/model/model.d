@@ -224,7 +224,7 @@ struct Params {
 		immutable Type elementType;
 	}
 
-	immutable this(immutable Param[] a) { kind = Kind.regular; regular = a; }
+	immutable this(immutable ArrWithSize!Param a) { kind = Kind.regular; regular = a; }
 	immutable this(immutable Ptr!Varargs a) { kind = Kind.varargs; varargs = a; }
 
 	private:
@@ -234,7 +234,7 @@ struct Params {
 	}
 	immutable Kind kind;
 	union {
-		immutable Param[] regular;
+		immutable ArrWithSize!Param regular;
 		immutable Ptr!Varargs varargs;
 	}
 }
@@ -246,7 +246,7 @@ struct Params {
 ) {
 	final switch (a.kind) {
 		case Params.Kind.regular:
-			return cbRegular(a.regular);
+			return cbRegular(toArr(a.regular));
 		case Params.Kind.varargs:
 			return cbVarargs(a.varargs);
 	}
@@ -255,7 +255,7 @@ struct Params {
 @trusted immutable(Param[]) paramsArray(return scope ref immutable Params a) {
 	final switch (a.kind) {
 		case Params.Kind.regular:
-			return a.regular;
+			return toArr(a.regular);
 		case Params.Kind.varargs:
 			return (&a.varargs.param)[0 .. 1];
 	}
@@ -341,6 +341,7 @@ struct Sig {
 		return rangeOfStartAndName(fileAndPos.pos, name);
 	}
 }
+static assert(Sig.sizeof <= 48);
 
 immutable(FileAndRange) range(ref immutable Sig a) {
 	return immutable FileAndRange(
