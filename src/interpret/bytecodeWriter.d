@@ -36,6 +36,7 @@ import util.collection.byteWriter :
 	writeU16,
 	writeU32;
 import interpret.opcode : OpCode;
+import util.alloc.alloc : Alloc;
 import util.collection.arr : size, sizeNat;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
@@ -47,16 +48,16 @@ import util.util : divRoundUp, repeat, verify;
 import util.types : decr, incr, Int16, Int32, Nat8, Nat16, Nat32, Nat48, Nat64, NatN, zero;
 import util.writer : finishWriter, writeNat, Writer, writeStatic;
 
-struct ByteCodeWriter(Alloc) {
+struct ByteCodeWriter {
 	private:
 	Ptr!Alloc alloc;
-	ByteWriter!Alloc byteWriter;
+	ByteWriter byteWriter;
 	ArrBuilder!ByteCodeSource sources;
 	Nat16 nextStackEntry = immutable Nat16(0);
 }
 
-ByteCodeWriter!Alloc newByteCodeWriter(Alloc)(Ptr!Alloc alloc) {
-	return ByteCodeWriter!Alloc(alloc, newByteWriter!Alloc(alloc));
+ByteCodeWriter newByteCodeWriter(Ptr!Alloc alloc) {
+	return ByteCodeWriter(alloc, newByteWriter(alloc));
 }
 
 struct StackEntry {
@@ -68,8 +69,8 @@ struct StackEntries {
 	immutable Nat8 size; // Number of entries
 }
 
-@trusted immutable(ByteCode) finishByteCode(Alloc)(
-	ref ByteCodeWriter!Alloc writer,
+@trusted immutable(ByteCode) finishByteCode(
+	ref ByteCodeWriter writer,
 	immutable ubyte[] text,
 	immutable ByteCodeIndex mainIndex,
 	immutable FileToFuns fileToFuns,
@@ -80,42 +81,42 @@ struct StackEntries {
 	return immutable ByteCode(bytes, sources, fileToFuns, text, mainIndex);
 }
 
-immutable(StackEntry) getNextStackEntry(Alloc)(ref const ByteCodeWriter!Alloc writer) {
+immutable(StackEntry) getNextStackEntry(ref const ByteCodeWriter writer) {
 	return immutable StackEntry(writer.nextStackEntry);
 }
 
-void setNextStackEntry(Alloc)(ref ByteCodeWriter!Alloc writer, immutable StackEntry entry) {
+void setNextStackEntry(ref ByteCodeWriter writer, immutable StackEntry entry) {
 	writer.nextStackEntry = entry.entry;
 }
 
-void setStackEntryAfterParameters(Alloc)(ref ByteCodeWriter!Alloc writer, immutable StackEntry entry) {
+void setStackEntryAfterParameters(ref ByteCodeWriter writer, immutable StackEntry entry) {
 	verify(zero(writer.nextStackEntry));
 	writer.nextStackEntry = entry.entry;
 }
 
-immutable(ByteCodeIndex) nextByteCodeIndex(Alloc)(ref const ByteCodeWriter!Alloc writer) {
+immutable(ByteCodeIndex) nextByteCodeIndex(ref const ByteCodeWriter writer) {
 	return immutable ByteCodeIndex((immutable Nat64(nextByteIndex(writer.byteWriter))).to32());
 }
 
-private void fillDelayedU16(Alloc)(
-	ref ByteCodeWriter!Alloc writer,
+private void fillDelayedU16(
+	ref ByteCodeWriter writer,
 	immutable ByteCodeIndex index,
 	immutable ByteCodeOffsetUnsigned offset,
 ) {
 	writeU16(writer.byteWriter, index.index, offset.offset);
 }
 
-private void fillDelayedU32(Alloc)(
-	ref ByteCodeWriter!Alloc writer,
+private void fillDelayedU32(
+	ref ByteCodeWriter writer,
 	immutable ByteCodeIndex index,
 	immutable ByteCodeIndex value,
 ) {
 	writeU32(writer.byteWriter, index.index, value.index);
 }
 
-void writeAssertStackSize(Debug, Alloc)(
+void writeAssertStackSize(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 ) {
 	log(dbg, writer, "write assert stack size");
@@ -123,12 +124,12 @@ void writeAssertStackSize(Debug, Alloc)(
 	pushU16(writer, source, writer.nextStackEntry);
 }
 
-void writeAssertUnreachable(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+void writeAssertUnreachable(ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
 	pushOpcode(writer, source, OpCode.assertUnreachable);
 }
 
-immutable(ByteCodeIndex) writeCallDelayed(Alloc)(
-	ref ByteCodeWriter!Alloc writer,
+immutable(ByteCodeIndex) writeCallDelayed(
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable StackEntry stackEntryBeforeArgs,
 	immutable Nat8 nEntriesForReturnType,
@@ -141,17 +142,17 @@ immutable(ByteCodeIndex) writeCallDelayed(Alloc)(
 	return fnAddress;
 }
 
-void fillDelayedCall(Alloc)(
-	ref ByteCodeWriter!Alloc writer,
+void fillDelayedCall(
+	ref ByteCodeWriter writer,
 	immutable ByteCodeIndex index,
 	immutable ByteCodeIndex value,
 ) {
 	fillDelayedU32(writer, index, value);
 }
 
-void writeCallFunPtr(Debug, Alloc)(
+void writeCallFunPtr(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	// This is before the fun-ptr arg, which should be the first
 	immutable StackEntry stackEntryBeforeArgs,
@@ -163,16 +164,16 @@ void writeCallFunPtr(Debug, Alloc)(
 	writer.nextStackEntry = stackEntryBeforeArgs.entry + nEntriesForReturnType.to16();
 }
 
-private immutable(Nat8) getStackOffsetTo(Alloc)(
-	ref const ByteCodeWriter!Alloc writer,
+private immutable(Nat8) getStackOffsetTo(
+	ref const ByteCodeWriter writer,
 	immutable StackEntry stackEntry,
 ) {
 	verify(stackEntry.entry < getNextStackEntry(writer).entry);
 	return (decr(getNextStackEntry(writer).entry) - stackEntry.entry).to8();
 }
 
-private immutable(StackOffsetBytes) getStackOffsetBytes(Alloc)(
-	ref const ByteCodeWriter!Alloc writer,
+private immutable(StackOffsetBytes) getStackOffsetBytes(
+	ref const ByteCodeWriter writer,
 	immutable StackEntry stackEntry,
 	immutable Nat8 offsetBytes,
 ) {
@@ -182,9 +183,9 @@ private immutable(StackOffsetBytes) getStackOffsetBytes(Alloc)(
 		incr(getStackOffsetTo(writer, stackEntry)).to16() * immutable Nat16(8) - offsetBytes.to16());
 }
 
-void writeDupEntries(Debug, Alloc)(
+void writeDupEntries(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable StackEntries entries,
 ) {
@@ -193,18 +194,18 @@ void writeDupEntries(Debug, Alloc)(
 	writeDup(dbg, writer, source, entries.start, immutable Nat8(0), entries.size.to16() * immutable Nat16(8));
 }
 
-void writeDupEntry(Debug, Alloc)(
+void writeDupEntry(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable StackEntry entry,
 ) {
 	writeDup(dbg, writer, source, entry, immutable Nat8(0), immutable Nat16(8));
 }
 
-void writeDup(Debug, Alloc)(
+void writeDup(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable StackEntry start,
 	immutable Nat8 offsetBytes,
@@ -219,9 +220,9 @@ void writeDup(Debug, Alloc)(
 	writer.nextStackEntry += divRoundUp(sizeBytes, immutable Nat16(8));
 }
 
-void writeRead(Debug, Alloc)(
+void writeRead(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat16 offset,
 	immutable Nat16 size,
@@ -234,9 +235,9 @@ void writeRead(Debug, Alloc)(
 	writer.nextStackEntry += decr(divRoundUp(size, stackEntrySize));
 }
 
-void writeStackRef(Debug, Alloc)(
+void writeStackRef(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable StackEntry stackEntry,
 	immutable Nat8 byteOffset = immutable Nat8(0),
@@ -252,9 +253,9 @@ void writeStackRef(Debug, Alloc)(
 	}
 }
 
-void writeWrite(Debug, Alloc)(
+void writeWrite(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat16 offset,
 	immutable Nat16 size,
@@ -267,9 +268,9 @@ void writeWrite(Debug, Alloc)(
 	writer.nextStackEntry -= incr(divRoundUp(size, stackEntrySize));
 }
 
-void writeAddConstantNat64(Debug, Alloc)(
+void writeAddConstantNat64(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat64 arg,
 ) {
@@ -278,9 +279,9 @@ void writeAddConstantNat64(Debug, Alloc)(
 	writeFn(dbg, writer, source, FnOp.wrapAddIntegral);
 }
 
-void writeMulConstantNat64(Debug, Alloc)(
+void writeMulConstantNat64(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat64 arg,
 ) {
@@ -290,9 +291,9 @@ void writeMulConstantNat64(Debug, Alloc)(
 }
 
 // Consume stack space without caring what's in it. Useful for unions.
-void writePushEmptySpace(Debug, Alloc)(
+void writePushEmptySpace(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat16 nSpaces,
 ) {
@@ -300,9 +301,9 @@ void writePushEmptySpace(Debug, Alloc)(
 		writePushConstant(dbg, writer, source, immutable Nat8(0));
 }
 
-void writePushConstants(Debug, Alloc, size_t n)(
+void writePushConstants(Debug, size_t n)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat64[n] values,
 ) {
@@ -310,9 +311,9 @@ void writePushConstants(Debug, Alloc, size_t n)(
 		writePushConstant(dbg, writer, source, value);
 }
 
-void writePushConstant(T, Debug, Alloc)(
+void writePushConstant(T, Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable NatN!T value,
 ) {
@@ -322,9 +323,9 @@ void writePushConstant(T, Debug, Alloc)(
 		writePushConstant64(dbg, writer, source, value.to64());
 }
 
-private void writePushConstant64(Debug, Alloc)(
+private void writePushConstant64(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat64 value,
 ) {
@@ -346,18 +347,18 @@ private void writePushConstant64(Debug, Alloc)(
 	}
 }
 
-void writePushConstantPointer(Debug, Alloc)(
+void writePushConstantPointer(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable ubyte* value,
 ) {
 	writePushConstant(dbg, writer, source, immutable Nat64(cast(ulong) value));
 }
 
-private void writePushU8(Debug, Alloc)(
+private void writePushU8(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat8 value,
 ) {
@@ -367,9 +368,9 @@ private void writePushU8(Debug, Alloc)(
 	writer.nextStackEntry++;
 }
 
-private void writePushU16(Debug, Alloc)(
+private void writePushU16(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat16 value,
 ) {
@@ -379,18 +380,18 @@ private void writePushU16(Debug, Alloc)(
 	writer.nextStackEntry++;
 }
 
-private void writePushU32(Debug, Alloc)(
+private void writePushU32(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat32 value,
 ) {
 	writePushU32Common(dbg, writer, source, value);
 }
 
-private void writePushU48(Debug, Alloc)(
+private void writePushU48(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat48 value,
 ) {
@@ -400,9 +401,9 @@ private void writePushU48(Debug, Alloc)(
 	writer.nextStackEntry++;
 }
 
-private void writePushU64(Debug, Alloc)(
+private void writePushU64(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat64 value,
 ) {
@@ -412,22 +413,22 @@ private void writePushU64(Debug, Alloc)(
 	writer.nextStackEntry++;
 }
 
-void writeReturn(Debug, Alloc)(ref Debug dbg, ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+void writeReturn(Debug)(ref Debug dbg, ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
 	log(dbg, writer, "write return");
 	pushOpcode(writer, source, OpCode.return_);
 }
 
-immutable(ByteCodeIndex) writePushFunPtrDelayed(Debug, Alloc)(
+immutable(ByteCodeIndex) writePushFunPtrDelayed(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 ) {
 	return writePushU32Common(dbg, writer, source, immutable Nat32(0));
 }
 
-private immutable(ByteCodeIndex) writePushU32Common(Debug, Alloc)(
+private immutable(ByteCodeIndex) writePushU32Common(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat32 value,
 ) {
@@ -439,9 +440,9 @@ private immutable(ByteCodeIndex) writePushU32Common(Debug, Alloc)(
 	return fnAddress;
 }
 
-void writeRemove(Debug, Alloc)(
+void writeRemove(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable StackEntries entries,
 ) {
@@ -454,9 +455,9 @@ void writeRemove(Debug, Alloc)(
 	}
 }
 
-void writeJump(Debug, Alloc)(
+void writeJump(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable ByteCodeIndex target,
 ) {
@@ -468,9 +469,9 @@ void writeJump(Debug, Alloc)(
 		immutable ByteCodeIndex(nextByteCodeIndex(writer).index + immutable Nat32(Int16.sizeof))).offset);
 }
 
-immutable(ByteCodeIndex) writeJumpDelayed(Debug, Alloc)(
+immutable(ByteCodeIndex) writeJumpDelayed(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 ) {
 	log(dbg, writer, "write jump delayed");
@@ -480,12 +481,12 @@ immutable(ByteCodeIndex) writeJumpDelayed(Debug, Alloc)(
 	return jumpOffsetIndex;
 }
 
-void fillInJumpDelayed(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ByteCodeIndex jumpIndex) {
+void fillInJumpDelayed(ref ByteCodeWriter writer, immutable ByteCodeIndex jumpIndex) {
 	writeInt16(writer.byteWriter, jumpIndex.index, getByteCodeOffsetForJumpToCurrent(writer, jumpIndex).offset);
 }
 
-private immutable(ByteCodeOffset) getByteCodeOffsetForJumpToCurrent(Alloc)(
-	ref const ByteCodeWriter!Alloc writer,
+private immutable(ByteCodeOffset) getByteCodeOffsetForJumpToCurrent(
+	ref const ByteCodeWriter writer,
 	immutable ByteCodeIndex jumpIndex,
 ) {
 	verify(jumpIndex.index < nextByteCodeIndex(writer).index);
@@ -494,9 +495,9 @@ private immutable(ByteCodeOffset) getByteCodeOffsetForJumpToCurrent(Alloc)(
 	return subtractByteCodeIndex(nextByteCodeIndex(writer), jumpEnd);
 }
 
-void writePack(Debug, Alloc)(
+void writePack(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	scope immutable Operation.Pack pack,
 ) {
@@ -510,8 +511,8 @@ void writePack(Debug, Alloc)(
 	writer.nextStackEntry += pack.outEntries.to16();
 }
 
-immutable(ByteCodeIndex) writeSwitch0ToNDelay(Alloc)(
-	ref ByteCodeWriter!Alloc writer,
+immutable(ByteCodeIndex) writeSwitch0ToNDelay(
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat16 nCases,
 ) {
@@ -526,8 +527,8 @@ immutable(ByteCodeIndex) writeSwitch0ToNDelay(Alloc)(
 	return addresses;
 }
 
-immutable(ByteCodeIndex) writeSwitchWithValuesDelay(Alloc)(
-	ref ByteCodeWriter!Alloc writer,
+immutable(ByteCodeIndex) writeSwitchWithValuesDelay(
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable EnumValue[] values,
 ) {
@@ -544,8 +545,8 @@ immutable(ByteCodeIndex) writeSwitchWithValuesDelay(Alloc)(
 	return addresses;
 }
 
-void fillDelayedSwitchEntry(Alloc)(
-	ref ByteCodeWriter!Alloc writer,
+void fillDelayedSwitchEntry(
+	ref ByteCodeWriter writer,
 	immutable ByteCodeIndex switchCasesIndex,
 	immutable Nat32 switchEntry,
 ) {
@@ -558,7 +559,7 @@ void fillDelayedSwitchEntry(Alloc)(
 		subtractByteCodeIndex(nextByteCodeIndex(writer), caseEnd).unsigned());
 }
 
-void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable ExternOp op) {
+void writeExtern(ref ByteCodeWriter writer, ref immutable ByteCodeSource source, immutable ExternOp op) {
 	immutable int stackEffect = () {
 		final switch (op) {
 			case ExternOp.pthreadCreate:
@@ -599,8 +600,8 @@ void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeS
 	writer.nextStackEntry += stackEffect;
 }
 
-void writeExternDynCall(Alloc)(
-	ref ByteCodeWriter!Alloc writer,
+void writeExternDynCall(
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Sym name,
 	immutable DynCallType returnType,
@@ -619,9 +620,9 @@ void writeExternDynCall(Alloc)(
 	writer.nextStackEntry += returnType == DynCallType.void_ ? immutable Nat16(0) : immutable Nat16(1);
 }
 
-void writeFn(Debug, Alloc)(
+void writeFn(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable FnOp fn,
 ) {
@@ -674,79 +675,79 @@ void writeFn(Debug, Alloc)(
 	writer.nextStackEntry += stackEffect;
 }
 
-private void pushOpcode(Alloc)(
-	ref ByteCodeWriter!Alloc writer,
+private void pushOpcode(
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable OpCode code,
 ) {
 	pushU8(writer, source, immutable Nat8(code));
 }
 
-private void pushT(T, Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable T value) {
+private void pushT(T)(ref ByteCodeWriter writer, ref immutable ByteCodeSource source, immutable T value) {
 	pushBytes!T(writer.byteWriter, value);
 	repeat(T.sizeof, () { pushSource(writer, source); });
 }
 
-void pushInt16(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Int16 value) {
+void pushInt16(ref ByteCodeWriter writer, ref immutable ByteCodeSource source, immutable Int16 value) {
 	bytePushInt16(writer.byteWriter, value);
 	repeat(Int16.sizeof, () { pushSource(writer, source); });
 }
 
-void pushInt32(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Int32 value) {
+void pushInt32(ref ByteCodeWriter writer, ref immutable ByteCodeSource source, immutable Int32 value) {
 	bytePushInt32(writer.byteWriter, value);
 	repeat(Int32.sizeof, () { pushSource(writer, source); });
 }
 
-void pushU8(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Nat8 value) {
+void pushU8(ref ByteCodeWriter writer, ref immutable ByteCodeSource source, immutable Nat8 value) {
 	bytePushU8(writer.byteWriter, value);
 	pushSource(writer, source);
 }
 
-void pushU16(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Nat16 value) {
+void pushU16(ref ByteCodeWriter writer, ref immutable ByteCodeSource source, immutable Nat16 value) {
 	bytePushU16(writer.byteWriter, value);
 	repeat(ushort.sizeof, () { pushSource(writer, source); });
 }
 
-void pushU32(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Nat32 value) {
+void pushU32(ref ByteCodeWriter writer, ref immutable ByteCodeSource source, immutable Nat32 value) {
 	bytePushU32(writer.byteWriter, value);
 	repeat(uint.sizeof, () { pushSource(writer, source); });
 }
 
-void pushU48(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Nat48 value) {
+void pushU48(ref ByteCodeWriter writer, ref immutable ByteCodeSource source, immutable Nat48 value) {
 	bytePushU48(writer.byteWriter, value);
 	repeat(6, () { pushSource(writer, source); });
 }
 
-void pushU64(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Nat64 value) {
+void pushU64(ref ByteCodeWriter writer, ref immutable ByteCodeSource source, immutable Nat64 value) {
 	bytePushU64(writer.byteWriter, value);
 	repeat(ulong.sizeof, () { pushSource(writer, source); });
 }
 
-private void pushSource(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+private void pushSource(ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
 	add(writer.alloc.deref(), writer.sources, source);
 }
 
-void log(Debug, Alloc)(ref Debug dbg, ref ByteCodeWriter!Alloc byteCodeWriter, immutable string message) {
+void log(Debug)(ref Debug dbg, ref ByteCodeWriter byteCodeWriter, immutable string message) {
 	log(dbg, byteCodeWriter, message, none!Nat64);
 }
 
-void log(Debug, Alloc)(
+void log(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc byteCodeWriter,
+	ref ByteCodeWriter byteCodeWriter,
 	immutable string message,
 	immutable Nat64 value,
 ) {
 	log(dbg, byteCodeWriter, message, some!Nat64(value));
 }
 
-void log(Debug, Alloc)(
+void log(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!Alloc byteCodeWriter,
+	ref ByteCodeWriter byteCodeWriter,
 	immutable string message,
 	immutable Opt!Nat64 value,
 ) {
 	if (dbg.enabled()) {
-		Writer!Alloc writer = Writer!Alloc(byteCodeWriter.alloc);
+		Writer writer = Writer(byteCodeWriter.alloc);
 		writeStatic(writer, message);
 		if (has(value)) {
 			writeStatic(writer, " = ");

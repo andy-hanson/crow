@@ -2,6 +2,7 @@ module util.collection.mutDict;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : Alloc;
 import util.collection.arrUtil : map_mut;
 import util.collection.dict : Dict, KeyValuePair;
 import util.collection.mutArr :
@@ -27,12 +28,12 @@ struct MutDict(K, V, alias cmp) {
 	MutArr!(KeyValuePair!(K, V)) pairs;
 }
 
-immutable(V[]) valuesArray(K, V, alias cmp, Alloc)(ref Alloc alloc, ref MutDict!(K, V, cmp) a) {
-	return map_mut!(V, KeyValuePair!(K, V), Alloc)(alloc, tempPairs_mut(a), (ref KeyValuePair!(K, V) pair) =>
+immutable(V[]) valuesArray(K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, V, cmp) a) {
+	return map_mut!(V, KeyValuePair!(K, V))(alloc, tempPairs_mut(a), (ref KeyValuePair!(K, V) pair) =>
 		pair.value);
 }
 
-@trusted immutable(Dict!(K, V, cmp)) moveToDict(K, V, alias cmp, Alloc)(
+@trusted immutable(Dict!(K, V, cmp)) moveToDict(K, V, alias cmp)(
 	ref Alloc alloc,
 	ref MutDict!(immutable K, immutable V, cmp) a,
 ) {
@@ -40,7 +41,7 @@ immutable(V[]) valuesArray(K, V, alias cmp, Alloc)(ref Alloc alloc, ref MutDict!
 	return immutable Dict!(K, V, cmp)(cast(immutable KeyValuePair!(K, V)[]) pairs);
 }
 
-immutable(Dict!(K, VOut, cmp)) mapToDict(K, VOut, VIn, alias cmp, Alloc)(
+immutable(Dict!(K, VOut, cmp)) mapToDict(K, VOut, VIn, alias cmp)(
 	ref Alloc alloc,
 	ref MutDict!(immutable K, VIn, cmp) a,
 	scope immutable(VOut) delegate(ref VIn) @safe @nogc pure nothrow cb,
@@ -75,7 +76,7 @@ ref const(V) mustGetAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a, con
 	return mutArrAt(a.pairs, 0).value;
 }
 
-void setInDict(Alloc, K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, V, cmp) a, immutable K key, immutable V value) {
+void setInDict(K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, V, cmp) a, immutable K key, immutable V value) {
 	foreach (ref KeyValuePair!(K, V) pair; mutArrRangeMut(a.pairs))
 		if (cmp(pair.key, key) == Comparison.equal) {
 			overwriteMemory(&pair.value, value);
@@ -84,7 +85,7 @@ void setInDict(Alloc, K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, V, cmp) 
 	push(alloc, a.pairs, KeyValuePair!(K, V)(key, value));
 }
 
-void addToMutDict(Alloc, K, V, alias cmp)(
+void addToMutDict(K, V, alias cmp)(
 	ref Alloc alloc,
 	ref MutDict!(K, V, cmp) a,
 	K key,
@@ -100,7 +101,7 @@ struct ValueAndDidAdd(V) {
 	immutable bool didAdd;
 }
 
-ref V getOrAdd(Alloc, K, V, alias compare)(
+ref V getOrAdd(K, V, alias compare)(
 	ref Alloc alloc,
 	return scope ref MutDict!(K, V, compare) a,
 	immutable K key,
@@ -113,7 +114,7 @@ ref V getOrAdd(Alloc, K, V, alias compare)(
 	return last(a.pairs).value;
 }
 
-void insertOrUpdate(Alloc, K, V, alias compare)(
+void insertOrUpdate(K, V, alias compare)(
 	ref Alloc alloc,
 	ref MutDict!(K, V, compare) a,
 	immutable K key,
@@ -128,7 +129,7 @@ void insertOrUpdate(Alloc, K, V, alias compare)(
 	push(alloc, a.pairs, KeyValuePair!(K, V)(key, cbInsert()));
 }
 
-ValueAndDidAdd!V getOrAddAndDidAdd(Alloc, K, V, alias compare)(
+ValueAndDidAdd!V getOrAddAndDidAdd(K, V, alias compare)(
 	ref Alloc alloc,
 	ref MutDict!(K, V, compare) a,
 	immutable K key,

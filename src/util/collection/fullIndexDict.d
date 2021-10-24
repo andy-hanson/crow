@@ -2,6 +2,7 @@ module util.collection.fullIndexDict;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : Alloc;
 import util.collection.arr : at, emptyArr, ptrAt, size;
 import util.collection.arrUtil : mapWithIndex;
 import util.ptr : Ptr;
@@ -65,7 +66,7 @@ ref V fullIndexDictGet(K, V)(ref FullIndexDict!(K, V) a, immutable K key) {
 	return at(a.values, key.index);
 }
 
-immutable(FullIndexDict!(K, VOut)) mapFullIndexDict(K, VOut, VIn, Alloc)(
+immutable(FullIndexDict!(K, VOut)) mapFullIndexDict(K, VOut, VIn)(
 	ref Alloc alloc,
 	ref immutable FullIndexDict!(K, VIn) a,
 	scope immutable(VOut) delegate(immutable K, ref immutable VIn) @safe @nogc pure nothrow cb,

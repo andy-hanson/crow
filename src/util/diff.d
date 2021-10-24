@@ -2,6 +2,7 @@ module util.diff;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : Alloc, TempAlloc;
 import util.collection.arr : at, only, setAt, size;
 import util.collection.arrUtil : arrMax, arrMaxIndex, contains, fillArrUninitialized;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -11,9 +12,9 @@ import util.writer : Writer, writeRed, writeReset, writeStatic;
 import util.writerUtils : writeNlIndent, writeSpaces, writeSymPadded;
 import util.util : max, verify;
 
-void diffSymbols(TempAlloc, Alloc)(
+void diffSymbols(
 	ref TempAlloc tempAlloc,
-	ref Writer!Alloc writer,
+	ref Writer writer,
 	immutable bool color,
 	immutable Sym[] a,
 	immutable Sym[] b
@@ -108,7 +109,7 @@ immutable(size_t) findBestSplitIndex(
 		(ref immutable size_t x, ref immutable size_t y) => compareSizeT(x, y));
 }
 
-void longestCommonSubsequenceRecur(Alloc)(
+void longestCommonSubsequenceRecur(
 	ref Alloc alloc,
 	immutable Sym[] a,
 	immutable Sym[] b,
@@ -130,7 +131,7 @@ void longestCommonSubsequenceRecur(Alloc)(
 	}
 }
 
-@trusted immutable(Sym[]) longestCommonSubsequence(Alloc)(
+@trusted immutable(Sym[]) longestCommonSubsequence(
 	ref Alloc alloc,
 	ref immutable Sym[] a,
 	ref immutable Sym[] b,
@@ -141,8 +142,8 @@ void longestCommonSubsequenceRecur(Alloc)(
 	return finishArr(alloc, res);
 }
 
-void printDiff(Alloc)(
-	ref Writer!Alloc writer,
+void printDiff(
+	ref Writer writer,
 	immutable bool color,
 	ref immutable Sym[] a,
 	ref immutable Sym[] b,

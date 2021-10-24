@@ -62,6 +62,7 @@ import model.lowModel :
 	LowUnion,
 	PointerTypeAndConstantsLow;
 import test.testUtil : expectDataStack, expectReturnStack, Test;
+import util.alloc.alloc : Alloc;
 import util.collection.arr : emptyArr;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.collection.globalAllocatedStack : begin, pop, push;
@@ -74,7 +75,7 @@ import util.sym : shortSymAlphaLiteral;
 import util.types : Nat8, Nat16, Nat32, Nat64;
 import util.util : repeatImpure, verify;
 
-void testInterpreter(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
+void testInterpreter(Debug)(ref Test!Debug test) {
 	testCall(test);
 	testCallFunPtr(test);
 	testDup(test);
@@ -91,14 +92,14 @@ void testInterpreter(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 
 private:
 
-immutable(ByteCode) makeByteCode(Debug, Alloc)(
+immutable(ByteCode) makeByteCode(Debug)(
 	ref Alloc alloc,
 	scope void delegate(
-		ref ByteCodeWriter!Alloc,
+		ref ByteCodeWriter,
 		ref immutable ByteCodeSource source,
-	) @safe @nogc pure nothrow writeBytecode,
+	) @safe @nogc nothrow writeBytecode,
 ) {
-	ByteCodeWriter!Alloc writer = newByteCodeWriter(ptrTrustMe_mut(alloc));
+	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe_mut(alloc));
 	writeBytecode(writer, emptyByteCodeSource);
 	return finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 }
@@ -108,10 +109,10 @@ immutable(FileToFuns) dummyFileToFuns() {
 	return fullIndexDictOfArr!(FileIndex, FunNameAndPos[])(dummy);
 }
 
-void doInterpret(Debug, Alloc)(
-	ref Test!(Debug, Alloc) test,
+void doInterpret(Debug)(
+	ref Test!Debug test,
 	ref immutable ByteCode byteCode,
-	scope void delegate(ref Interpreter!(FakeExtern!Alloc)) @safe @nogc nothrow runInterpreter,
+	scope void delegate(ref Interpreter!(FakeExtern)) @safe @nogc nothrow runInterpreter,
 ) {
 	immutable Path emptyPath = rootPath(test.allPaths, "test");
 	immutable PathAndStorageKind[1] pk = [immutable PathAndStorageKind(emptyPath, StorageKind.global)];
@@ -144,8 +145,8 @@ void doInterpret(Debug, Alloc)(
 			emptyFullIndexDict!(LowType.Union, LowUnion)),
 		fullIndexDictOfArr!(LowFunIndex, LowFun)(lowFun),
 		immutable LowFunIndex(0));
-	FakeExtern!Alloc extern_ = newFakeExtern(test.alloc);
-	Interpreter!(FakeExtern!Alloc) interpreter = Interpreter!(FakeExtern!Alloc)(
+	FakeExtern extern_ = newFakeExtern(test.alloc);
+	Interpreter!(FakeExtern) interpreter = Interpreter!(FakeExtern)(
 		ptrTrustMe_mut(extern_),
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
@@ -154,22 +155,22 @@ void doInterpret(Debug, Alloc)(
 	reset(interpreter);
 }
 
-void doTest(Debug, Alloc)(
-	ref Test!(Debug, Alloc) test,
+void doTest(Debug)(
+	ref Test!Debug test,
 	scope void delegate(
-		ref ByteCodeWriter!Alloc,
+		ref ByteCodeWriter,
 		ref immutable ByteCodeSource source,
-	) @safe @nogc pure nothrow writeBytecode,
-	scope void delegate(ref Interpreter!(FakeExtern!Alloc)) @safe @nogc nothrow runInterpreter,
+	) @safe @nogc nothrow writeBytecode,
+	scope void delegate(ref Interpreter!(FakeExtern)) @safe @nogc nothrow runInterpreter,
 ) {
-	immutable ByteCode byteCode = makeByteCode!(Debug, Alloc)(test.alloc, writeBytecode);
-	doInterpret!(Debug, Alloc)(test, byteCode, runInterpreter);
+	immutable ByteCode byteCode = makeByteCode!Debug(test.alloc, writeBytecode);
+	doInterpret!Debug(test, byteCode, runInterpreter);
 }
 
 immutable ByteCodeSource emptyByteCodeSource = immutable ByteCodeSource(immutable LowFunIndex(0), immutable Pos(0));
 
-void testCall(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	ByteCodeWriter!Alloc writer = newByteCodeWriter(test.alloc);
+void testCall(Debug)(ref Test!Debug test) {
+	ByteCodeWriter writer = newByteCodeWriter(test.alloc);
 	immutable ByteCodeSource source = emptyByteCodeSource;
 
 	// Code is:
@@ -195,7 +196,7 @@ void testCall(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	immutable ByteCode byteCode =
 		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 
-	doInterpret!(Debug, Alloc)(test, byteCode, (ref Interpreter!(FakeExtern!Alloc) interpreter) {
+	doInterpret!Debug(test, byteCode, (ref Interpreter!(FakeExtern) interpreter) {
 		stepNAndExpect(test, interpreter, 2, [immutable Nat64(1), immutable Nat64(2)]);
 		stepAndExpect(test, interpreter, [immutable Nat64(1), immutable Nat64(2)]);
 		expectReturnStack(test, interpreter, [afterCall]);
@@ -208,8 +209,8 @@ void testCall(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	});
 }
 
-void testCallFunPtr(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	ByteCodeWriter!Alloc writer = newByteCodeWriter(test.alloc);
+void testCallFunPtr(Debug)(ref Test!Debug test) {
+	ByteCodeWriter writer = newByteCodeWriter(test.alloc);
 	immutable ByteCodeSource source = emptyByteCodeSource;
 
 	// Code is:
@@ -237,7 +238,7 @@ void testCallFunPtr(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	immutable ByteCode byteCode =
 		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 
-	doInterpret!(Debug, Alloc)(test, byteCode, (ref Interpreter!(FakeExtern!Alloc) interpreter) {
+	doInterpret!Debug(test, byteCode, (ref Interpreter!(FakeExtern) interpreter) {
 		stepNAndExpect(test, interpreter, 3, [fIndex.index.to64(), immutable Nat64(1), immutable Nat64(2)]);
 		stepAndExpect(test, interpreter, [immutable Nat64(1), immutable Nat64(2)]); // call-fun-ptr
 		expectReturnStack(test, interpreter, [afterCall]);
@@ -250,8 +251,8 @@ void testCallFunPtr(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	});
 }
 
-void testSwitchAndJump(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	ByteCodeWriter!Alloc writer = newByteCodeWriter(test.alloc);
+void testSwitchAndJump(Debug)(ref Test!Debug test) {
+	ByteCodeWriter writer = newByteCodeWriter(test.alloc);
 	immutable ByteCodeSource source = emptyByteCodeSource;
 
 	// Code is:
@@ -282,7 +283,7 @@ void testSwitchAndJump(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	immutable ByteCode byteCode =
 		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 
-	doInterpret!(Debug, Alloc)(test, byteCode, (ref Interpreter!(FakeExtern!Alloc) interpreter) {
+	doInterpret!Debug(test, byteCode, (ref Interpreter!(FakeExtern) interpreter) {
 		stepAndExpect(test, interpreter, [immutable Nat64(0)]);
 		stepAndExpect(test, interpreter, []);
 		verify(nextByteCodeIndex(interpreter) == firstCase);
@@ -305,10 +306,10 @@ void testSwitchAndJump(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	});
 }
 
-void testDup(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	doTest!(Debug, Alloc)(
+void testDup(Debug)(ref Test!Debug test) {
+	doTest!Debug(
 		test,
-		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+		(ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [
 				immutable Nat64(55),
 				immutable Nat64(65),
@@ -325,7 +326,7 @@ void testDup(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 			verifyStackEntry(writer, 6);
 			writeReturn(test.dbg, writer, source);
 		},
-		(ref Interpreter!(FakeExtern!Alloc) interpreter) {
+		(ref Interpreter!(FakeExtern) interpreter) {
 			stepNAndExpect(test, interpreter, 3, [immutable Nat64(55), immutable Nat64(65), immutable Nat64(75)]);
 			stepAndExpect(test, interpreter, [
 				immutable Nat64(55),
@@ -343,10 +344,10 @@ void testDup(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 		});
 }
 
-void testRemove(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	doTest!(Debug, Alloc)(
+void testRemove(Debug)(ref Test!Debug test) {
+	doTest!Debug(
 		test,
-		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+		(ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [
 				immutable Nat64(0), immutable Nat64(1), immutable Nat64(2), immutable Nat64(3), immutable Nat64(4)]);
 			writeRemove(
@@ -356,7 +357,7 @@ void testRemove(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 				immutable StackEntries(immutable StackEntry(immutable Nat16(1)), immutable Nat8(2)));
 			writeReturn(test.dbg, writer, source);
 		},
-		(ref Interpreter!(FakeExtern!Alloc) interpreter) {
+		(ref Interpreter!(FakeExtern) interpreter) {
 			stepNAndExpect(test, interpreter, 5, [
 				immutable Nat64(0),
 				immutable Nat64(1),
@@ -368,7 +369,7 @@ void testRemove(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 		});
 }
 
-void testDupPartial(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
+void testDupPartial(Debug)(ref Test!Debug test) {
 	struct S {
 		Nat32 a;
 		Nat16 b;
@@ -380,9 +381,9 @@ void testDupPartial(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	}
 	U u;
 	u.s = immutable S(immutable Nat32(0x01234567), immutable Nat16(0x89ab), immutable Nat8(0xcd));
-	doTest!(Debug, Alloc)(
+	doTest!Debug(
 		test,
-		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+		(ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [u.n]);
 			writeDup(
 				test.dbg,
@@ -407,7 +408,7 @@ void testDupPartial(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 				immutable Nat16(1));
 			writeReturn(test.dbg, writer, source);
 		},
-		(ref Interpreter!(FakeExtern!Alloc) interpreter) {
+		(ref Interpreter!(FakeExtern) interpreter) {
 			stepAndExpect(test, interpreter, [u.n]);
 			stepAndExpect(test, interpreter, [u.n, immutable Nat64(0x01234567)]);
 			stepAndExpect(test, interpreter, [u.n, immutable Nat64(0x01234567), immutable Nat64(0x89ab)]);
@@ -420,10 +421,10 @@ void testDupPartial(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 		});
 }
 
-void testPack(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	doTest!(Debug, Alloc)(
+void testPack(Debug)(ref Test!Debug test) {
+	doTest!Debug(
 		test,
-		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+		(ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [
 				immutable Nat64(0x01234567),
 				immutable Nat64(0x89ab),
@@ -434,10 +435,10 @@ void testPack(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 				immutable Operation.Pack.Field(immutable Nat16(16), immutable Nat16(6), immutable Nat16(1))];
 			scope immutable Operation.Pack pack =
 				immutable Operation.Pack(immutable Nat8(3), immutable Nat8(1), fields);
-			writePack!(Debug, Alloc)(test.dbg, writer, source, pack);
+			writePack!Debug(test.dbg, writer, source, pack);
 			writeReturn(test.dbg, writer, source);
 		},
-		(ref Interpreter!(FakeExtern!Alloc) interpreter) {
+		(ref Interpreter!(FakeExtern) interpreter) {
 			stepNAndExpect(test, interpreter, 3, [
 				immutable Nat64(0x01234567),
 				immutable Nat64(0x89ab),
@@ -457,22 +458,22 @@ void testPack(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 		});
 }
 
-void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	doTest!(Debug, Alloc)(
+void testStackRef(Debug)(ref Test!Debug test) {
+	doTest!Debug(
 		test,
-		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+		(ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(1), immutable Nat64(2)]);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(1)), immutable Nat8(4));
 		},
-		(ref Interpreter!(FakeExtern!Alloc) interpreter) {
+		(ref Interpreter!(FakeExtern) interpreter) {
 			testStackRefInner(test, interpreter);
 		});
 }
 
-@trusted void testStackRefInner(Debug, Alloc)(
-	ref Test!(Debug, Alloc) test,
-	ref Interpreter!(FakeExtern!Alloc) interpreter,
+@trusted void testStackRefInner(Debug)(
+	ref Test!Debug test,
+	ref Interpreter!(FakeExtern) interpreter,
 ) {
 	stepNAndExpect(test, interpreter, 2, [immutable Nat64(1), immutable Nat64(2)]);
 	stepAndExpect(test, interpreter, [
@@ -500,7 +501,7 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	]);
 }
 
-@trusted void testReadSubword(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
+@trusted void testReadSubword(Debug)(ref Test!Debug test) {
 	struct S {
 		uint a;
 		ushort b;
@@ -513,9 +514,9 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	}
 	U u;
 	u.s = immutable S(0x01234567, 0x89ab, 0xcd, 0xef);
-	doTest!(Debug, Alloc)(
+	doTest!Debug(
 		test,
-		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+		(ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
 			writePushConstant(test.dbg, writer, source, u.value);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
 			writeRead(test.dbg, writer, source, immutable Nat16(0), immutable Nat16(4));
@@ -525,14 +526,14 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 			writeRead(test.dbg, writer, source, immutable Nat16(6), immutable Nat16(1));
 			writeReturn(test.dbg, writer, source);
 		},
-		(ref Interpreter!(FakeExtern!Alloc) interpreter) {
+		(ref Interpreter!(FakeExtern) interpreter) {
 			testReadSubwordInner(test, interpreter, u.value);
 		});
 }
 
-@trusted void testReadSubwordInner(Debug, Alloc)(
-	ref Test!(Debug, Alloc) test,
-	ref Interpreter!(FakeExtern!Alloc) interpreter,
+@trusted void testReadSubwordInner(Debug)(
+	ref Test!Debug test,
+	ref Interpreter!(FakeExtern) interpreter,
 	immutable Nat64 value,
 ) {
 	stepAndExpect(test, interpreter, [value]);
@@ -550,23 +551,23 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	stepExit(test, interpreter);
 }
 
-@trusted void testReadWords(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	doTest!(Debug, Alloc)(
+@trusted void testReadWords(Debug)(ref Test!Debug test) {
+	doTest!Debug(
 		test,
-		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+		(ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(1), immutable Nat64(2), immutable Nat64(3)]);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
 			writeRead(test.dbg, writer, source, immutable Nat16(8), immutable Nat16(16));
 			writeReturn(test.dbg, writer, source);
 		},
-		(ref Interpreter!(FakeExtern!Alloc) interpreter) {
+		(ref Interpreter!(FakeExtern) interpreter) {
 			testReadWordsInner(test, interpreter);
 		});
 }
 
-@trusted void testReadWordsInner(Debug, Alloc)(
-	ref Test!(Debug, Alloc) test,
-	ref Interpreter!(FakeExtern!Alloc) interpreter,
+@trusted void testReadWordsInner(Debug)(
+	ref Test!Debug test,
+	ref Interpreter!(FakeExtern) interpreter,
 ) {
 	stepNAndExpect(test, interpreter, 3, [immutable Nat64(1), immutable Nat64(2), immutable Nat64(3)]);
 	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack));
@@ -580,10 +581,10 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	stepExit(test, interpreter);
 }
 
-@trusted void testWriteSubword(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	doTest!(Debug, Alloc)(
+@trusted void testWriteSubword(Debug)(ref Test!Debug test) {
+	doTest!Debug(
 		test,
-		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+		(ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0));
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0x0123456789abcdef));
@@ -596,14 +597,14 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 			writeWrite(test.dbg, writer, source, immutable Nat16(6), immutable Nat16(1));
 			writeReturn(test.dbg, writer, source);
 		},
-		(ref Interpreter!(FakeExtern!Alloc) interpreter) {
+		(ref Interpreter!(FakeExtern) interpreter) {
 			testWriteSubwordInner(test, interpreter);
 		});
 }
 
-@trusted void testWriteSubwordInner(Debug, Alloc)(
-	ref Test!(Debug, Alloc) test,
-	ref Interpreter!(FakeExtern!Alloc) interpreter,
+@trusted void testWriteSubwordInner(Debug)(
+	ref Test!Debug test,
+	ref Interpreter!(FakeExtern) interpreter,
 ) {
 	struct S {
 		uint a;
@@ -643,24 +644,24 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	stepExit(test, interpreter);
 }
 
-@trusted void testWriteWords(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	doTest!(Debug, Alloc)(
+@trusted void testWriteWords(Debug)(ref Test!Debug test) {
+	doTest!Debug(
 		test,
-		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+		(ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(0), immutable Nat64(0), immutable Nat64(0)]);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(1), immutable Nat64(2)]);
 			writeWrite(test.dbg, writer, source, immutable Nat16(8), immutable Nat16(16));
 			writeReturn(test.dbg, writer, source);
 		},
-		(ref Interpreter!(FakeExtern!Alloc) interpreter) {
+		(ref Interpreter!(FakeExtern) interpreter) {
 			testWriteWordsInner(test, interpreter);
 		});
 }
 
-@trusted void testWriteWordsInner(Debug, Alloc)(
-	ref Test!(Debug, Alloc) test,
-	ref Interpreter!(FakeExtern!Alloc) interpreter,
+@trusted void testWriteWordsInner(Debug)(
+	ref Test!Debug test,
+	ref Interpreter!(FakeExtern) interpreter,
 ) {
 	stepNAndExpect(test, interpreter, 3, [immutable Nat64(0), immutable Nat64(0), immutable Nat64(0)]);
 	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack));
@@ -676,8 +677,8 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	stepExit(test, interpreter);
 }
 
-void stepNAndExpect(Debug, Alloc, Extern)(
-	ref Test!(Debug, Alloc) test,
+void stepNAndExpect(Debug, Extern)(
+	ref Test!Debug test,
 	ref Interpreter!Extern interpreter,
 	immutable uint n,
 	scope immutable Nat64[] expected,
@@ -686,30 +687,30 @@ void stepNAndExpect(Debug, Alloc, Extern)(
 	expectStack(test, interpreter, expected);
 }
 
-void stepAndExpect(Debug, Alloc, Extern)(
-	ref Test!(Debug, Alloc) test,
+void stepAndExpect(Debug, Extern)(
+	ref Test!Debug test,
 	ref Interpreter!Extern interpreter,
 	scope immutable Nat64[] expected,
 ) {
 	stepNAndExpect(test, interpreter, 1, expected);
 }
 
-void verifyStackEntry(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ushort n) {
+void verifyStackEntry(ref ByteCodeWriter writer, immutable ushort n) {
 	verify(getNextStackEntry(writer) == immutable StackEntry(immutable Nat16(n)));
 }
 
-void stepContinue(Debug, Alloc, Extern)(ref Test!(Debug, Alloc) test, ref Interpreter!Extern interpreter) {
+void stepContinue(Debug, Extern)(ref Test!Debug test, ref Interpreter!Extern interpreter) {
 	immutable StepResult result = step(test.dbg, test.alloc.deref(), test.allPaths, interpreter);
 	verify(result == StepResult.continue_);
 }
 
-void stepExit(Debug, Alloc, Extern)(ref Test!(Debug, Alloc) test, ref Interpreter!Extern interpreter) {
+void stepExit(Debug, Extern)(ref Test!Debug test, ref Interpreter!Extern interpreter) {
 	immutable StepResult result = step(test.dbg, test.alloc.deref(), test.allPaths, interpreter);
 	verify(result == StepResult.exit);
 }
 
-void expectStack(Debug, Alloc, Extern)(
-	ref Test!(Debug, Alloc) test,
+void expectStack(Debug, Extern)(
+	ref Test!Debug test,
 	ref Interpreter!Extern interpreter,
 	scope immutable Nat64[] expected,
 ) {

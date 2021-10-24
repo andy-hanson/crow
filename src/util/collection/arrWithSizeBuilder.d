@@ -2,7 +2,7 @@ module util.collection.arrWithSizeBuilder;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : allocateBytes, freeBytesPartial;
+import util.alloc.alloc : Alloc, allocateBytes, freeBytesPartial;
 import util.collection.arr : ArrWithSize, begin, emptyArrWithSize;
 import util.memory : initMemory;
 import util.util : verify;
@@ -21,7 +21,7 @@ private @system const(T*) begin(T)(ref const ArrWithSizeBuilder!T a) {
 	return cast(const T*) (a.data_ + size_t.sizeof);
 }
 
-@trusted void add(T, Alloc)(ref Alloc alloc, ref ArrWithSizeBuilder!T a, immutable T value) {
+@trusted void add(T)(ref Alloc alloc, ref ArrWithSizeBuilder!T a, immutable T value) {
 	if (a.size_ == a.capacity_) {
 		const ubyte* oldData = a.data_;
 		a.capacity_ = a.capacity_ == 0 ? 4 : a.capacity_ * 2;
@@ -38,7 +38,7 @@ immutable(bool) arrWithSizeBuilderIsEmpty(T)(ref const ArrWithSizeBuilder!T a) {
 	return a.size_ == 0;
 }
 
-@trusted immutable(ArrWithSize!T) finishArrWithSize(T, Alloc)(ref Alloc alloc, ref ArrWithSizeBuilder!T a) {
+@trusted immutable(ArrWithSize!T) finishArrWithSize(T)(ref Alloc alloc, ref ArrWithSizeBuilder!T a) {
 	if (a.data_ == null)
 		return emptyArrWithSize!T;
 	else {

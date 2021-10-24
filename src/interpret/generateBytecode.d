@@ -100,6 +100,7 @@ import model.lowModel :
 	PrimitiveType;
 import model.model : FunDecl, Module, name, Program, range;
 import model.typeLayout : nStackEntriesForType, optPack, sizeOfType;
+import util.alloc.alloc : Alloc, TempAlloc;
 import util.collection.arr : at, castImmutable, only, size, sizeNat;
 import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.dict : mustGetAt;
@@ -133,9 +134,9 @@ import util.types :
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
-immutable(ByteCode) generateBytecode(Debug, CodeAlloc, TempAlloc)(
+immutable(ByteCode) generateBytecode(Debug)(
 	ref Debug dbg,
-	ref CodeAlloc codeAlloc,
+	ref Alloc codeAlloc,
 	ref TempAlloc tempAlloc,
 	ref immutable Program modelProgram,
 	ref immutable LowProgram program,
@@ -145,10 +146,10 @@ immutable(ByteCode) generateBytecode(Debug, CodeAlloc, TempAlloc)(
 	MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences =
 		newMutIndexMultiDict!(LowFunIndex, ByteCodeIndex)(tempAlloc, fullIndexDictSize(program.allFuns));
 
-	ByteCodeWriter!CodeAlloc writer = newByteCodeWriter(ptrTrustMe_mut(codeAlloc));
+	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe_mut(codeAlloc));
 
 	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
-		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun, TempAlloc)(
+		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun)(
 			tempAlloc,
 			program.allFuns,
 			(immutable LowFunIndex funIndex, ref immutable LowFun fun) {
@@ -189,10 +190,10 @@ private:
 	return cast(Out*) ptr;
 }
 
-immutable(FileToFuns) fileToFuns(Alloc)(ref Alloc alloc, ref immutable Program program) {
+immutable(FileToFuns) fileToFuns(ref Alloc alloc, ref immutable Program program) {
 	immutable FullIndexDict!(FileIndex, Ptr!Module) modulesDict =
 		fullIndexDictOfArr!(FileIndex, Ptr!Module)(program.allModules);
-	return mapFullIndexDict!(FileIndex, FunNameAndPos[], Ptr!Module, Alloc)(
+	return mapFullIndexDict!(FileIndex, FunNameAndPos[], Ptr!Module)(
 		alloc,
 		modulesDict,
 		(immutable FileIndex, ref immutable Ptr!Module module_) =>
@@ -218,10 +219,10 @@ immutable(Nat8) nStackEntriesForUnionType(ref const ExprCtx ctx, ref immutable L
 	return nStackEntriesForType(ctx, type);
 }
 
-void generateBytecodeForFun(Debug, TempAlloc, CodeAlloc)(
+void generateBytecodeForFun(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences,
 	ref immutable TextInfo textInfo,
 	ref immutable LowProgram program,
@@ -233,7 +234,7 @@ void generateBytecodeForFun(Debug, TempAlloc, CodeAlloc)(
 			import util.writer : finishWriterToCStr;
 			import core.stdc.stdio : printf;
 			import interpret.debugging : writeFunName;
-			Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+			Writer w = Writer(ptrTrustMe_mut(tempAlloc));
 			writeFunName(w, program, fun);
 			printf("generateBytecodeForFun %s\n", finishWriterToCStr(w));
 		}
@@ -289,10 +290,10 @@ void generateBytecodeForFun(Debug, TempAlloc, CodeAlloc)(
 	setNextStackEntry(writer, immutable StackEntry(immutable Nat16(0)));
 }
 
-void generateExternCall(Debug, TempAlloc, CodeAlloc)(
+void generateExternCall(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 	ref immutable LowFunBody.Extern a,
@@ -433,10 +434,10 @@ struct ExprCtx {
 	MutDict!(immutable Ptr!LowLocal, immutable StackEntries, comparePtr!LowLocal) localEntries;
 }
 
-void generateExpr(Debug, CodeAlloc, TempAlloc)(
+void generateExpr(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable LowExpr expr,
 ) {
@@ -585,10 +586,10 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 		});
 }
 
-void generateSwitch0ToN(Debug, CodeAlloc, TempAlloc)(
+void generateSwitch0ToN(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.Switch0ToN it,
@@ -606,10 +607,10 @@ void generateSwitch0ToN(Debug, CodeAlloc, TempAlloc)(
 		it.cases);
 }
 
-void generateSwitchWithValues(Debug, CodeAlloc, TempAlloc)(
+void generateSwitchWithValues(Debug, TempAlloc)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.SwitchWithValues it,
@@ -627,10 +628,10 @@ void generateSwitchWithValues(Debug, CodeAlloc, TempAlloc)(
 		it.cases);
 }
 
-void writeSwitchCases(Debug, CodeAlloc, TempAlloc)(
+void writeSwitchCases(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
 	immutable StackEntry stackBefore,
@@ -654,10 +655,10 @@ void writeSwitchCases(Debug, CodeAlloc, TempAlloc)(
 		fillInJumpDelayed(writer, jumpIndex);
 }
 
-void generateArgs(Debug, CodeAlloc, TempAlloc)(
+void generateArgs(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable LowExpr[] args,
 ) {
@@ -665,10 +666,10 @@ void generateArgs(Debug, CodeAlloc, TempAlloc)(
 		generateExpr(dbg, tempAlloc, writer, ctx, arg);
 }
 
-void generateCreateRecord(Debug, CodeAlloc, TempAlloc)(
+void generateCreateRecord(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable LowType.Record type,
 	ref immutable ByteCodeSource source,
@@ -688,10 +689,10 @@ void generateCreateRecord(Debug, CodeAlloc, TempAlloc)(
 		});
 }
 
-void generateCreateRecordOrConstantRecord(Debug, CodeAlloc, TempAlloc)(
+void generateCreateRecordOrConstantRecord(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref const ExprCtx ctx,
 	immutable LowType.Record type,
 	ref immutable ByteCodeSource source,
@@ -712,10 +713,10 @@ void generateCreateRecordOrConstantRecord(Debug, CodeAlloc, TempAlloc)(
 	verify(after.entry - before.entry == stackEntriesForType.to16());
 }
 
-void generateCreateUnion(Debug, CodeAlloc, TempAlloc)(
+void generateCreateUnion(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable LowType.Union type,
 	ref immutable ByteCodeSource source,
@@ -734,10 +735,10 @@ void generateCreateUnion(Debug, CodeAlloc, TempAlloc)(
 		});
 }
 
-void generateCreateUnionOrConstantUnion(Debug, CodeAlloc, TempAlloc)(
+void generateCreateUnionOrConstantUnion(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref const ExprCtx ctx,
 	immutable LowType.Union type,
 	immutable Nat16 memberIndex,
@@ -781,10 +782,10 @@ void registerFunAddress(TempAlloc)(
 	mutIndexMultiDictAdd(tempAlloc, ctx.funToReferences, fun, index);
 }
 
-void generateConstant(Debug, CodeAlloc, TempAlloc)(
+void generateConstant(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
 	ref immutable LowType type,
@@ -792,7 +793,7 @@ void generateConstant(Debug, CodeAlloc, TempAlloc)(
 ) {
 	debug {
 		if (false) {
-			Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+			Writer w = Writer(ptrTrustMe_mut(tempAlloc));
 			writeStatic(w, "generateConstant of type ");
 			writeLowType(w, ctx.program.allTypes, type);
 			writeChar(w, '\n');
@@ -871,19 +872,19 @@ void generateConstant(Debug, CodeAlloc, TempAlloc)(
 		});
 }
 
-void writeBoolConstant(Debug, CodeAlloc)(
+void writeBoolConstant(Debug)(
 	ref Debug dbg,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable bool value,
 ) {
 	writePushConstant(dbg, writer, source, immutable Nat8(value ? 1 : 0));
 }
 
-void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
+void generateSpecialUnary(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
 	ref immutable LowType type,
@@ -982,10 +983,10 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 	}
 }
 
-void generateRefOfVal(Debug, TempAlloc, CodeAlloc)(
+void generateRefOfVal(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
 	ref immutable LowExpr arg,
@@ -996,7 +997,7 @@ void generateRefOfVal(Debug, TempAlloc, CodeAlloc)(
 		writeStackRef(dbg, writer, source, at(ctx.parameterEntries, asParamRef(arg.kind).index.index).start);
 	else if (isRecordFieldGet(arg.kind)) {
 		immutable LowExprKind.RecordFieldGet rfa = asRecordFieldGet(arg.kind);
-		generatePtrToRecordFieldGet!(Debug, TempAlloc, CodeAlloc)(
+		generatePtrToRecordFieldGet!(Debug)(
 			dbg,
 			tempAlloc,
 			writer,
@@ -1017,10 +1018,10 @@ void generateRefOfVal(Debug, TempAlloc, CodeAlloc)(
 		todo!void("!");
 }
 
-void generateRecordFieldGet(Debug, TempAlloc, CodeAlloc)(
+void generateRecordFieldGet(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.RecordFieldGet it,
@@ -1052,10 +1053,10 @@ void generateRecordFieldGet(Debug, TempAlloc, CodeAlloc)(
 	}
 }
 
-void generatePtrToRecordFieldGet(Debug, TempAlloc, CodeAlloc)(
+void generatePtrToRecordFieldGet(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
 	immutable LowType.Record record,
@@ -1073,10 +1074,10 @@ void generatePtrToRecordFieldGet(Debug, TempAlloc, CodeAlloc)(
 		todo!void("ptr-to-record-field-get");
 }
 
-void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
+void generateSpecialBinary(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.SpecialBinary a,
@@ -1270,10 +1271,10 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 	}
 }
 
-void generateSpecialTrinary(Debug, TempAlloc, CodeAlloc)(
+void generateSpecialTrinary(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.SpecialTrinary a,
@@ -1303,10 +1304,10 @@ void generateSpecialTrinary(Debug, TempAlloc, CodeAlloc)(
 	}
 }
 
-void generateIf(Debug, TempAlloc, CodeAlloc)(
+void generateIf(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
 	ref immutable LowExpr cond,
@@ -1325,10 +1326,10 @@ void generateIf(Debug, TempAlloc, CodeAlloc)(
 	fillInJumpDelayed(writer, jumpIndex);
 }
 
-void generateSpecialNAry(Debug, TempAlloc, CodeAlloc)(
+void generateSpecialNAry(Debug)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!CodeAlloc writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
 	ref immutable LowType type,

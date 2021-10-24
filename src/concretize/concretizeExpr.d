@@ -63,12 +63,12 @@ import model.model :
 	matchExpr,
 	Purity,
 	range,
-	RecordField,
 	specImpls,
 	SpecSig,
 	StructInst,
 	Type,
 	typeArgs;
+import util.alloc.alloc : Alloc;
 import util.collection.arr : at, empty, emptyArr, only, ptrAt, size;
 import util.collection.arrUtil : arrLiteral, every, map, mapWithIndex;
 import util.collection.mutArr : MutArr, mutArrSize, push;
@@ -81,7 +81,7 @@ import util.sym : shortSymAlphaLiteral, symEq, symEqLongAlphaLiteral;
 import util.types : Nat16, safeSizeTToU8, safeSizeTToU16;
 import util.util : todo, unreachable, verify;
 
-immutable(ConcreteExpr) concretizeExpr(Alloc)(
+immutable(ConcreteExpr) concretizeExpr(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	ref immutable ContainingFunInfo containing,
@@ -92,7 +92,7 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 	return concretizeExpr(alloc, exprCtx, e);
 }
 
-immutable(Ptr!ConcreteExpr) allocExpr(Alloc)(ref Alloc alloc, immutable ConcreteExpr e) {
+immutable(Ptr!ConcreteExpr) allocExpr(ref Alloc alloc, immutable ConcreteExpr e) {
 	return allocate(alloc, e);
 }
 
@@ -148,12 +148,12 @@ struct LocalOrConstant {
 	}
 }
 
-immutable(ConcreteType) getConcreteType(Alloc)(ref Alloc alloc, ref ConcretizeExprCtx ctx, ref immutable Type t) {
+immutable(ConcreteType) getConcreteType(ref Alloc alloc, ref ConcretizeExprCtx ctx, ref immutable Type t) {
 	immutable TypeArgsScope s = typeScope(ctx);
 	return getConcreteType_fromConcretizeCtx(alloc, ctx.concretizeCtx.deref, t, s);
 }
 
-immutable(ConcreteType) getConcreteType_forStructInst(Alloc)(
+immutable(ConcreteType) getConcreteType_forStructInst(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	immutable Ptr!StructInst i,
@@ -162,7 +162,7 @@ immutable(ConcreteType) getConcreteType_forStructInst(Alloc)(
 	return getConcreteType_forStructInst_fromConcretizeCtx(alloc, ctx.concretizeCtx, i, s);
 }
 
-immutable(ConcreteType[]) typesToConcreteTypes(Alloc)(
+immutable(ConcreteType[]) typesToConcreteTypes(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	immutable Type[] typeArgs,
@@ -175,7 +175,7 @@ immutable(TypeArgsScope) typeScope(ref ConcretizeExprCtx ctx) {
 	return typeArgsScope(ctx.containing);
 }
 
-immutable(ConcreteExpr) concretizeCall(Alloc)(
+immutable(ConcreteExpr) concretizeCall(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -201,7 +201,7 @@ immutable(ConcreteExpr) concretizeCall(Alloc)(
 			immutable ConcreteExprKind(immutable ConcreteExprKind.Call(concreteCalled, exprs))));
 }
 
-immutable(Ptr!ConcreteFun) getConcreteFunFromCalled(Alloc)(
+immutable(Ptr!ConcreteFun) getConcreteFunFromCalled(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable Called called,
@@ -214,7 +214,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromCalled(Alloc)(
 			at(ctx.containing.specImpls, specSig.indexOverAllSpecUses));
 }
 
-immutable(Ptr!ConcreteFun) getConcreteFunFromFunInst(Alloc)(
+immutable(Ptr!ConcreteFun) getConcreteFunFromFunInst(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	immutable Ptr!FunInst funInst,
@@ -228,7 +228,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromFunInst(Alloc)(
 	return getOrAddConcreteFunAndFillBody(alloc, ctx.concretizeCtx, key);
 }
 
-immutable(ConcreteExpr) concretizeClosureFieldRef(Alloc)(
+immutable(ConcreteExpr) concretizeClosureFieldRef(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -279,7 +279,7 @@ struct ConstantsOrExprs {
 	}
 }
 
-immutable(ConstantsOrExprs) getConstantsOrExprs(Alloc)(
+immutable(ConstantsOrExprs) getConstantsOrExprs(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable Expr[] argExprs,
@@ -290,7 +290,7 @@ immutable(ConstantsOrExprs) getConstantsOrExprs(Alloc)(
 		: immutable ConstantsOrExprs(exprs);
 }
 
-immutable(ConcreteExpr[]) getArgs(Alloc)(
+immutable(ConcreteExpr[]) getArgs(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable Expr[] argExprs,
@@ -299,7 +299,7 @@ immutable(ConcreteExpr[]) getArgs(Alloc)(
 		concretizeExpr(alloc, ctx, arg));
 }
 
-immutable(ConcreteExpr) createAllocExpr(Alloc)(ref Alloc alloc, immutable ConcreteExpr inner) {
+immutable(ConcreteExpr) createAllocExpr(ref Alloc alloc, immutable ConcreteExpr inner) {
 	verify(!inner.type.isPointer);
 	return immutable ConcreteExpr(
 		byRef(inner.type),
@@ -307,7 +307,7 @@ immutable(ConcreteExpr) createAllocExpr(Alloc)(ref Alloc alloc, immutable Concre
 		immutable ConcreteExprKind(immutable ConcreteExprKind.Alloc(allocExpr(alloc, inner))));
 }
 
-immutable(ConcreteExpr) getGetIslandAndExclusion(Alloc)(
+immutable(ConcreteExpr) getGetIslandAndExclusion(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable ConcreteType type,
@@ -317,7 +317,7 @@ immutable(ConcreteExpr) getGetIslandAndExclusion(Alloc)(
 		immutable ConcreteExprKind.Call(getCurIslandAndExclusionFun(alloc, ctx.concretizeCtx), emptyArr!ConcreteExpr)));
 }
 
-immutable(ConcreteField[]) concretizeClosureFields(Alloc)(
+immutable(ConcreteField[]) concretizeClosureFields(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	ref immutable Ptr!ClosureField[] closure,
@@ -331,7 +331,7 @@ immutable(ConcreteField[]) concretizeClosureFields(Alloc)(
 			getConcreteType_fromConcretizeCtx(alloc, ctx, it.type, typeArgsScope)));
 }
 
-immutable(ConcreteExpr) concretizeFunPtr(Alloc)(
+immutable(ConcreteExpr) concretizeFunPtr(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -343,7 +343,7 @@ immutable(ConcreteExpr) concretizeFunPtr(Alloc)(
 		immutable Constant(immutable Constant.FunPtr(fun))));
 }
 
-immutable(ConcreteExpr) concretizeLambda(Alloc)(
+immutable(ConcreteExpr) concretizeLambda(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -424,7 +424,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 		return immutable ConcreteExpr(concreteType, range, lambda(concreteStruct));
 }
 
-immutable(Nat16) nextLambdaImplId(Alloc)(
+immutable(Nat16) nextLambdaImplId(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	immutable Ptr!ConcreteStruct funStruct,
@@ -436,7 +436,7 @@ immutable(Nat16) nextLambdaImplId(Alloc)(
 		getOrAdd(alloc, ctx.concretizeCtx.funStructToImpls, funStruct, () =>
 			MutArr!(immutable ConcreteLambdaImpl)()));
 }
-immutable(Nat16) nextLambdaImplIdInner(Alloc)(
+immutable(Nat16) nextLambdaImplIdInner(
 	ref Alloc alloc,
 	ref immutable ConcreteLambdaImpl impl,
 	ref MutArr!(immutable ConcreteLambdaImpl) impls,
@@ -446,7 +446,7 @@ immutable(Nat16) nextLambdaImplIdInner(Alloc)(
 	return immutable Nat16(res);
 }
 
-immutable(Ptr!ConcreteLocal) makeLocalWorker(Alloc)(
+immutable(Ptr!ConcreteLocal) makeLocalWorker(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	immutable ConcreteLocalSource source,
@@ -457,7 +457,7 @@ immutable(Ptr!ConcreteLocal) makeLocalWorker(Alloc)(
 	return res;
 }
 
-immutable(Ptr!ConcreteLocal) concretizeLocal(Alloc)(
+immutable(Ptr!ConcreteLocal) concretizeLocal(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	immutable Ptr!Local local,
@@ -465,7 +465,7 @@ immutable(Ptr!ConcreteLocal) concretizeLocal(Alloc)(
 	return makeLocalWorker(alloc, ctx, immutable ConcreteLocalSource(local), getConcreteType(alloc, ctx, local.type));
 }
 
-immutable(ConcreteExpr) concretizeWithLocal(Alloc)(
+immutable(ConcreteExpr) concretizeWithLocal(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	immutable Ptr!Local modelLocal,
@@ -478,7 +478,7 @@ immutable(ConcreteExpr) concretizeWithLocal(Alloc)(
 	return res;
 }
 
-immutable(ConcreteExpr) concretizeLet(Alloc)(
+immutable(ConcreteExpr) concretizeLet(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -498,7 +498,7 @@ immutable(ConcreteExpr) concretizeLet(Alloc)(
 			then);
 }
 
-immutable(ConcreteExpr) concretizeIfOption(Alloc)(
+immutable(ConcreteExpr) concretizeIfOption(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -529,7 +529,7 @@ immutable(ConcreteExpr) concretizeIfOption(Alloc)(
 	}
 }
 
-immutable(ConcreteExpr) concretizeMatchEnum(Alloc)(
+immutable(ConcreteExpr) concretizeMatchEnum(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -544,7 +544,7 @@ immutable(ConcreteExpr) concretizeMatchEnum(Alloc)(
 		immutable ConcreteExprKind.MatchEnum(allocExpr(alloc, matched), cases)));
 }
 
-immutable(ConcreteExpr) concretizeMatchUnion(Alloc)(
+immutable(ConcreteExpr) concretizeMatchUnion(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -583,7 +583,7 @@ immutable(ConcreteExpr) concretizeMatchUnion(Alloc)(
 	}
 }
 
-immutable(ConcreteExpr) concretizeParamRef(Alloc)(
+immutable(ConcreteExpr) concretizeParamRef(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -597,21 +597,7 @@ immutable(ConcreteExpr) concretizeParamRef(Alloc)(
 		immutable ConcreteExprKind.ParamRef(concreteParam)));
 }
 
-immutable(Ptr!ConcreteField) getMatchingField(immutable Ptr!ConcreteStruct struct_, immutable size_t fieldIndex) {
-	return ptrAt(asRecord(body_(struct_)).fields, fieldIndex);
-}
-
-immutable(Ptr!ConcreteField) getMatchingField(Alloc)(
-	ref Alloc alloc,
-	ref const ConcretizeExprCtx ctx,
-	immutable Ptr!StructInst targetType,
-	immutable Ptr!RecordField field,
-) {
-	immutable ConcreteType type = getConcreteType_forStructInst(alloc, ctx, targetType);
-	return getMatchingField(type, field.index);
-}
-
-immutable(ConcreteExpr) concretizeExpr(Alloc)(
+immutable(ConcreteExpr) concretizeExpr(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable Expr e,
@@ -684,7 +670,7 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 				immutable ConcreteExprKind(constantSym(alloc, ctx.concretizeCtx, e.value))));
 }
 
-immutable(ConstantsOrExprs) constantsOrExprsArr(Alloc)(
+immutable(ConstantsOrExprs) constantsOrExprsArr(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	immutable FileAndRange range,

@@ -69,6 +69,7 @@ import model.model :
 	TypeParam,
 	typeParams,
 	worstCasePurity;
+import util.alloc.alloc : Alloc;
 import util.collection.arr :
 	at,
 	empty,
@@ -113,7 +114,7 @@ import util.sourceRange : FileAndRange;
 import util.sym : Sym, symEq;
 import util.util : Empty, todo, verify;
 
-immutable(CheckedExpr) checkCall(Alloc)(
+immutable(CheckedExpr) checkCall(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -188,7 +189,7 @@ immutable(CheckedExpr) checkCall(Alloc)(
 		return checkCallAfterChoosingOverload(alloc, ctx, only_const(candidatesArr), range, force(args), expected);
 }
 
-immutable(CheckedExpr) checkIdentifierCall(Alloc)(
+immutable(CheckedExpr) checkIdentifierCall(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -283,7 +284,7 @@ void eachFunInScope(
 
 private:
 
-immutable(CalledDecl[]) candidatesForDiag(Alloc)(ref Alloc alloc, ref const Candidate[] candidates) {
+immutable(CalledDecl[]) candidatesForDiag(ref Alloc alloc, ref const Candidate[] candidates) {
 	return map_const!CalledDecl(alloc, candidates, (ref const Candidate c) =>
 		c.called);
 }
@@ -311,7 +312,7 @@ const(InferringTypeArgs) inferringTypeArgs_const(ref const Candidate a) {
 	return const InferringTypeArgs(typeParams(a.called), a.typeArgs);
 }
 
-MutArr!Candidate getInitialCandidates(Alloc)(
+MutArr!Candidate getInitialCandidates(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	immutable Sym funName,
@@ -323,7 +324,7 @@ MutArr!Candidate getInitialCandidates(Alloc)(
 		immutable size_t nTypeParams = size(typeParams(called));
 		if (arityMatches(arity(called), actualArity) &&
 			(empty(explicitTypeArgs) || nTypeParams == size(explicitTypeArgs))) {
-			SingleInferringType[] inferringTypeArgs = fillArr_mut!(SingleInferringType, Alloc)(
+			SingleInferringType[] inferringTypeArgs = fillArr_mut!SingleInferringType(
 				alloc,
 				nTypeParams,
 				(immutable size_t i) =>
@@ -338,7 +339,7 @@ MutArr!Candidate getInitialCandidates(Alloc)(
 	return res;
 }
 
-immutable(CalledDecl[]) getAllCandidatesAsCalledDecls(Alloc)(
+immutable(CalledDecl[]) getAllCandidatesAsCalledDecls(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	immutable Sym funName,
@@ -350,7 +351,7 @@ immutable(CalledDecl[]) getAllCandidatesAsCalledDecls(Alloc)(
 	return finishArr(alloc, res);
 }
 
-immutable(Type) getCandidateExpectedParameterTypeRecur(Alloc)(
+immutable(Type) getCandidateExpectedParameterTypeRecur(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref const Candidate candidate,
@@ -375,7 +376,7 @@ immutable(Type) getCandidateExpectedParameterTypeRecur(Alloc)(
 		});
 }
 
-immutable(Type) getCandidateExpectedParameterType(Alloc)(
+immutable(Type) getCandidateExpectedParameterType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref const Candidate candidate,
@@ -403,7 +404,7 @@ struct CommonOverloadExpected {
 }
 
 // For multiple candidates, only have an expected type if they have exactly the same param type
-Expected getCommonOverloadParamExpectedForMultipleCandidates(Alloc)(
+Expected getCommonOverloadParamExpectedForMultipleCandidates(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	const Candidate[] candidates,
@@ -427,7 +428,7 @@ Expected getCommonOverloadParamExpectedForMultipleCandidates(Alloc)(
 	}
 }
 
-CommonOverloadExpected getCommonOverloadParamExpected(Alloc)(
+CommonOverloadExpected getCommonOverloadParamExpected(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	Candidate[] candidates,
@@ -466,7 +467,7 @@ immutable(Opt!(Diag.CantCall.Reason)) getCantCallReason(
 		: none!(Diag.CantCall.Reason);
 }
 
-void checkCallFlags(Alloc)(
+void checkCallFlags(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable FileAndRange range,
@@ -480,7 +481,7 @@ void checkCallFlags(Alloc)(
 		addDiag(alloc, ctx, range, immutable Diag(Diag.CantCall(force(reason), called)));
 }
 
-void checkCalledDeclFlags(Alloc)(
+void checkCalledDeclFlags(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable CalledDecl res,
@@ -496,7 +497,7 @@ void checkCalledDeclFlags(Alloc)(
 		});
 }
 
-void filterByReturnType(Alloc)(
+void filterByReturnType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref MutArr!Candidate candidates,
@@ -509,7 +510,7 @@ void filterByReturnType(Alloc)(
 	});
 }
 
-void filterByParamType(Alloc)(
+void filterByParamType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref MutArr!Candidate candidates,
@@ -520,11 +521,11 @@ void filterByParamType(Alloc)(
 	filterUnordered!Candidate(candidates, (ref Candidate candidate) {
 		immutable Type expectedArgType = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
 		InferringTypeArgs ita = inferringTypeArgs(candidate);
-		return matchTypesNoDiagnostic!Alloc(alloc, programState, expectedArgType, actualArgType, ita);
+		return matchTypesNoDiagnostic(alloc, programState, expectedArgType, actualArgType, ita);
 	});
 }
 
-immutable(Opt!Called) findSpecSigImplementation(Alloc)(
+immutable(Opt!Called) findSpecSigImplementation(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -574,7 +575,7 @@ immutable(bool) findBuiltinSpecOnType(
 				false));
 }
 
-immutable(bool) checkBuiltinSpec(Alloc)(
+immutable(bool) checkBuiltinSpec(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	immutable Ptr!FunDecl called,
@@ -599,7 +600,7 @@ immutable(bool) checkBuiltinSpec(Alloc)(
 
 // On failure, returns none.
 //TODO: make @safe
-@trusted immutable(Opt!(Called[])) checkSpecImpls(Alloc)(
+@trusted immutable(Opt!(Called[])) checkSpecImpls(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -648,7 +649,7 @@ immutable(bool) checkBuiltinSpec(Alloc)(
 	}
 }
 
-immutable(Opt!(Type[])) finishCandidateTypeArgs(Alloc)(
+immutable(Opt!(Type[])) finishCandidateTypeArgs(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -661,7 +662,7 @@ immutable(Opt!(Type[])) finishCandidateTypeArgs(Alloc)(
 	return res;
 }
 
-immutable(Opt!Called) getCalledFromCandidate(Alloc)(
+immutable(Opt!Called) getCalledFromCandidate(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -692,7 +693,7 @@ immutable(Opt!Called) getCalledFromCandidate(Alloc)(
 		return none!Called;
 }
 
-immutable(CheckedExpr) checkCallAfterChoosingOverload(Alloc)(
+immutable(CheckedExpr) checkCallAfterChoosingOverload(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref const Candidate candidate,

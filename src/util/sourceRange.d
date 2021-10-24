@@ -2,6 +2,7 @@ module util.sourceRange;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : Alloc;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.path : PathAndStorageKind;
 import util.repr : Repr, reprNat, reprRecord;
@@ -70,14 +71,14 @@ struct FileAndRange {
 }
 static assert(FileAndRange.sizeof == 8);
 
-immutable(Repr) reprFileAndPos(Alloc)(ref Alloc alloc, ref immutable FileAndPos a) {
+immutable(Repr) reprFileAndPos(ref Alloc alloc, ref immutable FileAndPos a) {
 	return reprRecord(alloc, "file-pos", [reprNat(a.fileIndex.index), reprNat(a.pos)]);
 }
 
-immutable(Repr) reprFileAndRange(Alloc)(ref Alloc alloc, ref immutable FileAndRange a) {
+immutable(Repr) reprFileAndRange(ref Alloc alloc, ref immutable FileAndRange a) {
 	return reprRecord(alloc, "file-range", [reprNat(a.fileIndex.index), reprRangeWithinFile(alloc, a.range)]);
 }
 
-immutable(Repr) reprRangeWithinFile(Alloc)(ref Alloc alloc, immutable RangeWithinFile a) {
+immutable(Repr) reprRangeWithinFile(ref Alloc alloc, immutable RangeWithinFile a) {
 	return reprRecord(alloc, "range", [reprNat(a.start), reprNat(a.end)]);
 }

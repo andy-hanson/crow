@@ -17,6 +17,7 @@ import model.concreteModel :
 	name,
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantEqual;
+import util.alloc.alloc : Alloc;
 import util.collection.arr : empty, only;
 import util.collection.arrUtil : arrEqual, arrLiteral, findIndex_const, map, mapOp, map_mut;
 import util.collection.dict : KeyValuePair;
@@ -51,7 +52,7 @@ private struct PointerTypeAndConstants {
 	MutArr!(immutable Ptr!Constant) constants;
 }
 
-immutable(AllConstantsConcrete) finishAllConstants(Alloc)(
+immutable(AllConstantsConcrete) finishAllConstants(
 	ref Alloc alloc,
 	ref AllConstantsBuilder a,
 	immutable Ptr!ConcreteFun[] allConcreteFuns,
@@ -65,7 +66,7 @@ immutable(AllConstantsConcrete) finishAllConstants(Alloc)(
 			immutable ArrTypeAndConstantsConcrete(
 				pair.value.arrType,
 				pair.value.elementType,
-				moveToArr!(immutable Constant[], Alloc)(alloc, pair.value.constants)));
+				moveToArr!(immutable Constant[])(alloc, pair.value.constants)));
 	immutable PointerTypeAndConstantsConcrete[] records =
 		map_mut(
 			alloc,
@@ -73,11 +74,11 @@ immutable(AllConstantsConcrete) finishAllConstants(Alloc)(
 			(ref KeyValuePair!(immutable Ptr!ConcreteStruct, PointerTypeAndConstants) pair) =>
 				immutable PointerTypeAndConstantsConcrete(
 					pair.key,
-					moveToArr!(immutable Ptr!Constant, Alloc)(alloc, pair.value.constants)));
+					moveToArr!(immutable Ptr!Constant)(alloc, pair.value.constants)));
 	return immutable AllConstantsConcrete(moveToArr(alloc, a.cStringValues), allFuns, staticSyms, arrs, records);
 }
 
-private immutable(Constant) makeAllFuns(Alloc)(
+private immutable(Constant) makeAllFuns(
 	ref Alloc alloc,
 	ref AllConstantsBuilder a,
 	immutable Ptr!ConcreteFun[] allConcreteFuns,
@@ -107,7 +108,7 @@ ref immutable(Constant) derefConstantPointer(
 }
 
 // TODO: this will be used when creating constant records by-ref.
-immutable(Constant) getConstantPtr(Alloc)(
+immutable(Constant) getConstantPtr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	immutable Ptr!ConcreteStruct struct_,
@@ -115,7 +116,7 @@ immutable(Constant) getConstantPtr(Alloc)(
 ) {
 	Ptr!PointerTypeAndConstants d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.pointers, struct_, () =>
 		PointerTypeAndConstants(mutDictSize(allConstants.pointers), MutArr!(immutable Ptr!Constant)())));
-	return immutable Constant(immutable Constant.Pointer(d.typeIndex, findOrPush!(immutable Ptr!Constant, Alloc)(
+	return immutable Constant(immutable Constant.Pointer(d.typeIndex, findOrPush!(immutable Ptr!Constant)(
 		alloc,
 		d.constants,
 		(ref immutable Ptr!Constant a) =>
@@ -125,7 +126,7 @@ immutable(Constant) getConstantPtr(Alloc)(
 }
 
 
-immutable(Constant) getConstantArr(Alloc)(
+immutable(Constant) getConstantArr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	immutable Ptr!ConcreteStruct arrStruct,
@@ -140,7 +141,7 @@ immutable(Constant) getConstantArr(Alloc)(
 				arrStruct,
 				elementType,
 				mutDictSize(allConstants.arrs), MutArr!(immutable Constant[])())));
-		immutable size_t index = findOrPush!(immutable Constant[], Alloc)(
+		immutable size_t index = findOrPush!(immutable Constant[])(
 			alloc,
 			d.constants,
 			(ref immutable Constant[] it) =>
@@ -158,7 +159,7 @@ private immutable(Constant) constantEmptyArr() {
 	return immutable Constant(immutable Constant.Record(fields));
 }
 
-immutable(Constant) getConstantStr(Alloc)(
+immutable(Constant) getConstantStr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	immutable Ptr!ConcreteStruct strStruct,
@@ -171,12 +172,12 @@ immutable(Constant) getConstantStr(Alloc)(
 	return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [arr])));
 }
 
-private immutable(Constant.CString) getConstantCStr(Alloc)(
+private immutable(Constant.CString) getConstantCStr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	immutable string value,
 ) {
-	return getOrAdd!(Alloc, immutable string, immutable Constant.CString, compareStr)(
+	return getOrAdd!(immutable string, immutable Constant.CString, compareStr)(
 		alloc,
 		allConstants.cStrings,
 		value,
@@ -188,12 +189,12 @@ private immutable(Constant.CString) getConstantCStr(Alloc)(
 		});
 }
 
-immutable(Constant) getConstantSym(Alloc)(
+immutable(Constant) getConstantSym(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	immutable Sym value,
 ) {
-	return getOrAdd!(Alloc, immutable Sym, immutable Constant, compareSym)(
+	return getOrAdd!(immutable Sym, immutable Constant, compareSym)(
 		alloc,
 		allConstants.syms,
 		value,
@@ -214,7 +215,7 @@ immutable(bool) constantArrEqual(ref immutable Constant[] a, ref immutable Const
 		constantEqual(x, y));
 }
 
-immutable(size_t) findOrPush(T, Alloc)(
+immutable(size_t) findOrPush(T)(
 	ref Alloc alloc,
 	ref MutArr!T a,
 	scope immutable(bool) delegate(ref const T) @safe @nogc pure nothrow cbFind,

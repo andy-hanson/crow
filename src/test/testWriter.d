@@ -7,9 +7,9 @@ import util.collection.str : strEq;
 import util.util : verify;
 import util.writer : finishWriter, writeFloatLiteral, Writer;
 
-@trusted void testWriter(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
+@trusted void testWriter(Debug)(ref Test!Debug test) {
 	void writes(immutable double value, immutable string expected) {
-		Writer!Alloc writer = Writer!Alloc(test.alloc);
+		Writer writer = Writer(test.alloc);
 		writeFloatLiteral(writer, value);
 		immutable string res = finishWriter(writer);
 		verify(strEq(res, expected));

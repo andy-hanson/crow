@@ -38,7 +38,7 @@ import lib.compiler :
 	print;
 import model.model : AbsolutePathsGetter;
 import test.test : test;
-import util.alloc.alloc : allocateBytes, freeBytes;
+import util.alloc.alloc : Alloc, allocateBytes, freeBytes, TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.collection.arr : begin, empty, size;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
@@ -117,14 +117,14 @@ struct StdoutDebug {
 	}
 }
 
-immutable(ExitCode) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
-	AllPaths!Alloc allPaths = AllPaths!Alloc(ptrTrustMe_mut(alloc));
+immutable(ExitCode) go(ref Alloc alloc, ref immutable CommandLineArgs args) {
+	AllPaths allPaths = AllPaths(ptrTrustMe_mut(alloc));
 	immutable string crowDir = getCrowDirectory(args.pathToThisExecutable);
 	immutable string includeDir = getIncludeDirectory(alloc, crowDir);
 	immutable string tempDir = setupTempDir(alloc, allPaths, crowDir);
 
 	immutable string cwd = getCwd(alloc);
-	immutable Command command = parseCommand!Alloc(alloc, allPaths, cwd, args.args);
+	immutable Command command = parseCommand(alloc, allPaths, cwd, args.args);
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
 	StdoutDebug dbg;
 
@@ -137,7 +137,7 @@ immutable(ExitCode) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs arg
 		(ref immutable Command.Help it) =>
 			help(it),
 		(ref immutable Command.Print it) {
-			RealReadOnlyStorage!(Alloc, Alloc) storage = RealReadOnlyStorage!(Alloc, Alloc)(
+			RealReadOnlyStorage storage = RealReadOnlyStorage(
 				ptrTrustMe_mut(allPaths),
 				ptrTrustMe_mut(alloc),
 				cwd,
@@ -169,14 +169,14 @@ immutable(ExitCode) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs arg
 					}
 				},
 				(ref immutable RunOptions.Interpret) {
-					RealReadOnlyStorage!(Alloc, Alloc) storage = RealReadOnlyStorage!(Alloc, Alloc)(
+					RealReadOnlyStorage storage = RealReadOnlyStorage(
 						ptrTrustMe_mut(allPaths),
 						ptrTrustMe_mut(alloc),
 						cwd,
 						includeDir,
 						run.programDirAndMain.programDir);
 					RealExtern extern_ = RealExtern(ptrTrustMe_mut(alloc));
-					AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
+					AllSymbols allSymbols = AllSymbols(ptrTrustMe_mut(alloc));
 					return buildAndInterpret(
 						dbg,
 						alloc,
@@ -192,9 +192,9 @@ immutable(ExitCode) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs arg
 			test(dbg, alloc, it.name));
 }
 
-@trusted immutable(string) setupTempDir(Alloc, PathAlloc)(
+@trusted immutable(string) setupTempDir(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	immutable string crowDir,
 ) {
 	immutable NulTerminatedStr dirPath = catToNulTerminatedStr(alloc, crowDir, "/temp");
@@ -245,15 +245,15 @@ immutable(ExitCode) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs arg
 	return immutable ExitCode(err);
 }
 
-immutable(ExitCode) runDocument(Alloc, PathAlloc)(
+immutable(ExitCode) runDocument(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string includeDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
 	ref immutable Opt!AbsolutePath out_,
 ) {
-	RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
+	RealReadOnlyStorage storage = RealReadOnlyStorage(
 		ptrTrustMe_mut(allPaths),
 		ptrTrustMe_mut(alloc),
 		cwd,
@@ -273,9 +273,9 @@ struct RunBuildResult {
 	immutable AbsolutePath exePath;
 }
 
-immutable(RunBuildResult) runBuild(Alloc, PathAlloc)(
+immutable(RunBuildResult) runBuild(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string includeDir,
 	immutable string tempDir,
@@ -304,7 +304,7 @@ immutable(RunBuildResult) runBuild(Alloc, PathAlloc)(
 
 immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
 
-immutable(string) getIncludeDirectory(Alloc)(ref Alloc alloc, immutable string crowDir) {
+immutable(string) getIncludeDirectory(ref Alloc alloc, immutable string crowDir) {
 	return cat(alloc, crowDir, "/include");
 }
 
@@ -314,9 +314,9 @@ immutable(string) getCrowDirectory(immutable string pathToThisExecutable) {
 	return forceOrTodo(res);
 }
 
-immutable(ExitCode) buildToCAndCompile(Alloc, PathAlloc)(
+immutable(ExitCode) buildToCAndCompile(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable string cwd,
 	ref immutable ProgramDirAndMain programDirAndMain,
@@ -325,7 +325,7 @@ immutable(ExitCode) buildToCAndCompile(Alloc, PathAlloc)(
 	immutable AbsolutePath exePath,
 	ref immutable CCompileOptions cCompileOptions,
 ) {
-	RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
+	RealReadOnlyStorage storage = RealReadOnlyStorage(
 		ptrTrustMe_mut(allPaths),
 		ptrTrustMe_mut(alloc),
 		cwd,
@@ -342,8 +342,8 @@ immutable(ExitCode) buildToCAndCompile(Alloc, PathAlloc)(
 		return printErr(result.diagnostics);
 }
 
-immutable(PathAndStorageKind) getMain(PathAlloc)(
-	ref AllPaths!PathAlloc allPaths,
+immutable(PathAndStorageKind) getMain(
+	ref AllPaths allPaths,
 	immutable string includeDir,
 	immutable ProgramDirAndMain programDirAndMain,
 ) {
@@ -391,9 +391,9 @@ immutable(string[]) cCompilerArgs(ref immutable CCompileOptions options) {
 	return options.optimize ? optimizedArgs : regularArgs;
 }
 
-@trusted immutable(ExitCode) compileC(Alloc, PathAlloc)(
+@trusted immutable(ExitCode) compileC(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	ref immutable AbsolutePath cPath,
 	ref immutable AbsolutePath exePath,
 	immutable string[] allExternLibraryNames,
@@ -411,9 +411,9 @@ immutable(string[]) cCompilerArgs(ref immutable CCompileOptions options) {
 	return immutable ExitCode(err);
 }
 
-immutable(string[]) cCompileArgs(Alloc, PathAlloc)(
+immutable(string[]) cCompileArgs(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	ref immutable AbsolutePath cPath,
 	ref immutable AbsolutePath exePath,
 	immutable string[] allExternLibraryNames,
@@ -447,7 +447,7 @@ immutable(string[]) cCompileArgs(Alloc, PathAlloc)(
 	return ExitCode.error;
 }
 
-struct RealReadOnlyStorage(PathAlloc, Alloc) {
+struct RealReadOnlyStorage {
 	@safe @nogc nothrow: // not pure
 
 	immutable(AbsolutePathsGetter) absolutePathsGetter() const {
@@ -472,7 +472,7 @@ struct RealReadOnlyStorage(PathAlloc, Alloc) {
 	}
 
 	private:
-	Ptr!(AllPaths!PathAlloc) allPaths;
+	Ptr!AllPaths allPaths;
 	Ptr!Alloc tempAlloc;
 	immutable string cwd;
 	immutable string include;
@@ -550,7 +550,7 @@ struct RealExtern {
 		return hasAllocedPtr(allocTracker, range);
 	}
 
-	@trusted void writeMallocedRanges(WriterAlloc)(ref Writer!WriterAlloc writer) const {
+	@trusted void writeMallocedRanges(ref Writer writer) const {
 		writeMarkedAllocedRanges(writer, allocTracker);
 	}
 
@@ -723,9 +723,9 @@ extern(C) {
 
 //extern void *dlopen (const char *__file, int __mode) __THROWNL;
 
-@trusted immutable(T) tryReadFile(T, TempAlloc, PathAlloc)(
+@trusted immutable(T) tryReadFile(T)(
 	ref TempAlloc tempAlloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	immutable AbsolutePath path,
 	scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
 ) {
@@ -820,9 +820,9 @@ extern(C) {
 
 // Replaces this process with the given executable.
 // DOES NOT RETURN!
-@trusted void replaceCurrentProcess(TempAlloc, PathAlloc)(
+@trusted void replaceCurrentProcess(
 	ref TempAlloc tempAlloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	immutable AbsolutePath executable,
 	immutable string[] args,
 ) {
@@ -839,18 +839,18 @@ struct CommandLineArgs {
 	immutable string[] args;
 }
 
-@trusted immutable(CommandLineArgs) parseCommandLineArgs(Alloc)(
+@trusted immutable(CommandLineArgs) parseCommandLineArgs(
 	ref Alloc alloc,
 	immutable size_t argc,
 	immutable CStr* argv,
 ) {
 	immutable CStr[] allArgs = argv[0 .. argc];
-	immutable string[] args = map!(string, CStr, Alloc)(alloc, allArgs, (ref immutable CStr a) => strOfCStr(a));
+	immutable string[] args = map!(string, CStr)(alloc, allArgs, (ref immutable CStr a) => strOfCStr(a));
 	// Take the tail because the first one is 'crow'
 	return immutable CommandLineArgs(getPathToThisExecutable(alloc), tail(args));
 }
 
-@trusted immutable(string) getCwd(Alloc)(ref Alloc alloc) {
+@trusted immutable(string) getCwd(ref Alloc alloc) {
 	char[maxPathSize] buff;
 	char* b = getcwd(buff.ptr, maxPathSize);
 	if (b == null)
@@ -861,13 +861,13 @@ struct CommandLineArgs {
 	}
 }
 
-immutable(string) copyCStrToStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
+immutable(string) copyCStrToStr(ref Alloc alloc, immutable CStr begin) {
 	return copyStr(alloc, strOfCStr(begin));
 }
 
 immutable size_t maxPathSize = 0x1000;
 
-@trusted immutable(string) getPathToThisExecutable(Alloc)(ref Alloc alloc) {
+@trusted immutable(string) getPathToThisExecutable(ref Alloc alloc) {
 	char[maxPathSize] buff;
 	immutable long size = readlink("/proc/self/exe", buff.ptr, maxPathSize);
 	if (size < 0)
@@ -877,9 +877,9 @@ immutable size_t maxPathSize = 0x1000;
 
 // Returns the child process' error code.
 // WARN: A first arg will be prepended that is the executable path.
-@trusted immutable(int) spawnAndWait(TempAlloc, PathAlloc)(
+@trusted immutable(int) spawnAndWait(
 	ref TempAlloc tempAlloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	immutable CStr executablePath,
 	immutable string[] args,
 ) {
@@ -909,7 +909,7 @@ immutable size_t maxPathSize = 0x1000;
 }
 
 // Return should be const, but some posix functions aren't marked that way
-@system immutable(CStr*) convertArgs(Alloc)(
+@system immutable(CStr*) convertArgs(
 	ref Alloc alloc,
 	immutable CStr executable,
 	immutable string[] args,

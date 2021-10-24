@@ -2,6 +2,7 @@ module util.collection.globalAllocatedStack;
 
 @safe @nogc nothrow pure:
 
+import util.alloc.alloc : Alloc;
 import util.collection.arr : at, size;
 import util.collection.arrUtil : copyArr;
 import util.ptr : PtrRange;
@@ -63,7 +64,7 @@ void clearStack(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
 	return cast(immutable) a.values[0 .. a.size];
 }
 
-immutable(T[]) toArr(Alloc, T, size_t capacity)(ref Alloc alloc, ref const GlobalAllocatedStack!(T, capacity) a) {
+immutable(T[]) toArr(T, size_t capacity)(ref Alloc alloc, ref const GlobalAllocatedStack!(T, capacity) a) {
 	return copyArr(alloc, asTempArr(a));
 }
 

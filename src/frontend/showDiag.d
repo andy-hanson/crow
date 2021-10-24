@@ -30,6 +30,7 @@ import model.model :
 	writeStructInst,
 	writeType;
 import model.parseDiag : matchParseDiag, ParseDiag;
+import util.alloc.alloc : Alloc, TempAlloc;
 import util.collection.arr : empty, only, size;
 import util.collection.arrUtil : exists, map, sort;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -60,16 +61,16 @@ struct ShowDiagOptions {
 	immutable bool color;
 }
 
-immutable(string) strOfDiagnostics(Alloc, PathAlloc)(
+immutable(string) strOfDiagnostics(
 	ref Alloc alloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo filesInfo,
 	ref immutable Diags diagnostics,
 ) {
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	Writer writer = Writer(ptrTrustMe_mut(alloc));
 	immutable FilePaths filePaths = filesInfo.filePaths;
-	immutable Diags sorted = sort!(Diagnostic, Alloc)(
+	immutable Diags sorted = sort!Diagnostic(
 		alloc,
 		diagnostics,
 		(ref immutable Diagnostic a, ref immutable Diagnostic b) =>
@@ -83,22 +84,22 @@ immutable(string) strOfDiagnostics(Alloc, PathAlloc)(
 	return finishWriter(writer);
 }
 
-public immutable(string) strOfParseDiag(Alloc, PathAlloc)(
+public immutable(string) strOfParseDiag(
 	ref Alloc alloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable ParseDiag a,
 ) {
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	Writer writer = Writer(ptrTrustMe_mut(alloc));
 	writeParseDiag(writer, allPaths, a);
 	return finishWriter(writer);
 }
 
 private:
 
-void writeLineNumber(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+void writeLineNumber(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	immutable FilesInfo fi,
 	immutable FileAndRange range,
@@ -118,9 +119,9 @@ void writeLineNumber(Alloc, PathAlloc)(
 	writeNat(writer, line + 1);
 }
 
-void writeParseDiag(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+void writeParseDiag(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable ParseDiag d,
 ) {
 	matchParseDiag!void(
@@ -272,7 +273,7 @@ void writeParseDiag(Alloc, PathAlloc)(
 		});
 }
 
-void writePurity(Alloc)(ref Writer!Alloc writer, immutable Purity p) {
+void writePurity(ref Writer writer, immutable Purity p) {
 	writeChar(writer, '\'');
 	final switch (p) {
 		case Purity.data:
@@ -288,7 +289,7 @@ void writePurity(Alloc)(ref Writer!Alloc writer, immutable Purity p) {
 	writeChar(writer, '\'');
 }
 
-void writeSig(Alloc)(ref Writer!Alloc writer, ref immutable Sig s) {
+void writeSig(ref Writer writer, ref immutable Sig s) {
 	writeSym(writer, s.name);
 	writeChar(writer, ' ');
 	writeType(writer, s.returnType);
@@ -307,9 +308,9 @@ void writeSig(Alloc)(ref Writer!Alloc writer, ref immutable Sig s) {
 	writeChar(writer, ')');
 }
 
-void writeCalledDecl(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+void writeCalledDecl(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	immutable FilesInfo fi,
 	immutable CalledDecl c,
@@ -327,9 +328,9 @@ void writeCalledDecl(Alloc, PathAlloc)(
 		});
 }
 
-void writeFunDeclLocation(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+void writeFunDeclLocation(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	immutable FilesInfo fi,
 	immutable Ptr!FunDecl funDecl,
@@ -339,9 +340,9 @@ void writeFunDeclLocation(Alloc, PathAlloc)(
 	writeChar(writer, ')');
 }
 
-void writeCalledDecls(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+void writeCalledDecls(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable CalledDecl[] cs,
@@ -355,9 +356,9 @@ void writeCalledDecls(Alloc, PathAlloc)(
 		}
 }
 
-void writeCalledDecls(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+void writeCalledDecls(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable CalledDecl[] cs,
@@ -365,9 +366,9 @@ void writeCalledDecls(Alloc, PathAlloc)(
 	writeCalledDecls(writer, allPaths, options, fi, cs, (ref immutable CalledDecl) => true);
 }
 
-void writeCallNoMatch(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+void writeCallNoMatch(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Diag.CallNoMatch d,
@@ -438,10 +439,10 @@ void writeCallNoMatch(Alloc, PathAlloc)(
 	}
 }
 
-void writeDiag(TempAlloc, Alloc, PathAlloc)(
+void writeDiag(
 	ref TempAlloc tempAlloc,
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Diag d,
@@ -827,10 +828,10 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 		});
 }
 
-void showDiagnostic(TempAlloc, Alloc, PathAlloc)(
+void showDiagnostic(
 	ref TempAlloc tempAlloc,
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Diagnostic d,

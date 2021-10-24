@@ -32,6 +32,7 @@ import interpret.debugging : writeFunName;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
+import util.alloc.alloc : Alloc, TempAlloc;
 import util.dbg : log, logNoNewline;
 import util.collection.arr : begin, freeArr, last, ptrAt, sizeNat;
 import util.collection.arrUtil : mapWithFirst;
@@ -77,10 +78,10 @@ import util.types :
 import util.util : divRoundUp, drop, min, todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, writeStatic;
 
-@trusted immutable(int) runBytecode(Debug, TempAlloc, PathAlloc, Extern)(
+@trusted immutable(int) runBytecode(Debug, Extern)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	ref Extern extern_,
 	ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
@@ -166,7 +167,7 @@ private struct InterpreterRestore {
 	immutable Nat16[] restoreStackStartStack;
 }
 
-private immutable(InterpreterRestore*) createInterpreterRestore(Alloc, Extern)(
+private immutable(InterpreterRestore*) createInterpreterRestore(Extern)(
 	ref Alloc alloc,
 	ref Interpreter!Extern a,
 ) {
@@ -192,21 +193,21 @@ private void applyInterpreterRestore(Extern)(ref Interpreter!Extern a, ref immut
 	clearStack(a.stackStartStack);
 }
 
-private void showStack(Alloc, Extern)(ref Writer!Alloc writer, ref const Interpreter!Extern a) {
+private void showStack(Extern)(scope ref Writer writer, ref const Interpreter!Extern a) {
 	immutable Nat64[] stack = asTempArr(a.dataStack);
 	showDataArr(writer, stack);
 }
 
-@trusted void showDataArr(Alloc)(ref Writer!Alloc writer, scope ref immutable Nat64[] values) {
+@trusted void showDataArr(scope ref Writer writer, scope ref immutable Nat64[] values) {
 	writeStatic(writer, "data: ");
 	foreach (immutable Nat64 value; values) {
 		writeChar(writer, ' ');
-		writeHex!Alloc(writer, value.raw());
+		writeHex(writer, value.raw());
 	}
 	writeChar(writer, '\n');
 }
 
-private @trusted void showReturnStack(Alloc, Extern)(ref Writer!Alloc writer, ref const Interpreter!Extern a) {
+private @trusted void showReturnStack(Extern)(ref Writer writer, ref const Interpreter!Extern a) {
 	writeStatic(writer, "call stack:");
 	foreach (immutable ubyte* ptr; asTempArr(a.returnStack)) {
 		writeChar(writer, ' ');
@@ -216,9 +217,9 @@ private @trusted void showReturnStack(Alloc, Extern)(ref Writer!Alloc writer, re
 	writeFunNameAtByteCodePtr(writer, a, getReaderPtr(a.reader));
 }
 
-private void writeByteCodeSource(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+private void writeByteCodeSource(
+	scope ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions showDiagOptions,
 	ref immutable LowProgram lowProgram,
 	ref immutable FilesInfo filesInfo,
@@ -234,16 +235,16 @@ private void writeByteCodeSource(Alloc, PathAlloc)(
 		(ref immutable LowFunSource.Generated) {});
 }
 
-private void writeFunNameAtIndex(Alloc, Extern)(
-	ref Writer!Alloc writer,
+private void writeFunNameAtIndex(Extern)(
+	ref Writer writer,
 	ref const Interpreter!Extern interpreter,
 	immutable ByteCodeIndex index,
 ) {
 	writeFunName(writer, interpreter.lowProgram, byteCodeSourceAtIndex(interpreter, index).fun);
 }
 
-private void writeFunNameAtByteCodePtr(Alloc, Extern)(
-	ref Writer!Alloc writer,
+private void writeFunNameAtByteCodePtr(Extern)(
+	ref Writer writer,
 	ref const Interpreter!Extern interpreter,
 	immutable ubyte* ptr,
 ) {
@@ -283,10 +284,10 @@ private immutable(ByteCodeSource) nextSource(Extern)(ref const Interpreter!Exter
 	return byteCodeSourceAtByteCodePtr(a, getReaderPtr(a.reader));
 }
 
-immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
+immutable(StepResult) step(Debug, Extern)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	ref Interpreter!Extern a,
 ) {
 	immutable ByteCodeSource source = nextSource(a);
@@ -294,7 +295,7 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 		import util.alloc.rangeAlloc : RangeAlloc;
 		ubyte[10_000] mem;
 		scope RangeAlloc dbgAlloc = RangeAlloc(&mem[0], mem.length);
-		scope Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(dbgAlloc));
+		scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
 		showStack(writer, a);
 		showReturnStack(writer, a);
 		log(dbg, finishWriter(writer));
@@ -304,7 +305,7 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 		import util.alloc.rangeAlloc : RangeAlloc;
 		ubyte[10_000] mem;
 		scope RangeAlloc dbgAlloc = RangeAlloc(&mem[0], mem.length);
-		scope Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(dbgAlloc));
+		scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
 		writeStatic(writer, "STEP: ");
 		immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);
 		writeByteCodeSource(writer, allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
@@ -443,7 +444,7 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 		&& !contains(ptrRangeOfArr(a.byteCode.text), ptrRange)) {
 		// TODO: the pointer might have been returned by a 3rd-party library. We'd need to track those too.
 		//debug {
-		//	Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+		//	Writer writer = Writer(ptrTrustMe_mut(tempAlloc));
 		//	writePtrRange(writer, ptrRange);
 		//	writePtrRanges(writer, a);
 		//	printf("accessing potentially invalid pointer: %s\n", finishWriterToCStr(writer));
@@ -452,7 +453,7 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	}
 }
 
-@system void writePtrRanges(Alloc, Extern)(ref Writer!Alloc writer, ref const Interpreter!Extern a) {
+@system void writePtrRanges(Extern)(ref Writer writer, ref const Interpreter!Extern a) {
 	writeStatic(writer, "\ndata: ");
 	writePtrRange(writer, stackPtrRange(a.dataStack));
 	writeStatic(writer, "\nmalloced:\n");

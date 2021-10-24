@@ -64,6 +64,7 @@ import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseType : parseType, takeTypeArgsEnd, tryParseTypeArgsBracketed;
 import model.model : FieldMutability, Visibility;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
+import util.alloc.alloc : Alloc;
 import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, arrWithSizeBuilderIsEmpty, finishArrWithSize;
@@ -82,22 +83,22 @@ struct FileAstAndParseDiagnostics {
 	immutable ParseDiagnostic[] diagnostics;
 }
 
-immutable(FileAstAndParseDiagnostics) parseFile(Alloc, PathAlloc, SymAlloc)(
+immutable(FileAstAndParseDiagnostics) parseFile(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
-	ref AllSymbols!SymAlloc allSymbols,
+	ref AllPaths allPaths,
+	ref AllSymbols allSymbols,
 	immutable NulTerminatedStr source,
 ) {
-	Lexer!SymAlloc lexer = createLexer(alloc, ptrTrustMe_mut(allSymbols), source);
+	Lexer lexer = createLexer(alloc, ptrTrustMe_mut(allSymbols), source);
 	immutable Ptr!FileAst ast = parseFileInner(alloc, allPaths, lexer);
 	return immutable FileAstAndParseDiagnostics(ast, finishDiags(alloc, lexer));
 }
 
 private:
 
-immutable(ArrWithSize!NameAndRange) parseTypeParams(Alloc, SymAlloc)(
+immutable(ArrWithSize!NameAndRange) parseTypeParams(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable bool afterOperator,
 ) {
 	if (afterOperator ? tryTake(lexer, " <") : tryTake(lexer, '<')) {
@@ -111,7 +112,7 @@ immutable(ArrWithSize!NameAndRange) parseTypeParams(Alloc, SymAlloc)(
 		return emptyArrWithSize!NameAndRange;
 }
 
-immutable(Opt!PuritySpecifierAndRange) parsePurity(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(Opt!PuritySpecifierAndRange) parsePurity(ref Alloc alloc, ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable Opt!PuritySpecifier specifier = () {
 		if (tryTake(lexer, "data"))
@@ -145,10 +146,10 @@ struct NamesAndDedent {
 	immutable NewlineOrDedent dedented;
 }
 
-immutable(AbsOrRelPath) parseImportPath(Alloc, PathAlloc, SymAlloc)(
+immutable(AbsOrRelPath) parseImportPath(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
-	ref Lexer!SymAlloc lexer,
+	ref AllPaths allPaths,
+	ref Lexer lexer,
 ) {
 	immutable Opt!Nat8 nParents = tryTake(lexer, "./")
 		? some(immutable Nat8(0))
@@ -160,16 +161,16 @@ immutable(AbsOrRelPath) parseImportPath(Alloc, PathAlloc, SymAlloc)(
 		addPathComponents(alloc, allPaths, lexer, rootPath(allPaths, takeNameAsTempStr(alloc, lexer).str)));
 }
 
-immutable(Nat8) takeDotDotSlashes(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Nat8 acc) {
+immutable(Nat8) takeDotDotSlashes(ref Lexer lexer, immutable Nat8 acc) {
 	return tryTake(lexer, "../")
 		? takeDotDotSlashes(lexer, acc + immutable Nat8(1))
 		: acc;
 }
 
-immutable(Path) addPathComponents(Alloc, PathAlloc, SymAlloc)(
+immutable(Path) addPathComponents(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
-	ref Lexer!SymAlloc lexer,
+	ref AllPaths allPaths,
+	ref Lexer lexer,
 	immutable Path acc,
 ) {
 	return tryTake(lexer, '/')
@@ -177,10 +178,10 @@ immutable(Path) addPathComponents(Alloc, PathAlloc, SymAlloc)(
 		: acc;
 }
 
-immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(Alloc, PathAlloc, SymAlloc)(
+immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
-	ref Lexer!SymAlloc lexer,
+	ref AllPaths allPaths,
+	ref Lexer lexer,
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable AbsOrRelPath path = parseImportPath(alloc, allPaths, lexer);
@@ -221,9 +222,9 @@ immutable(NewlineOrDedent) newlineOrDedentFromNumber(immutable uint dedent) {
 	}
 }
 
-immutable(NamesAndDedent) parseIndentedImportNames(Alloc, SymAlloc)(
+immutable(NamesAndDedent) parseIndentedImportNames(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable Pos start,
 ) {
 	ArrBuilder!Sym names;
@@ -256,18 +257,18 @@ immutable(NamesAndDedent) parseIndentedImportNames(Alloc, SymAlloc)(
 	return immutable NamesAndDedent(some!(Sym[])(finishArr(alloc, names)), res.range, res.newlineOrDedent);
 }
 
-immutable(Sym[]) parseSingleImportNamesOnSingleLine(Alloc, SymAlloc)(
+immutable(Sym[]) parseSingleImportNamesOnSingleLine(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 ) {
 	ArrBuilder!Sym names;
 	takeCommaSeparatedNames(alloc, lexer, names);
 	return finishArr(alloc, names);
 }
 
-void takeCommaSeparatedNames(Alloc, SymAlloc)(
+void takeCommaSeparatedNames(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	ref ArrBuilder!Sym names,
 ) {
 	add(alloc, names, takeName(alloc, lexer));
@@ -281,7 +282,7 @@ struct ParamsAndMaybeDedent {
 	immutable Opt!size_t dedents;
 }
 
-immutable(ParamAst) parseSingleParam(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(ParamAst) parseSingleParam(ref Alloc alloc, ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable Opt!Sym name = tryTake(lexer, '_')
 		? none!Sym
@@ -291,9 +292,9 @@ immutable(ParamAst) parseSingleParam(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer
 	return immutable ParamAst(range(lexer, start), name, type);
 }
 
-immutable(ParamsAst) parseParenthesizedParams(Alloc, SymAlloc)(
+immutable(ParamsAst) parseParenthesizedParams(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 ) {
 	if (tryTake(lexer, ')'))
 		return immutable ParamsAst(emptyArrWithSize!ParamAst);
@@ -316,7 +317,7 @@ immutable(ParamsAst) parseParenthesizedParams(Alloc, SymAlloc)(
 	}
 }
 
-immutable(ParamsAndMaybeDedent) parseIndentedParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(ParamsAndMaybeDedent) parseIndentedParams(ref Alloc alloc, ref Lexer lexer) {
 	ArrWithSizeBuilder!ParamAst res;
 	for (;;) {
 		add(alloc, res, parseSingleParam(alloc, lexer));
@@ -328,7 +329,7 @@ immutable(ParamsAndMaybeDedent) parseIndentedParams(Alloc, SymAlloc)(ref Alloc a
 	}
 }
 
-immutable(ParamsAndMaybeDedent) parseParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(ParamsAndMaybeDedent) parseParams(ref Alloc alloc, ref Lexer lexer) {
 	if (tryTake(lexer, '('))
 		return ParamsAndMaybeDedent(parseParenthesizedParams(alloc, lexer), none!size_t);
 	else
@@ -350,9 +351,9 @@ struct SigAstAndDedent {
 	immutable size_t dedents;
 }
 
-immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(Alloc, SymAlloc)(
+immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable Pos start,
 	immutable Sym name,
 ) {
@@ -362,9 +363,9 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(Alloc, SymAlloc)(
 	return immutable SigAstAndMaybeDedent(allocate(alloc, sigAst), params.dedents);
 }
 
-immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(
+immutable(SigAstAndDedent) parseSig(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable uint curIndent,
 ) {
 	immutable Pos start = curPos(lexer);
@@ -375,7 +376,7 @@ immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(
 	return SigAstAndDedent(s.sig, dedents);
 }
 
-immutable(SigAst[]) parseIndentedSigs(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(SigAst[]) parseIndentedSigs(ref Alloc alloc, ref Lexer lexer) {
 	ArrBuilder!SigAst res;
 	for (;;) {
 		immutable SigAstAndDedent sd = parseSig(alloc, lexer, 1);
@@ -421,9 +422,9 @@ SpaceOrNewlineOrIndent spaceOrNewlineOrIndentFromNewlineOrIndent(immutable Newli
 	}
 }
 
-immutable(Opt!NonFunKeywordAndIndent) tryTakeKw(Alloc, SymAlloc)(
+immutable(Opt!NonFunKeywordAndIndent) tryTakeKw(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable CStr kwSpace,
 	immutable CStr kwNl,
 	immutable NonFunKeyword keyword
@@ -438,7 +439,7 @@ immutable(Opt!NonFunKeywordAndIndent) tryTakeKw(Alloc, SymAlloc)(
 		: none!NonFunKeywordAndIndent;
 }
 
-immutable(Opt!NonFunKeywordAndIndent) parseNonFunKeyword(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(Opt!NonFunKeywordAndIndent) parseNonFunKeyword(ref Alloc alloc, ref Lexer lexer) {
 	switch (curChar(lexer)) {
 		case 'a':
 			return tryTakeKw(alloc, lexer, "alias ", "alias\n", NonFunKeyword.alias_);
@@ -473,9 +474,9 @@ immutable(Opt!NonFunKeywordAndIndent) parseNonFunKeyword(Alloc, SymAlloc)(ref Al
 	}
 }
 
-immutable(NonFunKeywordAndIndent) parseEnumTypeArgAndAfter(Alloc, SymAlloc)(
+immutable(NonFunKeywordAndIndent) parseEnumTypeArgAndAfter(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable NonFunKeyword kw,
 ) {
 	immutable TypeAst typeArg = parseType(alloc, lexer);
@@ -486,9 +487,9 @@ immutable(NonFunKeywordAndIndent) parseEnumTypeArgAndAfter(Alloc, SymAlloc)(
 	return immutable NonFunKeywordAndIndent(kw, somePtr(allocate(alloc, typeArg)), after);
 }
 
-immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) parseEnumOrFlagsMembers(Alloc, SymAlloc)(
+immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) parseEnumOrFlagsMembers(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 ) {
 	ArrWithSizeBuilder!(StructDeclAst.Body.Enum.Member) res;
 	immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) recur() {
@@ -508,9 +509,9 @@ immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) parseEnumOrFlagsMembers(
 	return recur();
 }
 
-immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
+immutable(StructDeclAst.Body.Record) parseRecordBody(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 ) {
 	ArrWithSizeBuilder!(StructDeclAst.Body.Record.Field) res;
 	pure immutable(StructDeclAst.Body.Record) recur(immutable RecordModifiers prevModifiers) {
@@ -560,7 +561,7 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
 	return recur(immutable RecordModifiers(none!Visibility, none!Pos, none!ExplicitByValOrRefAndRange));
 }
 
-immutable(FieldMutability) parseFieldMutability(SymAlloc)(ref Lexer!SymAlloc lexer) {
+immutable(FieldMutability) parseFieldMutability(ref Lexer lexer) {
 	return tryTake(lexer, "mut ")
 		? FieldMutability.public_
 		: tryTake(lexer, ".mut ")
@@ -568,9 +569,9 @@ immutable(FieldMutability) parseFieldMutability(SymAlloc)(ref Lexer!SymAlloc lex
 		: FieldMutability.const_;
 }
 
-immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembers(Alloc, SymAlloc)(
+immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembers(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 ) {
 	ArrBuilder!(StructDeclAst.Body.Union.Member) res;
 	do {
@@ -600,24 +601,24 @@ immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
 		false,
 		none!(Ptr!FunBodyAst));
 
-immutable(FunBodyAst.Extern) takeExternName(Alloc, SymAlloc)(
+immutable(FunBodyAst.Extern) takeExternName(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable bool isGlobal,
 ) {
 	immutable Opt!string libraryName = tryTake(lexer, '<') ? some(takeExternLibraryName(alloc, lexer)) : none!string;
 	return immutable FunBodyAst.Extern(isGlobal, libraryName);
 }
 
-immutable(string) takeExternLibraryName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(string) takeExternLibraryName(ref Alloc alloc, ref Lexer lexer) {
 	immutable string res = takeQuotedStr(lexer, alloc);
 	takeTypeArgsEnd(alloc, lexer);
 	return res;
 }
 
-immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
+immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	ref ArrBuilder!SpecUseAst specUses,
 	immutable bool noCtx,
 	immutable bool summon,
@@ -677,9 +678,9 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 	}
 }
 
-immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(Alloc, SymAlloc)(
+immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	ref ArrBuilder!SpecUseAst specUses,
 	immutable bool noCtx,
 	immutable bool summon,
@@ -691,7 +692,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(Alloc, SymAlloc)(
 	scope immutable(bool) delegate() @safe @nogc pure nothrow canTakeNext,
 ) {
 	if (canTakeNext())
-		return parseNextSpec!(Alloc, SymAlloc)(
+		return parseNextSpec(
 			alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
 	else {
 		if (unsafe && trusted)
@@ -713,9 +714,9 @@ immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(Alloc, SymAlloc)(
 }
 
 // TODO: handle 'noctx' and friends too! (share code with parseSpecUsesAndSigFlagsAndKwBody)
-immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(Alloc, SymAlloc)(
+immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 ) {
 	if (takeIndentOrDiagTopLevel(alloc, lexer)) {
 		ArrBuilder!SpecUseAst builder;
@@ -741,9 +742,9 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(Alloc, SymAlloc)(
 			none!(Ptr!FunBodyAst));
 }
 
-immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(Alloc, SymAlloc)(
+immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 ) {
 	// Unlike indented specs, we check for a separator on first spec, so use nextSpecOrStop instead of parseNextSpec
 	ArrBuilder!SpecUseAst builder;
@@ -767,9 +768,9 @@ struct FunDeclStuff {
 	immutable Ptr!FunBodyAst body_;
 }
 
-immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
+immutable(FunDeclAst) parseFun(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable SafeCStr docComment,
 	immutable Visibility visibility,
 	immutable Pos start,
@@ -811,9 +812,9 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 		stuff.body_);
 }
 
-void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
+void parseSpecOrStructOrFunOrTest(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	ref ArrBuilder!SpecDeclAst specs,
 	ref ArrBuilder!StructAliasAst structAliases,
 	ref ArrBuilder!StructDeclAst structs,
@@ -846,13 +847,13 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 	}
 }
 
-immutable(Visibility) tryTakePrivate(SymAlloc)(ref Lexer!SymAlloc lexer) {
+immutable(Visibility) tryTakePrivate(ref Lexer lexer) {
 	return tryTake(lexer, '.') ? Visibility.private_ : Visibility.public_;
 }
 
-void handleNonFunKeywordAndIndent(Alloc, SymAlloc)(
+void handleNonFunKeywordAndIndent(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	ref ArrBuilder!SpecDeclAst specs,
 	ref ArrBuilder!StructAliasAst structAliases,
 	ref ArrBuilder!StructDeclAst structs,
@@ -990,10 +991,10 @@ void handleNonFunKeywordAndIndent(Alloc, SymAlloc)(
 	}
 }
 
-immutable(Opt!ImportsOrExportsAst) parseImportsOrExports(Alloc, PathAlloc, SymAlloc)(
+immutable(Opt!ImportsOrExportsAst) parseImportsOrExports(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
-	ref Lexer!SymAlloc lexer,
+	ref AllPaths allPaths,
+	ref Lexer lexer,
 	immutable CStr kwNl,
 ) {
 	immutable Pos start = curPos(lexer);
@@ -1013,10 +1014,10 @@ immutable(Opt!ImportsOrExportsAst) parseImportsOrExports(Alloc, PathAlloc, SymAl
 		return none!ImportsOrExportsAst;
 }
 
-immutable(Ptr!FileAst) parseFileInner(Alloc, PathAlloc, SymAlloc)(
+immutable(Ptr!FileAst) parseFileInner(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
-	ref Lexer!SymAlloc lexer,
+	ref AllPaths allPaths,
+	ref Lexer lexer,
 ) {
 	immutable SafeCStr moduleDocComment = skipBlankLinesAndGetDocComment(alloc, lexer);
 	immutable bool noStd = tryTake(lexer, "no-std\n");
@@ -1042,9 +1043,9 @@ immutable(Ptr!FileAst) parseFileInner(Alloc, PathAlloc, SymAlloc)(
 		finishArr(alloc, tests));
 }
 
-void parseFileRecur(Alloc, SymAlloc)(
+void parseFileRecur(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	ref ArrBuilder!SpecDeclAst specs,
 	ref ArrBuilder!StructAliasAst structAliases,
 	ref ArrBuilder!StructDeclAst structs,

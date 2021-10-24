@@ -13,6 +13,7 @@ import frontend.parse.lexer :
 	takeOrAddDiagExpected,
 	tryTake;
 import model.parseDiag : ParseDiag;
+import util.alloc.alloc : Alloc;
 import util.collection.arr : ArrWithSize, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrWithSizeLiteral;
@@ -23,7 +24,7 @@ import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : shortSymAlphaLiteralValue, Sym;
 import util.util : todo;
 
-immutable(ArrWithSize!TypeAst) tryParseTypeArgsBracketed(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(ArrWithSize!TypeAst) tryParseTypeArgsBracketed(ref Alloc alloc, ref Lexer lexer) {
 	if (tryTake(lexer, '<')) {
 		immutable ArrWithSize!TypeAst res = parseTypesWithCommas(alloc, lexer);
 		takeTypeArgsEnd(alloc, lexer);
@@ -32,9 +33,9 @@ immutable(ArrWithSize!TypeAst) tryParseTypeArgsBracketed(Alloc, SymAlloc)(ref Al
 		return emptyArrWithSize!TypeAst;
 }
 
-private void parseTypesWithCommas(Alloc, SymAlloc, Builder)(
+private void parseTypesWithCommas(Builder)(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	ref Builder output,
 ) {
 	do {
@@ -43,18 +44,18 @@ private void parseTypesWithCommas(Alloc, SymAlloc, Builder)(
 
 }
 
-private immutable(ArrWithSize!TypeAst) parseTypesWithCommas(Alloc, SymAlloc)(
+private immutable(ArrWithSize!TypeAst) parseTypesWithCommas(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 ) {
 	ArrWithSizeBuilder!TypeAst res;
 	parseTypesWithCommas(alloc, lexer, res);
 	return finishArrWithSize(alloc, res);
 }
 
-private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(Alloc, SymAlloc)(
+private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 ) {
 	return !peekExact(lexer, " mut[") &&
 		!peekExact(lexer, " mut*") &&
@@ -65,11 +66,11 @@ private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(Alloc, SymAllo
 		: tryParseTypeArgsBracketed(alloc, lexer);
 }
 
-immutable(TypeAst) parseType(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(TypeAst) parseType(ref Alloc alloc, ref Lexer lexer) {
 	return parseTypeSuffixes(alloc, lexer, parseTypeBeforeSuffixes(alloc, lexer));
 }
 
-private immutable(TypeAst) parseTypeBeforeSuffixes(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+private immutable(TypeAst) parseTypeBeforeSuffixes(ref Alloc alloc, ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable NameAndRange name = takeNameAndRange(alloc, lexer);
 	immutable Opt!(TypeAst.Fun.Kind) funKind = funKindFromName(name.name);
@@ -94,9 +95,9 @@ private immutable(TypeAst) parseTypeBeforeSuffixes(Alloc, SymAlloc)(ref Alloc al
 	}
 }
 
-private immutable(TypeAst) parseTypeSuffixes(Alloc, SymAlloc)(
+private immutable(TypeAst) parseTypeSuffixes(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable TypeAst ast,
 ) {
 	immutable Opt!(TypeAst.Suffix.Kind) suffix = tryTakeTypeSuffix(lexer);
@@ -115,7 +116,7 @@ private immutable(TypeAst) parseTypeSuffixes(Alloc, SymAlloc)(
 	}
 }
 
-private immutable(Opt!(TypeAst.Suffix.Kind)) tryTakeTypeSuffix(SymAlloc)(ref Lexer!SymAlloc lexer) {
+private immutable(Opt!(TypeAst.Suffix.Kind)) tryTakeTypeSuffix(ref Lexer lexer) {
 	return tryTake(lexer, '?')
 		? some(TypeAst.Suffix.Kind.opt)
 		: tryTake(lexer, "[]")
@@ -129,7 +130,7 @@ private immutable(Opt!(TypeAst.Suffix.Kind)) tryTakeTypeSuffix(SymAlloc)(ref Lex
 		: none!(TypeAst.Suffix.Kind);
 }
 
-private immutable(Opt!(TypeAst.Dict.Kind)) tryTakeDictKind(SymAlloc)(ref Lexer!SymAlloc lexer) {
+private immutable(Opt!(TypeAst.Dict.Kind)) tryTakeDictKind(ref Lexer lexer) {
 	return tryTake(lexer, '[')
 		? some(TypeAst.Dict.Kind.data)
 		: tryTake(lexer, " mut[")
@@ -150,6 +151,6 @@ private immutable(Opt!(TypeAst.Fun.Kind)) funKindFromName(immutable Sym name) {
 	}
 }
 
-void takeTypeArgsEnd(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+void takeTypeArgsEnd(ref Alloc alloc, ref Lexer lexer) {
 	takeOrAddDiagExpected(alloc, lexer, '>', ParseDiag.Expected.Kind.typeArgsEnd);
 }

@@ -806,9 +806,9 @@ struct FilesInfo {
 }
 static assert(FilesInfo.sizeof <= 56);
 
-void writeFileAndRange(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+void writeFileAndRange(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable FileAndRange where,
@@ -820,9 +820,9 @@ void writeFileAndRange(Alloc, PathAlloc)(
 		writeReset(writer);
 }
 
-void writeFileAndPos(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+void writeFileAndPos(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable FileAndPos where,
@@ -834,9 +834,9 @@ void writeFileAndPos(Alloc, PathAlloc)(
 		writeReset(writer);
 }
 
-void writeFile(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+void writeFile(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable FilesInfo fi,
 	immutable FileIndex fileIndex,
 ) {
@@ -845,9 +845,9 @@ void writeFile(Alloc, PathAlloc)(
 	// No need to reset writer since we didn't use color
 }
 
-private void writeFileNoResetWriter(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+private void writeFileNoResetWriter(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	immutable FileIndex fileIndex,

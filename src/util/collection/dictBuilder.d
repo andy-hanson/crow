@@ -2,6 +2,7 @@ module util.collection.dictBuilder;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : Alloc;
 import util.collection.arr : at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push;
@@ -16,7 +17,7 @@ struct DictBuilder(K, V, alias cmp) {
 	ArrBuilder!(KeyValuePair!(K, V)) builder;
 }
 
-void addToDict(Alloc, K, V, alias cmp)(
+void addToDict(K, V, alias cmp)(
 	ref Alloc alloc,
 	ref DictBuilder!(K, V, cmp) db,
 	immutable K key,
@@ -25,7 +26,7 @@ void addToDict(Alloc, K, V, alias cmp)(
 	return add(alloc, db.builder, immutable KeyValuePair!(K, V)(key, value));
 }
 
-immutable(Dict!(K, V, cmp)) finishDict(Alloc, K, V, alias cmp)(
+immutable(Dict!(K, V, cmp)) finishDict(K, V, alias cmp)(
 	ref Alloc alloc,
 	ref DictBuilder!(K, V, cmp) db,
 	scope void delegate(ref immutable K, ref immutable V, ref immutable V) @safe @nogc pure nothrow cbConflict,
@@ -46,10 +47,10 @@ immutable(Dict!(K, V, cmp)) finishDict(Alloc, K, V, alias cmp)(
 		if (!isConflict)
 			push(alloc, res, pair);
 	}
-	return immutable Dict!(K, V, cmp)(moveToArr!(KeyValuePair!(K, V), Alloc)(alloc, res));
+	return immutable Dict!(K, V, cmp)(moveToArr!(KeyValuePair!(K, V))(alloc, res));
 }
 
-immutable(Dict!(K, V, cmp)) finishDictShouldBeNoConflict(Alloc, K, V, alias cmp)(
+immutable(Dict!(K, V, cmp)) finishDictShouldBeNoConflict(K, V, alias cmp)(
 	ref Alloc alloc,
 	ref DictBuilder!(K, V, cmp) a,
 ) {

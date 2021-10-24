@@ -19,8 +19,8 @@ import util.sym :
 	symOfStr;
 import util.util : verify;
 
-void testSym(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(test.alloc);
+void testSym(Debug)(ref Test!Debug test) {
+	AllSymbols allSymbols = AllSymbols(test.alloc);
 
 	immutable(Sym) getSym(immutable string a) {
 		immutable Sym res = symOfStr(allSymbols, a);

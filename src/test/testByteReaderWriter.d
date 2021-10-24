@@ -17,8 +17,8 @@ import util.collection.byteWriter :
 import util.types : Nat8, Nat16, Nat32, Nat48, Nat64;
 import util.util : verify;
 
-@trusted void testByteReaderWriter(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	ByteWriter!Alloc writer = newByteWriter(test.alloc);
+@trusted void testByteReaderWriter(Debug)(ref Test!Debug test) {
+	ByteWriter writer = newByteWriter(test.alloc);
 
 	pushU8(writer, immutable Nat8(0xab));
 	pushU16(writer, immutable Nat16(0xabcd));

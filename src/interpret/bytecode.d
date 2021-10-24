@@ -3,6 +3,7 @@ module interpret.bytecode;
 @safe @nogc nothrow: // not pure
 
 import model.lowModel : LowFunIndex;
+import util.alloc.alloc : Alloc;
 import util.collection.arr : size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.repr : Repr, reprArr, reprHex, reprInt, reprNat, reprRecord, reprStr, reprSym;
@@ -142,7 +143,7 @@ private @trusted T matchOperation(T)(
 	}
 }
 
-immutable(Repr) reprOperation(Alloc)(ref Alloc alloc, ref immutable Operation a) {
+immutable(Repr) reprOperation(ref Alloc alloc, ref immutable Operation a) {
 	return matchOperation(
 		a,
 		(ref immutable Operation.Call it) =>
@@ -231,7 +232,7 @@ private immutable(Sym) symOfDynCallType(immutable DynCallType a) {
 	}());
 }
 
-private immutable(Repr) reprDebugOperation(Alloc)(ref Alloc alloc, ref immutable DebugOperation a) {
+private immutable(Repr) reprDebugOperation(ref Alloc alloc, ref immutable DebugOperation a) {
 	return matchDebugOperation(
 		a,
 		(ref immutable DebugOperation.AssertStackSize it) =>

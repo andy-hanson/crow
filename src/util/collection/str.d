@@ -2,7 +2,7 @@ module util.collection.str;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : allocateBytes;
+import util.alloc.alloc : Alloc, allocateBytes;
 import util.collection.arr : at, begin, freeArr, size;
 import util.collection.arrUtil : cat, compareArr, rtail, tail;
 import util.comparison : Comparison;
@@ -24,7 +24,7 @@ immutable(NulTerminatedStr) emptyNulTerminatedStr() {
 	return *c == '\0' ? c : end(c + 1);
 }
 
-@system void freeCStr(Alloc)(ref Alloc alloc, immutable CStr c) {
+@system void freeCStr(ref Alloc alloc, immutable CStr c) {
 	freeArr(alloc, nulTerminatedStrOfCStr(c).str);
 }
 
@@ -56,7 +56,7 @@ immutable(string) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
 	return rtail(a.str);
 }
 
-@trusted immutable(NulTerminatedStr) copyToNulTerminatedStr(Alloc)(ref Alloc alloc, immutable string s) {
+@trusted immutable(NulTerminatedStr) copyToNulTerminatedStr(ref Alloc alloc, scope immutable string s) {
 	char* res = cast(char*) allocateBytes(alloc, size(s) + 1);
 	memcpy(cast(ubyte*) res, cast(ubyte*) s.ptr, size(s));
 	res[size(s)] = '\0';
@@ -67,7 +67,7 @@ immutable(string) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
 	return s.str.begin;
 }
 
-immutable(CStr) strToCStr(Alloc)(ref Alloc alloc, immutable string s) {
+immutable(CStr) strToCStr(ref Alloc alloc, scope immutable string s) {
 	return copyToNulTerminatedStr(alloc, s).asCStr;
 }
 
@@ -75,7 +75,7 @@ immutable(bool) strEq(immutable string a, immutable string b) {
 	return size(a) == size(b) && (size(a) == 0 || (at(a, 0) == at(b, 0) && strEq(tail(a), tail(b))));
 }
 
-@trusted immutable(string) copyStr(Alloc)(ref Alloc alloc, immutable string s) {
+@trusted immutable(string) copyStr(ref Alloc alloc, scope immutable string s) {
 	char* begin = cast(char*) allocateBytes(alloc, char.sizeof * size(s));
 	foreach (immutable size_t i; 0 .. size(s))
 		begin[i] = at(s, i);
@@ -86,11 +86,11 @@ immutable(bool) startsWith(immutable string a, immutable string b) {
 	return size(a) >= size(b) && strEq(a[0 .. size(b)], b);
 }
 
-immutable(CStr) catToCStr(Alloc)(ref Alloc alloc, immutable string a, immutable string b) {
+immutable(CStr) catToCStr(ref Alloc alloc, immutable string a, immutable string b) {
 	return cStrOfNulTerminatedStr(catToNulTerminatedStr(alloc, a, b));
 }
 
-immutable(NulTerminatedStr) catToNulTerminatedStr(Alloc)(
+immutable(NulTerminatedStr) catToNulTerminatedStr(
 	ref Alloc alloc,
 	immutable string a,
 	immutable string b,
@@ -98,11 +98,11 @@ immutable(NulTerminatedStr) catToNulTerminatedStr(Alloc)(
 	return catToNulTerminatedStr(alloc, a, b, "");
 }
 
-immutable(CStr) catToCStr(Alloc)(ref Alloc alloc, immutable string a, immutable string b, immutable string c) {
+immutable(CStr) catToCStr(ref Alloc alloc, immutable string a, immutable string b, immutable string c) {
 	return cStrOfNulTerminatedStr(catToNulTerminatedStr(alloc, a, b, c));
 }
 
-immutable(NulTerminatedStr) catToNulTerminatedStr(Alloc)(
+immutable(NulTerminatedStr) catToNulTerminatedStr(
 	ref Alloc alloc,
 	immutable string a,
 	immutable string b,
@@ -128,7 +128,7 @@ private immutable(SafeCStr) safeCStrOfNulTerminatedStr(immutable NulTerminatedSt
 	return immutable SafeCStr(asCStr(a));
 }
 
-immutable(SafeCStr) copyToSafeCStr(Alloc)(ref Alloc alloc, immutable string a) {
+immutable(SafeCStr) copyToSafeCStr(ref Alloc alloc, immutable string a) {
 	return safeCStrOfNulTerminatedStr(copyToNulTerminatedStr(alloc, a));
 }
 
@@ -136,6 +136,6 @@ immutable(string) strOfSafeCStr(immutable SafeCStr a) {
 	return strOfCStr(a.inner);
 }
 
-immutable(SafeCStr) copySafeCStr(Alloc)(ref Alloc alloc, immutable SafeCStr a) {
+immutable(SafeCStr) copySafeCStr(ref Alloc alloc, immutable SafeCStr a) {
 	return copyToSafeCStr(alloc, strOfSafeCStr(a));
 }

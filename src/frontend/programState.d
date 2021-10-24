@@ -12,13 +12,16 @@ import model.model :
 	SpecInst,
 	StructDeclAndArgs,
 	StructInst;
+import util.alloc.alloc : Alloc;
 import util.collection.mutDict : MutDict;
 import util.memory : nuMut;
 import util.ptr : Ptr;
 import util.sym : AllSymbols, symOfStr, MutSymSet, Sym;
 
 struct ProgramState {
-	this(Alloc, SymAlloc)(ref Alloc alloc, ref AllSymbols!SymAlloc allSymbols) {
+	@safe @nogc pure nothrow:
+
+	this(ref Alloc alloc, ref AllSymbols allSymbols) {
 		symFlagsMembers = symOfStr(allSymbols, "flags-members");
 		names = nuMut!ProgramNames(
 			alloc,

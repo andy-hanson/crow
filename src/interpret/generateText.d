@@ -20,6 +20,7 @@ import model.lowModel :
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
 import model.typeLayout : funPtrSize, sizeOfType;
+import util.alloc.alloc : Alloc, TempAlloc;
 import util.collection.arr : at, castImmutable, empty, emptyArr, ptrAt, setAt, size;
 import util.collection.arrUtil : map, mapToMut, sum, zip;
 import util.collection.dict : mustGetAt;
@@ -89,7 +90,7 @@ immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutabl
 	return ptrAt(info.text, at(info.cStringIndexToTextIndex, a.index)).rawPtr();
 }
 
-TextAndInfo generateText(Alloc, TempAlloc)(
+TextAndInfo generateText(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref immutable LowProgram program,
@@ -102,7 +103,7 @@ TextAndInfo generateText(Alloc, TempAlloc)(
 		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(program, allConstants)),
 		newMutIndexMultiDict!(LowFunIndex, TextIndex)(alloc, fullIndexDictSize(program.allFuns)),
 		emptyArr!size_t, // cStringIndexToTextIndex will be overwritten just below this
-		mapToMut!(size_t[], ArrTypeAndConstantsLow, Alloc)(
+		mapToMut!(size_t[], ArrTypeAndConstantsLow)(
 			alloc,
 			allConstants.arrs,
 			(ref immutable ArrTypeAndConstantsLow it) =>
@@ -170,7 +171,7 @@ struct Ctx {
 }
 
 // Write out any constants that this points to.
-void ensureConstant(Alloc, TempAlloc)(
+void ensureConstant(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref Ctx ctx,
@@ -222,7 +223,7 @@ ref immutable(LowType) unionMemberType(
 	return at(fullIndexDictGet(program.allUnions, t).members, memberIndex);
 }
 
-void recurWriteArr(Alloc, TempAlloc)(
+void recurWriteArr(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref Ctx ctx,
@@ -242,7 +243,7 @@ void recurWriteArr(Alloc, TempAlloc)(
 	}
 }
 
-void recurWritePointer(Alloc, TempAlloc)(
+void recurWritePointer(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref Ctx ctx,
@@ -271,7 +272,7 @@ immutable(size_t) getAllConstantsSize(ref immutable LowProgram program, ref immu
 	return cStringsSize + arrsSize + pointersSize;
 }
 
-void writeConstant(Alloc, TempAlloc)(
+void writeConstant(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref Ctx ctx,

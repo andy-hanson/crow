@@ -21,6 +21,7 @@ import model.lowModel :
 	LowParamIndex,
 	LowParamSource,
 	LowType;
+import util.alloc.alloc : Alloc;
 import util.collection.arrUtil : mapWithFirst2, mapWithOptFirst2, mapZip, prepend;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -32,7 +33,7 @@ import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : safeSizeTToU8;
 import util.util : verify;
 
-immutable(LowFun) generateCallWithCtxFun(Alloc)(
+immutable(LowFun) generateCallWithCtxFun(
 	ref Alloc alloc,
 	ref immutable AllLowTypes allTypes,
 	ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
@@ -54,12 +55,12 @@ immutable(LowFun) generateCallWithCtxFun(Alloc)(
 		fullIndexDictGet(allTypes.allUnions, asUnionType(funType)).members,
 		(ref immutable ConcreteLambdaImpl impl, ref immutable LowType closureType) {
 			immutable Ptr!LowLocal closureLocal =
-				genLocal!Alloc(alloc, shortSymAlphaLiteral("closure"), localIndex, closureType);
+				genLocal(alloc, shortSymAlphaLiteral("closure"), localIndex, closureType);
 			localIndex = safeSizeTToU8(localIndex + 1);
 			immutable Opt!LowExpr someCtxParamRef = some(ctxParamRef);
 			immutable Opt!LowExpr someClosureLocalRef = some(localRef(alloc, range, closureLocal));
 			//TODO:mapWithFirst2 (no opt)
-			immutable LowExpr[] args = mapWithOptFirst2!(LowExpr, LowType, Alloc)(
+			immutable LowExpr[] args = mapWithOptFirst2!(LowExpr, LowType)(
 				alloc,
 				someCtxParamRef,
 				someClosureLocalRef,
@@ -73,7 +74,7 @@ immutable(LowFun) generateCallWithCtxFun(Alloc)(
 
 	immutable LowExpr expr = immutable LowExpr(returnType, range, immutable LowExprKind(
 		nu!(LowExprKind.MatchUnion)(alloc, allocate(alloc, funParamRef), cases)));
-	immutable LowParam[] params = mapWithFirst2!(LowParam, LowType, Alloc)(
+	immutable LowParam[] params = mapWithFirst2!(LowParam, LowType)(
 		alloc,
 		immutable LowParam(
 			immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("a"))),

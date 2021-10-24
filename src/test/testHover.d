@@ -18,7 +18,7 @@ import util.ptr : Ptr, ptrTrustMe_const;
 import util.sourceRange : Pos;
 import util.util : verify, verifyFail;
 
-@trusted void testHover(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
+@trusted void testHover(Debug)(ref Test!Debug test) {
 	immutable Path path = rootPath(test.allPaths, "main");
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(path, StorageKind.local);
 	MutFiles files;
@@ -32,7 +32,7 @@ import util.util : verify, verifyFail;
 	immutable(string) hover(immutable Pos pos) {
 		immutable Opt!Position position = getPosition(mainModule, pos);
 		return has(position)
-			? getHoverStr!(Alloc, Alloc, Alloc)(test.alloc, test.alloc, test.allPaths, program, force(position))
+			? getHoverStr(test.alloc, test.alloc, test.allPaths, program, force(position))
 			: "";
 	}
 

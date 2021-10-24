@@ -35,6 +35,7 @@ import model.model :
 	withType,
 	worsePurity,
 	worstCasePurity;
+import util.alloc.alloc : Alloc;
 import util.collection.arr : ptrAt, size, sizeEq;
 import util.collection.arrUtil : arrLiteral, fold, map;
 import util.collection.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
@@ -105,7 +106,7 @@ private immutable(Opt!Type) tryGetTypeArgFromTypeParamsAndArgs(
 
 alias DelayStructInsts = Opt!(Ptr!(MutArr!(Ptr!StructInst)));
 
-private immutable(Type) instantiateType(Alloc)(
+private immutable(Type) instantiateType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable Type type,
@@ -124,7 +125,7 @@ private immutable(Type) instantiateType(Alloc)(
 			immutable Type(instantiateStructInst(alloc, programState, i, typeParamsAndArgs, delayStructInsts)));
 }
 
-private immutable(Type) instantiateTypeNoDelay(Alloc)(
+private immutable(Type) instantiateTypeNoDelay(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable Type type,
@@ -133,15 +134,7 @@ private immutable(Type) instantiateTypeNoDelay(Alloc)(
 	return instantiateType(alloc, programState, type, typeParamsAndArgs, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }
 
-private immutable(Type) instantiateType(Alloc)(
-	ref Alloc alloc,
-	ref immutable Type type,
-	ref immutable StructInst structInst,
-) {
-	return instantiateType(alloc, type, TypeParamsAndArgs(structInst.decl.typeParams, structInst.typeArgs));
-}
-
-immutable(Ptr!FunInst) instantiateFun(Alloc)(
+immutable(Ptr!FunInst) instantiateFun(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable FunDeclAndArgs declAndArgs,
@@ -160,7 +153,7 @@ immutable(Ptr!FunInst) instantiateFun(Alloc)(
 				immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs))));
 }
 
-immutable(StructBody) instantiateStructBody(Alloc)(
+immutable(StructBody) instantiateStructBody(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable StructDeclAndArgs declAndArgs,
@@ -195,7 +188,7 @@ immutable(StructBody) instantiateStructBody(Alloc)(
 						: it))));
 }
 
-immutable(Ptr!StructInst) instantiateStruct(Alloc)(
+immutable(Ptr!StructInst) instantiateStruct(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable StructDeclAndArgs declAndArgs,
@@ -225,14 +218,14 @@ immutable(Ptr!StructInst) instantiateStruct(Alloc)(
 		else {
 			// We should only need to do this in the initial phase of settings struct bodies,
 			// which is when delayedStructInst is set.
-			push!(Ptr!StructInst, Alloc)(alloc, force(delayStructInsts).deref, res.value);
+			push!(Ptr!StructInst)(alloc, force(delayStructInsts).deref, res.value);
 		}
 	}
 
 	return castImmutable(res.value);
 }
 
-private immutable(Ptr!StructInst) instantiateStructInst(Alloc)(
+private immutable(Ptr!StructInst) instantiateStructInst(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Ptr!StructInst structInst,
@@ -247,7 +240,7 @@ private immutable(Ptr!StructInst) instantiateStructInst(Alloc)(
 		alloc, programState, immutable StructDeclAndArgs(decl(structInst), itsTypeArgs), delayStructInsts);
 }
 
-private immutable(Ptr!StructInst) instantiateStructInst(Alloc)(
+private immutable(Ptr!StructInst) instantiateStructInst(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Ptr!StructInst structInst,
@@ -259,7 +252,7 @@ private immutable(Ptr!StructInst) instantiateStructInst(Alloc)(
 	return instantiateStructInst(alloc, programState, structInst, ta, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }
 
-immutable(Ptr!StructInst) instantiateStructNeverDelay(Alloc)(
+immutable(Ptr!StructInst) instantiateStructNeverDelay(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable StructDeclAndArgs declAndArgs,
@@ -267,19 +260,19 @@ immutable(Ptr!StructInst) instantiateStructNeverDelay(Alloc)(
 	return instantiateStruct(alloc, programState, declAndArgs, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }
 
-immutable(Ptr!StructInst) makeNamedValType(Alloc)(
+immutable(Ptr!StructInst) makeNamedValType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable CommonTypes commonTypes,
 	immutable Type valueType,
 ) {
-	return instantiateStructNeverDelay!Alloc(
+	return instantiateStructNeverDelay(
 		alloc,
 		programState,
 		immutable StructDeclAndArgs(commonTypes.namedVal, arrLiteral!Type(alloc, [valueType])));
 }
 
-immutable(Ptr!StructInst) makeArrayType(Alloc)(
+immutable(Ptr!StructInst) makeArrayType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable CommonTypes commonTypes,
@@ -291,7 +284,7 @@ immutable(Ptr!StructInst) makeArrayType(Alloc)(
 		immutable StructDeclAndArgs(commonTypes.arr, arrLiteral!Type(alloc, [elementType])));
 }
 
-immutable(Ptr!SpecInst) instantiateSpec(Alloc)(
+immutable(Ptr!SpecInst) instantiateSpec(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable SpecDeclAndArgs declAndArgs,
@@ -313,7 +306,7 @@ immutable(Ptr!SpecInst) instantiateSpec(Alloc)(
 							immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs)))))));
 }
 
-immutable(Ptr!SpecInst) instantiateSpecInst(Alloc)(
+immutable(Ptr!SpecInst) instantiateSpecInst(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Ptr!SpecInst specInst,
@@ -327,7 +320,7 @@ immutable(Ptr!SpecInst) instantiateSpecInst(Alloc)(
 
 private:
 
-immutable(Sig) instantiateSig(Alloc)(
+immutable(Sig) instantiateSig(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable Sig sig,
@@ -347,7 +340,7 @@ immutable(Sig) instantiateSig(Alloc)(
 	return immutable Sig(sig.fileAndPos, sig.name, returnType, params);
 }
 
-immutable(Param) instantiateParam(Alloc)(
+immutable(Param) instantiateParam(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable TypeParamsAndArgs typeParamsAndArgs,

@@ -4,7 +4,7 @@ module interpret.fakeExtern;
 
 import interpret.allocTracker : AllocTracker, hasAllocedPtr, markAlloced, markFree, writeMarkedAllocedRanges;
 import interpret.bytecode : DynCallType, TimeSpec;
-import util.alloc.alloc : allocateBytes, freeBytes;
+import util.alloc.alloc : Alloc, allocateBytes, freeBytes;
 import util.collection.mutArr : clear, moveToArr, MutArr, pushAll;
 import util.ptr : Ptr, PtrRange;
 import util.sym : Sym;
@@ -12,7 +12,7 @@ import util.types : Nat64;
 import util.util : todo, verify;
 import util.writer : Writer;
 
-struct FakeExtern(Alloc) {
+struct FakeExtern {
 	@safe @nogc pure nothrow:
 
 	@disable this(ref const FakeExtern);
@@ -57,7 +57,7 @@ struct FakeExtern(Alloc) {
 	@trusted immutable(long) write(int fd, immutable char* buf, immutable size_t nBytes) {
 		immutable char[] arr = buf[0 .. nBytes];
 		verify(fd == 1 || fd == 2);
-		pushAll!(char, Alloc)(alloc.deref(), fd == 1 ? stdout : stderr, arr);
+		pushAll!char(alloc.deref(), fd == 1 ? stdout : stderr, arr);
 		return nBytes;
 	}
 
@@ -78,7 +78,7 @@ struct FakeExtern(Alloc) {
 		return hasAllocedPtr(allocTracker, range);
 	}
 
-	@trusted void writeMallocedRanges(WriterAlloc)(ref Writer!WriterAlloc writer) const {
+	@trusted void writeMallocedRanges(ref Writer writer) const {
 		writeMarkedAllocedRanges(writer, allocTracker);
 	}
 
@@ -92,6 +92,6 @@ struct FakeExtern(Alloc) {
 	}
 }
 
-FakeExtern!Alloc newFakeExtern(Alloc)(Ptr!Alloc alloc) {
-	return FakeExtern!Alloc(alloc);
+FakeExtern newFakeExtern(Ptr!Alloc alloc) {
+	return FakeExtern(alloc);
 }

@@ -12,9 +12,9 @@ import util.sym : Sym, writeSym, writeSymAndGetSize;
 import util.util : repeat, todo;
 import util.writer : writeChar, writeNat, Writer, writeStatic, writeStr;
 
-private void writePath(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+private void writePath(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	immutable Path p,
 ) {
 	immutable Opt!Path par = parent(allPaths, p);
@@ -25,9 +25,9 @@ private void writePath(Alloc, PathAlloc)(
 	writeStr(writer, baseName(allPaths, p));
 }
 
-void writePathRelativeToCwd(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+void writePathRelativeToCwd(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	immutable string cwd,
 	ref immutable AbsolutePath path,
 ) {
@@ -46,9 +46,9 @@ void writePathRelativeToCwd(Alloc, PathAlloc)(
 	writeStr(writer, path.extension);
 }
 
-void writeRelPath(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+void writeRelPath(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable RelPath p,
 ) {
 	repeat(nParents(p).raw(), {
@@ -57,26 +57,26 @@ void writeRelPath(Alloc, PathAlloc)(
 	writePath(writer, allPaths, p.path);
 }
 
-void writePathAndStorageKind(Alloc, PathAlloc)(
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+void writePathAndStorageKind(
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable PathAndStorageKind p,
 ) {
 	writePath(writer, allPaths, p.path);
 }
 
-private void writeLineAndColumn(Alloc)(ref Writer!Alloc writer, immutable LineAndColumn lc) {
+private void writeLineAndColumn(ref Writer writer, immutable LineAndColumn lc) {
 	writeNat(writer, lc.line + 1);
 	writeChar(writer, ':');
 	writeNat(writer, lc.column + 1);
 }
 
-void writePos(Alloc)(ref Writer!Alloc writer, ref immutable LineAndColumnGetter lc, immutable Pos pos) {
+void writePos(ref Writer writer, ref immutable LineAndColumnGetter lc, immutable Pos pos) {
 	writeLineAndColumn(writer, lineAndColumnAtPos(lc, pos));
 }
 
-void writeRangeWithinFile(Alloc)(
-	ref Writer!Alloc writer,
+void writeRangeWithinFile(
+	ref Writer writer,
 	ref immutable LineAndColumnGetter lc,
 	immutable RangeWithinFile range,
 ) {
@@ -85,7 +85,7 @@ void writeRangeWithinFile(Alloc)(
 	writePos(writer, lc, range.end);
 }
 
-void showChar(Alloc)(ref Writer!Alloc writer, immutable char c) {
+void showChar(ref Writer writer, immutable char c) {
 	switch (c) {
 		case '\0':
 			writeStatic(writer, "\\0");
@@ -102,28 +102,28 @@ void showChar(Alloc)(ref Writer!Alloc writer, immutable char c) {
 	}
 }
 
-void writeName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
+void writeName(ref Writer writer, immutable Sym name) {
 	writeChar(writer, '\'');
 	writeSym(writer, name);
 	writeChar(writer, '\'');
 }
 
-void writeNl(Alloc)(ref Writer!Alloc writer) {
+void writeNl(ref Writer writer) {
 	writeChar(writer, '\n');
 }
 
-void writeSpaces(Alloc)(ref Writer!Alloc writer, immutable size_t nSpaces) {
+void writeSpaces(ref Writer writer, immutable size_t nSpaces) {
 	repeat(nSpaces, {
 		writeChar(writer, ' ');
 	});
 }
 
-void writeNlIndent(Alloc)(ref Writer!Alloc writer) {
+void writeNlIndent(ref Writer writer) {
 	writeNl(writer);
 	writeSpaces(writer, 2);
 }
 
-void writeSymPadded(Alloc)(ref Writer!Alloc writer, immutable Sym name, immutable size_t size) {
+void writeSymPadded(ref Writer writer, immutable Sym name, immutable size_t size) {
 	immutable size_t symSize = writeSymAndGetSize(writer, name);
 	if (symSize >= size) todo!void("??");
 	writeSpaces(writer, size - symSize);

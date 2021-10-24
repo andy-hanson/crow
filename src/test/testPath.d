@@ -8,8 +8,8 @@ import util.comparison : Comparison;
 import util.path : childPath, comparePath, AllPaths, Path, pathToStr, rootPath;
 import util.util : verify;
 
-void testPath(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	AllPaths!Alloc allPaths = AllPaths!Alloc(test.alloc);
+void testPath(Debug)(ref Test!Debug test) {
+	AllPaths allPaths = AllPaths(test.alloc);
 	immutable Path a = rootPath(allPaths, "a");
 	immutable Path b = rootPath(allPaths, "b");
 	verify(comparePath(a, a) == Comparison.equal);

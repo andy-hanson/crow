@@ -31,6 +31,7 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam;
+import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr : at, emptyArr, emptyArr_mut, setAt, size, sizeEq;
 import util.collection.arrUtil : map, mapOrNone, mapZipOrNone;
@@ -41,7 +42,7 @@ import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : FileAndRange, RangeWithinFile;
 import util.util : verify;
 
-immutable(Ptr!Expr) allocExpr(Alloc)(ref Alloc alloc, immutable Expr e) {
+immutable(Ptr!Expr) allocExpr(ref Alloc alloc, immutable Expr e) {
 	return allocate!Expr(alloc, e);
 }
 
@@ -94,7 +95,7 @@ ref ProgramState programState(return scope ref ExprCtx ctx) {
 	return ctx.checkCtx.deref.programState.deref;
 }
 
-void addDiag2(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable FileAndRange range, immutable Diag diag) {
+void addDiag2(ref Alloc alloc, ref ExprCtx ctx, immutable FileAndRange range, immutable Diag diag) {
 	addDiag(alloc, ctx.checkCtx.deref, range, diag);
 }
 
@@ -102,17 +103,17 @@ ref immutable(ProgramState) programState(return scope ref immutable ExprCtx ctx)
 	return ctx.checkCtx.programState;
 }
 
-immutable(Type[]) typeArgsFromAsts(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst[] typeAsts) {
+immutable(Type[]) typeArgsFromAsts(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst[] typeAsts) {
 	return map!Type(alloc, typeAsts, (ref immutable TypeAst it) =>
 		typeFromAstInner(alloc, ctx, it));
 }
 
-immutable(Opt!Type) typeFromOptAst(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable OptPtr!TypeAst ast) {
+immutable(Opt!Type) typeFromOptAst(ref Alloc alloc, ref ExprCtx ctx, immutable OptPtr!TypeAst ast) {
 	immutable Opt!(Ptr!TypeAst) opt = toOpt(ast);
 	return has(opt) ? some(typeFromAstInner(alloc, ctx, force(opt))) : none!Type;
 }
 
-private immutable(Type) typeFromAstInner(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst ast) {
+private immutable(Type) typeFromAstInner(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst ast) {
 	return typeFromAst(
 		alloc,
 		ctx.checkCtx.deref,
@@ -169,7 +170,7 @@ struct CheckedExpr {
 }
 
 // Inferring type args are in 'a', not 'b'
-immutable(bool) matchTypesNoDiagnostic(Alloc)(
+immutable(bool) matchTypesNoDiagnostic(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable Type expectedType,
@@ -229,7 +230,7 @@ immutable(Opt!Type) shallowInstantiateType(ref const Expected expected) {
 		return t;
 }
 
-immutable(Opt!Type) tryGetDeeplyInstantiatedTypeFor(Alloc)(
+immutable(Opt!Type) tryGetDeeplyInstantiatedTypeFor(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref const Expected expected,
@@ -238,7 +239,7 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeFor(Alloc)(
 	return tryGetDeeplyInstantiatedTypeWorker(alloc, programState, t, expected.inferringTypeArgs);
 }
 
-immutable(Opt!Type) tryGetDeeplyInstantiatedType(Alloc)(
+immutable(Opt!Type) tryGetDeeplyInstantiatedType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref const Expected expected,
@@ -259,7 +260,7 @@ immutable(Type) inferred(ref const Expected expected) {
 	return force(opt);
 }
 
-immutable(CheckedExpr) check(Alloc)(
+immutable(CheckedExpr) check(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref Expected expected,
@@ -277,7 +278,7 @@ immutable(CheckedExpr) check(Alloc)(
 }
 
 // Note: this may infer type parameters
-private immutable(bool) setTypeNoDiagnostic(Alloc)(
+private immutable(bool) setTypeNoDiagnostic(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref Expected expected,
@@ -360,7 +361,7 @@ struct SetTypeResult {
 	}
 }
 
-immutable(SetTypeResult) checkAssignabilityForStructInstsWithSameDecl(Alloc)(
+immutable(SetTypeResult) checkAssignabilityForStructInstsWithSameDecl(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Ptr!StructDecl decl,
@@ -372,7 +373,7 @@ immutable(SetTypeResult) checkAssignabilityForStructInstsWithSameDecl(Alloc)(
 	// If all passed, return Keep.
 	// Else, return Fail.
 	bool someIsSet = false;
-	immutable Opt!(Type[]) newTypeArgs = mapZipOrNone!(Type, Type, Type, Alloc)(
+	immutable Opt!(Type[]) newTypeArgs = mapZipOrNone!(Type, Type, Type)(
 		alloc,
 		as,
 		bs,
@@ -400,7 +401,7 @@ immutable(SetTypeResult) checkAssignabilityForStructInstsWithSameDecl(Alloc)(
 		: immutable SetTypeResult(SetTypeResult.Fail());
 }
 
-immutable(SetTypeResult) setTypeNoDiagnosticWorker_forStructInst(Alloc)(
+immutable(SetTypeResult) setTypeNoDiagnosticWorker_forStructInst(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Ptr!StructInst a,
@@ -410,13 +411,13 @@ immutable(SetTypeResult) setTypeNoDiagnosticWorker_forStructInst(Alloc)(
 	// Handling a union expected type is done in Expected::check
 	// TODO: but it's done here to for case of call return type ...
 	if (ptrEquals(a.decl, b.decl))
-		return checkAssignabilityForStructInstsWithSameDecl!Alloc(
+		return checkAssignabilityForStructInstsWithSameDecl(
 			alloc, programState, a.decl, a.typeArgs, b.typeArgs, aInferringTypeArgs);
 	else
 		return SetTypeResult(SetTypeResult.Fail());
 }
 
-immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(Alloc)(
+immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable Type t,
@@ -443,7 +444,7 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(Alloc)(
 		});
 }
 
-immutable(SetTypeResult) checkAssignabilityOpt(Alloc)(
+immutable(SetTypeResult) checkAssignabilityOpt(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Opt!Type a,
@@ -455,7 +456,7 @@ immutable(SetTypeResult) checkAssignabilityOpt(Alloc)(
 		: immutable SetTypeResult(immutable SetTypeResult.Set(b));
 }
 
-immutable(SetTypeResult) setTypeNoDiagnosticWorker_forSingleInferringType(Alloc)(
+immutable(SetTypeResult) setTypeNoDiagnosticWorker_forSingleInferringType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref SingleInferringType sit,
@@ -479,7 +480,7 @@ immutable(SetTypeResult) setTypeNoDiagnosticWorker_forSingleInferringType(Alloc)
 // 'a' may contain type parameters from inferringTypeArgs. We'll infer those here.
 // If 'allowConvertAToBUnion' is set, if 'b' is a union type and 'a' is a member, we'll set it to the union.
 // When matching a type, we may fill in type parameters, so we may want to set a new more specific expected type.
-immutable(SetTypeResult) checkAssignability(Alloc)(
+immutable(SetTypeResult) checkAssignability(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable Type a,

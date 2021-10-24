@@ -12,7 +12,7 @@ import lib.server :
 	RunResult,
 	Server,
 	StrParseDiagnostic;
-import util.alloc.alloc : allocateBytes;
+import util.alloc.alloc : Alloc, allocateBytes;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.collection.arr : size;
 import util.collection.str : CStr, strToCStr;
@@ -51,12 +51,12 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	return cast(ubyte*) globalBuffer.ptr;
 }
 
-@system extern(C) Server!RangeAlloc* newServer(
+@system extern(C) Server* newServer(
 	ubyte* allocStart,
 	immutable size_t allocLength,
 ) {
 	RangeAlloc alloc = RangeAlloc(allocStart, allocLength);
-	Server!RangeAlloc* ptr = cast(Server!RangeAlloc*) allocateBytes(alloc, (Server!RangeAlloc).sizeof);
+	Server* ptr = cast(Server*) allocateBytes(alloc, Server.sizeof);
 	ptr.__ctor(alloc.move());
 	return ptr;
 }
@@ -64,7 +64,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 @system extern(C) void addOrChangeFile(
 	char* debugStart,
 	immutable size_t debugLength,
-	Server!RangeAlloc* server,
+	Server* server,
 	immutable StorageKind storageKind,
 	immutable char* pathStart,
 	immutable size_t pathLength,
@@ -78,7 +78,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 }
 
 @system extern(C) void deleteFile(
-	Server!RangeAlloc* server,
+	Server* server,
 	immutable StorageKind storageKind,
 	immutable char* pathStart,
 	immutable size_t pathLength,
@@ -87,7 +87,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 }
 
 @system extern(C) immutable(CStr) getFile(
-	Server!RangeAlloc* server,
+	Server* server,
 	immutable StorageKind storageKind,
 	immutable char* pathStart,
 	immutable size_t pathLength,
@@ -97,7 +97,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 
 @system extern(C) immutable(CStr) getTokens(
 	ubyte* resultStart, immutable size_t resultLength,
-	Server!RangeAlloc* server,
+	Server* server,
 	immutable StorageKind storageKind,
 	immutable char* pathStart, immutable size_t pathLength,
 ) {
@@ -110,7 +110,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 @system extern(C) immutable(CStr) getParseDiagnostics(
 	ubyte* resultStart,
 	immutable size_t resultLength,
-	Server!RangeAlloc* server,
+	Server* server,
 	immutable StorageKind storageKind,
 	immutable char* pathStart,
 	immutable size_t pathLength,
@@ -127,7 +127,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable size_t resultLength,
 	char* debugStart,
 	immutable size_t debugLength,
-	Server!RangeAlloc* server,
+	Server* server,
 	immutable StorageKind storageKind,
 	immutable char* pathStart,
 	immutable size_t pathLength,
@@ -145,7 +145,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable size_t resultLength,
 	char* debugStart,
 	immutable size_t debugLength,
-	Server!RangeAlloc* server,
+	Server* server,
 	immutable char* pathStart,
 	immutable size_t pathLength,
 ) {
@@ -161,7 +161,7 @@ private:
 // Almost 2GB (which is size limit for a global array)
 ulong[2047 * 1024 * 1024 / ulong.sizeof] globalBuffer;
 
-immutable(Repr) reprParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable StrParseDiagnostic[] a) {
+immutable(Repr) reprParseDiagnostics(ref Alloc alloc, ref immutable StrParseDiagnostic[] a) {
 	return reprArr(alloc, a, (ref immutable StrParseDiagnostic it) =>
 		reprNamedRecord(alloc, "diagnostic", [
 			nameAndRepr("range", reprRangeWithinFile(alloc, it.range)),
@@ -214,8 +214,8 @@ struct WasmDebug {
 	char* ptr;
 }
 
-immutable(CStr) writeRunResult(Alloc)(ref Alloc alloc, ref immutable RunResult result) {
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+immutable(CStr) writeRunResult(ref Alloc alloc, ref immutable RunResult result) {
+	Writer writer = Writer(ptrTrustMe_mut(alloc));
 	writeStatic(writer, "{\"err\":");
 	writeNat(writer, result.err.value);
 	writeStatic(writer, ",\"stdout\":");

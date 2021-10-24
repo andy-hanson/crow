@@ -4,10 +4,11 @@ module model.reprConstant;
 
 import model.concreteModel : name;
 import model.constant : Constant, matchConstant;
+import util.alloc.alloc : Alloc;
 import util.sym : Sym;
 import util.repr : Repr, reprArr, reprBool, reprFloat, reprNat, reprOpt, reprRecord, reprSym;
 
-immutable(Repr) reprOfConstant(Alloc)(ref Alloc alloc, ref immutable Constant a) {
+immutable(Repr) reprOfConstant(ref Alloc alloc, ref immutable Constant a) {
 	return matchConstant!(immutable Repr)(
 		a,
 		(ref immutable Constant.ArrConstant it) =>

@@ -20,6 +20,7 @@ import model.lowModel :
 	LowType,
 	name,
 	PrimitiveType;
+import util.alloc.alloc : Alloc;
 import util.collection.arr : at, size;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate, nu;
@@ -42,7 +43,7 @@ private immutable LowType anyPtrConstType =
 immutable LowType anyPtrMutType = immutable LowType(immutable LowType.PtrRawMut(immutable Ptr!LowType(&nat8Type)));
 immutable LowType voidType = immutable LowType(PrimitiveType.void_);
 
-immutable(LowExpr) genAddPtr(Alloc)(
+immutable(LowExpr) genAddPtr(
 	ref Alloc alloc,
 	immutable LowType.PtrRawConst ptrType,
 	ref immutable FileAndRange range,
@@ -58,7 +59,7 @@ immutable(LowExpr) genAddPtr(Alloc)(
 			allocate(alloc, added))));
 }
 
-immutable(LowExpr) genAsAnyPtrConst(Alloc)(ref Alloc alloc, ref immutable FileAndRange range, ref immutable LowExpr a) {
+immutable(LowExpr) genAsAnyPtrConst(ref Alloc alloc, ref immutable FileAndRange range, ref immutable LowExpr a) {
 	return immutable LowExpr(
 		anyPtrConstType,
 		range,
@@ -67,7 +68,7 @@ immutable(LowExpr) genAsAnyPtrConst(Alloc)(ref Alloc alloc, ref immutable FileAn
 			allocate(alloc, a))));
 }
 
-immutable(LowExpr) genDrop(Alloc)(
+immutable(LowExpr) genDrop(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref immutable LowExpr a,
@@ -83,7 +84,7 @@ immutable(LowExpr) genDrop(Alloc)(
 			allocate(alloc, genVoid(range)))));
 }
 
-private immutable(LowExpr) genDerefGcOrRawPtr(Alloc)(
+private immutable(LowExpr) genDerefGcOrRawPtr(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	immutable LowExpr ptr,
@@ -91,15 +92,15 @@ private immutable(LowExpr) genDerefGcOrRawPtr(Alloc)(
 	return genUnary(alloc, range, asGcOrRawPointee(ptr.type), LowExprKind.SpecialUnary.Kind.deref, ptr);
 }
 
-immutable(LowExpr) genDerefGcPtr(Alloc)(ref Alloc alloc, ref immutable FileAndRange range, immutable LowExpr ptr) {
+immutable(LowExpr) genDerefGcPtr(ref Alloc alloc, ref immutable FileAndRange range, immutable LowExpr ptr) {
 	return genDerefGcOrRawPtr(alloc, range, ptr);
 }
 
-immutable(LowExpr) genDerefRawPtr(Alloc)(ref Alloc alloc, ref immutable FileAndRange range, immutable LowExpr ptr) {
+immutable(LowExpr) genDerefRawPtr(ref Alloc alloc, ref immutable FileAndRange range, immutable LowExpr ptr) {
 	return genDerefGcOrRawPtr(alloc, range, ptr);
 }
 
-private immutable(LowExpr) genUnary(Alloc)(
+private immutable(LowExpr) genUnary(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	immutable LowType type,
@@ -112,7 +113,7 @@ private immutable(LowExpr) genUnary(Alloc)(
 		immutable LowExprKind(immutable LowExprKind.SpecialUnary(kind, allocate(alloc, arg))));
 }
 
-immutable(LowExpr) genIf(Alloc)(
+immutable(LowExpr) genIf(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	immutable LowExpr cond,
@@ -130,7 +131,7 @@ immutable(LowExpr) genIf(Alloc)(
 			allocate(alloc, else_))));
 }
 
-immutable(LowExpr) incrPointer(Alloc)(
+immutable(LowExpr) incrPointer(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref immutable LowType.PtrRawConst ptrType,
@@ -149,7 +150,7 @@ immutable(LowExpr) constantNat64(
 		immutable LowExprKind(immutable Constant(immutable Constant.Integral(value))));
 }
 
-immutable(LowExpr) genTailRecur(Alloc)(
+immutable(LowExpr) genTailRecur(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	immutable LowType returnType,
@@ -158,7 +159,7 @@ immutable(LowExpr) genTailRecur(Alloc)(
 	return immutable LowExpr(returnType, range, immutable LowExprKind(immutable LowExprKind.TailRecur(args)));
 }
 
-immutable(LowExpr) genCall(Alloc)(
+immutable(LowExpr) genCall(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	immutable LowFunIndex called,
@@ -175,7 +176,7 @@ immutable(LowExpr) getSizeOf(immutable FileAndRange range, immutable LowType t) 
 	return immutable LowExpr(nat64Type, range, immutable LowExprKind(immutable LowExprKind.SizeOf(t)));
 }
 
-immutable(LowExpr) localRef(Alloc)(ref Alloc alloc, ref immutable FileAndRange range, immutable Ptr!LowLocal local) {
+immutable(LowExpr) localRef(ref Alloc alloc, ref immutable FileAndRange range, immutable Ptr!LowLocal local) {
 	return immutable LowExpr(local.type, range, immutable LowExprKind(immutable LowExprKind.LocalRef(local)));
 }
 
@@ -196,7 +197,7 @@ immutable(LowExpr) paramRef(
 		immutable LowExprKind(immutable LowExprKind.ParamRef(param)));
 }
 
-immutable(LowExpr) wrapMulNat64(Alloc)(
+immutable(LowExpr) wrapMulNat64(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	immutable LowExpr left,
@@ -211,7 +212,7 @@ immutable(LowExpr) wrapMulNat64(Alloc)(
 			allocate(alloc, right))));
 }
 
-immutable(LowExpr) genPtrEq(Alloc)(
+immutable(LowExpr) genPtrEq(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref immutable LowExpr a,
@@ -223,7 +224,7 @@ immutable(LowExpr) genPtrEq(Alloc)(
 		allocate(alloc, b))));
 }
 
-immutable(LowExprKind) genEnumEq(Alloc)(ref Alloc alloc, immutable LowExpr a, immutable LowExpr b) {
+immutable(LowExprKind) genEnumEq(ref Alloc alloc, immutable LowExpr a, immutable LowExpr b) {
 	verify(asPrimitive(a.type) == asPrimitive(b.type));
 	return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
 		eqForType(asPrimitive(a.type)),
@@ -231,13 +232,13 @@ immutable(LowExprKind) genEnumEq(Alloc)(ref Alloc alloc, immutable LowExpr a, im
 		allocate(alloc, b)));
 }
 
-immutable(LowExprKind) genBitwiseNegate(Alloc)(ref Alloc alloc, immutable LowExpr a) {
+immutable(LowExprKind) genBitwiseNegate(ref Alloc alloc, immutable LowExpr a) {
 	return immutable LowExprKind(immutable LowExprKind.SpecialUnary(
 		bitwiseNegateForType(asPrimitive(a.type)),
 		allocate(alloc, a)));
 }
 
-immutable(LowExprKind) genEnumIntersect(Alloc)(ref Alloc alloc, immutable LowExpr a, immutable LowExpr b) {
+immutable(LowExprKind) genEnumIntersect(ref Alloc alloc, immutable LowExpr a, immutable LowExpr b) {
 	verify(asPrimitive(a.type) == asPrimitive(b.type));
 	return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
 		intersectForType(asPrimitive(a.type)),
@@ -245,7 +246,7 @@ immutable(LowExprKind) genEnumIntersect(Alloc)(ref Alloc alloc, immutable LowExp
 		allocate(alloc, b)));
 }
 
-immutable(LowExprKind) genEnumUnion(Alloc)(ref Alloc alloc, immutable LowExpr a, immutable LowExpr b) {
+immutable(LowExprKind) genEnumUnion(ref Alloc alloc, immutable LowExpr a, immutable LowExpr b) {
 	verify(asPrimitive(a.type) == asPrimitive(b.type));
 	return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
 		unionForType(asPrimitive(a.type)),
@@ -357,13 +358,13 @@ private immutable(LowExprKind.SpecialBinary.Kind) unionForType(immutable Primiti
 	}
 }
 
-immutable(LowExprKind) genEnumToIntegral(Alloc)(ref Alloc alloc, immutable LowExpr inner) {
+immutable(LowExprKind) genEnumToIntegral(ref Alloc alloc, immutable LowExpr inner) {
 	return immutable LowExprKind(immutable LowExprKind.SpecialUnary(
 		LowExprKind.SpecialUnary.Kind.enumToIntegral,
 		allocate(alloc, inner)));
 }
 
-immutable(LowExpr) ptrCast(Alloc)(
+immutable(LowExpr) ptrCast(
 	ref Alloc alloc,
 	immutable LowType type,
 	ref immutable FileAndRange range,
@@ -372,11 +373,11 @@ immutable(LowExpr) ptrCast(Alloc)(
 	return immutable LowExpr(type, range, ptrCastKind(alloc, inner));
 }
 
-immutable(LowExprKind) ptrCastKind(Alloc)(ref Alloc alloc, immutable LowExpr inner) {
+immutable(LowExprKind) ptrCastKind(ref Alloc alloc, immutable LowExpr inner) {
 	return immutable LowExprKind(immutable LowExprKind.PtrCast(allocate(alloc, inner)));
 }
 
-immutable(LowExpr) recordFieldGet(Alloc)(
+immutable(LowExpr) recordFieldGet(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref immutable LowExpr target,
@@ -389,7 +390,7 @@ immutable(LowExpr) recordFieldGet(Alloc)(
 			fieldIndex)));
 }
 
-immutable(LowExpr) seq(Alloc)(
+immutable(LowExpr) seq(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	immutable LowExpr first,
@@ -401,7 +402,7 @@ immutable(LowExpr) seq(Alloc)(
 		immutable LowExprKind(immutable LowExprKind.Seq(allocate(alloc, first), allocate(alloc, then))));
 }
 
-immutable(LowExpr) writeToPtr(Alloc)(
+immutable(LowExpr) writeToPtr(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref immutable LowExpr ptr,
@@ -418,7 +419,7 @@ immutable(LowExpr) genVoid(ref immutable FileAndRange source) {
 	return immutable LowExpr(voidType, source, immutable LowExprKind(immutable Constant(immutable Constant.Void())));
 }
 
-immutable(Ptr!LowLocal) genLocal(Alloc)(
+immutable(Ptr!LowLocal) genLocal(
 	ref Alloc alloc,
 	immutable Sym name,
 	immutable ubyte index,
@@ -427,7 +428,7 @@ immutable(Ptr!LowLocal) genLocal(Alloc)(
 	return nu!LowLocal(alloc, immutable LowLocalSource(immutable LowLocalSource.Generated(name, index)), type);
 }
 
-immutable(LowExpr) genGetArrSize(Alloc)(
+immutable(LowExpr) genGetArrSize(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref immutable LowExpr arr,
@@ -435,7 +436,7 @@ immutable(LowExpr) genGetArrSize(Alloc)(
 	return recordFieldGet(alloc, range, arr, nat64Type, 0);
 }
 
-immutable(LowExpr) genGetArrData(Alloc)(
+immutable(LowExpr) genGetArrData(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref immutable LowExpr arr,

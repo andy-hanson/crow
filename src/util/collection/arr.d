@@ -2,7 +2,7 @@ module util.collection.arr;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : freeBytes;
+import util.alloc.alloc : Alloc, freeBytes;
 import util.ptr : Ptr;
 import util.memory : overwriteMemory;
 import util.types : NatN, Nat64;
@@ -25,7 +25,7 @@ struct ArrWithSize(T) {
 	return immutable ArrWithSize!T(cast(immutable ubyte*) &zero);
 }
 
-@system void freeArr(Alloc, T)(ref Alloc alloc, immutable T[] a) {
+@system void freeArr(T)(ref Alloc alloc, immutable T[] a) {
 	freeBytes(alloc, cast(ubyte*) begin(a), size(a) * T.sizeof);
 }
 

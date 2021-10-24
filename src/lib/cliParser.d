@@ -2,6 +2,7 @@ module lib.cliParser;
 
 import frontend.lang : crowExtension;
 import lib.compiler : PrintFormat, PrintKind;
+import util.alloc.alloc : Alloc;
 import util.collection.arr : at, empty, emptyArr, first, only, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : findIndex, foldOrStop, tail;
@@ -154,9 +155,9 @@ struct ProgramDirAndMain {
 	immutable Path mainPath;
 }
 
-immutable(Command) parseCommand(Alloc, PathAlloc)(
+immutable(Command) parseCommand(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string[] args,
 ) {
@@ -201,9 +202,9 @@ immutable(bool) isHelp(immutable string a) {
 	return isSpecialArg(a, "help");
 }
 
-immutable(Command) useProgramDirAndMain(Alloc, PathAlloc)(
+immutable(Command) useProgramDirAndMain(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string arg,
 	scope immutable(Command) delegate(ref immutable ProgramDirAndMain) @safe pure @nogc nothrow cb,
@@ -214,9 +215,9 @@ immutable(Command) useProgramDirAndMain(Alloc, PathAlloc)(
 		: immutable Command(immutable Command.Help("Invalid path", Command.Help.Kind.error));
 }
 
-immutable(Opt!ProgramDirAndMain) parseProgramDirAndMain(Alloc, PathAlloc)(
+immutable(Opt!ProgramDirAndMain) parseProgramDirAndMain(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string arg,
 ) {
@@ -231,9 +232,9 @@ struct FormatAndPath {
 	immutable string path;
 }
 
-immutable(Command) parsePrintCommand(Alloc, PathAlloc)(
+immutable(Command) parsePrintCommand(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string[] args,
 ) {
@@ -272,9 +273,9 @@ immutable(PrintKind) parsePrintKind(immutable string a) {
 		: todo!(immutable PrintKind)("parsePrintKind");
 }
 
-immutable(Command) parseDocumentCommand(Alloc, PathAlloc)(
+immutable(Command) parseDocumentCommand(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string[] args,
 ) {
@@ -296,9 +297,9 @@ immutable(Command) parseDocumentCommand(Alloc, PathAlloc)(
 			});
 }
 
-immutable(Command) parseBuildCommand(Alloc, PathAlloc)(
+immutable(Command) parseBuildCommand(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	ref immutable string cwd,
 	ref immutable string[] args,
 ) {
@@ -319,9 +320,9 @@ immutable(Command) parseBuildCommand(Alloc, PathAlloc)(
 			});
 }
 
-immutable(Command) parseRunCommand(Alloc, PathAlloc)(
+immutable(Command) parseRunCommand(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string[] args,
 ) {
@@ -342,9 +343,9 @@ immutable(Command) parseRunCommand(Alloc, PathAlloc)(
 	}
 }
 
-immutable(Opt!RunOptions) parseRunOptions(Alloc, PathAlloc)(
+immutable(Opt!RunOptions) parseRunOptions(
 	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable ArgsPart[] argParts,
 ) {
@@ -376,8 +377,8 @@ immutable(Opt!RunOptions) parseRunOptions(Alloc, PathAlloc)(
 }
 
 // none for error, some(none) for nothing passed
-immutable(Opt!(Opt!AbsolutePath)) parseDocumentOut(PathAlloc)(
-	ref AllPaths!PathAlloc allPaths,
+immutable(Opt!(Opt!AbsolutePath)) parseDocumentOut(
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable ArgsPart[] argParts,
 ) {
@@ -393,8 +394,8 @@ immutable(Opt!(Opt!AbsolutePath)) parseDocumentOut(PathAlloc)(
 	}
 }
 
-immutable(Opt!BuildOptions) parseBuildOptions(PathAlloc)(
-	ref AllPaths!PathAlloc allPaths,
+immutable(Opt!BuildOptions) parseBuildOptions(
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable ArgsPart[] argParts,
 	ref immutable ProgramDirAndMain programDirAndMain,
@@ -417,8 +418,8 @@ immutable(Opt!BuildOptions) parseBuildOptions(PathAlloc)(
 	}
 }
 
-immutable(Opt!BuildOut) parseBuildOut(PathAlloc)(
-	ref AllPaths!PathAlloc allPaths,
+immutable(Opt!BuildOut) parseBuildOut(
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string[] args,
 ) {
@@ -452,7 +453,7 @@ struct SplitArgs {
 	immutable string[] afterDashDash;
 }
 
-immutable(SplitArgs) splitArgs(Alloc)(ref Alloc alloc, immutable string[] args) {
+immutable(SplitArgs) splitArgs(ref Alloc alloc, immutable string[] args) {
 	immutable Opt!size_t optFirstArgIndex = findIndex!string(args, (ref immutable string arg) =>
 		startsWith(arg, "--"));
 	if (!has(optFirstArgIndex))
@@ -471,7 +472,7 @@ immutable(SplitArgs) splitArgs(Alloc)(ref Alloc alloc, immutable string[] args) 
 	}
 }
 
-immutable(size_t) splitArgsRecur(Alloc)(
+immutable(size_t) splitArgsRecur(
 	ref Alloc alloc,
 	ref ArrBuilder!ArgsPart parts,
 	immutable string[] args,
@@ -494,7 +495,7 @@ immutable(size_t) splitArgsRecur(Alloc)(
 	}
 }
 
-immutable(Command) parseTestCommand(Alloc)(ref Alloc alloc, immutable string[] args) {
+immutable(Command) parseTestCommand(ref Alloc alloc, immutable string[] args) {
 	if (empty(args))
 		return immutable Command(immutable Command.Test(none!string));
 	else if (size(args) == 1)

@@ -16,7 +16,7 @@ import util.sym : AllSymbols;
 import util.util : verifyFail;
 import util.writer : finishWriter, Writer, writeStatic;
 
-void testTokens(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
+void testTokens(Debug)(ref Test!Debug test) {
 	testOne(test, "", emptyArr!Token);
 
 	testOne(test, testSource, arrLiteral!Token(test.alloc.deref(), [
@@ -42,8 +42,8 @@ void testTokens(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 
 private:
 
-void testOne(Debug, Alloc)(ref Test!(Debug, Alloc) test, immutable string source, immutable Token[] expectedTokens) {
-	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(test.alloc);
+void testOne(Debug)(ref Test!Debug test, immutable string source, immutable Token[] expectedTokens) {
+	AllSymbols allSymbols = AllSymbols(test.alloc);
 	immutable FileAstAndParseDiagnostics ast = parseFile(
 		test.alloc.deref(),
 		test.allPaths,
@@ -51,7 +51,7 @@ void testOne(Debug, Alloc)(ref Test!(Debug, Alloc) test, immutable string source
 		copyToNulTerminatedStr(test.alloc.deref(), source));
 	immutable Token[] tokens = tokensOfAst(test.alloc.deref(), ast.ast);
 	if (!tokensEq(tokens, expectedTokens)) {
-		Writer!Alloc writer = Writer!Alloc(test.alloc);
+		Writer writer = Writer(test.alloc);
 		writeStatic(writer, "expected tokens:\n");
 		writeRepr(writer, reprTokens(test.alloc.deref(), expectedTokens));
 		writeStatic(writer, "\nactual tokens:\n");

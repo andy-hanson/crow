@@ -129,6 +129,7 @@ import model.model :
 	UnionMember,
 	Visibility,
 	visibility;
+import util.alloc.alloc : Alloc;
 import util.collection.arr :
 	ArrWithSize,
 	at,
@@ -206,9 +207,9 @@ struct BootstrapCheck {
 	immutable Ptr!CommonTypes commonTypes;
 }
 
-immutable(BootstrapCheck) checkBootstrap(Alloc, SymAlloc)(
+immutable(BootstrapCheck) checkBootstrap(
 	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
+	ref AllSymbols allSymbols,
 	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
 	immutable PathAndAst pathAndAst,
@@ -228,9 +229,9 @@ immutable(BootstrapCheck) checkBootstrap(Alloc, SymAlloc)(
 			getCommonTypes(alloc, ctx, structsAndAliasesDict, delayedStructInsts));
 }
 
-immutable(Ptr!Module) check(Alloc, SymAlloc)(
+immutable(Ptr!Module) check(
 	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
+	ref AllSymbols allSymbols,
 	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
 	ref immutable ModuleAndNames[] imports,
@@ -270,7 +271,7 @@ immutable(Opt!(Ptr!StructDecl)) getCommonTemplateType(
 		return none!(Ptr!StructDecl);
 }
 
-immutable(Opt!(Ptr!StructInst)) getCommonNonTemplateType(Alloc)(
+immutable(Opt!(Ptr!StructInst)) getCommonNonTemplateType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
@@ -287,7 +288,7 @@ immutable(Opt!(Ptr!StructInst)) getCommonNonTemplateType(Alloc)(
 		: none!(Ptr!StructInst);
 }
 
-immutable(Opt!(Ptr!StructInst)) instantiateNonTemplateStructOrAlias(Alloc)(
+immutable(Opt!(Ptr!StructInst)) instantiateNonTemplateStructOrAlias(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref MutArr!(Ptr!StructInst) delayedStructInsts,
@@ -302,7 +303,7 @@ immutable(Opt!(Ptr!StructInst)) instantiateNonTemplateStructOrAlias(Alloc)(
 			some(instantiateNonTemplateStructDecl(alloc, programState, delayedStructInsts, it)));
 }
 
-immutable(Ptr!StructInst) instantiateNonTemplateStructDeclNeverDelay(Alloc)(
+immutable(Ptr!StructInst) instantiateNonTemplateStructDeclNeverDelay(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Ptr!StructDecl structDecl,
@@ -314,7 +315,7 @@ immutable(Ptr!StructInst) instantiateNonTemplateStructDeclNeverDelay(Alloc)(
 		noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }
 
-immutable(Ptr!StructInst) instantiateNonTemplateStructDecl(Alloc)(
+immutable(Ptr!StructInst) instantiateNonTemplateStructDecl(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref MutArr!(Ptr!StructInst) delayedStructInsts,
@@ -327,7 +328,7 @@ immutable(Ptr!StructInst) instantiateNonTemplateStructDecl(Alloc)(
 		someMut(ptrTrustMe_mut(delayedStructInsts)));
 }
 
-immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
+immutable(Ptr!CommonTypes) getCommonTypes(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
@@ -475,7 +476,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 				funRef4]))]));
 }
 
-immutable(Ptr!StructDecl) bogusStructDecl(Alloc)(ref Alloc alloc, immutable size_t nTypeParameters) {
+immutable(Ptr!StructDecl) bogusStructDecl(ref Alloc alloc, immutable size_t nTypeParameters) {
 	ArrWithSizeBuilder!TypeParam typeParams;
 	immutable FileAndRange fileAndRange = immutable FileAndRange(immutable FileIndex(0), RangeWithinFile.empty);
 	foreach (immutable size_t i; 0 .. nTypeParameters)
@@ -493,7 +494,7 @@ immutable(Ptr!StructDecl) bogusStructDecl(Alloc)(ref Alloc alloc, immutable size
 	return castImmutable(res);
 }
 
-immutable(ArrWithSize!TypeParam) checkTypeParams(Alloc)(
+immutable(ArrWithSize!TypeParam) checkTypeParams(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable ArrWithSize!NameAndRange asts,
@@ -509,7 +510,7 @@ immutable(ArrWithSize!TypeParam) checkTypeParams(Alloc)(
 	return res;
 }
 
-immutable(Params) checkParams(Alloc)(
+immutable(Params) checkParams(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -558,7 +559,7 @@ immutable(Params) checkParams(Alloc)(
 		});
 }
 
-immutable(Param) checkParam(Alloc)(
+immutable(Param) checkParam(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -579,7 +580,7 @@ immutable(Param) checkParam(Alloc)(
 	return immutable Param(rangeInFile(ctx, ast.range), ast.name, type, index);
 }
 
-immutable(Sig) checkSig(Alloc)(
+immutable(Sig) checkSig(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -613,7 +614,7 @@ immutable(SpecBody.Builtin.Kind) getSpecBodyBuiltinKind(immutable Sym name) {
 	}
 }
 
-immutable(SpecBody) checkSpecBody(Alloc)(
+immutable(SpecBody) checkSpecBody(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -628,7 +629,7 @@ immutable(SpecBody) checkSpecBody(Alloc)(
 			immutable SpecBody(SpecBody.Builtin(getSpecBodyBuiltinKind(name))),
 		(ref immutable SigAst[] sigs) =>
 			immutable SpecBody(map!Sig(alloc, sigs, (ref immutable SigAst it) =>
-				checkSig!Alloc(
+				checkSig(
 					alloc,
 					ctx,
 					commonTypes,
@@ -638,7 +639,7 @@ immutable(SpecBody) checkSpecBody(Alloc)(
 					noneMut!(Ptr!(MutArr!(Ptr!StructInst)))))));
 }
 
-immutable(SpecDecl[]) checkSpecDecls(Alloc)(
+immutable(SpecDecl[]) checkSpecDecls(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -659,7 +660,7 @@ immutable(SpecDecl[]) checkSpecDecls(Alloc)(
 	});
 }
 
-StructAlias[] checkStructAliasesInitial(Alloc)(
+StructAlias[] checkStructAliasesInitial(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable StructAliasAst[] asts,
@@ -678,7 +679,7 @@ struct PurityAndForced {
 	immutable bool forced;
 }
 
-immutable(PurityAndForced) getPurityFromAst(Alloc)(
+immutable(PurityAndForced) getPurityFromAst(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable StructDeclAst ast,
@@ -732,7 +733,7 @@ immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) {
 		(ref immutable StructDeclAst.Body.Union) => TypeKind.union_);
 }
 
-StructDecl[] checkStructsInitial(Alloc)(
+StructDecl[] checkStructsInitial(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable StructDeclAst[] asts,
@@ -750,7 +751,7 @@ StructDecl[] checkStructsInitial(Alloc)(
 	});
 }
 
-void checkStructAliasTargets(Alloc)(
+void checkStructAliasTargets(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -791,7 +792,7 @@ void everyPair(T)(
 			cb(at(a, i), at(a, j));
 }
 
-immutable(StructBody.Enum) checkEnum(Alloc)(
+immutable(StructBody.Enum) checkEnum(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -800,7 +801,7 @@ immutable(StructBody.Enum) checkEnum(Alloc)(
 	ref immutable StructDeclAst.Body.Enum e,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	immutable EnumTypeAndMembers tm = checkEnumMembers!Alloc(
+	immutable EnumTypeAndMembers tm = checkEnumMembers(
 		alloc, ctx, commonTypes, structsAndAliasesDict, range, e.typeArg, e.members, delayStructInsts,
 		(immutable Opt!EnumValue lastValue, immutable EnumBackingType enumType) =>
 			has(lastValue)
@@ -811,7 +812,7 @@ immutable(StructBody.Enum) checkEnum(Alloc)(
 	return immutable StructBody.Enum(tm.backingType, tm.memers);
 }
 
-immutable(StructBody.Flags) checkFlags(Alloc)(
+immutable(StructBody.Flags) checkFlags(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -838,7 +839,7 @@ struct EnumTypeAndMembers {
 	immutable StructBody.Enum.Member[] memers;
 }
 
-immutable(EnumTypeAndMembers) checkEnumMembers(Alloc)(
+immutable(EnumTypeAndMembers) checkEnumMembers(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -862,7 +863,7 @@ immutable(EnumTypeAndMembers) checkEnumMembers(Alloc)(
 	immutable EnumBackingType enumType = getEnumTypeFromType(alloc, ctx, range, commonTypes, implementationType);
 
 	immutable StructBody.Enum.Member[] members =
-		mapAndFold!(StructBody.Enum.Member, Opt!EnumValue, StructDeclAst.Body.Enum.Member, Alloc)(
+		mapAndFold!(StructBody.Enum.Member, Opt!EnumValue, StructDeclAst.Body.Enum.Member)(
 			alloc,
 			none!EnumValue,
 			toArr(memberAsts),
@@ -948,7 +949,7 @@ struct ValueAndOverflow {
 
 immutable(EnumBackingType) defaultEnumBackingType() { return EnumBackingType.nat32; }
 
-immutable(EnumBackingType) getEnumTypeFromType(Alloc)(
+immutable(EnumBackingType) getEnumTypeFromType(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable RangeWithinFile range,
@@ -1038,7 +1039,7 @@ immutable(ForcedByValOrRefOrNone) getForcedByValOrRef(immutable Opt!ExplicitByVa
 		return ForcedByValOrRefOrNone.none;
 }
 
-immutable(StructBody.Record) checkRecord(Alloc)(
+immutable(StructBody.Record) checkRecord(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -1053,7 +1054,7 @@ immutable(StructBody.Record) checkRecord(Alloc)(
 		alloc,
 		toArr(r.fields),
 		(immutable size_t index, ref immutable StructDeclAst.Body.Record.Field field) {
-			immutable Type fieldType = typeFromAst!Alloc(
+			immutable Type fieldType = typeFromAst(
 				alloc,
 				ctx,
 				commonTypes,
@@ -1090,7 +1091,7 @@ immutable(StructBody.Record) checkRecord(Alloc)(
 		fields);
 }
 
-immutable(Visibility) recordNewVisibility(Alloc)(
+immutable(Visibility) recordNewVisibility(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable Ptr!StructDecl struct_,
@@ -1112,7 +1113,7 @@ immutable(Visibility) recordNewVisibility(Alloc)(
 		return default_;
 }
 
-immutable(StructBody.Union) checkUnion(Alloc)(
+immutable(StructBody.Union) checkUnion(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -1146,7 +1147,7 @@ immutable(StructBody.Union) checkUnion(Alloc)(
 	return immutable StructBody.Union(members);
 }
 
-void checkStructBodies(Alloc)(
+void checkStructBodies(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -1196,7 +1197,7 @@ void checkStructBodies(Alloc)(
 		});
 }
 
-immutable(StructsAndAliasesDict) buildStructsAndAliasesDict(Alloc)(
+immutable(StructsAndAliasesDict) buildStructsAndAliasesDict(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable StructDecl[] structs,
@@ -1215,7 +1216,7 @@ immutable(StructsAndAliasesDict) buildStructsAndAliasesDict(Alloc)(
 			immutable StructOrAlias(alias_),
 			immutable ModuleLocalStructOrAliasIndex(index)));
 	}
-	return finishDict!(Alloc, Sym, StructOrAliasAndIndex, compareSym)(
+	return finishDict!(Sym, StructOrAliasAndIndex, compareSym)(
 		alloc,
 		d,
 		(ref immutable Sym name, ref immutable StructOrAliasAndIndex, ref immutable StructOrAliasAndIndex b) =>
@@ -1230,7 +1231,7 @@ struct FunsAndDict {
 	immutable Ptr!CommonFuns commonFuns;
 }
 
-immutable(ArrWithSize!(Ptr!SpecInst)) checkSpecUses(Alloc)(
+immutable(ArrWithSize!(Ptr!SpecInst)) checkSpecUses(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
@@ -1269,9 +1270,9 @@ immutable(bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) {
 	return empty(record.fields) || record.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal;
 }
 
-immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
+immutable(FunsAndDict) checkFuns(
 	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
+	ref AllSymbols allSymbols,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable Opt!(Ptr!CommonFuns) commonFunsFromBootstrap,
@@ -1312,7 +1313,7 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 	bool[] usedFuns = fillArr_mut!bool(alloc, size(funs), (immutable size_t) =>
 		false);
 
-	immutable FunsDict funsDict = buildMultiDict!(Sym, FunDeclAndIndex, compareSym, FunDecl, Alloc)(
+	immutable FunsDict funsDict = buildMultiDict!(Sym, FunDeclAndIndex, compareSym, FunDecl)(
 		alloc,
 		castImmutable(funs),
 		(immutable size_t index, immutable Ptr!FunDecl it) =>
@@ -1362,9 +1363,9 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 			}));
 	});
 
-	immutable Test[] tests = map!(Test, TestAst, Alloc)(alloc, testAsts, (ref immutable TestAst ast) {
+	immutable Test[] tests = map!(Test, TestAst)(alloc, testAsts, (ref immutable TestAst ast) {
 		immutable Type voidType = immutable Type(commonTypes.void_);
-		return immutable Test(checkFunctionBody!Alloc(
+		return immutable Test(checkFunctionBody(
 			alloc,
 			ctx,
 			structsAndAliasesDict,
@@ -1396,7 +1397,7 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 	return immutable FunsAndDict(castImmutable(funs), tests, funsDict, commonFuns);
 }
 
-immutable(Ptr!CommonFuns) getCommonFuns(Alloc)(
+immutable(Ptr!CommonFuns) getCommonFuns(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable FunsDict funsDict,
@@ -1460,9 +1461,9 @@ immutable(size_t) countFunsForStruct(
 				size(it.members)));
 }
 
-void addFunsForStruct(Alloc, SymAlloc)(
+void addFunsForStruct(
 	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
+	ref AllSymbols allSymbols,
 	ref CheckCtx ctx,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref immutable CommonTypes commonTypes,
@@ -1487,9 +1488,9 @@ void addFunsForStruct(Alloc, SymAlloc)(
 		});
 }
 
-void addFunsForEnum(Alloc, SymAlloc)(
+void addFunsForEnum(
 	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
+	ref AllSymbols allSymbols,
 	ref CheckCtx ctx,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref immutable CommonTypes commonTypes,
@@ -1507,9 +1508,9 @@ void addFunsForEnum(Alloc, SymAlloc)(
 		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(alloc, visibility, enumType, member));
 }
 
-void addFunsForFlags(Alloc, SymAlloc)(
+void addFunsForFlags(
 	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
+	ref AllSymbols allSymbols,
 	ref CheckCtx ctx,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref immutable CommonTypes commonTypes,
@@ -1535,7 +1536,7 @@ void addFunsForFlags(Alloc, SymAlloc)(
 		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(alloc, visibility, type, member));
 }
 
-void addEnumFlagsCommonFunctions(Alloc)(
+void addEnumFlagsCommonFunctions(
 	ref Alloc alloc,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref ProgramState programState,
@@ -1555,7 +1556,7 @@ void addEnumFlagsCommonFunctions(Alloc)(
 		enumOrFlagsMembersFunction(alloc, programState, visibility, range, membersName, type, commonTypes));
 }
 
-FunDecl enumOrFlagsConstructor(Alloc)(
+FunDecl enumOrFlagsConstructor(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	ref immutable Type enumType,
@@ -1575,7 +1576,7 @@ FunDecl enumOrFlagsConstructor(Alloc)(
 		immutable FunBody(immutable FunBody.CreateEnum(member.value)));
 }
 
-FunDecl enumEqualFunction(Alloc)(
+FunDecl enumEqualFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
@@ -1598,7 +1599,7 @@ FunDecl enumEqualFunction(Alloc)(
 		immutable FunBody(EnumFunction.equal));
 }
 
-FunDecl flagsEmptyFunction(Alloc)(
+FunDecl flagsEmptyFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
@@ -1618,7 +1619,7 @@ FunDecl flagsEmptyFunction(Alloc)(
 		immutable FunBody(FlagsFunction.empty));
 }
 
-FunDecl flagsAllFunction(Alloc)(
+FunDecl flagsAllFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
@@ -1638,7 +1639,7 @@ FunDecl flagsAllFunction(Alloc)(
 		immutable FunBody(FlagsFunction.all));
 }
 
-FunDecl flagsNegateFunction(Alloc)(
+FunDecl flagsNegateFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
@@ -1659,7 +1660,7 @@ FunDecl flagsNegateFunction(Alloc)(
 		immutable FunBody(FlagsFunction.negate));
 }
 
-FunDecl enumToIntegralFunction(Alloc)(
+FunDecl enumToIntegralFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
@@ -1682,7 +1683,7 @@ FunDecl enumToIntegralFunction(Alloc)(
 		immutable FunBody(EnumFunction.toIntegral));
 }
 
-FunDecl enumOrFlagsMembersFunction(Alloc)(
+FunDecl enumOrFlagsMembersFunction(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Visibility visibility,
@@ -1709,7 +1710,7 @@ FunDecl enumOrFlagsMembersFunction(Alloc)(
 		immutable FunBody(EnumFunction.members));
 }
 
-FunDecl flagsUnionOrIntersectFunction(Alloc)(
+FunDecl flagsUnionOrIntersectFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
@@ -1758,9 +1759,9 @@ immutable(Sym) enumToIntegralName(immutable EnumBackingType a) {
 	}());
 }
 
-void addFunsForRecord(Alloc, SymAlloc)(
+void addFunsForRecord(
 	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
+	ref AllSymbols allSymbols,
 	ref CheckCtx ctx,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref immutable CommonTypes commonTypes,
@@ -1854,9 +1855,9 @@ immutable(Opt!Visibility) visibilityOfFieldMutability(immutable FieldMutability 
 	}
 }
 
-void addFunsForUnion(Alloc, SymAlloc)(
+void addFunsForUnion(
 	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
+	ref AllSymbols allSymbols,
 	ref CheckCtx ctx,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref immutable CommonTypes commonTypes,
@@ -1891,7 +1892,7 @@ void addFunsForUnion(Alloc, SymAlloc)(
 	}
 }
 
-immutable(SpecsDict) buildSpecsDict(Alloc)(
+immutable(SpecsDict) buildSpecsDict(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable SpecDecl[] specs,
@@ -1901,7 +1902,7 @@ immutable(SpecsDict) buildSpecsDict(Alloc)(
 		immutable Ptr!SpecDecl spec = ptrAt(specs, index);
 		addToDict(alloc, res, spec.name, immutable SpecDeclAndIndex(spec, immutable ModuleLocalSpecIndex(index)));
 	}
-	return finishDict!(Alloc, Sym, SpecDeclAndIndex, compareSym)(
+	return finishDict!(Sym, SpecDeclAndIndex, compareSym)(
 		alloc,
 		res,
 		(ref immutable Sym name, ref immutable SpecDeclAndIndex, ref immutable SpecDeclAndIndex b) {
@@ -1915,9 +1916,9 @@ struct ModuleAndCommonFuns {
 	immutable Ptr!CommonFuns commonFuns;
 }
 
-immutable(ModuleAndCommonFuns) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
+immutable(ModuleAndCommonFuns) checkWorkerAfterCommonTypes(
 	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
+	ref AllSymbols allSymbols,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable Opt!(Ptr!CommonFuns) commonFunsFromBootstrap,
@@ -1930,7 +1931,7 @@ immutable(ModuleAndCommonFuns) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 	ref immutable ModuleAndNames[] reExports,
 	ref immutable FileAst ast,
 ) {
-	checkStructBodies!Alloc(alloc, ctx, commonTypes, structsAndAliasesDict, structs, ast.structs, delayStructInsts);
+	checkStructBodies(alloc, ctx, commonTypes, structsAndAliasesDict, structs, ast.structs, delayStructInsts);
 	immutable StructDecl[] structsImmutable = castImmutable(structs);
 	foreach (ref const StructDecl s; structs)
 		if (isRecord(s.body_))
@@ -1963,7 +1964,7 @@ immutable(ModuleAndCommonFuns) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 		ast.funs,
 		ast.tests);
 
-	checkForUnused!Alloc(alloc, ctx, structAliases, castImmutable(structs), specs);
+	checkForUnused(alloc, ctx, structAliases, castImmutable(structs), specs);
 
 	// Create a module unconditionally so every function will always have containingModule set, even in failure case
 	immutable Ptr!Module module_ = nu!Module(
@@ -1983,7 +1984,7 @@ immutable(ModuleAndCommonFuns) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 	return immutable ModuleAndCommonFuns(module_, funsAndDict.commonFuns);
 }
 
-immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
+immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(
 	ref Alloc alloc,
 	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref immutable ModuleAndNames[] reExports,
@@ -1995,7 +1996,7 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
 	MutDict!(immutable Sym, immutable NameReferents, compareSym) res;
 	void addExport(immutable Sym name, immutable NameReferents cur, immutable FileAndRange range)
 		@safe @nogc pure nothrow {
-		insertOrUpdate!(Alloc, immutable Sym, immutable NameReferents, compareSym)(
+		insertOrUpdate!(immutable Sym, immutable NameReferents, compareSym)(
 			alloc,
 			res,
 			name,
@@ -2077,12 +2078,12 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
 					immutable FileAndRange(fileIndex, RangeWithinFile.empty));
 		});
 
-	return moveToDict!(Sym, NameReferents, compareSym, Alloc)(alloc, res);
+	return moveToDict!(Sym, NameReferents, compareSym)(alloc, res);
 }
 
-immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
+immutable(BootstrapCheck) checkWorker(
 	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
+	ref AllSymbols allSymbols,
 	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
 	immutable ModuleAndNames[] imports,
@@ -2157,7 +2158,7 @@ immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 	return immutable BootstrapCheck(res.module_, res.commonFuns, commonTypes);
 }
 
-void checkImportsOrExports(Alloc)(
+void checkImportsOrExports(
 	ref Alloc alloc,
 	ref ArrBuilder!Diagnostic diags,
 	immutable FileIndex thisFile,

@@ -4,6 +4,7 @@ module test.testUtil;
 
 import interpret.bytecode : ByteCodeIndex;
 import interpret.runBytecode : byteCodeIndexOfPtr, DataStack, Interpreter, showDataArr;
+import util.alloc.alloc : Alloc;
 import util.collection.arr : sizeEq;
 import util.collection.arrUtil : eachCorresponds;
 import util.collection.globalAllocatedStack : asTempArr;
@@ -14,14 +15,14 @@ import util.types : Nat64;
 import util.util : verify;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
-struct Test(Debug, Alloc) {
+struct Test(Debug) {
 	Ptr!Debug dbg;
 	Ptr!Alloc alloc;
-	AllSymbols!Alloc allSymbols;
-	AllPaths!Alloc allPaths;
+	AllSymbols allSymbols;
+	AllPaths allPaths;
 
-	Writer!Alloc writer() {
-		return Writer!Alloc(alloc);
+	Writer writer() {
+		return Writer(alloc);
 	}
 
 	void fail(immutable string s) {
@@ -33,8 +34,8 @@ struct Test(Debug, Alloc) {
 	}
 }
 
-void expectDataStack(Debug, Alloc)(
-	ref Test!(Debug, Alloc) test,
+void expectDataStack(Debug)(
+	ref Test!Debug test,
 	ref const DataStack dataStack,
 	scope immutable Nat64[] expected,
 ) {
@@ -43,7 +44,7 @@ void expectDataStack(Debug, Alloc)(
 		eachCorresponds!(Nat64, Nat64)(stack, expected, (ref immutable Nat64 a, ref immutable Nat64 b) => a == b);
 	if (!eq) {
 		debug {
-			Writer!Alloc writer = test.writer();
+			Writer writer = test.writer();
 			writeStatic(writer, "expected:\n");
 			showDataArr(writer, expected);
 			writeStatic(writer, "\nactual:\n");
@@ -53,8 +54,8 @@ void expectDataStack(Debug, Alloc)(
 	}
 }
 
-void expectReturnStack(Debug, Alloc, Extern)(
-	ref Test!(Debug, Alloc) test,
+void expectReturnStack(Debug, Extern)(
+	ref Test!Debug test,
 	ref const Interpreter!Extern interpreter,
 	scope immutable ByteCodeIndex[] expected,
 ) {
@@ -67,7 +68,7 @@ void expectReturnStack(Debug, Alloc, Extern)(
 				byteCodeIndexOfPtr(interpreter, a) == b);
 	if (!eq) {
 		debug {
-			Writer!Alloc writer = test.writer();
+			Writer writer = test.writer();
 			writeStatic(writer, "expected:\nreturn:");
 			foreach (immutable ubyte* ptr; stack) {
 				writeChar(writer, ' ');

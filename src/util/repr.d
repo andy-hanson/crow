@@ -2,6 +2,7 @@ module util.repr;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : Alloc;
 import util.collection.arr : at, empty, emptyArr, first, size;
 import util.collection.arrUtil : arrLiteral, map, mapWithIndex, tail;
 import util.collection.fullIndexDict : FullIndexDict;
@@ -36,7 +37,7 @@ immutable(Repr) reprRecord(immutable string name) {
 	return reprRecord(name, emptyArr!Repr);
 }
 
-immutable(Repr) reprRecord(Alloc)(ref Alloc alloc, immutable string name, scope immutable Repr[] children) {
+immutable(Repr) reprRecord(ref Alloc alloc, immutable string name, scope immutable Repr[] children) {
 	return reprRecord(name, arrLiteral(alloc, children));
 }
 
@@ -49,7 +50,7 @@ immutable(Repr) reprNamedRecord(immutable string name, immutable NameAndRepr[] c
 	return immutable Repr(immutable ReprNamedRecord(shortSymAlphaLiteral(name), children));
 }
 
-immutable(Repr) reprNamedRecord(Alloc)(
+immutable(Repr) reprNamedRecord(
 	ref Alloc alloc,
 	immutable string name,
 	scope immutable NameAndRepr[] children,
@@ -57,7 +58,7 @@ immutable(Repr) reprNamedRecord(Alloc)(
 	return reprNamedRecord(name, arrLiteral(alloc, children));
 }
 
-immutable(Repr) reprArr(T, Alloc)(
+immutable(Repr) reprArr(T)(
 	ref Alloc alloc,
 	immutable T[] xs,
 	scope immutable(Repr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
@@ -65,7 +66,7 @@ immutable(Repr) reprArr(T, Alloc)(
 	return immutable Repr(immutable ReprArr(false, map(alloc, xs, cb)), true);
 }
 
-immutable(Repr) reprArr(T, Alloc)(
+immutable(Repr) reprArr(T)(
 	ref Alloc alloc,
 	immutable T[] xs,
 	scope immutable(Repr) delegate(immutable size_t, ref immutable T) @safe @nogc pure nothrow cb,
@@ -73,7 +74,7 @@ immutable(Repr) reprArr(T, Alloc)(
 	return immutable Repr(immutable ReprArr(false, mapWithIndex(alloc, xs, cb)), true);
 }
 
-immutable(Repr) reprFullIndexDict(K, V, Alloc)(
+immutable(Repr) reprFullIndexDict(K, V)(
 	ref Alloc alloc,
 	ref immutable FullIndexDict!(K, V) a,
 	scope immutable(Repr) delegate(ref immutable V) @safe @nogc pure nothrow cb,
@@ -105,7 +106,7 @@ immutable(Repr) reprNat(T)(immutable NatN!T a) {
 	return reprNat(a.raw());
 }
 
-immutable(Repr) reprNat(immutable size_t a) {
+immutable(Repr) reprNat(immutable ulong a) {
 	return immutable Repr(immutable ReprInt(a, 10));
 }
 
@@ -125,7 +126,7 @@ immutable(Repr) reprSym(immutable string a) {
 	return reprSym(shortSymAlphaLiteral(a));
 }
 
-immutable(Repr) reprOpt(Alloc, T)(
+immutable(Repr) reprOpt(T)(
 	ref Alloc alloc,
 	immutable Opt!T opt,
 	scope immutable(Repr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
@@ -231,22 +232,22 @@ private @trusted T matchRepr(T)(
 	}
 }
 
-void writeReprNoNewline(Alloc)(ref Writer!Alloc writer, immutable Repr a) {
+void writeReprNoNewline(ref Writer writer, immutable Repr a) {
 	writeRepr(writer, 0, maxWidth, a);
 }
 
-void writeRepr(Alloc)(ref Writer!Alloc writer, immutable Repr a) {
+void writeRepr(ref Writer writer, immutable Repr a) {
 	writeReprNoNewline(writer, a);
 	writeChar(writer, '\n');
 }
 
-immutable(CStr) jsonStrOfRepr(Alloc)(ref Alloc alloc, ref immutable Repr a) {
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+immutable(CStr) jsonStrOfRepr(ref Alloc alloc, ref immutable Repr a) {
+	Writer writer = Writer(ptrTrustMe_mut(alloc));
 	writeReprJSON(writer, a);
 	return finishWriterToCStr(writer);
 }
 
-void writeReprJSON(Alloc)(ref Writer!Alloc writer, ref immutable Repr a) {
+void writeReprJSON(ref Writer writer, ref immutable Repr a) {
 	matchRepr!void(
 		a,
 		(ref immutable ReprArr it) {
@@ -304,7 +305,7 @@ void writeReprJSON(Alloc)(ref Writer!Alloc writer, ref immutable Repr a) {
 
 private:
 
-void writeQuotedSym(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
+void writeQuotedSym(ref Writer writer, immutable Sym a) {
 	writeChar(writer, '"');
 	writeSym(writer, a);
 	writeChar(writer, '"');
@@ -313,8 +314,8 @@ void writeQuotedSym(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
 immutable int indentSize = 4;
 immutable size_t maxWidth = 120;
 
-void writeRepr(Alloc)(
-	ref Writer!Alloc writer,
+void writeRepr(
+	ref Writer writer,
 	immutable size_t indent,
 	immutable int availableWidth,
 	ref immutable Repr a,
@@ -453,7 +454,7 @@ immutable(int) measureCommaSeparatedChildren(immutable Repr[] xs, immutable int 
 	}
 }
 
-void writeReprSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Repr a) {
+void writeReprSingleLine(ref Writer writer, ref immutable Repr a) {
 	matchRepr!void(
 		a,
 		(ref immutable ReprArr s) {
@@ -490,13 +491,13 @@ void writeReprSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Repr a) {
 		});
 }
 
-void writeReprArrSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Repr[] a) {
+void writeReprArrSingleLine(ref Writer writer, ref immutable Repr[] a) {
 	writeChar(writer, '[');
 	writeCommaSeparatedChildren(writer, a);
 	writeChar(writer, ']');
 }
 
-void writeReprNamedRecordSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable ReprNamedRecord a) {
+void writeReprNamedRecordSingleLine(ref Writer writer, ref immutable ReprNamedRecord a) {
 	writeSym(writer, a.name);
 	writeChar(writer, '(');
 	writeWithCommas!NameAndRepr(writer, a.children, (ref immutable NameAndRepr child) {
@@ -507,14 +508,14 @@ void writeReprNamedRecordSingleLine(Alloc)(ref Writer!Alloc writer, ref immutabl
 	writeChar(writer, ')');
 }
 
-void writeReprRecordSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable ReprRecord a) {
+void writeReprRecordSingleLine(ref Writer writer, ref immutable ReprRecord a) {
 	writeSym(writer, a.name);
 	writeChar(writer, '(');
 	writeCommaSeparatedChildren(writer, a.children);
 	writeChar(writer, ')');
 }
 
-void writeCommaSeparatedChildren(Alloc)(ref Writer!Alloc writer, ref immutable Repr[] a) {
+void writeCommaSeparatedChildren(ref Writer writer, ref immutable Repr[] a) {
 	writeWithCommas!Repr(writer, a, (ref immutable Repr it) {
 		writeReprSingleLine(writer, it);
 	});
@@ -524,7 +525,7 @@ immutable(int) measureReprBool(ref immutable bool s) {
 	return s ? "true".length : "false".length;
 }
 
-void writeReprBool(Alloc)(ref Writer!Alloc writer, ref immutable bool s) {
+void writeReprBool(ref Writer writer, ref immutable bool s) {
 	writeStatic(writer, s ? "true" : "false");
 }
 
@@ -539,7 +540,7 @@ immutable(int) measureQuotedStr(immutable string s) {
 	return 2 + safeIntFromSizeT(size(s));
 }
 
-void writeReprInt(Alloc)(ref Writer!Alloc writer, ref immutable ReprInt a) {
+void writeReprInt(ref Writer writer, ref immutable ReprInt a) {
 	if (a.base == 16)
 		writeStatic(writer, "0x");
 	writeInt(writer, a.value, a.base);

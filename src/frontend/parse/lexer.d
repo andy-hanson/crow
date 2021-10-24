@@ -10,7 +10,7 @@ import frontend.parse.ast :
 	NameOrUnderscoreOrNone,
 	rangeOfNameAndRange;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
-import util.alloc.alloc : allocateBytes;
+import util.alloc.alloc : Alloc, allocateBytes;
 import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, rtail;
@@ -45,9 +45,9 @@ private enum IndentKind {
 	spaces4,
 }
 
-struct Lexer(SymAlloc) {
+struct Lexer {
 	//TODO:PRIVATE
-	Ptr!(AllSymbols!SymAlloc) allSymbols;
+	Ptr!(AllSymbols) allSymbols;
 	private:
 	immutable Sym symUnderscore;
 	ArrBuilder!ParseDiagnostic diags;
@@ -58,15 +58,15 @@ struct Lexer(SymAlloc) {
 	immutable IndentKind indentKind;
 }
 
-@trusted Lexer!SymAlloc createLexer(Alloc, SymAlloc)(
+@trusted Lexer createLexer(
 	ref Alloc alloc,
-	Ptr!(AllSymbols!SymAlloc) allSymbols,
+	Ptr!AllSymbols allSymbols,
 	immutable NulTerminatedStr source,
 ) {
 	// Note: We *are* relying on the nul terminator to stop the lexer.
 	immutable string str = strOfNulTerminatedStr(source);
 	immutable string useStr = !empty(str) && last(str) == '\n' ? str : rtail(cat!char(alloc, str, "\n\0"));
-	return Lexer!SymAlloc(
+	return Lexer(
 		allSymbols,
 		getSymFromAlphaIdentifier(allSymbols, "_"),
 		ArrBuilder!ParseDiagnostic(),
@@ -75,45 +75,45 @@ struct Lexer(SymAlloc) {
 		detectIndentKind(useStr));
 }
 
-immutable(char) curChar(SymAlloc)(ref const Lexer!SymAlloc lexer) {
+immutable(char) curChar(ref const Lexer lexer) {
 	return *lexer.ptr;
 }
 
-immutable(Pos) curPos(SymAlloc)(ref const Lexer!SymAlloc lexer) {
+immutable(Pos) curPos(ref const Lexer lexer) {
 	return posOfPtr(lexer, lexer.ptr);
 }
 
-private immutable(Pos) posOfPtr(SymAlloc)(ref const Lexer!SymAlloc lexer, immutable CStr ptr) {
+private immutable(Pos) posOfPtr(ref const Lexer lexer, immutable CStr ptr) {
 	return safeSizeTToU32(ptr - lexer.sourceBegin);
 }
 
-void addDiag(Alloc, SymAlloc)(
+void addDiag(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable RangeWithinFile range,
 	immutable ParseDiag diag,
 ) {
 	add(alloc, lexer.diags, immutable ParseDiagnostic(range, diag));
 }
 
-immutable(ParseDiagnostic[]) finishDiags(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(ParseDiagnostic[]) finishDiags(ref Alloc alloc, ref Lexer lexer) {
 	return finishArr(alloc, lexer.diags);
 }
 
-void addDiagAtChar(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer, immutable ParseDiag diag) {
+void addDiagAtChar(ref Alloc alloc, ref Lexer lexer, immutable ParseDiag diag) {
 	immutable Pos a = curPos(lexer);
 	addDiag(alloc, lexer, immutable RangeWithinFile(a, lexer.curChar == '\0' ? a : a + 1), diag);
 }
 
-void addDiagUnexpected(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+void addDiagUnexpected(ref Alloc alloc, ref Lexer lexer) {
 	addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.UnexpectedCharacter(curChar(lexer))));
 }
 
-@trusted immutable(bool) peekExact(SymAlloc)(ref const Lexer!SymAlloc lexer, immutable char c) {
+@trusted immutable(bool) peekExact(ref const Lexer lexer, immutable char c) {
 	return *lexer.ptr == c;
 }
 
-@trusted immutable(bool) peekExact(SymAlloc)(ref const Lexer!SymAlloc lexer, immutable CStr c) {
+@trusted immutable(bool) peekExact(ref const Lexer lexer, immutable CStr c) {
 	CStr ptr = lexer.ptr;
 	for (CStr cptr = c; *cptr != 0; cptr++) {
 		if (*ptr != *cptr)
@@ -123,7 +123,7 @@ void addDiagUnexpected(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexe
 	return true;
 }
 
-@trusted immutable(bool) tryTake(SymAlloc)(ref Lexer!SymAlloc lexer, immutable char c) {
+@trusted immutable(bool) tryTake(ref Lexer lexer, immutable char c) {
 	if (*lexer.ptr == c) {
 		lexer.ptr++;
 		return true;
@@ -131,7 +131,7 @@ void addDiagUnexpected(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexe
 		return false;
 }
 
-@trusted immutable(bool) tryTake(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr c) {
+@trusted immutable(bool) tryTake(ref Lexer lexer, immutable CStr c) {
 	CStr ptr2 = lexer.ptr;
 	for (CStr cptr = c; *cptr != 0; cptr++) {
 		if (*ptr2 != *cptr)
@@ -142,9 +142,9 @@ void addDiagUnexpected(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexe
 	return true;
 }
 
-immutable(bool) takeOrAddDiagExpected(Alloc, SymAlloc)(
+immutable(bool) takeOrAddDiagExpected(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable char c,
 	immutable ParseDiag.Expected.Kind kind,
 ) {
@@ -154,9 +154,9 @@ immutable(bool) takeOrAddDiagExpected(Alloc, SymAlloc)(
 	return res;
 }
 
-immutable(bool) takeOrAddDiagExpected(Alloc, SymAlloc)(
+immutable(bool) takeOrAddDiagExpected(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable CStr c,
 	immutable ParseDiag.Expected.Kind kind,
 ) {
@@ -171,7 +171,7 @@ enum NewlineOrIndent {
 	indent,
 }
 
-immutable(NewlineOrIndent) takeNewlineOrIndent_topLevel(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(NewlineOrIndent) takeNewlineOrIndent_topLevel(ref Alloc alloc, ref Lexer lexer) {
 	if (!takeOrAddDiagExpected(alloc, lexer, '\n', ParseDiag.Expected.Kind.endOfLine))
 		skipRestOfLineAndNewline(lexer);
 	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(alloc, lexer, 0);
@@ -186,7 +186,7 @@ immutable(NewlineOrIndent) takeNewlineOrIndent_topLevel(Alloc, SymAlloc)(ref All
 		});
 }
 
-immutable(bool) takeIndentOrDiagTopLevel(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(bool) takeIndentOrDiagTopLevel(ref Alloc alloc, ref Lexer lexer) {
 	return takeIndentOrFailGeneric!(immutable bool)(
 		alloc,
 		lexer,
@@ -198,7 +198,7 @@ immutable(bool) takeIndentOrDiagTopLevel(Alloc, SymAlloc)(ref Alloc alloc, ref L
 		});
 }
 
-immutable(bool) takeIndentOrDiagTopLevelAfterNewline(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(bool) takeIndentOrDiagTopLevelAfterNewline(ref Alloc alloc, ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(alloc, lexer, 0);
 	return matchIndentDelta!(immutable bool)(
@@ -215,9 +215,9 @@ immutable(bool) takeIndentOrDiagTopLevelAfterNewline(Alloc, SymAlloc)(ref Alloc 
 		(ref immutable IndentDelta.Indent) => true);
 }
 
-immutable(T) takeIndentOrFailGeneric(T, Alloc, SymAlloc)(
+immutable(T) takeIndentOrFailGeneric(T)(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable uint curIndent,
 	scope immutable(T) delegate() @safe @nogc pure nothrow cbIndent,
 	scope immutable(T) delegate(immutable RangeWithinFile, immutable uint) @safe @nogc pure nothrow cbFail,
@@ -239,9 +239,9 @@ immutable(T) takeIndentOrFailGeneric(T, Alloc, SymAlloc)(
 		});
 }
 
-private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(Alloc, SymAlloc)(
+private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable uint curIndent,
 ) {
 	if (*lexer.ptr != '\n') {
@@ -254,7 +254,7 @@ private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(Alloc, S
 	return skipBlankLinesAndGetIndentDelta(alloc, lexer, curIndent);
 }
 
-void takeDedentFromIndent1(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+void takeDedentFromIndent1(ref Alloc alloc, ref Lexer lexer) {
 	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(alloc, lexer, 1);
 	immutable bool success = matchIndentDelta!(immutable bool)(
 		delta,
@@ -269,9 +269,9 @@ void takeDedentFromIndent1(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc 
 	}
 }
 
-immutable(NewlineOrIndent) tryTakeIndentAfterNewline_topLevel(Alloc, SymAlloc)(
+immutable(NewlineOrIndent) tryTakeIndentAfterNewline_topLevel(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 ) {
 	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(alloc, lexer, 0);
 	return matchIndentDelta!(immutable NewlineOrIndent)(
@@ -284,9 +284,9 @@ immutable(NewlineOrIndent) tryTakeIndentAfterNewline_topLevel(Alloc, SymAlloc)(
 			NewlineOrIndent.indent);
 }
 
-immutable(uint) takeNewlineOrDedentAmount(Alloc, SymAlloc)(
+immutable(uint) takeNewlineOrDedentAmount(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable uint curIndent,
 ) {
 	// Must be at the end of a line
@@ -311,7 +311,7 @@ enum NewlineOrDedent {
 	dedent,
 }
 
-immutable(NewlineOrDedent) takeNewlineOrSingleDedent(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(NewlineOrDedent) takeNewlineOrSingleDedent(ref Alloc alloc, ref Lexer lexer) {
 	switch (takeNewlineOrDedentAmount(alloc, lexer, 1)) {
 		case 0:
 			return NewlineOrDedent.newline;
@@ -322,14 +322,14 @@ immutable(NewlineOrDedent) takeNewlineOrSingleDedent(Alloc, SymAlloc)(ref Alloc 
 	}
 }
 
-immutable(RangeWithinFile) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Pos begin) {
+immutable(RangeWithinFile) range(ref Lexer lexer, immutable Pos begin) {
 	verify(begin <= curPos(lexer));
 	return immutable RangeWithinFile(begin, curPos(lexer));
 }
 
-void addDiagOnReservedName(Alloc, SymAlloc)(
+void addDiagOnReservedName(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable NameAndRange name,
 ) {
 	addDiag(alloc, lexer, rangeOfNameAndRange(name), immutable ParseDiag(immutable ParseDiag.ReservedName(name.name)));
@@ -340,7 +340,7 @@ struct SymAndIsReserved {
 	immutable bool isReserved;
 }
 
-immutable(SymAndIsReserved) takeNameAllowReserved(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(SymAndIsReserved) takeNameAllowReserved(ref Alloc alloc, ref Lexer lexer) {
 	immutable StrAndIsOperator s = takeNameAsTempStr(alloc, lexer);
 	if (s.isOperator) {
 		immutable Opt!Sym op = getSymFromOperator(lexer.allSymbols.deref(), s.str);
@@ -357,20 +357,20 @@ immutable(SymAndIsReserved) takeNameAllowReserved(Alloc, SymAlloc)(ref Alloc all
 	}
 }
 
-immutable(NameAndRange) takeNameAndRange(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(NameAndRange) takeNameAndRange(ref Alloc alloc, ref Lexer lexer) {
 	immutable SymAndIsReserved s = takeNameAllowReserved(alloc, lexer);
 	if (s.isReserved)
 		addDiagOnReservedName(alloc, lexer, s.name);
 	return s.name;
 }
 
-immutable(Sym) takeName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(Sym) takeName(ref Alloc alloc, ref Lexer lexer) {
 	return takeNameAndRange(alloc, lexer).name;
 }
 
-immutable(NameOrUnderscoreOrNone) takeNameOrUnderscoreOrNone(Alloc, SymAlloc)(
+immutable(NameOrUnderscoreOrNone) takeNameOrUnderscoreOrNone(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 ) {
 	if (tryTake(lexer, ' ')) {
 		immutable SymAndIsReserved s = takeNameAllowReserved(alloc, lexer);
@@ -387,7 +387,7 @@ immutable(NameOrUnderscoreOrNone) takeNameOrUnderscoreOrNone(Alloc, SymAlloc)(
 		return immutable NameOrUnderscoreOrNone(immutable NameOrUnderscoreOrNone.None());
 }
 
-immutable(string) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
+immutable(string) takeQuotedStr(ref Lexer lexer, ref Alloc alloc) {
 	if (takeOrAddDiagExpected(alloc, lexer, '"', ParseDiag.Expected.Kind.quote)) {
 		immutable StringPart sp = takeStringPart(alloc, lexer, '"');
 		final switch (sp.after) {
@@ -400,7 +400,7 @@ immutable(string) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref A
 		return "";
 }
 
-@trusted void skipUntilNewlineNoDiag(SymAlloc)(ref Lexer!SymAlloc lexer) {
+@trusted void skipUntilNewlineNoDiag(ref Lexer lexer) {
 	while (*lexer.ptr != '\n') {
 		assert(*lexer.ptr != '\0');
 		lexer.ptr++;
@@ -409,14 +409,14 @@ immutable(string) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref A
 
 private:
 
-@trusted immutable(SafeCStr) takeRestOfLineAndNewline(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+@trusted immutable(SafeCStr) takeRestOfLineAndNewline(ref Alloc alloc, ref Lexer lexer) {
 	immutable char* begin = lexer.ptr;
 	skipRestOfLineAndNewline(lexer);
 	immutable char* end = lexer.ptr - 1;
 	return copyToSafeCStr(alloc, arrOfRange(begin, end));
 }
 
-@trusted void skipRestOfLineAndNewline(SymAlloc)(ref Lexer!SymAlloc lexer) {
+@trusted void skipRestOfLineAndNewline(ref Lexer lexer) {
 	skipUntilNewlineNoDiag(lexer);
 	lexer.ptr++;
 }
@@ -448,17 +448,17 @@ immutable(IndentKind) detectIndentKind(immutable string str) {
 }
 
 //TODO:PRIVATE
-public @trusted void backUp(SymAlloc)(ref Lexer!SymAlloc lexer) {
+public @trusted void backUp(ref Lexer lexer) {
 	lexer.ptr--;
 }
 
-public @trusted immutable(char) next(SymAlloc)(ref Lexer!SymAlloc lexer) {
+public @trusted immutable(char) next(ref Lexer lexer) {
 	immutable char res = *lexer.ptr;
 	lexer.ptr++;
 	return res;
 }
 
-immutable(RangeWithinFile) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
+immutable(RangeWithinFile) range(ref Lexer lexer, immutable CStr begin) {
 	verify(begin >= lexer.sourceBegin);
 	return range(lexer, safeSizeTToU32(begin - lexer.sourceBegin));
 }
@@ -468,7 +468,7 @@ public enum Sign {
 	minus,
 }
 
-public @trusted immutable(LiteralIntOrNat) takeIntOrNat(SymAlloc)(ref Lexer!SymAlloc lexer) {
+public @trusted immutable(LiteralIntOrNat) takeIntOrNat(ref Lexer lexer) {
 	immutable Opt!Sign sign = tryTake(lexer, '+')
 		? some(Sign.plus)
 		: tryTake(lexer, '-')
@@ -484,7 +484,7 @@ public @trusted immutable(LiteralIntOrNat) takeIntOrNat(SymAlloc)(ref Lexer!SymA
 		(immutable(Sym)) => unreachable!(immutable LiteralIntOrNat));
 }
 
-public @trusted immutable(LiteralAst) takeNumberAfterSign(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Opt!Sign sign) {
+public @trusted immutable(LiteralAst) takeNumberAfterSign(ref Lexer lexer, immutable Opt!Sign sign) {
 	immutable ulong base = tryTake(lexer, "0x") ? 16 : tryTake(lexer, "0o") ? 8 : tryTake(lexer, "0b") ? 2 : 10;
 	immutable LiteralAst.Nat n = takeNat(lexer, base);
 	if (*lexer.ptr == '.' && isDigit(*(lexer.ptr + 1))) {
@@ -501,8 +501,8 @@ public @trusted immutable(LiteralAst) takeNumberAfterSign(SymAlloc)(ref Lexer!Sy
 		return immutable LiteralAst(n);
 }
 
-@system immutable(LiteralAst.Float) takeFloat(SymAlloc)(
-	ref Lexer!SymAlloc lexer,
+@system immutable(LiteralAst.Float) takeFloat(
+	ref Lexer lexer,
 	immutable Sign sign,
 	ref immutable LiteralAst.Nat natPart,
 	immutable ulong base,
@@ -534,12 +534,12 @@ immutable(ulong) getDivisor(immutable ulong acc, immutable ulong a, immutable ul
 	return acc < a ? getDivisor(acc * base, a, base) : acc;
 }
 
-@system immutable(LiteralAst.Nat) takeNat(SymAlloc)(ref Lexer!SymAlloc lexer, immutable ulong base) {
+@system immutable(LiteralAst.Nat) takeNat(ref Lexer lexer, immutable ulong base) {
 	return takeNatRecur(lexer, base, 0, false);
 }
 
-@system immutable(LiteralAst.Nat) takeNatRecur(SymAlloc)(
-	ref Lexer!SymAlloc lexer,
+@system immutable(LiteralAst.Nat) takeNatRecur(
+	ref Lexer lexer,
 	immutable ulong base,
 	immutable ulong value,
 	immutable bool overflow,
@@ -564,7 +564,7 @@ immutable(ulong) charToNat(immutable char c) {
 		: ulong.max;
 }
 
-@trusted immutable(string) takeOperatorRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
+@trusted immutable(string) takeOperatorRest(ref Lexer lexer, immutable CStr begin) {
 	while (isOperatorChar(*lexer.ptr))
 		lexer.ptr++;
 	return arrOfRange(begin, lexer.ptr);
@@ -624,9 +624,9 @@ immutable(bool) allowedStringPartCharacter(immutable char c, immutable char endQ
 	}
 }
 
-public immutable(Sym) takeSymbolLiteral(Alloc, SymAlloc)(
+public immutable(Sym) takeSymbolLiteral(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 ) {
 	immutable StringPart part = takeStringPart(alloc, lexer, '\'');
 	final switch (part.after) {
@@ -638,9 +638,9 @@ public immutable(Sym) takeSymbolLiteral(Alloc, SymAlloc)(
 	}
 }
 
-public @trusted immutable(StringPart) takeStringPart(Alloc, SymAlloc)(
+public @trusted immutable(StringPart) takeStringPart(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable char endQuote,
 ) {
 	immutable CStr begin = lexer.ptr;
@@ -731,7 +731,7 @@ public @trusted immutable(StringPart) takeStringPart(Alloc, SymAlloc)(
 	return immutable StringPart(cast(immutable) res[0 .. size], after);
 }
 
-public @trusted immutable(string) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
+public @trusted immutable(string) takeNameRest(ref Lexer lexer, immutable CStr begin) {
 	while (isAlphaIdentifierContinue(*lexer.ptr))
 		lexer.ptr++;
 	if (*lexer.ptr == '!')
@@ -740,7 +740,7 @@ public @trusted immutable(string) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexe
 }
 
 // Called after the newline
-@trusted uint takeIndentAmount(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+@trusted uint takeIndentAmount(ref Alloc alloc, ref Lexer lexer) {
 	immutable CStr begin = lexer.ptr;
 	if (lexer.indentKind == IndentKind.tabs) {
 		while (*lexer.ptr == '\t') lexer.ptr++;
@@ -800,13 +800,13 @@ struct IndentDelta {
 	}
 }
 
-public immutable(SafeCStr) skipBlankLinesAndGetDocComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+public immutable(SafeCStr) skipBlankLinesAndGetDocComment(ref Alloc alloc, ref Lexer lexer) {
 	return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, emptySafeCStr);
 }
 
-immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(Alloc, SymAlloc)(
+immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable SafeCStr comment,
 ) {
 	if (tryTake(lexer, '\n'))
@@ -825,9 +825,9 @@ immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(Alloc, SymAlloc)(
 // Returns the change in indent (and updates the indent)
 // Note: does nothing if not looking at a newline!
 // NOTE: never returns a value > 1 as double-indent is always illegal.
-immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(Alloc, SymAlloc)(
+immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 	immutable uint curIndent,
 ) {
 	// comment / region counts as a blank line no matter its indent level.
@@ -860,14 +860,14 @@ immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(Alloc, SymAlloc)(
 			: immutable IndentDelta(immutable IndentDelta.DedentOrSame(-delta));
 }
 
-@trusted immutable(SafeCStr) takeBlockComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+@trusted immutable(SafeCStr) takeBlockComment(ref Alloc alloc, ref Lexer lexer) {
 	immutable char* begin = lexer.ptr;
 	skipBlockComment(alloc, lexer);
 	immutable char* end = lexer.ptr - "\n###\n".length;
 	return copyToSafeCStr(alloc, arrOfRange(begin, end));
 }
 
-void skipBlockComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+void skipBlockComment(ref Alloc alloc, ref Lexer lexer) {
 	skipRestOfLineAndNewline(lexer);
 	drop(takeIndentAmount(alloc, lexer));
 	if (!tryTake(lexer, "###\n"))
@@ -880,9 +880,9 @@ struct StrAndIsOperator {
 	immutable bool isOperator;
 }
 
-@trusted public immutable(StrAndIsOperator) takeNameAsTempStr(Alloc, SymAlloc)(
+@trusted public immutable(StrAndIsOperator) takeNameAsTempStr(
 	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
+	ref Lexer lexer,
 ) {
 	immutable CStr begin = lexer.ptr;
 	immutable Pos start = curPos(lexer);
@@ -905,7 +905,7 @@ struct StrAndIsOperator {
 	}
 }
 
-public immutable(bool) isReservedName(SymAlloc)(ref const Lexer!SymAlloc lexer, immutable Sym name) {
+public immutable(bool) isReservedName(ref const Lexer lexer, immutable Sym name) {
 	switch (name.value) {
 		case shortSymAlphaLiteralValue("alias"):
 		case shortSymAlphaLiteralValue("builtin"):
@@ -933,7 +933,7 @@ public immutable(bool) isReservedName(SymAlloc)(ref const Lexer!SymAlloc lexer, 
 	}
 }
 
-public @trusted immutable(bool) lookaheadWillTakeEqualsOrThen(SymAlloc)(ref Lexer!SymAlloc lexer) {
+public @trusted immutable(bool) lookaheadWillTakeEqualsOrThen(ref Lexer lexer) {
 	immutable(char)* ptr = lexer.ptr;
 	while (true) {
 		switch (*ptr) {
@@ -961,7 +961,7 @@ public @trusted immutable(bool) lookaheadWillTakeEqualsOrThen(SymAlloc)(ref Lexe
 	}
 }
 
-public @trusted immutable(bool) lookaheadWillTakeArrow(SymAlloc)(ref Lexer!SymAlloc lexer) {
+public @trusted immutable(bool) lookaheadWillTakeArrow(ref Lexer lexer) {
 	immutable(char)* ptr = lexer.ptr;
 	while (true) {
 		switch (*ptr) {

@@ -4,6 +4,7 @@ module model.model;
 
 import model.constant : Constant;
 import model.diag : Diags, FilesInfo; // TODO: move FilesInfo here?
+import util.alloc.alloc : Alloc;
 import util.collection.arr : ArrWithSize, empty, emptyArr, first, only, size, sizeEq, toArr;
 import util.collection.arrUtil : compareArr;
 import util.collection.dict : Dict;
@@ -1063,7 +1064,7 @@ immutable(bool) isMarkVisitFun(ref immutable FunInst a) {
 	return symEq(name(decl(a).deref()), shortSymAlphaLiteral("mark-visit"));
 }
 
-immutable(Ptr!FunInst) nonTemplateFunInst(Alloc)(ref Alloc alloc, immutable Ptr!FunDecl decl) {
+immutable(Ptr!FunInst) nonTemplateFunInst(ref Alloc alloc, immutable Ptr!FunDecl decl) {
 	return nu!FunInst(alloc, immutable FunDeclAndArgs(decl, emptyArr!Type, emptyArr!Called), decl.sig);
 }
 
@@ -1785,15 +1786,15 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.SymbolLiteral) => immutable Type(commonTypes.sym));
 }
 
-void writeStructDecl(Alloc)(ref Writer!Alloc writer, ref immutable StructDecl a) {
+void writeStructDecl(ref Writer writer, ref immutable StructDecl a) {
 	writeSym(writer, a.name);
 }
 
-void writeStructInst(Alloc)(ref Writer!Alloc writer, ref immutable StructInst s) {
+void writeStructInst(ref Writer writer, ref immutable StructInst s) {
 	writeStructDecl(writer, decl(s).deref());
 	if (!empty(s.typeArgs)) {
 		writeChar(writer, '<');
-		writeWithCommas!(Type, Alloc)(writer, s.typeArgs, (ref immutable Type t) {
+		writeWithCommas!Type(writer, s.typeArgs, (ref immutable Type t) {
 			writeType(writer, t);
 		});
 		writeChar(writer, '>');
@@ -1801,7 +1802,7 @@ void writeStructInst(Alloc)(ref Writer!Alloc writer, ref immutable StructInst s)
 }
 
 //TODO:MOVE
-void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Type type) {
+void writeType(ref Writer writer, ref immutable Type type) {
 	matchType!void(
 		type,
 		(ref immutable Type.Bogus) {

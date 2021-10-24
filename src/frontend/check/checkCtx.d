@@ -14,6 +14,7 @@ import model.model :
 	StructAlias,
 	StructDecl,
 	Visibility;
+import util.alloc.alloc : Alloc;
 import util.collection.arr : at, castImmutable, setAt, size;
 import util.collection.arrBuilder : add, ArrBuilder;
 import util.collection.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
@@ -38,7 +39,7 @@ struct CheckCtx {
 	Ptr!(ArrBuilder!Diagnostic) diagsBuilder;
 }
 
-bool[] newUsedImportsAndReExports(Alloc)(
+bool[] newUsedImportsAndReExports(
 	ref Alloc alloc,
 	ref immutable ModuleAndNames[] imports,
 	ref immutable ModuleAndNames[] reExports,
@@ -49,10 +50,10 @@ bool[] newUsedImportsAndReExports(Alloc)(
 		reExports,
 		(immutable size_t acc, ref immutable ModuleAndNames it) =>
 			acc + (has(it.names) ? size(force(it.names)) : 1));
-	return fillArr_mut!(bool, Alloc)(alloc, size, (immutable size_t) => false);
+	return fillArr_mut!bool(alloc, size, (immutable size_t) => false);
 }
 
-void checkForUnused(Alloc)(
+void checkForUnused(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable StructAlias[] structAliases,
@@ -102,7 +103,7 @@ void checkForUnused(Alloc)(
 		});
 }
 
-private void checkUnusedImports(Alloc)(ref Alloc alloc, ref CheckCtx ctx) {
+private void checkUnusedImports(ref Alloc alloc, ref CheckCtx ctx) {
 	size_t index = 0;
 	foreach (ref immutable ModuleAndNames it; ctx.imports) {
 		if (has(it.names)) {
@@ -192,7 +193,7 @@ immutable(FileAndRange) rangeInFile(ref const CheckCtx ctx, immutable RangeWithi
 	return immutable FileAndRange(ctx.fileIndex, range);
 }
 
-void addDiag(Alloc)(
+void addDiag(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable FileAndRange range,
@@ -201,7 +202,7 @@ void addDiag(Alloc)(
 	add(alloc, ctx.diagsBuilder, immutable Diagnostic(range, allocate(alloc, diag)));
 }
 
-void addDiag(Alloc)(
+void addDiag(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable RangeWithinFile range,

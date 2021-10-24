@@ -2,7 +2,7 @@ module util.path;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : allocateBytes;
+import util.alloc.alloc : Alloc, allocateBytes;
 import util.collection.arr : at, first, size;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
 import util.collection.str : asCStr, copyStr, CStr, NulTerminatedStr, strEq;
@@ -13,7 +13,7 @@ import util.sourceRange : RangeWithinFile;
 import util.types : Nat8, safeSizeTToU16;
 import util.util : todo, verify;
 
-struct AllPaths(Alloc) {
+struct AllPaths {
 	private:
 	Ptr!Alloc alloc;
 	MutArr!(Opt!Path) pathToParent;
@@ -32,24 +32,24 @@ struct AbsolutePath {
 	immutable string extension;
 }
 
-immutable(Opt!Path) parent(Alloc)(ref const AllPaths!Alloc allPaths, immutable Path a) {
+immutable(Opt!Path) parent(ref const AllPaths allPaths, immutable Path a) {
 	return mutArrAt(allPaths.pathToParent, a.index);
 }
 
-immutable(string) baseName(Alloc)(ref const AllPaths!Alloc allPaths, immutable Path a) {
+immutable(string) baseName(ref const AllPaths allPaths, immutable Path a) {
 	return mutArrAt(allPaths.pathToBaseName, a.index);
 }
 
-immutable(Opt!Path) removeFirstPathComponentIf(Alloc)(
-	ref AllPaths!Alloc allPaths,
+immutable(Opt!Path) removeFirstPathComponentIf(
+	ref AllPaths allPaths,
 	immutable Path a,
 	immutable string expected,
 ) {
 	immutable Opt!Path parent = parent(allPaths, a);
 	return has(parent) ? removeFirstPathComponentIfRecur(allPaths, a, force(parent), expected) : none!Path;
 }
-private immutable(Opt!Path) removeFirstPathComponentIfRecur(Alloc)(
-	ref AllPaths!Alloc allPaths,
+private immutable(Opt!Path) removeFirstPathComponentIfRecur(
+	ref AllPaths allPaths,
 	immutable Path a,
 	immutable Path par,
 	immutable string expected,
@@ -66,8 +66,8 @@ private immutable(Opt!Path) removeFirstPathComponentIfRecur(Alloc)(
 			: none!Path;
 }
 
-private immutable(Path) getOrAddChild(Alloc)(
-	ref AllPaths!Alloc allPaths,
+private immutable(Path) getOrAddChild(
+	ref AllPaths allPaths,
 	ref MutArr!Path children,
 	immutable Opt!Path parent,
 	scope immutable string name,
@@ -84,11 +84,11 @@ private immutable(Path) getOrAddChild(Alloc)(
 	return res;
 }
 
-immutable(Path) rootPath(Alloc)(ref AllPaths!Alloc allPaths, scope immutable string name) {
+immutable(Path) rootPath(ref AllPaths allPaths, scope immutable string name) {
 	return getOrAddChild(allPaths, allPaths.rootChildren, none!Path, name);
 }
 
-immutable(Path) childPath(Alloc)(ref AllPaths!Alloc allPaths, immutable Path parent, scope immutable string name) {
+immutable(Path) childPath(ref AllPaths allPaths, immutable Path parent, scope immutable string name) {
 	return getOrAddChild(allPaths, mutArrAt(allPaths.pathToChildren, parent.index), some(parent), name);
 }
 
@@ -121,8 +121,8 @@ immutable(Path) path(ref immutable RelPath a) {
 	return a.path_;
 }
 
-immutable(Opt!Path) resolvePath(Alloc)(
-	ref AllPaths!Alloc allPaths,
+immutable(Opt!Path) resolvePath(
+	ref AllPaths allPaths,
 	immutable Opt!Path path,
 	immutable RelPath relPath,
 ) {
@@ -138,17 +138,17 @@ immutable(Opt!Path) resolvePath(Alloc)(
 			: none!Path;
 }
 
-immutable(Opt!Path) resolvePath(Alloc)(ref AllPaths!Alloc allPaths, immutable Path path, immutable RelPath relPath) {
+immutable(Opt!Path) resolvePath(ref AllPaths allPaths, immutable Path path, immutable RelPath relPath) {
 	return resolvePath(allPaths, some(path), relPath);
 }
 
-private immutable(Path) addManyChildren(Alloc)(ref AllPaths!Alloc allPaths, immutable Path a, immutable Path b) {
+private immutable(Path) addManyChildren(ref AllPaths allPaths, immutable Path a, immutable Path b) {
 	immutable Opt!Path bParent = parent(allPaths, b);
 	return childPath(allPaths, has(bParent) ? addManyChildren(allPaths, a, force(bParent)) : a, baseName(allPaths, b));
 }
 
-public void eachPathPart(PathAlloc)(
-	ref const AllPaths!PathAlloc allPaths,
+public void eachPathPart(
+	ref const AllPaths allPaths,
 	immutable Path a,
 	scope void delegate(immutable string) @safe @nogc pure nothrow cb,
 ) {
@@ -158,8 +158,8 @@ public void eachPathPart(PathAlloc)(
 	cb(baseName(allPaths, a));
 }
 
-private void walkPathBackwards(Alloc)(
-	ref const AllPaths!Alloc allPaths,
+private void walkPathBackwards(
+	ref const AllPaths allPaths,
 	immutable Path a,
 	scope void delegate(immutable string) @safe @nogc pure nothrow cb,
 ) {
@@ -169,7 +169,7 @@ private void walkPathBackwards(Alloc)(
 		walkPathBackwards(allPaths, force(par), cb);
 }
 
-private size_t pathToStrSize(Alloc)(ref const AllPaths!Alloc allPaths, immutable Path path) {
+private size_t pathToStrSize(ref const AllPaths allPaths, immutable Path path) {
 	size_t sz = 0;
 	walkPathBackwards(allPaths, path, (immutable string part) {
 		// 1 for '/'
@@ -178,9 +178,9 @@ private size_t pathToStrSize(Alloc)(ref const AllPaths!Alloc allPaths, immutable
 	return sz;
 }
 
-private @trusted immutable(string) pathToStrWorker(Alloc, PathAlloc)(
+private @trusted immutable(string) pathToStrWorker(
 	ref Alloc alloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	immutable string root,
 	immutable uint rootMultiple,
 	immutable Path path,
@@ -225,9 +225,9 @@ private @trusted immutable(string) pathToStrWorker(Alloc, PathAlloc)(
 	return cast(immutable) begin[0 .. sz];
 }
 
-immutable(string) absOrRelPathToStr(Alloc, PathAlloc)(
+immutable(string) absOrRelPathToStr(
 	ref Alloc alloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	ref immutable AbsOrRelPath a,
 ) {
 	return matchAbsOrRelPath(
@@ -238,9 +238,9 @@ immutable(string) absOrRelPathToStr(Alloc, PathAlloc)(
 			relPathToStr(alloc, allPaths, relPath));
 }
 
-private immutable(string) relPathToStr(Alloc, PathAlloc)(
+private immutable(string) relPathToStr(
 	ref Alloc alloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	ref immutable RelPath a,
 ) {
 	return a.nParents_ == immutable Nat8(0)
@@ -248,9 +248,9 @@ private immutable(string) relPathToStr(Alloc, PathAlloc)(
 		: pathToStrWorker(alloc, allPaths, "../", a.nParents_.raw(), a.path_, "", false);
 }
 
-immutable(string) pathToStr(Alloc, PathAlloc)(
+immutable(string) pathToStr(
 	ref Alloc alloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	immutable string root,
 	immutable Path path,
 	immutable string extension,
@@ -258,9 +258,9 @@ immutable(string) pathToStr(Alloc, PathAlloc)(
 	return pathToStrWorker(alloc, allPaths, root, 1, path, extension, false);
 }
 
-immutable(CStr) pathToCStr(Alloc, PathAlloc)(
+immutable(CStr) pathToCStr(
 	ref Alloc alloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	immutable string root,
 	immutable Path path,
 	immutable string extension,
@@ -268,17 +268,17 @@ immutable(CStr) pathToCStr(Alloc, PathAlloc)(
 	return pathToNulTerminatedStr(alloc, allPaths, root, path, extension).asCStr();
 }
 
-immutable(NulTerminatedStr) pathToNulTerminatedStr(Alloc, PathAlloc)(
+immutable(NulTerminatedStr) pathToNulTerminatedStr(
 	ref Alloc alloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	ref immutable AbsolutePath path,
 ) {
 	return pathToNulTerminatedStr(alloc, allPaths, path.root, path.path, path.extension);
 }
 
-private immutable(NulTerminatedStr) pathToNulTerminatedStr(Alloc, PathAlloc)(
+private immutable(NulTerminatedStr) pathToNulTerminatedStr(
 	ref Alloc alloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	immutable string root,
 	immutable Path path,
 	immutable string extension,
@@ -286,22 +286,22 @@ private immutable(NulTerminatedStr) pathToNulTerminatedStr(Alloc, PathAlloc)(
 	return immutable NulTerminatedStr(pathToStrWorker(alloc, allPaths, root, 1, path, extension, true));
 }
 
-immutable(string) pathToStr(Alloc, PathAlloc)(
+immutable(string) pathToStr(
 	ref Alloc alloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	ref immutable AbsolutePath path,
 ) {
 	return pathToStr(alloc, allPaths, path.root, path.path, path.extension);
 }
-immutable(CStr) pathToCStr(Alloc, PathAlloc)(
+immutable(CStr) pathToCStr(
 	ref Alloc alloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	ref immutable AbsolutePath path,
 ) {
 	return pathToNulTerminatedStr(alloc, allPaths, path.root, path.path, path.extension).asCStr();
 }
 
-immutable(Path) parsePath(Alloc)(ref AllPaths!Alloc allPaths, scope ref immutable string str) {
+immutable(Path) parsePath(ref AllPaths allPaths, scope ref immutable string str) {
 	immutable size_t len = size(str);
 	size_t i = 0;
 	if (i < len && at(str, i) == '/')
@@ -333,7 +333,7 @@ immutable(Path) parsePath(Alloc)(ref AllPaths!Alloc allPaths, scope ref immutabl
 	return recur(i, path);
 }
 
-private immutable(RelPath) parseRelPath(Alloc)(ref AllPaths!Alloc allPaths, immutable string s) {
+private immutable(RelPath) parseRelPath(ref AllPaths allPaths, immutable string s) {
 	if (first(s) == '.')
 		if (at(s, 1) == '/')
 			return parseRelPath(allPaths, s[2 .. $]);
@@ -347,19 +347,19 @@ private immutable(RelPath) parseRelPath(Alloc)(ref AllPaths!Alloc allPaths, immu
 		return immutable RelPath(immutable Nat8(0), parsePath(allPaths, s));
 }
 
-immutable(Opt!AbsolutePath) parent(Alloc)(ref const AllPaths!Alloc allPaths, ref immutable AbsolutePath a) {
+immutable(Opt!AbsolutePath) parent(ref const AllPaths allPaths, ref immutable AbsolutePath a) {
 	immutable Opt!Path pathParent = parent(allPaths, a.path);
 	return has(pathParent)
 		? some(immutable AbsolutePath(a.root, force(pathParent), ""))
 		: none!AbsolutePath;
 }
 
-immutable(string) baseName(Alloc)(ref const AllPaths!Alloc allPaths, ref immutable AbsolutePath a) {
+immutable(string) baseName(ref const AllPaths allPaths, ref immutable AbsolutePath a) {
 	return baseName(allPaths, a.path);
 }
 
-immutable(AbsolutePath) parseAbsoluteOrRelPath(Alloc)(
-	ref AllPaths!Alloc allPaths,
+immutable(AbsolutePath) parseAbsoluteOrRelPath(
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string s,
 ) {
@@ -368,8 +368,8 @@ immutable(AbsolutePath) parseAbsoluteOrRelPath(Alloc)(
 	return immutable AbsolutePath(rp.root, rp.path, se.extension);
 }
 
-private immutable(RootAndPath) parseAbsoluteOrRelPathWithoutExtension(Alloc)(
-	ref AllPaths!Alloc allPaths,
+private immutable(RootAndPath) parseAbsoluteOrRelPathWithoutExtension(
+	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string s,
 ) {
@@ -391,8 +391,8 @@ private immutable(RootAndPath) parseAbsoluteOrRelPathWithoutExtension(Alloc)(
 	}
 }
 
-private immutable(string) dropParents(Alloc)(
-	ref const AllPaths!Alloc allPaths,
+private immutable(string) dropParents(
+	ref const AllPaths allPaths,
 	immutable string path,
 	immutable Nat8 nParents,
 ) {
@@ -423,8 +423,8 @@ private struct RootAndPath {
 	immutable Path path;
 }
 
-immutable(AbsolutePath) childPath(Alloc)(
-	ref AllPaths!Alloc allPaths,
+immutable(AbsolutePath) childPath(
+	ref AllPaths allPaths,
 	ref immutable AbsolutePath parent,
 	scope immutable string name,
 ) {
@@ -459,7 +459,7 @@ immutable(Comparison) comparePath(immutable Path a, immutable Path b) {
 	return compareNat16(a.index, b.index);
 }
 
-immutable(uint) nPathComponents(Alloc)(ref const AllPaths!Alloc allPaths, immutable Path a) {
+immutable(uint) nPathComponents(ref const AllPaths allPaths, immutable Path a) {
 	immutable Opt!Path par = parent(allPaths, a);
 	return 1 + (has(par) ? nPathComponents(allPaths, force(par)) : 0);
 }

@@ -2,7 +2,7 @@ module util.collection.mutArr;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : allocateBytes, freeBytes, freeBytesPartial;
+import util.alloc.alloc : Alloc, allocateBytes, freeBytes, freeBytesPartial;
 import util.memory : initMemory_mut, memcpy, overwriteMemory;
 import util.opt : force, noneConst, noneMut, Opt, someConst, someMut;
 import util.util : verify;
@@ -14,7 +14,7 @@ struct MutArr(T) {
 	size_t capacity_;
 }
 
-@system MutArr!T newUninitializedMutArr(T, Alloc)(ref Alloc alloc, immutable size_t size) {
+@system MutArr!T newUninitializedMutArr(T)(ref Alloc alloc, immutable size_t size) {
 	return MutArr!T(cast(T*) allocateBytes(alloc, T.sizeof * size), size, size);
 }
 
@@ -40,19 +40,19 @@ immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 	return a.size_ == 0;
 }
 
-void insert(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T value) {
+void insert(T)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T value) {
 	push(alloc, a, value); // pushed value is arbitrary, we're about to overwrite it
 	foreach_reverse (immutable size_t i; pos + 1 .. mutArrSize(a))
 		setAt(a, i, mutArrAt(a, i - 1));
 	setAt(a, pos, value);
 }
 
-@trusted void push(T, Alloc)(ref Alloc alloc, scope ref MutArr!T a, T value) {
+@trusted void push(T)(ref Alloc alloc, scope ref MutArr!T a, T value) {
 	if (a.size_ == a.capacity_) {
 		immutable size_t newCapacity = a.size_ == 0 ? 2 : a.size_ * 2;
 		T* newBegin = cast(T*) allocateBytes(alloc, newCapacity * T.sizeof);
 		memcpy(cast(ubyte*) newBegin, cast(ubyte*) a.begin_, a.size_ * T.sizeof);
-		freeBytes!Alloc(alloc, cast(ubyte*) a.begin_, a.size_ * T.sizeof);
+		freeBytes(alloc, cast(ubyte*) a.begin_, a.size_ * T.sizeof);
 		a.begin_ = newBegin;
 		a.capacity_ = newCapacity;
 	}
@@ -62,7 +62,7 @@ void insert(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T v
 	verify(a.size_ <= a.capacity_);
 }
 
-void pushAll(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[] values) {
+void pushAll(T)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[] values) {
 	foreach (ref immutable T value; values)
 		push(alloc, a, value);
 }
@@ -109,7 +109,7 @@ T mustPop(T)(ref MutArr!T a) {
 	return a.begin_[0 .. a.size_];
 }
 
-@trusted immutable(T[]) moveToArr(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a) {
+@trusted immutable(T[]) moveToArr(T)(ref Alloc alloc, ref MutArr!(immutable T) a) {
 	immutable T[] res = cast(immutable) a.begin_[0 .. a.size_];
 	freeBytesPartial(alloc, cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;
@@ -118,7 +118,7 @@ T mustPop(T)(ref MutArr!T a) {
 	return res;
 }
 
-@trusted const(T[]) moveToArr_const(T, Alloc)(ref Alloc alloc, ref MutArr!T a) {
+@trusted const(T[]) moveToArr_const(T)(ref Alloc alloc, ref MutArr!T a) {
 	const T[] res = a.begin_[0 .. a.size_];
 	freeBytesPartial(alloc, cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;

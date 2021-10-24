@@ -2,6 +2,7 @@ module util.lineAndColumnGetter;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : Alloc;
 import util.collection.arr : at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.sourceRange : Pos;
@@ -25,7 +26,7 @@ struct LineAndColumnGetter {
 	}
 }
 
-immutable(LineAndColumnGetter) lineAndColumnGetterForText(Alloc)(ref Alloc alloc, immutable string text) {
+immutable(LineAndColumnGetter) lineAndColumnGetterForText(ref Alloc alloc, immutable string text) {
 	ArrBuilder!Pos lineToPos;
 	ArrBuilder!ubyte lineToNTabs;
 
@@ -42,7 +43,7 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForText(Alloc)(ref Alloc alloc
 	return immutable LineAndColumnGetter(finishArr(alloc, lineToPos), finishArr(alloc, lineToNTabs));
 }
 
-immutable(LineAndColumnGetter) lineAndColumnGetterForEmptyFile(Alloc)(ref Alloc alloc) {
+immutable(LineAndColumnGetter) lineAndColumnGetterForEmptyFile(ref Alloc alloc) {
 	return lineAndColumnGetterForText(alloc, "");
 }
 

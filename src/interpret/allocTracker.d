@@ -2,6 +2,7 @@ module interpret.allocTracker;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : Alloc;
 import util.collection.arrUtil : exists_const;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutDict : addToMutDict, mustDelete, MutDict, tempPairs;
@@ -16,7 +17,7 @@ struct AllocTracker {
 	MutDict!(const ubyte*, immutable size_t, comparePtrRaw!ubyte) allocations;
 }
 
-void markAlloced(Alloc)(ref Alloc alloc, ref AllocTracker a, const ubyte* ptr, immutable size_t size) {
+void markAlloced(ref Alloc alloc, ref AllocTracker a, const ubyte* ptr, immutable size_t size) {
 	addToMutDict(alloc, a.allocations, ptr, size);
 }
 
@@ -31,7 +32,7 @@ immutable(bool) hasAllocedPtr(ref const AllocTracker a, ref const PtrRange range
 			ptrInRange(pair, range));
 }
 
-@trusted void writeMarkedAllocedRanges(WriterAlloc)(ref Writer!WriterAlloc writer, ref const AllocTracker a) {
+@trusted void writeMarkedAllocedRanges(ref Writer writer, ref const AllocTracker a) {
 	bool first = true;
 	foreach (ref const KeyValuePair!(const ubyte*, immutable size_t) pair; tempPairs(a.allocations)) {
 		if (first)

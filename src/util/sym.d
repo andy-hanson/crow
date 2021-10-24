@@ -2,6 +2,7 @@ module util.sym;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : Alloc;
 import util.collection.arr : at, first, last, only, size;
 import util.collection.arrUtil : contains, every, findIndex, tail;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
@@ -41,19 +42,19 @@ struct Sym {
 	immutable this(immutable ulong v) { value = v; }
 }
 
-struct AllSymbols(Alloc) {
+struct AllSymbols {
 	//TODO:PRIVATE
 	Ptr!Alloc alloc;
 	MutArr!(immutable CStr) largeStrings;
 }
 
-immutable(Sym) prependSet(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Sym a) {
+immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
 	verify(!isSymOperator(a));
 	immutable size_t oldSize = symSize(a);
 	immutable size_t newSize = 4 + oldSize;
 
 	//TODO: only do inside 'else'
-	Writer!Alloc writer = Writer!Alloc(allSymbols.alloc);
+	Writer writer = Writer(allSymbols.alloc);
 	writeStatic(writer, "set-");
 	writeSym(writer, a);
 	immutable string str = finishWriter(writer);
@@ -66,12 +67,12 @@ immutable(Sym) prependSet(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Sym 
 		return getSymFromLongStr(allSymbols, str);
 }
 
-immutable(Sym) symOfStr(Alloc)(ref AllSymbols!Alloc allSymbols, scope immutable string str) {
+immutable(Sym) symOfStr(ref AllSymbols allSymbols, scope immutable string str) {
 	immutable Opt!Sym op = getSymFromOperator(allSymbols, str);
 	return has(op) ? force(op) : getSymFromAlphaIdentifier(allSymbols, str);
 }
 
-immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols, scope immutable string str) {
+immutable(Sym) getSymFromAlphaIdentifier(ref AllSymbols allSymbols, scope immutable string str) {
 	immutable Sym res = canPackAlphaIdentifier(str)
 		? immutable Sym(packAlphaIdentifier(str))
 		: getSymFromLongStr(allSymbols, str);
@@ -107,7 +108,7 @@ enum Operator {
 	not,
 }
 
-immutable(Opt!Sym) getSymFromOperator(Alloc)(ref AllSymbols!Alloc allSymbols, scope immutable string str) {
+immutable(Opt!Sym) getSymFromOperator(ref AllSymbols allSymbols, scope immutable string str) {
 	immutable Opt!Operator op = operatorFromStr(str);
 	if (has(op)) {
 		immutable Sym res = symForOperator(force(op));
@@ -289,8 +290,8 @@ immutable(bool) symEqLongAlphaLiteral(immutable Sym a, immutable string lit) {
 	return isLongAlphaSym(a) && strEq(asLongAlphaSym(a), lit);
 }
 
-immutable(string) strOfSym(Alloc)(ref Alloc alloc, immutable Sym a) {
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut!Alloc(alloc));
+immutable(string) strOfSym(ref Alloc alloc, immutable Sym a) {
+	Writer writer = Writer(ptrTrustMe_mut(alloc));
 	writeSym(writer, a);
 	return finishWriter(writer);
 }
@@ -307,7 +308,7 @@ immutable(char[bufferSize]) symAsTempBuffer(size_t bufferSize)(immutable Sym a) 
 	return res;
 }
 
-immutable(size_t) writeSymAndGetSize(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
+immutable(size_t) writeSymAndGetSize(ref Writer writer, immutable Sym a) {
 	size_t size = 0;
 	eachCharInSym(a, (immutable char c) {
 		writeChar(writer, c);
@@ -322,7 +323,7 @@ void logSym(Debug)(ref Debug dbg, immutable Sym a) {
 	});
 }
 
-void writeSym(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
+void writeSym(ref Writer writer, immutable Sym a) {
 	writeSymAndGetSize(writer, a);
 }
 
@@ -339,12 +340,12 @@ immutable(Opt!Operator) operatorForSym(immutable Sym a) {
 		return none!Operator;
 }
 
-void addToMutSymSetOkIfPresent(Alloc)(
+void addToMutSymSetOkIfPresent(
 	ref Alloc alloc,
 	ref MutSymSet set,
 	immutable Sym sym,
 ) {
-	addToMutSetOkIfPresent!(immutable Sym, compareSym, Alloc)(alloc, set, sym);
+	addToMutSetOkIfPresent!(immutable Sym, compareSym)(alloc, set, sym);
 }
 
 private:
@@ -483,7 +484,7 @@ public immutable(bool) isLongAlphaSym(immutable Sym a) {
 	return strOfCStr(cast(immutable CStr) a.value);
 }
 
-immutable(CStr) getOrAddLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, scope immutable string str) {
+immutable(CStr) getOrAddLongStr(ref AllSymbols allSymbols, scope immutable string str) {
 	foreach (immutable CStr s; mutArrRange(allSymbols.largeStrings))
 		if (strEqCStr(str, s))
 			return s;
@@ -491,7 +492,7 @@ immutable(CStr) getOrAddLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, scope im
 	return allSymbols.largeStrings.last;
 }
 
-immutable(Sym) getSymFromLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, scope immutable string str) {
+immutable(Sym) getSymFromLongStr(ref AllSymbols allSymbols, scope immutable string str) {
 	immutable CStr cstr = getOrAddLongStr(allSymbols, str);
 	immutable Sym res = immutable Sym(cast(immutable ulong) cstr);
 	verify(isLongAlphaSym(res));

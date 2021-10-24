@@ -26,6 +26,7 @@ import model.lowModel :
 	PrimitiveType,
 	symOfPrimitiveType;
 import model.reprConcreteModel : reprOfConcreteStructRef;
+import util.alloc.alloc : Alloc;
 import util.collection.arr : at, sizeEq;
 import util.collection.arrUtil : tail, zip;
 import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet, fullIndexDictGetPtr;
@@ -34,7 +35,7 @@ import util.ptr : Ptr, ptrTrustMe;
 import util.repr : Repr, reprRecord, reprSym;
 import util.util : verify;
 
-void checkLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a) {
+void checkLowProgram(ref Alloc alloc, ref immutable LowProgram a) {
 	immutable Ctx ctx = immutable Ctx(ptrTrustMe(a));
 	fullIndexDictEachValue!(LowFunIndex, LowFun)(a.allFuns, (ref immutable LowFun fun) {
 		checkLowFun(alloc, ctx, fun);
@@ -52,14 +53,14 @@ struct FunCtx {
 	immutable Ptr!LowFun fun;
 }
 
-void checkLowFun(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, ref immutable LowFun fun) {
+void checkLowFun(ref Alloc alloc, ref immutable Ctx ctx, ref immutable LowFun fun) {
 	//debug {
 	//	import core.stdc.stdio : printf;
 	//	import interpret.debugging : writeFunName;
 	//	import util.ptr : ptrTrustMe_mut;
 	//	import util.writer : Writer, finishWriterToCStr;
 	//
-	//	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	//	Writer writer = Writer(ptrTrustMe_mut(alloc));
 	//	writeFunName(writer, ctx.program, fun);
 	//	printf("Will check function %s\n", finishWriterToCStr(writer));
 	//}
@@ -73,7 +74,7 @@ void checkLowFun(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, ref immutable Lo
 		});
 }
 
-void checkLowExpr(Alloc)(
+void checkLowExpr(
 	ref Alloc alloc,
 	ref immutable FunCtx ctx,
 	ref immutable LowType type,
@@ -208,7 +209,7 @@ void checkLowExpr(Alloc)(
 		(ref immutable LowExprKind.Zeroed) {});
 }
 
-void checkTypeEqual(Alloc)(
+void checkTypeEqual(
 	ref Alloc alloc,
 	ref immutable Ctx ctx,
 	ref immutable LowType expected,
@@ -220,7 +221,7 @@ void checkTypeEqual(Alloc)(
 	//		import util.repr : writeRepr;
 	//		import util.writer : finishWriterToCStr, Writer, writeStatic;
 	//		import util.ptr : ptrTrustMe_mut;
-	//		Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	//		Writer writer = Writer(ptrTrustMe_mut(alloc));
 	//		writeStatic(writer, "Type is not as expected. Expected:\n");
 	//		writeRepr(writer, reprOfLowType2(alloc, ctx, expected));
 	//		writeStatic(writer, "Actual:\n");
@@ -231,7 +232,7 @@ void checkTypeEqual(Alloc)(
 	verify(lowTypeEqual(expected, actual));
 }
 
-immutable(Repr) reprOfLowType2(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, immutable LowType a) {
+immutable(Repr) reprOfLowType2(ref Alloc alloc, ref immutable Ctx ctx, immutable LowType a) {
 	return matchLowType!(immutable Repr)(
 		a,
 		(immutable LowType.ExternPtr) =>

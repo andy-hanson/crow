@@ -17,27 +17,28 @@ import model.model :
 	TypeParam,
 	writeStructDecl,
 	writeType;
+import util.alloc.alloc : Alloc, TempAlloc;
 import util.path : AllPaths;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : writeSym;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
-immutable(string) getHoverStr(TempAlloc, Alloc, PathAlloc)(
+immutable(string) getHoverStr(
 	ref TempAlloc tempAlloc,
 	ref Alloc alloc,
-	ref const AllPaths!PathAlloc allPaths,
+	ref const AllPaths allPaths,
 	ref immutable Program program,
 	ref immutable Position pos,
 ) {
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	Writer writer = Writer(ptrTrustMe_mut(alloc));
 	getHover(tempAlloc, writer, allPaths, program, pos);
 	return finishWriter(writer);
 }
 
-void getHover(TempAlloc, Alloc, PathAlloc)(
+void getHover(
 	ref TempAlloc tempAlloc,
-	ref Writer!Alloc writer,
-	ref const AllPaths!PathAlloc allPaths,
+	ref Writer writer,
+	ref const AllPaths allPaths,
 	ref immutable Program program,
 	ref immutable Position pos,
 ) {
@@ -102,11 +103,11 @@ void getHover(TempAlloc, Alloc, PathAlloc)(
 
 private:
 
-void getImportedNameHover(Alloc)(ref Writer!Alloc writer, ref immutable Position.ImportedName) {
+void getImportedNameHover(ref Writer writer, ref immutable Position.ImportedName) {
 	writeStatic(writer, "TODO: getImportedNameHover");
 }
 
-void getExprHover(Alloc)(ref Writer!Alloc writer, ref immutable Expr) {
+void getExprHover(ref Writer writer, ref immutable Expr) {
 	writeStatic(writer, "TODO: getExprHover");
 }
 

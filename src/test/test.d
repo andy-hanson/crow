@@ -16,19 +16,20 @@ import test.testSym : testSym;
 import test.testTokens : testTokens;
 import test.testUtil : Test;
 import test.testWriter : testWriter;
+import util.alloc.alloc : Alloc;
 import util.collection.str : strEq;
 import util.opt : force, has, Opt;
 import util.path : AllPaths;
 import util.ptr : ptrTrustMe_mut;
 import util.sym : AllSymbols;
 
-immutable(ExitCode) test(Debug, Alloc)(ref Debug dbg, ref Alloc alloc, immutable Opt!string name) {
-	Test!(Debug, Alloc) test = Test!(Debug, Alloc)(
+immutable(ExitCode) test(Debug)(ref Debug dbg, ref Alloc alloc, immutable Opt!string name) {
+	Test!Debug test = Test!Debug(
 		ptrTrustMe_mut(dbg),
 		ptrTrustMe_mut(alloc),
-		AllSymbols!Alloc(ptrTrustMe_mut(alloc)),
-		AllPaths!Alloc(ptrTrustMe_mut(alloc)));
-	foreach (ref immutable NameAndTest!(Debug, Alloc) it; allTests!(Debug, Alloc))
+		AllSymbols(ptrTrustMe_mut(alloc)),
+		AllPaths(ptrTrustMe_mut(alloc)));
+	foreach (ref immutable NameAndTest!Debug it; allTests!Debug)
 		if (!has(name) || strEq(force(name), it.name))
 			it.test(test);
 	return ExitCode.ok;
@@ -36,22 +37,22 @@ immutable(ExitCode) test(Debug, Alloc)(ref Debug dbg, ref Alloc alloc, immutable
 
 private:
 
-immutable(NameAndTest!(Debug, Alloc)[]) allTests(Debug, Alloc) = [
-	immutable NameAndTest!(Debug, Alloc)("arr-util", &testArrUtil!(Debug, Alloc)),
-	immutable NameAndTest!(Debug, Alloc)("apply-fn", &testApplyFn!(Debug, Alloc)),
-	immutable NameAndTest!(Debug, Alloc)("byte-reader-writer", &testByteReaderWriter!(Debug, Alloc)),
-	immutable NameAndTest!(Debug, Alloc)("fake-extern", &testFakeExtern!(Debug, Alloc)),
-	immutable NameAndTest!(Debug, Alloc)("hover", &testHover!(Debug, Alloc)),
-	immutable NameAndTest!(Debug, Alloc)("interpreter", &testInterpreter!(Debug, Alloc)),
-	immutable NameAndTest!(Debug, Alloc)("line-and-column-getter", &testLineAndColumnGetter!(Debug, Alloc)),
-	immutable NameAndTest!(Debug, Alloc)("path", &testPath!(Debug, Alloc)),
-	immutable NameAndTest!(Debug, Alloc)("server", &testServer!(Debug, Alloc)),
-	immutable NameAndTest!(Debug, Alloc)("sym", &testSym!(Debug, Alloc)),
-	immutable NameAndTest!(Debug, Alloc)("tokens", &testTokens!(Debug, Alloc)),
-	immutable NameAndTest!(Debug, Alloc)("writer", &testWriter!(Debug, Alloc)),
+immutable(NameAndTest!Debug[]) allTests(Debug) = [
+	immutable NameAndTest!Debug("arr-util", &testArrUtil!Debug),
+	immutable NameAndTest!Debug("apply-fn", &testApplyFn!Debug),
+	immutable NameAndTest!Debug("byte-reader-writer", &testByteReaderWriter!Debug),
+	immutable NameAndTest!Debug("fake-extern", &testFakeExtern!Debug),
+	immutable NameAndTest!Debug("hover", &testHover!Debug),
+	immutable NameAndTest!Debug("interpreter", &testInterpreter!Debug),
+	immutable NameAndTest!Debug("line-and-column-getter", &testLineAndColumnGetter!Debug),
+	immutable NameAndTest!Debug("path", &testPath!Debug),
+	immutable NameAndTest!Debug("server", &testServer!Debug),
+	immutable NameAndTest!Debug("sym", &testSym!Debug),
+	immutable NameAndTest!Debug("tokens", &testTokens!Debug),
+	immutable NameAndTest!Debug("writer", &testWriter!Debug),
 ];
 
-struct NameAndTest(Debug, Alloc) {
+struct NameAndTest(Debug) {
 	immutable string name;
-	immutable void function(ref Test!(Debug, Alloc)) @safe @nogc nothrow test; // not pure
+	immutable void function(ref Test!Debug) @safe @nogc nothrow test; // not pure
 }

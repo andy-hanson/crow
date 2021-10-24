@@ -66,6 +66,7 @@ import model.lowModel :
 	regularParams;
 import model.model : EnumValue, FunInst, Local, name, Param;
 import model.typeLayout : sizeOfType;
+import util.alloc.alloc : Alloc, TempAlloc;
 import util.collection.arr : at, empty, emptyArr, first, only, setAt, size, sizeEq;
 import util.collection.arrUtil : arrLiteral, every, fillArr_mut, map, tail, zip;
 import util.collection.dict : Dict, getAt, mustGetAt;
@@ -105,12 +106,12 @@ import util.writer :
 	writeStatic,
 	writeWithCommas;
 
-immutable(string) writeToC(Alloc, TempAlloc)(
+immutable(string) writeToC(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref immutable LowProgram program,
 ) {
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	Writer writer = Writer(ptrTrustMe_mut(alloc));
 
 	writeStatic(writer, "#include <stdatomic.h>\n");
 	writeStatic(writer, "#include <stddef.h>\n"); // for NULL
@@ -139,7 +140,7 @@ immutable(string) writeToC(Alloc, TempAlloc)(
 
 private:
 
-void writeConstants(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable AllConstantsLow allConstants) {
+void writeConstants(ref Writer writer, ref immutable Ctx ctx, ref immutable AllConstantsLow allConstants) {
 	foreach (ref immutable ArrTypeAndConstantsLow a; allConstants.arrs) {
 		foreach (immutable size_t i; 0 .. size(a.constants)) {
 			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, size(at(a.constants, i)));
@@ -185,8 +186,8 @@ void writeConstants(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref i
 	}
 }
 
-void declareConstantArrStorage(Alloc)(
-	ref Writer!Alloc writer,
+void declareConstantArrStorage(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	immutable LowType.Record arrType,
 	immutable LowType elementType,
@@ -201,8 +202,8 @@ void declareConstantArrStorage(Alloc)(
 	writeChar(writer, ']');
 }
 
-void writeConstantArrStorageName(Alloc)(
-	ref Writer!Alloc writer,
+void writeConstantArrStorageName(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	immutable LowType.Record arrType,
 	immutable size_t index,
@@ -213,8 +214,8 @@ void writeConstantArrStorageName(Alloc)(
 	writeNat(writer, index);
 }
 
-void declareConstantPointerStorage(Alloc)(
-	ref Writer!Alloc writer,
+void declareConstantPointerStorage(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	immutable LowType pointeeType,
 	immutable size_t index,
@@ -225,8 +226,8 @@ void declareConstantPointerStorage(Alloc)(
 	writeConstantPointerStorageName(writer, ctx, pointeeType, index);
 }
 
-void writeConstantPointerStorageName(Alloc)(
-	ref Writer!Alloc writer,
+void writeConstantPointerStorageName(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	immutable LowType pointeeType,
 	immutable size_t index,
@@ -274,7 +275,7 @@ struct PrevOrIndex(T) {
 	}
 }
 
-immutable(MangledNames) buildMangledNames(Alloc)(ref Alloc alloc, ref immutable LowProgram program) {
+immutable(MangledNames) buildMangledNames(ref Alloc alloc, ref immutable LowProgram program) {
 	// First time we see a fun with a name, we'll store the fun-ptr here in case it's not overloaded.
 	// After that, we'll start putting them in funToNameIndex, and store the next index here.
 	MutDict!(immutable Sym, immutable PrevOrIndex!ConcreteFun, compareSym) funNameToIndex;
@@ -290,7 +291,7 @@ immutable(MangledNames) buildMangledNames(Alloc)(ref Alloc alloc, ref immutable 
 					cf.source,
 					(immutable Ptr!FunInst i) {
 						//TODO: use temp alloc
-						addToPrevOrIndex!(ConcreteFun, Alloc)(alloc, funNameToIndex, funToNameIndex, cf, name(i));
+						addToPrevOrIndex!ConcreteFun(alloc, funNameToIndex, funToNameIndex, cf, name(i));
 					},
 					(ref immutable ConcreteFunSource.Lambda) {},
 					(ref immutable ConcreteFunSource.Test) {});
@@ -306,7 +307,7 @@ immutable(MangledNames) buildMangledNames(Alloc)(ref Alloc alloc, ref immutable 
 		matchConcreteStructSource!void(
 			s.source,
 			(ref immutable ConcreteStructSource.Inst it) {
-				addToPrevOrIndex!(ConcreteStruct, Alloc)(alloc, structNameToIndex, structToNameIndex, s, name(it.inst));
+				addToPrevOrIndex!ConcreteStruct(alloc, structNameToIndex, structToNameIndex, s, name(it.inst));
 			},
 			(ref immutable ConcreteStructSource.Lambda) {});
 	}
@@ -336,14 +337,14 @@ immutable(MangledNames) buildMangledNames(Alloc)(ref Alloc alloc, ref immutable 
 		finishDictShouldBeNoConflict(alloc, structToNameIndex));
 }
 
-void addToPrevOrIndex(T, Alloc)(
+void addToPrevOrIndex(T)(
 	ref Alloc alloc,
 	ref MutDict!(immutable Sym, immutable PrevOrIndex!T, compareSym) nameToIndex,
 	ref DictBuilder!(Ptr!T, size_t, comparePtr!T) toNameIndex,
 	immutable Ptr!T cur,
 	immutable Sym name,
 ) {
-	insertOrUpdate!(Alloc, immutable Sym, immutable PrevOrIndex!T, compareSym)(
+	insertOrUpdate!(immutable Sym, immutable PrevOrIndex!T, compareSym)(
 		alloc,
 		nameToIndex,
 		name,
@@ -381,7 +382,7 @@ immutable(Temp) getNextTemp(ref FunBodyCtx ctx) {
 	return temp;
 }
 
-void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType t) {
+void writeType(ref Writer writer, ref immutable Ctx ctx, ref immutable LowType t) {
 	return matchLowTypeCombinePtr!void(
 		t,
 		(immutable LowType.ExternPtr it) {
@@ -408,28 +409,28 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immuta
 		});
 }
 
-void writeRecordType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable LowType.Record a) {
+void writeRecordType(ref Writer writer, ref immutable Ctx ctx, immutable LowType.Record a) {
 	writeStatic(writer, "struct ");
 	writeRecordName(writer, ctx, a);
 }
 
-void writeRecordName(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable LowType.Record a) {
+void writeRecordName(ref Writer writer, ref immutable Ctx ctx, immutable LowType.Record a) {
 	writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allRecords, a).source);
 }
 
-void writeCastToType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType type) {
+void writeCastToType(ref Writer writer, ref immutable Ctx ctx, ref immutable LowType type) {
 	writeChar(writer, '(');
 	writeType(writer, ctx, type);
 	writeStatic(writer, ") ");
 }
 
-void doWriteParam(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowParam a) {
+void doWriteParam(ref Writer writer, ref immutable Ctx ctx, ref immutable LowParam a) {
 	writeType(writer, ctx, a.type);
 	writeChar(writer, ' ');
 	writeLowParamName(writer, a);
 }
 
-void writeLowParamName(Alloc)(ref Writer!Alloc writer, ref immutable LowParam a) {
+void writeLowParamName(ref Writer writer, ref immutable LowParam a) {
 	matchLowParamSource!void(
 		a.source,
 		(immutable Ptr!ConcreteParam cp) {
@@ -452,17 +453,17 @@ void writeLowParamName(Alloc)(ref Writer!Alloc writer, ref immutable LowParam a)
 		});
 }
 
-void writeStructHead(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable Ptr!ConcreteStruct source) {
+void writeStructHead(ref Writer writer, ref immutable Ctx ctx, immutable Ptr!ConcreteStruct source) {
 	writeStatic(writer, "struct ");
 	writeStructMangledName(writer, ctx, source);
 	writeStatic(writer, " {");
 }
 
-void writeStructEnd(Alloc)(ref Writer!Alloc writer) {
+void writeStructEnd(ref Writer writer) {
 	writeStatic(writer, "\n};\n");
 }
 
-void writeRecord(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowRecord a) {
+void writeRecord(ref Writer writer, ref immutable Ctx ctx, ref immutable LowRecord a) {
 	writeStructHead(writer, ctx, a.source);
 	foreach (ref immutable LowField field; a.fields) {
 		writeStatic(writer, "\n\t");
@@ -477,7 +478,7 @@ void writeRecord(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immu
 	writeStatic(writer, ";\n");
 }
 
-void writeUnion(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowUnion a) {
+void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion a) {
 	writeStructHead(writer, ctx, a.source);
 	writeStatic(writer, "\n\tuint64_t kind;");
 	writeStatic(writer, "\n\tunion {");
@@ -565,14 +566,14 @@ immutable(bool) canReferenceTypeAsPointee(
 			at(states.unionStates, it.index) != StructState.none);
 }
 
-void declareStruct(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable Ptr!ConcreteStruct source) {
+void declareStruct(ref Writer writer, ref immutable Ctx ctx, immutable Ptr!ConcreteStruct source) {
 	writeStatic(writer, "struct ");
 	writeStructMangledName(writer, ctx, source);
 	writeStatic(writer, ";\n");
 }
 
-void staticAssertStructSize(Alloc)(
-	ref Writer!Alloc writer,
+void staticAssertStructSize(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	ref immutable LowType type,
 	immutable TypeSize size,
@@ -590,8 +591,8 @@ void staticAssertStructSize(Alloc)(
 	writeStatic(writer, ", \"\");\n");
 }
 
-void writeStructMangledName(Alloc)(
-	ref Writer!Alloc writer,
+void writeStructMangledName(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	immutable Ptr!ConcreteStruct source,
 ) {
@@ -608,8 +609,8 @@ void writeStructMangledName(Alloc)(
 		});
 }
 
-void writeLowFunMangledName(Alloc)(
-	ref Writer!Alloc writer,
+void writeLowFunMangledName(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
@@ -628,7 +629,7 @@ void writeLowFunMangledName(Alloc)(
 		});
 }
 
-void writeFunMangledName(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable Ptr!ConcreteFun source) {
+void writeFunMangledName(ref Writer writer, ref immutable Ctx ctx, immutable Ptr!ConcreteFun source) {
 	matchConcreteFunSource!void(
 		source.source,
 		(immutable Ptr!FunInst it) {
@@ -650,15 +651,15 @@ void writeFunMangledName(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, 
 		});
 }
 
-void maybeWriteIndexSuffix(Alloc)(ref Writer!Alloc writer, immutable Opt!size_t index) {
+void maybeWriteIndexSuffix(ref Writer writer, immutable Opt!size_t index) {
 	if (has(index)) {
 		writeChar(writer, '_');
 		writeNat(writer, force(index));
 	}
 }
 
-immutable(bool) tryWriteFunPtrDeclaration(Alloc)(
-	ref Writer!Alloc writer,
+immutable(bool) tryWriteFunPtrDeclaration(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	ref const StructStates structStates,
 	immutable LowType.FunPtr funPtrIndex,
@@ -682,8 +683,8 @@ immutable(bool) tryWriteFunPtrDeclaration(Alloc)(
 	return canDeclare;
 }
 
-immutable(StructState) writeRecordDeclarationOrDefinition(Alloc)(
-	ref Writer!Alloc writer,
+immutable(StructState) writeRecordDeclarationOrDefinition(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	ref const StructStates structStates,
 	immutable StructState prevState,
@@ -702,8 +703,8 @@ immutable(StructState) writeRecordDeclarationOrDefinition(Alloc)(
 	}
 }
 
-immutable(StructState) writeUnionDeclarationOrDefinition(Alloc)(
-	ref Writer!Alloc writer,
+immutable(StructState) writeUnionDeclarationOrDefinition(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	ref const StructStates structStates,
 	immutable StructState prevState,
@@ -720,7 +721,7 @@ immutable(StructState) writeUnionDeclarationOrDefinition(Alloc)(
 	}
 }
 
-void writeStructs(Alloc, WriterAlloc)(ref Alloc alloc, ref Writer!WriterAlloc writer, ref immutable Ctx ctx) {
+void writeStructs(ref Alloc alloc, ref Writer writer, ref immutable Ctx ctx) {
 	writeStatic(writer, "\nstruct void_ {};\n");
 
 	// Write extern-ptr types first
@@ -800,8 +801,8 @@ void writeStructs(Alloc, WriterAlloc)(ref Alloc alloc, ref Writer!WriterAlloc wr
 	});
 }
 
-void writeFunReturnTypeNameAndParams(Alloc)(
-	ref Writer!Alloc writer,
+void writeFunReturnTypeNameAndParams(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
@@ -827,8 +828,8 @@ void writeFunReturnTypeNameAndParams(Alloc)(
 	}
 }
 
-void writeFunDeclaration(Alloc)(
-	ref Writer!Alloc writer,
+void writeFunDeclaration(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
@@ -839,8 +840,8 @@ void writeFunDeclaration(Alloc)(
 	writeStatic(writer, ";\n");
 }
 
-void writeFunDefinition(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+void writeFunDefinition(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	ref immutable Ctx ctx,
 	immutable LowFunIndex funIndex,
@@ -862,8 +863,8 @@ void writeFunDefinition(Alloc, TempAlloc)(
 		});
 }
 
-void writeFunWithExprBody(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+void writeFunWithExprBody(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	ref immutable Ctx ctx,
 	immutable LowFunIndex funIndex,
@@ -941,8 +942,8 @@ immutable(Temp) asTemp(ref immutable WriteExprResult a) {
 	}
 }
 
-void writeTempDeclare(Alloc)(
-	ref Writer!Alloc writer,
+void writeTempDeclare(
+	ref Writer writer,
 	ref FunBodyCtx ctx,
 	ref immutable LowType type,
 	immutable Temp temp,
@@ -952,13 +953,13 @@ void writeTempDeclare(Alloc)(
 	writeTempRef(writer, temp);
 }
 
-void writeTempRef(Alloc)(ref Writer!Alloc writer, ref immutable Temp a) {
+void writeTempRef(ref Writer writer, ref immutable Temp a) {
 	writeStatic(writer, "_");
 	writeNat(writer, a.index);
 }
 
-void writeTempOrInline(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+void writeTempOrInline(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	ref FunBodyCtx ctx,
 	ref immutable LowExpr e,
@@ -976,8 +977,8 @@ void writeTempOrInline(Alloc, TempAlloc)(
 		});
 }
 
-void writeTempOrInlines(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+void writeTempOrInlines(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	ref FunBodyCtx ctx,
 	immutable LowExpr[] exprs,
@@ -989,8 +990,8 @@ void writeTempOrInlines(Alloc, TempAlloc)(
 	});
 }
 
-void writeDeclareLocal(Alloc)(
-	ref Writer!Alloc writer,
+void writeDeclareLocal(
+	ref Writer writer,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
 	immutable Ptr!LowLocal local,
@@ -1099,19 +1100,19 @@ immutable(bool) isVoid(ref immutable WriteKind a) {
 	}
 }
 
-immutable(WriteExprResult[]) writeExprsTempOrInline(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult[]) writeExprsTempOrInline(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
-	immutable LowExpr[] args,
+	scope immutable LowExpr[] args,
 ) {
-	return map!(WriteExprResult, LowExpr, TempAlloc)(tempAlloc, args, (ref immutable LowExpr arg) =>
+	return map!WriteExprResult(tempAlloc, args, (ref immutable LowExpr arg) =>
 		writeExprTempOrInline(writer, tempAlloc, indent, ctx, arg));
 }
 
-immutable(Temp) writeExprTemp(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(Temp) writeExprTemp(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -1122,8 +1123,8 @@ immutable(Temp) writeExprTemp(Alloc, TempAlloc)(
 	return asTemp(res);
 }
 
-immutable(WriteExprResult) writeExprTempOrInline(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeExprTempOrInline(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -1133,8 +1134,8 @@ immutable(WriteExprResult) writeExprTempOrInline(Alloc, TempAlloc)(
 	return writeExpr(writer, tempAlloc, indent, ctx, writeKind, expr);
 }
 
-immutable(WriteExprResult) writeExpr(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeExpr(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -1209,7 +1210,7 @@ immutable(WriteExprResult) writeExpr(Alloc, TempAlloc)(
 		(ref immutable LowExprKind.RecordFieldGet it) =>
 			inlineableSingleArg(it.target, (ref immutable WriteExprResult recordValue) {
 				writeTempOrInline(writer, tempAlloc, ctx, it.target, recordValue);
-				writeRecordFieldRef!Alloc(writer, ctx, it.targetIsPointer, it.record, it.fieldIndex);
+				writeRecordFieldRef(writer, ctx, it.targetIsPointer, it.record, it.fieldIndex);
 			}),
 		(ref immutable LowExprKind.RecordFieldSet it) {
 			immutable WriteExprResult recordValue = writeExprTempOrInline(writer, tempAlloc, indent, ctx, it.target);
@@ -1263,8 +1264,8 @@ immutable(WriteExprResult) writeExpr(Alloc, TempAlloc)(
 			}));
 }
 
-immutable(WriteExprResult) writeNonInlineable(Alloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeNonInlineable(
+	ref Writer writer,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
 	ref immutable WriteKind writeKind,
@@ -1274,7 +1275,7 @@ immutable(WriteExprResult) writeNonInlineable(Alloc)(
 	if (!isInline(writeKind)) writeNewline(writer, indent);
 	immutable(WriteExprResult) makeTemp() {
 		immutable Temp temp = getNextTemp(ctx);
-		writeTempDeclare!Alloc(writer, ctx, type, temp);
+		writeTempDeclare(writer, ctx, type, temp);
 		writeStatic(writer, " = ");
 		return immutable WriteExprResult(temp);
 	}
@@ -1307,35 +1308,32 @@ immutable(WriteExprResult) writeNonInlineable(Alloc)(
 	return res;
 }
 
-immutable(WriteExprResult) writeInlineable(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeInlineable(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
 	ref immutable WriteKind writeKind,
 	ref immutable LowType type,
-	immutable LowExpr[] args,
+	scope immutable LowExpr[] args,
 	scope void delegate(ref immutable WriteExprResult[]) @safe @nogc pure nothrow inline,
 ) {
-	immutable(WriteExprResult[]) setup() {
-		return writeExprsTempOrInline(writer, tempAlloc, indent, ctx, args);
-	}
-
-	if (isInlineOrTemp(writeKind)) {
-		return immutable WriteExprResult(immutable WriteExprResult.Done(setup()));
-	} else if (isInline(writeKind)) {
+	if (isInlineOrTemp(writeKind))
+		return immutable WriteExprResult(immutable WriteExprResult.Done(
+			writeExprsTempOrInline(writer, tempAlloc, indent, ctx, args)));
+	else if (isInline(writeKind)) {
 		inline(asInline(writeKind).args);
 		return writeExprDone();
 	} else {
-		immutable WriteExprResult[] argTemps = setup();
-		return writeNonInlineable!Alloc(writer, indent, ctx, writeKind, type, () {
+		immutable WriteExprResult[] argTemps = writeExprsTempOrInline(writer, tempAlloc, indent, ctx, args);
+		return writeNonInlineable(writer, indent, ctx, writeKind, type, () {
 			inline(argTemps);
 		});
 	}
 }
 
-immutable(WriteExprResult) returnZeroedValue(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) returnZeroedValue(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -1355,8 +1353,8 @@ immutable(WriteExprResult) returnZeroedValue(Alloc, TempAlloc)(
 		});
 }
 
-immutable(WriteExprResult) writeInlineableSingleArg(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeInlineableSingleArg(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -1378,8 +1376,8 @@ immutable(WriteExprResult) writeInlineableSingleArg(Alloc, TempAlloc)(
 		});
 }
 
-immutable(WriteExprResult) writeInlineableSimple(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeInlineableSimple(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -1400,8 +1398,8 @@ immutable(WriteExprResult) writeInlineableSimple(Alloc, TempAlloc)(
 		});
 }
 
-immutable(WriteExprResult) writeReturnVoid(Alloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeReturnVoid(
+	ref Writer writer,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
 	ref immutable WriteKind writeKind,
@@ -1420,8 +1418,8 @@ immutable(WriteExprResult) writeReturnVoid(Alloc)(
 		});
 }
 
-immutable(WriteExprResult) writeCallExpr(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeCallExpr(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -1447,8 +1445,8 @@ immutable(WriteExprResult) writeCallExpr(Alloc, TempAlloc)(
 	});
 }
 
-void writeTailRecur(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+void writeTailRecur(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -1471,8 +1469,8 @@ void writeTailRecur(Alloc, TempAlloc)(
 	writeStatic(writer, "goto top;");
 }
 
-void writeCreateUnion(Alloc)(
-	ref Writer!Alloc writer,
+void writeCreateUnion(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	immutable ConstantRefPos pos,
 	ref immutable LowType type,
@@ -1489,11 +1487,11 @@ void writeCreateUnion(Alloc)(
 	writeChar(writer, '}');
 }
 
-void writeFunPtr(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable LowFunIndex a) {
+void writeFunPtr(ref Writer writer, ref immutable Ctx ctx, immutable LowFunIndex a) {
 	writeLowFunMangledName(writer, ctx, a, fullIndexDictGet(ctx.program.allFuns, a));
 }
 
-void writeLocalRef(Alloc)(ref Writer!Alloc writer, ref immutable LowLocal a) {
+void writeLocalRef(ref Writer writer, ref immutable LowLocal a) {
 	matchLowLocalSource!void(
 		a.source,
 		(immutable Ptr!ConcreteLocal it) {
@@ -1516,12 +1514,12 @@ void writeLocalRef(Alloc)(ref Writer!Alloc writer, ref immutable LowLocal a) {
 		});
 }
 
-void writeParamRef(Alloc)(ref Writer!Alloc writer, ref const FunBodyCtx ctx, ref immutable LowExprKind.ParamRef a) {
+void writeParamRef(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowExprKind.ParamRef a) {
 	writeLowParamName(writer, at(fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params, a.index.index));
 }
 
-immutable(WriteExprResult) writeMatchUnion(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeMatchUnion(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -1569,8 +1567,8 @@ immutable(WriteExprResult) writeMatchUnion(Alloc, TempAlloc)(
 }
 
 //TODO: share code with writeMatchUnion
-immutable(WriteExprResult) writeSwitch(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeSwitch(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -1635,8 +1633,8 @@ immutable(bool) isSignedIntegral(ref immutable LowType a) {
 	}
 }
 
-void writeRecordFieldRef(Alloc)(
-	ref Writer!Alloc writer,
+void writeRecordFieldRef(
+	ref Writer writer,
 	ref const FunBodyCtx ctx,
 	immutable bool targetIsPointer,
 	immutable LowType.Record record,
@@ -1653,8 +1651,8 @@ enum ConstantRefPos {
 	inner,
 }
 
-void writeConstantRef(Alloc)(
-	ref Writer!Alloc writer,
+void writeConstantRef(
+	ref Writer writer,
 	ref immutable Ctx ctx,
 	immutable ConstantRefPos pos,
 	ref immutable LowType type,
@@ -1765,8 +1763,8 @@ immutable(bool) isSignedIntegral(immutable PrimitiveType a) {
 	}
 }
 
-immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeSpecialUnary(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -1870,7 +1868,7 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 	}
 }
 
-void writeLValue(Alloc)(ref Writer!Alloc writer, ref const FunBodyCtx ctx, ref immutable LowExpr expr) {
+void writeLValue(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowExpr expr) {
 	matchLowExprKind(
 		expr.kind,
 		(ref immutable LowExprKind.Call) => unreachable!void(),
@@ -1919,7 +1917,7 @@ void writeLValue(Alloc)(ref Writer!Alloc writer, ref const FunBodyCtx ctx, ref i
 		(ref immutable LowExprKind.Zeroed) => unreachable!void());
 }
 
-void writeZeroedValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType type) {
+void writeZeroedValue(ref Writer writer, ref immutable Ctx ctx, ref immutable LowType type) {
 	return matchLowTypeCombinePtr!void(
 		type,
 		(immutable LowType.ExternPtr) {
@@ -1952,8 +1950,8 @@ void writeZeroedValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref
 		});
 }
 
-immutable(WriteExprResult) writeSpecialBinary(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeSpecialBinary(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -2123,8 +2121,8 @@ struct WriteExprResultAndNested {
 }
 
 // If we need to make a temporary, have to do that in an outer scope and write to it in an inner scope
-immutable(WriteExprResultAndNested) getNestedWriteKind(Alloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResultAndNested) getNestedWriteKind(
+	ref Writer writer,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
 	ref immutable LowType type,
@@ -2144,8 +2142,8 @@ immutable(WriteExprResultAndNested) getNestedWriteKind(Alloc)(
 			writeKind);
 }
 
-immutable(WriteExprResult) writeLogicalOperator(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeLogicalOperator(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -2191,8 +2189,8 @@ immutable(WriteExprResult) writeLogicalOperator(Alloc, TempAlloc)(
 	return nested.result;
 }
 
-immutable(WriteExprResult) writeSpecialTrinary(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeSpecialTrinary(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -2244,8 +2242,8 @@ immutable(WriteExprResult) writeSpecialTrinary(Alloc, TempAlloc)(
 	}
 }
 
-immutable(WriteExprResult) writeSpecialNAry(Alloc, TempAlloc)(
-	ref Writer!Alloc writer,
+immutable(WriteExprResult) writeSpecialNAry(
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
@@ -2266,7 +2264,7 @@ immutable(WriteExprResult) writeSpecialNAry(Alloc, TempAlloc)(
 	}
 }
 
-void writePrimitiveType(Alloc)(ref Writer!Alloc writer, immutable PrimitiveType a) {
+void writePrimitiveType(ref Writer writer, immutable PrimitiveType a) {
 	writeStatic(writer, () {
 		final switch (a) {
 			case PrimitiveType.bool_:
@@ -2299,7 +2297,7 @@ void writePrimitiveType(Alloc)(ref Writer!Alloc writer, immutable PrimitiveType 
 	}());
 }
 
-void writeMangledName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
+void writeMangledName(ref Writer writer, immutable Sym name) {
 	immutable Opt!Operator operator = operatorForSym(name);
 	if (has(operator)) {
 		writeStatic(writer, () {
