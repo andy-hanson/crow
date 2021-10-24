@@ -242,19 +242,19 @@ struct Params {
 		immutable Type elementType;
 	}
 
-	immutable this(immutable ArrWithSize!Param a) { kind = Kind.regular; regular = a; }
-	immutable this(immutable Ptr!Varargs a) { kind = Kind.varargs; varargs = a; }
+	immutable this(immutable ArrWithSize!Param a) {
+		inner = immutable TaggedPtr!Kind(Kind.regular, a.sizeAndBegin_);
+	}
+	immutable this(immutable Ptr!Varargs a) {
+		inner = immutable TaggedPtr!Kind(Kind.varargs, a.rawPtr());
+	}
 
 	private:
 	enum Kind {
 		regular,
 		varargs,
 	}
-	immutable Kind kind;
-	union {
-		immutable ArrWithSize!Param regular;
-		immutable Ptr!Varargs varargs;
-	}
+	immutable TaggedPtr!Kind inner;
 }
 
 @trusted immutable(T) matchParams(T)(
@@ -262,21 +262,24 @@ struct Params {
 	scope immutable(T) delegate(immutable Param[]) @safe @nogc pure nothrow cbRegular,
 	scope immutable(T) delegate(ref immutable Params.Varargs) @safe @nogc pure nothrow cbVarargs,
 ) {
-	final switch (a.kind) {
+	final switch (a.inner.tag()) {
 		case Params.Kind.regular:
-			return cbRegular(toArr(a.regular));
+			return cbRegular(a.inner.arrWithSize!Param());
 		case Params.Kind.varargs:
-			return cbVarargs(a.varargs);
+			return cbVarargs(*(cast(immutable Params.Varargs*) a.inner.ptr()));
 	}
 }
 
 @trusted immutable(Param[]) paramsArray(return scope ref immutable Params a) {
-	final switch (a.kind) {
-		case Params.Kind.regular:
-			return toArr(a.regular);
-		case Params.Kind.varargs:
-			return (&a.varargs.param)[0 .. 1];
-	}
+	return matchParams!(immutable Param[])(
+		a,
+		(immutable Param[] p) =>
+			p,
+		(ref immutable Params.Varargs v) =>
+			trustedParamsArray(v));
+}
+private @trusted immutable(Param[]) trustedParamsArray(return ref immutable Params.Varargs v) {
+	return (&v.param)[0 .. 1];
 }
 
 immutable(Param[]) assertNonVariadic(ref immutable Params a) {

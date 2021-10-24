@@ -405,7 +405,7 @@ immutable(ArrWithSize!Out) mapWithSize(Out, In)(
 	immutable In[] a,
 	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
-	return mapWithSizeWithIndex!(Out, In)(alloc, a, (immutable size_t ignore, ref immutable In x) => cb(x));
+	return mapWithSizeWithIndex!(Out, In)(alloc, a, (immutable(size_t), ref immutable In x) => cb(x));
 }
 
 @trusted immutable(ArrWithSize!Out) mapWithSizeWithIndex(Out, In)(

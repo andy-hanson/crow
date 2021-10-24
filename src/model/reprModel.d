@@ -159,7 +159,7 @@ immutable(Repr) reprFunDecl(ref Alloc alloc, ref Ctx ctx, ref immutable FunDecl 
 	return reprNamedRecord("fun", finishArr(alloc, fields));
 }
 
-immutable(Repr) reprTypeParam(ref Alloc alloc, immutable TypeParam a) {
+immutable(Repr) reprTypeParam(ref Alloc alloc, immutable TypeParam) {
 	return todo!(immutable Repr)("reprTypeParam");
 }
 

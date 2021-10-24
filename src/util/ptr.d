@@ -2,11 +2,13 @@ module util.ptr;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : begin, end;
+import util.collection.arr : ArrWithSize, begin, end, toArr;
 import util.comparison : Comparison;
 import util.util : verify;
 
 struct TaggedPtr(E) {
+	@safe @nogc pure nothrow:
+
 	immutable this(immutable E tag, immutable void* ptr) {
 		immutable size_t tagValue = cast(size_t) tag;
 		immutable size_t ptrValue = cast(size_t) ptr;
@@ -16,11 +18,14 @@ struct TaggedPtr(E) {
 		value = ptrValue | tagValue;
 	}
 
-	@trusted immutable(E) tag() immutable {
+	immutable(E) tag() immutable {
 		return cast(E) (value & 0b111);
 	}
-	@trusted immutable(void*) ptr() immutable {
+	@system immutable(void*) ptr() immutable {
 		return cast(immutable void*) cast(void*) (value & ~0b111);
+	}
+	@system immutable(T[]) arrWithSize(T)() immutable {
+		return toArr(immutable ArrWithSize!T(cast(immutable ubyte*) ptr()));
 	}
 
 	private:
