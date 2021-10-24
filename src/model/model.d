@@ -17,7 +17,7 @@ import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.memory : nu;
 import util.opt : Opt, some;
 import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
-import util.ptr : comparePtr, Ptr;
+import util.ptr : comparePtr, Ptr, TaggedPtr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, rangeOfStartAndName, RangeWithinFile;
 import util.sym :
 	compareSym,
@@ -109,19 +109,18 @@ struct Type {
 		typeParam,
 		structInst,
 	}
-
-	private:
-	immutable Kind kind;
-	union {
-		immutable Bogus bogus;
-		immutable Ptr!TypeParam typeParam;
-		immutable Ptr!StructInst structInst;
+	immutable this(immutable Bogus a) {
+		inner = TaggedPtr!Kind(Kind.bogus, null);
+	}
+	@trusted immutable this(immutable Ptr!TypeParam a) {
+		inner = TaggedPtr!Kind(Kind.typeParam, a.rawPtr());
+	}
+	@trusted immutable this(immutable Ptr!StructInst a) {
+		inner = TaggedPtr!Kind(Kind.structInst, a.rawPtr());
 	}
 
-	public:
-	immutable this(immutable Bogus a) { kind = Kind.bogus; bogus = a; }
-	@trusted immutable this(immutable Ptr!TypeParam a) { kind = Kind.typeParam; typeParam = a; }
-	@trusted immutable this(immutable Ptr!StructInst a) { kind = Kind.structInst; structInst = a; }
+	private:
+	TaggedPtr!Kind inner;
 }
 
 @trusted immutable(T) matchType(T)(
@@ -130,32 +129,51 @@ struct Type {
 	scope immutable(T) delegate(immutable Ptr!TypeParam) @safe @nogc pure nothrow cbTypeParam,
 	scope immutable(T) delegate(immutable Ptr!StructInst) @safe @nogc pure nothrow cbStructInst,
 ) {
-	final switch (a.kind) {
+	final switch (a.inner.tag()) {
 		case Type.Kind.bogus:
-			return cbBogus(a.bogus);
+			immutable Type.Bogus bogus = immutable Type.Bogus();
+			return cbBogus(bogus);
 		case Type.Kind.typeParam:
-			return cbTypeParam(a.typeParam);
+			return cbTypeParam(immutable Ptr!TypeParam(cast(immutable TypeParam*) a.inner.ptr()));
 		case Type.Kind.structInst:
-			return cbStructInst(a.structInst);
+			return cbStructInst(immutable Ptr!StructInst(cast(immutable StructInst*) a.inner.ptr()));
 	}
 }
 
 immutable(bool) isBogus(ref immutable Type a) {
-	return a.kind == Type.Kind.bogus;
+	return matchType!(immutable bool)(
+		a,
+		(ref immutable Type.Bogus) => true,
+		(immutable Ptr!TypeParam) => false,
+		(immutable Ptr!StructInst) => false);
 }
 immutable(bool) isTypeParam(ref immutable Type a) {
-	return a.kind == Type.Kind.typeParam;
+	return matchType!(immutable bool)(
+		a,
+		(ref immutable Type.Bogus) => false,
+		(immutable Ptr!TypeParam) => true,
+		(immutable Ptr!StructInst) => false);
 }
 @trusted immutable(Ptr!TypeParam) asTypeParam(ref immutable Type a) {
-	verify(a.isTypeParam);
-	return a.typeParam;
+	return matchType!(immutable Ptr!TypeParam)(
+		a,
+		(ref immutable Type.Bogus) => unreachable!(immutable Ptr!TypeParam),
+		(immutable Ptr!TypeParam it) => it,
+		(immutable Ptr!StructInst) => unreachable!(immutable Ptr!TypeParam));
 }
 immutable(bool) isStructInst(ref immutable Type a) {
-	return a.kind == Type.Kind.structInst;
+	return matchType!(immutable bool)(
+		a,
+		(ref immutable Type.Bogus) => false,
+		(immutable Ptr!TypeParam) => false,
+		(immutable Ptr!StructInst) => true);
 }
 @trusted immutable(Ptr!StructInst) asStructInst(ref immutable Type a) {
-	verify(a.isStructInst);
-	return a.structInst;
+	return matchType!(immutable Ptr!StructInst)(
+		a,
+		(ref immutable Type.Bogus) => unreachable!(immutable Ptr!StructInst),
+		(immutable Ptr!TypeParam) => unreachable!(immutable Ptr!StructInst),
+		(immutable Ptr!StructInst it) => it);
 }
 
 immutable(Purity) bestCasePurity(ref immutable Type a) {

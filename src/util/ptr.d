@@ -6,6 +6,27 @@ import util.collection.arr : begin, end;
 import util.comparison : Comparison;
 import util.util : verify;
 
+struct TaggedPtr(E) {
+	immutable this(immutable E tag, immutable void* ptr) {
+		immutable size_t tagValue = cast(size_t) tag;
+		immutable size_t ptrValue = cast(size_t) ptr;
+		verify(tagValue < 8);
+		// Ptr must be word-aligned.
+		verify((ptrValue & 0b111) == 0);
+		value = ptrValue | tagValue;
+	}
+
+	@trusted immutable(E) tag() immutable {
+		return cast(E) (value & 0b111);
+	}
+	@trusted immutable(void*) ptr() immutable {
+		return cast(immutable void*) cast(void*) (value & ~0b111);
+	}
+
+	private:
+	size_t value;
+}
+
 // Non-null
 struct Ptr(T) {
 	@safe @nogc pure nothrow:
