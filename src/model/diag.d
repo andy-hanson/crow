@@ -23,7 +23,8 @@ import model.model :
 	StructDecl,
 	StructInst,
 	StructOrAlias,
-	Type;
+	Type,
+	Visibility;
 import model.parseDiag : ParseDiag;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.opt : Opt;
@@ -206,6 +207,9 @@ struct Diag {
 		immutable Purity purity;
 		immutable TypeKind typeKind;
 	}
+	struct RecordNewVisibilityIsRedundant {
+		immutable Visibility visibility;
+	}
 	struct SendFunDoesNotReturnFut {
 		immutable Type actualReturnType;
 	}
@@ -315,6 +319,7 @@ struct Diag {
 		parseDiag,
 		purityWorseThanParent,
 		puritySpecifierRedundant,
+		recordNewVisibilityIsRedundant,
 		sendFunDoesNotReturnFut,
 		specBuiltinNotSatisfied,
 		specImplFoundMultiple,
@@ -374,6 +379,7 @@ struct Diag {
 		immutable Ptr!ParseDiag parseDiag;
 		immutable PurityWorseThanParent purityWorseThanParent;
 		immutable PuritySpecifierRedundant puritySpecifierRedundant;
+		immutable RecordNewVisibilityIsRedundant recordNewVisibilityIsRedundant;
 		immutable SendFunDoesNotReturnFut sendFunDoesNotReturnFut;
 		immutable Ptr!SpecBuiltinNotSatisfied specBuiltinNotSatisfied;
 		immutable SpecImplFoundMultiple specImplFoundMultiple;
@@ -481,6 +487,9 @@ struct Diag {
 	}
 	immutable this(immutable PuritySpecifierRedundant a) {
 		kind = Kind.puritySpecifierRedundant; puritySpecifierRedundant = a;
+	}
+	immutable this(immutable RecordNewVisibilityIsRedundant a) {
+		kind = Kind.recordNewVisibilityIsRedundant; recordNewVisibilityIsRedundant = a;
 	}
 	@trusted immutable this(immutable SendFunDoesNotReturnFut a) {
 		kind = Kind.sendFunDoesNotReturnFut; sendFunDoesNotReturnFut = a;
@@ -617,6 +626,9 @@ static assert(Diag.sizeof <= 32);
 		ref immutable Diag.PuritySpecifierRedundant
 	) @safe @nogc pure nothrow cbPuritySpecifierRedundant,
 	scope immutable(Out) delegate(
+		ref immutable Diag.RecordNewVisibilityIsRedundant
+	) @safe @nogc pure nothrow cbRecordNewVisibilityIsRedundant,
+	scope immutable(Out) delegate(
 		ref immutable Diag.SendFunDoesNotReturnFut
 	) @safe @nogc pure nothrow cbSendFunDoesNotReturnFut,
 	scope immutable(Out) delegate(
@@ -740,6 +752,8 @@ static assert(Diag.sizeof <= 32);
 			return cbPurityWorseThanParent(a.purityWorseThanParent);
 		case Diag.Kind.puritySpecifierRedundant:
 			return cbPuritySpecifierRedundant(a.puritySpecifierRedundant);
+		case Diag.Kind.recordNewVisibilityIsRedundant:
+			return cbRecordNewVisibilityIsRedundant(a.recordNewVisibilityIsRedundant);
 		case Diag.Kind.sendFunDoesNotReturnFut:
 			return cbSendFunDoesNotReturnFut(a.sendFunDoesNotReturnFut);
 		case Diag.Kind.specBuiltinNotSatisfied:

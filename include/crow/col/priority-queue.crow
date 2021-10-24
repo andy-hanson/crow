@@ -23,9 +23,7 @@ import
 	./sort: sort-by, sort-by!
 
 priority-queue<k, v> record
-	# TODO: PRIVATE
-	ignore void
-	root node<k, v>?
+	.root node<k, v>?
 
 ###
 Priority queue consists of a linked list of nodes with two parts.
@@ -51,14 +49,14 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 	next node<k, v>?
 
 new<k, v> priority-queue<k, v>() data<k> compare<k>
-	void, none
+	none,
 
 priority-queue<k, v> priority-queue<k, v>(a arrow<k, v>[]) data<k> compare<k>
 	if a is-empty
 		()
 	else
 		sorted = a sort-by pair => pair from
-		void, (sorted.first.force, sorted.tail, none).some
+		(sorted.first.force, sorted.tail, none).some,
 
 is-empty<k, v> bool(a priority-queue<k, v>) data<k> compare<k>
 	a.root is-empty
@@ -76,7 +74,7 @@ Add a pair to the queue.
 This is O(1).
 ###
 ~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b arrow<k, v>) data<k> compare<k>
-	void, (b, (), a.root).some
+	(b, (), a.root).some,
 
 popped<k, v> record
 	popped arrow<k, v>
@@ -98,7 +96,7 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) data<k> compare<k>
 		(first, a.pairs.tail, a.next) some
 	else
 		a next
-	a.min, (void, rest)
+	a.min, (rest,)
 
 # Returns none if this (or any following node) did not have a lower min.
 .pop-no-compact-recur<k, v> popped<k, v>?(a node<k, v>, min k) compare<k>
@@ -116,7 +114,7 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) data<k> compare<k>
 		none
 
 combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
-	popped.popped, (void, (a.min, a.pairs, popped.rest.root).some)
+	popped.popped, ((a.min, a.pairs, popped.rest.root).some,)
 
 .compact-leading-nodes<k, v> priority-queue<k, v>(a priority-queue<k, v>) compare<k> trusted
 	mid = a.root find-mid 0
@@ -124,7 +122,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 		a
 	else
 		root = a.root force
-		void, some: match mid.mid plan root, mid.n-before-mid
+		new: some: match mid.mid plan root, mid.n-before-mid
 		as plan-did-compact compacted
 			compacted
 		as plan-will-compact n

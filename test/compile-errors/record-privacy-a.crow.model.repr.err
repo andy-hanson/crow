@@ -1,0 +1,11 @@
+./test/compile-errors/record-privacy-a.crow 5:1-9:1 the 'new' function for this record is already 'private' by default
+
+./test/compile-errors/record-privacy-a.crow 7:5-7:6 private function y is unused
+
+./test/compile-errors/record-privacy-a.crow 11:5-11:6 private function a is unused
+
+./test/compile-errors/record-privacy-a.crow 12:5-12:10 private function set-b is unused
+
+./test/compile-errors/record-privacy-a.crow 13:5-13:6 private function c is unused
+
+./test/compile-errors/record-privacy-a.crow 13:5-13:10 private function set-c is unused

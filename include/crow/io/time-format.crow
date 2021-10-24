@@ -12,8 +12,7 @@ import
 	./time: seconds-since-epoch, unix-time
 	
 time-locale record
-	# TODO:PRIVATE
-	is-local-time bool
+	.is-local-time bool
 
 # User's local time formatting preferences.
 local-time time-locale()

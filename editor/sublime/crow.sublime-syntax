@@ -167,7 +167,7 @@ contexts:
   record_body:
     - match: '{{unindented_line}}'
       pop: true
-    - match: 'by-ref|by-val'
+    - match: '\.?new|by-ref|by-val'
       scope: keyword
     - match: '{{name}}'
       scope: identifier

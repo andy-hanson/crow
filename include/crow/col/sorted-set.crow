@@ -26,9 +26,8 @@ import
 	./private/sort-utils: binary-search-exact-index
 
 sorted-set<a> record
-	# TODO:PRIVATE
-	add add-node a
-	remove index-set
+	.add add-node a
+	.remove index-set
 
 ###
 We store add/remove separately.
@@ -374,8 +373,7 @@ map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted data<in> compa
 	hard-assert: end == out.end-ptr
 	out cast-immutable
 
-# TODO:PRIVATE
-dbg<a> str(a sorted-set a) to-str<a>
+.dbg<a> str(a sorted-set a) to-str<a>
 	out writer = ()
 	out dbg-add-recur! a.add
 	if !a.remove.is-empty

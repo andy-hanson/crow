@@ -778,8 +778,8 @@ private @system immutable(State) mapAndFoldRecur(Out, State, In)(
 
 immutable(T) fold(T, U)(
 	immutable T start,
-	immutable U[] arr,
-	scope immutable(T) delegate(ref immutable T a, ref immutable U b) @safe @nogc pure nothrow cb,
+	scope immutable U[] arr,
+	scope immutable(T) delegate(immutable T a, ref immutable U b) @safe @nogc pure nothrow cb,
 ) {
 	return empty(arr)
 		? start
@@ -789,7 +789,7 @@ immutable(T) fold(T, U)(
 immutable(Opt!T) foldOrStop(T, U)(
 	immutable T start,
 	immutable U[] arr,
-	scope immutable(Opt!T) delegate(ref immutable T a, ref immutable U b) @safe @nogc pure nothrow cb,
+	scope immutable(Opt!T) delegate(immutable T a, ref immutable U b) @safe @nogc pure nothrow cb,
 ) {
 	if (empty(arr))
 		return some(start);
@@ -813,7 +813,7 @@ immutable(size_t) sum(T)(
 	immutable T[] a,
 	scope immutable(size_t) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	return fold!(size_t, T)(0, a, (ref immutable size_t l, ref immutable T t) =>
+	return fold!(size_t, T)(0, a, (immutable size_t l, ref immutable T t) =>
 		l + cb(t));
 }
 

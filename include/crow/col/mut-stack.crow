@@ -10,8 +10,7 @@ import
 Unlike `mut-arr`, this is not guaranteed to be represented as an array.
 ###
 mut-stack<a> record mut
-	# TODO: PRIVATE
-	inner a mut[]
+	.inner a mut[]
 
 # New empty `mut-stack`.
 new<a> mut-stack a()

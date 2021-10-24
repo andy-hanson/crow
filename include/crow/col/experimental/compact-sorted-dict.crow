@@ -26,9 +26,7 @@ import
 
 compact-sorted-dict<k, v> record
 	by-val
-	# TODO:PRIVATE
-	ignore void
-	impl impl<k, v>
+	.impl impl<k, v>
 
 .impl<k, v> union
 	overlay overlay<k, v>
@@ -46,7 +44,7 @@ new<k, v> compact-sorted-dict<k, v>(...a arrow<k, v>[]) data<k> compare<k>
 	a to-compact-sorted-dict
 
 to-compact-sorted-dict<k, v> compact-sorted-dict<k, v>(a arrow<k, v>[]) data<k> compare<k>
-	void, (a sort-by (pair => pair from) end-node)
+	(a sort-by (pair => pair from) end-node),
 
 is-empty<k, v> bool(a compact-sorted-dict<k, v>) data<k> compare<k>
 	match a impl
@@ -71,7 +69,7 @@ arr<k, v> arrow<k, v>[](a compact-sorted-dict<k, v>) data<k> compare<k>
 		e
 
 ~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, pair arrow<k, v>) data<k> compare<k>
-	void, (a.impl add-or-remove pair.from, pair.to.some)
+	(a.impl add-or-remove pair.from, pair.to.some),
 
 ~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b arrow<k, v>[]) data<k> compare<k>
 	if b is-empty
@@ -81,11 +79,11 @@ arr<k, v> arrow<k, v>[](a compact-sorted-dict<k, v>) data<k> compare<k>
 	else
 		# TODO: 'arrow<k, v?>[]' should be unnecessary
 		pairs arrow<k, v?>[] = b map (it => it.from -> it.to.some) sort-by it => it from
-		void, ((pairs, a.impl) merge-as-needed)
+		(pairs, a.impl).merge-as-needed,
 
 - <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, key k) data<k> compare<k>
 	if key in a
-		void, (a.impl add-or-remove key, none)
+		(a.impl add-or-remove key, none),
 	else
 		a
 
@@ -255,7 +253,7 @@ body
 
 # Returns an equal dictionary that takes up less space.
 compact<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>) data<k> compare<k>
-	void, match a.impl
+	new: match a.impl
 	as overlay o
 		o.merge-unconditionally end-node
 	as end-node e
@@ -375,7 +373,7 @@ body
 
 filter<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, f act bool(k, v)) data<k> compare<k>
 	# No need to re-sort
-	void, (a.arr filter (pair => f[pair.from, pair.to]) end-node)
+	(a.arr filter (pair => f[pair.from, pair.to]) end-node),
 
 map<k-out, v-out, k-in, v-in> compact-sorted-dict<k-out, v-out>
 	a compact-sorted-dict<k-in, v-in>
@@ -402,7 +400,7 @@ spec
 	compare<k>
 body
 	# No need to re-sort
-	void, ((a.arr map pair => pair.from -> f[pair.from, pair.to]) end-node)
+	((a.arr map pair => pair.from -> f[pair.from, pair.to]) end-node),
 
 # TODO:PRIVATE
 dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>

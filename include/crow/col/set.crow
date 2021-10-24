@@ -25,9 +25,8 @@ import
 	./mut-arr: ~=, move-to-arr!, mut-arr, new
 
 set<a> record
-	# TODO:PRIVATE
-	add add-node a
-	remove index-set
+	.add add-node a
+	.remove index-set
 
 # TODO:KILL
 node-count<a> nat64(a set<a>)

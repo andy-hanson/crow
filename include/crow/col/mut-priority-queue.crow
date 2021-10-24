@@ -21,12 +21,11 @@ import
 
 mut-priority-queue<k, v> record mut
 	by-ref
-	# TODO:PRIVATE
 	# TODO: Use by-val
 	# The smallest value goes on the right
-	mins arrow<k, v> mut[]
+	.mins arrow<k, v> mut[]
 	# This may be shorter than mins -- buckets on the right considered missing.
-	buckets arrow<k, v> mut[] mut[]
+	.buckets arrow<k, v> mut[] mut[]
 
 new<k, v> mut-priority-queue<k, v>() data<k> compare<k>
 	(), ()

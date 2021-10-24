@@ -405,10 +405,24 @@ struct ConcreteFieldSource {
 	}
 }
 
+enum ConcreteMutability {
+	const_,
+	mutable,
+}
+
+immutable(Sym) symOfConcreteMutability(immutable ConcreteMutability a) {
+	final switch (a) {
+		case ConcreteMutability.const_:
+			return shortSymAlphaLiteral("const");
+		case ConcreteMutability.mutable:
+			return shortSymAlphaLiteral("mutable");
+	}
+}
+
 struct ConcreteField {
 	immutable ConcreteFieldSource source;
 	immutable ubyte index;
-	immutable bool isMutable;
+	immutable ConcreteMutability mutability;
 	immutable ConcreteType type;
 }
 

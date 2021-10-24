@@ -5,11 +5,11 @@ program(
 			ptr: true
 			body: record(
 				[
-					field(gctx-ptr, false, type(false, mut-ptr))
-					field(island-id, false, type(false, nat64))
-					field(exclusion, false, type(false, nat64))
-					field(gc-ctx-ptr, false, type(false, mut-ptr))
-					field(thread-local-stuff, false, type(true, thread-local-stuff))]))
+					field(gctx-ptr, const, type(false, mut-ptr))
+					field(island-id, const, type(false, nat64))
+					field(exclusion, const, type(false, nat64))
+					field(gc-ctx-ptr, const, type(false, mut-ptr))
+					field(thread-local-stuff, const, type(true, thread-local-stuff))]))
 		struct(name: nat8, body: builtin(nat-8, []))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, nat8)]))
 		struct(name: nat64, body: builtin(nat-64, []))
@@ -18,22 +18,22 @@ program(
 			ptr: true
 			body: record(
 				[
-					field(thread-id, false, type(false, nat64))
-					field(print-lock, false, type(true, lock))
-					field(exception-ctx-ptr, false, type(false, mut-ptr))
-					field(log-ctx-ptr, false, type(false, mut-ptr))
-					field(perf-ctx-ptr, false, type(false, mut-ptr))]))
-		struct(name: lock, ptr: true, body: record([field(is-locked, false, type(false, atomic-bool))]))
-		struct(name: atomic-bool, mut: true, ptr: true, body: record([field(value, true, type(false, bool))]))
+					field(thread-id, const, type(false, nat64))
+					field(print-lock, const, type(true, lock))
+					field(exception-ctx-ptr, const, type(false, mut-ptr))
+					field(log-ctx-ptr, const, type(false, mut-ptr))
+					field(perf-ctx-ptr, const, type(false, mut-ptr))]))
+		struct(name: lock, ptr: true, body: record([field(is-locked, const, type(false, atomic-bool))]))
+		struct(name: atomic-bool, mut: true, ptr: true, body: record([field(value, mutable, type(false, bool))]))
 		struct(name: bool, body: builtin(bool, []))
 		struct(
 			name: mark-ctx
 			ptr: true
 			body: record(
 				[
-					field(memory-size-words, false, type(false, nat64))
-					field(marks, false, type(false, mut-ptr))
-					field(memory-start, false, type(false, mut-ptr))]))
+					field(memory-size-words, const, type(false, nat64))
+					field(marks, const, type(false, mut-ptr))
+					field(memory-start, const, type(false, mut-ptr))]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, bool)]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, nat64)]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, nat8)]))
@@ -48,33 +48,33 @@ program(
 			name: fut
 			mut: true
 			ptr: true
-			body: record([field(lk, false, type(false, lock)), field(state, true, type(false, fut-state))]))
+			body: record([field(lk, const, type(false, lock)), field(state, mutable, type(false, fut-state))]))
 		struct(
 			name: fut-state
 			body: union([none, some(type(true, fut-state-callbacks)), some(type(false, nat64)), some(type(false, exception))]))
 		struct(
 			name: fut-state-callbacks
 			ptr: true
-			body: record([field(cb, false, type(false, fun-act1)), field(next, false, type(false, opt))]))
+			body: record([field(cb, const, type(false, fun-act1)), field(next, const, type(false, opt))]))
 		struct(
 			name: exception
-			body: record([field(message, false, type(false, str)), field(backtrace, false, type(false, backtrace))]))
-		struct(name: str, body: record([field(chars, false, type(false, arr))]))
+			body: record([field(message, const, type(false, str)), field(backtrace, const, type(false, backtrace))]))
+		struct(name: str, body: record([field(chars, const, type(false, arr))]))
 		struct(
 			name: arr
-			body: record([field(size, false, type(false, nat64)), field(begin-ptr, false, type(false, const-ptr))]))
-		struct(name: backtrace, body: record([field(return-stack, false, type(false, arr))]))
-		struct(name: sym, body: record([field(to-c-str, false, type(false, const-ptr))]))
+			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
+		struct(name: backtrace, body: record([field(return-stack, const, type(false, arr))]))
+		struct(name: sym, body: record([field(to-c-str, const, type(false, const-ptr))]))
 		struct(
 			name: arr
-			body: record([field(size, false, type(false, nat64)), field(begin-ptr, false, type(false, const-ptr))]))
+			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, sym)]))
 		struct(name: result, body: union([some(type(false, nat64)), some(type(false, exception))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, result)]))
 		struct(name: opt, body: union([none, some(type(true, fut-state-callbacks))]))
 		struct(
 			name: arr
-			body: record([field(size, false, type(false, nat64)), field(begin-ptr, false, type(false, const-ptr))]))
+			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, str)]))
 		struct(name: fun-ptr2, body: builtin(fun-ptr, [type(true, fut), type(true, ctx), type(false, arr)]))
 		struct(
@@ -83,19 +83,19 @@ program(
 			ptr: true
 			body: record(
 				[
-					field(lk, false, type(false, lock))
-					field(print-lock, false, type(false, lock))
-					field(syms-lock, false, type(false, lock))
-					field(dynamic-syms, true, type(false, opt))
-					field(islands, true, type(false, arr))
-					field(n-live-threads, true, type(false, nat64))
-					field(may-be-work-to-do, false, type(false, condition))
-					field(is-shut-down, true, type(false, bool))
-					field(any-unhandled-exceptions, true, type(false, bool))]))
+					field(lk, const, type(false, lock))
+					field(print-lock, const, type(false, lock))
+					field(syms-lock, const, type(false, lock))
+					field(dynamic-syms, mutable, type(false, opt))
+					field(islands, mutable, type(false, arr))
+					field(n-live-threads, mutable, type(false, nat64))
+					field(may-be-work-to-do, const, type(false, condition))
+					field(is-shut-down, mutable, type(false, bool))
+					field(any-unhandled-exceptions, mutable, type(false, bool))]))
 		struct(
 			name: dynamic-sym-node
 			ptr: true
-			body: record([field(sym, false, type(false, sym)), field(next, false, type(false, opt))]))
+			body: record([field(sym, const, type(false, sym)), field(next, const, type(false, opt))]))
 		struct(name: opt, body: union([none, some(type(true, dynamic-sym-node))]))
 		struct(
 			name: island
@@ -103,35 +103,35 @@ program(
 			ptr: true
 			body: record(
 				[
-					field(gctx, false, type(true, global-ctx))
-					field(id, false, type(false, nat64))
-					field(gc, false, type(false, gc))
-					field(gc-root, false, type(false, island-gc-root))
-					field(tasks-lock, false, type(false, lock))
-					field(n-threads-running, true, type(false, nat64))
-					field(next-exclusion, false, type(false, thread-safe-counter))]))
+					field(gctx, const, type(true, global-ctx))
+					field(id, const, type(false, nat64))
+					field(gc, const, type(false, gc))
+					field(gc-root, const, type(false, island-gc-root))
+					field(tasks-lock, const, type(false, lock))
+					field(n-threads-running, mutable, type(false, nat64))
+					field(next-exclusion, const, type(false, thread-safe-counter))]))
 		struct(
 			name: gc
 			mut: true
 			ptr: true
 			body: record(
 				[
-					field(lk, false, type(false, lock))
-					field(gc-count, true, type(false, nat64))
-					field(context-head, true, type(false, opt))
-					field(needs-gc, true, type(false, bool))
-					field(size-words, true, type(false, nat64))
-					field(mark-begin, false, type(false, mut-ptr))
-					field(mark-cur, true, type(false, mut-ptr))
-					field(mark-end, true, type(false, mut-ptr))
-					field(data-begin, false, type(false, mut-ptr))
-					field(data-cur, true, type(false, mut-ptr))
-					field(data-end, true, type(false, mut-ptr))]))
+					field(lk, const, type(false, lock))
+					field(gc-count, mutable, type(false, nat64))
+					field(context-head, mutable, type(false, opt))
+					field(needs-gc, mutable, type(false, bool))
+					field(size-words, mutable, type(false, nat64))
+					field(mark-begin, const, type(false, mut-ptr))
+					field(mark-cur, mutable, type(false, mut-ptr))
+					field(mark-end, mutable, type(false, mut-ptr))
+					field(data-begin, const, type(false, mut-ptr))
+					field(data-cur, mutable, type(false, mut-ptr))
+					field(data-end, mutable, type(false, mut-ptr))]))
 		struct(
 			name: gc-ctx
 			mut: true
 			ptr: true
-			body: record([field(gc, true, type(true, gc)), field(next-ctx, true, type(false, opt))]))
+			body: record([field(gc, mutable, type(true, gc)), field(next-ctx, mutable, type(false, opt))]))
 		struct(name: opt, body: union([none, some(type(true, gc-ctx))]))
 		struct(
 			name: island-gc-root
@@ -139,55 +139,55 @@ program(
 			ptr: true
 			body: record(
 				[
-					field(tasks, false, type(false, task-queue))
-					field(exception-handler, true, type(false, fun1))
-					field(log-handler, true, type(false, fun1))]))
+					field(tasks, const, type(false, task-queue))
+					field(exception-handler, mutable, type(false, fun1))
+					field(log-handler, mutable, type(false, fun1))]))
 		struct(
 			name: task-queue
 			mut: true
 			ptr: true
 			body: record(
-				[field(head, true, type(false, opt)), field(currently-running-exclusions, false, type(false, mut-arr))]))
+				[
+					field(head, mutable, type(false, opt))
+					field(currently-running-exclusions, const, type(false, mut-arr))]))
 		struct(
 			name: task-queue-node
 			mut: true
 			ptr: true
-			body: record([field(task, false, type(false, task)), field(next, true, type(false, opt))]))
+			body: record([field(task, const, type(false, task)), field(next, mutable, type(false, opt))]))
 		struct(
 			name: task
 			body: record(
 				[
-					field(time, false, type(false, nat64))
-					field(exclusion, false, type(false, nat64))
-					field(action, false, type(false, fun-act0))]))
+					field(time, const, type(false, nat64))
+					field(exclusion, const, type(false, nat64))
+					field(action, const, type(false, fun-act0))]))
 		struct(name: fun-act0, body: builtin(fun, [type(false, void)]))
 		struct(name: opt, body: union([none, some(type(true, task-queue-node))]))
 		struct(
 			name: mut-arr
 			mut: true
 			ptr: true
-			body: record([field(backing, true, type(false, fix-arr)), field(size, true, type(false, nat64))]))
-		struct(
-			name: fix-arr
-			body: record([field(ignore, false, type(false, void)), field(inner, false, type(false, arr))]))
+			body: record([field(backing, mutable, type(false, fix-arr)), field(size, mutable, type(false, nat64))]))
+		struct(name: fix-arr, body: record([field(inner, const, type(false, arr))]))
 		struct(
 			name: arr
-			body: record([field(size, false, type(false, nat64)), field(begin-ptr, false, type(false, const-ptr))]))
+			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
 		struct(name: fun1, body: builtin(fun, [type(false, void), type(false, exception)]))
 		struct(
 			name: logged
 			ptr: true
-			body: record([field(level, false, type(false, log-level)), field(message, false, type(false, str))]))
+			body: record([field(level, const, type(false, log-level)), field(message, const, type(false, str))]))
 		struct(name: log-level, body: enum)
 		struct(name: fun1, body: builtin(fun, [type(false, void), type(true, logged)]))
 		struct(
 			name: thread-safe-counter
 			mut: true
 			ptr: true
-			body: record([field(lk, false, type(false, lock)), field(value, true, type(false, nat64))]))
+			body: record([field(lk, const, type(false, lock)), field(value, mutable, type(false, nat64))]))
 		struct(
 			name: arr
-			body: record([field(size, false, type(false, nat64)), field(begin-ptr, false, type(false, const-ptr))]))
+			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(true, island)]))
 		struct(
 			name: condition
@@ -195,82 +195,82 @@ program(
 			ptr: true
 			body: record(
 				[
-					field(mutex-attr, false, type(false, pthread_mutexattr_t))
-					field(mutex, false, type(false, pthread_mutex_t))
-					field(cond-attr, false, type(false, pthread_condattr_t))
-					field(cond, false, type(false, pthread_cond_t))
-					field(sequence, true, type(false, nat64))]))
-		struct(name: pthread_mutexattr_t, ptr: true, body: record([field(sizer, false, type(false, nat32))]))
+					field(mutex-attr, const, type(false, pthread_mutexattr_t))
+					field(mutex, const, type(false, pthread_mutex_t))
+					field(cond-attr, const, type(false, pthread_condattr_t))
+					field(cond, const, type(false, pthread_cond_t))
+					field(sequence, mutable, type(false, nat64))]))
+		struct(name: pthread_mutexattr_t, ptr: true, body: record([field(sizer, const, type(false, nat32))]))
 		struct(name: nat32, body: builtin(nat-32, []))
-		struct(name: pthread_mutex_t, ptr: true, body: record([field(sizer, false, type(false, bytes40))]))
+		struct(name: pthread_mutex_t, ptr: true, body: record([field(sizer, const, type(false, bytes40))]))
 		struct(
 			name: bytes40
-			body: record([field(n0, false, type(false, bytes32)), field(n1, false, type(false, nat64))]))
+			body: record([field(n0, const, type(false, bytes32)), field(n1, const, type(false, nat64))]))
 		struct(
 			name: bytes32
-			body: record([field(n0, false, type(false, bytes16)), field(n1, false, type(false, bytes16))]))
+			body: record([field(n0, const, type(false, bytes16)), field(n1, const, type(false, bytes16))]))
 		struct(
 			name: bytes16
-			body: record([field(n0, false, type(false, nat64)), field(n1, false, type(false, nat64))]))
-		struct(name: pthread_condattr_t, ptr: true, body: record([field(sizer, false, type(false, nat32))]))
-		struct(name: pthread_cond_t, ptr: true, body: record([field(sizer, false, type(false, bytes48))]))
+			body: record([field(n0, const, type(false, nat64)), field(n1, const, type(false, nat64))]))
+		struct(name: pthread_condattr_t, ptr: true, body: record([field(sizer, const, type(false, nat32))]))
+		struct(name: pthread_cond_t, ptr: true, body: record([field(sizer, const, type(false, bytes48))]))
 		struct(
 			name: bytes48
-			body: record([field(n0, false, type(false, bytes32)), field(n1, false, type(false, bytes16))]))
+			body: record([field(n0, const, type(false, bytes32)), field(n1, const, type(false, bytes16))]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(true, island)]))
 		struct(
 			name: range
 			body: record(
 				[
-					field(ignore, false, type(false, void))
-					field(low, false, type(false, nat64))
-					field(high, false, type(false, nat64))]))
+					field(ignore, const, type(false, void))
+					field(low, const, type(false, nat64))
+					field(high, const, type(false, nat64))]))
 		struct(name: int64, body: builtin(int-64, []))
-		struct(name: writer, body: record([field(chars, false, type(true, mut-arr))]))
+		struct(name: writer, body: record([field(chars, const, type(true, mut-arr))]))
 		struct(
 			name: mut-arr
 			mut: true
 			ptr: true
-			body: record([field(backing, true, type(false, fix-arr)), field(size, true, type(false, nat64))]))
-		struct(
-			name: fix-arr
-			body: record([field(ignore, false, type(false, void)), field(inner, false, type(false, arr))]))
+			body: record([field(backing, mutable, type(false, fix-arr)), field(size, mutable, type(false, nat64))]))
+		struct(name: fix-arr, body: record([field(inner, const, type(false, arr))]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, char)]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, char)]))
-		struct(name: lambda(~=, 0), body: record([field(a, false, type(true, mut-arr))]))
+		struct(name: lambda(~=, 0), body: record([field(a, const, type(true, mut-arr))]))
 		struct(
 			name: exception-ctx
 			mut: true
 			ptr: true
 			body: record(
-				[field(jmp-buf-ptr, true, type(false, mut-ptr)), field(thrown-exception, true, type(false, exception))]))
+				[
+					field(jmp-buf-ptr, mutable, type(false, mut-ptr))
+					field(thrown-exception, mutable, type(false, exception))]))
 		struct(
 			name: __jmp_buf_tag
 			body: record(
 				[
-					field(__jmpbuf, false, type(false, bytes64))
-					field(__mask_was_saved, false, type(false, int32))
-					field(__saved_mask, false, type(false, bytes128))]))
+					field(__jmpbuf, const, type(false, bytes64))
+					field(__mask_was_saved, const, type(false, int32))
+					field(__saved_mask, const, type(false, bytes128))]))
 		struct(
 			name: bytes64
-			body: record([field(n0, false, type(false, bytes32)), field(n1, false, type(false, bytes32))]))
+			body: record([field(n0, const, type(false, bytes32)), field(n1, const, type(false, bytes32))]))
 		struct(
 			name: bytes128
-			body: record([field(n0, false, type(false, bytes64)), field(n1, false, type(false, bytes64))]))
+			body: record([field(n0, const, type(false, bytes64)), field(n1, const, type(false, bytes64))]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, __jmp_buf_tag)]))
 		struct(
 			name: backtrace-arrs
 			ptr: true
 			body: record(
 				[
-					field(code-ptrs, false, type(false, mut-ptr))
-					field(code-names, false, type(false, mut-ptr))
-					field(funs, false, type(false, mut-ptr))]))
+					field(code-ptrs, const, type(false, mut-ptr))
+					field(code-names, const, type(false, mut-ptr))
+					field(funs, const, type(false, mut-ptr))]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, const-ptr)]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, sym)]))
 		struct(
 			name: named-val
-			body: record([field(name, false, type(false, sym)), field(val, false, type(false, const-ptr))]))
+			body: record([field(name, const, type(false, sym)), field(val, const, type(false, const-ptr))]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, named-val)]))
 		struct(name: opt, body: union([none, some(type(true, backtrace-arrs))]))
 		struct(name: opt, body: union([none, some(type(false, mut-ptr))]))
@@ -279,46 +279,45 @@ program(
 		struct(name: opt, body: union([none, some(type(false, mut-ptr))]))
 		struct(
 			name: arr
-			body: record([field(size, false, type(false, nat64)), field(begin-ptr, false, type(false, const-ptr))]))
+			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, named-val)]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, const-ptr)]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, sym)]))
-		struct(name: lambda(to-str, 0), body: record([field(res, false, type(false, writer))]))
+		struct(name: lambda(to-str, 0), body: record([field(res, const, type(false, writer))]))
 		struct(name: opt, body: union([none, some(type(false, const-ptr))]))
-		struct(name: log-ctx, mut: true, ptr: true, body: record([field(handler, true, type(false, fun1))]))
+		struct(name: log-ctx, mut: true, ptr: true, body: record([field(handler, mutable, type(false, fun1))]))
 		struct(
 			name: perf-ctx
 			mut: true
 			ptr: true
-			body: record([field(measure-names, true, type(false, arr)), field(measure-values, true, type(false, fix-arr))]))
+			body: record(
+				[field(measure-names, mutable, type(false, arr)), field(measure-values, mutable, type(false, fix-arr))]))
 		struct(
 			name: measure-value
-			body: record([field(count, false, type(false, nat64)), field(total-ns, false, type(false, nat64))]))
-		struct(
-			name: fix-arr
-			body: record([field(ignore, false, type(false, void)), field(inner, false, type(false, arr))]))
+			body: record([field(count, const, type(false, nat64)), field(total-ns, const, type(false, nat64))]))
+		struct(name: fix-arr, body: record([field(inner, const, type(false, arr))]))
 		struct(
 			name: arr
-			body: record([field(size, false, type(false, nat64)), field(begin-ptr, false, type(false, const-ptr))]))
+			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, measure-value)]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, str)]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, measure-value)]))
 		struct(
 			name: arr
-			body: record([field(size, false, type(false, nat64)), field(begin-ptr, false, type(false, const-ptr))]))
+			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
 		struct(name: fun-act2, body: builtin(fun, [type(true, fut), type(false, arr), type(false, fun-ptr2)]))
 		struct(
 			name: fut
 			mut: true
 			ptr: true
-			body: record([field(lk, false, type(false, lock)), field(state, true, type(false, fut-state))]))
+			body: record([field(lk, const, type(false, lock)), field(state, mutable, type(false, fut-state))]))
 		struct(
 			name: fut-state
 			body: union([none, some(type(true, fut-state-callbacks)), some(type(false, void)), some(type(false, exception))]))
 		struct(
 			name: fut-state-callbacks
 			ptr: true
-			body: record([field(cb, false, type(false, fun-act1)), field(next, false, type(false, opt))]))
+			body: record([field(cb, const, type(false, fun-act1)), field(next, const, type(false, opt))]))
 		struct(name: result, body: union([some(type(false, void)), some(type(false, exception))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, result)]))
 		struct(name: opt, body: union([none, some(type(true, fut-state-callbacks))]))
@@ -326,130 +325,130 @@ program(
 			name: fun-ref0
 			body: record(
 				[
-					field(island-and-exclusion, false, type(false, island-and-exclusion))
-					field(fun, false, type(false, fun-act0))]))
+					field(island-and-exclusion, const, type(false, island-and-exclusion))
+					field(fun, const, type(false, fun-act0))]))
 		struct(
 			name: island-and-exclusion
-			body: record([field(island, false, type(false, nat64)), field(exclusion, false, type(false, nat64))]))
+			body: record([field(island, const, type(false, nat64)), field(exclusion, const, type(false, nat64))]))
 		struct(name: fun-act0, body: builtin(fun, [type(true, fut)]))
 		struct(
 			name: fun-ref1
 			body: record(
 				[
-					field(island-and-exclusion, false, type(false, island-and-exclusion))
-					field(fun, false, type(false, fun-act1))]))
+					field(island-and-exclusion, const, type(false, island-and-exclusion))
+					field(fun, const, type(false, fun-act1))]))
 		struct(name: fun-act1, body: builtin(fun, [type(true, fut), type(false, void)]))
 		struct(
 			name: lambda(callback!, 0)
 			ptr: true
-			body: record([field(f, false, type(true, fut)), field(cb, false, type(false, fun-act1))]))
+			body: record([field(f, const, type(true, fut)), field(cb, const, type(false, fun-act1))]))
 		struct(
 			name: lambda(then, 0)
 			ptr: true
-			body: record([field(cb, false, type(false, fun-ref1)), field(res, false, type(true, fut))]))
+			body: record([field(cb, const, type(false, fun-ref1)), field(res, const, type(true, fut))]))
 		struct(
 			name: lambda(callback!, 0)
 			ptr: true
-			body: record([field(f, false, type(true, fut)), field(cb, false, type(false, fun-act1))]))
-		struct(name: lambda(forward-to!, 0), body: record([field(to, false, type(true, fut))]))
+			body: record([field(f, const, type(true, fut)), field(cb, const, type(false, fun-act1))]))
+		struct(name: lambda(forward-to!, 0), body: record([field(to, const, type(true, fut))]))
 		struct(name: fun-act0, body: builtin(fun, [type(false, fut-state)]))
 		struct(
 			name: lambda(resolve-or-reject!, 0)
 			ptr: true
-			body: record([field(f, false, type(true, fut)), field(result, false, type(false, result))]))
+			body: record([field(f, const, type(true, fut)), field(result, const, type(false, result))]))
 		struct(
 			name: lambda(subscript, 0)
 			ptr: true
 			body: record(
 				[
-					field(f, false, type(false, fun-ref1))
-					field(p0, false, type(false, void))
-					field(res, false, type(true, fut))]))
+					field(f, const, type(false, fun-ref1))
+					field(p0, const, type(false, void))
+					field(res, const, type(true, fut))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, exception)]))
 		struct(
 			name: lambda(lambda(subscript, 0), 0)
 			ptr: true
 			body: record(
 				[
-					field(f, false, type(false, fun-ref1))
-					field(p0, false, type(false, void))
-					field(res, false, type(true, fut))]))
-		struct(name: lambda(lambda(subscript, 0), 1), body: record([field(res, false, type(true, fut))]))
-		struct(name: lambda(then-void, 0), ptr: true, body: record([field(cb, false, type(false, fun-ref0))]))
+					field(f, const, type(false, fun-ref1))
+					field(p0, const, type(false, void))
+					field(res, const, type(true, fut))]))
+		struct(name: lambda(lambda(subscript, 0), 1), body: record([field(res, const, type(true, fut))]))
+		struct(name: lambda(then-void, 0), ptr: true, body: record([field(cb, const, type(false, fun-ref0))]))
 		struct(
 			name: lambda(subscript, 0)
 			ptr: true
-			body: record([field(f, false, type(false, fun-ref0)), field(res, false, type(true, fut))]))
+			body: record([field(f, const, type(false, fun-ref0)), field(res, const, type(true, fut))]))
 		struct(
 			name: lambda(lambda(subscript, 0), 0)
 			ptr: true
-			body: record([field(f, false, type(false, fun-ref0)), field(res, false, type(true, fut))]))
-		struct(name: lambda(lambda(subscript, 0), 1), body: record([field(res, false, type(true, fut))]))
+			body: record([field(f, const, type(false, fun-ref0)), field(res, const, type(true, fut))]))
+		struct(name: lambda(lambda(subscript, 0), 1), body: record([field(res, const, type(true, fut))]))
 		struct(
 			name: lambda(add-first-task, 0)
 			ptr: true
-			body: record([field(all-args, false, type(false, arr)), field(main-ptr, false, type(false, fun-ptr2))]))
+			body: record([field(all-args, const, type(false, arr)), field(main-ptr, const, type(false, fun-ptr2))]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, const-ptr)]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, str), type(false, const-ptr)]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, str), type(false, nat64)]))
 		struct(
 			name: lambda(map, 0)
 			ptr: true
-			body: record([field(f, false, type(false, fun-act1)), field(a, false, type(false, arr))]))
+			body: record([field(f, const, type(false, fun-act1)), field(a, const, type(false, arr))]))
 		struct(
 			name: thread-args
 			ptr: true
-			body: record([field(thread-id, false, type(false, nat64)), field(gctx, false, type(true, global-ctx))]))
+			body: record([field(thread-id, const, type(false, nat64)), field(gctx, const, type(true, global-ctx))]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, thread-args)]))
-		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, true, type(false, nat64))]))
+		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, mutable, type(false, nat64))]))
 		struct(name: fun-ptr1, body: builtin(fun-ptr, [type(false, mut-ptr), type(false, mut-ptr)]))
 		struct(
 			name: choose-task-result
 			body: union([some(type(false, chosen-task)), some(type(false, no-chosen-task))]))
 		struct(
 			name: chosen-task
-			body: record([field(task-island, false, type(true, island)), field(task-or-gc, false, type(false, task-or-gc))]))
+			body: record([field(task-island, const, type(true, island)), field(task-or-gc, const, type(false, task-or-gc))]))
 		struct(name: task-or-gc, body: union([some(type(false, task)), none]))
 		struct(
 			name: no-chosen-task
 			body: record(
 				[
-					field(no-tasks-and-last-thread-out, false, type(false, bool))
-					field(first-task-time, false, type(false, opt))]))
+					field(no-tasks-and-last-thread-out, const, type(false, bool))
+					field(first-task-time, const, type(false, opt))]))
 		struct(name: opt, body: union([none, some(type(false, nat64))]))
 		struct(
 			name: timespec
-			body: record([field(tv-sec, false, type(false, int64)), field(tv-nsec, false, type(false, int64))]))
-		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, true, type(false, timespec))]))
+			body: record([field(tv-sec, const, type(false, int64)), field(tv-nsec, const, type(false, int64))]))
+		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, mutable, type(false, timespec))]))
 		struct(
 			name: choose-task-in-island-result
 			body: union([some(type(false, task)), none, some(type(false, no-task))]))
 		struct(
 			name: no-task
-			body: record([field(any-tasks, false, type(false, bool)), field(first-task-time, false, type(false, opt))]))
+			body: record([field(any-tasks, const, type(false, bool)), field(first-task-time, const, type(false, opt))]))
 		struct(name: pop-task-result, body: union([some(type(false, task)), some(type(false, no-task))]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, timespec)]))
-		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, true, type(false, mut-ptr))]))
+		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, mutable, type(false, mut-ptr))]))
 		struct(
 			name: r
 			ptr: true
 			body: record(
 				[
-					field(a, false, type(false, nat64))
-					field(b, false, type(false, nat64))
-					field(c, false, type(false, nat64))]))
-		struct(name: interp, body: record([field(inner, false, type(true, mut-arr))]))
+					field(a, const, type(false, nat64))
+					field(b, const, type(false, nat64))
+					field(c, const, type(false, nat64))]))
+		struct(name: interp, body: record([field(inner, const, type(true, mut-arr))]))
 		struct(
 			name: gc-stats
 			body: record(
 				[
-					field(cur-word, false, type(false, nat64))
-					field(total-words, false, type(false, nat64))
-					field(words-used, false, type(false, nat64))]))
+					field(cur-word, const, type(false, nat64))
+					field(total-words, const, type(false, nat64))
+					field(words-used, const, type(false, nat64))]))
 		struct(
 			name: lambda(main, 0)
 			ptr: true
-			body: record([field(gc, false, type(true, gc)), field(a, false, type(true, r))]))]
+			body: record([field(gc, const, type(true, gc)), field(a, const, type(true, r))]))]
 	[
 		fun(
 			false
@@ -1092,14 +1091,8 @@ program(
 			type(false, fix-arr)
 			none
 			[param(a, type(false, mut-ptr)), param(range, type(false, range))]
-			expr-body(call(new, [call(void, []), call(subscript, [call(as-const, [param-ref(a)]), param-ref(range)])])))
-		fun(
-			false
-			new
-			type(false, fix-arr)
-			none
-			[param(ignore, type(false, void)), param(inner, type(false, arr))]
-			new-record)
+			expr-body(call(new, [call(subscript, [call(as-const, [param-ref(a)]), param-ref(range)])])))
+		fun(false, new, type(false, fix-arr), none, [param(inner, type(false, arr))], new-record)
 		fun(
 			false
 			subscript
@@ -1414,20 +1407,8 @@ program(
 			none
 			[param(backing, type(false, fix-arr)), param(size, type(false, nat64))]
 			new-record)
-		fun(
-			false
-			empty-fix-arr
-			type(false, fix-arr)
-			none
-			[]
-			expr-body(call(new, [call(void, []), call(empty-arr, [])])))
-		fun(
-			false
-			new
-			type(false, fix-arr)
-			none
-			[param(ignore, type(false, void)), param(inner, type(false, arr))]
-			new-record)
+		fun(false, empty-fix-arr, type(false, fix-arr), none, [], expr-body(call(new, [call(empty-arr, [])])))
+		fun(false, new, type(false, fix-arr), none, [param(inner, type(false, arr))], new-record)
 		fun(false, empty-arr, type(false, arr), none, [], expr-body(call(new, [0, call(null, [])])))
 		fun(
 			false
@@ -1589,7 +1570,7 @@ program(
 			none
 			[param(a, type(false, fix-arr))]
 			expr-body(call(size, [call(inner, [param-ref(a)])])))
-		fun(false, inner, type(false, arr), none, [param(a, type(false, fix-arr))], field-get(1))
+		fun(false, inner, type(false, arr), none, [param(a, type(false, fix-arr))], field-get(0))
 		fun(false, backing, type(false, fix-arr), none, [param(a, type(true, mut-arr))], field-get(0))
 		fun(
 			true
@@ -2624,7 +2605,7 @@ program(
 			type(false, fix-arr)
 			none
 			[param(a, type(false, mut-ptr)), param(range, type(false, range))]
-			expr-body(call(new, [call(void, []), call(subscript, [call(as-const, [param-ref(a)]), param-ref(range)])])))
+			expr-body(call(new, [call(subscript, [call(as-const, [param-ref(a)]), param-ref(range)])])))
 		fun(
 			false
 			subscript
@@ -2723,7 +2704,7 @@ program(
 			type(false, fix-arr)
 			none
 			[param(a, type(false, fix-arr)), param(range, type(false, range))]
-			expr-body(call(new, [call(void, []), call(subscript, [call(inner, [param-ref(a)]), param-ref(range)])])))
+			expr-body(call(new, [call(subscript, [call(inner, [param-ref(a)]), param-ref(range)])])))
 		fun(
 			true
 			subscript
@@ -3584,20 +3565,8 @@ program(
 			[param(a, type(false, mut-ptr))]
 			builtin([type(false, str)]))
 		fun(false, null, type(false, mut-ptr), none, [], builtin([type(false, str)]))
-		fun(
-			false
-			empty-fix-arr
-			type(false, fix-arr)
-			none
-			[]
-			expr-body(call(new, [call(void, []), call(empty-arr, [])])))
-		fun(
-			false
-			new
-			type(false, fix-arr)
-			none
-			[param(ignore, type(false, void)), param(inner, type(false, arr))]
-			new-record)
+		fun(false, empty-fix-arr, type(false, fix-arr), none, [], expr-body(call(new, [call(empty-arr, [])])))
+		fun(false, new, type(false, fix-arr), none, [param(inner, type(false, arr))], new-record)
 		fun(false, empty-arr, type(false, arr), none, [], expr-body(call(new, [0, call(null, [])])))
 		fun(
 			false
@@ -5917,7 +5886,7 @@ program(
 			none
 			[param(a, type(false, fix-arr))]
 			expr-body(call(inner, [param-ref(a)])))
-		fun(false, inner, type(false, arr), none, [param(a, type(false, fix-arr))], field-get(1))
+		fun(false, inner, type(false, arr), none, [param(a, type(false, fix-arr))], field-get(0))
 		fun(
 			false
 			temp-as-fix-arr

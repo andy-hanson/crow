@@ -4,6 +4,7 @@ module document.document;
 
 import model.model :
 	body_,
+	FieldMutability,
 	FunDecl,
 	generated,
 	matchSpecBody,
@@ -171,8 +172,16 @@ void writeRecord(Alloc)(ref Writer!Alloc writer, ref immutable StructDecl a, ref
 		writeQuotedSym(writer, field.name);
 		writeStatic(writer, ", ");
 		writeQuotedType(writer, field.type);
-		if (field.isMutable)
-			writeStatic(writer, ", \"mut\"");
+		final switch (field.mutability) {
+			case FieldMutability.const_:
+				break;
+			case FieldMutability.private_:
+				writeStatic(writer, ", \".mut\"");
+				break;
+			case FieldMutability.public_:
+				writeStatic(writer, ", \"mut\"");
+				break;
+		}
 		writeChar(writer, ']');
 	});
 	writeStatic(writer, "])");

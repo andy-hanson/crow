@@ -26,6 +26,7 @@ import model.concreteModel :
 	ConcreteFunSig,
 	ConcreteFunSource,
 	ConcreteLambdaImpl,
+	ConcreteMutability,
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteType,
@@ -47,6 +48,7 @@ import model.model :
 	EnumBackingType,
 	EnumFunction,
 	Expr,
+	FieldMutability,
 	FlagsFunction,
 	ForcedByValOrRefOrNone,
 	FunBody,
@@ -352,7 +354,7 @@ immutable(ConcreteType) getConcreteType_forStructInst(Alloc)(
 				immutable Purity purity = fold(
 					i.bestCasePurity,
 					typeArgs,
-					(ref immutable Purity p, ref immutable ConcreteType ta) =>
+					(immutable Purity p, ref immutable ConcreteType ta) =>
 						worsePurity(p, purity(ta)));
 				immutable Ptr!ConcreteStruct res = nu!ConcreteStruct(
 					alloc,
@@ -408,8 +410,9 @@ immutable(ConcreteType) concreteTypeFromClosure(Alloc)(
 		immutable Purity purity = fold(
 			Purity.data,
 			closureFields,
-			(ref immutable Purity p, ref immutable ConcreteField f) {
-				verify(!f.isMutable); // TODO: lambda fields are never mutable, use a different type?
+			(immutable Purity p, ref immutable ConcreteField f) {
+				// TODO: lambda fields are never mutable, use a different type?
+				verify(f.mutability == ConcreteMutability.const_);
 				return worsePurity(p, purity(f.type));
 			});
 		Ptr!ConcreteStruct cs = nuMut!ConcreteStruct(alloc, purity, source);
@@ -557,7 +560,8 @@ immutable(bool) canGetRecordSize(immutable ConcreteField[] fields) {
 immutable(ConcreteStructInfo) getConcreteStructInfoForFields(immutable ConcreteField[] fields) {
 	return immutable ConcreteStructInfo(
 		immutable ConcreteStructBody(immutable ConcreteStructBody.Record(fields)),
-		exists!ConcreteField(fields, (ref immutable ConcreteField field) => field.isMutable));
+		exists!ConcreteField(fields, (ref immutable ConcreteField field) =>
+			field.mutability != ConcreteMutability.const_));
 }
 
 struct TypeSizeAndFieldOffsets {
@@ -641,7 +645,7 @@ void initializeConcreteStruct(Alloc)(
 					immutable ConcreteField(
 						immutable ConcreteFieldSource(f),
 						safeSizeTToU8(index),
-						f.isMutable,
+						toConcreteMutability(f.mutability),
 						getConcreteType(alloc, ctx, f.type, typeArgsScope)));
 			immutable bool packed = r.flags.packed;
 			immutable ConcreteStructInfo info = getConcreteStructInfoForFields(fields);
@@ -665,6 +669,17 @@ void initializeConcreteStruct(Alloc)(
 			else
 				push(alloc, ctx.deferredUnions, DeferredUnionBody(res, members));
 		});
+}
+
+immutable(ConcreteMutability) toConcreteMutability(immutable FieldMutability a) {
+	final switch (a) {
+		case FieldMutability.const_:
+			return ConcreteMutability.const_;
+		case FieldMutability.private_:
+			return ConcreteMutability.mutable;
+		case FieldMutability.public_:
+			return ConcreteMutability.mutable;
+	}
 }
 
 immutable(TypeSize) typeSizeForEnumOrFlags(immutable EnumBackingType a) {
@@ -801,7 +816,7 @@ void fillInConcreteFunBody(Alloc)(
 }
 
 immutable(ulong) getAllValue(ref immutable ConcreteStructBody.Flags flags) {
-	return fold(0, flags.values, (ref immutable ulong a, ref immutable ulong b) =>
+	return fold(0, flags.values, (immutable ulong a, ref immutable ulong b) =>
 		a | b);
 }
 

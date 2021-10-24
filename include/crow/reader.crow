@@ -14,9 +14,8 @@ import
 	./private/exception-low-level: assert, forbid
 
 reader record mut
-	# TODO:PRIVATE
-	cur mut char*
-	end char*
+	.cur .mut char*
+	.end char*
 
 new reader(a str) trusted
 	a.chars.begin-ptr, a.chars.end-ptr

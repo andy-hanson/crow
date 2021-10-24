@@ -351,17 +351,35 @@ immutable(Arity) arity(ref const Sig a) {
 	return arity(a.params);
 }
 
+enum FieldMutability {
+	const_,
+	private_,
+	public_,
+}
+
+immutable(Sym) symOfFieldMutability(immutable FieldMutability a) {
+	final switch (a) {
+		case FieldMutability.const_:
+			return shortSymAlphaLiteral("const");
+		case FieldMutability.private_:
+			return shortSymAlphaLiteral("private");
+		case FieldMutability.public_:
+			return shortSymAlphaLiteral("public");
+	}
+}
+
 struct RecordField {
 	//TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
-	immutable bool isMutable;
+	immutable Visibility visibility;
 	immutable Sym name;
+	immutable FieldMutability mutability;
 	immutable Type type;
 	immutable size_t index;
 }
 
 immutable(RecordField) withType(ref immutable RecordField a, immutable Type t) {
-	return immutable RecordField(a.range, a.isMutable, a.name, t, a.index);
+	return immutable RecordField(a.range, a.visibility, a.name, a.mutability, t, a.index);
 }
 
 struct UnionMember {
@@ -382,6 +400,7 @@ enum ForcedByValOrRefOrNone {
 }
 
 struct RecordFlags {
+	immutable Visibility newVisibility;
 	immutable bool packed;
 	immutable ForcedByValOrRefOrNone forcedByValOrRef;
 }
@@ -455,7 +474,6 @@ struct StructBody {
 	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
 	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a;}
 }
-static assert(StructBody.sizeof <= 32);
 
 immutable(bool) isBogus(ref immutable StructBody a) {
 	return a.kind == StructBody.Kind.bogus;
@@ -1808,5 +1826,14 @@ immutable(Sym) symOfVisibility(immutable Visibility a) {
 			return shortSymAlphaLiteral("public");
 		case Visibility.private_:
 			return shortSymAlphaLiteral("private");
+	}
+}
+
+immutable(Visibility) leastVisibility(immutable Visibility a, immutable Visibility b) {
+	final switch (a) {
+		case Visibility.public_:
+			return b;
+		case Visibility.private_:
+			return Visibility.private_;
 	}
 }

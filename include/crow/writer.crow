@@ -10,8 +10,7 @@ import
 	./str-util: to-str
 
 writer record mut
-	# TODO:PRIVATE
-	chars char mut[]
+	.chars char mut[]
 
 write<a> spec
 	~= void(writer writer, value a)

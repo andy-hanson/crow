@@ -78,14 +78,13 @@ to-str str(a user-cookie)
 	"{a user}|{a inner}"
 
 db record mut
-	# TODO:PRIVATE
-	env lmdb-env
-	user-from-name lmdb-db<str, user>
-	user-name lmdb-db<user, str>
-	user-password-hash lmdb-db<user, nat8[]>
-	user-login-cookie lmdb-db<user, login-cookie>
-	post-user lmdb-db<post, user>
-	post-content lmdb-db<post, str>
+	.env lmdb-env
+	.user-from-name lmdb-db<str, user>
+	.user-name lmdb-db<user, str>
+	.user-password-hash lmdb-db<user, nat8[]>
+	.user-login-cookie lmdb-db<user, login-cookie>
+	.post-user lmdb-db<post, user>
+	.post-content lmdb-db<post, str>
 
 open-real-db db() unsafe summon
 	env = db-path lmdb-open-env (true,)

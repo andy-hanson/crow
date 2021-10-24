@@ -99,8 +99,7 @@ parse-settings ai-settings?(a str)
 	x nat
 	score int32
 
-# TODO:PRIVATE
-score-and-best record
+.score-and-best record
 	by-val
 	score int32
 	best strategy

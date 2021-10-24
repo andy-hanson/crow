@@ -72,6 +72,7 @@ import model.model :
 	EnumBackingType,
 	EnumFunction,
 	EnumValue,
+	FieldMutability,
 	FlagsFunction,
 	ForcedByValOrRefOrNone,
 	FunBody,
@@ -84,6 +85,7 @@ import model.model :
 	isPurityWorse,
 	isRecord,
 	isStructInst,
+	leastVisibility,
 	matchStructBody,
 	matchStructOrAlias,
 	matchType,
@@ -147,6 +149,7 @@ import util.collection.arrUtil :
 	count,
 	eachPair,
 	fillArr_mut,
+	fold,
 	map,
 	mapAndFold,
 	MapAndFold,
@@ -1061,7 +1064,7 @@ immutable(StructBody.Record) checkRecord(Alloc)(
 			if (isPurityWorse(bestCasePurity(fieldType), struct_.purity) && !struct_.purityIsForced)
 				addDiag(alloc, ctx, field.range, immutable Diag(
 					immutable Diag.PurityWorseThanParent(struct_, fieldType)));
-			if (field.isMutable) {
+			if (field.mutability != FieldMutability.const_) {
 				immutable Opt!(Diag.MutFieldNotAllowed.Reason) reason =
 					struct_.purity != Purity.mut && !struct_.purityIsForced
 						? some(Diag.MutFieldNotAllowed.Reason.recordIsNotMut)
@@ -1071,14 +1074,42 @@ immutable(StructBody.Record) checkRecord(Alloc)(
 				if (has(reason))
 					addDiag(alloc, ctx, field.range, immutable Diag(immutable Diag.MutFieldNotAllowed(force(reason))));
 			}
-			return immutable RecordField(rangeInFile(ctx, field.range), field.isMutable, field.name, fieldType, index);
+			return immutable RecordField(
+				rangeInFile(ctx, field.range), field.visibility, field.name, field.mutability, fieldType, index);
 		});
 	everyPair!RecordField(fields, (ref immutable RecordField a, ref immutable RecordField b) {
 		if (symEq(a.name, b.name))
 			addDiag(alloc, ctx, b.range,
 				immutable Diag(immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.field, a.name)));
 	});
-	return immutable StructBody.Record(immutable RecordFlags(has(r.packed), forcedByValOrRef), fields);
+	return immutable StructBody.Record(
+		immutable RecordFlags(
+			recordNewVisibility(alloc, ctx, struct_, fields, r.modifiers.explicitNewVisibility),
+			has(r.packed),
+			forcedByValOrRef),
+		fields);
+}
+
+immutable(Visibility) recordNewVisibility(Alloc)(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	immutable Ptr!StructDecl struct_,
+	scope immutable RecordField[] fields,
+	immutable Opt!Visibility explicit,
+) {
+	immutable Visibility default_ = fold(
+		struct_.visibility,
+		fields,
+		(immutable Visibility cur, ref immutable RecordField field) =>
+			leastVisibility(cur, field.visibility));
+	if (has(explicit)) {
+		if (force(explicit) == default_)
+			//TODO: better range
+			addDiag(alloc, ctx, struct_.range, immutable Diag(
+				immutable Diag.RecordNewVisibilityIsRedundant(default_)));
+		return force(explicit);
+	} else
+		return default_;
 }
 
 immutable(StructBody.Union) checkUnion(Alloc)(
@@ -1422,7 +1453,7 @@ immutable(size_t) countFunsForStruct(
 			(ref immutable StructBody.Record it) {
 				immutable size_t nConstructors = recordIsAlwaysByVal(it) ? 1 : 2;
 				immutable size_t nMutableFields = count!RecordField(it.fields, (ref immutable RecordField field) =>
-					field.isMutable);
+					field.mutability != FieldMutability.const_);
 				return nConstructors + size(it.fields) + nMutableFields;
 			},
 			(ref immutable StructBody.Union it) =>
@@ -1753,7 +1784,7 @@ void addFunsForRecord(Alloc, SymAlloc)(
 			immutable Params(ctorParams)));
 		return FunDecl(
 			emptySafeCStr,
-			struct_.visibility,
+			record.flags.newVisibility,
 			flags.withOkIfUnused(),
 			ctorSig,
 			typeParams,
@@ -1775,6 +1806,7 @@ void addFunsForRecord(Alloc, SymAlloc)(
 
 	foreach (immutable ubyte fieldIndex; 0 .. safeSizeTToU8(size(record.fields))) {
 		immutable Ptr!RecordField field = ptrAt(record.fields, fieldIndex);
+		immutable Visibility fieldVisibility = leastVisibility(struct_.visibility, field.visibility);
 		immutable Ptr!Sig getterSig = allocate(alloc, immutable Sig(
 			fileAndPosFromFileAndRange(field.range),
 			field.name,
@@ -1783,14 +1815,15 @@ void addFunsForRecord(Alloc, SymAlloc)(
 				immutable Param(field.range, some(shortSymAlphaLiteral("a")), structType, 0)]))));
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			emptySafeCStr,
-			struct_.visibility,
+			fieldVisibility,
 			FunFlags.generatedNoCtx,
 			getterSig,
 			typeParams,
 			emptyArrWithSize!(Ptr!SpecInst),
 			immutable FunBody(immutable FunBody.RecordFieldGet(fieldIndex))));
 
-		if (field.isMutable) {
+		immutable Opt!Visibility mutVisibility = visibilityOfFieldMutability(field.mutability);
+		if (has(mutVisibility)) {
 			immutable Ptr!Sig setterSig = allocate(alloc, immutable Sig(
 				fileAndPosFromFileAndRange(field.range),
 				prependSet(allSymbols, field.name),
@@ -1800,13 +1833,24 @@ void addFunsForRecord(Alloc, SymAlloc)(
 					immutable Param(field.range, some(field.name), field.type, 1)]))));
 			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 				emptySafeCStr,
-				struct_.visibility,
+				force(mutVisibility),
 				FunFlags.generatedNoCtx,
 				setterSig,
 				typeParams,
 				emptyArrWithSize!(Ptr!SpecInst),
 				immutable FunBody(immutable FunBody.RecordFieldSet(fieldIndex))));
 		}
+	}
+}
+
+immutable(Opt!Visibility) visibilityOfFieldMutability(immutable FieldMutability a) {
+	final switch (a) {
+		case FieldMutability.const_:
+			return none!Visibility;
+		case FieldMutability.private_:
+			return some(Visibility.private_);
+		case FieldMutability.public_:
+			return some(Visibility.public_);
 	}
 }
 

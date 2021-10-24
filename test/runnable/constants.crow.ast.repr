@@ -12,8 +12,8 @@ file-ast(
 			record(
 				none
 				[
-					field(range(147, 152), false, a, inststruct(range(149, 152), name-range(149, str)))
-					field(range(154, 159), false, b, inststruct(range(156, 159), name-range(156, str)))]))]
+					field(range(147, 152), const, a, inststruct(range(149, 152), name-range(149, str)))
+					field(range(154, 159), const, b, inststruct(range(156, 159), name-range(156, str)))]))]
 	funs: [
 		fun-decl(
 			visibility: public

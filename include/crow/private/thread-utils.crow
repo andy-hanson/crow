@@ -79,15 +79,14 @@ with-lock<a> a(a lock, f act a()) trusted
 	res
 
 condition record mut
-	# TODO:PRIVATE
-	mutex-attr by-val pthread_mutexattr_t
-	mutex by-val pthread_mutex_t
-	cond-attr by-val pthread_condattr_t
-	cond by-val pthread_cond_t
+	.mutex-attr by-val pthread_mutexattr_t
+	.mutex by-val pthread_mutex_t
+	.cond-attr by-val pthread_condattr_t
+	.cond by-val pthread_cond_t
 	# Incremented each time the condition fires.
 	# Used to avoid waiting on a condition that has already changed.
 	# WARN: this is mutable state, but should acquire the mutex first.
-	sequence mut sequence-id
+	.sequence .mut sequence-id
 
 # Unsafe because you must remember to 'destroy-condition'
 create-condition by-val condition() noctx unsafe

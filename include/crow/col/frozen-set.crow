@@ -17,10 +17,9 @@ import
 		size, temp-as-arr, to-fix-arr, uninitialized-fix-arr, unsafe-at, unsafe-set-at!
 
 frozen-set<a> record
-	# TODO:PRIVATE
-	values a[]
+	.values a[]
 	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
-	bucket-starts a*[]
+	.bucket-starts a*[]
 
 new<a> frozen-set a(...a a[]) data<a> compare<a> hash-mix<a>
 	a to-frozen-set

@@ -24,8 +24,7 @@ Not really intended for linear algebra.
 Rows are stored contiguously.
 ###
 mut-grid<a> record mut
-	# TODO:PRIVATE
-	elements fix-arr a
+	.elements fix-arr a
 	width nat64
 	height nat64
 

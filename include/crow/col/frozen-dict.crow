@@ -20,9 +20,8 @@ import
 
 frozen-dict<k, v> record
 	by-val
-	# TODO:PRIVATE
-	pairs arrow<k, v>[]
-	bucket-starts arrow<k, v>*[]
+	.pairs arrow<k, v>[]
+	.bucket-starts arrow<k, v>*[]
 
 new<k, v> frozen-dict<k, v>(...a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	a to-frozen-dict

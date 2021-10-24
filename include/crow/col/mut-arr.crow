@@ -29,12 +29,10 @@ Appending (or removing) elements to the end is amortized O(1),
 but appending (or removing) from the beginning is always O(N).
 ###
 mut-arr<a> record mut
-	# TODO:PRIVATE
 	# backing.size is the capacity
 	# For the GC's sake, unused parts of backing are filled with 'zeroed'
-	backing mut fix-arr a
-	# TODO:PRIVATE (getter public)
-	size mut nat64
+	.backing .mut fix-arr a
+	size .mut nat64
 
 ###
 Pointer to the first element.

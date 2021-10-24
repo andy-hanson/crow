@@ -31,7 +31,8 @@ import model.concreteModel :
 	matchConcreteStructSource,
 	name,
 	returnType,
-	symOfBuiltinStructKind;
+	symOfBuiltinStructKind,
+	symOfConcreteMutability;
 import model.constant : Constant;
 import model.model : EnumFunction, enumFunctionName, flagsFunctionName, FunInst, name, Local, Param;
 import model.reprConstant : reprOfConstant;
@@ -130,7 +131,7 @@ immutable(Repr) reprOfConcreteStructBodyRecord(Alloc)(ref Alloc alloc, ref immut
 
 immutable(Repr) reprOfConcreteField(Alloc)(ref Alloc alloc, ref immutable ConcreteField a) {
 	return reprRecord(alloc, "field", [reprSym(name(a)),
-		reprBool(a.isMutable),
+		reprSym(symOfConcreteMutability(a.mutability)),
 		reprOfConcreteType(alloc, a.type)]);
 }
 

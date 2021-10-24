@@ -27,9 +27,7 @@ import
 
 dict<k, v> record
 	by-val
-	# TODO:PRIVATE
-	ignore void
-	root node<k, v>
+	.root node<k, v>
 
 # TODO: comparison should be generic
 dict-equal<k, v> bool(a v[k], b v[k]) data<k> compare<k> hash-mix<k> equal<v>
@@ -58,9 +56,9 @@ new<k, v> v[k](...a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 
 to-dict<k, v> v[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	if a.size <= 4 && a.no-duplicate-keys
-		void, a.leaf-node
+		a.leaf-node,
 	else
-		(void, empty-leaf-node) fold a, (cur, x) => cur ~ x
+		(empty-leaf-node<k, v>,) fold a, (cur, x) => cur ~ x
 
 arr<k, v> arrow<k, v>[](a v[k]) data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, v) => k -> v
@@ -123,7 +121,7 @@ in<k, v> bool(key k, a v[k]) data<k> compare<k> hash-mix<k>
 	res = a get-or-update pair.from, old-value =>
 		pair.to insert
 	if node ?= res new-node
-		void, node
+		node,
 	else
 		a
 
@@ -147,7 +145,7 @@ try-add<k, v> try-add-result<k, v>(a v[k], key k, get-value act v()) data<k> com
 	if value ?= res old-value
 		value already-has-key
 	else
-		(void, res.new-node.force) added
+		(res.new-node.force,) added
 
 - <k, v> v[k](a v[k], key k) data<k> compare<k> hash-mix<k>
 	if res ?= a try-remove key
@@ -163,7 +161,7 @@ try-remove-result<k, v> record
 try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) data<k> compare<k> hash-mix<k>
 	res = a get-or-update key, old-value => remove
 	if value ?= res old-value
-		(value, (void, res.new-node.force)) some
+		(value, (res.new-node.force,)) some
 
 .get-or-update-result<k, v> record
 	by-val
@@ -409,12 +407,6 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted data<k> compare<k> hash-m
 		else
 			out backup! 2
 			out ~= "]"
-
-# TODO:PRIVATE
-dbg str(a void[nat64])
-	res writer = ()
-	res dbg-recur a.root, ""
-	res move-to-str!
 
 .dbg-recur void(out writer, a node<nat64, void>, path str)
 	match a

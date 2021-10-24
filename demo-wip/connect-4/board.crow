@@ -21,14 +21,12 @@ without overflowing to produce the compact key.
 
 board record
 	by-val
-	# TODO:PRIVATE
-	current-player nat64
-	both-players nat64
+	.current-player nat64
+	.both-players nat64
 
 board-cache<a> record mut
-	# TODO:PRIVATE
-	keys fix-arr nat32
-	values fix-arr a
+	.keys fix-arr nat32
+	.values fix-arr a
 
 new<a> board-cache a() trusted
 	size = 0xccce9

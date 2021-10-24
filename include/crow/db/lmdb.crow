@@ -35,16 +35,13 @@ import
 	../str-util: to-c-str
 
 lmdb-env record mut
-	# TODO:PRIVATE
-	env MDB_env
+	.env MDB_env
 
 lmdb-db<k, v> record mut
-	# TODO:PRIVATE
-	dbi MDB_dbi
+	.dbi MDB_dbi
 
 lMDB_txn record mut
-	# TODO:PRIVATE
-	txn MDB_txn
+	.txn MDB_txn
 
 lmdb-open-options record
 	create-if-not-exists bool

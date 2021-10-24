@@ -80,7 +80,6 @@ struct range {
 struct writer;
 struct mut_arr_1;
 struct fix_arr_1 {
-	struct void_ ignore;
 	struct arr_0 inner;
 };
 struct _concatEquals_0__lambda0 {
@@ -420,7 +419,6 @@ struct task {
 };
 struct mut_arr_0;
 struct fix_arr_0 {
-	struct void_ ignore;
 	struct arr_3 inner;
 };
 struct logged {
@@ -473,7 +471,6 @@ struct log_ctx {
 };
 struct perf_ctx;
 struct fix_arr_2 {
-	struct void_ ignore;
 	struct arr_6 inner;
 };
 struct fut_1;
@@ -2955,7 +2952,7 @@ struct mut_arr_0 mut_arr_by_val_with_capacity_from_unmanaged_memory(uint64_t cap
 /* subscript<a> fix-arr<nat64>(a mut-ptr<nat64>, range range<nat64>) */
 struct fix_arr_0 subscript_0(uint64_t* a, struct range range) {
 	struct arr_3 _0 = subscript_1(((uint64_t*) a), range);
-	return (struct fix_arr_0) {(struct void_) {}, _0};
+	return (struct fix_arr_0) {_0};
 }
 /* subscript<a> arr<nat64>(a const-ptr<nat64>, r range<nat64>) */
 struct arr_3 subscript_1(uint64_t* a, struct range r) {
@@ -3116,7 +3113,7 @@ struct mut_arr_1* to_mut_arr(struct ctx* ctx, struct arr_0 a) {
 /* empty-fix-arr<a> fix-arr<char>() */
 struct fix_arr_1 empty_fix_arr_0(void) {
 	struct arr_0 _0 = empty_arr_1();
-	return (struct fix_arr_1) {(struct void_) {}, _0};
+	return (struct fix_arr_1) {_0};
 }
 /* empty-arr<a> arr<char>() */
 struct arr_0 empty_arr_1(void) {
@@ -3841,7 +3838,7 @@ struct fix_arr_1 uninitialized_fix_arr(struct ctx* ctx, uint64_t size) {
 /* subscript<a> fix-arr<char>(a mut-ptr<char>, range range<nat64>) */
 struct fix_arr_1 subscript_6(char* a, struct range range) {
 	struct arr_0 _0 = subscript_7(((char*) a), range);
-	return (struct fix_arr_1) {(struct void_) {}, _0};
+	return (struct fix_arr_1) {_0};
 }
 /* subscript<a> arr<char>(a const-ptr<char>, r range<nat64>) */
 struct arr_0 subscript_7(char* a, struct range r) {
@@ -3900,7 +3897,7 @@ struct void_ set_zero_range_1(char* begin, uint64_t size) {
 /* subscript<a> fix-arr<char>(a fix-arr<char>, range range<nat64>) */
 struct fix_arr_1 subscript_8(struct ctx* ctx, struct fix_arr_1 a, struct range range) {
 	struct arr_0 _0 = subscript_9(ctx, a.inner, range);
-	return (struct fix_arr_1) {(struct void_) {}, _0};
+	return (struct fix_arr_1) {_0};
 }
 /* subscript<a> arr<char>(a arr<char>, range range<nat64>) */
 struct arr_0 subscript_9(struct ctx* ctx, struct arr_0 a, struct range range) {
@@ -4453,7 +4450,7 @@ struct str* null_3(void) {
 /* empty-fix-arr<measure-value> fix-arr<measure-value>() */
 struct fix_arr_2 empty_fix_arr_1(void) {
 	struct arr_6 _0 = empty_arr_4();
-	return (struct fix_arr_2) {(struct void_) {}, _0};
+	return (struct fix_arr_2) {_0};
 }
 /* empty-arr<a> arr<measure-value>() */
 struct arr_6 empty_arr_4(void) {

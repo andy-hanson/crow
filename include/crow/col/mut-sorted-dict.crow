@@ -27,14 +27,13 @@ Mutable dict: A list of key-value pairs, sorted by key, supporting efficient loo
 ###
 mut-sorted-dict<k, v> record mut
 	by-ref
-	# TODO:PRIVATE
 	# TODO: by-val
 	# Values are none if they have been deleted.
-	pairs arrow<k, v?> mut[]
+	.pairs arrow<k, v?> mut[]
 	# Number of pairs in this node that are not `none`.
 	# Does not include sizes of other nodes.
-	node-size mut nat64
-	next mut mut-sorted-dict<k, v>?
+	.node-size .mut nat64
+	.next .mut mut-sorted-dict<k, v>?
 
 new<k, v> mut-sorted-dict<k, v>(...a arrow<k, v>[]) data<k> compare<k>
 	a to-mut-sorted-dict

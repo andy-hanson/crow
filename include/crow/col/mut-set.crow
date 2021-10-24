@@ -10,8 +10,7 @@ import
 	./mut-dict: ~=, mut-dict, in, to-mut-dict, try-remove-key!
 
 mut-set<a> record mut
-	# TODO:PRIVATE
-	inner void mut[a]
+	.inner void mut[a]
 
 new<a> mut-set a(...a a[]) data<a> compare<a> hash-mix<a>
 	(a map (x => x -> void)).to-mut-dict,

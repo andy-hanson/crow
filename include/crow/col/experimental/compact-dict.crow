@@ -213,8 +213,7 @@ map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted data<k> com
 	hard-assert: end == res.end-ptr
 	res cast-immutable
 
-# TODO:PRIVATE
-dbg<k, v> str(a compact-dict<k, v>) to-str<k> to-str<v>
+.dbg<k, v> str(a compact-dict<k, v>) to-str<k> to-str<v>
 	out writer = ()
 	out dbg-recur! a.impl
 	out move-to-str!

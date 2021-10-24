@@ -25,6 +25,7 @@ import model.model :
 	SpecBody,
 	SpecSig,
 	symOfPurity,
+	symOfVisibility,
 	Type,
 	writeStructInst,
 	writeType;
@@ -692,6 +693,11 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeStatic(writer, " is already the default for ");
 			writeStatic(writer, aOrAnTypeKind(d.typeKind));
 			writeStatic(writer, " type");
+		},
+		(ref immutable Diag.RecordNewVisibilityIsRedundant d) {
+			writeStatic(writer, "the 'new' function for this record is already ");
+			writeName(writer, symOfVisibility(d.visibility));
+			writeStatic(writer, " by default");
 		},
 		(ref immutable Diag.SendFunDoesNotReturnFut d) {
 			writeStatic(writer, "a fun-ref should return a fut, but returns ");

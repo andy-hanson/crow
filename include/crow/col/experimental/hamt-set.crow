@@ -13,8 +13,7 @@ import
 		try-remove
 
 hamt-set<a> record
-	# TODO:PRIVATE
-	inner void[a]
+	.inner void[a]
 
 new<a> hamt-set a() data<a> compare<a> hash-mix<a>
 	(),

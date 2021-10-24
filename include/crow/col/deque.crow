@@ -21,11 +21,10 @@ import
 		size, stack, value
 
 deque<a> record
-	# TODO:PRIVATE
 	# NOTE: This is in reverse (top of the stack furthest left)
-	left stack a
-	mid a[]
-	right stack a
+	.left stack a
+	.mid a[]
+	.right stack a
 
 # Empty deque.
 new<a> deque a()

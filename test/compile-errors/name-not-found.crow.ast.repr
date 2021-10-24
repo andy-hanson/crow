@@ -11,10 +11,10 @@ file-ast(
 			record(
 				none
 				[
-					field(range(10, 13), false, f, inststruct(range(12, 13), name-range(12, t)))
+					field(range(10, 13), const, f, inststruct(range(12, 13), name-range(12, t)))
 					field(
 						range(15, 22)
-						false
+						const
 						h
 						inststruct(range(17, 22), name-range(17, arr), [inststruct(range(21, 22), name-range(21, x))]))]))
 		struct(range(24, 36), "", public, [], none, union([member(t, none)]))]

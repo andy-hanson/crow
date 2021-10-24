@@ -21,9 +21,7 @@ Appending a value with `~`, removing the last value with `rtail`, and `last` are
 Accessing the first element of the stack is O(n).
 ###
 stack<a> record
-	# TODO:PRIVATE
-	ignore void
-	last-node node<a>?
+	.last-node node<a>?
 
 .node<a> record
 	prev node<a>?
@@ -31,7 +29,7 @@ stack<a> record
 
 # Empty stack.
 new<a> stack a()
-	void, none
+	none,
 
 # Copy an arr to a stack.
 stack<a> stack a(a a[])
@@ -64,7 +62,7 @@ Appends an element to the stack.
 This is O(1).
 ###
 ~ <a> stack a(a stack a, b a)
-	void, ((a.last-node, b) some)
+	(a.last-node, b).some,
 
 ###
 Number of elements in the stack.
@@ -97,7 +95,7 @@ Throws if the stack is empty.
 ###
 rtail<a> stack a(a stack a)
 	if node ?= a last-node
-		void, node.prev
+		node.prev,
 	else
 		throw: "Stack is empty"
 
@@ -107,7 +105,7 @@ popped<a> record
 
 pop<a> popped<a>?(a stack a)
 	if node ?= a last-node
-		(node.value, (void, node.prev)) some
+		(node.value, (node.prev,)) some
 
 region iteration
 
@@ -146,13 +144,13 @@ fold-reverse<a, b> a(acc a, a stack b, f act a(a, b))
 
 # Produce a stack with `f[x]` applied to each element `x` in the input.
 map<out, in> stack out(a stack in, f act out(in))
-	void, (a.last-node map-recur f)
+	(a.last-node map-recur f),
 .map-recur<out, in> node<out>?(a node<in>?, f act out(in))
 	if node ?= a
 		((node.prev map-recur f), f[node value]) some
 
 filter<a> stack a(a stack a, f act bool(a))
-	void, (a.last-node filter-recur f)
+	(a.last-node filter-recur f),
 .filter-recur<a> node<a>?(a node<a>?, f act bool(a))
 	if node ?= a
 		prev = node.prev filter-recur f

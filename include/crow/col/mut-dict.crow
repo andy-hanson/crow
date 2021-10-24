@@ -5,7 +5,7 @@ import
 	../exception: assert, forbid
 	../fun: subscript
 	../hash: hash, hash-mix
-	../misc: ->, arrow, data, drop, from, to, void
+	../misc: ->, arrow, as, data, drop, from, to, void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, *, mut-ptr, set-deref
 	../str: ==, str
@@ -24,10 +24,8 @@ import
 		remove-unordered-at!, set-subscript, size, subscript
 
 mut-dict<k, v> record mut
-	# TODO:PRIVATE
-	ignore void
-	entries mut fix-arr entry<k, v>
-	total-size mut nat64
+	.entries .mut fix-arr entry<k, v>
+	.total-size .mut nat64
 
 .entry<k, v> union mut
 	none
@@ -48,7 +46,7 @@ New dict with `capacity` empty entries.
 WARN: Due to hash conflicts, this doesn't guarantee that allocations won't be needed.
 ###
 mut-dict-with-capacity<k, v> v mut[k](capacity nat64) data<k> compare<k> hash-mix<k>
-	void, (capacity fill-fix-arr none), 0
+	(capacity fill-fix-arr none).as<fix-arr entry<k, v>>, 0
 
 arr<k, v> arrow<k, v>[](a v mut[k]) data<k> compare<k> hash-mix<k>
 	a map-to-arr (key, value) => key -> value
@@ -62,7 +60,7 @@ copy<k, v> v mut[k](a v mut[k]) data<k> compare<k> hash-mix<k>
 			ar one
 		as many m
 			m.copy many
-	void, entries, a.total-size
+	entries, a.total-size
 test
 	a str mut[nat64] = 1 -> "1", 2 -> "2", 5 -> "5"
 	a verify "_ (1 -> 1) [2 -> 2, 5 -> 5]"

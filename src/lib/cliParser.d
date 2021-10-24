@@ -425,7 +425,7 @@ immutable(Opt!BuildOut) parseBuildOut(PathAlloc)(
 	return foldOrStop(
 		emptyBuildOut(),
 		args,
-		(ref immutable BuildOut o, ref immutable string arg) {
+		(immutable BuildOut o, ref immutable string arg) {
 			immutable AbsolutePath path = parseAbsoluteOrRelPath(allPaths, cwd, arg);
 			if (empty(path.extension)) {
 				return has(o.outExecutable)

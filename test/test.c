@@ -81,7 +81,6 @@ struct range {
 struct writer;
 struct mut_arr_1;
 struct fix_arr_1 {
-	struct void_ ignore;
 	struct arr_0 inner;
 };
 struct _concatEquals_0__lambda0 {
@@ -183,7 +182,6 @@ struct no_duplicate_keys_0__lambda0;
 struct get_or_update_result_0;
 struct inner_node_to_leaf_0__lambda0;
 struct fix_arr_3 {
-	struct void_ ignore;
 	struct arr_10 inner;
 };
 struct inner_node_to_leaf_0__lambda1;
@@ -257,7 +255,6 @@ struct arr_13 {
 struct mut_dict_1;
 struct mut_arr_4;
 struct fix_arr_7 {
-	struct void_ ignore;
 	struct arr_13 inner;
 };
 struct fix_arr_8;
@@ -301,7 +298,6 @@ struct arr_15 {
 };
 struct mut_arr_5;
 struct fix_arr_10 {
-	struct void_ ignore;
 	struct arr_2 inner;
 };
 struct _concatEquals_8__lambda0 {
@@ -341,7 +337,6 @@ struct each_child_recursive_1__lambda0;
 struct list_tests__lambda0;
 struct mut_arr_6;
 struct fix_arr_11 {
-	struct void_ ignore;
 	struct arr_15 inner;
 };
 struct _concatEquals_10__lambda0 {
@@ -382,7 +377,6 @@ struct handle_revents_result {
 };
 struct mut_arr_7;
 struct fix_arr_13 {
-	struct void_ ignore;
 	struct arr_7 inner;
 };
 struct _concatEquals_12__lambda0 {
@@ -1091,7 +1085,6 @@ struct task {
 };
 struct mut_arr_0;
 struct fix_arr_0 {
-	struct void_ ignore;
 	struct arr_3 inner;
 };
 struct logged {
@@ -1144,7 +1137,6 @@ struct log_ctx {
 };
 struct perf_ctx;
 struct fix_arr_2 {
-	struct void_ ignore;
 	struct arr_6 inner;
 };
 struct fut_1;
@@ -1236,7 +1228,6 @@ struct get_or_update_leaf_0__lambda0 {
 	struct str key;
 };
 struct fix_arr_4 {
-	struct void_ ignore;
 	struct arr_9 inner;
 };
 struct fill_fix_arr_0__lambda0;
@@ -1281,7 +1272,6 @@ struct map_to_arr_0__lambda0 {
 struct fill__e_0__lambda0;
 struct mut_arr_3;
 struct fix_arr_6 {
-	struct void_ ignore;
 	struct arr_8 inner;
 };
 struct fill_fix_arr_2__lambda0 {
@@ -1348,7 +1338,6 @@ struct get_or_update_leaf_1__lambda0 {
 	struct str key;
 };
 struct fix_arr_9 {
-	struct void_ ignore;
 	struct arr_12 inner;
 };
 struct fill_fix_arr_4__lambda0;
@@ -1414,7 +1403,6 @@ struct posix_spawn_file_actions_t {
 	struct bytes64 pad;
 };
 struct fix_arr_12 {
-	struct void_ ignore;
 	struct arr_16 inner;
 };
 struct mut_arr_7 {
@@ -1596,7 +1584,6 @@ struct chosen_task {
 };
 struct parsed_command;
 struct dict_0 {
-	struct void_ ignore;
 	struct node_0 root;
 };
 struct get_or_update_result_0 {
@@ -1623,7 +1610,6 @@ struct fill_fix_arr_0__lambda0 {
 };
 struct mut_dict_0;
 struct fix_arr_5 {
-	struct void_ ignore;
 	struct arr_11 inner;
 };
 struct fill_fix_arr_1__lambda0 {
@@ -1637,12 +1623,10 @@ struct mut_arr_3 {
 	uint64_t size;
 };
 struct dict_1 {
-	struct void_ ignore;
 	struct node_1 root;
 };
 struct mut_dict_1;
 struct fix_arr_8 {
-	struct void_ ignore;
 	struct arr_14 inner;
 };
 struct fill_fix_arr_3__lambda0 {
@@ -1771,12 +1755,10 @@ struct parsed_command {
 	struct arr_2 after;
 };
 struct mut_dict_0 {
-	struct void_ ignore;
 	struct fix_arr_5 entries;
 	uint64_t total_size;
 };
 struct mut_dict_1 {
-	struct void_ ignore;
 	struct fix_arr_8 entries;
 	uint64_t total_size;
 };
@@ -4703,362 +4685,363 @@ char constantarr_0_792[14];
 char constantarr_0_793[29];
 char constantarr_0_794[17];
 char constantarr_0_795[28];
-char constantarr_0_796[25];
-char constantarr_0_797[33];
-char constantarr_0_798[10];
-char constantarr_0_799[19];
-char constantarr_0_800[12];
-char constantarr_0_801[13];
-char constantarr_0_802[21];
-char constantarr_0_803[13];
-char constantarr_0_804[17];
-char constantarr_0_805[16];
-char constantarr_0_806[13];
-char constantarr_0_807[21];
-char constantarr_0_808[9];
-char constantarr_0_809[20];
-char constantarr_0_810[22];
-char constantarr_0_811[26];
-char constantarr_0_812[16];
-char constantarr_0_813[19];
-char constantarr_0_814[13];
-char constantarr_0_815[10];
-char constantarr_0_816[16];
-char constantarr_0_817[20];
-char constantarr_0_818[10];
-char constantarr_0_819[14];
-char constantarr_0_820[21];
-char constantarr_0_821[20];
-char constantarr_0_822[32];
-char constantarr_0_823[24];
-char constantarr_0_824[21];
-char constantarr_0_825[18];
-char constantarr_0_826[21];
-char constantarr_0_827[11];
-char constantarr_0_828[10];
-char constantarr_0_829[21];
-char constantarr_0_830[27];
-char constantarr_0_831[17];
-char constantarr_0_832[33];
-char constantarr_0_833[21];
-char constantarr_0_834[26];
-char constantarr_0_835[25];
-char constantarr_0_836[22];
-char constantarr_0_837[10];
-char constantarr_0_838[16];
-char constantarr_0_839[22];
-char constantarr_0_840[12];
+char constantarr_0_796[24];
+char constantarr_0_797[25];
+char constantarr_0_798[33];
+char constantarr_0_799[10];
+char constantarr_0_800[19];
+char constantarr_0_801[12];
+char constantarr_0_802[13];
+char constantarr_0_803[21];
+char constantarr_0_804[13];
+char constantarr_0_805[17];
+char constantarr_0_806[16];
+char constantarr_0_807[13];
+char constantarr_0_808[21];
+char constantarr_0_809[9];
+char constantarr_0_810[20];
+char constantarr_0_811[22];
+char constantarr_0_812[26];
+char constantarr_0_813[16];
+char constantarr_0_814[19];
+char constantarr_0_815[13];
+char constantarr_0_816[10];
+char constantarr_0_817[16];
+char constantarr_0_818[20];
+char constantarr_0_819[10];
+char constantarr_0_820[14];
+char constantarr_0_821[21];
+char constantarr_0_822[20];
+char constantarr_0_823[32];
+char constantarr_0_824[24];
+char constantarr_0_825[21];
+char constantarr_0_826[18];
+char constantarr_0_827[21];
+char constantarr_0_828[11];
+char constantarr_0_829[10];
+char constantarr_0_830[21];
+char constantarr_0_831[27];
+char constantarr_0_832[17];
+char constantarr_0_833[33];
+char constantarr_0_834[21];
+char constantarr_0_835[26];
+char constantarr_0_836[25];
+char constantarr_0_837[22];
+char constantarr_0_838[10];
+char constantarr_0_839[16];
+char constantarr_0_840[22];
 char constantarr_0_841[12];
-char constantarr_0_842[9];
+char constantarr_0_842[12];
 char constantarr_0_843[9];
 char constantarr_0_844[9];
-char constantarr_0_845[30];
-char constantarr_0_846[28];
-char constantarr_0_847[29];
-char constantarr_0_848[10];
-char constantarr_0_849[24];
-char constantarr_0_850[40];
-char constantarr_0_851[32];
-char constantarr_0_852[20];
-char constantarr_0_853[37];
-char constantarr_0_854[12];
-char constantarr_0_855[36];
-char constantarr_0_856[12];
-char constantarr_0_857[18];
-char constantarr_0_858[7];
-char constantarr_0_859[13];
-char constantarr_0_860[14];
-char constantarr_0_861[15];
-char constantarr_0_862[26];
-char constantarr_0_863[8];
-char constantarr_0_864[5];
-char constantarr_0_865[27];
-char constantarr_0_866[15];
-char constantarr_0_867[23];
-char constantarr_0_868[9];
-char constantarr_0_869[19];
+char constantarr_0_845[9];
+char constantarr_0_846[30];
+char constantarr_0_847[28];
+char constantarr_0_848[29];
+char constantarr_0_849[10];
+char constantarr_0_850[24];
+char constantarr_0_851[40];
+char constantarr_0_852[32];
+char constantarr_0_853[20];
+char constantarr_0_854[37];
+char constantarr_0_855[12];
+char constantarr_0_856[36];
+char constantarr_0_857[12];
+char constantarr_0_858[18];
+char constantarr_0_859[7];
+char constantarr_0_860[13];
+char constantarr_0_861[14];
+char constantarr_0_862[15];
+char constantarr_0_863[26];
+char constantarr_0_864[8];
+char constantarr_0_865[5];
+char constantarr_0_866[27];
+char constantarr_0_867[15];
+char constantarr_0_868[23];
+char constantarr_0_869[9];
 char constantarr_0_870[19];
 char constantarr_0_871[19];
-char constantarr_0_872[27];
+char constantarr_0_872[19];
 char constantarr_0_873[27];
 char constantarr_0_874[27];
-char constantarr_0_875[5];
-char constantarr_0_876[13];
-char constantarr_0_877[9];
-char constantarr_0_878[15];
-char constantarr_0_879[18];
+char constantarr_0_875[27];
+char constantarr_0_876[5];
+char constantarr_0_877[13];
+char constantarr_0_878[9];
+char constantarr_0_879[15];
 char constantarr_0_880[18];
 char constantarr_0_881[18];
-char constantarr_0_882[6];
-char constantarr_0_883[5];
-char constantarr_0_884[15];
-char constantarr_0_885[8];
-char constantarr_0_886[6];
-char constantarr_0_887[18];
-char constantarr_0_888[24];
-char constantarr_0_889[28];
-char constantarr_0_890[24];
+char constantarr_0_882[18];
+char constantarr_0_883[6];
+char constantarr_0_884[5];
+char constantarr_0_885[15];
+char constantarr_0_886[8];
+char constantarr_0_887[6];
+char constantarr_0_888[18];
+char constantarr_0_889[24];
+char constantarr_0_890[28];
 char constantarr_0_891[24];
-char constantarr_0_892[27];
-char constantarr_0_893[24];
-char constantarr_0_894[10];
-char constantarr_0_895[9];
-char constantarr_0_896[18];
-char constantarr_0_897[25];
-char constantarr_0_898[3];
-char constantarr_0_899[9];
-char constantarr_0_900[13];
-char constantarr_0_901[4];
-char constantarr_0_902[10];
-char constantarr_0_903[5];
-char constantarr_0_904[15];
-char constantarr_0_905[17];
-char constantarr_0_906[7];
-char constantarr_0_907[11];
-char constantarr_0_908[16];
-char constantarr_0_909[14];
-char constantarr_0_910[20];
-char constantarr_0_911[24];
-char constantarr_0_912[10];
-char constantarr_0_913[11];
-char constantarr_0_914[13];
+char constantarr_0_892[24];
+char constantarr_0_893[27];
+char constantarr_0_894[24];
+char constantarr_0_895[10];
+char constantarr_0_896[9];
+char constantarr_0_897[18];
+char constantarr_0_898[25];
+char constantarr_0_899[3];
+char constantarr_0_900[9];
+char constantarr_0_901[13];
+char constantarr_0_902[4];
+char constantarr_0_903[10];
+char constantarr_0_904[5];
+char constantarr_0_905[15];
+char constantarr_0_906[17];
+char constantarr_0_907[7];
+char constantarr_0_908[11];
+char constantarr_0_909[16];
+char constantarr_0_910[14];
+char constantarr_0_911[20];
+char constantarr_0_912[24];
+char constantarr_0_913[10];
+char constantarr_0_914[11];
 char constantarr_0_915[13];
-char constantarr_0_916[17];
-char constantarr_0_917[19];
-char constantarr_0_918[21];
-char constantarr_0_919[7];
-char constantarr_0_920[23];
-char constantarr_0_921[31];
-char constantarr_0_922[14];
-char constantarr_0_923[36];
-char constantarr_0_924[21];
-char constantarr_0_925[22];
-char constantarr_0_926[14];
-char constantarr_0_927[10];
-char constantarr_0_928[20];
-char constantarr_0_929[28];
-char constantarr_0_930[6];
-char constantarr_0_931[8];
-char constantarr_0_932[4];
-char constantarr_0_933[10];
-char constantarr_0_934[5];
-char constantarr_0_935[8];
-char constantarr_0_936[16];
-char constantarr_0_937[6];
-char constantarr_0_938[15];
-char constantarr_0_939[10];
-char constantarr_0_940[11];
-char constantarr_0_941[27];
-char constantarr_0_942[7];
-char constantarr_0_943[6];
-char constantarr_0_944[7];
-char constantarr_0_945[8];
-char constantarr_0_946[7];
-char constantarr_0_947[19];
-char constantarr_0_948[28];
-char constantarr_0_949[42];
-char constantarr_0_950[21];
-char constantarr_0_951[14];
-char constantarr_0_952[11];
-char constantarr_0_953[9];
-char constantarr_0_954[19];
-char constantarr_0_955[24];
-char constantarr_0_956[9];
-char constantarr_0_957[14];
-char constantarr_0_958[15];
-char constantarr_0_959[14];
+char constantarr_0_916[13];
+char constantarr_0_917[17];
+char constantarr_0_918[19];
+char constantarr_0_919[21];
+char constantarr_0_920[7];
+char constantarr_0_921[23];
+char constantarr_0_922[31];
+char constantarr_0_923[14];
+char constantarr_0_924[36];
+char constantarr_0_925[21];
+char constantarr_0_926[22];
+char constantarr_0_927[14];
+char constantarr_0_928[10];
+char constantarr_0_929[20];
+char constantarr_0_930[28];
+char constantarr_0_931[6];
+char constantarr_0_932[8];
+char constantarr_0_933[4];
+char constantarr_0_934[10];
+char constantarr_0_935[5];
+char constantarr_0_936[8];
+char constantarr_0_937[16];
+char constantarr_0_938[6];
+char constantarr_0_939[15];
+char constantarr_0_940[10];
+char constantarr_0_941[11];
+char constantarr_0_942[27];
+char constantarr_0_943[7];
+char constantarr_0_944[6];
+char constantarr_0_945[7];
+char constantarr_0_946[8];
+char constantarr_0_947[7];
+char constantarr_0_948[19];
+char constantarr_0_949[28];
+char constantarr_0_950[42];
+char constantarr_0_951[21];
+char constantarr_0_952[14];
+char constantarr_0_953[11];
+char constantarr_0_954[9];
+char constantarr_0_955[19];
+char constantarr_0_956[24];
+char constantarr_0_957[9];
+char constantarr_0_958[14];
+char constantarr_0_959[15];
 char constantarr_0_960[14];
-char constantarr_0_961[7];
-char constantarr_0_962[20];
-char constantarr_0_963[9];
-char constantarr_0_964[7];
-char constantarr_0_965[8];
-char constantarr_0_966[24];
-char constantarr_0_967[10];
-char constantarr_0_968[27];
-char constantarr_0_969[17];
+char constantarr_0_961[14];
+char constantarr_0_962[7];
+char constantarr_0_963[20];
+char constantarr_0_964[9];
+char constantarr_0_965[7];
+char constantarr_0_966[8];
+char constantarr_0_967[24];
+char constantarr_0_968[10];
+char constantarr_0_969[27];
 char constantarr_0_970[17];
-char constantarr_0_971[10];
-char constantarr_0_972[21];
-char constantarr_0_973[18];
-char constantarr_0_974[24];
-char constantarr_0_975[11];
-char constantarr_0_976[14];
-char constantarr_0_977[13];
+char constantarr_0_971[17];
+char constantarr_0_972[10];
+char constantarr_0_973[21];
+char constantarr_0_974[18];
+char constantarr_0_975[24];
+char constantarr_0_976[11];
+char constantarr_0_977[14];
 char constantarr_0_978[13];
-char constantarr_0_979[10];
-char constantarr_0_980[7];
+char constantarr_0_979[13];
+char constantarr_0_980[10];
 char constantarr_0_981[7];
-char constantarr_0_982[11];
-char constantarr_0_983[9];
-char constantarr_0_984[18];
-char constantarr_0_985[10];
-char constantarr_0_986[36];
-char constantarr_0_987[8];
-char constantarr_0_988[23];
-char constantarr_0_989[30];
-char constantarr_0_990[12];
-char constantarr_0_991[7];
-char constantarr_0_992[44];
-char constantarr_0_993[17];
-char constantarr_0_994[20];
-char constantarr_0_995[29];
-char constantarr_0_996[23];
-char constantarr_0_997[13];
-char constantarr_0_998[9];
-char constantarr_0_999[14];
-char constantarr_0_1000[21];
-char constantarr_0_1001[14];
-char constantarr_0_1002[29];
-char constantarr_0_1003[7];
+char constantarr_0_982[7];
+char constantarr_0_983[11];
+char constantarr_0_984[9];
+char constantarr_0_985[18];
+char constantarr_0_986[10];
+char constantarr_0_987[36];
+char constantarr_0_988[8];
+char constantarr_0_989[23];
+char constantarr_0_990[30];
+char constantarr_0_991[12];
+char constantarr_0_992[7];
+char constantarr_0_993[44];
+char constantarr_0_994[17];
+char constantarr_0_995[20];
+char constantarr_0_996[29];
+char constantarr_0_997[23];
+char constantarr_0_998[13];
+char constantarr_0_999[9];
+char constantarr_0_1000[14];
+char constantarr_0_1001[21];
+char constantarr_0_1002[14];
+char constantarr_0_1003[29];
 char constantarr_0_1004[7];
-char constantarr_0_1005[10];
-char constantarr_0_1006[17];
-char constantarr_0_1007[4];
-char constantarr_0_1008[29];
-char constantarr_0_1009[33];
-char constantarr_0_1010[10];
-char constantarr_0_1011[32];
-char constantarr_0_1012[9];
-char constantarr_0_1013[10];
-char constantarr_0_1014[11];
-char constantarr_0_1015[5];
-char constantarr_0_1016[12];
-char constantarr_0_1017[18];
-char constantarr_0_1018[6];
-char constantarr_0_1019[19];
-char constantarr_0_1020[21];
-char constantarr_0_1021[15];
-char constantarr_0_1022[13];
+char constantarr_0_1005[7];
+char constantarr_0_1006[10];
+char constantarr_0_1007[17];
+char constantarr_0_1008[4];
+char constantarr_0_1009[29];
+char constantarr_0_1010[33];
+char constantarr_0_1011[10];
+char constantarr_0_1012[32];
+char constantarr_0_1013[9];
+char constantarr_0_1014[10];
+char constantarr_0_1015[11];
+char constantarr_0_1016[5];
+char constantarr_0_1017[12];
+char constantarr_0_1018[18];
+char constantarr_0_1019[6];
+char constantarr_0_1020[19];
+char constantarr_0_1021[21];
+char constantarr_0_1022[15];
 char constantarr_0_1023[13];
-char constantarr_0_1024[4];
-char constantarr_0_1025[14];
-char constantarr_0_1026[7];
-char constantarr_0_1027[10];
-char constantarr_0_1028[14];
-char constantarr_0_1029[9];
-char constantarr_0_1030[24];
-char constantarr_0_1031[22];
-char constantarr_0_1032[10];
-char constantarr_0_1033[4];
-char constantarr_0_1034[10];
-char constantarr_0_1035[8];
-char constantarr_0_1036[2];
-char constantarr_0_1037[11];
-char constantarr_0_1038[7];
-char constantarr_0_1039[11];
-char constantarr_0_1040[7];
-char constantarr_0_1041[11];
-char constantarr_0_1042[7];
-char constantarr_0_1043[11];
-char constantarr_0_1044[7];
-char constantarr_0_1045[12];
-char constantarr_0_1046[8];
-char constantarr_0_1047[3];
-char constantarr_0_1048[10];
-char constantarr_0_1049[7];
-char constantarr_0_1050[22];
-char constantarr_0_1051[7];
-char constantarr_0_1052[9];
-char constantarr_0_1053[8];
-char constantarr_0_1054[11];
-char constantarr_0_1055[2];
-char constantarr_0_1056[10];
-char constantarr_0_1057[8];
-char constantarr_0_1058[11];
+char constantarr_0_1024[13];
+char constantarr_0_1025[4];
+char constantarr_0_1026[14];
+char constantarr_0_1027[7];
+char constantarr_0_1028[10];
+char constantarr_0_1029[14];
+char constantarr_0_1030[9];
+char constantarr_0_1031[24];
+char constantarr_0_1032[22];
+char constantarr_0_1033[10];
+char constantarr_0_1034[4];
+char constantarr_0_1035[10];
+char constantarr_0_1036[8];
+char constantarr_0_1037[2];
+char constantarr_0_1038[11];
+char constantarr_0_1039[7];
+char constantarr_0_1040[11];
+char constantarr_0_1041[7];
+char constantarr_0_1042[11];
+char constantarr_0_1043[7];
+char constantarr_0_1044[11];
+char constantarr_0_1045[7];
+char constantarr_0_1046[12];
+char constantarr_0_1047[8];
+char constantarr_0_1048[3];
+char constantarr_0_1049[10];
+char constantarr_0_1050[7];
+char constantarr_0_1051[22];
+char constantarr_0_1052[7];
+char constantarr_0_1053[9];
+char constantarr_0_1054[8];
+char constantarr_0_1055[11];
+char constantarr_0_1056[2];
+char constantarr_0_1057[10];
+char constantarr_0_1058[8];
 char constantarr_0_1059[11];
-char constantarr_0_1060[7];
-char constantarr_0_1061[12];
-char constantarr_0_1062[3];
+char constantarr_0_1060[11];
+char constantarr_0_1061[7];
+char constantarr_0_1062[12];
 char constantarr_0_1063[3];
-char constantarr_0_1064[17];
-char constantarr_0_1065[10];
-char constantarr_0_1066[12];
+char constantarr_0_1064[3];
+char constantarr_0_1065[17];
+char constantarr_0_1066[10];
 char constantarr_0_1067[12];
-char constantarr_0_1068[20];
+char constantarr_0_1068[12];
 char constantarr_0_1069[20];
-char constantarr_0_1070[19];
-char constantarr_0_1071[29];
-char constantarr_0_1072[15];
-char constantarr_0_1073[14];
-char constantarr_0_1074[22];
-char constantarr_0_1075[23];
-char constantarr_0_1076[21];
-char constantarr_0_1077[9];
-char constantarr_0_1078[12];
-char constantarr_0_1079[13];
+char constantarr_0_1070[20];
+char constantarr_0_1071[19];
+char constantarr_0_1072[29];
+char constantarr_0_1073[15];
+char constantarr_0_1074[14];
+char constantarr_0_1075[22];
+char constantarr_0_1076[23];
+char constantarr_0_1077[21];
+char constantarr_0_1078[9];
+char constantarr_0_1079[12];
 char constantarr_0_1080[13];
-char constantarr_0_1081[4];
-char constantarr_0_1082[8];
-char constantarr_0_1083[14];
-char constantarr_0_1084[5];
-char constantarr_0_1085[8];
+char constantarr_0_1081[13];
+char constantarr_0_1082[4];
+char constantarr_0_1083[8];
+char constantarr_0_1084[14];
+char constantarr_0_1085[5];
 char constantarr_0_1086[8];
-char constantarr_0_1087[20];
-char constantarr_0_1088[10];
-char constantarr_0_1089[1];
-char constantarr_0_1090[2];
-char constantarr_0_1091[10];
-char constantarr_0_1092[8];
-char constantarr_0_1093[15];
-char constantarr_0_1094[21];
-char constantarr_0_1095[7];
-char constantarr_0_1096[8];
-char constantarr_0_1097[7];
-char constantarr_0_1098[17];
-char constantarr_0_1099[9];
-char constantarr_0_1100[17];
-char constantarr_0_1101[13];
-char constantarr_0_1102[20];
-char constantarr_0_1103[10];
-char constantarr_0_1104[22];
-char constantarr_0_1105[11];
-char constantarr_0_1106[18];
-char constantarr_0_1107[8];
-char constantarr_0_1108[28];
-char constantarr_0_1109[24];
-char constantarr_0_1110[10];
-char constantarr_0_1111[22];
-char constantarr_0_1112[17];
-char constantarr_0_1113[23];
-char constantarr_0_1114[15];
-char constantarr_0_1115[4];
-char constantarr_0_1116[19];
-char constantarr_0_1117[18];
-char constantarr_0_1118[7];
-char constantarr_0_1119[11];
-char constantarr_0_1120[9];
-char constantarr_0_1121[15];
-char constantarr_0_1122[26];
-char constantarr_0_1123[27];
-char constantarr_0_1124[31];
-char constantarr_0_1125[23];
-char constantarr_0_1126[18];
-char constantarr_0_1127[27];
-char constantarr_0_1128[9];
+char constantarr_0_1087[8];
+char constantarr_0_1088[20];
+char constantarr_0_1089[10];
+char constantarr_0_1090[1];
+char constantarr_0_1091[2];
+char constantarr_0_1092[10];
+char constantarr_0_1093[8];
+char constantarr_0_1094[15];
+char constantarr_0_1095[21];
+char constantarr_0_1096[7];
+char constantarr_0_1097[8];
+char constantarr_0_1098[7];
+char constantarr_0_1099[17];
+char constantarr_0_1100[9];
+char constantarr_0_1101[17];
+char constantarr_0_1102[13];
+char constantarr_0_1103[20];
+char constantarr_0_1104[10];
+char constantarr_0_1105[22];
+char constantarr_0_1106[11];
+char constantarr_0_1107[18];
+char constantarr_0_1108[8];
+char constantarr_0_1109[28];
+char constantarr_0_1110[24];
+char constantarr_0_1111[10];
+char constantarr_0_1112[22];
+char constantarr_0_1113[17];
+char constantarr_0_1114[23];
+char constantarr_0_1115[15];
+char constantarr_0_1116[4];
+char constantarr_0_1117[19];
+char constantarr_0_1118[18];
+char constantarr_0_1119[7];
+char constantarr_0_1120[11];
+char constantarr_0_1121[9];
+char constantarr_0_1122[15];
+char constantarr_0_1123[26];
+char constantarr_0_1124[27];
+char constantarr_0_1125[31];
+char constantarr_0_1126[23];
+char constantarr_0_1127[18];
+char constantarr_0_1128[27];
 char constantarr_0_1129[9];
-char constantarr_0_1130[20];
-char constantarr_0_1131[24];
-char constantarr_0_1132[25];
-char constantarr_0_1133[5];
-char constantarr_0_1134[10];
-char constantarr_0_1135[21];
-char constantarr_0_1136[11];
-char constantarr_0_1137[13];
-char constantarr_0_1138[8];
-char constantarr_0_1139[6];
-char constantarr_0_1140[8];
-char constantarr_0_1141[15];
-char constantarr_0_1142[17];
-char constantarr_0_1143[12];
-char constantarr_0_1144[15];
-char constantarr_0_1145[14];
-char constantarr_0_1146[13];
-char constantarr_0_1147[10];
-char constantarr_0_1148[4];
-char constantarr_0_1149[11];
-char constantarr_0_1150[22];
-char constantarr_0_1151[11];
+char constantarr_0_1130[9];
+char constantarr_0_1131[20];
+char constantarr_0_1132[24];
+char constantarr_0_1133[25];
+char constantarr_0_1134[5];
+char constantarr_0_1135[10];
+char constantarr_0_1136[21];
+char constantarr_0_1137[11];
+char constantarr_0_1138[13];
+char constantarr_0_1139[8];
+char constantarr_0_1140[6];
+char constantarr_0_1141[8];
+char constantarr_0_1142[15];
+char constantarr_0_1143[17];
+char constantarr_0_1144[12];
+char constantarr_0_1145[15];
+char constantarr_0_1146[14];
+char constantarr_0_1147[13];
+char constantarr_0_1148[10];
+char constantarr_0_1149[4];
+char constantarr_0_1150[11];
+char constantarr_0_1151[22];
+char constantarr_0_1152[11];
 struct named_val constantarr_5_0[1252];
 struct sym constantarr_1_0[401];
 char constantarr_0_0[20] = "uncaught exception: ";
@@ -5857,362 +5840,363 @@ char constantarr_0_792[14] = "subscript<str>";
 char constantarr_0_793[29] = "parse-command-dynamic.lambda1";
 char constantarr_0_794[17] = "to-mut-dict<k, v>";
 char constantarr_0_795[28] = "mut-dict-with-capacity<k, v>";
-char constantarr_0_796[25] = "fill-fix-arr<entry<k, v>>";
-char constantarr_0_797[33] = "fill-fix-arr<entry<k, v>>.lambda0";
-char constantarr_0_798[10] = "none<k, v>";
-char constantarr_0_799[19] = "set-subscript<k, v>";
-char constantarr_0_800[12] = "drop<opt<v>>";
-char constantarr_0_801[13] = "update!<k, v>";
-char constantarr_0_802[21] = "is-empty<entry<k, v>>";
-char constantarr_0_803[13] = "entries<k, v>";
-char constantarr_0_804[17] = "set-entries<k, v>";
-char constantarr_0_805[16] = "new<entry<k, v>>";
-char constantarr_0_806[13] = "to-fix-arr<a>";
-char constantarr_0_807[21] = "to-fix-arr<a>.lambda0";
-char constantarr_0_808[9] = "one<k, v>";
-char constantarr_0_809[20] = "set-total-size<k, v>";
-char constantarr_0_810[22] = "subscript<entry<k, v>>";
-char constantarr_0_811[26] = "set-subscript<entry<k, v>>";
-char constantarr_0_812[16] = "total-size<k, v>";
-char constantarr_0_813[19] = "should-expand<k, v>";
-char constantarr_0_814[13] = "expand!<k, v>";
-char constantarr_0_815[10] = "each<k, v>";
-char constantarr_0_816[16] = "fold<void, k, v>";
-char constantarr_0_817[20] = "fold<a, entry<k, v>>";
-char constantarr_0_818[10] = "fold<a, b>";
-char constantarr_0_819[14] = "temp-as-arr<b>";
-char constantarr_0_820[21] = "subscript<a, a, k, v>";
-char constantarr_0_821[20] = "fold<a, arrow<k, v>>";
-char constantarr_0_822[32] = "fold<void, k, v>.lambda0.lambda0";
-char constantarr_0_823[24] = "fold<void, k, v>.lambda0";
-char constantarr_0_824[21] = "subscript<void, k, v>";
-char constantarr_0_825[18] = "each<k, v>.lambda0";
-char constantarr_0_826[21] = "expand!<k, v>.lambda0";
-char constantarr_0_827[11] = "swap!<k, v>";
-char constantarr_0_828[10] = "many<k, v>";
-char constantarr_0_829[21] = "update!<k, v>.lambda0";
-char constantarr_0_830[27] = "is-at-capacity<arrow<k, v>>";
-char constantarr_0_831[17] = "drop<arrow<k, v>>";
-char constantarr_0_832[33] = "remove-unordered-at!<arrow<k, v>>";
-char constantarr_0_833[21] = "is-empty<arrow<k, v>>";
-char constantarr_0_834[26] = "set-subscript<arrow<k, v>>";
-char constantarr_0_835[25] = "to-mut-dict<k, v>.lambda0";
-char constantarr_0_836[22] = "parse-named-args-recur";
-char constantarr_0_837[10] = "force<str>";
-char constantarr_0_838[16] = "try-remove-start";
-char constantarr_0_839[22] = "try-remove-start<char>";
-char constantarr_0_840[12] = "some<arr<a>>";
-char constantarr_0_841[12] = "none<arr<a>>";
-char constantarr_0_842[9] = "none<str>";
-char constantarr_0_843[9] = "some<str>";
-char constantarr_0_844[9] = "tail<str>";
-char constantarr_0_845[30] = "parse-named-args-recur.lambda0";
-char constantarr_0_846[28] = "move-to-dict!<str, arr<str>>";
-char constantarr_0_847[29] = "map-to-arr<arrow<k, v>, k, v>";
-char constantarr_0_848[10] = "size<k, v>";
-char constantarr_0_849[24] = "fold<mut-ptr<out>, k, v>";
-char constantarr_0_850[40] = "fold<mut-ptr<out>, k, v>.lambda0.lambda0";
-char constantarr_0_851[32] = "fold<mut-ptr<out>, k, v>.lambda0";
-char constantarr_0_852[20] = "subscript<out, k, v>";
-char constantarr_0_853[37] = "map-to-arr<arrow<k, v>, k, v>.lambda0";
-char constantarr_0_854[12] = "end-ptr<out>";
-char constantarr_0_855[36] = "move-to-dict!<str, arr<str>>.lambda0";
-char constantarr_0_856[12] = "empty!<k, v>";
-char constantarr_0_857[18] = "fill!<entry<k, v>>";
-char constantarr_0_858[7] = "map!<a>";
-char constantarr_0_859[13] = "map-recur!<a>";
-char constantarr_0_860[14] = "!=<mut-ptr<a>>";
-char constantarr_0_861[15] = "subscript<a, a>";
-char constantarr_0_862[26] = "fill!<entry<k, v>>.lambda0";
-char constantarr_0_863[8] = "nameless";
-char constantarr_0_864[5] = "after";
-char constantarr_0_865[27] = "fill-mut-arr<opt<arr<str>>>";
-char constantarr_0_866[15] = "fill-fix-arr<a>";
-char constantarr_0_867[23] = "fill-fix-arr<a>.lambda0";
-char constantarr_0_868[9] = "new<bool>";
-char constantarr_0_869[19] = "each<str, arr<str>>";
-char constantarr_0_870[19] = "fold-recur<a, k, v>";
-char constantarr_0_871[19] = "fold<a, node<k, v>>";
-char constantarr_0_872[27] = "fold-recur<a, k, v>.lambda0";
-char constantarr_0_873[27] = "fold-recur<a, k, v>.lambda1";
-char constantarr_0_874[27] = "each<str, arr<str>>.lambda0";
-char constantarr_0_875[5] = "named";
-char constantarr_0_876[13] = "index-of<str>";
-char constantarr_0_877[9] = "ptr-of<a>";
-char constantarr_0_878[15] = "ptr-of-recur<a>";
-char constantarr_0_879[18] = "none<const-ptr<a>>";
-char constantarr_0_880[18] = "some<const-ptr<a>>";
-char constantarr_0_881[18] = "set-inner-value<a>";
-char constantarr_0_882[6] = "finish";
-char constantarr_0_883[5] = "inner";
-char constantarr_0_884[15] = "with-value<str>";
-char constantarr_0_885[8] = "with-str";
-char constantarr_0_886[6] = "interp";
-char constantarr_0_887[18] = "is-empty<arr<str>>";
-char constantarr_0_888[24] = "subscript<opt<arr<str>>>";
-char constantarr_0_889[28] = "set-subscript<opt<arr<str>>>";
-char constantarr_0_890[24] = "parse-named-args.lambda0";
-char constantarr_0_891[24] = "some<arr<opt<arr<str>>>>";
-char constantarr_0_892[27] = "move-to-arr!<opt<arr<str>>>";
-char constantarr_0_893[24] = "none<arr<opt<arr<str>>>>";
-char constantarr_0_894[10] = "print-help";
-char constantarr_0_895[9] = "parse-nat";
-char constantarr_0_896[18] = "with-reader<nat64>";
-char constantarr_0_897[25] = "subscript<opt<a>, reader>";
-char constantarr_0_898[3] = "end";
-char constantarr_0_899[9] = "take-nat!";
-char constantarr_0_900[13] = "char-to-nat64";
-char constantarr_0_901[4] = "peek";
-char constantarr_0_902[10] = "drop<char>";
-char constantarr_0_903[5] = "next!";
-char constantarr_0_904[15] = "take-nat-recur!";
-char constantarr_0_905[17] = "parse-nat.lambda0";
-char constantarr_0_906[7] = "do-test";
-char constantarr_0_907[11] = "parent-path";
-char constantarr_0_908[16] = "r-index-of<char>";
-char constantarr_0_909[14] = "find-rindex<a>";
-char constantarr_0_910[20] = "find-rindex-recur<a>";
-char constantarr_0_911[24] = "r-index-of<char>.lambda0";
-char constantarr_0_912[10] = "child-path";
-char constantarr_0_913[11] = "get-environ";
-char constantarr_0_914[13] = "new<str, str>";
-char constantarr_0_915[13] = "find-index<a>";
-char constantarr_0_916[17] = "get-environ-recur";
-char constantarr_0_917[19] = "parse-environ-entry";
-char constantarr_0_918[21] = "todo<arrow<str, str>>";
-char constantarr_0_919[7] = "environ";
-char constantarr_0_920[23] = "move-to-dict!<str, str>";
-char constantarr_0_921[31] = "move-to-dict!<str, str>.lambda0";
-char constantarr_0_922[14] = "first-failures";
-char constantarr_0_923[36] = "subscript<result<str, arr<failure>>>";
-char constantarr_0_924[21] = "ok<str, arr<failure>>";
-char constantarr_0_925[22] = "err<str, arr<failure>>";
-char constantarr_0_926[14] = "run-crow-tests";
-char constantarr_0_927[10] = "list-tests";
-char constantarr_0_928[20] = "each-child-recursive";
-char constantarr_0_929[28] = "each-child-recursive.lambda0";
-char constantarr_0_930[6] = "is-dir";
-char constantarr_0_931[8] = "get-stat";
-char constantarr_0_932[4] = "stat";
-char constantarr_0_933[10] = "some<stat>";
-char constantarr_0_934[5] = "errno";
-char constantarr_0_935[8] = "*<int32>";
-char constantarr_0_936[16] = "__errno_location";
-char constantarr_0_937[6] = "ENOENT";
-char constantarr_0_938[15] = "todo<opt<stat>>";
-char constantarr_0_939[10] = "none<stat>";
-char constantarr_0_940[11] = "throw<bool>";
-char constantarr_0_941[27] = "with-value<const-ptr<char>>";
-char constantarr_0_942[7] = "st_mode";
-char constantarr_0_943[6] = "S_IFMT";
-char constantarr_0_944[7] = "S_IFDIR";
-char constantarr_0_945[8] = "read-dir";
-char constantarr_0_946[7] = "opendir";
-char constantarr_0_947[19] = "==<const-ptr<nat8>>";
-char constantarr_0_948[28] = "!=<mut-ptr<const-ptr<nat8>>>";
-char constantarr_0_949[42] = "ptr-cast-from-extern<const-ptr<nat8>, dir>";
-char constantarr_0_950[21] = "null<const-ptr<nat8>>";
-char constantarr_0_951[14] = "read-dir-recur";
-char constantarr_0_952[11] = "new<dirent>";
-char constantarr_0_953[9] = "readdir_r";
-char constantarr_0_954[19] = "!=<const-ptr<nat8>>";
-char constantarr_0_955[24] = "as-any-const-ptr<dirent>";
-char constantarr_0_956[9] = "*<dirent>";
-char constantarr_0_957[14] = "ref-eq<dirent>";
-char constantarr_0_958[15] = "get-dirent-name";
-char constantarr_0_959[14] = "size-of<int64>";
-char constantarr_0_960[14] = "size-of<nat16>";
-char constantarr_0_961[7] = "+<nat8>";
-char constantarr_0_962[20] = "ptr-cast<char, nat8>";
-char constantarr_0_963[9] = "sort<str>";
-char constantarr_0_964[7] = "sort<a>";
-char constantarr_0_965[8] = "sort!<a>";
-char constantarr_0_966[24] = "insertion-sort-recur!<a>";
-char constantarr_0_967[10] = "insert!<a>";
-char constantarr_0_968[27] = "subscript<comparison, a, a>";
-char constantarr_0_969[17] = "sort<str>.lambda0";
-char constantarr_0_970[17] = "move-to-arr!<str>";
-char constantarr_0_971[10] = "has-substr";
-char constantarr_0_972[21] = "contains-subseq<char>";
-char constantarr_0_973[18] = "index-of-subseq<a>";
-char constantarr_0_974[24] = "index-of-subseq-recur<a>";
-char constantarr_0_975[11] = "ext-is-crow";
-char constantarr_0_976[14] = "opt-equal<str>";
-char constantarr_0_977[13] = "get-extension";
-char constantarr_0_978[13] = "last-index-of";
-char constantarr_0_979[10] = "last<char>";
-char constantarr_0_980[7] = "some<a>";
-char constantarr_0_981[7] = "none<a>";
-char constantarr_0_982[11] = "rtail<char>";
-char constantarr_0_983[9] = "base-name";
-char constantarr_0_984[18] = "list-tests.lambda0";
-char constantarr_0_985[10] = "match-test";
-char constantarr_0_986[36] = "flat-map-with-max-size<failure, str>";
-char constantarr_0_987[8] = "new<out>";
-char constantarr_0_988[23] = "subscript<arr<out>, in>";
-char constantarr_0_989[30] = "reduce-size-if-more-than!<out>";
-char constantarr_0_990[12] = "drop<opt<a>>";
-char constantarr_0_991[7] = "pop!<a>";
-char constantarr_0_992[44] = "flat-map-with-max-size<failure, str>.lambda0";
-char constantarr_0_993[17] = "move-to-arr!<out>";
-char constantarr_0_994[20] = "run-single-crow-test";
-char constantarr_0_995[29] = "first-some<arr<failure>, str>";
-char constantarr_0_996[23] = "subscript<opt<out>, in>";
-char constantarr_0_997[13] = "is-empty<out>";
-char constantarr_0_998[9] = "none<out>";
-char constantarr_0_999[14] = "run-print-test";
-char constantarr_0_1000[21] = "spawn-and-wait-result";
-char constantarr_0_1001[14] = "fold<str, str>";
-char constantarr_0_1002[29] = "spawn-and-wait-result.lambda0";
-char constantarr_0_1003[7] = "is-file";
-char constantarr_0_1004[7] = "S_IFREG";
-char constantarr_0_1005[10] = "make-pipes";
-char constantarr_0_1006[17] = "check-posix-error";
-char constantarr_0_1007[4] = "pipe";
-char constantarr_0_1008[29] = "posix_spawn_file_actions_init";
-char constantarr_0_1009[33] = "posix_spawn_file_actions_addclose";
-char constantarr_0_1010[10] = "write-pipe";
-char constantarr_0_1011[32] = "posix_spawn_file_actions_adddup2";
-char constantarr_0_1012[9] = "read-pipe";
-char constantarr_0_1013[10] = "new<int32>";
-char constantarr_0_1014[11] = "posix_spawn";
-char constantarr_0_1015[5] = "close";
-char constantarr_0_1016[12] = "keep-polling";
-char constantarr_0_1017[18] = "as<by-val<pollfd>>";
-char constantarr_0_1018[6] = "POLLIN";
-char constantarr_0_1019[19] = "new<by-val<pollfd>>";
-char constantarr_0_1020[21] = "ref-of-val-at<pollfd>";
-char constantarr_0_1021[15] = "size<by-val<a>>";
-char constantarr_0_1022[13] = "ref-of-ptr<a>";
-char constantarr_0_1023[13] = "ref-of-val<a>";
-char constantarr_0_1024[4] = "poll";
-char constantarr_0_1025[14] = "handle-revents";
-char constantarr_0_1026[7] = "revents";
-char constantarr_0_1027[10] = "has-POLLIN";
-char constantarr_0_1028[14] = "bits-intersect";
-char constantarr_0_1029[9] = "!=<int16>";
-char constantarr_0_1030[24] = "read-to-buffer-until-eof";
-char constantarr_0_1031[22] = "unsafe-set-size!<char>";
-char constantarr_0_1032[10] = "reserve<a>";
-char constantarr_0_1033[4] = "read";
-char constantarr_0_1034[10] = "cmp<int64>";
-char constantarr_0_1035[8] = "<<int64>";
-char constantarr_0_1036[2] = "fd";
-char constantarr_0_1037[11] = "has-POLLHUP";
-char constantarr_0_1038[7] = "POLLHUP";
-char constantarr_0_1039[11] = "has-POLLPRI";
-char constantarr_0_1040[7] = "POLLPRI";
-char constantarr_0_1041[11] = "has-POLLOUT";
-char constantarr_0_1042[7] = "POLLOUT";
-char constantarr_0_1043[11] = "has-POLLERR";
-char constantarr_0_1044[7] = "POLLERR";
-char constantarr_0_1045[12] = "has-POLLNVAL";
-char constantarr_0_1046[8] = "POLLNVAL";
-char constantarr_0_1047[3] = "any";
-char constantarr_0_1048[10] = "had-POLLIN";
-char constantarr_0_1049[7] = "hung-up";
-char constantarr_0_1050[22] = "wait-and-get-exit-code";
-char constantarr_0_1051[7] = "waitpid";
-char constantarr_0_1052[9] = "WIFEXITED";
-char constantarr_0_1053[8] = "WTERMSIG";
-char constantarr_0_1054[11] = "WEXITSTATUS";
-char constantarr_0_1055[2] = ">>";
-char constantarr_0_1056[10] = "cmp<int32>";
-char constantarr_0_1057[8] = "<<int32>";
-char constantarr_0_1058[11] = "todo<int32>";
-char constantarr_0_1059[11] = "WIFSIGNALED";
-char constantarr_0_1060[7] = "to-base";
-char constantarr_0_1061[12] = "digit-to-str";
-char constantarr_0_1062[3] = "mod";
-char constantarr_0_1063[3] = "abs";
-char constantarr_0_1064[17] = "with-value<int32>";
-char constantarr_0_1065[10] = "WIFSTOPPED";
-char constantarr_0_1066[12] = "WIFCONTINUED";
-char constantarr_0_1067[12] = "convert-args";
-char constantarr_0_1068[20] = "new<const-ptr<char>>";
-char constantarr_0_1069[20] = "convert-args.lambda0";
-char constantarr_0_1070[19] = "as<const-ptr<char>>";
-char constantarr_0_1071[29] = "move-to-arr!<const-ptr<char>>";
-char constantarr_0_1072[15] = "convert-environ";
-char constantarr_0_1073[14] = "each<str, str>";
-char constantarr_0_1074[22] = "each<str, str>.lambda0";
-char constantarr_0_1075[23] = "convert-environ.lambda0";
-char constantarr_0_1076[21] = "throw<process-result>";
-char constantarr_0_1077[9] = "exit-code";
-char constantarr_0_1078[12] = "new<failure>";
-char constantarr_0_1079[13] = "handle-output";
-char constantarr_0_1080[13] = "try-read-file";
-char constantarr_0_1081[4] = "open";
-char constantarr_0_1082[8] = "O_RDONLY";
-char constantarr_0_1083[14] = "todo<opt<str>>";
-char constantarr_0_1084[5] = "lseek";
-char constantarr_0_1085[8] = "seek-end";
-char constantarr_0_1086[8] = "seek-set";
-char constantarr_0_1087[20] = "ptr-cast<nat8, char>";
-char constantarr_0_1088[10] = "write-file";
-char constantarr_0_1089[1] = "|";
-char constantarr_0_1090[2] = "<<";
-char constantarr_0_1091[10] = "cmp<nat32>";
-char constantarr_0_1092[8] = "<<nat32>";
-char constantarr_0_1093[15] = "unsafe-to-nat32";
-char constantarr_0_1094[21] = "unsafe-bit-shift-left";
-char constantarr_0_1095[7] = "O_CREAT";
-char constantarr_0_1096[8] = "O_WRONLY";
-char constantarr_0_1097[7] = "O_TRUNC";
-char constantarr_0_1098[17] = "with-value<nat32>";
-char constantarr_0_1099[9] = "max-int64";
-char constantarr_0_1100[17] = "is-empty<failure>";
-char constantarr_0_1101[13] = "remove-colors";
-char constantarr_0_1102[20] = "remove-colors-recur!";
-char constantarr_0_1103[10] = "tail<char>";
-char constantarr_0_1104[22] = "remove-colors-recur-2!";
-char constantarr_0_1105[11] = "should-stop";
-char constantarr_0_1106[18] = "some<arr<failure>>";
-char constantarr_0_1107[8] = "failures";
-char constantarr_0_1108[28] = "run-single-crow-test.lambda0";
-char constantarr_0_1109[24] = "run-single-runnable-test";
-char constantarr_0_1110[10] = "~<failure>";
-char constantarr_0_1111[22] = "run-crow-tests.lambda0";
-char constantarr_0_1112[17] = "with-value<nat64>";
-char constantarr_0_1113[23] = "do-test.lambda0.lambda0";
-char constantarr_0_1114[15] = "do-test.lambda0";
-char constantarr_0_1115[4] = "lint";
-char constantarr_0_1116[19] = "list-lintable-files";
-char constantarr_0_1117[18] = "excluded-from-lint";
-char constantarr_0_1118[7] = "in<str>";
-char constantarr_0_1119[11] = "exists<str>";
-char constantarr_0_1120[9] = "ends-with";
-char constantarr_0_1121[15] = "ends-with<char>";
-char constantarr_0_1122[26] = "excluded-from-lint.lambda0";
-char constantarr_0_1123[27] = "list-lintable-files.lambda0";
-char constantarr_0_1124[31] = "should-ignore-extension-of-name";
-char constantarr_0_1125[23] = "should-ignore-extension";
-char constantarr_0_1126[18] = "ignored-extensions";
-char constantarr_0_1127[27] = "list-lintable-files.lambda1";
-char constantarr_0_1128[9] = "lint-file";
-char constantarr_0_1129[9] = "read-file";
-char constantarr_0_1130[20] = "each-with-index<str>";
-char constantarr_0_1131[24] = "each-with-index-recur<a>";
-char constantarr_0_1132[25] = "subscript<void, a, nat64>";
-char constantarr_0_1133[5] = "lines";
-char constantarr_0_1134[10] = "new<nat64>";
-char constantarr_0_1135[21] = "each-with-index<char>";
-char constantarr_0_1136[11] = "swap<nat64>";
-char constantarr_0_1137[13] = "lines.lambda0";
-char constantarr_0_1138[8] = "line-len";
-char constantarr_0_1139[6] = "n-tabs";
-char constantarr_0_1140[8] = "tab-size";
-char constantarr_0_1141[15] = "max-line-length";
-char constantarr_0_1142[17] = "lint-file.lambda0";
-char constantarr_0_1143[12] = "lint.lambda0";
-char constantarr_0_1144[15] = "do-test.lambda1";
-char constantarr_0_1145[14] = "print-failures";
-char constantarr_0_1146[13] = "print-failure";
-char constantarr_0_1147[10] = "print-bold";
-char constantarr_0_1148[4] = "path";
-char constantarr_0_1149[11] = "print-reset";
-char constantarr_0_1150[22] = "print-failures.lambda0";
-char constantarr_0_1151[11] = "static-syms";
+char constantarr_0_796[24] = "as<fix-arr<entry<k, v>>>";
+char constantarr_0_797[25] = "fill-fix-arr<entry<k, v>>";
+char constantarr_0_798[33] = "fill-fix-arr<entry<k, v>>.lambda0";
+char constantarr_0_799[10] = "none<k, v>";
+char constantarr_0_800[19] = "set-subscript<k, v>";
+char constantarr_0_801[12] = "drop<opt<v>>";
+char constantarr_0_802[13] = "update!<k, v>";
+char constantarr_0_803[21] = "is-empty<entry<k, v>>";
+char constantarr_0_804[13] = "entries<k, v>";
+char constantarr_0_805[17] = "set-entries<k, v>";
+char constantarr_0_806[16] = "new<entry<k, v>>";
+char constantarr_0_807[13] = "to-fix-arr<a>";
+char constantarr_0_808[21] = "to-fix-arr<a>.lambda0";
+char constantarr_0_809[9] = "one<k, v>";
+char constantarr_0_810[20] = "set-total-size<k, v>";
+char constantarr_0_811[22] = "subscript<entry<k, v>>";
+char constantarr_0_812[26] = "set-subscript<entry<k, v>>";
+char constantarr_0_813[16] = "total-size<k, v>";
+char constantarr_0_814[19] = "should-expand<k, v>";
+char constantarr_0_815[13] = "expand!<k, v>";
+char constantarr_0_816[10] = "each<k, v>";
+char constantarr_0_817[16] = "fold<void, k, v>";
+char constantarr_0_818[20] = "fold<a, entry<k, v>>";
+char constantarr_0_819[10] = "fold<a, b>";
+char constantarr_0_820[14] = "temp-as-arr<b>";
+char constantarr_0_821[21] = "subscript<a, a, k, v>";
+char constantarr_0_822[20] = "fold<a, arrow<k, v>>";
+char constantarr_0_823[32] = "fold<void, k, v>.lambda0.lambda0";
+char constantarr_0_824[24] = "fold<void, k, v>.lambda0";
+char constantarr_0_825[21] = "subscript<void, k, v>";
+char constantarr_0_826[18] = "each<k, v>.lambda0";
+char constantarr_0_827[21] = "expand!<k, v>.lambda0";
+char constantarr_0_828[11] = "swap!<k, v>";
+char constantarr_0_829[10] = "many<k, v>";
+char constantarr_0_830[21] = "update!<k, v>.lambda0";
+char constantarr_0_831[27] = "is-at-capacity<arrow<k, v>>";
+char constantarr_0_832[17] = "drop<arrow<k, v>>";
+char constantarr_0_833[33] = "remove-unordered-at!<arrow<k, v>>";
+char constantarr_0_834[21] = "is-empty<arrow<k, v>>";
+char constantarr_0_835[26] = "set-subscript<arrow<k, v>>";
+char constantarr_0_836[25] = "to-mut-dict<k, v>.lambda0";
+char constantarr_0_837[22] = "parse-named-args-recur";
+char constantarr_0_838[10] = "force<str>";
+char constantarr_0_839[16] = "try-remove-start";
+char constantarr_0_840[22] = "try-remove-start<char>";
+char constantarr_0_841[12] = "some<arr<a>>";
+char constantarr_0_842[12] = "none<arr<a>>";
+char constantarr_0_843[9] = "none<str>";
+char constantarr_0_844[9] = "some<str>";
+char constantarr_0_845[9] = "tail<str>";
+char constantarr_0_846[30] = "parse-named-args-recur.lambda0";
+char constantarr_0_847[28] = "move-to-dict!<str, arr<str>>";
+char constantarr_0_848[29] = "map-to-arr<arrow<k, v>, k, v>";
+char constantarr_0_849[10] = "size<k, v>";
+char constantarr_0_850[24] = "fold<mut-ptr<out>, k, v>";
+char constantarr_0_851[40] = "fold<mut-ptr<out>, k, v>.lambda0.lambda0";
+char constantarr_0_852[32] = "fold<mut-ptr<out>, k, v>.lambda0";
+char constantarr_0_853[20] = "subscript<out, k, v>";
+char constantarr_0_854[37] = "map-to-arr<arrow<k, v>, k, v>.lambda0";
+char constantarr_0_855[12] = "end-ptr<out>";
+char constantarr_0_856[36] = "move-to-dict!<str, arr<str>>.lambda0";
+char constantarr_0_857[12] = "empty!<k, v>";
+char constantarr_0_858[18] = "fill!<entry<k, v>>";
+char constantarr_0_859[7] = "map!<a>";
+char constantarr_0_860[13] = "map-recur!<a>";
+char constantarr_0_861[14] = "!=<mut-ptr<a>>";
+char constantarr_0_862[15] = "subscript<a, a>";
+char constantarr_0_863[26] = "fill!<entry<k, v>>.lambda0";
+char constantarr_0_864[8] = "nameless";
+char constantarr_0_865[5] = "after";
+char constantarr_0_866[27] = "fill-mut-arr<opt<arr<str>>>";
+char constantarr_0_867[15] = "fill-fix-arr<a>";
+char constantarr_0_868[23] = "fill-fix-arr<a>.lambda0";
+char constantarr_0_869[9] = "new<bool>";
+char constantarr_0_870[19] = "each<str, arr<str>>";
+char constantarr_0_871[19] = "fold-recur<a, k, v>";
+char constantarr_0_872[19] = "fold<a, node<k, v>>";
+char constantarr_0_873[27] = "fold-recur<a, k, v>.lambda0";
+char constantarr_0_874[27] = "fold-recur<a, k, v>.lambda1";
+char constantarr_0_875[27] = "each<str, arr<str>>.lambda0";
+char constantarr_0_876[5] = "named";
+char constantarr_0_877[13] = "index-of<str>";
+char constantarr_0_878[9] = "ptr-of<a>";
+char constantarr_0_879[15] = "ptr-of-recur<a>";
+char constantarr_0_880[18] = "none<const-ptr<a>>";
+char constantarr_0_881[18] = "some<const-ptr<a>>";
+char constantarr_0_882[18] = "set-inner-value<a>";
+char constantarr_0_883[6] = "finish";
+char constantarr_0_884[5] = "inner";
+char constantarr_0_885[15] = "with-value<str>";
+char constantarr_0_886[8] = "with-str";
+char constantarr_0_887[6] = "interp";
+char constantarr_0_888[18] = "is-empty<arr<str>>";
+char constantarr_0_889[24] = "subscript<opt<arr<str>>>";
+char constantarr_0_890[28] = "set-subscript<opt<arr<str>>>";
+char constantarr_0_891[24] = "parse-named-args.lambda0";
+char constantarr_0_892[24] = "some<arr<opt<arr<str>>>>";
+char constantarr_0_893[27] = "move-to-arr!<opt<arr<str>>>";
+char constantarr_0_894[24] = "none<arr<opt<arr<str>>>>";
+char constantarr_0_895[10] = "print-help";
+char constantarr_0_896[9] = "parse-nat";
+char constantarr_0_897[18] = "with-reader<nat64>";
+char constantarr_0_898[25] = "subscript<opt<a>, reader>";
+char constantarr_0_899[3] = "end";
+char constantarr_0_900[9] = "take-nat!";
+char constantarr_0_901[13] = "char-to-nat64";
+char constantarr_0_902[4] = "peek";
+char constantarr_0_903[10] = "drop<char>";
+char constantarr_0_904[5] = "next!";
+char constantarr_0_905[15] = "take-nat-recur!";
+char constantarr_0_906[17] = "parse-nat.lambda0";
+char constantarr_0_907[7] = "do-test";
+char constantarr_0_908[11] = "parent-path";
+char constantarr_0_909[16] = "r-index-of<char>";
+char constantarr_0_910[14] = "find-rindex<a>";
+char constantarr_0_911[20] = "find-rindex-recur<a>";
+char constantarr_0_912[24] = "r-index-of<char>.lambda0";
+char constantarr_0_913[10] = "child-path";
+char constantarr_0_914[11] = "get-environ";
+char constantarr_0_915[13] = "new<str, str>";
+char constantarr_0_916[13] = "find-index<a>";
+char constantarr_0_917[17] = "get-environ-recur";
+char constantarr_0_918[19] = "parse-environ-entry";
+char constantarr_0_919[21] = "todo<arrow<str, str>>";
+char constantarr_0_920[7] = "environ";
+char constantarr_0_921[23] = "move-to-dict!<str, str>";
+char constantarr_0_922[31] = "move-to-dict!<str, str>.lambda0";
+char constantarr_0_923[14] = "first-failures";
+char constantarr_0_924[36] = "subscript<result<str, arr<failure>>>";
+char constantarr_0_925[21] = "ok<str, arr<failure>>";
+char constantarr_0_926[22] = "err<str, arr<failure>>";
+char constantarr_0_927[14] = "run-crow-tests";
+char constantarr_0_928[10] = "list-tests";
+char constantarr_0_929[20] = "each-child-recursive";
+char constantarr_0_930[28] = "each-child-recursive.lambda0";
+char constantarr_0_931[6] = "is-dir";
+char constantarr_0_932[8] = "get-stat";
+char constantarr_0_933[4] = "stat";
+char constantarr_0_934[10] = "some<stat>";
+char constantarr_0_935[5] = "errno";
+char constantarr_0_936[8] = "*<int32>";
+char constantarr_0_937[16] = "__errno_location";
+char constantarr_0_938[6] = "ENOENT";
+char constantarr_0_939[15] = "todo<opt<stat>>";
+char constantarr_0_940[10] = "none<stat>";
+char constantarr_0_941[11] = "throw<bool>";
+char constantarr_0_942[27] = "with-value<const-ptr<char>>";
+char constantarr_0_943[7] = "st_mode";
+char constantarr_0_944[6] = "S_IFMT";
+char constantarr_0_945[7] = "S_IFDIR";
+char constantarr_0_946[8] = "read-dir";
+char constantarr_0_947[7] = "opendir";
+char constantarr_0_948[19] = "==<const-ptr<nat8>>";
+char constantarr_0_949[28] = "!=<mut-ptr<const-ptr<nat8>>>";
+char constantarr_0_950[42] = "ptr-cast-from-extern<const-ptr<nat8>, dir>";
+char constantarr_0_951[21] = "null<const-ptr<nat8>>";
+char constantarr_0_952[14] = "read-dir-recur";
+char constantarr_0_953[11] = "new<dirent>";
+char constantarr_0_954[9] = "readdir_r";
+char constantarr_0_955[19] = "!=<const-ptr<nat8>>";
+char constantarr_0_956[24] = "as-any-const-ptr<dirent>";
+char constantarr_0_957[9] = "*<dirent>";
+char constantarr_0_958[14] = "ref-eq<dirent>";
+char constantarr_0_959[15] = "get-dirent-name";
+char constantarr_0_960[14] = "size-of<int64>";
+char constantarr_0_961[14] = "size-of<nat16>";
+char constantarr_0_962[7] = "+<nat8>";
+char constantarr_0_963[20] = "ptr-cast<char, nat8>";
+char constantarr_0_964[9] = "sort<str>";
+char constantarr_0_965[7] = "sort<a>";
+char constantarr_0_966[8] = "sort!<a>";
+char constantarr_0_967[24] = "insertion-sort-recur!<a>";
+char constantarr_0_968[10] = "insert!<a>";
+char constantarr_0_969[27] = "subscript<comparison, a, a>";
+char constantarr_0_970[17] = "sort<str>.lambda0";
+char constantarr_0_971[17] = "move-to-arr!<str>";
+char constantarr_0_972[10] = "has-substr";
+char constantarr_0_973[21] = "contains-subseq<char>";
+char constantarr_0_974[18] = "index-of-subseq<a>";
+char constantarr_0_975[24] = "index-of-subseq-recur<a>";
+char constantarr_0_976[11] = "ext-is-crow";
+char constantarr_0_977[14] = "opt-equal<str>";
+char constantarr_0_978[13] = "get-extension";
+char constantarr_0_979[13] = "last-index-of";
+char constantarr_0_980[10] = "last<char>";
+char constantarr_0_981[7] = "some<a>";
+char constantarr_0_982[7] = "none<a>";
+char constantarr_0_983[11] = "rtail<char>";
+char constantarr_0_984[9] = "base-name";
+char constantarr_0_985[18] = "list-tests.lambda0";
+char constantarr_0_986[10] = "match-test";
+char constantarr_0_987[36] = "flat-map-with-max-size<failure, str>";
+char constantarr_0_988[8] = "new<out>";
+char constantarr_0_989[23] = "subscript<arr<out>, in>";
+char constantarr_0_990[30] = "reduce-size-if-more-than!<out>";
+char constantarr_0_991[12] = "drop<opt<a>>";
+char constantarr_0_992[7] = "pop!<a>";
+char constantarr_0_993[44] = "flat-map-with-max-size<failure, str>.lambda0";
+char constantarr_0_994[17] = "move-to-arr!<out>";
+char constantarr_0_995[20] = "run-single-crow-test";
+char constantarr_0_996[29] = "first-some<arr<failure>, str>";
+char constantarr_0_997[23] = "subscript<opt<out>, in>";
+char constantarr_0_998[13] = "is-empty<out>";
+char constantarr_0_999[9] = "none<out>";
+char constantarr_0_1000[14] = "run-print-test";
+char constantarr_0_1001[21] = "spawn-and-wait-result";
+char constantarr_0_1002[14] = "fold<str, str>";
+char constantarr_0_1003[29] = "spawn-and-wait-result.lambda0";
+char constantarr_0_1004[7] = "is-file";
+char constantarr_0_1005[7] = "S_IFREG";
+char constantarr_0_1006[10] = "make-pipes";
+char constantarr_0_1007[17] = "check-posix-error";
+char constantarr_0_1008[4] = "pipe";
+char constantarr_0_1009[29] = "posix_spawn_file_actions_init";
+char constantarr_0_1010[33] = "posix_spawn_file_actions_addclose";
+char constantarr_0_1011[10] = "write-pipe";
+char constantarr_0_1012[32] = "posix_spawn_file_actions_adddup2";
+char constantarr_0_1013[9] = "read-pipe";
+char constantarr_0_1014[10] = "new<int32>";
+char constantarr_0_1015[11] = "posix_spawn";
+char constantarr_0_1016[5] = "close";
+char constantarr_0_1017[12] = "keep-polling";
+char constantarr_0_1018[18] = "as<by-val<pollfd>>";
+char constantarr_0_1019[6] = "POLLIN";
+char constantarr_0_1020[19] = "new<by-val<pollfd>>";
+char constantarr_0_1021[21] = "ref-of-val-at<pollfd>";
+char constantarr_0_1022[15] = "size<by-val<a>>";
+char constantarr_0_1023[13] = "ref-of-ptr<a>";
+char constantarr_0_1024[13] = "ref-of-val<a>";
+char constantarr_0_1025[4] = "poll";
+char constantarr_0_1026[14] = "handle-revents";
+char constantarr_0_1027[7] = "revents";
+char constantarr_0_1028[10] = "has-POLLIN";
+char constantarr_0_1029[14] = "bits-intersect";
+char constantarr_0_1030[9] = "!=<int16>";
+char constantarr_0_1031[24] = "read-to-buffer-until-eof";
+char constantarr_0_1032[22] = "unsafe-set-size!<char>";
+char constantarr_0_1033[10] = "reserve<a>";
+char constantarr_0_1034[4] = "read";
+char constantarr_0_1035[10] = "cmp<int64>";
+char constantarr_0_1036[8] = "<<int64>";
+char constantarr_0_1037[2] = "fd";
+char constantarr_0_1038[11] = "has-POLLHUP";
+char constantarr_0_1039[7] = "POLLHUP";
+char constantarr_0_1040[11] = "has-POLLPRI";
+char constantarr_0_1041[7] = "POLLPRI";
+char constantarr_0_1042[11] = "has-POLLOUT";
+char constantarr_0_1043[7] = "POLLOUT";
+char constantarr_0_1044[11] = "has-POLLERR";
+char constantarr_0_1045[7] = "POLLERR";
+char constantarr_0_1046[12] = "has-POLLNVAL";
+char constantarr_0_1047[8] = "POLLNVAL";
+char constantarr_0_1048[3] = "any";
+char constantarr_0_1049[10] = "had-POLLIN";
+char constantarr_0_1050[7] = "hung-up";
+char constantarr_0_1051[22] = "wait-and-get-exit-code";
+char constantarr_0_1052[7] = "waitpid";
+char constantarr_0_1053[9] = "WIFEXITED";
+char constantarr_0_1054[8] = "WTERMSIG";
+char constantarr_0_1055[11] = "WEXITSTATUS";
+char constantarr_0_1056[2] = ">>";
+char constantarr_0_1057[10] = "cmp<int32>";
+char constantarr_0_1058[8] = "<<int32>";
+char constantarr_0_1059[11] = "todo<int32>";
+char constantarr_0_1060[11] = "WIFSIGNALED";
+char constantarr_0_1061[7] = "to-base";
+char constantarr_0_1062[12] = "digit-to-str";
+char constantarr_0_1063[3] = "mod";
+char constantarr_0_1064[3] = "abs";
+char constantarr_0_1065[17] = "with-value<int32>";
+char constantarr_0_1066[10] = "WIFSTOPPED";
+char constantarr_0_1067[12] = "WIFCONTINUED";
+char constantarr_0_1068[12] = "convert-args";
+char constantarr_0_1069[20] = "new<const-ptr<char>>";
+char constantarr_0_1070[20] = "convert-args.lambda0";
+char constantarr_0_1071[19] = "as<const-ptr<char>>";
+char constantarr_0_1072[29] = "move-to-arr!<const-ptr<char>>";
+char constantarr_0_1073[15] = "convert-environ";
+char constantarr_0_1074[14] = "each<str, str>";
+char constantarr_0_1075[22] = "each<str, str>.lambda0";
+char constantarr_0_1076[23] = "convert-environ.lambda0";
+char constantarr_0_1077[21] = "throw<process-result>";
+char constantarr_0_1078[9] = "exit-code";
+char constantarr_0_1079[12] = "new<failure>";
+char constantarr_0_1080[13] = "handle-output";
+char constantarr_0_1081[13] = "try-read-file";
+char constantarr_0_1082[4] = "open";
+char constantarr_0_1083[8] = "O_RDONLY";
+char constantarr_0_1084[14] = "todo<opt<str>>";
+char constantarr_0_1085[5] = "lseek";
+char constantarr_0_1086[8] = "seek-end";
+char constantarr_0_1087[8] = "seek-set";
+char constantarr_0_1088[20] = "ptr-cast<nat8, char>";
+char constantarr_0_1089[10] = "write-file";
+char constantarr_0_1090[1] = "|";
+char constantarr_0_1091[2] = "<<";
+char constantarr_0_1092[10] = "cmp<nat32>";
+char constantarr_0_1093[8] = "<<nat32>";
+char constantarr_0_1094[15] = "unsafe-to-nat32";
+char constantarr_0_1095[21] = "unsafe-bit-shift-left";
+char constantarr_0_1096[7] = "O_CREAT";
+char constantarr_0_1097[8] = "O_WRONLY";
+char constantarr_0_1098[7] = "O_TRUNC";
+char constantarr_0_1099[17] = "with-value<nat32>";
+char constantarr_0_1100[9] = "max-int64";
+char constantarr_0_1101[17] = "is-empty<failure>";
+char constantarr_0_1102[13] = "remove-colors";
+char constantarr_0_1103[20] = "remove-colors-recur!";
+char constantarr_0_1104[10] = "tail<char>";
+char constantarr_0_1105[22] = "remove-colors-recur-2!";
+char constantarr_0_1106[11] = "should-stop";
+char constantarr_0_1107[18] = "some<arr<failure>>";
+char constantarr_0_1108[8] = "failures";
+char constantarr_0_1109[28] = "run-single-crow-test.lambda0";
+char constantarr_0_1110[24] = "run-single-runnable-test";
+char constantarr_0_1111[10] = "~<failure>";
+char constantarr_0_1112[22] = "run-crow-tests.lambda0";
+char constantarr_0_1113[17] = "with-value<nat64>";
+char constantarr_0_1114[23] = "do-test.lambda0.lambda0";
+char constantarr_0_1115[15] = "do-test.lambda0";
+char constantarr_0_1116[4] = "lint";
+char constantarr_0_1117[19] = "list-lintable-files";
+char constantarr_0_1118[18] = "excluded-from-lint";
+char constantarr_0_1119[7] = "in<str>";
+char constantarr_0_1120[11] = "exists<str>";
+char constantarr_0_1121[9] = "ends-with";
+char constantarr_0_1122[15] = "ends-with<char>";
+char constantarr_0_1123[26] = "excluded-from-lint.lambda0";
+char constantarr_0_1124[27] = "list-lintable-files.lambda0";
+char constantarr_0_1125[31] = "should-ignore-extension-of-name";
+char constantarr_0_1126[23] = "should-ignore-extension";
+char constantarr_0_1127[18] = "ignored-extensions";
+char constantarr_0_1128[27] = "list-lintable-files.lambda1";
+char constantarr_0_1129[9] = "lint-file";
+char constantarr_0_1130[9] = "read-file";
+char constantarr_0_1131[20] = "each-with-index<str>";
+char constantarr_0_1132[24] = "each-with-index-recur<a>";
+char constantarr_0_1133[25] = "subscript<void, a, nat64>";
+char constantarr_0_1134[5] = "lines";
+char constantarr_0_1135[10] = "new<nat64>";
+char constantarr_0_1136[21] = "each-with-index<char>";
+char constantarr_0_1137[11] = "swap<nat64>";
+char constantarr_0_1138[13] = "lines.lambda0";
+char constantarr_0_1139[8] = "line-len";
+char constantarr_0_1140[6] = "n-tabs";
+char constantarr_0_1141[8] = "tab-size";
+char constantarr_0_1142[15] = "max-line-length";
+char constantarr_0_1143[17] = "lint-file.lambda0";
+char constantarr_0_1144[12] = "lint.lambda0";
+char constantarr_0_1145[15] = "do-test.lambda1";
+char constantarr_0_1146[14] = "print-failures";
+char constantarr_0_1147[13] = "print-failure";
+char constantarr_0_1148[10] = "print-bold";
+char constantarr_0_1149[4] = "path";
+char constantarr_0_1150[11] = "print-reset";
+char constantarr_0_1151[22] = "print-failures.lambda0";
+char constantarr_0_1152[11] = "static-syms";
 struct named_val constantarr_5_0[1252] = {{{"mark"}, ((uint8_t*)mark)}, {{"hard-assert"}, ((uint8_t*)hard_assert)}, {{"is-word-aligned"}, ((uint8_t*)is_word_aligned_0)}, {{"is-word-aligned"}, ((uint8_t*)is_word_aligned_1)}, {{"words-of-bytes"}, ((uint8_t*)words_of_bytes)}, {{"round-up-to-multiple-of-8"}, ((uint8_t*)round_up_to_multiple_of_8)}, {{"ptr-cast"}, ((uint8_t*)ptr_cast_0)}, {{"-"}, ((uint8_t*)_minus_0)}, {{"-"}, ((uint8_t*)_minus_1)}, {{"<=>"}, ((uint8_t*)_compare_0)}, {{"cmp"}, ((uint8_t*)cmp_0)}, {{"<"}, ((uint8_t*)_less_0)}, {{"<="}, ((uint8_t*)_lessOrEqual_0)}, {{"!"}, ((uint8_t*)_not)}, {{"mark-range-recur"}, ((uint8_t*)mark_range_recur)}, {{">"}, ((uint8_t*)_greater)}, {{"rt-main"}, ((uint8_t*)rt_main)}, {{"lbv"}, ((uint8_t*)lbv)}, {{"lock-by-val"}, ((uint8_t*)lock_by_val)}, {{"new"}, ((uint8_t*)new_0)}, {{"empty-arr"}, ((uint8_t*)empty_arr_0)}, {{"null"}, ((uint8_t*)null_0)}, {{"create-condition"}, ((uint8_t*)create_condition)}, {{"hard-assert-posix-error"}, ((uint8_t*)hard_assert_posix_error)}, {{"CLOCK_MONOTONIC"}, ((uint8_t*)CLOCK_MONOTONIC)}, {{"island"}, ((uint8_t*)island)}, {{"new"}, ((uint8_t*)new_1)}, {{"mut-arr-by-val-with-capacity-from-unmanaged-memory"}, ((uint8_t*)mut_arr_by_val_with_capacity_from_unmanaged_memory)}, {{"subscript"}, ((uint8_t*)subscript_0)}, {{"subscript"}, ((uint8_t*)subscript_1)}, {{"+"}, ((uint8_t*)_plus_0)}, {{"unmanaged-alloc-zeroed-elements"}, ((uint8_t*)unmanaged_alloc_zeroed_elements)}, {{"unmanaged-alloc-elements"}, ((uint8_t*)unmanaged_alloc_elements_0)}, {{"unmanaged-alloc-bytes"}, ((uint8_t*)unmanaged_alloc_bytes)}, {{"!="}, ((uint8_t*)_notEqual_0)}, {{"set-zero-range"}, ((uint8_t*)set_zero_range_0)}, {{"drop"}, ((uint8_t*)drop_0)}, {{".."}, ((uint8_t*)_range)}, {{"default-exception-handler"}, ((uint8_t*)default_exception_handler)}, {{"print-err-no-newline"}, ((uint8_t*)print_err_no_newline)}, {{"write-no-newline"}, ((uint8_t*)write_no_newline)}, {{"as-any-const-ptr"}, ((uint8_t*)as_any_const_ptr_0)}, {{"size-bytes"}, ((uint8_t*)size_bytes)}, {{"!="}, ((uint8_t*)_notEqual_1)}, {{"todo"}, ((uint8_t*)todo_0)}, {{"stderr"}, ((uint8_t*)stderr)}, {{"print-err"}, ((uint8_t*)print_err)}, {{"to-str"}, ((uint8_t*)to_str_0)}, {{"new"}, ((uint8_t*)new_2)}, {{"new"}, ((uint8_t*)new_3)}, {{"to-mut-arr"}, ((uint8_t*)to_mut_arr_0)}, {{"empty-fix-arr"}, ((uint8_t*)empty_fix_arr_0)}, {{"empty-arr"}, ((uint8_t*)empty_arr_1)}, {{"null"}, ((uint8_t*)null_1)}, {{"~="}, ((uint8_t*)_concatEquals_0)}, {{"each"}, ((uint8_t*)each_0)}, {{"each-recur"}, ((uint8_t*)each_recur_0)}, {{"=="}, ((uint8_t*)_equal_0)}, {{"!="}, ((uint8_t*)_notEqual_2)}, {{"subscript"}, ((uint8_t*)subscript_2)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_70)}, {{"*"}, ((uint8_t*)_times_0)}, {{"+"}, ((uint8_t*)_plus_1)}, {{"end-ptr"}, ((uint8_t*)end_ptr_0)}, {{"~="}, ((uint8_t*)_concatEquals_1)}, {{"incr-capacity!"}, ((uint8_t*)incr_capacity__e_0)}, {{"ensure-capacity"}, ((uint8_t*)ensure_capacity_0)}, {{"capacity"}, ((uint8_t*)capacity_0)}, {{"size"}, ((uint8_t*)size_0)}, {{"increase-capacity-to!"}, ((uint8_t*)increase_capacity_to__e_0)}, {{"assert"}, ((uint8_t*)assert_0)}, {{"throw"}, ((uint8_t*)throw_0)}, {{"throw"}, ((uint8_t*)throw_1)}, {{"get-exception-ctx"}, ((uint8_t*)get_exception_ctx)}, {{"!="}, ((uint8_t*)_notEqual_3)}, {{"number-to-throw"}, ((uint8_t*)number_to_throw)}, {{"hard-unreachable"}, ((uint8_t*)hard_unreachable_0)}, {{"get-backtrace"}, ((uint8_t*)get_backtrace)}, {{"try-alloc-backtrace-arrs"}, ((uint8_t*)try_alloc_backtrace_arrs)}, {{"try-alloc-uninitialized"}, ((uint8_t*)try_alloc_uninitialized_0)}, {{"try-alloc"}, ((uint8_t*)try_alloc)}, {{"try-gc-alloc"}, ((uint8_t*)try_gc_alloc)}, {{"acquire!"}, ((uint8_t*)acquire__e)}, {{"acquire-recur!"}, ((uint8_t*)acquire_recur__e)}, {{"try-acquire!"}, ((uint8_t*)try_acquire__e)}, {{"try-set!"}, ((uint8_t*)try_set__e)}, {{"try-change!"}, ((uint8_t*)try_change__e)}, {{"yield-thread"}, ((uint8_t*)yield_thread)}, {{"try-gc-alloc-recur"}, ((uint8_t*)try_gc_alloc_recur)}, {{"<=>"}, ((uint8_t*)_compare_1)}, {{"<"}, ((uint8_t*)_less_1)}, {{"range-free"}, ((uint8_t*)range_free)}, {{"maybe-set-needs-gc!"}, ((uint8_t*)maybe_set_needs_gc__e)}, {{"-"}, ((uint8_t*)_minus_2)}, {{"release!"}, ((uint8_t*)release__e)}, {{"must-unset!"}, ((uint8_t*)must_unset__e)}, {{"try-unset!"}, ((uint8_t*)try_unset__e)}, {{"get-gc"}, ((uint8_t*)get_gc)}, {{"get-gc-ctx"}, ((uint8_t*)get_gc_ctx_0)}, {{"try-alloc-uninitialized"}, ((uint8_t*)try_alloc_uninitialized_1)}, {{"try-alloc-uninitialized"}, ((uint8_t*)try_alloc_uninitialized_2)}, {{"new"}, ((uint8_t*)new_4)}, {{"code-ptrs-size"}, ((uint8_t*)code_ptrs_size)}, {{"copy-data-from!"}, ((uint8_t*)copy_data_from__e_0)}, {{"as-any-const-ptr"}, ((uint8_t*)as_any_const_ptr_1)}, {{"sort!"}, ((uint8_t*)sort__e_0)}, {{"swap!"}, ((uint8_t*)swap__e_0)}, {{"subscript"}, ((uint8_t*)subscript_3)}, {{"set-subscript"}, ((uint8_t*)set_subscript_0)}, {{"partition!"}, ((uint8_t*)partition__e)}, {{"=="}, ((uint8_t*)_equal_1)}, {{"<=>"}, ((uint8_t*)_compare_2)}, {{"<=>"}, ((uint8_t*)_compare_3)}, {{"<"}, ((uint8_t*)_less_2)}, {{"fill-code-names!"}, ((uint8_t*)fill_code_names__e)}, {{"<=>"}, ((uint8_t*)_compare_4)}, {{"<"}, ((uint8_t*)_less_3)}, {{"get-fun-name"}, ((uint8_t*)get_fun_name)}, {{"subscript"}, ((uint8_t*)subscript_4)}, {{"*"}, ((uint8_t*)_times_1)}, {{"+"}, ((uint8_t*)_plus_2)}, {{"*"}, ((uint8_t*)_times_2)}, {{"+"}, ((uint8_t*)_plus_3)}, {{"subscript"}, ((uint8_t*)subscript_5)}, {{"+"}, ((uint8_t*)_plus_4)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_0)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_1)}, {{"uninitialized-fix-arr"}, ((uint8_t*)uninitialized_fix_arr_0)}, {{"subscript"}, ((uint8_t*)subscript_6)}, {{"subscript"}, ((uint8_t*)subscript_7)}, {{"alloc-uninitialized"}, ((uint8_t*)alloc_uninitialized_0)}, {{"alloc"}, ((uint8_t*)alloc)}, {{"gc-alloc"}, ((uint8_t*)gc_alloc)}, {{"todo"}, ((uint8_t*)todo_1)}, {{"copy-data-from!"}, ((uint8_t*)copy_data_from__e_1)}, {{"set-zero-elements"}, ((uint8_t*)set_zero_elements_0)}, {{"set-zero-range"}, ((uint8_t*)set_zero_range_1)}, {{"subscript"}, ((uint8_t*)subscript_8)}, {{"subscript"}, ((uint8_t*)subscript_9)}, {{"+"}, ((uint8_t*)_plus_5)}, {{">="}, ((uint8_t*)_greaterOrEqual)}, {{"round-up-to-power-of-two"}, ((uint8_t*)round_up_to_power_of_two)}, {{"round-up-to-power-of-two-recur"}, ((uint8_t*)round_up_to_power_of_two_recur)}, {{"*"}, ((uint8_t*)_times_3)}, {{"/"}, ((uint8_t*)_divide)}, {{"forbid"}, ((uint8_t*)forbid)}, {{"set-subscript"}, ((uint8_t*)set_subscript_1)}, {{"~="}, ((uint8_t*)_concatEquals_2)}, {{"is-empty"}, ((uint8_t*)is_empty_0)}, {{"is-empty"}, ((uint8_t*)is_empty_1)}, {{"each"}, ((uint8_t*)each_1)}, {{"each-recur"}, ((uint8_t*)each_recur_1)}, {{"=="}, ((uint8_t*)_equal_2)}, {{"!="}, ((uint8_t*)_notEqual_4)}, {{"subscript"}, ((uint8_t*)subscript_10)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_170)}, {{"*"}, ((uint8_t*)_times_4)}, {{"end-ptr"}, ((uint8_t*)end_ptr_1)}, {{"~="}, ((uint8_t*)_concatEquals_3)}, {{"to-str"}, ((uint8_t*)to_str_1)}, {{"str"}, ((uint8_t*)str)}, {{"arr-from-begin-end"}, ((uint8_t*)arr_from_begin_end)}, {{"<=>"}, ((uint8_t*)_compare_5)}, {{"<=>"}, ((uint8_t*)_compare_6)}, {{"<="}, ((uint8_t*)_lessOrEqual_1)}, {{"<"}, ((uint8_t*)_less_4)}, {{"-"}, ((uint8_t*)_minus_3)}, {{"-"}, ((uint8_t*)_minus_4)}, {{"find-cstr-end"}, ((uint8_t*)find_cstr_end)}, {{"find-char-in-cstr"}, ((uint8_t*)find_char_in_cstr)}, {{"=="}, ((uint8_t*)_equal_3)}, {{"hard-unreachable"}, ((uint8_t*)hard_unreachable_1)}, {{"move-to-str!"}, ((uint8_t*)move_to_str__e)}, {{"move-to-arr!"}, ((uint8_t*)move_to_arr__e_0)}, {{"cast-immutable"}, ((uint8_t*)cast_immutable_0)}, {{"move-to-fix-arr!"}, ((uint8_t*)move_to_fix_arr__e_0)}, {{"get-global-ctx"}, ((uint8_t*)get_global_ctx)}, {{"default-log-handler"}, ((uint8_t*)default_log_handler)}, {{"print"}, ((uint8_t*)print)}, {{"print-no-newline"}, ((uint8_t*)print_no_newline)}, {{"stdout"}, ((uint8_t*)stdout)}, {{"~"}, ((uint8_t*)_tilde_0)}, {{"~"}, ((uint8_t*)_tilde_1)}, {{"to-str"}, ((uint8_t*)to_str_2)}, {{"gc"}, ((uint8_t*)gc)}, {{"validate-gc"}, ((uint8_t*)validate_gc)}, {{"<=>"}, ((uint8_t*)_compare_7)}, {{"<="}, ((uint8_t*)_lessOrEqual_2)}, {{"<"}, ((uint8_t*)_less_5)}, {{"<="}, ((uint8_t*)_lessOrEqual_3)}, {{"new"}, ((uint8_t*)new_5)}, {{"new"}, ((uint8_t*)new_6)}, {{"arr-of-single"}, ((uint8_t*)arr_of_single)}, {{"add-main-task"}, ((uint8_t*)add_main_task)}, {{"exception-ctx"}, ((uint8_t*)exception_ctx)}, {{"empty-arr"}, ((uint8_t*)empty_arr_2)}, {{"null"}, ((uint8_t*)null_2)}, {{"log-ctx"}, ((uint8_t*)log_ctx)}, {{"perf-ctx"}, ((uint8_t*)perf_ctx)}, {{"empty-arr"}, ((uint8_t*)empty_arr_3)}, {{"null"}, ((uint8_t*)null_3)}, {{"empty-fix-arr"}, ((uint8_t*)empty_fix_arr_1)}, {{"empty-arr"}, ((uint8_t*)empty_arr_4)}, {{"null"}, ((uint8_t*)null_4)}, {{"ctx"}, ((uint8_t*)ctx)}, {{"get-gc-ctx"}, ((uint8_t*)get_gc_ctx_1)}, {{"add-first-task"}, ((uint8_t*)add_first_task)}, {{"then-void"}, ((uint8_t*)then_void)}, {{"then"}, ((uint8_t*)then)}, {{"unresolved"}, ((uint8_t*)unresolved)}, {{"callback!"}, ((uint8_t*)callback__e_0)}, {{"with-lock"}, ((uint8_t*)with_lock_0)}, {{"subscript"}, ((uint8_t*)subscript_11)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_231)}, {{"subscript"}, ((uint8_t*)subscript_12)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_233)}, {{"forward-to!"}, ((uint8_t*)forward_to__e)}, {{"callback!"}, ((uint8_t*)callback__e_1)}, {{"subscript"}, ((uint8_t*)subscript_13)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_238)}, {{"resolve-or-reject!"}, ((uint8_t*)resolve_or_reject__e)}, {{"with-lock"}, ((uint8_t*)with_lock_1)}, {{"subscript"}, ((uint8_t*)subscript_14)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_243)}, {{"call-callbacks!"}, ((uint8_t*)call_callbacks__e)}, {{"subscript"}, ((uint8_t*)subscript_15)}, {{"get-island"}, ((uint8_t*)get_island)}, {{"subscript"}, ((uint8_t*)subscript_16)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_0)}, {{"subscript"}, ((uint8_t*)subscript_17)}, {{"*"}, ((uint8_t*)_times_5)}, {{"+"}, ((uint8_t*)_plus_6)}, {{"add-task"}, ((uint8_t*)add_task_0)}, {{"add-task"}, ((uint8_t*)add_task_1)}, {{"new"}, ((uint8_t*)new_7)}, {{"insert-task!"}, ((uint8_t*)insert_task__e)}, {{"size"}, ((uint8_t*)size_1)}, {{"size-recur"}, ((uint8_t*)size_recur)}, {{"insert-recur"}, ((uint8_t*)insert_recur)}, {{"tasks"}, ((uint8_t*)tasks)}, {{"broadcast!"}, ((uint8_t*)broadcast__e)}, {{"no-timestamp"}, ((uint8_t*)no_timestamp)}, {{"catch"}, ((uint8_t*)catch)}, {{"catch-with-exception-ctx"}, ((uint8_t*)catch_with_exception_ctx)}, {{"zero"}, ((uint8_t*)zero_0)}, {{"zero"}, ((uint8_t*)zero_1)}, {{"zero"}, ((uint8_t*)zero_2)}, {{"zero"}, ((uint8_t*)zero_3)}, {{"subscript"}, ((uint8_t*)subscript_18)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_275)}, {{"subscript"}, ((uint8_t*)subscript_19)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_277)}, {{"reject!"}, ((uint8_t*)reject__e)}, {{"subscript"}, ((uint8_t*)subscript_20)}, {{"subscript"}, ((uint8_t*)subscript_21)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_285)}, {{"cur-island-and-exclusion"}, ((uint8_t*)cur_island_and_exclusion)}, {{"delay"}, ((uint8_t*)delay)}, {{"resolved"}, ((uint8_t*)resolved_0)}, {{"tail"}, ((uint8_t*)tail_0)}, {{"is-empty"}, ((uint8_t*)is_empty_2)}, {{"subscript"}, ((uint8_t*)subscript_22)}, {{"+"}, ((uint8_t*)_plus_7)}, {{"map"}, ((uint8_t*)map)}, {{"make-arr"}, ((uint8_t*)make_arr_0)}, {{"alloc-uninitialized"}, ((uint8_t*)alloc_uninitialized_1)}, {{"fill-ptr-range"}, ((uint8_t*)fill_ptr_range_0)}, {{"fill-ptr-range-recur"}, ((uint8_t*)fill_ptr_range_recur_0)}, {{"!="}, ((uint8_t*)_notEqual_5)}, {{"set-subscript"}, ((uint8_t*)set_subscript_2)}, {{"subscript"}, ((uint8_t*)subscript_23)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_305)}, {{"subscript"}, ((uint8_t*)subscript_24)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_307)}, {{"subscript"}, ((uint8_t*)subscript_25)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_1)}, {{"subscript"}, ((uint8_t*)subscript_26)}, {{"*"}, ((uint8_t*)_times_6)}, {{"handle-exceptions"}, ((uint8_t*)handle_exceptions)}, {{"subscript"}, ((uint8_t*)subscript_27)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_317)}, {{"exception-handler"}, ((uint8_t*)exception_handler)}, {{"get-cur-island"}, ((uint8_t*)get_cur_island)}, {{"subscript"}, ((uint8_t*)subscript_28)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_323)}, {{"run-threads"}, ((uint8_t*)run_threads)}, {{"unmanaged-alloc-elements"}, ((uint8_t*)unmanaged_alloc_elements_1)}, {{"start-threads-recur"}, ((uint8_t*)start_threads_recur)}, {{"create-one-thread"}, ((uint8_t*)create_one_thread)}, {{"null"}, ((uint8_t*)null_5)}, {{"!="}, ((uint8_t*)_notEqual_6)}, {{"EAGAIN"}, ((uint8_t*)EAGAIN)}, {{"as-cell"}, ((uint8_t*)as_cell)}, {{"thread-fun"}, ((uint8_t*)thread_fun)}, {{"thread-function"}, ((uint8_t*)thread_function)}, {{"thread-function-recur"}, ((uint8_t*)thread_function_recur)}, {{"assert-islands-are-shut-down"}, ((uint8_t*)assert_islands_are_shut_down)}, {{"noctx-at"}, ((uint8_t*)noctx_at_0)}, {{"hard-forbid"}, ((uint8_t*)hard_forbid)}, {{"is-empty"}, ((uint8_t*)is_empty_3)}, {{"is-empty"}, ((uint8_t*)is_empty_4)}, {{"drop"}, ((uint8_t*)drop_1)}, {{"get-sequence"}, ((uint8_t*)get_sequence)}, {{"choose-task"}, ((uint8_t*)choose_task)}, {{"get-monotime-nsec"}, ((uint8_t*)get_monotime_nsec)}, {{"*"}, ((uint8_t*)_times_7)}, {{"todo"}, ((uint8_t*)todo_2)}, {{"choose-task-recur"}, ((uint8_t*)choose_task_recur)}, {{"choose-task-in-island"}, ((uint8_t*)choose_task_in_island)}, {{"pop-task!"}, ((uint8_t*)pop_task__e)}, {{"in"}, ((uint8_t*)in_0)}, {{"in"}, ((uint8_t*)in_1)}, {{"in-recur"}, ((uint8_t*)in_recur_0)}, {{"noctx-at"}, ((uint8_t*)noctx_at_1)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_2)}, {{"subscript"}, ((uint8_t*)subscript_29)}, {{"*"}, ((uint8_t*)_times_8)}, {{"temp-as-arr"}, ((uint8_t*)temp_as_arr_0)}, {{"temp-as-arr"}, ((uint8_t*)temp_as_arr_1)}, {{"temp-as-fix-arr"}, ((uint8_t*)temp_as_fix_arr_0)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_2)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_3)}, {{"pop-recur!"}, ((uint8_t*)pop_recur__e)}, {{"to-opt-time"}, ((uint8_t*)to_opt_time)}, {{"push-capacity-must-be-sufficient!"}, ((uint8_t*)push_capacity_must_be_sufficient__e)}, {{"capacity"}, ((uint8_t*)capacity_1)}, {{"size"}, ((uint8_t*)size_2)}, {{"set-subscript"}, ((uint8_t*)set_subscript_3)}, {{"is-no-task"}, ((uint8_t*)is_no_task)}, {{"min-time"}, ((uint8_t*)min_time)}, {{"min"}, ((uint8_t*)min)}, {{"do-task"}, ((uint8_t*)do_task)}, {{"return-task!"}, ((uint8_t*)return_task__e)}, {{"noctx-must-remove-unordered!"}, ((uint8_t*)noctx_must_remove_unordered__e)}, {{"noctx-must-remove-unordered-recur!"}, ((uint8_t*)noctx_must_remove_unordered_recur__e)}, {{"subscript"}, ((uint8_t*)subscript_30)}, {{"drop"}, ((uint8_t*)drop_2)}, {{"noctx-remove-unordered-at!"}, ((uint8_t*)noctx_remove_unordered_at__e_0)}, {{"return-ctx"}, ((uint8_t*)return_ctx)}, {{"return-gc-ctx"}, ((uint8_t*)return_gc_ctx)}, {{"run-garbage-collection"}, ((uint8_t*)run_garbage_collection)}, {{"mark-visit"}, ((uint8_t*)mark_visit_382)}, {{"clear-free-mem!"}, ((uint8_t*)clear_free_mem__e)}, {{"!="}, ((uint8_t*)_notEqual_7)}, {{"wait-on"}, ((uint8_t*)wait_on)}, {{"to-timespec"}, ((uint8_t*)to_timespec)}, {{"ETIMEDOUT"}, ((uint8_t*)ETIMEDOUT)}, {{"join-threads-recur"}, ((uint8_t*)join_threads_recur)}, {{"join-one-thread"}, ((uint8_t*)join_one_thread)}, {{"EINVAL"}, ((uint8_t*)EINVAL)}, {{"ESRCH"}, ((uint8_t*)ESRCH)}, {{"*"}, ((uint8_t*)_times_9)}, {{"unmanaged-free"}, ((uint8_t*)unmanaged_free_0)}, {{"unmanaged-free"}, ((uint8_t*)unmanaged_free_1)}, {{"destroy-condition"}, ((uint8_t*)destroy_condition)}, {{"main"}, ((uint8_t*)main_0)}, {{"new"}, ((uint8_t*)new_8)}, {{"resolved"}, ((uint8_t*)resolved_1)}, {{"parse-named-args"}, ((uint8_t*)parse_named_args_0)}, {{"parse-command-dynamic"}, ((uint8_t*)parse_command_dynamic)}, {{"find-index"}, ((uint8_t*)find_index_0)}, {{"find-index-recur"}, ((uint8_t*)find_index_recur_0)}, {{"subscript"}, ((uint8_t*)subscript_31)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_465)}, {{"subscript"}, ((uint8_t*)subscript_32)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_3)}, {{"subscript"}, ((uint8_t*)subscript_33)}, {{"*"}, ((uint8_t*)_times_10)}, {{"+"}, ((uint8_t*)_plus_8)}, {{"starts-with"}, ((uint8_t*)starts_with_0)}, {{"=="}, ((uint8_t*)_equal_4)}, {{"arr-equal"}, ((uint8_t*)arr_equal)}, {{"equal-recur"}, ((uint8_t*)equal_recur)}, {{"starts-with"}, ((uint8_t*)starts_with_1)}, {{"=="}, ((uint8_t*)_equal_5)}, {{"<=>"}, ((uint8_t*)_compare_8)}, {{"<=>"}, ((uint8_t*)_compare_9)}, {{"<=>"}, ((uint8_t*)_compare_10)}, {{"cmp"}, ((uint8_t*)cmp_1)}, {{"arr-compare"}, ((uint8_t*)arr_compare)}, {{"compare-recur"}, ((uint8_t*)compare_recur)}, {{"hash-mix"}, ((uint8_t*)hash_mix_0)}, {{"hash-mix"}, ((uint8_t*)hash_mix_1)}, {{"new"}, ((uint8_t*)new_9)}, {{"to-dict"}, ((uint8_t*)to_dict_0)}, {{"no-duplicate-keys"}, ((uint8_t*)no_duplicate_keys_0)}, {{"subscript"}, ((uint8_t*)subscript_34)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_4)}, {{"subscript"}, ((uint8_t*)subscript_35)}, {{"*"}, ((uint8_t*)_times_11)}, {{"+"}, ((uint8_t*)_plus_9)}, {{"every"}, ((uint8_t*)every_0)}, {{"is-empty"}, ((uint8_t*)is_empty_5)}, {{"subscript"}, ((uint8_t*)subscript_36)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_498)}, {{"tail"}, ((uint8_t*)tail_1)}, {{"subscript"}, ((uint8_t*)subscript_37)}, {{"!="}, ((uint8_t*)_notEqual_8)}, {{"fold"}, ((uint8_t*)fold_0)}, {{"fold-recur"}, ((uint8_t*)fold_recur_0)}, {{"=="}, ((uint8_t*)_equal_6)}, {{"subscript"}, ((uint8_t*)subscript_38)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_507)}, {{"end-ptr"}, ((uint8_t*)end_ptr_2)}, {{"empty-leaf-node"}, ((uint8_t*)empty_leaf_node_0)}, {{"new"}, ((uint8_t*)new_10)}, {{"~"}, ((uint8_t*)_tilde_2)}, {{"get-or-update"}, ((uint8_t*)get_or_update_0)}, {{"hash"}, ((uint8_t*)hash)}, {{"get-or-update-recur"}, ((uint8_t*)get_or_update_recur_0)}, {{"low-bits"}, ((uint8_t*)low_bits)}, {{"subscript"}, ((uint8_t*)subscript_39)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_5)}, {{"subscript"}, ((uint8_t*)subscript_40)}, {{"*"}, ((uint8_t*)_times_12)}, {{"+"}, ((uint8_t*)_plus_10)}, {{"update-child"}, ((uint8_t*)update_child_0)}, {{"inner-node-to-leaf"}, ((uint8_t*)inner_node_to_leaf_0)}, {{"fold-with-index"}, ((uint8_t*)fold_with_index_0)}, {{"fold-with-index-recur"}, ((uint8_t*)fold_with_index_recur_0)}, {{"=="}, ((uint8_t*)_equal_7)}, {{"subscript"}, ((uint8_t*)subscript_41)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_527)}, {{"end-ptr"}, ((uint8_t*)end_ptr_3)}, {{"leaf-max-size"}, ((uint8_t*)leaf_max_size)}, {{"uninitialized-fix-arr"}, ((uint8_t*)uninitialized_fix_arr_1)}, {{"subscript"}, ((uint8_t*)subscript_42)}, {{"subscript"}, ((uint8_t*)subscript_43)}, {{"alloc-uninitialized"}, ((uint8_t*)alloc_uninitialized_2)}, {{"unreachable"}, ((uint8_t*)unreachable_0)}, {{"throw"}, ((uint8_t*)throw_2)}, {{"throw"}, ((uint8_t*)throw_3)}, {{"hard-unreachable"}, ((uint8_t*)hard_unreachable_2)}, {{"copy-from!"}, ((uint8_t*)copy_from__e_0)}, {{"size"}, ((uint8_t*)size_3)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_4)}, {{"as-any-const-ptr"}, ((uint8_t*)as_any_const_ptr_2)}, {{"subscript"}, ((uint8_t*)subscript_44)}, {{"cast-immutable"}, ((uint8_t*)cast_immutable_1)}, {{"node-is-empty"}, ((uint8_t*)node_is_empty_0)}, {{"rtail"}, ((uint8_t*)rtail_0)}, {{"is-empty"}, ((uint8_t*)is_empty_6)}, {{"subscript"}, ((uint8_t*)subscript_45)}, {{"-"}, ((uint8_t*)_minus_5)}, {{"update"}, ((uint8_t*)update_0)}, {{"~"}, ((uint8_t*)_tilde_3)}, {{"alloc-uninitialized"}, ((uint8_t*)alloc_uninitialized_3)}, {{"copy-data-from!"}, ((uint8_t*)copy_data_from__e_2)}, {{"as-any-const-ptr"}, ((uint8_t*)as_any_const_ptr_3)}, {{"new"}, ((uint8_t*)new_11)}, {{"find-only-non-empty-child"}, ((uint8_t*)find_only_non_empty_child_0)}, {{"force"}, ((uint8_t*)force_0)}, {{"force"}, ((uint8_t*)force_1)}, {{"find-index"}, ((uint8_t*)find_index_1)}, {{"find-index-recur"}, ((uint8_t*)find_index_recur_1)}, {{"subscript"}, ((uint8_t*)subscript_46)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_563)}, {{"every"}, ((uint8_t*)every_1)}, {{"tail"}, ((uint8_t*)tail_2)}, {{"subscript"}, ((uint8_t*)subscript_47)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_569)}, {{"->"}, ((uint8_t*)_arrow_0)}, {{"update-with-default"}, ((uint8_t*)update_with_default_0)}, {{"make-arr"}, ((uint8_t*)make_arr_1)}, {{"fill-ptr-range"}, ((uint8_t*)fill_ptr_range_1)}, {{"fill-ptr-range-recur"}, ((uint8_t*)fill_ptr_range_recur_1)}, {{"set-subscript"}, ((uint8_t*)set_subscript_4)}, {{"subscript"}, ((uint8_t*)subscript_48)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_577)}, {{"get-or-update-leaf"}, ((uint8_t*)get_or_update_leaf_0)}, {{"find-index"}, ((uint8_t*)find_index_2)}, {{"find-index-recur"}, ((uint8_t*)find_index_recur_2)}, {{"new-inner-node"}, ((uint8_t*)new_inner_node_0)}, {{"fold"}, ((uint8_t*)fold_1)}, {{"fold-recur"}, ((uint8_t*)fold_recur_1)}, {{"subscript"}, ((uint8_t*)subscript_49)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_587)}, {{"max"}, ((uint8_t*)max)}, {{"fill-fix-arr"}, ((uint8_t*)fill_fix_arr_0)}, {{"make-fix-arr"}, ((uint8_t*)make_fix_arr_0)}, {{"uninitialized-fix-arr"}, ((uint8_t*)uninitialized_fix_arr_2)}, {{"subscript"}, ((uint8_t*)subscript_50)}, {{"subscript"}, ((uint8_t*)subscript_51)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_5)}, {{"set-subscript"}, ((uint8_t*)set_subscript_5)}, {{"size"}, ((uint8_t*)size_4)}, {{"unsafe-set-at!"}, ((uint8_t*)unsafe_set_at__e_0)}, {{"each"}, ((uint8_t*)each_2)}, {{"each-recur"}, ((uint8_t*)each_recur_2)}, {{"!="}, ((uint8_t*)_notEqual_9)}, {{"subscript"}, ((uint8_t*)subscript_52)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_604)}, {{"subscript"}, ((uint8_t*)subscript_53)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_6)}, {{"subscript"}, ((uint8_t*)subscript_54)}, {{"unreachable"}, ((uint8_t*)unreachable_1)}, {{"throw"}, ((uint8_t*)throw_4)}, {{"throw"}, ((uint8_t*)throw_5)}, {{"hard-unreachable"}, ((uint8_t*)hard_unreachable_3)}, {{"~"}, ((uint8_t*)_tilde_4)}, {{"copy-data-from!"}, ((uint8_t*)copy_data_from__e_3)}, {{"cast-immutable"}, ((uint8_t*)cast_immutable_2)}, {{"remove-at"}, ((uint8_t*)remove_at_0)}, {{"update"}, ((uint8_t*)update_1)}, {{"subscript"}, ((uint8_t*)subscript_55)}, {{"parse-named-args"}, ((uint8_t*)parse_named_args_1)}, {{"new"}, ((uint8_t*)new_12)}, {{"to-mut-dict"}, ((uint8_t*)to_mut_dict_0)}, {{"mut-dict-with-capacity"}, ((uint8_t*)mut_dict_with_capacity_0)}, {{"fill-fix-arr"}, ((uint8_t*)fill_fix_arr_1)}, {{"make-fix-arr"}, ((uint8_t*)make_fix_arr_1)}, {{"uninitialized-fix-arr"}, ((uint8_t*)uninitialized_fix_arr_3)}, {{"subscript"}, ((uint8_t*)subscript_56)}, {{"subscript"}, ((uint8_t*)subscript_57)}, {{"+"}, ((uint8_t*)_plus_11)}, {{"alloc-uninitialized"}, ((uint8_t*)alloc_uninitialized_4)}, {{"fill-ptr-range"}, ((uint8_t*)fill_ptr_range_2)}, {{"fill-ptr-range-recur"}, ((uint8_t*)fill_ptr_range_recur_2)}, {{"set-subscript"}, ((uint8_t*)set_subscript_6)}, {{"subscript"}, ((uint8_t*)subscript_58)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_637)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_6)}, {{"set-subscript"}, ((uint8_t*)set_subscript_7)}, {{"drop"}, ((uint8_t*)drop_3)}, {{"update!"}, ((uint8_t*)update__e_0)}, {{"is-empty"}, ((uint8_t*)is_empty_7)}, {{"size"}, ((uint8_t*)size_5)}, {{"new"}, ((uint8_t*)new_13)}, {{"to-fix-arr"}, ((uint8_t*)to_fix_arr_0)}, {{"subscript"}, ((uint8_t*)subscript_59)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_7)}, {{"subscript"}, ((uint8_t*)subscript_60)}, {{"*"}, ((uint8_t*)_times_13)}, {{"subscript"}, ((uint8_t*)subscript_61)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_8)}, {{"subscript"}, ((uint8_t*)subscript_62)}, {{"set-subscript"}, ((uint8_t*)set_subscript_8)}, {{"unsafe-set-at!"}, ((uint8_t*)unsafe_set_at__e_1)}, {{"should-expand"}, ((uint8_t*)should_expand_0)}, {{"expand!"}, ((uint8_t*)expand__e_0)}, {{"each"}, ((uint8_t*)each_3)}, {{"fold"}, ((uint8_t*)fold_2)}, {{"fold"}, ((uint8_t*)fold_3)}, {{"fold"}, ((uint8_t*)fold_4)}, {{"fold-recur"}, ((uint8_t*)fold_recur_2)}, {{"=="}, ((uint8_t*)_equal_8)}, {{"subscript"}, ((uint8_t*)subscript_63)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_666)}, {{"end-ptr"}, ((uint8_t*)end_ptr_4)}, {{"temp-as-arr"}, ((uint8_t*)temp_as_arr_2)}, {{"subscript"}, ((uint8_t*)subscript_64)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_670)}, {{"fold"}, ((uint8_t*)fold_5)}, {{"fold"}, ((uint8_t*)fold_6)}, {{"fold-recur"}, ((uint8_t*)fold_recur_3)}, {{"subscript"}, ((uint8_t*)subscript_65)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_675)}, {{"temp-as-arr"}, ((uint8_t*)temp_as_arr_3)}, {{"temp-as-arr"}, ((uint8_t*)temp_as_arr_4)}, {{"temp-as-fix-arr"}, ((uint8_t*)temp_as_fix_arr_1)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_7)}, {{"subscript"}, ((uint8_t*)subscript_66)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_683)}, {{"swap!"}, ((uint8_t*)swap__e_1)}, {{"new"}, ((uint8_t*)new_14)}, {{"to-mut-arr"}, ((uint8_t*)to_mut_arr_1)}, {{"empty-fix-arr"}, ((uint8_t*)empty_fix_arr_2)}, {{"empty-arr"}, ((uint8_t*)empty_arr_5)}, {{"null"}, ((uint8_t*)null_6)}, {{"~="}, ((uint8_t*)_concatEquals_4)}, {{"~="}, ((uint8_t*)_concatEquals_5)}, {{"incr-capacity!"}, ((uint8_t*)incr_capacity__e_1)}, {{"ensure-capacity"}, ((uint8_t*)ensure_capacity_1)}, {{"capacity"}, ((uint8_t*)capacity_2)}, {{"increase-capacity-to!"}, ((uint8_t*)increase_capacity_to__e_1)}, {{"set-zero-elements"}, ((uint8_t*)set_zero_elements_1)}, {{"set-zero-range"}, ((uint8_t*)set_zero_range_2)}, {{"set-subscript"}, ((uint8_t*)set_subscript_9)}, {{"find-index"}, ((uint8_t*)find_index_3)}, {{"is-at-capacity"}, ((uint8_t*)is_at_capacity_0)}, {{"subscript"}, ((uint8_t*)subscript_67)}, {{"subscript"}, ((uint8_t*)subscript_68)}, {{"drop"}, ((uint8_t*)drop_4)}, {{"remove-unordered-at!"}, ((uint8_t*)remove_unordered_at__e_0)}, {{"noctx-remove-unordered-at!"}, ((uint8_t*)noctx_remove_unordered_at__e_1)}, {{"is-empty"}, ((uint8_t*)is_empty_8)}, {{"set-subscript"}, ((uint8_t*)set_subscript_10)}, {{"parse-named-args-recur"}, ((uint8_t*)parse_named_args_recur)}, {{"force"}, ((uint8_t*)force_2)}, {{"force"}, ((uint8_t*)force_3)}, {{"throw"}, ((uint8_t*)throw_6)}, {{"throw"}, ((uint8_t*)throw_7)}, {{"hard-unreachable"}, ((uint8_t*)hard_unreachable_4)}, {{"try-remove-start"}, ((uint8_t*)try_remove_start_0)}, {{"try-remove-start"}, ((uint8_t*)try_remove_start_1)}, {{"tail"}, ((uint8_t*)tail_3)}, {{"is-empty"}, ((uint8_t*)is_empty_9)}, {{"move-to-dict!"}, ((uint8_t*)move_to_dict__e_0)}, {{"map-to-arr"}, ((uint8_t*)map_to_arr_0)}, {{"size"}, ((uint8_t*)size_6)}, {{"fold"}, ((uint8_t*)fold_7)}, {{"fold"}, ((uint8_t*)fold_8)}, {{"fold"}, ((uint8_t*)fold_9)}, {{"fold-recur"}, ((uint8_t*)fold_recur_4)}, {{"subscript"}, ((uint8_t*)subscript_69)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_732)}, {{"subscript"}, ((uint8_t*)subscript_70)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_734)}, {{"fold"}, ((uint8_t*)fold_10)}, {{"fold"}, ((uint8_t*)fold_11)}, {{"fold-recur"}, ((uint8_t*)fold_recur_5)}, {{"subscript"}, ((uint8_t*)subscript_71)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_739)}, {{"subscript"}, ((uint8_t*)subscript_72)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_743)}, {{"end-ptr"}, ((uint8_t*)end_ptr_5)}, {{"empty!"}, ((uint8_t*)empty__e_0)}, {{"fill!"}, ((uint8_t*)fill__e_0)}, {{"map!"}, ((uint8_t*)map__e_0)}, {{"map-recur!"}, ((uint8_t*)map_recur__e_0)}, {{"!="}, ((uint8_t*)_notEqual_10)}, {{"subscript"}, ((uint8_t*)subscript_73)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_753)}, {{"end-ptr"}, ((uint8_t*)end_ptr_6)}, {{"assert"}, ((uint8_t*)assert_1)}, {{"fill-mut-arr"}, ((uint8_t*)fill_mut_arr)}, {{"fill-fix-arr"}, ((uint8_t*)fill_fix_arr_2)}, {{"make-fix-arr"}, ((uint8_t*)make_fix_arr_2)}, {{"uninitialized-fix-arr"}, ((uint8_t*)uninitialized_fix_arr_4)}, {{"subscript"}, ((uint8_t*)subscript_74)}, {{"subscript"}, ((uint8_t*)subscript_75)}, {{"+"}, ((uint8_t*)_plus_12)}, {{"alloc-uninitialized"}, ((uint8_t*)alloc_uninitialized_5)}, {{"fill-ptr-range"}, ((uint8_t*)fill_ptr_range_3)}, {{"fill-ptr-range-recur"}, ((uint8_t*)fill_ptr_range_recur_3)}, {{"set-subscript"}, ((uint8_t*)set_subscript_11)}, {{"subscript"}, ((uint8_t*)subscript_76)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_769)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_8)}, {{"each"}, ((uint8_t*)each_4)}, {{"fold"}, ((uint8_t*)fold_12)}, {{"fold-recur"}, ((uint8_t*)fold_recur_6)}, {{"fold"}, ((uint8_t*)fold_13)}, {{"fold-recur"}, ((uint8_t*)fold_recur_7)}, {{"subscript"}, ((uint8_t*)subscript_77)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_778)}, {{"index-of"}, ((uint8_t*)index_of)}, {{"ptr-of"}, ((uint8_t*)ptr_of)}, {{"ptr-of-recur"}, ((uint8_t*)ptr_of_recur)}, {{"=="}, ((uint8_t*)_equal_9)}, {{"end-ptr"}, ((uint8_t*)end_ptr_7)}, {{"-"}, ((uint8_t*)_minus_6)}, {{"-"}, ((uint8_t*)_minus_7)}, {{"set-deref"}, ((uint8_t*)set_deref_0)}, {{"finish"}, ((uint8_t*)finish)}, {{"to-str"}, ((uint8_t*)to_str_3)}, {{"with-value"}, ((uint8_t*)with_value_0)}, {{"with-str"}, ((uint8_t*)with_str)}, {{"interp"}, ((uint8_t*)interp)}, {{"is-empty"}, ((uint8_t*)is_empty_10)}, {{"drop"}, ((uint8_t*)drop_5)}, {{"subscript"}, ((uint8_t*)subscript_78)}, {{"subscript"}, ((uint8_t*)subscript_79)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_9)}, {{"set-subscript"}, ((uint8_t*)set_subscript_12)}, {{"*"}, ((uint8_t*)_times_14)}, {{"move-to-arr!"}, ((uint8_t*)move_to_arr__e_1)}, {{"cast-immutable"}, ((uint8_t*)cast_immutable_3)}, {{"move-to-fix-arr!"}, ((uint8_t*)move_to_fix_arr__e_1)}, {{"empty-fix-arr"}, ((uint8_t*)empty_fix_arr_3)}, {{"empty-arr"}, ((uint8_t*)empty_arr_6)}, {{"null"}, ((uint8_t*)null_7)}, {{"print-help"}, ((uint8_t*)print_help)}, {{"subscript"}, ((uint8_t*)subscript_80)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_9)}, {{"subscript"}, ((uint8_t*)subscript_81)}, {{"*"}, ((uint8_t*)_times_15)}, {{"parse-nat"}, ((uint8_t*)parse_nat)}, {{"with-reader"}, ((uint8_t*)with_reader)}, {{"new"}, ((uint8_t*)new_15)}, {{"subscript"}, ((uint8_t*)subscript_82)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_818)}, {{"is-empty"}, ((uint8_t*)is_empty_11)}, {{"is-empty"}, ((uint8_t*)is_empty_12)}, {{"take-nat!"}, ((uint8_t*)take_nat__e)}, {{"char-to-nat64"}, ((uint8_t*)char_to_nat64)}, {{"peek"}, ((uint8_t*)peek)}, {{"drop"}, ((uint8_t*)drop_6)}, {{"next!"}, ((uint8_t*)next__e)}, {{"take-nat-recur!"}, ((uint8_t*)take_nat_recur__e)}, {{"do-test"}, ((uint8_t*)do_test)}, {{"parent-path"}, ((uint8_t*)parent_path)}, {{"r-index-of"}, ((uint8_t*)r_index_of)}, {{"find-rindex"}, ((uint8_t*)find_rindex)}, {{"find-rindex-recur"}, ((uint8_t*)find_rindex_recur)}, {{"subscript"}, ((uint8_t*)subscript_83)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_834)}, {{"subscript"}, ((uint8_t*)subscript_84)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_10)}, {{"subscript"}, ((uint8_t*)subscript_85)}, {{"child-path"}, ((uint8_t*)child_path)}, {{"get-environ"}, ((uint8_t*)get_environ)}, {{"new"}, ((uint8_t*)new_16)}, {{"to-mut-dict"}, ((uint8_t*)to_mut_dict_1)}, {{"mut-dict-with-capacity"}, ((uint8_t*)mut_dict_with_capacity_1)}, {{"fill-fix-arr"}, ((uint8_t*)fill_fix_arr_3)}, {{"make-fix-arr"}, ((uint8_t*)make_fix_arr_3)}, {{"uninitialized-fix-arr"}, ((uint8_t*)uninitialized_fix_arr_5)}, {{"subscript"}, ((uint8_t*)subscript_86)}, {{"subscript"}, ((uint8_t*)subscript_87)}, {{"+"}, ((uint8_t*)_plus_13)}, {{"alloc-uninitialized"}, ((uint8_t*)alloc_uninitialized_6)}, {{"fill-ptr-range"}, ((uint8_t*)fill_ptr_range_4)}, {{"fill-ptr-range-recur"}, ((uint8_t*)fill_ptr_range_recur_4)}, {{"set-subscript"}, ((uint8_t*)set_subscript_13)}, {{"subscript"}, ((uint8_t*)subscript_88)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_855)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_10)}, {{"each"}, ((uint8_t*)each_5)}, {{"each-recur"}, ((uint8_t*)each_recur_3)}, {{"=="}, ((uint8_t*)_equal_10)}, {{"!="}, ((uint8_t*)_notEqual_11)}, {{"subscript"}, ((uint8_t*)subscript_89)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_863)}, {{"*"}, ((uint8_t*)_times_16)}, {{"+"}, ((uint8_t*)_plus_14)}, {{"end-ptr"}, ((uint8_t*)end_ptr_8)}, {{"set-subscript"}, ((uint8_t*)set_subscript_14)}, {{"drop"}, ((uint8_t*)drop_7)}, {{"update!"}, ((uint8_t*)update__e_1)}, {{"is-empty"}, ((uint8_t*)is_empty_13)}, {{"size"}, ((uint8_t*)size_7)}, {{"new"}, ((uint8_t*)new_17)}, {{"to-fix-arr"}, ((uint8_t*)to_fix_arr_1)}, {{"subscript"}, ((uint8_t*)subscript_90)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_11)}, {{"subscript"}, ((uint8_t*)subscript_91)}, {{"*"}, ((uint8_t*)_times_17)}, {{"->"}, ((uint8_t*)_arrow_1)}, {{"subscript"}, ((uint8_t*)subscript_92)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_12)}, {{"subscript"}, ((uint8_t*)subscript_93)}, {{"set-subscript"}, ((uint8_t*)set_subscript_15)}, {{"unsafe-set-at!"}, ((uint8_t*)unsafe_set_at__e_2)}, {{"should-expand"}, ((uint8_t*)should_expand_1)}, {{"expand!"}, ((uint8_t*)expand__e_1)}, {{"each"}, ((uint8_t*)each_6)}, {{"fold"}, ((uint8_t*)fold_14)}, {{"fold"}, ((uint8_t*)fold_15)}, {{"fold"}, ((uint8_t*)fold_16)}, {{"fold-recur"}, ((uint8_t*)fold_recur_8)}, {{"=="}, ((uint8_t*)_equal_11)}, {{"subscript"}, ((uint8_t*)subscript_94)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_894)}, {{"end-ptr"}, ((uint8_t*)end_ptr_9)}, {{"temp-as-arr"}, ((uint8_t*)temp_as_arr_5)}, {{"subscript"}, ((uint8_t*)subscript_95)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_898)}, {{"fold"}, ((uint8_t*)fold_17)}, {{"fold"}, ((uint8_t*)fold_18)}, {{"fold-recur"}, ((uint8_t*)fold_recur_9)}, {{"subscript"}, ((uint8_t*)subscript_96)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_903)}, {{"temp-as-arr"}, ((uint8_t*)temp_as_arr_6)}, {{"temp-as-arr"}, ((uint8_t*)temp_as_arr_7)}, {{"temp-as-fix-arr"}, ((uint8_t*)temp_as_fix_arr_2)}, {{"subscript"}, ((uint8_t*)subscript_97)}, {{"subscript"}, ((uint8_t*)subscript_98)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_11)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_12)}, {{"subscript"}, ((uint8_t*)subscript_99)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_914)}, {{"swap!"}, ((uint8_t*)swap__e_2)}, {{"new"}, ((uint8_t*)new_18)}, {{"to-mut-arr"}, ((uint8_t*)to_mut_arr_2)}, {{"empty-fix-arr"}, ((uint8_t*)empty_fix_arr_4)}, {{"empty-arr"}, ((uint8_t*)empty_arr_7)}, {{"null"}, ((uint8_t*)null_8)}, {{"~="}, ((uint8_t*)_concatEquals_6)}, {{"~="}, ((uint8_t*)_concatEquals_7)}, {{"incr-capacity!"}, ((uint8_t*)incr_capacity__e_2)}, {{"ensure-capacity"}, ((uint8_t*)ensure_capacity_2)}, {{"capacity"}, ((uint8_t*)capacity_3)}, {{"size"}, ((uint8_t*)size_8)}, {{"increase-capacity-to!"}, ((uint8_t*)increase_capacity_to__e_2)}, {{"uninitialized-fix-arr"}, ((uint8_t*)uninitialized_fix_arr_6)}, {{"alloc-uninitialized"}, ((uint8_t*)alloc_uninitialized_7)}, {{"copy-data-from!"}, ((uint8_t*)copy_data_from__e_4)}, {{"as-any-const-ptr"}, ((uint8_t*)as_any_const_ptr_4)}, {{"set-zero-elements"}, ((uint8_t*)set_zero_elements_2)}, {{"set-zero-range"}, ((uint8_t*)set_zero_range_3)}, {{"subscript"}, ((uint8_t*)subscript_100)}, {{"subscript"}, ((uint8_t*)subscript_101)}, {{"set-subscript"}, ((uint8_t*)set_subscript_16)}, {{"find-index"}, ((uint8_t*)find_index_4)}, {{"find-index"}, ((uint8_t*)find_index_5)}, {{"find-index-recur"}, ((uint8_t*)find_index_recur_3)}, {{"subscript"}, ((uint8_t*)subscript_102)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_944)}, {{"subscript"}, ((uint8_t*)subscript_103)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_13)}, {{"subscript"}, ((uint8_t*)subscript_104)}, {{"is-at-capacity"}, ((uint8_t*)is_at_capacity_1)}, {{"subscript"}, ((uint8_t*)subscript_105)}, {{"subscript"}, ((uint8_t*)subscript_106)}, {{"drop"}, ((uint8_t*)drop_8)}, {{"remove-unordered-at!"}, ((uint8_t*)remove_unordered_at__e_1)}, {{"noctx-remove-unordered-at!"}, ((uint8_t*)noctx_remove_unordered_at__e_2)}, {{"is-empty"}, ((uint8_t*)is_empty_14)}, {{"set-subscript"}, ((uint8_t*)set_subscript_17)}, {{"get-environ-recur"}, ((uint8_t*)get_environ_recur)}, {{"parse-environ-entry"}, ((uint8_t*)parse_environ_entry)}, {{"todo"}, ((uint8_t*)todo_3)}, {{"move-to-dict!"}, ((uint8_t*)move_to_dict__e_1)}, {{"to-dict"}, ((uint8_t*)to_dict_1)}, {{"no-duplicate-keys"}, ((uint8_t*)no_duplicate_keys_1)}, {{"every"}, ((uint8_t*)every_2)}, {{"is-empty"}, ((uint8_t*)is_empty_15)}, {{"tail"}, ((uint8_t*)tail_4)}, {{"fold"}, ((uint8_t*)fold_19)}, {{"fold-recur"}, ((uint8_t*)fold_recur_10)}, {{"subscript"}, ((uint8_t*)subscript_107)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_972)}, {{"empty-leaf-node"}, ((uint8_t*)empty_leaf_node_1)}, {{"new"}, ((uint8_t*)new_19)}, {{"~"}, ((uint8_t*)_tilde_5)}, {{"get-or-update"}, ((uint8_t*)get_or_update_1)}, {{"get-or-update-recur"}, ((uint8_t*)get_or_update_recur_1)}, {{"subscript"}, ((uint8_t*)subscript_108)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_14)}, {{"subscript"}, ((uint8_t*)subscript_109)}, {{"*"}, ((uint8_t*)_times_18)}, {{"+"}, ((uint8_t*)_plus_15)}, {{"update-child"}, ((uint8_t*)update_child_1)}, {{"inner-node-to-leaf"}, ((uint8_t*)inner_node_to_leaf_1)}, {{"fold-with-index"}, ((uint8_t*)fold_with_index_1)}, {{"fold-with-index-recur"}, ((uint8_t*)fold_with_index_recur_1)}, {{"=="}, ((uint8_t*)_equal_12)}, {{"subscript"}, ((uint8_t*)subscript_110)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_989)}, {{"end-ptr"}, ((uint8_t*)end_ptr_10)}, {{"copy-from!"}, ((uint8_t*)copy_from__e_1)}, {{"cast-immutable"}, ((uint8_t*)cast_immutable_4)}, {{"node-is-empty"}, ((uint8_t*)node_is_empty_1)}, {{"rtail"}, ((uint8_t*)rtail_1)}, {{"is-empty"}, ((uint8_t*)is_empty_16)}, {{"subscript"}, ((uint8_t*)subscript_111)}, {{"update"}, ((uint8_t*)update_2)}, {{"~"}, ((uint8_t*)_tilde_6)}, {{"alloc-uninitialized"}, ((uint8_t*)alloc_uninitialized_8)}, {{"copy-data-from!"}, ((uint8_t*)copy_data_from__e_5)}, {{"as-any-const-ptr"}, ((uint8_t*)as_any_const_ptr_5)}, {{"new"}, ((uint8_t*)new_20)}, {{"find-only-non-empty-child"}, ((uint8_t*)find_only_non_empty_child_1)}, {{"find-index"}, ((uint8_t*)find_index_6)}, {{"find-index-recur"}, ((uint8_t*)find_index_recur_4)}, {{"subscript"}, ((uint8_t*)subscript_112)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1009)}, {{"every"}, ((uint8_t*)every_3)}, {{"tail"}, ((uint8_t*)tail_5)}, {{"subscript"}, ((uint8_t*)subscript_113)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1015)}, {{"update-with-default"}, ((uint8_t*)update_with_default_1)}, {{"make-arr"}, ((uint8_t*)make_arr_2)}, {{"fill-ptr-range"}, ((uint8_t*)fill_ptr_range_5)}, {{"fill-ptr-range-recur"}, ((uint8_t*)fill_ptr_range_recur_5)}, {{"set-subscript"}, ((uint8_t*)set_subscript_18)}, {{"subscript"}, ((uint8_t*)subscript_114)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1022)}, {{"get-or-update-leaf"}, ((uint8_t*)get_or_update_leaf_1)}, {{"new-inner-node"}, ((uint8_t*)new_inner_node_1)}, {{"fold"}, ((uint8_t*)fold_20)}, {{"fold-recur"}, ((uint8_t*)fold_recur_11)}, {{"subscript"}, ((uint8_t*)subscript_115)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1030)}, {{"fill-fix-arr"}, ((uint8_t*)fill_fix_arr_4)}, {{"make-fix-arr"}, ((uint8_t*)make_fix_arr_4)}, {{"uninitialized-fix-arr"}, ((uint8_t*)uninitialized_fix_arr_7)}, {{"subscript"}, ((uint8_t*)subscript_116)}, {{"subscript"}, ((uint8_t*)subscript_117)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_13)}, {{"set-subscript"}, ((uint8_t*)set_subscript_19)}, {{"size"}, ((uint8_t*)size_9)}, {{"unsafe-set-at!"}, ((uint8_t*)unsafe_set_at__e_3)}, {{"subscript"}, ((uint8_t*)subscript_118)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_15)}, {{"subscript"}, ((uint8_t*)subscript_119)}, {{"unreachable"}, ((uint8_t*)unreachable_2)}, {{"throw"}, ((uint8_t*)throw_8)}, {{"throw"}, ((uint8_t*)throw_9)}, {{"hard-unreachable"}, ((uint8_t*)hard_unreachable_5)}, {{"~"}, ((uint8_t*)_tilde_7)}, {{"cast-immutable"}, ((uint8_t*)cast_immutable_5)}, {{"remove-at"}, ((uint8_t*)remove_at_1)}, {{"update"}, ((uint8_t*)update_3)}, {{"map-to-arr"}, ((uint8_t*)map_to_arr_1)}, {{"size"}, ((uint8_t*)size_10)}, {{"fold"}, ((uint8_t*)fold_21)}, {{"fold"}, ((uint8_t*)fold_22)}, {{"fold"}, ((uint8_t*)fold_23)}, {{"fold-recur"}, ((uint8_t*)fold_recur_12)}, {{"subscript"}, ((uint8_t*)subscript_120)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1063)}, {{"subscript"}, ((uint8_t*)subscript_121)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1065)}, {{"fold"}, ((uint8_t*)fold_24)}, {{"fold"}, ((uint8_t*)fold_25)}, {{"fold-recur"}, ((uint8_t*)fold_recur_13)}, {{"subscript"}, ((uint8_t*)subscript_122)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1070)}, {{"subscript"}, ((uint8_t*)subscript_123)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1074)}, {{"end-ptr"}, ((uint8_t*)end_ptr_11)}, {{"empty!"}, ((uint8_t*)empty__e_1)}, {{"fill!"}, ((uint8_t*)fill__e_1)}, {{"map!"}, ((uint8_t*)map__e_1)}, {{"map-recur!"}, ((uint8_t*)map_recur__e_1)}, {{"!="}, ((uint8_t*)_notEqual_12)}, {{"subscript"}, ((uint8_t*)subscript_124)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1084)}, {{"end-ptr"}, ((uint8_t*)end_ptr_12)}, {{"first-failures"}, ((uint8_t*)first_failures)}, {{"subscript"}, ((uint8_t*)subscript_125)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1089)}, {{"run-crow-tests"}, ((uint8_t*)run_crow_tests)}, {{"list-tests"}, ((uint8_t*)list_tests)}, {{"new"}, ((uint8_t*)new_21)}, {{"to-mut-arr"}, ((uint8_t*)to_mut_arr_3)}, {{"empty-fix-arr"}, ((uint8_t*)empty_fix_arr_5)}, {{"~="}, ((uint8_t*)_concatEquals_8)}, {{"each"}, ((uint8_t*)each_7)}, {{"each-recur"}, ((uint8_t*)each_recur_4)}, {{"!="}, ((uint8_t*)_notEqual_13)}, {{"subscript"}, ((uint8_t*)subscript_126)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1100)}, {{"~="}, ((uint8_t*)_concatEquals_9)}, {{"incr-capacity!"}, ((uint8_t*)incr_capacity__e_3)}, {{"ensure-capacity"}, ((uint8_t*)ensure_capacity_3)}, {{"capacity"}, ((uint8_t*)capacity_4)}, {{"size"}, ((uint8_t*)size_11)}, {{"increase-capacity-to!"}, ((uint8_t*)increase_capacity_to__e_3)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_14)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_15)}, {{"uninitialized-fix-arr"}, ((uint8_t*)uninitialized_fix_arr_8)}, {{"subscript"}, ((uint8_t*)subscript_127)}, {{"subscript"}, ((uint8_t*)subscript_128)}, {{"copy-data-from!"}, ((uint8_t*)copy_data_from__e_6)}, {{"as-any-const-ptr"}, ((uint8_t*)as_any_const_ptr_6)}, {{"set-zero-elements"}, ((uint8_t*)set_zero_elements_3)}, {{"set-zero-range"}, ((uint8_t*)set_zero_range_4)}, {{"subscript"}, ((uint8_t*)subscript_129)}, {{"each-child-recursive"}, ((uint8_t*)each_child_recursive_0)}, {{"each-child-recursive"}, ((uint8_t*)each_child_recursive_1)}, {{"is-dir"}, ((uint8_t*)is_dir_0)}, {{"is-dir"}, ((uint8_t*)is_dir_1)}, {{"get-stat"}, ((uint8_t*)get_stat)}, {{"stat"}, ((uint8_t*)stat_0)}, {{"errno"}, ((uint8_t*)errno)}, {{"ENOENT"}, ((uint8_t*)ENOENT)}, {{"todo"}, ((uint8_t*)todo_4)}, {{"throw"}, ((uint8_t*)throw_10)}, {{"throw"}, ((uint8_t*)throw_11)}, {{"hard-unreachable"}, ((uint8_t*)hard_unreachable_6)}, {{"with-value"}, ((uint8_t*)with_value_1)}, {{"S_IFMT"}, ((uint8_t*)S_IFMT)}, {{"S_IFDIR"}, ((uint8_t*)S_IFDIR)}, {{"to-c-str"}, ((uint8_t*)to_c_str)}, {{"read-dir"}, ((uint8_t*)read_dir_0)}, {{"read-dir"}, ((uint8_t*)read_dir_1)}, {{"!="}, ((uint8_t*)_notEqual_14)}, {{"read-dir-recur"}, ((uint8_t*)read_dir_recur)}, {{"zero"}, ((uint8_t*)zero_4)}, {{"!="}, ((uint8_t*)_notEqual_15)}, {{"as-any-const-ptr"}, ((uint8_t*)as_any_const_ptr_7)}, {{"*"}, ((uint8_t*)_times_19)}, {{"ref-eq"}, ((uint8_t*)ref_eq)}, {{"get-dirent-name"}, ((uint8_t*)get_dirent_name)}, {{"+"}, ((uint8_t*)_plus_16)}, {{"ptr-cast"}, ((uint8_t*)ptr_cast_1)}, {{"sort"}, ((uint8_t*)sort_0)}, {{"sort"}, ((uint8_t*)sort_1)}, {{"to-fix-arr"}, ((uint8_t*)to_fix_arr_2)}, {{"make-fix-arr"}, ((uint8_t*)make_fix_arr_5)}, {{"sort!"}, ((uint8_t*)sort__e_1)}, {{"is-empty"}, ((uint8_t*)is_empty_17)}, {{"insertion-sort-recur!"}, ((uint8_t*)insertion_sort_recur__e)}, {{"!="}, ((uint8_t*)_notEqual_16)}, {{"insert!"}, ((uint8_t*)insert__e)}, {{"subscript"}, ((uint8_t*)subscript_130)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1162)}, {{"end-ptr"}, ((uint8_t*)end_ptr_13)}, {{"cast-immutable"}, ((uint8_t*)cast_immutable_6)}, {{"move-to-arr!"}, ((uint8_t*)move_to_arr__e_2)}, {{"move-to-fix-arr!"}, ((uint8_t*)move_to_fix_arr__e_2)}, {{"has-substr"}, ((uint8_t*)has_substr)}, {{"contains-subseq"}, ((uint8_t*)contains_subseq)}, {{"index-of-subseq"}, ((uint8_t*)index_of_subseq)}, {{"index-of-subseq-recur"}, ((uint8_t*)index_of_subseq_recur)}, {{"ext-is-crow"}, ((uint8_t*)ext_is_crow)}, {{"=="}, ((uint8_t*)_equal_13)}, {{"opt-equal"}, ((uint8_t*)opt_equal)}, {{"is-empty"}, ((uint8_t*)is_empty_18)}, {{"drop"}, ((uint8_t*)drop_9)}, {{"get-extension"}, ((uint8_t*)get_extension)}, {{"last-index-of"}, ((uint8_t*)last_index_of)}, {{"last"}, ((uint8_t*)last)}, {{"rtail"}, ((uint8_t*)rtail_2)}, {{"base-name"}, ((uint8_t*)base_name)}, {{"flat-map-with-max-size"}, ((uint8_t*)flat_map_with_max_size)}, {{"new"}, ((uint8_t*)new_22)}, {{"to-mut-arr"}, ((uint8_t*)to_mut_arr_4)}, {{"empty-fix-arr"}, ((uint8_t*)empty_fix_arr_6)}, {{"empty-arr"}, ((uint8_t*)empty_arr_8)}, {{"null"}, ((uint8_t*)null_9)}, {{"~="}, ((uint8_t*)_concatEquals_10)}, {{"each"}, ((uint8_t*)each_8)}, {{"each-recur"}, ((uint8_t*)each_recur_5)}, {{"=="}, ((uint8_t*)_equal_14)}, {{"!="}, ((uint8_t*)_notEqual_17)}, {{"subscript"}, ((uint8_t*)subscript_131)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1196)}, {{"*"}, ((uint8_t*)_times_20)}, {{"+"}, ((uint8_t*)_plus_17)}, {{"end-ptr"}, ((uint8_t*)end_ptr_14)}, {{"~="}, ((uint8_t*)_concatEquals_11)}, {{"incr-capacity!"}, ((uint8_t*)incr_capacity__e_4)}, {{"ensure-capacity"}, ((uint8_t*)ensure_capacity_4)}, {{"capacity"}, ((uint8_t*)capacity_5)}, {{"size"}, ((uint8_t*)size_12)}, {{"increase-capacity-to!"}, ((uint8_t*)increase_capacity_to__e_4)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_16)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_17)}, {{"uninitialized-fix-arr"}, ((uint8_t*)uninitialized_fix_arr_9)}, {{"subscript"}, ((uint8_t*)subscript_132)}, {{"subscript"}, ((uint8_t*)subscript_133)}, {{"alloc-uninitialized"}, ((uint8_t*)alloc_uninitialized_9)}, {{"copy-data-from!"}, ((uint8_t*)copy_data_from__e_7)}, {{"as-any-const-ptr"}, ((uint8_t*)as_any_const_ptr_8)}, {{"set-zero-elements"}, ((uint8_t*)set_zero_elements_4)}, {{"set-zero-range"}, ((uint8_t*)set_zero_range_5)}, {{"subscript"}, ((uint8_t*)subscript_134)}, {{"subscript"}, ((uint8_t*)subscript_135)}, {{"set-subscript"}, ((uint8_t*)set_subscript_20)}, {{"subscript"}, ((uint8_t*)subscript_136)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1221)}, {{"reduce-size-if-more-than!"}, ((uint8_t*)reduce_size_if_more_than__e)}, {{"drop"}, ((uint8_t*)drop_10)}, {{"pop!"}, ((uint8_t*)pop__e)}, {{"is-empty"}, ((uint8_t*)is_empty_19)}, {{"subscript"}, ((uint8_t*)subscript_137)}, {{"subscript"}, ((uint8_t*)subscript_138)}, {{"set-subscript"}, ((uint8_t*)set_subscript_21)}, {{"move-to-arr!"}, ((uint8_t*)move_to_arr__e_3)}, {{"cast-immutable"}, ((uint8_t*)cast_immutable_7)}, {{"move-to-fix-arr!"}, ((uint8_t*)move_to_fix_arr__e_3)}, {{"run-single-crow-test"}, ((uint8_t*)run_single_crow_test)}, {{"first-some"}, ((uint8_t*)first_some)}, {{"subscript"}, ((uint8_t*)subscript_139)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1236)}, {{"is-empty"}, ((uint8_t*)is_empty_20)}, {{"drop"}, ((uint8_t*)drop_11)}, {{"run-print-test"}, ((uint8_t*)run_print_test)}, {{"spawn-and-wait-result"}, ((uint8_t*)spawn_and_wait_result_0)}, {{"fold"}, ((uint8_t*)fold_26)}, {{"fold-recur"}, ((uint8_t*)fold_recur_14)}, {{"subscript"}, ((uint8_t*)subscript_140)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1244)}, {{"is-file"}, ((uint8_t*)is_file_0)}, {{"is-file"}, ((uint8_t*)is_file_1)}, {{"S_IFREG"}, ((uint8_t*)S_IFREG)}, {{"spawn-and-wait-result"}, ((uint8_t*)spawn_and_wait_result_1)}, {{"make-pipes"}, ((uint8_t*)make_pipes)}, {{"check-posix-error"}, ((uint8_t*)check_posix_error)}, {{"*"}, ((uint8_t*)_times_21)}, {{"keep-polling"}, ((uint8_t*)keep_polling)}, {{"POLLIN"}, ((uint8_t*)POLLIN)}, {{"new"}, ((uint8_t*)new_23)}, {{"to-fix-arr"}, ((uint8_t*)to_fix_arr_3)}, {{"make-fix-arr"}, ((uint8_t*)make_fix_arr_6)}, {{"uninitialized-fix-arr"}, ((uint8_t*)uninitialized_fix_arr_10)}, {{"subscript"}, ((uint8_t*)subscript_141)}, {{"subscript"}, ((uint8_t*)subscript_142)}, {{"+"}, ((uint8_t*)_plus_18)}, {{"alloc-uninitialized"}, ((uint8_t*)alloc_uninitialized_10)}, {{"fill-ptr-range"}, ((uint8_t*)fill_ptr_range_6)}, {{"fill-ptr-range-recur"}, ((uint8_t*)fill_ptr_range_recur_6)}, {{"set-subscript"}, ((uint8_t*)set_subscript_22)}, {{"subscript"}, ((uint8_t*)subscript_143)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1273)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_18)}, {{"subscript"}, ((uint8_t*)subscript_144)}, {{"unsafe-at"}, ((uint8_t*)unsafe_at_16)}, {{"subscript"}, ((uint8_t*)subscript_145)}, {{"*"}, ((uint8_t*)_times_22)}, {{"ref-of-val-at"}, ((uint8_t*)ref_of_val_at)}, {{"size"}, ((uint8_t*)size_13)}, {{"ref-of-ptr"}, ((uint8_t*)ref_of_ptr)}, {{"handle-revents"}, ((uint8_t*)handle_revents)}, {{"has-POLLIN"}, ((uint8_t*)has_POLLIN)}, {{"bits-intersect"}, ((uint8_t*)bits_intersect)}, {{"!="}, ((uint8_t*)_notEqual_18)}, {{"read-to-buffer-until-eof"}, ((uint8_t*)read_to_buffer_until_eof)}, {{"unsafe-set-size!"}, ((uint8_t*)unsafe_set_size__e)}, {{"reserve"}, ((uint8_t*)reserve)}, {{"to-nat64"}, ((uint8_t*)to_nat64_0)}, {{"<=>"}, ((uint8_t*)_compare_11)}, {{"cmp"}, ((uint8_t*)cmp_2)}, {{"<"}, ((uint8_t*)_less_6)}, {{"has-POLLHUP"}, ((uint8_t*)has_POLLHUP)}, {{"POLLHUP"}, ((uint8_t*)POLLHUP)}, {{"has-POLLPRI"}, ((uint8_t*)has_POLLPRI)}, {{"POLLPRI"}, ((uint8_t*)POLLPRI)}, {{"has-POLLOUT"}, ((uint8_t*)has_POLLOUT)}, {{"POLLOUT"}, ((uint8_t*)POLLOUT)}, {{"has-POLLERR"}, ((uint8_t*)has_POLLERR)}, {{"POLLERR"}, ((uint8_t*)POLLERR)}, {{"has-POLLNVAL"}, ((uint8_t*)has_POLLNVAL)}, {{"POLLNVAL"}, ((uint8_t*)POLLNVAL)}, {{"to-nat64"}, ((uint8_t*)to_nat64_1)}, {{"any"}, ((uint8_t*)any)}, {{"wait-and-get-exit-code"}, ((uint8_t*)wait_and_get_exit_code)}, {{"WIFEXITED"}, ((uint8_t*)WIFEXITED)}, {{"WTERMSIG"}, ((uint8_t*)WTERMSIG)}, {{"WEXITSTATUS"}, ((uint8_t*)WEXITSTATUS)}, {{">>"}, ((uint8_t*)_shiftRight)}, {{"<=>"}, ((uint8_t*)_compare_12)}, {{"cmp"}, ((uint8_t*)cmp_3)}, {{"<"}, ((uint8_t*)_less_7)}, {{"todo"}, ((uint8_t*)todo_5)}, {{"WIFSIGNALED"}, ((uint8_t*)WIFSIGNALED)}, {{"to-str"}, ((uint8_t*)to_str_4)}, {{"to-str"}, ((uint8_t*)to_str_5)}, {{"to-str"}, ((uint8_t*)to_str_6)}, {{"to-base"}, ((uint8_t*)to_base)}, {{"digit-to-str"}, ((uint8_t*)digit_to_str)}, {{"mod"}, ((uint8_t*)mod)}, {{"abs"}, ((uint8_t*)abs)}, {{"-"}, ((uint8_t*)_minus_8)}, {{"*"}, ((uint8_t*)_times_23)}, {{"with-value"}, ((uint8_t*)with_value_2)}, {{"WIFSTOPPED"}, ((uint8_t*)WIFSTOPPED)}, {{"WIFCONTINUED"}, ((uint8_t*)WIFCONTINUED)}, {{"convert-args"}, ((uint8_t*)convert_args)}, {{"new"}, ((uint8_t*)new_24)}, {{"to-mut-arr"}, ((uint8_t*)to_mut_arr_5)}, {{"empty-fix-arr"}, ((uint8_t*)empty_fix_arr_7)}, {{"empty-arr"}, ((uint8_t*)empty_arr_9)}, {{"null"}, ((uint8_t*)null_10)}, {{"~="}, ((uint8_t*)_concatEquals_12)}, {{"each"}, ((uint8_t*)each_9)}, {{"each-recur"}, ((uint8_t*)each_recur_6)}, {{"=="}, ((uint8_t*)_equal_15)}, {{"!="}, ((uint8_t*)_notEqual_19)}, {{"subscript"}, ((uint8_t*)subscript_146)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1343)}, {{"end-ptr"}, ((uint8_t*)end_ptr_15)}, {{"~="}, ((uint8_t*)_concatEquals_13)}, {{"incr-capacity!"}, ((uint8_t*)incr_capacity__e_5)}, {{"ensure-capacity"}, ((uint8_t*)ensure_capacity_5)}, {{"capacity"}, ((uint8_t*)capacity_6)}, {{"size"}, ((uint8_t*)size_14)}, {{"increase-capacity-to!"}, ((uint8_t*)increase_capacity_to__e_5)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_19)}, {{"begin-ptr"}, ((uint8_t*)begin_ptr_20)}, {{"uninitialized-fix-arr"}, ((uint8_t*)uninitialized_fix_arr_11)}, {{"subscript"}, ((uint8_t*)subscript_147)}, {{"alloc-uninitialized"}, ((uint8_t*)alloc_uninitialized_11)}, {{"copy-data-from!"}, ((uint8_t*)copy_data_from__e_8)}, {{"as-any-const-ptr"}, ((uint8_t*)as_any_const_ptr_9)}, {{"set-zero-elements"}, ((uint8_t*)set_zero_elements_5)}, {{"set-zero-range"}, ((uint8_t*)set_zero_range_6)}, {{"subscript"}, ((uint8_t*)subscript_148)}, {{"set-subscript"}, ((uint8_t*)set_subscript_23)}, {{"move-to-arr!"}, ((uint8_t*)move_to_arr__e_4)}, {{"cast-immutable"}, ((uint8_t*)cast_immutable_8)}, {{"move-to-fix-arr!"}, ((uint8_t*)move_to_fix_arr__e_4)}, {{"convert-environ"}, ((uint8_t*)convert_environ)}, {{"each"}, ((uint8_t*)each_10)}, {{"fold"}, ((uint8_t*)fold_27)}, {{"fold-recur"}, ((uint8_t*)fold_recur_15)}, {{"fold"}, ((uint8_t*)fold_28)}, {{"fold-recur"}, ((uint8_t*)fold_recur_16)}, {{"subscript"}, ((uint8_t*)subscript_149)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1374)}, {{"throw"}, ((uint8_t*)throw_12)}, {{"throw"}, ((uint8_t*)throw_13)}, {{"hard-unreachable"}, ((uint8_t*)hard_unreachable_7)}, {{"new"}, ((uint8_t*)new_25)}, {{"handle-output"}, ((uint8_t*)handle_output)}, {{"try-read-file"}, ((uint8_t*)try_read_file_0)}, {{"try-read-file"}, ((uint8_t*)try_read_file_1)}, {{"O_RDONLY"}, ((uint8_t*)O_RDONLY)}, {{"todo"}, ((uint8_t*)todo_6)}, {{"seek-end"}, ((uint8_t*)seek_end)}, {{"seek-set"}, ((uint8_t*)seek_set)}, {{"write-file"}, ((uint8_t*)write_file_0)}, {{"write-file"}, ((uint8_t*)write_file_1)}, {{"<<"}, ((uint8_t*)_shiftLeft)}, {{"<=>"}, ((uint8_t*)_compare_13)}, {{"cmp"}, ((uint8_t*)cmp_4)}, {{"<"}, ((uint8_t*)_less_8)}, {{"O_CREAT"}, ((uint8_t*)O_CREAT)}, {{"O_WRONLY"}, ((uint8_t*)O_WRONLY)}, {{"O_TRUNC"}, ((uint8_t*)O_TRUNC)}, {{"to-str"}, ((uint8_t*)to_str_7)}, {{"with-value"}, ((uint8_t*)with_value_3)}, {{"ptr-cast"}, ((uint8_t*)ptr_cast_2)}, {{"to-int64"}, ((uint8_t*)to_int64)}, {{"max-int64"}, ((uint8_t*)max_int64)}, {{"is-empty"}, ((uint8_t*)is_empty_21)}, {{"remove-colors"}, ((uint8_t*)remove_colors)}, {{"remove-colors-recur!"}, ((uint8_t*)remove_colors_recur__e)}, {{"~="}, ((uint8_t*)_concatEquals_14)}, {{"tail"}, ((uint8_t*)tail_6)}, {{"remove-colors-recur-2!"}, ((uint8_t*)remove_colors_recur_2__e)}, {{"run-single-runnable-test"}, ((uint8_t*)run_single_runnable_test)}, {{"~"}, ((uint8_t*)_tilde_8)}, {{"with-value"}, ((uint8_t*)with_value_4)}, {{"lint"}, ((uint8_t*)lint)}, {{"list-lintable-files"}, ((uint8_t*)list_lintable_files)}, {{"excluded-from-lint"}, ((uint8_t*)excluded_from_lint)}, {{"in"}, ((uint8_t*)in_2)}, {{"in-recur"}, ((uint8_t*)in_recur_1)}, {{"noctx-at"}, ((uint8_t*)noctx_at_2)}, {{"exists"}, ((uint8_t*)exists)}, {{"ends-with"}, ((uint8_t*)ends_with_0)}, {{"ends-with"}, ((uint8_t*)ends_with_1)}, {{"should-ignore-extension-of-name"}, ((uint8_t*)should_ignore_extension_of_name)}, {{"should-ignore-extension"}, ((uint8_t*)should_ignore_extension)}, {{"ignored-extensions"}, ((uint8_t*)ignored_extensions)}, {{"lint-file"}, ((uint8_t*)lint_file)}, {{"read-file"}, ((uint8_t*)read_file)}, {{"each-with-index"}, ((uint8_t*)each_with_index_0)}, {{"each-with-index-recur"}, ((uint8_t*)each_with_index_recur_0)}, {{"subscript"}, ((uint8_t*)subscript_150)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1439)}, {{"lines"}, ((uint8_t*)lines)}, {{"each-with-index"}, ((uint8_t*)each_with_index_1)}, {{"each-with-index-recur"}, ((uint8_t*)each_with_index_recur_1)}, {{"subscript"}, ((uint8_t*)subscript_151)}, {{"call-with-ctx"}, ((uint8_t*)call_w_ctx_1444)}, {{"swap"}, ((uint8_t*)swap)}, {{"*"}, ((uint8_t*)_times_24)}, {{"set-deref"}, ((uint8_t*)set_deref_1)}, {{"line-len"}, ((uint8_t*)line_len)}, {{"n-tabs"}, ((uint8_t*)n_tabs)}, {{"tab-size"}, ((uint8_t*)tab_size)}, {{"max-line-length"}, ((uint8_t*)max_line_length)}, {{"print-failures"}, ((uint8_t*)print_failures)}, {{"print-failure"}, ((uint8_t*)print_failure)}, {{"print-bold"}, ((uint8_t*)print_bold)}, {{"print-reset"}, ((uint8_t*)print_reset)}};
 struct sym constantarr_1_0[401] = {{"<<UNKNOWN>>"}, {"mark"}, {"hard-assert"}, {"is-word-aligned"}, {"words-of-bytes"}, {"round-up-to-multiple-of-8"}, {"ptr-cast"}, {"-"}, {"<=>"}, {"cmp"}, {"<"}, {"<="}, {"!"}, {"mark-range-recur"}, {">"}, {"rt-main"}, {"lbv"}, {"lock-by-val"}, {"new"}, {"empty-arr"}, {"null"}, {"create-condition"}, {"hard-assert-posix-error"}, {"CLOCK_MONOTONIC"}, {"island"}, {"mut-arr-by-val-with-capacity-from-unmanaged-memory"}, {"subscript"}, {"+"}, {"unmanaged-alloc-zeroed-elements"}, {"unmanaged-alloc-elements"}, {"unmanaged-alloc-bytes"}, {"!="}, {"set-zero-range"}, {"drop"}, {".."}, {"default-exception-handler"}, {"print-err-no-newline"}, {"write-no-newline"}, {"as-any-const-ptr"}, {"size-bytes"}, {"todo"}, {"stderr"}, {"print-err"}, {"to-str"}, {"to-mut-arr"}, {"empty-fix-arr"}, {"~="}, {"each"}, {"each-recur"}, {"=="}, {"call-with-ctx"}, {"*"}, {"end-ptr"}, {"incr-capacity!"}, {"ensure-capacity"}, {"capacity"}, {"size"}, {"increase-capacity-to!"}, {"assert"}, {"throw"}, {"get-exception-ctx"}, {"number-to-throw"}, {"hard-unreachable"}, {"get-backtrace"}, {"try-alloc-backtrace-arrs"}, {"try-alloc-uninitialized"}, {"try-alloc"}, {"try-gc-alloc"}, {"acquire!"}, {"acquire-recur!"}, {"try-acquire!"}, {"try-set!"}, {"try-change!"}, {"yield-thread"}, {"try-gc-alloc-recur"}, {"range-free"}, {"maybe-set-needs-gc!"}, {"release!"}, {"must-unset!"}, {"try-unset!"}, {"get-gc"}, {"get-gc-ctx"}, {"code-ptrs-size"}, {"copy-data-from!"}, {"sort!"}, {"swap!"}, {"set-subscript"}, {"partition!"}, {"fill-code-names!"}, {"get-fun-name"}, {"begin-ptr"}, {"uninitialized-fix-arr"}, {"alloc-uninitialized"}, {"alloc"}, {"gc-alloc"}, {"set-zero-elements"}, {">="}, {"round-up-to-power-of-two"}, {"round-up-to-power-of-two-recur"}, {"/"}, {"forbid"}, {"is-empty"}, {"str"}, {"arr-from-begin-end"}, {"find-cstr-end"}, {"find-char-in-cstr"}, {"move-to-str!"}, {"move-to-arr!"}, {"cast-immutable"}, {"move-to-fix-arr!"}, {"get-global-ctx"}, {"default-log-handler"}, {"print"}, {"print-no-newline"}, {"stdout"}, {"~"}, {"gc"}, {"validate-gc"}, {"arr-of-single"}, {"add-main-task"}, {"exception-ctx"}, {"log-ctx"}, {"perf-ctx"}, {"ctx"}, {"add-first-task"}, {"then-void"}, {"then"}, {"unresolved"}, {"callback!"}, {"with-lock"}, {"forward-to!"}, {"resolve-or-reject!"}, {"call-callbacks!"}, {"get-island"}, {"unsafe-at"}, {"add-task"}, {"insert-task!"}, {"size-recur"}, {"insert-recur"}, {"tasks"}, {"broadcast!"}, {"no-timestamp"}, {"catch"}, {"catch-with-exception-ctx"}, {"zero"}, {"reject!"}, {"cur-island-and-exclusion"}, {"delay"}, {"resolved"}, {"tail"}, {"map"}, {"make-arr"}, {"fill-ptr-range"}, {"fill-ptr-range-recur"}, {"handle-exceptions"}, {"exception-handler"}, {"get-cur-island"}, {"run-threads"}, {"start-threads-recur"}, {"create-one-thread"}, {"EAGAIN"}, {"as-cell"}, {"thread-fun"}, {"thread-function"}, {"thread-function-recur"}, {"assert-islands-are-shut-down"}, {"noctx-at"}, {"hard-forbid"}, {"get-sequence"}, {"choose-task"}, {"get-monotime-nsec"}, {"choose-task-recur"}, {"choose-task-in-island"}, {"pop-task!"}, {"in"}, {"in-recur"}, {"temp-as-arr"}, {"temp-as-fix-arr"}, {"pop-recur!"}, {"to-opt-time"}, {"push-capacity-must-be-sufficient!"}, {"is-no-task"}, {"min-time"}, {"min"}, {"do-task"}, {"return-task!"}, {"noctx-must-remove-unordered!"}, {"noctx-must-remove-unordered-recur!"}, {"noctx-remove-unordered-at!"}, {"return-ctx"}, {"return-gc-ctx"}, {"run-garbage-collection"}, {"mark-visit"}, {"clear-free-mem!"}, {"wait-on"}, {"to-timespec"}, {"ETIMEDOUT"}, {"join-threads-recur"}, {"join-one-thread"}, {"EINVAL"}, {"ESRCH"}, {"unmanaged-free"}, {"destroy-condition"}, {"main"}, {"parse-named-args"}, {"parse-command-dynamic"}, {"find-index"}, {"find-index-recur"}, {"starts-with"}, {"arr-equal"}, {"equal-recur"}, {"arr-compare"}, {"compare-recur"}, {"hash-mix"}, {"to-dict"}, {"no-duplicate-keys"}, {"every"}, {"fold"}, {"fold-recur"}, {"empty-leaf-node"}, {"get-or-update"}, {"hash"}, {"get-or-update-recur"}, {"low-bits"}, {"update-child"}, {"inner-node-to-leaf"}, {"fold-with-index"}, {"fold-with-index-recur"}, {"leaf-max-size"}, {"unreachable"}, {"copy-from!"}, {"node-is-empty"}, {"rtail"}, {"update"}, {"find-only-non-empty-child"}, {"force"}, {"->"}, {"update-with-default"}, {"get-or-update-leaf"}, {"new-inner-node"}, {"max"}, {"fill-fix-arr"}, {"make-fix-arr"}, {"unsafe-set-at!"}, {"remove-at"}, {"to-mut-dict"}, {"mut-dict-with-capacity"}, {"update!"}, {"to-fix-arr"}, {"should-expand"}, {"expand!"}, {"is-at-capacity"}, {"remove-unordered-at!"}, {"parse-named-args-recur"}, {"try-remove-start"}, {"move-to-dict!"}, {"map-to-arr"}, {"empty!"}, {"fill!"}, {"map!"}, {"map-recur!"}, {"fill-mut-arr"}, {"index-of"}, {"ptr-of"}, {"ptr-of-recur"}, {"set-deref"}, {"finish"}, {"with-value"}, {"with-str"}, {"interp"}, {"print-help"}, {"parse-nat"}, {"with-reader"}, {"take-nat!"}, {"char-to-nat64"}, {"peek"}, {"next!"}, {"take-nat-recur!"}, {"do-test"}, {"parent-path"}, {"r-index-of"}, {"find-rindex"}, {"find-rindex-recur"}, {"child-path"}, {"get-environ"}, {"get-environ-recur"}, {"parse-environ-entry"}, {"first-failures"}, {"run-crow-tests"}, {"list-tests"}, {"each-child-recursive"}, {"is-dir"}, {"get-stat"}, {"stat"}, {"errno"}, {"ENOENT"}, {"S_IFMT"}, {"S_IFDIR"}, {"to-c-str"}, {"read-dir"}, {"read-dir-recur"}, {"ref-eq"}, {"get-dirent-name"}, {"sort"}, {"insertion-sort-recur!"}, {"insert!"}, {"has-substr"}, {"contains-subseq"}, {"index-of-subseq"}, {"index-of-subseq-recur"}, {"ext-is-crow"}, {"opt-equal"}, {"get-extension"}, {"last-index-of"}, {"last"}, {"base-name"}, {"flat-map-with-max-size"}, {"reduce-size-if-more-than!"}, {"pop!"}, {"run-single-crow-test"}, {"first-some"}, {"run-print-test"}, {"spawn-and-wait-result"}, {"is-file"}, {"S_IFREG"}, {"make-pipes"}, {"check-posix-error"}, {"keep-polling"}, {"POLLIN"}, {"ref-of-val-at"}, {"ref-of-ptr"}, {"handle-revents"}, {"has-POLLIN"}, {"bits-intersect"}, {"read-to-buffer-until-eof"}, {"unsafe-set-size!"}, {"reserve"}, {"to-nat64"}, {"has-POLLHUP"}, {"POLLHUP"}, {"has-POLLPRI"}, {"POLLPRI"}, {"has-POLLOUT"}, {"POLLOUT"}, {"has-POLLERR"}, {"POLLERR"}, {"has-POLLNVAL"}, {"POLLNVAL"}, {"any"}, {"wait-and-get-exit-code"}, {"WIFEXITED"}, {"WTERMSIG"}, {"WEXITSTATUS"}, {">>"}, {"WIFSIGNALED"}, {"to-base"}, {"digit-to-str"}, {"mod"}, {"abs"}, {"WIFSTOPPED"}, {"WIFCONTINUED"}, {"convert-args"}, {"convert-environ"}, {"handle-output"}, {"try-read-file"}, {"O_RDONLY"}, {"seek-end"}, {"seek-set"}, {"write-file"}, {"<<"}, {"O_CREAT"}, {"O_WRONLY"}, {"O_TRUNC"}, {"to-int64"}, {"max-int64"}, {"remove-colors"}, {"remove-colors-recur!"}, {"remove-colors-recur-2!"}, {"run-single-runnable-test"}, {"lint"}, {"list-lintable-files"}, {"excluded-from-lint"}, {"exists"}, {"ends-with"}, {"should-ignore-extension-of-name"}, {"should-ignore-extension"}, {"ignored-extensions"}, {"lint-file"}, {"read-file"}, {"each-with-index"}, {"each-with-index-recur"}, {"lines"}, {"swap"}, {"line-len"}, {"n-tabs"}, {"tab-size"}, {"max-line-length"}, {"print-failures"}, {"print-failure"}, {"print-bold"}, {"print-reset"}};
 /* mark bool(ctx mark-ctx, ptr-any const-ptr<nat8>, size-bytes nat64) */
@@ -6492,7 +6476,7 @@ struct mut_arr_0 mut_arr_by_val_with_capacity_from_unmanaged_memory(uint64_t cap
 /* subscript<a> fix-arr<nat64>(a mut-ptr<nat64>, range range<nat64>) */
 struct fix_arr_0 subscript_0(uint64_t* a, struct range range) {
 	struct arr_3 _0 = subscript_1(((uint64_t*) a), range);
-	return (struct fix_arr_0) {(struct void_) {}, _0};
+	return (struct fix_arr_0) {_0};
 }
 /* subscript<a> arr<nat64>(a const-ptr<nat64>, r range<nat64>) */
 struct arr_3 subscript_1(uint64_t* a, struct range r) {
@@ -6653,7 +6637,7 @@ struct mut_arr_1* to_mut_arr_0(struct ctx* ctx, struct arr_0 a) {
 /* empty-fix-arr<a> fix-arr<char>() */
 struct fix_arr_1 empty_fix_arr_0(void) {
 	struct arr_0 _0 = empty_arr_1();
-	return (struct fix_arr_1) {(struct void_) {}, _0};
+	return (struct fix_arr_1) {_0};
 }
 /* empty-arr<a> arr<char>() */
 struct arr_0 empty_arr_1(void) {
@@ -7383,7 +7367,7 @@ struct fix_arr_1 uninitialized_fix_arr_0(struct ctx* ctx, uint64_t size) {
 /* subscript<a> fix-arr<char>(a mut-ptr<char>, range range<nat64>) */
 struct fix_arr_1 subscript_6(char* a, struct range range) {
 	struct arr_0 _0 = subscript_7(((char*) a), range);
-	return (struct fix_arr_1) {(struct void_) {}, _0};
+	return (struct fix_arr_1) {_0};
 }
 /* subscript<a> arr<char>(a const-ptr<char>, r range<nat64>) */
 struct arr_0 subscript_7(char* a, struct range r) {
@@ -7442,7 +7426,7 @@ struct void_ set_zero_range_1(char* begin, uint64_t size) {
 /* subscript<a> fix-arr<char>(a fix-arr<char>, range range<nat64>) */
 struct fix_arr_1 subscript_8(struct ctx* ctx, struct fix_arr_1 a, struct range range) {
 	struct arr_0 _0 = subscript_9(ctx, a.inner, range);
-	return (struct fix_arr_1) {(struct void_) {}, _0};
+	return (struct fix_arr_1) {_0};
 }
 /* subscript<a> arr<char>(a arr<char>, range range<nat64>) */
 struct arr_0 subscript_9(struct ctx* ctx, struct arr_0 a, struct range range) {
@@ -7995,7 +7979,7 @@ struct str* null_3(void) {
 /* empty-fix-arr<measure-value> fix-arr<measure-value>() */
 struct fix_arr_2 empty_fix_arr_1(void) {
 	struct arr_6 _0 = empty_arr_4();
-	return (struct fix_arr_2) {(struct void_) {}, _0};
+	return (struct fix_arr_2) {_0};
 }
 /* empty-arr<a> arr<measure-value>() */
 struct arr_6 empty_arr_4(void) {
@@ -10930,10 +10914,10 @@ struct dict_0 to_dict_0(struct ctx* ctx, struct arr_10 a) {
 		_1 = 0;
 	}
 	if (_1) {
-		return (struct dict_0) {(struct void_) {}, (struct node_0) {1, .as1 = a}};
+		return (struct dict_0) {(struct node_0) {1, .as1 = a}};
 	} else {
 		struct node_0 _2 = empty_leaf_node_0(ctx);
-		return fold_0(ctx, (struct dict_0) {(struct void_) {}, _2}, a, (struct fun_act2_1) {0, .as0 = (struct void_) {}});
+		return fold_0(ctx, (struct dict_0) {_2}, a, (struct fun_act2_1) {0, .as0 = (struct void_) {}});
 	}
 }
 /* no-duplicate-keys<k, v> bool(a arr<arrow<str, arr<str>>>) */
@@ -11101,7 +11085,7 @@ struct dict_0 call_w_ctx_507(struct fun_act2_1 a, struct ctx* ctx, struct dict_0
 		}
 		default:
 			
-	return (struct dict_0) {(struct void_) {}, (struct node_0) {0}};;
+	return (struct dict_0) {(struct node_0) {0}};;
 	}
 }
 /* end-ptr<b> const-ptr<arrow<str, arr<str>>>(a arr<arrow<str, arr<str>>>) */
@@ -11139,11 +11123,11 @@ struct dict_0 _tilde_2(struct ctx* ctx, struct dict_0 a, struct arrow_0 pair) {
 		case 1: {
 			struct node_0 _matched1 = _1.as1;
 			
-			return (struct dict_0) {(struct void_) {}, _matched1};
+			return (struct dict_0) {_matched1};
 		}
 		default:
 			
-	return (struct dict_0) {(struct void_) {}, (struct node_0) {0}};;
+	return (struct dict_0) {(struct node_0) {0}};;
 	}
 }
 /* get-or-update<k, v> get-or-update-result<str, arr<str>>(a dict<str, arr<str>>, key str, f fun-act1<get-or-update-action<arr<str>>, opt<arr<str>>>) */
@@ -11461,7 +11445,7 @@ struct fix_arr_3 uninitialized_fix_arr_1(struct ctx* ctx, uint64_t size) {
 /* subscript<a> fix-arr<arrow<str, arr<str>>>(a mut-ptr<arrow<str, arr<str>>>, range range<nat64>) */
 struct fix_arr_3 subscript_42(struct arrow_0* a, struct range range) {
 	struct arr_10 _0 = subscript_43(((struct arrow_0*) a), range);
-	return (struct fix_arr_3) {(struct void_) {}, _0};
+	return (struct fix_arr_3) {_0};
 }
 /* subscript<a> arr<arrow<str, arr<str>>>(a const-ptr<arrow<str, arr<str>>>, r range<nat64>) */
 struct arr_10 subscript_43(struct arrow_0* a, struct range r) {
@@ -11524,7 +11508,7 @@ uint8_t* as_any_const_ptr_2(struct arrow_0* ref) {
 /* subscript<arrow<k, v>> fix-arr<arrow<str, arr<str>>>(a fix-arr<arrow<str, arr<str>>>, range range<nat64>) */
 struct fix_arr_3 subscript_44(struct ctx* ctx, struct fix_arr_3 a, struct range range) {
 	struct arr_10 _0 = subscript_37(ctx, a.inner, range);
-	return (struct fix_arr_3) {(struct void_) {}, _0};
+	return (struct fix_arr_3) {_0};
 }
 /* inner-node-to-leaf<k, v>.lambda1 nat64(out-index nat64, child node<str, arr<str>>, child-index nat64) */
 uint64_t inner_node_to_leaf_0__lambda1(struct ctx* ctx, struct inner_node_to_leaf_0__lambda1* _closure, uint64_t out_index, struct node_0 child, uint64_t child_index) {
@@ -12116,7 +12100,7 @@ struct fix_arr_4 uninitialized_fix_arr_2(struct ctx* ctx, uint64_t size) {
 /* subscript<a> fix-arr<node<str, arr<str>>>(a mut-ptr<node<str, arr<str>>>, range range<nat64>) */
 struct fix_arr_4 subscript_50(struct node_0* a, struct range range) {
 	struct arr_9 _0 = subscript_51(((struct node_0*) a), range);
-	return (struct fix_arr_4) {(struct void_) {}, _0};
+	return (struct fix_arr_4) {_0};
 }
 /* subscript<a> arr<node<str, arr<str>>>(a const-ptr<node<str, arr<str>>>, r range<nat64>) */
 struct arr_9 subscript_51(struct node_0* a, struct range r) {
@@ -12381,7 +12365,7 @@ struct mut_dict_0* mut_dict_with_capacity_0(struct ctx* ctx, uint64_t capacity) 
 	temp0 = ((struct mut_dict_0*) _0);
 	
 	struct fix_arr_5 _1 = fill_fix_arr_1(ctx, capacity, (struct entry_0) {0, .as0 = (struct void_) {}});
-	*temp0 = (struct mut_dict_0) {(struct void_) {}, _1, 0u};
+	*temp0 = (struct mut_dict_0) {_1, 0u};
 	return temp0;
 }
 /* fill-fix-arr<entry<k, v>> fix-arr<entry<str, arr<str>>>(size nat64, value entry<str, arr<str>>) */
@@ -12411,7 +12395,7 @@ struct fix_arr_5 uninitialized_fix_arr_3(struct ctx* ctx, uint64_t size) {
 /* subscript<a> fix-arr<entry<str, arr<str>>>(a mut-ptr<entry<str, arr<str>>>, range range<nat64>) */
 struct fix_arr_5 subscript_56(struct entry_0* a, struct range range) {
 	struct arr_11 _0 = subscript_57(((struct entry_0*) a), range);
-	return (struct fix_arr_5) {(struct void_) {}, _0};
+	return (struct fix_arr_5) {_0};
 }
 /* subscript<a> arr<entry<str, arr<str>>>(a const-ptr<entry<str, arr<str>>>, r range<nat64>) */
 struct arr_11 subscript_57(struct entry_0* a, struct range r) {
@@ -13068,7 +13052,7 @@ struct mut_arr_2* to_mut_arr_1(struct ctx* ctx, struct arr_10 a) {
 /* empty-fix-arr<a> fix-arr<arrow<str, arr<str>>>() */
 struct fix_arr_3 empty_fix_arr_2(void) {
 	struct arr_10 _0 = empty_arr_5();
-	return (struct fix_arr_3) {(struct void_) {}, _0};
+	return (struct fix_arr_3) {_0};
 }
 /* empty-arr<a> arr<arrow<str, arr<str>>>() */
 struct arr_10 empty_arr_5(void) {
@@ -13671,7 +13655,7 @@ struct fix_arr_6 uninitialized_fix_arr_4(struct ctx* ctx, uint64_t size) {
 /* subscript<a> fix-arr<opt<arr<str>>>(a mut-ptr<opt<arr<str>>>, range range<nat64>) */
 struct fix_arr_6 subscript_74(struct opt_12* a, struct range range) {
 	struct arr_8 _0 = subscript_75(((struct opt_12*) a), range);
-	return (struct fix_arr_6) {(struct void_) {}, _0};
+	return (struct fix_arr_6) {_0};
 }
 /* subscript<a> arr<opt<arr<str>>>(a const-ptr<opt<arr<str>>>, r range<nat64>) */
 struct arr_8 subscript_75(struct opt_12* a, struct range r) {
@@ -14023,7 +14007,7 @@ struct fix_arr_6 move_to_fix_arr__e_1(struct mut_arr_3* a) {
 /* empty-fix-arr<a> fix-arr<opt<arr<str>>>() */
 struct fix_arr_6 empty_fix_arr_3(void) {
 	struct arr_8 _0 = empty_arr_6();
-	return (struct fix_arr_6) {(struct void_) {}, _0};
+	return (struct fix_arr_6) {_0};
 }
 /* empty-arr<a> arr<opt<arr<str>>>() */
 struct arr_8 empty_arr_6(void) {
@@ -14447,7 +14431,7 @@ struct mut_dict_1* mut_dict_with_capacity_1(struct ctx* ctx, uint64_t capacity) 
 	temp0 = ((struct mut_dict_1*) _0);
 	
 	struct fix_arr_8 _1 = fill_fix_arr_3(ctx, capacity, (struct entry_1) {0, .as0 = (struct void_) {}});
-	*temp0 = (struct mut_dict_1) {(struct void_) {}, _1, 0u};
+	*temp0 = (struct mut_dict_1) {_1, 0u};
 	return temp0;
 }
 /* fill-fix-arr<entry<k, v>> fix-arr<entry<str, str>>(size nat64, value entry<str, str>) */
@@ -14477,7 +14461,7 @@ struct fix_arr_8 uninitialized_fix_arr_5(struct ctx* ctx, uint64_t size) {
 /* subscript<a> fix-arr<entry<str, str>>(a mut-ptr<entry<str, str>>, range range<nat64>) */
 struct fix_arr_8 subscript_86(struct entry_1* a, struct range range) {
 	struct arr_14 _0 = subscript_87(((struct entry_1*) a), range);
-	return (struct fix_arr_8) {(struct void_) {}, _0};
+	return (struct fix_arr_8) {_0};
 }
 /* subscript<a> arr<entry<str, str>>(a const-ptr<entry<str, str>>, r range<nat64>) */
 struct arr_14 subscript_87(struct entry_1* a, struct range r) {
@@ -15111,7 +15095,7 @@ struct fix_arr_7 temp_as_fix_arr_2(struct mut_arr_4* a) {
 /* subscript<a> fix-arr<arrow<str, str>>(a mut-ptr<arrow<str, str>>, range range<nat64>) */
 struct fix_arr_7 subscript_97(struct arrow_1* a, struct range range) {
 	struct arr_13 _0 = subscript_98(((struct arrow_1*) a), range);
-	return (struct fix_arr_7) {(struct void_) {}, _0};
+	return (struct fix_arr_7) {_0};
 }
 /* subscript<a> arr<arrow<str, str>>(a const-ptr<arrow<str, str>>, r range<nat64>) */
 struct arr_13 subscript_98(struct arrow_1* a, struct range r) {
@@ -15222,7 +15206,7 @@ struct mut_arr_4* to_mut_arr_2(struct ctx* ctx, struct arr_13 a) {
 /* empty-fix-arr<a> fix-arr<arrow<str, str>>() */
 struct fix_arr_7 empty_fix_arr_4(void) {
 	struct arr_13 _0 = empty_arr_7();
-	return (struct fix_arr_7) {(struct void_) {}, _0};
+	return (struct fix_arr_7) {_0};
 }
 /* empty-arr<a> arr<arrow<str, str>>() */
 struct arr_13 empty_arr_7(void) {
@@ -15330,7 +15314,7 @@ struct void_ set_zero_range_3(struct arrow_1* begin, uint64_t size) {
 /* subscript<a> fix-arr<arrow<str, str>>(a fix-arr<arrow<str, str>>, range range<nat64>) */
 struct fix_arr_7 subscript_100(struct ctx* ctx, struct fix_arr_7 a, struct range range) {
 	struct arr_13 _0 = subscript_101(ctx, a.inner, range);
-	return (struct fix_arr_7) {(struct void_) {}, _0};
+	return (struct fix_arr_7) {_0};
 }
 /* subscript<a> arr<arrow<str, str>>(a arr<arrow<str, str>>, range range<nat64>) */
 struct arr_13 subscript_101(struct ctx* ctx, struct arr_13 a, struct range range) {
@@ -15557,10 +15541,10 @@ struct dict_1 to_dict_1(struct ctx* ctx, struct arr_13 a) {
 		_1 = 0;
 	}
 	if (_1) {
-		return (struct dict_1) {(struct void_) {}, (struct node_1) {1, .as1 = a}};
+		return (struct dict_1) {(struct node_1) {1, .as1 = a}};
 	} else {
 		struct node_1 _2 = empty_leaf_node_1(ctx);
-		return fold_19(ctx, (struct dict_1) {(struct void_) {}, _2}, a, (struct fun_act2_13) {0, .as0 = (struct void_) {}});
+		return fold_19(ctx, (struct dict_1) {_2}, a, (struct fun_act2_13) {0, .as0 = (struct void_) {}});
 	}
 }
 /* no-duplicate-keys<k, v> bool(a arr<arrow<str, str>>) */
@@ -15661,7 +15645,7 @@ struct dict_1 call_w_ctx_972(struct fun_act2_13 a, struct ctx* ctx, struct dict_
 		}
 		default:
 			
-	return (struct dict_1) {(struct void_) {}, (struct node_1) {0}};;
+	return (struct dict_1) {(struct node_1) {0}};;
 	}
 }
 /* empty-leaf-node<k, v> node<str, str>() */
@@ -15695,11 +15679,11 @@ struct dict_1 _tilde_5(struct ctx* ctx, struct dict_1 a, struct arrow_1 pair) {
 		case 1: {
 			struct node_1 _matched1 = _1.as1;
 			
-			return (struct dict_1) {(struct void_) {}, _matched1};
+			return (struct dict_1) {_matched1};
 		}
 		default:
 			
-	return (struct dict_1) {(struct void_) {}, (struct node_1) {0}};;
+	return (struct dict_1) {(struct node_1) {0}};;
 	}
 }
 /* get-or-update<k, v> get-or-update-result<str, str>(a dict<str, str>, key str, f fun-act1<get-or-update-action<str>, opt<str>>) */
@@ -16528,7 +16512,7 @@ struct fix_arr_9 uninitialized_fix_arr_7(struct ctx* ctx, uint64_t size) {
 /* subscript<a> fix-arr<node<str, str>>(a mut-ptr<node<str, str>>, range range<nat64>) */
 struct fix_arr_9 subscript_116(struct node_1* a, struct range range) {
 	struct arr_12 _0 = subscript_117(((struct node_1*) a), range);
-	return (struct fix_arr_9) {(struct void_) {}, _0};
+	return (struct fix_arr_9) {_0};
 }
 /* subscript<a> arr<node<str, str>>(a const-ptr<node<str, str>>, r range<nat64>) */
 struct arr_12 subscript_117(struct node_1* a, struct range r) {
@@ -17089,7 +17073,7 @@ struct mut_arr_5* to_mut_arr_3(struct ctx* ctx, struct arr_2 a) {
 /* empty-fix-arr<a> fix-arr<str>() */
 struct fix_arr_10 empty_fix_arr_5(void) {
 	struct arr_2 _0 = empty_arr_3();
-	return (struct fix_arr_10) {(struct void_) {}, _0};
+	return (struct fix_arr_10) {_0};
 }
 /* ~=<a> void(a mut-arr<str>, values arr<str>) */
 struct void_ _concatEquals_8(struct ctx* ctx, struct mut_arr_5* a, struct arr_2 values) {
@@ -17239,7 +17223,7 @@ struct fix_arr_10 uninitialized_fix_arr_8(struct ctx* ctx, uint64_t size) {
 /* subscript<a> fix-arr<str>(a mut-ptr<str>, range range<nat64>) */
 struct fix_arr_10 subscript_127(struct str* a, struct range range) {
 	struct arr_2 _0 = subscript_128(((struct str*) a), range);
-	return (struct fix_arr_10) {(struct void_) {}, _0};
+	return (struct fix_arr_10) {_0};
 }
 /* subscript<a> arr<str>(a const-ptr<str>, r range<nat64>) */
 struct arr_2 subscript_128(struct str* a, struct range r) {
@@ -17270,7 +17254,7 @@ struct void_ set_zero_range_4(struct str* begin, uint64_t size) {
 /* subscript<a> fix-arr<str>(a fix-arr<str>, range range<nat64>) */
 struct fix_arr_10 subscript_129(struct ctx* ctx, struct fix_arr_10 a, struct range range) {
 	struct arr_2 _0 = subscript_55(ctx, a.inner, range);
-	return (struct fix_arr_10) {(struct void_) {}, _0};
+	return (struct fix_arr_10) {_0};
 }
 /* ~=<a>.lambda0 void(x str) */
 struct void_ _concatEquals_8__lambda0(struct ctx* ctx, struct _concatEquals_8__lambda0* _closure, struct str x) {
@@ -17942,7 +17926,7 @@ struct mut_arr_6* to_mut_arr_4(struct ctx* ctx, struct arr_15 a) {
 /* empty-fix-arr<a> fix-arr<failure>() */
 struct fix_arr_11 empty_fix_arr_6(void) {
 	struct arr_15 _0 = empty_arr_8();
-	return (struct fix_arr_11) {(struct void_) {}, _0};
+	return (struct fix_arr_11) {_0};
 }
 /* empty-arr<a> arr<failure>() */
 struct arr_15 empty_arr_8(void) {
@@ -18097,7 +18081,7 @@ struct fix_arr_11 uninitialized_fix_arr_9(struct ctx* ctx, uint64_t size) {
 /* subscript<a> fix-arr<failure>(a mut-ptr<failure>, range range<nat64>) */
 struct fix_arr_11 subscript_132(struct failure** a, struct range range) {
 	struct arr_15 _0 = subscript_133(((struct failure**) a), range);
-	return (struct fix_arr_11) {(struct void_) {}, _0};
+	return (struct fix_arr_11) {_0};
 }
 /* subscript<a> arr<failure>(a const-ptr<failure>, r range<nat64>) */
 struct arr_15 subscript_133(struct failure** a, struct range r) {
@@ -18133,7 +18117,7 @@ struct void_ set_zero_range_5(struct failure** begin, uint64_t size) {
 /* subscript<a> fix-arr<failure>(a fix-arr<failure>, range range<nat64>) */
 struct fix_arr_11 subscript_134(struct ctx* ctx, struct fix_arr_11 a, struct range range) {
 	struct arr_15 _0 = subscript_135(ctx, a.inner, range);
-	return (struct fix_arr_11) {(struct void_) {}, _0};
+	return (struct fix_arr_11) {_0};
 }
 /* subscript<a> arr<failure>(a arr<failure>, range range<nat64>) */
 struct arr_15 subscript_135(struct ctx* ctx, struct arr_15 a, struct range range) {
@@ -18790,7 +18774,7 @@ struct fix_arr_12 uninitialized_fix_arr_10(struct ctx* ctx, uint64_t size) {
 /* subscript<a> fix-arr<pollfd>(a mut-ptr<pollfd>, range range<nat64>) */
 struct fix_arr_12 subscript_141(struct pollfd* a, struct range range) {
 	struct arr_16 _0 = subscript_142(((struct pollfd*) a), range);
-	return (struct fix_arr_12) {(struct void_) {}, _0};
+	return (struct fix_arr_12) {_0};
 }
 /* subscript<a> arr<pollfd>(a const-ptr<pollfd>, r range<nat64>) */
 struct arr_16 subscript_142(struct pollfd* a, struct range r) {
@@ -19427,7 +19411,7 @@ struct mut_arr_7* to_mut_arr_5(struct ctx* ctx, struct arr_7 a) {
 /* empty-fix-arr<a> fix-arr<const-ptr<char>>() */
 struct fix_arr_13 empty_fix_arr_7(void) {
 	struct arr_7 _0 = empty_arr_9();
-	return (struct fix_arr_13) {(struct void_) {}, _0};
+	return (struct fix_arr_13) {_0};
 }
 /* empty-arr<a> arr<const-ptr<char>>() */
 struct arr_7 empty_arr_9(void) {
@@ -19569,7 +19553,7 @@ struct fix_arr_13 uninitialized_fix_arr_11(struct ctx* ctx, uint64_t size) {
 /* subscript<a> fix-arr<const-ptr<char>>(a mut-ptr<const-ptr<char>>, range range<nat64>) */
 struct fix_arr_13 subscript_147(char** a, struct range range) {
 	struct arr_7 _0 = subscript_28(((char**) a), range);
-	return (struct fix_arr_13) {(struct void_) {}, _0};
+	return (struct fix_arr_13) {_0};
 }
 /* alloc-uninitialized<a> mut-ptr<const-ptr<char>>(size nat64) */
 char** alloc_uninitialized_11(struct ctx* ctx, uint64_t size) {
@@ -19600,7 +19584,7 @@ struct void_ set_zero_range_6(char** begin, uint64_t size) {
 /* subscript<a> fix-arr<const-ptr<char>>(a fix-arr<const-ptr<char>>, range range<nat64>) */
 struct fix_arr_13 subscript_148(struct ctx* ctx, struct fix_arr_13 a, struct range range) {
 	struct arr_7 _0 = subscript_22(ctx, a.inner, range);
-	return (struct fix_arr_13) {(struct void_) {}, _0};
+	return (struct fix_arr_13) {_0};
 }
 /* set-subscript<a> void(a mut-ptr<const-ptr<char>>, n nat64, value const-ptr<char>) */
 struct void_ set_subscript_23(char** a, uint64_t n, char* value) {

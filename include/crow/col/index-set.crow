@@ -483,8 +483,7 @@ map-to-arr<a> a[](a index-set, f act a(nat64)) trusted
 	as empty
 		out ~= "_"
 
-# TODO:PRIVATE
-verify void(a index-set, expected str, expected-arr nat64[])
+.verify void(a index-set, expected str, expected-arr nat64[])
 	actual = a.dbg
 	if actual != expected
 		info log "a.dbg is"

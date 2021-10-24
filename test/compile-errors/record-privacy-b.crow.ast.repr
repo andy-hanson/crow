@@ -1,0 +1,32 @@
+file-ast(
+	imports: ports(range(0, 28), [import-ast(".//record-privacy-a", none)])
+	specs: []
+	aliases: []
+	structs: []
+	funs: [
+		fun-decl(
+			visibility: public
+			sig: sig-ast(range(28, 38), foo, inststruct(range(32, 36), name-range(32, void)), [])
+			body: let(
+				a
+				call(comma, name-range(57, new), [], [literal(nat(0, false))])
+				seq-ast(
+					call(prefix, name-range(61, drop), [], [a])
+					let(
+						b
+						call(
+							comma
+							name-range(86, new)
+							[]
+							[literal(nat(0, false)), literal(nat(0, false)), literal(nat(0, false))])
+						seq-ast(
+							seq-ast(
+								seq-ast(
+									seq-ast(
+										seq-ast(
+											call(set-dot, name-range(96, set-a), [], [b, literal(nat(0, false))])
+											call(prefix, name-range(105, drop), [], [call(dot, name-range(113, a), [], [b])]))
+										call(set-dot, name-range(117, set-b), [], [b, literal(nat(0, false))]))
+									call(prefix, name-range(126, drop), [], [call(dot, name-range(134, b), [], [b])]))
+								call(set-dot, name-range(138, set-c), [], [b, literal(nat(0, false))]))
+							call(prefix, name-range(147, drop), [], [call(dot, name-range(155, c), [], [b])]))))))])

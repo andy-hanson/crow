@@ -2,7 +2,7 @@ module frontend.parse.ast;
 
 @safe @nogc pure nothrow:
 
-import model.model : Visibility;
+import model.model : FieldMutability, symOfFieldMutability, Visibility;
 import model.reprModel : reprVisibility;
 import util.collection.arr : ArrWithSize, empty, emptyArr, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -713,10 +713,12 @@ immutable(RangeWithinFile) rangeOfExplicitByValOrRef(ref immutable ExplicitByVal
 struct RecordModifiers {
 	@safe @nogc pure nothrow:
 
+	immutable Opt!Visibility explicitNewVisibility;
 	immutable Opt!Pos packed;
 	immutable Opt!ExplicitByValOrRefAndRange explicitByValOrRef;
 
-	immutable this(immutable Opt!Pos p, immutable Opt!ExplicitByValOrRefAndRange e) {
+	immutable this(immutable Opt!Visibility v, immutable Opt!Pos p, immutable Opt!ExplicitByValOrRefAndRange e) {
+		explicitNewVisibility = v;
 		packed = p;
 		explicitByValOrRef = e;
 
@@ -728,8 +730,20 @@ struct RecordModifiers {
 
 	//TODO:NOT INSTANCE
 	immutable(bool) any() immutable {
-		return has(packed) || has(explicitByValOrRef);
+		return has(explicitNewVisibility) || has(packed) || has(explicitByValOrRef);
 	}
+}
+
+immutable(RecordModifiers) withExplicitNewVisibility(immutable RecordModifiers a, immutable Visibility v) {
+	return immutable RecordModifiers(some(v), a.packed, a.explicitByValOrRef);
+}
+
+immutable(RecordModifiers) withPacked(immutable RecordModifiers a, immutable Pos p) {
+	return immutable RecordModifiers(a.explicitNewVisibility, some(p), a.explicitByValOrRef);
+}
+
+immutable(RecordModifiers) withExplicitByValOrRef(immutable RecordModifiers a, immutable ExplicitByValOrRefAndRange e) {
+	return immutable RecordModifiers(a.explicitNewVisibility, a.packed, some(e));
 }
 
 struct LiteralIntOrNat {
@@ -785,8 +799,9 @@ struct StructDeclAst {
 
 			struct Field {
 				immutable RangeWithinFile range;
-				immutable bool isMutable;
+				immutable Visibility visibility;
 				immutable Sym name;
+				immutable FieldMutability mutability;
 				immutable TypeAst type;
 			}
 			private immutable OptPtr!RecordModifiers modifiers_;
@@ -797,7 +812,7 @@ struct StructDeclAst {
 				immutable Opt!(Ptr!RecordModifiers) m = toOpt(modifiers_);
 				return has(m)
 					? force(m)
-					: immutable RecordModifiers(none!Pos, none!ExplicitByValOrRefAndRange);
+					: immutable RecordModifiers(none!Visibility, none!Pos, none!ExplicitByValOrRefAndRange);
 			}
 
 			//TODO: NOT INSTANCE
@@ -1179,7 +1194,7 @@ immutable(Repr) reprLiteralIntOrNat(Alloc)(ref Alloc alloc, ref immutable Litera
 immutable(Repr) reprField(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Record.Field a) {
 	return reprRecord(alloc, "field", [
 		reprRangeWithinFile(alloc, a.range),
-		reprBool(a.isMutable),
+		reprSym(symOfFieldMutability(a.mutability)),
 		reprSym(a.name),
 		reprTypeAst(alloc, a.type)]);
 }

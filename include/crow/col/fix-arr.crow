@@ -23,14 +23,11 @@ Like `arr` but mutable.
 ###
 fix-arr<a> record mut
 	by-val
-	# Adding a dummy field so the constructor won't conflict with fix-arr from arr
-	ignore void
-	# TODO:PRIVATE
-	inner a[]
+	.inner a[]
 
 # TODO:INTERNAL (or fix-arr-low-level)
 empty-fix-arr<a> fix-arr a() noctx
-	void, empty-arr
+	empty-arr<a>,
 
 ###
 Copies an `arr` to a `fix-arr`.
@@ -51,7 +48,7 @@ arr<a> a[](a fix-arr a)
 
 fix-arr-from-begin-end<a> fix-arr a(begin a mut*, end a mut*) unsafe noctx
 	hard-assert: begin <= end
-	void, (begin.as-const arr-from-begin-end end.as-const)
+	(begin.as-const arr-from-begin-end end.as-const),
 
 ###
 Copies the elements of a `fix-arr`.
@@ -99,7 +96,7 @@ unsafe-at<a> a(a fix-arr a, index nat64) unsafe
 	a.begin-ptr[index]
 
 subscript<a> fix-arr a(a a mut*, range range nat64) noctx unsafe
-	void, a.as-const[range]
+	a.as-const[range],
 
 ###
 Slices the fix-arr.
@@ -109,7 +106,7 @@ Throws if `range.from > range.to`.
 Throws if the slice would exceed the bounds of the `fix-arr`.
 ###
 subscript<a> fix-arr a(a fix-arr a, range range nat64)
-	void, a.inner[range]
+	a.inner[range],
 
 ###
 Write to a single element.

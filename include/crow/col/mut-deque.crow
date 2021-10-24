@@ -19,13 +19,12 @@ import
 		size, subscript, uninitialized-fix-arr, zeroed-fix-arr
 
 mut-deque<a> record mut
-	# TODO:PRIVATE
-	inner mut fix-arr a
+	.inner .mut fix-arr a
 	# Points to the first element. Null for an empty queue.
-	left mut a mut*
+	.left .mut a mut*
 	# Points to the element after the last. Null for an empty queue.
 	# This should never be inner.end-ptr, it wraps around to inner.begin-ptr
-	right mut a mut*
+	.right .mut a mut*
 
 new<a> mut-deque a() trusted
 	(), null, null

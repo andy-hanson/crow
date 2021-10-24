@@ -209,12 +209,12 @@ immutable(Ptr!StructInst) instantiateStruct(Alloc)(
 			immutable Purity bestPurity = fold(
 				declAndArgs.decl.purity,
 				declAndArgs.typeArgs,
-				(ref immutable Purity pur, ref immutable Type typeArg) =>
+				(immutable Purity pur, ref immutable Type typeArg) =>
 					worsePurity(pur, bestCasePurity(typeArg)));
 			immutable Purity worstPurity = fold(
 				declAndArgs.decl.purity,
 				declAndArgs.typeArgs,
-				(ref immutable Purity pur, ref immutable Type typeArg) =>
+				(immutable Purity pur, ref immutable Type typeArg) =>
 					worsePurity(pur, worstCasePurity(typeArg)));
 			return nuMut!StructInst(alloc, declAndArgs, bestPurity, worstPurity);
 		});

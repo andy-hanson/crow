@@ -37,6 +37,7 @@ import model.concreteModel :
 	ConcreteLambdaImpl,
 	ConcreteLocal,
 	ConcreteLocalSource,
+	ConcreteMutability,
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteStruct,
@@ -326,7 +327,7 @@ immutable(ConcreteField[]) concretizeClosureFields(Alloc)(
 		immutable ConcreteField(
 			immutable ConcreteFieldSource(it),
 			safeSizeTToU8(index),
-			false,
+			ConcreteMutability.const_,
 			getConcreteType_fromConcretizeCtx(alloc, ctx, it.type, typeArgsScope)));
 }
 

@@ -1,0 +1,31 @@
+file-ast(
+	specs: []
+	aliases: []
+	structs: [
+		struct(
+			range(0, 34)
+			""
+			public
+			[]
+			none
+			record(none, [field(range(27, 32), const, x, inststruct(range(29, 32), name-range(29, nat)))]))
+		struct(
+			range(34, 79)
+			""
+			public
+			[]
+			none
+			record(none, [field(range(71, 77), const, y, inststruct(range(74, 77), name-range(74, nat)))]))
+		struct(
+			range(79, 144)
+			""
+			public
+			[]
+			some(purity(98, mut))
+			record(
+				none
+				[
+					field(range(108, 118), public, a, inststruct(range(115, 118), name-range(115, nat)))
+					field(range(120, 130), private, b, inststruct(range(127, 130), name-range(127, nat)))
+					field(range(132, 143), private, c, inststruct(range(140, 143), name-range(140, nat)))]))]
+	funs: [])

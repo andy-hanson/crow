@@ -1,0 +1,13 @@
+import
+	./record-privacy-a
+
+foo void()
+	a private-ctor = 0,
+	drop: a
+	b private-mut = 0, 0, 0
+	b.a := 0
+	drop: b.a
+	b.b := 0
+	drop: b.b
+	b.c := 0
+	drop: b.c

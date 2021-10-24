@@ -25,7 +25,10 @@ import frontend.parse.ast :
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
-	TypeAst;
+	TypeAst,
+	withExplicitByValOrRef,
+	withExplicitNewVisibility,
+	withPacked;
 import frontend.parse.lexer :
 	addDiagAtChar,
 	addDiagOnReservedName,
@@ -59,7 +62,7 @@ import frontend.parse.lexer :
 	tryTakeIndentAfterNewline_topLevel;
 import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseType : parseType, takeTypeArgsEnd, tryParseTypeArgsBracketed;
-import model.model : Visibility;
+import model.model : FieldMutability, Visibility;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -512,29 +515,36 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
 	ArrWithSizeBuilder!(StructDeclAst.Body.Record.Field) res;
 	pure immutable(StructDeclAst.Body.Record) recur(immutable RecordModifiers prevModifiers) {
 		immutable Pos start = curPos(lexer);
+		immutable Visibility visibility = tryTakePrivate(lexer);
 		immutable Sym name = takeName(alloc, lexer);
 		immutable RecordModifiers newModifiers = () {
 			switch (name.value) {
+				case shortSymAlphaLiteralValue("new"):
+					if (!arrWithSizeBuilderIsEmpty(res))
+						todo!void("'.new' on later line");
+					if (has(prevModifiers.explicitNewVisibility))
+						todo!void("specified new visibility multiple times");
+					return withExplicitNewVisibility(prevModifiers, visibility);
 				case shortSymAlphaLiteralValue("by-val"):
 				case shortSymAlphaLiteralValue("by-ref"):
+					if (visibility == Visibility.private_) todo!void("diagnostic");
 					immutable ExplicitByValOrRef value = name.value == shortSymAlphaLiteralValue("by-val")
 						? ExplicitByValOrRef.byVal
 						: ExplicitByValOrRef.byRef;
 					if (has(prevModifiers.explicitByValOrRef) || !arrWithSizeBuilderIsEmpty(res))
 						todo!void("by-val or by-ref on later line");
-					return immutable RecordModifiers(
-						prevModifiers.packed,
-						some(immutable ExplicitByValOrRefAndRange(start, value)));
+					return withExplicitByValOrRef(prevModifiers, immutable ExplicitByValOrRefAndRange(start, value));
 				case shortSymAlphaLiteralValue("packed"):
+					if (visibility == Visibility.private_) todo!void("diagnostic");
 					if (has(prevModifiers.packed) || !arrWithSizeBuilderIsEmpty(res))
 						todo!void("'packed' on later line");
-					return immutable RecordModifiers(some(start), prevModifiers.explicitByValOrRef);
+					return withPacked(prevModifiers, start);
 				default:
 					takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
-					immutable bool isMutable = tryTake(lexer, "mut ");
+					immutable FieldMutability mutability = parseFieldMutability(lexer);
 					immutable TypeAst type = parseType(alloc, lexer);
 					add(alloc, res, immutable StructDeclAst.Body.Record.Field(
-						range(lexer, start), isMutable, name, type));
+						range(lexer, start), visibility, name, mutability, type));
 					return prevModifiers;
 			}
 		}();
@@ -547,7 +557,15 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
 					finishArrWithSize(alloc, res));
 		}
 	}
-	return recur(immutable RecordModifiers(none!Pos, none!ExplicitByValOrRefAndRange));
+	return recur(immutable RecordModifiers(none!Visibility, none!Pos, none!ExplicitByValOrRefAndRange));
+}
+
+immutable(FieldMutability) parseFieldMutability(SymAlloc)(ref Lexer!SymAlloc lexer) {
+	return tryTake(lexer, "mut ")
+		? FieldMutability.public_
+		: tryTake(lexer, ".mut ")
+		? FieldMutability.private_
+		: FieldMutability.const_;
 }
 
 immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembers(Alloc, SymAlloc)(
@@ -574,7 +592,7 @@ struct SpecUsesAndSigFlagsAndKwBody {
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
-	SpecUsesAndSigFlagsAndKwBody(
+	immutable SpecUsesAndSigFlagsAndKwBody(
 		[],
 		false,
 		false,
@@ -805,9 +823,7 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 ) {
 	immutable Pos start = curPos(lexer);
 	// '..' is always public
-	immutable Visibility visibility = peekExact(lexer, "..") || !tryTake(lexer, '.')
-		? Visibility.public_
-		: Visibility.private_;
+	immutable Visibility visibility = peekExact(lexer, "..") ? Visibility.public_ : tryTakePrivate(lexer);
 	immutable Sym name = takeName(alloc, lexer);
 	immutable ArrWithSize!NameAndRange typeParams = parseTypeParams(alloc, lexer, isSymOperator(name));
 	if (!tryTake(lexer, ' ')) {
@@ -828,6 +844,10 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 		else
 			add(alloc, funs, parseFun(alloc, lexer, docComment, visibility, start, name, typeParams));
 	}
+}
+
+immutable(Visibility) tryTakePrivate(SymAlloc)(ref Lexer!SymAlloc lexer) {
+	return tryTake(lexer, '.') ? Visibility.private_ : Visibility.public_;
 }
 
 void handleNonFunKeywordAndIndent(Alloc, SymAlloc)(

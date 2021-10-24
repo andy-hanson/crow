@@ -1,0 +1,13 @@
+private-ctor record
+	.new
+	x nat
+
+redundant-private-ctor record
+	.new
+	.y nat
+
+private-mut record mut
+	new
+	.a mut nat
+	b .mut nat
+	.c .mut nat
