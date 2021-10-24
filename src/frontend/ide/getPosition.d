@@ -214,10 +214,10 @@ immutable(Position) positionInStruct(immutable Ptr!StructDecl a, immutable Pos p
 	return has(specific) ? force(specific) : immutable Position(a);
 }
 
-immutable(Opt!Position) positionOfType(ref immutable Type a) {
+immutable(Opt!Position) positionOfType(immutable Type a) {
 	return matchType!(immutable Opt!Position)(
 		a,
-		(ref immutable Type.Bogus) => none!Position,
+		(immutable Type.Bogus) => none!Position,
 		(immutable Ptr!TypeParam it) => some(immutable Position(it)),
 		(immutable Ptr!StructInst it) => some(immutable Position(decl(it))));
 }

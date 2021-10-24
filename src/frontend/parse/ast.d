@@ -116,11 +116,11 @@ struct TypeAst {
 static assert(TypeAst.sizeof <= 40);
 
 @trusted T matchTypeAst(T)(
-	ref immutable TypeAst a,
-	scope T delegate(ref immutable TypeAst.Dict) @safe @nogc pure nothrow cbDict,
-	scope T delegate(ref immutable TypeAst.Fun) @safe @nogc pure nothrow cbFun,
-	scope T delegate(ref immutable TypeAst.InstStruct) @safe @nogc pure nothrow cbInstStruct,
-	scope T delegate(ref immutable TypeAst.Suffix) @safe @nogc pure nothrow cbSuffix,
+	immutable TypeAst a,
+	scope T delegate(immutable TypeAst.Dict) @safe @nogc pure nothrow cbDict,
+	scope T delegate(immutable TypeAst.Fun) @safe @nogc pure nothrow cbFun,
+	scope T delegate(immutable TypeAst.InstStruct) @safe @nogc pure nothrow cbInstStruct,
+	scope T delegate(immutable TypeAst.Suffix) @safe @nogc pure nothrow cbSuffix,
 ) {
 	final switch (a.kind) {
 		case TypeAst.Kind.dict:
@@ -134,24 +134,24 @@ static assert(TypeAst.sizeof <= 40);
 	}
 }
 
-immutable(RangeWithinFile) range(ref immutable TypeAst a) {
+immutable(RangeWithinFile) range(immutable TypeAst a) {
 	return matchTypeAst!(immutable RangeWithinFile)(
 		a,
-		(ref immutable TypeAst.Dict it) => range(it),
-		(ref immutable TypeAst.Fun it) => it.range,
-		(ref immutable TypeAst.InstStruct it) => it.range,
-		(ref immutable TypeAst.Suffix it) => range(it));
+		(immutable TypeAst.Dict it) => range(it),
+		(immutable TypeAst.Fun it) => it.range,
+		(immutable TypeAst.InstStruct it) => it.range,
+		(immutable TypeAst.Suffix it) => range(it));
 }
 
-immutable(RangeWithinFile) range(ref immutable TypeAst.Dict a) {
+immutable(RangeWithinFile) range(immutable TypeAst.Dict a) {
 	return immutable RangeWithinFile(range(a.v).start, safeSizeTToU32(range(a.k).end + "]".length));
 }
 
-immutable(RangeWithinFile) range(ref immutable TypeAst.Suffix a) {
+immutable(RangeWithinFile) range(immutable TypeAst.Suffix a) {
 	immutable RangeWithinFile leftRange = range(a.left);
 	return immutable RangeWithinFile(leftRange.start, leftRange.end + suffixLength(a.kind));
 }
-immutable(RangeWithinFile) suffixRange(ref immutable TypeAst.Suffix a) {
+immutable(RangeWithinFile) suffixRange(immutable TypeAst.Suffix a) {
 	immutable uint leftEnd = range(a.left).end;
 	return immutable RangeWithinFile(leftEnd, leftEnd + suffixLength(a.kind));
 }
@@ -1289,22 +1289,22 @@ immutable(Repr) reprSpecUseAst(ref Alloc alloc, ref immutable SpecUseAst a) {
 			reprTypeAst(alloc, it))]);
 }
 
-immutable(Repr) reprTypeAst(ref Alloc alloc, ref immutable TypeAst a) {
+immutable(Repr) reprTypeAst(ref Alloc alloc, immutable TypeAst a) {
 	return matchTypeAst!(immutable Repr)(
 		a,
-		(ref immutable TypeAst.Dict it) =>
+		(immutable TypeAst.Dict it) =>
 			reprRecord(alloc, "dict", [
 				reprTypeAst(alloc, it.v),
 				reprTypeAst(alloc, it.k)]),
-		(ref immutable TypeAst.Fun it) =>
+		(immutable TypeAst.Fun it) =>
 			reprRecord(alloc, "fun", [
 				reprRangeWithinFile(alloc, it.range),
 				reprSym(symOfFunKind(it.kind)),
 				reprArr(alloc, it.returnAndParamTypes, (ref immutable TypeAst t) =>
 					reprTypeAst(alloc, t))]),
-		(ref immutable TypeAst.InstStruct i) =>
+		(immutable TypeAst.InstStruct i) =>
 			reprInstStructAst(alloc, i),
-		(ref immutable TypeAst.Suffix it) =>
+		(immutable TypeAst.Suffix it) =>
 			reprRecord(alloc, "suffix", [
 				reprTypeAst(alloc, it.left),
 				reprSym(symForTypeAstSuffix(it.kind))]));
@@ -1321,7 +1321,7 @@ immutable(Sym) symOfFunKind(immutable TypeAst.Fun.Kind a) {
 	}
 }
 
-immutable(Repr) reprInstStructAst(ref Alloc alloc, ref immutable TypeAst.InstStruct a) {
+immutable(Repr) reprInstStructAst(ref Alloc alloc, immutable TypeAst.InstStruct a) {
 	immutable Repr range = reprRangeWithinFile(alloc, a.range);
 	immutable Repr name = reprNameAndRange(alloc, a.name);
 	immutable Opt!Repr typeArgs = empty(toArr(a.typeArgs))

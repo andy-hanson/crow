@@ -138,7 +138,7 @@ struct LocalOrConstant {
 @trusted T matchLocalOrConstant(T)(
 	ref immutable LocalOrConstant a,
 	scope T delegate(immutable Ptr!ConcreteLocal) @safe @nogc pure nothrow cbLocal,
-	scope T delegate(ref immutable TypedConstant) @safe @nogc pure nothrow cbTypedConstant,
+	scope T delegate(immutable TypedConstant) @safe @nogc pure nothrow cbTypedConstant,
 ) {
 	final switch (a.kind_) {
 		case LocalOrConstant.Kind.local:
@@ -148,7 +148,7 @@ struct LocalOrConstant {
 	}
 }
 
-immutable(ConcreteType) getConcreteType(ref Alloc alloc, ref ConcretizeExprCtx ctx, ref immutable Type t) {
+immutable(ConcreteType) getConcreteType(ref Alloc alloc, ref ConcretizeExprCtx ctx, immutable Type t) {
 	immutable TypeArgsScope s = typeScope(ctx);
 	return getConcreteType_fromConcretizeCtx(alloc, ctx.concretizeCtx.deref, t, s);
 }
@@ -321,7 +321,7 @@ immutable(ConcreteField[]) concretizeClosureFields(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	ref immutable Ptr!ClosureField[] closure,
-	ref immutable TypeArgsScope typeArgsScope,
+	immutable TypeArgsScope typeArgsScope,
 ) {
 	return mapWithIndex!ConcreteField(alloc, closure, (immutable size_t index, ref immutable Ptr!ClosureField it) =>
 		immutable ConcreteField(
@@ -494,7 +494,7 @@ immutable(ConcreteExpr) concretizeLet(
 		(immutable Ptr!ConcreteLocal local) =>
 			immutable ConcreteExpr(then.type, range, immutable ConcreteExprKind(
 				immutable ConcreteExprKind.Let(local, value, allocExpr(alloc, then)))),
-		(ref immutable TypedConstant) =>
+		(immutable TypedConstant) =>
 			then);
 }
 
@@ -642,7 +642,7 @@ immutable(ConcreteExpr) concretizeExpr(
 				(immutable Ptr!ConcreteLocal local) =>
 					immutable ConcreteExpr(local.type, range, immutable ConcreteExprKind(
 						immutable ConcreteExprKind.LocalRef(local))),
-				(ref immutable TypedConstant it) =>
+				(immutable TypedConstant it) =>
 					immutable ConcreteExpr(it.type, range, immutable ConcreteExprKind(it.value))),
 		(ref immutable Expr.MatchEnum e) =>
 			concretizeMatchEnum(alloc, ctx, range, e),

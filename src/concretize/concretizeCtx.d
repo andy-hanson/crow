@@ -373,12 +373,12 @@ immutable(ConcreteType) getConcreteType_forStructInst(
 immutable(ConcreteType) getConcreteType(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	ref immutable Type t,
-	ref immutable TypeArgsScope typeArgsScope,
+	immutable Type t,
+	immutable TypeArgsScope typeArgsScope,
 ) {
 	return matchType!(immutable ConcreteType)(
 		t,
-		(ref immutable Type.Bogus) =>
+		(immutable Type.Bogus) =>
 			unreachable!(immutable ConcreteType),
 		(immutable Ptr!TypeParam p) {
 			// Handle calledConcreteFun first
@@ -393,7 +393,7 @@ immutable(ConcreteType[]) typesToConcreteTypes(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	immutable Type[] types,
-	ref immutable TypeArgsScope typeArgsScope,
+	immutable TypeArgsScope typeArgsScope,
 ) {
 	return map!ConcreteType(alloc, types, (ref immutable Type t) =>
 		getConcreteType(alloc, ctx, t, typeArgsScope));
@@ -599,7 +599,7 @@ void initializeConcreteStruct(
 	ref immutable ConcreteType[] typeArgs,
 	immutable Ptr!StructInst i,
 	Ptr!ConcreteStruct res,
-	ref immutable TypeArgsScope typeArgsScope,
+	immutable TypeArgsScope typeArgsScope,
 ) {
 	matchStructBody!void(
 		body_(i),
@@ -888,7 +888,7 @@ immutable(ConcreteParam[]) concretizeParams(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	immutable Param[] params,
-	ref immutable TypeArgsScope typeArgsScope,
+	immutable TypeArgsScope typeArgsScope,
 ) {
 	return mapPtrsWithIndex!ConcreteParam(alloc, params, (immutable size_t index, immutable Ptr!Param p) =>
 		immutable ConcreteParam(

@@ -185,10 +185,10 @@ void addSigReturnTypeAndParamsTokens(ref Alloc alloc, ref ArrBuilder!Token token
 		});
 }
 
-void addTypeTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable TypeAst a) {
+void addTypeTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, immutable TypeAst a) {
 	matchTypeAst!void(
 		a,
-		(ref immutable TypeAst.Dict it) {
+		(immutable TypeAst.Dict it) {
 			addTypeTokens(alloc, tokens, it.v);
 			add(alloc, tokens, immutable Token(
 				Token.Kind.keyword,
@@ -198,23 +198,23 @@ void addTypeTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable T
 				Token.Kind.keyword,
 				rangeOfStartAndLength(range(it.k).end, "]".length)));
 		},
-		(ref immutable TypeAst.Fun it) {
+		(immutable TypeAst.Fun it) {
 			add(alloc, tokens, immutable Token(
 				Token.Kind.keyword,
 				rangeOfStartAndName(it.range.start, shortSymAlphaLiteral("fun"))));
-			foreach (ref immutable TypeAst t; it.returnAndParamTypes)
+			foreach (immutable TypeAst t; it.returnAndParamTypes)
 				addTypeTokens(alloc, tokens, t);
 		},
-		(ref immutable TypeAst.InstStruct it) {
+		(immutable TypeAst.InstStruct it) {
 			addInstStructTokens(alloc, tokens, it);
 		},
-		(ref immutable TypeAst.Suffix it) {
+		(immutable TypeAst.Suffix it) {
 			addTypeTokens(alloc, tokens, it.left.deref());
 			add(alloc, tokens, immutable Token(Token.Kind.keyword, suffixRange(it)));
 		});
 }
 
-void addInstStructTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable TypeAst.InstStruct a) {
+void addInstStructTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, immutable TypeAst.InstStruct a) {
 	add(alloc, tokens, immutable Token(Token.Kind.structRef, rangeOfNameAndRange(a.name)));
 	addTypeArgsTokens(alloc, tokens, a.typeArgs);
 }
@@ -224,7 +224,7 @@ void addTypeArgsTokens(
 	ref ArrBuilder!Token tokens,
 	ref immutable ArrWithSize!TypeAst typeArgs,
 ) {
-	foreach (ref immutable TypeAst typeArg; toArr(typeArgs))
+	foreach (immutable TypeAst typeArg; toArr(typeArgs))
 		addTypeTokens(alloc, tokens, typeArg);
 }
 

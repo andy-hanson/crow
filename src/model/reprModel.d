@@ -159,7 +159,7 @@ immutable(Repr) reprFunDecl(ref Alloc alloc, ref Ctx ctx, ref immutable FunDecl 
 	return reprNamedRecord("fun", finishArr(alloc, fields));
 }
 
-immutable(Repr) reprTypeParam(ref Alloc alloc, ref immutable TypeParam a) {
+immutable(Repr) reprTypeParam(ref Alloc alloc, immutable TypeParam a) {
 	return todo!(immutable Repr)("reprTypeParam");
 }
 
@@ -215,10 +215,10 @@ immutable(Repr) reprFunBody(ref Alloc alloc, ref Ctx ctx, ref immutable FunBody 
 			reprRecord(alloc, "field-set", [reprNat(it.fieldIndex)]));
 }
 
-immutable(Repr) reprType(ref Alloc alloc, ref Ctx ctx, ref immutable Type t) {
+immutable(Repr) reprType(ref Alloc alloc, ref Ctx ctx, immutable Type t) {
 	return matchType!(immutable Repr)(
 		t,
-		(ref immutable Type.Bogus) =>
+		(immutable Type.Bogus) =>
 			reprSym("bogus"),
 		(immutable Ptr!TypeParam p) =>
 			reprRecord(alloc, "type-param", [reprSym(p.name)]),

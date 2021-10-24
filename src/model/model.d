@@ -124,8 +124,8 @@ struct Type {
 }
 
 @trusted immutable(T) matchType(T)(
-	ref immutable Type a,
-	scope immutable(T) delegate(ref immutable Type.Bogus) @safe @nogc pure nothrow cbBogus,
+	immutable Type a,
+	scope immutable(T) delegate(immutable Type.Bogus) @safe @nogc pure nothrow cbBogus,
 	scope immutable(T) delegate(immutable Ptr!TypeParam) @safe @nogc pure nothrow cbTypeParam,
 	scope immutable(T) delegate(immutable Ptr!StructInst) @safe @nogc pure nothrow cbStructInst,
 ) {
@@ -140,54 +140,54 @@ struct Type {
 	}
 }
 
-immutable(bool) isBogus(ref immutable Type a) {
+immutable(bool) isBogus(immutable Type a) {
 	return matchType!(immutable bool)(
 		a,
-		(ref immutable Type.Bogus) => true,
+		(immutable Type.Bogus) => true,
 		(immutable Ptr!TypeParam) => false,
 		(immutable Ptr!StructInst) => false);
 }
-immutable(bool) isTypeParam(ref immutable Type a) {
+immutable(bool) isTypeParam(immutable Type a) {
 	return matchType!(immutable bool)(
 		a,
-		(ref immutable Type.Bogus) => false,
+		(immutable Type.Bogus) => false,
 		(immutable Ptr!TypeParam) => true,
 		(immutable Ptr!StructInst) => false);
 }
-@trusted immutable(Ptr!TypeParam) asTypeParam(ref immutable Type a) {
+@trusted immutable(Ptr!TypeParam) asTypeParam(immutable Type a) {
 	return matchType!(immutable Ptr!TypeParam)(
 		a,
-		(ref immutable Type.Bogus) => unreachable!(immutable Ptr!TypeParam),
+		(immutable Type.Bogus) => unreachable!(immutable Ptr!TypeParam),
 		(immutable Ptr!TypeParam it) => it,
 		(immutable Ptr!StructInst) => unreachable!(immutable Ptr!TypeParam));
 }
-immutable(bool) isStructInst(ref immutable Type a) {
+immutable(bool) isStructInst(immutable Type a) {
 	return matchType!(immutable bool)(
 		a,
-		(ref immutable Type.Bogus) => false,
+		(immutable Type.Bogus) => false,
 		(immutable Ptr!TypeParam) => false,
 		(immutable Ptr!StructInst) => true);
 }
-@trusted immutable(Ptr!StructInst) asStructInst(ref immutable Type a) {
+@trusted immutable(Ptr!StructInst) asStructInst(immutable Type a) {
 	return matchType!(immutable Ptr!StructInst)(
 		a,
-		(ref immutable Type.Bogus) => unreachable!(immutable Ptr!StructInst),
+		(immutable Type.Bogus) => unreachable!(immutable Ptr!StructInst),
 		(immutable Ptr!TypeParam) => unreachable!(immutable Ptr!StructInst),
 		(immutable Ptr!StructInst it) => it);
 }
 
-immutable(Purity) bestCasePurity(ref immutable Type a) {
+immutable(Purity) bestCasePurity(immutable Type a) {
 	return matchType!(immutable Purity)(
 		a,
-		(ref immutable Type.Bogus) => Purity.data,
+		(immutable Type.Bogus) => Purity.data,
 		(immutable Ptr!TypeParam) => Purity.data,
 		(immutable Ptr!StructInst i) => i.bestCasePurity);
 }
 
-immutable(Purity) worstCasePurity(ref immutable Type a) {
+immutable(Purity) worstCasePurity(immutable Type a) {
 	return matchType!(immutable Purity)(
 		a,
-		(ref immutable Type.Bogus) => Purity.data,
+		(immutable Type.Bogus) => Purity.data,
 		(immutable Ptr!TypeParam) => Purity.mut,
 		(immutable Ptr!StructInst i) => i.worstCasePurity);
 }
@@ -196,7 +196,7 @@ immutable(Purity) worstCasePurity(ref immutable Type a) {
 immutable(bool) typeEquals(immutable Type a, immutable Type b) {
 	return matchType!(immutable bool)(
 		a,
-		(ref immutable Type.Bogus) =>
+		(immutable Type.Bogus) =>
 			isBogus(b),
 		(immutable Ptr!TypeParam p) =>
 			isTypeParam(b) && ptrEquals(p, asTypeParam(b)),
@@ -204,20 +204,20 @@ immutable(bool) typeEquals(immutable Type a, immutable Type b) {
 			isStructInst(b) && ptrEquals(i, asStructInst(b)));
 }
 
-private immutable(Comparison) compareType(ref immutable Type a, ref immutable Type b) {
+private immutable(Comparison) compareType(immutable Type a, immutable Type b) {
 	return matchType!(immutable Comparison)(
 		a,
-		(ref immutable Type.Bogus) => isBogus(b) ? Comparison.equal : Comparison.less,
+		(immutable Type.Bogus) => isBogus(b) ? Comparison.equal : Comparison.less,
 		(immutable Ptr!TypeParam pa) =>
 			matchType!(immutable Comparison)(
 				b,
-				(ref immutable Type.Bogus) => Comparison.greater,
+				(immutable Type.Bogus) => Comparison.greater,
 				(immutable Ptr!TypeParam pb) => comparePtr(pa, pb),
 				(immutable Ptr!StructInst) => Comparison.less),
 		(immutable Ptr!StructInst ia) =>
 			matchType!(immutable Comparison)(
 				b,
-				(ref immutable Type.Bogus) => Comparison.greater,
+				(immutable Type.Bogus) => Comparison.greater,
 				(immutable Ptr!TypeParam) => Comparison.greater,
 				(immutable Ptr!StructInst ib) => comparePtr(ia, ib)));
 }
@@ -1821,10 +1821,10 @@ void writeStructInst(ref Writer writer, ref immutable StructInst s) {
 }
 
 //TODO:MOVE
-void writeType(ref Writer writer, ref immutable Type type) {
+void writeType(ref Writer writer, immutable Type type) {
 	matchType!void(
 		type,
-		(ref immutable Type.Bogus) {
+		(immutable Type.Bogus) {
 			writeStatic(writer, "<<bogus>>");
 		},
 		(immutable Ptr!TypeParam p) {

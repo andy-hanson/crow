@@ -518,7 +518,7 @@ immutable(Params) checkParams(
 	ref immutable CommonTypes commonTypes,
 	ref immutable ParamsAst ast,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	ref immutable TypeParamsScope typeParamsScope,
+	immutable TypeParamsScope typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
 ) {
 	return matchParamsAst!(immutable Params)(
@@ -547,7 +547,7 @@ immutable(Params) checkParams(
 				alloc, ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts, varargs.param, 0);
 			immutable Type elementType = matchType!(immutable Type)(
 				param.type,
-				(ref immutable Type.Bogus) =>
+				(immutable Type.Bogus) =>
 					immutable Type(immutable Type.Bogus()),
 				(immutable Ptr!TypeParam) =>
 					todo!(immutable Type)("diagnostic"),
@@ -567,7 +567,7 @@ immutable(Param) checkParam(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	ref immutable TypeParamsScope typeParamsScope,
+	immutable TypeParamsScope typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
 	ref immutable ParamAst ast,
 	immutable size_t index,
@@ -957,12 +957,12 @@ immutable(EnumBackingType) getEnumTypeFromType(
 	ref CheckCtx ctx,
 	ref immutable RangeWithinFile range,
 	ref immutable CommonTypes commonTypes,
-	ref immutable Type type,
+	immutable Type type,
 ) {
 	immutable IntegralTypes integrals = commonTypes.integrals;
 	return matchType!EnumBackingType(
 		type,
-		(ref immutable Type.Bogus) =>
+		(immutable Type.Bogus) =>
 			defaultEnumBackingType(),
 		(immutable Ptr!TypeParam) =>
 			// enums can't have type params
@@ -1545,7 +1545,7 @@ void addEnumFlagsCommonFunctions(
 	ref ProgramState programState,
 	immutable Visibility visibility,
 	ref immutable FileAndRange range,
-	ref immutable Type type,
+	immutable Type type,
 	immutable EnumBackingType backingType,
 	ref immutable CommonTypes commonTypes,
 	immutable Sym membersName,
@@ -1562,7 +1562,7 @@ void addEnumFlagsCommonFunctions(
 FunDecl enumOrFlagsConstructor(
 	ref Alloc alloc,
 	immutable Visibility visibility,
-	ref immutable Type enumType,
+	immutable Type enumType,
 	ref immutable StructBody.Enum.Member member,
 ) {
 	return FunDecl(
@@ -1583,7 +1583,7 @@ FunDecl enumEqualFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
-	ref immutable Type enumType,
+	immutable Type enumType,
 	ref immutable CommonTypes commonTypes,
 ) {
 	return FunDecl(
@@ -1606,7 +1606,7 @@ FunDecl flagsEmptyFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
-	ref immutable Type enumType,
+	immutable Type enumType,
 ) {
 	return FunDecl(
 		emptySafeCStr,
@@ -1626,7 +1626,7 @@ FunDecl flagsAllFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
-	ref immutable Type enumType,
+	immutable Type enumType,
 ) {
 	return FunDecl(
 		emptySafeCStr,
@@ -1646,7 +1646,7 @@ FunDecl flagsNegateFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
-	ref immutable Type enumType,
+	immutable Type enumType,
 ) {
 	return FunDecl(
 		emptySafeCStr,
@@ -1692,7 +1692,7 @@ FunDecl enumOrFlagsMembersFunction(
 	immutable Visibility visibility,
 	ref immutable FileAndRange fileAndRange,
 	immutable Sym name,
-	ref immutable Type enumType,
+	immutable Type enumType,
 	ref immutable CommonTypes commonTypes,
 ) {
 	return FunDecl(

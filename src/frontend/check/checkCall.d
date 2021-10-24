@@ -359,7 +359,7 @@ immutable(Type) getCandidateExpectedParameterTypeRecur(
 ) {
 	return matchType(
 		candidateParamType,
-		(ref immutable Type.Bogus) =>
+		(immutable Type.Bogus) =>
 			immutable Type(Type.Bogus()),
 		(immutable Ptr!TypeParam p) {
 			const InferringTypeArgs ita = inferringTypeArgs_const(candidate);
@@ -501,7 +501,7 @@ void filterByReturnType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref MutArr!Candidate candidates,
-	ref immutable Type expectedReturnType,
+	immutable Type expectedReturnType,
 ) {
 	// Filter by return type. Also does type argument inference on the candidate.
 	filterUnordered!Candidate(candidates, (ref Candidate candidate) {
@@ -581,7 +581,7 @@ immutable(bool) checkBuiltinSpec(
 	immutable Ptr!FunDecl called,
 	ref immutable FileAndRange range,
 	immutable SpecBody.Builtin.Kind kind,
-	ref immutable Type typeArg,
+	immutable Type typeArg,
  ) {
 	// TODO: Instead of worstCasePurity(), it type is a type parameter,
 	// see if the current function has its own spec requiring that it be data / send

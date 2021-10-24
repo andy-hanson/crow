@@ -64,7 +64,7 @@ struct TypeParamsAndArgs {
 }
 
 immutable(Opt!(Ptr!T)) tryGetTypeArg(T)(
-	ref immutable TypeParam[] typeParams,
+	immutable TypeParam[] typeParams,
 	ref immutable T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
@@ -75,7 +75,7 @@ immutable(Opt!(Ptr!T)) tryGetTypeArg(T)(
 }
 
 const(Opt!(Ptr!T)) tryGetTypeArg(T)(
-	ref immutable TypeParam[] typeParams,
+	immutable TypeParam[] typeParams,
 	ref const T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
@@ -85,7 +85,7 @@ const(Opt!(Ptr!T)) tryGetTypeArg(T)(
 }
 
 Opt!(Ptr!T) tryGetTypeArg(T)(
-	ref immutable TypeParam[] typeParams,
+	immutable TypeParam[] typeParams,
 	ref T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
@@ -95,7 +95,7 @@ Opt!(Ptr!T) tryGetTypeArg(T)(
 }
 
 private immutable(Opt!Type) tryGetTypeArgFromTypeParamsAndArgs(
-	ref immutable TypeParamsAndArgs typeParamsAndArgs,
+	immutable TypeParamsAndArgs typeParamsAndArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
 	immutable Opt!(Ptr!Type) t = tryGetTypeArg(typeParamsAndArgs.typeParams, typeParamsAndArgs.typeArgs, typeParam);
@@ -109,13 +109,13 @@ alias DelayStructInsts = Opt!(Ptr!(MutArr!(Ptr!StructInst)));
 private immutable(Type) instantiateType(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref immutable Type type,
-	ref immutable TypeParamsAndArgs typeParamsAndArgs,
+	immutable Type type,
+	immutable TypeParamsAndArgs typeParamsAndArgs,
 	DelayStructInsts delayStructInsts,
 ) {
 	return matchType!(immutable Type)(
 		type,
-		(ref immutable Type.Bogus) =>
+		(immutable Type.Bogus) =>
 			immutable Type(Type.Bogus()),
 		(immutable Ptr!TypeParam p) {
 			immutable Opt!Type op = tryGetTypeArgFromTypeParamsAndArgs(typeParamsAndArgs, p);
@@ -128,8 +128,8 @@ private immutable(Type) instantiateType(
 private immutable(Type) instantiateTypeNoDelay(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref immutable Type type,
-	ref immutable TypeParamsAndArgs typeParamsAndArgs,
+	immutable Type type,
+	immutable TypeParamsAndArgs typeParamsAndArgs,
 ) {
 	return instantiateType(alloc, programState, type, typeParamsAndArgs, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }
@@ -229,7 +229,7 @@ private immutable(Ptr!StructInst) instantiateStructInst(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Ptr!StructInst structInst,
-	ref immutable TypeParamsAndArgs typeParamsAndArgs,
+	immutable TypeParamsAndArgs typeParamsAndArgs,
 	DelayStructInsts delayStructInsts,
 ) {
 	// TODO:PERF don't create the array if we don't need it (`instantiate` could take the callback)
@@ -310,7 +310,7 @@ immutable(Ptr!SpecInst) instantiateSpecInst(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Ptr!SpecInst specInst,
-	ref immutable TypeParamsAndArgs typeParamsAndArgs,
+	immutable TypeParamsAndArgs typeParamsAndArgs,
 ) {
 	// TODO:PERF don't create the array if we don't need it (`instantiate` could take the callback)
 	immutable Type[] itsTypeArgs = map!Type(alloc, specInst.typeArgs, (ref immutable Type t) =>
@@ -343,7 +343,7 @@ immutable(Sig) instantiateSig(
 immutable(Param) instantiateParam(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref immutable TypeParamsAndArgs typeParamsAndArgs,
+	immutable TypeParamsAndArgs typeParamsAndArgs,
 	ref immutable Param a,
 ) {
 	return withType(a, instantiateTypeNoDelay(alloc, programState, a.type, typeParamsAndArgs));

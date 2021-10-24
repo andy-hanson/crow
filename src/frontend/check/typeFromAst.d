@@ -127,14 +127,14 @@ immutable(Type) typeFromAst(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	ref immutable TypeAst ast,
+	immutable TypeAst ast,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
 	return matchTypeAst!(immutable Type)(
 		ast,
-		(ref immutable TypeAst.Dict it) =>
+		(immutable TypeAst.Dict it) =>
 			instStructFromAst(
 				alloc,
 				ctx,
@@ -145,9 +145,9 @@ immutable(Type) typeFromAst(
 				structsAndAliasesDict,
 				typeParamsScope,
 				delayStructInsts),
-		(ref immutable TypeAst.Fun it) =>
+		(immutable TypeAst.Fun it) =>
 			typeFromFunAst(alloc, ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts),
-		(ref immutable TypeAst.InstStruct iAst) {
+		(immutable TypeAst.InstStruct iAst) {
 			immutable Opt!(Diag.TypeShouldUseSyntax.Kind) optSyntax = typeSyntaxKind(iAst.name.name);
 			if (has(optSyntax))
 				addDiag(alloc, ctx, iAst.range, immutable Diag(immutable Diag.TypeShouldUseSyntax(force(optSyntax))));
@@ -171,7 +171,7 @@ immutable(Type) typeFromAst(
 					typeParamsScope,
 					delayStructInsts);
 		},
-		(ref immutable TypeAst.Suffix it) =>
+		(immutable TypeAst.Suffix it) =>
 			instStructFromAst(
 				alloc,
 				ctx,
@@ -213,9 +213,9 @@ private immutable(Type) typeFromFunAst(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	ref immutable TypeAst.Fun ast,
+	immutable TypeAst.Fun ast,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	ref immutable TypeParamsScope typeParamsScope,
+	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
 	immutable FunKind funKind = () {
@@ -276,7 +276,7 @@ immutable(Type[]) typeArgsFromAsts(
 	ref immutable CommonTypes commonTypes,
 	scope immutable TypeAst[] typeAsts,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	ref immutable TypeParamsScope typeParamsScope,
+	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
 	return map!Type(alloc, typeAsts, (ref immutable TypeAst it) =>
@@ -287,7 +287,7 @@ immutable(Type) makeFutType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable CommonTypes commonTypes,
-	ref immutable Type type,
+	immutable Type type,
 ) {
 	return immutable Type(instantiateStructNeverDelay(
 		alloc,

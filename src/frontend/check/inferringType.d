@@ -173,8 +173,8 @@ struct CheckedExpr {
 immutable(bool) matchTypesNoDiagnostic(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref immutable Type expectedType,
-	ref immutable Type setType,
+	immutable Type expectedType,
+	immutable Type setType,
 	ref InferringTypeArgs aInferringTypeArgs
 ) {
 	immutable SetTypeResult result =
@@ -420,12 +420,12 @@ immutable(SetTypeResult) setTypeNoDiagnosticWorker_forStructInst(
 immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref immutable Type t,
+	immutable Type t,
 	ref const InferringTypeArgs inferringTypeArgs,
 ) {
 	return matchType(
 		t,
-		(ref immutable Type.Bogus) =>
+		(immutable Type.Bogus) =>
 			some(immutable Type(Type.Bogus())),
 		(immutable Ptr!TypeParam p) {
 			const Opt!(Ptr!SingleInferringType) ta = tryGetTypeArgFromInferringTypeArgs_const(inferringTypeArgs, p);
@@ -460,7 +460,7 @@ immutable(SetTypeResult) setTypeNoDiagnosticWorker_forSingleInferringType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref SingleInferringType sit,
-	ref immutable Type setType,
+	immutable Type setType,
 ) {
 	InferringTypeArgs inferring = InferringTypeArgs.none();
 	immutable SetTypeResult res = checkAssignabilityOpt(alloc, programState, tryGetInferred(sit), setType, inferring);
@@ -483,13 +483,13 @@ immutable(SetTypeResult) setTypeNoDiagnosticWorker_forSingleInferringType(
 immutable(SetTypeResult) checkAssignability(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref immutable Type a,
-	ref immutable Type b,
+	immutable Type a,
+	immutable Type b,
 	ref InferringTypeArgs aInferringTypeArgs,
 ) {
 	return matchType!SetTypeResult(
 		a,
-		(ref immutable Type.Bogus) =>
+		(immutable Type.Bogus) =>
 			// TODO: make sure to infer type params in this case!
 			immutable SetTypeResult(SetTypeResult.Keep()),
 		(immutable Ptr!TypeParam pa) {
@@ -498,7 +498,7 @@ immutable(SetTypeResult) checkAssignability(
 				? setTypeNoDiagnosticWorker_forSingleInferringType(alloc, programState, force(aInferring).deref, b)
 				: matchType!SetTypeResult(
 					b,
-					(ref immutable Type.Bogus) =>
+					(immutable Type.Bogus) =>
 						// Bogus is assignable to anything
 						immutable SetTypeResult(SetTypeResult.Keep()),
 					(immutable Ptr!TypeParam pb) =>
@@ -512,7 +512,7 @@ immutable(SetTypeResult) checkAssignability(
 		(immutable Ptr!StructInst ai) =>
 			matchType!SetTypeResult(
 				b,
-				(ref immutable Type.Bogus) =>
+				(immutable Type.Bogus) =>
 					// Bogus is assignable to anything
 					immutable SetTypeResult(SetTypeResult.Keep()),
 				(immutable Ptr!TypeParam) =>

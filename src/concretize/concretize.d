@@ -130,25 +130,25 @@ immutable(ConcreteFunToName) getFunToName(
 	return finishDictShouldBeNoConflict(alloc, res);
 }
 
-immutable(bool) isNat(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+immutable(bool) isNat(ref immutable CommonTypes commonTypes, immutable Type type) {
 	return typeEquals(type, immutable Type(commonTypes.integrals.nat64));
 }
 
-immutable(bool) isInt32(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+immutable(bool) isInt32(ref immutable CommonTypes commonTypes, immutable Type type) {
 	return typeEquals(type, immutable Type(commonTypes.integrals.int32));
 }
 
-immutable(bool) isStr(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+immutable(bool) isStr(ref immutable CommonTypes commonTypes, immutable Type type) {
 	return typeEquals(type, immutable Type(commonTypes.str));
 }
 
-immutable(bool) isFutNat(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+immutable(bool) isFutNat(ref immutable CommonTypes commonTypes, immutable Type type) {
 	return isStructInst(type) &&
 		ptrEquals(decl(asStructInst(type).deref), commonTypes.fut) &&
 		isNat(commonTypes, only(typeArgs(asStructInst(type).deref)));
 }
 
-immutable(bool) isArrStr(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+immutable(bool) isArrStr(ref immutable CommonTypes commonTypes, immutable Type type) {
 	return isStructInst(type) &&
 		ptrEquals(decl(asStructInst(type).deref), commonTypes.arr) &&
 		isStr(commonTypes, only(typeArgs(asStructInst(type).deref)));

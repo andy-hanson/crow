@@ -309,7 +309,7 @@ immutable(ThenAndElse) checkIfWithoutElse(
 	}
 }
 
-immutable(bool) isOptType(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+immutable(bool) isOptType(ref immutable CommonTypes commonTypes, immutable Type type) {
 	return isStructInst(type) && ptrEquals(decl(asStructInst(type).deref()), commonTypes.opt);
 }
 
@@ -329,7 +329,7 @@ immutable(Expr) makeNone(
 		immutable Expr.Call(immutable Called(noneInst), emptyArr!Expr()));
 }
 
-immutable(bool) isVoid(ref const ExprCtx ctx, ref immutable Type type) {
+immutable(bool) isVoid(ref const ExprCtx ctx, immutable Type type) {
 	return isStructInst(type) && ptrEquals(asStructInst(type), ctx.commonTypes.void_);
 }
 
@@ -894,7 +894,7 @@ immutable(CheckedExpr) checkLambdaCommon(
 	immutable Opt!Type actualNonFutReturnType = kind == FunKind.ref_
 		? matchType(
 			actualPossiblyFutReturnType,
-			(ref immutable Type.Bogus) =>
+			(immutable Type.Bogus) =>
 				some(immutable Type(immutable Type.Bogus())),
 			(immutable Ptr!TypeParam) =>
 				none!Type,
@@ -994,10 +994,10 @@ struct EnumOrUnionAndMembers {
 	}
 }
 
-immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(ref immutable Type t) {
+immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type t) {
 	return matchType(
 		t,
-		(ref immutable Type.Bogus) => none!EnumOrUnionAndMembers,
+		(immutable Type.Bogus) => none!EnumOrUnionAndMembers,
 		(immutable Ptr!TypeParam) => none!EnumOrUnionAndMembers,
 		(immutable Ptr!StructInst structInst) =>
 			matchStructBody!(immutable Opt!EnumOrUnionAndMembers)(

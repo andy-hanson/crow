@@ -276,7 +276,7 @@ void writeQuotedType(ref Writer writer, immutable Type a) {
 void writeType(ref Writer writer, immutable Type a) {
 	matchType!void(
 		a,
-		(ref immutable Type.Bogus) {
+		(immutable Type.Bogus) {
 			unreachable!void();
 		},
 		(immutable Ptr!TypeParam it) {
