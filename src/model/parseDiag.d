@@ -4,7 +4,6 @@ module model.parseDiag;
 
 import util.opt : Opt;
 import util.path : PathAndStorageKind, PathAndRange, RelPath;
-import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym;
 
@@ -108,7 +107,7 @@ struct ParseDiag {
 	union {
 		immutable CantPrecedeMutEquals cantPrecedeMutEquals;
 		immutable CantPrecedeOptEquals cantPrecedeOptEquals;
-		immutable Ptr!CircularImport circularImport;
+		immutable CircularImport circularImport;
 		immutable Expected expected;
 		immutable FileDoesNotExist fileDoesNotExist;
 		immutable FunctionTypeMissingParens functionTypeMissingParens;
@@ -130,7 +129,7 @@ struct ParseDiag {
 	public:
 	immutable this(immutable CantPrecedeMutEquals a) { kind = Kind.cantPrecedeMutEquals; cantPrecedeMutEquals = a; }
 	immutable this(immutable CantPrecedeOptEquals a) { kind = Kind.cantPrecedeOptEquals; cantPrecedeOptEquals = a; }
-	@trusted immutable this(immutable Ptr!CircularImport a) { kind = Kind.circularImport; circularImport = a; }
+	@trusted immutable this(immutable CircularImport a) { kind = Kind.circularImport; circularImport = a; }
 	immutable this(immutable Expected a) { kind = Kind.expected; expected = a; }
 	immutable this(immutable FileDoesNotExist a) { kind = Kind.fileDoesNotExist; fileDoesNotExist = a; }
 	immutable this(immutable FunctionTypeMissingParens a) {

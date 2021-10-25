@@ -296,8 +296,7 @@ immutable(FileIndex) parseRecur(ReadOnlyStorage)(
 													arrLiteral!ParseDiagnostic(modelAlloc, [
 														immutable ParseDiagnostic(
 															import_.importedFrom,
-															immutable ParseDiag(allocate(modelAlloc,
-																immutable ParseDiag.CircularImport(path, resolvedPath))))]),
+															immutable ParseDiag(immutable ParseDiag.CircularImport(path, resolvedPath)))]),
 													parseResult.lineAndColumnGetter),
 											(ref immutable ParseStatus.Done it) =>
 												it.fileIndex);
@@ -373,7 +372,7 @@ immutable(Diags) parseDiagnostics(
 	return map(modelAlloc, diags, (ref immutable ParseDiagnostic it) =>
 		immutable Diagnostic(
 			immutable FileAndRange(where, it.range),
-			allocate(modelAlloc, immutable Diag(allocate(modelAlloc, it.diag)))));
+			allocate(modelAlloc, immutable Diag(it.diag))));
 }
 
 alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter; // TODO: OrderedFullIndexDictBuilder?

@@ -601,7 +601,7 @@ struct SpecUsesAndSigFlagsAndKwBody {
 	immutable bool summon;
 	immutable bool unsafe;
 	immutable bool trusted;
-	immutable Opt!(Ptr!FunBodyAst) body_; // none for 'builtin' or 'extern'
+	immutable Opt!FunBodyAst body_; // none for 'builtin' or 'extern'
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
@@ -611,7 +611,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
 		false,
 		false,
 		false,
-		none!(Ptr!FunBodyAst));
+		none!FunBodyAst);
 
 immutable(FunBodyAst.Extern) takeExternName(
 	ref Alloc alloc,
@@ -725,11 +725,11 @@ immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(
 
 		//TODO: assert 'builtin' and 'extern' and 'extern-global' can't be set together.
 		//Also, 'extern-global' should always be 'unsafe noctx'
-		immutable Opt!(Ptr!FunBodyAst) body_ = builtin
-			? some(allocate(alloc, immutable FunBodyAst(immutable FunBodyAst.Builtin())))
+		immutable Opt!FunBodyAst body_ = builtin
+			? some(immutable FunBodyAst(immutable FunBodyAst.Builtin()))
 			: has(extern_)
-			? some(allocate(alloc, immutable FunBodyAst(extern_.force)))
-			: none!(Ptr!FunBodyAst);
+			? some(immutable FunBodyAst(extern_.force))
+			: none!FunBodyAst;
 		return SpecUsesAndSigFlagsAndKwBody(finishArr(alloc, specUses), noCtx, summon, unsafe, trusted, body_);
 	}
 }
@@ -762,7 +762,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(
 			false,
 			false,
 			false,
-			none!(Ptr!FunBodyAst));
+			none!FunBodyAst);
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(
@@ -790,7 +790,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(
 //TODO:RENAME
 struct FunDeclStuff {
 	immutable SpecUsesAndSigFlagsAndKwBody extra;
-	immutable Ptr!FunBodyAst body_;
+	immutable FunBodyAst body_;
 }
 
 immutable(FunDeclAst) parseFun(
@@ -811,15 +811,15 @@ immutable(FunDeclAst) parseFun(
 			immutable SpecUsesAndSigFlagsAndKwBody extra = tryTake(lexer, "spec")
 				? parseIndentedSpecUses(alloc, allSymbols, lexer)
 				: emptySpecUsesAndSigFlagsAndKwBody;
-			immutable Ptr!FunBodyAst body_ = optOr(extra.body_, () {
+			immutable FunBodyAst body_ = optOr(extra.body_, () {
 				takeOrAddDiagExpected(alloc, lexer, "body", ParseDiag.Expected.Kind.bodyKeyword);
-				return allocate(alloc, immutable FunBodyAst(parseFunExprBody(alloc, allSymbols, lexer)));
+				return immutable FunBodyAst(parseFunExprBody(alloc, allSymbols, lexer));
 			});
 			return immutable FunDeclStuff(extra, body_);
 		} else {
 			immutable SpecUsesAndSigFlagsAndKwBody extra = parseSpecUsesAndSigFlagsAndKwBody(alloc, allSymbols, lexer);
-			immutable Ptr!FunBodyAst body_ = optOr(extra.body_, () =>
-				allocate(alloc, immutable FunBodyAst(parseFunExprBody(alloc, allSymbols, lexer))));
+			immutable FunBodyAst body_ = optOr(extra.body_, () =>
+				immutable FunBodyAst(parseFunExprBody(alloc, allSymbols, lexer)));
 			return immutable FunDeclStuff(extra, body_);
 		}
 	}();

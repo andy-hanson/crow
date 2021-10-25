@@ -272,7 +272,7 @@ immutable(CheckedExpr) check(
 	else {
 		// Failed to set type. This happens if there was already an inferred type.
 		immutable Opt!Type t = tryGetInferred(expected);
-		addDiag2(alloc, ctx, range(expr), immutable Diag(allocate(alloc, immutable Diag.TypeConflict(force(t), exprType))));
+		addDiag2(alloc, ctx, range(expr), immutable Diag(immutable Diag.TypeConflict(force(t), exprType)));
 		return bogus(expected, range(expr));
 	}
 }

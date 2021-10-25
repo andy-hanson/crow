@@ -1003,7 +1003,7 @@ struct FunDeclAst {
 	immutable bool summon;
 	immutable bool unsafe;
 	immutable bool trusted;
-	immutable Ptr!FunBodyAst body_;
+	immutable FunBodyAst body_;
 }
 
 struct TestAst {
