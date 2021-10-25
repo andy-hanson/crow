@@ -40,7 +40,7 @@ import util.collection.arr : ptrAt, size, sizeEq;
 import util.collection.arrUtil : arrLiteral, fold, map, mapWithSize;
 import util.collection.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
 import util.collection.mutArr : MutArr, push;
-import util.memory : allocate, nu, nuMut;
+import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, noneMut, Opt, some, someConst, someMut;
 import util.ptr : castImmutable, Ptr, ptrEquals;
 import util.util : verify;
@@ -143,14 +143,13 @@ immutable(Ptr!FunInst) instantiateFun(
 		alloc,
 		programState.funInsts,
 		declAndArgs,
-		() => nu!FunInst(
-			alloc,
+		() => allocate(alloc, immutable FunInst(
 			declAndArgs,
 			instantiateSig(
 				alloc,
 				programState,
 				declAndArgs.decl.sig,
-				immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs))));
+				immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs)))));
 }
 
 immutable(StructBody) instantiateStructBody(
@@ -209,7 +208,7 @@ immutable(Ptr!StructInst) instantiateStruct(
 				declAndArgs.typeArgs,
 				(immutable Purity pur, ref immutable Type typeArg) =>
 					worsePurity(pur, worstCasePurity(typeArg)));
-			return nuMut!StructInst(alloc, declAndArgs, bestPurity, worstPurity);
+			return allocateMut(alloc, StructInst(declAndArgs, bestPurity, worstPurity));
 		});
 
 	if (res.didAdd) {
@@ -293,7 +292,7 @@ immutable(Ptr!SpecInst) instantiateSpec(
 		alloc,
 		programState.specInsts,
 		declAndArgs,
-		() => nu!SpecInst(alloc, declAndArgs, matchSpecBody(
+		() => allocate(alloc, immutable SpecInst(declAndArgs, matchSpecBody(
 				declAndArgs.decl.body_,
 				(ref immutable SpecBody.Builtin b) =>
 					immutable SpecBody(SpecBody.Builtin(b.kind)),
@@ -303,7 +302,7 @@ immutable(Ptr!SpecInst) instantiateSpec(
 							alloc,
 							programState,
 							sig,
-							immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs)))))));
+							immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs))))))));
 }
 
 immutable(Ptr!SpecInst) instantiateSpecInst(

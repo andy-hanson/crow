@@ -47,7 +47,7 @@ import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeN
 import util.collection.mutArr : moveToArr, MutArr;
 import util.collection.mutDict : mapToDict, mutDictIsEmpty;
 import util.collection.mutSet : moveToArr;
-import util.memory : nu;
+import util.memory : allocate;
 import util.opt : force, has, Opt;
 import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sym : AllSymbols, getSymFromAlphaIdentifier, shortSymAlphaLiteral, Sym;
@@ -87,8 +87,7 @@ immutable(Ptr!ConcreteProgram) concretize(
 
 	deferredFillRecordAndUnionBodies(alloc, ctx);
 
-	return nu!ConcreteProgram(
-		alloc,
+	return allocate(alloc, immutable ConcreteProgram(
 		finishAllConstants(
 			alloc,
 			ctx.allConstants,
@@ -103,14 +102,13 @@ immutable(Ptr!ConcreteProgram) concretize(
 			ctx.funStructToImpls,
 			(ref MutArr!(immutable ConcreteLambdaImpl) it) =>
 				moveToArr(alloc, it)),
-		nu!ConcreteCommonFuns(
-			alloc,
+		allocate(alloc, immutable ConcreteCommonFuns(
 			markConcreteFun,
 			rtMainConcreteFun,
 			userMainConcreteFun,
-			allocFun),
+			allocFun)),
 		ctxStruct,
-		moveToArr(alloc, ctx.allExternLibraryNames));
+		moveToArr(alloc, ctx.allExternLibraryNames)));
 }
 
 private:

@@ -67,7 +67,7 @@ import util.collection.arr : emptyArr;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.collection.globalAllocatedStack : begin, pop, push;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
-import util.memory : nu;
+import util.memory : allocate;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
 import util.ptr : ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos;
@@ -123,26 +123,24 @@ void doInterpret(Debug)(
 		ptrTrustMe(emptyAbsolutePathsGetter),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(lcg));
 	immutable LowFun[1] lowFun = [immutable LowFun(
-		immutable LowFunSource(
-			nu!(LowFunSource.Generated)(test.alloc.deref(), shortSymAlphaLiteral("test"), emptyArr!LowType)),
-		nu!LowFunSig(
-			test.alloc.deref(),
+		immutable LowFunSource(allocate(test.alloc.deref(), immutable LowFunSource.Generated(
+			shortSymAlphaLiteral("test"), emptyArr!LowType))),
+		allocate(test.alloc.deref(), immutable LowFunSig(
 			nat64Type,
 			immutable LowFunParamsKind(false, false),
-			emptyArr!LowParam),
-		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc.deref(), false)))];
+			emptyArr!LowParam)),
+		immutable LowFunBody(allocate(test.alloc.deref(), immutable LowFunBody.Extern(false))))];
 	immutable LowProgram lowProgram = immutable LowProgram(
 		ConcreteFunToLowFunIndex(),
 		immutable AllConstantsLow(
 			emptyArr!string,
 			emptyArr!ArrTypeAndConstantsLow,
 			emptyArr!PointerTypeAndConstantsLow),
-		nu!AllLowTypes(
-			test.alloc.deref(),
+		allocate(test.alloc.deref(), immutable AllLowTypes(
 			emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),
 			emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
 			emptyFullIndexDict!(LowType.Record, LowRecord),
-			emptyFullIndexDict!(LowType.Union, LowUnion)),
+			emptyFullIndexDict!(LowType.Union, LowUnion))),
 		fullIndexDictOfArr!(LowFunIndex, LowFun)(lowFun),
 		immutable LowFunIndex(0));
 	FakeExtern extern_ = newFakeExtern(test.alloc);

@@ -14,7 +14,7 @@ import model.model :
 	StructInst;
 import util.alloc.alloc : Alloc;
 import util.collection.mutDict : MutDict;
-import util.memory : nuMut;
+import util.memory : allocateMut;
 import util.ptr : Ptr;
 import util.sym : AllSymbols, symOfStr, MutSymSet, Sym;
 
@@ -23,15 +23,14 @@ struct ProgramState {
 
 	this(ref Alloc alloc, ref AllSymbols allSymbols) {
 		symFlagsMembers = symOfStr(allSymbols, "flags-members");
-		names = nuMut!ProgramNames(
-			alloc,
-			nuMut!MutSymSet(alloc),
-			nuMut!MutSymSet(alloc),
-			nuMut!MutSymSet(alloc),
-			nuMut!MutSymSet(alloc));
-		funInsts = nuMut!(MutDict!(immutable FunDeclAndArgs, immutable Ptr!FunInst, compareFunDeclAndArgs))(alloc);
-		structInsts = nuMut!(MutDict!(immutable StructDeclAndArgs, Ptr!StructInst, compareStructDeclAndArgs))(alloc);
-		specInsts = nuMut!(MutDict!(immutable SpecDeclAndArgs, immutable Ptr!SpecInst, compareSpecDeclAndArgs))(alloc);
+		names = allocateMut(alloc, ProgramNames(
+			allocateMut(alloc, MutSymSet()),
+			allocateMut(alloc, MutSymSet()),
+			allocateMut(alloc, MutSymSet()),
+			allocateMut(alloc, MutSymSet())));
+		funInsts = allocateMut(alloc, MutDict!(immutable FunDeclAndArgs, immutable Ptr!FunInst, compareFunDeclAndArgs)());
+		structInsts = allocateMut(alloc, MutDict!(immutable StructDeclAndArgs, Ptr!StructInst, compareStructDeclAndArgs)());
+		specInsts = allocateMut(alloc, MutDict!(immutable SpecDeclAndArgs, immutable Ptr!SpecInst, compareSpecDeclAndArgs)());
 	}
 
 	immutable Sym symFlagsMembers;

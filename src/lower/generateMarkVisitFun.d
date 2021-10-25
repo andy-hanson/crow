@@ -48,7 +48,7 @@ import util.alloc.alloc : Alloc;
 import util.collection.arr : at, size;
 import util.collection.arrUtil : arrLiteral, mapWithIndex;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.memory : allocate, nu;
+import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
@@ -94,15 +94,13 @@ immutable(LowFun) generateMarkVisitGcPtr(
 	}();
 	immutable LowFunExprBody body_ = immutable LowFunExprBody(false, allocate(alloc, expr));
 	return immutable LowFun(
-		immutable LowFunSource(nu!(LowFunSource.Generated)(
-			alloc,
+		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("mark-visit"),
-			arrLiteral!LowType(alloc, [pointerType]))),
-		nu!LowFunSig(
-			alloc,
+			arrLiteral!LowType(alloc, [pointerType])))),
+		allocate(alloc, immutable LowFunSig(
 			voidType,
 			immutable LowFunParamsKind(false, false),
-			params),
+			params)),
 		immutable LowFunBody(body_));
 }
 
@@ -122,15 +120,13 @@ immutable(LowFun) generateMarkVisitNonArr(
 	immutable LowFunExprBody body_ =
 		visitBody(alloc, range, allTypes, markVisitFuns, paramType, markCtx, value);
 	return immutable LowFun(
-		immutable LowFunSource(nu!(LowFunSource.Generated)(
-			alloc,
+		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("mark-visit"),
-			arrLiteral!LowType(alloc, [paramType]))),
-		nu!LowFunSig(
-			alloc,
+			arrLiteral!LowType(alloc, [paramType])))),
+		allocate(alloc, immutable LowFunSig(
 			voidType,
 			immutable LowFunParamsKind(false, false),
-			params),
+			params)),
 		immutable LowFunBody(body_));
 }
 
@@ -168,15 +164,13 @@ immutable(LowFun) generateMarkVisitArrInner(
 		genVoid(range),
 		visitAndRecur);
 	return immutable LowFun(
-		immutable LowFunSource(nu!(LowFunSource.Generated)(
-			alloc,
+		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("mark-elems"),
-			arrLiteral!LowType(alloc, [elementPtrType.pointee]))),
-		nu!LowFunSig(
-			alloc,
+			arrLiteral!LowType(alloc, [elementPtrType.pointee])))),
+		allocate(alloc, immutable LowFunSig(
 			voidType,
 			immutable LowFunParamsKind(false, false),
-			params),
+			params)),
 		immutable LowFunBody(immutable LowFunExprBody(true, allocate(alloc, expr))));
 }
 
@@ -224,15 +218,13 @@ immutable(LowFun) generateMarkVisitArrOuter(
 			return genDrop(alloc, range, callMark, 0);
 	}();
 	return immutable LowFun(
-		immutable LowFunSource(nu!(LowFunSource.Generated)(
-			alloc,
+		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("mark-arr"),
-			arrLiteral!LowType(alloc, [elementType]))),
-		nu!LowFunSig(
-			alloc,
+			arrLiteral!LowType(alloc, [elementType])))),
+		allocate(alloc, immutable LowFunSig(
 			voidType,
 			immutable LowFunParamsKind(false, false),
-			params),
+			params)),
 		immutable LowFunBody(immutable LowFunExprBody(false, allocate(alloc, expr))));
 }
 

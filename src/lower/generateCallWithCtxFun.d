@@ -25,7 +25,7 @@ import util.alloc.alloc : Alloc;
 import util.collection.arrUtil : mapWithFirst2, mapWithOptFirst2, mapZip, prepend;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.memory : allocate, nu;
+import util.memory : allocate;
 import util.opt : Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
@@ -73,7 +73,7 @@ immutable(LowFun) generateCallWithCtxFun(
 		});
 
 	immutable LowExpr expr = immutable LowExpr(returnType, range, immutable LowExprKind(
-		nu!(LowExprKind.MatchUnion)(alloc, allocate(alloc, funParamRef), cases)));
+		allocate(alloc, immutable LowExprKind.MatchUnion(allocate(alloc, funParamRef), cases))));
 	immutable LowParam[] params = mapWithFirst2!(LowParam, LowType)(
 		alloc,
 		immutable LowParam(
@@ -92,11 +92,10 @@ immutable(LowFun) generateCallWithCtxFun(
 	return immutable LowFun(
 		//TODO: use long sym call-with-ctx
 		//Or rename it in bootstrap.crow
-		immutable LowFunSource(nu!(LowFunSource.Generated)(
-			alloc,
+		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("call-w-ctx"),
-			prepend(alloc, returnType, nonFunNonCtxParamTypes))),
-		nu!LowFunSig(alloc, returnType, immutable LowFunParamsKind(true, false), params),
+			prepend(alloc, returnType, nonFunNonCtxParamTypes)))),
+		allocate(alloc, immutable LowFunSig(returnType, immutable LowFunParamsKind(true, false), params)),
 		immutable LowFunBody(immutable LowFunExprBody(false, allocate(alloc, expr))));
 }
 

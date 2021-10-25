@@ -1082,6 +1082,8 @@ struct AllConstantsConcrete {
 struct ConcreteProgram {
 	@safe @nogc pure nothrow:
 
+	@disable this(ref const ConcreteProgram);
+
 	immutable AllConstantsConcrete allConstants;
 	immutable Ptr!ConcreteStruct[] allStructs;
 	immutable Ptr!ConcreteFun[] allFuns;

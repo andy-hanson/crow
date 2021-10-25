@@ -69,7 +69,7 @@ import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, arrWithSizeBuilderIsEmpty, finishArrWithSize;
 import util.collection.str : CStr, NulTerminatedStr, SafeCStr;
-import util.memory : allocate, nu;
+import util.memory : allocate;
 import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some, somePtr;
 import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
 import util.ptr : Ptr;
@@ -726,9 +726,9 @@ immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(
 		//TODO: assert 'builtin' and 'extern' and 'extern-global' can't be set together.
 		//Also, 'extern-global' should always be 'unsafe noctx'
 		immutable Opt!(Ptr!FunBodyAst) body_ = builtin
-			? some(nu!FunBodyAst(alloc, immutable FunBodyAst.Builtin()))
+			? some(allocate(alloc, immutable FunBodyAst(immutable FunBodyAst.Builtin())))
 			: has(extern_)
-			? some(nu!FunBodyAst(alloc, extern_.force))
+			? some(allocate(alloc, immutable FunBodyAst(extern_.force)))
 			: none!(Ptr!FunBodyAst);
 		return SpecUsesAndSigFlagsAndKwBody(finishArr(alloc, specUses), noCtx, summon, unsafe, trusted, body_);
 	}
@@ -813,13 +813,13 @@ immutable(FunDeclAst) parseFun(
 				: emptySpecUsesAndSigFlagsAndKwBody;
 			immutable Ptr!FunBodyAst body_ = optOr(extra.body_, () {
 				takeOrAddDiagExpected(alloc, lexer, "body", ParseDiag.Expected.Kind.bodyKeyword);
-				return nu!FunBodyAst(alloc, parseFunExprBody(alloc, allSymbols, lexer));
+				return allocate(alloc, immutable FunBodyAst(parseFunExprBody(alloc, allSymbols, lexer)));
 			});
 			return immutable FunDeclStuff(extra, body_);
 		} else {
 			immutable SpecUsesAndSigFlagsAndKwBody extra = parseSpecUsesAndSigFlagsAndKwBody(alloc, allSymbols, lexer);
 			immutable Ptr!FunBodyAst body_ = optOr(extra.body_, () =>
-				nu!FunBodyAst(alloc, parseFunExprBody(alloc, allSymbols, lexer)));
+				allocate(alloc, immutable FunBodyAst(parseFunExprBody(alloc, allSymbols, lexer))));
 			return immutable FunDeclStuff(extra, body_);
 		}
 	}();
@@ -1060,8 +1060,7 @@ immutable(Ptr!FileAst) parseFileInner(
 	ArrBuilder!FunDeclAst funs;
 	ArrBuilder!TestAst tests;
 	parseFileRecur(alloc, allSymbols, lexer, specs, structAliases, structs, funs, tests);
-	return nu!FileAst(
-		alloc,
+	return allocate(alloc, immutable FileAst(
 		moduleDocComment,
 		noStd,
 		imports,
@@ -1070,7 +1069,7 @@ immutable(Ptr!FileAst) parseFileInner(
 		finishArr(alloc, structAliases),
 		finishArr(alloc, structs),
 		finishArr(alloc, funs),
-		finishArr(alloc, tests));
+		finishArr(alloc, tests)));
 }
 
 void parseFileRecur(

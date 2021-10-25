@@ -36,7 +36,7 @@ import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr : at, emptyArr, emptyArr_mut, setAt, size, sizeEq;
 import util.collection.arrUtil : map, mapOrNone, mapZipOrNone;
 import util.collection.mutArr : MutArr;
-import util.memory : allocate, nu;
+import util.memory : allocate;
 import util.opt : has, force, none, noneMut, Opt, OptPtr, some, toOpt;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : FileAndRange, RangeWithinFile;
@@ -272,7 +272,7 @@ immutable(CheckedExpr) check(
 	else {
 		// Failed to set type. This happens if there was already an inferred type.
 		immutable Opt!Type t = tryGetInferred(expected);
-		addDiag2(alloc, ctx, range(expr), immutable Diag(nu!(Diag.TypeConflict)(alloc, force(t), exprType)));
+		addDiag2(alloc, ctx, range(expr), immutable Diag(allocate(alloc, immutable Diag.TypeConflict(force(t), exprType))));
 		return bogus(expected, range(expr));
 	}
 }

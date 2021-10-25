@@ -20,7 +20,7 @@ import util.collection.mutDict : getAt_mut, MutDict, setInDict;
 import util.collection.str : NulTerminatedStr, strOfNulTerminatedStr;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile, lineAndColumnGetterForText;
-import util.memory : allocate, nu;
+import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt, none, some;
 import util.path :
 	AllPaths,
@@ -52,11 +52,10 @@ immutable(Ptr!Program) frontendCompile(Storage)(
 	ArrBuilder!Diagnostic diagsBuilder;
 	immutable ParsedEverything parsed =
 		parseEverything(modelAlloc, allPaths, allSymbols, diagsBuilder, storage, main, astsAlloc);
-	immutable Ptr!FilesInfo filesInfo = nu!FilesInfo(
-		modelAlloc,
+	immutable Ptr!FilesInfo filesInfo = allocate(modelAlloc, immutable FilesInfo(
 		parsed.filePaths,
 		allocate(modelAlloc, storage.absolutePathsGetter()),
-		parsed.lineAndColumnGetters);
+		parsed.lineAndColumnGetters));
 	return checkEverything(modelAlloc, allSymbols, diagsBuilder, parsed.asts, filesInfo, parsed.commonModuleIndices);
 }
 
@@ -297,11 +296,8 @@ immutable(FileIndex) parseRecur(ReadOnlyStorage)(
 													arrLiteral!ParseDiagnostic(modelAlloc, [
 														immutable ParseDiagnostic(
 															import_.importedFrom,
-															immutable ParseDiag(
-																nu!(ParseDiag.CircularImport)(
-																	modelAlloc,
-																	path,
-																	resolvedPath)))]),
+															immutable ParseDiag(allocate(modelAlloc,
+																immutable ParseDiag.CircularImport(path, resolvedPath))))]),
 													parseResult.lineAndColumnGetter),
 											(ref immutable ParseStatus.Done it) =>
 												it.fileIndex);
@@ -377,7 +373,7 @@ immutable(Diags) parseDiagnostics(
 	return map(modelAlloc, diags, (ref immutable ParseDiagnostic it) =>
 		immutable Diagnostic(
 			immutable FileAndRange(where, it.range),
-			nu!Diag(modelAlloc, allocate(modelAlloc, it.diag))));
+			allocate(modelAlloc, immutable Diag(allocate(modelAlloc, it.diag)))));
 }
 
 alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter; // TODO: OrderedFullIndexDictBuilder?
@@ -595,18 +591,15 @@ immutable(Ptr!Program) checkEverything(
 		getModules(modelAlloc, allSymbols, diagsBuilder, programState, moduleIndices.std, allAsts);
 	immutable Ptr!Module[] modules = modulesAndCommonTypes.modules;
 	immutable Ptr!Module bootstrapModule = at(modules, moduleIndices.bootstrap.index);
-	return nu!Program(
-		modelAlloc,
+	return allocate(modelAlloc, immutable Program(
 		filesInfo,
-		nu!SpecialModules(
-			modelAlloc,
+		allocate(modelAlloc, immutable SpecialModules(
 			at(modules, moduleIndices.alloc.index),
 			bootstrapModule,
 			at(modules, moduleIndices.runtime.index),
 			at(modules, moduleIndices.runtimeMain.index),
-			at(modules, moduleIndices.main.index)),
+			at(modules, moduleIndices.main.index))),
 		modules,
 		modulesAndCommonTypes.commonTypes,
-		finishArr(modelAlloc, diagsBuilder));
+		finishArr(modelAlloc, diagsBuilder)));
 }
-

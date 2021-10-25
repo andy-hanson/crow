@@ -192,7 +192,7 @@ immutable(DiagsAndResultStrs) printConcreteModel(ReadOnlyStorage)(
 ) {
 	immutable Ptr!Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, main);
 	if (empty(program.diagnostics)) {
-		immutable ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
+		immutable Ptr!ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
 		return immutable DiagsAndResultStrs("", showConcreteProgram(alloc, concreteProgram, format));
 	} else
 		return immutable DiagsAndResultStrs(
@@ -211,7 +211,7 @@ immutable(DiagsAndResultStrs) printLowModel(ReadOnlyStorage)(
 ) {
 	immutable Ptr!Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, main);
 	if (empty(program.diagnostics)) {
-		immutable ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
+		immutable Ptr!ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
 		immutable Ptr!LowProgram lowProgram = lower(alloc, concreteProgram);
 		return immutable DiagsAndResultStrs("", showLowProgram(alloc, lowProgram, format));
 	} else

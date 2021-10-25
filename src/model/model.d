@@ -14,7 +14,7 @@ import util.collection.str : SafeCStr;
 import util.comparison : compareOr, Comparison, ptrEquals;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
-import util.memory : nu;
+import util.memory : allocate;
 import util.opt : Opt, some;
 import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr, TaggedPtr;
@@ -1087,7 +1087,9 @@ immutable(bool) isMarkVisitFun(ref immutable FunInst a) {
 }
 
 immutable(Ptr!FunInst) nonTemplateFunInst(ref Alloc alloc, immutable Ptr!FunDecl decl) {
-	return nu!FunInst(alloc, immutable FunDeclAndArgs(decl, emptyArr!Type, emptyArr!Called), decl.sig);
+	return allocate(alloc, immutable FunInst(
+		immutable FunDeclAndArgs(decl, emptyArr!Type, emptyArr!Called),
+		decl.sig));
 }
 
 immutable(Sym) name(ref immutable FunInst a) {

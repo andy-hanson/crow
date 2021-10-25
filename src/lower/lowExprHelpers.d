@@ -23,7 +23,7 @@ import model.lowModel :
 import util.alloc.alloc : Alloc;
 import util.collection.arr : at, size;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.memory : allocate, nu;
+import util.memory : allocate;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
@@ -123,12 +123,11 @@ immutable(LowExpr) genIf(
 	return immutable LowExpr(
 		then.type,
 		range,
-		immutable LowExprKind(nu!(LowExprKind.SpecialTrinary)(
-			alloc,
+		immutable LowExprKind(allocate(alloc, immutable LowExprKind.SpecialTrinary(
 			LowExprKind.SpecialTrinary.Kind.if_,
 			allocate(alloc, cond),
 			allocate(alloc, then),
-			allocate(alloc, else_))));
+			allocate(alloc, else_)))));
 }
 
 immutable(LowExpr) incrPointer(
@@ -425,7 +424,9 @@ immutable(Ptr!LowLocal) genLocal(
 	immutable ubyte index,
 	immutable LowType type,
 ) {
-	return nu!LowLocal(alloc, immutable LowLocalSource(immutable LowLocalSource.Generated(name, index)), type);
+	return allocate(alloc, immutable LowLocal(
+		immutable LowLocalSource(immutable LowLocalSource.Generated(name, index)),
+		type));
 }
 
 immutable(LowExpr) genGetArrSize(

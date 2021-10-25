@@ -179,7 +179,7 @@ import util.collection.multiDict : multiDictEach, multiDictGetAt;
 import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.collection.mutDict : insertOrUpdate, moveToDict, MutDict;
 import util.collection.str : copySafeCStr, copyStr, emptySafeCStr;
-import util.memory : allocate, nu, nuMut, overwriteMemory;
+import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, OptPtr, some, someMut, toOpt;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, fileAndPosFromFileAndRange, FileAndRange, FileIndex, RangeWithinFile;
@@ -423,14 +423,12 @@ immutable(Ptr!CommonTypes) getCommonTypes(
 			ctx,
 			immutable FileAndRange(ctx.fileIndex, RangeWithinFile.empty),
 			immutable Diag(immutable Diag.CommonTypesMissing(missingArr)));
-	return nu!CommonTypes(
-		alloc,
+	return allocate(alloc, immutable CommonTypes(
 		bool_,
 		char_,
 		float32,
 		float64,
-		nu!IntegralTypes(
-			alloc,
+		allocate(alloc, immutable IntegralTypes(
 			int8,
 			int16,
 			int32,
@@ -438,7 +436,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(
 			nat8,
 			nat16,
 			nat32,
-			nat64),
+			nat64)),
 		str,
 		sym,
 		void_,
@@ -475,7 +473,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(
 				funRef1,
 				funRef2,
 				funRef3,
-				funRef4]))]));
+				funRef4]))])));
 }
 
 immutable(Ptr!StructDecl) bogusStructDecl(ref Alloc alloc, immutable size_t nTypeParameters) {
@@ -483,15 +481,14 @@ immutable(Ptr!StructDecl) bogusStructDecl(ref Alloc alloc, immutable size_t nTyp
 	immutable FileAndRange fileAndRange = immutable FileAndRange(immutable FileIndex(0), RangeWithinFile.empty);
 	foreach (immutable size_t i; 0 .. nTypeParameters)
 		add(alloc, typeParams, immutable TypeParam(fileAndRange, shortSymAlphaLiteral("bogus"), i));
-	Ptr!StructDecl res = nuMut!StructDecl(
-		alloc,
+	Ptr!StructDecl res = allocateMut(alloc, StructDecl(
 		fileAndRange,
 		emptySafeCStr,
 		shortSymAlphaLiteral("bogus"),
 		finishArrWithSize(alloc, typeParams),
 		Visibility.public_,
 		Purity.data,
-		false);
+		false));
 	setBody(res, immutable StructBody(immutable StructBody.Bogus()));
 	return castImmutable(res);
 }
@@ -1342,10 +1339,9 @@ immutable(FunsAndDict) checkFuns(
 					todo!void("'extern' fun must be 'noctx'");
 				if (e.isGlobal && arityIsNonZero(arity(fun)))
 					todo!void("'extern' fun has parameters");
-				return immutable FunBody(nu!(FunBody.Extern)(
-					alloc,
+				return immutable FunBody(allocate(alloc, immutable FunBody.Extern(
 					e.isGlobal,
-					has(e.libraryName) ? some(copyStr(alloc, force(e.libraryName))) : none!string));
+					has(e.libraryName) ? some(copyStr(alloc, force(e.libraryName))) : none!string)));
 			},
 			(ref immutable ExprAst e) {
 				immutable Ptr!FunDecl f = castImmutable(fun);
@@ -1414,8 +1410,7 @@ immutable(Ptr!CommonFuns) getCommonFuns(
 				ctx,
 				immutable FileAndRange(ctx.fileIndex, RangeWithinFile.empty),
 				immutable Diag(immutable Diag.CommonFunMissing(nameSym)));
-			return castImmutable(nuMut!FunDecl(
-				alloc,
+			return castImmutable(allocateMut(alloc, FunDecl(
 				emptySafeCStr,
 				Visibility.public_,
 				FunFlags.none,
@@ -1425,7 +1420,7 @@ immutable(Ptr!CommonFuns) getCommonFuns(
 					immutable Type(immutable Type.Bogus()),
 					immutable Params(emptyArrWithSize!Param))),
 				emptyArrWithSize!TypeParam(),
-				emptyArrWithSize!(Ptr!SpecInst)()));
+				emptyArrWithSize!(Ptr!SpecInst)())));
 		} else
 			return only(funs).decl;
 	}
@@ -1970,12 +1965,11 @@ immutable(ModuleAndCommonFuns) checkWorkerAfterCommonTypes(
 	checkForUnused(alloc, ctx, structAliases, castImmutable(structs), specs);
 
 	// Create a module unconditionally so every function will always have containingModule set, even in failure case
-	immutable Ptr!Module module_ = nu!Module(
-		alloc,
+	immutable Ptr!Module module_ = allocate(alloc, immutable Module(
 		fileIndex,
 		copySafeCStr(alloc, ast.docComment),
-		nu!ModuleImportsExports(alloc, imports, reExports),
-		nu!ModuleArrs(alloc, structsImmutable, specs, funsAndDict.funs, funsAndDict.tests),
+		allocate(alloc, immutable ModuleImportsExports(imports, reExports)),
+		allocate(alloc, immutable ModuleArrs(structsImmutable, specs, funsAndDict.funs, funsAndDict.tests)),
 		getAllExportedNames(
 			alloc,
 			ctx.diagsBuilder,
@@ -1983,7 +1977,7 @@ immutable(ModuleAndCommonFuns) checkWorkerAfterCommonTypes(
 			structsAndAliasesDict,
 			specsDict,
 			funsAndDict.funsDict,
-			fileIndex));
+			fileIndex)));
 	return immutable ModuleAndCommonFuns(module_, funsAndDict.commonFuns);
 }
 

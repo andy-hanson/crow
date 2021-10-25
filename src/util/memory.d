@@ -36,21 +36,13 @@ void overwriteMemory(T)(T* ptr, T value) {
 	initMemory_mut!T(ptr, value);
 }
 
-immutable(Ptr!T) nu(T, Args...)(ref Alloc alloc, Args args) {
-	return allocate(alloc, immutable T(args));
-}
-
 @trusted immutable(Ptr!T) allocate(T)(ref Alloc alloc, immutable T value) {
 	T* ptr = cast(T*) allocateBytes(alloc, T.sizeof);
 	initMemory!T(ptr, value);
 	return immutable Ptr!T(cast(immutable) ptr);
 }
 
-Ptr!T nuMut(T, Args...)(ref Alloc alloc, Args args) {
-	return allocateMut(alloc, T(args));
-}
-
-private @trusted Ptr!T allocateMut(T)(ref Alloc alloc, T value) {
+@trusted Ptr!T allocateMut(T)(ref Alloc alloc, T value) {
 	T* ptr = cast(T*) allocateBytes(alloc, T.sizeof);
 	initMemory_mut!T(ptr, value);
 	return Ptr!T(ptr);

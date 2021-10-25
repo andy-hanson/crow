@@ -122,7 +122,7 @@ import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullInde
 import util.collection.mutIndexDict : getAt, getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
 import util.collection.mutDict : addToMutDict, getAt_mut, getOrAdd, mustDelete, mustGetAt_mut, MutDict, ValueAndDidAdd;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
-import util.memory : allocate, nu;
+import util.memory : allocate;
 import util.opt : asImmutable, force, has, mapOption, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
@@ -134,8 +134,8 @@ immutable(Ptr!LowProgram) lower(ref Alloc alloc, ref immutable ConcreteProgram a
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a);
 	immutable AllLowFuns allFuns = getAllLowFuns(alloc, allTypes.allTypes, allTypes.getLowTypeCtx, a);
 	immutable AllConstantsLow allConstants = convertAllConstants(alloc, allTypes.getLowTypeCtx, a.allConstants);
-	immutable Ptr!LowProgram res = nu!LowProgram(
-		alloc, allFuns.concreteFunToLowFunIndex, allConstants, allTypes.allTypes, allFuns.allLowFuns, allFuns.main);
+	immutable Ptr!LowProgram res = allocate(alloc, immutable LowProgram(
+		allFuns.concreteFunToLowFunIndex, allConstants, allTypes.allTypes, allFuns.allLowFuns, allFuns.main));
 	checkLowProgram(alloc, res);
 	return res;
 }
@@ -319,12 +319,11 @@ AllLowTypesWithCtx getAllLowTypes(
 				getLowUnion(alloc, program, getLowTypeCtx, it)));
 
 	return AllLowTypesWithCtx(
-		nu!AllLowTypes(
-			alloc,
+		allocate(alloc, immutable AllLowTypes(
 			fullIndexDictOfArr!(LowType.ExternPtr, LowExternPtrType)(finishArr(alloc, allExternPtrTypes)),
 			allFunPtrs,
 			allRecords,
-			allUnions),
+			allUnions)),
 		getLowTypeCtx);
 }
 
@@ -804,11 +803,10 @@ immutable(LowFun) lowFunFromCause(
 			immutable Opt!LowParamIndex closureParamIndex = has(cf.closureParam)
 				? some(immutable LowParamIndex(cf.needsCtx ? 1 : 0))
 				: none!LowParamIndex;
-			immutable Ptr!LowFunSig sig = nu!LowFunSig(
-				alloc,
+			immutable Ptr!LowFunSig sig = allocate(alloc, immutable LowFunSig(
 				returnType,
 				immutable LowFunParamsKind(has(ctxParam), has(closureParam)),
-				params);
+				params));
 			immutable LowFunBody body_ = getLowFunBody(
 				alloc,
 				allTypes,
@@ -874,12 +872,11 @@ immutable(LowFun) mainFun(
 				userMainFunPtr]))));
 	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(false, allocate(alloc, call)));
 	return immutable LowFun(
-		immutable LowFunSource(nu!(LowFunSource.Generated)(alloc, shortSymAlphaLiteral("main"), emptyArr!LowType)),
-		nu!LowFunSig(
-			alloc,
+		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(shortSymAlphaLiteral("main"), emptyArr!LowType))),
+		allocate(alloc, immutable LowFunSig(
 			int32Type,
 			immutable LowFunParamsKind(false, false),
-			params),
+			params)),
 		body_);
 }
 
@@ -893,10 +890,9 @@ immutable(T) withLowLocal(T)(
 	immutable Ptr!ConcreteLocal concreteLocal,
 	scope immutable(T) delegate(immutable Ptr!LowLocal) @safe @nogc pure nothrow cb,
 ) {
-	immutable Ptr!LowLocal local = nu!LowLocal(
-		alloc,
+	immutable Ptr!LowLocal local = allocate(alloc, immutable LowLocal(
 		immutable LowLocalSource(concreteLocal),
-		lowTypeFromConcreteType(alloc, ctx.getLowTypeCtx, concreteLocal.type));
+		lowTypeFromConcreteType(alloc, ctx.getLowTypeCtx, concreteLocal.type)));
 	//TODO: store lookup on stack instead of using dict
 	addToMutDict(alloc, ctx.locals, concreteLocal, local);
 	immutable T res = cb(local);
@@ -945,7 +941,7 @@ immutable(LowFunBody) getLowFunBody(
 		(immutable EnumFunction) =>
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.Extern it) =>
-			immutable LowFunBody(nu!(LowFunBody.Extern)(alloc, it.isGlobal)),
+			immutable LowFunBody(allocate(alloc, immutable LowFunBody.Extern(it.isGlobal))),
 		(ref immutable ConcreteFunExprBody it) {
 			GetLowExprCtx exprCtx = GetLowExprCtx(
 				thisFunIndex,
@@ -1045,12 +1041,11 @@ immutable(LowExprKind) getLowExprKind(
 		(ref immutable ConcreteExprKind.Call it) =>
 			getCallExpr(alloc, ctx, exprPos, expr.range, type, it),
 		(ref immutable ConcreteExprKind.Cond it) =>
-			immutable LowExprKind(nu!(LowExprKind.SpecialTrinary)(
-				alloc,
+			immutable LowExprKind(allocate(alloc, immutable LowExprKind.SpecialTrinary(
 				LowExprKind.SpecialTrinary.Kind.if_,
 				allocate(alloc, getLowExpr(alloc, ctx, it.cond, ExprPos.nonTail)),
 				allocate(alloc, getLowExpr(alloc, ctx, it.then, exprPos)),
-				allocate(alloc, getLowExpr(alloc, ctx, it.else_, exprPos)))),
+				allocate(alloc, getLowExpr(alloc, ctx, it.else_, exprPos))))),
 		(ref immutable Constant it) =>
 			immutable LowExprKind(it),
 		(ref immutable ConcreteExprKind.CreateArr it) =>
@@ -1327,12 +1322,11 @@ immutable(LowExprKind) getCallBuiltinExpr(
 						return exprPos;
 				}
 			}();
-			return immutable LowExprKind(nu!(LowExprKind.SpecialTrinary)(
-				alloc,
+			return immutable LowExprKind(allocate(alloc, immutable LowExprKind.SpecialTrinary(
 				kind,
 				getArg(at(a.args, 0), ExprPos.nonTail),
 				getArg(at(a.args, 1), arg12Pos),
-				getArg(at(a.args, 2), arg12Pos)));
+				getArg(at(a.args, 2), arg12Pos))));
 		},
 		(immutable LowExprKind.SpecialNAry.Kind kind) =>
 			immutable LowExprKind(immutable LowExprKind.SpecialNAry(kind, getArgs(alloc, ctx, a.args))),
@@ -1446,7 +1440,8 @@ immutable(LowExprKind) getMatchEnumExpr(
 		(immutable size_t) =>
 			immutable LowExprKind(immutable LowExprKind.Switch0ToN(matchedValue, cases)),
 		(immutable EnumValue[] values) =>
-			immutable LowExprKind(nu!(LowExprKind.SwitchWithValues)(alloc, matchedValue, values, cases)));
+			immutable LowExprKind(
+				allocate(alloc, immutable LowExprKind.SwitchWithValues(matchedValue, values, cases))));
 }
 
 immutable(LowExprKind) getMatchUnionExpr(
@@ -1456,14 +1451,13 @@ immutable(LowExprKind) getMatchUnionExpr(
 	ref immutable ConcreteExprKind.MatchUnion a,
 ) {
 	immutable Ptr!LowExpr matched = allocate(alloc, getLowExpr(alloc, ctx, a.matchedValue, ExprPos.nonTail));
-	return immutable LowExprKind(nu!(LowExprKind.MatchUnion)(
-		alloc,
+	return immutable LowExprKind(allocate(alloc, immutable LowExprKind.MatchUnion(
 		matched,
 		map(alloc, a.cases, (ref immutable ConcreteExprKind.MatchUnion.Case case_) =>
 			withOptLowLocal(alloc, ctx, case_.local, (immutable Opt!(Ptr!LowLocal) local) =>
 				immutable LowExprKind.MatchUnion.Case(
 					local,
-					getLowExpr(alloc, ctx, case_.then, exprPos))))));
+					getLowExpr(alloc, ctx, case_.then, exprPos)))))));
 }
 
 immutable(LowExprKind) getParamRefExpr(

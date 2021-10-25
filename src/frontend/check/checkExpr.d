@@ -141,7 +141,7 @@ import util.collection.mutArr :
 	tempAsArr,
 	tempAsArr_mut;
 import util.collection.str : copyStr;
-import util.memory : allocate, nu;
+import util.memory : allocate;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
@@ -334,10 +334,9 @@ immutable(bool) isVoid(ref const ExprCtx ctx, immutable Type type) {
 }
 
 immutable(Expr) makeVoid(ref Alloc alloc, ref immutable FileAndRange range, immutable Ptr!StructInst void_) {
-	return immutable Expr(range, nu!(Expr.Literal)(
-		alloc,
+	return immutable Expr(range, allocate(alloc, immutable Expr.Literal(
 		void_,
-		immutable Constant(immutable Constant.Void())));
+		immutable Constant(immutable Constant.Void()))));
 }
 
 immutable(CheckedExpr) checkIfOption(
@@ -361,12 +360,10 @@ immutable(CheckedExpr) checkIfOption(
 		return bogus(expected, range);
 	} else {
 		immutable Type innerType = only(typeArgs(inst));
-		immutable Ptr!Local local = nu!Local(
-			alloc,
+		immutable Ptr!Local local = allocate(alloc, immutable Local(
 			rangeInFile2(ctx, rangeOfNameAndRange(ast.name)),
 			ast.name.name,
-			innerType);
-
+			innerType));
 		if (has(ast.else_)) {
 			immutable Ptr!Expr then = allocExpr(alloc, checkWithLocal(alloc, ctx, local, ast.then, expected));
 			immutable Ptr!Expr else_ = allocExpr(alloc, checkExpr(alloc, ctx, force(ast.else_), expected));
@@ -585,12 +582,11 @@ immutable(CheckedExpr) checkRef(
 		// Shouldn't have already closed over it (or we should just be using that)
 		verify(!exists!(immutable Ptr!ClosureField)(tempAsArr(l0.closureFields), (ref immutable Ptr!ClosureField it) =>
 			symEq(it.name, name)));
-		immutable Ptr!ClosureField field = nu!ClosureField(
-			alloc,
+		immutable Ptr!ClosureField field = allocate(alloc, immutable ClosureField(
 			name,
 			type,
 			allocExpr(alloc, expr),
-			mutArrSize(l0.closureFields));
+			mutArrSize(l0.closureFields)));
 		push(alloc, l0.closureFields, field);
 		immutable Expr closureFieldRef = immutable Expr(range(expr), Expr.ClosureFieldRef(field));
 		return checkRef(alloc, ctx, closureFieldRef, name, tail(passedLambdas), expected);
@@ -638,14 +634,14 @@ immutable(CheckedExpr) checkLiteral(
 	immutable(CheckedExpr) asFloat32(immutable float value) {
 		immutable Expr e = immutable Expr(
 			range,
-			nu!(Expr.Literal)(alloc, ctx.commonTypes.float32, immutable Constant(value)));
+			allocate(alloc, immutable Expr.Literal(ctx.commonTypes.float32, immutable Constant(value))));
 		return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.float32), e);
 	}
 
 	immutable(CheckedExpr) asFloat64(immutable double value) {
 		immutable Expr e = immutable Expr(
 			range,
-			nu!(Expr.Literal)(alloc, ctx.commonTypes.float64, immutable Constant(value)));
+			allocate(alloc, immutable Expr.Literal(ctx.commonTypes.float64, immutable Constant(value))));
 		return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.float64), e);
 	}
 
@@ -679,9 +675,9 @@ immutable(CheckedExpr) checkLiteral(
 					if (it.overflow || it.value < force(intRange).min || it.value > force(intRange).max)
 						todo!void("literal overflow");
 					return immutable CheckedExpr(
-						immutable Expr(range, nu!(Expr.Literal)(alloc, expectedStruct, constant)));
+						immutable Expr(range, allocate(alloc, immutable Expr.Literal(expectedStruct, constant))));
 				} else {
-					immutable Expr e = immutable Expr(range, nu!(Expr.Literal)(alloc, integrals.int64, constant));
+					immutable Expr e = immutable Expr(range, allocate(alloc, immutable Expr.Literal(integrals.int64, constant)));
 					return check(alloc, ctx, expected, immutable Type(integrals.int64), e);
 				}
 			}
@@ -714,11 +710,11 @@ immutable(CheckedExpr) checkLiteral(
 					if (it.overflow || it.value > force(max))
 						addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.LiteralOverflow(expectedStruct)));
 					return immutable CheckedExpr(
-						immutable Expr(range, nu!(Expr.Literal)(alloc, expectedStruct, constant)));
+						immutable Expr(range, allocate(alloc, immutable Expr.Literal(expectedStruct, constant))));
 				} else {
 					if (it.overflow)
 						todo!void("literal overflow");
-					immutable Expr e = immutable Expr(range, nu!(Expr.Literal)(alloc, integrals.nat64, constant));
+					immutable Expr e = immutable Expr(range, allocate(alloc, immutable Expr.Literal(integrals.nat64, constant)));
 					return check(alloc, ctx, expected, immutable Type(integrals.nat64), e);
 				}
 			}
@@ -729,10 +725,9 @@ immutable(CheckedExpr) checkLiteral(
 					todo!void("char literal must be one char");
 				return immutable CheckedExpr(immutable Expr(
 					range,
-					nu!(Expr.Literal)(
-						alloc,
+					allocate(alloc, immutable Expr.Literal(
 						expectedStruct,
-						immutable Constant(immutable Constant.Integral(only(it))))));
+						immutable Constant(immutable Constant.Integral(only(it)))))));
 			} else {
 				immutable Expr e = immutable Expr(range, immutable Expr.StringLiteral(copyStr(alloc, it)));
 				return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.str), e);
@@ -932,11 +927,10 @@ immutable(CheckedExpr) checkLet(
 	ref Expected expected,
 ) {
 	immutable ExprAndType init = checkAndExpect(alloc, ctx, ast.initializer, typeFromOptAst(alloc, ctx, ast.type));
-	immutable Ptr!Local local = nu!Local(
-		alloc,
+	immutable Ptr!Local local = allocate(alloc, immutable Local(
 		rangeInFile2(ctx, rangeOfNameAndRange(immutable NameAndRange(range.start, ast.name))),
 		ast.name,
-		init.type);
+		init.type));
 	immutable Ptr!Expr then = allocExpr(alloc, checkWithLocal(alloc, ctx, local, ast.then, expected));
 	return CheckedExpr(immutable Expr(range, immutable Expr.Let(local, allocExpr(alloc, init.expr), then)));
 }

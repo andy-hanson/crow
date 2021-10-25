@@ -99,7 +99,7 @@ import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
 import util.collection.str : compareStr, copyStr;
 import util.comparison : Comparison;
 import util.late : Late, lateIsSet, lateSet, lateSetMaybeOverwrite, lateSetOverwrite, lazilySet;
-import util.memory : allocate, nu, nuMut;
+import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
@@ -318,11 +318,10 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(
 	ref immutable ContainingFunInfo containing,
 	immutable Ptr!Expr body_,
 ) {
-	Ptr!ConcreteFun res = nuMut!ConcreteFun(
-		alloc,
+	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
 		immutable ConcreteFunSource(
-			nu!(ConcreteFunSource.Lambda)(alloc, body_.range, containingConcreteFun, index)),
-		nu!ConcreteFunSig(alloc, returnType, true, some(closureParam), params));
+			allocate(alloc, immutable ConcreteFunSource.Lambda(body_.range, containingConcreteFun, index))),
+		allocate(alloc, immutable ConcreteFunSig(returnType, true, some(closureParam), params))));
 	immutable ConcreteFunBodyInputs bodyInputs = immutable ConcreteFunBodyInputs(containing, immutable FunBody(body_));
 	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
 	fillInConcreteFunBody(alloc, ctx, res);
@@ -357,10 +356,9 @@ immutable(ConcreteType) getConcreteType_forStructInst(
 					typeArgs,
 					(immutable Purity p, ref immutable ConcreteType ta) =>
 						worsePurity(p, purity(ta)));
-				immutable Ptr!ConcreteStruct res = nu!ConcreteStruct(
-					alloc,
+				immutable Ptr!ConcreteStruct res = allocate(alloc, immutable ConcreteStruct(
 					purity,
-					immutable ConcreteStructSource(immutable ConcreteStructSource.Inst(i, key.typeArgs)));
+					immutable ConcreteStructSource(immutable ConcreteStructSource.Inst(i, key.typeArgs))));
 				add(alloc, ctx.allConcreteStructs, res);
 				return res;
 			});
@@ -416,7 +414,7 @@ immutable(ConcreteType) concreteTypeFromClosure(
 				verify(f.mutability == ConcreteMutability.const_);
 				return worsePurity(p, purity(f.type));
 			});
-		Ptr!ConcreteStruct cs = nuMut!ConcreteStruct(alloc, purity, source);
+		Ptr!ConcreteStruct cs = allocateMut(alloc, ConcreteStruct(purity, source));
 		lateSet(cs.info_, getConcreteStructInfoForFields(closureFields));
 		setConcreteStructRecordSize(
 			alloc, ctx, cs, false, closureFields, false, ForcedByValOrRefOrNone.none, FieldsType.closure);
@@ -476,10 +474,9 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(
 	immutable TypeArgsScope typeScope = typeArgsScope(key);
 	immutable ConcreteType returnType = getConcreteType(alloc, ctx, returnType(decl), typeScope);
 	immutable ConcreteParam[] params = concretizeParams(alloc, ctx, paramsArray(params(decl)), typeScope);
-	Ptr!ConcreteFun res = nuMut!ConcreteFun(
-		alloc,
+	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
 		immutable ConcreteFunSource(key.inst),
-		nu!ConcreteFunSig(alloc, returnType, !noCtx(decl), none!(Ptr!ConcreteParam), params));
+		allocate(alloc, immutable ConcreteFunSig(returnType, !noCtx(decl), none!(Ptr!ConcreteParam), params))));
 	immutable ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		toContainingFunInfo(key),
 		decl.body_);
@@ -493,17 +490,16 @@ immutable(Ptr!ConcreteFun) concreteFunForTest(
 	ref immutable Test test,
 	immutable size_t index,
 ) {
-	Ptr!ConcreteFun res = nuMut!ConcreteFun(
-		alloc,
-		immutable ConcreteFunSource(nu!(ConcreteFunSource.Test)(alloc, test.body_.range, index)),
-		nu!ConcreteFunSig(alloc, voidType(alloc, ctx), true, none!(Ptr!ConcreteParam), emptyArr!ConcreteParam));
+	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
+		immutable ConcreteFunSource(allocate(alloc, immutable ConcreteFunSource.Test(test.body_.range, index))),
+		allocate(alloc, immutable ConcreteFunSig(voidType(alloc, ctx), true, none!(Ptr!ConcreteParam), emptyArr!ConcreteParam))));
 	immutable ContainingFunInfo containing = immutable ContainingFunInfo(
 		emptyArr!TypeParam,
 		emptyArr!ConcreteType,
 		emptyArr!(Ptr!ConcreteFun));
 	immutable ConcreteExpr body_ =
 		concretizeExpr(alloc, ctx, containing, castImmutable(res), test.body_);
-	lateSet(res._body_, nu!ConcreteFunBody(alloc, immutable ConcreteFunExprBody(body_)));
+	lateSet(res._body_, allocate(alloc, immutable ConcreteFunBody(immutable ConcreteFunExprBody(body_))));
 	add(alloc, ctx.allConcreteFuns, castImmutable(res));
 	return castImmutable(res);
 }
@@ -766,7 +762,7 @@ void fillInConcreteFunBody(
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf._body_)) {
 		// set to arbitrary temporarily
-		lateSet(cf._body_, nu!ConcreteFunBody(alloc, immutable ConcreteFunBody.Extern(false)));
+		lateSet(cf._body_, allocate(alloc, immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(false))));
 		immutable ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, castImmutable(cf));
 		immutable ConcreteFunBody body_ = matchFunBody!(immutable ConcreteFunBody)(
 			inputs.body_,

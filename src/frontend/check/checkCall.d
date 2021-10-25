@@ -107,8 +107,8 @@ import util.collection.mutArr :
 	setAt,
 	tempAsArr,
 	tempAsArr_mut;
+import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.memory : nu;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, symEq;
@@ -173,14 +173,13 @@ immutable(CheckedExpr) checkCall(
 	if (!has(args) || size(candidatesArr) != 1) {
 		if (empty(candidatesArr)) {
 			immutable CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(alloc, ctx, funName);
-			addDiag2(alloc, ctx, diagRange, immutable Diag(nu!(Diag.CallNoMatch)(
-				alloc,
+			addDiag2(alloc, ctx, diagRange, immutable Diag(allocate(alloc, immutable Diag.CallNoMatch(
 				funName,
 				expectedReturnType,
 				size(explicitTypeArgs),
 				arity,
 				finishArr(alloc, actualArgTypes),
-				allCandidates)));
+				allCandidates))));
 		} else
 			addDiag2(alloc, ctx, diagRange, immutable Diag(
 				immutable Diag.CallMultipleMatches(funName, candidatesForDiag(alloc, candidatesArr))));
@@ -594,7 +593,8 @@ immutable(bool) checkBuiltinSpec(
 		}
 	}() || findBuiltinSpecOnType(ctx, kind, typeArg);
 	if (!typeIsGood)
-		addDiag2(alloc, ctx, range, immutable Diag(nu!(Diag.SpecBuiltinNotSatisfied)(alloc, kind, typeArg, called)));
+		addDiag2(alloc, ctx, range, immutable Diag(
+			allocate(alloc, immutable Diag.SpecBuiltinNotSatisfied(kind, typeArg, called))));
 	return typeIsGood;
 }
 
