@@ -280,7 +280,7 @@ void writeReprJSON(ref Writer writer, ref immutable Repr a) {
 		(immutable Opt!(Ptr!Repr) it) {
 			if (has(it)) {
 				writeStatic(writer, "{\"_type\":\"some\",\"value\":");
-				writeReprJSON(writer, force(it));
+				writeReprJSON(writer, force(it).deref());
 				writeChar(writer, '}');
 			} else {
 				writeStatic(writer, "{\"_type\":\"none\"}");
@@ -405,7 +405,7 @@ immutable(int) measureReprSingleLine(ref immutable Repr a, immutable int availab
 			measureReprNamedRecord(s, available),
 		(immutable Opt!(Ptr!Repr) s) =>
 			has(s)
-				? measureReprSingleLine(force(s), available - safeIntFromSizeT("some()".length))
+				? measureReprSingleLine(force(s).deref(), available - safeIntFromSizeT("some()".length))
 				: available - safeIntFromSizeT("none".length),
 		(ref immutable ReprRecord s) =>
 			measureReprRecord(s, available),
@@ -475,7 +475,7 @@ void writeReprSingleLine(ref Writer writer, ref immutable Repr a) {
 		(immutable Opt!(Ptr!Repr) s) {
 			if (has(s)) {
 				writeStatic(writer, "some(");
-				writeReprSingleLine(writer, force(s));
+				writeReprSingleLine(writer, force(s).deref());
 				writeChar(writer, ')');
 			} else
 				writeStatic(writer, "none");

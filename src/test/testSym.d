@@ -20,11 +20,11 @@ import util.sym :
 import util.util : verify;
 
 void testSym(Debug)(ref Test!Debug test) {
-	AllSymbols allSymbols = AllSymbols(test.alloc);
+	AllSymbols allSymbols = AllSymbols(test.allocPtr);
 
 	immutable(Sym) getSym(immutable string a) {
 		immutable Sym res = symOfStr(allSymbols, a);
-		verify(strEq(strOfSym(test.alloc.deref(), res), a));
+		verify(strEq(strOfSym(test.alloc, res), a));
 		return res;
 	}
 

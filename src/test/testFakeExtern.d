@@ -16,7 +16,7 @@ void testFakeExtern(Debug)(ref Test!Debug test) {
 private:
 
 @trusted void testMallocAndFree(Debug)(ref Test!Debug test) {
-	FakeExtern extern_ = newFakeExtern(test.alloc);
+	FakeExtern extern_ = newFakeExtern(test.allocPtr);
 	ubyte* ptr = extern_.malloc(8);
 	ubyte* ptr2 = extern_.malloc(16);
 	*ptr = 1;
@@ -27,7 +27,7 @@ private:
 }
 
 void testWrite(Debug)(ref Test!Debug test) {
-	FakeExtern extern_ = newFakeExtern(test.alloc);
+	FakeExtern extern_ = newFakeExtern(test.allocPtr);
 
 	extern_.write(1, "gnarly", 4);
 	extern_.write(2, "tubular", 2);

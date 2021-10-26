@@ -19,7 +19,7 @@ import model.model :
 	writeType;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.path : AllPaths;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.sym : writeSym;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
@@ -44,33 +44,33 @@ void getHover(
 ) {
 	return matchPosition!void(
 		pos,
-		(immutable Ptr!Expr it) {
+		(ref immutable Expr it) {
 			getExprHover(writer, it);
 		},
-		(immutable Ptr!FunDecl it) {
+		(ref immutable FunDecl it) {
 			writeStatic(writer, "fun ");
 			writeSym(writer, name(it));
 		},
 		(ref immutable Position.ImportedModule it) {
 			writeStatic(writer, "import module ");
-			writeFile(writer, allPaths, program.filesInfo, it.import_.module_.fileIndex);
+			writeFile(writer, allPaths, program.filesInfo, it.import_.deref().module_.fileIndex);
 		},
 		(ref immutable Position.ImportedName it) {
 			getImportedNameHover(writer, it);
 		},
 		(ref immutable Position.RecordFieldPosition it) {
 			writeStatic(writer, "field ");
-			writeStructDecl(writer, it.struct_);
+			writeStructDecl(writer, it.struct_.deref());
 			writeChar(writer, '.');
-			writeSym(writer, it.field.name);
+			writeSym(writer, it.field.deref().name);
 			writeStatic(writer, " (");
-			writeType(writer, it.field.type);
+			writeType(writer, it.field.deref().type);
 			writeChar(writer, ')');
 		},
-		(immutable Ptr!SpecDecl) {
+		(ref immutable SpecDecl) {
 			writeStatic(writer, "TODO: spec hover");
 		},
-		(immutable Ptr!StructDecl it) {
+		(ref immutable StructDecl it) {
 			matchStructBody!void(
 				body_(it),
 				(ref immutable StructBody.Bogus) {
@@ -96,7 +96,7 @@ void getHover(
 				});
 			writeSym(writer, it.name);
 		},
-		(immutable Ptr!TypeParam) {
+		(ref immutable TypeParam) {
 			writeStatic(writer, "TODO: type param");
 		});
 }

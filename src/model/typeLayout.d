@@ -7,6 +7,7 @@ import model.concreteModel : TypeSize;
 import model.lowModel :
 	LowField,
 	LowProgram,
+	LowPtrCombine,
 	LowRecord,
 	LowType,
 	matchLowTypeCombinePtr,
@@ -16,7 +17,6 @@ import util.collection.arr : size;
 import util.collection.arrUtil : every, map;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.opt : none, Opt, some;
-import util.ptr : Ptr;
 import util.types : Nat8, Nat16;
 import util.util : divRoundUp;
 
@@ -29,7 +29,7 @@ immutable(TypeSize) sizeOfType(ref immutable LowProgram program, immutable LowTy
 			funPtrSize,
 		(immutable PrimitiveType it) =>
 			primitiveSize(it),
-		(immutable Ptr!LowType) =>
+		(immutable LowPtrCombine) =>
 			ptrSize,
 		(immutable LowType.Record index) =>
 			typeSize(fullIndexDictGet(program.allRecords, index)),

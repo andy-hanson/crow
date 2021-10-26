@@ -209,7 +209,7 @@ void addTypeTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, immutable TypeA
 			addInstStructTokens(alloc, tokens, it);
 		},
 		(immutable TypeAst.Suffix it) {
-			addTypeTokens(alloc, tokens, it.left.deref());
+			addTypeTokens(alloc, tokens, it.left);
 			add(alloc, tokens, immutable Token(Token.Kind.keyword, suffixRange(it)));
 		});
 }
@@ -296,7 +296,7 @@ void addEnumOrFlagsTokens(
 	scope immutable ArrWithSize!(StructDeclAst.Body.Enum.Member) members,
 ) {
 	immutable Opt!(Ptr!TypeAst) typeArg = toOpt(ptrTypeArg);
-	if (has(typeArg)) addTypeTokens(alloc, tokens, force(typeArg));
+	if (has(typeArg)) addTypeTokens(alloc, tokens, force(typeArg).deref());
 	foreach (ref immutable StructDeclAst.Body.Enum.Member member; toArr(members)) {
 		add(alloc, tokens, immutable Token(
 			Token.Kind.fieldDef, // TODO: enumMemberREf

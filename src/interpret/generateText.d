@@ -8,7 +8,7 @@ import model.lowModel :
 	AllConstantsLow,
 	ArrTypeAndConstantsLow,
 	asPrimitive,
-	asPtrGc,
+	asPtrGcPointee,
 	asRecordType,
 	asUnionType,
 	LowField,
@@ -125,27 +125,27 @@ TextAndInfo generateText(
 
 	foreach (immutable size_t arrTypeIndex; 0 .. size(allConstants.arrs)) {
 		immutable Ptr!ArrTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.arrs, arrTypeIndex);
-		foreach (immutable size_t constantIndex; 0 .. size(typeAndConstants.constants))
+		foreach (immutable size_t constantIndex; 0 .. size(typeAndConstants.deref().constants))
 			recurWriteArr(
 				alloc,
 				tempAlloc,
 				ctx,
 				arrTypeIndex,
-				typeAndConstants.elementType,
+				typeAndConstants.deref().elementType,
 				constantIndex,
-				at(typeAndConstants.constants, constantIndex));
+				at(typeAndConstants.deref().constants, constantIndex));
 	}
 	foreach (immutable size_t pointeeTypeIndex; 0 .. size(allConstants.pointers)) {
 		immutable Ptr!PointerTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.pointers, pointeeTypeIndex);
-		foreach (immutable size_t constantIndex; 0 .. size(typeAndConstants.constants))
+		foreach (immutable size_t constantIndex; 0 .. size(typeAndConstants.deref().constants))
 			recurWritePointer(
 				alloc,
 				tempAlloc,
 				ctx,
 				pointeeTypeIndex,
-				typeAndConstants.pointeeType,
+				typeAndConstants.deref().pointeeType,
 				constantIndex,
-				at(typeAndConstants.constants, constantIndex));
+				at(typeAndConstants.deref().constants, constantIndex).deref());
 	}
 	ubyte[] text = finish(ctx.text);
 	return TextAndInfo(
@@ -161,13 +161,23 @@ TextAndInfo generateText(
 private:
 
 struct Ctx {
-	immutable Ptr!LowProgram program;
-	immutable Ptr!AllConstantsLow allConstants;
+	@safe @nogc pure nothrow:
+
+	immutable Ptr!LowProgram programPtr;
+	immutable Ptr!AllConstantsLow allConstantsPtr;
 	ExactSizeArrBuilder!ubyte text;
 	MutIndexMultiDict!(LowFunIndex, TextIndex) funToTextReferences;
 	immutable(size_t)[] cStringIndexToTextIndex;
 	size_t[][] arrTypeIndexToConstantIndexToTextIndex;
 	size_t[][] pointeeTypeIndexToIndexToTextIndex;
+
+	ref immutable(LowProgram) program() return scope const {
+		return programPtr.deref();
+	}
+
+	ref immutable(AllConstantsLow) allConstants() return scope const {
+		return allConstantsPtr.deref();
+	}
 }
 
 // Write out any constants that this points to.
@@ -182,9 +192,15 @@ void ensureConstant(
 		c,
 		(ref immutable Constant.ArrConstant it) {
 			immutable Ptr!ArrTypeAndConstantsLow arrs = ptrAt(ctx.allConstants.arrs, it.typeIndex);
-			verify(arrs.arrType == asRecordType(t));
+			verify(arrs.deref().arrType == asRecordType(t));
 			recurWriteArr(
-				alloc, tempAlloc, ctx, it.typeIndex, arrs.elementType, it.index, at(arrs.constants, it.index));
+				alloc,
+				tempAlloc,
+				ctx,
+				it.typeIndex,
+				arrs.deref().elementType,
+				it.index,
+				at(arrs.deref().constants, it.index));
 		},
 		(immutable Constant.BoolConstant) {},
 		(ref immutable Constant.CString) {
@@ -196,9 +212,10 @@ void ensureConstant(
 		(immutable Constant.Null) {},
 		(immutable Constant.Pointer it) {
 			immutable Ptr!PointerTypeAndConstantsLow ptrs = ptrAt(ctx.allConstants.pointers, it.typeIndex);
-			verify(lowTypeEqual(ptrs.pointeeType, asPtrGc(t).pointee));
+			verify(lowTypeEqual(ptrs.deref().pointeeType, asPtrGcPointee(t)));
 			recurWritePointer(
-				alloc, tempAlloc, ctx, it.typeIndex, ptrs.pointeeType, it.index, at(ptrs.constants, it.index));
+				alloc, tempAlloc, ctx,
+				it.typeIndex, ptrs.deref().pointeeType, it.index, at(ptrs.deref().constants, it.index).deref());
 		},
 		(ref immutable Constant.Record it) {
 			immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, asRecordType(t));
@@ -250,7 +267,7 @@ void recurWritePointer(
 	immutable size_t pointeeTypeIndex,
 	immutable LowType pointeeType,
 	immutable size_t index,
-	immutable Ptr!Constant pointee,
+	ref immutable Constant pointee,
 ) {
 	size_t[] indexToTextIndex = at(ctx.pointeeTypeIndexToIndexToTextIndex, pointeeTypeIndex);
 	if (at(indexToTextIndex, index) == 0) {

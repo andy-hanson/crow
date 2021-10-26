@@ -169,6 +169,16 @@ immutable(Opt!size_t) findIndex_const(T)(
 	return none!size_t;
 }
 
+immutable(Opt!T) find(T)(
+	ref immutable T[] arr,
+	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	foreach (ref immutable T x; arr)
+		if (cb(x))
+			return some(x);
+	return none!T;
+}
+
 immutable(Opt!(Ptr!T)) findPtr(T)(
 	ref immutable T[] arr,
 	scope immutable(bool) delegate(immutable Ptr!T) @safe @nogc pure nothrow cb,
@@ -278,7 +288,7 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 ) {
 	immutable Opt!Out someFirst = some!Out(first);
 	return mapWithOptFirst!(Out, In)(alloc, someFirst, a, (immutable(size_t), immutable Ptr!In it) =>
-		cb(it));
+		cb(it.deref()));
 }
 
 @trusted immutable(Out[]) mapWithFirst2(Out, In)(
@@ -296,7 +306,7 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 		someSecond,
 		a,
 		(immutable size_t i, immutable Ptr!In it) =>
-			cb(i, it));
+			cb(i, it.deref()));
 }
 
 @trusted immutable(Out[]) mapOp(Out, In)(

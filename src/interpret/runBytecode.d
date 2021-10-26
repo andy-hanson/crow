@@ -136,26 +136,39 @@ struct Interpreter(Extern) {
 	@disable this(ref const Interpreter);
 
 	@trusted this(Ptr!Extern e, immutable Ptr!LowProgram p, immutable Ptr!ByteCode b, immutable Ptr!FilesInfo f) {
-		extern_ = e;
-		lowProgram = p;
-		byteCode = b;
-		filesInfo = f;
+		externPtr = e;
+		lowProgramPtr = p;
+		byteCodePtr = b;
+		filesInfoPtr = f;
 		reader = newByteCodeReader(begin(byteCode.byteCode), byteCode.main.index);
 		dataStack = DataStack(true);
 		returnStack = ReturnStack(true);
 		stackStartStack = StackStartStack(true);
 	}
 
-	Ptr!Extern extern_;
-	immutable Ptr!LowProgram lowProgram;
-	immutable Ptr!ByteCode byteCode;
-	immutable Ptr!FilesInfo filesInfo;
+	Ptr!Extern externPtr;
+	immutable Ptr!LowProgram lowProgramPtr;
+	immutable Ptr!ByteCode byteCodePtr;
+	immutable Ptr!FilesInfo filesInfoPtr;
 	ByteCodeReader reader;
 	DataStack dataStack;
 	ReturnStack returnStack;
 	// Parallel to return stack. Has the stack entry before the function's arguments.
 	StackStartStack stackStartStack;
 	// WARN: if adding any new mutable state here, make sure 'longjmp' still restores it
+
+	ref inout(Extern) extern_() inout {
+		return externPtr.deref();
+	}
+	ref immutable(LowProgram) lowProgram() const {
+		return lowProgramPtr.deref();
+	}
+	ref immutable(ByteCode) byteCode() const {
+		return byteCodePtr.deref();
+	}
+	ref immutable(FilesInfo) filesInfo() const {
+		return filesInfoPtr.deref();
+	}
 }
 
 // WARN: Does not restore data. Just mean for setjmp/longjmp.
@@ -229,7 +242,7 @@ private void writeByteCodeSource(
 	matchLowFunSource!void(
 		fullIndexDictGet(lowProgram.allFuns, source.fun).source,
 		(immutable Ptr!ConcreteFun it) {
-			immutable FileAndPos where = immutable FileAndPos(concreteFunRange(it).fileIndex, source.pos);
+			immutable FileAndPos where = immutable FileAndPos(concreteFunRange(it.deref()).fileIndex, source.pos);
 			writeFileAndPos(writer, allPaths, showDiagOptions, filesInfo, where);
 		},
 		(ref immutable LowFunSource.Generated) {});

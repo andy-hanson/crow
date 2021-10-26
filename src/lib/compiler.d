@@ -25,7 +25,7 @@ import util.alloc.alloc : Alloc;
 import util.collection.arr : begin, empty, emptyArr, size;
 import util.opt : force, none, Opt, some;
 import util.path : AbsolutePath, AllPaths, PathAndStorageKind;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.repr : Repr, writeRepr, writeReprJSON;
 import util.sym : AllSymbols;
 import util.writer : finishWriter, Writer;
@@ -93,7 +93,7 @@ immutable(ExitCode) buildAndInterpret(Debug, ReadOnlyStorage, Extern)(
 ) {
 	immutable ProgramsAndFilesInfo programs = buildToLowProgram(alloc, allPaths, allSymbols, storage, main);
 	if (empty(programs.program.diagnostics)) {
-		immutable Ptr!LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
+		immutable LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
 		immutable ByteCode byteCode = generateBytecode(dbg, alloc, alloc, programs.program, lowProgram);
 		immutable AbsolutePath mainAbsolutePath = getAbsolutePathFromStorage(storage, main, crowExtension);
 		return immutable ExitCode(runBytecode(
@@ -173,9 +173,9 @@ immutable(DiagsAndResultStrs) printModel(ReadOnlyStorage)(
 	immutable PathAndStorageKind main,
 	immutable PrintFormat format,
 ) {
-	immutable Ptr!Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, main);
+	immutable Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, main);
 	return empty(program.diagnostics)
-		? immutable DiagsAndResultStrs("", showModule(alloc, program.specialModules.mainModule, format))
+		? immutable DiagsAndResultStrs("", showModule(alloc, program.specialModules.mainModule.deref(), format))
 		: immutable DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allPaths, showDiagOptions, program.filesInfo, program.diagnostics),
 			"");
@@ -190,9 +190,9 @@ immutable(DiagsAndResultStrs) printConcreteModel(ReadOnlyStorage)(
 	immutable PathAndStorageKind main,
 	immutable PrintFormat format,
 ) {
-	immutable Ptr!Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, main);
+	immutable Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, main);
 	if (empty(program.diagnostics)) {
-		immutable Ptr!ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
+		immutable ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
 		return immutable DiagsAndResultStrs("", showConcreteProgram(alloc, concreteProgram, format));
 	} else
 		return immutable DiagsAndResultStrs(
@@ -209,10 +209,10 @@ immutable(DiagsAndResultStrs) printLowModel(ReadOnlyStorage)(
 	immutable PathAndStorageKind main,
 	immutable PrintFormat format,
 ) {
-	immutable Ptr!Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, main);
+	immutable Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, main);
 	if (empty(program.diagnostics)) {
-		immutable Ptr!ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
-		immutable Ptr!LowProgram lowProgram = lower(alloc, concreteProgram);
+		immutable ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
+		immutable LowProgram lowProgram = lower(alloc, concreteProgram);
 		return immutable DiagsAndResultStrs("", showLowProgram(alloc, lowProgram, format));
 	} else
 		return immutable DiagsAndResultStrs(
@@ -293,23 +293,23 @@ public immutable(DocumentResult) compileAndDocument(ReadOnlyStorage)(
 	immutable PathAndStorageKind main,
 ) {
 	AllSymbols allSymbols = AllSymbols(ptrTrustMe_mut(alloc));
-	immutable Ptr!Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, main);
+	immutable Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, main);
 	return empty(program.diagnostics)
-		? immutable DocumentResult(document(alloc, allPaths, program, program.specialModules.mainModule), "")
+		? immutable DocumentResult(document(alloc, allPaths, program, program.specialModules.mainModule.deref()), "")
 		: immutable DocumentResult(
 			"",
 			strOfDiagnostics(alloc, allPaths, showDiagOptions, program.filesInfo, program.diagnostics));
 }
 
 struct ConcreteAndLowProgram {
-	immutable Ptr!ConcreteProgram concreteProgram;
-	immutable Ptr!LowProgram lowProgram;
+	immutable ConcreteProgram concreteProgram;
+	immutable LowProgram lowProgram;
 }
 
 //TODO:RENAME
 struct ProgramsAndFilesInfo {
-	immutable Ptr!Program program;
-	immutable Opt!(ConcreteAndLowProgram) concreteAndLowProgram;
+	immutable Program program;
+	immutable Opt!ConcreteAndLowProgram concreteAndLowProgram;
 }
 
 immutable(ProgramsAndFilesInfo) buildToLowProgram(ReadOnlyStorage)(
@@ -319,9 +319,9 @@ immutable(ProgramsAndFilesInfo) buildToLowProgram(ReadOnlyStorage)(
 	ref ReadOnlyStorage storage,
 	immutable PathAndStorageKind main,
 ) {
-	immutable Ptr!Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, main);
+	immutable Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, main);
 	if (empty(program.diagnostics)) {
-		immutable Ptr!ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
+		immutable ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
 		return immutable ProgramsAndFilesInfo(
 			program,
 			some(immutable ConcreteAndLowProgram(concreteProgram, lower(alloc, concreteProgram))));

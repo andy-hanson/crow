@@ -197,7 +197,7 @@ immutable(FileToFuns) fileToFuns(ref Alloc alloc, ref immutable Program program)
 		alloc,
 		modulesDict,
 		(immutable FileIndex, ref immutable Ptr!Module module_) =>
-			map(alloc, module_.funs, (ref immutable FunDecl it) =>
+			map(alloc, module_.deref().funs, (ref immutable FunDecl it) =>
 				immutable FunNameAndPos(name(it), range(it).range.start)));
 }
 
@@ -423,8 +423,10 @@ immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
 
 
 struct ExprCtx {
-	immutable Ptr!LowProgram program;
-	immutable Ptr!TextInfo textInfo;
+	@safe @nogc pure nothrow:
+
+	immutable Ptr!LowProgram programPtr;
+	immutable Ptr!TextInfo textInfoPtr;
 	immutable LowFunIndex curFunIndex;
 	immutable Nat8 returnTypeSizeInStackEntries;
 	Ptr!(MutIndexMultiDict!(LowFunIndex, ByteCodeIndex)) funToReferences;
@@ -432,6 +434,13 @@ struct ExprCtx {
 	immutable StackEntry regularParametersStart;
 	immutable StackEntries[] parameterEntries;
 	MutDict!(immutable Ptr!LowLocal, immutable StackEntries, comparePtr!LowLocal) localEntries;
+
+	ref immutable(LowProgram) program() return scope const {
+		return programPtr.deref();
+	}
+	ref immutable(TextInfo) textInfo() return scope const {
+		return textInfoPtr.deref();
+	}
 }
 
 void generateExpr(Debug)(
@@ -461,7 +470,7 @@ void generateExpr(Debug)(
 		},
 		(ref immutable LowExprKind.Let it) {
 			immutable StackEntries localEntries =
-				immutable StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, it.local.type));
+				immutable StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, it.local.deref().type));
 			generateExpr(dbg, tempAlloc, writer, ctx, it.value);
 			verify(getNextStackEntry(writer).entry == localEntries.start.entry + localEntries.size.to16());
 			addToMutDict(tempAlloc, ctx.localEntries, it.local, localEntries);
@@ -494,7 +503,7 @@ void generateExpr(Debug)(
 				(immutable size_t caseIndex, ref immutable LowExprKind.MatchUnion.Case case_) {
 					fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, immutable Nat32(safeSizeTToU32(caseIndex)));
 					if (has(case_.local)) {
-						immutable Nat8 nEntries = nStackEntriesForType(ctx, force(case_.local).type);
+						immutable Nat8 nEntries = nStackEntriesForType(ctx, force(case_.local).deref().type);
 						verify(nEntries <= matchedEntriesWithoutKind.size);
 						addToMutDict(
 							tempAlloc,
@@ -779,7 +788,7 @@ void registerFunAddress(TempAlloc)(
 	immutable LowFunIndex fun,
 	immutable ByteCodeIndex index,
 ) {
-	mutIndexMultiDictAdd(tempAlloc, ctx.funToReferences, fun, index);
+	mutIndexMultiDictAdd(tempAlloc, ctx.funToReferences.deref(), fun, index);
 }
 
 void generateConstant(Debug)(

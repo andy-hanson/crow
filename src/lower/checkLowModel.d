@@ -45,12 +45,24 @@ void checkLowProgram(ref Alloc alloc, ref immutable LowProgram a) {
 private:
 
 struct Ctx {
-	immutable Ptr!LowProgram program;
+	@safe @nogc pure nothrow:
+
+	immutable Ptr!LowProgram programPtr;
+
+	ref immutable(LowProgram) program() return scope const {
+		return programPtr.deref();
+	}
 }
 
 struct FunCtx {
+	@safe @nogc pure nothrow:
+
 	immutable Ctx ctx;
-	immutable Ptr!LowFun fun;
+	immutable Ptr!LowFun funPtr;
+
+	ref immutable(LowFun) fun() return scope const {
+		return funPtr.deref();
+	}
 }
 
 void checkLowFun(ref Alloc alloc, ref immutable Ctx ctx, ref immutable LowFun fun) {
@@ -85,11 +97,14 @@ void checkLowExpr(
 		expr.kind,
 		(ref immutable LowExprKind.Call it) {
 			immutable Ptr!LowFun fun = fullIndexDictGetPtr(ctx.ctx.program.allFuns, it.called);
-			checkTypeEqual(alloc, ctx.ctx, type, fun.returnType);
-			verify(sizeEq(fun.params, it.args));
-			zip!(LowParam, LowExpr)(fun.params, it.args, (ref immutable LowParam param, ref immutable LowExpr arg) {
-				checkLowExpr(alloc, ctx, param.type, arg);
-			});
+			checkTypeEqual(alloc, ctx.ctx, type, fun.deref().returnType);
+			verify(sizeEq(fun.deref().params, it.args));
+			zip!(LowParam, LowExpr)(
+				fun.deref().params,
+				it.args,
+				(ref immutable LowParam param, ref immutable LowExpr arg) {
+					checkLowExpr(alloc, ctx, param.type, arg);
+				});
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
 			immutable LowField[] fields = fullIndexDictGet(ctx.ctx.program.allRecords, asRecordType(type)).fields;
@@ -104,11 +119,11 @@ void checkLowExpr(
 			checkLowExpr(alloc, ctx, member, it.arg);
 		},
 		(ref immutable LowExprKind.Let it) {
-			checkLowExpr(alloc, ctx, it.local.type, it.value);
+			checkLowExpr(alloc, ctx, it.local.deref().type, it.value);
 			checkLowExpr(alloc, ctx, type, it.then);
 		},
 		(ref immutable LowExprKind.LocalRef it) {
-			checkTypeEqual(alloc, ctx.ctx, type, it.local.type);
+			checkTypeEqual(alloc, ctx.ctx, type, it.local.deref().type);
 		},
 		(ref immutable LowExprKind.MatchUnion it) {
 			checkLowExpr(alloc, ctx, it.matchedValue.type, it.matchedValue);
@@ -117,7 +132,7 @@ void checkLowExpr(
 				it.cases,
 				(ref immutable LowType memberType, ref immutable LowExprKind.MatchUnion.Case case_) {
 					if (has(case_.local))
-						checkTypeEqual(alloc, ctx.ctx, memberType, force(case_.local).type);
+						checkTypeEqual(alloc, ctx.ctx, memberType, force(case_.local).deref().type);
 					checkLowExpr(alloc, ctx, type, case_.then);
 				});
 		},
@@ -181,8 +196,8 @@ void checkLowExpr(
 			final switch (it.kind) {
 				case LowExprKind.SpecialNAry.Kind.callFunPtr:
 					immutable LowExpr funPtr = at(it.args, 0);
-					immutable Ptr!LowFunPtrType funPtrType =
-						fullIndexDictGetPtr(ctx.ctx.program.allFunPtrTypes, asFunPtrType(funPtr.type));
+					immutable LowFunPtrType funPtrType =
+						fullIndexDictGetPtr(ctx.ctx.program.allFunPtrTypes, asFunPtrType(funPtr.type)).deref();
 					checkTypeEqual(alloc, ctx.ctx, type, funPtrType.returnType);
 					verify(sizeEq(funPtrType.paramTypes, tail(it.args)));
 					zip!(LowType, LowExpr)(
@@ -242,13 +257,13 @@ immutable(Repr) reprOfLowType2(ref Alloc alloc, ref immutable Ctx ctx, immutable
 		(immutable PrimitiveType it) =>
 			reprSym(symOfPrimitiveType(it)),
 		(immutable LowType.PtrGc it) =>
-			reprRecord(alloc, "gc-ptr", [reprOfLowType2(alloc, ctx, it.pointee)]),
+			reprRecord(alloc, "gc-ptr", [reprOfLowType2(alloc, ctx, it.pointee.deref())]),
 		(immutable LowType.PtrRawConst it) =>
-			reprRecord(alloc, "ptr-const", [reprOfLowType2(alloc, ctx, it.pointee)]),
+			reprRecord(alloc, "ptr-const", [reprOfLowType2(alloc, ctx, it.pointee.deref())]),
 		(immutable LowType.PtrRawMut it) =>
-			reprRecord(alloc, "ptr-mut", [reprOfLowType2(alloc, ctx, it.pointee)]),
+			reprRecord(alloc, "ptr-mut", [reprOfLowType2(alloc, ctx, it.pointee.deref())]),
 		(immutable LowType.Record it) =>
-			reprOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allRecords, it).source),
+			reprOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allRecords, it).source.deref()),
 		(immutable LowType.Union it) =>
-			reprOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allUnions, it).source));
+			reprOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allUnions, it).source.deref()));
 }

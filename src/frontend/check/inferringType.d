@@ -36,15 +36,10 @@ import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr : at, emptyArr, emptyArr_mut, setAt, size, sizeEq;
 import util.collection.arrUtil : map, mapOrNone, mapZipOrNone;
 import util.collection.mutArr : MutArr;
-import util.memory : allocate;
 import util.opt : has, force, none, noneMut, Opt, OptPtr, some, toOpt;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : FileAndRange, RangeWithinFile;
 import util.util : verify;
-
-immutable(Ptr!Expr) allocExpr(ref Alloc alloc, immutable Expr e) {
-	return allocate!Expr(alloc, e);
-}
 
 struct LambdaInfo {
 	immutable FunKind funKind;
@@ -54,11 +49,13 @@ struct LambdaInfo {
 }
 
 struct ExprCtx {
-	Ptr!CheckCtx checkCtx;
-	immutable Ptr!StructsAndAliasesDict structsAndAliasesDict;
-	immutable Ptr!FunsDict funsDict;
-	immutable Ptr!CommonTypes commonTypes;
-	immutable Ptr!CommonFuns commonFuns;
+	@safe @nogc pure nothrow:
+
+	Ptr!CheckCtx checkCtxPtr;
+	immutable Ptr!StructsAndAliasesDict structsAndAliasesDictPtr;
+	immutable Ptr!FunsDict funsDictPtr;
+	immutable Ptr!CommonTypes commonTypesPtr;
+	immutable Ptr!CommonFuns commonFunsPtr;
 	immutable Ptr!SpecInst[] outermostFunSpecs;
 	immutable Param[] outermostFunParams;
 	immutable TypeParam[] outermostFunTypeParams;
@@ -72,6 +69,29 @@ struct ExprCtx {
 	// These are pointers because MutArr currently only works on copyable values,
 	// and LambdaInfo should not be copied.
 	MutArr!(Ptr!LambdaInfo) lambdas;
+
+	ref CheckCtx checkCtx() return scope {
+		return checkCtxPtr.deref();
+	}
+	ref const(CheckCtx) checkCtx() return scope const {
+		return checkCtxPtr.deref();
+	}
+
+	ref immutable(StructsAndAliasesDict) structsAndAliasesDict() return scope const {
+		return structsAndAliasesDictPtr.deref();
+	}
+
+	ref immutable(FunsDict) funsDict() return scope const {
+		return funsDictPtr.deref();
+	}
+
+	ref immutable(CommonTypes) commonTypes() return scope const {
+		return commonTypesPtr.deref();
+	}
+
+	ref immutable(CommonFuns) commonFuns() return scope inout {
+		return commonFunsPtr.deref();
+	}
 }
 
 struct CommonFuns {
@@ -92,15 +112,11 @@ immutable(FileAndRange) rangeInFile2(ref const ExprCtx ctx, immutable RangeWithi
 }
 
 ref ProgramState programState(return scope ref ExprCtx ctx) {
-	return ctx.checkCtx.deref.programState.deref;
+	return ctx.checkCtx.programState;
 }
 
 void addDiag2(ref Alloc alloc, ref ExprCtx ctx, immutable FileAndRange range, immutable Diag diag) {
-	addDiag(alloc, ctx.checkCtx.deref, range, diag);
-}
-
-ref immutable(ProgramState) programState(return scope ref immutable ExprCtx ctx) {
-	return ctx.checkCtx.programState;
+	addDiag(alloc, ctx.checkCtx, range, diag);
 }
 
 immutable(Type[]) typeArgsFromAsts(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst[] typeAsts) {
@@ -110,13 +126,13 @@ immutable(Type[]) typeArgsFromAsts(ref Alloc alloc, ref ExprCtx ctx, immutable T
 
 immutable(Opt!Type) typeFromOptAst(ref Alloc alloc, ref ExprCtx ctx, immutable OptPtr!TypeAst ast) {
 	immutable Opt!(Ptr!TypeAst) opt = toOpt(ast);
-	return has(opt) ? some(typeFromAstInner(alloc, ctx, force(opt))) : none!Type;
+	return has(opt) ? some(typeFromAstInner(alloc, ctx, force(opt).deref())) : none!Type;
 }
 
 private immutable(Type) typeFromAstInner(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst ast) {
 	return typeFromAst(
 		alloc,
-		ctx.checkCtx.deref,
+		ctx.checkCtx,
 		ctx.commonTypes,
 		ast,
 		ctx.structsAndAliasesDict,
@@ -225,7 +241,7 @@ immutable(Opt!Type) shallowInstantiateType(ref const Expected expected) {
 	if (has(t) && isTypeParam(force(t))) {
 		const Opt!(Ptr!SingleInferringType) typeArg =
 			tryGetTypeArgFromInferringTypeArgs_const(expected.inferringTypeArgs, asTypeParam(force(t)));
-		return has(typeArg) ? tryGetInferred(force(typeArg)) : none!Type;
+		return has(typeArg) ? tryGetInferred(force(typeArg).deref()) : none!Type;
 	} else
 		return t;
 }
@@ -410,9 +426,9 @@ immutable(SetTypeResult) setTypeNoDiagnosticWorker_forStructInst(
 ) {
 	// Handling a union expected type is done in Expected::check
 	// TODO: but it's done here to for case of call return type ...
-	if (ptrEquals(a.decl, b.decl))
+	if (ptrEquals(a.deref().decl, b.deref().decl))
 		return checkAssignabilityForStructInstsWithSameDecl(
-			alloc, programState, a.decl, a.typeArgs, b.typeArgs, aInferringTypeArgs);
+			alloc, programState, a.deref().decl, a.deref().typeArgs, b.deref().typeArgs, aInferringTypeArgs);
 	else
 		return SetTypeResult(SetTypeResult.Fail());
 }
@@ -430,16 +446,16 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(
 		(immutable Ptr!TypeParam p) {
 			const Opt!(Ptr!SingleInferringType) ta = tryGetTypeArgFromInferringTypeArgs_const(inferringTypeArgs, p);
 			// If it's not one of the inferring types, it's instantiated enough to return.
-			return has(ta) ? tryGetInferred(force(ta)) : some(t);
+			return has(ta) ? tryGetInferred(force(ta).deref()) : some(t);
 		},
 		(immutable Ptr!StructInst i) {
-			immutable Opt!(Type[]) typeArgs = mapOrNone!Type(alloc, typeArgs(i), (ref immutable Type t) =>
+			immutable Opt!(Type[]) typeArgs = mapOrNone!Type(alloc, typeArgs(i.deref()), (ref immutable Type t) =>
 				tryGetDeeplyInstantiatedTypeWorker(alloc, programState, t, inferringTypeArgs));
 			return has(typeArgs)
 				? some(immutable Type(instantiateStructNeverDelay(
 					alloc,
 					programState,
-					immutable StructDeclAndArgs(decl(i), force(typeArgs)))))
+					immutable StructDeclAndArgs(decl(i.deref()), force(typeArgs)))))
 				: none!Type;
 		});
 }

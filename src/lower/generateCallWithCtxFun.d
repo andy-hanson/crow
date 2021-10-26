@@ -59,21 +59,21 @@ immutable(LowFun) generateCallWithCtxFun(
 			localIndex = safeSizeTToU8(localIndex + 1);
 			immutable Opt!LowExpr someCtxParamRef = some(ctxParamRef);
 			immutable Opt!LowExpr someClosureLocalRef = some(localRef(alloc, range, closureLocal));
-			//TODO:mapWithFirst2 (no opt)
+			//TODO:mapWithFirst2 (no opt, don't pass ptrs to callback)
 			immutable LowExpr[] args = mapWithOptFirst2!(LowExpr, LowType)(
 				alloc,
 				someCtxParamRef,
 				someClosureLocalRef,
 				nonFunNonCtxParamTypes,
 				(immutable size_t i, immutable Ptr!LowType paramType) =>
-					paramRef(range, paramType, immutable LowParamIndex(i + 2)));
+					paramRef(range, paramType.deref(), immutable LowParamIndex(i + 2)));
 			immutable LowExpr then = immutable LowExpr(returnType, range, immutable LowExprKind(
 				immutable LowExprKind.Call(mustGetAt(concreteFunToLowFunIndex, impl.impl), args)));
 			return immutable LowExprKind.MatchUnion.Case(some(closureLocal), then);
 		});
 
 	immutable LowExpr expr = immutable LowExpr(returnType, range, immutable LowExprKind(
-		allocate(alloc, immutable LowExprKind.MatchUnion(allocate(alloc, funParamRef), cases))));
+		allocate(alloc, immutable LowExprKind.MatchUnion(funParamRef, cases))));
 	immutable LowParam[] params = mapWithFirst2!(LowParam, LowType)(
 		alloc,
 		immutable LowParam(
@@ -95,8 +95,8 @@ immutable(LowFun) generateCallWithCtxFun(
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("call-w-ctx"),
 			prepend(alloc, returnType, nonFunNonCtxParamTypes)))),
-		allocate(alloc, immutable LowFunSig(returnType, immutable LowFunParamsKind(true, false), params)),
-		immutable LowFunBody(immutable LowFunExprBody(false, allocate(alloc, expr))));
+		immutable LowFunSig(returnType, immutable LowFunParamsKind(true, false), params),
+		immutable LowFunBody(immutable LowFunExprBody(false, expr)));
 }
 
 private:

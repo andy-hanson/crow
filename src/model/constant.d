@@ -45,7 +45,7 @@ struct Constant {
 	}
 	struct Union {
 		immutable Nat16 memberIndex;
-		immutable Ptr!Constant arg;
+		immutable Constant arg;
 	}
 	struct Void {}
 
@@ -74,7 +74,7 @@ struct Constant {
 		immutable Null null_;
 		immutable Pointer pointer;
 		immutable Record record;
-		immutable Union union_;
+		immutable Ptr!Union union_;
 		immutable Void void_;
 	}
 	public:
@@ -88,7 +88,7 @@ struct Constant {
 	immutable this(immutable Null a) { kind = Kind.null_; null_ = a; }
 	@trusted immutable this(immutable Pointer a) { kind = Kind.pointer; pointer = a; }
 	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
-	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
+	@trusted immutable this(immutable Ptr!Union a) { kind = Kind.union_; union_ = a; }
 	immutable this(immutable Void a) { kind = Kind.void_; void_ = a; }
 }
 static assert(Constant.sizeof <= 24);
@@ -115,7 +115,7 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 
 @trusted immutable(Constant.Union) asUnion(ref immutable Constant a) {
 	verify(a.kind == Constant.Kind.union_);
-	return a.union_;
+	return a.union_.deref();
 }
 
 // WARN: Only do this with constants known to have the same type
@@ -147,7 +147,9 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 				(ref immutable Constant x, ref immutable Constant y) =>
 					constantEqual(x, y));
 		case Constant.Kind.union_:
-			return a.union_.memberIndex == b.union_.memberIndex && constantEqual(a.union_.arg, b.union_.arg);
+			immutable Constant.Union au = asUnion(a);
+			immutable Constant.Union bu = asUnion(b);
+			return au.memberIndex == bu.memberIndex && constantEqual(au.arg, bu.arg);
 	}
 }
 
@@ -185,7 +187,7 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 		case Constant.Kind.record:
 			return cbRecord(a.record);
 		case Constant.Kind.union_:
-			return cbUnion(a.union_);
+			return cbUnion(a.union_.deref());
 		case Constant.Kind.void_:
 			return cbVoid(a.void_);
 	}

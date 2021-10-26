@@ -59,8 +59,6 @@ struct Ptr(T) {
 
 	const(T*) rawPtr() const { return ptr; }
 	immutable(T*) rawPtr() immutable { return ptr; }
-
-	alias deref this;
 }
 
 @trusted immutable(Ptr!T) ptrTrustMe(T)(ref immutable T t) {

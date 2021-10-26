@@ -16,13 +16,13 @@ import util.util : verify;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
 struct Test(Debug) {
-	Ptr!Debug dbg;
-	Ptr!Alloc alloc;
+	Ptr!Debug dbgPtr;
+	Ptr!Alloc allocPtr;
 	AllSymbols allSymbols;
 	AllPaths allPaths;
 
 	Writer writer() {
-		return Writer(alloc);
+		return Writer(allocPtr);
 	}
 
 	void fail(immutable string s) {
@@ -31,6 +31,13 @@ struct Test(Debug) {
 			printf("Failed: %.*s\n", cast(int) s.length, s.ptr);
 		}
 		verify(false);
+	}
+
+	ref Debug dbg() {
+		return dbgPtr.deref();
+	}
+	ref Alloc alloc() {
+		return allocPtr.deref();
 	}
 }
 

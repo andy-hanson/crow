@@ -19,14 +19,15 @@ import util.collection.arr : at, castImmutable, setAt, size;
 import util.collection.arrBuilder : add, ArrBuilder;
 import util.collection.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
 import util.collection.dict : getPtrAt;
-import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, RangeWithinFile;
 import util.sym : indexOfSym, Sym;
 
 struct CheckCtx {
-	Ptr!ProgramState programState;
+	@safe @nogc pure nothrow:
+
+	Ptr!ProgramState programStatePtr;
 	immutable FileIndex fileIndex;
 	immutable ModuleAndNames[] imports;
 	immutable ModuleAndNames[] reExports;
@@ -36,7 +37,15 @@ struct CheckCtx {
 	bool[] structAliasesUsed;
 	bool[] structsUsed;
 	bool[] specsUsed;
-	Ptr!(ArrBuilder!Diagnostic) diagsBuilder;
+	Ptr!(ArrBuilder!Diagnostic) diagsBuilderPtr;
+
+	ref ProgramState programState() return scope {
+		return programStatePtr.deref();
+	}
+
+	ref ArrBuilder!Diagnostic diagsBuilder() return scope {
+		return diagsBuilderPtr.deref();
+	}
 }
 
 bool[] newUsedImportsAndReExports(
@@ -66,12 +75,12 @@ void checkForUnused(
 		structAliases,
 		castImmutable(ctx.structAliasesUsed),
 		(immutable Ptr!StructAlias alias_, ref immutable bool used) {
-			final switch (alias_.visibility) {
+			final switch (alias_.deref().visibility) {
 				case Visibility.public_:
 					break;
 				case Visibility.private_:
 					if (!used)
-						addDiag(alloc, ctx, alias_.range, immutable Diag(
+						addDiag(alloc, ctx, alias_.deref().range, immutable Diag(
 							immutable Diag.UnusedPrivateStructAlias(alias_)));
 			}
 		});
@@ -80,12 +89,13 @@ void checkForUnused(
 		structDecls,
 		castImmutable(ctx.structsUsed),
 		(immutable Ptr!StructDecl struct_, ref immutable bool used) {
-			final switch (struct_.visibility) {
+			final switch (struct_.deref().visibility) {
 				case Visibility.public_:
 					break;
 				case Visibility.private_:
 					if (!used)
-						addDiag(alloc, ctx, struct_.range, immutable Diag(immutable Diag.UnusedPrivateStruct(struct_)));
+						addDiag(alloc, ctx, struct_.deref().range, immutable Diag(
+							immutable Diag.UnusedPrivateStruct(struct_)));
 			}
 		});
 
@@ -93,12 +103,12 @@ void checkForUnused(
 		specDecls,
 		castImmutable(ctx.specsUsed),
 		(immutable Ptr!SpecDecl spec, ref immutable bool used) {
-			final switch (spec.visibility) {
+			final switch (spec.deref().visibility) {
 				case Visibility.public_:
 					break;
 				case Visibility.private_:
 					if (!used)
-						addDiag(alloc, ctx, spec.range, immutable Diag(immutable Diag.UnusedPrivateSpec(spec)));
+						addDiag(alloc, ctx, spec.deref().range, immutable Diag(immutable Diag.UnusedPrivateSpec(spec)));
 			}
 		});
 }
@@ -110,13 +120,13 @@ private void checkUnusedImports(ref Alloc alloc, ref CheckCtx ctx) {
 			foreach (ref immutable Sym name; force(it.names)) {
 				if (!at(ctx.importsAndReExportsUsed, index) && has(it.importSource))
 					addDiag(alloc, ctx, force(it.importSource), immutable Diag(
-						immutable Diag.UnusedImport(it.module_, some(name))));
+						immutable Diag.UnusedImport(it.modulePtr, some(name))));
 				index++;
 			}
 		} else {
 			if (!at(ctx.importsAndReExportsUsed, index) && has(it.importSource))
 				addDiag(alloc, ctx, force(it.importSource), immutable Diag(
-					immutable Diag.UnusedImport(it.module_, none!Sym)));
+					immutable Diag.UnusedImport(it.modulePtr, none!Sym)));
 			index++;
 		}
 	}
@@ -131,10 +141,10 @@ struct ImportIndex {
 void markUsedStructOrAlias(ref CheckCtx ctx, ref immutable StructOrAliasAndIndex a) {
 	matchStructOrAlias!void(
 		a.structOrAlias,
-		(immutable Ptr!StructAlias) {
+		(ref immutable StructAlias) {
 			setAt(ctx.structAliasesUsed, a.index.index, true);
 		},
-		(immutable Ptr!StructDecl) {
+		(ref immutable StructDecl) {
 			setAt(ctx.structsUsed, a.index.index, true);
 		});
 }
@@ -179,7 +189,7 @@ immutable(Acc) eachImportAndReExport(Acc)(
 			if (has(importIndex)) {
 				immutable Opt!(Ptr!NameReferents) referents = getPtrAt(m.module_.allExportedNames, name);
 				if (has(referents))
-					return cb(acc, m.module_, immutable ImportIndex(force(importIndex)), force(referents));
+					return cb(acc, m.modulePtr, immutable ImportIndex(force(importIndex)), force(referents).deref());
 			}
 			return acc;
 		});
@@ -199,7 +209,7 @@ void addDiag(
 	immutable FileAndRange range,
 	immutable Diag diag,
 ) {
-	add(alloc, ctx.diagsBuilder, immutable Diagnostic(range, allocate(alloc, diag)));
+	add(alloc, ctx.diagsBuilder, immutable Diagnostic(range, diag));
 }
 
 void addDiag(

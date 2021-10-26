@@ -23,14 +23,14 @@ import util.util : verify, verifyFail;
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(path, StorageKind.local);
 	MutFiles files;
 	immutable NulTerminatedStr contentStr = nulTerminatedStrOfCStr(content);
-	addToMutDict(test.alloc.deref(), files, key, contentStr);
+	addToMutDict(test.alloc, files, key, contentStr);
 	const DictReadOnlyStorage storage = const DictReadOnlyStorage(ptrTrustMe_const(files));
-	immutable Ptr!Program program =
-		frontendCompile(test.alloc.deref(), test.alloc.deref(), test.allPaths, test.allSymbols, storage, key);
+	immutable Program program =
+		frontendCompile(test.alloc, test.alloc, test.allPaths, test.allSymbols, storage, key);
 	immutable Ptr!Module mainModule = last(program.allModules);
 
 	immutable(string) hover(immutable Pos pos) {
-		immutable Opt!Position position = getPosition(mainModule, pos);
+		immutable Opt!Position position = getPosition(mainModule.deref(), pos);
 		return has(position)
 			? getHoverStr(test.alloc, test.alloc, test.allPaths, program, force(position))
 			: "";

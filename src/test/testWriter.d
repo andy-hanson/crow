@@ -9,7 +9,7 @@ import util.writer : finishWriter, writeFloatLiteral, Writer;
 
 @trusted void testWriter(Debug)(ref Test!Debug test) {
 	void writes(immutable double value, immutable string expected) {
-		Writer writer = Writer(test.alloc);
+		Writer writer = Writer(test.allocPtr);
 		writeFloatLiteral(writer, value);
 		immutable string res = finishWriter(writer);
 		verify(strEq(res, expected));

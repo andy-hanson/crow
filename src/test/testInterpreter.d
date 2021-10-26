@@ -116,35 +116,35 @@ void doInterpret(Debug)(
 ) {
 	immutable Path emptyPath = rootPath(test.allPaths, "test");
 	immutable PathAndStorageKind[1] pk = [immutable PathAndStorageKind(emptyPath, StorageKind.global)];
-	immutable LineAndColumnGetter[1] lcg = [lineAndColumnGetterForEmptyFile(test.alloc.deref())];
-	static immutable AbsolutePathsGetter emptyAbsolutePathsGetter = immutable AbsolutePathsGetter("", "");
+	immutable LineAndColumnGetter[1] lcg = [lineAndColumnGetterForEmptyFile(test.alloc)];
+	immutable AbsolutePathsGetter emptyAbsolutePathsGetter = immutable AbsolutePathsGetter("", "");
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(pk),
-		ptrTrustMe(emptyAbsolutePathsGetter),
+		emptyAbsolutePathsGetter,
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(lcg));
 	immutable LowFun[1] lowFun = [immutable LowFun(
-		immutable LowFunSource(allocate(test.alloc.deref(), immutable LowFunSource.Generated(
+		immutable LowFunSource(allocate(test.alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("test"), emptyArr!LowType))),
-		allocate(test.alloc.deref(), immutable LowFunSig(
+		immutable LowFunSig(
 			nat64Type,
 			immutable LowFunParamsKind(false, false),
-			emptyArr!LowParam)),
-		immutable LowFunBody(allocate(test.alloc.deref(), immutable LowFunBody.Extern(false))))];
+			emptyArr!LowParam),
+		immutable LowFunBody(immutable LowFunBody.Extern(false)))];
 	immutable LowProgram lowProgram = immutable LowProgram(
 		ConcreteFunToLowFunIndex(),
 		immutable AllConstantsLow(
 			emptyArr!string,
 			emptyArr!ArrTypeAndConstantsLow,
 			emptyArr!PointerTypeAndConstantsLow),
-		allocate(test.alloc.deref(), immutable AllLowTypes(
+		immutable AllLowTypes(
 			emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),
 			emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
 			emptyFullIndexDict!(LowType.Record, LowRecord),
-			emptyFullIndexDict!(LowType.Union, LowUnion))),
+			emptyFullIndexDict!(LowType.Union, LowUnion)),
 		fullIndexDictOfArr!(LowFunIndex, LowFun)(lowFun),
 		immutable LowFunIndex(0));
-	FakeExtern extern_ = newFakeExtern(test.alloc);
-	Interpreter!(FakeExtern) interpreter = Interpreter!(FakeExtern)(
+	FakeExtern extern_ = newFakeExtern(test.allocPtr);
+	Interpreter!FakeExtern interpreter = Interpreter!FakeExtern(
 		ptrTrustMe_mut(extern_),
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
@@ -168,7 +168,7 @@ void doTest(Debug)(
 immutable ByteCodeSource emptyByteCodeSource = immutable ByteCodeSource(immutable LowFunIndex(0), immutable Pos(0));
 
 void testCall(Debug)(ref Test!Debug test) {
-	ByteCodeWriter writer = newByteCodeWriter(test.alloc);
+	ByteCodeWriter writer = newByteCodeWriter(test.allocPtr);
 	immutable ByteCodeSource source = emptyByteCodeSource;
 
 	// Code is:
@@ -208,7 +208,7 @@ void testCall(Debug)(ref Test!Debug test) {
 }
 
 void testCallFunPtr(Debug)(ref Test!Debug test) {
-	ByteCodeWriter writer = newByteCodeWriter(test.alloc);
+	ByteCodeWriter writer = newByteCodeWriter(test.allocPtr);
 	immutable ByteCodeSource source = emptyByteCodeSource;
 
 	// Code is:
@@ -250,7 +250,7 @@ void testCallFunPtr(Debug)(ref Test!Debug test) {
 }
 
 void testSwitchAndJump(Debug)(ref Test!Debug test) {
-	ByteCodeWriter writer = newByteCodeWriter(test.alloc);
+	ByteCodeWriter writer = newByteCodeWriter(test.allocPtr);
 	immutable ByteCodeSource source = emptyByteCodeSource;
 
 	// Code is:
@@ -698,12 +698,12 @@ void verifyStackEntry(ref ByteCodeWriter writer, immutable ushort n) {
 }
 
 void stepContinue(Debug, Extern)(ref Test!Debug test, ref Interpreter!Extern interpreter) {
-	immutable StepResult result = step(test.dbg, test.alloc.deref(), test.allPaths, interpreter);
+	immutable StepResult result = step(test.dbg, test.alloc, test.allPaths, interpreter);
 	verify(result == StepResult.continue_);
 }
 
 void stepExit(Debug, Extern)(ref Test!Debug test, ref Interpreter!Extern interpreter) {
-	immutable StepResult result = step(test.dbg, test.alloc.deref(), test.allPaths, interpreter);
+	immutable StepResult result = step(test.dbg, test.alloc, test.allPaths, interpreter);
 	verify(result == StepResult.exit);
 }
 

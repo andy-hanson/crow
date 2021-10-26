@@ -157,7 +157,7 @@ struct ConcreteFunKey {
 }
 
 private immutable(ContainingFunInfo) toContainingFunInfo(ref immutable ConcreteFunKey a) {
-	return immutable ContainingFunInfo(typeParams(a.inst.decl.deref()), a.typeArgs, a.specImpls);
+	return immutable ContainingFunInfo(typeParams(a.inst.deref().decl.deref()), a.typeArgs, a.specImpls);
 }
 
 immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunKey a) {
@@ -179,7 +179,7 @@ private immutable(Comparison) compareConcreteFunKey(ref immutable ConcreteFunKey
 	// Compare decls, not insts.
 	// Two different FunInsts may concretize to the same thing.
 	// (e.g. f<?t> and f<bool> if ?t = bool)
-	immutable Comparison cmpDecl = comparePtr(a.inst.decl, b.inst.decl);
+	immutable Comparison cmpDecl = comparePtr(a.inst.deref().decl, b.inst.deref().decl);
 	if (cmpDecl != Comparison.equal)
 		return cmpDecl;
 	else {
@@ -225,8 +225,8 @@ struct ConcretizeCtx {
 
 	immutable Ptr!FunInst curIslandAndExclusionFun;
 	immutable Ptr!StructInst ctxStructInst;
-	immutable Ptr!CommonTypes commonTypes;
-	immutable Ptr!Program program;
+	immutable Ptr!CommonTypes commonTypesPtr;
+	immutable Ptr!Program programPtr;
 	AllConstantsBuilder allConstants;
 	MutDict!(
 		immutable ConcreteStructKey,
@@ -258,6 +258,13 @@ struct ConcretizeCtx {
 	Late!(immutable ConcreteType) _ctxType;
 	Late!(immutable ConcreteType) _strType;
 	Late!(immutable ConcreteType) _symType;
+
+	ref immutable(CommonTypes) commonTypes() return scope const {
+		return commonTypesPtr.deref();
+	}
+	ref immutable(Program) program() return scope const {
+		return programPtr.deref();
+	}
 }
 
 immutable(ConcreteType) boolType(ref Alloc alloc, ref ConcretizeCtx a) {
@@ -289,8 +296,7 @@ immutable(ConcreteType) ctxType(ref Alloc alloc, ref ConcretizeCtx a) {
 
 immutable(Constant) constantStr(ref Alloc alloc, ref ConcretizeCtx a, immutable string value) {
 	immutable ConcreteType strType = strType(alloc, a);
-	immutable Ptr!ConcreteStruct strStruct = mustBeNonPointer(strType);
-	return getConstantStr(alloc, a.allConstants, strStruct, value);
+	return getConstantStr(alloc, a.allConstants, mustBeNonPointer(strType).deref(), value);
 }
 
 immutable(Constant) constantSym(ref Alloc alloc, ref ConcretizeCtx a, immutable Sym value) {
@@ -316,12 +322,12 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(
 	immutable Ptr!ConcreteParam closureParam,
 	ref immutable ConcreteParam[] params,
 	ref immutable ContainingFunInfo containing,
-	immutable Ptr!Expr body_,
+	ref immutable Expr body_,
 ) {
 	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
 		immutable ConcreteFunSource(
 			allocate(alloc, immutable ConcreteFunSource.Lambda(body_.range, containingConcreteFun, index))),
-		allocate(alloc, immutable ConcreteFunSig(returnType, true, some(closureParam), params))));
+		immutable ConcreteFunSig(returnType, true, some(closureParam), params)));
 	immutable ConcreteFunBodyInputs bodyInputs = immutable ConcreteFunBodyInputs(containing, immutable FunBody(body_));
 	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
 	fillInConcreteFunBody(alloc, ctx, res);
@@ -344,15 +350,15 @@ immutable(ConcreteType) getConcreteType_forStructInst(
 	immutable Ptr!StructInst i,
 	immutable TypeArgsScope typeArgsScope,
 ) {
-	immutable ConcreteType[] typeArgs = typesToConcreteTypes(alloc, ctx, typeArgs(i), typeArgsScope);
-	if (ptrEquals(i.decl, ctx.commonTypes.byVal))
+	immutable ConcreteType[] typeArgs = typesToConcreteTypes(alloc, ctx, typeArgs(i.deref()), typeArgsScope);
+	if (ptrEquals(i.deref().decl, ctx.commonTypes.byVal))
 		return byVal(only(typeArgs));
 	else {
-		immutable ConcreteStructKey key = ConcreteStructKey(i.decl, typeArgs);
+		immutable ConcreteStructKey key = ConcreteStructKey(i.deref().decl, typeArgs);
 		immutable ValueAndDidAdd!(immutable Ptr!ConcreteStruct) res =
 			getOrAddAndDidAdd(alloc, ctx.nonLambdaConcreteStructs, key, () {
 				immutable Purity purity = fold(
-					i.bestCasePurity,
+					i.deref().bestCasePurity,
 					typeArgs,
 					(immutable Purity p, ref immutable ConcreteType ta) =>
 						worsePurity(p, purity(ta)));
@@ -363,7 +369,7 @@ immutable(ConcreteType) getConcreteType_forStructInst(
 				return res;
 			});
 		if (res.didAdd)
-			initializeConcreteStruct(alloc, ctx, typeArgs, i, castMutable(res.value), typeArgsScope);
+			initializeConcreteStruct(alloc, ctx, typeArgs, i.deref(), castMutable(res.value), typeArgsScope);
 		return concreteType_fromStruct(res.value);
 	}
 }
@@ -380,8 +386,8 @@ immutable(ConcreteType) getConcreteType(
 			unreachable!(immutable ConcreteType),
 		(immutable Ptr!TypeParam p) {
 			// Handle calledConcreteFun first
-			verify(ptrEquals(p, ptrAt(typeArgsScope.typeParams, p.index)));
-			return at(typeArgsScope.typeArgs, p.index);
+			verify(ptrEquals(p, ptrAt(typeArgsScope.typeParams, p.deref().index)));
+			return at(typeArgsScope.typeArgs, p.deref().index);
 		},
 		(immutable Ptr!StructInst i) =>
 			getConcreteType_forStructInst(alloc, ctx, i, typeArgsScope));
@@ -415,7 +421,7 @@ immutable(ConcreteType) concreteTypeFromClosure(
 				return worsePurity(p, purity(f.type));
 			});
 		Ptr!ConcreteStruct cs = allocateMut(alloc, ConcreteStruct(purity, source));
-		lateSet(cs.info_, getConcreteStructInfoForFields(closureFields));
+		lateSet(cs.deref().info_, getConcreteStructInfoForFields(closureFields));
 		setConcreteStructRecordSize(
 			alloc, ctx, cs, false, closureFields, false, ForcedByValOrRefOrNone.none, FieldsType.closure);
 		add(alloc, ctx.allConcreteStructs, castImmutable(cs));
@@ -437,10 +443,10 @@ private void setConcreteStructRecordSize(
 	if (canGetRecordSize(fields)) {
 		immutable TypeSizeAndFieldOffsets size = recordSize(alloc, packed, fields);
 		lateSetMaybeOverwrite(
-			cs.defaultIsPointer_,
+			cs.deref().defaultIsPointer_,
 			getDefaultIsPointerForFields(forcedByValOrRef, size.typeSize, isSelfMutable, fieldsType));
-		lateSet(cs.typeSize_, size.typeSize);
-		lateSet(cs.fieldOffsets_, size.fieldOffsets);
+		lateSet(cs.deref().typeSize_, size.typeSize);
+		lateSet(cs.deref().fieldOffsets_, size.fieldOffsets);
 	} else {
 		push(alloc, ctx.deferredRecords, DeferredRecordBody(cs, packed, fields));
 	}
@@ -470,16 +476,16 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(
 	ref ConcretizeCtx ctx,
 	ref immutable ConcreteFunKey key,
 ) {
-	immutable Ptr!FunDecl decl = key.inst.decl;
+	immutable Ptr!FunDecl decl = key.inst.deref().decl;
 	immutable TypeArgsScope typeScope = typeArgsScope(key);
-	immutable ConcreteType returnType = getConcreteType(alloc, ctx, returnType(decl), typeScope);
-	immutable ConcreteParam[] params = concretizeParams(alloc, ctx, paramsArray(params(decl)), typeScope);
+	immutable ConcreteType returnType = getConcreteType(alloc, ctx, returnType(decl.deref()), typeScope);
+	immutable ConcreteParam[] params = concretizeParams(alloc, ctx, paramsArray(params(decl.deref())), typeScope);
 	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
 		immutable ConcreteFunSource(key.inst),
-		allocate(alloc, immutable ConcreteFunSig(returnType, !noCtx(decl), none!(Ptr!ConcreteParam), params))));
+		immutable ConcreteFunSig(returnType, !noCtx(decl.deref()), none!(Ptr!ConcreteParam), params)));
 	immutable ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		toContainingFunInfo(key),
-		decl.body_);
+		decl.deref().body_);
 	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
 	return castImmutable(res);
 }
@@ -492,14 +498,14 @@ immutable(Ptr!ConcreteFun) concreteFunForTest(
 ) {
 	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
 		immutable ConcreteFunSource(allocate(alloc, immutable ConcreteFunSource.Test(test.body_.range, index))),
-		allocate(alloc, immutable ConcreteFunSig(voidType(alloc, ctx), true, none!(Ptr!ConcreteParam), emptyArr!ConcreteParam))));
+		immutable ConcreteFunSig(voidType(alloc, ctx), true, none!(Ptr!ConcreteParam), emptyArr!ConcreteParam)));
 	immutable ContainingFunInfo containing = immutable ContainingFunInfo(
 		emptyArr!TypeParam,
 		emptyArr!ConcreteType,
 		emptyArr!(Ptr!ConcreteFun));
 	immutable ConcreteExpr body_ =
 		concretizeExpr(alloc, ctx, containing, castImmutable(res), test.body_);
-	lateSet(res._body_, allocate(alloc, immutable ConcreteFunBody(immutable ConcreteFunExprBody(body_))));
+	lateSet(res.deref()._body_, allocate(alloc, immutable ConcreteFunBody(immutable ConcreteFunExprBody(body_))));
 	add(alloc, ctx.allConcreteFuns, castImmutable(res));
 	return castImmutable(res);
 }
@@ -593,7 +599,7 @@ void initializeConcreteStruct(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	ref immutable ConcreteType[] typeArgs,
-	immutable Ptr!StructInst i,
+	ref immutable StructInst i,
 	Ptr!ConcreteStruct res,
 	immutable TypeArgsScope typeArgsScope,
 ) {
@@ -601,57 +607,57 @@ void initializeConcreteStruct(
 		body_(i),
 		(ref immutable StructBody.Bogus) => unreachable!void,
 		(ref immutable StructBody.Builtin) {
-			immutable BuiltinStructKind kind = getBuiltinStructKind(i.decl.name);
-			lateSet(res.defaultIsPointer_, false);
-			lateSet(res.info_, immutable ConcreteStructInfo(
+			immutable BuiltinStructKind kind = getBuiltinStructKind(i.decl.deref().name);
+			lateSet(res.deref().defaultIsPointer_, false);
+			lateSet(res.deref().info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(ConcreteStructBody.Builtin(kind, typeArgs)),
 				false));
-			lateSet(res.typeSize_, getBuiltinStructSize(kind));
+			lateSet(res.deref().typeSize_, getBuiltinStructSize(kind));
 		},
 		(ref immutable StructBody.Enum it) {
-			lateSet(res.defaultIsPointer_, false);
-			lateSet(res.info_, immutable ConcreteStructInfo(
+			lateSet(res.deref().defaultIsPointer_, false);
+			lateSet(res.deref().info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(getConcreteStructBodyForEnum(alloc, it)),
 				false));
-			lateSet(res.typeSize_, typeSizeForEnumOrFlags(it.backingType));
+			lateSet(res.deref().typeSize_, typeSizeForEnumOrFlags(it.backingType));
 		},
 		(ref immutable StructBody.Flags it) {
-			lateSet(res.defaultIsPointer_, false);
-			lateSet(res.info_, immutable ConcreteStructInfo(
+			lateSet(res.deref().defaultIsPointer_, false);
+			lateSet(res.deref().info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(getConcreteStructBodyForFlags(alloc, it)),
 				false));
-			lateSet(res.typeSize_, typeSizeForEnumOrFlags(it.backingType));
+			lateSet(res.deref().typeSize_, typeSizeForEnumOrFlags(it.backingType));
 		},
 		(ref immutable StructBody.ExternPtr it) {
 			// defaultIsPointer is false because the 'extern' type *is* a pointer
-			lateSet(res.defaultIsPointer_, false);
-			lateSet(res.info_, immutable ConcreteStructInfo(
+			lateSet(res.deref().defaultIsPointer_, false);
+			lateSet(res.deref().info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(immutable ConcreteStructBody.ExternPtr()),
 				false));
-			lateSet(res.typeSize_, getBuiltinStructSize(BuiltinStructKind.ptrMut));
+			lateSet(res.deref().typeSize_, getBuiltinStructSize(BuiltinStructKind.ptrMut));
 		},
 		(ref immutable StructBody.Record r) {
 			// Initially make this a by-ref type, so we don't recurse infinitely when computing size
 			// TODO: is this a bug? We compute the size based on assuming it's a pointer,
 			// then make it not be a pointer and that would change the size?
 			// A record forced by-val should be marked early, in case it needs a 'ptr' to itself
-			lateSet(res.defaultIsPointer_, r.flags.forcedByValOrRef != ForcedByValOrRefOrNone.byVal);
+			lateSet(res.deref().defaultIsPointer_, r.flags.forcedByValOrRef != ForcedByValOrRefOrNone.byVal);
 
 			immutable ConcreteField[] fields =
 				mapPtrsWithIndex!ConcreteField(alloc, r.fields, (immutable size_t index, immutable Ptr!RecordField f) =>
 					immutable ConcreteField(
 						immutable ConcreteFieldSource(f),
 						safeSizeTToU8(index),
-						toConcreteMutability(f.mutability),
-						getConcreteType(alloc, ctx, f.type, typeArgsScope)));
+						toConcreteMutability(f.deref().mutability),
+						getConcreteType(alloc, ctx, f.deref().type, typeArgsScope)));
 			immutable bool packed = r.flags.packed;
 			immutable ConcreteStructInfo info = getConcreteStructInfoForFields(fields);
-			lateSet(res.info_, info);
+			lateSet(res.deref().info_, info);
 			setConcreteStructRecordSize(
 				alloc, ctx, res, packed, fields, info.isSelfMutable, r.flags.forcedByValOrRef, FieldsType.record);
 		},
 		(ref immutable StructBody.Union u) {
-			lateSet(res.defaultIsPointer_, false);
+			lateSet(res.deref().defaultIsPointer_, false);
 			immutable Opt!ConcreteType[] members = map!(Opt!ConcreteType)(
 				alloc,
 				u.members,
@@ -659,10 +665,10 @@ void initializeConcreteStruct(
 					has(it.type)
 						? some(getConcreteType(alloc, ctx, force(it.type), typeArgsScope))
 						: none!ConcreteType);
-			lateSet(res.info_, immutable ConcreteStructInfo(
+			lateSet(res.deref().info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(ConcreteStructBody.Union(members)), false));
 			if (canGetUnionSize(members))
-				lateSet(res.typeSize_, unionSize(members));
+				lateSet(res.deref().typeSize_, unionSize(members));
 			else
 				push(alloc, ctx.deferredUnions, DeferredUnionBody(res, members));
 		});
@@ -735,8 +741,8 @@ public void deferredFillRecordAndUnionBodies(ref Alloc alloc, ref ConcretizeCtx 
 				immutable TypeSizeAndFieldOffsets info = recordSize(alloc, deferred.packed, deferred.fields);
 				// NOTE: In the deferred case we don't compute 'defaultIsPointer_';
 				// it's already been assumed to be a pointer so we can't change it.
-				lateSet(deferred.struct_.typeSize_, info.typeSize);
-				lateSet(deferred.struct_.fieldOffsets_, info.fieldOffsets);
+				lateSet(deferred.struct_.deref().typeSize_, info.typeSize);
+				lateSet(deferred.struct_.deref().fieldOffsets_, info.fieldOffsets);
 				couldGetSomething = true;
 			}
 			return !canGet;
@@ -744,7 +750,7 @@ public void deferredFillRecordAndUnionBodies(ref Alloc alloc, ref ConcretizeCtx 
 		filterUnordered!DeferredUnionBody(ctx.deferredUnions, (ref DeferredUnionBody deferred) {
 			immutable bool canGet = canGetUnionSize(deferred.members);
 			if (canGet) {
-				lateSet(deferred.struct_.typeSize_, unionSize(deferred.members));
+				lateSet(deferred.struct_.deref().typeSize_, unionSize(deferred.members));
 				couldGetSomething = true;
 			}
 			return !canGet;
@@ -760,16 +766,16 @@ void fillInConcreteFunBody(
 	Ptr!ConcreteFun cf,
 ) {
 	// TODO: just assert it's not already set?
-	if (!lateIsSet(cf._body_)) {
+	if (!lateIsSet(cf.deref()._body_)) {
 		// set to arbitrary temporarily
-		lateSet(cf._body_, allocate(alloc, immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(false))));
+		lateSet(cf.deref()._body_, allocate(alloc, immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(false))));
 		immutable ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, castImmutable(cf));
 		immutable ConcreteFunBody body_ = matchFunBody!(immutable ConcreteFunBody)(
 			inputs.body_,
 			(ref immutable FunBody.Builtin) {
-				immutable Ptr!FunInst inst = asFunInst(cf.source);
-				return symEq(name(inst), shortSymAlphaLiteral("all-tests"))
-					? bodyForAllTests(alloc, ctx, castImmutable(cf).returnType())
+				immutable Ptr!FunInst inst = asFunInst(cf.deref().source);
+				return symEq(name(inst.deref()), shortSymAlphaLiteral("all-tests"))
+					? bodyForAllTests(alloc, ctx, castImmutable(cf).deref().returnType())
 					: immutable ConcreteFunBody(immutable ConcreteFunBody.Builtin(typeArgs(inputs)));
 			},
 			(ref immutable FunBody.CreateEnum it) =>
@@ -786,7 +792,7 @@ void fillInConcreteFunBody(
 					case EnumFunction.union_:
 						return immutable ConcreteFunBody(it);
 					case EnumFunction.members:
-						return bodyForEnumOrFlagsMembers(alloc, ctx, castImmutable(cf).returnType);
+						return bodyForEnumOrFlagsMembers(alloc, ctx, castImmutable(cf).deref().returnType);
 				}
 			},
 			(ref immutable FunBody.Extern e) {
@@ -795,20 +801,18 @@ void fillInConcreteFunBody(
 					addToMutSetOkIfPresent(alloc, ctx.allExternLibraryNames, copyStr(alloc, force(e.libraryName)));
 				return immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(e.isGlobal));
 			},
-			(immutable Ptr!Expr e) =>
+			(ref immutable Expr e) =>
 				immutable ConcreteFunBody(immutable ConcreteFunExprBody(
-					allocate(
-						alloc,
-						concretizeExpr(alloc, ctx, inputs.containing, castImmutable(cf), e.deref)))),
+					concretizeExpr(alloc, ctx, inputs.containing, castImmutable(cf), e))),
 			(immutable FlagsFunction it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.FlagsFn(
-					getAllValue(asFlags(body_(mustBeNonPointer(castImmutable(cf).returnType).deref()))),
+					getAllValue(asFlags(body_(mustBeNonPointer(castImmutable(cf).deref().returnType).deref()))),
 					it)),
 			(ref immutable FunBody.RecordFieldGet it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
 			(ref immutable FunBody.RecordFieldSet it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldSet(it.fieldIndex)));
-		lateSetOverwrite(cf._body_, allocate(alloc, body_));
+		lateSetOverwrite(cf.deref()._body_, allocate(alloc, body_));
 	}
 }
 
@@ -823,8 +827,8 @@ immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(
 	immutable ConcreteType returnType,
 ) {
 	immutable Ptr!ConcreteStruct arrayStruct = mustBeNonPointer(returnType);
-	immutable ConcreteType elementType = only(asInst(arrayStruct.source).typeArgs); // named<e>
-	immutable ConcreteType enumOrFlagsType = only(asInst(mustBeNonPointer(elementType).source).typeArgs);
+	immutable ConcreteType elementType = only(asInst(arrayStruct.deref().source).typeArgs); // named<e>
+	immutable ConcreteType enumOrFlagsType = only(asInst(mustBeNonPointer(elementType).deref().source).typeArgs);
 	immutable Constant[] elements = map!Constant(
 		alloc,
 		enumOrFlagsMembers(enumOrFlagsType),
@@ -839,7 +843,7 @@ immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(
 
 immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType type) {
 	return matchStructBody!(immutable StructBody.Enum.Member[])(
-		body_(decl(asInst(mustBeNonPointer(type).source).inst).deref()),
+		body_(decl(asInst(mustBeNonPointer(type).deref().source).inst.deref()).deref()),
 		(ref immutable StructBody.Bogus) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
 		(ref immutable StructBody.Builtin) =>
@@ -864,7 +868,7 @@ immutable(ConcreteFunBody) bodyForAllTests(
 	immutable Test[] allTests = () {
 		ArrBuilder!Test allTestsBuilder;
 		foreach (immutable Ptr!Module m; ctx.program.allModules)
-			addAll(alloc, allTestsBuilder, m.tests);
+			addAll(alloc, allTestsBuilder, m.deref().tests);
 		return finishArr(alloc, allTestsBuilder);
 	}();
 	immutable Constant arr = getConstantArr(
@@ -877,7 +881,7 @@ immutable(ConcreteFunBody) bodyForAllTests(
 		returnType,
 		FileAndRange.empty,
 		immutable ConcreteExprKind(arr));
-	return immutable ConcreteFunBody(immutable ConcreteFunExprBody(allocate(alloc, body_)));
+	return immutable ConcreteFunBody(immutable ConcreteFunExprBody(body_));
 }
 
 immutable(ConcreteParam[]) concretizeParams(
@@ -890,7 +894,7 @@ immutable(ConcreteParam[]) concretizeParams(
 		immutable ConcreteParam(
 			immutable ConcreteParamSource(p),
 			some!size_t(index),
-			getConcreteType(alloc, ctx, p.type, typeArgsScope)));
+			getConcreteType(alloc, ctx, p.deref().type, typeArgsScope)));
 }
 
 immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {

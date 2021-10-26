@@ -68,9 +68,10 @@ immutable(Opt!(Ptr!T)) tryGetTypeArg(T)(
 	ref immutable T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
-	immutable bool hasTypeParam = ptrEquals(ptrAt(typeParams, typeParam.index), typeParam);
+	immutable size_t index = typeParam.deref().index;
+	immutable bool hasTypeParam = ptrEquals(ptrAt(typeParams, index), typeParam);
 	return hasTypeParam
-		? some(ptrAt(typeArgs, typeParam.index))
+		? some(ptrAt(typeArgs, index))
 		: none!(Ptr!T);
 }
 
@@ -79,8 +80,9 @@ const(Opt!(Ptr!T)) tryGetTypeArg(T)(
 	ref const T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
-	return typeParam.index < size(typeParams) && ptrEquals(ptrAt(typeParams, typeParam.index), typeParam)
-		? someConst(ptrAt(typeArgs, typeParam.index))
+	immutable size_t index = typeParam.deref().index;
+	return index < size(typeParams) && ptrEquals(ptrAt(typeParams, index), typeParam)
+		? someConst(ptrAt(typeArgs, index))
 		: none!(Ptr!T);
 }
 
@@ -89,8 +91,9 @@ Opt!(Ptr!T) tryGetTypeArg(T)(
 	ref T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
-	return typeParam.index < size(typeParams) && ptrEquals(ptrAt(typeParams, typeParam.index), typeParam)
-		? someMut(ptrAt(typeArgs, typeParam.index))
+	immutable size_t index = typeParam.deref().index;
+	return index < size(typeParams) && ptrEquals(ptrAt(typeParams, index), typeParam)
+		? someMut(ptrAt(typeArgs, index))
 		: noneMut!(Ptr!T);
 }
 
@@ -148,8 +151,8 @@ immutable(Ptr!FunInst) instantiateFun(
 			instantiateSig(
 				alloc,
 				programState,
-				declAndArgs.decl.sig,
-				immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs)))));
+				declAndArgs.decl.deref().sig,
+				immutable TypeParamsAndArgs(declAndArgs.decl.deref().typeParams, declAndArgs.typeArgs)))));
 }
 
 immutable(StructBody) instantiateStructBody(
@@ -161,7 +164,7 @@ immutable(StructBody) instantiateStructBody(
 	immutable TypeParamsAndArgs typeParamsAndArgs =
 		immutable TypeParamsAndArgs(typeParams(declAndArgs.decl.deref()), declAndArgs.typeArgs);
 	return matchStructBody!(immutable StructBody)(
-		body_(declAndArgs.decl),
+		body_(declAndArgs.decl.deref()),
 		(ref immutable StructBody.Bogus) =>
 			immutable StructBody(immutable StructBody.Bogus()),
 		(ref immutable StructBody.Builtin) =>
@@ -193,27 +196,19 @@ immutable(Ptr!StructInst) instantiateStruct(
 	immutable StructDeclAndArgs declAndArgs,
 	DelayStructInsts delayStructInsts,
 ) {
-	ValueAndDidAdd!(Ptr!StructInst) res = getOrAddAndDidAdd(
-		alloc,
-		programState.structInsts,
-		declAndArgs,
-		() {
-			immutable Purity bestPurity = fold(
-				declAndArgs.decl.purity,
-				declAndArgs.typeArgs,
-				(immutable Purity pur, ref immutable Type typeArg) =>
-					worsePurity(pur, bestCasePurity(typeArg)));
-			immutable Purity worstPurity = fold(
-				declAndArgs.decl.purity,
-				declAndArgs.typeArgs,
-				(immutable Purity pur, ref immutable Type typeArg) =>
-					worsePurity(pur, worstCasePurity(typeArg)));
-			return allocateMut(alloc, StructInst(declAndArgs, bestPurity, worstPurity));
-		});
+	ValueAndDidAdd!(Ptr!StructInst) res = getOrAddAndDidAdd(alloc, programState.structInsts, declAndArgs, () {
+		immutable Purity declPurity = declAndArgs.decl.deref().purity;
+		immutable Type[] typeArgs = declAndArgs.typeArgs;
+		immutable Purity bestPurity = fold(declPurity, typeArgs, (immutable Purity pur, ref immutable Type typeArg) =>
+			worsePurity(pur, bestCasePurity(typeArg)));
+		immutable Purity worstPurity = fold(declPurity, typeArgs, (immutable Purity pur, ref immutable Type typeArg) =>
+			worsePurity(pur, worstCasePurity(typeArg)));
+		return allocateMut(alloc, StructInst(declAndArgs, bestPurity, worstPurity));
+	});
 
 	if (res.didAdd) {
-		if (bodyIsSet(declAndArgs.decl))
-			setBody(res.value, instantiateStructBody(alloc, programState, declAndArgs, delayStructInsts));
+		if (bodyIsSet(declAndArgs.decl.deref()))
+			setBody(res.value.deref(), instantiateStructBody(alloc, programState, declAndArgs, delayStructInsts));
 		else {
 			// We should only need to do this in the initial phase of settings struct bodies,
 			// which is when delayedStructInst is set.
@@ -232,11 +227,10 @@ private immutable(Ptr!StructInst) instantiateStructInst(
 	DelayStructInsts delayStructInsts,
 ) {
 	// TODO:PERF don't create the array if we don't need it (`instantiate` could take the callback)
-	immutable Type[] itsTypeArgs = map!Type(alloc, typeArgs(structInst), (ref immutable Type t) {
-		return instantiateType(alloc, programState, t, typeParamsAndArgs, delayStructInsts);
-	});
+	immutable Type[] itsTypeArgs = map!Type(alloc, typeArgs(structInst.deref()), (ref immutable Type t) =>
+		instantiateType(alloc, programState, t, typeParamsAndArgs, delayStructInsts));
 	return instantiateStruct(
-		alloc, programState, immutable StructDeclAndArgs(decl(structInst), itsTypeArgs), delayStructInsts);
+		alloc, programState, immutable StructDeclAndArgs(decl(structInst.deref()), itsTypeArgs), delayStructInsts);
 }
 
 private immutable(Ptr!StructInst) instantiateStructInst(
@@ -293,16 +287,16 @@ immutable(Ptr!SpecInst) instantiateSpec(
 		programState.specInsts,
 		declAndArgs,
 		() => allocate(alloc, immutable SpecInst(declAndArgs, matchSpecBody(
-				declAndArgs.decl.body_,
-				(ref immutable SpecBody.Builtin b) =>
-					immutable SpecBody(SpecBody.Builtin(b.kind)),
-				(ref immutable Sig[] sigs) =>
-					immutable SpecBody(map!Sig(alloc, sigs, (ref immutable Sig sig) =>
-						instantiateSig(
-							alloc,
-							programState,
-							sig,
-							immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs))))))));
+			declAndArgs.decl.deref().body_,
+			(ref immutable SpecBody.Builtin b) =>
+				immutable SpecBody(SpecBody.Builtin(b.kind)),
+			(ref immutable Sig[] sigs) =>
+				immutable SpecBody(map!Sig(alloc, sigs, (ref immutable Sig sig) =>
+					instantiateSig(
+						alloc,
+						programState,
+						sig,
+						immutable TypeParamsAndArgs(declAndArgs.decl.deref().typeParams, declAndArgs.typeArgs))))))));
 }
 
 immutable(Ptr!SpecInst) instantiateSpecInst(
@@ -312,9 +306,9 @@ immutable(Ptr!SpecInst) instantiateSpecInst(
 	immutable TypeParamsAndArgs typeParamsAndArgs,
 ) {
 	// TODO:PERF don't create the array if we don't need it (`instantiate` could take the callback)
-	immutable Type[] itsTypeArgs = map!Type(alloc, specInst.typeArgs, (ref immutable Type t) =>
+	immutable Type[] itsTypeArgs = map!Type(alloc, specInst.deref().typeArgs, (ref immutable Type t) =>
 		instantiateType(alloc, programState, t, typeParamsAndArgs, noneMut!(Ptr!(MutArr!(Ptr!StructInst)))));
-	return instantiateSpec(alloc, programState, SpecDeclAndArgs(decl(specInst), itsTypeArgs));
+	return instantiateSpec(alloc, programState, SpecDeclAndArgs(decl(specInst.deref()), itsTypeArgs));
 }
 
 private:

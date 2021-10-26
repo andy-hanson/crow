@@ -468,7 +468,7 @@ struct RealReadOnlyStorage {
 			}
 		}();
 		immutable AbsolutePath ap = immutable AbsolutePath(root, pk.path, extension);
-		return tryReadFile(tempAlloc.deref(), allPaths, ap, cb);
+		return tryReadFile(tempAlloc.deref(), allPaths.deref(), ap, cb);
 	}
 
 	private:

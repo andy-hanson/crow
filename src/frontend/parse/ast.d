@@ -57,8 +57,8 @@ struct TypeAst {
 			mut,
 		}
 		immutable Kind kind;
-		immutable Ptr!TypeAst v;
-		immutable Ptr!TypeAst k;
+		immutable TypeAst v;
+		immutable TypeAst k;
 	}
 
 	struct Fun {
@@ -89,13 +89,13 @@ struct TypeAst {
 			ptrMut,
 		}
 		immutable Kind kind;
-		immutable Ptr!TypeAst left;
+		immutable TypeAst left;
 	}
 
-	immutable this(immutable Dict a) { kind = Kind.dict; dict = a; }
+	immutable this(immutable Ptr!Dict a) { kind = Kind.dict; dict = a; }
 	@trusted immutable this(immutable Fun a) { kind = Kind.fun; fun = a; }
 	@trusted immutable this(immutable InstStruct a) { kind = Kind.instStruct; instStruct = a; }
-	immutable this(immutable Suffix a) { kind = Kind.suffix; suffix = a; }
+	immutable this(immutable Ptr!Suffix a) { kind = Kind.suffix; suffix = a; }
 
 	private:
 
@@ -107,10 +107,10 @@ struct TypeAst {
 	}
 	immutable Kind kind;
 	union {
-		immutable Dict dict;
+		immutable Ptr!Dict dict;
 		immutable Fun fun;
 		immutable InstStruct instStruct;
-		immutable Suffix suffix;
+		immutable Ptr!Suffix suffix;
 	}
 }
 static assert(TypeAst.sizeof <= 40);
@@ -124,13 +124,13 @@ static assert(TypeAst.sizeof <= 40);
 ) {
 	final switch (a.kind) {
 		case TypeAst.Kind.dict:
-			return cbDict(a.dict);
+			return cbDict(a.dict.deref());
 		case TypeAst.Kind.fun:
 			return cbFun(a.fun);
 		case TypeAst.Kind.instStruct:
 			return cbInstStruct(a.instStruct);
 		case TypeAst.Kind.suffix:
-			return cbSuffix(a.suffix);
+			return cbSuffix(a.suffix.deref());
 	}
 }
 
@@ -245,9 +245,9 @@ struct IdentifierAst {
 }
 
 struct IfAst {
-	immutable Ptr!ExprAst cond;
-	immutable Ptr!ExprAst then;
-	immutable Opt!(Ptr!ExprAst) else_;
+	immutable ExprAst cond;
+	immutable ExprAst then;
+	immutable Opt!ExprAst else_;
 }
 
 struct IfOptionAst {
@@ -295,14 +295,14 @@ struct InterpolatedPart {
 struct LambdaAst {
 	alias Param = NameAndRange;
 	immutable Param[] params;
-	immutable Ptr!ExprAst body_;
+	immutable ExprAst body_;
 }
 
 struct LetAst {
 	immutable Sym name;
 	immutable OptPtr!TypeAst type;
-	immutable Ptr!ExprAst initializer;
-	immutable Ptr!ExprAst then;
+	immutable ExprAst initializer;
+	immutable ExprAst then;
 }
 
 struct LiteralAst {
@@ -423,7 +423,7 @@ struct MatchAst {
 		immutable RangeWithinFile range;
 		immutable Sym memberName;
 		immutable NameOrUnderscoreOrNone local;
-		immutable Ptr!ExprAst then;
+		immutable ExprAst then;
 
 		//TODO: NOT INSTANCE
 		immutable(RangeWithinFile) memberNameRange() immutable {
@@ -435,28 +435,28 @@ struct MatchAst {
 		}
 	}
 
-	immutable Ptr!ExprAst matched;
+	immutable ExprAst matched;
 	immutable CaseAst[] cases;
 }
 
 struct ParenthesizedAst {
-	immutable Ptr!ExprAst inner;
+	immutable ExprAst inner;
 }
 
 struct SeqAst {
-	immutable Ptr!ExprAst first;
-	immutable Ptr!ExprAst then;
+	immutable ExprAst first;
+	immutable ExprAst then;
 }
 
 struct ThenAst {
 	immutable LambdaAst.Param left;
-	immutable Ptr!ExprAst futExpr;
-	immutable Ptr!ExprAst then;
+	immutable ExprAst futExpr;
+	immutable ExprAst then;
 }
 
 struct ThenVoidAst {
-	immutable Ptr!ExprAst futExpr;
-	immutable Ptr!ExprAst then;
+	immutable ExprAst futExpr;
+	immutable ExprAst then;
 }
 
 struct ExprAstKind {
@@ -486,17 +486,17 @@ struct ExprAstKind {
 		immutable CallAst call;
 		immutable FunPtrAst funPtr;
 		immutable IdentifierAst identifier;
-		immutable IfAst if_;
+		immutable Ptr!IfAst if_;
 		immutable Ptr!IfOptionAst ifOption;
 		immutable InterpolatedAst interpolated;
-		immutable LambdaAst lambda;
-		immutable LetAst let;
+		immutable Ptr!LambdaAst lambda;
+		immutable Ptr!LetAst let;
 		immutable LiteralAst literal;
-		immutable ParenthesizedAst parenthesized;
-		immutable MatchAst match_;
-		immutable SeqAst seq;
-		immutable ThenAst then;
-		immutable ThenVoidAst thenVoid;
+		immutable Ptr!ParenthesizedAst parenthesized;
+		immutable Ptr!MatchAst match_;
+		immutable Ptr!SeqAst seq;
+		immutable Ptr!ThenAst then;
+		immutable Ptr!ThenVoidAst thenVoid;
 	}
 
 	public:
@@ -504,17 +504,17 @@ struct ExprAstKind {
 	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
 	@trusted immutable this(immutable FunPtrAst a) { kind = Kind.funPtr; funPtr = a; }
 	@trusted immutable this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
-	@trusted immutable this(immutable IfAst a) { kind = Kind.if_; if_ = a; }
+	@trusted immutable this(immutable Ptr!IfAst a) { kind = Kind.if_; if_ = a; }
 	@trusted immutable this(immutable Ptr!IfOptionAst a) { kind = Kind.ifOption; ifOption = a; }
 	@trusted immutable this(immutable InterpolatedAst a) { kind = Kind.interpolated; interpolated = a; }
-	@trusted immutable this(immutable LambdaAst a) { kind = Kind.lambda; lambda = a; }
-	@trusted immutable this(immutable LetAst a) { kind = Kind.let; let = a; }
+	@trusted immutable this(immutable Ptr!LambdaAst a) { kind = Kind.lambda; lambda = a; }
+	@trusted immutable this(immutable Ptr!LetAst a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LiteralAst a) { kind = Kind.literal; literal = a; }
-	@trusted immutable this(immutable MatchAst a) { kind = Kind.match; match_ = a; }
-	@trusted immutable this(immutable ParenthesizedAst a) { kind = Kind.parenthesized; parenthesized = a; }
-	@trusted immutable this(immutable SeqAst a) { kind = Kind.seq; seq = a; }
-	@trusted immutable this(immutable ThenAst a) { kind = Kind.then; then = a; }
-	@trusted immutable this(immutable ThenVoidAst a) { kind = Kind.thenVoid; thenVoid = a; }
+	@trusted immutable this(immutable Ptr!MatchAst a) { kind = Kind.match; match_ = a; }
+	@trusted immutable this(immutable Ptr!ParenthesizedAst a) { kind = Kind.parenthesized; parenthesized = a; }
+	@trusted immutable this(immutable Ptr!SeqAst a) { kind = Kind.seq; seq = a; }
+	@trusted immutable this(immutable Ptr!ThenAst a) { kind = Kind.then; then = a; }
+	@trusted immutable this(immutable Ptr!ThenVoidAst a) { kind = Kind.thenVoid; thenVoid = a; }
 }
 static assert(ExprAstKind.sizeof <= 40);
 
@@ -562,27 +562,27 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 		case ExprAstKind.Kind.identifier:
 			return cbIdentifier(a.identifier);
 		case ExprAstKind.Kind.if_:
-			return cbIf(a.if_);
+			return cbIf(a.if_.deref());
 		case ExprAstKind.Kind.ifOption:
-			return cbIfOption(a.ifOption);
+			return cbIfOption(a.ifOption.deref());
 		case ExprAstKind.Kind.interpolated:
 			return cbInterpolated(a.interpolated);
 		case ExprAstKind.Kind.lambda:
-			return cbLambda(a.lambda);
+			return cbLambda(a.lambda.deref());
 		case ExprAstKind.Kind.let:
-			return cbLet(a.let);
+			return cbLet(a.let.deref());
 		case ExprAstKind.Kind.literal:
 			return cbLiteral(a.literal);
 		case ExprAstKind.Kind.match:
-			return cbMatch(a.match_);
+			return cbMatch(a.match_.deref());
 		case ExprAstKind.Kind.parenthesized:
-			return cbParenthesized(a.parenthesized);
+			return cbParenthesized(a.parenthesized.deref());
 		case ExprAstKind.Kind.seq:
-			return cbSeq(a.seq);
+			return cbSeq(a.seq.deref());
 		case ExprAstKind.Kind.then:
-			return cbThen(a.then);
+			return cbThen(a.then.deref());
 		case ExprAstKind.Kind.thenVoid:
-			return cbThenVoid(a.thenVoid);
+			return cbThenVoid(a.thenVoid.deref());
 	}
 }
 
@@ -636,7 +636,7 @@ struct ParamsAst {
 		case ParamsAst.Kind.regular:
 			return cbRegular(toArr(a.regular));
 		case ParamsAst.Kind.varargs:
-			return cbVarargs(a.varargs);
+			return cbVarargs(a.varargs.deref());
 	}
 }
 
@@ -685,7 +685,7 @@ struct StructAliasAst {
 	immutable Visibility visibility;
 	immutable Sym name;
 	immutable ArrWithSize!NameAndRange typeParams;
-	immutable Ptr!TypeAst target;
+	immutable TypeAst target;
 }
 
 enum ExplicitByValOrRef {
@@ -812,7 +812,7 @@ struct StructDeclAst {
 			immutable(RecordModifiers) modifiers() immutable {
 				immutable Opt!(Ptr!RecordModifiers) m = toOpt(modifiers_);
 				return has(m)
-					? force(m)
+					? force(m).deref()
 					: immutable RecordModifiers(none!Visibility, none!Pos, none!ExplicitByValOrRefAndRange);
 			}
 
@@ -996,7 +996,7 @@ struct FunDeclAst {
 	immutable RangeWithinFile range;
 	immutable SafeCStr docComment;
 	immutable ArrWithSize!NameAndRange typeParams;
-	immutable Ptr!SigAst sig; // Ptr to keep this struct from getting too big
+	immutable SigAst sig;
 	immutable SpecUseAst[] specUses;
 	immutable Visibility visibility;
 	immutable bool noCtx;
@@ -1035,7 +1035,7 @@ struct FileAst {
 
 private immutable ImportsOrExportsAst emptyImportsOrExports =
 	immutable ImportsOrExportsAst(RangeWithinFile.empty, emptyArr!ImportAst);
-private immutable FileAst emptyFileAstStorage = immutable FileAst(
+immutable FileAst emptyFileAst = immutable FileAst(
 	emptySafeCStr,
 	true,
 	some(emptyImportsOrExports),
@@ -1045,7 +1045,6 @@ private immutable FileAst emptyFileAstStorage = immutable FileAst(
 	emptyArr!StructDeclAst,
 	emptyArr!FunDeclAst,
 	emptyArr!TestAst);
-immutable Ptr!FileAst emptyFileAst = immutable Ptr!FileAst(&emptyFileAstStorage);
 
 immutable(Repr) reprAst(
 	ref Alloc alloc,
@@ -1146,7 +1145,7 @@ immutable(Repr) reprEnumOrFlags(
 ) {
 	return reprRecord(alloc, name, [
 		reprOpt(alloc, toOpt(typeArg), (ref immutable Ptr!TypeAst it) =>
-			reprTypeAst(alloc, it)),
+			reprTypeAst(alloc, it.deref())),
 		reprArr(alloc, toArr(members), (ref immutable StructDeclAst.Body.Enum.Member it) =>
 			reprEnumMember(alloc, it))]);
 }
@@ -1382,7 +1381,7 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 			reprRecord(alloc, "if", [
 				reprExprAst(alloc, e.cond),
 				reprExprAst(alloc, e.then),
-				reprOpt(alloc, e.else_, (ref immutable Ptr!ExprAst it) =>
+				reprOpt(alloc, e.else_, (ref immutable ExprAst it) =>
 					reprExprAst(alloc, it))]),
 		(ref immutable IfOptionAst it) =>
 			reprRecord(alloc, "if", [

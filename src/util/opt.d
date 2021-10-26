@@ -2,7 +2,7 @@ module util.opt;
 
 @safe @nogc pure nothrow:
 
-import util.ptr : Ptr, ptrTrustMe;
+import util.ptr : Ptr;
 import util.util : verify;
 
 struct OptPtr(T) {
@@ -94,11 +94,6 @@ immutable(bool) has(T)(const Opt!T a) {
 @trusted ref immutable(T) force(T)(ref immutable Opt!T a) {
 	verify(has(a));
 	return a.value_;
-}
-
-@trusted immutable(Ptr!T) forcePtr(T)(immutable Ptr!(Opt!T) a) {
-	verify(has(a));
-	return ptrTrustMe(a.value_);
 }
 
 ref immutable(T) forceOrTodo(T)(return scope ref immutable Opt!T a) {

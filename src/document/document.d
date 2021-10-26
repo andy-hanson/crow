@@ -72,10 +72,10 @@ immutable(string) document(
 			if (has(referents.structOrAlias))
 				writeStructOrAlias(writer, force(referents.structOrAlias));
 			if (has(referents.spec))
-				writeSpec(writer, force(referents.spec));
+				writeSpec(writer, force(referents.spec).deref());
 			foreach (immutable Ptr!FunDecl fun; referents.funs)
-				if (!fun.generated)
-					writeFun(writer, fun);
+				if (!fun.deref().generated)
+					writeFun(writer, fun.deref());
 		});
 	writeStatic(writer, "\n");
 	return finishWriter(writer);
@@ -101,10 +101,10 @@ void writeModulePath(
 void writeStructOrAlias(ref Writer writer, ref immutable StructOrAlias a) {
 	matchStructOrAlias!void(
 		a,
-		(immutable Ptr!StructAlias it) {
+		(ref immutable StructAlias it) {
 			writeStructAlias(writer, it);
 		},
-		(immutable Ptr!StructDecl it) {
+		(ref immutable StructDecl it) {
 			writeStructDecl(writer, it);
 		});
 }
@@ -280,12 +280,11 @@ void writeType(ref Writer writer, immutable Type a) {
 			unreachable!void();
 		},
 		(immutable Ptr!TypeParam it) {
-			writeChar(writer, '?');
-			writeSym(writer, it.name);
+			writeSym(writer, it.deref().name);
 		},
 		(immutable Ptr!StructInst it) {
-			writeSym(writer, it.name);
-			immutable Type[] typeArgs = typeArgs(it);
+			writeSym(writer, it.deref().name);
+			immutable Type[] typeArgs = typeArgs(it.deref());
 			if (!empty(typeArgs)) {
 				if (size(typeArgs) == 1) {
 					writeChar(writer, ' ');

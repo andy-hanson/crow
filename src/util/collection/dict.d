@@ -34,8 +34,8 @@ immutable(bool) hasKey(K, V, alias cmp)(ref immutable Dict!(K, V, cmp) a, immuta
 
 immutable(Opt!(Ptr!V)) getPtrAt(K, V, alias cmp)(immutable Dict!(K, V, cmp) d, immutable K key) {
 	foreach (immutable Ptr!(KeyValuePair!(K, V)) pair; ptrsRange(d.pairs))
-		if (cmp(pair.key, key) == Comparison.equal)
-			return some!(Ptr!V)(ptrTrustMe(pair.value));
+		if (cmp(pair.deref().key, key) == Comparison.equal)
+			return some!(Ptr!V)(ptrTrustMe(pair.deref().value));
 	return none!(Ptr!V);
 }
 

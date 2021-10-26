@@ -45,7 +45,7 @@ struct Position {
 		immutable Ptr!RecordField field;
 	}
 
-	@trusted immutable this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
+	@trusted immutable this(immutable Expr a) { kind = Kind.expr; expr = a; }
 	@trusted immutable this(immutable Ptr!FunDecl a) { kind = Kind.funDecl; funDecl = a; }
 	@trusted immutable this(immutable ImportedModule a) { kind = Kind.importedModule; importedModule = a; }
 	@trusted immutable this(immutable ImportedName a) { kind = Kind.importedName; importedName = a; }
@@ -67,7 +67,7 @@ struct Position {
 	}
 	immutable Kind kind;
 	union {
-		immutable Ptr!Expr expr;
+		immutable Expr expr;
 		immutable Ptr!FunDecl funDecl;
 		immutable ImportedModule importedModule;
 		immutable ImportedName importedName;
@@ -80,20 +80,20 @@ struct Position {
 
 @trusted T matchPosition(T)(
 	ref immutable Position a,
-	scope T delegate(immutable Ptr!Expr) @safe @nogc pure nothrow cbExpr,
-	scope T delegate(immutable Ptr!FunDecl) @safe @nogc pure nothrow cbFunDecl,
+	scope T delegate(ref immutable Expr) @safe @nogc pure nothrow cbExpr,
+	scope T delegate(ref immutable FunDecl) @safe @nogc pure nothrow cbFunDecl,
 	scope T delegate(ref immutable Position.ImportedModule) @safe @nogc pure nothrow cbImportedModule,
 	scope T delegate(ref immutable Position.ImportedName) @safe @nogc pure nothrow cbImportedName,
 	scope T delegate(ref immutable Position.RecordFieldPosition) @safe @nogc pure nothrow cbRecordField,
-	scope T delegate(immutable Ptr!SpecDecl) @safe @nogc pure nothrow cbSpecDecl,
-	scope T delegate(immutable Ptr!StructDecl) @safe @nogc pure nothrow cbStructDecl,
-	scope T delegate(immutable Ptr!TypeParam) @safe @nogc pure nothrow cbTypeParam,
+	scope T delegate(ref immutable SpecDecl) @safe @nogc pure nothrow cbSpecDecl,
+	scope T delegate(ref immutable StructDecl) @safe @nogc pure nothrow cbStructDecl,
+	scope T delegate(ref immutable TypeParam) @safe @nogc pure nothrow cbTypeParam,
 ) {
 	final switch (a.kind) {
 		case Position.Kind.expr:
 			return cbExpr(a.expr);
 		case Position.Kind.funDecl:
-			return cbFunDecl(a.funDecl);
+			return cbFunDecl(a.funDecl.deref());
 		case Position.Kind.importedModule:
 			return cbImportedModule(a.importedModule);
 		case Position.Kind.importedName:
@@ -101,11 +101,11 @@ struct Position {
 		case Position.Kind.recordField:
 			return cbRecordField(a.recordField);
 		case Position.Kind.specDecl:
-			return cbSpecDecl(a.specDecl);
+			return cbSpecDecl(a.specDecl.deref());
 		case Position.Kind.structDecl:
-			return cbStructDecl(a.structDecl);
+			return cbStructDecl(a.structDecl.deref());
 		case Position.Kind.typeParam:
-			return cbTypeParam(a.typeParam);
+			return cbTypeParam(a.typeParam.deref());
 	}
 }
 
@@ -116,20 +116,20 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 		return fromImportsOrExports;
 
 	foreach (immutable Ptr!StructDecl s; ptrsRange(module_.structs))
-		if (hasPos(s.range.range, pos))
+		if (hasPos(s.deref().range.range, pos))
 			return some(positionInStruct(s, pos));
 
 	foreach (immutable Ptr!SpecDecl s; ptrsRange(module_.specs))
-		if (hasPos(s.range.range, pos))
+		if (hasPos(s.deref().range.range, pos))
 			//TODO: delve inside!
 			return some(immutable Position(s));
 
 	foreach (immutable Ptr!FunDecl f; ptrsRange(module_.funs)) {
-		if (hasPos(f.sig.range, pos))
+		if (hasPos(f.deref().sig.range, pos))
 			//TODO: delve inside!
 			return some(immutable Position(f));
 		immutable Opt!Position fromBody = matchFunBody!(immutable Opt!Position)(
-			f.body_,
+			f.deref().body_,
 			(ref immutable FunBody.Builtin) =>
 				none!Position,
 			(ref immutable FunBody.CreateEnum) =>
@@ -142,7 +142,7 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 				none!Position,
 			(ref immutable FunBody.Extern) =>
 				none!Position,
-			(immutable Ptr!Expr it) =>
+			(ref immutable Expr it) =>
 				hasPos(range(it).range, pos)
 					//TODO: delve inside!
 					? some(immutable Position(it))
@@ -169,10 +169,10 @@ immutable(Opt!Position) positionInImportsOrExports(
 	immutable Pos pos,
 ) {
 	foreach (immutable Ptr!ModuleAndNames im; ptrsRange(importsOrExports)) {
-		if (has(im.importSource) && hasPos(force(im.importSource), pos)) {
-			if (has(im.names)) {
-				Pos namePos = force(im.importSource).start;
-				foreach (immutable Sym name; force(im.names)) {
+		if (has(im.deref().importSource) && hasPos(force(im.deref().importSource), pos)) {
+			if (has(im.deref().names)) {
+				Pos namePos = force(im.deref().importSource).start;
+				foreach (immutable Sym name; force(im.deref().names)) {
 					immutable Pos nameEnd = safeSizeTToU32(namePos + symSize(name));
 					if (pos < nameEnd)
 						return some(immutable Position(immutable Position.ImportedName(im, name)));
@@ -189,7 +189,7 @@ immutable(Position) positionInStruct(immutable Ptr!StructDecl a, immutable Pos p
 	//TODO: look through type params!
 
 	immutable Opt!Position specific = matchStructBody!(immutable Opt!Position)(
-		body_(a),
+		body_(a.deref()),
 		(ref immutable StructBody.Bogus) =>
 			none!Position,
 		(ref immutable StructBody.Builtin) =>
@@ -202,10 +202,10 @@ immutable(Position) positionInStruct(immutable Ptr!StructDecl a, immutable Pos p
 			none!Position,
 		(ref immutable StructBody.Record it) {
 			foreach (immutable Ptr!RecordField field; ptrsRange(it.fields))
-				if (hasPos(field.range.range, pos))
-					return nameHasPos(field.range.start, field.name, pos)
+				if (hasPos(field.deref().range.range, pos))
+					return nameHasPos(field.deref().range.start, field.deref().name, pos)
 						? some(immutable Position(immutable Position.RecordFieldPosition(a, field)))
-						: positionOfType(field.type);
+						: positionOfType(field.deref().type);
 			return none!Position;
 		},
 		(ref immutable StructBody.Union) =>
@@ -219,7 +219,7 @@ immutable(Opt!Position) positionOfType(immutable Type a) {
 		a,
 		(immutable Type.Bogus) => none!Position,
 		(immutable Ptr!TypeParam it) => some(immutable Position(it)),
-		(immutable Ptr!StructInst it) => some(immutable Position(decl(it))));
+		(immutable Ptr!StructInst it) => some(immutable Position(decl(it.deref()))));
 }
 
 immutable(bool) nameHasPos(immutable Pos start, immutable Sym name, immutable Pos pos) {

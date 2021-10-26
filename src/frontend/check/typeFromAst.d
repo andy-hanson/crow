@@ -19,7 +19,7 @@ import model.model :
 	CommonTypes,
 	FunKind,
 	FunKindAndStructs,
-	matchStructOrAlias,
+	matchStructOrAliasPtr,
 	Module,
 	NameReferents,
 	SpecDecl,
@@ -34,7 +34,7 @@ import model.model :
 	typeParams;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : at, empty, size, toArr;
-import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map;
+import util.collection.arrUtil : arrLiteral, fillArr, find, findPtr, map;
 import util.collection.dict : getAt;
 import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
@@ -77,9 +77,9 @@ private immutable(Type) instStructFromAst(
 		immutable Type[] typeArgs = getTypeArgsIfNumberMatches(
 			alloc, ctx, commonTypes, range, structsAndAliasesDict,
 			sOrA, nExpectedTypeArgs, typeArgAsts, typeParamsScope, delayStructInsts);
-		return matchStructOrAlias!(immutable Type)(
+		return matchStructOrAliasPtr!(immutable Type)(
 			sOrA,
-			(immutable Ptr!StructAlias a) =>
+			(ref immutable StructAlias a) =>
 				nExpectedTypeArgs != 0
 					? todo!(immutable Type)("alias with type params")
 					: typeFromOptInst(target(a)),
@@ -154,7 +154,7 @@ immutable(Type) typeFromAst(
 
 			immutable Opt!(Ptr!TypeParam) found =
 				findPtr!TypeParam(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>
-					symEq(it.name, iAst.name.name));
+					symEq(it.deref().name, iAst.name.name));
 			if (has(found)) {
 				if (!empty(toArr(iAst.typeArgs)))
 					addDiag(alloc, ctx, iAst.range, immutable Diag(immutable Diag.TypeParamCantHaveTypeArgs()));
@@ -228,15 +228,15 @@ private immutable(Type) typeFromFunAst(
 				return FunKind.ref_;
 		}
 	}();
-	immutable Opt!(Ptr!FunKindAndStructs) optF = findPtr!FunKindAndStructs(
+	immutable Opt!FunKindAndStructs optF = find!FunKindAndStructs(
 		commonTypes.funKindsAndStructs,
-		(immutable Ptr!FunKindAndStructs it) =>
+		(ref immutable FunKindAndStructs it) =>
 			it.kind == funKind);
-	immutable Ptr!FunKindAndStructs f = force(optF);
-	if (size(ast.returnAndParamTypes) > size(f.structs))
+	immutable Ptr!StructDecl[] structs = force(optF).structs;
+	if (size(ast.returnAndParamTypes) > size(structs))
 		// We don't have a fun type big enough
 		todo!void("!");
-	immutable Ptr!StructDecl decl = at(f.structs, size(ast.returnAndParamTypes) - 1);
+	immutable Ptr!StructDecl decl = at(structs, size(ast.returnAndParamTypes) - 1);
 	immutable Type[] typeArgs = map!Type(alloc, ast.returnAndParamTypes, (ref immutable TypeAst it) =>
 		typeFromAst(alloc, ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts));
 	return immutable Type(instantiateStruct(

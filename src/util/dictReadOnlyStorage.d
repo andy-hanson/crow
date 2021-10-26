@@ -24,7 +24,7 @@ struct DictReadOnlyStorage {
 		scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
 	) const {
 		verify(strEq(extension, crowExtension));
-		immutable Opt!NulTerminatedStr content = asImmutable(getAt_mut(files, pk));
+		immutable Opt!NulTerminatedStr content = asImmutable(getAt_mut(files.deref(), pk));
 		return cb(content);
 	}
 

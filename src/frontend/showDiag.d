@@ -316,14 +316,14 @@ void writeCalledDecl(
 	immutable CalledDecl c,
 ) {
 	writeSig(writer, c.sig);
-	return matchCalledDecl(
+	return matchCalledDecl!void(
 		c,
 		(immutable Ptr!FunDecl funDecl) {
-			writeFunDeclLocation(writer, allPaths, options, fi, funDecl);
+			writeFunDeclLocation(writer, allPaths, options, fi, funDecl.deref());
 		},
 		(ref immutable SpecSig specSig) {
 			writeStatic(writer, " (from spec ");
-			writeName(writer, specSig.specInst.name);
+			writeName(writer, specSig.specInst.deref().name);
 			writeChar(writer, ')');
 		});
 }
@@ -333,7 +333,7 @@ void writeFunDeclLocation(
 	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	immutable FilesInfo fi,
-	immutable Ptr!FunDecl funDecl,
+	ref immutable FunDecl funDecl,
 ) {
 	writeStatic(writer, " (from ");
 	writeLineNumber(writer, allPaths, options, fi, range(funDecl));
@@ -473,7 +473,7 @@ void writeDiag(
 			}();
 			writeStatic(writer, descr);
 			writeChar(writer, ' ');
-			writeName(writer, it.callee.name);
+			writeName(writer, it.callee.deref().name);
 		},
 		(ref immutable Diag.CantCreateNonRecordType d) {
 			writeStatic(writer, "non-record type ");
@@ -503,12 +503,12 @@ void writeDiag(
 		},
 		(ref immutable Diag.CreateRecordByRefNoCtx d) {
 			writeStatic(writer, "the current function is 'noctx' and record ");
-			writeName(writer, d.struct_.name);
+			writeName(writer, d.struct_.deref().name);
 			writeStatic(writer, " is not marked 'by-val'; can't allocate");
 		},
 		(ref immutable Diag.CreateRecordMultiLineWrongFields d) {
 			writeStatic(writer, "didn't get expected fields of ");
-			writeName(writer, d.decl.name);
+			writeName(writer, d.decl.deref().name);
 			writeChar(writer, ':');
 			immutable Sym[] expected = map(tempAlloc, d.fields, (ref immutable RecordField it) => it.name);
 			diffSymbols(tempAlloc, writer, options.color, expected, d.providedFieldNames);
@@ -553,7 +553,7 @@ void writeDiag(
 		},
 		(ref immutable Diag.EnumBackingTypeInvalid d) {
 			writeStatic(writer, "type ");
-			writeStructInst(writer, d.actual);
+			writeStructInst(writer, d.actual.deref());
 			writeStatic(writer, " cannot be used to back an enum");
 		},
 		(ref immutable Diag.EnumDuplicateValue d) {
@@ -599,21 +599,21 @@ void writeDiag(
 		},
 		(ref immutable Diag.LambdaClosesOverMut d) {
 			writeStatic(writer, "lambda is a plain 'fun' but closes over ");
-			writeName(writer, d.field.name);
+			writeName(writer, d.field.deref().name);
 			writeStatic(writer, " of 'mut' type ");
-			writeType(writer, d.field.type);
+			writeType(writer, d.field.deref().type);
 			writeStatic(writer, " (should it be an 'act' or 'ref' fun?)");
 		},
 		(ref immutable Diag.LambdaWrongNumberParams d) {
 			writeStatic(writer, "expected a ");
-			writeStructInst(writer, d.expectedLambdaType);
+			writeStructInst(writer, d.expectedLambdaType.deref());
 			writeStatic(writer, " but lambda has ");
 			writeNat(writer, d.actualNParams);
 			writeStatic(writer, " parameters");
 		},
 		(ref immutable Diag.LiteralOverflow d) {
 			writeStatic(writer, "literal exceeds the range of a ");
-			writeStructInst(writer, d.type);
+			writeStructInst(writer, d.type.deref());
 		},
 		(ref immutable Diag.LocalShadowsPrevious d) {
 			writeName(writer, d.name);
@@ -680,9 +680,9 @@ void writeDiag(
 		},
 		(ref immutable Diag.PurityWorseThanParent d) {
 			writeStatic(writer, "struct ");
-			writeName(writer, d.parent.name);
+			writeName(writer, d.parent.deref().name);
 			writeStatic(writer, " has purity ");
-			writePurity(writer, d.parent.purity);
+			writePurity(writer, d.parent.deref().purity);
 			writeStatic(writer, ", but member of type ");
 			writeType(writer, d.child);
 			writeStatic(writer, " has purity ");
@@ -727,10 +727,10 @@ void writeDiag(
 		},
 		(ref immutable Diag.SpecImplHasSpecs d) {
 			writeStatic(writer, "calling ");
-			writeName(writer, name(d.outerCalled));
+			writeName(writer, name(d.outerCalled.deref()));
 			writeStatic(writer, ", spec implementation for ");
-			writeName(writer, name(d.specImpl));
-			writeFunDeclLocation(writer, allPaths, options, fi, d.specImpl);
+			writeName(writer, name(d.specImpl.deref()));
+			writeFunDeclLocation(writer, allPaths, options, fi, d.specImpl.deref());
 			writeStatic(writer, " has specs itself; currently this is not allowed");
 		},
 		(ref immutable Diag.SpecImplNotFound d) {
@@ -777,43 +777,43 @@ void writeDiag(
 				writeStatic(writer, "imported module ");
 				// TODO: helper fn
 				immutable string moduleName =
-					baseName(allPaths, fullIndexDictGet(fi.filePaths, it.importedModule.fileIndex).path);
+					baseName(allPaths, fullIndexDictGet(fi.filePaths, it.importedModule.deref().fileIndex).path);
 				writeStr(writer, moduleName);
 			}
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.UnusedLocal it) {
 			writeStatic(writer, "local ");
-			writeSym(writer, it.local.name);
+			writeSym(writer, it.local.deref().name);
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.UnusedParam it) {
 			writeStatic(writer, "parameter ");
-			writeSym(writer, force(it.param.name));
+			writeSym(writer, force(it.param.deref().name));
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.UnusedPrivateFun it) {
 			writeStatic(writer, "private function ");
-			writeSym(writer, name(it.fun));
+			writeSym(writer, name(it.fun.deref()));
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.UnusedPrivateSpec it) {
 			writeStatic(writer, "private spec ");
-			writeSym(writer, it.spec.name);
+			writeSym(writer, it.spec.deref().name);
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.UnusedPrivateStruct it) {
 			writeStatic(writer, "private type ");
-			writeSym(writer, it.struct_.name);
+			writeSym(writer, it.struct_.deref().name);
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.UnusedPrivateStructAlias it) {
 			writeStatic(writer, "private type ");
-			writeSym(writer, it.alias_.name);
+			writeSym(writer, it.alias_.deref().name);
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.WrongNumberTypeArgsForSpec d) {
-			writeName(writer, d.decl.name);
+			writeName(writer, d.decl.deref().name);
 			writeStatic(writer, " expected to get ");
 			writeNat(writer, d.nExpectedTypeArgs);
 			writeStatic(writer, " type args, but got ");

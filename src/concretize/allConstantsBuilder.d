@@ -90,7 +90,7 @@ private immutable(Constant) makeAllFuns(
 		arrNamedValFunPtrStruct,
 		mapOp!Constant(alloc, allConcreteFuns, (ref immutable Ptr!ConcreteFun it) {
 			immutable Opt!Sym name = name(it.deref());
-			return has(name) && concreteFunWillBecomeNonExternLowFun(it)
+			return has(name) && concreteFunWillBecomeNonExternLowFun(it.deref())
 				? some(immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
 					getConstantSym(alloc, a, force(name)),
 					immutable Constant(immutable Constant.FunPtr(it))]))))
@@ -104,7 +104,7 @@ ref immutable(Constant) derefConstantPointer(
 	immutable Ptr!ConcreteStruct pointeeType,
 ) {
 	verify(mustGetAt_mut(a.pointers, pointeeType).typeIndex == pointer.typeIndex);
-	return mutArrAt(mustGetAt_mut(a.pointers, pointeeType).constants, pointer.index);
+	return mutArrAt(mustGetAt_mut(a.pointers, pointeeType).constants, pointer.index).deref();
 }
 
 // TODO: this will be used when creating constant records by-ref.
@@ -116,11 +116,11 @@ immutable(Constant) getConstantPtr(
 ) {
 	Ptr!PointerTypeAndConstants d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.pointers, struct_, () =>
 		PointerTypeAndConstants(mutDictSize(allConstants.pointers), MutArr!(immutable Ptr!Constant)())));
-	return immutable Constant(immutable Constant.Pointer(d.typeIndex, findOrPush!(immutable Ptr!Constant)(
+	return immutable Constant(immutable Constant.Pointer(d.deref().typeIndex, findOrPush!(immutable Ptr!Constant)(
 		alloc,
-		d.constants,
+		d.deref().constants,
 		(ref immutable Ptr!Constant a) =>
-			constantEqual(a, value),
+			constantEqual(a.deref(), value),
 		() =>
 			allocate(alloc, value))));
 }
@@ -135,7 +135,7 @@ immutable(Constant) getConstantArr(
 	if (empty(elements))
 		return constantEmptyArr();
 	else {
-		immutable ConcreteType elementType = only(asInst(arrStruct.source).typeArgs);
+		immutable ConcreteType elementType = only(asInst(arrStruct.deref().source).typeArgs);
 		Ptr!ArrTypeAndConstants d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.arrs, elementType, () =>
 			ArrTypeAndConstants(
 				arrStruct,
@@ -143,12 +143,12 @@ immutable(Constant) getConstantArr(
 				mutDictSize(allConstants.arrs), MutArr!(immutable Constant[])())));
 		immutable size_t index = findOrPush!(immutable Constant[])(
 			alloc,
-			d.constants,
+			d.deref().constants,
 			(ref immutable Constant[] it) =>
 				constantArrEqual(it, elements),
 			() =>
 				elements);
-		return immutable Constant(immutable Constant.ArrConstant(d.typeIndex, index));
+		return immutable Constant(immutable Constant.ArrConstant(d.deref().typeIndex, index));
 	}
 }
 
@@ -162,7 +162,7 @@ private immutable(Constant) constantEmptyArr() {
 immutable(Constant) getConstantStr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
-	immutable Ptr!ConcreteStruct strStruct,
+	ref immutable ConcreteStruct strStruct,
 	immutable string str,
 ) {
 	immutable Constant[] chars = map!Constant(alloc, str, (ref immutable char it) =>

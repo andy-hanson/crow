@@ -242,7 +242,7 @@ struct TypeSize {
 }
 
 immutable(Purity) purity(immutable ConcreteType a) {
-	return a.struct_.purity;
+	return a.struct_.deref().purity;
 }
 
 immutable(Ptr!ConcreteStruct) mustBeNonPointer(immutable ConcreteType a) {
@@ -317,7 +317,7 @@ immutable(bool) isArr(ref immutable ConcreteStruct a) {
 	return matchConcreteStructSource!(immutable bool)(
 		a.source,
 		(ref immutable ConcreteStructSource.Inst it) =>
-			isArr(it.inst),
+			isArr(it.inst.deref()),
 		(ref immutable ConcreteStructSource.Lambda it) =>
 			false);
 }
@@ -348,13 +348,13 @@ immutable(bool) defaultIsPointer(ref immutable ConcreteStruct a) {
 
 //TODO: this is only useful during concretize, move
 immutable(bool) hasSizeOrPointerSizeBytes(ref immutable ConcreteType a) {
-	return a.isPointer || lateIsSet(a.struct_.typeSize_);
+	return a.isPointer || lateIsSet(a.struct_.deref().typeSize_);
 }
 
 immutable(TypeSize) sizeOrPointerSizeBytes(ref immutable ConcreteType a) {
 	return a.isPointer
 		? immutable TypeSize(immutable Nat16(8), immutable Nat8(8))
-		: typeSize(a.struct_);
+		: typeSize(a.struct_.deref());
 }
 
 immutable(ConcreteType) byRef(immutable ConcreteType t) {
@@ -366,7 +366,7 @@ immutable(ConcreteType) byVal(ref immutable ConcreteType t) {
 }
 
 immutable(ConcreteType) concreteType_fromStruct(immutable Ptr!ConcreteStruct s) {
-	return immutable ConcreteType(defaultIsPointer(s), s);
+	return immutable ConcreteType(defaultIsPointer(s.deref()), s);
 }
 
 immutable(Comparison) compareConcreteType(ref immutable ConcreteType a, ref immutable ConcreteType b) {
@@ -430,9 +430,9 @@ immutable(Sym) name(ref immutable ConcreteField a) {
 	return matchConcreteFieldSource(
 		a.source,
 		(immutable Ptr!ClosureField it) =>
-			it.name,
+			it.deref().name,
 		(immutable Ptr!RecordField it) =>
-			it.name);
+			it.deref().name);
 }
 
 struct ConcreteParamSource {
@@ -462,13 +462,13 @@ immutable(bool) isClosure(ref immutable ConcreteParamSource a) {
 @trusted T matchConcreteParamSource(T)(
 	ref immutable ConcreteParamSource a,
 	scope T delegate(ref immutable ConcreteParamSource.Closure) @safe @nogc pure nothrow cbClosure,
-	scope T delegate(immutable Ptr!Param) @safe @nogc pure nothrow cbParam,
+	scope T delegate(ref immutable Param) @safe @nogc pure nothrow cbParam,
 ) {
 	final switch (a.kind_) {
 		case ConcreteParamSource.Kind.closure:
 			return cbClosure(a.closure_);
 		case ConcreteParamSource.Kind.param:
-			return cbParam(a.param_);
+			return cbParam(a.param_.deref());
 	}
 }
 
@@ -505,14 +505,14 @@ struct ConcreteLocalSource {
 @trusted T matchConcreteLocalSource(T)(
 	ref immutable ConcreteLocalSource a,
 	scope T delegate(ref immutable ConcreteLocalSource.Arr) @safe @nogc pure nothrow cbArr,
-	scope T delegate(immutable Ptr!Local) @safe @nogc pure nothrow cbLocal,
+	scope T delegate(ref immutable Local) @safe @nogc pure nothrow cbLocal,
 	scope T delegate(ref immutable ConcreteLocalSource.Matched) @safe @nogc pure nothrow cbMatched,
 ) {
 	final switch (a.kind_) {
 		case ConcreteLocalSource.Kind.arr:
 			return cbArr(a.arr_);
 		case ConcreteLocalSource.Kind.local:
-			return cbLocal(a.local_);
+			return cbLocal(a.local_.deref());
 		case ConcreteLocalSource.Kind.matched:
 			return cbMatched(a.matched_);
 	}
@@ -693,17 +693,17 @@ static assert(ConcreteFunSource.sizeof <= 16);
 
 @trusted T matchConcreteFunSource(T)(
 	ref immutable ConcreteFunSource a,
-	scope T delegate(immutable Ptr!FunInst) @safe @nogc pure nothrow cbFunInst,
+	scope T delegate(ref immutable FunInst) @safe @nogc pure nothrow cbFunInst,
 	scope T delegate(ref immutable ConcreteFunSource.Lambda) @safe @nogc pure nothrow cbLambda,
 	scope T delegate(ref immutable ConcreteFunSource.Test) @safe @nogc pure nothrow cbTest,
 ) {
 	final switch (a.kind_) {
 		case ConcreteFunSource.Kind.funInst:
-			return cbFunInst(a.funInst_);
+			return cbFunInst(a.funInst_.deref());
 		case ConcreteFunSource.Kind.lambda:
-			return cbLambda(a.lambda_);
+			return cbLambda(a.lambda_.deref());
 		case ConcreteFunSource.Kind.test:
-			return cbTest(a.test_);
+			return cbTest(a.test_.deref());
 	}
 }
 
@@ -714,7 +714,7 @@ struct ConcreteFun {
 	@safe @nogc pure nothrow:
 
 	immutable ConcreteFunSource source;
-	immutable Ptr!ConcreteFunSig sig;
+	immutable ConcreteFunSig sig;
 	Late!(immutable Ptr!ConcreteFunBody) _body_;
 
 	//TODO: not instance
@@ -738,7 +738,7 @@ struct ConcreteFun {
 immutable(bool) isVariadic(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(immutable bool)(
 		a.source,
-		(immutable Ptr!FunInst i) =>
+		(ref immutable FunInst i) =>
 			matchParams!(immutable bool)(
 				params(i),
 				(immutable Param[]) =>
@@ -754,7 +754,7 @@ immutable(bool) isVariadic(ref immutable ConcreteFun a) {
 immutable(Opt!Sym) name(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(immutable Opt!Sym)(
 		a.source,
-		(immutable Ptr!FunInst it) =>
+		(ref immutable FunInst it) =>
 			some(name(it)),
 		(ref immutable ConcreteFunSource.Lambda) =>
 			none!Sym,
@@ -790,10 +790,10 @@ static assert(ConcreteFunSig.sizeof <= 48);
 immutable(bool) isSummon(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(immutable bool)(
 		a.source,
-		(immutable Ptr!FunInst it) =>
+		(ref immutable FunInst it) =>
 			summon(decl(it).deref()),
 		(ref immutable ConcreteFunSource.Lambda it) =>
-			isSummon(it.containingFun),
+			isSummon(it.containingFun.deref()),
 		(ref immutable ConcreteFunSource.Test) =>
 			// 'isSummon' is called for direct calls, but tests are never called directly
 			unreachable!(immutable bool)());
@@ -802,7 +802,7 @@ immutable(bool) isSummon(ref immutable ConcreteFun a) {
 immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(immutable FileAndRange)(
 		a.source,
-		(immutable Ptr!FunInst it) =>
+		(ref immutable FunInst it) =>
 			range(decl(it).deref()),
 		(ref immutable ConcreteFunSource.Lambda it) =>
 			it.range,
@@ -813,7 +813,7 @@ immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a) {
 immutable(bool) isCallWithCtxFun(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(immutable bool)(
 		a.source,
-		(immutable Ptr!FunInst it) =>
+		(ref immutable FunInst it) =>
 			isCallWithCtxFun(it),
 		(ref immutable ConcreteFunSource.Lambda) =>
 			false,
@@ -824,7 +824,7 @@ immutable(bool) isCallWithCtxFun(ref immutable ConcreteFun a) {
 immutable(bool) isCompareFun(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(immutable bool)(
 		a.source,
-		(immutable Ptr!FunInst it) =>
+		(ref immutable FunInst it) =>
 			isCompareFun(it),
 		(ref immutable ConcreteFunSource.Lambda) =>
 			false,
@@ -835,7 +835,7 @@ immutable(bool) isCompareFun(ref immutable ConcreteFun a) {
 immutable(bool) isMarkVisitFun(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(immutable bool)(
 		a.source,
-		(immutable Ptr!FunInst it) =>
+		(ref immutable FunInst it) =>
 			isMarkVisitFun(it),
 		(ref immutable ConcreteFunSource.Lambda) =>
 			false,
@@ -844,7 +844,7 @@ immutable(bool) isMarkVisitFun(ref immutable ConcreteFun a) {
 }
 
 ref immutable(ConcreteFunBody) body_(return scope ref const ConcreteFun a) {
-	return lateGet(a._body_);
+	return lateGet(a._body_).deref();
 }
 
 void setBody(ref ConcreteFun a, immutable Ptr!ConcreteFunBody value) {
@@ -869,7 +869,7 @@ struct ConcreteExprKind {
 	@safe @nogc pure nothrow:
 
 	struct Alloc {
-		immutable Ptr!ConcreteExpr inner;
+		immutable ConcreteExpr inner;
 	}
 
 	struct Call {
@@ -878,9 +878,9 @@ struct ConcreteExprKind {
 	}
 
 	struct Cond {
-		immutable Ptr!ConcreteExpr cond;
-		immutable Ptr!ConcreteExpr then;
-		immutable Ptr!ConcreteExpr else_;
+		immutable ConcreteExpr cond;
+		immutable ConcreteExpr then;
+		immutable ConcreteExpr else_;
 	}
 
 	struct CreateArr {
@@ -895,15 +895,15 @@ struct ConcreteExprKind {
 
 	struct Let {
 		immutable Ptr!ConcreteLocal local;
-		immutable Ptr!ConcreteExpr value; // If a constant, we just use 'then' in place of the Let
-		immutable Ptr!ConcreteExpr then;
+		immutable ConcreteExpr value; // If a constant, we just use 'then' in place of the Let
+		immutable ConcreteExpr then;
 	}
 
 	// May be a fun or run-mut.
 	// (A fun-ref is a lambda wrapped in CreateRecord.)
 	struct Lambda {
 		immutable Nat16 memberIndex; // Member index of a Union (which hasn't been created yet)
-		immutable Ptr!ConcreteExpr closure;
+		immutable ConcreteExpr closure;
 	}
 
 	struct LocalRef {
@@ -911,7 +911,7 @@ struct ConcreteExprKind {
 	}
 
 	struct MatchEnum {
-		immutable Ptr!ConcreteExpr matchedValue;
+		immutable ConcreteExpr matchedValue;
 		immutable ConcreteExpr[] cases;
 	}
 
@@ -921,7 +921,7 @@ struct ConcreteExprKind {
 			immutable ConcreteExpr then;
 		}
 
-		immutable Ptr!ConcreteExpr matchedValue;
+		immutable ConcreteExpr matchedValue;
 		immutable Case[] cases;
 	}
 
@@ -931,13 +931,13 @@ struct ConcreteExprKind {
 
 	// TODO: this is only used for closure field accesses now. At least rename.
 	struct RecordFieldGet {
-		immutable Ptr!ConcreteExpr target;
+		immutable ConcreteExpr target;
 		immutable Ptr!ConcreteField field;
 	}
 
 	struct Seq {
-		immutable Ptr!ConcreteExpr first;
-		immutable Ptr!ConcreteExpr then;
+		immutable ConcreteExpr first;
+		immutable ConcreteExpr then;
 	}
 
 	private:
@@ -959,45 +959,45 @@ struct ConcreteExprKind {
 	}
 	immutable Kind kind;
 	union {
-		immutable Alloc alloc;
+		immutable Ptr!Alloc alloc;
 		immutable Call call;
-		immutable Cond cond;
+		immutable Ptr!Cond cond;
 		immutable Ptr!CreateArr createArr;
 		immutable Constant constant;
 		immutable CreateRecord createRecord;
-		immutable Lambda lambda;
-		immutable Let let;
+		immutable Ptr!Lambda lambda;
+		immutable Ptr!Let let;
 		immutable LocalRef localRef;
-		immutable MatchEnum matchEnum;
-		immutable MatchUnion matchUnion;
+		immutable Ptr!MatchEnum matchEnum;
+		immutable Ptr!MatchUnion matchUnion;
 		immutable ParamRef paramRef;
-		immutable RecordFieldGet recordFieldGet;
-		immutable Seq seq;
+		immutable Ptr!RecordFieldGet recordFieldGet;
+		immutable Ptr!Seq seq;
 	}
 
 	public:
-	@trusted immutable this(immutable Alloc a) { kind = Kind.alloc; alloc = a; }
+	@trusted immutable this(immutable Ptr!Alloc a) { kind = Kind.alloc; alloc = a; }
 	@trusted immutable this(immutable Call a) { kind = Kind.call; call = a; }
-	@trusted immutable this(immutable Cond a) { kind = Kind.cond; cond = a; }
+	@trusted immutable this(immutable Ptr!Cond a) { kind = Kind.cond; cond = a; }
 	@trusted immutable this(immutable Ptr!CreateArr a) { kind = Kind.createArr; createArr = a; }
 	@trusted immutable this(immutable Constant a) { kind = Kind.constant; constant = a; }
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
-	@trusted immutable this(immutable Lambda a) { kind = Kind.lambda; lambda = a; }
-	@trusted immutable this(immutable Let a) { kind = Kind.let; let = a; }
+	@trusted immutable this(immutable Ptr!Lambda a) { kind = Kind.lambda; lambda = a; }
+	@trusted immutable this(immutable Ptr!Let a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
-	@trusted immutable this(immutable MatchEnum a) { kind = Kind.matchEnum; matchEnum = a; }
-	@trusted immutable this(immutable MatchUnion a) { kind = Kind.matchUnion; matchUnion = a; }
+	@trusted immutable this(immutable Ptr!MatchEnum a) { kind = Kind.matchEnum; matchEnum = a; }
+	@trusted immutable this(immutable Ptr!MatchUnion a) { kind = Kind.matchUnion; matchUnion = a; }
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
-	@trusted immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
-	@trusted immutable this(immutable Seq a) { kind = Kind.seq; seq = a; }
+	@trusted immutable this(immutable Ptr!RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
+	@trusted immutable this(immutable Ptr!Seq a) { kind = Kind.seq; seq = a; }
 }
 
 immutable(ConcreteType) elementType(return scope ref immutable ConcreteExprKind.CreateArr a) {
-	return only(asInst(a.arrType.source).typeArgs);
+	return only(asInst(a.arrType.deref().source).typeArgs);
 }
 
 immutable(ConcreteType) returnType(return scope ref immutable ConcreteExprKind.Call a) {
-	return a.called.returnType;
+	return a.called.deref().returnType;
 }
 
 immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
@@ -1028,33 +1028,33 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 ) {
 	final switch (a.kind) {
 		case ConcreteExprKind.Kind.alloc:
-			return cbAlloc(a.alloc);
+			return cbAlloc(a.alloc.deref());
 		case ConcreteExprKind.Kind.call:
 			return cbCall(a.call);
 		case ConcreteExprKind.Kind.cond:
-			return cbCond(a.cond);
+			return cbCond(a.cond.deref());
 		case ConcreteExprKind.Kind.constant:
 			return cbConstant(a.constant);
 		case ConcreteExprKind.Kind.createArr:
-			return cbCreateArr(a.createArr);
+			return cbCreateArr(a.createArr.deref());
 		case ConcreteExprKind.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
 		case ConcreteExprKind.Kind.lambda:
-			return cbLambda(a.lambda);
+			return cbLambda(a.lambda.deref());
 		case ConcreteExprKind.Kind.let:
-			return cbLet(a.let);
+			return cbLet(a.let.deref());
 		case ConcreteExprKind.Kind.localRef:
 			return cbLocalRef(a.localRef);
 		case ConcreteExprKind.Kind.matchEnum:
-			return cbMatchEnum(a.matchEnum);
+			return cbMatchEnum(a.matchEnum.deref());
 		case ConcreteExprKind.Kind.matchUnion:
-			return cbMatchUnion(a.matchUnion);
+			return cbMatchUnion(a.matchUnion.deref());
 		case ConcreteExprKind.Kind.paramRef:
 			return cbParamRef(a.paramRef);
 		case ConcreteExprKind.Kind.recordFieldGet:
-			return cbRecordFieldGet(a.recordFieldGet);
+			return cbRecordFieldGet(a.recordFieldGet.deref());
 		case ConcreteExprKind.Kind.seq:
-			return cbSeq(a.seq);
+			return cbSeq(a.seq.deref());
 	}
 }
 
@@ -1082,14 +1082,12 @@ struct AllConstantsConcrete {
 struct ConcreteProgram {
 	@safe @nogc pure nothrow:
 
-	@disable this(ref const ConcreteProgram);
-
 	immutable AllConstantsConcrete allConstants;
 	immutable Ptr!ConcreteStruct[] allStructs;
 	immutable Ptr!ConcreteFun[] allFuns;
 	immutable ConcreteFunToName funToName;
 	immutable Dict!(Ptr!ConcreteStruct, ConcreteLambdaImpl[], comparePtr!ConcreteStruct) funStructToImpls;
-	immutable Ptr!ConcreteCommonFuns commonFuns;
+	immutable ConcreteCommonFuns commonFuns;
 	immutable Ptr!ConcreteStruct ctxType;
 	immutable string[] allExternLibraryNames;
 

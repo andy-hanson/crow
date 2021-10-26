@@ -64,7 +64,7 @@ immutable(LowFun) generateMarkVisitGcPtr(
 	immutable Opt!LowFunIndex visitPointee,
 ) {
 	immutable LowType pointerType = immutable LowType(pointerTypePtrGc);
-	immutable LowType pointeeType = pointerTypePtrGc.pointee;
+	immutable LowType pointeeType = pointerTypePtrGc.pointee.deref();
 	immutable FileAndRange range = FileAndRange.empty;
 	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
 		genParam(shortSymAlphaLiteral("mark-ctx"), markCtxType),
@@ -92,15 +92,15 @@ immutable(LowFun) generateMarkVisitGcPtr(
 		} else
 			return genDrop(alloc, range, mark, 0);
 	}();
-	immutable LowFunExprBody body_ = immutable LowFunExprBody(false, allocate(alloc, expr));
+	immutable LowFunExprBody body_ = immutable LowFunExprBody(false, expr);
 	return immutable LowFun(
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("mark-visit"),
 			arrLiteral!LowType(alloc, [pointerType])))),
-		allocate(alloc, immutable LowFunSig(
+		immutable LowFunSig(
 			voidType,
 			immutable LowFunParamsKind(false, false),
-			params)),
+			params),
 		immutable LowFunBody(body_));
 }
 
@@ -123,10 +123,10 @@ immutable(LowFun) generateMarkVisitNonArr(
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("mark-visit"),
 			arrLiteral!LowType(alloc, [paramType])))),
-		allocate(alloc, immutable LowFunSig(
+		immutable LowFunSig(
 			voidType,
 			immutable LowFunParamsKind(false, false),
-			params)),
+			params),
 		immutable LowFunBody(body_));
 }
 
@@ -147,7 +147,7 @@ immutable(LowFun) generateMarkVisitArrInner(
 	immutable LowExpr visit = genCall(
 		alloc,
 		range,
-		getMarkVisitFun(markVisitFuns, elementPtrType.pointee),
+		getMarkVisitFun(markVisitFuns, elementPtrType.pointee.deref()),
 		voidType,
 		arrLiteral!LowExpr(alloc, [
 			markCtxParamRef,
@@ -166,12 +166,12 @@ immutable(LowFun) generateMarkVisitArrInner(
 	return immutable LowFun(
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("mark-elems"),
-			arrLiteral!LowType(alloc, [elementPtrType.pointee])))),
-		allocate(alloc, immutable LowFunSig(
+			arrLiteral!LowType(alloc, [elementPtrType.pointee.deref()])))),
+		immutable LowFunSig(
 			voidType,
 			immutable LowFunParamsKind(false, false),
-			params)),
-		immutable LowFunBody(immutable LowFunExprBody(true, allocate(alloc, expr))));
+			params),
+		immutable LowFunBody(immutable LowFunExprBody(true, expr)));
 }
 
 immutable(LowFun) generateMarkVisitArrOuter(
@@ -182,7 +182,7 @@ immutable(LowFun) generateMarkVisitArrOuter(
 	immutable LowType.PtrRawConst elementPtrType,
 	immutable Opt!LowFunIndex inner,
 ) {
-	immutable LowType elementType = elementPtrType.pointee;
+	immutable LowType elementType = elementPtrType.pointee.deref();
 	immutable FileAndRange range = FileAndRange.empty;
 	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
 		genParam(shortSymAlphaLiteral("mark-ctx"), markCtxType),
@@ -221,11 +221,11 @@ immutable(LowFun) generateMarkVisitArrOuter(
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("mark-arr"),
 			arrLiteral!LowType(alloc, [elementType])))),
-		allocate(alloc, immutable LowFunSig(
+		immutable LowFunSig(
 			voidType,
 			immutable LowFunParamsKind(false, false),
-			params)),
-		immutable LowFunBody(immutable LowFunExprBody(false, allocate(alloc, expr))));
+			params),
+		immutable LowFunBody(immutable LowFunExprBody(false, expr)));
 }
 
 private:
@@ -303,7 +303,7 @@ immutable(LowFunExprBody) visitRecordBody(
 		}
 	}
 	immutable Opt!LowExpr e = recur(none!LowExpr, 0);
-	return immutable LowFunExprBody(false, allocate(alloc, has(e) ? force(e) : genVoid(range)));
+	return immutable LowFunExprBody(false, has(e) ? force(e) : genVoid(range));
 }
 
 immutable(LowFunExprBody) visitUnionBody(
@@ -338,6 +338,6 @@ immutable(LowFunExprBody) visitUnionBody(
 					return immutable LowExprKind.MatchUnion.Case(none!(Ptr!LowLocal), genVoid(range));
 			});
 	immutable LowExpr expr = immutable LowExpr(voidType, range, immutable LowExprKind(
-		allocate(alloc, immutable LowExprKind.MatchUnion(allocate(alloc, value), cases))));
-	return immutable LowFunExprBody(false, allocate(alloc, expr));
+		allocate(alloc, immutable LowExprKind.MatchUnion(value, cases))));
+	return immutable LowFunExprBody(false, expr);
 }

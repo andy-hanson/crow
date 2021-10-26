@@ -72,7 +72,7 @@ import model.lowModel :
 	AllConstantsLow,
 	AllLowTypes,
 	ArrTypeAndConstantsLow,
-	asPtrGc,
+	asPtrGcPointee,
 	asPtrRawConst,
 	asRecordType,
 	compareLowType,
@@ -130,12 +130,12 @@ import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Nat16;
 import util.util : unreachable, verify;
 
-immutable(Ptr!LowProgram) lower(ref Alloc alloc, ref immutable ConcreteProgram a) {
+immutable(LowProgram) lower(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a);
 	immutable AllLowFuns allFuns = getAllLowFuns(alloc, allTypes.allTypes, allTypes.getLowTypeCtx, a);
 	immutable AllConstantsLow allConstants = convertAllConstants(alloc, allTypes.getLowTypeCtx, a.allConstants);
-	immutable Ptr!LowProgram res = allocate(alloc, immutable LowProgram(
-		allFuns.concreteFunToLowFunIndex, allConstants, allTypes.allTypes, allFuns.allLowFuns, allFuns.main));
+	immutable LowProgram res = immutable LowProgram(
+		allFuns.concreteFunToLowFunIndex, allConstants, allTypes.allTypes, allFuns.allLowFuns, allFuns.main);
 	checkLowProgram(alloc, res);
 	return res;
 }
@@ -161,7 +161,7 @@ immutable(Opt!LowFunIndex) tryGetMarkVisitFun(ref const MarkVisitFuns funs, ref 
 		(immutable PrimitiveType it) =>
 			none!LowFunIndex,
 		(immutable LowType.PtrGc it) =>
-			asImmutable(getAt_mut(funs.gcPointeeToVisit, it.pointee)),
+			asImmutable(getAt_mut(funs.gcPointeeToVisit, it.pointee.deref())),
 		(immutable LowType.PtrRawConst) =>
 			none!LowFunIndex,
 		(immutable LowType.PtrRawMut) =>
@@ -193,7 +193,7 @@ immutable(AllConstantsLow) convertAllConstants(
 }
 
 struct AllLowTypesWithCtx {
-	immutable Ptr!AllLowTypes allTypes;
+	immutable AllLowTypes allTypes;
 	GetLowTypeCtx getLowTypeCtx;
 }
 
@@ -226,7 +226,7 @@ AllLowTypesWithCtx getAllLowTypes(
 
 	foreach (immutable Ptr!ConcreteStruct s; program.allStructs) {
 		immutable Opt!LowType lowType = matchConcreteStructBody!(immutable Opt!LowType)(
-			body_(s),
+			body_(s.deref()),
 			(ref immutable ConcreteStructBody.Builtin it) {
 				final switch (it.kind) {
 					case BuiltinStructKind.bool_:
@@ -292,7 +292,7 @@ AllLowTypesWithCtx getAllLowTypes(
 	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrs =
 		fullIndexDictOfArr!(LowType.FunPtr, LowFunPtrType)(
 			map(alloc, finishArr(alloc, allFunPtrSources), (ref immutable Ptr!ConcreteStruct it) {
-				immutable ConcreteType[] typeArgs = asBuiltin(it.body_).typeArgs;
+				immutable ConcreteType[] typeArgs = asBuiltin(it.deref().body_).typeArgs;
 				immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, first(typeArgs));
 				immutable LowType[] paramTypes =
 					map(alloc, tail(typeArgs), (ref immutable ConcreteType typeArg) =>
@@ -306,24 +306,24 @@ AllLowTypesWithCtx getAllLowTypes(
 					it,
 					mapZipPtrFirst!(LowField, ConcreteField, Nat16)(
 						alloc,
-						asRecord(body_(it)).fields,
-						fieldOffsets(it),
+						asRecord(body_(it.deref())).fields,
+						fieldOffsets(it.deref()),
 						(immutable Ptr!ConcreteField field, ref immutable Nat16 fieldOffset) =>
 							immutable LowField(
 								field,
 								fieldOffset,
-								lowTypeFromConcreteType(alloc, getLowTypeCtx, field.type))))));
+								lowTypeFromConcreteType(alloc, getLowTypeCtx, field.deref().type))))));
 	immutable FullIndexDict!(LowType.Union, LowUnion) allUnions =
 		fullIndexDictOfArr!(LowType.Union, LowUnion)(
 			map(alloc, finishArr(alloc, allUnionSources), (ref immutable Ptr!ConcreteStruct it) =>
 				getLowUnion(alloc, program, getLowTypeCtx, it)));
 
 	return AllLowTypesWithCtx(
-		allocate(alloc, immutable AllLowTypes(
+		immutable AllLowTypes(
 			fullIndexDictOfArr!(LowType.ExternPtr, LowExternPtrType)(finishArr(alloc, allExternPtrTypes)),
 			allFunPtrs,
 			allRecords,
-			allUnions)),
+			allUnions),
 		getLowTypeCtx);
 }
 
@@ -355,7 +355,7 @@ immutable(LowUnion) getLowUnion(
 	immutable Ptr!ConcreteStruct s,
 ) {
 	immutable LowType[] members = matchConcreteStructBody!(immutable LowType[])(
-		body_(s),
+		body_(s.deref()),
 		(ref immutable ConcreteStructBody.Builtin it) {
 			verify(it.kind == BuiltinStructKind.fun);
 			return map(alloc, mustGetAt(program.funStructToImpls, s), (ref immutable ConcreteLambdaImpl impl) =>
@@ -397,7 +397,7 @@ immutable(LowType) lowTypeFromConcreteStruct(
 	immutable Ptr!ConcreteStruct it,
 ) {
 	return optOr!LowType(getAt(ctx.concreteStructToType, it), () {
-		immutable ConcreteStructBody.Builtin builtin = asBuiltin(body_(it));
+		immutable ConcreteStructBody.Builtin builtin = asBuiltin(body_(it.deref()));
 		verify(builtin.kind == BuiltinStructKind.ptrConst || builtin.kind == BuiltinStructKind.ptrMut);
 		//TODO: cache the creation.. don't want an allocation for every BuiltinStructKind.ptr to the same target type
 		immutable Ptr!LowType inner = allocate(alloc, lowTypeFromConcreteType(alloc, ctx, only(builtin.typeArgs)));
@@ -574,11 +574,11 @@ immutable(AllLowFuns) getAllLowFuns(
 			(immutable PrimitiveType it) =>
 				unreachable!(immutable LowFunIndex),
 			(immutable LowType.PtrGc it) {
-				immutable Opt!LowFunIndex visitPointee = maybeGenerateMarkVisitForType(it.pointee);
+				immutable Opt!LowFunIndex visitPointee = maybeGenerateMarkVisitForType(it.pointee.deref());
 				return getOrAdd(
 					alloc,
 					markVisitFuns.gcPointeeToVisit,
-					it.pointee,
+					it.pointee.deref(),
 					() =>
 						addLowFun(immutable LowFunCause(immutable LowFunCause.MarkVisitGcPtr(it, visitPointee))));
 			},
@@ -594,7 +594,8 @@ immutable(AllLowFuns) getAllLowFuns(
 						markVisitFuns.recordValToVisit,
 						it,
 						() {
-							immutable Opt!LowFunIndex innerIndex = needsMarkVisitFun(allTypes, elementPtrType.pointee)
+							immutable Opt!LowFunIndex innerIndex =
+								needsMarkVisitFun(allTypes, elementPtrType.pointee.deref())
 								? some(addLowFun(
 									immutable LowFunCause(immutable LowFunCause.MarkVisitArrInner(elementPtrType))))
 								: none!LowFunIndex;
@@ -602,7 +603,7 @@ immutable(AllLowFuns) getAllLowFuns(
 								immutable LowFunCause(immutable LowFunCause.MarkVisitArrOuter(it, innerIndex)));
 						});
 					if (outerIndex.didAdd)
-						maybeGenerateMarkVisitForType(elementPtrType.pointee);
+						maybeGenerateMarkVisitForType(elementPtrType.pointee.deref());
 					return outerIndex.value;
 				} else {
 					immutable ValueAndDidAdd!(immutable LowFunIndex) index = getOrAddAndDidAdd(
@@ -629,16 +630,17 @@ immutable(AllLowFuns) getAllLowFuns(
 
 	foreach (immutable Ptr!ConcreteFun fun; program.allFuns) {
 		immutable Opt!LowFunIndex opIndex = matchConcreteFunBody!(immutable Opt!LowFunIndex)(
-			body_(fun),
+			body_(fun.deref()),
 			(ref immutable ConcreteFunBody.Builtin it) {
-				if (isCallWithCtxFun(fun)) {
+				if (isCallWithCtxFun(fun.deref())) {
 					immutable Ptr!ConcreteStruct funStruct =
-						mustBeNonPointer(first(fun.paramsExcludingCtxAndClosure()).type);
+						mustBeNonPointer(first(fun.deref().paramsExcludingCtxAndClosure()).type);
 					immutable LowType funType = lowTypeFromConcreteStruct(alloc, getLowTypeCtx, funStruct);
-					immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, fun.returnType);
+					immutable LowType returnType =
+						lowTypeFromConcreteType(alloc, getLowTypeCtx, fun.deref().returnType);
 					// NOTE: 'paramsExcludingCtxAndClosure' includes the *explicit* ctx param on this function
 					immutable LowType[] nonFunNonCtxParamTypes =
-						map(alloc, fun.paramsExcludingCtxAndClosure[2 .. $], (ref immutable ConcreteParam it) =>
+						map(alloc, fun.deref().paramsExcludingCtxAndClosure[2 .. $], (ref immutable ConcreteParam it) =>
 							lowTypeFromConcreteType(alloc, getLowTypeCtx, it.type));
 					// TODO: is it possible that we call a fun type but it's not implemented anywhere?
 					immutable Opt!(ConcreteLambdaImpl[]) optImpls = getAt(program.funStructToImpls, funStruct);
@@ -647,12 +649,12 @@ immutable(AllLowFuns) getAllLowFuns(
 						: emptyArr!ConcreteLambdaImpl;
 					return some(addLowFun(immutable LowFunCause(
 						immutable LowFunCause.CallWithCtx(funType, returnType, nonFunNonCtxParamTypes, impls))));
-				} else if (isMarkVisitFun(fun)) {
+				} else if (isMarkVisitFun(fun.deref())) {
 					if (!lateIsSet(markCtxTypeLate))
 						lateSet(markCtxTypeLate, lowTypeFromConcreteType(
 							alloc,
 							getLowTypeCtx,
-							first(fun.paramsExcludingCtxAndClosure).type));
+							first(fun.deref().paramsExcludingCtxAndClosure).type));
 					immutable LowFunIndex res =
 						generateMarkVisitForType(lowTypeFromConcreteType(alloc, getLowTypeCtx, only(it.typeArgs)));
 					return some(res);
@@ -677,7 +679,7 @@ immutable(AllLowFuns) getAllLowFuns(
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.RecordFieldSet) =>
 				none!LowFunIndex);
-		if (concreteFunWillBecomeNonExternLowFun(fun)) verify(has(opIndex));
+		if (concreteFunWillBecomeNonExternLowFun(fun.deref())) verify(has(opIndex));
 		if (has(opIndex)) {
 			addToDict(alloc, concreteFunToLowFunIndexBuilder, fun, force(opIndex));
 		}
@@ -690,7 +692,7 @@ immutable(AllLowFuns) getAllLowFuns(
 		finishDictShouldBeNoConflict(alloc, concreteFunToLowFunIndexBuilder);
 
 	immutable LowType userMainFunPtrType =
-		lowTypeFromConcreteType(alloc, getLowTypeCtx, at(program.rtMain.paramsExcludingCtxAndClosure, 2).type);
+		lowTypeFromConcreteType(alloc, getLowTypeCtx, at(program.rtMain.deref().paramsExcludingCtxAndClosure, 2).type);
 
 	immutable LowFunIndex markFunIndex = mustGetAt(concreteFunToLowFunIndex, program.markFun);
 	immutable LowFunIndex allocFunIndex = mustGetAt(concreteFunToLowFunIndex, program.allocFun);
@@ -780,33 +782,33 @@ immutable(LowFun) lowFunFromCause(
 				it.nonFunNonCtxParamTypes,
 				it.impls),
 		(immutable Ptr!ConcreteFun cf) {
-			immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, cf.returnType);
-			immutable Opt!LowParam ctxParam = cf.needsCtx
+			immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, cf.deref().returnType);
+			immutable Opt!LowParam ctxParam = cf.deref().needsCtx
 				? some(immutable LowParam(
 					immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("ctx"))),
 					ctxType))
 				: none!LowParam;
-			immutable Opt!LowParam closureParam = mapOption(
-				ptrTrustMe(cf.closureParam),
+			immutable Opt!LowParam closureParam = mapOption!LowParam(
+				cf.deref().closureParam,
 				(ref immutable Ptr!ConcreteParam it) =>
 					getLowParam(alloc, getLowTypeCtx, it));
 			immutable LowParam[] params = mapWithOptFirst2!(LowParam, ConcreteParam)(
 				alloc,
 				ctxParam,
 				closureParam,
-				cf.paramsExcludingCtxAndClosure,
+				cf.deref().paramsExcludingCtxAndClosure,
 				(immutable(size_t), immutable Ptr!ConcreteParam it) =>
 					getLowParam(alloc, getLowTypeCtx, it));
 			immutable Opt!LowParamIndex ctxParamIndex = has(ctxParam)
 				? some(immutable LowParamIndex(0))
 				: none!LowParamIndex;
-			immutable Opt!LowParamIndex closureParamIndex = has(cf.closureParam)
-				? some(immutable LowParamIndex(cf.needsCtx ? 1 : 0))
+			immutable Opt!LowParamIndex closureParamIndex = has(cf.deref().closureParam)
+				? some(immutable LowParamIndex(cf.deref().needsCtx ? 1 : 0))
 				: none!LowParamIndex;
-			immutable Ptr!LowFunSig sig = allocate(alloc, immutable LowFunSig(
+			immutable LowFunSig sig = immutable LowFunSig(
 				returnType,
 				immutable LowFunParamsKind(has(ctxParam), has(closureParam)),
-				params));
+				params);
 			immutable LowFunBody body_ = getLowFunBody(
 				alloc,
 				allTypes,
@@ -821,8 +823,8 @@ immutable(LowFun) lowFunFromCause(
 				immutable LowParamIndex((has(ctxParamIndex) ? 1 : 0) + (has(closureParamIndex) ? 1 : 0)),
 				thisFunIndex,
 				sig,
-				cf,
-				body_(cf));
+				cf.deref(),
+				body_(cf.deref()));
 			return immutable LowFun(immutable LowFunSource(cf), sig, body_);
 		},
 		(ref immutable LowFunCause.MarkVisitArrInner it) =>
@@ -870,18 +872,19 @@ immutable(LowFun) mainFun(
 				paramRef(FileAndRange.empty, int32Type, argc),
 				paramRef(FileAndRange.empty, charPtrPtrConstType, argv),
 				userMainFunPtr]))));
-	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(false, allocate(alloc, call)));
+	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(false, call));
 	return immutable LowFun(
-		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(shortSymAlphaLiteral("main"), emptyArr!LowType))),
-		allocate(alloc, immutable LowFunSig(
+		immutable LowFunSource(
+			allocate(alloc, immutable LowFunSource.Generated(shortSymAlphaLiteral("main"), emptyArr!LowType))),
+		immutable LowFunSig(
 			int32Type,
 			immutable LowFunParamsKind(false, false),
-			params)),
+			params),
 		body_);
 }
 
 immutable(LowParam) getLowParam(ref Alloc alloc, ref GetLowTypeCtx ctx, immutable Ptr!ConcreteParam a) {
-	return immutable LowParam(immutable LowParamSource(a), lowTypeFromConcreteType(alloc, ctx, a.type));
+	return immutable LowParam(immutable LowParamSource(a), lowTypeFromConcreteType(alloc, ctx, a.deref().type));
 }
 
 immutable(T) withLowLocal(T)(
@@ -892,7 +895,7 @@ immutable(T) withLowLocal(T)(
 ) {
 	immutable Ptr!LowLocal local = allocate(alloc, immutable LowLocal(
 		immutable LowLocalSource(concreteLocal),
-		lowTypeFromConcreteType(alloc, ctx.getLowTypeCtx, concreteLocal.type)));
+		lowTypeFromConcreteType(alloc, typeCtx(ctx), concreteLocal.deref().type)));
 	//TODO: store lookup on stack instead of using dict
 	addToMutDict(alloc, ctx.locals, concreteLocal, local);
 	immutable T res = cb(local);
@@ -941,7 +944,7 @@ immutable(LowFunBody) getLowFunBody(
 		(immutable EnumFunction) =>
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.Extern it) =>
-			immutable LowFunBody(allocate(alloc, immutable LowFunBody.Extern(it.isGlobal))),
+			immutable LowFunBody(immutable LowFunBody.Extern(it.isGlobal)),
 		(ref immutable ConcreteFunExprBody it) {
 			GetLowExprCtx exprCtx = GetLowExprCtx(
 				thisFunIndex,
@@ -957,10 +960,7 @@ immutable(LowFunBody) getLowFunBody(
 				firstRegularParam,
 				false);
 			immutable LowExpr expr = getLowExpr(alloc, exprCtx, it.expr, ExprPos.tail);
-			return immutable LowFunBody(
-				immutable LowFunExprBody(
-					exprCtx.hasTailRecur,
-					allocate(alloc, expr)));
+			return immutable LowFunBody(immutable LowFunExprBody(exprCtx.hasTailRecur, expr));
 		},
 		(ref immutable ConcreteFunBody.FlagsFn) =>
 			unreachable!(immutable LowFunBody),
@@ -975,7 +975,7 @@ struct GetLowExprCtx {
 	immutable Ptr!AllLowTypes allTypes;
 	immutable Constant allFuns;
 	immutable Constant staticSyms;
-	Ptr!GetLowTypeCtx getLowTypeCtx;
+	Ptr!GetLowTypeCtx getLowTypeCtxPtr;
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	immutable LowFunIndex allocFunIndex;
 	immutable LowType ctxType;
@@ -989,7 +989,7 @@ struct GetLowExprCtx {
 
 //TODO:KILL (inline)
 ref GetLowTypeCtx typeCtx(return scope ref GetLowExprCtx ctx) {
-	return ctx.getLowTypeCtx;
+	return ctx.getLowTypeCtxPtr.deref();
 }
 
 immutable(LowExpr) getCtxParamRef(
@@ -1043,9 +1043,9 @@ immutable(LowExprKind) getLowExprKind(
 		(ref immutable ConcreteExprKind.Cond it) =>
 			immutable LowExprKind(allocate(alloc, immutable LowExprKind.SpecialTrinary(
 				LowExprKind.SpecialTrinary.Kind.if_,
-				allocate(alloc, getLowExpr(alloc, ctx, it.cond, ExprPos.nonTail)),
-				allocate(alloc, getLowExpr(alloc, ctx, it.then, exprPos)),
-				allocate(alloc, getLowExpr(alloc, ctx, it.else_, exprPos))))),
+				getLowExpr(alloc, ctx, it.cond, ExprPos.nonTail),
+				getLowExpr(alloc, ctx, it.then, exprPos),
+				getLowExpr(alloc, ctx, it.else_, exprPos)))),
 		(ref immutable Constant it) =>
 			immutable LowExprKind(it),
 		(ref immutable ConcreteExprKind.CreateArr it) =>
@@ -1068,9 +1068,9 @@ immutable(LowExprKind) getLowExprKind(
 		(ref immutable ConcreteExprKind.RecordFieldGet it) =>
 			getRecordFieldGetExpr(alloc, ctx, it),
 		(ref immutable ConcreteExprKind.Seq it) =>
-			immutable LowExprKind(immutable LowExprKind.Seq(
-				allocate(alloc, getLowExpr(alloc, ctx, it.first, ExprPos.nonTail)),
-				allocate(alloc, getLowExpr(alloc, ctx, it.then, exprPos)))));
+			immutable LowExprKind(allocate(alloc, immutable LowExprKind.Seq(
+				getLowExpr(alloc, ctx, it.first, ExprPos.nonTail),
+				getLowExpr(alloc, ctx, it.then, exprPos)))));
 }
 
 immutable(LowExpr) getAllocateExpr(
@@ -1111,15 +1111,15 @@ immutable(LowExprKind) getAllocExpr2(
 	ref immutable LowType ptrType,
 ) {
 	immutable Ptr!LowLocal local = addTempLocal(alloc, ctx, ptrType);
-	immutable LowExpr sizeofT = getSizeOf(range, asPtrGc(ptrType).pointee);
+	immutable LowExpr sizeofT = getSizeOf(range, asPtrGcPointee(ptrType));
 	immutable LowExpr allocatePtr =
 		getAllocateExpr(alloc, ctx.allocFunIndex, ctx.ctxType, force(ctx.ctxParam), range, ptrType, sizeofT);
-	immutable Ptr!LowExpr getTemp = allocate(alloc, localRef(alloc, range, local));
+	immutable LowExpr getTemp = localRef(alloc, range, local);
 	immutable LowExpr setTemp = writeToPtr(alloc, range, getTemp, inner);
-	return immutable LowExprKind(immutable LowExprKind.Let(
+	return immutable LowExprKind(allocate(alloc, immutable LowExprKind.Let(
 		local,
-		allocate(alloc, allocatePtr),
-		allocate(alloc, seq(alloc, range, setTemp, getTemp))));
+		allocatePtr,
+		seq(alloc, range, setTemp, getTemp))));
 }
 
 immutable(LowExprKind) getCallExpr(
@@ -1134,21 +1134,22 @@ immutable(LowExprKind) getCallExpr(
 	if (has(opCalled)) {
 		immutable bool isTailRecur = force(opCalled) == ctx.currentFun && exprPos == ExprPos.tail;
 		if (isTailRecur) ctx.hasTailRecur = true;
-		immutable Opt!LowExpr ctxArg = !isTailRecur && a.called.needsCtx
+		immutable Opt!LowExpr ctxArg = !isTailRecur && a.called.deref().needsCtx
 			? some(getCtxParamRef(alloc, ctx, range))
 			: none!LowExpr;
+		//TODO:Use a better helper function (no index, no ptr param)
 		immutable LowExpr[] args = mapWithOptFirst(
 			alloc,
 			ctxArg,
 			a.args,
 			(immutable(size_t), immutable Ptr!ConcreteExpr it) =>
-				getLowExpr(alloc, ctx, it, ExprPos.nonTail));
+				getLowExpr(alloc, ctx, it.deref(), ExprPos.nonTail));
 		return isTailRecur
 			? immutable LowExprKind(immutable LowExprKind.TailRecur(args))
 			: immutable LowExprKind(immutable LowExprKind.Call(force(opCalled), args));
 	} else
 		return matchConcreteFunBody!(immutable LowExprKind)(
-			body_(a.called),
+			body_(a.called.deref()),
 			(ref immutable ConcreteFunBody.Builtin) {
 				return getCallBuiltinExpr(alloc, ctx, exprPos, range, type, a);
 			},
@@ -1158,7 +1159,7 @@ immutable(LowExprKind) getCallExpr(
 				immutable LowExpr[] args = getArgs(alloc, ctx, a.args);
 				immutable LowExprKind create = immutable LowExprKind(immutable LowExprKind.CreateRecord(args));
 				if (isPtrGc(type)) {
-					immutable LowExpr inner = immutable LowExpr(asPtrGc(type).pointee, range, create);
+					immutable LowExpr inner = immutable LowExpr(asPtrGcPointee(type), range, create);
 					return getAllocExpr2(alloc, ctx, range, inner, type);
 				} else
 					return create;
@@ -1167,7 +1168,7 @@ immutable(LowExprKind) getCallExpr(
 				immutable LowExpr arg = empty(a.args)
 					? genVoid(range)
 					: getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail);
-				return immutable LowExprKind(immutable LowExprKind.CreateUnion(it.memberIndex, allocate(alloc, arg)));
+				return immutable LowExprKind(allocate(alloc, immutable LowExprKind.CreateUnion(it.memberIndex, arg)));
 			},
 			(immutable EnumFunction it) =>
 				genEnumFunction(alloc, ctx, it, a.args),
@@ -1190,15 +1191,15 @@ immutable(LowExprKind) getCallExpr(
 				}
 			},
 			(ref immutable ConcreteFunBody.RecordFieldGet it) =>
-				immutable LowExprKind(immutable LowExprKind.RecordFieldGet(
-					allocate(alloc, getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail)),
-					it.fieldIndex)),
+				immutable LowExprKind(allocate(alloc, immutable LowExprKind.RecordFieldGet(
+					getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail),
+					it.fieldIndex))),
 			(ref immutable ConcreteFunBody.RecordFieldSet it) {
 				verify(size(a.args) == 2);
-				return immutable LowExprKind(immutable LowExprKind.RecordFieldSet(
-					allocate(alloc, getLowExpr(alloc, ctx, at(a.args, 0), ExprPos.nonTail)),
+				return immutable LowExprKind(allocate(alloc, immutable LowExprKind.RecordFieldSet(
+					getLowExpr(alloc, ctx, at(a.args, 0), ExprPos.nonTail),
 					it.fieldIndex,
-					allocate(alloc, getLowExpr(alloc, ctx, at(a.args, 1), ExprPos.nonTail))));
+					getLowExpr(alloc, ctx, at(a.args, 1), ExprPos.nonTail))));
 			});
 }
 
@@ -1247,7 +1248,7 @@ immutable(LowExpr[]) getArgs(
 	ref GetLowExprCtx ctx,
 	ref immutable ConcreteExpr[] args,
 ) {
-	return map(alloc, args, (ref immutable ConcreteExpr arg) =>
+	return map!LowExpr(alloc, args, (ref immutable ConcreteExpr arg) =>
 		getLowExpr(alloc, ctx, arg, ExprPos.nonTail));
 }
 
@@ -1260,8 +1261,8 @@ immutable(LowExprKind) getCallBuiltinExpr(
 	ref immutable ConcreteExprKind.Call a,
 ) {
 	immutable Sym name = matchConcreteFunSource!(immutable Sym)(
-		a.called.source,
-		(immutable Ptr!FunInst it) =>
+		a.called.deref().source,
+		(ref immutable FunInst it) =>
 			name(decl(it).deref()),
 		(ref immutable(ConcreteFunSource.Lambda)) =>
 			unreachable!(immutable Sym)(),
@@ -1271,15 +1272,15 @@ immutable(LowExprKind) getCallBuiltinExpr(
 		return index < size(a.args)
 			? lowTypeFromConcreteType(
 				alloc,
-				ctx.getLowTypeCtx,
-				at(a.called.paramsExcludingCtxAndClosure, index).type)
+				typeCtx(ctx),
+				at(a.called.deref().paramsExcludingCtxAndClosure, index).type)
 			: voidType;
 	}
 	immutable LowType p0 = paramType(0);
 	immutable LowType p1 = paramType(1);
 	immutable BuiltinKind builtinKind = getBuiltinKind(name, type, p0, p1);
-	immutable(Ptr!LowExpr) getArg(ref immutable ConcreteExpr arg, immutable ExprPos argPos) {
-		return allocate(alloc, getLowExpr(alloc, ctx, arg, argPos));
+	immutable(LowExpr) getArg(ref immutable ConcreteExpr arg, immutable ExprPos argPos) {
+		return getLowExpr(alloc, ctx, arg, argPos);
 	}
 	return matchBuiltinKind!(immutable LowExprKind)(
 		builtinKind,
@@ -1294,7 +1295,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 		(immutable LowExprKind.SpecialUnary.Kind kind) {
 			verify(size(a.args) == 1);
 			return immutable LowExprKind(
-				immutable LowExprKind.SpecialUnary(kind, getArg(at(a.args, 0), ExprPos.nonTail)));
+				allocate(alloc, immutable LowExprKind.SpecialUnary(kind, getArg(at(a.args, 0), ExprPos.nonTail))));
 		},
 		(immutable LowExprKind.SpecialBinary.Kind kind) {
 			verify(size(a.args) == 2);
@@ -1307,10 +1308,10 @@ immutable(LowExprKind) getCallBuiltinExpr(
 						return ExprPos.nonTail;
 				}
 			}();
-			return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
+			return immutable LowExprKind(allocate(alloc, immutable LowExprKind.SpecialBinary(
 				kind,
 				getArg(at(a.args, 0), ExprPos.nonTail),
-				getArg(at(a.args, 1), arg1Pos)));
+				getArg(at(a.args, 1), arg1Pos))));
 		},
 		(immutable LowExprKind.SpecialTrinary.Kind kind) {
 			verify(size(a.args) == 3);
@@ -1336,7 +1337,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 		},
 		(ref immutable BuiltinKind.SizeOf) {
 			immutable LowType typeArg =
-				lowTypeFromConcreteType(alloc, ctx.getLowTypeCtx, only(asBuiltin(body_(a.called)).typeArgs));
+				lowTypeFromConcreteType(alloc, typeCtx(ctx), only(asBuiltin(body_(a.called.deref())).typeArgs));
 			return immutable LowExprKind(immutable LowExprKind.SizeOf(typeArg));
 		},
 		(ref immutable BuiltinKind.StaticSyms) =>
@@ -1393,10 +1394,10 @@ immutable(LowExprKind) getCreateArrExpr(
 		immutable LowExprKind(immutable LowExprKind.CreateRecord(
 			arrLiteral!LowExpr(alloc, [nElements, localRef(alloc, range, temp)]))));
 	immutable LowExpr writeAndGetArr = recur(createArr, size(a.args));
-	return immutable LowExprKind(immutable LowExprKind.Let(
+	return immutable LowExprKind(allocate(alloc, immutable LowExprKind.Let(
 		temp,
-		allocate(alloc, allocatePtr),
-		allocate(alloc, writeAndGetArr)));
+		allocatePtr,
+		writeAndGetArr)));
 }
 
 immutable(LowExprKind) getLambdaExpr(
@@ -1406,9 +1407,9 @@ immutable(LowExprKind) getLambdaExpr(
 	ref immutable FileAndRange range,
 	ref immutable ConcreteExprKind.Lambda a,
 ) {
-	return immutable LowExprKind(immutable LowExprKind.CreateUnion(
+	return immutable LowExprKind(allocate(alloc, immutable LowExprKind.CreateUnion(
 		a.memberIndex,
-		allocate(alloc, getLowExpr(alloc, ctx, a.closure, ExprPos.nonTail))));
+		getLowExpr(alloc, ctx, a.closure, ExprPos.nonTail))));
 }
 
 immutable(LowExprKind) getLetExpr(
@@ -1419,10 +1420,10 @@ immutable(LowExprKind) getLetExpr(
 	ref immutable ConcreteExprKind.Let a,
 ) {
 	return withLowLocal!LowExprKind(alloc, ctx, a.local, (immutable Ptr!LowLocal local) =>
-		immutable LowExprKind(immutable LowExprKind.Let(
+		immutable LowExprKind(allocate(alloc, immutable LowExprKind.Let(
 			local,
-			allocate(alloc, getLowExpr(alloc, ctx, a.value, ExprPos.nonTail)),
-			allocate(alloc, getLowExpr(alloc, ctx, a.then, exprPos)))));
+			getLowExpr(alloc, ctx, a.value, ExprPos.nonTail),
+			getLowExpr(alloc, ctx, a.then, exprPos)))));
 }
 
 immutable(LowExprKind) getMatchEnumExpr(
@@ -1432,13 +1433,13 @@ immutable(LowExprKind) getMatchEnumExpr(
 	ref immutable ConcreteExprKind.MatchEnum a,
 ) {
 	immutable ConcreteStructBody.Enum enum_ = asEnum(body_(mustBeNonPointer(a.matchedValue.type).deref()));
-	immutable Ptr!LowExpr matchedValue = allocate(alloc, getLowExpr(alloc, ctx, a.matchedValue, ExprPos.nonTail));
+	immutable LowExpr matchedValue = getLowExpr(alloc, ctx, a.matchedValue, ExprPos.nonTail);
 	immutable LowExpr[] cases = map!LowExpr(alloc, a.cases, (ref immutable ConcreteExpr case_) =>
 		getLowExpr(alloc, ctx, case_, exprPos));
 	return matchEnum!(immutable LowExprKind)(
 		enum_,
 		(immutable size_t) =>
-			immutable LowExprKind(immutable LowExprKind.Switch0ToN(matchedValue, cases)),
+			immutable LowExprKind(allocate(alloc, immutable LowExprKind.Switch0ToN(matchedValue, cases))),
 		(immutable EnumValue[] values) =>
 			immutable LowExprKind(
 				allocate(alloc, immutable LowExprKind.SwitchWithValues(matchedValue, values, cases))));
@@ -1450,7 +1451,7 @@ immutable(LowExprKind) getMatchUnionExpr(
 	immutable ExprPos exprPos,
 	ref immutable ConcreteExprKind.MatchUnion a,
 ) {
-	immutable Ptr!LowExpr matched = allocate(alloc, getLowExpr(alloc, ctx, a.matchedValue, ExprPos.nonTail));
+	immutable LowExpr matched = getLowExpr(alloc, ctx, a.matchedValue, ExprPos.nonTail);
 	return immutable LowExprKind(allocate(alloc, immutable LowExprKind.MatchUnion(
 		matched,
 		map(alloc, a.cases, (ref immutable ConcreteExprKind.MatchUnion.Case case_) =>
@@ -1465,14 +1466,15 @@ immutable(LowExprKind) getParamRefExpr(
 	ref GetLowExprCtx ctx,
 	ref immutable ConcreteExprKind.ParamRef a,
 ) {
-	if (!has(a.param.index)) {
+	if (!has(a.param.deref().index)) {
 		//TODO: don't generate ParamRef in ConcreteModel for closure field access. Do that in lowering.
-		verify(isClosure(a.param.source));
+		verify(isClosure(a.param.deref().source));
 		return immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.closureParam)));
+	} else {
+		immutable LowParamIndex param =
+			immutable LowParamIndex(ctx.firstRegularParam.index + force(a.param.deref().index));
+		return immutable LowExprKind(immutable LowExprKind.ParamRef(param));
 	}
-
-	immutable LowParamIndex param = immutable LowParamIndex(ctx.firstRegularParam.index + force(a.param.index));
-	return immutable LowExprKind(immutable LowExprKind.ParamRef(param));
 }
 
 immutable(LowExprKind) getRecordFieldGetExpr(
@@ -1480,7 +1482,7 @@ immutable(LowExprKind) getRecordFieldGetExpr(
 	ref GetLowExprCtx ctx,
 	ref immutable ConcreteExprKind.RecordFieldGet a,
 ) {
-	return immutable LowExprKind(immutable LowExprKind.RecordFieldGet(
-		allocate(alloc, getLowExpr(alloc, ctx, a.target, ExprPos.nonTail)),
-		a.field.index));
+	return immutable LowExprKind(allocate(alloc, immutable LowExprKind.RecordFieldGet(
+		getLowExpr(alloc, ctx, a.target, ExprPos.nonTail),
+		a.field.deref().index)));
 }

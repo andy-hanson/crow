@@ -119,7 +119,7 @@ immutable(string) getHover(Debug)(
 ) {
 	immutable PathAndStorageKind pk = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
-	immutable Ptr!Program program = frontendCompile(alloc, alloc, server.allPaths, server.allSymbols, storage, pk);
+	immutable Program program = frontendCompile(alloc, alloc, server.allPaths, server.allSymbols, storage, pk);
 	return getHoverFromProgram(alloc, server, pk, program, pos);
 }
 
@@ -132,7 +132,7 @@ private pure immutable(string) getHoverFromProgram(
 ) {
 	immutable Opt!FileIndex fileIndex = getFileIndex(program.filesInfo.filePaths, pk);
 	if (has(fileIndex)) {
-		immutable Opt!Position position = getPosition(at(program.allModules, force(fileIndex).index), pos);
+		immutable Opt!Position position = getPosition(at(program.allModules, force(fileIndex).index).deref(), pos);
 		return has(position) ? getHoverStr(alloc, alloc, server.allPaths, program, force(position)) : "";
 	} else
 		return "";

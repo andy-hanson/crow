@@ -19,7 +19,7 @@ import util.writer : finishWriter, Writer, writeStatic;
 void testTokens(Debug)(ref Test!Debug test) {
 	testOne(test, "", emptyArr!Token);
 
-	testOne(test, testSource, arrLiteral!Token(test.alloc.deref(), [
+	testOne(test, testSource, arrLiteral!Token(test.alloc, [
 		immutable Token(Token.Kind.keyword, immutable RangeWithinFile(0, 6)),
 		immutable Token(Token.Kind.importPath, immutable RangeWithinFile(8, 10)),
 		immutable Token(Token.Kind.funDef, immutable RangeWithinFile(12, 16)),
@@ -31,7 +31,7 @@ void testTokens(Debug)(ref Test!Debug test) {
 		immutable Token(Token.Kind.literalNumber, immutable RangeWithinFile(53, 54)),
 		immutable Token(Token.Kind.funRef, immutable RangeWithinFile(55, 63))]));
 
-	testOne(test, testSource2, arrLiteral!Token(test.alloc.deref(), [
+	testOne(test, testSource2, arrLiteral!Token(test.alloc, [
 		immutable Token(Token.Kind.funDef, immutable RangeWithinFile(0, 1)),
 		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(2, 5)),
 		immutable Token(Token.Kind.paramDef, immutable RangeWithinFile(6, 7)),
@@ -43,22 +43,22 @@ void testTokens(Debug)(ref Test!Debug test) {
 private:
 
 void testOne(Debug)(ref Test!Debug test, immutable string source, immutable Token[] expectedTokens) {
-	AllSymbols allSymbols = AllSymbols(test.alloc);
+	AllSymbols allSymbols = AllSymbols(test.allocPtr);
 	immutable FileAstAndParseDiagnostics ast = parseFile(
-		test.alloc.deref(),
+		test.alloc,
 		test.allPaths,
 		allSymbols,
-		copyToNulTerminatedStr(test.alloc.deref(), source));
-	immutable Token[] tokens = tokensOfAst(test.alloc.deref(), ast.ast);
+		copyToNulTerminatedStr(test.alloc, source));
+	immutable Token[] tokens = tokensOfAst(test.alloc, ast.ast);
 	if (!tokensEq(tokens, expectedTokens)) {
-		Writer writer = Writer(test.alloc);
+		Writer writer = Writer(test.allocPtr);
 		writeStatic(writer, "expected tokens:\n");
-		writeRepr(writer, reprTokens(test.alloc.deref(), expectedTokens));
+		writeRepr(writer, reprTokens(test.alloc, expectedTokens));
 		writeStatic(writer, "\nactual tokens:\n");
-		writeRepr(writer, reprTokens(test.alloc.deref(), tokens));
+		writeRepr(writer, reprTokens(test.alloc, tokens));
 
 		writeStatic(writer, "\n\n(hint: ast is:)\n");
-		writeRepr(writer, reprAst(test.alloc.deref(), test.allPaths, ast.ast));
+		writeRepr(writer, reprAst(test.alloc, test.allPaths, ast.ast));
 		log(test.dbg, finishWriter(writer));
 		verifyFail();
 	}

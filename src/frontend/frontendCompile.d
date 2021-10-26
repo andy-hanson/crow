@@ -20,7 +20,6 @@ import util.collection.mutDict : getAt_mut, MutDict, setInDict;
 import util.collection.str : NulTerminatedStr, strOfNulTerminatedStr;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile, lineAndColumnGetterForText;
-import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt, none, some;
 import util.path :
 	AllPaths,
@@ -41,7 +40,7 @@ import util.sym : AllSymbols, Sym;
 import util.types : safeSizeTToU16;
 import util.util : unreachable, verify;
 
-immutable(Ptr!Program) frontendCompile(Storage)(
+immutable(Program) frontendCompile(Storage)(
 	ref Alloc modelAlloc,
 	ref Alloc astsAlloc,
 	ref AllPaths allPaths,
@@ -52,15 +51,15 @@ immutable(Ptr!Program) frontendCompile(Storage)(
 	ArrBuilder!Diagnostic diagsBuilder;
 	immutable ParsedEverything parsed =
 		parseEverything(modelAlloc, allPaths, allSymbols, diagsBuilder, storage, main, astsAlloc);
-	immutable Ptr!FilesInfo filesInfo = allocate(modelAlloc, immutable FilesInfo(
+	immutable FilesInfo filesInfo = immutable FilesInfo(
 		parsed.filePaths,
-		allocate(modelAlloc, storage.absolutePathsGetter()),
-		parsed.lineAndColumnGetters));
+		storage.absolutePathsGetter(),
+		parsed.lineAndColumnGetters);
 	return checkEverything(modelAlloc, allSymbols, diagsBuilder, parsed.asts, filesInfo, parsed.commonModuleIndices);
 }
 
 private struct FileAstAndArrDiagnosticAndLineAndColumnGetter {
-	immutable Ptr!FileAst ast;
+	immutable FileAst ast;
 	immutable ParseDiagnostic[] diagnostics;
 	immutable LineAndColumnGetter lineAndColumnGetter;
 }
@@ -97,7 +96,7 @@ immutable(FileAstAndDiagnostics) parseSingleAst(ReadOnlyStorage)(
 				arrLiteral!PathAndStorageKind(alloc, [path]));
 			return immutable FileAstAndDiagnostics(
 				res.ast,
-				immutable FilesInfo(filePaths, allocate(alloc, storage.absolutePathsGetter()), lc),
+				immutable FilesInfo(filePaths, storage.absolutePathsGetter(), lc),
 				parseDiagnostics(alloc, immutable FileIndex(0), res.diagnostics));
 		});
 }
@@ -272,7 +271,7 @@ immutable(FileIndex) parseRecur(ReadOnlyStorage)(
 					parseResult.diagnostics,
 					parseResult.lineAndColumnGetter);
 			else {
-				immutable Ptr!FileAst ast = parseResult.ast;
+				immutable FileAst ast = parseResult.ast;
 				immutable ImportAndExportPaths importsAndExports =
 					resolveImportAndExportPaths(modelAlloc, astAlloc, allPaths, path, ast.imports, ast.exports);
 
@@ -296,7 +295,10 @@ immutable(FileIndex) parseRecur(ReadOnlyStorage)(
 													arrLiteral!ParseDiagnostic(modelAlloc, [
 														immutable ParseDiagnostic(
 															import_.importedFrom,
-															immutable ParseDiag(immutable ParseDiag.CircularImport(path, resolvedPath)))]),
+															immutable ParseDiag(
+																immutable ParseDiag.CircularImport(
+																	path,
+																	resolvedPath)))]),
 													parseResult.lineAndColumnGetter),
 											(ref immutable ParseStatus.Done it) =>
 												it.fileIndex);
@@ -372,7 +374,7 @@ immutable(Diags) parseDiagnostics(
 	return map(modelAlloc, diags, (ref immutable ParseDiagnostic it) =>
 		immutable Diagnostic(
 			immutable FileAndRange(where, it.range),
-			allocate(modelAlloc, immutable Diag(it.diag))));
+			immutable Diag(it.diag)));
 }
 
 alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter; // TODO: OrderedFullIndexDictBuilder?
@@ -494,7 +496,7 @@ immutable(ImportAndExportPaths) resolveImportAndExportPaths(
 }
 
 struct AstAndResolvedImports {
-	immutable Ptr!FileAst ast;
+	immutable FileAst ast;
 	immutable FileIndexAndNames[] resolvedImports;
 	immutable FileIndexAndNames[] resolvedExports;
 
@@ -522,7 +524,7 @@ immutable(ModuleAndNames[]) mapImportsOrExports(
 
 struct ModulesAndCommonTypes {
 	immutable Ptr!Module[] modules;
-	immutable Ptr!CommonTypes commonTypes;
+	immutable CommonTypes commonTypes;
 }
 
 immutable(ModulesAndCommonTypes) getModules(
@@ -533,8 +535,8 @@ immutable(ModulesAndCommonTypes) getModules(
 	immutable FileIndex stdIndex,
 	ref immutable AstAndResolvedImports[] fileAsts,
 ) {
-	Late!(immutable Ptr!CommonFuns) commonFuns = late!(immutable Ptr!CommonFuns);
-	Late!(immutable Ptr!CommonTypes) commonTypes = late!(immutable Ptr!CommonTypes);
+	Late!(immutable CommonFuns) commonFuns = late!(immutable CommonFuns);
+	Late!(immutable CommonTypes) commonTypes = late!(immutable CommonTypes);
 	immutable Ptr!Module[] modules = mapWithSoFar!(Ptr!Module)(
 		modelAlloc,
 		fileAsts,
@@ -577,28 +579,28 @@ immutable(ModulesAndCommonTypes) getModules(
 	return immutable ModulesAndCommonTypes(modules, lateGet(commonTypes));
 }
 
-immutable(Ptr!Program) checkEverything(
+immutable(Program) checkEverything(
 	ref Alloc modelAlloc,
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref immutable AstAndResolvedImports[] allAsts,
-	immutable Ptr!FilesInfo filesInfo,
+	immutable FilesInfo filesInfo,
 	ref immutable CommonModuleIndices moduleIndices,
 ) {
-	ProgramState programState = ProgramState(modelAlloc, allSymbols);
+	ProgramState programState = ProgramState(allSymbols);
 	immutable ModulesAndCommonTypes modulesAndCommonTypes =
 		getModules(modelAlloc, allSymbols, diagsBuilder, programState, moduleIndices.std, allAsts);
 	immutable Ptr!Module[] modules = modulesAndCommonTypes.modules;
 	immutable Ptr!Module bootstrapModule = at(modules, moduleIndices.bootstrap.index);
-	return allocate(modelAlloc, immutable Program(
+	return immutable Program(
 		filesInfo,
-		allocate(modelAlloc, immutable SpecialModules(
+		immutable SpecialModules(
 			at(modules, moduleIndices.alloc.index),
 			bootstrapModule,
 			at(modules, moduleIndices.runtime.index),
 			at(modules, moduleIndices.runtimeMain.index),
-			at(modules, moduleIndices.main.index))),
+			at(modules, moduleIndices.main.index)),
 		modules,
 		modulesAndCommonTypes.commonTypes,
-		finishArr(modelAlloc, diagsBuilder)));
+		finishArr(modelAlloc, diagsBuilder));
 }

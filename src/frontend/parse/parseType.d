@@ -107,14 +107,14 @@ private immutable(TypeAst) parseTypeSuffixes(
 	immutable Opt!(TypeAst.Suffix.Kind) suffix = tryTakeTypeSuffix(lexer);
 	if (has(suffix))
 		return parseTypeSuffixes(alloc, allSymbols, lexer, immutable TypeAst(
-			immutable TypeAst.Suffix(force(suffix), allocate(alloc, ast))));
+			allocate(alloc, immutable TypeAst.Suffix(force(suffix), ast))));
 	else {
 		immutable Opt!(TypeAst.Dict.Kind) dictKind = tryTakeDictKind(lexer);
 		if (has(dictKind)) {
 			immutable TypeAst inner = parseType(alloc, allSymbols, lexer);
 			takeOrAddDiagExpected(alloc, lexer, ']', ParseDiag.Expected.Kind.closingBracket);
 			return parseTypeSuffixes(alloc, allSymbols, lexer, immutable TypeAst(
-				immutable TypeAst.Dict(force(dictKind), allocate(alloc, ast), allocate(alloc, inner))));
+				allocate(alloc, immutable TypeAst.Dict(force(dictKind), ast, inner))));
 		} else
 			return ast;
 	}

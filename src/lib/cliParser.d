@@ -7,10 +7,8 @@ import util.collection.arr : at, empty, emptyArr, first, only, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : findIndex, foldOrStop, tail;
 import util.collection.str : startsWith, strEq;
-import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.path : AbsolutePath, AllPaths, parseAbsoluteOrRelPath, Path;
-import util.ptr : Ptr;
 import util.util : todo;
 
 @safe @nogc nothrow: // not pure
@@ -121,7 +119,7 @@ struct RunOptions {
 	}
 	struct Interpret {}
 
-	@trusted immutable this(immutable Ptr!BuildAndRun a) { kind = Kind.buildAndRun; buildAndRun = a; }
+	@trusted immutable this(immutable BuildAndRun a) { kind = Kind.buildAndRun; buildAndRun = a; }
 	immutable this(immutable Interpret a) { kind = Kind.interpret; interpret = a; }
 
 	private:
@@ -131,7 +129,7 @@ struct RunOptions {
 	}
 	immutable Kind kind;
 	union {
-		immutable Ptr!BuildAndRun buildAndRun;
+		immutable BuildAndRun buildAndRun;
 		immutable Interpret interpret;
 	}
 }
@@ -350,7 +348,7 @@ immutable(Opt!RunOptions) parseRunOptions(
 	immutable ArgsPart[] argParts,
 ) {
 	if (empty(argParts))
-		return some(immutable RunOptions(allocate(alloc, immutable RunOptions.BuildAndRun(emptyBuildOptions()))));
+		return some(immutable RunOptions(immutable RunOptions.BuildAndRun(emptyBuildOptions())));
 	else if (size(argParts) != 1)
 		// TODO: better message -- can't combine '--interpret' with build options
 		return none!RunOptions;
@@ -361,16 +359,16 @@ immutable(Opt!RunOptions) parseRunOptions(
 		} else if (strEq(part.tag, "--out")) {
 			immutable Opt!BuildOut buildOut = parseBuildOut(allPaths, cwd, part.args);
 			return has(buildOut)
-				? some(immutable RunOptions(allocate(alloc, immutable RunOptions.BuildAndRun(
-					immutable BuildOptions(force(buildOut))))))
+				? some(immutable RunOptions(immutable RunOptions.BuildAndRun(
+					immutable BuildOptions(force(buildOut)))))
 				: none!RunOptions;
 		} else if (strEq(part.tag, "--optimize")) {
 			if (!empty(part.args))
 				todo!void("!");
-			return some(immutable RunOptions(allocate(alloc, immutable RunOptions.BuildAndRun(
+			return some(immutable RunOptions(immutable RunOptions.BuildAndRun(
 				immutable BuildOptions(
 					immutable BuildOut(none!AbsolutePath, none!AbsolutePath),
-					immutable CCompileOptions(true))))));
+					immutable CCompileOptions(true)))));
 		} else
 			return none!RunOptions;
 	}

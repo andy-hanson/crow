@@ -72,14 +72,13 @@ import util.collection.str : CStr, NulTerminatedStr, SafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some, somePtr;
 import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
-import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, isSymOperator, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
 import util.types : Nat8;
 import util.util : todo, unreachable, verify;
 
 struct FileAstAndParseDiagnostics {
-	immutable Ptr!FileAst ast;
+	immutable FileAst ast;
 	immutable ParseDiagnostic[] diagnostics;
 }
 
@@ -90,7 +89,7 @@ immutable(FileAstAndParseDiagnostics) parseFile(
 	immutable NulTerminatedStr source,
 ) {
 	Lexer lexer = createLexer(alloc, allSymbols, source);
-	immutable Ptr!FileAst ast = parseFileInner(alloc, allSymbols, allPaths, lexer);
+	immutable FileAst ast = parseFileInner(alloc, allSymbols, allPaths, lexer);
 	return immutable FileAstAndParseDiagnostics(ast, finishDiags(alloc, lexer));
 }
 
@@ -348,7 +347,7 @@ immutable(ParamsAndMaybeDedent) parseParams(ref Alloc alloc, ref AllSymbols allS
 }
 
 struct SigAstAndMaybeDedent {
-	immutable Ptr!SigAst sig;
+	immutable SigAst sig;
 	immutable Opt!size_t dedents;
 }
 
@@ -366,8 +365,9 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(
 ) {
 	immutable TypeAst returnType = parseType(alloc, allSymbols, lexer);
 	immutable ParamsAndMaybeDedent params = parseParams(alloc, allSymbols, lexer);
-	immutable SigAst sigAst = allocate(alloc, immutable SigAst(range(lexer, start), name, returnType, params.params));
-	return immutable SigAstAndMaybeDedent(allocate(alloc, sigAst), params.dedents);
+	return immutable SigAstAndMaybeDedent(
+		immutable SigAst(range(lexer, start), name, returnType, params.params),
+		params.dedents);
 }
 
 immutable(SigAstAndDedent) parseSig(
@@ -916,7 +916,7 @@ void handleNonFunKeywordAndIndent(
 				todo!void("always indent alias");
 			if (has(purity))
 				todo!void("alias shouldn't have purity");
-			immutable Ptr!TypeAst target = allocate(alloc, parseType(alloc, allSymbols, lexer));
+			immutable TypeAst target = parseType(alloc, allSymbols, lexer);
 			takeDedentFromIndent1(alloc, lexer);
 			add(
 				alloc,
@@ -1043,7 +1043,7 @@ immutable(Opt!ImportsOrExportsAst) parseImportsOrExports(
 		return none!ImportsOrExportsAst;
 }
 
-immutable(Ptr!FileAst) parseFileInner(
+immutable(FileAst) parseFileInner(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
@@ -1060,7 +1060,7 @@ immutable(Ptr!FileAst) parseFileInner(
 	ArrBuilder!FunDeclAst funs;
 	ArrBuilder!TestAst tests;
 	parseFileRecur(alloc, allSymbols, lexer, specs, structAliases, structs, funs, tests);
-	return allocate(alloc, immutable FileAst(
+	return immutable FileAst(
 		moduleDocComment,
 		noStd,
 		imports,
@@ -1069,7 +1069,7 @@ immutable(Ptr!FileAst) parseFileInner(
 		finishArr(alloc, structAliases),
 		finishArr(alloc, structs),
 		finishArr(alloc, funs),
-		finishArr(alloc, tests)));
+		finishArr(alloc, tests));
 }
 
 void parseFileRecur(

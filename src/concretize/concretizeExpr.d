@@ -74,8 +74,8 @@ import util.collection.arrUtil : arrLiteral, every, map, mapWithIndex;
 import util.collection.mutArr : MutArr, mutArrSize, push;
 import util.collection.mutDict : addToMutDict, getOrAdd, mustDelete, mustGetAt_mut, MutDict;
 import util.memory : allocate;
-import util.opt : force, forcePtr, has, none, some;
-import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.opt : force, has, none, some;
+import util.ptr : comparePtr, Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, symEq, symEqLongAlphaLiteral;
 import util.types : Nat16, safeSizeTToU8, safeSizeTToU16;
@@ -98,14 +98,23 @@ private:
 immutable bool inlineConstants = true;
 
 struct ConcretizeExprCtx {
-	Ptr!ConcretizeCtx concretizeCtx;
+	@safe @nogc pure nothrow:
+
+	Ptr!ConcretizeCtx concretizeCtxPtr;
 	immutable ContainingFunInfo containing;
-	immutable Ptr!ConcreteFun currentConcreteFun; // This is the ConcreteFun* for a lambda, not its containing fun
+	immutable Ptr!ConcreteFun currentConcreteFunPtr; // This is the ConcreteFun* for a lambda, not its containing fun
 	size_t nextLambdaIndex = 0;
 	size_t nextLocalIndex = 0;
 
 	// Contains only the locals that are currently in scope.
 	MutDict!(immutable Ptr!Local, immutable LocalOrConstant, comparePtr!Local) locals;
+
+	ref inout(ConcretizeCtx) concretizeCtx() return scope inout {
+		return concretizeCtxPtr.deref();
+	}
+	ref immutable(ConcreteFun) currentConcreteFun() return scope const {
+		return currentConcreteFunPtr.deref();
+	}
 }
 
 struct TypedConstant {
@@ -146,7 +155,7 @@ struct LocalOrConstant {
 
 immutable(ConcreteType) getConcreteType(ref Alloc alloc, ref ConcretizeExprCtx ctx, immutable Type t) {
 	immutable TypeArgsScope s = typeScope(ctx);
-	return getConcreteType_fromConcretizeCtx(alloc, ctx.concretizeCtx.deref, t, s);
+	return getConcreteType_fromConcretizeCtx(alloc, ctx.concretizeCtx, t, s);
 }
 
 immutable(ConcreteType) getConcreteType_forStructInst(
@@ -179,20 +188,20 @@ immutable(ConcreteExpr) concretizeCall(
 ) {
 	immutable Ptr!ConcreteFun concreteCalled = getConcreteFunFromCalled(alloc, ctx, e.called);
 	immutable ConstantsOrExprs args =
-		!isSummon(concreteCalled) && purity(concreteCalled.returnType) == Purity.data && false // TODO
+		!isSummon(concreteCalled.deref()) && purity(concreteCalled.deref().returnType) == Purity.data && false // TODO
 			? getConstantsOrExprs(alloc, ctx, e.args)
 			: immutable ConstantsOrExprs(getArgs(alloc, ctx, e.args));
 	immutable ConstantsOrExprs args2 = isVariadic(concreteCalled.deref())
-		? constantsOrExprsArr(alloc, ctx, range, args, only(concreteCalled.paramsExcludingCtxAndClosure()).type)
+		? constantsOrExprsArr(alloc, ctx, range, args, only(concreteCalled.deref().paramsExcludingCtxAndClosure()).type)
 		: args;
 	return matchConstantsOrExprs!(immutable ConcreteExpr)(
 		args2,
 		(ref immutable Constant[] constants) => immutable ConcreteExpr(
-			concreteCalled.returnType,
+			concreteCalled.deref().returnType,
 			range,
-			immutable ConcreteExprKind(evalConstant(concreteCalled, constants))),
+			immutable ConcreteExprKind(evalConstant(concreteCalled.deref(), constants))),
 		(ref immutable ConcreteExpr[] exprs) => immutable ConcreteExpr(
-			concreteCalled.returnType,
+			concreteCalled.deref().returnType,
 			range,
 			immutable ConcreteExprKind(immutable ConcreteExprKind.Call(concreteCalled, exprs))));
 }
@@ -218,7 +227,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromFunInst(
 	immutable ConcreteType[] typeArgs = typesToConcreteTypes(alloc, ctx, typeArgs(funInst.deref));
 	immutable Ptr!ConcreteFun[] specImpls = map!(Ptr!ConcreteFun)(
 		alloc,
-		specImpls(funInst),
+		specImpls(funInst.deref()),
 		(ref immutable Called it) => getConcreteFunFromCalled(alloc, ctx, it));
 	immutable ConcreteFunKey key = immutable ConcreteFunKey(funInst, typeArgs, specImpls);
 	return getOrAddConcreteFunAndFillBody(alloc, ctx.concretizeCtx, key);
@@ -230,14 +239,14 @@ immutable(ConcreteExpr) concretizeClosureFieldRef(
 	ref immutable FileAndRange range,
 	ref immutable Expr.ClosureFieldRef e,
 ) {
-	immutable Ptr!ConcreteParam closureParam = forcePtr(ptrTrustMe(ctx.currentConcreteFun.closureParam));
-	immutable ConcreteType closureType = closureParam.type;
-	immutable ConcreteStructBody.Record record = asRecord(body_(closureType.struct_));
-	immutable Ptr!ConcreteField field = ptrAt(record.fields, e.field.index);
+	immutable Ptr!ConcreteParam closureParam = force(ctx.currentConcreteFun.closureParam);
+	immutable ConcreteType closureType = closureParam.deref().type;
+	immutable ConcreteStructBody.Record record = asRecord(body_(closureType.struct_.deref()));
+	immutable Ptr!ConcreteField field = ptrAt(record.fields, e.field.deref().index);
 	immutable ConcreteExpr closureParamRef = immutable ConcreteExpr(closureType, range, immutable ConcreteExprKind(
 		immutable ConcreteExprKind.ParamRef(closureParam)));
-	return immutable ConcreteExpr(field.type, range, immutable ConcreteExprKind(
-		immutable ConcreteExprKind.RecordFieldGet(allocate(alloc, closureParamRef), field)));
+	return immutable ConcreteExpr(field.deref().type, range, immutable ConcreteExprKind(
+		allocate(alloc, immutable ConcreteExprKind.RecordFieldGet(closureParamRef, field))));
 }
 
 struct ConstantsOrExprs {
@@ -300,7 +309,7 @@ immutable(ConcreteExpr) createAllocExpr(ref Alloc alloc, immutable ConcreteExpr 
 	return immutable ConcreteExpr(
 		byRef(inner.type),
 		inner.range,
-		immutable ConcreteExprKind(immutable ConcreteExprKind.Alloc(allocate(alloc, inner))));
+		immutable ConcreteExprKind(allocate(alloc, immutable ConcreteExprKind.Alloc(inner))));
 }
 
 immutable(ConcreteExpr) getGetIslandAndExclusion(
@@ -324,7 +333,7 @@ immutable(ConcreteField[]) concretizeClosureFields(
 			immutable ConcreteFieldSource(it),
 			safeSizeTToU8(index),
 			ConcreteMutability.const_,
-			getConcreteType_fromConcretizeCtx(alloc, ctx, it.type, typeArgsScope)));
+			getConcreteType_fromConcretizeCtx(alloc, ctx, it.deref().type, typeArgsScope)));
 }
 
 immutable(ConcreteExpr) concretizeFunPtr(
@@ -360,7 +369,7 @@ immutable(ConcreteExpr) concretizeLambda(
 
 	immutable ConcreteExpr[] closureArgs =
 		map!ConcreteExpr(alloc, e.closure, (ref immutable Ptr!ClosureField f) =>
-			concretizeExpr(alloc, ctx, f.expr));
+			concretizeExpr(alloc, ctx, f.deref().expr));
 	immutable ConcreteField[] closureFields =
 		concretizeClosureFields(alloc, ctx.concretizeCtx, e.closure, tScope);
 	immutable ConcreteType closureType = concreteTypeFromClosure(
@@ -368,7 +377,7 @@ immutable(ConcreteExpr) concretizeLambda(
 		ctx.concretizeCtx,
 		closureFields,
 		immutable ConcreteStructSource(
-			immutable ConcreteStructSource.Lambda(ctx.currentConcreteFun, lambdaIndex)));
+			immutable ConcreteStructSource.Lambda(ctx.currentConcreteFunPtr, lambdaIndex)));
 	immutable Ptr!ConcreteParam closureParam = allocate(alloc, immutable ConcreteParam(
 		immutable ConcreteParamSource(immutable ConcreteParamSource.Closure()),
 		none!size_t,
@@ -386,23 +395,23 @@ immutable(ConcreteExpr) concretizeLambda(
 	immutable Ptr!ConcreteFun fun = getConcreteFunForLambdaAndFillBody(
 		alloc,
 		ctx.concretizeCtx,
-		ctx.currentConcreteFun,
+		ctx.currentConcreteFunPtr,
 		lambdaIndex,
 		getConcreteType(alloc, ctx, e.returnType),
 		closureParam,
 		params,
 		ctx.containing,
-		ptrTrustMe(e.body_));
+		e.body_);
 	immutable ConcreteLambdaImpl impl = immutable ConcreteLambdaImpl(closureType, fun);
 	immutable(ConcreteExprKind) lambda(immutable Ptr!ConcreteStruct funStruct) {
 		return immutable ConcreteExprKind(
-			immutable ConcreteExprKind.Lambda(
+			allocate(alloc, immutable ConcreteExprKind.Lambda(
 				nextLambdaImplId(alloc, ctx, funStruct, impl),
-				allocate(alloc, closure)));
+				closure)));
 	}
 	if (e.kind == FunKind.ref_) {
 		// For a fun-ref this is the inner 'act' type.
-		immutable ConcreteField[] fields = asRecord(body_(concreteStruct)).fields;
+		immutable ConcreteField[] fields = asRecord(body_(concreteStruct.deref())).fields;
 		verify(size(fields) == 2);
 		immutable ConcreteField islandAndExclusionField = at(fields, 0);
 		verify(symEqLongAlphaLiteral(name(islandAndExclusionField), "island-and-exclusion"));
@@ -457,7 +466,11 @@ immutable(Ptr!ConcreteLocal) concretizeLocal(
 	ref ConcretizeExprCtx ctx,
 	immutable Ptr!Local local,
 ) {
-	return makeLocalWorker(alloc, ctx, immutable ConcreteLocalSource(local), getConcreteType(alloc, ctx, local.type));
+	return makeLocalWorker(
+		alloc,
+		ctx,
+		immutable ConcreteLocalSource(local),
+		getConcreteType(alloc, ctx, local.deref().type));
 }
 
 immutable(ConcreteExpr) concretizeWithLocal(
@@ -479,7 +492,7 @@ immutable(ConcreteExpr) concretizeLet(
 	ref immutable FileAndRange range,
 	ref immutable Expr.Let e,
 ) {
-	immutable Ptr!ConcreteExpr value = allocate(alloc, concretizeExpr(alloc, ctx, e.value));
+	immutable ConcreteExpr value = concretizeExpr(alloc, ctx, e.value);
 	immutable LocalOrConstant localOrConstant = isConstant(value.kind)
 		? immutable LocalOrConstant(immutable TypedConstant(value.type, asConstant(value.kind)))
 		: immutable LocalOrConstant(concretizeLocal(alloc, ctx, e.local));
@@ -488,7 +501,7 @@ immutable(ConcreteExpr) concretizeLet(
 		localOrConstant,
 		(immutable Ptr!ConcreteLocal local) =>
 			immutable ConcreteExpr(then.type, range, immutable ConcreteExprKind(
-				immutable ConcreteExprKind.Let(local, value, allocate(alloc, then)))),
+				allocate(alloc, immutable ConcreteExprKind.Let(local, value, then)))),
 		(immutable TypedConstant) =>
 			then);
 }
@@ -518,9 +531,10 @@ immutable(ConcreteExpr) concretizeIfOption(
 		immutable ConcreteExpr then = concretizeWithLocal(alloc, ctx, e.local, lc, e.then);
 		immutable ConcreteExprKind.MatchUnion.Case someCase =
 			immutable ConcreteExprKind.MatchUnion.Case(some(someLocal), then);
-		return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(immutable ConcreteExprKind.MatchUnion(
-			allocate(alloc, option),
-			arrLiteral!(ConcreteExprKind.MatchUnion.Case)(alloc, [noneCase, someCase]))));
+		return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
+			allocate(alloc, immutable ConcreteExprKind.MatchUnion(
+				option,
+				arrLiteral!(ConcreteExprKind.MatchUnion.Case)(alloc, [noneCase, someCase])))));
 	}
 }
 
@@ -536,7 +550,7 @@ immutable(ConcreteExpr) concretizeMatchEnum(
 	immutable ConcreteExpr[] cases = map!ConcreteExpr(alloc, e.cases, (ref immutable Expr case_) =>
 		concretizeExpr(alloc, ctx, case_));
 	return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
-		immutable ConcreteExprKind.MatchEnum(allocate(alloc, matched), cases)));
+		allocate(alloc, immutable ConcreteExprKind.MatchEnum(matched, cases))));
 }
 
 immutable(ConcreteExpr) concretizeMatchUnion(
@@ -553,7 +567,7 @@ immutable(ConcreteExpr) concretizeMatchUnion(
 		immutable Constant.Union u = asUnion(asConstant(matched.kind));
 		immutable Expr.MatchUnion.Case case_ = at(e.cases, u.memberIndex);
 		if (has(case_.local)) {
-			immutable ConcreteType caseType = force(at(asUnion(body_(matchedUnion)).members, u.memberIndex));
+			immutable ConcreteType caseType = force(at(asUnion(body_(matchedUnion.deref())).members, u.memberIndex));
 			immutable LocalOrConstant lc = immutable LocalOrConstant(immutable TypedConstant(caseType, u.arg));
 			return concretizeWithLocal(alloc, ctx, force(case_.local), lc, case_.then);
 		} else
@@ -574,7 +588,7 @@ immutable(ConcreteExpr) concretizeMatchUnion(
 						concretizeExpr(alloc, ctx, case_.then));
 			});
 		return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
-			immutable ConcreteExprKind.MatchUnion(allocate(alloc, matched), cases)));
+			allocate(alloc, immutable ConcreteExprKind.MatchUnion(matched, cases))));
 	}
 }
 
@@ -584,11 +598,11 @@ immutable(ConcreteExpr) concretizeParamRef(
 	ref immutable FileAndRange range,
 	ref immutable Expr.ParamRef e,
 ) {
-	immutable size_t paramIndex = e.param.index;
+	immutable size_t paramIndex = e.param.deref().index;
 	// NOTE: we'll never see a ParamRef to a param from outside of a lambda --
 	// that would be a ClosureFieldRef instead.
 	immutable Ptr!ConcreteParam concreteParam = ptrAt(ctx.currentConcreteFun.paramsExcludingCtxAndClosure, paramIndex);
-	return immutable ConcreteExpr(concreteParam.type, range, immutable ConcreteExprKind(
+	return immutable ConcreteExpr(concreteParam.deref().type, range, immutable ConcreteExprKind(
 		immutable ConcreteExprKind.ParamRef(concreteParam)));
 }
 
@@ -613,10 +627,10 @@ immutable(ConcreteExpr) concretizeExpr(
 				: immutable ConcreteExpr(
 					getConcreteType(alloc, ctx, e.type),
 					range,
-					immutable ConcreteExprKind(immutable ConcreteExprKind.Cond(
-						allocate(alloc, cond),
-						allocate(alloc, concretizeExpr(alloc, ctx, e.then)),
-						allocate(alloc, concretizeExpr(alloc, ctx, e.else_)))));
+					immutable ConcreteExprKind(allocate(alloc, immutable ConcreteExprKind.Cond(
+						cond,
+						concretizeExpr(alloc, ctx, e.then),
+						concretizeExpr(alloc, ctx, e.else_)))));
 		},
 		(ref immutable Expr.FunPtr e) =>
 			concretizeFunPtr(alloc, ctx, range, e),
@@ -635,7 +649,7 @@ immutable(ConcreteExpr) concretizeExpr(
 			matchLocalOrConstant!(immutable ConcreteExpr)(
 				mustGetAt_mut(ctx.locals, e.local),
 				(immutable Ptr!ConcreteLocal local) =>
-					immutable ConcreteExpr(local.type, range, immutable ConcreteExprKind(
+					immutable ConcreteExpr(local.deref().type, range, immutable ConcreteExprKind(
 						immutable ConcreteExprKind.LocalRef(local))),
 				(immutable TypedConstant it) =>
 					immutable ConcreteExpr(it.type, range, immutable ConcreteExprKind(it.value))),
@@ -651,7 +665,7 @@ immutable(ConcreteExpr) concretizeExpr(
 			return isConstant(first.kind)
 				? then
 				: immutable ConcreteExpr(then.type, range, immutable ConcreteExprKind(
-					immutable ConcreteExprKind.Seq(allocate(alloc, first), allocate(alloc, then))));
+					allocate(alloc, immutable ConcreteExprKind.Seq(first, then))));
 		},
 		(ref immutable Expr.StringLiteral e) =>
 			immutable ConcreteExpr(
