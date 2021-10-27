@@ -45,20 +45,22 @@ struct Ptr(T) {
 		verify(ptr != null);
 	}
 
-	private T* ptr;
+	// Using a void* greatly speeds up compile times. Don't know why.
+	private void* ptr;
 
 	ref T deref() {
-		return *ptr;
+		return *rawPtr();
 	}
 	ref const(T) deref() const {
-		return *ptr;
+		return *rawPtr();
 	}
 	ref immutable(T) deref() immutable {
-		return *ptr;
+		return *rawPtr();
 	}
 
-	const(T*) rawPtr() const { return ptr; }
-	immutable(T*) rawPtr() immutable { return ptr; }
+	@trusted T* rawPtr() { return cast(T*) ptr; }
+	@trusted const(T*) rawPtr() const { return cast(const T*) ptr; }
+	@trusted immutable(T*) rawPtr() immutable { return cast(immutable T*) ptr; }
 }
 
 @trusted immutable(Ptr!T) ptrTrustMe(T)(ref immutable T t) {
