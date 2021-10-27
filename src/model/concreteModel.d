@@ -707,32 +707,18 @@ static assert(ConcreteFunSource.sizeof <= 16);
 	}
 }
 
+enum NeedsCtx { yes, no }
+
 // We generate a ConcreteFun for:
 // Each instantiation of a FunDecl
 // Each lambda inside an instantiation of a FunDecl
 struct ConcreteFun {
-	@safe @nogc pure nothrow:
-
 	immutable ConcreteFunSource source;
-	immutable ConcreteFunSig sig;
+	immutable ConcreteType returnType;
+	immutable NeedsCtx needsCtx;
+	immutable Opt!(Ptr!ConcreteParam) closureParam;
+	immutable ConcreteParam[] paramsExcludingCtxAndClosure;
 	Late!(immutable ConcreteFunBody) _body_;
-
-	//TODO: not instance
-	immutable(ConcreteType) returnType() return scope immutable {
-		return immutable ConcreteType(sig.returnTypeNeedsPtr, sig.returnStruct);
-	}
-
-	immutable(bool) needsCtx() immutable {
-		return sig.needsCtx;
-	}
-
-	ref immutable(Opt!(Ptr!ConcreteParam)) closureParam() return scope immutable {
-		return sig.closureParam;
-	}
-
-	ref immutable(ConcreteParam[]) paramsExcludingCtxAndClosure() return scope immutable {
-		return sig.paramsExcludingCtxAndClosure;
-	}
 }
 
 immutable(bool) isVariadic(ref immutable ConcreteFun a) {
@@ -761,31 +747,6 @@ immutable(Opt!Sym) name(ref immutable ConcreteFun a) {
 		(ref immutable ConcreteFunSource.Test) =>
 			none!Sym);
 }
-
-struct ConcreteFunSig {
-	@safe @nogc pure nothrow:
-
-	immutable this(
-		immutable ConcreteType returnType,
-		immutable bool n,
-		immutable Opt!(Ptr!ConcreteParam) c,
-		immutable ConcreteParam[] p,
-	) {
-		returnStruct = returnType.struct_;
-		returnTypeNeedsPtr = returnType.isPointer;
-		needsCtx = n;
-		closureParam = c;
-		paramsExcludingCtxAndClosure = p;
-	}
-
-	// Breaking up `immutable ConcreteType returnType;` so bools can be stored together
-	immutable Ptr!ConcreteStruct returnStruct;
-	immutable bool returnTypeNeedsPtr;
-	immutable bool needsCtx;
-	immutable Opt!(Ptr!ConcreteParam) closureParam;
-	immutable ConcreteParam[] paramsExcludingCtxAndClosure;
-}
-static assert(ConcreteFunSig.sizeof <= 48);
 
 immutable(bool) isSummon(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(immutable bool)(

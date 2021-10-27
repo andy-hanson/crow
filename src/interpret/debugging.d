@@ -72,7 +72,7 @@ void writeFunSig(ref Writer writer, ref immutable LowProgram lowProgram, ref imm
 			writeChar(writer, '(');
 			writeWithCommas!ConcreteParam(
 				writer,
-				it.deref().paramsExcludingCtxAndClosure(),
+				it.deref().paramsExcludingCtxAndClosure,
 				(ref immutable ConcreteParam param) {
 					matchConcreteParamSource!void(
 						param.source,

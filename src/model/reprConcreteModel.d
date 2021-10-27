@@ -30,6 +30,7 @@ import model.concreteModel :
 	matchConcreteStructBody,
 	matchConcreteStructSource,
 	name,
+	NeedsCtx,
 	returnType,
 	symOfBuiltinStructKind,
 	symOfConcreteMutability;
@@ -54,6 +55,7 @@ import util.repr :
 	reprStr,
 	reprSym;
 import util.sourceRange : reprFileAndRange;
+import util.sym : shortSymAlphaLiteral;
 import util.util : todo;
 
 immutable(Repr) reprOfConcreteProgram(ref Alloc alloc, ref immutable ConcreteProgram a) {
@@ -144,7 +146,14 @@ immutable(Repr) reprOfConcreteStructBodyUnion(ref Alloc alloc, ref immutable Con
 
 immutable(Repr) reprOfConcreteFun(ref Alloc alloc, ref immutable ConcreteFun a) {
 	return reprRecord(alloc, "fun", [
-		reprBool(a.needsCtx),
+		reprSym(() {
+			final switch (a.needsCtx) {
+				case NeedsCtx.no:
+					return shortSymAlphaLiteral("noctx");
+				case NeedsCtx.yes:
+					return shortSymAlphaLiteral("ctx");
+			}
+		}()),
 		reprOfConcreteFunSource(alloc, a.source),
 		reprOfConcreteType(alloc, a.returnType),
 		reprOpt(alloc, a.closureParam, (ref immutable Ptr!ConcreteParam it) =>

@@ -13,7 +13,6 @@ import model.lowModel :
 	LowFunBody,
 	LowFunIndex,
 	LowFunParamsKind,
-	LowFunSig,
 	LowLocal,
 	LowParam,
 	LowParamIndex,
@@ -97,10 +96,9 @@ immutable(LowFun) generateMarkVisitGcPtr(
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("mark-visit"),
 			arrLiteral!LowType(alloc, [pointerType])))),
-		immutable LowFunSig(
-			voidType,
-			immutable LowFunParamsKind(false, false),
-			params),
+		voidType,
+		immutable LowFunParamsKind(false, false),
+		params,
 		immutable LowFunBody(body_));
 }
 
@@ -123,10 +121,9 @@ immutable(LowFun) generateMarkVisitNonArr(
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("mark-visit"),
 			arrLiteral!LowType(alloc, [paramType])))),
-		immutable LowFunSig(
-			voidType,
-			immutable LowFunParamsKind(false, false),
-			params),
+		voidType,
+		immutable LowFunParamsKind(false, false),
+		params,
 		immutable LowFunBody(body_));
 }
 
@@ -167,10 +164,9 @@ immutable(LowFun) generateMarkVisitArrInner(
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("mark-elems"),
 			arrLiteral!LowType(alloc, [elementPtrType.pointee.deref()])))),
-		immutable LowFunSig(
-			voidType,
-			immutable LowFunParamsKind(false, false),
-			params),
+		voidType,
+		immutable LowFunParamsKind(false, false),
+		params,
 		immutable LowFunBody(immutable LowFunExprBody(true, expr)));
 }
 
@@ -221,10 +217,9 @@ immutable(LowFun) generateMarkVisitArrOuter(
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("mark-arr"),
 			arrLiteral!LowType(alloc, [elementType])))),
-		immutable LowFunSig(
-			voidType,
-			immutable LowFunParamsKind(false, false),
-			params),
+		voidType,
+		immutable LowFunParamsKind(false, false),
+		params,
 		immutable LowFunBody(immutable LowFunExprBody(false, expr)));
 }
 

@@ -14,7 +14,6 @@ import model.lowModel :
 	LowFunBody,
 	LowFunExprBody,
 	LowFunParamsKind,
-	LowFunSig,
 	LowFunSource,
 	LowLocal,
 	LowParam,
@@ -92,7 +91,9 @@ immutable(LowFun) generateCallWithCtxFun(
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("call-w-ctx"),
 			prepend(alloc, returnType, nonFunNonCtxParamTypes)))),
-		immutable LowFunSig(returnType, immutable LowFunParamsKind(true, false), params),
+		returnType,
+		immutable LowFunParamsKind(true, false),
+		params,
 		immutable LowFunBody(immutable LowFunExprBody(false, expr)));
 }
 

@@ -53,7 +53,6 @@ import model.lowModel :
 	LowFunIndex,
 	LowFunParamsKind,
 	LowFunPtrType,
-	LowFunSig,
 	LowFunSource,
 	LowParam,
 	LowProgram,
@@ -125,10 +124,9 @@ void doInterpret(Debug)(
 	immutable LowFun[1] lowFun = [immutable LowFun(
 		immutable LowFunSource(allocate(test.alloc, immutable LowFunSource.Generated(
 			shortSymAlphaLiteral("test"), emptyArr!LowType))),
-		immutable LowFunSig(
-			nat64Type,
-			immutable LowFunParamsKind(false, false),
-			emptyArr!LowParam),
+		nat64Type,
+		immutable LowFunParamsKind(false, false),
+		emptyArr!LowParam,
 		immutable LowFunBody(immutable LowFunBody.Extern(false)))];
 	immutable LowProgram lowProgram = immutable LowProgram(
 		ConcreteFunToLowFunIndex(),

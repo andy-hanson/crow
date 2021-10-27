@@ -570,19 +570,11 @@ struct LowFun {
 	@disable this(ref const LowFun);
 
 	immutable LowFunSource source;
-	immutable LowFunSig sig;
+	immutable LowType returnType;
+	immutable LowFunParamsKind paramsKind;
+	// Includes ctx and closure params
+	immutable LowParam[] params;
 	immutable LowFunBody body_;
-
-	//TODO:NOT INSTANCE
-	ref immutable(LowType) returnType() return scope immutable {
-		return sig.returnType;
-	}
-	ref immutable(LowFunParamsKind) paramsKind() return scope immutable {
-		return sig.paramsKind;
-	}
-	ref immutable(LowParam[]) params() return scope immutable {
-		return sig.params;
-	}
 }
 
 immutable(Opt!Sym) name(ref immutable LowFun a) {
@@ -590,13 +582,6 @@ immutable(Opt!Sym) name(ref immutable LowFun a) {
 		a.source,
 		(immutable Ptr!ConcreteFun it) => name(it.deref()),
 		(ref immutable LowFunSource.Generated) => none!Sym);
-}
-
-struct LowFunSig {
-	immutable LowType returnType;
-	immutable LowFunParamsKind paramsKind;
-	// Includes ctx and closure params
-	immutable LowParam[] params;
 }
 
 immutable(size_t) firstRegularParamIndex(ref immutable LowFun a) {

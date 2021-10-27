@@ -66,6 +66,7 @@ import model.concreteModel :
 	matchConcreteStructBody,
 	matchEnum,
 	mustBeNonPointer,
+	NeedsCtx,
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant;
 import model.lowModel :
@@ -89,7 +90,6 @@ import model.lowModel :
 	LowFunIndex,
 	LowFunParamsKind,
 	LowFunPtrType,
-	LowFunSig,
 	LowFunSource,
 	LowLocal,
 	LowLocalSource,
@@ -634,7 +634,7 @@ immutable(AllLowFuns) getAllLowFuns(
 			(ref immutable ConcreteFunBody.Builtin it) {
 				if (isCallWithCtxFun(fun.deref())) {
 					immutable Ptr!ConcreteStruct funStruct =
-						mustBeNonPointer(first(fun.deref().paramsExcludingCtxAndClosure()).type);
+						mustBeNonPointer(first(fun.deref().paramsExcludingCtxAndClosure).type);
 					immutable LowType funType = lowTypeFromConcreteStruct(alloc, getLowTypeCtx, funStruct);
 					immutable LowType returnType =
 						lowTypeFromConcreteType(alloc, getLowTypeCtx, fun.deref().returnType);
@@ -783,11 +783,16 @@ immutable(LowFun) lowFunFromCause(
 				it.impls),
 		(immutable Ptr!ConcreteFun cf) {
 			immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, cf.deref().returnType);
-			immutable Opt!LowParam ctxParam = cf.deref().needsCtx
-				? some(immutable LowParam(
-					immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("ctx"))),
-					ctxType))
-				: none!LowParam;
+			immutable Opt!LowParam ctxParam = () {
+				final switch (cf.deref().needsCtx) {
+					case NeedsCtx.no:
+						return none!LowParam;
+					case NeedsCtx.yes:
+						return some(immutable LowParam(
+							immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("ctx"))),
+							ctxType));
+				}
+			}();
 			immutable Opt!LowParam closureParam = mapOption!LowParam(
 				cf.deref().closureParam,
 				(ref immutable Ptr!ConcreteParam it) =>
@@ -803,12 +808,13 @@ immutable(LowFun) lowFunFromCause(
 				? some(immutable LowParamIndex(0))
 				: none!LowParamIndex;
 			immutable Opt!LowParamIndex closureParamIndex = has(cf.deref().closureParam)
-				? some(immutable LowParamIndex(cf.deref().needsCtx ? 1 : 0))
+				? some(immutable LowParamIndex(() {
+					final switch (cf.deref().needsCtx) {
+						case NeedsCtx.no: return 0;
+						case NeedsCtx.yes: return 1;
+					}
+				}()))
 				: none!LowParamIndex;
-			immutable LowFunSig sig = immutable LowFunSig(
-				returnType,
-				immutable LowFunParamsKind(has(ctxParam), has(closureParam)),
-				params);
 			immutable LowFunBody body_ = getLowFunBody(
 				alloc,
 				allTypes,
@@ -822,10 +828,14 @@ immutable(LowFun) lowFunFromCause(
 				closureParamIndex,
 				immutable LowParamIndex((has(ctxParamIndex) ? 1 : 0) + (has(closureParamIndex) ? 1 : 0)),
 				thisFunIndex,
-				sig,
 				cf.deref(),
 				body_(cf.deref()));
-			return immutable LowFun(immutable LowFunSource(cf), sig, body_);
+			return immutable LowFun(
+				immutable LowFunSource(cf),
+				returnType,
+				immutable LowFunParamsKind(has(ctxParam), has(closureParam)),
+				params,
+				body_);
 		},
 		(ref immutable LowFunCause.MarkVisitArrInner it) =>
 			generateMarkVisitArrInner(alloc, markVisitFuns, markCtxType, it.elementPtrType),
@@ -876,10 +886,9 @@ immutable(LowFun) mainFun(
 	return immutable LowFun(
 		immutable LowFunSource(
 			allocate(alloc, immutable LowFunSource.Generated(shortSymAlphaLiteral("main"), emptyArr!LowType))),
-		immutable LowFunSig(
-			int32Type,
-			immutable LowFunParamsKind(false, false),
-			params),
+		int32Type,
+		immutable LowFunParamsKind(false, false),
+		params,
 		body_);
 }
 
@@ -927,7 +936,6 @@ immutable(LowFunBody) getLowFunBody(
 	immutable Opt!LowParamIndex closureParam,
 	immutable LowParamIndex firstRegularParam,
 	immutable LowFunIndex thisFunIndex,
-	ref immutable LowFunSig sig,
 	ref immutable ConcreteFun cf,
 	ref immutable ConcreteFunBody a,
 ) {
@@ -1134,9 +1142,14 @@ immutable(LowExprKind) getCallExpr(
 	if (has(opCalled)) {
 		immutable bool isTailRecur = force(opCalled) == ctx.currentFun && exprPos == ExprPos.tail;
 		if (isTailRecur) ctx.hasTailRecur = true;
-		immutable Opt!LowExpr ctxArg = !isTailRecur && a.called.deref().needsCtx
-			? some(getCtxParamRef(alloc, ctx, range))
-			: none!LowExpr;
+		immutable Opt!LowExpr ctxArg = () {
+			final switch (a.called.deref().needsCtx) {
+				case NeedsCtx.no:
+					return none!LowExpr;
+				case NeedsCtx.yes:
+					return isTailRecur ? none!LowExpr : some(getCtxParamRef(alloc, ctx, range));
+			}
+		}();
 		immutable LowExpr[] args = mapWithOptFirst(alloc, ctxArg, a.args, (ref immutable ConcreteExpr it) =>
 			getLowExpr(alloc, ctx, it, ExprPos.nonTail));
 		return isTailRecur

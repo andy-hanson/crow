@@ -23,7 +23,6 @@ import model.concreteModel :
 	ConcreteFun,
 	ConcreteFunBody,
 	ConcreteFunExprBody,
-	ConcreteFunSig,
 	ConcreteFunSource,
 	ConcreteLambdaImpl,
 	ConcreteMutability,
@@ -37,6 +36,7 @@ import model.concreteModel :
 	ConcreteStructSource,
 	hasSizeOrPointerSizeBytes,
 	mustBeNonPointer,
+	NeedsCtx,
 	purity,
 	sizeOrPointerSizeBytes,
 	TypeSize;
@@ -327,7 +327,10 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(
 	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
 		immutable ConcreteFunSource(
 			allocate(alloc, immutable ConcreteFunSource.Lambda(body_.range, containingConcreteFun, index))),
-		immutable ConcreteFunSig(returnType, true, some(closureParam), params)));
+		returnType,
+		NeedsCtx.yes,
+		some(closureParam),
+		params));
 	immutable ConcreteFunBodyInputs bodyInputs = immutable ConcreteFunBodyInputs(containing, immutable FunBody(body_));
 	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
 	fillInConcreteFunBody(alloc, ctx, res);
@@ -482,7 +485,10 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(
 	immutable ConcreteParam[] params = concretizeParams(alloc, ctx, paramsArray(params(decl.deref())), typeScope);
 	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
 		immutable ConcreteFunSource(key.inst),
-		immutable ConcreteFunSig(returnType, !noCtx(decl.deref()), none!(Ptr!ConcreteParam), params)));
+		returnType,
+		noCtx(decl.deref()) ? NeedsCtx.no : NeedsCtx.yes,
+		none!(Ptr!ConcreteParam),
+		params));
 	immutable ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		toContainingFunInfo(key),
 		decl.deref().body_);
@@ -498,7 +504,10 @@ immutable(Ptr!ConcreteFun) concreteFunForTest(
 ) {
 	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
 		immutable ConcreteFunSource(allocate(alloc, immutable ConcreteFunSource.Test(test.body_.range, index))),
-		immutable ConcreteFunSig(voidType(alloc, ctx), true, none!(Ptr!ConcreteParam), emptyArr!ConcreteParam)));
+		voidType(alloc, ctx),
+		NeedsCtx.yes,
+		none!(Ptr!ConcreteParam),
+		emptyArr!ConcreteParam));
 	immutable ContainingFunInfo containing = immutable ContainingFunInfo(
 		emptyArr!TypeParam,
 		emptyArr!ConcreteType,
@@ -775,7 +784,7 @@ void fillInConcreteFunBody(
 			(ref immutable FunBody.Builtin) {
 				immutable Ptr!FunInst inst = asFunInst(cf.deref().source);
 				return symEq(name(inst.deref()), shortSymAlphaLiteral("all-tests"))
-					? bodyForAllTests(alloc, ctx, castImmutable(cf).deref().returnType())
+					? bodyForAllTests(alloc, ctx, castImmutable(cf).deref().returnType)
 					: immutable ConcreteFunBody(immutable ConcreteFunBody.Builtin(typeArgs(inputs)));
 			},
 			(ref immutable FunBody.CreateEnum it) =>

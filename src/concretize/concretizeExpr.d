@@ -192,7 +192,7 @@ immutable(ConcreteExpr) concretizeCall(
 			? getConstantsOrExprs(alloc, ctx, e.args)
 			: immutable ConstantsOrExprs(getArgs(alloc, ctx, e.args));
 	immutable ConstantsOrExprs args2 = isVariadic(concreteCalled.deref())
-		? constantsOrExprsArr(alloc, ctx, range, args, only(concreteCalled.deref().paramsExcludingCtxAndClosure()).type)
+		? constantsOrExprsArr(alloc, ctx, range, args, only(concreteCalled.deref().paramsExcludingCtxAndClosure).type)
 		: args;
 	return matchConstantsOrExprs!(immutable ConcreteExpr)(
 		args2,
