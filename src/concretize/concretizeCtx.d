@@ -505,7 +505,7 @@ immutable(Ptr!ConcreteFun) concreteFunForTest(
 		emptyArr!(Ptr!ConcreteFun));
 	immutable ConcreteExpr body_ =
 		concretizeExpr(alloc, ctx, containing, castImmutable(res), test.body_);
-	lateSet(res.deref()._body_, allocate(alloc, immutable ConcreteFunBody(immutable ConcreteFunExprBody(body_))));
+	lateSet(res.deref()._body_, immutable ConcreteFunBody(immutable ConcreteFunExprBody(body_)));
 	add(alloc, ctx.allConcreteFuns, castImmutable(res));
 	return castImmutable(res);
 }
@@ -768,7 +768,7 @@ void fillInConcreteFunBody(
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf.deref()._body_)) {
 		// set to arbitrary temporarily
-		lateSet(cf.deref()._body_, allocate(alloc, immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(false))));
+		lateSet(cf.deref()._body_, immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(false)));
 		immutable ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, castImmutable(cf));
 		immutable ConcreteFunBody body_ = matchFunBody!(immutable ConcreteFunBody)(
 			inputs.body_,
@@ -812,7 +812,7 @@ void fillInConcreteFunBody(
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
 			(ref immutable FunBody.RecordFieldSet it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldSet(it.fieldIndex)));
-		lateSetOverwrite(cf.deref()._body_, allocate(alloc, body_));
+		lateSetOverwrite(cf.deref()._body_, body_);
 	}
 }
 
