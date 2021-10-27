@@ -867,8 +867,8 @@ immutable(ConcreteFunBody) bodyForAllTests(
 ) {
 	immutable Test[] allTests = () {
 		ArrBuilder!Test allTestsBuilder;
-		foreach (immutable Ptr!Module m; ctx.program.allModules)
-			addAll(alloc, allTestsBuilder, m.deref().tests);
+		foreach (ref immutable Module m; ctx.program.allModules)
+			addAll(alloc, allTestsBuilder, m.tests);
 		return finishArr(alloc, allTestsBuilder);
 	}();
 	immutable Constant arr = getConstantArr(

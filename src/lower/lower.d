@@ -1137,13 +1137,8 @@ immutable(LowExprKind) getCallExpr(
 		immutable Opt!LowExpr ctxArg = !isTailRecur && a.called.deref().needsCtx
 			? some(getCtxParamRef(alloc, ctx, range))
 			: none!LowExpr;
-		//TODO:Use a better helper function (no index, no ptr param)
-		immutable LowExpr[] args = mapWithOptFirst(
-			alloc,
-			ctxArg,
-			a.args,
-			(immutable(size_t), immutable Ptr!ConcreteExpr it) =>
-				getLowExpr(alloc, ctx, it.deref(), ExprPos.nonTail));
+		immutable LowExpr[] args = mapWithOptFirst(alloc, ctxArg, a.args, (ref immutable ConcreteExpr it) =>
+			getLowExpr(alloc, ctx, it, ExprPos.nonTail));
 		return isTailRecur
 			? immutable LowExprKind(immutable LowExprKind.TailRecur(args))
 			: immutable LowExprKind(immutable LowExprKind.Call(force(opCalled), args));

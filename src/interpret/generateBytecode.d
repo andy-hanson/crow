@@ -191,13 +191,13 @@ private:
 }
 
 immutable(FileToFuns) fileToFuns(ref Alloc alloc, ref immutable Program program) {
-	immutable FullIndexDict!(FileIndex, Ptr!Module) modulesDict =
-		fullIndexDictOfArr!(FileIndex, Ptr!Module)(program.allModules);
-	return mapFullIndexDict!(FileIndex, FunNameAndPos[], Ptr!Module)(
+	immutable FullIndexDict!(FileIndex, Module) modulesDict =
+		fullIndexDictOfArr!(FileIndex, Module)(program.allModules);
+	return mapFullIndexDict!(FileIndex, FunNameAndPos[], Module)(
 		alloc,
 		modulesDict,
-		(immutable FileIndex, ref immutable Ptr!Module module_) =>
-			map(alloc, module_.deref().funs, (ref immutable FunDecl it) =>
+		(immutable FileIndex, ref immutable Module module_) =>
+			map(alloc, module_.funs, (ref immutable FunDecl it) =>
 				immutable FunNameAndPos(name(it), range(it).range.start)));
 }
 

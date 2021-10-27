@@ -269,14 +269,14 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	ref Alloc alloc,
 	ref immutable Opt!Out optFirst,
 	ref immutable In[] a,
-	scope immutable(Out) delegate(immutable size_t, immutable Ptr!In) @safe @nogc pure nothrow cb,
+	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	immutable size_t offset = has(optFirst) ? 1 : 0;
 	Out* res = cast(Out*) allocateBytes(alloc, Out.sizeof * (offset + size(a)));
 	if (has(optFirst))
 		initMemory(res, force(optFirst));
 	foreach (immutable size_t i; 0 .. size(a))
-		initMemory(res + offset + i, cb(i, ptrAt!In(a, i)));
+		initMemory(res + offset + i, cb(at(a, i)));
 	return cast(immutable) res[0 .. offset + size(a)];
 }
 
@@ -287,8 +287,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	immutable Opt!Out someFirst = some!Out(first);
-	return mapWithOptFirst!(Out, In)(alloc, someFirst, a, (immutable(size_t), immutable Ptr!In it) =>
-		cb(it.deref()));
+	return mapWithOptFirst!(Out, In)(alloc, someFirst, a, (ref immutable In x) =>
+		cb(x));
 }
 
 @trusted immutable(Out[]) mapWithFirst2(Out, In)(

@@ -12,10 +12,10 @@ import frontend.lang : crowExtension;
 import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty, emptyArr;
+import util.collection.arr : at, empty, emptyArr, ptrAt;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, copyArr, map, mapImpure, mapOp, mapWithSoFar, prepend;
-import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr;
+import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGetPtr, fullIndexDictOfArr;
 import util.collection.mutDict : getAt_mut, MutDict, setInDict;
 import util.collection.str : NulTerminatedStr, strOfNulTerminatedStr;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
@@ -514,16 +514,16 @@ struct FileIndexAndNames {
 immutable(ModuleAndNames[]) mapImportsOrExports(
 	ref Alloc modelAlloc,
 	ref immutable FileIndexAndNames[] paths,
-	ref immutable FullIndexDict!(FileIndex, Ptr!Module) compiled,
+	ref immutable FullIndexDict!(FileIndex, Module) compiled,
 ) {
 	return mapOp(modelAlloc, paths, (ref immutable FileIndexAndNames it) =>
 		it.fileIndex == FileIndex.none
 			? none!ModuleAndNames
-			: some(immutable ModuleAndNames(it.range, fullIndexDictGet(compiled, it.fileIndex), it.names)));
+			: some(immutable ModuleAndNames(it.range, fullIndexDictGetPtr(compiled, it.fileIndex), it.names)));
 }
 
 struct ModulesAndCommonTypes {
-	immutable Ptr!Module[] modules;
+	immutable Module[] modules;
 	immutable CommonTypes commonTypes;
 }
 
@@ -537,12 +537,11 @@ immutable(ModulesAndCommonTypes) getModules(
 ) {
 	Late!(immutable CommonFuns) commonFuns = late!(immutable CommonFuns);
 	Late!(immutable CommonTypes) commonTypes = late!(immutable CommonTypes);
-	immutable Ptr!Module[] modules = mapWithSoFar!(Ptr!Module)(
+	immutable Module[] modules = mapWithSoFar!Module(
 		modelAlloc,
 		fileAsts,
-		(ref immutable AstAndResolvedImports ast, ref immutable Ptr!Module[] soFar, immutable size_t index) {
-			immutable FullIndexDict!(FileIndex, Ptr!Module) compiled =
-				fullIndexDictOfArr!(FileIndex, Ptr!Module)(soFar);
+		(ref immutable AstAndResolvedImports ast, ref immutable Module[] soFar, immutable size_t index) {
+			immutable FullIndexDict!(FileIndex, Module) compiled = fullIndexDictOfArr!(FileIndex, Module)(soFar);
 			immutable PathAndAst pathAndAst = immutable PathAndAst(immutable FileIndex(safeSizeTToU16(index)), ast.ast);
 			if (lateIsSet(commonTypes)) {
 				immutable bool noStd = ast.ast.noStd;
@@ -590,16 +589,16 @@ immutable(Program) checkEverything(
 	ProgramState programState = ProgramState(allSymbols);
 	immutable ModulesAndCommonTypes modulesAndCommonTypes =
 		getModules(modelAlloc, allSymbols, diagsBuilder, programState, moduleIndices.std, allAsts);
-	immutable Ptr!Module[] modules = modulesAndCommonTypes.modules;
-	immutable Ptr!Module bootstrapModule = at(modules, moduleIndices.bootstrap.index);
+	immutable Module[] modules = modulesAndCommonTypes.modules;
+	immutable Ptr!Module bootstrapModule = ptrAt(modules, moduleIndices.bootstrap.index);
 	return immutable Program(
 		filesInfo,
 		immutable SpecialModules(
-			at(modules, moduleIndices.alloc.index),
+			ptrAt(modules, moduleIndices.alloc.index),
 			bootstrapModule,
-			at(modules, moduleIndices.runtime.index),
-			at(modules, moduleIndices.runtimeMain.index),
-			at(modules, moduleIndices.main.index)),
+			ptrAt(modules, moduleIndices.runtime.index),
+			ptrAt(modules, moduleIndices.runtimeMain.index),
+			ptrAt(modules, moduleIndices.main.index)),
 		modules,
 		modulesAndCommonTypes.commonTypes,
 		finishArr(modelAlloc, diagsBuilder));

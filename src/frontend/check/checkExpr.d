@@ -142,7 +142,7 @@ import util.collection.mutArr :
 import util.collection.str : copyStr;
 import util.memory : allocate;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
-import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
 import util.types : safeSizeTToU32;
@@ -165,10 +165,10 @@ immutable(Expr) checkFunctionBody(
 ) {
 	ExprCtx exprCtx = ExprCtx(
 		ptrTrustMe_mut(checkCtx),
-		ptrTrustMe(structsAndAliasesDict),
-		ptrTrustMe(funsDict),
-		ptrTrustMe(commonTypes),
-		ptrTrustMe(commonFuns),
+		structsAndAliasesDict,
+		funsDict,
+		commonTypes,
+		commonFuns,
 		specs,
 		params,
 		typeParams,

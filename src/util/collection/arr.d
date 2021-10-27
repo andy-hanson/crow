@@ -128,6 +128,11 @@ ref immutable(T) last(T)(ref immutable T[] a) {
 	return at(a, size(a) - 1);
 }
 
+immutable(Ptr!T) lastPtr(T)(ref immutable T[] a) {
+	verify(size(a) != 0);
+	return ptrAt(a, size(a) - 1);
+}
+
 @trusted PtrsRange!T ptrsRange(T)(ref immutable T[] a) {
 	return PtrsRange!T(a.ptr, a.ptr + size(a));
 }

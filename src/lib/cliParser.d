@@ -13,7 +13,7 @@ import util.util : todo;
 
 @safe @nogc nothrow: // not pure
 
-@trusted Out matchCommand(Out)(
+@trusted immutable(Out) matchCommand(Out)(
 	ref immutable Command a,
 	scope Out delegate(ref immutable Command.Build) @safe @nogc nothrow cbBuild,
 	scope Out delegate(ref immutable Command.Document) @safe @nogc nothrow cbDocument,
@@ -146,6 +146,10 @@ struct CCompileOptions {
 private struct BuildOut {
 	immutable Opt!AbsolutePath outC;
 	immutable Opt!AbsolutePath outExecutable;
+}
+
+immutable(bool) hasAnyOut(ref immutable BuildOut a) {
+	return has(a.outC) || has(a.outExecutable);
 }
 
 struct ProgramDirAndMain {
@@ -411,7 +415,11 @@ immutable(Opt!BuildOptions) parseBuildOptions(
 			return has(buildOut)
 				? some(immutable BuildOptions(force(buildOut)))
 				: none!BuildOptions;
+		} else if (strEq(part.tag, "--no-out")) {
+			// TODO: warning if part.args is non-empty
+			return some(immutable BuildOptions(immutable BuildOut(none!AbsolutePath, none!AbsolutePath)));
 		} else
+			// TODO: warning, unrecognized option
 			return none!BuildOptions;
 	}
 }

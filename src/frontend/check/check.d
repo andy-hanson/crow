@@ -202,7 +202,7 @@ struct PathAndAst { //TODO:RENAME
 }
 
 struct BootstrapCheck {
-	immutable Ptr!Module module_;
+	immutable Module module_;
 	immutable CommonFuns commonFuns;
 	immutable CommonTypes commonTypes;
 }
@@ -229,7 +229,7 @@ immutable(BootstrapCheck) checkBootstrap(
 			getCommonTypes(alloc, ctx, structsAndAliasesDict, delayedStructInsts));
 }
 
-immutable(Ptr!Module) check(
+immutable(Module) check(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!Diagnostic diagsBuilder,
@@ -1907,7 +1907,7 @@ immutable(SpecsDict) buildSpecsDict(
 }
 
 struct ModuleAndCommonFuns {
-	immutable Ptr!Module module_;
+	immutable Module module_;
 	immutable CommonFuns commonFuns;
 }
 
@@ -1961,21 +1961,21 @@ immutable(ModuleAndCommonFuns) checkWorkerAfterCommonTypes(
 
 	checkForUnused(alloc, ctx, structAliases, castImmutable(structs), specs);
 
-	// Create a module unconditionally so every function will always have containingModule set, even in failure case
-	immutable Ptr!Module module_ = allocate(alloc, immutable Module(
-		fileIndex,
-		copySafeCStr(alloc, ast.docComment),
-		imports, reExports,
-		structsImmutable, specs, funsAndDict.funs, funsAndDict.tests,
-		getAllExportedNames(
-			alloc,
-			ctx.diagsBuilder,
-			reExports,
-			structsAndAliasesDict,
-			specsDict,
-			funsAndDict.funsDict,
-			fileIndex)));
-	return immutable ModuleAndCommonFuns(module_, funsAndDict.commonFuns);
+	return immutable ModuleAndCommonFuns(
+		immutable Module(
+			fileIndex,
+			copySafeCStr(alloc, ast.docComment),
+			imports, reExports,
+			structsImmutable, specs, funsAndDict.funs, funsAndDict.tests,
+			getAllExportedNames(
+				alloc,
+				ctx.diagsBuilder,
+				reExports,
+				structsAndAliasesDict,
+				specsDict,
+				funsAndDict.funsDict,
+				fileIndex)),
+		funsAndDict.commonFuns);
 }
 
 immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(

@@ -474,8 +474,8 @@ struct ExprAstKind {
 		lambda,
 		let,
 		literal,
-		parenthesized,
 		match,
+		parenthesized,
 		seq,
 		then,
 		thenVoid,
@@ -492,8 +492,8 @@ struct ExprAstKind {
 		immutable Ptr!LambdaAst lambda;
 		immutable Ptr!LetAst let;
 		immutable LiteralAst literal;
-		immutable Ptr!ParenthesizedAst parenthesized;
 		immutable Ptr!MatchAst match_;
+		immutable Ptr!ParenthesizedAst parenthesized;
 		immutable Ptr!SeqAst seq;
 		immutable Ptr!ThenAst then;
 		immutable Ptr!ThenVoidAst thenVoid;

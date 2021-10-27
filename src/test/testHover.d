@@ -7,7 +7,7 @@ import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition, Position;
 import model.model : Module, Program;
 import test.testUtil : Test;
-import util.collection.arr : last, size;
+import util.collection.arr : lastPtr, size;
 import util.collection.mutDict : addToMutDict;
 import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr, strEq, strOfNulTerminatedStr;
 import util.dbg : log, logNat, logNoNewline;
@@ -27,7 +27,7 @@ import util.util : verify, verifyFail;
 	const DictReadOnlyStorage storage = const DictReadOnlyStorage(ptrTrustMe_const(files));
 	immutable Program program =
 		frontendCompile(test.alloc, test.alloc, test.allPaths, test.allSymbols, storage, key);
-	immutable Ptr!Module mainModule = last(program.allModules);
+	immutable Ptr!Module mainModule = lastPtr(program.allModules);
 
 	immutable(string) hover(immutable Pos pos) {
 		immutable Opt!Position position = getPosition(mainModule.deref(), pos);

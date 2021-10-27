@@ -1466,7 +1466,7 @@ enum EnumBackingType {
 struct Program {
 	immutable FilesInfo filesInfo;
 	immutable SpecialModules specialModules;
-	immutable Ptr!Module[] allModules;
+	immutable Module[] allModules;
 	immutable CommonTypes commonTypes;
 	immutable Diags diagnostics;
 }

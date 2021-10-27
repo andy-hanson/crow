@@ -22,11 +22,11 @@ import model.lowModel :
 	LowParamSource,
 	LowType;
 import util.alloc.alloc : Alloc;
-import util.collection.arrUtil : mapWithFirst2, mapWithOptFirst2, mapZip, prepend;
+import util.collection.arrUtil : mapWithFirst2, mapZip, prepend;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate;
-import util.opt : Opt, some;
+import util.opt : some;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
@@ -57,16 +57,13 @@ immutable(LowFun) generateCallWithCtxFun(
 			immutable Ptr!LowLocal closureLocal =
 				genLocal(alloc, shortSymAlphaLiteral("closure"), localIndex, closureType);
 			localIndex = safeSizeTToU8(localIndex + 1);
-			immutable Opt!LowExpr someCtxParamRef = some(ctxParamRef);
-			immutable Opt!LowExpr someClosureLocalRef = some(localRef(alloc, range, closureLocal));
-			//TODO:mapWithFirst2 (no opt, don't pass ptrs to callback)
-			immutable LowExpr[] args = mapWithOptFirst2!(LowExpr, LowType)(
+			immutable LowExpr[] args = mapWithFirst2!(LowExpr, LowType)(
 				alloc,
-				someCtxParamRef,
-				someClosureLocalRef,
+				ctxParamRef,
+				localRef(alloc, range, closureLocal),
 				nonFunNonCtxParamTypes,
-				(immutable size_t i, immutable Ptr!LowType paramType) =>
-					paramRef(range, paramType.deref(), immutable LowParamIndex(i + 2)));
+				(immutable size_t i, ref immutable LowType paramType) =>
+					paramRef(range, paramType, immutable LowParamIndex(i + 2)));
 			immutable LowExpr then = immutable LowExpr(returnType, range, immutable LowExprKind(
 				immutable LowExprKind.Call(mustGetAt(concreteFunToLowFunIndex, impl.impl), args)));
 			return immutable LowExprKind.MatchUnion.Case(some(closureLocal), then);

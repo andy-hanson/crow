@@ -249,6 +249,17 @@ immutable(string) showLowProgram(ref Alloc alloc, ref immutable LowProgram a, im
 	return showRepr(alloc, reprOfLowProgram(alloc, a), format);
 }
 
+public immutable(ExitCode) justTypeCheck(ReadOnlyStorage)(
+	ref Alloc alloc,
+	ref AllPaths allPaths,
+	ref ReadOnlyStorage storage,
+	immutable PathAndStorageKind main,
+) {
+	AllSymbols allSymbols = AllSymbols(ptrTrustMe_mut(alloc));
+	immutable Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, main);
+	return empty(program.diagnostics) ? immutable ExitCode(0) : immutable ExitCode(1);
+}
+
 public struct BuildToCResult {
 	immutable string cSource;
 	immutable string diagnostics;

@@ -19,6 +19,7 @@ import interpret.allocTracker : AllocTracker, hasAllocedPtr, markAlloced, markFr
 import interpret.applyFn : nat64OfI32, nat64OfI64;
 import interpret.bytecode : DynCallType, TimeSpec;
 import lib.cliParser :
+	hasAnyOut,
 	BuildOptions,
 	CCompileOptions,
 	Command,
@@ -35,7 +36,8 @@ import lib.compiler :
 	DiagsAndResultStrs,
 	DocumentResult,
 	ExitCode,
-	print;
+	print,
+	justTypeCheck;
 import model.model : AbsolutePathsGetter;
 import test.test : test;
 import util.alloc.alloc : Alloc, allocateBytes, freeBytes, TempAlloc;
@@ -131,7 +133,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref immutable CommandLineArgs args) {
 	return matchCommand!(immutable ExitCode)(
 		command,
 		(ref immutable Command.Build it) =>
-			runBuild(alloc, allPaths, cwd, includeDir, tempDir, it.programDirAndMain, it.options).err,
+			runBuild(alloc, allPaths, cwd, includeDir, tempDir, it.programDirAndMain, it.options),
 		(ref immutable Command.Document it) =>
 			runDocument(alloc, allPaths, cwd, includeDir, it.programDirAndMain, it.out_),
 		(ref immutable Command.Help it) =>
@@ -160,11 +162,13 @@ immutable(ExitCode) go(ref Alloc alloc, ref immutable CommandLineArgs args) {
 				run.options,
 				(ref immutable RunOptions.BuildAndRun it) {
 					immutable RunBuildResult built =
-						runBuild(alloc, allPaths, cwd, includeDir, tempDir, run.programDirAndMain, it.build);
+						runBuildInner(
+							alloc, allPaths, cwd, includeDir, tempDir,
+							run.programDirAndMain, it.build, ExeKind.ensureExe);
 					if (built.err != ExitCode.ok)
 						return built.err;
 					else {
-						replaceCurrentProcess(alloc, allPaths, built.exePath, run.programArgs);
+						replaceCurrentProcess(alloc, allPaths, force(built.exePath), run.programArgs);
 						return unreachable!ExitCode();
 					}
 				},
@@ -270,10 +274,10 @@ immutable(ExitCode) runDocument(
 
 struct RunBuildResult {
 	immutable ExitCode err;
-	immutable AbsolutePath exePath;
+	immutable Opt!AbsolutePath exePath;
 }
 
-immutable(RunBuildResult) runBuild(
+immutable(ExitCode) runBuild(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
 	immutable string cwd,
@@ -282,13 +286,41 @@ immutable(RunBuildResult) runBuild(
 	ref immutable ProgramDirAndMain programDirAndMain,
 	ref immutable BuildOptions options,
 ) {
+	if (hasAnyOut(options.out_))
+		return runBuildInner(
+			alloc, allPaths, cwd, includeDir, tempDir,
+			programDirAndMain, options, ExeKind.allowNoExe).err;
+	else {
+		RealReadOnlyStorage storage = RealReadOnlyStorage(
+			ptrTrustMe_mut(allPaths),
+			ptrTrustMe_mut(alloc),
+			cwd,
+			includeDir,
+			programDirAndMain.programDir);
+		return justTypeCheck(alloc, allPaths, storage, getMain(allPaths, includeDir, programDirAndMain));
+	}
+}
+
+enum ExeKind { ensureExe, allowNoExe }
+immutable(RunBuildResult) runBuildInner(
+	ref Alloc alloc,
+	ref AllPaths allPaths,
+	immutable string cwd,
+	immutable string includeDir,
+	immutable string tempDir,
+	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable BuildOptions options,
+	immutable ExeKind exeKind,
+) {
 	immutable string name = baseName(allPaths, programDirAndMain.mainPath);
 	immutable AbsolutePath cPath = has(options.out_.outC)
 		? force(options.out_.outC)
 		: immutable AbsolutePath(tempDir, rootPath(allPaths, name), ".c");
-	immutable AbsolutePath exePath = has(options.out_.outExecutable)
-		? force(options.out_.outExecutable)
-		: immutable AbsolutePath(tempDir, rootPath(allPaths, name), "");
+	immutable Opt!AbsolutePath exePath = has(options.out_.outExecutable)
+		? options.out_.outExecutable
+		: exeKind == ExeKind.ensureExe
+		? some(immutable AbsolutePath(tempDir, rootPath(allPaths, name), ""))
+		: none!AbsolutePath;
 	immutable ExitCode err = buildToCAndCompile(
 		alloc,
 		allPaths,
@@ -322,7 +354,7 @@ immutable(ExitCode) buildToCAndCompile(
 	ref immutable ProgramDirAndMain programDirAndMain,
 	immutable string includeDir,
 	immutable AbsolutePath cPath,
-	immutable AbsolutePath exePath,
+	immutable Opt!AbsolutePath exePath,
 	ref immutable CCompileOptions cCompileOptions,
 ) {
 	RealReadOnlyStorage storage = RealReadOnlyStorage(
@@ -335,8 +367,8 @@ immutable(ExitCode) buildToCAndCompile(
 		buildToC(alloc, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
 	if (empty(result.diagnostics)) {
 		immutable ExitCode res = writeFile(alloc, pathToNulTerminatedStr(alloc, allPaths, cPath), result.cSource);
-		return res == ExitCode.ok
-			? compileC(alloc, allPaths, cPath, exePath, result.allExternLibraryNames, cCompileOptions)
+		return res == ExitCode.ok && has(exePath)
+			? compileC(alloc, allPaths, cPath, force(exePath), result.allExternLibraryNames, cCompileOptions)
 			: res;
 	} else
 		return printErr(result.diagnostics);

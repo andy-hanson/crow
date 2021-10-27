@@ -132,7 +132,7 @@ private pure immutable(string) getHoverFromProgram(
 ) {
 	immutable Opt!FileIndex fileIndex = getFileIndex(program.filesInfo.filePaths, pk);
 	if (has(fileIndex)) {
-		immutable Opt!Position position = getPosition(at(program.allModules, force(fileIndex).index).deref(), pos);
+		immutable Opt!Position position = getPosition(at(program.allModules, force(fileIndex).index), pos);
 		return has(position) ? getHoverStr(alloc, alloc, server.allPaths, program, force(position)) : "";
 	} else
 		return "";

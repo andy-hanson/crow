@@ -52,10 +52,10 @@ struct ExprCtx {
 	@safe @nogc pure nothrow:
 
 	Ptr!CheckCtx checkCtxPtr;
-	immutable Ptr!StructsAndAliasesDict structsAndAliasesDictPtr;
-	immutable Ptr!FunsDict funsDictPtr;
-	immutable Ptr!CommonTypes commonTypesPtr;
-	immutable Ptr!CommonFuns commonFunsPtr;
+	immutable StructsAndAliasesDict structsAndAliasesDict;
+	immutable FunsDict funsDict;
+	immutable CommonTypes commonTypes;
+	immutable CommonFuns commonFuns;
 	immutable Ptr!SpecInst[] outermostFunSpecs;
 	immutable Param[] outermostFunParams;
 	immutable TypeParam[] outermostFunTypeParams;
@@ -75,22 +75,6 @@ struct ExprCtx {
 	}
 	ref const(CheckCtx) checkCtx() return scope const {
 		return checkCtxPtr.deref();
-	}
-
-	ref immutable(StructsAndAliasesDict) structsAndAliasesDict() return scope const {
-		return structsAndAliasesDictPtr.deref();
-	}
-
-	ref immutable(FunsDict) funsDict() return scope const {
-		return funsDictPtr.deref();
-	}
-
-	ref immutable(CommonTypes) commonTypes() return scope const {
-		return commonTypesPtr.deref();
-	}
-
-	ref immutable(CommonFuns) commonFuns() return scope inout {
-		return commonFunsPtr.deref();
 	}
 }
 
