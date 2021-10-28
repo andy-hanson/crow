@@ -7,7 +7,7 @@ import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColu
 import util.sourceRange : Pos;
 import util.util : verifyEq;
 
-void testLineAndColumnGetter(Debug)(ref Test!Debug test) {
+void testLineAndColumnGetter(ref Test test) {
 	immutable string text = "a\n\tbb\nc\n";
 	immutable LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, text);
 	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(0)), immutable LineAndColumn(0, 0));

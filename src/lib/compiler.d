@@ -23,6 +23,7 @@ import model.reprLowModel : reprOfLowProgram;
 import model.reprModel : reprModule;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : begin, empty, emptyArr, size;
+import util.dbg : Debug;
 import util.opt : force, none, Opt, some;
 import util.path : AbsolutePath, AllPaths, PathAndStorageKind;
 import util.ptr : ptrTrustMe_mut;
@@ -80,8 +81,8 @@ struct ExitCode {
 	static immutable(ExitCode) error() { return immutable ExitCode(1); }
 }
 
-immutable(ExitCode) buildAndInterpret(Debug, ReadOnlyStorage, Extern)(
-	ref Debug dbg,
+immutable(ExitCode) buildAndInterpret(ReadOnlyStorage, Extern)(
+	scope ref Debug dbg,
 	ref Alloc alloc,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,

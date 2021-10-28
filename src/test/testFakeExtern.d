@@ -8,14 +8,14 @@ import util.collection.arr : empty;
 import util.collection.str : strEq;
 import util.util : verify;
 
-void testFakeExtern(Debug)(ref Test!Debug test) {
+void testFakeExtern(ref Test test) {
 	testMallocAndFree(test);
 	testWrite(test);
 }
 
 private:
 
-@trusted void testMallocAndFree(Debug)(ref Test!Debug test) {
+@trusted void testMallocAndFree(ref Test test) {
 	FakeExtern extern_ = newFakeExtern(test.allocPtr);
 	ubyte* ptr = extern_.malloc(8);
 	ubyte* ptr2 = extern_.malloc(16);
@@ -26,7 +26,7 @@ private:
 	extern_.free(ptr);
 }
 
-void testWrite(Debug)(ref Test!Debug test) {
+void testWrite(ref Test test) {
 	FakeExtern extern_ = newFakeExtern(test.allocPtr);
 
 	extern_.write(1, "gnarly", 4);

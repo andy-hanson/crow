@@ -8,6 +8,7 @@ import util.alloc.alloc : Alloc;
 import util.collection.arr : sizeEq;
 import util.collection.arrUtil : eachCorresponds;
 import util.collection.globalAllocatedStack : asTempArr;
+import util.dbg : Debug;
 import util.path : AllPaths;
 import util.ptr : Ptr;
 import util.sym : AllSymbols;
@@ -15,7 +16,9 @@ import util.types : Nat64;
 import util.util : verify;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
-struct Test(Debug) {
+struct Test {
+	@safe @nogc pure nothrow:
+
 	Ptr!Debug dbgPtr;
 	Ptr!Alloc allocPtr;
 	AllSymbols allSymbols;
@@ -33,16 +36,16 @@ struct Test(Debug) {
 		verify(false);
 	}
 
-	ref Debug dbg() {
+	ref Debug dbg() return scope {
 		return dbgPtr.deref();
 	}
-	ref Alloc alloc() {
+	ref Alloc alloc() return scope {
 		return allocPtr.deref();
 	}
 }
 
-void expectDataStack(Debug)(
-	ref Test!Debug test,
+void expectDataStack(
+	ref Test test,
 	ref const DataStack dataStack,
 	scope immutable Nat64[] expected,
 ) {
@@ -61,8 +64,8 @@ void expectDataStack(Debug)(
 	}
 }
 
-void expectReturnStack(Debug, Extern)(
-	ref Test!Debug test,
+void expectReturnStack(Extern)(
+	ref Test test,
 	ref const Interpreter!Extern interpreter,
 	scope immutable ByteCodeIndex[] expected,
 ) {

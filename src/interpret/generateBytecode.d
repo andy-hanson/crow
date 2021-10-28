@@ -117,6 +117,7 @@ import util.collection.mutIndexMultiDict :
 	mutIndexMultiDictAdd,
 	mutIndexMultiDictMustGetAt,
 	newMutIndexMultiDict;
+import util.dbg : Debug;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
@@ -134,8 +135,8 @@ import util.types :
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
-immutable(ByteCode) generateBytecode(Debug)(
-	ref Debug dbg,
+immutable(ByteCode) generateBytecode(
+	scope ref Debug dbg,
 	ref Alloc codeAlloc,
 	ref TempAlloc tempAlloc,
 	ref immutable Program modelProgram,
@@ -219,8 +220,8 @@ immutable(Nat8) nStackEntriesForUnionType(ref const ExprCtx ctx, ref immutable L
 	return nStackEntriesForType(ctx, type);
 }
 
-void generateBytecodeForFun(Debug)(
-	ref Debug dbg,
+void generateBytecodeForFun(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences,
@@ -290,8 +291,8 @@ void generateBytecodeForFun(Debug)(
 	setNextStackEntry(writer, immutable StackEntry(immutable Nat16(0)));
 }
 
-void generateExternCall(Debug)(
-	ref Debug dbg,
+void generateExternCall(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	immutable LowFunIndex funIndex,
@@ -443,8 +444,8 @@ struct ExprCtx {
 	}
 }
 
-void generateExpr(Debug)(
-	ref Debug dbg,
+void generateExpr(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -595,8 +596,8 @@ void generateExpr(Debug)(
 		});
 }
 
-void generateSwitch0ToN(Debug)(
-	ref Debug dbg,
+void generateSwitch0ToN(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -616,8 +617,8 @@ void generateSwitch0ToN(Debug)(
 		it.cases);
 }
 
-void generateSwitchWithValues(Debug, TempAlloc)(
-	ref Debug dbg,
+void generateSwitchWithValues(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -637,8 +638,8 @@ void generateSwitchWithValues(Debug, TempAlloc)(
 		it.cases);
 }
 
-void writeSwitchCases(Debug)(
-	ref Debug dbg,
+void writeSwitchCases(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -664,8 +665,8 @@ void writeSwitchCases(Debug)(
 		fillInJumpDelayed(writer, jumpIndex);
 }
 
-void generateArgs(Debug)(
-	ref Debug dbg,
+void generateArgs(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -675,8 +676,8 @@ void generateArgs(Debug)(
 		generateExpr(dbg, tempAlloc, writer, ctx, arg);
 }
 
-void generateCreateRecord(Debug)(
-	ref Debug dbg,
+void generateCreateRecord(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -698,8 +699,8 @@ void generateCreateRecord(Debug)(
 		});
 }
 
-void generateCreateRecordOrConstantRecord(Debug)(
-	ref Debug dbg,
+void generateCreateRecordOrConstantRecord(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref const ExprCtx ctx,
@@ -722,8 +723,8 @@ void generateCreateRecordOrConstantRecord(Debug)(
 	verify(after.entry - before.entry == stackEntriesForType.to16());
 }
 
-void generateCreateUnion(Debug)(
-	ref Debug dbg,
+void generateCreateUnion(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -744,8 +745,8 @@ void generateCreateUnion(Debug)(
 		});
 }
 
-void generateCreateUnionOrConstantUnion(Debug)(
-	ref Debug dbg,
+void generateCreateUnionOrConstantUnion(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref const ExprCtx ctx,
@@ -791,8 +792,8 @@ void registerFunAddress(TempAlloc)(
 	mutIndexMultiDictAdd(tempAlloc, ctx.funToReferences.deref(), fun, index);
 }
 
-void generateConstant(Debug)(
-	ref Debug dbg,
+void generateConstant(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -881,8 +882,8 @@ void generateConstant(Debug)(
 		});
 }
 
-void writeBoolConstant(Debug)(
-	ref Debug dbg,
+void writeBoolConstant(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable bool value,
@@ -890,8 +891,8 @@ void writeBoolConstant(Debug)(
 	writePushConstant(dbg, writer, source, immutable Nat8(value ? 1 : 0));
 }
 
-void generateSpecialUnary(Debug)(
-	ref Debug dbg,
+void generateSpecialUnary(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -992,8 +993,8 @@ void generateSpecialUnary(Debug)(
 	}
 }
 
-void generateRefOfVal(Debug)(
-	ref Debug dbg,
+void generateRefOfVal(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -1006,7 +1007,7 @@ void generateRefOfVal(Debug)(
 		writeStackRef(dbg, writer, source, at(ctx.parameterEntries, asParamRef(arg.kind).index.index).start);
 	else if (isRecordFieldGet(arg.kind)) {
 		immutable LowExprKind.RecordFieldGet rfa = asRecordFieldGet(arg.kind);
-		generatePtrToRecordFieldGet!(Debug)(
+		generatePtrToRecordFieldGet(
 			dbg,
 			tempAlloc,
 			writer,
@@ -1027,8 +1028,8 @@ void generateRefOfVal(Debug)(
 		todo!void("!");
 }
 
-void generateRecordFieldGet(Debug)(
-	ref Debug dbg,
+void generateRecordFieldGet(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -1062,8 +1063,8 @@ void generateRecordFieldGet(Debug)(
 	}
 }
 
-void generatePtrToRecordFieldGet(Debug)(
-	ref Debug dbg,
+void generatePtrToRecordFieldGet(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -1083,8 +1084,8 @@ void generatePtrToRecordFieldGet(Debug)(
 		todo!void("ptr-to-record-field-get");
 }
 
-void generateSpecialBinary(Debug)(
-	ref Debug dbg,
+void generateSpecialBinary(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -1280,8 +1281,8 @@ void generateSpecialBinary(Debug)(
 	}
 }
 
-void generateSpecialTrinary(Debug)(
-	ref Debug dbg,
+void generateSpecialTrinary(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -1313,8 +1314,8 @@ void generateSpecialTrinary(Debug)(
 	}
 }
 
-void generateIf(Debug)(
-	ref Debug dbg,
+void generateIf(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -1335,8 +1336,8 @@ void generateIf(Debug)(
 	fillInJumpDelayed(writer, jumpIndex);
 }
 
-void generateSpecialNAry(Debug)(
-	ref Debug dbg,
+void generateSpecialNAry(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,

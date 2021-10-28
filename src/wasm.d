@@ -16,6 +16,7 @@ import util.alloc.alloc : Alloc, allocateBytes;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.collection.arr : size;
 import util.collection.str : CStr, strToCStr;
+import util.dbg : Debug;
 import util.memory : utilMemcpy = memcpy, utilMemset = memset;
 import util.path : StorageKind;
 import util.ptr : ptrTrustMe_mut;
@@ -71,10 +72,11 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable char* contentStart,
 	immutable size_t contentLength,
 ) {
-	WasmDebug dbg = WasmDebug(debugStart, debugLength);
 	immutable string path = pathStart[0 .. pathLength];
 	immutable string content = contentStart[0 .. contentLength];
-	addOrChangeFile(dbg, *server, storageKind, path, content);
+	withWasmDebug!void(debugStart, debugLength, (scope ref Debug dbg) @trusted {
+		addOrChangeFile(dbg, *server, storageKind, path, content);
+	});
 }
 
 @system extern(C) void deleteFile(
@@ -134,9 +136,9 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable Pos pos,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
-	WasmDebug dbg = WasmDebug(debugStart, debugLength);
 	immutable string path = pathStart[0 .. pathLength];
-	immutable string hover = getHover(dbg, resultAlloc, *server, storageKind, path, pos);
+	immutable string hover = withWasmDebug!(immutable string)(debugStart, debugLength, (scope ref Debug dbg) =>
+		getHover(dbg, resultAlloc, *server, storageKind, path, pos));
 	return strToCStr(resultAlloc, hover);
 }
 
@@ -150,12 +152,52 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable size_t pathLength,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
-	WasmDebug dbg = WasmDebug(debugStart, debugLength);
-	immutable RunResult result = run(dbg, resultAlloc, *server, pathStart[0 .. pathLength]);
+	scope immutable string path = pathStart[0 .. pathLength];
+	immutable RunResult result = withWasmDebug!(immutable RunResult)(
+		debugStart, debugLength,
+		(scope ref Debug dbg) @trusted =>
+			run(dbg, resultAlloc, *server, path));
 	return writeRunResult(server.alloc, result);
 }
 
 private:
+
+@trusted immutable(T) withWasmDebug(T)(
+	char* begin,
+	immutable size_t size,
+	scope immutable(T) delegate(scope ref Debug) @safe @nogc nothrow cb,
+) {
+	verify(size > 0);
+	char* ptr = begin;
+	const char* end = begin + size;
+	scope void delegate(immutable char) @safe @nogc pure nothrow writeChar = (immutable char a) {
+		ptr = trustedDebugWrite(ptr, a, begin, end);
+	};
+	scope Debug dbg = Debug(
+		writeChar,
+		(scope immutable string a) {
+			foreach (immutable char c; a)
+				writeChar(c);
+			writeChar('\n');
+		});
+	return cb(dbg);
+}
+
+pure @trusted char* trustedDebugWrite(char* ptr, immutable char a, char* begin, const char* end) {
+	if (!(begin <= ptr))
+		assert(0);
+	if (!(ptr < end))
+		assert(0);
+	*ptr = a;
+	ptr++;
+	if (ptr == end)
+		ptr = begin;
+	if (!(begin <= ptr))
+		assert(0);
+	if (!(ptr < end))
+		assert(0);
+	return ptr;
+}
 
 // declaring as ulong[] to ensure it's word aligned
 // Almost 2GB (which is size limit for a global array)
@@ -166,52 +208,6 @@ immutable(Repr) reprParseDiagnostics(ref Alloc alloc, ref immutable StrParseDiag
 		reprNamedRecord(alloc, "diagnostic", [
 			nameAndRepr("range", reprRangeWithinFile(alloc, it.range)),
 			nameAndRepr("message", reprStr(it.message))]));
-}
-
-struct WasmDebug {
-	@safe @nogc pure nothrow:
-
-	immutable(bool) enabled() {
-		// Enable this if there's a bug, but don't want it slowing things down otherwise
-		return false;
-	}
-
-	void write(scope ref immutable string a) {
-		foreach (immutable char c; a)
-			writeChar(c);
-		writeChar('\n');
-	}
-
-	@trusted void writeChar(immutable char c) {
-		if (!(begin <= ptr))
-			assert(0);
-		if (!(ptr < end))
-			assert(0);
-		*ptr = c;
-		ptr++;
-		if (ptr == end)
-			ptr = begin;
-		if (!(begin <= ptr))
-			assert(0);
-		if (!(ptr < end))
-			assert(0);
-	}
-
-	private:
-
-	@disable this();
-	@disable this(ref const WasmDebug);
-
-	@trusted this(char* b, immutable size_t size) {
-		verify(size > 0);
-		begin = b;
-		end = b + size;
-		ptr = begin;
-	}
-
-	char* begin;
-	char* end;
-	char* ptr;
 }
 
 immutable(CStr) writeRunResult(ref Alloc alloc, ref immutable RunResult result) {

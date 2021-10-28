@@ -19,7 +19,7 @@ import util.sym :
 	symOfStr;
 import util.util : verify;
 
-void testSym(Debug)(ref Test!Debug test) {
+void testSym(ref Test test) {
 	AllSymbols allSymbols = AllSymbols(test.allocPtr);
 
 	immutable(Sym) getSym(immutable string a) {

@@ -7,6 +7,7 @@ import core.atomic : cas;
 import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
 import util.collection.globalAllocatedStack : pop, push;
+import util.dbg : Debug;
 import util.types :
 	bottomU16OfU64,
 	bottomU32OfU64,
@@ -17,7 +18,7 @@ import util.types :
 	u64OfFloat64Bits;
 import util.util : verify;
 
-void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
+void applyFn(scope ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 	final switch (fn) {
 		case FnOp.addFloat32:
 			binaryFloat32s(dataStack, (immutable float a, immutable float b) =>

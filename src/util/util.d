@@ -12,7 +12,7 @@ void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc noth
 
 pure:
 
-T todo(T, Debug)(ref Debug dbg, immutable string message) {
+T todo(T, Debug)(scope ref Debug dbg, immutable string message) {
 	if (dbg.enabled()) {
 		logNoNewline(dbg, "TODO: ");
 		log(dbg, message);

@@ -16,7 +16,7 @@ import util.sym : AllSymbols;
 import util.util : verifyFail;
 import util.writer : finishWriter, Writer, writeStatic;
 
-void testTokens(Debug)(ref Test!Debug test) {
+void testTokens(ref Test test) {
 	testOne(test, "", emptyArr!Token);
 
 	testOne(test, testSource, arrLiteral!Token(test.alloc, [
@@ -42,7 +42,7 @@ void testTokens(Debug)(ref Test!Debug test) {
 
 private:
 
-void testOne(Debug)(ref Test!Debug test, immutable string source, immutable Token[] expectedTokens) {
+void testOne(ref Test test, immutable string source, immutable Token[] expectedTokens) {
 	AllSymbols allSymbols = AllSymbols(test.allocPtr);
 	immutable FileAstAndParseDiagnostics ast = parseFile(
 		test.alloc,

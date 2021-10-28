@@ -35,6 +35,7 @@ import util.collection.byteWriter :
 	writeInt16,
 	writeU16,
 	writeU32;
+import util.dbg : Debug;
 import interpret.opcode : OpCode;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : size, sizeNat;
@@ -114,8 +115,8 @@ private void fillDelayedU32(
 	writeU32(writer.byteWriter, index.index, value.index);
 }
 
-void writeAssertStackSize(Debug)(
-	ref Debug dbg,
+void writeAssertStackSize(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 ) {
@@ -150,8 +151,8 @@ void fillDelayedCall(
 	fillDelayedU32(writer, index, value);
 }
 
-void writeCallFunPtr(Debug)(
-	ref Debug dbg,
+void writeCallFunPtr(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	// This is before the fun-ptr arg, which should be the first
@@ -183,8 +184,8 @@ private immutable(StackOffsetBytes) getStackOffsetBytes(
 		incr(getStackOffsetTo(writer, stackEntry)).to16() * immutable Nat16(8) - offsetBytes.to16());
 }
 
-void writeDupEntries(Debug)(
-	ref Debug dbg,
+void writeDupEntries(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable StackEntries entries,
@@ -194,8 +195,8 @@ void writeDupEntries(Debug)(
 	writeDup(dbg, writer, source, entries.start, immutable Nat8(0), entries.size.to16() * immutable Nat16(8));
 }
 
-void writeDupEntry(Debug)(
-	ref Debug dbg,
+void writeDupEntry(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable StackEntry entry,
@@ -203,8 +204,8 @@ void writeDupEntry(Debug)(
 	writeDup(dbg, writer, source, entry, immutable Nat8(0), immutable Nat16(8));
 }
 
-void writeDup(Debug)(
-	ref Debug dbg,
+void writeDup(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable StackEntry start,
@@ -220,8 +221,8 @@ void writeDup(Debug)(
 	writer.nextStackEntry += divRoundUp(sizeBytes, immutable Nat16(8));
 }
 
-void writeRead(Debug)(
-	ref Debug dbg,
+void writeRead(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat16 offset,
@@ -235,8 +236,8 @@ void writeRead(Debug)(
 	writer.nextStackEntry += decr(divRoundUp(size, stackEntrySize));
 }
 
-void writeStackRef(Debug)(
-	ref Debug dbg,
+void writeStackRef(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable StackEntry stackEntry,
@@ -253,8 +254,8 @@ void writeStackRef(Debug)(
 	}
 }
 
-void writeWrite(Debug)(
-	ref Debug dbg,
+void writeWrite(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat16 offset,
@@ -268,8 +269,8 @@ void writeWrite(Debug)(
 	writer.nextStackEntry -= incr(divRoundUp(size, stackEntrySize));
 }
 
-void writeAddConstantNat64(Debug)(
-	ref Debug dbg,
+void writeAddConstantNat64(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat64 arg,
@@ -279,8 +280,8 @@ void writeAddConstantNat64(Debug)(
 	writeFn(dbg, writer, source, FnOp.wrapAddIntegral);
 }
 
-void writeMulConstantNat64(Debug)(
-	ref Debug dbg,
+void writeMulConstantNat64(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat64 arg,
@@ -291,8 +292,8 @@ void writeMulConstantNat64(Debug)(
 }
 
 // Consume stack space without caring what's in it. Useful for unions.
-void writePushEmptySpace(Debug)(
-	ref Debug dbg,
+void writePushEmptySpace(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat16 nSpaces,
@@ -301,8 +302,8 @@ void writePushEmptySpace(Debug)(
 		writePushConstant(dbg, writer, source, immutable Nat8(0));
 }
 
-void writePushConstants(Debug, size_t n)(
-	ref Debug dbg,
+void writePushConstants(size_t n)(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat64[n] values,
@@ -312,7 +313,7 @@ void writePushConstants(Debug, size_t n)(
 }
 
 void writePushConstant(T, Debug)(
-	ref Debug dbg,
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable NatN!T value,
@@ -323,8 +324,8 @@ void writePushConstant(T, Debug)(
 		writePushConstant64(dbg, writer, source, value.to64());
 }
 
-private void writePushConstant64(Debug)(
-	ref Debug dbg,
+private void writePushConstant64(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat64 value,
@@ -347,8 +348,8 @@ private void writePushConstant64(Debug)(
 	}
 }
 
-void writePushConstantPointer(Debug)(
-	ref Debug dbg,
+void writePushConstantPointer(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable ubyte* value,
@@ -356,8 +357,8 @@ void writePushConstantPointer(Debug)(
 	writePushConstant(dbg, writer, source, immutable Nat64(cast(ulong) value));
 }
 
-private void writePushU8(Debug)(
-	ref Debug dbg,
+private void writePushU8(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat8 value,
@@ -368,8 +369,8 @@ private void writePushU8(Debug)(
 	writer.nextStackEntry++;
 }
 
-private void writePushU16(Debug)(
-	ref Debug dbg,
+private void writePushU16(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat16 value,
@@ -380,8 +381,8 @@ private void writePushU16(Debug)(
 	writer.nextStackEntry++;
 }
 
-private void writePushU32(Debug)(
-	ref Debug dbg,
+private void writePushU32(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat32 value,
@@ -389,8 +390,8 @@ private void writePushU32(Debug)(
 	writePushU32Common(dbg, writer, source, value);
 }
 
-private void writePushU48(Debug)(
-	ref Debug dbg,
+private void writePushU48(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat48 value,
@@ -401,8 +402,8 @@ private void writePushU48(Debug)(
 	writer.nextStackEntry++;
 }
 
-private void writePushU64(Debug)(
-	ref Debug dbg,
+private void writePushU64(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat64 value,
@@ -413,21 +414,21 @@ private void writePushU64(Debug)(
 	writer.nextStackEntry++;
 }
 
-void writeReturn(Debug)(ref Debug dbg, ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
+void writeReturn(scope ref Debug dbg, ref ByteCodeWriter writer, ref immutable ByteCodeSource source) {
 	log(dbg, writer, "write return");
 	pushOpcode(writer, source, OpCode.return_);
 }
 
-immutable(ByteCodeIndex) writePushFunPtrDelayed(Debug)(
-	ref Debug dbg,
+immutable(ByteCodeIndex) writePushFunPtrDelayed(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 ) {
 	return writePushU32Common(dbg, writer, source, immutable Nat32(0));
 }
 
-private immutable(ByteCodeIndex) writePushU32Common(Debug)(
-	ref Debug dbg,
+private immutable(ByteCodeIndex) writePushU32Common(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable Nat32 value,
@@ -440,8 +441,8 @@ private immutable(ByteCodeIndex) writePushU32Common(Debug)(
 	return fnAddress;
 }
 
-void writeRemove(Debug)(
-	ref Debug dbg,
+void writeRemove(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable StackEntries entries,
@@ -455,8 +456,8 @@ void writeRemove(Debug)(
 	}
 }
 
-void writeJump(Debug)(
-	ref Debug dbg,
+void writeJump(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable ByteCodeIndex target,
@@ -469,8 +470,8 @@ void writeJump(Debug)(
 		immutable ByteCodeIndex(nextByteCodeIndex(writer).index + immutable Nat32(Int16.sizeof))).offset);
 }
 
-immutable(ByteCodeIndex) writeJumpDelayed(Debug)(
-	ref Debug dbg,
+immutable(ByteCodeIndex) writeJumpDelayed(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 ) {
@@ -495,8 +496,8 @@ private immutable(ByteCodeOffset) getByteCodeOffsetForJumpToCurrent(
 	return subtractByteCodeIndex(nextByteCodeIndex(writer), jumpEnd);
 }
 
-void writePack(Debug)(
-	ref Debug dbg,
+void writePack(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	scope immutable Operation.Pack pack,
@@ -620,8 +621,8 @@ void writeExternDynCall(
 	writer.nextStackEntry += returnType == DynCallType.void_ ? immutable Nat16(0) : immutable Nat16(1);
 }
 
-void writeFn(Debug)(
-	ref Debug dbg,
+void writeFn(
+	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	ref immutable ByteCodeSource source,
 	immutable FnOp fn,
@@ -727,12 +728,12 @@ private void pushSource(ref ByteCodeWriter writer, ref immutable ByteCodeSource 
 	add(writer.alloc.deref(), writer.sources, source);
 }
 
-void log(Debug)(ref Debug dbg, ref ByteCodeWriter byteCodeWriter, immutable string message) {
+void log(scope ref Debug dbg, ref ByteCodeWriter byteCodeWriter, immutable string message) {
 	log(dbg, byteCodeWriter, message, none!Nat64);
 }
 
-void log(Debug)(
-	ref Debug dbg,
+void log(
+	scope ref Debug dbg,
 	ref ByteCodeWriter byteCodeWriter,
 	immutable string message,
 	immutable Nat64 value,
@@ -740,8 +741,8 @@ void log(Debug)(
 	log(dbg, byteCodeWriter, message, some!Nat64(value));
 }
 
-void log(Debug)(
-	ref Debug dbg,
+void log(
+	scope ref Debug dbg,
 	ref ByteCodeWriter byteCodeWriter,
 	immutable string message,
 	immutable Opt!Nat64 value,

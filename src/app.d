@@ -59,6 +59,7 @@ import util.collection.str :
 	strOfCStr,
 	strToCStr,
 	strOfNulTerminatedStr;
+import util.dbg : Debug;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
 import util.path :
 	AbsolutePath,
@@ -99,26 +100,6 @@ import util.writer : Writer;
 
 private:
 
-struct StdoutDebug {
-	@safe @nogc pure nothrow:
-
-	bool enabled() {
-		return false;
-	}
-
-	void write(scope immutable string a) {
-		debug {
-			printf("%.*s", cast(immutable uint) size(a), begin(a));
-		}
-	}
-
-	void writeChar(immutable char c) {
-		debug {
-			printf("%c", c);
-		}
-	}
-}
-
 immutable(ExitCode) go(ref Alloc alloc, ref immutable CommandLineArgs args) {
 	AllPaths allPaths = AllPaths(ptrTrustMe_mut(alloc));
 	immutable string crowDir = getCrowDirectory(args.pathToThisExecutable);
@@ -128,7 +109,17 @@ immutable(ExitCode) go(ref Alloc alloc, ref immutable CommandLineArgs args) {
 	immutable string cwd = getCwd(alloc);
 	immutable Command command = parseCommand(alloc, allPaths, cwd, args.args);
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
-	StdoutDebug dbg;
+	scope Debug dbg = Debug(
+		(immutable char c) {
+			debug {
+				printf("%c", c);
+			}
+		},
+		(scope immutable string a) {
+			debug {
+				printf("%.*s", cast(immutable uint) size(a), begin(a));
+			}
+		});
 
 	return matchCommand!(immutable ExitCode)(
 		command,

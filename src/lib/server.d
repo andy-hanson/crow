@@ -19,6 +19,7 @@ import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
 import util.collection.str : copyToNulTerminatedStr, CStr, cStrOfNulTerminatedStr, NulTerminatedStr;
 import util.comparison : Comparison;
+import util.dbg : Debug;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, comparePathAndStorageKind, parsePath, Path, PathAndStorageKind, StorageKind;
@@ -43,7 +44,7 @@ struct Server {
 	}
 }
 
-void addOrChangeFile(Debug)(
+pure void addOrChangeFile(
 	ref Debug,
 	ref Server server,
 	immutable StorageKind storageKind,
@@ -109,8 +110,8 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 		immutable StrParseDiagnostic(it.range, strOfParseDiag(alloc, server.allPaths, showDiagOptions, it.diag)));
 }
 
-immutable(string) getHover(Debug)(
-	ref Debug dbg,
+immutable(string) getHover(
+	scope ref Debug dbg,
 	ref Alloc alloc,
 	ref Server server,
 	immutable StorageKind storageKind,
@@ -155,8 +156,8 @@ struct RunResult {
 	immutable string stderr;
 }
 
-immutable(RunResult) run(Debug)(
-	ref Debug dbg,
+immutable(RunResult) run(
+	scope ref Debug dbg,
 	ref Alloc alloc,
 	ref Server server,
 	immutable string mainPathStr,

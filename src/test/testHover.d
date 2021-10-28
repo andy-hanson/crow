@@ -10,7 +10,7 @@ import test.testUtil : Test;
 import util.collection.arr : lastPtr, size;
 import util.collection.mutDict : addToMutDict;
 import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr, strEq, strOfNulTerminatedStr;
-import util.dbg : log, logNat, logNoNewline;
+import util.dbg : Debug, log, logNat, logNoNewline;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
 import util.opt : force, has, Opt;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
@@ -18,7 +18,7 @@ import util.ptr : Ptr, ptrTrustMe_const;
 import util.sourceRange : Pos;
 import util.util : verify, verifyFail;
 
-@trusted void testHover(Debug)(ref Test!Debug test) {
+@trusted void testHover(ref Test test) {
 	immutable Path path = rootPath(test.allPaths, "main");
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(path, StorageKind.local);
 	MutFiles files;
@@ -66,7 +66,7 @@ import util.util : verify, verifyFail;
 
 private:
 
-void verifyStrEq(Debug)(ref Debug dbg, immutable Pos pos, immutable string actual, immutable string expected) {
+void verifyStrEq(scope ref Debug dbg, immutable Pos pos, immutable string actual, immutable string expected) {
 	if (!strEq(actual, expected)) {
 		logNoNewline(dbg, "at position ");
 		logNat(dbg, pos);

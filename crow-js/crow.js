@@ -204,7 +204,7 @@ class Compiler {
 					contentBuf.begin,
 					contentBuf.size)
 			} catch (e) {
-				const debug = readString(this._view, debugBuf.begin, debugBuf.size);
+				const debug = readString(this._view, debugBuf.begin, debugBuf.size)
 				console.log("Error in addOrChangeFile. Debug is: " + debug)
 				throw e
 			}

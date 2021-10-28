@@ -9,6 +9,7 @@ import util.collection.mutArr : last, MutArr, mutArrRange, push;
 import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
 import util.collection.str : CStr, strEq, strOfCStr, strToCStr;
 import util.comparison : Comparison;
+import util.dbg : Debug;
 import util.opt : has, Opt, force, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.util : unreachable, verify;
@@ -317,7 +318,7 @@ immutable(size_t) writeSymAndGetSize(ref Writer writer, immutable Sym a) {
 	return size;
 }
 
-void logSym(Debug)(ref Debug dbg, immutable Sym a) {
+void logSym(scope ref Debug dbg, immutable Sym a) {
 	eachCharInSym(a, (immutable char c) {
 		dbg.writeChar(c);
 	});

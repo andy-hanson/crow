@@ -58,6 +58,7 @@ import util.collection.globalAllocatedStack :
 	stackSize,
 	toArr;
 import util.collection.str : CStr, freeCStr, strToCStr;
+import util.dbg : Debug;
 import util.memory : allocate, memcpy, memmove, memset, overwriteMemory;
 import util.opt : has;
 import util.path : AbsolutePath, AllPaths, pathToCStr;
@@ -78,8 +79,8 @@ import util.types :
 import util.util : divRoundUp, drop, min, todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, writeStatic;
 
-@trusted immutable(int) runBytecode(Debug, Extern)(
-	ref Debug dbg,
+@trusted immutable(int) runBytecode(Extern)(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref const AllPaths allPaths,
 	ref Extern extern_,
@@ -297,8 +298,8 @@ private immutable(ByteCodeSource) nextSource(Extern)(ref const Interpreter!Exter
 	return byteCodeSourceAtByteCodePtr(a, getReaderPtr(a.reader));
 }
 
-immutable(StepResult) step(Debug, Extern)(
-	ref Debug dbg,
+immutable(StepResult) step(Extern)(
+	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref const AllPaths allPaths,
 	ref Interpreter!Extern a,
@@ -640,8 +641,8 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 	return resSize;
 }
 
-void applyExternDynCall(Debug, Extern)(
-	ref Debug dbg,
+void applyExternDynCall(Extern)(
+	scope ref Debug dbg,
 	ref Interpreter!Extern a,
 	ref immutable Operation.ExternDynCall op,
 ) {

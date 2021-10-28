@@ -11,7 +11,7 @@ import util.collection.str : strEq, strOfCStr;
 import util.path : StorageKind;
 import util.util : verify;
 
-@trusted void testServer(Debug)(ref Test!Debug test) {
+@trusted void testServer(ref Test test) {
 	ubyte[] bytes = fillArrUninitialized!ubyte(test.alloc, 256);
 	Server server = Server(RangeAlloc(begin(bytes), size(bytes)));
 	immutable string path = "main";
