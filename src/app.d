@@ -10,7 +10,7 @@ import core.sys.posix.sys.wait : waitpid;
 import core.sys.posix.dirent : DIR, dirent, opendir, readdir;
 import core.sys.posix.sys.stat : mkdir, S_IRWXU;
 import core.sys.posix.sys.types : off_t;
-import core.sys.posix.time : clock_gettime, timespec;
+import core.sys.posix.time : clock_gettime, CLOCK_MONOTONIC, timespec;
 import core.sys.posix.unistd : close, getcwd, lseek, read, readlink, unlink, posixWrite = write;
 import std.process : execvpe;
 
@@ -74,6 +74,7 @@ import util.path :
 	removeFirstPathComponentIf,
 	rootPath,
 	StorageKind;
+import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : Ptr, PtrRange, ptrTrustMe_mut;
 import util.sym : AllSymbols, Sym, symAsTempBuffer;
 import util.types :
@@ -95,12 +96,43 @@ import util.writer : Writer;
 	verify(mem != null);
 	RangeAlloc alloc = RangeAlloc(mem, memorySizeBytes);
 	immutable CommandLineArgs args = parseCommandLineArgs(alloc, argc, argv);
-	return go(alloc, args).value;
+	immutable immutable(ulong) function() @safe @nogc pure nothrow getTimeNanosPure =
+		cast(immutable(ulong) function() @safe @nogc pure nothrow) &getTimeNanos;
+	scope Perf perf = Perf(() => getTimeNanosPure());
+	immutable int res = go(alloc, perf, args).value;
+	if (perfEnabled)
+		logPerf(perf);
+	return res;
 }
 
 private:
 
-immutable(ExitCode) go(ref Alloc alloc, ref immutable CommandLineArgs args) {
+void logPerf(scope ref Perf perf) {
+	eachMeasure(perf, (immutable string name, immutable PerfMeasureResult m) @trusted {
+		printf(
+			"%.*s * %d took %lums and %luMB\n",
+			cast(int) name.length, name.ptr,
+			m.count,
+			divRound(m.nanoseconds, 1_000_000),
+			divRound(m.bytesAllocated, 1024 * 1024));
+	});
+}
+
+immutable(ulong) divRound(immutable ulong a, immutable ulong b) {
+	immutable ulong div = a / b;
+	immutable ulong rem = a % b;
+	return div + (rem >= b / 2 ? 1 : 0);
+}
+static assert(divRound(15, 10) == 2);
+static assert(divRound(14, 10) == 1);
+
+@trusted immutable(ulong) getTimeNanos() {
+	timespec time;
+	clock_gettime(CLOCK_MONOTONIC, &time);
+	return time.tv_sec * 1_000_000_000 + time.tv_nsec;
+}
+
+immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLineArgs args) {
 	AllPaths allPaths = AllPaths(ptrTrustMe_mut(alloc));
 	immutable string crowDir = getCrowDirectory(args.pathToThisExecutable);
 	immutable string includeDir = getIncludeDirectory(alloc, crowDir);
@@ -124,9 +156,9 @@ immutable(ExitCode) go(ref Alloc alloc, ref immutable CommandLineArgs args) {
 	return matchCommand!(immutable ExitCode)(
 		command,
 		(ref immutable Command.Build it) =>
-			runBuild(alloc, allPaths, cwd, includeDir, tempDir, it.programDirAndMain, it.options),
+			runBuild(alloc, perf, allPaths, cwd, includeDir, tempDir, it.programDirAndMain, it.options),
 		(ref immutable Command.Document it) =>
-			runDocument(alloc, allPaths, cwd, includeDir, it.programDirAndMain, it.out_),
+			runDocument(alloc, perf, allPaths, cwd, includeDir, it.programDirAndMain, it.out_),
 		(ref immutable Command.Help it) =>
 			help(it),
 		(ref immutable Command.Print it) {
@@ -138,6 +170,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref immutable CommandLineArgs args) {
 				it.programDirAndMain.programDir);
 			immutable DiagsAndResultStrs printed = print(
 				alloc,
+				perf,
 				allPaths,
 				storage,
 				showDiagOptions,
@@ -154,7 +187,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref immutable CommandLineArgs args) {
 				(ref immutable RunOptions.BuildAndRun it) {
 					immutable RunBuildResult built =
 						runBuildInner(
-							alloc, allPaths, cwd, includeDir, tempDir,
+							alloc, perf, allPaths, cwd, includeDir, tempDir,
 							run.programDirAndMain, it.build, ExeKind.ensureExe);
 					if (built.err != ExitCode.ok)
 						return built.err;
@@ -173,8 +206,9 @@ immutable(ExitCode) go(ref Alloc alloc, ref immutable CommandLineArgs args) {
 					RealExtern extern_ = RealExtern(ptrTrustMe_mut(alloc));
 					AllSymbols allSymbols = AllSymbols(ptrTrustMe_mut(alloc));
 					return buildAndInterpret(
-						dbg,
 						alloc,
+						dbg,
+						perf,
 						allPaths,
 						allSymbols,
 						storage,
@@ -242,6 +276,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref immutable CommandLineArgs args) {
 
 immutable(ExitCode) runDocument(
 	ref Alloc alloc,
+	ref Perf perf,
 	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string includeDir,
@@ -254,8 +289,9 @@ immutable(ExitCode) runDocument(
 		cwd,
 		includeDir,
 		programDirAndMain.programDir);
-	immutable DocumentResult result =
-		compileAndDocument(alloc, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
+	immutable DocumentResult result = compileAndDocument(
+		alloc, perf, allPaths, storage, showDiagOptions,
+		getMain(allPaths, includeDir, programDirAndMain));
 	return empty(result.diagnostics)
 		? has(out_)
 			? writeFile(alloc, pathToNulTerminatedStr(alloc, allPaths, force(out_)), result.document)
@@ -270,6 +306,7 @@ struct RunBuildResult {
 
 immutable(ExitCode) runBuild(
 	ref Alloc alloc,
+	ref Perf perf,
 	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string includeDir,
@@ -279,7 +316,7 @@ immutable(ExitCode) runBuild(
 ) {
 	if (hasAnyOut(options.out_))
 		return runBuildInner(
-			alloc, allPaths, cwd, includeDir, tempDir,
+			alloc, perf, allPaths, cwd, includeDir, tempDir,
 			programDirAndMain, options, ExeKind.allowNoExe).err;
 	else {
 		RealReadOnlyStorage storage = RealReadOnlyStorage(
@@ -288,13 +325,14 @@ immutable(ExitCode) runBuild(
 			cwd,
 			includeDir,
 			programDirAndMain.programDir);
-		return justTypeCheck(alloc, allPaths, storage, getMain(allPaths, includeDir, programDirAndMain));
+		return justTypeCheck(alloc, perf, allPaths, storage, getMain(allPaths, includeDir, programDirAndMain));
 	}
 }
 
 enum ExeKind { ensureExe, allowNoExe }
 immutable(RunBuildResult) runBuildInner(
 	ref Alloc alloc,
+	ref Perf perf,
 	ref AllPaths allPaths,
 	immutable string cwd,
 	immutable string includeDir,
@@ -314,6 +352,7 @@ immutable(RunBuildResult) runBuildInner(
 		: none!AbsolutePath;
 	immutable ExitCode err = buildToCAndCompile(
 		alloc,
+		perf,
 		allPaths,
 		showDiagOptions,
 		cwd,
@@ -339,6 +378,7 @@ immutable(string) getCrowDirectory(immutable string pathToThisExecutable) {
 
 immutable(ExitCode) buildToCAndCompile(
 	ref Alloc alloc,
+	ref Perf perf,
 	ref AllPaths allPaths,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable string cwd,
@@ -355,11 +395,11 @@ immutable(ExitCode) buildToCAndCompile(
 		includeDir,
 		programDirAndMain.programDir);
 	immutable BuildToCResult result =
-		buildToC(alloc, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
+		buildToC(alloc, perf, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
 	if (empty(result.diagnostics)) {
 		immutable ExitCode res = writeFile(alloc, pathToNulTerminatedStr(alloc, allPaths, cPath), result.cSource);
 		return res == ExitCode.ok && has(exePath)
-			? compileC(alloc, allPaths, cPath, force(exePath), result.allExternLibraryNames, cCompileOptions)
+			? compileC(alloc, perf, allPaths, cPath, force(exePath), result.allExternLibraryNames, cCompileOptions)
 			: res;
 	} else
 		return printErr(result.diagnostics);
@@ -416,6 +456,7 @@ immutable(string[]) cCompilerArgs(ref immutable CCompileOptions options) {
 
 @trusted immutable(ExitCode) compileC(
 	ref Alloc alloc,
+	ref Perf perf,
 	ref AllPaths allPaths,
 	ref immutable AbsolutePath cPath,
 	ref immutable AbsolutePath exePath,
@@ -430,7 +471,8 @@ immutable(string[]) cCompilerArgs(ref immutable CCompileOptions options) {
 	// 	}
 	// 	printf("\n");
 	// }
-	immutable int err = spawnAndWait(alloc, allPaths, "/usr/bin/cc", args);
+	immutable int err = withMeasure(alloc, perf, PerfMeasure.cCompile, () =>
+		spawnAndWait(alloc, allPaths, "/usr/bin/cc", args));
 	return immutable ExitCode(err);
 }
 

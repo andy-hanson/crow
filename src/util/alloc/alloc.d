@@ -7,6 +7,10 @@ alias TempAlloc = Alloc;
 
 @nogc pure nothrow: // not @safe
 
+size_t curBytes(ref Alloc alloc) {
+	return alloc.cur - alloc.end;
+}
+
 ubyte* allocateBytes(ref Alloc alloc, immutable size_t size) {
 	static assert(Alloc.stringof == "RangeAlloc");
 	return alloc.allocateBytesImpl(size);

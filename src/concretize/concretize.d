@@ -48,12 +48,25 @@ import util.collection.mutArr : moveToArr, MutArr;
 import util.collection.mutDict : mapToDict, mutDictIsEmpty;
 import util.collection.mutSet : moveToArr;
 import util.opt : force, has, Opt;
+import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sym : AllSymbols, getSymFromAlphaIdentifier, shortSymAlphaLiteral, Sym;
 import util.util : todo, verify;
 import util.writer : finishWriter, Writer;
 
 immutable(ConcreteProgram) concretize(
+	ref Alloc alloc,
+	ref Perf perf,
+	ref AllSymbols allSymbols,
+	ref immutable Program program,
+) {
+	return withMeasure(alloc, perf, PerfMeasure.concretize, () =>
+		concretizeInner(alloc, allSymbols, program));
+}
+
+private:
+
+immutable(ConcreteProgram) concretizeInner(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref immutable Program program,
@@ -105,8 +118,6 @@ immutable(ConcreteProgram) concretize(
 		ctxStruct,
 		moveToArr(alloc, ctx.allExternLibraryNames));
 }
-
-private:
 
 immutable(ConcreteFunToName) getFunToName(
 	ref Alloc alloc,

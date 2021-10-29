@@ -37,6 +37,7 @@ import util.collection.arr : at, emptyArr, emptyArr_mut, setAt, size, sizeEq;
 import util.collection.arrUtil : map, mapOrNone, mapZipOrNone;
 import util.collection.mutArr : MutArr;
 import util.opt : has, force, none, noneMut, Opt, OptPtr, some, toOpt;
+import util.perf : Perf;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : FileAndRange, RangeWithinFile;
 import util.util : verify;
@@ -70,6 +71,9 @@ struct ExprCtx {
 	// and LambdaInfo should not be copied.
 	MutArr!(Ptr!LambdaInfo) lambdas;
 
+	ref Perf perf() return scope {
+		return checkCtx().perf();
+	}
 	ref CheckCtx checkCtx() return scope {
 		return checkCtxPtr.deref();
 	}

@@ -23,6 +23,7 @@ import util.dbg : Debug;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, comparePathAndStorageKind, parsePath, Path, PathAndStorageKind, StorageKind;
+import util.perf : Perf;
 import util.ptr : Ptr, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
 import util.sym : AllSymbols;
@@ -82,13 +83,14 @@ pure immutable(CStr) getFile(
 
 immutable(Token[]) getTokens(
 	ref Alloc alloc,
+	ref Perf perf,
 	ref Server server,
 	immutable StorageKind storageKind,
 	immutable string path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable NulTerminatedStr text = mustGetAt_mut(server.files, key);
-	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, server.allPaths, server.allSymbols, text);
+	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, perf, server.allPaths, server.allSymbols, text);
 	return tokensOfAst(alloc, ast.ast);
 }
 
@@ -99,19 +101,21 @@ struct StrParseDiagnostic {
 
 immutable(StrParseDiagnostic[]) getParseDiagnostics(
 	ref Alloc alloc,
+	ref Perf perf,
 	ref Server server,
 	immutable StorageKind storageKind,
 	immutable string path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable NulTerminatedStr text = mustGetAt_mut(server.files, key);
-	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, server.allPaths, server.allSymbols, text);
+	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, perf, server.allPaths, server.allSymbols, text);
 	return map!StrParseDiagnostic(alloc, ast.diagnostics, (ref immutable ParseDiagnostic it) =>
 		immutable StrParseDiagnostic(it.range, strOfParseDiag(alloc, server.allPaths, showDiagOptions, it.diag)));
 }
 
 immutable(string) getHover(
 	scope ref Debug dbg,
+	ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	immutable StorageKind storageKind,
@@ -120,7 +124,7 @@ immutable(string) getHover(
 ) {
 	immutable PathAndStorageKind pk = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
-	immutable Program program = frontendCompile(alloc, alloc, server.allPaths, server.allSymbols, storage, pk);
+	immutable Program program = frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, pk);
 	return getHoverFromProgram(alloc, server, pk, program, pos);
 }
 
@@ -158,6 +162,7 @@ struct RunResult {
 
 immutable(RunResult) run(
 	scope ref Debug dbg,
+	ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	immutable string mainPathStr,
@@ -169,7 +174,7 @@ immutable(RunResult) run(
 	FakeExtern extern_ = FakeExtern(ptrTrustMe_mut(alloc));
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
 	immutable ExitCode err = buildAndInterpret(
-		dbg, alloc, server.allPaths, server.allSymbols, storage, extern_, showDiagOptions, main, programArgs);
+		alloc, dbg, perf, server.allPaths, server.allSymbols, storage, extern_, showDiagOptions, main, programArgs);
 	return immutable RunResult(err, extern_.moveStdout(), extern_.moveStderr());
 }
 

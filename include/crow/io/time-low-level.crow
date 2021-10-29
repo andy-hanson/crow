@@ -1,6 +1,6 @@
 no-std
 import
-	time: clock_gettime, CLOCK_MONOTONIC, new, timespec, tv-nsec, tv-sec
+	time: clock_gettime, CLOCK_MONOTONIC, new, timespec, tv_nsec, tv_sec
 	../cell: *, cell, new
 	../ptr: by-val, ref-of-val
 	../private/bootstrap: nat64, todo
@@ -18,7 +18,7 @@ get-monotime-nsec timestamp() noctx trusted
 	err = CLOCK_MONOTONIC clock_gettime time-cell.ref-of-val
 	if err == 0
 		time = *time-cell.ref-of-val
-		time.tv-sec wrap-mul 1000000000 wrap-add time.tv-nsec unsafe-to-nat64
+		time.tv_sec wrap-mul 1000000000 wrap-add time.tv_nsec unsafe-to-nat64
 	else
 		todo
 

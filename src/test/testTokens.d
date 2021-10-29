@@ -10,6 +10,7 @@ import util.collection.arr : emptyArr;
 import util.collection.arrUtil : arrEqual, arrLiteral;
 import util.collection.str : copyToNulTerminatedStr;
 import util.dbg : log;
+import util.perf : Perf, withNullPerf;
 import util.repr : writeRepr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols;
@@ -44,11 +45,14 @@ private:
 
 void testOne(ref Test test, immutable string source, immutable Token[] expectedTokens) {
 	AllSymbols allSymbols = AllSymbols(test.allocPtr);
-	immutable FileAstAndParseDiagnostics ast = parseFile(
-		test.alloc,
-		test.allPaths,
-		allSymbols,
-		copyToNulTerminatedStr(test.alloc, source));
+	immutable FileAstAndParseDiagnostics ast = withNullPerf!(immutable FileAstAndParseDiagnostics)(
+		// TODO: why does this have to be @trusted?
+		(scope ref Perf perf) @trusted => parseFile(
+			test.alloc,
+			perf,
+			test.allPaths,
+			allSymbols,
+			copyToNulTerminatedStr(test.alloc, source)));
 	immutable Token[] tokens = tokensOfAst(test.alloc, ast.ast);
 	if (!tokensEq(tokens, expectedTokens)) {
 		Writer writer = Writer(test.allocPtr);

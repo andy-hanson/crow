@@ -179,6 +179,7 @@ import util.collection.mutDict : insertOrUpdate, moveToDict, MutDict;
 import util.collection.str : copySafeCStr, copyStr, emptySafeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, OptPtr, some, someMut, toOpt;
+import util.perf : Perf;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, fileAndPosFromFileAndRange, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym :
@@ -209,6 +210,7 @@ struct BootstrapCheck {
 
 immutable(BootstrapCheck) checkBootstrap(
 	ref Alloc alloc,
+	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
@@ -216,6 +218,7 @@ immutable(BootstrapCheck) checkBootstrap(
 ) {
 	return checkWorker(
 		alloc,
+		perf,
 		allSymbols,
 		diagsBuilder,
 		programState,
@@ -231,6 +234,7 @@ immutable(BootstrapCheck) checkBootstrap(
 
 immutable(Module) check(
 	ref Alloc alloc,
+	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
@@ -242,6 +246,7 @@ immutable(Module) check(
 ) {
 	return checkWorker(
 		alloc,
+		perf,
 		allSymbols,
 		diagsBuilder,
 		programState,
@@ -2077,6 +2082,7 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(
 
 immutable(BootstrapCheck) checkWorker(
 	ref Alloc alloc,
+	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
@@ -2094,6 +2100,7 @@ immutable(BootstrapCheck) checkWorker(
 	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, reExports);
 	immutable FileAst ast = pathAndAst.ast;
 	CheckCtx ctx = CheckCtx(
+		ptrTrustMe_mut(perf),
 		ptrTrustMe_mut(programState),
 		pathAndAst.fileIndex,
 		imports,

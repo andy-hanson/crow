@@ -42,6 +42,7 @@ import util.collection.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
 import util.collection.mutArr : MutArr, push;
 import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, noneMut, Opt, some, someConst, someMut;
+import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castImmutable, Ptr, ptrEquals;
 import util.util : verify;
 
@@ -139,10 +140,11 @@ private immutable(Type) instantiateTypeNoDelay(
 
 immutable(Ptr!FunInst) instantiateFun(
 	ref Alloc alloc,
+	ref Perf perf,
 	ref ProgramState programState,
 	immutable FunDeclAndArgs declAndArgs,
 ) {
-	return getOrAdd(
+	return withMeasure(alloc, perf, PerfMeasure.instantiateFun, () => getOrAdd(
 		alloc,
 		programState.funInsts,
 		declAndArgs,
@@ -152,7 +154,7 @@ immutable(Ptr!FunInst) instantiateFun(
 				alloc,
 				programState,
 				declAndArgs.decl.deref().sig,
-				immutable TypeParamsAndArgs(declAndArgs.decl.deref().typeParams, declAndArgs.typeArgs)))));
+				immutable TypeParamsAndArgs(declAndArgs.decl.deref().typeParams, declAndArgs.typeArgs))))));
 }
 
 immutable(StructBody) instantiateStructBody(

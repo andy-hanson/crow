@@ -124,13 +124,19 @@ import util.collection.mutDict : addToMutDict, getAt_mut, getOrAdd, mustDelete, 
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : asImmutable, force, has, mapOption, none, Opt, optOr, some;
+import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Nat16;
 import util.util : unreachable, verify;
 
-immutable(LowProgram) lower(ref Alloc alloc, ref immutable ConcreteProgram a) {
+immutable(LowProgram) lower(ref Alloc alloc, ref Perf perf, ref immutable ConcreteProgram a) {
+	return withMeasure(alloc, perf, PerfMeasure.lower, () =>
+		lowerInner(alloc, a));
+}
+
+private immutable(LowProgram) lowerInner(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a);
 	immutable AllLowFuns allFuns = getAllLowFuns(alloc, allTypes.allTypes, allTypes.getLowTypeCtx, a);
 	immutable AllConstantsLow allConstants = convertAllConstants(alloc, allTypes.getLowTypeCtx, a.allConstants);

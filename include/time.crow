@@ -8,8 +8,8 @@ import
 
 timespec record
 	by-val
-	tv-sec s-long
-	tv-nsec s-long
+	tv_sec s-long
+	tv_nsec s-long
 
 tm extern-ptr
 

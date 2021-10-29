@@ -34,6 +34,7 @@ import util.path :
 	resolvePath,
 	rootPath,
 	StorageKind;
+import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange, FileIndex, FilePaths, RangeWithinFile;
 import util.sym : AllSymbols, Sym;
@@ -42,6 +43,7 @@ import util.util : unreachable, verify;
 
 immutable(Program) frontendCompile(Storage)(
 	ref Alloc modelAlloc,
+	ref Perf perf,
 	ref Alloc astsAlloc,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
@@ -49,13 +51,16 @@ immutable(Program) frontendCompile(Storage)(
 	immutable PathAndStorageKind main,
 ) {
 	ArrBuilder!Diagnostic diagsBuilder;
-	immutable ParsedEverything parsed =
-		parseEverything(modelAlloc, allPaths, allSymbols, diagsBuilder, storage, main, astsAlloc);
+	immutable ParsedEverything parsed = withMeasure(astsAlloc, perf, PerfMeasure.parseEverything, () =>
+		parseEverything(modelAlloc, perf, allPaths, allSymbols, diagsBuilder, storage, main, astsAlloc));
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		parsed.filePaths,
 		storage.absolutePathsGetter(),
 		parsed.lineAndColumnGetters);
-	return checkEverything(modelAlloc, allSymbols, diagsBuilder, parsed.asts, filesInfo, parsed.commonModuleIndices);
+	return withMeasure(modelAlloc, perf, PerfMeasure.checkEverything, () =>
+		checkEverything(
+			modelAlloc, perf, allSymbols, diagsBuilder,
+			parsed.asts, filesInfo, parsed.commonModuleIndices));
 }
 
 private struct FileAstAndArrDiagnosticAndLineAndColumnGetter {
@@ -72,6 +77,7 @@ struct FileAstAndDiagnostics {
 
 immutable(FileAstAndDiagnostics) parseSingleAst(ReadOnlyStorage)(
 	ref Alloc alloc,
+	ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
 	ref ReadOnlyStorage storage,
@@ -85,6 +91,7 @@ immutable(FileAstAndDiagnostics) parseSingleAst(ReadOnlyStorage)(
 			immutable FileAstAndArrDiagnosticAndLineAndColumnGetter res = parseSingle(
 				alloc,
 				alloc,
+				perf,
 				allPaths,
 				allSymbols,
 				none!PathAndRange,
@@ -161,6 +168,7 @@ struct CommonModuleIndices {
 // So, don't have to worry about circularity when checking.
 immutable(ParsedEverything) parseEverything(ReadOnlyStorage)(
 	ref Alloc modelAlloc,
+	ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!Diagnostic diagsBuilder,
@@ -189,6 +197,7 @@ immutable(ParsedEverything) parseEverything(ReadOnlyStorage)(
 			: parseRecur(
 				modelAlloc,
 				astAlloc,
+				perf,
 				allPaths,
 				allSymbols,
 				storage,
@@ -225,6 +234,7 @@ immutable(ParsedEverything) parseEverything(ReadOnlyStorage)(
 immutable(FileIndex) parseRecur(ReadOnlyStorage)(
 	ref Alloc modelAlloc,
 	ref Alloc astAlloc,
+	ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
 	ref ReadOnlyStorage storage,
@@ -264,7 +274,7 @@ immutable(FileIndex) parseRecur(ReadOnlyStorage)(
 		crowExtension,
 		(ref immutable Opt!NulTerminatedStr opFileContent) {
 			immutable FileAstAndArrDiagnosticAndLineAndColumnGetter parseResult =
-				parseSingle(modelAlloc, astAlloc, allPaths, allSymbols, importedFrom, opFileContent);
+				parseSingle(modelAlloc, astAlloc, perf, allPaths, allSymbols, importedFrom, opFileContent);
 			if (!empty(parseResult.diagnostics))
 				return addFileIndex(
 					AstAndResolvedImports.empty,
@@ -306,6 +316,7 @@ immutable(FileIndex) parseRecur(ReadOnlyStorage)(
 										return parseRecur(
 											modelAlloc,
 											astAlloc,
+											perf,
 											allPaths,
 											allSymbols,
 											storage,
@@ -382,6 +393,7 @@ alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter; // TODO: Ord
 immutable(FileAstAndArrDiagnosticAndLineAndColumnGetter) parseSingle(
 	ref Alloc modelAlloc,
 	ref Alloc astAlloc,
+	ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
 	immutable Opt!PathAndRange importedFrom,
@@ -394,7 +406,7 @@ immutable(FileAstAndArrDiagnosticAndLineAndColumnGetter) parseSingle(
 	// File content must go in astAlloc because we refer to strings without copying
 	if (has(opFileContent)) {
 		immutable NulTerminatedStr text = force(opFileContent);
-		immutable FileAstAndParseDiagnostics result = parseFile(astAlloc, allPaths, allSymbols, text);
+		immutable FileAstAndParseDiagnostics result = parseFile(astAlloc, perf, allPaths, allSymbols, text);
 		return immutable FileAstAndArrDiagnosticAndLineAndColumnGetter(result.ast, result.diagnostics, lcg);
 	} else
 		return immutable FileAstAndArrDiagnosticAndLineAndColumnGetter(
@@ -529,6 +541,7 @@ struct ModulesAndCommonTypes {
 
 immutable(ModulesAndCommonTypes) getModules(
 	ref Alloc modelAlloc,
+	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
@@ -557,6 +570,7 @@ immutable(ModulesAndCommonTypes) getModules(
 					mapImportsOrExports(modelAlloc, ast.resolvedExports, compiled);
 				return check(
 					modelAlloc,
+					perf,
 					allSymbols,
 					diagsBuilder,
 					programState,
@@ -569,7 +583,7 @@ immutable(ModulesAndCommonTypes) getModules(
 				// The first module to check is always 'bootstrap.crow'
 				verify(ast.resolvedImports.empty);
 				immutable BootstrapCheck res =
-					checkBootstrap(modelAlloc, allSymbols, diagsBuilder, programState, pathAndAst);
+					checkBootstrap(modelAlloc, perf, allSymbols, diagsBuilder, programState, pathAndAst);
 				lateSet(commonFuns, res.commonFuns);
 				lateSet(commonTypes, res.commonTypes);
 				return res.module_;
@@ -580,6 +594,7 @@ immutable(ModulesAndCommonTypes) getModules(
 
 immutable(Program) checkEverything(
 	ref Alloc modelAlloc,
+	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref immutable AstAndResolvedImports[] allAsts,
@@ -588,7 +603,7 @@ immutable(Program) checkEverything(
 ) {
 	ProgramState programState = ProgramState(allSymbols);
 	immutable ModulesAndCommonTypes modulesAndCommonTypes =
-		getModules(modelAlloc, allSymbols, diagsBuilder, programState, moduleIndices.std, allAsts);
+		getModules(modelAlloc, perf, allSymbols, diagsBuilder, programState, moduleIndices.std, allAsts);
 	immutable Module[] modules = modulesAndCommonTypes.modules;
 	immutable Ptr!Module bootstrapModule = ptrAt(modules, moduleIndices.bootstrap.index);
 	return immutable Program(

@@ -72,6 +72,7 @@ import util.collection.str : CStr, NulTerminatedStr, SafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some, somePtr;
 import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
+import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, isSymOperator, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
 import util.types : Nat8;
@@ -84,13 +85,16 @@ struct FileAstAndParseDiagnostics {
 
 immutable(FileAstAndParseDiagnostics) parseFile(
 	ref Alloc alloc,
+	ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
 	immutable NulTerminatedStr source,
 ) {
-	Lexer lexer = createLexer(alloc, allSymbols, source);
-	immutable FileAst ast = parseFileInner(alloc, allSymbols, allPaths, lexer);
-	return immutable FileAstAndParseDiagnostics(ast, finishDiags(alloc, lexer));
+	return withMeasure(alloc, perf, PerfMeasure.parseFile, () {
+		Lexer lexer = createLexer(alloc, allSymbols, source);
+		immutable FileAst ast = parseFileInner(alloc, allSymbols, allPaths, lexer);
+		return immutable FileAstAndParseDiagnostics(ast, finishDiags(alloc, lexer));
+	});
 }
 
 private:

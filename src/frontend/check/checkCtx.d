@@ -20,6 +20,7 @@ import util.collection.arrBuilder : add, ArrBuilder;
 import util.collection.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
 import util.collection.dict : getPtrAt;
 import util.opt : force, has, none, Opt, some;
+import util.perf : Perf;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, RangeWithinFile;
 import util.sym : indexOfSym, Sym;
@@ -27,6 +28,7 @@ import util.sym : indexOfSym, Sym;
 struct CheckCtx {
 	@safe @nogc pure nothrow:
 
+	Ptr!Perf perfPtr;
 	Ptr!ProgramState programStatePtr;
 	immutable FileIndex fileIndex;
 	immutable ModuleAndNames[] imports;
@@ -38,6 +40,10 @@ struct CheckCtx {
 	bool[] structsUsed;
 	bool[] specsUsed;
 	Ptr!(ArrBuilder!Diagnostic) diagsBuilderPtr;
+
+	ref Perf perf() return scope {
+		return perfPtr.deref();
+	}
 
 	ref ProgramState programState() return scope {
 		return programStatePtr.deref();

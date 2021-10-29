@@ -88,26 +88,25 @@ import util.collection.arrUtil :
 	exists_const,
 	fillArr_mut,
 	fillArrOrFail,
-	filterUnordered,
 	map,
 	map_const,
 	mapOrNone_const,
 	sum,
 	tail;
 import util.collection.multiDict : multiDictGetAt;
-import util.collection.mutArr :
-	moveToArr,
-	moveToArr_const,
-	MutArr,
-	mutArrIsEmpty,
-	mutArrSize,
-	newUninitializedMutArr,
-	peek,
+import util.collection.mutArr : moveToArr, MutArr, newUninitializedMutArr, peek, setAt;
+import util.collection.mutMaxArr :
+	filterUnordered,
+	isEmpty,
+	MutMaxArr,
+	mutMaxArr,
+	only_const,
 	push,
-	setAt,
-	tempAsArr,
+	size,
+	tempAsArr_const,
 	tempAsArr_mut;
 import util.opt : force, has, none, Opt, some;
+import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure, withMeasure;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, symEq;
@@ -120,11 +119,13 @@ immutable(CheckedExpr) checkCall(
 	ref immutable CallAst ast,
 	ref Expected expected,
 ) {
+	PerfMeasurer perfMeasurer = startMeasure(alloc, ctx.perf, PerfMeasure.checkCall);
 	immutable Sym funName = ast.funName.name;
 	immutable ExprAst[] argAsts = toArr(ast.args);
 	immutable size_t arity = size(argAsts);
 	immutable Type[] explicitTypeArgs = typeArgsFromAsts(alloc, ctx, toArr(ast.typeArgs));
-	MutArr!Candidate candidates = getInitialCandidates(alloc, ctx, funName, explicitTypeArgs, arity);
+	Candidates candidates = mutMaxArr!(maxCandidates, Candidate);
+	getInitialCandidates(alloc, ctx, candidates, funName, explicitTypeArgs, arity);
 
 	// TODO: may not need to be deeply instantiated to do useful filtering here
 	immutable Opt!Type expectedReturnType = tryGetDeeplyInstantiatedType(alloc, programState(ctx), expected);
@@ -134,13 +135,15 @@ immutable(CheckedExpr) checkCall(
 	ArrBuilder!Type actualArgTypes;
 	bool someArgIsBogus = false;
 	immutable Opt!(Expr[]) args = fillArrOrFail!Expr(alloc, arity, (immutable size_t argIdx) {
-		if (mutArrIsEmpty(candidates))
+		if (isEmpty(candidates))
 			// Already certainly failed.
 			return none!Expr;
 
 		CommonOverloadExpected common =
 			getCommonOverloadParamExpected(alloc, programState(ctx), tempAsArr_mut(candidates), argIdx);
+		pauseMeasure(alloc, ctx.perf, perfMeasurer);
 		immutable Expr arg = checkExpr(alloc, ctx, at(argAsts, argIdx), common.expected);
+		resumeMeasure(alloc, ctx.perf, perfMeasurer);
 
 		// If it failed to check, don't continue, just stop there.
 		if (typeIsBogus(arg)) {
@@ -159,32 +162,35 @@ immutable(CheckedExpr) checkCall(
 	if (someArgIsBogus)
 		return bogus(expected, range);
 
-	if (mutArrSize(candidates) != 1 &&
-		exists_const!Candidate(tempAsArr(candidates), (ref const Candidate it) => candidateIsPreferred(it))) {
-		filterUnordered!Candidate(candidates, (ref Candidate it) => candidateIsPreferred(it));
+	if (size(candidates) != 1 &&
+		exists_const!Candidate(tempAsArr_const(candidates), (ref const Candidate it) => candidateIsPreferred(it))) {
+		filterUnordered!(maxCandidates, Candidate)(candidates, (ref Candidate it) => candidateIsPreferred(it));
 	}
-
-	const Candidate[] candidatesArr = moveToArr_const(alloc, candidates);
 
 	// Show diags at the function name and not at the whole call ast
 	immutable FileAndRange diagRange = immutable FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName));
 
-	if (!has(args) || size(candidatesArr) != 1) {
-		if (empty(candidatesArr)) {
-			immutable CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(alloc, ctx, funName);
-			addDiag2(alloc, ctx, diagRange, immutable Diag(immutable Diag.CallNoMatch(
-				funName,
-				expectedReturnType,
-				size(explicitTypeArgs),
-				arity,
-				finishArr(alloc, actualArgTypes),
-				allCandidates)));
+	immutable CheckedExpr res = withMeasure(alloc, ctx.perf, PerfMeasure.checkCallLastPart, () {
+		if (!has(args) || size(candidates) != 1) {
+			if (isEmpty(candidates)) {
+				immutable CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(alloc, ctx, funName);
+				addDiag2(alloc, ctx, diagRange, immutable Diag(immutable Diag.CallNoMatch(
+					funName,
+					expectedReturnType,
+					size(explicitTypeArgs),
+					arity,
+					finishArr(alloc, actualArgTypes),
+					allCandidates)));
+			} else
+				addDiag2(alloc, ctx, diagRange, immutable Diag(
+					immutable Diag.CallMultipleMatches(funName, candidatesForDiag(alloc, candidates))));
+			return bogus(expected, range);
 		} else
-			addDiag2(alloc, ctx, diagRange, immutable Diag(
-				immutable Diag.CallMultipleMatches(funName, candidatesForDiag(alloc, candidatesArr))));
-		return bogus(expected, range);
-	} else
-		return checkCallAfterChoosingOverload(alloc, ctx, only_const(candidatesArr), range, force(args), expected);
+			return checkCallAfterChoosingOverload(alloc, ctx, only_const(candidates), range, force(args), expected);
+	});
+
+	endMeasure(alloc, ctx.perf, perfMeasurer);
+	return res;
 }
 
 immutable(CheckedExpr) checkIdentifierCall(
@@ -282,8 +288,11 @@ void eachFunInScope(
 
 private:
 
-immutable(CalledDecl[]) candidatesForDiag(ref Alloc alloc, ref const Candidate[] candidates) {
-	return map_const!CalledDecl(alloc, candidates, (ref const Candidate c) =>
+immutable size_t maxCandidates = 64;
+alias Candidates = MutMaxArr!(maxCandidates, Candidate);
+
+immutable(CalledDecl[]) candidatesForDiag(ref Alloc alloc, ref const Candidates candidates) {
+	return map_const!CalledDecl(alloc, tempAsArr_const(candidates), (ref const Candidate c) =>
 		c.called);
 }
 
@@ -310,14 +319,14 @@ const(InferringTypeArgs) inferringTypeArgs_const(ref const Candidate a) {
 	return const InferringTypeArgs(typeParams(a.called), a.typeArgs);
 }
 
-MutArr!Candidate getInitialCandidates(
+void getInitialCandidates(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
+	ref Candidates candidates,
 	immutable Sym funName,
 	immutable Type[] explicitTypeArgs,
 	immutable size_t actualArity,
 ) {
-	MutArr!Candidate res = MutArr!Candidate();
 	eachFunInScope(ctx, funName, (ref immutable Opt!UsedFun used, immutable CalledDecl called) {
 		immutable size_t nTypeParams = size(typeParams(called));
 		if (arityMatches(arity(called), actualArity) &&
@@ -331,10 +340,9 @@ MutArr!Candidate getInitialCandidates(
 					SingleInferringType(empty(explicitTypeArgs)
 						? none!Type
 						: some!Type(at(explicitTypeArgs, i))));
-			push(alloc, res, Candidate(used, called, inferringTypeArgs));
+			push(candidates, Candidate(used, called, inferringTypeArgs));
 		}
 	});
-	return res;
 }
 
 immutable(CalledDecl[]) getAllCandidatesAsCalledDecls(
@@ -501,11 +509,11 @@ void checkCalledDeclFlags(
 void filterByReturnType(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref MutArr!Candidate candidates,
+	ref Candidates candidates,
 	immutable Type expectedReturnType,
 ) {
 	// Filter by return type. Also does type argument inference on the candidate.
-	filterUnordered!Candidate(candidates, (ref Candidate candidate) {
+	filterUnordered!(maxCandidates, Candidate)(candidates, (ref Candidate candidate) {
 		InferringTypeArgs ta = inferringTypeArgs(candidate);
 		return matchTypesNoDiagnostic(alloc, programState, returnType(candidate.called), expectedReturnType, ta);
 	});
@@ -514,12 +522,12 @@ void filterByReturnType(
 void filterByParamType(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref MutArr!Candidate candidates,
+	ref Candidates candidates,
 	immutable Type actualArgType,
 	immutable size_t argIdx,
 ) {
 	// Remove candidates that can't accept this as a param. Also does type argument inference on the candidate.
-	filterUnordered!Candidate(candidates, (ref Candidate candidate) {
+	filterUnordered!(maxCandidates, Candidate)(candidates, (ref Candidate candidate) {
 		immutable Type expectedArgType = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
 		InferringTypeArgs ita = inferringTypeArgs(candidate);
 		return matchTypesNoDiagnostic(alloc, programState, expectedArgType, actualArgType, ita);
@@ -539,23 +547,23 @@ immutable(Opt!Called) findSpecSigImplementation(
 			n,
 		(ref immutable Arity.Varargs) =>
 			todo!(immutable size_t)("varargs in spec?"));
-	MutArr!Candidate candidates = getInitialCandidates(alloc, ctx, specSig.name, emptyArr!Type, nParams);
+	Candidates candidates = mutMaxArr!(maxCandidates, Candidate)();
+	getInitialCandidates(alloc, ctx, candidates, specSig.name, emptyArr!Type, nParams);
 	filterByReturnType(alloc, programState(ctx), candidates, specSig.returnType);
 	foreach (immutable size_t argIdx; 0 .. nParams)
 		filterByParamType(alloc, programState(ctx), candidates, paramTypeAt(specSig.params, argIdx), argIdx);
 
 	// If any candidates left take specs -- leave as a TODO
-	const Candidate[] candidatesArr = moveToArr_const(alloc, candidates);
-	switch (size(candidatesArr)) {
+	switch (size(candidates)) {
 		case 0:
 			// TODO: use initial candidates in the error message
 			addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.SpecImplNotFound(specSig.name)));
 			return none!Called;
 		case 1:
-			return getCalledFromCandidate(alloc, ctx, range, only_const(candidatesArr), some(outerCalled));
+			return getCalledFromCandidate(alloc, ctx, range, only_const(candidates), some(outerCalled));
 		default:
 			addDiag2(alloc, ctx, range, immutable Diag(
-				immutable Diag.SpecImplFoundMultiple(specSig.name, candidatesForDiag(alloc, candidatesArr))));
+				immutable Diag.SpecImplFoundMultiple(specSig.name, candidatesForDiag(alloc, candidates))));
 			return none!Called;
 	}
 }
@@ -676,7 +684,7 @@ immutable(Opt!Called) getCalledFromCandidate(
 	immutable Opt!(Type[]) candidateTypeArgs = finishCandidateTypeArgs(alloc, ctx, range, candidate);
 	if (has(candidateTypeArgs)) {
 		immutable Type[] typeArgs = force(candidateTypeArgs);
-		return matchCalledDecl(
+		return matchCalledDecl!(immutable Opt!Called)(
 			candidate.called,
 			(immutable Ptr!FunDecl f) {
 				immutable Opt!(Called[]) specImpls = checkSpecImpls(alloc, ctx, range, f, typeArgs, outerCalled);
@@ -684,6 +692,7 @@ immutable(Opt!Called) getCalledFromCandidate(
 					? some(immutable Called(
 						instantiateFun(
 							alloc,
+							ctx.perf,
 							programState(ctx),
 							immutable FunDeclAndArgs(f, typeArgs, force(specImpls)))))
 					: none!Called;

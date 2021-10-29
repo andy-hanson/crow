@@ -418,7 +418,7 @@ program(
 		struct(name: opt, body: union([none, some(type(false, nat64))]))
 		struct(
 			name: timespec
-			body: record([field(tv-sec, const, type(false, int64)), field(tv-nsec, const, type(false, int64))]))
+			body: record([field(tv_sec, const, type(false, int64)), field(tv_nsec, const, type(false, int64))]))
 		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, mutable, type(false, timespec))]))
 		struct(
 			name: choose-task-in-island-result
@@ -5560,8 +5560,8 @@ program(
 										call(
 											wrap-add
 											[
-												call(wrap-mul, [call(tv-sec, [local-ref(time)]), 1000000000])
-												call(tv-nsec, [local-ref(time)])])]))
+												call(wrap-mul, [call(tv_sec, [local-ref(time)]), 1000000000])
+												call(tv_nsec, [local-ref(time)])])]))
 							call(todo, []))))))
 		fun(noctx, new, type(false, cell), none, [param(inner-value, type(false, timespec))], new-record)
 		fun(
@@ -5569,7 +5569,7 @@ program(
 			new
 			type(false, timespec)
 			none
-			[param(tv-sec, type(false, int64)), param(tv-nsec, type(false, int64))]
+			[param(tv_sec, type(false, int64)), param(tv_nsec, type(false, int64))]
 			new-record)
 		fun(
 			noctx
@@ -5601,8 +5601,8 @@ program(
 			none
 			[param(a, type(false, int64)), param(b, type(false, int64))]
 			builtin([]))
-		fun(noctx, tv-sec, type(false, int64), none, [param(a, type(false, timespec))], field-get(0))
-		fun(noctx, tv-nsec, type(false, int64), none, [param(a, type(false, timespec))], field-get(1))
+		fun(noctx, tv_sec, type(false, int64), none, [param(a, type(false, timespec))], field-get(0))
+		fun(noctx, tv_nsec, type(false, int64), none, [param(a, type(false, timespec))], field-get(1))
 		fun(noctx, todo, type(false, nat64), none, [], expr-body(seq(call(abort, []), call(zeroed, []))))
 		fun(noctx, zeroed, type(false, nat64), none, [], builtin([type(false, nat64)]))
 		fun(

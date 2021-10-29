@@ -147,7 +147,7 @@ program(
 		77: record(cell, [field(inner-value, nat-64)])
 		78: record(chosen-task, [field(task-island, gc-ptr(record(16))), field(task-or-gc, union(30))])
 		79: record(no-chosen-task, [field(no-tasks-and-last-thread-out, bool), field(first-task-time, union(31))])
-		80: record(timespec, [field(tv-sec, int-64), field(tv-nsec, int-64)])
+		80: record(timespec, [field(tv_sec, int-64), field(tv_nsec, int-64)])
 		81: record(cell, [field(inner-value, record(80))])
 		82: record(no-task, [field(any-tasks, bool), field(first-task-time, union(31))])
 		83: record(cell, [field(inner-value, ptr-mut(nat-8))])]

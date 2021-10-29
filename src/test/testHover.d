@@ -14,6 +14,7 @@ import util.dbg : Debug, log, logNat, logNoNewline;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
 import util.opt : force, has, Opt;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
+import util.perf : Perf, withNullPerfSystem;
 import util.ptr : Ptr, ptrTrustMe_const;
 import util.sourceRange : Pos;
 import util.util : verify, verifyFail;
@@ -25,8 +26,9 @@ import util.util : verify, verifyFail;
 	immutable NulTerminatedStr contentStr = nulTerminatedStrOfCStr(content);
 	addToMutDict(test.alloc, files, key, contentStr);
 	const DictReadOnlyStorage storage = const DictReadOnlyStorage(ptrTrustMe_const(files));
-	immutable Program program =
-		frontendCompile(test.alloc, test.alloc, test.allPaths, test.allSymbols, storage, key);
+	// TODO: why does this have to be @trusted?
+	immutable Program program = withNullPerfSystem!(immutable Program)((scope ref Perf perf) =>
+		frontendCompile(test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, key));
 	immutable Ptr!Module mainModule = lastPtr(program.allModules);
 
 	immutable(string) hover(immutable Pos pos) {
