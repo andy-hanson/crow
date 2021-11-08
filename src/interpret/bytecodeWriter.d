@@ -629,8 +629,6 @@ void writeFn(
 ) {
 	immutable int stackEffect = () {
 		final switch (fn) {
-			case FnOp.compareExchangeStrongBool:
-				return -2;
 			case FnOp.addFloat32:
 			case FnOp.addFloat64:
 			case FnOp.bitwiseAnd:

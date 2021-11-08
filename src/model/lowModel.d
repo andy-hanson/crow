@@ -230,6 +230,11 @@ immutable(bool) lowTypeEqual(immutable LowType a, immutable LowType b) {
 	}();
 }
 
+immutable(bool) lowTypeEqualCombinePtr(immutable LowType a, immutable LowType b) {
+	return lowTypeEqual(a, b) ||
+		(isPtrGcOrRaw(a) && isPtrGcOrRaw(b) && lowTypeEqual(asGcOrRawPointee(a), asGcOrRawPointee(b)));
+}
+
 immutable(bool) isPrimitive(immutable LowType a) {
 	return a.kind_ == LowType.Kind.primitive;
 }
@@ -255,7 +260,7 @@ immutable(bool) isPtrGc(immutable LowType a) {
 	return a.kind_ == LowType.Kind.ptrGc;
 }
 
-private immutable(bool) isPtrRawConst(immutable LowType a) {
+immutable(bool) isPtrRawConst(immutable LowType a) {
 	return a.kind_ == LowType.Kind.ptrRawConst;
 }
 
@@ -584,14 +589,6 @@ immutable(Opt!Sym) name(ref immutable LowFun a) {
 		(ref immutable LowFunSource.Generated) => none!Sym);
 }
 
-immutable(size_t) firstRegularParamIndex(ref immutable LowFun a) {
-	return (a.paramsKind.hasCtx ? 1 : 0) + (a.paramsKind.hasClosure ? 1 : 0);
-}
-
-immutable(LowParam[]) regularParams(ref immutable LowFun a) {
-	return a.params[firstRegularParamIndex(a) .. $];
-}
-
 immutable(FileAndRange) lowFunRange(ref immutable LowFun a) {
 	return matchLowFunSource!(immutable FileAndRange)(
 		a.source,
@@ -615,7 +612,7 @@ struct LowFunIndex {
 }
 
 struct LowParamIndex {
-	immutable size_t index;
+	immutable ubyte index;
 }
 
 struct LowExprKind {
@@ -634,6 +631,8 @@ struct LowExprKind {
 		immutable Nat16 memberIndex;
 		immutable LowExpr arg;
 	}
+
+	struct InitConstants {}
 
 	struct Let {
 		immutable Ptr!LowLocal local;
@@ -755,7 +754,7 @@ struct LowExprKind {
 		enum Kind {
 			addFloat32,
 			addFloat64,
-			addPtr, // RHS is multiplied by size of pointee first
+			addPtrAndNat64, // RHS is multiplied by size of pointee first
 			and,
 			bitwiseAndInt8,
 			bitwiseAndInt16,
@@ -807,7 +806,7 @@ struct LowExprKind {
 			mulFloat64,
 			or,
 			subFloat64,
-			subPtrNat, // RHS is multiplied by size of pointee first
+			subPtrAndNat64, // RHS is multiplied by size of pointee first
 			unsafeBitShiftLeftNat64,
 			unsafeBitShiftRightNat64,
 			unsafeDivFloat32,
@@ -844,7 +843,6 @@ struct LowExprKind {
 
 	struct SpecialTrinary {
 		enum Kind {
-			compareExchangeStrongBool,
 			if_,
 		}
 		immutable Kind kind;
@@ -873,7 +871,6 @@ struct LowExprKind {
 	}
 
 	struct TailRecur {
-		// Note: This omits the ctx param since it doesn't change.
 		immutable LowExpr[] args;
 	}
 
@@ -884,6 +881,7 @@ struct LowExprKind {
 		call,
 		createRecord,
 		createUnion,
+		initConstants,
 		let,
 		localRef,
 		matchUnion,
@@ -908,6 +906,7 @@ struct LowExprKind {
 		immutable Call call;
 		immutable CreateRecord createRecord;
 		immutable Ptr!CreateUnion createUnion;
+		immutable InitConstants initConstants;
 		immutable Ptr!Let let;
 		immutable LocalRef localRef;
 		immutable Ptr!MatchUnion matchUnion;
@@ -932,6 +931,7 @@ struct LowExprKind {
 	@trusted immutable this(immutable Call a) { kind = Kind.call; call = a; }
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	@trusted immutable this(immutable Ptr!CreateUnion a) { kind = Kind.createUnion; createUnion = a; }
+	immutable this(immutable InitConstants a) { kind = Kind.initConstants; initConstants = a; }
 	@trusted immutable this(immutable Ptr!Let a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
 	@trusted immutable this(immutable Ptr!MatchUnion a) { kind = Kind.matchUnion; matchUnion = a; }
@@ -958,6 +958,7 @@ static assert(LowExprKind.sizeof <= 32);
 	scope T delegate(ref immutable LowExprKind.Call) @safe @nogc pure nothrow cbCall,
 	scope T delegate(ref immutable LowExprKind.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(ref immutable LowExprKind.CreateUnion) @safe @nogc pure nothrow cbCreateUnion,
+	scope T delegate(ref immutable LowExprKind.InitConstants) @safe @nogc pure nothrow cbInitConstants,
 	scope T delegate(ref immutable LowExprKind.Let) @safe @nogc pure nothrow cbLet,
 	scope T delegate(ref immutable LowExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
 	scope T delegate(ref immutable LowExprKind.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
@@ -984,6 +985,8 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbCreateRecord(a.createRecord);
 		case LowExprKind.Kind.createUnion:
 			return cbCreateUnion(a.createUnion.deref());
+		case LowExprKind.Kind.initConstants:
+			return cbInitConstants(a.initConstants);
 		case LowExprKind.Kind.let:
 			return cbLet(a.let.deref());
 		case LowExprKind.Kind.localRef:
@@ -1087,7 +1090,9 @@ struct PointerTypeAndConstantsLow {
 // TODO: rename -- this is not all constants, just the ones by-ref
 struct AllConstantsLow {
 	immutable string[] cStrings;
+	//TODO:FullIndexDict
 	immutable ArrTypeAndConstantsLow[] arrs;
+	//TODO:FullIndexDict
 	// These are just the by-ref records
 	immutable PointerTypeAndConstantsLow[] pointers;
 }
@@ -1102,6 +1107,7 @@ struct LowProgram {
 	immutable AllLowTypes allTypes;
 	immutable FullIndexDict!(LowFunIndex, LowFun) allFuns;
 	immutable LowFunIndex main;
+	immutable Sym[] allExternLibraryNames;
 
 	//TODO: NOT INSTANCE
 	ref immutable(FullIndexDict!(LowType.ExternPtr, LowExternPtrType)) allExternPtrTypes() return scope immutable {

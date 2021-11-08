@@ -14,7 +14,7 @@ import util.collection.arr :
 import util.collection.mutArr : insert, moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
 import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
 import util.memory : initMemory, initMemory_mut;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr;
 import util.util : max, verify;
 
@@ -170,7 +170,7 @@ immutable(Opt!size_t) findIndex_const(T)(
 }
 
 immutable(Opt!T) find(T)(
-	ref immutable T[] arr,
+	immutable T[] arr,
 	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (ref immutable T x; arr)
@@ -178,9 +178,18 @@ immutable(Opt!T) find(T)(
 			return some(x);
 	return none!T;
 }
+Opt!T find_mut(T)(
+	T[] arr,
+	scope immutable(bool) delegate(ref const T) @safe @nogc pure nothrow cb,
+) {
+	foreach (ref T x; arr)
+		if (cb(x))
+			return someMut(x);
+	return noneMut!T;
+}
 
 immutable(Opt!(Ptr!T)) findPtr(T)(
-	ref immutable T[] arr,
+	immutable T[] arr,
 	scope immutable(bool) delegate(immutable Ptr!T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable Ptr!T x; ptrsRange(arr))
@@ -191,6 +200,17 @@ immutable(Opt!(Ptr!T)) findPtr(T)(
 
 immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	return map(alloc, a, (ref immutable T it) => it);
+}
+
+@trusted immutable(Out[]) makeArr(Out)(
+	ref Alloc alloc,
+	immutable size_t size,
+	scope immutable(Out) delegate(immutable size_t) @safe @nogc pure nothrow cb,
+) {
+	Out* res = cast(Out*) allocateBytes(alloc, Out.sizeof * size);
+	foreach (immutable size_t i; 0 .. size)
+		initMemory(res + i, cb(i));
+	return cast(immutable) res[0 .. size];
 }
 
 @trusted immutable(Out[]) map(Out, In)(
@@ -404,11 +424,19 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	immutable In[] a,
 	scope immutable(Out) delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
 ) {
+	return cast(immutable) mapWithIndex_mut(alloc, a, cb);
+}
+@trusted Out[] mapWithIndex_mut(Out, In)(
+	ref Alloc alloc,
+	immutable In[] a,
+	scope Out delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
+) {
 	Out* res = cast(Out*) allocateBytes(alloc, Out.sizeof * size(a));
 	foreach (immutable size_t i; 0 .. size(a))
 		initMemory(res + i, cb(i, at(a, i)));
-	return cast(immutable) res[0 .. size(a)];
+	return res[0 .. size(a)];
 }
+
 
 immutable(ArrWithSize!Out) mapWithSize(Out, In)(
 	ref Alloc alloc,

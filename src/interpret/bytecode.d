@@ -604,7 +604,6 @@ enum FnOp : ubyte {
 	bitwiseNot,
 	bitwiseOr,
 	bitwiseXor,
-	compareExchangeStrongBool,
 	countOnesNat64,
 	eqBits,
 	eqFloat64,
@@ -709,8 +708,6 @@ private immutable(string) strOfFnOp(immutable FnOp fnOp) {
 			return "bitwise-or";
 		case FnOp.bitwiseXor:
 			return "bitwise-xor";
-		case FnOp.compareExchangeStrongBool:
-			return "compare-exchange-strong (bool)";
 		case FnOp.countOnesNat64:
 			return "count-ones (nat-64)";
 		case FnOp.eqBits:

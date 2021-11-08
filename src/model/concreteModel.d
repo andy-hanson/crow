@@ -1050,7 +1050,7 @@ struct ConcreteProgram {
 	immutable Dict!(Ptr!ConcreteStruct, ConcreteLambdaImpl[], comparePtr!ConcreteStruct) funStructToImpls;
 	immutable ConcreteCommonFuns commonFuns;
 	immutable Ptr!ConcreteStruct ctxType;
-	immutable string[] allExternLibraryNames;
+	immutable Sym[] allExternLibraryNames;
 
 	//TODO:NOT INSTANCE
 	immutable(Ptr!ConcreteFun) markFun() immutable { return commonFuns.markFun; }

@@ -33,21 +33,25 @@ debug: bin/crow
 unit-test: bin/crow
 	./bin/crow test
 
-end-to-end-test: bin/crow
-	./bin/crow run test/test.crow --out test/test.c
+test/test: bin/crow test/*.crow
+	./bin/crow build test/test.crow --out test/test.c test/test
 
-end-to-end-test-overwrite: bin/crow
-	./bin/crow run test/test.crow --out test/test.c -- --overwrite-output
+end-to-end-test: test/test
+	./test/test
+
+end-to-end-test-overwrite: test/test
+	./test/test --overwrite-output
 
 test: unit-test end-to-end-test
 
 src_deps = src/*.d src/*/*.d src/*/*/*.d
 cli_deps = dyncall $(src_deps)
 d_flags = -betterC -preview=dip25 -preview=dip1000
-app_link = -L=-ldyncall_s -L=-L./dyncall/dyncall
+app_link = -L=-ldyncall_s -L=-L./dyncall/dyncall -L=-lgccjit
 
 app_files = src/app.d src/*/*.d src/*/*/*.d
-wasm_files = src/wasm.d src/*/*.d src/*/*/*.d
+# TODO: shouldn't need writeToC
+wasm_files = src/wasm.d src/backend/mangle.d src/backend/writeToC.d src/backend/writeTypes.d src/concretize/*.d src/document/*.d src/frontend/*.d src/frontend/*/*.d src/interpret/*.d src/lib/*.d src/lower/*.d src/model/*.d src/util/*.d src/util/*/*.d
 
 bin/crow: $(cli_deps)
 	dmd -ofbin/crow $(d_flags) -debug -g $(app_files) $(app_link)

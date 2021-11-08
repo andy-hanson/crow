@@ -115,7 +115,7 @@ struct TypeAst {
 }
 static assert(TypeAst.sizeof <= 40);
 
-@trusted T matchTypeAst(T)(
+@trusted immutable(T) matchTypeAst(T)(
 	immutable TypeAst a,
 	scope T delegate(immutable TypeAst.Dict) @safe @nogc pure nothrow cbDict,
 	scope T delegate(immutable TypeAst.Fun) @safe @nogc pure nothrow cbFun,
@@ -954,7 +954,7 @@ struct FunBodyAst {
 	struct Builtin {}
 	struct Extern {
 		immutable bool isGlobal;
-		immutable Opt!string libraryName;
+		immutable Opt!Sym libraryName;
 	}
 
 	private:
@@ -1344,10 +1344,11 @@ immutable(Repr) reprFunBodyAst(ref Alloc alloc, ref immutable FunBodyAst a) {
 		a,
 		(ref immutable FunBodyAst.Builtin) =>
 			reprRecord("builtin"),
-		(ref immutable FunBodyAst.Extern e) {
-			immutable Repr isGlobal = reprBool(e.isGlobal);
-			return reprRecord(alloc, "extern", [isGlobal]);
-		},
+		(ref immutable FunBodyAst.Extern e) =>
+			reprRecord(alloc, "extern", [
+				reprBool(e.isGlobal),
+				reprOpt(alloc, e.libraryName, (ref immutable Sym it) =>
+					reprSym(it))]),
 		(ref immutable ExprAst e) =>
 			reprExprAst(alloc, e));
 }

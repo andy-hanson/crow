@@ -15,7 +15,7 @@ struct Perf {
 
 	immutable(ulong) delegate() @safe @nogc pure nothrow cbGetTimeNSec;
 	private:
-	PerfMeasureResult[PerfMeasure.size] measures;
+	PerfMeasureResult[PerfMeasure.max + 1] measures;
 }
 
 immutable bool perfEnabled = false;
@@ -38,9 +38,13 @@ immutable bool perfEnabled = false;
 	scope immutable(T) delegate() @safe @nogc pure nothrow cb,
 ) {
 	PerfMeasurer measurer = startMeasure(alloc, perf, measure);
-	immutable T res = cb();
+	static if (is(T == void))
+		cb();
+	else
+		immutable T res = cb();
 	endMeasure(alloc, perf, measurer);
-	return res;
+	static if (!is(T == void))
+		return res;
 }
 
 struct PerfMeasurer {
@@ -109,7 +113,7 @@ void eachMeasure(
 	scope ref Perf perf,
 	scope void delegate(immutable string, immutable PerfMeasureResult) @safe @nogc nothrow cb,
 ) {
-	foreach (immutable uint measure; 0 .. PerfMeasure.size) {
+	foreach (immutable uint measure; 0 .. PerfMeasure.max + 1) {
 		immutable PerfMeasureResult result = perf.measures[measure];
 		if (result.count)
 			cb(perfMeasureName(cast(immutable PerfMeasure) measure), result);
@@ -122,12 +126,14 @@ enum PerfMeasure {
 	checkCallLastPart,
 	checkEverything,
 	concretize,
+	gccCompile,
+	gccCreateProgram,
+	gccJit,
 	instantiateFun,
 	lower,
 	parseEverything,
 	parseFile,
-
-	size
+	run,
 }
 
 private:
@@ -155,6 +161,12 @@ pure immutable(string) perfMeasureName(immutable PerfMeasure a) {
 			return "checkEverything";
 		case PerfMeasure.concretize:
 			return "concretize";
+		case PerfMeasure.gccCreateProgram:
+			return "gccCreateProgram";
+		case PerfMeasure.gccCompile:
+			return "gccCompile";
+		case PerfMeasure.gccJit:
+			return "gccJit";
 		case PerfMeasure.instantiateFun:
 			return "instantiateFun";
 		case PerfMeasure.lower:
@@ -163,8 +175,8 @@ pure immutable(string) perfMeasureName(immutable PerfMeasure a) {
 			return "parseEverything";
 		case PerfMeasure.parseFile:
 			return "parseFile";
-		case PerfMeasure.size:
-			return "SIZE";
+		case PerfMeasure.run:
+			return "run";
 	}
 }
 

@@ -74,7 +74,6 @@ import model.lowModel :
 	asRecordType,
 	asSpecialUnary,
 	asUnionType,
-	firstRegularParamIndex,
 	isLocalRef,
 	isParamRef,
 	isRecordFieldGet,
@@ -101,7 +100,7 @@ import model.lowModel :
 import model.model : FunDecl, Module, name, Program, range;
 import model.typeLayout : nStackEntriesForType, optPack, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : at, castImmutable, only, size, sizeNat;
+import util.collection.arr : at, castImmutable, empty, only, size, sizeNat;
 import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict :
@@ -263,10 +262,9 @@ void generateBytecodeForFun(
 		},
 		(ref immutable LowFunExprBody body_) {
 			// Note: not doing it for locals because they might be unrelated and occupy the same stack entry
-			immutable size_t firstRegularParameterIndex = firstRegularParamIndex(fun);
-			immutable StackEntry regularParametersStart = firstRegularParameterIndex == size(parameters)
+			immutable StackEntry parametersStart = empty(parameters)
 				? stackEntryAfterParameters
-				: at(parameters, firstRegularParameterIndex).start;
+				: at(parameters, 0).start;
 			ExprCtx ctx = ExprCtx(
 				ptrTrustMe(program),
 				ptrTrustMe(textInfo),
@@ -274,7 +272,7 @@ void generateBytecodeForFun(
 				returnEntries,
 				ptrTrustMe_mut(funToReferences),
 				nextByteCodeIndex(writer),
-				regularParametersStart,
+				parametersStart,
 				parameters);
 			generateExpr(dbg, tempAlloc, writer, ctx, body_.expr);
 			verify(stackEntryAfterParameters.entry + returnEntries.to16() == getNextStackEntry(writer).entry);
@@ -432,7 +430,7 @@ struct ExprCtx {
 	immutable Nat8 returnTypeSizeInStackEntries;
 	Ptr!(MutIndexMultiDict!(LowFunIndex, ByteCodeIndex)) funToReferences;
 	immutable ByteCodeIndex startOfCurrentFun;
-	immutable StackEntry regularParametersStart;
+	immutable StackEntry parametersStart;
 	immutable StackEntries[] parameterEntries;
 	MutDict!(immutable Ptr!LowLocal, immutable StackEntries, comparePtr!LowLocal) localEntries;
 
@@ -468,6 +466,9 @@ void generateExpr(
 		},
 		(ref immutable LowExprKind.CreateUnion it) {
 			generateCreateUnion(dbg, tempAlloc, writer, ctx, asUnionType(expr.type), source, it);
+		},
+		(ref immutable LowExprKind.InitConstants) {
+			// bytecode interpreter doesn't need to do anything in 'init-constants'
 		},
 		(ref immutable LowExprKind.Let it) {
 			immutable StackEntries localEntries =
@@ -583,8 +584,8 @@ void generateExpr(
 			generateArgs(dbg, tempAlloc, writer, ctx, it.args);
 			// Delete the original parameters and anything else on the stack except for the new args
 			writeRemove(dbg, writer, source, immutable StackEntries(
-				ctx.regularParametersStart,
-				(before.entry - ctx.regularParametersStart.entry).to8()));
+				ctx.parametersStart,
+				(before.entry - ctx.parametersStart.entry).to8()));
 			writeJump(dbg, writer, source, ctx.startOfCurrentFun);
 			// We'll continue to write code after the jump for cleaning up the stack, but it's unreachable.
 			// Set the stack entry as if this was a regular call returning.
@@ -1099,8 +1100,8 @@ void generateSpecialBinary(
 	}
 
 	final switch (a.kind) {
-		case LowExprKind.SpecialBinary.Kind.addPtr:
-		case LowExprKind.SpecialBinary.Kind.subPtrNat:
+		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
+		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
 			immutable LowType pointee = asPtrRawPointee(a.left.type);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.left);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.right);
@@ -1111,7 +1112,7 @@ void generateSpecialBinary(
 				dbg,
 				writer,
 				source,
-				a.kind == LowExprKind.SpecialBinary.Kind.addPtr ? FnOp.wrapAddIntegral : FnOp.wrapSubIntegral);
+				a.kind == LowExprKind.SpecialBinary.Kind.addPtrAndNat64 ? FnOp.wrapAddIntegral : FnOp.wrapSubIntegral);
 			break;
 		case LowExprKind.SpecialBinary.Kind.addFloat32:
 			fn(FnOp.addFloat32);
@@ -1304,12 +1305,6 @@ void generateSpecialTrinary(
 				() {
 					generateExpr(dbg, tempAlloc, writer, ctx, a.p2);
 				});
-			break;
-		case LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool:
-			generateExpr(dbg, tempAlloc, writer, ctx, a.p0);
-			generateExpr(dbg, tempAlloc, writer, ctx, a.p1);
-			generateExpr(dbg, tempAlloc, writer, ctx, a.p2);
-			writeFn(dbg, writer, source, FnOp.compareExchangeStrongBool);
 			break;
 	}
 }

@@ -15,7 +15,7 @@ immutable(T[]) moveToArr(T, alias cmp)(ref Alloc alloc, ref MutSet!(immutable T,
 	return mutArrMoveToArr(alloc, a.arr);
 }
 
-immutable(bool) mutSetHas(T, alias cmp)(ref const MutSet!(T, cmp) a, immutable T value) {
+private immutable(bool) mutSetHas(T, alias cmp)(ref const MutSet!(T, cmp) a, immutable T value) {
 	foreach (ref const T t; mutArrRange(a.arr))
 		if (cmp(t, value) == Comparison.equal)
 			return true;

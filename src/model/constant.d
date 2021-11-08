@@ -103,11 +103,6 @@ immutable(Constant.Integral) asIntegral(ref immutable Constant a) {
 	return a.integral;
 }
 
-immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
-	verify(a.kind == Constant.Kind.pointer);
-	return a.pointer;
-}
-
 @trusted immutable(Constant.Record) asRecord(ref immutable Constant a) {
 	verify(a.kind == Constant.Kind.record);
 	return a.record;

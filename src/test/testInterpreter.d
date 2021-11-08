@@ -65,12 +65,13 @@ import util.alloc.alloc : Alloc;
 import util.collection.arr : emptyArr;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.collection.globalAllocatedStack : begin, pop, push;
+import util.collection.str : SafeCStr;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
 import util.ptr : ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos;
-import util.sym : shortSymAlphaLiteral;
+import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Nat8, Nat16, Nat32, Nat64;
 import util.util : repeatImpure, verify;
 
@@ -116,7 +117,8 @@ void doInterpret(
 	immutable Path emptyPath = rootPath(test.allPaths, "test");
 	immutable PathAndStorageKind[1] pk = [immutable PathAndStorageKind(emptyPath, StorageKind.global)];
 	immutable LineAndColumnGetter[1] lcg = [lineAndColumnGetterForEmptyFile(test.alloc)];
-	immutable AbsolutePathsGetter emptyAbsolutePathsGetter = immutable AbsolutePathsGetter("", "");
+	immutable AbsolutePathsGetter emptyAbsolutePathsGetter =
+		immutable AbsolutePathsGetter(immutable SafeCStr(""), immutable SafeCStr(""));
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(pk),
 		emptyAbsolutePathsGetter,
@@ -140,7 +142,8 @@ void doInterpret(
 			emptyFullIndexDict!(LowType.Record, LowRecord),
 			emptyFullIndexDict!(LowType.Union, LowUnion)),
 		fullIndexDictOfArr!(LowFunIndex, LowFun)(lowFun),
-		immutable LowFunIndex(0));
+		immutable LowFunIndex(0),
+		emptyArr!Sym);
 	FakeExtern extern_ = newFakeExtern(test.allocPtr);
 	Interpreter!FakeExtern interpreter = Interpreter!FakeExtern(
 		ptrTrustMe_mut(extern_),

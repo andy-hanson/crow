@@ -210,7 +210,7 @@ immutable(Repr) reprOfConcreteFunBody(ref Alloc alloc, ref immutable ConcreteFun
 		(immutable EnumFunction it) =>
 			reprRecord(alloc, "enum-fn", [reprSym(enumFunctionName(it))]),
 		(ref immutable ConcreteFunBody.Extern it) =>
-			reprRecord(alloc, "extern", [reprBool(it.isGlobal)]),
+			reprSym("extern"),
 		(ref immutable ConcreteFunExprBody it) =>
 			reprOfConcreteFunExprBody(alloc, it),
 		(ref immutable ConcreteFunBody.FlagsFn it) =>

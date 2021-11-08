@@ -103,7 +103,7 @@ body
 	args str[] = if interpret
 		"run", path, "--interpret"
 	else
-		"run", path, "--out", "{path}.c"
+		"run", path
 	res = path-to-crow spawn-and-wait-result args, env
 	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output
 	stderr-failures failure[] = if res.exit-code == 0 && res.stderr == ""

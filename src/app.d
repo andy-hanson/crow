@@ -12,9 +12,10 @@ import core.sys.posix.sys.stat : mkdir, S_IRWXU;
 import core.sys.posix.sys.types : off_t;
 import core.sys.posix.time : clock_gettime, CLOCK_MONOTONIC, timespec;
 import core.sys.posix.unistd : close, getcwd, lseek, read, readlink, unlink, posixWrite = write;
-import std.process : execvpe;
 
-import frontend.showDiag : ShowDiagOptions;
+import backend.jit : jitAndRun;
+import frontend.lang : crowExtension;
+import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.allocTracker : AllocTracker, hasAllocedPtr, markAlloced, markFree, writeMarkedAllocedRanges;
 import interpret.applyFn : nat64OfI32, nat64OfI64;
 import interpret.bytecode : DynCallType, TimeSpec;
@@ -32,32 +33,38 @@ import lib.compiler :
 	buildAndInterpret,
 	buildToC,
 	BuildToCResult,
+	buildToLowProgram,
 	compileAndDocument,
 	DiagsAndResultStrs,
 	DocumentResult,
 	ExitCode,
 	print,
+	ProgramsAndFilesInfo,
 	justTypeCheck;
-import model.model : AbsolutePathsGetter;
+import model.model : AbsolutePathsGetter, getAbsolutePath;
 import test.test : test;
 import util.alloc.alloc : Alloc, allocateBytes, freeBytes, TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.collection.arr : begin, empty, size;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.collection.arrUtil : cat, map, tail, zipImpureSystem;
+import util.collection.arrUtil : prepend, tail, zipImpureSystem;
 import util.collection.str :
 	asCStr,
-	catToCStr,
+	asSafeCStr,
+	catToSafeCStr,
 	catToNulTerminatedStr,
-	copyStr,
+	copyToSafeCStr,
 	CStr,
 	cStrOfNulTerminatedStr,
 	emptyNulTerminatedStr,
 	NulTerminatedStr,
-	startsWith,
+	SafeCStr,
+	safeCStrEq,
+	safeCStrEqCat,
 	strEq,
 	strOfCStr,
 	strToCStr,
+	strOfSafeCStr,
 	strOfNulTerminatedStr;
 import util.dbg : Debug;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
@@ -68,15 +75,14 @@ import util.path :
 	Path,
 	PathAndStorageKind,
 	pathParent,
-	pathToCStr,
 	pathToNulTerminatedStr,
-	pathToStr,
+	pathToSafeCStr,
 	removeFirstPathComponentIf,
 	rootPath,
 	StorageKind;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : Ptr, PtrRange, ptrTrustMe_mut;
-import util.sym : AllSymbols, Sym, symAsTempBuffer;
+import util.sym : AllSymbols, Sym, symAsTempBuffer, writeSym;
 import util.types :
 	float32OfU32Bits,
 	float64OfU64Bits,
@@ -87,7 +93,7 @@ import util.types :
 	u32OfI32Bits,
 	u64OfFloat64Bits;
 import util.util : todo, unreachable, verify;
-import util.writer : Writer;
+import util.writer : finishWriterToSafeCStr, Writer, writeStatic;
 
 @system extern(C) immutable(int) main(immutable size_t argc, immutable CStr* argv) {
 	immutable size_t memorySizeBytes = 1536 * 1024 * 1024; // 1.5 GB
@@ -134,11 +140,11 @@ static assert(divRound(14, 10) == 1);
 
 immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLineArgs args) {
 	AllPaths allPaths = AllPaths(ptrTrustMe_mut(alloc));
-	immutable string crowDir = getCrowDirectory(args.pathToThisExecutable);
-	immutable string includeDir = getIncludeDirectory(alloc, crowDir);
-	immutable string tempDir = setupTempDir(alloc, allPaths, crowDir);
+	immutable SafeCStr crowDir = getCrowDirectory(alloc, args.pathToThisExecutable);
+	immutable SafeCStr includeDir = getIncludeDirectory(alloc, crowDir);
+	immutable SafeCStr tempDir = setupTempDir(alloc, allPaths, crowDir);
 
-	immutable string cwd = getCwd(alloc);
+	immutable SafeCStr cwd = getCwd(alloc);
 	immutable Command command = parseCommand(alloc, allPaths, cwd, args.args);
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
 	scope Debug dbg = Debug(
@@ -181,30 +187,19 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 			if (!empty(printed.result)) print(printed.result);
 			return empty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
 		},
-		(ref immutable Command.Run run) =>
-			matchRunOptions!(immutable ExitCode)(
+		(ref immutable Command.Run run) {
+			RealReadOnlyStorage storage = RealReadOnlyStorage(
+				ptrTrustMe_mut(allPaths),
+				ptrTrustMe_mut(alloc),
+				cwd,
+				includeDir,
+				run.programDirAndMain.programDir);
+			AllSymbols allSymbols = AllSymbols(ptrTrustMe_mut(alloc));
+			return matchRunOptions!(immutable ExitCode)(
 				run.options,
-				(ref immutable RunOptions.BuildAndRun it) {
-					immutable RunBuildResult built =
-						runBuildInner(
-							alloc, perf, allPaths, cwd, includeDir, tempDir,
-							run.programDirAndMain, it.build, ExeKind.ensureExe);
-					if (built.err != ExitCode.ok)
-						return built.err;
-					else {
-						replaceCurrentProcess(alloc, allPaths, force(built.exePath), run.programArgs);
-						return unreachable!ExitCode();
-					}
-				},
 				(ref immutable RunOptions.Interpret) {
-					RealReadOnlyStorage storage = RealReadOnlyStorage(
-						ptrTrustMe_mut(allPaths),
-						ptrTrustMe_mut(alloc),
-						cwd,
-						includeDir,
-						run.programDirAndMain.programDir);
 					RealExtern extern_ = RealExtern(ptrTrustMe_mut(alloc));
-					AllSymbols allSymbols = AllSymbols(ptrTrustMe_mut(alloc));
+					immutable PathAndStorageKind main = getMain(allPaths, includeDir, run.programDirAndMain);
 					return buildAndInterpret(
 						alloc,
 						dbg,
@@ -214,19 +209,52 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 						storage,
 						extern_,
 						showDiagOptions,
-						getMain(allPaths, includeDir, run.programDirAndMain),
-						run.programArgs);
-				}),
+						main,
+						getAllArgs(alloc, allPaths, storage, main, run.programArgs));
+				},
+				(ref immutable RunOptions.Jit it) {
+					immutable PathAndStorageKind main = getMain(allPaths, includeDir, run.programDirAndMain);
+					return buildAndJit(
+						alloc,
+						perf,
+						allPaths,
+						allSymbols,
+						showDiagOptions,
+						storage,
+						main,
+						getAllArgs(alloc, allPaths, storage, main, run.programArgs));
+				});
+		},
 		(ref immutable Command.Test it) =>
 			test(dbg, alloc, it.name));
 }
 
-@trusted immutable(string) setupTempDir(
+immutable(SafeCStr[]) getAllArgs(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable string crowDir,
+	ref RealReadOnlyStorage storage,
+	immutable PathAndStorageKind main,
+	immutable SafeCStr[] programArgs,
 ) {
-	immutable NulTerminatedStr dirPath = catToNulTerminatedStr(alloc, crowDir, "/temp");
+	immutable AbsolutePath mainAbsolutePath = getAbsolutePathFromStorage(storage, main, crowExtension);
+	return prepend(alloc, pathToSafeCStr(alloc, allPaths, mainAbsolutePath), programArgs);
+}
+
+immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
+	ref Storage storage,
+	immutable PathAndStorageKind path,
+	immutable string extension,
+) {
+	immutable AbsolutePathsGetter abs = storage.absolutePathsGetter();
+	return getAbsolutePath(abs, path, extension);
+}
+
+@trusted immutable(SafeCStr) setupTempDir(
+	ref Alloc alloc,
+	ref AllPaths allPaths,
+	immutable SafeCStr crowDir,
+) {
+	immutable NulTerminatedStr dirPath = catToNulTerminatedStr(alloc, strOfSafeCStr(crowDir), "/temp");
 	DIR* dir = opendir(cStrOfNulTerminatedStr(dirPath));
 	if (dir == null) {
 		if (errno == ENOENT) {
@@ -242,15 +270,15 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 				break;
 			immutable string entryName = strOfCStr(entry.d_name.ptr);
 			if (!strEq(entryName, ".") && !strEq(entryName, "..")) {
-				immutable CStr toUnlink = catToCStr(alloc, strOfNulTerminatedStr(dirPath), "/", entryName);
-				immutable int err = unlink(toUnlink);
+				immutable SafeCStr toUnlink = catToSafeCStr(alloc, strOfNulTerminatedStr(dirPath), "/", entryName);
+				immutable int err = unlink(toUnlink.inner);
 				if (err != 0) {
 					todo!void("failed to unlink");
 				}
 			}
 		}
 	}
-	return strOfNulTerminatedStr(dirPath);
+	return asSafeCStr(dirPath);
 }
 
 @system immutable(ExitCode) mkdirRecur(TempAlloc)(ref TempAlloc tempAlloc, immutable string dir) {
@@ -278,8 +306,8 @@ immutable(ExitCode) runDocument(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllPaths allPaths,
-	immutable string cwd,
-	immutable string includeDir,
+	immutable SafeCStr cwd,
+	immutable SafeCStr includeDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
 	ref immutable Opt!AbsolutePath out_,
 ) {
@@ -308,9 +336,9 @@ immutable(ExitCode) runBuild(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllPaths allPaths,
-	immutable string cwd,
-	immutable string includeDir,
-	immutable string tempDir,
+	immutable SafeCStr cwd,
+	immutable SafeCStr includeDir,
+	immutable SafeCStr tempDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
 	ref immutable BuildOptions options,
 ) {
@@ -334,9 +362,9 @@ immutable(RunBuildResult) runBuildInner(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllPaths allPaths,
-	immutable string cwd,
-	immutable string includeDir,
-	immutable string tempDir,
+	immutable SafeCStr cwd,
+	immutable SafeCStr includeDir,
+	immutable SafeCStr tempDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
 	ref immutable BuildOptions options,
 	immutable ExeKind exeKind,
@@ -366,14 +394,17 @@ immutable(RunBuildResult) runBuildInner(
 
 immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
 
-immutable(string) getIncludeDirectory(ref Alloc alloc, immutable string crowDir) {
-	return cat(alloc, crowDir, "/include");
+immutable(SafeCStr) getIncludeDirectory(ref Alloc alloc, immutable SafeCStr crowDir) {
+	return catToSafeCStr(alloc, strOfSafeCStr(crowDir), "/include");
 }
 
-immutable(string) getCrowDirectory(immutable string pathToThisExecutable) {
-	immutable Opt!string parent = pathParent(pathToThisExecutable);
+immutable(SafeCStr) getCrowDirectory(ref Alloc alloc, immutable SafeCStr pathToThisExecutable) {
+	immutable Opt!string parent = pathParent(strOfSafeCStr(pathToThisExecutable));
 	immutable Opt!string res = pathParent(forceOrTodo(parent));
-	return forceOrTodo(res);
+	if (has(res))
+		return copyToSafeCStr(alloc, force(res));
+	else
+		return todo!(immutable SafeCStr)("!");
 }
 
 immutable(ExitCode) buildToCAndCompile(
@@ -381,9 +412,9 @@ immutable(ExitCode) buildToCAndCompile(
 	ref Perf perf,
 	ref AllPaths allPaths,
 	ref immutable ShowDiagOptions showDiagOptions,
-	immutable string cwd,
+	immutable SafeCStr cwd,
 	ref immutable ProgramDirAndMain programDirAndMain,
-	immutable string includeDir,
+	immutable SafeCStr includeDir,
 	immutable AbsolutePath cPath,
 	immutable Opt!AbsolutePath exePath,
 	ref immutable CCompileOptions cCompileOptions,
@@ -405,14 +436,37 @@ immutable(ExitCode) buildToCAndCompile(
 		return printErr(result.diagnostics);
 }
 
+immutable(ExitCode) buildAndJit(
+	ref Alloc alloc,
+	ref Perf perf,
+	ref AllPaths allPaths,
+	ref AllSymbols allSymbols,
+	ref immutable ShowDiagOptions showDiagOptions,
+	ref RealReadOnlyStorage storage,
+	immutable PathAndStorageKind main,
+	immutable SafeCStr[] programArgs,
+) {
+	immutable ProgramsAndFilesInfo programs = buildToLowProgram(
+		alloc, perf, allPaths, allSymbols, storage,
+		main);
+	if (!empty(programs.program.diagnostics))
+		return printErr(strOfDiagnostics(
+			alloc,
+			allPaths,
+			showDiagOptions,
+			programs.program.filesInfo,
+			programs.program.diagnostics));
+	else
+		return immutable ExitCode(jitAndRun(alloc, perf, programs.lowProgram, programArgs));
+}
+
 immutable(PathAndStorageKind) getMain(
 	ref AllPaths allPaths,
-	immutable string includeDir,
+	immutable SafeCStr includeDir,
 	immutable ProgramDirAndMain programDirAndMain,
 ) {
 	// Detect if we're building something already in 'include'
-	if (startsWith(includeDir, programDirAndMain.programDir)
-		&& strEq(includeDir[programDirAndMain.programDir.length .. $], "/include")) {
+	if (safeCStrEqCat(includeDir, programDirAndMain.programDir, "/include")) {
 		immutable Opt!Path withoutInclude = removeFirstPathComponentIf(allPaths, programDirAndMain.mainPath, "include");
 		if (has(withoutInclude))
 			return immutable PathAndStorageKind(force(withoutInclude), StorageKind.global);
@@ -420,7 +474,7 @@ immutable(PathAndStorageKind) getMain(
 
 	return immutable PathAndStorageKind(
 		programDirAndMain.mainPath,
-		strEq(includeDir, programDirAndMain.programDir) ? StorageKind.global : StorageKind.local);
+		safeCStrEq(includeDir, programDirAndMain.programDir) ? StorageKind.global : StorageKind.local);
 }
 
 immutable(ExitCode) help(ref immutable Command.Help a) {
@@ -433,24 +487,24 @@ immutable(ExitCode) help(ref immutable Command.Help a) {
 	}
 }
 
-immutable(string[]) cCompilerArgs(ref immutable CCompileOptions options) {
-	static immutable string[] optimizedArgs = [
-		"-Werror",
-		"-Wextra",
-		"-Wall",
-		"-ansi",
-		"-std=c11",
-		"-Wno-maybe-uninitialized",
-		"-Wno-unused-parameter",
-		"-Wno-unused-but-set-variable",
-		"-Wno-unused-variable",
-		"-Wno-unused-value",
-		"-Wno-builtin-declaration-mismatch", //TODO:KILL?
-		"-pthread",
-		"-lm",
-		"-Ofast",
+immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
+	static immutable SafeCStr[] optimizedArgs = [
+		immutable SafeCStr("-Werror"),
+		immutable SafeCStr("-Wextra"),
+		immutable SafeCStr("-Wall"),
+		immutable SafeCStr("-ansi"),
+		immutable SafeCStr("-std=c11"),
+		immutable SafeCStr("-Wno-maybe-uninitialized"),
+		immutable SafeCStr("-Wno-unused-parameter"),
+		immutable SafeCStr("-Wno-unused-but-set-variable"),
+		immutable SafeCStr("-Wno-unused-variable"),
+		immutable SafeCStr("-Wno-unused-value"),
+		immutable SafeCStr("-Wno-builtin-declaration-mismatch"),
+		immutable SafeCStr("-pthread"),
+		immutable SafeCStr("-lm"),
+		immutable SafeCStr("-Ofast"),
 	];
-	static immutable string[] regularArgs = optimizedArgs[0 .. $ - 1];
+	static immutable SafeCStr[] regularArgs = optimizedArgs[0 .. $ - 1];
 	return options.optimize ? optimizedArgs : regularArgs;
 }
 
@@ -460,10 +514,10 @@ immutable(string[]) cCompilerArgs(ref immutable CCompileOptions options) {
 	ref AllPaths allPaths,
 	ref immutable AbsolutePath cPath,
 	ref immutable AbsolutePath exePath,
-	immutable string[] allExternLibraryNames,
+	immutable Sym[] allExternLibraryNames,
 	ref immutable CCompileOptions options,
 ) {
-	immutable string[] args = cCompileArgs(alloc, allPaths, cPath, exePath, allExternLibraryNames, options);
+	immutable SafeCStr[] args = cCompileArgs(alloc, allPaths, cPath, exePath, allExternLibraryNames, options);
 	// if (true) {
 	// 	printf("/usr/bin/cc");
 	// 	foreach (immutable string arg; args) {
@@ -476,24 +530,28 @@ immutable(string[]) cCompilerArgs(ref immutable CCompileOptions options) {
 	return immutable ExitCode(err);
 }
 
-immutable(string[]) cCompileArgs(
+immutable(SafeCStr[]) cCompileArgs(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
 	ref immutable AbsolutePath cPath,
 	ref immutable AbsolutePath exePath,
-	immutable string[] allExternLibraryNames,
+	immutable Sym[] allExternLibraryNames,
 	ref immutable CCompileOptions options,
 ) {
-	ArrBuilder!string args;
+	ArrBuilder!SafeCStr args;
 	addAll(alloc, args, cCompilerArgs(options));
-	foreach (immutable string it; allExternLibraryNames)
-		add(alloc, args, cat(alloc, "-l", it));
+	foreach (immutable Sym it; allExternLibraryNames) {
+		Writer writer = Writer(ptrTrustMe_mut(alloc));
+		writeStatic(writer, "-l");
+		writeSym(writer, it);
+		add(alloc, args, finishWriterToSafeCStr(writer));
+	}
 	addAll(alloc, args, [
 		// TODO: configurable whether we want debug or release
-		"-g",
-		pathToStr(alloc, allPaths, cPath),
-		"-o",
-		pathToStr(alloc, allPaths, exePath),
+		immutable SafeCStr("-g"),
+		pathToSafeCStr(alloc, allPaths, cPath),
+		immutable SafeCStr("-o"),
+		pathToSafeCStr(alloc, allPaths, exePath),
 	]);
 	return finishArr(alloc, args);
 }
@@ -524,7 +582,7 @@ struct RealReadOnlyStorage {
 		immutable string extension,
 		scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
 	) {
-		immutable string root = () {
+		immutable SafeCStr root = () {
 			final switch (pk.storageKind) {
 				case StorageKind.global:
 					return include;
@@ -539,9 +597,9 @@ struct RealReadOnlyStorage {
 	private:
 	Ptr!AllPaths allPaths;
 	Ptr!Alloc tempAlloc;
-	immutable string cwd;
-	immutable string include;
-	immutable string user;
+	immutable SafeCStr cwd;
+	immutable SafeCStr include;
+	immutable SafeCStr user;
 }
 
 struct RealExtern {
@@ -794,7 +852,7 @@ extern(C) {
 	immutable AbsolutePath path,
 	scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
 ) {
-	immutable CStr pathCStr = pathToCStr(tempAlloc, allPaths, path);
+	immutable CStr pathCStr = pathToSafeCStr(tempAlloc, allPaths, path).inner;
 
 	immutable int fd = open(pathCStr, O_RDONLY);
 	if (fd == -1) {
@@ -883,25 +941,9 @@ extern(C) {
 	return fd;
 }
 
-// Replaces this process with the given executable.
-// DOES NOT RETURN!
-@trusted void replaceCurrentProcess(
-	ref TempAlloc tempAlloc,
-	ref const AllPaths allPaths,
-	immutable AbsolutePath executable,
-	immutable string[] args,
-) {
-	immutable CStr executableCStr = pathToCStr(tempAlloc, allPaths, executable);
-	immutable int err = execvpe(executableCStr, convertArgs(tempAlloc, executableCStr, args), environ);
-	// 'execvpe' only returns if we failed to create the process (maybe executable does not exist?)
-	verify(err == -1);
-	fprintf(stderr, "Failed to launch %s: error %s\n", executableCStr, strerror(errno));
-	todo!void("failed to launch");
-}
-
 struct CommandLineArgs {
-	immutable string pathToThisExecutable;
-	immutable string[] args;
+	immutable SafeCStr pathToThisExecutable;
+	immutable SafeCStr[] args;
 }
 
 @trusted immutable(CommandLineArgs) parseCommandLineArgs(
@@ -909,35 +951,34 @@ struct CommandLineArgs {
 	immutable size_t argc,
 	immutable CStr* argv,
 ) {
-	immutable CStr[] allArgs = argv[0 .. argc];
-	immutable string[] args = map!(string, CStr)(alloc, allArgs, (ref immutable CStr a) => strOfCStr(a));
+	immutable SafeCStr[] allArgs = cast(immutable SafeCStr[]) argv[0 .. argc];
 	// Take the tail because the first one is 'crow'
-	return immutable CommandLineArgs(getPathToThisExecutable(alloc), tail(args));
+	return immutable CommandLineArgs(getPathToThisExecutable(alloc), tail(allArgs));
 }
 
-@trusted immutable(string) getCwd(ref Alloc alloc) {
+@trusted immutable(SafeCStr) getCwd(ref Alloc alloc) {
 	char[maxPathSize] buff;
 	char* b = getcwd(buff.ptr, maxPathSize);
 	if (b == null)
-		return todo!string("getcwd failed");
+		return todo!(immutable SafeCStr)("getcwd failed");
 	else {
 		verify(b == buff.ptr);
-		return copyCStrToStr(alloc, cast(immutable) buff.ptr);
+		return copyCStrToSafeCStr(alloc, cast(immutable) buff.ptr);
 	}
 }
 
-immutable(string) copyCStrToStr(ref Alloc alloc, immutable CStr begin) {
-	return copyStr(alloc, strOfCStr(begin));
+immutable(SafeCStr) copyCStrToSafeCStr(ref Alloc alloc, immutable CStr begin) {
+	return copyToSafeCStr(alloc, strOfCStr(begin));
 }
 
 immutable size_t maxPathSize = 0x1000;
 
-@trusted immutable(string) getPathToThisExecutable(ref Alloc alloc) {
+@trusted immutable(SafeCStr) getPathToThisExecutable(ref Alloc alloc) {
 	char[maxPathSize] buff;
 	immutable long size = readlink("/proc/self/exe", buff.ptr, maxPathSize);
 	if (size < 0)
 		todo!void("posix error");
-	return copyStr(alloc, cast(immutable) buff.ptr[0 .. safeUlongFromLong(size)]);
+	return copyToSafeCStr(alloc, cast(immutable) buff.ptr[0 .. safeUlongFromLong(size)]);
 }
 
 // Returns the child process' error code.
@@ -946,7 +987,7 @@ immutable size_t maxPathSize = 0x1000;
 	ref TempAlloc tempAlloc,
 	ref const AllPaths allPaths,
 	immutable CStr executablePath,
-	immutable string[] args,
+	immutable SafeCStr[] args,
 ) {
 	pid_t pid;
 	immutable int spawnStatus = posix_spawn(
@@ -977,18 +1018,17 @@ immutable size_t maxPathSize = 0x1000;
 @system immutable(CStr*) convertArgs(
 	ref Alloc alloc,
 	immutable CStr executable,
-	immutable string[] args,
+	immutable SafeCStr[] args,
 ) {
 	ArrBuilder!CStr cArgs;
 	add(alloc, cArgs, executable);
-	foreach (immutable string arg; args)
-		add(alloc, cArgs, strToCStr(alloc, arg));
+	foreach (immutable SafeCStr arg; args)
+		add(alloc, cArgs, arg.inner);
 	add(alloc, cArgs, null);
 	return finishArr(alloc, cArgs).begin;
 }
 
 // D doesn't declare this anywhere for some reason
-extern(C) int execvpe(const char *__file, const char ** __argv, const char ** __envp);
 extern(C) extern immutable char** environ;
 
 // Copying from /usr/include/dmd/druntime/import/core/sys/posix/sys/wait.d

@@ -160,7 +160,7 @@ immutable(Repr) reprOfLowFunBody(ref Alloc alloc, ref immutable LowFunBody a) {
 	return matchLowFunBody!(immutable Repr)(
 		a,
 		(ref immutable LowFunBody.Extern it) =>
-			reprRecord(alloc, "extern", [reprBool(it.isGlobal)]),
+			reprSym("extern"),
 		(ref immutable LowFunExprBody it) =>
 			reprRecord(alloc, "expr-body", [reprOfLowExpr(alloc, it.expr)]));
 }
@@ -195,6 +195,8 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 					reprOfLowExpr(alloc, e))]),
 		(ref immutable LowExprKind.CreateUnion it) =>
 			reprRecord(alloc, "to-union", [reprNat(it.memberIndex), reprOfLowExpr(alloc, it.arg)]),
+		(ref immutable LowExprKind.InitConstants) =>
+			reprSym("init-const"),
 		(ref immutable LowExprKind.Let it) =>
 			reprRecord(alloc, "let", [
 				reprOfLowLocalSource(alloc, it.local.deref().source),
@@ -356,8 +358,8 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "+ (float-32)";
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
 			return "+ (float-64)";
-		case LowExprKind.SpecialBinary.Kind.addPtr:
-			return "+ (ptr)";
+		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
+			return "+ (ptr + nat64)";
 		case LowExprKind.SpecialBinary.Kind.and:
 			return "and";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
@@ -460,7 +462,7 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "or";
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 			return "- (float-64)";
-		case LowExprKind.SpecialBinary.Kind.subPtrNat:
+		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
 			return "- (ptr - nat-64)";
 		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64:
 			return "unsafe-bit-shift-left (nat-64)";
@@ -525,8 +527,6 @@ immutable(string) strOfSpecialTrinaryKind(immutable LowExprKind.SpecialTrinary.K
 	final switch (a) {
 		case LowExprKind.SpecialTrinary.Kind.if_:
 			return "if";
-		case LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool:
-			return "compare-exchange-strong (bool)";
 	}
 }
 

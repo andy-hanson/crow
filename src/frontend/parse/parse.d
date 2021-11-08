@@ -74,7 +74,7 @@ import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some
 import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : AllSymbols, isSymOperator, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
+import util.sym : AllSymbols, isSymOperator, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq, symOfStr;
 import util.types : Nat8;
 import util.util : todo, unreachable, verify;
 
@@ -619,17 +619,20 @@ immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
 
 immutable(FunBodyAst.Extern) takeExternName(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref Lexer lexer,
 	immutable bool isGlobal,
 ) {
-	immutable Opt!string libraryName = tryTake(lexer, '<') ? some(takeExternLibraryName(alloc, lexer)) : none!string;
+	immutable Opt!Sym libraryName = tryTake(lexer, '<')
+		? some(takeExternLibraryName(alloc, allSymbols, lexer))
+		: none!Sym;
 	return immutable FunBodyAst.Extern(isGlobal, libraryName);
 }
 
-immutable(string) takeExternLibraryName(ref Alloc alloc, ref Lexer lexer) {
+immutable(Sym) takeExternLibraryName(ref Alloc alloc, ref AllSymbols allSymbols, ref Lexer lexer) {
 	immutable string res = takeQuotedStr(lexer, alloc);
 	takeTypeArgsEnd(alloc, lexer);
-	return res;
+	return symOfStr(allSymbols, res);
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(
@@ -652,7 +655,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(
 		scope immutable(SpecUsesAndSigFlagsAndKwBody) setExtern(immutable bool isGlobal) {
 			if (has(extern_))
 				todo!void("duplicate");
-			immutable Opt!(FunBodyAst.Extern) extern2 = some(takeExternName(alloc, lexer, isGlobal));
+			immutable Opt!(FunBodyAst.Extern) extern2 = some(takeExternName(alloc, allSymbols, lexer, isGlobal));
 			return nextSpecOrStop(
 				alloc, allSymbols, lexer,
 				specUses, noCtx, summon, unsafe, trusted, builtin, extern2, mangle, canTakeNext);

@@ -34,12 +34,12 @@ import util.util : todo, unreachable, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
 struct AbsolutePathsGetter {
-	immutable string cwd;
-	immutable string globalPath;
-	immutable string localPath;
+	immutable SafeCStr cwd;
+	immutable SafeCStr globalPath;
+	immutable SafeCStr localPath;
 }
 
-private immutable(string) getBasePath(ref immutable AbsolutePathsGetter a, immutable StorageKind sk) {
+private immutable(SafeCStr) getBasePath(ref immutable AbsolutePathsGetter a, immutable StorageKind sk) {
 	final switch (sk) {
 		case StorageKind.global:
 			return a.globalPath;
@@ -807,7 +807,7 @@ struct FunBody {
 	}
 	struct Extern {
 		immutable bool isGlobal;
-		immutable Opt!string libraryName;
+		immutable Opt!Sym libraryName;
 	}
 	struct RecordFieldGet {
 		immutable ubyte fieldIndex;

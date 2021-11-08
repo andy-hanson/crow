@@ -8,7 +8,6 @@ import document.document : document;
 import frontend.parse.ast : FileAst, reprAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
 import frontend.ide.getTokens : Token, tokensOfAst, reprTokens;
-import frontend.lang : crowExtension;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.bytecode : ByteCode;
 import interpret.generateBytecode : generateBytecode;
@@ -17,19 +16,20 @@ import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
 import model.diag : Diags, FilesInfo;
 import model.lowModel : LowProgram;
-import model.model : AbsolutePathsGetter, getAbsolutePath, Module, Program;
+import model.model : Module, Program;
 import model.reprConcreteModel : reprOfConcreteProgram;
 import model.reprLowModel : reprOfLowProgram;
 import model.reprModel : reprModule;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : begin, empty, emptyArr, size;
+import util.collection.str : SafeCStr;
 import util.dbg : Debug;
 import util.opt : force, none, Opt, some;
-import util.path : AbsolutePath, AllPaths, PathAndStorageKind;
+import util.path : AllPaths, PathAndStorageKind;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe_mut;
 import util.repr : Repr, writeRepr, writeReprJSON;
-import util.sym : AllSymbols;
+import util.sym : AllSymbols, Sym;
 import util.writer : finishWriter, Writer;
 
 enum PrintFormat {
@@ -93,13 +93,12 @@ immutable(ExitCode) buildAndInterpret(ReadOnlyStorage, Extern)(
 	ref Extern extern_,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
-	immutable string[] programArgs,
+	scope immutable SafeCStr[] allArgs,
 ) {
 	immutable ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, allPaths, allSymbols, storage, main);
 	if (empty(programs.program.diagnostics)) {
 		immutable LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
 		immutable ByteCode byteCode = generateBytecode(dbg, alloc, alloc, programs.program, lowProgram);
-		immutable AbsolutePath mainAbsolutePath = getAbsolutePathFromStorage(storage, main, crowExtension);
 		return immutable ExitCode(runBytecode(
 			dbg,
 			alloc,
@@ -108,8 +107,7 @@ immutable(ExitCode) buildAndInterpret(ReadOnlyStorage, Extern)(
 			lowProgram,
 			byteCode,
 			programs.program.filesInfo,
-			mainAbsolutePath,
-			programArgs));
+			allArgs));
 	} else {
 		writeDiagsToExtern(
 			alloc,
@@ -273,7 +271,7 @@ public immutable(ExitCode) justTypeCheck(ReadOnlyStorage)(
 public struct BuildToCResult {
 	immutable string cSource;
 	immutable string diagnostics;
-	immutable string[] allExternLibraryNames;
+	immutable Sym[] allExternLibraryNames;
 }
 
 public immutable(BuildToCResult) buildToC(ReadOnlyStorage)(
@@ -299,7 +297,7 @@ public immutable(BuildToCResult) buildToC(ReadOnlyStorage)(
 				showDiagOptions,
 				programs.program.filesInfo,
 				programs.program.diagnostics),
-			emptyArr!string);
+			emptyArr!Sym);
 }
 
 public struct DocumentResult {
@@ -330,12 +328,18 @@ struct ConcreteAndLowProgram {
 }
 
 //TODO:RENAME
-struct ProgramsAndFilesInfo {
+public struct ProgramsAndFilesInfo {
+	@safe @nogc pure nothrow:
+
 	immutable Program program;
 	immutable Opt!ConcreteAndLowProgram concreteAndLowProgram;
+
+	ref immutable(LowProgram) lowProgram() return scope const {
+		return force(concreteAndLowProgram).lowProgram;
+	}
 }
 
-immutable(ProgramsAndFilesInfo) buildToLowProgram(ReadOnlyStorage)(
+public immutable(ProgramsAndFilesInfo) buildToLowProgram(ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllPaths allPaths,
@@ -351,15 +355,6 @@ immutable(ProgramsAndFilesInfo) buildToLowProgram(ReadOnlyStorage)(
 			some(immutable ConcreteAndLowProgram(concreteProgram, lower(alloc, perf, concreteProgram))));
 	} else
 		return immutable ProgramsAndFilesInfo(program, none!ConcreteAndLowProgram);
-}
-
-immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
-	ref Storage storage,
-	immutable PathAndStorageKind path,
-	immutable string extension,
-) {
-	immutable AbsolutePathsGetter abs = storage.absolutePathsGetter();
-	return getAbsolutePath(abs, path, extension);
 }
 
 immutable(string) showRepr(ref Alloc alloc, immutable Repr a, immutable PrintFormat format) {

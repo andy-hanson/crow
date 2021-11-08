@@ -3,10 +3,11 @@ module util.collection.str;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateBytes;
-import util.collection.arr : at, begin, freeArr, size;
+import util.collection.arr : at, begin, size;
 import util.collection.arrUtil : cat, compareArr, rtail, tail;
 import util.comparison : Comparison;
 import util.memory : memcpy;
+import util.opt : force, has, none, Opt, some;
 import util.util : verify;
 
 alias CStr = immutable(char)*;
@@ -22,10 +23,6 @@ immutable(NulTerminatedStr) emptyNulTerminatedStr() {
 
 @trusted private immutable(CStr) end(immutable CStr c) {
 	return *c == '\0' ? c : end(c + 1);
-}
-
-@system void freeCStr(ref Alloc alloc, immutable CStr c) {
-	freeArr(alloc, nulTerminatedStrOfCStr(c).str);
 }
 
 @trusted immutable(string) strOfCStr(immutable CStr c) {
@@ -67,6 +64,10 @@ immutable(string) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
 	return s.str.begin;
 }
 
+@trusted immutable(SafeCStr) asSafeCStr(immutable NulTerminatedStr s) {
+	return immutable SafeCStr(s.str.begin);
+}
+
 immutable(CStr) strToCStr(ref Alloc alloc, scope immutable string s) {
 	return copyToNulTerminatedStr(alloc, s).asCStr;
 }
@@ -86,8 +87,17 @@ immutable(bool) startsWith(immutable string a, immutable string b) {
 	return size(a) >= size(b) && strEq(a[0 .. size(b)], b);
 }
 
-immutable(CStr) catToCStr(ref Alloc alloc, immutable string a, immutable string b) {
-	return cStrOfNulTerminatedStr(catToNulTerminatedStr(alloc, a, b));
+immutable(bool) startsWith(immutable SafeCStr a, immutable string b) {
+	return startsWith(strOfSafeCStr(a), b);
+}
+
+immutable(bool) startsWith(immutable SafeCStr a, immutable SafeCStr b) {
+	immutable Opt!SafeCStr rest = restIfStartsWith(a, b);
+	return has(rest);
+}
+
+immutable(SafeCStr) catToSafeCStr(ref Alloc alloc, immutable string a, immutable string b) {
+	return asSafeCStr(catToNulTerminatedStr(alloc, a, b));
 }
 
 immutable(NulTerminatedStr) catToNulTerminatedStr(
@@ -98,8 +108,8 @@ immutable(NulTerminatedStr) catToNulTerminatedStr(
 	return catToNulTerminatedStr(alloc, a, b, "");
 }
 
-immutable(CStr) catToCStr(ref Alloc alloc, immutable string a, immutable string b, immutable string c) {
-	return cStrOfNulTerminatedStr(catToNulTerminatedStr(alloc, a, b, c));
+immutable(SafeCStr) catToSafeCStr(ref Alloc alloc, immutable string a, immutable string b, immutable string c) {
+	return asSafeCStr(catToNulTerminatedStr(alloc, a, b, c));
 }
 
 immutable(NulTerminatedStr) catToNulTerminatedStr(
@@ -116,6 +126,20 @@ immutable(NulTerminatedStr) catToNulTerminatedStr(
 struct SafeCStr {
 	//TODO:private:
 	immutable CStr inner;
+}
+
+immutable(bool) isEmpty(immutable SafeCStr a) {
+	return *a.inner == '\0';
+}
+
+immutable(char) first(immutable SafeCStr a) {
+	verify(!isEmpty(a));
+	return *a.inner;
+}
+
+@trusted immutable(SafeCStr) tail(immutable SafeCStr a) {
+	verify(!isEmpty(a));
+	return immutable SafeCStr(a.inner + 1);
 }
 
 immutable SafeCStr emptySafeCStr = immutable SafeCStr("");
@@ -138,4 +162,25 @@ immutable(string) strOfSafeCStr(immutable SafeCStr a) {
 
 immutable(SafeCStr) copySafeCStr(ref Alloc alloc, immutable SafeCStr a) {
 	return copyToSafeCStr(alloc, strOfSafeCStr(a));
+}
+
+immutable(bool) safeCStrEq(immutable SafeCStr a, immutable string b) {
+	return strEq(strOfSafeCStr(a), b);
+}
+
+immutable(bool) safeCStrEq(immutable SafeCStr a, immutable SafeCStr b) {
+	return safeCStrEq(a, strOfSafeCStr(b));
+}
+
+immutable(bool) safeCStrEqCat(immutable SafeCStr a, immutable SafeCStr b1, immutable string b2) {
+	immutable Opt!SafeCStr rest = restIfStartsWith(a, b1);
+	return has(rest) && safeCStrEq(force(rest), b2);
+}
+
+private immutable(Opt!SafeCStr) restIfStartsWith(immutable SafeCStr a, immutable SafeCStr b) {
+	return isEmpty(b)
+		? some(a)
+		: !isEmpty(a) && first(a) == first(b)
+		? restIfStartsWith(tail(a), tail(b))
+		: none!SafeCStr;
 }

@@ -95,15 +95,14 @@ import util.collection.arrUtil :
 	mapWithIndex;
 import util.collection.mutArr : MutArr, mutArrIsEmpty, push;
 import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
-import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
-import util.collection.str : compareStr, copyStr;
+import util.collection.mutSet : addToMutSetOkIfPresent;
 import util.comparison : Comparison;
 import util.late : Late, lateIsSet, lateSet, lateSetMaybeOverwrite, lateSetOverwrite, lazilySet;
 import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
+import util.sym : MutSymSet, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
 import util.types : Nat8, Nat16, safeSizeTToU8;
 import util.util : max, roundUp, todo, unreachable, verify;
 
@@ -238,7 +237,7 @@ struct ConcretizeCtx {
 	MutArr!DeferredRecordBody deferredRecords;
 	MutArr!DeferredUnionBody deferredUnions;
 	ArrBuilder!(immutable Ptr!ConcreteFun) allConcreteFuns;
-	MutSet!(immutable string, compareStr) allExternLibraryNames;
+	MutSymSet allExternLibraryNames;
 
 	// This will only have an entry while a ConcreteFun hasn't had it's body filled in yet.
 	MutDict!(
@@ -807,7 +806,7 @@ void fillInConcreteFunBody(
 			(ref immutable FunBody.Extern e) {
 				if (has(e.libraryName))
 					//TODO: don't always copy
-					addToMutSetOkIfPresent(alloc, ctx.allExternLibraryNames, copyStr(alloc, force(e.libraryName)));
+					addToMutSetOkIfPresent(alloc, ctx.allExternLibraryNames, force(e.libraryName));
 				return immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(e.isGlobal));
 			},
 			(ref immutable Expr e) =>

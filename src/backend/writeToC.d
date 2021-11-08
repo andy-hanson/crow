@@ -2,26 +2,27 @@ module backend.writeToC;
 
 @safe @nogc pure nothrow:
 
+import backend.mangle :
+	buildMangledNames,
+	MangledNames,
+	writeConstantArrStorageName,
+	writeConstantPointerStorageName,
+	writeLowFunMangledName,
+	writeLowLocalName,
+	writeLowParamName,
+	writeMangledName,
+	writeRecordName,
+	writeStructMangledName;
+import backend.writeTypes : TypeWriters, writeTypes;
 import interpret.debugging : writeFunName, writeFunSig;
 import lower.lowExprHelpers : boolType, voidType;
 import model.concreteModel :
 	body_,
 	BuiltinStructKind,
-	ConcreteFun,
-	ConcreteFunSource,
-	ConcreteLocal,
-	ConcreteLocalSource,
-	ConcreteParam,
-	ConcreteParamSource,
 	ConcreteStruct,
 	ConcreteStructBody,
-	ConcreteStructSource,
 	isExtern,
-	matchConcreteFunSource,
-	matchConcreteParamSource,
-	matchConcreteLocalSource,
 	matchConcreteStructBody,
-	matchConcreteStructSource,
 	TypeSize;
 import model.constant : asIntegral, Constant, matchConstant;
 import model.lowModel :
@@ -37,18 +38,14 @@ import model.lowModel :
 	isVoid,
 	LowExpr,
 	LowExprKind,
-	LowExternPtrType,
 	LowField,
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
 	LowFunIndex,
 	LowFunPtrType,
-	LowFunSource,
 	LowLocal,
-	LowLocalSource,
 	LowParam,
-	LowParamSource,
 	LowPtrCombine,
 	LowProgram,
 	LowRecord,
@@ -56,43 +53,20 @@ import model.lowModel :
 	LowUnion,
 	matchLowExprKind,
 	matchLowFunBody,
-	matchLowFunSource,
-	matchLowLocalSource,
-	matchLowParamSource,
 	matchLowType,
 	matchLowTypeCombinePtr,
 	name,
 	PointerTypeAndConstantsLow,
-	PrimitiveType,
-	regularParams;
-import model.model : EnumValue, FunInst, Local, name, Param;
+	PrimitiveType;
+import model.model : EnumValue, name;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : at, empty, emptyArr, first, only, setAt, size, sizeEq;
-import util.collection.arrUtil : arrLiteral, every, fillArr_mut, map, tail, zip;
-import util.collection.dict : Dict, getAt, mustGetAt;
-import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
-import util.collection.fullIndexDict :
-	FullIndexDict,
-	fullIndexDictEach,
-	fullIndexDictEachKey,
-	fullIndexDictEachValue,
-	fullIndexDictGet,
-	fullIndexDictGetPtr,
-	fullIndexDictSize;
-import util.collection.mutDict : insertOrUpdate, MutDict, setInDict;
-import util.opt : force, has, none, Opt, some;
-import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.sym :
-	compareSym,
-	eachCharInSym,
-	Operator,
-	operatorForSym,
-	shortSymAlphaLiteral,
-	shortSymAlphaLiteralValue,
-	Sym,
-	symEq,
-	writeSym;
+import util.collection.arr : at, empty, emptyArr, first, only, size, sizeEq;
+import util.collection.arrUtil : arrLiteral, every, map, tail, zip;
+import util.collection.dict : mustGetAt;
+import util.collection.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey, fullIndexDictGet, fullIndexDictGetPtr;
+import util.opt : force, has, some;
+import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.types : abs, i64OfU64Bits, Nat16;
 import util.util : drop, todo, unreachable, verify;
 import util.writer :
@@ -197,22 +171,10 @@ void declareConstantArrStorage(
 ) {
 	writeType(writer, ctx, elementType);
 	writeChar(writer, ' ');
-	writeConstantArrStorageName(writer, ctx, arrType, index);
+	writeConstantArrStorageName(writer, ctx.mangledNames, ctx.program, arrType, index);
 	writeChar(writer, '[');
 	writeNat(writer, nElements);
 	writeChar(writer, ']');
-}
-
-void writeConstantArrStorageName(
-	ref Writer writer,
-	ref immutable Ctx ctx,
-	immutable LowType.Record arrType,
-	immutable size_t index,
-) {
-	writeStatic(writer, "constant");
-	writeRecordName(writer, ctx, arrType);
-	writeChar(writer, '_');
-	writeNat(writer, index);
 }
 
 void declareConstantPointerStorage(
@@ -224,145 +186,7 @@ void declareConstantPointerStorage(
 	//TODO: some day we may support non-record pointee?
 	writeRecordType(writer, ctx, asRecordType(pointeeType));
 	writeChar(writer, ' ');
-	writeConstantPointerStorageName(writer, ctx, pointeeType, index);
-}
-
-void writeConstantPointerStorageName(
-	ref Writer writer,
-	ref immutable Ctx ctx,
-	immutable LowType pointeeType,
-	immutable size_t index,
-) {
-	writeStatic(writer, "constant");
-	writeRecordName(writer, ctx, asRecordType(pointeeType));
-	writeChar(writer, '_');
-	writeNat(writer, index);
-}
-
-struct MangledNames {
-	immutable Dict!(Ptr!ConcreteFun, size_t, comparePtr!ConcreteFun) funToNameIndex;
-	//TODO:PERF we could use separate FullIndexDict for record, union, etc.
-	immutable Dict!(Ptr!ConcreteStruct, size_t, comparePtr!ConcreteStruct) structToNameIndex;
-}
-
-struct PrevOrIndex(T) {
-	@safe @nogc pure nothrow:
-
-	@trusted immutable this(immutable Ptr!T a) { kind_ = Kind.prev; prev_ = a;}
-	immutable this(immutable size_t a) { kind_ = Kind.index; index_ = a; }
-
-	private:
-	enum Kind {
-		prev,
-		index,
-	}
-	immutable Kind kind_;
-	union {
-		immutable Ptr!T prev_;
-		immutable size_t index_;
-	}
-}
-
-@trusted T matchPrevOrIndex(T, P)(
-	ref immutable PrevOrIndex!P a,
-	scope T delegate(immutable Ptr!P) @safe @nogc pure nothrow cbPrev,
-	scope T delegate(immutable size_t) @safe @nogc pure nothrow cbIndex,
-) {
-	final switch (a.kind_) {
-		case PrevOrIndex!P.Kind.prev:
-			return cbPrev(a.prev_);
-		case PrevOrIndex!P.Kind.index:
-			return cbIndex(a.index_);
-	}
-}
-
-immutable(MangledNames) buildMangledNames(ref Alloc alloc, ref immutable LowProgram program) {
-	// First time we see a fun with a name, we'll store the fun-ptr here in case it's not overloaded.
-	// After that, we'll start putting them in funToNameIndex, and store the next index here.
-	MutDict!(immutable Sym, immutable PrevOrIndex!ConcreteFun, compareSym) funNameToIndex;
-	// This will not have an entry for non-overloaded funs.
-	DictBuilder!(Ptr!ConcreteFun, size_t, comparePtr!ConcreteFun) funToNameIndex;
-	// HAX: Ensure "main" has that name.
-	setInDict(alloc, funNameToIndex, shortSymAlphaLiteral("main"), immutable PrevOrIndex!ConcreteFun(0));
-	fullIndexDictEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref immutable LowFun it) {
-		matchLowFunSource!void(
-			it.source,
-			(immutable Ptr!ConcreteFun cf) {
-				matchConcreteFunSource!void(
-					cf.deref().source,
-					(ref immutable FunInst i) {
-						//TODO: use temp alloc
-						addToPrevOrIndex!ConcreteFun(alloc, funNameToIndex, funToNameIndex, cf, name(i));
-					},
-					(ref immutable ConcreteFunSource.Lambda) {},
-					(ref immutable ConcreteFunSource.Test) {});
-			},
-			(ref immutable LowFunSource.Generated it) {});
-	});
-
-	MutDict!(immutable Sym, immutable PrevOrIndex!ConcreteStruct, compareSym) structNameToIndex;
-	// This will not have an entry for non-overloaded structs.
-	DictBuilder!(Ptr!ConcreteStruct, size_t, comparePtr!ConcreteStruct) structToNameIndex;
-
-	void build(immutable Ptr!ConcreteStruct s) {
-		matchConcreteStructSource!void(
-			s.deref().source,
-			(ref immutable ConcreteStructSource.Inst it) {
-				addToPrevOrIndex!ConcreteStruct(alloc, structNameToIndex, structToNameIndex, s, name(it.inst.deref()));
-			},
-			(ref immutable ConcreteStructSource.Lambda) {});
-	}
-	fullIndexDictEachValue!(LowType.ExternPtr, LowExternPtrType)(
-		program.allExternPtrTypes,
-		(ref immutable LowExternPtrType it) {
-			build(it.source);
-		});
-	fullIndexDictEachValue!(LowType.FunPtr, LowFunPtrType)(
-		program.allFunPtrTypes,
-		(ref immutable LowFunPtrType it) {
-			build(it.source);
-		});
-	fullIndexDictEachValue!(LowType.Record, LowRecord)(
-		program.allRecords,
-		(ref immutable LowRecord it) {
-			build(it.source);
-		});
-	fullIndexDictEachValue!(LowType.Union, LowUnion)(
-		program.allUnions,
-		(ref immutable LowUnion it) {
-			build(it.source);
-		});
-
-	return immutable MangledNames(
-		finishDictShouldBeNoConflict(alloc, funToNameIndex),
-		finishDictShouldBeNoConflict(alloc, structToNameIndex));
-}
-
-void addToPrevOrIndex(T)(
-	ref Alloc alloc,
-	ref MutDict!(immutable Sym, immutable PrevOrIndex!T, compareSym) nameToIndex,
-	ref DictBuilder!(Ptr!T, size_t, comparePtr!T) toNameIndex,
-	immutable Ptr!T cur,
-	immutable Sym name,
-) {
-	insertOrUpdate!(immutable Sym, immutable PrevOrIndex!T, compareSym)(
-		alloc,
-		nameToIndex,
-		name,
-		() =>
-			immutable PrevOrIndex!T(cur),
-		(ref immutable PrevOrIndex!T it) =>
-			immutable PrevOrIndex!T(matchPrevOrIndex!(immutable size_t)(
-				it,
-				(immutable Ptr!T prev) {
-					addToDict(alloc, toNameIndex, prev, 0);
-					addToDict(alloc, toNameIndex, cur, 1);
-					return immutable size_t(2);
-				},
-				(immutable size_t index) {
-					addToDict(alloc, toNameIndex, cur, index);
-					return index + 1;
-				})));
+	writeConstantPointerStorageName(writer, ctx.mangledNames, ctx.program, pointeeType, index);
 }
 
 struct Ctx {
@@ -400,11 +224,14 @@ void writeType(ref Writer writer, ref immutable Ctx ctx, ref immutable LowType t
 		t,
 		(immutable LowType.ExternPtr it) {
 			writeStatic(writer, "struct ");
-			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allExternPtrTypes, it).source);
+			writeStructMangledName(
+				writer,
+				ctx.mangledNames,
+				fullIndexDictGet(ctx.program.allExternPtrTypes, it).source);
 			writeChar(writer, '*');
 		},
 		(immutable LowType.FunPtr it) {
-			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allFunPtrTypes, it).source);
+			writeStructMangledName(writer, ctx.mangledNames, fullIndexDictGet(ctx.program.allFunPtrTypes, it).source);
 		},
 		(immutable PrimitiveType it) {
 			writePrimitiveType(writer, it);
@@ -418,17 +245,13 @@ void writeType(ref Writer writer, ref immutable Ctx ctx, ref immutable LowType t
 		},
 		(immutable LowType.Union it) {
 			writeStatic(writer, "struct ");
-			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allUnions, it).source);
+			writeStructMangledName(writer, ctx.mangledNames, fullIndexDictGet(ctx.program.allUnions, it).source);
 		});
 }
 
 void writeRecordType(ref Writer writer, ref immutable Ctx ctx, immutable LowType.Record a) {
 	writeStatic(writer, "struct ");
-	writeRecordName(writer, ctx, a);
-}
-
-void writeRecordName(ref Writer writer, ref immutable Ctx ctx, immutable LowType.Record a) {
-	writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allRecords, a).source);
+	writeRecordName(writer, ctx.mangledNames, ctx.program, a);
 }
 
 void writeCastToType(ref Writer writer, ref immutable Ctx ctx, ref immutable LowType type) {
@@ -443,32 +266,9 @@ void doWriteParam(ref Writer writer, ref immutable Ctx ctx, ref immutable LowPar
 	writeLowParamName(writer, a);
 }
 
-void writeLowParamName(ref Writer writer, ref immutable LowParam a) {
-	matchLowParamSource!void(
-		a.source,
-		(ref immutable ConcreteParam cp) {
-			matchConcreteParamSource!void(
-				cp.source,
-				(ref immutable ConcreteParamSource.Closure) {
-					writeStatic(writer, "_closure");
-				},
-				(ref immutable Param p) {
-					if (has(p.name))
-						writeMangledName(writer, force(p.name));
-					else {
-						writeStatic(writer, "_p");
-						writeNat(writer, p.index);
-					}
-				});
-		},
-		(ref immutable LowParamSource.Generated it) {
-			writeMangledName(writer, it.name);
-		});
-}
-
 void writeStructHead(ref Writer writer, ref immutable Ctx ctx, immutable Ptr!ConcreteStruct source) {
 	writeStatic(writer, "struct ");
-	writeStructMangledName(writer, ctx, source);
+	writeStructMangledName(writer, ctx.mangledNames, source);
 	writeStatic(writer, " {");
 }
 
@@ -523,65 +323,9 @@ void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion
 	writeStructEnd(writer);
 }
 
-enum StructState {
-	none,
-	declared,
-	defined,
-}
-
-struct StructStates {
-	bool[] funPtrStates; // No need to define, just declared or not
-	StructState[] recordStates;
-	StructState[] unionStates;
-}
-
-immutable(bool) canReferenceTypeAsValue(
-	ref immutable Ctx ctx,
-	ref const StructStates states,
-	ref immutable LowType t,
-) {
-	return matchLowTypeCombinePtr!(immutable bool)(
-		t,
-		(immutable LowType.ExternPtr) =>
-			// Declared all up front
-			true,
-		(immutable LowType.FunPtr it) =>
-			at(states.funPtrStates, it.index),
-		(immutable PrimitiveType) =>
-			true,
-		(immutable LowPtrCombine it) =>
-			canReferenceTypeAsPointee(ctx, states, it.pointee),
-		(immutable LowType.Record it) =>
-			at(states.recordStates, it.index) == StructState.defined,
-		(immutable LowType.Union it) =>
-			at(states.unionStates, it.index) == StructState.defined);
-}
-
-immutable(bool) canReferenceTypeAsPointee(
-	ref immutable Ctx ctx,
-	ref const StructStates states,
-	ref immutable LowType t,
-) {
-	return matchLowTypeCombinePtr!(immutable bool)(
-		t,
-		(immutable LowType.ExternPtr) =>
-			// Declared all up front
-			true,
-		(immutable LowType.FunPtr it) =>
-			at(states.funPtrStates, it.index),
-		(immutable PrimitiveType) =>
-			true,
-		(immutable LowPtrCombine it) =>
-			canReferenceTypeAsPointee(ctx, states, it.pointee),
-		(immutable LowType.Record it) =>
-			at(states.recordStates, it.index) != StructState.none,
-		(immutable LowType.Union it) =>
-			at(states.unionStates, it.index) != StructState.none);
-}
-
 void declareStruct(ref Writer writer, ref immutable Ctx ctx, immutable Ptr!ConcreteStruct source) {
 	writeStatic(writer, "struct ");
-	writeStructMangledName(writer, ctx, source);
+	writeStructMangledName(writer, ctx.mangledNames, source);
 	writeStatic(writer, ";\n");
 }
 
@@ -604,202 +348,32 @@ void staticAssertStructSize(
 	writeStatic(writer, ", \"\");\n");
 }
 
-void writeStructMangledName(
-	ref Writer writer,
-	ref immutable Ctx ctx,
-	immutable Ptr!ConcreteStruct source,
-) {
-	matchConcreteStructSource!void(
-		source.deref().source,
-		(ref immutable ConcreteStructSource.Inst it) {
-			writeMangledName(writer, name(it.inst.deref()));
-			maybeWriteIndexSuffix(writer, getAt(ctx.mangledNames.structToNameIndex, source));
-		},
-		(ref immutable ConcreteStructSource.Lambda it) {
-			writeFunMangledName(writer, ctx, it.containingFun);
-			writeStatic(writer, "__lambda");
-			writeNat(writer, it.index);
-		});
-}
-
-void writeLowFunMangledName(
-	ref Writer writer,
-	ref immutable Ctx ctx,
-	immutable LowFunIndex funIndex,
-	ref immutable LowFun fun,
-) {
-	matchLowFunSource!void(
-		fun.source,
-		(immutable Ptr!ConcreteFun it) {
-			writeFunMangledName(writer, ctx, it);
-		},
-		(ref immutable LowFunSource.Generated it) {
-			writeMangledName(writer, it.name);
-			if (!symEq(it.name, shortSymAlphaLiteral("main"))) {
-				writeChar(writer, '_');
-				writeNat(writer, funIndex.index);
-			}
-		});
-}
-
-void writeFunMangledName(ref Writer writer, ref immutable Ctx ctx, immutable Ptr!ConcreteFun source) {
-	matchConcreteFunSource!void(
-		source.deref().source,
-		(ref immutable FunInst it) {
-			immutable Sym name = name(it);
-			if (isExtern(body_(source.deref())))
-				writeSym(writer, name);
-			else {
-				writeMangledName(writer, name);
-				maybeWriteIndexSuffix(writer, getAt(ctx.mangledNames.funToNameIndex, source));
-			}
-		},
-		(ref immutable ConcreteFunSource.Lambda it) {
-			writeFunMangledName(writer, ctx, it.containingFun);
-			writeStatic(writer, "__lambda");
-			writeNat(writer, it.index);
-		},
-		(ref immutable ConcreteFunSource.Test it) {
-			writeStatic(writer, "__test");
-			writeNat(writer, it.index);
-		});
-}
-
-void maybeWriteIndexSuffix(ref Writer writer, immutable Opt!size_t index) {
-	if (has(index)) {
-		writeChar(writer, '_');
-		writeNat(writer, force(index));
-	}
-}
-
-immutable(bool) tryWriteFunPtrDeclaration(
-	ref Writer writer,
-	ref immutable Ctx ctx,
-	ref const StructStates structStates,
-	immutable LowType.FunPtr funPtrIndex,
-) {
-	immutable LowFunPtrType funPtr = fullIndexDictGet(ctx.program.allFunPtrTypes, funPtrIndex);
-	immutable bool canDeclare =
-		canReferenceTypeAsPointee(ctx, structStates, funPtr.returnType) &&
-		every!LowType(funPtr.paramTypes, (ref immutable LowType it) =>
-			canReferenceTypeAsPointee(ctx, structStates, it));
-	if (canDeclare) {
-		writeStatic(writer, "typedef ");
-		writeType(writer, ctx, funPtr.returnType);
-		writeStatic(writer, " (*");
-		writeStructMangledName(writer, ctx, funPtr.source);
-		writeStatic(writer, ")(");
-		writeWithCommas!LowType(writer, funPtr.paramTypes, (ref immutable LowType paramType) {
-			writeType(writer, ctx, paramType);
-		});
-		writeStatic(writer, ");\n");
-	}
-	return canDeclare;
-}
-
-immutable(StructState) writeRecordDeclarationOrDefinition(
-	ref Writer writer,
-	ref immutable Ctx ctx,
-	ref const StructStates structStates,
-	immutable StructState prevState,
-	immutable LowType.Record recordIndex,
-) {
-	verify(prevState != StructState.defined);
-	immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, recordIndex);
-	immutable bool canWriteFields = every!LowField(record.fields, (ref immutable LowField f) =>
-		canReferenceTypeAsValue(ctx, structStates, f.type));
-	if (canWriteFields) {
-		writeRecord(writer, ctx, record);
-		return StructState.defined;
-	} else {
-		declareStruct(writer, ctx, record.source);
-		return StructState.declared;
-	}
-}
-
-immutable(StructState) writeUnionDeclarationOrDefinition(
-	ref Writer writer,
-	ref immutable Ctx ctx,
-	ref const StructStates structStates,
-	immutable StructState prevState,
-	immutable LowType.Union unionIndex,
-) {
-	verify(prevState != StructState.defined);
-	immutable LowUnion union_ = fullIndexDictGet(ctx.program.allUnions, unionIndex);
-	if (every!LowType(union_.members, (ref immutable LowType t) => canReferenceTypeAsValue(ctx, structStates, t))) {
-		writeUnion(writer, ctx, union_);
-		return StructState.defined;
-	} else {
-		declareStruct(writer, ctx, union_.source);
-		return StructState.declared;
-	}
-}
-
 void writeStructs(ref Alloc alloc, ref Writer writer, ref immutable Ctx ctx) {
 	writeStatic(writer, "\nstruct void_ {};\n");
 
-	// Write extern-ptr types first
-	fullIndexDictEachValue!(LowType.ExternPtr, LowExternPtrType)(
-		ctx.program.allExternPtrTypes,
-		(ref immutable LowExternPtrType it) {
-			declareStruct(writer, ctx, it.source);
+	scope immutable TypeWriters writers = immutable TypeWriters(
+		(immutable Ptr!ConcreteStruct it) {
+			declareStruct(writer, ctx, it);
+		},
+		(immutable LowType.FunPtr, ref immutable LowFunPtrType funPtr) {
+			writeStatic(writer, "typedef ");
+			writeType(writer, ctx, funPtr.returnType);
+			writeStatic(writer, " (*");
+			writeStructMangledName(writer, ctx.mangledNames, funPtr.source);
+			writeStatic(writer, ")(");
+			writeWithCommas!LowType(writer, funPtr.paramTypes, (ref immutable LowType paramType) {
+				writeType(writer, ctx, paramType);
+			});
+			writeStatic(writer, ");\n");
+		},
+		(immutable LowType.Record, ref immutable LowRecord record) {
+			writeRecord(writer, ctx, record);
+		},
+		(immutable LowType.Union, ref immutable LowUnion union_) {
+			writeUnion(writer, ctx, union_);
 		});
+	writeTypes(alloc, ctx.program, writers);
 
-	StructStates structStates = StructStates(
-		fillArr_mut!bool(alloc, fullIndexDictSize(ctx.program.allFunPtrTypes), (immutable size_t) =>
-			false),
-		fillArr_mut!StructState(alloc, fullIndexDictSize(ctx.program.allRecords), (immutable size_t) =>
-			StructState.none),
-		fillArr_mut!StructState(alloc, fullIndexDictSize(ctx.program.allUnions), (immutable size_t) =>
-			StructState.none));
-	for (;;) {
-		bool madeProgress = false;
-		bool someIncomplete = false;
-		fullIndexDictEachKey!(LowType.FunPtr, LowFunPtrType)(
-			ctx.program.allFunPtrTypes,
-			(immutable LowType.FunPtr funPtrIndex) {
-				immutable bool curState = at(structStates.funPtrStates, funPtrIndex.index);
-				if (!curState) {
-					if (tryWriteFunPtrDeclaration(writer, ctx, structStates, funPtrIndex)) {
-						setAt(structStates.funPtrStates, funPtrIndex.index, true);
-						madeProgress = true;
-					} else
-						someIncomplete = true;
-				}
-			});
-		//TODO: each over structStates.recordStates once that's a MutFullIndexDict
-		fullIndexDictEachKey!(LowType.Record, LowRecord)(
-			ctx.program.allRecords,
-			(immutable LowType.Record recordIndex) {
-				immutable StructState curState = at(structStates.recordStates, recordIndex.index);
-				if (curState != StructState.defined) {
-					immutable StructState didWork = writeRecordDeclarationOrDefinition(
-						writer, ctx, structStates, curState, recordIndex);
-					if (didWork > curState) {
-						setAt(structStates.recordStates, recordIndex.index, didWork);
-						madeProgress = true;
-					} else
-						someIncomplete = true;
-				}
-			});
-		//TODO: each over structStates.unionStates once that's a MutFullIndexDict
-		fullIndexDictEachKey!(LowType.Union, LowUnion)(ctx.program.allUnions, (immutable LowType.Union unionIndex) {
-			immutable StructState curState = at(structStates.unionStates, unionIndex.index);
-			if (curState != StructState.defined) {
-				immutable StructState didWork = writeUnionDeclarationOrDefinition(
-					writer, ctx, structStates, curState, unionIndex);
-				if (didWork > curState) {
-					setAt(structStates.unionStates, unionIndex.index, didWork);
-					madeProgress = true;
-				} else
-					someIncomplete = true;
-			}
-		});
-		if (someIncomplete)
-			verify(madeProgress);
-		else
-			break;
-	}
 	writeChar(writer, '\n');
 
 	void assertSize(immutable LowType t) {
@@ -826,7 +400,7 @@ void writeFunReturnTypeNameAndParams(
 	else
 		writeType(writer, ctx, fun.returnType);
 	writeChar(writer, ' ');
-	writeLowFunMangledName(writer, ctx, funIndex, fun);
+	writeLowFunMangledName(writer, ctx.mangledNames, funIndex, fun);
 	if (!isGlobal(fun.body_)) {
 		writeChar(writer, '(');
 		if (empty(fun.params))
@@ -1013,7 +587,7 @@ void writeDeclareLocal(
 	writeNewline(writer, indent);
 	writeType(writer, ctx.ctx, local.type);
 	writeChar(writer, ' ');
-	writeLocalRef(writer, local);
+	writeLowLocalName(writer, local);
 }
 
 struct WriteKind {
@@ -1193,6 +767,11 @@ immutable(WriteExprResult) writeExpr(
 					writeTempOrInline(writer, tempAlloc, ctx, it.arg, arg);
 				});
 			}),
+		(ref immutable LowExprKind.InitConstants) =>
+			writeReturnVoid(writer, indent, ctx, writeKind, () {
+				// writeToC doesn't need to do anything in 'init-constants'
+				writeChar(writer, '0');
+			}),
 		(ref immutable LowExprKind.Let it) {
 			if (!isInline(writeKind)) {
 				writeDeclareLocal(writer, indent, ctx, it.local.deref());
@@ -1205,7 +784,7 @@ immutable(WriteExprResult) writeExpr(
 		},
 		(ref immutable LowExprKind.LocalRef it) =>
 			inlineableSimple(() {
-				writeLocalRef(writer, it.local.deref());
+				writeLowLocalName(writer, it.local.deref());
 			}),
 		(ref immutable LowExprKind.MatchUnion it) =>
 			writeMatchUnion(writer, tempAlloc, indent, ctx, writeKind, type, it),
@@ -1300,7 +879,7 @@ immutable(WriteExprResult) writeNonInlineable(
 		(ref immutable WriteKind.InlineOrTemp) =>
 			makeTemp(),
 		(immutable Ptr!LowLocal it) {
-			writeLocalRef(writer, it.deref());
+			writeLowLocalName(writer, it.deref());
 			writeStatic(writer, " = ");
 			return writeExprDone();
 		},
@@ -1448,7 +1027,7 @@ immutable(WriteExprResult) writeCallExpr(
 		if (isCVoid)
 			//TODO: this is unnecessary if writeKind is not 'expr'
 			writeChar(writer, '(');
-		writeLowFunMangledName(writer, ctx.ctx, a.called, called.deref());
+		writeLowFunMangledName(writer, ctx.ctx.mangledNames, a.called, called.deref());
 		if (!isGlobal(called.deref().body_)) {
 			writeChar(writer, '(');
 			writeTempOrInlines(writer, tempAlloc, ctx, a.args, args);
@@ -1466,7 +1045,7 @@ void writeTailRecur(
 	ref FunBodyCtx ctx,
 	ref immutable LowExprKind.TailRecur a,
 ) {
-	immutable LowParam[] params = regularParams(fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun));
+	immutable LowParam[] params = fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params;
 	immutable WriteExprResult[] args = writeExprsTempOrInline(writer, tempAlloc, indent, ctx, a.args);
 	zip!(LowParam, LowExpr, WriteExprResult)(
 		params,
@@ -1502,30 +1081,7 @@ void writeCreateUnion(
 }
 
 void writeFunPtr(ref Writer writer, ref immutable Ctx ctx, immutable LowFunIndex a) {
-	writeLowFunMangledName(writer, ctx, a, fullIndexDictGet(ctx.program.allFuns, a));
-}
-
-void writeLocalRef(ref Writer writer, ref immutable LowLocal a) {
-	matchLowLocalSource!void(
-		a.source,
-		(ref immutable ConcreteLocal it) {
-			matchConcreteLocalSource!void(
-				it.source,
-				(ref immutable ConcreteLocalSource.Arr) {
-					writeStatic(writer, "_arr");
-				},
-				(ref immutable Local it) {
-					writeMangledName(writer, it.name);
-				},
-				(ref immutable ConcreteLocalSource.Matched) {
-					writeStatic(writer, "_matched");
-				});
-			writeNat(writer, it.index);
-		},
-		(ref immutable LowLocalSource.Generated it) {
-			writeMangledName(writer, it.name);
-			writeNat(writer, it.index);
-		});
+	writeLowFunMangledName(writer, ctx.mangledNames, a, fullIndexDictGet(ctx.program.allFuns, a));
 }
 
 void writeParamRef(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowExprKind.ParamRef a) {
@@ -1683,7 +1239,7 @@ void writeConstantRef(
 			if (size == 0)
 				writeStatic(writer, "NULL");
 			else
-				writeConstantArrStorageName(writer, ctx, asRecordType(type), it.index);
+				writeConstantArrStorageName(writer, ctx.mangledNames, ctx.program, asRecordType(type), it.index);
 			writeChar(writer, '}');
 		},
 		(immutable Constant.BoolConstant it) {
@@ -1732,7 +1288,7 @@ void writeConstantRef(
 		},
 		(immutable Constant.Pointer it) {
 			writeChar(writer, '&');
-			writeConstantPointerStorageName(writer, ctx, asPtrGcPointee(type), it.index);
+			writeConstantPointerStorageName(writer, ctx.mangledNames, ctx.program, asPtrGcPointee(type), it.index);
 		},
 		(ref immutable Constant.Record it) {
 			immutable LowField[] fields = fullIndexDictGet(ctx.program.allRecords, asRecordType(type)).fields;
@@ -1883,14 +1439,15 @@ immutable(WriteExprResult) writeSpecialUnary(
 }
 
 void writeLValue(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowExpr expr) {
-	matchLowExprKind(
+	matchLowExprKind!void(
 		expr.kind,
 		(ref immutable LowExprKind.Call) => unreachable!void(),
 		(ref immutable LowExprKind.CreateRecord) => unreachable!void(),
 		(ref immutable LowExprKind.CreateUnion) => unreachable!void(),
+		(ref immutable LowExprKind.InitConstants) => unreachable!void(),
 		(ref immutable LowExprKind.Let) => unreachable!void(),
 		(ref immutable LowExprKind.LocalRef it) {
-			writeLocalRef(writer, it.local.deref());
+			writeLowLocalName(writer, it.local.deref());
 		},
 		(ref immutable LowExprKind.MatchUnion) => unreachable!void(),
 		(ref immutable LowExprKind.ParamRef it) {
@@ -1902,7 +1459,7 @@ void writeLValue(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowE
 			writeRecordFieldRef(writer, ctx, it.targetIsPointer, it.record, it.fieldIndex);
 		},
 		(ref immutable LowExprKind.RecordFieldSet) => unreachable!void(),
-		(ref immutable LowExprKind.Seq) => todo!void("!"),
+		(ref immutable LowExprKind.Seq) => unreachable!void(),
 		(ref immutable LowExprKind.SizeOf) => unreachable!void(),
 		(ref immutable Constant) => unreachable!void(),
 		(ref immutable LowExprKind.SpecialUnary it) {
@@ -2004,7 +1561,7 @@ immutable(WriteExprResult) writeSpecialBinary(
 	final switch (it.kind) {
 		case LowExprKind.SpecialBinary.Kind.addFloat32:
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
-		case LowExprKind.SpecialBinary.Kind.addPtr:
+		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt16:
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt32:
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt64:
@@ -2094,7 +1651,7 @@ immutable(WriteExprResult) writeSpecialBinary(
 				it.left,
 				it.right);
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
-		case LowExprKind.SpecialBinary.Kind.subPtrNat:
+		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt16:
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt32:
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt64:
@@ -2123,7 +1680,6 @@ immutable(WriteExprResult) writeSpecialBinary(
 				writeStatic(writer, " = ");
 				writeTempOrInline(writer, tempAlloc, ctx, it.right, temp1);
 			});
-			break;
 	}
 }
 
@@ -2240,19 +1796,6 @@ immutable(WriteExprResult) writeSpecialTrinary(
 			writeNewline(writer, indent);
 			writeChar(writer, '}');
 			return nested.result;
-		case LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool:
-			immutable Temp temp0 = arg0();
-			immutable Temp temp1 = arg1();
-			immutable Temp temp2 = arg2();
-			return writeNonInlineable(writer, indent, ctx, writeKind, type, () {
-				writeStatic(writer, "atomic_compare_exchange_strong(");
-				writeTempRef(writer, temp0);
-				writeStatic(writer, ", ");
-				writeTempRef(writer, temp1);
-				writeStatic(writer, ", ");
-				writeTempRef(writer, temp2);
-				writeChar(writer, ')');
-			});
 	}
 }
 
@@ -2309,99 +1852,4 @@ void writePrimitiveType(ref Writer writer, immutable PrimitiveType a) {
 				return "struct void_";
 		}
 	}());
-}
-
-void writeMangledName(ref Writer writer, immutable Sym name) {
-	immutable Opt!Operator operator = operatorForSym(name);
-	if (has(operator)) {
-		writeStatic(writer, () {
-			final switch (force(operator)) {
-				case Operator.concatEquals:
-					return "_concatEquals";
-				case Operator.or2:
-					return "_or2";
-				case Operator.and2:
-					return "_and2";
-				case Operator.equal:
-					return "_equal";
-				case Operator.notEqual:
-					return "_notEqual";
-				case Operator.less:
-					return "_less";
-				case Operator.lessOrEqual:
-					return "_lessOrEqual";
-				case Operator.greater:
-					return "_greater";
-				case Operator.greaterOrEqual:
-					return "_greaterOrEqual";
-				case Operator.compare:
-					return "_compare";
-				case Operator.or1:
-					return "_or";
-				case Operator.xor1:
-					return "_xor";
-				case Operator.and1:
-					return "_and";
-				case Operator.arrow:
-					return "_arrow";
-				case Operator.range:
-					return "_range";
-				case Operator.tilde:
-					return "_tilde";
-				case Operator.shiftLeft:
-					return "_shiftLeft";
-				case Operator.shiftRight:
-					return "_shiftRight";
-				case Operator.plus:
-					return "_plus";
-				case Operator.minus:
-					return "_minus";
-				case Operator.times:
-					return "_times";
-				case Operator.divide:
-					return "_divide";
-				case Operator.exponent:
-					return "_exponent";
-				case Operator.not:
-					return "_not";
-			}
-		}());
-	} else {
-		if (conflictsWithCName(name))
-			writeChar(writer, '_');
-		eachCharInSym(name, (immutable char c) {
-			switch (c) {
-				case '-':
-					writeChar(writer, '_');
-					break;
-				case '?':
-					writeStatic(writer, "__q");
-					break;
-				case '!':
-					writeStatic(writer, "__e");
-					break;
-				default:
-					writeChar(writer, c);
-					break;
-			}
-		});
-	}
-}
-
-immutable(bool) conflictsWithCName(immutable Sym name) {
-	switch (name.value) {
-		case shortSymAlphaLiteralValue("atomic-bool"): // avoid conflicting with c's "atomic_bool" type
-		case shortSymAlphaLiteralValue("break"):
-		case shortSymAlphaLiteralValue("continue"):
-		case shortSymAlphaLiteralValue("default"):
-		case shortSymAlphaLiteralValue("double"):
-		case shortSymAlphaLiteralValue("float"):
-		case shortSymAlphaLiteralValue("for"):
-		case shortSymAlphaLiteralValue("int"):
-		case shortSymAlphaLiteralValue("void"):
-		case shortSymAlphaLiteralValue("while"):
-			return true;
-		default:
-			return false;
-	}
 }

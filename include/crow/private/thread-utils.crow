@@ -6,71 +6,44 @@ import
 		pthread_condattr_t, pthread_cond_broadcast, pthread_cond_destroy, pthread_cond_init,
 		pthread_cond_t, pthread_cond_timedwait, pthread_cond_wait, pthread_create, pthread_join,
 		pthread_mutexattr_destroy, pthread_mutexattr_init, pthread_mutexattr_t,
-		pthread_mutex_destroy, pthread_mutex_init, pthread_mutex_lock, pthread_mutex_t,
+		pthread_mutex_destroy, pthread_mutex_init, pthread_mutex_lock, pthread_mutex_trylock, pthread_mutex_t,
 		pthread_mutex_unlock, pthread_t
-	sched: sched_yield
 	time: CLOCK_MONOTONIC
-	../bool: !, bool, false, true
+	../bool: bool
 	../cell: *, cell, new
 	../compare: !=
 	../extra-types: err-t
 	../fun: fun-ptr1, subscript
 	../io/time-low-level: timestamp, to-timespec
-	../ptr: ==, any-mut-ptr, by-val, mut-ptr, null, ptr-to, ref-of-val
+	../ptr: ==, any-mut-ptr, by-val, null, ptr-to, ref-of-val
 	./bootstrap:
-		atomic-bool, hard-assert, hard-forbid, is-locked, nat64, new, opt, todo, value, void,
-		zeroed
+		hard-assert, hard-forbid, mutex, nat64, new, opt, todo, void, zeroed
 	./number-low-level: ==, wrap-add, wrap-sub
 export
 	./bootstrap: lock
 
-region atomic
+new lock() trusted
+	res lock = (0, 0, 0, 0, 0),
+	attr by-val pthread_mutexattr_t = zeroed
+	mutex = res.mutex ref-of-val
+	hard-assert-posix-error: mutex pthread_mutex_init attr.ref-of-val
+	res
 
-new by-val atomic-bool() noctx
-	false,
-
-# TODO: works on any primitive type, not just bool
-compare-exchange-strong bool(value-ptr bool mut*, expected-ptr bool mut*, desired bool) noctx builtin
-
-try-change! bool(a atomic-bool, old-value bool) noctx trusted
-	a.value.ptr-to compare-exchange-strong old-value.ptr-to, !old-value
-
-try-set! bool(a atomic-bool) noctx
-	a try-change! false
-
-try-unset! bool(a atomic-bool) noctx
-	a try-change! true
-
-must-unset! void(a atomic-bool) noctx unsafe
-	did-unset = a try-unset!
-	did-unset hard-assert
-
-new lock()
-	(),
-
-lock-by-val by-val lock() noctx
-	(),
+lock-by-val by-val lock() noctx trusted
+	res by-val lock = (0, 0, 0, 0, 0),
+	attr by-val pthread_mutexattr_t = zeroed
+	mutex = res.ref-of-val.mutex ref-of-val
+	hard-assert-posix-error: mutex pthread_mutex_init attr.ref-of-val
+	res
 
 try-acquire! bool(a lock) noctx trusted
-	a.is-locked.ref-of-val try-set!
+	a.mutex.ref-of-val.pthread_mutex_trylock == 0
 
 acquire! void(a lock) noctx unsafe
-	a acquire-recur! 0
-
-.acquire-recur! void(a lock, n-tries nat64) noctx unsafe
-	if !a.try-acquire!
-		if n-tries == 10000
-			todo
-		else
-			yield-thread
-			a acquire-recur! (n-tries wrap-add 1)
-
-yield-thread void() noctx unsafe
-	err = sched_yield
-	hard-assert: err == 0
+	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_lock
 
 release! void(a lock) noctx unsafe
-	a.is-locked.ref-of-val must-unset!
+	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_unlock
 
 with-lock<a> a(a lock, f act a()) trusted
 	a acquire!

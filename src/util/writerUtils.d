@@ -3,7 +3,7 @@ module util.writerUtils;
 @safe @nogc pure nothrow:
 
 import util.collection.arr : size;
-import util.collection.str : startsWith;
+import util.collection.str : SafeCStr, startsWith, strOfSafeCStr;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter;
 import util.opt : force, has, Opt;
 import util.path : AbsolutePath, AllPaths, baseName, nParents, parent, path, Path, PathAndStorageKind, RelPath;
@@ -28,18 +28,20 @@ private void writePath(
 void writePathRelativeToCwd(
 	ref Writer writer,
 	ref const AllPaths allPaths,
-	immutable string cwd,
+	immutable SafeCStr cwdCStr,
 	ref immutable AbsolutePath path,
 ) {
-	if (startsWith(path.root, cwd) &&
-		(size(path.root) == size(cwd) || (size(path.root) > size(cwd) + 1 && path.root[size(cwd)] == '/'))) {
+	immutable string cwd = strOfSafeCStr(cwdCStr);
+	immutable string root = strOfSafeCStr(path.root);
+	if (startsWith(root, cwd) &&
+		(size(root) == size(cwd) || (size(root) > size(cwd) + 1 && root[size(cwd)] == '/'))) {
 		writeStatic(writer, "./");
-		if (size(path.root) != size(cwd)) {
-			writeStr(writer, path.root[size(cwd) + 1 .. $]);
+		if (size(root) != size(cwd)) {
+			writeStr(writer, root[size(cwd) + 1 .. $]);
 			writeChar(writer, '/');
 		}
 	} else {
-		writeStr(writer, path.root);
+		writeStr(writer, root);
 		writeChar(writer, '/');
 	}
 	writePath(writer, allPaths, path.path);

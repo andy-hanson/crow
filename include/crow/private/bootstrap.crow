@@ -318,13 +318,9 @@ fut-state-callbacks<a> record mut
 
 region lock
 
-atomic-bool record force-sendable
-	value mut bool
-
-# TODO: use pthread lock
 lock record sendable
 	by-ref
-	is-locked by-val atomic-bool
+	mutex by-val pthread_mutex_t
 
 region reflect
 
@@ -338,3 +334,14 @@ static-syms sym[]() noctx builtin
 
 # all named functions in arbitrary order
 all-funs named-val<any-const-ptr>[]() noctx unsafe builtin
+
+pthread_mutex_t record force-sendable
+	by-ref
+	# TODO:PRIVATE
+	n0 mut nat64
+	n1 mut nat64
+	n2 mut nat64
+	n3 mut nat64
+	n4 mut nat64
+
+pthread_mutex_lock int32(mutex pthread_mutex_t) noctx unsafe extern

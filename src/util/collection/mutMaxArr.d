@@ -29,6 +29,12 @@ void push(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, T value) {
 	a.size_++;
 }
 
+T mustPop(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
+	verify(a.size_ != 0);
+	a.size_--;
+	return a.values[a.size_];
+}
+
 ref const(T) only_const(size_t maxSize, T)(ref const MutMaxArr!(maxSize, T) a) {
 	verify(a.size_ == 1);
 	return a.values[0];

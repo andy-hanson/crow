@@ -2,8 +2,6 @@ module interpret.applyFn;
 
 @safe @nogc pure nothrow:
 
-import core.atomic : cas;
-
 import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
 import util.collection.globalAllocatedStack : pop, push;
@@ -43,10 +41,6 @@ void applyFn(scope ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 		case FnOp.bitwiseXor:
 			binary(dataStack, (immutable ulong a, immutable ulong b) =>
 				immutable Nat64(a ^ b));
-			break;
-		case FnOp.compareExchangeStrongBool:
-			trinary(dataStack, (immutable ulong a, immutable ulong b, immutable ulong c) =>
-				compareExchangeStrongBool(a, b, c));
 			break;
 		case FnOp.countOnesNat64:
 			unary(dataStack, (immutable ulong a) =>
@@ -186,13 +180,6 @@ pure immutable(Nat64) nat64OfI64(immutable long a) {
 
 private:
 
-pure @trusted immutable(ulong) compareExchangeStrongBool(immutable ulong a, immutable ulong b, immutable ulong c) {
-	bool* valuePtr = cast(bool*) a;
-	immutable bool expected = *(cast(immutable bool*) b);
-	immutable bool desired = cast(immutable bool) c;
-	return cas(valuePtr, expected, desired);
-}
-
 pure immutable(Nat64) u64OfBool(immutable bool value) {
 	return immutable Nat64(value ? 1 : 0);
 }
@@ -208,16 +195,6 @@ void binary(
 	immutable ulong b = pop(dataStack).raw();
 	immutable ulong a = pop(dataStack).raw();
 	push(dataStack, cb(a, b));
-}
-
-void trinary(
-	ref DataStack dataStack,
-	scope immutable(ulong) delegate(immutable ulong, immutable ulong, immutable ulong) @safe @nogc pure nothrow cb,
-) {
-	immutable ulong c = pop(dataStack).raw();
-	immutable ulong b = pop(dataStack).raw();
-	immutable ulong a = pop(dataStack).raw();
-	push(dataStack, immutable Nat64(cb(a, b, c)));
 }
 
 void binaryFloat32s(

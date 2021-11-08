@@ -8,7 +8,7 @@ import interpret.runBytecode : DataStack;
 import test.testUtil : expectDataStack, Test;
 import util.collection.globalAllocatedStack : clearStack, pushAll;
 import util.types : Nat64, u64OfFloat32Bits, u64OfFloat64Bits;
-import util.util : verify,verifyEq;
+import util.util : verify;
 
 void testApplyFn(ref Test test) {
 	immutable Nat64 one = immutable Nat64(1); // https://issues.dlang.org/show_bug.cgi?id=17778
@@ -35,8 +35,6 @@ void testApplyFn(ref Test test) {
 
 	testFn(test, [immutable Nat64(0b0101), immutable Nat64(0b0011)], FnOp.bitwiseAnd, [immutable Nat64(0b0001)]);
 	testFn(test, [immutable Nat64(0b0101), immutable Nat64(0b0011)], FnOp.bitwiseOr, [immutable Nat64(0b0111)]);
-
-	testCompareExchangeStrong(test);
 
 	testFn(
 		test,
@@ -107,23 +105,6 @@ void testApplyFn(ref Test test) {
 }
 
 private:
-
-@trusted void testCompareExchangeStrong(ref Test test) {
-	bool b0 = false;
-	bool b1 = false;
-	immutable Nat64 b0Ptr = immutable Nat64(cast(immutable ulong) &b0);
-	immutable Nat64 b1Ptr = immutable Nat64(cast(immutable ulong) &b1);
-	testFn(test, [b0Ptr, b1Ptr, immutable Nat64(1)], FnOp.compareExchangeStrongBool, [immutable Nat64(1)]);
-	verifyEq(b0, true);
-	verifyEq(b1, false);
-
-	b0 = false;
-	b1 = true;
-
-	testFn(test, [b0Ptr, b1Ptr, immutable Nat64(1)], FnOp.compareExchangeStrongBool, [immutable Nat64(0)]);
-	verifyEq(b0, false);
-	verifyEq(b1, true);
-}
 
 immutable(Nat64) u64OfI8Bits(immutable byte a) {
 	return immutable Nat64(cast(ulong) (cast(ubyte) a));

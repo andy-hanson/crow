@@ -34,8 +34,7 @@ import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belo
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.dbg : log, logNoNewline;
-import util.collection.arr : begin, freeArr, last, ptrAt, sizeNat;
-import util.collection.arrUtil : mapWithFirst;
+import util.collection.arr : begin, last, ptrAt, sizeNat;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.globalAllocatedStack :
 	asTempArr,
@@ -57,11 +56,11 @@ import util.collection.globalAllocatedStack :
 	stackRef,
 	stackSize,
 	toArr;
-import util.collection.str : CStr, freeCStr, strToCStr;
+import util.collection.str : SafeCStr;
 import util.dbg : Debug;
 import util.memory : allocate, memcpy, memmove, memset, overwriteMemory;
 import util.opt : has;
-import util.path : AbsolutePath, AllPaths, pathToCStr;
+import util.path : AllPaths;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
 import util.repr : writeReprNoNewline;
 import util.sourceRange : FileAndPos;
@@ -87,23 +86,13 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 	ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
 	ref immutable FilesInfo filesInfo,
-	ref immutable AbsolutePath executablePath,
-	ref immutable string[] args,
+	immutable SafeCStr[] allArgs,
 ) {
 	Interpreter!Extern interpreter = Interpreter!Extern(
 		ptrTrustMe_mut(extern_),
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
 		ptrTrustMe(filesInfo));
-
-	immutable CStr firstArg = pathToCStr(tempAlloc, allPaths, executablePath);
-	immutable CStr[] allArgs = mapWithFirst!(CStr, string)(tempAlloc, firstArg, args, (ref immutable string arg) =>
-		strToCStr(tempAlloc, arg));
-	scope(exit) {
-		foreach (immutable CStr arg; allArgs)
-			freeCStr(tempAlloc, arg);
-		freeArr(tempAlloc, allArgs);
-	}
 
 	push(interpreter.dataStack, sizeNat(allArgs)); // TODO: this is an i32, add safety checks
 	// These need to be CStrs

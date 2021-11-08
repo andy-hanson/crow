@@ -21,6 +21,7 @@ struct BuiltinKind {
 	struct AllFuns {}
 	struct As {}
 	struct GetCtx {}
+	struct InitConstants {}
 	struct PtrCast {}
 	struct SizeOf {}
 	struct StaticSyms {}
@@ -30,6 +31,7 @@ struct BuiltinKind {
 	immutable this(immutable As a) { kind_ = Kind.as; as_ = a; }
 	immutable this(immutable GetCtx a) { kind_ = Kind.getCtx; getCtx_ = a; }
 	@trusted immutable this(immutable Constant a) { kind_ = Kind.constant; constant_ = a; }
+	immutable this(immutable InitConstants a) { kind_ = Kind.initConstants; initConstants_ = a; }
 	immutable this(immutable LowExprKind.SpecialUnary.Kind a) { kind_ = Kind.unary; unary_ = a; }
 	immutable this(immutable LowExprKind.SpecialBinary.Kind a) { kind_ = Kind.binary; binary_ = a; }
 	immutable this(immutable LowExprKind.SpecialTrinary.Kind a) { kind_ = Kind.trinary; trinary_ = a; }
@@ -45,6 +47,7 @@ struct BuiltinKind {
 		as,
 		getCtx,
 		constant,
+		initConstants,
 		unary,
 		binary,
 		trinary,
@@ -60,6 +63,7 @@ struct BuiltinKind {
 		immutable As as_;
 		immutable GetCtx getCtx_;
 		immutable Constant constant_;
+		immutable InitConstants initConstants_;
 		immutable LowExprKind.SpecialUnary.Kind unary_;
 		immutable LowExprKind.SpecialBinary.Kind binary_;
 		immutable LowExprKind.SpecialTrinary.Kind trinary_;
@@ -77,6 +81,7 @@ struct BuiltinKind {
 	scope T delegate(ref immutable BuiltinKind.As) @safe @nogc pure nothrow cbAs,
 	scope T delegate(ref immutable BuiltinKind.GetCtx) @safe @nogc pure nothrow cbGetCtx,
 	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
+	scope T delegate(ref immutable BuiltinKind.InitConstants) @safe @nogc pure nothrow cbInitConstants,
 	scope T delegate(immutable LowExprKind.SpecialUnary.Kind) @safe @nogc pure nothrow cbUnary,
 	scope T delegate(immutable LowExprKind.SpecialBinary.Kind) @safe @nogc pure nothrow cbBinary,
 	scope T delegate(immutable LowExprKind.SpecialTrinary.Kind) @safe @nogc pure nothrow cbTrinary,
@@ -95,6 +100,8 @@ struct BuiltinKind {
 			return cbGetCtx(a.getCtx_);
 		case BuiltinKind.Kind.constant:
 			return cbConstant(a.constant_);
+		case BuiltinKind.Kind.initConstants:
+			return cbInitConstants(a.initConstants_);
 		case BuiltinKind.Kind.unary:
 			return cbUnary(a.unary_);
 		case BuiltinKind.Kind.binary:
@@ -158,14 +165,14 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialBinary.Kind.addFloat32
 				: isFloat64(rt)
 				? LowExprKind.SpecialBinary.Kind.addFloat64
-				: isPtrRawMut(rt)
-				? LowExprKind.SpecialBinary.Kind.addPtr
+				: isPtrRawMut(rt) && isPtrRawMut(p0) && isNat64(p1)
+				? LowExprKind.SpecialBinary.Kind.addPtrAndNat64
 				: failBinary());
 		case operatorSymValue(Operator.minus):
 			return binary(isFloat64(rt)
 				? LowExprKind.SpecialBinary.Kind.subFloat64
-				: isPtrRawMut(p0) && isNat64(p1)
-				? LowExprKind.SpecialBinary.Kind.subPtrNat
+				: isPtrRawMut(rt) && isPtrRawMut(p0) && isNat64(p1)
+				? LowExprKind.SpecialBinary.Kind.subPtrAndNat64
 				: failBinary());
 		case operatorSymValue(Operator.times):
 			return isPtrRawMut(p0)
@@ -408,8 +415,8 @@ immutable(BuiltinKind) getBuiltinKind(
 		default:
 			if (symEqLongAlphaLiteral(name, "as-any-mut-ptr"))
 				return unary(LowExprKind.SpecialUnary.Kind.asAnyPtr);
-			if (symEqLongAlphaLiteral(name, "compare-exchange-strong"))
-				return trinary(LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool);
+			else if (symEqLongAlphaLiteral(name, "init-constants"))
+				return immutable BuiltinKind(immutable BuiltinKind.InitConstants());
 			else if (symEqLongAlphaLiteral(name, "ptr-cast-from-extern")
 				|| symEqLongAlphaLiteral(name, "ptr-cast-to-extern"))
 				return immutable BuiltinKind(immutable BuiltinKind.PtrCast());

@@ -128,7 +128,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Nat16;
+import util.types : Nat16, safeSizeTToU8;
 import util.util : unreachable, verify;
 
 immutable(LowProgram) lower(ref Alloc alloc, ref Perf perf, ref immutable ConcreteProgram a) {
@@ -141,7 +141,12 @@ private immutable(LowProgram) lowerInner(ref Alloc alloc, ref immutable Concrete
 	immutable AllLowFuns allFuns = getAllLowFuns(alloc, allTypes.allTypes, allTypes.getLowTypeCtx, a);
 	immutable AllConstantsLow allConstants = convertAllConstants(alloc, allTypes.getLowTypeCtx, a.allConstants);
 	immutable LowProgram res = immutable LowProgram(
-		allFuns.concreteFunToLowFunIndex, allConstants, allTypes.allTypes, allFuns.allLowFuns, allFuns.main);
+		allFuns.concreteFunToLowFunIndex,
+		allConstants,
+		allTypes.allTypes,
+		allFuns.allLowFuns,
+		allFuns.main,
+		a.allExternLibraryNames);
 	checkLowProgram(alloc, res);
 	return res;
 }
@@ -816,8 +821,8 @@ immutable(LowFun) lowFunFromCause(
 			immutable Opt!LowParamIndex closureParamIndex = has(cf.deref().closureParam)
 				? some(immutable LowParamIndex(() {
 					final switch (cf.deref().needsCtx) {
-						case NeedsCtx.no: return 0;
-						case NeedsCtx.yes: return 1;
+						case NeedsCtx.no: return immutable ubyte(0);
+						case NeedsCtx.yes: return immutable ubyte(1);
 					}
 				}()))
 				: none!LowParamIndex;
@@ -1153,7 +1158,7 @@ immutable(LowExprKind) getCallExpr(
 				case NeedsCtx.no:
 					return none!LowExpr;
 				case NeedsCtx.yes:
-					return isTailRecur ? none!LowExpr : some(getCtxParamRef(alloc, ctx, range));
+					return some(getCtxParamRef(alloc, ctx, range));
 			}
 		}();
 		immutable LowExpr[] args = mapWithOptFirst(alloc, ctxArg, a.args, (ref immutable ConcreteExpr it) =>
@@ -1306,6 +1311,8 @@ immutable(LowExprKind) getCallBuiltinExpr(
 			immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.ctxParam))),
 		(ref immutable Constant it) =>
 			immutable LowExprKind(it),
+		(ref immutable BuiltinKind.InitConstants) =>
+			immutable LowExprKind(immutable LowExprKind.InitConstants()),
 		(immutable LowExprKind.SpecialUnary.Kind kind) {
 			verify(size(a.args) == 1);
 			return immutable LowExprKind(
@@ -1331,8 +1338,6 @@ immutable(LowExprKind) getCallBuiltinExpr(
 			verify(size(a.args) == 3);
 			immutable ExprPos arg12Pos = () {
 				final switch (kind) {
-					case LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool:
-						return ExprPos.nonTail;
 					case LowExprKind.SpecialTrinary.Kind.if_:
 						return exprPos;
 				}
@@ -1486,7 +1491,7 @@ immutable(LowExprKind) getParamRefExpr(
 		return immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.closureParam)));
 	} else {
 		immutable LowParamIndex param =
-			immutable LowParamIndex(ctx.firstRegularParam.index + force(a.param.deref().index));
+			immutable LowParamIndex(safeSizeTToU8(ctx.firstRegularParam.index + force(a.param.deref().index)));
 		return immutable LowExprKind(immutable LowExprKind.ParamRef(param));
 	}
 }

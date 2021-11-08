@@ -54,7 +54,7 @@ immutable(LowExpr) genAddPtr(
 		immutable LowType(ptrType),
 		range,
 		immutable LowExprKind(allocate(alloc, immutable LowExprKind.SpecialBinary(
-			LowExprKind.SpecialBinary.Kind.addPtr,
+			LowExprKind.SpecialBinary.Kind.addPtrAndNat64,
 			ptr,
 			added))));
 }

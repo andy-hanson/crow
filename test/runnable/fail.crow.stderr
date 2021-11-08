@@ -1,9 +1,9 @@
 uncaught exception: FOO
+	at backtrace-and-get-n-code-ptrs
 	at get-backtrace
 	at throw
 	at bar
 	at foo
 	at main
-	at *
-	at call-with-ctx
 	at subscript
+	at call-with-ctx

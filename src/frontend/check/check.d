@@ -176,7 +176,7 @@ import util.collection.exactSizeArrBuilder :
 import util.collection.multiDict : multiDictEach, multiDictGetAt;
 import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.collection.mutDict : insertOrUpdate, moveToDict, MutDict;
-import util.collection.str : copySafeCStr, copyStr, emptySafeCStr;
+import util.collection.str : copySafeCStr, emptySafeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, OptPtr, some, someMut, toOpt;
 import util.perf : Perf;
@@ -1341,10 +1341,8 @@ immutable(FunsAndDict) checkFuns(
 				if (!fun.deref().noCtx)
 					todo!void("'extern' fun must be 'noctx'");
 				if (e.isGlobal && arityIsNonZero(arity(fun.deref())))
-					todo!void("'extern' fun has parameters");
-				return immutable FunBody(immutable FunBody.Extern(
-					e.isGlobal,
-					has(e.libraryName) ? some(copyStr(alloc, force(e.libraryName))) : none!string));
+					todo!void("'global' fun has parameters");
+				return immutable FunBody(immutable FunBody.Extern(e.isGlobal, e.libraryName));
 			},
 			(ref immutable ExprAst e) {
 				immutable Ptr!FunDecl f = castImmutable(fun);

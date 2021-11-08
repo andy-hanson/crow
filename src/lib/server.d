@@ -13,11 +13,11 @@ import interpret.fakeExtern : FakeExtern;
 import model.parseDiag : ParseDiagnostic;
 import model.model : Program;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, emptyArr, freeArr;
+import util.collection.arr : at, freeArr;
 import util.collection.arrUtil : map;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
-import util.collection.str : copyToNulTerminatedStr, CStr, cStrOfNulTerminatedStr, NulTerminatedStr;
+import util.collection.str : copyToNulTerminatedStr, CStr, cStrOfNulTerminatedStr, NulTerminatedStr, SafeCStr;
 import util.comparison : Comparison;
 import util.dbg : Debug;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
@@ -170,11 +170,11 @@ immutable(RunResult) run(
 	immutable PathAndStorageKind main = immutable PathAndStorageKind(toPath(server, mainPathStr), StorageKind.local);
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
-	immutable string[] programArgs = emptyArr!string;
+	scope immutable SafeCStr[1] allArgs = [immutable SafeCStr("/usr/bin/fakeExecutable")];
 	FakeExtern extern_ = FakeExtern(ptrTrustMe_mut(alloc));
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
 	immutable ExitCode err = buildAndInterpret(
-		alloc, dbg, perf, server.allPaths, server.allSymbols, storage, extern_, showDiagOptions, main, programArgs);
+		alloc, dbg, perf, server.allPaths, server.allSymbols, storage, extern_, showDiagOptions, main, allArgs);
 	return immutable RunResult(err, extern_.moveStdout(), extern_.moveStderr());
 }
 

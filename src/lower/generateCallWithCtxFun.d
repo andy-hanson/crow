@@ -62,7 +62,7 @@ immutable(LowFun) generateCallWithCtxFun(
 				localRef(alloc, range, closureLocal),
 				nonFunNonCtxParamTypes,
 				(immutable size_t i, ref immutable LowType paramType) =>
-					paramRef(range, paramType, immutable LowParamIndex(i + 2)));
+					paramRef(range, paramType, immutable LowParamIndex(safeSizeTToU8(i + 2))));
 			immutable LowExpr then = immutable LowExpr(returnType, range, immutable LowExprKind(
 				immutable LowExprKind.Call(mustGetAt(concreteFunToLowFunIndex, impl.impl), args)));
 			return immutable LowExprKind.MatchUnion.Case(some(closureLocal), then);

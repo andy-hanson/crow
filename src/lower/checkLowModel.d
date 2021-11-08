@@ -8,6 +8,7 @@ import model.lowModel :
 	asFunPtrType,
 	asRecordType,
 	asUnionType,
+	isVoid,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -118,6 +119,9 @@ void checkLowExpr(
 				it.memberIndex);
 			checkLowExpr(alloc, ctx, member, it.arg);
 		},
+		(ref immutable LowExprKind.InitConstants) {
+			verify(isVoid(type));
+		},
 		(ref immutable LowExprKind.Let it) {
 			checkLowExpr(alloc, ctx, it.local.deref().type, it.value);
 			checkLowExpr(alloc, ctx, type, it.then);
@@ -187,9 +191,6 @@ void checkLowExpr(
 					checkLowExpr(alloc, ctx, type, it.p1);
 					checkLowExpr(alloc, ctx, type, it.p2);
 					break;
-				case LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool:
-					// TODO
-					break;
 			}
 		},
 		(ref immutable LowExprKind.SpecialNAry it) {
@@ -218,8 +219,9 @@ void checkLowExpr(
 			foreach (ref immutable LowExpr case_; it.cases)
 				checkLowExpr(alloc, ctx, type, case_);
 		},
-		(ref immutable LowExprKind.TailRecur) {
-			// TODO
+		(ref immutable LowExprKind.TailRecur it) {
+			verify(sizeEq(ctx.fun.params, it.args));
+			// TODO:more
 		},
 		(ref immutable LowExprKind.Zeroed) {});
 }

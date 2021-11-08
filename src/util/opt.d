@@ -7,19 +7,36 @@ import util.util : verify;
 
 struct OptPtr(T) {
 	private:
-	T* value_;
+	void* value_;
 }
 
 immutable(OptPtr!T) somePtr(T)(immutable Ptr!T a) {
 	return immutable OptPtr!T(a.rawPtr());
 }
 
+OptPtr!T somePtr_mut(T)(Ptr!T a) {
+	return OptPtr!T(a.rawPtr());
+}
+
 immutable(OptPtr!T) nonePtr(T)() {
 	return immutable OptPtr!T(null);
 }
 
-immutable(Opt!(Ptr!T)) toOpt(T)(immutable OptPtr!T a) {
-	return a.value_ == null ? none!(Ptr!T) : some(immutable Ptr!T(a.value_));
+OptPtr!T nonePtr_mut(T)() {
+	return OptPtr!T(null);
+}
+
+immutable(bool) has(T)(const OptPtr!T a) {
+	return a.value_ != null;
+}
+
+@trusted inout(Ptr!T) forcePtr(T)(inout OptPtr!T a) {
+	verify(has(a));
+	return Ptr!T(cast(T*) a.value_);
+}
+
+@trusted immutable(Opt!(Ptr!T)) toOpt(T)(immutable OptPtr!T a) {
+	return has(a) ? some(forcePtr!T(a)) : none!(Ptr!T);
 }
 
 struct Opt(T) {

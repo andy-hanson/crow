@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc;
 import util.ptr : Ptr;
 import util.collection.arr : at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr;
+import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr, SafeCStr;
 import util.ptr : PtrRange;
 import util.types : abs, IntN, NatN;
 import util.util : verify;
@@ -25,6 +25,10 @@ immutable(string) finishWriter(ref Writer writer) {
 immutable(CStr) finishWriterToCStr(ref Writer writer) {
 	writeChar(writer, '\0');
 	return cStrOfNulTerminatedStr(immutable NulTerminatedStr(finishWriter(writer)));
+}
+
+immutable(SafeCStr) finishWriterToSafeCStr(ref Writer writer) {
+	return immutable SafeCStr(finishWriterToCStr(writer));
 }
 
 void writeChar(ref Writer writer, immutable char c) {

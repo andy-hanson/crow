@@ -23,7 +23,7 @@ import
 	./exception-low-level: exception-ctx
 	./log-low-level: log-ctx
 	./number-low-level:
-		==, <=>, int32, nat64, to-int64, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat64,
+		==, <=>, int32, int64, nat64, to-int64, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat64,
 		wrap-add, wrap-sub
 	./perf-low-level: perf-ctx
 	./runtime:
@@ -37,6 +37,7 @@ import
 
 # Treated specially by the compiler
 rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
+	do-init-constants
 	n-threads = get_nprocs
 	f = false
 	gctx-by-val by-val global-ctx = lbv, lbv, lbv, none, empty-arr, n-threads, create-condition, f, f
@@ -50,8 +51,11 @@ rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summ
 
 	n-threads run-threads gctx
 
-	gctx-by-val.ref-of-val.may-be-work-to-do.ref-of-val destroy-condition
+	gctx.may-be-work-to-do.ref-of-val destroy-condition
 
+	gctx exit-code-from-main-fut main-fut
+
+.exit-code-from-main-fut exit-code(gctx global-ctx, main-fut fut nat64) unsafe noctx
 	match main-fut state
 	as fut-state-no-callbacks
 		# Should never happen
@@ -64,10 +68,20 @@ rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summ
 		if gctx any-unhandled-exceptions
 			1
 		else
-			r.unsafe-to-int64.unsafe-to-int32
+			r.nat64-to-int64 unsafe-to-int32
 	as fut-state-exception _
 		# 'handle-exceptions' should have logged the error
 		1
+
+# TODO:INLINE
+nat64-to-int64 int64(a nat64) unsafe noctx
+	a unsafe-to-int64
+
+# TODO:KILL (using this to narrow down scope of error)
+.do-init-constants void() unsafe noctx summon
+	init-constants
+
+init-constants void() unsafe noctx summon builtin
 
 .lbv by-val lock() noctx
 	lock-by-val
@@ -112,9 +126,8 @@ body
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for fut<void> taking lambda with 0 params
 	res = delay then-void () =>
-		# First argument is the path to this executable.
-		args = all-args tail
-		main-ptr[get-ctx, args map arg => arg to-str]
+		# First argument is the path to this executable; omit from crow main
+		main-ptr[get-ctx, all-args.tail map arg => arg to-str]
 	res handle-exceptions
 	res
 

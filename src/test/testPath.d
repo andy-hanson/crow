@@ -3,7 +3,7 @@ module test.testPath;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.collection.str : strEq;
+import util.collection.str : SafeCStr, strEq;
 import util.comparison : Comparison;
 import util.path : childPath, comparePath, AllPaths, Path, pathToStr, rootPath;
 import util.util : verify;
@@ -15,13 +15,13 @@ void testPath(ref Test test) {
 	verify(comparePath(a, a) == Comparison.equal);
 	verify(comparePath(a, b) == Comparison.less);
 
-	verify(strEq(pathToStr(test.alloc, allPaths, "", a, ""), "/a"));
-	verify(strEq(pathToStr(test.alloc, allPaths, "", b, ""), "/b"));
+	verify(strEq(pathToStr(test.alloc, allPaths, immutable SafeCStr(""), a, ""), "/a"));
+	verify(strEq(pathToStr(test.alloc, allPaths, immutable SafeCStr(""), b, ""), "/b"));
 
 	immutable Path aX = childPath(allPaths, a, "x");
 	verify(childPath(allPaths, a, "x") == aX);
 	immutable Path aY = childPath(allPaths, a, "y");
 	verify(aX != aY);
-	verify(strEq(pathToStr(test.alloc, allPaths, "", aX, ""), "/a/x"));
-	verify(strEq(pathToStr(test.alloc, allPaths, "", aY, ""), "/a/y"));
+	verify(strEq(pathToStr(test.alloc, allPaths, immutable SafeCStr(""), aX, ""), "/a/x"));
+	verify(strEq(pathToStr(test.alloc, allPaths, immutable SafeCStr(""), aY, ""), "/a/y"));
 }

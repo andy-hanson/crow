@@ -5,7 +5,14 @@ module util.path;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.collection.arr : at, first, size;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
-import util.collection.str : asCStr, copyStr, CStr, NulTerminatedStr, strEq;
+import util.collection.str :
+	asSafeCStr,
+	copyStr,
+	copyToSafeCStr,
+	NulTerminatedStr,
+	SafeCStr,
+	strEq,
+	strOfSafeCStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
 import util.opt : has, force, forceOrTodo, mapOption, none, Opt, some;
 import util.ptr : Ptr;
@@ -27,7 +34,7 @@ struct Path {
 }
 
 struct AbsolutePath {
-	immutable string root;
+	immutable SafeCStr root;
 	immutable Path path;
 	immutable string extension;
 }
@@ -181,12 +188,13 @@ private size_t pathToStrSize(ref const AllPaths allPaths, immutable Path path) {
 private @trusted immutable(string) pathToStrWorker(
 	ref Alloc alloc,
 	ref const AllPaths allPaths,
-	immutable string root,
+	immutable SafeCStr rootCStr,
 	immutable uint rootMultiple,
 	immutable Path path,
 	immutable string extension,
 	immutable bool nulTerminated,
 ) {
+	immutable string root = strOfSafeCStr(rootCStr);
 	immutable size_t sz = size(root) * rootMultiple +
 		pathToStrSize(allPaths, path) +
 		size(extension) +
@@ -233,7 +241,7 @@ immutable(string) absOrRelPathToStr(
 	return matchAbsOrRelPath(
 		a,
 		(immutable Path global) =>
-			pathToStr(alloc, allPaths, "", global, ""),
+			pathToStr(alloc, allPaths, immutable SafeCStr(""), global, ""),
 		(immutable RelPath relPath) =>
 			relPathToStr(alloc, allPaths, relPath));
 }
@@ -244,28 +252,28 @@ private immutable(string) relPathToStr(
 	ref immutable RelPath a,
 ) {
 	return a.nParents_ == immutable Nat8(0)
-		? pathToStrWorker(alloc, allPaths, "./", 1, a.path_, "", false)
-		: pathToStrWorker(alloc, allPaths, "../", a.nParents_.raw(), a.path_, "", false);
+		? pathToStrWorker(alloc, allPaths, immutable SafeCStr("./"), 1, a.path_, "", false)
+		: pathToStrWorker(alloc, allPaths, immutable SafeCStr("../"), a.nParents_.raw(), a.path_, "", false);
 }
 
 immutable(string) pathToStr(
 	ref Alloc alloc,
 	ref const AllPaths allPaths,
-	immutable string root,
+	immutable SafeCStr root,
 	immutable Path path,
 	immutable string extension,
 ) {
 	return pathToStrWorker(alloc, allPaths, root, 1, path, extension, false);
 }
 
-immutable(CStr) pathToCStr(
+immutable(SafeCStr) pathToSafeCStr(
 	ref Alloc alloc,
 	ref const AllPaths allPaths,
-	immutable string root,
+	immutable SafeCStr root,
 	immutable Path path,
 	immutable string extension,
 ) {
-	return pathToNulTerminatedStr(alloc, allPaths, root, path, extension).asCStr();
+	return asSafeCStr(pathToNulTerminatedStr(alloc, allPaths, root, path, extension));
 }
 
 immutable(NulTerminatedStr) pathToNulTerminatedStr(
@@ -279,7 +287,7 @@ immutable(NulTerminatedStr) pathToNulTerminatedStr(
 private immutable(NulTerminatedStr) pathToNulTerminatedStr(
 	ref Alloc alloc,
 	ref const AllPaths allPaths,
-	immutable string root,
+	immutable SafeCStr root,
 	immutable Path path,
 	immutable string extension,
 ) {
@@ -293,12 +301,12 @@ immutable(string) pathToStr(
 ) {
 	return pathToStr(alloc, allPaths, path.root, path.path, path.extension);
 }
-immutable(CStr) pathToCStr(
+immutable(SafeCStr) pathToSafeCStr(
 	ref Alloc alloc,
 	ref const AllPaths allPaths,
 	ref immutable AbsolutePath path,
 ) {
-	return pathToNulTerminatedStr(alloc, allPaths, path.root, path.path, path.extension).asCStr();
+	return pathToNulTerminatedStr(alloc, allPaths, path.root, path.path, path.extension).asSafeCStr();
 }
 
 immutable(Path) parsePath(ref AllPaths allPaths, scope ref immutable string str) {
@@ -359,28 +367,32 @@ immutable(string) baseName(ref const AllPaths allPaths, ref immutable AbsolutePa
 }
 
 immutable(AbsolutePath) parseAbsoluteOrRelPath(
+	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable string cwd,
-	immutable string s,
+	immutable SafeCStr cwd,
+	immutable SafeCStr s,
 ) {
-	immutable StrAndExtension se = removeExtension(s);
-	immutable RootAndPath rp = parseAbsoluteOrRelPathWithoutExtension(allPaths, cwd, se.withoutExtension);
+	immutable StrAndExtension se = removeExtension(strOfSafeCStr(s));
+	immutable RootAndPath rp = parseAbsoluteOrRelPathWithoutExtension(alloc, allPaths, cwd, se.withoutExtension);
 	return immutable AbsolutePath(rp.root, rp.path, se.extension);
 }
 
 private immutable(RootAndPath) parseAbsoluteOrRelPathWithoutExtension(
+	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable string cwd,
+	immutable SafeCStr cwd,
 	immutable string s,
 ) {
 	switch (first(s)) {
 		case '.':
 			//TODO: handle parse error (return none if so)
 			immutable RelPath rp = parseRelPath(allPaths, s);
-			return immutable RootAndPath(dropParents(allPaths, cwd, rp.nParents_), rp.path_);
+			return immutable RootAndPath(
+				copyToSafeCStr(alloc, dropParents(allPaths, strOfSafeCStr(cwd), rp.nParents_)),
+				rp.path_);
 		case '/':
 			immutable Path path = parsePath(allPaths, s);
-			return immutable RootAndPath("", path);
+			return immutable RootAndPath(immutable SafeCStr(""), path);
 		case '\\':
 			return todo!(immutable RootAndPath)("unc path?");
 		default:
@@ -419,7 +431,7 @@ private immutable(StrAndExtension) removeExtension(immutable string s) {
 
 // AbsolutePath with no extension
 private struct RootAndPath {
-	immutable string root;
+	immutable SafeCStr root;
 	immutable Path path;
 }
 
