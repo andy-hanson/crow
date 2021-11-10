@@ -817,10 +817,14 @@ immutable(ExprResult) toGccExpr(
 		a.kind,
 		(ref immutable LowExprKind.Call it) =>
 			callToGcc(ctx, emit, a.type, it),
+		(ref immutable LowExprKind.CallFunPtr it) =>
+			callFunPtrToGcc(ctx, emit, a, it),
 		(ref immutable LowExprKind.CreateRecord it) =>
 			createRecordToGcc(ctx, emit, a, it),
 		(ref immutable LowExprKind.CreateUnion it) =>
 			createUnionToGcc(ctx, emit, a, it),
+		(ref immutable LowExprKind.If it) =>
+			ifToGcc(ctx, emit, a.type, it.cond, it.then, it.else_),
 		(ref immutable LowExprKind.InitConstants) =>
 			initConstantsToGcc(ctx, emit),
 		(ref immutable LowExprKind.Let it) =>
@@ -847,10 +851,6 @@ immutable(ExprResult) toGccExpr(
 			unaryToGcc(ctx, emit, a, it),
 		(ref immutable LowExprKind.SpecialBinary it) =>
 			binaryToGcc(ctx, emit, a, it),
-		(ref immutable LowExprKind.SpecialTrinary it) =>
-			trinaryToGcc(ctx, emit, a, it),
-		(ref immutable LowExprKind.SpecialNAry it) =>
-			nAryToGcc(ctx, emit, a, it),
 		(ref immutable LowExprKind.Switch0ToN it) =>
 			switch0ToNToGcc(ctx, emit, a, it),
 		(ref immutable LowExprKind.SwitchWithValues) =>
@@ -904,15 +904,14 @@ void emitToLValue(ref ExprCtx ctx, Ptr!gcc_jit_lvalue lvalue, ref immutable LowE
 @trusted immutable(ExprResult) callFunPtrToGcc(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
-	immutable LowType type,
-	immutable LowExpr funPtr,
-	immutable LowExpr[] args,
+	ref immutable LowExpr expr,
+	ref immutable LowExprKind.CallFunPtr a,
 ) {
-	immutable Ptr!gcc_jit_rvalue funPtrGcc = emitToRValue(ctx, funPtr);
+	immutable Ptr!gcc_jit_rvalue funPtrGcc = emitToRValue(ctx, a.funPtr);
 	//TODO:NO ALLOC
-	immutable Ptr!gcc_jit_rvalue[] argsGcc = map!(Ptr!gcc_jit_rvalue)(ctx.alloc, args, (ref immutable LowExpr arg) =>
+	immutable Ptr!gcc_jit_rvalue[] argsGcc = map!(Ptr!gcc_jit_rvalue)(ctx.alloc, a.args, (ref immutable LowExpr arg) =>
 		emitToRValue(ctx, arg));
-	return emitSimpleYesSideEffects(ctx, emit, type, gcc_jit_context_new_call_through_ptr(
+	return emitSimpleYesSideEffects(ctx, emit, expr.type, gcc_jit_context_new_call_through_ptr(
 		ctx.gcc,
 		null,
 		funPtrGcc,
@@ -1661,18 +1660,6 @@ immutable(ExprResult) ptrArithmeticToGcc(
 		null));
 }
 
-@trusted immutable(ExprResult) trinaryToGcc(
-	ref ExprCtx ctx,
-	ref ExprEmit emit,
-	ref immutable LowExpr expr,
-	ref immutable LowExprKind.SpecialTrinary a,
-) {
-	final switch (a.kind) {
-		case LowExprKind.SpecialTrinary.Kind.if_:
-			return ifToGcc(ctx, emit, expr.type, a.p0, a.p1, a.p2);
-	}
-}
-
 immutable(ExprResult) ifToGcc(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
@@ -1704,18 +1691,6 @@ immutable(ExprResult) ifToGcc(
 			branch(thenBlock, then);
 			branch(elseBlock, else_);
 		});
-}
-
-immutable(ExprResult) nAryToGcc(
-	ref ExprCtx ctx,
-	ref ExprEmit emit,
-	ref immutable LowExpr expr,
-	ref immutable LowExprKind.SpecialNAry a,
-) {
-	final switch (a.kind) {
-		case LowExprKind.SpecialNAry.Kind.callFunPtr:
-			return callFunPtrToGcc(ctx, emit, expr.type, at(a.args, 0), tail(a.args));
-	}
 }
 
 immutable(ExprResult) switch0ToNToGcc(
@@ -1811,8 +1786,10 @@ Ptr!gcc_jit_lvalue getLValue(ref ExprCtx ctx, ref immutable LowExpr expr) {
 	return matchLowExprKind!(Ptr!gcc_jit_lvalue)(
 		expr.kind,
 		(ref immutable LowExprKind.Call) => unreachable!(Ptr!gcc_jit_lvalue)(),
+		(ref immutable LowExprKind.CallFunPtr) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.CreateRecord) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.CreateUnion) => unreachable!(Ptr!gcc_jit_lvalue)(),
+		(ref immutable LowExprKind.If) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.InitConstants) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.Let) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.LocalRef it) =>
@@ -1832,8 +1809,6 @@ Ptr!gcc_jit_lvalue getLValue(ref ExprCtx ctx, ref immutable LowExpr expr) {
 				? gcc_jit_rvalue_dereference(emitToRValue(ctx, it.arg), null)
 				: todo!(Ptr!gcc_jit_lvalue)("!"),
 		(ref immutable LowExprKind.SpecialBinary) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.SpecialTrinary) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.SpecialNAry) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.Switch0ToN) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.SwitchWithValues) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.TailRecur) => unreachable!(Ptr!gcc_jit_lvalue)(),

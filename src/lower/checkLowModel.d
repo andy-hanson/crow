@@ -29,7 +29,7 @@ import model.lowModel :
 import model.reprConcreteModel : reprOfConcreteStructRef;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : at, sizeEq;
-import util.collection.arrUtil : tail, zip;
+import util.collection.arrUtil : zip;
 import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has;
 import util.ptr : Ptr, ptrTrustMe;
@@ -107,6 +107,18 @@ void checkLowExpr(
 					checkLowExpr(alloc, ctx, param.type, arg);
 				});
 		},
+		(ref immutable LowExprKind.CallFunPtr it) {
+			immutable LowFunPtrType funPtrType =
+				fullIndexDictGetPtr(ctx.ctx.program.allFunPtrTypes, asFunPtrType(it.funPtr.type)).deref();
+			checkTypeEqual(alloc, ctx.ctx, type, funPtrType.returnType);
+			verify(sizeEq(funPtrType.paramTypes, it.args));
+			zip!(LowType, LowExpr)(
+				funPtrType.paramTypes,
+				it.args,
+				(ref immutable LowType paramType, ref immutable LowExpr arg) {
+					checkLowExpr(alloc, ctx, paramType, arg);
+				});
+		},
 		(ref immutable LowExprKind.CreateRecord it) {
 			immutable LowField[] fields = fullIndexDictGet(ctx.ctx.program.allRecords, asRecordType(type)).fields;
 			zip!(LowField, LowExpr)(fields, it.args, (ref immutable LowField field, ref immutable LowExpr arg) {
@@ -118,6 +130,11 @@ void checkLowExpr(
 				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(type)).members,
 				it.memberIndex);
 			checkLowExpr(alloc, ctx, member, it.arg);
+		},
+		(ref immutable LowExprKind.If it) {
+			checkLowExpr(alloc, ctx, boolType, it.cond);
+			checkLowExpr(alloc, ctx, type, it.then);
+			checkLowExpr(alloc, ctx, type, it.else_);
 		},
 		(ref immutable LowExprKind.InitConstants) {
 			verify(isVoid(type));
@@ -183,31 +200,6 @@ void checkLowExpr(
 		},
 		(ref immutable LowExprKind.SpecialBinary it) {
 			// TODO
-		},
-		(ref immutable LowExprKind.SpecialTrinary it) {
-			final switch (it.kind) {
-				case LowExprKind.SpecialTrinary.Kind.if_:
-					checkLowExpr(alloc, ctx, boolType, it.p0);
-					checkLowExpr(alloc, ctx, type, it.p1);
-					checkLowExpr(alloc, ctx, type, it.p2);
-					break;
-			}
-		},
-		(ref immutable LowExprKind.SpecialNAry it) {
-			final switch (it.kind) {
-				case LowExprKind.SpecialNAry.Kind.callFunPtr:
-					immutable LowExpr funPtr = at(it.args, 0);
-					immutable LowFunPtrType funPtrType =
-						fullIndexDictGetPtr(ctx.ctx.program.allFunPtrTypes, asFunPtrType(funPtr.type)).deref();
-					checkTypeEqual(alloc, ctx.ctx, type, funPtrType.returnType);
-					verify(sizeEq(funPtrType.paramTypes, tail(it.args)));
-					zip!(LowType, LowExpr)(
-						funPtrType.paramTypes,
-						tail(it.args),
-						(ref immutable LowType paramType, ref immutable LowExpr arg) {
-							checkLowExpr(alloc, ctx, paramType, arg);
-						});
-			}
 		},
 		(ref immutable LowExprKind.Switch0ToN it) {
 			checkLowExpr(alloc, ctx, it.value.type, it.value);

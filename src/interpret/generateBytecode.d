@@ -461,11 +461,32 @@ void generateExpr(
 				writeCallDelayed(writer, source, stackEntryBeforeArgs, expectedStackEffect));
 			verify(stackEntryBeforeArgs.entry + expectedStackEffect.to16() == getNextStackEntry(writer).entry);
 		},
+		(ref immutable LowExprKind.CallFunPtr it) {
+			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
+			generateExpr(dbg, tempAlloc, writer, ctx, it.funPtr);
+			generateArgs(dbg, tempAlloc, writer, ctx, it.args);
+			writeCallFunPtr(dbg, writer, source, stackEntryBeforeArgs, nStackEntriesForType(ctx, expr.type));
+		},
 		(ref immutable LowExprKind.CreateRecord it) {
 			generateCreateRecord(dbg, tempAlloc, writer, ctx, asRecordType(expr.type), source, it);
 		},
 		(ref immutable LowExprKind.CreateUnion it) {
 			generateCreateUnion(dbg, tempAlloc, writer, ctx, asUnionType(expr.type), source, it);
+		},
+		(ref immutable LowExprKind.If it) {
+			generateIf(
+				dbg,
+				tempAlloc,
+				writer,
+				ctx,
+				source,
+				it.cond,
+				() {
+					generateExpr(dbg, tempAlloc, writer, ctx, it.then);
+				},
+				() {
+					generateExpr(dbg, tempAlloc, writer, ctx, it.else_);
+				});
 		},
 		(ref immutable LowExprKind.InitConstants) {
 			// bytecode interpreter doesn't need to do anything in 'init-constants'
@@ -566,12 +587,6 @@ void generateExpr(
 		},
 		(ref immutable LowExprKind.SpecialBinary it) {
 			generateSpecialBinary(dbg, tempAlloc, writer, ctx, source, it);
-		},
-		(ref immutable LowExprKind.SpecialTrinary it) {
-			generateSpecialTrinary(dbg, tempAlloc, writer, ctx, source, it);
-		},
-		(ref immutable LowExprKind.SpecialNAry it) {
-			generateSpecialNAry(dbg, tempAlloc, writer, ctx, source, expr.type, it);
 		},
 		(ref immutable LowExprKind.Switch0ToN it) {
 			generateSwitch0ToN(dbg, tempAlloc, writer, ctx, source, it);
@@ -1282,33 +1297,6 @@ void generateSpecialBinary(
 	}
 }
 
-void generateSpecialTrinary(
-	scope ref Debug dbg,
-	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
-	ref ExprCtx ctx,
-	ref immutable ByteCodeSource source,
-	ref immutable LowExprKind.SpecialTrinary a,
-) {
-	final switch (a.kind) {
-		case LowExprKind.SpecialTrinary.Kind.if_:
-			generateIf(
-				dbg,
-				tempAlloc,
-				writer,
-				ctx,
-				source,
-				a.p0,
-				() {
-					generateExpr(dbg, tempAlloc, writer, ctx, a.p1);
-				},
-				() {
-					generateExpr(dbg, tempAlloc, writer, ctx, a.p2);
-				});
-			break;
-	}
-}
-
 void generateIf(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
@@ -1329,22 +1317,4 @@ void generateIf(
 	fillDelayedSwitchEntry(writer, delayed, immutable Nat32(1));
 	cbThen();
 	fillInJumpDelayed(writer, jumpIndex);
-}
-
-void generateSpecialNAry(
-	scope ref Debug dbg,
-	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
-	ref ExprCtx ctx,
-	ref immutable ByteCodeSource source,
-	ref immutable LowType type,
-	ref immutable LowExprKind.SpecialNAry a,
-) {
-	final switch (a.kind) {
-		case LowExprKind.SpecialNAry.Kind.callFunPtr:
-			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
-			generateArgs(dbg, tempAlloc, writer, ctx, a.args);
-			writeCallFunPtr(dbg, writer, source, stackEntryBeforeArgs, nStackEntriesForType(ctx, type));
-			break;
-	}
 }

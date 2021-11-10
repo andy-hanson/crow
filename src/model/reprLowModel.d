@@ -189,12 +189,22 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 				reprNat(it.called.index),
 				reprArr(alloc, it.args, (ref immutable LowExpr e) =>
 					reprOfLowExpr(alloc, e))]),
+		(ref immutable LowExprKind.CallFunPtr it) =>
+			reprRecord(alloc, "call-fun-ptr", [
+				reprOfLowExpr(alloc, it.funPtr),
+				reprArr(alloc, it.args, (ref immutable LowExpr arg) =>
+					reprOfLowExpr(alloc, arg))]),
 		(ref immutable LowExprKind.CreateRecord it) =>
 			reprRecord(alloc, "record", [
 				reprArr(alloc, it.args, (ref immutable LowExpr e) =>
 					reprOfLowExpr(alloc, e))]),
 		(ref immutable LowExprKind.CreateUnion it) =>
 			reprRecord(alloc, "to-union", [reprNat(it.memberIndex), reprOfLowExpr(alloc, it.arg)]),
+		(ref immutable LowExprKind.If it) =>
+			reprRecord(alloc, "if", [
+				reprOfLowExpr(alloc, it.cond),
+				reprOfLowExpr(alloc, it.then),
+				reprOfLowExpr(alloc, it.else_)]),
 		(ref immutable LowExprKind.InitConstants) =>
 			reprSym("init-const"),
 		(ref immutable LowExprKind.Let it) =>
@@ -238,17 +248,6 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 				reprStr(strOfSpecialBinaryKind(it.kind)),
 				reprOfLowExpr(alloc, it.left),
 				reprOfLowExpr(alloc, it.right)]),
-		(ref immutable LowExprKind.SpecialTrinary it) =>
-			reprRecord(alloc, "trinary", [
-				reprStr(strOfSpecialTrinaryKind(it.kind)),
-				reprOfLowExpr(alloc, it.p0),
-				reprOfLowExpr(alloc, it.p1),
-				reprOfLowExpr(alloc, it.p2)]),
-		(ref immutable LowExprKind.SpecialNAry it) =>
-			reprRecord(alloc, "n-ary", [
-				reprStr(strOfSpecialNAryKind(it.kind)),
-				reprArr(alloc, it.args, (ref immutable LowExpr arg) =>
-					reprOfLowExpr(alloc, arg))]),
 		(ref immutable LowExprKind.Switch0ToN it) =>
 			reprRecord(alloc, "switch-n", [
 				reprOfLowExpr(alloc, it.value),
@@ -520,19 +519,5 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "wrap-sub (nat-64)";
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
 			return "wriite to ptr";
-	}
-}
-
-immutable(string) strOfSpecialTrinaryKind(immutable LowExprKind.SpecialTrinary.Kind a) {
-	final switch (a) {
-		case LowExprKind.SpecialTrinary.Kind.if_:
-			return "if";
-	}
-}
-
-immutable(string) strOfSpecialNAryKind(immutable LowExprKind.SpecialNAry.Kind a) {
-	final switch (a) {
-		case LowExprKind.SpecialNAry.Kind.callFunPtr:
-			return "call fun ptr";
 	}
 }

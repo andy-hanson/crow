@@ -33,14 +33,11 @@ debug: bin/crow
 unit-test: bin/crow
 	./bin/crow test
 
-test/test: bin/crow test/*.crow
+end-to-end-test:
 	./bin/crow run test/test.crow
 
-end-to-end-test: test/test
-	./test/test
-
-end-to-end-test-overwrite: test/test
-	./test/test --overwrite-output
+end-to-end-test-overwrite:
+	./bin/crow run test/test.crow -- --overwrite-output
 
 test: unit-test end-to-end-test
 

@@ -1060,8 +1060,7 @@ immutable(LowExprKind) getLowExprKind(
 		(ref immutable ConcreteExprKind.Call it) =>
 			getCallExpr(alloc, ctx, exprPos, expr.range, type, it),
 		(ref immutable ConcreteExprKind.Cond it) =>
-			immutable LowExprKind(allocate(alloc, immutable LowExprKind.SpecialTrinary(
-				LowExprKind.SpecialTrinary.Kind.if_,
+			immutable LowExprKind(allocate(alloc, immutable LowExprKind.If(
 				getLowExpr(alloc, ctx, it.cond, ExprPos.nonTail),
 				getLowExpr(alloc, ctx, it.then, exprPos),
 				getLowExpr(alloc, ctx, it.else_, exprPos)))),
@@ -1265,7 +1264,7 @@ immutable(LowExprKind) genEnumFunction(
 immutable(LowExpr[]) getArgs(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
-	ref immutable ConcreteExpr[] args,
+	immutable ConcreteExpr[] args,
 ) {
 	return map!LowExpr(alloc, args, (ref immutable ConcreteExpr arg) =>
 		getLowExpr(alloc, ctx, arg, ExprPos.nonTail));
@@ -1307,6 +1306,10 @@ immutable(LowExprKind) getCallBuiltinExpr(
 			immutable LowExprKind(ctx.allFuns),
 		(ref immutable BuiltinKind.As) =>
 			getLowExpr(alloc, ctx, at(a.args, 0), exprPos).kind,
+		(ref immutable BuiltinKind.CallFunPtr) =>
+			immutable LowExprKind(allocate(alloc, immutable LowExprKind.CallFunPtr(
+				getLowExpr(alloc, ctx, first(a.args), ExprPos.nonTail),
+				getArgs(alloc, ctx, tail(a.args))))),
 		(ref immutable BuiltinKind.GetCtx) =>
 			immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.ctxParam))),
 		(ref immutable Constant it) =>
@@ -1334,22 +1337,6 @@ immutable(LowExprKind) getCallBuiltinExpr(
 				getArg(at(a.args, 0), ExprPos.nonTail),
 				getArg(at(a.args, 1), arg1Pos))));
 		},
-		(immutable LowExprKind.SpecialTrinary.Kind kind) {
-			verify(size(a.args) == 3);
-			immutable ExprPos arg12Pos = () {
-				final switch (kind) {
-					case LowExprKind.SpecialTrinary.Kind.if_:
-						return exprPos;
-				}
-			}();
-			return immutable LowExprKind(allocate(alloc, immutable LowExprKind.SpecialTrinary(
-				kind,
-				getArg(at(a.args, 0), ExprPos.nonTail),
-				getArg(at(a.args, 1), arg12Pos),
-				getArg(at(a.args, 2), arg12Pos))));
-		},
-		(immutable LowExprKind.SpecialNAry.Kind kind) =>
-			immutable LowExprKind(immutable LowExprKind.SpecialNAry(kind, getArgs(alloc, ctx, a.args))),
 		(ref immutable BuiltinKind.PtrCast) {
 			verify(size(a.args) == 1);
 			return ptrCastKind(alloc, getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail));

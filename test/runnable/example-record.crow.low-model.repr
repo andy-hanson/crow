@@ -261,8 +261,7 @@ program(
 												expr(
 													bool
 													file-range(20, range(1331, 1630))
-													trinary(
-														"if"
+													if(
 														expr(
 															bool
 															file-range(20, range(1331, 1363))
@@ -445,8 +444,7 @@ program(
 				expr(
 					void
 					file-range(0, range(2440, 2475))
-					trinary(
-						"if"
+					if(
 						expr(bool, file-range(0, range(2443, 2452)), param-ref(0))
 						expr(void, file-range(0, range(2455, 2459)), void)
 						expr(void, file-range(0, range(2468, 2473)), call(2, []))))))
@@ -619,8 +617,7 @@ program(
 				expr(
 					nat-32
 					file-range(5, range(709, 769))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(5, range(709, 723))
@@ -632,8 +629,7 @@ program(
 						expr(
 							nat-32
 							file-range(5, range(732, 769))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(5, range(732, 743))
@@ -694,8 +690,7 @@ program(
 				expr(
 					bool
 					file-range(3, range(121, 148))
-					trinary(
-						"if"
+					if(
 						expr(bool, file-range(3, range(124, 125)), param-ref(0))
 						expr(bool, file-range(3, range(128, 133)), false)
 						expr(bool, file-range(3, range(142, 146)), true)))))
@@ -708,8 +703,7 @@ program(
 				expr(
 					bool
 					file-range(20, range(2042, 2197))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(20, range(2042, 2055))
@@ -1899,8 +1893,7 @@ program(
 				expr(
 					record(36)
 					file-range(21, range(231, 303))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(21, range(231, 244))
@@ -2046,8 +2039,7 @@ program(
 								expr(
 									void
 									file-range(44, range(967, 1036))
-									trinary(
-										"if"
+									if(
 										expr(
 											bool
 											file-range(44, range(967, 1005))
@@ -2195,8 +2187,7 @@ program(
 													expr(
 														record(8)
 														file-range(40, range(1995, 2058))
-														trinary(
-															"if"
+														if(
 															expr(
 																bool
 																file-range(40, range(2007, 2016))
@@ -2565,8 +2556,7 @@ program(
 				expr(
 					void
 					file-range(33, range(1313, 1366))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(33, range(1313, 1326))
@@ -2887,8 +2877,7 @@ program(
 				expr(
 					void
 					file-range(35, range(6830, 6899))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(35, range(6830, 6858))
@@ -3127,8 +3116,7 @@ program(
 				expr(
 					void
 					file-range(27, range(2235, 2274))
-					trinary(
-						"if"
+					if(
 						expr(bool, file-range(27, range(2238, 2248)), call(14, [expr(bool, file-range(27, range(2239, 2248)), param-ref(1))]))
 						expr(
 							void
@@ -3859,8 +3847,7 @@ program(
 												expr(
 													union(13)
 													file-range(20, range(7545, 7843))
-													trinary(
-														"if"
+													if(
 														expr(
 															bool
 															file-range(20, range(7545, 7566))
@@ -3884,8 +3871,7 @@ program(
 														expr(
 															union(13)
 															file-range(20, range(7569, 7843))
-															trinary(
-																"if"
+															if(
 																expr(
 																	bool
 																	file-range(20, range(7569, 7619))
@@ -4105,8 +4091,7 @@ program(
 				expr(
 					nat-32
 					file-range(7, range(3726, 3786))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(7, range(3726, 3740))
@@ -4118,8 +4103,7 @@ program(
 						expr(
 							nat-32
 							file-range(7, range(3749, 3786))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(7, range(3749, 3760))
@@ -4160,8 +4144,7 @@ program(
 				expr(
 					bool
 					file-range(20, range(7905, 7980))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(20, range(7905, 7919))
@@ -4173,8 +4156,7 @@ program(
 						expr(
 							bool
 							file-range(20, range(7928, 7980))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(20, range(7933, 7938))
@@ -4221,8 +4203,7 @@ program(
 						expr(
 							void
 							file-range(20, range(7222, 7288))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(20, range(7222, 7264))
@@ -4764,8 +4745,7 @@ program(
 				expr(
 					void
 					file-range(26, range(2761, 3017))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(26, range(2761, 2772))
@@ -5003,8 +4983,7 @@ program(
 				expr(
 					nat-64
 					file-range(26, range(3121, 3269))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(26, range(3121, 3130))
@@ -5016,8 +4995,7 @@ program(
 						expr(
 							nat-64
 							file-range(26, range(3133, 3259))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(26, range(3133, 3152))
@@ -5134,8 +5112,7 @@ program(
 				expr(
 					nat-32
 					file-range(7, range(3726, 3786))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(7, range(3726, 3740))
@@ -5147,8 +5124,7 @@ program(
 						expr(
 							nat-32
 							file-range(7, range(3749, 3786))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(7, range(3749, 3760))
@@ -5194,8 +5170,7 @@ program(
 				expr(
 					void
 					file-range(26, range(1765, 1928))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(26, range(1765, 1795))
@@ -5274,8 +5249,7 @@ program(
 				expr(
 					nat-32
 					file-range(7, range(3726, 3786))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(7, range(3726, 3740))
@@ -5287,8 +5261,7 @@ program(
 						expr(
 							nat-32
 							file-range(7, range(3749, 3786))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(7, range(3749, 3760))
@@ -5329,8 +5302,7 @@ program(
 				expr(
 					record(11)
 					file-range(26, range(2524, 2655))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(26, range(2524, 2535))
@@ -5343,8 +5315,7 @@ program(
 						expr(
 							record(11)
 							file-range(26, range(2553, 2655))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(26, range(2553, 2580))
@@ -6022,8 +5993,7 @@ program(
 				expr(
 					nat-64
 					file-range(35, range(9075, 9143))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(35, range(9075, 9086))
@@ -6058,8 +6028,7 @@ program(
 				expr(
 					nat-64
 					file-range(28, range(1944, 2048))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(28, range(1944, 1963))
@@ -6203,8 +6172,7 @@ program(
 				expr(
 					void
 					file-range(27, range(2336, 2374))
-					trinary(
-						"if"
+					if(
 						expr(bool, file-range(27, range(2339, 2348)), param-ref(1))
 						expr(
 							void
@@ -6340,8 +6308,7 @@ program(
 				expr(
 					void
 					file-range(33, range(1313, 1366))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(33, range(1313, 1326))
@@ -6615,8 +6582,7 @@ program(
 				expr(
 					nat-32
 					file-range(7, range(3726, 3786))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(7, range(3726, 3740))
@@ -6628,8 +6594,7 @@ program(
 						expr(
 							nat-32
 							file-range(7, range(3749, 3786))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(7, range(3749, 3760))
@@ -6762,8 +6727,7 @@ program(
 				expr(
 					union(17)
 					file-range(38, range(1067, 1172))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(38, range(1067, 1077))
@@ -6782,8 +6746,7 @@ program(
 						expr(
 							union(17)
 							file-range(38, range(1088, 1172))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(38, range(1088, 1103))
@@ -7964,8 +7927,7 @@ program(
 				expr(
 					nat-32
 					file-range(7, range(3726, 3786))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(7, range(3726, 3740))
@@ -7977,8 +7939,7 @@ program(
 						expr(
 							nat-32
 							file-range(7, range(3749, 3786))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(7, range(3749, 3760))
@@ -10893,8 +10854,7 @@ program(
 												expr(
 													void
 													file-range(48, range(2824, 2959))
-													trinary(
-														"if"
+													if(
 														expr(
 															bool
 															file-range(48, range(2824, 2863))
@@ -11107,8 +11067,7 @@ program(
 								expr(
 									void
 									file-range(48, range(3161, 3296))
-									trinary(
-										"if"
+									if(
 										expr(
 											bool
 											file-range(48, range(3161, 3199))
@@ -11453,8 +11412,7 @@ program(
 														expr(
 															void
 															file-range(27, range(1026, 1584))
-															trinary(
-																"if"
+															if(
 																expr(
 																	bool
 																	file-range(27, range(1026, 1047))
@@ -12728,8 +12686,7 @@ program(
 				expr(
 					void
 					file-range(20, range(9473, 9558))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(20, range(9473, 9485))
@@ -13187,13 +13144,12 @@ program(
 				expr(
 					gc-ptr(record(5))
 					file-range(75, range(4026, 4072))
-					n-ary(
-						"call fun ptr"
+					call-fun-ptr(
+						expr(
+							fun-ptr(0)
+							file-range(75, range(4018, 4026))
+							get-field(expr(gc-ptr(record(72)), file-range(75, range(4018, 4026)), param-ref(1)), true, 0))
 						[
-							expr(
-								fun-ptr(0)
-								file-range(75, range(4018, 4026))
-								get-field(expr(gc-ptr(record(72)), file-range(75, range(4018, 4026)), param-ref(1)), true, 0))
 							expr(gc-ptr(record(0)), file-range(75, range(4027, 4034)), param-ref(0))
 							expr(
 								record(13)
@@ -13600,8 +13556,7 @@ program(
 				expr(
 					void
 					file-range(75, range(4798, 5075))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(75, range(4798, 4815))
@@ -13740,8 +13695,7 @@ program(
 						expr(
 							void
 							file-range(19, range(5241, 5414))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(19, range(5241, 5252))
@@ -13753,8 +13707,7 @@ program(
 								expr(
 									void
 									file-range(19, range(5255, 5414))
-									trinary(
-										"if"
+									if(
 										expr(
 											bool
 											file-range(19, range(5255, 5271))
@@ -14026,8 +13979,7 @@ program(
 				expr(
 					void
 					file-range(49, range(4855, 5863))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(49, range(4855, 4875))
@@ -14229,8 +14181,7 @@ program(
 																						expr(
 																							void
 																							file-range(49, range(5333, 5624))
-																							trinary(
-																								"if"
+																							if(
 																								expr(
 																									bool
 																									file-range(
@@ -14545,8 +14496,7 @@ program(
 				expr(
 					void
 					file-range(49, range(10576, 10888))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(49, range(10576, 10596))
@@ -14780,8 +14730,7 @@ program(
 				expr(
 					void
 					file-range(0, range(2522, 2544))
-					trinary(
-						"if"
+					if(
 						expr(bool, file-range(0, range(2525, 2534)), param-ref(0))
 						expr(void, file-range(0, range(2537, 2542)), call(2, []))
 						expr(void, file-range(0, range(2522, 2544)), void)))))
@@ -15160,8 +15109,7 @@ program(
 								expr(
 									nat-64
 									file-range(18, range(535, 664))
-									trinary(
-										"if"
+									if(
 										expr(
 											bool
 											file-range(18, range(535, 546))
@@ -15266,8 +15214,7 @@ program(
 				expr(
 					union(29)
 					file-range(49, range(8872, 9374))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(49, range(8872, 8892))
@@ -15493,8 +15440,7 @@ program(
 								expr(
 									union(32)
 									file-range(49, range(9983, 10367))
-									trinary(
-										"if"
+									if(
 										expr(
 											bool
 											file-range(49, range(10006, 10015))
@@ -15519,8 +15465,7 @@ program(
 										expr(
 											union(32)
 											file-range(49, range(10018, 10254))
-											trinary(
-												"if"
+											if(
 												expr(
 													bool
 													file-range(49, range(10018, 10050))
@@ -15607,8 +15552,7 @@ program(
 												expr(
 													void
 													file-range(49, range(10367, 10454))
-													trinary(
-														"if"
+													if(
 														expr(
 															bool
 															file-range(49, range(10370, 10385))
@@ -15750,8 +15694,7 @@ program(
 														expr(
 															union(33)
 															file-range(48, range(1609, 1834))
-															trinary(
-																"if"
+															if(
 																expr(
 																	bool
 																	file-range(48, range(1609, 1633))
@@ -15775,8 +15718,7 @@ program(
 																expr(
 																	union(33)
 																	file-range(48, range(1637, 1790))
-																	trinary(
-																		"if"
+																	if(
 																		expr(
 																			bool
 																			file-range(48, range(1637, 1668))
@@ -15989,8 +15931,7 @@ program(
 				expr(
 					bool
 					file-range(33, range(4720, 4821))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(33, range(4720, 4734))
@@ -16005,8 +15946,7 @@ program(
 						expr(
 							bool
 							file-range(33, range(4744, 4821))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(33, range(4744, 4772))
@@ -16271,8 +16211,7 @@ program(
 										expr(
 											union(33)
 											file-range(48, range(2395, 2666))
-											trinary(
-												"if"
+											if(
 												expr(
 													bool
 													file-range(48, range(2395, 2419))
@@ -16293,8 +16232,7 @@ program(
 												expr(
 													union(33)
 													file-range(48, range(2423, 2622))
-													trinary(
-														"if"
+													if(
 														expr(
 															bool
 															file-range(48, range(2423, 2454))
@@ -16442,8 +16380,7 @@ program(
 				expr(
 					union(31)
 					file-range(48, range(2028, 2059))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(48, range(2028, 2048))
@@ -16664,8 +16601,7 @@ program(
 				expr(
 					nat-64
 					file-range(4, range(730, 754))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(4, range(730, 738))
@@ -17131,8 +17067,7 @@ program(
 				expr(
 					void
 					file-range(35, range(8166, 8340))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(35, range(8166, 8184))
@@ -17147,8 +17082,7 @@ program(
 						expr(
 							void
 							file-range(35, range(8193, 8340))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(35, range(8193, 8225))
@@ -18285,8 +18219,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -18322,8 +18255,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -18488,8 +18420,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -18525,8 +18456,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -18588,8 +18518,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -18767,8 +18696,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -18830,8 +18758,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -18867,8 +18794,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -18904,8 +18830,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -18973,8 +18898,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -19042,8 +18966,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -19111,8 +19034,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -19180,8 +19102,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -19249,8 +19170,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -19286,8 +19206,7 @@ program(
 				expr(
 					void
 					file-range(65535, range(0, 0))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(65535, range(0, 0))
@@ -19395,8 +19314,7 @@ program(
 				expr(
 					void
 					file-range(20, range(5096, 5222))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(20, range(5096, 5119))
@@ -19412,8 +19330,7 @@ program(
 								expr(
 									void
 									file-range(20, range(5122, 5173))
-									trinary(
-										"if"
+									if(
 										expr(
 											bool
 											file-range(20, range(5125, 5135))
@@ -19512,8 +19429,7 @@ program(
 								expr(
 									void
 									file-range(19, range(4062, 4362))
-									trinary(
-										"if"
+									if(
 										expr(
 											bool
 											file-range(19, range(4062, 4092))
@@ -19684,8 +19600,7 @@ program(
 																					expr(
 																						int-32
 																						file-range(19, range(4254, 4298))
-																						trinary(
-																							"if"
+																						if(
 																							expr(
 																								bool
 																								file-range(19, range(4254, 4273))
@@ -19813,8 +19728,7 @@ program(
 				expr(
 					void
 					file-range(75, range(5319, 5419))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(75, range(5319, 5336))
@@ -19896,8 +19810,7 @@ program(
 										expr(
 											void
 											file-range(19, range(5567, 5650))
-											trinary(
-												"if"
+											if(
 												expr(
 													bool
 													file-range(19, range(5567, 5578))
@@ -19909,8 +19822,7 @@ program(
 												expr(
 													void
 													file-range(19, range(5581, 5650))
-													trinary(
-														"if"
+													if(
 														expr(
 															bool
 															file-range(19, range(5581, 5597))
@@ -19922,8 +19834,7 @@ program(
 														expr(
 															void
 															file-range(19, range(5608, 5650))
-															trinary(
-																"if"
+															if(
 																expr(
 																	bool
 																	file-range(19, range(5608, 5625))
@@ -20200,8 +20111,7 @@ program(
 								expr(
 									int-32
 									file-range(75, range(2040, 2122))
-									trinary(
-										"if"
+									if(
 										expr(
 											bool
 											file-range(75, range(2040, 2072))
@@ -20312,8 +20222,7 @@ program(
 						expr(
 							record(8)
 							file-range(37, range(2081, 2114))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(37, range(2081, 2089))
@@ -20443,8 +20352,7 @@ program(
 												expr(
 													record(8)
 													file-range(37, range(2330, 2460))
-													trinary(
-														"if"
+													if(
 														expr(
 															bool
 															file-range(37, range(2330, 2348))
@@ -20459,8 +20367,7 @@ program(
 														expr(
 															record(8)
 															file-range(37, range(2363, 2460))
-															trinary(
-																"if"
+															if(
 																expr(
 																	bool
 																	file-range(37, range(2363, 2396))
@@ -20691,8 +20598,7 @@ program(
 						expr(
 							nat-64
 							file-range(28, range(2490, 2594))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(28, range(2490, 2498))
@@ -20728,8 +20634,7 @@ program(
 										expr(
 											nat-64
 											file-range(28, range(2525, 2569))
-											trinary(
-												"if"
+											if(
 												expr(
 													bool
 													file-range(28, range(2525, 2540))
@@ -20786,8 +20691,7 @@ program(
 				expr(
 					nat-32
 					file-range(5, range(709, 769))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(5, range(709, 723))
@@ -20799,8 +20703,7 @@ program(
 						expr(
 							nat-32
 							file-range(5, range(732, 769))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(5, range(732, 743))
@@ -20879,8 +20782,7 @@ program(
 							expr(
 								int-64
 								file-range(28, range(4932, 4957))
-								trinary(
-									"if"
+								if(
 									expr(
 										bool
 										file-range(28, range(4932, 4940))
@@ -21016,8 +20918,7 @@ program(
 						expr(
 							record(8)
 							file-range(37, range(1956, 1985))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(37, range(1956, 1964))
@@ -21090,8 +20991,7 @@ program(
 				expr(
 					record(8)
 					file-range(37, range(1302, 1391))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(37, range(1302, 1313))
@@ -21157,8 +21057,7 @@ program(
 				expr(
 					record(8)
 					file-range(37, range(842, 1162))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(37, range(842, 851))
@@ -21170,8 +21069,7 @@ program(
 						expr(
 							record(8)
 							file-range(37, range(859, 1162))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(37, range(859, 870))
@@ -21183,8 +21081,7 @@ program(
 								expr(
 									record(8)
 									file-range(37, range(878, 1162))
-									trinary(
-										"if"
+									if(
 										expr(
 											bool
 											file-range(37, range(878, 889))
@@ -21196,8 +21093,7 @@ program(
 										expr(
 											record(8)
 											file-range(37, range(897, 1162))
-											trinary(
-												"if"
+											if(
 												expr(
 													bool
 													file-range(37, range(897, 908))
@@ -21209,8 +21105,7 @@ program(
 												expr(
 													record(8)
 													file-range(37, range(916, 1162))
-													trinary(
-														"if"
+													if(
 														expr(
 															bool
 															file-range(37, range(916, 927))
@@ -21222,8 +21117,7 @@ program(
 														expr(
 															record(8)
 															file-range(37, range(935, 1162))
-															trinary(
-																"if"
+															if(
 																expr(
 																	bool
 																	file-range(37, range(935, 946))
@@ -21241,8 +21135,7 @@ program(
 																expr(
 																	record(8)
 																	file-range(37, range(954, 1162))
-																	trinary(
-																		"if"
+																	if(
 																		expr(
 																			bool
 																			file-range(37, range(954, 965))
@@ -21260,8 +21153,7 @@ program(
 																		expr(
 																			record(8)
 																			file-range(37, range(973, 1162))
-																			trinary(
-																				"if"
+																			if(
 																				expr(
 																					bool
 																					file-range(37, range(973, 984))
@@ -21282,8 +21174,7 @@ program(
 																				expr(
 																					record(8)
 																					file-range(37, range(992, 1162))
-																					trinary(
-																						"if"
+																					if(
 																						expr(
 																							bool
 																							file-range(37, range(992, 1003))
@@ -21308,8 +21199,7 @@ program(
 																						expr(
 																							record(8)
 																							file-range(37, range(1011, 1162))
-																							trinary(
-																								"if"
+																							if(
 																								expr(
 																									bool
 																									file-range(
@@ -21344,8 +21234,7 @@ program(
 																									file-range(
 																										37
 																										range(1030, 1162))
-																									trinary(
-																										"if"
+																									if(
 																										expr(
 																											bool
 																											file-range(
@@ -21391,8 +21280,7 @@ program(
 																												range(
 																													1050
 																													1162))
-																											trinary(
-																												"if"
+																											if(
 																												expr(
 																													bool
 																													file-range(
@@ -21440,8 +21328,7 @@ program(
 																														range(
 																															1070
 																															1162))
-																													trinary(
-																														"if"
+																													if(
 																														expr(
 																															bool
 																															file-range(
@@ -21489,8 +21376,7 @@ program(
 																																range(
 																																	1090
 																																	1162))
-																															trinary(
-																																"if"
+																															if(
 																																expr(
 																																	bool
 																																	file-range(
@@ -21538,8 +21424,7 @@ program(
 																																		range(
 																																			1110
 																																			1162))
-																																	trinary(
-																																		"if"
+																																	if(
 																																		expr(
 																																			bool
 																																			file-range(
@@ -21587,8 +21472,7 @@ program(
 																																				range(
 																																					1130
 																																					1162))
-																																			trinary(
-																																				"if"
+																																			if(
 																																				expr(
 																																					bool
 																																					file-range(
@@ -21893,8 +21777,7 @@ program(
 				expr(
 					float-64
 					file-range(28, range(5041, 5066))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(28, range(5041, 5049))
@@ -21931,8 +21814,7 @@ program(
 				expr(
 					nat-32
 					file-range(5, range(709, 769))
-					trinary(
-						"if"
+					if(
 						expr(
 							bool
 							file-range(5, range(709, 723))
@@ -21944,8 +21826,7 @@ program(
 						expr(
 							nat-32
 							file-range(5, range(732, 769))
-							trinary(
-								"if"
+							if(
 								expr(
 									bool
 									file-range(5, range(732, 743))

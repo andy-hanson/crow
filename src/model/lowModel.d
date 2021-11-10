@@ -623,6 +623,11 @@ struct LowExprKind {
 		immutable LowExpr[] args; // Includes implicit ctx arg if needed
 	}
 
+	struct CallFunPtr {
+		immutable LowExpr funPtr;
+		immutable LowExpr[] args;
+	}
+
 	struct CreateRecord {
 		immutable LowExpr[] args;
 	}
@@ -630,6 +635,12 @@ struct LowExprKind {
 	struct CreateUnion {
 		immutable Nat16 memberIndex;
 		immutable LowExpr arg;
+	}
+
+	struct If {
+		immutable LowExpr cond;
+		immutable LowExpr then;
+		immutable LowExpr else_;
 	}
 
 	struct InitConstants {}
@@ -841,24 +852,6 @@ struct LowExprKind {
 		immutable LowExpr right;
 	}
 
-	struct SpecialTrinary {
-		enum Kind {
-			if_,
-		}
-		immutable Kind kind;
-		immutable LowExpr p0;
-		immutable LowExpr p1;
-		immutable LowExpr p2;
-	}
-
-	struct SpecialNAry {
-		enum Kind {
-			callFunPtr,
-		}
-		immutable Kind kind;
-		immutable LowExpr[] args;
-	}
-
 	struct Switch0ToN {
 		immutable LowExpr value;
 		immutable LowExpr[] cases;
@@ -879,8 +872,10 @@ struct LowExprKind {
 	private:
 	enum Kind {
 		call,
+		callFunPtr,
 		createRecord,
 		createUnion,
+		if_,
 		initConstants,
 		let,
 		localRef,
@@ -894,8 +889,6 @@ struct LowExprKind {
 		constant,
 		specialUnary,
 		specialBinary,
-		specialTrinary,
-		specialNAry,
 		switchWithValues,
 		switch0ToN,
 		tailRecur,
@@ -904,8 +897,10 @@ struct LowExprKind {
 	public immutable Kind kind; //TODO:PRIVATE
 	union {
 		immutable Call call;
+		immutable Ptr!CallFunPtr callFunPtr;
 		immutable CreateRecord createRecord;
 		immutable Ptr!CreateUnion createUnion;
+		immutable Ptr!If if_;
 		immutable InitConstants initConstants;
 		immutable Ptr!Let let;
 		immutable LocalRef localRef;
@@ -919,8 +914,6 @@ struct LowExprKind {
 		immutable Constant constant;
 		immutable Ptr!SpecialUnary specialUnary;
 		immutable Ptr!SpecialBinary specialBinary;
-		immutable Ptr!SpecialTrinary specialTrinary;
-		immutable SpecialNAry specialNAry;
 		immutable Ptr!Switch0ToN switch0ToN;
 		immutable Ptr!SwitchWithValues switchWithValues;
 		immutable TailRecur tailRecur;
@@ -929,8 +922,10 @@ struct LowExprKind {
 
 	public:
 	@trusted immutable this(immutable Call a) { kind = Kind.call; call = a; }
+	@trusted immutable this(immutable Ptr!CallFunPtr a) { kind = Kind.callFunPtr; callFunPtr = a; }
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	@trusted immutable this(immutable Ptr!CreateUnion a) { kind = Kind.createUnion; createUnion = a; }
+	immutable this(immutable Ptr!If a) { kind = Kind.if_; if_ = a; }
 	immutable this(immutable InitConstants a) { kind = Kind.initConstants; initConstants = a; }
 	@trusted immutable this(immutable Ptr!Let a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
@@ -944,8 +939,6 @@ struct LowExprKind {
 	@trusted immutable this(immutable Constant a) { kind = Kind.constant; constant = a; }
 	@trusted immutable this(immutable Ptr!SpecialUnary a) { kind = Kind.specialUnary; specialUnary = a; }
 	@trusted immutable this(immutable Ptr!SpecialBinary a) { kind = Kind.specialBinary; specialBinary = a; }
-	@trusted immutable this(immutable Ptr!SpecialTrinary a) { kind = Kind.specialTrinary; specialTrinary = a; }
-	@trusted immutable this(immutable SpecialNAry a) { kind = Kind.specialNAry; specialNAry = a; }
 	@trusted immutable this(immutable Ptr!Switch0ToN a) { kind = Kind.switch0ToN; switch0ToN = a; }
 	@trusted immutable this(immutable Ptr!SwitchWithValues a) { kind = Kind.switchWithValues; switchWithValues = a; }
 	@trusted immutable this(immutable TailRecur a) { kind = Kind.tailRecur; tailRecur = a; }
@@ -956,8 +949,10 @@ static assert(LowExprKind.sizeof <= 32);
 @trusted T matchLowExprKind(T)(
 	ref immutable LowExprKind a,
 	scope T delegate(ref immutable LowExprKind.Call) @safe @nogc pure nothrow cbCall,
+	scope T delegate(ref immutable LowExprKind.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
 	scope T delegate(ref immutable LowExprKind.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(ref immutable LowExprKind.CreateUnion) @safe @nogc pure nothrow cbCreateUnion,
+	scope T delegate(ref immutable LowExprKind.If) @safe @nogc pure nothrow cbIf,
 	scope T delegate(ref immutable LowExprKind.InitConstants) @safe @nogc pure nothrow cbInitConstants,
 	scope T delegate(ref immutable LowExprKind.Let) @safe @nogc pure nothrow cbLet,
 	scope T delegate(ref immutable LowExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
@@ -971,8 +966,6 @@ static assert(LowExprKind.sizeof <= 32);
 	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
 	scope T delegate(ref immutable LowExprKind.SpecialUnary) @safe @nogc pure nothrow cbSpecialUnary,
 	scope T delegate(ref immutable LowExprKind.SpecialBinary) @safe @nogc pure nothrow cbSpecialBinary,
-	scope T delegate(ref immutable LowExprKind.SpecialTrinary) @safe @nogc pure nothrow cbSpecialTrinary,
-	scope T delegate(ref immutable LowExprKind.SpecialNAry) @safe @nogc pure nothrow cbSpecialNAry,
 	scope T delegate(ref immutable LowExprKind.Switch0ToN) @safe @nogc pure nothrow cbSwitch0ToN,
 	scope T delegate(ref immutable LowExprKind.SwitchWithValues) @safe @nogc pure nothrow cbSwitchWithValues,
 	scope T delegate(ref immutable LowExprKind.TailRecur) @safe @nogc pure nothrow cbTailRecur,
@@ -981,10 +974,14 @@ static assert(LowExprKind.sizeof <= 32);
 	final switch (a.kind) {
 		case LowExprKind.Kind.call:
 			return cbCall(a.call);
+		case LowExprKind.Kind.callFunPtr:
+			return cbCallFunPtr(a.callFunPtr.deref());
 		case LowExprKind.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
 		case LowExprKind.Kind.createUnion:
 			return cbCreateUnion(a.createUnion.deref());
+		case LowExprKind.Kind.if_:
+			return cbIf(a.if_.deref());
 		case LowExprKind.Kind.initConstants:
 			return cbInitConstants(a.initConstants);
 		case LowExprKind.Kind.let:
@@ -1011,10 +1008,6 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbSpecialUnary(a.specialUnary.deref());
 		case LowExprKind.Kind.specialBinary:
 			return cbSpecialBinary(a.specialBinary.deref());
-		case LowExprKind.Kind.specialTrinary:
-			return cbSpecialTrinary(a.specialTrinary.deref());
-		case LowExprKind.Kind.specialNAry:
-			return cbSpecialNAry(a.specialNAry);
 		case LowExprKind.Kind.switch0ToN:
 			return cbSwitch0ToN(a.switch0ToN.deref());
 		case LowExprKind.Kind.switchWithValues:

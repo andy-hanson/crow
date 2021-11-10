@@ -20,6 +20,7 @@ struct BuiltinKind {
 
 	struct AllFuns {}
 	struct As {}
+	struct CallFunPtr {}
 	struct GetCtx {}
 	struct InitConstants {}
 	struct PtrCast {}
@@ -29,13 +30,12 @@ struct BuiltinKind {
 
 	immutable this(immutable AllFuns a) { kind_ = Kind.allFuns; allFuns_ = a; }
 	immutable this(immutable As a) { kind_ = Kind.as; as_ = a; }
+	immutable this(immutable CallFunPtr a) { kind_ = Kind.callFunPtr; callFunPtr_ = a; }
 	immutable this(immutable GetCtx a) { kind_ = Kind.getCtx; getCtx_ = a; }
 	@trusted immutable this(immutable Constant a) { kind_ = Kind.constant; constant_ = a; }
 	immutable this(immutable InitConstants a) { kind_ = Kind.initConstants; initConstants_ = a; }
 	immutable this(immutable LowExprKind.SpecialUnary.Kind a) { kind_ = Kind.unary; unary_ = a; }
 	immutable this(immutable LowExprKind.SpecialBinary.Kind a) { kind_ = Kind.binary; binary_ = a; }
-	immutable this(immutable LowExprKind.SpecialTrinary.Kind a) { kind_ = Kind.trinary; trinary_ = a; }
-	immutable this(immutable LowExprKind.SpecialNAry.Kind a) { kind_ = Kind.nary; nary_ = a; }
 	immutable this(immutable PtrCast a) { kind_ = Kind.ptrCast; ptrCast_ = a; }
 	immutable this(immutable SizeOf a) { kind_ = Kind.sizeOf; sizeOf_ = a; }
 	immutable this(immutable StaticSyms a) { kind_ = Kind.staticSyms; staticSyms_ = a; }
@@ -45,13 +45,12 @@ struct BuiltinKind {
 	enum Kind {
 		allFuns,
 		as,
+		callFunPtr,
 		getCtx,
 		constant,
 		initConstants,
 		unary,
 		binary,
-		trinary,
-		nary,
 		ptrCast,
 		sizeOf,
 		staticSyms,
@@ -61,13 +60,12 @@ struct BuiltinKind {
 	union {
 		immutable AllFuns allFuns_;
 		immutable As as_;
+		immutable CallFunPtr callFunPtr_;
 		immutable GetCtx getCtx_;
 		immutable Constant constant_;
 		immutable InitConstants initConstants_;
 		immutable LowExprKind.SpecialUnary.Kind unary_;
 		immutable LowExprKind.SpecialBinary.Kind binary_;
-		immutable LowExprKind.SpecialTrinary.Kind trinary_;
-		immutable LowExprKind.SpecialNAry.Kind nary_;
 		immutable PtrCast ptrCast_;
 		immutable SizeOf sizeOf_;
 		immutable StaticSyms staticSyms_;
@@ -79,13 +77,12 @@ struct BuiltinKind {
 	ref immutable BuiltinKind a,
 	scope T delegate(ref immutable BuiltinKind.AllFuns) @safe @nogc pure nothrow cbAllFuns,
 	scope T delegate(ref immutable BuiltinKind.As) @safe @nogc pure nothrow cbAs,
+	scope T delegate(ref immutable BuiltinKind.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
 	scope T delegate(ref immutable BuiltinKind.GetCtx) @safe @nogc pure nothrow cbGetCtx,
 	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
 	scope T delegate(ref immutable BuiltinKind.InitConstants) @safe @nogc pure nothrow cbInitConstants,
 	scope T delegate(immutable LowExprKind.SpecialUnary.Kind) @safe @nogc pure nothrow cbUnary,
 	scope T delegate(immutable LowExprKind.SpecialBinary.Kind) @safe @nogc pure nothrow cbBinary,
-	scope T delegate(immutable LowExprKind.SpecialTrinary.Kind) @safe @nogc pure nothrow cbTrinary,
-	scope T delegate(immutable LowExprKind.SpecialNAry.Kind) @safe @nogc pure nothrow cbNary,
 	scope T delegate(ref immutable BuiltinKind.PtrCast) @safe @nogc pure nothrow cbPtrCast,
 	scope T delegate(ref immutable BuiltinKind.SizeOf) @safe @nogc pure nothrow cbSizeOf,
 	scope T delegate(ref immutable BuiltinKind.StaticSyms) @safe @nogc pure nothrow cbStaticSyms,
@@ -96,6 +93,8 @@ struct BuiltinKind {
 			return cbAllFuns(a.allFuns_);
 		case BuiltinKind.Kind.as:
 			return cbAs(a.as_);
+		case BuiltinKind.Kind.callFunPtr:
+			return cbCallFunPtr(a.callFunPtr_);
 		case BuiltinKind.Kind.getCtx:
 			return cbGetCtx(a.getCtx_);
 		case BuiltinKind.Kind.constant:
@@ -106,10 +105,6 @@ struct BuiltinKind {
 			return cbUnary(a.unary_);
 		case BuiltinKind.Kind.binary:
 			return cbBinary(a.binary_);
-		case BuiltinKind.Kind.trinary:
-			return cbTrinary(a.trinary_);
-		case BuiltinKind.Kind.nary:
-			return cbNary(a.nary_);
 		case BuiltinKind.Kind.ptrCast:
 			return cbPtrCast(a.ptrCast_);
 		case BuiltinKind.Kind.sizeOf:
@@ -137,12 +132,6 @@ immutable(BuiltinKind) getBuiltinKind(
 		return immutable BuiltinKind(kind);
 	}
 	immutable(BuiltinKind) binary(immutable LowExprKind.SpecialBinary.Kind kind) {
-		return immutable BuiltinKind(kind);
-	}
-	immutable(BuiltinKind) trinary(immutable LowExprKind.SpecialTrinary.Kind kind) {
-		return immutable BuiltinKind(kind);
-	}
-	immutable(BuiltinKind) nAry(immutable LowExprKind.SpecialNAry.Kind kind) {
 		return immutable BuiltinKind(kind);
 	}
 
@@ -308,7 +297,7 @@ immutable(BuiltinKind) getBuiltinKind(
 			return immutable BuiltinKind(immutable BuiltinKind.SizeOf());
 		case shortSymAlphaLiteralValue("subscript"):
 			return isFunPtrType(p0)
-				? nAry(LowExprKind.SpecialNAry.Kind.callFunPtr)
+				? immutable BuiltinKind(immutable BuiltinKind.CallFunPtr())
 				: fail();
 		case shortSymAlphaLiteralValue("static-syms"):
 			return immutable BuiltinKind(immutable BuiltinKind.StaticSyms());

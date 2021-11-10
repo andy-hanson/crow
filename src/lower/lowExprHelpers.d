@@ -120,9 +120,8 @@ immutable(LowExpr) genIf(
 	immutable LowExpr then,
 	immutable LowExpr else_,
 ) {
-	return immutable LowExpr(then.type, range, immutable LowExprKind(allocate(
-		alloc,
-		immutable LowExprKind.SpecialTrinary(LowExprKind.SpecialTrinary.Kind.if_, cond, then, else_))));
+	return immutable LowExpr(then.type, range, immutable LowExprKind(
+		allocate(alloc, immutable LowExprKind.If(cond, then, else_))));
 }
 
 immutable(LowExpr) incrPointer(
