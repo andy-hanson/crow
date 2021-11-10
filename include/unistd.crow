@@ -24,7 +24,7 @@ pipes record mut
 	write-pipe mut fd-t
 	read-pipe mut fd-t
 
-environ c-str*() unsafe global noctx
+__environ c-str*() unsafe global noctx
 
 usleep c-int(micro-seconds nat32) unsafe extern noctx
 

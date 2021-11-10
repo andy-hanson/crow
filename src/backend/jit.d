@@ -34,6 +34,7 @@ import include.libgccjit :
 	gcc_jit_context_acquire,
 	gcc_jit_context_add_driver_option,
 	gcc_jit_context_compile,
+	gcc_jit_context_compile_to_file,
 	gcc_jit_context_get_first_error,
 	gcc_jit_context_get_type,
 	gcc_jit_context_new_array_access,
@@ -70,6 +71,7 @@ import include.libgccjit :
 	gcc_jit_lvalue_access_field,
 	gcc_jit_lvalue_as_rvalue,
 	gcc_jit_lvalue_get_address,
+	gcc_jit_output_kind,
 	gcc_jit_param,
 	gcc_jit_param_as_lvalue,
 	gcc_jit_param_as_rvalue,
@@ -90,6 +92,7 @@ import model.lowModel :
 	asRecordType,
 	asUnionType,
 	isFunPtrType,
+	isGlobal,
 	isPtrRawConst,
 	LowExpr,
 	LowExprKind,
@@ -149,6 +152,16 @@ import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 	immutable AssertFieldOffsetsType assertFieldOffsets = cast(immutable AssertFieldOffsetsType)
 		gcc_jit_result_get_code(gccProgram.result, assertFieldOffsetsFunctionName);
 	verify(assertFieldOffsets != null);
+
+	//TODO
+	if (false) {
+		gcc_jit_context_compile_to_file(
+			gccProgram.ctx.deref(),
+			gcc_jit_output_kind.GCC_JIT_OUTPUT_KIND_EXECUTABLE,
+			"GCCJITOUT");
+		return 0;
+	}
+
 	immutable MainType main = withMeasure!(immutable MainType)(alloc, perf, PerfMeasure.gccJit, () @trusted =>
 		cast(immutable MainType) gcc_jit_result_get_code(gccProgram.result, "main"));
 	verify(main != null);
@@ -157,15 +170,21 @@ import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 	immutable bool fieldOffsetsCorrect = assertFieldOffsets();
 	verify(fieldOffsetsCorrect);
 
-	immutable int exitCode = withMeasure!int(alloc, perf, PerfMeasure.run, () @trusted =>
-		main(cast(int) size(allArgs), cast(immutable CStr*) allArgs.ptr));
+	immutable int exitCode = runMain(alloc, perf, allArgs, main);
+
 	gcc_jit_result_release(gccProgram.result);
 	return exitCode;
 }
 
+private:
+
+immutable(int) runMain(ref Alloc alloc, ref Perf perf, immutable SafeCStr[] allArgs, immutable MainType main) {
+	return withMeasure!int(alloc, perf, PerfMeasure.run, () @trusted =>
+		main(cast(int) size(allArgs), cast(immutable CStr*) allArgs.ptr));
+}
+
 pure:
 
-private:
 
 struct GccProgram {
 	Ptr!gcc_jit_context ctx;
@@ -255,7 +274,7 @@ extern(C) {
 		(immutable LowFunIndex funIndex, ref immutable LowFun fun, ref Ptr!gcc_jit_function curFun) {
 		matchLowFunBody!void(
 			fun.body_,
-			(ref immutable LowFunBody.Extern) {},
+			(ref immutable LowFunBody.Extern it) {},
 			(ref immutable LowFunExprBody expr) {
 				Ptr!gcc_jit_block entryBlock = gcc_jit_function_new_block(curFun, "entry");
 				ExprCtx exprCtx = ExprCtx(
@@ -449,18 +468,15 @@ GlobalsForConstants generateGlobalsForConstants(
 ) {
 	immutable gcc_jit_function_kind kind = matchLowFunBody!(immutable gcc_jit_function_kind)(
 		fun.body_,
-		(ref immutable LowFunBody.Extern x) {
-			if (x.isGlobal)
-				// TODO: I think this should just not be a LowFun.
-				todo!void("!");
-			return gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED;
-		},
+		(ref immutable LowFunBody.Extern it) => it.isGlobal
+			? gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL
+			: gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED,
 		(ref immutable(LowFunExprBody)) =>
 			funIndex == program.main
 			? gcc_jit_function_kind.GCC_JIT_FUNCTION_EXPORTED
 			: gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL);
 
-	const Ptr!gcc_jit_type returnType = getGccType(gccTypes, fun.returnType);
+	immutable Ptr!gcc_jit_type returnType = getGccType(gccTypes, fun.returnType);
 	//TODO:NO ALLOC
 	immutable Ptr!gcc_jit_param[] params = map!(immutable Ptr!gcc_jit_param, LowParam)(
 		alloc,
@@ -478,8 +494,33 @@ GlobalsForConstants generateGlobalsForConstants(
 	//TODO:NO ALLOC
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
 	writeLowFunMangledName(writer, mangledNames, funIndex, fun);
+	if (isGlobal(fun.body_))
+		// The function name needs to be different from the global name, else libgccjit gets confused.
+		writeStatic(writer, "__getter");
 	immutable CStr name = finishWriterToCStr(writer);
-	return gcc_jit_context_new_function(ctx, null, kind, returnType, name, cast(int) size(params), params.ptr, false);
+	Ptr!gcc_jit_function res =
+		gcc_jit_context_new_function(ctx, null, kind, returnType, name, cast(int) size(params), params.ptr, false);
+
+	matchLowFunBody!void(
+		fun.body_,
+		(ref immutable LowFunBody.Extern it) {
+			if (it.isGlobal) {
+				Writer globalWriter = Writer(ptrTrustMe_mut(alloc));
+				writeLowFunMangledName(globalWriter, mangledNames, funIndex, fun);
+				immutable CStr globalName = finishWriterToCStr(globalWriter);
+				Ptr!gcc_jit_lvalue global = gcc_jit_context_new_global(
+					ctx,
+					null,
+					gcc_jit_global_kind.GCC_JIT_GLOBAL_IMPORTED,
+					returnType,
+					globalName);
+				Ptr!gcc_jit_block block = gcc_jit_function_new_block(res, null);
+				gcc_jit_block_end_with_return(block, null, gcc_jit_lvalue_as_rvalue(global));
+			}
+		},
+		(ref immutable(LowFunExprBody)) {});
+
+	return res;
 }
 
 struct ExprEmit {
@@ -1786,7 +1827,10 @@ Ptr!gcc_jit_lvalue getLValue(ref ExprCtx ctx, ref immutable LowExpr expr) {
 		(ref immutable LowExprKind.Seq) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.SizeOf) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable Constant) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.SpecialUnary it) => todo!(Ptr!gcc_jit_lvalue)("!"),
+		(ref immutable LowExprKind.SpecialUnary it) =>
+			it.kind == LowExprKind.SpecialUnary.Kind.deref
+				? gcc_jit_rvalue_dereference(emitToRValue(ctx, it.arg), null)
+				: todo!(Ptr!gcc_jit_lvalue)("!"),
 		(ref immutable LowExprKind.SpecialBinary) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.SpecialTrinary) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.SpecialNAry) => unreachable!(Ptr!gcc_jit_lvalue)(),

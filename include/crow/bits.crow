@@ -121,9 +121,19 @@ unsafe-bit-shift-right nat64(a nat64, b nat64) noctx builtin unsafe
 	elif b < 0
 		todo
 	elif b < 32
-		unsafe-to-int32: a.to-int64.unsafe-to-nat64 unsafe-bit-shift-right b.to-int64.unsafe-to-nat64 unsafe-to-int64
+		unsafe-to-int32: a.unsafe-to-nat64 unsafe-bit-shift-right b.unsafe-to-nat64
 	else
 		todo
+
+# TODO:MOVE
+.unsafe-to-nat64 nat64(a int32) noctx unsafe
+	# TODO: breaking this local out to avoid a libgccjit bug
+	b = a.to-int64
+	b unsafe-to-nat64
+.unsafe-to-int32 int32(a nat64) noctx unsafe
+	# TODO: breaking this local out to avoid a libgccjit bug
+	b = a.unsafe-to-int64
+	b unsafe-to-int32
 
 nth-bit nat64(bit-index nat64)
 	1 << bit-index

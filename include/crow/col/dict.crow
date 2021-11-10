@@ -373,6 +373,12 @@ fold-keys<a, k, v> a(acc a, a v[k], f act a(a, k)) data<k> compare<k> hash-mix<k
 # TODO: map
 # TODO: map-values
 
+keys<k, v> k[](a v[k]) data<k> compare<k> hash-mix<k>
+	a map-to-arr (k, ignore) => k
+
+values<k, v> v[](a v[k]) data<k> compare<k> hash-mix<k>
+	a map-to-arr (ignore, v) => v
+
 map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted data<k> compare<k> hash-mix<k>
 	res = a.size uninitialized-fix-arr<a>
 	end = res.begin-ptr fold a, (cur, k, v) =>

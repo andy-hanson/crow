@@ -14,9 +14,7 @@ import std.string : indexOf, indexOfAny, splitLines;
 	foreach (ref immutable File file; files) {
 		foreach (immutable string publicExport; file.members.public_) {
 			if (!any!(otherFile => publicExport in otherFile.imports)(files)) {
-				if (publicExport != "gcc_jit_context_compile_to_file" &&
-					publicExport != "gcc_jit_output_kind" &&
-					publicExport != "getConstantPtr" &&
+				if (publicExport != "getConstantPtr" &&
 					publicExport != "derefConstantPointer") // TODO
 					writeln(file.path, " export not used: ", publicExport);
 			}

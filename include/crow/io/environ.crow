@@ -1,6 +1,6 @@
 no-std
 import
-	unistd: environ
+	unistd: __environ
 	../col/arr: begin-ptr, arr-from-begin-end
 	../col/dict: dict, each
 	../col/mut-dict: move-to-dict!, mut-dict, new, set-subscript
@@ -20,7 +20,7 @@ environ alias
 # Get the environment variables for this process.
 get-environ environ() summon trusted
 	res str mut[str] = ()
-	environ get-environ-recur res
+	__environ get-environ-recur res
 	res move-to-dict!
 
 .get-environ-recur void(env c-str*, res str mut[str]) unsafe
