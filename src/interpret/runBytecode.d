@@ -107,7 +107,6 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 				return safeIntFromNat64(returnCode);
 		}
 	}
-
 }
 
 enum StepResult {

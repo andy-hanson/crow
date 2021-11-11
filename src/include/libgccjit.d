@@ -26,6 +26,10 @@ extern(C) {
 
 	void gcc_jit_context_release(Ptr!gcc_jit_context ctxt);
 
+	enum gcc_jit_int_option {
+		GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL,
+	}
+
 	enum gcc_jit_bool_option {
 		GCC_JIT_BOOL_OPTION_DEBUGINFO,
 		GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE,
@@ -35,8 +39,12 @@ extern(C) {
 		GCC_JIT_BOOL_OPTION_DUMP_EVERYTHING,
 		GCC_JIT_BOOL_OPTION_SELFCHECK_GC,
 		GCC_JIT_BOOL_OPTION_KEEP_INTERMEDIATES,
-		GCC_JIT_NUM_BOOL_OPTIONS
 	}
+
+	void gcc_jit_context_set_int_option(
+		ref gcc_jit_context ctxt,
+		gcc_jit_int_option opt,
+		int value);
 
 	void gcc_jit_context_set_bool_option(
 		ref gcc_jit_context ctxt,

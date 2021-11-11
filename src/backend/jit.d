@@ -58,6 +58,7 @@ import include.libgccjit :
 	gcc_jit_context_null,
 	gcc_jit_context_release,
 	gcc_jit_context_set_bool_option,
+	gcc_jit_context_set_int_option,
 	gcc_jit_context_zero,
 	gcc_jit_field,
 	gcc_jit_function,
@@ -67,6 +68,7 @@ import include.libgccjit :
 	gcc_jit_function_new_block,
 	gcc_jit_function_new_local,
 	gcc_jit_global_kind,
+	gcc_jit_int_option,
 	gcc_jit_lvalue,
 	gcc_jit_lvalue_access_field,
 	gcc_jit_lvalue_as_rvalue,
@@ -198,6 +200,9 @@ GccProgram getGccProgram(ref Alloc alloc, ref Perf perf, ref immutable LowProgra
 
 	//TODO: don't do this by default..
 	gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DEBUGINFO, true);
+	if (false)
+		// TODO: this makes it crash
+		gcc_jit_context_set_int_option(ctx.deref(), gcc_jit_int_option.GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 1);
 	//gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
 	//gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
