@@ -332,7 +332,7 @@ program(
 			body: record(
 				[
 					field(island-and-exclusion, const, type(false, island-and-exclusion))
-					field(fun, const, type(false, fun-act0))]))
+					field(action, const, type(false, fun-act0))]))
 		struct(
 			name: island-and-exclusion
 			body: record([field(island, const, type(false, nat64)), field(exclusion, const, type(false, nat64))]))
@@ -342,7 +342,7 @@ program(
 			body: record(
 				[
 					field(island-and-exclusion, const, type(false, island-and-exclusion))
-					field(fun, const, type(false, fun-act1))]))
+					field(action, const, type(false, fun-act1))]))
 		struct(name: fun-act1, body: builtin(fun, [type(true, fut), type(false, void)]))
 		struct(
 			name: lambda(callback!, 0)
@@ -1220,7 +1220,7 @@ program(
 			as-any-mut-ptr
 			type(false, mut-ptr)
 			none
-			[param(ref, type(false, mut-ptr))]
+			[param(reference, type(false, mut-ptr))]
 			builtin([type(false, mut-ptr)]))
 		fun(
 			noctx
@@ -1311,8 +1311,8 @@ program(
 			as-any-const-ptr
 			type(false, const-ptr)
 			none
-			[param(ref, type(false, const-ptr))]
-			expr-body(call(as-const, [call(as-any-mut-ptr, [param-ref(ref)])])))
+			[param(reference, type(false, const-ptr))]
+			expr-body(call(as-const, [call(as-any-mut-ptr, [param-ref(reference)])])))
 		fun(
 			noctx
 			as-const
@@ -1325,7 +1325,7 @@ program(
 			as-any-mut-ptr
 			type(false, mut-ptr)
 			none
-			[param(ref, type(false, const-ptr))]
+			[param(reference, type(false, const-ptr))]
 			builtin([type(false, const-ptr)]))
 		fun(noctx, begin-ptr, type(false, const-ptr), none, [param(a, type(false, arr))], field-get(1))
 		fun(noctx, chars, type(false, arr), none, [param(a, type(false, str))], field-get(0))
@@ -1717,7 +1717,7 @@ program(
 				match-union(
 					call(try-alloc-backtrace-arrs, [])
 					[
-						case(none, call(new, [call(as, [call(new, [create-arr(arr, [])])])]))
+						case(none, call(new, [call(typed, [call(new, [create-arr(arr, [])])])]))
 						case(
 							some("<<matched>>")
 							let(
@@ -2056,7 +2056,7 @@ program(
 				param(funs, type(false, mut-ptr))]
 			new-record)
 		fun(noctx, new, type(false, backtrace), none, [param(return-stack, type(false, arr))], new-record)
-		fun(noctx, as, type(false, arr), none, [param(value, type(false, arr))], builtin([type(false, arr)]))
+		fun(noctx, typed, type(false, arr), none, [param(value, type(false, arr))], builtin([type(false, arr)]))
 		fun(noctx, new, type(false, arr), none, [param(a, type(false, arr))], expr-body(param-ref(a)))
 		fun(
 			ctx
@@ -2167,21 +2167,21 @@ program(
 			as-any-mut-ptr
 			type(false, mut-ptr)
 			none
-			[param(ref, type(false, mut-ptr))]
+			[param(reference, type(false, mut-ptr))]
 			builtin([type(false, mut-ptr)]))
 		fun(
 			noctx
 			as-any-const-ptr
 			type(false, const-ptr)
 			none
-			[param(ref, type(false, const-ptr))]
-			expr-body(call(as-const, [call(as-any-mut-ptr, [param-ref(ref)])])))
+			[param(reference, type(false, const-ptr))]
+			expr-body(call(as-const, [call(as-any-mut-ptr, [param-ref(reference)])])))
 		fun(
 			noctx
 			as-any-mut-ptr
 			type(false, mut-ptr)
 			none
-			[param(ref, type(false, const-ptr))]
+			[param(reference, type(false, const-ptr))]
 			builtin([type(false, const-ptr)]))
 		fun(noctx, funs, type(false, mut-ptr), none, [param(a, type(true, backtrace-arrs))], field-get(2))
 		fun(noctx, begin-ptr, type(false, const-ptr), none, [param(a, type(false, arr))], field-get(1))
@@ -2630,7 +2630,7 @@ program(
 			as-any-mut-ptr
 			type(false, mut-ptr)
 			none
-			[param(ref, type(false, mut-ptr))]
+			[param(reference, type(false, mut-ptr))]
 			builtin([type(false, mut-ptr)]))
 		fun(noctx, size, type(false, nat64), none, [param(a, type(true, mut-arr))], field-get(1))
 		fun(
@@ -3220,7 +3220,7 @@ program(
 			as-any-mut-ptr
 			type(false, mut-ptr)
 			none
-			[param(ref, type(false, mut-ptr))]
+			[param(reference, type(false, mut-ptr))]
 			builtin([type(false, mut-ptr)]))
 		fun(
 			noctx
@@ -3547,7 +3547,7 @@ program(
 			as-any-mut-ptr
 			type(false, mut-ptr)
 			none
-			[param(ref, type(true, exception-ctx))]
+			[param(reference, type(true, exception-ctx))]
 			builtin([type(true, exception-ctx)]))
 		fun(
 			noctx
@@ -3561,7 +3561,7 @@ program(
 			as-any-mut-ptr
 			type(false, mut-ptr)
 			none
-			[param(ref, type(true, log-ctx))]
+			[param(reference, type(true, log-ctx))]
 			builtin([type(true, log-ctx)]))
 		fun(
 			noctx
@@ -3575,7 +3575,7 @@ program(
 			as-any-mut-ptr
 			type(false, mut-ptr)
 			none
-			[param(ref, type(true, perf-ctx))]
+			[param(reference, type(true, perf-ctx))]
 			builtin([type(true, perf-ctx)]))
 		fun(
 			noctx
@@ -3719,7 +3719,7 @@ program(
 			as-any-mut-ptr
 			type(false, mut-ptr)
 			none
-			[param(ref, type(true, global-ctx))]
+			[param(reference, type(true, global-ctx))]
 			builtin([type(true, global-ctx)]))
 		fun(noctx, id, type(false, nat64), none, [param(a, type(true, island))], field-get(1))
 		fun(
@@ -3727,7 +3727,7 @@ program(
 			as-any-mut-ptr
 			type(false, mut-ptr)
 			none
-			[param(ref, type(true, gc-ctx))]
+			[param(reference, type(true, gc-ctx))]
 			builtin([type(true, gc-ctx)]))
 		fun(
 			noctx
@@ -4535,7 +4535,7 @@ program(
 			none
 			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, void))]
 			builtin([type(true, fut), type(false, void)]))
-		fun(noctx, fun, type(false, fun-act1), none, [param(a, type(false, fun-ref1))], field-get(1))
+		fun(noctx, action, type(false, fun-act1), none, [param(a, type(false, fun-ref1))], field-get(1))
 		fun(
 			ctx
 			lambda(lambda(subscript, 0), 0)
@@ -4549,7 +4549,7 @@ program(
 						call(
 							subscript
 							[
-								call(fun, [get-field(param-ref("<<closure>>"), f)])
+								call(action, [get-field(param-ref("<<closure>>"), f)])
 								get-field(param-ref("<<closure>>"), p0)])
 						get-field(param-ref("<<closure>>"), res)])))
 		fun(
@@ -4642,7 +4642,7 @@ program(
 			none
 			[param(f, type(false, fun-act0)), param(c, type(true, ctx))]
 			builtin([type(true, fut)]))
-		fun(noctx, fun, type(false, fun-act0), none, [param(a, type(false, fun-ref0))], field-get(1))
+		fun(noctx, action, type(false, fun-act0), none, [param(a, type(false, fun-ref0))], field-get(1))
 		fun(
 			ctx
 			lambda(lambda(subscript, 0), 0)
@@ -4653,7 +4653,7 @@ program(
 				call(
 					forward-to!
 					[
-						call(subscript, [call(fun, [get-field(param-ref("<<closure>>"), f)])])
+						call(subscript, [call(action, [get-field(param-ref("<<closure>>"), f)])])
 						get-field(param-ref("<<closure>>"), res)])))
 		fun(
 			ctx
@@ -5218,7 +5218,7 @@ program(
 			as-any-mut-ptr
 			type(false, mut-ptr)
 			none
-			[param(ref, type(false, mut-ptr))]
+			[param(reference, type(false, mut-ptr))]
 			builtin([type(false, mut-ptr)]))
 		fun(
 			noctx

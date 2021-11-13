@@ -1,4 +1,4 @@
-./test/compile-errors/record-privacy-b.crow 5:22-6:1 there are functions named 'new', but they do not match the expected return type and actual argument types.
+./test/compile-errors/record-privacy-b.crow 5:21-5:24 there are functions named 'new', but they do not match the expected return type and actual argument types.
 expected return type: private-ctor
 actual argument types:  (other arguments not checked, gave up early)
 candidates (with 1 arguments):

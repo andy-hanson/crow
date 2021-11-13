@@ -14,5 +14,5 @@ file-ast(
 					param(
 						range(10, 17)
 						none
-						inststruct(range(12, 17), name-range(12, a), [inststruct(range(14, 17), name-range(14, nat))]))])
+						inststruct(range(12, 17), name-range(12, a), [inststruct(range(13, 17), name-range(13, nat))]))])
 			body: void)])

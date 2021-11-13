@@ -8,7 +8,7 @@ file-ast(
 			sig: sig-ast(
 				range(0, 21)
 				main
-				inststruct(range(5, 12), name-range(5, fut), [inststruct(range(9, 12), name-range(9, nat))])
+				inststruct(range(5, 12), name-range(5, fut), [inststruct(range(8, 12), name-range(8, nat))])
 				[param(range(13, 20), none, suffix(inststruct(range(15, 18), name-range(15, str)), arr))])
 			summon: true
 			unsafe: true

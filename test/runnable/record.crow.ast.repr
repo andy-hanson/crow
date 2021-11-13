@@ -20,12 +20,12 @@ file-ast(
 			sig: sig-ast(
 				range(30, 51)
 				main
-				inststruct(range(35, 42), name-range(35, fut), [inststruct(range(39, 42), name-range(39, nat))])
+				inststruct(range(35, 42), name-range(35, fut), [inststruct(range(38, 42), name-range(38, nat))])
 				[param(range(43, 50), none, suffix(inststruct(range(45, 48), name-range(45, str)), arr))])
 			summon: true
 			body: let(
 				m
-				call(comma, name-range(74, new), [], [literal(nat(1, false)), literal(nat(2, false))])
+				call(comma, name-range(73, new), [], [literal(nat(1, false)), literal(nat(2, false))])
 				seq-ast(
 					seq-ast(
 						seq-ast(

@@ -16,7 +16,7 @@ file-ast(
 						range(15, 22)
 						const
 						h
-						inststruct(range(17, 22), name-range(17, arr), [inststruct(range(21, 22), name-range(21, x))]))]))
+						inststruct(range(17, 22), name-range(17, arr), [inststruct(range(20, 22), name-range(20, x))]))]))
 		struct(range(24, 36), "", public, [], none, union([member(t, none)]))]
 	funs: [
 		fun-decl(

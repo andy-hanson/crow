@@ -32,14 +32,14 @@ file-ast(
 			sig: sig-ast(
 				range(110, 131)
 				main
-				inststruct(range(115, 122), name-range(115, fut), [inststruct(range(119, 122), name-range(119, nat))])
+				inststruct(range(115, 122), name-range(115, fut), [inststruct(range(118, 122), name-range(118, nat))])
 				[param(range(123, 130), none, suffix(inststruct(range(125, 128), name-range(125, str)), arr))])
 			summon: true
 			body: let(
 				r
 				call(
 					comma
-					name-range(149, new)
+					name-range(148, new)
 					[]
 					[
 						literal(

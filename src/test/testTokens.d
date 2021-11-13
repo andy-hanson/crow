@@ -25,10 +25,10 @@ void testTokens(ref Test test) {
 		immutable Token(Token.Kind.importPath, immutable RangeWithinFile(8, 10)),
 		immutable Token(Token.Kind.funDef, immutable RangeWithinFile(12, 16)),
 		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(17, 20)),
-		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(21, 30)),
+		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(20, 29)),
 		immutable Token(Token.Kind.paramDef, immutable RangeWithinFile(31, 35)),
 		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(36, 39)),
-		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(40, 43)),
+		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(39, 42)),
 		immutable Token(Token.Kind.literalNumber, immutable RangeWithinFile(53, 54)),
 		immutable Token(Token.Kind.funRef, immutable RangeWithinFile(55, 63))]));
 
@@ -36,8 +36,7 @@ void testTokens(ref Test test) {
 		immutable Token(Token.Kind.funDef, immutable RangeWithinFile(0, 1)),
 		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(2, 5)),
 		immutable Token(Token.Kind.paramDef, immutable RangeWithinFile(6, 7)),
-		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(7, 8)),
-		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(9, 12)),
+		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(7, 12)),
 		immutable Token(Token.Kind.literalNumber, immutable RangeWithinFile(15, 16))]));
 }
 
