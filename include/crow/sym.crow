@@ -33,7 +33,7 @@ to-str str(a sym) noctx trusted
 
 # TODO: name 'to-sym'
 str-to-sym sym(a str) trusted
-	if sym ?= static-syms find<sym> (s => s.to-str == a)
+	if sym ?= static-syms find@<sym> (s => s.to-str == a)
 		sym
 	else
 		gctx = get-global-ctx
@@ -45,7 +45,7 @@ str-to-sym sym(a str) trusted
 		sym
 	else
 		sym sym = a.to-malloced-c-str,
-		node-ptr = unmanaged-alloc-uninitialized<by-val dynamic-sym-node>
+		node-ptr = unmanaged-alloc-uninitialized@<by-val dynamic-sym-node>
 		*node-ptr := sym, gctx.dynamic-syms
 		gctx.dynamic-syms := node-ptr.ref-of-ptr some
 		sym
@@ -59,7 +59,7 @@ str-to-sym sym(a str) trusted
 
 .to-malloced-c-str c-str(a str) noctx unsafe
 	n-chars = a.chars size
-	res = n-chars wrap-add 1 unmanaged-alloc-elements<char>
-	drop: res.ptr-cast<nat8, char> memcpy a.chars.begin-ptr.ptr-cast<nat8, char>, n-chars
+	res = n-chars wrap-add 1 unmanaged-alloc-elements@<char>
+	drop: res.ptr-cast@<nat8, char> memcpy a.chars.begin-ptr.ptr-cast@<nat8, char>, n-chars
 	res[n-chars] := "\0"
 	res as-const

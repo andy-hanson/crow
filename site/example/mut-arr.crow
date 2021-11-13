@@ -6,8 +6,8 @@ import
 main fut nat(_ str[]) summon
 	xs str mut[] = "a", "b", "c"
 	xs ~= "d"
-	# TODO: should not need 'as'
-	xs ~= ("e", "f").as<str[]>
+	# TODO: should not need 'typed'
+	xs ~= ("e", "f").typed@<str[]>
 	a = xs move-to-arr!
 	print: a join ", "
 	print: xs.is-empty to-str

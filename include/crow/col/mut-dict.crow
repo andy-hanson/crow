@@ -5,7 +5,7 @@ import
 	../exception: assert, forbid
 	../fun: subscript
 	../hash: hash, hash-mix
-	../misc: ->, arrow, as, data, drop, from, to, void
+	../misc: ->, arrow, data, drop, from, to, typed, void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, *, mut-ptr, set-deref
 	../str: ==, str
@@ -36,7 +36,7 @@ new<k, v> v mut[k](...a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	a to-mut-dict
 
 to-mut-dict<k, v> v mut[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
-	res = a.size mut-dict-with-capacity<k, v>
+	res = a.size mut-dict-with-capacity@<k, v>
 	a each pair =>
 		res[pair from] := pair to
 	res
@@ -46,7 +46,7 @@ New dict with `capacity` empty entries.
 WARN: Due to hash conflicts, this doesn't guarantee that allocations won't be needed.
 ###
 mut-dict-with-capacity<k, v> v mut[k](capacity nat64) data<k> compare<k> hash-mix<k>
-	(capacity fill-fix-arr none).as<fix-arr entry<k, v>>, 0
+	(capacity fill-fix-arr none).typed@<fix-arr entry<k, v>>, 0
 
 arr<k, v> arrow<k, v>[](a v mut[k]) data<k> compare<k> hash-mix<k>
 	a map-to-arr (key, value) => key -> value
@@ -188,7 +188,7 @@ Returns the old value (if it exists).
 .expand!<k, v> void(a v mut[k]) data<k> compare<k> hash-mix<k>
 	forbid: a.entries.size == 0
 	new-size = a.entries.size wrap-mul 2
-	bigger = new-size mut-dict-with-capacity<k, v>
+	bigger = new-size mut-dict-with-capacity@<k, v>
 	a each (key, value) =>
 		bigger[key] := value
 	a swap! bigger
@@ -231,7 +231,7 @@ filter!<k, v> void(a v mut[k], f act bool(k, v)) trusted data<k> compare<k> hash
 
 
 map-to-arr<out, k, v> out[](a v mut[k], f act out(k, v)) trusted data<k> compare<k> hash-mix<k>
-	out = a.size uninitialized-fix-arr<out>
+	out = a.size uninitialized-fix-arr@<out>
 	end = out.begin-ptr fold a, (cur, key, value) =>
 		*cur := f[key, value]
 		cur + 1

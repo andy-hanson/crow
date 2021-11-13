@@ -6,7 +6,7 @@ void builtin
 
 void void() noctx builtin
 
-as<a> a(value a) noctx builtin
+typed<a> a(value a) noctx builtin
 
 ###
 A type is data if it is:
@@ -216,23 +216,23 @@ since the `act` can't be called directly. Instead, it adds a task to the island.
 fun-ref0<r> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun act fut r()
+	action act fut r()
 fun-ref1<r, p0> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun act fut r(p0)
+	action act fut r(p0)
 fun-ref2<r, p0, p1> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun act fut r(p0, p1)
+	action act fut r(p0, p1)
 fun-ref3<r, p0, p1, p2> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun act fut r(p0, p1, p2)
+	action act fut r(p0, p1, p2)
 fun-ref4<r, p0, p1, p2, p3> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun act fut r(p0, p1, p2, p3)
+	action act fut r(p0, p1, p2, p3)
 
 # Calls the function and returns its return value.
 subscript<r, p0, p1> r(a fun-ptr0 r) noctx builtin

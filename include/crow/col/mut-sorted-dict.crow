@@ -4,7 +4,7 @@ import
 	../compare: !=, <, >, <=, compare
 	../exception: assert
 	../fun: subscript
-	../misc: ->, arrow, as, data, from, to, void
+	../misc: ->, arrow, data, from, to, typed, void
 	../number: ==, <=>, +, -, *, nat64
 	../opt: ==, force, is-empty, none, opt, or-default, size, some
 	../ptr: ==, -, *, mut-ptr, set-deref
@@ -40,7 +40,7 @@ new<k, v> mut-sorted-dict<k, v>(...a arrow<k, v>[]) data<k> compare<k>
 
 # Copies an `arr` to a `mut-sorted-dict`.
 to-mut-sorted-dict<k, v> mut-sorted-dict<k, v>(a arrow<k, v>[]) data<k> compare<k>
-	res mut-sorted-dict<k, v> = ().as<arrow<k, v?> mut[]>, 0, none
+	res mut-sorted-dict<k, v> = ().typed@<arrow<k, v?> mut[]>, 0, none
 	a each pair =>
 		res[pair from] := pair to
 	res
@@ -385,8 +385,8 @@ test
 	a remove-key! 1 is none
 
 	# Adding some more values so removals can't fully remove
-	# TODO: should not need 'as'
-	a ~= (13 -> "13", 15 -> "15", 17 -> "17").as<arrow<nat64, str>[]>
+	# TODO: should not need 'typed'
+	a ~= (13 -> "13", 15 -> "15", 17 -> "17").typed@<arrow<nat64, str>[]>
 	a verify "[5 -> 5, 7 -> 7, 8 -> 8, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], [0 -> 0, 2 -> 2, 6 -> 6]"
 
 	a remove-key! 5 is "5".some

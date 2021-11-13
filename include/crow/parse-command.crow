@@ -29,7 +29,7 @@ parse-named-args str[]?[]?(args str[], arg-names str[])
 	parsed.nameless.is-empty assert "Should be no nameless args"
 	assert: parsed.after is-empty
 
-	values = arg-names.size fill-mut-arr<str[]?> none
+	values = arg-names.size fill-mut-arr@<str[]?> none
 	# TODO: should not need a type argument here
 	help cell bool = false,
 	parsed.named each (key, value) =>

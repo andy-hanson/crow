@@ -151,12 +151,12 @@ blue color-32()
 	GL_ARRAY_BUFFER glBindBuffer renderer.triangle-vbo
 	GL_ARRAY_BUFFER glBufferSubData 0, renderer.vertices.n-bytes.to-int64, renderer.vertices.begin-ptr.as-const.ptr-cast
 	# TODO: don't do this every frame
-	stride = (to-int32: size-of<vertex>)
+	stride = (to-int32: size-of@<vertex>)
 	0 glVertexAttribPointer 2, GL_FLOAT, false, stride, 0.to-const-ptr
 	0 glEnableVertexAttribArray
-	1 glVertexAttribPointer 3, GL_FLOAT, false, stride, (2 * size-of<float32>).to-const-ptr
+	1 glVertexAttribPointer 3, GL_FLOAT, false, stride, (2 * size-of@<float32>).to-const-ptr
 	1 glEnableVertexAttribArray
-	2 glVertexAttribPointer 2, GL_FLOAT, false, stride, (5 * size-of<float32>).to-const-ptr
+	2 glVertexAttribPointer 2, GL_FLOAT, false, stride, (5 * size-of@<float32>).to-const-ptr
 	2 glEnableVertexAttribArray
 
 	GL_TEXTURE0 glActiveTexture
@@ -212,7 +212,7 @@ continue-or-quit enum
 	vbo
 
 n-bytes nat(vertices fix-arr vertex) unsafe
-	vertices.size * size-of<vertex>
+	vertices.size * size-of@<vertex>
 
 .vbo-free void(vbo GLuint) summon unsafe
 	1 glDeleteBuffers vbo.ptr-to

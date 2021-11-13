@@ -3,7 +3,7 @@ import
 	crow/ptr: size-of
 
 main fut nat(_ str[]) summon trusted
-	print: size-of<foo> to-str
+	print: size-of@<foo> to-str
 	0 resolved
 
 foo enum<nat8>

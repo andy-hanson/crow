@@ -150,13 +150,13 @@ This ensures the collection is kept in memory.
 	as index-set
 		a = match test-kind
 		as add
-			index-set.as<index-set> add-test iters, max-value
+			index-set.typed@<index-set> add-test iters, max-value
 		as get
-			a = index-set.as<index-set> add-test iters, max-value
+			a = index-set.typed@<index-set> add-test iters, max-value
 			info log "{0 get-test a, iters * get-factor, max-value}"
 			a
 		as rm
-			index-set.as<index-set> rm-test iters, max-value
+			index-set.typed@<index-set> rm-test iters, max-value
 		() => a size
 	as set
 		a = match test-kind

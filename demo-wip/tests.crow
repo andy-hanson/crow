@@ -35,35 +35,35 @@ import
 	crow/test/test-runner: run-all-tests
 
 main fut nat(_ str[]) summon
-	drop: ().from-bytes as<nat8[]>
+	drop: ().from-bytes typed@<nat8[]>
 	drop: "" password-hash quality-moderate
-	drop: ().as<compact-dict<nat, nat>>
-	drop: ().as<compact-sorted-dict<nat, nat>>
-	drop: ().as<deque nat>
-	drop: ().as<nat[nat]>
-	drop: ().as<frozen-dict<nat, nat>>
-	drop: ().as<frozen-set nat>
-	drop: ().as<hamt-set nat>
-	drop: ().as<index-set>
-	drop: ().as<list nat>
-	drop: ().as<nat mut[]>
-	drop: ().as<mut-deque nat>
-	drop: ().as<nat mut[nat]>
-	drop: ().as<mut-grid nat>
-	drop: ().as<mut-priority-queue<nat, nat>>
-	drop: ().as<mut-set nat>
-	drop: ().as<mut-sorted-dict<nat, nat>>
-	drop: ().as<mut-sorted-set nat>
-	drop: ().as<mut-stack nat>
+	drop: ().typed@<compact-dict<nat, nat>>
+	drop: ().typed@<compact-sorted-dict<nat, nat>>
+	drop: ().typed@<deque nat>
+	drop: ().typed@<nat[nat]>
+	drop: ().typed@<frozen-dict<nat, nat>>
+	drop: ().typed@<frozen-set nat>
+	drop: ().typed@<hamt-set nat>
+	drop: ().typed@<index-set>
+	drop: ().typed@<list nat>
+	drop: ().typed@<nat mut[]>
+	drop: ().typed@<mut-deque nat>
+	drop: ().typed@<nat mut[nat]>
+	drop: ().typed@<mut-grid nat>
+	drop: ().typed@<mut-priority-queue<nat, nat>>
+	drop: ().typed@<mut-set nat>
+	drop: ().typed@<mut-sorted-dict<nat, nat>>
+	drop: ().typed@<mut-sorted-set nat>
+	drop: ().typed@<mut-stack nat>
 	drop: perf-now
-	drop: ().as<priority-queue<nat, nat>>
-	drop: ().as<set nat>
-	drop: ().as<sorted-set nat>
-	drop: ().as<stack nat>
-	drop: ().as<tree-set nat>
-	drop: ().as<queue nat>
+	drop: ().typed@<priority-queue<nat, nat>>
+	drop: ().typed@<set nat>
+	drop: ().typed@<sorted-set nat>
+	drop: ().typed@<stack nat>
+	drop: ().typed@<tree-set nat>
+	drop: ().typed@<queue nat>
 	drop: gmt
-	drop: ((() => none),) as<iterator<nat>>
+	drop: ((() => none),) typed@<iterator<nat>>
 	drop: "".json-str
 	drop: () parse-named-args ()
 	run-all-tests

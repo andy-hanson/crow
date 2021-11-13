@@ -38,7 +38,7 @@ deque<a> deque a(a a[])
 	(), a, ()
 
 arr<a> a[](a deque a) trusted
-	res = a.size uninitialized-fix-arr<a>
+	res = a.size uninitialized-fix-arr@<a>
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := x
 		out + 1
@@ -92,7 +92,7 @@ fold<a, b> a(acc a, a deque b, f act a(a, b))
 	acc fold-reverse a.left, f fold a.mid, f fold a.right, f
 
 filter<a> deque a(a deque a, f act bool(a)) trusted
-	res = a.size uninitialized-fix-arr<a>
+	res = a.size uninitialized-fix-arr@<a>
 	end = res.begin-ptr fold a, (out, x) =>
 		if f[x]
 			*out := x
@@ -102,7 +102,7 @@ filter<a> deque a(a deque a, f act bool(a)) trusted
 	res[0 .. end - res.begin-ptr].cast-immutable deque
 
 map<out, in> deque out(a deque in, f act out(in)) trusted
-	res = a.size uninitialized-fix-arr<out>
+	res = a.size uninitialized-fix-arr@<out>
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
 		out + 1

@@ -4,7 +4,7 @@ import
 main fut nat(_ str[]) summon
 	if n ?= 'bishop'.to-enum<chess-piece>
 		print: "bishop is {n to-nat32}"
-	if face ?= queen.as<chess-piece>.to-sym.to-enum<face-card>
+	if face ?= queen.typed@<chess-piece>.to-sym.to-enum<face-card>
 		print: "queen as face-card is {face to-nat32}"
 	0 resolved
 

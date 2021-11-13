@@ -6,7 +6,7 @@ import
 	../fun: subscript
 	../hash: hash-mix
 	../log: info, log
-	../misc: as, data, void
+	../misc: data, typed, void
 	../opt: force, none, opt, or-default, some
 	../ptr: ==, <=>, +, *, const-ptr, mut-ptr, set-deref
 	../str: ==, str
@@ -45,7 +45,7 @@ new<a> set a(...a a[]) data<a> compare<a> hash-mix<a>
 	a to-set
 
 to-set<a> set a(a a[]) data<a> compare<a> hash-mix<a>
-	(a.to-frozen-set, none).as<add-node a>, ()
+	(a.to-frozen-set, none).typed@<add-node a>, ()
 
 to-arr<a> a[](a set a) data<a> compare<a> hash-mix<a>
 	# TODO: If a has a single add node and no remove, just return that
@@ -111,12 +111,12 @@ try-add<a> set<a>?(a set a, value a) data<a> compare<a> hash-mix<a>
 .add-and-maybe-compact<a> set a(a set a, value a) trusted data<a> compare<a> hash-mix<a>
 	add-size = a.add add-size
 	if add-size == 0
-		((value,), none).as<add-node a>, ()
+		((value,), none).typed@<add-node a>, ()
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
 		if plan.compacted-size == 1
-			((value,), a.add.some).as<add-node a>, a.remove
+			((value,), a.add.some).typed@<add-node a>, a.remove
 		else
 			a add-and-compact add-size, plan, value
 
@@ -154,7 +154,7 @@ spec
 	hash-mix<a>
 body
 	assert: plan.compacted-size > 1
-	compacted = plan.compacted-size uninitialized-fix-arr<a>
+	compacted = plan.compacted-size uninitialized-fix-arr@<a>
 	*compacted.begin-ptr := value
 	compactor compactor a = compacted.begin-ptr, compacted.begin-ptr + 1, compacted.end-ptr
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
@@ -230,7 +230,7 @@ filter<a> set a(a set a, f act bool(a)) data<a> compare<a> hash-mix<a>
 	res.move-to-arr! to-set
 
 map-to-arr<out, in> out[](a set in, f act out(in)) trusted data<in> compare<in> hash-mix<in>
-	out = a.size uninitialized-fix-arr<out>
+	out = a.size uninitialized-fix-arr@<out>
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1
@@ -285,16 +285,16 @@ test
 	b.to-arr is (5,)
 	b verify "[5]"
 
-	# TODO: should not need 'as'
-	c = b ~ (6, 4, 1).as<nat64[]>
+	# TODO: should not need 'typed'
+	c = b ~ (6, 4, 1).typed@<nat64[]>
 	c verify "[1 4 6 5]"
 
-	# TODO: should not need 'as'
-	d = c ~ (8,).as<nat64[]>
+	# TODO: should not need 'typed'
+	d = c ~ (8,).typed@<nat64[]>
 	d verify "[1 4 6 5], [8]"
 
-	# TODO: should not need 'as'
-	e = d ~ (4, 10).as<nat64[]>
+	# TODO: should not need 'typed'
+	e = d ~ (4, 10).typed@<nat64[]>
 	e verify "[1 4 6 5], [10 8]"
 	e.size is 6
 	e[0] is false

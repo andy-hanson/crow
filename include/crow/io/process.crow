@@ -22,7 +22,7 @@ import
 	../compare: <=
 	../exception: assert, throw
 	../extra-types: fd-t
-	../misc: as, void
+	../misc: typed, void
 	../number: to-nat64
 	../ptr: +, any-const-ptr, as-any-mut-ptr, as-ref, by-val, const-ptr, null
 	../str: char, c-str, str
@@ -80,7 +80,7 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	res ~= exe-c-str
 	args each x =>
 		res ~= x to-c-str
-	res ~= null.as<c-str>
+	res ~= null.typed@<c-str>
 	res.move-to-arr! begin-ptr
 
 .spawn-and-wait-result process-result(exe c-str, args c-str*, environ c-str*) summon unsafe
@@ -128,10 +128,10 @@ spec
 	summon
 	unsafe
 body
-	# TODO: `as` should be unnecessary
+	# TODO: `typed` should be unnecessary
 	# (It is because currently fix-arr exposes the constructor, which should be private)
-	pfd1 = (stdout-pipe, POLLIN, 0).as<by-val pollfd>
-	pfd2 = (stderr-pipe, POLLIN, 0).as<by-val pollfd>
+	pfd1 = (stdout-pipe, POLLIN, 0).typed@<by-val pollfd>
+	pfd2 = (stderr-pipe, POLLIN, 0).typed@<by-val pollfd>
 	poll-fds fix-arr by-val pollfd = pfd1, pfd2
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
@@ -191,7 +191,7 @@ body
 .spawn-and-wait exit-code(exe c-str, args c-str*, environ c-str*) summon unsafe
 	pid-cell cell pid_t = 0,
 	# TODO: null.as-ref is bad. If it's nullable it shouldn't be a ref.
-	check-posix-error: pid-cell posix_spawn exe, null.as<any-const-ptr>.as-ref, null, args, environ
+	check-posix-error: pid-cell posix_spawn exe, null.typed@<any-const-ptr>.as-ref, null, args, environ
 	*pid-cell wait-and-get-exit-code
 
 .wait-and-get-exit-code exit-code(pid pid_t) summon unsafe

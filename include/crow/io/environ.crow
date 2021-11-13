@@ -7,7 +7,7 @@ import
 	../col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	../compare: !=
 	../hash: hash-mix
-	../misc: ->, arrow, as, from, to, void
+	../misc: ->, arrow, from, to, typed, void
 	../private/bootstrap: todo
 	../ptr: ==, +, *, const-ptr, null
 	../str: ==, <=>, ~, char, c-str, str
@@ -44,6 +44,6 @@ convert-environ c-str*(environ environ) unsafe
 	res c-str mut[] = ()
 	environ each (key, value) =>
 		res ~= key ~ "=" ~ value to-c-str
-	# TODO: 'as' should be unnecessary
-	res ~= null<char> as<c-str>
+	# TODO: 'typed' should be unnecessary
+	res ~= null@<char> typed@<c-str>
 	res.move-to-arr! begin-ptr

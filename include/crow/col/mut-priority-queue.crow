@@ -3,7 +3,7 @@ import
 	../bool: !, &&, ==, bool, false, true
 	../compare: <, compare
 	../exception: assert
-	../misc: ->, arrow, as, data, from, to, void
+	../misc: ->, arrow, data, from, to, typed, void
 	../opt: force, is-empty, none, opt, some
 	../ptr: +, -, mut-ptr, set-deref
 	../str: ==, str
@@ -77,7 +77,7 @@ fix-arr<k, v> fix-arr arrow<k, v>(a mut-priority-queue<k, v>) data<k> compare<k>
 
 # Output is high-to-low
 .spread-all-buckets<k, v> fix-arr arrow<k, v>(a mut-priority-queue<k, v>) trusted data<k> compare<k>
-	new-mins = a.size uninitialized-fix-arr<arrow<k, v>>
+	new-mins = a.size uninitialized-fix-arr@<arrow<k, v>>
 	new-mins.begin-ptr spread-all-buckets-recur! a, 0
 	new-mins
 .spread-all-buckets-recur!<k, v> void
@@ -103,8 +103,8 @@ body
 	if index < buckets.size
 		buckets[index] ~= pair
 	else
-		# TODO: 'as' should be unnecessary
-		buckets ~= ().as<arrow<k, v> mut[]>
+		# TODO: 'typed' should be unnecessary
+		buckets ~= ().typed@<arrow<k, v> mut[]>
 		buckets add-to-bucket! index, pair
 
 pop-value!<k, v> v?(a mut-priority-queue<k, v>) data<k> compare<k>

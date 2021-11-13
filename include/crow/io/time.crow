@@ -21,7 +21,7 @@ get-unix-time unix-time() summon trusted
 delay fut void(duration duration) trusted summon
 	target-time = get-monotime-nsec + duration.nsec
 	island = get-cur-island
-	res = unresolved<void>
+	res = unresolved@<void>
 	island add-task target-time, island.new-exclusion, () =>
 		res resolve! void
 	res

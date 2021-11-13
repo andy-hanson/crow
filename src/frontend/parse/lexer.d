@@ -11,6 +11,7 @@ import frontend.parse.ast :
 	rangeOfNameAndRange;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc, allocateBytes;
+import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, rtail;
@@ -23,6 +24,7 @@ import util.collection.str :
 	SafeCStr,
 	strOfNulTerminatedStr;
 import util.opt : force, has, none, Opt, optOr, some;
+import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
 	AllSymbols,
@@ -31,9 +33,11 @@ import util.sym :
 	isAlphaIdentifierStart,
 	isAlphaIdentifierContinue,
 	isDigit,
+	Operator,
 	shortSymAlphaLiteral,
 	shortSymAlphaLiteralValue,
 	Sym,
+	symForOperator,
 	symOfStr;
 import util.types : safeI32FromU32, safeSizeTToU32;
 import util.util : drop, todo, unreachable, verify;
@@ -46,26 +50,44 @@ private enum IndentKind {
 
 struct Lexer {
 	private:
-	immutable Sym symUnderscore;
+	Ptr!Alloc allocPtr;
+	Ptr!AllSymbols allSymbolsPtr;
 	ArrBuilder!ParseDiagnostic diags;
+	immutable Sym symUnderscore;
 	//TODO:PRIVATE
 	public immutable CStr sourceBegin;
 	//TODO:PRIVATE
 	public CStr ptr;
 	immutable IndentKind indentKind;
+	union {
+		bool ignore;
+		Cell!Sym curSym; // For Token.name
+		Cell!Operator curOperator;
+		Cell!LiteralAst curLiteral; // for Token.literal
+	}
+}
+
+private ref Alloc alloc(return scope ref Lexer lexer) {
+	return lexer.allocPtr.deref();
+}
+
+private ref AllSymbols allSymbols(return scope ref Lexer lexer) {
+	return lexer.allSymbolsPtr.deref();
 }
 
 @trusted Lexer createLexer(
-	ref Alloc alloc,
-	ref AllSymbols allSymbols,
+	Ptr!Alloc alloc,
+	Ptr!AllSymbols allSymbols,
 	immutable NulTerminatedStr source,
 ) {
 	// Note: We *are* relying on the nul terminator to stop the lexer.
 	immutable string str = strOfNulTerminatedStr(source);
-	immutable string useStr = !empty(str) && last(str) == '\n' ? str : rtail(cat!char(alloc, str, "\n\0"));
+	immutable string useStr = !empty(str) && last(str) == '\n' ? str : rtail(cat!char(alloc.deref(), str, "\n\0"));
 	return Lexer(
-		getSymFromAlphaIdentifier(allSymbols, "_"),
+		alloc,
+		allSymbols,
 		ArrBuilder!ParseDiagnostic(),
+		getSymFromAlphaIdentifier(allSymbols.deref(), "_"),
 		begin(useStr),
 		begin(useStr),
 		detectIndentKind(useStr));
@@ -125,6 +147,10 @@ void addDiagUnexpected(ref Alloc alloc, ref Lexer lexer) {
 		return true;
 	} else
 		return false;
+}
+
+immutable(bool) tryTake(ref Lexer, immutable(Token)) {
+	return todo!(immutable bool)("Use tryTakeToken!!!");
 }
 
 @trusted immutable(bool) tryTake(ref Lexer lexer, immutable CStr c) {
@@ -354,6 +380,7 @@ immutable(SymAndIsReserved) takeNameAllowReserved(ref Alloc alloc, ref AllSymbol
 }
 
 immutable(NameAndRange) takeNameAndRange(ref Alloc alloc, ref AllSymbols allSymbols, ref Lexer lexer) {
+	while (tryTake(lexer, ' ')) {}
 	immutable SymAndIsReserved s = takeNameAllowReserved(alloc, allSymbols, lexer);
 	if (s.isReserved)
 		addDiagOnReservedName(alloc, lexer, s.name);
@@ -453,6 +480,283 @@ public @trusted immutable(char) next(ref Lexer lexer) {
 	immutable char res = *lexer.ptr;
 	lexer.ptr++;
 	return res;
+}
+
+public enum Token {
+	act, // 'act'
+	arrowLambda, // =>
+	arrowThen, // '<-'
+	as, // 'as'
+	atLess, // '!<'
+	braceLeft, // '{'
+	braceRight, // '}'
+	bracketLeft, // '['
+	bracketRight, // ']'
+	colon, // ':'
+	colonEqual, // ':='
+	comma, // ','
+	dot, // '.'
+	elif, // 'elif'
+	else_, // 'else'
+	equal, // '='
+	EOF, // end of file
+	fun, // 'fun'
+	if_, // 'if'
+	invalid,
+	literal, // Use getCurLiteral
+	match, // 'match'
+	mut, // 'mut'
+	name, // Any non-keyword, non-operator name; use getCurSym with this
+	newline, // end of line
+	operator, // Any operator; use getCurOperator with this
+	parenLeft, // '('
+	parenRight, // ')'
+	question, // '?'
+	questionEqual, // '?='
+	quoteDouble, // '"'
+	quoteSingle, // "'"
+	ref_, // 'ref'
+}
+
+@trusted public immutable(Token) nextToken(ref Lexer lexer) {
+	immutable Pos start = curPos(lexer);
+	immutable CStr begin = lexer.ptr;
+	immutable char c = next(lexer);
+
+	immutable(Token) nameToken(immutable Sym a) {
+		cellSet(lexer.curSym, a);
+		return Token.name;
+	}
+
+	immutable(Token) operatorToken(immutable Operator a) {
+		cellSet(lexer.curOperator, a);
+		return Token.operator;
+	}
+
+	immutable(Token) literalToken(immutable LiteralAst a) {
+		cellSet(lexer.curLiteral, a);
+		return Token.literal;
+	}
+
+	switch (c) {
+		case '\0':
+			backUp(lexer);
+			return Token.EOF;
+		case ' ':
+			return nextToken(lexer);
+		case '\n':
+			return Token.newline;
+		case '~':
+			return operatorToken(tryTake(lexer, '=') ? Operator.concatEquals : Operator.tilde);
+		case '@':
+			return tryTake(lexer, '<')
+				? Token.atLess
+				: Token.invalid;
+		case '!':
+			return operatorToken(tryTake(lexer, '=') ? Operator.notEqual : Operator.not);
+		case '^':
+			return operatorToken(Operator.xor1);
+		case '&':
+			return operatorToken(tryTake(lexer, '&') ? Operator.and2 : Operator.and1);
+		case '*':
+			return operatorToken(tryTake(lexer, '*') ? Operator.exponent : Operator.times);
+		case '(':
+			return Token.parenLeft;
+		case ')':
+			return Token.parenRight;
+		case '[':
+			return Token.bracketLeft;
+		case '{':
+			return Token.braceLeft;
+		case '}':
+			return Token.braceRight;
+		case ']':
+			return Token.bracketRight;
+		case '-':
+			return isDigit(*lexer.ptr)
+				? literalToken(takeNumberAfterSign(lexer, some(Sign.minus)))
+				: operatorToken(tryTake(lexer, '>') ? Operator.arrow : Operator.minus);
+		case '=':
+			return tryTake(lexer, '>')
+				? Token.arrowLambda
+				: tryTake(lexer, '=')
+				? operatorToken(Operator.equal)
+				: Token.equal;
+		case '+':
+			return isDigit(*lexer.ptr)
+				? literalToken(takeNumberAfterSign(lexer, some(Sign.plus)))
+				: operatorToken(Operator.plus);
+		case '|':
+			return tryTake(lexer, '|')
+				? operatorToken(Operator.or2)
+				: operatorToken(Operator.or1);
+		case ':':
+			return tryTake(lexer, '=')
+				? Token.colonEqual
+				: Token.colon;
+		case '\'':
+			return Token.quoteSingle;
+		case '"':
+			return Token.quoteDouble;
+		case ',':
+			return Token.comma;
+		case '<':
+			return tryTake(lexer, '-')
+				? Token.arrowThen
+				: operatorToken(tryTake(lexer, '=')
+					? tryTake(lexer, '>') ? Operator.compare : Operator.lessOrEqual
+					: tryTake(lexer, '<')
+					? Operator.shiftLeft
+					: Operator.less);
+		case '>':
+			return operatorToken(tryTake(lexer, '=')
+				? Operator.greaterOrEqual
+				: tryTake(lexer, '>')
+				? Operator.shiftRight
+				: Operator.greater);
+		case '.':
+			return tryTake(lexer, '.')
+				? operatorToken(Operator.range)
+				: Token.dot;
+		case '/':
+			return operatorToken(Operator.divide);
+		case '?':
+			return tryTake(lexer, '=') ? Token.questionEqual : Token.question;
+		default:
+			if (isAlphaIdentifierStart(c)) {
+				immutable string nameStr = takeNameRest(lexer, begin);
+				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
+				if (isReservedName(lexer, name))
+					switch (name.value) {
+						case shortSymAlphaLiteralValue("act"):
+							return Token.act;
+						case shortSymAlphaLiteralValue("as"):
+							return Token.as;
+						case shortSymAlphaLiteralValue("fun"):
+							return Token.fun;
+						case shortSymAlphaLiteralValue("if"):
+							return Token.if_;
+						case shortSymAlphaLiteralValue("elif"):
+							return Token.elif;
+						case shortSymAlphaLiteralValue("else"):
+							return Token.else_;
+						case shortSymAlphaLiteralValue("match"):
+							return Token.match;
+						case shortSymAlphaLiteralValue("mut"):
+							return Token.mut;
+						case shortSymAlphaLiteralValue("ref"):
+							return Token.ref_;
+						default:
+							//TODO: have tokens for every reserved name, so this never happens.
+							addDiagOnReservedName(lexer.alloc, lexer, immutable NameAndRange(start, name));
+							return Token.name;
+					}
+				else
+					return nameToken(name);
+			} else if (isDigit(c)) {
+				backUp(lexer);
+				return literalToken(takeNumberAfterSign(lexer, none!Sign));
+			} else
+				return Token.invalid;
+	}
+}
+
+public immutable(Sym) getCurSym(ref Lexer lexer) {
+	//TODO: assert that cur token is Token.name
+	return cellGet(lexer.curSym);
+}
+
+public immutable(NameAndRange) getCurNameAndRange(ref Lexer lexer, immutable Pos start) {
+	return immutable NameAndRange(start, getCurSym(lexer));
+}
+
+public immutable(Operator) getCurOperator(ref Lexer lexer) {
+	return cellGet(lexer.curOperator);
+}
+
+@trusted public immutable(LiteralAst) getCurLiteral(ref Lexer lexer) {
+	//TODO: assert that cur token is Token.literal
+	return cellGet(lexer.curLiteral);
+}
+
+public immutable(bool) tryTakeToken(ref Lexer lexer, immutable Token expected) {
+	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
+	immutable char* before = lexer.ptr;
+	immutable Token actual = nextToken(lexer);
+	if (actual == expected)
+		return true;
+	else {
+		lexer.ptr = before;
+		return false;
+	}
+}
+
+public immutable(bool) tryTakeOperator(ref Lexer lexer, immutable Operator expected) {
+	immutable char* before = lexer.ptr;
+	immutable Token actual = nextToken(lexer);
+	if (actual == Token.operator && getCurOperator(lexer) == expected)
+		return true;
+	else {
+		lexer.ptr = before;
+		return false;
+	}
+}
+
+immutable(Token) getPeekToken(ref Lexer lexer) {
+	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
+	immutable char* before = lexer.ptr;
+	immutable Token res = nextToken(lexer);
+	lexer.ptr = before;
+	return res;
+}
+
+public immutable(bool) peekToken(ref Lexer lexer, immutable Token expected) {
+	return getPeekToken(lexer) == expected;
+}
+
+public immutable(bool) peekTokenExpression(ref Lexer lexer) {
+	return isExpressionToken(getPeekToken(lexer));
+}
+
+// Whether a token may start an expression
+immutable(bool) isExpressionToken(immutable Token a) {
+	final switch (a) {
+		case Token.act:
+		case Token.arrowLambda:
+		case Token.arrowThen:
+		case Token.as:
+		case Token.atLess:
+		case Token.braceLeft:
+		case Token.braceRight:
+		case Token.bracketRight:
+		case Token.colon:
+		case Token.colonEqual:
+		case Token.comma:
+		case Token.dot:
+		case Token.elif:
+		case Token.else_:
+		case Token.equal:
+		case Token.EOF:
+		case Token.fun:
+		case Token.invalid:
+		case Token.mut:
+		case Token.newline:
+		case Token.parenRight:
+		case Token.question:
+		case Token.questionEqual:
+		case Token.ref_:
+			return false;
+		case Token.bracketLeft:
+		case Token.if_:
+		case Token.literal:
+		case Token.match:
+		case Token.name:
+		case Token.operator:
+		case Token.parenLeft:
+		case Token.quoteDouble:
+		case Token.quoteSingle:
+			return true;
+	}
 }
 
 immutable(RangeWithinFile) range(ref Lexer lexer, immutable CStr begin) {
@@ -905,13 +1209,16 @@ struct StrAndIsOperator {
 
 public immutable(bool) isReservedName(ref const Lexer lexer, immutable Sym name) {
 	switch (name.value) {
+		case shortSymAlphaLiteralValue("act"):
 		case shortSymAlphaLiteralValue("alias"):
+		case shortSymAlphaLiteralValue("as"):
 		case shortSymAlphaLiteralValue("builtin"):
 		case shortSymAlphaLiteralValue("elif"):
 		case shortSymAlphaLiteralValue("else"):
 		case shortSymAlphaLiteralValue("export"):
 		case shortSymAlphaLiteralValue("extern"):
 		case shortSymAlphaLiteralValue("extern-ptr"):
+		case shortSymAlphaLiteralValue("fun"):
 		case shortSymAlphaLiteralValue("global"):
 		case shortSymAlphaLiteralValue("if"):
 		case shortSymAlphaLiteralValue("import"):
@@ -919,6 +1226,7 @@ public immutable(bool) isReservedName(ref const Lexer lexer, immutable Sym name)
 		case shortSymAlphaLiteralValue("mut"):
 		case shortSymAlphaLiteralValue("noctx"):
 		case shortSymAlphaLiteralValue("record"):
+		case shortSymAlphaLiteralValue("ref"):
 		case shortSymAlphaLiteralValue("sendable"):
 		case shortSymAlphaLiteralValue("spec"):
 		case shortSymAlphaLiteralValue("summon"):

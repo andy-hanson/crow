@@ -19,7 +19,7 @@ struct BuiltinKind {
 	@safe @nogc pure nothrow:
 
 	struct AllFuns {}
-	struct As {}
+	struct As {} //TODO:KILL
 	struct CallFunPtr {}
 	struct GetCtx {}
 	struct InitConstants {}
@@ -184,8 +184,6 @@ immutable(BuiltinKind) getBuiltinKind(
 			return binary(LowExprKind.SpecialBinary.Kind.and);
 		case operatorSymValue(Operator.or2):
 			return binary(LowExprKind.SpecialBinary.Kind.or);
-		case shortSymAlphaLiteralValue("as"):
-			return immutable BuiltinKind(immutable BuiltinKind.As());
 		case shortSymAlphaLiteralValue("as-ref"):
 			return unary(LowExprKind.SpecialUnary.Kind.asRef);
 		case operatorSymValue(Operator.and1):
@@ -339,6 +337,9 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failUnary());
 		case shortSymAlphaLiteralValue("true"):
 			return constantBool(true);
+		//TODO:KILL
+		case shortSymAlphaLiteralValue("typed"):
+			return immutable BuiltinKind(immutable BuiltinKind.As());
 		case shortSymAlphaLiteralValue("unsafe-div"):
 			return binary(isFloat32(rt)
 				? LowExprKind.SpecialBinary.Kind.unsafeDivFloat32
@@ -349,6 +350,8 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.unsafeDivNat64
 				: failBinary());
+		case shortSymAlphaLiteralValue("unsafe-mod"):
+			return isNat64(rt) ? binary(LowExprKind.SpecialBinary.Kind.unsafeModNat64) : fail();
 		case shortSymAlphaLiteralValue("void"):
 			return constant(immutable Constant(immutable Constant.Void()));
 		case shortSymAlphaLiteralValue("wrap-add"):
@@ -397,8 +400,6 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.wrapSubNat64
 				: failBinary());
-		case shortSymAlphaLiteralValue("unsafe-mod"):
-			return isNat64(rt) ? binary(LowExprKind.SpecialBinary.Kind.unsafeModNat64) : fail();
 		case shortSymAlphaLiteralValue("zeroed"):
 			return immutable BuiltinKind(immutable BuiltinKind.Zeroed());
 		default:

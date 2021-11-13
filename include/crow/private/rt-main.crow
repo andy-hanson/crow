@@ -133,8 +133,8 @@ body
 
 # Each thread will get the thread ID, and the common arguments.
 .run-threads void(n-threads nat64, gctx global-ctx) noctx unsafe summon
-	threads = n-threads unmanaged-alloc-elements<pthread_t>
-	thread-args = n-threads unmanaged-alloc-elements<by-val<thread-args>>
+	threads = n-threads unmanaged-alloc-elements@<pthread_t>
+	thread-args = n-threads unmanaged-alloc-elements@<by-val<thread-args>>
 
 	actual-n-threads = n-threads wrap-sub 1
 
@@ -164,7 +164,7 @@ body
 		i wrap-add 1 start-threads-recur n-threads, threads, thread-args-begin, gctx
 
 .thread-fun any-mut-ptr(args-ptr any-mut-ptr) noctx unsafe summon
-	args = args-ptr as-ref<thread-args>
+	args = args-ptr as-ref@<thread-args>
 	args.thread-id thread-function args.gctx
 	null
 

@@ -14,7 +14,7 @@ enum<a> spec
 	== bool(a a, b a)
 
 to-sym<a> sym(a a) enum<a>
-	res = enum-members first-some<sym, named-val a> member =>
+	res = enum-members first-some@<sym, named-val a> member =>
 		if member.val == a
 			member.name some
 	if name ?= res
@@ -23,7 +23,7 @@ to-sym<a> sym(a a) enum<a>
 		"Invalid enum value" throw
 
 to-enum<a> a?(a sym) enum<a>
-	enum-members first-some<a, named-val a> member =>
+	enum-members first-some@<a, named-val a> member =>
 		if member.name == a
 			member.val some
 

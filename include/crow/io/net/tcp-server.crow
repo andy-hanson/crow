@@ -139,8 +139,8 @@ close-client void(client-fd fd-t) unsafe summon
 .accept-clients void(listen-fd fd-t, epoll-fd fd-t, on-accepted-client ref void(fd-t)) unsafe summon
 	clientaddr sockaddr_in = ()
 	clientaddr-as-sockaddr = clientaddr.ptr-to ptr-cast-to-extern<sockaddr, sockaddr_in>
-	# TODO: should be able to write `size-of<sockaddr_in>.to-nat32`
-	addrlen by-val cell socklen_t = (size-of<sockaddr_in>).to-nat32,
+	# TODO: should be able to write `size-of@<sockaddr_in>.to-nat32`
+	addrlen by-val cell socklen_t = (size-of@<sockaddr_in>).to-nat32,
 	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val
 	if client-fd < 0
 		e = errno
@@ -156,7 +156,7 @@ close-client void(client-fd fd-t) unsafe summon
 		listen-fd accept-clients epoll-fd, on-accepted-client
 
 .handle-client void(fd fd-t, on-received-chunk ref void(fd-t, nat8[])) unsafe summon
-	buf = uninitialized-fix-arr<nat8>: 256
+	buf = uninitialized-fix-arr@<nat8>: 256
 	count = fd read buf.begin-ptr, buf.size
 	if count < 0
 		err = errno

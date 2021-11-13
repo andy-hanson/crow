@@ -58,7 +58,9 @@ import frontend.parse.lexer :
 	takeNewlineOrSingleDedent,
 	takeOrAddDiagExpected,
 	takeQuotedStr,
+	Token,
 	tryTake,
+	tryTakeToken,
 	tryTakeIndentAfterNewline_topLevel;
 import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseType : parseType, takeTypeArgsEnd, tryParseTypeArgsBracketed;
@@ -73,6 +75,7 @@ import util.memory : allocate;
 import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some, somePtr;
 import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
+import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, isSymOperator, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq, symOfStr;
 import util.types : Nat8;
@@ -91,7 +94,7 @@ immutable(FileAstAndParseDiagnostics) parseFile(
 	immutable NulTerminatedStr source,
 ) {
 	return withMeasure(alloc, perf, PerfMeasure.parseFile, () {
-		Lexer lexer = createLexer(alloc, allSymbols, source);
+		Lexer lexer = createLexer(ptrTrustMe_mut(alloc), ptrTrustMe_mut(allSymbols), source);
 		immutable FileAst ast = parseFileInner(alloc, allSymbols, allPaths, lexer);
 		return immutable FileAstAndParseDiagnostics(ast, finishDiags(alloc, lexer));
 	});

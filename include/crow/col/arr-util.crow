@@ -21,7 +21,7 @@ Equivalent to `[f[0], f[1], ..., f[size - 1]]`.
 Arr containing the result of `f` for each number 0 to size (exclusive).
 ###
 make-arr<a> a[](size nat64, f act a(nat64)) trusted
-	res = size alloc-uninitialized<a>
+	res = size alloc-uninitialized@<a>
 	res fill-ptr-range size, f
 	size, res.as-const
 
@@ -70,7 +70,7 @@ filter<a> a[](a a[], f act bool(a))
 		f[cur]
 
 filter-with-index<a> a[](a a[], f act bool(a, nat64)) trusted
-	res = a.size alloc-uninitialized<a>
+	res = a.size alloc-uninitialized@<a>
 	end = res filter-with-index-recur a.begin-ptr, a.end-ptr, 0, f
 	res.as-const arr-from-begin-end end.as-const
 .filter-with-index-recur<a> a mut*
@@ -371,7 +371,7 @@ For example, "a rose is a hose is a nose" split-by-subseq "is" would be
 ###
 split-by-subseq<a> a[][](a a[], splitter a[]) equal<a> equal<a[]> trusted
 	size = (a count-subseqs splitter) + 1
-	res = size alloc-uninitialized<a[]>
+	res = size alloc-uninitialized@<a[]>
 	res split-by-subseq-recur a, splitter
 	size, res.as-const
 # TODO: equal<a[]> should be unnecessary

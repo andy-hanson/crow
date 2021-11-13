@@ -4,7 +4,7 @@ import
 	../../compare: <, <=, >=, compare, max, min
 	../../exception: unreachable
 	../../fun: subscript
-	../../misc: ->, arrow, as, data, from, to, void
+	../../misc: ->, arrow, data, from, to, typed, void
 	../../number: ==, <=>, +, -, is-even, nat64
 	../../opt: ==, is-empty, none, opt, opt-or, some
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
@@ -135,7 +135,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) data<k> compare<k>
 	prev-size <= (overlay-size max 3)
 
 .merge-overlays<k, v> arrow<k, v?>[](l arrow<k, v?>[], r arrow<k, v?>[]) trusted data<k> compare<k>
-	res = l.size + r.size uninitialized-fix-arr<arrow<k, v?>>
+	res = l.size + r.size uninitialized-fix-arr@<arrow<k, v?>>
 	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
 	res[0 .. end - res.begin-ptr] cast-immutable
 
@@ -175,7 +175,7 @@ body
 			out + 1 merge-keep-right l, l-end, r + 1, r-end
 
 .merge-to-end<k, v> arrow<k, v>[](l arrow<k, v>[], r arrow<k, v?>[]) trusted data<k> compare<k>
-	res = l.size + r.size uninitialized-fix-arr<arrow<k, v>>
+	res = l.size + r.size uninitialized-fix-arr@<arrow<k, v>>
 	end = if l is-empty
 		res.begin-ptr finish-rest-ignore-none r.begin-ptr, r.end-ptr
 	else
@@ -351,7 +351,7 @@ body
 	overlays fix-arr arrow<k, v?>[]
 
 .init-iters<k, v> iters<k, v>(a compact-sorted-dict<k, v>) trusted
-	overlay-iters = 0 overlay-count a.impl uninitialized-fix-arr<arrow<k, v?>[]>
+	overlay-iters = 0 overlay-count a.impl uninitialized-fix-arr@<arrow<k, v?>[]>
 	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur! a.impl
 	end-pairs, overlay-iters
 
@@ -469,8 +469,8 @@ test
 	b verify "[10 -> 10]"
 	b[10] is "10".some
 
-	# TODO: should not need 'as'
-	c = b ~ (15 -> "15", 5 -> "5", 20 -> "20").as<arrow<nat64, str>[]>
+	# TODO: should not need 'typed'
+	c = b ~ (15 -> "15", 5 -> "5", 20 -> "20").typed@<arrow<nat64, str>[]>
 	c verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20]"
 
 	d = c ~ (11 -> "11")
@@ -493,8 +493,8 @@ test
 	# because we don't keep track of what a removal removes from, and it might be removing from the leftmost node.
 	h verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> _, 15 -> _]"
 
-	# TODO: should not need 'as'
-	i = h ~ (11 -> "11", 25 -> "25").as<arrow<nat64, str>[]>
+	# TODO: should not need 'typed'
+	i = h ~ (11 -> "11", 25 -> "25").typed@<arrow<nat64, str>[]>
 	i verify "[5 -> 5, 10 -> 10b, 11 -> 11, 20 -> 20, 25 -> 25]"
 
 	h-folded = "" fold h, (cur, key, value) =>

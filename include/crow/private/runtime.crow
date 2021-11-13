@@ -164,7 +164,7 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 
 ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion exclusion) noctx unsafe
 	gc-ctx = island.gc.ref-of-val get-gc-ctx
-	tls.log-ctx-ptr.as-ref<log-ctx>.handler := island.gc-root.ref-of-val.log-handler
+	tls.log-ctx-ptr.as-ref@<log-ctx>.handler := island.gc-root.ref-of-val.log-handler
 	gctx.as-any-mut-ptr, island.id, exclusion, gc-ctx.as-any-mut-ptr, tls
 
 .return-ctx void(c ctx) noctx unsafe

@@ -415,9 +415,9 @@ immutable(ConcreteExpr) concretizeLambda(
 		verify(size(fields) == 2);
 		immutable ConcreteField islandAndExclusionField = at(fields, 0);
 		verify(symEqLongAlphaLiteral(name(islandAndExclusionField), "island-and-exclusion"));
-		immutable ConcreteField funField = at(fields, 1);
-		verify(symEq(name(funField), shortSymAlphaLiteral("fun")));
-		immutable ConcreteType funType = funField.type;
+		immutable ConcreteField actionField = at(fields, 1);
+		verify(symEq(name(actionField), shortSymAlphaLiteral("action")));
+		immutable ConcreteType funType = actionField.type;
 		immutable ConcreteExpr islandAndExclusion =
 			getGetIslandAndExclusion(alloc, ctx, islandAndExclusionField.type, range);
 		return immutable ConcreteExpr(concreteType, range, immutable ConcreteExprKind(

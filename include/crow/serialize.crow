@@ -5,7 +5,7 @@ import
 	./col/arr-util: fold, strip-left-while
 	./compare: <, <=
 	./exception: assert
-	./misc: as
+	./misc: typed
 	./number: to-int64, to-nat32, to-nat64
 	./range: ..
 	./str: chars, str
@@ -47,7 +47,7 @@ test
 	n = 0x0123456789abcdef
 	bytes = n to-bytes
 	bytes is (0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef)
-	bytes.from-bytes.as<nat64> is n
+	bytes.from-bytes.typed@<nat64> is n
 	0x500.to-8-bytes is (0, 0, 0, 0, 0, 0, 5, 0)
 	0x500.to-bytes is (5, 0)
 
@@ -62,7 +62,7 @@ to-4-bytes nat8[](a nat32)
 to-bytes nat8[](a nat32)
 	a.to-nat64 to-bytes
 from-bytes nat32(a nat8[])
-	a.from-bytes.as<nat64> to-nat32
+	a.from-bytes.typed@<nat64> to-nat32
 
 to-8-bytes nat8[](a int64)
 	if a < 0

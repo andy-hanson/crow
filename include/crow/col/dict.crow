@@ -6,7 +6,7 @@ import
 	../exception: assert, unreachable
 	../fun: subscript
 	../hash: hash, hash-mix
-	../misc: ->, arrow, as, data, from, to, void
+	../misc: ->, arrow, data, from, to, typed, void
 	../opt: ==, force, is-empty, none, opt, some
 	../ptr: ==, +, set-deref
 	../range: ..
@@ -58,7 +58,7 @@ to-dict<k, v> v[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 	if a.size <= 4 && a.no-duplicate-keys
 		a.leaf-node,
 	else
-		(empty-leaf-node<k, v>,) fold a, (cur, x) => cur ~ x
+		(empty-leaf-node@<k, v>,) fold a, (cur, x) => cur ~ x
 
 arr<k, v> arrow<k, v>[](a v[k]) data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, v) => k -> v
@@ -224,9 +224,9 @@ body
 				# TODO: should be able to write this inline
 				pair = key -> ins
 				# TODO: type args should not be necessary
-				new-leaf = (pair,) leaf-node<k, v>
+				new-leaf = (pair,) leaf-node@<k, v>
 				# TODO: type args should not be necessary
-				new-node = i update-with-default which, new-leaf, empty-leaf-node inner-node<k, v>
+				new-node = i update-with-default which, new-leaf, empty-leaf-node inner-node@<k, v>
 				new-node.some, none
 	as leaf-node l
 		l get-or-update-leaf key, remaining-hash, hash-shift, f
@@ -264,7 +264,7 @@ body
 			cur wrap-add l.size
 	if total-size <= leaf-max-size
 		# TODO: if only one non-empty leaf, don't copy..
-		out = total-size uninitialized-fix-arr<arrow<k, v>>
+		out = total-size uninitialized-fix-arr@<arrow<k, v>>
 		end = 0 fold-with-index a, (out-index, child, child-index) =>
 			new-child-here = if child-index == which
 				new-child
@@ -338,7 +338,7 @@ body
 	key-hash = hash low-bits
 	max-hash = key-hash fold a, (cur, pair) =>
 		cur max (pair.from.hash unsafe-bit-shift-right hash-shift low-bits)
-	res = max-hash wrap-add 1 fill-fix-arr<node<k, v>> empty-leaf-node
+	res = max-hash wrap-add 1 fill-fix-arr@<node<k, v>> empty-leaf-node
 	# TODO: avoid allocating the same leaf twice...
 	res[key-hash] := (key -> value,) leaf-node
 	a each pair =>
@@ -380,7 +380,7 @@ values<k, v> v[](a v[k]) data<k> compare<k> hash-mix<k>
 	a map-to-arr (ignore, v) => v
 
 map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted data<k> compare<k> hash-mix<k>
-	res = a.size uninitialized-fix-arr<a>
+	res = a.size uninitialized-fix-arr@<a>
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1
@@ -449,8 +449,8 @@ test
 	l1.size is 1
 	l1 verify "[5 -> 5]"
 	
-	# TODO: should not need 'as'
-	l2 = l1 ~ (1 -> "1", 3 -> "3", 9 -> "9").as<arrow<nat64, str>[]>
+	# TODO: should not need 'typed'
+	l2 = l1 ~ (1 -> "1", 3 -> "3", 9 -> "9").typed@<arrow<nat64, str>[]>
 	l2 verify "[5 -> 5, 1 -> 1, 3 -> 3, 9 -> 9]"
 
 	l3 = l2 ~ (13 -> "13")

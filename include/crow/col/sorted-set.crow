@@ -4,7 +4,7 @@ import
 	../compare: !=, <, <=, >, >=, compare
 	../fun: subscript
 	../log: info, log
-	../misc: as, data, void
+	../misc: data, typed, void
 	../opt: force, none, opt, or-default, some
 	../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../range: ..
@@ -42,7 +42,7 @@ new<a> sorted-set a(...a a[]) data<a> compare<a>
 	a to-sorted-set
 
 to-sorted-set<a> sorted-set a(a a[]) data<a> compare<a>
-	(a.sort, none).as<add-node a>, ()
+	(a.sort, none).typed@<add-node a>, ()
 
 arr<a> a[](a sorted-set a) data<a> compare<a>
 	a map-to-arr x => x
@@ -118,12 +118,12 @@ try-remove<a> sorted-set<a>?(a sorted-set a, value a) trusted data<a> compare<a>
 .add-and-maybe-compact<a> sorted-set a(a sorted-set a, value a) trusted compare<a>
 	add-size = a.add add-size
 	if add-size == 0
-		((value,), none).as<add-node a>, ()
+		((value,), none).typed@<add-node a>, ()
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
 		if plan.compacted-size == 1
-			((value,), a.add.some).as<add-node a>, a.remove
+			((value,), a.add.some).typed@<add-node a>, a.remove
 		else
 			a add-and-compact add-size, plan, value
 
@@ -160,7 +160,7 @@ Or a combination of the two.
 
 .add-and-compact<a> sorted-set a(a sorted-set a, add-size nat64, plan compact-plan, value a) unsafe compare<a>
 	hard-assert: plan.compacted-size > 1
-	compacted = plan.compacted-size uninitialized-fix-arr<a>
+	compacted = plan.compacted-size uninitialized-fix-arr@<a>
 	*compacted.begin-ptr := value
 	compactor compactor a = compacted.begin-ptr.as-const, compacted.begin-ptr + 1, compacted.end-ptr.as-const
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
@@ -174,7 +174,7 @@ Or a combination of the two.
 		else
 			()
 	else
-		compacted = plan.compacted-size uninitialized-fix-arr<a>
+		compacted = plan.compacted-size uninitialized-fix-arr@<a>
 		compactor compactor a = compacted.begin-ptr.as-const, compacted.begin-ptr, compacted.end-ptr.as-const
 		old-size = plan.add-size-left wrap-add plan.compacted-size wrap-add 1
 		new-add = compactor do-compact-recur! a.add, old-size, a.remove ~ extra-removal
@@ -324,7 +324,7 @@ body
 	(a.values.tail, (a.remove-index wrap-add 1)) remove-from-front remove
 
 .init-iters<a> fix-arr iter-part a(a sorted-set a) trusted
-	iters = a.add-node-count uninitialized-fix-arr<iter-part<a>>
+	iters = a.add-node-count uninitialized-fix-arr@<iter-part<a>>
 	res = iters.begin-ptr init-iters-recur! a.add, a.remove
 	iters[0 .. res.out - iters.begin-ptr]
 
@@ -366,7 +366,7 @@ map<out, in> sorted-set out(a sorted-set in, f act out(in)) data<out> compare<ou
 	a map-to-arr f to-sorted-set
 
 map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted data<in> compare<in>
-	out = a.size uninitialized-fix-arr<out>
+	out = a.size uninitialized-fix-arr@<out>
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1
@@ -437,7 +437,7 @@ test
 
 	# TODO: test filter
 
-	dm = d map<str, str> x =>
+	dm = d map@<str, str> x =>
 		if x == "c"
 			"sea"
 		elif x == "r"

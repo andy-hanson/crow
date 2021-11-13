@@ -112,7 +112,7 @@ Union of two sets.
 This is O(a.size + b.size).
 ###
 ~ <a> tree-set a(a tree-set a, b tree-set a) trusted data<a> compare<a>
-	out = a.size wrap-add b.size uninitialized-fix-arr<a>
+	out = a.size wrap-add b.size uninitialized-fix-arr@<a>
 	b-iter = b iter
 	end = out.begin-ptr fold a, (cur, value) =>
 		cur walk-iter-union! value, b-iter
@@ -377,12 +377,12 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 		l size
 
 .tree-to-arr<a> a[](a inner-node a, value a, size nat64) trusted compare<a>
-	out = size uninitialized-fix-arr<a>
+	out = size uninitialized-fix-arr@<a>
 	end = out.begin-ptr tree-to-arr-recur! a.inner, value
 	hard-assert: end == out.end-ptr
 	out cast-immutable
 .tree-to-arr<a> a[](a inner-node a, size nat64) trusted compare<a>
-	out = size uninitialized-fix-arr<a>
+	out = size uninitialized-fix-arr@<a>
 	end = out.begin-ptr tree-to-arr-recur! a.inner
 	hard-assert: end == out.end-ptr
 	out cast-immutable
@@ -455,7 +455,7 @@ fold<a, b> a(acc a, a tree-set b, f act a(a, b)) data<b> compare<b>
 	f[left-value, a.value] fold-recur a.right, f
 
 filter<a> tree-set a(a tree-set a, f act bool(a)) trusted data<a> compare<a>
-	out = a.size uninitialized-fix-arr<a>
+	out = a.size uninitialized-fix-arr@<a>
 	end = out.begin-ptr fold a, (cur, value) =>
 		if f[value]
 			*cur := value
@@ -467,7 +467,7 @@ filter<a> tree-set a(a tree-set a, f act bool(a)) trusted data<a> compare<a>
 # TODO: first-some
 
 map<out, in> tree-set out(a tree-set in, f act out(in)) data<in> compare<in> data<out> compare<out> trusted
-	out = a.size uninitialized-fix-arr<out>
+	out = a.size uninitialized-fix-arr@<out>
 	end = out.begin-ptr fold a, (cur, value) =>
 		*cur := f[value]
 		cur + 1

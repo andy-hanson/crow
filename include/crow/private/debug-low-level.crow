@@ -79,7 +79,7 @@ debug-print-nat void(printer debug-printer, descr str, a nat64) unsafe noctx
 		"?"
 
 .write-no-newline void(fd fd-t, a str) unsafe noctx
-	hard-assert: size-of<char> == size-of<nat8>
+	hard-assert: size-of@<char> == size-of@<nat8>
 	res = fd write a.begin-ptr.as-any-ptr, a.size
 	if res != a.size.unsafe-to-int
 		# Retry?

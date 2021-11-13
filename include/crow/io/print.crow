@@ -30,7 +30,7 @@ print-err-no-newline void(s str) summon trusted noctx
 	stderr write-no-newline s
 
 .write-no-newline void(fd fd-t, a str) summon unsafe noctx
-	hard-assert: size-of<char> == size-of<nat8>
+	hard-assert: size-of@<char> == size-of@<nat8>
 	res = fd write a.chars.begin-ptr.as-any-const-ptr, a.size-bytes
 	if res != a.size-bytes.unsafe-to-int64
 		# TODO: Maybe retry

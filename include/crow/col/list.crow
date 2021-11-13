@@ -4,7 +4,7 @@ import
 	../compare: !=, <, >, equal, min
 	../exception: assert, forbid
 	../fun: subscript
-	../misc: as, void
+	../misc: typed, void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, -, *, const-ptr, mut-ptr, set-deref, set-subscript
 	../range: ..
@@ -37,7 +37,7 @@ Convert an arr to a list.
 This is O(1).
 ###
 to-list<a> list a(a a[])
-	none<list a>, a
+	none@<list a>, a
 
 # TODO:KILL
 list-equal<a> bool(a list a, b list a, eq act bool(a, a))
@@ -126,7 +126,7 @@ Copy a list to an arr.
 This is O(n).
 ###
 arr<a> a[](a list a) trusted
-	res = a.size uninitialized-fix-arr<a>
+	res = a.size uninitialized-fix-arr@<a>
 	res.end-ptr write-out! a
 	res cast-immutable
 
@@ -226,7 +226,7 @@ This is O(n).
 ###
 ~ <a> list a(a list a, b list a) trusted
 	a-size = a size
-	res = a-size wrap-add b.size uninitialized-fix-arr<a>
+	res = a-size wrap-add b.size uninitialized-fix-arr@<a>
 	res.end-ptr write-out! b
 	res.begin-ptr + a-size write-out! a
 	res.cast-immutable to-list
@@ -255,7 +255,7 @@ fold<a, b> a(acc a, a list b, f act a(a, b))
 
 # Produce a list with `f[x]` applied to each element `x` in the input.
 map<out, in> list out(a list in, f act out(in)) trusted
-	res = a.size uninitialized-fix-arr<out>
+	res = a.size uninitialized-fix-arr@<out>
 	end = res.begin-ptr map-recur a, f
 	hard-assert: end == res.end-ptr
 	res.cast-immutable to-list
@@ -269,7 +269,7 @@ map<out, in> list out(a list in, f act out(in)) trusted
 	next-out + a.values.size
 
 filter<a> list a(a list a, f act bool(a)) trusted
-	res = a.size uninitialized-fix-arr<a>
+	res = a.size uninitialized-fix-arr@<a>
 	end = res.begin-ptr filter-recur a, f
 	res[0 .. end - res.begin-ptr].cast-immutable to-list
 .filter-recur<a> a mut*(out a mut*, a list a, f act bool(a)) unsafe
@@ -345,8 +345,8 @@ test
 	e.rtail.arr is d.arr
 	e.size is 4
 
-	# TODO: should not need 'as'
-	e56 = e ~ (5, 6).as<nat64[]>
+	# TODO: should not need 'typed'
+	e56 = e ~ (5, 6).typed@<nat64[]>
 	e56.dbg is "[1 2 3 4] [5 6]"
 	(c ~ d).dbg is "[1 2 1 2 3]"
 
@@ -360,8 +360,8 @@ test
 	folded is 15
 
 	# TODO: compiler crashes without a type argument here
-	(e first-some<str, nat64> x => x if-eq 3, "three") is "three".some
-	(e first-some<str, nat64> x => x if-eq 5, "five") is none
+	(e first-some@<str, nat64> x => x if-eq 3, "three") is "three".some
+	(e first-some@<str, nat64> x => x if-eq 5, "five") is none
 
 .if-eq str?(actual nat64, expected nat64, result str)
 	if actual == expected

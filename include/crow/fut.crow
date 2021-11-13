@@ -9,7 +9,7 @@ import
 	./opt: none, opt, some
 	./result: result
 	./private/bootstrap:
-		exclusion, fun, fut-state-exception, fut-state-resolved, hard-unreachable, island,
+		action, exclusion, fut-state-exception, fut-state-resolved, hard-unreachable, island,
 		island-and-exclusion, nat64, new, send, state
 	./private/fut-low-level: callback!, reject!, resolve!, resolve-or-reject!, unresolved
 	./private/number-low-level: ==, wrap-sub
@@ -36,7 +36,7 @@ Calls `f` after both `a` and `b` have resolved.
 Returns a fut that will be resolved by the result of `f`.
 ###
 join<out, in0, in1> fut out(a fut in0, b fut in1, f ref out(in0, in1)) trusted send<out> send<in0> send<in1>
-	res = unresolved<out>
+	res = unresolved@<out>
 	lock lock = ()
 	remaining cell nat64 = 2,
 	decr-remaining act void() = () =>
@@ -63,15 +63,15 @@ spec
 body
 	match a state
 	as fut-state-no-callbacks
-		hard-unreachable<void>
+		hard-unreachable
 	as fut-state-callbacks _
-		hard-unreachable<void>
+		hard-unreachable
 	as fut-state-resolved resolved-a
 		match b state
 		as fut-state-no-callbacks
-			hard-unreachable<void>
+			hard-unreachable
 		as fut-state-callbacks _
-			hard-unreachable<void>
+			hard-unreachable
 		as fut-state-resolved resolved-b
 			f[resolved-a, resolved-b] forward-to! res
 		as fut-state-exception e
@@ -84,7 +84,7 @@ Returns a `fut` that is resolved when every element of the input has resolved.
 ###
 join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
 	# TODO: send<a[]> should be unnecessary
-	res = unresolved<a[]>
+	res = unresolved@<a[]>
 	lock lock = ()
 	remaining cell nat64 = a.size,
 	a each-with-index (in, index) =>
@@ -100,9 +100,9 @@ join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
 	exception = a first-some x =>
 		match x state
 		as fut-state-no-callbacks
-			hard-unreachable<exception?>
+			hard-unreachable@<exception?>
 		as fut-state-callbacks _
-			hard-unreachable<exception?>
+			hard-unreachable@<exception?>
 		as fut-state-resolved _
 			none
 		as fut-state-exception e
@@ -131,7 +131,7 @@ Converts a `fut` that may be resolved with an exception
 to a `fut result` that can only be successfully resolved.
 ###
 fut-catch<a> fut result<a, exception>(a fut a) trusted
-	res = unresolved<result<a, exception>>
+	res = unresolved@<result<a, exception>>
 	a callback! value => res resolve! value
 	res
 
@@ -142,7 +142,7 @@ If `a` is resolved with an exception, never calls `cb`,
 and the result of `then` will have the same exception as `a`.
 ###
 then<out, in> fut out(a fut in, cb ref out(in)) trusted send<out> send<in>
-	res = unresolved<out>
+	res = unresolved@<out>
 	a callback! result =>
 		match result
 		as ok o
@@ -164,7 +164,7 @@ then-void<out> fut out(a fut void, cb ref out()) send<out>
 Run `f` in a parallel task and return a `fut` for its result.
 ###
 launch<a> fut a(f fun fut a()) trusted
-	res = unresolved<a>
+	res = unresolved@<a>
 	island = get-cur-island
 	island add-task island.new-exclusion, () =>
 		f[] forward-to! res
@@ -175,23 +175,23 @@ Enqueues a task that will call the function,
 and returns a `fut` for the result of that task.
 ###
 subscript<r> fut r(f ref r()) trusted send<r>
-	res = unresolved<r>
+	res = unresolved@<r>
 	f.island-and-exclusion.island.get-island add-task f.island-and-exclusion.exclusion, () =>
-		(() => f.fun[] forward-to! res) catch err => res reject! err
+		(() => f.action[] forward-to! res) catch err => res reject! err
 	res
 
 subscript<r, p0> fut r(f ref r(p0), p0 p0) trusted send<r> send<p0>
 	island = f.island-and-exclusion.island get-island
-	res = unresolved<r>
+	res = unresolved@<r>
 	island add-task f.island-and-exclusion.exclusion, () =>
-		(() => f.fun[p0] forward-to! res) catch err => res reject! err
+		(() => f.action[p0] forward-to! res) catch err => res reject! err
 	res
 
 subscript<r, p0, p1> fut r(f ref r(p0, p1), p0 p0, p1 p1) trusted send<r> send<p0> send<p1>
 	island = f.island-and-exclusion.island get-island
-	res = unresolved<r>
+	res = unresolved@<r>
 	island add-task f.island-and-exclusion.exclusion, () =>
-		(() => f.fun[p0, p1] forward-to! res) catch err => res reject! err
+		(() => f.action[p0, p1] forward-to! res) catch err => res reject! err
 	res
 
 ###
