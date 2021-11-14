@@ -27,7 +27,9 @@ fix-arr<a> record mut
 
 # TODO:INTERNAL (or fix-arr-low-level)
 empty-fix-arr<a> fix-arr a() noctx
-	empty-arr@<a>,
+	# TODO: should not need type annotation
+	inner a[] = empty-arr
+	inner,
 
 ###
 Copies an `arr` to a `fix-arr`.
@@ -55,7 +57,7 @@ Copies the elements of a `fix-arr`.
 Writing to the result won't affect the original.
 ###
 copy<a> fix-arr a(a fix-arr a)
-	a.size make-fix-arr@<a> i => a[i]
+	a.size make-fix-arr i => a[i]
 
 copy-to-arr<a> a[](a fix-arr a) trusted
 	a.copy cast-immutable
@@ -138,14 +140,15 @@ rtail<a> fix-arr a(a fix-arr a)
 
 # Allocates a `fix-arr` without initializing any of its elements.
 uninitialized-fix-arr<a> fix-arr a(size nat64) unsafe
-	size.alloc-uninitialized@<a>[0 .. size]
+	ptr a mut* = size alloc-uninitialized
+	ptr[0 .. size]
 
 ###
 `fix-arr` where each element is `f[i]`.
 Equivalent to `fix-arr: [f[0], f[1], ...]`.
 ###
 make-fix-arr<a> fix-arr a(size nat64, f act a(nat64)) trusted
-	res = size uninitialized-fix-arr@<a>
+	res fix-arr a = size uninitialized-fix-arr
 	res.begin-ptr fill-ptr-range size, f
 	res
 
@@ -157,7 +160,7 @@ fill-fix-arr<a> fix-arr a(size nat64, value a)
 	size make-fix-arr ignore => value
 
 zeroed-fix-arr<a> fix-arr a(size nat64) unsafe
-	res = size uninitialized-fix-arr@<a>
+	res fix-arr a = size uninitialized-fix-arr
 	res set-zero-elements
 	res
 

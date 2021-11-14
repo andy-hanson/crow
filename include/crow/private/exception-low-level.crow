@@ -24,7 +24,7 @@ exception-ctx by-val exception-ctx() noctx unsafe
 	null, ("", (empty-arr,))
 
 get-exception-ctx exception-ctx() unsafe
-	get-ctx.thread-local-stuff.exception-ctx-ptr as-ref@<exception-ctx>
+	get-ctx.thread-local-stuff.exception-ctx-ptr as-ref
 
 catch-with-exception-ctx<a> a(ec exception-ctx, try act a(), catcher act a(exception)) unsafe
 	old-thrown-exception = ec thrown-exception

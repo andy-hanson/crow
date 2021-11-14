@@ -38,7 +38,7 @@ is-empty bool(a task-queue) noctx
 	a.head is-empty
 
 new by-val task-queue(max-threads nat64) unsafe noctx
-	none, max-threads.mut-arr-by-val-with-capacity-from-unmanaged-memory@<exclusion>
+	none, max-threads.mut-arr-by-val-with-capacity-from-unmanaged-memory
 
 # Expose construction of nodes, because it's better to do this outside of a lock
 new task-queue-node(task task)

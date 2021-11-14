@@ -9,11 +9,11 @@ import
 	../ptr: ==, +, -, set-deref
 	../str: str
 	../test-util: is
-	../test-util/spy: calls, fn, spy-act
+	../test-util/spy: calls, fn, spy-act, spy-act1
 	../private/number-low-level: ==, nat64, wrap-add
 	./arr: ==, arr, new
 	./arr-util: fold
-	./fix-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-fix-arr
+	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
 
 ###
 Immutable stack ype.
@@ -37,7 +37,7 @@ stack<a> stack a(a a[])
 
 # Copy a stack to an arr.
 arr<a> a[](a stack a) trusted
-	res = a.size uninitialized-fix-arr@<a>
+	res fix-arr a = a.size uninitialized-fix-arr
 	begin = res.end-ptr fold-reverse a, (out, x) =>
 		new-out = out - 1
 		*new-out := x
@@ -46,7 +46,7 @@ arr<a> a[](a stack a) trusted
 	res cast-immutable
 
 arr-reverse<a> a[](a stack a) trusted
-	res = a.size uninitialized-fix-arr@<a>
+	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold-reverse a, (out, x) =>
 		*out := x
 		out + 1
@@ -189,7 +189,7 @@ test
 	d = c ~ 3
 	d.arr is (1, 2, 3)
 
-	each-spy = spy-act@<void, nat64>: void
+	each-spy spy-act1<void, nat64> = spy-act: void
 	d each each-spy.fn
 	each-spy.calls is (1, 2, 3)
 
@@ -205,8 +205,8 @@ test
 	folded = 5 fold d, (x, y) => x wrap-add y
 	folded is 11
 
-	(d first-some@<str, nat64> x => x if-eq 2, "two") is "two".some
-	(d first-some@<str, nat64> x => x if-eq 5, "five") is none
+	(d first-some x => x if-eq 2, "two") is "two".some
+	(d first-some x => x if-eq 5, "five") is none
 
 .if-eq str?(actual nat64, expected nat64, result str)
 	if actual == expected

@@ -36,7 +36,7 @@ fix-arr<a> fix-arr a(a mut-deque a) trusted
 	if a is-empty
 		()
 	else
-		res = a.size uninitialized-fix-arr@<a>
+		res fix-arr a = a.size uninitialized-fix-arr
 		res copy-from-deque! a
 		res
 
@@ -117,7 +117,7 @@ pop-right!<a> a?(a mut-deque a) trusted
 	if a.left == null
 		assert: a.right == null
 		if a.inner is-empty
-			a.inner := 2 zeroed-fix-arr@<a>
+			a.inner := 2 zeroed-fix-arr
 		a.left := a.inner begin-ptr
 		a.right := a.left
 	else
@@ -127,7 +127,7 @@ pop-right!<a> a?(a mut-deque a) trusted
 			old-inner = a inner
 			old-capacity = old-inner size
 			new-capacity = old-capacity wrap-mul 2
-			new-inner = new-capacity uninitialized-fix-arr@<a>
+			new-inner fix-arr a = new-capacity uninitialized-fix-arr
 			new-inner[0 .. old-capacity] copy-from-deque! a
 			new-inner[old-capacity .. new-capacity] set-zero-elements
 			a.inner := new-inner

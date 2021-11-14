@@ -71,9 +71,10 @@ body
 
 .try-alloc-backtrace-arrs backtrace-arrs?() unsafe
 	size = 8
-	if code-ptrs ?= size try-alloc-uninitialized@<any-const-ptr>
-		if code-names ?= size try-alloc-uninitialized@<sym>
-			if funs ?= all-funs.size try-alloc-uninitialized@<named-val any-const-ptr>
+	# TODO: support type on left of '?='
+	if code-ptrs ?= size.try-alloc-uninitialized typed@<any-const-ptr mut*?>
+		if code-names ?= size.try-alloc-uninitialized typed@<sym mut*?>
+			if funs ?= all-funs.size.try-alloc-uninitialized typed@<named-val<any-const-ptr> mut*?>
 				(code-ptrs, code-names, funs) some
 
 .get-fun-name sym(code-ptr any-const-ptr, funs named-val<any-const-ptr>*, size nat64) unsafe noctx

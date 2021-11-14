@@ -12,7 +12,7 @@ import
 		as-mut, as-ref, by-val, const-ptr, mut-ptr, null, ptr-cast, ref-of-val, set-deref,
 		set-subscript, size-of, to-nat64
 	./bootstrap:
-		gc-ctx-ptr, get-ctx, hard-assert, lock, nat8, nat64, none, opt, some, todo, void
+		gc-ctx-ptr, get-ctx, hard-assert, lock, nat64, none, opt, some, todo, void
 	./number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
 	./thread-utils: acquire!, lock-by-val, release!
 
@@ -32,7 +32,7 @@ mark-ctx record mut
 mark bool(ctx mark-ctx, ptr-any any-const-ptr, size-bytes nat64) noctx unsafe summon
 	hard-assert: ptr-any is-word-aligned
 	size-words = size-bytes words-of-bytes
-	ptr = ptr-any ptr-cast@<nat64, nat8>
+	ptr nat64* = ptr-any ptr-cast
 	index = ptr - ctx.memory-start.as-const
 	if index < ctx.memory-size-words
 		hard-assert: (index wrap-add size-words) <= ctx.memory-size-words
@@ -124,9 +124,9 @@ gc by-val gc() noctx unsafe
 	size-words = 0x3000000
 	# 8 GB
 	#size-words = 0x40000000
-	mark = ptr-cast@<bool, nat8>: malloc: size-words
+	mark bool mut* = size-words.malloc.ptr-cast
 	mark-end = mark + size-words
-	bytes = ptr-cast@<nat64, nat8>: malloc: size-words wrap-mul size-of@<nat64>
+	bytes nat64 mut* = (size-words wrap-mul size-of@<nat64>).malloc ptr-cast
 	hard-assert: bytes.as-any-mut-ptr is-word-aligned
 	bytes-end = bytes + size-words
 
@@ -177,7 +177,7 @@ get-gc-ctx gc-ctx(gc gc) noctx unsafe
 		# NOTE: malloc'd memory is not traced for garbage col.
 		# This is fine as 'gc' is kept alive anyway.
 		# TODO: `size-of@<by-val<gc-ctx>>.malloc` should be legal
-		c = (size-of@<by-val<gc-ctx>> malloc) as-ref@<gc-ctx>
+		c gc-ctx = (size-of@<by-val<gc-ctx>> malloc) as-ref
 		c.gc := gc
 		c.next-ctx := none
 		c
@@ -240,7 +240,7 @@ validate-gc void(gc gc) noctx unsafe
 		if gc.mark-cur range-free gc.mark-cur + size-words
 			gc.mark-cur := gc.mark-cur + size-words
 			gc.data-cur := next
-			cur.ptr-cast@<nat8, nat64> some@<nat8 mut*>
+			cur.ptr-cast some
 		else
 			gc.mark-cur := gc.mark-cur + 1
 			gc.data-cur := gc.data-cur + 1
@@ -269,14 +269,14 @@ try-alloc any-mut-ptr?(size-bytes nat64) unsafe
 
 alloc-uninitialized<a> a mut*(size nat64) unsafe
 	# TODO: wrap-mul is unsafe!
-	ptr-cast@<a, nat8>: alloc: size wrap-mul size-of@<a>
+	(size wrap-mul size-of@<a>).alloc ptr-cast
 
 try-alloc-uninitialized<a> a mut*?(size nat64) unsafe
 	if res ?= size wrap-mul size-of@<a> try-alloc
-		res.ptr-cast@<a, nat8> some
+		res.ptr-cast some
 
 unmanaged-alloc-uninitialized<a> a mut*() noctx unsafe
-	1 unmanaged-alloc-elements@<a>
+	1 unmanaged-alloc-elements
 
 unmanaged-alloc-bytes any-mut-ptr(size nat64) noctx unsafe
 	res = size malloc
@@ -284,7 +284,7 @@ unmanaged-alloc-bytes any-mut-ptr(size nat64) noctx unsafe
 	res
 
 unmanaged-alloc-zeroed-elements<a> a mut*(size-elements nat64) noctx unsafe
-	res = size-elements unmanaged-alloc-elements@<a>
+	res a mut* = size-elements unmanaged-alloc-elements
 	res set-zero-range size-elements
 	res
 

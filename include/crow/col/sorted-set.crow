@@ -160,7 +160,7 @@ Or a combination of the two.
 
 .add-and-compact<a> sorted-set a(a sorted-set a, add-size nat64, plan compact-plan, value a) unsafe compare<a>
 	hard-assert: plan.compacted-size > 1
-	compacted = plan.compacted-size uninitialized-fix-arr@<a>
+	compacted fix-arr a = plan.compacted-size uninitialized-fix-arr
 	*compacted.begin-ptr := value
 	compactor compactor a = compacted.begin-ptr.as-const, compacted.begin-ptr + 1, compacted.end-ptr.as-const
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
@@ -174,7 +174,7 @@ Or a combination of the two.
 		else
 			()
 	else
-		compacted = plan.compacted-size uninitialized-fix-arr@<a>
+		compacted fix-arr a = plan.compacted-size uninitialized-fix-arr
 		compactor compactor a = compacted.begin-ptr.as-const, compacted.begin-ptr, compacted.end-ptr.as-const
 		old-size = plan.add-size-left wrap-add plan.compacted-size wrap-add 1
 		new-add = compactor do-compact-recur! a.add, old-size, a.remove ~ extra-removal
@@ -324,7 +324,7 @@ body
 	(a.values.tail, (a.remove-index wrap-add 1)) remove-from-front remove
 
 .init-iters<a> fix-arr iter-part a(a sorted-set a) trusted
-	iters = a.add-node-count uninitialized-fix-arr@<iter-part<a>>
+	iters fix-arr iter-part a = a.add-node-count uninitialized-fix-arr
 	res = iters.begin-ptr init-iters-recur! a.add, a.remove
 	iters[0 .. res.out - iters.begin-ptr]
 
@@ -366,7 +366,7 @@ map<out, in> sorted-set out(a sorted-set in, f act out(in)) is-data<out> compare
 	a map-to-arr f to-sorted-set
 
 map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> compare<in>
-	out = a.size uninitialized-fix-arr@<out>
+	out fix-arr out = a.size uninitialized-fix-arr
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1
@@ -437,7 +437,7 @@ test
 
 	# TODO: test filter
 
-	dm = d map@<str, str> x =>
+	dm = d map x =>
 		if x == "c"
 			"sea"
 		elif x == "r"

@@ -19,7 +19,7 @@ import
 	../frozen-dict:
 		each, frozen-dict, fold, in, is-empty, fix-arr-to-frozen-dict-promise-no-duplicates, new,
 		size, subscript, to-frozen-dict
-	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr-from-begin-end, uninitialized-fix-arr
+	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
 	../mut-set: in, mut-set, new, try-add!
 
 compact-dict<k, v> record
@@ -139,7 +139,7 @@ spec
 	compare<k>
 	hash-mix<k>
 body
-	res = l.size wrap-add r.size uninitialized-fix-arr@<arrow<k, v?>>
+	res fix-arr arrow<k, v?> = l.size wrap-add r.size uninitialized-fix-arr
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>
 		if !(k in r)
@@ -161,7 +161,7 @@ spec
 	compare<k>
 	hash-mix<k>
 body
-	res = l.size wrap-add r.size uninitialized-fix-arr@<arrow<k, v>>
+	res fix-arr arrow<k, v> = l.size wrap-add r.size uninitialized-fix-arr
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>
 		if !(k in r)
@@ -206,7 +206,7 @@ fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) is-data<k> compar
 				f[cur, k, v]
 
 map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	res = a.size uninitialized-fix-arr@<a>
+	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1

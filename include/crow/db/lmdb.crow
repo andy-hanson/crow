@@ -16,7 +16,7 @@ import
 	../cell: *, cell, new
 	../col/arr: arr, begin-ptr, is-empty, new, size
 	../col/fix-arr:
-		begin-ptr, cast-immutable, copy-to-arr, end-ptr, fix-arr-from-begin-end,
+		begin-ptr, cast-immutable, copy-to-arr, end-ptr, fix-arr, fix-arr-from-begin-end,
 		uninitialized-fix-arr
 	../compare: !=
 	../c-types: u-int
@@ -25,10 +25,10 @@ import
 	../fun-util: subscript
 	../io/file: make-directory, path-exists, remove-directory-and-contents-non-recursive
 	../log: info, log
-	../misc: is-data, void
+	../misc: is-data, typed, void
 	../number: ==, *, nat, nat8, nat32, nat64, to-nat64
 	../opt: opt, some
-	../ptr: ==, +, as-mut, null, ptr-cast-to-extern, set-deref, zeroed
+	../ptr: ==, +, as-mut, mut-ptr, null, ptr-cast-to-extern, set-deref, zeroed
 	../serialize: from-bytes, serialize, to-4-bytes, to-8-bytes, to-bytes
 	../str: str
 	../str-conv: interp, finish, to-str, with-str, with-value
@@ -89,9 +89,15 @@ with-env<a> a(db-dir str, options lmdb-open-options, f act a(lmdb-env)) trusted 
 	env = db-dir lmdb-open-env options
 	(() => env lmdb-close-env) finally () => f[env]
 
+# TODO:MOVE
+# And make sure 'a' is actually an extern ptr type
+.null-extern-ptr<a> a() unsafe
+	p nat8 mut* = null
+	p ptr-cast-to-extern
+
 # WARN: Should call 'close-env' when done
 lmdb-open-env lmdb-env(db-dir str, options lmdb-open-options) unsafe summon
-	env-cell cell MDB_env = null.ptr-cast-to-extern@<MDB_env, nat8>,
+	env-cell cell MDB_env = null-extern-ptr,
 	check-lmdb-error: env-cell mdb_env_create
 	env = *env-cell
 	check-lmdb-error: env mdb_env_set_maxdbs 50
@@ -122,19 +128,17 @@ spec
 	lmdb-key<k>
 	serialize<v>
 body
-	db = env open-db@<k, v> db-name
+	db lmdb-db<k, v> = env open-db db-name
 	(() => env close-db db) finally () => f[db]
 
 # WARN: Should call 'close-db' when done
 open-db<k, v> lmdb-db<k, v>(env lmdb-env, db-name str) unsafe summon lmdb-key<k> serialize<v>
-	parent-transaction = null ptr-cast-to-extern@<MDB_txn, nat8>
-	transaction-cell cell MDB_txn = null.ptr-cast-to-extern@<MDB_txn, nat8>,
-	check-lmdb-error: env.env mdb_txn_begin parent-transaction, 0, transaction-cell
+	transaction-cell cell MDB_txn = null-extern-ptr,
+	check-lmdb-error: env.env mdb_txn_begin null-extern-ptr, 0, transaction-cell
 	transaction = *transaction-cell
 
 	dbi-cell cell MDB_dbi = zeroed,
-	# TODO: Should be able to parse `zeroed@<k>.lmdb-key-flags`
-	mdb-flags = MDB_CREATE | (zeroed@<k> lmdb-key-flags)
+	mdb-flags = MDB_CREATE | zeroed.typed@<k>.lmdb-key-flags
 	check-lmdb-error: transaction mdb_dbi_open db-name.to-c-str, mdb-flags, dbi-cell
 
 	check-lmdb-error: transaction mdb_txn_commit
@@ -151,7 +155,7 @@ each<k, v> void(txn lMDB_txn, db lmdb-db<k, v>, f act void(k, v)) summon lmdb-ke
 	void fold txn, db, (ignore, key, value) => f[key, value]
 
 map<out, k, v> out[](txn lMDB_txn, db lmdb-db<k, v>, f act out(k, v)) trusted summon lmdb-key<k> serialize<v>
-	out = txn count db uninitialized-fix-arr@<out>
+	out fix-arr out = txn count db uninitialized-fix-arr
 	end = out.begin-ptr fold txn, db, (cur, key, value) =>
 		*cur := f[key, value]
 		cur + 1
@@ -193,7 +197,7 @@ body
 	if db0-count == 0
 		()
 	else
-		res = db0-count uninitialized-fix-arr@<out>
+		res fix-arr out = db0-count uninitialized-fix-arr
 		end = res.begin-ptr zip-fold-non-empty txn, db0, db1, (cur, key, value0, value1) =>
 			*cur := f[key, value0, value1]
 			cur + 1
@@ -277,7 +281,7 @@ body
 		new-acc zip-fold-recur cursor0, cursor1, f
 
 .with-cursor<a, k, v> a(txn lMDB_txn, db lmdb-db<k, v>, f act a(MDB_cursor)) unsafe summon
-	cursor-cell cell MDB_cursor = null.ptr-cast-to-extern@<MDB_cursor, nat8>,
+	cursor-cell cell MDB_cursor = null-extern-ptr,
 	open-err = txn.txn mdb_cursor_open db.dbi, cursor-cell
 	cursor = *cursor-cell
 	(() => cursor mdb_cursor_close) finally () =>
@@ -366,9 +370,8 @@ with-abortable-write-transaction<a> a(env lmdb-env, f act transaction-result a(l
 	env with-transaction 0, f
 
 .with-transaction<a> a(env lmdb-env, mdb-flags u-int, f act transaction-result a(lMDB_txn)) unsafe summon
-	parent-transaction = null ptr-cast-to-extern@<MDB_txn, nat8>
-	transaction-cell cell MDB_txn = null.ptr-cast-to-extern@<MDB_txn, nat8>,
-	check-lmdb-error: env.env mdb_txn_begin parent-transaction, mdb-flags, transaction-cell
+	transaction-cell cell MDB_txn = null-extern-ptr,
+	check-lmdb-error: env.env mdb_txn_begin null-extern-ptr, mdb-flags, transaction-cell
 	transaction = *transaction-cell
 	(() => transaction mdb_txn_abort) do-if-error () =>
 		match f[(transaction,)]

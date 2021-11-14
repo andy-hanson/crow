@@ -6,7 +6,7 @@ import
 	./col/arr-util: find-index, index-of, tail
 	./col/dict: dict, each, new
 	./col/mut-dict: move-to-dict!, mut-dict, new, set-subscript
-	./col/mut-arr: fill-mut-arr, move-to-arr!, set-subscript, subscript
+	./col/mut-arr: fill-mut-arr, move-to-arr!, mut-arr, set-subscript, subscript
 	./exception: assert, throw
 	./hash: hash-mix
 	./misc: void
@@ -29,7 +29,7 @@ parse-named-args str[]?[]?(args str[], arg-names str[])
 	parsed.nameless.is-empty assert "Should be no nameless args"
 	assert: parsed.after is-empty
 
-	values = arg-names.size fill-mut-arr@<str[]?> none
+	values str[]? mut[] = arg-names.size fill-mut-arr none
 	# TODO: should not need a type argument here
 	help cell bool = false,
 	parsed.named each (key, value) =>

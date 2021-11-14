@@ -81,7 +81,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 			error log e.to-str
 			500, "Internal server error", (), "Internal server error"
 		res-str = response response-to-str
-		wrote = fd write res-str.chars.begin-ptr.ptr-cast@<nat8, char>, res-str.size-bytes
+		wrote = fd write res-str.chars.begin-ptr.ptr-cast, res-str.size-bytes
 		assert: wrote == res-str.size-bytes.to-int64
 		fd close-client
 		true resolved

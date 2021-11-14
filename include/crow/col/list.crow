@@ -37,7 +37,8 @@ Convert an arr to a list.
 This is O(1).
 ###
 to-list<a> list a(a a[])
-	none@<list a>, a
+	prev list<a>? = none
+	prev, a
 
 # TODO:KILL
 list-equal<a> bool(a list a, b list a, eq act bool(a, a))
@@ -126,7 +127,7 @@ Copy a list to an arr.
 This is O(n).
 ###
 arr<a> a[](a list a) trusted
-	res = a.size uninitialized-fix-arr@<a>
+	res fix-arr a = a.size uninitialized-fix-arr
 	res.end-ptr write-out! a
 	res cast-immutable
 
@@ -226,7 +227,7 @@ This is O(n).
 ###
 ~ <a> list a(a list a, b list a) trusted
 	a-size = a size
-	res = a-size wrap-add b.size uninitialized-fix-arr@<a>
+	res fix-arr a = a-size wrap-add b.size uninitialized-fix-arr
 	res.end-ptr write-out! b
 	res.begin-ptr + a-size write-out! a
 	res.cast-immutable to-list
@@ -255,7 +256,7 @@ fold<a, b> a(acc a, a list b, f act a(a, b))
 
 # Produce a list with `f[x]` applied to each element `x` in the input.
 map<out, in> list out(a list in, f act out(in)) trusted
-	res = a.size uninitialized-fix-arr@<out>
+	res fix-arr out = a.size uninitialized-fix-arr
 	end = res.begin-ptr map-recur a, f
 	hard-assert: end == res.end-ptr
 	res.cast-immutable to-list
@@ -269,7 +270,7 @@ map<out, in> list out(a list in, f act out(in)) trusted
 	next-out + a.values.size
 
 filter<a> list a(a list a, f act bool(a)) trusted
-	res = a.size uninitialized-fix-arr@<a>
+	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr filter-recur a, f
 	res[0 .. end - res.begin-ptr].cast-immutable to-list
 .filter-recur<a> a mut*(out a mut*, a list a, f act bool(a)) unsafe

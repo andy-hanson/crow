@@ -77,7 +77,7 @@ fix-arr<k, v> fix-arr arrow<k, v>(a mut-priority-queue<k, v>) is-data<k> compare
 
 # Output is high-to-low
 .spread-all-buckets<k, v> fix-arr arrow<k, v>(a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
-	new-mins = a.size uninitialized-fix-arr@<arrow<k, v>>
+	new-mins fix-arr arrow<k, v> = a.size uninitialized-fix-arr
 	new-mins.begin-ptr spread-all-buckets-recur! a, 0
 	new-mins
 .spread-all-buckets-recur!<k, v> void

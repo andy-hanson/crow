@@ -20,7 +20,7 @@ import
 		==, <=>, max-nat64, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	./arr: ==, arr, begin-ptr, end-ptr, new, size, subscript
 	./arr-util: fold, fold-with-index
-	./fix-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-fix-arr
+	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
 
 index-set record
 	by-ref
@@ -446,7 +446,7 @@ map index-set(a index-set, f act nat64(nat64))
 	a map-to-arr f to-index-set
 
 map-to-arr<a> a[](a index-set, f act a(nat64)) trusted
-	res = a.size uninitialized-fix-arr@<a>
+	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1

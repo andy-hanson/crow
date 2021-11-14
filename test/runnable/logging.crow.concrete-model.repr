@@ -1100,55 +1100,8 @@ program(
 			expr-body(
 				let(
 					backing
-					call(
-						subscript
-						[
-							call(unmanaged-alloc-zeroed-elements, [param-ref(capacity)])
-							call(.., [0, param-ref(capacity)])])
-					call(new, [local-ref(backing), 0]))))
-		fun(
-			noctx
-			subscript
-			type(false, fix-arr)
-			none
-			[param(a, type(false, mut-ptr)), param(range, type(false, range))]
-			expr-body(call(new, [call(subscript, [call(as-const, [param-ref(a)]), param-ref(range)])])))
-		fun(noctx, new, type(false, fix-arr), none, [param(inner, type(false, arr))], new-record)
-		fun(
-			noctx
-			subscript
-			type(false, arr)
-			none
-			[param(a, type(false, const-ptr)), param(r, type(false, range))]
-			expr-body(
-				call(
-					new
-					[
-						call(wrap-sub, [call(high, [param-ref(r)]), call(low, [param-ref(r)])])
-						call(+, [param-ref(a), call(low, [param-ref(r)])])])))
-		fun(
-			noctx
-			new
-			type(false, arr)
-			none
-			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
-			new-record)
-		fun(noctx, high, type(false, nat64), none, [param(a, type(false, range))], field-get(2))
-		fun(noctx, low, type(false, nat64), none, [param(a, type(false, range))], field-get(1))
-		fun(
-			noctx
-			+
-			type(false, const-ptr)
-			none
-			[param(a, type(false, const-ptr)), param(offset, type(false, nat64))]
-			expr-body(call(as-const, [call(+, [call(as-mut, [param-ref(a)]), param-ref(offset)])])))
-		fun(
-			noctx
-			+
-			type(false, mut-ptr)
-			none
-			[param(a, type(false, mut-ptr)), param(offset, type(false, nat64))]
-			builtin([type(false, nat64)]))
+					call(unmanaged-alloc-zeroed-elements, [param-ref(capacity)])
+					call(new, [call(subscript, [local-ref(backing), call(.., [0, param-ref(capacity)])]), 0]))))
 		fun(
 			noctx
 			unmanaged-alloc-zeroed-elements
@@ -1237,6 +1190,56 @@ program(
 			builtin([type(false, mut-ptr)]))
 		fun(
 			noctx
+			new
+			type(false, mut-arr)
+			none
+			[param(backing, type(false, fix-arr)), param(size, type(false, nat64))]
+			new-record)
+		fun(
+			noctx
+			subscript
+			type(false, fix-arr)
+			none
+			[param(a, type(false, mut-ptr)), param(range, type(false, range))]
+			expr-body(call(new, [call(subscript, [call(as-const, [param-ref(a)]), param-ref(range)])])))
+		fun(noctx, new, type(false, fix-arr), none, [param(inner, type(false, arr))], new-record)
+		fun(
+			noctx
+			subscript
+			type(false, arr)
+			none
+			[param(a, type(false, const-ptr)), param(r, type(false, range))]
+			expr-body(
+				call(
+					new
+					[
+						call(wrap-sub, [call(high, [param-ref(r)]), call(low, [param-ref(r)])])
+						call(+, [param-ref(a), call(low, [param-ref(r)])])])))
+		fun(
+			noctx
+			new
+			type(false, arr)
+			none
+			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
+			new-record)
+		fun(noctx, high, type(false, nat64), none, [param(a, type(false, range))], field-get(2))
+		fun(noctx, low, type(false, nat64), none, [param(a, type(false, range))], field-get(1))
+		fun(
+			noctx
+			+
+			type(false, const-ptr)
+			none
+			[param(a, type(false, const-ptr)), param(offset, type(false, nat64))]
+			expr-body(call(as-const, [call(+, [call(as-mut, [param-ref(a)]), param-ref(offset)])])))
+		fun(
+			noctx
+			+
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, mut-ptr)), param(offset, type(false, nat64))]
+			builtin([type(false, nat64)]))
+		fun(
+			noctx
 			..
 			type(false, range)
 			none
@@ -1252,13 +1255,6 @@ program(
 			type(false, range)
 			none
 			[param(ignore, type(false, void)), param(low, type(false, nat64)), param(high, type(false, nat64))]
-			new-record)
-		fun(
-			noctx
-			new
-			type(false, mut-arr)
-			none
-			[param(backing, type(false, fix-arr)), param(size, type(false, nat64))]
 			new-record)
 		fun(
 			noctx
@@ -1418,18 +1414,19 @@ program(
 			[param(a, type(false, arr))]
 			expr-body(
 				let(
-					res
-					call(new, [call(empty-fix-arr, []), 0])
-					seq(call(~=, [local-ref(res), param-ref(a)]), local-ref(res)))))
+					backing
+					call(empty-fix-arr, [])
+					let(
+						res
+						call(new, [local-ref(backing), 0])
+						seq(call(~=, [local-ref(res), param-ref(a)]), local-ref(res))))))
 		fun(
-			ctx
-			new
-			type(true, mut-arr)
+			noctx
+			empty-fix-arr
+			type(false, fix-arr)
 			none
-			[param(backing, type(false, fix-arr)), param(size, type(false, nat64))]
-			new-record)
-		fun(noctx, empty-fix-arr, type(false, fix-arr), none, [], expr-body(call(new, [call(empty-arr, [])])))
-		fun(noctx, new, type(false, fix-arr), none, [param(inner, type(false, arr))], new-record)
+			[]
+			expr-body(let(inner, call(empty-arr, []), call(new, [local-ref(inner)]))))
 		fun(noctx, empty-arr, type(false, arr), none, [], expr-body(call(new, [0, call(null, [])])))
 		fun(
 			noctx
@@ -1447,6 +1444,14 @@ program(
 			[param(a, type(false, mut-ptr))]
 			builtin([type(false, char)]))
 		fun(noctx, null, type(false, mut-ptr), none, [], builtin([type(false, char)]))
+		fun(noctx, new, type(false, fix-arr), none, [param(inner, type(false, arr))], new-record)
+		fun(
+			ctx
+			new
+			type(true, mut-arr)
+			none
+			[param(backing, type(false, fix-arr)), param(size, type(false, nat64))]
+			new-record)
 		fun(
 			ctx
 			~=
@@ -1747,19 +1752,21 @@ program(
 			[]
 			expr-body(
 				match-union(
-					call(try-alloc-uninitialized, [8])
+					call(typed, [call(try-alloc-uninitialized, [8])])
 					[
 						case(none, call(none, []))
 						case(
 							some("<<matched>>")
 							match-union(
-								call(try-alloc-uninitialized, [8])
+								call(typed, [call(try-alloc-uninitialized, [8])])
 								[
 									case(none, call(none, []))
 									case(
 										some("<<matched>>")
 										match-union(
-											call(try-alloc-uninitialized, [call(size, [call(all-funs, [])])])
+											call(
+												typed
+												[call(try-alloc-uninitialized, [call(size, [call(all-funs, [])])])])
 											[
 												case(none, call(none, []))
 												case(
@@ -1773,6 +1780,7 @@ program(
 																	local-ref("<<matched>>")
 																	local-ref("<<matched>>")
 																	local-ref("<<matched>>")])]))]))]))])))
+		fun(noctx, typed, type(false, opt), none, [param(value, type(false, opt))], builtin([type(false, opt)]))
 		fun(
 			ctx
 			try-alloc-uninitialized
@@ -2011,6 +2019,7 @@ program(
 			[param(a, type(false, mut-ptr))]
 			builtin([type(false, const-ptr), type(false, nat8)]))
 		fun(noctx, none, type(false, opt), none, [], new-union)
+		fun(noctx, typed, type(false, opt), none, [param(value, type(false, opt))], builtin([type(false, opt)]))
 		fun(
 			ctx
 			try-alloc-uninitialized
@@ -2033,6 +2042,7 @@ program(
 			none
 			[param(a, type(false, mut-ptr))]
 			builtin([type(false, sym), type(false, nat8)]))
+		fun(noctx, typed, type(false, opt), none, [param(value, type(false, opt))], builtin([type(false, opt)]))
 		fun(
 			ctx
 			try-alloc-uninitialized
@@ -2569,26 +2579,11 @@ program(
 			type(false, fix-arr)
 			none
 			[param(size, type(false, nat64))]
-			expr-body(call(subscript, [call(alloc-uninitialized, [param-ref(size)]), call(.., [0, param-ref(size)])])))
-		fun(
-			noctx
-			subscript
-			type(false, fix-arr)
-			none
-			[param(a, type(false, mut-ptr)), param(range, type(false, range))]
-			expr-body(call(new, [call(subscript, [call(as-const, [param-ref(a)]), param-ref(range)])])))
-		fun(
-			noctx
-			subscript
-			type(false, arr)
-			none
-			[param(a, type(false, const-ptr)), param(r, type(false, range))]
 			expr-body(
-				call(
-					new
-					[
-						call(wrap-sub, [call(high, [param-ref(r)]), call(low, [param-ref(r)])])
-						call(+, [param-ref(a), call(low, [param-ref(r)])])])))
+				let(
+					ptr
+					call(alloc-uninitialized, [param-ref(size)])
+					call(subscript, [local-ref(ptr), call(.., [0, param-ref(size)])]))))
 		fun(
 			ctx
 			alloc-uninitialized
@@ -2622,6 +2617,25 @@ program(
 					[case(none, call(todo, [])), case(some("<<matched>>"), local-ref("<<matched>>"))])))
 		fun(noctx, todo, type(false, mut-ptr), none, [], expr-body(seq(call(abort, []), call(zeroed, []))))
 		fun(noctx, zeroed, type(false, mut-ptr), none, [], builtin([type(false, mut-ptr)]))
+		fun(
+			noctx
+			subscript
+			type(false, fix-arr)
+			none
+			[param(a, type(false, mut-ptr)), param(range, type(false, range))]
+			expr-body(call(new, [call(subscript, [call(as-const, [param-ref(a)]), param-ref(range)])])))
+		fun(
+			noctx
+			subscript
+			type(false, arr)
+			none
+			[param(a, type(false, const-ptr)), param(r, type(false, range))]
+			expr-body(
+				call(
+					new
+					[
+						call(wrap-sub, [call(high, [param-ref(r)]), call(low, [param-ref(r)])])
+						call(+, [param-ref(a), call(low, [param-ref(r)])])])))
 		fun(
 			ctx
 			copy-data-from!
@@ -3536,8 +3550,13 @@ program(
 			[param(a, type(false, mut-ptr))]
 			builtin([type(false, str)]))
 		fun(noctx, null, type(false, mut-ptr), none, [], builtin([type(false, str)]))
-		fun(noctx, empty-fix-arr, type(false, fix-arr), none, [], expr-body(call(new, [call(empty-arr, [])])))
-		fun(noctx, new, type(false, fix-arr), none, [param(inner, type(false, arr))], new-record)
+		fun(
+			noctx
+			empty-fix-arr
+			type(false, fix-arr)
+			none
+			[]
+			expr-body(let(inner, call(empty-arr, []), call(new, [local-ref(inner)]))))
 		fun(noctx, empty-arr, type(false, arr), none, [], expr-body(call(new, [0, call(null, [])])))
 		fun(
 			noctx
@@ -3555,6 +3574,7 @@ program(
 			[param(a, type(false, mut-ptr))]
 			builtin([type(false, measure-value)]))
 		fun(noctx, null, type(false, mut-ptr), none, [], builtin([type(false, measure-value)]))
+		fun(noctx, new, type(false, fix-arr), none, [param(inner, type(false, arr))], new-record)
 		fun(
 			noctx
 			as-any-mut-ptr

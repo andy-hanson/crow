@@ -36,7 +36,7 @@ new<k, v> v mut[k](...a arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	a to-mut-dict
 
 to-mut-dict<k, v> v mut[k](a arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
-	res = a.size mut-dict-with-capacity@<k, v>
+	res v mut[k] = a.size mut-dict-with-capacity
 	a each pair =>
 		res[pair from] := pair to
 	res
@@ -188,7 +188,7 @@ Returns the old value (if it exists).
 .expand!<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	forbid: a.entries.size == 0
 	new-size = a.entries.size wrap-mul 2
-	bigger = new-size mut-dict-with-capacity@<k, v>
+	bigger v mut[k] = new-size mut-dict-with-capacity
 	a each (key, value) =>
 		bigger[key] := value
 	a swap! bigger
@@ -231,7 +231,7 @@ filter!<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k> h
 
 
 map-to-arr<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	out = a.size uninitialized-fix-arr@<out>
+	out fix-arr out = a.size uninitialized-fix-arr
 	end = out.begin-ptr fold a, (cur, key, value) =>
 		*cur := f[key, value]
 		cur + 1

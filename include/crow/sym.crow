@@ -7,12 +7,13 @@ import
 	./compare: comparison
 	./misc: drop
 	./opt: opt, some
-	./ptr: ==, as-const, by-val, ptr-cast, ref-of-ptr, ref-of-val, set-deref, set-subscript
+	./ptr:
+		==, as-const, by-val, mut-ptr, ptr-cast, ref-of-ptr, ref-of-val, set-deref, set-subscript
 	./str: ==, <=>, char, chars, c-str, str
 	./str-util: to-str
 	./private/alloc: unmanaged-alloc-elements, unmanaged-alloc-uninitialized
 	./private/bootstrap: new, static-syms
-	./private/number-low-level: nat8, wrap-add
+	./private/number-low-level: wrap-add
 	./private/runtime:
 		dynamic-sym-node, dynamic-syms, get-global-ctx, global-ctx, new, next, set-dynamic-syms,
 		sym, syms-lock
@@ -33,7 +34,7 @@ to-str str(a sym) noctx trusted
 
 # TODO: name 'to-sym'
 str-to-sym sym(a str) trusted
-	if sym ?= static-syms find@<sym> (s => s.to-str == a)
+	if sym ?= static-syms find s => s.to-str == a
 		sym
 	else
 		gctx = get-global-ctx
@@ -45,7 +46,7 @@ str-to-sym sym(a str) trusted
 		sym
 	else
 		sym sym = a.to-malloced-c-str,
-		node-ptr = unmanaged-alloc-uninitialized@<by-val dynamic-sym-node>
+		node-ptr by-val<dynamic-sym-node> mut* = unmanaged-alloc-uninitialized
 		*node-ptr := sym, gctx.dynamic-syms
 		gctx.dynamic-syms := node-ptr.ref-of-ptr some
 		sym
@@ -59,7 +60,7 @@ str-to-sym sym(a str) trusted
 
 .to-malloced-c-str c-str(a str) noctx unsafe
 	n-chars = a.chars size
-	res = n-chars wrap-add 1 unmanaged-alloc-elements@<char>
-	drop: res.ptr-cast@<nat8, char> memcpy a.chars.begin-ptr.ptr-cast@<nat8, char>, n-chars
+	res char mut* = n-chars wrap-add 1 unmanaged-alloc-elements
+	drop: res.ptr-cast memcpy a.chars.begin-ptr.ptr-cast, n-chars
 	res[n-chars] := "\0"
 	res as-const

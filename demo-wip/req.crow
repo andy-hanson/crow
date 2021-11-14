@@ -33,7 +33,7 @@ main fut nat(_ str[]) unsafe summon
 .connect-socket! void(socket fd-t, hostname str, server-port nat16) unsafe summon
 	hostent = hostname.to-c-str gethostbyname
 	assert: hostent.as-any-ptr != null
-	in_addr0 = hostent.h_addr_list[].ptr-cast@<in_addr, char>
+	in_addr0 in_addr* = hostent.h_addr_list[].ptr-cast
 	in_addr = in_addr0[].inet_ntoa inet_addr
 
 	sockaddr_in = AF_INET sockaddr_in server-port.htons, in_addr.in_addr
@@ -53,7 +53,7 @@ main fut nat(_ str[]) unsafe summon
 		assert: bytes-sent == bytes.size.to-int
 
 .receive-response! void(socket fd-t) unsafe summon
-	buffer = 0x2000 uninitialized-fix-arr@<nat8>
+	buffer fix-arr nat8 = 0x2000 uninitialized-fix-arr
 	# TODO: use epoll like we did in the server, for a non-blocking read.
 	bytes-read = socket read buffer.begin-ptr, buffer.size
 	assert: bytes-read >= 0

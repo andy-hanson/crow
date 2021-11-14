@@ -135,7 +135,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	prev-size <= (overlay-size max 3)
 
 .merge-overlays<k, v> arrow<k, v?>[](l arrow<k, v?>[], r arrow<k, v?>[]) trusted is-data<k> compare<k>
-	res = l.size + r.size uninitialized-fix-arr@<arrow<k, v?>>
+	res fix-arr arrow<k, v?> = l.size + r.size uninitialized-fix-arr
 	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
 	res[0 .. end - res.begin-ptr] cast-immutable
 
@@ -175,7 +175,7 @@ body
 			out + 1 merge-keep-right l, l-end, r + 1, r-end
 
 .merge-to-end<k, v> arrow<k, v>[](l arrow<k, v>[], r arrow<k, v?>[]) trusted is-data<k> compare<k>
-	res = l.size + r.size uninitialized-fix-arr@<arrow<k, v>>
+	res fix-arr arrow<k, v> = l.size + r.size uninitialized-fix-arr
 	end = if l is-empty
 		res.begin-ptr finish-rest-ignore-none r.begin-ptr, r.end-ptr
 	else
@@ -351,7 +351,7 @@ body
 	overlays fix-arr arrow<k, v?>[]
 
 .init-iters<k, v> iters<k, v>(a compact-sorted-dict<k, v>) trusted
-	overlay-iters = 0 overlay-count a.impl uninitialized-fix-arr@<arrow<k, v?>[]>
+	overlay-iters fix-arr arrow<k, v?>[] = 0 overlay-count a.impl uninitialized-fix-arr
 	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur! a.impl
 	end-pairs, overlay-iters
 

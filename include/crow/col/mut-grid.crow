@@ -162,7 +162,7 @@ map-with-coords!<a> void(a mut-grid a, f act a(a, coord)) trusted
 test
 	info log "START THE TEST"
 
-	a = 3 make-mut-grid@<str> 2, (x, y) => "{x}|{y}"
+	a = 3 make-mut-grid 2, (x, y) => "{x}|{y}"
 	a.to-str is "0|0 1|0 2|0\n0|1 1|1 2|1"
 
 	folded = "S" fold-with-coords a, (acc, value, coord) => "{acc} {value}/{coord}"

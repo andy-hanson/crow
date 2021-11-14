@@ -10,7 +10,7 @@ import
 	../misc: ->, arrow, from, to, typed, void
 	../private/bootstrap: todo
 	../ptr: ==, +, *, const-ptr, null
-	../str: ==, <=>, ~, char, c-str, str
+	../str: ==, <=>, ~, c-str, str
 	../str-util: find-char-in-cstr, find-cstr-end, to-c-str
 
 # Represents all environment variables.
@@ -45,5 +45,5 @@ convert-environ c-str*(environ environ) unsafe
 	environ each (key, value) =>
 		res ~= key ~ "=" ~ value to-c-str
 	# TODO: 'typed' should be unnecessary
-	res ~= null@<char> typed@<c-str>
+	res ~= null typed@<c-str>
 	res.move-to-arr! begin-ptr

@@ -16,7 +16,7 @@ import
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
 	./arr: ==, arr, new
 	./arr-util: fold
-	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr-from-begin-end, uninitialized-fix-arr
+	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
 	./frozen-set:
 		begin-ptr, each, end-ptr, fold-with-index, frozen-set, is-empty, new, size, to-frozen-set,
 		try-get-unordered-index, unsafe-frozen-set-from-fix-arr-cast-immutable
@@ -154,7 +154,7 @@ spec
 	hash-mix<a>
 body
 	assert: plan.compacted-size > 1
-	compacted = plan.compacted-size uninitialized-fix-arr@<a>
+	compacted fix-arr a = plan.compacted-size uninitialized-fix-arr
 	*compacted.begin-ptr := value
 	compactor compactor a = compacted.begin-ptr, compacted.begin-ptr + 1, compacted.end-ptr
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
@@ -230,7 +230,7 @@ filter<a> set a(a set a, f act bool(a)) is-data<a> compare<a> hash-mix<a>
 	res.move-to-arr! to-set
 
 map-to-arr<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in> hash-mix<in>
-	out = a.size uninitialized-fix-arr@<out>
+	out fix-arr out = a.size uninitialized-fix-arr
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1

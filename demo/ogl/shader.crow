@@ -2,7 +2,7 @@ no-std
 import
 	crow/cell: *, cell, new
 	crow/col/arr: arr, begin-ptr, new, size
-	crow/col/fix-arr: begin-ptr, copy-to-arr, uninitialized-fix-arr
+	crow/col/fix-arr: begin-ptr, copy-to-arr, fix-arr, uninitialized-fix-arr
 	crow/compare: !=
 	crow/exception: assert, throw
 	crow/io/file: read-file
@@ -36,7 +36,7 @@ shader-prog-load GLuint(vert-file-name str, frag-file-name str) summon unsafe
 	else
 		log-length cell GLint = 0,
 		shader-prog glGetProgramiv GL_INFO_LOG_LENGTH, log-length
-		err-log = (*log-length).to-nat64 uninitialized-fix-arr@<GLchar>
+		err-log fix-arr GLchar = (*log-length).to-nat64 uninitialized-fix-arr
 		shader-prog glGetProgramInfoLog *log-length, log-length, err-log.begin-ptr
 		shader-prog glDeleteProgram
 		err-log.copy-to-arr.str throw
@@ -54,7 +54,7 @@ shader-prog-destroy void(shader-prog GLuint) summon unsafe
 	else
 		log-length cell GLint = 0,
 		shader glGetShaderiv GL_INFO_LOG_LENGTH, log-length
-		err-log = (*log-length).to-nat64 uninitialized-fix-arr@<GLchar>
+		err-log fix-arr GLchar = (*log-length).to-nat64 uninitialized-fix-arr
 		shader glGetShaderInfoLog *log-length, log-length, err-log.begin-ptr
 		shader glDeleteShader
 		err-log.copy-to-arr.str throw

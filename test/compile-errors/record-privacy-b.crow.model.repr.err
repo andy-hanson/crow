@@ -2,7 +2,7 @@
 expected return type: private-ctor
 actual argument types:  (other arguments not checked, gave up early)
 candidates (with 1 arguments):
-	new arr<a>(...arr<a>) (from crow/col/arr.crow line 14)
+	new arr<a>(...arr<a>) (from crow/col/arr.crow line 16)
 	new hasher(nat64) (from crow/hash.crow line 23)
 	new by-val<hasher>(nat64) (from crow/hash.crow line 23)
 	new interp(mut-arr<char>) (from crow/str-conv.crow line 180)

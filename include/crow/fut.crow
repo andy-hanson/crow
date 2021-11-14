@@ -45,7 +45,7 @@ spec
 	is-sendable<in0>
 	is-sendable<in1>
 body
-	res = unresolved@<out>
+	res fut out = unresolved
 	lock lock = ()
 	remaining cell nat64 = 2,
 	decr-remaining act void() = () =>
@@ -93,7 +93,7 @@ Returns a `fut` that is resolved when every element of the input has resolved.
 ###
 join<a> fut a[](a fut<a>[]) trusted is-sendable<a> is-sendable<a[]> summon
 	# TODO: send<a[]> should be unnecessary
-	res = unresolved@<a[]>
+	res fut a[] = unresolved
 	lock lock = ()
 	remaining cell nat64 = a.size,
 	a each-with-index (in, index) =>
@@ -106,12 +106,12 @@ join<a> fut a[](a fut<a>[]) trusted is-sendable<a> is-sendable<a[]> summon
 
 # TODO: send<a[]> should be unnecessary
 .finish-join!<a> void(res fut a[], a fut<a>[]) unsafe is-sendable<a> is-sendable<a[]> summon
-	exception = a first-some x =>
+	exception exception? = a first-some x =>
 		match x state
 		as fut-state-no-callbacks
-			hard-unreachable@<exception?>
+			hard-unreachable
 		as fut-state-callbacks _
-			hard-unreachable@<exception?>
+			hard-unreachable
 		as fut-state-resolved _
 			none
 		as fut-state-exception e
@@ -140,7 +140,7 @@ Converts a `fut` that may be resolved with an exception
 to a `fut result` that can only be successfully resolved.
 ###
 fut-catch<a> fut result<a, exception>(a fut a) trusted
-	res = unresolved@<result<a, exception>>
+	res fut result<a, exception> = unresolved
 	a callback! value => res resolve! value
 	res
 
@@ -151,7 +151,7 @@ If `a` is resolved with an exception, never calls `cb`,
 and the result of `then` will have the same exception as `a`.
 ###
 then<out, in> fut out(a fut in, cb ref out(in)) trusted is-sendable<out> is-sendable<in>
-	res = unresolved@<out>
+	res fut out = unresolved
 	a callback! result =>
 		match result
 		as ok o
@@ -173,7 +173,7 @@ then-void<out> fut out(a fut void, cb ref out()) is-sendable<out>
 Run `f` in a parallel task and return a `fut` for its result.
 ###
 launch<a> fut a(f fun fut a()) trusted
-	res = unresolved@<a>
+	res fut a = unresolved
 	island = get-cur-island
 	island add-task island.new-exclusion, () =>
 		f[] forward-to! res
@@ -184,14 +184,14 @@ Enqueues a task that will call the function,
 and returns a `fut` for the result of that task.
 ###
 subscript<r> fut r(f ref r()) trusted is-sendable<r>
-	res = unresolved@<r>
+	res fut r = unresolved
 	f.island-and-exclusion.island.get-island add-task f.island-and-exclusion.exclusion, () =>
 		(() => f.action[] forward-to! res) catch err => res reject! err
 	res
 
 subscript<r, p0> fut r(f ref r(p0), p0 p0) trusted is-sendable<r> is-sendable<p0>
 	island = f.island-and-exclusion.island get-island
-	res = unresolved@<r>
+	res fut r = unresolved
 	island add-task f.island-and-exclusion.exclusion, () =>
 		(() => f.action[p0] forward-to! res) catch err => res reject! err
 	res
@@ -207,7 +207,7 @@ spec
 	is-sendable<p1>
 body
 	island = f.island-and-exclusion.island get-island
-	res = unresolved@<r>
+	res fut r = unresolved
 	island add-task f.island-and-exclusion.exclusion, () =>
 		(() => f.action[p0, p1] forward-to! res) catch err => res reject! err
 	res

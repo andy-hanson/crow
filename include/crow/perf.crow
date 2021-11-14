@@ -41,7 +41,7 @@ perf-measure void(start perf-time, name str)
 		perf.measure-values[index] := (old.count wrap-add 1), (old.total-ns wrap-add ns)
 
 .get-perf-ctx perf-ctx() trusted
-	get-ctx.thread-local-stuff.perf-ctx-ptr as-ref@<perf-ctx>
+	get-ctx.thread-local-stuff.perf-ctx-ptr as-ref
 
 .find-index nat64(names str[], name str)
 	names find-index name, 0

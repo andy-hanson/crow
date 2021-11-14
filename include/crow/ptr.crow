@@ -159,7 +159,7 @@ Change the type pointed to.
 Does nothing at runtime, just changes the type.
 ###
 ptr-cast<out, in> out*(a in*) noctx unsafe
-	a.as-mut.ptr-cast@<out, in> as-const
+	a.as-mut.ptr-cast as-const
 ptr-cast<out, in> out mut*(a in mut*) noctx unsafe builtin
 
 # nat64 value of a pointer.

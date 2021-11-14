@@ -99,7 +99,7 @@ body
 		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-arr
 		bucket-counts fill! 0
 		a.begin-ptr move-values-to-buckets-recur! a.end-ptr, bucket-counts, bucket-starts
-		a.cast-immutable, bucket-starts.arr-cast@<arrow<k, v>*, arrow<k, v> mut*>
+		a.cast-immutable, bucket-starts.arr-cast
 
 .remove-duplicates<k, v> frozen-dict<k, v>
 	a frozen-dict<k, v>
@@ -112,7 +112,7 @@ body
 	if a has-duplicates
 		# Write out pairs from each bucket to a fix-arr, omitting a pair if its key appears later in the same bucket.
 		# Then call fix-arr-to-frozen-dict-promise-no-duplicates 
-		out-pairs = a.size alloc-uninitialized@<arrow<k, v>>
+		out-pairs arrow<k, v> mut* = a.size alloc-uninitialized
 		end = out-pairs write-without-duplicates a
 		out-pairs fix-arr-from-begin-end end fix-arr-to-frozen-dict-promise-no-duplicates
 	else
@@ -233,7 +233,7 @@ body
 	key.hash unsafe-mod n-buckets
 
 .running-sum<k, v> arrow<k, v> mut*[](acc arrow<k, v> mut*, a nat64[]) trusted
-	out = a.size uninitialized-fix-arr@<arrow<k, v> mut*>
+	out fix-arr arrow<k, v> mut* = a.size uninitialized-fix-arr
 	acc running-sum-recur! out.begin-ptr, out.end-ptr, a.begin-ptr
 	out cast-immutable
 .running-sum-recur!<k, v> void

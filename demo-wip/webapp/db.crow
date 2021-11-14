@@ -99,12 +99,12 @@ close-real-db void(db db) unsafe summon
 	(() => db db-close) finally () => f[db]
 
 .db-open db(env lmdb-env) unsafe summon
-	user-from-name = env open-db@<str, user> "user-from-name"
-	user-name = env open-db@<user, str> "user-name"
-	user-password-hash = env open-db@<user, nat8[]> "user-password-hash"
-	user-login-cookie = env open-db@<user, login-cookie> "user-login-cookie"
-	post-user = env open-db@<post, user> "post-user"
-	post-content = env open-db@<post, str> "post-content"
+	user-from-name lmdb-db<str, user> = env open-db "user-from-name"
+	user-name lmdb-db<user, str> = env open-db "user-name"
+	user-password-hash lmdb-db<user, nat8[]> = env open-db "user-password-hash"
+	user-login-cookie lmdb-db<user, login-cookie> = env open-db "user-login-cookie"
+	post-user lmdb-db<post, user> = env open-db "post-user"
+	post-content lmdb-db<post, str> = env open-db "post-content"
 	env, user-from-name, user-name, user-password-hash, user-login-cookie, post-user, post-content
 
 .db-close void(db db) unsafe summon

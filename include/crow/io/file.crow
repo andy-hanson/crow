@@ -12,18 +12,18 @@ import
 	../cell: *, cell, new
 	../col/arr: arr, begin-ptr, subscript
 	../col/arr-util: each
-	../col/fix-arr: cast-immutable, begin-ptr, size, uninitialized-fix-arr
+	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
 	../col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	../col/sort: sort
 	../compare: !=, <
 	../exception: assert, forbid, throw
 	../fun-util: subscript
-	../misc: void
+	../misc: typed, void
 	../number: ==, <=>, +, int32, nat8, nat16, nat32, to-int64, to-nat32, to-nat64
 	../opt: is-empty, opt, some
 	../ptr:
-		==, +, any-const-ptr, as-any-const-ptr, as-const, null, ptr-cast, ptr-cast-from-extern,
-		ref-eq, size-of
+		==, +, any-const-ptr, as-any-const-ptr, as-const, const-ptr, mut-ptr, null, ptr-cast,
+		ptr-cast-from-extern, ref-eq, size-of
 	../range: ..
 	../str: ==, <=>, char, chars, c-str, size-bytes, str
 	../str-conv: finish, interp, to-str, with-str, with-value
@@ -63,8 +63,8 @@ path-exists bool(path str) summon
 .get-dirent-name str(d dirent) unsafe
 	# TODO: this is offsetof(d, d_name)
 	name-offset = size-of@<ino_t> + size-of@<off_t> + size-of@<nat16> + size-of@<char>
-	name-ptr = d.as-any-const-ptr + name-offset
-	name-ptr.ptr-cast@<char, nat8> to-str
+	name-ptr char* = d.as-any-const-ptr + name-offset ptr-cast
+	name-ptr to-str
 
 .seek-set int32()
 	0
@@ -83,7 +83,7 @@ read-dir str[](path str) summon
 .read-dir str[](path c-str) trusted summon
 	dirp = path opendir
 	# TODO: handle errors
-	assert: dirp.ptr-cast-from-extern@<any-const-ptr, dir> != null
+	assert: dirp.ptr-cast-from-extern.typed@<any-const-ptr mut*> != null
 	res str mut[] = ()
 	dirp read-dir-recur res
 	res.move-to-arr! sort
@@ -105,7 +105,7 @@ read-dir str[](path str) summon
 # Gets the path a link refers to.
 read-link str(path str) summon trusted
 	# TODO: smart small and retry if necessAry
-	buff = 1000 uninitialized-fix-arr@<char>
+	buff fix-arr char = 1000 uninitialized-fix-arr
 	size = path.to-c-str readlink buff.begin-ptr, buff.size
 	if size == -1
 		check-errno
@@ -152,7 +152,7 @@ write-file void(path str, content str) summon
 		print: "permission: {permission}"
 		todo
 	else
-		wrote-bytes = fd write content.chars.begin-ptr.ptr-cast@<nat8, char>, content.size-bytes
+		wrote-bytes = fd write content.chars.begin-ptr.ptr-cast, content.size-bytes
 		if wrote-bytes != content.size-bytes.to-int64
 			if wrote-bytes == -1
 				todo
@@ -193,7 +193,7 @@ try-read-file str?(path str) summon
 
 				# TODO: allocation can fail, then 'fd' is left open. Need finalizers
 				file-size-nat = file-size to-nat64
-				res = file-size-nat uninitialized-fix-arr@<char>
+				res fix-arr char = file-size-nat uninitialized-fix-arr
 				n-bytes-read = fd read res.begin-ptr.ptr-cast, file-size-nat
 				# TODO: handle errors
 				forbid: n-bytes-read == -1
@@ -203,7 +203,7 @@ try-read-file str?(path str) summon
 
 # Gets the current directory (of the user that ran the program).
 current-directory str() summon trusted
-	buff = 256 uninitialized-fix-arr@<char>
+	buff fix-arr char = 256 uninitialized-fix-arr
 	b = buff.begin-ptr getcwd buff.size
 	if b == null
 		todo
