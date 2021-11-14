@@ -23,6 +23,7 @@ import frontend.check.inferringType :
 	shallowInstantiateType,
 	tryGetDeeplyInstantiatedTypeFor,
 	tryGetInferred,
+	typeFromAst2,
 	typeFromOptAst;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay;
 import frontend.check.typeFromAst : makeFutType;
@@ -52,7 +53,8 @@ import frontend.parse.ast :
 	SeqAst,
 	ThenAst,
 	ThenVoidAst,
-	TypeAst;
+	TypeAst,
+	TypedAst;
 import model.constant : Constant;
 import model.diag : Diag;
 import model.model :
@@ -96,6 +98,7 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs,
+	typeEquals,
 	TypeParam,
 	UnionMember,
 	worstCasePurity;
@@ -1200,6 +1203,23 @@ immutable(CheckedExpr) checkThenVoid(
 	return checkCall(alloc, ctx, range, call, expected);
 }
 
+immutable(CheckedExpr) checkTyped(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	ref immutable FileAndRange range,
+	ref immutable TypedAst ast,
+	ref Expected expected,
+) {
+
+	immutable Type type = typeFromAst2(alloc, ctx, ast.type);
+	immutable Opt!Type inferred = tryGetInferred(expected);
+	// If inferred != type, we'll fail in 'check'
+	if (has(inferred) && typeEquals(force(inferred), type))
+		addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.TypeAnnotationUnnecessary(type)));
+	immutable Expr expr = checkAndExpect(alloc, ctx, ast.expr, type);
+	return check(alloc, ctx, expected, type, expr);
+}
+
 immutable(CheckedExpr) checkExprWorker(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
@@ -1238,5 +1258,7 @@ immutable(CheckedExpr) checkExprWorker(
 		(ref immutable ThenAst a) =>
 			checkThen(alloc, ctx, range, a, expected),
 		(ref immutable ThenVoidAst a) =>
-			checkThenVoid(alloc, ctx, range, a, expected));
+			checkThenVoid(alloc, ctx, range, a, expected),
+		(ref immutable TypedAst a) =>
+			checkTyped(alloc, ctx, range, a, expected));
 }

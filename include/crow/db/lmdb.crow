@@ -25,7 +25,7 @@ import
 	../fun-util: subscript
 	../io/file: make-directory, path-exists, remove-directory-and-contents-non-recursive
 	../log: info, log
-	../misc: is-data, typed, void
+	../misc: is-data, void
 	../number: ==, *, nat, nat8, nat32, nat64, to-nat64
 	../opt: opt, some
 	../ptr: ==, +, as-mut, mut-ptr, null, ptr-cast-to-extern, set-deref, zeroed
@@ -138,7 +138,7 @@ open-db<k, v> lmdb-db<k, v>(env lmdb-env, db-name str) unsafe summon lmdb-key<k>
 	transaction = *transaction-cell
 
 	dbi-cell cell MDB_dbi = zeroed,
-	mdb-flags = MDB_CREATE | zeroed.typed@<k>.lmdb-key-flags
+	mdb-flags = MDB_CREATE | zeroed::k.lmdb-key-flags
 	check-lmdb-error: transaction mdb_dbi_open db-name.to-c-str, mdb-flags, dbi-cell
 
 	check-lmdb-error: transaction mdb_txn_commit

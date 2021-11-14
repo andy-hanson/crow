@@ -20,7 +20,7 @@ import
 	../../exception: assert, message
 	../../extra-types: fd-t
 	../../fut: fut, handle-exceptions, then-void, fut-catch, resolved, subscript
-	../../misc: drop, typed, void
+	../../misc: drop, void
 	../../number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../../private/bootstrap: todo
 	# TODO: don't use this
@@ -138,7 +138,7 @@ close-client void(client-fd fd-t) unsafe summon
 
 .accept-clients void(listen-fd fd-t, epoll-fd fd-t, on-accepted-client ref void(fd-t)) unsafe summon
 	clientaddr sockaddr_in = ()
-	clientaddr-as-sockaddr sockaddr = clientaddr.ptr-to.typed@<sockaddr_in mut*> ptr-cast-to-extern
+	clientaddr-as-sockaddr sockaddr = clientaddr.ptr-to::sockaddr_in mut* ptr-cast-to-extern
 	# TODO: should be able to write `size-of@<sockaddr_in>.to-nat32`
 	addrlen by-val cell socklen_t = (size-of@<sockaddr_in>).to-nat32,
 	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val

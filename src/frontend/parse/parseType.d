@@ -75,16 +75,33 @@ private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(ref Lexer lexe
 }
 
 immutable(TypeAst) parseType(ref Lexer lexer) {
-	return parseTypeSuffixes(lexer, parseTypeBeforeSuffixes(lexer));
+	return parseType(lexer, RequireBracket.no);
 }
 
-private immutable(TypeAst) parseTypeBeforeSuffixes(ref Lexer lexer) {
+immutable(TypeAst) parseTypeRequireBracket(ref Lexer lexer) {
+	return parseType(lexer, RequireBracket.yes);
+}
+
+private enum RequireBracket { no, yes }
+
+private immutable(TypeAst) parseType(ref Lexer lexer, immutable RequireBracket requireBracket) {
+	return parseTypeSuffixes(lexer, parseTypeBeforeSuffixes(lexer, requireBracket));
+}
+
+private immutable(TypeAst) parseTypeBeforeSuffixes(ref Lexer lexer, immutable RequireBracket requireBracket) {
 	immutable Pos start = curPos(lexer);
 	immutable Token token = nextToken(lexer);
 	switch (token) {
 		case Token.name:
 			immutable NameAndRange name = getCurNameAndRange(lexer, start);
-			immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsAllowSpace(lexer);
+			immutable ArrWithSize!TypeAst typeArgs = () {
+				final switch (requireBracket) {
+					case RequireBracket.no:
+						return tryParseTypeArgsAllowSpace(lexer);
+					case RequireBracket.yes:
+						return tryParseTypeArgsBracketed(lexer);
+				}
+			}();
 			immutable RangeWithinFile rng = range(lexer, start);
 			return immutable TypeAst(immutable TypeAst.InstStruct(rng, name, typeArgs));
 		case Token.act:

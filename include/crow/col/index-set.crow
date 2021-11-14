@@ -7,7 +7,7 @@ import
 	../exception: assert
 	../fun-util: subscript
 	../log: info, log
-	../misc: drop, typed, void
+	../misc: drop, void
 	../opt: is-empty, none, opt, or-default, some
 	../ptr: ==, +, *, const-ptr, ptr-to, set-deref
 	../range: .., each
@@ -47,7 +47,8 @@ index-set record
 	d nat64
 
 .values nat64[](a leaf-node) trusted
-	a.a.ptr-to.typed@<nat64*>[0 .. 4]
+	# TODO: should not need type annotation
+	(a.a.ptr-to::nat64*)[0 .. 4]
 .bits-in-leaf-node nat64()
 	# 64 * 4
 	256
@@ -514,8 +515,8 @@ test
 	b count-range 4, 8 is 0
 	b count-range 8, 9 is 1
 
-	# TODO: should not need 'typed'
-	c = b ~ (4, 9).typed@<nat64[]>
+	# TODO: should not need type annotation
+	c = b ~ (4, 9) :: nat64[]
 	c verify "[310 0 0 0]", (4, 8, 9)
 
 	# TODO: 'is none'

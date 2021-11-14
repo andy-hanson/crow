@@ -1726,7 +1726,7 @@ program(
 				match-union(
 					call(try-alloc-backtrace-arrs, [])
 					[
-						case(none, call(new, [call(typed, [call(new, [create-arr(arr, [])])])]))
+						case(none, call(new, [call(new, [create-arr(arr, [])])]))
 						case(
 							some("<<matched>>")
 							let(
@@ -1743,21 +1743,19 @@ program(
 			[]
 			expr-body(
 				match-union(
-					call(typed, [call(try-alloc-uninitialized, [8])])
+					call(try-alloc-uninitialized, [8])
 					[
 						case(none, call(none, []))
 						case(
 							some("<<matched>>")
 							match-union(
-								call(typed, [call(try-alloc-uninitialized, [8])])
+								call(try-alloc-uninitialized, [8])
 								[
 									case(none, call(none, []))
 									case(
 										some("<<matched>>")
 										match-union(
-											call(
-												typed
-												[call(try-alloc-uninitialized, [call(size, [call(all-funs, [])])])])
+											call(try-alloc-uninitialized, [call(size, [call(all-funs, [])])])
 											[
 												case(none, call(none, []))
 												case(
@@ -1771,7 +1769,6 @@ program(
 																	local-ref("<<matched>>")
 																	local-ref("<<matched>>")
 																	local-ref("<<matched>>")])]))]))]))])))
-		fun(noctx, typed, type(false, opt), none, [param(value, type(false, opt))], builtin([type(false, opt)]))
 		fun(
 			ctx
 			try-alloc-uninitialized
@@ -2010,7 +2007,6 @@ program(
 			[param(a, type(false, mut-ptr))]
 			builtin([type(false, const-ptr), type(false, nat8)]))
 		fun(noctx, none, type(false, opt), none, [], new-union)
-		fun(noctx, typed, type(false, opt), none, [param(value, type(false, opt))], builtin([type(false, opt)]))
 		fun(
 			ctx
 			try-alloc-uninitialized
@@ -2033,7 +2029,6 @@ program(
 			none
 			[param(a, type(false, mut-ptr))]
 			builtin([type(false, sym), type(false, nat8)]))
-		fun(noctx, typed, type(false, opt), none, [param(value, type(false, opt))], builtin([type(false, opt)]))
 		fun(
 			ctx
 			try-alloc-uninitialized
@@ -2070,7 +2065,6 @@ program(
 				param(funs, type(false, mut-ptr))]
 			new-record)
 		fun(noctx, new, type(false, backtrace), none, [param(return-stack, type(false, arr))], new-record)
-		fun(noctx, typed, type(false, arr), none, [param(value, type(false, arr))], builtin([type(false, arr)]))
 		fun(noctx, new, type(false, arr), none, [param(a, type(false, arr))], expr-body(param-ref(a)))
 		fun(
 			ctx

@@ -109,15 +109,15 @@ void addDiag2(ref Alloc alloc, ref ExprCtx ctx, immutable FileAndRange range, im
 
 immutable(Type[]) typeArgsFromAsts(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst[] typeAsts) {
 	return map!Type(alloc, typeAsts, (ref immutable TypeAst it) =>
-		typeFromAstInner(alloc, ctx, it));
+		typeFromAst2(alloc, ctx, it));
 }
 
 immutable(Opt!Type) typeFromOptAst(ref Alloc alloc, ref ExprCtx ctx, immutable OptPtr!TypeAst ast) {
 	immutable Opt!(Ptr!TypeAst) opt = toOpt(ast);
-	return has(opt) ? some(typeFromAstInner(alloc, ctx, force(opt).deref())) : none!Type;
+	return has(opt) ? some(typeFromAst2(alloc, ctx, force(opt).deref())) : none!Type;
 }
 
-private immutable(Type) typeFromAstInner(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst ast) {
+immutable(Type) typeFromAst2(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst ast) {
 	return typeFromAst(
 		alloc,
 		ctx.checkCtx,

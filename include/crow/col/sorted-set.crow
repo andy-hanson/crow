@@ -4,7 +4,7 @@ import
 	../compare: !=, <, <=, >, >=, compare
 	../fun-util: subscript
 	../log: info, log
-	../misc: is-data, typed, void
+	../misc: is-data, void
 	../opt: force, none, opt, or-default, some
 	../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../range: ..
@@ -42,7 +42,8 @@ new<a> sorted-set a(...a a[]) is-data<a> compare<a>
 	a to-sorted-set
 
 to-sorted-set<a> sorted-set a(a a[]) is-data<a> compare<a>
-	(a.sort, none).typed@<add-node a>, ()
+	# TODO: type annotation should be unnecessary
+	(a.sort, none) :: add-node<a>, ()
 
 arr<a> a[](a sorted-set a) is-data<a> compare<a>
 	a map-to-arr x => x
@@ -118,12 +119,14 @@ try-remove<a> sorted-set<a>?(a sorted-set a, value a) trusted is-data<a> compare
 .add-and-maybe-compact<a> sorted-set a(a sorted-set a, value a) trusted compare<a>
 	add-size = a.add add-size
 	if add-size == 0
-		((value,), none).typed@<add-node a>, ()
+		# TODO: type annotation should be unnecessary
+		((value,), none) :: add-node<a>, ()
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
 		if plan.compacted-size == 1
-			((value,), a.add.some).typed@<add-node a>, a.remove
+			# TODO: type annotation should be unnecessary
+			((value,), a.add.some) :: add-node<a>, a.remove
 		else
 			a add-and-compact add-size, plan, value
 

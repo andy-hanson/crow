@@ -8,7 +8,7 @@ import
 		==, <=>, +, *, any-const-ptr, as-const, const-ptr, mut-ptr, set-deref, set-subscript,
 		subscript
 	./alloc: copy-data-from!, try-alloc-uninitialized
-	./bootstrap: arr, begin-ptr, hard-assert, nat64, new, opt, size, some, sym, typed, void
+	./bootstrap: begin-ptr, hard-assert, nat64, new, opt, size, some, sym, void
 	./number-low-level:
 		==, <=>, int32, int64, to-int64, unsafe-div, unsafe-to-int64, unsafe-to-int32, unsafe-to-nat64, wrap-add,
 		wrap-sub
@@ -23,7 +23,7 @@ get-backtrace backtrace() unsafe
 		hard-assert: n-code-ptrs <= code-ptrs-size
 		arrs fill-arrs n-code-ptrs
 	else
-		().typed@<sym[]>,
+		(),
 
 # TODO:INLINE
 .backtrace-and-get-n-code-ptrs nat64(arrs backtrace-arrs) unsafe
@@ -72,9 +72,9 @@ body
 .try-alloc-backtrace-arrs backtrace-arrs?() unsafe
 	size = 8
 	# TODO: support type on left of '?='
-	if code-ptrs ?= size.try-alloc-uninitialized typed@<any-const-ptr mut*?>
-		if code-names ?= size.try-alloc-uninitialized typed@<sym mut*?>
-			if funs ?= all-funs.size.try-alloc-uninitialized typed@<named-val<any-const-ptr> mut*?>
+	if code-ptrs ?= size.try-alloc-uninitialized :: any-const-ptr mut*?
+		if code-names ?= size.try-alloc-uninitialized :: sym mut*?
+			if funs ?= all-funs.size.try-alloc-uninitialized :: named-val<any-const-ptr> mut*?
 				(code-ptrs, code-names, funs) some
 
 .get-fun-name sym(code-ptr any-const-ptr, funs named-val<any-const-ptr>*, size nat64) unsafe noctx

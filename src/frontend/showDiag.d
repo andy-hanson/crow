@@ -741,6 +741,11 @@ void writeDiag(
 			writeStatic(writer, "no implementation was found for spec signature ");
 			writeName(writer, d.sigName);
 		},
+		(ref immutable Diag.TypeAnnotationUnnecessary d) {
+			writeStatic(writer, "type ");
+			writeType(writer, d.type);
+			writeStatic(writer, " was already inferred");
+		},
 		(ref immutable Diag.TypeConflict d) {
 			writeStatic(writer, "the type of the expression conflicts with its expected type.\n\texpected: ");
 			writeType(writer, d.expected);
@@ -932,6 +937,8 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected ']'";
 		case Token.colon:
 			return "unexpected ':'";
+		case Token.colon2:
+			return "unexpected '::'";
 		case Token.colonEqual:
 			return "unexpected ':='";
 		case Token.comma:

@@ -6,8 +6,6 @@ void builtin
 
 void void() noctx builtin
 
-typed<a> a(value a) noctx builtin
-
 ###
 A type is data if it is:
 * A primitive

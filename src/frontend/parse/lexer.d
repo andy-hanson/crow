@@ -430,6 +430,7 @@ public enum Token {
 	bracketLeft, // '['
 	bracketRight, // ']'
 	colon, // ':'
+	colon2, // '::'
 	colonEqual, // ':='
 	comma, // ','
 	data, // 'data'
@@ -532,7 +533,11 @@ public enum Token {
 		case '|':
 			return operatorToken(lexer, tryTakeChar(lexer, '|') ? Operator.or2 : Operator.or1);
 		case ':':
-			return tryTakeChar(lexer, '=') ? Token.colonEqual : Token.colon;
+			return tryTakeChar(lexer, '=')
+				? Token.colonEqual
+				: tryTakeChar(lexer, ':')
+				? Token.colon2
+				: Token.colon;
 		case '\'':
 			return Token.quoteSingle;
 		case '"':
@@ -764,6 +769,7 @@ immutable(bool) isExpressionToken(immutable Token a) {
 		case Token.braceRight:
 		case Token.bracketRight:
 		case Token.colon:
+		case Token.colon2:
 		case Token.colonEqual:
 		case Token.comma:
 		case Token.data:

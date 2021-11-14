@@ -88,11 +88,11 @@ parse-settings ai-settings?(a str)
 .letter-to-number nat?(a str)
 	if a.size-bytes == 1
 		n = a.chars[0] to-nat8
-		# TODO: shouldn't need typed<char>
-		if "A".typed@<char>.to-nat8 <= n && n < "Z".typed@<char>.to-nat8
-			some: n - "A".typed@<char>.to-nat8 to-nat64
-		elif "a".typed@<char>.to-nat8 <= n && n < "z".typed@<char>.to-nat8
-			some: n - "a".typed@<char>.to-nat8 to-nat64
+		# TODO: type annotation should be unnecessary
+		if "A"::char.to-nat8 <= n && n < "Z"::char.to-nat8
+			some: n - "A"::char.to-nat8 to-nat64
+		elif "a"::char.to-nat8 <= n && n < "z"::char.to-nat8
+			some: n - "a"::char.to-nat8 to-nat64
 
 .strategy record
 	by-val

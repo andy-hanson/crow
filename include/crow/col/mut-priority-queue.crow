@@ -3,7 +3,7 @@ import
 	../bool: !, &&, ==, bool, false, true
 	../compare: <, compare
 	../exception: assert
-	../misc: ->, arrow, from, is-data, to, typed, void
+	../misc: ->, arrow, from, is-data, to, void
 	../opt: force, is-empty, none, opt, some
 	../ptr: +, -, mut-ptr, set-deref
 	../str: ==, str
@@ -103,8 +103,8 @@ body
 	if index < buckets.size
 		buckets[index] ~= pair
 	else
-		# TODO: 'typed' should be unnecessary
-		buckets ~= ().typed@<arrow<k, v> mut[]>
+		# TODO: type annotation should be unnecessary
+		buckets ~= ()::arrow<k, v> mut[]
 		buckets add-to-bucket! index, pair
 
 pop-value!<k, v> v?(a mut-priority-queue<k, v>) is-data<k> compare<k>

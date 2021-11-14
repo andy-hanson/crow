@@ -466,6 +466,12 @@ struct ThenVoidAst {
 	immutable ExprAst then;
 }
 
+// expr :: t
+struct TypedAst {
+	immutable ExprAst expr;
+	immutable TypeAst type;
+}
+
 struct ExprAstKind {
 	@safe @nogc pure nothrow:
 
@@ -486,6 +492,7 @@ struct ExprAstKind {
 		seq,
 		then,
 		thenVoid,
+		typed,
 	}
 	immutable Kind kind;
 	union {
@@ -504,6 +511,7 @@ struct ExprAstKind {
 		immutable Ptr!SeqAst seq;
 		immutable Ptr!ThenAst then;
 		immutable Ptr!ThenVoidAst thenVoid;
+		immutable Ptr!TypedAst typed;
 	}
 
 	public:
@@ -522,6 +530,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable Ptr!SeqAst a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable Ptr!ThenAst a) { kind = Kind.then; then = a; }
 	@trusted immutable this(immutable Ptr!ThenVoidAst a) { kind = Kind.thenVoid; thenVoid = a; }
+	immutable this(immutable Ptr!TypedAst a) { kind = Kind.typed; typed = a; }
 }
 static assert(ExprAstKind.sizeof <= 40);
 
@@ -558,6 +567,7 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	scope T delegate(ref immutable SeqAst) @safe @nogc pure nothrow cbSeq,
 	scope T delegate(ref immutable ThenAst) @safe @nogc pure nothrow cbThen,
 	scope T delegate(ref immutable ThenVoidAst) @safe @nogc pure nothrow cbThenVoid,
+	scope T delegate(ref immutable TypedAst) @safe @nogc pure nothrow cbTyped,
 ) {
 	final switch (a.kind) {
 		case ExprAstKind.Kind.bogus:
@@ -590,6 +600,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbThen(a.then.deref());
 		case ExprAstKind.Kind.thenVoid:
 			return cbThenVoid(a.thenVoid.deref());
+		case ExprAstKind.Kind.typed:
+			return cbTyped(a.typed.deref());
 	}
 }
 
@@ -1444,7 +1456,11 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 		(ref immutable ThenVoidAst it) =>
 			reprRecord(alloc, "then-void", [
 				reprExprAst(alloc, it.futExpr),
-				reprExprAst(alloc, it.then)]));
+				reprExprAst(alloc, it.then)]),
+		(ref immutable TypedAst it) =>
+			reprRecord(alloc, "typed", [
+				reprExprAst(alloc, it.expr),
+				reprTypeAst(alloc, it.type)]));
 }
 
 immutable(Repr) reprInterpolatedPart(ref Alloc alloc, ref immutable InterpolatedPart a) {

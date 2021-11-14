@@ -5,7 +5,7 @@ import
 	../exception: assert, forbid
 	../fun-util: subscript
 	../hash: hash, hash-mix
-	../misc: ->, arrow, drop, from, is-data, to, typed, void
+	../misc: ->, arrow, drop, from, is-data, to, void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, *, mut-ptr, set-deref
 	../str: ==, str
@@ -46,7 +46,8 @@ New dict with `capacity` empty entries.
 WARN: Due to hash conflicts, this doesn't guarantee that allocations won't be needed.
 ###
 mut-dict-with-capacity<k, v> v mut[k](capacity nat64) is-data<k> compare<k> hash-mix<k>
-	(capacity fill-fix-arr none).typed@<fix-arr entry<k, v>>, 0
+	# TODO: should not need type annotation
+	(capacity fill-fix-arr none)::fix-arr<entry<k, v>>, 0
 
 arr<k, v> arrow<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (key, value) => key -> value

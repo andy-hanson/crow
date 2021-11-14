@@ -27,7 +27,8 @@ import frontend.parse.ast :
 	SeqAst,
 	ThenAst,
 	ThenVoidAst,
-	TypeAst;
+	TypeAst,
+	TypedAst;
 import frontend.parse.lexer :
 	addDiag,
 	addDiagAtChar,
@@ -60,7 +61,7 @@ import frontend.parse.lexer :
 	takeSymbolLiteral,
 	Token,
 	tryTakeToken;
-import frontend.parse.parseType : parseType, tryParseTypeArgsForExpr;
+import frontend.parse.parseType : parseType, parseTypeRequireBracket, tryParseTypeArgsForExpr;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : ArrWithSize, empty, emptyArr, emptyArrWithSize, only, toArr;
@@ -594,18 +595,14 @@ immutable(OptNameOrDedent) nameOrDedentFromOptDedents(immutable Opt!uint dedents
 		: noNameOrDedent();
 }
 
-immutable(ExprAst) tryParseDotsAndSubscripts(
-	ref Lexer lexer,
-	ref immutable ExprAst initial,
-) {
+immutable(ExprAst) tryParseDotsAndSubscripts(ref Lexer lexer, immutable ExprAst initial) {
 	immutable Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, Token.dot)) {
 		immutable NameAndRange name = takeNameAndRange(lexer);
 		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsForExpr(lexer);
 		immutable CallAst call = immutable CallAst(
 			CallAst.Style.dot, name, typeArgs, arrWithSizeLiteral!ExprAst(lexer.alloc, [initial]));
-		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(call));
-		return tryParseDotsAndSubscripts(lexer, expr);
+		return tryParseDotsAndSubscripts(lexer, immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)));
 	} else if (tryTakeToken(lexer, Token.bracketLeft)) {
 		immutable ArrWithSize!ExprAst args = parseSubscriptArgs(lexer);
 		immutable CallAst call = immutable CallAst(
@@ -614,8 +611,12 @@ immutable(ExprAst) tryParseDotsAndSubscripts(
 			immutable NameAndRange(start, shortSymAlphaLiteral("subscript")),
 			emptyArrWithSize!TypeAst,
 			prepend(lexer.alloc, initial, args));
-		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(call));
-		return tryParseDotsAndSubscripts(lexer, expr);
+		return tryParseDotsAndSubscripts(lexer, immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)));
+	} else if (tryTakeToken(lexer, Token.colon2)) {
+		immutable TypeAst type = parseTypeRequireBracket(lexer);
+		return tryParseDotsAndSubscripts(lexer, immutable ExprAst(
+			range(lexer, start),
+			immutable ExprAstKind(allocate(lexer.alloc, immutable TypedAst(initial, type)))));
 	} else
 		return initial;
 }

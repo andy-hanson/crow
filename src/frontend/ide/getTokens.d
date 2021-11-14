@@ -48,7 +48,8 @@ import frontend.parse.ast :
 	suffixRange,
 	ThenAst,
 	ThenVoidAst,
-	TypeAst;
+	TypeAst,
+	TypedAst;
 import model.model : Visibility;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : ArrWithSize, at, empty, first, last, size, toArr;
@@ -473,6 +474,10 @@ void addExprTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable E
 		(ref immutable ThenVoidAst it) {
 			addExprTokens(alloc, tokens, it.futExpr);
 			addExprTokens(alloc, tokens, it.then);
+		},
+		(ref immutable TypedAst it) {
+			addExprTokens(alloc, tokens, it.expr);
+			addTypeTokens(alloc, tokens, it.type);
 		});
 }
 

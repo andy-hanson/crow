@@ -4,7 +4,7 @@ import
 	../compare: ==, !=, <, <=, >, compare, comparison, equal, less
 	../exception: assert, forbid
 	../fun-util: subscript
-	../misc: typed, void
+	../misc: void
 	../number: ==, <=>, +, -, /, nat64
 	../ptr: ==, +, -, *, mut-ptr, set-deref
 	../range: ..
@@ -40,9 +40,8 @@ sort-unique<a> a[](a a[]) compare<a> trusted
 	a.to-fix-arr.sort-unique! cast-immutable
 
 test
-	(sort: typed@<nat64[]>: ()) is ()
-	# TODO: 'typed' should be unnecessary
-	(3, 1, 2).typed@<nat64[]>.sort is (1, 2, 3)
+	()::nat64[].sort is ()
+	(3, 1, 2)::nat64[].sort is (1, 2, 3)
 
 	# Test that it's a stable sort
 	arr fix-arr str = "2a", "2b", "1a", "1b"

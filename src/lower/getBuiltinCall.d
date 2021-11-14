@@ -19,7 +19,6 @@ struct BuiltinKind {
 	@safe @nogc pure nothrow:
 
 	struct AllFuns {}
-	struct As {} //TODO:KILL
 	struct CallFunPtr {}
 	struct GetCtx {}
 	struct InitConstants {}
@@ -29,7 +28,6 @@ struct BuiltinKind {
 	struct Zeroed {}
 
 	immutable this(immutable AllFuns a) { kind_ = Kind.allFuns; allFuns_ = a; }
-	immutable this(immutable As a) { kind_ = Kind.as; as_ = a; }
 	immutable this(immutable CallFunPtr a) { kind_ = Kind.callFunPtr; callFunPtr_ = a; }
 	immutable this(immutable GetCtx a) { kind_ = Kind.getCtx; getCtx_ = a; }
 	@trusted immutable this(immutable Constant a) { kind_ = Kind.constant; constant_ = a; }
@@ -44,7 +42,6 @@ struct BuiltinKind {
 	private:
 	enum Kind {
 		allFuns,
-		as,
 		callFunPtr,
 		getCtx,
 		constant,
@@ -59,7 +56,6 @@ struct BuiltinKind {
 	immutable Kind kind_;
 	union {
 		immutable AllFuns allFuns_;
-		immutable As as_;
 		immutable CallFunPtr callFunPtr_;
 		immutable GetCtx getCtx_;
 		immutable Constant constant_;
@@ -76,7 +72,6 @@ struct BuiltinKind {
 @trusted T matchBuiltinKind(T)(
 	ref immutable BuiltinKind a,
 	scope T delegate(ref immutable BuiltinKind.AllFuns) @safe @nogc pure nothrow cbAllFuns,
-	scope T delegate(ref immutable BuiltinKind.As) @safe @nogc pure nothrow cbAs,
 	scope T delegate(ref immutable BuiltinKind.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
 	scope T delegate(ref immutable BuiltinKind.GetCtx) @safe @nogc pure nothrow cbGetCtx,
 	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
@@ -91,8 +86,6 @@ struct BuiltinKind {
 	final switch (a.kind_) {
 		case BuiltinKind.Kind.allFuns:
 			return cbAllFuns(a.allFuns_);
-		case BuiltinKind.Kind.as:
-			return cbAs(a.as_);
 		case BuiltinKind.Kind.callFunPtr:
 			return cbCallFunPtr(a.callFunPtr_);
 		case BuiltinKind.Kind.getCtx:
@@ -337,9 +330,6 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failUnary());
 		case shortSymAlphaLiteralValue("true"):
 			return constantBool(true);
-		//TODO:KILL
-		case shortSymAlphaLiteralValue("typed"):
-			return immutable BuiltinKind(immutable BuiltinKind.As());
 		case shortSymAlphaLiteralValue("unsafe-div"):
 			return binary(isFloat32(rt)
 				? LowExprKind.SpecialBinary.Kind.unsafeDivFloat32

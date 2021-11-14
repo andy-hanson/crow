@@ -4,7 +4,7 @@ import
 	../../compare: <, <=, >=, compare, max, min
 	../../exception: unreachable
 	../../fun-util: subscript
-	../../misc: ->, arrow, from, is-data, to, typed, void
+	../../misc: ->, arrow, from, is-data, to, void
 	../../number: ==, <=>, +, -, is-even, nat64
 	../../opt: ==, is-empty, none, opt, opt-or, some
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
@@ -469,8 +469,8 @@ test
 	b verify "[10 -> 10]"
 	b[10] is "10".some
 
-	# TODO: should not need 'typed'
-	c = b ~ (15 -> "15", 5 -> "5", 20 -> "20").typed@<arrow<nat64, str>[]>
+	# TODO: type annotation should be unnecessary
+	c = b ~ (15 -> "15", 5 -> "5", 20 -> "20") :: arrow<nat64, str>[]
 	c verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20]"
 
 	d = c ~ (11 -> "11")
@@ -493,8 +493,8 @@ test
 	# because we don't keep track of what a removal removes from, and it might be removing from the leftmost node.
 	h verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> _, 15 -> _]"
 
-	# TODO: should not need 'typed'
-	i = h ~ (11 -> "11", 25 -> "25").typed@<arrow<nat64, str>[]>
+	# TODO: type annotation should be unnecessary
+	i = h ~ (11 -> "11", 25 -> "25") :: arrow<nat64, str>[]
 	i verify "[5 -> 5, 10 -> 10b, 11 -> 11, 20 -> 20, 25 -> 25]"
 
 	h-folded = "" fold h, (cur, key, value) =>

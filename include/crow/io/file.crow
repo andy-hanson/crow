@@ -18,7 +18,7 @@ import
 	../compare: !=, <
 	../exception: assert, forbid, throw
 	../fun-util: subscript
-	../misc: typed, void
+	../misc: void
 	../number: ==, <=>, +, int32, nat8, nat16, nat32, to-int64, to-nat32, to-nat64
 	../opt: is-empty, opt, some
 	../ptr:
@@ -83,7 +83,7 @@ read-dir str[](path str) summon
 .read-dir str[](path c-str) trusted summon
 	dirp = path opendir
 	# TODO: handle errors
-	assert: dirp.ptr-cast-from-extern.typed@<any-const-ptr mut*> != null
+	assert: dirp.ptr-cast-from-extern::any-const-ptr mut* != null
 	res str mut[] = ()
 	dirp read-dir-recur res
 	res.move-to-arr! sort

@@ -34,7 +34,7 @@ new<a> board-cache a() trusted
 	# If their product is > the max key, then we know the key.
 	assert: 2 ** 32 * size > max-key
 	# Use max-nat as an impossible key
-	(size fill-fix-arr max-nat32), (size fill-fix-arr zeroed<a>)
+	(size fill-fix-arr max-nat32), (size fill-fix-arr zeroed)
 
 subscript<a> a?(a board-cache a, key board)
 	small-key = key board-key
@@ -139,8 +139,8 @@ to-str str(a board, cur-player color, last-column nat?)
 	res move-to-str!
 
 .letter-of-alphabet str(a nat)
-	# TODO: shouldn't need typed<char>
-	("A".typed@<char>.to-nat8 + a.to-nat8).to-char to-str
+	# TODO: type annotation should be unnecessary
+	("A"::char.to-nat8 + a.to-nat8).to-char to-str
 
 just-won bool(a board)
 	a.current-player ^ a.both-players is-win

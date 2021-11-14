@@ -4,7 +4,7 @@ import
 	../compare: !=, <, >, equal, min
 	../exception: assert, forbid
 	../fun-util: subscript
-	../misc: typed, void
+	../misc: void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, -, *, const-ptr, mut-ptr, set-deref, set-subscript
 	../range: ..
@@ -346,8 +346,8 @@ test
 	e.rtail.arr is d.arr
 	e.size is 4
 
-	# TODO: should not need 'typed'
-	e56 = e ~ (5, 6).typed@<nat64[]>
+	# TODO: should not need type annotation
+	e56 = e ~ (5, 6) :: nat64[]
 	e56.dbg is "[1 2 3 4] [5 6]"
 	(c ~ d).dbg is "[1 2 1 2 3]"
 

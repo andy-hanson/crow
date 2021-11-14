@@ -1304,8 +1304,6 @@ immutable(LowExprKind) getCallBuiltinExpr(
 		builtinKind,
 		(ref immutable BuiltinKind.AllFuns) =>
 			immutable LowExprKind(ctx.allFuns),
-		(ref immutable BuiltinKind.As) =>
-			getLowExpr(alloc, ctx, at(a.args, 0), exprPos).kind,
 		(ref immutable BuiltinKind.CallFunPtr) =>
 			immutable LowExprKind(allocate(alloc, immutable LowExprKind.CallFunPtr(
 				getLowExpr(alloc, ctx, first(a.args), ExprPos.nonTail),
