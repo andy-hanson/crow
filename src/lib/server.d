@@ -40,7 +40,7 @@ struct Server {
 	this(Alloc a) {
 		alloc = a.move();
 		allSymbols = AllSymbols(Ptr!Alloc(&alloc));
-		allPaths = AllPaths(Ptr!Alloc(&alloc));
+		allPaths = AllPaths(Ptr!Alloc(&alloc), Ptr!AllSymbols(&allSymbols));
 		files = MutFiles.init;
 	}
 }
@@ -174,7 +174,7 @@ immutable(RunResult) run(
 	FakeExtern extern_ = FakeExtern(ptrTrustMe_mut(alloc));
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
 	immutable ExitCode err = buildAndInterpret(
-		alloc, dbg, perf, server.allPaths, server.allSymbols, storage, extern_, showDiagOptions, main, allArgs);
+		alloc, dbg, perf, server.allSymbols, server.allPaths, storage, extern_, showDiagOptions, main, allArgs);
 	return immutable RunResult(err, extern_.moveStdout(), extern_.moveStderr());
 }
 

@@ -32,7 +32,7 @@ import
 	crow/perf: perf-now
 	crow/reader: new, reader, take-quoted-str!
 	crow/serialize: from-bytes
-	crow/test/test-runner: run-all-tests
+	crow/test-util/test-runner: run-all-tests
 
 main fut nat(_ str[]) summon
 	drop: ().from-bytes typed@<nat8[]>

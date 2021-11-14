@@ -31,37 +31,32 @@ import frontend.parse.ast :
 import frontend.parse.lexer :
 	addDiag,
 	addDiagAtChar,
-	addDiagOnReservedName,
-	addDiagUnexpected,
+	addDiagUnexpectedCurToken,
 	alloc,
 	allSymbols,
-	backUp,
 	curPos,
 	getCurLiteral,
 	getCurOperator,
 	getCurSym,
-	isReservedName,
 	Lexer,
 	lookaheadWillTakeEqualsOrThen,
 	lookaheadWillTakeArrow,
-	next,
 	nextToken,
-	peekExact,
 	peekToken,
 	peekTokenExpression,
 	range,
-	Sign,
 	skipUntilNewlineNoDiag,
 	StringPart,
 	takeIndentOrDiagTopLevel,
 	takeIndentOrFailGeneric,
 	takeName,
 	takeNameAndRange,
+	takeNameOrOperator,
+	takeNameOrOperatorAndRange,
 	takeNameOrUnderscoreOrNone,
-	takeNameRest,
 	takeNewlineOrDedentAmount,
-	takeOrAddDiagExpected,
-	takeStringPart,
+	takeOrAddDiagExpectedToken,
+	takeStringPartAfterDoubleQuote,
 	takeSymbolLiteral,
 	Token,
 	tryTakeToken;
@@ -72,21 +67,15 @@ import util.collection.arr : ArrWithSize, empty, emptyArr, emptyArrWithSize, onl
 import util.collection.arrUtil : append, arrLiteral, arrWithSizeLiteral, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
-import util.collection.str : CStr;
 import util.memory : allocate;
 import util.opt : force, has, none, nonePtr, Opt, OptPtr, some, somePtr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
-	AllSymbols,
-	getSymFromAlphaIdentifier,
-	isAlphaIdentifierStart,
-	isDigit,
 	isSymOperator,
 	Operator,
 	operatorForSym,
 	prependSet,
 	shortSymAlphaLiteral,
-	shortSymAlphaLiteralValue,
 	Sym,
 	symEq,
 	symForOperator;
@@ -445,7 +434,7 @@ immutable(ExprAndMaybeNameOrDedent) parseCalls(
 				lhs,
 				immutable OptNameOrDedent(immutable OptNameOrDedent.Comma()));
 	} else if (peekToken(lexer, Token.name) || peekToken(lexer, Token.operator)) {
-		immutable NameAndRange funName = takeNameAndRange(lexer);
+		immutable NameAndRange funName = takeNameOrOperatorAndRange(lexer);
 		return parseCallsAfterName(lexer, start, lhs, funName, argCtx);
 	} else
 		return immutable ExprAndMaybeNameOrDedent(lhs, noNameOrDedent());
@@ -463,11 +452,11 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterComma(
 ) {
 	ArrWithSizeBuilder!ExprAst builder;
 	add(lexer.alloc, builder, lhs);
-	immutable ArgsAndMaybeNameOrDedent args = peekExact(lexer, '\n') || peekExact(lexer, ')')
-		? immutable ArgsAndMaybeNameOrDedent(
+	immutable ArgsAndMaybeNameOrDedent args = peekTokenExpression(lexer)
+		? parseArgsRecur(lexer, requirePrecedenceGtComma(argCtx), builder)
+		: immutable ArgsAndMaybeNameOrDedent(
 			finishArrWithSize(lexer.alloc, builder),
-			immutable OptNameOrDedent(immutable OptNameOrDedent.None()))
-		: parseArgsRecur(lexer, requirePrecedenceGtComma(argCtx), builder);
+			immutable OptNameOrDedent(immutable OptNameOrDedent.None()));
 	immutable RangeWithinFile range = range(lexer, start);
 	return immutable ExprAndMaybeNameOrDedent(
 		immutable ExprAst(range, immutable ExprAstKind(
@@ -839,14 +828,14 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 				return noDedent(tryParseDotsAndSubscripts(lexer, expr));
 			} else {
 				immutable ExprAst inner = parseExprNoBlock(lexer);
-				takeOrAddDiagExpected(lexer, ')', ParseDiag.Expected.Kind.closingParen);
+				takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
 				immutable ExprAst expr = immutable ExprAst(
 					range(lexer, start),
 					immutable ExprAstKind(allocate(lexer.alloc, immutable ParenthesizedAst(inner))));
 				return noDedent(tryParseDotsAndSubscripts(lexer, expr));
 			}
 		case Token.quoteDouble: {
-			immutable StringPart part = takeStringPart(lexer, '"');
+			immutable StringPart part = takeStringPartAfterDoubleQuote(lexer);
 			final switch (part.after) {
 				case StringPart.After.quote:
 					return handleLiteral(lexer, start, immutable LiteralAst(part.text));
@@ -883,7 +872,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 			// '&' can't be used as a prefix operator, instead it makes a fun-ptr
 			immutable Operator operator = getCurOperator(lexer);
 			if (operator == Operator.and1) {
-				immutable Sym name = takeName(lexer);
+				immutable Sym name = takeNameOrOperator(lexer);
 				return noDedent(immutable ExprAst(
 					range(lexer, start),
 					immutable ExprAstKind(immutable FunPtrAst(name))));
@@ -892,7 +881,8 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 		case Token.literal:
 			return handleLiteral(lexer, start, getCurLiteral(lexer));
 		default:
-			return handleUnexpectedChar(lexer, start);
+			addDiagUnexpectedCurToken(lexer, start, token);
+			return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 	}
 }
 
@@ -910,12 +900,6 @@ immutable(ExprAndMaybeDedent) handlePrefixOperator(
 			emptyArrWithSize!TypeAst,
 			arrWithSizeLiteral!ExprAst(lexer.alloc, [arg.expr]))));
 	return immutable ExprAndMaybeDedent(expr, arg.dedents);
-}
-
-immutable(ExprAndMaybeDedent) handleUnexpectedChar(ref Lexer lexer, immutable Pos start) {
-	backUp(lexer);
-	addDiagUnexpected(lexer);
-	return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 }
 
 immutable(ExprAndMaybeDedent) handleLiteral(ref Lexer lexer, immutable Pos start, immutable LiteralAst literal) {
@@ -950,7 +934,7 @@ immutable(ExprAst) takeInterpolatedRecur(ref Lexer lexer, immutable Pos start, r
 	add(lexer.alloc, parts, immutable InterpolatedPart(e));
 	if (!tryTakeToken(lexer, Token.braceRight))
 		todo!void("!");
-	immutable StringPart part = takeStringPart(lexer, '"');
+	immutable StringPart part = takeStringPartAfterDoubleQuote(lexer);
 	if (!empty(part.text))
 		add(lexer.alloc, parts, immutable InterpolatedPart(part.text));
 	final switch (part.after) {
@@ -1072,7 +1056,6 @@ immutable(TypeAndEqualsOrThen) parseTypeAndEqualsOrThen(ref Lexer lexer) {
 	if (has(res))
 		return immutable TypeAndEqualsOrThen(nonePtr!TypeAst, force(res));
 	else {
-		takeOrAddDiagExpected(lexer, ' ', ParseDiag.Expected.Kind.space);
 		immutable TypeAst type = parseType(lexer);
 		immutable Opt!EqualsOrThen optEqualsOrThen = tryTakeEqualsOrThen(lexer);
 		immutable EqualsOrThen equalsOrThen = () {
@@ -1080,7 +1063,7 @@ immutable(TypeAndEqualsOrThen) parseTypeAndEqualsOrThen(ref Lexer lexer) {
 				return force(optEqualsOrThen);
 			else {
 				addDiagAtChar(lexer, immutable ParseDiag(
-					immutable ParseDiag.Expected(ParseDiag.Expected.Kind.spaceEqualsSpace)));
+					immutable ParseDiag.Expected(ParseDiag.Expected.Kind.equalsOrThen)));
 				return EqualsOrThen.equals;
 			}
 		}();

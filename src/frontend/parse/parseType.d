@@ -2,35 +2,41 @@ module frontend.parse.parseType;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : NameAndRange, range, TypeAst;
+import frontend.parse.ast : bogusTypeAst, NameAndRange, range, TypeAst;
 import frontend.parse.lexer :
 	addDiag,
-	addDiagUnexpected,
+	addDiagUnexpectedCurToken,
 	alloc,
 	curPos,
 	getCurNameAndRange,
 	Lexer,
 	nextToken,
-	peekExact,
 	peekToken,
 	range,
-	takeNameAndRange,
-	takeOrAddDiagExpected,
+	takeOrAddDiagExpectedToken,
+	takeTypeArgsEnd,
 	Token,
-	tryTake,
 	tryTakeOperator,
 	tryTakeToken;
 import model.parseDiag : ParseDiag;
-import util.alloc.alloc : Alloc;
 import util.collection.arr : ArrWithSize, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrWithSizeLiteral;
 import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, some;
+import util.opt : nonePtr, OptPtr, somePtr;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : AllSymbols, Operator, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym;
+import util.sym : Operator;
 import util.util : todo;
+
+immutable(OptPtr!TypeAst) tryParseTypeArg(ref Lexer lexer) {
+	if (tryTakeOperator(lexer, Operator.less)) {
+		immutable TypeAst res = parseType(lexer);
+		takeTypeArgsEnd(lexer);
+		return somePtr(allocate(lexer.alloc, res));
+	} else
+		return nonePtr!TypeAst;
+}
 
 immutable(ArrWithSize!TypeAst) tryParseTypeArgsForExpr(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.atLess)) {
@@ -73,7 +79,9 @@ immutable(TypeAst) parseType(ref Lexer lexer) {
 }
 
 private immutable(TypeAst) parseTypeBeforeSuffixes(ref Lexer lexer) {
-	switch (nextToken(lexer)) {
+	immutable Pos start = curPos(lexer);
+	immutable Token token = nextToken(lexer);
+	switch (token) {
 		case Token.name:
 			immutable NameAndRange name = getCurNameAndRange(lexer, start);
 			immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsAllowSpace(lexer);
@@ -86,15 +94,12 @@ private immutable(TypeAst) parseTypeBeforeSuffixes(ref Lexer lexer) {
 		case Token.ref_:
 			return parseFunType(lexer, start, TypeAst.Fun.Kind.ref_);
 		default:
-			addDiagUnexpected(lexer);
-			return immutable TypeAst(immutable TypeAst.InstStruct(
-				range(lexer, start),
-				immutable NameAndRange(start, shortSymAlphaLiteral("bogus")),
-				emptyArrWithSize!TypeAst));
+			addDiagUnexpectedCurToken(lexer, start, token);
+			return bogusTypeAst(range(lexer, start));
 	}
 }
 
-immutable(TypeAst) parseFunType(ref Lexer lexer, immutable Pos start, immutable TypeAst.Fun.Kind kind) {
+private immutable(TypeAst) parseFunType(ref Lexer lexer, immutable Pos start, immutable TypeAst.Fun.Kind kind) {
 	ArrBuilder!TypeAst returnAndParamTypes;
 	add(lexer.alloc, returnAndParamTypes, parseType(lexer));
 	if (tryTakeToken(lexer, Token.parenLeft)) {
@@ -127,7 +132,7 @@ private immutable(TypeAst) parseTypeSuffixes(ref Lexer lexer, immutable TypeAst 
 
 	immutable(TypeAst) handleDictLike(immutable TypeAst.Dict.Kind kind) {
 		immutable TypeAst inner = parseType(lexer);
-		takeOrAddDiagExpected(lexer, ']', ParseDiag.Expected.Kind.closingBracket);
+		takeOrAddDiagExpectedToken(lexer, Token.bracketRight, ParseDiag.Expected.Kind.closingBracket);
 		return parseTypeSuffixes(lexer, immutable TypeAst(
 			allocate(lexer.alloc, immutable TypeAst.Dict(kind, ast, inner))));
 	}
@@ -156,9 +161,4 @@ private immutable(TypeAst) parseTypeSuffixes(ref Lexer lexer, immutable TypeAst 
 			return todo!(immutable TypeAst)("!");
 	} else
 		return ast;
-}
-
-
-void takeTypeArgsEnd(ref Lexer lexer) {
-	takeOrAddDiagExpected(lexer, '>', ParseDiag.Expected.Kind.typeArgsEnd);
 }

@@ -3,7 +3,7 @@ import
 	./bool: ||, bool, false
 	./cell: *, cell, new, set-deref
 	./compare: !=
-	./fun: subscript
+	./fun-util: subscript
 	./iter: iterator, new
 	./misc: void
 	./number: ==, <=>, nat64

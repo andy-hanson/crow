@@ -17,10 +17,11 @@ import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
 import util.perf : Perf, withNullPerfSystem;
 import util.ptr : Ptr, ptrTrustMe_const;
 import util.sourceRange : Pos;
+import util.sym : shortSymAlphaLiteral;
 import util.util : verify, verifyFail;
 
 @trusted void testHover(ref Test test) {
-	immutable Path path = rootPath(test.allPaths, "main");
+	immutable Path path = rootPath(test.allPaths, shortSymAlphaLiteral("main"));
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(path, StorageKind.local);
 	MutFiles files;
 	immutable NulTerminatedStr contentStr = nulTerminatedStrOfCStr(content);
@@ -47,8 +48,8 @@ import util.util : verify, verifyFail;
 	}
 
 	checkHover(0, "");
-	checkHoverRange(1, 13, "builtin type nat");
-	// TODO: 13 (the blank line) should not have hover
+	checkHoverRange(1, 11, "builtin type nat");
+	checkHoverRange(12, 13, "");
 	immutable Pos rStart = 14;
 	verify(content[rStart] == 'r');
 	immutable Pos fldStart = rStart + 10;

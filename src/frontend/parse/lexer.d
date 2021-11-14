@@ -2,13 +2,7 @@ module frontend.parse.lexer;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast :
-	LiteralAst,
-	LiteralIntOrNat,
-	matchLiteralAst,
-	NameAndRange,
-	NameOrUnderscoreOrNone,
-	rangeOfNameAndRange;
+import frontend.parse.ast : LiteralAst, LiteralIntOrNat, matchLiteralAst, NameAndRange, NameOrUnderscoreOrNone;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.cell : Cell, cellGet, cellSet;
@@ -16,7 +10,6 @@ import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, rtail;
 import util.collection.str :
-	copyStr,
 	copyToSafeCStr,
 	CStr,
 	emptySafeCStr,
@@ -29,7 +22,6 @@ import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
 	AllSymbols,
 	getSymFromAlphaIdentifier,
-	getSymFromOperator,
 	isAlphaIdentifierStart,
 	isAlphaIdentifierContinue,
 	isDigit,
@@ -54,6 +46,7 @@ struct Lexer {
 	Ptr!AllSymbols allSymbolsPtr;
 	ArrBuilder!ParseDiagnostic diags;
 	immutable Sym symUnderscore;
+	immutable Sym symForceSendable;
 	//TODO:PRIVATE
 	public immutable CStr sourceBegin;
 	//TODO:PRIVATE
@@ -88,16 +81,19 @@ ref AllSymbols allSymbols(return scope ref Lexer lexer) {
 		allSymbols,
 		ArrBuilder!ParseDiagnostic(),
 		getSymFromAlphaIdentifier(allSymbols.deref(), "_"),
+		getSymFromAlphaIdentifier(allSymbols.deref(), "force-sendable"),
 		begin(useStr),
 		begin(useStr),
 		detectIndentKind(useStr));
 }
 
-immutable(char) curChar(ref const Lexer lexer) {
+private immutable(char) curChar(ref const Lexer lexer) {
 	return *lexer.ptr;
 }
 
-immutable(Pos) curPos(ref const Lexer lexer) {
+@trusted immutable(Pos) curPos(ref Lexer lexer) {
+	// Ensure start is after any whitespace
+	while (*lexer.ptr == ' ') lexer.ptr++;
 	return posOfPtr(lexer, lexer.ptr);
 }
 
@@ -115,28 +111,28 @@ immutable(ParseDiagnostic[]) finishDiags(ref Lexer lexer) {
 
 void addDiagAtChar(ref Lexer lexer, immutable ParseDiag diag) {
 	immutable Pos a = curPos(lexer);
-	addDiag(lexer, immutable RangeWithinFile(a, lexer.curChar == '\0' ? a : a + 1), diag);
+	addDiag(lexer, immutable RangeWithinFile(a, curChar(lexer) == '\0' ? a : a + 1), diag);
 }
 
-void addDiagUnexpected(ref Lexer lexer) {
-	addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.UnexpectedCharacter(curChar(lexer))));
+private void addDiagAtCurToken(ref Lexer lexer, immutable Pos start, immutable ParseDiag diag) {
+	addDiag(lexer, range(lexer, start), diag);
 }
 
-@trusted immutable(bool) peekExact(ref const Lexer lexer, immutable char c) {
-	return *lexer.ptr == c;
+void addDiagUnexpectedCurToken(ref Lexer lexer, immutable Pos start, immutable Token token) {
+	immutable ParseDiag diag = () @trusted {
+		switch (token) {
+			case Token.invalid:
+				return immutable ParseDiag(immutable ParseDiag.UnexpectedCharacter(*(lexer.ptr - 1)));
+			case Token.operator:
+				return immutable ParseDiag(immutable ParseDiag.UnexpectedOperator(getCurOperator(lexer)));
+			default:
+				return immutable ParseDiag(immutable ParseDiag.UnexpectedToken(token));
+		}
+	}();
+	addDiagAtCurToken(lexer, start, diag);
 }
 
-@trusted immutable(bool) peekExact(ref const Lexer lexer, immutable CStr c) {
-	CStr ptr = lexer.ptr;
-	for (CStr cptr = c; *cptr != 0; cptr++) {
-		if (*ptr != *cptr)
-			return false;
-		ptr++;
-	}
-	return true;
-}
-
-@trusted immutable(bool) tryTake(ref Lexer lexer, immutable char c) {
+private @trusted immutable(bool) tryTakeChar(ref Lexer lexer, immutable char c) {
 	if (*lexer.ptr == c) {
 		lexer.ptr++;
 		return true;
@@ -144,11 +140,7 @@ void addDiagUnexpected(ref Lexer lexer) {
 		return false;
 }
 
-immutable(bool) tryTake(ref Lexer, immutable(Token)) {
-	return todo!(immutable bool)("Use tryTakeToken!!!");
-}
-
-@trusted immutable(bool) tryTake(ref Lexer lexer, immutable CStr c) {
+private @trusted immutable(bool) tryTakeCStr(ref Lexer lexer, immutable CStr c) {
 	CStr ptr2 = lexer.ptr;
 	for (CStr cptr = c; *cptr != 0; cptr++) {
 		if (*ptr2 != *cptr)
@@ -159,15 +151,23 @@ immutable(bool) tryTake(ref Lexer, immutable(Token)) {
 	return true;
 }
 
-immutable(bool) takeOrAddDiagExpected(ref Lexer lexer, immutable char c, immutable ParseDiag.Expected.Kind kind) {
-	immutable bool res = tryTake(lexer, c);
+immutable(bool) takeOrAddDiagExpectedToken(
+	ref Lexer lexer,
+	immutable Token token,
+	immutable ParseDiag.Expected.Kind kind,
+) {
+	immutable bool res = tryTakeToken(lexer, token);
 	if (!res)
 		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(kind)));
 	return res;
 }
 
-immutable(bool) takeOrAddDiagExpected(ref Lexer lexer, immutable CStr c, immutable ParseDiag.Expected.Kind kind) {
-	immutable bool res = tryTake(lexer, c);
+immutable(bool) takeOrAddDiagExpectedOperator(
+	ref Lexer lexer,
+	immutable Operator operator,
+	immutable ParseDiag.Expected.Kind kind,
+) {
+	immutable bool res = tryTakeOperator(lexer, operator);
 	if (!res)
 		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(kind)));
 	return res;
@@ -179,7 +179,7 @@ enum NewlineOrIndent {
 }
 
 immutable(NewlineOrIndent) takeNewlineOrIndent_topLevel(ref Lexer lexer) {
-	if (!takeOrAddDiagExpected(lexer, '\n', ParseDiag.Expected.Kind.endOfLine))
+	if (!takeOrAddDiagExpectedToken(lexer, Token.newline, ParseDiag.Expected.Kind.endOfLine))
 		skipRestOfLineAndNewline(lexer);
 	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, 0);
 	return matchIndentDelta!(immutable NewlineOrIndent)(
@@ -204,20 +204,24 @@ immutable(bool) takeIndentOrDiagTopLevel(ref Lexer lexer) {
 		});
 }
 
-immutable(bool) takeIndentOrDiagTopLevelAfterNewline(ref Lexer lexer) {
-	immutable Pos start = curPos(lexer);
-	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, 0);
-	return matchIndentDelta!(immutable bool)(
-		delta,
-		(ref immutable IndentDelta.DedentOrSame dedent) {
-			verify(dedent.nDedents == 0);
-			addDiag(
-				lexer,
-				immutable RangeWithinFile(start, start + 1),
-				immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
-			return false;
-		},
-		(ref immutable IndentDelta.Indent) => true);
+immutable(bool) tryTakeIndent(ref Lexer lexer, immutable uint curIndent) {
+	//TODO: always have cur token handy, no need to back up
+	immutable char* begin = lexer.ptr;
+	if (nextToken(lexer) == Token.newline) {
+		immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, curIndent);
+		return matchIndentDelta!(immutable bool)(
+			delta,
+			(ref immutable IndentDelta.DedentOrSame dedent) {
+				addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
+				lexer.ptr = begin;
+				return false;
+			},
+			(ref immutable IndentDelta.Indent) =>
+				true);
+	} else {
+		lexer.ptr = begin;
+		return false;
+	}
 }
 
 immutable(T) takeIndentOrFailGeneric(T)(
@@ -268,21 +272,9 @@ void takeDedentFromIndent1(ref Lexer lexer) {
 	}
 }
 
-immutable(NewlineOrIndent) tryTakeIndentAfterNewline_topLevel(ref Lexer lexer) {
-	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, 0);
-	return matchIndentDelta!(immutable NewlineOrIndent)(
-		delta,
-		(ref immutable IndentDelta.DedentOrSame it) {
-			verify(it.nDedents == 0);
-			return NewlineOrIndent.newline;
-		},
-		(ref immutable IndentDelta.Indent) =>
-			NewlineOrIndent.indent);
-}
-
 immutable(uint) takeNewlineOrDedentAmount(ref Lexer lexer, immutable uint curIndent) {
 	// Must be at the end of a line
-	if (!takeOrAddDiagExpected(lexer, '\n', ParseDiag.Expected.Kind.endOfLine))
+	if (!takeOrAddDiagExpectedToken(lexer, Token.newline, ParseDiag.Expected.Kind.endOfLine))
 		skipRestOfLineAndNewline(lexer);
 	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, curIndent);
 	return matchIndentDelta!(immutable uint)(
@@ -319,63 +311,49 @@ immutable(RangeWithinFile) range(ref Lexer lexer, immutable Pos begin) {
 	return immutable RangeWithinFile(begin, curPos(lexer));
 }
 
-void addDiagOnReservedName(ref Lexer lexer, immutable NameAndRange name) {
-	addDiag(lexer, rangeOfNameAndRange(name), immutable ParseDiag(immutable ParseDiag.ReservedName(name.name)));
-}
-
-struct SymAndIsReserved {
-	immutable NameAndRange name;
-	immutable bool isReserved;
-}
-
-immutable(SymAndIsReserved) takeNameAllowReserved(ref Lexer lexer) {
-	immutable StrAndIsOperator s = takeNameAsTempStr(lexer);
-	if (s.isOperator) {
-		immutable Opt!Sym op = getSymFromOperator(lexer.allSymbols, s.str);
-		if (has(op))
-			return immutable SymAndIsReserved(immutable NameAndRange(s.start, force(op)), false);
-		else {
-			addDiag(lexer, range(lexer, s.start), immutable ParseDiag(
-				immutable ParseDiag.InvalidName(copyStr(lexer.alloc, s.str))));
-			return immutable SymAndIsReserved(immutable NameAndRange(s.start, shortSymAlphaLiteral("bogus")), false);
-		}
-	} else {
-		immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, s.str);
-		return immutable SymAndIsReserved(immutable NameAndRange(s.start, name), isReservedName(lexer, name));
-	}
-}
-
 immutable(NameAndRange) takeNameAndRange(ref Lexer lexer) {
-	while (tryTake(lexer, ' ')) {}
-	immutable SymAndIsReserved s = takeNameAllowReserved(lexer);
-	if (s.isReserved)
-		addDiagOnReservedName(lexer, s.name);
-	return s.name;
+	immutable Pos start = curPos(lexer);
+	if (tryTakeToken(lexer, Token.name))
+		return immutable NameAndRange(start, getCurSym(lexer));
+	else {
+		addDiag(lexer, range(lexer, start), immutable ParseDiag(
+			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.name)));
+		return immutable NameAndRange(start, shortSymAlphaLiteral("bogus"));
+	}
 }
 
 immutable(Sym) takeName(ref Lexer lexer) {
 	return takeNameAndRange(lexer).name;
 }
 
+immutable(NameAndRange) takeNameOrOperatorAndRange(ref Lexer lexer) {
+	immutable Pos start = curPos(lexer);
+	if (tryTakeToken(lexer, Token.name))
+		return immutable NameAndRange(start, getCurSym(lexer));
+	else if (tryTakeToken(lexer, Token.operator)) {
+		return immutable NameAndRange(start, symForOperator(getCurOperator(lexer)));
+	} else {
+		addDiag(lexer, range(lexer, start), immutable ParseDiag(
+			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
+		return immutable NameAndRange(start, shortSymAlphaLiteral("bogus"));
+	}
+}
+
+immutable(Sym) takeNameOrOperator(ref Lexer lexer) {
+	return takeNameOrOperatorAndRange(lexer).name;
+}
+
 immutable(NameOrUnderscoreOrNone) takeNameOrUnderscoreOrNone(ref Lexer lexer) {
-	if (tryTake(lexer, ' ')) {
-		immutable SymAndIsReserved s = takeNameAllowReserved(lexer);
-		if (s.isReserved) {
-			if (s.name.name == lexer.symUnderscore)
-				return immutable NameOrUnderscoreOrNone(immutable NameOrUnderscoreOrNone.Underscore());
-			else {
-				addDiagOnReservedName(lexer, s.name);
-				return immutable NameOrUnderscoreOrNone(s.name.name);
-			}
-		} else
-			return immutable NameOrUnderscoreOrNone(s.name.name);
-	} else
-		return immutable NameOrUnderscoreOrNone(immutable NameOrUnderscoreOrNone.None());
+	return tryTakeToken(lexer, Token.name)
+		? immutable NameOrUnderscoreOrNone(getCurSym(lexer))
+		: tryTakeToken(lexer, Token.underscore)
+		? immutable NameOrUnderscoreOrNone(immutable NameOrUnderscoreOrNone.Underscore())
+		: immutable NameOrUnderscoreOrNone(immutable NameOrUnderscoreOrNone.None());
 }
 
 immutable(string) takeQuotedStr(ref Lexer lexer) {
-	if (takeOrAddDiagExpected(lexer, '"', ParseDiag.Expected.Kind.quote)) {
-		immutable StringPart sp = takeStringPart(lexer, '"');
+	if (takeOrAddDiagExpectedToken(lexer, Token.quoteDouble, ParseDiag.Expected.Kind.quote)) {
+		immutable StringPart sp = takeStringPartAfterDoubleQuote(lexer);
 		final switch (sp.after) {
 			case StringPart.After.quote:
 				return sp.text;
@@ -433,23 +411,20 @@ immutable(IndentKind) detectIndentKind(immutable string str) {
 	}
 }
 
-//TODO:PRIVATE
-public @trusted void backUp(ref Lexer lexer) {
+@trusted void backUp(ref Lexer lexer) {
 	lexer.ptr--;
-}
-
-public @trusted immutable(char) next(ref Lexer lexer) {
-	immutable char res = *lexer.ptr;
-	lexer.ptr++;
-	return res;
 }
 
 public enum Token {
 	act, // 'act'
+	alias_, // 'alias'
 	arrowLambda, // =>
 	arrowThen, // '<-'
 	as, // 'as'
 	atLess, // '!<'
+	body, // 'body'
+	builtin, // 'builtin'
+	builtinSpec, // 'builtin-spec'
 	braceLeft, // '{'
 	braceRight, // '}'
 	bracketLeft, // '['
@@ -457,19 +432,33 @@ public enum Token {
 	colon, // ':'
 	colonEqual, // ':='
 	comma, // ','
+	data, // 'data'
 	dot, // '.'
+	// '..' is Operator.range
+	dot3, // '...'
 	elif, // 'elif'
 	else_, // 'else'
+	enum_, // 'enum'
 	equal, // '='
+	extern_, // 'extern'
+	externPtr, // 'extern-ptr'
 	EOF, // end of file
+	export_, // 'export'
+	flags, // 'flags'
+	forceData, // 'force-data'
+	forceSendable, // 'force-sendable'
 	fun, // 'fun'
+	global, // 'global'
 	if_, // 'if'
-	invalid,
+	import_, // 'import'
+	invalid, // invalid token (e.g. illegal character)
 	literal, // Use getCurLiteral
 	match, // 'match'
 	mut, // 'mut'
 	name, // Any non-keyword, non-operator name; use getCurSym with this
 	newline, // end of line
+	noCtx, // 'noctx'
+	noStd, // 'no-std'
 	operator, // Any operator; use getCurOperator with this
 	parenLeft, // '('
 	parenRight, // ')'
@@ -477,51 +466,43 @@ public enum Token {
 	questionEqual, // '?='
 	quoteDouble, // '"'
 	quoteSingle, // "'"
+	record, // 'record'
 	ref_, // 'ref'
+	sendable, // 'sendable'
+	spec, // 'spec'
+	summon, // 'summon'
+	test, // 'test'
+	trusted, // 'trusted'
+	underscore, // '_'
+	union_, // 'union'
+	unsafe, // 'unsafe'
 }
 
 @trusted public immutable(Token) nextToken(ref Lexer lexer) {
-	immutable Pos start = curPos(lexer);
-	immutable CStr begin = lexer.ptr;
-	immutable char c = next(lexer);
-
-	immutable(Token) nameToken(immutable Sym a) {
-		cellSet(lexer.curSym, a);
-		return Token.name;
-	}
-
-	immutable(Token) operatorToken(immutable Operator a) {
-		cellSet(lexer.curOperator, a);
-		return Token.operator;
-	}
-
-	immutable(Token) literalToken(immutable LiteralAst a) {
-		cellSet(lexer.curLiteral, a);
-		return Token.literal;
-	}
-
+	immutable char c = *lexer.ptr;
+	lexer.ptr++;
 	switch (c) {
 		case '\0':
-			backUp(lexer);
+			lexer.ptr--;
 			return Token.EOF;
 		case ' ':
 			return nextToken(lexer);
 		case '\n':
 			return Token.newline;
 		case '~':
-			return operatorToken(tryTake(lexer, '=') ? Operator.concatEquals : Operator.tilde);
+			return operatorToken(lexer, tryTakeChar(lexer, '=') ? Operator.concatEquals : Operator.tilde);
 		case '@':
-			return tryTake(lexer, '<')
+			return tryTakeChar(lexer, '<')
 				? Token.atLess
 				: Token.invalid;
 		case '!':
-			return operatorToken(tryTake(lexer, '=') ? Operator.notEqual : Operator.not);
+			return operatorToken(lexer, tryTakeChar(lexer, '=') ? Operator.notEqual : Operator.not);
 		case '^':
-			return operatorToken(Operator.xor1);
+			return operatorToken(lexer, Operator.xor1);
 		case '&':
-			return operatorToken(tryTake(lexer, '&') ? Operator.and2 : Operator.and1);
+			return operatorToken(lexer, tryTakeChar(lexer, '&') ? Operator.and2 : Operator.and1);
 		case '*':
-			return operatorToken(tryTake(lexer, '*') ? Operator.exponent : Operator.times);
+			return operatorToken(lexer, tryTakeChar(lexer, '*') ? Operator.exponent : Operator.times);
 		case '(':
 			return Token.parenLeft;
 		case ')':
@@ -536,26 +517,22 @@ public enum Token {
 			return Token.bracketRight;
 		case '-':
 			return isDigit(*lexer.ptr)
-				? literalToken(takeNumberAfterSign(lexer, some(Sign.minus)))
-				: operatorToken(tryTake(lexer, '>') ? Operator.arrow : Operator.minus);
+				? literalToken(lexer, takeNumberAfterSign(lexer, some(Sign.minus)))
+				: operatorToken(lexer, tryTakeChar(lexer, '>') ? Operator.arrow : Operator.minus);
 		case '=':
-			return tryTake(lexer, '>')
+			return tryTakeChar(lexer, '>')
 				? Token.arrowLambda
-				: tryTake(lexer, '=')
-				? operatorToken(Operator.equal)
+				: tryTakeChar(lexer, '=')
+				? operatorToken(lexer, Operator.equal)
 				: Token.equal;
 		case '+':
 			return isDigit(*lexer.ptr)
-				? literalToken(takeNumberAfterSign(lexer, some(Sign.plus)))
-				: operatorToken(Operator.plus);
+				? literalToken(lexer, takeNumberAfterSign(lexer, some(Sign.plus)))
+				: operatorToken(lexer, Operator.plus);
 		case '|':
-			return tryTake(lexer, '|')
-				? operatorToken(Operator.or2)
-				: operatorToken(Operator.or1);
+			return operatorToken(lexer, tryTakeChar(lexer, '|') ? Operator.or2 : Operator.or1);
 		case ':':
-			return tryTake(lexer, '=')
-				? Token.colonEqual
-				: Token.colon;
+			return tryTakeChar(lexer, '=') ? Token.colonEqual : Token.colon;
 		case '\'':
 			return Token.quoteSingle;
 		case '"':
@@ -563,65 +540,130 @@ public enum Token {
 		case ',':
 			return Token.comma;
 		case '<':
-			return tryTake(lexer, '-')
+			return tryTakeChar(lexer, '-')
 				? Token.arrowThen
-				: operatorToken(tryTake(lexer, '=')
-					? tryTake(lexer, '>') ? Operator.compare : Operator.lessOrEqual
-					: tryTake(lexer, '<')
+				: operatorToken(lexer, tryTakeChar(lexer, '=')
+					? tryTakeChar(lexer, '>') ? Operator.compare : Operator.lessOrEqual
+					: tryTakeChar(lexer, '<')
 					? Operator.shiftLeft
 					: Operator.less);
 		case '>':
-			return operatorToken(tryTake(lexer, '=')
+			return operatorToken(lexer, tryTakeChar(lexer, '=')
 				? Operator.greaterOrEqual
-				: tryTake(lexer, '>')
+				: tryTakeChar(lexer, '>')
 				? Operator.shiftRight
 				: Operator.greater);
 		case '.':
-			return tryTake(lexer, '.')
-				? operatorToken(Operator.range)
+			return tryTakeChar(lexer, '.')
+				? tryTakeChar(lexer, '.') ? Token.dot3 : operatorToken(lexer, Operator.range)
 				: Token.dot;
 		case '/':
-			return operatorToken(Operator.divide);
+			return operatorToken(lexer, Operator.divide);
 		case '?':
-			return tryTake(lexer, '=') ? Token.questionEqual : Token.question;
+			return tryTakeChar(lexer, '=') ? Token.questionEqual : Token.question;
 		default:
 			if (isAlphaIdentifierStart(c)) {
-				immutable string nameStr = takeNameRest(lexer, begin);
+				immutable string nameStr = takeNameRest(lexer, lexer.ptr - 1);
 				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
-				if (isReservedName(lexer, name))
-					switch (name.value) {
-						case shortSymAlphaLiteralValue("act"):
-							return Token.act;
-						case shortSymAlphaLiteralValue("as"):
-							return Token.as;
-						case shortSymAlphaLiteralValue("fun"):
-							return Token.fun;
-						case shortSymAlphaLiteralValue("if"):
-							return Token.if_;
-						case shortSymAlphaLiteralValue("elif"):
-							return Token.elif;
-						case shortSymAlphaLiteralValue("else"):
-							return Token.else_;
-						case shortSymAlphaLiteralValue("match"):
-							return Token.match;
-						case shortSymAlphaLiteralValue("mut"):
-							return Token.mut;
-						case shortSymAlphaLiteralValue("ref"):
-							return Token.ref_;
-						default:
-							//TODO: have tokens for every reserved name, so this never happens.
-							addDiagOnReservedName(lexer, immutable NameAndRange(start, name));
-							return Token.name;
-					}
-				else
-					return nameToken(name);
+				return tokenForSym(lexer, name);
 			} else if (isDigit(c)) {
 				backUp(lexer);
-				return literalToken(takeNumberAfterSign(lexer, none!Sign));
+				return literalToken(lexer, takeNumberAfterSign(lexer, none!Sign));
 			} else
 				return Token.invalid;
 	}
 }
+
+immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
+	switch (a.value) {
+		case shortSymAlphaLiteralValue("act"):
+			return Token.act;
+		case shortSymAlphaLiteralValue("alias"):
+			return Token.alias_;
+		case shortSymAlphaLiteralValue("as"):
+			return Token.as;
+		case shortSymAlphaLiteralValue("body"):
+			return Token.body;
+		case shortSymAlphaLiteralValue("builtin"):
+			return Token.builtin;
+		case shortSymAlphaLiteralValue("builtin-spec"):
+			return Token.builtinSpec;
+		case shortSymAlphaLiteralValue("data"):
+			return Token.data;
+		case shortSymAlphaLiteralValue("elif"):
+			return Token.elif;
+		case shortSymAlphaLiteralValue("else"):
+			return Token.else_;
+		case shortSymAlphaLiteralValue("enum"):
+			return Token.enum_;
+		case shortSymAlphaLiteralValue("export"):
+			return Token.export_;
+		case shortSymAlphaLiteralValue("extern"):
+			return Token.extern_;
+		case shortSymAlphaLiteralValue("extern-ptr"):
+			return Token.externPtr;
+		case shortSymAlphaLiteralValue("flags"):
+			return Token.flags;
+		case shortSymAlphaLiteralValue("force-data"):
+			return Token.forceData;
+		case shortSymAlphaLiteralValue("fun"):
+			return Token.fun;
+		case shortSymAlphaLiteralValue("global"):
+			return Token.global;
+		case shortSymAlphaLiteralValue("if"):
+			return Token.if_;
+		case shortSymAlphaLiteralValue("import"):
+			return Token.import_;
+		case shortSymAlphaLiteralValue("match"):
+			return Token.match;
+		case shortSymAlphaLiteralValue("mut"):
+			return Token.mut;
+		case shortSymAlphaLiteralValue("noctx"):
+			return Token.noCtx;
+		case shortSymAlphaLiteralValue("no-std"):
+			return Token.noStd;
+		case shortSymAlphaLiteralValue("record"):
+			return Token.record;
+		case shortSymAlphaLiteralValue("ref"):
+			return Token.ref_;
+		case shortSymAlphaLiteralValue("sendable"):
+			return Token.sendable;
+		case shortSymAlphaLiteralValue("spec"):
+			return Token.spec;
+		case shortSymAlphaLiteralValue("summon"):
+			return Token.summon;
+		case shortSymAlphaLiteralValue("test"):
+			return Token.test;
+		case shortSymAlphaLiteralValue("trusted"):
+			return Token.trusted;
+		case shortSymAlphaLiteralValue("union"):
+			return Token.union_;
+		case shortSymAlphaLiteralValue("unsafe"):
+			return Token.unsafe;
+		default:
+			return a == lexer.symUnderscore
+				? Token.underscore
+				: a == lexer.symForceSendable
+				? Token.forceSendable
+				: nameToken(lexer, a);
+	}
+}
+
+immutable(Token) nameToken(ref Lexer lexer, immutable Sym a) {
+	cellSet(lexer.curSym, a);
+	return Token.name;
+}
+
+immutable(Token) operatorToken(ref Lexer lexer, immutable Operator a) {
+	cellSet(lexer.curOperator, a);
+	return Token.operator;
+}
+
+@trusted immutable(Token) literalToken(ref Lexer lexer, immutable LiteralAst a) {
+	cellSet(lexer.curLiteral, a);
+	return Token.literal;
+}
+
 
 public immutable(Sym) getCurSym(ref Lexer lexer) {
 	//TODO: assert that cur token is Token.name
@@ -654,6 +696,7 @@ public immutable(bool) tryTakeToken(ref Lexer lexer, immutable Token expected) {
 }
 
 public immutable(bool) tryTakeOperator(ref Lexer lexer, immutable Operator expected) {
+	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
 	immutable char* before = lexer.ptr;
 	immutable Token actual = nextToken(lexer);
 	if (actual == Token.operator && getCurOperator(lexer) == expected)
@@ -664,7 +707,32 @@ public immutable(bool) tryTakeOperator(ref Lexer lexer, immutable Operator expec
 	}
 }
 
-immutable(Token) getPeekToken(ref Lexer lexer) {
+public void takeTypeArgsEnd(ref Lexer lexer) {
+	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
+	immutable Pos start = curPos(lexer);
+	immutable char* before = lexer.ptr;
+	immutable Token actual = nextToken(lexer);
+	void fail() {
+		lexer.ptr = before;
+		addDiagAtCurToken(lexer, start, immutable ParseDiag(immutable ParseDiag.Expected(
+			ParseDiag.Expected.Kind.typeArgsEnd)));
+	}
+	if (actual == Token.operator) {
+		switch (getCurOperator(lexer)) {
+			case Operator.greater:
+				break;
+			case Operator.shiftRight:
+				backUp(lexer);
+				break;
+			default:
+				fail();
+				break;
+		}
+	} else
+		fail();
+}
+
+public immutable(Token) getPeekToken(ref Lexer lexer) {
 	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
 	immutable char* before = lexer.ptr;
 	immutable Token res = nextToken(lexer);
@@ -684,29 +752,55 @@ public immutable(bool) peekTokenExpression(ref Lexer lexer) {
 immutable(bool) isExpressionToken(immutable Token a) {
 	final switch (a) {
 		case Token.act:
+		case Token.alias_:
 		case Token.arrowLambda:
 		case Token.arrowThen:
 		case Token.as:
 		case Token.atLess:
+		case Token.body:
+		case Token.builtin:
+		case Token.builtinSpec:
 		case Token.braceLeft:
 		case Token.braceRight:
 		case Token.bracketRight:
 		case Token.colon:
 		case Token.colonEqual:
 		case Token.comma:
+		case Token.data:
 		case Token.dot:
+		case Token.dot3:
 		case Token.elif:
 		case Token.else_:
+		case Token.enum_:
 		case Token.equal:
+		case Token.export_:
+		case Token.extern_:
+		case Token.externPtr:
 		case Token.EOF:
+		case Token.flags:
+		case Token.forceData:
+		case Token.forceSendable:
 		case Token.fun:
+		case Token.global:
+		case Token.import_:
 		case Token.invalid:
 		case Token.mut:
 		case Token.newline:
+		case Token.noCtx:
+		case Token.noStd:
 		case Token.parenRight:
 		case Token.question:
 		case Token.questionEqual:
+		case Token.record:
 		case Token.ref_:
+		case Token.sendable:
+		case Token.spec:
+		case Token.summon:
+		case Token.test:
+		case Token.trusted:
+		case Token.underscore:
+		case Token.union_:
+		case Token.unsafe:
 			return false;
 		case Token.bracketLeft:
 		case Token.if_:
@@ -726,15 +820,16 @@ immutable(RangeWithinFile) range(ref Lexer lexer, immutable CStr begin) {
 	return range(lexer, safeSizeTToU32(begin - lexer.sourceBegin));
 }
 
-public enum Sign {
+enum Sign {
 	plus,
 	minus,
 }
 
 public @trusted immutable(LiteralIntOrNat) takeIntOrNat(ref Lexer lexer) {
-	immutable Opt!Sign sign = tryTake(lexer, '+')
+	while (tryTakeChar(lexer, ' ')) {}
+	immutable Opt!Sign sign = tryTakeChar(lexer, '+')
 		? some(Sign.plus)
-		: tryTake(lexer, '-')
+		: tryTakeChar(lexer, '-')
 		? some(Sign.minus)
 		: none!Sign;
 	immutable LiteralAst res = takeNumberAfterSign(lexer, sign);
@@ -747,8 +842,14 @@ public @trusted immutable(LiteralIntOrNat) takeIntOrNat(ref Lexer lexer) {
 		(immutable(Sym)) => unreachable!(immutable LiteralIntOrNat));
 }
 
-public @trusted immutable(LiteralAst) takeNumberAfterSign(ref Lexer lexer, immutable Opt!Sign sign) {
-	immutable ulong base = tryTake(lexer, "0x") ? 16 : tryTake(lexer, "0o") ? 8 : tryTake(lexer, "0b") ? 2 : 10;
+@trusted immutable(LiteralAst) takeNumberAfterSign(ref Lexer lexer, immutable Opt!Sign sign) {
+	immutable ulong base = tryTakeCStr(lexer, "0x")
+		? 16
+		: tryTakeCStr(lexer, "0o")
+		? 8
+		: tryTakeCStr(lexer, "0b")
+		? 2
+		: 10;
 	immutable LiteralAst.Nat n = takeNat(lexer, base);
 	if (*lexer.ptr == '.' && isDigit(*(lexer.ptr + 1))) {
 		lexer.ptr++;
@@ -811,7 +912,7 @@ immutable(ulong) getDivisor(immutable ulong acc, immutable ulong a, immutable ul
 	if (digit < base) {
 		lexer.ptr++;
 		immutable ulong newValue = value * base + digit;
-		drop(tryTake(lexer, '_'));
+		drop(tryTakeChar(lexer, '_'));
 		return takeNatRecur(lexer, base, newValue, overflow || newValue / base != value);
 	} else
 		return immutable LiteralAst.Nat(value, overflow);
@@ -826,35 +927,6 @@ immutable(ulong) charToNat(immutable char c) {
 		? 10 + (c - 'A')
 		: ulong.max;
 }
-
-@trusted immutable(string) takeOperatorRest(ref Lexer lexer, immutable CStr begin) {
-	while (isOperatorChar(*lexer.ptr))
-		lexer.ptr++;
-	return arrOfRange(begin, lexer.ptr);
-}
-
-// NOTE: this will allow taking invalid operators, then we'll issue a diagnostic for them
-immutable(bool) isOperatorChar(immutable char c) {
-	switch (c) {
-		case '=':
-		case '!':
-		case '<':
-		case '>':
-		case '+':
-		case '-':
-		case '*':
-		case '/':
-		case '^':
-		case '~':
-		case '&':
-		case '|':
-		case '.':
-			return true;
-		default:
-			return false;
-	}
-}
-
 
 immutable(size_t) toHexDigit(immutable char c) {
 	if ('0' <= c && c <= '9')
@@ -898,7 +970,11 @@ public immutable(Sym) takeSymbolLiteral(ref Lexer lexer) {
 	}
 }
 
-public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable char endQuote) {
+public immutable(StringPart) takeStringPartAfterDoubleQuote(ref Lexer lexer) {
+	return takeStringPart(lexer, '"');
+}
+
+@trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable char endQuote) {
 	immutable CStr begin = lexer.ptr;
 	size_t nEscapedCharacters = 0;
 	// First get the max size
@@ -987,7 +1063,7 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable 
 	return immutable StringPart(cast(immutable) res[0 .. size], after);
 }
 
-public @trusted immutable(string) takeNameRest(ref Lexer lexer, immutable CStr begin) {
+@trusted immutable(string) takeNameRest(ref Lexer lexer, immutable CStr begin) {
 	while (isAlphaIdentifierContinue(*lexer.ptr))
 		lexer.ptr++;
 	if (*lexer.ptr == '!')
@@ -1061,13 +1137,13 @@ public immutable(SafeCStr) skipBlankLinesAndGetDocComment(ref Lexer lexer) {
 }
 
 immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(ref Lexer lexer, immutable SafeCStr comment) {
-	if (tryTake(lexer, '\n'))
+	if (tryTakeChar(lexer, '\n'))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, emptySafeCStr);
-	else if (tryTake(lexer, "###\n"))
+	else if (tryTakeCStr(lexer, "###\n"))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, takeBlockComment(lexer));
-	else if (tryTake(lexer, '#'))
+	else if (tryTakeChar(lexer, '#'))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, takeRestOfLineAndNewline(lexer));
-	else if (tryTake(lexer, "region ")) {
+	else if (tryTakeCStr(lexer, "region ")) {
 		skipRestOfLineAndNewline(lexer);
 		return skipBlankLinesAndGetDocCommentRecur(lexer, emptySafeCStr);
 	} else
@@ -1080,17 +1156,17 @@ immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(ref Lexer lexer, immutab
 immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(ref Lexer lexer, immutable uint curIndent) {
 	// comment / region counts as a blank line no matter its indent level.
 	immutable uint newIndent = takeIndentAmount(lexer);
-	if (tryTake(lexer, '\n'))
+	if (tryTakeChar(lexer, '\n'))
 		// Ignore lines that are just whitespace
 		return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
 
 	// For indent == 0, we'll try taking any comments as doc comments
 	if (newIndent != 0) {
 		// Comments can mean a dedent
-		if (tryTake(lexer, "###\n")) {
+		if (tryTakeCStr(lexer, "###\n")) {
 			skipBlockComment(lexer);
 			return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
-		} else if (tryTake(lexer, '#')) {
+		} else if (tryTakeChar(lexer, '#')) {
 			skipRestOfLineAndNewline(lexer);
 			return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
 		}
@@ -1118,68 +1194,8 @@ immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(ref Lexer lexer, immutabl
 void skipBlockComment(ref Lexer lexer) {
 	skipRestOfLineAndNewline(lexer);
 	drop(takeIndentAmount(lexer));
-	if (!tryTake(lexer, "###\n"))
+	if (!tryTakeCStr(lexer, "###\n"))
 		skipBlockComment(lexer);
-}
-
-struct StrAndIsOperator {
-	immutable string str;
-	immutable Pos start;
-	immutable bool isOperator;
-}
-
-@trusted public immutable(StrAndIsOperator) takeNameAsTempStr(ref Lexer lexer) {
-	immutable CStr begin = lexer.ptr;
-	immutable Pos start = curPos(lexer);
-	if (isOperatorChar(*lexer.ptr)) {
-		lexer.ptr++;
-		immutable string op = takeOperatorRest(lexer, begin);
-		return immutable StrAndIsOperator(op, start, true);
-	} else if (isAlphaIdentifierStart(*lexer.ptr)) {
-		lexer.ptr++;
-		immutable string name = takeNameRest(lexer, begin);
-		return immutable StrAndIsOperator(name, start, false);
-	} else {
-		while (*lexer.ptr != ' ' && *lexer.ptr != '\n')
-			lexer.ptr++;
-		// Copy since it's used in a diag
-		immutable string s = copyStr(lexer.alloc, arrOfRange(begin, lexer.ptr));
-		addDiag(lexer, range(lexer, begin), immutable ParseDiag(
-			immutable ParseDiag.InvalidName(s)));
-		return immutable StrAndIsOperator("", start, false);
-	}
-}
-
-public immutable(bool) isReservedName(ref const Lexer lexer, immutable Sym name) {
-	switch (name.value) {
-		case shortSymAlphaLiteralValue("act"):
-		case shortSymAlphaLiteralValue("alias"):
-		case shortSymAlphaLiteralValue("as"):
-		case shortSymAlphaLiteralValue("builtin"):
-		case shortSymAlphaLiteralValue("elif"):
-		case shortSymAlphaLiteralValue("else"):
-		case shortSymAlphaLiteralValue("export"):
-		case shortSymAlphaLiteralValue("extern"):
-		case shortSymAlphaLiteralValue("extern-ptr"):
-		case shortSymAlphaLiteralValue("fun"):
-		case shortSymAlphaLiteralValue("global"):
-		case shortSymAlphaLiteralValue("if"):
-		case shortSymAlphaLiteralValue("import"):
-		case shortSymAlphaLiteralValue("match"):
-		case shortSymAlphaLiteralValue("mut"):
-		case shortSymAlphaLiteralValue("noctx"):
-		case shortSymAlphaLiteralValue("record"):
-		case shortSymAlphaLiteralValue("ref"):
-		case shortSymAlphaLiteralValue("sendable"):
-		case shortSymAlphaLiteralValue("spec"):
-		case shortSymAlphaLiteralValue("summon"):
-		case shortSymAlphaLiteralValue("trusted"):
-		case shortSymAlphaLiteralValue("union"):
-		case shortSymAlphaLiteralValue("unsafe"):
-			return true;
-		default:
-			return name == lexer.symUnderscore;
-	}
 }
 
 public @trusted immutable(bool) lookaheadWillTakeEqualsOrThen(ref Lexer lexer) {

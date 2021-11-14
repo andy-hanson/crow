@@ -5,8 +5,8 @@ import
 	netinet/in: new, sockaddr_in
 	stdio: perror
 	sys/epoll:
-		data, epoll_create1, epoll_ctl, EPOLL_CTL_ADD, EPOLLERR, EPOLLET, epoll_event, EPOLLHUP,
-		EPOLLIN, epoll_wait, events, new
+		epoll_create1, epoll_ctl, EPOLL_CTL_ADD, EPOLLERR, EPOLLET, epoll_event, EPOLLHUP, EPOLLIN,
+		epoll_wait, event_data, events, new
 	sys/socket: accept, listen, shutdown, SHUT_RDWR, sockaddr
 	sys/types: socklen_t
 	unistd: close, read
@@ -124,9 +124,9 @@ close-client void(client-fd fd-t) unsafe summon
 			state tcp-server-loop
 		else
 			assert: num-events == 1
-			flags = event.events
-			fd = event.data.to-int64 to-int32
-			if flags bits-intersect EPOLLERR | EPOLLHUP || !(flags bits-intersect EPOLLIN)
+			event-flags = event events
+			fd = event.event_data.to-int64 to-int32
+			if event-flags bits-intersect EPOLLERR | EPOLLHUP || !(event-flags bits-intersect EPOLLIN)
 				print: "SOME KINDA ERROR"
 				err = fd close
 				assert: err == 0
@@ -138,7 +138,7 @@ close-client void(client-fd fd-t) unsafe summon
 
 .accept-clients void(listen-fd fd-t, epoll-fd fd-t, on-accepted-client ref void(fd-t)) unsafe summon
 	clientaddr sockaddr_in = ()
-	clientaddr-as-sockaddr = clientaddr.ptr-to ptr-cast-to-extern<sockaddr, sockaddr_in>
+	clientaddr-as-sockaddr = clientaddr.ptr-to ptr-cast-to-extern@<sockaddr, sockaddr_in>
 	# TODO: should be able to write `size-of@<sockaddr_in>.to-nat32`
 	addrlen by-val cell socklen_t = (size-of@<sockaddr_in>).to-nat32,
 	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val
@@ -168,12 +168,12 @@ close-client void(client-fd fd-t) unsafe summon
 		fd handle-client on-received-chunk
 
 .set-non-blocking void(fd fd-t) noctx unsafe summon
-	flags = fd fcntl F_GETFL, 0
-	if flags < 0
+	file-flags = fd fcntl F_GETFL, 0
+	if file-flags < 0
 		perror: "fcntl() error\0".chars.begin-ptr
 		todo
 	else
-		err = fd fcntl F_SETFL, flags | O_NONBLOCK
+		err = fd fcntl F_SETFL, file-flags | O_NONBLOCK
 		if err < 0
 			perror: "fcntl() error\0".chars.begin-ptr
 			todo

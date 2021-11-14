@@ -2,14 +2,14 @@ no-std
 import
 	../bool: &&, ==, bool, true
 	../exception: assert
-	../fun: subscript
+	../fun-util: subscript
 	../misc: void
 	../opt: force, is-empty, opt, some
 	../ptr: ==, +, -, set-deref
 	../range: ..
 	../str: ==, str
 	../str-conv: to-str
-	../test: is
+	../test-util: is
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, is-even, nat64, wrap-add

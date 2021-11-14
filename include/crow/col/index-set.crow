@@ -5,7 +5,7 @@ import
 	../bool: !, &&, ||, ==, bool, false, true
 	../compare: !=, <, >, >=, min
 	../exception: assert
-	../fun: subscript
+	../fun-util: subscript
 	../log: info, log
 	../misc: drop, typed, void
 	../opt: is-empty, none, opt, or-default, some
@@ -13,7 +13,7 @@ import
 	../range: .., each
 	../str: ==, str
 	../str-conv: to-hex, to-str
-	../test: is
+	../test-util: is
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert, hard-unreachable
 	../private/number-low-level:

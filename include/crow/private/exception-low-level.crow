@@ -5,7 +5,7 @@ import
 	../bytes-types: zero
 	../col/arr: empty-arr
 	../compare: !=
-	../fun: subscript
+	../fun-util: subscript
 	../ptr: ==, as-ref, by-val, null, ptr-to
 	./backtrace: get-backtrace
 	./bootstrap:

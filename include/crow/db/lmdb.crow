@@ -22,10 +22,10 @@ import
 	../c-types: u-int
 	../exception: assert, do-if-error, finally, forbid, throw
 	../extra-types: err-t
-	../fun: subscript
+	../fun-util: subscript
 	../io/file: make-directory, path-exists, remove-directory-and-contents-non-recursive
 	../log: info, log
-	../misc: data, void
+	../misc: is-data, void
 	../number: ==, *, nat, nat8, nat32, nat64, to-nat64
 	../opt: opt, some
 	../ptr: ==, +, as-mut, null, ptr-cast-to-extern, set-deref, zeroed
@@ -91,7 +91,7 @@ with-env<a> a(db-dir str, options lmdb-open-options, f act a(lmdb-env)) trusted 
 
 # WARN: Should call 'close-env' when done
 lmdb-open-env lmdb-env(db-dir str, options lmdb-open-options) unsafe summon
-	env-cell cell MDB_env = null.ptr-cast-to-extern<MDB_env, nat8>,
+	env-cell cell MDB_env = null.ptr-cast-to-extern@<MDB_env, nat8>,
 	check-lmdb-error: env-cell mdb_env_create
 	env = *env-cell
 	check-lmdb-error: env mdb_env_set_maxdbs 50
@@ -122,20 +122,20 @@ spec
 	lmdb-key<k>
 	serialize<v>
 body
-	db = env open-db<k, v> db-name
+	db = env open-db@<k, v> db-name
 	(() => env close-db db) finally () => f[db]
 
 # WARN: Should call 'close-db' when done
 open-db<k, v> lmdb-db<k, v>(env lmdb-env, db-name str) unsafe summon lmdb-key<k> serialize<v>
-	parent-transaction = null ptr-cast-to-extern<MDB_txn, nat8>
-	transaction-cell cell MDB_txn = null.ptr-cast-to-extern<MDB_txn, nat8>,
+	parent-transaction = null ptr-cast-to-extern@<MDB_txn, nat8>
+	transaction-cell cell MDB_txn = null.ptr-cast-to-extern@<MDB_txn, nat8>,
 	check-lmdb-error: env.env mdb_txn_begin parent-transaction, 0, transaction-cell
 	transaction = *transaction-cell
 
 	dbi-cell cell MDB_dbi = zeroed,
-	# TODO: Should be able to parse `zeroed<k>.lmdb-key-flags`
-	flags = MDB_CREATE | (zeroed<k> lmdb-key-flags)
-	check-lmdb-error: transaction mdb_dbi_open db-name.to-c-str, flags, dbi-cell
+	# TODO: Should be able to parse `zeroed@<k>.lmdb-key-flags`
+	mdb-flags = MDB_CREATE | (zeroed@<k> lmdb-key-flags)
+	check-lmdb-error: transaction mdb_dbi_open db-name.to-c-str, mdb-flags, dbi-cell
 
 	check-lmdb-error: transaction mdb_txn_commit
 	*dbi-cell,
@@ -182,7 +182,7 @@ zip<out, k, v0, v1> out[]
 spec
 	trusted
 	summon
-	data<k>
+	is-data<k>
 	lmdb-key<k>
 	serialize<v0>
 	serialize<v1>
@@ -209,7 +209,7 @@ zip-fold<a, k, v0, v1> a
 spec
 	trusted
 	summon
-	data<k>
+	is-data<k>
 	lmdb-key<k>
 	serialize<v0>
 	serialize<v1>
@@ -231,7 +231,7 @@ body
 spec
 	trusted
 	summon
-	data<k>
+	is-data<k>
 	lmdb-key<k>
 	serialize<v0>
 	serialize<v1>
@@ -249,7 +249,7 @@ body
 spec
 	unsafe
 	summon
-	data<k>
+	is-data<k>
 	lmdb-key<k>
 	serialize<v0>
 	serialize<v1>
@@ -277,7 +277,7 @@ body
 		new-acc zip-fold-recur cursor0, cursor1, f
 
 .with-cursor<a, k, v> a(txn lMDB_txn, db lmdb-db<k, v>, f act a(MDB_cursor)) unsafe summon
-	cursor-cell cell MDB_cursor = null.ptr-cast-to-extern<MDB_cursor, nat8>,
+	cursor-cell cell MDB_cursor = null.ptr-cast-to-extern@<MDB_cursor, nat8>,
 	open-err = txn.txn mdb_cursor_open db.dbi, cursor-cell
 	cursor = *cursor-cell
 	(() => cursor mdb_cursor_close) finally () =>
@@ -320,14 +320,14 @@ set<k, v> void(txn lMDB_txn, db lmdb-db<k, v>, key k, value v) summon lmdb-key<k
 	db lmdb-db<k, v>
 	key k
 	value v
-	flags u-int
+	mdb-flags u-int
 spec
 	trusted
 	summon
 	lmdb-key<k>
 	serialize<v>
 body
-	txn.txn mdb_put db.dbi, key.to-lmdb-key.val-of-bytes, value.to-bytes.val-of-bytes, flags
+	txn.txn mdb_put db.dbi, key.to-lmdb-key.val-of-bytes, value.to-bytes.val-of-bytes, mdb-flags
 
 lmdb_stat record
 	psize nat
@@ -365,10 +365,10 @@ with-write-transaction<a> a(env lmdb-env, f act a(lMDB_txn)) trusted summon
 with-abortable-write-transaction<a> a(env lmdb-env, f act transaction-result a(lMDB_txn)) trusted summon
 	env with-transaction 0, f
 
-.with-transaction<a> a(env lmdb-env, flags u-int, f act transaction-result a(lMDB_txn)) unsafe summon
-	parent-transaction = null ptr-cast-to-extern<MDB_txn, nat8>
-	transaction-cell cell MDB_txn = null.ptr-cast-to-extern<MDB_txn, nat8>,
-	check-lmdb-error: env.env mdb_txn_begin parent-transaction, flags, transaction-cell
+.with-transaction<a> a(env lmdb-env, mdb-flags u-int, f act transaction-result a(lMDB_txn)) unsafe summon
+	parent-transaction = null ptr-cast-to-extern@<MDB_txn, nat8>
+	transaction-cell cell MDB_txn = null.ptr-cast-to-extern@<MDB_txn, nat8>,
+	check-lmdb-error: env.env mdb_txn_begin parent-transaction, mdb-flags, transaction-cell
 	transaction = *transaction-cell
 	(() => transaction mdb_txn_abort) do-if-error () =>
 		match f[(transaction,)]

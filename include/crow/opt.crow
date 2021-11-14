@@ -2,7 +2,7 @@ no-std
 import
 	./bool: bool, false, true
 	./compare: equal
-	./fun: subscript
+	./fun-util: subscript
 	./misc: drop, void
 	./str: ==, str
 	./tuple: new, pair

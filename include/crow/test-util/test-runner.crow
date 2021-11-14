@@ -2,7 +2,7 @@ no-std
 import
 	../col/arr: arr, size
 	../col/arr-util: each
-	../fun: fun-ptr1, subscript
+	../fun-util: fun-ptr1, subscript
 	../io/print: print
 	../misc: void
 	../str-conv: finish, interp, to-str, with-str, with-value
@@ -13,6 +13,5 @@ all-tests fun-ptr1<void, ctx>[]() builtin
 run-all-tests void() summon trusted
 	tests = all-tests
 	print: "Running {tests size} tests"
-	tests each test =>
-		test[get-ctx]
+	tests each x => x[get-ctx]
 	print: "done"

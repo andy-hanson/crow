@@ -18,14 +18,14 @@ file-ast(
 		fun-decl(
 			visibility: public
 			sig: sig-ast(
-				range(30, 51)
+				range(30, 52)
 				main
-				inststruct(range(35, 42), name-range(35, fut), [inststruct(range(38, 42), name-range(38, nat))])
+				inststruct(range(35, 42), name-range(35, fut), [inststruct(range(39, 42), name-range(39, nat))])
 				[param(range(43, 50), none, suffix(inststruct(range(45, 48), name-range(45, str)), arr))])
 			summon: true
 			body: let(
 				r
-				call(comma, name-range(73, new), [], [literal("a"), literal("b")])
+				call(comma, name-range(74, new), [], [literal("a"), literal("b")])
 				seq-ast(
 					seq-ast(
 						seq-ast(
@@ -36,7 +36,7 @@ file-ast(
 		fun-decl(
 			visibility: public
 			sig: sig-ast(
-				range(161, 182)
+				range(161, 183)
 				foo
 				inststruct(range(165, 169), name-range(165, void))
 				[param(range(170, 181), some(r), inststruct(range(172, 181), name-range(172, my-record)))])

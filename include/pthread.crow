@@ -4,7 +4,7 @@ import
 	crow/cell: cell
 	crow/c-types: u-long
 	crow/extra-types: err-t
-	crow/fun: fun-ptr1
+	crow/fun-util: fun-ptr1
 	crow/ptr: any-const-ptr, any-mut-ptr, const-ptr, mut-ptr
 	crow/private/bootstrap: int32
 	time: __clockid_t, timespec

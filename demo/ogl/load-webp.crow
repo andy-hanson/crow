@@ -4,7 +4,7 @@ import
 	crow/cell: *, cell, new
 	crow/col/arr: begin-ptr, size
 	crow/exception: finally
-	crow/fun: subscript
+	crow/fun-util: subscript
 	crow/io/file: read-file-binary
 	crow/misc: void
 	crow/number: nat, nat8, to-nat64
@@ -15,7 +15,7 @@ import
 
 # WARN: Remember to free
 webp-rgba-image record mut
-	data nat8 mut*
+	image-data nat8 mut*
 	width nat
 	height nat
 
@@ -31,4 +31,4 @@ with-webp<a> a(path str, cb act a(webp-rgba-image)) unsafe summon
 	uncompressed, (*width).to-nat64, (*height).to-nat64
 
 .free-webp void(a webp-rgba-image) unsafe summon
-	a.data WebPFree
+	a.image-data WebPFree

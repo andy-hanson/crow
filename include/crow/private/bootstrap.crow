@@ -13,10 +13,10 @@ A type is data if it is:
 * A primitive
 * A record or union of pure types
 ###
-data<a> builtin-spec
+is-data<a> builtin-spec
 
 # A type is sendable if it does not have any thread-unsafe mutable state.
-send<a> builtin-spec
+is-sendable<a> builtin-spec
 
 ## TODO: extern<a> builtin-spec for extern ptr types
 

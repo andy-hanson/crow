@@ -10,14 +10,14 @@ http-request record
 	method http-method
 	url str
 	headers str[str]
-	body str
+	request-body str
 
 # Response to send to a single HTTP request.
 http-response record
 	status nat64
 	status-desc str
 	headers str[str]
-	body str
+	response-body str
 
 http-bad-query http-response(message str)
 	400, message, (), message

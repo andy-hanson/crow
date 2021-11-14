@@ -3,13 +3,13 @@ import
 	../bool: bool, false, true
 	../compare: !=, <, >, equal, min
 	../exception: assert, forbid
-	../fun: subscript
+	../fun-util: subscript
 	../misc: typed, void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, -, *, const-ptr, mut-ptr, set-deref, set-subscript
 	../range: ..
 	../str: ==, str
-	../test: is
+	../test-util: is
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert, hard-unreachable
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub

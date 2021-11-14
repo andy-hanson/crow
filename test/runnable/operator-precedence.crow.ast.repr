@@ -7,9 +7,9 @@ file-ast(
 		fun-decl(
 			visibility: public
 			sig: sig-ast(
-				range(30, 51)
+				range(30, 52)
 				main
-				inststruct(range(35, 42), name-range(35, fut), [inststruct(range(38, 42), name-range(38, nat))])
+				inststruct(range(35, 42), name-range(35, fut), [inststruct(range(39, 42), name-range(39, nat))])
 				[param(range(43, 50), none, suffix(inststruct(range(45, 48), name-range(45, str)), arr))])
 			summon: true
 			body: seq-ast(
@@ -21,7 +21,7 @@ file-ast(
 						[
 							call(
 								prefix
-								name-range(66, to-str)
+								name-range(67, to-str)
 								[]
 								[
 									call(

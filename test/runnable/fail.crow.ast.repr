@@ -6,22 +6,22 @@ file-ast(
 		fun-decl(
 			visibility: public
 			sig: sig-ast(
-				range(0, 21)
+				range(0, 22)
 				main
-				inststruct(range(5, 12), name-range(5, fut), [inststruct(range(8, 12), name-range(8, nat))])
+				inststruct(range(5, 12), name-range(5, fut), [inststruct(range(9, 12), name-range(9, nat))])
 				[param(range(13, 20), none, suffix(inststruct(range(15, 18), name-range(15, str)), arr))])
 			summon: true
 			unsafe: true
 			body: seq-ast(foo, call(infix, name-range(44, resolved), [], [literal(nat(0, false))])))
 		fun-decl(
 			visibility: public
-			sig: sig-ast(range(54, 64), foo, inststruct(range(58, 62), name-range(58, void)), [])
+			sig: sig-ast(range(54, 65), foo, inststruct(range(58, 62), name-range(58, void)), [])
 			summon: true
 			unsafe: true
 			body: bar)
 		fun-decl(
 			visibility: public
-			sig: sig-ast(range(85, 95), bar, inststruct(range(89, 93), name-range(89, void)), [])
+			sig: sig-ast(range(85, 96), bar, inststruct(range(89, 93), name-range(89, void)), [])
 			summon: true
 			unsafe: true
 			body: call(prefix, name-range(111, throw), [], [literal("FOO")]))])

@@ -2,7 +2,7 @@ no-std
 import
 	../col/arr: arr
 	../col/mut-arr: ~=, move-to-arr!, mut-arr, new
-	../fun: subscript
+	../fun-util: subscript
 	../misc: typed
 	../tuple: new, pair
 

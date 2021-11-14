@@ -24,8 +24,8 @@ import
 	../../private/bootstrap: todo
 	../print: print
 	./http-types:
-		body, headers, http-get, http-method, http-post, http-request, http-response, new, status,
-		status-desc
+		headers, http-get, http-method, http-post, http-request, http-response, new, response-body,
+		status, status-desc
 	./tcp-server: close-client, new, start-tcp-server, stop
 
 # Represents the state of the server.
@@ -109,12 +109,12 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		res ~= ": "
 		res ~= v
 	forbid: "Content-Length" in a.headers
-	if !a.body.is-empty
+	if !a.response-body.is-empty
 		res ~= "\r\n"
 		res ~= "Content-Length: "
-		res ~= a.body.size-bytes to-str
+		res ~= a.response-body.size-bytes to-str
 	res ~= "\r\n\r\n"
-	res ~= a body
+	res ~= a response-body
 	res move-to-str!
 
 #ok-response str() noctx

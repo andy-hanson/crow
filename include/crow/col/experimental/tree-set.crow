@@ -3,15 +3,15 @@ import
 	../../bool: !, &&, bool, false, true
 	../../compare: !=, <, <=, >, compare
 	../../exception: assert, forbid, unreachable
-	../../fun: subscript
-	../../misc: data, drop, void
+	../../fun-util: subscript
+	../../misc: drop, is-data, void
 	../../opt: opt, some
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
 	../../range: ..
 	../../str: ==, <=>, chars, str
 	../../str-conv: interp, finish, to-str, with-str, with-value
 	../../str-util: starts-with
-	../../test: is
+	../../test-util: is
 	../../writer: ~=, backup!, move-to-str!, new, writer
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, unsafe-div, wrap-add, wrap-sub
@@ -42,19 +42,19 @@ tree-set<a> record
 	right node a
 
 # True iff the set is empty.
-is-empty<a> bool(a tree-set a) data<a> compare<a>
+is-empty<a> bool(a tree-set a) is-data<a> compare<a>
 	a.total-size == 0
 
 # Number of values in the set.
-size<a> nat64(a tree-set a) data<a> compare<a>
+size<a> nat64(a tree-set a) is-data<a> compare<a>
 	a total-size
 
 # Empty `tree-set`.
-new<a> tree-set a(...a a[]) data<a> compare<a>
+new<a> tree-set a(...a a[]) is-data<a> compare<a>
 	a to-tree-set
 
 # Copy an `arr` to a `tree-set`.
-to-tree-set<a> tree-set a(a a[]) data<a> compare<a>
+to-tree-set<a> tree-set a(a a[]) is-data<a> compare<a>
 	values = a sort-unique
 	values.leaf, values.size
 
@@ -62,7 +62,7 @@ to-tree-set<a> tree-set a(a a[]) data<a> compare<a>
 Array of all values in the set, in sorted order.
 This is O(a size).
 ###
-arr<a> a[](a tree-set a) data<a> compare<a>
+arr<a> a[](a tree-set a) is-data<a> compare<a>
 	match a.root
 	as inner i
 		i tree-to-arr a.size
@@ -70,7 +70,7 @@ arr<a> a[](a tree-set a) data<a> compare<a>
 		l
 
 # True iff the value is in the set.
-in<a> bool(value a, a tree-set a) data<a> compare<a>
+in<a> bool(value a, a tree-set a) is-data<a> compare<a>
 	a.root has value
 .has<a> bool(a node a, value a) trusted compare<a>
 	match a
@@ -90,7 +90,7 @@ Add a value to the set.
 No effect if the value is already in the set.
 This is O(a.size ln)
 ###
-~ <a> tree-set a(a tree-set a, value a) data<a> compare<a>
+~ <a> tree-set a(a tree-set a, value a) is-data<a> compare<a>
 	new-size = a.size wrap-add 1
 	match a.root add-recur value, new-size.get-max-height
 	as none
@@ -104,14 +104,14 @@ This is O(a.size ln)
 Add many values to the set.
 This is O(a.size + b.size).
 ###
-~ <a> tree-set a(a tree-set a, b a[]) data<a> compare<a>
+~ <a> tree-set a(a tree-set a, b a[]) is-data<a> compare<a>
 	a ~ b.to-tree-set
 
 ###
 Union of two sets.
 This is O(a.size + b.size).
 ###
-~ <a> tree-set a(a tree-set a, b tree-set a) trusted data<a> compare<a>
+~ <a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a>
 	out = a.size wrap-add b.size uninitialized-fix-arr@<a>
 	b-iter = b iter
 	end = out.begin-ptr fold a, (cur, value) =>
@@ -121,7 +121,7 @@ This is O(a.size + b.size).
 		cur + 1
 	out[0 .. end2 - out.begin-ptr].cast-immutable to-tree-set
 
-.walk-iter-union!<a> a mut*(out a mut*, value a, a iter a) unsafe data<a> compare<a>
+.walk-iter-union!<a> a mut*(out a mut*, value a, a iter a) unsafe is-data<a> compare<a>
 	if peek ?= a peek
 		match value <=> peek
 		as less
@@ -139,11 +139,11 @@ This is O(a.size + b.size).
 		*out := value
 		out + 1
 
-intersect<a> tree-set a(a tree-set a, b tree-set a) trusted data<a> compare<a>
+intersect<a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a>
 	b-iter = b iter
 	a filter x => b-iter walk-iter-has x
 
-.walk-iter-has<a> bool(a iter a, value a) unsafe data<a> compare<a>
+.walk-iter-has<a> bool(a iter a, value a) unsafe is-data<a> compare<a>
 	if peek ?= a peek
 		match value <=> peek
 		as less
@@ -162,7 +162,7 @@ Returns a set that does not contain 'b'.
 If 'b' is not in the set, returns it unmodified.
 This is O(a.size ln).
 ###
-- <a> tree-set a(a tree-set a, b a) data<a> compare<a>
+- <a> tree-set a(a tree-set a, b a) is-data<a> compare<a>
 	if res ?= a try-remove b
 		res
 	else
@@ -173,7 +173,7 @@ If 'b' is in the set, returns `none~.
 Else, returns a set with 'b' removed.
 This is O(a.size ln).
 ###
-try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
+try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	if node ?= a.root try-remove-recur b
 		(node, (a.size wrap-sub 1)) some
 
@@ -224,7 +224,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 		if last ?= l last
 			(last, l.rtail.leaf) some
 
-- <a> tree-set a(a tree-set a, b tree-set a) trusted data<a> compare<a>
+- <a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a>
 	b-iter = b iter
 	a filter x => !(b-iter walk-iter-has x)
 
@@ -431,7 +431,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) data<a> compare<a>
 
 region iteration
 
-each<a> void(a tree-set a, f act void(a)) data<a> compare<a>
+each<a> void(a tree-set a, f act void(a)) is-data<a> compare<a>
 	a.root each-recur f
 .each-recur<a> void(a node a, f act void(a))
 	match a
@@ -442,7 +442,7 @@ each<a> void(a tree-set a, f act void(a)) data<a> compare<a>
 	as leaf l
 		l each f
 
-fold<a, b> a(acc a, a tree-set b, f act a(a, b)) data<b> compare<b>
+fold<a, b> a(acc a, a tree-set b, f act a(a, b)) is-data<b> compare<b>
 	acc fold-recur a.root, f
 .fold-recur<a, b> a(acc a, a node b, f act a(a, b))
 	match a
@@ -454,7 +454,7 @@ fold<a, b> a(acc a, a tree-set b, f act a(a, b)) data<b> compare<b>
 	left-value = acc fold-recur a.left, f
 	f[left-value, a.value] fold-recur a.right, f
 
-filter<a> tree-set a(a tree-set a, f act bool(a)) trusted data<a> compare<a>
+filter<a> tree-set a(a tree-set a, f act bool(a)) trusted is-data<a> compare<a>
 	out = a.size uninitialized-fix-arr@<a>
 	end = out.begin-ptr fold a, (cur, value) =>
 		if f[value]
@@ -466,7 +466,7 @@ filter<a> tree-set a(a tree-set a, f act bool(a)) trusted data<a> compare<a>
 
 # TODO: first-some
 
-map<out, in> tree-set out(a tree-set in, f act out(in)) data<in> compare<in> data<out> compare<out> trusted
+map<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> is-data<out> compare<out> trusted
 	out = a.size uninitialized-fix-arr@<out>
 	end = out.begin-ptr fold a, (cur, value) =>
 		*cur := f[value]

@@ -3,10 +3,10 @@ export
 	./bool
 	./col/arr
 	./compare
-	./enum
+	./enum-util
 	./exception
-	./flags
-	./fun
+	./flags-util
+	./fun-util
 	./fut
 	./hash
 	./misc
@@ -17,4 +17,4 @@ export
 	./str
 	./str-conv
 	./sym
-	./test
+	./test-util

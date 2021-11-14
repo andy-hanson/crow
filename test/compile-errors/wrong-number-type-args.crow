@@ -2,4 +2,4 @@ magic<out, in> out?(a opt in)
 	todo
 
 use-it<out, in> out?(a opt in)
-	a magic<out>
+	a magic@<out>

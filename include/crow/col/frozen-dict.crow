@@ -2,13 +2,13 @@ no-std
 import
 	../bool: !, &&, ==, bool, false, true
 	../compare: !=, <=, compare, equal
-	../fun: subscript
+	../fun-util: subscript
 	../hash: hash, hash-mix
-	../misc: ->, arrow, data, from, to, void
+	../misc: ->, arrow, from, is-data, to, void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap!
 	../str: str
-	../test: is
+	../test-util: is
 	../private/alloc: alloc-uninitialized
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
 	./arr: ==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, new, size, unsafe-at
@@ -23,10 +23,10 @@ frozen-dict<k, v> record
 	.pairs arrow<k, v>[]
 	.bucket-starts arrow<k, v>*[]
 
-new<k, v> frozen-dict<k, v>(...a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+new<k, v> frozen-dict<k, v>(...a arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	a to-frozen-dict
 
-to-frozen-dict<k, v> frozen-dict<k, v>(a arrow<k, v>[]) trusted data<k> compare<k> hash-mix<k>
+to-frozen-dict<k, v> frozen-dict<k, v>(a arrow<k, v>[]) trusted is-data<k> compare<k> hash-mix<k>
 	a.to-fix-arr.fix-arr-to-frozen-dict-promise-no-duplicates remove-duplicates
 
 # TODO:INTERNAL
@@ -45,19 +45,19 @@ size<k, v> nat64(a frozen-dict<k, v>)
 to-arr<k, v> arrow<k, v>[](a frozen-dict<k, v>)
 	a pairs
 
-subscript<k, v> v?(a frozen-dict<k, v>, key k) trusted data<k> compare<k> hash-mix<k>
+subscript<k, v> v?(a frozen-dict<k, v>, key k) trusted is-data<k> compare<k> hash-mix<k>
 	if ptr ?= a find-ptr key
 		(*ptr).to some
 
-in<k, v> bool(key k, a frozen-dict<k, v>) trusted data<k> compare<k> hash-mix<k>
+in<k, v> bool(key k, a frozen-dict<k, v>) trusted is-data<k> compare<k> hash-mix<k>
 	!(a find-ptr key is-empty)
 
 # TODO:INTERNAL
-try-get-unordered-index<k, v> nat64?(a frozen-dict<k, v>, key k) trusted data<k> compare<k> hash-mix<k>
+try-get-unordered-index<k, v> nat64?(a frozen-dict<k, v>, key k) trusted is-data<k> compare<k> hash-mix<k>
 	if ptr ?= a find-ptr key
 		ptr - a.pairs.begin-ptr some
 
-.find-ptr<k, v> arrow<k, v>*?(a frozen-dict<k, v>, key k) unsafe data<k> compare<k> hash-mix<k>
+.find-ptr<k, v> arrow<k, v>*?(a frozen-dict<k, v>, key k) unsafe is-data<k> compare<k> hash-mix<k>
 	bucket = if a.bucket-starts is-empty
 		a pairs
 	else
@@ -71,11 +71,11 @@ try-get-unordered-index<k, v> nat64?(a frozen-dict<k, v>, key k) trusted data<k>
 
 	bucket.begin-ptr find-ptr bucket.end-ptr, key
 
-find-index<k, v> nat64?(pairs arrow<k, v>[], key k) unsafe data<k> compare<k> hash-mix<k>
+find-index<k, v> nat64?(pairs arrow<k, v>[], key k) unsafe is-data<k> compare<k> hash-mix<k>
 	if ptr ?= pairs.begin-ptr find-ptr pairs.end-ptr, key
 		ptr - pairs.begin-ptr some
 
-find-ptr<k, v> arrow<k, v>*?(cur arrow<k, v>*, end arrow<k, v>*, key k) unsafe data<k> compare<k> hash-mix<k>
+find-ptr<k, v> arrow<k, v>*?(cur arrow<k, v>*, end arrow<k, v>*, key k) unsafe is-data<k> compare<k> hash-mix<k>
 	if cur == end
 		none
 	elif (*cur).from == key
@@ -87,7 +87,7 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>
 	a fix-arr arrow<k, v>
 spec
 	unsafe
-	data<k>
+	is-data<k>
 	compare<k>
 	hash-mix<k>
 body
@@ -105,7 +105,7 @@ body
 	a frozen-dict<k, v>
 spec
 	unsafe
-	data<k>
+	is-data<k>
 	compare<k>
 	hash-mix<k>
 body

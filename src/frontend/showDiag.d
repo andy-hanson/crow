@@ -2,6 +2,7 @@ module frontend.showDiag;
 
 @safe @nogc pure nothrow:
 
+import frontend.parse.lexer : Token;
 import model.diag : Diagnostic, Diag, Diags, FilesInfo, matchDiag, TypeKind, writeFileAndRange;
 import model.model :
 	arity,
@@ -40,7 +41,8 @@ import util.opt : force, has;
 import util.path : AllPaths, baseName, comparePathAndStorageKind, PathAndStorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, FilePaths;
-import util.sym : Sym, writeSym;
+import util.sym : strOfOperator, Sym, writeSym;
+import util.util : unreachable;
 import util.writer :
 	finishWriter,
 	writeBold,
@@ -158,28 +160,26 @@ void writeParseDiag(
 				case ParseDiag.Expected.Kind.endOfLine:
 					writeStatic(writer, "expected end of line");
 					break;
+				case ParseDiag.Expected.Kind.equalsOrThen:
+					writeStatic(writer, "expected '=' or '<-'");
+					break;
 				case ParseDiag.Expected.Kind.indent:
 					writeStatic(writer, "expected an indent");
 					break;
 				case ParseDiag.Expected.Kind.lambdaArrow:
 					writeStatic(writer, "expected ' =>' after lambda parameters");
 					break;
-				case ParseDiag.Expected.Kind.multiLineArrSeparator:
-				case ParseDiag.Expected.Kind.multiLineNewSeparator:
-					writeStatic(writer, "'. '");
+				case ParseDiag.Expected.Kind.name:
+					writeStatic(writer, "expected a name (non-operator)");
 					break;
-				case ParseDiag.Expected.Kind.purity:
-					//TODO: better message
-					writeStatic(writer, "after trailing space, expected to parse 'mutable' or 'sendable'");
+				case ParseDiag.Expected.Kind.nameOrOperator:
+					writeStatic(writer, "expected a name or operator");
 					break;
 				case ParseDiag.Expected.Kind.quote:
 					writeStatic(writer, "expected '\"'");
 					break;
-				case ParseDiag.Expected.Kind.space:
-					writeStatic(writer, "expected a space");
-					break;
-				case ParseDiag.Expected.Kind.spaceEqualsSpace:
-					writeStatic(writer, "expected ' = '");
+				case ParseDiag.Expected.Kind.slash:
+					writeStatic(writer, "expected '/'");
 					break;
 				case ParseDiag.Expected.Kind.typeArgsEnd:
 					writeStatic(writer, "expected '>'");
@@ -246,10 +246,6 @@ void writeParseDiag(
 			writeStatic(writer, " reaches above the source directory");
 			//TODO: recommend a compiler option to fix this
 		},
-		(ref immutable ParseDiag.ReservedName d) {
-			writeName(writer, d.name);
-			writeStatic(writer, " is a reserved word and can't be used as a name");
-		},
 		(ref immutable ParseDiag.Unexpected it) {
 			final switch (it.kind) {
 				case ParseDiag.Unexpected.Kind.dedent:
@@ -264,6 +260,14 @@ void writeParseDiag(
 			writeStatic(writer, "unexpected character '");
 			showChar(writer, u.ch);
 			writeStatic(writer, "'");
+		},
+		(ref immutable ParseDiag.UnexpectedOperator u) {
+			writeStatic(writer, "unexpected '");
+			writeStr(writer, strOfOperator(u.operator));
+			writeChar(writer, '\'');
+		},
+		(ref immutable ParseDiag.UnexpectedToken u) {
+			writeStatic(writer, describeTokenForUnexpected(u.token));
 		},
 		(ref immutable ParseDiag.UnionCantBeEmpty) {
 			writeStatic(writer, "union type can't be empty");
@@ -776,9 +780,9 @@ void writeDiag(
 			} else {
 				writeStatic(writer, "imported module ");
 				// TODO: helper fn
-				immutable string moduleName =
+				immutable Sym moduleName =
 					baseName(allPaths, fullIndexDictGet(fi.filePaths, it.importedModule.deref().fileIndex).path);
-				writeStr(writer, moduleName);
+				writeSym(writer, moduleName);
 			}
 			writeStatic(writer, " is unused");
 		},
@@ -895,5 +899,130 @@ immutable(ulong) maxValue(immutable EnumBackingType type) {
 			return uint.max;
 		case EnumBackingType.nat64:
 			return ulong.max;
+	}
+}
+
+immutable(string) describeTokenForUnexpected(immutable Token token) {
+	final switch (token) {
+		case Token.act:
+			return "unexpected keyword 'act'";
+		case Token.alias_:
+			return "unexpected keyword 'alias'";
+		case Token.arrowLambda:
+			return "unexpected '=>'";
+		case Token.arrowThen:
+			return "unexpected '<-'";
+		case Token.as:
+			return "unexpected keyword 'as'";
+		case Token.atLess:
+			return "unexpected '@<'";
+		case Token.body:
+			return "unexpected keyword 'body'";
+		case Token.builtin:
+			return "unexpected keyword 'builtin'";
+		case Token.builtinSpec:
+			return "unexpected keyword 'builtin-spec'";
+		case Token.braceLeft:
+			return "unexpected '{'";
+		case Token.braceRight:
+			return "unexpected '}'";
+		case Token.bracketLeft:
+			return "unexpected '['";
+		case Token.bracketRight:
+			return "unexpected ']'";
+		case Token.colon:
+			return "unexpected ':'";
+		case Token.colonEqual:
+			return "unexpected ':='";
+		case Token.comma:
+			return "unexpected ','";
+		case Token.data:
+			return "unexpected keyword 'data'";
+		case Token.dot:
+			return "unexpected '.'";
+		case Token.dot3:
+			return "unexpected '...'";
+		case Token.elif:
+			return "unexpected keyword 'elif'";
+		case Token.else_:
+			return "unexpected keyword 'else'";
+		case Token.enum_:
+			return "unexpected keyword 'enum'";
+		case Token.export_:
+			return "unexpected keyword 'export'";
+		case Token.equal:
+			return "unexpected '='";
+		case Token.extern_:
+			return "unexpected keyword 'extern'";
+		case Token.externPtr:
+			return "unexpected keyword 'extern-ptr'";
+		case Token.EOF:
+			return "unexpected end of file";
+		case Token.flags:
+			return "unexpected keyword 'flags'";
+		case Token.forceData:
+			return "unexpected keyword 'force-data'";
+		case Token.forceSendable:
+			return "unexpected keyword 'force-sendable'";
+		case Token.fun:
+			return "unexpected keyword 'fun'";
+		case Token.global:
+			return "unexpected keyword 'global'";
+		case Token.if_:
+			return "unexpected keyword 'if'";
+		case Token.import_:
+			return "unexpected keyword 'import'";
+		case Token.invalid:
+			// This is UnexpectedCharacter instead
+			return unreachable!string;
+		case Token.literal:
+			return "unexpected literal expression";
+		case Token.match:
+			return "unexpected keyword 'match'";
+		case Token.mut:
+			return "unexpected keyword 'mut'";
+		case Token.name:
+			return "did not expect a name here";
+		case Token.newline:
+			return "unexpected newline";
+		case Token.noCtx:
+			return "unexpected keyword 'noctx'";
+		case Token.noStd:
+			return "unexpected keyword 'no-std'";
+		case Token.operator:
+			// This is UnexpectedOperator instead
+			return unreachable!string;
+		case Token.parenLeft:
+			return "unexpected '('";
+		case Token.parenRight:
+			return "unexpected ')'";
+		case Token.question:
+			return "unexpected '?'";
+		case Token.questionEqual:
+			return "unexpected '?='";
+		case Token.record:
+			return "unexpected keyword 'record'";
+		case Token.ref_:
+			return "unexpected keyword 'ref'";
+		case Token.sendable:
+			return "unexpected keyword 'sendable'";
+		case Token.spec:
+			return "unexpected keyword 'spec'";
+		case Token.summon:
+			return "unexpected keyword 'summon'";
+		case Token.test:
+			return "unexpected keyword 'test'";
+		case Token.trusted:
+			return "unexpected keyword 'trusted'";
+		case Token.underscore:
+			return "unexpected '_'";
+		case Token.union_:
+			return "unexpected keyword 'union'";
+		case Token.unsafe:
+			return "unexpected keyword 'unsafe'";
+		case Token.quoteDouble:
+			return "unexpected '\"'";
+		case Token.quoteSingle:
+			return "unexpected \"'\"";
 	}
 }

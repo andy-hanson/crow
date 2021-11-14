@@ -17,7 +17,7 @@ SDL_CreateWindow SDL_Window
 	y c-int
 	w c-int
 	h c-int
-	flags SDL_WindowFlags
+	window-flags SDL_WindowFlags
 spec
 	extern<"SDL2">
 	noctx

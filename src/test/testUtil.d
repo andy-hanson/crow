@@ -24,6 +24,13 @@ struct Test {
 	AllSymbols allSymbols;
 	AllPaths allPaths;
 
+	this(Ptr!Debug dp, Ptr!Alloc ap) {
+		dbgPtr = dp;
+		allocPtr = ap;
+		allSymbols = AllSymbols(ap);
+		allPaths = AllPaths(ap, Ptr!AllSymbols(&allSymbols));
+	}
+
 	Writer writer() {
 		return Writer(allocPtr);
 	}

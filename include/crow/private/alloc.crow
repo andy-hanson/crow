@@ -5,7 +5,7 @@ import
 	../bits: ~, &
 	../bool: !, ||, bool, false, to-nat64, true
 	../compare: !=, <, <=, >
-	../fun: subscript
+	../fun-util: subscript
 	../misc: drop
 	../ptr:
 		==, <=>, +, -, *, any-const-ptr, any-mut-ptr, as-any-const-ptr, as-any-mut-ptr, as-const,
@@ -126,13 +126,13 @@ gc by-val gc() noctx unsafe
 	#size-words = 0x40000000
 	mark = ptr-cast@<bool, nat8>: malloc: size-words
 	mark-end = mark + size-words
-	data = ptr-cast@<nat64, nat8>: malloc: size-words wrap-mul size-of@<nat64>
-	hard-assert: data.as-any-mut-ptr is-word-aligned
-	data-end = data + size-words
+	bytes = ptr-cast@<nat64, nat8>: malloc: size-words wrap-mul size-of@<nat64>
+	hard-assert: bytes.as-any-mut-ptr is-word-aligned
+	bytes-end = bytes + size-words
 
 	drop: mark.as-any-mut-ptr memset 0, size-words
 
-	res by-val gc = lock-by-val, 0, none, false, size-words, mark, mark, mark-end, data, data, data-end
+	res by-val gc = lock-by-val, 0, none, false, size-words, mark, mark, mark-end, bytes, bytes, bytes-end
 	res.ref-of-val validate-gc
 	res
 

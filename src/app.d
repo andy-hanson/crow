@@ -82,7 +82,7 @@ import util.path :
 	StorageKind;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : Ptr, PtrRange, ptrTrustMe_mut;
-import util.sym : AllSymbols, Sym, symAsTempBuffer, writeSym;
+import util.sym : AllSymbols, shortSymAlphaLiteral, Sym, symAsTempBuffer, writeSym;
 import util.types :
 	float32OfU32Bits,
 	float64OfU64Bits,
@@ -139,7 +139,8 @@ static assert(divRound(14, 10) == 1);
 }
 
 immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLineArgs args) {
-	AllPaths allPaths = AllPaths(ptrTrustMe_mut(alloc));
+	AllSymbols allSymbols = AllSymbols(ptrTrustMe_mut(alloc));
+	AllPaths allPaths = AllPaths(ptrTrustMe_mut(alloc), ptrTrustMe_mut(allSymbols));
 	immutable SafeCStr crowDir = getCrowDirectory(alloc, args.pathToThisExecutable);
 	immutable SafeCStr includeDir = getIncludeDirectory(alloc, crowDir);
 	immutable SafeCStr tempDir = setupTempDir(alloc, allPaths, crowDir);
@@ -162,9 +163,9 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 	return matchCommand!(immutable ExitCode)(
 		command,
 		(ref immutable Command.Build it) =>
-			runBuild(alloc, perf, allPaths, cwd, includeDir, tempDir, it.programDirAndMain, it.options),
+			runBuild(alloc, perf, allSymbols, allPaths, cwd, includeDir, tempDir, it.programDirAndMain, it.options),
 		(ref immutable Command.Document it) =>
-			runDocument(alloc, perf, allPaths, cwd, includeDir, it.programDirAndMain, it.out_),
+			runDocument(alloc, perf, allSymbols, allPaths, cwd, includeDir, it.programDirAndMain, it.out_),
 		(ref immutable Command.Help it) =>
 			help(it),
 		(ref immutable Command.Print it) {
@@ -177,6 +178,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 			immutable DiagsAndResultStrs printed = print(
 				alloc,
 				perf,
+				allSymbols,
 				allPaths,
 				storage,
 				showDiagOptions,
@@ -194,7 +196,6 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 				cwd,
 				includeDir,
 				run.programDirAndMain.programDir);
-			AllSymbols allSymbols = AllSymbols(ptrTrustMe_mut(alloc));
 			return matchRunOptions!(immutable ExitCode)(
 				run.options,
 				(ref immutable RunOptions.Interpret) {
@@ -204,8 +205,8 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 						alloc,
 						dbg,
 						perf,
-						allPaths,
 						allSymbols,
+						allPaths,
 						storage,
 						extern_,
 						showDiagOptions,
@@ -305,6 +306,7 @@ immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
 immutable(ExitCode) runDocument(
 	ref Alloc alloc,
 	ref Perf perf,
+	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	immutable SafeCStr cwd,
 	immutable SafeCStr includeDir,
@@ -318,7 +320,7 @@ immutable(ExitCode) runDocument(
 		includeDir,
 		programDirAndMain.programDir);
 	immutable DocumentResult result = compileAndDocument(
-		alloc, perf, allPaths, storage, showDiagOptions,
+		alloc, perf, allSymbols, allPaths, storage, showDiagOptions,
 		getMain(allPaths, includeDir, programDirAndMain));
 	return empty(result.diagnostics)
 		? has(out_)
@@ -335,6 +337,7 @@ struct RunBuildResult {
 immutable(ExitCode) runBuild(
 	ref Alloc alloc,
 	ref Perf perf,
+	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	immutable SafeCStr cwd,
 	immutable SafeCStr includeDir,
@@ -344,7 +347,7 @@ immutable(ExitCode) runBuild(
 ) {
 	if (hasAnyOut(options.out_))
 		return runBuildInner(
-			alloc, perf, allPaths, cwd, includeDir, tempDir,
+			alloc, perf, allSymbols, allPaths, cwd, includeDir, tempDir,
 			programDirAndMain, options, ExeKind.allowNoExe).err;
 	else {
 		RealReadOnlyStorage storage = RealReadOnlyStorage(
@@ -353,7 +356,8 @@ immutable(ExitCode) runBuild(
 			cwd,
 			includeDir,
 			programDirAndMain.programDir);
-		return justTypeCheck(alloc, perf, allPaths, storage, getMain(allPaths, includeDir, programDirAndMain));
+		return justTypeCheck(
+			alloc, perf, allSymbols, allPaths, storage, getMain(allPaths, includeDir, programDirAndMain));
 	}
 }
 
@@ -361,6 +365,7 @@ enum ExeKind { ensureExe, allowNoExe }
 immutable(RunBuildResult) runBuildInner(
 	ref Alloc alloc,
 	ref Perf perf,
+	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	immutable SafeCStr cwd,
 	immutable SafeCStr includeDir,
@@ -369,7 +374,7 @@ immutable(RunBuildResult) runBuildInner(
 	ref immutable BuildOptions options,
 	immutable ExeKind exeKind,
 ) {
-	immutable string name = baseName(allPaths, programDirAndMain.mainPath);
+	immutable Sym name = baseName(allPaths, programDirAndMain.mainPath);
 	immutable AbsolutePath cPath = has(options.out_.outC)
 		? force(options.out_.outC)
 		: immutable AbsolutePath(tempDir, rootPath(allPaths, name), ".c");
@@ -381,6 +386,7 @@ immutable(RunBuildResult) runBuildInner(
 	immutable ExitCode err = buildToCAndCompile(
 		alloc,
 		perf,
+		allSymbols,
 		allPaths,
 		showDiagOptions,
 		cwd,
@@ -410,6 +416,7 @@ immutable(SafeCStr) getCrowDirectory(ref Alloc alloc, immutable SafeCStr pathToT
 immutable(ExitCode) buildToCAndCompile(
 	ref Alloc alloc,
 	ref Perf perf,
+	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable SafeCStr cwd,
@@ -425,8 +432,8 @@ immutable(ExitCode) buildToCAndCompile(
 		cwd,
 		includeDir,
 		programDirAndMain.programDir);
-	immutable BuildToCResult result =
-		buildToC(alloc, perf, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
+	immutable BuildToCResult result = buildToC(
+		alloc, perf, allSymbols, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
 	if (empty(result.diagnostics)) {
 		immutable ExitCode res = writeFile(alloc, pathToNulTerminatedStr(alloc, allPaths, cPath), result.cSource);
 		return res == ExitCode.ok && has(exePath)
@@ -446,9 +453,7 @@ immutable(ExitCode) buildAndJit(
 	immutable PathAndStorageKind main,
 	immutable SafeCStr[] programArgs,
 ) {
-	immutable ProgramsAndFilesInfo programs = buildToLowProgram(
-		alloc, perf, allPaths, allSymbols, storage,
-		main);
+	immutable ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, allSymbols, allPaths, storage, main);
 	if (!empty(programs.program.diagnostics))
 		return printErr(strOfDiagnostics(
 			alloc,
@@ -467,7 +472,8 @@ immutable(PathAndStorageKind) getMain(
 ) {
 	// Detect if we're building something already in 'include'
 	if (safeCStrEqCat(includeDir, programDirAndMain.programDir, "/include")) {
-		immutable Opt!Path withoutInclude = removeFirstPathComponentIf(allPaths, programDirAndMain.mainPath, "include");
+		immutable Opt!Path withoutInclude =
+			removeFirstPathComponentIf(allPaths, programDirAndMain.mainPath, shortSymAlphaLiteral("include"));
 		if (has(withoutInclude))
 			return immutable PathAndStorageKind(force(withoutInclude), StorageKind.global);
 	}

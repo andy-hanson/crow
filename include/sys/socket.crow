@@ -22,7 +22,7 @@ accept err-t(fd fd-t, addr sockaddr, addrlen cell socklen_t) unsafe extern noctx
 
 bind err-t(fd fd-t, addr sockaddr, len socklen_t) unsafe extern noctx summon
 
-recv ssize_t(fd fd-t, buf any-mut-ptr, n size_t, flags int32) unsafe extern noctx summon
+recv ssize_t(fd fd-t, buf any-mut-ptr, n size_t, recv-flags int32) unsafe extern noctx summon
 
 socket fd-t(domain c-int, type c-int, protocol c-int) unsafe extern noctx summon
 

@@ -2,12 +2,12 @@ no-std
 import
 	../bool: &&, ==, bool, false, true
 	../compare: !=, <=, compare
-	../fun: subscript
+	../fun-util: subscript
 	../hash: hash, hash-mix
-	../misc: data, void
+	../misc: is-data, void
 	../opt: opt, some
 	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap!
-	../test: is
+	../test-util: is
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
 	./arr:
 		==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, new, size, unsafe-at
@@ -21,10 +21,10 @@ frozen-set<a> record
 	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
 	.bucket-starts a*[]
 
-new<a> frozen-set a(...a a[]) data<a> compare<a> hash-mix<a>
+new<a> frozen-set a(...a a[]) is-data<a> compare<a> hash-mix<a>
 	a to-frozen-set
 
-to-frozen-set<a> frozen-set a(a a[]) trusted data<a> compare<a> hash-mix<a>
+to-frozen-set<a> frozen-set a(a a[]) trusted is-data<a> compare<a> hash-mix<a>
 	a.to-fix-arr unsafe-frozen-set-from-fix-arr-cast-immutable
 
 # TODO:INTERNAL
@@ -44,10 +44,10 @@ size<a> nat64(a frozen-set a)
 arr<a> a[](a frozen-set a)
 	a values
 
-in<a> bool(value a, a frozen-set a) data<a> compare<a> hash-mix<a>
+in<a> bool(value a, a frozen-set a) is-data<a> compare<a> hash-mix<a>
 	value in (a bucket-for value)
 
-.bucket-for<a> a[](a frozen-set a, value a) trusted data<a> compare<a> hash-mix<a>
+.bucket-for<a> a[](a frozen-set a, value a) trusted is-data<a> compare<a> hash-mix<a>
 	if a.bucket-starts is-empty
 		a values
 	else
@@ -62,7 +62,7 @@ in<a> bool(value a, a frozen-set a) data<a> compare<a> hash-mix<a>
 # TODO: no-doc
 # WARN: The order of values is arbitrary,
 # but consistent for *identical* (not ==) sets.
-try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted data<a> compare<a> hash-mix<a>
+try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted is-data<a> compare<a> hash-mix<a>
 	if a.bucket-starts is-empty
 		a.values index-of value
 	else
@@ -79,7 +79,7 @@ unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a
 	a fix-arr a
 spec
 	unsafe
-	data<a>
+	is-data<a>
 	compare<a>
 	hash-mix<a>
 body

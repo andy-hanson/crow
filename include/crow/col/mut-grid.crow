@@ -3,7 +3,7 @@ import
 	../bool: !, &&, bool
 	../compare: !=, <
 	../exception: assert
-	../fun: subscript
+	../fun-util: subscript
 	../log: info, log
 	../misc: void
 	../number: *
@@ -12,7 +12,7 @@ import
 	../range: ..
 	../str: ==, str
 	../str-conv: interp, finish, to-str, with-str, with-value
-	../test: is
+	../test-util: is
 	../writer: ~=, backup!, move-to-str!, new, write, writer
 	./fix-arr:
 		begin-ptr, copy, each, end-ptr, exists, fix-arr, fold, is-empty, map!, new, set-subscript,

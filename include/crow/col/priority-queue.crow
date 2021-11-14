@@ -2,15 +2,15 @@ no-std
 import
 	../bool: !, &&, bool, false, true
 	../compare: <, >, <=, compare
-	../fun: subscript
-	../misc: ->, arrow, data, from, to, void
+	../fun-util: subscript
+	../misc: ->, arrow, from, is-data, to, void
 	../opt: force, is-empty, none, opt, some
 	../ptr: ==, +, -, mut-ptr, set-deref
 	../range: ..
 	../str: ==, str
 	../str-conv: finish, interp, to-str, with-str, with-value
-	../test: is
-	../test/spy: calls, fn, spy-act
+	../test-util: is
+	../test-util/spy: calls, fn, spy-act
 	../tuple: a, b, pair
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert
@@ -48,20 +48,20 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 	pairs arrow<k, v>[]
 	next node<k, v>?
 
-new<k, v> priority-queue<k, v>() data<k> compare<k>
+new<k, v> priority-queue<k, v>() is-data<k> compare<k>
 	none,
 
-priority-queue<k, v> priority-queue<k, v>(a arrow<k, v>[]) data<k> compare<k>
+priority-queue<k, v> priority-queue<k, v>(a arrow<k, v>[]) is-data<k> compare<k>
 	if a is-empty
 		()
 	else
 		sorted = a sort-by pair => pair from
 		(sorted.first.force, sorted.tail, none).some,
 
-is-empty<k, v> bool(a priority-queue<k, v>) data<k> compare<k>
+is-empty<k, v> bool(a priority-queue<k, v>) is-data<k> compare<k>
 	a.root is-empty
 
-size<k, v> nat64(a priority-queue<k, v>) data<k> compare<k>
+size<k, v> nat64(a priority-queue<k, v>) is-data<k> compare<k>
 	0 size-recur a.root
 .size-recur<k, v> nat64(acc nat64, a node<k, v>?)
 	if node ?= a
@@ -73,14 +73,14 @@ size<k, v> nat64(a priority-queue<k, v>) data<k> compare<k>
 Add a pair to the queue.
 This is O(1).
 ###
-~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b arrow<k, v>) data<k> compare<k>
+~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b arrow<k, v>) is-data<k> compare<k>
 	(b, (), a.root).some,
 
 popped<k, v> record
 	popped arrow<k, v>
 	rest priority-queue<k, v>
 
-pop<k, v> popped<k, v>?(a priority-queue<k, v>) data<k> compare<k>
+pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	if root ?= a.compact-leading-nodes root
 		if next ?= root next
 			some: if popped ?= next pop-no-compact-recur root.min.from
@@ -220,10 +220,10 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 
 region iteration
 
-each<k, v> void(a priority-queue<k, v>, f act void(k, v)) data<k> compare<k>
+each<k, v> void(a priority-queue<k, v>, f act void(k, v)) is-data<k> compare<k>
 	void fold a, (ignore, k, v) => f[k, v]
 
-fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) data<k> compare<k>
+fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) is-data<k> compare<k>
 	acc walk-fold a.each-arr, f
 
 .each-part<k, v> record mut
@@ -275,7 +275,7 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) data<k> compare
 		a[1] := temp
 		a.tail swap-sorted!
 
-filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trusted data<k> compare<k>
+filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trusted is-data<k> compare<k>
 	out = a.size uninitialized-fix-arr@<arrow<k, v>>
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		if f[k, v]
@@ -289,14 +289,14 @@ map<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>
 	a priority-queue<k-in, v-in>
 	f act arrow<k-out, v-out>(k-in, v-in)
 spec
-	data<k-in>
+	is-data<k-in>
 	compare<k-in>
-	data<k-out>
+	is-data<k-out>
 	compare<k-out>
 body
 	a map-to-arr f priority-queue
 
-map-to-arr<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) data<k> compare<k> trusted
+map-to-arr<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) is-data<k> compare<k> trusted
 	out = a.size uninitialized-fix-arr@<out>
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
@@ -305,10 +305,10 @@ map-to-arr<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) data<k> com
 	arr = out.cast-immutable
 	arr
 
-keys<k, v> k[](a priority-queue<k, v>) data<k> compare<k>
+keys<k, v> k[](a priority-queue<k, v>) is-data<k> compare<k>
 	a map-to-arr (k, v) => k
 
-values<k, v> v[](a priority-queue<k, v>) data<k> compare<k>
+values<k, v> v[](a priority-queue<k, v>) is-data<k> compare<k>
 	a map-to-arr (k, v) => v
 
 test

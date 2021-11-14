@@ -8,7 +8,7 @@ import
 	./str-util: join
 	./sym: sym, to-str
 
-flags<a> spec
+flags-like<a> spec
 	empty a()
 	all a()
 	flags-members named-val<a>[]()
@@ -17,15 +17,15 @@ flags<a> spec
 	& a(a a, b a)
 	| a(a a, b a)
 
-is-in<a> bool(a a, b a) flags<a>
+is-in<a> bool(a a, b a) flags-like<a>
 	a & b == a
 
-to-syms<a> sym[](a a) flags<a>
+to-syms<a> sym[](a a) flags-like<a>
 	flags-members flat-map member =>
 		if member.val is-in a
 			member.name,
 		else
 			()
 
-flags-to-str<a> str(a a) flags<a>
+flags-to-str<a> str(a a) flags-like<a>
 	a.to-syms map (x => x to-str) join " | "

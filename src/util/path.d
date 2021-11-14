@@ -5,26 +5,21 @@ module util.path;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.collection.arr : at, first, size;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
-import util.collection.str :
-	asSafeCStr,
-	copyStr,
-	copyToSafeCStr,
-	NulTerminatedStr,
-	SafeCStr,
-	strEq,
-	strOfSafeCStr;
+import util.collection.str : asSafeCStr, copyToSafeCStr, NulTerminatedStr, SafeCStr, strOfSafeCStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
 import util.opt : has, force, forceOrTodo, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
+import util.sym : AllSymbols, eachCharInSym, Sym, symEq, symOfStr, symSize;
 import util.types : Nat8, safeSizeTToU16;
 import util.util : todo, verify;
 
 struct AllPaths {
 	private:
 	Ptr!Alloc alloc;
+	Ptr!AllSymbols allSymbols;
 	MutArr!(Opt!Path) pathToParent;
-	MutArr!string pathToBaseName;
+	MutArr!Sym pathToBaseName;
 	MutArr!(MutArr!Path) pathToChildren;
 	MutArr!Path rootChildren;
 }
@@ -43,14 +38,14 @@ immutable(Opt!Path) parent(ref const AllPaths allPaths, immutable Path a) {
 	return mutArrAt(allPaths.pathToParent, a.index);
 }
 
-immutable(string) baseName(ref const AllPaths allPaths, immutable Path a) {
+immutable(Sym) baseName(ref const AllPaths allPaths, immutable Path a) {
 	return mutArrAt(allPaths.pathToBaseName, a.index);
 }
 
 immutable(Opt!Path) removeFirstPathComponentIf(
 	ref AllPaths allPaths,
 	immutable Path a,
-	immutable string expected,
+	immutable Sym expected,
 ) {
 	immutable Opt!Path parent = parent(allPaths, a);
 	return has(parent) ? removeFirstPathComponentIfRecur(allPaths, a, force(parent), expected) : none!Path;
@@ -59,7 +54,7 @@ private immutable(Opt!Path) removeFirstPathComponentIfRecur(
 	ref AllPaths allPaths,
 	immutable Path a,
 	immutable Path par,
-	immutable string expected,
+	immutable Sym expected,
 ) {
 	immutable Opt!Path grandParent = parent(allPaths, par);
 	if (has(grandParent)) {
@@ -68,7 +63,7 @@ private immutable(Opt!Path) removeFirstPathComponentIfRecur(
 			? some(childPath(allPaths, force(removed), baseName(allPaths, a)))
 			: none!Path;
 	} else
-		return strEq(baseName(allPaths, par), expected)
+		return symEq(baseName(allPaths, par), expected)
 			? some(rootPath(allPaths, baseName(allPaths, a)))
 			: none!Path;
 }
@@ -77,25 +72,25 @@ private immutable(Path) getOrAddChild(
 	ref AllPaths allPaths,
 	ref MutArr!Path children,
 	immutable Opt!Path parent,
-	scope immutable string name,
+	immutable Sym name,
 ) {
 	foreach (immutable Path child; mutArrRange(children))
-		if (strEq(baseName(allPaths, child), name))
+		if (symEq(baseName(allPaths, child), name))
 			return child;
 
 	immutable Path res = immutable Path(safeSizeTToU16(mutArrSize(allPaths.pathToParent)));
 	push(allPaths.alloc.deref(), children, res);
 	push(allPaths.alloc.deref(), allPaths.pathToParent, parent);
-	push(allPaths.alloc.deref(), allPaths.pathToBaseName, copyStr(allPaths.alloc.deref(), name));
+	push(allPaths.alloc.deref(), allPaths.pathToBaseName, name);
 	push(allPaths.alloc.deref(), allPaths.pathToChildren, MutArr!Path());
 	return res;
 }
 
-immutable(Path) rootPath(ref AllPaths allPaths, scope immutable string name) {
+immutable(Path) rootPath(ref AllPaths allPaths, immutable Sym name) {
 	return getOrAddChild(allPaths, allPaths.rootChildren, none!Path, name);
 }
 
-immutable(Path) childPath(ref AllPaths allPaths, immutable Path parent, scope immutable string name) {
+immutable(Path) childPath(ref AllPaths allPaths, immutable Path parent, immutable Sym name) {
 	return getOrAddChild(allPaths, mutArrAt(allPaths.pathToChildren, parent.index), some(parent), name);
 }
 
@@ -157,7 +152,7 @@ private immutable(Path) addManyChildren(ref AllPaths allPaths, immutable Path a,
 public void eachPathPart(
 	ref const AllPaths allPaths,
 	immutable Path a,
-	scope void delegate(immutable string) @safe @nogc pure nothrow cb,
+	scope void delegate(immutable Sym) @safe @nogc pure nothrow cb,
 ) {
 	immutable Opt!Path par = parent(allPaths, a);
 	if (has(par))
@@ -168,7 +163,7 @@ public void eachPathPart(
 private void walkPathBackwards(
 	ref const AllPaths allPaths,
 	immutable Path a,
-	scope void delegate(immutable string) @safe @nogc pure nothrow cb,
+	scope void delegate(immutable Sym) @safe @nogc pure nothrow cb,
 ) {
 	cb(baseName(allPaths, a));
 	immutable Opt!Path par = parent(allPaths, a);
@@ -178,9 +173,9 @@ private void walkPathBackwards(
 
 private size_t pathToStrSize(ref const AllPaths allPaths, immutable Path path) {
 	size_t sz = 0;
-	walkPathBackwards(allPaths, path, (immutable string part) {
+	walkPathBackwards(allPaths, path, (immutable Sym part) {
 		// 1 for '/'
-		sz += 1 + size(part);
+		sz += 1 + symSize(part);
 	});
 	return sz;
 }
@@ -210,18 +205,17 @@ private @trusted immutable(string) pathToStrWorker(
 		*cur = c;
 	}
 	verify(cur == begin + size(root) * rootMultiple + pathToStrSize(allPaths, path));
-	@trusted void onPart(immutable string part) {
-		cur -= size(part);
+	walkPathBackwards(allPaths, path, (immutable Sym part) @trusted {
+		cur -= symSize(part);
 		char* j = cur;
-		foreach (immutable char c; part) {
+		eachCharInSym(part, (immutable char c) @trusted {
 			*j = c;
 			j++;
-		}
-		verify(j == cur + size(part));
+		});
+		verify(j == cur + symSize(part));
 		cur--;
 		*cur = '/';
-	}
-	walkPathBackwards(allPaths, path, &onPart);
+	});
 	verify(cur == begin + size(root) * rootMultiple);
 	foreach (immutable size_t i; 0 .. rootMultiple) {
 		foreach_reverse (immutable char c; root) {
@@ -321,8 +315,7 @@ immutable(Path) parsePath(ref AllPaths allPaths, scope ref immutable string str)
 		while (i < len && at(str, i) != '/')
 			i++;
 		verify(i != begin);
-		immutable string part = str[begin .. i];
-		return rootPath(allPaths, part);
+		return rootPath(allPaths, symOfStr(allPaths.allSymbols.deref(), str[begin .. i]));
 	}();
 
 	immutable(Path) recur(size_t i, immutable Path path) {
@@ -335,8 +328,7 @@ immutable(Path) parsePath(ref AllPaths allPaths, scope ref immutable string str)
 		immutable size_t begin = i;
 		while (i < len && at(str, i) != '/')
 			i++;
-		immutable string part = str[begin .. i];
-		return recur(i, childPath(allPaths, path, part));
+		return recur(i, childPath(allPaths, path, symOfStr(allPaths.allSymbols.deref(), str[begin .. i])));
 	}
 	return recur(i, path);
 }
@@ -362,7 +354,7 @@ immutable(Opt!AbsolutePath) parent(ref const AllPaths allPaths, ref immutable Ab
 		: none!AbsolutePath;
 }
 
-immutable(string) baseName(ref const AllPaths allPaths, ref immutable AbsolutePath a) {
+immutable(Sym) baseName(ref const AllPaths allPaths, ref immutable AbsolutePath a) {
 	return baseName(allPaths, a.path);
 }
 
@@ -438,7 +430,7 @@ private struct RootAndPath {
 immutable(AbsolutePath) childPath(
 	ref AllPaths allPaths,
 	ref immutable AbsolutePath parent,
-	scope immutable string name,
+	immutable Sym name,
 ) {
 	return immutable AbsolutePath(parent.root, childPath(allPaths, parent.path, name), parent.extension);
 }

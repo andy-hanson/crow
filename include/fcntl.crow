@@ -5,7 +5,7 @@ import
 	crow/number: nat32
 	crow/str: c-str
 
-fcntl c-int(fd fd-t, cmd c-int, flags oflag-t) summon unsafe extern noctx
+fcntl c-int(fd fd-t, cmd c-int, oflags oflag-t) summon unsafe extern noctx
 
 F_DUPFD c-int() noctx
 	0

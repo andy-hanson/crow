@@ -54,11 +54,11 @@ crow/crypto/password
 crow/crypto/private/sodium
 crow/crypto/random
 crow/db/lmdb
-crow/enum
+crow/enum-util
 crow/exception
 crow/extra-types
-crow/flags
-crow/fun
+crow/flags-util
+crow/fun-util
 crow/fut
 crow/hash
 crow/io/duration
@@ -111,9 +111,9 @@ crow/str-conv
 crow/str-util
 crow/str
 crow/sym
-crow/test/spy
-crow/test/test-runner
-crow/test
+crow/test-util/spy
+crow/test-util/test-runner
+crow/test-util
 crow/tuple
 crow/writer
 dirent

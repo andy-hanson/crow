@@ -3,7 +3,7 @@ import
 	../bool: !, bool, false, true
 	../compare: compare
 	../hash: hash-mix
-	../misc: ->, data, void
+	../misc: ->, is-data, void
 	../opt: is-empty
 	./arr: arr
 	./arr-util: map
@@ -12,16 +12,16 @@ import
 mut-set<a> record mut
 	.inner void mut[a]
 
-new<a> mut-set a(...a a[]) data<a> compare<a> hash-mix<a>
+new<a> mut-set a(...a a[]) is-data<a> compare<a> hash-mix<a>
 	(a map (x => x -> void)).to-mut-dict,
 
-~= <a> void(a mut-set a, value a) data<a> compare<a> hash-mix<a>
+~= <a> void(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
 	a.inner ~= value -> void
 
-in<a> bool(value a, a mut-set a) data<a> compare<a> hash-mix<a>
+in<a> bool(value a, a mut-set a) is-data<a> compare<a> hash-mix<a>
 	value in a.inner
 
-try-add!<a> bool(a mut-set a, value a) data<a> compare<a> hash-mix<a>
+try-add!<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
 	# TODO:PERF do it without two lookups
 	if value in a
 		false
@@ -29,5 +29,5 @@ try-add!<a> bool(a mut-set a, value a) data<a> compare<a> hash-mix<a>
 		a ~= value
 		true
 
-try-remove!<a> bool(a mut-set a, value a) data<a> compare<a> hash-mix<a>
+try-remove!<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
 	!(a.inner try-remove-key! value is-empty)

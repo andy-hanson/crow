@@ -1,6 +1,6 @@
 no-std
 import
-	./fun: subscript
+	./fun-util: subscript
 	./misc: void
 	./str: str
 	./private/exception-low-level: catch, throw

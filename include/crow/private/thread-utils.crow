@@ -13,7 +13,7 @@ import
 	../cell: *, cell, new
 	../compare: !=
 	../extra-types: err-t
-	../fun: fun-ptr1, subscript
+	../fun-util: fun-ptr1, subscript
 	../io/time-low-level: timestamp, to-timespec
 	../ptr: ==, any-mut-ptr, by-val, null, ptr-to, ref-of-val
 	./bootstrap:

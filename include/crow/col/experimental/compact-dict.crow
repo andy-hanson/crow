@@ -2,15 +2,15 @@ no-std
 import
 	../../bool: !, ==, bool, false, true
 	../../compare: !=, <=, compare, max
-	../../fun: subscript
+	../../fun-util: subscript
 	../../hash: hash-mix
 	../../log: info, log
-	../../misc: ->, arrow, data, from, to, typed, void
+	../../misc: ->, arrow, from, is-data, to, typed, void
 	../../opt: ==, is-empty, none, opt, some
 	../../ptr: ==, +, bits-equal, ref-eq, set-deref
 	../../str: ==, str
 	../../str-conv: to-str
-	../../test: is
+	../../test-util: is
 	../../writer: ~=, backup!, move-to-str!, new, writer
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, wrap-add
@@ -46,19 +46,19 @@ node-count<k, v> nat64(a compact-dict<k, v>)
 	pairs frozen-dict<k, v?>
 	prev impl<k, v>
 
-new<k, v> compact-dict<k, v>() data<k> compare<k> hash-mix<k>
+new<k, v> compact-dict<k, v>() is-data<k> compare<k> hash-mix<k>
 	void, ().end-node
 
-compact-dict<k, v> compact-dict<k, v>(a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+compact-dict<k, v> compact-dict<k, v>(a arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	void, a.to-frozen-dict.end-node
 
-keys<k, v> k[](a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
+keys<k, v> k[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, v) => k
 
-values<k, v> v[](a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
+values<k, v> v[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, v) => v
 
-is-empty<k, v> bool(a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
+is-empty<k, v> bool(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	match a impl
 	as overlay _
 		false
@@ -70,34 +70,34 @@ Number of pairs.
 This is O(n).
 ###
 
-size<k, v> nat64(a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
+size<k, v> nat64(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	0 fold a, (acc, k, v) => acc wrap-add 1
 
-~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, pair arrow<k, v>) data<k> compare<k> hash-mix<k>
+~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, pair arrow<k, v>) is-data<k> compare<k> hash-mix<k>
 	a add-or-remove pair.from, pair.to.some
 
 ###
 TODO
-~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, b compact-dict<k, v>) data<k> compare<k> hash-mix<k>
+~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, b compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	a ~ b.arr
 ###
 
-~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, b arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, b arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	a fold b, (cur, pair) => cur ~ pair
 
-- <k, v> compact-dict<k, v>(a compact-dict<k, v>, key k) data<k> compare<k> hash-mix<k>
+- <k, v> compact-dict<k, v>(a compact-dict<k, v>, key k) is-data<k> compare<k> hash-mix<k>
 	if key in a
 		a add-or-remove key, none
 	else
 		a
 
-- <k, v> compact-dict<k, v>(a compact-dict<k, v>, keys k[]) data<k> compare<k> hash-mix<k>
+- <k, v> compact-dict<k, v>(a compact-dict<k, v>, keys k[]) is-data<k> compare<k> hash-mix<k>
 	a fold keys, (cur, key) =>
 		cur - key
 
-subscript<k, v> v?(a compact-dict<k, v>, key k) data<k> compare<k> hash-mix<k>
+subscript<k, v> v?(a compact-dict<k, v>, key k) is-data<k> compare<k> hash-mix<k>
 	a.impl subscript-recur key
-.subscript-recur<k, v> v?(a impl<k, v>, key k) data<k> compare<k> hash-mix<k>
+.subscript-recur<k, v> v?(a impl<k, v>, key k) is-data<k> compare<k> hash-mix<k>
 	match a
 	as overlay o
 		# TODO: use option || operator
@@ -108,13 +108,13 @@ subscript<k, v> v?(a compact-dict<k, v>, key k) data<k> compare<k> hash-mix<k>
 	as end-node e
 		e[key]
 
-in<k, v> bool(key k, a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
+in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	!a[key].is-empty
 
-.add-or-remove<k, v> compact-dict<k, v>(a compact-dict<k, v>, key k, value v?) data<k> compare<k> hash-mix<k>
+.add-or-remove<k, v> compact-dict<k, v>(a compact-dict<k, v>, key k, value v?) is-data<k> compare<k> hash-mix<k>
 	void, (((key -> value,).to-frozen-dict, a.impl) merge-as-needed)
 
-.merge-as-needed<k, v> impl<k, v>(a overlay<k, v>) data<k> compare<k> hash-mix<k>
+.merge-as-needed<k, v> impl<k, v>(a overlay<k, v>) is-data<k> compare<k> hash-mix<k>
 	match a prev
 	as overlay o
 		if o.pairs.size should-merge a.pairs.size
@@ -135,7 +135,7 @@ in<k, v> bool(key k, a compact-dict<k, v>) data<k> compare<k> hash-mix<k>
 	r frozen-dict<k, v?>
 spec
 	trusted
-	data<k>
+	is-data<k>
 	compare<k>
 	hash-mix<k>
 body
@@ -157,7 +157,7 @@ body
 	r frozen-dict<k, v?>
 spec
 	trusted
-	data<k>
+	is-data<k>
 	compare<k>
 	hash-mix<k>
 body
@@ -179,13 +179,13 @@ body
 
 region iteration
 
-each<k, v> void(a compact-dict<k, v>, f act void(k, v)) data<k> compare<k> hash-mix<k>
+each<k, v> void(a compact-dict<k, v>, f act void(k, v)) is-data<k> compare<k> hash-mix<k>
 	void fold a, (ignore, k, v) =>
 		f[k, v]
 
-fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) data<k> compare<k> hash-mix<k>
+fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
 	acc fold-recur a.impl, (), f
-.fold-recur<a, k, v> a(acc a, a impl<k, v>, seen mut-set k, f act a(a, k, v)) data<k> compare<k> hash-mix<k>
+.fold-recur<a, k, v> a(acc a, a impl<k, v>, seen mut-set k, f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
 	match a
 	as overlay o
 		mid = acc fold o.pairs, (cur, k, v-opt) =>
@@ -205,7 +205,7 @@ fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) data<k> compare<k
 				# Don't need to add to 'seen' because this is the last node.
 				f[cur, k, v]
 
-map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted data<k> compare<k> hash-mix<k>
+map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	res = a.size uninitialized-fix-arr@<a>
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]

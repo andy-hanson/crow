@@ -2,11 +2,11 @@ no-std
 import
 	../../bool: !, bool
 	../../compare: ==, !=, <, >=, compare, comparison, equal
-	../../fun: subscript
+	../../fun-util: subscript
 	../../misc: arrow, from, to, void
 	../../opt: none, opt, some
 	../../ptr: ==, +, -, *, as-const, as-mut, const-ptr, mut-ptr, null, set-deref
-	../../test: is
+	../../test-util: is
 	../../private/bootstrap: hard-assert, hard-unreachable, nat64
 	../../private/number-low-level: ==, <=>, unsafe-div, wrap-add
 	../arr: ==, arr, arr-from-begin-end, begin-ptr, end-ptr, new

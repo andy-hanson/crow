@@ -37,7 +37,7 @@ import util.path :
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange, FileIndex, FilePaths, RangeWithinFile;
-import util.sym : AllSymbols, Sym;
+import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
 import util.types : safeSizeTToU16;
 import util.util : unreachable, verify;
 
@@ -346,35 +346,35 @@ immutable(FileIndex) parseRecur(ReadOnlyStorage)(
 
 pure:
 
-immutable(PathAndStorageKind) pathInInclude(ref AllPaths allPaths, scope immutable string name) {
-	immutable Path crow = rootPath(allPaths, "crow");
+immutable(PathAndStorageKind) pathInInclude(ref AllPaths allPaths, immutable Sym name) {
+	immutable Path crow = rootPath(allPaths, shortSymAlphaLiteral("crow"));
 	return immutable PathAndStorageKind(childPath(allPaths, crow, name), StorageKind.global);
 }
 
-immutable(PathAndStorageKind) pathInIncludePrivate(ref AllPaths allPaths, scope immutable string name) {
-	immutable Path crow = rootPath(allPaths, "crow");
-	immutable Path private_ = childPath(allPaths, crow, "private");
+immutable(PathAndStorageKind) pathInIncludePrivate(ref AllPaths allPaths, immutable Sym name) {
+	immutable Path crow = rootPath(allPaths, shortSymAlphaLiteral("crow"));
+	immutable Path private_ = childPath(allPaths, crow, shortSymAlphaLiteral("private"));
 	return immutable PathAndStorageKind(childPath(allPaths, private_, name), StorageKind.global);
 }
 
 immutable(PathAndStorageKind) bootstrapPath(ref AllPaths allPaths) {
-	return pathInIncludePrivate(allPaths, "bootstrap");
+	return pathInIncludePrivate(allPaths, shortSymAlphaLiteral("bootstrap"));
 }
 
 immutable(PathAndStorageKind) stdPath(ref AllPaths allPaths) {
-	return pathInInclude(allPaths, "std");
+	return pathInInclude(allPaths, shortSymAlphaLiteral("std"));
 }
 
 immutable(PathAndStorageKind) allocPath(ref AllPaths allPaths) {
-	return pathInIncludePrivate(allPaths, "alloc");
+	return pathInIncludePrivate(allPaths, shortSymAlphaLiteral("alloc"));
 }
 
 immutable(PathAndStorageKind) runtimePath(ref AllPaths allPaths) {
-	return pathInIncludePrivate(allPaths, "runtime");
+	return pathInIncludePrivate(allPaths, shortSymAlphaLiteral("runtime"));
 }
 
 immutable(PathAndStorageKind) runtimeMainPath(ref AllPaths allPaths) {
-	return pathInIncludePrivate(allPaths, "rt-main");
+	return pathInIncludePrivate(allPaths, shortSymAlphaLiteral("rt-main"));
 }
 
 immutable(Diags) parseDiagnostics(

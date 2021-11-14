@@ -16,7 +16,7 @@ module(
 					let(
 						local(file-range(77, range(159, 166)), doubler, fun1(void(), logged()))
 						lambda(
-							[param(file-range(77, range(180, 186)), some(logged), logged())]
+							[param(file-range(77, range(181, 187)), some(logged), logged())]
 							seq(
 								call(
 									fun-inst(name: subscript, type-args: [void(), logged()])

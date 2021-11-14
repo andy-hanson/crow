@@ -7,7 +7,7 @@ import
 	../col/arr: arr, empty-arr, subscript
 	../col/arr-util: map, tail
 	../compare: !=
-	../fun: fun-ptr2, subscript
+	../fun-util: fun-ptr2, subscript
 	../fut: delay, fut, handle-exceptions, then-void
 	../io/process: exit-code
 	../misc: void

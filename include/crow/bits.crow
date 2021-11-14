@@ -2,7 +2,7 @@ no-std
 import
 	./bool: &&, bool
 	./compare: !=, <
-	./fun: subscript
+	./fun-util: subscript
 	./private/bootstrap:
 		int8, int16, int32, int64, nat8, nat16, nat32, nat64, todo
 	./private/number-low-level:

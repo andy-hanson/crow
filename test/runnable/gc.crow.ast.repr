@@ -35,9 +35,9 @@ file-ast(
 		fun-decl(
 			visibility: public
 			sig: sig-ast(
-				range(206, 227)
+				range(206, 228)
 				main
-				inststruct(range(211, 218), name-range(211, fut), [inststruct(range(214, 218), name-range(214, nat))])
+				inststruct(range(211, 218), name-range(211, fut), [inststruct(range(215, 218), name-range(215, nat))])
 				[param(range(219, 226), none, suffix(inststruct(range(221, 224), name-range(221, str)), arr))])
 			summon: true
 			unsafe: true
@@ -50,14 +50,14 @@ file-ast(
 						a
 						call(
 							comma
-							name-range(349, new)
+							name-range(350, new)
 							[]
 							[literal(nat(1, false)), literal(nat(2, false)), literal(nat(3, false))])
 						let(
 							b
 							call(
 								comma
-								name-range(364, new)
+								name-range(365, new)
 								[]
 								[literal(nat(4, false)), literal(nat(5, false)), literal(nat(6, false))])
 							seq-ast(
@@ -79,7 +79,7 @@ file-ast(
 																	[
 																		call(
 																			single
-																			name-range(381, size-of)
+																			name-range(382, size-of)
 																			[
 																				inststruct(
 																					range(391, 400)
@@ -204,7 +204,7 @@ file-ast(
 		fun-decl(
 			visibility: public
 			sig: sig-ast(
-				range(870, 892)
+				range(870, 893)
 				to-str
 				inststruct(range(877, 880), name-range(877, str))
 				[param(range(881, 891), some(a), inststruct(range(883, 891), name-range(883, gc-stats)))])

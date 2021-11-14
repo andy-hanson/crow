@@ -3,13 +3,13 @@ import
 	../bool: bool
 	../compare: !=
 	../exception: assert, forbid, throw
-	../fun: subscript
+	../fun-util: subscript
 	../misc: drop, void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, -, set-deref
 	../str: str
-	../test: is
-	../test/spy: calls, fn, spy-act
+	../test-util: is
+	../test-util/spy: calls, fn, spy-act
 	../private/number-low-level: ==, nat64, wrap-add
 	./arr: ==, arr, new
 	./arr-util: fold

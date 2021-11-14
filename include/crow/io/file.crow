@@ -17,7 +17,7 @@ import
 	../col/sort: sort
 	../compare: !=, <
 	../exception: assert, forbid, throw
-	../fun: subscript
+	../fun-util: subscript
 	../misc: void
 	../number: ==, <=>, +, int32, nat8, nat16, nat32, to-int64, to-nat32, to-nat64
 	../opt: is-empty, opt, some
@@ -143,12 +143,12 @@ write-file void(path str, content str) summon
 	permission-rdwr nat32 = 6
 	permission-rd nat32 = 4
 	permission = permission-rdwr << 6 | permission-rd << 3 | permission-rd
-	flags = O_CREAT | O_WRONLY | O_TRUNC
-	fd = path open flags, permission
+	file-flags = O_CREAT | O_WRONLY | O_TRUNC
+	fd = path open file-flags, permission
 	if fd == -1
 		print: "failed to open file for write: {path}"
 		print: "errno: {errno}"
-		print: "flags: {flags}"
+		print: "flags: {file-flags}"
 		print: "permission: {permission}"
 		todo
 	else

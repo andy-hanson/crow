@@ -608,9 +608,9 @@ immutable(Sig) checkSig(
 
 immutable(SpecBody.Builtin.Kind) getSpecBodyBuiltinKind(immutable Sym name) {
 	switch (name.value) {
-		case shortSymAlphaLiteralValue("data"):
+		case shortSymAlphaLiteralValue("is-data"):
 			return SpecBody.Builtin.Kind.data;
-		case shortSymAlphaLiteralValue("send"):
+		case shortSymAlphaLiteralValue("is-sendable"):
 			return SpecBody.Builtin.Kind.send;
 		default:
 			return todo!(SpecBody.Builtin.Kind)("reachable?");

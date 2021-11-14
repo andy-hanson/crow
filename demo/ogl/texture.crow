@@ -13,7 +13,7 @@ import
 		==, glBindTexture, glDeleteTextures, glGetError, glGenTextures, GL_LINEAR, GL_NO_ERROR,
 		GL_RGBA, glTexImage2D, glTexParameteri, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_MIN_FILTER,
 		GL_TEXTURE_2D, GLuint, GL_UNSIGNED_BYTE, to-str
-	./load-webp: data, height, width, with-webp
+	./load-webp: height, image-data, width, with-webp
 
 # Remember to call 'free-texture'
 load-texture GLuint(path str) unsafe summon
@@ -25,9 +25,9 @@ load-texture GLuint(path str) unsafe summon
 		GL_TEXTURE_2D glBindTexture texture
 		w = image.width to-int32
 		h = image.height to-int32
-		data = image.data as-const
+		image-data = image.image-data as-const
 		print: "width is {w}, height is {h}"
-		GL_TEXTURE_2D glTexImage2D 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
+		GL_TEXTURE_2D glTexImage2D 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image-data
 
 		err = glGetError
 		if err != GL_NO_ERROR

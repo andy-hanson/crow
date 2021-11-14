@@ -36,7 +36,7 @@ MDB_txn extern-ptr
 mdb_txn_begin err-t
 	env MDB_env
 	parent MDB_txn
-	flags u-int
+	mdb-flags u-int
 	txn cell MDB_txn
 spec
 	noctx
@@ -48,7 +48,7 @@ mdb_txn_commit err-t(txn MDB_txn) noctx extern<"lmdb"> unsafe summon
 mdb_dbi_open err-t
 	txn MDB_txn
 	name c-str
-	flags u-int
+	mdb-flags u-int
 	dbi cell MDB_dbi
 spec
 	noctx
@@ -68,7 +68,7 @@ mdb_get err-t
 	txn MDB_txn
 	dbi MDB_dbi
 	key MDB_val
-	data MDB_val
+	value MDB_val
 spec
 	noctx
 	extern<"lmdb">
@@ -78,8 +78,8 @@ mdb_put err-t
 	txn MDB_txn
 	dbi MDB_dbi
 	key MDB_val
-	data MDB_val
-	flags u-int
+	value MDB_val
+	mdb-flags u-int
 spec
 	noctx
 	extern<"lmdb">
@@ -116,7 +116,7 @@ spec
 mdb_cursor_get err-t
 	cursor MDB_cursor
 	key MDB_val
-	data MDB_val
+	value MDB_val
 	op MDB_cursor_op
 spec
 	noctx
@@ -126,8 +126,8 @@ spec
 mdb_cursor_put err-t
 	cursor MDB_cursor
 	key MDB_val
-	data MDB_val
-	flags u-int
+	value MDB_val
+	mdb-flags u-int
 spec
 	noctx
 	extern<"lmdb">

@@ -22,7 +22,7 @@ private void writePath(
 		writePath(writer, allPaths, force(par));
 		writeChar(writer, '/');
 	}
-	writeStr(writer, baseName(allPaths, p));
+	writeSym(writer, baseName(allPaths, p));
 }
 
 void writePathRelativeToCwd(

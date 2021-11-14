@@ -114,7 +114,7 @@ void doInterpret(
 	ref immutable ByteCode byteCode,
 	scope void delegate(ref Interpreter!(FakeExtern)) @safe @nogc nothrow runInterpreter,
 ) {
-	immutable Path emptyPath = rootPath(test.allPaths, "test");
+	immutable Path emptyPath = rootPath(test.allPaths, shortSymAlphaLiteral("test"));
 	immutable PathAndStorageKind[1] pk = [immutable PathAndStorageKind(emptyPath, StorageKind.global)];
 	immutable LineAndColumnGetter[1] lcg = [lineAndColumnGetterForEmptyFile(test.alloc)];
 	immutable AbsolutePathsGetter emptyAbsolutePathsGetter =

@@ -7,7 +7,7 @@ import
 	crow/number: nat32
 	crow/str: c-str
 
-SDL_Init c-int(flags SDL_Init_flags) extern<"SDL2"> noctx summon
+SDL_Init c-int(init-flags SDL_Init_flags) extern<"SDL2"> noctx summon
 
 SDL_Init_flags flags<nat32>
 	SDL_INIT_TIMER = 0x00000001

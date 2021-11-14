@@ -3,12 +3,12 @@ import
 	../bool: &&, ==, bool, true
 	../compare: !=
 	../exception: assert
-	../fun: subscript
+	../fun-util: subscript
 	../misc: void
 	../opt: force, is-empty, opt, some
 	../private/number-low-level: ==, <=>, nat64, wrap-add
 	../ptr: ==, +, -, set-deref
-	../test: is
+	../test-util: is
 	../range: ..
 	./arr: ==, arr, is-empty, new, size
 	./arr-util: each, first, fold, tail

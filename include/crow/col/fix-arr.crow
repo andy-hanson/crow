@@ -3,7 +3,7 @@ import
 	string: memcpy
 	../bool: !, bool
 	../compare: !=, <, <=, equal
-	../fun: subscript
+	../fun-util: subscript
 	../misc: drop, void
 	../opt: opt, some
 	../ptr:

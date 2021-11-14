@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: bool
-	./fun: subscript
+	./fun-util: subscript
 	./misc: void
 	./opt: opt, some
 

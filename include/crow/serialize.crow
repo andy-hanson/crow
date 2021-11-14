@@ -9,7 +9,7 @@ import
 	./number: to-int64, to-nat32, to-nat64
 	./range: ..
 	./str: chars, str
-	./test: is
+	./test-util: is
 	./private/bootstrap: todo
 	./private/number-low-level: ==, <=>, int64, max-int64, nat8, nat32, nat64, unsafe-to-nat8
 

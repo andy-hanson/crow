@@ -3,14 +3,14 @@ import
 	../bool: !, &&, ||, bool
 	../compare: !=, >, >=, compare
 	../exception: assert, forbid
-	../fun: subscript
+	../fun-util: subscript
 	../hash: hash, hash-mix
-	../misc: ->, arrow, data, drop, from, to, typed, void
+	../misc: ->, arrow, drop, from, is-data, to, typed, void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, *, mut-ptr, set-deref
 	../str: ==, str
 	../str-conv: finish, interp, to-str, with-str, with-value
-	../test: is
+	../test-util: is
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/number-low-level: ==, <=>, nat64, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	./arr: ==, arr, new, size
@@ -32,10 +32,10 @@ mut-dict<k, v> record mut
 	one arrow<k, v>
 	many arrow<k, v> mut[]
 
-new<k, v> v mut[k](...a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+new<k, v> v mut[k](...a arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	a to-mut-dict
 
-to-mut-dict<k, v> v mut[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+to-mut-dict<k, v> v mut[k](a arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	res = a.size mut-dict-with-capacity@<k, v>
 	a each pair =>
 		res[pair from] := pair to
@@ -45,13 +45,13 @@ to-mut-dict<k, v> v mut[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
 New dict with `capacity` empty entries.
 WARN: Due to hash conflicts, this doesn't guarantee that allocations won't be needed.
 ###
-mut-dict-with-capacity<k, v> v mut[k](capacity nat64) data<k> compare<k> hash-mix<k>
+mut-dict-with-capacity<k, v> v mut[k](capacity nat64) is-data<k> compare<k> hash-mix<k>
 	(capacity fill-fix-arr none).typed@<fix-arr entry<k, v>>, 0
 
-arr<k, v> arrow<k, v>[](a v mut[k]) data<k> compare<k> hash-mix<k>
+arr<k, v> arrow<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (key, value) => key -> value
 
-copy<k, v> v mut[k](a v mut[k]) data<k> compare<k> hash-mix<k>
+copy<k, v> v mut[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	entries fix-arr entry<k, v> = a.entries map entry =>
 		match entry
 		as none
@@ -72,13 +72,13 @@ test
 	a verify "(6 -> 6) (1 -> 1) [2 -> 2, 5 -> 5]"
 	b verify "_ (1 -> 1) [2 -> 2, 5 -> 5]"
 
-is-empty<k, v> bool(a v mut[k]) data<k> compare<k> hash-mix<k>
+is-empty<k, v> bool(a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a.size == 0
 
-size<k, v> nat64(a v mut[k]) data<k> compare<k> hash-mix<k>
+size<k, v> nat64(a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a total-size
 
-subscript<k, v> v?(a v mut[k], key k) trusted data<k> compare<k> hash-mix<k>
+subscript<k, v> v?(a v mut[k], key k) trusted is-data<k> compare<k> hash-mix<k>
 	if !a.is-empty
 		match a.entries[key.hash unsafe-mod a.entries.size]
 		as none
@@ -90,17 +90,17 @@ subscript<k, v> v?(a v mut[k], key k) trusted data<k> compare<k> hash-mix<k>
 			if index ?= m find-index pair => pair.from == key
 				m[index].to some
 
-in<k, v> bool(key k, a v mut[k]) data<k> compare<k> hash-mix<k>
+in<k, v> bool(key k, a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	!a[key].is-empty
 
-set-subscript<k, v> void(a v mut[k], key k, value v) data<k> compare<k> hash-mix<k>
+set-subscript<k, v> void(a v mut[k], key k, value v) is-data<k> compare<k> hash-mix<k>
 	drop: a update! key, value.some
 
-empty!<k, v> void(a v mut[k]) data<k> compare<k> hash-mix<k>
+empty!<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a.entries fill! none
 	a.total-size := 0
 
-swap!<k, v> void(a v mut[k], b v mut[k]) data<k> compare<k> hash-mix<k>
+swap!<k, v> void(a v mut[k], b v mut[k]) is-data<k> compare<k> hash-mix<k>
 	temp-entries = a.entries
 	a.entries := b.entries
 	b.entries := temp-entries
@@ -108,17 +108,17 @@ swap!<k, v> void(a v mut[k], b v mut[k]) data<k> compare<k> hash-mix<k>
 	a.total-size := b.total-size
 	b.total-size := temp-size
 
-remove-key!<k, v> void(a v mut[k], key k) data<k> compare<k> hash-mix<k>
+remove-key!<k, v> void(a v mut[k], key k) is-data<k> compare<k> hash-mix<k>
 	drop: a try-remove-key! key
 
-try-remove-key!<k, v> v?(a v mut[k], key k) data<k> compare<k> hash-mix<k>
+try-remove-key!<k, v> v?(a v mut[k], key k) is-data<k> compare<k> hash-mix<k>
 	a update! key, none
 
 ###
 f: Takes the value (if it exists), returns the new value (or none to remove).
 Returns the old value (if it exists).
 ###
-.update!<k, v> v?(a v mut[k], key k, new-value v?) trusted data<k> compare<k> hash-mix<k>
+.update!<k, v> v?(a v mut[k], key k, new-value v?) trusted is-data<k> compare<k> hash-mix<k>
 	if a.entries is-empty
 		if value ?= new-value
 			a.entries := (key -> value).one,
@@ -174,10 +174,10 @@ Returns the old value (if it exists).
 						a.total-size := a.total-size wrap-add 1
 				none
 
-~= <k, v> void(a v mut[k], b arrow<k, v>) data<k> compare<k> hash-mix<k>
+~= <k, v> void(a v mut[k], b arrow<k, v>) is-data<k> compare<k> hash-mix<k>
 	a[b from] := b to
 
-~= <k, v> void(a v mut[k], b arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+~= <k, v> void(a v mut[k], b arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	b each pair =>
 		a ~= pair
 
@@ -185,7 +185,7 @@ Returns the old value (if it exists).
 .should-expand<k, v> bool(a v mut[k])
 	a.total-size >= a.entries.size
 
-.expand!<k, v> void(a v mut[k]) data<k> compare<k> hash-mix<k>
+.expand!<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	forbid: a.entries.size == 0
 	new-size = a.entries.size wrap-mul 2
 	bigger = new-size mut-dict-with-capacity@<k, v>
@@ -196,10 +196,10 @@ Returns the old value (if it exists).
 
 region iteration
 
-each<k, v> void(a v mut[k], f act void(k, v)) data<k> compare<k> hash-mix<k>
+each<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
 	void fold a, (ignore, key, value) => f[key, value]
 
-fold<a, k, v> a(acc a, a v mut[k], f act a(a, k, v)) data<k> compare<k> hash-mix<k>
+fold<a, k, v> a(acc a, a v mut[k], f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
 	acc fold a.entries, (cur, entry) =>
 		match entry
 		as none
@@ -209,7 +209,7 @@ fold<a, k, v> a(acc a, a v mut[k], f act a(a, k, v)) data<k> compare<k> hash-mix
 		as many m
 			cur fold m, (cur2, pair) => f[cur2, pair.from, pair.to]
 
-filter!<k, v> void(a v mut[k], f act bool(k, v)) trusted data<k> compare<k> hash-mix<k>
+filter!<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	a.entries.begin-ptr filter-recur! a.entries.end-ptr, f
 .filter-recur!<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act bool(k, v)) unsafe
 	if entry-ptr != entry-end
@@ -230,7 +230,7 @@ filter!<k, v> void(a v mut[k], f act bool(k, v)) trusted data<k> compare<k> hash
 		entry-ptr + 1 filter-recur! entry-end, f
 
 
-map-to-arr<out, k, v> out[](a v mut[k], f act out(k, v)) trusted data<k> compare<k> hash-mix<k>
+map-to-arr<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	out = a.size uninitialized-fix-arr@<out>
 	end = out.begin-ptr fold a, (cur, key, value) =>
 		*cur := f[key, value]
@@ -238,12 +238,12 @@ map-to-arr<out, k, v> out[](a v mut[k], f act out(k, v)) trusted data<k> compare
 	assert: end == out.end-ptr
 	out cast-immutable
 
-move-to-dict!<k, v> v[k](a v mut[k]) data<k> compare<k> hash-mix<k>
+move-to-dict!<k, v> v[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	res = a map-to-arr ((k, v) => k -> v) to-dict
 	a empty!
 	res
 
-map-values!<k, v> void(a v mut[k], f act v(k, v)) trusted data<k> compare<k> hash-mix<k>
+map-values!<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	a.entries.begin-ptr map-values-recur! a.entries.end-ptr, f
 .map-values-recur!<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act v(k, v)) unsafe
 	if entry-ptr != entry-end

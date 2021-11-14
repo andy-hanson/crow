@@ -5,7 +5,7 @@ module frontend.parse.ast;
 import model.model : FieldMutability, symOfFieldMutability, Visibility;
 import model.reprModel : reprVisibility;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : ArrWithSize, empty, emptyArr, toArr;
+import util.collection.arr : ArrWithSize, empty, emptyArr, emptyArrWithSize, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
 import util.collection.str : emptySafeCStr, SafeCStr, safeCStrIsEmpty;
@@ -132,6 +132,13 @@ static assert(TypeAst.sizeof <= 40);
 		case TypeAst.Kind.suffix:
 			return cbSuffix(a.suffix.deref());
 	}
+}
+
+immutable(TypeAst) bogusTypeAst(immutable RangeWithinFile range) {
+	return immutable TypeAst(immutable TypeAst.InstStruct(
+		range,
+		immutable NameAndRange(range.start, shortSymAlphaLiteral("bogus")),
+		emptyArrWithSize!TypeAst));
 }
 
 immutable(RangeWithinFile) range(immutable TypeAst a) {

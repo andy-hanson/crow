@@ -109,7 +109,7 @@ enum Operator {
 	not,
 }
 
-immutable(Opt!Sym) getSymFromOperator(ref AllSymbols allSymbols, scope immutable string str) {
+private immutable(Opt!Sym) getSymFromOperator(ref AllSymbols allSymbols, scope immutable string str) {
 	immutable Opt!Operator op = operatorFromStr(str);
 	if (has(op)) {
 		immutable Sym res = symForOperator(force(op));
@@ -183,7 +183,7 @@ private immutable(Opt!Operator) operatorFromStr(scope immutable string str) {
 			: none!Operator;
 }
 
-private immutable(string) strOfOperator(immutable Operator a) {
+immutable(string) strOfOperator(immutable Operator a) {
 	final switch (a) {
 		case Operator.or2:
 			return "||";

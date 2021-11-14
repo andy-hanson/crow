@@ -89,12 +89,13 @@ void writeModulePath(
 	immutable Path path,
 ) {
 	bool first = true;
-	eachPathPart(allPaths, path, (immutable string part) {
+	//TODO:just use pathToStr?
+	eachPathPart(allPaths, path, (immutable Sym part) {
 		if (first)
 			first = false;
 		else
-			writeChar(writer, '.');
-		writeStatic(writer, part);
+			writeChar(writer, '/');
+		writeSym(writer, part);
 	});
 }
 

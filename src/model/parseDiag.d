@@ -2,10 +2,11 @@ module model.parseDiag;
 
 @safe @nogc pure nothrow:
 
+import frontend.parse.lexer : Token;
 import util.opt : Opt;
 import util.path : PathAndStorageKind, PathAndRange, RelPath;
 import util.sourceRange : RangeWithinFile;
-import util.sym : Sym;
+import util.sym : Operator;
 
 struct ParseDiag {
 	@safe @nogc pure nothrow:
@@ -21,16 +22,15 @@ struct ParseDiag {
 			closingBracket,
 			closingParen,
 			comma,
-			endOfLine,
 			dedent,
+			endOfLine,
+			equalsOrThen,
 			indent,
 			lambdaArrow,
-			multiLineArrSeparator,
-			multiLineNewSeparator,
-			purity,
+			name,
+			nameOrOperator,
 			quote,
-			space,
-			spaceEqualsSpace,
+			slash,
 			typeArgsEnd,
 		}
 		immutable Kind kind;
@@ -65,9 +65,7 @@ struct ParseDiag {
 	struct RelativeImportReachesPastRoot {
 		immutable RelPath imported;
 	}
-	struct ReservedName {
-		immutable Sym name;
-	}
+	//TODO:KILL, always use UnexpectedToken
 	struct Unexpected {
 		enum Kind {
 			dedent,
@@ -77,6 +75,12 @@ struct ParseDiag {
 	}
 	struct UnexpectedCharacter {
 		immutable char ch;
+	}
+	struct UnexpectedOperator {
+		immutable Operator operator;
+	}
+	struct UnexpectedToken {
+		immutable Token token;
 	}
 	struct UnionCantBeEmpty {}
 	struct WhenMustHaveElse {}
@@ -97,9 +101,10 @@ struct ParseDiag {
 		letMustHaveThen,
 		matchWhenOrLambdaNeedsBlockCtx,
 		relativeImportReachesPastRoot,
-		reservedName,
 		unexpected,
 		unexpectedCharacter,
+		unexpectedOperator,
+		unexpectedToken,
 		unionCantBeEmpty,
 		whenMustHaveElse,
 	}
@@ -119,9 +124,10 @@ struct ParseDiag {
 		immutable LetMustHaveThen letMustHaveThen;
 		immutable MatchWhenOrLambdaNeedsBlockCtx matchWhenOrLambdaNeedsBlockCtx;
 		immutable RelativeImportReachesPastRoot relativeImportReachesPastRoot;
-		immutable ReservedName reservedName;
 		immutable Unexpected unexpected;
 		immutable UnexpectedCharacter unexpectedCharacter;
+		immutable UnexpectedOperator unexpectedOperator;
+		immutable UnexpectedToken unexpectedToken;
 		immutable UnionCantBeEmpty unionCantBeEmpty;
 		immutable WhenMustHaveElse whenMustHaveElse;
 	}
@@ -147,9 +153,10 @@ struct ParseDiag {
 	@trusted immutable this(immutable RelativeImportReachesPastRoot a) {
 		kind = Kind.relativeImportReachesPastRoot; relativeImportReachesPastRoot = a;
 	}
-	immutable this(immutable ReservedName a) { kind = Kind.reservedName; reservedName = a; }
 	immutable this(immutable Unexpected a) { kind = Kind.unexpected; unexpected = a; }
 	immutable this(immutable UnexpectedCharacter a) { kind = Kind.unexpectedCharacter; unexpectedCharacter = a; }
+	immutable this(immutable UnexpectedOperator a) { kind = Kind.unexpectedOperator; unexpectedOperator = a; }
+	immutable this(immutable UnexpectedToken a) { kind = Kind.unexpectedToken; unexpectedToken = a; }
 	immutable this(immutable UnionCantBeEmpty a) { kind = Kind.unionCantBeEmpty; unionCantBeEmpty = a; }
 	immutable this(immutable WhenMustHaveElse a) { kind = Kind.whenMustHaveElse; whenMustHaveElse = a; }
 }
@@ -177,9 +184,10 @@ static assert(ParseDiag.sizeof <= 32);
 	scope immutable(T) delegate(
 		ref immutable ParseDiag.RelativeImportReachesPastRoot
 	) @safe @nogc pure nothrow cbRelativeImportReachesPastRoot,
-	scope T delegate(ref immutable ParseDiag.ReservedName) @safe @nogc pure nothrow cbReservedName,
 	scope T delegate(ref immutable ParseDiag.Unexpected) @safe @nogc pure nothrow cbUnexpected,
 	scope T delegate(ref immutable ParseDiag.UnexpectedCharacter) @safe @nogc pure nothrow cbUnexpectedCharacter,
+	scope T delegate(ref immutable ParseDiag.UnexpectedOperator) @safe @nogc pure nothrow cbUnexpectedOperator,
+	scope T delegate(ref immutable ParseDiag.UnexpectedToken) @safe @nogc pure nothrow cbUnexpectedToken,
 	scope T delegate(ref immutable ParseDiag.UnionCantBeEmpty) @safe @nogc pure nothrow cbUnionCantBeEmpty,
 	scope T delegate(ref immutable ParseDiag.WhenMustHaveElse) @safe @nogc pure nothrow cbWhenMustHaveElse,
 ) {
@@ -212,12 +220,14 @@ static assert(ParseDiag.sizeof <= 32);
 			return cbMatchWhenOrLambdaNeedsBlockCtx(a.matchWhenOrLambdaNeedsBlockCtx);
 		case ParseDiag.Kind.relativeImportReachesPastRoot:
 			return cbRelativeImportReachesPastRoot(a.relativeImportReachesPastRoot);
-		case ParseDiag.Kind.reservedName:
-			return cbReservedName(a.reservedName);
 		case ParseDiag.Kind.unexpected:
 			return cbUnexpected(a.unexpected);
 		case ParseDiag.Kind.unexpectedCharacter:
 			return cbUnexpectedCharacter(a.unexpectedCharacter);
+		case ParseDiag.Kind.unexpectedOperator:
+			return cbUnexpectedOperator(a.unexpectedOperator);
+		case ParseDiag.Kind.unexpectedToken:
+			return cbUnexpectedToken(a.unexpectedToken);
 		case ParseDiag.Kind.unionCantBeEmpty:
 			return cbUnionCantBeEmpty(a.unionCantBeEmpty);
 		case ParseDiag.Kind.whenMustHaveElse:

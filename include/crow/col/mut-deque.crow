@@ -9,7 +9,7 @@ import
 	../range: ..
 	../str: ==, str
 	../str-conv: to-str
-	../test: is
+	../test-util: is
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
 	./arr: ==, arr, arr-from-begin-end, new, size

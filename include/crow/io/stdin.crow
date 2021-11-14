@@ -5,7 +5,7 @@ import
 	../col/fix-arr: begin-ptr, cast-immutable, size, subscript, uninitialized-fix-arr
 	../compare: >=
 	../exception: assert
-	../fun: subscript
+	../fun-util: subscript
 	../number: ==, <=>, nat8, to-nat64
 	../opt: opt
 	../range: ..

@@ -5,7 +5,7 @@ import
 	crow/bool: bool
 	crow/cell: cell
 	crow/c-types: c-char, c-float, c-int, s-long, u-int
-	crow/enum: enum-to-str
+	crow/enum-util: enum-to-str
 	crow/misc: void
 	crow/ptr: any-const-ptr, const-ptr, mut-ptr
 	crow/str: str
@@ -40,7 +40,7 @@ glBindTexture void(target GLenum, texture GLuint) extern<"GL"> noctx summon unsa
 glBufferData void
 	target GLenum
 	size GLsizeiptr
-	data any-const-ptr
+	buffer-data any-const-ptr
 	usage GLenum
 spec
 	extern<"GL">
@@ -52,7 +52,7 @@ glBufferSubData void
 	target GLenum
 	offset GLintptr
 	size GLsizeiptr
-	data any-const-ptr
+	buffer-data any-const-ptr
 spec
 	extern<"GL">
 	noctx

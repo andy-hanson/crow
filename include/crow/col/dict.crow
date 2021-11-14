@@ -4,15 +4,15 @@ import
 	../bool: !, &&, ==, bool, false, true
 	../compare: !=, <, <=, >=, compare, equal, max
 	../exception: assert, unreachable
-	../fun: subscript
+	../fun-util: subscript
 	../hash: hash, hash-mix
-	../misc: ->, arrow, data, from, to, typed, void
+	../misc: ->, arrow, from, is-data, to, typed, void
 	../opt: ==, force, is-empty, none, opt, some
 	../ptr: ==, +, set-deref
 	../range: ..
 	../str: ==, ~, str
 	../str-conv: to-str
-	../test: is
+	../test-util: is
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert, todo
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
@@ -30,7 +30,7 @@ dict<k, v> record
 	.root node<k, v>
 
 # TODO: comparison should be generic
-dict-equal<k, v> bool(a v[k], b v[k]) data<k> compare<k> hash-mix<k> equal<v>
+dict-equal<k, v> bool(a v[k], b v[k]) is-data<k> compare<k> hash-mix<k> equal<v>
 	# TODO:PERF
 	a.arr-sorted arr-equal b.arr-sorted, (x, y) =>
 		x.from == y.from && x.to == y.to
@@ -51,19 +51,19 @@ node<k, v> union
 .leaf-max-size nat64()
 	8
 
-new<k, v> v[k](...a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+new<k, v> v[k](...a arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	a to-dict
 
-to-dict<k, v> v[k](a arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+to-dict<k, v> v[k](a arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	if a.size <= 4 && a.no-duplicate-keys
 		a.leaf-node,
 	else
 		(empty-leaf-node@<k, v>,) fold a, (cur, x) => cur ~ x
 
-arr<k, v> arrow<k, v>[](a v[k]) data<k> compare<k> hash-mix<k>
+arr<k, v> arrow<k, v>[](a v[k]) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, v) => k -> v
 
-arr-sorted<k, v> arrow<k, v>[](a v[k]) data<k> compare<k> hash-mix<k>
+arr-sorted<k, v> arrow<k, v>[](a v[k]) is-data<k> compare<k> hash-mix<k>
 	a.arr sort-by pair => pair.from
 
 .no-duplicate-keys<k, v> bool(a arrow<k, v>[]) compare<k>
@@ -73,7 +73,7 @@ arr-sorted<k, v> arrow<k, v>[](a v[k]) data<k> compare<k> hash-mix<k>
 		key = a[0] from
 		a.tail every (it => it.from != key) && a.tail.no-duplicate-keys
 
-is-empty<k, v> bool(a v[k]) data<k> compare<k> hash-mix<k>
+is-empty<k, v> bool(a v[k]) is-data<k> compare<k> hash-mix<k>
 	a.root node-is-empty
 .node-is-empty<k, v> bool(a node<k, v>)
 	match a
@@ -82,7 +82,7 @@ is-empty<k, v> bool(a v[k]) data<k> compare<k> hash-mix<k>
 	as leaf-node l
 		l is-empty
 
-size<k, v> nat64(a v[k]) data<k> compare<k> hash-mix<k>
+size<k, v> nat64(a v[k]) is-data<k> compare<k> hash-mix<k>
 	0 size-recur a.root
 .size-recur<k, v> nat64(acc nat64, a node<k, v>)
 	match a
@@ -91,14 +91,14 @@ size<k, v> nat64(a v[k]) data<k> compare<k> hash-mix<k>
 	as leaf-node l
 		acc wrap-add l.size
 
-subscript<k, v> v?(a v[k], key k) data<k> compare<k> hash-mix<k>
+subscript<k, v> v?(a v[k], key k) is-data<k> compare<k> hash-mix<k>
 	match a root
 	as inner-node _
 		hash = key hash
 		a.root subscript-recur key, hash
 	as leaf-node l
 		l subscript-leaf-recur key
-.subscript-recur<k, v> v?(a node<k, v>, key k, remaining-hash nat64) trusted data<k> compare<k> hash-mix<k>
+.subscript-recur<k, v> v?(a node<k, v>, key k, remaining-hash nat64) trusted is-data<k> compare<k> hash-mix<k>
 	match a
 	as inner-node i
 		which = remaining-hash low-bits
@@ -114,10 +114,10 @@ subscript<k, v> v?(a v[k], key k) data<k> compare<k> hash-mix<k>
 	else
 		a.tail subscript-leaf-recur key
 
-in<k, v> bool(key k, a v[k]) data<k> compare<k> hash-mix<k>
+in<k, v> bool(key k, a v[k]) is-data<k> compare<k> hash-mix<k>
 	!a[key].is-empty
 
-~ <k, v> v[k](a v[k], pair arrow<k, v>) data<k> compare<k> hash-mix<k>
+~ <k, v> v[k](a v[k], pair arrow<k, v>) is-data<k> compare<k> hash-mix<k>
 	res = a get-or-update pair.from, old-value =>
 		pair.to insert
 	if node ?= res new-node
@@ -125,7 +125,7 @@ in<k, v> bool(key k, a v[k]) data<k> compare<k> hash-mix<k>
 	else
 		a
 
-~ <k, v> v[k](a v[k], pairs arrow<k, v>[]) data<k> compare<k> hash-mix<k>
+~ <k, v> v[k](a v[k], pairs arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	a fold pairs, (cur, pair) => cur ~ pair
 
 try-add-result<k, v> union
@@ -136,7 +136,7 @@ already-has-key<v> record
 	value v
 
 # Adds a value if the key doesn't already exist
-try-add<k, v> try-add-result<k, v>(a v[k], key k, get-value act v()) data<k> compare<k> hash-mix<k>
+try-add<k, v> try-add-result<k, v>(a v[k], key k, get-value act v()) is-data<k> compare<k> hash-mix<k>
 	res = a get-or-update key, old-value =>
 		if old-value is-empty
 			get-value[] insert
@@ -147,7 +147,7 @@ try-add<k, v> try-add-result<k, v>(a v[k], key k, get-value act v()) data<k> com
 	else
 		(res.new-node.force,) added
 
-- <k, v> v[k](a v[k], key k) data<k> compare<k> hash-mix<k>
+- <k, v> v[k](a v[k], key k) is-data<k> compare<k> hash-mix<k>
 	if res ?= a try-remove key
 		res new-dict
 	else
@@ -158,7 +158,7 @@ try-remove-result<k, v> record
 	old-value v
 	new-dict v[k]
 
-try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) data<k> compare<k> hash-mix<k>
+try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> hash-mix<k>
 	res = a get-or-update key, old-value => remove
 	if value ?= res old-value
 		(value, (res.new-node.force,)) some
@@ -352,13 +352,13 @@ body
 
 region iteration
 
-each<k, v> void(a v[k], f act void(k, v)) data<k> compare<k> hash-mix<k>
+each<k, v> void(a v[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
 	void fold a, (ignore, key, value) => f[key, value]
 
-each-key<k, v> void(a v[k], f act void(k)) data<k> compare<k> hash-mix<k>
+each-key<k, v> void(a v[k], f act void(k)) is-data<k> compare<k> hash-mix<k>
 	void fold-keys a, (ignore, key) => f[key]
 
-fold<a, k, v> a(acc a, a v[k], f act a(a, k, v)) data<k> compare<k> hash-mix<k>
+fold<a, k, v> a(acc a, a v[k], f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
 	acc fold-recur a.root, f
 .fold-recur<a, k, v> a(acc a, a node<k, v>, f act a(a, k, v))
 	match a
@@ -367,19 +367,19 @@ fold<a, k, v> a(acc a, a v[k], f act a(a, k, v)) data<k> compare<k> hash-mix<k>
 	as leaf-node l
 		acc fold l, (cur, pair) => f[cur, pair.from, pair.to]
 
-fold-keys<a, k, v> a(acc a, a v[k], f act a(a, k)) data<k> compare<k> hash-mix<k>
+fold-keys<a, k, v> a(acc a, a v[k], f act a(a, k)) is-data<k> compare<k> hash-mix<k>
 	acc fold a, (cur, key, value) => f[cur, key]
 
 # TODO: map
 # TODO: map-values
 
-keys<k, v> k[](a v[k]) data<k> compare<k> hash-mix<k>
+keys<k, v> k[](a v[k]) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, ignore) => k
 
-values<k, v> v[](a v[k]) data<k> compare<k> hash-mix<k>
+values<k, v> v[](a v[k]) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (ignore, v) => v
 
-map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted data<k> compare<k> hash-mix<k>
+map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	res = a.size uninitialized-fix-arr@<a>
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]

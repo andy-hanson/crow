@@ -3,13 +3,13 @@ import
 	../bool: !
 	../compare: ==, !=, <, <=, >, compare, comparison, equal, less
 	../exception: assert, forbid
-	../fun: subscript
+	../fun-util: subscript
 	../misc: typed, void
 	../number: ==, <=>, +, -, /, nat64
 	../ptr: ==, +, -, *, mut-ptr, set-deref
 	../range: ..
 	../str: ==, <=>, chars, str
-	../test: is
+	../test-util: is
 	./arr: ==, arr, new, subscript
 	./fix-arr:
 		arr, begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, new, size, set-subscript,

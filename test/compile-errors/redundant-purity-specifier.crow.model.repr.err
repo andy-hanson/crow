@@ -1,6 +1,6 @@
-./test/compile-errors/redundant-purity-specifier.crow 1:1-3:1 redundant purity specifier of 'data' is already the default for a builtin type
+./test/compile-errors/redundant-purity-specifier.crow 1:1-1:15 redundant purity specifier of 'data' is already the default for a builtin type
 
-./test/compile-errors/redundant-purity-specifier.crow 3:1-5:1 redundant purity specifier of 'mut' is already the default for an extern-ptr type
+./test/compile-errors/redundant-purity-specifier.crow 3:1-3:17 redundant purity specifier of 'mut' is already the default for an extern-ptr type
 
 ./test/compile-errors/redundant-purity-specifier.crow 5:1-7:1 redundant purity specifier of 'data' is already the default for a record type
 

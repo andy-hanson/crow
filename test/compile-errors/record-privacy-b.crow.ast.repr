@@ -9,14 +9,14 @@ file-ast(
 			sig: sig-ast(range(28, 38), foo, inststruct(range(32, 36), name-range(32, void)), [])
 			body: let(
 				a
-				call(comma, name-range(56, new), [], [literal(nat(0, false))])
+				call(comma, name-range(57, new), [], [literal(nat(0, false))])
 				seq-ast(
 					call(prefix, name-range(61, drop), [], [a])
 					let(
 						b
 						call(
 							comma
-							name-range(85, new)
+							name-range(86, new)
 							[]
 							[literal(nat(0, false)), literal(nat(0, false)), literal(nat(0, false))])
 						seq-ast(

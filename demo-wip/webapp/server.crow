@@ -5,8 +5,8 @@ import
 	crow/io/file: read-file
 	crow/io/net/http-server: http-handler, start-http-server
 	crow/io/net/http-types:
-		body, headers, http-bad-query, http-not-found, http-request, http-response, method, new,
-		url
+		headers, http-bad-query, http-not-found, http-request, http-response, method, new,
+		request-body, url
 	crow/io/print: print
 	crow/str-util: split-by, try-split-once
 	crow/tuple: a, b
@@ -53,7 +53,7 @@ main fut nat(args str[]) unsafe summon
 			http-not-found
 	as http-post
 		if path == "/register"
-			args = req.body parse-query ("user-name", "password")
+			args = req.request-body parse-query ("user-name", "password")
 			user-name = args[0]
 			password = args[1]
 			match db register-user! user-name, password
@@ -63,7 +63,7 @@ main fut nat(args str[]) unsafe summon
 			as user-already-exists
 				400, "User already exists", (), "User already exists"
 		elif path == "/login"
-			args = req.body parse-query ("user-name", "password")
+			args = req.request-body parse-query ("user-name", "password")
 			user-name = args[0]
 			password = args[1]
 			match db login! user-name, password
@@ -79,7 +79,7 @@ main fut nat(args str[]) unsafe summon
 		elif path == "/post"
 			if cookie ?= req.headers["Cookie"]
 				user-cookie = (cookie parse-cookies ("login",))[0].parse-user-cookie force
-				post = db add-post! user-cookie, req.body
+				post = db add-post! user-cookie, req.request-body
 				200, "OK", (), "\{\"postId\":{post}}"
 			else
 				403, "No login cookie", (), "No login cookie"
@@ -100,7 +100,7 @@ split-url url(url-str str)
 
 # Extra cookies are ignored
 parse-cookies str[](s str, cookie-names str[])
-	res = cookie-names.size fill-fix-arr<str?> none
+	res = cookie-names.size fill-fix-arr@<str?> none
 	s split-by "; " each part =>
 		if pair ?= part try-split-once "="
 			if index ?= cookie-names index-of pair.a
@@ -109,7 +109,7 @@ parse-cookies str[](s str, cookie-names str[])
 		x or-throw () => "Did not get cookie value for {cookie-names[index]}"
 
 parse-query str[](s str, arg-names str[])
-	res = arg-names.size fill-fix-arr<str?> none
+	res = arg-names.size fill-fix-arr@<str?> none
 	s split-by "&" each part =>
 		if pair ?= part try-split-once "="
 			if index ?= arg-names index-of pair.a

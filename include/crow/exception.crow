@@ -2,7 +2,7 @@ no-std
 import
 	./bool: !, bool
 	./col/arr-util: each
-	./fun: subscript
+	./fun-util: subscript
 	./misc: void
 	./str: is-empty, str
 	./writer: ~=, move-to-str!, new, writer

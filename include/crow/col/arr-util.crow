@@ -2,12 +2,12 @@ no-std
 import
 	../bool: !, &&, ||, ==, bool, false, to-nat64, true
 	../compare: !=, <, <=, >=, equal, max, min
-	../fun: subscript
+	../fun-util: subscript
 	../misc: void
 	../number: +, -, nat64
 	../opt: is-empty, none, opt, some
 	../ptr: ==, +, -, *, as-const, const-ptr, mut-ptr, set-deref
-	../test: is
+	../test-util: is
 	../tuple: new, pair
 	../private/alloc: alloc-uninitialized, fill-ptr-range
 	../private/bootstrap: new

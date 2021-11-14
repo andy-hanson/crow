@@ -14,7 +14,7 @@ file-ast(
 					param(
 						range(20, 28)
 						some(a)
-						inststruct(range(22, 28), name-range(22, opt), [inststruct(range(25, 28), name-range(25, in))]))])
+						inststruct(range(22, 28), name-range(22, opt), [inststruct(range(26, 28), name-range(26, in))]))])
 			body: todo)
 		fun-decl(
 			visibility: public
@@ -27,9 +27,5 @@ file-ast(
 					param(
 						range(58, 66)
 						some(a)
-						inststruct(range(60, 66), name-range(60, opt), [inststruct(range(63, 66), name-range(63, in))]))])
-			body: call(
-				infix
-				name-range(71, magic)
-				[]
-				[a, call(infix, name-range(80, >), [], [call(prefix-op, name-range(76, <), [], [out]), bogus])]))])
+						inststruct(range(60, 66), name-range(60, opt), [inststruct(range(64, 66), name-range(64, in))]))])
+			body: call(infix, name-range(71, magic), [inststruct(range(78, 81), name-range(78, out))], [a]))])

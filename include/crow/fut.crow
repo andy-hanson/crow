@@ -4,13 +4,13 @@ import
 	./cell: *, cell, new, set-deref
 	./col/arr-util: each-with-index, first-some, map
 	./exception: catch, exception
-	./fun: subscript
+	./fun-util: subscript
 	./misc: void
 	./opt: none, opt, some
 	./result: result
 	./private/bootstrap:
-		action, exclusion, fut-state-exception, fut-state-resolved, hard-unreachable, island,
-		island-and-exclusion, nat64, new, send, state
+		action, exclusion, fut-state-exception, fut-state-resolved, hard-unreachable, is-sendable,
+		island, island-and-exclusion, nat64, new, state
 	./private/fut-low-level: callback!, reject!, resolve!, resolve-or-reject!, unresolved
 	./private/number-low-level: ==, wrap-sub
 	./private/runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
@@ -35,7 +35,16 @@ rejected<a> fut a(err exception)
 Calls `f` after both `a` and `b` have resolved.
 Returns a fut that will be resolved by the result of `f`.
 ###
-join<out, in0, in1> fut out(a fut in0, b fut in1, f ref out(in0, in1)) trusted send<out> send<in0> send<in1>
+join<out, in0, in1> fut out
+	a fut in0
+	b fut in1
+	f ref out(in0, in1)
+spec
+	trusted
+	is-sendable<out>
+	is-sendable<in0>
+	is-sendable<in1>
+body
 	res = unresolved@<out>
 	lock lock = ()
 	remaining cell nat64 = 2,
@@ -57,9 +66,9 @@ join<out, in0, in1> fut out(a fut in0, b fut in1, f ref out(in0, in1)) trusted s
 	f ref out(in0, in1)
 spec
 	unsafe
-	send<out>
-	send<in0>
-	send<in1>
+	is-sendable<out>
+	is-sendable<in0>
+	is-sendable<in1>
 body
 	match a state
 	as fut-state-no-callbacks
@@ -82,7 +91,7 @@ body
 ###
 Returns a `fut` that is resolved when every element of the input has resolved.
 ###
-join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
+join<a> fut a[](a fut<a>[]) trusted is-sendable<a> is-sendable<a[]> summon
 	# TODO: send<a[]> should be unnecessary
 	res = unresolved@<a[]>
 	lock lock = ()
@@ -96,7 +105,7 @@ join<a> fut a[](a fut<a>[]) trusted send<a> send<a[]> summon
 	res
 
 # TODO: send<a[]> should be unnecessary
-.finish-join!<a> void(res fut a[], a fut<a>[]) unsafe send<a> send<a[]> summon
+.finish-join!<a> void(res fut a[], a fut<a>[]) unsafe is-sendable<a> is-sendable<a[]> summon
 	exception = a first-some x =>
 		match x state
 		as fut-state-no-callbacks
@@ -141,7 +150,7 @@ Returns a fut for the result of `cb`.
 If `a` is resolved with an exception, never calls `cb`,
 and the result of `then` will have the same exception as `a`.
 ###
-then<out, in> fut out(a fut in, cb ref out(in)) trusted send<out> send<in>
+then<out, in> fut out(a fut in, cb ref out(in)) trusted is-sendable<out> is-sendable<in>
 	res = unresolved@<out>
 	a callback! result =>
 		match result
@@ -156,7 +165,7 @@ then<out, in> fut out(a fut in, cb ref out(in)) trusted send<out> send<in>
 # and choose just one based on the arity of a lambda.
 
 # Like `then`, but `cb` takes no parameter (since it will be `void` anyway.)
-then-void<out> fut out(a fut void, cb ref out()) send<out>
+then-void<out> fut out(a fut void, cb ref out()) is-sendable<out>
 	a then ignore =>
 		cb[]
 
@@ -174,20 +183,29 @@ launch<a> fut a(f fun fut a()) trusted
 Enqueues a task that will call the function,
 and returns a `fut` for the result of that task.
 ###
-subscript<r> fut r(f ref r()) trusted send<r>
+subscript<r> fut r(f ref r()) trusted is-sendable<r>
 	res = unresolved@<r>
 	f.island-and-exclusion.island.get-island add-task f.island-and-exclusion.exclusion, () =>
 		(() => f.action[] forward-to! res) catch err => res reject! err
 	res
 
-subscript<r, p0> fut r(f ref r(p0), p0 p0) trusted send<r> send<p0>
+subscript<r, p0> fut r(f ref r(p0), p0 p0) trusted is-sendable<r> is-sendable<p0>
 	island = f.island-and-exclusion.island get-island
 	res = unresolved@<r>
 	island add-task f.island-and-exclusion.exclusion, () =>
 		(() => f.action[p0] forward-to! res) catch err => res reject! err
 	res
 
-subscript<r, p0, p1> fut r(f ref r(p0, p1), p0 p0, p1 p1) trusted send<r> send<p0> send<p1>
+subscript<r, p0, p1> fut r
+	f ref r(p0, p1)
+	p0 p0
+	p1 p1
+spec
+	trusted
+	is-sendable<r>
+	is-sendable<p0>
+	is-sendable<p1>
+body
 	island = f.island-and-exclusion.island get-island
 	res = unresolved@<r>
 	island add-task f.island-and-exclusion.exclusion, () =>

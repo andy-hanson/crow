@@ -13,7 +13,7 @@ import
 	./reader:
 		reader, skip-whitespace!, try-take-char, take-float!, take-quoted-str!, try-take-str, with-reader
 	./str: ==, <=>, str
-	./test: is
+	./test-util: is
 	./writer: ~=, backup!, move-to-str!, new, writer, write-quoted-str!
 
 json union

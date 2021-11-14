@@ -3187,13 +3187,13 @@ program(
 						mark-end
 						call(+, [local-ref(mark), 50331648])
 						let(
-							data
+							bytes
 							call(ptr-cast, [call(malloc, [call(wrap-mul, [50331648, call(size-of, [])])])])
 							seq(
-								call(hard-assert, [call(is-word-aligned, [call(as-any-mut-ptr, [local-ref(data)])])])
+								call(hard-assert, [call(is-word-aligned, [call(as-any-mut-ptr, [local-ref(bytes)])])])
 								let(
-									data-end
-									call(+, [local-ref(data), 50331648])
+									bytes-end
+									call(+, [local-ref(bytes), 50331648])
 									seq(
 										call(drop, [call(memset, [call(as-any-mut-ptr, [local-ref(mark)]), 0, 50331648])])
 										let(
@@ -3209,9 +3209,9 @@ program(
 													local-ref(mark)
 													local-ref(mark)
 													local-ref(mark-end)
-													local-ref(data)
-													local-ref(data)
-													local-ref(data-end)])
+													local-ref(bytes)
+													local-ref(bytes)
+													local-ref(bytes-end)])
 											seq(call(validate-gc, [call(ref-of-val, [local-ref(res)])]), local-ref(res)))))))))))
 		fun(
 			noctx

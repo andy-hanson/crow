@@ -2,15 +2,15 @@ no-std
 import
 	../bool: !, &&, ==, bool, false, true
 	../compare: !=, <, <=, >, >=, compare
-	../fun: subscript
+	../fun-util: subscript
 	../log: info, log
-	../misc: data, typed, void
+	../misc: is-data, typed, void
 	../opt: force, none, opt, or-default, some
 	../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../range: ..
 	../str: ==, <=>, str
 	../str-conv: finish, interp, to-str, with-str, with-value
-	../test: is
+	../test-util: is
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert, hard-forbid, hard-unreachable
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul, wrap-sub
@@ -38,13 +38,13 @@ Add nodes are a linked list where links point to the left. Largest node is on th
 	values a[]
 	left add-node<a>?
 
-new<a> sorted-set a(...a a[]) data<a> compare<a>
+new<a> sorted-set a(...a a[]) is-data<a> compare<a>
 	a to-sorted-set
 
-to-sorted-set<a> sorted-set a(a a[]) data<a> compare<a>
+to-sorted-set<a> sorted-set a(a a[]) is-data<a> compare<a>
 	(a.sort, none).typed@<add-node a>, ()
 
-arr<a> a[](a sorted-set a) data<a> compare<a>
+arr<a> a[](a sorted-set a) is-data<a> compare<a>
 	a map-to-arr x => x
 
 is-empty<a> bool(a sorted-set a)
@@ -65,7 +65,7 @@ size<a> nat64(a sorted-set a)
 	else
 		acc
 
-in<a> bool(value a, a sorted-set a) data<a> compare<a>
+in<a> bool(value a, a sorted-set a) is-data<a> compare<a>
 	if index ?= a.add find-in-add value
 		!(index in a.remove)
 	else
@@ -92,10 +92,10 @@ in<a> bool(value a, a sorted-set a) data<a> compare<a>
 		new-size-right = size-right wrap-add a.values.size
 		left find-in-add-for-remove value, new-size-right
 
-~ <a> sorted-set a(a sorted-set a, value a) data<a> compare<a>
+~ <a> sorted-set a(a sorted-set a, value a) is-data<a> compare<a>
 	a try-add value or-default a
 
-try-add<a> sorted-set<a>?(a sorted-set a, value a) data<a> compare<a>
+try-add<a> sorted-set<a>?(a sorted-set a, value a) is-data<a> compare<a>
 	if index ?= a.add find-in-add value
 		# In 'add', but may need to remove from removals
 		if new-remove ?= a.remove try-remove index
@@ -103,10 +103,10 @@ try-add<a> sorted-set<a>?(a sorted-set a, value a) data<a> compare<a>
 	else
 		a add-and-maybe-compact value some
 
-- <a> sorted-set a(a sorted-set a, value a) data<a> compare<a>
+- <a> sorted-set a(a sorted-set a, value a) is-data<a> compare<a>
 	a try-remove value or-default a
 
-try-remove<a> sorted-set<a>?(a sorted-set a, value a) trusted data<a> compare<a>
+try-remove<a> sorted-set<a>?(a sorted-set a, value a) trusted is-data<a> compare<a>
 	if r ?= a.add find-in-add-for-remove value, 0
 		removals-here-and-right = 1 wrap-add (a.remove count-greater-or-equal r.size-left)
 		some: if r.size-here should-compact r.size-right, removals-here-and-right
@@ -166,7 +166,7 @@ Or a combination of the two.
 	new-add = compactor do-compact-recur! a.add, add-size, a.remove
 	new-add, (a.remove filter-less plan.add-size-left)
 
-.remove-and-compact<a> sorted-set a(a sorted-set a, plan compact-plan, extra-removal nat64) unsafe data<a> compare<a>
+.remove-and-compact<a> sorted-set a(a sorted-set a, plan compact-plan, extra-removal nat64) unsafe is-data<a> compare<a>
 	new-remove = a.remove filter-less plan.add-size-left
 	if plan.compacted-size == 0
 		if left ?= a.add left
@@ -276,10 +276,10 @@ body
 
 region iteration
 
-each<a> void(a sorted-set a, f act void(a)) data<a> compare<a>
+each<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
 	void fold a, (ignore, x) => f[x]
 
-fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) data<b> compare<b>
+fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 	acc fold-recur a.init-iters, a.remove, f
 .fold-recur<a, b> a(acc a, iters fix-arr iter-part b, remove index-set, f act a(a, b)) compare<b>
 	if iters is-empty
@@ -362,10 +362,10 @@ body
 
 # TODO: filter
 
-map<out, in> sorted-set out(a sorted-set in, f act out(in)) data<out> compare<out> data<in> compare<in>
+map<out, in> sorted-set out(a sorted-set in, f act out(in)) is-data<out> compare<out> is-data<in> compare<in>
 	a map-to-arr f to-sorted-set
 
-map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted data<in> compare<in>
+map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> compare<in>
 	out = a.size uninitialized-fix-arr@<out>
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]

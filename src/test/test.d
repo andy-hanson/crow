@@ -20,16 +20,12 @@ import util.alloc.alloc : Alloc;
 import util.collection.str : strEq;
 import util.dbg : Debug;
 import util.opt : force, has, Opt;
-import util.path : AllPaths;
 import util.ptr : ptrTrustMe_mut;
-import util.sym : AllSymbols;
 
 immutable(ExitCode) test(scope ref Debug dbg, ref Alloc alloc, immutable Opt!string name) {
 	Test test = Test(
 		ptrTrustMe_mut(dbg),
-		ptrTrustMe_mut(alloc),
-		AllSymbols(ptrTrustMe_mut(alloc)),
-		AllPaths(ptrTrustMe_mut(alloc)));
+		ptrTrustMe_mut(alloc));
 	foreach (ref immutable NameAndTest it; allTests)
 		if (!has(name) || strEq(force(name), it.name))
 			it.test(test);

@@ -2,7 +2,7 @@ no-std
 import
 	../bool: &&, bool
 	../compare: !=, <, <=, compare, comparison, equal, greater, less
-	../fun: subscript
+	../fun-util: subscript
 	../ptr: *, ==, <=>, +, -, as-const, by-val, const-ptr, null, ptr-cast, ref-of-ptr, size-of, subscript
 	../private/alloc: alloc-uninitialized, copy-data-from!
 	../private/bootstrap: hard-assert, new
