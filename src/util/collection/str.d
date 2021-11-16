@@ -4,18 +4,13 @@ module util.collection.str;
 
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.collection.arr : at, begin, size;
-import util.collection.arrUtil : cat, compareArr, rtail, tail;
-import util.comparison : Comparison;
+import util.collection.arrUtil : cat, rtail, tail;
+import util.hash : Hasher, hashUbyte;
 import util.memory : memcpy;
 import util.opt : force, has, none, Opt, some;
 import util.util : verify;
 
 alias CStr = immutable(char)*;
-
-immutable(Comparison) compareStr(immutable string a, immutable string b) {
-	return compareArr!char(a, b, (ref immutable char ca, ref immutable char cb) =>
-		ca < cb ? Comparison.less : ca > cb ? Comparison.greater : Comparison.equal);
-}
 
 immutable(NulTerminatedStr) emptyNulTerminatedStr() {
 	return immutable NulTerminatedStr("\0");
@@ -183,4 +178,9 @@ private immutable(Opt!SafeCStr) restIfStartsWith(immutable SafeCStr a, immutable
 		: !isEmpty(a) && first(a) == first(b)
 		? restIfStartsWith(tail(a), tail(b))
 		: none!SafeCStr;
+}
+
+void hashStr(ref Hasher hasher, immutable string a) {
+	foreach (immutable char c; a)
+		hashUbyte(hasher, c);
 }

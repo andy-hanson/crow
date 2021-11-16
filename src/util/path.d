@@ -7,6 +7,7 @@ import util.collection.arr : at, first, size;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
 import util.collection.str : asSafeCStr, copyToSafeCStr, NulTerminatedStr, SafeCStr, strOfSafeCStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
+import util.hash : Hasher, hashUshort;
 import util.opt : has, force, forceOrTodo, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
@@ -459,6 +460,10 @@ private immutable(Opt!ParentAndBaseName) pathParentAndBaseName(immutable string 
 		: none!ParentAndBaseName;
 }
 
+private immutable(bool) pathEqual(immutable Path a, immutable Path b) {
+	return a.index == b.index;
+}
+
 immutable(Comparison) comparePath(immutable Path a, immutable Path b) {
 	return compareNat16(a.index, b.index);
 }
@@ -468,7 +473,7 @@ immutable(uint) nPathComponents(ref const AllPaths allPaths, immutable Path a) {
 	return 1 + (has(par) ? nPathComponents(allPaths, force(par)) : 0);
 }
 
-enum StorageKind {
+enum StorageKind : ushort {
 	global,
 	local,
 }
@@ -478,10 +483,19 @@ struct PathAndStorageKind {
 	immutable StorageKind storageKind;
 }
 
+immutable(bool) pathAndStorageKindEqual(immutable PathAndStorageKind a, immutable PathAndStorageKind b) {
+	return pathEqual(a.path, b.path) && a.storageKind == b.storageKind;
+}
+
 immutable(Comparison) comparePathAndStorageKind(immutable PathAndStorageKind a, immutable PathAndStorageKind b) {
 	return compareOr(
 		compareEnum(a.storageKind, b.storageKind),
 		() => comparePath(a.path, b.path));
+}
+
+void hashPathAndStorageKind(ref Hasher hasher, immutable PathAndStorageKind a) {
+	hashUshort(hasher, a.path.index);
+	hashUshort(hasher, a.storageKind);
 }
 
 struct PathAndRange {

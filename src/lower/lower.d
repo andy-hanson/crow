@@ -76,8 +76,8 @@ import model.lowModel :
 	asPtrGcPointee,
 	asPtrRawConst,
 	asRecordType,
-	compareLowType,
 	ConcreteFunToLowFunIndex,
+	hashLowType,
 	isArr,
 	isPtrGc,
 	LowExpr,
@@ -99,6 +99,7 @@ import model.lowModel :
 	LowProgram,
 	LowRecord,
 	LowType,
+	lowTypeEqual,
 	LowUnion,
 	matchLowType,
 	PointerTypeAndConstantsLow,
@@ -116,16 +117,24 @@ import util.collection.arrUtil :
 	mapWithOptFirst,
 	mapWithOptFirst2,
 	tail;
-import util.collection.dict : Dict, getAt, mustGetAt;
-import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
+import util.collection.dict : getAt, mustGetAt, PtrDict;
+import util.collection.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr, fullIndexDictSize;
 import util.collection.mutIndexDict : getAt, getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
-import util.collection.mutDict : addToMutDict, getAt_mut, getOrAdd, mustDelete, mustGetAt_mut, MutDict, ValueAndDidAdd;
+import util.collection.mutDict :
+	addToMutDict,
+	getAt_mut,
+	getOrAdd,
+	mustDelete,
+	mustGetAt_mut,
+	MutDict,
+	MutPtrDict,
+	ValueAndDidAdd;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : asImmutable, force, has, mapOption, none, Opt, optOr, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Nat16, safeSizeTToU8;
@@ -154,7 +163,7 @@ private immutable(LowProgram) lowerInner(ref Alloc alloc, ref immutable Concrete
 struct MarkVisitFuns {
 	MutIndexDict!(immutable LowType.Record, immutable LowFunIndex) recordValToVisit;
 	MutIndexDict!(immutable LowType.Union, immutable LowFunIndex) unionToVisit;
-	MutDict!(immutable LowType, immutable LowFunIndex, compareLowType) gcPointeeToVisit;
+	MutDict!(immutable LowType, immutable LowFunIndex, lowTypeEqual, hashLowType) gcPointeeToVisit;
 }
 
 immutable(LowFunIndex) getMarkVisitFun(ref const MarkVisitFuns funs, ref immutable LowType type) {
@@ -215,15 +224,15 @@ struct AllLowFuns {
 }
 
 struct GetLowTypeCtx {
-	immutable Dict!(Ptr!ConcreteStruct, LowType, comparePtr!ConcreteStruct) concreteStructToType;
-	MutDict!(immutable Ptr!ConcreteStruct, immutable LowType, comparePtr!ConcreteStruct) concreteStructToPtrType;
+	immutable PtrDict!(ConcreteStruct, LowType) concreteStructToType;
+	MutPtrDict!(ConcreteStruct, immutable LowType) concreteStructToPtrType;
 }
 
 AllLowTypesWithCtx getAllLowTypes(
 	ref Alloc alloc,
 	ref immutable ConcreteProgram program,
 ) {
-	DictBuilder!(Ptr!ConcreteStruct, LowType, comparePtr!ConcreteStruct) concreteStructToTypeBuilder;
+	PtrDictBuilder!(ConcreteStruct, LowType) concreteStructToTypeBuilder;
 	ArrBuilder!(Ptr!ConcreteStruct) allFunPtrSources;
 	ArrBuilder!LowExternPtrType allExternPtrTypes;
 	ArrBuilder!(Ptr!ConcreteStruct) allRecordSources;
@@ -295,10 +304,10 @@ AllLowTypesWithCtx getAllLowTypes(
 			(ref immutable ConcreteStructBody.Union it) =>
 				some(addUnion(s)));
 		if (has(lowType))
-			addToDict(alloc, concreteStructToTypeBuilder, s, force(lowType));
+			mustAddToDict(alloc, concreteStructToTypeBuilder, s, force(lowType));
 	}
 
-	GetLowTypeCtx getLowTypeCtx = GetLowTypeCtx(finishDictShouldBeNoConflict(alloc, concreteStructToTypeBuilder));
+	GetLowTypeCtx getLowTypeCtx = GetLowTypeCtx(finishDict(alloc, concreteStructToTypeBuilder));
 
 	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrs =
 		fullIndexDictOfArr!(LowType.FunPtr, LowFunPtrType)(
@@ -552,7 +561,7 @@ immutable(AllLowFuns) getAllLowFuns(
 ) {
 	immutable LowType ctxType =
 		lowTypeFromConcreteType(alloc, getLowTypeCtx, immutable ConcreteType(true, program.ctxType));
-	DictBuilder!(Ptr!ConcreteFun, LowFunIndex, comparePtr!ConcreteFun) concreteFunToLowFunIndexBuilder;
+	PtrDictBuilder!(ConcreteFun, LowFunIndex) concreteFunToLowFunIndexBuilder;
 	ArrBuilder!LowFunCause lowFunCausesBuilder;
 
 	MarkVisitFuns markVisitFuns = MarkVisitFuns(
@@ -690,17 +699,17 @@ immutable(AllLowFuns) getAllLowFuns(
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.RecordFieldSet) =>
 				none!LowFunIndex);
-		if (concreteFunWillBecomeNonExternLowFun(fun.deref())) verify(has(opIndex));
-		if (has(opIndex)) {
-			addToDict(alloc, concreteFunToLowFunIndexBuilder, fun, force(opIndex));
-		}
+		if (concreteFunWillBecomeNonExternLowFun(fun.deref()))
+			verify(has(opIndex));
+		if (has(opIndex))
+			mustAddToDict(alloc, concreteFunToLowFunIndexBuilder, fun, force(opIndex));
 	}
 
 	immutable LowType markCtxType = lateIsSet(markCtxTypeLate) ? lateGet(markCtxTypeLate) : voidType;
 
 	immutable LowFunCause[] lowFunCauses = finishArr(alloc, lowFunCausesBuilder);
 	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex =
-		finishDictShouldBeNoConflict(alloc, concreteFunToLowFunIndexBuilder);
+		finishDict(alloc, concreteFunToLowFunIndexBuilder);
 
 	immutable LowType userMainFunPtrType =
 		lowTypeFromConcreteType(alloc, getLowTypeCtx, at(program.rtMain.deref().paramsExcludingCtxAndClosure, 2).type);
@@ -1003,7 +1012,7 @@ struct GetLowExprCtx {
 	immutable LowParamIndex firstRegularParam;
 	bool hasTailRecur;
 	size_t tempLocalIndex;
-	MutDict!(immutable Ptr!ConcreteLocal, immutable Ptr!LowLocal, comparePtr!ConcreteLocal) locals;
+	MutPtrDict!(ConcreteLocal, immutable Ptr!LowLocal) locals;
 }
 
 //TODO:KILL (inline)

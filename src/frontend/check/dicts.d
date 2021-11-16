@@ -3,14 +3,13 @@ module frontend.check.dicts;
 @safe @nogc pure nothrow:
 
 import model.model : FunDecl, SpecDecl, StructOrAlias;
-import util.collection.dict : Dict;
-import util.collection.multiDict : MultiDict;
+import util.collection.dict : SymDict;
+import util.collection.multiDict : SymMultiDict;
 import util.ptr : Ptr;
-import util.sym : compareSym, Sym;
 
-alias StructsAndAliasesDict = Dict!(Sym, StructOrAliasAndIndex, compareSym);
-alias SpecsDict = Dict!(Sym, SpecDeclAndIndex, compareSym);
-alias FunsDict = MultiDict!(Sym, FunDeclAndIndex, compareSym);
+alias StructsAndAliasesDict = SymDict!StructOrAliasAndIndex;
+alias SpecsDict = SymDict!SpecDeclAndIndex;
+alias FunsDict = SymMultiDict!FunDeclAndIndex;
 
 struct StructOrAliasAndIndex {
 	immutable StructOrAlias structOrAlias;

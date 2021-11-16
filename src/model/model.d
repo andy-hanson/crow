@@ -6,21 +6,20 @@ import model.constant : Constant;
 import model.diag : Diags, FilesInfo; // TODO: move FilesInfo here?
 import util.alloc.alloc : Alloc;
 import util.collection.arr : ArrWithSize, empty, emptyArr, first, only, size, sizeEq, toArr;
-import util.collection.arrUtil : compareArr;
-import util.collection.dict : Dict;
+import util.collection.arrUtil : arrEqual;
+import util.collection.dict : SymDict;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.mutArr : MutArr;
 import util.collection.str : SafeCStr;
-import util.comparison : compareOr, Comparison, ptrEquals;
+import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.memory : allocate;
 import util.opt : Opt, some;
 import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
-import util.ptr : comparePtr, Ptr, TaggedPtr;
+import util.ptr : hashPtr, Ptr, ptrEquals, TaggedPtr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, rangeOfStartAndName, RangeWithinFile;
 import util.sym :
-	compareSym,
 	Operator,
 	shortSymAlphaLiteral,
 	Sym,
@@ -204,22 +203,14 @@ immutable(bool) typeEquals(immutable Type a, immutable Type b) {
 			isStructInst(b) && ptrEquals(i, asStructInst(b)));
 }
 
-private immutable(Comparison) compareType(immutable Type a, immutable Type b) {
-	return matchType!(immutable Comparison)(
+private void hashType(ref Hasher hasher, immutable Type a) {
+	matchType!void(
 		a,
-		(immutable Type.Bogus) => isBogus(b) ? Comparison.equal : Comparison.less,
-		(immutable Ptr!TypeParam pa) =>
-			matchType!(immutable Comparison)(
-				b,
-				(immutable Type.Bogus) => Comparison.greater,
-				(immutable Ptr!TypeParam pb) => comparePtr(pa, pb),
-				(immutable Ptr!StructInst) => Comparison.less),
-		(immutable Ptr!StructInst ia) =>
-			matchType!(immutable Comparison)(
-				b,
-				(immutable Type.Bogus) => Comparison.greater,
-				(immutable Ptr!TypeParam) => Comparison.greater,
-				(immutable Ptr!StructInst ib) => comparePtr(ia, ib)));
+		(immutable Type.Bogus) {},
+		(immutable Ptr!TypeParam p) =>
+			hashPtr(hasher, p),
+		(immutable Ptr!StructInst i) =>
+			hashPtr(hasher, i));
 }
 
 struct Param {
@@ -616,11 +607,16 @@ struct StructDeclAndArgs {
 	}
 }
 
-immutable(Comparison) compareStructDeclAndArgs(ref immutable StructDeclAndArgs a, ref immutable StructDeclAndArgs b) {
-	return compareOr(
-		comparePtr(a.decl, b.decl),
-		() => compareArr!Type(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
-			compareType(ta, tb)));
+immutable(bool) structDeclAndArgsEqual(ref immutable StructDeclAndArgs a, ref immutable StructDeclAndArgs b) {
+	return ptrEquals(a.decl, b.decl) &&
+		arrEqual(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
+			typeEquals(ta, tb));
+}
+
+void hashStructDeclAndArgs(ref Hasher hasher, ref immutable StructDeclAndArgs a) {
+	hashPtr(hasher, a.decl);
+	foreach (immutable Type t; a.typeArgs)
+		hashType(hasher, t);
 }
 
 struct StructInst {
@@ -730,11 +726,16 @@ struct SpecDeclAndArgs {
 	immutable Type[] typeArgs;
 }
 
-immutable(Comparison) compareSpecDeclAndArgs(ref immutable SpecDeclAndArgs a, ref immutable SpecDeclAndArgs b) {
-	return compareOr(
-		comparePtr(a.decl, b.decl),
-		() => compareArr!Type(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
-			compareType(ta, tb)));
+immutable(bool) specDeclAndArgsEqual(ref immutable SpecDeclAndArgs a, ref immutable SpecDeclAndArgs b) {
+	return ptrEquals(a.decl, b.decl) &&
+		arrEqual(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
+			typeEquals(ta, tb));
+}
+
+void hashSpecDeclAndArgs(ref Hasher hasher, ref immutable SpecDeclAndArgs a) {
+	hashPtr(hasher, a.decl);
+	foreach (immutable Type t; a.typeArgs)
+		hashType(hasher, t);
 }
 
 struct SpecInst {
@@ -1055,13 +1056,20 @@ struct FunDeclAndArgs {
 	}
 }
 
-immutable(Comparison) compareFunDeclAndArgs(ref immutable FunDeclAndArgs a, ref immutable FunDeclAndArgs b) {
-	return compareOr(
-		comparePtr(a.decl, b.decl),
-		() => compareArr!Type(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
-			compareType(ta, tb)),
-		() => compareArr!Called(a.specImpls, b.specImpls, (ref immutable Called ca, ref immutable Called cb) =>
-			compareCalled(ca, cb)));
+immutable(bool) funDeclAndArgsEqual(ref immutable FunDeclAndArgs a, ref immutable FunDeclAndArgs b) {
+	return ptrEquals(a.decl, b.decl) &&
+		arrEqual!Type(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
+			typeEquals(ta, tb)) &&
+		arrEqual!Called(a.specImpls, b.specImpls, (ref immutable Called ca, ref immutable Called cb) =>
+			calledEquals(ca, cb));
+}
+
+void hashFunDeclAndArgs(ref Hasher hasher, ref immutable FunDeclAndArgs a) {
+	hashPtr(hasher, a.decl);
+	foreach (immutable Type t; a.typeArgs)
+		hashType(hasher, t);
+	foreach (ref immutable Called c; a.specImpls)
+		hashCalled(hasher, c);
 }
 
 struct FunInst {
@@ -1128,11 +1136,14 @@ struct SpecSig {
 	immutable size_t indexOverAllSpecUses; // this is redundant to specInst and sig
 }
 
-private immutable(Comparison) compareSpecSig(ref immutable SpecSig a, ref immutable SpecSig b) {
+private immutable(bool) specSigEquals(ref immutable SpecSig a, ref immutable SpecSig b) {
 	// Don't bother with indexOverAllSpecUses, it's redundant if we checked sig
-	return compareOr(
-		comparePtr(a.specInst, b.specInst),
-		() => comparePtr(a.sig, b.sig));
+	return ptrEquals(a.specInst, b.specInst) && ptrEquals(a.sig, b.sig);
+}
+
+private void hashSpecSig(ref Hasher hasher, ref immutable SpecSig a) {
+	hashPtr(hasher, a.specInst);
+	hashPtr(hasher, a.sig);
 }
 
 immutable(Sym) name(ref immutable SpecSig a) {
@@ -1245,19 +1256,30 @@ struct Called {
 	}
 }
 
-private immutable(Comparison) compareCalled(ref immutable Called a, ref immutable Called b) {
-	return matchCalled!(immutable Comparison)(
+private immutable(bool) calledEquals(ref immutable Called a, ref immutable Called b) {
+	return matchCalled!(immutable bool)(
 		a,
 		(immutable Ptr!FunInst fa) =>
-			matchCalled!(immutable Comparison)(
+			matchCalled!(immutable bool)(
 				b,
-				(immutable Ptr!FunInst fb) => comparePtr(fa, fb),
-				(ref immutable SpecSig) => Comparison.less),
+				(immutable Ptr!FunInst fb) => ptrEquals(fa, fb),
+				(ref immutable SpecSig) => false),
 		(ref immutable SpecSig sa) =>
-			matchCalled!(immutable Comparison)(
+			matchCalled!(immutable bool)(
 				b,
-				(immutable Ptr!FunInst) => Comparison.greater,
-				(ref immutable SpecSig sb) => compareSpecSig(sa, sb)));
+				(immutable Ptr!FunInst) => false,
+				(ref immutable SpecSig sb) => specSigEquals(sa, sb)));
+}
+
+private void hashCalled(ref Hasher hasher, ref immutable Called a) {
+	matchCalled!void(
+		a,
+		(immutable Ptr!FunInst f) {
+			hashPtr(hasher, f);
+		},
+		(ref immutable SpecSig sa) {
+			hashSpecSig(hasher, sa);
+		});
 }
 
 @trusted ref immutable(Sig) sig(return scope ref immutable Called a) {
@@ -1385,7 +1407,7 @@ struct Module {
 	immutable FunDecl[] funs;
 	immutable Test[] tests;
 	// Includes re-exports
-	immutable Dict!(Sym, NameReferents, compareSym) allExportedNames;
+	immutable SymDict!NameReferents allExportedNames;
 }
 
 struct ModuleAndNames {

@@ -16,6 +16,10 @@ ubyte* allocateBytes(ref Alloc alloc, immutable size_t size) {
 	return alloc.allocateBytesImpl(size);
 }
 
+T* allocateT(T)(ref Alloc alloc, immutable size_t size) {
+	return cast(T*) allocateBytes(alloc, T.sizeof * size);
+}
+
 void freeBytes(ref Alloc alloc, ubyte* ptr, immutable size_t size) {
 	static assert(Alloc.stringof == "RangeAlloc");
 	alloc.freeBytesImpl(ptr, size);

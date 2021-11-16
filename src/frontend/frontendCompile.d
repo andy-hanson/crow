@@ -24,12 +24,13 @@ import util.opt : force, has, mapOption, Opt, none, some;
 import util.path :
 	AllPaths,
 	childPath,
-	comparePathAndStorageKind,
+	hashPathAndStorageKind,
 	matchAbsOrRelPath,
 	parent,
 	Path,
 	PathAndRange,
 	PathAndStorageKind,
+	pathAndStorageKindEqual,
 	RelPath,
 	resolvePath,
 	rootPath,
@@ -145,7 +146,7 @@ T matchParseStatusImpure(T)(
 	}
 }
 
-alias PathToStatus = MutDict!(PathAndStorageKind, ParseStatus, comparePathAndStorageKind);
+alias PathToStatus = MutDict!(PathAndStorageKind, ParseStatus, pathAndStorageKindEqual, hashPathAndStorageKind);
 
 struct ParsedEverything {
 	immutable FilePaths filePaths;

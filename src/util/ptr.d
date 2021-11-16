@@ -3,7 +3,7 @@ module util.ptr;
 @safe @nogc pure nothrow:
 
 import util.collection.arr : ArrWithSize, begin, end, toArr;
-import util.comparison : Comparison;
+import util.hash : Hasher, hashSizeT;
 import util.util : verify;
 
 struct TaggedPtr(E) {
@@ -79,16 +79,16 @@ immutable(bool) ptrEquals(T)(const Ptr!T a, const Ptr!T b) {
 	return a.ptr == b.ptr;
 }
 
-immutable(Comparison) comparePtr(T)(const Ptr!T a, const Ptr!T b) {
-	return comparePtrRaw(a.ptr, b.ptr);
+immutable(bool) ptrEqualsRaw(T)(const T* a, const T* b) {
+	return a == b;
 }
 
-immutable(Comparison) comparePtrRaw(T)(const T* a, const T* b) {
-	return a < b
-		? Comparison.less
-		: a > b
-		? Comparison.greater
-		: Comparison.equal;
+void hashPtr(T)(ref Hasher hasher, const Ptr!T a) {
+	hashSizeT(hasher, cast(immutable size_t) a.rawPtr());
+}
+
+void hashPtrRaw(T)(ref Hasher hasher, const T* a) {
+	hashSizeT(hasher, cast(immutable size_t) a);
 }
 
 @trusted immutable(Ptr!T) castImmutable(T)(Ptr!T a) {

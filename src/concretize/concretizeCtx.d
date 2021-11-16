@@ -15,7 +15,6 @@ import model.concreteModel :
 	body_,
 	BuiltinStructKind,
 	byVal,
-	compareConcreteType,
 	ConcreteExpr,
 	ConcreteExprKind,
 	ConcreteField,
@@ -29,11 +28,13 @@ import model.concreteModel :
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteType,
+	concreteTypeEqual,
 	concreteType_fromStruct,
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteStructInfo,
 	ConcreteStructSource,
+	hashConcreteType,
 	hasSizeOrPointerSizeBytes,
 	mustBeNonPointer,
 	NeedsCtx,
@@ -82,9 +83,9 @@ import util.alloc.alloc : Alloc;
 import util.collection.arr : at, empty, emptyArr, only, ptrAt, size, sizeEq;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil :
+	arrEqual,
 	arrLiteral,
 	arrMax,
-	compareArr,
 	every,
 	everyWithIndex,
 	exists,
@@ -94,15 +95,22 @@ import util.collection.arrUtil :
 	mapPtrsWithIndex,
 	mapWithIndex;
 import util.collection.mutArr : MutArr, mutArrIsEmpty, push;
-import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
-import util.collection.mutSet : addToMutSetOkIfPresent;
-import util.comparison : Comparison;
+import util.collection.mutDict :
+	addToMutDict,
+	getOrAdd,
+	getOrAddAndDidAdd,
+	mustDelete,
+	MutDict,
+	MutPtrDict,
+	ValueAndDidAdd;
+import util.collection.mutSet : addToMutSetOkIfPresent, MutSymSet;
+import util.hash : Hasher;
 import util.late : Late, lateIsSet, lateSet, lateSetMaybeOverwrite, lateSetOverwrite, lazilySet;
 import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals;
+import util.ptr : castImmutable, castMutable, hashPtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
-import util.sym : MutSymSet, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
+import util.sym : shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
 import util.types : Nat8, Nat16, safeSizeTToU8;
 import util.util : max, roundUp, todo, unreachable, verify;
 
@@ -142,9 +150,14 @@ private struct ConcreteStructKey {
 	immutable ConcreteType[] typeArgs;
 }
 
-private immutable(Comparison) compareConcreteStructKey(ref const ConcreteStructKey a, ref const ConcreteStructKey b) {
-	immutable Comparison res = comparePtr(a.decl, b.decl);
-	return res != Comparison.equal ? res : compareConcreteTypeArr(a.typeArgs, b.typeArgs);
+private immutable(bool) concreteStructKeyEqual(ref const ConcreteStructKey a, ref const ConcreteStructKey b) {
+	return ptrEquals(a.decl, b.decl) && concreteTypeArrEquals(a.typeArgs, b.typeArgs);
+}
+
+private void hashConcreteStructKey(ref Hasher hasher, ref const ConcreteStructKey a) {
+	hashPtr(hasher, a.decl);
+	foreach (immutable ConcreteType t; a.typeArgs)
+		hashConcreteType(hasher, t);
 }
 
 struct ConcreteFunKey {
@@ -174,23 +187,22 @@ immutable(TypeArgsScope) typeArgsScope(ref immutable ContainingFunInfo a) {
 	return immutable TypeArgsScope(a.typeParams, a.typeArgs);
 }
 
-private immutable(Comparison) compareConcreteFunKey(ref immutable ConcreteFunKey a, ref immutable ConcreteFunKey b) {
+private immutable(bool) concreteFunKeyEqual(ref immutable ConcreteFunKey a, ref immutable ConcreteFunKey b) {
 	// Compare decls, not insts.
 	// Two different FunInsts may concretize to the same thing.
 	// (e.g. f<?t> and f<bool> if ?t = bool)
-	immutable Comparison cmpDecl = comparePtr(a.inst.deref().decl, b.inst.deref().decl);
-	if (cmpDecl != Comparison.equal)
-		return cmpDecl;
-	else {
-		immutable Comparison res = compareConcreteTypeArr(a.typeArgs, b.typeArgs);
-		return res != Comparison.equal
-			? res
-			: compareArr!(Ptr!ConcreteFun)(
-				a.specImpls,
-				b.specImpls,
-				(ref immutable Ptr!ConcreteFun x, ref immutable Ptr!ConcreteFun y) =>
-					comparePtr(x, y));
-	}
+	return ptrEquals(a.inst.deref().decl, b.inst.deref().decl) &&
+		concreteTypeArrEquals(a.typeArgs, b.typeArgs) &&
+		arrEqual(a.specImpls, b.specImpls, (ref immutable Ptr!ConcreteFun x, ref immutable Ptr!ConcreteFun y) =>
+			ptrEquals(x, y));
+}
+
+private void hashConcreteFunKey(ref Hasher hasher, ref immutable ConcreteFunKey a) {
+	hashPtr(hasher, a.inst.deref().decl);
+	foreach (ref immutable ConcreteType t; a.typeArgs)
+		hashConcreteType(hasher, t);
+	foreach (immutable Ptr!ConcreteFun p; a.specImpls)
+		hashPtr(hasher, p);
 }
 
 private struct ConcreteFunBodyInputs {
@@ -230,27 +242,25 @@ struct ConcretizeCtx {
 	MutDict!(
 		immutable ConcreteStructKey,
 		immutable Ptr!ConcreteStruct,
-		compareConcreteStructKey,
+		concreteStructKeyEqual,
+		hashConcreteStructKey,
 	) nonLambdaConcreteStructs;
 	ArrBuilder!(immutable Ptr!ConcreteStruct) allConcreteStructs;
-	MutDict!(immutable ConcreteFunKey, immutable Ptr!ConcreteFun, compareConcreteFunKey) nonLambdaConcreteFuns;
+	MutDict!(
+		immutable ConcreteFunKey,
+		immutable Ptr!ConcreteFun,
+		concreteFunKeyEqual,
+		hashConcreteFunKey,
+	) nonLambdaConcreteFuns;
 	MutArr!DeferredRecordBody deferredRecords;
 	MutArr!DeferredUnionBody deferredUnions;
 	ArrBuilder!(immutable Ptr!ConcreteFun) allConcreteFuns;
 	MutSymSet allExternLibraryNames;
 
 	// This will only have an entry while a ConcreteFun hasn't had it's body filled in yet.
-	MutDict!(
-		immutable Ptr!ConcreteFun,
-		immutable ConcreteFunBodyInputs,
-		comparePtr!ConcreteFun,
-	) concreteFunToBodyInputs;
-	MutDict!(
-		immutable Ptr!ConcreteStruct,
-		// Index in this array is the fun ID
-		MutArr!(immutable ConcreteLambdaImpl),
-		comparePtr!ConcreteStruct
-	) funStructToImpls;
+	MutPtrDict!(ConcreteFun, immutable ConcreteFunBodyInputs) concreteFunToBodyInputs;
+	// Index in the MutArr!(immutable ConcreteLambdaImpl) is the fun ID
+	MutPtrDict!(ConcreteStruct, MutArr!(immutable ConcreteLambdaImpl)) funStructToImpls;
 	// TODO: do these eagerly
 	Late!(immutable ConcreteType) _boolType;
 	Late!(immutable ConcreteType) _voidType;
@@ -518,9 +528,9 @@ immutable(Ptr!ConcreteFun) concreteFunForTest(
 	return castImmutable(res);
 }
 
-immutable(Comparison) compareConcreteTypeArr(ref immutable ConcreteType[] a, ref immutable ConcreteType[] b) {
-	return compareArr!ConcreteType(a, b, (ref immutable ConcreteType x, ref immutable ConcreteType y) =>
-		compareConcreteType(x, y));
+immutable(bool) concreteTypeArrEquals(ref immutable ConcreteType[] a, ref immutable ConcreteType[] b) {
+	return arrEqual!ConcreteType(a, b, (ref immutable ConcreteType x, ref immutable ConcreteType y) =>
+		concreteTypeEqual(x, y));
 }
 
 immutable(bool) canGetUnionSize(ref immutable Opt!ConcreteType[] members) {

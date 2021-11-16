@@ -198,8 +198,8 @@ GccProgram getGccProgram(ref Alloc alloc, ref Perf perf, ref immutable LowProgra
 	verify(ctxPtr != null);
 	Ptr!gcc_jit_context ctx = Ptr!gcc_jit_context(ctxPtr);
 
-	//TODO: don't do this by default..
-	gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DEBUGINFO, true);
+	//TODO: compile option for this
+	//gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DEBUGINFO, true);
 	if (false)
 		// TODO: this makes it crash
 		gcc_jit_context_set_int_option(ctx.deref(), gcc_jit_int_option.GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 1);

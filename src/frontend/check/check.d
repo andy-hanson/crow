@@ -165,17 +165,17 @@ import util.collection.arrUtil :
 	zipMutPtrFirst,
 	zipPtrFirst;
 import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
-import util.collection.dict : Dict, dictEach, getAt, hasKey, KeyValuePair;
-import util.collection.dictBuilder : addToDict, DictBuilder, finishDict;
-import util.collection.dictUtil : buildMultiDict;
+import util.collection.dict : dictEach, getAt, hasKey, KeyValuePair, SymDict;
+import util.collection.dictBuilder : finishDict, SymDictBuilder, tryAddToDict;
 import util.collection.exactSizeArrBuilder :
 	ExactSizeArrBuilder,
 	exactSizeArrBuilderAdd,
 	finish,
 	newExactSizeArrBuilder;
-import util.collection.multiDict : multiDictEach, multiDictGetAt;
+import util.collection.multiDict : buildMultiDict, multiDictEach, multiDictGetAt;
 import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
-import util.collection.mutDict : insertOrUpdate, moveToDict, MutDict;
+import util.collection.mutDict : insertOrUpdate, moveToDict, MutSymDict;
+import util.collection.mutSet : addToMutSymSetOkIfPresent;
 import util.collection.str : copySafeCStr, emptySafeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, OptPtr, some, someMut, toOpt;
@@ -183,10 +183,9 @@ import util.perf : Perf;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, fileAndPosFromFileAndRange, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym :
-	addToMutSymSetOkIfPresent,
 	AllSymbols,
-	compareSym,
 	containsSym,
+	hashSym,
 	Operator,
 	prependSet,
 	shortSymAlphaLiteral,
@@ -1206,25 +1205,27 @@ immutable(StructsAndAliasesDict) buildStructsAndAliasesDict(
 	immutable StructDecl[] structs,
 	immutable StructAlias[] aliases,
 ) {
-	DictBuilder!(Sym, StructOrAliasAndIndex, compareSym) d;
+	SymDictBuilder!StructOrAliasAndIndex builder;
+	void warnOnDup(immutable Sym name, immutable Opt!StructOrAliasAndIndex opt) {
+		if (has(opt))
+			addDiag(alloc, ctx, force(opt).structOrAlias.range, immutable Diag(
+				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.structOrAlias, name)));
+	}
 	foreach (immutable size_t index; 0 .. size(structs)) {
 		immutable Ptr!StructDecl decl = ptrAt(structs, index);
-		addToDict(alloc, d, decl.deref().name, immutable StructOrAliasAndIndex(
+		immutable Sym name = decl.deref().name;
+		warnOnDup(name, tryAddToDict(alloc, builder, name, immutable StructOrAliasAndIndex(
 			immutable StructOrAlias(decl),
-			immutable ModuleLocalStructOrAliasIndex(index)));
+			immutable ModuleLocalStructOrAliasIndex(index))));
 	}
 	foreach (immutable size_t index; 0 .. size(aliases)) {
 		immutable Ptr!StructAlias alias_ = ptrAt(aliases, index);
-		addToDict(alloc, d, alias_.deref().name, immutable StructOrAliasAndIndex(
+		immutable Sym name = alias_.deref().name;
+		warnOnDup(name, tryAddToDict(alloc, builder, name, immutable StructOrAliasAndIndex(
 			immutable StructOrAlias(alias_),
-			immutable ModuleLocalStructOrAliasIndex(index)));
+			immutable ModuleLocalStructOrAliasIndex(index))));
 	}
-	return finishDict!(Sym, StructOrAliasAndIndex, compareSym)(
-		alloc,
-		d,
-		(ref immutable Sym name, ref immutable StructOrAliasAndIndex, ref immutable StructOrAliasAndIndex b) =>
-			addDiag(alloc, ctx, b.structOrAlias.range, immutable Diag(
-				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.structOrAlias, name))));
+	return finishDict(alloc, builder);
 }
 
 struct FunsAndDict {
@@ -1316,7 +1317,7 @@ immutable(FunsAndDict) checkFuns(
 	bool[] usedFuns = fillArr_mut!bool(alloc, size(funs), (immutable size_t) =>
 		false);
 
-	immutable FunsDict funsDict = buildMultiDict!(Sym, FunDeclAndIndex, compareSym, FunDecl)(
+	immutable FunsDict funsDict = buildMultiDict!(Sym, FunDeclAndIndex, symEq, hashSym, FunDecl)(
 		alloc,
 		castImmutable(funs),
 		(immutable size_t index, immutable Ptr!FunDecl it) =>
@@ -1404,7 +1405,7 @@ immutable(CommonFuns) getCommonFuns(
 ) {
 	immutable(Ptr!FunDecl) commonFunDecl(immutable string name) {
 		immutable Sym nameSym = shortSymAlphaLiteral(name);
-		immutable FunDeclAndIndex[] funs = multiDictGetAt!(Sym, FunDeclAndIndex, compareSym)(funsDict, nameSym);
+		immutable FunDeclAndIndex[] funs = multiDictGetAt(funsDict, nameSym);
 		if (size(funs) != 1) {
 			addDiag(
 				alloc,
@@ -1891,22 +1892,17 @@ immutable(SpecsDict) buildSpecsDict(
 	ref CheckCtx ctx,
 	ref immutable SpecDecl[] specs,
 ) {
-	DictBuilder!(Sym, SpecDeclAndIndex, compareSym) res;
+	SymDictBuilder!SpecDeclAndIndex res;
 	foreach (immutable size_t index; 0 .. size(specs)) {
 		immutable Ptr!SpecDecl spec = ptrAt(specs, index);
-		addToDict(
-			alloc,
-			res,
-			spec.deref().name,
-			immutable SpecDeclAndIndex(spec, immutable ModuleLocalSpecIndex(index)));
-	}
-	return finishDict!(Sym, SpecDeclAndIndex, compareSym)(
-		alloc,
-		res,
-		(ref immutable Sym name, ref immutable SpecDeclAndIndex, ref immutable SpecDeclAndIndex b) {
-			addDiag(alloc, ctx, b.decl.deref().range, immutable Diag(
+		immutable Sym name = spec.deref().name;
+		immutable Opt!SpecDeclAndIndex b =
+			tryAddToDict(alloc, res, name, immutable SpecDeclAndIndex(spec, immutable ModuleLocalSpecIndex(index)));
+		if (has(b))
+			addDiag(alloc, ctx, force(b).decl.deref().range, immutable Diag(
 				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.spec, name)));
-		});
+	}
+	return finishDict(alloc, res);
 }
 
 struct ModuleAndCommonFuns {
@@ -1981,7 +1977,7 @@ immutable(ModuleAndCommonFuns) checkWorkerAfterCommonTypes(
 		funsAndDict.commonFuns);
 }
 
-immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(
+immutable(SymDict!NameReferents) getAllExportedNames(
 	ref Alloc alloc,
 	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref immutable ModuleAndNames[] reExports,
@@ -1990,10 +1986,10 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(
 	ref immutable FunsDict funsDict,
 	immutable FileIndex fileIndex,
 ) {
-	MutDict!(immutable Sym, immutable NameReferents, compareSym) res;
+	MutSymDict!(immutable NameReferents) res;
 	void addExport(immutable Sym name, immutable NameReferents cur, immutable FileAndRange range)
 		@safe @nogc pure nothrow {
-		insertOrUpdate!(immutable Sym, immutable NameReferents, compareSym)(
+		insertOrUpdate!(immutable Sym, immutable NameReferents, symEq, hashSym)(
 			alloc,
 			res,
 			name,
@@ -2016,18 +2012,18 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(
 	}
 
 	foreach (ref immutable ModuleAndNames e; reExports) {
-		dictEach!(Sym, NameReferents, compareSym)(
+		dictEach!(Sym, NameReferents, symEq, hashSym)(
 			e.module_.allExportedNames,
-			(ref immutable Sym name, ref immutable NameReferents value) {
+			(immutable Sym name, ref immutable NameReferents value) {
 				if (!has(e.names) || containsSym(force(e.names), name))
 					addExport(name, value, immutable FileAndRange(
 						fileIndex,
 						has(e.importSource) ? force(e.importSource) : RangeWithinFile.empty));
 			});
 	}
-	dictEach!(Sym, StructOrAliasAndIndex, compareSym)(
+	dictEach!(Sym, StructOrAliasAndIndex, symEq, hashSym)(
 		structsAndAliasesDict,
-		(ref immutable Sym name, ref immutable StructOrAliasAndIndex it) {
+		(immutable Sym name, ref immutable StructOrAliasAndIndex it) {
 			final switch (visibility(it.structOrAlias)) {
 				case Visibility.public_:
 					addExport(
@@ -2039,9 +2035,9 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(
 					break;
 			}
 		});
-	dictEach!(Sym, SpecDeclAndIndex, compareSym)(
+	dictEach!(Sym, SpecDeclAndIndex, symEq, hashSym)(
 		specsDict,
-		(ref immutable Sym name, ref immutable SpecDeclAndIndex it) {
+		(immutable Sym name, ref immutable SpecDeclAndIndex it) {
 			final switch (it.decl.deref().visibility) {
 				case Visibility.public_:
 					addExport(
@@ -2053,9 +2049,9 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(
 					break;
 			}
 		});
-	multiDictEach!(Sym, FunDeclAndIndex, compareSym)(
+	multiDictEach!(Sym, FunDeclAndIndex, symEq, hashSym)(
 		funsDict,
-		(ref immutable Sym name, immutable FunDeclAndIndex[] funs) {
+		(immutable Sym name, immutable FunDeclAndIndex[] funs) {
 			immutable Ptr!FunDecl[] funDecls = mapOp!(Ptr!FunDecl)(
 				alloc,
 				funs,
@@ -2075,7 +2071,7 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(
 					immutable FileAndRange(fileIndex, RangeWithinFile.empty));
 		});
 
-	return moveToDict!(Sym, NameReferents, compareSym)(alloc, res);
+	return moveToDict!(Sym, NameReferents, symEq, hashSym)(alloc, res);
 }
 
 immutable(BootstrapCheck) checkWorker(

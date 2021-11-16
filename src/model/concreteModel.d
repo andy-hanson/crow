@@ -27,11 +27,11 @@ import model.model :
 	StructInst,
 	summon;
 import util.collection.arr : only;
-import util.collection.dict : Dict;
-import util.comparison : compareBool, Comparison;
+import util.collection.dict : PtrDict;
+import util.hash : hashBool, Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
-import util.ptr : comparePtr, Ptr;
+import util.ptr : hashPtr, ptrEquals, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Nat8, Nat16;
@@ -369,9 +369,13 @@ immutable(ConcreteType) concreteType_fromStruct(immutable Ptr!ConcreteStruct s) 
 	return immutable ConcreteType(defaultIsPointer(s.deref()), s);
 }
 
-immutable(Comparison) compareConcreteType(ref immutable ConcreteType a, ref immutable ConcreteType b) {
-	immutable Comparison res = comparePtr(a.struct_, b.struct_);
-	return res != Comparison.equal ? res : compareBool(a.isPointer, b.isPointer);
+immutable(bool) concreteTypeEqual(ref immutable ConcreteType a, ref immutable ConcreteType b) {
+	return ptrEquals(a.struct_, b.struct_) && a.isPointer == b.isPointer;
+}
+
+void hashConcreteType(ref Hasher hasher, ref immutable ConcreteType a) {
+	hashPtr(hasher, a.struct_);
+	hashBool(hasher, a.isPointer);
 }
 
 struct ConcreteFieldSource {
@@ -1047,7 +1051,7 @@ struct ConcreteProgram {
 	immutable Ptr!ConcreteStruct[] allStructs;
 	immutable Ptr!ConcreteFun[] allFuns;
 	immutable ConcreteFunToName funToName;
-	immutable Dict!(Ptr!ConcreteStruct, ConcreteLambdaImpl[], comparePtr!ConcreteStruct) funStructToImpls;
+	immutable PtrDict!(ConcreteStruct, ConcreteLambdaImpl[]) funStructToImpls;
 	immutable ConcreteCommonFuns commonFuns;
 	immutable Ptr!ConcreteStruct ctxType;
 	immutable Sym[] allExternLibraryNames;
@@ -1066,7 +1070,7 @@ struct ConcreteCommonFuns {
 	immutable Ptr!ConcreteFun allocFun;
 }
 
-alias ConcreteFunToName = immutable Dict!(Ptr!ConcreteFun, Constant, comparePtr!ConcreteFun);
+alias ConcreteFunToName = immutable PtrDict!(ConcreteFun, Constant);
 
 struct ConcreteLambdaImpl {
 	immutable ConcreteType closureType;

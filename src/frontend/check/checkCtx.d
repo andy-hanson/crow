@@ -18,7 +18,7 @@ import util.alloc.alloc : Alloc;
 import util.collection.arr : at, castImmutable, setAt, size;
 import util.collection.arrBuilder : add, ArrBuilder;
 import util.collection.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
-import util.collection.dict : getPtrAt;
+import util.collection.dict : getAt;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.ptr : Ptr;
@@ -193,9 +193,9 @@ immutable(Acc) eachImportAndReExport(Acc)(
 				}
 			}();
 			if (has(importIndex)) {
-				immutable Opt!(Ptr!NameReferents) referents = getPtrAt(m.module_.allExportedNames, name);
+				immutable Opt!NameReferents referents = getAt(m.module_.allExportedNames, name);
 				if (has(referents))
-					return cb(acc, m.modulePtr, immutable ImportIndex(force(importIndex)), force(referents).deref());
+					return cb(acc, m.modulePtr, immutable ImportIndex(force(importIndex)), force(referents));
 			}
 			return acc;
 		});

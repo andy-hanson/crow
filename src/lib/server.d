@@ -18,11 +18,17 @@ import util.collection.arrUtil : map;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
 import util.collection.str : copyToNulTerminatedStr, CStr, cStrOfNulTerminatedStr, NulTerminatedStr, SafeCStr;
-import util.comparison : Comparison;
 import util.dbg : Debug;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths, comparePathAndStorageKind, parsePath, Path, PathAndStorageKind, StorageKind;
+import util.path :
+	AllPaths,
+	hashPathAndStorageKind,
+	parsePath,
+	Path,
+	PathAndStorageKind,
+	pathAndStorageKindEqual,
+	StorageKind;
 import util.perf : Perf;
 import util.ptr : Ptr, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
@@ -54,7 +60,12 @@ pure void addOrChangeFile(
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable NulTerminatedStr contentCopy = copyToNulTerminatedStr(server.alloc, content);
-	insertOrUpdate!(immutable PathAndStorageKind, immutable NulTerminatedStr, comparePathAndStorageKind)(
+	insertOrUpdate!(
+		immutable PathAndStorageKind,
+		immutable NulTerminatedStr,
+		pathAndStorageKindEqual,
+		hashPathAndStorageKind,
+	)(
 		server.alloc,
 		server.files,
 		key,
@@ -149,7 +160,7 @@ private pure immutable(Opt!FileIndex) getFileIndex(
 	scope ref immutable PathAndStorageKind search,
 ) {
 	foreach (immutable size_t i; 0 .. fullIndexDictSize(filePaths))
-		if (comparePathAndStorageKind(at(filePaths.values, i), search) == Comparison.equal)
+		if (pathAndStorageKindEqual(at(filePaths.values, i), search))
 			return some(immutable FileIndex(safeSizeTToU16(i)));
 	return none!FileIndex;
 }

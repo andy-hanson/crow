@@ -72,10 +72,10 @@ import util.alloc.alloc : Alloc;
 import util.collection.arr : at, empty, emptyArr, only, ptrAt, size;
 import util.collection.arrUtil : arrLiteral, every, map, mapWithIndex;
 import util.collection.mutArr : MutArr, mutArrSize, push;
-import util.collection.mutDict : addToMutDict, getOrAdd, mustDelete, mustGetAt_mut, MutDict;
+import util.collection.mutDict : addToMutDict, getOrAdd, mustDelete, mustGetAt_mut, MutPtrDict;
 import util.memory : allocate;
 import util.opt : force, has, none, some;
-import util.ptr : comparePtr, Ptr, ptrTrustMe_mut;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, symEq, symEqLongAlphaLiteral;
 import util.types : Nat16, safeSizeTToU8, safeSizeTToU16;
@@ -107,7 +107,7 @@ struct ConcretizeExprCtx {
 	size_t nextLocalIndex = 0;
 
 	// Contains only the locals that are currently in scope.
-	MutDict!(immutable Ptr!Local, immutable LocalOrConstant, comparePtr!Local) locals;
+	MutPtrDict!(Local, immutable LocalOrConstant) locals;
 
 	ref inout(ConcretizeCtx) concretizeCtx() return scope inout {
 		return concretizeCtxPtr.deref();

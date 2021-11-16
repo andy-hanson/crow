@@ -3,6 +3,8 @@ module util.perf;
 @safe @nogc nothrow: // not pure
 
 import util.alloc.alloc : Alloc, curBytes;
+import util.collection.arrUtil : sortInPlace;
+import util.comparison : compareUlong, oppositeComparison;
 import util.util : verify;
 
 struct Perf {
@@ -109,14 +111,23 @@ struct PerfMeasureResult {
 	ulong nanoseconds;
 }
 
+private struct PerfResultWithMeasure {
+	PerfMeasure measure;
+	PerfMeasureResult result;
+}
+
 void eachMeasure(
 	scope ref Perf perf,
 	scope void delegate(immutable string, immutable PerfMeasureResult) @safe @nogc nothrow cb,
 ) {
-	foreach (immutable uint measure; 0 .. PerfMeasure.max + 1) {
-		immutable PerfMeasureResult result = perf.measures[measure];
-		if (result.count)
-			cb(perfMeasureName(cast(immutable PerfMeasure) measure), result);
+	PerfResultWithMeasure[PerfMeasure.max + 1] results;
+	foreach (immutable uint measure; 0 .. PerfMeasure.max + 1)
+		results[measure] = PerfResultWithMeasure(cast(immutable PerfMeasure) measure, perf.measures[measure]);
+	sortInPlace!PerfResultWithMeasure(results, (ref const PerfResultWithMeasure a, ref const PerfResultWithMeasure b) =>
+		oppositeComparison(compareUlong(a.result.nanoseconds, b.result.nanoseconds)));
+	foreach (ref const PerfResultWithMeasure m; results) {
+		if (m.result.count)
+			cb(perfMeasureName(m.measure), m.result);
 	}
 }
 

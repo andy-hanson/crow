@@ -43,7 +43,7 @@ import util.collection.str : SafeCStr, strOfSafeCStr;
 import util.opt : force, has, Opt;
 import util.path : AllPaths, eachPathPart, nPathComponents, Path;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.sym : compareSym, Sym, writeSym;
+import util.sym : hashSym, Sym, symEq, writeSym;
 import util.util : repeat, todo, unreachable;
 import util.writer : finishWriter, Writer, writeChar, writeStatic, writeStr, writeWithCommas;
 
@@ -66,9 +66,9 @@ immutable(string) document(
 	writeModulePath(writer, allPaths, path);
 	writeStatic(writer, "\")\n");
 	writeStatic(writer, "\tsection");
-	dictEach!(Sym, NameReferents, compareSym)(
+	dictEach!(Sym, NameReferents, symEq, hashSym)(
 		a.allExportedNames,
-		(ref immutable Sym name, ref immutable NameReferents referents) {
+		(immutable(Sym), ref immutable NameReferents referents) {
 			if (has(referents.structOrAlias))
 				writeStructOrAlias(writer, force(referents.structOrAlias));
 			if (has(referents.spec))

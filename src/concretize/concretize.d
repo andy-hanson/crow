@@ -43,13 +43,13 @@ import util.alloc.alloc : Alloc;
 import util.collection.arr : at, emptyArr, only, size;
 import util.collection.arrBuilder : finishArr_immutable;
 import util.collection.dict : getAt;
-import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
+import util.collection.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
 import util.collection.mutArr : moveToArr, MutArr;
 import util.collection.mutDict : mapToDict, mutDictIsEmpty;
-import util.collection.mutSet : moveToArr;
+import util.collection.mutSet : moveSetToArr;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sym : AllSymbols, getSymFromAlphaIdentifier, shortSymAlphaLiteral, Sym;
 import util.util : todo, verify;
 import util.writer : finishWriter, Writer;
@@ -109,14 +109,20 @@ immutable(ConcreteProgram) concretizeInner(
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		allConcreteFuns,
 		funToName,
-		mapToDict!(Ptr!ConcreteStruct, ConcreteLambdaImpl[], MutArr!(immutable ConcreteLambdaImpl))(
+		mapToDict!(
+			Ptr!ConcreteStruct,
+			ConcreteLambdaImpl[],
+			MutArr!(immutable ConcreteLambdaImpl),
+			ptrEquals!ConcreteStruct,
+			hashPtr!ConcreteStruct,
+		)(
 			alloc,
 			ctx.funStructToImpls,
 			(ref MutArr!(immutable ConcreteLambdaImpl) it) =>
 				moveToArr(alloc, it)),
 		immutable ConcreteCommonFuns(markConcreteFun, rtMainConcreteFun, userMainConcreteFun, allocFun),
 		ctxStruct,
-		moveToArr(alloc, ctx.allExternLibraryNames));
+		moveSetToArr(alloc, ctx.allExternLibraryNames));
 }
 
 immutable(ConcreteFunToName) getFunToName(
@@ -124,14 +130,14 @@ immutable(ConcreteFunToName) getFunToName(
 	ref ConcretizeCtx ctx,
 	immutable Ptr!ConcreteFun[] allConcreteFuns,
 ) {
-	DictBuilder!(Ptr!ConcreteFun, Constant, comparePtr!ConcreteFun) res;
+	PtrDictBuilder!(ConcreteFun, Constant) res;
 	foreach (immutable Ptr!ConcreteFun f; allConcreteFuns) {
 		Writer writer = Writer(ptrTrustMe_mut(alloc));
 		writeConcreteFunName(writer, f.deref());
 		immutable string name = finishWriter(writer);
-		addToDict(alloc, res, f, constantStr(alloc, ctx, name));
+		mustAddToDict(alloc, res, f, constantStr(alloc, ctx, name));
 	}
-	return finishDictShouldBeNoConflict(alloc, res);
+	return finishDict(alloc, res);
 }
 
 immutable(bool) isNat(ref immutable CommonTypes commonTypes, immutable Type type) {

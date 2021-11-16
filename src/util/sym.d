@@ -6,10 +6,9 @@ import util.alloc.alloc : Alloc;
 import util.collection.arr : at, first, last, only, size;
 import util.collection.arrUtil : contains, every, findIndex, tail;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
-import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
 import util.collection.str : CStr, strEq, strOfCStr, strToCStr;
-import util.comparison : Comparison;
 import util.dbg : Debug;
+import util.hash : Hasher, hashUlong;
 import util.opt : has, Opt, force, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.util : unreachable, verify;
@@ -258,17 +257,6 @@ immutable(size_t) symSize(immutable Sym a) {
 	return size;
 }
 
-immutable(Comparison) compareSym(immutable Sym a, immutable Sym b) {
-	// We just need to be consistent, so just use the value
-	return a.value < b.value
-			? Comparison.less
-		: a.value > b.value
-			? Comparison.greater
-			: Comparison.equal;
-}
-
-alias MutSymSet = MutSet!(immutable Sym, compareSym);
-
 immutable(bool) symEq(immutable Sym a, immutable Sym b) {
 	return a.value == b.value;
 }
@@ -341,12 +329,8 @@ immutable(Opt!Operator) operatorForSym(immutable Sym a) {
 		return none!Operator;
 }
 
-void addToMutSymSetOkIfPresent(
-	ref Alloc alloc,
-	ref MutSymSet set,
-	immutable Sym sym,
-) {
-	addToMutSetOkIfPresent!(immutable Sym, compareSym)(alloc, set, sym);
+void hashSym(ref Hasher hasher, immutable Sym a) {
+	hashUlong(hasher, a.value);
 }
 
 private:

@@ -7,7 +7,7 @@ import model.model : AbsolutePathsGetter;
 import util.collection.mutDict : getAt_mut, MutDict;
 import util.collection.str : SafeCStr, NulTerminatedStr, strEq;
 import util.opt : asImmutable, Opt;
-import util.path : comparePathAndStorageKind, PathAndStorageKind;
+import util.path : hashPathAndStorageKind, PathAndStorageKind, pathAndStorageKindEqual;
 import util.ptr : Ptr;
 import util.util : verify;
 
@@ -32,4 +32,9 @@ struct DictReadOnlyStorage {
 	const Ptr!MutFiles files;
 }
 
-alias MutFiles = MutDict!(immutable PathAndStorageKind, immutable NulTerminatedStr, comparePathAndStorageKind);
+alias MutFiles = MutDict!(
+	immutable PathAndStorageKind,
+	immutable NulTerminatedStr,
+	pathAndStorageKindEqual,
+	hashPathAndStorageKind,
+);

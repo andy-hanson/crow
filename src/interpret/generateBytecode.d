@@ -110,7 +110,7 @@ import util.collection.fullIndexDict :
 	fullIndexDictOfArr,
 	fullIndexDictSize,
 	mapFullIndexDict;
-import util.collection.mutDict : addToMutDict, mustDelete, mustGetAt_mut, MutDict;
+import util.collection.mutDict : addToMutDict, mustDelete, mustGetAt_mut, MutPtrDict;
 import util.collection.mutIndexMultiDict :
 	MutIndexMultiDict,
 	mutIndexMultiDictAdd,
@@ -119,7 +119,7 @@ import util.collection.mutIndexMultiDict :
 import util.dbg : Debug;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
 import util.sym : shortSymAlphaLiteralValue, Sym, symEqLongAlphaLiteral;
 import util.types :
@@ -432,7 +432,7 @@ struct ExprCtx {
 	immutable ByteCodeIndex startOfCurrentFun;
 	immutable StackEntry parametersStart;
 	immutable StackEntries[] parameterEntries;
-	MutDict!(immutable Ptr!LowLocal, immutable StackEntries, comparePtr!LowLocal) localEntries;
+	MutPtrDict!(LowLocal, immutable StackEntries) localEntries;
 
 	ref immutable(LowProgram) program() return scope const {
 		return programPtr.deref();

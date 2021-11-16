@@ -2,58 +2,37 @@ module util.collection.dict;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : ptrsRange;
-import util.comparison : Comparison;
-import util.opt : force, none, Opt, some;
-import util.ptr : Ptr, ptrTrustMe;
-import util.util : unreachable;
+import util.collection.mutDict : getAt_mut, hasKey_mut, mustGetAt_mut, mutDictEach, MutDict;
+public import util.collection.mutDict : KeyValuePair;
+import util.opt : Opt;
+import util.ptr : hashPtr, Ptr, ptrEquals;
+import util.sym : hashSym, Sym, symEq;
 
-struct KeyValuePair(K, V) {
-	K key;
-	V value;
+struct Dict(K, V, alias equal, alias hash) {
+	private immutable MutDict!(K, V, equal, hash) inner;
 }
 
-struct Dict(K, V, alias cmp) {
-	KeyValuePair!(K, V)[] pairs;
+alias PtrDict(K, V) =
+	Dict!(Ptr!K, V, ptrEquals!K, hashPtr!K);
+
+alias SymDict(V) =
+	Dict!(Sym, V, symEq, hashSym);
+
+immutable(bool) hasKey(K, V, alias equal, alias hash)(ref immutable Dict!(K, V, equal, hash) a, const K key) {
+	return hasKey_mut(a.inner, key);
 }
 
-void dictEach(K, V, alias cmp)(
-	ref immutable Dict!(K, V, cmp) a,
-	scope void delegate(ref immutable K, ref immutable V) @safe @nogc pure nothrow cb,
+@trusted immutable(Opt!V) getAt(K, V, alias equal, alias hash)(ref immutable Dict!(K, V, equal, hash) a, const K key) {
+	return cast(immutable) getAt_mut(a.inner, key);
+}
+
+@trusted immutable(V) mustGetAt(K, V, alias equal, alias hash)(ref immutable Dict!(K, V, equal, hash) a, const K key) {
+	return cast(immutable) mustGetAt_mut(a.inner, key);
+}
+
+void dictEach(K, V, alias equal, alias hash)(
+	ref immutable Dict!(K, V, equal, hash) a,
+	scope void delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb,
 ) {
-	foreach (ref immutable KeyValuePair!(K, V) pair; a.pairs)
-		cb(pair.key, pair.value);
-}
-
-immutable(bool) hasKey(K, V, alias cmp)(ref immutable Dict!(K, V, cmp) a, immutable K key) {
-	foreach (ref immutable KeyValuePair!(K, V) pair; a.pairs)
-		if (cmp(pair.key, key) == Comparison.equal)
-			return true;
-	return false;
-}
-
-immutable(Opt!(Ptr!V)) getPtrAt(K, V, alias cmp)(immutable Dict!(K, V, cmp) d, immutable K key) {
-	foreach (immutable Ptr!(KeyValuePair!(K, V)) pair; ptrsRange(d.pairs))
-		if (cmp(pair.deref().key, key) == Comparison.equal)
-			return some!(Ptr!V)(ptrTrustMe(pair.deref().value));
-	return none!(Ptr!V);
-}
-
-immutable(Opt!V) getAt(K, V, alias cmp)(immutable Dict!(K, V, cmp) d, immutable K key) {
-	foreach (ref immutable KeyValuePair!(K, V) pair; d.pairs)
-		if (cmp(pair.key, key) == Comparison.equal)
-			return some!V(pair.value);
-	return none!V;
-}
-
-immutable(V) mustGetAt(K, V, alias cmp)(ref immutable Dict!(K, V, cmp) d, immutable K key) {
-	immutable Opt!V opt = getAt(d, key);
-	return force(opt);
-}
-
-ref V mustGetAt_mut(K, V, alias cmp)(return scope ref Dict!(K, V, cmp) d, immutable K key) {
-	foreach (ref KeyValuePair!(K, V) pair; d.pairs)
-		if (cmp(pair.key, key) == Comparison.equal)
-			return pair.value;
-	return unreachable!V();
+	mutDictEach!(K, V, equal, hash)(a.inner, cb);
 }

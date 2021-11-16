@@ -30,7 +30,7 @@ main fut nat(args str[]) summon unsafe
 
 		42 srand
 		gc = get-gc
-		assert: gc.current-kb == 0
+		assert: gc.current-kb < 10
 		start-us = get-monotime-nsec
 		get-result = col-kind run-test test-kind, iters, max-value
 		result = get-result[]

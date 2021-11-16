@@ -2,14 +2,24 @@ module util.comparison;
 
 @safe @nogc pure nothrow:
 
-import util.ptr : Ptr;
-
 alias Comparer(T) = immutable(Comparison) delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow;
+alias ConstComparer(T) = immutable(Comparison) delegate(ref const T, ref const T) @safe @nogc pure nothrow;
 
 enum Comparison {
 	less,
 	equal,
 	greater,
+}
+
+immutable(Comparison) oppositeComparison(immutable Comparison a) {
+	final switch (a) {
+		case Comparison.less:
+			return Comparison.greater;
+		case Comparison.equal:
+			return Comparison.equal;
+		case Comparison.greater:
+			return Comparison.less;
+	}
 }
 
 immutable(Comparison) compareOr(
@@ -31,31 +41,29 @@ immutable(Comparison) compareOr(
 }
 
 immutable(Comparison) compareNat16(immutable ushort a, immutable ushort b) {
-	return compareSizeT(a, b);
+	return compareT(a, b);
 }
 
 immutable(Comparison) compareNat32(immutable uint a, immutable uint b) {
-	return compareSizeT(a, b);
+	return compareT(a, b);
 }
 
 immutable(Comparison) compareSizeT(immutable size_t a, immutable size_t b) {
-	return a < b
-			? Comparison.less
-		: a > b
-			? Comparison.greater
-		: Comparison.equal;
+	return compareT(a, b);
+}
+
+immutable(Comparison) compareUlong(immutable ulong a, immutable ulong b) {
+	return compareT(a, b);
 }
 
 immutable(Comparison) compareEnum(E)(immutable E a, immutable E b) {
 	return compareNat32(uint(a), uint(b));
 }
 
-immutable(Comparison) compareBool(immutable bool a, immutable bool b) {
-	return a
-		? b ? Comparison.equal : Comparison.greater
-		: b ? Comparison.less : Comparison.equal;
-}
-
-immutable(bool) ptrEquals(T)(immutable Ptr!T a, immutable Ptr!T b) {
-	return a == b;
+private immutable(Comparison) compareT(T)(immutable T a, immutable T b) {
+	return a < b
+			? Comparison.less
+		: a > b
+			? Comparison.greater
+		: Comparison.equal;
 }

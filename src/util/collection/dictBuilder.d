@@ -3,60 +3,50 @@ module util.collection.dictBuilder;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, size;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push;
-import util.collection.dict : Dict, KeyValuePair;
-import util.comparison : Comparison;
+import util.collection.mutDict : getOrAddAndDidAdd, moveToDict, MutDict, ValueAndDidAdd;
+import util.collection.dict : Dict;
+import util.opt : has, none, Opt, some;
+import util.ptr : hashPtr, Ptr, ptrEquals;
+import util.sym : hashSym, Sym, symEq;
 import util.util : verify;
 
-struct DictBuilder(K, V, alias cmp) {
-	@disable this(ref const DictBuilder!(K, V, cmp));
+private struct DictBuilder(K, V, alias equal, alias hash) {
+	@disable this(ref const DictBuilder);
 
 	private:
-	ArrBuilder!(KeyValuePair!(K, V)) builder;
+	MutDict!(immutable K, immutable V, equal, hash) builder;
 }
 
-void addToDict(K, V, alias cmp)(
+alias PtrDictBuilder(K, V) =
+	DictBuilder!(Ptr!K, V, ptrEquals!K, hashPtr!K);
+
+alias SymDictBuilder(V) =
+	DictBuilder!(Sym, V, symEq, hashSym);
+
+void mustAddToDict(K, V, alias equal, alias hash)(
 	ref Alloc alloc,
-	ref DictBuilder!(K, V, cmp) db,
+	ref DictBuilder!(K, V, equal, hash) a,
 	immutable K key,
 	immutable V value,
 ) {
-	return add(alloc, db.builder, immutable KeyValuePair!(K, V)(key, value));
+	immutable Opt!V res = tryAddToDict(alloc, a, key, value);
+	verify(!has(res));
 }
 
-immutable(Dict!(K, V, cmp)) finishDict(K, V, alias cmp)(
+// If there is already a value there, does nothing and returns it
+immutable(Opt!V) tryAddToDict(K, V, alias equal, alias hash)(
 	ref Alloc alloc,
-	ref DictBuilder!(K, V, cmp) db,
-	scope void delegate(ref immutable K, ref immutable V, ref immutable V) @safe @nogc pure nothrow cbConflict,
+	ref DictBuilder!(K, V, equal, hash) a,
+	immutable K key,
+	immutable V value,
 ) {
-	immutable KeyValuePair!(K, V)[] allPairs = finishArr(alloc, db.builder);
-	MutArr!(immutable KeyValuePair!(K, V)) res;
-	foreach (immutable size_t i; 0 .. allPairs.size) {
-		immutable KeyValuePair!(K, V) pair = at(allPairs, i);
-		bool isConflict = false;
-		foreach (immutable size_t j; 0 .. mutArrSize(res)) {
-			immutable KeyValuePair!(K, V) resPair = mutArrAt(res, j);
-			if (cmp(pair.key, resPair.key) == Comparison.equal) {
-				cbConflict(pair.key, resPair.value, pair.value);
-				isConflict = true;
-				break;
-			}
-		}
-		if (!isConflict)
-			push(alloc, res, pair);
-	}
-	return immutable Dict!(K, V, cmp)(moveToArr!(KeyValuePair!(K, V))(alloc, res));
+	ValueAndDidAdd!(immutable V) v = getOrAddAndDidAdd(alloc, a.builder, key, () => value);
+	return v.didAdd ? none!V : some(v.value);
 }
 
-immutable(Dict!(K, V, cmp)) finishDictShouldBeNoConflict(K, V, alias cmp)(
+immutable(Dict!(K, V, equal, hash)) finishDict(K, V, alias equal, alias hash)(
 	ref Alloc alloc,
-	ref DictBuilder!(K, V, cmp) a,
+	ref DictBuilder!(K, V, equal, hash) a,
 ) {
-	immutable KeyValuePair!(K, V)[] allPairs = finishArr(alloc, a.builder);
-	foreach (immutable size_t i; 0 .. size(allPairs))
-		foreach (immutable size_t j; 0 .. i)
-			verify(cmp(at(allPairs, i).key, at(allPairs, j).key) != Comparison.equal);
-	return immutable Dict!(K, V, cmp)(allPairs);
+	return moveToDict!(K, V, equal, hash)(alloc, a.builder);
 }

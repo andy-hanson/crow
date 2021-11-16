@@ -118,15 +118,6 @@ T mustPop(T)(ref MutArr!T a) {
 	return res;
 }
 
-@trusted const(T[]) moveToArr_const(T)(ref Alloc alloc, ref MutArr!T a) {
-	const T[] res = a.begin_[0 .. a.size_];
-	freeBytesPartial(alloc, cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
-	a.begin_ = null;
-	a.size_ = 0;
-	a.capacity_ = 0;
-	return res;
-}
-
 @trusted ref T last(T)(ref MutArr!T a) {
 	verify(a.size_ != 0);
 	return a.begin_[a.size_ - 1];
@@ -137,11 +128,4 @@ T mustPop(T)(ref MutArr!T a) {
 }
 @trusted T[] tempAsArr_mut(T)(ref MutArr!T a) {
 	return a.begin_[0 .. a.size_];
-}
-
-@trusted void deleteAt(T)(ref MutArr!T a, immutable size_t index) {
-	verify(index < a.size_);
-	foreach (immutable size_t i; index .. a.size_ - 1)
-		overwriteMemory(a.begin_ + i, mutArrAt(a, i + 1));
-	a.size_--;
 }

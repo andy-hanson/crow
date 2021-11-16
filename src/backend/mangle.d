@@ -37,15 +37,15 @@ import model.lowModel :
 	matchLowParamSource;
 import model.model : FunInst, name, Local, Param;
 import util.alloc.alloc : Alloc;
-import util.collection.dict : Dict, getAt;
-import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
+import util.collection.dict : getAt, PtrDict;
+import util.collection.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
 import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet;
-import util.collection.mutDict : insertOrUpdate, MutDict, setInDict;
+import util.collection.mutDict : insertOrUpdate, MutSymDict, setInDict;
 import util.opt : force, has, Opt;
-import util.ptr : comparePtr, Ptr;
+import util.ptr : Ptr;
 import util.sym :
-	compareSym,
 	eachCharInSym,
+	hashSym,
 	Operator,
 	operatorForSym,
 	shortSymAlphaLiteral,
@@ -56,17 +56,17 @@ import util.sym :
 import util.writer : writeChar, writeNat, Writer, writeStatic;
 
 struct MangledNames {
-	immutable Dict!(Ptr!ConcreteFun, size_t, comparePtr!ConcreteFun) funToNameIndex;
+	immutable PtrDict!(ConcreteFun, size_t) funToNameIndex;
 	//TODO:PERF we could use separate FullIndexDict for record, union, etc.
-	immutable Dict!(Ptr!ConcreteStruct, size_t, comparePtr!ConcreteStruct) structToNameIndex;
+	immutable PtrDict!(ConcreteStruct, size_t) structToNameIndex;
 }
 
 immutable(MangledNames) buildMangledNames(ref Alloc alloc, ref immutable LowProgram program) {
 	// First time we see a fun with a name, we'll store the fun-ptr here in case it's not overloaded.
 	// After that, we'll start putting them in funToNameIndex, and store the next index here.
-	MutDict!(immutable Sym, immutable PrevOrIndex!ConcreteFun, compareSym) funNameToIndex;
+	MutSymDict!(immutable PrevOrIndex!ConcreteFun) funNameToIndex;
 	// This will not have an entry for non-overloaded funs.
-	DictBuilder!(Ptr!ConcreteFun, size_t, comparePtr!ConcreteFun) funToNameIndex;
+	PtrDictBuilder!(ConcreteFun, size_t) funToNameIndex;
 	// HAX: Ensure "main" has that name.
 	setInDict(alloc, funNameToIndex, shortSymAlphaLiteral("main"), immutable PrevOrIndex!ConcreteFun(0));
 	fullIndexDictEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref immutable LowFun it) {
@@ -85,9 +85,9 @@ immutable(MangledNames) buildMangledNames(ref Alloc alloc, ref immutable LowProg
 			(ref immutable LowFunSource.Generated it) {});
 	});
 
-	MutDict!(immutable Sym, immutable PrevOrIndex!ConcreteStruct, compareSym) structNameToIndex;
+	MutSymDict!(immutable PrevOrIndex!ConcreteStruct) structNameToIndex;
 	// This will not have an entry for non-overloaded structs.
-	DictBuilder!(Ptr!ConcreteStruct, size_t, comparePtr!ConcreteStruct) structToNameIndex;
+	PtrDictBuilder!(ConcreteStruct, size_t) structToNameIndex;
 
 	void build(immutable Ptr!ConcreteStruct s) {
 		matchConcreteStructSource!void(
@@ -119,8 +119,8 @@ immutable(MangledNames) buildMangledNames(ref Alloc alloc, ref immutable LowProg
 		});
 
 	return immutable MangledNames(
-		finishDictShouldBeNoConflict(alloc, funToNameIndex),
-		finishDictShouldBeNoConflict(alloc, structToNameIndex));
+		finishDict(alloc, funToNameIndex),
+		finishDict(alloc, structToNameIndex));
 }
 
 void writeStructMangledName(
@@ -311,12 +311,12 @@ struct PrevOrIndex(T) {
 
 void addToPrevOrIndex(T)(
 	ref Alloc alloc,
-	ref MutDict!(immutable Sym, immutable PrevOrIndex!T, compareSym) nameToIndex,
-	ref DictBuilder!(Ptr!T, size_t, comparePtr!T) toNameIndex,
+	ref MutSymDict!(immutable PrevOrIndex!T) nameToIndex,
+	ref PtrDictBuilder!(T, size_t) toNameIndex,
 	immutable Ptr!T cur,
 	immutable Sym name,
 ) {
-	insertOrUpdate!(immutable Sym, immutable PrevOrIndex!T, compareSym)(
+	insertOrUpdate!(immutable Sym, immutable PrevOrIndex!T, symEq, hashSym)(
 		alloc,
 		nameToIndex,
 		name,
@@ -326,12 +326,12 @@ void addToPrevOrIndex(T)(
 			immutable PrevOrIndex!T(matchPrevOrIndex!(immutable size_t)(
 				it,
 				(immutable Ptr!T prev) {
-					addToDict(alloc, toNameIndex, prev, 0);
-					addToDict(alloc, toNameIndex, cur, 1);
+					mustAddToDict(alloc, toNameIndex, prev, 0);
+					mustAddToDict(alloc, toNameIndex, cur, 1);
 					return immutable size_t(2);
 				},
 				(immutable size_t index) {
-					addToDict(alloc, toNameIndex, cur, index);
+					mustAddToDict(alloc, toNameIndex, cur, index);
 					return index + 1;
 				})));
 }

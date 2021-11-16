@@ -17,11 +17,11 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model : asRecord, body_, EnumValue;
-import util.collection.dict : Dict;
+import util.collection.dict : PtrDict;
 import util.collection.fullIndexDict : FullIndexDict;
-import util.comparison : compareEnum, compareSizeT, Comparison;
+import util.hash : Hasher, hashSizeT, hashUint;
 import util.opt : none, Opt;
-import util.ptr : comparePtr, Ptr;
+import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Nat8, Nat16;
@@ -181,32 +181,6 @@ struct LowType {
 }
 static assert(LowType.sizeof <= 16);
 
-@trusted immutable(Comparison) compareLowType(immutable LowType a, immutable LowType b) {
-	immutable Comparison compareKind = compareEnum(a.kind_, b.kind_);
-	if (compareKind != Comparison.equal)
-		return compareKind;
-	else {
-		final switch (a.kind_) {
-			case LowType.Kind.externPtr:
-				return compareSizeT(a.externPtr_.index, b.externPtr_.index);
-			case LowType.Kind.funPtr:
-				return compareSizeT(a.funPtr_.index, b.funPtr_.index);
-			case LowType.Kind.primitive:
-				return compareEnum(a.primitive_, b.primitive_);
-			case LowType.Kind.ptrGc:
-				return compareLowType(a.ptrGc_.pointee.deref(), b.ptrGc_.pointee.deref());
-			case LowType.Kind.ptrRawConst:
-				return compareLowType(a.ptrRawConst_.pointee.deref(), b.ptrRawConst_.pointee.deref());
-			case LowType.Kind.ptrRawMut:
-				return compareLowType(a.ptrRawMut_.pointee.deref(), b.ptrRawMut_.pointee.deref());
-			case LowType.Kind.record:
-				return compareSizeT(a.record_.index, b.record_.index);
-			case LowType.Kind.union_:
-				return compareSizeT(a.union_.index, b.union_.index);
-		}
-	}
-}
-
 immutable(bool) lowTypeEqual(immutable LowType a, immutable LowType b) {
 	return a.kind_ == b.kind_ && () {
 		final switch (a.kind_) {
@@ -228,6 +202,36 @@ immutable(bool) lowTypeEqual(immutable LowType a, immutable LowType b) {
 				return a.union_.index == b.union_.index;
 		}
 	}();
+}
+
+@trusted void hashLowType(ref Hasher hasher, immutable LowType a) {
+	hashUint(hasher, a.kind_);
+	final switch (a.kind_) {
+		case LowType.Kind.externPtr:
+			hashSizeT(hasher, a.externPtr_.index);
+			break;
+		case LowType.Kind.funPtr:
+			hashSizeT(hasher, a.funPtr_.index);
+			break;
+		case LowType.Kind.primitive:
+			hashUint(hasher, a.primitive_);
+			break;
+		case LowType.Kind.ptrGc:
+			hashLowType(hasher, a.ptrGc_.pointee.deref());
+			break;
+		case LowType.Kind.ptrRawConst:
+			hashLowType(hasher, a.ptrRawConst_.pointee.deref());
+			break;
+		case LowType.Kind.ptrRawMut:
+			hashLowType(hasher, a.ptrRawMut_.pointee.deref());
+			break;
+		case LowType.Kind.record:
+			hashSizeT(hasher, a.record_.index);
+			break;
+		case LowType.Kind.union_:
+			hashSizeT(hasher, a.union_.index);
+			break;
+	}
 }
 
 immutable(bool) lowTypeEqualCombinePtr(immutable LowType a, immutable LowType b) {
@@ -1090,7 +1094,7 @@ struct AllConstantsLow {
 	immutable PointerTypeAndConstantsLow[] pointers;
 }
 
-alias ConcreteFunToLowFunIndex = immutable Dict!(Ptr!ConcreteFun, LowFunIndex, comparePtr!ConcreteFun);
+alias ConcreteFunToLowFunIndex = immutable PtrDict!(ConcreteFun, LowFunIndex);
 
 struct LowProgram {
 	@safe @nogc pure nothrow:
