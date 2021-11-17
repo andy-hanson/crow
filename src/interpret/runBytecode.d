@@ -33,6 +33,7 @@ import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import util.alloc.alloc : Alloc, TempAlloc;
+import util.alloc.rangeAlloc : RangeAlloc;
 import util.dbg : log, logNoNewline;
 import util.collection.arr : begin, last, ptrAt, sizeNat;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -61,6 +62,7 @@ import util.dbg : Debug;
 import util.memory : allocate, memcpy, memmove, memset, overwriteMemory;
 import util.opt : has;
 import util.path : AllPaths;
+import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
 import util.repr : writeReprNoNewline;
 import util.sourceRange : FileAndPos;
@@ -80,6 +82,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 
 @trusted immutable(int) runBytecode(Extern)(
 	scope ref Debug dbg,
+	ref Perf perf,
 	ref TempAlloc tempAlloc,
 	ref const AllPaths allPaths,
 	ref Extern extern_,
@@ -93,12 +96,22 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
 		ptrTrustMe(filesInfo));
-
 	push(interpreter.dataStack, sizeNat(allArgs)); // TODO: this is an i32, add safety checks
 	// These need to be CStrs
 	push(interpreter.dataStack, immutable Nat64(cast(immutable ulong) begin(allArgs)));
+	return withMeasureNoAlloc(perf, PerfMeasure.run, () =>
+		runBytecodeInner(dbg, perf, tempAlloc, allPaths, interpreter));
+}
+
+private immutable(int) runBytecodeInner(Extern)(
+	scope ref Debug dbg,
+	ref Perf perf,
+	ref TempAlloc tempAlloc,
+	ref const AllPaths allPaths,
+	ref Interpreter!Extern interpreter,
+) {
 	for (;;) {
-		final switch (step(dbg, tempAlloc, allPaths, interpreter)) {
+		final switch (step(dbg, perf, tempAlloc, allPaths, interpreter)) {
 			case StepResult.continue_:
 				break;
 			case StepResult.exit:
@@ -288,41 +301,14 @@ private immutable(ByteCodeSource) nextSource(Extern)(ref const Interpreter!Exter
 
 immutable(StepResult) step(Extern)(
 	scope ref Debug dbg,
+	scope ref Perf perf,
 	ref TempAlloc tempAlloc,
 	ref const AllPaths allPaths,
 	ref Interpreter!Extern a,
 ) {
-	immutable ByteCodeSource source = nextSource(a);
-	if (dbg.enabled()) {
-		import util.alloc.rangeAlloc : RangeAlloc;
-		ubyte[10_000] mem;
-		scope RangeAlloc dbgAlloc = RangeAlloc(&mem[0], mem.length);
-		scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
-		showStack(writer, a);
-		showReturnStack(writer, a);
-		log(dbg, finishWriter(writer));
-	}
-	immutable Operation operation = readOperation(a.reader);
-	if (dbg.enabled()) {
-		import util.alloc.rangeAlloc : RangeAlloc;
-		ubyte[10_000] mem;
-		scope RangeAlloc dbgAlloc = RangeAlloc(&mem[0], mem.length);
-		scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
-		writeStatic(writer, "STEP: ");
-		immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);
-		writeByteCodeSource(writer, allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
-		writeChar(writer, ' ');
-		writeReprNoNewline(writer, reprOperation(tempAlloc, operation));
-		if (isCall(operation)) {
-			immutable Operation.Call call = asCall(operation);
-			writeStatic(writer, "(");
-			writeFunNameAtIndex(writer, a, call.address);
-			writeChar(writer, ')');
-		}
-		writeChar(writer, '\n');
-		log(dbg, finishWriter(writer));
-	}
-
+	immutable Operation operation = dbg.enabled()
+		? getNextOperationAndDebug!Extern(dbg, allPaths, a)
+		: readOperation(a.reader);
 	return matchOperationImpure!(immutable StepResult)(
 		operation,
 		(ref immutable Operation.Call it) {
@@ -351,8 +337,16 @@ immutable(StepResult) step(Extern)(
 				});
 			return StepResult.continue_;
 		},
-		(ref immutable Operation.Dup it) {
-			dup(a.dataStack, it);
+		(ref immutable Operation.DupBytes it) {
+			dupBytes(a.dataStack, it);
+			return StepResult.continue_;
+		},
+		(ref immutable Operation.DupWord it) {
+			dupWord(a.dataStack, it);
+			return StepResult.continue_;
+		},
+		(ref immutable Operation.DupWords it) {
+			dupWords(a.dataStack, it);
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Extern it) {
@@ -416,6 +410,46 @@ immutable(StepResult) step(Extern)(
 }
 
 private:
+
+immutable(Operation) getNextOperationAndDebug(Extern)(
+	ref Debug dbg,
+	ref const AllPaths allPaths,
+	ref Interpreter!Extern a,
+) {
+	immutable ByteCodeSource source = nextSource(a);
+
+	{
+		ubyte[10_000] mem;
+		scope RangeAlloc dbgAlloc = RangeAlloc(&mem[0], mem.length);
+		scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
+		showStack(writer, a);
+		showReturnStack(writer, a);
+		log(dbg, finishWriter(writer));
+	}
+
+	immutable Operation operation = readOperation(a.reader);
+
+	{
+		ubyte[10_000] mem;
+		scope RangeAlloc dbgAlloc = RangeAlloc(&mem[0], mem.length);
+		scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
+		writeStatic(writer, "STEP: ");
+		immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);
+		writeByteCodeSource(writer, allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
+		writeChar(writer, ' ');
+		writeReprNoNewline(writer, reprOperation(dbgAlloc, operation));
+		if (isCall(operation)) {
+			immutable Operation.Call call = asCall(operation);
+			writeStatic(writer, "(");
+			writeFunNameAtIndex(writer, a, call.address);
+			writeChar(writer, ')');
+		}
+		writeChar(writer, '\n');
+		log(dbg, finishWriter(writer));
+	}
+
+	return operation;
+}
 
 void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	push(dataStack, immutable Nat64(cast(immutable ulong) stackRef(dataStack, offset.offset)));
@@ -664,9 +698,22 @@ alias JmpBufTag = immutable InterpreterRestore*;
 	}
 }
 
-@trusted void dup(ref DataStack dataStack, scope immutable Operation.Dup dup) {
+@trusted void dupBytes(ref DataStack dataStack, scope immutable Operation.DupBytes dup) {
 	const ubyte* ptr = (cast(const ubyte*) end(dataStack)) - dup.offsetBytes.offsetBytes.raw();
 	readNoCheck(dataStack, ptr, dup.sizeBytes.raw());
+}
+
+@trusted void dupWord(ref DataStack dataStack, scope immutable Operation.DupWord dup) {
+	const Nat64* ptr = (cast(const Nat64*) end(dataStack)) - 1 - dup.offsetWords.offset.raw();
+	push(dataStack, *ptr);
+}
+
+@trusted void dupWords(ref DataStack dataStack, scope immutable Operation.DupWords dup) {
+	const(Nat64)* ptr = (cast(const Nat64*) end(dataStack)) - 1 - dup.offsetWords.offset.raw();
+	foreach (immutable size_t i; 0 .. dup.sizeWords.raw()) {
+		push(dataStack, *ptr);
+		ptr++;
+	}
 }
 
 @system void readNoCheck(ref DataStack dataStack, const ubyte* readFrom, immutable size_t sizeBytes) {

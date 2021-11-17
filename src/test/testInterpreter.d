@@ -69,6 +69,7 @@ import util.collection.str : SafeCStr;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
+import util.perf : Perf, withNullPerfImpure;
 import util.ptr : ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos;
 import util.sym : shortSymAlphaLiteral, Sym;
@@ -699,12 +700,14 @@ void verifyStackEntry(ref ByteCodeWriter writer, immutable ushort n) {
 }
 
 void stepContinue(Extern)(ref Test test, ref Interpreter!Extern interpreter) {
-	immutable StepResult result = step(test.dbg, test.alloc, test.allPaths, interpreter);
+	immutable StepResult result = withNullPerfImpure!(immutable StepResult)((scope ref Perf perf) @safe =>
+		step(test.dbg, perf, test.alloc, test.allPaths, interpreter));
 	verify(result == StepResult.continue_);
 }
 
 void stepExit(Extern)(ref Test test, ref Interpreter!Extern interpreter) {
-	immutable StepResult result = step(test.dbg, test.alloc, test.allPaths, interpreter);
+	immutable StepResult result = withNullPerfImpure!(immutable StepResult)((scope ref Perf perf) =>
+		step(test.dbg, perf, test.alloc, test.allPaths, interpreter));
 	verify(result == StepResult.exit);
 }
 

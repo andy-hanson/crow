@@ -26,7 +26,7 @@ import util.collection.str : SafeCStr;
 import util.dbg : Debug;
 import util.opt : force, none, Opt, some;
 import util.path : AllPaths, PathAndStorageKind;
-import util.perf : Perf, PerfMeasure, withMeasure;
+import util.perf : Perf;
 import util.ptr : ptrTrustMe_mut;
 import util.repr : Repr, writeRepr, writeReprJSON;
 import util.sym : AllSymbols, Sym;
@@ -99,15 +99,16 @@ immutable(ExitCode) buildAndInterpret(ReadOnlyStorage, Extern)(
 	if (empty(programs.program.diagnostics)) {
 		immutable LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
 		immutable ByteCode byteCode = generateBytecode(dbg, alloc, alloc, programs.program, lowProgram);
-		return immutable ExitCode(withMeasure(alloc, perf, PerfMeasure.run, () => runBytecode(
+		return immutable ExitCode(runBytecode(
 			dbg,
+			perf,
 			alloc,
 			allPaths,
 			extern_,
 			lowProgram,
 			byteCode,
 			programs.program.filesInfo,
-			allArgs)));
+			allArgs));
 	} else {
 		writeDiagsToExtern(
 			alloc,

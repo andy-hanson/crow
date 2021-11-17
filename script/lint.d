@@ -30,7 +30,8 @@ import std.string : indexOf, indexOfAny, splitLines;
 					break;
 				case Uses.one:
 					// TODO: adding these exceptions for now
-					if (privateMember != "writeFieldName" &&
+					if (privateMember != "matchOperationImpureAndMeasure" &&
+						privateMember != "writeFieldName" &&
 						privateMember != "writeLocalName" &&
 						privateMember != "writeRecordName" &&
 						// TODO: this isn't even private. Probably a bug due to recursive imports

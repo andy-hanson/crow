@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc;
 import util.collection.mutDict : keysArray, MutDict, setInDict;
 import util.sym : hashSym, Sym, symEq;
 
-struct MutSet(T, alias equal, alias hash) {
+private struct MutSet(T, alias equal, alias hash) {
 	private MutDict!(T, Empty, equal, hash) inner;
 }
 

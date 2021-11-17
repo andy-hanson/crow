@@ -71,8 +71,13 @@ void setReaderPtr(ref ByteCodeReader reader, immutable ubyte* bytes) {
 				readU8(reader.reader)));
 		case OpCode.callFunPtr:
 			return immutable Operation(immutable Operation.CallFunPtr(readU8(reader.reader)));
-		case OpCode.dup:
-			return immutable Operation(immutable Operation.Dup(readStackOffsetBytes(reader), readU16(reader.reader)));
+		case OpCode.dupBytes:
+			return immutable Operation(
+				immutable Operation.DupBytes(readStackOffsetBytes(reader), readU16(reader.reader)));
+		case OpCode.dupWord:
+			return immutable Operation(immutable Operation.DupWord(readStackOffset(reader)));
+		case OpCode.dupWords:
+			return immutable Operation(immutable Operation.DupWords(readStackOffset(reader), readU8(reader.reader)));
 		case OpCode.extern_:
 			return immutable Operation(immutable Operation.Extern(
 				cast(immutable ExternOp) readU8(reader.reader).raw()));

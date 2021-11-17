@@ -214,9 +214,22 @@ void writeDup(
 ) {
 	verify(!zero(sizeBytes));
 
-	pushOpcode(writer, source, OpCode.dup);
-	pushU16(writer, source, getStackOffsetBytes(writer, start, offsetBytes).offsetBytes);
-	pushU16(writer, source, sizeBytes);
+	if (zero(offsetBytes) && zero(sizeBytes % immutable Nat16(8))) {
+		immutable Nat8 sizeWords = (sizeBytes / immutable Nat16(8)).to8();
+		immutable Nat8 offset = getStackOffsetTo(writer, start);
+		if (sizeWords == immutable Nat8(1)) {
+			pushOpcode(writer, source, OpCode.dupWord);
+			pushU8(writer, source, offset);
+		} else {
+			pushOpcode(writer, source, OpCode.dupWords);
+			pushU8(writer, source, offset);
+			pushU8(writer, source, sizeWords);
+		}
+	} else {
+		pushOpcode(writer, source, OpCode.dupBytes);
+		pushU16(writer, source, getStackOffsetBytes(writer, start, offsetBytes).offsetBytes);
+		pushU16(writer, source, sizeBytes);
+	}
 
 	writer.nextStackEntry += divRoundUp(sizeBytes, immutable Nat16(8));
 }

@@ -22,6 +22,17 @@ struct Perf {
 
 immutable bool perfEnabled = false;
 
+immutable(T) withMeasureNoAlloc(T)(
+	ref Perf perf,
+	immutable PerfMeasure measure,
+	scope immutable(T) delegate() @safe @nogc nothrow cb,
+) {
+	PerfMeasurerNoAlloc measurer = startMeasureNoAlloc(perf, measure);
+	immutable T res = cb();
+	endMeasureNoAlloc(perf, measurer);
+	return res;
+}
+
 @trusted immutable(T) withMeasure(T)(
 	ref Alloc alloc,
 	ref Perf perf,
@@ -47,6 +58,24 @@ immutable bool perfEnabled = false;
 	endMeasure(alloc, perf, measurer);
 	static if (!is(T == void))
 		return res;
+}
+
+private struct PerfMeasurerNoAlloc {
+	private:
+	immutable PerfMeasure measure;
+	ulong nsecBefore;
+}
+
+private pure PerfMeasurerNoAlloc startMeasureNoAlloc(ref Perf perf, immutable PerfMeasure measure) {
+	return perfEnabled ? PerfMeasurerNoAlloc(measure, perf.cbGetTimeNSec()) : PerfMeasurerNoAlloc(measure, 0);
+}
+
+private void endMeasureNoAlloc(ref Perf perf, ref PerfMeasurerNoAlloc measurer) {
+	if (perfEnabled)
+		addToMeasure(
+			perf,
+			measurer.measure,
+			immutable PerfMeasureResult(1, 0, perf.cbGetTimeNSec() - measurer.nsecBefore));
 }
 
 struct PerfMeasurer {
@@ -100,6 +129,10 @@ immutable(T) withNullPerf(T)(scope immutable(T) delegate(scope ref Perf) @safe @
 	scope Perf perf = Perf(() => immutable ulong(0));
 	return cb(perf);
 }
+immutable(T) withNullPerfImpure(T)(scope immutable(T) delegate(scope ref Perf) @safe @nogc nothrow cb) {
+	scope Perf perf = Perf(() => immutable ulong(0));
+	return cb(perf);
+}
 @system immutable(T) withNullPerfSystem(T)(scope immutable(T) delegate(scope ref Perf) @system @nogc nothrow cb) {
 	scope Perf perf = Perf(() => immutable ulong(0));
 	return cb(perf);
@@ -145,6 +178,26 @@ enum PerfMeasure {
 	parseEverything,
 	parseFile,
 	run,
+
+	operationCall,
+	operationCallFunPtr,
+	operationDebug,
+	operationDupBytes,
+	operationDupWord,
+	operationDupWords,
+	operationExtern,
+	operationExternDynCall,
+	operationFn,
+	operationJump,
+	operationPack,
+	operationPushValue,
+	operationRead,
+	operationRemove,
+	operationReturn,
+	operationStackRef,
+	operationSwitch0ToN,
+	operationSwitchWithValues,
+	operationWrite,
 }
 
 private:
@@ -188,6 +241,45 @@ pure immutable(string) perfMeasureName(immutable PerfMeasure a) {
 			return "parseFile";
 		case PerfMeasure.run:
 			return "run";
+
+		case PerfMeasure.operationCall:
+			return "operationCall";
+		case PerfMeasure.operationCallFunPtr:
+			return "operationCallFunPtr";
+		case PerfMeasure.operationDebug:
+			return "operationDebug";
+		case PerfMeasure.operationDupBytes:
+			return "operationDupBytes";
+		case PerfMeasure.operationDupWord:
+			return "operationDupWord";
+		case PerfMeasure.operationDupWords:
+			return "operationDupWords";
+		case PerfMeasure.operationExtern:
+			return "operationExtern";
+		case PerfMeasure.operationExternDynCall:
+			return "operationExternDynCall";
+		case PerfMeasure.operationFn:
+			return "operationFn";
+		case PerfMeasure.operationJump:
+			return "operationJump";
+		case PerfMeasure.operationPack:
+			return "operationPack";
+		case PerfMeasure.operationPushValue:
+			return "operationPushValue";
+		case PerfMeasure.operationRead:
+			return "operationRead";
+		case PerfMeasure.operationRemove:
+			return "operationRemove";
+		case PerfMeasure.operationReturn:
+			return "operationReturn";
+		case PerfMeasure.operationStackRef:
+			return "operationStackRef";
+		case PerfMeasure.operationSwitch0ToN:
+			return "operationSwitch0ToN";
+		case PerfMeasure.operationSwitchWithValues:
+			return "operationSwitchWithValues";
+		case PerfMeasure.operationWrite:
+			return "operationWrite";
 	}
 }
 

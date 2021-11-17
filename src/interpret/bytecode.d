@@ -6,6 +6,7 @@ import model.lowModel : LowFunIndex;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
+import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.repr : Repr, reprArr, reprHex, reprInt, reprNat, reprRecord, reprStr, reprSym;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Int16, Nat8, Nat16, Nat32, Nat64, zero;
@@ -30,7 +31,9 @@ T matchDebugOperationImpure(T)(
 	scope T delegate(ref immutable Operation.Call) @safe @nogc nothrow cbCall,
 	scope T delegate(ref immutable Operation.CallFunPtr) @safe @nogc nothrow cbCallFunPtr,
 	scope T delegate(ref immutable Operation.Debug) @safe @nogc nothrow cbDebug,
-	scope T delegate(ref immutable Operation.Dup) @safe @nogc nothrow cbDup,
+	scope T delegate(ref immutable Operation.DupBytes) @safe @nogc nothrow cbDupBytes,
+	scope T delegate(ref immutable Operation.DupWord) @safe @nogc nothrow cbDupWord,
+	scope T delegate(ref immutable Operation.DupWords) @safe @nogc nothrow cbDupWords,
 	scope T delegate(ref immutable Operation.Extern) @safe @nogc nothrow cbExtern,
 	scope T delegate(ref immutable Operation.ExternDynCall) @safe @nogc nothrow cbExternDynCall,
 	scope T delegate(ref immutable Operation.Fn) @safe @nogc nothrow cbFn,
@@ -52,8 +55,12 @@ T matchDebugOperationImpure(T)(
 			return cbCallFunPtr(a.callFunPtr_);
 		case Operation.Kind.debug_:
 			return cbDebug(a.debug_);
-		case Operation.Kind.dup:
-			return cbDup(a.dup_);
+		case Operation.Kind.dupBytes:
+			return cbDupBytes(a.dupBytes_);
+		case Operation.Kind.dupWord:
+			return cbDupWord(a.dupWord_);
+		case Operation.Kind.dupWords:
+			return cbDupWords(a.dupWords_);
 		case Operation.Kind.extern_:
 			return cbExtern(a.extern_);
 		case Operation.Kind.externDynCall:
@@ -83,6 +90,72 @@ T matchDebugOperationImpure(T)(
 	}
 }
 
+@trusted T matchOperationImpureAndMeasure(T)(
+	scope ref Perf perf,
+	ref immutable Operation a,
+	scope T delegate(ref immutable Operation.Call) @safe @nogc nothrow cbCall,
+	scope T delegate(ref immutable Operation.CallFunPtr) @safe @nogc nothrow cbCallFunPtr,
+	scope T delegate(ref immutable Operation.Debug) @safe @nogc nothrow cbDebug,
+	scope T delegate(ref immutable Operation.DupBytes) @safe @nogc nothrow cbDupBytes,
+	scope T delegate(ref immutable Operation.DupWord) @safe @nogc nothrow cbDupWord,
+	scope T delegate(ref immutable Operation.DupWords) @safe @nogc nothrow cbDupWords,
+	scope T delegate(ref immutable Operation.Extern) @safe @nogc nothrow cbExtern,
+	scope T delegate(ref immutable Operation.ExternDynCall) @safe @nogc nothrow cbExternDynCall,
+	scope T delegate(ref immutable Operation.Fn) @safe @nogc nothrow cbFn,
+	scope T delegate(ref immutable Operation.Jump) @safe @nogc nothrow cbJump,
+	scope T delegate(ref immutable Operation.Pack) @safe @nogc nothrow cbPack,
+	scope T delegate(ref immutable Operation.PushValue) @safe @nogc nothrow cbPushValue,
+	scope T delegate(ref immutable Operation.Read) @safe @nogc nothrow cbRead,
+	scope T delegate(ref immutable Operation.Remove) @safe @nogc nothrow cbRemove,
+	scope T delegate(ref immutable Operation.Return) @safe @nogc nothrow cbReturn,
+	scope T delegate(ref immutable Operation.StackRef) @safe @nogc nothrow cbStackRef,
+	scope T delegate(ref immutable Operation.Switch0ToN) @safe @nogc nothrow cbSwitch0ToN,
+	scope T delegate(ref immutable Operation.SwitchWithValues) @safe @nogc nothrow cbSwitchWithValues,
+	scope T delegate(ref immutable Operation.Write) @safe @nogc nothrow cbWrite,
+) {
+	final switch (a.kind_) {
+		case Operation.Kind.call:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationCall, () => cbCall(a.call_));
+		case Operation.Kind.callFunPtr:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationCallFunPtr, () => cbCallFunPtr(a.callFunPtr_));
+		case Operation.Kind.debug_:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationDebug, () => cbDebug(a.debug_));
+		case Operation.Kind.dupBytes:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationDupBytes, () => cbDupBytes(a.dupBytes_));
+		case Operation.Kind.dupWord:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationDupWord, () => cbDupWord(a.dupWord_));
+		case Operation.Kind.dupWords:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationDupWords, () => cbDupWords(a.dupWords_));
+		case Operation.Kind.extern_:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationExtern, () => cbExtern(a.extern_));
+		case Operation.Kind.externDynCall:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationExternDynCall, () => cbExternDynCall(a.externDynCall));
+		case Operation.Kind.fn:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationFn, () => cbFn(a.fn_));
+		case Operation.Kind.jump:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationJump, () => cbJump(a.jump_));
+		case Operation.Kind.pack:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationPack, () => cbPack(a.pack_));
+		case Operation.Kind.pushValue:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationPushValue, () => cbPushValue(a.pushValue_));
+		case Operation.Kind.read:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationRead, () => cbRead(a.read_));
+		case Operation.Kind.remove:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationRemove, () => cbRemove(a.remove_));
+		case Operation.Kind.return_:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationReturn, () => cbReturn(a.return_));
+		case Operation.Kind.stackRef_:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationStackRef, () => cbStackRef(a.stackRef_));
+		case Operation.Kind.switch0ToN:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationSwitch0ToN, () => cbSwitch0ToN(a.switch0ToN));
+		case Operation.Kind.switchWithValues:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationSwitchWithValues, () =>
+				cbSwitchWithValues(a.switchWithValues));
+		case Operation.Kind.write:
+			return withMeasureNoAlloc(perf, PerfMeasure.operationWrite, () => cbWrite(a.write_));
+	}
+}
+
 pure:
 
 private @trusted T matchOperation(T)(
@@ -90,7 +163,9 @@ private @trusted T matchOperation(T)(
 	scope T delegate(ref immutable Operation.Call) @safe @nogc pure nothrow cbCall,
 	scope T delegate(ref immutable Operation.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
 	scope T delegate(ref immutable Operation.Debug) @safe @nogc pure nothrow cbAssertStackSize,
-	scope T delegate(ref immutable Operation.Dup) @safe @nogc pure nothrow cbDup,
+	scope T delegate(ref immutable Operation.DupBytes) @safe @nogc pure nothrow cbDupBytes,
+	scope T delegate(ref immutable Operation.DupWord) @safe @nogc pure nothrow cbDupWord,
+	scope T delegate(ref immutable Operation.DupWords) @safe @nogc pure nothrow cbDupWords,
 	scope T delegate(ref immutable Operation.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(ref immutable Operation.ExternDynCall) @safe @nogc pure nothrow cbExternDynCall,
 	scope T delegate(ref immutable Operation.Fn) @safe @nogc pure nothrow cbFn,
@@ -112,8 +187,12 @@ private @trusted T matchOperation(T)(
 			return cbCallFunPtr(a.callFunPtr_);
 		case Operation.Kind.debug_:
 			return cbAssertStackSize(a.debug_);
-		case Operation.Kind.dup:
-			return cbDup(a.dup_);
+		case Operation.Kind.dupBytes:
+			return cbDupBytes(a.dupBytes_);
+		case Operation.Kind.dupWord:
+			return cbDupWord(a.dupWord_);
+		case Operation.Kind.dupWords:
+			return cbDupWords(a.dupWords_);
 		case Operation.Kind.extern_:
 			return cbExtern(a.extern_);
 		case Operation.Kind.externDynCall:
@@ -152,10 +231,17 @@ immutable(Repr) reprOperation(ref Alloc alloc, ref immutable Operation a) {
 			reprRecord(alloc, "call-ptr", [reprNat(it.parametersSize)]),
 		(ref immutable Operation.Debug it) =>
 			reprRecord(alloc, "debug", [reprDebugOperation(alloc, it.debugOperation)]),
-		(ref immutable Operation.Dup it) =>
-			reprRecord(alloc, "dup", [
+		(ref immutable Operation.DupBytes it) =>
+			reprRecord(alloc, "dup-bytes", [
 				reprNat(it.offsetBytes.offsetBytes),
 				reprNat(it.sizeBytes)]),
+		(ref immutable Operation.DupWord it) =>
+			reprRecord(alloc, "dup-word", [
+				reprNat(it.offsetWords.offset)]),
+		(ref immutable Operation.DupWords it) =>
+			reprRecord(alloc, "dup-words", [
+				reprNat(it.offsetWords.offset),
+				reprNat(it.sizeWords)]),
 		(ref immutable Operation.Extern it) =>
 			reprRecord(alloc, "extern", [reprStr(strOfExternOp(it.op))]),
 		(ref immutable Operation.ExternDynCall it) =>
@@ -280,6 +366,7 @@ struct ByteCode {
 }
 
 struct StackOffset {
+	// In words.
 	// 0 is the top entry on the stack, 1 is the one before that, etc.
 	immutable Nat8 offset;
 }
@@ -368,7 +455,7 @@ struct Operation {
 	}
 
 	// Gets a stack entry and duplicates it on the top of the stack.
-	struct Dup {
+	struct DupBytes {
 		@safe @nogc pure nothrow:
 
 		immutable StackOffsetBytes offsetBytes;
@@ -379,6 +466,16 @@ struct Operation {
 			sizeBytes = sb;
 			verify(sizeBytes > immutable Nat16(0));
 		}
+	}
+
+	struct DupWord {
+		immutable StackOffset offsetWords;
+	}
+
+	// DupBytes where the size is a multiple of 8
+	struct DupWords {
+		immutable StackOffset offsetWords;
+		immutable Nat8 sizeWords;
 	}
 
 	struct Extern {
@@ -469,7 +566,9 @@ struct Operation {
 		call,
 		callFunPtr,
 		debug_,
-		dup,
+		dupBytes,
+		dupWord,
+		dupWords,
 		extern_,
 		externDynCall,
 		fn,
@@ -489,7 +588,9 @@ struct Operation {
 		immutable Call call_;
 		immutable CallFunPtr callFunPtr_;
 		immutable Debug debug_;
-		immutable Dup dup_;
+		immutable DupBytes dupBytes_;
+		immutable DupWord dupWord_;
+		immutable DupWords dupWords_;
 		immutable Extern extern_;
 		immutable ExternDynCall externDynCall;
 		immutable Fn fn_;
@@ -509,7 +610,9 @@ struct Operation {
 	immutable this(immutable Call a) { kind_ = Kind.call; call_ = a; }
 	immutable this(immutable CallFunPtr a) { kind_ = Kind.callFunPtr; callFunPtr_ = a; }
 	immutable this(immutable Debug a) { kind_ = Kind.debug_; debug_ = a; }
-	immutable this(immutable Dup a) { kind_ = Kind.dup; dup_ = a; }
+	immutable this(immutable DupBytes a) { kind_ = Kind.dupBytes; dupBytes_ = a; }
+	immutable this(immutable DupWord a) { kind_ = Kind.dupWord; dupWord_ = a; }
+	immutable this(immutable DupWords a) { kind_ = Kind.dupWords; dupWords_ = a; }
 	immutable this(immutable Extern a) { kind_ = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable ExternDynCall a) { kind_ = Kind.externDynCall; externDynCall = a; }
 	immutable this(immutable Fn a) { kind_ = Kind.fn; fn_ = a; }
