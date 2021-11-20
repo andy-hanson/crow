@@ -7,7 +7,6 @@ import util.collection.arr : at, first, last, only, size;
 import util.collection.arrUtil : contains, every, findIndex, tail;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
 import util.collection.str : CStr, strEq, strOfCStr, strToCStr;
-import util.dbg : Debug;
 import util.hash : Hasher, hashUlong;
 import util.opt : has, Opt, force, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
@@ -304,12 +303,6 @@ immutable(size_t) writeSymAndGetSize(ref Writer writer, immutable Sym a) {
 		size++;
 	});
 	return size;
-}
-
-void logSym(scope ref Debug dbg, immutable Sym a) {
-	eachCharInSym(a, (immutable char c) {
-		dbg.writeChar(c);
-	});
 }
 
 void writeSym(ref Writer writer, immutable Sym a) {

@@ -1,3 +1,6 @@
+// TODO: commenting out due to https://issues.dlang.org/show_bug.cgi?id=22526
+// We get compile errors if more than one `Extern` implementation is used in the same compile.
+/*
 module test.testServer;
 
 @safe @nogc pure nothrow:
@@ -20,3 +23,4 @@ import util.util : verify;
 	immutable string res = strOfCStr(getFile(server, StorageKind.local, path));
 	verify(strEq(res, content));
 }
+*/

@@ -11,7 +11,6 @@ import interpret.bytecode :
 	FileToFuns,
 	FnOp,
 	FunNameAndPos,
-	Operation,
 	stackEntrySize;
 import interpret.bytecodeWriter :
 	ByteCodeWriter,
@@ -26,6 +25,7 @@ import interpret.bytecodeWriter :
 	setStackEntryAfterParameters,
 	StackEntries,
 	StackEntry,
+	SwitchDelayed,
 	writeAddConstantNat64,
 	writeAssertStackSize,
 	writeAssertUnreachable,
@@ -98,7 +98,7 @@ import model.lowModel :
 	name,
 	PrimitiveType;
 import model.model : FunDecl, Module, name, Program, range;
-import model.typeLayout : nStackEntriesForType, optPack, sizeOfType;
+import model.typeLayout : nStackEntriesForType, optPack, Pack, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.collection.arr : at, castImmutable, empty, only, size, sizeNat;
 import util.collection.arrUtil : map, mapOpWithIndex;
@@ -134,7 +134,7 @@ import util.types :
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
-immutable(ByteCode) generateBytecode(
+immutable(ByteCode!Extern) generateBytecode(Extern)(
 	scope ref Debug dbg,
 	ref Alloc codeAlloc,
 	ref TempAlloc tempAlloc,
@@ -146,7 +146,7 @@ immutable(ByteCode) generateBytecode(
 	MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences =
 		newMutIndexMultiDict!(LowFunIndex, ByteCodeIndex)(tempAlloc, fullIndexDictSize(program.allFuns));
 
-	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe_mut(codeAlloc));
+	ByteCodeWriter!Extern writer = newByteCodeWriter!Extern(ptrTrustMe_mut(codeAlloc));
 
 	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
 		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun)(
@@ -219,10 +219,10 @@ immutable(Nat8) nStackEntriesForUnionType(ref const ExprCtx ctx, ref immutable L
 	return nStackEntriesForType(ctx, type);
 }
 
-void generateBytecodeForFun(
+void generateBytecodeForFun(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences,
 	ref immutable TextInfo textInfo,
 	ref immutable LowProgram program,
@@ -289,10 +289,10 @@ void generateBytecodeForFun(
 	setNextStackEntry(writer, immutable StackEntry(immutable Nat16(0)));
 }
 
-void generateExternCall(
+void generateExternCall(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 	ref immutable LowFunBody.Extern a,
@@ -442,10 +442,10 @@ struct ExprCtx {
 	}
 }
 
-void generateExpr(
+void generateExpr(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
 	ref immutable LowExpr expr,
 ) {
@@ -513,7 +513,7 @@ void generateExpr(
 			writeDupEntry(dbg, writer, source, startStack);
 			writeRemove(dbg, writer, source, immutable StackEntries(startStack, immutable Nat8(1)));
 			// Get the kind (always the first entry)
-			immutable ByteCodeIndex indexOfFirstCaseOffset =
+			immutable SwitchDelayed switchDelayed =
 				writeSwitch0ToNDelay(writer, source, sizeNat(it.cases).to16());
 			// Start of the union values is where the kind used to be.
 			immutable StackEntry stackAfterMatched = getNextStackEntry(writer);
@@ -524,7 +524,7 @@ void generateExpr(
 				tempAlloc,
 				it.cases,
 				(immutable size_t caseIndex, ref immutable LowExprKind.MatchUnion.Case case_) {
-					fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, immutable Nat32(safeSizeTToU32(caseIndex)));
+					fillDelayedSwitchEntry(writer, switchDelayed, immutable Nat32(safeSizeTToU32(caseIndex)));
 					if (has(case_.local)) {
 						immutable Nat8 nEntries = nStackEntriesForType(ctx, force(case_.local).deref().type);
 						verify(nEntries <= matchedEntriesWithoutKind.size);
@@ -595,6 +595,9 @@ void generateExpr(
 			generateSwitchWithValues(dbg, tempAlloc, writer, ctx, source, it);
 		},
 		(ref immutable LowExprKind.TailRecur it) {
+			//TODO:PERF instead of all this, Don't generate code for parameters that are unchanged.
+			//Just Use a 'stackSet' operation to mutate the changed parameters in place.
+
 			immutable StackEntry before = getNextStackEntry(writer);
 			generateArgs(dbg, tempAlloc, writer, ctx, it.args);
 			// Delete the original parameters and anything else on the stack except for the new args
@@ -612,12 +615,12 @@ void generateExpr(
 		});
 }
 
-void generateSwitch0ToN(
+void generateSwitch0ToN(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	ref immutable LowExprKind.Switch0ToN it,
  ) {
 	immutable StackEntry stackBefore = getNextStackEntry(writer);
@@ -633,12 +636,12 @@ void generateSwitch0ToN(
 		it.cases);
 }
 
-void generateSwitchWithValues(
+void generateSwitchWithValues(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	ref immutable LowExprKind.SwitchWithValues it,
 ) {
 	immutable StackEntry stackBefore = getNextStackEntry(writer);
@@ -654,14 +657,14 @@ void generateSwitchWithValues(
 		it.cases);
 }
 
-void writeSwitchCases(
+void writeSwitchCases(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	immutable StackEntry stackBefore,
-	immutable ByteCodeIndex indexOfFirstCaseOffset,
+	immutable SwitchDelayed switchDelayed,
 	immutable LowExpr[] cases,
  ) {
 	// TODO: 'mapOp' is overly complex, all but the last case return 'some'
@@ -669,7 +672,7 @@ void writeSwitchCases(
 		tempAlloc,
 		cases,
 		(immutable size_t caseIndex, ref immutable LowExpr case_) {
-			fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, immutable Nat32(safeSizeTToU32(caseIndex)));
+			fillDelayedSwitchEntry(writer, switchDelayed, immutable Nat32(safeSizeTToU32(caseIndex)));
 			generateExpr(dbg, tempAlloc, writer, ctx, case_);
 			if (caseIndex != size(cases) - 1) {
 				setNextStackEntry(writer, stackBefore);
@@ -681,10 +684,10 @@ void writeSwitchCases(
 		fillInJumpDelayed(writer, jumpIndex);
 }
 
-void generateArgs(
+void generateArgs(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
 	ref immutable LowExpr[] args,
 ) {
@@ -692,13 +695,13 @@ void generateArgs(
 		generateExpr(dbg, tempAlloc, writer, ctx, arg);
 }
 
-void generateCreateRecord(
+void generateCreateRecord(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
 	immutable LowType.Record type,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	ref immutable LowExprKind.CreateRecord it,
 ) {
 	generateCreateRecordOrConstantRecord(
@@ -715,13 +718,13 @@ void generateCreateRecord(
 		});
 }
 
-void generateCreateRecordOrConstantRecord(
+void generateCreateRecordOrConstantRecord(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref const ExprCtx ctx,
 	immutable LowType.Record type,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	scope void delegate(immutable size_t, ref immutable LowType) @safe @nogc pure nothrow cbGenerateField,
 ) {
 	immutable StackEntry before = getNextStackEntry(writer);
@@ -730,7 +733,7 @@ void generateCreateRecordOrConstantRecord(
 	foreach (immutable size_t i; 0 .. size(record.fields))
 		cbGenerateField(i, at(record.fields, i).type);
 
-	immutable Opt!(Operation.Pack) optPack = optPack(tempAlloc, ctx.program, type);
+	immutable Opt!Pack optPack = optPack(tempAlloc, ctx.program, type);
 	if (has(optPack))
 		writePack(dbg, writer, source, force(optPack));
 
@@ -739,13 +742,13 @@ void generateCreateRecordOrConstantRecord(
 	verify(after.entry - before.entry == stackEntriesForType.to16());
 }
 
-void generateCreateUnion(
+void generateCreateUnion(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
 	immutable LowType.Union type,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	ref immutable LowExprKind.CreateUnion it,
 ) {
 	generateCreateUnionOrConstantUnion(
@@ -761,14 +764,14 @@ void generateCreateUnion(
 		});
 }
 
-void generateCreateUnionOrConstantUnion(
+void generateCreateUnionOrConstantUnion(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref const ExprCtx ctx,
 	immutable LowType.Union type,
 	immutable Nat16 memberIndex,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	scope void delegate(ref immutable LowType) @safe @nogc pure nothrow cbGenerateMember,
 ) {
 	immutable StackEntry before = getNextStackEntry(writer);
@@ -808,12 +811,12 @@ void registerFunAddress(TempAlloc)(
 	mutIndexMultiDictAdd(tempAlloc, ctx.funToReferences.deref(), fun, index);
 }
 
-void generateConstant(
+void generateConstant(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	ref immutable LowType type,
 	ref immutable Constant constant,
 ) {
@@ -898,21 +901,21 @@ void generateConstant(
 		});
 }
 
-void writeBoolConstant(
+void writeBoolConstant(Extern)(
 	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	ref immutable ByteCodeSource source,
+	ref ByteCodeWriter!Extern writer,
+	immutable ByteCodeSource source,
 	immutable bool value,
 ) {
 	writePushConstant(dbg, writer, source, immutable Nat8(value ? 1 : 0));
 }
 
-void generateSpecialUnary(
+void generateSpecialUnary(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	ref immutable LowType type,
 	ref immutable LowExprKind.SpecialUnary a,
 ) {
@@ -1009,12 +1012,12 @@ void generateSpecialUnary(
 	}
 }
 
-void generateRefOfVal(
+void generateRefOfVal(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	ref immutable LowExpr arg,
 ) {
 	if (isLocalRef(arg.kind))
@@ -1044,12 +1047,12 @@ void generateRefOfVal(
 		todo!void("!");
 }
 
-void generateRecordFieldGet(
+void generateRecordFieldGet(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	ref immutable LowExprKind.RecordFieldGet it,
 ) {
 	immutable StackEntry targetEntry = getNextStackEntry(writer);
@@ -1079,12 +1082,12 @@ void generateRecordFieldGet(
 	}
 }
 
-void generatePtrToRecordFieldGet(
+void generatePtrToRecordFieldGet(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	immutable LowType.Record record,
 	immutable ubyte fieldIndex,
 	immutable bool targetIsPointer,
@@ -1100,12 +1103,12 @@ void generatePtrToRecordFieldGet(
 		todo!void("ptr-to-record-field-get");
 }
 
-void generateSpecialBinary(
+void generateSpecialBinary(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	ref immutable LowExprKind.SpecialBinary a,
 ) {
 	void fn(immutable FnOp fn) {
@@ -1297,24 +1300,29 @@ void generateSpecialBinary(
 	}
 }
 
-void generateIf(
+void generateIf(Extern)(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	ref ByteCodeWriter!Extern writer,
 	ref ExprCtx ctx,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 	ref immutable LowExpr cond,
 	scope void delegate() @safe @nogc pure nothrow cbThen,
 	scope void delegate() @safe @nogc pure nothrow cbElse,
 ) {
 	immutable StackEntry startStack = getNextStackEntry(writer);
 	generateExpr(dbg, tempAlloc, writer, ctx, cond);
-	immutable ByteCodeIndex delayed = writeSwitch0ToNDelay(writer, source, immutable Nat16(2));
+	immutable SwitchDelayed delayed = writeSwitch0ToNDelay(writer, source, immutable Nat16(2));
+
 	fillDelayedSwitchEntry(writer, delayed, immutable Nat32(0));
 	cbElse();
-	setNextStackEntry(writer, startStack);
+	// At the end of the 'else', jump to the end.
+	// (Not needed for 'then' since it is the last entry)
 	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(dbg, writer, source);
+
+	setNextStackEntry(writer, startStack);
 	fillDelayedSwitchEntry(writer, delayed, immutable Nat32(1));
 	cbThen();
+
 	fillInJumpDelayed(writer, jumpIndex);
 }

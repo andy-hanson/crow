@@ -85,8 +85,8 @@ struct FakeExtern {
 	immutable(Nat64) doDynCall(
 		immutable Sym,
 		immutable DynCallType,
-		ref immutable Nat64[],
-		ref immutable DynCallType[],
+		scope immutable Nat64[],
+		scope immutable DynCallType[],
 	) {
 		return todo!(immutable Nat64)("not for fake");
 	}

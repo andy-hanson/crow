@@ -686,8 +686,8 @@ struct RealExtern {
 	@trusted immutable(Nat64) doDynCall(
 		immutable Sym name,
 		immutable DynCallType returnType,
-		ref immutable Nat64[] parameters,
-		ref immutable DynCallType[] parameterTypes,
+		scope immutable Nat64[] parameters,
+		scope immutable DynCallType[] parameterTypes,
 	) {
 		immutable char[32] nameBuffer = symAsTempBuffer!32(name);
 		immutable CStr nameCStr = nameBuffer.ptr;

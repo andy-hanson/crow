@@ -5,43 +5,31 @@ module interpret.runBytecode;
 import frontend.showDiag : ShowDiagOptions;
 import interpret.applyFn : applyFn;
 import interpret.bytecode :
-	asCall,
 	ByteCode,
 	ByteCodeIndex,
+	ByteCodeOffset,
+	ByteCodeOffsetUnsigned,
 	ByteCodeSource,
-	DebugOperation,
 	DynCallType,
-	isCall,
 	ExternOp,
-	matchDebugOperationImpure,
-	matchOperationImpure,
+	FnOp,
 	Operation,
-	reprOperation,
 	StackOffset,
 	TimeSpec;
-import interpret.bytecodeReader :
-	ByteCodeReader,
-	getReaderPtr,
-	newByteCodeReader,
-	readerJump,
-	readOperation,
-	readerSwitch,
-	readerSwitchWithValues,
-	setReaderPtr;
 import interpret.debugging : writeFunName;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
-import util.alloc.alloc : Alloc, TempAlloc;
+import model.typeLayout : PackField;
+import util.alloc.alloc : TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.dbg : log, logNoNewline;
-import util.collection.arr : begin, last, ptrAt, sizeNat;
+import util.dbg : log;
+import util.collection.arr : at, begin, last, ptrAt, sizeNat;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.globalAllocatedStack :
 	asTempArr,
 	begin,
 	clearStack,
-	dup,
 	end,
 	GlobalAllocatedStack,
 	isEmpty,
@@ -63,12 +51,13 @@ import util.memory : allocate, memcpy, memmove, memset, overwriteMemory;
 import util.opt : has;
 import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
-import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.repr : writeReprNoNewline;
 import util.sourceRange : FileAndPos;
-import util.sym : logSym;
+import util.sym : Sym;
 import util.types :
 	incr,
+	Int16,
 	i32OfU64Bits,
 	Nat8,
 	Nat16,
@@ -87,86 +76,105 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 	ref const AllPaths allPaths,
 	ref Extern extern_,
 	ref immutable LowProgram lowProgram,
-	ref immutable ByteCode byteCode,
+	ref immutable ByteCode!Extern byteCode,
 	ref immutable FilesInfo filesInfo,
 	immutable SafeCStr[] allArgs,
 ) {
 	Interpreter!Extern interpreter = Interpreter!Extern(
+		ptrTrustMe_mut(dbg),
+		ptrTrustMe_mut(tempAlloc),
 		ptrTrustMe_mut(extern_),
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
+		ptrTrustMe_const(allPaths),
 		ptrTrustMe(filesInfo));
 	push(interpreter.dataStack, sizeNat(allArgs)); // TODO: this is an i32, add safety checks
 	// These need to be CStrs
 	push(interpreter.dataStack, immutable Nat64(cast(immutable ulong) begin(allArgs)));
 	return withMeasureNoAlloc(perf, PerfMeasure.run, () =>
-		runBytecodeInner(dbg, perf, tempAlloc, allPaths, interpreter));
+		runBytecodeInner!Extern(dbg, perf, tempAlloc, allPaths, interpreter));
 }
 
-private immutable(int) runBytecodeInner(Extern)(
+private @trusted immutable(int) runBytecodeInner(Extern)(
 	scope ref Debug dbg,
 	ref Perf perf,
 	ref TempAlloc tempAlloc,
 	ref const AllPaths allPaths,
 	ref Interpreter!Extern interpreter,
 ) {
-	for (;;) {
-		final switch (step(dbg, perf, tempAlloc, allPaths, interpreter)) {
-			case StepResult.continue_:
-				break;
-			case StepResult.exit:
-				immutable Nat64 returnCode = pop(interpreter.dataStack);
-				verify(isEmpty(interpreter.dataStack));
-				return safeIntFromNat64(returnCode);
-		}
-	}
-}
+	Operation!Extern op = nextOperation(interpreter);
+	do {
+		op = cast(Operation!Extern) op(interpreter);
+		op = cast(Operation!Extern) op(interpreter);
+		op = cast(Operation!Extern) op(interpreter);
+		op = cast(Operation!Extern) op(interpreter);
+	} while (op != &opStopInterpretation!Extern);
 
-enum StepResult {
-	continue_,
-	exit,
+	immutable Nat64 returnCode = pop(interpreter.dataStack);
+	verify(isEmpty(interpreter.dataStack));
+	return safeIntFromNat64(returnCode);
 }
 
 alias DataStack = GlobalAllocatedStack!(Nat64, 1024 * 64);
-private alias ReturnStack = GlobalAllocatedStack!(immutable(ubyte)*, 1024 * 4);
-// Gives start stack position of each function
-private alias StackStartStack = GlobalAllocatedStack!(Nat16, 1024 * 4);
+private alias ReturnStack(Extern) = GlobalAllocatedStack!(immutable(Operation!Extern)*, 1024 * 4);
 
 struct Interpreter(Extern) {
 	@safe @nogc nothrow: // not pure
 
 	@disable this(ref const Interpreter);
 
-	@trusted this(Ptr!Extern e, immutable Ptr!LowProgram p, immutable Ptr!ByteCode b, immutable Ptr!FilesInfo f) {
+	@trusted this(
+		Ptr!Debug dbg,
+		Ptr!TempAlloc ta,
+		Ptr!Extern e,
+		immutable Ptr!LowProgram p,
+		immutable Ptr!(ByteCode!Extern) b,
+		const Ptr!AllPaths ap,
+		immutable Ptr!FilesInfo f,
+	) {
+		debugPtr = dbg;
+		tempAllocPtr = ta;
 		externPtr = e;
 		lowProgramPtr = p;
 		byteCodePtr = b;
+		allPathsPtr = ap;
 		filesInfoPtr = f;
-		reader = newByteCodeReader(begin(byteCode.byteCode), byteCode.main.index);
+		nextOperation = begin(byteCode.byteCode) + byteCode.main.index.raw();
 		dataStack = DataStack(true);
-		returnStack = ReturnStack(true);
-		stackStartStack = StackStartStack(true);
+		returnStack = ReturnStack!Extern(true);
 	}
 
+	Ptr!Debug debugPtr;
+	//TODO:KILL
+	Ptr!TempAlloc tempAllocPtr;
 	Ptr!Extern externPtr;
 	immutable Ptr!LowProgram lowProgramPtr;
-	immutable Ptr!ByteCode byteCodePtr;
+	immutable Ptr!(ByteCode!Extern) byteCodePtr;
+	const Ptr!AllPaths allPathsPtr;
 	immutable Ptr!FilesInfo filesInfoPtr;
-	ByteCodeReader reader;
+	immutable(Operation!Extern)* nextOperation;
 	DataStack dataStack;
-	ReturnStack returnStack;
-	// Parallel to return stack. Has the stack entry before the function's arguments.
-	StackStartStack stackStartStack;
+	ReturnStack!Extern returnStack;
 	// WARN: if adding any new mutable state here, make sure 'longjmp' still restores it
 
+	ref Debug dbg() {
+		return debugPtr.deref();
+	}
+	//TODO:KILL
+	ref TempAlloc tempAlloc() {
+		return tempAllocPtr.deref();
+	}
 	ref inout(Extern) extern_() inout {
 		return externPtr.deref();
 	}
 	ref immutable(LowProgram) lowProgram() const {
 		return lowProgramPtr.deref();
 	}
-	ref immutable(ByteCode) byteCode() const {
+	ref immutable(ByteCode!Extern) byteCode() const {
 		return byteCodePtr.deref();
+	}
+	ref const(AllPaths) allPaths() const {
+		return allPathsPtr.deref();
 	}
 	ref immutable(FilesInfo) filesInfo() const {
 		return filesInfoPtr.deref();
@@ -174,31 +182,28 @@ struct Interpreter(Extern) {
 }
 
 // WARN: Does not restore data. Just mean for setjmp/longjmp.
-private struct InterpreterRestore {
+private struct InterpreterRestore(Extern) {
 	// This is the stack sizes and byte code index to be restored by longjmp
 	immutable ByteCodeIndex nextByteCodeIndex;
 	immutable Nat32 dataStackSize;
-	immutable ubyte*[] restoreReturnStack;
-	immutable Nat16[] restoreStackStartStack;
+	immutable Operation!Extern*[] restoreReturnStack;
 }
 
-private immutable(InterpreterRestore*) createInterpreterRestore(Extern)(
-	ref Alloc alloc,
-	ref Interpreter!Extern a,
-) {
-	immutable InterpreterRestore value = immutable InterpreterRestore(
+private immutable(InterpreterRestore!Extern*) createInterpreterRestore(Extern)(ref Interpreter!Extern a) {
+	immutable InterpreterRestore!Extern value = immutable InterpreterRestore!Extern(
 		nextByteCodeIndex(a),
 		stackSize(a.dataStack),
-		toArr(alloc, a.returnStack),
-		toArr(alloc, a.stackStartStack));
-	return allocate(alloc, value).rawPtr();
+		toArr(a.tempAlloc, a.returnStack));
+	return allocate(a.tempAlloc, value).rawPtr();
 }
 
-private void applyInterpreterRestore(Extern)(ref Interpreter!Extern a, ref immutable InterpreterRestore restore) {
+private void applyInterpreterRestore(Extern)(
+	ref Interpreter!Extern a,
+	ref immutable InterpreterRestore!Extern restore,
+) {
 	setNextByteCodeIndex(a, restore.nextByteCodeIndex);
 	reduceStackSize(a.dataStack, restore.dataStackSize.raw());
 	setToArr(a.returnStack, restore.restoreReturnStack);
-	setToArr(a.stackStartStack, restore.restoreStackStartStack);
 }
 
 @trusted void reset(Extern)(ref Interpreter!Extern a) {
@@ -224,12 +229,12 @@ private void showStack(Extern)(scope ref Writer writer, ref const Interpreter!Ex
 
 private @trusted void showReturnStack(Extern)(ref Writer writer, ref const Interpreter!Extern a) {
 	writeStatic(writer, "call stack:");
-	foreach (immutable ubyte* ptr; asTempArr(a.returnStack)) {
+	foreach (immutable Operation!Extern* ptr; asTempArr(a.returnStack)) {
 		writeChar(writer, ' ');
-		writeFunNameAtByteCodePtr(writer, a, ptr);
+		writeFunNameAtByteCodePtr!Extern(writer, a, ptr);
 	}
 	writeChar(writer, ' ');
-	writeFunNameAtByteCodePtr(writer, a, getReaderPtr(a.reader));
+	writeFunNameAtByteCodePtr!Extern(writer, a, a.nextOperation);
 }
 
 private void writeByteCodeSource(
@@ -238,7 +243,7 @@ private void writeByteCodeSource(
 	ref immutable ShowDiagOptions showDiagOptions,
 	ref immutable LowProgram lowProgram,
 	ref immutable FilesInfo filesInfo,
-	ref immutable ByteCodeSource source,
+	immutable ByteCodeSource source,
 ) {
 	writeFunName(writer, lowProgram, source.fun);
 	matchLowFunSource!void(
@@ -261,9 +266,9 @@ private void writeFunNameAtIndex(Extern)(
 private void writeFunNameAtByteCodePtr(Extern)(
 	ref Writer writer,
 	ref const Interpreter!Extern interpreter,
-	immutable ubyte* ptr,
+	immutable Operation!Extern* ptr,
 ) {
-	writeFunNameAtIndex(writer, interpreter, byteCodeIndexOfPtr(interpreter, ptr));
+	writeFunNameAtIndex!Extern(writer, interpreter, byteCodeIndexOfPtr!Extern(interpreter, ptr));
 }
 
 private immutable(ByteCodeSource) byteCodeSourceAtIndex(Extern)(
@@ -275,147 +280,32 @@ private immutable(ByteCodeSource) byteCodeSourceAtIndex(Extern)(
 
 private immutable(ByteCodeSource) byteCodeSourceAtByteCodePtr(Extern)(
 	ref const Interpreter!Extern a,
-	immutable ubyte* ptr,
+	immutable Operation!Extern* ptr,
 ) {
-	return byteCodeSourceAtIndex(a, byteCodeIndexOfPtr(a, ptr));
+	return byteCodeSourceAtIndex!Extern(a, byteCodeIndexOfPtr!Extern(a, ptr));
 }
 
 @trusted immutable(ByteCodeIndex) nextByteCodeIndex(Extern)(ref const Interpreter!Extern a) {
-	return byteCodeIndexOfPtr(a, getReaderPtr(a.reader));
+	return byteCodeIndexOfPtr!Extern(a, a.nextOperation);
 }
 
+//TODO:KILL (use ptrs directly instead of ByteCodeIndex)
 private void setNextByteCodeIndex(Extern)(ref Interpreter!Extern a, immutable ByteCodeIndex index) {
-	setReaderPtr(a.reader, ptrAt(a.byteCode.byteCode, index.index.raw()).rawPtr());
+	a.nextOperation = ptrAt!(immutable Operation!Extern)(a.byteCode.byteCode, index.index.raw()).rawPtr();
 }
 
 pure @trusted immutable(ByteCodeIndex) byteCodeIndexOfPtr(Extern)(
 	ref const Interpreter!Extern a,
-	immutable ubyte* ptr,
+	immutable Operation!Extern* ptr,
 ) {
 	return immutable ByteCodeIndex((immutable Nat64(ptr - begin(a.byteCode.byteCode))).to32());
 }
 
 private immutable(ByteCodeSource) nextSource(Extern)(ref const Interpreter!Extern a) {
-	return byteCodeSourceAtByteCodePtr(a, getReaderPtr(a.reader));
+	return byteCodeSourceAtByteCodePtr!Extern(a, a.nextOperation);
 }
 
-immutable(StepResult) step(Extern)(
-	scope ref Debug dbg,
-	scope ref Perf perf,
-	ref TempAlloc tempAlloc,
-	ref const AllPaths allPaths,
-	ref Interpreter!Extern a,
-) {
-	immutable Operation operation = dbg.enabled()
-		? getNextOperationAndDebug!Extern(dbg, allPaths, a)
-		: readOperation(a.reader);
-	return matchOperationImpure!(immutable StepResult)(
-		operation,
-		(ref immutable Operation.Call it) {
-			call(a, it.address, it.parametersSize);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.CallFunPtr it) {
-			//TODO: handle a real function pointer being here?
-			immutable ByteCodeIndex address = immutable ByteCodeIndex(
-				removeAtStackOffset(a, immutable StackOffset(it.parametersSize)).to32());
-			call(a, address, it.parametersSize);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.Debug dbg) {
-			matchDebugOperationImpure!void(
-				dbg.debugOperation,
-				(ref immutable DebugOperation.AssertStackSize it) {
-					immutable Nat16 stackStart = isEmpty(a.stackStartStack)
-						? immutable Nat16(0)
-						: peek(a.stackStartStack);
-					immutable Nat32 actualStackSize = stackSize(a.dataStack) - stackStart.to32();
-					verify(actualStackSize == it.stackSize.to32());
-				},
-				(ref immutable DebugOperation.AssertUnreachable) {
-					unreachable!void();
-				});
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.DupBytes it) {
-			dupBytes(a.dataStack, it);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.DupWord it) {
-			dupWord(a.dataStack, it);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.DupWords it) {
-			dupWords(a.dataStack, it);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.Extern it) {
-			applyExternOp(tempAlloc, a, it.op);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.ExternDynCall it) {
-			applyExternDynCall(dbg, a, it);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.Fn it) {
-			applyFn(dbg, a.dataStack, it.fnOp);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.Jump it) {
-			readerJump(a.reader, it.offset);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.Pack it) {
-			// NOTE: popped is temporary, but we'll use each entry before it's overwritten
-			pack(a.dataStack, it);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.PushValue it) {
-			push(a.dataStack, it.value);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.Read it) {
-			read(tempAlloc, a, it.offset, it.size);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.Remove it) {
-			remove(a.dataStack, it.offset.offset, it.nEntries);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.Return) {
-			if (isEmpty(a.returnStack))
-				return StepResult.exit;
-			else {
-				setReaderPtr(a.reader, pop(a.returnStack));
-				pop(a.stackStartStack);
-				return StepResult.continue_;
-			}
-		},
-		(ref immutable Operation.StackRef it) {
-			pushStackRef(a.dataStack, it.offset);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.Switch0ToN it) {
-			readerSwitch(a.reader, pop(a.dataStack), it.offsets);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.SwitchWithValues it) {
-			readerSwitchWithValues(a.reader, pop(a.dataStack), it.values, it.offsets);
-			return StepResult.continue_;
-		},
-		(ref immutable Operation.Write it) {
-			write(tempAlloc, a, it.offset, it.size);
-			return StepResult.continue_;
-		});
-}
-
-private:
-
-immutable(Operation) getNextOperationAndDebug(Extern)(
-	ref Debug dbg,
-	ref const AllPaths allPaths,
-	ref Interpreter!Extern a,
-) {
+private immutable(Operation!Extern) getNextOperationAndDebug(Extern)(ref Interpreter!Extern a) {
 	immutable ByteCodeSource source = nextSource(a);
 
 	{
@@ -424,10 +314,10 @@ immutable(Operation) getNextOperationAndDebug(Extern)(
 		scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
 		showStack(writer, a);
 		showReturnStack(writer, a);
-		log(dbg, finishWriter(writer));
+		log(a.dbg, finishWriter(writer));
 	}
 
-	immutable Operation operation = readOperation(a.reader);
+	immutable Operation!Extern operation = nextOperation(a);
 
 	{
 		ubyte[10_000] mem;
@@ -435,39 +325,64 @@ immutable(Operation) getNextOperationAndDebug(Extern)(
 		scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
 		writeStatic(writer, "STEP: ");
 		immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);
-		writeByteCodeSource(writer, allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
-		writeChar(writer, ' ');
-		writeReprNoNewline(writer, reprOperation(dbgAlloc, operation));
-		if (isCall(operation)) {
-			immutable Operation.Call call = asCall(operation);
-			writeStatic(writer, "(");
-			writeFunNameAtIndex(writer, a, call.address);
-			writeChar(writer, ')');
-		}
-		writeChar(writer, '\n');
-		log(dbg, finishWriter(writer));
+		writeByteCodeSource(writer, a.allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
+		//writeChar(writer, ' ');
+		//writeReprNoNewline(writer, reprOperation(dbgAlloc, operation));
+		//writeChar(writer, '\n');
+		log(a.dbg, finishWriter(writer));
 	}
 
 	return operation;
 }
 
-void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
-	push(dataStack, immutable Nat64(cast(immutable ulong) stackRef(dataStack, offset.offset)));
+immutable(Operation!Extern) opAssertUnreachable(Extern)(ref Interpreter!Extern a) {
+	return unreachable!(immutable Operation!Extern)();
 }
 
-@trusted void read(TempAlloc, Extern)(
-	ref TempAlloc tempAlloc,
-	ref Interpreter!Extern a,
-	immutable Nat16 offset,
-	immutable Nat16 size,
-) {
+immutable(Operation!Extern) opRemove(Extern)(ref Interpreter!Extern a) {
+	immutable StackOffset offset = readStackOffset(a);
+	immutable Nat8 nEntries = readNat8(a);
+	remove(a.dataStack, offset.offset, nEntries);
+	return nextOperation(a);
+}
+
+immutable(Operation!Extern) opReturn(Extern)(ref Interpreter!Extern a) {
+	if (isEmpty(a.returnStack))
+		return &opStopInterpretation!Extern;
+	else {
+		a.nextOperation = pop(a.returnStack);
+		return nextOperation(a);
+	}
+}
+
+private immutable(Operation!Extern) opStopInterpretation(Extern)(ref Interpreter!Extern a) {
+	return &opStopInterpretation!Extern;
+}
+
+@trusted immutable(Operation!Extern) opSwitch0ToN(Extern)(ref Interpreter!Extern a) {
+	immutable ByteCodeOffsetUnsigned[] offsets = readArray!ByteCodeOffsetUnsigned(a);
+	immutable Nat64 value = pop(a.dataStack);
+	immutable ByteCodeOffsetUnsigned offset = at(offsets, safeSizeTFromU64(value.raw()));
+	a.nextOperation += offset.offset.raw();
+	return nextOperation(a);
+}
+
+immutable(Operation!Extern) opStackRef(Extern)(ref Interpreter!Extern a) {
+	immutable StackOffset offset = readStackOffset(a);
+	push(a.dataStack, immutable Nat64(cast(immutable ulong) stackRef(a.dataStack, offset.offset)));
+	return nextOperation(a);
+}
+
+@trusted immutable(Operation!Extern) opRead(Extern)(ref Interpreter!Extern a) {
+	immutable Nat16 offset = readNat16(a);
+	immutable Nat16 size = readNat16(a);
 	immutable ubyte* ptr = cast(immutable ubyte*) pop(a.dataStack).raw();
-	checkPtr(tempAlloc, a, ptr, offset, size);
+	checkPtr(a, ptr, offset, size);
 	readNoCheck(a.dataStack, ptr + offset.raw(), size.raw());
+	return nextOperation(a);
 }
 
-@system void checkPtr(TempAlloc, Extern)(
-	ref TempAlloc tempAlloc,
+@system private void checkPtr(Extern)(
 	ref const Interpreter!Extern a,
 	const ubyte* ptrWithoutOffset,
 	immutable Nat16 offset,
@@ -489,40 +404,28 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	}
 }
 
-@system void writePtrRanges(Extern)(ref Writer writer, ref const Interpreter!Extern a) {
-	writeStatic(writer, "\ndata: ");
-	writePtrRange(writer, stackPtrRange(a.dataStack));
-	writeStatic(writer, "\nmalloced:\n");
-	a.extern_.writeMallocedRanges(writer);
-	writeStatic(writer, "\ntext:\n");
-	writePtrRange(writer, ptrRangeOfArr(a.byteCode.text));
-	writeChar(writer, '\n');
-}
-
-@trusted void write(TempAlloc, Extern)(
-	ref TempAlloc tempAlloc,
-	ref Interpreter!Extern a,
-	immutable Nat16 offset,
-	immutable Nat16 size,
-) {
+@trusted immutable(Operation!Extern) opWrite(Extern)(ref Interpreter!Extern a) {
+	immutable Nat16 offset = readNat16(a);
+	immutable Nat16 size = readNat16(a);
 	if (size < immutable Nat16(8)) { //TODO:UNNECESSARY?
 		verify(size != immutable Nat16(0));
 		immutable Nat64 value = pop(a.dataStack);
 		ubyte* ptr = cast(ubyte*) pop(a.dataStack).raw();
-		checkPtr(tempAlloc, a, ptr, offset, size);
+		checkPtr(a, ptr, offset, size);
 		writePartialBytes(ptr + offset.raw(), value.raw(), size.raw());
 	} else {
 		immutable Nat16 sizeWords = divRoundUp(size, immutable Nat16(8));
 		ubyte* destWithoutOffset = cast(ubyte*) peek(a.dataStack, sizeWords.to8()).raw();
-		checkPtr(tempAlloc, a, destWithoutOffset, offset, size);
+		checkPtr(a, destWithoutOffset, offset, size);
 		ubyte* src = cast(ubyte*) (end(a.dataStack) - sizeWords.raw());
 		ubyte* dest = destWithoutOffset + offset.raw();
 		memcpy(dest, src, size.raw());
 		popN(a.dataStack, incr(sizeWords).to8());
 	}
+	return nextOperation(a);
 }
 
-@trusted void writePartialBytes(ubyte* ptr, immutable ulong value, immutable ushort size) {
+private @trusted void writePartialBytes(ubyte* ptr, immutable ulong value, immutable ushort size) {
 	//TODO: Just have separate ops for separate sizes
 	switch (size) {
 		case 1:
@@ -540,27 +443,40 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	}
 }
 
-void call(Extern)(ref Interpreter!Extern a, immutable ByteCodeIndex address, immutable Nat8 parametersSize) {
-	push(a.returnStack, getReaderPtr(a.reader));
-	push(a.stackStartStack, (stackSize(a.dataStack) - parametersSize.to32()).to16());
-	setNextByteCodeIndex(a, address);
+immutable(Operation!Extern) opCall(Extern)(ref Interpreter!Extern a) {
+	immutable ByteCodeIndex address = immutable ByteCodeIndex(readNat32(a));
+	return callCommon(a, address);
 }
 
-immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable StackOffset offset) {
+immutable(Operation!Extern) opCallFunPtr(Extern)(ref Interpreter!Extern a) {
+	immutable Nat8 parametersSize = readNat8(a);
+	//TODO: handle a real function pointer being here?
+	immutable ByteCodeIndex address = immutable ByteCodeIndex(
+		removeAtStackOffset(a, immutable StackOffset(parametersSize)).to32());
+	return callCommon(a, address);
+}
+
+private immutable(Operation!Extern) callCommon(Extern)(
+	ref Interpreter!Extern a,
+	immutable ByteCodeIndex address,
+) {
+	push(a.returnStack, a.nextOperation);
+	setNextByteCodeIndex(a, address);
+	return nextOperation(a);
+}
+
+private immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable StackOffset offset) {
 	return remove(a.dataStack, offset.offset);
 }
 
 //TODO: not @trusted
-@trusted void applyExternOp(TempAlloc, Extern)(
-	ref TempAlloc tempAlloc,
-	ref Interpreter!Extern a,
-	immutable ExternOp op,
-) {
+@trusted immutable(Operation!Extern) opExtern(Extern)(ref Interpreter!Extern a) {
+	immutable ExternOp op = cast(ExternOp) readNat8(a).raw();
 	final switch (op) {
 		case ExternOp.backtrace:
 			immutable int size = cast(int) pop(a.dataStack).to32().raw();
 			void** array = cast(void**) pop(a.dataStack).raw();
-			immutable size_t res = backtrace(tempAlloc, a, array, safeU32FromI32(size));
+			immutable size_t res = backtrace(a, array, safeU32FromI32(size));
 			verify(res <= int.max);
 			push(a.dataStack, immutable Nat64(res));
 			break;
@@ -577,7 +493,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			break;
 		case ExternOp.longjmp:
 			immutable Nat64 val = pop(a.dataStack); // TODO: verify this is int32?
-			const JmpBufTag* jmpBufPtr = cast(const JmpBufTag*) pop(a.dataStack).raw();
+			const JmpBufTag!Extern* jmpBufPtr = cast(const JmpBufTag!Extern*) pop(a.dataStack).raw();
 			applyInterpreterRestore(a, **jmpBufPtr);
 			//TODO: freeInterpreterRestore
 			push(a.dataStack, val);
@@ -630,9 +546,9 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			push(a.dataStack, immutable Nat64(0));
 			break;
 		case ExternOp.setjmp:
-			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack).raw();
-			checkPtr(tempAlloc, a, cast(const ubyte*) jmpBufPtr, immutable Nat16(0), immutable Nat16(JmpBufTag.sizeof));
-			overwriteMemory(jmpBufPtr, createInterpreterRestore(tempAlloc, a));
+			JmpBufTag!Extern* jmpBufPtr = cast(JmpBufTag!Extern*) pop(a.dataStack).raw();
+			checkPtr(a, cast(const ubyte*) jmpBufPtr, immutable Nat16(0), immutable Nat16(JmpBufTag!Extern.sizeof));
+			overwriteMemory(jmpBufPtr, createInterpreterRestore(a));
 			push(a.dataStack, immutable Nat64(0));
 			break;
 		case ExternOp.write:
@@ -643,80 +559,147 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			push(a.dataStack, immutable Nat64(res));
 			break;
 	}
+	return nextOperation(a);
 }
 
-@system immutable(size_t) backtrace(TempAlloc, Extern)(
-	ref TempAlloc tempAlloc,
-	ref Interpreter!Extern a,
-	void** res,
-	immutable uint size,
-) {
-	checkPtr(
-		tempAlloc,
-		a,
-		cast(const ubyte*) res,
-		immutable Nat16(0),
-		(immutable Nat64((void*).sizeof * size)).to16());
+//TODO:KILL, use separate functions for each operation
+immutable(Operation!Extern) opFn(Extern)(ref Interpreter!Extern a) {
+	immutable FnOp fnOp = cast(immutable FnOp) readNat8(a).raw();
+	applyFn(a.dataStack, fnOp);
+	return nextOperation(a);
+}
+
+private @system immutable(size_t) backtrace(Extern)(ref Interpreter!Extern a, void** res, immutable uint size) {
+	checkPtr(a, cast(const ubyte*) res, immutable Nat16(0), (immutable Nat64((void*).sizeof * size)).to16());
 	immutable size_t resSize = min(stackSize(a.returnStack).raw(), size);
 	foreach (immutable size_t i; 0 .. resSize)
-		res[i] = cast(void*) byteCodeIndexOfPtr(a, a.returnStack.peek((immutable Nat64(i)).to8())).index.raw();
+		res[i] = cast(void*) byteCodeIndexOfPtr!Extern(a, a.returnStack.peek((immutable Nat64(i)).to8())).index.raw();
 	return resSize;
 }
 
-void applyExternDynCall(Extern)(
-	scope ref Debug dbg,
-	ref Interpreter!Extern a,
-	ref immutable Operation.ExternDynCall op,
-) {
-	if (dbg.enabled()) {
-		logNoNewline(dbg, "Running extern function ");
-		logSym(dbg, op.name);
-	}
-
-	immutable Nat64[] params = popN(a.dataStack, sizeNat(op.parameterTypes).to8());
-	immutable Nat64 value = a.extern_.doDynCall(op.name, op.returnType, params, op.parameterTypes);
-	if (op.returnType != DynCallType.void_)
+immutable(Operation!Extern) opExternDynCall(Extern)(ref Interpreter!Extern a) {
+	immutable Sym name = immutable Sym(readNat64(a).raw());
+	immutable DynCallType returnType = cast(immutable DynCallType) readNat8(a).raw();
+	scope immutable DynCallType[] parameterTypes = readArray!DynCallType(a);
+	scope immutable Nat64[] params = popN(a.dataStack, sizeNat(parameterTypes).to8());
+	immutable Nat64 value = a.extern_.doDynCall(name, returnType, params, parameterTypes);
+	if (returnType != DynCallType.void_)
 		push(a.dataStack, value);
+	return nextOperation(a);
 }
 
 // This isn't the structure the posix jmp-buf-tag has, but it fits inside it
-alias JmpBufTag = immutable InterpreterRestore*;
+private alias JmpBufTag(Extern) = immutable InterpreterRestore!Extern*;
 
-@trusted void pack(ref DataStack dataStack, scope immutable Operation.Pack pack) {
-	ubyte* base = cast(ubyte*) (end(dataStack) - pack.inEntries.raw());
-	foreach (immutable Operation.Pack.Field field; pack.fields)
+private immutable(Operation!Extern) nextOperation(Extern)(ref Interpreter!Extern a) {
+	return false ? getNextOperationAndDebug(a) : readOperation(a);
+}
+
+private @trusted immutable(Operation!Extern) readOperation(Extern)(ref Interpreter!Extern a) {
+	immutable Operation!Extern res = *a.nextOperation;
+	a.nextOperation++;
+	return res;
+}
+
+private immutable(Nat8) readNat8(Extern)(ref Interpreter!Extern interpreter) {
+	return immutable Nat8(cast(ubyte) readOperation!Extern(interpreter));
+}
+
+private immutable(StackOffset) readStackOffset(Extern)(ref Interpreter!Extern interpreter) {
+	return immutable StackOffset(readNat8(interpreter));
+}
+
+private immutable(Nat16) readNat16(Extern)(ref Interpreter!Extern interpreter) {
+	return immutable Nat16(cast(ushort) readOperation!Extern(interpreter));
+}
+
+private immutable(Int16) readInt16(Extern)(ref Interpreter!Extern interpreter) {
+	return immutable Int16(cast(short) readOperation!Extern(interpreter));
+}
+
+private immutable(Nat32) readNat32(Extern)(ref Interpreter!Extern interpreter) {
+	return immutable Nat32(cast(uint) readOperation!Extern(interpreter));
+}
+
+private immutable(Nat64) readNat64(Extern)(ref Interpreter!Extern interpreter) {
+	return immutable Nat64(cast(ulong) readOperation!Extern(interpreter));
+}
+
+private @trusted immutable(T[]) readArray(T, Extern)(ref Interpreter!Extern interpreter) {
+	immutable size_t size = safeSizeTFromU64(readNat64(interpreter).raw());
+	verify(size < 999); // sanity check
+	immutable T* ptr = cast(immutable T*) interpreter.nextOperation;
+	immutable T[] res = ptr[0 .. size];
+	immutable(ubyte)* end = cast(immutable ubyte*) (ptr + size);
+	while ((cast(size_t) end) % Operation!Extern.sizeof != 0) end++;
+	verify((cast(size_t) interpreter.nextOperation) % Operation!Extern.sizeof == 0);
+	verify((cast(size_t) end) % Operation!Extern.sizeof == 0);
+	interpreter.nextOperation = cast(immutable Operation!Extern*) end;
+	return res;
+}
+
+@trusted immutable(Operation!Extern) opJump(Extern)(ref Interpreter!Extern a) {
+	immutable ByteCodeOffset offset = immutable ByteCodeOffset(readInt16(a));
+	a.nextOperation += offset.offset.raw();
+	return nextOperation(a);
+}
+
+@trusted immutable(Operation!Extern) opPack(Extern)(ref Interpreter!Extern a) {
+	immutable Nat8 inEntries = readNat8(a);
+	immutable Nat8 outEntries = readNat8(a);
+	immutable PackField[] fields = readArray!(PackField, Extern)(a);
+
+	ubyte* base = cast(ubyte*) (end(a.dataStack) - inEntries.raw());
+	foreach (immutable PackField field; fields)
 		memmove(base + field.outOffset.raw(), base + field.inOffset.raw(), field.size.raw());
 
 	// drop extra entries
-	drop(popN(dataStack, pack.inEntries - pack.outEntries));
+	drop(popN(a.dataStack, inEntries - outEntries));
 
 	// fill remaining bytes with 0
-	ubyte* ptr = base + last(pack.fields).outOffset.raw() + last(pack.fields).size.raw();
-	while (ptr < cast(ubyte*) end(dataStack)) {
+	ubyte* ptr = base + last(fields).outOffset.raw() + last(fields).size.raw();
+	while (ptr < cast(ubyte*) end(a.dataStack)) {
 		*ptr = 0;
 		ptr++;
 	}
+
+	return nextOperation(a);
 }
 
-@trusted void dupBytes(ref DataStack dataStack, scope immutable Operation.DupBytes dup) {
-	const ubyte* ptr = (cast(const ubyte*) end(dataStack)) - dup.offsetBytes.offsetBytes.raw();
-	readNoCheck(dataStack, ptr, dup.sizeBytes.raw());
+immutable(Operation!Extern) opPushValue(Extern)(ref Interpreter!Extern a) {
+	immutable Nat64 value = readNat64(a);
+	push(a.dataStack, value);
+	return nextOperation(a);
 }
 
-@trusted void dupWord(ref DataStack dataStack, scope immutable Operation.DupWord dup) {
-	const Nat64* ptr = (cast(const Nat64*) end(dataStack)) - 1 - dup.offsetWords.offset.raw();
-	push(dataStack, *ptr);
+@trusted immutable(Operation!Extern) opDupBytes(Extern)(ref Interpreter!Extern a) {
+	immutable Nat16 offsetBytes = readNat16(a);
+	immutable Nat16 sizeBytes = readNat16(a);
+
+	const ubyte* ptr = (cast(const ubyte*) end(a.dataStack)) - offsetBytes.raw();
+	readNoCheck(a.dataStack, ptr, sizeBytes.raw());
+	return nextOperation(a);
 }
 
-@trusted void dupWords(ref DataStack dataStack, scope immutable Operation.DupWords dup) {
-	const(Nat64)* ptr = (cast(const Nat64*) end(dataStack)) - 1 - dup.offsetWords.offset.raw();
-	foreach (immutable size_t i; 0 .. dup.sizeWords.raw()) {
-		push(dataStack, *ptr);
+@trusted immutable(Operation!Extern) opDupWord(Extern)(ref Interpreter!Extern a) {
+	immutable StackOffset offsetWords = readStackOffset(a);
+	const Nat64* ptr = (cast(const Nat64*) end(a.dataStack)) - 1 - offsetWords.offset.raw();
+	push(a.dataStack, *ptr);
+	return nextOperation(a);
+}
+
+@trusted immutable(Operation!Extern) opDupWords(Extern)(ref Interpreter!Extern a) {
+	immutable StackOffset offsetWords = readStackOffset(a);
+	immutable Nat8 sizeWords = readNat8(a);
+	const(Nat64)* ptr = (cast(const Nat64*) end(a.dataStack)) - 1 - offsetWords.offset.raw();
+	foreach (immutable size_t i; 0 .. sizeWords.raw()) {
+		push(a.dataStack, *ptr);
 		ptr++;
 	}
+	return nextOperation(a);
 }
 
-@system void readNoCheck(ref DataStack dataStack, const ubyte* readFrom, immutable size_t sizeBytes) {
+private @system void readNoCheck(ref DataStack dataStack, const ubyte* readFrom, immutable size_t sizeBytes) {
 	ubyte* outPtr = cast(ubyte*) end(dataStack);
 	immutable size_t sizeWords = divRoundUp(sizeBytes, 8);
 	pushUninitialized(dataStack, sizeWords);

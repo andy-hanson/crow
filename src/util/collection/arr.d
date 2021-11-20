@@ -88,7 +88,7 @@ immutable(bool) empty(T)(const T[] a) {
 }
 
 @trusted inout(Ptr!T) ptrAt(T)(inout T[] a, immutable size_t index) {
-	verify(index < size(a));
+	verify(index < size!T(a));
 	return inout Ptr!T(&a[index]);
 }
 

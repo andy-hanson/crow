@@ -40,6 +40,10 @@ immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 	return a.size_ == 0;
 }
 
+@system T* mutArrEnd(T)(ref MutArr!T a) {
+	return a.begin_ + a.size_;
+}
+
 void insert(T)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T value) {
 	push(alloc, a, value); // pushed value is arbitrary, we're about to overwrite it
 	foreach_reverse (immutable size_t i; pos + 1 .. mutArrSize(a))
@@ -110,7 +114,10 @@ T mustPop(T)(ref MutArr!T a) {
 }
 
 @trusted immutable(T[]) moveToArr(T)(ref Alloc alloc, ref MutArr!(immutable T) a) {
-	immutable T[] res = cast(immutable) a.begin_[0 .. a.size_];
+	return cast(immutable) moveToArr_mut(alloc, a);
+}
+@trusted T[] moveToArr_mut(T)(ref Alloc alloc, ref MutArr!T a) {
+	T[] res = a.begin_[0 .. a.size_];
 	freeBytesPartial(alloc, cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;
 	a.size_ = 0;

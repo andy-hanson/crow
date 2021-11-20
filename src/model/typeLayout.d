@@ -2,7 +2,7 @@ module model.typeLayout;
 
 @safe @nogc pure nothrow:
 
-import interpret.bytecode : Operation, stackEntrySize;
+import interpret.bytecode : stackEntrySize;
 import model.concreteModel : TypeSize;
 import model.lowModel :
 	LowField,
@@ -45,7 +45,19 @@ private immutable(Nat8) nStackEntriesForBytes(immutable Nat16 bytes) {
 	return divRoundUp(bytes, stackEntrySize).to8();
 }
 
-immutable(Opt!(Operation.Pack)) optPack(TempAlloc)(
+struct Pack {
+	immutable Nat8 inEntries;
+	immutable Nat8 outEntries;
+	immutable PackField[] fields;
+}
+
+struct PackField {
+	immutable Nat16 inOffset;
+	immutable Nat16 outOffset;
+	immutable Nat16 size;
+}
+
+immutable(Opt!Pack) optPack(TempAlloc)(
 	ref TempAlloc tempAlloc,
 	ref immutable LowProgram program,
 	immutable LowType.Record type,
@@ -53,20 +65,20 @@ immutable(Opt!(Operation.Pack)) optPack(TempAlloc)(
 	immutable LowRecord record = fullIndexDictGet(program.allRecords, type);
 
 	if (every!LowField(record.fields, (ref immutable LowField field) => field.offset.raw() % 8 == 0))
-		return none!(Operation.Pack);
+		return none!Pack;
 	else {
 		Nat8 inOffsetEntries = immutable Nat8(0);
-		immutable Operation.Pack.Field[] fields = map!(Operation.Pack.Field)(
+		immutable PackField[] fields = map!(PackField)(
 			tempAlloc,
 			record.fields,
 			(ref immutable LowField field) {
 				immutable Nat16 fieldInOffsetBytes = inOffsetEntries.to16() * immutable Nat16(8);
 				immutable Nat16 fieldSizeBytes = sizeOfType(program, field.type).size;
 				inOffsetEntries += nStackEntriesForBytes(fieldSizeBytes);
-				return immutable Operation.Pack.Field(fieldInOffsetBytes, field.offset, fieldSizeBytes);
+				return immutable PackField(fieldInOffsetBytes, field.offset, fieldSizeBytes);
 			});
 		immutable Nat8 outEntries = nStackEntriesForType(program, immutable LowType(type));
-		return some(immutable Operation.Pack(inOffsetEntries, outEntries, fields));
+		return some(immutable Pack(inOffsetEntries, outEntries, fields));
 	}
 }
 

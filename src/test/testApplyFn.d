@@ -130,7 +130,7 @@ void testFn(
 ) {
 	DataStack dataStack = DataStack(true);
 	pushAll(dataStack, stackIn);
-	applyFn(test.dbg, dataStack, fnOp);
+	applyFn(dataStack, fnOp);
 	expectDataStack(test, dataStack, stackOut);
 	clearStack(dataStack);
 }

@@ -178,26 +178,6 @@ enum PerfMeasure {
 	parseEverything,
 	parseFile,
 	run,
-
-	operationCall,
-	operationCallFunPtr,
-	operationDebug,
-	operationDupBytes,
-	operationDupWord,
-	operationDupWords,
-	operationExtern,
-	operationExternDynCall,
-	operationFn,
-	operationJump,
-	operationPack,
-	operationPushValue,
-	operationRead,
-	operationRemove,
-	operationReturn,
-	operationStackRef,
-	operationSwitch0ToN,
-	operationSwitchWithValues,
-	operationWrite,
 }
 
 private:
@@ -241,45 +221,6 @@ pure immutable(string) perfMeasureName(immutable PerfMeasure a) {
 			return "parseFile";
 		case PerfMeasure.run:
 			return "run";
-
-		case PerfMeasure.operationCall:
-			return "operationCall";
-		case PerfMeasure.operationCallFunPtr:
-			return "operationCallFunPtr";
-		case PerfMeasure.operationDebug:
-			return "operationDebug";
-		case PerfMeasure.operationDupBytes:
-			return "operationDupBytes";
-		case PerfMeasure.operationDupWord:
-			return "operationDupWord";
-		case PerfMeasure.operationDupWords:
-			return "operationDupWords";
-		case PerfMeasure.operationExtern:
-			return "operationExtern";
-		case PerfMeasure.operationExternDynCall:
-			return "operationExternDynCall";
-		case PerfMeasure.operationFn:
-			return "operationFn";
-		case PerfMeasure.operationJump:
-			return "operationJump";
-		case PerfMeasure.operationPack:
-			return "operationPack";
-		case PerfMeasure.operationPushValue:
-			return "operationPushValue";
-		case PerfMeasure.operationRead:
-			return "operationRead";
-		case PerfMeasure.operationRemove:
-			return "operationRemove";
-		case PerfMeasure.operationReturn:
-			return "operationReturn";
-		case PerfMeasure.operationStackRef:
-			return "operationStackRef";
-		case PerfMeasure.operationSwitch0ToN:
-			return "operationSwitch0ToN";
-		case PerfMeasure.operationSwitchWithValues:
-			return "operationSwitchWithValues";
-		case PerfMeasure.operationWrite:
-			return "operationWrite";
 	}
 }
 

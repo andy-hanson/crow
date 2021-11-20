@@ -98,7 +98,7 @@ immutable(ExitCode) buildAndInterpret(ReadOnlyStorage, Extern)(
 	immutable ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, allSymbols, allPaths, storage, main);
 	if (empty(programs.program.diagnostics)) {
 		immutable LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
-		immutable ByteCode byteCode = generateBytecode(dbg, alloc, alloc, programs.program, lowProgram);
+		immutable ByteCode!Extern byteCode = generateBytecode!Extern(dbg, alloc, alloc, programs.program, lowProgram);
 		return immutable ExitCode(runBytecode(
 			dbg,
 			perf,

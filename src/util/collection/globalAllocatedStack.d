@@ -115,10 +115,6 @@ immutable(T) pop(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
 	return a.values[a.size];
 }
 
-void dup(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable Nat8 offset) {
-	push(a, peek(a, offset));
-}
-
 immutable(T) remove(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable Nat8 offset) {
 	immutable T res = peek(a, offset);
 	remove(a, offset, immutable Nat8(1));

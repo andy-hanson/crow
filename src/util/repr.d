@@ -90,10 +90,6 @@ immutable(Repr) reprFloat(immutable double a) {
 	return immutable Repr(a);
 }
 
-immutable(Repr) reprHex(T)(immutable NatN!T a) {
-	return immutable Repr(immutable ReprInt(a.raw(), 16));
-}
-
 immutable(Repr) reprInt(immutable long a) {
 	return immutable Repr(immutable ReprInt(a, 10));
 }

@@ -40,8 +40,8 @@ struct Ptr(T) {
 		ptr = p;
 		verify(ptr != null);
 	}
-	this(inout T* p) inout {
-		ptr = p;
+	@trusted this(inout T* p) inout {
+		ptr = cast(inout void*) p;
 		verify(ptr != null);
 	}
 
