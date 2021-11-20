@@ -19,7 +19,8 @@ import model.lowModel :
 	LowRecord,
 	LowType,
 	name,
-	PrimitiveType;
+	PrimitiveType,
+	UpdateParam;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : at, size;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -147,9 +148,9 @@ immutable(LowExpr) genTailRecur(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	immutable LowType returnType,
-	immutable LowExpr[] args,
+	immutable UpdateParam[] updateParams,
 ) {
-	return immutable LowExpr(returnType, range, immutable LowExprKind(immutable LowExprKind.TailRecur(args)));
+	return immutable LowExpr(returnType, range, immutable LowExprKind(immutable LowExprKind.TailRecur(updateParams)));
 }
 
 immutable(LowExpr) genCall(

@@ -868,7 +868,7 @@ struct LowExprKind {
 	}
 
 	struct TailRecur {
-		immutable LowExpr[] args;
+		immutable UpdateParam[] updateParams;
 	}
 
 	struct Zeroed {}
@@ -1021,6 +1021,11 @@ static assert(LowExprKind.sizeof <= 32);
 		case LowExprKind.Kind.zeroed:
 			return cbZeroed(a.zeroed);
 	}
+}
+
+struct UpdateParam {
+	immutable LowParamIndex param;
+	immutable LowExpr newValue;
 }
 
 immutable(bool) isLocalRef(ref immutable LowExprKind a) {

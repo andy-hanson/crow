@@ -699,6 +699,21 @@ immutable(Operation!Extern) opPushValue(Extern)(ref Interpreter!Extern a) {
 	return nextOperation(a);
 }
 
+// Copies data from the top of the stack to write to something lower on the stack.
+@trusted immutable(Operation!Extern) opSet(Extern)(ref Interpreter!Extern a) {
+	immutable StackOffset offsetWords = readStackOffset(a);
+	immutable Nat8 sizeWords = readNat8(a);
+	// Start at the end of the range and pop in reverse
+	const Nat64* begin = (cast(const Nat64*) end(a.dataStack)) - 1 - offsetWords.offset.raw();
+	const(Nat64)* ptr = begin + sizeWords.raw();
+	foreach (immutable size_t i; 0 .. sizeWords.raw()) {
+		ptr--;
+		overwriteMemory(ptr, pop(a.dataStack));
+	}
+	verify(ptr == begin);
+	return nextOperation(a);
+}
+
 private @system void readNoCheck(ref DataStack dataStack, const ubyte* readFrom, immutable size_t sizeBytes) {
 	ubyte* outPtr = cast(ubyte*) end(dataStack);
 	immutable size_t sizeWords = divRoundUp(sizeBytes, 8);

@@ -17,7 +17,8 @@ import model.lowModel :
 	LowParam,
 	LowParamIndex,
 	LowType,
-	matchLowType;
+	matchLowType,
+	UpdateParam;
 import lower.lower : getMarkVisitFun, MarkVisitFuns, tryGetMarkVisitFun;
 import lower.lowExprHelpers :
 	boolType,
@@ -149,10 +150,13 @@ immutable(LowFun) generateMarkVisitArrInner(
 		arrLiteral!LowExpr(alloc, [
 			markCtxParamRef,
 			genDerefRawPtr(alloc, range, curParamRef)]));
-	immutable LowExpr recur = genTailRecur(alloc, range, voidType, arrLiteral!LowExpr(alloc, [
-		markCtxParamRef,
-		incrPointer(alloc, range, elementPtrType, curParamRef),
-		endParamRef]));
+	immutable LowExpr recur = genTailRecur(
+		alloc,
+		range,
+		voidType,
+		arrLiteral!(UpdateParam)(alloc, [immutable UpdateParam(
+			immutable LowParamIndex(1),
+			incrPointer(alloc, range, elementPtrType, curParamRef))]));
 	immutable LowExpr visitAndRecur = seq(alloc, range, visit, recur);
 	immutable LowExpr expr = genIf(
 		alloc,

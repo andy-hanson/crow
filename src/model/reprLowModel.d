@@ -31,7 +31,8 @@ import model.lowModel :
 	matchLowType,
 	name,
 	PrimitiveType,
-	symOfPrimitiveType;
+	symOfPrimitiveType,
+	UpdateParam;
 import model.model : EnumValue;
 import model.reprConcreteModel :
 	reprOfConcreteFunRef,
@@ -262,8 +263,11 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 					reprOfLowExpr(alloc, case_))]),
 		(ref immutable LowExprKind.TailRecur it) =>
 			reprRecord(alloc, "tail-recur", [
-				reprArr(alloc, it.args, (ref immutable LowExpr arg) =>
-					reprOfLowExpr(alloc, arg))]),
+				reprArr(alloc, it.updateParams, (ref immutable UpdateParam updateParam) =>
+					reprRecord(alloc, "update", [
+						reprNat(updateParam.param.index),
+						reprOfLowExpr(alloc, updateParam.newValue),
+					]))]),
 		(ref immutable LowExprKind.Zeroed) =>
 			reprSym("uninit"));
 }

@@ -74,11 +74,13 @@ import model.lowModel :
 	AllLowTypes,
 	ArrTypeAndConstantsLow,
 	asPtrGcPointee,
+	asParamRef,
 	asPtrRawConst,
 	asRecordType,
 	ConcreteFunToLowFunIndex,
 	hashLowType,
 	isArr,
+	isParamRef,
 	isPtrGc,
 	LowExpr,
 	LowExprKind,
@@ -103,7 +105,8 @@ import model.lowModel :
 	LowUnion,
 	matchLowType,
 	PointerTypeAndConstantsLow,
-	PrimitiveType;
+	PrimitiveType,
+	UpdateParam;
 import model.model : decl, EnumBackingType, EnumFunction, EnumValue, FlagsFunction, FunInst, name, range;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : at, empty, emptyArr, first, only, size;
@@ -1158,9 +1161,39 @@ immutable(LowExprKind) getCallExpr(
 	ref immutable ConcreteExprKind.Call a,
 ) {
 	immutable Opt!LowFunIndex opCalled = tryGetLowFunIndex(ctx, a.called);
-	if (has(opCalled)) {
-		immutable bool isTailRecur = force(opCalled) == ctx.currentFun && exprPos == ExprPos.tail;
-		if (isTailRecur) ctx.hasTailRecur = true;
+	return has(opCalled)
+		? getCallRegular(alloc, ctx, exprPos, range, type, a, force(opCalled))
+		: getCallSpecial(alloc, ctx, exprPos, range, type, a);
+}
+
+immutable(LowExprKind) getCallRegular(
+	ref Alloc alloc,
+	ref GetLowExprCtx ctx,
+	immutable ExprPos exprPos,
+	ref immutable FileAndRange range,
+	ref immutable LowType type,
+	ref immutable ConcreteExprKind.Call a,
+	immutable LowFunIndex called,
+) {
+	if (called == ctx.currentFun && exprPos == ExprPos.tail) {
+		ctx.hasTailRecur = true;
+		ArrBuilder!UpdateParam updateParams;
+		immutable size_t p0 = () {
+			final switch (a.called.deref().needsCtx) {
+				case NeedsCtx.no:
+					return 0;
+				case NeedsCtx.yes:
+					return 1;
+			}
+		}();
+		foreach (immutable size_t argIndex, ref immutable ConcreteExpr it; a.args) {
+			immutable LowExpr arg = getLowExpr(alloc, ctx, it, ExprPos.nonTail);
+			immutable LowParamIndex paramIndex = immutable LowParamIndex(safeSizeTToU8(p0 + argIndex));
+			if (!(isParamRef(arg.kind) && asParamRef(arg.kind).index == paramIndex))
+				add(alloc, updateParams, immutable UpdateParam(paramIndex, arg));
+		}
+		return immutable LowExprKind(immutable LowExprKind.TailRecur(finishArr(alloc, updateParams)));
+	} else {
 		immutable Opt!LowExpr ctxArg = () {
 			final switch (a.called.deref().needsCtx) {
 				case NeedsCtx.no:
@@ -1171,63 +1204,71 @@ immutable(LowExprKind) getCallExpr(
 		}();
 		immutable LowExpr[] args = mapWithOptFirst(alloc, ctxArg, a.args, (ref immutable ConcreteExpr it) =>
 			getLowExpr(alloc, ctx, it, ExprPos.nonTail));
-		return isTailRecur
-			? immutable LowExprKind(immutable LowExprKind.TailRecur(args))
-			: immutable LowExprKind(immutable LowExprKind.Call(force(opCalled), args));
-	} else
-		return matchConcreteFunBody!(immutable LowExprKind)(
-			body_(a.called.deref()),
-			(ref immutable ConcreteFunBody.Builtin) {
-				return getCallBuiltinExpr(alloc, ctx, exprPos, range, type, a);
-			},
-			(ref immutable ConcreteFunBody.CreateEnum it) =>
-				immutable LowExprKind(immutable Constant(immutable Constant.Integral(it.value.value))),
-			(ref immutable ConcreteFunBody.CreateRecord) {
-				immutable LowExpr[] args = getArgs(alloc, ctx, a.args);
-				immutable LowExprKind create = immutable LowExprKind(immutable LowExprKind.CreateRecord(args));
-				if (isPtrGc(type)) {
-					immutable LowExpr inner = immutable LowExpr(asPtrGcPointee(type), range, create);
-					return getAllocExpr2(alloc, ctx, range, inner, type);
-				} else
-					return create;
-			},
-			(ref immutable ConcreteFunBody.CreateUnion it) {
-				immutable LowExpr arg = empty(a.args)
-					? genVoid(range)
-					: getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail);
-				return immutable LowExprKind(allocate(alloc, immutable LowExprKind.CreateUnion(it.memberIndex, arg)));
-			},
-			(immutable EnumFunction it) =>
-				genEnumFunction(alloc, ctx, it, a.args),
-			(ref immutable ConcreteFunBody.Extern) =>
-				unreachable!(immutable LowExprKind),
-			(ref immutable ConcreteFunExprBody) =>
-				unreachable!(immutable LowExprKind),
-			(ref immutable ConcreteFunBody.FlagsFn it) {
-				final switch (it.fn) {
-					case FlagsFunction.all:
-						return immutable LowExprKind(immutable Constant(immutable Constant.Integral(it.allValue)));
-					case FlagsFunction.empty:
-						return immutable LowExprKind(immutable Constant(immutable Constant.Integral(0)));
-					case FlagsFunction.negate:
-						return genFlagsNegate(
-							alloc,
-							range,
-							it.allValue,
-							getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail));
-				}
-			},
-			(ref immutable ConcreteFunBody.RecordFieldGet it) =>
-				immutable LowExprKind(allocate(alloc, immutable LowExprKind.RecordFieldGet(
-					getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail),
-					it.fieldIndex))),
-			(ref immutable ConcreteFunBody.RecordFieldSet it) {
-				verify(size(a.args) == 2);
-				return immutable LowExprKind(allocate(alloc, immutable LowExprKind.RecordFieldSet(
-					getLowExpr(alloc, ctx, at(a.args, 0), ExprPos.nonTail),
-					it.fieldIndex,
-					getLowExpr(alloc, ctx, at(a.args, 1), ExprPos.nonTail))));
-			});
+		return immutable LowExprKind(immutable LowExprKind.Call(called, args));
+	}
+}
+
+immutable(LowExprKind) getCallSpecial(
+	ref Alloc alloc,
+	ref GetLowExprCtx ctx,
+	immutable ExprPos exprPos,
+	ref immutable FileAndRange range,
+	ref immutable LowType type,
+	ref immutable ConcreteExprKind.Call a,
+) {
+	return matchConcreteFunBody!(immutable LowExprKind)(
+		body_(a.called.deref()),
+		(ref immutable ConcreteFunBody.Builtin) {
+			return getCallBuiltinExpr(alloc, ctx, exprPos, range, type, a);
+		},
+		(ref immutable ConcreteFunBody.CreateEnum it) =>
+			immutable LowExprKind(immutable Constant(immutable Constant.Integral(it.value.value))),
+		(ref immutable ConcreteFunBody.CreateRecord) {
+			immutable LowExpr[] args = getArgs(alloc, ctx, a.args);
+			immutable LowExprKind create = immutable LowExprKind(immutable LowExprKind.CreateRecord(args));
+			if (isPtrGc(type)) {
+				immutable LowExpr inner = immutable LowExpr(asPtrGcPointee(type), range, create);
+				return getAllocExpr2(alloc, ctx, range, inner, type);
+			} else
+				return create;
+		},
+		(ref immutable ConcreteFunBody.CreateUnion it) {
+			immutable LowExpr arg = empty(a.args)
+				? genVoid(range)
+				: getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail);
+			return immutable LowExprKind(allocate(alloc, immutable LowExprKind.CreateUnion(it.memberIndex, arg)));
+		},
+		(immutable EnumFunction it) =>
+			genEnumFunction(alloc, ctx, it, a.args),
+		(ref immutable ConcreteFunBody.Extern) =>
+			unreachable!(immutable LowExprKind),
+		(ref immutable ConcreteFunExprBody) =>
+			unreachable!(immutable LowExprKind),
+		(ref immutable ConcreteFunBody.FlagsFn it) {
+			final switch (it.fn) {
+				case FlagsFunction.all:
+					return immutable LowExprKind(immutable Constant(immutable Constant.Integral(it.allValue)));
+				case FlagsFunction.empty:
+					return immutable LowExprKind(immutable Constant(immutable Constant.Integral(0)));
+				case FlagsFunction.negate:
+					return genFlagsNegate(
+						alloc,
+						range,
+						it.allValue,
+						getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail));
+			}
+		},
+		(ref immutable ConcreteFunBody.RecordFieldGet it) =>
+			immutable LowExprKind(allocate(alloc, immutable LowExprKind.RecordFieldGet(
+				getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail),
+				it.fieldIndex))),
+		(ref immutable ConcreteFunBody.RecordFieldSet it) {
+			verify(size(a.args) == 2);
+			return immutable LowExprKind(allocate(alloc, immutable LowExprKind.RecordFieldSet(
+				getLowExpr(alloc, ctx, at(a.args, 0), ExprPos.nonTail),
+				it.fieldIndex,
+				getLowExpr(alloc, ctx, at(a.args, 1), ExprPos.nonTail))));
+		});
 }
 
 immutable(LowExprKind) genFlagsNegate(

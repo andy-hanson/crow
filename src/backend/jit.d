@@ -84,7 +84,6 @@ import include.libgccjit :
 	gcc_jit_rvalue_access_field,
 	gcc_jit_rvalue_dereference,
 	gcc_jit_rvalue_dereference_field,
-	gcc_jit_rvalue_set_bool_require_tail_call,
 	gcc_jit_type,
 	gcc_jit_types,
 	gcc_jit_unary_op;
@@ -105,7 +104,6 @@ import model.lowModel :
 	LowFunIndex,
 	LowLocal,
 	LowParam,
-	LowParamIndex,
 	LowProgram,
 	LowPtrCombine,
 	LowType,
@@ -115,7 +113,8 @@ import model.lowModel :
 	matchLowTypeCombinePtr,
 	name,
 	PointerTypeAndConstantsLow,
-	PrimitiveType;
+	PrimitiveType,
+	UpdateParam;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : at, empty, size;
@@ -126,7 +125,6 @@ import util.collection.arrUtil :
 	mapToMut,
 	mapWithIndex,
 	mapWithIndex_mut,
-	tail,
 	zip,
 	zipFirstMut;
 import util.collection.dict : mustGetAt;
@@ -138,7 +136,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, writeSym;
-import util.types : Nat16, safeSizeTToU8;
+import util.types : Nat16;
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 
@@ -931,63 +929,27 @@ void emitToLValue(ref ExprCtx ctx, Ptr!gcc_jit_lvalue lvalue, ref immutable LowE
 ) {
 	verify(isReturn(emit));
 
-	if (false) {
-		//TODO: using gcc's tail recursion has a bug with crow's empty 'void' type.
-		// It will try to return void after the call instead of returning from the call.
-		//TODO:NO ALLOC
-		immutable Ptr!gcc_jit_rvalue[] args = map!(Ptr!gcc_jit_rvalue)(ctx.alloc, a.args, (ref immutable LowExpr arg) =>
-			emitToRValue(ctx, arg));
-		Ptr!gcc_jit_rvalue call = gcc_jit_context_new_call(ctx.gcc, null, ctx.curFun, cast(int) size(args), args.ptr);
-		gcc_jit_rvalue_set_bool_require_tail_call(call, 1);
-		return emitSimpleNoSideEffects(ctx, emit, castImmutable(call));
-	} else {
-		// Instead of a call, overwrite each parameter.
-		// To be sure this works, calculate new params first and make temporaries.
-		//TODO:NO ALLOC
-		Ptr!gcc_jit_lvalue[] locals =
-			mapWithIndex_mut(ctx.alloc, a.args, (immutable size_t i, ref immutable LowExpr arg) {
-				Ptr!gcc_jit_lvalue local =
-					gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, arg.type), tempName(i));
-				emitToLValue(ctx, local, arg);
-				return local;
-			});
-		foreach (immutable size_t i, Ptr!gcc_jit_lvalue local; locals) {
-			Ptr!gcc_jit_param param =
-				getParam(ctx, immutable LowExprKind.ParamRef(immutable LowParamIndex(safeSizeTToU8(i))));
+	// We need to be sure to generate all the new parameter values before overwriting any,
+	Ptr!gcc_jit_lvalue[] locals =
+		mapToMut!(Ptr!gcc_jit_lvalue)(ctx.alloc, a.updateParams, (ref immutable UpdateParam updateParam) {
+			Ptr!gcc_jit_lvalue local =
+				gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, updateParam.newValue.type), "temp");
+			emitToLValue(ctx, local, updateParam.newValue);
+			return local;
+		});
+	zipFirstMut!(Ptr!gcc_jit_lvalue, UpdateParam)(
+		locals,
+		a.updateParams,
+		(ref Ptr!gcc_jit_lvalue local, ref immutable UpdateParam updateParam) {
+			Ptr!gcc_jit_param param = getParam(ctx, immutable LowExprKind.ParamRef(updateParam.param));
 			gcc_jit_block_add_assignment(
 				ctx.curBlock,
 				null,
 				gcc_jit_param_as_lvalue(param),
 				gcc_jit_lvalue_as_rvalue(local));
-		}
-		gcc_jit_block_end_with_jump(ctx.curBlock, null, ctx.entryBlock);
-		return nonePtr!gcc_jit_rvalue;
-	}
-}
-
-immutable(char*) tempName(immutable size_t i) {
-	switch (i) {
-		case 0:
-			return "temp0";
-		case 1:
-			return "temp1";
-		case 2:
-			return "temp2";
-		case 3:
-			return "temp3";
-		case 4:
-			return "temp4";
-		case 5:
-			return "temp5";
-		case 6:
-			return "temp6";
-		case 7:
-			return "temp7";
-		case 8:
-			return "temp8";
-		default:
-			return todo!(immutable char*)("!");
-	}
+		});
+	gcc_jit_block_end_with_jump(ctx.curBlock, null, ctx.entryBlock);
+	return nonePtr!gcc_jit_rvalue;
 }
 
 immutable(ExprResult) emitRecordCb(

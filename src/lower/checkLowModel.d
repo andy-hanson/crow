@@ -25,7 +25,8 @@ import model.lowModel :
 	matchLowFunBody,
 	matchLowType,
 	PrimitiveType,
-	symOfPrimitiveType;
+	symOfPrimitiveType,
+	UpdateParam;
 import model.reprConcreteModel : reprOfConcreteStructRef;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : at, sizeEq;
@@ -212,8 +213,9 @@ void checkLowExpr(
 				checkLowExpr(alloc, ctx, type, case_);
 		},
 		(ref immutable LowExprKind.TailRecur it) {
-			verify(sizeEq(ctx.fun.params, it.args));
-			// TODO:more
+			checkTypeEqual(alloc, ctx.ctx, type, ctx.fun.returnType);
+			foreach (ref immutable UpdateParam update; it.updateParams)
+				checkLowExpr(alloc, ctx, at(ctx.fun.params, update.param.index).type, update.newValue);
 		},
 		(ref immutable LowExprKind.Zeroed) {});
 }

@@ -374,8 +374,6 @@ extern(C) {
 		int num_cases,
 		immutable Ptr!gcc_jit_case* cases);
 
-	void gcc_jit_rvalue_set_bool_require_tail_call(Ptr!gcc_jit_rvalue call, bool require_tail_call);
-
 	immutable(Ptr!gcc_jit_rvalue) gcc_jit_function_get_address(
 		const Ptr!gcc_jit_function fn,
 		gcc_jit_location* loc);

@@ -30,6 +30,7 @@ import interpret.runBytecode :
 	opFn,
 	opPack,
 	opPushValue,
+	opSet,
 	opJump,
 	opRead,
 	opRemove,
@@ -74,6 +75,10 @@ struct StackEntry {
 struct StackEntries {
 	immutable StackEntry start; // Index of first entry
 	immutable Nat8 size; // Number of entries
+}
+
+immutable(StackEntry) stackEntriesEnd(immutable StackEntries a) {
+	return immutable StackEntry(a.start.entry + a.size.to16());
 }
 
 @trusted immutable(ByteCode!Extern) finishByteCode(Extern)(
@@ -222,6 +227,18 @@ void writeDup(Extern)(
 	}
 
 	writer.nextStackEntry += divRoundUp(sizeBytes, immutable Nat16(8));
+}
+
+void writeSet(Extern)(
+	scope ref Debug dbg,
+	ref ByteCodeWriter!Extern writer,
+	immutable ByteCodeSource source,
+	immutable StackEntries entries,
+) {
+	pushOperation!Extern(writer, source, &opSet!Extern);
+	pushU8(writer, source, getStackOffsetTo(writer, entries.start));
+	pushU8(writer, source, entries.size);
+	writer.nextStackEntry -= entries.size.to16();
 }
 
 void writeRead(Extern)(

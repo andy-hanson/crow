@@ -211,7 +211,7 @@ alias Nat16 = NatN!ushort;
 alias Nat32 = NatN!uint;
 alias Nat64 = NatN!ulong;
 alias Int16 = IntN!short;
-alias Int32 = IntN!int;
+private alias Int32 = IntN!int;
 alias Int64 = IntN!long;
 
 immutable(ubyte) bottomU8OfU64(immutable ulong u) {

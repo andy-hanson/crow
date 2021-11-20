@@ -24,6 +24,7 @@ import interpret.bytecodeWriter :
 	setNextStackEntry,
 	setStackEntryAfterParameters,
 	StackEntries,
+	stackEntriesEnd,
 	StackEntry,
 	SwitchDelayed,
 	writeAddConstantNat64,
@@ -49,6 +50,7 @@ import interpret.bytecodeWriter :
 	writeRead,
 	writeRemove,
 	writeReturn,
+	writeSet,
 	writeSwitch0ToNDelay,
 	writeSwitchWithValuesDelay,
 	writeWrite;
@@ -96,11 +98,12 @@ import model.lowModel :
 	matchLowFunBody,
 	matchLowType,
 	name,
-	PrimitiveType;
+	PrimitiveType,
+	UpdateParam;
 import model.model : FunDecl, Module, name, Program, range;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : at, castImmutable, empty, only, size, sizeNat;
+import util.collection.arr : at, castImmutable, empty, last, only, size, sizeNat;
 import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict :
@@ -261,10 +264,6 @@ void generateBytecodeForFun(Extern)(
 			generateExternCall(dbg, tempAlloc, writer, funIndex, fun, body_);
 		},
 		(ref immutable LowFunExprBody body_) {
-			// Note: not doing it for locals because they might be unrelated and occupy the same stack entry
-			immutable StackEntry parametersStart = empty(parameters)
-				? stackEntryAfterParameters
-				: at(parameters, 0).start;
 			ExprCtx ctx = ExprCtx(
 				ptrTrustMe(program),
 				ptrTrustMe(textInfo),
@@ -272,7 +271,6 @@ void generateBytecodeForFun(Extern)(
 				returnEntries,
 				ptrTrustMe_mut(funToReferences),
 				nextByteCodeIndex(writer),
-				parametersStart,
 				parameters);
 			generateExpr(dbg, tempAlloc, writer, ctx, body_.expr);
 			verify(stackEntryAfterParameters.entry + returnEntries.to16() == getNextStackEntry(writer).entry);
@@ -430,7 +428,6 @@ struct ExprCtx {
 	immutable Nat8 returnTypeSizeInStackEntries;
 	Ptr!(MutIndexMultiDict!(LowFunIndex, ByteCodeIndex)) funToReferences;
 	immutable ByteCodeIndex startOfCurrentFun;
-	immutable StackEntry parametersStart;
 	immutable StackEntries[] parameterEntries;
 	MutPtrDict!(LowLocal, immutable StackEntries) localEntries;
 
@@ -595,19 +592,26 @@ void generateExpr(Extern)(
 			generateSwitchWithValues(dbg, tempAlloc, writer, ctx, source, it);
 		},
 		(ref immutable LowExprKind.TailRecur it) {
-			//TODO:PERF instead of all this, Don't generate code for parameters that are unchanged.
-			//Just Use a 'stackSet' operation to mutate the changed parameters in place.
+			// We need to generate all new values before overwriting anything.
+			foreach (ref immutable UpdateParam updateParam; it.updateParams)
+				generateExpr(dbg, tempAlloc, writer, ctx, updateParam.newValue);
+			// Now pop them in reverse and write to the appropriate params
+			foreach_reverse (ref immutable UpdateParam updateParam; it.updateParams)
+				writeSet(dbg, writer, source, at(ctx.parameterEntries, updateParam.param.index));
 
-			immutable StackEntry before = getNextStackEntry(writer);
-			generateArgs(dbg, tempAlloc, writer, ctx, it.args);
-			// Delete the original parameters and anything else on the stack except for the new args
+			// Delete anything on the stack besides parameters
+			immutable StackEntry parametersEnd = empty(ctx.parameterEntries)
+				? immutable StackEntry(immutable Nat16(0))
+				: stackEntriesEnd(last(ctx.parameterEntries));
+			immutable StackEntry localsEnd = getNextStackEntry(writer);
 			writeRemove(dbg, writer, source, immutable StackEntries(
-				ctx.parametersStart,
-				(before.entry - ctx.parametersStart.entry).to8()));
+				parametersEnd,
+				(localsEnd.entry - parametersEnd.entry).to8()));
 			writeJump(dbg, writer, source, ctx.startOfCurrentFun);
+
 			// We'll continue to write code after the jump for cleaning up the stack, but it's unreachable.
 			// Set the stack entry as if this was a regular call returning.
-			setNextStackEntry(writer, immutable StackEntry(before.entry + ctx.returnTypeSizeInStackEntries.to16()));
+			setNextStackEntry(writer, immutable StackEntry(localsEnd.entry + ctx.returnTypeSizeInStackEntries.to16()));
 			writeAssertUnreachable(writer, source);
 		},
 		(ref immutable LowExprKind.Zeroed) {

@@ -57,7 +57,8 @@ import model.lowModel :
 	matchLowTypeCombinePtr,
 	name,
 	PointerTypeAndConstantsLow,
-	PrimitiveType;
+	PrimitiveType,
+	UpdateParam;
 import model.model : EnumValue, name;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
@@ -1046,16 +1047,18 @@ void writeTailRecur(
 	ref immutable LowExprKind.TailRecur a,
 ) {
 	immutable LowParam[] params = fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params;
-	immutable WriteExprResult[] args = writeExprsTempOrInline(writer, tempAlloc, indent, ctx, a.args);
-	zip!(LowParam, LowExpr, WriteExprResult)(
+	immutable WriteExprResult[] newValues =
+		map!WriteExprResult(tempAlloc, a.updateParams, (ref immutable UpdateParam updateParam) =>
+			writeExprTempOrInline(writer, tempAlloc, indent, ctx, updateParam.newValue));
+	zip!(LowParam, UpdateParam, WriteExprResult)(
 		params,
-		a.args,
-		args,
-		(ref immutable LowParam param, ref immutable LowExpr argExpr, ref immutable WriteExprResult arg) {
+		a.updateParams,
+		newValues,
+		(ref immutable LowParam param, ref immutable UpdateParam updateParam, ref immutable WriteExprResult newValue) {
 			writeNewline(writer, indent);
-			writeLowParamName(writer, param);
+			writeLowParamName(writer, at(params, updateParam.param.index));
 			writeStatic(writer, " = ");
-			writeTempOrInline(writer, tempAlloc, ctx, argExpr, arg);
+			writeTempOrInline(writer, tempAlloc, ctx, updateParam.newValue, newValue);
 			writeChar(writer, ';');
 		});
 	writeNewline(writer, indent);
