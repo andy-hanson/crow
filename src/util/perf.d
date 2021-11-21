@@ -129,10 +129,7 @@ immutable(T) withNullPerf(T)(scope immutable(T) delegate(scope ref Perf) @safe @
 	scope Perf perf = Perf(() => immutable ulong(0));
 	return cb(perf);
 }
-immutable(T) withNullPerfImpure(T)(scope immutable(T) delegate(scope ref Perf) @safe @nogc nothrow cb) {
-	scope Perf perf = Perf(() => immutable ulong(0));
-	return cb(perf);
-}
+
 @system immutable(T) withNullPerfSystem(T)(scope immutable(T) delegate(scope ref Perf) @system @nogc nothrow cb) {
 	scope Perf perf = Perf(() => immutable ulong(0));
 	return cb(perf);

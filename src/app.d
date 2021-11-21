@@ -16,9 +16,8 @@ import core.sys.posix.unistd : close, getcwd, lseek, read, readlink, unlink, pos
 import backend.jit : jitAndRun;
 import frontend.lang : crowExtension;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
-import interpret.allocTracker : AllocTracker, hasAllocedPtr, markAlloced, markFree, writeMarkedAllocedRanges;
 import interpret.applyFn : nat64OfI32, nat64OfI64;
-import interpret.bytecode : DynCallType, TimeSpec;
+import interpret.extern_ : DynCallType, Extern, TimeSpec;
 import lib.cliParser :
 	hasAnyOut,
 	BuildOptions,
@@ -81,7 +80,7 @@ import util.path :
 	rootPath,
 	StorageKind;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
-import util.ptr : Ptr, PtrRange, ptrTrustMe_mut;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : AllSymbols, shortSymAlphaLiteral, Sym, symAsTempBuffer, writeSym;
 import util.types :
 	float32OfU32Bits,
@@ -199,9 +198,8 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 			return matchRunOptions!(immutable ExitCode)(
 				run.options,
 				(ref immutable RunOptions.Interpret) {
-					RealExtern extern_ = RealExtern(ptrTrustMe_mut(alloc));
 					immutable PathAndStorageKind main = getMain(allPaths, includeDir, run.programDirAndMain);
-					return buildAndInterpret(
+					return withRealExtern(alloc, (scope ref Extern extern_) => buildAndInterpret!RealReadOnlyStorage(
 						alloc,
 						dbg,
 						perf,
@@ -211,7 +209,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 						extern_,
 						showDiagOptions,
 						main,
-						getAllArgs(alloc, allPaths, storage, main, run.programArgs));
+						getAllArgs(alloc, allPaths, storage, main, run.programArgs)));
 				},
 				(ref immutable RunOptions.Jit it) {
 					immutable PathAndStorageKind main = getMain(allPaths, includeDir, run.programDirAndMain);
@@ -608,183 +606,162 @@ struct RealReadOnlyStorage {
 	immutable SafeCStr user;
 }
 
-struct RealExtern {
-	@safe @nogc nothrow: // not pure
+immutable(ExitCode) withRealExtern(
+	ref Alloc alloc,
+	scope immutable(ExitCode) delegate(scope ref Extern) @safe @nogc nothrow cb,
+) {
+	//TODO: use gccjit instead of dyncall?
+	// TODO: better way to find where it is (may depend on system)
+	void* sdlHandle = dlopen("/usr/lib64/libSDL2-2.0.so.0", RTLD_LAZY);
+	verify(sdlHandle != null);
+	//libEGL.so instead?
+	void* glHandle = dlopen("/usr/lib64/libGL.so", RTLD_LAZY);
+	verify(glHandle != null);
+	void* webpHandle = dlopen("/usr/lib64/libwebp.so", RTLD_LAZY);
+	verify(webpHandle != null);
+	void* sodiumHandle = dlopen("/usr/lib64/libsodium.so", RTLD_LAZY);
+	verify(sodiumHandle != null);
+	void* lmdbHandle = dlopen("/usr/lib64/liblmdb.so", RTLD_LAZY);
+	verify(lmdbHandle != null);
+	DCCallVM* dcVm = dcNewCallVM(4096);
+	verify(dcVm != null);
+	dcMode(dcVm, DC_CALL_C_DEFAULT);
+	scope Extern extern_ = Extern(
+		(immutable int clockId, Ptr!TimeSpec timeSpec) @trusted =>
+			clock_gettime(clockId, cast(timespec*) timeSpec.rawPtr()),
+		(ubyte* ptr) {
+			pureFree(ptr);
+		},
+		(immutable size_t size) =>
+			cast(ubyte*) pureMalloc(size),
+		(immutable int fd, immutable char* buf, immutable size_t nBytes) =>
+			posixWrite(fd, buf, nBytes),
+		(
+			immutable Sym name,
+			immutable DynCallType returnType,
+			scope immutable Nat64[] parameters,
+			scope immutable DynCallType[] parameterTypes,
+		) => doDynCall(
+			name, returnType, parameters, parameterTypes,
+			dcVm, sdlHandle, glHandle, webpHandle, sodiumHandle, lmdbHandle));
+	immutable ExitCode res = cb(extern_);
+	immutable int err = dlclose(sdlHandle) ||
+		dlclose(glHandle) ||
+		dlclose(webpHandle) ||
+		dlclose(sodiumHandle) ||
+		dlclose(lmdbHandle);
+	verify(err == 0);
+	dcFree(dcVm);
+	return res;
+}
 
-	private:
-	@disable this();
-	@disable this(ref const RealExtern);
+@trusted immutable(Nat64) doDynCall(
+	immutable Sym name,
+	immutable DynCallType returnType,
+	scope immutable Nat64[] parameters,
+	scope immutable DynCallType[] parameterTypes,
+	DCCallVM* dcVm,
+	void* sdlHandle,
+	void* glHandle,
+	void* webpHandle,
+	void* sodiumHandle,
+	void* lmdbHandle,
+) {
+	immutable char[32] nameBuffer = symAsTempBuffer!32(name);
+	immutable CStr nameCStr = nameBuffer.ptr;
+	// TODO: don't just get everything from SDL/GL... use the library from the extern declaration!
+	DCpointer ptr = dlsym(sdlHandle, nameCStr);
+	if (ptr == null) ptr = dlsym(glHandle, nameCStr);
+	if (ptr == null) ptr = dlsym(webpHandle, nameCStr);
+	if (ptr == null) ptr = dlsym(sodiumHandle, nameCStr);
+	if (ptr == null) ptr = dlsym(lmdbHandle, nameCStr);
+	if (ptr == null) printf("Can't load symbol %s\n", nameCStr);
+	//printf("Gonna call %s\n", nameCStr);
+	verify(ptr != null);
 
-	Ptr!RangeAlloc alloc;
-	AllocTracker allocTracker;
-	void* sdlHandle;
-	void* glHandle;
-	void* webpHandle;
-	void* sodiumHandle;
-	void* lmdbHandle;
-	DCCallVM* dcVm;
-
-	this(Ptr!RangeAlloc a) {
-		alloc = a;
-		// TODO: better way to find where it is (may depend on system)
-		sdlHandle = dlopen("/usr/lib64/libSDL2-2.0.so.0", RTLD_LAZY);
-		verify(sdlHandle != null);
-		//libEGL.so instead?
-		glHandle = dlopen("/usr/lib64/libGL.so", RTLD_LAZY);
-		verify(glHandle != null);
-		webpHandle = dlopen("/usr/lib64/libwebp.so", RTLD_LAZY);
-		verify(webpHandle != null);
-		sodiumHandle = dlopen("/usr/lib64/libsodium.so", RTLD_LAZY);
-		verify(sodiumHandle != null);
-		lmdbHandle = dlopen("/usr/lib64/liblmdb.so", RTLD_LAZY);
-		verify(lmdbHandle != null);
-
-		dcVm = dcNewCallVM(4096);
-		verify(dcVm != null);
-		dcMode(dcVm, DC_CALL_C_DEFAULT);
-	}
-
-	public:
-
-	~this() {
-		immutable int err = dlclose(sdlHandle) ||
-			dlclose(glHandle) ||
-			dlclose(webpHandle) ||
-			dlclose(sodiumHandle) ||
-			dlclose(lmdbHandle);
-		verify(err == 0);
-		dcFree(dcVm);
-	}
-
-	@system immutable(int) clockGetTime(immutable int clockId, Ptr!TimeSpec tp) {
-		return clock_gettime(clockId, cast(timespec*) tp.rawPtr());
-	}
-
-	@system pure void free(ubyte* ptr) {
-		immutable size_t size = markFree(allocTracker, ptr);
-		freeBytes(alloc.deref(), ptr, size);
-	}
-
-	@system pure ubyte* malloc(immutable size_t size) {
-		ubyte* ptr = allocateBytes(alloc.deref(), size);
-		markAlloced(alloc.deref(), allocTracker, ptr, size);
-		return ptr;
-	}
-
-	@system immutable(long) write(int fd, immutable char* buf, immutable size_t nBytes) const {
-		return posixWrite(fd, buf, nBytes);
-	}
-
-	immutable(bool) hasMallocedPtr(ref const PtrRange range) const {
-		return hasAllocedPtr(allocTracker, range);
-	}
-
-	@trusted void writeMallocedRanges(ref Writer writer) const {
-		writeMarkedAllocedRanges(writer, allocTracker);
-	}
-
-	@trusted immutable(Nat64) doDynCall(
-		immutable Sym name,
-		immutable DynCallType returnType,
-		scope immutable Nat64[] parameters,
-		scope immutable DynCallType[] parameterTypes,
-	) {
-		immutable char[32] nameBuffer = symAsTempBuffer!32(name);
-		immutable CStr nameCStr = nameBuffer.ptr;
-		// TODO: don't just get everything from SDL/GL... use the library from the extern declaration!
-		DCpointer ptr = dlsym(sdlHandle, nameCStr);
-		if (ptr == null) ptr = dlsym(glHandle, nameCStr);
-		if (ptr == null) ptr = dlsym(webpHandle, nameCStr);
-		if (ptr == null) ptr = dlsym(sodiumHandle, nameCStr);
-		if (ptr == null) ptr = dlsym(lmdbHandle, nameCStr);
-		if (ptr == null) printf("Can't load symbol %s\n", nameCStr);
-		//printf("Gonna call %s\n", nameCStr);
-		verify(ptr != null);
-
-		dcReset(dcVm);
-		zipImpureSystem!(Nat64, DynCallType)(
-			parameters,
-			parameterTypes,
-			(ref immutable Nat64 value, ref immutable DynCallType type) {
-				final switch (type) {
-					case DynCallType.bool_:
-						dcArgBool(dcVm, cast(bool) value.raw());
-						break;
-					case DynCallType.char_:
-						todo!void("handle this type");
-						break;
-					case DynCallType.int8:
-						todo!void("handle this type");
-						break;
-					case DynCallType.int16:
-						todo!void("handle this type");
-						break;
-					case DynCallType.int32:
-						dcArgInt(dcVm, cast(int) value.raw());
-						break;
-					case DynCallType.float32:
-						dcArgFloat(dcVm, float32OfU32Bits(cast(uint) value.raw()));
-						break;
-					case DynCallType.float64:
-						dcArgDouble(dcVm, float64OfU64Bits(value.raw()));
-						break;
-					case DynCallType.nat8:
-						todo!void("handle this type");
-						break;
-					case DynCallType.nat16:
-						todo!void("handle this type");
-						break;
-					case DynCallType.nat32:
-						dcArgInt(dcVm, cast(uint) value.raw());
-						break;
-					case DynCallType.int64:
-					case DynCallType.nat64:
-						dcArgLong(dcVm, value.raw());
-						break;
-					case DynCallType.pointer:
-						dcArgPointer(dcVm, cast(void*) value.raw());
-						break;
-					case DynCallType.void_:
-						unreachable!void();
-				}
-			});
-
-		immutable Nat64 res = () {
-			final switch (returnType) {
+	dcReset(dcVm);
+	zipImpureSystem!(Nat64, DynCallType)(
+		parameters,
+		parameterTypes,
+		(ref immutable Nat64 value, ref immutable DynCallType type) {
+			final switch (type) {
 				case DynCallType.bool_:
-					return todo!(immutable Nat64)("handle this type");
+					dcArgBool(dcVm, cast(bool) value.raw());
+					break;
 				case DynCallType.char_:
-					return todo!(immutable Nat64)("handle this type");
+					todo!void("handle this type");
+					break;
 				case DynCallType.int8:
-					return todo!(immutable Nat64)("handle this type");
+					todo!void("handle this type");
+					break;
 				case DynCallType.int16:
-					return todo!(immutable Nat64)("handle this type");
+					todo!void("handle this type");
+					break;
 				case DynCallType.int32:
-					return nat64OfI32(dcCallInt(dcVm, ptr));
+					dcArgInt(dcVm, cast(int) value.raw());
+					break;
+				case DynCallType.float32:
+					dcArgFloat(dcVm, float32OfU32Bits(cast(uint) value.raw()));
+					break;
+				case DynCallType.float64:
+					dcArgDouble(dcVm, float64OfU64Bits(value.raw()));
+					break;
+				case DynCallType.nat8:
+					todo!void("handle this type");
+					break;
+				case DynCallType.nat16:
+					todo!void("handle this type");
+					break;
+				case DynCallType.nat32:
+					dcArgInt(dcVm, cast(uint) value.raw());
+					break;
 				case DynCallType.int64:
 				case DynCallType.nat64:
-					return nat64OfI64(dcCallLong(dcVm, ptr));
-				case DynCallType.float32:
-					return todo!(immutable Nat64)("handle this type");
-				case DynCallType.float64:
-					return u64OfFloat64Bits(dcCallDouble(dcVm, ptr));
-				case DynCallType.nat8:
-					return todo!(immutable Nat64)("handle this type");
-				case DynCallType.nat16:
-					return todo!(immutable Nat64)("handle this type");
-				case DynCallType.nat32:
-					return immutable Nat64(u32OfI32Bits(dcCallInt(dcVm, ptr)));
+					dcArgLong(dcVm, value.raw());
+					break;
 				case DynCallType.pointer:
-					return immutable Nat64(cast(size_t) dcCallPointer(dcVm, ptr));
+					dcArgPointer(dcVm, cast(void*) value.raw());
+					break;
 				case DynCallType.void_:
-					dcCallVoid(dcVm, ptr);
-					return immutable Nat64(0);
+					unreachable!void();
 			}
-		}();
-		dcReset(dcVm);
-		//printf("Did call %s\n", nameCStr);
-		return res;
-	}
+		});
+
+	immutable Nat64 res = () {
+		final switch (returnType) {
+			case DynCallType.bool_:
+				return todo!(immutable Nat64)("handle this type");
+			case DynCallType.char_:
+				return todo!(immutable Nat64)("handle this type");
+			case DynCallType.int8:
+				return todo!(immutable Nat64)("handle this type");
+			case DynCallType.int16:
+				return todo!(immutable Nat64)("handle this type");
+			case DynCallType.int32:
+				return nat64OfI32(dcCallInt(dcVm, ptr));
+			case DynCallType.int64:
+			case DynCallType.nat64:
+				return nat64OfI64(dcCallLong(dcVm, ptr));
+			case DynCallType.float32:
+				return todo!(immutable Nat64)("handle this type");
+			case DynCallType.float64:
+				return u64OfFloat64Bits(dcCallDouble(dcVm, ptr));
+			case DynCallType.nat8:
+				return todo!(immutable Nat64)("handle this type");
+			case DynCallType.nat16:
+				return todo!(immutable Nat64)("handle this type");
+			case DynCallType.nat32:
+				return immutable Nat64(u32OfI32Bits(dcCallInt(dcVm, ptr)));
+			case DynCallType.pointer:
+				return immutable Nat64(cast(size_t) dcCallPointer(dcVm, ptr));
+			case DynCallType.void_:
+				dcCallVoid(dcVm, ptr);
+				return immutable Nat64(0);
+		}
+	}();
+	dcReset(dcVm);
+	//printf("Did call %s\n", nameCStr);
+	return res;
 }
 
 extern(C) {

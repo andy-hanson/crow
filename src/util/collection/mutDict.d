@@ -266,16 +266,6 @@ immutable(V[]) valuesArray(K, V, alias equal, alias hash)(
 	return mapToArr_const!(V, K, V, equal, hash)(alloc, a, (immutable(K), ref V v) => v);
 }
 
-immutable(bool) mutDictExists(K, V, alias equal, alias hash)(
-	ref const MutDict!(K, V, equal, hash) a,
-	scope immutable(bool) delegate(const K, ref const V) @safe @nogc pure nothrow cb,
-) {
-	foreach (ref const Opt!(KeyValuePair!(K, V)) pair; a.pairs)
-		if (has(pair) && cb(force(pair).key, force(pair).value))
-			return true;
-	return false;
-}
-
 void mutDictEach(K, V, alias equal, alias hash)(
 	ref const MutDict!(K, V, equal, hash) a,
 	scope void delegate(const K, ref const V) @safe @nogc pure nothrow cb,

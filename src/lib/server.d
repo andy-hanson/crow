@@ -2,14 +2,15 @@ module lib.server;
 
 @safe @nogc nothrow: // not pure
 
-import lib.compiler : buildAndInterpret, ExitCode;
+import lib.compiler : buildAndInterpret;
 import frontend.frontendCompile : frontendCompile;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition, Position;
 import frontend.ide.getTokens : Token, tokensOfAst;
 import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.showDiag : ShowDiagOptions, strOfParseDiag;
-import interpret.fakeExtern : FakeExtern;
+import interpret.extern_ : Extern;
+import interpret.fakeExtern : FakeExternResult,withFakeExtern;
 import model.parseDiag : ParseDiagnostic;
 import model.model : Program;
 import util.alloc.alloc : Alloc;
@@ -30,7 +31,7 @@ import util.path :
 	pathAndStorageKindEqual,
 	StorageKind;
 import util.perf : Perf;
-import util.ptr : Ptr, ptrTrustMe_const, ptrTrustMe_mut;
+import util.ptr : Ptr, ptrTrustMe_const;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
 import util.sym : AllSymbols;
 import util.types : safeSizeTToU16;
@@ -165,13 +166,7 @@ private pure immutable(Opt!FileIndex) getFileIndex(
 	return none!FileIndex;
 }
 
-struct RunResult {
-	immutable ExitCode err;
-	immutable string stdout;
-	immutable string stderr;
-}
-
-immutable(RunResult) run(
+immutable(FakeExternResult) run(
 	scope ref Debug dbg,
 	ref Perf perf,
 	ref Alloc alloc,
@@ -182,11 +177,10 @@ immutable(RunResult) run(
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	scope immutable SafeCStr[1] allArgs = [immutable SafeCStr("/usr/bin/fakeExecutable")];
-	FakeExtern extern_ = FakeExtern(ptrTrustMe_mut(alloc));
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
-	immutable ExitCode err = buildAndInterpret(
-		alloc, dbg, perf, server.allSymbols, server.allPaths, storage, extern_, showDiagOptions, main, allArgs);
-	return immutable RunResult(err, extern_.moveStdout(), extern_.moveStderr());
+	return withFakeExtern(alloc, (scope ref Extern extern_) =>
+		buildAndInterpret(
+			alloc, dbg, perf, server.allSymbols, server.allPaths, storage, extern_, showDiagOptions, main, allArgs));
 }
 
 private:

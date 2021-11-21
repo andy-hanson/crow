@@ -2,7 +2,7 @@ module test.testUtil;
 
 @safe @nogc pure nothrow:
 
-import interpret.bytecode : ByteCodeIndex;
+import interpret.bytecode : ByteCodeIndex, Operation;
 import interpret.runBytecode : byteCodeIndexOfPtr, DataStack, Interpreter, showDataArr;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : sizeEq;
@@ -51,11 +51,7 @@ struct Test {
 	}
 }
 
-void expectDataStack(
-	ref Test test,
-	ref const DataStack dataStack,
-	scope immutable Nat64[] expected,
-) {
+void expectDataStack(ref Test test, ref const DataStack dataStack, scope immutable Nat64[] expected) {
 	immutable Nat64[] stack = asTempArr(dataStack);
 	immutable bool eq = sizeEq(stack, expected) &&
 		eachCorresponds!(Nat64, Nat64)(stack, expected, (ref immutable Nat64 a, ref immutable Nat64 b) => a == b);
@@ -71,23 +67,19 @@ void expectDataStack(
 	}
 }
 
-void expectReturnStack(Extern)(
-	ref Test test,
-	ref const Interpreter!Extern interpreter,
-	scope immutable ByteCodeIndex[] expected,
-) {
-	immutable ubyte*[] stack = asTempArr(interpreter.returnStack);
+void expectReturnStack(ref Test test, ref const Interpreter interpreter, scope immutable ByteCodeIndex[] expected) {
+	immutable Operation*[] stack = asTempArr(interpreter.returnStack);
 	immutable bool eq = sizeEq(stack, expected) &&
-		eachCorresponds!(immutable(ubyte)*, ByteCodeIndex)(
+		eachCorresponds!(immutable Operation*, ByteCodeIndex)(
 			stack,
 			expected,
-			(ref immutable ubyte* a, ref immutable ByteCodeIndex b) =>
+			(ref immutable Operation* a, ref immutable ByteCodeIndex b) =>
 				byteCodeIndexOfPtr(interpreter, a) == b);
 	if (!eq) {
 		debug {
 			Writer writer = test.writer();
 			writeStatic(writer, "expected:\nreturn:");
-			foreach (immutable ubyte* ptr; stack) {
+			foreach (immutable Operation* ptr; stack) {
 				writeChar(writer, ' ');
 				writeNat(writer, byteCodeIndexOfPtr(interpreter, ptr).index.raw());
 			}

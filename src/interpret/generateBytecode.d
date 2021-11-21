@@ -6,7 +6,6 @@ import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeSource,
-	DynCallType,
 	ExternOp,
 	FileToFuns,
 	FnOp,
@@ -28,7 +27,6 @@ import interpret.bytecodeWriter :
 	StackEntry,
 	SwitchDelayed,
 	writeAddConstantNat64,
-	writeAssertStackSize,
 	writeAssertUnreachable,
 	writeCallDelayed,
 	writeCallFunPtr,
@@ -55,6 +53,7 @@ import interpret.bytecodeWriter :
 	writeSwitchWithValuesDelay,
 	writeWrite;
 import interpret.debugging : writeLowType;
+import interpret.extern_ : DynCallType;
 import interpret.generateText :
 	generateText,
 	getTextInfoForArray,
@@ -137,7 +136,7 @@ import util.types :
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
-immutable(ByteCode!Extern) generateBytecode(Extern)(
+immutable(ByteCode) generateBytecode(
 	scope ref Debug dbg,
 	ref Alloc codeAlloc,
 	ref TempAlloc tempAlloc,
@@ -149,7 +148,7 @@ immutable(ByteCode!Extern) generateBytecode(Extern)(
 	MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences =
 		newMutIndexMultiDict!(LowFunIndex, ByteCodeIndex)(tempAlloc, fullIndexDictSize(program.allFuns));
 
-	ByteCodeWriter!Extern writer = newByteCodeWriter!Extern(ptrTrustMe_mut(codeAlloc));
+	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe_mut(codeAlloc));
 
 	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
 		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun)(
@@ -222,10 +221,10 @@ immutable(Nat8) nStackEntriesForUnionType(ref const ExprCtx ctx, ref immutable L
 	return nStackEntriesForType(ctx, type);
 }
 
-void generateBytecodeForFun(Extern)(
+void generateBytecodeForFun(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences,
 	ref immutable TextInfo textInfo,
 	ref immutable LowProgram program,
@@ -287,10 +286,10 @@ void generateBytecodeForFun(Extern)(
 	setNextStackEntry(writer, immutable StackEntry(immutable Nat16(0)));
 }
 
-void generateExternCall(Extern)(
+void generateExternCall(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 	ref immutable LowFunBody.Extern a,
@@ -439,15 +438,14 @@ struct ExprCtx {
 	}
 }
 
-void generateExpr(Extern)(
+void generateExpr(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable LowExpr expr,
 ) {
 	immutable ByteCodeSource source = immutable ByteCodeSource(ctx.curFunIndex, expr.source.range.start);
-	//writeAssertStackSize(writer, source);
 	matchLowExprKind!void(
 		expr.kind,
 		(ref immutable LowExprKind.Call it) {
@@ -619,10 +617,10 @@ void generateExpr(Extern)(
 		});
 }
 
-void generateSwitch0ToN(Extern)(
+void generateSwitch0ToN(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
 	ref immutable LowExprKind.Switch0ToN it,
@@ -640,10 +638,10 @@ void generateSwitch0ToN(Extern)(
 		it.cases);
 }
 
-void generateSwitchWithValues(Extern)(
+void generateSwitchWithValues(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
 	ref immutable LowExprKind.SwitchWithValues it,
@@ -661,10 +659,10 @@ void generateSwitchWithValues(Extern)(
 		it.cases);
 }
 
-void writeSwitchCases(Extern)(
+void writeSwitchCases(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
 	immutable StackEntry stackBefore,
@@ -688,10 +686,10 @@ void writeSwitchCases(Extern)(
 		fillInJumpDelayed(writer, jumpIndex);
 }
 
-void generateArgs(Extern)(
+void generateArgs(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ref immutable LowExpr[] args,
 ) {
@@ -699,10 +697,10 @@ void generateArgs(Extern)(
 		generateExpr(dbg, tempAlloc, writer, ctx, arg);
 }
 
-void generateCreateRecord(Extern)(
+void generateCreateRecord(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable LowType.Record type,
 	immutable ByteCodeSource source,
@@ -722,10 +720,10 @@ void generateCreateRecord(Extern)(
 		});
 }
 
-void generateCreateRecordOrConstantRecord(Extern)(
+void generateCreateRecordOrConstantRecord(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref const ExprCtx ctx,
 	immutable LowType.Record type,
 	immutable ByteCodeSource source,
@@ -746,10 +744,10 @@ void generateCreateRecordOrConstantRecord(Extern)(
 	verify(after.entry - before.entry == stackEntriesForType.to16());
 }
 
-void generateCreateUnion(Extern)(
+void generateCreateUnion(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable LowType.Union type,
 	immutable ByteCodeSource source,
@@ -768,10 +766,10 @@ void generateCreateUnion(Extern)(
 		});
 }
 
-void generateCreateUnionOrConstantUnion(Extern)(
+void generateCreateUnionOrConstantUnion(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref const ExprCtx ctx,
 	immutable LowType.Union type,
 	immutable Nat16 memberIndex,
@@ -815,10 +813,10 @@ void registerFunAddress(TempAlloc)(
 	mutIndexMultiDictAdd(tempAlloc, ctx.funToReferences.deref(), fun, index);
 }
 
-void generateConstant(Extern)(
+void generateConstant(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
 	ref immutable LowType type,
@@ -905,19 +903,19 @@ void generateConstant(Extern)(
 		});
 }
 
-void writeBoolConstant(Extern)(
+void writeBoolConstant(
 	scope ref Debug dbg,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
 	immutable bool value,
 ) {
 	writePushConstant(dbg, writer, source, immutable Nat8(value ? 1 : 0));
 }
 
-void generateSpecialUnary(Extern)(
+void generateSpecialUnary(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
 	ref immutable LowType type,
@@ -1016,10 +1014,10 @@ void generateSpecialUnary(Extern)(
 	}
 }
 
-void generateRefOfVal(Extern)(
+void generateRefOfVal(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
 	ref immutable LowExpr arg,
@@ -1051,10 +1049,10 @@ void generateRefOfVal(Extern)(
 		todo!void("!");
 }
 
-void generateRecordFieldGet(Extern)(
+void generateRecordFieldGet(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
 	ref immutable LowExprKind.RecordFieldGet it,
@@ -1086,10 +1084,10 @@ void generateRecordFieldGet(Extern)(
 	}
 }
 
-void generatePtrToRecordFieldGet(Extern)(
+void generatePtrToRecordFieldGet(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
 	immutable LowType.Record record,
@@ -1107,10 +1105,10 @@ void generatePtrToRecordFieldGet(Extern)(
 		todo!void("ptr-to-record-field-get");
 }
 
-void generateSpecialBinary(Extern)(
+void generateSpecialBinary(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
 	ref immutable LowExprKind.SpecialBinary a,
@@ -1304,10 +1302,10 @@ void generateSpecialBinary(Extern)(
 	}
 }
 
-void generateIf(Extern)(
+void generateIf(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter!Extern writer,
+	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
 	ref immutable LowExpr cond,

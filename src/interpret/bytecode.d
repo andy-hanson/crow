@@ -4,15 +4,15 @@ module interpret.bytecode;
 
 import interpret.runBytecode : Interpreter;
 import model.lowModel : LowFunIndex;
-import util.collection.arr : size;
+import util.collection.arr : begin, size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.sym : Sym;
 import util.types : Int16, Nat8, Nat16, Nat32;
 import util.sourceRange : FileIndex, Pos;
 import util.util : verify;
 
-// This returns another Operation!Extern
-alias Operation(Extern) = immutable(void*) function(ref Interpreter!Extern);
+// This returns another Operation
+alias Operation = immutable(void*) function(ref Interpreter);
 
 pure:
 
@@ -29,17 +29,17 @@ struct ByteCodeSource {
 	immutable Pos pos;
 }
 
-struct ByteCode(Extern) {
+struct ByteCode {
 	@safe @nogc pure nothrow:
 
-	Operation!Extern[] byteCode;
+	Operation[] byteCode;
 	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources; // parallel to byteCode
 	immutable FileToFuns fileToFuns; // Look up in 'sources' first, then can find the corresponding function here
 	immutable ubyte[] text;
 	immutable ByteCodeIndex main;
 
 	immutable this(
-		immutable Operation!Extern[] bc,
+		immutable Operation[] bc,
 		immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) s,
 		immutable FileToFuns ff,
 		immutable ubyte[] t,
@@ -50,8 +50,12 @@ struct ByteCode(Extern) {
 		fileToFuns = ff;
 		text = t;
 		main = m;
-		verify(size!(immutable Operation!Extern)(byteCode) == fullIndexDictSize(sources));
+		verify(size(byteCode) == fullIndexDictSize(sources));
 	}
+}
+
+@trusted immutable(Operation*) initialOperationPointer(ref immutable ByteCode a) {
+	return begin(a.byteCode) + a.main.index.raw();
 }
 
 struct StackOffset {
@@ -68,24 +72,6 @@ struct StackOffsetBytes {
 		offsetBytes = o;
 		verify(offsetBytes > immutable Nat16(0));
 	}
-}
-
-// These should all fit in a single stack entry (except 'void')
-enum DynCallType : ubyte {
-	bool_,
-	char_,
-	int8,
-	int16,
-	int32,
-	int64,
-	float32,
-	float64,
-	nat8,
-	nat16,
-	nat32,
-	nat64,
-	pointer,
-	void_,
 }
 
 struct ByteCodeIndex {
@@ -143,12 +129,6 @@ enum ExternOp : ubyte {
 	schedYield,
 	setjmp,
 	write,
-}
-
-// Used by clockGetTime
-struct TimeSpec {
-	long tv_sec;
-	long tv_nsec;
 }
 
 // TODO:KILL (use functions directly)

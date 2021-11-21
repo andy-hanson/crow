@@ -46,8 +46,7 @@ cli_deps = dyncall $(src_deps)
 d_flags = -betterC -preview=dip25 -preview=dip1000
 app_link = -L=-ldyncall_s -L=-L./dyncall/dyncall -L=-lgccjit
 
-#app_files = src/app.d src/*/*.d src/*/*/*.d
-app_files = src/app.d src/backend/*.d src/concretize/*.d src/document/*.d src/frontend/*.d src/frontend/*/*.d src/include/*.d src/interpret/*.d  src/lib/cliParser.d src/lib/compiler.d src/lower/*.d src/model/*.d src/test/*.d src/util/*.d src/util/*/*.d
+app_files = src/app.d src/*/*.d src/*/*/*.d
 # TODO: shouldn't need writeToC
 wasm_files = src/wasm.d src/backend/mangle.d src/backend/writeToC.d src/backend/writeTypes.d src/concretize/*.d src/document/*.d src/frontend/*.d src/frontend/*/*.d src/interpret/*.d src/lib/*.d src/lower/*.d src/model/*.d src/util/*.d src/util/*/*.d
 

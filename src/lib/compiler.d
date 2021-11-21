@@ -10,6 +10,7 @@ import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseS
 import frontend.ide.getTokens : Token, tokensOfAst, reprTokens;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.bytecode : ByteCode;
+import interpret.extern_ : Extern;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
@@ -83,14 +84,14 @@ struct ExitCode {
 	static immutable(ExitCode) error() { return immutable ExitCode(1); }
 }
 
-immutable(ExitCode) buildAndInterpret(ReadOnlyStorage, Extern)(
+immutable(ExitCode) buildAndInterpret(ReadOnlyStorage)(
 	ref Alloc alloc,
 	scope ref Debug dbg,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	ref ReadOnlyStorage storage,
-	ref Extern extern_,
+	scope ref Extern extern_,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
 	scope immutable SafeCStr[] allArgs,
@@ -98,7 +99,7 @@ immutable(ExitCode) buildAndInterpret(ReadOnlyStorage, Extern)(
 	immutable ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, allSymbols, allPaths, storage, main);
 	if (empty(programs.program.diagnostics)) {
 		immutable LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
-		immutable ByteCode!Extern byteCode = generateBytecode!Extern(dbg, alloc, alloc, programs.program, lowProgram);
+		immutable ByteCode byteCode = generateBytecode(dbg, alloc, alloc, programs.program, lowProgram);
 		return immutable ExitCode(runBytecode(
 			dbg,
 			perf,

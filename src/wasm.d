@@ -1,6 +1,7 @@
 @safe @nogc nothrow: // not pure
 
 import frontend.ide.getTokens : reprTokens, Token;
+import interpret.fakeExtern : FakeExternResult;
 import lib.server :
 	addOrChangeFile,
 	deleteFile,
@@ -9,7 +10,6 @@ import lib.server :
 	getParseDiagnostics,
 	getTokens,
 	run,
-	RunResult,
 	Server,
 	StrParseDiagnostic;
 import util.alloc.alloc : Alloc, allocateBytes;
@@ -156,9 +156,12 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	scope immutable string path = pathStart[0 .. pathLength];
-	immutable RunResult result = withWasmDebug!(immutable RunResult)(debugStart, debugLength, (scope ref Debug dbg) =>
-		withNullPerfSystem((scope ref Perf perf) =>
-			run(dbg, perf, resultAlloc, *server, path)));
+	immutable FakeExternResult result = withWasmDebug!(immutable FakeExternResult)(
+		debugStart,
+		debugLength,
+		(scope ref Debug dbg) =>
+			withNullPerfSystem((scope ref Perf perf) =>
+				run(dbg, perf, resultAlloc, *server, path)));
 	return writeRunResult(server.alloc, result);
 }
 
@@ -212,7 +215,7 @@ immutable(Repr) reprParseDiagnostics(ref Alloc alloc, ref immutable StrParseDiag
 			nameAndRepr("message", reprStr(it.message))]));
 }
 
-immutable(CStr) writeRunResult(ref Alloc alloc, ref immutable RunResult result) {
+immutable(CStr) writeRunResult(ref Alloc alloc, ref immutable FakeExternResult result) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
 	writeStatic(writer, "{\"err\":");
 	writeNat(writer, result.err.value);

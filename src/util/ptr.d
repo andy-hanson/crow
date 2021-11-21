@@ -2,7 +2,7 @@ module util.ptr;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : ArrWithSize, begin, end, toArr;
+import util.collection.arr : ArrWithSize, toArr;
 import util.hash : Hasher, hashSizeT;
 import util.util : verify;
 
@@ -79,16 +79,8 @@ immutable(bool) ptrEquals(T)(const Ptr!T a, const Ptr!T b) {
 	return a.ptr == b.ptr;
 }
 
-immutable(bool) ptrEqualsRaw(T)(const T* a, const T* b) {
-	return a == b;
-}
-
 void hashPtr(T)(ref Hasher hasher, const Ptr!T a) {
 	hashSizeT(hasher, cast(immutable size_t) a.rawPtr());
-}
-
-void hashPtrRaw(T)(ref Hasher hasher, const T* a) {
-	hashSizeT(hasher, cast(immutable size_t) a);
 }
 
 @trusted immutable(Ptr!T) castImmutable(T)(Ptr!T a) {
@@ -97,17 +89,4 @@ void hashPtrRaw(T)(ref Hasher hasher, const T* a) {
 
 @trusted Ptr!T castMutable(T)(immutable Ptr!T a) {
 	return cast(Ptr!T) a;
-}
-
-struct PtrRange {
-	const ubyte* begin;
-	const ubyte* end;
-}
-
-@trusted const(PtrRange) ptrRangeOfArr(T)(const T[] a) {
-	return const PtrRange(cast(const ubyte*) begin(a), cast(const ubyte*) end(a));
-}
-
-immutable(bool) contains(const PtrRange a, const PtrRange b) {
-	return a.begin <= b.begin && b.end <= a.end;
 }

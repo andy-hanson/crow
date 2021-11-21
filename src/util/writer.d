@@ -7,7 +7,6 @@ import util.ptr : Ptr;
 import util.collection.arr : at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr, SafeCStr;
-import util.ptr : PtrRange;
 import util.types : abs, IntN, NatN;
 import util.util : verify;
 
@@ -87,12 +86,6 @@ void writeFloatLiteral(ref Writer writer, immutable double a) {
 private union DoubleToUlong {
 	double double_;
 	ulong ulong_;
-}
-
-void writePtrRange(ref Writer writer, const PtrRange a) {
-	writeHex(writer, cast(immutable ulong) a.begin);
-	writeChar(writer, '-');
-	writeHex(writer, cast(immutable ulong) a.end);
 }
 
 void writeNat(T)(ref Writer writer, immutable NatN!T n, immutable ulong base = 10) {

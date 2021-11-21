@@ -80,10 +80,6 @@ void pushAll(T)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[]
 	}
 }
 
-void clear(T)(ref MutArr!T a) {
-	a.size_ = 0;
-}
-
 T mustPop(T)(ref MutArr!T a) {
 	Opt!T p = pop(a);
 	return force(p);

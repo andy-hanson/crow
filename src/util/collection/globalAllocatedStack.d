@@ -5,7 +5,6 @@ module util.collection.globalAllocatedStack;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : at, size;
 import util.collection.arrUtil : copyArr;
-import util.ptr : PtrRange;
 import util.types : decr, Nat8, Nat32, safeSizeTToU32, zero;
 import util.util : verify;
 
@@ -41,10 +40,6 @@ struct GlobalAllocatedStack(T, size_t capacity) {
 
 @system const(T*) end(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
 	return a.values.ptr + a.size;
-}
-
-@system const(PtrRange) stackPtrRange(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
-	return const PtrRange(cast(const ubyte*) a.values.ptr, cast(const ubyte*) (a.values.ptr + a.size));
 }
 
 immutable(Nat32) stackSize(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
