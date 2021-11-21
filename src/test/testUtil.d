@@ -51,7 +51,7 @@ struct Test {
 	}
 }
 
-void expectDataStack(ref Test test, ref const DataStack dataStack, scope immutable Nat64[] expected) {
+void expectDataStack(ref Test test, scope ref const DataStack dataStack, scope immutable Nat64[] expected) {
 	immutable Nat64[] stack = asTempArr(dataStack);
 	immutable bool eq = sizeEq(stack, expected) &&
 		eachCorresponds!(Nat64, Nat64)(stack, expected, (ref immutable Nat64 a, ref immutable Nat64 b) => a == b);
@@ -67,7 +67,11 @@ void expectDataStack(ref Test test, ref const DataStack dataStack, scope immutab
 	}
 }
 
-void expectReturnStack(ref Test test, ref const Interpreter interpreter, scope immutable ByteCodeIndex[] expected) {
+void expectReturnStack(
+	ref Test test,
+	scope ref const Interpreter interpreter,
+	scope immutable ByteCodeIndex[] expected,
+) {
 	immutable Operation*[] stack = asTempArr(interpreter.returnStack);
 	immutable bool eq = sizeEq(stack, expected) &&
 		eachCorresponds!(immutable Operation*, ByteCodeIndex)(

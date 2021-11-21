@@ -79,28 +79,17 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writeStatic;
 	ref immutable FilesInfo filesInfo,
 	scope immutable SafeCStr[] allArgs,
 ) {
-	Interpreter interpreter = Interpreter(
-		ptrTrustMe_mut(dbg),
-		ptrTrustMe_mut(tempAlloc),
-		ptrTrustMe_mut(extern_),
-		ptrTrustMe(lowProgram),
-		ptrTrustMe(byteCode),
-		ptrTrustMe_const(allPaths),
-		ptrTrustMe(filesInfo));
-	push(interpreter.dataStack, sizeNat(allArgs)); // TODO: this is an i32, add safety checks
-	// These need to be CStrs
-	push(interpreter.dataStack, immutable Nat64(cast(immutable ulong) begin(allArgs)));
-	return withMeasureNoAlloc(perf, PerfMeasure.run, () =>
-		runBytecodeInner(dbg, perf, tempAlloc, allPaths, interpreter));
+	return withInterpreter!(immutable int)(
+		dbg, tempAlloc, extern_, lowProgram, byteCode, allPaths, filesInfo,
+		(scope ref Interpreter interpreter) @trusted {
+			push(interpreter.dataStack, sizeNat(allArgs)); // TODO: this is an i32, add safety checks
+			push(interpreter.dataStack, immutable Nat64(cast(immutable ulong) begin(allArgs)));
+			return withMeasureNoAlloc!(immutable int)(perf, PerfMeasure.run, () =>
+				runBytecodeInner(interpreter));
+		});
 }
 
-private @trusted immutable(int) runBytecodeInner(
-	scope ref Debug dbg,
-	ref Perf perf,
-	ref TempAlloc tempAlloc,
-	ref const AllPaths allPaths,
-	ref Interpreter interpreter,
-) {
+private @trusted immutable(int) runBytecodeInner(scope ref Interpreter interpreter) {
 	Operation op = nextOperation(interpreter);
 	do {
 		op = cast(Operation) op(interpreter);
@@ -117,11 +106,40 @@ private @trusted immutable(int) runBytecodeInner(
 alias DataStack = GlobalAllocatedStack!(Nat64, 1024 * 64);
 private alias ReturnStack = GlobalAllocatedStack!(immutable(Operation)*, 1024 * 4);
 
+immutable(T) withInterpreter(T)(
+	ref Debug dbg,
+	ref TempAlloc tempAlloc,
+	ref Extern extern_,
+	ref immutable LowProgram lowProgram,
+	ref immutable ByteCode byteCode,
+	ref const AllPaths allPaths,
+	ref immutable FilesInfo filesInfo,
+	scope immutable(T) delegate(scope ref Interpreter) @safe @nogc nothrow cb,
+) {
+	scope Interpreter interpreter = Interpreter(
+		ptrTrustMe_mut(dbg),
+		ptrTrustMe_mut(tempAlloc),
+		ptrTrustMe_mut(extern_),
+		ptrTrustMe(lowProgram),
+		ptrTrustMe(byteCode),
+		ptrTrustMe_const(allPaths),
+		ptrTrustMe(filesInfo));
+	static if (is(T == void))
+		cb(interpreter);
+	else
+		immutable T res = cb(interpreter);
+	clearStack(interpreter.dataStack);
+	clearStack(interpreter.returnStack);
+	static if (!is(T == void))
+		return res;
+}
+
 struct Interpreter {
 	@safe @nogc nothrow: // not pure
 
 	@disable this(ref const Interpreter);
 
+	private:
 	@trusted this(
 		Ptr!Debug dbg,
 		Ptr!TempAlloc ta,
@@ -152,8 +170,9 @@ struct Interpreter {
 	const Ptr!AllPaths allPathsPtr;
 	immutable Ptr!FilesInfo filesInfoPtr;
 	immutable(Operation)* nextOperation;
-	DataStack dataStack;
-	ReturnStack returnStack;
+	//TODO:PRIVATE
+	public DataStack dataStack;
+	public ReturnStack returnStack;
 	// WARN: if adding any new mutable state here, make sure 'longjmp' still restores it
 
 	ref Debug dbg() return scope {
@@ -200,12 +219,6 @@ private void applyInterpreterRestore(ref Interpreter a, ref immutable Interprete
 	setNextByteCodeIndex(a, restore.nextByteCodeIndex);
 	reduceStackSize(a.dataStack, restore.dataStackSize.raw());
 	setToArr(a.returnStack, restore.restoreReturnStack);
-}
-
-@trusted void reset(ref Interpreter a) {
-	a.nextOperation = initialOperationPointer(a.byteCode);
-	clearStack(a.dataStack);
-	clearStack(a.returnStack);
 }
 
 private void showStack(scope ref Writer writer, ref const Interpreter a) {
@@ -280,7 +293,7 @@ private immutable(ByteCodeSource) byteCodeSourceAtByteCodePtr(
 	return byteCodeSourceAtIndex(a, byteCodeIndexOfPtr(a, ptr));
 }
 
-@trusted immutable(ByteCodeIndex) nextByteCodeIndex(ref const Interpreter a) {
+@trusted immutable(ByteCodeIndex) nextByteCodeIndex(scope ref const Interpreter a) {
 	return byteCodeIndexOfPtr(a, a.nextOperation);
 }
 
@@ -563,7 +576,7 @@ private immutable(Operation) nextOperation(ref Interpreter a) {
 	return false ? getNextOperationAndDebug(a) : readOperation(a);
 }
 
-@trusted immutable(Operation) readOperation(ref Interpreter a) {
+@trusted immutable(Operation) readOperation(scope ref Interpreter a) {
 	immutable Operation res = *a.nextOperation;
 	a.nextOperation++;
 	return res;
