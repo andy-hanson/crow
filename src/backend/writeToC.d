@@ -1050,11 +1050,10 @@ void writeTailRecur(
 	immutable WriteExprResult[] newValues =
 		map!WriteExprResult(tempAlloc, a.updateParams, (ref immutable UpdateParam updateParam) =>
 			writeExprTempOrInline(writer, tempAlloc, indent, ctx, updateParam.newValue));
-	zip!(LowParam, UpdateParam, WriteExprResult)(
-		params,
+	zip!(UpdateParam, WriteExprResult)(
 		a.updateParams,
 		newValues,
-		(ref immutable LowParam param, ref immutable UpdateParam updateParam, ref immutable WriteExprResult newValue) {
+		(ref immutable UpdateParam updateParam, ref immutable WriteExprResult newValue) {
 			writeNewline(writer, indent);
 			writeLowParamName(writer, at(params, updateParam.param.index));
 			writeStatic(writer, " = ");
