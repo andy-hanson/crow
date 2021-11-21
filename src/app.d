@@ -87,7 +87,7 @@ import util.types :
 	float64OfU64Bits,
 	Nat64,
 	safeSizeTFromU64,
-	safeUlongFromLong,
+	safeSizeTFromLong,
 	safeU32FromI64,
 	u32OfI32Bits,
 	u64OfFloat64Bits;
@@ -115,7 +115,7 @@ private:
 void logPerf(scope ref Perf perf) {
 	eachMeasure(perf, (immutable string name, immutable PerfMeasureResult m) @trusted {
 		printf(
-			"%.*s * %d took %lums and %luMB\n",
+			"%.*s * %d took %llums and %lluMB\n",
 			cast(int) name.length, name.ptr,
 			m.count,
 			divRound(m.nanoseconds, 1_000_000),
@@ -961,7 +961,7 @@ immutable size_t maxPathSize = 0x1000;
 	immutable long size = readlink("/proc/self/exe", buff.ptr, maxPathSize);
 	if (size < 0)
 		todo!void("posix error");
-	return copyToSafeCStr(alloc, cast(immutable) buff.ptr[0 .. safeUlongFromLong(size)]);
+	return copyToSafeCStr(alloc, cast(immutable) buff.ptr[0 .. safeSizeTFromLong(size)]);
 }
 
 // Returns the child process' error code.

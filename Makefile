@@ -54,10 +54,15 @@ bin/crow: $(cli_deps)
 	dmd -ofbin/crow $(d_flags) -debug -g $(app_files) $(app_link)
 	rm bin/crow.o
 
+# I waited 15 minutes for it to compile with -O2 before giving up
+fast_flags = -O1 --enable-asserts=false --boundscheck=off
+
 # Not currently used for anything
-# I waited 15 minutes for this to compile under -O2 before giving up
 bin/crow-optimized: $(cli_deps)
-	ldc2 -O1 --enable-asserts=false --boundscheck=off -ofbin/crow-optimized $(d_flags) $(app_files) $(app_link)
+	ldc2 -ofbin/crow-optimized $(d_flags) $(fast_flags) $(app_files) $(app_link)
+
+bin/crow-optimized-debug: $(cli_deps)
+	ldc2 -g -ofbin/crow-optimized-debug $(d_flags) -g $(fast_flags) $(app_files) $(app_link)
 
 # Unfortunately it fails with `undefined symbol: __assert` regardless of the `--checkaction` setting without `--enable-asserts=false`
 # --static would be nice, but doesn't seem to work: `lld: error: unknown argument: -static`

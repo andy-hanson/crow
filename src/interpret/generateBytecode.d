@@ -15,10 +15,12 @@ import interpret.bytecodeWriter :
 	ByteCodeWriter,
 	nextByteCodeIndex,
 	fillDelayedCall,
+	fillDelayedJumpIfFalse,
 	fillDelayedSwitchEntry,
 	fillInJumpDelayed,
 	finishByteCode,
 	getNextStackEntry,
+	JumpIfFalseDelayed,
 	newByteCodeWriter,
 	setNextStackEntry,
 	setStackEntryAfterParameters,
@@ -43,6 +45,7 @@ import interpret.bytecodeWriter :
 	writePushFunPtrDelayed,
 	writeJump,
 	writeJumpDelayed,
+	writeJumpIfFalseDelayed,
 	writePack,
 	writeStackRef,
 	writeRead,
@@ -1314,17 +1317,12 @@ void generateIf(
 ) {
 	immutable StackEntry startStack = getNextStackEntry(writer);
 	generateExpr(dbg, tempAlloc, writer, ctx, cond);
-	immutable SwitchDelayed delayed = writeSwitch0ToNDelay(writer, source, immutable Nat16(2));
-
-	fillDelayedSwitchEntry(writer, delayed, immutable Nat32(0));
-	cbElse();
-	// At the end of the 'else', jump to the end.
-	// (Not needed for 'then' since it is the last entry)
-	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(dbg, writer, source);
-
-	setNextStackEntry(writer, startStack);
-	fillDelayedSwitchEntry(writer, delayed, immutable Nat32(1));
+	immutable JumpIfFalseDelayed delayed = writeJumpIfFalseDelayed(writer, source);
 	cbThen();
-
+	// At the end of 'then', jump to the end.
+	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(dbg, writer, source);
+	fillDelayedJumpIfFalse(writer, delayed);
+	setNextStackEntry(writer, startStack);
+	cbElse();
 	fillInJumpDelayed(writer, jumpIndex);
 }

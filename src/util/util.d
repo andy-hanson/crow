@@ -60,8 +60,10 @@ immutable(T) divRoundUp(T)(immutable T a, immutable T b) {
 }
 
 void verify(immutable bool condition) {
-	if (!condition)
-		assert(0);
+	version(assert) {
+		if (!condition)
+			assert(0);
+	}
 }
 
 void verifyEq(T)(immutable T a, immutable T b) {

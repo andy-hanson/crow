@@ -367,6 +367,14 @@ immutable(Operation) opStopInterpretation(ref Interpreter a) {
 	return &opStopInterpretation;
 }
 
+@trusted immutable(Operation) opJumpIfFalse(ref Interpreter a) {
+	immutable ByteCodeOffsetUnsigned offset = immutable ByteCodeOffsetUnsigned(readNat16(a));
+	immutable Nat64 value = pop(a.dataStack);
+	if (value == immutable Nat64(0))
+		a.nextOperation += offset.offset.raw();
+	return nextOperation(a);
+}
+
 @trusted immutable(Operation) opSwitch0ToN(ref Interpreter a) {
 	immutable ByteCodeOffsetUnsigned[] offsets = readArray!ByteCodeOffsetUnsigned(a);
 	immutable Nat64 value = pop(a.dataStack);
@@ -602,12 +610,15 @@ private immutable(Nat32) readNat32(ref Interpreter interpreter) {
 	return immutable Nat32(cast(uint) readOperation(interpreter));
 }
 
-private immutable(Nat64) readNat64(ref Interpreter interpreter) {
-	return immutable Nat64(cast(ulong) readOperation(interpreter));
+private @trusted immutable(Nat64) readNat64(ref Interpreter interpreter) {
+	immutable Nat64* ptr = cast(immutable Nat64*) interpreter.nextOperation;
+	immutable Nat64 res = *ptr;
+	interpreter.nextOperation = cast(immutable Operation*) (ptr + 1);
+	return res;
 }
 
 private @trusted immutable(T[]) readArray(T)(ref Interpreter interpreter) {
-	immutable size_t size = safeSizeTFromU64(readNat64(interpreter).raw());
+	immutable size_t size = readNat32(interpreter).raw();
 	verify(size < 999); // sanity check
 	immutable T* ptr = cast(immutable T*) interpreter.nextOperation;
 	immutable T[] res = ptr[0 .. size];
@@ -647,7 +658,13 @@ private @trusted immutable(T[]) readArray(T)(ref Interpreter interpreter) {
 	return nextOperation(a);
 }
 
-immutable(Operation) opPushValue(ref Interpreter a) {
+immutable(Operation) opPushValue32(ref Interpreter a) {
+	immutable Nat32 value = readNat32(a);
+	push(a.dataStack, value.to64());
+	return nextOperation(a);
+}
+
+immutable(Operation) opPushValue64(ref Interpreter a) {
 	immutable Nat64 value = readNat64(a);
 	push(a.dataStack, value);
 	return nextOperation(a);

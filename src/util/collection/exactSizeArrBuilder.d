@@ -78,13 +78,6 @@ void padTo(ref ExactSizeArrBuilder!ubyte a, immutable size_t desiredSize) {
 }
 
 @trusted T[] finish(T)(ref ExactSizeArrBuilder!T a) {
-	debug {
-		import core.stdc.stdio : printf;
-		if (a.cur != a.end) {
-			immutable long diff = a.cur - a.end;
-			printf("Missed it by this much: %ld\n", diff);
-		}
-	}
 	verify(a.cur == a.end);
 	T[] res = arrOfRange_mut(a.begin, a.end);
 	a.begin = null;

@@ -270,9 +270,9 @@ immutable(uint) safeU32FromI32(immutable int a) {
 	return safeU32FromI64(a);
 }
 
-immutable(ulong) safeUlongFromLong(immutable long s) {
-	verify(s >= 0);
-	return cast(immutable ulong) s;
+immutable(size_t) safeSizeTFromLong(immutable long s) {
+	verify(s >= 0 && s <= size_t.max);
+	return cast(immutable size_t) s;
 }
 
 immutable(size_t) safeSizeTFromU64(immutable ulong a) {

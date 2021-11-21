@@ -29,9 +29,11 @@ import interpret.runBytecode :
 	opExternDynCall,
 	opFn,
 	opPack,
-	opPushValue,
+	opPushValue32,
+	opPushValue64,
 	opSet,
 	opJump,
+	opJumpIfFalse,
 	opRead,
 	opRemove,
 	opReturn,
@@ -59,7 +61,7 @@ struct ByteCodeWriter {
 	private:
 	Ptr!Alloc alloc;
 	// NOTE: sometimes we will write operation arguments here and cast to Operation
-	MutArr!Operation operations;
+	MutArr!(immutable Operation) operations;
 	ArrBuilder!ByteCodeSource sources; // parallel to operations
 	Nat16 nextStackEntry = immutable Nat16(0);
 }
@@ -88,7 +90,7 @@ immutable(StackEntry) stackEntriesEnd(immutable StackEntries a) {
 	immutable FileToFuns fileToFuns,
 ) {
 	immutable Operation[] operations =
-		cast(immutable) moveToArr_mut!Operation(writer.alloc.deref(), writer.operations);
+		moveToArr_mut!(immutable Operation)(writer.alloc.deref(), writer.operations);
 	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources =
 		fullIndexDictOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(writer.alloc.deref(), writer.sources));
 	return immutable ByteCode(operations, sources, fileToFuns, text, mainIndex);
@@ -410,7 +412,7 @@ private void writePushU64(
 	immutable Nat64 value,
 ) {
 	log(dbg, writer, "write push U64");
-	pushOperation(writer, source, &opPushValue);
+	pushOperation(writer, source, &opPushValue64);
 	pushU64(writer, source, value);
 	writer.nextStackEntry++;
 }
@@ -426,7 +428,7 @@ immutable(ByteCodeIndex) writePushFunPtrDelayed(
 	immutable ByteCodeSource source,
 ) {
 	log(dbg, writer, "write push u32 common");
-	pushOperation(writer, source, &opPushValue);
+	pushOperation(writer, source, &opPushValue32);
 	immutable ByteCodeIndex fnAddress = nextByteCodeIndex(writer);
 	pushU32(writer, source, immutable Nat32(0));
 	writer.nextStackEntry++;
@@ -504,6 +506,29 @@ void writePack(
 	writeArray(writer, source, pack.fields);
 	writer.nextStackEntry -= pack.inEntries.to16();
 	writer.nextStackEntry += pack.outEntries.to16();
+}
+
+struct JumpIfFalseDelayed {
+	immutable ByteCodeIndex offsetIndex;
+}
+
+immutable(JumpIfFalseDelayed) writeJumpIfFalseDelayed(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
+	pushOperation(writer, source, &opJumpIfFalse);
+	immutable ByteCodeIndex offsetIndex = nextByteCodeIndex(writer);
+	pushU16(writer, source, (immutable ByteCodeOffsetUnsigned(immutable Nat16(0))).offset);
+	writer.nextStackEntry -= 1;
+	return immutable JumpIfFalseDelayed(offsetIndex);
+}
+
+@trusted void fillDelayedJumpIfFalse(ref ByteCodeWriter writer, immutable JumpIfFalseDelayed delayed) {
+	immutable ByteCodeOffsetUnsigned diff =
+		subtractByteCodeIndex(
+			nextByteCodeIndex(writer),
+			// + 1 because jump is relative to after reading the offset
+			addByteCodeIndex(delayed.offsetIndex, immutable Nat32(1)),
+		).unsigned();
+	static assert(ByteCodeOffsetUnsigned.sizeof <= Operation.sizeof);
+	setAt(writer.operations, delayed.offsetIndex.index.raw(), cast(immutable Operation) diff.offset.raw());
 }
 
 struct SwitchDelayed {
@@ -606,7 +631,7 @@ private @trusted void writeArray(T)(
 	immutable ByteCodeSource source,
 	scope immutable T[] values,
 ) {
-	pushU64(writer, source, sizeNat(values));
+	pushU32(writer, source, sizeNat(values).to32());
 	if (!empty(values)) {
 		immutable size_t nOperations = divRoundUp(values.length * T.sizeof, Operation.sizeof);
 		foreach (immutable size_t i; 0 .. nOperations)
@@ -696,7 +721,15 @@ private void pushOperation(
 }
 
 private @trusted void pushT(T)(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable T value) {
-	pushOperation(writer, source, cast(Operation) value.raw());
+	static if(T.sizeof <= Operation.sizeof) {
+		pushOperation(writer, source, cast(Operation) value.raw());
+	} else {
+		static assert(T.sizeof == 8 && Operation.sizeof == 4);
+		pushOperation(writer, source, cast(immutable Operation) 0);
+		pushOperation(writer, source, cast(immutable Operation) 0);
+		T* ptr = cast(T*) mutArrPtrAt(writer.operations, mutArrSize(writer.operations) - 2);
+		overwriteMemory(ptr, value);
+	}
 }
 
 private void pushU64(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable Nat64 value) {
