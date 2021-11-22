@@ -7,10 +7,11 @@ import test.testApplyFn : testApplyFn;
 import test.testArrUtil : testArrUtil;
 import test.testFakeExtern : testFakeExtern;
 import test.testHover : testHover;
-import test.testInterpreter : testInterpreter;
+//import test.testInterpreter : testInterpreter;
 import test.testLineAndColumnGetter : testLineAndColumnGetter;
 import test.testPath : testPath;
 import test.testServer : testServer;
+import test.testStack : testStack;
 import test.testSym : testSym;
 import test.testTokens : testTokens;
 import test.testUtil : Test;
@@ -38,10 +39,11 @@ immutable(NameAndTest[]) allTests = [
 	immutable NameAndTest("apply-fn", &testApplyFn),
 	immutable NameAndTest("fake-extern", &testFakeExtern),
 	immutable NameAndTest("hover", &testHover),
-	immutable NameAndTest("interpreter", &testInterpreter),
+	//immutable NameAndTest("interpreter", &testInterpreter),
 	immutable NameAndTest("line-and-column-getter", &testLineAndColumnGetter),
 	immutable NameAndTest("path", &testPath),
 	immutable NameAndTest("server", &testServer),
+	immutable NameAndTest("stack", &testStack),
 	immutable NameAndTest("sym", &testSym),
 	immutable NameAndTest("tokens", &testTokens),
 	immutable NameAndTest("writer", &testWriter),

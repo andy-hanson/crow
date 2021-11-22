@@ -13,6 +13,7 @@ import interpret.bytecode :
 	ExternOp,
 	FnOp,
 	initialOperationPointer,
+	NextOperation,
 	Operation,
 	StackOffset;
 import interpret.debugging : writeFunName;
@@ -24,29 +25,29 @@ import model.typeLayout : PackField;
 import util.alloc.alloc : TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.dbg : log;
-import util.collection.arr : at, begin, last, ptrAt, sizeNat;
+import util.collection.arr : at, begin, last, ptrAt, size, sizeNat;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.globalAllocatedStack :
 	asTempArr,
-	begin,
 	clearStack,
-	end,
 	GlobalAllocatedStack,
-	isEmpty,
 	peek,
 	pop,
 	popN,
 	push,
 	pushUninitialized,
-	reduceStackSize,
 	remove,
 	setToArr,
+	setStackTop,
+	stackEnd,
+	stackIsEmpty,
 	stackRef,
 	stackSize,
+	stackTop,
 	toArr;
 import util.collection.str : SafeCStr;
 import util.dbg : Debug;
-import util.memory : allocate, memcpy, memmove, memset, overwriteMemory;
+import util.memory : allocate, allocateMut, memcpy, memmove, memset, overwriteMemory;
 import util.opt : has;
 import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
@@ -90,16 +91,17 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writeStatic;
 }
 
 private @trusted immutable(int) runBytecodeInner(scope ref Interpreter interpreter) {
-	Operation op = nextOperation(interpreter);
+	immutable(Operation)* opPtr = initialOperationPointer(interpreter.byteCode);
+
 	do {
-		op = cast(Operation) op(interpreter);
-		op = cast(Operation) op(interpreter);
-		op = cast(Operation) op(interpreter);
-		op = cast(Operation) op(interpreter);
-	} while (op != &opStopInterpretation);
+		opPtr = opPtr.fn(interpreter, opPtr + 1).operationPtr;
+		opPtr = opPtr.fn(interpreter, opPtr + 1).operationPtr;
+		opPtr = opPtr.fn(interpreter, opPtr + 1).operationPtr;
+		opPtr = opPtr.fn(interpreter, opPtr + 1).operationPtr;
+	} while (opPtr.fn != &opStopInterpretation);
 
 	immutable Nat64 returnCode = pop(interpreter.dataStack);
-	verify(isEmpty(interpreter.dataStack));
+	verify(stackIsEmpty(interpreter.dataStack));
 	return safeIntFromNat64(returnCode);
 }
 
@@ -156,7 +158,6 @@ struct Interpreter {
 		byteCodePtr = b;
 		allPathsPtr = ap;
 		filesInfoPtr = f;
-		nextOperation = initialOperationPointer(byteCode);
 		dataStack = DataStack(true);
 		returnStack = ReturnStack(true);
 	}
@@ -169,7 +170,6 @@ struct Interpreter {
 	immutable Ptr!ByteCode byteCodePtr;
 	const Ptr!AllPaths allPathsPtr;
 	immutable Ptr!FilesInfo filesInfoPtr;
-	immutable(Operation)* nextOperation;
 	//TODO:PRIVATE
 	public DataStack dataStack;
 	public ReturnStack returnStack;
@@ -188,7 +188,8 @@ struct Interpreter {
 	ref immutable(LowProgram) lowProgram() const return scope pure {
 		return lowProgramPtr.deref();
 	}
-	ref immutable(ByteCode) byteCode() const return scope pure {
+	//TODO:PRIVATE
+	public ref immutable(ByteCode) byteCode() const return scope pure {
 		return byteCodePtr.deref();
 	}
 	ref const(AllPaths) allPaths() const return scope pure {
@@ -203,22 +204,22 @@ struct Interpreter {
 private struct InterpreterRestore {
 	// This is the stack sizes and byte code index to be restored by longjmp
 	immutable ByteCodeIndex nextByteCodeIndex;
-	immutable Nat32 dataStackSize;
+	Nat64* dataStackTop;
 	immutable Operation*[] restoreReturnStack;
 }
 
-private immutable(InterpreterRestore*) createInterpreterRestore(ref Interpreter a) {
-	immutable InterpreterRestore value = immutable InterpreterRestore(
-		nextByteCodeIndex(a),
-		stackSize(a.dataStack),
+private @system InterpreterRestore* createInterpreterRestore(ref Interpreter a, immutable Operation* cur) {
+	InterpreterRestore value = InterpreterRestore(
+		nextByteCodeIndex(a, cur),
+		stackTop(a.dataStack),
 		toArr(a.tempAlloc, a.returnStack));
-	return allocate(a.tempAlloc, value).rawPtr();
+	return allocateMut(a.tempAlloc, value).rawPtr();
 }
 
-private void applyInterpreterRestore(ref Interpreter a, ref immutable InterpreterRestore restore) {
-	setNextByteCodeIndex(a, restore.nextByteCodeIndex);
-	reduceStackSize(a.dataStack, restore.dataStackSize.raw());
+private @system immutable(Operation*) applyInterpreterRestore(ref Interpreter a, InterpreterRestore restore) {
+	setStackTop(a.dataStack, restore.dataStackTop);
 	setToArr(a.returnStack, restore.restoreReturnStack);
+	return &a.byteCode.byteCode[restore.nextByteCodeIndex.index.raw()];
 }
 
 private void showStack(scope ref Writer writer, ref const Interpreter a) {
@@ -235,14 +236,14 @@ private void showStack(scope ref Writer writer, ref const Interpreter a) {
 	writeChar(writer, '\n');
 }
 
-private @trusted void showReturnStack(scope ref Writer writer, ref const Interpreter a) {
+private @trusted void showReturnStack(scope ref Writer writer, ref const Interpreter a, immutable(Operation)* cur) {
 	writeStatic(writer, "call stack:");
 	foreach (immutable Operation* ptr; asTempArr(a.returnStack)) {
 		writeChar(writer, ' ');
 		writeFunNameAtByteCodePtr(writer, a, ptr);
 	}
 	writeChar(writer, ' ');
-	writeFunNameAtByteCodePtr(writer, a, a.nextOperation);
+	writeFunNameAtByteCodePtr(writer, a, cur);
 }
 
 private void writeByteCodeSource(
@@ -293,13 +294,8 @@ private immutable(ByteCodeSource) byteCodeSourceAtByteCodePtr(
 	return byteCodeSourceAtIndex(a, byteCodeIndexOfPtr(a, ptr));
 }
 
-@trusted immutable(ByteCodeIndex) nextByteCodeIndex(scope ref const Interpreter a) {
-	return byteCodeIndexOfPtr(a, a.nextOperation);
-}
-
-//TODO:KILL (use ptrs directly instead of ByteCodeIndex)
-private void setNextByteCodeIndex(ref Interpreter a, immutable ByteCodeIndex index) {
-	a.nextOperation = ptrAt!(immutable Operation)(a.byteCode.byteCode, index.index.raw()).rawPtr();
+@trusted immutable(ByteCodeIndex) nextByteCodeIndex(scope ref const Interpreter a, immutable Operation* cur) {
+	return byteCodeIndexOfPtr(a, cur);
 }
 
 pure @trusted immutable(ByteCodeIndex) byteCodeIndexOfPtr(
@@ -309,23 +305,21 @@ pure @trusted immutable(ByteCodeIndex) byteCodeIndexOfPtr(
 	return immutable ByteCodeIndex((immutable Nat64(ptr - begin(a.byteCode.byteCode))).to32());
 }
 
-private immutable(ByteCodeSource) nextSource(ref const Interpreter a) {
-	return byteCodeSourceAtByteCodePtr(a, a.nextOperation);
+private immutable(ByteCodeSource) nextSource(ref const Interpreter a, immutable Operation* cur) {
+	return byteCodeSourceAtByteCodePtr(a, cur);
 }
 
-private immutable(Operation) getNextOperationAndDebug(ref Interpreter a) {
-	immutable ByteCodeSource source = nextSource(a);
+private immutable(NextOperation) getNextOperationAndDebug(ref Interpreter a, immutable Operation* cur) {
+	immutable ByteCodeSource source = nextSource(a, cur);
 
 	{
 		ubyte[10_000] mem;
 		scope RangeAlloc dbgAlloc = RangeAlloc(&mem[0], mem.length);
 		scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
 		showStack(writer, a);
-		showReturnStack(writer, a);
+		showReturnStack(writer, a, cur);
 		log(a.dbg, finishWriter(writer));
 	}
-
-	immutable Operation operation = nextOperation(a);
 
 	{
 		ubyte[10_000] mem;
@@ -340,80 +334,87 @@ private immutable(Operation) getNextOperationAndDebug(ref Interpreter a) {
 		log(a.dbg, finishWriter(writer));
 	}
 
-	return operation;
+	return immutable NextOperation(cur);
 }
 
-immutable(Operation) opAssertUnreachable(ref Interpreter a) {
-	return unreachable!(immutable Operation)();
+immutable(NextOperation) opAssertUnreachable(ref Interpreter a, immutable(Operation)* cur) {
+	return unreachable!(immutable NextOperation)();
 }
 
-immutable(Operation) opRemove(ref Interpreter a) {
-	immutable StackOffset offset = readStackOffset(a);
-	immutable Nat8 nEntries = readNat8(a);
-	remove(a.dataStack, offset.offset, nEntries);
-	return nextOperation(a);
+immutable(NextOperation) opRemove(ref Interpreter a, immutable(Operation)* cur) {
+	immutable size_t offset = readStackOffset(cur).offset.raw();
+	immutable size_t nEntries = readNat8(cur).raw();
+	remove(a.dataStack, offset, nEntries);
+	return nextOperation(a, cur);
 }
 
-immutable(Operation) opReturn(ref Interpreter a) {
-	if (isEmpty(a.returnStack))
-		return &opStopInterpretation;
-	else {
-		a.nextOperation = pop(a.returnStack);
-		return nextOperation(a);
-	}
+immutable(NextOperation) opReturn(ref Interpreter a, immutable(Operation)* cur) {
+	return stackIsEmpty(a.returnStack)
+		? immutable NextOperation(&operationOpStopInterpretation[0])
+		: nextOperation(a, pop(a.returnStack));
 }
 
-immutable(Operation) opStopInterpretation(ref Interpreter a) {
-	return &opStopInterpretation;
+immutable(Operation[8]) operationOpStopInterpretation = [
+	immutable Operation(&opStopInterpretation),
+	immutable Operation(&opStopInterpretation),
+	immutable Operation(&opStopInterpretation),
+	immutable Operation(&opStopInterpretation),
+	immutable Operation(&opStopInterpretation),
+	immutable Operation(&opStopInterpretation),
+	immutable Operation(&opStopInterpretation),
+	immutable Operation(&opStopInterpretation),
+];
+
+immutable(NextOperation) opStopInterpretation(ref Interpreter a, immutable(Operation)* cur) {
+	return immutable NextOperation(&operationOpStopInterpretation[0]);
 }
 
-@trusted immutable(Operation) opJumpIfFalse(ref Interpreter a) {
-	immutable ByteCodeOffsetUnsigned offset = immutable ByteCodeOffsetUnsigned(readNat16(a));
+@trusted immutable(NextOperation) opJumpIfFalse(ref Interpreter a, immutable(Operation)* cur) {
+	immutable ByteCodeOffsetUnsigned offset = immutable ByteCodeOffsetUnsigned(readNat16(cur));
 	immutable Nat64 value = pop(a.dataStack);
 	if (value == immutable Nat64(0))
-		a.nextOperation += offset.offset.raw();
-	return nextOperation(a);
+		cur += offset.offset.raw();
+	return nextOperation(a, cur);
 }
 
-@trusted immutable(Operation) opSwitch0ToN(ref Interpreter a) {
-	immutable ByteCodeOffsetUnsigned[] offsets = readArray!ByteCodeOffsetUnsigned(a);
+@trusted immutable(NextOperation) opSwitch0ToN(ref Interpreter a, immutable(Operation)* cur) {
+	immutable ByteCodeOffsetUnsigned[] offsets = readArray!ByteCodeOffsetUnsigned(cur);
 	immutable Nat64 value = pop(a.dataStack);
 	immutable ByteCodeOffsetUnsigned offset = at(offsets, safeSizeTFromU64(value.raw()));
-	a.nextOperation += offset.offset.raw();
-	return nextOperation(a);
+	return nextOperation(a, cur + offset.offset.raw());
 }
 
-immutable(Operation) opStackRef(ref Interpreter a) {
-	immutable StackOffset offset = readStackOffset(a);
-	push(a.dataStack, immutable Nat64(cast(immutable ulong) stackRef(a.dataStack, offset.offset)));
-	return nextOperation(a);
+@trusted immutable(NextOperation) opStackRef(ref Interpreter a, immutable(Operation)* cur) {
+	immutable size_t offset = readStackOffset(cur).offset.raw();
+	push(a.dataStack, immutable Nat64(cast(immutable ulong) stackRef(a.dataStack, offset)));
+	return nextOperation(a, cur);
 }
 
-@trusted immutable(Operation) opRead(ref Interpreter a) {
-	immutable Nat16 offset = readNat16(a);
-	immutable Nat16 size = readNat16(a);
+@trusted immutable(NextOperation) opRead(ref Interpreter a, immutable(Operation)* cur) {
+	immutable size_t offset = readNat16(cur).raw();
+	immutable size_t size = readNat16(cur).raw();
 	immutable ubyte* ptr = cast(immutable ubyte*) pop(a.dataStack).raw();
-	readNoCheck(a.dataStack, ptr + offset.raw(), size.raw());
-	return nextOperation(a);
+	readNoCheck(a.dataStack, ptr + offset, size);
+	return nextOperation(a, cur);
 }
 
-@trusted immutable(Operation) opWrite(ref Interpreter a) {
-	immutable Nat16 offset = readNat16(a);
-	immutable Nat16 size = readNat16(a);
-	if (size < immutable Nat16(8)) { //TODO:UNNECESSARY?
-		verify(size != immutable Nat16(0));
-		immutable Nat64 value = pop(a.dataStack);
+@trusted immutable(NextOperation) opWrite(ref Interpreter a, immutable(Operation)* cur) {
+	immutable size_t offset = readNat16(cur).raw();
+	immutable size_t size = readNat16(cur).raw();
+	if (size < 8) { //TODO:UNNECESSARY?
+		verify(size != 0);
+		immutable ulong value = pop(a.dataStack).raw();
 		ubyte* ptr = cast(ubyte*) pop(a.dataStack).raw();
-		writePartialBytes(ptr + offset.raw(), value.raw(), size.raw());
+		writePartialBytes(ptr + offset, value, size);
 	} else {
-		immutable Nat16 sizeWords = divRoundUp(size, immutable Nat16(8));
-		ubyte* destWithoutOffset = cast(ubyte*) peek(a.dataStack, sizeWords.to8()).raw();
-		ubyte* src = cast(ubyte*) (end(a.dataStack) - sizeWords.raw());
-		ubyte* dest = destWithoutOffset + offset.raw();
-		memcpy(dest, src, size.raw());
-		popN(a.dataStack, incr(sizeWords).to8());
+		immutable size_t sizeWords = divRoundUp(size, 8);
+		ubyte* destWithoutOffset = cast(ubyte*) peek(a.dataStack, sizeWords).raw();
+		ubyte* src = cast(ubyte*) (stackEnd(a.dataStack) - sizeWords);
+		ubyte* dest = destWithoutOffset + offset;
+		memcpy(dest, src, size);
+		popN(a.dataStack, sizeWords + 1);
 	}
-	return nextOperation(a);
+	return nextOperation(a, cur);
 }
 
 private @trusted void writePartialBytes(ubyte* ptr, immutable ulong value, immutable ushort size) {
@@ -434,35 +435,35 @@ private @trusted void writePartialBytes(ubyte* ptr, immutable ulong value, immut
 	}
 }
 
-immutable(Operation) opCall(ref Interpreter a) {
-	immutable ByteCodeIndex address = immutable ByteCodeIndex(readNat32(a));
-	return callCommon(a, address);
+immutable(NextOperation) opCall(ref Interpreter a, immutable(Operation)* cur) {
+	immutable ByteCodeIndex address = immutable ByteCodeIndex(readNat32(cur));
+	return callCommon(a, address, cur);
 }
 
-immutable(Operation) opCallFunPtr(ref Interpreter a) {
-	immutable Nat8 parametersSize = readNat8(a);
+immutable(NextOperation) opCallFunPtr(ref Interpreter a, immutable(Operation)* cur) {
+	immutable Nat8 parametersSize = readNat8(cur);
 	//TODO: handle a real function pointer being here?
 	immutable ByteCodeIndex address = immutable ByteCodeIndex(
 		removeAtStackOffset(a, immutable StackOffset(parametersSize)).to32());
-	return callCommon(a, address);
+	return callCommon(a, address, cur);
 }
 
-private immutable(Operation) callCommon(
+private immutable(NextOperation) callCommon(
 	ref Interpreter a,
 	immutable ByteCodeIndex address,
+	immutable Operation* cur,
 ) {
-	push(a.returnStack, a.nextOperation);
-	setNextByteCodeIndex(a, address);
-	return nextOperation(a);
+	push(a.returnStack, cur);
+	return nextOperation(a, &a.byteCode.byteCode[address.index.raw()]);
 }
 
 private immutable(Nat64) removeAtStackOffset(ref Interpreter a, immutable StackOffset offset) {
-	return remove(a.dataStack, offset.offset);
+	return remove(a.dataStack, offset.offset.raw());
 }
 
 //TODO: not @trusted
-@trusted immutable(Operation) opExtern(ref Interpreter a) {
-	immutable ExternOp op = cast(ExternOp) readNat8(a).raw();
+@trusted immutable(NextOperation) opExtern(ref Interpreter a, immutable(Operation)* cur) {
+	immutable ExternOp op = cast(ExternOp) readNat8(cur).raw();
 	final switch (op) {
 		case ExternOp.backtrace:
 			immutable int size = cast(int) pop(a.dataStack).to32().raw();
@@ -484,8 +485,8 @@ private immutable(Nat64) removeAtStackOffset(ref Interpreter a, immutable StackO
 			break;
 		case ExternOp.longjmp:
 			immutable Nat64 val = pop(a.dataStack); // TODO: verify this is int32?
-			const JmpBufTag* jmpBufPtr = cast(const JmpBufTag*) pop(a.dataStack).raw();
-			applyInterpreterRestore(a, **jmpBufPtr);
+			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack).raw();
+			cur = applyInterpreterRestore(a, **jmpBufPtr);
 			//TODO: freeInterpreterRestore
 			push(a.dataStack, val);
 			break;
@@ -538,7 +539,7 @@ private immutable(Nat64) removeAtStackOffset(ref Interpreter a, immutable StackO
 			break;
 		case ExternOp.setjmp:
 			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack).raw();
-			overwriteMemory(jmpBufPtr, createInterpreterRestore(a));
+			overwriteMemory(jmpBufPtr, createInterpreterRestore(a, cur));
 			push(a.dataStack, immutable Nat64(0));
 			break;
 		case ExternOp.write:
@@ -549,99 +550,95 @@ private immutable(Nat64) removeAtStackOffset(ref Interpreter a, immutable StackO
 			push(a.dataStack, immutable Nat64(res));
 			break;
 	}
-	return nextOperation(a);
+	return nextOperation(a, cur);
 }
 
 //TODO:KILL, use separate functions for each operation
-immutable(Operation) opFn(ref Interpreter a) {
-	immutable FnOp fnOp = cast(immutable FnOp) readNat8(a).raw();
+@trusted immutable(NextOperation) opFn(ref Interpreter a, immutable(Operation)* cur) {
+	immutable FnOp fnOp = cast(immutable FnOp) readNat8(cur).raw();
 	applyFn(a.dataStack, fnOp);
-	return nextOperation(a);
+	return nextOperation(a, cur);
 }
 
 private @system immutable(size_t) backtrace(ref Interpreter a, void** res, immutable uint size) {
-	immutable size_t resSize = min(stackSize(a.returnStack).raw(), size);
+	immutable size_t resSize = min(stackSize(a.returnStack), size);
 	foreach (immutable size_t i; 0 .. resSize)
-		res[i] = cast(void*) byteCodeIndexOfPtr(a, a.returnStack.peek((immutable Nat64(i)).to8())).index.raw();
+		res[i] = cast(void*) byteCodeIndexOfPtr(a, peek(a.returnStack, i)).index.raw();
 	return resSize;
 }
 
-@trusted immutable(Operation) opExternDynCall(ref Interpreter a) {
-	immutable Sym name = immutable Sym(readNat64(a).raw());
-	immutable DynCallType returnType = cast(immutable DynCallType) readNat8(a).raw();
-	scope immutable DynCallType[] parameterTypes = readArray!DynCallType(a);
-	scope immutable Nat64[] params = popN(a.dataStack, sizeNat(parameterTypes).to8());
+@trusted immutable(NextOperation) opExternDynCall(ref Interpreter a, immutable(Operation)* cur) {
+	immutable Sym name = immutable Sym(readNat64(cur).raw());
+	immutable DynCallType returnType = cast(immutable DynCallType) readNat8(cur).raw();
+	scope immutable DynCallType[] parameterTypes = readArray!DynCallType(cur);
+	scope immutable Nat64[] params = popN(a.dataStack, size(parameterTypes));
 	immutable Nat64 value = a.extern_.doDynCall(name, returnType, params, parameterTypes);
 	if (returnType != DynCallType.void_)
 		push(a.dataStack, value);
-	return nextOperation(a);
+	return nextOperation(a, cur);
 }
 
 // This isn't the structure the posix jmp-buf-tag has, but it fits inside it
-private alias JmpBufTag = immutable InterpreterRestore*;
+private alias JmpBufTag = InterpreterRestore*;
 
-private immutable(Operation) nextOperation(ref Interpreter a) {
-	return false ? getNextOperationAndDebug(a) : readOperation(a);
+private immutable(NextOperation) nextOperation(ref Interpreter a, immutable Operation* cur) {
+	return false ? getNextOperationAndDebug(a, cur) : immutable NextOperation(cur);
 }
 
-@trusted immutable(Operation) readOperation(scope ref Interpreter a) {
-	immutable Operation res = *a.nextOperation;
-	a.nextOperation++;
+@trusted immutable(Operation) readOperation(scope ref immutable(Operation)* cur) {
+	immutable Operation res = *cur;
+	cur++;
 	return res;
 }
 
-private immutable(Nat8) readNat8(ref Interpreter interpreter) {
-	return immutable Nat8(cast(ubyte) readOperation(interpreter));
+private immutable(Nat8) readNat8(ref immutable(Operation)* cur) {
+	return readOperation(cur).nat8;
 }
 
-private immutable(StackOffset) readStackOffset(ref Interpreter interpreter) {
-	return immutable StackOffset(readNat8(interpreter));
+private immutable(StackOffset) readStackOffset(ref immutable(Operation)* cur) {
+	return immutable StackOffset(readNat8(cur));
 }
 
-private immutable(Nat16) readNat16(ref Interpreter interpreter) {
-	return immutable Nat16(cast(ushort) readOperation(interpreter));
+private immutable(Nat16) readNat16(ref immutable(Operation)* cur) {
+	return readOperation(cur).nat16;
 }
 
-private immutable(Int16) readInt16(ref Interpreter interpreter) {
-	return immutable Int16(cast(short) readOperation(interpreter));
+private immutable(Int16) readInt16(ref immutable(Operation)* cur) {
+	return readOperation(cur).int16;
 }
 
-private immutable(Nat32) readNat32(ref Interpreter interpreter) {
-	return immutable Nat32(cast(uint) readOperation(interpreter));
+private immutable(Nat32) readNat32(ref immutable(Operation)* cur) {
+	return readOperation(cur).nat32;
 }
 
-private @trusted immutable(Nat64) readNat64(ref Interpreter interpreter) {
-	immutable Nat64* ptr = cast(immutable Nat64*) interpreter.nextOperation;
-	immutable Nat64 res = *ptr;
-	interpreter.nextOperation = cast(immutable Operation*) (ptr + 1);
-	return res;
+private @trusted immutable(Nat64) readNat64(ref immutable(Operation)* cur) {
+	return readOperation(cur).nat64;
 }
 
-private @trusted immutable(T[]) readArray(T)(ref Interpreter interpreter) {
-	immutable size_t size = readNat32(interpreter).raw();
+private @trusted immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {
+	immutable size_t size = readNat32(cur).raw();
 	verify(size < 999); // sanity check
-	immutable T* ptr = cast(immutable T*) interpreter.nextOperation;
+	immutable T* ptr = cast(immutable T*) cur;
 	immutable T[] res = ptr[0 .. size];
 	immutable(ubyte)* end = cast(immutable ubyte*) (ptr + size);
 	while ((cast(size_t) end) % Operation.sizeof != 0) end++;
-	verify((cast(size_t) interpreter.nextOperation) % Operation.sizeof == 0);
+	verify((cast(size_t) cur) % Operation.sizeof == 0);
 	verify((cast(size_t) end) % Operation.sizeof == 0);
-	interpreter.nextOperation = cast(immutable Operation*) end;
+	cur = cast(immutable Operation*) end;
 	return res;
 }
 
-@trusted immutable(Operation) opJump(ref Interpreter a) {
-	immutable ByteCodeOffset offset = immutable ByteCodeOffset(readInt16(a));
-	a.nextOperation += offset.offset.raw();
-	return nextOperation(a);
+@trusted immutable(NextOperation) opJump(ref Interpreter a, immutable(Operation)* cur) {
+	immutable ByteCodeOffset offset = immutable ByteCodeOffset(readInt16(cur));
+	return nextOperation(a, cur + offset.offset.raw());
 }
 
-@trusted immutable(Operation) opPack(ref Interpreter a) {
-	immutable Nat8 inEntries = readNat8(a);
-	immutable Nat8 outEntries = readNat8(a);
-	immutable PackField[] fields = readArray!PackField(a);
+@trusted immutable(NextOperation) opPack(ref Interpreter a, immutable(Operation)* cur) {
+	immutable size_t inEntries = readNat8(cur).raw();
+	immutable size_t outEntries = readNat8(cur).raw();
+	immutable PackField[] fields = readArray!PackField(cur);
 
-	ubyte* base = cast(ubyte*) (end(a.dataStack) - inEntries.raw());
+	ubyte* base = cast(ubyte*) (stackEnd(a.dataStack) - inEntries);
 	foreach (immutable PackField field; fields)
 		memmove(base + field.outOffset.raw(), base + field.inOffset.raw(), field.size.raw());
 
@@ -650,76 +647,75 @@ private @trusted immutable(T[]) readArray(T)(ref Interpreter interpreter) {
 
 	// fill remaining bytes with 0
 	ubyte* ptr = base + last(fields).outOffset.raw() + last(fields).size.raw();
-	while (ptr < cast(ubyte*) end(a.dataStack)) {
+	while (ptr < cast(ubyte*) stackEnd(a.dataStack)) {
 		*ptr = 0;
 		ptr++;
 	}
 
-	return nextOperation(a);
+	return nextOperation(a, cur);
 }
 
-immutable(Operation) opPushValue32(ref Interpreter a) {
-	immutable Nat32 value = readNat32(a);
+immutable(NextOperation) opPushValue32(ref Interpreter a, immutable(Operation)* cur) {
+	immutable Nat32 value = readNat32(cur);
 	push(a.dataStack, value.to64());
-	return nextOperation(a);
+	return nextOperation(a, cur);
 }
 
-immutable(Operation) opPushValue64(ref Interpreter a) {
-	immutable Nat64 value = readNat64(a);
+immutable(NextOperation) opPushValue64(ref Interpreter a, immutable(Operation)* cur) {
+	immutable Nat64 value = readNat64(cur);
 	push(a.dataStack, value);
-	return nextOperation(a);
+	return nextOperation(a, cur);
 }
 
-@trusted immutable(Operation) opDupBytes(ref Interpreter a) {
-	immutable Nat16 offsetBytes = readNat16(a);
-	immutable Nat16 sizeBytes = readNat16(a);
+@trusted immutable(NextOperation) opDupBytes(ref Interpreter a, immutable(Operation)* cur) {
+	immutable Nat16 offsetBytes = readNat16(cur);
+	immutable Nat16 sizeBytes = readNat16(cur);
 
-	const ubyte* ptr = (cast(const ubyte*) end(a.dataStack)) - offsetBytes.raw();
+	const ubyte* ptr = (cast(const ubyte*) stackEnd(a.dataStack)) - offsetBytes.raw();
 	readNoCheck(a.dataStack, ptr, sizeBytes.raw());
-	return nextOperation(a);
+	return nextOperation(a, cur);
 }
 
-@trusted immutable(Operation) opDupWord(ref Interpreter a) {
-	immutable StackOffset offsetWords = readStackOffset(a);
-	const Nat64* ptr = (cast(const Nat64*) end(a.dataStack)) - 1 - offsetWords.offset.raw();
-	push(a.dataStack, *ptr);
-	return nextOperation(a);
+@trusted immutable(NextOperation) opDupWord(ref Interpreter a, immutable(Operation)* cur) {
+	immutable size_t offsetWords = readStackOffset(cur).offset.raw();
+	push(a.dataStack, peek(a.dataStack, offsetWords));
+	return nextOperation(a, cur);
 }
 
-@trusted immutable(Operation) opDupWords(ref Interpreter a) {
-	immutable StackOffset offsetWords = readStackOffset(a);
-	immutable Nat8 sizeWords = readNat8(a);
-	const(Nat64)* ptr = (cast(const Nat64*) end(a.dataStack)) - 1 - offsetWords.offset.raw();
-	foreach (immutable size_t i; 0 .. sizeWords.raw()) {
+@trusted immutable(NextOperation) opDupWords(ref Interpreter a, immutable(Operation)* cur) {
+	immutable size_t offsetWords = readStackOffset(cur).offset.raw();
+	immutable size_t sizeWords = readNat8(cur).raw();
+	const(Nat64)* ptr = stackTop(a.dataStack) - offsetWords;
+	foreach (immutable size_t i; 0 .. sizeWords) {
 		push(a.dataStack, *ptr);
 		ptr++;
 	}
-	return nextOperation(a);
+	return nextOperation(a, cur);
 }
 
 // Copies data from the top of the stack to write to something lower on the stack.
-@trusted immutable(Operation) opSet(ref Interpreter a) {
-	immutable StackOffset offsetWords = readStackOffset(a);
-	immutable Nat8 sizeWords = readNat8(a);
+@trusted immutable(NextOperation) opSet(ref Interpreter a, immutable(Operation)* cur) {
+	immutable StackOffset offsetWords = readStackOffset(cur);
+	immutable Nat8 sizeWords = readNat8(cur);
 	// Start at the end of the range and pop in reverse
-	const Nat64* begin = (cast(const Nat64*) end(a.dataStack)) - 1 - offsetWords.offset.raw();
+	const Nat64* begin = stackTop(a.dataStack) - offsetWords.offset.raw();
 	const(Nat64)* ptr = begin + sizeWords.raw();
 	foreach (immutable size_t i; 0 .. sizeWords.raw()) {
 		ptr--;
 		overwriteMemory(ptr, pop(a.dataStack));
 	}
 	verify(ptr == begin);
-	return nextOperation(a);
+	return nextOperation(a, cur);
 }
 
 private @system void readNoCheck(ref DataStack dataStack, const ubyte* readFrom, immutable size_t sizeBytes) {
-	ubyte* outPtr = cast(ubyte*) end(dataStack);
-	immutable size_t sizeWords = divRoundUp(sizeBytes, 8);
+	ubyte* outPtr = cast(ubyte*) stackEnd(dataStack);
+	immutable size_t sizeWords = divRoundUp(sizeBytes, Nat64.sizeof);
 	pushUninitialized(dataStack, sizeWords);
 	memcpy(outPtr, readFrom, sizeBytes);
 
 	ubyte* endPtr = outPtr + sizeBytes;
-	while (endPtr < cast(ubyte*) end(dataStack)) {
+	while (endPtr < cast(ubyte*) stackEnd(dataStack)) {
 		*endPtr = 0;
 		endPtr++;
 	}

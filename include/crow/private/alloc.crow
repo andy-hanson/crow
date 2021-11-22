@@ -195,7 +195,7 @@ get-gc-ctx gc-ctx() unsafe
 	get-ctx.gc-ctx-ptr as-ref
 
 get-gc gc() unsafe
-	get-gc-ctx.gc
+	get-gc-ctx gc
 
 # TODO: use memset
 fill-ptr-range<a> void(cur a mut*, end a mut*, value a) noctx unsafe

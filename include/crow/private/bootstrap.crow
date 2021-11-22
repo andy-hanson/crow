@@ -146,7 +146,7 @@ region bootstrap runtime
 # Since this fun is not marked 'noctx', it simply returns the ctx that already exists.
 get-ctx ctx() unsafe builtin
 
-# The ctx only exists temporarily, so can use 'any-const-ptr' without worrying about GC
+# The ctx only exists temporarily, so can use 'any-mut-ptr' without worrying about GC
 ctx record mut
 	by-ref
 	gctx-ptr any-mut-ptr

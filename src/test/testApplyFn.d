@@ -6,7 +6,7 @@ import interpret.applyFn : applyFn;
 import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
 import test.testUtil : expectDataStack, Test;
-import util.collection.globalAllocatedStack : clearStack, pushAll;
+import util.collection.globalAllocatedStack : clearStack, push;
 import util.types : Nat64, u64OfFloat32Bits, u64OfFloat64Bits;
 import util.util : verify;
 
@@ -122,14 +122,15 @@ immutable(Nat64) u64OfI64Bits(immutable long a) {
 	return immutable Nat64(cast(ulong) a);
 }
 
-void testFn(
+@trusted void testFn(
 	ref Test test,
 	scope immutable Nat64[] stackIn,
 	immutable FnOp fnOp,
 	scope immutable Nat64[] stackOut,
 ) {
 	DataStack dataStack = DataStack(true);
-	pushAll(dataStack, stackIn);
+	foreach (immutable Nat64 value; stackIn)
+		push(dataStack, value);
 	applyFn(dataStack, fnOp);
 	expectDataStack(test, dataStack, stackOut);
 	clearStack(dataStack);

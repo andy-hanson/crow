@@ -15,7 +15,7 @@ import util.types :
 	u64OfFloat64Bits;
 import util.util : verify;
 
-void applyFn(ref DataStack dataStack, immutable FnOp fn) {
+@system void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 	final switch (fn) {
 		case FnOp.addFloat32:
 			binaryFloat32s(dataStack, (immutable float a, immutable float b) =>

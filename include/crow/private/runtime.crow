@@ -162,7 +162,7 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 		# Do another task
 		gctx thread-function-recur tls
 
-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion exclusion) noctx unsafe
+new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion exclusion) noctx unsafe
 	gc-ctx = island.gc.ref-of-val get-gc-ctx
 	tls.log-ctx-ptr.as-ref.handler := island.gc-root.ref-of-val.log-handler
 	gctx.as-any-mut-ptr, island.id, exclusion, gc-ctx.as-any-mut-ptr, tls
@@ -174,7 +174,7 @@ ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion
 	island = chosen-task task-island
 	match chosen-task.task-or-gc
 	as togc-task task
-		ctx = gctx ctx tls, island, task.exclusion
+		ctx = gctx new-ctx tls, island, task.exclusion
 		task.action call-with-ctx ctx.ref-of-val
 		island.tasks-lock.ref-of-val acquire!
 		island.tasks return-task! task

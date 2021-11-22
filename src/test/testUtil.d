@@ -1,6 +1,6 @@
 module test.testUtil;
 
-@safe @nogc pure nothrow:
+@safe @nogc nothrow: // not pure
 
 import interpret.bytecode : ByteCodeIndex, Operation;
 import interpret.runBytecode : byteCodeIndexOfPtr, DataStack, Interpreter, showDataArr;
@@ -51,7 +51,7 @@ struct Test {
 	}
 }
 
-void expectDataStack(ref Test test, scope ref const DataStack dataStack, scope immutable Nat64[] expected) {
+@trusted void expectDataStack(ref Test test, scope ref const DataStack dataStack, scope immutable Nat64[] expected) {
 	immutable Nat64[] stack = asTempArr(dataStack);
 	immutable bool eq = sizeEq(stack, expected) &&
 		eachCorresponds!(Nat64, Nat64)(stack, expected, (ref immutable Nat64 a, ref immutable Nat64 b) => a == b);

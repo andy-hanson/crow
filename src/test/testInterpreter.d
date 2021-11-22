@@ -2,7 +2,7 @@ module test.testInterpreter;
 
 @safe @nogc nothrow: // not pure
 
-import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, FileToFuns, FnOp, FunNameAndPos, Operation;
+import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, FileToFuns, FnOp, FunNameAndPos, initialOperationPointer, Operation;
 import interpret.extern_ : Extern;
 import interpret.fakeExtern : withFakeExtern;
 import interpret.runBytecode :
@@ -67,9 +67,9 @@ import model.lowModel :
 import model.typeLayout : Pack, PackField;
 import test.testUtil : expectDataStack, expectReturnStack, Test;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, emptyArr;
+import util.collection.arr : at, emptyArr, ptrAt;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
-import util.collection.globalAllocatedStack : begin, pop, push;
+import util.collection.globalAllocatedStack : stackBegin, pop, push;
 import util.collection.str : SafeCStr;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
@@ -84,7 +84,8 @@ void testInterpreter(ref Test test) {
 	testCall(test);
 	testCallFunPtr(test);
 	testDup(test);
-	testRemove(test);
+	testRemoveOne(test);
+	testRemoveMany(test);
 	testDupPartial(test);
 	testPack(test);
 	testStackRef(test);
@@ -114,7 +115,7 @@ immutable(FileToFuns) dummyFileToFuns() {
 void doInterpret(
 	ref Test test,
 	ref immutable ByteCode byteCode,
-	scope void delegate(scope ref Interpreter, Operation) @safe @nogc nothrow runInterpreter,
+	scope void delegate(scope ref Interpreter, immutable(Operation)*) @safe @nogc nothrow runInterpreter,
 ) {
 	immutable Path emptyPath = rootPath(test.allPaths, shortSymAlphaLiteral("test"));
 	immutable PathAndStorageKind[1] pk = [immutable PathAndStorageKind(emptyPath, StorageKind.global)];
@@ -150,7 +151,7 @@ void doInterpret(
 		withInterpreter!void(
 			test.dbg, test.alloc, extern_, lowProgram, byteCode, test.allPaths, filesInfo,
 			(scope ref Interpreter interpreter) {
-				runInterpreter(interpreter, readOperation(interpreter));
+				runInterpreter(interpreter, initialOperationPointer(interpreter.byteCode));
 			});
 		return immutable ExitCode(0);
 	});
@@ -159,7 +160,7 @@ void doInterpret(
 void doTest(
 	ref Test test,
 	scope void delegate(ref ByteCodeWriter, immutable ByteCodeSource source) @safe @nogc nothrow writeBytecode,
-	scope void delegate(scope ref Interpreter, Operation) @safe @nogc nothrow runInterpreter,
+	scope void delegate(scope ref Interpreter, immutable(Operation)*) @safe @nogc nothrow runInterpreter,
 ) {
 	immutable ByteCode byteCode = makeByteCode(test.alloc, writeBytecode);
 	doInterpret(test, byteCode, runInterpreter);
@@ -194,17 +195,17 @@ void testCall(ref Test test) {
 	immutable ByteCode byteCode =
 		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 
-	doInterpret(test, byteCode, (scope ref Interpreter interpreter, Operation operation) {
+	doInterpret(test, byteCode, (scope ref Interpreter interpreter, immutable(Operation)* operation) {
 		operation = stepNAndExpect(test, interpreter, 2, [immutable Nat64(1), immutable Nat64(2)], operation);
-		verify(operation == &opCall);
+		verify(operation.fn == &opCall);
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(1), immutable Nat64(2)], operation);
 		expectReturnStack(test, interpreter, [afterCall]);
 		// opCall returns the first operation and moves nextOperation to the one after
-		verify(at(byteCode.byteCode, fIndex.index) == operation);
-		verify(curByteCodeIndex(interpreter) == fIndex);
+		verify(operation == &byteCode.byteCode[fIndex.index.raw()]);
+		verify(curByteCodeIndex(interpreter, operation) == fIndex);
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(3)], operation); // +
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(3)], operation); // return
-		verify(curByteCodeIndex(interpreter) == afterCall);
+		verify(curByteCodeIndex(interpreter, operation) == afterCall);
 		expectReturnStack(test, interpreter, []);
 		stepExit(test, interpreter, operation);
 	});
@@ -239,7 +240,7 @@ void testCallFunPtr(ref Test test) {
 	immutable ByteCode byteCode =
 		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 
-	doInterpret(test, byteCode, (ref Interpreter interpreter, Operation operation) {
+	doInterpret(test, byteCode, (ref Interpreter interpreter, immutable(Operation)* operation) {
 		operation = stepNAndExpect(
 			test,
 			interpreter,
@@ -249,10 +250,10 @@ void testCallFunPtr(ref Test test) {
 		// call-fun-ptr
 		operation =stepAndExpect(test, interpreter, [immutable Nat64(1), immutable Nat64(2)], operation);
 		expectReturnStack(test, interpreter, [afterCall]);
-		verify(curByteCodeIndex(interpreter) == fIndex);
+		verify(curByteCodeIndex(interpreter, operation) == fIndex);
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(3)], operation); // +
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(3)], operation); // return
-		verify(curByteCodeIndex(interpreter) == afterCall);
+		verify(curByteCodeIndex(interpreter, operation) == afterCall);
 		expectReturnStack(test, interpreter, []);
 		stepExit(test, interpreter, operation);
 	});
@@ -290,26 +291,26 @@ void testSwitchAndJump(ref Test test) {
 	immutable ByteCode byteCode =
 		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 
-	doInterpret(test, byteCode, (ref Interpreter interpreter, Operation operation) {
+	doInterpret(test, byteCode, (ref Interpreter interpreter, immutable(Operation)* operation) {
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(0)], operation);
 		operation = stepAndExpect(test, interpreter, [], operation);
-		verify(curByteCodeIndex(interpreter) == firstCase);
+		verify(curByteCodeIndex(interpreter, operation) == firstCase);
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(3)], operation); // push 3
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(3)], operation); // jump
-		verify(curByteCodeIndex(interpreter) == bottom);
+		verify(curByteCodeIndex(interpreter, operation) == bottom);
 		stepExit(test, interpreter, operation);
 	});
 
-	doInterpret(test, byteCode, (scope ref Interpreter interpreter, Operation operation) {
+	doInterpret(test, byteCode, (scope ref Interpreter interpreter, immutable(Operation)* operation) {
 		// Manually change the value to '1' to test the other case.
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(0)], operation);
 		pop(interpreter.dataStack);
 		push(interpreter.dataStack, immutable Nat64(1));
 		expectStack(test, interpreter, [immutable Nat64(1)]);
 		operation = stepAndExpect(test, interpreter, [], operation);
-		verify(curByteCodeIndex(interpreter) == secondCase);
+		verify(curByteCodeIndex(interpreter, operation) == secondCase);
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(5)], operation);
-		verify(curByteCodeIndex(interpreter) == bottom);
+		verify(curByteCodeIndex(interpreter, operation) == bottom);
 		stepExit(test, interpreter, operation);
 	});
 }
@@ -334,7 +335,7 @@ void testDup(ref Test test) {
 			verifyStackEntry(writer, 6);
 			writeReturn(test.dbg, writer, source);
 		},
-		(ref Interpreter interpreter, Operation operation) {
+		(ref Interpreter interpreter, immutable(Operation)* operation) {
 			operation = stepNAndExpect(
 				test,
 				interpreter,
@@ -362,7 +363,36 @@ void testDup(ref Test test) {
 		});
 }
 
-void testRemove(ref Test test) {
+void testRemoveOne(ref Test test) {
+	doTest(
+		test,
+		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
+			writePushConstants(test.dbg, writer, source, [
+				immutable Nat64(0), immutable Nat64(1), immutable Nat64(2)]);
+			writeRemove(
+				test.dbg,
+				writer,
+				source,
+				immutable StackEntries(immutable StackEntry(immutable Nat16(1)), immutable Nat8(1)));
+			writeReturn(test.dbg, writer, source);
+		},
+		(ref Interpreter interpreter, immutable(Operation)* operation) {
+			operation = stepNAndExpect(
+				test,
+				interpreter,
+				3,
+				[immutable Nat64(0), immutable Nat64(1), immutable Nat64(2)],
+				operation);
+			operation = stepAndExpect(
+				test,
+				interpreter,
+				[immutable Nat64(0), immutable Nat64(2)],
+				operation);
+			stepExit(test, interpreter, operation);
+		});
+}
+
+void testRemoveMany(ref Test test) {
 	doTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
@@ -375,7 +405,7 @@ void testRemove(ref Test test) {
 				immutable StackEntries(immutable StackEntry(immutable Nat16(1)), immutable Nat8(2)));
 			writeReturn(test.dbg, writer, source);
 		},
-		(ref Interpreter interpreter, Operation operation) {
+		(ref Interpreter interpreter, immutable(Operation)* operation) {
 			operation = stepNAndExpect(
 				test,
 				interpreter,
@@ -430,7 +460,7 @@ void testDupPartial(ref Test test) {
 				immutable Nat16(1));
 			writeReturn(test.dbg, writer, source);
 		},
-		(scope ref Interpreter interpreter, Operation operation) {
+		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
 			operation = stepAndExpect(test, interpreter, [u.n], operation);
 			operation = stepAndExpect(test, interpreter, [u.n, immutable Nat64(0x01234567)], operation);
 			operation = stepAndExpect(
@@ -463,7 +493,7 @@ void testPack(ref Test test) {
 			writePack(test.dbg, writer, source, pack);
 			writeReturn(test.dbg, writer, source);
 		},
-		(ref Interpreter interpreter, Operation operation) {
+		(ref Interpreter interpreter, immutable(Operation)* operation) {
 			operation = stepNAndExpect(
 				test,
 				interpreter,
@@ -493,17 +523,17 @@ void testStackRef(ref Test test) {
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(1)), immutable Nat8(4));
 		},
-		(scope ref Interpreter interpreter, Operation operation) {
+		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
 			testStackRefInner(test, interpreter, operation);
 		});
 }
 
-@trusted void testStackRefInner(ref Test test, scope ref Interpreter interpreter, Operation operation) {
+@trusted void testStackRefInner(ref Test test, scope ref Interpreter interpreter, immutable(Operation)* operation) {
 	operation = stepNAndExpect(test, interpreter, 2, [immutable Nat64(1), immutable Nat64(2)], operation);
 	operation = stepAndExpect(
 		test,
 		interpreter,
-		[immutable Nat64(1), immutable Nat64(2), immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack))],
+		[immutable Nat64(1), immutable Nat64(2), immutable Nat64(cast(immutable ulong) stackBegin(interpreter.dataStack))],
 		operation);
 	operation = stepAndExpect(
 		test,
@@ -511,8 +541,8 @@ void testStackRef(ref Test test) {
 		[
 			immutable Nat64(1),
 			immutable Nat64(2),
-			immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack)),
-			immutable Nat64(cast(immutable ulong) (begin(interpreter.dataStack) + 1)),
+			immutable Nat64(cast(immutable ulong) stackBegin(interpreter.dataStack)),
+			immutable Nat64(cast(immutable ulong) (stackBegin(interpreter.dataStack) + 1)),
 		],
 		operation);
 	operation = stepAndExpect(
@@ -521,8 +551,8 @@ void testStackRef(ref Test test) {
 		[
 			immutable Nat64(1),
 			immutable Nat64(2),
-			immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack)),
-			immutable Nat64(cast(immutable ulong) (begin(interpreter.dataStack) + 1)),
+			immutable Nat64(cast(immutable ulong) stackBegin(interpreter.dataStack)),
+			immutable Nat64(cast(immutable ulong) (stackBegin(interpreter.dataStack) + 1)),
 			immutable Nat64(4),
 		],
 		operation);
@@ -532,8 +562,8 @@ void testStackRef(ref Test test) {
 		[
 			immutable Nat64(1),
 			immutable Nat64(2),
-			immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack)),
-			immutable Nat64(cast(immutable ulong) (cast(immutable uint*) begin(interpreter.dataStack) + 3)),
+			immutable Nat64(cast(immutable ulong) stackBegin(interpreter.dataStack)),
+			immutable Nat64(cast(immutable ulong) (cast(immutable uint*) stackBegin(interpreter.dataStack) + 3)),
 		],
 		operation);
 }
@@ -563,7 +593,7 @@ void testStackRef(ref Test test) {
 			writeRead(test.dbg, writer, source, immutable Nat16(6), immutable Nat16(1));
 			writeReturn(test.dbg, writer, source);
 		},
-		(scope ref Interpreter interpreter, Operation operation) {
+		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
 			testReadSubwordInner(test, interpreter, u.value, operation);
 		});
 }
@@ -572,10 +602,10 @@ void testStackRef(ref Test test) {
 	ref Test test,
 	scope ref Interpreter interpreter,
 	immutable Nat64 value,
-	Operation operation,
+	immutable(Operation)* operation,
 ) {
 	operation = stepAndExpect(test, interpreter, [value], operation);
-	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack));
+	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) stackBegin(interpreter.dataStack));
 	operation = stepAndExpect(test, interpreter, [value, ptr], operation);
 	operation = stepAndExpect(test, interpreter, [value, immutable Nat64(0x01234567)], operation);
 	operation = stepAndExpect(test, interpreter, [value, immutable Nat64(0x01234567), ptr], operation);
@@ -605,19 +635,19 @@ void testStackRef(ref Test test) {
 			writeRead(test.dbg, writer, source, immutable Nat16(8), immutable Nat16(16));
 			writeReturn(test.dbg, writer, source);
 		},
-		(scope ref Interpreter interpreter, Operation operation) {
+		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
 			testReadWordsInner(test, interpreter, operation);
 		});
 }
 
-@trusted void testReadWordsInner(ref Test test, scope ref Interpreter interpreter, Operation operation) {
+@trusted void testReadWordsInner(ref Test test, scope ref Interpreter interpreter, immutable(Operation)* operation) {
 	operation = stepNAndExpect(
 		test,
 		interpreter,
 		3,
 		[immutable Nat64(1), immutable Nat64(2), immutable Nat64(3)],
 		operation);
-	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack));
+	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) stackBegin(interpreter.dataStack));
 	operation = stepAndExpect(
 		test,
 		interpreter,
@@ -647,12 +677,12 @@ void testStackRef(ref Test test) {
 			writeWrite(test.dbg, writer, source, immutable Nat16(6), immutable Nat16(1));
 			writeReturn(test.dbg, writer, source);
 		},
-		(scope ref Interpreter interpreter, Operation operation) {
+		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
 			testWriteSubwordInner(test, interpreter, operation);
 		});
 }
 
-@trusted void testWriteSubwordInner(ref Test test, scope ref Interpreter interpreter, Operation operation) {
+@trusted void testWriteSubwordInner(ref Test test, scope ref Interpreter interpreter, immutable(Operation)* operation) {
 	struct S {
 		uint a;
 		ushort b;
@@ -670,7 +700,7 @@ void testStackRef(ref Test test) {
 	}
 
 	operation = stepAndExpect(test, interpreter, [immutable Nat64(0)], operation);
-	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack));
+	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) stackBegin(interpreter.dataStack));
 	operation = stepAndExpect(test, interpreter, [immutable Nat64(0), ptr], operation);
 	operation = stepAndExpect(
 		test,
@@ -708,19 +738,19 @@ void testStackRef(ref Test test) {
 			writeWrite(test.dbg, writer, source, immutable Nat16(8), immutable Nat16(16));
 			writeReturn(test.dbg, writer, source);
 		},
-		(scope ref Interpreter interpreter, Operation operation) {
+		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
 			testWriteWordsInner(test, interpreter, operation);
 		});
 }
 
-@trusted void testWriteWordsInner(ref Test test, scope ref Interpreter interpreter, Operation operation) {
+@trusted void testWriteWordsInner(ref Test test, scope ref Interpreter interpreter, immutable(Operation)* operation) {
 	operation = stepNAndExpect(
 		test,
 		interpreter,
 		3,
 		[immutable Nat64(0), immutable Nat64(0), immutable Nat64(0)],
 		operation);
-	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack));
+	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) stackBegin(interpreter.dataStack));
 	operation = stepAndExpect(
 		test,
 		interpreter,
@@ -740,12 +770,12 @@ void testStackRef(ref Test test) {
 	stepExit(test, interpreter, operation);
 }
 
-immutable(Operation) stepNAndExpect(
+immutable(Operation*) stepNAndExpect(
 	ref Test test,
 	scope ref Interpreter interpreter,
 	immutable uint n,
 	scope immutable Nat64[] expected,
-	Operation operation,
+	immutable(Operation)* operation,
 ) {
 	repeatImpure(n, () {
 		operation = stepContinue(test, interpreter, operation);
@@ -754,11 +784,11 @@ immutable(Operation) stepNAndExpect(
 	return operation;
 }
 
-immutable(Operation) stepAndExpect(
+immutable(Operation*) stepAndExpect(
 	ref Test test,
 	scope ref Interpreter interpreter,
 	scope immutable Nat64[] expected,
-	immutable Operation operation,
+	immutable(Operation)* operation,
 ) {
 	return stepNAndExpect(test, interpreter, 1, expected, operation);
 }
@@ -767,25 +797,25 @@ void verifyStackEntry(ref ByteCodeWriter writer, immutable ushort n) {
 	verify(getNextStackEntry(writer) == immutable StackEntry(immutable Nat16(n)));
 }
 
-@trusted immutable(Operation) stepContinue(
+@trusted immutable(Operation*) stepContinue(
 	ref Test test,
 	scope ref Interpreter interpreter,
-	immutable Operation operation,
+	immutable Operation* operation,
 ) {
-	immutable Operation nextOperation = cast(immutable Operation) operation(interpreter);
-	verify(nextOperation != &opStopInterpretation);
+	immutable Operation* nextOperation = operation.fn(interpreter, operation).operationPtr;
+	verify(nextOperation.fn != &opStopInterpretation);
 	return nextOperation;
 }
 
-@trusted void stepExit(ref Test test, scope ref Interpreter interpreter, immutable Operation operation) {
-	immutable Operation nextOperation = cast(immutable Operation) operation(interpreter);
-	verify(nextOperation == &opStopInterpretation);
+@trusted void stepExit(ref Test test, scope ref Interpreter interpreter, immutable Operation* operation) {
+	immutable Operation* nextOperation = operation.fn(interpreter, operation).operationPtr;
+	verify(nextOperation.fn == &opStopInterpretation);
 }
 
 void expectStack(ref Test test, scope ref Interpreter interpreter, scope immutable Nat64[] expected) {
 	expectDataStack(test, interpreter.dataStack, expected);
 }
 
-immutable(ByteCodeIndex) curByteCodeIndex(scope ref Interpreter a) {
-	return immutable ByteCodeIndex(nextByteCodeIndex(a).index - immutable Nat32(1));
+immutable(ByteCodeIndex) curByteCodeIndex(scope ref Interpreter a, immutable Operation* operation) {
+	return immutable ByteCodeIndex(nextByteCodeIndex(a, operation).index - immutable Nat32(1));
 }

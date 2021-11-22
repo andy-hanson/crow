@@ -7,12 +7,37 @@ import model.lowModel : LowFunIndex;
 import util.collection.arr : begin, size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.sym : Sym;
-import util.types : Int16, Nat8, Nat16, Nat32;
+import util.types : Int16, Nat8, Nat16, Nat32, Nat64;
 import util.sourceRange : FileIndex, Pos;
 import util.util : verify;
 
-// This returns another Operation
-alias Operation = immutable(void*) function(ref Interpreter);
+// For perf, each operation reads the value of the next operation. Otherwise we'd be waiting on reading the poitner.
+struct NextOperation {
+	immutable(Operation)* operationPtr;
+}
+
+struct Operation {
+	// TODO: these probaly shouldn't be @safe
+	alias Fn = immutable(NextOperation) function(ref Interpreter, immutable(Operation)*) @safe @nogc nothrow;
+
+	@safe @nogc pure nothrow:
+
+	immutable this(immutable Fn a) { fn = a; }
+	immutable this(immutable Int16 a) { int16 = a; }
+	immutable this(immutable Nat8 a) { nat8 = a; }
+	immutable this(immutable Nat16 a) { nat16 = a; }
+	immutable this(immutable Nat32 a) { nat32 = a; }
+	immutable this(immutable Nat64 a) { nat64 = a; }
+
+	union {
+		Fn fn;
+		Int16 int16;
+		Nat8 nat8;
+		Nat16 nat16;
+		Nat32 nat32;
+		Nat64 nat64;
+	}
+}
 
 pure:
 

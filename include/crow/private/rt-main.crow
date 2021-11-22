@@ -18,7 +18,7 @@ import
 	../range: ..
 	../str: c-str, str
 	../str-util: to-str
-	./alloc
+	./alloc: unmanaged-alloc-elements, unmanaged-free
 	./bootstrap: call-with-ctx, ctx, get-ctx, lock, new, state, thread-local-stuff
 	./exception-low-level: exception-ctx
 	./log-low-level: log-ctx
@@ -27,7 +27,7 @@ import
 		wrap-add, wrap-sub
 	./perf-low-level: perf-ctx
 	./runtime:
-		any-unhandled-exceptions, ctx, global-ctx, island, may-be-work-to-do, new, print-lock,
+		any-unhandled-exceptions, global-ctx, island, may-be-work-to-do, new, new-ctx, print-lock,
 		set-islands, thread-function
 	./thread-utils:
 		create-one-thread, create-condition, destroy-condition, join-one-thread, lock-by-val
@@ -107,8 +107,9 @@ body
 	perf-ptr = perf-ctx.ref-of-val as-any-mut-ptr
 	print-lock = gctx.print-lock.ref-of-val
 	tls by-val thread-local-stuff = thread-id, print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
-	ctx-by-val = gctx ctx tls.ref-of-val, island, 0
+	ctx-by-val = gctx new-ctx tls.ref-of-val, island, 0
 	ctx = ctx-by-val ref-of-val
+
 	add act fut nat64(c-str[], main-ptr) = (all-args, main-ptr) =>
 		all-args add-first-task main-ptr
 	all-args = argv[0 .. argc.to-int64.unsafe-to-nat64]
