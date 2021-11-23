@@ -40,14 +40,15 @@ import util.collection.exactSizeArrBuilder :
 import util.collection.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
 import util.collection.mutIndexMultiDict : MutIndexMultiDict, mutIndexMultiDictAdd, newMutIndexMultiDict;
 import util.ptr : Ptr, ptrTrustMe;
-import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat16, u32OfFloat32Bits, u64OfFloat64Bits;
+import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat64, u32OfFloat32Bits, u64OfFloat64Bits;
 import util.util : todo, unreachable, verify;
 
 struct InterpreterFunPtr {
 	immutable ByteCodeIndex index;
-	uint padding;
+	static if (ByteCodeIndex.sizeof == 4)
+		uint padding;
 }
-static assert(InterpreterFunPtr.sizeof == funPtrSize.size.raw());
+static assert(InterpreterFunPtr.sizeof == funPtrSize.size);
 
 struct TextIndex {
 	immutable size_t index;
@@ -235,7 +236,7 @@ void ensureConstant(
 ref immutable(LowType) unionMemberType(
 	ref immutable LowProgram program,
 	immutable LowType.Union t,
-	immutable Nat16 memberIndex,
+	immutable Nat64 memberIndex,
 ) {
 	return at(fullIndexDictGet(program.allUnions, t).members, memberIndex);
 }
@@ -282,10 +283,10 @@ immutable(size_t) getAllConstantsSize(ref immutable LowProgram program, ref immu
 	immutable size_t cStringsSize = sum(allConstants.cStrings, (ref immutable string s) =>
 		size(s) + 1);
 	immutable size_t arrsSize = sum(allConstants.arrs, (ref immutable ArrTypeAndConstantsLow arrs) =>
-		sizeOfType(program, arrs.elementType).size.raw() *
+		sizeOfType(program, arrs.elementType).size *
 		sum(arrs.constants, (ref immutable Constant[] elements) => size(elements)));
 	immutable size_t pointersSize = sum(allConstants.pointers, (ref immutable PointerTypeAndConstantsLow pointers) =>
-		sizeOfType(program, pointers.pointeeType).size.raw() * size(pointers.constants));
+		sizeOfType(program, pointers.pointeeType).size * size(pointers.constants));
 	return cStringsSize + arrsSize + pointersSize;
 }
 
@@ -297,7 +298,7 @@ void writeConstant(
 	ref immutable Constant constant,
 ) {
 	immutable size_t sizeBefore = exactSizeArrBuilderCurSize(ctx.text);
-	immutable size_t typeSize = sizeOfType(ctx.program, type).size.raw();
+	immutable size_t typeSize = sizeOfType(ctx.program, type).size;
 
 	matchConstant!void(
 		constant,
@@ -379,7 +380,7 @@ void writeConstant(
 				record.fields,
 				it.args,
 				(ref immutable LowField field, ref immutable Constant fieldValue) {
-					padTo(ctx.text, start + field.offset.raw());
+					padTo(ctx.text, start + field.offset);
 					writeConstant(alloc, tempAlloc, ctx, field.type, fieldValue);
 				});
 			padTo(ctx.text, start + typeSize);
@@ -388,10 +389,10 @@ void writeConstant(
 			add64(ctx.text, it.memberIndex.raw());
 			immutable LowType memberType = unionMemberType(ctx.program, asUnionType(type), it.memberIndex);
 			writeConstant(alloc, tempAlloc, ctx, memberType, it.arg);
-			immutable Nat16 unionSize = sizeOfType(ctx.program, type).size;
-			immutable Nat16 memberSize = sizeOfType(ctx.program, memberType).size;
-			immutable Nat16 padding = unionSize - immutable Nat16(8) - memberSize;
-			add0Bytes(ctx.text, padding.raw());
+			immutable size_t unionSize = sizeOfType(ctx.program, type).size;
+			immutable size_t memberSize = sizeOfType(ctx.program, memberType).size;
+			immutable size_t padding = unionSize - 8 - memberSize;
+			add0Bytes(ctx.text, padding);
 		},
 		(immutable Constant.Void) {
 			todo!void("write void"); // should only happen if there's a pointer to void..

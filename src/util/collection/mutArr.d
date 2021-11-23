@@ -5,6 +5,7 @@ module util.collection.mutArr;
 import util.alloc.alloc : Alloc, allocateBytes, freeBytes, freeBytesPartial;
 import util.memory : initMemory_mut, memcpy, overwriteMemory;
 import util.opt : force, noneConst, noneMut, Opt, someConst, someMut;
+import util.types : safeSizeTFromU64;
 import util.util : verify;
 
 struct MutArr(T) {
@@ -21,6 +22,11 @@ struct MutArr(T) {
 @system T* mutArrPtrAt(T)(ref MutArr!T a, immutable size_t index) {
 	verify(index < a.size_);
 	return a.begin_ + index;
+}
+static if (!is(size_t == ulong)) {
+	@system T* mutArrPtrAt(T)(ref MutArr!T a, immutable ulong index) {
+		return mutArrPtrAt(a, safeSizeTFromU64(index));
+	}
 }
 
 @trusted ref T mutArrAt(T)(ref MutArr!T a, immutable size_t index) {
@@ -100,6 +106,12 @@ T mustPop(T)(ref MutArr!T a) {
 	verify(index < a.size_);
 	overwriteMemory(a.begin_ + index, value);
 }
+static if (!is(size_t == ulong)) {
+	@trusted void setAt(T)(ref MutArr!T a, immutable ulong index, T value) {
+		setAt(a, safeSizeTFromU64(index), value);
+	}
+}
+
 
 @trusted const(T[]) mutArrRange(T)(ref const MutArr!T a) {
 	return a.begin_[0 .. a.size_];

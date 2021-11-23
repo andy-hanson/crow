@@ -2,16 +2,18 @@ module test.testInterpreter;
 
 @safe @nogc nothrow: // not pure
 
-import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, FileToFuns, FnOp, FunNameAndPos, initialOperationPointer, Operation;
+import interpret.bytecode :
+	ByteCode,
+	ByteCodeIndex,
+	ByteCodeSource,
+	FileToFuns,
+	FnOp,
+	FunNameAndPos,
+	initialOperationPointer,
+	Operation;
 import interpret.extern_ : Extern;
 import interpret.fakeExtern : withFakeExtern;
-import interpret.runBytecode :
-	Interpreter,
-	nextByteCodeIndex,
-	opCall,
-	opStopInterpretation,
-	readOperation,
-	withInterpreter;
+import interpret.runBytecode : Interpreter, nextByteCodeIndex, opCall, opStopInterpretation, withInterpreter;
 import interpret.bytecodeWriter :
 	ByteCodeWriter,
 	fillDelayedCall,
@@ -67,7 +69,7 @@ import model.lowModel :
 import model.typeLayout : Pack, PackField;
 import test.testUtil : expectDataStack, expectReturnStack, Test;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, emptyArr, ptrAt;
+import util.collection.arr : emptyArr;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.collection.globalAllocatedStack : stackBegin, pop, push;
 import util.collection.str : SafeCStr;
@@ -104,7 +106,7 @@ immutable(ByteCode) makeByteCode(
 ) {
 	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe_mut(alloc));
 	writeBytecode(writer, emptyByteCodeSource);
-	return finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
+	return finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(0), dummyFileToFuns());
 }
 
 immutable(FileToFuns) dummyFileToFuns() {
@@ -182,7 +184,7 @@ void testCall(ref Test test) {
 
 	immutable StackEntry argsFirstStackEntry = getNextStackEntry(writer);
 	writePushConstants(test.dbg, writer, source, [immutable Nat64(1), immutable Nat64(2)]);
-	immutable ByteCodeIndex delayed = writeCallDelayed(writer, source, argsFirstStackEntry, immutable Nat8(1));
+	immutable ByteCodeIndex delayed = writeCallDelayed(writer, source, argsFirstStackEntry, immutable Nat64(1));
 	immutable ByteCodeIndex afterCall = nextByteCodeIndex(writer);
 	writeReturn(test.dbg, writer, source);
 	immutable ByteCodeIndex fIndex = nextByteCodeIndex(writer);
@@ -193,7 +195,7 @@ void testCall(ref Test test) {
 
 	fillDelayedCall(writer, delayed, fIndex);
 	immutable ByteCode byteCode =
-		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
+		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(0), dummyFileToFuns());
 
 	doInterpret(test, byteCode, (scope ref Interpreter interpreter, immutable(Operation)* operation) {
 		operation = stepNAndExpect(test, interpreter, 2, [immutable Nat64(1), immutable Nat64(2)], operation);
@@ -201,7 +203,7 @@ void testCall(ref Test test) {
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(1), immutable Nat64(2)], operation);
 		expectReturnStack(test, interpreter, [afterCall]);
 		// opCall returns the first operation and moves nextOperation to the one after
-		verify(operation == &byteCode.byteCode[fIndex.index.raw()]);
+		verify(operation == &byteCode.byteCode[fIndex.index]);
 		verify(curByteCodeIndex(interpreter, operation) == fIndex);
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(3)], operation); // +
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(3)], operation); // return
@@ -227,7 +229,7 @@ void testCallFunPtr(ref Test test) {
 	immutable StackEntry argsFirstStackEntry = getNextStackEntry(writer);
 	immutable ByteCodeIndex delayed = writePushFunPtrDelayed(test.dbg, writer, source);
 	writePushConstants(test.dbg, writer, source, [immutable Nat64(1), immutable Nat64(2)]);
-	writeCallFunPtr(test.dbg, writer, source, argsFirstStackEntry, immutable Nat8(1));
+	writeCallFunPtr(test.dbg, writer, source, argsFirstStackEntry, immutable Nat64(1));
 	immutable ByteCodeIndex afterCall = nextByteCodeIndex(writer);
 	writeReturn(test.dbg, writer, source);
 	immutable ByteCodeIndex fIndex = nextByteCodeIndex(writer);
@@ -238,14 +240,14 @@ void testCallFunPtr(ref Test test) {
 
 	fillDelayedCall(writer, delayed, fIndex);
 	immutable ByteCode byteCode =
-		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
+		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(0), dummyFileToFuns());
 
 	doInterpret(test, byteCode, (ref Interpreter interpreter, immutable(Operation)* operation) {
 		operation = stepNAndExpect(
 			test,
 			interpreter,
 			3,
-			[fIndex.index.to64(), immutable Nat64(1), immutable Nat64(2)],
+			[immutable Nat64(fIndex.index), immutable Nat64(1), immutable Nat64(2)],
 			operation);
 		// call-fun-ptr
 		operation =stepAndExpect(test, interpreter, [immutable Nat64(1), immutable Nat64(2)], operation);
@@ -276,20 +278,20 @@ void testSwitchAndJump(ref Test test) {
 	//TODO: want to test both sides of the switch...
 	immutable StackEntry startStack = getNextStackEntry(writer);
 	writePushConstant(test.dbg, writer, source, immutable Nat64(0));
-	immutable SwitchDelayed delayed = writeSwitch0ToNDelay(writer, source, immutable Nat16(2));
-	fillDelayedSwitchEntry(writer, delayed, immutable Nat32(0));
+	immutable SwitchDelayed delayed = writeSwitch0ToNDelay(writer, source, 2);
+	fillDelayedSwitchEntry(writer, delayed, 0);
 	immutable ByteCodeIndex firstCase = nextByteCodeIndex(writer);
 	writePushConstant(test.dbg, writer, source, immutable Nat64(3));
 	setNextStackEntry(writer, startStack);
 	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(test.dbg, writer, source);
-	fillDelayedSwitchEntry(writer, delayed, immutable Nat32(1));
+	fillDelayedSwitchEntry(writer, delayed, 1);
 	immutable ByteCodeIndex secondCase = nextByteCodeIndex(writer);
 	writePushConstant(test.dbg, writer, source, immutable Nat64(5));
 	fillInJumpDelayed(writer, jumpIndex);
 	immutable ByteCodeIndex bottom = nextByteCodeIndex(writer);
 	writeReturn(test.dbg, writer, source);
 	immutable ByteCode byteCode =
-		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
+		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(0), dummyFileToFuns());
 
 	doInterpret(test, byteCode, (ref Interpreter interpreter, immutable(Operation)* operation) {
 		operation = stepAndExpect(test, interpreter, [immutable Nat64(0)], operation);
@@ -325,13 +327,13 @@ void testDup(ref Test test) {
 				immutable Nat64(75),
 			]);
 			verifyStackEntry(writer, 3);
-			writeDupEntry(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
+			writeDupEntry(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
 			verifyStackEntry(writer, 4);
 			writeDupEntries(
 				test.dbg,
 				writer,
 				source,
-				immutable StackEntries(immutable StackEntry(immutable Nat16(2)), immutable Nat8(2)));
+				immutable StackEntries(immutable StackEntry(immutable Nat64(2)), immutable Nat64(2)));
 			verifyStackEntry(writer, 6);
 			writeReturn(test.dbg, writer, source);
 		},
@@ -373,7 +375,7 @@ void testRemoveOne(ref Test test) {
 				test.dbg,
 				writer,
 				source,
-				immutable StackEntries(immutable StackEntry(immutable Nat16(1)), immutable Nat8(1)));
+				immutable StackEntries(immutable StackEntry(immutable Nat64(1)), immutable Nat64(1)));
 			writeReturn(test.dbg, writer, source);
 		},
 		(ref Interpreter interpreter, immutable(Operation)* operation) {
@@ -402,7 +404,7 @@ void testRemoveMany(ref Test test) {
 				test.dbg,
 				writer,
 				source,
-				immutable StackEntries(immutable StackEntry(immutable Nat16(1)), immutable Nat8(2)));
+				immutable StackEntries(immutable StackEntry(immutable Nat64(1)), immutable Nat64(2)));
 			writeReturn(test.dbg, writer, source);
 		},
 		(ref Interpreter interpreter, immutable(Operation)* operation) {
@@ -441,23 +443,23 @@ void testDupPartial(ref Test test) {
 				test.dbg,
 				writer,
 				source,
-				immutable StackEntry(immutable Nat16(0)),
-				immutable Nat8(0),
-				immutable Nat16(4));
+				immutable StackEntry(immutable Nat64(0)),
+				immutable Nat64(0),
+				immutable Nat64(4));
 			writeDup(
 				test.dbg,
 				writer,
 				source,
-				immutable StackEntry(immutable Nat16(0)),
-				immutable Nat8(4),
-				immutable Nat16(2));
+				immutable StackEntry(immutable Nat64(0)),
+				immutable Nat64(4),
+				immutable Nat64(2));
 			writeDup(
 				test.dbg,
 				writer,
 				source,
-				immutable StackEntry(immutable Nat16(0)),
-				immutable Nat8(6),
-				immutable Nat16(1));
+				immutable StackEntry(immutable Nat64(0)),
+				immutable Nat64(6),
+				immutable Nat64(1));
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
@@ -486,10 +488,10 @@ void testPack(ref Test test) {
 				immutable Nat64(0x89ab),
 				immutable Nat64(0xcd)]);
 			scope immutable PackField[3] fields = [
-				immutable PackField(immutable Nat16(0), immutable Nat16(0), immutable Nat16(4)),
-				immutable PackField(immutable Nat16(8), immutable Nat16(4), immutable Nat16(2)),
-				immutable PackField(immutable Nat16(16), immutable Nat16(6), immutable Nat16(1))];
-			scope immutable Pack pack = immutable Pack(immutable Nat8(3), immutable Nat8(1), fields);
+				immutable PackField(immutable Nat64(0), immutable Nat64(0), immutable Nat64(4)),
+				immutable PackField(immutable Nat64(8), immutable Nat64(4), immutable Nat64(2)),
+				immutable PackField(immutable Nat64(16), immutable Nat64(6), immutable Nat64(1))];
+			scope immutable Pack pack = immutable Pack(immutable Nat64(3), immutable Nat64(1), fields);
 			writePack(test.dbg, writer, source, pack);
 			writeReturn(test.dbg, writer, source);
 		},
@@ -520,8 +522,8 @@ void testStackRef(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(1), immutable Nat64(2)]);
-			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
-			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(1)), immutable Nat8(4));
+			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
+			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(1)), immutable Nat64(4));
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
 			testStackRefInner(test, interpreter, operation);
@@ -533,7 +535,11 @@ void testStackRef(ref Test test) {
 	operation = stepAndExpect(
 		test,
 		interpreter,
-		[immutable Nat64(1), immutable Nat64(2), immutable Nat64(cast(immutable ulong) stackBegin(interpreter.dataStack))],
+		[
+			immutable Nat64(1),
+			immutable Nat64(2),
+			immutable Nat64(cast(immutable ulong) stackBegin(interpreter.dataStack)),
+		],
 		operation);
 	operation = stepAndExpect(
 		test,
@@ -585,12 +591,12 @@ void testStackRef(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstant(test.dbg, writer, source, u.value);
-			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
-			writeRead(test.dbg, writer, source, immutable Nat16(0), immutable Nat16(4));
-			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
-			writeRead(test.dbg, writer, source, immutable Nat16(4), immutable Nat16(2));
-			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
-			writeRead(test.dbg, writer, source, immutable Nat16(6), immutable Nat16(1));
+			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
+			writeRead(test.dbg, writer, source, immutable Nat64(0), immutable Nat64(4));
+			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
+			writeRead(test.dbg, writer, source, immutable Nat64(4), immutable Nat64(2));
+			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
+			writeRead(test.dbg, writer, source, immutable Nat64(6), immutable Nat64(1));
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
@@ -631,8 +637,8 @@ void testStackRef(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(1), immutable Nat64(2), immutable Nat64(3)]);
-			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
-			writeRead(test.dbg, writer, source, immutable Nat16(8), immutable Nat16(16));
+			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
+			writeRead(test.dbg, writer, source, immutable Nat64(8), immutable Nat64(16));
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
@@ -666,15 +672,15 @@ void testStackRef(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0));
-			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
+			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0x0123456789abcdef));
-			writeWrite(test.dbg, writer, source, immutable Nat16(0), immutable Nat16(4));
-			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
+			writeWrite(test.dbg, writer, source, immutable Nat64(0), immutable Nat64(4));
+			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0x0123456789abcdef));
-			writeWrite(test.dbg, writer, source, immutable Nat16(4), immutable Nat16(2));
-			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
+			writeWrite(test.dbg, writer, source, immutable Nat64(4), immutable Nat64(2));
+			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0x0123456789abcdef));
-			writeWrite(test.dbg, writer, source, immutable Nat16(6), immutable Nat16(1));
+			writeWrite(test.dbg, writer, source, immutable Nat64(6), immutable Nat64(1));
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
@@ -733,9 +739,9 @@ void testStackRef(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(0), immutable Nat64(0), immutable Nat64(0)]);
-			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
+			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(1), immutable Nat64(2)]);
-			writeWrite(test.dbg, writer, source, immutable Nat16(8), immutable Nat16(16));
+			writeWrite(test.dbg, writer, source, immutable Nat64(8), immutable Nat64(16));
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
@@ -794,7 +800,7 @@ immutable(Operation*) stepAndExpect(
 }
 
 void verifyStackEntry(ref ByteCodeWriter writer, immutable ushort n) {
-	verify(getNextStackEntry(writer) == immutable StackEntry(immutable Nat16(n)));
+	verify(getNextStackEntry(writer) == immutable StackEntry(immutable Nat64(n)));
 }
 
 @trusted immutable(Operation*) stepContinue(
@@ -802,7 +808,7 @@ void verifyStackEntry(ref ByteCodeWriter writer, immutable ushort n) {
 	scope ref Interpreter interpreter,
 	immutable Operation* operation,
 ) {
-	immutable Operation* nextOperation = operation.fn(interpreter, operation).operationPtr;
+	immutable Operation* nextOperation = operation.fn(interpreter, operation + 1).operationPtr;
 	verify(nextOperation.fn != &opStopInterpretation);
 	return nextOperation;
 }
@@ -817,5 +823,5 @@ void expectStack(ref Test test, scope ref Interpreter interpreter, scope immutab
 }
 
 immutable(ByteCodeIndex) curByteCodeIndex(scope ref Interpreter a, immutable Operation* operation) {
-	return immutable ByteCodeIndex(nextByteCodeIndex(a, operation).index - immutable Nat32(1));
+	return immutable ByteCodeIndex(nextByteCodeIndex(a, operation).index);
 }

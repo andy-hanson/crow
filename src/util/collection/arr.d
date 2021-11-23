@@ -67,10 +67,6 @@ struct ArrWithSize(T) {
 	return a.ptr;
 }
 
-@system const(T*) end(T)(const T[] a) {
-	return a.ptr + a.length;
-}
-
 immutable(Nat64) sizeNat(T)(const T[] a) {
 	return immutable Nat64(a.length);
 }
@@ -97,7 +93,7 @@ immutable(bool) empty(T)(const T[] a) {
 	return a[index];
 }
 @trusted ref immutable(T) at(T, N)(return scope immutable T[] a, immutable NatN!N index) {
-	return at(a, index.raw());
+	return at(a, cast(size_t) index.raw());
 }
 
 @trusted void setAt(T)(scope ref T[] a, immutable size_t index, T value) {

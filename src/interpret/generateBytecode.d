@@ -105,7 +105,7 @@ import model.lowModel :
 import model.model : FunDecl, Module, name, Program, range;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : at, castImmutable, empty, last, only, size, sizeNat;
+import util.collection.arr : at, castImmutable, empty, last, only, size;
 import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict :
@@ -132,7 +132,6 @@ import util.types :
 	Nat16,
 	Nat32,
 	Nat64,
-	safeSizeTToU32,
 	u64OfFloat32Bits,
 	u64OfFloat64Bits,
 	zero;
@@ -210,16 +209,16 @@ immutable(TypeSize) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
 	return sizeOfType(ctx.program, t);
 }
 
-immutable(Nat8) nStackEntriesForType(ref const ExprCtx ctx, ref immutable LowType t) {
+immutable(Nat64) nStackEntriesForType(ref const ExprCtx ctx, ref immutable LowType t) {
 	return nStackEntriesForType(ctx.program, t);
 }
 
-immutable(Nat8) nStackEntriesForRecordType(ref const ExprCtx ctx, ref immutable LowType.Record t) {
+immutable(Nat64) nStackEntriesForRecordType(ref const ExprCtx ctx, ref immutable LowType.Record t) {
 	immutable LowType type = immutable LowType(t);
 	return nStackEntriesForType(ctx, type);
 }
 
-immutable(Nat8) nStackEntriesForUnionType(ref const ExprCtx ctx, ref immutable LowType.Union t) {
+immutable(Nat64) nStackEntriesForUnionType(ref const ExprCtx ctx, ref immutable LowType.Union t) {
 	immutable LowType type = immutable LowType(t);
 	return nStackEntriesForType(ctx, type);
 }
@@ -245,19 +244,19 @@ void generateBytecodeForFun(
 		}
 	}
 
-	Nat16 stackEntry = Nat16(0);
+	Nat64 stackEntry = Nat64(0);
 	immutable StackEntries[] parameters = map!StackEntries(
 		tempAlloc,
 		fun.params,
 		(ref immutable LowParam it) {
 			immutable StackEntry start = immutable StackEntry(stackEntry);
-			immutable Nat8 n = nStackEntriesForType(program, it.type);
-			stackEntry += n.to16();
+			immutable Nat64 n = nStackEntriesForType(program, it.type);
+			stackEntry += n;
 			return immutable StackEntries(start, n);
 		});
 	immutable StackEntry stackEntryAfterParameters = immutable StackEntry(stackEntry);
 	setStackEntryAfterParameters(writer, stackEntryAfterParameters);
-	immutable Nat8 returnEntries = nStackEntriesForType(program, fun.returnType);
+	immutable Nat64 returnEntries = nStackEntriesForType(program, fun.returnType);
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 
 	matchLowFunBody!void(
@@ -275,18 +274,18 @@ void generateBytecodeForFun(
 				nextByteCodeIndex(writer),
 				parameters);
 			generateExpr(dbg, tempAlloc, writer, ctx, body_.expr);
-			verify(stackEntryAfterParameters.entry + returnEntries.to16() == getNextStackEntry(writer).entry);
+			verify(stackEntryAfterParameters.entry + returnEntries == getNextStackEntry(writer).entry);
 			writeRemove(
 				dbg,
 				writer,
 				source,
 				immutable StackEntries(
-					immutable StackEntry(immutable Nat16(0)),
-					stackEntryAfterParameters.entry.to8()));
+					immutable StackEntry(immutable Nat64(0)),
+					stackEntryAfterParameters.entry));
 		});
-	verify(getNextStackEntry(writer).entry == returnEntries.to16());
+	verify(getNextStackEntry(writer).entry == returnEntries);
 	writeReturn(dbg, writer, source);
-	setNextStackEntry(writer, immutable StackEntry(immutable Nat16(0)));
+	setNextStackEntry(writer, immutable StackEntry(immutable Nat64(0)));
 }
 
 void generateExternCall(
@@ -427,7 +426,7 @@ struct ExprCtx {
 	immutable Ptr!LowProgram programPtr;
 	immutable Ptr!TextInfo textInfoPtr;
 	immutable LowFunIndex curFunIndex;
-	immutable Nat8 returnTypeSizeInStackEntries;
+	immutable Nat64 returnTypeSizeInStackEntries;
 	Ptr!(MutIndexMultiDict!(LowFunIndex, ByteCodeIndex)) funToReferences;
 	immutable ByteCodeIndex startOfCurrentFun;
 	immutable StackEntries[] parameterEntries;
@@ -453,11 +452,11 @@ void generateExpr(
 		expr.kind,
 		(ref immutable LowExprKind.Call it) {
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
-			immutable Nat8 expectedStackEffect = nStackEntriesForType(ctx, expr.type);
+			immutable Nat64 expectedStackEffect = nStackEntriesForType(ctx, expr.type);
 			generateArgs(dbg, tempAlloc, writer, ctx, it.args);
 			registerFunAddress(tempAlloc, ctx, it.called,
 				writeCallDelayed(writer, source, stackEntryBeforeArgs, expectedStackEffect));
-			verify(stackEntryBeforeArgs.entry + expectedStackEffect.to16() == getNextStackEntry(writer).entry);
+			verify(stackEntryBeforeArgs.entry + expectedStackEffect == getNextStackEntry(writer).entry);
 		},
 		(ref immutable LowExprKind.CallFunPtr it) {
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
@@ -493,7 +492,7 @@ void generateExpr(
 			immutable StackEntries localEntries =
 				immutable StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, it.local.deref().type));
 			generateExpr(dbg, tempAlloc, writer, ctx, it.value);
-			verify(getNextStackEntry(writer).entry == localEntries.start.entry + localEntries.size.to16());
+			verify(getNextStackEntry(writer).entry == localEntries.start.entry + localEntries.size);
 			addToMutDict(tempAlloc, ctx.localEntries, it.local, localEntries);
 			generateExpr(dbg, tempAlloc, writer, ctx, it.then);
 			mustDelete(ctx.localEntries, it.local);
@@ -509,22 +508,21 @@ void generateExpr(
 			generateExpr(dbg, tempAlloc, writer, ctx, it.matchedValue);
 			// Move the union kind to top of stack
 			writeDupEntry(dbg, writer, source, startStack);
-			writeRemove(dbg, writer, source, immutable StackEntries(startStack, immutable Nat8(1)));
+			writeRemove(dbg, writer, source, immutable StackEntries(startStack, immutable Nat64(1)));
 			// Get the kind (always the first entry)
-			immutable SwitchDelayed switchDelayed =
-				writeSwitch0ToNDelay(writer, source, sizeNat(it.cases).to16());
+			immutable SwitchDelayed switchDelayed = writeSwitch0ToNDelay(writer, source, size(it.cases));
 			// Start of the union values is where the kind used to be.
 			immutable StackEntry stackAfterMatched = getNextStackEntry(writer);
 			immutable StackEntries matchedEntriesWithoutKind =
-				immutable StackEntries(startStack, (stackAfterMatched.entry - startStack.entry).to8());
+				immutable StackEntries(startStack, (stackAfterMatched.entry - startStack.entry));
 			// TODO: 'mapOp' is overly complex, all but the last case return 'some'
 			immutable ByteCodeIndex[] delayedGotos = mapOpWithIndex!ByteCodeIndex(
 				tempAlloc,
 				it.cases,
 				(immutable size_t caseIndex, ref immutable LowExprKind.MatchUnion.Case case_) {
-					fillDelayedSwitchEntry(writer, switchDelayed, immutable Nat32(safeSizeTToU32(caseIndex)));
+					fillDelayedSwitchEntry(writer, switchDelayed, caseIndex);
 					if (has(case_.local)) {
-						immutable Nat8 nEntries = nStackEntriesForType(ctx, force(case_.local).deref().type);
+						immutable Nat64 nEntries = nStackEntriesForType(ctx, force(case_.local).deref().type);
 						verify(nEntries <= matchedEntriesWithoutKind.size);
 						addToMutDict(
 							tempAlloc,
@@ -602,21 +600,23 @@ void generateExpr(
 
 			// Delete anything on the stack besides parameters
 			immutable StackEntry parametersEnd = empty(ctx.parameterEntries)
-				? immutable StackEntry(immutable Nat16(0))
+				? immutable StackEntry(immutable Nat64(0))
 				: stackEntriesEnd(last(ctx.parameterEntries));
 			immutable StackEntry localsEnd = getNextStackEntry(writer);
-			writeRemove(dbg, writer, source, immutable StackEntries(
-				parametersEnd,
-				(localsEnd.entry - parametersEnd.entry).to8()));
+			writeRemove(
+				dbg,
+				writer,
+				source,
+				immutable StackEntries(parametersEnd, localsEnd.entry - parametersEnd.entry));
 			writeJump(dbg, writer, source, ctx.startOfCurrentFun);
 
 			// We'll continue to write code after the jump for cleaning up the stack, but it's unreachable.
 			// Set the stack entry as if this was a regular call returning.
-			setNextStackEntry(writer, immutable StackEntry(localsEnd.entry + ctx.returnTypeSizeInStackEntries.to16()));
+			setNextStackEntry(writer, immutable StackEntry(localsEnd.entry + ctx.returnTypeSizeInStackEntries));
 			writeAssertUnreachable(writer, source);
 		},
 		(ref immutable LowExprKind.Zeroed) {
-			writePushEmptySpace(dbg, writer, source, nStackEntriesForType(ctx, expr.type).to16());
+			writePushEmptySpace(dbg, writer, source, nStackEntriesForType(ctx, expr.type));
 		});
 }
 
@@ -637,7 +637,7 @@ void generateSwitch0ToN(
 		ctx,
 		source,
 		stackBefore,
-		writeSwitch0ToNDelay(writer, source, sizeNat(it.cases).to16()),
+		writeSwitch0ToNDelay(writer, source, size(it.cases)),
 		it.cases);
 }
 
@@ -677,7 +677,7 @@ void writeSwitchCases(
 		tempAlloc,
 		cases,
 		(immutable size_t caseIndex, ref immutable LowExpr case_) {
-			fillDelayedSwitchEntry(writer, switchDelayed, immutable Nat32(safeSizeTToU32(caseIndex)));
+			fillDelayedSwitchEntry(writer, switchDelayed, caseIndex);
 			generateExpr(dbg, tempAlloc, writer, ctx, case_);
 			if (caseIndex != size(cases) - 1) {
 				setNextStackEntry(writer, stackBefore);
@@ -743,8 +743,8 @@ void generateCreateRecordOrConstantRecord(
 		writePack(dbg, writer, source, force(optPack));
 
 	immutable StackEntry after = getNextStackEntry(writer);
-	immutable Nat8 stackEntriesForType = nStackEntriesForRecordType(ctx, type);
-	verify(after.entry - before.entry == stackEntriesForType.to16());
+	immutable Nat64 stackEntriesForType = nStackEntriesForRecordType(ctx, type);
+	verify(after.entry - before.entry == stackEntriesForType);
 }
 
 void generateCreateUnion(
@@ -775,26 +775,26 @@ void generateCreateUnionOrConstantUnion(
 	ref ByteCodeWriter writer,
 	ref const ExprCtx ctx,
 	immutable LowType.Union type,
-	immutable Nat16 memberIndex,
+	immutable Nat64 memberIndex,
 	immutable ByteCodeSource source,
 	scope void delegate(ref immutable LowType) @safe @nogc pure nothrow cbGenerateMember,
 ) {
 	immutable StackEntry before = getNextStackEntry(writer);
-	immutable Nat8 size = nStackEntriesForUnionType(ctx, type);
+	immutable Nat64 size = nStackEntriesForUnionType(ctx, type);
 	writePushConstant(dbg, writer, source, memberIndex);
 	immutable LowType memberType = at(fullIndexDictGet(ctx.program.allUnions, type).members, memberIndex);
 	cbGenerateMember(memberType);
 	immutable StackEntry after = getNextStackEntry(writer);
-	if (before.entry + size.to16() != after.entry) {
+	if (before.entry + size != after.entry) {
 		// Some members of a union are smaller than the union.
-		verify(before.entry + size.to16() > after.entry);
-		writePushEmptySpace(dbg, writer, source, before.entry + size.to16() - after.entry);
+		verify(before.entry + size > after.entry);
+		writePushEmptySpace(dbg, writer, source, before.entry + size - after.entry);
 	}
 }
 
 struct FieldOffsetAndSize {
-	immutable Nat16 offset;
-	immutable Nat16 size;
+	immutable Nat64 offset;
+	immutable Nat64 size;
 }
 
 immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
@@ -803,8 +803,8 @@ immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	immutable Nat8 fieldIndex,
 ) {
 	immutable LowField field = at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex);
-	immutable Nat16 size = sizeOfType(ctx, field.type).size;
-	return immutable FieldOffsetAndSize(field.offset, size);
+	immutable Nat64 size = immutable Nat64(sizeOfType(ctx, field.type).size);
+	return immutable FieldOffsetAndSize(immutable Nat64(field.offset), size);
 }
 
 void registerFunAddress(TempAlloc)(
@@ -996,7 +996,7 @@ void generateSpecialUnary(
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
 			generateArg();
-			writeRead(dbg, writer, source, immutable Nat16(0), sizeOfType(ctx, type).size);
+			writeRead(dbg, writer, source, immutable Nat64(0), immutable Nat64(sizeOfType(ctx, type).size));
 			break;
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
@@ -1064,7 +1064,7 @@ void generateRecordFieldGet(
 	generateExpr(dbg, tempAlloc, writer, ctx, it.target);
 	immutable StackEntries targetEntries = immutable StackEntries(
 		targetEntry,
-		(getNextStackEntry(writer).entry - targetEntry.entry).to8());
+		getNextStackEntry(writer).entry - targetEntry.entry);
 	immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, immutable Nat8(it.fieldIndex));
 	if (it.targetIsPointer) {
 		if (zero(offsetAndSize.size))
@@ -1080,7 +1080,7 @@ void generateRecordFieldGet(
 				writer,
 				source,
 				firstEntry,
-				(offsetAndSize.offset % stackEntrySize).to8(),
+				offsetAndSize.offset % stackEntrySize,
 				offsetAndSize.size);
 		}
 		writeRemove(dbg, writer, source, targetEntries);
@@ -1094,15 +1094,16 @@ void generatePtrToRecordFieldGet(
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
 	immutable LowType.Record record,
-	immutable ubyte fieldIndex,
+	immutable size_t fieldIndex,
 	immutable bool targetIsPointer,
 	ref immutable LowExpr target,
 ) {
 	generateExpr(dbg, tempAlloc, writer, ctx, target);
-	immutable Nat16 offset = at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).offset;
+	immutable Nat64 offset = immutable Nat64(
+		at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).offset);
 	if (targetIsPointer) {
 		if (!zero(offset))
-			writeAddConstantNat64(dbg, writer, source, offset.to64());
+			writeAddConstantNat64(dbg, writer, source, offset);
 	} else
 		// This only works if it's a local .. or another RecordFieldGet
 		todo!void("ptr-to-record-field-get");
@@ -1128,9 +1129,9 @@ void generateSpecialBinary(
 			immutable LowType pointee = asPtrRawPointee(a.left.type);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.left);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.right);
-			immutable Nat16 pointeeSize = sizeOfType(ctx, pointee).size;
-			if (pointeeSize != immutable Nat16(1))
-				writeMulConstantNat64(dbg, writer, source, pointeeSize.to64());
+			immutable Nat64 pointeeSize = immutable Nat64(sizeOfType(ctx, pointee).size);
+			if (pointeeSize != immutable Nat64(1))
+				writeMulConstantNat64(dbg, writer, source, pointeeSize);
 			writeFn(
 				dbg,
 				writer,
@@ -1300,7 +1301,7 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
 			generateExpr(dbg, tempAlloc, writer, ctx, a.left);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.right);
-			writeWrite(dbg, writer, source, immutable Nat16(0), sizeOfType(ctx, a.right.type).size);
+			writeWrite(dbg, writer, source, immutable Nat64(0), immutable Nat64(sizeOfType(ctx, a.right.type).size));
 			break;
 	}
 }

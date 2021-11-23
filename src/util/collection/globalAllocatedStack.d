@@ -3,9 +3,7 @@ module util.collection.globalAllocatedStack;
 @safe @nogc nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, size;
 import util.collection.arrUtil : copyArr;
-import util.types : decr, Nat8, Nat32, safeSizeTToU32, zero;
 import util.util : verify;
 
 struct GlobalAllocatedStack(T, size_t capacity) {
@@ -47,7 +45,7 @@ struct GlobalAllocatedStack(T, size_t capacity) {
 }
 
 @trusted immutable(size_t) stackSize(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
-	return a.top - stackBegin!(T, capacity)(a);
+	return stackEnd!(T, capacity)(a) - stackBegin!(T, capacity)(a);
 }
 
 immutable(T[]) toArr(T, size_t capacity)(ref Alloc alloc, ref const GlobalAllocatedStack!(T, capacity) a) {
@@ -60,15 +58,15 @@ void setToArr(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, scop
 		push(a, value);
 }
 
-@system T* stackTop(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
+@system inout(T*) stackTop(T, size_t capacity)(ref inout GlobalAllocatedStack!(T, capacity) a) {
 	return a.top;
 }
 
 @system inout(T*) stackBegin(T, size_t capacity)(ref inout GlobalAllocatedStack!(T, capacity) a) {
-	return cast(inout) GlobalAllocatedStack!(T, capacity).initialTop;
+	return cast(inout) GlobalAllocatedStack!(T, capacity).initialTop + 1;
 }
 
-@system T* stackEnd(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
+@system inout(T*) stackEnd(T, size_t capacity)(ref inout GlobalAllocatedStack!(T, capacity) a) {
 	return stackTop(a) + 1;
 }
 

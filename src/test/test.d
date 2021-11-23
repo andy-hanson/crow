@@ -7,7 +7,7 @@ import test.testApplyFn : testApplyFn;
 import test.testArrUtil : testArrUtil;
 import test.testFakeExtern : testFakeExtern;
 import test.testHover : testHover;
-//import test.testInterpreter : testInterpreter;
+import test.testInterpreter : testInterpreter;
 import test.testLineAndColumnGetter : testLineAndColumnGetter;
 import test.testPath : testPath;
 import test.testServer : testServer;
@@ -39,7 +39,7 @@ immutable(NameAndTest[]) allTests = [
 	immutable NameAndTest("apply-fn", &testApplyFn),
 	immutable NameAndTest("fake-extern", &testFakeExtern),
 	immutable NameAndTest("hover", &testHover),
-	//immutable NameAndTest("interpreter", &testInterpreter),
+	immutable NameAndTest("interpreter", &testInterpreter),
 	immutable NameAndTest("line-and-column-getter", &testLineAndColumnGetter),
 	immutable NameAndTest("path", &testPath),
 	immutable NameAndTest("server", &testServer),

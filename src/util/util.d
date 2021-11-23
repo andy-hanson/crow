@@ -2,7 +2,6 @@ module util.util;
 
 @safe @nogc nothrow:
 
-import util.dbg : log, logNoNewline;
 import util.types : incr, zero;
 
 void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc nothrow cb) {
@@ -11,14 +10,6 @@ void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc noth
 }
 
 pure:
-
-T todo(T, Debug)(scope ref Debug dbg, immutable string message) {
-	if (dbg.enabled()) {
-		logNoNewline(dbg, "TODO: ");
-		log(dbg, message);
-	}
-	assert(0);
-}
 
 T todo(T)(immutable string) {
 	assert(0);

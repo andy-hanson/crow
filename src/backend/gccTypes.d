@@ -218,7 +218,7 @@ immutable(Ptr!gcc_jit_function) generateAssertFieldOffsetsFunction(
 						fieldAddress,
 						recordAddress);
 					immutable Ptr!gcc_jit_rvalue expectedOffset =
-						gcc_jit_context_new_rvalue_from_long(ctx, nat64Type, field.offset.raw());
+						gcc_jit_context_new_rvalue_from_long(ctx, nat64Type, field.offset);
 					immutable Ptr!gcc_jit_rvalue eq = gcc_jit_context_new_comparison(
 						ctx,
 						null,

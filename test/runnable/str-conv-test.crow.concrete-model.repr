@@ -3456,7 +3456,7 @@ program(
 												let(
 													ctx-by-val
 													call(
-														ctx
+														new-ctx
 														[
 															param-ref(gctx)
 															call(ref-of-val, [local-ref(tls)])
@@ -3622,7 +3622,7 @@ program(
 			new-record)
 		fun(
 			noctx
-			ctx
+			new-ctx
 			type(false, ctx)
 			none
 			[
@@ -6066,7 +6066,7 @@ program(
 											let(
 												ctx
 												call(
-													ctx
+													new-ctx
 													[
 														param-ref(gctx)
 														param-ref(tls)

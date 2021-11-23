@@ -34,7 +34,7 @@ import util.opt : none, Opt, some;
 import util.ptr : hashPtr, ptrEquals, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Nat8, Nat16;
+import util.types : Nat64;
 import util.util : unreachable, verify;
 
 enum BuiltinStructKind {
@@ -237,8 +237,8 @@ struct ConcreteType {
 }
 
 struct TypeSize {
-	immutable Nat16 size;
-	immutable Nat8 alignment;
+	immutable size_t size;
+	immutable size_t alignment;
 }
 
 immutable(Purity) purity(immutable ConcreteType a) {
@@ -310,7 +310,7 @@ struct ConcreteStruct {
 	Late!(immutable bool) defaultIsPointer_;
 	Late!(immutable TypeSize) typeSize_;
 	// Only set for records
-	Late!(immutable Nat16[]) fieldOffsets_;
+	Late!(immutable size_t[]) fieldOffsets_;
 }
 
 immutable(bool) isArr(ref immutable ConcreteStruct a) {
@@ -334,7 +334,7 @@ immutable(TypeSize) typeSize(ref immutable ConcreteStruct a) {
 	return lateGet(a.typeSize_);
 }
 
-ref immutable(Nat16[]) fieldOffsets(return scope ref immutable ConcreteStruct a) {
+ref immutable(size_t[]) fieldOffsets(return scope ref immutable ConcreteStruct a) {
 	return lateGet(a.fieldOffsets_);
 }
 
@@ -353,7 +353,7 @@ immutable(bool) hasSizeOrPointerSizeBytes(ref immutable ConcreteType a) {
 
 immutable(TypeSize) sizeOrPointerSizeBytes(ref immutable ConcreteType a) {
 	return a.isPointer
-		? immutable TypeSize(immutable Nat16(8), immutable Nat8(8))
+		? immutable TypeSize(8, 8)
 		: typeSize(a.struct_.deref());
 }
 
@@ -544,7 +544,7 @@ struct ConcreteFunBody {
 	}
 	struct CreateRecord {}
 	struct CreateUnion {
-		immutable Nat16 memberIndex;
+		immutable Nat64 memberIndex;
 	}
 	struct Extern {
 		immutable bool isGlobal;
@@ -867,7 +867,7 @@ struct ConcreteExprKind {
 	// May be a fun or run-mut.
 	// (A fun-ref is a lambda wrapped in CreateRecord.)
 	struct Lambda {
-		immutable Nat16 memberIndex; // Member index of a Union (which hasn't been created yet)
+		immutable Nat64 memberIndex; // Member index of a Union (which hasn't been created yet)
 		immutable ConcreteExpr closure;
 	}
 

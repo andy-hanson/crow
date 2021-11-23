@@ -140,7 +140,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Nat16, safeSizeTToU8;
+import util.types : safeSizeTToU8;
 import util.util : unreachable, verify;
 
 immutable(LowProgram) lower(ref Alloc alloc, ref Perf perf, ref immutable ConcreteProgram a) {
@@ -327,11 +327,11 @@ AllLowTypesWithCtx getAllLowTypes(
 			map(alloc, finishArr(alloc, allRecordSources), (ref immutable Ptr!ConcreteStruct it) =>
 				immutable LowRecord(
 					it,
-					mapZipPtrFirst!(LowField, ConcreteField, Nat16)(
+					mapZipPtrFirst!(LowField, ConcreteField, size_t)(
 						alloc,
 						asRecord(body_(it.deref())).fields,
 						fieldOffsets(it.deref()),
-						(immutable Ptr!ConcreteField field, ref immutable Nat16 fieldOffset) =>
+						(immutable Ptr!ConcreteField field, ref immutable size_t fieldOffset) =>
 							immutable LowField(
 								field,
 								fieldOffset,

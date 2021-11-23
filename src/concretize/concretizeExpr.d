@@ -78,7 +78,7 @@ import util.opt : force, has, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, symEq, symEqLongAlphaLiteral;
-import util.types : Nat16, safeSizeTToU8, safeSizeTToU16;
+import util.types : Nat64, safeSizeTToU8;
 import util.util : todo, unreachable, verify;
 
 immutable(ConcreteExpr) concretizeExpr(
@@ -428,7 +428,7 @@ immutable(ConcreteExpr) concretizeLambda(
 		return immutable ConcreteExpr(concreteType, range, lambda(concreteStruct));
 }
 
-immutable(Nat16) nextLambdaImplId(
+immutable(Nat64) nextLambdaImplId(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	immutable Ptr!ConcreteStruct funStruct,
@@ -440,14 +440,14 @@ immutable(Nat16) nextLambdaImplId(
 		getOrAdd(alloc, ctx.concretizeCtx.funStructToImpls, funStruct, () =>
 			MutArr!(immutable ConcreteLambdaImpl)()));
 }
-immutable(Nat16) nextLambdaImplIdInner(
+immutable(Nat64) nextLambdaImplIdInner(
 	ref Alloc alloc,
 	ref immutable ConcreteLambdaImpl impl,
 	ref MutArr!(immutable ConcreteLambdaImpl) impls,
 ) {
-	immutable ushort res = safeSizeTToU16(mutArrSize(impls));
+	immutable size_t res = mutArrSize(impls);
 	push(alloc, impls, impl);
-	return immutable Nat16(res);
+	return immutable Nat64(res);
 }
 
 immutable(Ptr!ConcreteLocal) makeLocalWorker(

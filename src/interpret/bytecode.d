@@ -7,7 +7,7 @@ import model.lowModel : LowFunIndex;
 import util.collection.arr : begin, size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.sym : Sym;
-import util.types : Int16, Nat8, Nat16, Nat32, Nat64;
+import util.types : Int64, Nat64, safeU64FromI64;
 import util.sourceRange : FileIndex, Pos;
 import util.util : verify;
 
@@ -23,18 +23,12 @@ struct Operation {
 	@safe @nogc pure nothrow:
 
 	immutable this(immutable Fn a) { fn = a; }
-	immutable this(immutable Int16 a) { int16 = a; }
-	immutable this(immutable Nat8 a) { nat8 = a; }
-	immutable this(immutable Nat16 a) { nat16 = a; }
-	immutable this(immutable Nat32 a) { nat32 = a; }
+	immutable this(immutable Int64 a) { int64 = a; }
 	immutable this(immutable Nat64 a) { nat64 = a; }
 
 	union {
 		Fn fn;
-		Int16 int16;
-		Nat8 nat8;
-		Nat16 nat16;
-		Nat32 nat32;
+		Int64 int64;
 		Nat64 nat64;
 	}
 }
@@ -80,52 +74,52 @@ struct ByteCode {
 }
 
 @trusted immutable(Operation*) initialOperationPointer(ref immutable ByteCode a) {
-	return begin(a.byteCode) + a.main.index.raw();
+	return begin(a.byteCode) + a.main.index;
 }
 
 struct StackOffset {
 	// In words.
 	// 0 is the top entry on the stack, 1 is the one before that, etc.
-	immutable Nat8 offset;
+	immutable Nat64 offset;
 }
 struct StackOffsetBytes {
 	@safe @nogc pure nothrow:
 
-	immutable Nat16 offsetBytes;
+	immutable Nat64 offsetBytes;
 
-	immutable this(immutable Nat16 o) {
+	immutable this(immutable Nat64 o) {
 		offsetBytes = o;
-		verify(offsetBytes > immutable Nat16(0));
+		verify(offsetBytes > immutable Nat64(0));
 	}
 }
 
 struct ByteCodeIndex {
-	immutable Nat32 index;
+	immutable size_t index;
 }
 
-immutable(ByteCodeIndex) addByteCodeIndex(immutable ByteCodeIndex a, immutable Nat32 b) {
+immutable(ByteCodeIndex) addByteCodeIndex(immutable ByteCodeIndex a, immutable size_t b) {
 	return immutable ByteCodeIndex(a.index + b);
 }
 
 immutable(ByteCodeOffset) subtractByteCodeIndex(immutable ByteCodeIndex a, immutable ByteCodeIndex b) {
-	return immutable ByteCodeOffset((a.index.toInt32() - b.index.toInt32()).to16());
+	return immutable ByteCodeOffset((cast(long) a.index) - (cast(long) b.index));
 }
 
 struct ByteCodeOffsetUnsigned {
-	immutable Nat16 offset;
+	immutable ulong offset;
 }
 
 struct ByteCodeOffset {
 	@safe @nogc pure nothrow:
 
-	immutable Int16 offset;
+	immutable long offset;
 
 	immutable(ByteCodeOffsetUnsigned) unsigned() const {
-		return immutable ByteCodeOffsetUnsigned(offset.unsigned());
+		return immutable ByteCodeOffsetUnsigned(safeU64FromI64(offset));
 	}
 }
 
-immutable Nat16 stackEntrySize = immutable Nat16(8);
+immutable Nat64 stackEntrySize = immutable Nat64(8);
 
 enum ExternOp : ubyte {
 	backtrace,

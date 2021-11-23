@@ -6,22 +6,17 @@ import test.testUtil : Test;
 import util.collection.arrUtil : arrEqual;
 import util.collection.globalAllocatedStack :
 	asTempArr,
-	clearStack,
 	GlobalAllocatedStack,
 	peek,
 	pop,
 	popN,
 	push,
-	pushUninitialized,
 	remove,
 	setToArr,
-	setStackTop,
 	stackEnd,
 	stackIsEmpty,
-	stackRef,
 	stackSize,
-	stackTop,
-	toArr;
+	stackTop;
 import util.util : verify;
 
 void testStack(ref Test test) {

@@ -105,25 +105,9 @@ struct NatN(T) {
 		}
 	}
 
-	static if (is(T == ulong)) {
-		immutable(Nat48) to48() const {
-			verify(value < (cast(ulong) 1) << 48);
-			verify(bottomU16OfU64(value >> 48) == 0);
-			return immutable Nat48(
-				bottomU16OfU64(value >> 32),
-				bottomU16OfU64(value >> 16),
-				bottomU16OfU64(value));
-		}
-	}
-
-	immutable(Int16) toInt16() const {
-		verify(value <= short.max);
-		return immutable Int16(cast(immutable short) value);
-	}
-
-	immutable(Int32) toInt32() const {
-		verify(value <= int.max);
-		return immutable Int32(cast(immutable int) value);
+	immutable(Int64) toInt64() const {
+		verify(value <= long.max);
+		return immutable Int64(cast(immutable long) value);
 	}
 
 	private:
@@ -147,10 +131,10 @@ struct IntN(T) {
 	}
 
 	//TODO:support more types
-	static if(is(T == short)) {
-		immutable(Nat16) unsigned() const {
+	static if(is(T == long)) {
+		immutable(Nat64) unsigned() const {
 			verify(value >= 0);
-			return immutable Nat16(cast(immutable ushort) value);
+			return immutable Nat64(cast(immutable ulong) value);
 		}
 	}
 
@@ -158,6 +142,12 @@ struct IntN(T) {
 		immutable(Int16) to16() const {
 			verify(value >= short.min && value <= short.max);
 			return immutable Int16(cast(immutable short) value);
+		}
+	}
+
+	static if (!is(T == ulong)) {
+		immutable(Int64) to64() const {
+			return immutable Int64(value);
 		}
 	}
 
@@ -190,28 +180,11 @@ immutable(bool) zero(immutable size_t a) {
 	return a == 0;
 }
 
-struct Nat48 {
-	@safe @nogc pure nothrow:
-
-	static immutable(Nat48) max() {
-		return immutable Nat48(0xffff, 0xffff, 0xffff);
-	}
-
-	immutable ushort a;
-	immutable ushort b;
-	immutable ushort c;
-
-	immutable(Nat64) to64() immutable {
-		return immutable Nat64(((cast(ulong) a) << 32) | ((cast(ulong) b) << 16) | (cast(ulong) c));
-	}
-}
-
 alias Nat8 = NatN!ubyte;
 alias Nat16 = NatN!ushort;
 alias Nat32 = NatN!uint;
 alias Nat64 = NatN!ulong;
 alias Int16 = IntN!short;
-private alias Int32 = IntN!int;
 alias Int64 = IntN!long;
 
 immutable(ubyte) bottomU8OfU64(immutable ulong u) {
@@ -268,6 +241,11 @@ immutable(uint) safeU32FromI64(immutable long a) {
 
 immutable(uint) safeU32FromI32(immutable int a) {
 	return safeU32FromI64(a);
+}
+
+immutable(ulong) safeU64FromI64(immutable long a) {
+	verify(a >= 0);
+	return cast(immutable ulong) a;
 }
 
 immutable(size_t) safeSizeTFromLong(immutable long s) {

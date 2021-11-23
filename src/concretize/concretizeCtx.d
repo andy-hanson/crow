@@ -111,7 +111,7 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, hashPtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
-import util.types : Nat8, Nat16, safeSizeTToU8;
+import util.types : safeSizeTToU8;
 import util.util : max, roundUp, todo, unreachable, verify;
 
 struct TypeArgsScope {
@@ -539,10 +539,10 @@ immutable(bool) canGetUnionSize(ref immutable Opt!ConcreteType[] members) {
 }
 
 immutable(TypeSize) unionSize(ref immutable Opt!ConcreteType[] members) {
-	immutable Nat8 unionAlign = immutable Nat8(8);
-	immutable Nat16 maxMember = arrMax(immutable Nat16(0), members, (ref immutable Opt!ConcreteType t) =>
-		has(t) ? sizeOrPointerSizeBytes(force(t)).size : immutable Nat16(0));
-	immutable Nat16 sizeBytes = roundUp(immutable Nat16(8) + maxMember, unionAlign.to16());
+	immutable size_t unionAlign = 8;
+	immutable size_t maxMember = arrMax!(size_t, Opt!ConcreteType)(0, members, (ref immutable Opt!ConcreteType t) =>
+		has(t) ? sizeOrPointerSizeBytes(force(t)).size : 0);
+	immutable size_t sizeBytes = roundUp(8 + maxMember, unionAlign);
 	return immutable TypeSize(sizeBytes, unionAlign);
 }
 
@@ -554,12 +554,12 @@ immutable(bool) getDefaultIsPointerForFields(
 ) {
 	final switch (forcedByValOrRef) {
 		case ForcedByValOrRefOrNone.none:
-			immutable Nat16 maxSize = () {
+			immutable size_t maxSize = () {
 				final switch (type) {
 					case FieldsType.closure:
-						return immutable Nat16(8);
+						return 8;
 					case FieldsType.record:
-						return immutable Nat16(8 * 2);
+						return 8 * 2;
 				}
 			}();
 			return isSelfMutable || typeSize.size > maxSize;
@@ -587,7 +587,7 @@ immutable(ConcreteStructInfo) getConcreteStructInfoForFields(immutable ConcreteF
 
 struct TypeSizeAndFieldOffsets {
 	immutable TypeSize typeSize;
-	immutable Nat16[] fieldOffsets;
+	immutable size_t[] fieldOffsets;
 }
 
 immutable(TypeSizeAndFieldOffsets) recordSize(
@@ -595,21 +595,21 @@ immutable(TypeSizeAndFieldOffsets) recordSize(
 	immutable bool packed,
 	immutable ConcreteField[] fields,
 ) {
-	Nat16 maxFieldSize = immutable Nat16(1);
-	Nat8 maxFieldAlignment = immutable Nat8(1);
-	Nat16 offset = immutable Nat16(0);
-	immutable Nat16[] fieldOffsets = map(alloc, fields, (ref immutable ConcreteField field) {
+	size_t maxFieldSize = 1;
+	size_t maxFieldAlignment = 1;
+	size_t offset = 0;
+	immutable size_t[] fieldOffsets = map(alloc, fields, (ref immutable ConcreteField field) {
 		immutable TypeSize fieldSize = sizeOrPointerSizeBytes(field.type);
 		maxFieldSize = max(maxFieldSize, fieldSize.size);
 		if (!packed) {
 			maxFieldAlignment = max(maxFieldAlignment, fieldSize.alignment);
-			offset = roundUp(offset, fieldSize.alignment.to16());
+			offset = roundUp(offset, fieldSize.alignment);
 		}
-		immutable Nat16 fieldOffset = offset;
+		immutable size_t fieldOffset = offset;
 		offset += fieldSize.size;
 		return fieldOffset;
 	});
-	immutable TypeSize typeSize = immutable TypeSize(roundUp(offset, maxFieldAlignment.to16()), maxFieldAlignment);
+	immutable TypeSize typeSize = immutable TypeSize(roundUp(offset, maxFieldAlignment), maxFieldAlignment);
 	return immutable TypeSizeAndFieldOffsets(typeSize, fieldOffsets);
 }
 
@@ -704,10 +704,10 @@ immutable(ConcreteMutability) toConcreteMutability(immutable FieldMutability a) 
 }
 
 immutable(TypeSize) typeSizeForEnumOrFlags(immutable EnumBackingType a) {
-	immutable ubyte size = sizeForEnumOrFlags(a);
-	return immutable TypeSize(immutable Nat16(size), immutable Nat8(size));
+	immutable size_t size = sizeForEnumOrFlags(a);
+	return immutable TypeSize(size, size);
 }
-immutable(ubyte) sizeForEnumOrFlags(immutable EnumBackingType a) {
+immutable(size_t) sizeForEnumOrFlags(immutable EnumBackingType a) {
 	final switch (a) {
 		case EnumBackingType.int8:
 		case EnumBackingType.nat8:
@@ -801,7 +801,7 @@ void fillInConcreteFunBody(
 			(ref immutable FunBody.CreateRecord) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateRecord()),
 			(ref immutable FunBody.CreateUnion it) =>
-				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateUnion(it.memberIndex)),
+				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateUnion(it.memberIndex.to64())),
 			(immutable EnumFunction it) {
 				final switch (it) {
 					case EnumFunction.equal:
@@ -974,27 +974,27 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 immutable(TypeSize) getBuiltinStructSize(immutable BuiltinStructKind kind) {
 	final switch (kind) {
 		case BuiltinStructKind.void_:
-			return immutable TypeSize(immutable Nat16(0), immutable Nat8(1));
+			return immutable TypeSize(0, 1);
 		case BuiltinStructKind.bool_:
 		case BuiltinStructKind.char_:
 		case BuiltinStructKind.int8:
 		case BuiltinStructKind.nat8:
-			return immutable TypeSize(immutable Nat16(1), immutable Nat8(1));
+			return immutable TypeSize(1, 1);
 		case BuiltinStructKind.int16:
 		case BuiltinStructKind.nat16:
-			return immutable TypeSize(immutable Nat16(2), immutable Nat8(2));
+			return immutable TypeSize(2, 2);
 		case BuiltinStructKind.float32:
 		case BuiltinStructKind.int32:
 		case BuiltinStructKind.nat32:
-			return immutable TypeSize(immutable Nat16(4), immutable Nat8(4));
+			return immutable TypeSize(4, 4);
 		case BuiltinStructKind.float64:
 		case BuiltinStructKind.funPtrN:
 		case BuiltinStructKind.int64:
 		case BuiltinStructKind.nat64:
 		case BuiltinStructKind.ptrConst:
 		case BuiltinStructKind.ptrMut:
-			return immutable TypeSize(immutable Nat16(8), immutable Nat8(8));
+			return immutable TypeSize(8, 8);
 		case BuiltinStructKind.fun:
-			return immutable TypeSize(immutable Nat16(16), immutable Nat8(8));
+			return immutable TypeSize(16, 8);
 	}
 }

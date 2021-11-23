@@ -68,7 +68,7 @@ import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has, some;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.types : abs, i64OfU64Bits, Nat16;
+import util.types : abs, i64OfU64Bits, Nat64;
 import util.util : drop, todo, unreachable, verify;
 import util.writer :
 	finishWriter,
@@ -310,7 +310,7 @@ void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion
 			verify(it.kind == BuiltinStructKind.fun);
 			// Fun types must be 16 bytes
 			if (every!LowType(a.members, (ref immutable LowType member) =>
-				sizeOfType(ctx.program, member).size < immutable Nat16(8))) {
+				sizeOfType(ctx.program, member).size < 8)) {
 				writeStatic(writer, "\n\t\tuint64_t __ensureSizeIs16;");
 			}
 		},
@@ -339,13 +339,13 @@ void staticAssertStructSize(
 	writeStatic(writer, "_Static_assert(sizeof(");
 	writeType(writer, ctx, type);
 	writeStatic(writer, ") == ");
-	writeNat(writer, size.size.raw());
+	writeNat(writer, size.size);
 	writeStatic(writer, ", \"\");\n");
 
 	writeStatic(writer, "_Static_assert(_Alignof(");
 	writeType(writer, ctx, type);
 	writeStatic(writer, ") == ");
-	writeNat(writer, size.alignment.raw());
+	writeNat(writer, size.alignment);
 	writeStatic(writer, ", \"\");\n");
 }
 
@@ -1069,7 +1069,7 @@ void writeCreateUnion(
 	ref immutable Ctx ctx,
 	immutable ConstantRefPos pos,
 	ref immutable LowType type,
-	immutable Nat16 memberIndex,
+	immutable Nat64 memberIndex,
 	scope void delegate() @safe @nogc pure nothrow cbWriteMember,
 ) {
 	if (pos == ConstantRefPos.outer) writeCastToType(writer, ctx, type);
