@@ -2,13 +2,49 @@ module interpret.generateBytecode;
 
 @safe @nogc pure nothrow:
 
+import interpret.applyFn :
+	fnAddFloat32,
+	fnAddFloat64,
+	fnBitwiseAnd,
+	fnBitwiseNot,
+	fnBitwiseOr,
+	fnBitwiseXor,
+	fnCountOnesNat64,
+	fnEqBits,
+	fnEqFloat64,
+	fnIsNanFloat32,
+	fnIsNanFloat64,
+	fnInt64FromInt16,
+	fnInt64FromInt32,
+	fnFloat64FromFloat32,
+	fnFloat64FromInt64,
+	fnFloat64FromNat64,
+	fnLessFloat32,
+	fnLessFloat64,
+	fnLessInt8,
+	fnLessInt16,
+	fnLessInt32,
+	fnLessInt64,
+	fnLessNat,
+	fnMulFloat64,
+	fnSubFloat64,
+	fnTruncateToInt64FromFloat64,
+	fnUnsafeBitShiftLeftNat64,
+	fnUnsafeBitShiftRightNat64,
+	fnUnsafeDivFloat32,
+	fnUnsafeDivFloat64,
+	fnUnsafeDivInt64,
+	fnUnsafeDivNat64,
+	fnUnsafeModNat64,
+	fnWrapAddIntegral,
+	fnWrapMulIntegral,
+	fnWrapSubIntegral;
 import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeSource,
 	ExternOp,
 	FileToFuns,
-	FnOp,
 	FunNameAndPos,
 	stackEntrySize;
 import interpret.bytecodeWriter :
@@ -37,7 +73,8 @@ import interpret.bytecodeWriter :
 	writeDupEntry,
 	writeExtern,
 	writeExternDynCall,
-	writeFn,
+	writeFnBinary,
+	writeFnUnary,
 	writeMulConstantNat64,
 	writePushConstant,
 	writePushConstantPointer,
@@ -564,7 +601,8 @@ void generateExpr(
 			generateExpr(dbg, tempAlloc, writer, ctx, it.value);
 			immutable FieldOffsetAndSize offsetAndSize =
 				getFieldOffsetAndSize(ctx, it.record, immutable Nat8(it.fieldIndex));
-			verify(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
+			verify(mid.entry + divRoundUp(immutable Nat64(offsetAndSize.size), stackEntrySize) ==
+				getNextStackEntry(writer).entry);
 			writeWrite(dbg, writer, source, offsetAndSize.offset, offsetAndSize.size);
 			verify(getNextStackEntry(writer) == before);
 		},
@@ -793,8 +831,8 @@ void generateCreateUnionOrConstantUnion(
 }
 
 struct FieldOffsetAndSize {
-	immutable Nat64 offset;
-	immutable Nat64 size;
+	immutable size_t offset;
+	immutable size_t size;
 }
 
 immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
@@ -803,8 +841,8 @@ immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	immutable Nat8 fieldIndex,
 ) {
 	immutable LowField field = at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex);
-	immutable Nat64 size = immutable Nat64(sizeOfType(ctx, field.type).size);
-	return immutable FieldOffsetAndSize(immutable Nat64(field.offset), size);
+	immutable size_t size = sizeOfType(ctx, field.type).size;
+	return immutable FieldOffsetAndSize(field.offset, size);
 }
 
 void registerFunAddress(TempAlloc)(
@@ -928,9 +966,9 @@ void generateSpecialUnary(
 		generateExpr(dbg, tempAlloc, writer, ctx, a.arg);
 	}
 
-	void fn(immutable FnOp fnOp) {
+	void fn(alias cb)() {
 		generateArg();
-		writeFn(dbg, writer, source, fnOp);
+		writeFnUnary!cb(writer, source);
 	}
 
 	final switch (a.kind) {
@@ -959,22 +997,22 @@ void generateSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat16:
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat32:
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat64:
-			fn(FnOp.bitwiseNot);
+			fn!fnBitwiseNot();
 			break;
 		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
-			fn(FnOp.countOnesNat64);
+			fn!fnCountOnesNat64();
 			break;
 		case LowExprKind.SpecialUnary.Kind.isNanFloat32:
-			fn(FnOp.isNanFloat32);
+			fn!fnIsNanFloat32();
 			break;
 		case LowExprKind.SpecialUnary.Kind.isNanFloat64:
-			fn(FnOp.isNanFloat64);
+			fn!fnIsNanFloat64();
 			break;
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
-			fn(FnOp.intFromInt16);
+			fn!fnInt64FromInt16();
 			break;
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt32:
-			fn(FnOp.intFromInt32);
+			fn!fnInt64FromInt32();
 			break;
 		// Normal operations on <64-bit values treat other bits as garbage
 		// (they may be written to, such as in a wrap-add operation that overflows)
@@ -982,37 +1020,37 @@ void generateSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat8:
 			generateArg();
 			writePushConstant(dbg, writer, source, Nat8.max);
-			writeFn(dbg, writer, source, FnOp.bitwiseAnd);
+			writeFnBinary!fnBitwiseAnd(dbg, writer, source);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat16:
 			generateArg();
 			writePushConstant(dbg, writer, source, Nat16.max);
-			writeFn(dbg, writer, source, FnOp.bitwiseAnd);
+			writeFnBinary!fnBitwiseAnd(dbg, writer, source);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
 			generateArg();
 			writePushConstant(dbg, writer, source, Nat32.max);
-			writeFn(dbg, writer, source, FnOp.bitwiseAnd);
+			writeFnBinary!fnBitwiseAnd(dbg, writer, source);
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
 			generateArg();
-			writeRead(dbg, writer, source, immutable Nat64(0), immutable Nat64(sizeOfType(ctx, type).size));
+			writeRead(dbg, writer, source, 0, sizeOfType(ctx, type).size);
 			break;
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
 			generateRefOfVal(dbg, tempAlloc, writer, ctx, source, a.arg);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
-			fn(FnOp.float64FromFloat32);
+			fn!fnFloat64FromFloat32();
 			break;
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64: // FnOp.float64FromInt64
-			fn(FnOp.float64FromInt64);
+			fn!fnFloat64FromInt64();
 			break;
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
-			fn(FnOp.float64FromNat64);
+			fn!fnFloat64FromNat64();
 			break;
 		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
-			fn(FnOp.truncateToInt64FromFloat64);
+			fn!fnTruncateToInt64FromFloat64();
 			break;
 	}
 }
@@ -1074,13 +1112,13 @@ void generateRecordFieldGet(
 	} else {
 		if (!zero(offsetAndSize.size)) {
 			immutable StackEntry firstEntry =
-				immutable StackEntry(targetEntry.entry + (offsetAndSize.offset / stackEntrySize));
+				immutable StackEntry(targetEntry.entry + (immutable Nat64(offsetAndSize.offset) / stackEntrySize));
 			writeDup(
 				dbg,
 				writer,
 				source,
 				firstEntry,
-				offsetAndSize.offset % stackEntrySize,
+				offsetAndSize.offset % stackEntrySize.raw(),
 				offsetAndSize.size);
 		}
 		writeRemove(dbg, writer, source, targetEntries);
@@ -1117,10 +1155,10 @@ void generateSpecialBinary(
 	immutable ByteCodeSource source,
 	ref immutable LowExprKind.SpecialBinary a,
 ) {
-	void fn(immutable FnOp fn) {
+	void fn(alias cb)() {
 		generateExpr(dbg, tempAlloc, writer, ctx, a.left);
 		generateExpr(dbg, tempAlloc, writer, ctx, a.right);
-		writeFn(dbg, writer, source, fn);
+		writeFnBinary!cb(dbg, writer, source);
 	}
 
 	final switch (a.kind) {
@@ -1132,17 +1170,16 @@ void generateSpecialBinary(
 			immutable Nat64 pointeeSize = immutable Nat64(sizeOfType(ctx, pointee).size);
 			if (pointeeSize != immutable Nat64(1))
 				writeMulConstantNat64(dbg, writer, source, pointeeSize);
-			writeFn(
-				dbg,
-				writer,
-				source,
-				a.kind == LowExprKind.SpecialBinary.Kind.addPtrAndNat64 ? FnOp.wrapAddIntegral : FnOp.wrapSubIntegral);
+			if (a.kind == LowExprKind.SpecialBinary.Kind.addPtrAndNat64)
+				writeFnBinary!fnWrapAddIntegral(dbg, writer, source);
+			else
+				writeFnBinary!fnWrapSubIntegral(dbg, writer, source);
 			break;
 		case LowExprKind.SpecialBinary.Kind.addFloat32:
-			fn(FnOp.addFloat32);
+			fn!fnAddFloat32();
 			break;
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
-			fn(FnOp.addFloat64);
+			fn!fnAddFloat64();
 			break;
 		case LowExprKind.SpecialBinary.Kind.and:
 			generateIf(
@@ -1160,10 +1197,10 @@ void generateSpecialBinary(
 				});
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64:
-			fn(FnOp.unsafeBitShiftLeftNat64);
+			fn!fnUnsafeBitShiftLeftNat64();
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64:
-			fn(FnOp.unsafeBitShiftRightNat64);
+			fn!fnUnsafeBitShiftRightNat64();
 			break;
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:
@@ -1173,7 +1210,7 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat16:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat32:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat64:
-			fn(FnOp.bitwiseAnd);
+			fn!fnBitwiseAnd();
 			break;
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt8:
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt16:
@@ -1183,7 +1220,7 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat16:
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat32:
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat64:
-			fn(FnOp.bitwiseOr);
+			fn!fnBitwiseOr();
 			break;
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt8:
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt16:
@@ -1193,10 +1230,10 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat16:
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat32:
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat64:
-			fn(FnOp.bitwiseXor);
+			fn!fnBitwiseXor();
 			break;
 		case LowExprKind.SpecialBinary.Kind.eqFloat64:
-			fn(FnOp.eqFloat64);
+			fn!fnEqFloat64();
 			break;
 		case LowExprKind.SpecialBinary.Kind.eqInt8:
 		case LowExprKind.SpecialBinary.Kind.eqInt16:
@@ -1207,7 +1244,7 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.eqNat32:
 		case LowExprKind.SpecialBinary.Kind.eqNat64:
 		case LowExprKind.SpecialBinary.Kind.eqPtr:
-			fn(FnOp.eqBits);
+			fn!fnEqBits();
 			break;
 		case LowExprKind.SpecialBinary.Kind.lessBool:
 		case LowExprKind.SpecialBinary.Kind.lessChar:
@@ -1216,28 +1253,28 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.lessNat32:
 		case LowExprKind.SpecialBinary.Kind.lessNat64:
 		case LowExprKind.SpecialBinary.Kind.lessPtr:
-			fn(FnOp.lessNat);
+			fn!fnLessNat();
 			break;
 		case LowExprKind.SpecialBinary.Kind.lessFloat32:
-			fn(FnOp.lessFloat32);
+			fn!fnLessFloat32();
 			break;
 		case LowExprKind.SpecialBinary.Kind.lessFloat64:
-			fn(FnOp.lessFloat64);
+			fn!fnLessFloat64();
 			break;
 		case LowExprKind.SpecialBinary.Kind.lessInt8:
-			fn(FnOp.lessInt8);
+			fn!fnLessInt8();
 			break;
 		case LowExprKind.SpecialBinary.Kind.lessInt16:
-			fn(FnOp.lessInt16);
+			fn!fnLessInt16();
 			break;
 		case LowExprKind.SpecialBinary.Kind.lessInt32:
-			fn(FnOp.lessInt32);
+			fn!fnLessInt32();
 			break;
 		case LowExprKind.SpecialBinary.Kind.lessInt64:
-			fn(FnOp.lessInt64);
+			fn!fnLessInt64();
 			break;
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:
-			fn(FnOp.mulFloat64);
+			fn!fnMulFloat64();
 			break;
 		case LowExprKind.SpecialBinary.Kind.or:
 			generateIf(
@@ -1255,7 +1292,7 @@ void generateSpecialBinary(
 				});
 			break;
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
-			fn(FnOp.subFloat64);
+			fn!fnSubFloat64();
 			break;
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt16:
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt32:
@@ -1264,22 +1301,22 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat16:
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat32:
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat64:
-			fn(FnOp.wrapSubIntegral);
+			fn!fnWrapSubIntegral();
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat32:
-			fn(FnOp.unsafeDivFloat32);
+			fn!fnUnsafeDivFloat32();
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
-			fn(FnOp.unsafeDivFloat64);
+			fn!fnUnsafeDivFloat64();
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:
-			fn(FnOp.unsafeDivInt64);
+			fn!fnUnsafeDivInt64();
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeDivNat64:
-			fn(FnOp.unsafeDivNat64);
+			fn!fnUnsafeDivNat64();
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeModNat64:
-			fn(FnOp.unsafeModNat64);
+			fn!fnUnsafeModNat64();
 			break;
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt16:
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt32:
@@ -1288,7 +1325,7 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat16:
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat32:
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat64:
-			fn(FnOp.wrapAddIntegral);
+			fn!fnWrapAddIntegral();
 			break;
 		case LowExprKind.SpecialBinary.Kind.wrapMulInt16:
 		case LowExprKind.SpecialBinary.Kind.wrapMulInt32:
@@ -1296,12 +1333,12 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat16:
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat32:
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat64:
-			fn(FnOp.wrapMulIntegral);
+			fn!fnWrapMulIntegral();
 			break;
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
 			generateExpr(dbg, tempAlloc, writer, ctx, a.left);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.right);
-			writeWrite(dbg, writer, source, immutable Nat64(0), immutable Nat64(sizeOfType(ctx, a.right.type).size));
+			writeWrite(dbg, writer, source, 0, sizeOfType(ctx, a.right.type).size);
 			break;
 	}
 }

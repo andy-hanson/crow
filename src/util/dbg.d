@@ -2,6 +2,8 @@ module util.dbg;
 
 @safe @nogc pure nothrow:
 
+import util.sym : eachCharInSym, Sym;
+
 struct Debug {
 	@safe @nogc pure nothrow:
 
@@ -26,16 +28,57 @@ struct Debug {
 private immutable bool debugEnabled = false;
 
 void log(scope ref Debug dbg, immutable string a) {
-	dbg.write(a);
-	dbg.writeChar('\n');
+	if (debugEnabled) {
+		dbg.write(a);
+		dbg.writeChar('\n');
+	}
+}
+
+void log(scope ref Debug dbg, immutable string a, immutable size_t b) {
+	if (debugEnabled) {
+		dbg.write(a);
+		dbg.writeChar(' ');
+		logNat(dbg, b);
+		dbg.writeChar('\n');
+	}
+}
+
+void log(scope ref Debug dbg, immutable string a, immutable size_t b, immutable size_t c) {
+	if (debugEnabled) {
+		dbg.write(a);
+		dbg.writeChar(' ');
+		logNat(dbg, b);
+		dbg.writeChar(' ');
+		logNat(dbg, c);
+		dbg.writeChar('\n');
+	}
+}
+
+void log(scope ref Debug dbg, immutable string a, immutable string b) {
+	if (debugEnabled) {
+		dbg.write(a);
+		dbg.writeChar(' ');
+		dbg.write(b);
+		dbg.writeChar('\n');
+	}
+}
+
+void logSymNoNewline(scope ref Debug dbg, immutable Sym a) {
+	if (debugEnabled)
+		eachCharInSym(a, (immutable char c) {
+			dbg.writeChar(c);
+		});
 }
 
 void logNoNewline(scope ref Debug dbg, immutable string a) {
-	dbg.write(a);
+	if (debugEnabled)
+		dbg.write(a);
 }
 
 void logNat(scope ref Debug dbg, immutable size_t a) {
-	if (a > 10)
-		logNat(dbg, a / 10);
-	dbg.writeChar('0' + (a % 10));
+	if (debugEnabled) {
+		if (a >= 10)
+			logNat(dbg, a / 10);
+		dbg.writeChar('0' + (a % 10));
+	}
 }

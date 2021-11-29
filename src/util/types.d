@@ -85,13 +85,6 @@ struct NatN(T) {
 		}
 	}
 
-	static if (!is(T == ushort)) {
-		immutable(Nat16) to16() const {
-			verify(value <= ushort.max);
-			return immutable Nat16(cast(immutable ushort) value);
-		}
-	}
-
 	static if (!is(T == uint)) {
 		immutable(Nat32) to32() const {
 			verify(value <= uint.max);
@@ -138,13 +131,6 @@ struct IntN(T) {
 		}
 	}
 
-	static if (!is(T == short)) {
-		immutable(Int16) to16() const {
-			verify(value >= short.min && value <= short.max);
-			return immutable Int16(cast(immutable short) value);
-		}
-	}
-
 	static if (!is(T == ulong)) {
 		immutable(Int64) to64() const {
 			return immutable Int64(value);
@@ -184,7 +170,6 @@ alias Nat8 = NatN!ubyte;
 alias Nat16 = NatN!ushort;
 alias Nat32 = NatN!uint;
 alias Nat64 = NatN!ulong;
-alias Int16 = IntN!short;
 alias Int64 = IntN!long;
 
 immutable(ubyte) bottomU8OfU64(immutable ulong u) {

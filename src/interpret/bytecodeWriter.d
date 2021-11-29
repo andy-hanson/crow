@@ -2,6 +2,7 @@ module interpret.bytecodeWriter;
 
 @safe @nogc pure nothrow:
 
+import interpret.applyFn : fnWrapAddIntegral, fnWrapMulIntegral;
 import interpret.bytecode :
 	addByteCodeIndex,
 	ByteCode,
@@ -11,7 +12,6 @@ import interpret.bytecode :
 	ByteCodeSource,
 	ExternOp,
 	FileToFuns,
-	FnOp,
 	Operation,
 	stackEntrySize,
 	StackOffset,
@@ -24,16 +24,24 @@ import interpret.runBytecode :
 	opCallFunPtr,
 	opDupBytes,
 	opDupWord,
+	opDupWordVariable,
 	opDupWords,
 	opExtern,
 	opExternDynCall,
-	opFn,
+	opFnBinary,
+	opFnUnary,
 	opPack,
 	opPushValue64,
 	opSet,
+	opSetVariable,
 	opJump,
 	opJumpIfFalse,
-	opRead,
+	opReadBytesVariable,
+	opReadNat8,
+	opReadNat16,
+	opReadNat32,
+	opReadWords,
+	opReadWordsVariable,
 	opRemove,
 	opReturn,
 	opStackRef,
@@ -53,7 +61,7 @@ import util.memory : initMemory, overwriteMemory;
 import util.ptr : Ptr;
 import util.sym : Sym;
 import util.util : divRoundUp, todo, verify;
-import util.types : decr, incr, Int64, Nat64, NatN, zero;
+import util.types : decr, incr, Int64, Nat64, NatN, safeSizeTFromU64, zero;
 import util.writer : finishWriter, writeNat, Writer, writeStatic;
 
 struct ByteCodeWriter {
@@ -162,11 +170,12 @@ private immutable(Nat64) getStackOffsetTo(
 private immutable(StackOffsetBytes) getStackOffsetBytes(
 	ref const ByteCodeWriter writer,
 	immutable StackEntry stackEntry,
-	immutable Nat64 offsetBytes,
+	immutable size_t offsetBytes,
 ) {
 	// stack entry offsets use 0 for the last entry,
 	// but byte offsets use 0 for the next entry (thus 1 is the final byte of the last entry)
-	return immutable StackOffsetBytes(incr(getStackOffsetTo(writer, stackEntry)) * immutable Nat64(8) - offsetBytes);
+	return immutable StackOffsetBytes(
+		incr(getStackOffsetTo(writer, stackEntry)) * immutable Nat64(8) - immutable Nat64(offsetBytes));
 }
 
 void writeDupEntries(
@@ -177,7 +186,7 @@ void writeDupEntries(
 ) {
 	verify(!zero(entries.size));
 	verify(entries.start.entry + entries.size <= getNextStackEntry(writer).entry);
-	writeDup(dbg, writer, source, entries.start, immutable Nat64(0), entries.size * immutable Nat64(8));
+	writeDup(dbg, writer, source, entries.start, 0, safeSizeTFromU64(entries.size.raw()) * 8);
 }
 
 void writeDupEntry(
@@ -186,7 +195,7 @@ void writeDupEntry(
 	immutable ByteCodeSource source,
 	immutable StackEntry entry,
 ) {
-	writeDup(dbg, writer, source, entry, immutable Nat64(0), immutable Nat64(8));
+	writeDup(dbg, writer, source, entry, 0, 8);
 }
 
 void writeDup(
@@ -194,29 +203,40 @@ void writeDup(
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
 	immutable StackEntry start,
-	immutable Nat64 offsetBytes,
-	immutable Nat64 sizeBytes,
+	immutable size_t offsetBytes,
+	immutable size_t sizeBytes,
 ) {
 	verify(!zero(sizeBytes));
+	verify(offsetBytes < 8);
 
-	if (zero(offsetBytes) && zero(sizeBytes % immutable Nat64(8))) {
-		immutable Nat64 sizeWords = sizeBytes / immutable Nat64(8);
-		immutable Nat64 offset = getStackOffsetTo(writer, start);
-		if (sizeWords == immutable Nat64(1)) {
-			pushOperationFn(writer, source, &opDupWord);
-			pushNat64(writer, source, offset);
+	if (offsetBytes == 0 && sizeBytes % 8 == 0) {
+		immutable size_t sizeWords = sizeBytes / 8;
+		immutable size_t offset = safeSizeTFromU64(getStackOffsetTo(writer, start).raw());
+		if (sizeWords == 1) {
+			writeDupWord(writer, source, offset);
 		} else {
 			pushOperationFn(writer, source, &opDupWords);
-			pushNat64(writer, source, offset);
-			pushNat64(writer, source, sizeWords);
+			pushSizeT(writer, source, offset);
+			pushSizeT(writer, source, sizeWords);
 		}
 	} else {
 		pushOperationFn(writer, source, &opDupBytes);
-		pushNat64(writer, source, getStackOffsetBytes(writer, start, offsetBytes).offsetBytes);
-		pushNat64(writer, source, sizeBytes);
+		pushSizeT(writer, source, safeSizeTFromU64(getStackOffsetBytes(writer, start, offsetBytes).offsetBytes.raw()));
+		pushSizeT(writer, source, sizeBytes);
 	}
 
-	writer.nextStackEntry += divRoundUp(sizeBytes, immutable Nat64(8));
+	writer.nextStackEntry += immutable Nat64(divRoundUp(sizeBytes, 8));
+}
+
+private void writeDupWord(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable size_t offset) {
+	static foreach (immutable size_t possibleOffset; 0 .. 8)
+		if (offset == possibleOffset) {
+			pushOperationFn(writer, source, &opDupWord!possibleOffset);
+			return;
+		}
+
+	pushOperationFn(writer, source, &opDupWordVariable);
+	pushSizeT(writer, source, offset);
 }
 
 void writeSet(
@@ -225,25 +245,104 @@ void writeSet(
 	immutable ByteCodeSource source,
 	immutable StackEntries entries,
 ) {
-	pushOperationFn(writer, source, &opSet);
-	pushNat64(writer, source, getStackOffsetTo(writer, entries.start));
-	pushNat64(writer, source, entries.size);
+	immutable size_t offset = safeSizeTFromU64(getStackOffsetTo(writer, entries.start).raw());
+	immutable size_t size = safeSizeTFromU64(entries.size.raw());
+	writeSetInner(writer, source, offset, size);
 	writer.nextStackEntry -= entries.size;
+}
+
+private void writeSetInner(
+	ref ByteCodeWriter writer,
+	immutable ByteCodeSource source,
+	immutable size_t offset,
+	immutable size_t size,
+) {
+	static foreach (immutable size_t possibleOffset; 0 .. 8)
+		static foreach (immutable size_t possibleSize; 0 .. 4)
+			if (offset == possibleOffset && size == possibleSize) {
+				pushOperationFn(writer, source, &opSet!(possibleOffset, possibleSize));
+				return;
+			}
+
+	pushOperationFn(writer, source, &opSetVariable);
+	pushSizeT(writer, source, offset);
+	pushSizeT(writer, source, size);
 }
 
 void writeRead(
 	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
-	immutable Nat64 offset,
-	immutable Nat64 size,
+	immutable size_t offset,
+	immutable size_t size,
 ) {
 	log(dbg, writer, "write read");
 	verify(!zero(size));
-	pushOperationFn(writer, source, &opRead);
-	pushNat64(writer, source, offset);
-	pushNat64(writer, source, size);
-	writer.nextStackEntry += decr(divRoundUp(size, stackEntrySize));
+	if (offset % 8 == 0 && size % 8 == 0)
+		writeReadWords(writer, source, offset / 8, size / 8);
+	else
+		writeReadBytes(writer, source, offset, size);
+	writer.nextStackEntry += decr(divRoundUp(immutable Nat64(size), stackEntrySize));
+}
+
+private void writeReadWords(
+	ref ByteCodeWriter writer,
+	immutable ByteCodeSource source,
+	immutable size_t offsetWords,
+	immutable size_t sizeWords,
+) {
+	static foreach (immutable size_t possibleOffsetWords; 0 .. 8)
+		static foreach (immutable size_t possibleSizeWords; 0 .. 4)
+			if (offsetWords == possibleOffsetWords && sizeWords == possibleSizeWords) {
+				pushOperationFn(writer, source, &opReadWords!(possibleOffsetWords, possibleSizeWords));
+				return;
+			}
+	pushOperationFn(writer, source, &opReadWordsVariable);
+	pushSizeT(writer, source, offsetWords);
+	pushSizeT(writer, source, sizeWords);
+}
+
+private void writeReadBytes(
+	ref ByteCodeWriter writer,
+	immutable ByteCodeSource source,
+	immutable size_t offsetBytes,
+	immutable size_t sizeBytes,
+) {
+	switch (sizeBytes) {
+		case 1:
+			static foreach (immutable size_t possibleOffsetNat8s; 0 .. 8)
+				if (offsetBytes == possibleOffsetNat8s) {
+					pushOperationFn(writer, source, &opReadNat8!possibleOffsetNat8s);
+					return;
+				}
+			break;
+		case 2:
+			if (offsetBytes % 2 == 0) {
+				immutable size_t offsetNat16s = offsetBytes / 2;
+				static foreach (immutable size_t possibleOffsetNat16s; 0 .. 4)
+					if (offsetNat16s == possibleOffsetNat16s) {
+						pushOperationFn(writer, source, &opReadNat16!possibleOffsetNat16s);
+						return;
+					}
+			}
+			break;
+		case 4:
+			if (offsetBytes % 4 == 0) {
+				immutable size_t offsetNat32s = offsetBytes / 2;
+				static foreach (immutable size_t possibleOffsetNat32s; 0 .. 2)
+					if (offsetNat32s == possibleOffsetNat32s) {
+						pushOperationFn(writer, source, &opReadNat32!possibleOffsetNat32s);
+						return;
+					}
+			}
+			break;
+		default:
+			break;
+	}
+
+	pushOperationFn(writer, source, &opReadBytesVariable);
+	pushSizeT(writer, source, offsetBytes);
+	pushSizeT(writer, source, sizeBytes);
 }
 
 void writeStackRef(
@@ -268,15 +367,15 @@ void writeWrite(
 	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
-	immutable Nat64 offset,
-	immutable Nat64 size,
+	immutable size_t offset,
+	immutable size_t size,
 ) {
 	log(dbg, writer, "write write");
 	verify(!zero(size));
 	pushOperationFn(writer, source, &opWrite);
-	pushNat64(writer, source, offset);
-	pushNat64(writer, source, size);
-	writer.nextStackEntry -= incr(divRoundUp(size, stackEntrySize));
+	pushSizeT(writer, source, offset);
+	pushSizeT(writer, source, size);
+	writer.nextStackEntry -= incr(divRoundUp(immutable Nat64(size), stackEntrySize));
 }
 
 void writeAddConstantNat64(
@@ -287,7 +386,7 @@ void writeAddConstantNat64(
 ) {
 	verify(!zero(arg));
 	writePushConstant(dbg, writer, source, arg);
-	writeFn(dbg, writer, source, FnOp.wrapAddIntegral);
+	writeFnBinary!fnWrapAddIntegral(dbg, writer, source);
 }
 
 void writeMulConstantNat64(
@@ -298,7 +397,7 @@ void writeMulConstantNat64(
 ) {
 	verify(!zero(arg) && arg != immutable Nat64(1));
 	writePushConstant(dbg, writer, source, arg);
-	writeFn(dbg, writer, source, FnOp.wrapMulIntegral);
+	writeFnBinary!fnWrapMulIntegral(dbg, writer, source);
 }
 
 // Consume stack space without caring what's in it. Useful for unions.
@@ -605,57 +704,13 @@ void writeExternDynCall(
 	writer.nextStackEntry += returnType == DynCallType.void_ ? immutable Nat64(0) : immutable Nat64(1);
 }
 
-void writeFn(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable FnOp fn,
-) {
-	immutable int stackEffect = () {
-		final switch (fn) {
-			case FnOp.addFloat32:
-			case FnOp.addFloat64:
-			case FnOp.bitwiseAnd:
-			case FnOp.bitwiseOr:
-			case FnOp.bitwiseXor:
-			case FnOp.eqBits:
-			case FnOp.eqFloat64:
-			case FnOp.lessFloat32:
-			case FnOp.lessFloat64:
-			case FnOp.lessInt8:
-			case FnOp.lessInt16:
-			case FnOp.lessInt32:
-			case FnOp.lessInt64:
-			case FnOp.lessNat:
-			case FnOp.mulFloat64:
-			case FnOp.subFloat64:
-			case FnOp.unsafeBitShiftLeftNat64:
-			case FnOp.unsafeBitShiftRightNat64:
-			case FnOp.unsafeDivFloat32:
-			case FnOp.unsafeDivFloat64:
-			case FnOp.unsafeDivInt64:
-			case FnOp.unsafeDivNat64:
-			case FnOp.unsafeModNat64:
-			case FnOp.wrapAddIntegral:
-			case FnOp.wrapMulIntegral:
-			case FnOp.wrapSubIntegral:
-				return -1;
-			case FnOp.bitwiseNot:
-			case FnOp.countOnesNat64:
-			case FnOp.float64FromFloat32:
-			case FnOp.float64FromInt64:
-			case FnOp.float64FromNat64:
-			case FnOp.intFromInt16:
-			case FnOp.intFromInt32:
-			case FnOp.isNanFloat32:
-			case FnOp.isNanFloat64:
-			case FnOp.truncateToInt64FromFloat64:
-				return 0;
-		}
-	}();
-	pushOperationFn(writer, source, &opFn);
-	pushNat64(writer, source, immutable Nat64(fn));
-	writer.nextStackEntry += stackEffect;
+void writeFnBinary(alias fn)(scope ref Debug dbg, ref ByteCodeWriter writer, immutable ByteCodeSource source) {
+	pushOperationFn(writer, source, &opFnBinary!fn);
+	writer.nextStackEntry--;
+}
+
+void writeFnUnary(alias fn)(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
+	pushOperationFn(writer, source, &opFnUnary!fn);
 }
 
 private void pushOperation(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable Operation value) {
@@ -673,6 +728,10 @@ private void pushInt64(ref ByteCodeWriter writer, immutable ByteCodeSource sourc
 
 private void pushNat64(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable Nat64 value) {
 	pushOperation(writer, source, immutable Operation(value));
+}
+
+private void pushSizeT(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable size_t value) {
+	pushNat64(writer, source, immutable Nat64(value));
 }
 
 void log(scope ref Debug dbg, ref ByteCodeWriter byteCodeWriter, immutable string message) {

@@ -2,12 +2,12 @@ module test.testInterpreter;
 
 @safe @nogc nothrow: // not pure
 
+import interpret.applyFn : fnWrapAddIntegral;
 import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeSource,
 	FileToFuns,
-	FnOp,
 	FunNameAndPos,
 	initialOperationPointer,
 	Operation;
@@ -32,7 +32,7 @@ import interpret.bytecodeWriter :
 	writeDup,
 	writeDupEntries,
 	writeDupEntry,
-	writeFn,
+	writeFnBinary,
 	writePack,
 	writePushConstant,
 	writePushConstants,
@@ -159,7 +159,7 @@ void doInterpret(
 	});
 }
 
-void doTest(
+public void interpreterTest(
 	ref Test test,
 	scope void delegate(ref ByteCodeWriter, immutable ByteCodeSource source) @safe @nogc nothrow writeBytecode,
 	scope void delegate(scope ref Interpreter, immutable(Operation)*) @safe @nogc nothrow runInterpreter,
@@ -190,7 +190,7 @@ void testCall(ref Test test) {
 	immutable ByteCodeIndex fIndex = nextByteCodeIndex(writer);
 
 	// f:
-	writeFn(test.dbg, writer, source, FnOp.wrapAddIntegral);
+	writeFnBinary!fnWrapAddIntegral(test.dbg, writer, source);
 	writeReturn(test.dbg, writer, source);
 
 	fillDelayedCall(writer, delayed, fIndex);
@@ -235,7 +235,7 @@ void testCallFunPtr(ref Test test) {
 	immutable ByteCodeIndex fIndex = nextByteCodeIndex(writer);
 
 	// f:
-	writeFn(test.dbg, writer, source, FnOp.wrapAddIntegral);
+	writeFnBinary!fnWrapAddIntegral(test.dbg, writer, source);
 	writeReturn(test.dbg, writer, source);
 
 	fillDelayedCall(writer, delayed, fIndex);
@@ -318,7 +318,7 @@ void testSwitchAndJump(ref Test test) {
 }
 
 void testDup(ref Test test) {
-	doTest(
+	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [
@@ -366,7 +366,7 @@ void testDup(ref Test test) {
 }
 
 void testRemoveOne(ref Test test) {
-	doTest(
+	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [
@@ -395,7 +395,7 @@ void testRemoveOne(ref Test test) {
 }
 
 void testRemoveMany(ref Test test) {
-	doTest(
+	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [
@@ -435,7 +435,7 @@ void testDupPartial(ref Test test) {
 	}
 	U u;
 	u.s = immutable S(immutable Nat32(0x01234567), immutable Nat16(0x89ab), immutable Nat8(0xcd));
-	doTest(
+	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [u.n]);
@@ -444,22 +444,22 @@ void testDupPartial(ref Test test) {
 				writer,
 				source,
 				immutable StackEntry(immutable Nat64(0)),
-				immutable Nat64(0),
-				immutable Nat64(4));
+				0,
+				4);
 			writeDup(
 				test.dbg,
 				writer,
 				source,
 				immutable StackEntry(immutable Nat64(0)),
-				immutable Nat64(4),
-				immutable Nat64(2));
+				4,
+				2);
 			writeDup(
 				test.dbg,
 				writer,
 				source,
 				immutable StackEntry(immutable Nat64(0)),
-				immutable Nat64(6),
-				immutable Nat64(1));
+				6,
+				1);
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
@@ -480,7 +480,7 @@ void testDupPartial(ref Test test) {
 }
 
 void testPack(ref Test test) {
-	doTest(
+	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [
@@ -518,7 +518,7 @@ void testPack(ref Test test) {
 }
 
 void testStackRef(ref Test test) {
-	doTest(
+	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(1), immutable Nat64(2)]);
@@ -587,16 +587,16 @@ void testStackRef(ref Test test) {
 	}
 	U u;
 	u.s = immutable S(0x01234567, 0x89ab, 0xcd, 0xef);
-	doTest(
+	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstant(test.dbg, writer, source, u.value);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
-			writeRead(test.dbg, writer, source, immutable Nat64(0), immutable Nat64(4));
+			writeRead(test.dbg, writer, source, 0, 4);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
-			writeRead(test.dbg, writer, source, immutable Nat64(4), immutable Nat64(2));
+			writeRead(test.dbg, writer, source, 4, 2);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
-			writeRead(test.dbg, writer, source, immutable Nat64(6), immutable Nat64(1));
+			writeRead(test.dbg, writer, source, 6, 1);
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
@@ -633,12 +633,12 @@ void testStackRef(ref Test test) {
 }
 
 @trusted void testReadWords(ref Test test) {
-	doTest(
+	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(1), immutable Nat64(2), immutable Nat64(3)]);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
-			writeRead(test.dbg, writer, source, immutable Nat64(8), immutable Nat64(16));
+			writeRead(test.dbg, writer, source, 8, 16);
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
@@ -668,19 +668,19 @@ void testStackRef(ref Test test) {
 }
 
 @trusted void testWriteSubword(ref Test test) {
-	doTest(
+	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0));
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0x0123456789abcdef));
-			writeWrite(test.dbg, writer, source, immutable Nat64(0), immutable Nat64(4));
+			writeWrite(test.dbg, writer, source, 0, 4);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0x0123456789abcdef));
-			writeWrite(test.dbg, writer, source, immutable Nat64(4), immutable Nat64(2));
+			writeWrite(test.dbg, writer, source, 4, 2);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0x0123456789abcdef));
-			writeWrite(test.dbg, writer, source, immutable Nat64(6), immutable Nat64(1));
+			writeWrite(test.dbg, writer, source, 6, 1);
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
@@ -735,13 +735,13 @@ void testStackRef(ref Test test) {
 }
 
 @trusted void testWriteWords(ref Test test) {
-	doTest(
+	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(0), immutable Nat64(0), immutable Nat64(0)]);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat64(0)));
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(1), immutable Nat64(2)]);
-			writeWrite(test.dbg, writer, source, immutable Nat64(8), immutable Nat64(16));
+			writeWrite(test.dbg, writer, source, 8, 16);
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
@@ -790,7 +790,7 @@ immutable(Operation*) stepNAndExpect(
 	return operation;
 }
 
-immutable(Operation*) stepAndExpect(
+public immutable(Operation*) stepAndExpect(
 	ref Test test,
 	scope ref Interpreter interpreter,
 	scope immutable Nat64[] expected,
@@ -813,7 +813,7 @@ void verifyStackEntry(ref ByteCodeWriter writer, immutable ushort n) {
 	return nextOperation;
 }
 
-@trusted void stepExit(ref Test test, scope ref Interpreter interpreter, immutable Operation* operation) {
+public @trusted void stepExit(ref Test test, scope ref Interpreter interpreter, immutable Operation* operation) {
 	immutable Operation* nextOperation = operation.fn(interpreter, operation).operationPtr;
 	verify(nextOperation.fn == &opStopInterpretation);
 }

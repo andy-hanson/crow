@@ -3,7 +3,6 @@ module interpret.runBytecode;
 @safe @nogc nothrow: // not pure
 
 import frontend.showDiag : ShowDiagOptions;
-import interpret.applyFn : applyFn;
 import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
@@ -11,7 +10,6 @@ import interpret.bytecode :
 	ByteCodeOffsetUnsigned,
 	ByteCodeSource,
 	ExternOp,
-	FnOp,
 	initialOperationPointer,
 	NextOperation,
 	Operation;
@@ -23,7 +21,7 @@ import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import model.typeLayout : PackField;
 import util.alloc.alloc : TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.dbg : log;
+import util.dbg : log, logNoNewline, logSymNoNewline;
 import util.collection.arr : at, begin, last, size, sizeNat;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.globalAllocatedStack :
@@ -331,6 +329,7 @@ immutable(NextOperation) opAssertUnreachable(ref Interpreter a, immutable(Operat
 }
 
 immutable(NextOperation) opRemove(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opRemove");
 	immutable size_t offset = readStackOffset(cur);
 	immutable size_t nEntries = readSizeT(cur);
 	remove(a.dataStack, offset, nEntries);
@@ -338,6 +337,7 @@ immutable(NextOperation) opRemove(ref Interpreter a, immutable(Operation)* cur) 
 }
 
 immutable(NextOperation) opReturn(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opReturn");
 	return stackIsEmpty(a.returnStack)
 		? immutable NextOperation(&operationOpStopInterpretation[0])
 		: nextOperation(a, pop(a.returnStack));
@@ -355,10 +355,12 @@ private immutable(Operation[8]) operationOpStopInterpretation = [
 ];
 
 immutable(NextOperation) opStopInterpretation(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opStopInterpretation");
 	return immutable NextOperation(&operationOpStopInterpretation[0]);
 }
 
 @trusted immutable(NextOperation) opJumpIfFalse(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opJumpIfFalse");
 	immutable ByteCodeOffsetUnsigned offset = immutable ByteCodeOffsetUnsigned(readSizeT(cur));
 	immutable Nat64 value = pop(a.dataStack);
 	if (value == immutable Nat64(0))
@@ -367,6 +369,7 @@ immutable(NextOperation) opStopInterpretation(ref Interpreter a, immutable(Opera
 }
 
 @trusted immutable(NextOperation) opSwitch0ToN(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opSwitch0T0N");
 	immutable ByteCodeOffsetUnsigned[] offsets = readArray!ByteCodeOffsetUnsigned(cur);
 	immutable Nat64 value = pop(a.dataStack);
 	immutable ByteCodeOffsetUnsigned offset = at(offsets, safeSizeTFromU64(value.raw()));
@@ -374,20 +377,78 @@ immutable(NextOperation) opStopInterpretation(ref Interpreter a, immutable(Opera
 }
 
 @trusted immutable(NextOperation) opStackRef(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opStackRef");
 	immutable size_t offset = readStackOffset(cur);
 	push(a.dataStack, immutable Nat64(cast(immutable ulong) stackRef(a.dataStack, offset)));
 	return nextOperation(a, cur);
 }
 
-@trusted immutable(NextOperation) opRead(ref Interpreter a, immutable(Operation)* cur) {
-	immutable size_t offset = readSizeT(cur);
-	immutable size_t size = readSizeT(cur);
-	immutable ubyte* ptr = cast(immutable ubyte*) pop(a.dataStack).raw();
-	readNoCheck(a.dataStack, ptr + offset, size);
+immutable(NextOperation) opReadWords(immutable size_t offsetWords, immutable size_t sizeWords)(
+	ref Interpreter a,
+	immutable Operation* cur,
+) {
+	debug log(a.dbg, "opReadWords", offsetWords, sizeWords);
+	return opReadWordsCommon(a, cur, offsetWords, sizeWords);
+}
+
+immutable(NextOperation) opReadWordsVariable(ref Interpreter a, immutable(Operation)* cur) {
+	immutable size_t offsetWords = readSizeT(cur);
+	immutable size_t sizeWords = readSizeT(cur);
+	debug log(a.dbg, "opReadWordsVariable", offsetWords, sizeWords);
+	return opReadWordsCommon(a, cur, offsetWords, sizeWords);
+}
+
+private @trusted immutable(NextOperation) opReadWordsCommon(
+	ref Interpreter a,
+	immutable Operation* cur,
+	immutable size_t offsetWords,
+	immutable size_t sizeWords,
+) {
+	immutable Nat64* ptr = (cast(immutable Nat64*) pop(a.dataStack).raw()) + offsetWords;
+	foreach (immutable size_t i; 0 .. sizeWords)
+		push(a.dataStack, ptr[i]);
+	return nextOperation(a, cur);
+}
+
+
+@trusted immutable(NextOperation) opReadNat8(immutable size_t offsetBytes)(
+	ref Interpreter a,
+	immutable Operation* cur,
+) {
+	debug log(a.dbg, "opReadNat8", offsetBytes);
+	push(a.dataStack, immutable Nat64(*((cast(immutable ubyte*) pop(a.dataStack).raw()) + offsetBytes)));
+	return nextOperation(a, cur);
+}
+
+@trusted immutable(NextOperation) opReadNat16(immutable size_t offsetNat16s)(
+	ref Interpreter a,
+	immutable Operation* cur,
+) {
+	debug log(a.dbg, "opReadNat16", offsetNat16s);
+	push(a.dataStack, immutable Nat64(*((cast(immutable ushort*) pop(a.dataStack).raw()) + offsetNat16s)));
+	return nextOperation(a, cur);
+}
+
+@trusted immutable(NextOperation) opReadNat32(immutable size_t offsetNat32s)(
+	ref Interpreter a,
+	immutable Operation* cur,
+) {
+	debug log(a.dbg, "opReadNat32", offsetNat32s);
+	push(a.dataStack, immutable Nat64(*((cast(immutable uint*) pop(a.dataStack).raw()) + offsetNat32s)));
+	return nextOperation(a, cur);
+}
+
+@trusted immutable(NextOperation) opReadBytesVariable(ref Interpreter a, immutable(Operation)* cur) {
+	immutable size_t offsetBytes = readSizeT(cur);
+	immutable size_t sizeBytes = readSizeT(cur);
+	debug log(a.dbg, "opReadBytesVariable", offsetBytes, sizeBytes);
+	immutable ubyte* ptr = (cast(immutable ubyte*) pop(a.dataStack).raw()) + offsetBytes;
+	readNoCheck(a.dataStack, ptr, sizeBytes);
 	return nextOperation(a, cur);
 }
 
 @trusted immutable(NextOperation) opWrite(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opWrite");
 	immutable size_t offset = readSizeT(cur);
 	immutable size_t size = readSizeT(cur);
 	if (size < 8) { //TODO:UNNECESSARY?
@@ -425,11 +486,13 @@ private @trusted void writePartialBytes(ubyte* ptr, immutable ulong value, immut
 }
 
 immutable(NextOperation) opCall(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opCall");
 	immutable ByteCodeIndex address = immutable ByteCodeIndex(readSizeT(cur));
 	return callCommon(a, address, cur);
 }
 
 immutable(NextOperation) opCallFunPtr(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opCallFunPtr");
 	immutable size_t parametersSize = readSizeT(cur);
 	//TODO: handle a real function pointer being here?
 	immutable ByteCodeIndex address = immutable ByteCodeIndex(
@@ -448,6 +511,7 @@ private immutable(NextOperation) callCommon(
 
 //TODO: not @trusted
 @trusted immutable(NextOperation) opExtern(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opExtern");
 	immutable ExternOp op = cast(ExternOp) readNat64(cur).raw();
 	final switch (op) {
 		case ExternOp.backtrace:
@@ -538,13 +602,6 @@ private immutable(NextOperation) callCommon(
 	return nextOperation(a, cur);
 }
 
-//TODO:KILL, use separate functions for each operation
-@trusted immutable(NextOperation) opFn(ref Interpreter a, immutable(Operation)* cur) {
-	immutable FnOp fnOp = cast(immutable FnOp) readNat64(cur).raw();
-	applyFn(a.dataStack, fnOp);
-	return nextOperation(a, cur);
-}
-
 private @system immutable(size_t) backtrace(ref Interpreter a, void** res, immutable uint size) {
 	immutable size_t resSize = min(stackSize(a.returnStack), size);
 	foreach (immutable size_t i; 0 .. resSize)
@@ -554,6 +611,11 @@ private @system immutable(size_t) backtrace(ref Interpreter a, void** res, immut
 
 @trusted immutable(NextOperation) opExternDynCall(ref Interpreter a, immutable(Operation)* cur) {
 	immutable Sym name = immutable Sym(readNat64(cur).raw());
+	debug {
+		logNoNewline(a.dbg, "opExternDynCall ");
+		logSymNoNewline(a.dbg, name);
+		log(a.dbg, "");
+	}
 	immutable DynCallType returnType = cast(immutable DynCallType) readNat64(cur).raw();
 	scope immutable DynCallType[] parameterTypes = readArray!DynCallType(cur);
 	scope immutable Nat64[] params = popN(a.dataStack, size(parameterTypes));
@@ -566,11 +628,25 @@ private @system immutable(size_t) backtrace(ref Interpreter a, void** res, immut
 // This isn't the structure the posix jmp-buf-tag has, but it fits inside it
 private alias JmpBufTag = InterpreterRestore*;
 
+immutable(NextOperation) opFnUnary(alias cb)(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opFnUnary", __traits(identifier, cb));
+	push(a.dataStack, cb(pop(a.dataStack).raw()));
+	return nextOperation(a, cur);
+}
+
+immutable(NextOperation) opFnBinary(alias cb)(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opFnBinary", __traits(identifier, cb));
+	immutable ulong y = pop(a.dataStack).raw();
+	immutable ulong x = pop(a.dataStack).raw();
+	push(a.dataStack, cb(x, y));
+	return nextOperation(a, cur);
+}
+
 private immutable(NextOperation) nextOperation(ref Interpreter a, immutable Operation* cur) {
 	return false ? getNextOperationAndDebug(a, cur) : immutable NextOperation(cur);
 }
 
-@trusted immutable(Operation) readOperation(scope ref immutable(Operation)* cur) {
+private @trusted immutable(Operation) readOperation(scope ref immutable(Operation)* cur) {
 	immutable Operation res = *cur;
 	cur++;
 	return res;
@@ -606,11 +682,13 @@ private @trusted immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {
 }
 
 @trusted immutable(NextOperation) opJump(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opJump");
 	immutable ByteCodeOffset offset = immutable ByteCodeOffset(readInt64(cur).raw());
 	return nextOperation(a, cur + offset.offset);
 }
 
 @trusted immutable(NextOperation) opPack(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opPack");
 	immutable size_t inEntries = readSizeT(cur);
 	immutable size_t outEntries = readSizeT(cur);
 	immutable PackField[] fields = readArray!PackField(cur);
@@ -633,12 +711,14 @@ private @trusted immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {
 }
 
 immutable(NextOperation) opPushValue64(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opPushValue64");
 	immutable Nat64 value = readNat64(cur);
 	push(a.dataStack, value);
 	return nextOperation(a, cur);
 }
 
 @trusted immutable(NextOperation) opDupBytes(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opDupBytes");
 	immutable size_t offsetBytes = readSizeT(cur);
 	immutable size_t sizeBytes = readSizeT(cur);
 
@@ -647,13 +727,21 @@ immutable(NextOperation) opPushValue64(ref Interpreter a, immutable(Operation)* 
 	return nextOperation(a, cur);
 }
 
-@trusted immutable(NextOperation) opDupWord(ref Interpreter a, immutable(Operation)* cur) {
+immutable(NextOperation) opDupWord(immutable size_t offsetWords)(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opDupWord", offsetWords);
+	push(a.dataStack, peek(a.dataStack, offsetWords));
+	return nextOperation(a, cur);
+}
+
+immutable(NextOperation) opDupWordVariable(ref Interpreter a, immutable(Operation)* cur) {
 	immutable size_t offsetWords = readSizeT(cur);
+	debug log(a.dbg, "opDupWordVariable", offsetWords);
 	push(a.dataStack, peek(a.dataStack, offsetWords));
 	return nextOperation(a, cur);
 }
 
 @trusted immutable(NextOperation) opDupWords(ref Interpreter a, immutable(Operation)* cur) {
+	debug log(a.dbg, "opDupWords");
 	immutable size_t offsetWords = readStackOffset(cur);
 	immutable size_t sizeWords = readSizeT(cur);
 	const(Nat64)* ptr = stackTop(a.dataStack) - offsetWords;
@@ -665,9 +753,27 @@ immutable(NextOperation) opPushValue64(ref Interpreter a, immutable(Operation)* 
 }
 
 // Copies data from the top of the stack to write to something lower on the stack.
-@trusted immutable(NextOperation) opSet(ref Interpreter a, immutable(Operation)* cur) {
+immutable(NextOperation) opSet(immutable size_t offsetWords, immutable size_t sizeWords)(
+	ref Interpreter a,
+	immutable Operation* cur,
+) {
+	debug log(a.dbg, "opSet", offsetWords, sizeWords);
+	return opSetCommon(a, cur, offsetWords, sizeWords);
+}
+
+immutable(NextOperation) opSetVariable(ref Interpreter a, immutable(Operation)* cur) {
 	immutable size_t offsetWords = readStackOffset(cur);
 	immutable size_t sizeWords = readSizeT(cur);
+	debug log(a.dbg, "opSetVariable", offsetWords, sizeWords);
+	return opSetCommon(a, cur, offsetWords, sizeWords);
+}
+
+private @trusted immutable(NextOperation) opSetCommon(
+	ref Interpreter a,
+	immutable Operation* cur,
+	immutable size_t offsetWords,
+	immutable size_t sizeWords,
+) {
 	// Start at the end of the range and pop in reverse
 	const Nat64* begin = stackTop(a.dataStack) - offsetWords;
 	const(Nat64)* ptr = begin + sizeWords;
