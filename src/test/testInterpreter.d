@@ -13,7 +13,7 @@ import interpret.bytecode :
 	Operation;
 import interpret.extern_ : Extern;
 import interpret.fakeExtern : withFakeExtern;
-import interpret.runBytecode : Interpreter, nextByteCodeIndex, opCall, opStopInterpretation, withInterpreter;
+import interpret.runBytecode : byteCode, Interpreter, nextByteCodeIndex, opCall, opStopInterpretation, withInterpreter;
 import interpret.bytecodeWriter :
 	ByteCodeWriter,
 	fillDelayedCall,
@@ -149,11 +149,11 @@ void doInterpret(
 		fullIndexDictOfArr!(LowFunIndex, LowFun)(lowFun),
 		immutable LowFunIndex(0),
 		emptyArr!Sym);
-	withFakeExtern(test.alloc, (scope ref Extern extern_) {
+	withFakeExtern(test.alloc, (scope ref Extern extern_) @safe {
 		withInterpreter!void(
 			test.dbg, test.alloc, extern_, lowProgram, byteCode, test.allPaths, filesInfo,
-			(scope ref Interpreter interpreter) {
-				runInterpreter(interpreter, initialOperationPointer(interpreter.byteCode));
+			(scope ref Interpreter interpreter) @safe {
+				runInterpreter(interpreter, initialOperationPointer(byteCode));
 			});
 		return immutable ExitCode(0);
 	});

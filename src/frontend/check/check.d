@@ -501,7 +501,7 @@ immutable(ArrWithSize!TypeParam) checkTypeParams(
 	ref immutable ArrWithSize!NameAndRange asts,
 ) {
 	immutable ArrWithSize!TypeParam res =
-		mapWithSizeWithIndex(alloc, toArr(asts), (immutable size_t index, ref immutable NameAndRange ast) =>
+		mapWithSizeWithIndex!(TypeParam, NameAndRange)(alloc, toArr(asts), (immutable size_t index, scope ref immutable NameAndRange ast) =>
 			immutable TypeParam(rangeInFile(ctx, rangeOfNameAndRange(ast)), ast.name, index));
 	eachPair!TypeParam(toArr(res), (ref immutable TypeParam a, ref immutable TypeParam b) {
 		if (symEq(a.name, b.name))
@@ -523,10 +523,10 @@ immutable(Params) checkParams(
 	return matchParamsAst!(immutable Params)(
 		ast,
 		(immutable ParamAst[] asts) {
-			immutable ArrWithSize!Param paramsWithSize = mapWithSizeWithIndex!Param(
+			immutable ArrWithSize!Param paramsWithSize = mapWithSizeWithIndex!(Param, ParamAst)(
 				alloc,
 				asts,
-				(immutable size_t index, ref immutable ParamAst ast) =>
+				(immutable size_t index, scope ref immutable ParamAst ast) =>
 					checkParam(
 						alloc, ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts,
 						ast, index));
@@ -568,7 +568,7 @@ immutable(Param) checkParam(
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable TypeParamsScope typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
-	ref immutable ParamAst ast,
+	scope ref immutable ParamAst ast,
 	immutable size_t index,
 ) {
 	immutable Type type = typeFromAst(

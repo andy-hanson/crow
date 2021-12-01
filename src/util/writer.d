@@ -17,7 +17,7 @@ struct Writer {
 	ArrBuilder!char res;
 }
 
-immutable(string) finishWriter(ref Writer writer) {
+immutable(string) finishWriter(scope ref Writer writer) {
 	return finishArr(writer.alloc.deref, writer.res);
 }
 

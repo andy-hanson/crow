@@ -73,7 +73,7 @@ struct ByteCode {
 	}
 }
 
-@trusted immutable(Operation*) initialOperationPointer(ref immutable ByteCode a) {
+@trusted immutable(Operation*) initialOperationPointer(return scope ref immutable ByteCode a) {
 	return begin(a.byteCode) + a.main.index;
 }
 

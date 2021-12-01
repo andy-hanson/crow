@@ -176,7 +176,7 @@ extern(C) {
 		const Ptr!gcc_jit_type return_type,
 		const char* name,
 		int num_params,
-		const Ptr!gcc_jit_param* params,
+		scope const Ptr!gcc_jit_param* params,
 		bool is_variadic);
 
 	immutable(Ptr!gcc_jit_function) gcc_jit_context_get_builtin_function(
@@ -282,7 +282,7 @@ extern(C) {
 		gcc_jit_location *loc,
 		const Ptr!gcc_jit_function func,
 		int numargs,
-		const Ptr!gcc_jit_rvalue* args);
+		scope const Ptr!gcc_jit_rvalue* args);
 
 	immutable(Ptr!gcc_jit_rvalue) gcc_jit_context_new_call_through_ptr(
 		ref gcc_jit_context ctxt,

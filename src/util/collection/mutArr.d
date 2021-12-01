@@ -121,7 +121,7 @@ static if (!is(size_t == ulong)) {
 	return a.begin_[0 .. a.size_];
 }
 
-@trusted immutable(T[]) moveToArr(T)(ref Alloc alloc, ref MutArr!(immutable T) a) {
+@trusted immutable(T[]) moveToArr(T)(ref Alloc alloc, scope ref MutArr!(immutable T) a) {
 	return cast(immutable) moveToArr_mut(alloc, a);
 }
 @trusted T[] moveToArr_mut(T)(ref Alloc alloc, ref MutArr!T a) {

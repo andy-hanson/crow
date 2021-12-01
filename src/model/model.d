@@ -1209,7 +1209,7 @@ ref immutable(Params) params(return scope ref immutable CalledDecl a) {
 	return a.sig.params;
 }
 
-immutable(TypeParam[]) typeParams(return scope ref immutable CalledDecl a) {
+immutable(TypeParam[]) typeParams(ref immutable CalledDecl a) {
 	return matchCalledDecl!(immutable TypeParam[])(
 		a,
 		(immutable Ptr!FunDecl f) => f.deref().typeParams,

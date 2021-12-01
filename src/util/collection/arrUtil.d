@@ -44,7 +44,7 @@ import util.util : max, verify;
 pure:
 
 immutable(ArrWithSize!T) arrWithSizeLiteral(T)(ref Alloc alloc, scope immutable T[] values) {
-	return mapWithSizeWithIndex(alloc, values, (immutable size_t, ref immutable T value) =>
+	return mapWithSizeWithIndex!(T, T)(alloc, values, (immutable size_t, scope ref immutable T value) =>
 		value);
 }
 
@@ -214,7 +214,7 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 
 @trusted immutable(Out[]) map(Out, In)(
 	ref Alloc alloc,
-	immutable In[] a,
+	scope immutable In[] a,
 	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, size(a));
@@ -447,8 +447,8 @@ immutable(ArrWithSize!Out) mapWithSize(Out, In)(
 
 @trusted immutable(ArrWithSize!Out) mapWithSizeWithIndex(Out, In)(
 	ref Alloc alloc,
-	immutable In[] a,
-	scope immutable(Out) delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
+	scope immutable In[] a,
+	scope immutable(Out) delegate(immutable size_t, scope ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	ubyte* res = allocateBytes(alloc, size_t.sizeof + Out.sizeof * size(a));
 	*(cast(size_t*) res) = size(a);

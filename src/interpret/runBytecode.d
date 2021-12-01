@@ -99,7 +99,7 @@ immutable(T) withInterpreter(T)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref Extern extern_,
-	ref immutable LowProgram lowProgram,
+	scope ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
 	ref const AllPaths allPaths,
 	ref immutable FilesInfo filesInfo,
@@ -175,16 +175,17 @@ struct Interpreter {
 	ref immutable(LowProgram) lowProgram() const return scope pure {
 		return lowProgramPtr.deref();
 	}
-	//TODO:PRIVATE
-	public ref immutable(ByteCode) byteCode() const return scope pure {
-		return byteCodePtr.deref();
-	}
 	ref const(AllPaths) allPaths() const return scope pure {
 		return allPathsPtr.deref();
 	}
 	ref immutable(FilesInfo) filesInfo() const return scope pure {
 		return filesInfoPtr.deref();
 	}
+}
+
+//TODO:PRIVATE
+public pure ref immutable(ByteCode) byteCode(return scope ref const Interpreter a) {
+	return a.byteCodePtr.deref();
 }
 
 // WARN: Does not restore data. Just mean for setjmp/longjmp.

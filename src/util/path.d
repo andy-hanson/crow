@@ -450,10 +450,10 @@ private struct ParentAndBaseName {
 
 immutable(Opt!string) pathParent(return scope immutable string s) {
 	immutable Opt!ParentAndBaseName o = pathParentAndBaseName(s);
-	return mapOption(o, (ref immutable ParentAndBaseName p) => p.parent);
+	return has(o) ? some(force(o).parent) : none!string;
 }
 
-private immutable(Opt!ParentAndBaseName) pathParentAndBaseName(immutable string s) {
+private immutable(Opt!ParentAndBaseName) pathParentAndBaseName(return scope immutable string s) {
 	immutable Opt!size_t index = pathSlashIndex(s);
 	return has(index)
 		? some(immutable ParentAndBaseName(s[0 .. force(index)], s[force(index) + 1 .. $]))

@@ -40,10 +40,10 @@ ref const(T) only_const(size_t maxSize, T)(ref const MutMaxArr!(maxSize, T) a) {
 	return a.values[0];
 }
 
-@trusted T[] tempAsArr_mut(size_t maxSize, T)(return scope ref MutMaxArr!(maxSize, T) a) {
+@trusted T[] tempAsArr_mut(size_t maxSize, T)(return ref MutMaxArr!(maxSize, T) a) {
 	return a.values[0 .. a.size_];
 }
-@trusted const(T[]) tempAsArr_const(size_t maxSize, T)(return scope ref const MutMaxArr!(maxSize, T) a) {
+@trusted const(T[]) tempAsArr_const(size_t maxSize, T)(return ref const MutMaxArr!(maxSize, T) a) {
 	return a.values[0 .. a.size_];
 }
 

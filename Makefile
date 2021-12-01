@@ -55,14 +55,24 @@ bin/crow: $(cli_deps)
 	rm bin/crow.o
 
 # I waited 15 minutes for it to compile with -O2 before giving up
-fast_flags = -O1 --enable-asserts=false --boundscheck=off
+#d_flags_fast = $(d_flags) --enable-asserts=false --boundscheck=off
+# For some reason it's faster to compile without '-betterC' or '--enable-asserts=false'.
+# See https://github.com/ldc-developers/ldc/issues/3879
+d_flags_fast = -preview=dip25 -preview=dip1000 --boundscheck=off
 
-# Not currently used for anything
-bin/crow-optimized: $(cli_deps)
-	ldc2 -ofbin/crow-optimized $(d_flags) $(fast_flags) $(app_files) $(app_link)
+# Optimized builds are not currently used for anything
+bin/crow-o1: $(cli_deps)
+	ldc2 -ofbin/crow-o1 $(d_flags_fast) --enable-asserts=false -O1 $(app_files) $(app_link)
 
-bin/crow-optimized-debug: $(cli_deps)
-	ldc2 -g -ofbin/crow-optimized-debug $(d_flags) -g $(fast_flags) $(app_files) $(app_link)
+bin/crow-o2: $(cli_deps)
+	# Build will take about 4 minutes
+	ldc2 -ofbin/crow-o2 $(d_flags_fast) -O2 $(app_files) $(app_link)
+
+bin/crow-o2-dbg: $(cli_deps)
+	# Build will take about 9 minutes
+	ldc2 -ofbin/crow-o2-dbg $(d_flags_fast) -O2 -g $(app_files) $(app_link)
+
+# -O3 seems to have no benefit
 
 # Unfortunately it fails with `undefined symbol: __assert` regardless of the `--checkaction` setting without `--enable-asserts=false`
 # --static would be nice, but doesn't seem to work: `lld: error: unknown argument: -static`

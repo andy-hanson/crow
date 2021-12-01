@@ -127,7 +127,7 @@ immutable(Type) typeFromAst(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	immutable TypeAst ast,
+	scope immutable TypeAst ast,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,

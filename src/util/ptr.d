@@ -63,11 +63,11 @@ struct Ptr(T) {
 	@trusted immutable(T*) rawPtr() immutable { return cast(immutable T*) ptr; }
 }
 
-@trusted immutable(Ptr!T) ptrTrustMe(T)(ref immutable T t) {
+@trusted immutable(Ptr!T) ptrTrustMe(T)(scope ref immutable T t) {
 	return immutable Ptr!T(&t);
 }
 
-@trusted Ptr!T ptrTrustMe_mut(T)(ref T t) {
+@trusted Ptr!T ptrTrustMe_mut(T)(scope ref T t) {
 	return Ptr!T(&t);
 }
 

@@ -21,7 +21,7 @@ immutable(T[]) finishArr_immutable(T)(ref Alloc alloc, ref ArrBuilder!(immutable
 	return moveToArr(alloc, a.data);
 }
 
-immutable(T[]) finishArr(T)(ref Alloc alloc, ref ArrBuilder!T a) {
+immutable(T[]) finishArr(T)(ref Alloc alloc, scope ref ArrBuilder!T a) {
 	return moveToArr(alloc, a.data);
 }
 
