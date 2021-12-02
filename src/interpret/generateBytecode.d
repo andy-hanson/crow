@@ -296,8 +296,8 @@ void generateBytecodeForFun(
 	immutable Nat64 returnEntries = nStackEntriesForType(program, fun.returnType);
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 
-	matchLowFunBody!void(
-		fun.body_,
+	matchLowFunBody!(
+		void,
 		(ref immutable LowFunBody.Extern body_) {
 			generateExternCall(dbg, tempAlloc, writer, funIndex, fun, body_);
 		},
@@ -319,7 +319,8 @@ void generateBytecodeForFun(
 				immutable StackEntries(
 					immutable StackEntry(immutable Nat64(0)),
 					stackEntryAfterParameters.entry));
-		});
+		},
+	)(fun.body_);
 	verify(getNextStackEntry(writer).entry == returnEntries);
 	writeReturn(dbg, writer, source);
 	setNextStackEntry(writer, immutable StackEntry(immutable Nat64(0)));
@@ -349,8 +350,8 @@ void generateExternCall(
 }
 
 immutable(DynCallType) toDynCallType(ref immutable LowType a) {
-	return matchLowType!(immutable DynCallType)(
-		a,
+	return matchLowType!(
+		immutable DynCallType,
 		(immutable LowType.ExternPtr) =>
 			DynCallType.pointer,
 		(immutable LowType.FunPtr) =>
@@ -394,7 +395,8 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 		(immutable LowType.Record) =>
 			unreachable!(immutable DynCallType),
 		(immutable LowType.Union) =>
-			unreachable!(immutable DynCallType));
+			unreachable!(immutable DynCallType),
+	)(a);
 }
 
 immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
@@ -485,8 +487,8 @@ void generateExpr(
 	ref immutable LowExpr expr,
 ) {
 	immutable ByteCodeSource source = immutable ByteCodeSource(ctx.curFunIndex, expr.source.range.start);
-	matchLowExprKind!void(
-		expr.kind,
+	matchLowExprKind!(
+		void,
 		(ref immutable LowExprKind.Call it) {
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			immutable Nat64 expectedStackEffect = nStackEntriesForType(ctx, expr.type);
@@ -655,7 +657,8 @@ void generateExpr(
 		},
 		(ref immutable LowExprKind.Zeroed) {
 			writePushEmptySpace(dbg, writer, source, nStackEntriesForType(ctx, expr.type));
-		});
+		},
+	)(expr.kind);
 }
 
 void generateSwitch0ToN(

@@ -77,8 +77,8 @@ private immutable(Type) instStructFromAst(
 		immutable Type[] typeArgs = getTypeArgsIfNumberMatches(
 			alloc, ctx, commonTypes, range, structsAndAliasesDict,
 			sOrA, nExpectedTypeArgs, typeArgAsts, typeParamsScope, delayStructInsts);
-		return matchStructOrAliasPtr!(immutable Type)(
-			sOrA,
+		return matchStructOrAliasPtr!(
+			immutable Type,
 			(ref immutable StructAlias a) =>
 				nExpectedTypeArgs != 0
 					? todo!(immutable Type)("alias with type params")
@@ -88,7 +88,8 @@ private immutable(Type) instStructFromAst(
 					alloc,
 					ctx.programState,
 					immutable StructDeclAndArgs(decl, typeArgs),
-					delayStructInsts)));
+					delayStructInsts)),
+		)(sOrA);
 	}
 }
 
@@ -132,8 +133,8 @@ immutable(Type) typeFromAst(
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
-	return matchTypeAst!(immutable Type)(
-		ast,
+	return matchTypeAst!(
+		immutable Type,
 		(immutable TypeAst.Dict it) =>
 			instStructFromAst(
 				alloc,
@@ -181,7 +182,8 @@ immutable(Type) typeFromAst(
 				[it.left],
 				structsAndAliasesDict,
 				typeParamsScope,
-				delayStructInsts));
+				delayStructInsts),
+	)(ast);
 }
 
 private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable Sym a) {

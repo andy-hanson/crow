@@ -168,13 +168,14 @@ immutable(Repr) reprSig(ref Alloc alloc, ref Ctx ctx, ref immutable Sig a) {
 		reprFileAndPos(alloc, a.fileAndPos),
 		reprSym(a.name),
 		reprType(alloc, ctx, a.returnType),
-		matchParams!(immutable Repr)(
-			a.params,
+		matchParams!(
+			immutable Repr,
 			(immutable Param[] params) =>
 				reprArr(alloc, params, (ref immutable Param it) =>
 					reprParam(alloc, ctx, it)),
 			(ref immutable Params.Varargs v) =>
-				reprRecord(alloc, "varargs", [reprParam(alloc, ctx, v.param)]))]);
+				reprRecord(alloc, "varargs", [reprParam(alloc, ctx, v.param)]),
+		)(a.params)]);
 }
 
 immutable(Repr) reprParam(ref Alloc alloc, ref Ctx ctx, ref immutable Param a) {
@@ -190,8 +191,8 @@ immutable(Repr) reprSpecInst(ref Alloc alloc, ref Ctx ctx, ref immutable SpecIns
 }
 
 immutable(Repr) reprFunBody(ref Alloc alloc, ref Ctx ctx, ref immutable FunBody a) {
-	return matchFunBody!(immutable Repr)(
-		a,
+	return matchFunBody!(
+		immutable Repr,
 		(ref immutable FunBody.Builtin) =>
 			reprSym("builtin"),
 		(ref immutable FunBody.CreateEnum it) =>
@@ -214,18 +215,20 @@ immutable(Repr) reprFunBody(ref Alloc alloc, ref Ctx ctx, ref immutable FunBody 
 		(ref immutable FunBody.RecordFieldGet it) =>
 			reprRecord(alloc, "field-get", [reprNat(it.fieldIndex)]),
 		(ref immutable FunBody.RecordFieldSet it) =>
-			reprRecord(alloc, "field-set", [reprNat(it.fieldIndex)]));
+			reprRecord(alloc, "field-set", [reprNat(it.fieldIndex)]),
+	)(a);
 }
 
 immutable(Repr) reprType(ref Alloc alloc, ref Ctx ctx, immutable Type t) {
-	return matchType!(immutable Repr)(
-		t,
+	return matchType!(
+		immutable Repr,
 		(immutable Type.Bogus) =>
 			reprSym("bogus"),
 		(immutable Ptr!TypeParam p) =>
 			reprRecord(alloc, "type-param", [reprSym(p.deref().name)]),
 		(immutable Ptr!StructInst a) =>
-			reprStructInst(alloc, ctx, a.deref()));
+			reprStructInst(alloc, ctx, a.deref()),
+	)(t);
 }
 
 immutable(Repr) reprStructInst(ref Alloc alloc, ref Ctx ctx, ref immutable StructInst a) {
@@ -236,8 +239,8 @@ immutable(Repr) reprStructInst(ref Alloc alloc, ref Ctx ctx, ref immutable Struc
 }
 
 immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr expr) {
-	return matchExpr!(immutable Repr)(
-		expr,
+	return matchExpr!(
+		immutable Repr,
 		(ref immutable Expr.Bogus) =>
 			reprSym("bogus"),
 		(ref immutable Expr.Call e) =>
@@ -300,7 +303,8 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr expr) 
 		(ref immutable Expr.StringLiteral it) =>
 			reprRecord(alloc, "string-lit", [reprStr(it.literal)]),
 		(ref immutable Expr.SymbolLiteral it) =>
-			reprRecord(alloc, "sym-lit", [reprSym(it.value)]));
+			reprRecord(alloc, "sym-lit", [reprSym(it.value)]),
+	)(expr);
 }
 
 immutable(Repr) reprClosureField(ref Alloc alloc, ref Ctx ctx, ref immutable ClosureField a) {
@@ -336,12 +340,13 @@ immutable(Repr) reprLocal(ref Alloc alloc, ref Ctx ctx, ref immutable Local a) {
 }
 
 immutable(Repr) reprCalled(ref Alloc alloc, ref Ctx ctx, ref immutable Called a) {
-	return matchCalled(
-		a,
+	return matchCalled!(
+		immutable Repr,
 		(immutable Ptr!FunInst it) =>
 			reprFunInst(alloc, ctx, it.deref()),
 		(ref immutable SpecSig it) =>
-			reprSpecSig(alloc, ctx, it));
+			reprSpecSig(alloc, ctx, it),
+	)(a);
 }
 
 immutable(Repr) reprFunInst(ref Alloc alloc, ref Ctx ctx, ref immutable FunInst a) {

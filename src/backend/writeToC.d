@@ -221,8 +221,8 @@ immutable(Temp) getNextTemp(ref FunBodyCtx ctx) {
 }
 
 void writeType(ref Writer writer, ref immutable Ctx ctx, ref immutable LowType t) {
-	return matchLowTypeCombinePtr!void(
-		t,
+	return matchLowTypeCombinePtr!(
+		void,
 		(immutable LowType.ExternPtr it) {
 			writeStatic(writer, "struct ");
 			writeStructMangledName(
@@ -247,7 +247,8 @@ void writeType(ref Writer writer, ref immutable Ctx ctx, ref immutable LowType t
 		(immutable LowType.Union it) {
 			writeStatic(writer, "struct ");
 			writeStructMangledName(writer, ctx.mangledNames, fullIndexDictGet(ctx.program.allUnions, it).source);
-		});
+		},
+	)(t);
 }
 
 void writeRecordType(ref Writer writer, ref immutable Ctx ctx, immutable LowType.Record a) {
@@ -304,8 +305,8 @@ void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion
 		writeChar(writer, ';');
 	}
 
-	matchConcreteStructBody!void(
-		body_(a.source.deref()),
+	matchConcreteStructBody!(
+		void,
 		(ref immutable ConcreteStructBody.Builtin it) {
 			verify(it.kind == BuiltinStructKind.fun);
 			// Fun types must be 16 bytes
@@ -318,7 +319,8 @@ void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion
 		(ref immutable(ConcreteStructBody.Flags)) {},
 		(ref immutable(ConcreteStructBody.ExternPtr)) {},
 		(ref immutable(ConcreteStructBody.Record)) {},
-		(ref immutable(ConcreteStructBody.Union)) {});
+		(ref immutable(ConcreteStructBody.Union)) {},
+	)(body_(a.source.deref()));
 
 	writeStatic(writer, "\n\t};");
 	writeStructEnd(writer);
@@ -436,8 +438,8 @@ void writeFunDefinition(
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 ) {
-	matchLowFunBody!void(
-		fun.body_,
+	matchLowFunBody!(
+		void,
 		(ref immutable LowFunBody.Extern it) {
 			// declaration is enough
 		},
@@ -449,7 +451,8 @@ void writeFunDefinition(
 			writeFunSig(writer, ctx.program, fun);
 			writeStatic(writer, " */\n");
 			writeFunWithExprBody(writer, tempAlloc, ctx, funIndex, fun, it);
-		});
+		},
+	)(fun.body_);
 }
 
 void writeFunWithExprBody(
@@ -751,8 +754,8 @@ immutable(WriteExprResult) writeExpr(
 		return writeInlineableSimple(writer, tempAlloc, indent, ctx, writeKind, type, inline);
 	}
 
-	return matchLowExprKind!(immutable WriteExprResult)(
-		expr.kind,
+	return matchLowExprKind!(
+		immutable WriteExprResult,
 		(ref immutable LowExprKind.Call it) =>
 			writeCallExpr(writer, tempAlloc, indent, ctx, writeKind, type, it),
 		(ref immutable LowExprKind.CallFunPtr it) =>
@@ -855,7 +858,8 @@ immutable(WriteExprResult) writeExpr(
 		(ref immutable LowExprKind.Zeroed) =>
 			inlineableSimple(() {
 				writeZeroedValue(writer, ctx.ctx, type);
-			}));
+			}),
+	)(expr.kind);
 }
 
 immutable(WriteExprResult) writeNonInlineable(
@@ -1257,8 +1261,8 @@ void writeConstantRef(
 			writeFloatLiteral(writer, it);
 		},
 		(immutable Constant.FunPtr it) {
-			immutable bool isRawPtr = matchLowType!(immutable bool)(
-				type,
+			immutable bool isRawPtr = matchLowType!(
+				immutable bool,
 				(immutable LowType.ExternPtr) => unreachable!bool,
 				(immutable LowType.FunPtr) => false,
 				(immutable PrimitiveType) => unreachable!bool,
@@ -1266,7 +1270,8 @@ void writeConstantRef(
 				(immutable LowType.PtrRawConst) => true,
 				(immutable LowType.PtrRawMut) => true,
 				(immutable LowType.Record) => unreachable!bool,
-				(immutable LowType.Union) => unreachable!bool);
+				(immutable LowType.Union) => unreachable!bool,
+			)(type);
 			if (isRawPtr) writeStatic(writer, "((uint8_t*)");
 			writeFunPtr(writer, ctx, mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun));
 			if (isRawPtr) writeChar(writer, ')');
@@ -1441,8 +1446,8 @@ immutable(WriteExprResult) writeSpecialUnary(
 }
 
 void writeLValue(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowExpr expr) {
-	matchLowExprKind!void(
-		expr.kind,
+	matchLowExprKind!(
+		void,
 		(ref immutable LowExprKind.Call) => unreachable!void(),
 		(ref immutable LowExprKind.CallFunPtr) => unreachable!void(),
 		(ref immutable LowExprKind.CreateRecord) => unreachable!void(),
@@ -1487,12 +1492,13 @@ void writeLValue(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowE
 		(ref immutable LowExprKind.Switch0ToN) => unreachable!void(),
 		(ref immutable LowExprKind.SwitchWithValues) => unreachable!void(),
 		(ref immutable LowExprKind.TailRecur) => unreachable!void(),
-		(ref immutable LowExprKind.Zeroed) => unreachable!void());
+		(ref immutable LowExprKind.Zeroed) => unreachable!void(),
+	)(expr.kind);
 }
 
 void writeZeroedValue(ref Writer writer, ref immutable Ctx ctx, ref immutable LowType type) {
-	return matchLowTypeCombinePtr!void(
-		type,
+	return matchLowTypeCombinePtr!(
+		void,
 		(immutable LowType.ExternPtr) {
 			writeStatic(writer, "NULL");
 		},
@@ -1520,7 +1526,8 @@ void writeZeroedValue(ref Writer writer, ref immutable Ctx ctx, ref immutable Lo
 		(immutable LowType.Union) {
 			writeCastToType(writer, ctx, type);
 			writeStatic(writer, "{0}");
-		});
+		},
+	)(type);
 }
 
 immutable(WriteExprResult) writeSpecialBinary(

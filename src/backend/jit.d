@@ -275,8 +275,8 @@ extern(C) {
 		program.allFuns,
 		gccFuns,
 		(immutable LowFunIndex funIndex, ref immutable LowFun fun, ref Ptr!gcc_jit_function curFun) {
-		matchLowFunBody!void(
-			fun.body_,
+		matchLowFunBody!(
+			void,
 			(ref immutable LowFunBody.Extern it) {},
 			(ref immutable LowFunExprBody expr) {
 				Ptr!gcc_jit_block entryBlock = gcc_jit_function_new_block(curFun, "entry");
@@ -332,7 +332,8 @@ extern(C) {
 					}
 				}
 				verify(err == null);
-			});
+			},
+		)(fun.body_);
 	});
 }
 
@@ -469,15 +470,16 @@ GlobalsForConstants generateGlobalsForConstants(
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 ) {
-	immutable gcc_jit_function_kind kind = matchLowFunBody!(immutable gcc_jit_function_kind)(
-		fun.body_,
+	immutable gcc_jit_function_kind kind = matchLowFunBody!(
+		immutable gcc_jit_function_kind,
 		(ref immutable LowFunBody.Extern it) => it.isGlobal
 			? gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL
 			: gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED,
 		(ref immutable(LowFunExprBody)) =>
 			funIndex == program.main
 			? gcc_jit_function_kind.GCC_JIT_FUNCTION_EXPORTED
-			: gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL);
+			: gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL,
+	)(fun.body_);
 
 	immutable Ptr!gcc_jit_type returnType = getGccType(gccTypes, fun.returnType);
 	//TODO:NO ALLOC
@@ -504,8 +506,8 @@ GlobalsForConstants generateGlobalsForConstants(
 	Ptr!gcc_jit_function res =
 		gcc_jit_context_new_function(ctx, null, kind, returnType, name, cast(int) size(params), params.ptr, false);
 
-	matchLowFunBody!void(
-		fun.body_,
+	matchLowFunBody!(
+		void,
 		(ref immutable LowFunBody.Extern it) {
 			if (it.isGlobal) {
 				Writer globalWriter = Writer(ptrTrustMe_mut(alloc));
@@ -521,7 +523,8 @@ GlobalsForConstants generateGlobalsForConstants(
 				gcc_jit_block_end_with_return(block, null, gcc_jit_lvalue_as_rvalue(global));
 			}
 		},
-		(ref immutable(LowFunExprBody)) {});
+		(ref immutable(LowFunExprBody)) {},
+	)(fun.body_);
 
 	return res;
 }
@@ -816,8 +819,8 @@ immutable(ExprResult) toGccExpr(
 	ref ExprEmit emit,
 	ref immutable LowExpr a,
 ) {
-	return matchLowExprKind!(immutable ExprResult)(
-		a.kind,
+	return matchLowExprKind!(
+		immutable ExprResult,
 		(ref immutable LowExprKind.Call it) =>
 			callToGcc(ctx, emit, a.type, it),
 		(ref immutable LowExprKind.CallFunPtr it) =>
@@ -861,7 +864,8 @@ immutable(ExprResult) toGccExpr(
 		(ref immutable LowExprKind.TailRecur it) =>
 			tailRecurToGcc(ctx, emit, it),
 		(ref immutable LowExprKind.Zeroed) =>
-			zeroedToGcc(ctx, emit, a.type));
+			zeroedToGcc(ctx, emit, a.type),
+	)(a.kind);
 }
 
 immutable(Ptr!gcc_jit_rvalue) emitToRValueCb(
@@ -1682,8 +1686,8 @@ immutable(ExprResult) zeroedToGcc(
 	immutable LowType type,
 ) {
 	immutable Ptr!gcc_jit_type gccType = getGccType(ctx.types, type);
-	return matchLowTypeCombinePtr!(immutable ExprResult)(
-		type,
+	return matchLowTypeCombinePtr!(
+		immutable ExprResult,
 		(immutable LowType.ExternPtr) =>
 			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_null(ctx.gcc, gccType)),
 		(immutable LowType.FunPtr) =>
@@ -1725,15 +1729,16 @@ immutable(ExprResult) zeroedToGcc(
 		},
 		(immutable LowType.Union union_) =>
 			emitUnion(ctx, emit, type, immutable Nat64(0), (ref ExprEmit emitArg) =>
-				zeroedToGcc(ctx, emitArg, at(fullIndexDictGet(ctx.program.allUnions, union_).members, 0))));
+				zeroedToGcc(ctx, emitArg, at(fullIndexDictGet(ctx.program.allUnions, union_).members, 0))),
+	)(type);
 }
 
 immutable(Ptr!gcc_jit_rvalue) arbitraryValue(ref ExprCtx ctx, immutable LowType type) {
 	immutable(Ptr!gcc_jit_rvalue) nullValue() {
 		return gcc_jit_context_null(ctx.gcc, getGccType(ctx.types, type));
 	}
-	return matchLowTypeCombinePtr!(immutable Ptr!gcc_jit_rvalue)(
-		type,
+	return matchLowTypeCombinePtr!(
+		immutable Ptr!gcc_jit_rvalue,
 		(immutable LowType.ExternPtr) =>
 			nullValue(),
 		(immutable LowType.FunPtr) =>
@@ -1746,12 +1751,13 @@ immutable(Ptr!gcc_jit_rvalue) arbitraryValue(ref ExprCtx ctx, immutable LowType 
 		(immutable LowType.Record) =>
 			getRValueUsingLocal(ctx, type, (Ptr!gcc_jit_lvalue) {}),
 		(immutable LowType.Union) =>
-			getRValueUsingLocal(ctx, type, (Ptr!gcc_jit_lvalue) {}));
+			getRValueUsingLocal(ctx, type, (Ptr!gcc_jit_lvalue) {}),
+	)(type);
 }
 
 Ptr!gcc_jit_lvalue getLValue(ref ExprCtx ctx, ref immutable LowExpr expr) {
-	return matchLowExprKind!(Ptr!gcc_jit_lvalue)(
-		expr.kind,
+	return matchLowExprKind!(
+		Ptr!gcc_jit_lvalue,
 		(ref immutable LowExprKind.Call) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.CallFunPtr) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.CreateRecord) => unreachable!(Ptr!gcc_jit_lvalue)(),
@@ -1779,7 +1785,8 @@ Ptr!gcc_jit_lvalue getLValue(ref ExprCtx ctx, ref immutable LowExpr expr) {
 		(ref immutable LowExprKind.Switch0ToN) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.SwitchWithValues) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.TailRecur) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.Zeroed) => unreachable!(Ptr!gcc_jit_lvalue)());
+		(ref immutable LowExprKind.Zeroed) => unreachable!(Ptr!gcc_jit_lvalue)(),
+	)(expr.kind);
 }
 
 immutable(ExprResult) initConstantsToGcc(ref ExprCtx ctx, ref ExprEmit emit) {

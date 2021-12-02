@@ -70,19 +70,21 @@ immutable(MangledNames) buildMangledNames(ref Alloc alloc, ref immutable LowProg
 	// HAX: Ensure "main" has that name.
 	setInDict(alloc, funNameToIndex, shortSymAlphaLiteral("main"), immutable PrevOrIndex!ConcreteFun(0));
 	fullIndexDictEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref immutable LowFun it) {
-		matchLowFunSource!void(
-			it.source,
+		matchLowFunSource!(
+			void,
 			(immutable Ptr!ConcreteFun cf) {
-				matchConcreteFunSource!void(
-					cf.deref().source,
+				matchConcreteFunSource!(
+					void,
 					(ref immutable FunInst i) {
 						//TODO: use temp alloc
 						addToPrevOrIndex!ConcreteFun(alloc, funNameToIndex, funToNameIndex, cf, name(i));
 					},
 					(ref immutable ConcreteFunSource.Lambda) {},
-					(ref immutable ConcreteFunSource.Test) {});
+					(ref immutable ConcreteFunSource.Test) {},
+				)(cf.deref().source);
 			},
-			(ref immutable LowFunSource.Generated it) {});
+			(ref immutable LowFunSource.Generated it) {},
+		)(it.source);
 	});
 
 	MutSymDict!(immutable PrevOrIndex!ConcreteStruct) structNameToIndex;
@@ -90,12 +92,13 @@ immutable(MangledNames) buildMangledNames(ref Alloc alloc, ref immutable LowProg
 	PtrDictBuilder!(ConcreteStruct, size_t) structToNameIndex;
 
 	void build(immutable Ptr!ConcreteStruct s) {
-		matchConcreteStructSource!void(
-			s.deref().source,
+		matchConcreteStructSource!(
+			void,
 			(ref immutable ConcreteStructSource.Inst it) {
 				addToPrevOrIndex!ConcreteStruct(alloc, structNameToIndex, structToNameIndex, s, name(it.inst.deref()));
 			},
-			(ref immutable ConcreteStructSource.Lambda) {});
+			(ref immutable ConcreteStructSource.Lambda) {},
+		)(s.deref().source);
 	}
 	fullIndexDictEachValue!(LowType.ExternPtr, LowExternPtrType)(
 		program.allExternPtrTypes,
@@ -128,8 +131,8 @@ void writeStructMangledName(
 	ref immutable MangledNames mangledNames,
 	immutable Ptr!ConcreteStruct source,
 ) {
-	matchConcreteStructSource!void(
-		source.deref().source,
+	matchConcreteStructSource!(
+		void,
 		(ref immutable ConcreteStructSource.Inst it) {
 			writeMangledName(writer, name(it.inst.deref()));
 			maybeWriteIndexSuffix(writer, getAt(mangledNames.structToNameIndex, source));
@@ -138,7 +141,8 @@ void writeStructMangledName(
 			writeConcreteFunMangledName(writer, mangledNames, it.containingFun);
 			writeStatic(writer, "__lambda");
 			writeNat(writer, it.index);
-		});
+		},
+	)(source.deref().source);
 }
 
 void writeLowFunMangledName(
@@ -147,8 +151,8 @@ void writeLowFunMangledName(
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 ) {
-	matchLowFunSource!void(
-		fun.source,
+	matchLowFunSource!(
+		void,
 		(immutable Ptr!ConcreteFun it) {
 			writeConcreteFunMangledName(writer, mangledNames, it);
 		},
@@ -158,7 +162,8 @@ void writeLowFunMangledName(
 				writeChar(writer, '_');
 				writeNat(writer, funIndex.index);
 			}
-		});
+		},
+	)(fun.source);
 }
 
 private void writeConcreteFunMangledName(
@@ -166,8 +171,8 @@ private void writeConcreteFunMangledName(
 	ref immutable MangledNames mangledNames,
 	immutable Ptr!ConcreteFun source,
 ) {
-	matchConcreteFunSource!void(
-		source.deref().source,
+	matchConcreteFunSource!(
+		void,
 		(ref immutable FunInst it) {
 			immutable Sym name = name(it);
 			if (isExtern(body_(source.deref())))
@@ -185,7 +190,8 @@ private void writeConcreteFunMangledName(
 		(ref immutable ConcreteFunSource.Test it) {
 			writeStatic(writer, "__test");
 			writeNat(writer, it.index);
-		});
+		},
+	)(source.deref().source);
 }
 
 private void maybeWriteIndexSuffix(ref Writer writer, immutable Opt!size_t index) {
@@ -196,11 +202,11 @@ private void maybeWriteIndexSuffix(ref Writer writer, immutable Opt!size_t index
 }
 
 void writeLowLocalName(ref Writer writer, ref immutable LowLocal a) {
-	matchLowLocalSource!void(
-		a.source,
+	matchLowLocalSource!(
+		void,
 		(ref immutable ConcreteLocal it) {
-			matchConcreteLocalSource!void(
-				it.source,
+			matchConcreteLocalSource!(
+				void,
 				(ref immutable ConcreteLocalSource.Arr) {
 					writeStatic(writer, "_arr");
 				},
@@ -209,21 +215,23 @@ void writeLowLocalName(ref Writer writer, ref immutable LowLocal a) {
 				},
 				(ref immutable ConcreteLocalSource.Matched) {
 					writeStatic(writer, "_matched");
-				});
+				},
+			)(it.source);
 			writeNat(writer, it.index);
 		},
 		(ref immutable LowLocalSource.Generated it) {
 			writeMangledName(writer, it.name);
 			writeNat(writer, it.index);
-		});
+		},
+	)(a.source);
 }
 
 void writeLowParamName(ref Writer writer, ref immutable LowParam a) {
-	matchLowParamSource!void(
-		a.source,
+	matchLowParamSource!(
+		void,
 		(ref immutable ConcreteParam cp) {
-			matchConcreteParamSource!void(
-				cp.source,
+			matchConcreteParamSource!(
+				void,
 				(ref immutable ConcreteParamSource.Closure) {
 					writeStatic(writer, "_closure");
 				},
@@ -234,11 +242,13 @@ void writeLowParamName(ref Writer writer, ref immutable LowParam a) {
 						writeStatic(writer, "_p");
 						writeNat(writer, p.index);
 					}
-				});
+				},
+			)(cp.source);
 		},
 		(ref immutable LowParamSource.Generated it) {
 			writeMangledName(writer, it.name);
-		});
+		},
+	)(a.source);
 }
 
 void writeConstantArrStorageName(

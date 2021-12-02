@@ -122,12 +122,7 @@ struct Type {
 	TaggedPtr!Kind inner;
 }
 
-@trusted immutable(T) matchType(T)(
-	immutable Type a,
-	scope immutable(T) delegate(immutable Type.Bogus) @safe @nogc pure nothrow cbBogus,
-	scope immutable(T) delegate(immutable Ptr!TypeParam) @safe @nogc pure nothrow cbTypeParam,
-	scope immutable(T) delegate(immutable Ptr!StructInst) @safe @nogc pure nothrow cbStructInst,
-) {
+@trusted immutable(T) matchType(T, alias cbBogus, alias cbTypeParam, alias cbStructInst)(immutable Type a) {
 	final switch (a.inner.tag()) {
 		case Type.Kind.bogus:
 			immutable Type.Bogus bogus = immutable Type.Bogus();
@@ -140,77 +135,86 @@ struct Type {
 }
 
 immutable(bool) isBogus(immutable Type a) {
-	return matchType!(immutable bool)(
-		a,
+	return matchType!(
+		immutable bool,
 		(immutable Type.Bogus) => true,
 		(immutable Ptr!TypeParam) => false,
-		(immutable Ptr!StructInst) => false);
+		(immutable Ptr!StructInst) => false,
+	)(a);
 }
 immutable(bool) isTypeParam(immutable Type a) {
-	return matchType!(immutable bool)(
-		a,
+	return matchType!(
+		immutable bool,
 		(immutable Type.Bogus) => false,
 		(immutable Ptr!TypeParam) => true,
-		(immutable Ptr!StructInst) => false);
+		(immutable Ptr!StructInst) => false,
+	)(a);
 }
 @trusted immutable(Ptr!TypeParam) asTypeParam(immutable Type a) {
-	return matchType!(immutable Ptr!TypeParam)(
-		a,
+	return matchType!(
+		immutable Ptr!TypeParam,
 		(immutable Type.Bogus) => unreachable!(immutable Ptr!TypeParam),
 		(immutable Ptr!TypeParam it) => it,
-		(immutable Ptr!StructInst) => unreachable!(immutable Ptr!TypeParam));
+		(immutable Ptr!StructInst) => unreachable!(immutable Ptr!TypeParam),
+	)(a);
 }
 immutable(bool) isStructInst(immutable Type a) {
-	return matchType!(immutable bool)(
-		a,
+	return matchType!(
+		immutable bool,
 		(immutable Type.Bogus) => false,
 		(immutable Ptr!TypeParam) => false,
-		(immutable Ptr!StructInst) => true);
+		(immutable Ptr!StructInst) => true,
+	)(a);
 }
 @trusted immutable(Ptr!StructInst) asStructInst(immutable Type a) {
-	return matchType!(immutable Ptr!StructInst)(
-		a,
+	return matchType!(
+		immutable Ptr!StructInst,
 		(immutable Type.Bogus) => unreachable!(immutable Ptr!StructInst),
 		(immutable Ptr!TypeParam) => unreachable!(immutable Ptr!StructInst),
-		(immutable Ptr!StructInst it) => it);
+		(immutable Ptr!StructInst it) => it,
+	)(a);
 }
 
 immutable(Purity) bestCasePurity(immutable Type a) {
-	return matchType!(immutable Purity)(
-		a,
+	return matchType!(
+		immutable Purity,
 		(immutable Type.Bogus) => Purity.data,
 		(immutable Ptr!TypeParam) => Purity.data,
-		(immutable Ptr!StructInst i) => i.deref().bestCasePurity);
+		(immutable Ptr!StructInst i) => i.deref().bestCasePurity,
+	)(a);
 }
 
 immutable(Purity) worstCasePurity(immutable Type a) {
-	return matchType!(immutable Purity)(
-		a,
+	return matchType!(
+		immutable Purity,
 		(immutable Type.Bogus) => Purity.data,
 		(immutable Ptr!TypeParam) => Purity.mut,
-		(immutable Ptr!StructInst i) => i.deref().worstCasePurity);
+		(immutable Ptr!StructInst i) => i.deref().worstCasePurity,
+	)(a);
 }
 
 //TODO:MOVE?
 immutable(bool) typeEquals(immutable Type a, immutable Type b) {
-	return matchType!(immutable bool)(
-		a,
+	return matchType!(
+		immutable bool,
 		(immutable Type.Bogus) =>
 			isBogus(b),
 		(immutable Ptr!TypeParam p) =>
 			isTypeParam(b) && ptrEquals(p, asTypeParam(b)),
 		(immutable Ptr!StructInst i) =>
-			isStructInst(b) && ptrEquals(i, asStructInst(b)));
+			isStructInst(b) && ptrEquals(i, asStructInst(b)),
+	)(a);
 }
 
 private void hashType(ref Hasher hasher, immutable Type a) {
-	matchType!void(
-		a,
+	matchType!(
+		void,
 		(immutable Type.Bogus) {},
 		(immutable Ptr!TypeParam p) =>
 			hashPtr(hasher, p),
 		(immutable Ptr!StructInst i) =>
-			hashPtr(hasher, i));
+			hashPtr(hasher, i),
+	)(a);
 }
 
 struct Param {
@@ -248,11 +252,7 @@ struct Params {
 	immutable TaggedPtr!Kind inner;
 }
 
-@trusted immutable(T) matchParams(T)(
-	ref immutable Params a,
-	scope immutable(T) delegate(immutable Param[]) @safe @nogc pure nothrow cbRegular,
-	scope immutable(T) delegate(ref immutable Params.Varargs) @safe @nogc pure nothrow cbVarargs,
-) {
+@trusted immutable(T) matchParams(T, alias cbRegular, alias cbVarargs)(ref immutable Params a) {
 	final switch (a.inner.tag()) {
 		case Params.Kind.regular:
 			return cbRegular(a.inner.arrWithSize!Param());
@@ -262,24 +262,26 @@ struct Params {
 }
 
 @trusted immutable(Param[]) paramsArray(return scope ref immutable Params a) {
-	return matchParams!(immutable Param[])(
-		a,
+	return matchParams!(
+		immutable Param[],
 		(immutable Param[] p) =>
 			p,
 		(ref immutable Params.Varargs v) =>
-			trustedParamsArray(v));
+			trustedParamsArray(v),
+	)(a);
 }
 private @trusted immutable(Param[]) trustedParamsArray(return ref immutable Params.Varargs v) {
 	return (&v.param)[0 .. 1];
 }
 
 immutable(Param[]) assertNonVariadic(ref immutable Params a) {
-	return matchParams!(immutable Param[])(
-		a,
+	return matchParams!(
+		immutable Param[],
 		(immutable Param[] p) =>
 			p,
 		(ref immutable Params.Varargs v) =>
-			unreachable!(immutable Param[]));
+			unreachable!(immutable Param[]),
+	)(a);
 }
 struct Arity {
 	@safe @nogc pure nothrow:
@@ -301,11 +303,7 @@ struct Arity {
 	}
 }
 
-@trusted immutable(T) matchArity(T)(
-	immutable Arity a,
-	scope immutable(T) delegate(immutable size_t) @safe @nogc pure nothrow cbRegular,
-	scope immutable(T) delegate(ref immutable Arity.Varargs) @safe @nogc pure nothrow cbVarargs,
-) {
+@trusted immutable(T) matchArity(T, alias cbRegular, alias cbVarargs)(immutable Arity a) {
 	final switch (a.kind) {
 		case Arity.Kind.regular:
 			return cbRegular(a.regular);
@@ -315,30 +313,33 @@ struct Arity {
 }
 
 immutable(bool) arityIsNonZero(immutable Arity a) {
-	return matchArity!(immutable bool)(
-		a,
+	return matchArity!(
+		immutable bool,
 		(immutable size_t size) =>
 			size != 0,
 		(ref immutable Arity.Varargs) =>
-			true);
+			true,
+	)(a);
 }
 
 immutable(bool) arityMatches(immutable Arity sigArity, immutable size_t nArgs) {
-	return matchArity!(immutable bool)(
-		sigArity,
+	return matchArity!(
+		immutable bool,
 		(immutable size_t nParams) =>
 			nParams == nArgs,
 		(ref immutable Arity.Varargs) =>
-			true);
+			true,
+	)(sigArity);
 }
 
 immutable(Arity) arity(ref immutable Params a) {
-	return matchParams(
-		a,
+	return matchParams!(
+		immutable Arity,
 		(immutable Param[] params) =>
 			immutable Arity(size(params)),
 		(ref immutable Params.Varargs) =>
-			immutable Arity(immutable Arity.Varargs()));
+			immutable Arity(immutable Arity.Varargs()),
+	)(a);
 }
 
 struct Sig {
@@ -507,16 +508,16 @@ private immutable(bool) isUnion(ref immutable StructBody a) {
 	return a.union_;
 }
 
-@trusted T matchStructBody(T)(
-	ref immutable StructBody a,
-	scope T delegate(ref immutable StructBody.Bogus) @safe @nogc pure nothrow cbBogus,
-	scope T delegate(ref immutable StructBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
-	scope T delegate(ref immutable StructBody.Enum) @safe @nogc pure nothrow cbEnum,
-	scope T delegate(ref immutable StructBody.Flags) @safe @nogc pure nothrow cbFlags,
-	scope T delegate(ref immutable StructBody.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
-	scope T delegate(ref immutable StructBody.Record) @safe @nogc pure nothrow cbRecord,
-	scope T delegate(ref immutable StructBody.Union) @safe @nogc pure nothrow cbUnion,
-) {
+@trusted T matchStructBody(
+	T,
+	alias cbBogus,
+	alias cbBuiltin,
+	alias cbEnum,
+	alias cbFlags,
+	alias cbExternPtr,
+	alias cbRecord,
+	alias cbUnion,
+)(ref immutable StructBody a) {
 	final switch (a.kind) {
 		case StructBody.Kind.bogus:
 			return cbBogus(a.bogus);
@@ -686,11 +687,7 @@ struct SpecBody {
 	@trusted immutable this(immutable Sig[] a) { kind = Kind.sigs; sigs = a; }
 }
 
-@trusted T matchSpecBody(T)(
-	ref immutable SpecBody a,
-	scope T delegate(ref immutable SpecBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
-	scope T delegate(ref immutable Sig[]) @safe @nogc pure nothrow cbSigs,
-) {
+@trusted T matchSpecBody(T, alias cbBuiltin, alias cbSigs)(ref immutable SpecBody a) {
 	final switch (a.kind) {
 		case SpecBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
@@ -700,10 +697,11 @@ struct SpecBody {
 }
 
 immutable(size_t) nSigs(ref immutable SpecBody a) {
-	return matchSpecBody(
-		a,
+	return matchSpecBody!(
+		immutable size_t,
 		(ref immutable SpecBody.Builtin) => immutable size_t(0),
-		(ref immutable Sig[] sigs) => size(sigs));
+		(ref immutable Sig[] sigs) => size(sigs),
+	)(a);
 }
 
 struct SpecDecl {
@@ -861,18 +859,20 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 	return a.kind == FunBody.Kind.extern_;
 }
 
-@trusted T matchFunBody(T)(
+@trusted T matchFunBody(
+	T,
+	alias cbBuiltin,
+	alias cbCreateEnum,
+	alias cbCreateRecord,
+	alias cbCreateUnion,
+	alias cbEnumFunction,
+	alias cbExtern,
+	alias cbExpr,
+	alias cbFlagsFunction,
+	alias cbRecordFieldGet,
+	alias cbRecordFieldSet,
+)(
 	ref immutable FunBody a,
-	scope T delegate(ref immutable FunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
-	scope T delegate(ref immutable FunBody.CreateEnum) @safe @nogc pure nothrow cbCreateEnum,
-	scope T delegate(ref immutable FunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
-	scope T delegate(ref immutable FunBody.CreateUnion) @safe @nogc pure nothrow cbCreateUnion,
-	scope T delegate(immutable EnumFunction) @safe @nogc pure nothrow cbEnumFunction,
-	scope T delegate(ref immutable FunBody.Extern) @safe @nogc pure nothrow cbExtern,
-	scope T delegate(ref immutable Expr) @safe @nogc pure nothrow cbExpr,
-	scope T delegate(immutable FlagsFunction) @safe @nogc pure nothrow cbFlagsFunction,
-	scope T delegate(ref immutable FunBody.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
-	scope T delegate(ref immutable FunBody.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
 ) {
 	final switch (a.kind) {
 		case FunBody.Kind.builtin:
@@ -1015,10 +1015,11 @@ ref immutable(Params) params(return scope ref immutable FunDecl a) {
 }
 
 immutable(bool) isVariadic(ref immutable FunDecl a) {
-	return matchParams!(immutable bool)(
-		params(a),
+	return matchParams!(
+		immutable bool,
 		(immutable Param[]) => false,
-		(ref immutable Params.Varargs) => true);
+		(ref immutable Params.Varargs) => true,
+	)(params(a));
 }
 
 private immutable(size_t) nSpecImpls(ref immutable FunDecl a) {
@@ -1170,11 +1171,7 @@ struct CalledDecl {
 	@trusted immutable this(immutable SpecSig a) { kind = Kind.specSig; specSig = a; }
 }
 
-@trusted T matchCalledDecl(T)(
-	ref immutable CalledDecl a,
-	scope T delegate(immutable Ptr!FunDecl) @safe @nogc pure nothrow cbFunDecl,
-	scope T delegate(ref immutable SpecSig) @safe @nogc pure nothrow cbSpecSig,
-) {
+@trusted T matchCalledDecl(T, alias cbFunDecl, alias cbSpecSig)(ref immutable CalledDecl a) {
 	final switch (a.kind) {
 		case CalledDecl.Kind.funDecl:
 			return cbFunDecl(a.funDecl);
@@ -1210,10 +1207,11 @@ ref immutable(Params) params(return scope ref immutable CalledDecl a) {
 }
 
 immutable(TypeParam[]) typeParams(ref immutable CalledDecl a) {
-	return matchCalledDecl!(immutable TypeParam[])(
-		a,
+	return matchCalledDecl!(
+		immutable TypeParam[],
 		(immutable Ptr!FunDecl f) => f.deref().typeParams,
-		(ref immutable SpecSig) => emptyArr!TypeParam);
+		(ref immutable SpecSig) => emptyArr!TypeParam,
+	)(a);
 }
 
 immutable(Arity) arity(ref immutable CalledDecl a) {
@@ -1243,11 +1241,7 @@ struct Called {
 	@trusted immutable this(immutable SpecSig a) { kind = Kind.specSig; specSig = a; }
 }
 
-@trusted T matchCalled(T)(
-	ref immutable Called a,
-	scope T delegate(immutable Ptr!FunInst) @safe @nogc pure nothrow cbFunInst,
-	scope T delegate(ref immutable SpecSig) @safe @nogc pure nothrow cbSpecSig,
-) {
+@trusted T matchCalled(T, alias cbFunInst, alias cbSpecSig)(ref immutable Called a) {
 	final switch (a.kind) {
 		case Called.Kind.funInst:
 			return cbFunInst(a.funInst);
@@ -1257,29 +1251,33 @@ struct Called {
 }
 
 private immutable(bool) calledEquals(ref immutable Called a, ref immutable Called b) {
-	return matchCalled!(immutable bool)(
-		a,
+	return matchCalled!(
+		immutable bool,
 		(immutable Ptr!FunInst fa) =>
-			matchCalled!(immutable bool)(
-				b,
+			matchCalled!(
+				immutable bool,
 				(immutable Ptr!FunInst fb) => ptrEquals(fa, fb),
-				(ref immutable SpecSig) => false),
+				(ref immutable SpecSig) => false,
+			)(b),
 		(ref immutable SpecSig sa) =>
-			matchCalled!(immutable bool)(
-				b,
+			matchCalled!(
+				immutable bool,
 				(immutable Ptr!FunInst) => false,
-				(ref immutable SpecSig sb) => specSigEquals(sa, sb)));
+				(ref immutable SpecSig sb) => specSigEquals(sa, sb),
+			)(b),
+	)(a);
 }
 
 private void hashCalled(ref Hasher hasher, ref immutable Called a) {
-	matchCalled!void(
-		a,
+	matchCalled!(
+		void,
 		(immutable Ptr!FunInst f) {
 			hashPtr(hasher, f);
 		},
 		(ref immutable SpecSig sa) {
 			hashSpecSig(hasher, sa);
-		});
+		},
+	)(a);
 }
 
 @trusted ref immutable(Sig) sig(return scope ref immutable Called a) {
@@ -1297,10 +1295,11 @@ private void hashCalled(ref Hasher hasher, ref immutable Called a) {
 }
 
 immutable(Sym) name(ref immutable Called a) {
-	return matchCalled(
-		a,
+	return matchCalled!(
+		immutable Sym,
 		(immutable Ptr!FunInst) => a.name,
-		(ref immutable SpecSig s) => a.name);
+		(ref immutable SpecSig s) => a.name,
+	)(a);
 }
 
 ref immutable(Type) returnType(return scope ref immutable Called a) {
@@ -1341,11 +1340,7 @@ struct StructOrAlias {
 	return a.structDecl_;
 }
 
-@trusted T matchStructOrAlias(T)(
-	ref immutable StructOrAlias a,
-	scope T delegate(ref immutable StructAlias) @safe @nogc pure nothrow cbAlias,
-	scope T delegate(ref immutable StructDecl) @safe @nogc pure nothrow cbStructDecl,
-) {
+@trusted T matchStructOrAlias(T, alias cbAlias, alias cbStructDecl)(ref immutable StructOrAlias a) {
 	final switch (a.kind) {
 		case StructOrAlias.Kind.alias_:
 			return cbAlias(a.alias_.deref());
@@ -1354,11 +1349,7 @@ struct StructOrAlias {
 	}
 }
 
-@trusted T matchStructOrAliasPtr(T)(
-	ref immutable StructOrAlias a,
-	scope T delegate(ref immutable StructAlias) @safe @nogc pure nothrow cbAlias,
-	scope T delegate(immutable Ptr!StructDecl) @safe @nogc pure nothrow cbStructDecl,
-) {
+@trusted T matchStructOrAliasPtr(T, alias cbAlias, alias cbStructDecl)(ref immutable StructOrAlias a) {
 	final switch (a.kind) {
 		case StructOrAlias.Kind.alias_:
 			return cbAlias(a.alias_.deref());
@@ -1368,31 +1359,35 @@ struct StructOrAlias {
 }
 
 immutable(TypeParam[]) typeParams(ref immutable StructOrAlias a) {
-	return matchStructOrAlias!(immutable TypeParam[])(
-		a,
+	return matchStructOrAlias!(
+		immutable TypeParam[],
 		(ref immutable StructAlias al) => al.typeParams,
-		(ref immutable StructDecl d) => d.typeParams);
+		(ref immutable StructDecl d) => d.typeParams,
+	)(a);
 }
 
 immutable(FileAndRange) range(ref immutable StructOrAlias a) {
-	return matchStructOrAlias!(immutable FileAndRange)(
-		a,
+	return matchStructOrAlias!(
+		immutable FileAndRange,
 		(ref immutable StructAlias al) => al.range,
-		(ref immutable StructDecl d) => d.range);
+		(ref immutable StructDecl d) => d.range,
+	)(a);
 }
 
 immutable(Visibility) visibility(ref immutable StructOrAlias a) {
-	return matchStructOrAlias!(immutable Visibility)(
-		a,
+	return matchStructOrAlias!(
+		immutable Visibility,
 		(ref immutable StructAlias al) => al.visibility,
-		(ref immutable StructDecl d) => d.visibility);
+		(ref immutable StructDecl d) => d.visibility,
+	)(a);
 }
 
 immutable(Sym) name(ref immutable StructOrAlias a) {
-	return matchStructOrAlias!(immutable Sym)(
-		a,
+	return matchStructOrAlias!(
+		immutable Sym,
 		(ref immutable StructAlias al) => al.name,
-		(ref immutable StructDecl d) => d.name);
+		(ref immutable StructDecl d) => d.name,
+	)(a);
 }
 
 struct Module {
@@ -1696,25 +1691,25 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	return a.range_;
 }
 
-@trusted T matchExpr(T)(
-	ref immutable Expr a,
-	scope T delegate(ref immutable Expr.Bogus) @safe @nogc pure nothrow cbBogus,
-	scope T delegate(ref immutable Expr.Call) @safe @nogc pure nothrow cbCall,
-	scope T delegate(ref immutable Expr.ClosureFieldRef) @safe @nogc pure nothrow cbClosureFieldRef,
-	scope T delegate(ref immutable Expr.Cond) @safe @nogc pure nothrow cbCond,
-	scope T delegate(ref immutable Expr.FunPtr) @safe @nogc pure nothrow cbFunPtr,
-	scope T delegate(ref immutable Expr.IfOption) @safe @nogc pure nothrow cbIfOption,
-	scope T delegate(ref immutable Expr.Lambda) @safe @nogc pure nothrow cbLambda,
-	scope T delegate(ref immutable Expr.Let) @safe @nogc pure nothrow cbLet,
-	scope T delegate(ref immutable Expr.Literal) @safe @nogc pure nothrow cbLiteral,
-	scope T delegate(ref immutable Expr.LocalRef) @safe @nogc pure nothrow cbLocalRef,
-	scope T delegate(ref immutable Expr.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
-	scope T delegate(ref immutable Expr.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
-	scope T delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
-	scope T delegate(ref immutable Expr.Seq) @safe @nogc pure nothrow cbSeq,
-	scope T delegate(ref immutable Expr.StringLiteral) @safe @nogc pure nothrow cbStringLiteral,
-	scope T delegate(ref immutable Expr.SymbolLiteral) @safe @nogc pure nothrow cbSymbolLiteral,
-) {
+@trusted immutable(T) matchExpr(
+	T,
+	alias cbBogus,
+	alias cbCall,
+	alias cbClosureFieldRef,
+	alias cbCond,
+	alias cbFunPtr,
+	alias cbIfOption,
+	alias cbLambda,
+	alias cbLet,
+	alias cbLiteral,
+	alias cbLocalRef,
+	alias cbMatchEnum,
+	alias cbMatchUnion,
+	alias cbParamRef,
+	alias cbSeq,
+	alias cbStringLiteral,
+	alias cbSymbolLiteral,
+)(ref immutable Expr a) {
 	final switch (a.kind) {
 		case Expr.Kind.bogus:
 			return cbBogus(a.bogus);
@@ -1752,8 +1747,8 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 }
 
 immutable(bool) typeIsBogus(ref immutable Expr a) {
-	return matchExpr!(immutable bool)(
-		a,
+	return matchExpr!(
+		immutable bool,
 		(ref immutable Expr.Bogus) => true,
 		(ref immutable Expr.Call e) => isBogus(returnType(e.called)),
 		(ref immutable Expr.ClosureFieldRef e) => isBogus(e.field.deref().type),
@@ -1769,12 +1764,13 @@ immutable(bool) typeIsBogus(ref immutable Expr a) {
 		(ref immutable Expr.ParamRef e) => isBogus(e.param.deref().type),
 		(ref immutable Expr.Seq e) => typeIsBogus(e.then),
 		(ref immutable Expr.StringLiteral) => false,
-		(ref immutable Expr.SymbolLiteral) => false);
+		(ref immutable Expr.SymbolLiteral) => false,
+	)(a);
 }
 
 immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTypes) {
-	return matchExpr!(immutable Type)(
-		a,
+	return matchExpr!(
+		immutable Type,
 		(ref immutable Expr.Bogus) => immutable Type(immutable Type.Bogus()),
 		(ref immutable Expr.Call e) => returnType(e.called),
 		(ref immutable Expr.ClosureFieldRef e) => e.field.deref().type,
@@ -1790,7 +1786,8 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.ParamRef e) => e.param.deref().type,
 		(ref immutable Expr.Seq e) => getType(e.then, commonTypes),
 		(ref immutable Expr.StringLiteral) => immutable Type(commonTypes.str),
-		(ref immutable Expr.SymbolLiteral) => immutable Type(commonTypes.sym));
+		(ref immutable Expr.SymbolLiteral) => immutable Type(commonTypes.sym),
+	)(a);
 }
 
 void writeStructDecl(ref Writer writer, ref immutable StructDecl a) {
@@ -1810,8 +1807,8 @@ void writeStructInst(ref Writer writer, ref immutable StructInst s) {
 
 //TODO:MOVE
 void writeType(ref Writer writer, immutable Type type) {
-	matchType!void(
-		type,
+	matchType!(
+		void,
 		(immutable Type.Bogus) {
 			writeStatic(writer, "<<bogus>>");
 		},
@@ -1820,7 +1817,8 @@ void writeType(ref Writer writer, immutable Type type) {
 		},
 		(immutable Ptr!StructInst s) {
 			writeStructInst(writer, s.deref());
-		});
+		},
+	)(type);
 }
 
 enum Visibility : ubyte {

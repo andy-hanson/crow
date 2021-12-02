@@ -839,13 +839,14 @@ public @trusted immutable(LiteralIntOrNat) takeIntOrNat(ref Lexer lexer) {
 		? some(Sign.minus)
 		: none!Sign;
 	immutable LiteralAst res = takeNumberAfterSign(lexer, sign);
-	return matchLiteralAst!(LiteralIntOrNat)(
-		res,
+	return matchLiteralAst!(
+		LiteralIntOrNat,
 		(immutable LiteralAst.Float) => todo!(immutable LiteralIntOrNat)("no float in enum"),
 		(immutable LiteralAst.Int i) => immutable LiteralIntOrNat(i),
 		(immutable LiteralAst.Nat n) => immutable LiteralIntOrNat(n),
 		(immutable(string)) => unreachable!(immutable LiteralIntOrNat),
-		(immutable(Sym)) => unreachable!(immutable LiteralIntOrNat));
+		(immutable(Sym)) => unreachable!(immutable LiteralIntOrNat),
+	)(res);
 }
 
 @trusted immutable(LiteralAst) takeNumberAfterSign(ref Lexer lexer, immutable Opt!Sign sign) {

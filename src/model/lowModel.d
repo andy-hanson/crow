@@ -39,12 +39,13 @@ struct LowRecord {
 
 	//TODO:MOVE
 	immutable(bool) packed() immutable {
-		return matchConcreteStructSource!(immutable bool)(
-			source.deref().source,
+		return matchConcreteStructSource!(
+			immutable bool,
 			(ref immutable ConcreteStructSource.Inst it) =>
 				asRecord(body_(it.inst.deref())).flags.packed,
 			(ref immutable ConcreteStructSource.Lambda) =>
-				false);
+				false,
+		)(source.deref().source);
 	}
 }
 
@@ -292,14 +293,15 @@ private immutable(bool) isPtrGcOrRaw(immutable LowType a) {
 
 @trusted immutable(LowType) asGcOrRawPointee(immutable LowType a) {
 	verify(isPtrGcOrRaw(a));
-	return matchLowTypeCombinePtr!(immutable LowType)(
-		a,
+	return matchLowTypeCombinePtr!(
+		immutable LowType,
 		(immutable LowType.ExternPtr) => unreachable!(immutable LowType),
 		(immutable LowType.FunPtr) => unreachable!(immutable LowType),
 		(immutable PrimitiveType) => unreachable!(immutable LowType),
 		(immutable LowPtrCombine it) => it.pointee,
 		(immutable LowType.Record) => unreachable!(immutable LowType),
-		(immutable LowType.Union) => unreachable!(immutable LowType));
+		(immutable LowType.Union) => unreachable!(immutable LowType),
+	)(a);
 }
 
 immutable(LowType) asPtrRawPointee(immutable LowType a) {
@@ -327,17 +329,17 @@ immutable(LowType.Union) asUnionType(immutable LowType a) {
 	return a.union_;
 }
 
-@trusted T matchLowType(T)(
-	immutable LowType a,
-	scope T delegate(immutable LowType.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
-	scope T delegate(immutable LowType.FunPtr) @safe @nogc pure nothrow cbFunPtr,
-	scope T delegate(immutable PrimitiveType) @safe @nogc pure nothrow cbPrimitive,
-	scope T delegate(immutable LowType.PtrGc) @safe @nogc pure nothrow cbPtrGc,
-	scope T delegate(immutable LowType.PtrRawConst) @safe @nogc pure nothrow cbPtrRawConst,
-	scope T delegate(immutable LowType.PtrRawMut) @safe @nogc pure nothrow cbPtrRawMut,
-	scope T delegate(immutable LowType.Record) @safe @nogc pure nothrow cbRecord,
-	scope T delegate(immutable LowType.Union) @safe @nogc pure nothrow cbUnion,
-) {
+@trusted immutable(T) matchLowType(
+	T,
+	alias cbExternPtr,
+	alias cbFunPtr,
+	alias cbPrimitive,
+	alias cbPtrGc,
+	alias cbPtrRawConst,
+	alias cbPtrRawMut,
+	alias cbRecord,
+	alias cbUnion,
+)(immutable LowType a) {
 	final switch (a.kind_) {
 		case LowType.Kind.externPtr:
 			return cbExternPtr(a.externPtr_);
@@ -362,17 +364,17 @@ struct LowPtrCombine {
 	immutable LowType pointee;
 }
 
-@trusted T matchLowTypeCombinePtr(T)(
-	immutable LowType a,
-	scope T delegate(immutable LowType.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
-	scope T delegate(immutable LowType.FunPtr) @safe @nogc pure nothrow cbFunPtr,
-	scope T delegate(immutable PrimitiveType) @safe @nogc pure nothrow cbPrimitive,
-	scope T delegate(immutable LowPtrCombine) @safe @nogc pure nothrow cbPtr,
-	scope T delegate(immutable LowType.Record) @safe @nogc pure nothrow cbRecord,
-	scope T delegate(immutable LowType.Union) @safe @nogc pure nothrow cbUnion,
-) {
-	return matchLowType!T(
-		a,
+@trusted immutable(T) matchLowTypeCombinePtr(
+	T,
+	alias cbExternPtr,
+	alias cbFunPtr,
+	alias cbPrimitive,
+	alias cbPtr,
+	alias cbRecord,
+	alias cbUnion,
+)(immutable LowType a) {
+	return matchLowType!(
+		T,
 		cbExternPtr,
 		cbFunPtr,
 		cbPrimitive,
@@ -380,7 +382,8 @@ struct LowPtrCombine {
 		(immutable LowType.PtrRawConst it) => cbPtr(immutable LowPtrCombine(it.pointee.deref())),
 		(immutable LowType.PtrRawMut it) => cbPtr(immutable LowPtrCombine(it.pointee.deref())),
 		cbRecord,
-		cbUnion);
+		cbUnion,
+	)(a);
 }
 
 struct LowField {
@@ -415,10 +418,8 @@ struct LowParamSource {
 	}
 }
 
-@trusted T matchLowParamSource(T)(
+@trusted immutable(T) matchLowParamSource(T, alias cbConcreteParam, alias cbGenerated)(
 	ref immutable LowParamSource a,
-	scope T delegate(ref immutable ConcreteParam) @safe @nogc pure nothrow cbConcreteParam,
-	scope T delegate(ref immutable LowParamSource.Generated) @safe @nogc pure nothrow cbGenerated,
 ) {
 	final switch (a.kind_) {
 		case LowParamSource.Kind.concreteParam:
@@ -456,10 +457,8 @@ struct LowLocalSource {
 	}
 }
 
-@trusted T matchLowLocalSource(T)(
+@trusted immutable(T) matchLowLocalSource(T, alias cbConcreteLocal, alias cbGenerated)(
 	ref immutable LowLocalSource a,
-	scope T delegate(ref immutable ConcreteLocal) @safe @nogc pure nothrow cbConcreteLocal,
-	scope T delegate(ref immutable LowLocalSource.Generated) @safe @nogc pure nothrow cbGenerated,
 ) {
 	final switch (a.kind_) {
 		case LowLocalSource.Kind.concreteLocal:
@@ -518,11 +517,7 @@ immutable(bool) isExtern(ref immutable LowFunBody a) {
 	return isExtern(a) && a.extern_.isGlobal;
 }
 
-@trusted T matchLowFunBody(T)(
-	ref immutable LowFunBody a,
-	scope T delegate(ref immutable LowFunBody.Extern) @safe @nogc pure nothrow cbExtern,
-	scope T delegate(ref immutable LowFunExprBody) @safe @nogc pure nothrow cbExpr,
-) {
+@trusted immutable(T) matchLowFunBody(T, alias cbExtern, alias cbExpr)(ref immutable LowFunBody a) {
 	final switch (a.kind) {
 		case LowFunBody.Kind.extern_:
 			return cbExtern(a.extern_);
@@ -555,11 +550,7 @@ struct LowFunSource {
 }
 static assert(LowFunSource.sizeof <= 16);
 
-@trusted T matchLowFunSource(T)(
-	ref immutable LowFunSource a,
-	scope T delegate(immutable Ptr!ConcreteFun) @safe @nogc pure nothrow cbConcreteFun,
-	scope T delegate(ref immutable LowFunSource.Generated) @safe @nogc pure nothrow cbGenerated,
-) {
+@trusted immutable(T) matchLowFunSource(T, alias cbConcreteFun, alias cbGenerated)(ref immutable LowFunSource a) {
 	final switch (a.kind_) {
 		case LowFunSource.Kind.concreteFun:
 			return cbConcreteFun(a.concreteFun_);
@@ -587,19 +578,21 @@ struct LowFun {
 }
 
 immutable(Opt!Sym) name(ref immutable LowFun a) {
-	return matchLowFunSource!(immutable Opt!Sym)(
-		a.source,
+	return matchLowFunSource!(
+		immutable Opt!Sym,
 		(immutable Ptr!ConcreteFun it) => name(it.deref()),
-		(ref immutable LowFunSource.Generated) => none!Sym);
+		(ref immutable LowFunSource.Generated) => none!Sym,
+	)(a.source);
 }
 
 immutable(FileAndRange) lowFunRange(ref immutable LowFun a) {
-	return matchLowFunSource!(immutable FileAndRange)(
-		a.source,
+	return matchLowFunSource!(
+		immutable FileAndRange,
 		(immutable Ptr!ConcreteFun cf) =>
 			concreteFunRange(cf.deref()),
 		(ref immutable LowFunSource.Generated) =>
-			FileAndRange.empty);
+			FileAndRange.empty,
+	)(a.source);
 }
 
 // TODO: use Ptr!ConcreteExpr
@@ -950,31 +943,31 @@ struct LowExprKind {
 }
 static assert(LowExprKind.sizeof <= 32);
 
-@trusted T matchLowExprKind(T)(
-	ref immutable LowExprKind a,
-	scope T delegate(ref immutable LowExprKind.Call) @safe @nogc pure nothrow cbCall,
-	scope T delegate(ref immutable LowExprKind.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
-	scope T delegate(ref immutable LowExprKind.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
-	scope T delegate(ref immutable LowExprKind.CreateUnion) @safe @nogc pure nothrow cbCreateUnion,
-	scope T delegate(ref immutable LowExprKind.If) @safe @nogc pure nothrow cbIf,
-	scope T delegate(ref immutable LowExprKind.InitConstants) @safe @nogc pure nothrow cbInitConstants,
-	scope T delegate(ref immutable LowExprKind.Let) @safe @nogc pure nothrow cbLet,
-	scope T delegate(ref immutable LowExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
-	scope T delegate(ref immutable LowExprKind.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
-	scope T delegate(ref immutable LowExprKind.ParamRef) @safe @nogc pure nothrow cbParamRef,
-	scope T delegate(ref immutable LowExprKind.PtrCast) @safe @nogc pure nothrow cbPtrCast,
-	scope T delegate(ref immutable LowExprKind.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
-	scope T delegate(ref immutable LowExprKind.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
-	scope T delegate(ref immutable LowExprKind.Seq) @safe @nogc pure nothrow cbSeq,
-	scope T delegate(ref immutable LowExprKind.SizeOf) @safe @nogc pure nothrow cbSizeOf,
-	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
-	scope T delegate(ref immutable LowExprKind.SpecialUnary) @safe @nogc pure nothrow cbSpecialUnary,
-	scope T delegate(ref immutable LowExprKind.SpecialBinary) @safe @nogc pure nothrow cbSpecialBinary,
-	scope T delegate(ref immutable LowExprKind.Switch0ToN) @safe @nogc pure nothrow cbSwitch0ToN,
-	scope T delegate(ref immutable LowExprKind.SwitchWithValues) @safe @nogc pure nothrow cbSwitchWithValues,
-	scope T delegate(ref immutable LowExprKind.TailRecur) @safe @nogc pure nothrow cbTailRecur,
-	scope T delegate(ref immutable LowExprKind.Zeroed) @safe @nogc pure nothrow cbZeroed,
-) {
+@trusted T matchLowExprKind(
+	T,
+	alias cbCall,
+	alias cbCallFunPtr,
+	alias cbCreateRecord,
+	alias cbCreateUnion,
+	alias cbIf,
+	alias cbInitConstants,
+	alias cbLet,
+	alias cbLocalRef,
+	alias cbMatchUnion,
+	alias cbParamRef,
+	alias cbPtrCast,
+	alias cbRecordFieldGet,
+	alias cbRecordFieldSet,
+	alias cbSeq,
+	alias cbSizeOf,
+	alias cbConstant,
+	alias cbSpecialUnary,
+	alias cbSpecialBinary,
+	alias cbSwitch0ToN,
+	alias cbSwitchWithValues,
+	alias cbTailRecur,
+	alias cbZeroed,
+)(ref immutable LowExprKind a) {
 	final switch (a.kind) {
 		case LowExprKind.Kind.call:
 			return cbCall(a.call);

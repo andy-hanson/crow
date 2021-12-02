@@ -243,13 +243,14 @@ private void writeByteCodeSource(
 	immutable ByteCodeSource source,
 ) {
 	writeFunName(writer, lowProgram, source.fun);
-	matchLowFunSource!void(
-		fullIndexDictGet(lowProgram.allFuns, source.fun).source,
+	matchLowFunSource!(
+		void,
 		(immutable Ptr!ConcreteFun it) {
 			immutable FileAndPos where = immutable FileAndPos(concreteFunRange(it.deref()).fileIndex, source.pos);
 			writeFileAndPos(writer, allPaths, showDiagOptions, filesInfo, where);
 		},
-		(ref immutable LowFunSource.Generated) {});
+		(ref immutable LowFunSource.Generated) {},
+	)(fullIndexDictGet(lowProgram.allFuns, source.fun).source);
 }
 
 private void writeFunNameAtIndex(

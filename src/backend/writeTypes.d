@@ -117,10 +117,10 @@ struct StructStates {
 
 immutable(bool) canReferenceTypeAsValue(
 	ref const StructStates states,
-	ref immutable LowType t,
+	ref immutable LowType a,
 ) {
-	return matchLowTypeCombinePtr!(immutable bool)(
-		t,
+	return matchLowTypeCombinePtr!(
+		immutable bool,
 		(immutable LowType.ExternPtr) =>
 			// Declared all up front
 			true,
@@ -133,15 +133,16 @@ immutable(bool) canReferenceTypeAsValue(
 		(immutable LowType.Record it) =>
 			at(states.recordStates, it.index) == StructState.defined,
 		(immutable LowType.Union it) =>
-			at(states.unionStates, it.index) == StructState.defined);
+			at(states.unionStates, it.index) == StructState.defined,
+	)(a);
 }
 
 immutable(bool) canReferenceTypeAsPointee(
 	ref const StructStates states,
-	ref immutable LowType t,
+	ref immutable LowType a,
 ) {
-	return matchLowTypeCombinePtr!(immutable bool)(
-		t,
+	return matchLowTypeCombinePtr!(
+		immutable bool,
 		(immutable LowType.ExternPtr) =>
 			// Declared all up front
 			true,
@@ -154,7 +155,8 @@ immutable(bool) canReferenceTypeAsPointee(
 		(immutable LowType.Record it) =>
 			at(states.recordStates, it.index) != StructState.none,
 		(immutable LowType.Union it) =>
-			at(states.unionStates, it.index) != StructState.none);
+			at(states.unionStates, it.index) != StructState.none,
+	)(a);
 }
 
 immutable(StructState) writeRecordDeclarationOrDefinition(

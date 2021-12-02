@@ -298,8 +298,8 @@ void writeSig(ref Writer writer, ref immutable Sig s) {
 	writeChar(writer, ' ');
 	writeType(writer, s.returnType);
 	writeChar(writer, '(');
-	matchParams!void(
-		s.params,
+	matchParams!(
+		void,
 		(immutable Param[] params) {
 			writeWithCommas!Param(writer, params, (ref immutable Param p) {
 				writeType(writer, p.type);
@@ -308,7 +308,8 @@ void writeSig(ref Writer writer, ref immutable Sig s) {
 		(ref immutable Params.Varargs varargs) {
 			writeStatic(writer, "...");
 			writeType(writer, varargs.param.type);
-		});
+		},
+	)(s.params);
 	writeChar(writer, ')');
 }
 
@@ -320,8 +321,8 @@ void writeCalledDecl(
 	immutable CalledDecl c,
 ) {
 	writeSig(writer, c.sig);
-	return matchCalledDecl!void(
-		c,
+	return matchCalledDecl!(
+		void,
 		(immutable Ptr!FunDecl funDecl) {
 			writeFunDeclLocation(writer, allPaths, options, fi, funDecl.deref());
 		},
@@ -329,7 +330,8 @@ void writeCalledDecl(
 			writeStatic(writer, " (from spec ");
 			writeName(writer, specSig.specInst.deref().name);
 			writeChar(writer, ')');
-		});
+		},
+	)(c);
 }
 
 void writeFunDeclLocation(

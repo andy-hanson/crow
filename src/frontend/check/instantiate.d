@@ -117,8 +117,8 @@ private immutable(Type) instantiateType(
 	immutable TypeParamsAndArgs typeParamsAndArgs,
 	DelayStructInsts delayStructInsts,
 ) {
-	return matchType!(immutable Type)(
-		type,
+	return matchType!(
+		immutable Type,
 		(immutable Type.Bogus) =>
 			immutable Type(Type.Bogus()),
 		(immutable Ptr!TypeParam p) {
@@ -126,7 +126,8 @@ private immutable(Type) instantiateType(
 			return has(op) ? force(op) : type;
 		},
 		(immutable Ptr!StructInst i) =>
-			immutable Type(instantiateStructInst(alloc, programState, i, typeParamsAndArgs, delayStructInsts)));
+			immutable Type(instantiateStructInst(alloc, programState, i, typeParamsAndArgs, delayStructInsts)),
+	)(type);
 }
 
 private immutable(Type) instantiateTypeNoDelay(
@@ -165,8 +166,8 @@ immutable(StructBody) instantiateStructBody(
 ) {
 	immutable TypeParamsAndArgs typeParamsAndArgs =
 		immutable TypeParamsAndArgs(typeParams(declAndArgs.decl.deref()), declAndArgs.typeArgs);
-	return matchStructBody!(immutable StructBody)(
-		body_(declAndArgs.decl.deref()),
+	return matchStructBody!(
+		immutable StructBody,
 		(ref immutable StructBody.Bogus) =>
 			immutable StructBody(immutable StructBody.Bogus()),
 		(ref immutable StructBody.Builtin) =>
@@ -189,7 +190,8 @@ immutable(StructBody) instantiateStructBody(
 						? withType(
 							it,
 							instantiateType(alloc, programState, force(it.type), typeParamsAndArgs, delayStructInsts))
-						: it))));
+						: it))),
+	)(body_(declAndArgs.decl.deref()));
 }
 
 immutable(Ptr!StructInst) instantiateStruct(
@@ -288,8 +290,8 @@ immutable(Ptr!SpecInst) instantiateSpec(
 		alloc,
 		programState.specInsts,
 		declAndArgs,
-		() => allocate(alloc, immutable SpecInst(declAndArgs, matchSpecBody(
-			declAndArgs.decl.deref().body_,
+		() => allocate(alloc, immutable SpecInst(declAndArgs, matchSpecBody!(
+			immutable SpecBody,
 			(ref immutable SpecBody.Builtin b) =>
 				immutable SpecBody(SpecBody.Builtin(b.kind)),
 			(ref immutable Sig[] sigs) =>
@@ -298,7 +300,8 @@ immutable(Ptr!SpecInst) instantiateSpec(
 						alloc,
 						programState,
 						sig,
-						immutable TypeParamsAndArgs(declAndArgs.decl.deref().typeParams, declAndArgs.typeArgs))))))));
+						immutable TypeParamsAndArgs(declAndArgs.decl.deref().typeParams, declAndArgs.typeArgs)))),
+		)(declAndArgs.decl.deref().body_))));
 }
 
 immutable(Ptr!SpecInst) instantiateSpecInst(
@@ -323,15 +326,16 @@ immutable(Sig) instantiateSig(
 ) {
 	immutable Type returnType = instantiateType(
 		alloc, programState, sig.returnType, typeParamsAndArgs, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
-	immutable Params params = matchParams!(immutable Params)(
-		sig.params,
+	immutable Params params = matchParams!(
+		immutable Params,
 		(immutable Param[] params) =>
 			immutable Params(mapWithSize!Param(alloc, params, (ref immutable Param p) =>
 				instantiateParam(alloc, programState, typeParamsAndArgs, p))),
 		(ref immutable Params.Varargs v) =>
 			immutable Params(allocate(alloc, immutable Params.Varargs(
 				instantiateParam(alloc, programState, typeParamsAndArgs, v.param),
-				instantiateTypeNoDelay(alloc, programState, v.elementType, typeParamsAndArgs)))));
+				instantiateTypeNoDelay(alloc, programState, v.elementType, typeParamsAndArgs)))),
+	)(sig.params);
 	return immutable Sig(sig.fileAndPos, sig.name, returnType, params);
 }
 

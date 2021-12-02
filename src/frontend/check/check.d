@@ -299,12 +299,13 @@ immutable(Opt!(Ptr!StructInst)) instantiateNonTemplateStructOrAlias(
 	immutable StructOrAlias structOrAlias,
 ) {
 	verify(empty(typeParams(structOrAlias)));
-	return matchStructOrAliasPtr!(immutable Opt!(Ptr!StructInst))(
-		structOrAlias,
+	return matchStructOrAliasPtr!(
+		immutable Opt!(Ptr!StructInst),
 		(ref immutable StructAlias it) =>
 			target(it),
 		(immutable Ptr!StructDecl it) =>
-			some(instantiateNonTemplateStructDecl(alloc, programState, delayedStructInsts, it)));
+			some(instantiateNonTemplateStructDecl(alloc, programState, delayedStructInsts, it)),
+	)(structOrAlias);
 }
 
 immutable(Ptr!StructInst) instantiateNonTemplateStructDeclNeverDelay(
@@ -501,8 +502,11 @@ immutable(ArrWithSize!TypeParam) checkTypeParams(
 	ref immutable ArrWithSize!NameAndRange asts,
 ) {
 	immutable ArrWithSize!TypeParam res =
-		mapWithSizeWithIndex!(TypeParam, NameAndRange)(alloc, toArr(asts), (immutable size_t index, scope ref immutable NameAndRange ast) =>
-			immutable TypeParam(rangeInFile(ctx, rangeOfNameAndRange(ast)), ast.name, index));
+		mapWithSizeWithIndex!(TypeParam, NameAndRange)(
+			alloc,
+			toArr(asts),
+			(immutable size_t index, scope ref immutable NameAndRange ast) =>
+				immutable TypeParam(rangeInFile(ctx, rangeOfNameAndRange(ast)), ast.name, index));
 	eachPair!TypeParam(toArr(res), (ref immutable TypeParam a, ref immutable TypeParam b) {
 		if (symEq(a.name, b.name))
 			addDiag(alloc, ctx, b.range, immutable Diag(
@@ -520,8 +524,8 @@ immutable(Params) checkParams(
 	immutable TypeParamsScope typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
 ) {
-	return matchParamsAst!(immutable Params)(
-		ast,
+	return matchParamsAst!(
+		immutable Params,
 		(immutable ParamAst[] asts) {
 			immutable ArrWithSize!Param paramsWithSize = mapWithSizeWithIndex!(Param, ParamAst)(
 				alloc,
@@ -544,8 +548,8 @@ immutable(Params) checkParams(
 		(ref immutable ParamsAst.Varargs varargs) {
 			immutable Param param = checkParam(
 				alloc, ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts, varargs.param, 0);
-			immutable Type elementType = matchType!(immutable Type)(
-				param.type,
+			immutable Type elementType = matchType!(
+				immutable Type,
 				(immutable Type.Bogus) =>
 					immutable Type(immutable Type.Bogus()),
 				(immutable Ptr!TypeParam) =>
@@ -556,9 +560,11 @@ immutable(Params) checkParams(
 					} else {
 						return todo!(immutable Type)("diagnostic");
 					}
-				});
+				},
+			)(param.type);
 			return immutable Params(allocate(alloc, immutable Params.Varargs(param, elementType)));
-		});
+		},
+	)(ast);
 }
 
 immutable(Param) checkParam(
@@ -625,8 +631,8 @@ immutable(SpecBody) checkSpecBody(
 	immutable Sym name,
 	ref immutable SpecBodyAst ast,
 ) {
-	return matchSpecBodyAst!(immutable SpecBody)(
-		ast,
+	return matchSpecBodyAst!(
+		immutable SpecBody,
 		(ref immutable SpecBodyAst.Builtin) =>
 			immutable SpecBody(SpecBody.Builtin(getSpecBodyBuiltinKind(name))),
 		(ref immutable SigAst[] sigs) =>
@@ -638,7 +644,8 @@ immutable(SpecBody) checkSpecBody(
 					it,
 					toArr(typeParams),
 					structsAndAliasesDict,
-					noneMut!(Ptr!(MutArr!(Ptr!StructInst)))))));
+					noneMut!(Ptr!(MutArr!(Ptr!StructInst)))))),
+	)(ast);
 }
 
 immutable(SpecDecl[]) checkSpecDecls(
@@ -686,8 +693,8 @@ immutable(PurityAndForced) getPurityFromAst(
 	ref CheckCtx ctx,
 	ref immutable StructDeclAst ast,
 ) {
-	immutable Purity defaultPurity = matchStructDeclAstBody!(immutable Purity)(
-		ast.body_,
+	immutable Purity defaultPurity = matchStructDeclAstBody!(
+		immutable Purity,
 		(ref immutable StructDeclAst.Body.Builtin) =>
 			Purity.data,
 		(ref immutable StructDeclAst.Body.Enum) =>
@@ -699,7 +706,8 @@ immutable(PurityAndForced) getPurityFromAst(
 		(ref immutable StructDeclAst.Body.Record) =>
 			Purity.data,
 		(ref immutable StructDeclAst.Body.Union) =>
-			Purity.data);
+			Purity.data,
+	)(ast.body_);
 	// Note: purity is taken for granted here, and verified later when we check the body.
 	if (has(ast.purity)) {
 		immutable PurityAndForced res = () {
@@ -725,14 +733,15 @@ immutable(PurityAndForced) getPurityFromAst(
 }
 
 immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) {
-	return matchStructDeclAstBody!(immutable TypeKind)(
-		a,
+	return matchStructDeclAstBody!(
+		immutable TypeKind,
 		(ref immutable StructDeclAst.Body.Builtin) => TypeKind.builtin,
 		(ref immutable StructDeclAst.Body.Enum) => TypeKind.enum_,
 		(ref immutable StructDeclAst.Body.Flags) => TypeKind.flags,
 		(ref immutable StructDeclAst.Body.ExternPtr) => TypeKind.externPtr,
 		(ref immutable StructDeclAst.Body.Record) => TypeKind.record,
-		(ref immutable StructDeclAst.Body.Union) => TypeKind.union_);
+		(ref immutable StructDeclAst.Body.Union) => TypeKind.union_,
+	)(a);
 }
 
 StructDecl[] checkStructsInitial(
@@ -873,18 +882,20 @@ immutable(EnumTypeAndMembers) checkEnumMembers(
 				immutable ValueAndOverflow valueAndOverflow = () {
 					if (has(memberAst.value))
 						return isSignedEnumBackingType(enumType)
-							? matchLiteralIntOrNat!(immutable ValueAndOverflow)(
-								force(memberAst.value),
+							? matchLiteralIntOrNat!(
+								immutable ValueAndOverflow,
 								(ref immutable LiteralAst.Int i) =>
 									immutable ValueAndOverflow(immutable EnumValue(i.value), i.overflow),
 								(ref immutable LiteralAst.Nat n) =>
-									immutable ValueAndOverflow(immutable EnumValue(n.value), n.value > long.max))
-							: matchLiteralIntOrNat!(immutable ValueAndOverflow)(
-								force(memberAst.value),
+									immutable ValueAndOverflow(immutable EnumValue(n.value), n.value > long.max),
+							)(force(memberAst.value))
+							: matchLiteralIntOrNat!(
+								immutable ValueAndOverflow,
 								(ref immutable LiteralAst.Int) =>
 									todo!(immutable ValueAndOverflow)("signed value in unsigned enum"),
 								(ref immutable LiteralAst.Nat n) =>
-									immutable ValueAndOverflow(immutable EnumValue(n.value), n.overflow));
+									immutable ValueAndOverflow(immutable EnumValue(n.value), n.overflow),
+							)(force(memberAst.value));
 					else
 						return cbGetNextValue(lastValue, enumType);
 				}();
@@ -959,8 +970,8 @@ immutable(EnumBackingType) getEnumTypeFromType(
 	immutable Type type,
 ) {
 	immutable IntegralTypes integrals = commonTypes.integrals;
-	return matchType!EnumBackingType(
-		type,
+	return matchType!(
+		immutable EnumBackingType,
 		(immutable Type.Bogus) =>
 			defaultEnumBackingType(),
 		(immutable Ptr!TypeParam) =>
@@ -986,7 +997,8 @@ immutable(EnumBackingType) getEnumTypeFromType(
 				: (() {
 					addDiag(alloc, ctx, range, immutable Diag(immutable Diag.EnumBackingTypeInvalid(it)));
 					return defaultEnumBackingType();
-				})());
+				})(),
+	)(type);
 }
 
 immutable(Ptr!StructInst) getBackingTypeFromEnumType(
@@ -1162,8 +1174,8 @@ void checkStructBodies(
 		structs,
 		asts,
 		(Ptr!StructDecl struct_, ref immutable StructDeclAst ast) {
-			immutable StructBody body_ = matchStructDeclAstBody!(immutable StructBody)(
-				ast.body_,
+			immutable StructBody body_ = matchStructDeclAstBody!(
+				immutable StructBody,
 				(ref immutable StructDeclAst.Body.Builtin) =>
 					immutable StructBody(immutable StructBody.Builtin()),
 				(ref immutable StructDeclAst.Body.Enum it) =>
@@ -1194,7 +1206,8 @@ void checkStructBodies(
 						structsAndAliasesDict,
 						castImmutable(struct_),
 						it,
-						delayStructInsts)));
+						delayStructInsts)),
+			)(ast.body_);
 			setBody(struct_.deref(), body_);
 		});
 }
@@ -1334,8 +1347,8 @@ immutable(FunsAndDict) checkFuns(
 
 	FunDecl[] funsWithAsts = funs[0 .. size(asts)];
 	zipMutPtrFirst!(FunDecl, FunDeclAst)(funsWithAsts, asts, (Ptr!FunDecl fun, ref immutable FunDeclAst funAst) {
-		overwriteMemory(&fun.deref().body_, matchFunBodyAst(
-			funAst.body_,
+		overwriteMemory(&fun.deref().body_, matchFunBodyAst!(
+			immutable FunBody,
 			(ref immutable FunBodyAst.Builtin) =>
 				immutable FunBody(immutable FunBody.Builtin()),
 			(ref immutable FunBodyAst.Extern e) {
@@ -1361,7 +1374,8 @@ immutable(FunsAndDict) checkFuns(
 					specs(f.deref()),
 					f.deref().flags,
 					e));
-			}));
+			},
+		)(funAst.body_));
 	});
 
 	immutable Test[] tests = map!(Test, TestAst)(alloc, testAsts, (ref immutable TestAst ast) {
@@ -1436,8 +1450,8 @@ immutable(size_t) countFunsForStruct(
 	ref immutable StructDecl[] structs,
 ) {
 	return size(asts) + sum!StructDecl(structs, (ref immutable StructDecl s) =>
-		matchStructBody!(immutable size_t)(
-			body_(s),
+		matchStructBody!(
+			immutable size_t,
 			(ref immutable StructBody.Bogus) =>
 				immutable size_t(0),
 			(ref immutable StructBody.Builtin) =>
@@ -1458,7 +1472,8 @@ immutable(size_t) countFunsForStruct(
 				return nConstructors + size(it.fields) + nMutableFields;
 			},
 			(ref immutable StructBody.Union it) =>
-				size(it.members)));
+				size(it.members)
+		)(body_(s)));
 }
 
 void addFunsForStruct(
@@ -1469,8 +1484,8 @@ void addFunsForStruct(
 	ref immutable CommonTypes commonTypes,
 	immutable Ptr!StructDecl struct_,
 ) {
-	matchStructBody!void(
-		body_(struct_.deref()),
+	matchStructBody!(
+		void,
 		(ref immutable StructBody.Bogus) {},
 		(ref immutable StructBody.Builtin) {},
 		(ref immutable StructBody.Enum it) {
@@ -1485,7 +1500,8 @@ void addFunsForStruct(
 		},
 		(ref immutable StructBody.Union it) {
 			addFunsForUnion(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_, it);
-		});
+		},
+	)(body_(struct_.deref()));
 }
 
 void addFunsForEnum(

@@ -162,33 +162,35 @@ void addImportTokens(
 void addSpecTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable SpecDeclAst a) {
 	add(alloc, tokens, immutable Token(Token.Kind.specDef, rangeAtName(a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, a.typeParams);
-	matchSpecBodyAst!void(
-		a.body_,
+	matchSpecBodyAst!(
+		void,
 		(ref immutable SpecBodyAst.Builtin) {},
 		(ref immutable SigAst[] sigs) {
 			foreach (ref immutable SigAst sig; sigs) {
 				add(alloc, tokens, immutable Token(Token.Kind.funDef, rangeAtName(sig.range.start, sig.name)));
 				addSigReturnTypeAndParamsTokens(alloc, tokens, sig);
 			}
-		});
+		},
+	)(a.body_);
 }
 
 void addSigReturnTypeAndParamsTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable SigAst a) {
 	addTypeTokens(alloc, tokens, a.returnType);
-	matchParamsAst!void(
-		a.params,
+	matchParamsAst!(
+		void,
 		(immutable ParamAst[] params) {
 			foreach (ref immutable ParamAst param; params)
 				addParamTokens(alloc, tokens, param);
 		},
 		(ref immutable ParamsAst.Varargs v) {
 			addParamTokens(alloc, tokens, v.param);
-		});
+		},
+	)(a.params);
 }
 
 void addTypeTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, immutable TypeAst a) {
-	matchTypeAst!void(
-		a,
+	matchTypeAst!(
+		void,
 		(immutable TypeAst.Dict it) {
 			addTypeTokens(alloc, tokens, it.v);
 			add(alloc, tokens, immutable Token(
@@ -212,7 +214,8 @@ void addTypeTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, immutable TypeA
 		(immutable TypeAst.Suffix it) {
 			addTypeTokens(alloc, tokens, it.left);
 			add(alloc, tokens, immutable Token(Token.Kind.keyword, suffixRange(it)));
-		});
+		},
+	)(a);
 }
 
 void addInstStructTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, immutable TypeAst.InstStruct a) {
@@ -255,8 +258,8 @@ void addStructTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable
 	addTypeParamsTokens(alloc, tokens, a.typeParams);
 	if (has(a.purity))
 		add(alloc, tokens, immutable Token(Token.Kind.purity, rangeOfPuritySpecifier(force(a.purity))));
-	matchStructDeclAstBody!void(
-		a.body_,
+	matchStructDeclAstBody!(
+		void,
 		(ref immutable StructDeclAst.Body.Builtin) {},
 		(ref immutable StructDeclAst.Body.Enum it) {
 			addEnumOrFlagsTokens(alloc, tokens, it.typeArg, it.members);
@@ -287,7 +290,8 @@ void addStructTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable
 				if (has(member.type))
 					addTypeTokens(alloc, tokens, force(member.type));
 			}
-		});
+		},
+	)(a.body_);
 }
 
 void addEnumOrFlagsTokens(
@@ -319,18 +323,19 @@ void addFunTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable Fu
 		add(alloc, tokens, immutable Token(Token.Kind.specRef, rangeOfNameAndRange(specUse.spec)));
 		addTypeArgsTokens(alloc, tokens, specUse.typeArgs);
 	}
-	matchFunBodyAst!void(
-		a.body_,
+	matchFunBodyAst!(
+		void,
 		(ref immutable FunBodyAst.Builtin) {},
 		(ref immutable FunBodyAst.Extern) {},
 		(ref immutable ExprAst it) {
 			addExprTokens(alloc, tokens, it);
-		});
+		},
+	)(a.body_);
 }
 
 void addExprTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable ExprAst a) {
-	matchExprAstKind!void(
-		a.kind,
+	matchExprAstKind!(
+		void,
 		(ref immutable BogusAst) {},
 		(ref immutable CallAst it) {
 			immutable ExprAst[] args = toArr(it.args);
@@ -386,17 +391,18 @@ void addExprTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable E
 			Pos pos = a.range.start;
 			if (!empty(it.parts)) {
 				// Ensure opening quote is highlighted
-				matchInterpolatedPart!void(
-					it.parts[0],
+				matchInterpolatedPart!(
+					void,
 					(ref immutable(string)) {},
 					(ref immutable(ExprAst)) {
 						add(alloc, tokens, immutable Token(
 							Token.Kind.literalString,
 							immutable RangeWithinFile(pos, pos + 1)));
-					});
+					},
+				)(it.parts[0]);
 				foreach (immutable size_t i; 0..size(it.parts))
-					matchInterpolatedPart!void(
-						at(it.parts, i),
+					matchInterpolatedPart!(
+						void,
 						(ref immutable string s) {
 							// TODO: length may be wrong if there are escapes
 							// Ensure the closing quote is highlighted
@@ -408,16 +414,18 @@ void addExprTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable E
 						(ref immutable ExprAst e) {
 							addExprTokens(alloc, tokens, e);
 							pos = safeSizeTToU32(e.range.end + 1);
-						});
+						},
+					)(at(it.parts, i));
 				// Ensure closing quote is highlighted
-				matchInterpolatedPart!void(
-					last(it.parts),
+				matchInterpolatedPart!(
+					void,
 					(ref immutable(string)) {},
 					(ref immutable(ExprAst)) {
 						add(alloc, tokens, immutable Token(
 							Token.Kind.literalString,
 							immutable RangeWithinFile(a.range.end - 1, a.range.end)));
-					});
+					},
+				)(last(it.parts));
 			}
 		},
 		(ref immutable LambdaAst it) {
@@ -431,8 +439,8 @@ void addExprTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable E
 			addExprTokens(alloc, tokens, it.then);
 		},
 		(ref immutable LiteralAst literal) {
-			immutable Token.Kind kind = matchLiteralAst!(immutable Token.Kind)(
-				literal,
+			immutable Token.Kind kind = matchLiteralAst!(
+				immutable Token.Kind,
 				(immutable LiteralAst.Float) =>
 					Token.Kind.literalNumber,
 				(immutable LiteralAst.Int) =>
@@ -442,20 +450,22 @@ void addExprTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable E
 				(immutable(string)) =>
 					Token.Kind.literalString,
 				(immutable(Sym)) =>
-					Token.Kind.literalSymbol);
+					Token.Kind.literalSymbol,
+			)(literal);
 			add(alloc, tokens, immutable Token(kind, a.range));
 		},
 		(ref immutable MatchAst it) {
 			addExprTokens(alloc, tokens, it.matched);
 			foreach (ref immutable MatchAst.CaseAst case_; it.cases) {
 				add(alloc, tokens, immutable Token(Token.Kind.structRef, case_.memberNameRange()));
-				matchNameOrUnderscoreOrNone!void(
-					case_.local,
+				matchNameOrUnderscoreOrNone!(
+					void,
 					(immutable(Sym)) {
 						add(alloc, tokens, immutable Token(Token.Kind.localDef, case_.localRange()));
 					},
 					(ref immutable NameOrUnderscoreOrNone.Underscore) {},
-					(ref immutable NameOrUnderscoreOrNone.None) {});
+					(ref immutable NameOrUnderscoreOrNone.None) {},
+				)(case_.local);
 				addExprTokens(alloc, tokens, case_.then);
 			}
 		},
@@ -478,7 +488,8 @@ void addExprTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable E
 		(ref immutable TypedAst it) {
 			addExprTokens(alloc, tokens, it.expr);
 			addTypeTokens(alloc, tokens, it.type);
-		});
+		},
+	)(a.kind);
 }
 
 immutable(Token) localDefOfNameAndRange(immutable NameAndRange a) {

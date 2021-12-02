@@ -242,8 +242,8 @@ immutable(Ptr!gcc_jit_function) generateAssertFieldOffsetsFunction(
 }
 
 immutable(Ptr!gcc_jit_type) getGccType(ref immutable GccTypes types, immutable LowType a) {
-	immutable Ptr!gcc_jit_type res = matchLowTypeCombinePtr!(immutable Ptr!gcc_jit_type)(
-		a,
+	immutable Ptr!gcc_jit_type res = matchLowTypeCombinePtr!(
+		immutable Ptr!gcc_jit_type,
 		(immutable LowType.ExternPtr x) =>
 			fullIndexDictGet(types.externPtrs, x),
 		(immutable LowType.FunPtr x) =>
@@ -255,7 +255,8 @@ immutable(Ptr!gcc_jit_type) getGccType(ref immutable GccTypes types, immutable L
 		(immutable LowType.Record x) =>
 			gcc_jit_struct_as_type(fullIndexDictGet(types.records, x)),
 		(immutable LowType.Union x) =>
-			gcc_jit_struct_as_type(fullIndexDictGet(types.unions, x)));
+			gcc_jit_struct_as_type(fullIndexDictGet(types.unions, x)),
+	)(a);
 	verify(res.rawPtr() != null);
 	return res;
 }
@@ -263,8 +264,8 @@ immutable(Ptr!gcc_jit_type) getGccType(ref immutable GccTypes types, immutable L
 private:
 
 immutable(Ptr!gcc_jit_type) getGccType(ref GccTypesWip typesWip, immutable LowType a) {
-	immutable Ptr!gcc_jit_type res = matchLowTypeCombinePtr!(immutable Ptr!gcc_jit_type)(
-		a,
+	immutable Ptr!gcc_jit_type res = matchLowTypeCombinePtr!(
+		immutable Ptr!gcc_jit_type,
 		(immutable LowType.ExternPtr x) =>
 			fullIndexDictGet(typesWip.externPtrs, x),
 		(immutable LowType.FunPtr x) =>
@@ -276,7 +277,8 @@ immutable(Ptr!gcc_jit_type) getGccType(ref GccTypesWip typesWip, immutable LowTy
 		(immutable LowType.Record x) =>
 			gcc_jit_struct_as_type(fullIndexDictGet(typesWip.records, x)),
 		(immutable LowType.Union x) =>
-			gcc_jit_struct_as_type(fullIndexDictGet(typesWip.unions, x)));
+			gcc_jit_struct_as_type(fullIndexDictGet(typesWip.unions, x)),
+	)(a);
 	verify(res.rawPtr() != null);
 	return res;
 }

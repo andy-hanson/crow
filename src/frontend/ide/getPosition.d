@@ -128,8 +128,8 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 		if (hasPos(f.deref().sig.range, pos))
 			//TODO: delve inside!
 			return some(immutable Position(f));
-		immutable Opt!Position fromBody = matchFunBody!(immutable Opt!Position)(
-			f.deref().body_,
+		immutable Opt!Position fromBody = matchFunBody!(
+			immutable Opt!Position,
 			(ref immutable FunBody.Builtin) =>
 				none!Position,
 			(ref immutable FunBody.CreateEnum) =>
@@ -152,7 +152,8 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 			(ref immutable FunBody.RecordFieldGet) =>
 				none!Position,
 			(ref immutable FunBody.RecordFieldSet) =>
-				none!Position);
+				none!Position,
+		)(f.deref().body_);
 		if (has(fromBody))
 			return fromBody;
 	}
@@ -188,8 +189,8 @@ immutable(Opt!Position) positionInImportsOrExports(
 immutable(Position) positionInStruct(immutable Ptr!StructDecl a, immutable Pos pos) {
 	//TODO: look through type params!
 
-	immutable Opt!Position specific = matchStructBody!(immutable Opt!Position)(
-		body_(a.deref()),
+	immutable Opt!Position specific = matchStructBody!(
+		immutable Opt!Position,
 		(ref immutable StructBody.Bogus) =>
 			none!Position,
 		(ref immutable StructBody.Builtin) =>
@@ -210,16 +211,18 @@ immutable(Position) positionInStruct(immutable Ptr!StructDecl a, immutable Pos p
 		},
 		(ref immutable StructBody.Union) =>
 			//TODO
-			none!Position);
+			none!Position,
+	)(body_(a.deref()));
 	return has(specific) ? force(specific) : immutable Position(a);
 }
 
 immutable(Opt!Position) positionOfType(immutable Type a) {
-	return matchType!(immutable Opt!Position)(
-		a,
+	return matchType!(
+		immutable Opt!Position,
 		(immutable Type.Bogus) => none!Position,
 		(immutable Ptr!TypeParam it) => some(immutable Position(it)),
-		(immutable Ptr!StructInst it) => some(immutable Position(decl(it.deref()))));
+		(immutable Ptr!StructInst it) => some(immutable Position(decl(it.deref()))),
+	)(a);
 }
 
 immutable(bool) nameHasPos(immutable Pos start, immutable Sym name, immutable Pos pos) {

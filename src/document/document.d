@@ -100,14 +100,15 @@ void writeModulePath(
 }
 
 void writeStructOrAlias(ref Writer writer, ref immutable StructOrAlias a) {
-	matchStructOrAlias!void(
-		a,
+	matchStructOrAlias!(
+		void,
 		(ref immutable StructAlias it) {
 			writeStructAlias(writer, it);
 		},
 		(ref immutable StructDecl it) {
 			writeStructDecl(writer, it);
-		});
+		},
+	)(a);
 }
 
 void writeStructAlias(ref Writer writer, ref immutable StructAlias a) {
@@ -122,8 +123,8 @@ void writeStructAlias(ref Writer writer, ref immutable StructAlias a) {
 }
 
 void writeStructDecl(ref Writer writer, ref immutable StructDecl a) {
-	matchStructBody!void(
-		body_(a),
+	matchStructBody!(
+		void,
 		(ref immutable(StructBody.Bogus)) {
 			unreachable!void();
 		},
@@ -150,7 +151,8 @@ void writeStructDecl(ref Writer writer, ref immutable StructDecl a) {
 		},
 		(ref immutable StructBody.Union it) {
 			writeUnion(writer, a, it);
-		});
+		},
+	)(body_(a));
 	writeDocComment(writer, a.docComment);
 }
 
@@ -212,15 +214,16 @@ void writeSpec(ref Writer writer, ref immutable SpecDecl a) {
 	writeQuotedSym(writer, a.name);
 	writeTypeParams(writer, typeParams(a));
 	writeStatic(writer, ", ");
-	matchSpecBody!void(
-		a.body_,
+	matchSpecBody!(
+		void,
 		(ref immutable SpecBody.Builtin) {
 			writeStatic(writer, "\"builtin\"");
 		},
 		(ref immutable Sig[] sigs) {
 			writeStatic(writer, "\"TODO:WRITE SIGS\"");
 			cast(void) sigs;
-		});
+		},
+	)(a.body_);
 	writeStatic(writer, ")");
 	writeDocComment(writer, a.docComment);
 }
@@ -275,8 +278,8 @@ void writeQuotedType(ref Writer writer, immutable Type a) {
 }
 
 void writeType(ref Writer writer, immutable Type a) {
-	matchType!void(
-		a,
+	matchType!(
+		void,
 		(immutable Type.Bogus) {
 			unreachable!void();
 		},
@@ -298,7 +301,8 @@ void writeType(ref Writer writer, immutable Type a) {
 					writeChar(writer, '>');
 				}
 			}
-		});
+		},
+	)(a);
 }
 
 void writeTypeParams(ref Writer writer, immutable TypeParam[] typeParams) {

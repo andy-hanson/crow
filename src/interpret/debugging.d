@@ -46,8 +46,8 @@ void writeFunName(ref Writer writer, ref immutable LowProgram lowProgram, immuta
 }
 
 void writeFunName(ref Writer writer, ref immutable LowProgram lowProgram, ref immutable LowFun a) {
-	matchLowFunSource!void(
-		a.source,
+	matchLowFunSource!(
+		void,
 		(immutable Ptr!ConcreteFun it) {
 			writeConcreteFunName(writer, it.deref());
 		},
@@ -61,12 +61,13 @@ void writeFunName(ref Writer writer, ref immutable LowProgram lowProgram, ref im
 				writeChar(writer, '>');
 			}
 			writeStatic(writer, " (generated)");
-		});
+		},
+	)(a.source);
 }
 
 void writeFunSig(ref Writer writer, ref immutable LowProgram lowProgram, ref immutable LowFun a) {
-	matchLowFunSource!void(
-		a.source,
+	matchLowFunSource!(
+		void,
 		(immutable Ptr!ConcreteFun it) {
 			writeConcreteType(writer, it.deref().returnType);
 			writeChar(writer, '(');
@@ -74,8 +75,8 @@ void writeFunSig(ref Writer writer, ref immutable LowProgram lowProgram, ref imm
 				writer,
 				it.deref().paramsExcludingCtxAndClosure,
 				(ref immutable ConcreteParam param) {
-					matchConcreteParamSource!void(
-						param.source,
+					matchConcreteParamSource!(
+						void,
 						(ref immutable ConcreteParamSource.Closure) {
 							writeStatic(writer, "<closure>");
 						},
@@ -84,20 +85,22 @@ void writeFunSig(ref Writer writer, ref immutable LowProgram lowProgram, ref imm
 								writeSym(writer, force(p.name));
 							else
 								writeChar(writer, '_');
-						});
-				writeChar(writer, ' ');
-				writeConcreteType(writer, param.type);
-			});
+						},
+					)(param.source);
+					writeChar(writer, ' ');
+					writeConcreteType(writer, param.type);
+				});
 			writeChar(writer, ')');
 		},
 		(ref immutable LowFunSource.Generated) {
 			writeStatic(writer, "(generated)");
-		});
+		},
+	)(a.source);
 }
 
 void writeLowType(ref Writer writer, ref immutable AllLowTypes lowTypes, ref immutable LowType a) {
-	matchLowType!void(
-		a,
+	matchLowType!(
+		void,
 		(immutable LowType.ExternPtr) {
 			writeStatic(writer, "some extern-ptr type"); // TODO: more detail
 		},
@@ -127,12 +130,13 @@ void writeLowType(ref Writer writer, ref immutable AllLowTypes lowTypes, ref imm
 		},
 		(immutable LowType.Union it) {
 			writeConcreteStruct(writer, fullIndexDictGet(lowTypes.allUnions, it).source.deref());
-		});
+		},
+	)(a);
 }
 
 void writeConcreteFunName(ref Writer writer, ref immutable ConcreteFun a) {
-	matchConcreteFunSource!void(
-		a.source,
+	matchConcreteFunSource!(
+		void,
 		(ref immutable FunInst it) {
 			writeSym(writer, name(it));
 			if (!empty(typeArgs(it))) {
@@ -151,7 +155,8 @@ void writeConcreteFunName(ref Writer writer, ref immutable ConcreteFun a) {
 		(ref immutable(ConcreteFunSource.Test)) {
 			//TODO: more unique name for each test
 			writeStatic(writer, "test");
-		});
+		},
+	)(a.source);
 }
 
 private:
@@ -161,8 +166,8 @@ void writeRecordName(ref Writer writer, ref immutable LowRecord a) {
 }
 
 void writeConcreteStruct(ref Writer writer, ref immutable ConcreteStruct a) {
-	matchConcreteStructSource!void(
-		a.source,
+	matchConcreteStructSource!(
+		void,
 		(ref immutable ConcreteStructSource.Inst it) {
 			writeSym(writer, decl(it.inst.deref()).deref().name);
 			if (!empty(it.typeArgs)) {
@@ -177,7 +182,8 @@ void writeConcreteStruct(ref Writer writer, ref immutable ConcreteStruct a) {
 			writeConcreteFunName(writer, it.containingFun.deref());
 			writeStatic(writer, ".lambda");
 			writeNat(writer, it.index);
-		});
+		},
+	)(a.source);
 }
 
 void writeConcreteType(ref Writer writer, immutable ConcreteType a) {
@@ -186,22 +192,23 @@ void writeConcreteType(ref Writer writer, immutable ConcreteType a) {
 }
 
 void writeFieldName(ref Writer writer, ref immutable LowField a) {
-	matchConcreteFieldSource!void(
-		a.source.deref().source,
+	matchConcreteFieldSource!(
+		void,
 		(immutable Ptr!ClosureField it) {
 			writeSym(writer, it.deref().name);
 		},
 		(immutable Ptr!RecordField it) {
 			writeSym(writer, it.deref().name);
-		});
+		},
+	)(a.source.deref().source);
 }
 
 void writeLocalName(ref Writer writer, ref immutable LowLocal a) {
-	matchLowLocalSource!void(
-		a.source,
+	matchLowLocalSource!(
+		void,
 		(ref immutable ConcreteLocal it) {
-			matchConcreteLocalSource!void(
-				it.source,
+			matchConcreteLocalSource!(
+				void,
 				(ref immutable ConcreteLocalSource.Arr) {
 					writeStatic(writer, "<<arr>>");
 				},
@@ -210,9 +217,11 @@ void writeLocalName(ref Writer writer, ref immutable LowLocal a) {
 				},
 				(ref immutable ConcreteLocalSource.Matched) {
 					writeStatic(writer, "<<matched>>");
-				});
+				},
+			)(it.source);
 		},
 		(ref immutable LowLocalSource.Generated) {
 			writeStatic(writer, "<<generated>>");
-		});
+		},
+	)(a.source);
 }

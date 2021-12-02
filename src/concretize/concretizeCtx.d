@@ -392,8 +392,8 @@ immutable(ConcreteType) getConcreteType(
 	immutable Type t,
 	immutable TypeArgsScope typeArgsScope,
 ) {
-	return matchType!(immutable ConcreteType)(
-		t,
+	return matchType!(
+		immutable ConcreteType,
 		(immutable Type.Bogus) =>
 			unreachable!(immutable ConcreteType),
 		(immutable Ptr!TypeParam p) {
@@ -402,7 +402,8 @@ immutable(ConcreteType) getConcreteType(
 			return at(typeArgsScope.typeArgs, p.deref().index);
 		},
 		(immutable Ptr!StructInst i) =>
-			getConcreteType_forStructInst(alloc, ctx, i, typeArgsScope));
+			getConcreteType_forStructInst(alloc, ctx, i, typeArgsScope),
+	)(t);
 }
 
 immutable(ConcreteType[]) typesToConcreteTypes(
@@ -621,8 +622,8 @@ void initializeConcreteStruct(
 	Ptr!ConcreteStruct res,
 	immutable TypeArgsScope typeArgsScope,
 ) {
-	matchStructBody!void(
-		body_(i),
+	matchStructBody!(
+		void,
 		(ref immutable StructBody.Bogus) => unreachable!void,
 		(ref immutable StructBody.Builtin) {
 			immutable BuiltinStructKind kind = getBuiltinStructKind(i.decl.deref().name);
@@ -689,7 +690,8 @@ void initializeConcreteStruct(
 				lateSet(res.deref().typeSize_, unionSize(members));
 			else
 				push(alloc, ctx.deferredUnions, DeferredUnionBody(res, members));
-		});
+		},
+	)(body_(i));
 }
 
 immutable(ConcreteMutability) toConcreteMutability(immutable FieldMutability a) {
@@ -788,8 +790,8 @@ void fillInConcreteFunBody(
 		// set to arbitrary temporarily
 		lateSet(cf.deref()._body_, immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(false)));
 		immutable ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, castImmutable(cf));
-		immutable ConcreteFunBody body_ = matchFunBody!(immutable ConcreteFunBody)(
-			inputs.body_,
+		immutable ConcreteFunBody body_ = matchFunBody!(
+			immutable ConcreteFunBody,
 			(ref immutable FunBody.Builtin) {
 				immutable Ptr!FunInst inst = asFunInst(cf.deref().source);
 				return symEq(name(inst.deref()), shortSymAlphaLiteral("all-tests"))
@@ -829,7 +831,8 @@ void fillInConcreteFunBody(
 			(ref immutable FunBody.RecordFieldGet it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
 			(ref immutable FunBody.RecordFieldSet it) =>
-				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldSet(it.fieldIndex)));
+				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldSet(it.fieldIndex)),
+		)(inputs.body_);
 		lateSetOverwrite(cf.deref()._body_, body_);
 	}
 }
@@ -860,8 +863,8 @@ immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(
 }
 
 immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType type) {
-	return matchStructBody!(immutable StructBody.Enum.Member[])(
-		body_(decl(asInst(mustBeNonPointer(type).deref().source).inst.deref()).deref()),
+	return matchStructBody!(
+		immutable StructBody.Enum.Member[],
 		(ref immutable StructBody.Bogus) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
 		(ref immutable StructBody.Builtin) =>
@@ -875,7 +878,8 @@ immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType ty
 		(ref immutable StructBody.Record) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
 		(ref immutable StructBody.Union) =>
-			unreachable!(immutable StructBody.Enum.Member[]));
+			unreachable!(immutable StructBody.Enum.Member[]),
+	)(body_(decl(asInst(mustBeNonPointer(type).deref().source).inst.deref()).deref()));
 }
 
 immutable(ConcreteFunBody) bodyForAllTests(

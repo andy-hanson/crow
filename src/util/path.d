@@ -8,7 +8,7 @@ import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
 import util.collection.str : asSafeCStr, copyToSafeCStr, NulTerminatedStr, SafeCStr, strOfSafeCStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
 import util.hash : Hasher, hashUshort;
-import util.opt : has, force, forceOrTodo, mapOption, none, Opt, some;
+import util.opt : has, force, forceOrTodo, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols, eachCharInSym, Sym, symEq, symOfStr, symSize;

@@ -417,8 +417,8 @@ immutable(CallAst) checkInterpolatedRecur(
 			emptyArrWithSize!TypeAst,
 			arrWithSizeLiteral!ExprAst(alloc, [left]));
 	else {
-		immutable CallAst c = matchInterpolatedPart!(immutable CallAst)(
-			parts[0],
+		immutable CallAst c = matchInterpolatedPart!(
+			immutable CallAst,
 			(ref immutable string it) {
 				immutable ExprAst right = immutable ExprAst(
 					// TODO: this length may be wrong in the presence of escapes
@@ -435,11 +435,13 @@ immutable(CallAst) checkInterpolatedRecur(
 					CallAst.Style.infix,
 					immutable NameAndRange(pos, shortSymAlphaLiteral("with-value")),
 					emptyArrWithSize!TypeAst,
-					arrWithSizeLiteral!ExprAst(alloc, [left, e])));
-		immutable Pos newPos = matchInterpolatedPart!(immutable Pos)(
-			parts[0],
+					arrWithSizeLiteral!ExprAst(alloc, [left, e])),
+		)(parts[0]);
+		immutable Pos newPos = matchInterpolatedPart!(
+			immutable Pos,
 			(ref immutable string it) => safeSizeTToU32(pos + it.length),
-			(ref immutable ExprAst e) => e.range.end);
+			(ref immutable ExprAst e) => e.range.end,
+		)(parts[0]);
 		immutable ExprAst newLeft = immutable ExprAst(
 			immutable RangeWithinFile(pos, newPos),
 			immutable ExprAstKind(c));
@@ -646,8 +648,8 @@ immutable(CheckedExpr) checkLiteral(
 		return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.float64), e);
 	}
 
-	return matchLiteralAst!(immutable CheckedExpr)(
-		ast,
+	return matchLiteralAst!(
+		immutable CheckedExpr,
 		(immutable LiteralAst.Float it) {
 			if (it.overflow)
 				todo!void("literal overflow");
@@ -741,7 +743,8 @@ immutable(CheckedExpr) checkLiteral(
 		(immutable Sym it) {
 			immutable Expr e = immutable Expr(range, immutable Expr.SymbolLiteral(it));
 			return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.sym), e);
-		});
+		},
+	)(ast);
 }
 
 immutable(Expr) checkWithLocal(
@@ -793,8 +796,8 @@ immutable(CheckedExpr) checkFunPtr(
 ) {
 	MutArr!(immutable Ptr!FunDecl) funsInScope = MutArr!(immutable Ptr!FunDecl)();
 	eachFunInScope(ctx, ast.name, (ref immutable Opt!UsedFun used, immutable CalledDecl cd) {
-		matchCalledDecl!void(
-			cd,
+		matchCalledDecl!(
+			void,
 			(immutable Ptr!FunDecl it) {
 				if (has(used))
 					markUsedFun(ctx, force(used));
@@ -802,7 +805,8 @@ immutable(CheckedExpr) checkFunPtr(
 			},
 			(ref immutable SpecSig) {
 				todo!void("!");
-			});
+			},
+		)(cd);
 	});
 	if (mutArrSize(funsInScope) != 1)
 		todo!void("did not find or found too many");
@@ -812,12 +816,13 @@ immutable(CheckedExpr) checkFunPtr(
 		todo!void("can't point to template");
 	if (!funDecl.deref().noCtx)
 		todo!void("fun-ptr can't take ctx");
-	immutable size_t nParams = matchArity!(immutable size_t)(
-		arity(funDecl.deref()),
+	immutable size_t nParams = matchArity!(
+		immutable size_t,
 		(immutable size_t n) =>
 			n,
 		(ref immutable Arity.Varargs) =>
-			todo!(immutable size_t)("ptr to variadic function?"));
+			todo!(immutable size_t)("ptr to variadic function?"),
+	)(arity(funDecl.deref()));
 	if (nParams >= size(ctx.commonTypes.funPtrStructs))
 		todo!void("arity too high");
 
@@ -895,8 +900,8 @@ immutable(CheckedExpr) checkLambdaCommon(
 
 	immutable Type actualPossiblyFutReturnType = inferred(returnTypeInferrer);
 	immutable Opt!Type actualNonFutReturnType = kind == FunKind.ref_
-		? matchType(
-			actualPossiblyFutReturnType,
+		? matchType!(
+			immutable Opt!Type,
 			(immutable Type.Bogus) =>
 				some(immutable Type(immutable Type.Bogus())),
 			(immutable Ptr!TypeParam) =>
@@ -904,7 +909,8 @@ immutable(CheckedExpr) checkLambdaCommon(
 			(immutable Ptr!StructInst ap) =>
 				ptrEquals(ap.deref().decl, ctx.commonTypes.fut)
 					? some!Type(only(ap.deref().typeArgs))
-					: none!Type)
+					: none!Type,
+		)(actualPossiblyFutReturnType)
 		: some!Type(actualPossiblyFutReturnType);
 	if (!has(actualNonFutReturnType)) {
 		addDiag2(alloc, ctx, range, immutable Diag(Diag.SendFunDoesNotReturnFut(actualPossiblyFutReturnType)));
@@ -996,14 +1002,14 @@ struct EnumOrUnionAndMembers {
 	}
 }
 
-immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type t) {
-	return matchType(
-		t,
+immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type a) {
+	return matchType!(
+		immutable Opt!EnumOrUnionAndMembers,
 		(immutable Type.Bogus) => none!EnumOrUnionAndMembers,
 		(immutable Ptr!TypeParam) => none!EnumOrUnionAndMembers,
 		(immutable Ptr!StructInst structInst) =>
-			matchStructBody!(immutable Opt!EnumOrUnionAndMembers)(
-				body_(structInst.deref()),
+			matchStructBody!(
+				immutable Opt!EnumOrUnionAndMembers,
 				(ref immutable StructBody.Bogus) =>
 					none!EnumOrUnionAndMembers,
 				(ref immutable StructBody.Builtin) =>
@@ -1017,7 +1023,9 @@ immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type t) {
 				(ref immutable StructBody.Record) =>
 					none!EnumOrUnionAndMembers,
 				(ref immutable StructBody.Union it) =>
-					some(immutable EnumOrUnionAndMembers(immutable UnionAndMembers(structInst, it.members)))));
+					some(immutable EnumOrUnionAndMembers(immutable UnionAndMembers(structInst, it.members))),
+			)(body_(structInst.deref())),
+	)(a);
 }
 
 immutable(CheckedExpr) checkMatch(
@@ -1067,13 +1075,14 @@ immutable(CheckedExpr) checkMatchEnum(
 		return bogus(expected, range);
 	} else {
 		immutable Expr[] cases = map!Expr(alloc, ast.cases, (ref immutable MatchAst.CaseAst caseAst) {
-			matchNameOrUnderscoreOrNone!void(
-				caseAst.local,
+			matchNameOrUnderscoreOrNone!(
+				void,
 				(immutable(Sym)) =>
 					todo!void("diagnostic: no local for enum match"),
 				(ref immutable NameOrUnderscoreOrNone.Underscore) =>
 					todo!void("diagnostic: unnecessary underscore"),
-				(ref immutable NameOrUnderscoreOrNone.None) {});
+				(ref immutable NameOrUnderscoreOrNone.None) {},
+			)(caseAst.local);
 			return checkExpr(alloc, ctx, caseAst.then, expected);
 		});
 		return immutable CheckedExpr(immutable Expr(
@@ -1121,8 +1130,8 @@ immutable(Expr.MatchUnion.Case) checkMatchCase(
 	ref immutable MatchAst.CaseAst caseAst,
 	ref Expected expected,
 ) {
-	immutable Opt!(Ptr!Local) local = matchNameOrUnderscoreOrNone!(immutable Opt!(Ptr!Local))(
-		caseAst.local,
+	immutable Opt!(Ptr!Local) local = matchNameOrUnderscoreOrNone!(
+		immutable Opt!(Ptr!Local),
 		(immutable Sym name) {
 			immutable FileAndRange localRange = rangeInFile2(ctx, caseAst.localRange());
 			if (has(member.type))
@@ -1143,7 +1152,8 @@ immutable(Expr.MatchUnion.Case) checkMatchCase(
 				addDiag2(alloc, ctx, rangeInFile2(ctx, caseAst.range), immutable Diag(
 					immutable Diag.MatchCaseShouldHaveLocal(member.name)));
 			return none!(Ptr!Local);
-		});
+		},
+	)(caseAst.local);
 	immutable Expr then = isBogus(expected)
 		? bogus(expected, rangeInFile2(ctx, caseAst.range)).expr
 		: checkWithOptLocal(alloc, ctx, local, caseAst.then, expected);
@@ -1227,8 +1237,8 @@ immutable(CheckedExpr) checkExprWorker(
 	ref Expected expected,
 ) {
 	immutable FileAndRange range = rangeInFile2(ctx, ast.range);
-	return matchExprAstKind!(immutable CheckedExpr)(
-		ast.kind,
+	return matchExprAstKind!(
+		immutable CheckedExpr,
 		(ref immutable BogusAst) =>
 			unreachable!(immutable CheckedExpr),
 		(ref immutable CallAst a) =>
@@ -1260,5 +1270,6 @@ immutable(CheckedExpr) checkExprWorker(
 		(ref immutable ThenVoidAst a) =>
 			checkThenVoid(alloc, ctx, range, a, expected),
 		(ref immutable TypedAst a) =>
-			checkTyped(alloc, ctx, range, a, expected));
+			checkTyped(alloc, ctx, range, a, expected),
+	)(ast.kind);
 }

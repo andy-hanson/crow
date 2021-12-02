@@ -20,9 +20,9 @@ import util.opt : none, Opt, some;
 import util.types : Nat64;
 import util.util : divRoundUp;
 
-immutable(TypeSize) sizeOfType(ref immutable LowProgram program, immutable LowType t) {
-	return matchLowTypeCombinePtr!(immutable TypeSize)(
-		t,
+immutable(TypeSize) sizeOfType(ref immutable LowProgram program, immutable LowType a) {
+	return matchLowTypeCombinePtr!(
+		immutable TypeSize,
 		(immutable LowType.ExternPtr) =>
 			externPtrSize,
 		(immutable LowType.FunPtr) =>
@@ -34,11 +34,12 @@ immutable(TypeSize) sizeOfType(ref immutable LowProgram program, immutable LowTy
 		(immutable LowType.Record index) =>
 			typeSize(fullIndexDictGet(program.allRecords, index)),
 		(immutable LowType.Union index) =>
-			typeSize(fullIndexDictGet(program.allUnions, index)));
+			typeSize(fullIndexDictGet(program.allUnions, index)),
+	)(a);
 }
 
-immutable(Nat64) nStackEntriesForType(ref immutable LowProgram program, immutable LowType t) {
-	return nStackEntriesForBytes(immutable Nat64(sizeOfType(program, t).size));
+immutable(Nat64) nStackEntriesForType(ref immutable LowProgram program, immutable LowType a) {
+	return nStackEntriesForBytes(immutable Nat64(sizeOfType(program, a).size));
 }
 
 private immutable(Nat64) nStackEntriesForBytes(immutable Nat64 bytes) {

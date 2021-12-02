@@ -239,8 +239,8 @@ immutable(LowFunExprBody) visitBody(
 	ref immutable LowExpr markCtx,
 	ref immutable LowExpr value,
 ) {
-	return matchLowType!(immutable LowFunExprBody)(
-		valueType,
+	return matchLowType!(
+		immutable LowFunExprBody,
 		(immutable LowType.ExternPtr) =>
 			unreachable!(immutable LowFunExprBody),
 		(immutable LowType.FunPtr) =>
@@ -268,7 +268,8 @@ immutable(LowFunExprBody) visitBody(
 				markVisitFuns,
 				fullIndexDictGet(allTypes.allUnions, it).members,
 				markCtx,
-				value));
+				value),
+	)(valueType);
 }
 
 immutable(LowFunExprBody) visitRecordBody(

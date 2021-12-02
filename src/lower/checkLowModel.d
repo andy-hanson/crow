@@ -79,13 +79,14 @@ void checkLowFun(ref Alloc alloc, ref immutable Ctx ctx, ref immutable LowFun fu
 	//	printf("Will check function %s\n", finishWriterToCStr(writer));
 	//}
 
-	matchLowFunBody!void(
-		fun.body_,
+	matchLowFunBody!(
+		void,
 		(ref immutable LowFunBody.Extern) {},
 		(ref immutable LowFunExprBody it) {
 			immutable FunCtx funCtx = immutable FunCtx(ctx, ptrTrustMe(fun));
 			checkLowExpr(alloc, funCtx, fun.returnType, it.expr);
-		});
+		},
+	)(fun.body_);
 }
 
 void checkLowExpr(
@@ -95,8 +96,8 @@ void checkLowExpr(
 	ref immutable LowExpr expr,
 ) {
 	checkTypeEqual(alloc, ctx.ctx, type, expr.type);
-	matchLowExprKind!void(
-		expr.kind,
+	matchLowExprKind!(
+		void,
 		(ref immutable LowExprKind.Call it) {
 			immutable Ptr!LowFun fun = fullIndexDictGetPtr(ctx.ctx.program.allFuns, it.called);
 			checkTypeEqual(alloc, ctx.ctx, type, fun.deref().returnType);
@@ -217,7 +218,8 @@ void checkLowExpr(
 			foreach (ref immutable UpdateParam update; it.updateParams)
 				checkLowExpr(alloc, ctx, at(ctx.fun.params, update.param.index).type, update.newValue);
 		},
-		(ref immutable LowExprKind.Zeroed) {});
+		(ref immutable LowExprKind.Zeroed) {},
+	)(expr.kind);
 }
 
 void checkTypeEqual(
@@ -244,8 +246,8 @@ void checkTypeEqual(
 }
 
 immutable(Repr) reprOfLowType2(ref Alloc alloc, ref immutable Ctx ctx, immutable LowType a) {
-	return matchLowType!(immutable Repr)(
-		a,
+	return matchLowType!(
+		immutable Repr,
 		(immutable LowType.ExternPtr) =>
 			reprSym("a-extern-ptr"), //TODO: more detail
 		(immutable LowType.FunPtr) =>
@@ -261,5 +263,6 @@ immutable(Repr) reprOfLowType2(ref Alloc alloc, ref immutable Ctx ctx, immutable
 		(immutable LowType.Record it) =>
 			reprOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allRecords, it).source.deref()),
 		(immutable LowType.Union it) =>
-			reprOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allUnions, it).source.deref()));
+			reprOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allUnions, it).source.deref()),
+	)(a);
 }

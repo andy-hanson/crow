@@ -211,12 +211,13 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromCalled(
 	ref ConcretizeExprCtx ctx,
 	ref immutable Called called,
 ) {
-	return matchCalled(
-		called,
+	return matchCalled!(
+		immutable Ptr!ConcreteFun,
 		(immutable Ptr!FunInst funInst) =>
 			getConcreteFunFromFunInst(alloc, ctx, funInst),
 		(ref immutable SpecSig specSig) =>
-			at(ctx.containing.specImpls, specSig.indexOverAllSpecUses));
+			at(ctx.containing.specImpls, specSig.indexOverAllSpecUses),
+	)(called);
 }
 
 immutable(Ptr!ConcreteFun) getConcreteFunFromFunInst(
@@ -612,8 +613,8 @@ immutable(ConcreteExpr) concretizeExpr(
 	ref immutable Expr e,
 ) {
 	immutable FileAndRange range = range(e);
-	return matchExpr!(immutable ConcreteExpr)(
-		e,
+	return matchExpr!(
+		immutable ConcreteExpr,
 		(ref immutable Expr.Bogus) =>
 			unreachable!(immutable ConcreteExpr),
 		(ref immutable Expr.Call e) =>
@@ -676,7 +677,8 @@ immutable(ConcreteExpr) concretizeExpr(
 			immutable ConcreteExpr(
 				symType(alloc, ctx.concretizeCtx),
 				range,
-				immutable ConcreteExprKind(constantSym(alloc, ctx.concretizeCtx, e.value))));
+				immutable ConcreteExprKind(constantSym(alloc, ctx.concretizeCtx, e.value))),
+	)(e);
 }
 
 immutable(ConstantsOrExprs) constantsOrExprsArr(

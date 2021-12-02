@@ -167,11 +167,7 @@ struct ConcreteStructBody {
 	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
 }
 
-@trusted immutable(T) matchEnum(T)(
-	ref immutable ConcreteStructBody.Enum a,
-	scope immutable(T) delegate(immutable size_t) @safe @nogc pure nothrow cbSize,
-	scope immutable(T) delegate(immutable EnumValue[]) @safe @nogc pure nothrow cbValues,
-) {
+@trusted immutable(T) matchEnum(T, alias cbSize, alias cbValues)(ref immutable ConcreteStructBody.Enum a) {
 	final switch (a.kind) {
 		case ConcreteStructBody.Enum.Kind.size:
 			return cbSize(a.size);
@@ -205,15 +201,15 @@ struct ConcreteStructBody {
 	return a.union_;
 }
 
-@trusted T matchConcreteStructBody(T)(
-	ref immutable ConcreteStructBody a,
-	scope T delegate(ref immutable ConcreteStructBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
-	scope T delegate(ref immutable ConcreteStructBody.Enum) @safe @nogc pure nothrow cbEnum,
-	scope T delegate(ref immutable ConcreteStructBody.Flags) @safe @nogc pure nothrow cbFlags,
-	scope T delegate(ref immutable ConcreteStructBody.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
-	scope T delegate(ref immutable ConcreteStructBody.Record) @safe @nogc pure nothrow cbRecord,
-	scope T delegate(ref immutable ConcreteStructBody.Union) @safe @nogc pure nothrow cbUnion,
-) {
+@trusted immutable(T) matchConcreteStructBody(
+	T,
+	alias cbBuiltin,
+	alias cbEnum,
+	alias cbFlags,
+	alias cbExternPtr,
+	alias cbRecord,
+	alias cbUnion,
+)(ref immutable ConcreteStructBody a) {
 	final switch (a.kind) {
 		case ConcreteStructBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
@@ -288,11 +284,7 @@ struct ConcreteStructSource {
 	return a.inst_;
 }
 
-@trusted T matchConcreteStructSource(T)(
-	ref immutable ConcreteStructSource a,
-	scope T delegate(ref immutable ConcreteStructSource.Inst) @safe @nogc pure nothrow cbInst,
-	scope T delegate(ref immutable ConcreteStructSource.Lambda) @safe @nogc pure nothrow cbLambda,
-) {
+@trusted immutable(T) matchConcreteStructSource(T, alias cbInst, alias cbLambda)(ref immutable ConcreteStructSource a) {
 	final switch (a.kind_) {
 		case ConcreteStructSource.Kind.inst:
 			return cbInst(a.inst_);
@@ -314,12 +306,13 @@ struct ConcreteStruct {
 }
 
 immutable(bool) isArr(ref immutable ConcreteStruct a) {
-	return matchConcreteStructSource!(immutable bool)(
-		a.source,
+	return matchConcreteStructSource!(
+		immutable bool,
 		(ref immutable ConcreteStructSource.Inst it) =>
 			isArr(it.inst.deref()),
 		(ref immutable ConcreteStructSource.Lambda it) =>
-			false);
+			false,
+	)(a.source);
 }
 
 private ref immutable(ConcreteStructInfo) info(return scope ref const ConcreteStruct a) {
@@ -396,10 +389,8 @@ struct ConcreteFieldSource {
 	}
 }
 
-@trusted T matchConcreteFieldSource(T)(
+@trusted immutable(T) matchConcreteFieldSource(T, alias cbClosureField, alias cbRecordField)(
 	ref immutable ConcreteFieldSource a,
-	scope T delegate(immutable Ptr!ClosureField) @safe @nogc pure nothrow cbClosureField,
-	scope T delegate(immutable Ptr!RecordField) @safe @nogc pure nothrow cbRecordField,
 ) {
 	final switch (a.kind_) {
 		case ConcreteFieldSource.Kind.closureField:
@@ -431,12 +422,13 @@ struct ConcreteField {
 }
 
 immutable(Sym) name(ref immutable ConcreteField a) {
-	return matchConcreteFieldSource(
-		a.source,
+	return matchConcreteFieldSource!(
+		immutable Sym,
 		(immutable Ptr!ClosureField it) =>
 			it.deref().name,
 		(immutable Ptr!RecordField it) =>
-			it.deref().name);
+			it.deref().name,
+	)(a.source);
 }
 
 struct ConcreteParamSource {
@@ -463,11 +455,7 @@ immutable(bool) isClosure(ref immutable ConcreteParamSource a) {
 	return a.kind_ == ConcreteParamSource.Kind.closure;
 }
 
-@trusted T matchConcreteParamSource(T)(
-	ref immutable ConcreteParamSource a,
-	scope T delegate(ref immutable ConcreteParamSource.Closure) @safe @nogc pure nothrow cbClosure,
-	scope T delegate(ref immutable Param) @safe @nogc pure nothrow cbParam,
-) {
+@trusted immutable(T) matchConcreteParamSource(T, alias cbClosure, alias cbParam)(ref immutable ConcreteParamSource a) {
 	final switch (a.kind_) {
 		case ConcreteParamSource.Kind.closure:
 			return cbClosure(a.closure_);
@@ -506,11 +494,8 @@ struct ConcreteLocalSource {
 	}
 }
 
-@trusted T matchConcreteLocalSource(T)(
+@trusted immutable(T) matchConcreteLocalSource(T, alias cbArr, alias cbLocal, alias cbMatched)(
 	ref immutable ConcreteLocalSource a,
-	scope T delegate(ref immutable ConcreteLocalSource.Arr) @safe @nogc pure nothrow cbArr,
-	scope T delegate(ref immutable Local) @safe @nogc pure nothrow cbLocal,
-	scope T delegate(ref immutable ConcreteLocalSource.Matched) @safe @nogc pure nothrow cbMatched,
 ) {
 	final switch (a.kind_) {
 		case ConcreteLocalSource.Kind.arr:
@@ -616,19 +601,19 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref
 	return a.extern_;
 }
 
-@trusted T matchConcreteFunBody(T)(
-	ref immutable ConcreteFunBody a,
-	scope T delegate(ref immutable ConcreteFunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
-	scope T delegate(ref immutable ConcreteFunBody.CreateEnum) @safe @nogc pure nothrow cbCreateEnum,
-	scope T delegate(ref immutable ConcreteFunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
-	scope T delegate(ref immutable ConcreteFunBody.CreateUnion) @safe @nogc pure nothrow cbCreateUnion,
-	scope T delegate(immutable EnumFunction) @safe @nogc pure nothrow cbEnumFunction,
-	scope T delegate(ref immutable ConcreteFunBody.Extern) @safe @nogc pure nothrow cbExtern,
-	scope T delegate(ref immutable ConcreteFunExprBody) @safe @nogc pure nothrow cbConcreteFunExprBody,
-	scope T delegate(ref immutable ConcreteFunBody.FlagsFn) @safe @nogc pure nothrow cbFlagsFn,
-	scope T delegate(ref immutable ConcreteFunBody.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
-	scope T delegate(ref immutable ConcreteFunBody.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
-) {
+@trusted immutable(T) matchConcreteFunBody(
+	T,
+	alias cbBuiltin,
+	alias cbCreateEnum,
+	alias cbCreateRecord,
+	alias cbCreateUnion,
+	alias cbEnumFunction,
+	alias cbExtern,
+	alias cbConcreteFunExprBody,
+	alias cbFlagsFn,
+	alias cbRecordFieldGet,
+	alias cbRecordFieldSet,
+)(ref immutable ConcreteFunBody a) {
 	final switch (a.kind) {
 		case ConcreteFunBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
@@ -695,11 +680,8 @@ static assert(ConcreteFunSource.sizeof <= 16);
 	return a.funInst_;
 }
 
-@trusted T matchConcreteFunSource(T)(
+@trusted immutable(T) matchConcreteFunSource(T, alias cbFunInst, alias cbLambda, alias cbTest)(
 	ref immutable ConcreteFunSource a,
-	scope T delegate(ref immutable FunInst) @safe @nogc pure nothrow cbFunInst,
-	scope T delegate(ref immutable ConcreteFunSource.Lambda) @safe @nogc pure nothrow cbLambda,
-	scope T delegate(ref immutable ConcreteFunSource.Test) @safe @nogc pure nothrow cbTest,
 ) {
 	final switch (a.kind_) {
 		case ConcreteFunSource.Kind.funInst:
@@ -726,86 +708,94 @@ struct ConcreteFun {
 }
 
 immutable(bool) isVariadic(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(immutable bool)(
-		a.source,
+	return matchConcreteFunSource!(
+		immutable bool,
 		(ref immutable FunInst i) =>
-			matchParams!(immutable bool)(
-				params(i),
+			matchParams!(
+				immutable bool,
 				(immutable Param[]) =>
 					false,
 				(ref immutable Params.Varargs) =>
-					true),
+					true,
+			)(params(i)),
 		(ref immutable ConcreteFunSource.Lambda) =>
 			false,
 		(ref immutable ConcreteFunSource.Test) =>
-			false);
+			false,
+	)(a.source);
 }
 
 immutable(Opt!Sym) name(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(immutable Opt!Sym)(
-		a.source,
+	return matchConcreteFunSource!(
+		immutable Opt!Sym,
 		(ref immutable FunInst it) =>
 			some(name(it)),
 		(ref immutable ConcreteFunSource.Lambda) =>
 			none!Sym,
 		(ref immutable ConcreteFunSource.Test) =>
-			none!Sym);
+			none!Sym,
+	)(a.source);
 }
 
 immutable(bool) isSummon(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(immutable bool)(
-		a.source,
+	return matchConcreteFunSource!(
+		immutable bool,
 		(ref immutable FunInst it) =>
 			summon(decl(it).deref()),
 		(ref immutable ConcreteFunSource.Lambda it) =>
 			isSummon(it.containingFun.deref()),
 		(ref immutable ConcreteFunSource.Test) =>
 			// 'isSummon' is called for direct calls, but tests are never called directly
-			unreachable!(immutable bool)());
+			unreachable!(immutable bool)(),
+	)(a.source);
 }
 
 immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(immutable FileAndRange)(
-		a.source,
+	return matchConcreteFunSource!(
+		immutable FileAndRange,
 		(ref immutable FunInst it) =>
 			range(decl(it).deref()),
 		(ref immutable ConcreteFunSource.Lambda it) =>
 			it.range,
 		(ref immutable ConcreteFunSource.Test it) =>
-			it.range);
+			it.range,
+	)(a.source);
 }
 
 immutable(bool) isCallWithCtxFun(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(immutable bool)(
-		a.source,
+	return matchConcreteFunSource!(
+		immutable bool,
 		(ref immutable FunInst it) =>
 			isCallWithCtxFun(it),
 		(ref immutable ConcreteFunSource.Lambda) =>
 			false,
 		(ref immutable ConcreteFunSource.Test) =>
-			false);
+			false,
+	)(a.source);
 }
 
 immutable(bool) isCompareFun(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(immutable bool)(
-		a.source,
+	return matchConcreteFunSource!(
+		immutable bool,
 		(ref immutable FunInst it) =>
 			isCompareFun(it),
 		(ref immutable ConcreteFunSource.Lambda) =>
 			false,
 		(ref immutable ConcreteFunSource.Test) =>
-			false);
+			false,
+	)(a.source);
 }
 
 immutable(bool) isMarkVisitFun(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(immutable bool)(
-		a.source,
+	return matchConcreteFunSource!(
+		immutable bool,
 		(ref immutable FunInst it) =>
 			isMarkVisitFun(it),
 		(ref immutable ConcreteFunSource.Lambda) =>
 			false,
 		(ref immutable ConcreteFunSource.Test) =>
-			false);
+			false,
+	)(a.source);
 }
 
 ref immutable(ConcreteFunBody) body_(return scope ref const ConcreteFun a) {
@@ -974,23 +964,23 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 	return a.constant;
 }
 
-@trusted T matchConcreteExprKind(T)(
-	ref immutable ConcreteExprKind a,
-	scope T delegate(ref immutable ConcreteExprKind.Alloc) @safe @nogc pure nothrow cbAlloc,
-	scope T delegate(ref immutable ConcreteExprKind.Call) @safe @nogc pure nothrow cbCall,
-	scope T delegate(ref immutable ConcreteExprKind.Cond) @safe @nogc pure nothrow cbCond,
-	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
-	scope T delegate(ref immutable ConcreteExprKind.CreateArr) @safe @nogc pure nothrow cbCreateArr,
-	scope T delegate(ref immutable ConcreteExprKind.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
-	scope T delegate(ref immutable ConcreteExprKind.Lambda) @safe @nogc pure nothrow cbLambda,
-	scope T delegate(ref immutable ConcreteExprKind.Let) @safe @nogc pure nothrow cbLet,
-	scope T delegate(ref immutable ConcreteExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
-	scope T delegate(ref immutable ConcreteExprKind.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
-	scope T delegate(ref immutable ConcreteExprKind.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
-	scope T delegate(ref immutable ConcreteExprKind.ParamRef) @safe @nogc pure nothrow cbParamRef,
-	scope T delegate(ref immutable ConcreteExprKind.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
-	scope T delegate(ref immutable ConcreteExprKind.Seq) @safe @nogc pure nothrow cbSeq,
-) {
+@trusted immutable(T) matchConcreteExprKind(
+	T,
+	alias cbAlloc,
+	alias cbCall,
+	alias cbCond,
+	alias cbConstant,
+	alias cbCreateArr,
+	alias cbCreateRecord,
+	alias cbLambda,
+	alias cbLet,
+	alias cbLocalRef,
+	alias cbMatchEnum,
+	alias cbMatchUnion,
+	alias cbParamRef,
+	alias cbRecordFieldGet,
+	alias cbSeq,
+)(ref immutable ConcreteExprKind a) {
 	final switch (a.kind) {
 		case ConcreteExprKind.Kind.alloc:
 			return cbAlloc(a.alloc.deref());
