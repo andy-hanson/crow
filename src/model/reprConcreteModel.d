@@ -12,7 +12,6 @@ import model.concreteModel :
 	ConcreteFunExprBody,
 	ConcreteFunSource,
 	ConcreteLocal,
-	ConcreteLocalSource,
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteProgram,
@@ -25,7 +24,6 @@ import model.concreteModel :
 	matchConcreteExprKind,
 	matchConcreteFunBody,
 	matchConcreteFunSource,
-	matchConcreteLocalSource,
 	matchConcreteParamSource,
 	matchConcreteStructBody,
 	matchConcreteStructSource,
@@ -35,7 +33,7 @@ import model.concreteModel :
 	symOfBuiltinStructKind,
 	symOfConcreteMutability;
 import model.constant : Constant;
-import model.model : EnumFunction, enumFunctionName, flagsFunctionName, FunInst, name, Local, Param;
+import model.model : EnumFunction, enumFunctionName, flagsFunctionName, FunInst, name, Param;
 import model.reprConstant : reprOfConstant;
 import util.alloc.alloc : Alloc;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -239,15 +237,7 @@ immutable(Repr) reprOfConcreteFunExprBody(ref Alloc alloc, ref immutable Concret
 }
 
 public immutable(Repr) reprOfConcreteLocalRef(ref immutable ConcreteLocal a) {
-	return matchConcreteLocalSource!(
-		immutable Repr,
-		(ref immutable ConcreteLocalSource.Arr) =>
-			reprStr("<<arr>>"),
-		(ref immutable Local it) =>
-			reprSym(it.name),
-		(ref immutable ConcreteLocalSource.Matched) =>
-			reprStr("<<matched>>"),
-	)(a.source);
+	return reprSym(a.source.deref().name);
 }
 
 immutable(Repr) reprOfConcreteExpr(ref Alloc alloc, ref immutable ConcreteExpr a) {

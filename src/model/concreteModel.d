@@ -470,45 +470,8 @@ struct ConcreteParam {
 	immutable ConcreteType type;
 }
 
-struct ConcreteLocalSource {
-	@safe @nogc pure nothrow:
-
-	struct Arr {}
-	struct Matched {}
-
-	immutable this(immutable Arr a) { kind_ = Kind.arr; arr_ = a; }
-	@trusted immutable this(immutable Ptr!Local a) { kind_ = Kind.local; local_ = a; }
-	immutable this(immutable Matched a) { kind_ = Kind.matched; matched_ = a; }
-
-	private:
-	enum Kind {
-		arr,
-		local,
-		matched,
-	}
-	immutable Kind kind_;
-	union {
-		immutable Arr arr_;
-		immutable Ptr!Local local_;
-		immutable Matched matched_;
-	}
-}
-
-@trusted immutable(T) matchConcreteLocalSource(T, alias cbArr, alias cbLocal, alias cbMatched)(
-	ref immutable ConcreteLocalSource a,
-) {
-	final switch (a.kind_) {
-		case ConcreteLocalSource.Kind.arr:
-			return cbArr(a.arr_);
-		case ConcreteLocalSource.Kind.local:
-			return cbLocal(a.local_.deref());
-		case ConcreteLocalSource.Kind.matched:
-			return cbMatched(a.matched_);
-	}
-}
-
 struct ConcreteLocal {
-	immutable ConcreteLocalSource source;
+	immutable Ptr!Local source;
 	// Needed to distinguish two locals with the same name when compiling to C
 	immutable size_t index;
 	immutable ConcreteType type;

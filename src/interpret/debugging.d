@@ -6,7 +6,6 @@ import model.concreteModel :
 	ConcreteFun,
 	ConcreteFunSource,
 	ConcreteLocal,
-	ConcreteLocalSource,
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteStruct,
@@ -14,7 +13,6 @@ import model.concreteModel :
 	ConcreteType,
 	matchConcreteFieldSource,
 	matchConcreteFunSource,
-	matchConcreteLocalSource,
 	matchConcreteParamSource,
 	matchConcreteStructSource;
 import model.lowModel :
@@ -33,7 +31,7 @@ import model.lowModel :
 	matchLowType,
 	PrimitiveType,
 	symOfPrimitiveType;
-import model.model : ClosureField, decl, FunInst, name, Local, Param, RecordField, Type, typeArgs, writeType;
+import model.model : ClosureField, decl, FunInst, name, Param, RecordField, Type, typeArgs, writeType;
 import util.collection.arr : empty;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.opt : force, has;
@@ -207,18 +205,7 @@ void writeLocalName(ref Writer writer, ref immutable LowLocal a) {
 	matchLowLocalSource!(
 		void,
 		(ref immutable ConcreteLocal it) {
-			matchConcreteLocalSource!(
-				void,
-				(ref immutable ConcreteLocalSource.Arr) {
-					writeStatic(writer, "<<arr>>");
-				},
-				(ref immutable Local it) {
-					writeSym(writer, it.name);
-				},
-				(ref immutable ConcreteLocalSource.Matched) {
-					writeStatic(writer, "<<matched>>");
-				},
-			)(it.source);
+			writeSym(writer, it.source.deref().name);
 		},
 		(ref immutable LowLocalSource.Generated) {
 			writeStatic(writer, "<<generated>>");

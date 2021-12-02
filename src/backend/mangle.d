@@ -7,14 +7,12 @@ import model.concreteModel :
 	ConcreteFun,
 	ConcreteFunSource,
 	ConcreteLocal,
-	ConcreteLocalSource,
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteStruct,
 	ConcreteStructSource,
 	isExtern,
 	matchConcreteFunSource,
-	matchConcreteLocalSource,
 	matchConcreteParamSource,
 	matchConcreteStructSource;
 import model.lowModel :
@@ -35,7 +33,7 @@ import model.lowModel :
 	matchLowFunSource,
 	matchLowLocalSource,
 	matchLowParamSource;
-import model.model : FunInst, name, Local, Param;
+import model.model : FunInst, name, Param;
 import util.alloc.alloc : Alloc;
 import util.collection.dict : getAt, PtrDict;
 import util.collection.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
@@ -205,18 +203,7 @@ void writeLowLocalName(ref Writer writer, ref immutable LowLocal a) {
 	matchLowLocalSource!(
 		void,
 		(ref immutable ConcreteLocal it) {
-			matchConcreteLocalSource!(
-				void,
-				(ref immutable ConcreteLocalSource.Arr) {
-					writeStatic(writer, "_arr");
-				},
-				(ref immutable Local it) {
-					writeMangledName(writer, it.name);
-				},
-				(ref immutable ConcreteLocalSource.Matched) {
-					writeStatic(writer, "_matched");
-				},
-			)(it.source);
+			writeMangledName(writer, it.source.deref().name);
 			writeNat(writer, it.index);
 		},
 		(ref immutable LowLocalSource.Generated it) {

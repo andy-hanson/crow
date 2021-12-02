@@ -3406,7 +3406,7 @@ program(
 																				file-range(26, range(843, 845))
 																				local-ref(generated(temp, 0)))]))))]))])))
 							case(
-								some("<<matched>>")
+								some(arrs)
 								expr(
 									record(10)
 									file-range(26, range(712, 836))
@@ -3419,10 +3419,7 @@ program(
 												108
 												[
 													expr(gc-ptr(record(0)), file-range(26, range(726, 760)), param-ref(0))
-													expr(
-														gc-ptr(record(45))
-														file-range(26, range(726, 731))
-														local-ref("<<matched>>"))]))
+													expr(gc-ptr(record(45)), file-range(26, range(726, 731)), local-ref(arrs))]))
 										expr(
 											record(10)
 											file-range(26, range(763, 836))
@@ -3463,7 +3460,7 @@ program(
 															expr(
 																gc-ptr(record(45))
 																file-range(26, range(808, 813))
-																local-ref("<<matched>>"))
+																local-ref(arrs))
 															expr(
 																nat-64
 																file-range(26, range(823, 834))
@@ -3494,7 +3491,7 @@ program(
 									file-range(26, range(2152, 2407))
 									to-union(0, expr(void, file-range(26, range(2152, 2407)), void))))
 							case(
-								some("<<matched>>")
+								some(code-ptrs)
 								expr(
 									union(11)
 									file-range(26, range(2222, 2407))
@@ -3515,7 +3512,7 @@ program(
 													file-range(26, range(2222, 2407))
 													to-union(0, expr(void, file-range(26, range(2222, 2407)), void))))
 											case(
-												some("<<matched>>")
+												some(code-names)
 												expr(
 													union(11)
 													file-range(26, range(2284, 2407))
@@ -3550,7 +3547,7 @@ program(
 																		0
 																		expr(void, file-range(26, range(2284, 2407)), void))))
 															case(
-																some("<<matched>>")
+																some(funs)
 																expr(
 																	union(11)
 																	file-range(26, range(2371, 2405))
@@ -3619,7 +3616,7 @@ program(
 																														2372
 																														2381))
 																												local-ref(
-																													"<<matched>>"))
+																													code-ptrs))
 																											expr(
 																												ptr-mut(
 																													record(
@@ -3630,7 +3627,7 @@ program(
 																														2383
 																														2393))
 																												local-ref(
-																													"<<matched>>"))
+																													code-names))
 																											expr(
 																												ptr-mut(
 																													record(
@@ -3641,7 +3638,7 @@ program(
 																														2395
 																														2399))
 																												local-ref(
-																													"<<matched>>"))]))))
+																													funs))]))))
 																						expr(
 																							gc-ptr(record(45))
 																							file-range(26, range(2372, 2399))
@@ -3678,7 +3675,7 @@ program(
 									file-range(20, range(8421, 8488))
 									to-union(0, expr(void, file-range(20, range(8421, 8488)), void))))
 							case(
-								some("<<matched>>")
+								some(res)
 								expr(
 									union(12)
 									file-range(20, range(8469, 8486))
@@ -3687,8 +3684,7 @@ program(
 										expr(
 											ptr-mut(ptr-const(nat-8))
 											file-range(20, range(8472, 8482))
-											ptr-cast(
-												expr(ptr-mut(nat-8), file-range(20, range(8469, 8472)), local-ref("<<matched>>")))))))]))))
+											ptr-cast(expr(ptr-mut(nat-8), file-range(20, range(8469, 8472)), local-ref(res)))))))]))))
 		91: fun(
 			try-alloc
 			union(13)
@@ -4385,7 +4381,7 @@ program(
 									file-range(20, range(8421, 8488))
 									to-union(0, expr(void, file-range(20, range(8421, 8488)), void))))
 							case(
-								some("<<matched>>")
+								some(res)
 								expr(
 									union(14)
 									file-range(20, range(8469, 8486))
@@ -4394,8 +4390,7 @@ program(
 										expr(
 											ptr-mut(record(11))
 											file-range(20, range(8472, 8482))
-											ptr-cast(
-												expr(ptr-mut(nat-8), file-range(20, range(8469, 8472)), local-ref("<<matched>>")))))))]))))
+											ptr-cast(expr(ptr-mut(nat-8), file-range(20, range(8469, 8472)), local-ref(res)))))))]))))
 		106: fun(
 			try-alloc-uninitialized
 			union(15)
@@ -4428,7 +4423,7 @@ program(
 									file-range(20, range(8421, 8488))
 									to-union(0, expr(void, file-range(20, range(8421, 8488)), void))))
 							case(
-								some("<<matched>>")
+								some(res)
 								expr(
 									union(15)
 									file-range(20, range(8469, 8486))
@@ -4437,8 +4432,7 @@ program(
 										expr(
 											ptr-mut(record(46))
 											file-range(20, range(8472, 8482))
-											ptr-cast(
-												expr(ptr-mut(nat-8), file-range(20, range(8469, 8472)), local-ref("<<matched>>")))))))]))))
+											ptr-cast(expr(ptr-mut(nat-8), file-range(20, range(8469, 8472)), local-ref(res)))))))]))))
 		107: fun(
 			new
 			record(12)
@@ -5681,9 +5675,7 @@ program(
 									expr(nat-64, file-range(20, range(8029, 8033)), param-ref(2))]))
 						[
 							case(none, expr(ptr-mut(nat-8), file-range(20, range(8084, 8088)), call(144, [])))
-							case(
-								some("<<matched>>")
-								expr(ptr-mut(nat-8), file-range(20, range(8036, 8039)), local-ref("<<matched>>")))]))))
+							case(some(res), expr(ptr-mut(nat-8), file-range(20, range(8036, 8039)), local-ref(res)))]))))
 		144: fun(
 			todo
 			ptr-mut(nat-8)
@@ -6756,9 +6748,7 @@ program(
 									expr(char, file-range(38, range(1276, 1280)), 0)]))
 						[
 							case(none, expr(ptr-const(char), file-range(38, range(1293, 1309)), call(185, [])))
-							case(
-								some("<<matched>>")
-								expr(ptr-const(char), file-range(38, range(1283, 1284)), local-ref("<<matched>>")))]))))
+							case(some(v), expr(ptr-const(char), file-range(38, range(1283, 1284)), local-ref(v)))]))))
 		183: fun(
 			find-char-in-cstr
 			union(17)
@@ -8781,7 +8771,7 @@ program(
 																	file-range(20, range(5862, 5863))
 																	local-ref(c)))))))
 											case(
-												some("<<matched>>")
+												some(c)
 												expr(
 													gc-ptr(record(18))
 													file-range(20, range(5547, 5603))
@@ -8807,7 +8797,7 @@ program(
 																				expr(
 																					gc-ptr(record(18))
 																					file-range(20, range(5566, 5568))
-																					local-ref("<<matched>>"))
+																					local-ref(c))
 																				true
 																				1))))
 																expr(
@@ -8817,7 +8807,7 @@ program(
 																		expr(
 																			gc-ptr(record(18))
 																			file-range(20, range(5579, 5580))
-																			local-ref("<<matched>>"))
+																			local-ref(c))
 																		true
 																		1
 																		expr(
@@ -8829,10 +8819,7 @@ program(
 																					void
 																					file-range(20, range(5593, 5597))
 																					void)))))))
-														expr(
-															gc-ptr(record(18))
-															file-range(20, range(5600, 5601))
-															local-ref("<<matched>>")))))]))
+														expr(gc-ptr(record(18)), file-range(20, range(5600, 5601)), local-ref(c)))))]))
 								expr(
 									gc-ptr(record(18))
 									file-range(20, range(5865, 5897))
@@ -10363,7 +10350,7 @@ program(
 								[
 									case(none, expr(void, file-range(54, range(1072, 1122)), void))
 									case(
-										some("<<matched>>")
+										some(next)
 										expr(
 											void
 											file-range(54, range(1094, 1120))
@@ -10371,10 +10358,7 @@ program(
 												[
 													update(
 														1
-														expr(
-															gc-ptr(record(6))
-															file-range(54, range(1094, 1099))
-															local-ref("<<matched>>")))])))]))))))
+														expr(gc-ptr(record(6)), file-range(54, range(1094, 1099)), local-ref(next)))])))]))))))
 		245: fun(
 			lambda(forward-to!, 0)
 			void
@@ -10901,7 +10885,7 @@ program(
 																	file-range(48, range(2965, 2973))
 																	param-ref(1)))))))
 											case(
-												some("<<matched>>")
+												some(head)
 												expr(
 													void
 													file-range(48, range(2813, 2948))
@@ -10923,7 +10907,7 @@ program(
 																					expr(
 																						gc-ptr(record(21))
 																						file-range(48, range(2816, 2820))
-																						local-ref("<<matched>>"))
+																						local-ref(head))
 																					true
 																					0))
 																			false
@@ -10953,7 +10937,7 @@ program(
 																	expr(
 																		gc-ptr(record(21))
 																		file-range(48, range(2856, 2861))
-																		local-ref("<<matched>>"))
+																		local-ref(head))
 																	expr(
 																		gc-ptr(record(21))
 																		file-range(48, range(2874, 2882))
@@ -10980,7 +10964,7 @@ program(
 																				expr(
 																					gc-ptr(record(21))
 																					file-range(48, range(2910, 2915))
-																					local-ref("<<matched>>"))))))
+																					local-ref(head))))))
 																expr(
 																	void
 																	file-range(48, range(2923, 2948))
@@ -11062,7 +11046,7 @@ program(
 						[
 							case(none, expr(nat-64, file-range(48, range(3491, 3494)), param-ref(1)))
 							case(
-								some("<<matched>>")
+								some(n)
 								expr(
 									nat-64
 									file-range(48, range(3448, 3482))
@@ -11074,10 +11058,7 @@ program(
 													union(7)
 													file-range(48, range(3449, 3455))
 													get-field(
-														expr(
-															gc-ptr(record(21))
-															file-range(48, range(3448, 3449))
-															local-ref("<<matched>>"))
+														expr(gc-ptr(record(21)), file-range(48, range(3448, 3449)), local-ref(n))
 														true
 														1)))
 											update(
@@ -11118,7 +11099,7 @@ program(
 											file-range(48, range(3305, 3318))
 											to-union(1, expr(gc-ptr(record(21)), file-range(48, range(3305, 3314)), param-ref(1)))))))
 							case(
-								some("<<matched>>")
+								some(cur)
 								expr(
 									void
 									file-range(48, range(3150, 3285))
@@ -11140,7 +11121,7 @@ program(
 																	expr(
 																		gc-ptr(record(21))
 																		file-range(48, range(3153, 3156))
-																		local-ref("<<matched>>"))
+																		local-ref(cur))
 																	true
 																	0))
 															false
@@ -11168,10 +11149,7 @@ program(
 												[
 													update(
 														0
-														expr(
-															gc-ptr(record(21))
-															file-range(48, range(3192, 3196))
-															local-ref("<<matched>>")))]))
+														expr(gc-ptr(record(21)), file-range(48, range(3192, 3196)), local-ref(cur)))]))
 										expr(
 											void
 											file-range(48, range(3228, 3285))
@@ -11191,7 +11169,7 @@ program(
 																expr(
 																	gc-ptr(record(21))
 																	file-range(48, range(3245, 3249))
-																	local-ref("<<matched>>"))))))
+																	local-ref(cur))))))
 												expr(
 													void
 													file-range(48, range(3257, 3285))
@@ -14802,7 +14780,7 @@ program(
 						[
 							case(none, expr(bool, file-range(31, range(728, 732)), true))
 							case(
-								some("<<matched>>")
+								some(x)
 								expr(
 									bool
 									file-range(31, range(704, 721))
@@ -14810,13 +14788,7 @@ program(
 										expr(
 											void
 											file-range(31, range(704, 711))
-											call(
-												338
-												[
-													expr(
-														gc-ptr(record(21))
-														file-range(31, range(710, 711))
-														local-ref("<<matched>>"))]))
+											call(338, [expr(gc-ptr(record(21)), file-range(31, range(710, 711)), local-ref(x))]))
 										expr(bool, file-range(31, range(714, 719)), false))))]))))
 		338: fun(
 			drop
@@ -15716,7 +15688,7 @@ program(
 																			0
 																			expr(void, file-range(48, range(1838, 1842)), void)))])))))
 											case(
-												some("<<matched>>")
+												some(head)
 												expr(
 													union(33)
 													file-range(48, range(1579, 1823))
@@ -15729,7 +15701,7 @@ program(
 																expr(
 																	gc-ptr(record(21))
 																	file-range(48, range(1586, 1591))
-																	local-ref("<<matched>>"))
+																	local-ref(head))
 																true
 																0))
 														expr(
@@ -15789,7 +15761,7 @@ program(
 																					expr(
 																						gc-ptr(record(21))
 																						file-range(48, range(1662, 1667))
-																						local-ref("<<matched>>"))
+																						local-ref(head))
 																					expr(
 																						gc-ptr(record(23))
 																						file-range(48, range(1678, 1688))
@@ -15844,8 +15816,7 @@ program(
 																									file-range(
 																										48
 																										range(1744, 1748))
-																									local-ref(
-																										"<<matched>>"))
+																									local-ref(head))
 																								true
 																								1))))
 																				expr(
@@ -15862,8 +15833,7 @@ program(
 																									file-range(
 																										48
 																										range(1758, 1762))
-																									local-ref(
-																										"<<matched>>"))
+																									local-ref(head))
 																								true
 																								0))))))))
 																expr(
@@ -16233,7 +16203,7 @@ program(
 													expr(bool, file-range(48, range(2663, 2667)), true)
 													expr(union(31), file-range(48, range(2669, 2684)), param-ref(3))])))))
 							case(
-								some("<<matched>>")
+								some(cur)
 								expr(
 									union(33)
 									file-range(48, range(2366, 2655))
@@ -16243,10 +16213,7 @@ program(
 											record(22)
 											file-range(48, range(2373, 2381))
 											get-field(
-												expr(
-													gc-ptr(record(21))
-													file-range(48, range(2373, 2377))
-													local-ref("<<matched>>"))
+												expr(gc-ptr(record(21)), file-range(48, range(2373, 2377)), local-ref(cur))
 												true
 												0))
 										expr(
@@ -16304,7 +16271,7 @@ program(
 																		expr(
 																			gc-ptr(record(21))
 																			file-range(48, range(2448, 2452))
-																			local-ref("<<matched>>")))
+																			local-ref(cur)))
 																	update(
 																		3
 																		expr(
@@ -16342,7 +16309,7 @@ program(
 																											false
 																											0))])))
 																					case(
-																						some("<<matched>>")
+																						some(t)
 																						expr(
 																							union(31)
 																							file-range(48, range(2514, 2520))
@@ -16353,8 +16320,7 @@ program(
 																									file-range(
 																										48
 																										range(2514, 2516))
-																									local-ref(
-																										"<<matched>>")))))])))]))
+																									local-ref(t)))))])))]))
 														expr(
 															union(33)
 															file-range(48, range(2569, 2611))
@@ -16376,7 +16342,7 @@ program(
 																				expr(
 																					gc-ptr(record(21))
 																					file-range(48, range(2582, 2585))
-																					local-ref("<<matched>>"))
+																					local-ref(cur))
 																				true
 																				1))))
 																expr(
@@ -16601,7 +16567,7 @@ program(
 						[
 							case(none, expr(union(31), file-range(49, range(9479, 9480)), param-ref(1)))
 							case(
-								some("<<matched>>")
+								some(ta)
 								expr(
 									union(31)
 									file-range(49, range(9442, 9472))
@@ -16615,7 +16581,7 @@ program(
 													file-range(49, range(9442, 9472))
 													to-union(0, expr(void, file-range(49, range(9442, 9472)), void))))
 											case(
-												some("<<matched>>")
+												some(tb)
 												expr(
 													union(31)
 													file-range(49, range(9456, 9470))
@@ -16627,14 +16593,8 @@ program(
 															call(
 																368
 																[
-																	expr(
-																		nat-64
-																		file-range(49, range(9456, 9459))
-																		local-ref("<<matched>>"))
-																	expr(
-																		nat-64
-																		file-range(49, range(9463, 9466))
-																		local-ref("<<matched>>"))])))))])))]))))
+																	expr(nat-64, file-range(49, range(9456, 9459)), local-ref(ta))
+																	expr(nat-64, file-range(49, range(9463, 9466)), local-ref(tb))])))))])))]))))
 		368: fun(
 			min
 			nat-64
@@ -19541,7 +19501,7 @@ program(
 																								true
 																								1))))])))
 																case(
-																	some("<<matched>>")
+																	some(t)
 																	expr(
 																		int-32
 																		file-range(19, range(4147, 4303))
@@ -19556,7 +19516,7 @@ program(
 																						expr(
 																							nat-64
 																							file-range(19, range(4157, 4159))
-																							local-ref("<<matched>>"))]))
+																							local-ref(t))]))
 																			expr(
 																				int-32
 																				file-range(19, range(4174, 4303))
@@ -20610,7 +20570,7 @@ program(
 									file-range(31, range(608, 618))
 									call(459, [expr(union(31), file-range(31, range(608, 610)), param-ref(1))])))
 							case(
-								some("<<matched>>")
+								some(va)
 								expr(
 									bool
 									file-range(31, range(561, 601))
@@ -20619,14 +20579,14 @@ program(
 										[
 											case(none, expr(bool, file-range(31, range(594, 599)), false))
 											case(
-												some("<<matched>>")
+												some(vb)
 												expr(
 													bool
 													file-range(31, range(575, 583))
 													binary(
 														"== (nat-64)"
-														expr(nat-64, file-range(31, range(575, 578)), local-ref("<<matched>>"))
-														expr(nat-64, file-range(31, range(581, 583)), local-ref("<<matched>>")))))])))]))))
+														expr(nat-64, file-range(31, range(575, 578)), local-ref(va))
+														expr(nat-64, file-range(31, range(581, 583)), local-ref(vb)))))])))]))))
 		459: fun(
 			is-empty
 			bool
@@ -20641,7 +20601,7 @@ program(
 						[
 							case(none, expr(bool, file-range(31, range(728, 732)), true))
 							case(
-								some("<<matched>>")
+								some(x)
 								expr(
 									bool
 									file-range(31, range(704, 721))
@@ -20649,7 +20609,7 @@ program(
 										expr(
 											void
 											file-range(31, range(704, 711))
-											call(374, [expr(nat-64, file-range(31, range(710, 711)), local-ref("<<matched>>"))]))
+											call(374, [expr(nat-64, file-range(31, range(710, 711)), local-ref(x))]))
 										expr(bool, file-range(31, range(714, 719)), false))))]))))
 		460: fun(
 			is
@@ -20972,7 +20932,7 @@ program(
 											file-range(36, range(1316, 1409))
 											to-union(0, expr(void, file-range(36, range(1316, 1409)), void))))
 									case(
-										some("<<matched>>")
+										some(first-digit)
 										expr(
 											union(31)
 											file-range(36, range(1358, 1409))
@@ -21015,7 +20975,7 @@ program(
 																	expr(
 																		nat-64
 																		file-range(36, range(1374, 1386))
-																		local-ref("<<matched>>"))
+																		local-ref(first-digit))
 																	expr(
 																		gc-ptr(record(82))
 																		file-range(36, range(1402, 1404))
@@ -21420,7 +21380,7 @@ program(
 								[
 									case(none, expr(nat-64, file-range(36, range(1562, 1565)), param-ref(1)))
 									case(
-										some("<<matched>>")
+										some(v)
 										expr(
 											nat-64
 											file-range(36, range(1508, 1555))
@@ -21483,7 +21443,7 @@ program(
 																			expr(
 																				nat-64
 																				file-range(36, range(1534, 1536))
-																				local-ref("<<matched>>"))])))])))))]))))))
+																				local-ref(v))])))])))))]))))))
 		473: fun(
 			lambda(parse-nat, 0)
 			union(31)
@@ -21531,7 +21491,7 @@ program(
 									file-range(31, range(608, 618))
 									call(476, [expr(union(35), file-range(31, range(608, 610)), param-ref(1))])))
 							case(
-								some("<<matched>>")
+								some(va)
 								expr(
 									bool
 									file-range(31, range(561, 601))
@@ -21540,14 +21500,14 @@ program(
 										[
 											case(none, expr(bool, file-range(31, range(594, 599)), false))
 											case(
-												some("<<matched>>")
+												some(vb)
 												expr(
 													bool
 													file-range(31, range(575, 583))
 													binary(
 														"== (int-64)"
-														expr(int-64, file-range(31, range(575, 578)), local-ref("<<matched>>"))
-														expr(int-64, file-range(31, range(581, 583)), local-ref("<<matched>>")))))])))]))))
+														expr(int-64, file-range(31, range(575, 578)), local-ref(va))
+														expr(int-64, file-range(31, range(581, 583)), local-ref(vb)))))])))]))))
 		476: fun(
 			is-empty
 			bool
@@ -21562,7 +21522,7 @@ program(
 						[
 							case(none, expr(bool, file-range(31, range(728, 732)), true))
 							case(
-								some("<<matched>>")
+								some(x)
 								expr(
 									bool
 									file-range(31, range(704, 721))
@@ -21570,7 +21530,7 @@ program(
 										expr(
 											void
 											file-range(31, range(704, 711))
-											call(477, [expr(int-64, file-range(31, range(710, 711)), local-ref("<<matched>>"))]))
+											call(477, [expr(int-64, file-range(31, range(710, 711)), local-ref(x))]))
 										expr(bool, file-range(31, range(714, 719)), false))))]))))
 		477: fun(
 			drop
@@ -21801,7 +21761,7 @@ program(
 															file-range(36, range(1731, 1735))
 															to-union(0, expr(void, file-range(36, range(1731, 1735)), void))))))
 											case(
-												some("<<matched>>")
+												some(n)
 												expr(
 													union(35)
 													file-range(36, range(1683, 1705))
@@ -21830,7 +21790,7 @@ program(
 																				expr(
 																					nat-64
 																					file-range(36, range(1683, 1684))
-																					local-ref("<<matched>>"))]))
+																					local-ref(n))]))
 																	expr(
 																		int-64
 																		file-range(36, range(1696, 1701))
@@ -22713,7 +22673,7 @@ program(
 						[
 							case(none, expr(record(8), file-range(37, range(1671, 1677)), record([arr(0, 33)])))
 							case(
-								some("<<matched>>")
+								some(v)
 								expr(
 									record(8)
 									file-range(37, range(1651, 1662))
@@ -22762,10 +22722,7 @@ program(
 																					record(8)
 																					file-range(37, range(1652, 1657))
 																					record([arr(0, 34)]))]))
-																	expr(
-																		nat-64
-																		file-range(37, range(1658, 1659))
-																		local-ref("<<matched>>"))]))
+																	expr(nat-64, file-range(37, range(1658, 1659)), local-ref(v))]))
 														expr(record(8), file-range(37, range(1659, 1660)), record([arr(0, 35)]))]))])))]))))
 		500: fun(
 			finish

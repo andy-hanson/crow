@@ -36,7 +36,6 @@ import model.concreteModel :
 	ConcreteFun,
 	ConcreteLambdaImpl,
 	ConcreteLocal,
-	ConcreteLocalSource,
 	ConcreteMutability,
 	ConcreteParam,
 	ConcreteParamSource,
@@ -454,7 +453,7 @@ immutable(Nat64) nextLambdaImplIdInner(
 immutable(Ptr!ConcreteLocal) makeLocalWorker(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	immutable ConcreteLocalSource source,
+	immutable Ptr!Local source,
 	immutable ConcreteType type,
 ) {
 	immutable Ptr!ConcreteLocal res = allocate(alloc, immutable ConcreteLocal(source, ctx.nextLocalIndex, type));
@@ -467,11 +466,7 @@ immutable(Ptr!ConcreteLocal) concretizeLocal(
 	ref ConcretizeExprCtx ctx,
 	immutable Ptr!Local local,
 ) {
-	return makeLocalWorker(
-		alloc,
-		ctx,
-		immutable ConcreteLocalSource(local),
-		getConcreteType(alloc, ctx, local.deref().type));
+	return makeLocalWorker(alloc, ctx, local, getConcreteType(alloc, ctx, local.deref().type));
 }
 
 immutable(ConcreteExpr) concretizeWithLocal(
@@ -522,12 +517,7 @@ immutable(ConcreteExpr) concretizeIfOption(
 		immutable ConcreteExprKind.MatchUnion.Case noneCase = immutable ConcreteExprKind.MatchUnion.Case(
 			none!(Ptr!ConcreteLocal),
 			concretizeExpr(alloc, ctx, e.else_));
-		// Local for the 'some'
-		immutable Ptr!ConcreteLocal someLocal = makeLocalWorker(
-			alloc,
-			ctx,
-			immutable ConcreteLocalSource(immutable ConcreteLocalSource.Matched()),
-			someType);
+		immutable Ptr!ConcreteLocal someLocal = makeLocalWorker(alloc, ctx, e.local, someType);
 		immutable LocalOrConstant lc = immutable LocalOrConstant(someLocal);
 		immutable ConcreteExpr then = concretizeWithLocal(alloc, ctx, e.local, lc, e.then);
 		immutable ConcreteExprKind.MatchUnion.Case someCase =

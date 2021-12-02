@@ -1728,13 +1728,13 @@ program(
 					[
 						case(none, call(new, [call(new, [create-arr(arr, [])])]))
 						case(
-							some("<<matched>>")
+							some(arrs)
 							let(
 								n-code-ptrs
-								call(backtrace-and-get-n-code-ptrs, [local-ref("<<matched>>")])
+								call(backtrace-and-get-n-code-ptrs, [local-ref(arrs)])
 								seq(
 									call(hard-assert, [call(<=, [local-ref(n-code-ptrs), call(code-ptrs-size, [])])])
-									call(fill-arrs, [local-ref("<<matched>>"), local-ref(n-code-ptrs)]))))])))
+									call(fill-arrs, [local-ref(arrs), local-ref(n-code-ptrs)]))))])))
 		fun(
 			ctx
 			try-alloc-backtrace-arrs
@@ -1747,28 +1747,28 @@ program(
 					[
 						case(none, call(none, []))
 						case(
-							some("<<matched>>")
+							some(code-ptrs)
 							match-union(
 								call(try-alloc-uninitialized, [8])
 								[
 									case(none, call(none, []))
 									case(
-										some("<<matched>>")
+										some(code-names)
 										match-union(
 											call(try-alloc-uninitialized, [call(size, [call(all-funs, [])])])
 											[
 												case(none, call(none, []))
 												case(
-													some("<<matched>>")
+													some(funs)
 													call(
 														some
 														[
 															call(
 																new
 																[
-																	local-ref("<<matched>>")
-																	local-ref("<<matched>>")
-																	local-ref("<<matched>>")])]))]))]))])))
+																	local-ref(code-ptrs)
+																	local-ref(code-names)
+																	local-ref(funs)])]))]))]))])))
 		fun(
 			ctx
 			try-alloc-uninitialized
@@ -1778,9 +1778,7 @@ program(
 			expr-body(
 				match-union(
 					call(try-alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
-					[
-						case(none, call(none, []))
-						case(some("<<matched>>"), call(some, [call(ptr-cast, [local-ref("<<matched>>")])]))])))
+					[case(none, call(none, [])), case(some(res), call(some, [call(ptr-cast, [local-ref(res)])]))])))
 		fun(
 			ctx
 			try-alloc
@@ -2016,9 +2014,7 @@ program(
 			expr-body(
 				match-union(
 					call(try-alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
-					[
-						case(none, call(none, []))
-						case(some("<<matched>>"), call(some, [call(ptr-cast, [local-ref("<<matched>>")])]))])))
+					[case(none, call(none, [])), case(some(res), call(some, [call(ptr-cast, [local-ref(res)])]))])))
 		fun(noctx, size-of, type(false, nat64), none, [], builtin([type(false, sym)]))
 		fun(noctx, none, type(false, opt), none, [], new-union)
 		fun(noctx, some, type(false, opt), none, [param(a, type(false, mut-ptr))], new-union)
@@ -2038,9 +2034,7 @@ program(
 			expr-body(
 				match-union(
 					call(try-alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
-					[
-						case(none, call(none, []))
-						case(some("<<matched>>"), call(some, [call(ptr-cast, [local-ref("<<matched>>")])]))])))
+					[case(none, call(none, [])), case(some(res), call(some, [call(ptr-cast, [local-ref(res)])]))])))
 		fun(noctx, size-of, type(false, nat64), none, [], builtin([type(false, named-val)]))
 		fun(noctx, none, type(false, opt), none, [], new-union)
 		fun(noctx, some, type(false, opt), none, [param(a, type(false, mut-ptr))], new-union)
@@ -2599,7 +2593,7 @@ program(
 			expr-body(
 				match-union(
 					call(try-gc-alloc, [param-ref(gc), param-ref(size)])
-					[case(none, call(todo, [])), case(some("<<matched>>"), local-ref("<<matched>>"))])))
+					[case(none, call(todo, [])), case(some(res), local-ref(res))])))
 		fun(noctx, todo, type(false, mut-ptr), none, [], expr-body(seq(call(abort, []), call(zeroed, []))))
 		fun(noctx, zeroed, type(false, mut-ptr), none, [], builtin([type(false, mut-ptr)]))
 		fun(
@@ -2978,7 +2972,7 @@ program(
 			expr-body(
 				match-union(
 					call(find-char-in-cstr, [param-ref(a), 0])
-					[case(none, call(hard-unreachable, [])), case(some("<<matched>>"), local-ref("<<matched>>"))])))
+					[case(none, call(hard-unreachable, [])), case(some(v), local-ref(v))])))
 		fun(
 			noctx
 			find-char-in-cstr
@@ -3668,14 +3662,12 @@ program(
 												call(set-next-ctx, [local-ref(c), call(none, [])]))
 											local-ref(c))))
 								case(
-									some("<<matched>>")
+									some(c)
 									seq(
 										seq(
-											call(
-												set-context-head
-												[param-ref(gc), call(next-ctx, [local-ref("<<matched>>")])])
-											call(set-next-ctx, [local-ref("<<matched>>"), call(none, [])]))
-										local-ref("<<matched>>")))])
+											call(set-context-head, [param-ref(gc), call(next-ctx, [local-ref(c)])])
+											call(set-next-ctx, [local-ref(c), call(none, [])]))
+										local-ref(c)))])
 						seq(call(release!, [call(ref-of-val, [call(lk, [param-ref(gc)])])]), local-ref(res))))))
 		fun(noctx, context-head, type(false, opt), none, [param(a, type(true, gc))], field-get(2))
 		fun(noctx, size-of, type(false, nat64), none, [], builtin([type(false, gc-ctx)]))
@@ -4103,11 +4095,7 @@ program(
 					call(subscript, [call(cb, [param-ref(cbs)]), param-ref(value)])
 					match-union(
 						call(next, [param-ref(cbs)])
-						[
-							case(none, void)
-							case(
-								some("<<matched>>")
-								call(call-callbacks!, [local-ref("<<matched>>"), param-ref(value)]))]))))
+						[case(none, void), case(some(next), call(call-callbacks!, [local-ref(next), param-ref(value)]))]))))
 		fun(noctx, cb, type(false, fun-act1), none, [param(a, type(true, fut-state-callbacks))], field-get(0))
 		fun(noctx, next, type(false, opt), none, [param(a, type(true, fut-state-callbacks))], field-get(1))
 		fun(
@@ -4278,18 +4266,16 @@ program(
 							[
 								case(none, call(set-head, [param-ref(a), call(some, [param-ref(inserted)])]))
 								case(
-									some("<<matched>>")
+									some(head)
 									cond(
 										call(
 											<=
 											[
-												call(time, [call(task, [local-ref("<<matched>>")])])
+												call(time, [call(task, [local-ref(head)])])
 												call(time, [call(task, [param-ref(inserted)])])])
-										call(insert-recur, [local-ref("<<matched>>"), param-ref(inserted)])
+										call(insert-recur, [local-ref(head), param-ref(inserted)])
 										seq(
-											call(
-												set-next
-												[param-ref(inserted), call(some, [local-ref("<<matched>>")])])
+											call(set-next, [param-ref(inserted), call(some, [local-ref(head)])])
 											call(set-head, [param-ref(a), call(some, [param-ref(inserted)])]))))])
 						let(
 							size-after
@@ -4316,10 +4302,8 @@ program(
 					[
 						case(none, param-ref(acc))
 						case(
-							some("<<matched>>")
-							call(
-								size-recur
-								[call(next, [local-ref("<<matched>>")]), call(wrap-add, [param-ref(acc), 1])]))])))
+							some(n)
+							call(size-recur, [call(next, [local-ref(n)]), call(wrap-add, [param-ref(acc), 1])]))])))
 		fun(noctx, next, type(false, opt), none, [param(a, type(true, task-queue-node))], field-get(1))
 		fun(noctx, head, type(false, opt), none, [param(a, type(true, task-queue))], field-get(0))
 		fun(
@@ -4344,16 +4328,16 @@ program(
 					[
 						case(none, call(set-next, [param-ref(prev), call(some, [param-ref(inserted)])]))
 						case(
-							some("<<matched>>")
+							some(cur)
 							cond(
 								call(
 									<=
 									[
-										call(time, [call(task, [local-ref("<<matched>>")])])
+										call(time, [call(task, [local-ref(cur)])])
 										call(time, [call(task, [param-ref(inserted)])])])
-								call(insert-recur, [local-ref("<<matched>>"), param-ref(inserted)])
+								call(insert-recur, [local-ref(cur), param-ref(inserted)])
 								seq(
-									call(set-next, [param-ref(inserted), call(some, [local-ref("<<matched>>")])])
+									call(set-next, [param-ref(inserted), call(some, [local-ref(cur)])])
 									call(set-next, [param-ref(prev), call(some, [param-ref(inserted)])]))))])))
 		fun(
 			noctx
@@ -5437,9 +5421,7 @@ program(
 			expr-body(
 				match-union(
 					param-ref(a)
-					[
-						case(none, call(true, []))
-						case(some("<<matched>>"), seq(call(drop, [local-ref("<<matched>>")]), call(false, [])))])))
+					[case(none, call(true, [])), case(some(x), seq(call(drop, [local-ref(x)]), call(false, [])))])))
 		fun(noctx, drop, type(false, void), none, [param("_", type(true, task-queue-node))], expr-body(call(void, [])))
 		fun(
 			noctx
@@ -5711,10 +5693,10 @@ program(
 							[
 								case(none, call(ptr-no-task, [call(new, [call(false, []), call(none, [])])]))
 								case(
-									some("<<matched>>")
+									some(head)
 									let(
 										task
-										call(task, [local-ref("<<matched>>")])
+										call(task, [local-ref(head)])
 										cond(
 											call(<=, [call(time, [local-ref(task)]), param-ref(cur-time)])
 											cond(
@@ -5722,15 +5704,13 @@ program(
 												call(
 													pop-recur!
 													[
-														local-ref("<<matched>>")
+														local-ref(head)
 														local-ref(exclusions)
 														param-ref(cur-time)
 														call(to-opt-time, [call(time, [local-ref(task)])])])
 												seq(
-													call(
-														set-head
-														[param-ref(a), call(next, [local-ref("<<matched>>")])])
-													call(ptr-task, [call(task, [local-ref("<<matched>>")])])))
+													call(set-head, [param-ref(a), call(next, [local-ref(head)])])
+													call(ptr-task, [call(task, [local-ref(head)])])))
 											call(
 												ptr-no-task
 												[
@@ -5880,10 +5860,10 @@ program(
 					[
 						case(none, call(ptr-no-task, [call(new, [call(true, []), param-ref(first-task-time)])]))
 						case(
-							some("<<matched>>")
+							some(cur)
 							let(
 								task
-								call(task, [local-ref("<<matched>>")])
+								call(task, [local-ref(cur)])
 								cond(
 									call(<=, [call(time, [local-ref(task)]), param-ref(cur-time)])
 									cond(
@@ -5891,18 +5871,16 @@ program(
 										call(
 											pop-recur!
 											[
-												local-ref("<<matched>>")
+												local-ref(cur)
 												param-ref(exclusions)
 												param-ref(cur-time)
 												match-union(
 													param-ref(first-task-time)
 													[
 														case(none, call(to-opt-time, [call(time, [local-ref(task)])]))
-														case(
-															some("<<matched>>")
-															call(some, [local-ref("<<matched>>")]))])])
+														case(some(t), call(some, [local-ref(t)]))])])
 										seq(
-											call(set-next, [param-ref(prev), call(next, [local-ref("<<matched>>")])])
+											call(set-next, [param-ref(prev), call(next, [local-ref(cur)])])
 											call(ptr-task, [local-ref(task)])))
 									call(
 										ptr-no-task
@@ -6013,14 +5991,12 @@ program(
 					[
 						case(none, param-ref(b))
 						case(
-							some("<<matched>>")
+							some(ta)
 							match-union(
 								param-ref(b)
 								[
 									case(none, call(none, []))
-									case(
-										some("<<matched>>")
-										call(some, [call(min, [local-ref("<<matched>>"), local-ref("<<matched>>")])]))]))])))
+									case(some(tb), call(some, [call(min, [local-ref(ta), local-ref(tb)])]))]))])))
 		fun(
 			noctx
 			min
@@ -6346,10 +6322,10 @@ program(
 														call(ref-of-val, [call(cond, [param-ref(a)])])
 														call(ref-of-val, [call(mutex, [param-ref(a)])])]))
 											case(
-												some("<<matched>>")
+												some(t)
 												let(
 													abstime
-													call(to-timespec, [local-ref("<<matched>>")])
+													call(to-timespec, [local-ref(t)])
 													let(
 														err
 														call(
