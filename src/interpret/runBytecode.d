@@ -649,8 +649,13 @@ immutable(NextOperation) opFnBinary(alias cb)(ref Interpreter a, immutable(Opera
 	return nextOperation(a, cur);
 }
 
-private immutable(NextOperation) nextOperation(ref Interpreter a, immutable Operation* cur) {
-	return false ? getNextOperationAndDebug(a, cur) : immutable NextOperation(cur);
+private @trusted immutable(NextOperation) nextOperation(ref Interpreter a, immutable Operation* cur) {
+	static if (false)
+		return getNextOperationAndDebug(a, cur);
+	version(TailRecursionAvialable) {
+		return cur.fn(a, cur + 1);
+	}
+	return immutable NextOperation(cur);
 }
 
 private @trusted immutable(Operation) readOperation(scope ref immutable(Operation)* cur) {

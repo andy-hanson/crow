@@ -54,23 +54,17 @@ bin/crow: $(cli_deps)
 	dmd -ofbin/crow $(d_flags) -debug -g $(app_files) $(app_link)
 	rm bin/crow.o
 
-# I waited 15 minutes for it to compile with -O2 before giving up
-#d_flags_fast = $(d_flags) --enable-asserts=false --boundscheck=off
-# For some reason it's faster to compile without '-betterC' or '--enable-asserts=false'.
-# See https://github.com/ldc-developers/ldc/issues/3879
-d_flags_fast = -preview=dip25 -preview=dip1000 --boundscheck=off
+d_flags_fast = $(d_flags) --enable-asserts=false --boundscheck=off
 
 # Optimized builds are not currently used for anything
 bin/crow-o1: $(cli_deps)
-	ldc2 -ofbin/crow-o1 $(d_flags_fast) --enable-asserts=false -O1 $(app_files) $(app_link)
+	ldc2 -ofbin/crow-o1 $(d_flags_fast) -O1 $(app_files) $(app_link)
 
 bin/crow-o2: $(cli_deps)
-	# Build will take about 4 minutes
-	ldc2 -ofbin/crow-o2 $(d_flags_fast) -O2 $(app_files) $(app_link)
+	ldc2 -ofbin/crow-o2 $(d_flags_fast) -O2 --d-version=TailRecursionAvialable $(app_files) $(app_link)
 
-bin/crow-o2-dbg: $(cli_deps)
-	# Build will take about 9 minutes
-	ldc2 -ofbin/crow-o2-dbg $(d_flags_fast) -O2 -g $(app_files) $(app_link)
+bin/crow-o2-debug: $(cli_deps)
+	ldc2 -ofbin/crow-o2-debug $(d_flags_fast) -O2 --d-version=TailRecursionAvialable -g $(app_files) $(app_link)
 
 # -O3 seems to have no benefit
 
