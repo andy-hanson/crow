@@ -43,6 +43,7 @@ import interpret.runBytecode :
 	opReadWords,
 	opReadWordsVariable,
 	opRemove,
+	opRemoveVariable,
 	opReturn,
 	opStackRef,
 	opSwitch0ToN,
@@ -489,11 +490,31 @@ void writeRemove(
 ) {
 	log(dbg, writer, "write remove");
 	if (!zero(entries.size)) {
-		pushOperationFn(writer, source, &opRemove);
-		pushNat64(writer, source, getStackOffsetTo(writer, entries.start));
-		pushNat64(writer, source, entries.size);
+		writeRemoveInner(
+			writer,
+			source,
+			safeSizeTFromU64(getStackOffsetTo(writer, entries.start).raw()),
+			safeSizeTFromU64(entries.size.raw()));
 		writer.nextStackEntry -= entries.size;
 	}
+}
+
+private void writeRemoveInner(
+	ref ByteCodeWriter writer,
+	immutable ByteCodeSource source,
+	immutable size_t offset,
+	immutable size_t nEntries,
+) {
+	static foreach (immutable size_t possibleOffset; 0 .. 4)
+		static foreach (immutable size_t possibleNEntries; 0 .. 4)
+			if (offset == possibleOffset && nEntries == possibleNEntries) {
+				pushOperationFn(writer, source, &opRemove!(possibleOffset, possibleNEntries));
+				return;
+			}
+
+	pushOperationFn(writer, source, &opRemoveVariable);
+	pushSizeT(writer, source, offset);
+	pushSizeT(writer, source, nEntries);
 }
 
 void writeJump(

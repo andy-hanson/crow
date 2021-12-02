@@ -332,14 +332,23 @@ private immutable(NextOperation) getNextOperationAndDebug(ref Interpreter a, imm
 	return immutable NextOperation(cur);
 }
 
-immutable(NextOperation) opAssertUnreachable(ref Interpreter a, immutable(Operation)* cur) {
+immutable(NextOperation) opAssertUnreachable(ref Interpreter a, immutable Operation* cur) {
 	return unreachable!(immutable NextOperation)();
 }
 
-immutable(NextOperation) opRemove(ref Interpreter a, immutable(Operation)* cur) {
-	debug log(a.dbg, "opRemove");
+immutable(NextOperation) opRemove(immutable size_t offset, immutable size_t nEntries)(
+	ref Interpreter a,
+	immutable Operation* cur,
+) {
+	debug log(a.dbg, "opRemove", offset, nEntries);
+	remove(a.dataStack, offset, nEntries);
+	return nextOperation(a, cur);
+}
+
+immutable(NextOperation) opRemoveVariable(ref Interpreter a, immutable(Operation)* cur) {
 	immutable size_t offset = readStackOffset(cur);
 	immutable size_t nEntries = readSizeT(cur);
+	debug log(a.dbg, "opRemoveVariable", offset, nEntries);
 	remove(a.dataStack, offset, nEntries);
 	return nextOperation(a, cur);
 }
