@@ -90,16 +90,16 @@ struct FileAstAndParseDiagnostics {
 
 immutable(FileAstAndParseDiagnostics) parseFile(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
 	immutable NulTerminatedStr source,
 ) {
-	return withMeasure(alloc, perf, PerfMeasure.parseFile, () {
+	return withMeasure!(immutable FileAstAndParseDiagnostics, () {
 		Lexer lexer = createLexer(ptrTrustMe_mut(alloc), ptrTrustMe_mut(allSymbols), source);
 		immutable FileAst ast = parseFileInner(allPaths, lexer);
 		return immutable FileAstAndParseDiagnostics(ast, finishDiags(lexer));
-	});
+	})(alloc, perf, PerfMeasure.parseFile);
 }
 
 private:

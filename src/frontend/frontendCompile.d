@@ -52,16 +52,16 @@ immutable(Program) frontendCompile(Storage)(
 	immutable PathAndStorageKind main,
 ) {
 	ArrBuilder!Diagnostic diagsBuilder;
-	immutable ParsedEverything parsed = withMeasure(astsAlloc, perf, PerfMeasure.parseEverything, () =>
-		parseEverything(modelAlloc, perf, allPaths, allSymbols, diagsBuilder, storage, main, astsAlloc));
+	immutable ParsedEverything parsed = withMeasure!(immutable ParsedEverything, () =>
+		parseEverything(modelAlloc, perf, allPaths, allSymbols, diagsBuilder, storage, main, astsAlloc)
+	)(astsAlloc, perf, PerfMeasure.parseEverything);
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		parsed.filePaths,
 		storage.absolutePathsGetter(),
 		parsed.lineAndColumnGetters);
-	return withMeasure(modelAlloc, perf, PerfMeasure.checkEverything, () =>
-		checkEverything(
-			modelAlloc, perf, allSymbols, diagsBuilder,
-			parsed.asts, filesInfo, parsed.commonModuleIndices));
+	return withMeasure!(immutable Program, () =>
+		checkEverything(modelAlloc, perf, allSymbols, diagsBuilder, parsed.asts, filesInfo, parsed.commonModuleIndices)
+	)(modelAlloc, perf, PerfMeasure.checkEverything);
 }
 
 private struct FileAstAndArrDiagnosticAndLineAndColumnGetter {

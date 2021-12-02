@@ -529,8 +529,9 @@ immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
 	// 	}
 	// 	printf("\n");
 	// }
-	immutable int err = withMeasure(alloc, perf, PerfMeasure.cCompile, () =>
-		spawnAndWait(alloc, allPaths, "/usr/bin/cc", args));
+	immutable int err = withMeasure!(immutable int, () =>
+		spawnAndWait(alloc, allPaths, "/usr/bin/cc", args)
+	)(alloc, perf, PerfMeasure.cCompile);
 	return immutable ExitCode(err);
 }
 

@@ -7,9 +7,7 @@ clean:
 	rm -f site/*.html site/*/*.html site/*/*/*.html site/*/*/*/*.html
 	rm -rf temp
 
-all-clean: clean all-dirty
-
-all-dirty: test lint sdl-demo serve
+all: clean test lint sdl-demo serve
 
 sdl-demo: bin/crow
 	#TODO: bin/crow run demo/ogl/ogl.crow --interpret

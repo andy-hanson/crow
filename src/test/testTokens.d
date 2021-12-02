@@ -44,9 +44,9 @@ private:
 
 void testOne(ref Test test, immutable string source, immutable Token[] expectedTokens) {
 	AllSymbols allSymbols = AllSymbols(test.allocPtr);
-	immutable FileAstAndParseDiagnostics ast = withNullPerf!(immutable FileAstAndParseDiagnostics)(
-		// TODO: why does this have to be @trusted?
-		(scope ref Perf perf) @trusted => parseFile(
+	immutable FileAstAndParseDiagnostics ast = withNullPerf!(
+		immutable FileAstAndParseDiagnostics,
+		(scope ref Perf perf) => parseFile(
 			test.alloc,
 			perf,
 			test.allPaths,

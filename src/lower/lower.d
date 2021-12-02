@@ -144,8 +144,9 @@ import util.types : safeSizeTToU8;
 import util.util : unreachable, verify;
 
 immutable(LowProgram) lower(ref Alloc alloc, ref Perf perf, ref immutable ConcreteProgram a) {
-	return withMeasure(alloc, perf, PerfMeasure.lower, () =>
-		lowerInner(alloc, a));
+	return withMeasure!(immutable LowProgram, () =>
+		lowerInner(alloc, a)
+	)(alloc, perf, PerfMeasure.lower);
 }
 
 private immutable(LowProgram) lowerInner(ref Alloc alloc, ref immutable ConcreteProgram a) {

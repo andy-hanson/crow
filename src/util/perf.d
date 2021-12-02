@@ -1,11 +1,41 @@
 module util.perf;
 
-@safe @nogc nothrow: // not pure
-
 import util.alloc.alloc : Alloc, curBytes;
 import util.collection.arrUtil : sortInPlace;
 import util.comparison : compareUlong, oppositeComparison;
 import util.util : verify;
+
+immutable(T) withMeasureNoAlloc(T, alias cb)(
+	ref Perf perf,
+	immutable PerfMeasure measure,
+) {
+	PerfMeasurerNoAlloc measurer = startMeasureNoAlloc(perf, measure);
+	immutable T res = cb();
+	endMeasureNoAlloc(perf, measurer);
+	return res;
+}
+
+immutable(T) withMeasure(T, alias cb)(
+	ref Alloc alloc,
+	scope ref Perf perf,
+	immutable PerfMeasure measure,
+) {
+	PerfMeasurer measurer = startMeasure(alloc, perf, measure);
+	static if (is(T == void))
+		cb();
+	else
+		immutable T res = cb();
+	endMeasure(alloc, perf, measurer);
+	static if (!is(T == void))
+		return res;
+}
+
+immutable(T) withNullPerf(T, alias cb)() {
+	scope Perf perf = Perf(() => immutable ulong(0));
+	return cb(perf);
+}
+
+@safe @nogc nothrow: // not pure
 
 struct Perf {
 	@safe pure @nogc nothrow:
@@ -21,44 +51,6 @@ struct Perf {
 }
 
 immutable bool perfEnabled = false;
-
-immutable(T) withMeasureNoAlloc(T)(
-	ref Perf perf,
-	immutable PerfMeasure measure,
-	scope immutable(T) delegate() @safe @nogc nothrow cb,
-) {
-	PerfMeasurerNoAlloc measurer = startMeasureNoAlloc(perf, measure);
-	immutable T res = cb();
-	endMeasureNoAlloc(perf, measurer);
-	return res;
-}
-
-@trusted immutable(T) withMeasure(T)(
-	ref Alloc alloc,
-	ref Perf perf,
-	immutable PerfMeasure measure,
-	scope immutable(T) delegate() @safe @nogc nothrow cb,
-) {
-	PerfMeasurer measurer = startMeasure(alloc, perf, measure);
-	immutable T res = cb();
-	endMeasure(alloc, perf, measurer);
-	return res;
-}
-@trusted pure immutable(T) withMeasure(T)(
-	ref Alloc alloc,
-	ref Perf perf,
-	immutable PerfMeasure measure,
-	scope immutable(T) delegate() @safe @nogc pure nothrow cb,
-) {
-	PerfMeasurer measurer = startMeasure(alloc, perf, measure);
-	static if (is(T == void))
-		cb();
-	else
-		immutable T res = cb();
-	endMeasure(alloc, perf, measurer);
-	static if (!is(T == void))
-		return res;
-}
 
 private struct PerfMeasurerNoAlloc {
 	private:
@@ -86,7 +78,7 @@ struct PerfMeasurer {
 	bool paused;
 }
 
-@trusted pure PerfMeasurer startMeasure(ref Alloc alloc, ref Perf perf, immutable PerfMeasure measure) {
+@trusted pure PerfMeasurer startMeasure(ref Alloc alloc, scope ref Perf perf, immutable PerfMeasure measure) {
 	if (perfEnabled) {
 		immutable size_t bytesBefore = curBytes(alloc);
 		immutable ulong nsecBefore = perf.cbGetTimeNSec();
@@ -95,7 +87,7 @@ struct PerfMeasurer {
 		return PerfMeasurer(measure, 0, 0, false);
 }
 
-@trusted pure void pauseMeasure(ref Alloc alloc, ref Perf perf, ref PerfMeasurer measurer) {
+@trusted pure void pauseMeasure(ref Alloc alloc, scope ref Perf perf, ref PerfMeasurer measurer) {
 	if (perfEnabled) {
 		verify(!measurer.paused);
 		addToMeasure(perf, measurer.measure, immutable PerfMeasureResult(
@@ -106,7 +98,7 @@ struct PerfMeasurer {
 	}
 }
 
-@trusted pure void resumeMeasure(ref Alloc alloc, ref Perf perf, ref PerfMeasurer measurer) {
+@trusted pure void resumeMeasure(ref Alloc alloc, scope ref Perf perf, ref PerfMeasurer measurer) {
 	if (perfEnabled) {
 		verify(measurer.paused);
 		measurer.bytesBefore = curBytes(alloc);
@@ -115,7 +107,7 @@ struct PerfMeasurer {
 	}
 }
 
-@trusted pure void endMeasure(ref Alloc alloc, ref Perf perf, ref PerfMeasurer measurer) {
+@trusted pure void endMeasure(ref Alloc alloc, scope ref Perf perf, ref PerfMeasurer measurer) {
 	if (perfEnabled) {
 		verify(!measurer.paused);
 		addToMeasure(perf, measurer.measure, immutable PerfMeasureResult(
@@ -123,16 +115,6 @@ struct PerfMeasurer {
 			curBytes(alloc) - measurer.bytesBefore,
 			perf.cbGetTimeNSec() - measurer.nsecBefore));
 	}
-}
-
-immutable(T) withNullPerf(T)(scope immutable(T) delegate(scope ref Perf) @safe @nogc pure nothrow cb) {
-	scope Perf perf = Perf(() => immutable ulong(0));
-	return cb(perf);
-}
-
-@system immutable(T) withNullPerfSystem(T)(scope immutable(T) delegate(scope ref Perf) @system @nogc nothrow cb) {
-	scope Perf perf = Perf(() => immutable ulong(0));
-	return cb(perf);
 }
 
 struct PerfMeasureResult {

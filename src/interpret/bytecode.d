@@ -17,8 +17,7 @@ struct NextOperation {
 }
 
 struct Operation {
-	// TODO: these probaly shouldn't be @safe
-	alias Fn = immutable(NextOperation) function(ref Interpreter, immutable(Operation)*) @safe @nogc nothrow;
+	alias Fn = immutable(NextOperation) function(ref Interpreter, immutable(Operation)*) @system @nogc nothrow;
 
 	@safe @nogc pure nothrow:
 

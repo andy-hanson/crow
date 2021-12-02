@@ -60,8 +60,9 @@ immutable(ConcreteProgram) concretize(
 	ref AllSymbols allSymbols,
 	ref immutable Program program,
 ) {
-	return withMeasure(alloc, perf, PerfMeasure.concretize, () =>
-		concretizeInner(alloc, allSymbols, program));
+	return withMeasure!(immutable ConcreteProgram, () =>
+		concretizeInner(alloc, allSymbols, program)
+	)(alloc, perf, PerfMeasure.concretize);
 }
 
 private:

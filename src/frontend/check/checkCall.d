@@ -170,7 +170,7 @@ immutable(CheckedExpr) checkCall(
 	// Show diags at the function name and not at the whole call ast
 	immutable FileAndRange diagRange = immutable FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName));
 
-	immutable CheckedExpr res = withMeasure(alloc, ctx.perf, PerfMeasure.checkCallLastPart, () {
+	immutable CheckedExpr res = withMeasure!(immutable CheckedExpr, () {
 		if (!has(args) || size(candidates) != 1) {
 			if (isEmpty(candidates)) {
 				immutable CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(alloc, ctx, funName);
@@ -187,7 +187,7 @@ immutable(CheckedExpr) checkCall(
 			return bogus(expected, range);
 		} else
 			return checkCallAfterChoosingOverload(alloc, ctx, only_const(candidates), range, force(args), expected);
-	});
+	})(alloc, ctx.perf, PerfMeasure.checkCallLastPart);
 
 	endMeasure(alloc, ctx.perf, perfMeasurer);
 	return res;

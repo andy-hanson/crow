@@ -117,7 +117,7 @@ immutable(FileToFuns) dummyFileToFuns() {
 void doInterpret(
 	ref Test test,
 	ref immutable ByteCode byteCode,
-	scope void delegate(scope ref Interpreter, immutable(Operation)*) @safe @nogc nothrow runInterpreter,
+	scope void delegate(scope ref Interpreter, immutable(Operation)*) @system @nogc nothrow runInterpreter,
 ) {
 	immutable Path emptyPath = rootPath(test.allPaths, shortSymAlphaLiteral("test"));
 	immutable PathAndStorageKind[1] pk = [immutable PathAndStorageKind(emptyPath, StorageKind.global)];
@@ -149,20 +149,20 @@ void doInterpret(
 		fullIndexDictOfArr!(LowFunIndex, LowFun)(lowFun),
 		immutable LowFunIndex(0),
 		emptyArr!Sym);
-	withFakeExtern(test.alloc, (scope ref Extern extern_) @safe {
+	withFakeExtern(test.alloc, (scope ref Extern extern_) @trusted {
 		withInterpreter!void(
 			test.dbg, test.alloc, extern_, lowProgram, byteCode, test.allPaths, filesInfo,
-			(scope ref Interpreter interpreter) @safe {
+			(scope ref Interpreter interpreter) {
 				runInterpreter(interpreter, initialOperationPointer(byteCode));
 			});
 		return immutable ExitCode(0);
 	});
 }
 
-public void interpreterTest(
+public @trusted void interpreterTest(
 	ref Test test,
 	scope void delegate(ref ByteCodeWriter, immutable ByteCodeSource source) @safe @nogc nothrow writeBytecode,
-	scope void delegate(scope ref Interpreter, immutable(Operation)*) @safe @nogc nothrow runInterpreter,
+	scope void delegate(scope ref Interpreter, immutable(Operation)*) @system @nogc nothrow runInterpreter,
 ) {
 	immutable ByteCode byteCode = makeByteCode(test.alloc, writeBytecode);
 	doInterpret(test, byteCode, runInterpreter);

@@ -162,8 +162,9 @@ import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 		return 0;
 	}
 
-	immutable MainType main = withMeasure!(immutable MainType)(alloc, perf, PerfMeasure.gccJit, () @trusted =>
-		cast(immutable MainType) gcc_jit_result_get_code(gccProgram.result, "main"));
+	immutable MainType main = withMeasure!(immutable MainType, () @trusted =>
+		cast(immutable MainType) gcc_jit_result_get_code(gccProgram.result, "main")
+	)(alloc, perf, PerfMeasure.gccJit);
 	verify(main != null);
 	gcc_jit_context_release(gccProgram.ctx);
 
@@ -178,9 +179,10 @@ import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 
 private:
 
-immutable(int) runMain(ref Alloc alloc, ref Perf perf, immutable SafeCStr[] allArgs, immutable MainType main) {
-	return withMeasure!int(alloc, perf, PerfMeasure.run, () @trusted =>
-		main(cast(int) size(allArgs), cast(immutable CStr*) allArgs.ptr));
+@trusted immutable(int) runMain(ref Alloc alloc, ref Perf perf, immutable SafeCStr[] allArgs, immutable MainType main) {
+	return withMeasure!(immutable int, () =>
+		main(cast(int) size(allArgs), cast(immutable CStr*) allArgs.ptr)
+	)(alloc, perf, PerfMeasure.run);
 }
 
 pure:
@@ -212,14 +214,15 @@ GccProgram getGccProgram(ref Alloc alloc, ref Perf perf, ref immutable LowProgra
 		gcc_jit_context_add_driver_option(ctx.deref(), finishWriterToCStr(writer));
 	}
 
-	withMeasure!void(alloc, perf, PerfMeasure.gccCreateProgram, () {
+	withMeasure!(void, () {
 		buildGccProgram(alloc, ctx.deref(), program);
-	});
+	})(alloc, perf, PerfMeasure.gccCreateProgram);
 
 	verify(gcc_jit_context_get_first_error(ctx.deref()) == null);
 
-	immutable gcc_jit_result* resultRawPtr = withMeasure(alloc, perf, PerfMeasure.gccCompile, () =>
-		gcc_jit_context_compile(ctx.deref()));
+	immutable gcc_jit_result* resultRawPtr = withMeasure!(immutable gcc_jit_result*, () =>
+		gcc_jit_context_compile(ctx.deref())
+	)(alloc, perf, PerfMeasure.gccCompile);
 	verify(resultRawPtr != null);
 	immutable Ptr!gcc_jit_result result = immutable Ptr!gcc_jit_result(resultRawPtr);
 

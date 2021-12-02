@@ -52,7 +52,7 @@ immutable(T[]) toArr(T, size_t capacity)(ref Alloc alloc, ref const GlobalAlloca
 	return copyArr(alloc, asTempArr(a));
 }
 
-void setToArr(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, scope immutable T[] arr) {
+@system void setToArr(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, scope immutable T[] arr) {
 	clearStack(a);
 	foreach (immutable T value; arr)
 		push(a, value);
@@ -78,14 +78,13 @@ void setToArr(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, scop
 	a.top += n;
 }
 
-@trusted void push(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable T value) {
+@system void push(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable T value) {
 	debug verify(a.top < GlobalAllocatedStack!(T, capacity).STORAGE.ptr + capacity - 1);
 	a.top++;
 	*a.top = value;
 }
 
-//TODO: not @trusted
-@trusted immutable(T) peek(T, size_t capacity)(
+@system immutable(T) peek(T, size_t capacity)(
 	ref const GlobalAllocatedStack!(T, capacity) a,
 	immutable size_t offset = 0,
 ) {
@@ -93,24 +92,24 @@ void setToArr(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, scop
 }
 
 // WARN: result is temporary!
-@trusted immutable(T[]) popN(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable size_t n) {
+@system immutable(T[]) popN(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable size_t n) {
 	a.top -= n;
 	return cast(immutable) a.top[1 .. n + 1];
 }
 
-@trusted immutable(T) pop(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
+@system immutable(T) pop(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
 	immutable T res = *a.top;
 	a.top--;
 	return res;
 }
 
-immutable(T) remove(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable size_t offset) {
+@system immutable(T) remove(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable size_t offset) {
 	immutable T res = peek(a, offset);
 	remove(a, offset, 1);
 	return res;
 }
 
-@trusted void remove(T, size_t capacity)(
+@system void remove(T, size_t capacity)(
 	ref GlobalAllocatedStack!(T, capacity) a,
 	immutable size_t offset,
 	immutable size_t nEntries,

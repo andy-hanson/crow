@@ -69,7 +69,7 @@ private:
 	verify(stackIsEmpty(a));
 }
 
-void testRemove() {
+@trusted void testRemove() {
 	GlobalAllocatedStack!(int, 8) a = GlobalAllocatedStack!(int, 8)(true);
 
 	setToArr(a, [1, 2, 3, 4, 5, 6]);

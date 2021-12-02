@@ -145,7 +145,7 @@ immutable(Ptr!FunInst) instantiateFun(
 	ref ProgramState programState,
 	immutable FunDeclAndArgs declAndArgs,
 ) {
-	return withMeasure(alloc, perf, PerfMeasure.instantiateFun, () => getOrAdd(
+	return withMeasure!(immutable Ptr!FunInst, () => getOrAdd(
 		alloc,
 		programState.funInsts,
 		declAndArgs,
@@ -155,7 +155,8 @@ immutable(Ptr!FunInst) instantiateFun(
 				alloc,
 				programState,
 				declAndArgs.decl.deref().sig,
-				immutable TypeParamsAndArgs(declAndArgs.decl.deref().typeParams, declAndArgs.typeArgs))))));
+				immutable TypeParamsAndArgs(declAndArgs.decl.deref().typeParams, declAndArgs.typeArgs)))))
+	)(alloc, perf, PerfMeasure.instantiateFun);
 }
 
 immutable(StructBody) instantiateStructBody(

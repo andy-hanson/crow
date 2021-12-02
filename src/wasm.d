@@ -19,7 +19,7 @@ import util.collection.str : CStr, strToCStr;
 import util.dbg : Debug;
 import util.memory : utilMemcpy = memcpy, utilMemset = memset;
 import util.path : StorageKind;
-import util.perf : Perf, withNullPerfSystem;
+import util.perf : Perf, withNullPerf;
 import util.ptr : ptrTrustMe_mut;
 import util.repr : Repr, jsonStrOfRepr, nameAndRepr, reprArr, reprNamedRecord, reprStr;
 import util.sourceRange : Pos, reprRangeWithinFile;
@@ -105,7 +105,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable char* pathStart, immutable size_t pathLength,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
-	immutable Token[] tokens = withNullPerfSystem!(immutable Token[])((scope ref Perf perf) =>
+	immutable Token[] tokens = withNullPerf!(immutable Token[], (scope ref Perf perf) =>
 		getTokens(resultAlloc, perf, *server, storageKind, pathStart[0 .. pathLength]));
 	immutable Repr repr = reprTokens(resultAlloc, tokens);
 	return jsonStrOfRepr(resultAlloc, repr);
@@ -120,7 +120,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable size_t pathLength,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
-	immutable StrParseDiagnostic[] diags = withNullPerfSystem((scope ref Perf perf) =>
+	immutable StrParseDiagnostic[] diags = withNullPerf!(immutable StrParseDiagnostic[], (scope ref Perf perf) =>
 		getParseDiagnostics(resultAlloc, perf, *server, storageKind, pathStart[0 .. pathLength]));
 	immutable Repr repr = reprParseDiagnostics(resultAlloc, diags);
 	return jsonStrOfRepr(resultAlloc, repr);
@@ -140,7 +140,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	immutable string path = pathStart[0 .. pathLength];
 	immutable string hover = withWasmDebug!(immutable string)(debugStart, debugLength, (scope ref Debug dbg) =>
-		withNullPerfSystem((scope ref Perf perf) =>
+		withNullPerf!(immutable string, (scope ref Perf perf) =>
 			getHover(dbg, perf, resultAlloc, *server, storageKind, path, pos)));
 	return strToCStr(resultAlloc, hover);
 }
@@ -160,7 +160,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 		debugStart,
 		debugLength,
 		(scope ref Debug dbg) =>
-			withNullPerfSystem((scope ref Perf perf) =>
+			withNullPerf!(immutable FakeExternResult, (scope ref Perf perf) =>
 				run(dbg, perf, resultAlloc, *server, path)));
 	return writeRunResult(server.alloc, result);
 }
