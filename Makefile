@@ -57,9 +57,6 @@ bin/crow: $(cli_deps)
 d_flags_fast = $(d_flags) --enable-asserts=false --boundscheck=off
 
 # Optimized builds are not currently used for anything
-bin/crow-o1: $(cli_deps)
-	ldc2 -ofbin/crow-o1 $(d_flags_fast) -O1 $(app_files) $(app_link)
-
 bin/crow-o2: $(cli_deps)
 	ldc2 -ofbin/crow-o2 $(d_flags_fast) -O2 --d-version=TailRecursionAvialable $(app_files) $(app_link)
 
