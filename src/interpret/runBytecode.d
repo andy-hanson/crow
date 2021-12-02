@@ -95,7 +95,7 @@ private @trusted immutable(int) runBytecodeInner(scope ref Interpreter interpret
 alias DataStack = GlobalAllocatedStack!(Nat64, 1024 * 64);
 private alias ReturnStack = GlobalAllocatedStack!(immutable(Operation)*, 1024 * 4);
 
-immutable(T) withInterpreter(T)(
+@trusted immutable(T) withInterpreter(T)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref Extern extern_,
@@ -113,12 +113,18 @@ immutable(T) withInterpreter(T)(
 		ptrTrustMe(byteCode),
 		ptrTrustMe_const(allPaths),
 		ptrTrustMe(filesInfo));
+
+	// Ensure the last 'return' returns to here
+	push(interpreter.returnStack, operationOpStopInterpretation.ptr);
+
 	static if (is(T == void))
 		cb(interpreter);
 	else
 		immutable T res = cb(interpreter);
+
 	clearStack(interpreter.dataStack);
 	clearStack(interpreter.returnStack);
+
 	static if (!is(T == void))
 		return res;
 }
@@ -340,9 +346,8 @@ immutable(NextOperation) opRemove(ref Interpreter a, immutable(Operation)* cur) 
 
 immutable(NextOperation) opReturn(ref Interpreter a, immutable(Operation)* cur) {
 	debug log(a.dbg, "opReturn");
-	return stackIsEmpty(a.returnStack)
-		? immutable NextOperation(&operationOpStopInterpretation[0])
-		: nextOperation(a, pop(a.returnStack));
+	verify(!stackIsEmpty(a.returnStack));
+	return nextOperation(a, pop(a.returnStack));
 }
 
 private immutable(Operation[8]) operationOpStopInterpretation = [

@@ -72,7 +72,8 @@ void expectReturnStack(
 	scope ref const Interpreter interpreter,
 	scope immutable ByteCodeIndex[] expected,
 ) {
-	immutable Operation*[] stack = asTempArr(interpreter.returnStack);
+	// Ignore first entry (which is opStopInterpretation)
+	immutable Operation*[] stack = asTempArr(interpreter.returnStack)[1 .. $];
 	immutable bool eq = sizeEq(stack, expected) &&
 		eachCorresponds!(immutable Operation*, ByteCodeIndex)(
 			stack,
