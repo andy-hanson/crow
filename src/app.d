@@ -14,7 +14,7 @@ import core.sys.posix.time : clock_gettime, CLOCK_MONOTONIC, timespec;
 import core.sys.posix.unistd : close, getcwd, lseek, read, readlink, unlink, posixWrite = write;
 
 import backend.jit : jitAndRun;
-import frontend.lang : crowExtension;
+import frontend.lang : crowExtension, JitOptions, OptimizationLevel;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.applyFn : nat64OfI32, nat64OfI64;
 import interpret.extern_ : DynCallType, Extern, TimeSpec;
@@ -218,6 +218,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 						perf,
 						allPaths,
 						allSymbols,
+						it.options,
 						showDiagOptions,
 						storage,
 						main,
@@ -446,6 +447,7 @@ immutable(ExitCode) buildAndJit(
 	ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
+	ref immutable JitOptions jitOptions,
 	ref immutable ShowDiagOptions showDiagOptions,
 	ref RealReadOnlyStorage storage,
 	immutable PathAndStorageKind main,
@@ -460,7 +462,7 @@ immutable(ExitCode) buildAndJit(
 			programs.program.filesInfo,
 			programs.program.diagnostics));
 	else
-		return immutable ExitCode(jitAndRun(alloc, perf, programs.lowProgram, programArgs));
+		return immutable ExitCode(jitAndRun(alloc, perf, programs.lowProgram, jitOptions, programArgs));
 }
 
 immutable(PathAndStorageKind) getMain(
@@ -509,7 +511,12 @@ immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
 		immutable SafeCStr("-Ofast"),
 	];
 	static immutable SafeCStr[] regularArgs = optimizedArgs[0 .. $ - 1];
-	return options.optimize ? optimizedArgs : regularArgs;
+	final switch (options.optimizationLevel) {
+		case OptimizationLevel.none:
+			return regularArgs;
+		case OptimizationLevel.o2:
+			return optimizedArgs;
+	}
 }
 
 @trusted immutable(ExitCode) compileC(

@@ -1,12 +1,12 @@
 import
-	crow/col/fix-arr: begin-ptr, cast-immutable, size, subscript, uninitialized-fix-arr
+	crow/col/fix-arr: begin-ptr, cast-immutable, fix-arr, size, subscript, uninitialized-fix-arr
 	crow/extra-types: fd-t
 	crow/io/print: print
-	crow/ptr: ==, as-any-ptr, null, ptr-cast, ptr-cast-to-extern, ptr-to, size-of, subscript
+	crow/ptr: ==, *, as-any-const-ptr, const-ptr, null, ptr-cast, ptr-cast-to-extern, ptr-to, size-of
 	crow/str-util: as-str, bytes, to-c-str
 	arpa/inet: inet_addr, inet_ntoa
 	netdb: gethostbyname, getprotobyname, h_addr_list, p_proto
-	netinet/in: htons, in_addr, sockaddr_in
+	netinet/in: htons, in_addr, new, sockaddr_in
 	sys/socket: AF_INET, connect, sockaddr, socket, SOCK_STREAM
 	unistd: read, write
 
@@ -25,20 +25,20 @@ main fut nat(_ str[]) unsafe summon
 
 .get-tcp-socket fd-t() unsafe summon
 	protoent = "tcp".to-c-str getprotobyname
-	assert: protoent.as-any-ptr != null
+	assert: protoent.as-any-const-ptr != null
 	socket-file-descriptor = AF_INET socket SOCK_STREAM, protoent.p_proto
 	forbid: socket-file-descriptor == -1
 	socket-file-descriptor
 
 .connect-socket! void(socket fd-t, hostname str, server-port nat16) unsafe summon
 	hostent = hostname.to-c-str gethostbyname
-	assert: hostent.as-any-ptr != null
-	in_addr0 in_addr* = hostent.h_addr_list[].ptr-cast
-	in_addr = in_addr0[].inet_ntoa inet_addr
+	assert: hostent.as-any-const-ptr != null
+	in_addr0 in_addr* = (*hostent.h_addr_list).ptr-cast
+	in_addr = (*in_addr0).inet_ntoa inet_addr
 
-	sockaddr_in = AF_INET sockaddr_in server-port.htons, in_addr.in_addr
-	sockaddr = sockaddr_in.ptr-to ptr-cast-to-extern<sockaddr, sockaddr_in>
-	assert: (socket connect sockaddr, sockaddr_in.size-of.to-nat32) == 0
+	sockaddr_in sockaddr_in = AF_INET, server-port.htons, (in_addr,)
+	sockaddr = sockaddr_in.ptr-to ptr-cast-to-extern@<sockaddr, sockaddr_in>
+	assert: (socket connect sockaddr, (size-of@<sockaddr_in> to-nat32)) == 0
 
 .send-request! void(socket fd-t, request str) unsafe summon
 	forbid: request is-empty
@@ -47,10 +47,10 @@ main fut nat(_ str[]) unsafe summon
 	bytes-sent = socket write bytes.begin-ptr, bytes.size
 	# TODO: might be 0 if the socket is overloaded -- delay and try again
 	assert: bytes-sent > 0
-	if bytes-sent < bytes.size.to-int
-		socket send-request-recur! bytes[bytes-sent.to-nat -> bytes.size]
+	if bytes-sent < bytes.size.to-int64
+		socket send-request-recur! bytes[bytes-sent.to-nat64 .. bytes.size]
 	else
-		assert: bytes-sent == bytes.size.to-int
+		assert: bytes-sent == bytes.size.to-int64
 
 .receive-response! void(socket fd-t) unsafe summon
 	buffer fix-arr nat8 = 0x2000 uninitialized-fix-arr
@@ -59,6 +59,6 @@ main fut nat(_ str[]) unsafe summon
 	assert: bytes-read >= 0
 	if bytes-read > 0
 		print: "Read (possibly partial) response:"
-		print: buffer[0 -> bytes-read.to-nat].cast-immutable as-str
+		print: buffer[0 .. bytes-read.to-nat64].cast-immutable as-str
 		# TODO: Response might be partial. The parser will have to tell us that.
 

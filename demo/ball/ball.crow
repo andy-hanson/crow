@@ -60,11 +60,10 @@ main fut nat(_ str[]) summon trusted
 	e = SDL_Event
 	if e.SDL_PollEvent == 0
 		false
+	elif e.type == SDL_Quit
+		true
 	else
-		if e.type == SDL_Quit
-			true
-		else
-			look-for-quit-event
+		look-for-quit-event
 
 .renderer SDL_Renderer(window SDL_Window) summon trusted
 	renderer = window SDL_CreateRenderer -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC

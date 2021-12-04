@@ -5,3 +5,12 @@ module frontend.lang;
 immutable(string) crowExtension() {
 	return ".crow";
 }
+
+struct JitOptions {
+	immutable OptimizationLevel optimization;
+}
+
+enum OptimizationLevel {
+	none,
+	o2,
+}

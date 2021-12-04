@@ -18,6 +18,7 @@ import backend.mangle :
 	writeLowLocalName,
 	writeLowFunMangledName,
 	writeLowParamName;
+import frontend.lang : JitOptions, OptimizationLevel;
 import include.libgccjit :
 	gcc_jit_binary_op,
 	gcc_jit_block,
@@ -144,9 +145,10 @@ import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 	ref Alloc alloc,
 	ref Perf perf,
 	ref immutable LowProgram program,
+	ref immutable JitOptions options,
 	immutable SafeCStr[] allArgs,
 ) {
-	GccProgram gccProgram = getGccProgram(alloc, perf, program);
+	GccProgram gccProgram = getGccProgram(alloc, perf, program, options);
 
 	//TODO: perf measure this?
 	immutable AssertFieldOffsetsType assertFieldOffsets = cast(immutable AssertFieldOffsetsType)
@@ -193,16 +195,25 @@ struct GccProgram {
 	immutable Ptr!gcc_jit_result result;
 }
 
-GccProgram getGccProgram(ref Alloc alloc, ref Perf perf, ref immutable LowProgram program) {
+GccProgram getGccProgram(
+	ref Alloc alloc,
+	ref Perf perf,
+	ref immutable LowProgram program,
+	ref immutable JitOptions options,
+) {
 	gcc_jit_context* ctxPtr = gcc_jit_context_acquire();
 	verify(ctxPtr != null);
 	Ptr!gcc_jit_context ctx = Ptr!gcc_jit_context(ctxPtr);
 
 	//TODO: compile option for this
 	//gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DEBUGINFO, true);
-	if (false)
-		// TODO: this makes it crash
-		gcc_jit_context_set_int_option(ctx.deref(), gcc_jit_int_option.GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 1);
+	final switch (options.optimization) {
+		case OptimizationLevel.none:
+			break;
+		case OptimizationLevel.o2:
+			gcc_jit_context_set_int_option(ctx.deref(), gcc_jit_int_option.GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 2);
+			break;
+	}
 	//gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
 	//gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
@@ -478,10 +489,12 @@ GlobalsForConstants generateGlobalsForConstants(
 		(ref immutable LowFunBody.Extern it) => it.isGlobal
 			? gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL
 			: gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED,
-		(ref immutable(LowFunExprBody)) =>
-			funIndex == program.main
+		(ref immutable(LowFunExprBody)) {
+			// TODO: A GCC but breaks functions that return more than 16 bytes.
+			return funIndex == program.main || sizeOfType(program, fun.returnType).size > 16
 			? gcc_jit_function_kind.GCC_JIT_FUNCTION_EXPORTED
-			: gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL,
+			: gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL;
+		},
 	)(fun.body_);
 
 	immutable Ptr!gcc_jit_type returnType = getGccType(gccTypes, fun.returnType);

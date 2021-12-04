@@ -1,6 +1,6 @@
 module lib.cliParser;
 
-import frontend.lang : crowExtension;
+import frontend.lang : crowExtension, JitOptions, OptimizationLevel;
 import lib.compiler : PrintFormat, PrintKind;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : at, empty, emptyArr, first, only, size;
@@ -116,7 +116,9 @@ struct Command {
 struct RunOptions {
 	@safe @nogc pure nothrow:
 	struct Interpret {}
-	struct Jit {}
+	struct Jit {
+		immutable JitOptions options;
+	}
 
 	immutable this(immutable Interpret a) { kind = Kind.interpret; interpret = a; }
 	immutable this(immutable Jit a) { kind = Kind.jit; jit = a; }
@@ -138,8 +140,16 @@ struct BuildOptions {
 	immutable CCompileOptions cCompileOptions;
 }
 
+private immutable(BuildOptions) withBuildOut(immutable BuildOptions a, immutable BuildOut value) {
+	return immutable BuildOptions(value, a.cCompileOptions);
+}
+
+private immutable(BuildOptions) withCCompileOptions(immutable BuildOptions a, immutable CCompileOptions value) {
+	return immutable BuildOptions(a.out_, value);
+}
+
 struct CCompileOptions {
-	immutable bool optimize;
+	immutable OptimizationLevel optimizationLevel;
 }
 
 private struct BuildOut {
@@ -352,9 +362,11 @@ immutable(Opt!RunOptions) parseRunOptions(
 		return none!RunOptions;
 	else {
 		immutable ArgsPart part = only(argParts);
-		if (safeCStrEq(part.tag, "--interpret")) {
+		if (safeCStrEq(part.tag, "--interpret"))
 			return empty(part.args) ? some(immutable RunOptions(immutable RunOptions.Interpret())) : none!RunOptions;
-		} else
+		else if (safeCStrEq(part.tag, "--optimize"))
+			return some(immutable RunOptions(immutable RunOptions.Jit(immutable JitOptions(OptimizationLevel.o2))));
+		else
 			return none!RunOptions;
 	}
 }
@@ -378,6 +390,7 @@ immutable(Opt!(Opt!AbsolutePath)) parseDocumentOut(
 	}
 }
 
+
 immutable(Opt!BuildOptions) parseBuildOptions(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
@@ -385,26 +398,29 @@ immutable(Opt!BuildOptions) parseBuildOptions(
 	immutable ArgsPart[] argParts,
 	ref immutable ProgramDirAndMain programDirAndMain,
 ) {
-	if (empty(argParts))
-		return some(immutable BuildOptions(immutable BuildOut(
-			none!AbsolutePath,
-			some(immutable AbsolutePath(programDirAndMain.programDir, programDirAndMain.mainPath, "")))));
-	else if (size(argParts) != 1)
-		return none!BuildOptions;
-	else {
-		immutable ArgsPart part = only(argParts);
-		if (safeCStrEq(part.tag, "--out")) {
-			immutable Opt!BuildOut buildOut = parseBuildOut(alloc, allPaths, cwd, part.args);
-			return has(buildOut)
-				? some(immutable BuildOptions(force(buildOut)))
-				: none!BuildOptions;
-		} else if (safeCStrEq(part.tag, "--no-out")) {
-			// TODO: warning if part.args is non-empty
-			return some(immutable BuildOptions(immutable BuildOut(none!AbsolutePath, none!AbsolutePath)));
-		} else
-			// TODO: warning, unrecognized option
-			return none!BuildOptions;
-	}
+	return foldOrStop!(BuildOptions, ArgsPart)(
+		// Default: unoptimized, compiled next to the source file
+		immutable BuildOptions(
+			immutable BuildOut(
+				none!AbsolutePath,
+				some(immutable AbsolutePath(programDirAndMain.programDir, programDirAndMain.mainPath, ""))),
+			immutable CCompileOptions(OptimizationLevel.none)),
+		argParts,
+		(immutable BuildOptions cur, ref immutable ArgsPart part) {
+			if (safeCStrEq(part.tag, "--out")) {
+				immutable Opt!BuildOut buildOut = parseBuildOut(alloc, allPaths, cwd, part.args);
+				return has(buildOut) ? some(withBuildOut(cur, force(buildOut))) : none!BuildOptions;
+			} else if (safeCStrEq(part.tag, "--no-out")) {
+				return empty(part.args)
+					? some(withBuildOut(cur, immutable BuildOut(none!AbsolutePath, none!AbsolutePath)))
+					: none!BuildOptions;
+			} else if (safeCStrEq(part.tag, "--optimize")) {
+				return empty(part.args)
+					? some(withCCompileOptions(cur, immutable CCompileOptions(OptimizationLevel.o2)))
+					: none!BuildOptions;
+			} else
+				return none!BuildOptions;
+		});
 }
 
 immutable(Opt!BuildOut) parseBuildOut(
@@ -508,7 +524,7 @@ immutable string helpDocumentText =
 	"\tWrites documentation for the module at PATH to the output.\n";
 
 immutable string helpBuildText =
-	"Command: crow build PATH --out OUT\n" ~
+	"Command: crow build PATH --out OUT [--optimize]\n" ~
 	"\tCompiles the program at PATH to an executable OUT.\n" ~
 	"\tIf OUT has a '.c' extension, it will be C source code instead.\n";
 
