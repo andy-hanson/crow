@@ -26,7 +26,7 @@ import frontend.check.inferringType :
 import frontend.check.instantiate : instantiateFun, instantiateSpecInst, instantiateStructNeverDelay, TypeParamsAndArgs;
 import frontend.parse.ast : CallAst, ExprAst, NameAndRange, rangeOfNameAndRange, TypeAst;
 import frontend.programState : ProgramState;
-import model.diag : Diag, DiagSeverity;
+import model.diag : Diag;
 import model.model :
 	Arity,
 	arity,

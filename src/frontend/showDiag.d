@@ -20,7 +20,6 @@ import model.model :
 	Params,
 	Purity,
 	range,
-	RecordField,
 	sig,
 	Sig,
 	SpecBody,
@@ -33,13 +32,13 @@ import model.model :
 import model.parseDiag : matchParseDiag, ParseDiag;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.collection.arr : empty, only, size;
-import util.collection.arrUtil : exists, map, sort;
+import util.collection.arrUtil : exists;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has;
 import util.path : AllPaths, baseName, PathAndStorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.sourceRange : FileAndRange, FilePaths;
+import util.sourceRange : FileAndRange;
 import util.sym : strOfOperator, Sym, writeSym;
 import util.util : unreachable;
 import util.writer :

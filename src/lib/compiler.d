@@ -22,7 +22,7 @@ import model.reprConcreteModel : reprOfConcreteProgram;
 import model.reprLowModel : reprOfLowProgram;
 import model.reprModel : reprModule;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : begin, empty, emptyArr, size;
+import util.collection.arr : begin, emptyArr, size;
 import util.collection.str : SafeCStr;
 import util.dbg : Debug;
 import util.opt : force, none, Opt, some;

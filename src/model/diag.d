@@ -16,7 +16,6 @@ import model.model :
 	Module,
 	Param,
 	Purity,
-	RecordField,
 	SpecBody,
 	SpecDecl,
 	StructAlias,

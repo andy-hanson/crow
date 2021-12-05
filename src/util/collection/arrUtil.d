@@ -11,7 +11,7 @@ import util.collection.arr :
 	size,
 	sizeEq,
 	toArr;
-import util.collection.mutArr : insert, moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
+import util.collection.mutArr : mustPop, MutArr, mutArrAt, mutArrSize, setAt;
 import util.comparison : Comparer, Comparison, ConstComparer;
 import util.memory : initMemory, initMemory_mut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
@@ -600,33 +600,6 @@ immutable(T[]) rtail(T)(immutable T[] a) {
 }
 
 //TODO:PERF More efficient than bubble sort..
-immutable(T[]) sort(T)(
-	ref Alloc alloc,
-	scope immutable T[] a,
-	scope immutable Comparer!T compare,
-) {
-	MutArr!(immutable T) res;
-
-	void addOne(ref immutable T x) {
-		foreach (immutable size_t i; 0 .. mutArrSize(res)) {
-			final switch (compare(x, mutArrAt(res, i))) {
-				case Comparison.less:
-					insert!(immutable T)(alloc, res, i, x);
-					return;
-				case Comparison.equal:
-				case Comparison.greater:
-					break;
-			}
-		}
-		push(alloc, res, x);
-	}
-
-	foreach (ref immutable T x; a)
-		addOne(x);
-
-	return moveToArr(alloc, res);
-}
-
 void sortInPlace(T)(scope T[] a, scope immutable ConstComparer!T compare) {
 	immutable size_t n = a.length; // avoiding dscanner warning `Avoid subtracting from '.length' as it may be unsigned`
 	if (n > 1) {

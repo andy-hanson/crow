@@ -3,14 +3,14 @@ module frontend.diagnosticsBuilder;
 @safe @nogc pure nothrow:
 
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
-import model.diag : Diag, Diagnostic, Diagnostics, DiagSeverity, FilesInfo;
+import model.diag : Diag, Diagnostic, Diagnostics, DiagSeverity;
 import util.alloc.alloc : Alloc;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderClear, arrBuilderSort, finishArr;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.path : comparePathAndStorageKind;
 import util.sourceRange : FileAndRange, FilePaths;
 
-/// Stores only diags at the highest severity.
+/// Stores only diags at the highest severity seen.
 struct DiagnosticsBuilder {
 	private:
 	DiagSeverity severity;

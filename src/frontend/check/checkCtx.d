@@ -5,7 +5,7 @@ module frontend.check.checkCtx;
 import frontend.check.dicts : ModuleLocalSpecIndex, StructOrAliasAndIndex;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.programState : ProgramState;
-import model.diag : Diag, Diagnostic, DiagSeverity;
+import model.diag : Diag;
 import model.model :
 	matchStructOrAlias,
 	Module,
@@ -17,7 +17,6 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : at, castImmutable, setAt, size;
-import util.collection.arrBuilder : add, ArrBuilder;
 import util.collection.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
 import util.collection.dict : getAt;
 import util.opt : force, has, none, Opt, some;

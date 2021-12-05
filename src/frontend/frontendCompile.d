@@ -2,7 +2,7 @@ module frontend.frontendCompile;
 
 @safe @nogc nothrow: // not pure
 
-import model.diag : Diag, Diagnostic, Diagnostics, DiagSeverity, FilesInfo;
+import model.diag : Diag, Diagnostics, FilesInfo;
 import model.model : CommonTypes, LineAndColumnGetters, Module, ModuleAndNames, Program, SpecialModules;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, PathAndAst;
@@ -383,12 +383,12 @@ immutable(PathAndStorageKind) runtimeMainPath(ref AllPaths allPaths) {
 
 void addParseDiagnostics(
 	ref Alloc modelAlloc,
-	ref DiagnosticsBuilder diagsBuilder,
+	ref DiagnosticsBuilder diags,
 	immutable FileIndex where,
-	immutable ParseDiagnostic[] diags,
+	immutable ParseDiagnostic[] parseDiags,
 ) {
-	foreach (ref immutable ParseDiagnostic it; diags)
-		addDiagnostic(modelAlloc, diagsBuilder, immutable FileAndRange(where, it.range), immutable Diag(it.diag));
+	foreach (ref immutable ParseDiagnostic x; parseDiags)
+		addDiagnostic(modelAlloc, diags, immutable FileAndRange(where, x.range), immutable Diag(x.diag));
 }
 
 alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter; // TODO: OrderedFullIndexDictBuilder?

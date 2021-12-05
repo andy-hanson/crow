@@ -59,7 +59,7 @@ import frontend.parse.ast :
 	TestAst,
 	TypeAst;
 import frontend.programState : ProgramState;
-import model.diag : Diag, Diagnostic, TypeKind;
+import model.diag : Diag, TypeKind;
 import model.model :
 	arity,
 	arityIsNonZero,

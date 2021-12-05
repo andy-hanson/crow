@@ -50,13 +50,6 @@ immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 	return a.begin_ + a.size_;
 }
 
-void insert(T)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T value) {
-	push(alloc, a, value); // pushed value is arbitrary, we're about to overwrite it
-	foreach_reverse (immutable size_t i; pos + 1 .. mutArrSize(a))
-		setAt(a, i, mutArrAt(a, i - 1));
-	setAt(a, pos, value);
-}
-
 @trusted void push(T)(ref Alloc alloc, scope ref MutArr!T a, T value) {
 	if (a.size_ == a.capacity_) {
 		immutable size_t newCapacity = a.size_ == 0 ? 2 : a.size_ * 2;
