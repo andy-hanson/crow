@@ -82,7 +82,7 @@ body
 	if size < 2
 		'<<UNKNOWN>>'
 	elif code-ptr < funs[1].val
-		(*funs).name
+		funs->name
 	else
 		code-ptr get-fun-name funs + 1, (size wrap-sub 1)
 
@@ -90,7 +90,7 @@ body
 .sort! void(a named-val<any-const-ptr> mut*, size nat64) noctx unsafe
 	if size > 1
 		a swap! 0, (size unsafe-div 2)
-		after-pivot = a partition! (*a).val, 1, (size wrap-sub 1)
+		after-pivot = a partition! a->val, 1, (size wrap-sub 1)
 		new-pivot-index = after-pivot wrap-sub 1
 		a swap! 0, new-pivot-index
 		a sort! new-pivot-index

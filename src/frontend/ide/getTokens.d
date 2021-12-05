@@ -3,6 +3,7 @@ module frontend.ide.getTokens;
 @safe @nogc pure nothrow:
 
 import frontend.parse.ast :
+	ArrowAccessAst,
 	BogusAst,
 	CallAst,
 	ExplicitByValOrRefAndRange,
@@ -336,6 +337,11 @@ void addFunTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable Fu
 void addExprTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable ExprAst a) {
 	matchExprAstKind!(
 		void,
+		(ref immutable ArrowAccessAst it) {
+			addExprTokens(alloc, tokens, it.left);
+			add(alloc, tokens, immutable Token(Token.Kind.funRef, rangeOfNameAndRange(it.name)));
+			addTypeArgsTokens(alloc, tokens, it.typeArgs);
+		},
 		(ref immutable BogusAst) {},
 		(ref immutable CallAst it) {
 			immutable ExprAst[] args = toArr(it.args);

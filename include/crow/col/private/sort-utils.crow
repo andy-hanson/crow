@@ -28,18 +28,18 @@ binary-search-key<k, v> v?(a pair<k, v>[], key k) trusted compare<k>
 		left linear-search-key-recur right, key
 	else
 		mid = left + (diff unsafe-div 2)
-		match key <=> (*mid).from
+		match key <=> mid->from
 		as less
 			left binary-search-key-recur mid, key
 		as equal
-			(*mid).to some
+			mid->to some
 		as greater
 			mid + 1 binary-search-key-recur right, key
 .linear-search-key-recur<k, v> v?(left pair<k, v>*, right pair<k, v>*, key k) trusted compare<k>
 	if left == right
 		none
-	elif (*left).from == key
-		(*left).to some
+	elif left->from == key
+		left->to some
 	else
 		left + 1 linear-search-key-recur right, key
 

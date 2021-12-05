@@ -28,6 +28,7 @@ import frontend.check.inferringType :
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay;
 import frontend.check.typeFromAst : makeFutType;
 import frontend.parse.ast :
+	ArrowAccessAst,
 	BogusAst,
 	CallAst,
 	ExprAst,
@@ -147,7 +148,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
-import util.sym : shortSymAlphaLiteral, Sym, symEq;
+import util.sym : Operator, shortSymAlphaLiteral, Sym, symEq, symForOperator;
 import util.types : safeSizeTToU32;
 import util.util : todo, unreachable, verify;
 
@@ -258,6 +259,28 @@ immutable(Expr) checkAndExpect(
 	immutable Ptr!StructInst expected,
 ) {
 	return checkAndExpect(alloc, ctx, ast, immutable Type(expected));
+}
+
+immutable(CheckedExpr) checkArrowAccess(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	ref immutable FileAndRange range,
+	ref immutable ArrowAccessAst ast,
+	ref Expected expected,
+) {
+	// TODO: NEATER (don't create a synthetic AST)
+	// "a{b}c" ==> interp with-text "a" with-value b with-text "c" finish
+	immutable CallAst callDeref = immutable CallAst(
+		CallAst.style.single,
+		immutable NameAndRange(range.range.start, symForOperator(Operator.times)),
+		emptyArrWithSize!TypeAst,
+		arrWithSizeLiteral!ExprAst(alloc, [ast.left]));
+	immutable CallAst callName = immutable CallAst(
+		CallAst.style.infix,
+		ast.name,
+		ast.typeArgs,
+		arrWithSizeLiteral!ExprAst(alloc, [immutable ExprAst(range.range, immutable ExprAstKind(callDeref))]));
+	return checkCall(alloc, ctx, range, callName, expected);
 }
 
 immutable(CheckedExpr) checkIf(
@@ -1239,6 +1262,8 @@ immutable(CheckedExpr) checkExprWorker(
 	immutable FileAndRange range = rangeInFile2(ctx, ast.range);
 	return matchExprAstKind!(
 		immutable CheckedExpr,
+		(ref immutable ArrowAccessAst a) =>
+			checkArrowAccess(alloc, ctx, range, a, expected),
 		(ref immutable BogusAst) =>
 			unreachable!(immutable CheckedExpr),
 		(ref immutable CallAst a) =>

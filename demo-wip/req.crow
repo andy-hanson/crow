@@ -33,8 +33,8 @@ main fut nat(_ str[]) unsafe summon
 .connect-socket! void(socket fd-t, hostname str, server-port nat16) unsafe summon
 	hostent = hostname.to-c-str gethostbyname
 	assert: hostent.as-any-const-ptr != null
-	in_addr0 in_addr* = (*hostent.h_addr_list).ptr-cast
-	in_addr = (*in_addr0).inet_ntoa inet_addr
+	in_addr0 in_addr* = hostent.h_addr_list->ptr-cast
+	in_addr = in_addr0->inet_ntoa inet_addr
 
 	sockaddr_in sockaddr_in = AF_INET, server-port.htons, (in_addr,)
 	sockaddr = sockaddr_in.ptr-to ptr-cast-to-extern@<sockaddr, sockaddr_in>

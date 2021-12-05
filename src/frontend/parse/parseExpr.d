@@ -3,6 +3,7 @@ module frontend.parse.parseExpr;
 @safe @nogc pure nothrow:
 
 import frontend.parse.ast :
+	ArrowAccessAst,
 	asCall,
 	asIdentifier,
 	BogusAst,
@@ -602,6 +603,12 @@ immutable(ExprAst) tryParseDotsAndSubscripts(ref Lexer lexer, immutable ExprAst 
 		immutable CallAst call = immutable CallAst(
 			CallAst.Style.dot, name, typeArgs, arrWithSizeLiteral!ExprAst(lexer.alloc, [initial]));
 		return tryParseDotsAndSubscripts(lexer, immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)));
+	} else if (tryTakeToken(lexer, Token.arrowAccess)) {
+		immutable NameAndRange name = takeNameAndRange(lexer);
+		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsForExpr(lexer);
+		return tryParseDotsAndSubscripts(lexer, immutable ExprAst(
+			range(lexer, start),
+			immutable ExprAstKind(allocate(lexer.alloc, immutable ArrowAccessAst(initial, name, typeArgs)))));
 	} else if (tryTakeToken(lexer, Token.bracketLeft)) {
 		immutable ArrWithSize!ExprAst args = parseSubscriptArgs(lexer);
 		immutable CallAst call = immutable CallAst(

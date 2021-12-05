@@ -115,7 +115,7 @@ words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) noctx unsafe
 	if cur == end
 		acc
 	else
-		acc wrap-add (*cur).to-nat64 words-used-in-range cur + 1, end
+		acc wrap-add cur->to-nat64 words-used-in-range cur + 1, end
 
 gc by-val gc() noctx unsafe
 	# TODO: handle malloc failure

@@ -915,6 +915,8 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected keyword 'act'";
 		case Token.alias_:
 			return "unexpected keyword 'alias'";
+		case Token.arrowAccess:
+			return "unexpected '->'";
 		case Token.arrowLambda:
 			return "unexpected '=>'";
 		case Token.arrowThen:

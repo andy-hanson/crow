@@ -154,7 +154,7 @@ spec
 body
 	hard-assert: l < l-end
 	hard-assert: r < r-end
-	match (*l).from <=> (*r).from
+	match l->from <=> r->from
 	as less
 		*out := *l
 		if l + 1 == l-end
@@ -198,7 +198,7 @@ spec
 body
 	hard-assert: l < l-end
 	hard-assert: r < r-end
-	match (*l).from <=> (*r).from
+	match l->from <=> r->from
 	as less
 		*out := *l
 		if l + 1 == l-end
@@ -207,7 +207,7 @@ body
 			out + 1 merge-to-end-recur l + 1, l-end, r, r-end
 	as equal
 		new-out = if r-value ?= *r to
-			*out := (*r).from, r-value
+			*out := r->from, r-value
 			out + 1
 		else
 			out
@@ -220,7 +220,7 @@ body
 			new-out merge-to-end-recur l + 1, l-end, r + 1, r-end
 	as greater
 		new-out = if r-value ?= *r to
-			*out := (*r).from, r-value
+			*out := r->from, r-value
 			out + 1
 		else
 			out
@@ -247,7 +247,7 @@ body
 		out
 	else
 		new-out = if r-value ?= *r to
-			*out := (*r).from, r-value
+			*out := r->from, r-value
 			out + 1
 		else
 			out

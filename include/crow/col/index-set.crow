@@ -343,7 +343,7 @@ count-greater-or-equal nat64(a index-set, n nat64)
 	if cur == end
 		acc
 	else
-		acc wrap-add (*cur).count-ones count-ones-in-arr-recur cur + 1, end
+		acc wrap-add cur->count-ones count-ones-in-arr-recur cur + 1, end
 
 # Gets the set with only values < limit
 filter-less index-set(a index-set, limit nat64) trusted

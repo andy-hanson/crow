@@ -26,7 +26,7 @@ get-environ environ() summon trusted
 
 .get-environ-recur void(env c-str*, res str mut[str]) unsafe
 	if *env != null
-		entry = (*env).parse-environ-entry
+		entry = env->parse-environ-entry
 		res[entry from] := entry to
 		env + 1 get-environ-recur res
 

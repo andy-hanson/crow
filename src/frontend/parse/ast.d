@@ -199,6 +199,12 @@ immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 	}
 }
 
+struct ArrowAccessAst {
+	immutable ExprAst left;
+	immutable NameAndRange name;
+	immutable ArrWithSize!TypeAst typeArgs;
+}
+
 struct BogusAst {}
 
 struct CallAst {
@@ -463,6 +469,7 @@ struct ExprAstKind {
 
 	private:
 	enum Kind {
+		arrowAccess,
 		bogus,
 		call,
 		funPtr,
@@ -482,6 +489,7 @@ struct ExprAstKind {
 	}
 	immutable Kind kind;
 	union {
+		immutable Ptr!ArrowAccessAst arrowAccess;
 		immutable BogusAst bogus;
 		immutable CallAst call;
 		immutable FunPtrAst funPtr;
@@ -501,6 +509,7 @@ struct ExprAstKind {
 	}
 
 	public:
+	@trusted immutable this(immutable Ptr!ArrowAccessAst a) { kind = Kind.arrowAccess; arrowAccess = a; }
 	@trusted immutable this(immutable BogusAst a) { kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
 	@trusted immutable this(immutable FunPtrAst a) { kind = Kind.funPtr; funPtr = a; }
@@ -538,6 +547,7 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 
 @trusted T matchExprAstKind(
 	T,
+	alias cbArrowAccess,
 	alias cbBogus,
 	alias cbCall,
 	alias cbFunPtr,
@@ -558,6 +568,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	scope ref immutable ExprAstKind a,
 ) {
 	final switch (a.kind) {
+		case ExprAstKind.Kind.arrowAccess:
+			return cbArrowAccess(a.arrowAccess.deref());
 		case ExprAstKind.Kind.bogus:
 			return cbBogus(a.bogus);
 		case ExprAstKind.Kind.call:
@@ -1361,8 +1373,14 @@ immutable(Repr) reprNameAndRange(ref Alloc alloc, immutable NameAndRange a) {
 immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) {
 	return matchExprAstKind!(
 		immutable Repr,
+		(ref immutable ArrowAccessAst e) =>
+			reprRecord(alloc, "arrow-access", [
+				reprExprAst(alloc, e.left),
+				reprNameAndRange(alloc, e.name),
+				reprArr(alloc, toArr(e.typeArgs), (ref immutable TypeAst it) =>
+					reprTypeAst(alloc, it))]),
 		(ref immutable BogusAst e) =>
-			reprSym( "bogus"),
+			reprSym("bogus"),
 		(ref immutable CallAst e) =>
 			reprRecord(alloc, "call", [
 				reprSym(symOfCallAstStyle(e.style)),

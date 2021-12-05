@@ -8,7 +8,9 @@ candidates (with 1 arguments):
 	new interp(mut-arr<char>) (from crow/str-conv.crow line 180)
 	new by-val<interp>(mut-arr<char>) (from crow/str-conv.crow line 180)
 
-./test/compile-errors/record-privacy-b.crow 9:13-9:14 there is no function or field named 'a'
+./test/compile-errors/record-privacy-b.crow 9:11-9:12 the type of the expression conflicts with its expected type.
+	expected: pair<a, b>
+	actual: private-mut
 
 ./test/compile-errors/record-privacy-b.crow 10:6-10:11 there is no function named 'set-b'
 

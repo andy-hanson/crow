@@ -95,7 +95,7 @@ read-dir str[](path str) summon
 	err = dirp readdir_r entry, result
 	# TODO: handle error
 	assert: err == 0
-	if (*result).as-any-const-ptr != null
+	if result->as-any-const-ptr != null
 		assert: *result ref-eq entry
 		name = entry.get-dirent-name
 		if name != "." && name != ".."

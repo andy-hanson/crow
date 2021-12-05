@@ -418,7 +418,8 @@ immutable(IndentKind) detectIndentKind(immutable string str) {
 public enum Token {
 	act, // 'act'
 	alias_, // 'alias'
-	arrowLambda, // =>
+	arrowAccess, // '->'
+	arrowLambda, // '=>'
 	arrowThen, // '<-'
 	as, // 'as'
 	atLess, // '!<'
@@ -519,6 +520,8 @@ public enum Token {
 		case '-':
 			return isDigit(*lexer.ptr)
 				? literalToken(lexer, takeNumberAfterSign(lexer, some(Sign.minus)))
+				: tryTakeChar(lexer, '>')
+				? Token.arrowAccess
 				: operatorToken(lexer, Operator.minus);
 		case '=':
 			return tryTakeChar(lexer, '>')
@@ -750,14 +753,15 @@ public immutable(bool) peekToken(ref Lexer lexer, immutable Token expected) {
 }
 
 public immutable(bool) peekTokenExpression(ref Lexer lexer) {
-	return isExpressionToken(getPeekToken(lexer));
+	return isExpressionStartToken(getPeekToken(lexer));
 }
 
 // Whether a token may start an expression
-immutable(bool) isExpressionToken(immutable Token a) {
+immutable(bool) isExpressionStartToken(immutable Token a) {
 	final switch (a) {
 		case Token.act:
 		case Token.alias_:
+		case Token.arrowAccess:
 		case Token.arrowLambda:
 		case Token.arrowThen:
 		case Token.as:
@@ -1073,7 +1077,9 @@ public immutable(StringPart) takeStringPartAfterDoubleQuote(ref Lexer lexer) {
 @trusted immutable(string) takeNameRest(ref Lexer lexer, immutable CStr begin) {
 	while (isAlphaIdentifierContinue(*lexer.ptr))
 		lexer.ptr++;
-	if (*lexer.ptr == '!')
+	if (*(lexer.ptr - 1) == '-')
+		lexer.ptr--;
+	else if (*lexer.ptr == '!')
 		lexer.ptr++;
 	return arrOfRange(begin, lexer.ptr);
 }
