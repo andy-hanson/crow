@@ -519,7 +519,7 @@ public enum Token {
 		case '-':
 			return isDigit(*lexer.ptr)
 				? literalToken(lexer, takeNumberAfterSign(lexer, some(Sign.minus)))
-				: operatorToken(lexer, tryTakeChar(lexer, '>') ? Operator.arrow : Operator.minus);
+				: operatorToken(lexer, Operator.minus);
 		case '=':
 			return tryTakeChar(lexer, '>')
 				? Token.arrowLambda

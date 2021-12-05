@@ -199,19 +199,19 @@ This ensures the collection is kept in memory.
 		a
 	else
 		n = max-value.rand-nat
-		a ~ (n -> void) add-test iters - 1, max-value
+		a ~ (n, void) add-test iters - 1, max-value
 
 .add-test compact-sorted-dict<nat, void>(a compact-sorted-dict<nat, void>, iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
-		a ~ (max-value.rand-nat -> void) add-test iters - 1, max-value
+		a ~ (max-value.rand-nat, void) add-test iters - 1, max-value
 
 .add-test void[nat](a void[nat], iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
-		a ~ (max-value.rand-nat -> void) add-test iters - 1, max-value
+		a ~ (max-value.rand-nat, void) add-test iters - 1, max-value
 
 .add-test hamt-set nat(a hamt-set nat, iters nat, max-value nat) summon
 	if iters == 0
@@ -256,7 +256,7 @@ body
 	if iters == 0
 		a.move-to-arr! to-frozen-dict
 	else
-		a ~= max-value.rand-nat -> void
+		a ~= max-value.rand-nat, void
 		a frozen-dict-add-test iters - 1, max-value
 
 .frozen-set-add-test frozen-set nat(a nat mut[], iters nat, max-value nat) trusted summon
@@ -270,19 +270,19 @@ body
 	if iters == 0
 		a
 	else
-		(a ~ (max-value.rand-nat -> void)) - max-value.rand-nat rm-test iters - 1, max-value
+		(a ~ (max-value.rand-nat, void)) - max-value.rand-nat rm-test iters - 1, max-value
 
 .rm-test compact-sorted-dict<nat, void>(a compact-sorted-dict<nat, void>, iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
-		(a ~ (max-value.rand-nat -> void)) - max-value.rand-nat rm-test iters - 1, max-value
+		(a ~ (max-value.rand-nat, void)) - max-value.rand-nat rm-test iters - 1, max-value
 
 .rm-test void[nat](a void[nat], iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
-		(a ~ (max-value.rand-nat -> void)) - max-value.rand-nat rm-test iters - 1, max-value
+		(a ~ (max-value.rand-nat, void)) - max-value.rand-nat rm-test iters - 1, max-value
 
 .rm-test hamt-set nat(a hamt-set nat, iters nat, max-value nat) summon
 	if iters == 0

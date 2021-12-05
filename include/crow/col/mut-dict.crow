@@ -5,12 +5,13 @@ import
 	../exception: assert, forbid
 	../fun-util: subscript
 	../hash: hash, hash-mix
-	../misc: ->, arrow, drop, from, is-data, to, void
+	../misc: drop, is-data, void
 	../opt: ==, is-empty, none, opt, some
 	../ptr: ==, +, *, mut-ptr, set-deref
 	../str: ==, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test-util: is
+	../tuple: from, new, pair, to
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/number-low-level: ==, <=>, nat64, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	./arr: ==, arr, new, size
@@ -29,13 +30,13 @@ mut-dict<k, v> record mut
 
 .entry<k, v> union mut
 	none
-	one arrow<k, v>
-	many arrow<k, v> mut[]
+	one pair<k, v>
+	many pair<k, v> mut[]
 
-new<k, v> v mut[k](...a arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
+new<k, v> v mut[k](...a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	a to-mut-dict
 
-to-mut-dict<k, v> v mut[k](a arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
+to-mut-dict<k, v> v mut[k](a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	res v mut[k] = a.size mut-dict-with-capacity
 	a each pair =>
 		res[pair from] := pair to
@@ -49,8 +50,8 @@ mut-dict-with-capacity<k, v> v mut[k](capacity nat64) is-data<k> compare<k> hash
 	# TODO: should not need type annotation
 	(capacity fill-fix-arr none)::fix-arr<entry<k, v>>, 0
 
-arr<k, v> arrow<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
-	a map-to-arr (key, value) => key -> value
+arr<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
+	a map-to-arr (key, value) => key, value
 
 copy<k, v> v mut[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	entries fix-arr entry<k, v> = a.entries map entry =>
@@ -63,7 +64,7 @@ copy<k, v> v mut[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 			m.copy many
 	entries, a.total-size
 test
-	a str mut[nat64] = 1 -> "1", 2 -> "2", 5 -> "5"
+	a str mut[nat64] = (1, "1"), (2, "2"), (5, "5")
 	a verify "_ (1 -> 1) [2 -> 2, 5 -> 5]"
 
 	b = a copy
@@ -122,7 +123,7 @@ Returns the old value (if it exists).
 .update!<k, v> v?(a v mut[k], key k, new-value v?) trusted is-data<k> compare<k> hash-mix<k>
 	if a.entries is-empty
 		if value ?= new-value
-			a.entries := (key -> value).one,
+			a.entries := (key, value).one,
 			a.total-size := 1
 		none
 	else
@@ -130,13 +131,13 @@ Returns the old value (if it exists).
 		match a.entries[entry-index]
 		as none
 			if value ?= new-value
-				a.entries[entry-index] := key -> value one
+				a.entries[entry-index] := (key, value) one
 				a.total-size := a.total-size wrap-add 1
 			none
 		as one ar
 			if ar.from == key
 				a.entries[entry-index] := if value ?= new-value
-					key -> value one
+					(key, value) one
 				else
 					a.total-size := a.total-size wrap-sub 1
 					none
@@ -147,14 +148,14 @@ Returns the old value (if it exists).
 						a expand!
 						a[key] := value
 					else
-						a.entries[entry-index] := (ar, key -> value) many
+						a.entries[entry-index] := (ar, (key, value)) many
 						a.total-size := a.total-size wrap-add 1
 				none
 		as many m
 			if index ?= m find-index pair => pair.from == key
 				old-value = m[index] to
 				if value ?= new-value
-					m[index] := key -> value
+					m[index] := key, value
 				else
 					drop: m remove-unordered-at! index
 					if m is-empty
@@ -171,14 +172,14 @@ Returns the old value (if it exists).
 						a expand!
 						a[key] := value
 					else
-						m ~= key -> value
+						m ~= (key, value)
 						a.total-size := a.total-size wrap-add 1
 				none
 
-~= <k, v> void(a v mut[k], b arrow<k, v>) is-data<k> compare<k> hash-mix<k>
+~= <k, v> void(a v mut[k], b pair<k, v>) is-data<k> compare<k> hash-mix<k>
 	a[b from] := b to
 
-~= <k, v> void(a v mut[k], b arrow<k, v>[]) is-data<k> compare<k> hash-mix<k>
+~= <k, v> void(a v mut[k], b pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	b each pair =>
 		a ~= pair
 
@@ -240,7 +241,7 @@ map-to-arr<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> comp
 	out cast-immutable
 
 move-to-dict!<k, v> v[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
-	res = a map-to-arr ((k, v) => k -> v) to-dict
+	res = a map-to-arr ((k, v) => k, v) to-dict
 	a empty!
 	res
 
@@ -252,9 +253,9 @@ map-values!<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<k> 
 		as none
 			void
 		as one ar
-			*entry-ptr := ar.from -> f[ar.from, ar.to] one
+			*entry-ptr := (ar.from, f[ar.from, ar.to]) one
 		as many m
-			m map! pair => pair.from -> f[pair.from, pair.to]
+			m map! pair => pair.from, f[pair.from, pair.to]
 		entry-ptr + 1 map-values-recur! entry-end, f
 
 .dbg str(a str mut[nat64])
@@ -292,7 +293,7 @@ test
 	a[5] is none
 	a[6] is "6".some
 	a.size is 1
-	# TODO: a.arr is [6 -> "6"]
+	# TODO: a.arr is ((6, "6"),)
 	a.arr map (pair => pair from) is (6,)
 	a.arr map (pair => pair to) is ("6",)
 
@@ -314,7 +315,7 @@ test
 	a[8] is "8".some
 	a[5] is none
 
-	# TODO: a.arr is [4 -> "4", 8 -> "8", 6 -> "six", 3 -> "3"]
+	# TODO: a.arr is ((4, "4"), (8, "8"), (6, "six"), (3, "3"))
 	a.arr map (pair => pair from) is (4, 8, 6, 3)
 	a.arr map (pair => pair to) is ("4", "8", "six", "3")
 

@@ -3,9 +3,10 @@ import
 	../bool: !, bool, false, true
 	../compare: compare
 	../fun-util: subscript
-	../misc: ->, from, is-data, void
+	../misc: is-data, void
 	../number: nat64
 	../opt: is-empty
+	../tuple: from, new
 	./arr: arr
 	./arr-util: each, map
 	./mut-sorted-dict:
@@ -31,7 +32,7 @@ Copies the arr to a new mut-sorted-set.
 Result won't include any duplicated elements.
 ###
 mut-sorted-set<a> mut-sorted-set a(a a[]) is-data<a> compare<a>
-	(a map (x => x -> void) to-mut-sorted-dict),
+	(a map (x => x, void) to-mut-sorted-dict),
 
 # True iff the set has no elements.
 is-empty<a> bool(a mut-sorted-set a) is-data<a> compare<a>
@@ -101,7 +102,7 @@ filter<a> mut-sorted-set a(a mut-sorted-set a, f act bool(a)) is-data<a> compare
 	(a.inner filter (k, v) => f[k]),
 
 map<out, in> mut-sorted-set out(a mut-sorted-set in, f act out(in)) is-data<in> compare<in> is-data<out> compare<out>
-	(a.inner map (k, v) => f[k] -> void),
+	(a.inner map (k, v) => f[k], void),
 
 region mutating iteration
 
@@ -109,4 +110,4 @@ filter!<a> void(a mut-sorted-set a, f act bool(a)) is-data<a> compare<a>
 	a.inner filter! (k, v) => f[k]
 
 map!<a> void(a mut-sorted-set a, f act a(a)) is-data<a> compare<a>
-	a.inner map! (k, v) => f[k] -> void
+	a.inner map! (k, v) => f[k], void

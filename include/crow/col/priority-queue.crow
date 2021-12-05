@@ -3,7 +3,7 @@ import
 	../bool: !, &&, bool, false, true
 	../compare: <, >, <=, compare
 	../fun-util: subscript
-	../misc: ->, arrow, from, is-data, to, void
+	../misc: is-data, void
 	../opt: force, is-empty, none, opt, some
 	../ptr: ==, +, -, mut-ptr, set-deref
 	../range: ..
@@ -11,7 +11,7 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test-util: is
 	../test-util/spy: calls, fn, spy-act, spy-act2
-	../tuple: a, b, pair
+	../tuple: a, b, from, new, pair, to
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
@@ -44,14 +44,14 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 ###
 
 .node<k, v> record
-	min arrow<k, v>
-	pairs arrow<k, v>[]
+	min pair<k, v>
+	pairs pair<k, v>[]
 	next node<k, v>?
 
 new<k, v> priority-queue<k, v>() is-data<k> compare<k>
 	none,
 
-priority-queue<k, v> priority-queue<k, v>(a arrow<k, v>[]) is-data<k> compare<k>
+priority-queue<k, v> priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
 	if a is-empty
 		()
 	else
@@ -73,11 +73,11 @@ size<k, v> nat64(a priority-queue<k, v>) is-data<k> compare<k>
 Add a pair to the queue.
 This is O(1).
 ###
-~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b arrow<k, v>) is-data<k> compare<k>
+~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b pair<k, v>) is-data<k> compare<k>
 	(b, (), a.root).some,
 
 popped<k, v> record
-	popped arrow<k, v>
+	popped pair<k, v>
 	rest priority-queue<k, v>
 
 pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
@@ -166,7 +166,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 		n-singles plan-will-compact
 
 .do-compact<k, v> node<k, v>(root node<k, v>, n-to-compact nat64, nodes-to-compact node<k, v>?) trusted compare<k>
-	compacted fix-arr arrow<k, v> = n-to-compact uninitialized-fix-arr
+	compacted fix-arr pair<k, v> = n-to-compact uninitialized-fix-arr
 	mid = compacted.begin-ptr compact-non-singles! nodes-to-compact
 	end = mid compact-singles! root
 	hard-assert: end == compacted.end-ptr
@@ -174,7 +174,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	arr = compacted cast-immutable
 	arr.first.force, arr.tail, none
 
-.compact-singles!<k, v> arrow<k, v> mut*(out arrow<k, v> mut*, a node<k, v>) unsafe
+.compact-singles!<k, v> pair<k, v> mut*(out pair<k, v> mut*, a node<k, v>) unsafe
 	if a.pairs is-empty
 		# Output later nodes first to preserve insertion order (since they're inserted to the front)
 		pos = if next ?= a next
@@ -186,7 +186,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	else
 		out
 
-.compact-non-singles!<k, v> arrow<k, v> mut*(out arrow<k, v> mut*, a node<k, v>?) unsafe
+.compact-non-singles!<k, v> pair<k, v> mut*(out pair<k, v> mut*, a node<k, v>?) unsafe
 	if node ?= a
 		*out := node min
 		out2 = out + 1 fold node.pairs, (cur, x) =>
@@ -227,8 +227,8 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) is-data<k> comp
 	acc walk-fold a.each-arr, f
 
 .each-part<k, v> record mut
-	min mut arrow<k, v>
-	pairs mut arrow<k, v>[]
+	min mut pair<k, v>
+	pairs mut pair<k, v>[]
 
 .each-arr<k, v> fix-arr each-part<k, v>(a priority-queue<k, v>) trusted compare<k>
 	res fix-arr each-part<k, v> = a.node-count uninitialized-fix-arr
@@ -276,10 +276,10 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) is-data<k> comp
 		a.tail swap-sorted!
 
 filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trusted is-data<k> compare<k>
-	out fix-arr arrow<k, v> = a.size uninitialized-fix-arr
+	out fix-arr pair<k, v> = a.size uninitialized-fix-arr
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		if f[k, v]
-			*cur := k -> v
+			*cur := k, v
 			cur + 1
 		else
 			cur
@@ -287,7 +287,7 @@ filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trus
 
 map<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>
 	a priority-queue<k-in, v-in>
-	f act arrow<k-out, v-out>(k-in, v-in)
+	f act pair<k-out, v-out>(k-in, v-in)
 spec
 	is-data<k-in>
 	compare<k-in>
@@ -314,34 +314,34 @@ values<k, v> v[](a priority-queue<k, v>) is-data<k> compare<k>
 test
 	p priority-queue<nat64, str> = ()
 
-	p1 = p ~ (5 -> "5")
+	p1 = p ~ (5, "5")
 	p1.dbg is "5 5 []"
 
-	p2 = p1 ~ (6 -> "6")
+	p2 = p1 ~ (6, "6")
 	p2.dbg is "6 6 []; 5 5 []"
 	p2.compact-leading-nodes.dbg is "5 5 [6 6]"
 
 	p2pop = p2.pop force
-	p2pop.popped is 5 -> "5"
+	p2pop.popped is (5, "5")
 	p2pop.rest.dbg is "6 6 []"
 
-	p3 = p2 ~ (4 -> "4")
-	p4 = p3 ~ (7 -> "7")
+	p3 = p2 ~ (4, "4")
+	p4 = p3 ~ (7, "7")
 
 	p4.dbg is "7 7 []; 4 4 []; 6 6 []; 5 5 []"
 
 	p4pop = p4.pop force
-	p4pop.popped is 4 -> "4"
+	p4pop.popped is (4, "4")
 	p4pop.rest.dbg is "5 5 [6 6, 7 7]"
 
-	p5 = p4pop.rest ~ (6 -> "6b") ~ (6 -> "6c")
+	p5 = p4pop.rest ~ (6, "6b") ~ (6, "6c")
 	p5.dbg is "6 6c []; 6 6b []; 5 5 [6 6, 7 7]"
 
 	p5pop = p5.pop force
-	p5pop.popped is 5 -> "5"
+	p5pop.popped is (5, "5")
 	p5pop.rest.dbg is "6 6 [7 7]; 6 6b [6 6c]"
 
-	p6 = p5pop.rest ~ (7 -> "7b") ~ (8 -> "8")
+	p6 = p5pop.rest ~ (7, "7b") ~ (8, "8")
 	p6.dbg is "8 8 []; 7 7b []; 6 6 [7 7]; 6 6b [6 6c]"
 	p6.size is 6
 
@@ -351,7 +351,7 @@ test
 	folded = "init" fold p6, (acc, k, v) => "{acc}, {k} -> {v}"
 	folded is "init, 6 -> 6, 6 -> 6b, 6 -> 6c, 7 -> 7, 7 -> 7b, 8 -> 8"
 
-	p6-pairs pair<nat64, str>[] = (6 -> "6", 6 -> "6b", 6 -> "6c", 7 -> "7", 7 -> "7b", 8 -> "8") map x => x pair
+	p6-pairs pair<nat64, str>[] = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
 	filter-order spy-act2<bool, nat64, str> = spy-act: (k, v) => k == 6
 	filtered = p6 filter filter-order.fn
 	filter-calls = filter-order calls
@@ -360,8 +360,8 @@ test
 	filter-calls map (x => x b) is (p6-pairs map x => x b)
 	filtered.dbg is "6 6 [6 6b, 6 6c]"
 
-	map-order spy-act2<arrow<nat64, str>, nat64, str> = spy-act: (k, v) =>
-		(10 wrap-sub k) -> "{v}x"
+	map-order spy-act2<pair<nat64, str>, nat64, str> = spy-act: (k, v) =>
+		(10 wrap-sub k), "{v}x"
 	mapped = p6 map map-order.fn
 	map-calls = map-order calls
 	# TODO: map-order.calls is p6-pairs
@@ -372,6 +372,6 @@ test
 	p6.keys is (6, 6, 6, 7, 7, 8)
 	p6.values is ("6", "6b", "6c", "7", "7b", "8")
 
-# TODO: arrow should be equatable
-== bool(a arrow<nat64, str>, b arrow<nat64, str>) noctx
+# TODO: pair should be equatable
+== bool(a pair<nat64, str>, b pair<nat64, str>) noctx
 	a.from == b.from && a.to == b.to

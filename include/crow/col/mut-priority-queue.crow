@@ -3,11 +3,12 @@ import
 	../bool: !, &&, ==, bool, false, true
 	../compare: <, compare
 	../exception: assert
-	../misc: ->, arrow, from, is-data, to, void
+	../misc: is-data, void
 	../opt: force, is-empty, none, opt, some
 	../ptr: +, -, mut-ptr, set-deref
 	../str: ==, str
 	../test-util: is
+	../tuple: from, new, pair, to
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add
 	./arr: ==, arr, new
@@ -23,14 +24,14 @@ mut-priority-queue<k, v> record mut
 	by-ref
 	# TODO: Use by-val
 	# The smallest value goes on the right
-	.mins arrow<k, v> mut[]
+	.mins pair<k, v> mut[]
 	# This may be shorter than mins -- buckets on the right considered missing.
-	.buckets arrow<k, v> mut[] mut[]
+	.buckets pair<k, v> mut[] mut[]
 
 new<k, v> mut-priority-queue<k, v>() is-data<k> compare<k>
 	(), ()
 
-mut-priority-queue<k, v> mut-priority-queue<k, v>(a arrow<k, v>[]) is-data<k> compare<k>
+mut-priority-queue<k, v> mut-priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
 	mins = a to-mut-arr
 	mins sort-by! pair => pair from
 	mins, ()
@@ -47,7 +48,7 @@ size<k, v> nat64(a mut-priority-queue<k, v>) is-data<k> compare<k>
 		acc wrap-add b.size
 	a.mins.size wrap-add n-in-buckets
 
-~= <k, v> void(a mut-priority-queue<k, v>, pair arrow<k, v>) trusted is-data<k> compare<k>
+~= <k, v> void(a mut-priority-queue<k, v>, pair pair<k, v>) trusted is-data<k> compare<k>
 	# Highest min is on the right, so comparing in reverse
 	ptr = a.mins binary-search-insert-ptr it => it.from <=> pair.from
 	index = ptr - a.mins.begin-ptr
@@ -63,10 +64,10 @@ copy<k, v> mut-priority-queue<k, v>(a mut-priority-queue<k, v>) is-data<k> compa
 	a.buckets empty!
 	mins.mut-arr, ()
 
-arr<k, v> arrow<k, v>[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
+arr<k, v> pair<k, v>[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
 	a.fix-arr cast-immutable
 
-fix-arr<k, v> fix-arr arrow<k, v>(a mut-priority-queue<k, v>) is-data<k> compare<k>
+fix-arr<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	mins = a spread-all-buckets
 	a.mins empty!
 	a.mins ~= mins
@@ -76,12 +77,12 @@ fix-arr<k, v> fix-arr arrow<k, v>(a mut-priority-queue<k, v>) is-data<k> compare
 	res
 
 # Output is high-to-low
-.spread-all-buckets<k, v> fix-arr arrow<k, v>(a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
-	new-mins fix-arr arrow<k, v> = a.size uninitialized-fix-arr
+.spread-all-buckets<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
+	new-mins fix-arr pair<k, v> = a.size uninitialized-fix-arr
 	new-mins.begin-ptr spread-all-buckets-recur! a, 0
 	new-mins
 .spread-all-buckets-recur!<k, v> void
-	out arrow<k, v> mut*
+	out pair<k, v> mut*
 	a mut-priority-queue<k, v>
 	index nat64
 spec
@@ -99,19 +100,19 @@ body
 		*mid := a.mins[index]
 		mid + 1 spread-all-buckets-recur! a, (index wrap-add 1)
 
-.add-to-bucket!<k, v> void(buckets arrow<k, v> mut[] mut[], index nat64, pair arrow<k, v>)
+.add-to-bucket!<k, v> void(buckets pair<k, v> mut[] mut[], index nat64, pair pair<k, v>)
 	if index < buckets.size
 		buckets[index] ~= pair
 	else
 		# TODO: type annotation should be unnecessary
-		buckets ~= ()::arrow<k, v> mut[]
+		buckets ~= ()::pair<k, v> mut[]
 		buckets add-to-bucket! index, pair
 
 pop-value!<k, v> v?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	if pair ?= a pop!
 		pair.to some
 
-pop!<k, v> arrow<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
+pop!<k, v> pair<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	res = a.mins pop!
 	if a.mins.size < a.buckets.size
 		assert: (a.mins.size wrap-add 1) == a.buckets.size
@@ -142,7 +143,7 @@ pop!<k, v> arrow<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 		out backup! 2
 	out move-to-str!
 
-.write-pair! void(out writer, pair arrow<nat64, str>)
+.write-pair! void(out writer, pair pair<nat64, str>)
 	out ~= pair from
 	out ~= " -> "
 	out ~= pair to
@@ -156,33 +157,33 @@ test
 	a.pop! is none
 	a verify ""
 
-	a ~= 5 -> "5"
+	a ~= (5, "5")
 	a.is-empty is false
 	a verify "5 -> 5"
 
-	a ~= 6 -> "6"
+	a ~= (6, "6")
 	a verify "5 -> 5 [6 -> 6]"
 
-	a ~= 2 -> "2"
+	a ~= (2, "2")
 	a verify "5 -> 5 [6 -> 6], 2 -> 2"
 
-	a ~= 3 -> "3a"
+	a ~= (3, "3a")
 	a verify "5 -> 5 [6 -> 6], 2 -> 2 [3 -> 3a]"
 
-	a ~= 4 -> "4"
-	a ~= 3 -> "3b"
+	a ~= (4, "4")
+	a ~= (3, "3b")
 	a verify "5 -> 5 [6 -> 6], 2 -> 2 [3 -> 3a, 4 -> 4, 3 -> 3b]"
 
-	a.pop! is (2 -> "2").some
+	a.pop! is (2, "2").some
 	a verify "5 -> 5 [6 -> 6], 4 -> 4, 3 -> 3b, 3 -> 3a"
 
-	a ~= 4 -> "4b"
+	a ~= (4, "4b")
 	a verify "5 -> 5 [6 -> 6], 4 -> 4 [4 -> 4b], 3 -> 3b, 3 -> 3a"
 
-	a.pop! is (3 -> "3a").some
-	a.pop! is (3 -> "3b").some
+	a.pop! is (3, "3a").some
+	a.pop! is (3, "3b").some
 	a verify "5 -> 5 [6 -> 6], 4 -> 4 [4 -> 4b]"
-	a.pop! is (4 -> "4").some
+	a.pop! is (4, "4").some
 	a verify "5 -> 5 [6 -> 6], 4 -> 4b"
 
 	# TODO: a.arr is [4 -> "4b", 5 -> "5", 6 -> "6"]
@@ -191,7 +192,7 @@ test
 	a verify "6 -> 6, 5 -> 5, 4 -> 4b"
 
 # TODO: opt should have generic ==
-.== bool(a arrow<nat64, str>?, b arrow<nat64, str>?) noctx
+.== bool(a pair<nat64, str>?, b pair<nat64, str>?) noctx
 	if va ?= a
 		if vb ?= b
 			va.from == vb.from && va.to == vb.to

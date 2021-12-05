@@ -7,11 +7,12 @@ import
 	../col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	../compare: !=
 	../hash: hash-mix
-	../misc: ->, arrow, from, to, void
+	../misc: void
 	../private/bootstrap: todo
 	../ptr: ==, +, *, const-ptr, null
 	../str: ==, <=>, ~, c-str, str
 	../str-util: find-char-in-cstr, find-cstr-end, to-c-str
+	../tuple: from, new, pair, to
 
 # Represents all environment variables.
 environ alias
@@ -29,13 +30,13 @@ get-environ environ() summon trusted
 		res[entry from] := entry to
 		env + 1 get-environ-recur res
 
-.parse-environ-entry arrow<str, str>(entry c-str) unsafe
+.parse-environ-entry pair<str, str>(entry c-str) unsafe
 	if key-end ?= entry find-char-in-cstr "="
 		key = entry arr-from-begin-end key-end str
 		value-begin = key-end + 1
 		value-end = value-begin find-cstr-end
 		value = value-begin arr-from-begin-end value-end str
-		key -> value
+		key, value
 	else
 		todo
 

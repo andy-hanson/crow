@@ -387,8 +387,6 @@ immutable(string) mangleOperator(immutable Operator a) {
 			return "_xor";
 		case Operator.and1:
 			return "_and";
-		case Operator.arrow:
-			return "_arrow";
 		case Operator.range:
 			return "_range";
 		case Operator.tilde:

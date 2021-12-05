@@ -3,9 +3,10 @@ import
 	../../bool: !, bool
 	../../compare: compare
 	../../hash: hash-mix
-	../../misc: ->, is-data, void
+	../../misc: is-data, void
 	../../number: nat64
 	../../opt: is-empty, none, opt, some
+	../../tuple: new
 	../arr: arr
 	../arr-util: map
 	../dict:
@@ -19,7 +20,7 @@ new<a> hamt-set a() is-data<a> compare<a> hash-mix<a>
 	(),
 
 hamt-set<a> hamt-set a(a a[]) is-data<a> compare<a> hash-mix<a>
-	(a map (x => x -> void) to-dict),
+	(a map (x => x, void) to-dict),
 
 is-empty<a> bool(a hamt-set a) is-data<a> compare<a> hash-mix<a>
 	a.inner is-empty

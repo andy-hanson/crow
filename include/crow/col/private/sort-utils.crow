@@ -3,10 +3,11 @@ import
 	../../bool: !, bool
 	../../compare: ==, !=, <, >=, compare, comparison, equal
 	../../fun-util: subscript
-	../../misc: arrow, from, to, void
+	../../misc: void
 	../../opt: none, opt, some
 	../../ptr: ==, +, -, *, as-const, as-mut, const-ptr, mut-ptr, null, set-deref
 	../../test-util: is
+	../../tuple: from, pair, to
 	../../private/bootstrap: hard-assert, hard-unreachable, nat64
 	../../private/number-low-level: ==, <=>, unsafe-div, wrap-add
 	../arr: ==, arr, arr-from-begin-end, begin-ptr, end-ptr, new
@@ -19,9 +20,9 @@ import
 binary-search-has<a> bool(a a[], value a) compare<a> trusted
 	(a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value) != null
 
-binary-search-key<k, v> v?(a arrow<k, v>[], key k) trusted compare<k>
+binary-search-key<k, v> v?(a pair<k, v>[], key k) trusted compare<k>
 	a.begin-ptr binary-search-key-recur a.end-ptr, key
-.binary-search-key-recur<k, v> v?(left arrow<k, v>*, right arrow<k, v>*, key k) trusted compare<k>
+.binary-search-key-recur<k, v> v?(left pair<k, v>*, right pair<k, v>*, key k) trusted compare<k>
 	diff = right - left
 	if diff < 4
 		left linear-search-key-recur right, key
@@ -34,7 +35,7 @@ binary-search-key<k, v> v?(a arrow<k, v>[], key k) trusted compare<k>
 			(*mid).to some
 		as greater
 			mid + 1 binary-search-key-recur right, key
-.linear-search-key-recur<k, v> v?(left arrow<k, v>*, right arrow<k, v>*, key k) trusted compare<k>
+.linear-search-key-recur<k, v> v?(left pair<k, v>*, right pair<k, v>*, key k) trusted compare<k>
 	if left == right
 		none
 	elif (*left).from == key

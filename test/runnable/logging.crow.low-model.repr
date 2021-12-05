@@ -1821,7 +1821,7 @@ program(
 			void
 			param-kind(ctx: false, closure: false)
 			[param("_", ptr-mut(nat-8))]
-			expr-body(expr(void, file-range(11, range(337, 341)), void)))
+			expr-body(expr(void, file-range(11, range(136, 140)), void)))
 		42: fun(
 			memset
 			ptr-mut(nat-8)
@@ -14851,7 +14851,7 @@ program(
 			void
 			param-kind(ctx: false, closure: false)
 			[param("_", gc-ptr(record(21)))]
-			expr-body(expr(void, file-range(11, range(337, 341)), void)))
+			expr-body(expr(void, file-range(11, range(136, 140)), void)))
 		339: fun(
 			get-sequence
 			nat-64
@@ -17216,7 +17216,7 @@ program(
 			void
 			param-kind(ctx: false, closure: false)
 			[param("_", nat-64)]
-			expr-body(expr(void, file-range(11, range(337, 341)), void)))
+			expr-body(expr(void, file-range(11, range(136, 140)), void)))
 		375: fun(
 			noctx-remove-unordered-at!
 			nat-64

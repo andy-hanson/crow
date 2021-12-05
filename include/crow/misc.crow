@@ -2,19 +2,6 @@ no-std
 export
 	./private/bootstrap: is-data, name, named-val, val, void
 
-###
-Generic record returned by `from -> to`.
-This is used for various purposes.
-###
-arrow<a, b> record
-	by-val
-	from a
-	to b
-
-# Creates an `arrow`.
--> <a, b> arrow<a, b>(from a, to b) noctx
-	from, to
-
 # Ignores the value and returns void.
 drop<a> void(_ a) noctx
 	void

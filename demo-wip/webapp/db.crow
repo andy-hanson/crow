@@ -13,7 +13,6 @@ import
 	crow/log: info, log
 	crow/serialize: from-bytes, to-bytes
 	crow/str-util: try-split-once
-	crow/tuple: a, b
 
 main fut nat(_ str[]) unsafe summon
 	print: "Hello, world!"

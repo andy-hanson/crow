@@ -9,7 +9,6 @@ import
 		request-body, url
 	crow/io/print: print
 	crow/str-util: split-by, try-split-once
-	crow/tuple: a, b
 	crow/writer: ~=, backup!, move-to-str!, new, writer
 	./db:
 		add-post!, close-real-db, content, cookie-expire-seconds, db, list-posts, list-users,
@@ -68,7 +67,7 @@ main fut nat(args str[]) unsafe summon
 			password = args[1]
 			match db login! user-name, password
 			as ok cookie
-				headers str[str] = "Set-Cookie" -> "login={cookie}; Max-Age={cookie-expire-seconds}",
+				headers str[str] = ("Set-Cookie", "login={cookie}; Max-Age={cookie-expire-seconds}"),
 				200, "OK", headers, "Logged in as {user-name}"
 			as err e
 				match e
