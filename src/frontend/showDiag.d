@@ -3,7 +3,7 @@ module frontend.showDiag;
 @safe @nogc pure nothrow:
 
 import frontend.parse.lexer : Token;
-import model.diag : Diagnostic, Diag, Diags, FilesInfo, matchDiag, TypeKind, writeFileAndRange;
+import model.diag : Diagnostic, Diag, Diagnostics, FilesInfo, matchDiag, TypeKind, writeFileAndRange;
 import model.model :
 	arity,
 	arityMatches,
@@ -35,10 +35,9 @@ import util.alloc.alloc : Alloc, TempAlloc;
 import util.collection.arr : empty, only, size;
 import util.collection.arrUtil : exists, map, sort;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.diff : diffSymbols;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has;
-import util.path : AllPaths, baseName, comparePathAndStorageKind, PathAndStorageKind;
+import util.path : AllPaths, baseName, PathAndStorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, FilePaths;
 import util.sym : strOfOperator, Sym, writeSym;
@@ -68,19 +67,10 @@ immutable(string) strOfDiagnostics(
 	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo filesInfo,
-	ref immutable Diags diagnostics,
+	ref immutable Diagnostics diagnostics,
 ) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
-	immutable FilePaths filePaths = filesInfo.filePaths;
-	immutable Diags sorted = sort!Diagnostic(
-		alloc,
-		diagnostics,
-		(ref immutable Diagnostic a, ref immutable Diagnostic b) =>
-			// TOOD: sort by file position too
-			comparePathAndStorageKind(
-				fullIndexDictGet(filePaths, a.where.fileIndex),
-				fullIndexDictGet(filePaths, b.where.fileIndex)));
-	writeWithNewlines!Diagnostic(writer, sorted, (ref immutable Diagnostic it) {
+	writeWithNewlines!Diagnostic(writer, diagnostics.diags, (ref immutable Diagnostic it) {
 		showDiagnostic(alloc, writer, allPaths, options, filesInfo, it);
 	});
 	return finishWriter(writer);
@@ -481,14 +471,6 @@ void writeDiag(
 			writeChar(writer, ' ');
 			writeName(writer, it.callee.deref().name);
 		},
-		(ref immutable Diag.CantCreateNonRecordType d) {
-			writeStatic(writer, "non-record type ");
-			writeType(writer, d.type);
-			writeStatic(writer, " can't be constructed");
-		},
-		(ref immutable Diag.CantCreateRecordWithoutExpectedType) {
-			writeStatic(writer, "don't know what to 'new' (maybe provide a type argument)");
-		},
 		(ref immutable Diag.CantInferTypeArguments) {
 			writeStatic(writer, "can't infer type arguments");
 		},
@@ -503,21 +485,6 @@ void writeDiag(
 				writeStatic(writer, "\n\t");
 				writeStr(writer, s);
 			}
-		},
-		(ref immutable Diag.CreateArrNoExpectedType) {
-			writeStatic(writer, "can't infer element type of array, please provide a type argument to 'new-arr'");
-		},
-		(ref immutable Diag.CreateRecordByRefNoCtx d) {
-			writeStatic(writer, "the current function is 'noctx' and record ");
-			writeName(writer, d.struct_.deref().name);
-			writeStatic(writer, " is not marked 'by-val'; can't allocate");
-		},
-		(ref immutable Diag.CreateRecordMultiLineWrongFields d) {
-			writeStatic(writer, "didn't get expected fields of ");
-			writeName(writer, d.decl.deref().name);
-			writeChar(writer, ':');
-			immutable Sym[] expected = map(tempAlloc, d.fields, (ref immutable RecordField it) => it.name);
-			diffSymbols(tempAlloc, writer, options.color, expected, d.providedFieldNames);
 		},
 		(ref immutable Diag.DuplicateDeclaration d) {
 			writeStatic(writer, "duplicate ");
@@ -753,9 +720,6 @@ void writeDiag(
 			writeType(writer, d.expected);
 			writeStatic(writer, "\n\tactual: ");
 			writeType(writer, d.actual);
-		},
-		(ref immutable Diag.TypeNotSendable) {
-			writeStatic(writer, "this type is not sendable and should not appear in an interface");
 		},
 		(ref immutable Diag.TypeParamCantHaveTypeArgs) {
 			writeStatic(writer, "a type parameter can't take type arguments");

@@ -3,7 +3,7 @@ module model.model;
 @safe @nogc pure nothrow:
 
 import model.constant : Constant;
-import model.diag : Diags, FilesInfo; // TODO: move FilesInfo here?
+import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.alloc.alloc : Alloc;
 import util.collection.arr : ArrWithSize, empty, emptyArr, first, only, size, sizeEq, toArr;
 import util.collection.arrUtil : arrEqual;
@@ -1485,7 +1485,11 @@ struct Program {
 	immutable SpecialModules specialModules;
 	immutable Module[] allModules;
 	immutable CommonTypes commonTypes;
-	immutable Diags diagnostics;
+	immutable Diagnostics diagnostics;
+}
+
+immutable(bool) hasDiags(ref immutable Program a) {
+	return !empty(a.diagnostics.diags);
 }
 
 struct SpecialModules {

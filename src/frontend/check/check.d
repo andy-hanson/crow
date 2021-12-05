@@ -31,6 +31,7 @@ import frontend.check.instantiate :
 	makeNamedValType,
 	TypeParamsScope;
 import frontend.check.typeFromAst : tryFindSpec, typeArgsFromAsts, typeFromAst;
+import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.parse.ast :
 	ExplicitByValOrRef,
 	ExplicitByValOrRefAndRange,
@@ -211,7 +212,7 @@ immutable(BootstrapCheck) checkBootstrap(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref ArrBuilder!Diagnostic diagsBuilder,
+	ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	immutable PathAndAst pathAndAst,
 ) {
@@ -235,7 +236,7 @@ immutable(Module) check(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref ArrBuilder!Diagnostic diagsBuilder,
+	ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	ref immutable ModuleAndNames[] imports,
 	ref immutable ModuleAndNames[] exports,
@@ -1995,7 +1996,7 @@ immutable(ModuleAndCommonFuns) checkWorkerAfterCommonTypes(
 
 immutable(SymDict!NameReferents) getAllExportedNames(
 	ref Alloc alloc,
-	ref ArrBuilder!Diagnostic diagsBuilder,
+	ref DiagnosticsBuilder diagsBuilder,
 	ref immutable ModuleAndNames[] reExports,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable SpecsDict specsDict,
@@ -2017,9 +2018,8 @@ immutable(SymDict!NameReferents) getAllExportedNames(
 					? some(Diag.DuplicateExports.Kind.spec)
 					: none!(Diag.DuplicateExports.Kind);
 				if (has(kind))
-					add(alloc, diagsBuilder, immutable Diagnostic(
-						range,
-						immutable Diag(immutable Diag.DuplicateExports(force(kind), name))));
+					addDiagnostic(alloc, diagsBuilder, range, immutable Diag(
+						immutable Diag.DuplicateExports(force(kind), name)));
 				return immutable NameReferents(
 					has(prev.structOrAlias) ? prev.structOrAlias : cur.structOrAlias,
 					has(prev.spec) ? prev.spec : cur.spec,
@@ -2094,7 +2094,7 @@ immutable(BootstrapCheck) checkWorker(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref ArrBuilder!Diagnostic diagsBuilder,
+	ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	immutable ModuleAndNames[] imports,
 	immutable ModuleAndNames[] reExports,
@@ -2171,7 +2171,7 @@ immutable(BootstrapCheck) checkWorker(
 
 void checkImportsOrExports(
 	ref Alloc alloc,
-	ref ArrBuilder!Diagnostic diags,
+	ref DiagnosticsBuilder diags,
 	immutable FileIndex thisFile,
 	ref immutable ModuleAndNames[] imports,
 ) {
@@ -2179,9 +2179,11 @@ void checkImportsOrExports(
 		if (has(m.names))
 			foreach (ref immutable Sym name; force(m.names))
 				if (!hasKey(m.module_.allExportedNames, name))
-					add(alloc, diags, immutable Diagnostic(
+					addDiagnostic(
+						alloc,
+						diags,
 						// TODO: use the range of the particular name
 						// (by advancing pos by symSize until we get to this name)
 						immutable FileAndRange(thisFile, force(m.importSource)),
-						immutable Diag(immutable Diag.ImportRefersToNothing(name))));
+						immutable Diag(immutable Diag.ImportRefersToNothing(name)));
 }

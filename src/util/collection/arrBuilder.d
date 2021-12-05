@@ -3,7 +3,9 @@ module util.collection.arrBuilder;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.mutArr : moveToArr, MutArr, mutArrSize, push, pushAll;
+import util.collection.arrUtil : sortInPlace;
+import util.collection.mutArr : moveToArr, MutArr, mutArrClear, mutArrSize, push, pushAll, tempAsArr_mut;
+import util.comparison : Comparer;
 
 struct ArrBuilder(T) {
 	private MutArr!(immutable T) data;
@@ -15,6 +17,14 @@ void add(T)(ref Alloc alloc, ref ArrBuilder!T a, immutable T value) {
 
 void addAll(T)(ref Alloc alloc, ref ArrBuilder!T a, scope immutable T[] value) {
 	pushAll(alloc, a.data, value);
+}
+
+void arrBuilderClear(T)(ref ArrBuilder!T a) {
+	mutArrClear(a.data);
+}
+
+void arrBuilderSort(T)(ref ArrBuilder!T a, scope immutable Comparer!T compare) {
+	sortInPlace!(immutable T)(tempAsArr_mut(a.data), compare);
 }
 
 immutable(T[]) finishArr_immutable(T)(ref Alloc alloc, ref ArrBuilder!(immutable T) a) {

@@ -35,6 +35,25 @@ import util.sym : Sym;
 import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
 import util.writerUtils : writePathRelativeToCwd, writePos, writeRangeWithinFile;
 
+enum DiagSeverity {
+	unusedCode,
+	checkWarning,
+	checkError,
+	nameNotFound,
+	parseError,
+	fileNotFound,
+}
+
+struct Diagnostic {
+	immutable FileAndRange where;
+	immutable Diag diag;
+}
+
+struct Diagnostics {
+	immutable DiagSeverity severity;
+	immutable Diagnostic[] diags;
+}
+
 enum TypeKind {
 	builtin,
 	enum_,
@@ -79,26 +98,12 @@ struct Diag {
 		immutable Ptr!FunDecl callee;
 	}
 
-	struct CantCreateNonRecordType {
-		immutable Type type;
-	}
-
-	struct CantCreateRecordWithoutExpectedType {}
 	struct CantInferTypeArguments {}
 	struct CommonFunMissing {
 		immutable Sym name;
 	}
 	struct CommonTypesMissing {
 		immutable string[] missing;
-	}
-	struct CreateArrNoExpectedType {}
-	struct CreateRecordByRefNoCtx {
-		immutable Ptr!StructDecl struct_;
-	}
-	struct CreateRecordMultiLineWrongFields {
-		immutable Ptr!StructDecl decl;
-		immutable RecordField[] fields;
-		immutable Sym[] providedFieldNames;
 	}
 	struct DuplicateDeclaration {
 		enum Kind {
@@ -236,7 +241,6 @@ struct Diag {
 		immutable Type expected;
 		immutable Type actual;
 	}
-	struct TypeNotSendable {}
 	struct TypeParamCantHaveTypeArgs {}
 	struct TypeShouldUseSyntax {
 		enum Kind {
@@ -288,14 +292,9 @@ struct Diag {
 		callMultipleMatches,
 		callNoMatch,
 		cantCall,
-		cantCreateNonRecordType,
-		cantCreateRecordWithoutExpectedType,
 		cantInferTypeArguments,
 		commonFunMissing,
 		commonTypesMissing,
-		createArrNoExpectedType,
-		createRecordByRefNoCtx,
-		createRecordMultiLineWrongFields,
 		duplicateDeclaration,
 		duplicateExports,
 		duplicateImports,
@@ -330,7 +329,6 @@ struct Diag {
 		specImplNotFound,
 		typeAnnotationUnnecessary,
 		typeConflict,
-		typeNotSendable,
 		typeParamCantHaveTypeArgs,
 		typeShouldUseSyntax,
 		unusedImport,
@@ -349,14 +347,9 @@ struct Diag {
 		immutable CallMultipleMatches callMultipleMatches;
 		immutable CallNoMatch callNoMatch;
 		immutable CantCall cantCall;
-		immutable CantCreateNonRecordType cantCreateNonRecordType;
-		immutable CantCreateRecordWithoutExpectedType cantCreateRecordWithoutExpectedType;
 		immutable CantInferTypeArguments cantInferTypeArguments;
 		immutable CommonFunMissing commonFunMissing;
 		immutable CommonTypesMissing commonTypesMissing;
-		immutable CreateArrNoExpectedType createArrNoExpectedType;
-		immutable CreateRecordByRefNoCtx createRecordByRefNoCtx;
-		immutable CreateRecordMultiLineWrongFields createRecordMultiLineWrongFields;
 		immutable DuplicateDeclaration duplicateDeclaration;
 		immutable DuplicateExports duplicateExports;
 		immutable DuplicateImports duplicateImports;
@@ -391,7 +384,6 @@ struct Diag {
 		immutable SpecImplNotFound specImplNotFound;
 		immutable TypeAnnotationUnnecessary typeAnnotationUnnecessary;
 		immutable TypeConflict typeConflict;
-		immutable TypeNotSendable typeNotSendable;
 		immutable TypeParamCantHaveTypeArgs typeParamCantHaveTypeArgs;
 		immutable TypeShouldUseSyntax typeShouldUseSyntax;
 		immutable UnusedImport unusedImport;
@@ -411,26 +403,11 @@ struct Diag {
 	}
 	@trusted immutable this(immutable CallNoMatch a) { kind = Kind.callNoMatch; callNoMatch = a; }
 	@trusted immutable this(immutable CantCall a) { kind = Kind.cantCall; cantCall = a; }
-	@trusted immutable this(immutable CantCreateNonRecordType a) {
-		kind = Kind.cantCreateNonRecordType; cantCreateNonRecordType = a;
-	}
-	@trusted immutable this(immutable CantCreateRecordWithoutExpectedType a) {
-		kind = Kind.cantCreateRecordWithoutExpectedType; cantCreateRecordWithoutExpectedType = a;
-	}
 	@trusted immutable this(immutable CantInferTypeArguments a) {
 		kind = Kind.cantInferTypeArguments; cantInferTypeArguments = a;
 	}
 	@trusted immutable this(immutable CommonFunMissing a) { kind = Kind.commonFunMissing; commonFunMissing = a; }
 	@trusted immutable this(immutable CommonTypesMissing a) { kind = Kind.commonTypesMissing; commonTypesMissing = a; }
-	@trusted immutable this(immutable CreateArrNoExpectedType a) {
-		kind = Kind.createArrNoExpectedType; createArrNoExpectedType = a;
-	}
-	@trusted immutable this(immutable CreateRecordByRefNoCtx a) {
-		kind = Kind.createRecordByRefNoCtx; createRecordByRefNoCtx = a;
-	}
-	@trusted immutable this(immutable CreateRecordMultiLineWrongFields a) {
-		kind = Kind.createRecordMultiLineWrongFields; createRecordMultiLineWrongFields = a;
-	}
 	@trusted immutable this(immutable DuplicateDeclaration a) {
 		kind = Kind.duplicateDeclaration; duplicateDeclaration = a;
 	}
@@ -511,7 +488,6 @@ struct Diag {
 		kind = Kind.typeAnnotationUnnecessary; typeAnnotationUnnecessary = a;
 	}
 	@trusted immutable this(immutable TypeConflict a) { kind = Kind.typeConflict; typeConflict = a; }
-	@trusted immutable this(immutable TypeNotSendable a) { kind = Kind.typeNotSendable; typeNotSendable = a; }
 	immutable this(immutable TypeParamCantHaveTypeArgs a) {
 		kind = Kind.typeParamCantHaveTypeArgs; typeParamCantHaveTypeArgs = a;
 	}
@@ -543,12 +519,6 @@ struct Diag {
 	scope immutable(Out) delegate(ref immutable Diag.CallNoMatch) @safe @nogc pure nothrow cbCallNoMatch,
 	scope immutable(Out) delegate(ref immutable Diag.CantCall) @safe @nogc pure nothrow cbCantCall,
 	scope immutable(Out) delegate(
-		ref immutable Diag.CantCreateNonRecordType
-	) @safe @nogc pure nothrow cbCantCreateNonRecordType,
-	scope immutable(Out) delegate(
-		ref immutable Diag.CantCreateRecordWithoutExpectedType
-	) @safe @nogc pure nothrow cbCantCreateRecordWithoutExpectedType,
-	scope immutable(Out) delegate(
 		ref immutable Diag.CantInferTypeArguments
 	) @safe @nogc pure nothrow cbCantInferTypeArguments,
 	scope immutable(Out) delegate(
@@ -557,15 +527,6 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.CommonTypesMissing
 	) @safe @nogc pure nothrow cbCommonTypesMissing,
-	scope immutable(Out) delegate(
-		ref immutable Diag.CreateArrNoExpectedType
-	) @safe @nogc pure nothrow cbCreateArrNoExpectedType,
-	scope immutable(Out) delegate(
-		ref immutable Diag.CreateRecordByRefNoCtx
-	) @safe @nogc pure nothrow cbCreateRecordByRefNoCtx,
-	scope immutable(Out) delegate(
-		ref immutable Diag.CreateRecordMultiLineWrongFields
-	) @safe @nogc pure nothrow cbCreateRecordMultiLineWrongFields,
 	scope immutable(Out) delegate(
 		ref immutable Diag.DuplicateDeclaration
 	) @safe @nogc pure nothrow cbDuplicateDeclaration,
@@ -657,9 +618,6 @@ struct Diag {
 		ref immutable Diag.TypeConflict
 	) @safe @nogc pure nothrow cbTypeConflict,
 	scope immutable(Out) delegate(
-		ref immutable Diag.TypeNotSendable
-	) @safe @nogc pure nothrow cbTypeNotSendable,
-	scope immutable(Out) delegate(
 		ref immutable Diag.TypeParamCantHaveTypeArgs
 	) @safe @nogc pure nothrow cbTypeParamCantHaveTypeArgs,
 	scope immutable(Out) delegate(
@@ -694,22 +652,12 @@ struct Diag {
 			return cbCallNoMatch(a.callNoMatch);
 		case Diag.Kind.cantCall:
 			return cbCantCall(a.cantCall);
-		case Diag.Kind.cantCreateNonRecordType:
-			return cbCantCreateNonRecordType(a.cantCreateNonRecordType);
-		case Diag.Kind.cantCreateRecordWithoutExpectedType:
-			return cbCantCreateRecordWithoutExpectedType(a.cantCreateRecordWithoutExpectedType);
 		case Diag.Kind.cantInferTypeArguments:
 			return cbCantInferTypeArguments(a.cantInferTypeArguments);
 		case Diag.Kind.commonFunMissing:
 			return cbCommonFunMissing(a.commonFunMissing);
 		case Diag.Kind.commonTypesMissing:
 			return cbCommonTypesMissing(a.commonTypesMissing);
-		case Diag.Kind.createArrNoExpectedType:
-			return cbCreateArrNoExpectedType(a.createArrNoExpectedType);
-		case Diag.Kind.createRecordByRefNoCtx:
-			return cbCreateRecordByRefNoCtx(a.createRecordByRefNoCtx);
-		case Diag.Kind.createRecordMultiLineWrongFields:
-			return cbCreateRecordMultiLineWrongFields(a.createRecordMultiLineWrongFields);
 		case Diag.Kind.duplicateDeclaration:
 			return cbDuplicateDeclaration(a.duplicateDeclaration);
 		case Diag.Kind.duplicateExports:
@@ -778,8 +726,6 @@ struct Diag {
 			return cbTypeAnnotationUnnecessary(a.typeAnnotationUnnecessary);
 		case Diag.Kind.typeConflict:
 			return cbTypeConflict(a.typeConflict);
-		case Diag.Kind.typeNotSendable:
-			return cbTypeNotSendable(a.typeNotSendable);
 		case Diag.Kind.typeParamCantHaveTypeArgs:
 			return cbTypeParamCantHaveTypeArgs(a.typeParamCantHaveTypeArgs);
 		case Diag.Kind.typeShouldUseSyntax:
@@ -803,11 +749,6 @@ struct Diag {
 		case Diag.Kind.wrongNumberTypeArgsForStruct:
 			return cbWrongNumberTypeArgsForStruct(a.wrongNumberTypeArgsForStruct);
 	}
-}
-
-struct Diagnostic {
-	immutable FileAndRange where;
-	immutable Diag diag;
 }
 
 struct FilesInfo {
@@ -880,5 +821,3 @@ private void writeFileNoResetWriter(
 		writeChar(writer, ' ');
 	}
 }
-
-alias Diags = Diagnostic[];

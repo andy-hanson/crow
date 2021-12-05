@@ -2,11 +2,12 @@ module frontend.frontendCompile;
 
 @safe @nogc nothrow: // not pure
 
-import model.diag : Diag, Diags, Diagnostic, FilesInfo;
+import model.diag : Diag, Diagnostic, Diagnostics, DiagSeverity, FilesInfo;
 import model.model : CommonTypes, LineAndColumnGetters, Module, ModuleAndNames, Program, SpecialModules;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, PathAndAst;
 import frontend.check.inferringType : CommonFuns;
+import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder, finishDiagnostics;
 import frontend.parse.ast : emptyFileAst, FileAst, ImportAst, ImportsOrExportsAst;
 import frontend.lang : crowExtension;
 import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
@@ -51,7 +52,7 @@ immutable(Program) frontendCompile(Storage)(
 	ref Storage storage,
 	immutable PathAndStorageKind main,
 ) {
-	ArrBuilder!Diagnostic diagsBuilder;
+	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
 	immutable ParsedEverything parsed = withMeasure!(immutable ParsedEverything, () =>
 		parseEverything(modelAlloc, perf, allPaths, allSymbols, diagsBuilder, storage, main, astsAlloc)
 	)(astsAlloc, perf, PerfMeasure.parseEverything);
@@ -73,7 +74,7 @@ private struct FileAstAndArrDiagnosticAndLineAndColumnGetter {
 struct FileAstAndDiagnostics {
 	immutable FileAst ast;
 	immutable FilesInfo filesInfo;
-	immutable Diags diagnostics;
+	immutable Diagnostics diagnostics;
 }
 
 immutable(FileAstAndDiagnostics) parseSingleAst(ReadOnlyStorage)(
@@ -102,10 +103,12 @@ immutable(FileAstAndDiagnostics) parseSingleAst(ReadOnlyStorage)(
 					arrLiteral!LineAndColumnGetter(alloc, [res.lineAndColumnGetter]));
 			immutable FilePaths filePaths = fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
 				arrLiteral!PathAndStorageKind(alloc, [path]));
+			DiagnosticsBuilder diags = DiagnosticsBuilder();
+			addParseDiagnostics(alloc, diags, immutable FileIndex(0), res.diagnostics);
 			return immutable FileAstAndDiagnostics(
 				res.ast,
 				immutable FilesInfo(filePaths, storage.absolutePathsGetter(), lc),
-				parseDiagnostics(alloc, immutable FileIndex(0), res.diagnostics));
+				finishDiagnostics(alloc, diags, filePaths));
 		});
 }
 
@@ -172,7 +175,7 @@ immutable(ParsedEverything) parseEverything(ReadOnlyStorage)(
 	ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
-	ref ArrBuilder!Diagnostic diagsBuilder,
+	ref DiagnosticsBuilder diagsBuilder,
 	ref ReadOnlyStorage storage,
 	ref immutable PathAndStorageKind mainPath,
 	ref Alloc astAlloc,
@@ -242,7 +245,7 @@ immutable(FileIndex) parseRecur(ReadOnlyStorage)(
 	ref LineAndColumnGettersBuilder lineAndColumnGetters,
 	ref ArrBuilder!AstAndResolvedImports res,
 	ref ArrBuilder!PathAndStorageKind fileIndexToPath,
-	ref ArrBuilder!Diagnostic diags,
+	ref DiagnosticsBuilder diags,
 	ref PathToStatus statuses,
 	immutable Opt!PathAndRange importedFrom,
 	immutable PathAndStorageKind path,
@@ -266,7 +269,7 @@ immutable(FileIndex) parseRecur(ReadOnlyStorage)(
 			statuses,
 			path,
 			immutable ParseStatus(immutable ParseStatus.Done(index)));
-		addAll(modelAlloc, diags, parseDiagnostics(modelAlloc, index, parseDiags));
+		addParseDiagnostics(modelAlloc, diags, index, parseDiags);
 		return index;
 	}
 
@@ -378,15 +381,14 @@ immutable(PathAndStorageKind) runtimeMainPath(ref AllPaths allPaths) {
 	return pathInIncludePrivate(allPaths, shortSymAlphaLiteral("rt-main"));
 }
 
-immutable(Diags) parseDiagnostics(
+void addParseDiagnostics(
 	ref Alloc modelAlloc,
+	ref DiagnosticsBuilder diagsBuilder,
 	immutable FileIndex where,
 	immutable ParseDiagnostic[] diags,
 ) {
-	return map(modelAlloc, diags, (ref immutable ParseDiagnostic it) =>
-		immutable Diagnostic(
-			immutable FileAndRange(where, it.range),
-			immutable Diag(it.diag)));
+	foreach (ref immutable ParseDiagnostic it; diags)
+		addDiagnostic(modelAlloc, diagsBuilder, immutable FileAndRange(where, it.range), immutable Diag(it.diag));
 }
 
 alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter; // TODO: OrderedFullIndexDictBuilder?
@@ -544,7 +546,7 @@ immutable(ModulesAndCommonTypes) getModules(
 	ref Alloc modelAlloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref ArrBuilder!Diagnostic diagsBuilder,
+	ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	immutable FileIndex stdIndex,
 	ref immutable AstAndResolvedImports[] fileAsts,
@@ -597,7 +599,7 @@ immutable(Program) checkEverything(
 	ref Alloc modelAlloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref ArrBuilder!Diagnostic diagsBuilder,
+	ref DiagnosticsBuilder diagsBuilder,
 	ref immutable AstAndResolvedImports[] allAsts,
 	immutable FilesInfo filesInfo,
 	ref immutable CommonModuleIndices moduleIndices,
@@ -617,5 +619,5 @@ immutable(Program) checkEverything(
 			ptrAt(modules, moduleIndices.main.index)),
 		modules,
 		modulesAndCommonTypes.commonTypes,
-		finishArr(modelAlloc, diagsBuilder));
+		finishDiagnostics(modelAlloc, diagsBuilder, filesInfo.filePaths));
 }

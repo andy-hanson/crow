@@ -77,6 +77,10 @@ void pushAll(T)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[]
 		push(alloc, a, value);
 }
 
+void mutArrClear(T)(ref MutArr!T a) {
+	a.size_ = 0;
+}
+
 @trusted Opt!T pop(T)(ref MutArr!T a) {
 	if (a.size_ == 0)
 		return noneMut!T;

@@ -3,8 +3,9 @@ module frontend.check.checkCtx;
 @safe @nogc pure nothrow:
 
 import frontend.check.dicts : ModuleLocalSpecIndex, StructOrAliasAndIndex;
+import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.programState : ProgramState;
-import model.diag : Diag, Diagnostic;
+import model.diag : Diag, Diagnostic, DiagSeverity;
 import model.model :
 	matchStructOrAlias,
 	Module,
@@ -39,7 +40,7 @@ struct CheckCtx {
 	bool[] structAliasesUsed;
 	bool[] structsUsed;
 	bool[] specsUsed;
-	Ptr!(ArrBuilder!Diagnostic) diagsBuilderPtr;
+	Ptr!DiagnosticsBuilder diagsBuilderPtr;
 
 	ref Perf perf() return scope {
 		return perfPtr.deref();
@@ -49,7 +50,7 @@ struct CheckCtx {
 		return programStatePtr.deref();
 	}
 
-	ref ArrBuilder!Diagnostic diagsBuilder() return scope {
+	ref DiagnosticsBuilder diagsBuilder() return scope {
 		return diagsBuilderPtr.deref();
 	}
 }
@@ -210,21 +211,11 @@ immutable(FileAndRange) rangeInFile(ref const CheckCtx ctx, immutable RangeWithi
 	return immutable FileAndRange(ctx.fileIndex, range);
 }
 
-void addDiag(
-	ref Alloc alloc,
-	ref CheckCtx ctx,
-	immutable FileAndRange range,
-	immutable Diag diag,
-) {
-	add(alloc, ctx.diagsBuilder, immutable Diagnostic(range, diag));
+void addDiag(ref Alloc alloc, ref CheckCtx ctx, immutable FileAndRange range, immutable Diag diag) {
+	addDiagnostic(alloc, ctx.diagsBuilder, range, diag);
 }
 
-void addDiag(
-	ref Alloc alloc,
-	ref CheckCtx ctx,
-	immutable RangeWithinFile range,
-	immutable Diag diag,
-) {
+void addDiag(ref Alloc alloc, ref CheckCtx ctx, immutable RangeWithinFile range, immutable Diag diag) {
 	addDiag(alloc, ctx, immutable FileAndRange(ctx.fileIndex, range), diag);
 }
 

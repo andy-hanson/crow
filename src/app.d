@@ -40,7 +40,7 @@ import lib.compiler :
 	print,
 	ProgramsAndFilesInfo,
 	justTypeCheck;
-import model.model : AbsolutePathsGetter, getAbsolutePath;
+import model.model : AbsolutePathsGetter, getAbsolutePath, hasDiags;
 import test.test : test;
 import util.alloc.alloc : Alloc, allocateBytes, freeBytes, TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
@@ -454,7 +454,7 @@ immutable(ExitCode) buildAndJit(
 	immutable SafeCStr[] programArgs,
 ) {
 	immutable ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, allSymbols, allPaths, storage, main);
-	if (!empty(programs.program.diagnostics))
+	if (!hasDiags(programs.program))
 		return printErr(strOfDiagnostics(
 			alloc,
 			allPaths,
@@ -675,7 +675,7 @@ immutable(ExitCode) withRealExtern(
 	void* sodiumHandle,
 	void* lmdbHandle,
 ) {
-	immutable char[32] nameBuffer = symAsTempBuffer!32(name);
+	immutable char[64] nameBuffer = symAsTempBuffer!64(name);
 	immutable CStr nameCStr = nameBuffer.ptr;
 	// TODO: don't just get everything from SDL/GL... use the library from the extern declaration!
 	DCpointer ptr = dlsym(sdlHandle, nameCStr);

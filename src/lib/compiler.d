@@ -15,9 +15,9 @@ import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
-import model.diag : Diags, FilesInfo;
+import model.diag : Diagnostics, FilesInfo;
 import model.lowModel : LowProgram;
-import model.model : Module, Program;
+import model.model : hasDiags, Module, Program;
 import model.reprConcreteModel : reprOfConcreteProgram;
 import model.reprLowModel : reprOfLowProgram;
 import model.reprModel : reprModule;
@@ -97,7 +97,7 @@ immutable(ExitCode) buildAndInterpret(ReadOnlyStorage)(
 	scope immutable SafeCStr[] allArgs,
 ) {
 	immutable ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, allSymbols, allPaths, storage, main);
-	if (empty(programs.program.diagnostics)) {
+	if (!hasDiags(programs.program)) {
 		immutable LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
 		immutable ByteCode byteCode = generateBytecode(dbg, alloc, alloc, programs.program, lowProgram);
 		return immutable ExitCode(runBytecode(
@@ -130,7 +130,7 @@ private:
 	ref Extern extern_,
 	ref immutable ShowDiagOptions showDiagOptions,
 	ref immutable FilesInfo filesInfo,
-	ref immutable Diags diagnostics,
+	ref immutable Diagnostics diagnostics,
 ) {
 	immutable int stderr = 2;
 	immutable string s = strOfDiagnostics(alloc, allPaths, showDiagOptions, filesInfo, diagnostics);
@@ -181,7 +181,7 @@ immutable(DiagsAndResultStrs) printModel(ReadOnlyStorage)(
 	immutable PrintFormat format,
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, main);
-	return empty(program.diagnostics)
+	return !hasDiags(program)
 		? immutable DiagsAndResultStrs("", showModule(alloc, program.specialModules.mainModule.deref(), format))
 		: immutable DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allPaths, showDiagOptions, program.filesInfo, program.diagnostics),
@@ -199,7 +199,7 @@ immutable(DiagsAndResultStrs) printConcreteModel(ReadOnlyStorage)(
 	immutable PrintFormat format,
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, main);
-	if (empty(program.diagnostics)) {
+	if (!hasDiags(program)) {
 		immutable ConcreteProgram concreteProgram = concretize(alloc, perf, allSymbols, program);
 		return immutable DiagsAndResultStrs("", showConcreteProgram(alloc, concreteProgram, format));
 	} else
@@ -219,7 +219,7 @@ immutable(DiagsAndResultStrs) printLowModel(ReadOnlyStorage)(
 	immutable PrintFormat format,
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, main);
-	if (empty(program.diagnostics)) {
+	if (!hasDiags(program)) {
 		immutable ConcreteProgram concreteProgram = concretize(alloc, perf, allSymbols, program);
 		immutable LowProgram lowProgram = lower(alloc, perf, concreteProgram);
 		return immutable DiagsAndResultStrs("", showLowProgram(alloc, lowProgram, format));
@@ -267,7 +267,7 @@ public immutable(ExitCode) justTypeCheck(ReadOnlyStorage)(
 	immutable PathAndStorageKind main,
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, main);
-	return empty(program.diagnostics) ? immutable ExitCode(0) : immutable ExitCode(1);
+	return !hasDiags(program) ? immutable ExitCode(0) : immutable ExitCode(1);
 }
 
 public struct BuildToCResult {
@@ -286,7 +286,7 @@ public immutable(BuildToCResult) buildToC(ReadOnlyStorage)(
 	immutable PathAndStorageKind main,
 ) {
 	immutable ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, allSymbols, allPaths, storage, main);
-	return empty(programs.program.diagnostics)
+	return !hasDiags(programs.program)
 		? immutable BuildToCResult(
 			writeToC(alloc, alloc, force(programs.concreteAndLowProgram).lowProgram),
 			"",
@@ -317,7 +317,7 @@ public immutable(DocumentResult) compileAndDocument(ReadOnlyStorage)(
 	immutable PathAndStorageKind main,
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, main);
-	return empty(program.diagnostics)
+	return !hasDiags(program)
 		? immutable DocumentResult(document(alloc, allPaths, program, program.specialModules.mainModule.deref()), "")
 		: immutable DocumentResult(
 			"",
@@ -350,7 +350,7 @@ public immutable(ProgramsAndFilesInfo) buildToLowProgram(ReadOnlyStorage)(
 	immutable PathAndStorageKind main,
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, main);
-	if (empty(program.diagnostics)) {
+	if (!hasDiags(program)) {
 		immutable ConcreteProgram concreteProgram = concretize(alloc, perf, allSymbols, program);
 		return immutable ProgramsAndFilesInfo(
 			program,
