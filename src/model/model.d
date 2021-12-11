@@ -28,7 +28,7 @@ import util.sym :
 	symForOperator,
 	symSize,
 	writeSym;
-import util.types : Int64, Nat16, Nat64, safeSizeTToU32;
+import util.types : Int64, Nat64, safeSizeTToU32;
 import util.util : todo, unreachable, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
@@ -802,7 +802,7 @@ struct FunBody {
 	}
 	struct CreateRecord {}
 	struct CreateUnion {
-		immutable Nat16 memberIndex;
+		immutable size_t memberIndex;
 	}
 	struct Extern {
 		immutable bool isGlobal;

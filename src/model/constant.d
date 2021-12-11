@@ -5,7 +5,6 @@ module model.constant;
 import model.concreteModel : ConcreteFun;
 import util.collection.arrUtil : eachCorresponds;
 import util.ptr : Ptr, ptrEquals;
-import util.types : Nat64;
 import util.util : verify;
 
 // WARN: The type of a constant is implicit (given by context).
@@ -44,7 +43,7 @@ struct Constant {
 		immutable Constant[] args;
 	}
 	struct Union {
-		immutable Nat64 memberIndex;
+		immutable size_t memberIndex;
 		immutable Constant arg;
 	}
 	struct Void {}

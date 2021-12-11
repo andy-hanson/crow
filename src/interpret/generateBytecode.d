@@ -811,7 +811,7 @@ void generateCreateUnionOrConstantUnion(
 	ref ByteCodeWriter writer,
 	ref const ExprCtx ctx,
 	immutable LowType.Union type,
-	immutable Nat64 memberIndex,
+	immutable size_t memberIndex,
 	immutable ByteCodeSource source,
 	scope void delegate(ref immutable LowType) @safe @nogc pure nothrow cbGenerateMember,
 ) {

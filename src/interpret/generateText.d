@@ -40,7 +40,7 @@ import util.collection.exactSizeArrBuilder :
 import util.collection.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
 import util.collection.mutIndexMultiDict : MutIndexMultiDict, mutIndexMultiDictAdd, newMutIndexMultiDict;
 import util.ptr : Ptr, ptrTrustMe;
-import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat64, u32OfFloat32Bits, u64OfFloat64Bits;
+import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, u32OfFloat32Bits, u64OfFloat64Bits;
 import util.util : todo, unreachable, verify;
 
 struct InterpreterFunPtr {
@@ -236,7 +236,7 @@ void ensureConstant(
 ref immutable(LowType) unionMemberType(
 	ref immutable LowProgram program,
 	immutable LowType.Union t,
-	immutable Nat64 memberIndex,
+	immutable size_t memberIndex,
 ) {
 	return at(fullIndexDictGet(program.allUnions, t).members, memberIndex);
 }
@@ -386,7 +386,7 @@ void writeConstant(
 			padTo(ctx.text, start + typeSize);
 		},
 		(ref immutable Constant.Union it) {
-			add64(ctx.text, it.memberIndex.raw());
+			add64(ctx.text, it.memberIndex);
 			immutable LowType memberType = unionMemberType(ctx.program, asUnionType(type), it.memberIndex);
 			writeConstant(alloc, tempAlloc, ctx, memberType, it.arg);
 			immutable size_t unionSize = sizeOfType(ctx.program, type).size;

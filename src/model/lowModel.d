@@ -24,7 +24,6 @@ import util.opt : none, Opt;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Nat64;
 import util.util : unreachable, verify;
 
 struct LowExternPtrType {
@@ -630,7 +629,7 @@ struct LowExprKind {
 	}
 
 	struct CreateUnion {
-		immutable Nat64 memberIndex;
+		immutable size_t memberIndex;
 		immutable LowExpr arg;
 	}
 

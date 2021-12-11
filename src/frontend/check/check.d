@@ -194,7 +194,7 @@ import util.sym :
 	Sym,
 	symEq,
 	symForOperator;
-import util.types : Nat16, safeSizeTToU8, safeSizeTToU16;
+import util.types : safeSizeTToU8;
 import util.util : todo, unreachable, verify;
 
 struct PathAndAst { //TODO:RENAME
@@ -1900,7 +1900,7 @@ void addFunsForUnion(
 				immutable Params(params)),
 			typeParams,
 			emptyArrWithSize!(Ptr!SpecInst),
-			immutable FunBody(immutable FunBody.CreateUnion(immutable Nat16(safeSizeTToU16(memberIndex))))));
+			immutable FunBody(immutable FunBody.CreateUnion(memberIndex))));
 	}
 }
 

@@ -803,7 +803,7 @@ void fillInConcreteFunBody(
 			(ref immutable FunBody.CreateRecord) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateRecord()),
 			(ref immutable FunBody.CreateUnion it) =>
-				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateUnion(it.memberIndex.to64())),
+				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateUnion(it.memberIndex)),
 			(immutable EnumFunction it) {
 				final switch (it) {
 					case EnumFunction.equal:

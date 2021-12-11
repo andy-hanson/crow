@@ -68,7 +68,7 @@ import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has, some;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.types : abs, i64OfU64Bits, Nat64;
+import util.types : abs, i64OfU64Bits;
 import util.util : drop, todo, unreachable, verify;
 import util.writer :
 	finishWriter,
@@ -1073,7 +1073,7 @@ void writeCreateUnion(
 	ref immutable Ctx ctx,
 	immutable ConstantRefPos pos,
 	ref immutable LowType type,
-	immutable Nat64 memberIndex,
+	immutable size_t memberIndex,
 	scope void delegate() @safe @nogc pure nothrow cbWriteMember,
 ) {
 	if (pos == ConstantRefPos.outer) writeCastToType(writer, ctx, type);

@@ -141,10 +141,6 @@ struct IntN(T) {
 	T value;
 }
 
-immutable(NatN!T) decr(T)(immutable NatN!T a) {
-	return a - immutable NatN!T(1);
-}
-
 immutable(NatN!T) incr(T)(immutable NatN!T a) {
 	return a + immutable NatN!T(1);
 }

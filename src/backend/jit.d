@@ -137,7 +137,6 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, writeSym;
-import util.types : Nat64;
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 
@@ -1019,7 +1018,7 @@ immutable(ExprResult) emitUnion(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
 	immutable LowType type,
-	immutable Nat64 memberIndex,
+	immutable size_t memberIndex,
 	scope immutable(ExprResult) delegate(ref ExprEmit) @safe @nogc pure nothrow cbEmitArg,
 ) {
 	return emitWriteToLValue(ctx, emit, type, (Ptr!gcc_jit_lvalue lvalue) {
@@ -1028,7 +1027,7 @@ immutable(ExprResult) emitUnion(
 			ctx.curBlock,
 			null,
 			gcc_jit_lvalue_access_field(lvalue, null, unionFields.kindField),
-			gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, memberIndex.raw()));
+			gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, memberIndex));
 		Ptr!gcc_jit_lvalue memberLValue = gcc_jit_lvalue_access_field(
 			gcc_jit_lvalue_access_field(lvalue, null, unionFields.innerField),
 			null,
@@ -1744,7 +1743,7 @@ immutable(ExprResult) zeroedToGcc(
 				zeroedToGcc(ctx, emitArg, at(fields, argIndex).type));
 		},
 		(immutable LowType.Union union_) =>
-			emitUnion(ctx, emit, type, immutable Nat64(0), (ref ExprEmit emitArg) =>
+			emitUnion(ctx, emit, type, 0, (ref ExprEmit emitArg) =>
 				zeroedToGcc(ctx, emitArg, at(fullIndexDictGet(ctx.program.allUnions, union_).members, 0))),
 	)(type);
 }

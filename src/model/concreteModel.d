@@ -34,7 +34,6 @@ import util.opt : none, Opt, some;
 import util.ptr : hashPtr, ptrEquals, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Nat64;
 import util.util : unreachable, verify;
 
 enum BuiltinStructKind {
@@ -492,7 +491,7 @@ struct ConcreteFunBody {
 	}
 	struct CreateRecord {}
 	struct CreateUnion {
-		immutable Nat64 memberIndex;
+		immutable size_t memberIndex;
 	}
 	struct Extern {
 		immutable bool isGlobal;
@@ -820,7 +819,7 @@ struct ConcreteExprKind {
 	// May be a fun or run-mut.
 	// (A fun-ref is a lambda wrapped in CreateRecord.)
 	struct Lambda {
-		immutable Nat64 memberIndex; // Member index of a Union (which hasn't been created yet)
+		immutable size_t memberIndex; // Member index of a Union (which hasn't been created yet)
 		immutable ConcreteExpr closure;
 	}
 
