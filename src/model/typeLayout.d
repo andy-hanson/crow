@@ -17,7 +17,6 @@ import util.collection.arr : size;
 import util.collection.arrUtil : every, map;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.opt : none, Opt, some;
-import util.types : Nat64;
 import util.util : divRoundUp;
 
 immutable(TypeSize) sizeOfType(ref immutable LowProgram program, immutable LowType a) {
@@ -38,24 +37,24 @@ immutable(TypeSize) sizeOfType(ref immutable LowProgram program, immutable LowTy
 	)(a);
 }
 
-immutable(Nat64) nStackEntriesForType(ref immutable LowProgram program, immutable LowType a) {
-	return nStackEntriesForBytes(immutable Nat64(sizeOfType(program, a).size));
+immutable(size_t) nStackEntriesForType(ref immutable LowProgram program, immutable LowType a) {
+	return nStackEntriesForBytes(sizeOfType(program, a).size);
 }
 
-private immutable(Nat64) nStackEntriesForBytes(immutable Nat64 bytes) {
+private immutable(size_t) nStackEntriesForBytes(immutable size_t bytes) {
 	return divRoundUp(bytes, stackEntrySize);
 }
 
 struct Pack {
-	immutable Nat64 inEntries;
-	immutable Nat64 outEntries;
+	immutable size_t inEntries;
+	immutable size_t outEntries;
 	immutable PackField[] fields;
 }
 
 struct PackField {
-	immutable Nat64 inOffset;
-	immutable Nat64 outOffset;
-	immutable Nat64 size;
+	immutable size_t inOffset;
+	immutable size_t outOffset;
+	immutable size_t size;
 }
 
 immutable(Opt!Pack) optPack(TempAlloc)(
@@ -68,14 +67,14 @@ immutable(Opt!Pack) optPack(TempAlloc)(
 	if (every!LowField(record.fields, (ref immutable LowField field) => field.offset % 8 == 0))
 		return none!Pack;
 	else {
-		Nat64 inOffsetEntries = immutable Nat64(0);
+		size_t inOffsetEntries = 0;
 		immutable PackField[] fields = map!(PackField)(tempAlloc, record.fields, (ref immutable LowField field) {
-			immutable Nat64 fieldInOffsetBytes = inOffsetEntries * immutable Nat64(8);
-			immutable Nat64 fieldSizeBytes = immutable Nat64(sizeOfType(program, field.type).size);
+			immutable size_t fieldInOffsetBytes = inOffsetEntries * 8;
+			immutable size_t fieldSizeBytes = sizeOfType(program, field.type).size;
 			inOffsetEntries += nStackEntriesForBytes(fieldSizeBytes);
-			return immutable PackField(fieldInOffsetBytes, immutable Nat64(field.offset), fieldSizeBytes);
+			return immutable PackField(fieldInOffsetBytes, field.offset, fieldSizeBytes);
 		});
-		immutable Nat64 outEntries = nStackEntriesForType(program, immutable LowType(type));
+		immutable size_t outEntries = nStackEntriesForType(program, immutable LowType(type));
 		return some(immutable Pack(inOffsetEntries, outEntries, fields));
 	}
 }

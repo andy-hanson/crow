@@ -716,13 +716,13 @@ private @system immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {
 
 	ubyte* base = cast(ubyte*) (stackEnd(a.dataStack) - inEntries);
 	foreach (immutable PackField field; fields)
-		memmove(base + field.outOffset.raw(), base + field.inOffset.raw(), safeSizeTFromU64(field.size.raw()));
+		memmove(base + field.outOffset, base + field.inOffset, safeSizeTFromU64(field.size));
 
 	// drop extra entries
 	drop(popN(a.dataStack, inEntries - outEntries));
 
 	// fill remaining bytes with 0
-	ubyte* ptr = base + last(fields).outOffset.raw() + last(fields).size.raw();
+	ubyte* ptr = base + last(fields).outOffset + last(fields).size;
 	while (ptr < cast(ubyte*) stackEnd(a.dataStack)) {
 		*ptr = 0;
 		ptr++;

@@ -246,16 +246,16 @@ immutable(TypeSize) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
 	return sizeOfType(ctx.program, t);
 }
 
-immutable(Nat64) nStackEntriesForType(ref const ExprCtx ctx, ref immutable LowType t) {
+immutable(size_t) nStackEntriesForType(ref const ExprCtx ctx, ref immutable LowType t) {
 	return nStackEntriesForType(ctx.program, t);
 }
 
-immutable(Nat64) nStackEntriesForRecordType(ref const ExprCtx ctx, ref immutable LowType.Record t) {
+immutable(size_t) nStackEntriesForRecordType(ref const ExprCtx ctx, ref immutable LowType.Record t) {
 	immutable LowType type = immutable LowType(t);
 	return nStackEntriesForType(ctx, type);
 }
 
-immutable(Nat64) nStackEntriesForUnionType(ref const ExprCtx ctx, ref immutable LowType.Union t) {
+immutable(size_t) nStackEntriesForUnionType(ref const ExprCtx ctx, ref immutable LowType.Union t) {
 	immutable LowType type = immutable LowType(t);
 	return nStackEntriesForType(ctx, type);
 }
@@ -281,19 +281,19 @@ void generateBytecodeForFun(
 		}
 	}
 
-	Nat64 stackEntry = Nat64(0);
+	size_t stackEntry = 0;
 	immutable StackEntries[] parameters = map!StackEntries(
 		tempAlloc,
 		fun.params,
 		(ref immutable LowParam it) {
 			immutable StackEntry start = immutable StackEntry(stackEntry);
-			immutable Nat64 n = nStackEntriesForType(program, it.type);
+			immutable size_t n = nStackEntriesForType(program, it.type);
 			stackEntry += n;
 			return immutable StackEntries(start, n);
 		});
 	immutable StackEntry stackEntryAfterParameters = immutable StackEntry(stackEntry);
 	setStackEntryAfterParameters(writer, stackEntryAfterParameters);
-	immutable Nat64 returnEntries = nStackEntriesForType(program, fun.returnType);
+	immutable size_t returnEntries = nStackEntriesForType(program, fun.returnType);
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 
 	matchLowFunBody!(
@@ -316,14 +316,12 @@ void generateBytecodeForFun(
 				dbg,
 				writer,
 				source,
-				immutable StackEntries(
-					immutable StackEntry(immutable Nat64(0)),
-					stackEntryAfterParameters.entry));
+				immutable StackEntries(immutable StackEntry(0), stackEntryAfterParameters.entry));
 		},
 	)(fun.body_);
 	verify(getNextStackEntry(writer).entry == returnEntries);
 	writeReturn(dbg, writer, source);
-	setNextStackEntry(writer, immutable StackEntry(immutable Nat64(0)));
+	setNextStackEntry(writer, immutable StackEntry(0));
 }
 
 void generateExternCall(
@@ -465,7 +463,7 @@ struct ExprCtx {
 	immutable Ptr!LowProgram programPtr;
 	immutable Ptr!TextInfo textInfoPtr;
 	immutable LowFunIndex curFunIndex;
-	immutable Nat64 returnTypeSizeInStackEntries;
+	immutable size_t returnTypeSizeInStackEntries;
 	Ptr!(MutIndexMultiDict!(LowFunIndex, ByteCodeIndex)) funToReferences;
 	immutable ByteCodeIndex startOfCurrentFun;
 	immutable StackEntries[] parameterEntries;
@@ -491,7 +489,7 @@ void generateExpr(
 		void,
 		(ref immutable LowExprKind.Call it) {
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
-			immutable Nat64 expectedStackEffect = nStackEntriesForType(ctx, expr.type);
+			immutable size_t expectedStackEffect = nStackEntriesForType(ctx, expr.type);
 			generateArgs(dbg, tempAlloc, writer, ctx, it.args);
 			registerFunAddress(tempAlloc, ctx, it.called,
 				writeCallDelayed(writer, source, stackEntryBeforeArgs, expectedStackEffect));
@@ -547,7 +545,7 @@ void generateExpr(
 			generateExpr(dbg, tempAlloc, writer, ctx, it.matchedValue);
 			// Move the union kind to top of stack
 			writeDupEntry(dbg, writer, source, startStack);
-			writeRemove(dbg, writer, source, immutable StackEntries(startStack, immutable Nat64(1)));
+			writeRemove(dbg, writer, source, immutable StackEntries(startStack, 1));
 			// Get the kind (always the first entry)
 			immutable SwitchDelayed switchDelayed = writeSwitch0ToNDelay(writer, source, size(it.cases));
 			// Start of the union values is where the kind used to be.
@@ -561,7 +559,7 @@ void generateExpr(
 				(immutable size_t caseIndex, ref immutable LowExprKind.MatchUnion.Case case_) {
 					fillDelayedSwitchEntry(writer, switchDelayed, caseIndex);
 					if (has(case_.local)) {
-						immutable Nat64 nEntries = nStackEntriesForType(ctx, force(case_.local).deref().type);
+						immutable size_t nEntries = nStackEntriesForType(ctx, force(case_.local).deref().type);
 						verify(nEntries <= matchedEntriesWithoutKind.size);
 						addToMutDict(
 							tempAlloc,
@@ -603,8 +601,7 @@ void generateExpr(
 			generateExpr(dbg, tempAlloc, writer, ctx, it.value);
 			immutable FieldOffsetAndSize offsetAndSize =
 				getFieldOffsetAndSize(ctx, it.record, immutable Nat8(it.fieldIndex));
-			verify(mid.entry + divRoundUp(immutable Nat64(offsetAndSize.size), stackEntrySize) ==
-				getNextStackEntry(writer).entry);
+			verify(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
 			writeWrite(dbg, writer, source, offsetAndSize.offset, offsetAndSize.size);
 			verify(getNextStackEntry(writer) == before);
 		},
@@ -640,7 +637,7 @@ void generateExpr(
 
 			// Delete anything on the stack besides parameters
 			immutable StackEntry parametersEnd = empty(ctx.parameterEntries)
-				? immutable StackEntry(immutable Nat64(0))
+				? immutable StackEntry(0)
 				: stackEntriesEnd(last(ctx.parameterEntries));
 			immutable StackEntry localsEnd = getNextStackEntry(writer);
 			writeRemove(
@@ -783,9 +780,7 @@ void generateCreateRecordOrConstantRecord(
 	if (has(optPack))
 		writePack(dbg, writer, source, force(optPack));
 
-	immutable StackEntry after = getNextStackEntry(writer);
-	immutable Nat64 stackEntriesForType = nStackEntriesForRecordType(ctx, type);
-	verify(after.entry - before.entry == stackEntriesForType);
+	verify(getNextStackEntry(writer).entry - before.entry == nStackEntriesForRecordType(ctx, type));
 }
 
 void generateCreateUnion(
@@ -821,7 +816,7 @@ void generateCreateUnionOrConstantUnion(
 	scope void delegate(ref immutable LowType) @safe @nogc pure nothrow cbGenerateMember,
 ) {
 	immutable StackEntry before = getNextStackEntry(writer);
-	immutable Nat64 size = nStackEntriesForUnionType(ctx, type);
+	immutable size_t size = nStackEntriesForUnionType(ctx, type);
 	writePushConstant(dbg, writer, source, memberIndex);
 	immutable LowType memberType = at(fullIndexDictGet(ctx.program.allUnions, type).members, memberIndex);
 	cbGenerateMember(memberType);
@@ -1115,13 +1110,13 @@ void generateRecordFieldGet(
 	} else {
 		if (!zero(offsetAndSize.size)) {
 			immutable StackEntry firstEntry =
-				immutable StackEntry(targetEntry.entry + (immutable Nat64(offsetAndSize.offset) / stackEntrySize));
+				immutable StackEntry(targetEntry.entry + (offsetAndSize.offset / stackEntrySize));
 			writeDup(
 				dbg,
 				writer,
 				source,
 				firstEntry,
-				offsetAndSize.offset % stackEntrySize.raw(),
+				offsetAndSize.offset % stackEntrySize,
 				offsetAndSize.size);
 		}
 		writeRemove(dbg, writer, source, targetEntries);

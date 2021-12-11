@@ -79,16 +79,16 @@ struct ByteCode {
 struct StackOffset {
 	// In words.
 	// 0 is the top entry on the stack, 1 is the one before that, etc.
-	immutable Nat64 offset;
+	immutable size_t offset;
 }
 struct StackOffsetBytes {
 	@safe @nogc pure nothrow:
 
-	immutable Nat64 offsetBytes;
+	immutable size_t offsetBytes;
 
-	immutable this(immutable Nat64 o) {
+	immutable this(immutable size_t o) {
 		offsetBytes = o;
-		verify(offsetBytes > immutable Nat64(0));
+		verify(offsetBytes > 0);
 	}
 }
 
@@ -118,7 +118,7 @@ struct ByteCodeOffset {
 	}
 }
 
-immutable Nat64 stackEntrySize = immutable Nat64(8);
+immutable size_t stackEntrySize = 8;
 
 enum ExternOp : ubyte {
 	backtrace,
