@@ -246,7 +246,7 @@ This ensures the collection is kept in memory.
 		a ~ max-value.rand-nat add-test iters - 1, max-value
 
 .frozen-dict-add-test frozen-dict<nat, void>
-	a arrow<nat, void> mut[]
+	a pair<nat, void> mut[]
 	iters nat
 	max-value nat
 spec
@@ -256,7 +256,7 @@ body
 	if iters == 0
 		a.move-to-arr! to-frozen-dict
 	else
-		a ~= max-value.rand-nat, void
+		a ~= (max-value.rand-nat, void)
 		a frozen-dict-add-test iters - 1, max-value
 
 .frozen-set-add-test frozen-set nat(a nat mut[], iters nat, max-value nat) trusted summon
