@@ -7,7 +7,7 @@ import interpret.runBytecode : byteCodeIndexOfPtr, DataStack, Interpreter, showD
 import util.alloc.alloc : Alloc;
 import util.collection.arr : sizeEq;
 import util.collection.arrUtil : eachCorresponds;
-import util.collection.globalAllocatedStack : asTempArr;
+import util.collection.stack : asTempArr;
 import util.dbg : Debug;
 import util.path : AllPaths;
 import util.ptr : Ptr;

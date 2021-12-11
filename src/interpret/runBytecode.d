@@ -24,10 +24,9 @@ import util.alloc.rangeAlloc : RangeAlloc;
 import util.dbg : log, logNoNewline, logSymNoNewline;
 import util.collection.arr : at, begin, last, size, sizeNat;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.collection.globalAllocatedStack :
+import util.collection.stack :
 	asTempArr,
 	clearStack,
-	GlobalAllocatedStack,
 	peek,
 	pop,
 	popN,
@@ -36,6 +35,7 @@ import util.collection.globalAllocatedStack :
 	remove,
 	setToArr,
 	setStackTop,
+	Stack,
 	stackEnd,
 	stackIsEmpty,
 	stackRef,
@@ -93,8 +93,8 @@ private @system immutable(int) runBytecodeInner(scope ref Interpreter interprete
 	return safeIntFromNat64(returnCode);
 }
 
-alias DataStack = GlobalAllocatedStack!(Nat64, 1024 * 64);
-private alias ReturnStack = GlobalAllocatedStack!(immutable(Operation)*, 1024 * 4);
+alias DataStack = Stack!Nat64;
+private alias ReturnStack = Stack!(immutable(Operation)*);
 
 @system immutable(T) withInterpreter(T)(
 	ref Debug dbg,
@@ -152,8 +152,8 @@ struct Interpreter {
 		byteCodePtr = b;
 		allPathsPtr = ap;
 		filesInfoPtr = f;
-		dataStack = DataStack(true);
-		returnStack = ReturnStack(true);
+		dataStack = DataStack(ta.deref(), 1024 * 64);
+		returnStack = ReturnStack(ta.deref(), 1024 * 4);
 	}
 
 	Ptr!Debug debugPtr;

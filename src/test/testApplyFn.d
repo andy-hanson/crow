@@ -38,7 +38,7 @@ import interpret.bytecodeWriter : ByteCodeWriter, writeFnBinary, writeFnUnary, w
 import interpret.runBytecode : Interpreter;
 import test.testInterpreter : interpreterTest, stepAndExpect, stepExit;
 import test.testUtil : Test;
-import util.collection.globalAllocatedStack : push;
+import util.collection.stack : push;
 import util.types : Nat64, u64OfFloat32Bits, u64OfFloat64Bits;
 import util.util : verify;
 

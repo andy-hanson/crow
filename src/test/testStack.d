@@ -4,15 +4,15 @@ module test.testStack;
 
 import test.testUtil : Test;
 import util.collection.arrUtil : arrEqual;
-import util.collection.globalAllocatedStack :
+import util.collection.stack :
 	asTempArr,
-	GlobalAllocatedStack,
 	peek,
 	pop,
 	popN,
 	push,
 	remove,
 	setToArr,
+	Stack,
 	stackEnd,
 	stackIsEmpty,
 	stackSize,
@@ -20,14 +20,14 @@ import util.collection.globalAllocatedStack :
 import util.util : verify;
 
 void testStack(ref Test test) {
-	testPushPop();
-	testRemove();
+	testPushPop(test);
+	testRemove(test);
 }
 
 private:
 
-@trusted void testPushPop() {
-	GlobalAllocatedStack!(int, 8) a = GlobalAllocatedStack!(int, 8)(true);
+@trusted void testPushPop(ref Test test) {
+	Stack!int a = Stack!int(test.alloc, 8);
 
 	verify(stackIsEmpty(a));
 	push(a, 42);
@@ -69,8 +69,8 @@ private:
 	verify(stackIsEmpty(a));
 }
 
-@trusted void testRemove() {
-	GlobalAllocatedStack!(int, 8) a = GlobalAllocatedStack!(int, 8)(true);
+@trusted void testRemove(ref Test test) {
+	Stack!int a = Stack!int(test.alloc, 8);
 
 	setToArr(a, [1, 2, 3, 4, 5, 6]);
 
@@ -84,7 +84,7 @@ private:
 	verifyStack(a, []);
 }
 
-void verifyStack(size_t capacity)(ref GlobalAllocatedStack!(int, capacity) a, scope immutable int[] expected) {
+void verifyStack(ref Stack!int a, scope immutable int[] expected) {
 	verify(intArrEqual(asTempArr(a), expected));
 }
 

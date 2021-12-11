@@ -71,7 +71,7 @@ import test.testUtil : expectDataStack, expectReturnStack, Test;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : emptyArr;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
-import util.collection.globalAllocatedStack : stackBegin, pop, push;
+import util.collection.stack : stackBegin, pop, push;
 import util.collection.str : SafeCStr;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
