@@ -79,7 +79,7 @@ import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.util : repeatImpure, verify;
+import util.util : verify;
 
 void testInterpreter(ref Test test) {
 	testCall(test);
@@ -614,9 +614,8 @@ immutable(Operation*) stepNAndExpect(
 	scope immutable ulong[] expected,
 	immutable(Operation)* operation,
 ) {
-	repeatImpure(n, () {
+	foreach (immutable uint i; 0 .. n)
 		operation = stepContinue(test, interpreter, operation);
-	});
 	expectStack(test, interpreter, expected);
 	return operation;
 }

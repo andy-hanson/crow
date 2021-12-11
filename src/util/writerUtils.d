@@ -9,7 +9,7 @@ import util.opt : force, has, Opt;
 import util.path : AbsolutePath, AllPaths, baseName, nParents, parent, path, Path, PathAndStorageKind, RelPath;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : Sym, writeSym, writeSymAndGetSize;
-import util.util : repeat, todo;
+import util.util : todo;
 import util.writer : writeChar, writeNat, Writer, writeStatic, writeStr;
 
 private void writePath(
@@ -53,9 +53,8 @@ void writeRelPath(
 	ref const AllPaths allPaths,
 	ref immutable RelPath p,
 ) {
-	repeat(nParents(p), {
+	foreach (immutable ushort i; 0 .. nParents(p))
 		writeStatic(writer, "../");
-	});
 	writePath(writer, allPaths, p.path);
 }
 
@@ -115,9 +114,8 @@ void writeNl(ref Writer writer) {
 }
 
 void writeSpaces(ref Writer writer, immutable size_t nSpaces) {
-	repeat(nSpaces, {
+	foreach (immutable size_t i; 0 .. nSpaces)
 		writeChar(writer, ' ');
-	});
 }
 
 void writeNlIndent(ref Writer writer) {

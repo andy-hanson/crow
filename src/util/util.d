@@ -1,21 +1,9 @@
 module util.util;
 
-@safe @nogc nothrow:
-
-void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc nothrow cb) {
-	foreach (immutable size_t _; 0 .. times)
-		cb();
-}
-
-pure:
+@safe @nogc pure nothrow:
 
 T todo(T)(immutable string) {
 	assert(0);
-}
-
-void repeat(immutable size_t times, scope void delegate() @safe @nogc pure nothrow cb) {
-	foreach (immutable size_t _; 0 .. times)
-		cb();
 }
 
 immutable(T) min(T)(immutable T a, immutable T b) {
