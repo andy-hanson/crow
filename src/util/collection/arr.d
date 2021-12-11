@@ -5,7 +5,7 @@ module util.collection.arr;
 import util.alloc.alloc : Alloc, freeBytes;
 import util.ptr : Ptr;
 import util.memory : overwriteMemory;
-import util.types : NatN, Nat64;
+import util.types : NatN;
 import util.util : verify;
 
 struct ArrWithSize(T) {
@@ -65,10 +65,6 @@ struct ArrWithSize(T) {
 }
 @system T* begin(T)(T[] a) {
 	return a.ptr;
-}
-
-immutable(Nat64) sizeNat(T)(const T[] a) {
-	return immutable Nat64(a.length);
 }
 
 immutable(size_t) size(T)(scope const T[] a) {

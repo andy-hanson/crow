@@ -205,9 +205,9 @@ immutable(int) safeIntFromSizeT(immutable size_t s) {
 	return cast(immutable int) s;
 }
 
-immutable(int) safeIntFromNat64(immutable Nat64 a) {
-	verify(a.value <= int.max);
-	return cast(immutable int) a.value;
+immutable(int) safeIntFromU64(immutable ulong a) {
+	verify(a <= int.max);
+	return cast(immutable int) a;
 }
 
 immutable(ubyte) safeSizeTToU8(immutable size_t s) {
@@ -246,14 +246,14 @@ immutable(double) abs(immutable double a) {
 	return a < 0 ? -a : a;
 }
 
-immutable(Nat32) u32OfFloat32Bits(immutable float value) {
+immutable(uint) u32OfFloat32Bits(immutable float value) {
 	Converter32 conv;
 	conv.asFloat32 = value;
-	return immutable Nat32(conv.asU32);
+	return conv.asU32;
 }
 
-immutable(Nat64) u64OfFloat32Bits(immutable float value) {
-	return u32OfFloat32Bits(value).to64();
+immutable(ulong) u64OfFloat32Bits(immutable float value) {
+	return u32OfFloat32Bits(value);
 }
 
 immutable(float) float32OfU32Bits(immutable uint value) {
@@ -272,10 +272,10 @@ immutable(uint) u32OfI32Bits(immutable int value) {
 	return conv.asU32;
 }
 
-immutable(Nat64) u64OfFloat64Bits(immutable double value) {
+immutable(ulong) u64OfFloat64Bits(immutable double value) {
 	Converter64 conv;
 	conv.asFloat64 = value;
-	return immutable Nat64(conv.asU64);
+	return conv.asU64;
 }
 
 immutable(double) float64OfU64Bits(immutable ulong value) {

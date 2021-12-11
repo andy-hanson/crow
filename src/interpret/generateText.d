@@ -318,10 +318,10 @@ void writeConstant(
 		(immutable double it) {
 			switch (asPrimitive(type)) {
 				case PrimitiveType.float32:
-					add32(ctx.text, u32OfFloat32Bits(it).raw());
+					add32(ctx.text, u32OfFloat32Bits(it));
 					break;
 				case PrimitiveType.float64:
-					add64(ctx.text, u64OfFloat64Bits(it).raw());
+					add64(ctx.text, u64OfFloat64Bits(it));
 					break;
 				default:
 					unreachable!void();

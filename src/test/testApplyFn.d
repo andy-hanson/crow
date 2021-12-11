@@ -39,60 +39,55 @@ import interpret.runBytecode : Interpreter;
 import test.testInterpreter : interpreterTest, stepAndExpect, stepExit;
 import test.testUtil : Test;
 import util.collection.stack : push;
-import util.types : Nat64, u64OfFloat32Bits, u64OfFloat64Bits;
+import util.types : u64OfFloat32Bits, u64OfFloat64Bits;
 import util.util : verify;
 
 void testApplyFn(ref Test test) {
-	immutable Nat64 one = immutable Nat64(1); // https://issues.dlang.org/show_bug.cgi?id=17778
+	ulong one = 1; // https://issues.dlang.org/show_bug.cgi?id=17778
+	one += 0;
 
 	testFnBinary!fnAddFloat32(test, [u64OfFloat32Bits(-1.5), u64OfFloat32Bits(2.7)], u64OfFloat32Bits(1.2));
 	testFnBinary!fnAddFloat64(test, [u64OfFloat64Bits(-1.5), u64OfFloat64Bits(2.6)], u64OfFloat64Bits(1.1));
 
-	testFnUnary!fnBitwiseNot(test, immutable Nat64(0xa), immutable Nat64(0xfffffffffffffff5));
+	testFnUnary!fnBitwiseNot(test, 0xa, 0xfffffffffffffff5);
 	testFnUnary!fnInt64FromInt16(test, u64OfI16Bits(-1), u64OfI64Bits(-1));
 	testFnUnary!fnInt64FromInt32(test, u64OfI32Bits(-1), u64OfI64Bits(-1));
-	testFnBinary!fnUnsafeBitShiftLeftNat64(
-		test,
-		[immutable Nat64(0x0123456789abcdef), immutable Nat64(4)],
-		immutable Nat64(0x123456789abcdef0));
-	testFnBinary!fnUnsafeBitShiftRightNat64(
-		test,
-		[immutable Nat64(0x0123456789abcdef), immutable Nat64(4)],
-		immutable Nat64(0x00123456789abcde));
+	testFnBinary!fnUnsafeBitShiftLeftNat64(test, [0x0123456789abcdef, 4], 0x123456789abcdef0);
+	testFnBinary!fnUnsafeBitShiftRightNat64(test, [0x0123456789abcdef, 4], 0x00123456789abcde);
 
-	testFnBinary!fnBitwiseAnd(test, [immutable Nat64(0b0101), immutable Nat64(0b0011)], immutable Nat64(0b0001));
-	testFnBinary!fnBitwiseOr(test, [immutable Nat64(0b0101), immutable Nat64(0b0011)], immutable Nat64(0b0111));
+	testFnBinary!fnBitwiseAnd(test, [0b0101, 0b0011], 0b0001);
+	testFnBinary!fnBitwiseOr(test, [0b0101, 0b0011], 0b0111);
 
-	testFnUnary!fnCountOnesNat64(test, immutable Nat64(0b10101), immutable Nat64(3));
+	testFnUnary!fnCountOnesNat64(test, 0b10101, 3);
 
 	testFnUnary!fnFloat64FromInt64(test, u64OfI64Bits(-1), u64OfFloat64Bits(-1.0));
 
-	testFnUnary!fnFloat64FromNat64(test, immutable Nat64(1), u64OfFloat64Bits(1.0));
+	testFnUnary!fnFloat64FromNat64(test, 1, u64OfFloat64Bits(1.0));
 
-	testFnBinary!fnLessFloat32(test, [u64OfFloat32Bits(-1.0), u64OfFloat32Bits(1.0)], immutable Nat64(1));
-	testFnBinary!fnLessFloat32(test, [u64OfFloat32Bits(1.0), u64OfFloat32Bits(-1.0)], immutable Nat64(0));
+	testFnBinary!fnLessFloat32(test, [u64OfFloat32Bits(-1.0), u64OfFloat32Bits(1.0)], 1);
+	testFnBinary!fnLessFloat32(test, [u64OfFloat32Bits(1.0), u64OfFloat32Bits(-1.0)], 0);
 
-	testFnBinary!fnLessFloat64(test, [u64OfFloat64Bits(-1.0), u64OfFloat64Bits(1.0)], immutable Nat64(1));
-	testFnBinary!fnLessFloat64(test, [u64OfFloat64Bits(1.0), u64OfFloat64Bits(-1.0)], immutable Nat64(0));
+	testFnBinary!fnLessFloat64(test, [u64OfFloat64Bits(-1.0), u64OfFloat64Bits(1.0)], 1);
+	testFnBinary!fnLessFloat64(test, [u64OfFloat64Bits(1.0), u64OfFloat64Bits(-1.0)], 0);
 
-	verify(u64OfI8Bits(-1) == immutable Nat64(0xff));
+	verify(u64OfI8Bits(-1) == 0xff);
 
-	testFnBinary!fnLessInt8(test, [u64OfI8Bits(-1), u64OfI8Bits(1)], immutable Nat64(1));
+	testFnBinary!fnLessInt8(test, [u64OfI8Bits(-1), u64OfI8Bits(1)], 1);
 
-	verify(u64OfI16Bits(-1) == immutable Nat64(0xffff));
+	verify(u64OfI16Bits(-1) == 0xffff);
 
-	testFnBinary!fnLessInt16(test, [u64OfI16Bits(-1), u64OfI16Bits(1)], immutable Nat64(1));
+	testFnBinary!fnLessInt16(test, [u64OfI16Bits(-1), u64OfI16Bits(1)], 1);
 
-	verify(u64OfI32Bits(-1) == immutable Nat64(0x00000000ffffffff));
+	verify(u64OfI32Bits(-1) == 0x00000000ffffffff);
 
-	testFnBinary!fnLessInt32(test, [u64OfI32Bits(-1), u64OfI32Bits(1)], immutable Nat64(1));
-	testFnBinary!fnLessInt32(test, [u64OfI32Bits(int.max), u64OfI32Bits(1)], immutable Nat64(0));
+	testFnBinary!fnLessInt32(test, [u64OfI32Bits(-1), u64OfI32Bits(1)], 1);
+	testFnBinary!fnLessInt32(test, [u64OfI32Bits(int.max), u64OfI32Bits(1)], 0);
 
-	testFnBinary!fnLessInt64(test, [u64OfI64Bits(-1), u64OfI64Bits(1)], immutable Nat64(1));
-	testFnBinary!fnLessInt64(test, [u64OfI64Bits(long.max), u64OfI64Bits(1)], immutable Nat64(0));
+	testFnBinary!fnLessInt64(test, [u64OfI64Bits(-1), u64OfI64Bits(1)], 1);
+	testFnBinary!fnLessInt64(test, [u64OfI64Bits(long.max), u64OfI64Bits(1)], 0);
 
-	testFnBinary!fnLessNat(test, [immutable Nat64(1), immutable Nat64(3)], immutable Nat64(1));
-	testFnBinary!fnLessNat(test, [immutable Nat64(1), one], immutable Nat64(0));
+	testFnBinary!fnLessNat(test, [1, 3], 1);
+	testFnBinary!fnLessNat(test, [1, one], 0);
 
 	testFnBinary!fnMulFloat64(
 		test,
@@ -110,45 +105,42 @@ void testApplyFn(ref Test test) {
 	testFnBinary!fnUnsafeDivInt64(test, [u64OfI64Bits(3), u64OfI64Bits(2)], u64OfI64Bits(1));
 	testFnBinary!fnUnsafeDivInt64(test, [u64OfI64Bits(3), u64OfI64Bits(-1)], u64OfI64Bits(-3));
 
-	testFnBinary!fnUnsafeDivNat64(test, [immutable Nat64(3), immutable Nat64(2)], immutable Nat64(1));
-	testFnBinary!fnUnsafeDivNat64(test, [immutable Nat64(3), Nat64.max], immutable Nat64(0));
+	testFnBinary!fnUnsafeDivNat64(test, [3, 2], 1);
+	testFnBinary!fnUnsafeDivNat64(test, [3, ulong.max], 0);
 
-	testFnBinary!fnUnsafeModNat64(test, [immutable Nat64(3), immutable Nat64(2)], immutable Nat64(1));
+	testFnBinary!fnUnsafeModNat64(test, [3, 2], 1);
 
-	testFnBinary!fnWrapAddIntegral(test, [immutable Nat64(1), immutable Nat64(2)], immutable Nat64(3));
-	testFnBinary!fnWrapAddIntegral(test, [Nat64.max, immutable Nat64(1)], immutable Nat64(0));
+	testFnBinary!fnWrapAddIntegral(test, [1, 2], 3);
+	testFnBinary!fnWrapAddIntegral(test, [ulong.max, 1], 0);
 
-	testFnBinary!fnWrapMulIntegral(test, [immutable Nat64(2), immutable Nat64(3)], immutable Nat64(6));
-	immutable Nat64 i = immutable Nat64(0x123456789); // https://issues.dlang.org/show_bug.cgi?id=17778
-	testFnBinary!fnWrapMulIntegral(test, [i, i], immutable Nat64(0x4b66dc326fb98751));
+	testFnBinary!fnWrapMulIntegral(test, [2, 3], 6);
+	ulong i = 0x123456789; // https://issues.dlang.org/show_bug.cgi?id=17778
+	i += 0;
+	testFnBinary!fnWrapMulIntegral(test, [i, i], 0x4b66dc326fb98751);
 
-	testFnBinary!fnWrapSubIntegral(test, [immutable Nat64(2), immutable Nat64(1)], immutable Nat64(1));
-	testFnBinary!fnWrapSubIntegral(test, [immutable Nat64(1), immutable Nat64(2)], Nat64.max);
+	testFnBinary!fnWrapSubIntegral(test, [2, 1], 1);
+	testFnBinary!fnWrapSubIntegral(test, [1, 2], ulong.max);
 }
 
 private:
 
-immutable(Nat64) u64OfI8Bits(immutable byte a) {
-	return immutable Nat64(cast(ulong) (cast(ubyte) a));
+immutable(ulong) u64OfI8Bits(immutable byte a) {
+	return cast(ulong) (cast(ubyte) a);
 }
 
-immutable(Nat64) u64OfI16Bits(immutable short a) {
-	return immutable Nat64(cast(ulong) (cast(ushort) a));
+immutable(ulong) u64OfI16Bits(immutable short a) {
+	return cast(ulong) (cast(ushort) a);
 }
 
-immutable(Nat64) u64OfI32Bits(immutable int a) {
-	return immutable Nat64(cast(ulong) (cast(uint) a));
+immutable(ulong) u64OfI32Bits(immutable int a) {
+	return cast(ulong) (cast(uint) a);
 }
 
-immutable(Nat64) u64OfI64Bits(immutable long a) {
-	return immutable Nat64(cast(ulong) a);
+immutable(ulong) u64OfI64Bits(immutable long a) {
+	return cast(ulong) a;
 }
 
-@trusted void testFnBinary(alias fn)(
-	ref Test test,
-	scope immutable Nat64[2] stackIn,
-	scope immutable Nat64 stackOut,
-) {
+@trusted void testFnBinary(alias fn)(ref Test test, scope immutable ulong[2] stackIn, immutable ulong stackOut) {
 	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
@@ -156,18 +148,14 @@ immutable(Nat64) u64OfI64Bits(immutable long a) {
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* cur) {
-			foreach (immutable Nat64 x; stackIn)
+			foreach (immutable ulong x; stackIn)
 				push(interpreter.dataStack, x);
 			cur = stepAndExpect(test, interpreter, [stackOut], cur);
 			stepExit(test, interpreter, cur);
 		});
 }
 
-@trusted void testFnUnary(alias fn)(
-	ref Test test,
-	scope immutable Nat64 stackIn,
-	scope immutable Nat64 stackOut,
-) {
+@trusted void testFnUnary(alias fn)(ref Test test, immutable ulong stackIn, immutable ulong stackOut) {
 	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {

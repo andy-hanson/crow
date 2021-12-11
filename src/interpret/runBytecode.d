@@ -22,7 +22,7 @@ import model.typeLayout : PackField;
 import util.alloc.alloc : TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.dbg : log, logNoNewline, logSymNoNewline;
-import util.collection.arr : at, begin, last, size, sizeNat;
+import util.collection.arr : at, begin, last, size;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.stack :
 	asTempArr,
@@ -52,7 +52,7 @@ import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.repr : writeReprNoNewline;
 import util.sourceRange : FileAndPos;
 import util.sym : Sym;
-import util.types : Int64, i32OfU64Bits, Nat64, safeIntFromNat64, safeSizeTFromU64, safeU32FromI32;
+import util.types : Int64, i32OfU64Bits, Nat64, safeIntFromU64, safeSizeTFromU64, safeU32FromI32;
 import util.util : divRoundUp, drop, min, unreachable, verify;
 import util.writer : finishWriter, Writer, writeChar, writeHex, writeStatic;
 
@@ -70,8 +70,8 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writeStatic;
 	return withInterpreter!(immutable int)(
 		dbg, tempAlloc, extern_, lowProgram, byteCode, allPaths, filesInfo,
 		(scope ref Interpreter interpreter) {
-			push(interpreter.dataStack, sizeNat(allArgs)); // TODO: this is an i32, add safety checks
-			push(interpreter.dataStack, immutable Nat64(cast(immutable ulong) begin(allArgs)));
+			push(interpreter.dataStack, size(allArgs));
+			push(interpreter.dataStack, cast(immutable ulong) begin(allArgs));
 			return withMeasureNoAlloc!(immutable int, () =>
 				runBytecodeInner(interpreter)
 			)(perf, PerfMeasure.run);
@@ -88,12 +88,12 @@ private @system immutable(int) runBytecodeInner(scope ref Interpreter interprete
 		opPtr = opPtr.fn(interpreter, opPtr + 1).operationPtr;
 	} while (opPtr.fn != &opStopInterpretation);
 
-	immutable Nat64 returnCode = pop(interpreter.dataStack);
+	immutable ulong returnCode = pop(interpreter.dataStack);
 	verify(stackIsEmpty(interpreter.dataStack));
-	return safeIntFromNat64(returnCode);
+	return safeIntFromU64(returnCode);
 }
 
-alias DataStack = Stack!Nat64;
+alias DataStack = Stack!ulong;
 private alias ReturnStack = Stack!(immutable(Operation)*);
 
 @system immutable(T) withInterpreter(T)(
@@ -199,7 +199,7 @@ public pure ref immutable(ByteCode) byteCode(return scope ref const Interpreter 
 private struct InterpreterRestore {
 	// This is the stack sizes and byte code index to be restored by longjmp
 	immutable ByteCodeIndex nextByteCodeIndex;
-	Nat64* dataStackTop;
+	ulong* dataStackTop;
 	immutable Operation*[] restoreReturnStack;
 }
 
@@ -218,15 +218,15 @@ private @system immutable(Operation*) applyInterpreterRestore(ref Interpreter a,
 }
 
 private void showStack(scope ref Writer writer, ref const Interpreter a) {
-	immutable Nat64[] stack = asTempArr(a.dataStack);
+	immutable ulong[] stack = asTempArr(a.dataStack);
 	showDataArr(writer, stack);
 }
 
-void showDataArr(scope ref Writer writer, scope ref immutable Nat64[] values) {
+void showDataArr(scope ref Writer writer, scope ref immutable ulong[] values) {
 	writeStatic(writer, "data: ");
-	foreach (immutable Nat64 value; values) {
+	foreach (immutable ulong value; values) {
 		writeChar(writer, ' ');
-		writeHex(writer, value.raw());
+		writeHex(writer, value);
 	}
 	writeChar(writer, '\n');
 }
@@ -379,8 +379,8 @@ immutable(NextOperation) opStopInterpretation(ref Interpreter a, immutable(Opera
 @system immutable(NextOperation) opJumpIfFalse(ref Interpreter a, immutable(Operation)* cur) {
 	debug log(a.dbg, "opJumpIfFalse");
 	immutable ByteCodeOffsetUnsigned offset = immutable ByteCodeOffsetUnsigned(readSizeT(cur));
-	immutable Nat64 value = pop(a.dataStack);
-	if (value == immutable Nat64(0))
+	immutable ulong value = pop(a.dataStack);
+	if (value == 0)
 		cur += offset.offset;
 	return nextOperation(a, cur);
 }
@@ -388,15 +388,15 @@ immutable(NextOperation) opStopInterpretation(ref Interpreter a, immutable(Opera
 @system immutable(NextOperation) opSwitch0ToN(ref Interpreter a, immutable(Operation)* cur) {
 	debug log(a.dbg, "opSwitch0T0N");
 	immutable ByteCodeOffsetUnsigned[] offsets = readArray!ByteCodeOffsetUnsigned(cur);
-	immutable Nat64 value = pop(a.dataStack);
-	immutable ByteCodeOffsetUnsigned offset = at(offsets, safeSizeTFromU64(value.raw()));
+	immutable ulong value = pop(a.dataStack);
+	immutable ByteCodeOffsetUnsigned offset = at(offsets, safeSizeTFromU64(value));
 	return nextOperation(a, cur + offset.offset);
 }
 
 @system immutable(NextOperation) opStackRef(ref Interpreter a, immutable(Operation)* cur) {
 	debug log(a.dbg, "opStackRef");
 	immutable size_t offset = readStackOffset(cur);
-	push(a.dataStack, immutable Nat64(cast(immutable ulong) stackRef(a.dataStack, offset)));
+	push(a.dataStack, cast(immutable ulong) stackRef(a.dataStack, offset));
 	return nextOperation(a, cur);
 }
 
@@ -421,7 +421,7 @@ private @system immutable(NextOperation) opReadWordsCommon(
 	immutable size_t offsetWords,
 	immutable size_t sizeWords,
 ) {
-	immutable Nat64* ptr = (cast(immutable Nat64*) pop(a.dataStack).raw()) + offsetWords;
+	immutable ulong* ptr = (cast(immutable ulong*) pop(a.dataStack)) + offsetWords;
 	foreach (immutable size_t i; 0 .. sizeWords)
 		push(a.dataStack, ptr[i]);
 	return nextOperation(a, cur);
@@ -433,7 +433,7 @@ private @system immutable(NextOperation) opReadWordsCommon(
 	immutable Operation* cur,
 ) {
 	debug log(a.dbg, "opReadNat8", offsetBytes);
-	push(a.dataStack, immutable Nat64(*((cast(immutable ubyte*) pop(a.dataStack).raw()) + offsetBytes)));
+	push(a.dataStack, *((cast(immutable ubyte*) pop(a.dataStack)) + offsetBytes));
 	return nextOperation(a, cur);
 }
 
@@ -442,7 +442,7 @@ private @system immutable(NextOperation) opReadWordsCommon(
 	immutable Operation* cur,
 ) {
 	debug log(a.dbg, "opReadNat16", offsetNat16s);
-	push(a.dataStack, immutable Nat64(*((cast(immutable ushort*) pop(a.dataStack).raw()) + offsetNat16s)));
+	push(a.dataStack, *((cast(immutable ushort*) pop(a.dataStack)) + offsetNat16s));
 	return nextOperation(a, cur);
 }
 
@@ -451,7 +451,7 @@ private @system immutable(NextOperation) opReadWordsCommon(
 	immutable Operation* cur,
 ) {
 	debug log(a.dbg, "opReadNat32", offsetNat32s);
-	push(a.dataStack, immutable Nat64(*((cast(immutable uint*) pop(a.dataStack).raw()) + offsetNat32s)));
+	push(a.dataStack, *((cast(immutable uint*) pop(a.dataStack)) + offsetNat32s));
 	return nextOperation(a, cur);
 }
 
@@ -459,7 +459,7 @@ private @system immutable(NextOperation) opReadWordsCommon(
 	immutable size_t offsetBytes = readSizeT(cur);
 	immutable size_t sizeBytes = readSizeT(cur);
 	debug log(a.dbg, "opReadBytesVariable", offsetBytes, sizeBytes);
-	immutable ubyte* ptr = (cast(immutable ubyte*) pop(a.dataStack).raw()) + offsetBytes;
+	immutable ubyte* ptr = (cast(immutable ubyte*) pop(a.dataStack)) + offsetBytes;
 	readNoCheck(a.dataStack, ptr, sizeBytes);
 	return nextOperation(a, cur);
 }
@@ -470,12 +470,12 @@ private @system immutable(NextOperation) opReadWordsCommon(
 	immutable size_t size = readSizeT(cur);
 	if (size < 8) { //TODO:UNNECESSARY?
 		verify(size != 0);
-		immutable ulong value = pop(a.dataStack).raw();
-		ubyte* ptr = cast(ubyte*) pop(a.dataStack).raw();
+		immutable ulong value = pop(a.dataStack);
+		ubyte* ptr = cast(ubyte*) pop(a.dataStack);
 		writePartialBytes(ptr + offset, value, size);
 	} else {
 		immutable size_t sizeWords = divRoundUp(size, 8);
-		ubyte* destWithoutOffset = cast(ubyte*) peek(a.dataStack, sizeWords).raw();
+		ubyte* destWithoutOffset = cast(ubyte*) peek(a.dataStack, sizeWords);
 		ubyte* src = cast(ubyte*) (stackEnd(a.dataStack) - sizeWords);
 		ubyte* dest = destWithoutOffset + offset;
 		memcpy(dest, src, size);
@@ -512,8 +512,7 @@ private @system void writePartialBytes(ubyte* ptr, immutable ulong value, immuta
 	debug log(a.dbg, "opCallFunPtr");
 	immutable size_t parametersSize = readSizeT(cur);
 	//TODO: handle a real function pointer being here?
-	immutable ByteCodeIndex address = immutable ByteCodeIndex(
-		safeSizeTFromU64(remove(a.dataStack, parametersSize).raw()));
+	immutable ByteCodeIndex address = immutable ByteCodeIndex(safeSizeTFromU64(remove(a.dataStack, parametersSize)));
 	return callCommon(a, address, cur);
 }
 
@@ -531,48 +530,48 @@ private @system immutable(NextOperation) callCommon(
 	immutable ExternOp op = cast(ExternOp) readNat64(cur).raw();
 	final switch (op) {
 		case ExternOp.backtrace:
-			immutable int size = cast(int) pop(a.dataStack).to32().raw();
-			void** array = cast(void**) pop(a.dataStack).raw();
+			immutable int size = cast(int) pop(a.dataStack);
+			void** array = cast(void**) pop(a.dataStack);
 			immutable size_t res = backtrace(a, array, safeU32FromI32(size));
 			verify(res <= int.max);
-			push(a.dataStack, immutable Nat64(res));
+			push(a.dataStack, res);
 			break;
 		case ExternOp.clockGetTime:
-			Ptr!TimeSpec timespecPtr = Ptr!TimeSpec(cast(TimeSpec*) pop(a.dataStack).raw());
-			immutable int clockId = i32OfU64Bits(pop(a.dataStack).raw());
-			push(a.dataStack, immutable Nat64(cast(immutable ulong) a.extern_.clockGetTime(clockId, timespecPtr)));
+			Ptr!TimeSpec timespecPtr = Ptr!TimeSpec(cast(TimeSpec*) pop(a.dataStack));
+			immutable int clockId = i32OfU64Bits(pop(a.dataStack));
+			push(a.dataStack, cast(immutable ulong) a.extern_.clockGetTime(clockId, timespecPtr));
 			break;
 		case ExternOp.free:
-			a.extern_.free(cast(ubyte*) pop(a.dataStack).raw());
+			a.extern_.free(cast(ubyte*) pop(a.dataStack));
 			break;
 		case ExternOp.getNProcs:
-			push(a.dataStack, immutable Nat64(1));
+			push(a.dataStack, 1);
 			break;
 		case ExternOp.longjmp:
-			immutable Nat64 val = pop(a.dataStack); // TODO: verify this is int32?
-			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack).raw();
+			immutable ulong val = pop(a.dataStack); // TODO: verify this is int32?
+			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack);
 			cur = applyInterpreterRestore(a, **jmpBufPtr);
 			//TODO: freeInterpreterRestore
 			push(a.dataStack, val);
 			break;
 		case ExternOp.malloc:
-			immutable ulong nBytes = safeSizeTFromU64(pop(a.dataStack).raw());
-			push(a.dataStack, immutable Nat64(cast(immutable ulong) a.extern_.malloc(nBytes)));
+			immutable ulong nBytes = safeSizeTFromU64(pop(a.dataStack));
+			push(a.dataStack, cast(immutable ulong) a.extern_.malloc(nBytes));
 			break;
 		case ExternOp.memcpy:
 		case ExternOp.memmove:
-			immutable size_t size = safeSizeTFromU64(pop(a.dataStack).raw());
-			const ubyte* src = cast(ubyte*) pop(a.dataStack).raw();
-			ubyte* dest = cast(ubyte*) pop(a.dataStack).raw();
+			immutable size_t size = safeSizeTFromU64(pop(a.dataStack));
+			const ubyte* src = cast(ubyte*) pop(a.dataStack);
+			ubyte* dest = cast(ubyte*) pop(a.dataStack);
 			ubyte* res = memmove(dest, src, size);
-			push(a.dataStack, immutable Nat64(cast(immutable ulong) res));
+			push(a.dataStack, cast(immutable ulong) res);
 			break;
 		case ExternOp.memset:
-			immutable size_t size = safeSizeTFromU64(pop(a.dataStack).raw());
-			immutable ubyte value = pop(a.dataStack).to8().raw();
-			ubyte* begin = cast(ubyte*) pop(a.dataStack).raw();
+			immutable size_t size = safeSizeTFromU64(pop(a.dataStack));
+			immutable ubyte value = cast(ubyte) pop(a.dataStack);
+			ubyte* begin = cast(ubyte*) pop(a.dataStack);
 			ubyte* res = memset(begin, value, size);
-			push(a.dataStack, immutable Nat64(cast(immutable ulong) res));
+			push(a.dataStack, cast(immutable ulong) res);
 			break;
 		case ExternOp.pthreadCreate:
 			unreachable!void();
@@ -590,29 +589,29 @@ private @system immutable(NextOperation) callCommon(
 		case ExternOp.pthreadMutexLock:
 		case ExternOp.pthreadMutexUnlock:
 			pop(a.dataStack);
-			push(a.dataStack, immutable Nat64(0));
+			push(a.dataStack, 0);
 			break;
 		case ExternOp.pthreadCondattrSetClock:
 		case ExternOp.pthreadCondInit:
 		case ExternOp.pthreadMutexInit:
 			pop(a.dataStack);
 			pop(a.dataStack);
-			push(a.dataStack, immutable Nat64(0));
+			push(a.dataStack, 0);
 			break;
 		case ExternOp.schedYield:
-			push(a.dataStack, immutable Nat64(0));
+			push(a.dataStack, 0);
 			break;
 		case ExternOp.setjmp:
-			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack).raw();
+			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack);
 			overwriteMemory(jmpBufPtr, createInterpreterRestore(a, cur));
-			push(a.dataStack, immutable Nat64(0));
+			push(a.dataStack, 0);
 			break;
 		case ExternOp.write:
-			immutable size_t nBytes = safeSizeTFromU64(pop(a.dataStack).raw());
-			immutable char* buf = cast(immutable char*) pop(a.dataStack).raw();
-			immutable int fd = i32OfU64Bits(pop(a.dataStack).raw());
+			immutable size_t nBytes = safeSizeTFromU64(pop(a.dataStack));
+			immutable char* buf = cast(immutable char*) pop(a.dataStack);
+			immutable int fd = i32OfU64Bits(pop(a.dataStack));
 			immutable long res = a.extern_.write(fd, buf, nBytes);
-			push(a.dataStack, immutable Nat64(res));
+			push(a.dataStack, res);
 			break;
 	}
 	return nextOperation(a, cur);
@@ -634,8 +633,8 @@ private @system immutable(size_t) backtrace(ref Interpreter a, void** res, immut
 	}
 	immutable DynCallType returnType = cast(immutable DynCallType) readNat64(cur).raw();
 	scope immutable DynCallType[] parameterTypes = readArray!DynCallType(cur);
-	scope immutable Nat64[] params = popN(a.dataStack, size(parameterTypes));
-	immutable Nat64 value = a.extern_.doDynCall(name, returnType, params, parameterTypes);
+	scope immutable ulong[] params = popN(a.dataStack, size(parameterTypes));
+	immutable ulong value = a.extern_.doDynCall(name, returnType, params, parameterTypes);
 	if (returnType != DynCallType.void_)
 		push(a.dataStack, value);
 	return nextOperation(a, cur);
@@ -646,14 +645,14 @@ private alias JmpBufTag = InterpreterRestore*;
 
 @system immutable(NextOperation) opFnUnary(alias cb)(ref Interpreter a, immutable(Operation)* cur) {
 	debug log(a.dbg, "opFnUnary", __traits(identifier, cb));
-	push(a.dataStack, cb(pop(a.dataStack).raw()));
+	push(a.dataStack, cb(pop(a.dataStack)));
 	return nextOperation(a, cur);
 }
 
 @system immutable(NextOperation) opFnBinary(alias cb)(ref Interpreter a, immutable(Operation)* cur) {
 	debug log(a.dbg, "opFnBinary", __traits(identifier, cb));
-	immutable ulong y = pop(a.dataStack).raw();
-	immutable ulong x = pop(a.dataStack).raw();
+	immutable ulong y = pop(a.dataStack);
+	immutable ulong x = pop(a.dataStack);
 	push(a.dataStack, cb(x, y));
 	return nextOperation(a, cur);
 }
@@ -733,8 +732,7 @@ private @system immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {
 
 @system immutable(NextOperation) opPushValue64(ref Interpreter a, immutable(Operation)* cur) {
 	debug log(a.dbg, "opPushValue64");
-	immutable Nat64 value = readNat64(cur);
-	push(a.dataStack, value);
+	push(a.dataStack, readNat64(cur).raw());
 	return nextOperation(a, cur);
 }
 
@@ -765,7 +763,7 @@ private @system immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {
 	debug log(a.dbg, "opDupWords");
 	immutable size_t offsetWords = readStackOffset(cur);
 	immutable size_t sizeWords = readSizeT(cur);
-	const(Nat64)* ptr = stackTop(a.dataStack) - offsetWords;
+	const(ulong)* ptr = stackTop(a.dataStack) - offsetWords;
 	foreach (immutable size_t i; 0 .. sizeWords) {
 		push(a.dataStack, *ptr);
 		ptr++;
@@ -796,8 +794,8 @@ private @system immutable(NextOperation) opSetCommon(
 	immutable size_t sizeWords,
 ) {
 	// Start at the end of the range and pop in reverse
-	const Nat64* begin = stackTop(a.dataStack) - offsetWords;
-	const(Nat64)* ptr = begin + sizeWords;
+	const ulong* begin = stackTop(a.dataStack) - offsetWords;
+	const(ulong)* ptr = begin + sizeWords;
 	foreach (immutable size_t i; 0 .. sizeWords) {
 		ptr--;
 		overwriteMemory(ptr, pop(a.dataStack));

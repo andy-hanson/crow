@@ -52,7 +52,7 @@ import model.model : EnumValue;
 import model.typeLayout : Pack;
 import util.dbg : Debug;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, size, sizeNat;
+import util.collection.arr : empty, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
 import util.collection.mutArr : moveToArr_mut, MutArr, mutArrEnd, mutArrPtrAt, mutArrSize, push, setAt;
@@ -348,7 +348,7 @@ void writeStackRef(
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
 	immutable StackEntry stackEntry,
-	immutable Nat64 byteOffset = immutable Nat64(0),
+	immutable size_t byteOffset = 0,
 ) {
 	log(dbg, writer, "write stack ref");
 	pushOperationFn(writer, source, &opStackRef);
@@ -356,9 +356,8 @@ void writeStackRef(
 	pushSizeT(writer, source, offset.offset);
 	writer.nextStackEntry += 1;
 
-	if (!zero(byteOffset)) {
-		writeAddConstantNat64(dbg, writer, source, byteOffset);
-	}
+	if (byteOffset != 0)
+		writeAddConstantNat64(dbg, writer, source, immutable Nat64(byteOffset));
 }
 
 void writeWrite(
@@ -413,9 +412,9 @@ void writePushConstants(size_t n)(
 	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
-	immutable Nat64[n] values,
+	immutable ulong[n] values,
 ) {
-	foreach (immutable Nat64 value; values)
+	foreach (immutable ulong value; values)
 		writePushConstant(dbg, writer, source, value);
 }
 
@@ -423,7 +422,7 @@ void writePushConstant(
 	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
-	immutable size_t value,
+	immutable ulong value,
 ) {
 	writePushConstant(dbg, writer, source, immutable Nat64(value));
 }

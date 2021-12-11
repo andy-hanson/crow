@@ -16,7 +16,7 @@ import core.sys.posix.unistd : close, getcwd, lseek, read, readlink, unlink, pos
 import backend.jit : jitAndRun;
 import frontend.lang : crowExtension, JitOptions, OptimizationLevel;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
-import interpret.applyFn : nat64OfI32, nat64OfI64;
+import interpret.applyFn : u64OfI32, u64OfI64;
 import interpret.extern_ : DynCallType, Extern, TimeSpec;
 import lib.cliParser :
 	hasAnyOut,
@@ -85,7 +85,6 @@ import util.sym : AllSymbols, shortSymAlphaLiteral, Sym, symAsTempBuffer, writeS
 import util.types :
 	float32OfU32Bits,
 	float64OfU64Bits,
-	Nat64,
 	safeSizeTFromU64,
 	safeSizeTFromLong,
 	safeU32FromI64,
@@ -647,7 +646,7 @@ immutable(ExitCode) withRealExtern(
 		(
 			immutable Sym name,
 			immutable DynCallType returnType,
-			scope immutable Nat64[] parameters,
+			scope immutable ulong[] parameters,
 			scope immutable DynCallType[] parameterTypes,
 		) => doDynCall(
 			name, returnType, parameters, parameterTypes,
@@ -663,10 +662,10 @@ immutable(ExitCode) withRealExtern(
 	return res;
 }
 
-@trusted immutable(Nat64) doDynCall(
+@trusted immutable(ulong) doDynCall(
 	immutable Sym name,
 	immutable DynCallType returnType,
-	scope immutable Nat64[] parameters,
+	scope immutable ulong[] parameters,
 	scope immutable DynCallType[] parameterTypes,
 	DCCallVM* dcVm,
 	void* sdlHandle,
@@ -688,13 +687,13 @@ immutable(ExitCode) withRealExtern(
 	verify(ptr != null);
 
 	dcReset(dcVm);
-	zipImpureSystem!(Nat64, DynCallType)(
+	zipImpureSystem!(ulong, DynCallType)(
 		parameters,
 		parameterTypes,
-		(ref immutable Nat64 value, ref immutable DynCallType type) {
+		(ref immutable ulong value, ref immutable DynCallType type) {
 			final switch (type) {
 				case DynCallType.bool_:
-					dcArgBool(dcVm, cast(bool) value.raw());
+					dcArgBool(dcVm, cast(bool) value);
 					break;
 				case DynCallType.char_:
 					todo!void("handle this type");
@@ -706,13 +705,13 @@ immutable(ExitCode) withRealExtern(
 					todo!void("handle this type");
 					break;
 				case DynCallType.int32:
-					dcArgInt(dcVm, cast(int) value.raw());
+					dcArgInt(dcVm, cast(int) value);
 					break;
 				case DynCallType.float32:
-					dcArgFloat(dcVm, float32OfU32Bits(cast(uint) value.raw()));
+					dcArgFloat(dcVm, float32OfU32Bits(cast(uint) value));
 					break;
 				case DynCallType.float64:
-					dcArgDouble(dcVm, float64OfU64Bits(value.raw()));
+					dcArgDouble(dcVm, float64OfU64Bits(value));
 					break;
 				case DynCallType.nat8:
 					todo!void("handle this type");
@@ -721,50 +720,50 @@ immutable(ExitCode) withRealExtern(
 					todo!void("handle this type");
 					break;
 				case DynCallType.nat32:
-					dcArgInt(dcVm, cast(uint) value.raw());
+					dcArgInt(dcVm, cast(uint) value);
 					break;
 				case DynCallType.int64:
 				case DynCallType.nat64:
-					dcArgLong(dcVm, value.raw());
+					dcArgLong(dcVm, value);
 					break;
 				case DynCallType.pointer:
-					dcArgPointer(dcVm, cast(void*) value.raw());
+					dcArgPointer(dcVm, cast(void*) value);
 					break;
 				case DynCallType.void_:
 					unreachable!void();
 			}
 		});
 
-	immutable Nat64 res = () {
+	immutable ulong res = () {
 		final switch (returnType) {
 			case DynCallType.bool_:
-				return todo!(immutable Nat64)("handle this type");
+				return todo!(immutable ulong)("handle this type");
 			case DynCallType.char_:
-				return todo!(immutable Nat64)("handle this type");
+				return todo!(immutable ulong)("handle this type");
 			case DynCallType.int8:
-				return todo!(immutable Nat64)("handle this type");
+				return todo!(immutable ulong)("handle this type");
 			case DynCallType.int16:
-				return todo!(immutable Nat64)("handle this type");
+				return todo!(immutable ulong)("handle this type");
 			case DynCallType.int32:
-				return nat64OfI32(dcCallInt(dcVm, ptr));
+				return u64OfI32(dcCallInt(dcVm, ptr));
 			case DynCallType.int64:
 			case DynCallType.nat64:
-				return nat64OfI64(dcCallLong(dcVm, ptr));
+				return u64OfI64(dcCallLong(dcVm, ptr));
 			case DynCallType.float32:
-				return todo!(immutable Nat64)("handle this type");
+				return todo!(immutable ulong)("handle this type");
 			case DynCallType.float64:
 				return u64OfFloat64Bits(dcCallDouble(dcVm, ptr));
 			case DynCallType.nat8:
-				return todo!(immutable Nat64)("handle this type");
+				return todo!(immutable ulong)("handle this type");
 			case DynCallType.nat16:
-				return todo!(immutable Nat64)("handle this type");
+				return todo!(immutable ulong)("handle this type");
 			case DynCallType.nat32:
-				return immutable Nat64(u32OfI32Bits(dcCallInt(dcVm, ptr)));
+				return u32OfI32Bits(dcCallInt(dcVm, ptr));
 			case DynCallType.pointer:
-				return immutable Nat64(cast(size_t) dcCallPointer(dcVm, ptr));
+				return cast(size_t) dcCallPointer(dcVm, ptr);
 			case DynCallType.void_:
 				dcCallVoid(dcVm, ptr);
-				return immutable Nat64(0);
+				return 0;
 		}
 	}();
 	dcReset(dcVm);

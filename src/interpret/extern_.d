@@ -4,7 +4,6 @@ module interpret.extern_;
 
 import util.ptr : Ptr;
 import util.sym : Sym;
-import util.types : Nat64;
 
 struct Extern {
 	immutable(int) delegate(immutable int clockId, Ptr!TimeSpec tp) @safe @nogc nothrow clockGetTime;
@@ -15,10 +14,10 @@ struct Extern {
 		immutable char* buf,
 		immutable size_t nBytes,
 	) @system @nogc nothrow write;
-	immutable(Nat64) delegate(
+	immutable(ulong) delegate(
 		immutable Sym name,
 		immutable DynCallType returnType,
-		scope immutable Nat64[] parameters,
+		scope immutable ulong[] parameters,
 		scope immutable DynCallType[] parameterTypes,
 	) @system @nogc nothrow doDynCall;
 }

@@ -8,7 +8,6 @@ import util.alloc.alloc : Alloc, allocateBytes;
 import util.collection.mutArr : moveToArr, MutArr, pushAll;
 import util.ptr : Ptr;
 import util.sym : Sym;
-import util.types : Nat64;
 import util.util : todo, verify;
 
 struct FakeExternResult {
@@ -45,8 +44,8 @@ immutable(FakeExternResult) withFakeExtern(
 			pushAll!char(alloc, fd == 1 ? stdout : stderr, arr);
 			return nBytes;
 		},
-		(immutable(Sym), immutable(DynCallType), scope immutable Nat64[], scope immutable DynCallType[]) =>
-			todo!(immutable Nat64)("not for fake"));
+		(immutable(Sym), immutable(DynCallType), scope immutable ulong[], scope immutable DynCallType[]) =>
+			todo!(immutable ulong)("not for fake"));
 	immutable ExitCode err = cb(extern_);
 	return immutable FakeExternResult(err, moveToArr(alloc, stdout), moveToArr(alloc, stderr));
 }

@@ -12,7 +12,6 @@ import util.dbg : Debug;
 import util.path : AllPaths;
 import util.ptr : Ptr;
 import util.sym : AllSymbols;
-import util.types : Nat64;
 import util.util : verify;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
@@ -51,10 +50,10 @@ struct Test {
 	}
 }
 
-@trusted void expectDataStack(ref Test test, scope ref const DataStack dataStack, scope immutable Nat64[] expected) {
-	immutable Nat64[] stack = asTempArr(dataStack);
+@trusted void expectDataStack(ref Test test, scope ref const DataStack dataStack, scope immutable ulong[] expected) {
+	immutable ulong[] stack = asTempArr(dataStack);
 	immutable bool eq = sizeEq(stack, expected) &&
-		eachCorresponds!(Nat64, Nat64)(stack, expected, (ref immutable Nat64 a, ref immutable Nat64 b) => a == b);
+		eachCorresponds!(ulong, ulong)(stack, expected, (ref immutable ulong a, ref immutable ulong b) => a == b);
 	if (!eq) {
 		debug {
 			Writer writer = test.writer();
