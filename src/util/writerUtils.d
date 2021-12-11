@@ -62,7 +62,7 @@ void writeRelPath(
 void writePathAndStorageKind(
 	ref Writer writer,
 	ref const AllPaths allPaths,
-	ref immutable PathAndStorageKind p,
+	immutable PathAndStorageKind p,
 ) {
 	writePath(writer, allPaths, p.path);
 }

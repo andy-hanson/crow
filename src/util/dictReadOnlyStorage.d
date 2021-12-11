@@ -19,7 +19,7 @@ struct DictReadOnlyStorage {
 	}
 
 	immutable(T) withFile(T)(
-		ref immutable PathAndStorageKind pk,
+		immutable PathAndStorageKind pk,
 		immutable string extension,
 		scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
 	) const {

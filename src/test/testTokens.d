@@ -2,9 +2,10 @@ module test.testTokens;
 
 @safe @nogc pure nothrow:
 
+import frontend.diagnosticsBuilder : DiagnosticsBuilder;
 import frontend.ide.getTokens : reprTokens, Token, tokensOfAst;
-import frontend.parse.ast : reprAst;
-import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
+import frontend.parse.ast : FileAst, reprAst;
+import frontend.parse.parse : parseFile;
 import test.testUtil : Test;
 import util.collection.arr : emptyArr;
 import util.collection.arrUtil : arrEqual, arrLiteral;
@@ -12,7 +13,7 @@ import util.collection.str : copyToNulTerminatedStr;
 import util.dbg : log;
 import util.perf : Perf, withNullPerf;
 import util.repr : writeRepr;
-import util.sourceRange : RangeWithinFile;
+import util.sourceRange : FileIndex, RangeWithinFile;
 import util.sym : AllSymbols;
 import util.util : verifyFail;
 import util.writer : finishWriter, Writer, writeStatic;
@@ -44,15 +45,18 @@ private:
 
 void testOne(ref Test test, immutable string source, immutable Token[] expectedTokens) {
 	AllSymbols allSymbols = AllSymbols(test.allocPtr);
-	immutable FileAstAndParseDiagnostics ast = withNullPerf!(
-		immutable FileAstAndParseDiagnostics,
+	DiagnosticsBuilder diags = DiagnosticsBuilder();
+	immutable FileAst ast = withNullPerf!(
+		immutable FileAst,
 		(scope ref Perf perf) => parseFile(
 			test.alloc,
 			perf,
 			test.allPaths,
 			allSymbols,
+			diags,
+			immutable FileIndex(0),
 			copyToNulTerminatedStr(test.alloc, source)));
-	immutable Token[] tokens = tokensOfAst(test.alloc, ast.ast);
+	immutable Token[] tokens = tokensOfAst(test.alloc, ast);
 	if (!tokensEq(tokens, expectedTokens)) {
 		Writer writer = Writer(test.allocPtr);
 		writeStatic(writer, "expected tokens:\n");
@@ -61,7 +65,7 @@ void testOne(ref Test test, immutable string source, immutable Token[] expectedT
 		writeRepr(writer, reprTokens(test.alloc, tokens));
 
 		writeStatic(writer, "\n\n(hint: ast is:)\n");
-		writeRepr(writer, reprAst(test.alloc, test.allPaths, ast.ast));
+		writeRepr(writer, reprAst(test.alloc, test.allPaths, ast));
 		log(test.dbg, finishWriter(writer));
 		verifyFail();
 	}

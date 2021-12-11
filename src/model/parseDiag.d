@@ -5,7 +5,6 @@ module model.parseDiag;
 import frontend.parse.lexer : Token;
 import util.opt : Opt;
 import util.path : PathAndStorageKind, PathAndRange, RelPath;
-import util.sourceRange : RangeWithinFile;
 import util.sym : Operator;
 
 struct ParseDiag {
@@ -233,9 +232,4 @@ static assert(ParseDiag.sizeof <= 32);
 		case ParseDiag.Kind.whenMustHaveElse:
 			return cbWhenMustHaveElse(a.whenMustHaveElse);
 	}
-}
-
-struct ParseDiagnostic {
-	immutable RangeWithinFile range;
-	immutable ParseDiag diag;
 }

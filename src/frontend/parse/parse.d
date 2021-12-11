@@ -2,6 +2,7 @@ module frontend.parse.parse;
 
 @safe @nogc pure nothrow:
 
+import frontend.diagnosticsBuilder : DiagnosticsBuilder;
 import frontend.parse.ast :
 	bogusTypeAst,
 	ExplicitByValOrRef,
@@ -36,7 +37,6 @@ import frontend.parse.lexer :
 	allSymbols,
 	createLexer,
 	curPos,
-	finishDiags,
 	getCurNameAndRange,
 	getPeekToken,
 	Lexer,
@@ -67,7 +67,7 @@ import frontend.parse.lexer :
 import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseType : parseType, tryParseTypeArg, tryParseTypeArgsBracketed;
 import model.model : FieldMutability, Visibility;
-import model.parseDiag : ParseDiag, ParseDiagnostic;
+import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -78,27 +78,28 @@ import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some
 import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe_mut;
-import util.sourceRange : Pos, RangeWithinFile;
+import util.sourceRange : FileIndex, Pos, RangeWithinFile;
 import util.sym : AllSymbols, Operator, shortSymAlphaLiteralValue, Sym, symOfStr;
 import util.types : Nat8;
 import util.util : todo, unreachable, verify;
 
-struct FileAstAndParseDiagnostics {
-	immutable FileAst ast;
-	immutable ParseDiagnostic[] diagnostics;
-}
-
-immutable(FileAstAndParseDiagnostics) parseFile(
+immutable(FileAst) parseFile(
 	ref Alloc alloc,
 	scope ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
+	ref DiagnosticsBuilder diagsBuilder,
+	immutable FileIndex fileIndex,
 	immutable NulTerminatedStr source,
 ) {
-	return withMeasure!(immutable FileAstAndParseDiagnostics, () {
-		Lexer lexer = createLexer(ptrTrustMe_mut(alloc), ptrTrustMe_mut(allSymbols), source);
-		immutable FileAst ast = parseFileInner(allPaths, lexer);
-		return immutable FileAstAndParseDiagnostics(ast, finishDiags(lexer));
+	return withMeasure!(immutable FileAst, () {
+		Lexer lexer = createLexer(
+			ptrTrustMe_mut(alloc),
+			ptrTrustMe_mut(allSymbols),
+			ptrTrustMe_mut(diagsBuilder),
+			fileIndex,
+			source);
+		return parseFileInner(allPaths, lexer);
 	})(alloc, perf, PerfMeasure.parseFile);
 }
 

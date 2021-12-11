@@ -35,5 +35,9 @@ immutable(Diagnostics) finishDiagnostics(ref Alloc alloc, ref DiagnosticsBuilder
 		comparePathAndStorageKind(
 			fullIndexDictGet(filePaths, a.where.fileIndex),
 			fullIndexDictGet(filePaths, b.where.fileIndex)));
+	return finishDiagnosticsNoSort(alloc, a);
+}
+
+immutable(Diagnostics) finishDiagnosticsNoSort(ref Alloc alloc, ref DiagnosticsBuilder a) {
 	return immutable Diagnostics(a.severity, finishArr(alloc, a.diags));
 }

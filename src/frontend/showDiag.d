@@ -75,14 +75,15 @@ immutable(string) strOfDiagnostics(
 	return finishWriter(writer);
 }
 
-public immutable(string) strOfParseDiag(
+immutable(string) strOfDiagnostic(
 	ref Alloc alloc,
 	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
-	ref immutable ParseDiag a,
+	ref immutable FilesInfo filesInfo,
+	ref immutable Diagnostic diagnostic,
 ) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
-	writeParseDiag(writer, allPaths, a);
+	showDiagnostic(alloc, writer, allPaths, options, filesInfo, diagnostic);
 	return finishWriter(writer);
 }
 

@@ -2,12 +2,13 @@ module frontend.parse.lexer;
 
 @safe @nogc pure nothrow:
 
+import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.parse.ast : LiteralAst, LiteralIntOrNat, matchLiteralAst, NameAndRange, NameOrUnderscoreOrNone;
-import model.parseDiag : ParseDiag, ParseDiagnostic;
+import model.diag : Diag;
+import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, rtail;
 import util.collection.str :
 	copyToSafeCStr,
@@ -18,7 +19,7 @@ import util.collection.str :
 	strOfNulTerminatedStr;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.ptr : Ptr;
-import util.sourceRange : Pos, RangeWithinFile;
+import util.sourceRange : FileAndRange, FileIndex, Pos, RangeWithinFile;
 import util.sym :
 	AllSymbols,
 	getSymFromAlphaIdentifier,
@@ -44,7 +45,8 @@ struct Lexer {
 	private:
 	Ptr!Alloc allocPtr;
 	Ptr!AllSymbols allSymbolsPtr;
-	ArrBuilder!ParseDiagnostic diags;
+	Ptr!DiagnosticsBuilder diagnosticsBuilderPtr;
+	immutable FileIndex fileIndex;
 	immutable Sym symUnderscore;
 	immutable Sym symForceSendable;
 	//TODO:PRIVATE
@@ -71,6 +73,8 @@ ref AllSymbols allSymbols(return scope ref Lexer lexer) {
 @trusted Lexer createLexer(
 	Ptr!Alloc alloc,
 	Ptr!AllSymbols allSymbols,
+	Ptr!DiagnosticsBuilder diagnosticsBuilder,
+	immutable FileIndex fileIndex,
 	immutable NulTerminatedStr source,
 ) {
 	// Note: We *are* relying on the nul terminator to stop the lexer.
@@ -79,7 +83,8 @@ ref AllSymbols allSymbols(return scope ref Lexer lexer) {
 	return Lexer(
 		alloc,
 		allSymbols,
-		ArrBuilder!ParseDiagnostic(),
+		diagnosticsBuilder,
+		fileIndex,
 		getSymFromAlphaIdentifier(allSymbols.deref(), "_"),
 		getSymFromAlphaIdentifier(allSymbols.deref(), "force-sendable"),
 		begin(useStr),
@@ -102,11 +107,11 @@ private immutable(Pos) posOfPtr(ref const Lexer lexer, immutable CStr ptr) {
 }
 
 void addDiag(ref Lexer lexer, immutable RangeWithinFile range, immutable ParseDiag diag) {
-	add(lexer.alloc, lexer.diags, immutable ParseDiagnostic(range, diag));
-}
-
-immutable(ParseDiagnostic[]) finishDiags(ref Lexer lexer) {
-	return finishArr(lexer.alloc, lexer.diags);
+	addDiagnostic(
+		lexer.alloc,
+		lexer.diagnosticsBuilderPtr.deref(),
+		immutable FileAndRange(lexer.fileIndex, range),
+		immutable Diag(diag));
 }
 
 void addDiagAtChar(ref Lexer lexer, immutable ParseDiag diag) {

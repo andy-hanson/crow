@@ -49,7 +49,7 @@ private immutable(SafeCStr) getBasePath(ref immutable AbsolutePathsGetter a, imm
 
 immutable(AbsolutePath) getAbsolutePath(
 	ref immutable AbsolutePathsGetter a,
-	ref immutable PathAndStorageKind p,
+	immutable PathAndStorageKind p,
 	immutable string extension,
 ) {
 	return immutable AbsolutePath(getBasePath(a, p.storageKind), p.path, extension);

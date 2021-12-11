@@ -3,24 +3,33 @@ module lib.server;
 @safe @nogc nothrow: // not pure
 
 import lib.compiler : buildAndInterpret;
+import frontend.diagnosticsBuilder : DiagnosticsBuilder, finishDiagnosticsNoSort;
 import frontend.frontendCompile : frontendCompile;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition, Position;
 import frontend.ide.getTokens : Token, tokensOfAst;
-import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
-import frontend.showDiag : ShowDiagOptions, strOfParseDiag;
+import frontend.parse.ast : FileAst;
+import frontend.parse.parse : parseFile;
+import frontend.showDiag : ShowDiagOptions, strOfDiagnostic;
 import interpret.extern_ : Extern;
 import interpret.fakeExtern : FakeExternResult,withFakeExtern;
-import model.parseDiag : ParseDiagnostic;
-import model.model : Program;
+import model.diag : Diagnostic, FilesInfo;
+import model.model : AbsolutePathsGetter, Program;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : at, freeArr;
-import util.collection.arrUtil : map;
-import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
+import util.collection.arrUtil : arrLiteral, map;
+import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize;
 import util.collection.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
-import util.collection.str : copyToNulTerminatedStr, CStr, cStrOfNulTerminatedStr, NulTerminatedStr, SafeCStr;
+import util.collection.str :
+	copyToNulTerminatedStr,
+	CStr,
+	cStrOfNulTerminatedStr,
+	NulTerminatedStr,
+	SafeCStr,
+	strOfNulTerminatedStr;
 import util.dbg : Debug;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
+import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
 import util.opt : force, has, none, Opt, some;
 import util.path :
 	AllPaths,
@@ -102,8 +111,11 @@ immutable(Token[]) getTokens(
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable NulTerminatedStr text = mustGetAt_mut(server.files, key);
-	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, perf, server.allPaths, server.allSymbols, text);
-	return tokensOfAst(alloc, ast.ast);
+	// diagnostics not used
+	DiagnosticsBuilder diagnosticsBuilder = DiagnosticsBuilder();
+	immutable FileAst ast =
+		parseFile(alloc, perf, server.allPaths, server.allSymbols, diagnosticsBuilder, immutable FileIndex(0), text);
+	return tokensOfAst(alloc, ast);
 }
 
 struct StrParseDiagnostic {
@@ -120,9 +132,21 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable NulTerminatedStr text = mustGetAt_mut(server.files, key);
-	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, perf, server.allPaths, server.allSymbols, text);
-	return map!StrParseDiagnostic(alloc, ast.diagnostics, (ref immutable ParseDiagnostic it) =>
-		immutable StrParseDiagnostic(it.range, strOfParseDiag(alloc, server.allPaths, showDiagOptions, it.diag)));
+	DiagnosticsBuilder diagnosticsBuilder = DiagnosticsBuilder();
+	// AST not used
+	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagnosticsBuilder, immutable FileIndex(0), text);
+	immutable FilesInfo filesInfo = immutable FilesInfo(
+		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(arrLiteral!PathAndStorageKind(alloc, [key])),
+		immutable AbsolutePathsGetter(immutable SafeCStr(""), immutable SafeCStr(""), immutable SafeCStr("")),
+		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
+			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, strOfNulTerminatedStr(text))])));
+	return map!StrParseDiagnostic(
+		alloc,
+		finishDiagnosticsNoSort(alloc, diagnosticsBuilder).diags,
+		(ref immutable Diagnostic it) =>
+			immutable StrParseDiagnostic(
+				it.where.range,
+				strOfDiagnostic(alloc, server.allPaths, showDiagOptions, filesInfo, it)));
 }
 
 immutable(string) getHover(
@@ -143,7 +167,7 @@ immutable(string) getHover(
 private pure immutable(string) getHoverFromProgram(
 	ref Alloc alloc,
 	ref Server server,
-	ref immutable PathAndStorageKind pk,
+	immutable PathAndStorageKind pk,
 	ref immutable Program program,
 	immutable Pos pos,
 ) {
@@ -158,7 +182,7 @@ private pure immutable(string) getHoverFromProgram(
 //TODO:KILL, use a reverse lookup
 private pure immutable(Opt!FileIndex) getFileIndex(
 	scope ref immutable FullIndexDict!(FileIndex, PathAndStorageKind) filePaths,
-	scope ref immutable PathAndStorageKind search,
+	immutable PathAndStorageKind search,
 ) {
 	foreach (immutable size_t i; 0 .. fullIndexDictSize(filePaths))
 		if (pathAndStorageKindEqual(at(filePaths.values, i), search))
