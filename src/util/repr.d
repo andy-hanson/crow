@@ -11,7 +11,7 @@ import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : shortSymAlphaLiteral, Sym, symSize, writeSym;
-import util.types : abs, IntN, NatN, safeIntFromSizeT;
+import util.types : abs, safeIntFromSizeT;
 import util.util : todo;
 import util.writer :
 	finishWriterToCStr,
@@ -92,14 +92,6 @@ immutable(Repr) reprFloat(immutable double a) {
 
 immutable(Repr) reprInt(immutable long a) {
 	return immutable Repr(immutable ReprInt(a, 10));
-}
-
-immutable(Repr) reprInt(T)(immutable IntN!T a) {
-	return immutable Repr(immutable ReprInt(a.raw(), 10));
-}
-
-immutable(Repr) reprNat(T)(immutable NatN!T a) {
-	return reprNat(a.raw());
 }
 
 immutable(Repr) reprNat(immutable ulong a) {

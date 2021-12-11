@@ -79,7 +79,6 @@ import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Nat8, Nat16, Nat32, Nat64;
 import util.util : repeatImpure, verify;
 
 void testInterpreter(ref Test test) {
@@ -277,16 +276,16 @@ void testSwitchAndJump(ref Test test) {
 
 	//TODO: want to test both sides of the switch...
 	immutable StackEntry startStack = getNextStackEntry(writer);
-	writePushConstant(test.dbg, writer, source, immutable Nat64(0));
+	writePushConstant(test.dbg, writer, source, 0);
 	immutable SwitchDelayed delayed = writeSwitch0ToNDelay(writer, source, 2);
 	fillDelayedSwitchEntry(writer, delayed, 0);
 	immutable ByteCodeIndex firstCase = nextByteCodeIndex(writer);
-	writePushConstant(test.dbg, writer, source, immutable Nat64(3));
+	writePushConstant(test.dbg, writer, source, 3);
 	setNextStackEntry(writer, startStack);
 	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(test.dbg, writer, source);
 	fillDelayedSwitchEntry(writer, delayed, 1);
 	immutable ByteCodeIndex secondCase = nextByteCodeIndex(writer);
-	writePushConstant(test.dbg, writer, source, immutable Nat64(5));
+	writePushConstant(test.dbg, writer, source, 5);
 	fillInJumpDelayed(writer, jumpIndex);
 	immutable ByteCodeIndex bottom = nextByteCodeIndex(writer);
 	writeReturn(test.dbg, writer, source);
@@ -377,16 +376,16 @@ void testRemoveMany(ref Test test) {
 
 void testDupPartial(ref Test test) {
 	struct S {
-		Nat32 a;
-		Nat16 b;
-		Nat8 c;
+		uint a;
+		ushort b;
+		ubyte c;
 	}
 	union U {
 		S s;
 		ulong n;
 	}
 	U u;
-	u.s = immutable S(immutable Nat32(0x01234567), immutable Nat16(0x89ab), immutable Nat8(0xcd));
+	u.s = immutable S(0x01234567, 0x89ab, 0xcd);
 	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
@@ -421,16 +420,16 @@ void testPack(ref Test test) {
 		(ref Interpreter interpreter, immutable(Operation)* operation) {
 			operation = stepNAndExpect(test, interpreter, 3, [0x01234567, 0x89ab, 0xcd], operation);
 			struct S {
-				Nat32 a;
-				Nat16 b;
-				Nat8 c;
+				uint a;
+				ushort b;
+				ubyte c;
 			}
 			union U {
 				S s;
 				ulong n;
 			}
 			U u;
-			u.s = immutable S(immutable Nat32(0x01234567), immutable Nat16(0x89ab), immutable Nat8(0xcd));
+			u.s = immutable S(0x01234567, 0x89ab, 0xcd);
 			stepAndExpect(test, interpreter, [u.n], operation);
 		});
 }

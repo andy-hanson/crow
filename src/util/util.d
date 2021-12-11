@@ -2,8 +2,6 @@ module util.util;
 
 @safe @nogc nothrow:
 
-import util.types : incr, zero;
-
 void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc nothrow cb) {
 	foreach (immutable size_t _; 0 .. times)
 		cb();
@@ -31,21 +29,21 @@ immutable(T) max(T)(immutable T a, immutable T b) {
 immutable(T) roundUp(T)(immutable T a, immutable T b) {
 	immutable T res = roundUpRecur(a, b);
 	verify(res >= a);
-	verify(zero(res % b));
+	verify(res % b == 0);
 	return res;
 }
 
 //TODO: more efficient
 private immutable(T) roundUpRecur(T)(immutable T a, immutable T b) {
-	verify(!zero(b));
-	return zero(a % b) ? a : roundUpRecur(incr(a), b);
+	verify(b != 0);
+	return a % b == 0 ? a : roundUpRecur(a + 1, b);
 }
 
 immutable(T) divRoundUp(T)(immutable T a, immutable T b) {
-	assert(!zero(b));
+	verify(b != 0);
 	immutable T div = a / b;
 	immutable T mod = a % b;
-	immutable T res = div + immutable T(zero(mod) ? 0 : 1);
+	immutable T res = div + immutable T(mod == 0 ? 0 : 1);
 	verify(res * b >= a);
 	return res;
 }

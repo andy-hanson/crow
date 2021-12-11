@@ -7,7 +7,7 @@ import util.ptr : Ptr;
 import util.collection.arr : at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr, SafeCStr;
-import util.types : abs, IntN, NatN;
+import util.types : abs;
 import util.util : verify;
 
 struct Writer {
@@ -88,10 +88,6 @@ private union DoubleToUlong {
 	ulong ulong_;
 }
 
-void writeNat(T)(ref Writer writer, immutable NatN!T n, immutable ulong base = 10) {
-	writeNat(writer, n.raw(), base);
-}
-
 void writeNat(ref Writer writer, immutable ulong n, immutable ulong base = 10) {
 	if (n >= base)
 		writeNat(writer, n / base, base);
@@ -101,10 +97,6 @@ void writeNat(ref Writer writer, immutable ulong n, immutable ulong base = 10) {
 private immutable(char) digitChar(immutable ulong digit) {
 	verify(digit < 16);
 	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
-}
-
-void writeInt(T)(ref Writer writer, immutable IntN!T a, immutable ulong base = 10) {
-	writeInt(writer, a.raw(), base);
 }
 
 void writeInt(ref Writer writer, immutable long i, immutable ulong base = 10) {

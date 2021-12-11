@@ -749,7 +749,7 @@ immutable(ConcreteStructBody.Flags) getConcreteStructBodyForFlags(
 	return immutable ConcreteStructBody.Flags(
 		a.backingType,
 		map!ulong(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>
-			member.value.asUnsigned().raw()));
+			member.value.asUnsigned()));
 }
 
 public void deferredFillRecordAndUnionBodies(ref Alloc alloc, ref ConcretizeCtx ctx) {

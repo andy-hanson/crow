@@ -5,7 +5,6 @@ module util.collection.arr;
 import util.alloc.alloc : Alloc, freeBytes;
 import util.ptr : Ptr;
 import util.memory : overwriteMemory;
-import util.types : NatN;
 import util.util : verify;
 
 struct ArrWithSize(T) {
@@ -87,9 +86,6 @@ immutable(bool) empty(T)(const T[] a) {
 @trusted ref T at(T)(return scope T[] a, immutable size_t index) {
 	verify(index < size(a));
 	return a[index];
-}
-@trusted ref immutable(T) at(T, N)(return scope immutable T[] a, immutable NatN!N index) {
-	return at(a, cast(size_t) index.raw());
 }
 
 @trusted void setAt(T)(scope ref T[] a, immutable size_t index, T value) {

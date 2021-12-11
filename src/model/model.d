@@ -28,7 +28,7 @@ import util.sym :
 	symForOperator,
 	symSize,
 	writeSym;
-import util.types : Int64, Nat64, safeSizeTToU32;
+import util.types : safeSizeTToU32;
 import util.util : todo, unreachable, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
@@ -427,8 +427,8 @@ struct EnumValue {
 	immutable long value;
 
 	//TODO:NOT INSTANCE
-	immutable(Int64) asSigned() immutable { return immutable Int64(value); }
-	immutable(Nat64) asUnsigned() immutable { return immutable Nat64(cast(ulong) value); }
+	immutable(long) asSigned() immutable { return value; }
+	immutable(ulong) asUnsigned() immutable { return cast(ulong) value; }
 }
 
 struct StructBody {

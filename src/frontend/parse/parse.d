@@ -80,7 +80,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
 import util.sym : AllSymbols, Operator, shortSymAlphaLiteralValue, Sym, symOfStr;
-import util.types : Nat8;
+import util.types : safeU16FromSizeT;
 import util.util : todo, unreachable, verify;
 
 immutable(FileAst) parseFile(
@@ -156,25 +156,25 @@ struct NamesAndDedent {
 }
 
 immutable(AbsOrRelPath) parseImportPath(ref AllPaths allPaths, ref Lexer lexer) {
-	immutable Opt!Nat8 nParents = () {
+	immutable Opt!ushort nParents = () {
 		if (tryTakeToken(lexer, Token.dot)) {
 			takeOrAddDiagExpectedOperator(lexer, Operator.divide, ParseDiag.Expected.Kind.slash);
-			return some(immutable Nat8(0));
+			return some!ushort(0);
 		} else if (tryTakeOperator(lexer, Operator.range)) {
 			takeOrAddDiagExpectedOperator(lexer, Operator.divide, ParseDiag.Expected.Kind.slash);
-			return some(takeDotDotSlashes(lexer, immutable Nat8(1)));
+			return some(safeU16FromSizeT(takeDotDotSlashes(lexer, 1)));
 		} else
-			return none!Nat8;
+			return none!ushort;
 	}();
 	return immutable AbsOrRelPath(
 		nParents,
 		addPathComponents(allPaths, lexer, rootPath(allPaths, takeName(lexer))));
 }
 
-immutable(Nat8) takeDotDotSlashes(ref Lexer lexer, immutable Nat8 acc) {
+immutable(size_t) takeDotDotSlashes(ref Lexer lexer, immutable size_t acc) {
 	if (tryTakeOperator(lexer, Operator.range)) {
 		takeOrAddDiagExpectedOperator(lexer, Operator.divide, ParseDiag.Expected.Kind.slash);
-		return takeDotDotSlashes(lexer, acc + immutable Nat8(1));
+		return takeDotDotSlashes(lexer, acc + 1);
 	} else
 		return acc;
 }

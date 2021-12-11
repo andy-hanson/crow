@@ -52,7 +52,7 @@ import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.repr : writeReprNoNewline;
 import util.sourceRange : FileAndPos;
 import util.sym : Sym;
-import util.types : Int64, i32OfU64Bits, Nat64, safeIntFromU64, safeSizeTFromU64, safeU32FromI32;
+import util.types : i32OfU64Bits, safeIntFromU64, safeSizeTFromU64, safeU32FromI32;
 import util.util : divRoundUp, drop, min, unreachable, verify;
 import util.writer : finishWriter, Writer, writeChar, writeHex, writeStatic;
 
@@ -276,10 +276,7 @@ private void writeFunNameAtByteCodePtr(
 	writeFunNameAtIndex(writer, interpreter, byteCodeIndexOfPtr(interpreter, ptr));
 }
 
-private immutable(ByteCodeSource) byteCodeSourceAtIndex(
-	ref const Interpreter a,
-	immutable ByteCodeIndex index,
-) {
+private immutable(ByteCodeSource) byteCodeSourceAtIndex(ref const Interpreter a, immutable ByteCodeIndex index) {
 	return fullIndexDictGet(a.byteCode.sources, index);
 }
 
@@ -527,7 +524,7 @@ private @system immutable(NextOperation) callCommon(
 
 @system immutable(NextOperation) opExtern(ref Interpreter a, immutable(Operation)* cur) {
 	debug log(a.dbg, "opExtern");
-	immutable ExternOp op = cast(ExternOp) readNat64(cur).raw();
+	immutable ExternOp op = cast(ExternOp) readNat64(cur);
 	final switch (op) {
 		case ExternOp.backtrace:
 			immutable int size = cast(int) pop(a.dataStack);
@@ -625,13 +622,13 @@ private @system immutable(size_t) backtrace(ref Interpreter a, void** res, immut
 }
 
 @system immutable(NextOperation) opExternDynCall(ref Interpreter a, immutable(Operation)* cur) {
-	immutable Sym name = immutable Sym(readNat64(cur).raw());
+	immutable Sym name = immutable Sym(readNat64(cur));
 	debug {
 		logNoNewline(a.dbg, "opExternDynCall ");
 		logSymNoNewline(a.dbg, name);
 		log(a.dbg, "");
 	}
-	immutable DynCallType returnType = cast(immutable DynCallType) readNat64(cur).raw();
+	immutable DynCallType returnType = cast(immutable DynCallType) readNat64(cur);
 	scope immutable DynCallType[] parameterTypes = readArray!DynCallType(cur);
 	scope immutable ulong[] params = popN(a.dataStack, size(parameterTypes));
 	immutable ulong value = a.extern_.doDynCall(name, returnType, params, parameterTypes);
@@ -676,16 +673,16 @@ private @system immutable(size_t) readStackOffset(ref immutable(Operation)* cur)
 	return readSizeT(cur);
 }
 
-private @system immutable(Int64) readInt64(ref immutable(Operation)* cur) {
-	return readOperation(cur).int64;
+private @system immutable(long) readInt64(ref immutable(Operation)* cur) {
+	return readOperation(cur).long_;
 }
 
-private @system immutable(Nat64) readNat64(ref immutable(Operation)* cur) {
-	return readOperation(cur).nat64;
+private @system immutable(ulong) readNat64(ref immutable(Operation)* cur) {
+	return readOperation(cur).ulong_;
 }
 
 private @system immutable(size_t) readSizeT(ref immutable(Operation)* cur) {
-	return safeSizeTFromU64(readNat64(cur).raw());
+	return safeSizeTFromU64(readNat64(cur));
 }
 
 private @system immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {
@@ -703,7 +700,7 @@ private @system immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {
 
 @system immutable(NextOperation) opJump(ref Interpreter a, immutable(Operation)* cur) {
 	debug log(a.dbg, "opJump");
-	immutable ByteCodeOffset offset = immutable ByteCodeOffset(readInt64(cur).raw());
+	immutable ByteCodeOffset offset = immutable ByteCodeOffset(readInt64(cur));
 	return nextOperation(a, cur + offset.offset);
 }
 
@@ -732,7 +729,7 @@ private @system immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {
 
 @system immutable(NextOperation) opPushValue64(ref Interpreter a, immutable(Operation)* cur) {
 	debug log(a.dbg, "opPushValue64");
-	push(a.dataStack, readNat64(cur).raw());
+	push(a.dataStack, readNat64(cur));
 	return nextOperation(a, cur);
 }
 
@@ -806,7 +803,7 @@ private @system immutable(NextOperation) opSetCommon(
 
 private @system void readNoCheck(ref DataStack dataStack, const ubyte* readFrom, immutable size_t sizeBytes) {
 	ubyte* outPtr = cast(ubyte*) stackEnd(dataStack);
-	immutable size_t sizeWords = divRoundUp(sizeBytes, Nat64.sizeof);
+	immutable size_t sizeWords = divRoundUp(sizeBytes, ulong.sizeof);
 	pushUninitialized(dataStack, sizeWords);
 	memcpy(outPtr, readFrom, sizeBytes);
 

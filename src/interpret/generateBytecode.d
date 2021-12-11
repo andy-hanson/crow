@@ -164,14 +164,7 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
 import util.sym : shortSymAlphaLiteralValue, Sym, symEqLongAlphaLiteral;
-import util.types :
-	Nat8,
-	Nat16,
-	Nat32,
-	Nat64,
-	u64OfFloat32Bits,
-	u64OfFloat64Bits,
-	zero;
+import util.types : u64OfFloat32Bits, u64OfFloat64Bits;
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
@@ -537,7 +530,7 @@ void generateExpr(
 		},
 		(ref immutable LowExprKind.LocalRef it) {
 			immutable StackEntries entries = mustGetAt_mut(ctx.localEntries, it.local);
-			if (!zero(entries.size))
+			if (entries.size != 0)
 				writeDupEntries(dbg, writer, source, entries);
 		},
 		(ref immutable LowExprKind.MatchUnion it) {
@@ -584,7 +577,7 @@ void generateExpr(
 		},
 		(ref immutable LowExprKind.ParamRef it) {
 			immutable StackEntries entries = at(ctx.parameterEntries, it.index.index);
-			if (!zero(entries.size))
+			if (entries.size != 0)
 				writeDupEntries(dbg, writer, source, entries);
 		},
 		(ref immutable LowExprKind.PtrCast it) {
@@ -599,8 +592,7 @@ void generateExpr(
 			generateExpr(dbg, tempAlloc, writer, ctx, it.target);
 			immutable StackEntry mid = getNextStackEntry(writer);
 			generateExpr(dbg, tempAlloc, writer, ctx, it.value);
-			immutable FieldOffsetAndSize offsetAndSize =
-				getFieldOffsetAndSize(ctx, it.record, immutable Nat8(it.fieldIndex));
+			immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
 			verify(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
 			writeWrite(dbg, writer, source, offsetAndSize.offset, offsetAndSize.size);
 			verify(getNextStackEntry(writer) == before);
@@ -836,7 +828,7 @@ struct FieldOffsetAndSize {
 immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	ref const ExprCtx ctx,
 	immutable LowType.Record record,
-	immutable Nat8 fieldIndex,
+	immutable size_t fieldIndex,
 ) {
 	immutable LowField field = at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex);
 	immutable size_t size = sizeOfType(ctx, field.type).size;
@@ -876,7 +868,7 @@ void generateConstant(
 		constant,
 		(ref immutable Constant.ArrConstant it) {
 			immutable TextArrInfo info = getTextInfoForArray(ctx.textInfo, ctx.program.allConstants, it);
-			writePushConstant(dbg, writer, source, immutable Nat64(info.size));
+			writePushConstant(dbg, writer, source, info.size);
 			writePushConstantPointer(dbg, writer, source, info.textPtr);
 		},
 		(immutable Constant.BoolConstant it) {
@@ -903,10 +895,10 @@ void generateConstant(
 			registerFunAddress(tempAlloc, ctx, index, writePushFunPtrDelayed(dbg, writer, source));
 		},
 		(immutable Constant.Integral it) {
-			writePushConstant(dbg, writer, source, immutable Nat64(it.value));
+			writePushConstant(dbg, writer, source, it.value);
 		},
 		(immutable Constant.Null) {
-			writePushConstant(dbg, writer, source, immutable Nat8(0));
+			writePushConstant(dbg, writer, source, 0);
 		},
 		(immutable Constant.Pointer it) {
 			immutable ubyte* pointer = getTextPointer(ctx.textInfo, it);
@@ -948,7 +940,7 @@ void writeBoolConstant(
 	immutable ByteCodeSource source,
 	immutable bool value,
 ) {
-	writePushConstant(dbg, writer, source, immutable Nat8(value ? 1 : 0));
+	writePushConstant(dbg, writer, source, value ? 1 : 0);
 }
 
 void generateSpecialUnary(
@@ -1017,17 +1009,17 @@ void generateSpecialUnary(
 		// So we must mask out just the lower bits now.
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat8:
 			generateArg();
-			writePushConstant(dbg, writer, source, Nat8.max);
+			writePushConstant(dbg, writer, source, ubyte.max);
 			writeFnBinary!fnBitwiseAnd(dbg, writer, source);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat16:
 			generateArg();
-			writePushConstant(dbg, writer, source, Nat16.max);
+			writePushConstant(dbg, writer, source, ushort.max);
 			writeFnBinary!fnBitwiseAnd(dbg, writer, source);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
 			generateArg();
-			writePushConstant(dbg, writer, source, Nat32.max);
+			writePushConstant(dbg, writer, source, uint.max);
 			writeFnBinary!fnBitwiseAnd(dbg, writer, source);
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
@@ -1101,14 +1093,14 @@ void generateRecordFieldGet(
 	immutable StackEntries targetEntries = immutable StackEntries(
 		targetEntry,
 		getNextStackEntry(writer).entry - targetEntry.entry);
-	immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, immutable Nat8(it.fieldIndex));
+	immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
 	if (it.targetIsPointer) {
-		if (zero(offsetAndSize.size))
+		if (offsetAndSize.size == 0)
 			writeRemove(dbg, writer, source, targetEntries);
 		else
 			writeRead(dbg, writer, source, offsetAndSize.offset, offsetAndSize.size);
 	} else {
-		if (!zero(offsetAndSize.size)) {
+		if (offsetAndSize.size != 0) {
 			immutable StackEntry firstEntry =
 				immutable StackEntry(targetEntry.entry + (offsetAndSize.offset / stackEntrySize));
 			writeDup(
@@ -1135,10 +1127,9 @@ void generatePtrToRecordFieldGet(
 	ref immutable LowExpr target,
 ) {
 	generateExpr(dbg, tempAlloc, writer, ctx, target);
-	immutable Nat64 offset = immutable Nat64(
-		at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).offset);
+	immutable size_t offset = at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).offset;
 	if (targetIsPointer) {
-		if (!zero(offset))
+		if (offset != 0)
 			writeAddConstantNat64(dbg, writer, source, offset);
 	} else
 		// This only works if it's a local .. or another RecordFieldGet
@@ -1165,8 +1156,8 @@ void generateSpecialBinary(
 			immutable LowType pointee = asPtrRawPointee(a.left.type);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.left);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.right);
-			immutable Nat64 pointeeSize = immutable Nat64(sizeOfType(ctx, pointee).size);
-			if (pointeeSize != immutable Nat64(1))
+			immutable size_t pointeeSize = sizeOfType(ctx, pointee).size;
+			if (pointeeSize != 1)
 				writeMulConstantNat64(dbg, writer, source, pointeeSize);
 			if (a.kind == LowExprKind.SpecialBinary.Kind.addPtrAndNat64)
 				writeFnBinary!fnWrapAddIntegral(dbg, writer, source);

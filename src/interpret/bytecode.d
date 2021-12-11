@@ -7,7 +7,7 @@ import model.lowModel : LowFunIndex;
 import util.collection.arr : begin, size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.sym : Sym;
-import util.types : Int64, Nat64, safeU64FromI64;
+import util.types : safeU64FromI64;
 import util.sourceRange : FileIndex, Pos;
 import util.util : verify;
 
@@ -22,13 +22,13 @@ struct Operation {
 	@safe @nogc pure nothrow:
 
 	immutable this(immutable Fn a) { fn = a; }
-	immutable this(immutable Int64 a) { int64 = a; }
-	immutable this(immutable Nat64 a) { nat64 = a; }
+	immutable this(immutable long a) { long_ = a; }
+	immutable this(immutable ulong a) { ulong_ = a; }
 
 	union {
 		Fn fn;
-		Int64 int64;
-		Nat64 nat64;
+		long long_;
+		ulong ulong_;
 	}
 }
 
