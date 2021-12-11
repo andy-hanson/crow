@@ -406,7 +406,7 @@ immutable(ulong) packAlphaIdentifier(immutable string str) {
 	verify(canPackAlphaIdentifier(str));
 
 	ulong res = 0;
-	foreach (immutable size_t i; 0 .. 12) {
+	foreach (immutable size_t i; 0 .. alphaIdentifierMaxChars) {
 		immutable bool is6Bit = i < 2;
 		immutable ulong value = () {
 			if (i < size(str)) {
