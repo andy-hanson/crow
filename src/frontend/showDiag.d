@@ -132,6 +132,12 @@ void writeParseDiag(
 		},
 		(ref immutable ParseDiag.Expected it) {
 			final switch (it.kind) {
+				case ParseDiag.Expected.Kind.afterMut:
+					writeStatic(writer, "expected '[' or '*' after 'mut'");
+					break;
+				case ParseDiag.Expected.Kind.blockCommentEnd:
+					writeStatic(writer, "Expected '###' (then a newline)");
+					break;
 				case ParseDiag.Expected.Kind.bodyKeyword:
 					writeStatic(writer, "expected 'body'");
 					break;
@@ -445,6 +451,10 @@ void writeDiag(
 ) {
 	matchDiag!void(
 		d,
+		(ref immutable Diag.BuiltinUnsupported d) {
+			writeStatic(writer, "the compiler does not implement a builtin named ");
+			writeName(writer, d.name);
+		},
 		(ref immutable Diag.CallMultipleMatches d) {
 			writeStatic(writer, "cannot choose an overload of ");
 			writeName(writer, d.funName);

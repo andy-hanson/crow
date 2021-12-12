@@ -148,7 +148,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
 import util.sym : Operator, shortSymAlphaLiteral, Sym, symEq, symForOperator;
-import util.util : todo, unreachable, verify;
+import util.util : todo, verify;
 
 immutable(Expr) checkFunctionBody(
 	ref Alloc alloc,
@@ -1262,8 +1262,8 @@ immutable(CheckedExpr) checkExprWorker(
 		immutable CheckedExpr,
 		(ref immutable ArrowAccessAst a) =>
 			checkArrowAccess(alloc, ctx, range, a, expected),
-		(ref immutable BogusAst) =>
-			unreachable!(immutable CheckedExpr),
+		(ref immutable(BogusAst)) =>
+			bogus(expected, range),
 		(ref immutable CallAst a) =>
 			checkCall(alloc, ctx, range, a, expected),
 		(ref immutable FunPtrAst a) =>

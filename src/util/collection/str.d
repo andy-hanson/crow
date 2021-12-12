@@ -119,27 +119,27 @@ immutable(NulTerminatedStr) catToNulTerminatedStr(
 // (Preferred to `string` as it is 8 bytes instead of 16)
 struct SafeCStr {
 	//TODO:private:
-	immutable CStr inner;
+	immutable CStr ptr;
 }
 
 immutable(bool) isEmpty(immutable SafeCStr a) {
-	return *a.inner == '\0';
+	return *a.ptr == '\0';
 }
 
 immutable(char) first(immutable SafeCStr a) {
 	verify(!isEmpty(a));
-	return *a.inner;
+	return *a.ptr;
 }
 
 @trusted immutable(SafeCStr) tail(immutable SafeCStr a) {
 	verify(!isEmpty(a));
-	return immutable SafeCStr(a.inner + 1);
+	return immutable SafeCStr(a.ptr + 1);
 }
 
 immutable SafeCStr emptySafeCStr = immutable SafeCStr("");
 
 immutable(bool) safeCStrIsEmpty(immutable SafeCStr a) {
-	return *a.inner == '\0';
+	return *a.ptr == '\0';
 }
 
 private immutable(SafeCStr) safeCStrOfNulTerminatedStr(immutable NulTerminatedStr a) {
@@ -151,7 +151,7 @@ immutable(SafeCStr) copyToSafeCStr(ref Alloc alloc, immutable string a) {
 }
 
 immutable(string) strOfSafeCStr(immutable SafeCStr a) {
-	return strOfCStr(a.inner);
+	return strOfCStr(a.ptr);
 }
 
 immutable(SafeCStr) copySafeCStr(ref Alloc alloc, immutable SafeCStr a) {

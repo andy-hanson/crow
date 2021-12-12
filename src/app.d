@@ -263,7 +263,7 @@ immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
 			immutable string entryName = strOfCStr(entry.d_name.ptr);
 			if (!strEq(entryName, ".") && !strEq(entryName, "..")) {
 				immutable SafeCStr toUnlink = catToSafeCStr(alloc, strOfNulTerminatedStr(dirPath), "/", entryName);
-				immutable int err = unlink(toUnlink.inner);
+				immutable int err = unlink(toUnlink.ptr);
 				if (err != 0) {
 					todo!void("failed to unlink");
 				}
@@ -835,7 +835,7 @@ extern(C) {
 	immutable AbsolutePath path,
 	scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
 ) {
-	immutable CStr pathCStr = pathToSafeCStr(tempAlloc, allPaths, path).inner;
+	immutable CStr pathCStr = pathToSafeCStr(tempAlloc, allPaths, path).ptr;
 
 	immutable int fd = open(pathCStr, O_RDONLY);
 	if (fd == -1) {
@@ -1006,7 +1006,7 @@ immutable size_t maxPathSize = 0x1000;
 	ArrBuilder!CStr cArgs;
 	add(alloc, cArgs, executable);
 	foreach (immutable SafeCStr arg; args)
-		add(alloc, cArgs, arg.inner);
+		add(alloc, cArgs, arg.ptr);
 	add(alloc, cArgs, null);
 	return finishArr(alloc, cArgs).ptr;
 }

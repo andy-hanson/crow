@@ -8,15 +8,8 @@ import model.diag : Diag;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.cell : Cell, cellGet, cellSet;
-import util.collection.arr : arrOfRange, empty, first, last;
-import util.collection.arrUtil : cat, rtail;
-import util.collection.str :
-	copyToSafeCStr,
-	CStr,
-	emptySafeCStr,
-	NulTerminatedStr,
-	SafeCStr,
-	strOfNulTerminatedStr;
+import util.collection.arr : arrOfRange, empty;
+import util.collection.str : copyToSafeCStr, CStr, emptySafeCStr, SafeCStr;
 import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.ptr : Ptr;
@@ -49,10 +42,8 @@ struct Lexer {
 	immutable FileIndex fileIndex;
 	immutable Sym symUnderscore;
 	immutable Sym symForceSendable;
-	//TODO:PRIVATE
-	public immutable CStr sourceBegin;
-	//TODO:PRIVATE
-	public CStr ptr;
+	immutable CStr sourceBegin;
+	CStr ptr;
 	immutable IndentKind indentKind;
 	union {
 		bool ignore;
@@ -75,11 +66,8 @@ ref AllSymbols allSymbols(return scope ref Lexer lexer) {
 	Ptr!AllSymbols allSymbols,
 	Ptr!DiagnosticsBuilder diagnosticsBuilder,
 	immutable FileIndex fileIndex,
-	immutable NulTerminatedStr source,
+	immutable SafeCStr source,
 ) {
-	// Note: We *are* relying on the nul terminator to stop the lexer.
-	immutable string str = strOfNulTerminatedStr(source);
-	immutable string useStr = !empty(str) && last(str) == '\n' ? str : rtail(cat!char(alloc.deref(), str, "\n\0"));
 	return Lexer(
 		alloc,
 		allSymbols,
@@ -87,9 +75,9 @@ ref AllSymbols allSymbols(return scope ref Lexer lexer) {
 		fileIndex,
 		getSymFromAlphaIdentifier(allSymbols.deref(), "_"),
 		getSymFromAlphaIdentifier(allSymbols.deref(), "force-sendable"),
-		useStr.ptr,
-		useStr.ptr,
-		detectIndentKind(useStr));
+		source.ptr,
+		source.ptr,
+		detectIndentKind(source));
 }
 
 private immutable(char) curChar(ref const Lexer lexer) {
@@ -165,6 +153,10 @@ immutable(bool) takeOrAddDiagExpectedToken(
 	if (!res)
 		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(kind)));
 	return res;
+}
+
+void addDiagExpected(ref Lexer lexer, immutable ParseDiag.Expected.Kind kind) {
+	addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(kind)));
 }
 
 immutable(bool) takeOrAddDiagExpectedOperator(
@@ -252,13 +244,11 @@ immutable(T) takeIndentOrFailGeneric(T)(
 }
 
 private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(ref Lexer lexer, immutable uint curIndent) {
-	if (*lexer.ptr != '\n') {
+	if (!tryTakeChar(lexer, '\n')) {
 		//TODO: not always expecting indent..
 		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
-		skipUntilNewlineNoDiag(lexer);
+		skipRestOfLineAndNewline(lexer);
 	}
-	verify(*lexer.ptr == '\n');
-	lexer.ptr++;
 	return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
 }
 
@@ -370,10 +360,8 @@ immutable(string) takeQuotedStr(ref Lexer lexer) {
 }
 
 @trusted void skipUntilNewlineNoDiag(ref Lexer lexer) {
-	while (*lexer.ptr != '\n') {
-		assert(*lexer.ptr != '\0');
+	while (*lexer.ptr != '\n' && *lexer.ptr != '\0')
 		lexer.ptr++;
-	}
 }
 
 private:
@@ -387,32 +375,30 @@ private:
 
 @trusted void skipRestOfLineAndNewline(ref Lexer lexer) {
 	skipUntilNewlineNoDiag(lexer);
-	lexer.ptr++;
+	if (*lexer.ptr == '\n')
+		lexer.ptr++;
 }
 
 // Note: Not issuing any diagnostics here. We'll fail later if we detect the wrong indent kind.
-immutable(IndentKind) detectIndentKind(immutable string str) {
-	if (empty(str))
-		// No indented lines, so it's irrelevant
-		return IndentKind.tabs;
-	else {
-		immutable char c0 = first(str);
-		if (c0 == '\t')
+@trusted immutable(IndentKind) detectIndentKind(immutable SafeCStr a) {
+	immutable(char)* ptr = a.ptr;
+	switch (*ptr) {
+		case '\0':
+			// No indented lines, so it's irrelevant
 			return IndentKind.tabs;
-		else if (c0 == ' ') {
+		case '\t':
+			return IndentKind.tabs;
+		case ' ':
 			// Count spaces
-			uint i = 0;
-			for (; i < str.length; i++)
-				if (str[i] != ' ')
-					break;
+			do { ptr++; } while (*ptr == ' ');
+			immutable size_t n = ptr - a.ptr;
 			// Only allowed amounts are 2 and 4.
-			return i == 2 ? IndentKind.spaces2 : IndentKind.spaces4;
-		} else {
-			foreach (immutable size_t i; 0 .. str.length)
-				if (str[i] == '\n')
-					return detectIndentKind(str[i + 1 .. $]);
-			return IndentKind.tabs;
-		}
+			return n == 2 ? IndentKind.spaces2 : IndentKind.spaces4;
+		default:
+			while (*ptr != '\0' && *ptr != '\n')
+				ptr++;
+			if (*ptr == '\n') ptr++;
+			return detectIndentKind(immutable SafeCStr(ptr));
 	}
 }
 
@@ -1070,6 +1056,10 @@ public immutable(StringPart) takeStringPartAfterDoubleQuote(ref Lexer lexer) {
 				return StringPart.After.lbrace;
 			case endQuote:
 				return StringPart.After.quote;
+			case '\n':
+			case '\0':
+				addDiagExpected(lexer, ParseDiag.Expected.Kind.quote);
+				return StringPart.After.quote;
 			default:
 				return unreachable!(immutable StringPart.After);
 		}
@@ -1157,7 +1147,7 @@ immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(ref Lexer lexer, immutab
 	if (tryTakeChar(lexer, '\n'))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, emptySafeCStr);
 	else if (tryTakeCStr(lexer, "###\n"))
-		return skipBlankLinesAndGetDocCommentRecur(lexer, takeBlockComment(lexer));
+		return skipBlankLinesAndGetDocCommentRecur(lexer, takeRestOfBlockComment(lexer));
 	else if (tryTakeChar(lexer, '#'))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, takeRestOfLineAndNewline(lexer));
 	else if (tryTakeCStr(lexer, "region ")) {
@@ -1181,7 +1171,7 @@ immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(ref Lexer lexer, immutabl
 	if (newIndent != 0) {
 		// Comments can mean a dedent
 		if (tryTakeCStr(lexer, "###\n")) {
-			skipBlockComment(lexer);
+			skipRestOfBlockComment(lexer);
 			return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
 		} else if (tryTakeChar(lexer, '#')) {
 			skipRestOfLineAndNewline(lexer);
@@ -1201,18 +1191,23 @@ immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(ref Lexer lexer, immutabl
 			: immutable IndentDelta(immutable IndentDelta.DedentOrSame(-delta));
 }
 
-@trusted immutable(SafeCStr) takeBlockComment(ref Lexer lexer) {
+@trusted immutable(SafeCStr) takeRestOfBlockComment(ref Lexer lexer) {
 	immutable char* begin = lexer.ptr;
-	skipBlockComment(lexer);
+	skipRestOfBlockComment(lexer);
 	immutable char* end = lexer.ptr - "\n###\n".length;
 	return copyToSafeCStr(lexer.alloc, arrOfRange(begin, end));
 }
 
-void skipBlockComment(ref Lexer lexer) {
+@trusted void skipRestOfBlockComment(ref Lexer lexer) {
 	skipRestOfLineAndNewline(lexer);
-	drop(takeIndentAmount(lexer));
-	if (!tryTakeCStr(lexer, "###\n"))
-		skipBlockComment(lexer);
+	while (*lexer.ptr == '\t' || *lexer.ptr == ' ')
+		lexer.ptr++;
+	if (!tryTakeCStr(lexer, "###\n")) {
+		if (*lexer.ptr == '\0')
+			addDiagExpected(lexer, ParseDiag.Expected.Kind.blockCommentEnd);
+		else
+			skipRestOfBlockComment(lexer);
+	}
 }
 
 public @trusted immutable(bool) lookaheadWillTakeEqualsOrThen(ref Lexer lexer) {

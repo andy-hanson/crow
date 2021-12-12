@@ -8,6 +8,8 @@ import model.parseDiag : ParseDiag;
 immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 	return matchDiag!(immutable DiagSeverity)(
 		a,
+		(ref immutable Diag.BuiltinUnsupported) =>
+			DiagSeverity.checkError,
 		(ref immutable Diag.CallMultipleMatches) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.CallNoMatch) =>

@@ -21,6 +21,7 @@ import util.collection.arrUtil : arrLiteral, map;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize;
 import util.collection.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
 import util.collection.str :
+	asSafeCStr,
 	copyToNulTerminatedStr,
 	CStr,
 	cStrOfNulTerminatedStr,
@@ -110,7 +111,7 @@ immutable(Token[]) getTokens(
 	immutable string path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
-	immutable NulTerminatedStr text = mustGetAt_mut(server.files, key);
+	immutable SafeCStr text = asSafeCStr(mustGetAt_mut(server.files, key));
 	// diagnostics not used
 	DiagnosticsBuilder diagnosticsBuilder = DiagnosticsBuilder();
 	immutable FileAst ast =
@@ -132,9 +133,9 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable NulTerminatedStr text = mustGetAt_mut(server.files, key);
-	DiagnosticsBuilder diagnosticsBuilder = DiagnosticsBuilder();
+	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
 	// AST not used
-	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagnosticsBuilder, immutable FileIndex(0), text);
+	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagsBuilder, immutable FileIndex(0), asSafeCStr(text));
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(arrLiteral!PathAndStorageKind(alloc, [key])),
 		immutable AbsolutePathsGetter(immutable SafeCStr(""), immutable SafeCStr(""), immutable SafeCStr("")),
@@ -142,7 +143,7 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, strOfNulTerminatedStr(text))])));
 	return map!StrParseDiagnostic(
 		alloc,
-		finishDiagnosticsNoSort(alloc, diagnosticsBuilder).diags,
+		finishDiagnosticsNoSort(alloc, diagsBuilder).diags,
 		(ref immutable Diagnostic it) =>
 			immutable StrParseDiagnostic(
 				it.where.range,

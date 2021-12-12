@@ -605,14 +605,20 @@ immutable(Sig) checkSig(
 	return immutable Sig(posInFile(ctx, ast.range.start), ast.name, returnType, params);
 }
 
-immutable(SpecBody.Builtin.Kind) getSpecBodyBuiltinKind(immutable Sym name) {
+immutable(SpecBody.Builtin.Kind) getSpecBodyBuiltinKind(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	immutable RangeWithinFile range,
+	immutable Sym name,
+) {
 	switch (name.value) {
 		case shortSymAlphaLiteralValue("is-data"):
 			return SpecBody.Builtin.Kind.data;
 		case shortSymAlphaLiteralValue("is-sendable"):
 			return SpecBody.Builtin.Kind.send;
 		default:
-			return todo!(SpecBody.Builtin.Kind)("reachable?");
+			addDiag(alloc, ctx, range, immutable Diag(immutable Diag.BuiltinUnsupported(name)));
+			return SpecBody.Builtin.Kind.data;
 	}
 }
 
@@ -622,13 +628,14 @@ immutable(SpecBody) checkSpecBody(
 	ref immutable CommonTypes commonTypes,
 	ref immutable ArrWithSize!TypeParam typeParams,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	immutable RangeWithinFile range,
 	immutable Sym name,
 	ref immutable SpecBodyAst ast,
 ) {
 	return matchSpecBodyAst!(
 		immutable SpecBody,
 		(ref immutable SpecBodyAst.Builtin) =>
-			immutable SpecBody(SpecBody.Builtin(getSpecBodyBuiltinKind(name))),
+			immutable SpecBody(SpecBody.Builtin(getSpecBodyBuiltinKind(alloc, ctx, range, name))),
 		(ref immutable SigAst[] sigs) =>
 			immutable SpecBody(map!Sig(alloc, sigs, (ref immutable SigAst it) =>
 				checkSig(
@@ -652,7 +659,7 @@ immutable(SpecDecl[]) checkSpecDecls(
 	return map!SpecDecl(alloc, asts, (ref immutable SpecDeclAst ast) {
 		immutable ArrWithSize!TypeParam typeParams = checkTypeParams(alloc, ctx, ast.typeParams);
 		immutable SpecBody body_ =
-			checkSpecBody(alloc, ctx, commonTypes, typeParams, structsAndAliasesDict, ast.name, ast.body_);
+			checkSpecBody(alloc, ctx, commonTypes, typeParams, structsAndAliasesDict, ast.range, ast.name, ast.body_);
 		return immutable SpecDecl(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(alloc, ast.docComment),

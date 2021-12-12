@@ -18,7 +18,7 @@ import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil : arrLiteral, copyArr, map, mapImpure, mapOp, mapWithSoFar, prepend;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGetPtr, fullIndexDictOfArr;
 import util.collection.mutDict : getAt_mut, MutDict, setInDict;
-import util.collection.str : NulTerminatedStr, strOfNulTerminatedStr;
+import util.collection.str : asSafeCStr, NulTerminatedStr, strOfNulTerminatedStr;
 import util.conv : safeToUshort;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile, lineAndColumnGetterForText;
@@ -385,7 +385,7 @@ immutable(FileAstAndLineAndColumnGetter) parseSingle(
 	// File content must go in astAlloc because we refer to strings without copying
 	if (has(opFileContent))
 		return immutable FileAstAndLineAndColumnGetter(
-			parseFile(astAlloc, perf, allPaths, allSymbols, diags, fileIndex, force(opFileContent)),
+			parseFile(astAlloc, perf, allPaths, allSymbols, diags, fileIndex, asSafeCStr(force(opFileContent))),
 			lcg);
 	else {
 		addDiagnostic(modelAlloc, diags, immutable FileAndRange(fileIndex, RangeWithinFile.empty), immutable Diag(

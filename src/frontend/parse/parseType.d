@@ -5,6 +5,7 @@ module frontend.parse.parseType;
 import frontend.parse.ast : bogusTypeAst, NameAndRange, range, TypeAst;
 import frontend.parse.lexer :
 	addDiag,
+	addDiagExpected,
 	addDiagUnexpectedCurToken,
 	alloc,
 	curPos,
@@ -173,9 +174,10 @@ private immutable(TypeAst) parseTypeSuffixes(ref Lexer lexer, immutable TypeAst 
 			return handleSuffix(TypeAst.Suffix.kind.ptrMut);
 		else if (tryTakeOperator(lexer, Operator.exponent))
 			return handleDoubleSuffix(TypeAst.Suffix.Kind.ptrMut, TypeAst.Suffix.Kind.ptr);
-		else
-			// Unexpected token after 'mut' -- should have been '*' or '['
-			return todo!(immutable TypeAst)("!");
+		else {
+			addDiagExpected(lexer, ParseDiag.Expected.Kind.afterMut);
+			return ast;
+		}
 	} else
 		return ast;
 }

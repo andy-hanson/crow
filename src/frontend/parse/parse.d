@@ -72,7 +72,7 @@ import util.alloc.alloc : Alloc;
 import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, arrWithSizeBuilderIsEmpty, finishArrWithSize;
-import util.collection.str : NulTerminatedStr, SafeCStr;
+import util.collection.str : SafeCStr;
 import util.conv : safeToUshort;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some, somePtr;
@@ -90,7 +90,7 @@ immutable(FileAst) parseFile(
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	immutable FileIndex fileIndex,
-	immutable NulTerminatedStr source,
+	immutable SafeCStr source,
 ) {
 	return withMeasure!(immutable FileAst, () {
 		Lexer lexer = createLexer(

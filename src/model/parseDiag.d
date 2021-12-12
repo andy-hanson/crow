@@ -17,6 +17,8 @@ struct ParseDiag {
 	}
 	struct Expected {
 		enum Kind {
+			afterMut,
+			blockCommentEnd,
 			bodyKeyword,
 			closingBracket,
 			closingParen,

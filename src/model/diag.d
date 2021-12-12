@@ -65,6 +65,10 @@ enum TypeKind {
 struct Diag {
 	@safe @nogc pure nothrow:
 
+	struct BuiltinUnsupported {
+		immutable Sym name;
+	}
+
 	// Note: this error is issued *before* resolving specs.
 	// We don't exclude a candidate based on not having specs.
 	struct CallMultipleMatches {
@@ -288,6 +292,7 @@ struct Diag {
 
 	private:
 	enum Kind {
+		builtinUnsupported,
 		callMultipleMatches,
 		callNoMatch,
 		cantCall,
@@ -343,6 +348,7 @@ struct Diag {
 
 	immutable Kind kind;
 	union {
+		immutable BuiltinUnsupported builtinUnsupported;
 		immutable CallMultipleMatches callMultipleMatches;
 		immutable CallNoMatch callNoMatch;
 		immutable CantCall cantCall;
@@ -397,6 +403,9 @@ struct Diag {
 	}
 
 	public:
+	immutable this(immutable BuiltinUnsupported a) {
+		kind = Kind.builtinUnsupported; builtinUnsupported = a;
+	}
 	@trusted immutable this(immutable CallMultipleMatches a) {
 		kind = Kind.callMultipleMatches; callMultipleMatches = a;
 	}
@@ -512,6 +521,7 @@ struct Diag {
 
 @trusted immutable(Out) matchDiag(Out)(
 	immutable Diag a,
+	scope immutable(Out) delegate(ref immutable Diag.BuiltinUnsupported) @safe @nogc pure nothrow cbBuiltinUnsupported,
 	scope immutable(Out) delegate(
 		ref immutable Diag.CallMultipleMatches
 	) @safe @nogc pure nothrow cbCallMultipleMatches,
@@ -645,6 +655,8 @@ struct Diag {
 	) @safe @nogc pure nothrow cbWrongNumberTypeArgsForStruct,
 ) {
 	final switch (a.kind) {
+		case Diag.Kind.builtinUnsupported:
+			return cbBuiltinUnsupported(a.builtinUnsupported);
 		case Diag.Kind.callMultipleMatches:
 			return cbCallMultipleMatches(a.callMultipleMatches);
 		case Diag.Kind.callNoMatch:

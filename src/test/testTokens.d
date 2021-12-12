@@ -9,7 +9,7 @@ import frontend.parse.parse : parseFile;
 import test.testUtil : Test;
 import util.collection.arr : emptyArr;
 import util.collection.arrUtil : arrEqual, arrLiteral;
-import util.collection.str : copyToNulTerminatedStr;
+import util.collection.str : SafeCStr;
 import util.dbg : log;
 import util.perf : Perf, withNullPerf;
 import util.repr : writeRepr;
@@ -19,7 +19,12 @@ import util.util : verifyFail;
 import util.writer : finishWriter, Writer, writeStatic;
 
 void testTokens(ref Test test) {
-	testOne(test, "", emptyArr!Token);
+	testOne(test, immutable SafeCStr(""), emptyArr!Token);
+
+	debug {
+		import core.stdc.stdio : printf;
+		printf("testSource2 IS %s\n", testSource2.ptr);
+	}
 
 	testOne(test, testSource, arrLiteral!Token(test.alloc, [
 		immutable Token(Token.Kind.keyword, immutable RangeWithinFile(0, 6)),
@@ -43,7 +48,7 @@ void testTokens(ref Test test) {
 
 private:
 
-void testOne(ref Test test, immutable string source, immutable Token[] expectedTokens) {
+void testOne(ref Test test, immutable SafeCStr source, immutable Token[] expectedTokens) {
 	AllSymbols allSymbols = AllSymbols(test.allocPtr);
 	DiagnosticsBuilder diags = DiagnosticsBuilder();
 	immutable FileAst ast = withNullPerf!(
@@ -55,7 +60,7 @@ void testOne(ref Test test, immutable string source, immutable Token[] expectedT
 			allSymbols,
 			diags,
 			immutable FileIndex(0),
-			copyToNulTerminatedStr(test.alloc, source)));
+			source));
 	immutable Token[] tokens = tokensOfAst(test.alloc, ast);
 	if (!tokensEq(tokens, expectedTokens)) {
 		Writer writer = Writer(test.allocPtr);
@@ -84,12 +89,12 @@ immutable(bool) rangeEq(ref immutable RangeWithinFile a, ref immutable RangeWith
 	return a.start == b.start && a.end == b.end;
 }
 
-immutable string testSource = `import
+immutable SafeCStr testSource = immutable SafeCStr(`import
 	io
 
 main fut exit-code(args arr str) summon
 	0 resolved
-`;
+`);
 
-immutable string testSource2 = `f nat(a^ nat)
-	0`;
+immutable SafeCStr testSource2 = immutable SafeCStr(`f nat(a^ nat)
+	0`);

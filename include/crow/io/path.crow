@@ -9,7 +9,7 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 
 ###
-Gets the paremt of a path.
+Gets the parent of a path.
 Returns "" if the path has no parent.
 ###
 parent-path str(a str)
