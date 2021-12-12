@@ -25,7 +25,7 @@ struct ArrWithSize(T) {
 }
 
 @system void freeArr(T)(ref Alloc alloc, immutable T[] a) {
-	freeBytes(alloc, cast(ubyte*) begin(a), a.length * T.sizeof);
+	freeBytes(alloc, cast(ubyte*) a.ptr, a.length * T.sizeof);
 }
 
 @trusted T[] castMutable(T)(immutable T[] a) {
@@ -54,16 +54,6 @@ struct ArrWithSize(T) {
 @trusted T[] emptyArr_mut(T)() {
 	T* begin = null;
 	return begin[0 .. 0];
-}
-
-@system immutable(T*) begin(T)(immutable T[] a) {
-	return a.ptr;
-}
-@system const(T*) begin(T)(const T[] a) {
-	return a.ptr;
-}
-@system T* begin(T)(T[] a) {
-	return a.ptr;
 }
 
 immutable(bool) sizeEq(T, U)(scope const T[] a, scope const U[] b) {

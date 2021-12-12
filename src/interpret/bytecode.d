@@ -4,7 +4,6 @@ module interpret.bytecode;
 
 import interpret.runBytecode : Interpreter;
 import model.lowModel : LowFunIndex;
-import util.collection.arr : begin;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.sym : Sym;
 import util.sourceRange : FileIndex, Pos;
@@ -72,7 +71,7 @@ struct ByteCode {
 }
 
 @trusted immutable(Operation*) initialOperationPointer(return scope ref immutable ByteCode a) {
-	return begin(a.byteCode) + a.main.index;
+	return a.byteCode.ptr + a.main.index;
 }
 
 struct StackOffset {

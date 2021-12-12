@@ -8,7 +8,7 @@ import model.diag : Diag;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.cell : Cell, cellGet, cellSet;
-import util.collection.arr : arrOfRange, begin, empty, first, last;
+import util.collection.arr : arrOfRange, empty, first, last;
 import util.collection.arrUtil : cat, rtail;
 import util.collection.str :
 	copyToSafeCStr,
@@ -87,8 +87,8 @@ ref AllSymbols allSymbols(return scope ref Lexer lexer) {
 		fileIndex,
 		getSymFromAlphaIdentifier(allSymbols.deref(), "_"),
 		getSymFromAlphaIdentifier(allSymbols.deref(), "force-sendable"),
-		begin(useStr),
-		begin(useStr),
+		useStr.ptr,
+		useStr.ptr,
 		detectIndentKind(useStr));
 }
 

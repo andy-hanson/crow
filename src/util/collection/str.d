@@ -3,7 +3,6 @@ module util.collection.str;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateBytes;
-import util.collection.arr : begin;
 import util.collection.arrUtil : cat, rtail, tail;
 import util.hash : Hasher, hashUbyte;
 import util.memory : memcpy;
@@ -26,7 +25,7 @@ immutable(NulTerminatedStr) emptyNulTerminatedStr() {
 }
 
 @trusted immutable(CStr) cStrOfNulTerminatedStr(immutable NulTerminatedStr a) {
-	return begin(a.str);
+	return a.str.ptr;
 }
 
 @trusted immutable(NulTerminatedStr) nulTerminatedStrOfCStr(immutable CStr c) {
@@ -56,11 +55,11 @@ immutable(string) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
 }
 
 @trusted immutable(CStr) asCStr(immutable NulTerminatedStr s) {
-	return s.str.begin;
+	return s.str.ptr;
 }
 
 @trusted immutable(SafeCStr) asSafeCStr(immutable NulTerminatedStr s) {
-	return immutable SafeCStr(s.str.begin);
+	return immutable SafeCStr(s.str.ptr);
 }
 
 immutable(CStr) strToCStr(ref Alloc alloc, scope immutable string s) {

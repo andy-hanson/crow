@@ -22,7 +22,7 @@ import model.typeLayout : PackField;
 import util.alloc.alloc : TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.dbg : log, logNoNewline, logSymNoNewline;
-import util.collection.arr : begin, last;
+import util.collection.arr : last;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.stack :
 	asTempArr,
@@ -71,7 +71,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writeStatic;
 		dbg, tempAlloc, extern_, lowProgram, byteCode, allPaths, filesInfo,
 		(scope ref Interpreter interpreter) {
 			push(interpreter.dataStack, allArgs.length);
-			push(interpreter.dataStack, cast(immutable ulong) begin(allArgs));
+			push(interpreter.dataStack, cast(immutable ulong) allArgs.ptr);
 			return withMeasureNoAlloc!(immutable int, () =>
 				runBytecodeInner(interpreter)
 			)(perf, PerfMeasure.run);
@@ -295,7 +295,7 @@ immutable(ByteCodeIndex) nextByteCodeIndex(scope ref const Interpreter a, immuta
 	ref const Interpreter a,
 	immutable Operation* ptr,
 ) {
-	return immutable ByteCodeIndex(ptr - begin(a.byteCode.byteCode));
+	return immutable ByteCodeIndex(ptr - a.byteCode.byteCode.ptr);
 }
 
 private immutable(ByteCodeSource) nextSource(ref const Interpreter a, immutable Operation* cur) {

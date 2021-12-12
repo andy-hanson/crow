@@ -3,7 +3,7 @@ module util.collection.arrWithSizeBuilder;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateBytes, freeBytesPartial;
-import util.collection.arr : ArrWithSize, begin, emptyArrWithSize;
+import util.collection.arr : ArrWithSize, emptyArrWithSize;
 import util.memory : initMemory;
 import util.util : verify;
 

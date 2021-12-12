@@ -44,7 +44,7 @@ import model.model : AbsolutePathsGetter, getAbsolutePath, hasDiags;
 import test.test : test;
 import util.alloc.alloc : Alloc, allocateBytes, freeBytes, TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.collection.arr : begin, empty;
+import util.collection.arr : empty;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : prepend, tail, zipImpureSystem;
 import util.collection.str :
@@ -1008,7 +1008,7 @@ immutable size_t maxPathSize = 0x1000;
 	foreach (immutable SafeCStr arg; args)
 		add(alloc, cArgs, arg.inner);
 	add(alloc, cArgs, null);
-	return finishArr(alloc, cArgs).begin;
+	return finishArr(alloc, cArgs).ptr;
 }
 
 // D doesn't declare this anywhere for some reason
