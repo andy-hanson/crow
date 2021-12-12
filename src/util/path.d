@@ -4,7 +4,7 @@ module util.path;
 
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
-import util.collection.str : asSafeCStr, copyToSafeCStr, NulTerminatedStr, SafeCStr, safeCStr, strOfSafeCStr;
+import util.collection.str : copyToSafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
@@ -260,32 +260,14 @@ immutable(string) pathToStr(
 	return pathToStrWorker(alloc, allPaths, root, 1, path, extension, false);
 }
 
-immutable(SafeCStr) pathToSafeCStr(
+@trusted immutable(SafeCStr) pathToSafeCStr(
 	ref Alloc alloc,
 	ref const AllPaths allPaths,
 	immutable SafeCStr root,
 	immutable Path path,
 	immutable string extension,
 ) {
-	return asSafeCStr(pathToNulTerminatedStr(alloc, allPaths, root, path, extension));
-}
-
-immutable(NulTerminatedStr) pathToNulTerminatedStr(
-	ref Alloc alloc,
-	ref const AllPaths allPaths,
-	ref immutable AbsolutePath path,
-) {
-	return pathToNulTerminatedStr(alloc, allPaths, path.root, path.path, path.extension);
-}
-
-private immutable(NulTerminatedStr) pathToNulTerminatedStr(
-	ref Alloc alloc,
-	ref const AllPaths allPaths,
-	immutable SafeCStr root,
-	immutable Path path,
-	immutable string extension,
-) {
-	return immutable NulTerminatedStr(pathToStrWorker(alloc, allPaths, root, 1, path, extension, true));
+	return immutable SafeCStr(pathToStrWorker(alloc, allPaths, root, 1, path, extension, true).ptr);
 }
 
 immutable(string) pathToStr(
@@ -295,12 +277,13 @@ immutable(string) pathToStr(
 ) {
 	return pathToStr(alloc, allPaths, path.root, path.path, path.extension);
 }
+
 immutable(SafeCStr) pathToSafeCStr(
 	ref Alloc alloc,
 	ref const AllPaths allPaths,
 	ref immutable AbsolutePath path,
 ) {
-	return pathToNulTerminatedStr(alloc, allPaths, path.root, path.path, path.extension).asSafeCStr();
+	return pathToSafeCStr(alloc, allPaths, path.root, path.path, path.extension);
 }
 
 immutable(Path) parsePath(ref AllPaths allPaths, scope ref immutable string str) {

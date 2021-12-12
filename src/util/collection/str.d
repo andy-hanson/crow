@@ -4,13 +4,25 @@ module util.collection.str;
 
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.collection.arr : freeArr;
-import util.collection.arrUtil : cat, rtail, tail;
+import util.collection.arrUtil : cat4, tail;
 import util.hash : Hasher, hashUbyte;
 import util.memory : memcpy;
 import util.opt : force, has, none, Opt, some;
 import util.util : verify;
 
 alias CStr = immutable(char)*;
+
+// CStr type that definitely has '\0' at the end
+// (Preferred to `string` as it is 8 bytes instead of 16)
+struct SafeCStr {
+	@safe @nogc pure nothrow:
+
+	@system immutable this(immutable CStr p) {
+		ptr = p;
+	}
+
+	immutable CStr ptr;
+}
 
 @trusted immutable(CStr) end(immutable CStr c) {
 	immutable(char)* ptr = c;
@@ -24,41 +36,16 @@ alias CStr = immutable(char)*;
 	return c[0 .. size];
 }
 
-@trusted immutable(CStr) cStrOfNulTerminatedStr(immutable NulTerminatedStr a) {
-	return a.str.ptr;
-}
-
-struct NulTerminatedStr {
-	@safe @nogc pure nothrow:
-	immutable string str;
-
-	this(immutable string s) immutable {
-		str = s;
-		verify(str.length != 0 && str[str.length - 1] == '\0');
-	}
-}
-
-immutable(string) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
-	return rtail(a.str);
-}
-
-@trusted private immutable(NulTerminatedStr) copyToNulTerminatedStr(ref Alloc alloc, scope immutable string s) {
+@trusted immutable(SafeCStr) copyToSafeCStr(ref Alloc alloc, scope immutable string s) {
 	char* res = cast(char*) allocateBytes(alloc, s.length + 1);
+	static assert(ubyte.sizeof == char.sizeof);
 	memcpy(cast(ubyte*) res, cast(ubyte*) s.ptr, s.length);
 	res[s.length] = '\0';
-	return immutable NulTerminatedStr(cast(immutable) res[0 .. s.length + 1]);
-}
-
-@trusted immutable(CStr) asCStr(immutable NulTerminatedStr s) {
-	return s.str.ptr;
-}
-
-@trusted immutable(SafeCStr) asSafeCStr(immutable NulTerminatedStr s) {
-	return immutable SafeCStr(s.str.ptr);
+	return immutable SafeCStr(cast(immutable) res);
 }
 
 immutable(CStr) strToCStr(ref Alloc alloc, scope immutable string s) {
-	return copyToNulTerminatedStr(alloc, s).asCStr;
+	return copyToSafeCStr(alloc, s).ptr;
 }
 
 immutable(bool) strEq(immutable string a, immutable string b) {
@@ -86,40 +73,16 @@ immutable(bool) startsWith(immutable SafeCStr a, immutable SafeCStr b) {
 }
 
 immutable(SafeCStr) catToSafeCStr(ref Alloc alloc, immutable string a, immutable string b) {
-	return asSafeCStr(catToNulTerminatedStr(alloc, a, b));
+	return catToSafeCStr3(alloc, a, b, "");
 }
 
-immutable(NulTerminatedStr) catToNulTerminatedStr(
-	ref Alloc alloc,
-	immutable string a,
-	immutable string b,
-) {
-	return catToNulTerminatedStr(alloc, a, b, "");
-}
-
-immutable(SafeCStr) catToSafeCStr(ref Alloc alloc, immutable string a, immutable string b, immutable string c) {
-	return asSafeCStr(catToNulTerminatedStr(alloc, a, b, c));
-}
-
-immutable(NulTerminatedStr) catToNulTerminatedStr(
+@trusted immutable(SafeCStr) catToSafeCStr3(
 	ref Alloc alloc,
 	immutable string a,
 	immutable string b,
 	immutable string c,
 ) {
-	return immutable NulTerminatedStr(cat(alloc, a, b, c, "\0"));
-}
-
-// CStr type that definitely has '\0' at the end
-// (Preferred to `string` as it is 8 bytes instead of 16)
-struct SafeCStr {
-	@safe @nogc pure nothrow:
-
-	@system immutable this(immutable CStr p) {
-		ptr = p;
-	}
-
-	immutable CStr ptr;
+	return immutable SafeCStr(cat4(alloc, a, b, c, "\0").ptr);
 }
 
 @trusted immutable(SafeCStr) safeCStr(immutable char* content)() {
@@ -147,14 +110,6 @@ immutable(char) first(immutable SafeCStr a) {
 
 immutable(bool) safeCStrIsEmpty(immutable SafeCStr a) {
 	return *a.ptr == '\0';
-}
-
-private @trusted immutable(SafeCStr) safeCStrOfNulTerminatedStr(immutable NulTerminatedStr a) {
-	return immutable SafeCStr(asCStr(a));
-}
-
-immutable(SafeCStr) copyToSafeCStr(ref Alloc alloc, scope immutable string a) {
-	return safeCStrOfNulTerminatedStr(copyToNulTerminatedStr(alloc, a));
 }
 
 immutable(string) strOfSafeCStr(immutable SafeCStr a) {

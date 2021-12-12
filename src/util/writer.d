@@ -5,7 +5,7 @@ module util.writer;
 import util.alloc.alloc : Alloc;
 import util.ptr : Ptr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr, SafeCStr;
+import util.collection.str : CStr, SafeCStr;
 import util.util : abs, verify;
 
 struct Writer {
@@ -19,9 +19,9 @@ immutable(string) finishWriter(scope ref Writer writer) {
 	return finishArr(writer.alloc.deref, writer.res);
 }
 
-immutable(CStr) finishWriterToCStr(ref Writer writer) {
+@trusted immutable(CStr) finishWriterToCStr(ref Writer writer) {
 	writeChar(writer, '\0');
-	return cStrOfNulTerminatedStr(immutable NulTerminatedStr(finishWriter(writer)));
+	return finishWriter(writer).ptr;
 }
 
 @trusted immutable(SafeCStr) finishWriterToSafeCStr(ref Writer writer) {

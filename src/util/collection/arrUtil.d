@@ -510,7 +510,7 @@ private immutable(Acc) each(Acc, T)(
 	}
 }
 
-@trusted immutable(T[]) cat(T)(
+@trusted immutable(T[]) cat4(T)(
 	ref Alloc alloc,
 	immutable T[] a,
 	immutable T[] b,
@@ -583,11 +583,6 @@ const(T[]) tail(T)(const T[] a) {
 T[] tail(T)(T[] a) {
 	verify(a.length != 0);
 	return a[1 .. $];
-}
-
-immutable(T[]) rtail(T)(immutable T[] a) {
-	verify(a.length != 0);
-	return a[0 .. $ - 1];
 }
 
 //TODO:PERF More efficient than bubble sort..

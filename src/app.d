@@ -48,14 +48,10 @@ import util.collection.arr : empty;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : prepend, tail, zipImpureSystem;
 import util.collection.str :
-	asCStr,
-	asSafeCStr,
 	catToSafeCStr,
-	catToNulTerminatedStr,
+	catToSafeCStr3,
 	copyToSafeCStr,
 	CStr,
-	cStrOfNulTerminatedStr,
-	NulTerminatedStr,
 	SafeCStr,
 	safeCStr,
 	safeCStrEq,
@@ -63,8 +59,7 @@ import util.collection.str :
 	strEq,
 	strOfCStr,
 	strToCStr,
-	strOfSafeCStr,
-	strOfNulTerminatedStr;
+	strOfSafeCStr;
 import util.conv : bitsOfFloat64, float32OfBits, float64OfBits, safeToSizeT;
 import util.dbg : Debug;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
@@ -75,7 +70,6 @@ import util.path :
 	Path,
 	PathAndStorageKind,
 	pathParent,
-	pathToNulTerminatedStr,
 	pathToSafeCStr,
 	removeFirstPathComponentIf,
 	rootPath,
@@ -246,11 +240,11 @@ immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
 	ref AllPaths allPaths,
 	immutable SafeCStr crowDir,
 ) {
-	immutable NulTerminatedStr dirPath = catToNulTerminatedStr(alloc, strOfSafeCStr(crowDir), "/temp");
-	DIR* dir = opendir(cStrOfNulTerminatedStr(dirPath));
+	immutable SafeCStr dirPath = catToSafeCStr(alloc, strOfSafeCStr(crowDir), "/temp");
+	DIR* dir = opendir(dirPath.ptr);
 	if (dir == null) {
 		if (errno == ENOENT) {
-			immutable int err = mkdir(cStrOfNulTerminatedStr(dirPath), S_IRWXU);
+			immutable int err = mkdir(dirPath.ptr, S_IRWXU);
 			if (err != 0)
 				todo!void("error making temp");
 		} else
@@ -262,7 +256,7 @@ immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
 				break;
 			immutable string entryName = strOfCStr(entry.d_name.ptr);
 			if (!strEq(entryName, ".") && !strEq(entryName, "..")) {
-				immutable SafeCStr toUnlink = catToSafeCStr(alloc, strOfNulTerminatedStr(dirPath), "/", entryName);
+				immutable SafeCStr toUnlink = catToSafeCStr3(alloc, strOfSafeCStr(dirPath), "/", entryName);
 				immutable int err = unlink(toUnlink.ptr);
 				if (err != 0) {
 					todo!void("failed to unlink");
@@ -270,7 +264,7 @@ immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
 			}
 		}
 	}
-	return asSafeCStr(dirPath);
+	return dirPath;
 }
 
 @system immutable(ExitCode) mkdirRecur(TempAlloc)(ref TempAlloc tempAlloc, immutable string dir) {
@@ -315,7 +309,7 @@ immutable(ExitCode) runDocument(
 		getMain(allPaths, includeDir, programDirAndMain));
 	return empty(result.diagnostics)
 		? has(out_)
-			? writeFile(alloc, pathToNulTerminatedStr(alloc, allPaths, force(out_)), result.document)
+			? writeFile(alloc, pathToSafeCStr(alloc, allPaths, force(out_)), result.document)
 			: print(result.document)
 		: printErr(result.diagnostics);
 }
@@ -426,7 +420,7 @@ immutable(ExitCode) buildToCAndCompile(
 	immutable BuildToCResult result = buildToC(
 		alloc, perf, allSymbols, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
 	if (empty(result.diagnostics)) {
-		immutable ExitCode res = writeFile(alloc, pathToNulTerminatedStr(alloc, allPaths, cPath), result.cSource);
+		immutable ExitCode res = writeFile(alloc, pathToSafeCStr(alloc, allPaths, cPath), result.cSource);
 		return res == ExitCode.ok && has(exePath)
 			? compileC(alloc, perf, allPaths, cPath, force(exePath), result.allExternLibraryNames, cCompileOptions)
 			: res;
@@ -884,14 +878,10 @@ extern(C) {
 	return cb(some(immutable SafeCStr(cast(immutable) content)));
 }
 
-@trusted immutable(ExitCode) writeFile(TempAlloc)(
-	ref TempAlloc tempAlloc,
-	immutable NulTerminatedStr path,
-	string content,
-) {
+@trusted immutable(ExitCode) writeFile(TempAlloc)(ref TempAlloc tempAlloc, immutable SafeCStr path, string content) {
 	immutable int fd = tryOpenFile(tempAlloc, path);
 	if (fd == -1) {
-		fprintf(stderr, "Failed to write file %s: %s\n", asCStr(path), strerror(errno));
+		fprintf(stderr, "Failed to write file %s: %s\n", path.ptr, strerror(errno));
 		return ExitCode.error;
 	} else {
 		scope(exit) close(fd);
@@ -906,14 +896,14 @@ extern(C) {
 	}
 }
 
-@system immutable(int) tryOpenFile(TempAlloc)(ref TempAlloc tempAlloc, immutable NulTerminatedStr path) {
-	immutable int fd = open(asCStr(path), O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
+@system immutable(int) tryOpenFile(TempAlloc)(ref TempAlloc tempAlloc, immutable SafeCStr path) {
+	immutable int fd = open(path.ptr, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
 	if (fd == -1 && errno == ENOENT) {
-		immutable Opt!string par = pathParent(strOfNulTerminatedStr(path));
+		immutable Opt!string par = pathParent(strOfSafeCStr(path));
 		if (has(par)) {
 			immutable ExitCode res = mkdirRecur(tempAlloc, force(par));
 			if (res == ExitCode.ok)
-				return open(asCStr(path), O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
+				return open(path.ptr, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
 		}
 	}
 	return fd;
