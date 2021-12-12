@@ -5,7 +5,7 @@ module model.model;
 import model.constant : Constant;
 import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.alloc.alloc : Alloc;
-import util.collection.arr : ArrWithSize, empty, emptyArr, first, only, sizeEq, toArr;
+import util.collection.arr : ArrWithSize, empty, emptyArr, only, sizeEq, toArr;
 import util.collection.arrUtil : arrEqual;
 import util.collection.dict : SymDict;
 import util.collection.fullIndexDict : FullIndexDict;

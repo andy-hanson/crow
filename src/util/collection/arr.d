@@ -74,22 +74,13 @@ immutable(bool) empty(T)(const T[] a) {
 	overwriteMemory(&a[index], value);
 }
 
-ref T first(T)(T[] a) {
-	return a[0];
-}
-
 ref immutable(T) only(T)(return scope ref immutable T[] a) {
 	verify(a.length == 1);
-	return first(a);
+	return a[0];
 }
 ref const(T) only_const(T)(ref const T[] a) {
 	verify(a.length == 1);
-	return first(a);
-}
-
-ref immutable(T) last(T)(ref immutable T[] a) {
-	verify(a.length != 0);
-	return a[a.length - 1];
+	return a[0];
 }
 
 immutable(Ptr!T) lastPtr(T)(ref immutable T[] a) {

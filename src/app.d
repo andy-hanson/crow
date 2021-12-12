@@ -46,7 +46,7 @@ import util.alloc.alloc : Alloc, allocateBytes, freeBytes, TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.collection.arr : empty;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.collection.arrUtil : prepend, tail, zipImpureSystem;
+import util.collection.arrUtil : prepend, zipImpureSystem;
 import util.collection.str :
 	catToSafeCStr,
 	catToSafeCStr3,
@@ -921,7 +921,7 @@ struct CommandLineArgs {
 ) {
 	immutable SafeCStr[] allArgs = cast(immutable SafeCStr[]) argv[0 .. argc];
 	// Take the tail because the first one is 'crow'
-	return immutable CommandLineArgs(getPathToThisExecutable(alloc), tail(allArgs));
+	return immutable CommandLineArgs(getPathToThisExecutable(alloc), allArgs[1 .. $]);
 }
 
 @trusted immutable(SafeCStr) getCwd(ref Alloc alloc) {

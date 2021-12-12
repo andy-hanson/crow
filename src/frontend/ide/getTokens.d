@@ -54,9 +54,8 @@ import frontend.parse.ast :
 	TypedAst;
 import model.model : Visibility;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : ArrWithSize, empty, first, last, toArr;
+import util.collection.arr : ArrWithSize, empty, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrUtil : tail;
 import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : compareNat32, Comparison;
 import util.conv : safeToUint;
@@ -355,9 +354,9 @@ void addExprTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable E
 				case CallAst.Style.dot:
 				case CallAst.Style.setDot:
 				case CallAst.Style.infix:
-					addExprTokens(alloc, tokens, first(args));
+					addExprTokens(alloc, tokens, args[0]);
 					addName();
-					addExprsTokens(alloc, tokens, tail(args));
+					addExprsTokens(alloc, tokens, args[1 .. $]);
 					break;
 				case CallAst.style.emptyParens:
 					break;
@@ -433,7 +432,7 @@ void addExprTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable E
 							Token.Kind.literalString,
 							immutable RangeWithinFile(a.range.end - 1, a.range.end)));
 					},
-				)(last(it.parts));
+				)(it.parts[$ - 1]);
 			}
 		},
 		(ref immutable LambdaAst it) {

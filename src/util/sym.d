@@ -3,8 +3,8 @@ module util.sym;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : first, last, only;
-import util.collection.arrUtil : contains, every, findIndex, tail;
+import util.collection.arr : only;
+import util.collection.arrUtil : contains, every, findIndex;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
 import util.collection.str : CStr, strEq, strOfCStr, strToCStr;
 import util.hash : Hasher, hashUlong;
@@ -462,7 +462,7 @@ immutable(CStr) getOrAddLongStr(ref AllSymbols allSymbols, scope immutable strin
 		if (strEqCStr(str, s))
 			return s;
 	push(allSymbols.alloc.deref(), allSymbols.largeStrings, strToCStr(allSymbols.alloc.deref(), str));
-	return allSymbols.largeStrings.last;
+	return last(allSymbols.largeStrings);
 }
 
 immutable(Sym) getSymFromLongStr(ref AllSymbols allSymbols, scope immutable string str) {
@@ -490,5 +490,5 @@ immutable(bool) bitsOverlap(immutable ulong a, immutable ulong b) {
 @trusted immutable(bool) strEqCStr(immutable string a, immutable CStr b) {
 	return *b == '\0'
 		? a.length == 0
-		: a.length != 0 && first(a) == *b && strEqCStr(tail(a), b + 1);
+		: a.length != 0 && a[0] == *b && strEqCStr(a[1 .. $], b + 1);
 }

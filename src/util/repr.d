@@ -3,8 +3,8 @@ module util.repr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, emptyArr, first;
-import util.collection.arrUtil : arrLiteral, map, mapWithIndex, tail;
+import util.collection.arr : empty, emptyArr;
+import util.collection.arrUtil : arrLiteral, map, mapWithIndex;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.str : CStr, SafeCStr, strOfSafeCStr;
 import util.memory : allocate;
@@ -414,10 +414,10 @@ immutable(int) measureReprNamedRecordRecur(immutable NameAndRepr[] xs, immutable
 		return available;
 	else {
 		immutable int availableAfterFirst =
-			measureReprSingleLine(first(xs).value, available - symSize(first(xs).name) - len!": ");
-		return availableAfterFirst < 0 || empty(tail(xs))
+			measureReprSingleLine(xs[0].value, available - symSize(xs[0].name) - len!": ");
+		return availableAfterFirst < 0 || empty(xs[1 .. $])
 			? availableAfterFirst
-			: measureReprNamedRecordRecur(tail(xs), availableAfterFirst - len!", ");
+			: measureReprNamedRecordRecur(xs[1 .. $], availableAfterFirst - len!", ");
 	}
 }
 
@@ -429,10 +429,10 @@ immutable(int) measureCommaSeparatedChildren(immutable Repr[] xs, immutable int 
 	if (empty(xs))
 		return available;
 	else {
-		immutable int availableAfterFirst = measureReprSingleLine(first(xs), available);
-		return availableAfterFirst < 0 || empty(tail(xs))
+		immutable int availableAfterFirst = measureReprSingleLine(xs[0], available);
+		return availableAfterFirst < 0 || empty(xs[1 .. $])
 			? availableAfterFirst
-			: measureCommaSeparatedChildren(tail(xs), availableAfterFirst - len!", ");
+			: measureCommaSeparatedChildren(xs[1 .. $], availableAfterFirst - len!", ");
 	}
 }
 

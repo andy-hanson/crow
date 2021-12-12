@@ -62,8 +62,8 @@ import model.lowModel :
 import model.model : EnumValue, name;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : empty, emptyArr, first, only, sizeEq;
-import util.collection.arrUtil : arrLiteral, every, map, tail, zip;
+import util.collection.arr : empty, emptyArr, only, sizeEq;
+import util.collection.arrUtil : arrLiteral, every, map, zip;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has, some;
@@ -407,8 +407,8 @@ void writeFunReturnTypeNameAndParams(
 		if (empty(fun.params))
 			writeStatic(writer, "void");
 		else {
-			doWriteParam(writer, ctx, first(fun.params));
-			foreach (ref immutable LowParam p; tail(fun.params)) {
+			doWriteParam(writer, ctx, fun.params[0]);
+			foreach (ref immutable LowParam p; fun.params[1 .. $]) {
 				writeStatic(writer, ", ");
 				doWriteParam(writer, ctx, p);
 			}

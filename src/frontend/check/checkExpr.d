@@ -109,7 +109,6 @@ import util.collection.arr :
 	empty,
 	emptyArr,
 	emptyArrWithSize,
-	first,
 	only,
 	ptrsRange,
 	setAt,
@@ -126,7 +125,6 @@ import util.collection.arrUtil :
 	mapZip,
 	mapZipWithIndex,
 	prepend,
-	tail,
 	zipPtrFirst;
 import util.collection.mutArr :
 	moveToArr,
@@ -497,8 +495,8 @@ immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(
 		return none!ExpectedLambdaType;
 	} else {
 		immutable FunKind kind = force(opKind);
-		immutable Type nonInstantiatedNonFutReturnType = first(expectedStructInst.deref().typeArgs);
-		immutable Type[] nonInstantiatedParamTypes = tail(expectedStructInst.deref().typeArgs);
+		immutable Type nonInstantiatedNonFutReturnType = expectedStructInst.deref().typeArgs[0];
+		immutable Type[] nonInstantiatedParamTypes = expectedStructInst.deref().typeArgs[1 .. $];
 		immutable Opt!(Type[]) paramTypes = mapOrNone!Type(
 			alloc,
 			nonInstantiatedParamTypes,
@@ -603,7 +601,7 @@ immutable(CheckedExpr) checkRef(
 		// First of passedLambdas is the outermost one where we found the param/local.
 		// This one can access it directly.
 		// Inner ones must reference this by a closure field.
-		Ptr!LambdaInfo l0 = first(passedLambdas);
+		Ptr!LambdaInfo l0 = passedLambdas[0];
 		// Shouldn't have already closed over it (or we should just be using that)
 		verify(!exists!(immutable Ptr!ClosureField)(
 			tempAsArr(l0.deref().closureFields),
@@ -613,7 +611,7 @@ immutable(CheckedExpr) checkRef(
 			allocate(alloc, immutable ClosureField(name, type, expr, mutArrSize(l0.deref().closureFields)));
 		push(alloc, l0.deref().closureFields, field);
 		immutable Expr closureFieldRef = immutable Expr(range(expr), immutable Expr.ClosureFieldRef(field));
-		return checkRef(alloc, ctx, closureFieldRef, name, tail(passedLambdas), expected);
+		return checkRef(alloc, ctx, closureFieldRef, name, passedLambdas[1 .. $], expected);
 	}
 }
 

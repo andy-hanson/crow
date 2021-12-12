@@ -22,7 +22,6 @@ import model.typeLayout : PackField;
 import util.alloc.alloc : TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.dbg : log, logNoNewline, logSymNoNewline;
-import util.collection.arr : last;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.stack :
 	asTempArr,
@@ -718,7 +717,7 @@ private @system immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {
 	drop(popN(a.dataStack, inEntries - outEntries));
 
 	// fill remaining bytes with 0
-	ubyte* ptr = base + last(fields).outOffset + last(fields).size;
+	ubyte* ptr = base + fields[$ - 1].outOffset + fields[$ - 1].size;
 	while (ptr < cast(ubyte*) stackEnd(a.dataStack)) {
 		*ptr = 0;
 		ptr++;

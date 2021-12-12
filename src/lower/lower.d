@@ -109,7 +109,7 @@ import model.lowModel :
 	UpdateParam;
 import model.model : decl, EnumBackingType, EnumFunction, EnumValue, FlagsFunction, FunInst, name, range;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, emptyArr, first, only;
+import util.collection.arr : empty, emptyArr, only;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
@@ -118,8 +118,7 @@ import util.collection.arrUtil :
 	mapZipPtrFirst,
 	mapWithIndexAndConcatOne,
 	mapWithOptFirst,
-	mapWithOptFirst2,
-	tail;
+	mapWithOptFirst2;
 import util.collection.dict : getAt, mustGetAt, PtrDict;
 import util.collection.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr, fullIndexDictSize;
@@ -318,9 +317,9 @@ AllLowTypesWithCtx getAllLowTypes(
 		fullIndexDictOfArr!(LowType.FunPtr, LowFunPtrType)(
 			map(alloc, finishArr(alloc, allFunPtrSources), (ref immutable Ptr!ConcreteStruct it) {
 				immutable ConcreteType[] typeArgs = asBuiltin(it.deref().body_).typeArgs;
-				immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, first(typeArgs));
+				immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, typeArgs[0]);
 				immutable LowType[] paramTypes =
-					map(alloc, tail(typeArgs), (ref immutable ConcreteType typeArg) =>
+					map(alloc, typeArgs[1 .. $], (ref immutable ConcreteType typeArg) =>
 						lowTypeFromConcreteType(alloc, getLowTypeCtx, typeArg));
 				return immutable LowFunPtrType(it, returnType, paramTypes);
 			}));
@@ -662,7 +661,7 @@ immutable(AllLowFuns) getAllLowFuns(
 			(ref immutable ConcreteFunBody.Builtin it) {
 				if (isCallWithCtxFun(fun.deref())) {
 					immutable Ptr!ConcreteStruct funStruct =
-						mustBeNonPointer(first(fun.deref().paramsExcludingCtxAndClosure).type);
+						mustBeNonPointer(fun.deref().paramsExcludingCtxAndClosure[0].type);
 					immutable LowType funType = lowTypeFromConcreteStruct(alloc, getLowTypeCtx, funStruct);
 					immutable LowType returnType =
 						lowTypeFromConcreteType(alloc, getLowTypeCtx, fun.deref().returnType);
@@ -682,7 +681,7 @@ immutable(AllLowFuns) getAllLowFuns(
 						lateSet(markCtxTypeLate, lowTypeFromConcreteType(
 							alloc,
 							getLowTypeCtx,
-							first(fun.deref().paramsExcludingCtxAndClosure).type));
+							fun.deref().paramsExcludingCtxAndClosure[0].type));
 					immutable LowFunIndex res =
 						generateMarkVisitForType(lowTypeFromConcreteType(alloc, getLowTypeCtx, only(it.typeArgs)));
 					return some(res);
@@ -1367,8 +1366,8 @@ immutable(LowExprKind) getCallBuiltinExpr(
 			immutable LowExprKind(ctx.allFuns),
 		(ref immutable BuiltinKind.CallFunPtr) =>
 			immutable LowExprKind(allocate(alloc, immutable LowExprKind.CallFunPtr(
-				getLowExpr(alloc, ctx, first(a.args), ExprPos.nonTail),
-				getArgs(alloc, ctx, tail(a.args))))),
+				getLowExpr(alloc, ctx, a.args[0], ExprPos.nonTail),
+				getArgs(alloc, ctx, a.args[1 .. $])))),
 		(ref immutable BuiltinKind.GetCtx) =>
 			immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.ctxParam))),
 		(ref immutable Constant it) =>

@@ -70,15 +70,7 @@ import model.model :
 	typeParams,
 	worstCasePurity;
 import util.alloc.alloc : Alloc;
-import util.collection.arr :
-	empty,
-	emptyArr,
-	emptyArrWithSize,
-	first,
-	only,
-	only_const,
-	ptrAt,
-	toArr;
+import util.collection.arr : empty, emptyArr, emptyArrWithSize, only, only_const, ptrAt, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil :
 	exists,
@@ -88,8 +80,7 @@ import util.collection.arrUtil :
 	map,
 	map_const,
 	mapOrNone_const,
-	sum,
-	tail;
+	sum;
 import util.collection.multiDict : multiDictGetAt;
 import util.collection.mutArr : moveToArr, MutArr, newUninitializedMutArr, peek, setAt;
 import util.collection.mutMaxArr :
@@ -425,14 +416,14 @@ Expected getCommonOverloadParamExpectedForMultipleCandidates(
 		return Expected(expected);
 	else {
 		// If we get a template candidate and haven't inferred this param type yet, no expected type.
-		immutable Type paramType = getCandidateExpectedParameterType(alloc, programState, first(candidates), argIdx);
+		immutable Type paramType = getCandidateExpectedParameterType(alloc, programState, candidates[0], argIdx);
 		return has(expected) && !typeEquals(paramType, force(expected))
 			// Only get an expected type if all candidates expect it.
 			? Expected.infer()
 			: getCommonOverloadParamExpectedForMultipleCandidates(
 				alloc,
 				programState,
-				tail(candidates),
+				candidates[1 .. $],
 				argIdx,
 				some(paramType));
 	}

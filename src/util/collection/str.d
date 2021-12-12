@@ -4,7 +4,7 @@ module util.collection.str;
 
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.collection.arr : freeArr;
-import util.collection.arrUtil : cat4, tail;
+import util.collection.arrUtil : cat4;
 import util.hash : Hasher, hashUbyte;
 import util.memory : memcpy;
 import util.opt : force, has, none, Opt, some;
@@ -49,7 +49,7 @@ immutable(CStr) strToCStr(ref Alloc alloc, scope immutable string s) {
 }
 
 immutable(bool) strEq(immutable string a, immutable string b) {
-	return a.length == b.length && (a.length == 0 || (a[0] == b[0] && strEq(tail(a), tail(b))));
+	return a.length == b.length && (a.length == 0 || (a[0] == b[0] && strEq(a[1 .. $], b[1 .. $])));
 }
 
 @trusted immutable(string) copyStr(ref Alloc alloc, scope immutable string a) {

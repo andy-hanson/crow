@@ -1,7 +1,7 @@
 module util.collection.arrUtil;
 
 import util.alloc.alloc : Alloc, allocateBytes, allocateT;
-import util.collection.arr : ArrWithSize, empty, first, ptrAt, ptrsRange, sizeEq, toArr;
+import util.collection.arr : ArrWithSize, empty, ptrAt, ptrsRange, sizeEq, toArr;
 import util.collection.mutArr : mustPop, MutArr, mutArrAt, mutArrSize, setAt;
 import util.comparison : Comparer, Comparison, ConstComparer;
 import util.memory : initMemory, initMemory_mut, overwriteMemory;
@@ -491,7 +491,7 @@ private immutable(Acc) each(Acc, T)(
 	immutable T[] a,
 	scope immutable(Acc) delegate(immutable Acc, ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	return empty(a) ? acc : each!(Acc, T)(cb(acc, first(a)), tail(a), cb);
+	return empty(a) ? acc : each!(Acc, T)(cb(acc, a[0]), a[1 .. $], cb);
 }
 
 @trusted immutable(T[]) cat(T)(ref Alloc alloc, immutable T[] a, immutable T[] b) {
@@ -570,19 +570,6 @@ private immutable(Acc) each(Acc, T)(
 	foreach (immutable size_t i, ref immutable T x; b)
 		initMemory(res + 1 + i, x);
 	return cast(immutable) res[0 .. resSize];
-}
-
-immutable(T[]) tail(T)(return scope ref immutable T[] a) {
-	verify(a.length != 0);
-	return a[1 .. $];
-}
-const(T[]) tail(T)(const T[] a) {
-	verify(a.length != 0);
-	return a[1 .. $];
-}
-T[] tail(T)(T[] a) {
-	verify(a.length != 0);
-	return a[1 .. $];
 }
 
 //TODO:PERF More efficient than bubble sort..
@@ -795,7 +782,7 @@ immutable(T) fold(T, U)(
 ) {
 	return empty(arr)
 		? start
-		: fold!(T, U)(cb(start, first(arr)), tail(arr), cb);
+		: fold!(T, U)(cb(start, arr[0]), arr[1 .. $], cb);
 }
 
 immutable(Opt!T) foldOrStop(T, U)(
@@ -806,8 +793,8 @@ immutable(Opt!T) foldOrStop(T, U)(
 	if (empty(arr))
 		return some(start);
 	else {
-		immutable Opt!T next = cb(start, first(arr));
-		return has(next) ? foldOrStop!(T, U)(force(next), tail(arr), cb) : none!T;
+		immutable Opt!T next = cb(start, arr[0]);
+		return has(next) ? foldOrStop!(T, U)(force(next), arr[1 .. $], cb) : none!T;
 	}
 }
 
@@ -818,7 +805,7 @@ immutable(N) arrMax(N, T)(
 ) {
 	return empty(a)
 		? start
-		: arrMax!(N, T)(max(start, cb(first(a))), tail(a), cb);
+		: arrMax!(N, T)(max(start, cb(a[0])), a[1 .. $], cb);
 }
 
 immutable(size_t) sum(T)(
@@ -860,7 +847,7 @@ immutable(size_t) arrMaxIndex(T, U)(
 	scope immutable(T) delegate(ref const U, immutable size_t) @safe @nogc pure nothrow cb,
 	Comparer!T compare,
 ) {
-	return arrMaxIndexRecur!(T, U)(0, cb(first(a), 0), a, 1, cb, compare);
+	return arrMaxIndexRecur!(T, U)(0, cb(a[0], 0), a, 1, cb, compare);
 }
 
 private immutable(size_t) arrMaxIndexRecur(T, U)(

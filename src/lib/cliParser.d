@@ -3,9 +3,9 @@ module lib.cliParser;
 import frontend.lang : crowExtension, JitOptions, OptimizationLevel;
 import lib.compiler : PrintFormat, PrintKind;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, emptyArr, first, only;
+import util.collection.arr : empty, emptyArr, only;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrUtil : findIndex, foldOrStop, tail;
+import util.collection.arrUtil : findIndex, foldOrStop;
 import util.collection.str : SafeCStr, safeCStrEq, startsWith, strEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.path : AbsolutePath, AllPaths, parseAbsoluteOrRelPath, Path;
@@ -175,8 +175,8 @@ immutable(Command) parseCommand(
 	if (empty(args))
 		return immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));
 	else {
-		immutable string arg0 = strOfSafeCStr(first(args));
-		immutable SafeCStr[] cmdArgs = tail(args);
+		immutable string arg0 = strOfSafeCStr(args[0]);
+		immutable SafeCStr[] cmdArgs = args[1 .. $];
 		return isHelp(arg0)
 			? immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.requested))
 			: isSpecialArg(arg0, "version")
@@ -202,7 +202,7 @@ immutable(BuildOut) emptyBuildOut() {
 }
 
 immutable(bool) isSpecialArg(immutable string a, immutable string expected) {
-	return empty(a) ? true : (a[0] == '-' ? isSpecialArg(tail(a), expected) : strEq(a, expected));
+	return empty(a) ? true : (a[0] == '-' ? isSpecialArg(a[1 .. $], expected) : strEq(a, expected));
 }
 
 immutable(bool) isHelp(immutable string a) {
@@ -260,7 +260,7 @@ immutable(Command) parsePrintCommand(
 			formatAndPath.path,
 			(ref immutable ProgramDirAndMain it) =>
 				immutable Command(immutable Command.Print(
-					parsePrintKind(first(args)),
+					parsePrintKind(args[0]),
 					it,
 					formatAndPath.format)));
 	}
@@ -505,7 +505,7 @@ immutable(Command) parseTestCommand(ref Alloc alloc, immutable SafeCStr[] args) 
 	if (empty(args))
 		return immutable Command(immutable Command.Test(none!string));
 	else if (args.length == 1)
-		return immutable Command(immutable Command.Test(some(strOfSafeCStr(first(args)))));
+		return immutable Command(immutable Command.Test(some(strOfSafeCStr(args[0]))));
 	else
 		return immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));
 }

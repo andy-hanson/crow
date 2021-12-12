@@ -142,7 +142,7 @@ import model.lowModel :
 import model.model : FunDecl, Module, name, Program, range;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : castImmutable, empty, last, only;
+import util.collection.arr : castImmutable, empty, only;
 import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict :
@@ -630,7 +630,7 @@ void generateExpr(
 			// Delete anything on the stack besides parameters
 			immutable StackEntry parametersEnd = empty(ctx.parameterEntries)
 				? immutable StackEntry(0)
-				: stackEntriesEnd(last(ctx.parameterEntries));
+				: stackEntriesEnd(ctx.parameterEntries[$ - 1]);
 			immutable StackEntry localsEnd = getNextStackEntry(writer);
 			writeRemove(
 				dbg,
