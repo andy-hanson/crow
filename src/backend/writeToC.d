@@ -62,7 +62,7 @@ import model.lowModel :
 import model.model : EnumValue, name;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : at, empty, emptyArr, first, only, sizeEq;
+import util.collection.arr : empty, emptyArr, first, only, sizeEq;
 import util.collection.arrUtil : arrLiteral, every, map, tail, zip;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey, fullIndexDictGet, fullIndexDictGetPtr;
@@ -117,8 +117,8 @@ private:
 
 void writeConstants(ref Writer writer, ref immutable Ctx ctx, ref immutable AllConstantsLow allConstants) {
 	foreach (ref immutable ArrTypeAndConstantsLow a; allConstants.arrs) {
-		foreach (immutable size_t i; 0 .. a.constants.length) {
-			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, at(a.constants, i).length);
+		foreach (immutable size_t i, immutable Constant[] elements; a.constants) {
+			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, elements.length);
 			writeStatic(writer, ";\n");
 		}
 	}
@@ -131,8 +131,7 @@ void writeConstants(ref Writer writer, ref immutable Ctx ctx, ref immutable AllC
 	}
 
 	foreach (ref immutable ArrTypeAndConstantsLow a; allConstants.arrs) {
-		foreach (immutable size_t i; 0 .. a.constants.length) {
-			immutable Constant[] elements = at(a.constants, i);
+		foreach (immutable size_t i, immutable Constant[] elements; a.constants) {
 			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, elements.length);
 			writeStatic(writer, " = ");
 			if (isChar(a.elementType)) {
@@ -152,10 +151,10 @@ void writeConstants(ref Writer writer, ref immutable Ctx ctx, ref immutable AllC
 	}
 
 	foreach (ref immutable PointerTypeAndConstantsLow a; allConstants.pointers) {
-		foreach (immutable size_t i; 0 .. a.constants.length) {
+		foreach (immutable size_t i, immutable Ptr!Constant pointee; a.constants) {
 			declareConstantPointerStorage(writer, ctx, a.pointeeType, i);
 			writeStatic(writer, " = ");
-			writeConstantRef(writer, ctx, ConstantRefPos.inner, a.pointeeType, at(a.constants, i).deref());
+			writeConstantRef(writer, ctx, ConstantRefPos.inner, a.pointeeType, pointee.deref());
 			writeStatic(writer, ";\n");
 		}
 	}
@@ -296,9 +295,9 @@ void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion
 	writeStructHead(writer, ctx, a.source);
 	writeStatic(writer, "\n\tuint64_t kind;");
 	writeStatic(writer, "\n\tunion {");
-	foreach (immutable size_t memberIndex; 0 .. a.members.length) {
+	foreach (immutable size_t memberIndex, immutable LowType member; a.members) {
 		writeStatic(writer, "\n\t\t");
-		writeType(writer, ctx, at(a.members, memberIndex));
+		writeType(writer, ctx, member);
 		writeStatic(writer, " as");
 		writeNat(writer, memberIndex);
 		writeChar(writer, ';');
@@ -577,7 +576,7 @@ void writeTempOrInlines(
 ) {
 	verify(sizeEq(exprs, args));
 	writeWithCommas(writer, args.length, (immutable size_t i) {
-		writeTempOrInline(writer, tempAlloc, ctx, at(exprs, i), at(args, i));
+		writeTempOrInline(writer, tempAlloc, ctx, exprs[i], args[i]);
 	});
 }
 
@@ -848,7 +847,7 @@ immutable(WriteExprResult) writeExpr(
 				immutable EnumValue(i)),
 		(ref immutable LowExprKind.SwitchWithValues it) =>
 			writeSwitch(writer, tempAlloc, indent, ctx, writeKind, type, it.value, it.cases, (immutable size_t i) =>
-				at(it.values, i)),
+				it.values[i]),
 		(ref immutable LowExprKind.TailRecur it) {
 			verify(isReturn(writeKind));
 			writeTailRecur(writer, tempAlloc, indent, ctx, it);
@@ -1058,7 +1057,7 @@ void writeTailRecur(
 		newValues,
 		(ref immutable UpdateParam updateParam, ref immutable WriteExprResult newValue) {
 			writeNewline(writer, indent);
-			writeLowParamName(writer, at(params, updateParam.param.index));
+			writeLowParamName(writer, params[updateParam.param.index]);
 			writeStatic(writer, " = ");
 			writeTempOrInline(writer, tempAlloc, ctx, updateParam.newValue, newValue);
 			writeChar(writer, ';');
@@ -1090,7 +1089,7 @@ void writeFunPtr(ref Writer writer, ref immutable Ctx ctx, immutable LowFunIndex
 }
 
 void writeParamRef(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowExprKind.ParamRef a) {
-	writeLowParamName(writer, at(fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params, a.index.index));
+	writeLowParamName(writer, fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params[a.index.index]);
 }
 
 immutable(WriteExprResult) writeMatchUnion(
@@ -1108,8 +1107,7 @@ immutable(WriteExprResult) writeMatchUnion(
 	writeStatic(writer, "switch (");
 	writeTempRef(writer, matchedValue);
 	writeStatic(writer, ".kind) {");
-	foreach (immutable size_t caseIndex; 0 .. a.cases.length) {
-		immutable LowExprKind.MatchUnion.Case case_ = at(a.cases, caseIndex);
+	foreach (immutable size_t caseIndex, ref immutable LowExprKind.MatchUnion.Case case_; a.cases) {
 		writeNewline(writer, indent + 1);
 		writeStatic(writer, "case ");
 		writeNat(writer, caseIndex);
@@ -1158,7 +1156,7 @@ immutable(WriteExprResult) writeSwitch(
 	writeStatic(writer, "switch (");
 	writeTempOrInline(writer, tempAlloc, ctx, value, valueResult);
 	writeStatic(writer, ") {");
-	foreach (immutable size_t caseIndex; 0 .. cases.length) {
+	foreach (immutable size_t caseIndex, ref immutable LowExpr case_; cases) {
 		writeNewline(writer, indent + 1);
 		writeStatic(writer, "case ");
 		if (isSignedIntegral(value.type)) {
@@ -1167,7 +1165,7 @@ immutable(WriteExprResult) writeSwitch(
 			writeNat(writer, getValue(caseIndex).asUnsigned());
 		}
 		writeStatic(writer, ": {");
-		drop(writeExpr(writer, tempAlloc, indent + 2, ctx, nested.writeKind, at(cases, caseIndex)));
+		drop(writeExpr(writer, tempAlloc, indent + 2, ctx, nested.writeKind, case_));
 		if (!isReturn(nested.writeKind)) {
 			writeNewline(writer, indent + 2);
 			writeStatic(writer, "break;");
@@ -1216,7 +1214,7 @@ void writeRecordFieldRef(
 	immutable size_t fieldIndex,
 ) {
 	writeStatic(writer, targetIsPointer ? "->" : ".");
-	writeMangledName(writer, name(at(fullIndexDictGet(ctx.ctx.program.allRecords, record).fields, fieldIndex)));
+	writeMangledName(writer, name(fullIndexDictGet(ctx.ctx.program.allRecords, record).fields[fieldIndex]));
 }
 
 // For some reason, providing a type for a record makes it non-constant.
@@ -1237,7 +1235,7 @@ void writeConstantRef(
 		a,
 		(ref immutable Constant.ArrConstant it) {
 			if (pos == ConstantRefPos.outer) writeCastToType(writer, ctx, type);
-			immutable size_t size = at(at(ctx.program.allConstants.arrs, it.typeIndex).constants, it.index).length;
+			immutable size_t size = ctx.program.allConstants.arrs[it.typeIndex].constants[it.index].length;
 			writeChar(writer, '{');
 			writeNat(writer, size);
 			writeStatic(writer, ", ");
@@ -1252,7 +1250,7 @@ void writeConstantRef(
 		},
 		(ref immutable Constant.CString it) {
 			writeChar(writer, '"');
-			foreach (immutable char c; at(ctx.program.allConstants.cStrings, it.index))
+			foreach (immutable char c; ctx.program.allConstants.cStrings[it.index])
 				writeEscapedChar_inner(writer, c);
 			writeChar(writer, '"');
 		},
@@ -1302,14 +1300,13 @@ void writeConstantRef(
 				writeCastToType(writer, ctx, type);
 			writeChar(writer, '{');
 			writeWithCommas(writer, it.args.length, (immutable size_t i) {
-				writeConstantRef(writer, ctx, ConstantRefPos.inner, at(fields, i).type, at(it.args, i));
+				writeConstantRef(writer, ctx, ConstantRefPos.inner, fields[i].type, it.args[i]);
 			});
 			writeChar(writer, '}');
 		},
 		(ref immutable Constant.Union it) {
-			immutable LowType memberType = at(
-				fullIndexDictGet(ctx.program.allUnions, asUnionType(type)).members,
-				it.memberIndex);
+			immutable LowType memberType =
+				fullIndexDictGet(ctx.program.allUnions, asUnionType(type)).members[it.memberIndex];
 			writeCreateUnion(writer, ctx, pos, type, it.memberIndex, () {
 				writeConstantRef(writer, ctx, ConstantRefPos.inner, memberType, it.arg);
 			});
@@ -1556,11 +1553,11 @@ immutable(WriteExprResult) writeSpecialBinary(
 			(ref immutable WriteExprResult[] args) {
 				verify(args.length == 2);
 				writeChar(writer, '(');
-				writeTempOrInline(writer, tempAlloc, ctx, it.left, at(args, 0));
+				writeTempOrInline(writer, tempAlloc, ctx, it.left, args[0]);
 				writeChar(writer, ' ');
 				writeStatic(writer, op);
 				writeChar(writer, ' ');
-				writeTempOrInline(writer, tempAlloc, ctx, it.right, at(args, 1));
+				writeTempOrInline(writer, tempAlloc, ctx, it.right, args[1]);
 				writeChar(writer, ')');
 			});
 	}

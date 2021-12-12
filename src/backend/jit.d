@@ -118,7 +118,7 @@ import model.lowModel :
 	UpdateParam;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty;
+import util.collection.arr : empty;
 import util.collection.arrUtil :
 	find_mut,
 	makeArr,
@@ -999,7 +999,7 @@ immutable(ExprResult) emitRecordCbWithArgs(T)(
 	) @safe @nogc pure nothrow cbEmitArg,
 ) {
 	return emitRecordCb(ctx, emit, type, (immutable size_t argIndex, ref ExprEmit emitArg) =>
-		cbEmitArg(argIndex, emitArg, at(args, argIndex)));
+		cbEmitArg(argIndex, emitArg, args[argIndex]));
 }
 
 immutable(ExprResult) createRecordToGcc(
@@ -1031,7 +1031,7 @@ immutable(ExprResult) emitUnion(
 		Ptr!gcc_jit_lvalue memberLValue = gcc_jit_lvalue_access_field(
 			gcc_jit_lvalue_access_field(lvalue, null, unionFields.innerField),
 			null,
-			at(unionFields.memberFields, memberIndex));
+			unionFields.memberFields[memberIndex]);
 		emitToLValueCb(memberLValue, cbEmitArg);
 	});
 
@@ -1122,7 +1122,7 @@ immutable(ExprResult) matchUnionToGcc(
 		matchedValueKind,
 		a.cases.length,
 		(ref ExprEmit caseEmit, immutable size_t caseIndex) {
-			immutable LowExprKind.MatchUnion.Case case_ = at(a.cases, caseIndex);
+			immutable LowExprKind.MatchUnion.Case case_ = a.cases[caseIndex];
 			return has(case_.local)
 				? emitWithLocal(
 					ctx,
@@ -1137,7 +1137,7 @@ immutable(ExprResult) matchUnionToGcc(
 						return emitSimpleNoSideEffects(ctx, valueEmit, gcc_jit_rvalue_access_field(
 							matchedValueInner,
 							null,
-							at(unionFields.memberFields, caseIndex)));
+							unionFields.memberFields[caseIndex]));
 					},
 					case_.then)
 			: toGccExpr(ctx, caseEmit, case_.then);
@@ -1179,7 +1179,7 @@ immutable(ExprResult) recordFieldGetToGcc(
 	ref immutable LowExprKind.RecordFieldGet a,
 ) {
 	immutable Ptr!gcc_jit_rvalue target = emitToRValue(ctx, a.target);
-	immutable Ptr!gcc_jit_field field = at(fullIndexDictGet(ctx.types.recordFields, a.record), a.fieldIndex);
+	immutable Ptr!gcc_jit_field field = fullIndexDictGet(ctx.types.recordFields, a.record)[a.fieldIndex];
 	return emitSimpleNoSideEffects(ctx, emit, a.targetIsPointer
 		? gcc_jit_lvalue_as_rvalue(gcc_jit_rvalue_dereference_field(target, null, field))
 		: gcc_jit_rvalue_access_field(target, null, field));
@@ -1189,7 +1189,7 @@ Ptr!gcc_jit_lvalue recordFieldGetToLValue(
 	ref ExprCtx ctx,
 	ref immutable LowExprKind.RecordFieldGet a,
 ) {
-	immutable Ptr!gcc_jit_field field = at(fullIndexDictGet(ctx.types.recordFields, a.record), a.fieldIndex);
+	immutable Ptr!gcc_jit_field field = fullIndexDictGet(ctx.types.recordFields, a.record)[a.fieldIndex];
 	if (a.targetIsPointer) {
 		return gcc_jit_rvalue_dereference_field(emitToRValue(ctx, a.target), null, field);
 	} else {
@@ -1203,7 +1203,7 @@ immutable(ExprResult) recordFieldSetToGcc(
 	ref immutable LowExprKind.RecordFieldSet a,
 ) {
 	immutable Ptr!gcc_jit_rvalue target = emitToRValue(ctx, a.target);
-	immutable Ptr!gcc_jit_field field = at(fullIndexDictGet(ctx.types.recordFields, a.record), a.fieldIndex);
+	immutable Ptr!gcc_jit_field field = fullIndexDictGet(ctx.types.recordFields, a.record)[a.fieldIndex];
 	verify(a.targetIsPointer); // TODO: make if this is always true, don't have it...
 	immutable Ptr!gcc_jit_rvalue value = emitToRValue(ctx, a.value);
 	gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference_field(target, null, field), value);
@@ -1241,15 +1241,15 @@ immutable(ExprResult) constantToGcc(
 	return matchConstant!(immutable ExprResult)(
 		a,
 		(ref immutable Constant.ArrConstant it) {
-			immutable size_t arrSize = at(at(ctx.program.allConstants.arrs, it.typeIndex).constants, it.index).length;
-			immutable Ptr!gcc_jit_rvalue storage = at(at(ctx.globalsForConstants.arrs, it.typeIndex), it.index);
+			immutable size_t arrSize = ctx.program.allConstants.arrs[it.typeIndex].constants[it.index].length;
+			immutable Ptr!gcc_jit_rvalue storage = ctx.globalsForConstants.arrs[it.typeIndex][it.index];
 			immutable Ptr!gcc_jit_rvalue arrPtr = gcc_jit_lvalue_get_address(
 				gcc_jit_context_new_array_access(ctx.gcc, null, storage, gcc_jit_context_zero(ctx.gcc, ctx.nat64Type)),
 				null);
 			immutable Ptr!gcc_jit_field[] fields = fullIndexDictGet(ctx.types.recordFields, asRecordType(type));
 			verify(fields.length == 2);
-			immutable Ptr!gcc_jit_field sizeField = at(fields, 0);
-			immutable Ptr!gcc_jit_field ptrField = at(fields, 1);
+			immutable Ptr!gcc_jit_field sizeField = fields[0];
+			immutable Ptr!gcc_jit_field ptrField = fields[1];
 			return emitWriteToLValue(ctx, emit, type, (Ptr!gcc_jit_lvalue local) {
 				gcc_jit_block_add_assignment(
 					ctx.curBlock,
@@ -1270,7 +1270,7 @@ immutable(ExprResult) constantToGcc(
 				it.value ? 1 : 0)),
 		(ref immutable Constant.CString it) {
 			//TODO:NO ALLOC
-			immutable char *cStr = strToCStr(ctx.alloc, at(ctx.program.allConstants.cStrings, it.index));
+			immutable char *cStr = strToCStr(ctx.alloc, ctx.program.allConstants.cStrings[it.index]);
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_string_literal(ctx.gcc, cStr));
 		},
 		(immutable double it) =>
@@ -1301,7 +1301,7 @@ immutable(ExprResult) constantToGcc(
 		(immutable Constant.Null) =>
 			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_null(ctx.gcc, getGccType(ctx.types, type))),
 		(immutable Constant.Pointer it) {
-			Ptr!gcc_jit_lvalue storage = at(at(ctx.globalsForConstants.pointers, it.typeIndex), it.index);
+			Ptr!gcc_jit_lvalue storage = ctx.globalsForConstants.pointers[it.typeIndex][it.index];
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(storage, null));
 		},
 		(ref immutable Constant.Record it) {
@@ -1312,11 +1312,11 @@ immutable(ExprResult) constantToGcc(
 				type,
 				it.args,
 				(immutable size_t argIndex, ref ExprEmit emitArg, ref immutable Constant arg) =>
-					constantToGcc(ctx, emitArg, at(fields, argIndex).type, arg));
+					constantToGcc(ctx, emitArg, fields[argIndex].type, arg));
 		},
 		(ref immutable Constant.Union it) {
 			immutable LowType argType =
-				at(fullIndexDictGet(ctx.program.allUnions, asUnionType(type)).members, it.memberIndex);
+				fullIndexDictGet(ctx.program.allUnions, asUnionType(type)).members[it.memberIndex];
 			return emitUnion(ctx, emit, type, it.memberIndex, (ref ExprEmit emitArg) =>
 				constantToGcc(ctx, emit, argType, it.arg));
 		},
@@ -1692,7 +1692,7 @@ immutable(ExprResult) switch0ToNToGcc(
 		emitToRValue(ctx, a.value),
 		a.cases.length,
 		(ref ExprEmit caseEmit, immutable size_t caseIndex) =>
-			toGccExpr(ctx, caseEmit, at(a.cases, caseIndex)));
+			toGccExpr(ctx, caseEmit, a.cases[caseIndex]));
 }
 
 immutable(ExprResult) zeroedToGcc(
@@ -1740,11 +1740,11 @@ immutable(ExprResult) zeroedToGcc(
 		(immutable LowType.Record record) {
 			immutable LowField[] fields = fullIndexDictGet(ctx.program.allRecords, record).fields;
 			return emitRecordCb(ctx, emit, type, (immutable size_t argIndex, ref ExprEmit emitArg) =>
-				zeroedToGcc(ctx, emitArg, at(fields, argIndex).type));
+				zeroedToGcc(ctx, emitArg, fields[argIndex].type));
 		},
 		(immutable LowType.Union union_) =>
 			emitUnion(ctx, emit, type, 0, (ref ExprEmit emitArg) =>
-				zeroedToGcc(ctx, emitArg, at(fullIndexDictGet(ctx.program.allUnions, union_).members, 0))),
+				zeroedToGcc(ctx, emitArg, fullIndexDictGet(ctx.program.allUnions, union_).members[0])),
 	)(type);
 }
 

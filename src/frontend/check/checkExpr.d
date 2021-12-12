@@ -105,7 +105,6 @@ import model.model :
 	worstCasePurity;
 import util.alloc.alloc : Alloc;
 import util.collection.arr :
-	at,
 	castImmutable,
 	empty,
 	emptyArr,
@@ -854,7 +853,7 @@ immutable(CheckedExpr) checkFunPtr(
 		ctx.programState,
 		immutable FunDeclAndArgs(funDecl, emptyArr!Type, emptyArr!Called));
 
-	immutable Ptr!StructDecl funPtrStruct = at(ctx.commonTypes.funPtrStructs, nParams);
+	immutable Ptr!StructDecl funPtrStruct = ctx.commonTypes.funPtrStructs[nParams];
 	immutable Type[] returnTypeAndParamTypes = mapWithFirst(
 		alloc,
 		returnType(funDecl.deref()),

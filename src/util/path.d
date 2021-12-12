@@ -3,7 +3,6 @@ module util.path;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateBytes;
-import util.collection.arr : at, first;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
 import util.collection.str : asSafeCStr, copyToSafeCStr, NulTerminatedStr, SafeCStr, strOfSafeCStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
@@ -307,13 +306,13 @@ immutable(SafeCStr) pathToSafeCStr(
 immutable(Path) parsePath(ref AllPaths allPaths, scope ref immutable string str) {
 	immutable size_t len = str.length;
 	size_t i = 0;
-	if (i < len && at(str, i) == '/')
+	if (i < len && str[i] == '/')
 		// Ignore leading slash
 		i++;
 
 	immutable Path path = {
 		immutable size_t begin = i;
-		while (i < len && at(str, i) != '/')
+		while (i < len && str[i] != '/')
 			i++;
 		verify(i != begin);
 		return rootPath(allPaths, symOfStr(allPaths.allSymbols.deref(), str[begin .. i]));
@@ -322,30 +321,30 @@ immutable(Path) parsePath(ref AllPaths allPaths, scope ref immutable string str)
 	immutable(Path) recur(size_t i, immutable Path path) {
 		if (i == len)
 			return path;
-		if (at(str, i) == '/')
+		if (str[i] == '/')
 			i++;
 		if (i == len)
 			return path;
 		immutable size_t begin = i;
-		while (i < len && at(str, i) != '/')
+		while (i < len && str[i] != '/')
 			i++;
 		return recur(i, childPath(allPaths, path, symOfStr(allPaths.allSymbols.deref(), str[begin .. i])));
 	}
 	return recur(i, path);
 }
 
-private immutable(RelPath) parseRelPath(ref AllPaths allPaths, immutable string s) {
-	if (first(s) == '.')
-		if (at(s, 1) == '/')
-			return parseRelPath(allPaths, s[2 .. $]);
-		else if (at(s, 1) == '.' && at(s, 2) == '/') {
-			immutable RelPath r = parseRelPath(allPaths, s[3 .. $]);
+private immutable(RelPath) parseRelPath(ref AllPaths allPaths, immutable string a) {
+	if (a[0] == '.')
+		if (a.length > 1 && a[1] == '/')
+			return parseRelPath(allPaths, a[2 .. $]);
+		else if (a.length > 2 && a[1] == '.' && a[2] == '/') {
+			immutable RelPath r = parseRelPath(allPaths, a[3 .. $]);
 			return immutable RelPath(safeToUshort(r.nParents_ + 1), r.path_);
 		} else
 			// Path component happens to start with '.' but is not '.' or '..'
-			return immutable RelPath(0, parsePath(allPaths, s));
+			return immutable RelPath(0, parsePath(allPaths, a));
 	else
-		return immutable RelPath(0, parsePath(allPaths, s));
+		return immutable RelPath(0, parsePath(allPaths, a));
 }
 
 immutable(Opt!AbsolutePath) parent(ref const AllPaths allPaths, ref immutable AbsolutePath a) {
@@ -374,25 +373,25 @@ private immutable(RootAndPath) parseAbsoluteOrRelPathWithoutExtension(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
 	immutable SafeCStr cwd,
-	immutable string s,
+	immutable string a,
 ) {
-	switch (first(s)) {
+	switch (a[0]) {
 		case '.':
 			//TODO: handle parse error (return none if so)
-			immutable RelPath rp = parseRelPath(allPaths, s);
+			immutable RelPath rp = parseRelPath(allPaths, a);
 			return immutable RootAndPath(
 				copyToSafeCStr(alloc, dropParents(allPaths, strOfSafeCStr(cwd), rp.nParents_)),
 				rp.path_);
 		case '/':
-			immutable Path path = parsePath(allPaths, s);
+			immutable Path path = parsePath(allPaths, a);
 			return immutable RootAndPath(immutable SafeCStr(""), path);
 		case '\\':
 			return todo!(immutable RootAndPath)("unc path?");
 		default:
 			// Treat a plain string without '/' in front as a relative path
-			return s.length >= 2 && at(s, 1) == ':'
+			return a.length >= 2 && a[1] == ':'
 				? todo!(immutable RootAndPath)("C:/ ?")
-				: immutable RootAndPath(cwd, parsePath(allPaths, s));
+				: immutable RootAndPath(cwd, parsePath(allPaths, a));
 	}
 }
 
@@ -414,12 +413,12 @@ private struct StrAndExtension {
 	immutable string extension; // Includes the '.' (if it exists)
 }
 
-private immutable(StrAndExtension) removeExtension(immutable string s) {
+private immutable(StrAndExtension) removeExtension(immutable string a) {
 	// Deliberately not allowing i == 0
-	for (size_t i = s.length - 1; i > 0; i--)
-		if (at(s, i) == '.')
-			return immutable StrAndExtension(s[0 .. i], s[i .. $]);
-	return immutable StrAndExtension(s, "");
+	for (size_t i = a.length - 1; i > 0; i--)
+		if (a[i] == '.')
+			return immutable StrAndExtension(a[0 .. i], a[i .. $]);
+	return immutable StrAndExtension(a, "");
 }
 
 // AbsolutePath with no extension
@@ -436,9 +435,9 @@ immutable(AbsolutePath) childPath(
 	return immutable AbsolutePath(parent.root, childPath(allPaths, parent.path, name), parent.extension);
 }
 
-private immutable(Opt!size_t) pathSlashIndex(immutable string s) {
-	for (size_t i = s.length - 1; i > 0; i--)
-		if (at(s, i) == '/')
+private immutable(Opt!size_t) pathSlashIndex(immutable string a) {
+	for (size_t i = a.length - 1; i > 0; i--)
+		if (a[i] == '/')
 			return some(i);
 	return none!size_t;
 }

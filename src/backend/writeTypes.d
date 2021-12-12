@@ -14,7 +14,7 @@ import model.lowModel :
 	LowUnion,
 	matchLowTypeCombinePtr;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, setAt;
+import util.collection.arr : setAt;
 import util.collection.arrUtil : every, fillArr_mut;
 import util.collection.fullIndexDict :
 	fullIndexDictEachKey,
@@ -50,7 +50,7 @@ void writeTypes(
 		fullIndexDictEachKey!(LowType.FunPtr, LowFunPtrType)(
 			program.allFunPtrTypes,
 			(immutable LowType.FunPtr funPtrIndex) {
-				immutable bool curState = at(structStates.funPtrStates, funPtrIndex.index);
+				immutable bool curState = structStates.funPtrStates[funPtrIndex.index];
 				if (!curState) {
 					if (tryWriteFunPtrDeclaration(program, structStates, writers, funPtrIndex)) {
 						setAt(structStates.funPtrStates, funPtrIndex.index, true);
@@ -63,7 +63,7 @@ void writeTypes(
 		fullIndexDictEachKey!(LowType.Record, LowRecord)(
 			program.allRecords,
 			(immutable LowType.Record recordIndex) {
-				immutable StructState curState = at(structStates.recordStates, recordIndex.index);
+				immutable StructState curState = structStates.recordStates[recordIndex.index];
 				if (curState != StructState.defined) {
 					immutable StructState didWork = writeRecordDeclarationOrDefinition(
 						program, writers, structStates, curState, recordIndex);
@@ -76,7 +76,7 @@ void writeTypes(
 			});
 		//TODO: each over structStates.unionStates once that's a MutFullIndexDict
 		fullIndexDictEachKey!(LowType.Union, LowUnion)(program.allUnions, (immutable LowType.Union unionIndex) {
-			immutable StructState curState = at(structStates.unionStates, unionIndex.index);
+			immutable StructState curState = structStates.unionStates[unionIndex.index];
 			if (curState != StructState.defined) {
 				immutable StructState didWork = writeUnionDeclarationOrDefinition(
 					program, writers, structStates, curState, unionIndex);
@@ -125,15 +125,15 @@ immutable(bool) canReferenceTypeAsValue(
 			// Declared all up front
 			true,
 		(immutable LowType.FunPtr it) =>
-			at(states.funPtrStates, it.index),
+			states.funPtrStates[it.index],
 		(immutable PrimitiveType) =>
 			true,
 		(immutable LowPtrCombine it) =>
 			canReferenceTypeAsPointee(states, it.pointee),
 		(immutable LowType.Record it) =>
-			at(states.recordStates, it.index) == StructState.defined,
+			states.recordStates[it.index] == StructState.defined,
 		(immutable LowType.Union it) =>
-			at(states.unionStates, it.index) == StructState.defined,
+			states.unionStates[it.index] == StructState.defined,
 	)(a);
 }
 
@@ -147,15 +147,15 @@ immutable(bool) canReferenceTypeAsPointee(
 			// Declared all up front
 			true,
 		(immutable LowType.FunPtr it) =>
-			at(states.funPtrStates, it.index),
+			states.funPtrStates[it.index],
 		(immutable PrimitiveType) =>
 			true,
 		(immutable LowPtrCombine it) =>
 			canReferenceTypeAsPointee(states, it.pointee),
 		(immutable LowType.Record it) =>
-			at(states.recordStates, it.index) != StructState.none,
+			states.recordStates[it.index] != StructState.none,
 		(immutable LowType.Union it) =>
-			at(states.unionStates, it.index) != StructState.none,
+			states.unionStates[it.index] != StructState.none,
 	)(a);
 }
 

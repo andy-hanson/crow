@@ -79,18 +79,13 @@ immutable(bool) empty(T)(const T[] a) {
 	return inout Ptr!T(&a[index]);
 }
 
-@trusted ref T at(T)(return scope T[] a, immutable size_t index) {
-	verify(index < a.length);
-	return a[index];
-}
-
 @trusted void setAt(T)(scope ref T[] a, immutable size_t index, T value) {
 	verify(index < a.length);
 	overwriteMemory(&a[index], value);
 }
 
 ref T first(T)(T[] a) {
-	return at(a, 0);
+	return a[0];
 }
 
 ref immutable(T) only(T)(return scope ref immutable T[] a) {
@@ -104,7 +99,7 @@ ref const(T) only_const(T)(ref const T[] a) {
 
 ref immutable(T) last(T)(ref immutable T[] a) {
 	verify(a.length != 0);
-	return at(a, a.length - 1);
+	return a[a.length - 1];
 }
 
 immutable(Ptr!T) lastPtr(T)(ref immutable T[] a) {

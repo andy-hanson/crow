@@ -1,15 +1,7 @@
 module util.collection.arrUtil;
 
 import util.alloc.alloc : Alloc, allocateBytes, allocateT;
-import util.collection.arr :
-	ArrWithSize,
-	at,
-	empty,
-	first,
-	ptrAt,
-	ptrsRange,
-	sizeEq,
-	toArr;
+import util.collection.arr : ArrWithSize, empty, first, ptrAt, ptrsRange, sizeEq, toArr;
 import util.collection.mutArr : mustPop, MutArr, mutArrAt, mutArrSize, setAt;
 import util.comparison : Comparer, Comparison, ConstComparer;
 import util.memory : initMemory, initMemory_mut, overwriteMemory;
@@ -25,8 +17,8 @@ import util.util : max, verify;
 	scope immutable(Out) delegate(ref immutable In) @safe @nogc nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i; 0 .. a.length)
-		initMemory(res + i, cb(at(a, i)));
+	foreach (immutable size_t i, ref immutable In x; a)
+		initMemory(res + i, cb(x));
 	return cast(immutable) res[0 .. a.length];
 }
 
@@ -37,7 +29,7 @@ import util.util : max, verify;
 ) {
 	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0 .. a.length)
-		cb(at(a, i), at(b, i));
+		cb(a[i], b[i]);
 }
 
 pure:
@@ -151,8 +143,8 @@ immutable(Opt!size_t) findIndex(T)(
 	ref immutable T[] a,
 	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0 .. a.length)
-		if (cb(at(a, i)))
+	foreach (immutable size_t i, ref immutable T x; a)
+		if (cb(x))
 			return some(i);
 	return none!size_t;
 }
@@ -161,8 +153,8 @@ immutable(Opt!size_t) findIndex_const(T)(
 	const T[] a,
 	scope immutable(bool) delegate(ref const T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0 .. a.length)
-		if (cb(at(a, i)))
+	foreach (immutable size_t i, ref immutable T x; a)
+		if (cb(x))
 			return some(i);
 	return none!size_t;
 }
@@ -217,8 +209,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i; 0 .. a.length)
-		initMemory(res + i, cb(at(a, i)));
+	foreach (immutable size_t i, ref immutable In x; a)
+		initMemory(res + i, cb(x));
 	return cast(immutable) res[0 .. a.length];
 }
 @trusted immutable(Out[]) map_const(Out, In)(
@@ -227,8 +219,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	scope immutable(Out) delegate(ref const In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i; 0 .. a.length)
-		initMemory(res + i, cb(at(a, i)));
+	foreach (immutable size_t i, ref const In x; a)
+		initMemory(res + i, cb(x));
 	return cast(immutable) res[0 .. a.length];
 }
 @trusted immutable(Out[]) map_mut(Out, In)(
@@ -237,8 +229,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	scope immutable(Out) delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i; 0 .. a.length)
-		initMemory(res + i, cb(at(a, i)));
+	foreach (immutable size_t i, ref In x; a)
+		initMemory(res + i, cb(x));
 	return cast(immutable) res[0 .. a.length];
 }
 @trusted Out[] mapToMut(Out, In)(
@@ -247,8 +239,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	scope Out delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i; 0 .. a.length) {
-		Out value = cb(at(a, i));
+	foreach (immutable size_t i, ref immutable In x; a) {
+		Out value = cb(x);
 		initMemory_mut(res + i, value);
 	}
 	return res[0 .. a.length];
@@ -293,8 +285,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	Out* res = allocateT!Out(alloc, (offset + a.length));
 	if (has(optFirst))
 		initMemory(res, force(optFirst));
-	foreach (immutable size_t i; 0 .. a.length)
-		initMemory(res + offset + i, cb(at(a, i)));
+	foreach (immutable size_t i, ref immutable In x; a)
+		initMemory(res + offset + i, cb(x));
 	return cast(immutable) res[0 .. offset + a.length];
 }
 
@@ -344,8 +336,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	ubyte* res = allocateBytes(alloc, size_t.sizeof + Out.sizeof * a.length);
 	Out* elements = cast(Out*) (res + size_t.sizeof);
 	size_t resI = 0;
-	foreach (immutable size_t i; 0 .. a.length) {
-		immutable Opt!Out o = cb(at(a, i));
+	foreach (ref immutable In x; a) {
+		immutable Opt!Out o = cb(x);
 		if (has(o)) {
 			initMemory(elements + resI, force(o));
 			resI++;
@@ -362,8 +354,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
 	size_t resI = 0;
-	foreach (immutable size_t i; 0 .. a.length) {
-		immutable Opt!Out o = cb(i, at(a, i));
+	foreach (immutable size_t i, ref immutable In x; a) {
+		immutable Opt!Out o = cb(i, x);
 		if (has(o)) {
 			initMemory(res + resI, force(o));
 			resI++;
@@ -378,8 +370,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	scope immutable(Opt!Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i; 0 .. a.length) {
-		immutable Opt!Out o = cb(at(a, i));
+	foreach (immutable size_t i, ref immutable In x; a) {
+		immutable Opt!Out o = cb(x);
 		if (has(o))
 			initMemory(res + i, force(o));
 		else
@@ -393,8 +385,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	scope immutable(Opt!Out) delegate(ref const In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i; 0 .. a.length) {
-		immutable Opt!Out o = cb(at(a, i));
+	foreach (immutable size_t i, ref const In x; a) {
+		immutable Opt!Out o = cb(x);
 		if (has(o))
 			initMemory(res + i, force(o));
 		else
@@ -411,8 +403,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 ) {
 	immutable size_t outSize = a.length + 1;
 	Out* res = allocateT!Out(alloc, outSize);
-	foreach (immutable size_t i; 0 .. a.length)
-		initMemory(res + i, cb(i, at(a, i)));
+	foreach (immutable size_t i, ref immutable In x; a)
+		initMemory(res + i, cb(i, x));
 	initMemory(res + a.length, concatOne);
 	return cast(immutable) res[0 .. outSize];
 }
@@ -430,8 +422,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	scope Out delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i; 0 .. a.length)
-		initMemory(res + i, cb(i, at(a, i)));
+	foreach (immutable size_t i, ref immutable In x; a)
+		initMemory(res + i, cb(i, x));
 	return res[0 .. a.length];
 }
 
@@ -452,8 +444,8 @@ immutable(ArrWithSize!Out) mapWithSize(Out, In)(
 	ubyte* res = allocateBytes(alloc, size_t.sizeof + Out.sizeof * a.length);
 	*(cast(size_t*) res) = a.length;
 	Out* elements = cast(Out*) (res + size_t.sizeof);
-	foreach (immutable size_t i; 0 .. a.length)
-		initMemory(elements + i, cb(i, at(a, i)));
+	foreach (immutable size_t i, ref immutable In x; a)
+		initMemory(elements + i, cb(i, x));
 	return immutable ArrWithSize!Out(cast(immutable) res);
 }
 
@@ -510,10 +502,10 @@ private immutable(Acc) each(Acc, T)(
 	else {
 		immutable size_t resSize = a.length + b.length;
 		T* res = allocateT!T(alloc, resSize);
-		foreach (immutable size_t i; 0 .. a.length)
-			initMemory(res + i, at(a, i));
-		foreach (immutable size_t i; 0 .. b.length)
-			initMemory(res + a.length + i, at(b, i));
+		foreach (immutable size_t i, ref immutable T x; a)
+			initMemory(res + i, x);
+		foreach (immutable size_t i, ref immutable T x; b)
+			initMemory(res + a.length + i, x);
 		return cast(immutable) res[0 .. resSize];
 	}
 }
@@ -527,14 +519,14 @@ private immutable(Acc) each(Acc, T)(
 ) {
 	immutable size_t resSize = a.length + b.length + c.length + d.length;
 	T* res = allocateT!T(alloc, resSize);
-	foreach (immutable size_t i; 0 .. a.length)
-		initMemory(res + i, at(a, i));
-	foreach (immutable size_t i; 0 .. b.length)
-		initMemory(res + a.length + i, at(b, i));
-	foreach (immutable size_t i; 0 .. c.length)
-		initMemory(res + a.length + b.length + i, at(c, i));
-	foreach (immutable size_t i; 0 .. d.length)
-		initMemory(res + a.length + b.length + c.length + i, at(d, i));
+	foreach (immutable size_t i, ref immutable T x; a)
+		initMemory(res + i, x);
+	foreach (immutable size_t i, ref immutable T x; b)
+		initMemory(res + a.length + i, x);
+	foreach (immutable size_t i, ref immutable T x; c)
+		initMemory(res + a.length + b.length + i, x);
+	foreach (immutable size_t i, ref immutable T x; d)
+		initMemory(res + a.length + b.length + c.length + i, x);
 	return cast(immutable) res[0 .. resSize];
 }
 
@@ -545,7 +537,7 @@ private immutable(Acc) each(Acc, T)(
 	*(cast(size_t*) res) = resSize;
 	T* elements = cast(T*) (res + size_t.sizeof);
 	foreach (immutable size_t i; 0 .. aArr.length)
-		initMemory(elements + i, at(aArr, i));
+		initMemory(elements + i, aArr[i]);
 	initMemory(elements + aArr.length, b);
 	return immutable ArrWithSize!T(cast(immutable) res);
 }
@@ -631,7 +623,7 @@ void zip(T, U)(
 ) {
 	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0 .. a.length)
-		cb(at(a, i), at(b, i));
+		cb(a[i], b[i]);
 }
 
 void zip(T, U, V)(
@@ -652,7 +644,7 @@ void zipFirstMut(T, U)(
 ) {
 	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0 .. a.length)
-		cb(at(a, i), at(b, i));
+		cb(a[i], b[i]);
 }
 
 void zipMutPtrFirst(T, U)(
@@ -662,7 +654,7 @@ void zipMutPtrFirst(T, U)(
 ) {
 	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0 .. a.length)
-		cb(ptrAt(a, i), at(b, i));
+		cb(ptrAt(a, i), b[i]);
 }
 
 void zipPtrFirst(T, U)(
@@ -672,7 +664,7 @@ void zipPtrFirst(T, U)(
 ) {
 	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0 .. a.length)
-		cb(ptrAt(a, i), at(b, i));
+		cb(ptrAt(a, i), b[i]);
 }
 
 @trusted immutable(Out[]) mapZip(Out, In0, In1)(
@@ -685,7 +677,7 @@ void zipPtrFirst(T, U)(
 	immutable size_t sz = in0.length;
 	Out* res = allocateT!Out(alloc, sz);
 	foreach (immutable size_t i; 0 .. sz)
-		initMemory(res + i, cb(at(in0, i), at(in1, i)));
+		initMemory(res + i, cb(in0[i], in1[i]));
 	return cast(immutable) res[0 .. sz];
 }
 
@@ -699,7 +691,7 @@ void zipPtrFirst(T, U)(
 	immutable size_t sz = in0.length;
 	Out* res = allocateT!Out(alloc, sz);
 	foreach (immutable size_t i; 0 .. sz)
-		initMemory(res + i, cb(ptrAt(in0, i), at(in1, i)));
+		initMemory(res + i, cb(ptrAt(in0, i), in1[i]));
 	return cast(immutable) res[0 .. sz];
 }
 
@@ -713,7 +705,7 @@ void zipPtrFirst(T, U)(
 	immutable size_t sz = in0.length;
 	Out* res = allocateT!Out(alloc, sz);
 	foreach (immutable size_t i; 0 .. sz)
-		initMemory(res + i, cb(at(in0, i), at(in1, i), i));
+		initMemory(res + i, cb(in0[i], in1[i], i));
 	return cast(immutable) res[0 .. sz];
 }
 
@@ -728,7 +720,7 @@ void zipPtrFirst(T, U)(
 	immutable size_t sz = in0.length;
 	Out* res = allocateT!Out(alloc, sz);
 	foreach (immutable size_t i; 0 .. sz) {
-		immutable Opt!Out o = cb(at(in0, i), at(in1, i));
+		immutable Opt!Out o = cb(in0[i], in1[i]);
 		if (has(o))
 			initMemory(res + i, force(o));
 		else
@@ -744,7 +736,7 @@ immutable(bool) eachCorresponds(T, U)(
 ) {
 	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0 .. a.length)
-		if (!cb(at(a, i), at(b, i)))
+		if (!cb(a[i], b[i]))
 			return false;
 	return true;
 }
@@ -887,7 +879,7 @@ private immutable(size_t) arrMaxIndexRecur(T, U)(
 	if (index == a.length)
 		return indexOfMax;
 	else {
-		immutable T valueHere = cb(at(a, index), index);
+		immutable T valueHere = cb(a[index], index);
 		return compare(valueHere, maxValue) == Comparison.greater
 			// Using `index + 0` to avoid dscanner warning about 'index' not being the 0th parameter
 			? arrMaxIndexRecur!(T, U)(index + 0, valueHere, a, index + 1, cb, compare)
@@ -901,5 +893,5 @@ void eachPair(T)(
 ) {
 	foreach (immutable size_t i; 0 .. a.length)
 		foreach (immutable size_t j; i + 1 .. a.length)
-			cb(at(a, i), at(a, j));
+			cb(a[i], a[j]);
 }

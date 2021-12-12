@@ -68,7 +68,7 @@ import model.model :
 	Type,
 	typeArgs;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty, emptyArr, only, ptrAt;
+import util.collection.arr : empty, emptyArr, only, ptrAt;
 import util.collection.arrUtil : arrLiteral, every, map, mapWithIndex;
 import util.collection.mutArr : MutArr, mutArrSize, push;
 import util.collection.mutDict : addToMutDict, getOrAdd, mustDelete, mustGetAt_mut, MutPtrDict;
@@ -214,7 +214,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromCalled(
 		(immutable Ptr!FunInst funInst) =>
 			getConcreteFunFromFunInst(alloc, ctx, funInst),
 		(ref immutable SpecSig specSig) =>
-			at(ctx.containing.specImpls, specSig.indexOverAllSpecUses),
+			ctx.containing.specImpls[specSig.indexOverAllSpecUses],
 	)(called);
 }
 
@@ -412,9 +412,9 @@ immutable(ConcreteExpr) concretizeLambda(
 		// For a fun-ref this is the inner 'act' type.
 		immutable ConcreteField[] fields = asRecord(body_(concreteStruct.deref())).fields;
 		verify(fields.length == 2);
-		immutable ConcreteField islandAndExclusionField = at(fields, 0);
+		immutable ConcreteField islandAndExclusionField = fields[0];
 		verify(symEqLongAlphaLiteral(name(islandAndExclusionField), "island-and-exclusion"));
-		immutable ConcreteField actionField = at(fields, 1);
+		immutable ConcreteField actionField = fields[1];
 		verify(symEq(name(actionField), shortSymAlphaLiteral("action")));
 		immutable ConcreteType funType = actionField.type;
 		immutable ConcreteExpr islandAndExclusion =
@@ -511,7 +511,7 @@ immutable(ConcreteExpr) concretizeIfOption(
 	if (inlineConstants && isConstant(option.kind)) {
 		return todo!(immutable ConcreteExpr)("constant option");
 	} else {
-		immutable ConcreteType someType = force(at(asUnion(body_(mustBeNonPointer(option.type).deref())).members, 1));
+		immutable ConcreteType someType = force(asUnion(body_(mustBeNonPointer(option.type).deref())).members[1]);
 		immutable ConcreteType type = getConcreteType(alloc, ctx, e.type);
 		immutable ConcreteExprKind.MatchUnion.Case noneCase = immutable ConcreteExprKind.MatchUnion.Case(
 			none!(Ptr!ConcreteLocal),
@@ -555,9 +555,9 @@ immutable(ConcreteExpr) concretizeMatchUnion(
 	immutable ConcreteType type = getConcreteType(alloc, ctx, e.type);
 	if (isConstant(matched.kind)) {
 		immutable Constant.Union u = asUnion(asConstant(matched.kind));
-		immutable Expr.MatchUnion.Case case_ = at(e.cases, u.memberIndex);
+		immutable Expr.MatchUnion.Case case_ = e.cases[u.memberIndex];
 		if (has(case_.local)) {
-			immutable ConcreteType caseType = force(at(asUnion(body_(matchedUnion.deref())).members, u.memberIndex));
+			immutable ConcreteType caseType = force(asUnion(body_(matchedUnion.deref())).members[u.memberIndex]);
 			immutable LocalOrConstant lc = immutable LocalOrConstant(immutable TypedConstant(caseType, u.arg));
 			return concretizeWithLocal(alloc, ctx, force(case_.local), lc, case_.then);
 		} else

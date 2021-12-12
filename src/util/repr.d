@@ -3,7 +3,7 @@ module util.repr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty, emptyArr, first;
+import util.collection.arr : empty, emptyArr, first;
 import util.collection.arrUtil : arrLiteral, map, mapWithIndex, tail;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.str : CStr, SafeCStr, strOfSafeCStr;
@@ -318,7 +318,7 @@ void writeRepr(
 						writeNat(writer, index);
 						writeStatic(writer, ": ");
 					}
-					writeRepr(writer, indent + 1, availableWidth - indentSize, at(s.arr, index));
+					writeRepr(writer, indent + 1, availableWidth - indentSize, s.arr[index]);
 				}
 				writeChar(writer, ']');
 			} else

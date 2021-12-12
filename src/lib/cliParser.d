@@ -3,7 +3,7 @@ module lib.cliParser;
 import frontend.lang : crowExtension, JitOptions, OptimizationLevel;
 import lib.compiler : PrintFormat, PrintKind;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty, emptyArr, first, only;
+import util.collection.arr : empty, emptyArr, first, only;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : findIndex, foldOrStop, tail;
 import util.collection.str : SafeCStr, safeCStrEq, startsWith, strEq, strOfSafeCStr;
@@ -202,7 +202,7 @@ immutable(BuildOut) emptyBuildOut() {
 }
 
 immutable(bool) isSpecialArg(immutable string a, immutable string expected) {
-	return empty(a) ? true : (at(a, 0) == '-' ? isSpecialArg(tail(a), expected) : strEq(a, expected));
+	return empty(a) ? true : (a[0] == '-' ? isSpecialArg(tail(a), expected) : strEq(a, expected));
 }
 
 immutable(bool) isHelp(immutable string a) {
@@ -249,9 +249,9 @@ immutable(Command) parsePrintCommand(
 		return todo!Command("Command.HelpPrint");
 	else {
 		immutable FormatAndPath formatAndPath = args.length == 2
-			? immutable FormatAndPath(PrintFormat.repr, at(args, 1))
-			: args.length == 4 && safeCStrEq(at(args, 1), "--format") && safeCStrEq(at(args, 2), "json")
-			? immutable FormatAndPath(PrintFormat.json, at(args, 3))
+			? immutable FormatAndPath(PrintFormat.repr, args[1])
+			: args.length == 4 && safeCStrEq(args[1], "--format") && safeCStrEq(args[2], "json")
+			? immutable FormatAndPath(PrintFormat.json, args[3])
 			: todo!(immutable FormatAndPath)("Command.HelpPrint");
 		return useProgramDirAndMain(
 			alloc,
@@ -467,7 +467,7 @@ immutable(SplitArgs) splitArgs(ref Alloc alloc, immutable SafeCStr[] args) {
 	else {
 		immutable size_t firstArgIndex = force(optFirstArgIndex);
 		immutable SafeCStr[] beforeFirstPart = args[0 .. firstArgIndex];
-		if (safeCStrEq(at(args, firstArgIndex), "--"))
+		if (safeCStrEq(args[firstArgIndex], "--"))
 			return immutable SplitArgs(beforeFirstPart, emptyArr!ArgsPart, args[firstArgIndex + 1 .. $]);
 		else {
 			ArrBuilder!ArgsPart parts;
@@ -486,12 +486,12 @@ immutable(size_t) splitArgsRecur(
 	immutable size_t index,
 ) {
 	if (index == args.length) {
-		add(alloc, parts, immutable ArgsPart(at(args, curPartStart), args[curPartStart + 1 .. index]));
+		add(alloc, parts, immutable ArgsPart(args[curPartStart], args[curPartStart + 1 .. index]));
 		return index;
 	} else {
-		immutable SafeCStr arg = at(args, index);
+		immutable SafeCStr arg = args[index];
 		if (startsWith(arg, "--")) {
-			add(alloc, parts, immutable ArgsPart(at(args, curPartStart), args[curPartStart + 1 .. index]));
+			add(alloc, parts, immutable ArgsPart(args[curPartStart], args[curPartStart + 1 .. index]));
 			return safeCStrEq(arg, "--")
 				? index + 1
 				// Using `index + 0` to avoid dscanner warning about 'index' not being parameter 3

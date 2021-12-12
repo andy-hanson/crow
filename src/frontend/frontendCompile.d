@@ -13,7 +13,7 @@ import frontend.lang : crowExtension;
 import frontend.parse.parse : parseFile;
 import frontend.programState : ProgramState;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty, emptyArr, ptrAt;
+import util.collection.arr : empty, emptyArr, ptrAt;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil : arrLiteral, copyArr, map, mapImpure, mapOp, mapWithSoFar, prepend;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGetPtr, fullIndexDictOfArr;

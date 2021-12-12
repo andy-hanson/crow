@@ -3,7 +3,7 @@ module util.diff;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : at, only, setAt;
+import util.collection.arr : only, setAt;
 import util.collection.arrUtil : arrMax, arrMaxIndex, contains, fillArrUninitialized;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
@@ -25,10 +25,10 @@ void diffSymbols(
 private:
 
 ref immutable(T) atPossiblyReversed(T)(ref immutable T[] a, immutable size_t i, immutable bool reversed) {
-	return at(a, reversed ? a.length - 1 - i : i);
+	return a[reversed ? a.length - 1 - i : i];
 }
 ref const(T) atPossiblyReversed(T)(ref const T[] a, immutable size_t i, immutable bool reversed) {
-	return at(a, reversed ? a.length - 1 - i : i);
+	return a[reversed ? a.length - 1 - i : i];
 }
 void setAtPossiblyReversed(T)(
 	ref T[] a,
@@ -105,7 +105,7 @@ immutable(size_t) findBestSplitIndex(
 		leftSubsequenceLengths,
 		(ref const size_t leftLength, immutable size_t j) =>
 			// Note: rightSubsequenceLengths was computed in reverse, so 'j' is from the right here.
-			leftLength + at(rightSubsequenceLengths, j),
+			leftLength + rightSubsequenceLengths[j],
 		(ref immutable size_t x, ref immutable size_t y) => compareSizeT(x, y));
 }
 
@@ -165,7 +165,7 @@ void printDiff(
 		writeNlIndent(writer);
 		if (color)
 			writeRed(writer);
-		writeSym(writer, at(a, ai));
+		writeSym(writer, a[ai]);
 		if (color)
 			writeReset(writer);
 		ai++;
@@ -175,7 +175,7 @@ void printDiff(
 		writeSpaces(writer, columnSize);
 		if (color)
 			writeRed(writer);
-		writeSym(writer, at(b, bi));
+		writeSym(writer, b[bi]);
 		if (color)
 			writeReset(writer);
 		bi++;
@@ -184,28 +184,28 @@ void printDiff(
 		writeNlIndent(writer);
 		if (color)
 			writeRed(writer);
-		writeSymPadded(writer, at(a, ai), columnSize);
-		writeSym(writer, at(b, bi));
+		writeSymPadded(writer, a[ai], columnSize);
+		writeSym(writer, b[bi]);
 		if (color)
 			writeReset(writer);
 		ai++;
 		bi++;
 	}
 	void common() {
-		verify(symEq(at(a, ai), at(b, bi)));
+		verify(symEq(a[ai], b[bi]));
 		writeNlIndent(writer);
-		writeSymPadded(writer, at(a, ai), columnSize);
-		writeSym(writer, at(b, bi));
+		writeSymPadded(writer, a[ai], columnSize);
+		writeSym(writer, b[bi]);
 		ai++;
 		bi++;
 	}
 
 	foreach (immutable Sym commonSym; commonSyms) {
-		while (!symEq(at(a, ai), commonSym) && !symEq(at(b, bi), commonSym))
+		while (!symEq(a[ai], commonSym) && !symEq(b[bi], commonSym))
 			misspelling();
-		while (!symEq(at(a, ai), commonSym))
+		while (!symEq(a[ai], commonSym))
 			extraA();
-		while (!symEq(at(b, bi), commonSym))
+		while (!symEq(b[bi], commonSym))
 			extraB();
 		common();
 	}

@@ -22,7 +22,6 @@ import model.lowModel :
 	PrimitiveType,
 	UpdateParam;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate;
 import util.ptr : Ptr;
@@ -434,7 +433,7 @@ immutable(LowType.PtrRawConst) getElementPtrTypeFromArrType(
 ) {
 	immutable LowRecord arrRecord = fullIndexDictGet(allTypes.allRecords, arrType);
 	verify(arrRecord.fields.length == 2);
-	verify(symEq(name(at(arrRecord.fields, 0)), shortSymAlphaLiteral("size")));
-	verify(symEq(name(at(arrRecord.fields, 1)), shortSymAlphaLiteral("begin-ptr")));
-	return asPtrRawConst(at(arrRecord.fields, 1).type);
+	verify(symEq(name(arrRecord.fields[0]), shortSymAlphaLiteral("size")));
+	verify(symEq(name(arrRecord.fields[1]), shortSymAlphaLiteral("begin-ptr")));
+	return asPtrRawConst(arrRecord.fields[1].type);
 }

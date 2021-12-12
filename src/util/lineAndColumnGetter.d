@@ -3,7 +3,6 @@ module util.lineAndColumnGetter;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.conv : safeToUint, safeToUshort;
 import util.sourceRange : Pos;
@@ -34,7 +33,7 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForText(ref Alloc alloc, immut
 	add(alloc, lineToNTabs, getNTabs(text));
 
 	foreach (immutable uint i; 0 .. safeToUint(text.length)) {
-		if (at(text, i) == '\n') {
+		if (text[i] == '\n') {
 			add(alloc, lineToPos, i + 1);
 			add(alloc, lineToNTabs, getNTabs(text[i + 1 .. $]));
 		}
@@ -53,7 +52,7 @@ immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc
 
 	while (lowLine < highLine - 1) {
 		immutable ushort middleLine = mid(lowLine, highLine);
-		immutable Pos middlePos = at(lc.lineToPos, middleLine);
+		immutable Pos middlePos = lc.lineToPos[middleLine];
 		if (pos == middlePos)
 			return LineAndColumn(middleLine, 0);
 		else if (pos < middlePos)
@@ -65,11 +64,11 @@ immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc
 	}
 
 	immutable ushort line = lowLine;
-	immutable Pos lineStart = at(lc.lineToPos, line);
-	verify((pos >= lineStart && line == lc.lineToPos.length - 1) || pos <= at(lc.lineToPos, line + 1));
+	immutable Pos lineStart = lc.lineToPos[line];
+	verify((pos >= lineStart && line == lc.lineToPos.length - 1) || pos <= lc.lineToPos[line + 1]);
 
 	immutable uint nCharsIntoLine = pos - lineStart;
-	immutable ubyte nTabs = at(lc.lineToNTabs, line);
+	immutable ubyte nTabs = lc.lineToNTabs[line];
 	immutable uint column = nCharsIntoLine <= nTabs
 		? nCharsIntoLine * TAB_SIZE
 		: nTabs * (TAB_SIZE - 1) + nCharsIntoLine;
@@ -88,7 +87,7 @@ ubyte getNTabs(immutable string text) {
 	ubyte i = 0;
 	while (i < ubyte.max
 		&& i < text.length
-		&& at(text, i) == '\t'
+		&& text[i] == '\t'
 	) {
 		i++;
 	}

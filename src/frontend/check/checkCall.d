@@ -71,7 +71,6 @@ import model.model :
 	worstCasePurity;
 import util.alloc.alloc : Alloc;
 import util.collection.arr :
-	at,
 	empty,
 	emptyArr,
 	emptyArrWithSize,
@@ -140,7 +139,7 @@ immutable(CheckedExpr) checkCall(
 		CommonOverloadExpected common =
 			getCommonOverloadParamExpected(alloc, programState(ctx), tempAsArr_mut(candidates), argIdx);
 		pauseMeasure(alloc, ctx.perf, perfMeasurer);
-		immutable Expr arg = checkExpr(alloc, ctx, at(argAsts, argIdx), common.expected);
+		immutable Expr arg = checkExpr(alloc, ctx, argAsts[argIdx], common.expected);
 		resumeMeasure(alloc, ctx.perf, perfMeasurer);
 
 		// If it failed to check, don't continue, just stop there.
@@ -339,7 +338,7 @@ void getInitialCandidates(
 					// that's for a (value) arg's expected type
 					SingleInferringType(empty(explicitTypeArgs)
 						? none!Type
-						: some!Type(at(explicitTypeArgs, i))));
+						: some!Type(explicitTypeArgs[i])));
 			push(candidates, Candidate(used, called, inferringTypeArgs));
 		}
 	});
@@ -403,7 +402,7 @@ immutable(Type) paramTypeAt(ref immutable Params params, immutable size_t argIdx
 	return matchParams!(
 		immutable Type,
 		(immutable Param[] params) =>
-			at(params, argIdx).type,
+			params[argIdx].type,
 		(ref immutable Params.Varargs varargs) =>
 			varargs.elementType,
 	)(params);

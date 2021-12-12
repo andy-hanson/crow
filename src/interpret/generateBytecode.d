@@ -142,7 +142,7 @@ import model.lowModel :
 import model.model : FunDecl, Module, name, Program, range;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : at, castImmutable, empty, last, only;
+import util.collection.arr : castImmutable, empty, last, only;
 import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict :
@@ -576,7 +576,7 @@ void generateExpr(
 			writeRemove(dbg, writer, source, matchedEntriesWithoutKind);
 		},
 		(ref immutable LowExprKind.ParamRef it) {
-			immutable StackEntries entries = at(ctx.parameterEntries, it.index.index);
+			immutable StackEntries entries = ctx.parameterEntries[it.index.index];
 			if (entries.size != 0)
 				writeDupEntries(dbg, writer, source, entries);
 		},
@@ -625,7 +625,7 @@ void generateExpr(
 				generateExpr(dbg, tempAlloc, writer, ctx, updateParam.newValue);
 			// Now pop them in reverse and write to the appropriate params
 			foreach_reverse (ref immutable UpdateParam updateParam; it.updateParams)
-				writeSet(dbg, writer, source, at(ctx.parameterEntries, updateParam.param.index));
+				writeSet(dbg, writer, source, ctx.parameterEntries[updateParam.param.index]);
 
 			// Delete anything on the stack besides parameters
 			immutable StackEntry parametersEnd = empty(ctx.parameterEntries)
@@ -747,7 +747,7 @@ void generateCreateRecord(
 		type,
 		source,
 		(immutable size_t fieldIndex, ref immutable LowType fieldType) {
-			immutable LowExpr arg = at(it.args, fieldIndex);
+			immutable LowExpr arg = it.args[fieldIndex];
 			verify(lowTypeEqual(arg.type, fieldType));
 			generateExpr(dbg, tempAlloc, writer, ctx, arg);
 		});
@@ -810,7 +810,7 @@ void generateCreateUnionOrConstantUnion(
 	immutable StackEntry before = getNextStackEntry(writer);
 	immutable size_t size = nStackEntriesForUnionType(ctx, type);
 	writePushConstant(dbg, writer, source, memberIndex);
-	immutable LowType memberType = at(fullIndexDictGet(ctx.program.allUnions, type).members, memberIndex);
+	immutable LowType memberType = fullIndexDictGet(ctx.program.allUnions, type).members[memberIndex];
 	cbGenerateMember(memberType);
 	immutable StackEntry after = getNextStackEntry(writer);
 	if (before.entry + size != after.entry) {
@@ -830,7 +830,7 @@ immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	immutable LowType.Record record,
 	immutable size_t fieldIndex,
 ) {
-	immutable LowField field = at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex);
+	immutable LowField field = fullIndexDictGet(ctx.program.allRecords, record).fields[fieldIndex];
 	immutable size_t size = sizeOfType(ctx, field.type).size;
 	return immutable FieldOffsetAndSize(field.offset, size);
 }
@@ -913,7 +913,7 @@ void generateConstant(
 				asRecordType(type),
 				source,
 				(immutable size_t argIndex, ref immutable LowType argType) {
-					generateConstant(dbg, tempAlloc, writer, ctx, source, argType, at(it.args, argIndex));
+					generateConstant(dbg, tempAlloc, writer, ctx, source, argType, it.args[argIndex]);
 				});
 		},
 		(ref immutable Constant.Union it) {
@@ -1056,7 +1056,7 @@ void generateRefOfVal(
 	if (isLocalRef(arg.kind))
 		writeStackRef(dbg, writer, source, mustGetAt_mut(ctx.localEntries, asLocalRef(arg.kind).local).start);
 	else if (isParamRef(arg.kind))
-		writeStackRef(dbg, writer, source, at(ctx.parameterEntries, asParamRef(arg.kind).index.index).start);
+		writeStackRef(dbg, writer, source, ctx.parameterEntries[asParamRef(arg.kind).index.index].start);
 	else if (isRecordFieldGet(arg.kind)) {
 		immutable LowExprKind.RecordFieldGet rfa = asRecordFieldGet(arg.kind);
 		generatePtrToRecordFieldGet(
@@ -1127,7 +1127,7 @@ void generatePtrToRecordFieldGet(
 	ref immutable LowExpr target,
 ) {
 	generateExpr(dbg, tempAlloc, writer, ctx, target);
-	immutable size_t offset = at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).offset;
+	immutable size_t offset = fullIndexDictGet(ctx.program.allRecords, record).fields[fieldIndex].offset;
 	if (targetIsPointer) {
 		if (offset != 0)
 			writeAddConstantNat64(dbg, writer, source, offset);

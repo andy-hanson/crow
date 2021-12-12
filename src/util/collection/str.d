@@ -3,7 +3,7 @@ module util.collection.str;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateBytes;
-import util.collection.arr : at, begin;
+import util.collection.arr : begin;
 import util.collection.arrUtil : cat, rtail, tail;
 import util.hash : Hasher, hashUbyte;
 import util.memory : memcpy;
@@ -40,7 +40,7 @@ struct NulTerminatedStr {
 
 	this(immutable string s) immutable {
 		str = s;
-		verify(at(str, str.length - 1) == '\0');
+		verify(str.length != 0 && str[str.length - 1] == '\0');
 	}
 }
 

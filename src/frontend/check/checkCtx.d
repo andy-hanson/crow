@@ -16,7 +16,7 @@ import model.model :
 	StructDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, castImmutable, setAt;
+import util.collection.arr : castImmutable, setAt;
 import util.collection.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
 import util.collection.dict : getAt;
 import util.opt : force, has, none, Opt, some;
@@ -124,13 +124,13 @@ private void checkUnusedImports(ref Alloc alloc, ref CheckCtx ctx) {
 	foreach (ref immutable ModuleAndNames it; ctx.imports) {
 		if (has(it.names)) {
 			foreach (ref immutable Sym name; force(it.names)) {
-				if (!at(ctx.importsAndReExportsUsed, index) && has(it.importSource))
+				if (!ctx.importsAndReExportsUsed[index] && has(it.importSource))
 					addDiag(alloc, ctx, force(it.importSource), immutable Diag(
 						immutable Diag.UnusedImport(it.modulePtr, some(name))));
 				index++;
 			}
 		} else {
-			if (!at(ctx.importsAndReExportsUsed, index) && has(it.importSource))
+			if (!ctx.importsAndReExportsUsed[index] && has(it.importSource))
 				addDiag(alloc, ctx, force(it.importSource), immutable Diag(
 					immutable Diag.UnusedImport(it.modulePtr, none!Sym)));
 			index++;

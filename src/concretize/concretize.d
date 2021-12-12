@@ -40,7 +40,7 @@ import model.model :
 	typeArgs,
 	typeEquals;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, emptyArr, only;
+import util.collection.arr : emptyArr, only;
 import util.collection.arrBuilder : finishArr_immutable;
 import util.collection.dict : getAt;
 import util.collection.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
@@ -175,7 +175,7 @@ void checkRtMainSignature(ref immutable CommonTypes commonTypes, ref immutable F
 	immutable Param[] params = assertNonVariadic(params(mainFun));
 	if (params.length != 3)
 		todo!void("checkRtMainSignature wrong number params");
-	if (!isInt32(commonTypes, at(params, 0).type))
+	if (!isInt32(commonTypes, params[0].type))
 		todo!void("checkRtMainSignature doesn't take int");
 	// TODO: check p1 type is ptr c-str
 	// TODO: check p2 type is fun-ptr2 fut<nat> ctx arr<str>)

@@ -3,7 +3,7 @@ module util.sym;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, first, last, only;
+import util.collection.arr : first, last, only;
 import util.collection.arrUtil : contains, every, findIndex, tail;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
 import util.collection.str : CStr, strEq, strOfCStr, strToCStr;
@@ -410,7 +410,7 @@ immutable(ulong) packAlphaIdentifier(immutable string str) {
 		immutable bool is6Bit = i < 2;
 		immutable ulong value = () {
 			if (i < str.length) {
-				immutable char c = at(str, str.length - 1 - i);
+				immutable char c = str[str.length - 1 - i];
 				return is6Bit ? packAlphaChar6(c) : packAlphaChar5(c);
 			} else
 				return 0;
@@ -476,7 +476,8 @@ void assertSym(immutable Sym sym, immutable string str) {
 	//TODO:KILL
 	size_t idx = 0;
 	eachCharInSym(sym, (immutable char c) {
-		immutable char expected = at(str, idx++);
+		immutable char expected = str[idx];
+		idx = idx + 1;
 		verify(c == expected);
 	});
 	verify(idx == str.length);

@@ -21,7 +21,7 @@ import model.lowModel :
 	PrimitiveType;
 import model.typeLayout : funPtrSize, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : at, castImmutable, empty, emptyArr, ptrAt, setAt;
+import util.collection.arr : castImmutable, empty, emptyArr, ptrAt, setAt;
 import util.collection.arrUtil : map, mapToMut, sum, zip;
 import util.collection.dict : mustGetAt;
 import util.collection.exactSizeArrBuilder :
@@ -77,18 +77,18 @@ immutable(TextArrInfo) getTextInfoForArray(
 	ref immutable AllConstantsLow allConstants,
 	immutable Constant.ArrConstant a,
 ) {
-	immutable size_t constantSize = at(at(allConstants.arrs, a.typeIndex).constants, a.index).length;
-	immutable size_t textIndex = at(at(info.arrTypeIndexToConstantIndexToTextIndex, a.typeIndex), a.index);
+	immutable size_t constantSize = allConstants.arrs[a.typeIndex].constants[a.index].length;
+	immutable size_t textIndex = info.arrTypeIndexToConstantIndexToTextIndex[a.typeIndex][a.index];
 	return immutable TextArrInfo(constantSize, ptrAt(info.text, textIndex).rawPtr());
 }
 
 immutable(ubyte*) getTextPointer(ref immutable TextInfo info, immutable Constant.Pointer a) {
-	immutable size_t textIndex = at(at(info.pointeeTypeIndexToIndexToTextIndex, a.typeIndex), a.index);
+	immutable size_t textIndex = info.pointeeTypeIndexToIndexToTextIndex[a.typeIndex][a.index];
 	return ptrAt(info.text, textIndex).rawPtr();
 }
 
 immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutable Constant.CString a) {
-	return ptrAt(info.text, at(info.cStringIndexToTextIndex, a.index)).rawPtr();
+	return ptrAt(info.text, info.cStringIndexToTextIndex[a.index]).rawPtr();
 }
 
 TextAndInfo generateText(
@@ -201,7 +201,7 @@ void ensureConstant(
 				it.typeIndex,
 				arrs.deref().elementType,
 				it.index,
-				at(arrs.deref().constants, it.index));
+				arrs.deref().constants[it.index]);
 		},
 		(immutable Constant.BoolConstant) {},
 		(ref immutable Constant.CString) {
@@ -216,7 +216,7 @@ void ensureConstant(
 			verify(lowTypeEqual(ptrs.deref().pointeeType, asPtrGcPointee(t)));
 			recurWritePointer(
 				alloc, tempAlloc, ctx,
-				it.typeIndex, ptrs.deref().pointeeType, it.index, at(ptrs.deref().constants, it.index).deref());
+				it.typeIndex, ptrs.deref().pointeeType, it.index, ptrs.deref().constants[it.index].deref());
 		},
 		(ref immutable Constant.Record it) {
 			immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, asRecordType(t));
@@ -238,7 +238,7 @@ ref immutable(LowType) unionMemberType(
 	immutable LowType.Union t,
 	immutable size_t memberIndex,
 ) {
-	return at(fullIndexDictGet(program.allUnions, t).members, memberIndex);
+	return fullIndexDictGet(program.allUnions, t).members[memberIndex];
 }
 
 void recurWriteArr(
@@ -251,8 +251,8 @@ void recurWriteArr(
 	immutable Constant[] elements,
 ) {
 	verify(!empty(elements));
-	size_t[] indexToTextIndex = at(ctx.arrTypeIndexToConstantIndexToTextIndex, arrTypeIndex);
-	if (at(indexToTextIndex, index) == 0) {
+	size_t[] indexToTextIndex = ctx.arrTypeIndexToConstantIndexToTextIndex[arrTypeIndex];
+	if (indexToTextIndex[index] == 0) {
 		foreach (ref immutable Constant it; elements)
 			ensureConstant(alloc, tempAlloc, ctx, elementType, it);
 		setAt(indexToTextIndex, index, exactSizeArrBuilderCurSize(ctx.text));
@@ -270,8 +270,8 @@ void recurWritePointer(
 	immutable size_t index,
 	ref immutable Constant pointee,
 ) {
-	size_t[] indexToTextIndex = at(ctx.pointeeTypeIndexToIndexToTextIndex, pointeeTypeIndex);
-	if (at(indexToTextIndex, index) == 0) {
+	size_t[] indexToTextIndex = ctx.pointeeTypeIndexToIndexToTextIndex[pointeeTypeIndex];
+	if (indexToTextIndex[index] == 0) {
 		ensureConstant(alloc, tempAlloc, ctx, pointeeType, pointee);
 		setAt(indexToTextIndex, index, exactSizeArrBuilderCurSize(ctx.text));
 		writeConstant(alloc, tempAlloc, ctx, pointeeType, pointee);
@@ -304,16 +304,16 @@ void writeConstant(
 		constant,
 		(ref immutable Constant.ArrConstant it) {
 			//TODO:DUP CODE (see getTextInfoForArray)
-			immutable size_t constantSize = at(at(ctx.allConstants.arrs, it.typeIndex).constants, it.index).length;
+			immutable size_t constantSize = ctx.allConstants.arrs[it.typeIndex].constants[it.index].length;
 			add64(ctx.text, constantSize);
-			immutable size_t textIndex = at(at(ctx.arrTypeIndexToConstantIndexToTextIndex, it.typeIndex), it.index);
+			immutable size_t textIndex = ctx.arrTypeIndexToConstantIndexToTextIndex[it.typeIndex][it.index];
 			add64TextPtr(ctx.text, textIndex);
 		},
 		(immutable Constant.BoolConstant it) {
 			exactSizeArrBuilderAdd(ctx.text, it.value ? 1 : 0);
 		},
 		(ref immutable Constant.CString it) {
-			add64TextPtr(ctx.text, at(ctx.cStringIndexToTextIndex, it.index));
+			add64TextPtr(ctx.text, ctx.cStringIndexToTextIndex[it.index]);
 		},
 		(immutable double it) {
 			switch (asPrimitive(type)) {
@@ -368,8 +368,7 @@ void writeConstant(
 			todo!void("write null");
 		},
 		(immutable Constant.Pointer it) {
-			// We should know where we wrote the pointee to
-			immutable size_t textIndex = at(at(ctx.pointeeTypeIndexToIndexToTextIndex, it.typeIndex), it.index);
+			immutable size_t textIndex = ctx.pointeeTypeIndexToIndexToTextIndex[it.typeIndex][it.index];
 			add64TextPtr(ctx.text, textIndex);
 		},
 		(ref immutable Constant.Record it) {

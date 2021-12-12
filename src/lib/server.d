@@ -16,7 +16,7 @@ import interpret.fakeExtern : FakeExternResult,withFakeExtern;
 import model.diag : Diagnostic, FilesInfo;
 import model.model : AbsolutePathsGetter, Program;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, freeArr;
+import util.collection.arr : freeArr;
 import util.collection.arrUtil : arrLiteral, map;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize;
 import util.collection.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
@@ -173,7 +173,7 @@ private pure immutable(string) getHoverFromProgram(
 ) {
 	immutable Opt!FileIndex fileIndex = getFileIndex(program.filesInfo.filePaths, pk);
 	if (has(fileIndex)) {
-		immutable Opt!Position position = getPosition(at(program.allModules, force(fileIndex).index), pos);
+		immutable Opt!Position position = getPosition(program.allModules[force(fileIndex).index], pos);
 		return has(position) ? getHoverStr(alloc, alloc, server.allPaths, program, force(position)) : "";
 	} else
 		return "";
@@ -185,7 +185,7 @@ private pure immutable(Opt!FileIndex) getFileIndex(
 	immutable PathAndStorageKind search,
 ) {
 	foreach (immutable size_t i; 0 .. fullIndexDictSize(filePaths))
-		if (pathAndStorageKindEqual(at(filePaths.values, i), search))
+		if (pathAndStorageKindEqual(filePaths.values[i], search))
 			return some(immutable FileIndex(safeToUshort(i)));
 	return none!FileIndex;
 }

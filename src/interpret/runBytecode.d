@@ -22,7 +22,7 @@ import model.typeLayout : PackField;
 import util.alloc.alloc : TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.dbg : log, logNoNewline, logSymNoNewline;
-import util.collection.arr : at, begin, last;
+import util.collection.arr : begin, last;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.stack :
 	asTempArr,
@@ -386,7 +386,7 @@ immutable(NextOperation) opStopInterpretation(ref Interpreter a, immutable(Opera
 	debug log(a.dbg, "opSwitch0T0N");
 	immutable ByteCodeOffsetUnsigned[] offsets = readArray!ByteCodeOffsetUnsigned(cur);
 	immutable ulong value = pop(a.dataStack);
-	immutable ByteCodeOffsetUnsigned offset = at(offsets, safeToSizeT(value));
+	immutable ByteCodeOffsetUnsigned offset = offsets[safeToSizeT(value)];
 	return nextOperation(a, cur + offset.offset);
 }
 

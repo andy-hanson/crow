@@ -29,7 +29,7 @@ import model.lowModel :
 	UpdateParam;
 import model.reprConcreteModel : reprOfConcreteStructRef;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, sizeEq;
+import util.collection.arr : sizeEq;
 import util.collection.arrUtil : zip;
 import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has;
@@ -128,9 +128,8 @@ void checkLowExpr(
 			});
 		},
 		(ref immutable LowExprKind.CreateUnion it) {
-			immutable LowType member = at(
-				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(type)).members,
-				it.memberIndex);
+			immutable LowType member =
+				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(type)).members[it.memberIndex];
 			checkLowExpr(alloc, ctx, member, it.arg);
 		},
 		(ref immutable LowExprKind.If it) {
@@ -160,7 +159,7 @@ void checkLowExpr(
 				});
 		},
 		(ref immutable LowExprKind.ParamRef it) {
-			checkTypeEqual(alloc, ctx.ctx, type, at(ctx.fun.params, it.index.index).type);
+			checkTypeEqual(alloc, ctx.ctx, type, ctx.fun.params[it.index.index].type);
 		},
 		(ref immutable LowExprKind.PtrCast it) {
 			// TODO: there are some limitations on target...
@@ -173,7 +172,7 @@ void checkLowExpr(
 				: targetTypeNonPtr;
 			checkLowExpr(alloc, ctx, targetType, it.target);
 			immutable LowType fieldType =
-				at(fullIndexDictGet(ctx.ctx.program.allRecords, it.record).fields, it.fieldIndex).type;
+				fullIndexDictGet(ctx.ctx.program.allRecords, it.record).fields[it.fieldIndex].type;
 			checkTypeEqual(alloc, ctx.ctx, type, fieldType);
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
@@ -183,7 +182,7 @@ void checkLowExpr(
 				: targetTypeNonPtr;
 			checkLowExpr(alloc, ctx, targetType, it.target);
 			immutable LowType fieldType =
-				at(fullIndexDictGet(ctx.ctx.program.allRecords, it.record).fields, it.fieldIndex).type;
+				fullIndexDictGet(ctx.ctx.program.allRecords, it.record).fields[it.fieldIndex].type;
 			checkLowExpr(alloc, ctx, fieldType, it.value);
 			checkTypeEqual(alloc, ctx.ctx, type, voidType);
 		},
@@ -216,7 +215,7 @@ void checkLowExpr(
 		(ref immutable LowExprKind.TailRecur it) {
 			checkTypeEqual(alloc, ctx.ctx, type, ctx.fun.returnType);
 			foreach (ref immutable UpdateParam update; it.updateParams)
-				checkLowExpr(alloc, ctx, at(ctx.fun.params, update.param.index).type, update.newValue);
+				checkLowExpr(alloc, ctx, ctx.fun.params[update.param.index].type, update.newValue);
 		},
 		(ref immutable LowExprKind.Zeroed) {},
 	)(expr.kind);

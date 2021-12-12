@@ -4,7 +4,7 @@ module util.collection.fullIndexDict;
 
 import util.alloc.alloc : Alloc;
 import util.conv : safeToUint, safeToUshort;
-import util.collection.arr : at, castImmutable, emptyArr, ptrAt, setAt;
+import util.collection.arr : castImmutable, emptyArr, ptrAt, setAt;
 import util.collection.arrUtil : mapWithIndex, mapWithIndex_mut;
 import util.ptr : Ptr;
 import util.util : verify;
@@ -51,16 +51,16 @@ void fullIndexDictEachValue(K, V)(
 	ref immutable FullIndexDict!(K, V) a,
 	scope void delegate(ref immutable V) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0 .. fullIndexDictSize(a))
-		cb(at(a.values, i));
+	foreach (ref immutable V value; a.values)
+		cb(value);
 }
 
 void fullIndexDictEach(K, V)(
 	ref immutable FullIndexDict!(K, V) a,
 	scope void delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0 .. fullIndexDictSize(a))
-		cb(immutable K(i), at(a.values, i));
+	foreach (immutable size_t key, ref immutable V value; a.values)
+		cb(immutable K(key), value);
 }
 
 void fullIndexDictZip(K, V0, V1)(
@@ -70,7 +70,7 @@ void fullIndexDictZip(K, V0, V1)(
 ) {
 	verify(fullIndexDictSize(a) == fullIndexDictSize(b));
 	foreach (immutable size_t i; 0 .. fullIndexDictSize(a))
-		cb(immutable K(i), at(a.values, i), at(b.values, i));
+		cb(immutable K(i), a.values[i], b.values[i]);
 }
 
 void fullIndexDictZip3(K, V0, V1, V2)(
@@ -82,23 +82,18 @@ void fullIndexDictZip3(K, V0, V1, V2)(
 	verify(fullIndexDictSize(a) == fullIndexDictSize(b));
 	verify(fullIndexDictSize(b) == fullIndexDictSize(c));
 	foreach (immutable size_t i; 0 .. fullIndexDictSize(a))
-		cb(immutable K(i), at(a.values, i), at(b.values, i), at(c.values, i));
+		cb(immutable K(i), a.values[i], b.values[i], c.values[i]);
 }
 
-ref immutable(V) fullIndexDictGet(K, V)(ref immutable FullIndexDict!(K, V) a, immutable K key) {
-	return at(a.values, key.index);
+ref inout(V) fullIndexDictGet(K, V)(ref inout FullIndexDict!(K, V) a, immutable K key) {
+	verify(key.index < fullIndexDictSize(a));
+	return a.values[key.index];
 }
 immutable(Ptr!V) fullIndexDictGetPtr(K, V)(ref immutable FullIndexDict!(K, V) a, immutable K key) {
 	return ptrAt(a.values, key.index);
 }
 Ptr!V fullIndexDictGetPtr_mut(K, V)(ref FullIndexDict!(K, V) a, immutable K key) {
 	return ptrAt(a.values, key.index);
-}
-ref const(V) fullIndexDictGet(K, V)(ref const FullIndexDict!(K, V) a, immutable K key) {
-	return at(a.values, key.index);
-}
-ref V fullIndexDictGet(K, V)(ref FullIndexDict!(K, V) a, immutable K key) {
-	return at(a.values, key.index);
 }
 void fullIndexDictSet(K, V)(ref FullIndexDict!(K, V) a, immutable K key, immutable V value) {
 	setAt(a.values, key.index, value);

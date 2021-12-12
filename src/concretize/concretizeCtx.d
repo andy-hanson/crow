@@ -80,7 +80,7 @@ import model.model :
 	UnionMember,
 	worsePurity;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty, emptyArr, only, ptrAt, sizeEq;
+import util.collection.arr : empty, emptyArr, only, ptrAt, sizeEq;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil :
 	arrEqual,
@@ -398,7 +398,7 @@ immutable(ConcreteType) getConcreteType(
 		(immutable Ptr!TypeParam p) {
 			// Handle calledConcreteFun first
 			verify(ptrEquals(p, ptrAt(typeArgsScope.typeParams, p.deref().index)));
-			return at(typeArgsScope.typeArgs, p.deref().index);
+			return typeArgsScope.typeArgs[p.deref().index];
 		},
 		(immutable Ptr!StructInst i) =>
 			getConcreteType_forStructInst(alloc, ctx, i, typeArgsScope),
