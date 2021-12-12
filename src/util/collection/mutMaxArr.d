@@ -15,7 +15,7 @@ immutable(bool) isEmpty(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
 	return a.size_ == 0;
 }
 
-immutable(size_t) size(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
+immutable(size_t) mutMaxArrSize(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
 	return a.size_;
 }
 

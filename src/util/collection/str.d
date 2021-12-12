@@ -3,7 +3,7 @@ module util.collection.str;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateBytes;
-import util.collection.arr : at, begin, size;
+import util.collection.arr : at, begin;
 import util.collection.arrUtil : cat, rtail, tail;
 import util.hash : Hasher, hashUbyte;
 import util.memory : memcpy;
@@ -40,7 +40,7 @@ struct NulTerminatedStr {
 
 	this(immutable string s) immutable {
 		str = s;
-		verify(at(str, size(str) - 1) == '\0');
+		verify(at(str, str.length - 1) == '\0');
 	}
 }
 
@@ -49,10 +49,10 @@ immutable(string) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
 }
 
 @trusted immutable(NulTerminatedStr) copyToNulTerminatedStr(ref Alloc alloc, scope immutable string s) {
-	char* res = cast(char*) allocateBytes(alloc, size(s) + 1);
-	memcpy(cast(ubyte*) res, cast(ubyte*) s.ptr, size(s));
-	res[size(s)] = '\0';
-	return immutable NulTerminatedStr(cast(immutable) res[0 .. size(s) + 1]);
+	char* res = cast(char*) allocateBytes(alloc, s.length + 1);
+	memcpy(cast(ubyte*) res, cast(ubyte*) s.ptr, s.length);
+	res[s.length] = '\0';
+	return immutable NulTerminatedStr(cast(immutable) res[0 .. s.length + 1]);
 }
 
 @trusted immutable(CStr) asCStr(immutable NulTerminatedStr s) {
@@ -68,18 +68,18 @@ immutable(CStr) strToCStr(ref Alloc alloc, scope immutable string s) {
 }
 
 immutable(bool) strEq(immutable string a, immutable string b) {
-	return size(a) == size(b) && (size(a) == 0 || (at(a, 0) == at(b, 0) && strEq(tail(a), tail(b))));
+	return a.length == b.length && (a.length == 0 || (a[0] == b[0] && strEq(tail(a), tail(b))));
 }
 
-@trusted immutable(string) copyStr(ref Alloc alloc, scope immutable string s) {
-	char* begin = cast(char*) allocateBytes(alloc, char.sizeof * size(s));
-	foreach (immutable size_t i; 0 .. size(s))
-		begin[i] = at(s, i);
-	return cast(immutable) begin[0 .. size(s)];
+@trusted immutable(string) copyStr(ref Alloc alloc, scope immutable string a) {
+	char* begin = cast(char*) allocateBytes(alloc, char.sizeof * a.length);
+	foreach (immutable size_t i, immutable char x; a)
+		begin[i] = x;
+	return cast(immutable) begin[0 .. a.length];
 }
 
 immutable(bool) startsWith(immutable string a, immutable string b) {
-	return size(a) >= size(b) && strEq(a[0 .. size(b)], b);
+	return a.length >= b.length && strEq(a[0 .. b.length], b);
 }
 
 immutable(bool) startsWith(immutable SafeCStr a, immutable string b) {

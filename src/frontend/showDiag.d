@@ -31,7 +31,7 @@ import model.model :
 	writeType;
 import model.parseDiag : matchParseDiag, ParseDiag;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : empty, only, size;
+import util.collection.arr : empty, only;
 import util.collection.arrUtil : exists;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
@@ -388,7 +388,7 @@ void writeCallNoMatch(
 		writeStatic(writer, "named ");
 		writeName(writer, d.funName);
 
-		if (size(d.actualArgTypes) == 1) {
+		if (d.actualArgTypes.length == 1) {
 			writeStatic(writer, "\nargument type: ");
 			writeType(writer, only(d.actualArgTypes));
 		}
@@ -424,7 +424,7 @@ void writeCallNoMatch(
 			writeWithCommas!Type(writer, d.actualArgTypes, (ref immutable Type t) {
 				writeType(writer, t);
 			});
-			if (size(d.actualArgTypes) < d.actualArity)
+			if (d.actualArgTypes.length < d.actualArity)
 				writeStatic(writer, " (other arguments not checked, gave up early)");
 		}
 		writeStatic(writer, "\ncandidates (with ");

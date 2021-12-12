@@ -4,7 +4,7 @@ module interpret.bytecode;
 
 import interpret.runBytecode : Interpreter;
 import model.lowModel : LowFunIndex;
-import util.collection.arr : begin, size;
+import util.collection.arr : begin;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.sym : Sym;
 import util.sourceRange : FileIndex, Pos;
@@ -67,7 +67,7 @@ struct ByteCode {
 		fileToFuns = ff;
 		text = t;
 		main = m;
-		verify(size(byteCode) == fullIndexDictSize(sources));
+		verify(byteCode.length == fullIndexDictSize(sources));
 	}
 }
 

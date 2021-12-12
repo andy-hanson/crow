@@ -114,7 +114,6 @@ import util.collection.arr :
 	only,
 	ptrsRange,
 	setAt,
-	size,
 	sizeEq;
 import util.collection.arrUtil :
 	arrLiteral,
@@ -179,7 +178,7 @@ immutable(Expr) checkFunctionBody(
 		flags,
 		usedFuns,
 		// TODO: use temp alloc
-		fillArr_mut!bool(alloc, size(params), (immutable size_t) =>
+		fillArr_mut!bool(alloc, params.length, (immutable size_t) =>
 			false));
 	immutable Expr res = checkAndExpect(alloc, exprCtx, ast, returnType);
 	zipPtrFirst!(Param, bool)(
@@ -751,7 +750,7 @@ immutable(CheckedExpr) checkLiteral(
 		},
 		(immutable string it) {
 			if (ptrEquals(expectedStruct, ctx.commonTypes.char_)) {
-				if (size(it) != 1)
+				if (it.length != 1)
 					todo!void("char literal must be one char");
 				return immutable CheckedExpr(immutable Expr(
 					range,
@@ -846,7 +845,7 @@ immutable(CheckedExpr) checkFunPtr(
 		(ref immutable Arity.Varargs) =>
 			todo!(immutable size_t)("ptr to variadic function?"),
 	)(arity(funDecl.deref()));
-	if (nParams >= size(ctx.commonTypes.funPtrStructs))
+	if (nParams >= ctx.commonTypes.funPtrStructs.length)
 		todo!void("arity too high");
 
 	immutable Ptr!FunInst funInst = instantiateFun(
@@ -896,7 +895,7 @@ immutable(CheckedExpr) checkLambdaCommon(
 	immutable FunKind kind = et.kind;
 
 	if (!sizeEq(paramAsts, et.paramTypes)) {
-		addDiag2(alloc, ctx, range, immutable Diag(Diag.LambdaWrongNumberParams(et.funStructInst, size(paramAsts))));
+		addDiag2(alloc, ctx, range, immutable Diag(Diag.LambdaWrongNumberParams(et.funStructInst, paramAsts.length)));
 		return bogus(expected, range);
 	}
 

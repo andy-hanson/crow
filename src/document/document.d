@@ -35,7 +35,7 @@ import model.model :
 	typeParams,
 	UnionMember;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, only, size;
+import util.collection.arr : empty, only;
 import util.collection.arrUtil : findIndex;
 import util.collection.dict : dictEach;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -289,7 +289,7 @@ void writeType(ref Writer writer, immutable Type a) {
 			writeSym(writer, it.deref().name);
 			immutable Type[] typeArgs = typeArgs(it.deref());
 			if (!empty(typeArgs)) {
-				if (size(typeArgs) == 1) {
+				if (typeArgs.length == 1) {
 					writeChar(writer, ' ');
 					writeType(writer, only(typeArgs));
 				} else {

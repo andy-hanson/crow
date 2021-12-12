@@ -45,7 +45,7 @@ import lower.lowExprHelpers :
 	voidType,
 	wrapMulNat64;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, size;
+import util.collection.arr : at;
 import util.collection.arrUtil : arrLiteral, mapWithIndex;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate;
@@ -280,7 +280,7 @@ immutable(LowFunExprBody) visitRecordBody(
 	ref immutable LowExpr value,
 ) {
 	immutable(Opt!LowExpr) recur(immutable Opt!LowExpr accum, immutable size_t fieldIndex) {
-		if (fieldIndex == size(fields))
+		if (fieldIndex == fields.length)
 			return accum;
 		else {
 			immutable LowType fieldType = at(fields, fieldIndex).type;

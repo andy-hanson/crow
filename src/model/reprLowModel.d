@@ -41,7 +41,6 @@ import model.reprConcreteModel :
 	reprOfConcreteStructRef;
 import model.reprConstant : reprOfConstant;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : size;
 import util.ptr : Ptr;
 import util.repr :
 	nameAndRepr,

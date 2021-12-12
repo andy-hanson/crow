@@ -33,7 +33,7 @@ import model.model :
 	TypeParam;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.collection.arr : at, emptyArr, emptyArr_mut, setAt, size, sizeEq;
+import util.collection.arr : at, emptyArr, emptyArr_mut, setAt, sizeEq;
 import util.collection.arrUtil : map, mapOrNone, mapZipOrNone;
 import util.collection.mutArr : MutArr;
 import util.opt : has, force, none, noneMut, Opt, OptPtr, some, toOpt;
@@ -156,14 +156,14 @@ struct InferringTypeArgs {
 		params = ps;
 		args = as;
 		verify(sizeEq(params, args));
-		foreach (immutable size_t i; 0 .. size(params))
+		foreach (immutable size_t i; 0 .. params.length)
 			verify(at(params, i).index == i);
 	}
 	const this(immutable TypeParam[] ps, const SingleInferringType[] as) {
 		params = ps;
 		args = as;
 		verify(sizeEq(params, args));
-		foreach (immutable size_t i; 0 .. size(params))
+		foreach (immutable size_t i; 0 .. params.length)
 			verify(at(params, i).index == i);
 	}
 }

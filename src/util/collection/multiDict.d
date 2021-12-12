@@ -3,7 +3,7 @@ module util.collection.multiDict;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : emptyArr, ptrAt, size;
+import util.collection.arr : emptyArr, ptrAt;
 import util.collection.dict : dictEach, Dict, getAt, KeyValuePair;
 import util.collection.mutArr : moveToArr, MutArr, push;
 import util.collection.mutDict : getOrAdd, mapToDict, MutDict;
@@ -42,7 +42,7 @@ alias SymMultiDict(V) =
 	scope immutable(KeyValuePair!(K, V)) delegate(immutable size_t, immutable Ptr!T) @safe @nogc pure nothrow getPair,
 ) {
 	MutDict!(immutable K, MutArr!(immutable V), equal, hash) builder;
-	foreach (immutable size_t i; 0 .. size(inputs)) {
+	foreach (immutable size_t i; 0 .. inputs.length) {
 		immutable KeyValuePair!(K, V) pair = getPair(i, ptrAt(inputs, i));
 		push(alloc, getOrAdd(alloc, builder, pair.key, () => MutArr!(immutable V)()), pair.value);
 	}

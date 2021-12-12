@@ -142,7 +142,7 @@ import model.lowModel :
 import model.model : FunDecl, Module, name, Program, range;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : at, castImmutable, empty, last, only, size;
+import util.collection.arr : at, castImmutable, empty, last, only;
 import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict :
@@ -540,7 +540,7 @@ void generateExpr(
 			writeDupEntry(dbg, writer, source, startStack);
 			writeRemove(dbg, writer, source, immutable StackEntries(startStack, 1));
 			// Get the kind (always the first entry)
-			immutable SwitchDelayed switchDelayed = writeSwitch0ToNDelay(writer, source, size(it.cases));
+			immutable SwitchDelayed switchDelayed = writeSwitch0ToNDelay(writer, source, it.cases.length);
 			// Start of the union values is where the kind used to be.
 			immutable StackEntry stackAfterMatched = getNextStackEntry(writer);
 			immutable StackEntries matchedEntriesWithoutKind =
@@ -563,7 +563,7 @@ void generateExpr(
 					generateExpr(dbg, tempAlloc, writer, ctx, case_.then);
 					if (has(case_.local))
 						mustDelete(ctx.localEntries, force(case_.local));
-					if (caseIndex != size(it.cases) - 1) {
+					if (caseIndex != it.cases.length - 1) {
 						setNextStackEntry(writer, stackAfterMatched);
 						return some(writeJumpDelayed(dbg, writer, source));
 					} else
@@ -667,7 +667,7 @@ void generateSwitch0ToN(
 		ctx,
 		source,
 		stackBefore,
-		writeSwitch0ToNDelay(writer, source, size(it.cases)),
+		writeSwitch0ToNDelay(writer, source, it.cases.length),
 		it.cases);
 }
 
@@ -709,7 +709,7 @@ void writeSwitchCases(
 		(immutable size_t caseIndex, ref immutable LowExpr case_) {
 			fillDelayedSwitchEntry(writer, switchDelayed, caseIndex);
 			generateExpr(dbg, tempAlloc, writer, ctx, case_);
-			if (caseIndex != size(cases) - 1) {
+			if (caseIndex != cases.length - 1) {
 				setNextStackEntry(writer, stackBefore);
 				return some(writeJumpDelayed(dbg, writer, source));
 			} else
@@ -765,8 +765,8 @@ void generateCreateRecordOrConstantRecord(
 	immutable StackEntry before = getNextStackEntry(writer);
 
 	immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, type);
-	foreach (immutable size_t i; 0 .. size(record.fields))
-		cbGenerateField(i, at(record.fields, i).type);
+	foreach (immutable size_t i, ref immutable LowField field; record.fields)
+		cbGenerateField(i, field.type);
 
 	immutable Opt!Pack optPack = optPack(tempAlloc, ctx.program, type);
 	if (has(optPack))

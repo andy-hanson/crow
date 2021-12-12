@@ -33,7 +33,7 @@ import model.model :
 	TypeParam,
 	typeParams;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty, size, toArr;
+import util.collection.arr : at, empty, toArr;
 import util.collection.arrUtil : arrLiteral, fillArr, find, findPtr, map;
 import util.collection.dict : getAt;
 import util.opt : force, has, mapOption, none, Opt, some;
@@ -72,7 +72,7 @@ private immutable(Type) instStructFromAst(
 		return immutable Type(Type.Bogus());
 	else {
 		immutable StructOrAlias sOrA = force(opDecl);
-		immutable size_t nExpectedTypeArgs = size(typeParams(sOrA));
+		immutable size_t nExpectedTypeArgs = typeParams(sOrA).length;
 		immutable Type[] typeArgs = getTypeArgsIfNumberMatches(
 			alloc, ctx, commonTypes, range, structsAndAliasesDict,
 			sOrA, nExpectedTypeArgs, typeArgAsts, typeParamsScope, delayStructInsts);
@@ -104,10 +104,9 @@ private immutable(Type[]) getTypeArgsIfNumberMatches(
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
-	immutable size_t nActualTypeArgs = size(typeArgAsts);
-	if (nActualTypeArgs != nExpectedTypeArgs) {
+	if (typeArgAsts.length != nExpectedTypeArgs) {
 		addDiag(alloc, ctx, range, immutable Diag(
-			immutable Diag.WrongNumberTypeArgsForStruct(sOrA, nExpectedTypeArgs, nActualTypeArgs)));
+			immutable Diag.WrongNumberTypeArgsForStruct(sOrA, nExpectedTypeArgs, typeArgAsts.length)));
 		return fillArr!Type(alloc, nExpectedTypeArgs, (immutable size_t) => immutable Type(Type.Bogus()));
 	} else
 		return typeArgsFromAsts(
@@ -231,10 +230,10 @@ private immutable(Type) typeFromFunAst(
 		(ref immutable FunKindAndStructs it) =>
 			it.kind == funKind);
 	immutable Ptr!StructDecl[] structs = force(optF).structs;
-	if (size(ast.returnAndParamTypes) > size(structs))
+	if (ast.returnAndParamTypes.length > structs.length)
 		// We don't have a fun type big enough
 		todo!void("!");
-	immutable Ptr!StructDecl decl = at(structs, size(ast.returnAndParamTypes) - 1);
+	immutable Ptr!StructDecl decl = at(structs, ast.returnAndParamTypes.length - 1);
 	immutable Type[] typeArgs = map!Type(alloc, ast.returnAndParamTypes, (ref immutable TypeAst it) =>
 		typeFromAst(alloc, ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts));
 	return immutable Type(instantiateStruct(

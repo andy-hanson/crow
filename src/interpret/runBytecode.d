@@ -22,7 +22,7 @@ import model.typeLayout : PackField;
 import util.alloc.alloc : TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.dbg : log, logNoNewline, logSymNoNewline;
-import util.collection.arr : at, begin, last, size;
+import util.collection.arr : at, begin, last;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.stack :
 	asTempArr,
@@ -70,7 +70,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writeStatic;
 	return withInterpreter!(immutable int)(
 		dbg, tempAlloc, extern_, lowProgram, byteCode, allPaths, filesInfo,
 		(scope ref Interpreter interpreter) {
-			push(interpreter.dataStack, size(allArgs));
+			push(interpreter.dataStack, allArgs.length);
 			push(interpreter.dataStack, cast(immutable ulong) begin(allArgs));
 			return withMeasureNoAlloc!(immutable int, () =>
 				runBytecodeInner(interpreter)
@@ -630,7 +630,7 @@ private @system immutable(size_t) backtrace(ref Interpreter a, void** res, immut
 	}
 	immutable DynCallType returnType = cast(immutable DynCallType) readNat64(cur);
 	scope immutable DynCallType[] parameterTypes = readArray!DynCallType(cur);
-	scope immutable ulong[] params = popN(a.dataStack, size(parameterTypes));
+	scope immutable ulong[] params = popN(a.dataStack, parameterTypes.length);
 	immutable ulong value = a.extern_.doDynCall(name, returnType, params, parameterTypes);
 	if (returnType != DynCallType.void_)
 		push(a.dataStack, value);

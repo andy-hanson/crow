@@ -62,7 +62,7 @@ import model.lowModel :
 import model.model : EnumValue, name;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : at, empty, emptyArr, first, only, size, sizeEq;
+import util.collection.arr : at, empty, emptyArr, first, only, sizeEq;
 import util.collection.arrUtil : arrLiteral, every, map, tail, zip;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey, fullIndexDictGet, fullIndexDictGetPtr;
@@ -117,23 +117,23 @@ private:
 
 void writeConstants(ref Writer writer, ref immutable Ctx ctx, ref immutable AllConstantsLow allConstants) {
 	foreach (ref immutable ArrTypeAndConstantsLow a; allConstants.arrs) {
-		foreach (immutable size_t i; 0 .. size(a.constants)) {
-			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, size(at(a.constants, i)));
+		foreach (immutable size_t i; 0 .. a.constants.length) {
+			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, at(a.constants, i).length);
 			writeStatic(writer, ";\n");
 		}
 	}
 
 	foreach (ref immutable PointerTypeAndConstantsLow a; allConstants.pointers) {
-		foreach (immutable size_t i; 0 .. size(a.constants)) {
+		foreach (immutable size_t i; 0 .. a.constants.length) {
 			declareConstantPointerStorage(writer, ctx, a.pointeeType, i);
 			writeStatic(writer, ";\n");
 		}
 	}
 
 	foreach (ref immutable ArrTypeAndConstantsLow a; allConstants.arrs) {
-		foreach (immutable size_t i; 0 .. size(a.constants)) {
+		foreach (immutable size_t i; 0 .. a.constants.length) {
 			immutable Constant[] elements = at(a.constants, i);
-			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, size(elements));
+			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, elements.length);
 			writeStatic(writer, " = ");
 			if (isChar(a.elementType)) {
 				writeChar(writer, '"');
@@ -152,7 +152,7 @@ void writeConstants(ref Writer writer, ref immutable Ctx ctx, ref immutable AllC
 	}
 
 	foreach (ref immutable PointerTypeAndConstantsLow a; allConstants.pointers) {
-		foreach (immutable size_t i; 0 .. size(a.constants)) {
+		foreach (immutable size_t i; 0 .. a.constants.length) {
 			declareConstantPointerStorage(writer, ctx, a.pointeeType, i);
 			writeStatic(writer, " = ");
 			writeConstantRef(writer, ctx, ConstantRefPos.inner, a.pointeeType, at(a.constants, i).deref());
@@ -296,7 +296,7 @@ void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion
 	writeStructHead(writer, ctx, a.source);
 	writeStatic(writer, "\n\tuint64_t kind;");
 	writeStatic(writer, "\n\tunion {");
-	foreach (immutable size_t memberIndex; 0 .. size(a.members)) {
+	foreach (immutable size_t memberIndex; 0 .. a.members.length) {
 		writeStatic(writer, "\n\t\t");
 		writeType(writer, ctx, at(a.members, memberIndex));
 		writeStatic(writer, " as");
@@ -576,7 +576,7 @@ void writeTempOrInlines(
 	immutable WriteExprResult[] args,
 ) {
 	verify(sizeEq(exprs, args));
-	writeWithCommas(writer, size(args), (immutable size_t i) {
+	writeWithCommas(writer, args.length, (immutable size_t i) {
 		writeTempOrInline(writer, tempAlloc, ctx, at(exprs, i), at(args, i));
 	});
 }
@@ -1108,7 +1108,7 @@ immutable(WriteExprResult) writeMatchUnion(
 	writeStatic(writer, "switch (");
 	writeTempRef(writer, matchedValue);
 	writeStatic(writer, ".kind) {");
-	foreach (immutable size_t caseIndex; 0 .. size(a.cases)) {
+	foreach (immutable size_t caseIndex; 0 .. a.cases.length) {
 		immutable LowExprKind.MatchUnion.Case case_ = at(a.cases, caseIndex);
 		writeNewline(writer, indent + 1);
 		writeStatic(writer, "case ");
@@ -1158,7 +1158,7 @@ immutable(WriteExprResult) writeSwitch(
 	writeStatic(writer, "switch (");
 	writeTempOrInline(writer, tempAlloc, ctx, value, valueResult);
 	writeStatic(writer, ") {");
-	foreach (immutable size_t caseIndex; 0 .. size(cases)) {
+	foreach (immutable size_t caseIndex; 0 .. cases.length) {
 		writeNewline(writer, indent + 1);
 		writeStatic(writer, "case ");
 		if (isSignedIntegral(value.type)) {
@@ -1237,7 +1237,7 @@ void writeConstantRef(
 		a,
 		(ref immutable Constant.ArrConstant it) {
 			if (pos == ConstantRefPos.outer) writeCastToType(writer, ctx, type);
-			immutable size_t size = size(at(at(ctx.program.allConstants.arrs, it.typeIndex).constants, it.index));
+			immutable size_t size = at(at(ctx.program.allConstants.arrs, it.typeIndex).constants, it.index).length;
 			writeChar(writer, '{');
 			writeNat(writer, size);
 			writeStatic(writer, ", ");
@@ -1301,7 +1301,7 @@ void writeConstantRef(
 			if (pos == ConstantRefPos.outer)
 				writeCastToType(writer, ctx, type);
 			writeChar(writer, '{');
-			writeWithCommas(writer, size(it.args), (immutable size_t i) {
+			writeWithCommas(writer, it.args.length, (immutable size_t i) {
 				writeConstantRef(writer, ctx, ConstantRefPos.inner, at(fields, i).type, at(it.args, i));
 			});
 			writeChar(writer, '}');
@@ -1554,7 +1554,7 @@ immutable(WriteExprResult) writeSpecialBinary(
 			type,
 			arrLiteral!LowExpr(tempAlloc, [it.left, it.right]),
 			(ref immutable WriteExprResult[] args) {
-				verify(size(args) == 2);
+				verify(args.length == 2);
 				writeChar(writer, '(');
 				writeTempOrInline(writer, tempAlloc, ctx, it.left, at(args, 0));
 				writeChar(writer, ' ');

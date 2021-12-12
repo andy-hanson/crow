@@ -5,7 +5,7 @@ module model.model;
 import model.constant : Constant;
 import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.alloc.alloc : Alloc;
-import util.collection.arr : ArrWithSize, empty, emptyArr, first, only, size, sizeEq, toArr;
+import util.collection.arr : ArrWithSize, empty, emptyArr, first, only, sizeEq, toArr;
 import util.collection.arrUtil : arrEqual;
 import util.collection.dict : SymDict;
 import util.collection.fullIndexDict : FullIndexDict;
@@ -335,7 +335,7 @@ immutable(Arity) arity(ref immutable Params a) {
 	return matchParams!(
 		immutable Arity,
 		(immutable Param[] params) =>
-			immutable Arity(size(params)),
+			immutable Arity(params.length),
 		(ref immutable Params.Varargs) =>
 			immutable Arity(immutable Arity.Varargs()),
 	)(a);
@@ -601,7 +601,7 @@ struct StructDeclAndArgs {
 	immutable Type[] typeArgs;
 
 	immutable this(immutable Ptr!StructDecl d, immutable Type[] t) {
-		verify(size(d.deref().typeParams) == size(t));
+		verify(d.deref().typeParams.length == t.length);
 		decl = d;
 		typeArgs = t;
 	}
@@ -699,7 +699,7 @@ immutable(size_t) nSigs(ref immutable SpecBody a) {
 	return matchSpecBody!(
 		immutable size_t,
 		(ref immutable SpecBody.Builtin) => immutable size_t(0),
-		(ref immutable Sig[] sigs) => size(sigs),
+		(ref immutable Sig[] sigs) => sigs.length,
 	)(a);
 }
 
@@ -1052,7 +1052,7 @@ struct FunDeclAndArgs {
 		typeArgs = ta;
 		specImpls = si;
 		verify(sizeEq(typeArgs, decl.deref().typeParams));
-		verify(size(specImpls) == nSpecImpls(decl.deref()));
+		verify(specImpls.length == nSpecImpls(decl.deref()));
 	}
 }
 
@@ -1218,7 +1218,7 @@ immutable(Arity) arity(ref immutable CalledDecl a) {
 }
 
 immutable(size_t) nTypeParams(ref immutable CalledDecl a) {
-	return size(typeParams(a));
+	return typeParams(a).length;
 }
 
 struct Called {

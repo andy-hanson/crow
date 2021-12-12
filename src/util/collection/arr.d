@@ -25,7 +25,7 @@ struct ArrWithSize(T) {
 }
 
 @system void freeArr(T)(ref Alloc alloc, immutable T[] a) {
-	freeBytes(alloc, cast(ubyte*) begin(a), size(a) * T.sizeof);
+	freeBytes(alloc, cast(ubyte*) begin(a), a.length * T.sizeof);
 }
 
 @trusted T[] castMutable(T)(immutable T[] a) {
@@ -66,30 +66,26 @@ struct ArrWithSize(T) {
 	return a.ptr;
 }
 
-immutable(size_t) size(T)(scope const T[] a) {
-	return a.length;
-}
-
 immutable(bool) sizeEq(T, U)(scope const T[] a, scope const U[] b) {
-	return size(a) == size(b);
+	return a.length == b.length;
 }
 
 immutable(bool) empty(T)(const T[] a) {
-	return size(a) == 0;
+	return a.length == 0;
 }
 
 @trusted inout(Ptr!T) ptrAt(T)(inout T[] a, immutable size_t index) {
-	verify(index < size!T(a));
+	verify(index < a.length);
 	return inout Ptr!T(&a[index]);
 }
 
 @trusted ref T at(T)(return scope T[] a, immutable size_t index) {
-	verify(index < size(a));
+	verify(index < a.length);
 	return a[index];
 }
 
 @trusted void setAt(T)(scope ref T[] a, immutable size_t index, T value) {
-	verify(index < size(a));
+	verify(index < a.length);
 	overwriteMemory(&a[index], value);
 }
 
@@ -98,31 +94,26 @@ ref T first(T)(T[] a) {
 }
 
 ref immutable(T) only(T)(return scope ref immutable T[] a) {
-	verify(size(a) == 1);
+	verify(a.length == 1);
 	return first(a);
 }
 ref const(T) only_const(T)(ref const T[] a) {
-	verify(size(a) == 1);
+	verify(a.length == 1);
 	return first(a);
 }
 
-Ptr!T onlyPtr_mut(T)(ref T[] a) {
-	verify(a.size == 1);
-	return ptrAt(a, 0);
-}
-
 ref immutable(T) last(T)(ref immutable T[] a) {
-	verify(size(a) != 0);
-	return at(a, size(a) - 1);
+	verify(a.length != 0);
+	return at(a, a.length - 1);
 }
 
 immutable(Ptr!T) lastPtr(T)(ref immutable T[] a) {
-	verify(size(a) != 0);
-	return ptrAt(a, size(a) - 1);
+	verify(a.length != 0);
+	return ptrAt(a, a.length - 1);
 }
 
 @trusted PtrsRange!T ptrsRange(T)(ref immutable T[] a) {
-	return PtrsRange!T(a.ptr, a.ptr + size(a));
+	return PtrsRange!T(a.ptr, a.ptr + a.length);
 }
 
 private struct PtrsRange(T) {

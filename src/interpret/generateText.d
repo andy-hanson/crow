@@ -21,7 +21,7 @@ import model.lowModel :
 	PrimitiveType;
 import model.typeLayout : funPtrSize, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : at, castImmutable, empty, emptyArr, ptrAt, setAt, size;
+import util.collection.arr : at, castImmutable, empty, emptyArr, ptrAt, setAt;
 import util.collection.arrUtil : map, mapToMut, sum, zip;
 import util.collection.dict : mustGetAt;
 import util.collection.exactSizeArrBuilder :
@@ -77,7 +77,7 @@ immutable(TextArrInfo) getTextInfoForArray(
 	ref immutable AllConstantsLow allConstants,
 	immutable Constant.ArrConstant a,
 ) {
-	immutable size_t constantSize = size(at(at(allConstants.arrs, a.typeIndex).constants, a.index));
+	immutable size_t constantSize = at(at(allConstants.arrs, a.typeIndex).constants, a.index).length;
 	immutable size_t textIndex = at(at(info.arrTypeIndexToConstantIndexToTextIndex, a.typeIndex), a.index);
 	return immutable TextArrInfo(constantSize, ptrAt(info.text, textIndex).rawPtr());
 }
@@ -124,9 +124,9 @@ TextAndInfo generateText(
 		return textIndex;
 	});
 
-	foreach (immutable size_t arrTypeIndex; 0 .. size(allConstants.arrs)) {
+	foreach (immutable size_t arrTypeIndex; 0 .. allConstants.arrs.length) {
 		immutable Ptr!ArrTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.arrs, arrTypeIndex);
-		foreach (immutable size_t constantIndex; 0 .. size(typeAndConstants.deref().constants))
+		foreach (immutable size_t constantIndex, ref immutable Constant[] elements; typeAndConstants.deref().constants)
 			recurWriteArr(
 				alloc,
 				tempAlloc,
@@ -134,11 +134,11 @@ TextAndInfo generateText(
 				arrTypeIndex,
 				typeAndConstants.deref().elementType,
 				constantIndex,
-				at(typeAndConstants.deref().constants, constantIndex));
+				elements);
 	}
-	foreach (immutable size_t pointeeTypeIndex; 0 .. size(allConstants.pointers)) {
+	foreach (immutable size_t pointeeTypeIndex; 0 .. allConstants.pointers.length) {
 		immutable Ptr!PointerTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.pointers, pointeeTypeIndex);
-		foreach (immutable size_t constantIndex; 0 .. size(typeAndConstants.deref().constants))
+		foreach (immutable size_t constantIndex, immutable Ptr!Constant pointee; typeAndConstants.deref().constants)
 			recurWritePointer(
 				alloc,
 				tempAlloc,
@@ -146,7 +146,7 @@ TextAndInfo generateText(
 				pointeeTypeIndex,
 				typeAndConstants.deref().pointeeType,
 				constantIndex,
-				at(typeAndConstants.deref().constants, constantIndex).deref());
+				pointee.deref());
 	}
 	ubyte[] text = finish(ctx.text);
 	return TextAndInfo(
@@ -281,12 +281,12 @@ void recurWritePointer(
 //TODO: should we align things?
 immutable(size_t) getAllConstantsSize(ref immutable LowProgram program, ref immutable AllConstantsLow allConstants) {
 	immutable size_t cStringsSize = sum(allConstants.cStrings, (ref immutable string s) =>
-		size(s) + 1);
+		s.length + 1);
 	immutable size_t arrsSize = sum(allConstants.arrs, (ref immutable ArrTypeAndConstantsLow arrs) =>
 		sizeOfType(program, arrs.elementType).size *
-		sum(arrs.constants, (ref immutable Constant[] elements) => size(elements)));
+		sum(arrs.constants, (ref immutable Constant[] elements) => elements.length));
 	immutable size_t pointersSize = sum(allConstants.pointers, (ref immutable PointerTypeAndConstantsLow pointers) =>
-		sizeOfType(program, pointers.pointeeType).size * size(pointers.constants));
+		sizeOfType(program, pointers.pointeeType).size * pointers.constants.length);
 	return cStringsSize + arrsSize + pointersSize;
 }
 
@@ -304,7 +304,7 @@ void writeConstant(
 		constant,
 		(ref immutable Constant.ArrConstant it) {
 			//TODO:DUP CODE (see getTextInfoForArray)
-			immutable size_t constantSize = size(at(at(ctx.allConstants.arrs, it.typeIndex).constants, it.index));
+			immutable size_t constantSize = at(at(ctx.allConstants.arrs, it.typeIndex).constants, it.index).length;
 			add64(ctx.text, constantSize);
 			immutable size_t textIndex = at(at(ctx.arrTypeIndexToConstantIndexToTextIndex, it.typeIndex), it.index);
 			add64TextPtr(ctx.text, textIndex);

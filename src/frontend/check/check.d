@@ -131,7 +131,6 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.collection.arr :
 	ArrWithSize,
-	at,
 	castImmutable,
 	empty,
 	emptyArr,
@@ -139,7 +138,6 @@ import util.collection.arr :
 	only,
 	ptrAt,
 	ptrsRange,
-	size,
 	sizeEq,
 	toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -268,7 +266,7 @@ immutable(Opt!(Ptr!StructDecl)) getCommonTemplateType(
 	if (has(res)) {
 		// TODO: may fail -- builtin Template should not be an alias
 		immutable Ptr!StructDecl decl = asStructDecl(force(res).structOrAlias);
-		if (size(decl.deref().typeParams) != expectedTypeParams)
+		if (decl.deref().typeParams.length != expectedTypeParams)
 			todo!void("getCommonTemplateType");
 		return some(decl);
 	} else
@@ -535,10 +533,8 @@ immutable(Params) checkParams(
 						alloc, ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts,
 						ast, index));
 			immutable Param[] params = toArr(paramsWithSize);
-			foreach (immutable size_t i; 0 .. size(params))
-				foreach (immutable size_t prev_i; 0 .. i) {
-					immutable Param param = at(params, i);
-					immutable Param prev = at(params, i - 1);
+			foreach (immutable size_t i, ref immutable Param param; params)
+				foreach (immutable size_t prevI, ref immutable Param prev; params[0 .. i]) {
 					if (has(param.name) && has(prev.name) && symEq(force(param.name), force(prev.name)))
 						addDiag(alloc, ctx, param.range, immutable Diag(immutable Diag.ParamShadowsPrevious(
 							Diag.ParamShadowsPrevious.Kind.param, force(param.name))));
@@ -798,9 +794,9 @@ void everyPair(T)(
 	ref immutable T[] a,
 	scope void delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0 .. size(a))
-		foreach (immutable size_t j; 0 .. i)
-			cb(at(a, i), at(a, j));
+	foreach (immutable size_t i, ref immutable T x; a)
+		foreach (immutable size_t j, ref immutable T y; a[0 .. i])
+			cb(x, y);
 }
 
 immutable(StructBody.Enum) checkEnum(
@@ -1224,14 +1220,14 @@ immutable(StructsAndAliasesDict) buildStructsAndAliasesDict(
 			addDiag(alloc, ctx, force(opt).structOrAlias.range, immutable Diag(
 				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.structOrAlias, name)));
 	}
-	foreach (immutable size_t index; 0 .. size(structs)) {
+	foreach (immutable size_t index; 0 .. structs.length) {
 		immutable Ptr!StructDecl decl = ptrAt(structs, index);
 		immutable Sym name = decl.deref().name;
 		warnOnDup(name, tryAddToDict(alloc, builder, name, immutable StructOrAliasAndIndex(
 			immutable StructOrAlias(decl),
 			immutable ModuleLocalStructOrAliasIndex(index))));
 	}
-	foreach (immutable size_t index; 0 .. size(aliases)) {
+	foreach (immutable size_t index; 0 .. aliases.length) {
 		immutable Ptr!StructAlias alias_ = ptrAt(aliases, index);
 		immutable Sym name = alias_.deref().name;
 		warnOnDup(name, tryAddToDict(alloc, builder, name, immutable StructOrAliasAndIndex(
@@ -1271,7 +1267,7 @@ immutable(ArrWithSize!(Ptr!SpecInst)) checkSpecUses(
 				noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 			if (!sizeEq(typeArgs, spec.deref().typeParams)) {
 				addDiag(alloc, ctx, ast.range, immutable Diag(
-					immutable Diag.WrongNumberTypeArgsForSpec(spec, size(spec.deref().typeParams), size(typeArgs))));
+					immutable Diag.WrongNumberTypeArgsForSpec(spec, spec.deref().typeParams.length, typeArgs.length)));
 				return none!(Ptr!SpecInst);
 			} else
 				return some(instantiateSpec(alloc, ctx.programState, SpecDeclAndArgs(spec, typeArgs)));
@@ -1327,7 +1323,7 @@ immutable(FunsAndDict) checkFuns(
 	foreach (immutable Ptr!StructDecl struct_; ptrsRange(structs))
 		addFunsForStruct(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_);
 	FunDecl[] funs = finish(funsBuilder);
-	bool[] usedFuns = fillArr_mut!bool(alloc, size(funs), (immutable size_t) =>
+	bool[] usedFuns = fillArr_mut!bool(alloc, funs.length, (immutable size_t) =>
 		false);
 
 	immutable FunsDict funsDict = buildMultiDict!(Sym, FunDeclAndIndex, symEq, hashSym, FunDecl)(
@@ -1345,7 +1341,7 @@ immutable(FunsAndDict) checkFuns(
 		? force(commonFunsFromBootstrap)
 		: getCommonFuns(alloc, ctx, funsDict);
 
-	FunDecl[] funsWithAsts = funs[0 .. size(asts)];
+	FunDecl[] funsWithAsts = funs[0 .. asts.length];
 	zipMutPtrFirst!(FunDecl, FunDeclAst)(funsWithAsts, asts, (Ptr!FunDecl fun, ref immutable FunDeclAst funAst) {
 		overwriteMemory(&fun.deref().body_, matchFunBodyAst!(
 			immutable FunBody,
@@ -1420,7 +1416,7 @@ immutable(CommonFuns) getCommonFuns(
 	immutable(Ptr!FunDecl) commonFunDecl(immutable string name) {
 		immutable Sym nameSym = shortSymAlphaLiteral(name);
 		immutable FunDeclAndIndex[] funs = multiDictGetAt(funsDict, nameSym);
-		if (size(funs) != 1) {
+		if (funs.length != 1) {
 			addDiag(
 				alloc,
 				ctx,
@@ -1449,7 +1445,7 @@ immutable(size_t) countFunsForStruct(
 	ref immutable FunDeclAst[] asts,
 	ref immutable StructDecl[] structs,
 ) {
-	return size(asts) + sum!StructDecl(structs, (ref immutable StructDecl s) =>
+	return asts.length + sum!StructDecl(structs, (ref immutable StructDecl s) =>
 		matchStructBody!(
 			immutable size_t,
 			(ref immutable StructBody.Bogus) =>
@@ -1458,21 +1454,21 @@ immutable(size_t) countFunsForStruct(
 				immutable size_t(0),
 			(ref immutable StructBody.Enum it) =>
 				// '==', 'to-intXX'/'to-natXX', 'enum-members', and a constructor for each member
-				3 + size(it.members),
+				3 + it.members.length,
 			(ref immutable StructBody.Flags it) =>
 				// 'empty', 'all', '==', '~', '|', '&', 'to-intXX'/'to-natXX', 'flags-members',
 				// and a constructor for each member
-				8 + size(it.members),
+				8 + it.members.length,
 			(ref immutable StructBody.ExternPtr) =>
 				immutable size_t(0),
 			(ref immutable StructBody.Record it) {
 				immutable size_t nConstructors = recordIsAlwaysByVal(it) ? 1 : 2;
 				immutable size_t nMutableFields = count!RecordField(it.fields, (ref immutable RecordField field) =>
 					field.mutability != FieldMutability.const_);
-				return nConstructors + size(it.fields) + nMutableFields;
+				return nConstructors + it.fields.length + nMutableFields;
 			},
 			(ref immutable StructBody.Union it) =>
-				size(it.members)
+				it.members.length
 		)(body_(s)));
 }
 
@@ -1820,8 +1816,7 @@ void addFunsForRecord(
 		exactSizeArrBuilderAdd(funsBuilder, constructor(byValType, FunFlags.generatedNoCtx));
 	}
 
-	foreach (immutable size_t fieldIndex; 0 .. size(record.fields)) {
-		immutable RecordField field = at(record.fields, fieldIndex);
+	foreach (immutable size_t fieldIndex, ref immutable RecordField field; record.fields) {
 		immutable Visibility fieldVisibility = leastVisibility(struct_.deref().visibility, field.visibility);
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			emptySafeCStr,
@@ -1909,7 +1904,7 @@ immutable(SpecsDict) buildSpecsDict(
 	ref immutable SpecDecl[] specs,
 ) {
 	SymDictBuilder!SpecDeclAndIndex res;
-	foreach (immutable size_t index; 0 .. size(specs)) {
+	foreach (immutable size_t index; 0 .. specs.length) {
 		immutable Ptr!SpecDecl spec = ptrAt(specs, index);
 		immutable Sym name = spec.deref().name;
 		immutable Opt!SpecDeclAndIndex b =
@@ -2117,11 +2112,11 @@ immutable(BootstrapCheck) checkWorker(
 		// TODO: use temp alloc
 		newUsedImportsAndReExports(alloc, imports, reExports),
 		// TODO: use temp alloc
-		fillArr_mut(alloc, size(ast.structAliases), (immutable size_t) => false),
+		fillArr_mut(alloc, ast.structAliases.length, (immutable size_t) => false),
 		// TODO: use temp alloc
-		fillArr_mut(alloc, size(ast.structs), (immutable size_t) => false),
+		fillArr_mut(alloc, ast.structs.length, (immutable size_t) => false),
 		// TODO: use temp alloc
-		fillArr_mut(alloc, size(ast.specs), (immutable size_t) => false),
+		fillArr_mut(alloc, ast.specs.length, (immutable size_t) => false),
 		ptrTrustMe_mut(diagsBuilder));
 
 	// Since structs may refer to each other, first get a structsAndAliasesDict, *then* fill in bodies

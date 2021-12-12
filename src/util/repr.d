@@ -3,7 +3,7 @@ module util.repr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty, emptyArr, first, size;
+import util.collection.arr : at, empty, emptyArr, first;
 import util.collection.arrUtil : arrLiteral, map, mapWithIndex, tail;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.str : CStr, SafeCStr, strOfSafeCStr;
@@ -312,7 +312,7 @@ void writeRepr(
 		(ref immutable ReprArr s) {
 			if (measureReprArr(s, availableWidth) < 0) {
 				writeChar(writer, '[');
-				foreach (immutable size_t index; 0 .. size(s.arr)) {
+				foreach (immutable size_t index; 0 .. s.arr.length) {
 					writeNewline(writer, indent + 1);
 					if (s.showIndices) {
 						writeNat(writer, index);

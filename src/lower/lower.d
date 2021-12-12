@@ -109,7 +109,7 @@ import model.lowModel :
 	UpdateParam;
 import model.model : decl, EnumBackingType, EnumFunction, EnumValue, FlagsFunction, FunInst, name, range;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty, emptyArr, first, only, size;
+import util.collection.arr : at, empty, emptyArr, first, only;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
@@ -753,7 +753,7 @@ immutable(AllLowFuns) getAllLowFuns(
 				program.userMain,
 				userMainFunPtrType)));
 
-	return immutable AllLowFuns(concreteFunToLowFunIndex, allLowFuns, immutable LowFunIndex(size(lowFunCauses)));
+	return immutable AllLowFuns(concreteFunToLowFunIndex, allLowFuns, immutable LowFunIndex(lowFunCauses.length));
 }
 
 public immutable(bool) concreteFunWillBecomeNonExternLowFun()(ref immutable ConcreteFun a) {
@@ -1272,7 +1272,7 @@ immutable(LowExprKind) getCallSpecial(
 				getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail),
 				it.fieldIndex))),
 		(ref immutable ConcreteFunBody.RecordFieldSet it) {
-			verify(size(a.args) == 2);
+			verify(a.args.length == 2);
 			return immutable LowExprKind(allocate(alloc, immutable LowExprKind.RecordFieldSet(
 				getLowExpr(alloc, ctx, at(a.args, 0), ExprPos.nonTail),
 				it.fieldIndex,
@@ -1304,16 +1304,16 @@ immutable(LowExprKind) genEnumFunction(
 	immutable(LowExpr) arg1() { return getLowExpr(alloc, ctx, at(args, 1), ExprPos.nonTail); }
 	final switch (a) {
 		case EnumFunction.equal:
-			verify(size(args) == 2);
+			verify(args.length == 2);
 			return genEnumEq(alloc, arg0(), arg1());
 		case EnumFunction.intersect:
-			verify(size(args) == 2);
+			verify(args.length == 2);
 			return genEnumIntersect(alloc, arg0(), arg1());
 		case EnumFunction.toIntegral:
-			verify(size(args) == 1);
+			verify(args.length == 1);
 			return genEnumToIntegral(alloc, arg0());
 		case EnumFunction.union_:
-			verify(size(args) == 2);
+			verify(args.length == 2);
 			return genEnumUnion(alloc, arg0(), arg1());
 		case EnumFunction.members:
 			// In concretize, this was translated to a constant
@@ -1348,7 +1348,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 			unreachable!(immutable Sym)(),
 	)(a.called.deref().source);
 	immutable(LowType) paramType(immutable size_t index) {
-		return index < size(a.args)
+		return index < a.args.length
 			? lowTypeFromConcreteType(
 				alloc,
 				typeCtx(ctx),
@@ -1376,12 +1376,12 @@ immutable(LowExprKind) getCallBuiltinExpr(
 		(ref immutable BuiltinKind.InitConstants) =>
 			immutable LowExprKind(immutable LowExprKind.InitConstants()),
 		(immutable LowExprKind.SpecialUnary.Kind kind) {
-			verify(size(a.args) == 1);
+			verify(a.args.length == 1);
 			return immutable LowExprKind(
 				allocate(alloc, immutable LowExprKind.SpecialUnary(kind, getArg(at(a.args, 0), ExprPos.nonTail))));
 		},
 		(immutable LowExprKind.SpecialBinary.Kind kind) {
-			verify(size(a.args) == 2);
+			verify(a.args.length == 2);
 			immutable ExprPos arg1Pos = () {
 				switch (kind) {
 					case LowExprKind.SpecialBinary.Kind.and:
@@ -1397,7 +1397,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 				getArg(at(a.args, 1), arg1Pos))));
 		},
 		(ref immutable BuiltinKind.PtrCast) {
-			verify(size(a.args) == 1);
+			verify(a.args.length == 1);
 			return ptrCastKind(alloc, getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail));
 		},
 		(ref immutable BuiltinKind.SizeOf) {
@@ -1425,7 +1425,7 @@ immutable(LowExprKind) getCreateArrExpr(
 	immutable LowType elementType = lowTypeFromConcreteType(alloc, typeCtx(ctx), elementType(a));
 	immutable LowType elementPtrType = getLowRawPtrConstType(alloc, typeCtx(ctx), elementType);
 	immutable LowExpr elementSize = getSizeOf(range, elementType);
-	immutable LowExpr nElements = constantNat64(range, size(a.args));
+	immutable LowExpr nElements = constantNat64(range, a.args.length);
 	immutable LowExpr sizeBytes = wrapMulNat64(alloc, range, elementSize, nElements);
 	immutable LowExpr allocatePtr = getAllocateExpr(
 		alloc,
@@ -1458,7 +1458,7 @@ immutable(LowExprKind) getCreateArrExpr(
 		range,
 		immutable LowExprKind(immutable LowExprKind.CreateRecord(
 			arrLiteral!LowExpr(alloc, [nElements, localRef(alloc, range, temp)]))));
-	immutable LowExpr writeAndGetArr = recur(createArr, size(a.args));
+	immutable LowExpr writeAndGetArr = recur(createArr, a.args.length);
 	return immutable LowExprKind(allocate(alloc, immutable LowExprKind.Let(
 		temp,
 		allocatePtr,

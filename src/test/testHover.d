@@ -7,7 +7,7 @@ import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition, Position;
 import model.model : Module, Program;
 import test.testUtil : Test;
-import util.collection.arr : lastPtr, size;
+import util.collection.arr : lastPtr;
 import util.collection.mutDict : addToMutDict;
 import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr, strEq, strOfNulTerminatedStr;
 import util.dbg : Debug, log, logNat, logNoNewline;
@@ -57,7 +57,7 @@ import util.util : verify, verifyFail;
 	checkHoverRange(fldStart, fldStart + 3, "field r.fld (nat)");
 	checkHoverRange(fldStart + 3, fldStart + 7, "builtin type nat");
 	checkHoverRange(fldStart + 7, fldStart + 8, "record r");
-	verify(fldStart + 8 == size(strOfNulTerminatedStr(contentStr)));
+	verify(fldStart + 8 == strOfNulTerminatedStr(contentStr).length);
 
 	// TODO: TEST:
 	// * imports (have these be actually working!)

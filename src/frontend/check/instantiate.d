@@ -36,7 +36,7 @@ import model.model :
 	worsePurity,
 	worstCasePurity;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : ptrAt, size, sizeEq;
+import util.collection.arr : ptrAt, sizeEq;
 import util.collection.arrUtil : arrLiteral, fold, map, mapWithSize;
 import util.collection.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
 import util.collection.mutArr : MutArr, push;
@@ -82,7 +82,7 @@ const(Opt!(Ptr!T)) tryGetTypeArg(T)(
 	immutable Ptr!TypeParam typeParam,
 ) {
 	immutable size_t index = typeParam.deref().index;
-	return index < size(typeParams) && ptrEquals(ptrAt(typeParams, index), typeParam)
+	return index < typeParams.length && ptrEquals(ptrAt(typeParams, index), typeParam)
 		? someConst(ptrAt(typeArgs, index))
 		: none!(Ptr!T);
 }
@@ -93,7 +93,7 @@ Opt!(Ptr!T) tryGetTypeArg(T)(
 	immutable Ptr!TypeParam typeParam,
 ) {
 	immutable size_t index = typeParam.deref().index;
-	return index < size(typeParams) && ptrEquals(ptrAt(typeParams, index), typeParam)
+	return index < typeParams.length && ptrEquals(ptrAt(typeParams, index), typeParam)
 		? someMut(ptrAt(typeArgs, index))
 		: noneMut!(Ptr!T);
 }

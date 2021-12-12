@@ -16,7 +16,7 @@ import model.model :
 	StructDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, castImmutable, setAt, size;
+import util.collection.arr : at, castImmutable, setAt;
 import util.collection.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
 import util.collection.dict : getAt;
 import util.opt : force, has, none, Opt, some;
@@ -64,7 +64,7 @@ bool[] newUsedImportsAndReExports(
 		imports,
 		reExports,
 		(immutable size_t acc, ref immutable ModuleAndNames it) =>
-			acc + (has(it.names) ? size(force(it.names)) : 1));
+			acc + (has(it.names) ? force(it.names).length : 1));
 	return fillArr_mut!bool(alloc, size, (immutable size_t) => false);
 }
 
@@ -185,7 +185,7 @@ immutable(Acc) eachImportAndReExport(Acc)(
 				if (has(m.names)) {
 					immutable Opt!size_t symIndex = indexOfSym(force(m.names), name);
 					immutable Opt!size_t res = has(symIndex) ? some(index + force(symIndex)) : none!size_t;
-					index += size(force(m.names));
+					index += force(m.names).length;
 					return res;
 				} else {
 					immutable size_t res = index;

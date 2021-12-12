@@ -3,7 +3,7 @@ module util.collection.mutIndexDict;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, setAt, size;
+import util.collection.arr : at, setAt;
 import util.collection.arrUtil : fillArr_mut;
 import util.collection.mutDict : ValueAndDidAdd;
 import util.opt : force, has, noneMut, Opt, someMut;

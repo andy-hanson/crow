@@ -17,6 +17,7 @@ import frontend.parse.ast :
 	ImportAst,
 	ImportsOrExportsAst,
 	InterpolatedAst,
+	InterpolatedPart,
 	LambdaAst,
 	LetAst,
 	LiteralAst,
@@ -53,7 +54,7 @@ import frontend.parse.ast :
 	TypedAst;
 import model.model : Visibility;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : ArrWithSize, at, empty, first, last, size, toArr;
+import util.collection.arr : ArrWithSize, empty, first, last, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : tail;
 import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
@@ -407,13 +408,13 @@ void addExprTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable E
 							immutable RangeWithinFile(pos, pos + 1)));
 					},
 				)(it.parts[0]);
-				foreach (immutable size_t i; 0..size(it.parts))
+				foreach (immutable size_t i, ref immutable InterpolatedPart part; it.parts)
 					matchInterpolatedPart!(
 						void,
 						(ref immutable string s) {
 							// TODO: length may be wrong if there are escapes
 							// Ensure the closing quote is highlighted
-							immutable Pos end = safeToUint(pos + s.length) + (i == size(it.parts) - 1 ? 1 : 0);
+							immutable Pos end = safeToUint(pos + s.length) + (i == it.parts.length - 1 ? 1 : 0);
 							add(alloc, tokens, immutable Token(
 								Token.Kind.literalString,
 								immutable RangeWithinFile(pos, end)));
@@ -422,7 +423,7 @@ void addExprTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable E
 							addExprTokens(alloc, tokens, e);
 							pos = safeToUint(e.range.end + 1);
 						},
-					)(at(it.parts, i));
+					)(part);
 				// Ensure closing quote is highlighted
 				matchInterpolatedPart!(
 					void,

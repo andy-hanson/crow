@@ -4,7 +4,7 @@ module util.writer;
 
 import util.alloc.alloc : Alloc;
 import util.ptr : Ptr;
-import util.collection.arr : at, size;
+import util.collection.arr : at;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr, SafeCStr;
 import util.util : abs, verify;
@@ -118,7 +118,7 @@ void writeWithCommas(T)(
 	immutable bool leadingComma,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0 .. size(a)) {
+	foreach (immutable size_t i; 0 .. a.length) {
 		if (leadingComma || i != 0)
 			writeStatic(writer, ", ");
 		cb(at(a, i));
@@ -142,7 +142,7 @@ void writeWithNewlines(T)(
 	ref immutable T[] a,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0 .. size(a)) {
+	foreach (immutable size_t i; 0 .. a.length) {
 		if (i != 0)
 			writeStatic(writer, "\n");
 		cb(at(a, i));

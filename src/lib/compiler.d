@@ -22,7 +22,7 @@ import model.reprConcreteModel : reprOfConcreteProgram;
 import model.reprLowModel : reprOfLowProgram;
 import model.reprModel : reprModule;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : begin, emptyArr, size;
+import util.collection.arr : emptyArr;
 import util.collection.str : SafeCStr;
 import util.dbg : Debug;
 import util.opt : force, none, Opt, some;
@@ -134,7 +134,7 @@ private:
 ) {
 	immutable int stderr = 2;
 	immutable string s = strOfDiagnostics(alloc, allPaths, showDiagOptions, filesInfo, diagnostics);
-	extern_.write(stderr, begin(s), size(s));
+	extern_.write(stderr, s.ptr, s.length);
 }
 
 immutable(DiagsAndResultStrs) printTokens(ReadOnlyStorage)(

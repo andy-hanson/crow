@@ -3,7 +3,7 @@ module util.sym;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, first, last, only, size;
+import util.collection.arr : at, first, last, only;
 import util.collection.arrUtil : contains, every, findIndex, tail;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
 import util.collection.str : CStr, strEq, strOfCStr, strToCStr;
@@ -123,7 +123,7 @@ immutable(Sym) symForOperator(immutable Operator a) {
 }
 
 private immutable(Opt!Operator) operatorFromStr(scope immutable string str) {
-	if (size(str) == 1)
+	if (str.length == 1)
 		switch (only(str)) {
 			case '<':
 				return some(Operator.less);
@@ -376,9 +376,9 @@ immutable ulong operatorBits = 0x7fff000000000000;
 immutable size_t alphaIdentifierMaxChars = 12;
 
 immutable(bool) canPackAlphaIdentifier(immutable string str) {
-	return size(str) > alphaIdentifierMaxChars
+	return str.length > alphaIdentifierMaxChars
 		? false
-		: size(str) <= 2
+		: str.length <= 2
 		? every!char(str, (ref immutable char c) => canPackAlphaChar6(c))
 		: every!char(str[$ - 2 .. $], (ref immutable char c) => canPackAlphaChar6(c)) &&
 			every!char(str[0 .. $ - 2], (ref immutable char c) => canPackAlphaChar5(c));
@@ -409,8 +409,8 @@ immutable(ulong) packAlphaIdentifier(immutable string str) {
 	foreach (immutable size_t i; 0 .. alphaIdentifierMaxChars) {
 		immutable bool is6Bit = i < 2;
 		immutable ulong value = () {
-			if (i < size(str)) {
-				immutable char c = at(str, size(str) - 1 - i);
+			if (i < str.length) {
+				immutable char c = at(str, str.length - 1 - i);
 				return is6Bit ? packAlphaChar6(c) : packAlphaChar5(c);
 			} else
 				return 0;
@@ -479,7 +479,7 @@ void assertSym(immutable Sym sym, immutable string str) {
 		immutable char expected = at(str, idx++);
 		verify(c == expected);
 	});
-	verify(idx == size(str));
+	verify(idx == str.length);
 }
 
 immutable(bool) bitsOverlap(immutable ulong a, immutable ulong b) {
@@ -488,6 +488,6 @@ immutable(bool) bitsOverlap(immutable ulong a, immutable ulong b) {
 
 @trusted immutable(bool) strEqCStr(immutable string a, immutable CStr b) {
 	return *b == '\0'
-		? size(a) == 0
-		: size(a) != 0 && first(a) == *b && strEqCStr(tail(a), b + 1);
+		? a.length == 0
+		: a.length != 0 && first(a) == *b && strEqCStr(tail(a), b + 1);
 }

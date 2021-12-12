@@ -118,7 +118,7 @@ import model.lowModel :
 	UpdateParam;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty, size;
+import util.collection.arr : at, empty;
 import util.collection.arrUtil :
 	find_mut,
 	makeArr,
@@ -182,7 +182,7 @@ private:
 
 @trusted immutable(int) runMain(ref Alloc alloc, ref Perf perf, immutable SafeCStr[] allArgs, immutable MainType main) {
 	return withMeasure!(immutable int, () =>
-		main(cast(int) size(allArgs), cast(immutable CStr*) allArgs.ptr)
+		main(cast(int) allArgs.length, cast(immutable CStr*) allArgs.ptr)
 	)(alloc, perf, PerfMeasure.run);
 }
 
@@ -435,7 +435,7 @@ GlobalsForConstants generateGlobalsForConstants(
 						ctx,
 						null,
 						gccElementType,
-						cast(int) size(values));
+						cast(int) values.length);
 					//TODO:NO ALLOC
 					Writer writer = Writer(ptrTrustMe_mut(alloc));
 					writeConstantArrStorageName(writer, mangledNames, program, tc.arrType, index);
@@ -519,7 +519,7 @@ GlobalsForConstants generateGlobalsForConstants(
 		writeStatic(writer, "__getter");
 	immutable CStr name = finishWriterToCStr(writer);
 	Ptr!gcc_jit_function res =
-		gcc_jit_context_new_function(ctx, null, kind, returnType, name, cast(int) size(params), params.ptr, false);
+		gcc_jit_context_new_function(ctx, null, kind, returnType, name, cast(int) params.length, params.ptr, false);
 
 	matchLowFunBody!(
 		void,
@@ -778,7 +778,7 @@ immutable(ExprResult) emitSwitch(
 				// TODO: use cases of appropriate type?
 				gcc_jit_context_new_cast(ctx.gcc, null, switchedValue, ctx.nat64Type),
 				defaultBlock,
-				cast(int) size(cases),
+				cast(int) cases.length,
 				cases.ptr);
 		});
 }
@@ -920,7 +920,7 @@ void emitToLValue(ref ExprCtx ctx, Ptr!gcc_jit_lvalue lvalue, ref immutable LowE
 	immutable Ptr!gcc_jit_rvalue[] argsGcc = map!(Ptr!gcc_jit_rvalue)(ctx.alloc, a.args, (ref immutable LowExpr arg) =>
 		emitToRValue(ctx, arg));
 	return emitSimpleYesSideEffects(ctx, emit, type, castImmutable(
-		gcc_jit_context_new_call(ctx.gcc, null, called, cast(int) size(argsGcc), argsGcc.ptr)));
+		gcc_jit_context_new_call(ctx.gcc, null, called, cast(int) argsGcc.length, argsGcc.ptr)));
 }
 
 @trusted immutable(ExprResult) callFunPtrToGcc(
@@ -937,7 +937,7 @@ void emitToLValue(ref ExprCtx ctx, Ptr!gcc_jit_lvalue lvalue, ref immutable LowE
 		ctx.gcc,
 		null,
 		funPtrGcc,
-		cast(int) size(argsGcc),
+		cast(int) argsGcc.length,
 		argsGcc.ptr));
 }
 
@@ -1120,7 +1120,7 @@ immutable(ExprResult) matchUnionToGcc(
 		emit,
 		expr.type,
 		matchedValueKind,
-		size(a.cases),
+		a.cases.length,
 		(ref ExprEmit caseEmit, immutable size_t caseIndex) {
 			immutable LowExprKind.MatchUnion.Case case_ = at(a.cases, caseIndex);
 			return has(case_.local)
@@ -1241,13 +1241,13 @@ immutable(ExprResult) constantToGcc(
 	return matchConstant!(immutable ExprResult)(
 		a,
 		(ref immutable Constant.ArrConstant it) {
-			immutable size_t arrSize = size(at(at(ctx.program.allConstants.arrs, it.typeIndex).constants, it.index));
+			immutable size_t arrSize = at(at(ctx.program.allConstants.arrs, it.typeIndex).constants, it.index).length;
 			immutable Ptr!gcc_jit_rvalue storage = at(at(ctx.globalsForConstants.arrs, it.typeIndex), it.index);
 			immutable Ptr!gcc_jit_rvalue arrPtr = gcc_jit_lvalue_get_address(
 				gcc_jit_context_new_array_access(ctx.gcc, null, storage, gcc_jit_context_zero(ctx.gcc, ctx.nat64Type)),
 				null);
 			immutable Ptr!gcc_jit_field[] fields = fullIndexDictGet(ctx.types.recordFields, asRecordType(type));
-			verify(size(fields) == 2);
+			verify(fields.length == 2);
 			immutable Ptr!gcc_jit_field sizeField = at(fields, 0);
 			immutable Ptr!gcc_jit_field ptrField = at(fields, 1);
 			return emitWriteToLValue(ctx, emit, type, (Ptr!gcc_jit_lvalue local) {
@@ -1690,7 +1690,7 @@ immutable(ExprResult) switch0ToNToGcc(
 		emit,
 		expr.type,
 		emitToRValue(ctx, a.value),
-		size(a.cases),
+		a.cases.length,
 		(ref ExprEmit caseEmit, immutable size_t caseIndex) =>
 			toGccExpr(ctx, caseEmit, at(a.cases, caseIndex)));
 }

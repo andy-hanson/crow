@@ -4,7 +4,7 @@ module util.collection.fullIndexDict;
 
 import util.alloc.alloc : Alloc;
 import util.conv : safeToUint, safeToUshort;
-import util.collection.arr : at, castImmutable, emptyArr, ptrAt, setAt, size;
+import util.collection.arr : at, castImmutable, emptyArr, ptrAt, setAt;
 import util.collection.arrUtil : mapWithIndex, mapWithIndex_mut;
 import util.ptr : Ptr;
 import util.util : verify;
@@ -29,7 +29,7 @@ immutable(FullIndexDict!(K, V)) emptyFullIndexDict(K, V)() {
 }
 
 immutable(size_t) fullIndexDictSize(K, V)(ref const FullIndexDict!(K, V) a) {
-	return size(a.values);
+	return a.values.length;
 }
 
 immutable(FullIndexDict!(K, V)) fullIndexDictOfArr(K, V)(immutable V[] values) {

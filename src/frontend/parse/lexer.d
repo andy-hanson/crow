@@ -8,7 +8,7 @@ import model.diag : Diag;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.cell : Cell, cellGet, cellSet;
-import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
+import util.collection.arr : arrOfRange, at, begin, empty, first, last;
 import util.collection.arrUtil : cat, rtail;
 import util.collection.str :
 	copyToSafeCStr,
@@ -402,13 +402,13 @@ immutable(IndentKind) detectIndentKind(immutable string str) {
 		else if (c0 == ' ') {
 			// Count spaces
 			uint i = 0;
-			for (; i < size(str); i++)
+			for (; i < str.length; i++)
 				if (at(str, i) != ' ')
 					break;
 			// Only allowed amounts are 2 and 4.
 			return i == 2 ? IndentKind.spaces2 : IndentKind.spaces4;
 		} else {
-			foreach (immutable size_t i; 0 .. size(str))
+			foreach (immutable size_t i; 0 .. str.length)
 				if (at(str, i) == '\n')
 					return detectIndentKind(str[i + 1 .. $]);
 			return IndentKind.tabs;

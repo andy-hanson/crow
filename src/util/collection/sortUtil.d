@@ -2,7 +2,7 @@ module util.collection.sortUtil;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : at, empty, first, size;
+import util.collection.arr : at, empty, first;
 import util.collection.arrUtil : tail;
 import util.comparison : Comparer, Comparison;
 import util.opt : none, Opt, some;
@@ -80,7 +80,7 @@ struct UnsortedPair {
 // Returns index of lower value
 immutable(Opt!UnsortedPair) findUnsortedPair(T)(ref immutable T[] a, immutable Comparer!T compare) {
 	if (!empty(a)) {
-		foreach (immutable size_t i; 0 .. size(a) - 1) {
+		foreach (immutable size_t i; 0 .. a.length - 1) {
 			final switch (compare(at(a, i), at(a, i + 1))) {
 				case Comparison.less:
 				case Comparison.equal:

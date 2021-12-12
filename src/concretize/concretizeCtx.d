@@ -80,7 +80,7 @@ import model.model :
 	UnionMember,
 	worsePurity;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty, emptyArr, only, ptrAt, size, sizeEq;
+import util.collection.arr : at, empty, emptyArr, only, ptrAt, sizeEq;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil :
 	arrEqual,
@@ -734,7 +734,7 @@ immutable(ConcreteStructBody.Enum) getConcreteStructBodyForEnum(
 		(ref immutable StructBody.Enum.Member member, immutable size_t index) =>
 			member.value.value == index);
 	return simple
-		? immutable ConcreteStructBody.Enum(a.backingType, size(a.members))
+		? immutable ConcreteStructBody.Enum(a.backingType, a.members.length)
 		: immutable ConcreteStructBody.Enum(
 			a.backingType,
 			map(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>

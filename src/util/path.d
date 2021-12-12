@@ -3,7 +3,7 @@ module util.path;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateBytes;
-import util.collection.arr : at, first, size;
+import util.collection.arr : at, first;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
 import util.collection.str : asSafeCStr, copyToSafeCStr, NulTerminatedStr, SafeCStr, strOfSafeCStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
@@ -191,9 +191,9 @@ private @trusted immutable(string) pathToStrWorker(
 	immutable bool nulTerminated,
 ) {
 	immutable string root = strOfSafeCStr(rootCStr);
-	immutable size_t sz = size(root) * rootMultiple +
+	immutable size_t sz = root.length * rootMultiple +
 		pathToStrSize(allPaths, path) +
-		size(extension) +
+		extension.length +
 		(nulTerminated ? 1 : 0);
 	char* begin = cast(char*) allocateBytes(alloc, char.sizeof * sz);
 	char* cur = begin + sz;
@@ -205,7 +205,7 @@ private @trusted immutable(string) pathToStrWorker(
 		cur--;
 		*cur = c;
 	}
-	verify(cur == begin + size(root) * rootMultiple + pathToStrSize(allPaths, path));
+	verify(cur == begin + root.length * rootMultiple + pathToStrSize(allPaths, path));
 	walkPathBackwards(allPaths, path, (immutable Sym part) @trusted {
 		cur -= symSize(part);
 		char* j = cur;
@@ -217,7 +217,7 @@ private @trusted immutable(string) pathToStrWorker(
 		cur--;
 		*cur = '/';
 	});
-	verify(cur == begin + size(root) * rootMultiple);
+	verify(cur == begin + root.length * rootMultiple);
 	foreach (immutable size_t i; 0 .. rootMultiple) {
 		foreach_reverse (immutable char c; root) {
 			cur--;
@@ -305,7 +305,7 @@ immutable(SafeCStr) pathToSafeCStr(
 }
 
 immutable(Path) parsePath(ref AllPaths allPaths, scope ref immutable string str) {
-	immutable size_t len = size(str);
+	immutable size_t len = str.length;
 	size_t i = 0;
 	if (i < len && at(str, i) == '/')
 		// Ignore leading slash
@@ -390,7 +390,7 @@ private immutable(RootAndPath) parseAbsoluteOrRelPathWithoutExtension(
 			return todo!(immutable RootAndPath)("unc path?");
 		default:
 			// Treat a plain string without '/' in front as a relative path
-			return size(s) >= 2 && at(s, 1) == ':'
+			return s.length >= 2 && at(s, 1) == ':'
 				? todo!(immutable RootAndPath)("C:/ ?")
 				: immutable RootAndPath(cwd, parsePath(allPaths, s));
 	}
@@ -416,7 +416,7 @@ private struct StrAndExtension {
 
 private immutable(StrAndExtension) removeExtension(immutable string s) {
 	// Deliberately not allowing i == 0
-	for (size_t i = size(s) - 1; i > 0; i--)
+	for (size_t i = s.length - 1; i > 0; i--)
 		if (at(s, i) == '.')
 			return immutable StrAndExtension(s[0 .. i], s[i .. $]);
 	return immutable StrAndExtension(s, "");
@@ -437,7 +437,7 @@ immutable(AbsolutePath) childPath(
 }
 
 private immutable(Opt!size_t) pathSlashIndex(immutable string s) {
-	for (size_t i = s.size - 1; i > 0; i--)
+	for (size_t i = s.length - 1; i > 0; i--)
 		if (at(s, i) == '/')
 			return some(i);
 	return none!size_t;

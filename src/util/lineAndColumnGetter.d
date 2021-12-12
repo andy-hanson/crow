@@ -3,7 +3,7 @@ module util.lineAndColumnGetter;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, size;
+import util.collection.arr : at;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.conv : safeToUint, safeToUshort;
 import util.sourceRange : Pos;
@@ -22,7 +22,7 @@ struct LineAndColumnGetter {
 	immutable this(immutable Pos[] lp, immutable ubyte[] lnt) {
 		lineToPos = lp;
 		lineToNTabs = lnt;
-		verify(size(lineToPos) == size(lineToNTabs));
+		verify(lineToPos.length == lineToNTabs.length);
 	}
 }
 
@@ -31,12 +31,12 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForText(ref Alloc alloc, immut
 	ArrBuilder!ubyte lineToNTabs;
 
 	add(alloc, lineToPos, 0);
-	add(alloc, lineToNTabs, text.getNTabs);
+	add(alloc, lineToNTabs, getNTabs(text));
 
-	foreach (immutable uint i; 0 .. safeToUint(size(text))) {
+	foreach (immutable uint i; 0 .. safeToUint(text.length)) {
 		if (at(text, i) == '\n') {
 			add(alloc, lineToPos, i + 1);
-			add(alloc, lineToNTabs, text[i + 1 .. $].getNTabs);
+			add(alloc, lineToNTabs, getNTabs(text[i + 1 .. $]));
 		}
 	}
 
@@ -49,7 +49,7 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForEmptyFile(ref Alloc alloc) 
 
 immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc, immutable Pos pos) {
 	ushort lowLine = 0; // inclusive
-	ushort highLine = safeToUshort(size(lc.lineToPos));
+	ushort highLine = safeToUshort(lc.lineToPos.length);
 
 	while (lowLine < highLine - 1) {
 		immutable ushort middleLine = mid(lowLine, highLine);
@@ -66,7 +66,7 @@ immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc
 
 	immutable ushort line = lowLine;
 	immutable Pos lineStart = at(lc.lineToPos, line);
-	verify((pos >= lineStart && line == size(lc.lineToPos) - 1) || pos <= at(lc.lineToPos, line + 1));
+	verify((pos >= lineStart && line == lc.lineToPos.length - 1) || pos <= at(lc.lineToPos, line + 1));
 
 	immutable uint nCharsIntoLine = pos - lineStart;
 	immutable ubyte nTabs = at(lc.lineToNTabs, line);
@@ -87,7 +87,7 @@ ushort mid(immutable ushort a, immutable ushort b) {
 ubyte getNTabs(immutable string text) {
 	ubyte i = 0;
 	while (i < ubyte.max
-		&& i < size(text)
+		&& i < text.length
 		&& at(text, i) == '\t'
 	) {
 		i++;

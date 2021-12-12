@@ -2,7 +2,6 @@ module util.writerUtils;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : size;
 import util.collection.str : SafeCStr, startsWith, strOfSafeCStr;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter;
 import util.opt : force, has, Opt;
@@ -34,10 +33,10 @@ void writePathRelativeToCwd(
 	immutable string cwd = strOfSafeCStr(cwdCStr);
 	immutable string root = strOfSafeCStr(path.root);
 	if (startsWith(root, cwd) &&
-		(size(root) == size(cwd) || (size(root) > size(cwd) + 1 && root[size(cwd)] == '/'))) {
+		(root.length == cwd.length || (root.length > cwd.length + 1 && root[cwd.length] == '/'))) {
 		writeStatic(writer, "./");
-		if (size(root) != size(cwd)) {
-			writeStr(writer, root[size(cwd) + 1 .. $]);
+		if (root.length != cwd.length) {
+			writeStr(writer, root[cwd.length + 1 .. $]);
 			writeChar(writer, '/');
 		}
 	} else {

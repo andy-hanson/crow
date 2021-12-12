@@ -68,7 +68,7 @@ import model.model :
 	Type,
 	typeArgs;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty, emptyArr, only, ptrAt, size;
+import util.collection.arr : at, empty, emptyArr, only, ptrAt;
 import util.collection.arrUtil : arrLiteral, every, map, mapWithIndex;
 import util.collection.mutArr : MutArr, mutArrSize, push;
 import util.collection.mutDict : addToMutDict, getOrAdd, mustDelete, mustGetAt_mut, MutPtrDict;
@@ -411,7 +411,7 @@ immutable(ConcreteExpr) concretizeLambda(
 	if (e.kind == FunKind.ref_) {
 		// For a fun-ref this is the inner 'act' type.
 		immutable ConcreteField[] fields = asRecord(body_(concreteStruct.deref())).fields;
-		verify(size(fields) == 2);
+		verify(fields.length == 2);
 		immutable ConcreteField islandAndExclusionField = at(fields, 0);
 		verify(symEqLongAlphaLiteral(name(islandAndExclusionField), "island-and-exclusion"));
 		immutable ConcreteField actionField = at(fields, 1);

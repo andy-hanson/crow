@@ -52,7 +52,7 @@ import model.model : EnumValue;
 import model.typeLayout : Pack;
 import util.dbg : Debug;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, size;
+import util.collection.arr : empty;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
 import util.collection.mutArr : moveToArr_mut, MutArr, mutArrEnd, mutArrPtrAt, mutArrSize, push, setAt;
@@ -672,7 +672,7 @@ private @trusted void writeArray(T)(
 	immutable ByteCodeSource source,
 	scope immutable T[] values,
 ) {
-	pushSizeT(writer, source, size(values));
+	pushSizeT(writer, source, values.length);
 	if (!empty(values)) {
 		immutable size_t nOperations = divRoundUp(values.length * T.sizeof, Operation.sizeof);
 		foreach (immutable size_t i; 0 .. nOperations)
@@ -695,7 +695,7 @@ void writeExternDynCall(
 	pushNat64(writer, source, name.value);
 	pushNat64(writer, source, returnType);
 	writeArray!DynCallType(writer, source, parameterTypes);
-	writer.nextStackEntry -= size(parameterTypes);
+	writer.nextStackEntry -= parameterTypes.length;
 	writer.nextStackEntry += (returnType == DynCallType.void_ ? 0 : 1);
 }
 

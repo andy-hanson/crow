@@ -44,7 +44,7 @@ import model.model : AbsolutePathsGetter, getAbsolutePath, hasDiags;
 import test.test : test;
 import util.alloc.alloc : Alloc, allocateBytes, freeBytes, TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.collection.arr : begin, empty, size;
+import util.collection.arr : begin, empty;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : prepend, tail, zipImpureSystem;
 import util.collection.str :
@@ -147,7 +147,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 		},
 		(scope immutable string a) {
 			debug {
-				printf("%.*s", cast(immutable uint) size(a), begin(a));
+				printf("%.*s", cast(immutable uint) a.length, a.ptr);
 			}
 		});
 
@@ -561,16 +561,16 @@ immutable(SafeCStr[]) cCompileArgs(
 }
 
 @trusted immutable(ExitCode) print(immutable string a) {
-	printf("%.*s", cast(uint) size(a), begin(a));
+	printf("%.*s", cast(uint) a.length, a.ptr);
 	return ExitCode.ok;
 }
 
 @trusted void println(immutable string a) {
-	printf("%.*s\n", cast(uint) size(a), begin(a));
+	printf("%.*s\n", cast(uint) a.length, a.ptr);
 }
 
 @trusted immutable(ExitCode) printErr(immutable string a) {
-	fprintf(stderr, "%.*s", cast(uint) size(a), begin(a));
+	fprintf(stderr, "%.*s", cast(uint) a.length, a.ptr);
 	return ExitCode.error;
 }
 
@@ -901,8 +901,8 @@ extern(C) {
 	} else {
 		scope(exit) close(fd);
 
-		immutable long wroteBytes = posixWrite(fd, content.begin, size(content));
-		if (wroteBytes != size(content))
+		immutable long wroteBytes = posixWrite(fd, content.ptr, content.length);
+		if (wroteBytes != content.length)
 			if (wroteBytes == -1)
 				todo!void("writeFile failed");
 			else

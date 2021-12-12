@@ -51,7 +51,7 @@ import model.lowModel :
 	PrimitiveType;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.collection.arr : empty, emptyArr, size;
+import util.collection.arr : empty, emptyArr;
 import util.collection.arrUtil : map, mapWithIndex, zip;
 import util.collection.fullIndexDict :
 	FullIndexDict,
@@ -351,7 +351,7 @@ struct GccTypesWip {
 		ctx,
 		null,
 		returnType,
-		cast(int) size(paramTypes),
+		cast(int) paramTypes.length,
 		paramTypes.ptr,
 		false));
 }
@@ -375,7 +375,7 @@ struct GccTypesWip {
 		});
 	verify(empty(fullIndexDictGet(typesWip.recordFields, recordIndex)));
 	fullIndexDictSet(typesWip.recordFields, recordIndex, fields);
-	gcc_jit_struct_set_fields(struct_, null, cast(int) size(fields), fields.ptr);
+	gcc_jit_struct_set_fields(struct_, null, cast(int) fields.length, fields.ptr);
 }
 
 @trusted void writeUnionType(
@@ -410,7 +410,7 @@ struct GccTypesWip {
 		ctx,
 		null,
 		mangledNameInner,
-		cast(int) size(memberFields),
+		cast(int) memberFields.length,
 		memberFields.ptr);
 
 	immutable Ptr!gcc_jit_field kindField =

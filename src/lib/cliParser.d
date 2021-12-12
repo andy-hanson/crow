@@ -3,7 +3,7 @@ module lib.cliParser;
 import frontend.lang : crowExtension, JitOptions, OptimizationLevel;
 import lib.compiler : PrintFormat, PrintKind;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : at, empty, emptyArr, first, only, size;
+import util.collection.arr : at, empty, emptyArr, first, only;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : findIndex, foldOrStop, tail;
 import util.collection.str : SafeCStr, safeCStrEq, startsWith, strEq, strOfSafeCStr;
@@ -172,7 +172,7 @@ immutable(Command) parseCommand(
 	immutable SafeCStr cwd,
 	immutable SafeCStr[] args,
 ) {
-	if (size(args) == 0)
+	if (empty(args))
 		return immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));
 	else {
 		immutable string arg0 = strOfSafeCStr(first(args));
@@ -245,12 +245,12 @@ immutable(Command) parsePrintCommand(
 	immutable SafeCStr cwd,
 	immutable SafeCStr[] args,
 ) {
-	if (size(args) < 2)
+	if (args.length < 2)
 		return todo!Command("Command.HelpPrint");
 	else {
-		immutable FormatAndPath formatAndPath = size(args) == 2
+		immutable FormatAndPath formatAndPath = args.length == 2
 			? immutable FormatAndPath(PrintFormat.repr, at(args, 1))
-			: size(args) == 4 && safeCStrEq(at(args, 1), "--format") && safeCStrEq(at(args, 2), "json")
+			: args.length == 4 && safeCStrEq(at(args, 1), "--format") && safeCStrEq(at(args, 2), "json")
 			? immutable FormatAndPath(PrintFormat.json, at(args, 3))
 			: todo!(immutable FormatAndPath)("Command.HelpPrint");
 		return useProgramDirAndMain(
@@ -289,7 +289,7 @@ immutable(Command) parseDocumentCommand(
 	immutable Command helpDocument = immutable Command(
 		immutable Command.Help(helpDocumentText, Command.Help.Kind.error));
 	immutable SplitArgs split = splitArgs(alloc, args);
-	return size(split.beforeFirstPart) != 1
+	return split.beforeFirstPart.length != 1
 		? helpDocument
 		: useProgramDirAndMain(
 			alloc,
@@ -312,7 +312,7 @@ immutable(Command) parseBuildCommand(
 ) {
 	immutable Command helpBuild = immutable Command(immutable Command.Help(helpBuildText, Command.Help.Kind.error));
 	immutable SplitArgs split = splitArgs(alloc, args);
-	return size(split.beforeFirstPart) != 1
+	return split.beforeFirstPart.length != 1
 		? helpBuild
 		: useProgramDirAndMain(
 			alloc,
@@ -333,12 +333,12 @@ immutable(Command) parseRunCommand(
 	immutable SafeCStr cwd,
 	immutable SafeCStr[] args,
 ) {
-	if (size(args) == 1 && isHelp(strOfSafeCStr(only(args))))
+	if (args.length == 1 && isHelp(strOfSafeCStr(only(args))))
 		return immutable Command(immutable Command.Help(helpRunText, Command.Help.Kind.requested));
 	else {
 		immutable SplitArgs split = splitArgs(alloc, args);
 		immutable Opt!RunOptions options = parseRunOptions(alloc, allPaths, split.parts);
-		return size(split.beforeFirstPart) == 1 && has(options)
+		return split.beforeFirstPart.length == 1 && has(options)
 			? useProgramDirAndMain(
 				alloc,
 				allPaths,
@@ -357,7 +357,7 @@ immutable(Opt!RunOptions) parseRunOptions(
 ) {
 	if (empty(argParts))
 		return some(immutable RunOptions(immutable RunOptions.Jit()));
-	else if (size(argParts) != 1)
+	else if (argParts.length != 1)
 		// TODO: better message -- can't combine '--interpret' with build options
 		return none!RunOptions;
 	else {
@@ -380,11 +380,11 @@ immutable(Opt!(Opt!AbsolutePath)) parseDocumentOut(
 ) {
 	if (empty(argParts))
 		return some(none!AbsolutePath);
-	if (size(argParts) != 1)
+	if (argParts.length != 1)
 		return none!(Opt!AbsolutePath);
 	else {
 		immutable ArgsPart part = only(argParts);
-		return safeCStrEq(part.tag, "--out") && size(part.args) == 1
+		return safeCStrEq(part.tag, "--out") && part.args.length == 1
 			? some(some(parseAbsoluteOrRelPath(alloc, allPaths, cwd, only(part.args))))
 			: none!(Opt!AbsolutePath);
 	}
@@ -485,7 +485,7 @@ immutable(size_t) splitArgsRecur(
 	immutable size_t curPartStart,
 	immutable size_t index,
 ) {
-	if (index == size(args)) {
+	if (index == args.length) {
 		add(alloc, parts, immutable ArgsPart(at(args, curPartStart), args[curPartStart + 1 .. index]));
 		return index;
 	} else {
@@ -504,7 +504,7 @@ immutable(size_t) splitArgsRecur(
 immutable(Command) parseTestCommand(ref Alloc alloc, immutable SafeCStr[] args) {
 	if (empty(args))
 		return immutable Command(immutable Command.Test(none!string));
-	else if (size(args) == 1)
+	else if (args.length == 1)
 		return immutable Command(immutable Command.Test(some(strOfSafeCStr(first(args)))));
 	else
 		return immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));

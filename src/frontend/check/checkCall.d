@@ -78,9 +78,7 @@ import util.collection.arr :
 	first,
 	only,
 	only_const,
-	onlyPtr_mut,
 	ptrAt,
-	size,
 	toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil :
@@ -100,9 +98,9 @@ import util.collection.mutMaxArr :
 	isEmpty,
 	MutMaxArr,
 	mutMaxArr,
+	mutMaxArrSize,
 	only_const,
 	push,
-	size,
 	tempAsArr_const,
 	tempAsArr_mut;
 import util.opt : force, has, none, Opt, some;
@@ -122,7 +120,7 @@ immutable(CheckedExpr) checkCall(
 	PerfMeasurer perfMeasurer = startMeasure(alloc, ctx.perf, PerfMeasure.checkCall);
 	immutable Sym funName = ast.funName.name;
 	immutable ExprAst[] argAsts = toArr(ast.args);
-	immutable size_t arity = size(argAsts);
+	immutable size_t arity = argAsts.length;
 	immutable Type[] explicitTypeArgs = typeArgsFromAsts(alloc, ctx, toArr(ast.typeArgs));
 	Candidates candidates = mutMaxArr!(maxCandidates, Candidate);
 	getInitialCandidates(alloc, ctx, candidates, funName, explicitTypeArgs, arity);
@@ -162,7 +160,7 @@ immutable(CheckedExpr) checkCall(
 	if (someArgIsBogus)
 		return bogus(expected, range);
 
-	if (size(candidates) != 1 &&
+	if (mutMaxArrSize(candidates) != 1 &&
 		exists_const!Candidate(tempAsArr_const(candidates), (ref const Candidate it) => candidateIsPreferred(it))) {
 		filterUnordered!(maxCandidates, Candidate)(candidates, (ref Candidate it) => candidateIsPreferred(it));
 	}
@@ -171,13 +169,13 @@ immutable(CheckedExpr) checkCall(
 	immutable FileAndRange diagRange = immutable FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName));
 
 	immutable CheckedExpr res = withMeasure!(immutable CheckedExpr, () {
-		if (!has(args) || size(candidates) != 1) {
+		if (!has(args) || mutMaxArrSize(candidates) != 1) {
 			if (isEmpty(candidates)) {
 				immutable CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(alloc, ctx, funName);
 				addDiag2(alloc, ctx, diagRange, immutable Diag(immutable Diag.CallNoMatch(
 					funName,
 					expectedReturnType,
-					size(explicitTypeArgs),
+					explicitTypeArgs.length,
 					arity,
 					finishArr(alloc, actualArgTypes),
 					allCandidates)));
@@ -260,12 +258,12 @@ void eachFunInScope(
 			void,
 			(ref immutable SpecBody.Builtin) {},
 			(ref immutable Sig[] sigs) {
-				foreach (immutable size_t i; 0 .. size(sigs))
-					if (symEq(at(sigs, i).name, funName)) {
+				foreach (immutable size_t i, ref immutable Sig sig; sigs)
+					if (symEq(sig.name, funName)) {
 						immutable Opt!UsedFun used = none!UsedFun;
 						cb(used, immutable CalledDecl(immutable SpecSig(specInst, ptrAt(sigs, i), totalIndex + i)));
 					}
-				totalIndex += size(sigs);
+				totalIndex += sigs.length;
 			},
 		)(specInst.deref().body_);
 
@@ -330,9 +328,9 @@ void getInitialCandidates(
 	immutable size_t actualArity,
 ) {
 	eachFunInScope(ctx, funName, (ref immutable Opt!UsedFun used, immutable CalledDecl called) {
-		immutable size_t nTypeParams = size(typeParams(called));
+		immutable size_t nTypeParams = typeParams(called).length;
 		if (arityMatches(arity(called), actualArity) &&
-			(empty(explicitTypeArgs) || nTypeParams == size(explicitTypeArgs))) {
+			(empty(explicitTypeArgs) || nTypeParams == explicitTypeArgs.length)) {
 			SingleInferringType[] inferringTypeArgs = fillArr_mut!SingleInferringType(
 				alloc,
 				nTypeParams,
@@ -447,14 +445,15 @@ CommonOverloadExpected getCommonOverloadParamExpected(
 	Candidate[] candidates,
 	immutable size_t argIdx,
 ) {
-	switch (size(candidates)) {
+	switch (candidates.length) {
 		case 0:
 			return CommonOverloadExpected(Expected.infer(), false);
-		case 1: {
-			Ptr!Candidate candidate = onlyPtr_mut(candidates);
-			immutable Type t = getCandidateExpectedParameterType(alloc, programState, candidate.deref(), argIdx);
-			return CommonOverloadExpected(Expected(some(t), inferringTypeArgs(candidate.deref())), true);
-		}
+		case 1:
+			return CommonOverloadExpected(
+				Expected(
+					some(getCandidateExpectedParameterType(alloc, programState, candidates[0], argIdx)),
+					inferringTypeArgs(candidates[0])),
+				true);
 		default:
 			return CommonOverloadExpected(
 				getCommonOverloadParamExpectedForMultipleCandidates(alloc, programState, candidates, argIdx, none!Type),
@@ -560,7 +559,7 @@ immutable(Opt!Called) findSpecSigImplementation(
 		filterByParamType(alloc, programState(ctx), candidates, paramTypeAt(specSig.params, argIdx), argIdx);
 
 	// If any candidates left take specs -- leave as a TODO
-	switch (size(candidates)) {
+	switch (mutMaxArrSize(candidates)) {
 		case 0:
 			// TODO: use initial candidates in the error message
 			addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.SpecImplNotFound(specSig.name)));

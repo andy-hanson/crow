@@ -3,7 +3,7 @@ module util.diff;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : at, only, setAt, size;
+import util.collection.arr : at, only, setAt;
 import util.collection.arrUtil : arrMax, arrMaxIndex, contains, fillArrUninitialized;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
@@ -25,10 +25,10 @@ void diffSymbols(
 private:
 
 ref immutable(T) atPossiblyReversed(T)(ref immutable T[] a, immutable size_t i, immutable bool reversed) {
-	return at(a, reversed ? size(a) - 1 - i : i);
+	return at(a, reversed ? a.length - 1 - i : i);
 }
 ref const(T) atPossiblyReversed(T)(ref const T[] a, immutable size_t i, immutable bool reversed) {
-	return at(a, reversed ? size(a) - 1 - i : i);
+	return at(a, reversed ? a.length - 1 - i : i);
 }
 void setAtPossiblyReversed(T)(
 	ref T[] a,
@@ -36,7 +36,7 @@ void setAtPossiblyReversed(T)(
 	immutable T value,
 	immutable bool reversed,
 ) {
-	setAt(a, reversed ? size(a) - 1 - i : i, value);
+	setAt(a, reversed ? a.length - 1 - i : i, value);
 }
 
 // Returns the maximum subsequence length between a and each prefix of b.
@@ -52,7 +52,7 @@ void getMaximumCommonSubsequenceLengths(T)(
 ) {
 	// The buffers need to be 1 more than the length of b,
 	// because they have an entry at size(b).
-	verify(size(result) == size(b) + 1);
+	verify(result.length == b.length + 1);
 
 	// We are actually calculating a matrix. But we only need to store one row.
 	// matrix[r][c] = maximum subsequence length of a[0 .. i] and b[0 .. j].
@@ -62,7 +62,7 @@ void getMaximumCommonSubsequenceLengths(T)(
 	foreach (ref size_t x; result)
 		x = 0;
 
-	foreach (immutable size_t rowI; 1 .. size(a) + 1) {
+	foreach (immutable size_t rowI; 1 .. a.length + 1) {
 		// Each row element depends on the left, up, and left-up diagonal entries.
 		// So having only one row in memory at a time is tricky.
 		// We want to preserve the left-up and up entries from the previous row, so we keep 'left' in a variable
@@ -70,7 +70,7 @@ void getMaximumCommonSubsequenceLengths(T)(
 
 		// First column is always a 0.
 		size_t left = 0;
-		foreach (immutable size_t colI; 1 .. size(b) + 1) {
+		foreach (immutable size_t colI; 1 .. b.length + 1) {
 			immutable size_t curRowValue =
 				symEq(atPossiblyReversed(a, rowI - 1, reversed), atPossiblyReversed(b, colI - 1, reversed))
 					// if a and b match here, use the diagonal
@@ -81,7 +81,7 @@ void getMaximumCommonSubsequenceLengths(T)(
 			setAtPossiblyReversed(result, colI - 1, left, reversed);
 			left = curRowValue;
 		}
-		setAtPossiblyReversed(result, size(b), left, reversed);
+		setAtPossiblyReversed(result, b.length, left, reversed);
 	}
 }
 
@@ -93,10 +93,10 @@ immutable(size_t) findBestSplitIndex(
 	ref immutable Sym[] b,
 	ref size_t[] scratch,
 ) {
-	immutable size_t i = size(a) / 2;
-	// 1 greater because it goes from 0 to size(b) inclusive
-	immutable size_t subseqsSize = size(b) + 1;
-	verify(size(scratch) >= subseqsSize * 2);
+	immutable size_t i = a.length / 2;
+	// 1 greater because it goes from 0 to b.length inclusive
+	immutable size_t subseqsSize = b.length + 1;
+	verify(scratch.length >= subseqsSize * 2);
 	size_t[] leftSubsequenceLengths = scratch[0 .. subseqsSize];
 	size_t[] rightSubsequenceLengths = scratch[subseqsSize .. subseqsSize * 2];
 	getMaximumCommonSubsequenceLengths!Sym(a[0 .. i], b, leftSubsequenceLengths, false);
@@ -116,15 +116,15 @@ void longestCommonSubsequenceRecur(
 	ref size_t[] scratch,
 	ref ArrBuilder!Sym res,
 ) {
-	if (size(b) == 0) {
+	if (b.length == 0) {
 		// No output
-	} else if (size(a) == 1) {
+	} else if (a.length == 1) {
 		immutable Sym sa = only(a);
 		if (contains(b, sa, (ref immutable Sym x, ref immutable Sym y) => symEq(x, y)))
 			add(alloc, res, sa);
 	} else {
 		// Always slice 'a' exactly in half. Then find best way to slice 'b'.
-		immutable size_t aSplit = size(a) / 2;
+		immutable size_t aSplit = a.length / 2;
 		immutable size_t bSplit = findBestSplitIndex(a, b, scratch);
 		longestCommonSubsequenceRecur(alloc, a[0 .. aSplit], b[0 .. bSplit], scratch, res);
 		longestCommonSubsequenceRecur(alloc, a[aSplit .. $], b[bSplit .. $], scratch, res);
@@ -136,7 +136,7 @@ void longestCommonSubsequenceRecur(
 	ref immutable Sym[] a,
 	ref immutable Sym[] b,
 ) {
-	size_t[] scratch = fillArrUninitialized!size_t(alloc, (size(b) + 1) * 2);
+	size_t[] scratch = fillArrUninitialized!size_t(alloc, (b.length + 1) * 2);
 	ArrBuilder!Sym res;
 	longestCommonSubsequenceRecur(alloc, a, b, scratch, res);
 	return finishArr(alloc, res);
@@ -209,10 +209,10 @@ void printDiff(
 			extraB();
 		common();
 	}
-	while (ai < size(a) && bi < size(b))
+	while (ai < a.length && bi < b.length)
 		misspelling();
-	while (ai < size(a))
+	while (ai < a.length)
 		extraA();
-	while (bi < size(b))
+	while (bi < b.length)
 		extraB();
 }

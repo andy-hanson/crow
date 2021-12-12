@@ -3,7 +3,7 @@ module util.collection.exactSizeArrBuilder;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateBytes;
-import util.collection.arr : arrOfRange_mut, size;
+import util.collection.arr : arrOfRange_mut;
 import util.memory : initMemory_mut, memcpy, memset;
 import util.util : verify;
 
@@ -69,10 +69,10 @@ void padTo(ref ExactSizeArrBuilder!ubyte a, immutable size_t desiredSize) {
 
 @trusted void addStringAndNulTerminate(ref ExactSizeArrBuilder!ubyte a, immutable string value) {
 	//TODO:PERF
-	verify(a.cur + size(value) + 1 <= a.end);
+	verify(a.cur + value.length + 1 <= a.end);
 	verify(ubyte.sizeof == char.sizeof);
-	memcpy(a.cur, cast(immutable ubyte*) value.ptr, size(value));
-	a.cur += size(value);
+	memcpy(a.cur, cast(immutable ubyte*) value.ptr, value.length);
+	a.cur += value.length;
 	*a.cur = '\0';
 	a.cur++;
 }

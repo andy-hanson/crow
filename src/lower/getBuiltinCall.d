@@ -11,7 +11,6 @@ import model.lowModel :
 	LowExprKind,
 	LowType,
 	PrimitiveType;
-import util.collection.arr : size;
 import util.sym : Operator, operatorSymValue, shortSymAlphaLiteralValue, Sym, symEqLongAlphaLiteral;
 import util.util : todo;
 
