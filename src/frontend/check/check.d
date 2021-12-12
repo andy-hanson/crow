@@ -532,13 +532,11 @@ immutable(Params) checkParams(
 					checkParam(
 						alloc, ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts,
 						ast, index));
-			immutable Param[] params = toArr(paramsWithSize);
-			foreach (immutable size_t i, ref immutable Param param; params)
-				foreach (immutable size_t prevI, ref immutable Param prev; params[0 .. i]) {
-					if (has(param.name) && has(prev.name) && symEq(force(param.name), force(prev.name)))
-						addDiag(alloc, ctx, param.range, immutable Diag(immutable Diag.ParamShadowsPrevious(
-							Diag.ParamShadowsPrevious.Kind.param, force(param.name))));
-				}
+			eachPair!Param(toArr(paramsWithSize), (ref immutable Param x, ref immutable Param y) {
+				if (has(x.name) && has(y.name) && symEq(force(x.name), force(y.name)))
+					addDiag(alloc, ctx, y.range, immutable Diag(immutable Diag.ParamShadowsPrevious(
+						Diag.ParamShadowsPrevious.Kind.param, force(y.name))));
+			});
 			return immutable Params(paramsWithSize);
 		},
 		(ref immutable ParamsAst.Varargs varargs) {

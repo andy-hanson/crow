@@ -36,10 +36,6 @@ struct TaggedPtr(E) {
 struct Ptr(T) {
 	@safe @nogc pure nothrow:
 	@disable this(); // No nulls!
-	this(immutable T* p) immutable {
-		ptr = p;
-		verify(ptr != null);
-	}
 	@trusted this(inout T* p) inout {
 		ptr = cast(inout void*) p;
 		verify(ptr != null);
