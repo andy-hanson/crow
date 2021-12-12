@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc;
 import util.collection.arr : only;
 import util.collection.arrUtil : contains, every, findIndex;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
-import util.collection.str : CStr, strEq, strOfCStr, strToCStr;
+import util.collection.str : copyToSafeCStr, CStr, eachChar, SafeCStr, safeCStrEq, strEq;
 import util.hash : Hasher, hashUlong;
 import util.opt : has, Opt, force, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
@@ -44,7 +44,7 @@ struct Sym {
 struct AllSymbols {
 	//TODO:PRIVATE
 	Ptr!Alloc alloc;
-	MutArr!(immutable CStr) largeStrings;
+	MutArr!(immutable SafeCStr) largeStrings;
 }
 
 immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
@@ -238,8 +238,7 @@ void eachCharInSym(immutable Sym a, scope void delegate(immutable char) @safe @n
 			cb(c);
 	} else {
 		verify(isLongAlphaSym(a));
-		foreach (immutable char c; asLongAlphaSym(a))
-			cb(c);
+		eachChar(asLongAlphaSym(a), cb);
 	}
 }
 
@@ -270,7 +269,7 @@ immutable(ulong) operatorSymValue(immutable Operator a) {
 
 immutable(bool) symEqLongAlphaLiteral(immutable Sym a, immutable string lit) {
 	verify(!canPackAlphaIdentifier(lit));
-	return isLongAlphaSym(a) && strEq(asLongAlphaSym(a), lit);
+	return isLongAlphaSym(a) && safeCStrEq(asLongAlphaSym(a), lit);
 }
 
 immutable(string) strOfSym(ref Alloc alloc, immutable Sym a) {
@@ -452,22 +451,21 @@ public immutable(bool) isLongAlphaSym(immutable Sym a) {
 	return !bitsOverlap(a.value, shortAlphaSymMarker | operatorBits);
 }
 
-@trusted immutable(string) asLongAlphaSym(immutable Sym a) {
+@trusted immutable(SafeCStr) asLongAlphaSym(immutable Sym a) {
 	verify(isLongAlphaSym(a));
-	return strOfCStr(cast(immutable CStr) a.value);
+	return immutable SafeCStr(cast(immutable CStr) a.value);
 }
 
-immutable(CStr) getOrAddLongStr(ref AllSymbols allSymbols, scope immutable string str) {
-	foreach (immutable CStr s; mutArrRange(allSymbols.largeStrings))
-		if (strEqCStr(str, s))
-			return s;
-	push(allSymbols.alloc.deref(), allSymbols.largeStrings, strToCStr(allSymbols.alloc.deref(), str));
+immutable(SafeCStr) getOrAddLongStr(ref AllSymbols allSymbols, scope immutable string str) {
+	foreach (immutable SafeCStr x; mutArrRange(allSymbols.largeStrings))
+		if (safeCStrEq(x, str))
+			return x;
+	push(allSymbols.alloc.deref(), allSymbols.largeStrings, copyToSafeCStr(allSymbols.alloc.deref(), str));
 	return last(allSymbols.largeStrings);
 }
 
 immutable(Sym) getSymFromLongStr(ref AllSymbols allSymbols, scope immutable string str) {
-	immutable CStr cstr = getOrAddLongStr(allSymbols, str);
-	immutable Sym res = immutable Sym(cast(immutable ulong) cstr);
+	immutable Sym res = immutable Sym(cast(immutable ulong) getOrAddLongStr(allSymbols, str).ptr);
 	verify(isLongAlphaSym(res));
 	return res;
 }

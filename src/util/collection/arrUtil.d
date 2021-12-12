@@ -510,14 +510,13 @@ private immutable(Acc) each(Acc, T)(
 	}
 }
 
-@trusted immutable(T[]) cat4(T)(
+@trusted immutable(T[]) cat3(T)(
 	ref Alloc alloc,
 	immutable T[] a,
 	immutable T[] b,
 	immutable T[] c,
-	immutable T[] d,
 ) {
-	immutable size_t resSize = a.length + b.length + c.length + d.length;
+	immutable size_t resSize = a.length + b.length + c.length;
 	T* res = allocateT!T(alloc, resSize);
 	foreach (immutable size_t i, ref immutable T x; a)
 		initMemory(res + i, x);
@@ -525,8 +524,6 @@ private immutable(Acc) each(Acc, T)(
 		initMemory(res + a.length + i, x);
 	foreach (immutable size_t i, ref immutable T x; c)
 		initMemory(res + a.length + b.length + i, x);
-	foreach (immutable size_t i, ref immutable T x; d)
-		initMemory(res + a.length + b.length + c.length + i, x);
 	return cast(immutable) res[0 .. resSize];
 }
 

@@ -4,11 +4,10 @@ module util.collection.str;
 
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.collection.arr : freeArr;
-import util.collection.arrUtil : cat4;
+import util.collection.arrUtil : cat3;
 import util.hash : Hasher, hashUbyte;
 import util.memory : memcpy;
 import util.opt : force, has, none, Opt, some;
-import util.util : verify;
 
 alias CStr = immutable(char)*;
 
@@ -36,7 +35,7 @@ struct SafeCStr {
 	return c[0 .. size];
 }
 
-@trusted immutable(SafeCStr) copyToSafeCStr(ref Alloc alloc, scope immutable string s) {
+@trusted immutable(SafeCStr) copyToSafeCStr(ref Alloc alloc, scope const char[] s) {
 	char* res = cast(char*) allocateBytes(alloc, s.length + 1);
 	static assert(ubyte.sizeof == char.sizeof);
 	memcpy(cast(ubyte*) res, cast(ubyte*) s.ptr, s.length);
@@ -72,17 +71,8 @@ immutable(bool) startsWith(immutable SafeCStr a, immutable SafeCStr b) {
 	return has(rest);
 }
 
-immutable(SafeCStr) catToSafeCStr(ref Alloc alloc, immutable string a, immutable string b) {
-	return catToSafeCStr3(alloc, a, b, "");
-}
-
-@trusted immutable(SafeCStr) catToSafeCStr3(
-	ref Alloc alloc,
-	immutable string a,
-	immutable string b,
-	immutable string c,
-) {
-	return immutable SafeCStr(cat4(alloc, a, b, c, "\0").ptr);
+@trusted immutable(SafeCStr) catToSafeCStr(ref Alloc alloc, immutable string a, immutable string b) {
+	return immutable SafeCStr(cat3(alloc, a, b, "\0").ptr);
 }
 
 @trusted immutable(SafeCStr) safeCStr(immutable char* content)() {
@@ -92,20 +82,6 @@ immutable(SafeCStr) catToSafeCStr(ref Alloc alloc, immutable string a, immutable
 @system void freeSafeCStr(ref Alloc alloc, immutable SafeCStr a) {
 	immutable size_t size = end(a.ptr) - a.ptr;
 	freeArr(alloc, a.ptr[0 .. size + 1]);
-}
-
-immutable(bool) isEmpty(immutable SafeCStr a) {
-	return *a.ptr == '\0';
-}
-
-immutable(char) first(immutable SafeCStr a) {
-	verify(!isEmpty(a));
-	return *a.ptr;
-}
-
-@trusted immutable(SafeCStr) tail(immutable SafeCStr a) {
-	verify(!isEmpty(a));
-	return immutable SafeCStr(a.ptr + 1);
 }
 
 immutable(bool) safeCStrIsEmpty(immutable SafeCStr a) {
@@ -133,15 +109,20 @@ immutable(bool) safeCStrEqCat(immutable SafeCStr a, immutable SafeCStr b1, immut
 	return has(rest) && safeCStrEq(force(rest), b2);
 }
 
-private immutable(Opt!SafeCStr) restIfStartsWith(immutable SafeCStr a, immutable SafeCStr b) {
-	return isEmpty(b)
+private @trusted immutable(Opt!SafeCStr) restIfStartsWith(immutable SafeCStr a, immutable SafeCStr b) {
+	return *b.ptr == '\0'
 		? some(a)
-		: !isEmpty(a) && first(a) == first(b)
-		? restIfStartsWith(tail(a), tail(b))
+		: *a.ptr == *b.ptr
+		? restIfStartsWith(immutable SafeCStr(a.ptr + 1), immutable SafeCStr(b.ptr + 1))
 		: none!SafeCStr;
 }
 
 void hashStr(ref Hasher hasher, immutable string a) {
 	foreach (immutable char c; a)
 		hashUbyte(hasher, c);
+}
+
+@trusted void eachChar(immutable SafeCStr a, scope void delegate(immutable char) @safe @nogc pure nothrow cb) {
+	for (immutable(char)* p = a.ptr; *p != '\0'; p++)
+		cb(*p);
 }

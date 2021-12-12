@@ -49,17 +49,16 @@ import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : prepend, zipImpureSystem;
 import util.collection.str :
 	catToSafeCStr,
-	catToSafeCStr3,
 	copyToSafeCStr,
 	CStr,
 	SafeCStr,
 	safeCStr,
 	safeCStrEq,
 	safeCStrEqCat,
-	strEq,
 	strOfCStr,
 	strToCStr,
 	strOfSafeCStr;
+import util.collection.tempStr : copyTempStrToSafeCStr, pushToTempStr, reduceSize, TempStr, tempStrBegin, tempStrSize;
 import util.conv : bitsOfFloat64, float32OfBits, float64OfBits, safeToSizeT;
 import util.dbg : Debug;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
@@ -240,11 +239,13 @@ immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
 	ref AllPaths allPaths,
 	immutable SafeCStr crowDir,
 ) {
-	immutable SafeCStr dirPath = catToSafeCStr(alloc, strOfSafeCStr(crowDir), "/temp");
-	DIR* dir = opendir(dirPath.ptr);
+	TempStr dirPath;
+	pushToTempStr(dirPath, crowDir);
+	pushToTempStr(dirPath, "/temp");
+	DIR* dir = opendir(tempStrBegin(dirPath));
 	if (dir == null) {
 		if (errno == ENOENT) {
-			immutable int err = mkdir(dirPath.ptr, S_IRWXU);
+			immutable int err = mkdir(tempStrBegin(dirPath), S_IRWXU);
 			if (err != 0)
 				todo!void("error making temp");
 		} else
@@ -254,17 +255,20 @@ immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
 			immutable dirent* entry = cast(immutable) readdir(dir);
 			if (entry == null)
 				break;
-			immutable string entryName = strOfCStr(entry.d_name.ptr);
-			if (!strEq(entryName, ".") && !strEq(entryName, "..")) {
-				immutable SafeCStr toUnlink = catToSafeCStr3(alloc, strOfSafeCStr(dirPath), "/", entryName);
-				immutable int err = unlink(toUnlink.ptr);
+			immutable SafeCStr entryName = immutable SafeCStr(entry.d_name.ptr);
+			if (!safeCStrEq(entryName, ".") && !safeCStrEq(entryName, "..")) {
+				immutable size_t oldSize = tempStrSize(dirPath);
+				pushToTempStr(dirPath, '/');
+				pushToTempStr(dirPath, entryName);
+				immutable int err = unlink(tempStrBegin(dirPath));
+				reduceSize(dirPath, oldSize);
 				if (err != 0) {
 					todo!void("failed to unlink");
 				}
 			}
 		}
 	}
-	return dirPath;
+	return copyTempStrToSafeCStr(alloc, dirPath);
 }
 
 @system immutable(ExitCode) mkdirRecur(TempAlloc)(ref TempAlloc tempAlloc, immutable string dir) {
