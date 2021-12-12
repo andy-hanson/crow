@@ -16,18 +16,10 @@ import interpret.fakeExtern : FakeExternResult,withFakeExtern;
 import model.diag : Diagnostic, FilesInfo;
 import model.model : AbsolutePathsGetter, Program;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : freeArr;
 import util.collection.arrUtil : arrLiteral, map;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize;
 import util.collection.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
-import util.collection.str :
-	asSafeCStr,
-	copyToNulTerminatedStr,
-	CStr,
-	cStrOfNulTerminatedStr,
-	NulTerminatedStr,
-	SafeCStr,
-	safeCStr;
+import util.collection.str : copyToSafeCStr, freeSafeCStr, SafeCStr, safeCStr;
 import util.conv : safeToUshort;
 import util.dbg : Debug;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
@@ -70,10 +62,10 @@ pure void addOrChangeFile(
 	scope immutable string content,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
-	immutable NulTerminatedStr contentCopy = copyToNulTerminatedStr(server.alloc, content);
+	immutable SafeCStr contentCopy = copyToSafeCStr(server.alloc, content);
 	insertOrUpdate!(
 		immutable PathAndStorageKind,
-		immutable NulTerminatedStr,
+		immutable SafeCStr,
 		pathAndStorageKindEqual,
 		hashPathAndStorageKind,
 	)(
@@ -81,26 +73,26 @@ pure void addOrChangeFile(
 		server.files,
 		key,
 		() => contentCopy,
-		(ref immutable NulTerminatedStr old) {
-			trustedFree(server.alloc, old.str);
+		(ref immutable SafeCStr old) @trusted {
+			freeSafeCStr(server.alloc, old);
 			return contentCopy;
 		});
 }
 
-void deleteFile(ref Server server, immutable StorageKind storageKind, immutable string path) {
+@trusted pure void deleteFile(ref Server server, immutable StorageKind storageKind, immutable string path) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
-	immutable(NulTerminatedStr) deleted = mustDelete(server.files, key);
-	trustedFree(server.alloc, deleted.str);
+	immutable(SafeCStr) deleted = mustDelete(server.files, key);
+	freeSafeCStr(server.alloc, deleted);
 }
 
-pure immutable(CStr) getFile(
+pure immutable(SafeCStr) getFile(
 	ref Server server,
 	immutable StorageKind storageKind,
 	immutable string path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
-	immutable Opt!(immutable NulTerminatedStr) text = getAt_mut(server.files, key);
-	return has(text) ? cStrOfNulTerminatedStr(force(text)) : "";
+	immutable Opt!(immutable SafeCStr) text = getAt_mut(server.files, key);
+	return has(text) ? force(text) : safeCStr!"";
 }
 
 immutable(Token[]) getTokens(
@@ -111,7 +103,7 @@ immutable(Token[]) getTokens(
 	immutable string path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
-	immutable SafeCStr text = asSafeCStr(mustGetAt_mut(server.files, key));
+	immutable SafeCStr text = mustGetAt_mut(server.files, key);
 	// diagnostics not used
 	DiagnosticsBuilder diagnosticsBuilder = DiagnosticsBuilder();
 	immutable FileAst ast =
@@ -132,7 +124,7 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 	immutable string path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
-	immutable SafeCStr text = asSafeCStr(mustGetAt_mut(server.files, key));
+	immutable SafeCStr text = mustGetAt_mut(server.files, key);
 	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
 	// AST not used
 	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagsBuilder, immutable FileIndex(0), text);
@@ -209,10 +201,6 @@ immutable(FakeExternResult) run(
 }
 
 private:
-
-pure @trusted void trustedFree(ref Alloc alloc, immutable string a) {
-	freeArr(alloc, a);
-}
 
 pure immutable(Path) toPath(ref Server server, scope immutable string path) {
 	return parsePath(server.allPaths, path);

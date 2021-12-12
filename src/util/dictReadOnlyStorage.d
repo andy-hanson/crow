@@ -5,8 +5,8 @@ module util.dictReadOnlyStorage;
 import frontend.lang : crowExtension;
 import model.model : AbsolutePathsGetter;
 import util.collection.mutDict : getAt_mut, MutDict;
-import util.collection.str : asSafeCStr, NulTerminatedStr, SafeCStr, safeCStr, strEq;
-import util.opt : force, has, Opt, none, some;
+import util.collection.str : SafeCStr, safeCStr, strEq;
+import util.opt : asImmutable, Opt;
 import util.path : hashPathAndStorageKind, PathAndStorageKind, pathAndStorageKindEqual;
 import util.ptr : Ptr;
 import util.util : verify;
@@ -24,8 +24,7 @@ struct DictReadOnlyStorage {
 		scope immutable(T) delegate(immutable Opt!SafeCStr) @safe @nogc nothrow cb,
 	) const {
 		verify(strEq(extension, crowExtension));
-		const Opt!(immutable NulTerminatedStr) content = getAt_mut(files.deref(), pk);
-		return cb(has(content) ? some(asSafeCStr(force(content))) : none!SafeCStr);
+		return cb(asImmutable(getAt_mut(files.deref(), pk)));
 	}
 
 	private:
@@ -34,7 +33,7 @@ struct DictReadOnlyStorage {
 
 alias MutFiles = MutDict!(
 	immutable PathAndStorageKind,
-	immutable NulTerminatedStr,
+	immutable SafeCStr,
 	pathAndStorageKindEqual,
 	hashPathAndStorageKind,
 );

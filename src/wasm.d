@@ -94,7 +94,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable char* pathStart,
 	immutable size_t pathLength,
 ) {
-	return getFile(*server, storageKind, pathStart[0 .. pathLength]);
+	return getFile(*server, storageKind, pathStart[0 .. pathLength]).ptr;
 }
 
 @system extern(C) immutable(CStr) getTokens(

@@ -3,6 +3,7 @@ module util.collection.str;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateBytes;
+import util.collection.arr : freeArr;
 import util.collection.arrUtil : cat, rtail, tail;
 import util.hash : Hasher, hashUbyte;
 import util.memory : memcpy;
@@ -11,8 +12,11 @@ import util.util : verify;
 
 alias CStr = immutable(char)*;
 
-@trusted private immutable(CStr) end(immutable CStr c) {
-	return *c == '\0' ? c : end(c + 1);
+@trusted immutable(CStr) end(immutable CStr c) {
+	immutable(char)* ptr = c;
+	while (*ptr != '\0')
+		ptr++;
+	return ptr;
 }
 
 @trusted immutable(string) strOfCStr(immutable CStr c) {
@@ -22,11 +26,6 @@ alias CStr = immutable(char)*;
 
 @trusted immutable(CStr) cStrOfNulTerminatedStr(immutable NulTerminatedStr a) {
 	return a.str.ptr;
-}
-
-@trusted immutable(NulTerminatedStr) nulTerminatedStrOfCStr(immutable CStr c) {
-	immutable size_t size = end(c) - c;
-	return immutable NulTerminatedStr(c[0 .. size + 1]);
 }
 
 struct NulTerminatedStr {
@@ -43,7 +42,7 @@ immutable(string) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
 	return rtail(a.str);
 }
 
-@trusted immutable(NulTerminatedStr) copyToNulTerminatedStr(ref Alloc alloc, scope immutable string s) {
+@trusted private immutable(NulTerminatedStr) copyToNulTerminatedStr(ref Alloc alloc, scope immutable string s) {
 	char* res = cast(char*) allocateBytes(alloc, s.length + 1);
 	memcpy(cast(ubyte*) res, cast(ubyte*) s.ptr, s.length);
 	res[s.length] = '\0';
@@ -127,6 +126,11 @@ struct SafeCStr {
 	return immutable SafeCStr(content);
 }
 
+@system void freeSafeCStr(ref Alloc alloc, immutable SafeCStr a) {
+	immutable size_t size = end(a.ptr) - a.ptr;
+	freeArr(alloc, a.ptr[0 .. size + 1]);
+}
+
 immutable(bool) isEmpty(immutable SafeCStr a) {
 	return *a.ptr == '\0';
 }
@@ -149,7 +153,7 @@ private @trusted immutable(SafeCStr) safeCStrOfNulTerminatedStr(immutable NulTer
 	return immutable SafeCStr(asCStr(a));
 }
 
-immutable(SafeCStr) copyToSafeCStr(ref Alloc alloc, immutable string a) {
+immutable(SafeCStr) copyToSafeCStr(ref Alloc alloc, scope immutable string a) {
 	return safeCStrOfNulTerminatedStr(copyToNulTerminatedStr(alloc, a));
 }
 

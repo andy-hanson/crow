@@ -9,7 +9,7 @@ import model.model : Module, Program;
 import test.testUtil : Test;
 import util.collection.arr : lastPtr;
 import util.collection.mutDict : addToMutDict;
-import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr, strEq, strOfNulTerminatedStr;
+import util.collection.str : end, SafeCStr, safeCStr, strEq;
 import util.dbg : Debug, log, logNat, logNoNewline;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
 import util.opt : force, has, Opt;
@@ -24,8 +24,7 @@ import util.util : verify, verifyFail;
 	immutable Path path = rootPath(test.allPaths, shortSymAlphaLiteral("main"));
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(path, StorageKind.local);
 	MutFiles files;
-	immutable NulTerminatedStr contentStr = nulTerminatedStrOfCStr(content);
-	addToMutDict(test.alloc, files, key, contentStr);
+	addToMutDict(test.alloc, files, key, content);
 	const DictReadOnlyStorage storage = const DictReadOnlyStorage(ptrTrustMe_const(files));
 	immutable Program program = withNullPerf!(immutable Program, (scope ref Perf perf) =>
 		frontendCompile(test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, key));
@@ -50,14 +49,14 @@ import util.util : verify, verifyFail;
 	checkHoverRange(1, 11, "builtin type nat");
 	checkHoverRange(12, 13, "");
 	immutable Pos rStart = 14;
-	verify(content[rStart] == 'r');
+	verify(content.ptr[rStart] == 'r');
 	immutable Pos fldStart = rStart + 10;
 	checkHoverRange(rStart, fldStart, "record r");
-	verify(content[fldStart] == 'f');
+	verify(content.ptr[fldStart] == 'f');
 	checkHoverRange(fldStart, fldStart + 3, "field r.fld (nat)");
 	checkHoverRange(fldStart + 3, fldStart + 7, "builtin type nat");
 	checkHoverRange(fldStart + 7, fldStart + 8, "record r");
-	verify(fldStart + 8 == strOfNulTerminatedStr(contentStr).length);
+	verify(content.ptr + fldStart + 8 == end(content.ptr));
 
 	// TODO: TEST:
 	// * imports (have these be actually working!)
@@ -80,7 +79,7 @@ void verifyStrEq(scope ref Debug dbg, immutable Pos pos, immutable string actual
 	}
 }
 
-immutable char* content = `
+immutable SafeCStr content = safeCStr!`
 nat builtin
 
 r record

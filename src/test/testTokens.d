@@ -84,12 +84,12 @@ immutable(bool) rangeEq(ref immutable RangeWithinFile a, ref immutable RangeWith
 	return a.start == b.start && a.end == b.end;
 }
 
-immutable SafeCStr testSource = immutable SafeCStr(`import
+immutable SafeCStr testSource = safeCStr!`import
 	io
 
 main fut exit-code(args arr str) summon
 	0 resolved
-`);
+`;
 
-immutable SafeCStr testSource2 = immutable SafeCStr(`f nat(a^ nat)
-	0`);
+immutable SafeCStr testSource2 = safeCStr!`f nat(a^ nat)
+	0`;
