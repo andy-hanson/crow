@@ -8,7 +8,7 @@ import util.alloc.alloc : Alloc;
 import util.collection.arr : ArrWithSize, empty, emptyArr, emptyArrWithSize, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
-import util.collection.str : emptySafeCStr, SafeCStr, safeCStrIsEmpty;
+import util.collection.str : SafeCStr, safeCStr, safeCStrIsEmpty;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, OptPtr, some, toOpt;
 import util.path : AbsOrRelPath, absOrRelPathToStr, AllPaths;
@@ -1038,7 +1038,7 @@ struct FileAst {
 private immutable ImportsOrExportsAst emptyImportsOrExports =
 	immutable ImportsOrExportsAst(RangeWithinFile.empty, emptyArr!ImportAst);
 immutable FileAst emptyFileAst = immutable FileAst(
-	emptySafeCStr,
+	safeCStr!"",
 	true,
 	some(emptyImportsOrExports),
 	some(emptyImportsOrExports),

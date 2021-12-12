@@ -11,10 +11,6 @@ import util.util : verify;
 
 alias CStr = immutable(char)*;
 
-immutable(NulTerminatedStr) emptyNulTerminatedStr() {
-	return immutable NulTerminatedStr("\0");
-}
-
 @trusted private immutable(CStr) end(immutable CStr c) {
 	return *c == '\0' ? c : end(c + 1);
 }
@@ -118,8 +114,17 @@ immutable(NulTerminatedStr) catToNulTerminatedStr(
 // CStr type that definitely has '\0' at the end
 // (Preferred to `string` as it is 8 bytes instead of 16)
 struct SafeCStr {
-	//TODO:private:
+	@safe @nogc pure nothrow:
+
+	@system immutable this(immutable CStr p) {
+		ptr = p;
+	}
+
 	immutable CStr ptr;
+}
+
+@trusted immutable(SafeCStr) safeCStr(immutable char* content)() {
+	return immutable SafeCStr(content);
 }
 
 immutable(bool) isEmpty(immutable SafeCStr a) {
@@ -136,13 +141,11 @@ immutable(char) first(immutable SafeCStr a) {
 	return immutable SafeCStr(a.ptr + 1);
 }
 
-immutable SafeCStr emptySafeCStr = immutable SafeCStr("");
-
 immutable(bool) safeCStrIsEmpty(immutable SafeCStr a) {
 	return *a.ptr == '\0';
 }
 
-private immutable(SafeCStr) safeCStrOfNulTerminatedStr(immutable NulTerminatedStr a) {
+private @trusted immutable(SafeCStr) safeCStrOfNulTerminatedStr(immutable NulTerminatedStr a) {
 	return immutable SafeCStr(asCStr(a));
 }
 

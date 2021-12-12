@@ -27,7 +27,7 @@ import util.collection.str :
 	cStrOfNulTerminatedStr,
 	NulTerminatedStr,
 	SafeCStr,
-	strOfNulTerminatedStr;
+	safeCStr;
 import util.conv : safeToUshort;
 import util.dbg : Debug;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
@@ -132,15 +132,15 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 	immutable string path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
-	immutable NulTerminatedStr text = mustGetAt_mut(server.files, key);
+	immutable SafeCStr text = asSafeCStr(mustGetAt_mut(server.files, key));
 	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
 	// AST not used
-	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagsBuilder, immutable FileIndex(0), asSafeCStr(text));
+	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagsBuilder, immutable FileIndex(0), text);
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(arrLiteral!PathAndStorageKind(alloc, [key])),
-		immutable AbsolutePathsGetter(immutable SafeCStr(""), immutable SafeCStr(""), immutable SafeCStr("")),
+		immutable AbsolutePathsGetter(safeCStr!"", safeCStr!"", safeCStr!""),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
-			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, strOfNulTerminatedStr(text))])));
+			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, text)])));
 	return map!StrParseDiagnostic(
 		alloc,
 		finishDiagnosticsNoSort(alloc, diagsBuilder).diags,
@@ -201,7 +201,7 @@ immutable(FakeExternResult) run(
 	immutable PathAndStorageKind main = immutable PathAndStorageKind(toPath(server, mainPathStr), StorageKind.local);
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
-	scope immutable SafeCStr[1] allArgs = [immutable SafeCStr("/usr/bin/fakeExecutable")];
+	scope immutable SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
 	return withFakeExtern(alloc, (scope ref Extern extern_) =>
 		buildAndInterpret(

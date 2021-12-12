@@ -24,7 +24,7 @@ immutable(CStr) finishWriterToCStr(ref Writer writer) {
 	return cStrOfNulTerminatedStr(immutable NulTerminatedStr(finishWriter(writer)));
 }
 
-immutable(SafeCStr) finishWriterToSafeCStr(ref Writer writer) {
+@trusted immutable(SafeCStr) finishWriterToSafeCStr(ref Writer writer) {
 	return immutable SafeCStr(finishWriterToCStr(writer));
 }
 

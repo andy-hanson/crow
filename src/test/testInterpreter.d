@@ -72,7 +72,7 @@ import util.alloc.alloc : Alloc;
 import util.collection.arr : emptyArr;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.collection.stack : stackBegin, pop, push;
-import util.collection.str : SafeCStr;
+import util.collection.str : safeCStr;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
@@ -122,7 +122,7 @@ void doInterpret(
 	immutable PathAndStorageKind[1] pk = [immutable PathAndStorageKind(emptyPath, StorageKind.global)];
 	immutable LineAndColumnGetter[1] lcg = [lineAndColumnGetterForEmptyFile(test.alloc)];
 	immutable AbsolutePathsGetter emptyAbsolutePathsGetter =
-		immutable AbsolutePathsGetter(immutable SafeCStr(""), immutable SafeCStr(""));
+		immutable AbsolutePathsGetter(safeCStr!"", safeCStr!"");
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(pk),
 		emptyAbsolutePathsGetter,

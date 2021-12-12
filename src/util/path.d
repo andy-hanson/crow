@@ -4,7 +4,7 @@ module util.path;
 
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
-import util.collection.str : asSafeCStr, copyToSafeCStr, NulTerminatedStr, SafeCStr, strOfSafeCStr;
+import util.collection.str : asSafeCStr, copyToSafeCStr, NulTerminatedStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
@@ -235,7 +235,7 @@ immutable(string) absOrRelPathToStr(
 	return matchAbsOrRelPath(
 		a,
 		(immutable Path global) =>
-			pathToStr(alloc, allPaths, immutable SafeCStr(""), global, ""),
+			pathToStr(alloc, allPaths, safeCStr!"", global, ""),
 		(immutable RelPath relPath) =>
 			relPathToStr(alloc, allPaths, relPath));
 }
@@ -246,8 +246,8 @@ private immutable(string) relPathToStr(
 	ref immutable RelPath a,
 ) {
 	return a.nParents_ == 0
-		? pathToStrWorker(alloc, allPaths, immutable SafeCStr("./"), 1, a.path_, "", false)
-		: pathToStrWorker(alloc, allPaths, immutable SafeCStr("../"), a.nParents_, a.path_, "", false);
+		? pathToStrWorker(alloc, allPaths, safeCStr!"./", 1, a.path_, "", false)
+		: pathToStrWorker(alloc, allPaths, safeCStr!"../", a.nParents_, a.path_, "", false);
 }
 
 immutable(string) pathToStr(
@@ -384,7 +384,7 @@ private immutable(RootAndPath) parseAbsoluteOrRelPathWithoutExtension(
 				rp.path_);
 		case '/':
 			immutable Path path = parsePath(allPaths, a);
-			return immutable RootAndPath(immutable SafeCStr(""), path);
+			return immutable RootAndPath(safeCStr!"", path);
 		case '\\':
 			return todo!(immutable RootAndPath)("unc path?");
 		default:

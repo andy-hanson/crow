@@ -175,7 +175,7 @@ import util.collection.multiDict : buildMultiDict, multiDictEach, multiDictGetAt
 import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.collection.mutDict : insertOrUpdate, moveToDict, MutSymDict;
 import util.collection.mutSet : addToMutSymSetOkIfPresent;
-import util.collection.str : copySafeCStr, emptySafeCStr;
+import util.collection.str : copySafeCStr, safeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, OptPtr, some, someMut, toOpt;
 import util.perf : Perf;
@@ -484,7 +484,7 @@ immutable(Ptr!StructDecl) bogusStructDecl(ref Alloc alloc, immutable size_t nTyp
 		add(alloc, typeParams, immutable TypeParam(fileAndRange, shortSymAlphaLiteral("bogus"), i));
 	Ptr!StructDecl res = allocateMut(alloc, StructDecl(
 		fileAndRange,
-		emptySafeCStr,
+		safeCStr!"",
 		shortSymAlphaLiteral("bogus"),
 		finishArrWithSize(alloc, typeParams),
 		Visibility.public_,
@@ -1428,7 +1428,7 @@ immutable(CommonFuns) getCommonFuns(
 				immutable FileAndRange(ctx.fileIndex, RangeWithinFile.empty),
 				immutable Diag(immutable Diag.CommonFunMissing(nameSym)));
 			return castImmutable(allocateMut(alloc, FunDecl(
-				emptySafeCStr,
+				safeCStr!"",
 				Visibility.public_,
 				FunFlags.none,
 				immutable Sig(
@@ -1580,7 +1580,7 @@ FunDecl enumOrFlagsConstructor(
 	ref immutable StructBody.Enum.Member member,
 ) {
 	return FunDecl(
-		emptySafeCStr,
+		safeCStr!"",
 		visibility,
 		FunFlags.generatedNoCtx,
 		immutable Sig(
@@ -1601,7 +1601,7 @@ FunDecl enumEqualFunction(
 	ref immutable CommonTypes commonTypes,
 ) {
 	return FunDecl(
-		emptySafeCStr,
+		safeCStr!"",
 		visibility,
 		FunFlags.generatedNoCtx,
 		immutable Sig(
@@ -1623,7 +1623,7 @@ FunDecl flagsEmptyFunction(
 	immutable Type enumType,
 ) {
 	return FunDecl(
-		emptySafeCStr,
+		safeCStr!"",
 		visibility,
 		FunFlags.generatedNoCtx,
 		immutable Sig(
@@ -1643,7 +1643,7 @@ FunDecl flagsAllFunction(
 	immutable Type enumType,
 ) {
 	return FunDecl(
-		emptySafeCStr,
+		safeCStr!"",
 		visibility,
 		FunFlags.generatedNoCtx,
 		immutable Sig(
@@ -1663,7 +1663,7 @@ FunDecl flagsNegateFunction(
 	immutable Type enumType,
 ) {
 	return FunDecl(
-		emptySafeCStr,
+		safeCStr!"",
 		visibility,
 		FunFlags.generatedNoCtx,
 		immutable Sig(
@@ -1686,7 +1686,7 @@ FunDecl enumToIntegralFunction(
 	ref immutable CommonTypes commonTypes,
 ) {
 	return FunDecl(
-		emptySafeCStr,
+		safeCStr!"",
 		visibility,
 		FunFlags.generatedNoCtx,
 		immutable Sig(
@@ -1710,7 +1710,7 @@ FunDecl enumOrFlagsMembersFunction(
 	ref immutable CommonTypes commonTypes,
 ) {
 	return FunDecl(
-		emptySafeCStr,
+		safeCStr!"",
 		visibility,
 		FunFlags.generatedNoCtx,
 		immutable Sig(
@@ -1736,7 +1736,7 @@ FunDecl flagsUnionOrIntersectFunction(
 	immutable EnumFunction fn,
 ) {
 	return FunDecl(
-		emptySafeCStr,
+		safeCStr!"",
 		visibility,
 		FunFlags.generatedNoCtx,
 		immutable Sig(
@@ -1796,7 +1796,7 @@ void addFunsForRecord(
 		immutable Param(it.range, some(it.name), it.type, it.index));
 	FunDecl constructor(immutable Type returnType, immutable FunFlags flags) {
 		return FunDecl(
-			emptySafeCStr,
+			safeCStr!"",
 			record.flags.newVisibility,
 			flags.withOkIfUnused(),
 			immutable Sig(
@@ -1824,7 +1824,7 @@ void addFunsForRecord(
 	foreach (immutable size_t fieldIndex, ref immutable RecordField field; record.fields) {
 		immutable Visibility fieldVisibility = leastVisibility(struct_.deref().visibility, field.visibility);
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-			emptySafeCStr,
+			safeCStr!"",
 			fieldVisibility,
 			FunFlags.generatedNoCtx,
 			immutable Sig(
@@ -1840,7 +1840,7 @@ void addFunsForRecord(
 		immutable Opt!Visibility mutVisibility = visibilityOfFieldMutability(field.mutability);
 		if (has(mutVisibility))
 			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-				emptySafeCStr,
+				safeCStr!"",
 				force(mutVisibility),
 				FunFlags.generatedNoCtx,
 				immutable Sig(
@@ -1889,7 +1889,7 @@ void addFunsForUnion(
 				immutable Param(member.range, some(shortSymAlphaLiteral("a")), force(member.type), 0)])
 			: emptyArrWithSize!Param;
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-			emptySafeCStr,
+			safeCStr!"",
 			struct_.deref().visibility,
 			FunFlags.generatedNoCtx,
 			immutable Sig(

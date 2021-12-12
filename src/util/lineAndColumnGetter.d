@@ -4,6 +4,7 @@ module util.lineAndColumnGetter;
 
 import util.alloc.alloc : Alloc;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.collection.str : SafeCStr, safeCStr;
 import util.conv : safeToUint, safeToUshort;
 import util.sourceRange : Pos;
 import util.util : verify;
@@ -25,17 +26,21 @@ struct LineAndColumnGetter {
 	}
 }
 
-immutable(LineAndColumnGetter) lineAndColumnGetterForText(ref Alloc alloc, immutable string text) {
+@trusted immutable(LineAndColumnGetter) lineAndColumnGetterForText(ref Alloc alloc, immutable SafeCStr text) {
 	ArrBuilder!Pos lineToPos;
 	ArrBuilder!ubyte lineToNTabs;
 
-	add(alloc, lineToPos, 0);
-	add(alloc, lineToNTabs, getNTabs(text));
+	immutable(char)* ptr = text.ptr;
 
-	foreach (immutable uint i; 0 .. safeToUint(text.length)) {
-		if (text[i] == '\n') {
-			add(alloc, lineToPos, i + 1);
-			add(alloc, lineToNTabs, getNTabs(text[i + 1 .. $]));
+	add(alloc, lineToPos, 0);
+	add(alloc, lineToNTabs, advanceAndGetNTabs(ptr));
+
+	while (*ptr != '\0') {
+		immutable bool nl = *ptr == '\n';
+		ptr++;
+		if (nl) {
+			add(alloc, lineToPos, safeToUint(ptr - text.ptr));
+			add(alloc, lineToNTabs, advanceAndGetNTabs(ptr));
 		}
 	}
 
@@ -43,7 +48,7 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForText(ref Alloc alloc, immut
 }
 
 immutable(LineAndColumnGetter) lineAndColumnGetterForEmptyFile(ref Alloc alloc) {
-	return lineAndColumnGetterForText(alloc, "");
+	return lineAndColumnGetterForText(alloc, safeCStr!"");
 }
 
 immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc, immutable Pos pos) {
@@ -83,13 +88,8 @@ ushort mid(immutable ushort a, immutable ushort b) {
 	return (a + b) / 2;
 }
 
-ubyte getNTabs(immutable string text) {
-	ubyte i = 0;
-	while (i < ubyte.max
-		&& i < text.length
-		&& text[i] == '\t'
-	) {
-		i++;
-	}
-	return i;
+@system ubyte advanceAndGetNTabs(ref immutable(char)* a) {
+	immutable char* begin = a;
+	while (*a == '\t') a++;
+	return cast(ubyte) (a - begin);
 }

@@ -9,7 +9,7 @@ import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr : arrOfRange, empty;
-import util.collection.str : copyToSafeCStr, CStr, emptySafeCStr, SafeCStr;
+import util.collection.str : copyToSafeCStr, CStr, SafeCStr, safeCStr;
 import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.ptr : Ptr;
@@ -1140,19 +1140,19 @@ struct IndentDelta {
 }
 
 public immutable(SafeCStr) skipBlankLinesAndGetDocComment(ref Lexer lexer) {
-	return skipBlankLinesAndGetDocCommentRecur(lexer, emptySafeCStr);
+	return skipBlankLinesAndGetDocCommentRecur(lexer, safeCStr!"");
 }
 
 immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(ref Lexer lexer, immutable SafeCStr comment) {
 	if (tryTakeChar(lexer, '\n'))
-		return skipBlankLinesAndGetDocCommentRecur(lexer, emptySafeCStr);
+		return skipBlankLinesAndGetDocCommentRecur(lexer, safeCStr!"");
 	else if (tryTakeCStr(lexer, "###\n"))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, takeRestOfBlockComment(lexer));
 	else if (tryTakeChar(lexer, '#'))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, takeRestOfLineAndNewline(lexer));
 	else if (tryTakeCStr(lexer, "region ")) {
 		skipRestOfLineAndNewline(lexer);
-		return skipBlankLinesAndGetDocCommentRecur(lexer, emptySafeCStr);
+		return skipBlankLinesAndGetDocCommentRecur(lexer, safeCStr!"");
 	} else
 		return comment;
 }

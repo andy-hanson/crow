@@ -18,7 +18,7 @@ import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil : arrLiteral, copyArr, map, mapImpure, mapOp, mapWithSoFar, prepend;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGetPtr, fullIndexDictOfArr;
 import util.collection.mutDict : getAt_mut, MutDict, setInDict;
-import util.collection.str : asSafeCStr, NulTerminatedStr, strOfNulTerminatedStr;
+import util.collection.str : SafeCStr;
 import util.conv : safeToUshort;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile, lineAndColumnGetterForText;
@@ -88,7 +88,7 @@ immutable(FileAstAndDiagnostics) parseSingleAst(ReadOnlyStorage)(
 	return storage.withFile!(immutable FileAstAndDiagnostics)(
 		path,
 		crowExtension,
-		(ref immutable Opt!NulTerminatedStr opFileContent) {
+		(immutable Opt!SafeCStr opFileContent) {
 			DiagnosticsBuilder diags = DiagnosticsBuilder();
 			immutable FileAstAndLineAndColumnGetter res = parseSingle(
 				alloc,
@@ -275,7 +275,7 @@ immutable(FileIndex) parseRecur(ReadOnlyStorage)(
 		return index;
 	}
 
-	return storage.withFile(path, crowExtension, (ref immutable Opt!NulTerminatedStr opFileContent) {
+	return storage.withFile(path, crowExtension, (immutable Opt!SafeCStr opFileContent) {
 		immutable FileAstAndLineAndColumnGetter parseResult = parseSingle(
 			modelAlloc, astAlloc, perf, allPaths, allSymbols, diags, previewFileIndex(), importedFrom, opFileContent);
 		immutable FileAst ast = parseResult.ast;
@@ -376,16 +376,16 @@ immutable(FileAstAndLineAndColumnGetter) parseSingle(
 	ref DiagnosticsBuilder diags,
 	immutable FileIndex fileIndex,
 	immutable Opt!PathAndRange importedFrom,
-	immutable Opt!NulTerminatedStr opFileContent,
+	immutable Opt!SafeCStr opFileContent,
 ) {
 	immutable LineAndColumnGetter lcg = has(opFileContent)
-		? lineAndColumnGetterForText(modelAlloc, strOfNulTerminatedStr(force(opFileContent)))
+		? lineAndColumnGetterForText(modelAlloc, force(opFileContent))
 		: lineAndColumnGetterForEmptyFile(modelAlloc);
 
 	// File content must go in astAlloc because we refer to strings without copying
 	if (has(opFileContent))
 		return immutable FileAstAndLineAndColumnGetter(
-			parseFile(astAlloc, perf, allPaths, allSymbols, diags, fileIndex, asSafeCStr(force(opFileContent))),
+			parseFile(astAlloc, perf, allPaths, allSymbols, diags, fileIndex, force(opFileContent)),
 			lcg);
 	else {
 		addDiagnostic(modelAlloc, diags, immutable FileAndRange(fileIndex, RangeWithinFile.empty), immutable Diag(

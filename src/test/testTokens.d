@@ -9,7 +9,7 @@ import frontend.parse.parse : parseFile;
 import test.testUtil : Test;
 import util.collection.arr : emptyArr;
 import util.collection.arrUtil : arrEqual, arrLiteral;
-import util.collection.str : SafeCStr;
+import util.collection.str : SafeCStr, safeCStr;
 import util.dbg : log;
 import util.perf : Perf, withNullPerf;
 import util.repr : writeRepr;
@@ -19,12 +19,7 @@ import util.util : verifyFail;
 import util.writer : finishWriter, Writer, writeStatic;
 
 void testTokens(ref Test test) {
-	testOne(test, immutable SafeCStr(""), emptyArr!Token);
-
-	debug {
-		import core.stdc.stdio : printf;
-		printf("testSource2 IS %s\n", testSource2.ptr);
-	}
+	testOne(test, safeCStr!"", emptyArr!Token);
 
 	testOne(test, testSource, arrLiteral!Token(test.alloc, [
 		immutable Token(Token.Kind.keyword, immutable RangeWithinFile(0, 6)),

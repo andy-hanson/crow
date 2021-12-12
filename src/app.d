@@ -55,9 +55,9 @@ import util.collection.str :
 	copyToSafeCStr,
 	CStr,
 	cStrOfNulTerminatedStr,
-	emptyNulTerminatedStr,
 	NulTerminatedStr,
 	SafeCStr,
+	safeCStr,
 	safeCStrEq,
 	safeCStrEqCat,
 	strEq,
@@ -487,20 +487,20 @@ immutable(ExitCode) help(ref immutable Command.Help a) {
 
 immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
 	static immutable SafeCStr[] optimizedArgs = [
-		immutable SafeCStr("-Werror"),
-		immutable SafeCStr("-Wextra"),
-		immutable SafeCStr("-Wall"),
-		immutable SafeCStr("-ansi"),
-		immutable SafeCStr("-std=c11"),
-		immutable SafeCStr("-Wno-maybe-uninitialized"),
-		immutable SafeCStr("-Wno-unused-parameter"),
-		immutable SafeCStr("-Wno-unused-but-set-variable"),
-		immutable SafeCStr("-Wno-unused-variable"),
-		immutable SafeCStr("-Wno-unused-value"),
-		immutable SafeCStr("-Wno-builtin-declaration-mismatch"),
-		immutable SafeCStr("-pthread"),
-		immutable SafeCStr("-lm"),
-		immutable SafeCStr("-Ofast"),
+		safeCStr!"-Werror",
+		safeCStr!"-Wextra",
+		safeCStr!"-Wall",
+		safeCStr!"-ansi",
+		safeCStr!"-std=c11",
+		safeCStr!"-Wno-maybe-uninitialized",
+		safeCStr!"-Wno-unused-parameter",
+		safeCStr!"-Wno-unused-but-set-variable",
+		safeCStr!"-Wno-unused-variable",
+		safeCStr!"-Wno-unused-value",
+		safeCStr!"-Wno-builtin-declaration-mismatch",
+		safeCStr!"-pthread",
+		safeCStr!"-lm",
+		safeCStr!"-Ofast",
 	];
 	static immutable SafeCStr[] regularArgs = optimizedArgs[0 .. $ - 1];
 	final switch (options.optimizationLevel) {
@@ -552,9 +552,9 @@ immutable(SafeCStr[]) cCompileArgs(
 	}
 	addAll(alloc, args, [
 		// TODO: configurable whether we want debug or release
-		immutable SafeCStr("-g"),
+		safeCStr!"-g",
 		pathToSafeCStr(alloc, allPaths, cPath),
-		immutable SafeCStr("-o"),
+		safeCStr!"-o",
 		pathToSafeCStr(alloc, allPaths, exePath),
 	]);
 	return finishArr(alloc, args);
@@ -584,7 +584,7 @@ struct RealReadOnlyStorage {
 	immutable(T) withFile(T)(
 		immutable PathAndStorageKind pk,
 		immutable string extension,
-		scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
+		scope immutable(T) delegate(immutable Opt!SafeCStr) @safe @nogc nothrow cb,
 	) {
 		immutable SafeCStr root = () {
 			final switch (pk.storageKind) {
@@ -833,15 +833,14 @@ extern(C) {
 	ref TempAlloc tempAlloc,
 	ref const AllPaths allPaths,
 	immutable AbsolutePath path,
-	scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
+	scope immutable(T) delegate(immutable Opt!SafeCStr) @safe @nogc nothrow cb,
 ) {
 	immutable CStr pathCStr = pathToSafeCStr(tempAlloc, allPaths, path).ptr;
 
 	immutable int fd = open(pathCStr, O_RDONLY);
 	if (fd == -1) {
 		if (errno == ENOENT) {
-			immutable Opt!NulTerminatedStr n = none!NulTerminatedStr;
-			return cb(n);
+			return cb(none!SafeCStr);
 		} else {
 			fprintf(stderr, "Failed to open file %s\n", pathCStr);
 			return todo!T("fail");
@@ -859,10 +858,8 @@ extern(C) {
 
 	immutable uint fileSize = cast(uint) fileSizeOff;
 
-	if (fileSize == 0) {
-		immutable Opt!NulTerminatedStr s = some(emptyNulTerminatedStr);
-		return cb(s);
-	}
+	if (fileSize == 0)
+		return cb(some(safeCStr!""));
 
 	// Go back to the beginning so we can read
 	immutable off_t off = lseek(fd, 0, SEEK_SET);
@@ -884,9 +881,7 @@ extern(C) {
 
 	content[fileSize] = '\0';
 
-	immutable Opt!NulTerminatedStr s =
-		some(immutable NulTerminatedStr(cast(immutable) content[0 .. contentSize]));
-	return cb(s);
+	return cb(some(immutable SafeCStr(cast(immutable) content)));
 }
 
 @trusted immutable(ExitCode) writeFile(TempAlloc)(
