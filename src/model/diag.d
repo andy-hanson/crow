@@ -282,8 +282,8 @@ struct Diag {
 	}
 	struct WrongNumberTypeArgsForStruct {
 		immutable StructOrAlias decl;
-		immutable ubyte nExpectedTypeArgs;
-		immutable ubyte nActualTypeArgs;
+		immutable size_t nExpectedTypeArgs;
+		immutable size_t nActualTypeArgs;
 	}
 
 	private:

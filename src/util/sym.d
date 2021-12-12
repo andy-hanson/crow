@@ -243,8 +243,8 @@ void eachCharInSym(immutable Sym a, scope void delegate(immutable char) @safe @n
 	}
 }
 
-immutable(size_t) symSize(immutable Sym a) {
-	size_t size = 0;
+immutable(uint) symSize(immutable Sym a) {
+	uint size = 0;
 	eachCharInSym(a, (immutable char) {
 		size++;
 	});

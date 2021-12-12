@@ -4,10 +4,10 @@ module util.sourceRange;
 
 import util.alloc.alloc : Alloc;
 import util.collection.fullIndexDict : FullIndexDict;
+import util.conv : safeToUint, safeToUshort;
 import util.path : PathAndStorageKind;
 import util.repr : Repr, reprNat, reprRecord;
 import util.sym : Sym, symSize;
-import util.types : safeU32ToU16, safeSizeTToU32;
 
 alias Pos = uint;
 
@@ -37,7 +37,7 @@ immutable(RangeWithinFile) rangeOfStartAndName(immutable Pos start, immutable Sy
 }
 
 immutable(RangeWithinFile) rangeOfStartAndLength(immutable Pos start, immutable size_t length) {
-	return immutable RangeWithinFile(start, safeSizeTToU32(start + length));
+	return immutable RangeWithinFile(start, safeToUint(start + length));
 }
 
 struct FileAndPos {
@@ -58,7 +58,7 @@ struct FileAndRange {
 
 	immutable this(immutable FileIndex fi, immutable RangeWithinFile r) {
 		fileIndex = fi;
-		size = safeU32ToU16(r.end - r.start);
+		size = safeToUshort(r.end - r.start);
 		start = r.start;
 	}
 

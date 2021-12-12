@@ -415,7 +415,7 @@ immutable(Sym) symOfConcreteMutability(immutable ConcreteMutability a) {
 
 struct ConcreteField {
 	immutable ConcreteFieldSource source;
-	immutable ubyte index;
+	immutable size_t index;
 	immutable ConcreteMutability mutability;
 	immutable ConcreteType type;
 }
@@ -501,10 +501,10 @@ struct ConcreteFunBody {
 		immutable FlagsFunction fn;
 	}
 	struct RecordFieldGet {
-		immutable ubyte fieldIndex;
+		immutable size_t fieldIndex;
 	}
 	struct RecordFieldSet {
-		immutable ubyte fieldIndex;
+		immutable size_t fieldIndex;
 	}
 
 	private:

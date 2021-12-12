@@ -7,7 +7,6 @@ import model.lowModel : LowFunIndex;
 import util.collection.arr : begin, size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.sym : Sym;
-import util.types : safeU64FromI64;
 import util.sourceRange : FileIndex, Pos;
 import util.util : verify;
 
@@ -114,7 +113,7 @@ struct ByteCodeOffset {
 	immutable long offset;
 
 	immutable(ByteCodeOffsetUnsigned) unsigned() const {
-		return immutable ByteCodeOffsetUnsigned(safeU64FromI64(offset));
+		return immutable ByteCodeOffsetUnsigned(cast(ulong) offset);
 	}
 }
 

@@ -58,12 +58,12 @@ import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : tail;
 import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : compareNat32, Comparison;
+import util.conv : safeToUint;
 import util.opt : force, has, Opt, OptPtr, toOpt;
 import util.ptr : Ptr;
 import util.repr : Repr, nameAndRepr, reprArr, reprNamedRecord, reprSym;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
-import util.types : safeSizeTToU32;
 import util.util : todo;
 
 struct Token {
@@ -138,7 +138,7 @@ immutable(RangeWithinFile) rangeAtName(immutable Visibility visibility, immutabl
 		}
 	}();
 	immutable Pos afterDot = start + offset;
-	return immutable RangeWithinFile(afterDot, safeSizeTToU32(afterDot + symSize(name)));
+	return immutable RangeWithinFile(afterDot, afterDot + symSize(name));
 }
 
 immutable(RangeWithinFile) rangeAtName(immutable Pos start, immutable Sym name) {
@@ -308,7 +308,8 @@ void addEnumOrFlagsTokens(
 			Token.Kind.fieldDef, // TODO: enumMemberREf
 			member.range));
 		if (has(member.value)) {
-			immutable Pos pos = safeSizeTToU32(member.range.start + symSize(member.name) + " = ".length);
+			immutable uint addLen = " = ".length;
+			immutable Pos pos = member.range.start + symSize(member.name) + addLen;
 			add(alloc, tokens, immutable Token(
 				Token.Kind.literalNumber,
 				immutable RangeWithinFile(pos, member.range.end)));
@@ -412,14 +413,14 @@ void addExprTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable E
 						(ref immutable string s) {
 							// TODO: length may be wrong if there are escapes
 							// Ensure the closing quote is highlighted
-							immutable Pos end = safeSizeTToU32(pos + s.length) + (i == size(it.parts) - 1 ? 1 : 0);
+							immutable Pos end = safeToUint(pos + s.length) + (i == size(it.parts) - 1 ? 1 : 0);
 							add(alloc, tokens, immutable Token(
 								Token.Kind.literalString,
 								immutable RangeWithinFile(pos, end)));
 						},
 						(ref immutable ExprAst e) {
 							addExprTokens(alloc, tokens, e);
-							pos = safeSizeTToU32(e.range.end + 1);
+							pos = safeToUint(e.range.end + 1);
 						},
 					)(at(it.parts, i));
 				// Ensure closing quote is highlighted

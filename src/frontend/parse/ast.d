@@ -9,6 +9,7 @@ import util.collection.arr : ArrWithSize, empty, emptyArr, emptyArrWithSize, toA
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
 import util.collection.str : emptySafeCStr, SafeCStr, safeCStrIsEmpty;
+import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, OptPtr, some, toOpt;
 import util.path : AbsOrRelPath, absOrRelPathToStr, AllPaths;
 import util.ptr : Ptr;
@@ -28,7 +29,6 @@ import util.repr :
 	reprSym;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
-import util.types : safeSizeTToU32;
 import util.util : verify;
 
 struct NameAndRange {
@@ -148,7 +148,7 @@ immutable(RangeWithinFile) range(immutable TypeAst a) {
 }
 
 immutable(RangeWithinFile) range(immutable TypeAst.Dict a) {
-	return immutable RangeWithinFile(range(a.v).start, safeSizeTToU32(range(a.k).end + "]".length));
+	return immutable RangeWithinFile(range(a.v).start, safeToUint(range(a.k).end + "]".length));
 }
 
 immutable(RangeWithinFile) range(immutable TypeAst.Suffix a) {
@@ -426,7 +426,7 @@ struct MatchAst {
 
 		//TODO: NOT INSTANCE
 		immutable(RangeWithinFile) memberNameRange() immutable {
-			return rangeOfStartAndName(safeSizeTToU32(range.start + "as ".length), memberName);
+			return rangeOfStartAndName(safeToUint(range.start + "as ".length), memberName);
 		}
 
 		immutable(RangeWithinFile) localRange() immutable {
@@ -691,7 +691,7 @@ struct PuritySpecifierAndRange {
 }
 
 immutable(RangeWithinFile) rangeOfPuritySpecifier(ref immutable PuritySpecifierAndRange a) {
-	return immutable RangeWithinFile(a.start, safeSizeTToU32(a.start + symSize(symOfPuritySpecifier(a.specifier))));
+	return immutable RangeWithinFile(a.start, a.start + symSize(symOfPuritySpecifier(a.specifier)));
 }
 
 struct StructAliasAst {
@@ -723,7 +723,7 @@ struct ExplicitByValOrRefAndRange {
 }
 
 immutable(RangeWithinFile) rangeOfExplicitByValOrRef(ref immutable ExplicitByValOrRefAndRange a) {
-	return immutable RangeWithinFile(a.start, safeSizeTToU32(a.start + symSize(symOfExplicitByValOrRef(a.byValOrRef))));
+	return immutable RangeWithinFile(a.start, a.start + symSize(symOfExplicitByValOrRef(a.byValOrRef)));
 }
 
 struct RecordModifiers {

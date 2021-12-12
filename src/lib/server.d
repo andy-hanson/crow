@@ -27,6 +27,7 @@ import util.collection.str :
 	NulTerminatedStr,
 	SafeCStr,
 	strOfNulTerminatedStr;
+import util.conv : safeToUshort;
 import util.dbg : Debug;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
@@ -43,7 +44,6 @@ import util.perf : Perf;
 import util.ptr : Ptr, ptrTrustMe_const;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
 import util.sym : AllSymbols;
-import util.types : safeSizeTToU16;
 
 struct Server {
 	@safe @nogc pure nothrow:
@@ -186,7 +186,7 @@ private pure immutable(Opt!FileIndex) getFileIndex(
 ) {
 	foreach (immutable size_t i; 0 .. fullIndexDictSize(filePaths))
 		if (pathAndStorageKindEqual(at(filePaths.values, i), search))
-			return some(immutable FileIndex(safeSizeTToU16(i)));
+			return some(immutable FileIndex(safeToUshort(i)));
 	return none!FileIndex;
 }
 

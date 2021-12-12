@@ -144,12 +144,12 @@ import util.collection.mutArr :
 	tempAsArr,
 	tempAsArr_mut;
 import util.collection.str : copyStr;
+import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
 import util.sym : Operator, shortSymAlphaLiteral, Sym, symEq, symForOperator;
-import util.types : safeSizeTToU32;
 import util.util : todo, unreachable, verify;
 
 immutable(Expr) checkFunctionBody(
@@ -445,7 +445,7 @@ immutable(CallAst) checkInterpolatedRecur(
 			(ref immutable string it) {
 				immutable ExprAst right = immutable ExprAst(
 					// TODO: this length may be wrong in the presence of escapes
-					immutable RangeWithinFile(pos, safeSizeTToU32(pos + it.length)),
+					immutable RangeWithinFile(pos, safeToUint(pos + it.length)),
 					immutable ExprAstKind(immutable LiteralAst(it)));
 				return immutable CallAst(
 					CallAst.Style.infix,
@@ -462,7 +462,7 @@ immutable(CallAst) checkInterpolatedRecur(
 		)(parts[0]);
 		immutable Pos newPos = matchInterpolatedPart!(
 			immutable Pos,
-			(ref immutable string it) => safeSizeTToU32(pos + it.length),
+			(ref immutable string it) => safeToUint(pos + it.length),
 			(ref immutable ExprAst e) => e.range.end,
 		)(parts[0]);
 		immutable ExprAst newLeft = immutable ExprAst(

@@ -65,6 +65,7 @@ import util.collection.str :
 	strToCStr,
 	strOfSafeCStr,
 	strOfNulTerminatedStr;
+import util.conv : bitsOfFloat64, float32OfBits, float64OfBits, safeToSizeT;
 import util.dbg : Debug;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
 import util.path :
@@ -82,14 +83,6 @@ import util.path :
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : AllSymbols, shortSymAlphaLiteral, Sym, symAsTempBuffer, writeSym;
-import util.types :
-	float32OfU32Bits,
-	float64OfU64Bits,
-	safeSizeTFromU64,
-	safeSizeTFromLong,
-	safeU32FromI64,
-	u32OfI32Bits,
-	u64OfFloat64Bits;
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriterToSafeCStr, Writer, writeStatic;
 
@@ -708,10 +701,10 @@ immutable(ExitCode) withRealExtern(
 					dcArgInt(dcVm, cast(int) value);
 					break;
 				case DynCallType.float32:
-					dcArgFloat(dcVm, float32OfU32Bits(cast(uint) value));
+					dcArgFloat(dcVm, float32OfBits(cast(uint) value));
 					break;
 				case DynCallType.float64:
-					dcArgDouble(dcVm, float64OfU64Bits(value));
+					dcArgDouble(dcVm, float64OfBits(value));
 					break;
 				case DynCallType.nat8:
 					todo!void("handle this type");
@@ -752,13 +745,13 @@ immutable(ExitCode) withRealExtern(
 			case DynCallType.float32:
 				return todo!(immutable ulong)("handle this type");
 			case DynCallType.float64:
-				return u64OfFloat64Bits(dcCallDouble(dcVm, ptr));
+				return bitsOfFloat64(dcCallDouble(dcVm, ptr));
 			case DynCallType.nat8:
 				return todo!(immutable ulong)("handle this type");
 			case DynCallType.nat16:
 				return todo!(immutable ulong)("handle this type");
 			case DynCallType.nat32:
-				return u32OfI32Bits(dcCallInt(dcVm, ptr));
+				return cast(uint) dcCallInt(dcVm, ptr);
 			case DynCallType.pointer:
 				return cast(size_t) dcCallPointer(dcVm, ptr);
 			case DynCallType.void_:
@@ -858,13 +851,13 @@ extern(C) {
 	scope(exit) close(fd);
 
 	immutable off_t fileSizeOff = lseek(fd, 0, SEEK_END);
-	if (fileSizeOff == -1)
+	if (fileSizeOff < 0)
 		return todo!T("lseek fialed");
 
 	if (fileSizeOff > 99_999)
 		return todo!T("size suspiciously large");
 
-	immutable uint fileSize = safeU32FromI64(fileSizeOff);
+	immutable uint fileSize = cast(uint) fileSizeOff;
 
 	if (fileSize == 0) {
 		immutable Opt!NulTerminatedStr s = some(emptyNulTerminatedStr);
@@ -878,7 +871,7 @@ extern(C) {
 
 	verify(off == 0);
 
-	immutable size_t contentSize = safeSizeTFromU64(fileSize + 1);
+	immutable size_t contentSize = safeToSizeT(fileSize + 1);
 	char* content = cast(char*) allocateBytes(tempAlloc, char.sizeof * contentSize); // + 1 for the '\0'
 	scope (exit) freeBytes(tempAlloc, cast(ubyte*) content, char.sizeof * contentSize);
 	immutable long nBytesRead = read(fd, content, fileSize);
@@ -968,7 +961,7 @@ immutable size_t maxPathSize = 0x1000;
 	immutable long size = readlink("/proc/self/exe", buff.ptr, maxPathSize);
 	if (size < 0)
 		todo!void("posix error");
-	return copyToSafeCStr(alloc, cast(immutable) buff.ptr[0 .. safeSizeTFromLong(size)]);
+	return copyToSafeCStr(alloc, cast(immutable) buff.ptr[0 .. size]);
 }
 
 // Returns the child process' error code.

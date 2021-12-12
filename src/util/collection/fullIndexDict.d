@@ -3,10 +3,10 @@ module util.collection.fullIndexDict;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
+import util.conv : safeToUint, safeToUshort;
 import util.collection.arr : at, castImmutable, emptyArr, ptrAt, setAt, size;
 import util.collection.arrUtil : mapWithIndex, mapWithIndex_mut;
 import util.ptr : Ptr;
-import util.types : safeSizeTToU16, safeSizeTToU32;
 import util.util : verify;
 
 struct FullIndexDict(K, V) {
@@ -111,7 +111,7 @@ immutable(FullIndexDict!(K, VOut)) mapFullIndexDict(K, VOut, VIn)(
 ) {
 	return fullIndexDictOfArr!(K, VOut)(
 		mapWithIndex(alloc, a.values, (immutable size_t index, ref immutable VIn v) =>
-			cb(immutable K(K.sizeof == 4 ? safeSizeTToU32(index) : safeSizeTToU16(index)), v)));
+			cb(immutable K(K.sizeof == 4 ? safeToUint(index) : safeToUshort(index)), v)));
 }
 
 FullIndexDict!(K, VOut) mapFullIndexDict_mut(K, VOut, VIn)(
@@ -121,5 +121,5 @@ FullIndexDict!(K, VOut) mapFullIndexDict_mut(K, VOut, VIn)(
 ) {
 	return fullIndexDictOfArr_mut!(K, VOut)(
 		mapWithIndex_mut!(VOut, VIn)(alloc, a.values, (immutable size_t index, ref immutable VIn v) =>
-			cb(immutable K(K.sizeof == 4 ? safeSizeTToU32(index) : safeSizeTToU16(index)), v)));
+			cb(immutable K(K.sizeof == 4 ? safeToUint(index) : safeToUshort(index)), v)));
 }

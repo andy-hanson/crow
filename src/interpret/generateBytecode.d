@@ -158,13 +158,13 @@ import util.collection.mutIndexMultiDict :
 	mutIndexMultiDictAdd,
 	mutIndexMultiDictMustGetAt,
 	newMutIndexMultiDict;
+import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.dbg : Debug;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
 import util.sym : shortSymAlphaLiteralValue, Sym, symEqLongAlphaLiteral;
-import util.types : u64OfFloat32Bits, u64OfFloat64Bits;
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
@@ -880,10 +880,10 @@ void generateConstant(
 		(immutable double it) {
 			switch (asPrimitiveType(type)) {
 				case PrimitiveType.float32:
-					writePushConstant(dbg, writer, source, u64OfFloat32Bits(cast(float) it));
+					writePushConstant(dbg, writer, source, bitsOfFloat32(cast(float) it));
 					break;
 				case PrimitiveType.float64:
-					writePushConstant(dbg, writer, source, u64OfFloat64Bits(it));
+					writePushConstant(dbg, writer, source, bitsOfFloat64(it));
 					break;
 				default:
 					unreachable!void();

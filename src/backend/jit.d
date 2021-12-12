@@ -1153,7 +1153,7 @@ immutable(ExprResult) paramRefToGcc(
 }
 
 Ptr!gcc_jit_param getParam(ref ExprCtx ctx, immutable LowExprKind.ParamRef a) {
-	return gcc_jit_function_get_param(ctx.curFun, a.index.index);
+	return gcc_jit_function_get_param(ctx.curFun, cast(int) a.index.index);
 }
 
 immutable(ExprResult) ptrCastToGcc(

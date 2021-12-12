@@ -11,8 +11,7 @@ import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : shortSymAlphaLiteral, Sym, symSize, writeSym;
-import util.types : abs, safeIntFromSizeT;
-import util.util : todo;
+import util.util : abs, todo;
 import util.writer :
 	finishWriterToCStr,
 	writeChar,
@@ -393,42 +392,37 @@ immutable(int) measureReprSingleLine(ref immutable Repr a, immutable int availab
 			measureReprNamedRecord(s, available),
 		(immutable Opt!(Ptr!Repr) s) =>
 			has(s)
-				? measureReprSingleLine(force(s).deref(), available - safeIntFromSizeT("some()".length))
-				: available - safeIntFromSizeT("none".length),
+				? measureReprSingleLine(force(s).deref(), available - len!"some()")
+				: available - len!"none",
 		(ref immutable ReprRecord s) =>
 			measureReprRecord(s, available),
 		(ref immutable string s) =>
-			available - measureQuotedStr(s),
+			available - len!"\"\"" - cast(int) s.length,
 		(immutable Sym s) =>
-			available - safeIntFromSizeT(symSize(s)));
+			cast(int) (available - symSize(s)));
 }
 
 immutable(int) measureReprArr(ref immutable ReprArr a, immutable int available) {
-	return measureCommaSeparatedChildren(a.arr, available - safeIntFromSizeT("[]".length));
+	return measureCommaSeparatedChildren(a.arr, available - len!"[]");
 }
 
 immutable(int) measureReprNamedRecord(ref immutable ReprNamedRecord a, immutable int available) {
-	return measureReprNamedRecordRecur(
-		a.children,
-		available - safeIntFromSizeT(symSize(a.name)) - safeIntFromSizeT("()".length));
+	return measureReprNamedRecordRecur(a.children, available - symSize(a.name) - len!"()");
 }
 immutable(int) measureReprNamedRecordRecur(immutable NameAndRepr[] xs, immutable int available) {
 	if (empty(xs))
 		return available;
 	else {
-		immutable int availableAfterFirst = measureReprSingleLine(
-			first(xs).value,
-			available - safeIntFromSizeT(symSize(first(xs).name)) - safeIntFromSizeT(": ".length));
+		immutable int availableAfterFirst =
+			measureReprSingleLine(first(xs).value, available - symSize(first(xs).name) - len!": ");
 		return availableAfterFirst < 0 || empty(tail(xs))
 			? availableAfterFirst
-			: measureReprNamedRecordRecur(tail(xs), availableAfterFirst - safeIntFromSizeT(", ".length));
+			: measureReprNamedRecordRecur(tail(xs), availableAfterFirst - len!", ");
 	}
 }
 
 immutable(int) measureReprRecord(ref immutable ReprRecord a, immutable int available) {
-	return measureCommaSeparatedChildren(
-		a.children,
-		available - safeIntFromSizeT(symSize(a.name)) - safeIntFromSizeT("()".length));
+	return measureCommaSeparatedChildren(a.children, available - symSize(a.name) - len!"()");
 }
 
 immutable(int) measureCommaSeparatedChildren(immutable Repr[] xs, immutable int available) {
@@ -438,7 +432,7 @@ immutable(int) measureCommaSeparatedChildren(immutable Repr[] xs, immutable int 
 		immutable int availableAfterFirst = measureReprSingleLine(first(xs), available);
 		return availableAfterFirst < 0 || empty(tail(xs))
 			? availableAfterFirst
-			: measureCommaSeparatedChildren(tail(xs), availableAfterFirst - safeIntFromSizeT(", ".length));
+			: measureCommaSeparatedChildren(tail(xs), availableAfterFirst - len!", ");
 	}
 }
 
@@ -510,7 +504,7 @@ void writeCommaSeparatedChildren(ref Writer writer, ref immutable Repr[] a) {
 }
 
 immutable(int) measureReprBool(ref immutable bool s) {
-	return s ? "true".length : "false".length;
+	return s ? len!"true" : len!"false";
 }
 
 void writeReprBool(ref Writer writer, ref immutable bool s) {
@@ -524,12 +518,12 @@ immutable(int) measureReprInt(immutable ReprInt s) {
 	return (s.value < 0 ? 1 : 0) + recur(1, abs(s.value) / s.base);
 }
 
-immutable(int) measureQuotedStr(immutable string s) {
-	return 2 + safeIntFromSizeT(size(s));
-}
-
 void writeReprInt(ref Writer writer, ref immutable ReprInt a) {
 	if (a.base == 16)
 		writeStatic(writer, "0x");
 	writeInt(writer, a.value, a.base);
+}
+
+immutable(int) len(immutable string s)() {
+	return cast(int) s.length;
 }

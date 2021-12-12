@@ -39,8 +39,8 @@ import util.collection.exactSizeArrBuilder :
 	padTo;
 import util.collection.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
 import util.collection.mutIndexMultiDict : MutIndexMultiDict, mutIndexMultiDictAdd, newMutIndexMultiDict;
+import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.ptr : Ptr, ptrTrustMe;
-import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, u32OfFloat32Bits, u64OfFloat64Bits;
 import util.util : todo, unreachable, verify;
 
 struct InterpreterFunPtr {
@@ -318,10 +318,10 @@ void writeConstant(
 		(immutable double it) {
 			switch (asPrimitive(type)) {
 				case PrimitiveType.float32:
-					add32(ctx.text, u32OfFloat32Bits(it));
+					add32(ctx.text, bitsOfFloat32(it));
 					break;
 				case PrimitiveType.float64:
-					add64(ctx.text, u64OfFloat64Bits(it));
+					add64(ctx.text, bitsOfFloat64(it));
 					break;
 				default:
 					unreachable!void();
@@ -348,15 +348,15 @@ void writeConstant(
 				case PrimitiveType.char_:
 				case PrimitiveType.int8:
 				case PrimitiveType.nat8:
-					exactSizeArrBuilderAdd(ctx.text, bottomU8OfU64(it.value));
+					exactSizeArrBuilderAdd(ctx.text, cast(ubyte) it.value);
 					break;
 				case PrimitiveType.int16:
 				case PrimitiveType.nat16:
-					add16(ctx.text, bottomU16OfU64(it.value));
+					add16(ctx.text, cast(ushort) it.value);
 					break;
 				case PrimitiveType.int32:
 				case PrimitiveType.nat32:
-					add32(ctx.text, bottomU32OfU64(it.value));
+					add32(ctx.text, cast(uint) it.value);
 					break;
 				case PrimitiveType.int64:
 				case PrimitiveType.nat64:

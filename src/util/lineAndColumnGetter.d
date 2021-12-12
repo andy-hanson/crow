@@ -5,8 +5,8 @@ module util.lineAndColumnGetter;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.conv : safeToUint, safeToUshort;
 import util.sourceRange : Pos;
-import util.types : safeSizeTToU16, safeSizeTToU32, safeU32ToU16;
 import util.util : verify;
 
 struct LineAndColumn {
@@ -33,7 +33,7 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForText(ref Alloc alloc, immut
 	add(alloc, lineToPos, 0);
 	add(alloc, lineToNTabs, text.getNTabs);
 
-	foreach (immutable uint i; 0 .. safeSizeTToU32(size(text))) {
+	foreach (immutable uint i; 0 .. safeToUint(size(text))) {
 		if (at(text, i) == '\n') {
 			add(alloc, lineToPos, i + 1);
 			add(alloc, lineToNTabs, text[i + 1 .. $].getNTabs);
@@ -49,7 +49,7 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForEmptyFile(ref Alloc alloc) 
 
 immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc, immutable Pos pos) {
 	ushort lowLine = 0; // inclusive
-	ushort highLine = size(lc.lineToPos).safeSizeTToU16;
+	ushort highLine = safeToUshort(size(lc.lineToPos));
 
 	while (lowLine < highLine - 1) {
 		immutable ushort middleLine = mid(lowLine, highLine);
@@ -73,7 +73,7 @@ immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc
 	immutable uint column = nCharsIntoLine <= nTabs
 		? nCharsIntoLine * TAB_SIZE
 		: nTabs * (TAB_SIZE - 1) + nCharsIntoLine;
-	return immutable LineAndColumn(line, column.safeU32ToU16);
+	return immutable LineAndColumn(line, safeToUshort(column));
 }
 
 private:

@@ -7,12 +7,12 @@ import util.collection.arr : at, first, size;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
 import util.collection.str : asSafeCStr, copyToSafeCStr, NulTerminatedStr, SafeCStr, strOfSafeCStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
+import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
 import util.opt : has, force, forceOrTodo, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols, eachCharInSym, Sym, symEq, symOfStr, symSize;
-import util.types : safeSizeTToU16, safeU32ToU16;
 import util.util : todo, verify;
 
 struct AllPaths {
@@ -79,7 +79,7 @@ private immutable(Path) getOrAddChild(
 		if (symEq(baseName(allPaths, child), name))
 			return child;
 
-	immutable Path res = immutable Path(safeSizeTToU16(mutArrSize(allPaths.pathToParent)));
+	immutable Path res = immutable Path(safeToUshort(mutArrSize(allPaths.pathToParent)));
 	push(allPaths.alloc.deref(), children, res);
 	push(allPaths.alloc.deref(), allPaths.pathToParent, parent);
 	push(allPaths.alloc.deref(), allPaths.pathToBaseName, name);
@@ -340,7 +340,7 @@ private immutable(RelPath) parseRelPath(ref AllPaths allPaths, immutable string 
 			return parseRelPath(allPaths, s[2 .. $]);
 		else if (at(s, 1) == '.' && at(s, 2) == '/') {
 			immutable RelPath r = parseRelPath(allPaths, s[3 .. $]);
-			return immutable RelPath(safeU32ToU16(r.nParents_ + 1), r.path_);
+			return immutable RelPath(safeToUshort(r.nParents_ + 1), r.path_);
 		} else
 			// Path component happens to start with '.' but is not '.' or '..'
 			return immutable RelPath(0, parsePath(allPaths, s));

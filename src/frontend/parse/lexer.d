@@ -17,6 +17,7 @@ import util.collection.str :
 	NulTerminatedStr,
 	SafeCStr,
 	strOfNulTerminatedStr;
+import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange, FileIndex, Pos, RangeWithinFile;
@@ -32,7 +33,6 @@ import util.sym :
 	Sym,
 	symForOperator,
 	symOfStr;
-import util.types : safeI32FromU32, safeSizeTToU32;
 import util.util : drop, todo, unreachable, verify;
 
 private enum IndentKind {
@@ -103,7 +103,7 @@ private immutable(char) curChar(ref const Lexer lexer) {
 }
 
 private immutable(Pos) posOfPtr(ref const Lexer lexer, immutable CStr ptr) {
-	return safeSizeTToU32(ptr - lexer.sourceBegin);
+	return safeToUint(ptr - lexer.sourceBegin);
 }
 
 void addDiag(ref Lexer lexer, immutable RangeWithinFile range, immutable ParseDiag diag) {
@@ -832,7 +832,7 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 
 immutable(RangeWithinFile) range(ref Lexer lexer, immutable CStr begin) {
 	verify(begin >= lexer.sourceBegin);
-	return range(lexer, safeSizeTToU32(begin - lexer.sourceBegin));
+	return range(lexer, safeToUint(begin - lexer.sourceBegin));
 }
 
 enum Sign {
@@ -1096,15 +1096,14 @@ public immutable(StringPart) takeStringPartAfterDoubleQuote(ref Lexer lexer) {
 		while (*lexer.ptr == '\t') lexer.ptr++;
 		if (*lexer.ptr == ' ')
 			addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(true)));
-		immutable uint res = (lexer.ptr - begin).safeSizeTToU32;
-		return res;
+		return safeToUint(lexer.ptr - begin);
 	} else {
 		immutable Pos start = curPos(lexer);
 		while (*lexer.ptr == ' ')
 			lexer.ptr++;
 		if (*lexer.ptr == '\t')
 			addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(false)));
-		immutable uint nSpaces = (lexer.ptr - begin).safeSizeTToU32;
+		immutable uint nSpaces = safeToUint(lexer.ptr - begin);
 		immutable uint nSpacesPerIndent = lexer.indentKind == IndentKind.spaces2 ? 2 : 4;
 		immutable uint res = nSpaces / nSpacesPerIndent;
 		if (res * nSpacesPerIndent != nSpaces)
@@ -1191,7 +1190,7 @@ immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(ref Lexer lexer, immutabl
 	}
 
 	// If we got here, we're looking at a non-empty line (or EOF)
-	immutable int delta = safeI32FromU32(newIndent) - safeI32FromU32(curIndent);
+	immutable int delta = safeIntFromUint(newIndent) - safeIntFromUint(curIndent);
 	if (delta > 1) {
 		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.IndentTooMuch()));
 		skipRestOfLineAndNewline(lexer);

@@ -194,7 +194,6 @@ import util.sym :
 	Sym,
 	symEq,
 	symForOperator;
-import util.types : safeSizeTToU8;
 import util.util : todo, unreachable, verify;
 
 struct PathAndAst { //TODO:RENAME
@@ -1821,7 +1820,7 @@ void addFunsForRecord(
 		exactSizeArrBuilderAdd(funsBuilder, constructor(byValType, FunFlags.generatedNoCtx));
 	}
 
-	foreach (immutable ubyte fieldIndex; 0 .. safeSizeTToU8(size(record.fields))) {
+	foreach (immutable size_t fieldIndex; 0 .. size(record.fields)) {
 		immutable RecordField field = at(record.fields, fieldIndex);
 		immutable Visibility fieldVisibility = leastVisibility(struct_.deref().visibility, field.visibility);
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(

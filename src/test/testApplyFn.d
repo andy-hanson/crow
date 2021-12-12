@@ -39,15 +39,15 @@ import interpret.runBytecode : Interpreter;
 import test.testInterpreter : interpreterTest, stepAndExpect, stepExit;
 import test.testUtil : Test;
 import util.collection.stack : push;
-import util.types : u64OfFloat32Bits, u64OfFloat64Bits;
+import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.util : verify;
 
 void testApplyFn(ref Test test) {
 	ulong one = 1; // https://issues.dlang.org/show_bug.cgi?id=17778
 	one += 0;
 
-	testFnBinary!fnAddFloat32(test, [u64OfFloat32Bits(-1.5), u64OfFloat32Bits(2.7)], u64OfFloat32Bits(1.2));
-	testFnBinary!fnAddFloat64(test, [u64OfFloat64Bits(-1.5), u64OfFloat64Bits(2.6)], u64OfFloat64Bits(1.1));
+	testFnBinary!fnAddFloat32(test, [bitsOfFloat32(-1.5), bitsOfFloat32(2.7)], bitsOfFloat32(1.2));
+	testFnBinary!fnAddFloat64(test, [bitsOfFloat64(-1.5), bitsOfFloat64(2.6)], bitsOfFloat64(1.1));
 
 	testFnUnary!fnBitwiseNot(test, 0xa, 0xfffffffffffffff5);
 	testFnUnary!fnInt64FromInt16(test, u64OfI16Bits(-1), u64OfI64Bits(-1));
@@ -60,15 +60,15 @@ void testApplyFn(ref Test test) {
 
 	testFnUnary!fnCountOnesNat64(test, 0b10101, 3);
 
-	testFnUnary!fnFloat64FromInt64(test, u64OfI64Bits(-1), u64OfFloat64Bits(-1.0));
+	testFnUnary!fnFloat64FromInt64(test, u64OfI64Bits(-1), bitsOfFloat64(-1.0));
 
-	testFnUnary!fnFloat64FromNat64(test, 1, u64OfFloat64Bits(1.0));
+	testFnUnary!fnFloat64FromNat64(test, 1, bitsOfFloat64(1.0));
 
-	testFnBinary!fnLessFloat32(test, [u64OfFloat32Bits(-1.0), u64OfFloat32Bits(1.0)], 1);
-	testFnBinary!fnLessFloat32(test, [u64OfFloat32Bits(1.0), u64OfFloat32Bits(-1.0)], 0);
+	testFnBinary!fnLessFloat32(test, [bitsOfFloat32(-1.0), bitsOfFloat32(1.0)], 1);
+	testFnBinary!fnLessFloat32(test, [bitsOfFloat32(1.0), bitsOfFloat32(-1.0)], 0);
 
-	testFnBinary!fnLessFloat64(test, [u64OfFloat64Bits(-1.0), u64OfFloat64Bits(1.0)], 1);
-	testFnBinary!fnLessFloat64(test, [u64OfFloat64Bits(1.0), u64OfFloat64Bits(-1.0)], 0);
+	testFnBinary!fnLessFloat64(test, [bitsOfFloat64(-1.0), bitsOfFloat64(1.0)], 1);
+	testFnBinary!fnLessFloat64(test, [bitsOfFloat64(1.0), bitsOfFloat64(-1.0)], 0);
 
 	verify(u64OfI8Bits(-1) == 0xff);
 
@@ -91,16 +91,16 @@ void testApplyFn(ref Test test) {
 
 	testFnBinary!fnMulFloat64(
 		test,
-		[u64OfFloat64Bits(1.5), u64OfFloat64Bits(2.6)],
-		u64OfFloat64Bits(3.9000000000000004));
+		[bitsOfFloat64(1.5), bitsOfFloat64(2.6)],
+		bitsOfFloat64(3.9000000000000004));
 
-	testFnBinary!fnSubFloat64(test, [u64OfFloat64Bits(1.5), u64OfFloat64Bits(2.6)], u64OfFloat64Bits(-1.1));
+	testFnBinary!fnSubFloat64(test, [bitsOfFloat64(1.5), bitsOfFloat64(2.6)], bitsOfFloat64(-1.1));
 
-	testFnUnary!fnTruncateToInt64FromFloat64(test, u64OfFloat64Bits(-double.infinity), u64OfI64Bits(long.min));
-	testFnUnary!fnTruncateToInt64FromFloat64(test, u64OfFloat64Bits(-9.0), u64OfI64Bits(-9));
+	testFnUnary!fnTruncateToInt64FromFloat64(test, bitsOfFloat64(-double.infinity), u64OfI64Bits(long.min));
+	testFnUnary!fnTruncateToInt64FromFloat64(test, bitsOfFloat64(-9.0), u64OfI64Bits(-9));
 
-	testFnBinary!fnUnsafeDivFloat32(test, [u64OfFloat32Bits(9.0), u64OfFloat32Bits(5.0)], u64OfFloat32Bits(1.8));
-	testFnBinary!fnUnsafeDivFloat64(test, [u64OfFloat64Bits(9.0), u64OfFloat64Bits(5.0)], u64OfFloat64Bits(1.8));
+	testFnBinary!fnUnsafeDivFloat32(test, [bitsOfFloat32(9.0), bitsOfFloat32(5.0)], bitsOfFloat32(1.8));
+	testFnBinary!fnUnsafeDivFloat64(test, [bitsOfFloat64(9.0), bitsOfFloat64(5.0)], bitsOfFloat64(1.8));
 
 	testFnBinary!fnUnsafeDivInt64(test, [u64OfI64Bits(3), u64OfI64Bits(2)], u64OfI64Bits(1));
 	testFnBinary!fnUnsafeDivInt64(test, [u64OfI64Bits(3), u64OfI64Bits(-1)], u64OfI64Bits(-3));

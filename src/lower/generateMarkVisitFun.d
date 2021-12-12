@@ -53,7 +53,6 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral;
-import util.types : safeIncrU8, safeSizeTToU8;
 import util.util : unreachable;
 
 immutable(LowFun) generateMarkVisitGcPtr(
@@ -280,7 +279,7 @@ immutable(LowFunExprBody) visitRecordBody(
 	ref immutable LowExpr markCtx,
 	ref immutable LowExpr value,
 ) {
-	immutable(Opt!LowExpr) recur(immutable Opt!LowExpr accum, immutable ubyte fieldIndex) {
+	immutable(Opt!LowExpr) recur(immutable Opt!LowExpr accum, immutable size_t fieldIndex) {
 		if (fieldIndex == size(fields))
 			return accum;
 		else {
@@ -299,7 +298,7 @@ immutable(LowFunExprBody) visitRecordBody(
 				} else
 					return accum;
 			}();
-			return recur(newAccum, safeIncrU8(fieldIndex));
+			return recur(newAccum, fieldIndex + 1);
 		}
 	}
 	immutable Opt!LowExpr e = recur(none!LowExpr, 0);
@@ -324,7 +323,7 @@ immutable(LowFunExprBody) visitUnionBody(
 					immutable Ptr!LowLocal local = genLocal(
 						alloc,
 						shortSymAlphaLiteral("value"),
-						safeSizeTToU8(memberIndex),
+						memberIndex,
 						memberType);
 					immutable LowExpr getLocal = localRef(alloc, range, local);
 					immutable LowExpr then = genCall(

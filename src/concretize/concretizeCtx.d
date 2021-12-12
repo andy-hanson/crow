@@ -111,7 +111,6 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, hashPtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
-import util.types : safeSizeTToU8;
 import util.util : max, roundUp, todo, unreachable, verify;
 
 struct TypeArgsScope {
@@ -666,7 +665,7 @@ void initializeConcreteStruct(
 				mapPtrsWithIndex!ConcreteField(alloc, r.fields, (immutable size_t index, immutable Ptr!RecordField f) =>
 					immutable ConcreteField(
 						immutable ConcreteFieldSource(f),
-						safeSizeTToU8(index),
+						index,
 						toConcreteMutability(f.deref().mutability),
 						getConcreteType(alloc, ctx, f.deref().type, typeArgsScope)));
 			immutable bool packed = r.flags.packed;

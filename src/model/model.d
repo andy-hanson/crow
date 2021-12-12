@@ -28,7 +28,6 @@ import util.sym :
 	symForOperator,
 	symSize,
 	writeSym;
-import util.types : safeSizeTToU32;
 import util.util : todo, unreachable, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
@@ -359,7 +358,7 @@ static assert(Sig.sizeof <= 48);
 immutable(FileAndRange) range(ref immutable Sig a) {
 	return immutable FileAndRange(
 		a.fileAndPos.fileIndex,
-		immutable RangeWithinFile(a.fileAndPos.pos, safeSizeTToU32(a.fileAndPos.pos + symSize(a.name))));
+		immutable RangeWithinFile(a.fileAndPos.pos, a.fileAndPos.pos + symSize(a.name)));
 }
 
 immutable(Arity) arity(ref const Sig a) {
@@ -809,10 +808,10 @@ struct FunBody {
 		immutable Opt!Sym libraryName;
 	}
 	struct RecordFieldGet {
-		immutable ubyte fieldIndex;
+		immutable size_t fieldIndex;
 	}
 	struct RecordFieldSet {
-		immutable ubyte fieldIndex;
+		immutable size_t fieldIndex;
 	}
 
 	private:

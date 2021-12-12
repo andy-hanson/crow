@@ -77,7 +77,6 @@ import util.opt : force, has, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, symEq, symEqLongAlphaLiteral;
-import util.types : safeSizeTToU8;
 import util.util : todo, unreachable, verify;
 
 immutable(ConcreteExpr) concretizeExpr(
@@ -331,7 +330,7 @@ immutable(ConcreteField[]) concretizeClosureFields(
 	return mapWithIndex!ConcreteField(alloc, closure, (immutable size_t index, ref immutable Ptr!ClosureField it) =>
 		immutable ConcreteField(
 			immutable ConcreteFieldSource(it),
-			safeSizeTToU8(index),
+			index,
 			ConcreteMutability.const_,
 			getConcreteType_fromConcretizeCtx(alloc, ctx, it.deref().type, typeArgsScope)));
 }

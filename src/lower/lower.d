@@ -140,7 +140,6 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : safeSizeTToU8;
 import util.util : unreachable, verify;
 
 immutable(LowProgram) lower(ref Alloc alloc, ref Perf perf, ref immutable ConcreteProgram a) {
@@ -1198,7 +1197,7 @@ immutable(LowExprKind) getCallRegular(
 		}();
 		foreach (immutable size_t argIndex, ref immutable ConcreteExpr it; a.args) {
 			immutable LowExpr arg = getLowExpr(alloc, ctx, it, ExprPos.nonTail);
-			immutable LowParamIndex paramIndex = immutable LowParamIndex(safeSizeTToU8(p0 + argIndex));
+			immutable LowParamIndex paramIndex = immutable LowParamIndex(p0 + argIndex);
 			if (!(isParamRef(arg.kind) && asParamRef(arg.kind).index == paramIndex))
 				add(alloc, updateParams, immutable UpdateParam(paramIndex, arg));
 		}
@@ -1537,11 +1536,9 @@ immutable(LowExprKind) getParamRefExpr(
 		//TODO: don't generate ParamRef in ConcreteModel for closure field access. Do that in lowering.
 		verify(isClosure(a.param.deref().source));
 		return immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.closureParam)));
-	} else {
-		immutable LowParamIndex param =
-			immutable LowParamIndex(safeSizeTToU8(ctx.firstRegularParam.index + force(a.param.deref().index)));
-		return immutable LowExprKind(immutable LowExprKind.ParamRef(param));
-	}
+	} else
+		return immutable LowExprKind(immutable LowExprKind.ParamRef(immutable LowParamIndex(
+			ctx.firstRegularParam.index + force(a.param.deref().index))));
 }
 
 immutable(LowExprKind) getRecordFieldGetExpr(

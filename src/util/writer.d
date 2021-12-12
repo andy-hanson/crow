@@ -7,8 +7,7 @@ import util.ptr : Ptr;
 import util.collection.arr : at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr, SafeCStr;
-import util.types : abs;
-import util.util : verify;
+import util.util : abs, verify;
 
 struct Writer {
 	private:

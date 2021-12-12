@@ -29,7 +29,6 @@ import util.opt : some;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : safeSizeTToU8;
 import util.util : verify;
 
 immutable(LowFun) generateCallWithCtxFun(
@@ -46,7 +45,7 @@ immutable(LowFun) generateCallWithCtxFun(
 	immutable LowExpr funParamRef = paramRef(range, funType, immutable LowParamIndex(0));
 	immutable LowExpr ctxParamRef = paramRef(range, ctxType, immutable LowParamIndex(1));
 
-	ubyte localIndex = 0;
+	size_t localIndex = 0;
 
 	immutable LowExprKind.MatchUnion.Case[] cases = mapZip(
 		alloc,
@@ -55,14 +54,14 @@ immutable(LowFun) generateCallWithCtxFun(
 		(ref immutable ConcreteLambdaImpl impl, ref immutable LowType closureType) {
 			immutable Ptr!LowLocal closureLocal =
 				genLocal(alloc, shortSymAlphaLiteral("closure"), localIndex, closureType);
-			localIndex = safeSizeTToU8(localIndex + 1);
+			localIndex = localIndex + 1;
 			immutable LowExpr[] args = mapWithFirst2!(LowExpr, LowType)(
 				alloc,
 				ctxParamRef,
 				localRef(alloc, range, closureLocal),
 				nonFunNonCtxParamTypes,
 				(immutable size_t i, ref immutable LowType paramType) =>
-					paramRef(range, paramType, immutable LowParamIndex(safeSizeTToU8(i + 2))));
+					paramRef(range, paramType, immutable LowParamIndex(i + 2)));
 			immutable LowExpr then = immutable LowExpr(returnType, range, immutable LowExprKind(
 				immutable LowExprKind.Call(mustGetAt(concreteFunToLowFunIndex, impl.impl), args)));
 			return immutable LowExprKind.MatchUnion.Case(some(closureLocal), then);

@@ -367,7 +367,7 @@ immutable(LowExpr) recordFieldGet(
 	ref immutable FileAndRange range,
 	ref immutable LowExpr target,
 	immutable LowType fieldType,
-	immutable ubyte fieldIndex,
+	immutable size_t fieldIndex,
 ) {
 	return immutable LowExpr(fieldType, range, immutable LowExprKind(
 		allocate(alloc, immutable LowExprKind.RecordFieldGet(target, fieldIndex))));
@@ -403,7 +403,7 @@ immutable(LowExpr) genVoid(ref immutable FileAndRange source) {
 immutable(Ptr!LowLocal) genLocal(
 	ref Alloc alloc,
 	immutable Sym name,
-	immutable ubyte index,
+	immutable size_t index,
 	immutable LowType type,
 ) {
 	return allocate(alloc, immutable LowLocal(

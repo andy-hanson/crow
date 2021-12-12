@@ -73,6 +73,7 @@ import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, arrWithSizeBuilderIsEmpty, finishArrWithSize;
 import util.collection.str : NulTerminatedStr, SafeCStr;
+import util.conv : safeToUshort;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some, somePtr;
 import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
@@ -80,7 +81,6 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
 import util.sym : AllSymbols, Operator, shortSymAlphaLiteralValue, Sym, symOfStr;
-import util.types : safeU16FromSizeT;
 import util.util : todo, unreachable, verify;
 
 immutable(FileAst) parseFile(
@@ -162,7 +162,7 @@ immutable(AbsOrRelPath) parseImportPath(ref AllPaths allPaths, ref Lexer lexer) 
 			return some!ushort(0);
 		} else if (tryTakeOperator(lexer, Operator.range)) {
 			takeOrAddDiagExpectedOperator(lexer, Operator.divide, ParseDiag.Expected.Kind.slash);
-			return some(safeU16FromSizeT(takeDotDotSlashes(lexer, 1)));
+			return some(safeToUshort(takeDotDotSlashes(lexer, 1)));
 		} else
 			return none!ushort;
 	}();

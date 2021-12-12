@@ -68,8 +68,7 @@ import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has, some;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.types : abs, i64OfU64Bits;
-import util.util : drop, todo, unreachable, verify;
+import util.util : abs, drop, todo, unreachable, verify;
 import util.writer :
 	finishWriter,
 	writeChar,
@@ -1214,7 +1213,7 @@ void writeRecordFieldRef(
 	ref const FunBodyCtx ctx,
 	immutable bool targetIsPointer,
 	immutable LowType.Record record,
-	immutable ubyte fieldIndex,
+	immutable size_t fieldIndex,
 ) {
 	writeStatic(writer, targetIsPointer ? "->" : ".");
 	writeMangledName(writer, name(at(fullIndexDictGet(ctx.ctx.program.allRecords, record).fields, fieldIndex)));
@@ -1278,13 +1277,12 @@ void writeConstantRef(
 		},
 		(immutable Constant.Integral it) {
 			if (isSignedIntegral(asPrimitive(type))) {
-				immutable long i = i64OfU64Bits(it.value);
-				if (i == long.min)
+				if (it.value == long.min)
 					// Can't write this as a literal since the '-' and rest are parsed separately,
 					// and the abs of the minimum integer is out of range.
 					writeStatic(writer, "INT64_MIN");
 				else
-					writeInt(writer, i);
+					writeInt(writer, it.value);
 			} else {
 				writeNat(writer, it.value);
 				writeChar(writer, 'u');

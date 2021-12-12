@@ -28,7 +28,6 @@ import util.opt : force, has, none, Opt, optOr2, some;
 import util.ptr : Ptr;
 import util.sourceRange : hasPos, Pos;
 import util.sym : Sym, symSize;
-import util.types : safeSizeTToU32;
 
 struct Position {
 	@safe @nogc pure nothrow:
@@ -174,7 +173,7 @@ immutable(Opt!Position) positionInImportsOrExports(
 			if (has(im.deref().names)) {
 				Pos namePos = force(im.deref().importSource).start;
 				foreach (immutable Sym name; force(im.deref().names)) {
-					immutable Pos nameEnd = safeSizeTToU32(namePos + symSize(name));
+					immutable Pos nameEnd = namePos + symSize(name);
 					if (pos < nameEnd)
 						return some(immutable Position(immutable Position.ImportedName(im, name)));
 					namePos = nameEnd + 1;

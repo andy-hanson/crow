@@ -40,7 +40,6 @@ import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : shortSymAlphaLiteralValue, Sym, symEq;
-import util.types : safeSizeTToU8;
 import util.util : todo;
 
 private immutable(Type) instStructFromAst(
@@ -108,10 +107,7 @@ private immutable(Type[]) getTypeArgsIfNumberMatches(
 	immutable size_t nActualTypeArgs = size(typeArgAsts);
 	if (nActualTypeArgs != nExpectedTypeArgs) {
 		addDiag(alloc, ctx, range, immutable Diag(
-			immutable Diag.WrongNumberTypeArgsForStruct(
-				sOrA,
-				safeSizeTToU8(nExpectedTypeArgs),
-				safeSizeTToU8(nActualTypeArgs))));
+			immutable Diag.WrongNumberTypeArgsForStruct(sOrA, nExpectedTypeArgs, nActualTypeArgs)));
 		return fillArr!Type(alloc, nExpectedTypeArgs, (immutable size_t) => immutable Type(Type.Bogus()));
 	} else
 		return typeArgsFromAsts(

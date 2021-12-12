@@ -438,7 +438,7 @@ struct LowLocalSource {
 
 	struct Generated {
 		immutable Sym name;
-		immutable size_t index; // TODO: Nat8
+		immutable size_t index;
 	}
 
 	@trusted immutable this(immutable Ptr!ConcreteLocal a) { kind_ = Kind.concreteLocal; concreteLocal_ = a; }
@@ -608,7 +608,7 @@ struct LowFunIndex {
 }
 
 struct LowParamIndex {
-	immutable ubyte index;
+	immutable size_t index;
 }
 
 struct LowExprKind {
@@ -674,7 +674,7 @@ struct LowExprKind {
 		@safe @nogc pure nothrow:
 
 		immutable LowExpr target;
-		immutable ubyte fieldIndex;
+		immutable size_t fieldIndex;
 
 		//TODO:NOT INSTANCE
 		immutable(bool) targetIsPointer() immutable {
@@ -693,7 +693,7 @@ struct LowExprKind {
 		@safe @nogc pure nothrow:
 
 		immutable LowExpr target;
-		immutable ubyte fieldIndex;
+		immutable size_t fieldIndex;
 		immutable LowExpr value;
 
 		//TODO:NOT INSTANCE

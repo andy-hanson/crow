@@ -14,6 +14,14 @@ immutable(T) max(T)(immutable T a, immutable T b) {
 	return a > b ? a : b;
 }
 
+immutable(ulong) abs(immutable long a) {
+	return a < 0 ? -a : a;
+}
+
+immutable(double) abs(immutable double a) {
+	return a < 0 ? -a : a;
+}
+
 immutable(T) roundUp(T)(immutable T a, immutable T b) {
 	immutable T res = roundUpRecur(a, b);
 	verify(res >= a);

@@ -19,6 +19,7 @@ import util.collection.arrUtil : arrLiteral, copyArr, map, mapImpure, mapOp, map
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGetPtr, fullIndexDictOfArr;
 import util.collection.mutDict : getAt_mut, MutDict, setInDict;
 import util.collection.str : NulTerminatedStr, strOfNulTerminatedStr;
+import util.conv : safeToUshort;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile, lineAndColumnGetterForText;
 import util.opt : force, has, mapOption, Opt, none, some;
@@ -40,7 +41,6 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange, FileIndex, FilePaths, RangeWithinFile;
 import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
-import util.types : safeSizeTToU16;
 import util.util : unreachable, verify;
 
 immutable(Program) frontendCompile(Storage)(
@@ -253,7 +253,7 @@ immutable(FileIndex) parseRecur(ReadOnlyStorage)(
 	setInDict(astAlloc, statuses, path, immutable ParseStatus(immutable ParseStatus.Started()));
 
 	immutable(FileIndex) previewFileIndex() {
-		return immutable FileIndex(safeSizeTToU16(arrBuilderSize(fileIndexToPath)));
+		return immutable FileIndex(safeToUshort(arrBuilderSize(fileIndexToPath)));
 	}
 
 	// We only add the file index when all dependencies are processed.
@@ -516,7 +516,7 @@ immutable(ModulesAndCommonTypes) getModules(
 		fileAsts,
 		(ref immutable AstAndResolvedImports ast, ref immutable Module[] soFar, immutable size_t index) {
 			immutable FullIndexDict!(FileIndex, Module) compiled = fullIndexDictOfArr!(FileIndex, Module)(soFar);
-			immutable PathAndAst pathAndAst = immutable PathAndAst(immutable FileIndex(safeSizeTToU16(index)), ast.ast);
+			immutable PathAndAst pathAndAst = immutable PathAndAst(immutable FileIndex(safeToUshort(index)), ast.ast);
 			if (lateIsSet(commonTypes)) {
 				immutable bool noStd = ast.ast.noStd;
 				immutable FileIndexAndNames[] allImports = noStd
