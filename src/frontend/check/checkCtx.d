@@ -23,13 +23,14 @@ import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, RangeWithinFile;
-import util.sym : indexOfSym, Sym;
+import util.sym : AllSymbols, indexOfSym, Sym;
 
 struct CheckCtx {
 	@safe @nogc pure nothrow:
 
 	Ptr!Perf perfPtr;
 	Ptr!ProgramState programStatePtr;
+	const Ptr!AllSymbols allSymbolsPtr;
 	immutable FileIndex fileIndex;
 	immutable ModuleAndNames[] imports;
 	immutable ModuleAndNames[] reExports;
@@ -40,6 +41,10 @@ struct CheckCtx {
 	bool[] structsUsed;
 	bool[] specsUsed;
 	Ptr!DiagnosticsBuilder diagsBuilderPtr;
+
+	ref const(AllSymbols) allSymbols() return scope const {
+		return allSymbolsPtr.deref();
+	}
 
 	ref Perf perf() return scope {
 		return perfPtr.deref();

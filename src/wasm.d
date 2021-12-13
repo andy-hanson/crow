@@ -107,7 +107,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable Token[] tokens = withNullPerf!(immutable Token[], (scope ref Perf perf) =>
 		getTokens(resultAlloc, perf, *server, storageKind, pathStart[0 .. pathLength]));
 	immutable Repr repr = reprTokens(resultAlloc, tokens);
-	return jsonStrOfRepr(resultAlloc, repr);
+	return jsonStrOfRepr(resultAlloc, server.allSymbols, repr);
 }
 
 @system extern(C) immutable(CStr) getParseDiagnostics(
@@ -122,7 +122,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable StrParseDiagnostic[] diags = withNullPerf!(immutable StrParseDiagnostic[], (scope ref Perf perf) =>
 		getParseDiagnostics(resultAlloc, perf, *server, storageKind, pathStart[0 .. pathLength]));
 	immutable Repr repr = reprParseDiagnostics(resultAlloc, diags);
-	return jsonStrOfRepr(resultAlloc, repr);
+	return jsonStrOfRepr(resultAlloc, server.allSymbols, repr);
 }
 
 @system extern(C) immutable(CStr) getHover(

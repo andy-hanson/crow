@@ -80,7 +80,7 @@ import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
-import util.sym : AllSymbols, Operator, shortSymAlphaLiteralValue, Sym, symOfStr;
+import util.sym : AllSymbols, Operator, shortSymValue, Sym, symOfStr;
 import util.util : todo, unreachable, verify;
 
 immutable(FileAst) parseFile(
@@ -412,22 +412,22 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(ref Lexer lexer) {
 		immutable Sym name = takeName(lexer);
 		immutable RecordModifiers newModifiers = () {
 			switch (name.value) {
-				case shortSymAlphaLiteralValue("new"):
+				case shortSymValue("new"):
 					if (!arrWithSizeBuilderIsEmpty(res))
 						todo!void("'.new' on later line");
 					if (has(prevModifiers.explicitNewVisibility))
 						todo!void("specified new visibility multiple times");
 					return withExplicitNewVisibility(prevModifiers, visibility);
-				case shortSymAlphaLiteralValue("by-val"):
-				case shortSymAlphaLiteralValue("by-ref"):
+				case shortSymValue("by-val"):
+				case shortSymValue("by-ref"):
 					if (visibility == Visibility.private_) todo!void("diagnostic");
-					immutable ExplicitByValOrRef value = name.value == shortSymAlphaLiteralValue("by-val")
+					immutable ExplicitByValOrRef value = name.value == shortSymValue("by-val")
 						? ExplicitByValOrRef.byVal
 						: ExplicitByValOrRef.byRef;
 					if (has(prevModifiers.explicitByValOrRef) || !arrWithSizeBuilderIsEmpty(res))
 						todo!void("by-val or by-ref on later line");
 					return withExplicitByValOrRef(prevModifiers, immutable ExplicitByValOrRefAndRange(start, value));
-				case shortSymAlphaLiteralValue("packed"):
+				case shortSymValue("packed"):
 					if (visibility == Visibility.private_) todo!void("diagnostic");
 					if (has(prevModifiers.packed) || !arrWithSizeBuilderIsEmpty(res))
 						todo!void("'packed' on later line");

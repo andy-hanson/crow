@@ -36,7 +36,7 @@ import util.collection.str : hashStr, strEq;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe_mut;
-import util.sym : hashSym, strOfSym, Sym, symEq;
+import util.sym : AllSymbols, hashSym, strOfSym, Sym, symEq;
 import util.util : verify;
 
 struct AllConstantsBuilder {
@@ -64,11 +64,12 @@ private struct PointerTypeAndConstants {
 immutable(AllConstantsConcrete) finishAllConstants(
 	ref Alloc alloc,
 	ref AllConstantsBuilder a,
+	ref const AllSymbols allSymbols,
 	immutable Ptr!ConcreteFun[] allConcreteFuns,
 	immutable Ptr!ConcreteStruct arrNamedValFunPtrStruct,
 	immutable Ptr!ConcreteStruct arrSymStruct,
 ) {
-	immutable Constant allFuns = makeAllFuns(alloc, a, allConcreteFuns, arrNamedValFunPtrStruct);
+	immutable Constant allFuns = makeAllFuns(alloc, a, allSymbols, allConcreteFuns, arrNamedValFunPtrStruct);
 	immutable Constant staticSyms = getConstantArr(alloc, a, arrSymStruct, valuesArray(alloc, a.syms));
 	immutable ArrTypeAndConstantsConcrete[] arrs =
 		mapToArr_mut!(
@@ -99,6 +100,7 @@ immutable(AllConstantsConcrete) finishAllConstants(
 private immutable(Constant) makeAllFuns(
 	ref Alloc alloc,
 	ref AllConstantsBuilder a,
+	ref const AllSymbols allSymbols,
 	immutable Ptr!ConcreteFun[] allConcreteFuns,
 	immutable Ptr!ConcreteStruct arrNamedValFunPtrStruct,
 ) {
@@ -110,7 +112,7 @@ private immutable(Constant) makeAllFuns(
 			immutable Opt!Sym name = name(it.deref());
 			return has(name) && concreteFunWillBecomeNonExternLowFun(it.deref())
 				? some(immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
-					getConstantSym(alloc, a, force(name)),
+					getConstantSym(alloc, a, allSymbols, force(name)),
 					immutable Constant(immutable Constant.FunPtr(it))]))))
 				: none!Constant;
 		}));
@@ -210,6 +212,7 @@ private immutable(Constant.CString) getConstantCStr(
 immutable(Constant) getConstantSym(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
+	ref const AllSymbols allSymbols,
 	immutable Sym value,
 ) {
 	return getOrAdd!(immutable Sym, immutable Constant, symEq, hashSym)(
@@ -217,7 +220,7 @@ immutable(Constant) getConstantSym(
 		allConstants.syms,
 		value,
 		() {
-			immutable Constant.CString c = getConstantCStr(alloc, allConstants, strOfSym(alloc, value));
+			immutable Constant.CString c = getConstantCStr(alloc, allConstants, strOfSym(alloc, allSymbols, value));
 			return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [immutable Constant(c)])));
 		});
 }

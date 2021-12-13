@@ -78,7 +78,7 @@ import util.memory : allocate;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos;
-import util.sym : shortSymAlphaLiteral, Sym;
+import util.sym : shortSym, Sym;
 import util.util : verify;
 
 void testInterpreter(ref Test test) {
@@ -109,7 +109,7 @@ immutable(ByteCode) makeByteCode(
 }
 
 immutable(FileToFuns) dummyFileToFuns() {
-	static immutable FunNameAndPos[][] dummy = [[immutable FunNameAndPos(shortSymAlphaLiteral("a"), immutable Pos(0))]];
+	static immutable FunNameAndPos[][] dummy = [[immutable FunNameAndPos(shortSym("a"), immutable Pos(0))]];
 	return fullIndexDictOfArr!(FileIndex, FunNameAndPos[])(dummy);
 }
 
@@ -118,7 +118,7 @@ void doInterpret(
 	ref immutable ByteCode byteCode,
 	scope void delegate(scope ref Interpreter, immutable(Operation)*) @system @nogc nothrow runInterpreter,
 ) {
-	immutable Path emptyPath = rootPath(test.allPaths, shortSymAlphaLiteral("test"));
+	immutable Path emptyPath = rootPath(test.allPaths, shortSym("test"));
 	immutable PathAndStorageKind[1] pk = [immutable PathAndStorageKind(emptyPath, StorageKind.global)];
 	immutable LineAndColumnGetter[1] lcg = [lineAndColumnGetterForEmptyFile(test.alloc)];
 	immutable AbsolutePathsGetter emptyAbsolutePathsGetter =
@@ -129,7 +129,7 @@ void doInterpret(
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(lcg));
 	immutable LowFun[1] lowFun = [immutable LowFun(
 		immutable LowFunSource(allocate(test.alloc, immutable LowFunSource.Generated(
-			shortSymAlphaLiteral("test"), emptyArr!LowType))),
+			shortSym("test"), emptyArr!LowType))),
 		nat64Type,
 		immutable LowFunParamsKind(false, false),
 		emptyArr!LowParam,
@@ -150,7 +150,7 @@ void doInterpret(
 		emptyArr!Sym);
 	withFakeExtern(test.alloc, (scope ref Extern extern_) @trusted {
 		withInterpreter!void(
-			test.dbg, test.alloc, extern_, lowProgram, byteCode, test.allPaths, filesInfo,
+			test.dbg, test.alloc, extern_, lowProgram, byteCode, test.allSymbols, test.allPaths, filesInfo,
 			(scope ref Interpreter interpreter) {
 				runInterpreter(interpreter, initialOperationPointer(byteCode));
 			});

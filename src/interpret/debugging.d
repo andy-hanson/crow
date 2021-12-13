@@ -24,7 +24,6 @@ import model.lowModel :
 	LowLocal,
 	LowLocalSource,
 	LowProgram,
-	LowRecord,
 	LowType,
 	matchLowFunSource,
 	matchLowLocalSource,
@@ -37,24 +36,34 @@ import util.collection.fullIndexDict : fullIndexDictGet;
 import util.opt : force, has;
 import util.ptr : Ptr;
 import util.writer : Writer, writeChar, writeNat, writeStatic, writeWithCommas;
-import util.sym : writeSym;
+import util.sym : AllSymbols, writeSym;
 
-void writeFunName(ref Writer writer, ref immutable LowProgram lowProgram, immutable LowFunIndex fun) {
-	writeFunName(writer, lowProgram, fullIndexDictGet(lowProgram.allFuns, fun));
+void writeFunName(
+	ref Writer writer,
+	ref const AllSymbols allSymbols,
+	ref immutable LowProgram lowProgram,
+	immutable LowFunIndex fun,
+) {
+	writeFunName(writer, allSymbols, lowProgram, fullIndexDictGet(lowProgram.allFuns, fun));
 }
 
-void writeFunName(ref Writer writer, ref immutable LowProgram lowProgram, ref immutable LowFun a) {
+void writeFunName(
+	ref Writer writer,
+	ref const AllSymbols allSymbols,
+	ref immutable LowProgram lowProgram,
+	ref immutable LowFun a,
+) {
 	matchLowFunSource!(
 		void,
 		(immutable Ptr!ConcreteFun it) {
-			writeConcreteFunName(writer, it.deref());
+			writeConcreteFunName(writer, allSymbols, it.deref());
 		},
 		(ref immutable LowFunSource.Generated it) {
-			writeSym(writer, it.name);
+			writeSym(writer, allSymbols, it.name);
 			if (!empty(it.typeArgs)) {
 				writeChar(writer, '<');
 				writeWithCommas!LowType(writer, it.typeArgs, (ref immutable LowType it) {
-					writeLowType(writer, lowProgram.allTypes, it);
+					writeLowType(writer, allSymbols, lowProgram.allTypes, it);
 				});
 				writeChar(writer, '>');
 			}
@@ -63,11 +72,16 @@ void writeFunName(ref Writer writer, ref immutable LowProgram lowProgram, ref im
 	)(a.source);
 }
 
-void writeFunSig(ref Writer writer, ref immutable LowProgram lowProgram, ref immutable LowFun a) {
+void writeFunSig(
+	ref Writer writer,
+	ref const AllSymbols allSymbols,
+	ref immutable LowProgram lowProgram,
+	ref immutable LowFun a,
+) {
 	matchLowFunSource!(
 		void,
 		(immutable Ptr!ConcreteFun it) {
-			writeConcreteType(writer, it.deref().returnType);
+			writeConcreteType(writer, allSymbols, it.deref().returnType);
 			writeChar(writer, '(');
 			writeWithCommas!ConcreteParam(
 				writer,
@@ -80,13 +94,13 @@ void writeFunSig(ref Writer writer, ref immutable LowProgram lowProgram, ref imm
 						},
 						(ref immutable Param p) {
 							if (has(p.name))
-								writeSym(writer, force(p.name));
+								writeSym(writer, allSymbols, force(p.name));
 							else
 								writeChar(writer, '_');
 						},
 					)(param.source);
 					writeChar(writer, ' ');
-					writeConcreteType(writer, param.type);
+					writeConcreteType(writer, allSymbols, param.type);
 				});
 			writeChar(writer, ')');
 		},
@@ -96,7 +110,12 @@ void writeFunSig(ref Writer writer, ref immutable LowProgram lowProgram, ref imm
 	)(a.source);
 }
 
-void writeLowType(ref Writer writer, ref immutable AllLowTypes lowTypes, ref immutable LowType a) {
+void writeLowType(
+	ref Writer writer,
+	ref const AllSymbols allSymbols,
+	ref immutable AllLowTypes lowTypes,
+	ref immutable LowType a,
+) {
 	matchLowType!(
 		void,
 		(immutable LowType.ExternPtr) {
@@ -106,47 +125,47 @@ void writeLowType(ref Writer writer, ref immutable AllLowTypes lowTypes, ref imm
 			writeStatic(writer, "some fun ptr type"); // TODO: more detail
 		},
 		(immutable PrimitiveType it) {
-			writeSym(writer, symOfPrimitiveType(it));
+			writeSym(writer, allSymbols, symOfPrimitiveType(it));
 		},
 		(immutable LowType.PtrGc it) {
 			writeStatic(writer, "gc-ptr(");
-			writeLowType(writer, lowTypes, it.pointee.deref());
+			writeLowType(writer, allSymbols, lowTypes, it.pointee.deref());
 			writeChar(writer, ')');
 		},
 		(immutable LowType.PtrRawConst it) {
 			writeStatic(writer, "raw-ptr-const(");
-			writeLowType(writer, lowTypes, it.pointee.deref());
+			writeLowType(writer, allSymbols, lowTypes, it.pointee.deref());
 			writeChar(writer, ')');
 		},
 		(immutable LowType.PtrRawMut it) {
 			writeStatic(writer, "raw-ptr-mut(");
-			writeLowType(writer, lowTypes, it.pointee.deref());
+			writeLowType(writer, allSymbols, lowTypes, it.pointee.deref());
 			writeChar(writer, ')');
 		},
 		(immutable LowType.Record it) {
-			writeConcreteStruct(writer, fullIndexDictGet(lowTypes.allRecords, it).source.deref());
+			writeConcreteStruct(writer, allSymbols, fullIndexDictGet(lowTypes.allRecords, it).source.deref());
 		},
 		(immutable LowType.Union it) {
-			writeConcreteStruct(writer, fullIndexDictGet(lowTypes.allUnions, it).source.deref());
+			writeConcreteStruct(writer, allSymbols, fullIndexDictGet(lowTypes.allUnions, it).source.deref());
 		},
 	)(a);
 }
 
-void writeConcreteFunName(ref Writer writer, ref immutable ConcreteFun a) {
+void writeConcreteFunName(ref Writer writer, ref const AllSymbols allSymbols, ref immutable ConcreteFun a) {
 	matchConcreteFunSource!(
 		void,
 		(ref immutable FunInst it) {
-			writeSym(writer, name(it));
+			writeSym(writer, allSymbols, name(it));
 			if (!empty(typeArgs(it))) {
 				writeChar(writer, '<');
 				writeWithCommas!Type(writer, typeArgs(it), (ref immutable Type typeArg) {
-					writeType(writer, typeArg);
+					writeType(writer, allSymbols, typeArg);
 				});
 				writeChar(writer, '>');
 			}
 		},
 		(ref immutable ConcreteFunSource.Lambda it) {
-			writeConcreteFunName(writer, it.containingFun.deref());
+			writeConcreteFunName(writer, allSymbols, it.containingFun.deref());
 			writeStatic(writer, ".lambda");
 			writeNat(writer, it.index);
 		},
@@ -159,53 +178,49 @@ void writeConcreteFunName(ref Writer writer, ref immutable ConcreteFun a) {
 
 private:
 
-void writeRecordName(ref Writer writer, ref immutable LowRecord a) {
-	writeConcreteStruct(writer, a.source.deref());
-}
-
-void writeConcreteStruct(ref Writer writer, ref immutable ConcreteStruct a) {
+void writeConcreteStruct(ref Writer writer, ref const AllSymbols allSymbols, ref immutable ConcreteStruct a) {
 	matchConcreteStructSource!(
 		void,
 		(ref immutable ConcreteStructSource.Inst it) {
-			writeSym(writer, decl(it.inst.deref()).deref().name);
+			writeSym(writer, allSymbols, decl(it.inst.deref()).deref().name);
 			if (!empty(it.typeArgs)) {
 				writeChar(writer, '<');
 				writeWithCommas!ConcreteType(writer, it.typeArgs, (ref immutable ConcreteType t) {
-					writeConcreteType(writer, t);
+					writeConcreteType(writer, allSymbols, t);
 				});
 				writeChar(writer, '>');
 			}
 		},
 		(ref immutable ConcreteStructSource.Lambda it) {
-			writeConcreteFunName(writer, it.containingFun.deref());
+			writeConcreteFunName(writer, allSymbols, it.containingFun.deref());
 			writeStatic(writer, ".lambda");
 			writeNat(writer, it.index);
 		},
 	)(a.source);
 }
 
-void writeConcreteType(ref Writer writer, immutable ConcreteType a) {
+void writeConcreteType(ref Writer writer, ref const AllSymbols allSymbols, immutable ConcreteType a) {
 	//TODO: if it doesn't have the usual by-ref or by-val we should write that
-	writeConcreteStruct(writer, a.struct_.deref());
+	writeConcreteStruct(writer, allSymbols, a.struct_.deref());
 }
 
-void writeFieldName(ref Writer writer, ref immutable LowField a) {
+void writeFieldName(ref Writer writer, ref const AllSymbols allSymbols, ref immutable LowField a) {
 	matchConcreteFieldSource!(
 		void,
 		(immutable Ptr!ClosureField it) {
-			writeSym(writer, it.deref().name);
+			writeSym(writer, allSymbols, it.deref().name);
 		},
 		(immutable Ptr!RecordField it) {
-			writeSym(writer, it.deref().name);
+			writeSym(writer, allSymbols, it.deref().name);
 		},
 	)(a.source.deref().source);
 }
 
-void writeLocalName(ref Writer writer, ref immutable LowLocal a) {
+void writeLocalName(ref Writer writer, ref const AllSymbols allSymbols, ref immutable LowLocal a) {
 	matchLowLocalSource!(
 		void,
 		(ref immutable ConcreteLocal it) {
-			writeSym(writer, it.source.deref().name);
+			writeSym(writer, allSymbols, it.source.deref().name);
 		},
 		(ref immutable LowLocalSource.Generated) {
 			writeStatic(writer, "<<generated>>");

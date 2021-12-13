@@ -5,10 +5,11 @@ module util.sym;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : only;
 import util.collection.arrUtil : contains, every, findIndex;
-import util.collection.mutArr : last, MutArr, mutArrRange, push;
-import util.collection.str : copyToSafeCStr, CStr, eachChar, SafeCStr, safeCStrEq, strEq;
+import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
+import util.collection.str : copyToSafeCStr, CStr, eachChar, SafeCStr, safeCStr, safeCStrEq;
+import util.conv : safeToSizeT;
 import util.hash : Hasher, hashUlong;
-import util.opt : has, Opt, force, none, some;
+import util.opt : Opt, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.util : unreachable, verify;
 import util.writer : finishWriter, writeChar, writeStatic, Writer;
@@ -21,45 +22,51 @@ immutable(bool) containsSym(ref immutable Sym[] a, immutable Sym b) {
 	return contains(a, b, (ref immutable Sym a, ref immutable Sym b) => symEq(a, b));
 }
 
-immutable(bool) isAlphaIdentifierStart(immutable char c) {
-	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
-}
-
-immutable(bool) isDigit(immutable char c) {
-	return '0' <= c && c <= '9';
-}
-
-immutable(bool) isAlphaIdentifierContinue(immutable char c) {
-	//TODO: only last character should be '!'
-	return isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '!';
-}
-
 struct Sym {
 	@safe @nogc pure nothrow:
-	immutable ulong value;
+	// This is either:
+	// * A short symbol, tagged with 'shortSymTag'
+	// * An index into 'largeStrings'.
+	// The first members of 'largeStrings' match the members of the 'Operator' enum,
+	// so an operator can cast to/from a Sym.
+	// After that come SpecialSyms.
+	immutable ulong value; // Public for 'switch'
 	@disable this();
+	// TODO:PRIVATE
 	immutable this(immutable ulong v) { value = v; }
 }
 
 struct AllSymbols {
+	@safe @nogc pure nothrow:
+
 	//TODO:PRIVATE
 	Ptr!Alloc alloc;
+	// Also includes symbols like '=='
 	MutArr!(immutable SafeCStr) largeStrings;
+
+	this(Ptr!Alloc alloc_) {
+		alloc = alloc_;
+		static assert(Operator.min == 0 && SpecialSym.min == 0);
+		for (Operator op = Operator.min; op <= Operator.max; op++)
+			push(alloc.deref(), largeStrings, strOfOperator(op));
+		for (SpecialSym s = SpecialSym.min; s <= SpecialSym.max; s++)
+			push(alloc.deref(), largeStrings, strOfSpecial(s));
+	}
 }
 
 immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
 	verify(!isSymOperator(a));
-	immutable size_t oldSize = symSize(a);
+	immutable size_t oldSize = symSize(allSymbols, a);
 	immutable size_t newSize = 4 + oldSize;
 
 	//TODO: only do inside 'else'
 	Writer writer = Writer(allSymbols.alloc);
 	writeStatic(writer, "set-");
-	writeSym(writer, a);
+	writeSym(writer, allSymbols, a);
 	immutable string str = finishWriter(writer);
 
-	if (isShortAlphaSym(a) && newSize <= alphaIdentifierMaxChars) {
-		immutable Sym res = prefixAlphaIdentifierWithSet(a, oldSize);
+	if (isShortSym(a) && newSize <= shortSymMaxChars) {
+		immutable Sym res = prefixShortSymWithSet(a, oldSize);
 		verify(symEq(symOfStr(allSymbols, str), res));
 		return res;
 	} else
@@ -67,16 +74,10 @@ immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
 }
 
 immutable(Sym) symOfStr(ref AllSymbols allSymbols, scope immutable string str) {
-	immutable Opt!Sym op = getSymFromOperator(allSymbols, str);
-	return has(op) ? force(op) : getSymFromAlphaIdentifier(allSymbols, str);
-}
-
-immutable(Sym) getSymFromAlphaIdentifier(ref AllSymbols allSymbols, scope immutable string str) {
-	immutable Sym res = canPackAlphaIdentifier(str)
-		? immutable Sym(packAlphaIdentifier(str))
+	immutable Sym res = canPackShortSym(str)
+		? immutable Sym(packShortSym(str))
 		: getSymFromLongStr(allSymbols, str);
-	assertSym(res, str);
-	verify(!isSymOperator(res));
+	assertSym(allSymbols, res, str);
 	return res;
 }
 
@@ -106,145 +107,196 @@ enum Operator {
 	not,
 }
 
-private immutable(Opt!Sym) getSymFromOperator(ref AllSymbols allSymbols, scope immutable string str) {
-	immutable Opt!Operator op = operatorFromStr(str);
-	if (has(op)) {
-		immutable Sym res = symForOperator(force(op));
-		assertSym(res, str);
-		return some(res);
-	} else
-		return none!Sym;
+enum SpecialSym {
+	clock_gettime,
+	get_nprocs,
+	pthread_condattr_destroy,
+	pthread_condattr_init,
+	pthread_condattr_setclock,
+	pthread_cond_broadcast,
+	pthread_cond_destroy,
+	pthread_cond_init,
+	pthread_create,
+	pthread_join,
+	pthread_mutexattr_destroy,
+	pthread_mutexattr_init,
+	pthread_mutex_destroy,
+	pthread_mutex_init,
+	pthread_mutex_lock,
+	pthread_mutex_unlock,
+	sched_yield,
+
+	// these are hyphenated
+	as_any_mut_ptr,
+	init_constants,
+	ptr_cast_from_extern,
+	ptr_cast_to_extern,
+	truncate_to_int64,
+	unsafe_bit_shift_left,
+	unsafe_bit_shift_right,
+	unsafe_to_int8,
+	unsafe_to_int16,
+	unsafe_to_int32,
+	unsafe_to_int64,
+	unsafe_to_nat8,
+	unsafe_to_nat16,
+	unsafe_to_nat32,
+	unsafe_to_nat64,
+
+	call_with_ctx,
+	island_and_exclusion,
 }
 
 immutable(Sym) symForOperator(immutable Operator a) {
-	immutable Sym res = immutable Sym(((cast(immutable ulong) a) + 1) << 48);
-	verify(isSymOperator(res));
-	return res;
+	return immutable Sym(a);
 }
 
-private immutable(Opt!Operator) operatorFromStr(scope immutable string str) {
-	if (str.length == 1)
-		switch (only(str)) {
-			case '<':
-				return some(Operator.less);
-			case '>':
-				return some(Operator.greater);
-			case '&':
-				return some(Operator.and1);
-			case '|':
-				return some(Operator.or1);
-			case '+':
-				return some(Operator.plus);
-			case '-':
-				return some(Operator.minus);
-			case '~':
-				return some(Operator.tilde);
-			case '*':
-				return some(Operator.times);
-			case '/':
-				return some(Operator.divide);
-			case '^':
-				return some(Operator.xor1);
-			case '!':
-				return some(Operator.not);
-			default:
-				return none!Operator;
-		}
-	else
-		return strEq(str, "&&")
-			? some(Operator.and2)
-			: strEq(str, "||")
-			? some(Operator.or2)
-			: strEq(str, "~=")
-			? some(Operator.concatEquals)
-			: strEq(str, "==")
-			? some(Operator.equal)
-			: strEq(str, "!=")
-			? some(Operator.notEqual)
-			: strEq(str, "<=")
-			? some(Operator.lessOrEqual)
-			: strEq(str, ">=")
-			? some(Operator.greaterOrEqual)
-			: strEq(str, "<=>")
-			? some(Operator.compare)
-			: strEq(str, "<<")
-			? some(Operator.shiftLeft)
-			: strEq(str, ">>")
-			? some(Operator.shiftRight)
-			: strEq(str, "**")
-			? some(Operator.exponent)
-			: strEq(str, "..")
-			? some(Operator.range)
-			: none!Operator;
+immutable(Sym) symForSpecial(immutable SpecialSym a) {
+	return immutable Sym(Operator.max + 1 + a);
 }
 
-immutable(string) strOfOperator(immutable Operator a) {
+immutable(SafeCStr) strOfOperator(immutable Operator a) {
 	final switch (a) {
 		case Operator.or2:
-			return "||";
+			return safeCStr!"||";
 		case Operator.and2:
-			return "&&";
+			return safeCStr!"&&";
 		case Operator.concatEquals:
-			return "~=";
+			return safeCStr!"~=";
 		case Operator.equal:
-			return "==";
+			return safeCStr!"==";
 		case Operator.notEqual:
-			return "!=";
+			return safeCStr!"!=";
 		case Operator.less:
-			return "<";
+			return safeCStr!"<";
 		case Operator.lessOrEqual:
-			return "<=";
+			return safeCStr!"<=";
 		case Operator.greater:
-			return ">";
+			return safeCStr!">";
 		case Operator.greaterOrEqual:
-			return ">=";
+			return safeCStr!">=";
 		case Operator.compare:
-			return "<=>";
+			return safeCStr!"<=>";
 		case Operator.or1:
-			return "|";
+			return safeCStr!"|";
 		case Operator.xor1:
-			return "^";
+			return safeCStr!"^";
 		case Operator.and1:
-			return "&";
+			return safeCStr!"&";
 		case Operator.range:
-			return "..";
+			return safeCStr!"..";
 		case Operator.tilde:
-			return "~";
+			return safeCStr!"~";
 		case Operator.shiftLeft:
-			return "<<";
+			return safeCStr!"<<";
 		case Operator.shiftRight:
-			return ">>";
+			return safeCStr!">>";
 		case Operator.plus:
-			return "+";
+			return safeCStr!"+";
 		case Operator.minus:
-			return "-";
+			return safeCStr!"-";
 		case Operator.times:
-			return "*";
+			return safeCStr!"*";
 		case Operator.divide:
-			return "/";
+			return safeCStr!"/";
 		case Operator.exponent:
-			return "**";
+			return safeCStr!"**";
 		case Operator.not:
-			return "!";
+			return safeCStr!"!";
 	}
 }
 
-void eachCharInSym(immutable Sym a, scope void delegate(immutable char) @safe @nogc pure nothrow cb) {
-	if (isShortAlphaSym(a))
-		unpackShortAlphaIdentifier(a, cb);
-	else if (isSymOperator(a)) {
-		immutable Opt!Operator optOperator = operatorForSym(a);
-		foreach (immutable char c; strOfOperator(force(optOperator)))
-			cb(c);
-	} else {
-		verify(isLongAlphaSym(a));
-		eachChar(asLongAlphaSym(a), cb);
+private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
+	final switch (a) {
+		case SpecialSym.clock_gettime:
+			return safeCStr!"clock_gettime";
+		case SpecialSym.get_nprocs:
+			return safeCStr!"get_nprocs";
+		case SpecialSym.pthread_condattr_destroy:
+			return safeCStr!"pthread_condattr_destroy";
+		case SpecialSym.pthread_condattr_init:
+			return safeCStr!"pthread_condattr_init";
+		case SpecialSym.pthread_condattr_setclock:
+			return safeCStr!"pthread_condattr_setclock";
+		case SpecialSym.pthread_cond_broadcast:
+			return safeCStr!"pthread_cond_broadcast";
+		case SpecialSym.pthread_cond_destroy:
+			return safeCStr!"pthread_cond_destroy";
+		case SpecialSym.pthread_cond_init:
+			return safeCStr!"pthread_cond_init";
+		case SpecialSym.pthread_create:
+			return safeCStr!"pthread_create";
+		case SpecialSym.pthread_join:
+			return safeCStr!"pthread_join";
+		case SpecialSym.pthread_mutexattr_destroy:
+			return safeCStr!"pthread_mutexattr_destroy";
+		case SpecialSym.pthread_mutexattr_init:
+			return safeCStr!"pthread_mutexattr_init";
+		case SpecialSym.pthread_mutex_destroy:
+			return safeCStr!"pthread_mutex_destroy";
+		case SpecialSym.pthread_mutex_init:
+			return safeCStr!"pthread_mutex_init";
+		case SpecialSym.pthread_mutex_lock:
+			return safeCStr!"pthread_mutex_lock";
+		case SpecialSym.pthread_mutex_unlock:
+			return safeCStr!"pthread_mutex_unlock";
+		case SpecialSym.sched_yield:
+			return safeCStr!"sched_yield";
+
+		case SpecialSym.as_any_mut_ptr:
+			return safeCStr!"as-any-mut-ptr";
+		case SpecialSym.init_constants:
+			return safeCStr!"init-constants";
+		case SpecialSym.ptr_cast_from_extern:
+			return safeCStr!"ptr-cast-from-extern";
+		case SpecialSym.ptr_cast_to_extern:
+			return safeCStr!"ptr-cast-to-extern";
+		case SpecialSym.truncate_to_int64:
+			return safeCStr!"truncate-to-int64";
+		case SpecialSym.unsafe_bit_shift_left:
+			return safeCStr!"unsafe-bit-shift-left";
+		case SpecialSym.unsafe_bit_shift_right:
+			return safeCStr!"unsafe-bit-shift-right";
+		case SpecialSym.unsafe_to_int8:
+			return safeCStr!"unsafe-to-int8";
+		case SpecialSym.unsafe_to_int16:
+			return safeCStr!"unsafe-to-int16";
+		case SpecialSym.unsafe_to_int32:
+			return safeCStr!"unsafe-to-int32";
+		case SpecialSym.unsafe_to_int64:
+			return safeCStr!"unsafe-to-int64";
+		case SpecialSym.unsafe_to_nat8:
+			return safeCStr!"unsafe-to-nat8";
+		case SpecialSym.unsafe_to_nat16:
+			return safeCStr!"unsafe-to-nat16";
+		case SpecialSym.unsafe_to_nat32:
+			return safeCStr!"unsafe-to-nat32";
+		case SpecialSym.unsafe_to_nat64:
+			return safeCStr!"unsafe-to-nat64";
+
+		case SpecialSym.call_with_ctx:
+			return safeCStr!"call-with-ctx";
+		case SpecialSym.island_and_exclusion:
+			return safeCStr!"island-and-exclusion";
 	}
 }
 
-immutable(uint) symSize(immutable Sym a) {
+void eachCharInSym(
+	ref const AllSymbols allSymbols,
+	immutable Sym a,
+	scope void delegate(immutable char) @safe @nogc pure nothrow cb,
+) {
+	if (isShortSym(a))
+		eachCharInShortSym(a.value, cb);
+	else {
+		verify(isLongSym(a));
+		eachChar(asLongSym(allSymbols, a), cb);
+	}
+}
+
+immutable(uint) symSize(ref const AllSymbols allSymbols, immutable Sym a) {
 	uint size = 0;
-	eachCharInSym(a, (immutable char) {
+	eachCharInSym(allSymbols, a, (immutable char) {
 		size++;
 	});
 	return size;
@@ -254,35 +306,34 @@ immutable(bool) symEq(immutable Sym a, immutable Sym b) {
 	return a.value == b.value;
 }
 
-immutable(Sym) shortSymAlphaLiteral(immutable string name) {
-	verify(canPackAlphaIdentifier(name));
-	return immutable Sym(packAlphaIdentifier(name));
+immutable(Sym) shortSym(immutable string name) {
+	verify(canPackShortSym(name));
+	return immutable Sym(packShortSym(name));
 }
 
-immutable(ulong) shortSymAlphaLiteralValue(immutable string name) {
-	return shortSymAlphaLiteral(name).value;
+immutable(ulong) shortSymValue(immutable string name) {
+	return shortSym(name).value;
 }
 
 immutable(ulong) operatorSymValue(immutable Operator a) {
 	return symForOperator(a).value;
 }
 
-immutable(bool) symEqLongAlphaLiteral(immutable Sym a, immutable string lit) {
-	verify(!canPackAlphaIdentifier(lit));
-	return isLongAlphaSym(a) && safeCStrEq(asLongAlphaSym(a), lit);
+immutable(ulong) specialSymValue(immutable SpecialSym a) {
+	return symForSpecial(a).value;
 }
 
-immutable(string) strOfSym(ref Alloc alloc, immutable Sym a) {
+immutable(string) strOfSym(ref Alloc alloc, ref const AllSymbols allSymbols, immutable Sym a) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
-	writeSym(writer, a);
+	writeSym(writer, allSymbols, a);
 	return finishWriter(writer);
 }
 
-immutable(char[bufferSize]) symAsTempBuffer(size_t bufferSize)(immutable Sym a) {
+immutable(char[bufferSize]) symAsTempBuffer(size_t bufferSize)(ref const AllSymbols allSymbols, immutable Sym a) {
 	char[bufferSize] res;
-	verify(symSize(a) < bufferSize);
+	verify(symSize(allSymbols, a) < bufferSize);
 	size_t index;
-	eachCharInSym(a, (immutable char c) {
+	eachCharInSym(allSymbols, a, (immutable char c) {
 		res[index] = c;
 		index++;
 	});
@@ -290,26 +341,26 @@ immutable(char[bufferSize]) symAsTempBuffer(size_t bufferSize)(immutable Sym a) 
 	return res;
 }
 
-immutable(size_t) writeSymAndGetSize(ref Writer writer, immutable Sym a) {
+immutable(size_t) writeSymAndGetSize(ref Writer writer, ref const AllSymbols allSymbols, immutable Sym a) {
 	size_t size = 0;
-	eachCharInSym(a, (immutable char c) {
+	eachCharInSym(allSymbols, a, (immutable char c) {
 		writeChar(writer, c);
 		size++;
 	});
 	return size;
 }
 
-void writeSym(ref Writer writer, immutable Sym a) {
-	writeSymAndGetSize(writer, a);
+void writeSym(ref Writer writer, ref const AllSymbols allSymbols, immutable Sym a) {
+	writeSymAndGetSize(writer, allSymbols, a);
 }
 
 immutable(bool) isSymOperator(immutable Sym a) {
-	return !isShortAlphaSym(a) && bitsOverlap(a.value, operatorBits);
+	return a.value <= Operator.max;
 }
 
 immutable(Opt!Operator) operatorForSym(immutable Sym a) {
 	if (isSymOperator(a)) {
-		immutable Operator res = cast(immutable Operator) ((a.value >> 48) - 1);
+		immutable Operator res = cast(immutable Operator) a.value;
 		verify(res <= Operator.max);
 		return some(res);
 	} else
@@ -322,15 +373,15 @@ void hashSym(ref Hasher hasher, immutable Sym a) {
 
 private:
 
-immutable(bool) canPackAlphaChar5(immutable char c) {
+immutable(bool) canPackChar5(immutable char c) {
 	return ('a' <= c && c <= 'z') || c == '-' || ('0' <= c && c <= '3');
 }
 
-immutable(bool) canPackAlphaChar6(immutable char c) {
-	return canPackAlphaChar5(c) || ('4' <= c && c <= '9') || c == '!';
+immutable(bool) canPackChar6(immutable char c) {
+	return canPackChar5(c) || ('4' <= c && c <= '9') || c == '!';
 }
 
-immutable(ulong) packAlphaChar5(immutable char c) {
+immutable(ulong) packChar5(immutable char c) {
 	// 0 means no character, so start at 1
 	return 'a' <= c && c <= 'z' ? 1 + c - 'a' :
 		c == '-' ? 1 + 26 :
@@ -338,7 +389,7 @@ immutable(ulong) packAlphaChar5(immutable char c) {
 		unreachable!ulong;
 }
 
-immutable(ulong) packAlphaChar6(immutable char c) {
+immutable(ulong) packChar6(immutable char c) {
 	return 'a' <= c && c <= 'z' ? 1 + c - 'a' :
 		c == '-' ? 1 + 26 :
 		'0' <= c && c <= '9' ? 1 + 26 + 1 + c - '0' :
@@ -346,7 +397,7 @@ immutable(ulong) packAlphaChar6(immutable char c) {
 		unreachable!ulong;
 }
 
-immutable(char) unpackAlphaChar(immutable ulong n) {
+immutable(char) unpackChar(immutable ulong n) {
 	verify(n != 0);
 	return n < 1 + 26 ? cast(char) ('a' + (n - 1)) :
 		n == 1 + 26 ? '-' :
@@ -355,42 +406,28 @@ immutable(char) unpackAlphaChar(immutable ulong n) {
 		unreachable!char;
 }
 
-// == SYMBOL REPRESENTATION ==
-// If the first bit is 1, this is a short alpya sym.
-//	We store chars in reverse, the last chars are in the highest bits.
-//	Represenation starts with 2 unused bits, then 2 6-bit chars, then 10 5-bit chars (TODO: only need 1...)
-//	2 6 6 5 5 5 5 5 5 5 5 5 5
-//	e.g.:
-//	0 a h p l a 0 0 0 0 0 0 0
-// If the first bit is 0, this is an operator or pointer.
-//	If an operator: We store (operator + 1) << 48
-//		(since pointers don't use these upper bits, and + 1 is to ensure at least one of operatorBits is set.)
-//	If alpha: we store a pointer to a nul-terminated string.
-
 // Bit to be set when the sym is short
-immutable ulong shortAlphaSymMarker = 0x8000000000000000;
-// shortAlphaSymMarker is not set, we'll be looking at an operator if these bits are set.
-immutable ulong operatorBits = 0x7fff000000000000;
+immutable ulong shortSymTag = 0x8000000000000000;
 
-immutable size_t alphaIdentifierMaxChars = 12;
+immutable size_t shortSymMaxChars = 12;
 
-immutable(bool) canPackAlphaIdentifier(immutable string str) {
-	return str.length > alphaIdentifierMaxChars
+immutable(bool) canPackShortSym(immutable string str) {
+	return str.length > shortSymMaxChars
 		? false
 		: str.length <= 2
-		? every!char(str, (ref immutable char c) => canPackAlphaChar6(c))
-		: every!char(str[$ - 2 .. $], (ref immutable char c) => canPackAlphaChar6(c)) &&
-			every!char(str[0 .. $ - 2], (ref immutable char c) => canPackAlphaChar5(c));
+		? every!char(str, (ref immutable char c) => canPackChar6(c))
+		: every!char(str[$ - 2 .. $], (ref immutable char c) => canPackChar6(c)) &&
+			every!char(str[0 .. $ - 2], (ref immutable char c) => canPackChar5(c));
 }
 
 immutable ulong setPrefix =
-	(packAlphaChar5('-') << (5 * 3)) |
-	(packAlphaChar5('t') << (5 * 2)) |
-	(packAlphaChar5('e') << (5 * 1)) |
-	packAlphaChar5('s');
+	(packChar5('-') << (5 * 3)) |
+	(packChar5('t') << (5 * 2)) |
+	(packChar5('e') << (5 * 1)) |
+	packChar5('s');
 
-immutable(Sym) prefixAlphaIdentifierWithSet(immutable Sym a, immutable size_t symSize) {
-	verify(isShortAlphaSym(a));
+immutable(Sym) prefixShortSymWithSet(immutable Sym a, immutable size_t symSize) {
+	verify(isShortSym(a));
 	verify(symSize != 0);
 	immutable ulong inputSizeBits = symSize == 1
 		? 2 + 6
@@ -401,88 +438,78 @@ immutable(Sym) prefixAlphaIdentifierWithSet(immutable Sym a, immutable size_t sy
 	return immutable Sym(a.value | prefixBits);
 }
 
-immutable(ulong) packAlphaIdentifier(immutable string str) {
-	verify(canPackAlphaIdentifier(str));
+immutable(ulong) packShortSym(immutable string str) {
+	verify(canPackShortSym(str));
 
 	ulong res = 0;
-	foreach (immutable size_t i; 0 .. alphaIdentifierMaxChars) {
+	foreach (immutable size_t i; 0 .. shortSymMaxChars) {
 		immutable bool is6Bit = i < 2;
 		immutable ulong value = () {
 			if (i < str.length) {
 				immutable char c = str[str.length - 1 - i];
-				return is6Bit ? packAlphaChar6(c) : packAlphaChar5(c);
+				return is6Bit ? packChar6(c) : packChar5(c);
 			} else
 				return 0;
 		}();
 		res = res << (is6Bit ? 6 : 5);
 		res |= value;
 	}
-	verify((res & shortAlphaSymMarker) == 0);
-	return res | shortAlphaSymMarker;
+	verify((res & shortSymTag) == 0);
+	return res | shortSymTag;
 }
 
-void unpackShortAlphaIdentifier(
-	immutable Sym sym,
+void eachCharInShortSym(
+	ulong p,
 	scope void delegate(immutable char) @safe @nogc pure nothrow cb,
 ) {
-	verify(isShortAlphaSym(sym));
-	ulong p = sym.value;
 	foreach (immutable size_t i; 0 .. 10) {
 		immutable size_t c = p & 0b11111;
 		if (c != 0)
-			cb(unpackAlphaChar(c));
+			cb(unpackChar(c));
 		p = p >> 5;
 	}
 	foreach (immutable size_t i; 0 .. 2) {
 		immutable size_t c = p & 0b111111;
 		if (c != 0)
-			cb(unpackAlphaChar(c));
+			cb(unpackChar(c));
 		p = p >> 6;
 	}
 }
 
 // Public for test only
-public immutable(bool) isShortAlphaSym(immutable Sym a) {
-	return bitsOverlap(a.value, shortAlphaSymMarker);
+public immutable(bool) isShortSym(immutable Sym a) {
+	return (a.value & shortSymTag) != 0;
 }
 
 // Public for test only
-public immutable(bool) isLongAlphaSym(immutable Sym a) {
-	return !bitsOverlap(a.value, shortAlphaSymMarker | operatorBits);
+public immutable(bool) isLongSym(immutable Sym a) {
+	return !isShortSym(a);
 }
 
-@trusted immutable(SafeCStr) asLongAlphaSym(immutable Sym a) {
-	verify(isLongAlphaSym(a));
-	return immutable SafeCStr(cast(immutable CStr) a.value);
-}
-
-immutable(SafeCStr) getOrAddLongStr(ref AllSymbols allSymbols, scope immutable string str) {
-	foreach (immutable SafeCStr x; mutArrRange(allSymbols.largeStrings))
-		if (safeCStrEq(x, str))
-			return x;
-	push(allSymbols.alloc.deref(), allSymbols.largeStrings, copyToSafeCStr(allSymbols.alloc.deref(), str));
-	return last(allSymbols.largeStrings);
+@trusted immutable(SafeCStr) asLongSym(ref const AllSymbols allSymbols, immutable Sym a) {
+	verify(isLongSym(a));
+	return mutArrAt(allSymbols.largeStrings, safeToSizeT(a.value));
 }
 
 immutable(Sym) getSymFromLongStr(ref AllSymbols allSymbols, scope immutable string str) {
-	immutable Sym res = immutable Sym(cast(immutable ulong) getOrAddLongStr(allSymbols, str).ptr);
-	verify(isLongAlphaSym(res));
-	return res;
+	foreach (immutable size_t i, immutable SafeCStr x; mutArrRange(allSymbols.largeStrings))
+		if (safeCStrEq(x, str))
+			return immutable Sym(i);
+
+	immutable ulong res = mutArrSize(allSymbols.largeStrings);
+	push(allSymbols.alloc.deref(), allSymbols.largeStrings, copyToSafeCStr(allSymbols.alloc.deref(), str));
+	return immutable Sym(res);
 }
 
-void assertSym(immutable Sym sym, immutable string str) {
+void assertSym(ref const AllSymbols allSymbols, immutable Sym sym, immutable string str) {
 	//TODO:KILL
 	size_t idx = 0;
-	eachCharInSym(sym, (immutable char c) {
+	eachCharInSym(allSymbols, sym, (immutable char c) {
 		immutable char expected = str[idx];
 		idx = idx + 1;
 		verify(c == expected);
 	});
 	verify(idx == str.length);
-}
-
-immutable(bool) bitsOverlap(immutable ulong a, immutable ulong b) {
-	return (a & b) != 0;
 }
 
 @trusted immutable(bool) strEqCStr(immutable string a, immutable CStr b) {

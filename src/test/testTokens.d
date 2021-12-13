@@ -56,16 +56,16 @@ void testOne(ref Test test, immutable SafeCStr source, immutable Token[] expecte
 			diags,
 			immutable FileIndex(0),
 			source));
-	immutable Token[] tokens = tokensOfAst(test.alloc, ast);
+	immutable Token[] tokens = tokensOfAst(test.alloc, allSymbols, ast);
 	if (!tokensEq(tokens, expectedTokens)) {
 		Writer writer = Writer(test.allocPtr);
 		writeStatic(writer, "expected tokens:\n");
-		writeRepr(writer, reprTokens(test.alloc, expectedTokens));
+		writeRepr(writer, allSymbols, reprTokens(test.alloc, expectedTokens));
 		writeStatic(writer, "\nactual tokens:\n");
-		writeRepr(writer, reprTokens(test.alloc, tokens));
+		writeRepr(writer, allSymbols, reprTokens(test.alloc, tokens));
 
 		writeStatic(writer, "\n\n(hint: ast is:)\n");
-		writeRepr(writer, reprAst(test.alloc, test.allPaths, ast));
+		writeRepr(writer, allSymbols, reprAst(test.alloc, test.allPaths, ast));
 		log(test.dbg, finishWriter(writer));
 		verifyFail();
 	}

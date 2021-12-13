@@ -17,11 +17,11 @@ import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
 import util.perf : Perf, withNullPerf;
 import util.ptr : Ptr, ptrTrustMe_const;
 import util.sourceRange : Pos;
-import util.sym : shortSymAlphaLiteral;
+import util.sym : shortSym;
 import util.util : verify, verifyFail;
 
 @trusted void testHover(ref Test test) {
-	immutable Path path = rootPath(test.allPaths, shortSymAlphaLiteral("main"));
+	immutable Path path = rootPath(test.allPaths, shortSym("main"));
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(path, StorageKind.local);
 	MutFiles files;
 	addToMutDict(test.alloc, files, key, content);
@@ -31,9 +31,9 @@ import util.util : verify, verifyFail;
 	immutable Ptr!Module mainModule = lastPtr(program.allModules);
 
 	immutable(string) hover(immutable Pos pos) {
-		immutable Opt!Position position = getPosition(mainModule.deref(), pos);
+		immutable Opt!Position position = getPosition(test.allSymbols, mainModule.deref(), pos);
 		return has(position)
-			? getHoverStr(test.alloc, test.alloc, test.allPaths, program, force(position))
+			? getHoverStr(test.alloc, test.alloc, test.allSymbols, test.allPaths, program, force(position))
 			: "";
 	}
 

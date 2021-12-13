@@ -28,7 +28,7 @@ import util.repr :
 	reprStr,
 	reprSym;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
-import util.sym : shortSymAlphaLiteral, Sym, symSize;
+import util.sym : AllSymbols, shortSym, Sym, symSize;
 import util.util : verify;
 
 struct NameAndRange {
@@ -44,8 +44,8 @@ struct NameAndRange {
 	}
 }
 
-immutable(RangeWithinFile) rangeOfNameAndRange(immutable NameAndRange a) {
-	return rangeOfStartAndName(a.start, a.name);
+immutable(RangeWithinFile) rangeOfNameAndRange(immutable NameAndRange a, ref const AllSymbols allSymbols) {
+	return rangeOfStartAndName(a.start, a.name, allSymbols);
 }
 
 struct TypeAst {
@@ -133,7 +133,7 @@ static assert(TypeAst.sizeof <= 40);
 immutable(TypeAst) bogusTypeAst(immutable RangeWithinFile range) {
 	return immutable TypeAst(immutable TypeAst.InstStruct(
 		range,
-		immutable NameAndRange(range.start, shortSymAlphaLiteral("bogus")),
+		immutable NameAndRange(range.start, shortSym("bogus")),
 		emptyArrWithSize!TypeAst));
 }
 
@@ -178,24 +178,24 @@ private immutable(uint) suffixLength(immutable TypeAst.Suffix.Kind a) {
 immutable(Sym) symForTypeAstDict(immutable TypeAst.Dict.Kind a) {
 	final switch (a) {
 		case TypeAst.Dict.Kind.data:
-			return shortSymAlphaLiteral("dict");
+			return shortSym("dict");
 		case TypeAst.Dict.Kind.mut:
-			return shortSymAlphaLiteral("mut-dict");
+			return shortSym("mut-dict");
 	}
 }
 
 immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
 		case TypeAst.Suffix.Kind.arr:
-			return shortSymAlphaLiteral("arr");
+			return shortSym("arr");
 		case TypeAst.Suffix.Kind.arrMut:
-			return shortSymAlphaLiteral("mut-arr");
+			return shortSym("mut-arr");
 		case TypeAst.Suffix.Kind.opt:
-			return shortSymAlphaLiteral("opt");
+			return shortSym("opt");
 		case TypeAst.Suffix.Kind.ptr:
-			return shortSymAlphaLiteral("const-ptr");
+			return shortSym("const-ptr");
 		case TypeAst.Suffix.Kind.ptrMut:
-			return shortSymAlphaLiteral("mut-ptr");
+			return shortSym("mut-ptr");
 	}
 }
 
@@ -406,10 +406,13 @@ struct NameOrUnderscoreOrNone {
 }
 
 // Includes size of the ' ' before the name (but not for None)
-private immutable(size_t) nameOrUnderscoreOrNoneSize(ref immutable NameOrUnderscoreOrNone a) {
+private immutable(size_t) nameOrUnderscoreOrNoneSize(
+	ref const AllSymbols allSymbols,
+	ref immutable NameOrUnderscoreOrNone a,
+) {
 	return matchNameOrUnderscoreOrNone!(
 		size_t,
-		(immutable Sym s) => 1 + symSize(s),
+		(immutable Sym s) => 1 + symSize(allSymbols, s),
 		(ref immutable NameOrUnderscoreOrNone.Underscore) => immutable size_t(2),
 		(ref immutable NameOrUnderscoreOrNone.None) => immutable size_t(0),
 	)(a);
@@ -425,12 +428,14 @@ struct MatchAst {
 		immutable ExprAst then;
 
 		//TODO: NOT INSTANCE
-		immutable(RangeWithinFile) memberNameRange() immutable {
-			return rangeOfStartAndName(safeToUint(range.start + "as ".length), memberName);
+		immutable(RangeWithinFile) memberNameRange(ref const AllSymbols allSymbols) immutable {
+			return rangeOfStartAndName(safeToUint(range.start + "as ".length), memberName, allSymbols);
 		}
 
-		immutable(RangeWithinFile) localRange() immutable {
-			return rangeOfStartAndLength(memberNameRange().end, nameOrUnderscoreOrNoneSize(local));
+		immutable(RangeWithinFile) localRange(ref const AllSymbols allSymbols) immutable {
+			return rangeOfStartAndLength(
+				memberNameRange(allSymbols).end,
+				nameOrUnderscoreOrNoneSize(allSymbols, local));
 		}
 	}
 
@@ -673,15 +678,15 @@ enum PuritySpecifier {
 private immutable(Sym) symOfPuritySpecifier(immutable PuritySpecifier a) {
 	final switch (a) {
 		case PuritySpecifier.data:
-			return shortSymAlphaLiteral("data");
+			return shortSym("data");
 		case PuritySpecifier.forceData:
-			return shortSymAlphaLiteral("force-data");
+			return shortSym("force-data");
 		case PuritySpecifier.sendable:
-			return shortSymAlphaLiteral("sendable");
+			return shortSym("sendable");
 		case PuritySpecifier.forceSendable:
-			return shortSymAlphaLiteral("force-send");
+			return shortSym("force-send");
 		case PuritySpecifier.mut:
-			return shortSymAlphaLiteral("mut");
+			return shortSym("mut");
 	}
 }
 
@@ -690,8 +695,11 @@ struct PuritySpecifierAndRange {
 	immutable PuritySpecifier specifier;
 }
 
-immutable(RangeWithinFile) rangeOfPuritySpecifier(ref immutable PuritySpecifierAndRange a) {
-	return immutable RangeWithinFile(a.start, a.start + symSize(symOfPuritySpecifier(a.specifier)));
+immutable(RangeWithinFile) rangeOfPuritySpecifier(
+	ref const AllSymbols allSymbols,
+	ref immutable PuritySpecifierAndRange a,
+) {
+	return immutable RangeWithinFile(a.start, a.start + symSize(allSymbols, symOfPuritySpecifier(a.specifier)));
 }
 
 struct StructAliasAst {
@@ -711,9 +719,9 @@ enum ExplicitByValOrRef {
 private immutable(Sym) symOfExplicitByValOrRef(immutable ExplicitByValOrRef a) {
 	final switch (a) {
 		case ExplicitByValOrRef.byVal:
-			return shortSymAlphaLiteral("by-val");
+			return shortSym("by-val");
 		case ExplicitByValOrRef.byRef:
-			return shortSymAlphaLiteral("by-ref");
+			return shortSym("by-ref");
 	}
 }
 
@@ -722,8 +730,11 @@ struct ExplicitByValOrRefAndRange {
 	immutable ExplicitByValOrRef byValOrRef;
 }
 
-immutable(RangeWithinFile) rangeOfExplicitByValOrRef(ref immutable ExplicitByValOrRefAndRange a) {
-	return immutable RangeWithinFile(a.start, a.start + symSize(symOfExplicitByValOrRef(a.byValOrRef)));
+immutable(RangeWithinFile) rangeOfExplicitByValOrRef(
+	ref const AllSymbols allSymbols,
+	ref immutable ExplicitByValOrRefAndRange a,
+) {
+	return immutable RangeWithinFile(a.start, a.start + symSize(allSymbols, symOfExplicitByValOrRef(a.byValOrRef)));
 }
 
 struct RecordModifiers {
@@ -1320,11 +1331,11 @@ immutable(Repr) reprTypeAst(ref Alloc alloc, immutable TypeAst a) {
 immutable(Sym) symOfFunKind(immutable TypeAst.Fun.Kind a) {
 	final switch (a) {
 		case TypeAst.Fun.Kind.act:
-			return shortSymAlphaLiteral("act");
+			return shortSym("act");
 		case TypeAst.Fun.Kind.fun:
-			return shortSymAlphaLiteral("fun");
+			return shortSym("fun");
 		case TypeAst.Fun.Kind.ref_:
-			return shortSymAlphaLiteral("ref");
+			return shortSym("ref");
 	}
 }
 
@@ -1472,29 +1483,29 @@ immutable(Repr) reprInterpolatedPart(ref Alloc alloc, ref immutable Interpolated
 immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 	final switch (a) {
 		case CallAst.Style.comma:
-			return shortSymAlphaLiteral("comma");
+			return shortSym("comma");
 		case CallAst.Style.dot:
-			return shortSymAlphaLiteral("dot");
+			return shortSym("dot");
 		case CallAst.Style.emptyParens:
-			return shortSymAlphaLiteral("empty-parens");
+			return shortSym("empty-parens");
 		case CallAst.Style.infix:
-			return shortSymAlphaLiteral("infix");
+			return shortSym("infix");
 		case CallAst.Style.prefix:
-			return shortSymAlphaLiteral("prefix");
+			return shortSym("prefix");
 		case CallAst.Style.prefixOperator:
-			return shortSymAlphaLiteral("prefix-op");
+			return shortSym("prefix-op");
 		case CallAst.Style.setDeref:
-			return shortSymAlphaLiteral("set-deref");
+			return shortSym("set-deref");
 		case CallAst.Style.setDot:
-			return shortSymAlphaLiteral("set-dot");
+			return shortSym("set-dot");
 		case CallAst.Style.setSingle:
-			return shortSymAlphaLiteral("set-single");
+			return shortSym("set-single");
 		case CallAst.Style.setSubscript:
-			return shortSymAlphaLiteral("set-at");
+			return shortSym("set-at");
 		case CallAst.Style.single:
-			return shortSymAlphaLiteral("single");
+			return shortSym("single");
 		case CallAst.Style.subscript:
-			return shortSymAlphaLiteral("subscript");
+			return shortSym("subscript");
 	}
 }
 

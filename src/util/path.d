@@ -17,7 +17,7 @@ import util.util : todo, verify;
 struct AllPaths {
 	private:
 	Ptr!Alloc alloc;
-	Ptr!AllSymbols allSymbols;
+	public Ptr!AllSymbols allSymbols; // TODO:PRIVATE
 	MutArr!(Opt!Path) pathToParent;
 	MutArr!Sym pathToBaseName;
 	MutArr!(MutArr!Path) pathToChildren;
@@ -175,7 +175,7 @@ private size_t pathToStrSize(ref const AllPaths allPaths, immutable Path path) {
 	size_t sz = 0;
 	walkPathBackwards(allPaths, path, (immutable Sym part) {
 		// 1 for '/'
-		sz += 1 + symSize(part);
+		sz += 1 + symSize(allPaths.allSymbols.deref(), part);
 	});
 	return sz;
 }
@@ -206,13 +206,13 @@ private @trusted immutable(string) pathToStrWorker(
 	}
 	verify(cur == begin + root.length * rootMultiple + pathToStrSize(allPaths, path));
 	walkPathBackwards(allPaths, path, (immutable Sym part) @trusted {
-		cur -= symSize(part);
+		cur -= symSize(allPaths.allSymbols.deref(), part);
 		char* j = cur;
-		eachCharInSym(part, (immutable char c) @trusted {
+		eachCharInSym(allPaths.allSymbols.deref(), part, (immutable char c) @trusted {
 			*j = c;
 			j++;
 		});
-		verify(j == cur + symSize(part));
+		verify(j == cur + symSize(allPaths.allSymbols.deref(), part));
 		cur--;
 		*cur = '/';
 	});

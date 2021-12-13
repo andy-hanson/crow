@@ -5,7 +5,7 @@ module util.writer;
 import util.alloc.alloc : Alloc;
 import util.ptr : Ptr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : CStr, SafeCStr;
+import util.collection.str : CStr, eachChar, SafeCStr;
 import util.util : abs, verify;
 
 struct Writer {
@@ -30,6 +30,12 @@ immutable(string) finishWriter(scope ref Writer writer) {
 
 void writeChar(ref Writer writer, immutable char c) {
 	add(writer.alloc.deref(), writer.res, c);
+}
+
+void writeSafeCStr(ref Writer writer, immutable SafeCStr a) {
+	eachChar(a, (immutable char c) {
+		writeChar(writer, c);
+	});
 }
 
 void writeStr(ref Writer writer, immutable string s) {

@@ -40,6 +40,7 @@ import util.opt : has, force, none, noneMut, Opt, OptPtr, some, toOpt;
 import util.perf : Perf;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : FileAndRange, RangeWithinFile;
+import util.sym : AllSymbols;
 import util.util : verify;
 
 struct LambdaInfo {
@@ -71,6 +72,9 @@ struct ExprCtx {
 	// and LambdaInfo should not be copied.
 	MutArr!(Ptr!LambdaInfo) lambdas;
 
+	ref const(AllSymbols) allSymbols() return scope const {
+		return checkCtx().allSymbols();
+	}
 	ref Perf perf() return scope {
 		return checkCtx().perf();
 	}

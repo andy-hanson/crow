@@ -69,7 +69,7 @@ import util.repr :
 	reprStr,
 	reprSym;
 import util.sourceRange : RangeWithinFile, reprFileAndPos, reprFileAndRange, reprRangeWithinFile;
-import util.sym : shortSymAlphaLiteral, Sym;
+import util.sym : shortSym, Sym;
 import util.util : todo;
 
 immutable(Repr) reprModule(ref Alloc alloc, ref immutable Module a) {
@@ -317,11 +317,11 @@ immutable(Repr) reprClosureField(ref Alloc alloc, ref Ctx ctx, ref immutable Clo
 immutable(Sym) symOfFunKind(immutable FunKind a) {
 	final switch (a) {
 		case FunKind.plain:
-			return shortSymAlphaLiteral("plain");
+			return shortSym("plain");
 		case FunKind.mut:
-			return shortSymAlphaLiteral("mut");
+			return shortSym("mut");
 		case FunKind.ref_:
-			return shortSymAlphaLiteral("ref");
+			return shortSym("ref");
 	}
 }
 

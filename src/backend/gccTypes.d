@@ -66,7 +66,7 @@ import util.collection.fullIndexDict :
 import util.collection.str : CStr;
 import util.opt : force, forcePtr, has, none, nonePtr_mut, Opt, OptPtr, some, somePtr_mut;
 import util.ptr : castImmutable, Ptr, ptrTrustMe_mut;
-import util.sym : writeSym;
+import util.sym : AllSymbols, writeSym;
 import util.util : verify;
 import util.writer : finishWriterToCStr, writeNat, Writer, writeStatic;
 
@@ -90,6 +90,7 @@ struct UnionFields {
 immutable(GccTypes) getGccTypes(
 	ref Alloc alloc,
 	ref gcc_jit_context ctx,
+	ref const AllSymbols allSymbols,
 	ref immutable LowProgram program,
 	ref immutable MangledNames mangledNames,
 ) {
@@ -130,7 +131,7 @@ immutable(GccTypes) getGccTypes(
 			writeFunPtrType(alloc, ctx, typesWip, funPtrIndex, funPtr);
 		},
 		(immutable LowType.Record recordIndex, ref immutable LowRecord record) {
-			writeRecordType(alloc, ctx, typesWip, recordIndex, record);
+			writeRecordType(alloc, ctx, typesWip, allSymbols, recordIndex, record);
 		},
 		(immutable LowType.Union unionIndex, ref immutable LowUnion union_) {
 			writeUnionType(alloc, ctx, mangledNames, typesWip, unionIndex, union_);
@@ -360,6 +361,7 @@ struct GccTypesWip {
 	ref Alloc alloc,
 	ref gcc_jit_context ctx,
 	ref GccTypesWip typesWip,
+	ref const AllSymbols allSymbols,
 	immutable LowType.Record recordIndex,
 	ref immutable LowRecord record,
 ) {
@@ -370,7 +372,7 @@ struct GccTypesWip {
 		(ref immutable LowField field) {
 			//TODO:NO ALLOC
 			Writer writer = Writer(ptrTrustMe_mut(alloc));
-			writeSym(writer, name(field));
+			writeSym(writer, allSymbols, name(field));
 			return gcc_jit_context_new_field(ctx, null, getGccType(typesWip, field.type), finishWriterToCStr(writer));
 		});
 	verify(empty(fullIndexDictGet(typesWip.recordFields, recordIndex)));

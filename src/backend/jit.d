@@ -136,18 +136,19 @@ import util.opt : force, forcePtr, has, nonePtr, nonePtr_mut, Opt, OptPtr, someP
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : Sym, writeSym;
+import util.sym : AllSymbols, Sym, writeSym;
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 
 @trusted immutable(int) jitAndRun(
 	ref Alloc alloc,
 	ref Perf perf,
+	ref immutable AllSymbols allSymbols,
 	ref immutable LowProgram program,
 	ref immutable JitOptions options,
 	immutable SafeCStr[] allArgs,
 ) {
-	GccProgram gccProgram = getGccProgram(alloc, perf, program, options);
+	GccProgram gccProgram = getGccProgram(alloc, perf, allSymbols, program, options);
 
 	//TODO: perf measure this?
 	immutable AssertFieldOffsetsType assertFieldOffsets = cast(immutable AssertFieldOffsetsType)
@@ -197,6 +198,7 @@ struct GccProgram {
 GccProgram getGccProgram(
 	ref Alloc alloc,
 	ref Perf perf,
+	ref immutable AllSymbols allSymbols,
 	ref immutable LowProgram program,
 	ref immutable JitOptions options,
 ) {
@@ -220,12 +222,12 @@ GccProgram getGccProgram(
 		//TODO:NO ALLOC
 		Writer writer = Writer(ptrTrustMe_mut(alloc));
 		writeStatic(writer, "-l");
-		writeSym(writer, it);
+		writeSym(writer, allSymbols, it);
 		gcc_jit_context_add_driver_option(ctx.deref(), finishWriterToCStr(writer));
 	}
 
 	withMeasure!(void, () {
-		buildGccProgram(alloc, ctx.deref(), program);
+		buildGccProgram(alloc, ctx.deref(), allSymbols, program);
 	})(alloc, perf, PerfMeasure.gccCreateProgram);
 
 	verify(gcc_jit_context_get_first_error(ctx.deref()) == null);
@@ -243,9 +245,14 @@ extern(C) {
 	alias MainType = int function(immutable int, immutable CStr*) @nogc nothrow;
 }
 
-@trusted void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, ref immutable LowProgram program) {
-	immutable MangledNames mangledNames = buildMangledNames(alloc, program);
-	immutable GccTypes gccTypes = getGccTypes(alloc, ctx, program, mangledNames);
+@trusted void buildGccProgram(
+	ref Alloc alloc,
+	ref gcc_jit_context ctx,
+	ref immutable AllSymbols allSymbols,
+	ref immutable LowProgram program,
+) {
+	scope immutable MangledNames mangledNames = buildMangledNames(alloc, ptrTrustMe(allSymbols), program);
+	immutable GccTypes gccTypes = getGccTypes(alloc, ctx, allSymbols, program, mangledNames);
 
 	//TODO:only in debug
 	generateAssertFieldOffsetsFunction(alloc, ctx, program, gccTypes);
@@ -297,6 +304,7 @@ extern(C) {
 					ptrTrustMe_mut(alloc),
 					ptrTrustMe(program),
 					ptrTrustMe_mut(ctx),
+					ptrTrustMe(mangledNames),
 					ptrTrustMe(gccTypes),
 					ptrTrustMe_mut(globalsForConstants),
 					gccFuns,
@@ -314,9 +322,9 @@ extern(C) {
 						import core.stdc.stdio : printf;
 						import interpret.debugging : writeFunName, writeFunSig;
 						Writer writer = Writer(ptrTrustMe_mut(alloc));
-						writeFunName(writer, program, funIndex);
+						writeFunName(writer, allSymbols, program, funIndex);
 						writeChar(writer, ' ');
-						writeFunSig(writer, program, fun);
+						writeFunSig(writer, allSymbols, program, fun);
 						printf("Stub %lu %s\n", funIndex.index, finishWriterToCStr(writer));
 					}
 					gcc_jit_block_end_with_return(exprCtx.curBlock, null, arbitraryValue(exprCtx, expr.expr.type));
@@ -326,9 +334,9 @@ extern(C) {
 							import core.stdc.stdio : printf;
 							import interpret.debugging : writeFunName, writeFunSig;
 							Writer writer = Writer(ptrTrustMe_mut(alloc));
-							writeFunName(writer, program, funIndex);
+							writeFunName(writer, allSymbols, program, funIndex);
 							writeChar(writer, ' ');
-							writeFunSig(writer, program, fun);
+							writeFunSig(writer, allSymbols, program, fun);
 							printf("Generate %lu %s\n", funIndex.index, finishWriterToCStr(writer));
 						}
 					}
@@ -478,7 +486,7 @@ GlobalsForConstants generateGlobalsForConstants(
 	ref Alloc alloc,
 	ref gcc_jit_context ctx,
 	ref immutable LowProgram program,
-	ref immutable MangledNames mangledNames,
+	scope ref immutable MangledNames mangledNames,
 	ref immutable GccTypes gccTypes,
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
@@ -504,7 +512,7 @@ GlobalsForConstants generateGlobalsForConstants(
 		(ref immutable LowParam param) {
 			//TODO:NO ALLOC
 			Writer writer = Writer(ptrTrustMe_mut(alloc));
-			writeLowParamName(writer, param);
+			writeLowParamName(writer, mangledNames, param);
 			return gcc_jit_context_new_param(
 				ctx,
 				null,
@@ -789,6 +797,7 @@ struct ExprCtx {
 	Ptr!Alloc allocPtr;
 	immutable Ptr!LowProgram programPtr;
 	Ptr!gcc_jit_context gccPtr;
+	immutable Ptr!MangledNames mangledNamesPtr;
 	immutable Ptr!GccTypes typesPtr;
 	Ptr!GlobalsForConstants globalsForConstantsPtr;
 	FullIndexDict!(LowFunIndex, Ptr!gcc_jit_function) gccFuns;
@@ -808,6 +817,10 @@ struct ExprCtx {
 
 	ref immutable(LowProgram) program() const return scope {
 		return programPtr.deref();
+	}
+
+	ref immutable(MangledNames) mangledNames() const return scope {
+		return mangledNamesPtr.deref();
 	}
 
 	ref immutable(GccTypes) types() const return scope {
@@ -1066,7 +1079,7 @@ immutable(ExprResult) emitWithLocal(
 ) {
 	//TODO:NO ALLOC
 	Writer writer = Writer(ctx.allocPtr);
-	writeLowLocalName(writer, lowLocal.deref());
+	writeLowLocalName(writer, ctx.mangledNames, lowLocal.deref());
 	Ptr!gcc_jit_lvalue gccLocal = gcc_jit_function_new_local(
 		ctx.curFun,
 		null,

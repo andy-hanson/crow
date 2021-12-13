@@ -7,7 +7,7 @@ import util.collection.fullIndexDict : FullIndexDict;
 import util.conv : safeToUint, safeToUshort;
 import util.path : PathAndStorageKind;
 import util.repr : Repr, reprNat, reprRecord;
-import util.sym : Sym, symSize;
+import util.sym : AllSymbols, Sym, symSize;
 
 alias Pos = uint;
 
@@ -32,8 +32,12 @@ immutable(bool) hasPos(immutable RangeWithinFile a, immutable Pos p) {
 	return a.start <= p && p < a.end;
 }
 
-immutable(RangeWithinFile) rangeOfStartAndName(immutable Pos start, immutable Sym name) {
-	return rangeOfStartAndLength(start, symSize(name));
+immutable(RangeWithinFile) rangeOfStartAndName(
+	immutable Pos start,
+	immutable Sym name,
+	ref const AllSymbols allSymbols,
+) {
+	return rangeOfStartAndLength(start, symSize(allSymbols, name));
 }
 
 immutable(RangeWithinFile) rangeOfStartAndLength(immutable Pos start, immutable size_t length) {

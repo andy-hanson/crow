@@ -145,7 +145,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
-import util.sym : Operator, shortSymAlphaLiteral, Sym, symEq, symForOperator;
+import util.sym : Operator, shortSym, Sym, symEq, symForOperator;
 import util.util : todo, verify;
 
 immutable(Expr) checkFunctionBody(
@@ -383,7 +383,7 @@ immutable(CheckedExpr) checkIfOption(
 	} else {
 		immutable Type innerType = only(typeArgs(inst.deref()));
 		immutable Ptr!Local local = allocate(alloc, immutable Local(
-			rangeInFile2(ctx, rangeOfNameAndRange(ast.name)),
+			rangeInFile2(ctx, rangeOfNameAndRange(ast.name, ctx.allSymbols)),
 			ast.name.name,
 			innerType));
 		if (has(ast.else_)) {
@@ -412,7 +412,7 @@ immutable(CheckedExpr) checkInterpolated(
 	// "a{b}c" ==> interp with-text "a" with-value b with-text "c" finish
 	immutable CallAst firstCall = immutable CallAst(
 		CallAst.style.single,
-		immutable NameAndRange(range.range.start, shortSymAlphaLiteral("interp")),
+		immutable NameAndRange(range.range.start, shortSym("interp")),
 		emptyArrWithSize!TypeAst,
 		emptyArrWithSize!ExprAst);
 	immutable ExprAst firstCallExpr = immutable ExprAst(
@@ -432,7 +432,7 @@ immutable(CallAst) checkInterpolatedRecur(
 	if (empty(parts))
 		return immutable CallAst(
 			CallAst.Style.infix,
-			immutable NameAndRange(pos, shortSymAlphaLiteral("finish")),
+			immutable NameAndRange(pos, shortSym("finish")),
 			emptyArrWithSize!TypeAst,
 			arrWithSizeLiteral!ExprAst(alloc, [left]));
 	else {
@@ -445,14 +445,14 @@ immutable(CallAst) checkInterpolatedRecur(
 					immutable ExprAstKind(immutable LiteralAst(it)));
 				return immutable CallAst(
 					CallAst.Style.infix,
-					immutable NameAndRange(pos, shortSymAlphaLiteral("with-str")),
+					immutable NameAndRange(pos, shortSym("with-str")),
 					emptyArrWithSize!TypeAst,
 					arrWithSizeLiteral!ExprAst(alloc, [left, right]));
 			},
 			(ref immutable ExprAst e) =>
 				immutable CallAst(
 					CallAst.Style.infix,
-					immutable NameAndRange(pos, shortSymAlphaLiteral("with-value")),
+					immutable NameAndRange(pos, shortSym("with-value")),
 					emptyArrWithSize!TypeAst,
 					arrWithSizeLiteral!ExprAst(alloc, [left, e])),
 		)(parts[0]);
@@ -803,7 +803,11 @@ immutable(Param[]) checkFunOrSendFunParamsForLambda(
 		paramAsts,
 		expectedParamTypes,
 		(ref immutable LambdaAst.Param ast, ref immutable Type expectedParamType, immutable size_t index) =>
-			immutable Param(rangeInFile2(ctx, rangeOfNameAndRange(ast)), some(ast.name), expectedParamType, index));
+			immutable Param(
+				rangeInFile2(ctx, rangeOfNameAndRange(ast, ctx.allSymbols)),
+				some(ast.name),
+				expectedParamType,
+				index));
 }
 
 immutable(CheckedExpr) checkFunPtr(
@@ -961,7 +965,7 @@ immutable(CheckedExpr) checkLet(
 ) {
 	immutable ExprAndType init = checkAndExpect(alloc, ctx, ast.initializer, typeFromOptAst(alloc, ctx, ast.type));
 	immutable Ptr!Local local = allocate(alloc, immutable Local(
-		rangeInFile2(ctx, rangeOfNameAndRange(immutable NameAndRange(range.start, ast.name))),
+		rangeInFile2(ctx, rangeOfNameAndRange(immutable NameAndRange(range.start, ast.name), ctx.allSymbols)),
 		ast.name,
 		init.type));
 	immutable Expr then = checkWithLocal(alloc, ctx, local, ast.then, expected);
@@ -1152,7 +1156,7 @@ immutable(Expr.MatchUnion.Case) checkMatchCase(
 	immutable Opt!(Ptr!Local) local = matchNameOrUnderscoreOrNone!(
 		immutable Opt!(Ptr!Local),
 		(immutable Sym name) {
-			immutable FileAndRange localRange = rangeInFile2(ctx, caseAst.localRange());
+			immutable FileAndRange localRange = rangeInFile2(ctx, caseAst.localRange(ctx.allSymbols));
 			if (has(member.type))
 				return some(allocate(alloc, immutable Local(localRange, name, force(member.type))));
 			else {
@@ -1207,7 +1211,7 @@ immutable(CheckedExpr) checkThen(
 	// TODO: NEATER (don't create a synthetic AST)
 	immutable CallAst call = immutable CallAst(
 		CallAst.Style.infix,
-		immutable NameAndRange(range.range.start, shortSymAlphaLiteral("then")),
+		immutable NameAndRange(range.range.start, shortSym("then")),
 		emptyArrWithSize!TypeAst,
 		arrWithSizeLiteral!ExprAst(alloc, [ast.futExpr, lambda]));
 	return checkCall(alloc, ctx, range, call, expected);
@@ -1226,7 +1230,7 @@ immutable(CheckedExpr) checkThenVoid(
 		immutable ExprAstKind(allocate(alloc, immutable LambdaAst(emptyArr!(LambdaAst.Param), ast.then))));
 	immutable CallAst call = immutable CallAst(
 		CallAst.Style.infix,
-		immutable NameAndRange(range.range.start, shortSymAlphaLiteral("then-void")),
+		immutable NameAndRange(range.range.start, shortSym("then-void")),
 		emptyArrWithSize!TypeAst,
 		arrWithSizeLiteral!ExprAst(alloc, [ast.futExpr, lambda]));
 	return checkCall(alloc, ctx, range, call, expected);

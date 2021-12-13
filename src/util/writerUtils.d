@@ -7,7 +7,7 @@ import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColu
 import util.opt : force, has, Opt;
 import util.path : AbsolutePath, AllPaths, baseName, nParents, parent, path, Path, PathAndStorageKind, RelPath;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : Sym, writeSym, writeSymAndGetSize;
+import util.sym : AllSymbols, Sym, writeSym, writeSymAndGetSize;
 import util.util : todo;
 import util.writer : writeChar, writeNat, Writer, writeStatic, writeStr;
 
@@ -21,7 +21,7 @@ private void writePath(
 		writePath(writer, allPaths, force(par));
 		writeChar(writer, '/');
 	}
-	writeSym(writer, baseName(allPaths, p));
+	writeSym(writer, allPaths.allSymbols.deref(), baseName(allPaths, p));
 }
 
 void writePathRelativeToCwd(
@@ -102,9 +102,9 @@ void showChar(ref Writer writer, immutable char c) {
 	}
 }
 
-void writeName(ref Writer writer, immutable Sym name) {
+void writeName(ref Writer writer, ref const AllSymbols allSymbols, immutable Sym name) {
 	writeChar(writer, '\'');
-	writeSym(writer, name);
+	writeSym(writer, allSymbols, name);
 	writeChar(writer, '\'');
 }
 
@@ -122,8 +122,8 @@ void writeNlIndent(ref Writer writer) {
 	writeSpaces(writer, 2);
 }
 
-void writeSymPadded(ref Writer writer, immutable Sym name, immutable size_t size) {
-	immutable size_t symSize = writeSymAndGetSize(writer, name);
+void writeSymPadded(ref Writer writer, ref const AllSymbols allSymbols, immutable Sym name, immutable size_t size) {
+	immutable size_t symSize = writeSymAndGetSize(writer, allSymbols, name);
 	if (symSize >= size) todo!void("??");
 	writeSpaces(writer, size - symSize);
 }

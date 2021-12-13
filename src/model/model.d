@@ -20,12 +20,14 @@ import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
 import util.ptr : hashPtr, Ptr, ptrEquals, TaggedPtr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, rangeOfStartAndName, RangeWithinFile;
 import util.sym :
+	AllSymbols,
 	Operator,
-	shortSymAlphaLiteral,
+	shortSym,
+	SpecialSym,
 	Sym,
 	symEq,
-	symEqLongAlphaLiteral,
 	symForOperator,
+	symForSpecial,
 	symSize,
 	writeSym;
 import util.util : todo, unreachable, verify;
@@ -69,11 +71,11 @@ immutable(bool) isDataOrSendable(immutable Purity a) {
 immutable(Sym) symOfPurity(immutable Purity a) {
 	final switch (a) {
 		case Purity.data:
-			return shortSymAlphaLiteral("data");
+			return shortSym("data");
 		case Purity.sendable:
-			return shortSymAlphaLiteral("sendable");
+			return shortSym("sendable");
 		case Purity.mut:
-			return shortSymAlphaLiteral("mut");
+			return shortSym("mut");
 	}
 }
 
@@ -349,16 +351,16 @@ struct Sig {
 	immutable Type returnType;
 	immutable Params params;
 
-	immutable(RangeWithinFile) range() immutable {
-		return rangeOfStartAndName(fileAndPos.pos, name);
+	immutable(RangeWithinFile) range(ref const AllSymbols allSymbols) immutable {
+		return rangeOfStartAndName(fileAndPos.pos, name, allSymbols);
 	}
 }
 static assert(Sig.sizeof <= 48);
 
-immutable(FileAndRange) range(ref immutable Sig a) {
+immutable(FileAndRange) range(ref immutable Sig a, ref const AllSymbols allSymbols) {
 	return immutable FileAndRange(
 		a.fileAndPos.fileIndex,
-		immutable RangeWithinFile(a.fileAndPos.pos, a.fileAndPos.pos + symSize(a.name)));
+		immutable RangeWithinFile(a.fileAndPos.pos, a.fileAndPos.pos + symSize(allSymbols, a.name)));
 }
 
 immutable(Arity) arity(ref const Sig a) {
@@ -374,11 +376,11 @@ enum FieldMutability {
 immutable(Sym) symOfFieldMutability(immutable FieldMutability a) {
 	final switch (a) {
 		case FieldMutability.const_:
-			return shortSymAlphaLiteral("const");
+			return shortSym("const");
 		case FieldMutability.private_:
-			return shortSymAlphaLiteral("private");
+			return shortSym("private");
 		case FieldMutability.public_:
-			return shortSymAlphaLiteral("public");
+			return shortSym("public");
 	}
 }
 
@@ -633,7 +635,7 @@ struct StructInst {
 
 immutable(bool) isArr(ref immutable StructInst i) {
 	// TODO: only do this for the arr in bootstrap, not anything named 'arr'
-	return symEq(decl(i).deref().name, shortSymAlphaLiteral("arr"));
+	return symEq(decl(i).deref().name, shortSym("arr"));
 }
 
 immutable(Sym) name(ref immutable StructInst i) {
@@ -767,9 +769,9 @@ immutable(Sym) enumFunctionName(immutable EnumFunction a) {
 		case EnumFunction.intersect:
 			return symForOperator(Operator.and1);
 		case EnumFunction.members:
-			return shortSymAlphaLiteral("members");
+			return shortSym("members");
 		case EnumFunction.toIntegral:
-			return shortSymAlphaLiteral("to-integral");
+			return shortSym("to-integral");
 		case EnumFunction.union_:
 			return symForOperator(Operator.or1);
 	}
@@ -784,9 +786,9 @@ enum FlagsFunction {
 immutable(Sym) flagsFunctionName(immutable FlagsFunction a) {
 	final switch (a) {
 		case FlagsFunction.all:
-			return shortSymAlphaLiteral("all");
+			return shortSym("all");
 		case FlagsFunction.empty:
-			return shortSymAlphaLiteral("empty");
+			return shortSym("empty");
 		case FlagsFunction.negate:
 			return symForOperator(Operator.tilde);
 	}
@@ -974,8 +976,8 @@ immutable(Ptr!SpecInst[]) specs(ref immutable FunDecl a) {
 	return toArr(a.specs_);
 }
 
-immutable(FileAndRange) range(return scope ref immutable FunDecl a) {
-	return range(a.sig);
+immutable(FileAndRange) range(return scope ref immutable FunDecl a, ref const AllSymbols allSymbols) {
+	return range(a.sig, allSymbols);
 }
 
 immutable(bool) isExtern(ref immutable FunDecl a) {
@@ -1079,7 +1081,7 @@ struct FunInst {
 
 immutable(bool) isCallWithCtxFun(ref immutable FunInst a) {
 	// TODO: only do this for the call-with-ctx in bootstrap
-	return symEqLongAlphaLiteral(name(decl(a).deref()), "call-with-ctx");
+	return symEq(name(decl(a).deref()), symForSpecial(SpecialSym.call_with_ctx));
 }
 
 immutable(bool) isCompareFun(ref immutable FunInst a) {
@@ -1089,7 +1091,7 @@ immutable(bool) isCompareFun(ref immutable FunInst a) {
 
 immutable(bool) isMarkVisitFun(ref immutable FunInst a) {
 	// TODO: only do this for the 'mark-visit' in bootstrap
-	return symEq(name(decl(a).deref()), shortSymAlphaLiteral("mark-visit"));
+	return symEq(name(decl(a).deref()), shortSym("mark-visit"));
 }
 
 immutable(Ptr!FunInst) nonTemplateFunInst(ref Alloc alloc, immutable Ptr!FunDecl decl) {
@@ -1793,33 +1795,33 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 	)(a);
 }
 
-void writeStructDecl(ref Writer writer, ref immutable StructDecl a) {
-	writeSym(writer, a.name);
+void writeStructDecl(ref Writer writer, ref const AllSymbols allSymbols, ref immutable StructDecl a) {
+	writeSym(writer, allSymbols, a.name);
 }
 
-void writeStructInst(ref Writer writer, ref immutable StructInst s) {
-	writeStructDecl(writer, decl(s).deref());
+void writeStructInst(ref Writer writer, ref const AllSymbols allSymbols, ref immutable StructInst s) {
+	writeStructDecl(writer, allSymbols, decl(s).deref());
 	if (!empty(s.typeArgs)) {
 		writeChar(writer, '<');
 		writeWithCommas!Type(writer, s.typeArgs, (ref immutable Type t) {
-			writeType(writer, t);
+			writeType(writer, allSymbols, t);
 		});
 		writeChar(writer, '>');
 	}
 }
 
 //TODO:MOVE
-void writeType(ref Writer writer, immutable Type type) {
+void writeType(ref Writer writer, ref const AllSymbols allSymbols, immutable Type type) {
 	matchType!(
 		void,
 		(immutable Type.Bogus) {
 			writeStatic(writer, "<<bogus>>");
 		},
 		(immutable Ptr!TypeParam p) {
-			writeSym(writer, p.deref().name);
+			writeSym(writer, allSymbols, p.deref().name);
 		},
 		(immutable Ptr!StructInst s) {
-			writeStructInst(writer, s.deref());
+			writeStructInst(writer, allSymbols, s.deref());
 		},
 	)(type);
 }
@@ -1832,9 +1834,9 @@ enum Visibility : ubyte {
 immutable(Sym) symOfVisibility(immutable Visibility a) {
 	final switch (a) {
 		case Visibility.public_:
-			return shortSymAlphaLiteral("public");
+			return shortSym("public");
 		case Visibility.private_:
-			return shortSymAlphaLiteral("private");
+			return shortSym("private");
 	}
 }
 

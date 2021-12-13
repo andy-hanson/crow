@@ -108,7 +108,7 @@ immutable(Token[]) getTokens(
 	DiagnosticsBuilder diagnosticsBuilder = DiagnosticsBuilder();
 	immutable FileAst ast =
 		parseFile(alloc, perf, server.allPaths, server.allSymbols, diagnosticsBuilder, immutable FileIndex(0), text);
-	return tokensOfAst(alloc, ast);
+	return tokensOfAst(alloc, server.allSymbols, ast);
 }
 
 struct StrParseDiagnostic {
@@ -139,7 +139,7 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 		(ref immutable Diagnostic it) =>
 			immutable StrParseDiagnostic(
 				it.where.range,
-				strOfDiagnostic(alloc, server.allPaths, showDiagOptions, filesInfo, it)));
+				strOfDiagnostic(alloc, server.allSymbols, server.allPaths, showDiagOptions, filesInfo, it)));
 }
 
 immutable(string) getHover(
@@ -166,8 +166,11 @@ private pure immutable(string) getHoverFromProgram(
 ) {
 	immutable Opt!FileIndex fileIndex = getFileIndex(program.filesInfo.filePaths, pk);
 	if (has(fileIndex)) {
-		immutable Opt!Position position = getPosition(program.allModules[force(fileIndex).index], pos);
-		return has(position) ? getHoverStr(alloc, alloc, server.allPaths, program, force(position)) : "";
+		immutable Opt!Position position =
+			getPosition(server.allSymbols, program.allModules[force(fileIndex).index], pos);
+		return has(position)
+			? getHoverStr(alloc, alloc, server.allSymbols, server.allPaths, program, force(position))
+			: "";
 	} else
 		return "";
 }

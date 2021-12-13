@@ -110,7 +110,7 @@ import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, hashPtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
+import util.sym : AllSymbols, shortSym, shortSymValue, Sym, symEq;
 import util.util : max, roundUp, todo, unreachable, verify;
 
 struct TypeArgsScope {
@@ -233,6 +233,7 @@ private struct DeferredUnionBody {
 struct ConcretizeCtx {
 	@safe @nogc pure nothrow:
 
+	const Ptr!AllSymbols allSymbolsPtr;
 	immutable Ptr!FunInst curIslandAndExclusionFun;
 	immutable Ptr!StructInst ctxStructInst;
 	immutable Ptr!CommonTypes commonTypesPtr;
@@ -267,6 +268,9 @@ struct ConcretizeCtx {
 	Late!(immutable ConcreteType) _strType;
 	Late!(immutable ConcreteType) _symType;
 
+	ref const(AllSymbols) allSymbols() return scope const {
+		return allSymbolsPtr.deref();
+	}
 	ref immutable(CommonTypes) commonTypes() return scope const {
 		return commonTypesPtr.deref();
 	}
@@ -308,7 +312,7 @@ immutable(Constant) constantStr(ref Alloc alloc, ref ConcretizeCtx a, immutable 
 }
 
 immutable(Constant) constantSym(ref Alloc alloc, ref ConcretizeCtx a, immutable Sym value) {
-	return getConstantSym(alloc, a.allConstants, value);
+	return getConstantSym(alloc, a.allConstants, a.allSymbols, value);
 }
 
 immutable(Ptr!ConcreteFun) getOrAddConcreteFunAndFillBody(
@@ -793,7 +797,7 @@ void fillInConcreteFunBody(
 			immutable ConcreteFunBody,
 			(ref immutable FunBody.Builtin) {
 				immutable Ptr!FunInst inst = asFunInst(cf.deref().source);
-				return symEq(name(inst.deref()), shortSymAlphaLiteral("all-tests"))
+				return symEq(name(inst.deref()), shortSym("all-tests"))
 					? bodyForAllTests(alloc, ctx, castImmutable(cf).deref().returnType)
 					: immutable ConcreteFunBody(immutable ConcreteFunBody.Builtin(typeArgs(inputs)));
 			},
@@ -920,54 +924,54 @@ immutable(ConcreteParam[]) concretizeParams(
 
 immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 	switch (name.value) {
-		case shortSymAlphaLiteralValue("bool"):
+		case shortSymValue("bool"):
 			return BuiltinStructKind.bool_;
-		case shortSymAlphaLiteralValue("char"):
+		case shortSymValue("char"):
 			return BuiltinStructKind.char_;
-		case shortSymAlphaLiteralValue("float32"):
+		case shortSymValue("float32"):
 			return BuiltinStructKind.float32;
-		case shortSymAlphaLiteralValue("float64"):
+		case shortSymValue("float64"):
 			return BuiltinStructKind.float64;
-		case shortSymAlphaLiteralValue("fun0"):
-		case shortSymAlphaLiteralValue("fun1"):
-		case shortSymAlphaLiteralValue("fun2"):
-		case shortSymAlphaLiteralValue("fun3"):
-		case shortSymAlphaLiteralValue("fun4"):
-		case shortSymAlphaLiteralValue("fun-act0"):
-		case shortSymAlphaLiteralValue("fun-act1"):
-		case shortSymAlphaLiteralValue("fun-act2"):
-		case shortSymAlphaLiteralValue("fun-act3"):
-		case shortSymAlphaLiteralValue("fun-act4"):
+		case shortSymValue("fun0"):
+		case shortSymValue("fun1"):
+		case shortSymValue("fun2"):
+		case shortSymValue("fun3"):
+		case shortSymValue("fun4"):
+		case shortSymValue("fun-act0"):
+		case shortSymValue("fun-act1"):
+		case shortSymValue("fun-act2"):
+		case shortSymValue("fun-act3"):
+		case shortSymValue("fun-act4"):
 			return BuiltinStructKind.fun;
-		case shortSymAlphaLiteralValue("fun-ptr0"):
-		case shortSymAlphaLiteralValue("fun-ptr1"):
-		case shortSymAlphaLiteralValue("fun-ptr2"):
-		case shortSymAlphaLiteralValue("fun-ptr3"):
-		case shortSymAlphaLiteralValue("fun-ptr4"):
-		case shortSymAlphaLiteralValue("fun-ptr5"):
-		case shortSymAlphaLiteralValue("fun-ptr6"):
+		case shortSymValue("fun-ptr0"):
+		case shortSymValue("fun-ptr1"):
+		case shortSymValue("fun-ptr2"):
+		case shortSymValue("fun-ptr3"):
+		case shortSymValue("fun-ptr4"):
+		case shortSymValue("fun-ptr5"):
+		case shortSymValue("fun-ptr6"):
 			return BuiltinStructKind.funPtrN;
-		case shortSymAlphaLiteralValue("int8"):
+		case shortSymValue("int8"):
 			return BuiltinStructKind.int8;
-		case shortSymAlphaLiteralValue("int16"):
+		case shortSymValue("int16"):
 			return BuiltinStructKind.int16;
-		case shortSymAlphaLiteralValue("int32"):
+		case shortSymValue("int32"):
 			return BuiltinStructKind.int32;
-		case shortSymAlphaLiteralValue("int64"):
+		case shortSymValue("int64"):
 			return BuiltinStructKind.int64;
-		case shortSymAlphaLiteralValue("nat8"):
+		case shortSymValue("nat8"):
 			return BuiltinStructKind.nat8;
-		case shortSymAlphaLiteralValue("nat16"):
+		case shortSymValue("nat16"):
 			return BuiltinStructKind.nat16;
-		case shortSymAlphaLiteralValue("nat32"):
+		case shortSymValue("nat32"):
 			return BuiltinStructKind.nat32;
-		case shortSymAlphaLiteralValue("nat64"):
+		case shortSymValue("nat64"):
 			return BuiltinStructKind.nat64;
-		case shortSymAlphaLiteralValue("const-ptr"):
+		case shortSymValue("const-ptr"):
 			return BuiltinStructKind.ptrConst;
-		case shortSymAlphaLiteralValue("mut-ptr"):
+		case shortSymValue("mut-ptr"):
 			return BuiltinStructKind.ptrMut;
-		case shortSymAlphaLiteralValue("void"):
+		case shortSymValue("void"):
 			return BuiltinStructKind.void_;
 		default:
 			return todo!(immutable BuiltinStructKind)("not a builtin struct");

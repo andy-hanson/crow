@@ -34,7 +34,6 @@ import std.string : indexOf, indexOfAny, splitLines;
 					if (privateMember != "matchOperationImpureAndMeasure" &&
 						privateMember != "writeFieldName" &&
 						privateMember != "writeLocalName" &&
-						privateMember != "writeRecordName" &&
 						// TODO: this isn't even private. Probably a bug due to recursive imports
 						privateMember != "asConcreteFun")
 						writeln(file.path, " private member not used: ", privateMember);

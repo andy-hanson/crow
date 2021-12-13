@@ -39,7 +39,7 @@ import util.collection.dict : getAt;
 import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
-import util.sym : shortSymAlphaLiteralValue, Sym, symEq;
+import util.sym : shortSymValue, Sym, symEq;
 import util.util : todo;
 
 private immutable(Type) instStructFromAst(
@@ -183,19 +183,19 @@ immutable(Type) typeFromAst(
 
 private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable Sym a) {
 	switch (a.value) {
-		case shortSymAlphaLiteralValue("arr"):
+		case shortSymValue("arr"):
 			return some(Diag.TypeShouldUseSyntax.Kind.arr);
-		case shortSymAlphaLiteralValue("const-ptr"):
+		case shortSymValue("const-ptr"):
 			return some(Diag.TypeShouldUseSyntax.Kind.ptr);
-		case shortSymAlphaLiteralValue("dict"):
+		case shortSymValue("dict"):
 			return some(Diag.TypeShouldUseSyntax.Kind.dict);
-		case shortSymAlphaLiteralValue("mut-arr"):
+		case shortSymValue("mut-arr"):
 			return some(Diag.TypeShouldUseSyntax.Kind.arrMut);
-		case shortSymAlphaLiteralValue("mut-dict"):
+		case shortSymValue("mut-dict"):
 			return some(Diag.TypeShouldUseSyntax.Kind.dictMut);
-		case shortSymAlphaLiteralValue("opt"):
+		case shortSymValue("opt"):
 			return some(Diag.TypeShouldUseSyntax.Kind.opt);
-		case shortSymAlphaLiteralValue("mut-ptr"):
+		case shortSymValue("mut-ptr"):
 			return some(Diag.TypeShouldUseSyntax.Kind.ptrMut);
 		default:
 			return none!(Diag.TypeShouldUseSyntax.Kind);

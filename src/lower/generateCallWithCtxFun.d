@@ -28,7 +28,7 @@ import util.memory : allocate;
 import util.opt : some;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSymAlphaLiteral, Sym;
+import util.sym : shortSym, Sym;
 import util.util : verify;
 
 immutable(LowFun) generateCallWithCtxFun(
@@ -53,7 +53,7 @@ immutable(LowFun) generateCallWithCtxFun(
 		fullIndexDictGet(allTypes.allUnions, asUnionType(funType)).members,
 		(ref immutable ConcreteLambdaImpl impl, ref immutable LowType closureType) {
 			immutable Ptr!LowLocal closureLocal =
-				genLocal(alloc, shortSymAlphaLiteral("closure"), localIndex, closureType);
+				genLocal(alloc, shortSym("closure"), localIndex, closureType);
 			localIndex = localIndex + 1;
 			immutable LowExpr[] args = mapWithFirst2!(LowExpr, LowType)(
 				alloc,
@@ -72,10 +72,10 @@ immutable(LowFun) generateCallWithCtxFun(
 	immutable LowParam[] params = mapWithFirst2!(LowParam, LowType)(
 		alloc,
 		immutable LowParam(
-			immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("a"))),
+			immutable LowParamSource(immutable LowParamSource.Generated(shortSym("a"))),
 			funType),
 		immutable LowParam(
-			immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("ctx"))),
+			immutable LowParamSource(immutable LowParamSource.Generated(shortSym("ctx"))),
 			ctxType),
 		nonFunNonCtxParamTypes,
 		(immutable size_t i, ref immutable LowType paramType) {
@@ -88,7 +88,7 @@ immutable(LowFun) generateCallWithCtxFun(
 		//TODO: use long sym call-with-ctx
 		//Or rename it in bootstrap.crow
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
-			shortSymAlphaLiteral("call-w-ctx"),
+			shortSym("call-w-ctx"),
 			prepend(alloc, returnType, nonFunNonCtxParamTypes)))),
 		returnType,
 		immutable LowFunParamsKind(true, false),
@@ -99,9 +99,9 @@ immutable(LowFun) generateCallWithCtxFun(
 private:
 
 immutable Sym[] paramNames = [
-	shortSymAlphaLiteral("p0"),
-	shortSymAlphaLiteral("p1"),
-	shortSymAlphaLiteral("p2"),
-	shortSymAlphaLiteral("p3"),
-	shortSymAlphaLiteral("p4"),
+	shortSym("p0"),
+	shortSym("p1"),
+	shortSym("p2"),
+	shortSym("p3"),
+	shortSym("p4"),
 ];

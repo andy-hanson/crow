@@ -68,6 +68,7 @@ import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has, some;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.sym : AllSymbols;
 import util.util : abs, drop, todo, unreachable, verify;
 import util.writer :
 	finishWriter,
@@ -84,6 +85,7 @@ import util.writer :
 immutable(string) writeToC(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
+	ref immutable AllSymbols allSymbols,
 	ref immutable LowProgram program,
 ) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
@@ -92,7 +94,7 @@ immutable(string) writeToC(
 	writeStatic(writer, "#include <stddef.h>\n"); // for NULL
 	writeStatic(writer, "#include <stdint.h>\n");
 
-	immutable Ctx ctx = immutable Ctx(ptrTrustMe(program), buildMangledNames(alloc, program));
+	immutable Ctx ctx = immutable Ctx(ptrTrustMe(program), buildMangledNames(alloc, ptrTrustMe(allSymbols), program));
 
 	writeStructs(alloc, writer, ctx);
 
@@ -197,6 +199,9 @@ struct Ctx {
 	ref immutable(LowProgram) program() return scope immutable {
 		return programPtr.deref();
 	}
+	ref immutable(AllSymbols) allSymbols() return scope immutable {
+		return mangledNames.allSymbols.deref();
+	}
 }
 
 struct FunBodyCtx {
@@ -209,6 +214,10 @@ struct FunBodyCtx {
 
 	ref immutable(Ctx) ctx() return scope const {
 		return ctxPtr.deref();
+	}
+
+	ref immutable(MangledNames) mangledNames() return scope const {
+		return ctx.mangledNames;
 	}
 }
 
@@ -263,7 +272,7 @@ void writeCastToType(ref Writer writer, ref immutable Ctx ctx, ref immutable Low
 void doWriteParam(ref Writer writer, ref immutable Ctx ctx, ref immutable LowParam a) {
 	writeType(writer, ctx, a.type);
 	writeChar(writer, ' ');
-	writeLowParamName(writer, a);
+	writeLowParamName(writer, ctx.mangledNames,a);
 }
 
 void writeStructHead(ref Writer writer, ref immutable Ctx ctx, immutable Ptr!ConcreteStruct source) {
@@ -282,7 +291,7 @@ void writeRecord(ref Writer writer, ref immutable Ctx ctx, ref immutable LowReco
 		writeStatic(writer, "\n\t");
 		writeType(writer, ctx, field.type);
 		writeChar(writer, ' ');
-		writeMangledName(writer, name(field));
+		writeMangledName(writer, ctx.mangledNames, name(field));
 		writeChar(writer, ';');
 	}
 	writeStatic(writer, "\n}");
@@ -444,9 +453,9 @@ void writeFunDefinition(
 		(ref immutable LowFunExprBody it) {
 			// TODO: only if a flag is set
 			writeStatic(writer, "/* ");
-			writeFunName(writer, ctx.program, funIndex);
+			writeFunName(writer, ctx.allSymbols, ctx.program, funIndex);
 			writeChar(writer, ' ');
-			writeFunSig(writer, ctx.program, fun);
+			writeFunSig(writer, ctx.allSymbols, ctx.program, fun);
 			writeStatic(writer, " */\n");
 			writeFunWithExprBody(writer, tempAlloc, ctx, funIndex, fun, it);
 		},
@@ -589,7 +598,7 @@ void writeDeclareLocal(
 	writeNewline(writer, indent);
 	writeType(writer, ctx.ctx, local.type);
 	writeChar(writer, ' ');
-	writeLowLocalName(writer, local);
+	writeLowLocalName(writer, ctx.mangledNames, local);
 }
 
 struct WriteKind {
@@ -790,7 +799,7 @@ immutable(WriteExprResult) writeExpr(
 		},
 		(ref immutable LowExprKind.LocalRef it) =>
 			inlineableSimple(() {
-				writeLowLocalName(writer, it.local.deref());
+				writeLowLocalName(writer, ctx.mangledNames, it.local.deref());
 			}),
 		(ref immutable LowExprKind.MatchUnion it) =>
 			writeMatchUnion(writer, tempAlloc, indent, ctx, writeKind, type, it),
@@ -882,7 +891,7 @@ immutable(WriteExprResult) writeNonInlineable(
 		(ref immutable WriteKind.InlineOrTemp) =>
 			makeTemp(),
 		(immutable Ptr!LowLocal it) {
-			writeLowLocalName(writer, it.deref());
+			writeLowLocalName(writer, ctx.mangledNames, it.deref());
 			writeStatic(writer, " = ");
 			return writeExprDone();
 		},
@@ -1030,7 +1039,7 @@ immutable(WriteExprResult) writeCallExpr(
 		if (isCVoid)
 			//TODO: this is unnecessary if writeKind is not 'expr'
 			writeChar(writer, '(');
-		writeLowFunMangledName(writer, ctx.ctx.mangledNames, a.called, called.deref());
+		writeLowFunMangledName(writer, ctx.mangledNames, a.called, called.deref());
 		if (!isGlobal(called.deref().body_)) {
 			writeChar(writer, '(');
 			writeTempOrInlines(writer, tempAlloc, ctx, a.args, args);
@@ -1057,7 +1066,7 @@ void writeTailRecur(
 		newValues,
 		(ref immutable UpdateParam updateParam, ref immutable WriteExprResult newValue) {
 			writeNewline(writer, indent);
-			writeLowParamName(writer, params[updateParam.param.index]);
+			writeLowParamName(writer, ctx.mangledNames, params[updateParam.param.index]);
 			writeStatic(writer, " = ");
 			writeTempOrInline(writer, tempAlloc, ctx, updateParam.newValue, newValue);
 			writeChar(writer, ';');
@@ -1089,7 +1098,10 @@ void writeFunPtr(ref Writer writer, ref immutable Ctx ctx, immutable LowFunIndex
 }
 
 void writeParamRef(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowExprKind.ParamRef a) {
-	writeLowParamName(writer, fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params[a.index.index]);
+	writeLowParamName(
+		writer,
+		ctx.mangledNames,
+		fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params[a.index.index]);
 }
 
 immutable(WriteExprResult) writeMatchUnion(
@@ -1214,7 +1226,10 @@ void writeRecordFieldRef(
 	immutable size_t fieldIndex,
 ) {
 	writeStatic(writer, targetIsPointer ? "->" : ".");
-	writeMangledName(writer, name(fullIndexDictGet(ctx.ctx.program.allRecords, record).fields[fieldIndex]));
+	writeMangledName(
+		writer,
+		ctx.mangledNames,
+		name(fullIndexDictGet(ctx.ctx.program.allRecords, record).fields[fieldIndex]));
 }
 
 // For some reason, providing a type for a record makes it non-constant.
@@ -1451,7 +1466,7 @@ void writeLValue(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowE
 		(ref immutable LowExprKind.InitConstants) => unreachable!void(),
 		(ref immutable LowExprKind.Let) => unreachable!void(),
 		(ref immutable LowExprKind.LocalRef it) {
-			writeLowLocalName(writer, it.local.deref());
+			writeLowLocalName(writer, ctx.mangledNames, it.local.deref());
 		},
 		(ref immutable LowExprKind.MatchUnion) => unreachable!void(),
 		(ref immutable LowExprKind.ParamRef it) {

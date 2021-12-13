@@ -76,7 +76,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSymAlphaLiteral, symEq, symEqLongAlphaLiteral;
+import util.sym : shortSym, SpecialSym, symEq, symForSpecial;
 import util.util : todo, unreachable, verify;
 
 immutable(ConcreteExpr) concretizeExpr(
@@ -413,9 +413,9 @@ immutable(ConcreteExpr) concretizeLambda(
 		immutable ConcreteField[] fields = asRecord(body_(concreteStruct.deref())).fields;
 		verify(fields.length == 2);
 		immutable ConcreteField islandAndExclusionField = fields[0];
-		verify(symEqLongAlphaLiteral(name(islandAndExclusionField), "island-and-exclusion"));
+		verify(symEq(name(islandAndExclusionField), symForSpecial(SpecialSym.island_and_exclusion)));
 		immutable ConcreteField actionField = fields[1];
-		verify(symEq(name(actionField), shortSymAlphaLiteral("action")));
+		verify(symEq(name(actionField), shortSym("action")));
 		immutable ConcreteType funType = actionField.type;
 		immutable ConcreteExpr islandAndExclusion =
 			getGetIslandAndExclusion(alloc, ctx, islandAndExclusionField.type, range);

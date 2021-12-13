@@ -42,31 +42,37 @@ import util.collection.mutDict : insertOrUpdate, MutSymDict, setInDict;
 import util.opt : force, has, Opt;
 import util.ptr : Ptr;
 import util.sym :
+	AllSymbols,
 	eachCharInSym,
 	hashSym,
 	Operator,
 	operatorForSym,
-	shortSymAlphaLiteral,
-	shortSymAlphaLiteralValue,
+	shortSym,
+	shortSymValue,
 	Sym,
 	symEq,
 	writeSym;
 import util.writer : writeChar, writeNat, Writer, writeStatic;
 
 struct MangledNames {
+	immutable Ptr!AllSymbols allSymbols;
 	immutable PtrDict!(ConcreteFun, size_t) funToNameIndex;
 	//TODO:PERF we could use separate FullIndexDict for record, union, etc.
 	immutable PtrDict!(ConcreteStruct, size_t) structToNameIndex;
 }
 
-immutable(MangledNames) buildMangledNames(ref Alloc alloc, ref immutable LowProgram program) {
+immutable(MangledNames) buildMangledNames(
+	ref Alloc alloc,
+	return scope immutable Ptr!AllSymbols allSymbols,
+	ref immutable LowProgram program,
+) {
 	// First time we see a fun with a name, we'll store the fun-ptr here in case it's not overloaded.
 	// After that, we'll start putting them in funToNameIndex, and store the next index here.
 	MutSymDict!(immutable PrevOrIndex!ConcreteFun) funNameToIndex;
 	// This will not have an entry for non-overloaded funs.
 	PtrDictBuilder!(ConcreteFun, size_t) funToNameIndex;
 	// HAX: Ensure "main" has that name.
-	setInDict(alloc, funNameToIndex, shortSymAlphaLiteral("main"), immutable PrevOrIndex!ConcreteFun(0));
+	setInDict(alloc, funNameToIndex, shortSym("main"), immutable PrevOrIndex!ConcreteFun(0));
 	fullIndexDictEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref immutable LowFun it) {
 		matchLowFunSource!(
 			void,
@@ -120,6 +126,7 @@ immutable(MangledNames) buildMangledNames(ref Alloc alloc, ref immutable LowProg
 		});
 
 	return immutable MangledNames(
+		allSymbols,
 		finishDict(alloc, funToNameIndex),
 		finishDict(alloc, structToNameIndex));
 }
@@ -132,7 +139,7 @@ void writeStructMangledName(
 	matchConcreteStructSource!(
 		void,
 		(ref immutable ConcreteStructSource.Inst it) {
-			writeMangledName(writer, name(it.inst.deref()));
+			writeMangledName(writer, mangledNames, name(it.inst.deref()));
 			maybeWriteIndexSuffix(writer, getAt(mangledNames.structToNameIndex, source));
 		},
 		(ref immutable ConcreteStructSource.Lambda it) {
@@ -155,8 +162,8 @@ void writeLowFunMangledName(
 			writeConcreteFunMangledName(writer, mangledNames, it);
 		},
 		(ref immutable LowFunSource.Generated it) {
-			writeMangledName(writer, it.name);
-			if (!symEq(it.name, shortSymAlphaLiteral("main"))) {
+			writeMangledName(writer, mangledNames, it.name);
+			if (!symEq(it.name, shortSym("main"))) {
 				writeChar(writer, '_');
 				writeNat(writer, funIndex.index);
 			}
@@ -174,9 +181,9 @@ private void writeConcreteFunMangledName(
 		(ref immutable FunInst it) {
 			immutable Sym name = name(it);
 			if (isExtern(body_(source.deref())))
-				writeSym(writer, name);
+				writeSym(writer, mangledNames.allSymbols.deref(), name);
 			else {
-				writeMangledName(writer, name);
+				writeMangledName(writer, mangledNames, name);
 				maybeWriteIndexSuffix(writer, getAt(mangledNames.funToNameIndex, source));
 			}
 		},
@@ -199,21 +206,21 @@ private void maybeWriteIndexSuffix(ref Writer writer, immutable Opt!size_t index
 	}
 }
 
-void writeLowLocalName(ref Writer writer, ref immutable LowLocal a) {
+void writeLowLocalName(ref Writer writer, ref immutable MangledNames mangledNames, ref immutable LowLocal a) {
 	matchLowLocalSource!(
 		void,
 		(ref immutable ConcreteLocal it) {
-			writeMangledName(writer, it.source.deref().name);
+			writeMangledName(writer, mangledNames, it.source.deref().name);
 			writeNat(writer, it.index);
 		},
 		(ref immutable LowLocalSource.Generated it) {
-			writeMangledName(writer, it.name);
+			writeMangledName(writer, mangledNames, it.name);
 			writeNat(writer, it.index);
 		},
 	)(a.source);
 }
 
-void writeLowParamName(ref Writer writer, ref immutable LowParam a) {
+void writeLowParamName(ref Writer writer, scope ref immutable MangledNames mangledNames, ref immutable LowParam a) {
 	matchLowParamSource!(
 		void,
 		(ref immutable ConcreteParam cp) {
@@ -224,7 +231,7 @@ void writeLowParamName(ref Writer writer, ref immutable LowParam a) {
 				},
 				(ref immutable Param p) {
 					if (has(p.name))
-						writeMangledName(writer, force(p.name));
+						writeMangledName(writer, mangledNames, force(p.name));
 					else {
 						writeStatic(writer, "_p");
 						writeNat(writer, p.index);
@@ -233,7 +240,7 @@ void writeLowParamName(ref Writer writer, ref immutable LowParam a) {
 			)(cp.source);
 		},
 		(ref immutable LowParamSource.Generated it) {
-			writeMangledName(writer, it.name);
+			writeMangledName(writer, mangledNames, it.name);
 		},
 	)(a.source);
 }
@@ -333,14 +340,14 @@ void addToPrevOrIndex(T)(
 				})));
 }
 
-public void writeMangledName(ref Writer writer, immutable Sym a) {
+public void writeMangledName(ref Writer writer, ref immutable MangledNames mangledNames, immutable Sym a) {
 	immutable Opt!Operator operator = operatorForSym(a);
 	if (has(operator))
 		writeStatic(writer, mangleOperator(force(operator)));
 	else {
 		if (conflictsWithCName(a))
 			writeChar(writer, '_');
-		eachCharInSym(a, (immutable char c) {
+		eachCharInSym(mangledNames.allSymbols.deref(), a, (immutable char c) {
 			switch (c) {
 				case '-':
 					writeChar(writer, '_');
@@ -412,16 +419,16 @@ immutable(string) mangleOperator(immutable Operator a) {
 
 immutable(bool) conflictsWithCName(immutable Sym a) {
 	switch (a.value) {
-		case shortSymAlphaLiteralValue("atomic-bool"): // avoid conflicting with c's "atomic_bool" type
-		case shortSymAlphaLiteralValue("break"):
-		case shortSymAlphaLiteralValue("continue"):
-		case shortSymAlphaLiteralValue("default"):
-		case shortSymAlphaLiteralValue("double"):
-		case shortSymAlphaLiteralValue("float"):
-		case shortSymAlphaLiteralValue("for"):
-		case shortSymAlphaLiteralValue("int"):
-		case shortSymAlphaLiteralValue("void"):
-		case shortSymAlphaLiteralValue("while"):
+		case shortSymValue("atomic-bool"): // avoid conflicting with c's "atomic_bool" type
+		case shortSymValue("break"):
+		case shortSymValue("continue"):
+		case shortSymValue("default"):
+		case shortSymValue("double"):
+		case shortSymValue("float"):
+		case shortSymValue("for"):
+		case shortSymValue("int"):
+		case shortSymValue("void"):
+		case shortSymValue("while"):
 			return true;
 		default:
 			return false;

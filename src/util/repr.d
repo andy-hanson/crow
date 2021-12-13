@@ -10,7 +10,7 @@ import util.collection.str : CStr, SafeCStr, strOfSafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.sym : shortSymAlphaLiteral, Sym, symSize, writeSym;
+import util.sym : AllSymbols, shortSym, Sym, symSize, writeSym;
 import util.util : abs, todo;
 import util.writer :
 	finishWriterToCStr,
@@ -29,7 +29,7 @@ immutable(Repr) reprRecord(immutable Sym name, immutable Repr[] children) {
 }
 
 immutable(Repr) reprRecord(immutable string name, immutable Repr[] children) {
-	return reprRecord(shortSymAlphaLiteral(name), children);
+	return reprRecord(shortSym(name), children);
 }
 
 immutable(Repr) reprRecord(immutable string name) {
@@ -46,7 +46,7 @@ private struct ReprRecord {
 }
 
 immutable(Repr) reprNamedRecord(immutable string name, immutable NameAndRepr[] children) {
-	return immutable Repr(immutable ReprNamedRecord(shortSymAlphaLiteral(name), children));
+	return immutable Repr(immutable ReprNamedRecord(shortSym(name), children));
 }
 
 immutable(Repr) reprNamedRecord(
@@ -110,7 +110,7 @@ immutable(Repr) reprSym(immutable Sym a) {
 }
 
 immutable(Repr) reprSym(immutable string a) {
-	return reprSym(shortSymAlphaLiteral(a));
+	return reprSym(shortSym(a));
 }
 
 immutable(Repr) reprOpt(T)(
@@ -128,7 +128,7 @@ private struct ReprNamedRecord {
 }
 
 immutable(NameAndRepr) nameAndRepr(immutable string name, immutable Repr value) {
-	return immutable NameAndRepr(shortSymAlphaLiteral(name), value);
+	return immutable NameAndRepr(shortSym(name), value);
 }
 
 struct NameAndRepr {
@@ -219,28 +219,28 @@ private @trusted T matchRepr(T)(
 	}
 }
 
-void writeReprNoNewline(ref Writer writer, immutable Repr a) {
-	writeRepr(writer, 0, maxWidth, a);
+void writeReprNoNewline(ref Writer writer, ref const AllSymbols allSymbols, immutable Repr a) {
+	writeRepr(writer, allSymbols, 0, maxWidth, a);
 }
 
-void writeRepr(ref Writer writer, immutable Repr a) {
-	writeReprNoNewline(writer, a);
+void writeRepr(ref Writer writer, ref const AllSymbols allSymbols, immutable Repr a) {
+	writeReprNoNewline(writer, allSymbols, a);
 	writeChar(writer, '\n');
 }
 
-immutable(CStr) jsonStrOfRepr(ref Alloc alloc, ref immutable Repr a) {
+immutable(CStr) jsonStrOfRepr(ref Alloc alloc, ref const AllSymbols allSymbols, ref immutable Repr a) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
-	writeReprJSON(writer, a);
+	writeReprJSON(writer, allSymbols, a);
 	return finishWriterToCStr(writer);
 }
 
-void writeReprJSON(ref Writer writer, ref immutable Repr a) {
+void writeReprJSON(ref Writer writer, ref const AllSymbols allSymbols, ref immutable Repr a) {
 	matchRepr!void(
 		a,
 		(ref immutable ReprArr it) {
 			writeChar(writer, '[');
 			writeWithCommas!Repr(writer, it.arr, (ref immutable Repr em) {
-				writeReprJSON(writer, em);
+				writeReprJSON(writer, allSymbols, em);
 			});
 			writeChar(writer, ']');
 		},
@@ -255,19 +255,19 @@ void writeReprJSON(ref Writer writer, ref immutable Repr a) {
 		},
 		(ref immutable ReprNamedRecord it) {
 			writeStatic(writer, "{\"_type\":");
-			writeQuotedSym(writer, it.name);
+			writeQuotedSym(writer, allSymbols, it.name);
 			foreach (ref immutable NameAndRepr pair; it.children) {
 				writeChar(writer, ',');
-				writeQuotedSym(writer, pair.name);
+				writeQuotedSym(writer, allSymbols, pair.name);
 				writeChar(writer, ':');
-				writeReprJSON(writer, pair.value);
+				writeReprJSON(writer, allSymbols, pair.value);
 			}
 			writeChar(writer,'}');
 		},
 		(immutable Opt!(Ptr!Repr) it) {
 			if (has(it)) {
 				writeStatic(writer, "{\"_type\":\"some\",\"value\":");
-				writeReprJSON(writer, force(it).deref());
+				writeReprJSON(writer, allSymbols, force(it).deref());
 				writeChar(writer, '}');
 			} else {
 				writeStatic(writer, "{\"_type\":\"none\"}");
@@ -275,10 +275,10 @@ void writeReprJSON(ref Writer writer, ref immutable Repr a) {
 		},
 		(ref immutable ReprRecord it) {
 			writeStatic(writer, "{\"_type\":");
-			writeQuotedSym(writer, it.name);
+			writeQuotedSym(writer, allSymbols, it.name);
 			writeStatic(writer, ",\"args\":[");
 			writeWithCommas!Repr(writer, it.children, (ref immutable Repr child) {
-				writeReprJSON(writer, child);
+				writeReprJSON(writer, allSymbols, child);
 			});
 			writeStatic(writer, "]}");
 		},
@@ -286,15 +286,15 @@ void writeReprJSON(ref Writer writer, ref immutable Repr a) {
 			writeQuotedStr(writer, it);
 		},
 		(immutable Sym it) {
-			writeQuotedSym(writer, it);
+			writeQuotedSym(writer, allSymbols, it);
 		});
 }
 
 private:
 
-void writeQuotedSym(ref Writer writer, immutable Sym a) {
+void writeQuotedSym(ref Writer writer, ref const AllSymbols allSymbols, immutable Sym a) {
 	writeChar(writer, '"');
-	writeSym(writer, a);
+	writeSym(writer, allSymbols, a);
 	writeChar(writer, '"');
 }
 
@@ -303,6 +303,7 @@ immutable size_t maxWidth = 120;
 
 void writeRepr(
 	ref Writer writer,
+	ref const AllSymbols allSymbols,
 	immutable size_t indent,
 	immutable int availableWidth,
 	ref immutable Repr a,
@@ -310,7 +311,7 @@ void writeRepr(
 	matchRepr!void(
 		a,
 		(ref immutable ReprArr s) {
-			if (measureReprArr(s, availableWidth) < 0) {
+			if (measureReprArr(s, allSymbols, availableWidth) < 0) {
 				writeChar(writer, '[');
 				foreach (immutable size_t index; 0 .. s.arr.length) {
 					writeNewline(writer, indent + 1);
@@ -318,11 +319,11 @@ void writeRepr(
 						writeNat(writer, index);
 						writeStatic(writer, ": ");
 					}
-					writeRepr(writer, indent + 1, availableWidth - indentSize, s.arr[index]);
+					writeRepr(writer, allSymbols, indent + 1, availableWidth - indentSize, s.arr[index]);
 				}
 				writeChar(writer, ']');
 			} else
-				writeReprArrSingleLine(writer, s.arr);
+				writeReprArrSingleLine(writer, allSymbols, s.arr);
 		},
 		(immutable bool s) {
 			writeReprBool(writer, s);
@@ -334,53 +335,53 @@ void writeRepr(
 			writeReprInt(writer, it);
 		},
 		(ref immutable ReprNamedRecord it) {
-			if (measureReprNamedRecord(it, availableWidth) < 0) {
-				writeSym(writer, it.name);
+			if (measureReprNamedRecord(it, allSymbols, availableWidth) < 0) {
+				writeSym(writer, allSymbols, it.name);
 				writeChar(writer, '(');
 				foreach (ref immutable NameAndRepr element; it.children) {
 					writeNewline(writer, indent + 1);
-					writeSym(writer, element.name);
+					writeSym(writer, allSymbols, element.name);
 					writeStatic(writer, ": ");
-					writeRepr(writer, indent + 1, availableWidth - indentSize, element.value);
+					writeRepr(writer, allSymbols, indent + 1, availableWidth - indentSize, element.value);
 				}
 				writeChar(writer, ')');
 			} else
-				writeReprNamedRecordSingleLine(writer, it);
+				writeReprNamedRecordSingleLine(writer, allSymbols, it);
 		},
 		(immutable Opt!(Ptr!Repr) s) {
 			if (has(s)) {
 				writeStatic(writer, "some(");
-				writeRepr(writer, indent, availableWidth, force(s).deref);
+				writeRepr(writer, allSymbols, indent, availableWidth, force(s).deref);
 				writeChar(writer, ')');
 			} else
 				writeStatic(writer, "none");
 		},
 		(ref immutable ReprRecord s) {
-			if (measureReprRecord(s, availableWidth) < 0) {
-				writeSym(writer, s.name);
+			if (measureReprRecord(s, allSymbols, availableWidth) < 0) {
+				writeSym(writer, allSymbols, s.name);
 				writeChar(writer, '(');
 				foreach (ref immutable Repr element; s.children) {
 					writeNewline(writer, indent + 1);
-					writeRepr(writer, indent + 1, availableWidth - indentSize, element);
+					writeRepr(writer, allSymbols, indent + 1, availableWidth - indentSize, element);
 				}
 				writeChar(writer, ')');
 			} else
-				writeReprRecordSingleLine(writer, s);
+				writeReprRecordSingleLine(writer, allSymbols, s);
 		},
 		(ref immutable string s) {
 			writeQuotedStr(writer, s);
 		},
 		(immutable Sym s) {
-			writeSym(writer, s);
+			writeSym(writer, allSymbols, s);
 		});
 }
 
 // Returns the size remaining, but all negative numbers considered equivalent
-immutable(int) measureReprSingleLine(ref immutable Repr a, immutable int available) {
+immutable(int) measureReprSingleLine(ref immutable Repr a, ref const AllSymbols allSymbols, immutable int available) {
 	return matchRepr!(immutable int)(
 		a,
 		(ref immutable ReprArr s) =>
-			measureReprArr(s, available),
+			measureReprArr(s, allSymbols, available),
 		(immutable bool s) =>
 			available - measureReprBool(s),
 		(immutable double) =>
@@ -389,58 +390,74 @@ immutable(int) measureReprSingleLine(ref immutable Repr a, immutable int availab
 		(immutable ReprInt s) =>
 			available - measureReprInt(s),
 		(ref immutable ReprNamedRecord s) =>
-			measureReprNamedRecord(s, available),
+			measureReprNamedRecord(s, allSymbols, available),
 		(immutable Opt!(Ptr!Repr) s) =>
 			has(s)
-				? measureReprSingleLine(force(s).deref(), available - len!"some()")
+				? measureReprSingleLine(force(s).deref(), allSymbols, available - len!"some()")
 				: available - len!"none",
 		(ref immutable ReprRecord s) =>
-			measureReprRecord(s, available),
+			measureReprRecord(s, allSymbols, available),
 		(ref immutable string s) =>
 			available - len!"\"\"" - cast(int) s.length,
 		(immutable Sym s) =>
-			cast(int) (available - symSize(s)));
+			cast(int) (available - symSize(allSymbols, s)));
 }
 
-immutable(int) measureReprArr(ref immutable ReprArr a, immutable int available) {
-	return measureCommaSeparatedChildren(a.arr, available - len!"[]");
+immutable(int) measureReprArr(ref immutable ReprArr a, ref const AllSymbols allSymbols, immutable int available) {
+	return measureCommaSeparatedChildren(a.arr, allSymbols, available - len!"[]");
 }
 
-immutable(int) measureReprNamedRecord(ref immutable ReprNamedRecord a, immutable int available) {
-	return measureReprNamedRecordRecur(a.children, available - symSize(a.name) - len!"()");
+immutable(int) measureReprNamedRecord(
+	ref immutable ReprNamedRecord a,
+	ref const AllSymbols allSymbols,
+	immutable int available,
+) {
+	return measureReprNamedRecordRecur(a.children, allSymbols, available - symSize(allSymbols, a.name) - len!"()");
 }
-immutable(int) measureReprNamedRecordRecur(immutable NameAndRepr[] xs, immutable int available) {
+immutable(int) measureReprNamedRecordRecur(
+	immutable NameAndRepr[] xs,
+	ref const AllSymbols allSymbols,
+	immutable int available,
+) {
 	if (empty(xs))
 		return available;
 	else {
 		immutable int availableAfterFirst =
-			measureReprSingleLine(xs[0].value, available - symSize(xs[0].name) - len!": ");
+			measureReprSingleLine(xs[0].value, allSymbols, available - symSize(allSymbols, xs[0].name) - len!": ");
 		return availableAfterFirst < 0 || empty(xs[1 .. $])
 			? availableAfterFirst
-			: measureReprNamedRecordRecur(xs[1 .. $], availableAfterFirst - len!", ");
+			: measureReprNamedRecordRecur(xs[1 .. $], allSymbols, availableAfterFirst - len!", ");
 	}
 }
 
-immutable(int) measureReprRecord(ref immutable ReprRecord a, immutable int available) {
-	return measureCommaSeparatedChildren(a.children, available - symSize(a.name) - len!"()");
+immutable(int) measureReprRecord(
+	ref immutable ReprRecord a,
+	ref const AllSymbols allSymbols,
+	immutable int available,
+) {
+	return measureCommaSeparatedChildren(a.children, allSymbols, available - symSize(allSymbols, a.name) - len!"()");
 }
 
-immutable(int) measureCommaSeparatedChildren(immutable Repr[] xs, immutable int available) {
+immutable(int) measureCommaSeparatedChildren(
+	immutable Repr[] xs,
+	ref const AllSymbols allSymbols,
+	immutable int available,
+) {
 	if (empty(xs))
 		return available;
 	else {
-		immutable int availableAfterFirst = measureReprSingleLine(xs[0], available);
+		immutable int availableAfterFirst = measureReprSingleLine(xs[0], allSymbols, available);
 		return availableAfterFirst < 0 || empty(xs[1 .. $])
 			? availableAfterFirst
-			: measureCommaSeparatedChildren(xs[1 .. $], availableAfterFirst - len!", ");
+			: measureCommaSeparatedChildren(xs[1 .. $], allSymbols, availableAfterFirst - len!", ");
 	}
 }
 
-void writeReprSingleLine(ref Writer writer, ref immutable Repr a) {
+void writeReprSingleLine(ref Writer writer, ref const AllSymbols allSymbols, ref immutable Repr a) {
 	matchRepr!void(
 		a,
 		(ref immutable ReprArr s) {
-			writeReprArrSingleLine(writer, s.arr);
+			writeReprArrSingleLine(writer, allSymbols, s.arr);
 		},
 		(immutable bool s) {
 			writeReprBool(writer, s);
@@ -452,54 +469,58 @@ void writeReprSingleLine(ref Writer writer, ref immutable Repr a) {
 			writeReprInt(writer, it);
 		},
 		(ref immutable ReprNamedRecord s) {
-			writeReprNamedRecordSingleLine(writer, s);
+			writeReprNamedRecordSingleLine(writer, allSymbols, s);
 		},
 		(immutable Opt!(Ptr!Repr) s) {
 			if (has(s)) {
 				writeStatic(writer, "some(");
-				writeReprSingleLine(writer, force(s).deref());
+				writeReprSingleLine(writer, allSymbols, force(s).deref());
 				writeChar(writer, ')');
 			} else
 				writeStatic(writer, "none");
 		},
 		(ref immutable ReprRecord s) {
-			writeReprRecordSingleLine(writer, s);
+			writeReprRecordSingleLine(writer, allSymbols, s);
 		},
 		(ref immutable string s) {
 			writeQuotedStr(writer, s);
 		},
 		(immutable Sym s) {
-			writeSym(writer, s);
+			writeSym(writer, allSymbols, s);
 		});
 }
 
-void writeReprArrSingleLine(ref Writer writer, ref immutable Repr[] a) {
+void writeReprArrSingleLine(ref Writer writer, ref const AllSymbols allSymbols, ref immutable Repr[] a) {
 	writeChar(writer, '[');
-	writeCommaSeparatedChildren(writer, a);
+	writeCommaSeparatedChildren(writer, allSymbols, a);
 	writeChar(writer, ']');
 }
 
-void writeReprNamedRecordSingleLine(ref Writer writer, ref immutable ReprNamedRecord a) {
-	writeSym(writer, a.name);
+void writeReprNamedRecordSingleLine(
+	ref Writer writer,
+	ref const AllSymbols allSymbols,
+	ref immutable ReprNamedRecord a,
+) {
+	writeSym(writer, allSymbols, a.name);
 	writeChar(writer, '(');
 	writeWithCommas!NameAndRepr(writer, a.children, (ref immutable NameAndRepr child) {
-		writeSym(writer, child.name);
+		writeSym(writer, allSymbols, child.name);
 		writeStatic(writer, ": ");
-		writeReprSingleLine(writer, child.value);
+		writeReprSingleLine(writer, allSymbols, child.value);
 	});
 	writeChar(writer, ')');
 }
 
-void writeReprRecordSingleLine(ref Writer writer, ref immutable ReprRecord a) {
-	writeSym(writer, a.name);
+void writeReprRecordSingleLine(ref Writer writer, ref const AllSymbols allSymbols, ref immutable ReprRecord a) {
+	writeSym(writer, allSymbols, a.name);
 	writeChar(writer, '(');
-	writeCommaSeparatedChildren(writer, a.children);
+	writeCommaSeparatedChildren(writer, allSymbols, a.children);
 	writeChar(writer, ')');
 }
 
-void writeCommaSeparatedChildren(ref Writer writer, ref immutable Repr[] a) {
+void writeCommaSeparatedChildren(ref Writer writer, ref const AllSymbols allSymbols, ref immutable Repr[] a) {
 	writeWithCommas!Repr(writer, a, (ref immutable Repr it) {
-		writeReprSingleLine(writer, it);
+		writeReprSingleLine(writer, allSymbols, it);
 	});
 }
 

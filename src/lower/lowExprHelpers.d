@@ -26,7 +26,7 @@ import util.collection.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSymAlphaLiteral, Sym, symEq;
+import util.sym : shortSym, Sym, symEq;
 import util.util : unreachable, verify;
 
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
@@ -79,7 +79,7 @@ immutable(LowExpr) genDrop(
 		voidType,
 		range,
 		immutable LowExprKind(allocate(alloc, immutable LowExprKind.Let(
-			genLocal(alloc, shortSymAlphaLiteral("dropped"), localIndex, a.type),
+			genLocal(alloc, shortSym("dropped"), localIndex, a.type),
 			a,
 			genVoid(range)))));
 }
@@ -433,7 +433,7 @@ immutable(LowType.PtrRawConst) getElementPtrTypeFromArrType(
 ) {
 	immutable LowRecord arrRecord = fullIndexDictGet(allTypes.allRecords, arrType);
 	verify(arrRecord.fields.length == 2);
-	verify(symEq(name(arrRecord.fields[0]), shortSymAlphaLiteral("size")));
-	verify(symEq(name(arrRecord.fields[1]), shortSymAlphaLiteral("begin-ptr")));
+	verify(symEq(name(arrRecord.fields[0]), shortSym("size")));
+	verify(symEq(name(arrRecord.fields[1]), shortSym("begin-ptr")));
 	return asPtrRawConst(arrRecord.fields[1].type);
 }

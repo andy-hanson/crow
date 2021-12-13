@@ -27,7 +27,7 @@ import util.collection.arr : ptrsRange;
 import util.opt : force, has, none, Opt, optOr2, some;
 import util.ptr : Ptr;
 import util.sourceRange : hasPos, Pos;
-import util.sym : Sym, symSize;
+import util.sym : AllSymbols, Sym, symSize;
 
 struct Position {
 	@safe @nogc pure nothrow:
@@ -108,15 +108,16 @@ struct Position {
 	}
 }
 
-immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos pos) {
-	immutable Opt!Position fromImportsOrExports = optOr2(positionInImportsOrExports(module_.imports, pos), () =>
-		positionInImportsOrExports(module_.exports, pos));
+immutable(Opt!Position) getPosition(ref const AllSymbols allSymbols, ref immutable Module module_, immutable Pos pos) {
+	immutable Opt!Position fromImportsOrExports = optOr2(
+		positionInImportsOrExports(allSymbols, module_.imports, pos),
+		() => positionInImportsOrExports(allSymbols, module_.exports, pos));
 	if (has(fromImportsOrExports))
 		return fromImportsOrExports;
 
 	foreach (immutable Ptr!StructDecl s; ptrsRange(module_.structs))
 		if (hasPos(s.deref().range.range, pos))
-			return some(positionInStruct(s, pos));
+			return some(positionInStruct(allSymbols, s, pos));
 
 	foreach (immutable Ptr!SpecDecl s; ptrsRange(module_.specs))
 		if (hasPos(s.deref().range.range, pos))
@@ -124,7 +125,7 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 			return some(immutable Position(s));
 
 	foreach (immutable Ptr!FunDecl f; ptrsRange(module_.funs)) {
-		if (hasPos(f.deref().sig.range, pos))
+		if (hasPos(f.deref().sig.range(allSymbols), pos))
 			//TODO: delve inside!
 			return some(immutable Position(f));
 		immutable Opt!Position fromBody = matchFunBody!(
@@ -165,6 +166,7 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 private:
 
 immutable(Opt!Position) positionInImportsOrExports(
+	ref const AllSymbols allSymbols,
 	ref immutable ModuleAndNames[] importsOrExports,
 	immutable Pos pos,
 ) {
@@ -173,7 +175,7 @@ immutable(Opt!Position) positionInImportsOrExports(
 			if (has(im.deref().names)) {
 				Pos namePos = force(im.deref().importSource).start;
 				foreach (immutable Sym name; force(im.deref().names)) {
-					immutable Pos nameEnd = namePos + symSize(name);
+					immutable Pos nameEnd = namePos + symSize(allSymbols, name);
 					if (pos < nameEnd)
 						return some(immutable Position(immutable Position.ImportedName(im, name)));
 					namePos = nameEnd + 1;
@@ -185,7 +187,7 @@ immutable(Opt!Position) positionInImportsOrExports(
 	return none!Position;
 }
 
-immutable(Position) positionInStruct(immutable Ptr!StructDecl a, immutable Pos pos) {
+immutable(Position) positionInStruct(ref const AllSymbols allSymbols, immutable Ptr!StructDecl a, immutable Pos pos) {
 	//TODO: look through type params!
 
 	immutable Opt!Position specific = matchStructBody!(
@@ -203,7 +205,7 @@ immutable(Position) positionInStruct(immutable Ptr!StructDecl a, immutable Pos p
 		(ref immutable StructBody.Record it) {
 			foreach (immutable Ptr!RecordField field; ptrsRange(it.fields))
 				if (hasPos(field.deref().range.range, pos))
-					return nameHasPos(field.deref().range.start, field.deref().name, pos)
+					return nameHasPos(allSymbols, field.deref().range.start, field.deref().name, pos)
 						? some(immutable Position(immutable Position.RecordFieldPosition(a, field)))
 						: positionOfType(field.deref().type);
 			return none!Position;
@@ -224,6 +226,11 @@ immutable(Opt!Position) positionOfType(immutable Type a) {
 	)(a);
 }
 
-immutable(bool) nameHasPos(immutable Pos start, immutable Sym name, immutable Pos pos) {
-	return start <= pos && pos < start + symSize(name);
+immutable(bool) nameHasPos(
+	ref const AllSymbols allSymbols,
+	immutable Pos start,
+	immutable Sym name,
+	immutable Pos pos,
+) {
+	return start <= pos && pos < start + symSize(allSymbols, name);
 }

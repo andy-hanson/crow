@@ -51,7 +51,7 @@ import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.repr : writeReprNoNewline;
 import util.sourceRange : FileAndPos;
-import util.sym : Sym;
+import util.sym : AllSymbols, Sym;
 import util.util : divRoundUp, drop, min, unreachable, verify;
 import util.writer : finishWriter, Writer, writeChar, writeHex, writeStatic;
 
@@ -59,6 +59,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writeStatic;
 	scope ref Debug dbg,
 	ref Perf perf,
 	ref TempAlloc tempAlloc,
+	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	scope ref Extern extern_,
 	ref immutable LowProgram lowProgram,
@@ -67,7 +68,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writeStatic;
 	scope immutable SafeCStr[] allArgs,
 ) {
 	return withInterpreter!(immutable int)(
-		dbg, tempAlloc, extern_, lowProgram, byteCode, allPaths, filesInfo,
+		dbg, tempAlloc, extern_, lowProgram, byteCode, allSymbols, allPaths, filesInfo,
 		(scope ref Interpreter interpreter) {
 			push(interpreter.dataStack, allArgs.length);
 			push(interpreter.dataStack, cast(immutable ulong) allArgs.ptr);
@@ -101,6 +102,7 @@ private alias ReturnStack = Stack!(immutable(Operation)*);
 	ref Extern extern_,
 	scope ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
+	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable FilesInfo filesInfo,
 	scope immutable(T) delegate(scope ref Interpreter) @system @nogc nothrow cb,
@@ -111,6 +113,7 @@ private alias ReturnStack = Stack!(immutable(Operation)*);
 		ptrTrustMe_mut(extern_),
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
+		ptrTrustMe_const(allSymbols),
 		ptrTrustMe_const(allPaths),
 		ptrTrustMe(filesInfo));
 
@@ -141,6 +144,7 @@ struct Interpreter {
 		Ptr!Extern e,
 		immutable Ptr!LowProgram p,
 		immutable Ptr!ByteCode b,
+		const Ptr!AllSymbols as,
 		const Ptr!AllPaths ap,
 		immutable Ptr!FilesInfo f,
 	) {
@@ -149,6 +153,7 @@ struct Interpreter {
 		externPtr = e;
 		lowProgramPtr = p;
 		byteCodePtr = b;
+		allSymbolsPtr = as;
 		allPathsPtr = ap;
 		filesInfoPtr = f;
 		dataStack = DataStack(ta.deref(), 1024 * 64);
@@ -161,6 +166,7 @@ struct Interpreter {
 	Ptr!Extern externPtr;
 	immutable Ptr!LowProgram lowProgramPtr;
 	immutable Ptr!ByteCode byteCodePtr;
+	const Ptr!AllSymbols allSymbolsPtr;
 	const Ptr!AllPaths allPathsPtr;
 	immutable Ptr!FilesInfo filesInfoPtr;
 	//TODO:PRIVATE
@@ -180,6 +186,9 @@ struct Interpreter {
 	}
 	ref immutable(LowProgram) lowProgram() const return scope pure {
 		return lowProgramPtr.deref();
+	}
+	ref const(AllSymbols) allSymbols() const return scope pure {
+		return allSymbolsPtr.deref();
 	}
 	ref const(AllPaths) allPaths() const return scope pure {
 		return allPathsPtr.deref();
@@ -242,17 +251,20 @@ private void showReturnStack(scope ref Writer writer, ref const Interpreter a, i
 
 private void writeByteCodeSource(
 	scope ref Writer writer,
+	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions showDiagOptions,
 	ref immutable LowProgram lowProgram,
 	ref immutable FilesInfo filesInfo,
 	immutable ByteCodeSource source,
 ) {
-	writeFunName(writer, lowProgram, source.fun);
+	writeFunName(writer, allSymbols, lowProgram, source.fun);
 	matchLowFunSource!(
 		void,
 		(immutable Ptr!ConcreteFun it) {
-			immutable FileAndPos where = immutable FileAndPos(concreteFunRange(it.deref()).fileIndex, source.pos);
+			immutable FileAndPos where = immutable FileAndPos(
+				concreteFunRange(it.deref(), allSymbols).fileIndex,
+				source.pos);
 			writeFileAndPos(writer, allPaths, showDiagOptions, filesInfo, where);
 		},
 		(ref immutable LowFunSource.Generated) {},
@@ -264,7 +276,11 @@ private void writeFunNameAtIndex(
 	ref const Interpreter interpreter,
 	immutable ByteCodeIndex index,
 ) {
-	writeFunName(writer, interpreter.lowProgram, byteCodeSourceAtIndex(interpreter, index).fun);
+	writeFunName(
+		writer,
+		interpreter.allSymbols,
+		interpreter.lowProgram,
+		byteCodeSourceAtIndex(interpreter, index).fun);
 }
 
 private void writeFunNameAtByteCodePtr(
@@ -319,7 +335,7 @@ private immutable(NextOperation) getNextOperationAndDebug(ref Interpreter a, imm
 		scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
 		writeStatic(writer, "STEP: ");
 		immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);
-		writeByteCodeSource(writer, a.allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
+		writeByteCodeSource(writer, a.allSymbols, a.allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
 		//writeChar(writer, ' ');
 		//writeReprNoNewline(writer, reprOperation(dbgAlloc, operation));
 		//writeChar(writer, '\n');
@@ -624,7 +640,7 @@ private @system immutable(size_t) backtrace(ref Interpreter a, void** res, immut
 	immutable Sym name = immutable Sym(readNat64(cur));
 	debug {
 		logNoNewline(a.dbg, "opExternDynCall ");
-		logSymNoNewline(a.dbg, name);
+		logSymNoNewline(a.dbg, a.allSymbols, name);
 		log(a.dbg, "");
 	}
 	immutable DynCallType returnType = cast(immutable DynCallType) readNat64(cur);

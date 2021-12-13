@@ -43,12 +43,13 @@ import util.collection.str : SafeCStr, strOfSafeCStr;
 import util.opt : force, has, Opt;
 import util.path : AllPaths, eachPathPart, nPathComponents, Path;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.sym : hashSym, Sym, symEq, writeSym;
+import util.sym : AllSymbols, hashSym, Sym, symEq, writeSym;
 import util.util : todo, unreachable;
 import util.writer : finishWriter, Writer, writeChar, writeStatic, writeStr, writeWithCommas;
 
 immutable(string) document(
 	ref Alloc alloc,
+	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable Program p,
 	ref immutable Module a,
@@ -62,19 +63,19 @@ immutable(string) document(
 		writeStatic(writer, "../");
 	writeStatic(writer, "pug-include/documentation.pug\n");
 	writeStatic(writer, "+documentationPage(\"");
-	writeModulePath(writer, allPaths, path);
+	writeModulePath(writer, allSymbols, allPaths, path);
 	writeStatic(writer, "\")\n");
 	writeStatic(writer, "\tsection");
 	dictEach!(Sym, NameReferents, symEq, hashSym)(
 		a.allExportedNames,
 		(immutable(Sym), ref immutable NameReferents referents) {
 			if (has(referents.structOrAlias))
-				writeStructOrAlias(writer, force(referents.structOrAlias));
+				writeStructOrAlias(writer, allSymbols, force(referents.structOrAlias));
 			if (has(referents.spec))
-				writeSpec(writer, force(referents.spec).deref());
+				writeSpec(writer, allSymbols, force(referents.spec).deref());
 			foreach (immutable Ptr!FunDecl fun; referents.funs)
 				if (!fun.deref().generated)
-					writeFun(writer, fun.deref());
+					writeFun(writer, allSymbols, fun.deref());
 		});
 	writeStatic(writer, "\n");
 	return finishWriter(writer);
@@ -84,6 +85,7 @@ private:
 
 void writeModulePath(
 	ref Writer writer,
+	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	immutable Path path,
 ) {
@@ -94,34 +96,34 @@ void writeModulePath(
 			first = false;
 		else
 			writeChar(writer, '/');
-		writeSym(writer, part);
+		writeSym(writer, allSymbols, part);
 	});
 }
 
-void writeStructOrAlias(ref Writer writer, ref immutable StructOrAlias a) {
+void writeStructOrAlias(ref Writer writer, ref const AllSymbols allSymbols, ref immutable StructOrAlias a) {
 	matchStructOrAlias!(
 		void,
 		(ref immutable StructAlias it) {
-			writeStructAlias(writer, it);
+			writeStructAlias(writer, allSymbols, it);
 		},
 		(ref immutable StructDecl it) {
-			writeStructDecl(writer, it);
+			writeStructDecl(writer, allSymbols, it);
 		},
 	)(a);
 }
 
-void writeStructAlias(ref Writer writer, ref immutable StructAlias a) {
+void writeStructAlias(ref Writer writer, ref const AllSymbols allSymbols, ref immutable StructAlias a) {
 	writeStatic(writer, "\n\t\t+alias(");
-	writeQuotedSym(writer, a.name);
-	writeTypeParams(writer, typeParams(a));
+	writeQuotedSym(writer, allSymbols, a.name);
+	writeTypeParams(writer, allSymbols, typeParams(a));
 	writeStatic(writer, ", ");
 	immutable Opt!(Ptr!StructInst) optTarget = target(a);
-	writeQuotedType(writer, immutable Type(force(optTarget)));
+	writeQuotedType(writer, allSymbols, immutable Type(force(optTarget)));
 	writeChar(writer, ')');
 	writeDocComment(writer, a.docComment);
 }
 
-void writeStructDecl(ref Writer writer, ref immutable StructDecl a) {
+void writeStructDecl(ref Writer writer, ref const AllSymbols allSymbols, ref immutable StructDecl a) {
 	matchStructBody!(
 		void,
 		(ref immutable(StructBody.Bogus)) {
@@ -129,52 +131,62 @@ void writeStructDecl(ref Writer writer, ref immutable StructDecl a) {
 		},
 		(ref immutable(StructBody.Builtin)) {
 			writeStatic(writer, "\n\t\t+builtinType(");
-			writeQuotedSym(writer, a.name);
-			writeTypeParams(writer, typeParams(a));
+			writeQuotedSym(writer, allSymbols, a.name);
+			writeTypeParams(writer, allSymbols, typeParams(a));
 			writeStatic(writer, ")");
 		},
 		(ref immutable StructBody.Enum it) {
-			writeEnum(writer, a, it);
+			writeEnum(writer, allSymbols, a, it);
 		},
 		(ref immutable(StructBody.Flags)) {
 			todo!void("!");
 		},
 		(ref immutable(StructBody.ExternPtr)) {
 			writeStatic(writer, "\n\t\t+externPtrType(");
-			writeQuotedSym(writer, a.name);
-			writeTypeParams(writer, typeParams(a));
+			writeQuotedSym(writer, allSymbols, a.name);
+			writeTypeParams(writer, allSymbols, typeParams(a));
 			writeStatic(writer, ")");
 		},
 		(ref immutable StructBody.Record it) {
-			writeRecord(writer, a, it);
+			writeRecord(writer, allSymbols, a, it);
 		},
 		(ref immutable StructBody.Union it) {
-			writeUnion(writer, a, it);
+			writeUnion(writer, allSymbols, a, it);
 		},
 	)(body_(a));
 	writeDocComment(writer, a.docComment);
 }
 
-void writeEnum(ref Writer writer, ref immutable StructDecl a, ref immutable StructBody.Enum e) {
+void writeEnum(
+	ref Writer writer,
+	ref const AllSymbols allSymbols,
+	ref immutable StructDecl a,
+	ref immutable StructBody.Enum e,
+) {
 	writeStatic(writer, "\n\t\t+enum(");
-	writeQuotedSym(writer, a.name);
+	writeQuotedSym(writer, allSymbols, a.name);
 	writeStatic(writer, ", [");
 	writeWithCommas!(StructBody.Enum.Member)(writer, e.members, (ref immutable StructBody.Enum.Member member) {
-		writeQuotedSym(writer, member.name);
+		writeQuotedSym(writer, allSymbols, member.name);
 	});
 	writeStatic(writer, "])");
 }
 
-void writeRecord(ref Writer writer, ref immutable StructDecl a, ref immutable StructBody.Record r) {
+void writeRecord(
+	ref Writer writer,
+	ref const AllSymbols allSymbols,
+	ref immutable StructDecl a,
+	ref immutable StructBody.Record r,
+) {
 	writeStatic(writer, "\n\t\t+record(");
-	writeQuotedSym(writer, a.name);
-	writeTypeParams(writer, typeParams(a));
+	writeQuotedSym(writer, allSymbols, a.name);
+	writeTypeParams(writer, allSymbols, typeParams(a));
 	writeStatic(writer, ", [");
 	writeWithCommas!RecordField(writer, r.fields, (ref immutable RecordField field) {
 		writeChar(writer, '[');
-		writeQuotedSym(writer, field.name);
+		writeQuotedSym(writer, allSymbols, field.name);
 		writeStatic(writer, ", ");
-		writeQuotedType(writer, field.type);
+		writeQuotedType(writer, allSymbols, field.type);
 		final switch (field.mutability) {
 			case FieldMutability.const_:
 				break;
@@ -190,17 +202,22 @@ void writeRecord(ref Writer writer, ref immutable StructDecl a, ref immutable St
 	writeStatic(writer, "])");
 }
 
-void writeUnion(ref Writer writer, ref immutable StructDecl a, ref immutable StructBody.Union u) {
+void writeUnion(
+	ref Writer writer,
+	ref const AllSymbols allSymbols,
+	ref immutable StructDecl a,
+	ref immutable StructBody.Union u,
+) {
 	writeStatic(writer, "\n\t\t+union(");
-	writeQuotedSym(writer, a.name);
-	writeTypeParams(writer, typeParams(a));
+	writeQuotedSym(writer, allSymbols, a.name);
+	writeTypeParams(writer, allSymbols, typeParams(a));
 	writeStatic(writer, ", [");
 	writeWithCommas!UnionMember(writer, u.members, (ref immutable UnionMember member) {
 		writeChar(writer, '[');
-		writeQuotedSym(writer, member.name);
+		writeQuotedSym(writer, allSymbols, member.name);
 		writeStatic(writer, ", ");
 		if (has(member.type))
-			writeQuotedType(writer, force(member.type));
+			writeQuotedType(writer, allSymbols, force(member.type));
 		else
 			writeStatic(writer, "null");
 		writeChar(writer, ']');
@@ -208,10 +225,10 @@ void writeUnion(ref Writer writer, ref immutable StructDecl a, ref immutable Str
 	writeStatic(writer, "])");
 }
 
-void writeSpec(ref Writer writer, ref immutable SpecDecl a) {
+void writeSpec(ref Writer writer, ref const AllSymbols allSymbols, ref immutable SpecDecl a) {
 	writeStatic(writer, "\n\t\t+spec(");
-	writeQuotedSym(writer, a.name);
-	writeTypeParams(writer, typeParams(a));
+	writeQuotedSym(writer, allSymbols, a.name);
+	writeTypeParams(writer, allSymbols, typeParams(a));
 	writeStatic(writer, ", ");
 	matchSpecBody!(
 		void,
@@ -227,19 +244,19 @@ void writeSpec(ref Writer writer, ref immutable SpecDecl a) {
 	writeDocComment(writer, a.docComment);
 }
 
-void writeFun(ref Writer writer, ref immutable FunDecl a) {
+void writeFun(ref Writer writer, ref const AllSymbols allSymbols, ref immutable FunDecl a) {
 	writeStatic(writer, "\n\t\t+function(");
-	writeQuotedSym(writer, name(a));
-	writeTypeParams(writer, typeParams(a));
+	writeQuotedSym(writer, allSymbols, name(a));
+	writeTypeParams(writer, allSymbols, typeParams(a));
 	writeStatic(writer, ", ");
-	writeQuotedType(writer, returnType(a));
+	writeQuotedType(writer, allSymbols, returnType(a));
 	writeStatic(writer, ", [");
 	//TODO: handle variadic
 	writeWithCommas!Param(writer, paramsArray(params(a)), (ref immutable Param it) {
 		writeChar(writer, '[');
-		writeQuotedOptSym(writer, it.name);
+		writeQuotedOptSym(writer, allSymbols, it.name);
 		writeStatic(writer, ", ");
-		writeQuotedType(writer, it.type);
+		writeQuotedType(writer, allSymbols, it.type);
 		writeChar(writer, ']');
 	});
 	writeStatic(writer, "])");
@@ -257,45 +274,45 @@ void writeDocComment(ref Writer writer, immutable SafeCStr comment) {
 	}
 }
 
-void writeQuotedOptSym(ref Writer writer, ref immutable Opt!Sym a) {
+void writeQuotedOptSym(ref Writer writer, ref const AllSymbols allSymbols, ref immutable Opt!Sym a) {
 	if (has(a))
-		writeQuotedSym(writer, force(a));
+		writeQuotedSym(writer, allSymbols, force(a));
 	else
 		writeStatic(writer, "\"_\"");
 }
 
-void writeQuotedSym(ref Writer writer, immutable Sym a) {
+void writeQuotedSym(ref Writer writer, ref const AllSymbols allSymbols, immutable Sym a) {
 	writeChar(writer, '\"');
-	writeSym(writer, a);
-	writeChar(writer, '\"');
-}
-
-void writeQuotedType(ref Writer writer, immutable Type a) {
-	writeChar(writer, '\"');
-	writeType(writer, a);
+	writeSym(writer, allSymbols, a);
 	writeChar(writer, '\"');
 }
 
-void writeType(ref Writer writer, immutable Type a) {
+void writeQuotedType(ref Writer writer, ref const AllSymbols allSymbols, immutable Type a) {
+	writeChar(writer, '\"');
+	writeType(writer, allSymbols, a);
+	writeChar(writer, '\"');
+}
+
+void writeType(ref Writer writer, ref const AllSymbols allSymbols, immutable Type a) {
 	matchType!(
 		void,
 		(immutable Type.Bogus) {
 			unreachable!void();
 		},
 		(immutable Ptr!TypeParam it) {
-			writeSym(writer, it.deref().name);
+			writeSym(writer, allSymbols, it.deref().name);
 		},
 		(immutable Ptr!StructInst it) {
-			writeSym(writer, it.deref().name);
+			writeSym(writer, allSymbols, it.deref().name);
 			immutable Type[] typeArgs = typeArgs(it.deref());
 			if (!empty(typeArgs)) {
 				if (typeArgs.length == 1) {
 					writeChar(writer, ' ');
-					writeType(writer, only(typeArgs));
+					writeType(writer, allSymbols, only(typeArgs));
 				} else {
 					writeChar(writer, '<');
 					writeWithCommas!Type(writer, typeArgs, (ref immutable Type t) {
-						writeType(writer, t);
+						writeType(writer, allSymbols, t);
 					});
 					writeChar(writer, '>');
 				}
@@ -304,7 +321,7 @@ void writeType(ref Writer writer, immutable Type a) {
 	)(a);
 }
 
-void writeTypeParams(ref Writer writer, immutable TypeParam[] typeParams) {
+void writeTypeParams(ref Writer writer, ref const AllSymbols allSymbols, immutable TypeParam[] typeParams) {
 	writeStatic(writer, ", ");
 	if (empty(typeParams))
 		writeStatic(writer, "[]");
@@ -312,7 +329,7 @@ void writeTypeParams(ref Writer writer, immutable TypeParam[] typeParams) {
 		writeChar(writer, '[');
 		writeWithCommas!TypeParam(writer, typeParams, (ref immutable TypeParam it) {
 			writeStatic(writer, "\"?");
-			writeSym(writer, it.name);
+			writeSym(writer, allSymbols, it.name);
 			writeChar(writer, '"');
 		});
 		writeChar(writer, ']');

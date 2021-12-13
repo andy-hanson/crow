@@ -130,11 +130,6 @@ static if (!is(size_t == ulong)) {
 	return res;
 }
 
-@trusted ref T last(T)(ref MutArr!T a) {
-	verify(a.size_ != 0);
-	return a.begin_[a.size_ - 1];
-}
-
 @trusted const(T[]) tempAsArr(T)(ref const MutArr!T a) {
 	return a.begin_[0 .. a.size_];
 }

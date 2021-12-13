@@ -77,7 +77,7 @@ import util.sym :
 	Operator,
 	operatorForSym,
 	prependSet,
-	shortSymAlphaLiteral,
+	shortSym,
 	Sym,
 	symEq,
 	symForOperator;
@@ -374,7 +374,7 @@ immutable(ExprAndDedent) parseMutEquals(
 		} else {
 			addDiag(lexer, range(lexer, start), immutable ParseDiag(immutable ParseDiag.CantPrecedeMutEquals()));
 			return immutable FromBefore(
-				shortSymAlphaLiteral("bogus"),
+				shortSym("bogus"),
 				emptyArrWithSize!ExprAst,
 				emptyArrWithSize!TypeAst,
 				CallAst.Style.setSingle);
@@ -388,7 +388,7 @@ immutable(ExprAndDedent) parseMutEquals(
 			immutable NameAndRange(
 				before.range.start,
 				fromBefore.style == CallAst.Style.setDeref
-					? shortSymAlphaLiteral("set-deref")
+					? shortSym("set-deref")
 					: prependSet(lexer.allSymbols, fromBefore.name)),
 			fromBefore.typeArgs,
 			append(lexer.alloc, fromBefore.args, initAndDedent.expr))));
@@ -414,7 +414,7 @@ immutable(NameAndRange) asIdentifierOrDiagnostic(ref Lexer lexer, ref immutable 
 		return identifierAsNameAndRange(a);
 	else {
 		addDiag(lexer, a.range, immutable ParseDiag(immutable ParseDiag.CantPrecedeOptEquals()));
-		return immutable NameAndRange(a.range.start, shortSymAlphaLiteral("a"));
+		return immutable NameAndRange(a.range.start, shortSym("a"));
 	}
 }
 
@@ -465,7 +465,7 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterComma(
 			immutable CallAst(
 				CallAst.Style.comma,
 				//TODO: range is wrong..
-				immutable NameAndRange(range.start, shortSymAlphaLiteral("new")),
+				immutable NameAndRange(range.start, shortSym("new")),
 				emptyArrWithSize!TypeAst,
 				args.args))),
 		args.nameOrDedent);
@@ -614,7 +614,7 @@ immutable(ExprAst) tryParseDotsAndSubscripts(ref Lexer lexer, immutable ExprAst 
 		immutable CallAst call = immutable CallAst(
 			//TODO: the range is wrong..
 			CallAst.Style.subscript,
-			immutable NameAndRange(start, shortSymAlphaLiteral("subscript")),
+			immutable NameAndRange(start, shortSym("subscript")),
 			emptyArrWithSize!TypeAst,
 			prepend(lexer.alloc, initial, args));
 		return tryParseDotsAndSubscripts(lexer, immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)));
@@ -829,7 +829,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 					immutable ExprAstKind(immutable CallAst(
 						CallAst.Style.emptyParens,
 						//TODO: range is wrong..
-						immutable NameAndRange(start, shortSymAlphaLiteral("new")),
+						immutable NameAndRange(start, shortSym("new")),
 						emptyArrWithSize!TypeAst,
 						emptyArrWithSize!ExprAst)));
 				return noDedent(tryParseDotsAndSubscripts(lexer, expr));

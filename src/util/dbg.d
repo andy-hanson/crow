@@ -2,7 +2,7 @@ module util.dbg;
 
 @safe @nogc pure nothrow:
 
-import util.sym : eachCharInSym, Sym;
+import util.sym : AllSymbols, eachCharInSym, Sym;
 
 struct Debug {
 	@safe @nogc pure nothrow:
@@ -63,9 +63,9 @@ void log(scope ref Debug dbg, immutable string a, immutable string b) {
 	}
 }
 
-void logSymNoNewline(scope ref Debug dbg, immutable Sym a) {
+void logSymNoNewline(scope ref Debug dbg, ref const AllSymbols allSymbols, immutable Sym a) {
 	if (debugEnabled)
-		eachCharInSym(a, (immutable char c) {
+		eachCharInSym(allSymbols, a, (immutable char c) {
 			dbg.writeChar(c);
 		});
 }

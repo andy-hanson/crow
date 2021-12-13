@@ -138,7 +138,7 @@ import util.opt : asImmutable, force, has, mapOption, none, Opt, optOr, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSymAlphaLiteral, Sym;
+import util.sym : shortSym, Sym;
 import util.util : unreachable, verify;
 
 immutable(LowProgram) lower(ref Alloc alloc, ref Perf perf, ref immutable ConcreteProgram a) {
@@ -818,7 +818,7 @@ immutable(LowFun) lowFunFromCause(
 						return none!LowParam;
 					case NeedsCtx.yes:
 						return some(immutable LowParam(
-							immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("ctx"))),
+							immutable LowParamSource(immutable LowParamSource.Generated(shortSym("ctx"))),
 							ctxType));
 				}
 			}();
@@ -891,10 +891,10 @@ immutable(LowFun) mainFun(
 ) {
 	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
 		immutable LowParam(
-			immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("argc"))),
+			immutable LowParamSource(immutable LowParamSource.Generated(shortSym("argc"))),
 			int32Type),
 		immutable LowParam(
-			immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("argv"))),
+			immutable LowParamSource(immutable LowParamSource.Generated(shortSym("argv"))),
 			charPtrPtrConstType)]);
 	immutable LowParamIndex argc = immutable LowParamIndex(0);
 	immutable LowParamIndex argv = immutable LowParamIndex(1);
@@ -914,7 +914,7 @@ immutable(LowFun) mainFun(
 	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(false, call));
 	return immutable LowFun(
 		immutable LowFunSource(
-			allocate(alloc, immutable LowFunSource.Generated(shortSymAlphaLiteral("main"), emptyArr!LowType))),
+			allocate(alloc, immutable LowFunSource.Generated(shortSym("main"), emptyArr!LowType))),
 		int32Type,
 		immutable LowFunParamsKind(false, false),
 		params,
@@ -1044,7 +1044,7 @@ immutable(Opt!LowFunIndex) tryGetLowFunIndex(ref const GetLowExprCtx ctx, immuta
 
 immutable(Ptr!LowLocal) addTempLocal(ref Alloc alloc, ref GetLowExprCtx ctx, ref immutable LowType type) {
 	immutable Ptr!LowLocal res = allocate(alloc, immutable LowLocal(
-		immutable LowLocalSource(immutable LowLocalSource.Generated(shortSymAlphaLiteral("temp"), ctx.tempLocalIndex)),
+		immutable LowLocalSource(immutable LowLocalSource.Generated(shortSym("temp"), ctx.tempLocalIndex)),
 		type));
 	ctx.tempLocalIndex++;
 	return res;

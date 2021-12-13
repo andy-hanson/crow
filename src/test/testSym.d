@@ -7,8 +7,8 @@ import util.collection.str : strEq;
 import util.opt : force, Opt;
 import util.sym :
 	AllSymbols,
-	isShortAlphaSym,
-	isLongAlphaSym,
+	isShortSym,
+	isLongSym,
 	Operator,
 	operatorForSym,
 	prependSet,
@@ -24,44 +24,44 @@ void testSym(ref Test test) {
 
 	immutable(Sym) getSym(immutable string a) {
 		immutable Sym res = symOfStr(allSymbols, a);
-		verify(strEq(strOfSym(test.alloc, res), a));
+		verify(strEq(strOfSym(test.alloc, allSymbols, res), a));
 		return res;
 	}
 
 	immutable Sym nat8 = getSym("nat8");
-	verify(isShortAlphaSym(nat8));
+	verify(isShortSym(nat8));
 
-	immutable Sym shortAlpha = getSym("abc-def-gh64");
-	verify(isShortAlphaSym(shortAlpha));
+	immutable Sym shortSym = getSym("abc-def-gh64");
+	verify(isShortSym(shortSym));
 
 	immutable Sym operator = getSym("+");
 	immutable Opt!Operator optOperator = operatorForSym(operator);
 	verify(force(optOperator) == Operator.plus);
 	verify(symEq(operator, symForOperator(Operator.plus)));
-	verify(!symEq(shortAlpha, operator));
+	verify(!symEq(shortSym, operator));
 
-	immutable Sym longAlpha = getSym("a9aa");
-	verify(isLongAlphaSym(longAlpha));
-	verify(symEq(longAlpha, getSym("a9aa")));
+	immutable Sym longSym = getSym("a9aa");
+	verify(isLongSym(longSym));
+	verify(symEq(longSym, getSym("a9aa")));
 
 	immutable Sym cStyle = getSym("C_STYLE");
-	verify(isLongAlphaSym(cStyle));
+	verify(isLongSym(cStyle));
 
 	immutable Sym setA = prependSet(allSymbols, getSym("a"));
 	verify(symEq(setA, getSym("set-a")));
-	verify(isShortAlphaSym(setA));
+	verify(isShortSym(setA));
 
 	immutable Sym setAbcdefgh = prependSet(allSymbols, getSym("abcdefgh"));
 	verify(symEq(setAbcdefgh, getSym("set-abcdefgh")));
-	verify(isShortAlphaSym(setAbcdefgh));
+	verify(isShortSym(setAbcdefgh));
 
 	immutable Sym setAbcdefghi = prependSet(allSymbols, getSym("abcdefghi"));
 	verify(symEq(setAbcdefghi, getSym("set-abcdefghi")));
-	verify(isLongAlphaSym(setAbcdefghi));
+	verify(isLongSym(setAbcdefghi));
 
 	immutable Sym mvSize = getSym("mv_size");
-	verify(isLongAlphaSym(mvSize));
+	verify(isLongSym(mvSize));
 	immutable Sym setMvSize = prependSet(allSymbols, mvSize);
 	verify(symEq(setMvSize, getSym("set-mv_size")));
-	verify(isLongAlphaSym(setMvSize));
+	verify(isLongSym(setMvSize));
 }

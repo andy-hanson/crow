@@ -156,7 +156,8 @@ immutable(CheckedExpr) checkCall(
 	}
 
 	// Show diags at the function name and not at the whole call ast
-	immutable FileAndRange diagRange = immutable FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName));
+	immutable FileAndRange diagRange =
+		immutable FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName, ctx.allSymbols));
 
 	immutable CheckedExpr res = withMeasure!(immutable CheckedExpr, () {
 		if (!has(args) || mutMaxArrSize(candidates) != 1) {

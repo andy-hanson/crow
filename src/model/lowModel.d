@@ -23,7 +23,7 @@ import util.hash : Hasher, hashSizeT, hashUint;
 import util.opt : none, Opt;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSymAlphaLiteral, Sym;
+import util.sym : AllSymbols, shortSym, Sym;
 import util.util : unreachable, verify;
 
 struct LowExternPtrType {
@@ -88,7 +88,7 @@ enum PrimitiveType {
 }
 
 immutable(Sym) symOfPrimitiveType(immutable PrimitiveType a) {
-	return shortSymAlphaLiteral(() {
+	return shortSym(() {
 		final switch (a) {
 			case PrimitiveType.bool_:
 				return "bool";
@@ -584,11 +584,11 @@ immutable(Opt!Sym) name(ref immutable LowFun a) {
 	)(a.source);
 }
 
-immutable(FileAndRange) lowFunRange(ref immutable LowFun a) {
+immutable(FileAndRange) lowFunRange(ref immutable LowFun a, ref const AllSymbols allSymbols) {
 	return matchLowFunSource!(
 		immutable FileAndRange,
 		(immutable Ptr!ConcreteFun cf) =>
-			concreteFunRange(cf.deref()),
+			concreteFunRange(cf.deref(), allSymbols),
 		(ref immutable LowFunSource.Generated) =>
 			FileAndRange.empty,
 	)(a.source);

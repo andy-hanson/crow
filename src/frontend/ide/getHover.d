@@ -20,24 +20,26 @@ import model.model :
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.path : AllPaths;
 import util.ptr : ptrTrustMe_mut;
-import util.sym : writeSym;
+import util.sym : AllSymbols, writeSym;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
 immutable(string) getHoverStr(
 	ref TempAlloc tempAlloc,
 	ref Alloc alloc,
+	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable Program program,
 	ref immutable Position pos,
 ) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
-	getHover(tempAlloc, writer, allPaths, program, pos);
+	getHover(tempAlloc, writer, allSymbols, allPaths, program, pos);
 	return finishWriter(writer);
 }
 
 void getHover(
 	ref TempAlloc tempAlloc,
 	ref Writer writer,
+	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable Program program,
 	ref immutable Position pos,
@@ -49,7 +51,7 @@ void getHover(
 		},
 		(ref immutable FunDecl it) {
 			writeStatic(writer, "fun ");
-			writeSym(writer, name(it));
+			writeSym(writer, allSymbols, name(it));
 		},
 		(ref immutable Position.ImportedModule it) {
 			writeStatic(writer, "import module ");
@@ -60,11 +62,11 @@ void getHover(
 		},
 		(ref immutable Position.RecordFieldPosition it) {
 			writeStatic(writer, "field ");
-			writeStructDecl(writer, it.struct_.deref());
+			writeStructDecl(writer, allSymbols, it.struct_.deref());
 			writeChar(writer, '.');
-			writeSym(writer, it.field.deref().name);
+			writeSym(writer, allSymbols, it.field.deref().name);
 			writeStatic(writer, " (");
-			writeType(writer, it.field.deref().type);
+			writeType(writer, allSymbols, it.field.deref().type);
 			writeChar(writer, ')');
 		},
 		(ref immutable SpecDecl) {
@@ -95,7 +97,7 @@ void getHover(
 					writeStatic(writer, "union ");
 				},
 			)(body_(it));
-			writeSym(writer, it.name);
+			writeSym(writer, allSymbols, it.name);
 		},
 		(ref immutable TypeParam) {
 			writeStatic(writer, "TODO: type param");

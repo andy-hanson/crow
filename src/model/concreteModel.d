@@ -33,7 +33,7 @@ import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
 import util.ptr : hashPtr, ptrEquals, Ptr;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSymAlphaLiteral, Sym;
+import util.sym : AllSymbols, shortSym, Sym;
 import util.util : unreachable, verify;
 
 enum BuiltinStructKind {
@@ -59,39 +59,39 @@ enum BuiltinStructKind {
 immutable(Sym) symOfBuiltinStructKind(immutable BuiltinStructKind a) {
 	final switch (a) {
 		case BuiltinStructKind.bool_:
-			return shortSymAlphaLiteral("bool");
+			return shortSym("bool");
 		case BuiltinStructKind.char_:
-			return shortSymAlphaLiteral("char");
+			return shortSym("char");
 		case BuiltinStructKind.float32:
-			return shortSymAlphaLiteral("float-32");
+			return shortSym("float-32");
 		case BuiltinStructKind.float64:
-			return shortSymAlphaLiteral("float-64");
+			return shortSym("float-64");
 		case BuiltinStructKind.fun:
-			return shortSymAlphaLiteral("fun");
+			return shortSym("fun");
 		case BuiltinStructKind.funPtrN:
-			return shortSymAlphaLiteral("fun-ptr");
+			return shortSym("fun-ptr");
 		case BuiltinStructKind.int8:
-			return shortSymAlphaLiteral("int-8");
+			return shortSym("int-8");
 		case BuiltinStructKind.int16:
-			return shortSymAlphaLiteral("int-16");
+			return shortSym("int-16");
 		case BuiltinStructKind.int32:
-			return shortSymAlphaLiteral("int-32");
+			return shortSym("int-32");
 		case BuiltinStructKind.int64:
-			return shortSymAlphaLiteral("int-64");
+			return shortSym("int-64");
 		case BuiltinStructKind.nat8:
-			return shortSymAlphaLiteral("nat-8");
+			return shortSym("nat-8");
 		case BuiltinStructKind.nat16:
-			return shortSymAlphaLiteral("nat-16");
+			return shortSym("nat-16");
 		case BuiltinStructKind.nat32:
-			return shortSymAlphaLiteral("nat-32");
+			return shortSym("nat-32");
 		case BuiltinStructKind.nat64:
-			return shortSymAlphaLiteral("nat-64");
+			return shortSym("nat-64");
 		case BuiltinStructKind.ptrConst:
-			return shortSymAlphaLiteral("ptr-const");
+			return shortSym("ptr-const");
 		case BuiltinStructKind.ptrMut:
-			return shortSymAlphaLiteral("ptr-mut");
+			return shortSym("ptr-mut");
 		case BuiltinStructKind.void_:
-			return shortSymAlphaLiteral("void");
+			return shortSym("void");
 	}
 }
 
@@ -407,9 +407,9 @@ enum ConcreteMutability {
 immutable(Sym) symOfConcreteMutability(immutable ConcreteMutability a) {
 	final switch (a) {
 		case ConcreteMutability.const_:
-			return shortSymAlphaLiteral("const");
+			return shortSym("const");
 		case ConcreteMutability.mutable:
-			return shortSymAlphaLiteral("mutable");
+			return shortSym("mutable");
 	}
 }
 
@@ -712,11 +712,11 @@ immutable(bool) isSummon(ref immutable ConcreteFun a) {
 	)(a.source);
 }
 
-immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a) {
+immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a, ref const AllSymbols allSymbols) {
 	return matchConcreteFunSource!(
 		immutable FileAndRange,
 		(ref immutable FunInst it) =>
-			range(decl(it).deref()),
+			range(decl(it).deref(), allSymbols),
 		(ref immutable ConcreteFunSource.Lambda it) =>
 			it.range,
 		(ref immutable ConcreteFunSource.Test it) =>

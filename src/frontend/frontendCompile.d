@@ -40,7 +40,7 @@ import util.path :
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange, FileIndex, FilePaths, RangeWithinFile;
-import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
+import util.sym : AllSymbols, shortSym, Sym;
 import util.util : unreachable, verify;
 
 immutable(Program) frontendCompile(Storage)(
@@ -79,8 +79,8 @@ struct FileAstAndDiagnostics {
 immutable(FileAstAndDiagnostics) parseSingleAst(ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref Perf perf,
-	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
+	ref AllPaths allPaths,
 	ref ReadOnlyStorage storage,
 	immutable PathAndStorageKind path,
 ) {
@@ -335,34 +335,34 @@ immutable(FileIndex) parseRecur(ReadOnlyStorage)(
 pure:
 
 immutable(PathAndStorageKind) pathInInclude(ref AllPaths allPaths, immutable Sym name) {
-	immutable Path crow = rootPath(allPaths, shortSymAlphaLiteral("crow"));
+	immutable Path crow = rootPath(allPaths, shortSym("crow"));
 	return immutable PathAndStorageKind(childPath(allPaths, crow, name), StorageKind.global);
 }
 
 immutable(PathAndStorageKind) pathInIncludePrivate(ref AllPaths allPaths, immutable Sym name) {
-	immutable Path crow = rootPath(allPaths, shortSymAlphaLiteral("crow"));
-	immutable Path private_ = childPath(allPaths, crow, shortSymAlphaLiteral("private"));
+	immutable Path crow = rootPath(allPaths, shortSym("crow"));
+	immutable Path private_ = childPath(allPaths, crow, shortSym("private"));
 	return immutable PathAndStorageKind(childPath(allPaths, private_, name), StorageKind.global);
 }
 
 immutable(PathAndStorageKind) bootstrapPath(ref AllPaths allPaths) {
-	return pathInIncludePrivate(allPaths, shortSymAlphaLiteral("bootstrap"));
+	return pathInIncludePrivate(allPaths, shortSym("bootstrap"));
 }
 
 immutable(PathAndStorageKind) stdPath(ref AllPaths allPaths) {
-	return pathInInclude(allPaths, shortSymAlphaLiteral("std"));
+	return pathInInclude(allPaths, shortSym("std"));
 }
 
 immutable(PathAndStorageKind) allocPath(ref AllPaths allPaths) {
-	return pathInIncludePrivate(allPaths, shortSymAlphaLiteral("alloc"));
+	return pathInIncludePrivate(allPaths, shortSym("alloc"));
 }
 
 immutable(PathAndStorageKind) runtimePath(ref AllPaths allPaths) {
-	return pathInIncludePrivate(allPaths, shortSymAlphaLiteral("runtime"));
+	return pathInIncludePrivate(allPaths, shortSym("runtime"));
 }
 
 immutable(PathAndStorageKind) runtimeMainPath(ref AllPaths allPaths) {
-	return pathInIncludePrivate(allPaths, shortSymAlphaLiteral("rt-main"));
+	return pathInIncludePrivate(allPaths, shortSym("rt-main"));
 }
 
 alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter; // TODO: OrderedFullIndexDictBuilder?

@@ -11,7 +11,7 @@ import util.path : StorageKind;
 import util.util : verify;
 
 @trusted void testServer(ref Test test) {
-	ubyte[] bytes = fillArrUninitialized!ubyte(test.alloc, 256);
+	ubyte[] bytes = fillArrUninitialized!ubyte(test.alloc, 2048);
 	Server server = Server(RangeAlloc(bytes.ptr, bytes.length));
 	immutable string path = "main";
 	immutable SafeCStr content = safeCStr!"content";

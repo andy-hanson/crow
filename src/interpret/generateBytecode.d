@@ -162,9 +162,9 @@ import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.dbg : Debug;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
-import util.sym : shortSymAlphaLiteralValue, Sym, symEqLongAlphaLiteral;
+import util.sym : AllSymbols, shortSymValue, SpecialSym, specialSymValue, Sym;
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
@@ -172,6 +172,7 @@ immutable(ByteCode) generateBytecode(
 	scope ref Debug dbg,
 	ref Alloc codeAlloc,
 	ref TempAlloc tempAlloc,
+	ref const AllSymbols allSymbols,
 	ref immutable Program modelProgram,
 	ref immutable LowProgram program,
 ) {
@@ -193,6 +194,7 @@ immutable(ByteCode) generateBytecode(
 					tempAlloc,
 					writer,
 					funToReferences,
+					allSymbols,
 					text.info,
 					program,
 					funIndex,
@@ -215,7 +217,7 @@ immutable(ByteCode) generateBytecode(
 		writer,
 		castImmutable(text.text),
 		fullIndexDictGet(funToDefinition, program.main),
-		fileToFuns(codeAlloc, modelProgram));
+		fileToFuns(codeAlloc, allSymbols, modelProgram));
 }
 
 private:
@@ -224,7 +226,7 @@ private:
 	return cast(Out*) ptr;
 }
 
-immutable(FileToFuns) fileToFuns(ref Alloc alloc, ref immutable Program program) {
+immutable(FileToFuns) fileToFuns(ref Alloc alloc, ref const AllSymbols allSymbols, ref immutable Program program) {
 	immutable FullIndexDict!(FileIndex, Module) modulesDict =
 		fullIndexDictOfArr!(FileIndex, Module)(program.allModules);
 	return mapFullIndexDict!(FileIndex, FunNameAndPos[], Module)(
@@ -232,7 +234,7 @@ immutable(FileToFuns) fileToFuns(ref Alloc alloc, ref immutable Program program)
 		modulesDict,
 		(immutable FileIndex, ref immutable Module module_) =>
 			map(alloc, module_.funs, (ref immutable FunDecl it) =>
-				immutable FunNameAndPos(name(it), range(it).range.start)));
+				immutable FunNameAndPos(name(it), range(it, allSymbols).range.start)));
 }
 
 immutable(TypeSize) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
@@ -258,6 +260,7 @@ void generateBytecodeForFun(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences,
+	ref const AllSymbols allSymbols,
 	ref immutable TextInfo textInfo,
 	ref immutable LowProgram program,
 	immutable LowFunIndex funIndex,
@@ -269,7 +272,7 @@ void generateBytecodeForFun(
 			import core.stdc.stdio : printf;
 			import interpret.debugging : writeFunName;
 			Writer w = Writer(ptrTrustMe_mut(tempAlloc));
-			writeFunName(w, program, fun);
+			writeFunName(w, allSymbols, program, fun);
 			printf("generateBytecodeForFun %s\n", finishWriterToCStr(w));
 		}
 	}
@@ -287,15 +290,16 @@ void generateBytecodeForFun(
 	immutable StackEntry stackEntryAfterParameters = immutable StackEntry(stackEntry);
 	setStackEntryAfterParameters(writer, stackEntryAfterParameters);
 	immutable size_t returnEntries = nStackEntriesForType(program, fun.returnType);
-	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
+	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
 
 	matchLowFunBody!(
 		void,
 		(ref immutable LowFunBody.Extern body_) {
-			generateExternCall(dbg, tempAlloc, writer, funIndex, fun, body_);
+			generateExternCall(dbg, tempAlloc, writer, allSymbols, funIndex, fun, body_);
 		},
 		(ref immutable LowFunExprBody body_) {
 			ExprCtx ctx = ExprCtx(
+				ptrTrustMe_const(allSymbols),
 				ptrTrustMe(program),
 				ptrTrustMe(textInfo),
 				funIndex,
@@ -321,11 +325,12 @@ void generateExternCall(
 	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
+	ref const AllSymbols allSymbols,
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 	ref immutable LowFunBody.Extern a,
 ) {
-	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
+	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
 	immutable Opt!Sym optName = name(fun);
 	immutable Sym name = force(optName);
 	immutable Opt!ExternOp op = externOpFromName(name);
@@ -392,67 +397,67 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 
 immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
 	switch (a.value) {
-		case shortSymAlphaLiteralValue("backtrace"):
+		case shortSymValue("backtrace"):
 			return some(ExternOp.backtrace);
-		case shortSymAlphaLiteralValue("free"):
+		case shortSymValue("free"):
 			return some(ExternOp.free);
-		case shortSymAlphaLiteralValue("longjmp"):
+		case shortSymValue("longjmp"):
 			return some(ExternOp.longjmp);
-		case shortSymAlphaLiteralValue("malloc"):
+		case shortSymValue("malloc"):
 			return some(ExternOp.malloc);
-		case shortSymAlphaLiteralValue("memcpy"):
+		case shortSymValue("memcpy"):
 			return some(ExternOp.memcpy);
-		case shortSymAlphaLiteralValue("memmove"):
+		case shortSymValue("memmove"):
 			return some(ExternOp.memmove);
-		case shortSymAlphaLiteralValue("memset"):
+		case shortSymValue("memset"):
 			return some(ExternOp.memset);
-		case shortSymAlphaLiteralValue("setjmp"):
+		case shortSymValue("setjmp"):
 			return some(ExternOp.setjmp);
-		case shortSymAlphaLiteralValue("write"):
+		case shortSymValue("write"):
 			return some(ExternOp.write);
+		case specialSymValue(SpecialSym.clock_gettime):
+			return some(ExternOp.clockGetTime);
+		case specialSymValue(SpecialSym.get_nprocs):
+			return some(ExternOp.getNProcs);
+		case specialSymValue(SpecialSym.pthread_condattr_destroy):
+			return some(ExternOp.pthreadCondattrDestroy);
+		case specialSymValue(SpecialSym.pthread_condattr_init):
+			return some(ExternOp.pthreadCondattrInit);
+		case specialSymValue(SpecialSym.pthread_condattr_setclock):
+			return some(ExternOp.pthreadCondattrSetClock);
+		case specialSymValue(SpecialSym.pthread_cond_broadcast):
+			return some(ExternOp.pthreadCondBroadcast);
+		case specialSymValue(SpecialSym.pthread_cond_destroy):
+			return some(ExternOp.pthreadCondDestroy);
+		case specialSymValue(SpecialSym.pthread_cond_init):
+			return some(ExternOp.pthreadCondInit);
+		case specialSymValue(SpecialSym.pthread_create):
+			return some(ExternOp.pthreadCreate);
+		case specialSymValue(SpecialSym.pthread_join):
+			return some(ExternOp.pthreadJoin);
+		case specialSymValue(SpecialSym.pthread_mutexattr_destroy):
+			return some(ExternOp.pthreadMutexattrDestroy);
+		case specialSymValue(SpecialSym.pthread_mutexattr_init):
+			return some(ExternOp.pthreadMutexattrInit);
+		case specialSymValue(SpecialSym.pthread_mutex_destroy):
+			return some(ExternOp.pthreadMutexDestroy);
+		case specialSymValue(SpecialSym.pthread_mutex_init):
+			return some(ExternOp.pthreadMutexInit);
+		case specialSymValue(SpecialSym.pthread_mutex_lock):
+			return some(ExternOp.pthreadMutexLock);
+		case specialSymValue(SpecialSym.pthread_mutex_unlock):
+			return some(ExternOp.pthreadMutexUnlock);
+		case specialSymValue(SpecialSym.sched_yield):
+			return some(ExternOp.schedYield);
 		default:
-			return symEqLongAlphaLiteral(a, "clock_gettime")
-					? some(ExternOp.clockGetTime)
-				: symEqLongAlphaLiteral(a, "get_nprocs")
-					? some(ExternOp.getNProcs)
-				: symEqLongAlphaLiteral(a, "pthread_condattr_destroy")
-					? some(ExternOp.pthreadCondattrDestroy)
-				: symEqLongAlphaLiteral(a, "pthread_condattr_init")
-					? some(ExternOp.pthreadCondattrInit)
-				: symEqLongAlphaLiteral(a, "pthread_condattr_setclock")
-					? some(ExternOp.pthreadCondattrSetClock)
-				: symEqLongAlphaLiteral(a, "pthread_cond_broadcast")
-					? some(ExternOp.pthreadCondBroadcast)
-				: symEqLongAlphaLiteral(a, "pthread_cond_destroy")
-					? some(ExternOp.pthreadCondDestroy)
-				: symEqLongAlphaLiteral(a, "pthread_cond_init")
-					? some(ExternOp.pthreadCondInit)
-				: symEqLongAlphaLiteral(a, "pthread_create")
-					? some(ExternOp.pthreadCreate)
-				: symEqLongAlphaLiteral(a, "pthread_join")
-					? some(ExternOp.pthreadJoin)
-				: symEqLongAlphaLiteral(a, "pthread_mutexattr_destroy")
-					? some(ExternOp.pthreadMutexattrDestroy)
-				: symEqLongAlphaLiteral(a, "pthread_mutexattr_init")
-					? some(ExternOp.pthreadMutexattrInit)
-				: symEqLongAlphaLiteral(a, "pthread_mutex_destroy")
-					? some(ExternOp.pthreadMutexDestroy)
-				: symEqLongAlphaLiteral(a, "pthread_mutex_init")
-					? some(ExternOp.pthreadMutexInit)
-				: symEqLongAlphaLiteral(a, "pthread_mutex_lock")
-					? some(ExternOp.pthreadMutexLock)
-				: symEqLongAlphaLiteral(a, "pthread_mutex_unlock")
-					? some(ExternOp.pthreadMutexUnlock)
-				: symEqLongAlphaLiteral(a, "sched_yield")
-					? some(ExternOp.schedYield)
-				: none!ExternOp;
+			return none!ExternOp;
 	}
 }
-
 
 struct ExprCtx {
 	@safe @nogc pure nothrow:
 
+	const Ptr!AllSymbols allSymbolsPtr;
 	immutable Ptr!LowProgram programPtr;
 	immutable Ptr!TextInfo textInfoPtr;
 	immutable LowFunIndex curFunIndex;
@@ -462,6 +467,9 @@ struct ExprCtx {
 	immutable StackEntries[] parameterEntries;
 	MutPtrDict!(LowLocal, immutable StackEntries) localEntries;
 
+	ref const(AllSymbols) allSymbols() return scope const {
+		return allSymbolsPtr.deref();
+	}
 	ref immutable(LowProgram) program() return scope const {
 		return programPtr.deref();
 	}
@@ -857,7 +865,7 @@ void generateConstant(
 		if (false) {
 			Writer w = Writer(ptrTrustMe_mut(tempAlloc));
 			writeStatic(w, "generateConstant of type ");
-			writeLowType(w, ctx.program.allTypes, type);
+			writeLowType(w, ctx.allSymbols, ctx.program.allTypes, type);
 			writeChar(w, '\n');
 			//print()
 			finishWriter(w);

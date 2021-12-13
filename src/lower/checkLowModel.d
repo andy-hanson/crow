@@ -235,9 +235,9 @@ void checkTypeEqual(
 	//		import util.ptr : ptrTrustMe_mut;
 	//		Writer writer = Writer(ptrTrustMe_mut(alloc));
 	//		writeStatic(writer, "Type is not as expected. Expected:\n");
-	//		writeRepr(writer, reprOfLowType2(alloc, ctx, expected));
+	//		writeRepr(writer, allSymbols, reprOfLowType2(alloc, ctx, expected));
 	//		writeStatic(writer, "Actual:\n");
-	//		writeRepr(writer, reprOfLowType2(alloc, ctx, actual));
+	//		writeRepr(writer, allSymbols, reprOfLowType2(alloc, ctx, actual));
 	//		printf("%s\n", finishWriterToCStr(writer));
 	//	}
 	//}

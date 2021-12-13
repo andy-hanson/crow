@@ -16,13 +16,9 @@ import util.ptr : Ptr;
 import util.sourceRange : FileAndRange, FileIndex, Pos, RangeWithinFile;
 import util.sym :
 	AllSymbols,
-	getSymFromAlphaIdentifier,
-	isAlphaIdentifierStart,
-	isAlphaIdentifierContinue,
-	isDigit,
 	Operator,
-	shortSymAlphaLiteral,
-	shortSymAlphaLiteralValue,
+	shortSym,
+	shortSymValue,
 	Sym,
 	symForOperator,
 	symOfStr;
@@ -73,8 +69,8 @@ ref AllSymbols allSymbols(return scope ref Lexer lexer) {
 		allSymbols,
 		diagnosticsBuilder,
 		fileIndex,
-		getSymFromAlphaIdentifier(allSymbols.deref(), "_"),
-		getSymFromAlphaIdentifier(allSymbols.deref(), "force-sendable"),
+		symOfStr(allSymbols.deref(), "_"),
+		symOfStr(allSymbols.deref(), "force-sendable"),
 		source.ptr,
 		source.ptr,
 		detectIndentKind(source));
@@ -313,7 +309,7 @@ immutable(NameAndRange) takeNameAndRange(ref Lexer lexer) {
 	else {
 		addDiag(lexer, range(lexer, start), immutable ParseDiag(
 			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.name)));
-		return immutable NameAndRange(start, shortSymAlphaLiteral("bogus"));
+		return immutable NameAndRange(start, shortSym("bogus"));
 	}
 }
 
@@ -330,7 +326,7 @@ immutable(NameAndRange) takeNameOrOperatorAndRange(ref Lexer lexer) {
 	} else {
 		addDiag(lexer, range(lexer, start), immutable ParseDiag(
 			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
-		return immutable NameAndRange(start, shortSymAlphaLiteral("bogus"));
+		return immutable NameAndRange(start, shortSym("bogus"));
 	}
 }
 
@@ -563,7 +559,7 @@ public enum Token {
 		default:
 			if (isAlphaIdentifierStart(c)) {
 				immutable string nameStr = takeNameRest(lexer, lexer.ptr - 1);
-				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
+				immutable Sym name = symOfStr(lexer.allSymbols, nameStr);
 				return tokenForSym(lexer, name);
 			} else if (isDigit(c)) {
 				backUp(lexer);
@@ -575,69 +571,69 @@ public enum Token {
 
 immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 	switch (a.value) {
-		case shortSymAlphaLiteralValue("act"):
+		case shortSymValue("act"):
 			return Token.act;
-		case shortSymAlphaLiteralValue("alias"):
+		case shortSymValue("alias"):
 			return Token.alias_;
-		case shortSymAlphaLiteralValue("as"):
+		case shortSymValue("as"):
 			return Token.as;
-		case shortSymAlphaLiteralValue("body"):
+		case shortSymValue("body"):
 			return Token.body;
-		case shortSymAlphaLiteralValue("builtin"):
+		case shortSymValue("builtin"):
 			return Token.builtin;
-		case shortSymAlphaLiteralValue("builtin-spec"):
+		case shortSymValue("builtin-spec"):
 			return Token.builtinSpec;
-		case shortSymAlphaLiteralValue("data"):
+		case shortSymValue("data"):
 			return Token.data;
-		case shortSymAlphaLiteralValue("elif"):
+		case shortSymValue("elif"):
 			return Token.elif;
-		case shortSymAlphaLiteralValue("else"):
+		case shortSymValue("else"):
 			return Token.else_;
-		case shortSymAlphaLiteralValue("enum"):
+		case shortSymValue("enum"):
 			return Token.enum_;
-		case shortSymAlphaLiteralValue("export"):
+		case shortSymValue("export"):
 			return Token.export_;
-		case shortSymAlphaLiteralValue("extern"):
+		case shortSymValue("extern"):
 			return Token.extern_;
-		case shortSymAlphaLiteralValue("extern-ptr"):
+		case shortSymValue("extern-ptr"):
 			return Token.externPtr;
-		case shortSymAlphaLiteralValue("flags"):
+		case shortSymValue("flags"):
 			return Token.flags;
-		case shortSymAlphaLiteralValue("force-data"):
+		case shortSymValue("force-data"):
 			return Token.forceData;
-		case shortSymAlphaLiteralValue("fun"):
+		case shortSymValue("fun"):
 			return Token.fun;
-		case shortSymAlphaLiteralValue("global"):
+		case shortSymValue("global"):
 			return Token.global;
-		case shortSymAlphaLiteralValue("if"):
+		case shortSymValue("if"):
 			return Token.if_;
-		case shortSymAlphaLiteralValue("import"):
+		case shortSymValue("import"):
 			return Token.import_;
-		case shortSymAlphaLiteralValue("match"):
+		case shortSymValue("match"):
 			return Token.match;
-		case shortSymAlphaLiteralValue("mut"):
+		case shortSymValue("mut"):
 			return Token.mut;
-		case shortSymAlphaLiteralValue("noctx"):
+		case shortSymValue("noctx"):
 			return Token.noCtx;
-		case shortSymAlphaLiteralValue("no-std"):
+		case shortSymValue("no-std"):
 			return Token.noStd;
-		case shortSymAlphaLiteralValue("record"):
+		case shortSymValue("record"):
 			return Token.record;
-		case shortSymAlphaLiteralValue("ref"):
+		case shortSymValue("ref"):
 			return Token.ref_;
-		case shortSymAlphaLiteralValue("sendable"):
+		case shortSymValue("sendable"):
 			return Token.sendable;
-		case shortSymAlphaLiteralValue("spec"):
+		case shortSymValue("spec"):
 			return Token.spec;
-		case shortSymAlphaLiteralValue("summon"):
+		case shortSymValue("summon"):
 			return Token.summon;
-		case shortSymAlphaLiteralValue("test"):
+		case shortSymValue("test"):
 			return Token.test;
-		case shortSymAlphaLiteralValue("trusted"):
+		case shortSymValue("trusted"):
 			return Token.trusted;
-		case shortSymAlphaLiteralValue("union"):
+		case shortSymValue("union"):
 			return Token.union_;
-		case shortSymAlphaLiteralValue("unsafe"):
+		case shortSymValue("unsafe"):
 			return Token.unsafe;
 		default:
 			return a == lexer.symUnderscore
@@ -1255,4 +1251,17 @@ public @trusted immutable(bool) lookaheadWillTakeArrow(ref Lexer lexer) {
 		}
 		ptr++;
 	}
+}
+
+immutable(bool) isAlphaIdentifierStart(immutable char c) {
+	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+}
+
+immutable(bool) isDigit(immutable char c) {
+	return '0' <= c && c <= '9';
+}
+
+immutable(bool) isAlphaIdentifierContinue(immutable char c) {
+	//TODO: only last character should be '!'
+	return isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '!';
 }

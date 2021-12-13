@@ -53,7 +53,7 @@ import util.repr :
 	reprStr,
 	reprSym;
 import util.sourceRange : reprFileAndRange;
-import util.sym : shortSymAlphaLiteral;
+import util.sym : shortSym;
 import util.util : todo;
 
 immutable(Repr) reprOfConcreteProgram(ref Alloc alloc, ref immutable ConcreteProgram a) {
@@ -149,9 +149,9 @@ immutable(Repr) reprOfConcreteFun(ref Alloc alloc, ref immutable ConcreteFun a) 
 		reprSym(() {
 			final switch (a.needsCtx) {
 				case NeedsCtx.no:
-					return shortSymAlphaLiteral("noctx");
+					return shortSym("noctx");
 				case NeedsCtx.yes:
-					return shortSymAlphaLiteral("ctx");
+					return shortSym("ctx");
 			}
 		}()),
 		reprOfConcreteFunSource(alloc, a.source),

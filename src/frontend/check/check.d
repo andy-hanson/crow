@@ -179,7 +179,7 @@ import util.collection.str : copySafeCStr, safeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, OptPtr, some, someMut, toOpt;
 import util.perf : Perf;
-import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
+import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, fileAndPosFromFileAndRange, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym :
 	AllSymbols,
@@ -187,8 +187,8 @@ import util.sym :
 	hashSym,
 	Operator,
 	prependSet,
-	shortSymAlphaLiteral,
-	shortSymAlphaLiteralValue,
+	shortSym,
+	shortSymValue,
 	Sym,
 	symEq,
 	symForOperator;
@@ -344,7 +344,7 @@ immutable(CommonTypes) getCommonTypes(
 			alloc,
 			ctx.programState,
 			structsAndAliasesDict,
-			shortSymAlphaLiteral(name),
+			shortSym(name),
 			delayedStructInsts);
 		if (has(res))
 			return force(res);
@@ -378,7 +378,7 @@ immutable(CommonTypes) getCommonTypes(
 	immutable(Ptr!StructDecl) com(immutable string name, immutable size_t nTypeParameters) {
 		immutable Opt!(Ptr!StructDecl) res = getCommonTemplateType(
 			structsAndAliasesDict,
-			shortSymAlphaLiteral(name),
+			shortSym(name),
 			nTypeParameters);
 		if (has(res))
 			return force(res);
@@ -481,11 +481,11 @@ immutable(Ptr!StructDecl) bogusStructDecl(ref Alloc alloc, immutable size_t nTyp
 	ArrWithSizeBuilder!TypeParam typeParams;
 	immutable FileAndRange fileAndRange = immutable FileAndRange(immutable FileIndex(0), RangeWithinFile.empty);
 	foreach (immutable size_t i; 0 .. nTypeParameters)
-		add(alloc, typeParams, immutable TypeParam(fileAndRange, shortSymAlphaLiteral("bogus"), i));
+		add(alloc, typeParams, immutable TypeParam(fileAndRange, shortSym("bogus"), i));
 	Ptr!StructDecl res = allocateMut(alloc, StructDecl(
 		fileAndRange,
 		safeCStr!"",
-		shortSymAlphaLiteral("bogus"),
+		shortSym("bogus"),
 		finishArrWithSize(alloc, typeParams),
 		Visibility.public_,
 		Purity.data,
@@ -504,7 +504,7 @@ immutable(ArrWithSize!TypeParam) checkTypeParams(
 			alloc,
 			toArr(asts),
 			(immutable size_t index, scope ref immutable NameAndRange ast) =>
-				immutable TypeParam(rangeInFile(ctx, rangeOfNameAndRange(ast)), ast.name, index));
+				immutable TypeParam(rangeInFile(ctx, rangeOfNameAndRange(ast, ctx.allSymbols)), ast.name, index));
 	eachPair!TypeParam(toArr(res), (ref immutable TypeParam a, ref immutable TypeParam b) {
 		if (symEq(a.name, b.name))
 			addDiag(alloc, ctx, b.range, immutable Diag(
@@ -612,9 +612,9 @@ immutable(SpecBody.Builtin.Kind) getSpecBodyBuiltinKind(
 	immutable Sym name,
 ) {
 	switch (name.value) {
-		case shortSymAlphaLiteralValue("is-data"):
+		case shortSymValue("is-data"):
 			return SpecBody.Builtin.Kind.data;
-		case shortSymAlphaLiteralValue("is-sendable"):
+		case shortSymValue("is-sendable"):
 			return SpecBody.Builtin.Kind.send;
 		default:
 			addDiag(alloc, ctx, range, immutable Diag(immutable Diag.BuiltinUnsupported(name)));
@@ -1277,7 +1277,7 @@ immutable(ArrWithSize!(Ptr!SpecInst)) checkSpecUses(
 			} else
 				return some(instantiateSpec(alloc, ctx.programState, SpecDeclAndArgs(spec, typeArgs)));
 		} else {
-			addDiag(alloc, ctx, rangeOfNameAndRange(ast.spec), immutable Diag(
+			addDiag(alloc, ctx, rangeOfNameAndRange(ast.spec, ctx.allSymbols), immutable Diag(
 				immutable Diag.NameNotFound(Diag.NameNotFound.Kind.spec, ast.spec.name)));
 			return none!(Ptr!SpecInst);
 		}
@@ -1406,7 +1406,8 @@ immutable(FunsAndDict) checkFuns(
 					break;
 				case Visibility.private_:
 					if (!used && !okIfUnused(fun.deref()))
-						addDiag(alloc, ctx, range(fun.deref()), immutable Diag(immutable Diag.UnusedPrivateFun(fun)));
+						addDiag(alloc, ctx, range(fun.deref(), allSymbols), immutable Diag(
+							immutable Diag.UnusedPrivateFun(fun)));
 			}
 		});
 
@@ -1419,7 +1420,7 @@ immutable(CommonFuns) getCommonFuns(
 	ref immutable FunsDict funsDict,
 ) {
 	immutable(Ptr!FunDecl) commonFunDecl(immutable string name) {
-		immutable Sym nameSym = shortSymAlphaLiteral(name);
+		immutable Sym nameSym = shortSym(name);
 		immutable FunDeclAndIndex[] funs = multiDictGetAt(funsDict, nameSym);
 		if (funs.length != 1) {
 			addDiag(
@@ -1520,7 +1521,7 @@ void addFunsForEnum(
 	immutable FileAndRange range = struct_.deref().range;
 	addEnumFlagsCommonFunctions(
 		alloc, funsBuilder, ctx.programState, visibility, range, enumType, enum_.backingType, commonTypes,
-		shortSymAlphaLiteral("enum-members"));
+		shortSym("enum-members"));
 	foreach (ref immutable StructBody.Enum.Member member; enum_.members)
 		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(alloc, visibility, enumType, member));
 }
@@ -1609,8 +1610,8 @@ FunDecl enumEqualFunction(
 			symForOperator(Operator.equal),
 			immutable Type(commonTypes.bool_),
 			immutable Params(arrWithSizeLiteral!Param(alloc, [
-				immutable Param(fileAndRange, some(shortSymAlphaLiteral("a")), enumType, 0),
-				immutable Param(fileAndRange, some(shortSymAlphaLiteral("b")), enumType, 1)]))),
+				immutable Param(fileAndRange, some(shortSym("a")), enumType, 0),
+				immutable Param(fileAndRange, some(shortSym("b")), enumType, 1)]))),
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
 		immutable FunBody(EnumFunction.equal));
@@ -1628,7 +1629,7 @@ FunDecl flagsEmptyFunction(
 		FunFlags.generatedNoCtx,
 		immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
-			shortSymAlphaLiteral("empty"),
+			shortSym("empty"),
 			enumType,
 			immutable Params(emptyArrWithSize!Param)),
 		emptyArrWithSize!TypeParam,
@@ -1648,7 +1649,7 @@ FunDecl flagsAllFunction(
 		FunFlags.generatedNoCtx,
 		immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
-			shortSymAlphaLiteral("all"),
+			shortSym("all"),
 			enumType,
 			immutable Params(emptyArrWithSize!Param)),
 		emptyArrWithSize!TypeParam,
@@ -1671,7 +1672,7 @@ FunDecl flagsNegateFunction(
 			symForOperator(Operator.tilde),
 			enumType,
 			immutable Params(arrWithSizeLiteral!Param(alloc, [
-				immutable Param(fileAndRange, some(shortSymAlphaLiteral("a")), enumType, 0)]))),
+				immutable Param(fileAndRange, some(shortSym("a")), enumType, 0)]))),
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
 		immutable FunBody(FlagsFunction.negate));
@@ -1694,7 +1695,7 @@ FunDecl enumToIntegralFunction(
 			enumToIntegralName(enumBackingType),
 			immutable Type(getBackingTypeFromEnumType(enumBackingType, commonTypes)),
 			immutable Params(arrWithSizeLiteral!Param(alloc, [
-				immutable Param(fileAndRange, some(shortSymAlphaLiteral("a")), enumType, 0)]))),
+				immutable Param(fileAndRange, some(shortSym("a")), enumType, 0)]))),
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
 		immutable FunBody(EnumFunction.toIntegral));
@@ -1744,8 +1745,8 @@ FunDecl flagsUnionOrIntersectFunction(
 			symForOperator(operator),
 			enumType,
 			immutable Params(arrWithSizeLiteral!Param(alloc, [
-				immutable Param(fileAndRange, some(shortSymAlphaLiteral("a")), enumType, 0),
-				immutable Param(fileAndRange, some(shortSymAlphaLiteral("b")), enumType, 0)]))),
+				immutable Param(fileAndRange, some(shortSym("a")), enumType, 0),
+				immutable Param(fileAndRange, some(shortSym("b")), enumType, 0)]))),
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
 		immutable FunBody(fn));
@@ -1754,7 +1755,7 @@ FunDecl flagsUnionOrIntersectFunction(
 //TODO: actually, we should record the type name used,
 //so if they had 'e enum<size_t>' we should have 'to-size_t' not 'to-nat64'
 immutable(Sym) enumToIntegralName(immutable EnumBackingType a) {
-	return shortSymAlphaLiteral(() {
+	return shortSym(() {
 		final switch (a) {
 			case EnumBackingType.int8:
 				return "to-int8";
@@ -1801,7 +1802,7 @@ void addFunsForRecord(
 			flags.withOkIfUnused(),
 			immutable Sig(
 				fileAndPosFromFileAndRange(struct_.deref().range),
-				shortSymAlphaLiteral("new"),
+				shortSym("new"),
 				returnType,
 				immutable Params(ctorParams)),
 			typeParams,
@@ -1832,7 +1833,7 @@ void addFunsForRecord(
 				field.name,
 				field.type,
 				immutable Params(arrWithSizeLiteral!Param(alloc, [
-					immutable Param(field.range, some(shortSymAlphaLiteral("a")), structType, 0)]))),
+					immutable Param(field.range, some(shortSym("a")), structType, 0)]))),
 			typeParams,
 			emptyArrWithSize!(Ptr!SpecInst),
 			immutable FunBody(immutable FunBody.RecordFieldGet(fieldIndex))));
@@ -1848,7 +1849,7 @@ void addFunsForRecord(
 					prependSet(allSymbols, field.name),
 					immutable Type(commonTypes.void_),
 					immutable Params(arrWithSizeLiteral!Param(alloc, [
-						immutable Param(field.range, some(shortSymAlphaLiteral("a")), structType, 0),
+						immutable Param(field.range, some(shortSym("a")), structType, 0),
 						immutable Param(field.range, some(field.name), field.type, 1)]))),
 				typeParams,
 				emptyArrWithSize!(Ptr!SpecInst),
@@ -1886,7 +1887,7 @@ void addFunsForUnion(
 	foreach (immutable size_t memberIndex, ref immutable UnionMember member; union_.members) {
 		immutable ArrWithSize!Param params = has(member.type)
 			? arrWithSizeLiteral!Param(alloc, [
-				immutable Param(member.range, some(shortSymAlphaLiteral("a")), force(member.type), 0)])
+				immutable Param(member.range, some(shortSym("a")), force(member.type), 0)])
 			: emptyArrWithSize!Param;
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			safeCStr!"",
@@ -2111,6 +2112,7 @@ immutable(BootstrapCheck) checkWorker(
 	CheckCtx ctx = CheckCtx(
 		ptrTrustMe_mut(perf),
 		ptrTrustMe_mut(programState),
+		ptrTrustMe_const(allSymbols),
 		pathAndAst.fileIndex,
 		imports,
 		reExports,

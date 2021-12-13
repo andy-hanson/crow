@@ -75,8 +75,8 @@ import util.path :
 	StorageKind;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.sym : AllSymbols, shortSymAlphaLiteral, Sym, symAsTempBuffer, writeSym;
-import util.util : todo, unreachable, verify;
+import util.sym : AllSymbols, shortSym, Sym, symAsTempBuffer, writeSym;
+import util.util : castImmutableRef, todo, unreachable, verify;
 import util.writer : finishWriterToSafeCStr, Writer, writeStatic;
 
 @system extern(C) immutable(int) main(immutable size_t argc, immutable CStr* argv) {
@@ -184,7 +184,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 				run.options,
 				(ref immutable RunOptions.Interpret) {
 					immutable PathAndStorageKind main = getMain(allPaths, includeDir, run.programDirAndMain);
-					return withRealExtern(alloc, (scope ref Extern extern_) => buildAndInterpret!RealReadOnlyStorage(
+					return withRealExtern(alloc, allSymbols, (scope ref Extern extern_) => buildAndInterpret(
 						alloc,
 						dbg,
 						perf,
@@ -201,8 +201,8 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 					return buildAndJit(
 						alloc,
 						perf,
-						allPaths,
 						allSymbols,
+						allPaths,
 						it.options,
 						showDiagOptions,
 						storage,
@@ -426,7 +426,9 @@ immutable(ExitCode) buildToCAndCompile(
 	if (empty(result.diagnostics)) {
 		immutable ExitCode res = writeFile(alloc, pathToSafeCStr(alloc, allPaths, cPath), result.cSource);
 		return res == ExitCode.ok && has(exePath)
-			? compileC(alloc, perf, allPaths, cPath, force(exePath), result.allExternLibraryNames, cCompileOptions)
+			? compileC(
+				alloc, perf, allSymbols, allPaths,
+				cPath, force(exePath), result.allExternLibraryNames, cCompileOptions)
 			: res;
 	} else
 		return printErr(result.diagnostics);
@@ -435,8 +437,8 @@ immutable(ExitCode) buildToCAndCompile(
 immutable(ExitCode) buildAndJit(
 	ref Alloc alloc,
 	ref Perf perf,
-	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
+	ref AllPaths allPaths,
 	ref immutable JitOptions jitOptions,
 	ref immutable ShowDiagOptions showDiagOptions,
 	ref RealReadOnlyStorage storage,
@@ -444,15 +446,16 @@ immutable(ExitCode) buildAndJit(
 	immutable SafeCStr[] programArgs,
 ) {
 	immutable ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, allSymbols, allPaths, storage, main);
-	if (hasDiags(programs.program))
-		return printErr(strOfDiagnostics(
+	return hasDiags(programs.program)
+		? printErr(strOfDiagnostics(
 			alloc,
+			allSymbols,
 			allPaths,
 			showDiagOptions,
 			programs.program.filesInfo,
-			programs.program.diagnostics));
-	else
-		return immutable ExitCode(jitAndRun(alloc, perf, programs.lowProgram, jitOptions, programArgs));
+			programs.program.diagnostics))
+		: immutable ExitCode(
+			jitAndRun(alloc, perf, castImmutableRef(allSymbols), programs.lowProgram, jitOptions, programArgs));
 }
 
 immutable(PathAndStorageKind) getMain(
@@ -463,7 +466,7 @@ immutable(PathAndStorageKind) getMain(
 	// Detect if we're building something already in 'include'
 	if (safeCStrEqCat(includeDir, programDirAndMain.programDir, "/include")) {
 		immutable Opt!Path withoutInclude =
-			removeFirstPathComponentIf(allPaths, programDirAndMain.mainPath, shortSymAlphaLiteral("include"));
+			removeFirstPathComponentIf(allPaths, programDirAndMain.mainPath, shortSym("include"));
 		if (has(withoutInclude))
 			return immutable PathAndStorageKind(force(withoutInclude), StorageKind.global);
 	}
@@ -512,13 +515,15 @@ immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
 @trusted immutable(ExitCode) compileC(
 	ref Alloc alloc,
 	ref Perf perf,
-	ref AllPaths allPaths,
+	ref const AllSymbols allSymbols,
+	ref const AllPaths allPaths,
 	ref immutable AbsolutePath cPath,
 	ref immutable AbsolutePath exePath,
 	immutable Sym[] allExternLibraryNames,
 	ref immutable CCompileOptions options,
 ) {
-	immutable SafeCStr[] args = cCompileArgs(alloc, allPaths, cPath, exePath, allExternLibraryNames, options);
+	immutable SafeCStr[] args =
+		cCompileArgs(alloc, allSymbols, allPaths, cPath, exePath, allExternLibraryNames, options);
 	// if (true) {
 	// 	printf("/usr/bin/cc");
 	// 	foreach (immutable string arg; args) {
@@ -534,7 +539,8 @@ immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
 
 immutable(SafeCStr[]) cCompileArgs(
 	ref Alloc alloc,
-	ref AllPaths allPaths,
+	ref const AllSymbols allSymbols,
+	ref const AllPaths allPaths,
 	ref immutable AbsolutePath cPath,
 	ref immutable AbsolutePath exePath,
 	immutable Sym[] allExternLibraryNames,
@@ -545,7 +551,7 @@ immutable(SafeCStr[]) cCompileArgs(
 	foreach (immutable Sym it; allExternLibraryNames) {
 		Writer writer = Writer(ptrTrustMe_mut(alloc));
 		writeStatic(writer, "-l");
-		writeSym(writer, it);
+		writeSym(writer, allSymbols, it);
 		add(alloc, args, finishWriterToSafeCStr(writer));
 	}
 	addAll(alloc, args, [
@@ -606,6 +612,7 @@ struct RealReadOnlyStorage {
 
 immutable(ExitCode) withRealExtern(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	scope immutable(ExitCode) delegate(scope ref Extern) @safe @nogc nothrow cb,
 ) {
 	//TODO: use gccjit instead of dyncall?
@@ -640,7 +647,7 @@ immutable(ExitCode) withRealExtern(
 			scope immutable ulong[] parameters,
 			scope immutable DynCallType[] parameterTypes,
 		) => doDynCall(
-			name, returnType, parameters, parameterTypes,
+			allSymbols, name, returnType, parameters, parameterTypes,
 			dcVm, sdlHandle, glHandle, webpHandle, sodiumHandle, lmdbHandle));
 	immutable ExitCode res = cb(extern_);
 	immutable int err = dlclose(sdlHandle) ||
@@ -654,6 +661,7 @@ immutable(ExitCode) withRealExtern(
 }
 
 @trusted immutable(ulong) doDynCall(
+	ref const AllSymbols allSymbols,
 	immutable Sym name,
 	immutable DynCallType returnType,
 	scope immutable ulong[] parameters,
@@ -665,7 +673,7 @@ immutable(ExitCode) withRealExtern(
 	void* sodiumHandle,
 	void* lmdbHandle,
 ) {
-	immutable char[32] nameBuffer = symAsTempBuffer!32(name);
+	immutable char[32] nameBuffer = symAsTempBuffer!32(allSymbols, name);
 	immutable CStr nameCStr = nameBuffer.ptr;
 	// TODO: don't just get everything from SDL/GL... use the library from the extern declaration!
 	DCpointer ptr = dlsym(sdlHandle, nameCStr);

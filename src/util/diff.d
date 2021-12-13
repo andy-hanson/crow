@@ -7,7 +7,7 @@ import util.collection.arr : only, setAt;
 import util.collection.arrUtil : arrMax, arrMaxIndex, contains, fillArrUninitialized;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
-import util.sym : shortSymAlphaLiteral, Sym, symEq, symSize, writeSym;
+import util.sym : AllSymbols, shortSym, Sym, symEq, symSize, writeSym;
 import util.writer : Writer, writeRed, writeReset, writeStatic;
 import util.writerUtils : writeNlIndent, writeSpaces, writeSymPadded;
 import util.util : max, verify;
@@ -15,11 +15,12 @@ import util.util : max, verify;
 void diffSymbols(
 	ref TempAlloc tempAlloc,
 	ref Writer writer,
+	ref const AllSymbols allSymbols,
 	immutable bool color,
 	immutable Sym[] a,
 	immutable Sym[] b
 ) {
-	printDiff(writer, color, a, b, longestCommonSubsequence(tempAlloc, a, b));
+	printDiff(writer, allSymbols, color, a, b, longestCommonSubsequence(tempAlloc, a, b));
 }
 
 private:
@@ -144,17 +145,20 @@ void longestCommonSubsequenceRecur(
 
 void printDiff(
 	ref Writer writer,
+	ref const AllSymbols allSymbols,
 	immutable bool color,
 	ref immutable Sym[] a,
 	ref immutable Sym[] b,
 	immutable Sym[] commonSyms,
 ) {
-	immutable Sym expected = shortSymAlphaLiteral("expected");
+	immutable Sym expected = shortSym("expected");
 	// + 2 for a margin
-	immutable size_t columnSize = 2 + max(arrMax(0, a, (ref immutable Sym s) => symSize(s)), symSize(expected));
+	immutable size_t columnSize = 2 + max(
+		arrMax(0, a, (ref immutable Sym s) => symSize(allSymbols, s)),
+		symSize(allSymbols, expected));
 
 	writeNlIndent(writer);
-	writeSymPadded(writer, expected, columnSize);
+	writeSymPadded(writer, allSymbols, expected, columnSize);
 	writeStatic(writer, "you wrote\n");
 
 	// This gave us the list of symbols that they have in common.
@@ -165,7 +169,7 @@ void printDiff(
 		writeNlIndent(writer);
 		if (color)
 			writeRed(writer);
-		writeSym(writer, a[ai]);
+		writeSym(writer, allSymbols, a[ai]);
 		if (color)
 			writeReset(writer);
 		ai++;
@@ -175,7 +179,7 @@ void printDiff(
 		writeSpaces(writer, columnSize);
 		if (color)
 			writeRed(writer);
-		writeSym(writer, b[bi]);
+		writeSym(writer, allSymbols, b[bi]);
 		if (color)
 			writeReset(writer);
 		bi++;
@@ -184,8 +188,8 @@ void printDiff(
 		writeNlIndent(writer);
 		if (color)
 			writeRed(writer);
-		writeSymPadded(writer, a[ai], columnSize);
-		writeSym(writer, b[bi]);
+		writeSymPadded(writer, allSymbols, a[ai], columnSize);
+		writeSym(writer, allSymbols, b[bi]);
 		if (color)
 			writeReset(writer);
 		ai++;
@@ -194,8 +198,8 @@ void printDiff(
 	void common() {
 		verify(symEq(a[ai], b[bi]));
 		writeNlIndent(writer);
-		writeSymPadded(writer, a[ai], columnSize);
-		writeSym(writer, b[bi]);
+		writeSymPadded(writer, allSymbols, a[ai], columnSize);
+		writeSym(writer, allSymbols, b[bi]);
 		ai++;
 		bi++;
 	}
