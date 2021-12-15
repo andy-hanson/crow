@@ -4,7 +4,7 @@ module util.collection.arrBuilder;
 
 import util.alloc.alloc : Alloc;
 import util.collection.arrUtil : sortInPlace;
-import util.collection.mutArr : moveToArr, MutArr, mutArrClear, mutArrSize, push, pushAll, tempAsArr_mut;
+import util.collection.mutArr : moveToArr, MutArr, mutArrClear, mutArrSize, push, pushAll, tempAsArr, tempAsArr_mut;
 import util.comparison : Comparer;
 
 struct ArrBuilder(T) {
@@ -21,6 +21,10 @@ void addAll(T)(ref Alloc alloc, ref ArrBuilder!T a, scope immutable T[] value) {
 
 void arrBuilderClear(T)(ref ArrBuilder!T a) {
 	mutArrClear(a.data);
+}
+
+const(T[]) arrBuilderTempAsArr(T)(ref const ArrBuilder!T a) {
+	return tempAsArr(a.data);
 }
 
 void arrBuilderSort(T)(ref ArrBuilder!T a, scope immutable Comparer!T compare) {

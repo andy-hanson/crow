@@ -2,7 +2,6 @@ module frontend.parse.parse;
 
 @safe @nogc pure nothrow:
 
-import frontend.diagnosticsBuilder : DiagnosticsBuilder;
 import frontend.parse.ast :
 	bogusTypeAst,
 	ExplicitByValOrRef,
@@ -66,6 +65,7 @@ import frontend.parse.lexer :
 	tryTakeToken;
 import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseType : parseType, tryParseTypeArg, tryParseTypeArgsBracketed;
+import model.diag : DiagnosticWithinFile;
 import model.model : FieldMutability, Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
@@ -79,7 +79,7 @@ import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some
 import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe_mut;
-import util.sourceRange : FileIndex, Pos, RangeWithinFile;
+import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Operator, shortSymValue, Sym, symOfStr;
 import util.util : todo, unreachable, verify;
 
@@ -88,8 +88,7 @@ immutable(FileAst) parseFile(
 	scope ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
-	ref DiagnosticsBuilder diagsBuilder,
-	immutable FileIndex fileIndex,
+	ref ArrBuilder!DiagnosticWithinFile diagsBuilder,
 	immutable SafeCStr source,
 ) {
 	return withMeasure!(immutable FileAst, () {
@@ -97,7 +96,6 @@ immutable(FileAst) parseFile(
 			ptrTrustMe_mut(alloc),
 			ptrTrustMe_mut(allSymbols),
 			ptrTrustMe_mut(diagsBuilder),
-			fileIndex,
 			source);
 		return parseFileInner(allPaths, lexer);
 	})(alloc, perf, PerfMeasure.parseFile);

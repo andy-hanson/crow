@@ -11,15 +11,20 @@ import util.util : max, verify;
 
 @safe @nogc nothrow:
 
-@trusted immutable(Out[]) mapImpure(Out, In)(
+@trusted immutable(Opt!(Out[])) mapOrNoneImpure(Out, In)(
 	ref Alloc alloc,
 	immutable In[] a,
-	scope immutable(Out) delegate(ref immutable In) @safe @nogc nothrow cb,
+	scope immutable(Opt!Out) delegate(ref immutable In) @safe @nogc nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i, ref immutable In x; a)
-		initMemory(res + i, cb(x));
-	return cast(immutable) res[0 .. a.length];
+	foreach (immutable size_t i, ref immutable In x; a) {
+		immutable Opt!Out o = cb(x);
+		if (has(o))
+			initMemory(res + i, force(o));
+		else
+			return none!(Out[]);
+	}
+	return some!(Out[])(cast(immutable) res[0 .. a.length]);
 }
 
 @system void zipImpureSystem(T, U)(

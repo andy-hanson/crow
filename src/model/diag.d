@@ -29,7 +29,7 @@ import util.collection.fullIndexDict : fullIndexDictGet;
 import util.opt : Opt;
 import util.path : AbsolutePath, AllPaths, PathAndStorageKind;
 import util.ptr : Ptr;
-import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths;
+import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths, RangeWithinFile;
 import util.sym : Sym;
 import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
 import util.writerUtils : writePathRelativeToCwd, writePos, writeRangeWithinFile;
@@ -45,6 +45,11 @@ enum DiagSeverity {
 
 struct Diagnostic {
 	immutable FileAndRange where;
+	immutable Diag diag;
+}
+
+struct DiagnosticWithinFile {
+	immutable RangeWithinFile range;
 	immutable Diag diag;
 }
 

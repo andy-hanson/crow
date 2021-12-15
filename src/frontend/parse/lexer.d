@@ -2,18 +2,18 @@ module frontend.parse.lexer;
 
 @safe @nogc pure nothrow:
 
-import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.parse.ast : LiteralAst, LiteralIntOrNat, matchLiteralAst, NameAndRange, NameOrUnderscoreOrNone;
-import model.diag : Diag;
+import model.diag : Diag, DiagnosticWithinFile;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr : arrOfRange, empty;
+import util.collection.arrBuilder : add, ArrBuilder;
 import util.collection.str : copyToSafeCStr, CStr, SafeCStr, safeCStr;
 import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.ptr : Ptr;
-import util.sourceRange : FileAndRange, FileIndex, Pos, RangeWithinFile;
+import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
 	AllSymbols,
 	Operator,
@@ -34,8 +34,7 @@ struct Lexer {
 	private:
 	Ptr!Alloc allocPtr;
 	Ptr!AllSymbols allSymbolsPtr;
-	Ptr!DiagnosticsBuilder diagnosticsBuilderPtr;
-	immutable FileIndex fileIndex;
+	Ptr!(ArrBuilder!DiagnosticWithinFile) diagnosticsBuilderPtr;
 	immutable Sym symUnderscore;
 	immutable Sym symForceSendable;
 	immutable CStr sourceBegin;
@@ -60,15 +59,13 @@ ref AllSymbols allSymbols(return scope ref Lexer lexer) {
 @trusted Lexer createLexer(
 	Ptr!Alloc alloc,
 	Ptr!AllSymbols allSymbols,
-	Ptr!DiagnosticsBuilder diagnosticsBuilder,
-	immutable FileIndex fileIndex,
+	Ptr!(ArrBuilder!DiagnosticWithinFile) diagnosticsBuilder,
 	immutable SafeCStr source,
 ) {
 	return Lexer(
 		alloc,
 		allSymbols,
 		diagnosticsBuilder,
-		fileIndex,
 		symOfStr(allSymbols.deref(), "_"),
 		symOfStr(allSymbols.deref(), "force-sendable"),
 		source.ptr,
@@ -91,11 +88,7 @@ private immutable(Pos) posOfPtr(ref const Lexer lexer, immutable CStr ptr) {
 }
 
 void addDiag(ref Lexer lexer, immutable RangeWithinFile range, immutable ParseDiag diag) {
-	addDiagnostic(
-		lexer.alloc,
-		lexer.diagnosticsBuilderPtr.deref(),
-		immutable FileAndRange(lexer.fileIndex, range),
-		immutable Diag(diag));
+	add(lexer.alloc, lexer.diagnosticsBuilderPtr.deref(), immutable DiagnosticWithinFile(range, immutable Diag(diag)));
 }
 
 void addDiagAtChar(ref Lexer lexer, immutable ParseDiag diag) {

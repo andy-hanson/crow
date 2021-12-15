@@ -2,18 +2,19 @@ module test.testTokens;
 
 @safe @nogc pure nothrow:
 
-import frontend.diagnosticsBuilder : DiagnosticsBuilder;
 import frontend.ide.getTokens : reprTokens, Token, tokensOfAst;
 import frontend.parse.ast : FileAst, reprAst;
 import frontend.parse.parse : parseFile;
+import model.diag : DiagnosticWithinFile;
 import test.testUtil : Test;
 import util.collection.arr : emptyArr;
+import util.collection.arrBuilder : ArrBuilder;
 import util.collection.arrUtil : arrEqual, arrLiteral;
 import util.collection.str : SafeCStr, safeCStr;
 import util.dbg : log;
 import util.perf : Perf, withNullPerf;
 import util.repr : writeRepr;
-import util.sourceRange : FileIndex, RangeWithinFile;
+import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols;
 import util.util : verifyFail;
 import util.writer : finishWriter, Writer, writeStatic;
@@ -45,7 +46,7 @@ private:
 
 void testOne(ref Test test, immutable SafeCStr source, immutable Token[] expectedTokens) {
 	AllSymbols allSymbols = AllSymbols(test.allocPtr);
-	DiagnosticsBuilder diags = DiagnosticsBuilder();
+	ArrBuilder!DiagnosticWithinFile diags;
 	immutable FileAst ast = withNullPerf!(
 		immutable FileAst,
 		(scope ref Perf perf) => parseFile(
@@ -54,7 +55,6 @@ void testOne(ref Test test, immutable SafeCStr source, immutable Token[] expecte
 			test.allPaths,
 			allSymbols,
 			diags,
-			immutable FileIndex(0),
 			source));
 	immutable Token[] tokens = tokensOfAst(test.alloc, allSymbols, ast);
 	if (!tokensEq(tokens, expectedTokens)) {

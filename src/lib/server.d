@@ -3,7 +3,7 @@ module lib.server;
 @safe @nogc nothrow: // not pure
 
 import lib.compiler : buildAndInterpret;
-import frontend.diagnosticsBuilder : DiagnosticsBuilder, finishDiagnosticsNoSort;
+import frontend.diagnosticsBuilder : diagnosticsForFile;
 import frontend.frontendCompile : frontendCompile;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition, Position;
@@ -13,9 +13,10 @@ import frontend.parse.parse : parseFile;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostic;
 import interpret.extern_ : Extern;
 import interpret.fakeExtern : FakeExternResult,withFakeExtern;
-import model.diag : Diagnostic, FilesInfo;
+import model.diag : Diagnostic, DiagnosticWithinFile, FilesInfo;
 import model.model : AbsolutePathsGetter, Program;
 import util.alloc.alloc : Alloc;
+import util.collection.arrBuilder : ArrBuilder;
 import util.collection.arrUtil : arrLiteral, map;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize;
 import util.collection.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
@@ -105,9 +106,8 @@ immutable(Token[]) getTokens(
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable SafeCStr text = mustGetAt_mut(server.files, key);
 	// diagnostics not used
-	DiagnosticsBuilder diagnosticsBuilder = DiagnosticsBuilder();
-	immutable FileAst ast =
-		parseFile(alloc, perf, server.allPaths, server.allSymbols, diagnosticsBuilder, immutable FileIndex(0), text);
+	ArrBuilder!DiagnosticWithinFile diagnosticsBuilder;
+	immutable FileAst ast = parseFile(alloc, perf, server.allPaths, server.allSymbols, diagnosticsBuilder, text);
 	return tokensOfAst(alloc, server.allSymbols, ast);
 }
 
@@ -125,9 +125,9 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable SafeCStr text = mustGetAt_mut(server.files, key);
-	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
+	ArrBuilder!DiagnosticWithinFile diagsBuilder;
 	// AST not used
-	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagsBuilder, immutable FileIndex(0), text);
+	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagsBuilder, text);
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(arrLiteral!PathAndStorageKind(alloc, [key])),
 		immutable AbsolutePathsGetter(safeCStr!"", safeCStr!"", safeCStr!""),
@@ -135,7 +135,7 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, text)])));
 	return map!StrParseDiagnostic(
 		alloc,
-		finishDiagnosticsNoSort(alloc, diagsBuilder).diags,
+		diagnosticsForFile(alloc, immutable FileIndex(0), diagsBuilder, filesInfo.filePaths).diags,
 		(ref immutable Diagnostic it) =>
 			immutable StrParseDiagnostic(
 				it.where.range,

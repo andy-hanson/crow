@@ -3,12 +3,12 @@ module frontend.diagnosticsBuilder;
 @safe @nogc pure nothrow:
 
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
-import model.diag : Diag, Diagnostic, Diagnostics, DiagSeverity;
+import model.diag : Diag, Diagnostic, Diagnostics, DiagnosticWithinFile, DiagSeverity;
 import util.alloc.alloc : Alloc;
-import util.collection.arrBuilder : add, ArrBuilder, arrBuilderClear, arrBuilderSort, finishArr;
+import util.collection.arrBuilder : add, ArrBuilder, arrBuilderClear, arrBuilderSort, arrBuilderTempAsArr, finishArr;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.path : comparePathAndStorageKind;
-import util.sourceRange : FileAndRange, FilePaths;
+import util.sourceRange : FileAndRange, FileIndex, FilePaths;
 
 /// Stores only diags at the highest severity seen.
 struct DiagnosticsBuilder {
@@ -35,9 +35,26 @@ immutable(Diagnostics) finishDiagnostics(ref Alloc alloc, ref DiagnosticsBuilder
 		comparePathAndStorageKind(
 			fullIndexDictGet(filePaths, a.where.fileIndex),
 			fullIndexDictGet(filePaths, b.where.fileIndex)));
-	return finishDiagnosticsNoSort(alloc, a);
+	return immutable Diagnostics(a.severity, finishArr(alloc, a.diags));
 }
 
-immutable(Diagnostics) finishDiagnosticsNoSort(ref Alloc alloc, ref DiagnosticsBuilder a) {
-	return immutable Diagnostics(a.severity, finishArr(alloc, a.diags));
+immutable(Diagnostics) diagnosticsForFile(
+	ref Alloc alloc,
+	immutable FileIndex fileIndex,
+	ref ArrBuilder!DiagnosticWithinFile diagnostics,
+	immutable FilePaths filePaths,
+) {
+	DiagnosticsBuilder builder;
+	addDiagnosticsForFile(alloc, builder, fileIndex, diagnostics);
+	return finishDiagnostics(alloc, builder, filePaths);
+}
+
+void addDiagnosticsForFile(
+	ref Alloc alloc,
+	ref DiagnosticsBuilder a,
+	immutable FileIndex fileIndex,
+	ref ArrBuilder!DiagnosticWithinFile diagnostics,
+) {
+	foreach (ref const DiagnosticWithinFile diag; arrBuilderTempAsArr(diagnostics))
+		addDiagnostic(alloc, a, immutable FileAndRange(fileIndex, diag.range), diag.diag);
 }
