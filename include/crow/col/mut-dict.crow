@@ -53,6 +53,11 @@ mut-dict-with-capacity<k, v> v mut[k](capacity nat64) is-data<k> compare<k> hash
 arr<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (key, value) => key, value
 
+move-to-arr!<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
+	res = a arr
+	a empty!
+	res
+
 copy<k, v> v mut[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	entries fix-arr entry<k, v> = a.entries map entry =>
 		match entry

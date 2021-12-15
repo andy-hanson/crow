@@ -145,7 +145,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
-import util.sym : Operator, shortSym, Sym, symEq, symForOperator;
+import util.sym : Operator, shortSym, Sym, symEq, symForOperator, symOfStr;
 import util.util : todo, verify;
 
 immutable(Expr) checkFunctionBody(
@@ -745,26 +745,37 @@ immutable(CheckedExpr) checkLiteral(
 				}
 			}
 		},
-		(immutable string it) {
-			if (ptrEquals(expectedStruct, ctx.commonTypes.char_)) {
-				if (it.length != 1)
-					todo!void("char literal must be one char");
-				return immutable CheckedExpr(immutable Expr(
-					range,
-					allocate(alloc, immutable Expr.Literal(
-						expectedStruct,
-						immutable Constant(immutable Constant.Integral(only(it)))))));
-			} else {
-				immutable Expr e = immutable Expr(range, immutable Expr.StringLiteral(copyStr(alloc, it)));
-				return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.str), e);
-			}
-		},
-		(immutable Sym it) {
-			immutable Expr e = immutable Expr(range, immutable Expr.SymbolLiteral(it));
-			return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.sym), e);
-		},
+		(immutable string value) =>
+			checkStringLiteral(alloc, ctx, range, expected, expectedStruct, value),
 	)(ast);
 }
+
+immutable(CheckedExpr) checkStringLiteral(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	ref immutable FileAndRange range,
+	ref Expected expected,
+	immutable Ptr!StructInst expectedStruct,
+	immutable string value,
+) {
+	if (ptrEquals(expectedStruct, ctx.commonTypes.char_)) {
+		if (value.length != 1)
+			todo!void("char literal must be one char");
+		return immutable CheckedExpr(immutable Expr(
+			range,
+			allocate(alloc, immutable Expr.Literal(
+				expectedStruct,
+				immutable Constant(immutable Constant.Integral(only(value)))))));
+	} else if (ptrEquals(expectedStruct, ctx.commonTypes.sym))
+		return immutable CheckedExpr(immutable Expr(
+			range,
+			immutable Expr.SymbolLiteral(symOfStr(ctx.allSymbols, value))));
+	else {
+		immutable Expr e = immutable Expr(range, immutable Expr.StringLiteral(copyStr(alloc, value)));
+		return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.str), e);
+	}
+}
+
 
 immutable(Expr) checkWithLocal(
 	ref Alloc alloc,

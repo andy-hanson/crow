@@ -4,9 +4,9 @@ import
 	crow/private/bootstrap: static-syms
 
 main fut nat(_ str[]) summon
-	drop: 'pop'
-	drop: 'hop'
-	drop: 'pop'
+	drop: "pop"::sym
+	drop: "hop"::sym
+	drop: "pop"::sym
 
 	fosho = "fosho" str-to-sym
 	print: fosho to-str

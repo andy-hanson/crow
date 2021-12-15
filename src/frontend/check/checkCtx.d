@@ -30,7 +30,7 @@ struct CheckCtx {
 
 	Ptr!Perf perfPtr;
 	Ptr!ProgramState programStatePtr;
-	const Ptr!AllSymbols allSymbolsPtr;
+	Ptr!AllSymbols allSymbolsPtr;
 	immutable FileIndex fileIndex;
 	immutable ModuleAndNames[] imports;
 	immutable ModuleAndNames[] reExports;
@@ -43,6 +43,9 @@ struct CheckCtx {
 	Ptr!DiagnosticsBuilder diagsBuilderPtr;
 
 	ref const(AllSymbols) allSymbols() return scope const {
+		return allSymbolsPtr.deref();
+	}
+	ref AllSymbols allSymbols() return scope {
 		return allSymbolsPtr.deref();
 	}
 

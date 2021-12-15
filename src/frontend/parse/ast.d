@@ -331,7 +331,6 @@ struct LiteralAst {
 	immutable this(immutable Int a) { kind = Kind.int_; int_ = a; }
 	immutable this(immutable Nat a) { kind = Kind.nat; nat = a; }
 	@trusted immutable this(immutable string a) { kind = Kind.str; str = a; }
-	@trusted immutable this(immutable Sym a) { kind = Kind.sym; sym = a; }
 
 	private:
 	enum Kind {
@@ -339,7 +338,6 @@ struct LiteralAst {
 		int_,
 		nat,
 		str,
-		sym,
 	}
 	immutable Kind kind;
 	union {
@@ -347,11 +345,10 @@ struct LiteralAst {
 		immutable Int int_;
 		immutable Nat nat;
 		immutable string str;
-		immutable Sym sym;
 	}
 }
 
-@trusted T matchLiteralAst(T, alias cbFloat, alias cbInt, alias cbNat, alias cbStr, alias cbSym)(
+@trusted T matchLiteralAst(T, alias cbFloat, alias cbInt, alias cbNat, alias cbStr)(
 	ref immutable LiteralAst a,
 ) {
 	final switch (a.kind) {
@@ -363,8 +360,6 @@ struct LiteralAst {
 			return cbNat(a.nat);
 		case LiteralAst.Kind.str:
 			return cbStr(a.str);
-		case LiteralAst.Kind.sym:
-			return cbSym(a.sym);
 	}
 }
 
@@ -1184,8 +1179,6 @@ immutable(Repr) reprLiteralAst(ref Alloc alloc, ref immutable LiteralAst a) {
 				reprLiteralNat(alloc, it),
 			(immutable string it) =>
 				reprStr(it),
-			(immutable Sym it) =>
-				reprRecord(alloc, "symbol", [reprSym(it)]),
 		)(a)]);
 }
 

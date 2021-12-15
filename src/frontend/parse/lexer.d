@@ -447,7 +447,6 @@ public enum Token {
 	question, // '?'
 	questionEqual, // '?='
 	quoteDouble, // '"'
-	quoteSingle, // "'"
 	record, // 'record'
 	ref_, // 'ref'
 	sendable, // 'sendable'
@@ -521,8 +520,6 @@ public enum Token {
 				: tryTakeChar(lexer, ':')
 				? Token.colon2
 				: Token.colon;
-		case '\'':
-			return Token.quoteSingle;
 		case '"':
 			return Token.quoteDouble;
 		case ',':
@@ -800,7 +797,6 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.operator:
 		case Token.parenLeft:
 		case Token.quoteDouble:
-		case Token.quoteSingle:
 			return true;
 	}
 }
@@ -829,7 +825,6 @@ public @trusted immutable(LiteralIntOrNat) takeIntOrNat(ref Lexer lexer) {
 		(immutable LiteralAst.Int i) => immutable LiteralIntOrNat(i),
 		(immutable LiteralAst.Nat n) => immutable LiteralIntOrNat(n),
 		(immutable(string)) => unreachable!(immutable LiteralIntOrNat),
-		(immutable(Sym)) => unreachable!(immutable LiteralIntOrNat),
 	)(res);
 }
 
@@ -947,17 +942,6 @@ immutable(bool) allowedStringPartCharacter(immutable char c, immutable char endQ
 			return false;
 		default:
 			return true;
-	}
-}
-
-public immutable(Sym) takeSymbolLiteral(ref Lexer lexer) {
-	immutable StringPart part = takeStringPart(lexer, '\'');
-	final switch (part.after) {
-		case StringPart.After.quote:
-			return symOfStr(lexer.allSymbols, part.text);
-		case StringPart.After.lbrace:
-			// Diagnostic: '{' should be escaped to avoid confusion with interpolation
-			return todo!(immutable Sym)("!");
 	}
 }
 

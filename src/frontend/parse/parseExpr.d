@@ -59,7 +59,6 @@ import frontend.parse.lexer :
 	takeNewlineOrDedentAmount,
 	takeOrAddDiagExpectedToken,
 	takeStringPartAfterDoubleQuote,
-	takeSymbolLiteral,
 	Token,
 	tryTakeToken;
 import frontend.parse.parseType : parseType, parseTypeRequireBracket, tryParseTypeArgsForExpr;
@@ -841,7 +840,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 					immutable ExprAstKind(allocate(lexer.alloc, immutable ParenthesizedAst(inner))));
 				return noDedent(tryParseDotsAndSubscripts(lexer, expr));
 			}
-		case Token.quoteDouble: {
+		case Token.quoteDouble:
 			immutable StringPart part = takeStringPartAfterDoubleQuote(lexer);
 			final switch (part.after) {
 				case StringPart.After.quote:
@@ -850,13 +849,6 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 					immutable ExprAst interpolated = takeInterpolated(lexer, start, part.text);
 					return noDedent(tryParseDotsAndSubscripts(lexer, interpolated));
 			}
-		}
-		case Token.quoteSingle:
-			immutable Sym sym = takeSymbolLiteral(lexer);
-			immutable ExprAst expr = immutable ExprAst(
-				range(lexer, start),
-				immutable ExprAstKind(immutable LiteralAst(sym)));
-			return noDedent(tryParseDotsAndSubscripts(lexer, expr));
 		case Token.if_:
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseIf(lexer, start, asAllowBlock(allowedBlock).curIndent))
@@ -939,8 +931,7 @@ immutable(ExprAst) takeInterpolated(ref Lexer lexer, immutable Pos start, immuta
 immutable(ExprAst) takeInterpolatedRecur(ref Lexer lexer, immutable Pos start, ref ArrBuilder!InterpolatedPart parts) {
 	immutable ExprAst e = parseExprNoBlock(lexer);
 	add(lexer.alloc, parts, immutable InterpolatedPart(e));
-	if (!tryTakeToken(lexer, Token.braceRight))
-		todo!void("!");
+	takeOrAddDiagExpectedToken(lexer, Token.braceRight, ParseDiag.Expected.Kind.closeInterpolated);
 	immutable StringPart part = takeStringPartAfterDoubleQuote(lexer);
 	if (!empty(part.text))
 		add(lexer.alloc, parts, immutable InterpolatedPart(part.text));

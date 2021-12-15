@@ -144,6 +144,9 @@ void writeParseDiag(
 				case ParseDiag.Expected.Kind.bodyKeyword:
 					writeStatic(writer, "expected 'body'");
 					break;
+				case ParseDiag.Expected.Kind.closeInterpolated:
+					writeStatic(writer, "expected '}'");
+					break;
 				case ParseDiag.Expected.Kind.closingBracket:
 					writeStatic(writer, "expected ']'");
 					break;
@@ -1017,7 +1020,5 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected keyword 'unsafe'";
 		case Token.quoteDouble:
 			return "unexpected '\"'";
-		case Token.quoteSingle:
-			return "unexpected \"'\"";
 	}
 }

@@ -80,7 +80,7 @@ body
 .get-fun-name sym(code-ptr any-const-ptr, funs named-val<any-const-ptr>*, size nat64) unsafe noctx
 	# TODO: this will fail to give a name for the last function
 	if size < 2
-		'<<UNKNOWN>>'
+		"<<UNKNOWN>>"
 	elif code-ptr < funs[1].val
 		funs->name
 	else

@@ -75,6 +75,9 @@ struct ExprCtx {
 	ref const(AllSymbols) allSymbols() return scope const {
 		return checkCtx().allSymbols();
 	}
+	ref AllSymbols allSymbols() return scope {
+		return checkCtx().allSymbols();
+	}
 	ref Perf perf() return scope {
 		return checkCtx().perf();
 	}

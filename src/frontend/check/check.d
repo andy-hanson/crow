@@ -179,7 +179,7 @@ import util.collection.str : copySafeCStr, safeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, OptPtr, some, someMut, toOpt;
 import util.perf : Perf;
-import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_const, ptrTrustMe_mut;
+import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, fileAndPosFromFileAndRange, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym :
 	AllSymbols,
@@ -2112,7 +2112,7 @@ immutable(BootstrapCheck) checkWorker(
 	CheckCtx ctx = CheckCtx(
 		ptrTrustMe_mut(perf),
 		ptrTrustMe_mut(programState),
-		ptrTrustMe_const(allSymbols),
+		ptrTrustMe_mut(allSymbols),
 		pathAndAst.fileIndex,
 		imports,
 		reExports,

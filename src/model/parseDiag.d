@@ -20,6 +20,7 @@ struct ParseDiag {
 			afterMut,
 			blockCommentEnd,
 			bodyKeyword,
+			closeInterpolated,
 			closingBracket,
 			closingParen,
 			comma,

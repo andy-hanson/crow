@@ -5,10 +5,11 @@ import
 	../hash: hash-mix
 	../misc: is-data, void
 	../opt: is-empty
-	../tuple: new
+	../tuple: a, new
 	./arr: arr
-	./arr-util: map
-	./mut-dict: ~=, mut-dict, in, to-mut-dict, try-remove-key!
+	./arr-util: each, map
+	./mut-dict: ~=, move-to-arr!, mut-dict, in, to-mut-dict, try-remove-key!
+	./set: set, to-set
 
 mut-set<a> record mut
 	.inner void mut[a]
@@ -16,8 +17,18 @@ mut-set<a> record mut
 new<a> mut-set a(...a a[]) is-data<a> compare<a> hash-mix<a>
 	(a map (x => x, void)).to-mut-dict,
 
+move-to-arr!<a> a[](a mut-set a) is-data<a> compare<a> hash-mix<a>
+	a.inner.move-to-arr! map x => x.a
+
+move-to-set!<a> set a(a mut-set a) is-data<a> compare<a> hash-mix<a>
+	a.move-to-arr! to-set
+
 ~= <a> void(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
 	a.inner ~= (value, void)
+
+~= <a> void(a mut-set a, values a[]) is-data<a> compare<a> hash-mix<a>
+	values each x =>
+		a ~= x
 
 in<a> bool(value a, a mut-set a) is-data<a> compare<a> hash-mix<a>
 	value in a.inner

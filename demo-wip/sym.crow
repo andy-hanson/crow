@@ -3,8 +3,8 @@ import
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	enum-values each v =>
-		print: v.to-sym.to-str
+	enum-members::named-val<e>[] each v =>
+		print: v.name.to-str
 	0 resolved
 
 e enum
