@@ -2,12 +2,9 @@ module concretize.concretizeCtx;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder :
-	AllConstantsBuilder,
-	getConstantArr,
-	getConstantStr,
-	getConstantSym;
+import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArr, getConstantStr, getConstantSym;
 import concretize.concretizeExpr : concretizeExpr;
+import concretize.safeValue : bodyForSafeValue;
 import model.concreteModel :
 	asFlags,
 	asFunInst,
@@ -22,6 +19,7 @@ import model.concreteModel :
 	ConcreteFun,
 	ConcreteFunBody,
 	ConcreteFunExprBody,
+	concreteFunRange,
 	ConcreteFunSource,
 	ConcreteLambdaImpl,
 	ConcreteMutability,
@@ -36,6 +34,7 @@ import model.concreteModel :
 	ConcreteStructSource,
 	hashConcreteType,
 	hasSizeOrPointerSizeBytes,
+	isSelfMutable,
 	mustBeNonPointer,
 	NeedsCtx,
 	purity,
@@ -110,7 +109,7 @@ import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, hashPtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, shortSym, shortSymValue, Sym, symEq;
+import util.sym : AllSymbols, shortSymValue, Sym;
 import util.util : max, roundUp, todo, unreachable, verify;
 
 struct TypeArgsScope {
@@ -346,7 +345,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(
 	immutable ConcreteFunBodyInputs bodyInputs = immutable ConcreteFunBodyInputs(containing, immutable FunBody(body_));
 	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
 	fillInConcreteFunBody(alloc, ctx, res);
-	add(alloc, ctx.allConcreteFuns, castImmutable(res));
+	addConcreteFun(alloc, ctx, castImmutable(res));
 	return castImmutable(res);
 }
 
@@ -482,7 +481,7 @@ immutable(Ptr!ConcreteFun) getOrAddConcreteFunWithoutFillingBody(
 ) {
 	return getOrAdd(alloc, ctx.nonLambdaConcreteFuns, key, () {
 		immutable Ptr!ConcreteFun res = getConcreteFunFromKey(alloc, ctx, key);
-		add(alloc, ctx.allConcreteFuns, res);
+		addConcreteFun(alloc, ctx, res);
 		return res;
 	});
 }
@@ -509,14 +508,18 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(
 	return castImmutable(res);
 }
 
+void addConcreteFun(ref Alloc alloc, ref ConcretizeCtx ctx, immutable Ptr!ConcreteFun fun) {
+	add(alloc, ctx.allConcreteFuns, fun);
+}
+
 immutable(Ptr!ConcreteFun) concreteFunForTest(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	ref immutable Test test,
-	immutable size_t index,
+	immutable size_t testIndex,
 ) {
 	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
-		immutable ConcreteFunSource(allocate(alloc, immutable ConcreteFunSource.Test(test.body_.range, index))),
+		immutable ConcreteFunSource(allocate(alloc, immutable ConcreteFunSource.Test(test.body_.range, testIndex))),
 		voidType(alloc, ctx),
 		NeedsCtx.yes,
 		none!(Ptr!ConcreteParam),
@@ -528,7 +531,7 @@ immutable(Ptr!ConcreteFun) concreteFunForTest(
 	immutable ConcreteExpr body_ =
 		concretizeExpr(alloc, ctx, containing, castImmutable(res), test.body_);
 	lateSet(res.deref()._body_, immutable ConcreteFunBody(immutable ConcreteFunExprBody(body_)));
-	add(alloc, ctx.allConcreteFuns, castImmutable(res));
+	addConcreteFun(alloc, ctx, castImmutable(res));
 	return castImmutable(res);
 }
 
@@ -797,9 +800,19 @@ void fillInConcreteFunBody(
 			immutable ConcreteFunBody,
 			(ref immutable FunBody.Builtin) {
 				immutable Ptr!FunInst inst = asFunInst(cf.deref().source);
-				return symEq(name(inst.deref()), shortSym("all-tests"))
-					? bodyForAllTests(alloc, ctx, castImmutable(cf).deref().returnType)
-					: immutable ConcreteFunBody(immutable ConcreteFunBody.Builtin(typeArgs(inputs)));
+				switch (name(inst.deref()).value) {
+					case shortSymValue("all-tests"):
+						return bodyForAllTests(alloc, ctx, castImmutable(cf).deref().returnType);
+					case shortSymValue("safe-value"):
+						return bodyForSafeValue(
+							alloc,
+							ctx,
+							castImmutable(cf),
+							concreteFunRange(castImmutable(cf).deref(), ctx.allSymbols),
+							castImmutable(cf).deref().returnType);
+					default:
+						return immutable ConcreteFunBody(immutable ConcreteFunBody.Builtin(typeArgs(inputs)));
+				}
 			},
 			(ref immutable FunBody.CreateEnum it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateEnum(it.value)),
@@ -885,11 +898,7 @@ immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType ty
 	)(body_(decl(asInst(mustBeNonPointer(type).deref().source).inst.deref()).deref()));
 }
 
-immutable(ConcreteFunBody) bodyForAllTests(
-	ref Alloc alloc,
-	ref ConcretizeCtx ctx,
-	immutable ConcreteType returnType,
-) {
+immutable(ConcreteFunBody) bodyForAllTests(ref Alloc alloc, ref ConcretizeCtx ctx, immutable ConcreteType returnType) {
 	immutable Test[] allTests = () {
 		ArrBuilder!Test allTestsBuilder;
 		foreach (ref immutable Module m; ctx.program.allModules)
@@ -900,8 +909,8 @@ immutable(ConcreteFunBody) bodyForAllTests(
 		alloc,
 		ctx.allConstants,
 		mustBeNonPointer(returnType),
-		mapWithIndex(alloc, allTests, (immutable size_t index, ref immutable Test it) =>
-			immutable Constant(immutable Constant.FunPtr(concreteFunForTest(alloc, ctx, it, index)))));
+		mapWithIndex(alloc, allTests, (immutable size_t testIndex, ref immutable Test it) =>
+			immutable Constant(immutable Constant.FunPtr(concreteFunForTest(alloc, ctx, it, testIndex)))));
 	immutable ConcreteExpr body_ = immutable ConcreteExpr(
 		returnType,
 		FileAndRange.empty,

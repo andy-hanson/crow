@@ -122,7 +122,7 @@ void hashStr(ref Hasher hasher, immutable string a) {
 		hashUbyte(hasher, c);
 }
 
-@trusted void eachChar(immutable SafeCStr a, scope void delegate(immutable char) @safe @nogc pure nothrow cb) {
+@trusted void eachChar(scope immutable SafeCStr a, scope void delegate(immutable char) @safe @nogc pure nothrow cb) {
 	for (immutable(char)* p = a.ptr; *p != '\0'; p++)
 		cb(*p);
 }

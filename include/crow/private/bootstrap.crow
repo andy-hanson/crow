@@ -122,6 +122,15 @@ It's GC-safe though, since the GC treats a null pointer same as any external poi
 ###
 zeroed<a> a() noctx unsafe builtin
 
+###
+For a number: 0.
+For a record: 'safe-value' for each field.
+For a union: 'safe-value' of the first union member.
+For an enum: The first member.
+For flags: 0.
+###
+safe-value<a> a() builtin
+
 hard-unreachable<a> a() unsafe noctx
 	abort
 	zeroed

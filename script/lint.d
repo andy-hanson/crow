@@ -14,8 +14,7 @@ import std.string : indexOf, indexOfAny, splitLines;
 	foreach (ref immutable File file; files) {
 		foreach (immutable string publicExport; file.members.public_) {
 			if (!any!(otherFile => publicExport in otherFile.imports)(files)) {
-				if (publicExport != "getConstantPtr" &&
-					publicExport != "derefConstantPointer" &&
+				if (publicExport != "derefConstantPointer" &&
 					publicExport != "diffSymbols") // TODO
 					writeln(file.path, " export not used: ", publicExport);
 			}

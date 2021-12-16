@@ -248,8 +248,8 @@ AllLowTypesWithCtx getAllLowTypes(
 	}
 
 	foreach (immutable Ptr!ConcreteStruct s; program.allStructs) {
-		immutable Opt!LowType lowType = matchConcreteStructBody!(
-			immutable Opt!LowType,
+		immutable Opt!LowType lowType = matchConcreteStructBody!(immutable Opt!LowType)(
+			body_(s.deref()),
 			(ref immutable ConcreteStructBody.Builtin it) {
 				final switch (it.kind) {
 					case BuiltinStructKind.bool_:
@@ -305,8 +305,7 @@ AllLowTypesWithCtx getAllLowTypes(
 				return some(immutable LowType(immutable LowType.Record(i)));
 			},
 			(ref immutable ConcreteStructBody.Union it) =>
-				some(addUnion(s)),
-		)(body_(s.deref()));
+				some(addUnion(s)));
 		if (has(lowType))
 			mustAddToDict(alloc, concreteStructToTypeBuilder, s, force(lowType));
 	}
@@ -378,8 +377,8 @@ immutable(LowUnion) getLowUnion(
 	ref GetLowTypeCtx getLowTypeCtx,
 	immutable Ptr!ConcreteStruct s,
 ) {
-	immutable LowType[] members = matchConcreteStructBody!(
-		immutable LowType[],
+	immutable LowType[] members = matchConcreteStructBody!(immutable LowType[])(
+		body_(s.deref()),
 		(ref immutable ConcreteStructBody.Builtin it) {
 			verify(it.kind == BuiltinStructKind.fun);
 			return map(alloc, mustGetAt(program.funStructToImpls, s), (ref immutable ConcreteLambdaImpl impl) =>
@@ -393,8 +392,7 @@ immutable(LowUnion) getLowUnion(
 			map(alloc, it.members, (ref immutable Opt!ConcreteType member) =>
 				has(member)
 					? lowTypeFromConcreteType(alloc, getLowTypeCtx, force(member))
-					: immutable LowType(PrimitiveType.void_)),
-	)(body_(s.deref()));
+					: immutable LowType(PrimitiveType.void_)));
 	return immutable LowUnion(s, members);
 }
 
@@ -1072,8 +1070,8 @@ immutable(LowExprKind) getLowExprKind(
 	ref immutable ConcreteExpr expr,
 	immutable ExprPos exprPos,
 ) {
-	return matchConcreteExprKind!(
-		immutable LowExprKind,
+	return matchConcreteExprKind!(immutable LowExprKind)(
+		expr.kind,
 		(ref immutable ConcreteExprKind.Alloc it) =>
 			getAllocExpr(alloc, ctx, expr.range, it),
 		(ref immutable ConcreteExprKind.Call it) =>
@@ -1083,13 +1081,17 @@ immutable(LowExprKind) getLowExprKind(
 				getLowExpr(alloc, ctx, it.cond, ExprPos.nonTail),
 				getLowExpr(alloc, ctx, it.then, exprPos),
 				getLowExpr(alloc, ctx, it.else_, exprPos)))),
-		(ref immutable Constant it) =>
+		(immutable Constant it) =>
 			immutable LowExprKind(it),
 		(ref immutable ConcreteExprKind.CreateArr it) =>
 			getCreateArrExpr(alloc, ctx, expr.range, it),
 		(ref immutable ConcreteExprKind.CreateRecord it) =>
 			immutable LowExprKind(immutable LowExprKind.CreateRecord(
 				getArgs(alloc, ctx, it.args))),
+		(ref immutable ConcreteExprKind.CreateUnion it) =>
+			immutable LowExprKind(allocate(alloc, immutable LowExprKind.CreateUnion(
+				it.memberIndex,
+				getLowExpr(alloc, ctx, it.arg, ExprPos.nonTail)))),
 		(ref immutable ConcreteExprKind.Lambda it) =>
 			getLambdaExpr(alloc, ctx, type, expr.range, it),
 		(ref immutable ConcreteExprKind.Let it) =>
@@ -1107,8 +1109,7 @@ immutable(LowExprKind) getLowExprKind(
 		(ref immutable ConcreteExprKind.Seq it) =>
 			immutable LowExprKind(allocate(alloc, immutable LowExprKind.Seq(
 				getLowExpr(alloc, ctx, it.first, ExprPos.nonTail),
-				getLowExpr(alloc, ctx, it.then, exprPos)))),
-	)(expr.kind);
+				getLowExpr(alloc, ctx, it.then, exprPos)))));
 }
 
 immutable(LowExpr) getAllocateExpr(
@@ -1500,14 +1501,13 @@ immutable(LowExprKind) getMatchEnumExpr(
 	immutable LowExpr matchedValue = getLowExpr(alloc, ctx, a.matchedValue, ExprPos.nonTail);
 	immutable LowExpr[] cases = map!LowExpr(alloc, a.cases, (ref immutable ConcreteExpr case_) =>
 		getLowExpr(alloc, ctx, case_, exprPos));
-	return matchEnum!(
-		immutable LowExprKind,
+	return matchEnum!(immutable LowExprKind)(
+		enum_,
 		(immutable size_t) =>
 			immutable LowExprKind(allocate(alloc, immutable LowExprKind.Switch0ToN(matchedValue, cases))),
 		(immutable EnumValue[] values) =>
 			immutable LowExprKind(
-				allocate(alloc, immutable LowExprKind.SwitchWithValues(matchedValue, values, cases))),
-	)(enum_);
+				allocate(alloc, immutable LowExprKind.SwitchWithValues(matchedValue, values, cases))));
 }
 
 immutable(LowExprKind) getMatchUnionExpr(

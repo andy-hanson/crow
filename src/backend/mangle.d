@@ -194,7 +194,7 @@ private void writeConcreteFunMangledName(
 		},
 		(ref immutable ConcreteFunSource.Test it) {
 			writeStatic(writer, "__test");
-			writeNat(writer, it.index);
+			writeNat(writer, it.testIndex);
 		},
 	)(source.deref().source);
 }
@@ -224,12 +224,12 @@ void writeLowParamName(ref Writer writer, scope ref immutable MangledNames mangl
 	matchLowParamSource!(
 		void,
 		(ref immutable ConcreteParam cp) {
-			matchConcreteParamSource!(
-				void,
+			matchConcreteParamSource!void(
+				cp.source,
 				(ref immutable ConcreteParamSource.Closure) {
 					writeStatic(writer, "_closure");
 				},
-				(ref immutable Param p) {
+				(ref immutable Param p) @safe {
 					if (has(p.name))
 						writeMangledName(writer, mangledNames, force(p.name));
 					else {
@@ -237,7 +237,10 @@ void writeLowParamName(ref Writer writer, scope ref immutable MangledNames mangl
 						writeNat(writer, p.index);
 					}
 				},
-			)(cp.source);
+				(ref immutable ConcreteParamSource.Synthetic it) {
+					writeStatic(writer, "_p");
+					writeNat(writer, force(cp.index));
+				});
 		},
 		(ref immutable LowParamSource.Generated it) {
 			writeMangledName(writer, mangledNames, it.name);
@@ -340,7 +343,7 @@ void addToPrevOrIndex(T)(
 				})));
 }
 
-public void writeMangledName(ref Writer writer, ref immutable MangledNames mangledNames, immutable Sym a) {
+public void writeMangledName(ref Writer writer, scope ref immutable MangledNames mangledNames, immutable Sym a) {
 	immutable Opt!Operator operator = operatorForSym(a);
 	if (has(operator))
 		writeStatic(writer, mangleOperator(force(operator)));

@@ -312,8 +312,8 @@ void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion
 		writeChar(writer, ';');
 	}
 
-	matchConcreteStructBody!(
-		void,
+	matchConcreteStructBody!void(
+		body_(a.source.deref()),
 		(ref immutable ConcreteStructBody.Builtin it) {
 			verify(it.kind == BuiltinStructKind.fun);
 			// Fun types must be 16 bytes
@@ -326,8 +326,7 @@ void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion
 		(ref immutable(ConcreteStructBody.Flags)) {},
 		(ref immutable(ConcreteStructBody.ExternPtr)) {},
 		(ref immutable(ConcreteStructBody.Record)) {},
-		(ref immutable(ConcreteStructBody.Union)) {},
-	)(body_(a.source.deref()));
+		(ref immutable(ConcreteStructBody.Union)) {});
 
 	writeStatic(writer, "\n\t};");
 	writeStructEnd(writer);

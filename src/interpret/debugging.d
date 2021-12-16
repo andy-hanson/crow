@@ -87,8 +87,8 @@ void writeFunSig(
 				writer,
 				it.deref().paramsExcludingCtxAndClosure,
 				(ref immutable ConcreteParam param) {
-					matchConcreteParamSource!(
-						void,
+					matchConcreteParamSource!void(
+						param.source,
 						(ref immutable ConcreteParamSource.Closure) {
 							writeStatic(writer, "<closure>");
 						},
@@ -98,7 +98,9 @@ void writeFunSig(
 							else
 								writeChar(writer, '_');
 						},
-					)(param.source);
+						(ref immutable ConcreteParamSource.Synthetic) {
+							writeChar(writer, '_');
+						});
 					writeChar(writer, ' ');
 					writeConcreteType(writer, allSymbols, param.type);
 				});

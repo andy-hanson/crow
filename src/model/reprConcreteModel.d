@@ -95,8 +95,8 @@ public immutable(Repr) reprOfConcreteStructRef(ref Alloc alloc, ref immutable Co
 }
 
 immutable(Repr) reprOfConcreteStructBody(ref Alloc alloc, ref immutable ConcreteStructBody a) {
-	return matchConcreteStructBody!(
-		immutable Repr,
+	return matchConcreteStructBody!(immutable Repr)(
+		a,
 		(ref immutable ConcreteStructBody.Builtin it) =>
 			reprOfConcreteStructBodyBuiltin(alloc, it),
 		(ref immutable ConcreteStructBody.Enum it) =>
@@ -110,8 +110,7 @@ immutable(Repr) reprOfConcreteStructBody(ref Alloc alloc, ref immutable Concrete
 		(ref immutable ConcreteStructBody.Record it) =>
 			reprOfConcreteStructBodyRecord(alloc, it),
 		(ref immutable ConcreteStructBody.Union it) =>
-			reprOfConcreteStructBodyUnion(alloc, it),
-	)(a);
+			reprOfConcreteStructBodyUnion(alloc, it));
 }
 
 immutable(Repr) reprOfConcreteStructBodyBuiltin(ref Alloc alloc, ref immutable ConcreteStructBody.Builtin a) {
@@ -188,13 +187,14 @@ immutable(Repr) reprOfParam(ref Alloc alloc, ref immutable ConcreteParam a) {
 }
 
 public immutable(Repr) reprOfConcreteParamRef(ref immutable ConcreteParam a) {
-	return matchConcreteParamSource!(
-		immutable Repr,
+	return matchConcreteParamSource!(immutable Repr)(
+		a.source,
 		(ref immutable ConcreteParamSource.Closure) =>
 			reprStr("<<closure>>"),
 		(ref immutable Param a) =>
 			has(a.name) ? reprSym(force(a.name)) : reprStr("_"),
-	)(a.source);
+		(ref immutable ConcreteParamSource.Synthetic) =>
+			reprStr("<<synthetic>>"));
 }
 
 immutable(Repr) reprOfConcreteFunBody(ref Alloc alloc, ref immutable ConcreteFunBody a) {
@@ -250,8 +250,8 @@ immutable(Repr) reprOfConcreteExpr(ref Alloc alloc, ref immutable ConcreteExpr a
 }
 
 immutable(Repr) reprOfConcreteExprKind(ref Alloc alloc, ref immutable ConcreteExprKind a) {
-	return matchConcreteExprKind!(
-		immutable Repr,
+	return matchConcreteExprKind!(immutable Repr)(
+		a,
 		(ref immutable ConcreteExprKind.Alloc it) =>
 			reprRecord(alloc, "alloc", [reprOfConcreteExpr(alloc, it.inner)]),
 		(ref immutable ConcreteExprKind.Call it) =>
@@ -264,7 +264,7 @@ immutable(Repr) reprOfConcreteExprKind(ref Alloc alloc, ref immutable ConcreteEx
 				reprOfConcreteExpr(alloc, it.cond),
 				reprOfConcreteExpr(alloc, it.then),
 				reprOfConcreteExpr(alloc, it.else_)]),
-		(ref immutable Constant it) =>
+		(immutable Constant it) =>
 			reprOfConstant(alloc, it),
 		(ref immutable ConcreteExprKind.CreateArr it) =>
 			reprRecord(alloc, "create-arr", [
@@ -274,6 +274,10 @@ immutable(Repr) reprOfConcreteExprKind(ref Alloc alloc, ref immutable ConcreteEx
 		(ref immutable ConcreteExprKind.CreateRecord it) =>
 			reprRecord(alloc, "record", [reprArr(alloc, it.args, (ref immutable ConcreteExpr arg) =>
 				reprOfConcreteExpr(alloc, arg))]),
+		(ref immutable ConcreteExprKind.CreateUnion it) =>
+			reprRecord(alloc, "union", [
+				reprNat(it.memberIndex),
+				reprOfConcreteExpr(alloc, it.arg)]),
 		(ref immutable ConcreteExprKind.Lambda it) =>
 			reprRecord(alloc, "lambda", [
 				reprNat(it.memberIndex),
@@ -303,6 +307,5 @@ immutable(Repr) reprOfConcreteExprKind(ref Alloc alloc, ref immutable ConcreteEx
 		(ref immutable ConcreteExprKind.RecordFieldGet it) =>
 			reprRecord(alloc, "get-field", [reprOfConcreteExpr(alloc, it.target), reprSym(name(it.field.deref()))]),
 		(ref immutable ConcreteExprKind.Seq it) =>
-			reprRecord(alloc, "seq", [reprOfConcreteExpr(alloc, it.first), reprOfConcreteExpr(alloc, it.then)]),
-	)(a);
+			reprRecord(alloc, "seq", [reprOfConcreteExpr(alloc, it.first), reprOfConcreteExpr(alloc, it.then)]));
 }

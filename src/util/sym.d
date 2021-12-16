@@ -282,7 +282,7 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 }
 
 void eachCharInSym(
-	ref const AllSymbols allSymbols,
+	scope ref const AllSymbols allSymbols,
 	immutable Sym a,
 	scope void delegate(immutable char) @safe @nogc pure nothrow cb,
 ) {
@@ -486,7 +486,7 @@ public immutable(bool) isLongSym(immutable Sym a) {
 	return !isShortSym(a);
 }
 
-@trusted immutable(SafeCStr) asLongSym(ref const AllSymbols allSymbols, immutable Sym a) {
+@trusted immutable(SafeCStr) asLongSym(return scope ref const AllSymbols allSymbols, immutable Sym a) {
 	verify(isLongSym(a));
 	return mutArrAt(allSymbols.largeStrings, safeToSizeT(a.value));
 }
