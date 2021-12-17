@@ -39,19 +39,9 @@ import util.col.dict : getAt, PtrDict;
 import util.col.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
 import util.col.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet;
 import util.col.mutDict : insertOrUpdate, MutSymDict, setInDict;
-import util.opt : force, has, Opt;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
-import util.sym :
-	AllSymbols,
-	eachCharInSym,
-	hashSym,
-	Operator,
-	operatorForSym,
-	shortSym,
-	shortSymValue,
-	Sym,
-	symEq,
-	writeSym;
+import util.sym : AllSymbols, eachCharInSym, hashSym, shortSym, shortSymValue, Sym, symEq, writeSym;
 import util.writer : writeChar, writeNat, Writer, writeStatic;
 
 struct MangledNames {
@@ -344,79 +334,49 @@ void addToPrevOrIndex(T)(
 }
 
 public void writeMangledName(ref Writer writer, scope ref immutable MangledNames mangledNames, immutable Sym a) {
-	immutable Opt!Operator operator = operatorForSym(a);
-	if (has(operator))
-		writeStatic(writer, mangleOperator(force(operator)));
-	else {
-		if (conflictsWithCName(a))
-			writeChar(writer, '_');
-		eachCharInSym(mangledNames.allSymbols.deref(), a, (immutable char c) {
-			switch (c) {
-				case '-':
-					writeChar(writer, '_');
-					break;
-				case '?':
-					writeStatic(writer, "__q");
-					break;
-				case '!':
-					writeStatic(writer, "__e");
-					break;
-				default:
-					writeChar(writer, c);
-					break;
-			}
-		});
-	}
+	if (conflictsWithCName(a))
+		writeChar(writer, '_');
+	eachCharInSym(mangledNames.allSymbols.deref(), a, (immutable char c) {
+		immutable Opt!string mangled = mangleChar(c);
+		if (has(mangled))
+			writeStatic(writer, force(mangled));
+		else
+			writeChar(writer, c);
+	});
 }
 
-immutable(string) mangleOperator(immutable Operator a) {
-	final switch (a) {
-		case Operator.concatEquals:
-			return "_concatEquals";
-		case Operator.or2:
-			return "_or2";
-		case Operator.and2:
-			return "_and2";
-		case Operator.equal:
-			return "_equal";
-		case Operator.notEqual:
-			return "_notEqual";
-		case Operator.less:
-			return "_less";
-		case Operator.lessOrEqual:
-			return "_lessOrEqual";
-		case Operator.greater:
-			return "_greater";
-		case Operator.greaterOrEqual:
-			return "_greaterOrEqual";
-		case Operator.compare:
-			return "_compare";
-		case Operator.or1:
-			return "_or";
-		case Operator.xor1:
-			return "_xor";
-		case Operator.and1:
-			return "_and";
-		case Operator.range:
-			return "_range";
-		case Operator.tilde:
-			return "_tilde";
-		case Operator.shiftLeft:
-			return "_shiftLeft";
-		case Operator.shiftRight:
-			return "_shiftRight";
-		case Operator.plus:
-			return "_plus";
-		case Operator.minus:
-			return "_minus";
-		case Operator.times:
-			return "_times";
-		case Operator.divide:
-			return "_divide";
-		case Operator.exponent:
-			return "_exponent";
-		case Operator.not:
-			return "_not";
+immutable(Opt!string) mangleChar(immutable char a) {
+	switch (a) {
+		case '~':
+			return some("__t");
+		case '!':
+			return some("__b");
+		case '^':
+			return some("__x");
+		case '&':
+			return some("__a");
+		case '*':
+			return some("__m");
+		case '-':
+			return some("__s");
+		case '+':
+			return some("__p");
+		case '=':
+			return some("__e");
+		case '|':
+			return some("__o");
+		case '<':
+			return some("__l");
+		case '.':
+			return some("__r");
+		case '>':
+			return some("__g");
+		case '/':
+			return some("__d");
+		case '?':
+			return some("__q");
+		default:
+			return none!string;
 	}
 }
 
