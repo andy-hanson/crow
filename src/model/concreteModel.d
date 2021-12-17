@@ -491,10 +491,6 @@ struct ConcreteLocal {
 	immutable ConcreteType type;
 }
 
-struct ConcreteFunExprBody {
-	immutable ConcreteExpr expr;
-}
-
 struct ConcreteFunBody {
 	@safe @nogc pure nothrow:
 
@@ -531,7 +527,7 @@ struct ConcreteFunBody {
 		enumFunction,
 		extern_,
 		flagsFn,
-		concreteFunExprBody,
+		concreteExpr,
 		recordFieldGet,
 		recordFieldSet,
 	}
@@ -544,7 +540,7 @@ struct ConcreteFunBody {
 		immutable EnumFunction enumFunction;
 		immutable Extern extern_;
 		immutable FlagsFn flagsFn;
-		immutable ConcreteFunExprBody concreteFunExprBody;
+		immutable ConcreteExpr concreteExpr;
 		immutable RecordFieldGet recordFieldGet;
 		immutable RecordFieldSet recordFieldSet;
 	}
@@ -556,8 +552,8 @@ struct ConcreteFunBody {
 	immutable this(immutable CreateUnion a) { kind = Kind.createUnion; createUnion = a; }
 	immutable this(immutable EnumFunction a) { kind = Kind.enumFunction; enumFunction = a; }
 	@trusted immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
-	@trusted immutable this(immutable ConcreteFunExprBody a) {
-		kind = Kind.concreteFunExprBody; concreteFunExprBody = a;
+	@trusted immutable this(immutable ConcreteExpr a) {
+		kind = Kind.concreteExpr; concreteExpr = a;
 	}
 	immutable this(immutable FlagsFn a) { kind = Kind.flagsFn; flagsFn = a; }
 	immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
@@ -578,19 +574,19 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref
 	return a.extern_;
 }
 
-@trusted immutable(T) matchConcreteFunBody(
-	T,
-	alias cbBuiltin,
-	alias cbCreateEnum,
-	alias cbCreateRecord,
-	alias cbCreateUnion,
-	alias cbEnumFunction,
-	alias cbExtern,
-	alias cbConcreteFunExprBody,
-	alias cbFlagsFn,
-	alias cbRecordFieldGet,
-	alias cbRecordFieldSet,
-)(ref immutable ConcreteFunBody a) {
+@trusted immutable(T) matchConcreteFunBody(T)(
+	ref immutable ConcreteFunBody a,
+	scope immutable(T) delegate(ref immutable ConcreteFunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope immutable(T) delegate(ref immutable ConcreteFunBody.CreateEnum) @safe @nogc pure nothrow cbCreateEnum,
+	scope immutable(T) delegate(ref immutable ConcreteFunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
+	scope immutable(T) delegate(ref immutable ConcreteFunBody.CreateUnion) @safe @nogc pure nothrow cbCreateUnion,
+	scope immutable(T) delegate(immutable EnumFunction) @safe @nogc pure nothrow cbEnumFunction,
+	scope immutable(T) delegate(ref immutable ConcreteFunBody.Extern) @safe @nogc pure nothrow cbExtern,
+	scope immutable(T) delegate(ref immutable ConcreteExpr) @safe @nogc pure nothrow cbConcreteExpr,
+	scope immutable(T) delegate(ref immutable ConcreteFunBody.FlagsFn) @safe @nogc pure nothrow cbFlagsFn,
+	scope immutable(T) delegate(ref immutable ConcreteFunBody.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
+	scope immutable(T) delegate(ref immutable ConcreteFunBody.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
+) {
 	final switch (a.kind) {
 		case ConcreteFunBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
@@ -606,8 +602,8 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref
 			return cbExtern(a.extern_);
 		case ConcreteFunBody.Kind.flagsFn:
 			return cbFlagsFn(a.flagsFn);
-		case ConcreteFunBody.Kind.concreteFunExprBody:
-			return cbConcreteFunExprBody(a.concreteFunExprBody);
+		case ConcreteFunBody.Kind.concreteExpr:
+			return cbConcreteExpr(a.concreteExpr);
 		case ConcreteFunBody.Kind.recordFieldGet:
 			return cbRecordFieldGet(a.recordFieldGet);
 		case ConcreteFunBody.Kind.recordFieldSet:

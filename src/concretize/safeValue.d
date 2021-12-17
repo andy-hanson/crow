@@ -16,7 +16,6 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
-	ConcreteFunExprBody,
 	ConcreteFunSource,
 	ConcreteLambdaImpl,
 	ConcreteParam,
@@ -47,7 +46,7 @@ immutable(ConcreteFunBody) bodyForSafeValue(
 	immutable ConcreteType type,
 ) {
 	Ctx ctx = Ctx(ptrTrustMe_mut(concretizeCtx), containingFun);
-	return immutable ConcreteFunBody(immutable ConcreteFunExprBody(safeValueForType(alloc, ctx, range, type)));
+	return immutable ConcreteFunBody(safeValueForType(alloc, ctx, range, type));
 }
 
 private:
@@ -195,9 +194,7 @@ immutable(ConcreteExpr) safeFunValue(
 		NeedsCtx.yes,
 		some(closureParam(alloc, closureType)),
 		params));
-	setBody(
-		fun.deref(),
-		immutable ConcreteFunBody(immutable ConcreteFunExprBody(safeValueForType(alloc, ctx, range, returnType))));
+	setBody(fun.deref(), immutable ConcreteFunBody(safeValueForType(alloc, ctx, range, returnType)));
 	immutable Ptr!ConcreteFun impl = castImmutable(fun);
 	addConcreteFun(alloc, ctx.concretizeCtx, impl);
 	immutable size_t id = nextLambdaImplId(

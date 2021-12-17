@@ -18,7 +18,6 @@ import model.concreteModel :
 	ConcreteFieldSource,
 	ConcreteFun,
 	ConcreteFunBody,
-	ConcreteFunExprBody,
 	concreteFunRange,
 	ConcreteFunSource,
 	ConcreteLambdaImpl,
@@ -530,7 +529,7 @@ immutable(Ptr!ConcreteFun) concreteFunForTest(
 		emptyArr!(Ptr!ConcreteFun));
 	immutable ConcreteExpr body_ =
 		concretizeExpr(alloc, ctx, containing, castImmutable(res), test.body_);
-	lateSet(res.deref()._body_, immutable ConcreteFunBody(immutable ConcreteFunExprBody(body_)));
+	lateSet(res.deref()._body_, immutable ConcreteFunBody(body_));
 	addConcreteFun(alloc, ctx, castImmutable(res));
 	return castImmutable(res);
 }
@@ -838,8 +837,7 @@ void fillInConcreteFunBody(
 				return immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(e.isGlobal));
 			},
 			(ref immutable Expr e) =>
-				immutable ConcreteFunBody(immutable ConcreteFunExprBody(
-					concretizeExpr(alloc, ctx, inputs.containing, castImmutable(cf), e))),
+				immutable ConcreteFunBody(concretizeExpr(alloc, ctx, inputs.containing, castImmutable(cf), e)),
 			(immutable FlagsFunction it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.FlagsFn(
 					getAllValue(asFlags(body_(mustBeNonPointer(castImmutable(cf).deref().returnType).deref()))),
@@ -874,8 +872,8 @@ immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(
 				constantSym(alloc, ctx, member.name),
 				immutable Constant(immutable Constant.Integral(member.value.value))]))));
 	immutable Constant arr = getConstantArr(alloc, ctx.allConstants, arrayStruct, elements);
-	return immutable ConcreteFunBody(immutable ConcreteFunExprBody(
-		immutable ConcreteExpr(returnType, FileAndRange.empty, immutable ConcreteExprKind(arr))));
+	return immutable ConcreteFunBody(
+		immutable ConcreteExpr(returnType, FileAndRange.empty, immutable ConcreteExprKind(arr)));
 }
 
 immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType type) {
@@ -911,11 +909,10 @@ immutable(ConcreteFunBody) bodyForAllTests(ref Alloc alloc, ref ConcretizeCtx ct
 		mustBeNonPointer(returnType),
 		mapWithIndex(alloc, allTests, (immutable size_t testIndex, ref immutable Test it) =>
 			immutable Constant(immutable Constant.FunPtr(concreteFunForTest(alloc, ctx, it, testIndex)))));
-	immutable ConcreteExpr body_ = immutable ConcreteExpr(
+	return immutable ConcreteFunBody(immutable ConcreteExpr(
 		returnType,
 		FileAndRange.empty,
-		immutable ConcreteExprKind(arr));
-	return immutable ConcreteFunBody(immutable ConcreteFunExprBody(body_));
+		immutable ConcreteExprKind(arr)));
 }
 
 immutable(ConcreteParam[]) concretizeParams(

@@ -45,7 +45,6 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
-	ConcreteFunExprBody,
 	ConcreteFunSource,
 	ConcreteLambdaImpl,
 	ConcreteLocal,
@@ -654,8 +653,8 @@ immutable(AllLowFuns) getAllLowFuns(
 	Late!(immutable LowType) markCtxTypeLate = late!(immutable LowType);
 
 	foreach (immutable Ptr!ConcreteFun fun; program.allFuns) {
-		immutable Opt!LowFunIndex opIndex = matchConcreteFunBody!(
-			immutable Opt!LowFunIndex,
+		immutable Opt!LowFunIndex opIndex = matchConcreteFunBody!(immutable Opt!LowFunIndex)(
+			body_(fun.deref()),
 			(ref immutable ConcreteFunBody.Builtin it) {
 				if (isCallWithCtxFun(fun.deref())) {
 					immutable Ptr!ConcreteStruct funStruct =
@@ -696,15 +695,14 @@ immutable(AllLowFuns) getAllLowFuns(
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.Extern) =>
 				some(addLowFun(immutable LowFunCause(fun))),
-			(ref immutable ConcreteFunExprBody) =>
+			(ref immutable(ConcreteExpr)) =>
 				some(addLowFun(immutable LowFunCause(fun))),
 			(ref immutable ConcreteFunBody.FlagsFn) =>
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.RecordFieldGet) =>
 				none!LowFunIndex,
 			(ref immutable ConcreteFunBody.RecordFieldSet) =>
-				none!LowFunIndex,
-		)(body_(fun.deref()));
+				none!LowFunIndex);
 		if (concreteFunWillBecomeNonExternLowFun(fun.deref()))
 			verify(has(opIndex));
 		if (has(opIndex))
@@ -754,8 +752,8 @@ immutable(AllLowFuns) getAllLowFuns(
 }
 
 public immutable(bool) concreteFunWillBecomeNonExternLowFun()(ref immutable ConcreteFun a) {
-	return matchConcreteFunBody!(
-		immutable bool,
+	return matchConcreteFunBody!(immutable bool)(
+		body_(a),
 		(ref immutable ConcreteFunBody.Builtin it) =>
 			isCallWithCtxFun(a) || isMarkVisitFun(a),
 		(ref immutable ConcreteFunBody.CreateEnum) =>
@@ -768,15 +766,14 @@ public immutable(bool) concreteFunWillBecomeNonExternLowFun()(ref immutable Conc
 			false,
 		(ref immutable ConcreteFunBody.Extern) =>
 			false,
-		(ref immutable ConcreteFunExprBody) =>
+		(ref immutable(ConcreteExpr)) =>
 			true,
 		(ref immutable ConcreteFunBody.FlagsFn) =>
 			false,
 		(ref immutable ConcreteFunBody.RecordFieldGet) =>
 			false,
 		(ref immutable ConcreteFunBody.RecordFieldSet) =>
-			false,
-	)(body_(a));
+			false);
 }
 
 immutable(LowFun) lowFunFromCause(
@@ -966,8 +963,8 @@ immutable(LowFunBody) getLowFunBody(
 	ref immutable ConcreteFun cf,
 	ref immutable ConcreteFunBody a,
 ) {
-	return matchConcreteFunBody!(
-		immutable LowFunBody,
+	return matchConcreteFunBody!(immutable LowFunBody)(
+		a,
 		(ref immutable ConcreteFunBody.Builtin it) =>
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.CreateEnum) =>
@@ -980,7 +977,7 @@ immutable(LowFunBody) getLowFunBody(
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.Extern it) =>
 			immutable LowFunBody(immutable LowFunBody.Extern(it.isGlobal)),
-		(ref immutable ConcreteFunExprBody it) {
+		(ref immutable ConcreteExpr it) {
 			GetLowExprCtx exprCtx = GetLowExprCtx(
 				thisFunIndex,
 				ptrTrustMe(allTypes),
@@ -994,7 +991,7 @@ immutable(LowFunBody) getLowFunBody(
 				closureParam,
 				firstRegularParam,
 				false);
-			immutable LowExpr expr = getLowExpr(alloc, exprCtx, it.expr, ExprPos.tail);
+			immutable LowExpr expr = getLowExpr(alloc, exprCtx, it, ExprPos.tail);
 			return immutable LowFunBody(immutable LowFunExprBody(exprCtx.hasTailRecur, expr));
 		},
 		(ref immutable ConcreteFunBody.FlagsFn) =>
@@ -1002,8 +999,7 @@ immutable(LowFunBody) getLowFunBody(
 		(ref immutable ConcreteFunBody.RecordFieldGet) =>
 			unreachable!(immutable LowFunBody),
 		(ref immutable ConcreteFunBody.RecordFieldSet) =>
-			unreachable!(immutable LowFunBody),
-	)(a);
+			unreachable!(immutable LowFunBody));
 }
 
 struct GetLowExprCtx {
@@ -1225,8 +1221,8 @@ immutable(LowExprKind) getCallSpecial(
 	ref immutable LowType type,
 	ref immutable ConcreteExprKind.Call a,
 ) {
-	return matchConcreteFunBody!(
-		immutable LowExprKind,
+	return matchConcreteFunBody!(immutable LowExprKind)(
+		body_(a.called.deref()),
 		(ref immutable ConcreteFunBody.Builtin) {
 			return getCallBuiltinExpr(alloc, ctx, exprPos, range, type, a);
 		},
@@ -1251,7 +1247,7 @@ immutable(LowExprKind) getCallSpecial(
 			genEnumFunction(alloc, ctx, it, a.args),
 		(ref immutable ConcreteFunBody.Extern) =>
 			unreachable!(immutable LowExprKind),
-		(ref immutable ConcreteFunExprBody) =>
+		(ref immutable(ConcreteExpr)) =>
 			unreachable!(immutable LowExprKind),
 		(ref immutable ConcreteFunBody.FlagsFn it) {
 			final switch (it.fn) {
@@ -1277,8 +1273,7 @@ immutable(LowExprKind) getCallSpecial(
 				getLowExpr(alloc, ctx, a.args[0], ExprPos.nonTail),
 				it.fieldIndex,
 				getLowExpr(alloc, ctx, a.args[1], ExprPos.nonTail))));
-		},
-	)(body_(a.called.deref()));
+		});
 }
 
 immutable(LowExprKind) genFlagsNegate(

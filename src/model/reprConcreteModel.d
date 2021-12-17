@@ -9,7 +9,6 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
-	ConcreteFunExprBody,
 	ConcreteFunSource,
 	ConcreteLocal,
 	ConcreteParam,
@@ -198,8 +197,8 @@ public immutable(Repr) reprOfConcreteParamRef(ref immutable ConcreteParam a) {
 }
 
 immutable(Repr) reprOfConcreteFunBody(ref Alloc alloc, ref immutable ConcreteFunBody a) {
-	return matchConcreteFunBody!(
-		immutable Repr,
+	return matchConcreteFunBody!(immutable Repr)(
+		a,
 		(ref immutable ConcreteFunBody.Builtin it) =>
 			reprOfConcreteFunBodyBuiltin(alloc, it),
 		(ref immutable ConcreteFunBody.CreateEnum it) =>
@@ -213,8 +212,8 @@ immutable(Repr) reprOfConcreteFunBody(ref Alloc alloc, ref immutable ConcreteFun
 			reprRecord(alloc, "enum-fn", [reprSym(enumFunctionName(it))]),
 		(ref immutable ConcreteFunBody.Extern it) =>
 			reprSym("extern"),
-		(ref immutable ConcreteFunExprBody it) =>
-			reprOfConcreteFunExprBody(alloc, it),
+		(ref immutable ConcreteExpr it) =>
+			reprOfConcreteExpr(alloc, it),
 		(ref immutable ConcreteFunBody.FlagsFn it) =>
 			reprRecord(alloc, "flags-fn", [
 				reprNat(it.allValue),
@@ -223,17 +222,12 @@ immutable(Repr) reprOfConcreteFunBody(ref Alloc alloc, ref immutable ConcreteFun
 		(ref immutable ConcreteFunBody.RecordFieldGet it) =>
 			reprRecord(alloc, "field-get", [reprNat(it.fieldIndex)]),
 		(ref immutable ConcreteFunBody.RecordFieldSet it) =>
-			reprRecord(alloc, "field-set", [reprNat(it.fieldIndex)]),
-	)(a);
+			reprRecord(alloc, "field-set", [reprNat(it.fieldIndex)]));
 }
 
 immutable(Repr) reprOfConcreteFunBodyBuiltin(ref Alloc alloc, ref immutable ConcreteFunBody.Builtin a) {
 	return reprRecord(alloc, "builtin", [reprArr(alloc, a.typeArgs, (ref immutable ConcreteType it) =>
 			reprOfConcreteType(alloc, it))]);
-}
-
-immutable(Repr) reprOfConcreteFunExprBody(ref Alloc alloc, ref immutable ConcreteFunExprBody a) {
-	return reprRecord(alloc, "expr-body", [reprOfConcreteExpr(alloc, a.expr)]);
 }
 
 public immutable(Repr) reprOfConcreteLocalRef(ref immutable ConcreteLocal a) {
