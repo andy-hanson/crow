@@ -23,7 +23,7 @@ import
 	crow/col/sorted-set: new, sorted-set
 	crow/col/stack: new, stack
 	crow/col/queue: new, queue
-	crow/crypto/password: password-hash, quality-moderate
+	crow/crypto/password: quality-moderate
 	crow/io/time-format: gmt
 	crow/iter: iterator, new
 	crow/json: json-str
@@ -36,7 +36,7 @@ import
 
 main fut nat(_ str[]) summon
 	drop: ().from-bytes :: nat8[]
-	drop: "" password-hash quality-moderate
+	drop: quality-moderate
 	drop: () :: compact-dict<nat, nat>
 	drop: () :: compact-sorted-dict<nat, nat>
 	drop: () :: deque<nat>
