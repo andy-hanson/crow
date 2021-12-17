@@ -14,9 +14,9 @@ import model.lowModel :
 	LowUnion,
 	matchLowTypeCombinePtr;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : setAt;
-import util.collection.arrUtil : every, fillArr_mut;
-import util.collection.fullIndexDict :
+import util.col.arr : setAt;
+import util.col.arrUtil : every, fillArr_mut;
+import util.col.fullIndexDict :
 	fullIndexDictEachKey,
 	fullIndexDictEachValue,
 	fullIndexDictGet,

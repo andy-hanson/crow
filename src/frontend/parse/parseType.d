@@ -20,10 +20,10 @@ import frontend.parse.lexer :
 	tryTakeOperator,
 	tryTakeToken;
 import model.parseDiag : ParseDiag;
-import util.collection.arr : ArrWithSize, emptyArrWithSize;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrUtil : arrWithSizeLiteral;
-import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
+import util.col.arr : ArrWithSize, emptyArrWithSize;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrUtil : arrWithSizeLiteral;
+import util.col.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
 import util.memory : allocate;
 import util.opt : nonePtr, OptPtr, somePtr;
 import util.sourceRange : Pos, RangeWithinFile;

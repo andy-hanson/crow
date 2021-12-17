@@ -3,7 +3,7 @@ module test.testSym;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.collection.str : strEq;
+import util.col.str : strEq;
 import util.opt : force, Opt;
 import util.sym :
 	AllSymbols,

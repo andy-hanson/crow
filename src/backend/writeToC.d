@@ -62,10 +62,10 @@ import model.lowModel :
 import model.model : EnumValue, name;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : empty, emptyArr, only, sizeEq;
-import util.collection.arrUtil : arrLiteral, every, map, zip;
-import util.collection.dict : mustGetAt;
-import util.collection.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey, fullIndexDictGet, fullIndexDictGetPtr;
+import util.col.arr : empty, emptyArr, only, sizeEq;
+import util.col.arrUtil : arrLiteral, every, map, zip;
+import util.col.dict : mustGetAt;
+import util.col.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has, some;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sym : AllSymbols;

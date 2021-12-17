@@ -70,9 +70,9 @@ import model.model :
 	typeParams,
 	worstCasePurity;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, emptyArr, emptyArrWithSize, only, only_const, ptrAt, toArr;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrUtil :
+import util.col.arr : empty, emptyArr, emptyArrWithSize, only, only_const, ptrAt, toArr;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrUtil :
 	exists,
 	exists_const,
 	fillArr_mut,
@@ -81,9 +81,9 @@ import util.collection.arrUtil :
 	map_const,
 	mapOrNone_const,
 	sum;
-import util.collection.multiDict : multiDictGetAt;
-import util.collection.mutArr : moveToArr, MutArr, newUninitializedMutArr, peek, setAt;
-import util.collection.mutMaxArr :
+import util.col.multiDict : multiDictGetAt;
+import util.col.mutArr : moveToArr, MutArr, newUninitializedMutArr, peek, setAt;
+import util.col.mutMaxArr :
 	filterUnordered,
 	isEmpty,
 	MutMaxArr,

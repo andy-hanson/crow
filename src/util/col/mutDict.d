@@ -1,12 +1,12 @@
-module util.collection.mutDict;
+module util.col.mutDict;
 
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateT;
-import util.collection.arr : empty, emptyArr_mut;
-import util.collection.arrUtil : map_mut;
-import util.collection.dict : Dict;
-import util.collection.str : strEq, hashStr;
+import util.col.arr : empty, emptyArr_mut;
+import util.col.arrUtil : map_mut;
+import util.col.dict : Dict;
+import util.col.str : strEq, hashStr;
 import util.hash : Hasher;
 import util.memory : initMemory, overwriteMemory;
 import util.opt : force, has, none, noneConst, Opt, some, someConst, someMut;

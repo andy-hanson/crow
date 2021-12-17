@@ -26,8 +26,8 @@ import model.model :
 	RecordField,
 	StructInst,
 	summon;
-import util.collection.arr : only;
-import util.collection.dict : PtrDict;
+import util.col.arr : only;
+import util.col.dict : PtrDict;
 import util.hash : hashBool, Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;

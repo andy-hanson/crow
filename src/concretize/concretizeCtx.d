@@ -78,9 +78,9 @@ import model.model :
 	UnionMember,
 	worsePurity;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, emptyArr, only, ptrAt, sizeEq;
-import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.collection.arrUtil :
+import util.col.arr : empty, emptyArr, only, ptrAt, sizeEq;
+import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
+import util.col.arrUtil :
 	arrEqual,
 	arrLiteral,
 	arrMax,
@@ -92,8 +92,8 @@ import util.collection.arrUtil :
 	map,
 	mapPtrsWithIndex,
 	mapWithIndex;
-import util.collection.mutArr : MutArr, mutArrIsEmpty, push;
-import util.collection.mutDict :
+import util.col.mutArr : MutArr, mutArrIsEmpty, push;
+import util.col.mutDict :
 	addToMutDict,
 	getOrAdd,
 	getOrAddAndDidAdd,
@@ -101,7 +101,7 @@ import util.collection.mutDict :
 	MutDict,
 	MutPtrDict,
 	ValueAndDidAdd;
-import util.collection.mutSet : addToMutSetOkIfPresent, MutSymSet;
+import util.col.mutSet : addToMutSetOkIfPresent, MutSymSet;
 import util.hash : Hasher;
 import util.late : Late, lateIsSet, lateSet, lateSetMaybeOverwrite, lateSetOverwrite, lazilySet;
 import util.memory : allocate, allocateMut;

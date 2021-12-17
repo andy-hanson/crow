@@ -1,9 +1,9 @@
-module util.collection.mutSet;
+module util.col.mutSet;
 
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.mutDict : keysArray, MutDict, setInDict;
+import util.col.mutDict : keysArray, MutDict, setInDict;
 import util.sym : hashSym, Sym, symEq;
 
 private struct MutSet(T, alias equal, alias hash) {

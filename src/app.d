@@ -44,10 +44,10 @@ import model.model : AbsolutePathsGetter, getAbsolutePath, hasDiags;
 import test.test : test;
 import util.alloc.alloc : Alloc, allocateBytes, freeBytes, TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.collection.arr : empty;
-import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.collection.arrUtil : prepend, zipImpureSystem;
-import util.collection.str :
+import util.col.arr : empty;
+import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
+import util.col.arrUtil : prepend, zipImpureSystem;
+import util.col.str :
 	catToSafeCStr,
 	copyToSafeCStr,
 	CStr,
@@ -58,7 +58,7 @@ import util.collection.str :
 	strOfCStr,
 	strToCStr,
 	strOfSafeCStr;
-import util.collection.tempStr : copyTempStrToSafeCStr, pushToTempStr, reduceSize, TempStr, tempStrBegin, tempStrSize;
+import util.col.tempStr : copyTempStrToSafeCStr, pushToTempStr, reduceSize, TempStr, tempStrBegin, tempStrSize;
 import util.conv : bitsOfFloat64, float32OfBits, float64OfBits, safeToSizeT;
 import util.dbg : Debug;
 import util.opt : force, forceOrTodo, has, none, Opt, some;

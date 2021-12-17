@@ -3,7 +3,7 @@ module test.testPath;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.collection.str : safeCStr, strEq;
+import util.col.str : safeCStr, strEq;
 import util.comparison : Comparison;
 import util.path : childPath, comparePath, AllPaths, Path, pathToStr, rootPath;
 import util.ptr : ptrTrustMe_mut;

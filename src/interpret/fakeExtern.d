@@ -5,7 +5,7 @@ module interpret.fakeExtern;
 import interpret.extern_ : DynCallType, Extern, TimeSpec;
 import lib.compiler : ExitCode;
 import util.alloc.alloc : Alloc, allocateBytes;
-import util.collection.mutArr : moveToArr, MutArr, pushAll;
+import util.col.mutArr : moveToArr, MutArr, pushAll;
 import util.ptr : Ptr;
 import util.sym : Sym;
 import util.util : todo, verify;

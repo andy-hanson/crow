@@ -5,8 +5,8 @@ module test.testServer;
 import lib.server : addOrChangeFile, getFile, Server;
 import test.testUtil : Test;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.collection.arrUtil : fillArrUninitialized;
-import util.collection.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
+import util.col.arrUtil : fillArrUninitialized;
+import util.col.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
 import util.path : StorageKind;
 import util.util : verify;
 

@@ -36,10 +36,10 @@ import model.model :
 	worsePurity,
 	worstCasePurity;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : ptrAt, sizeEq;
-import util.collection.arrUtil : arrLiteral, fold, map, mapWithSize;
-import util.collection.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
-import util.collection.mutArr : MutArr, push;
+import util.col.arr : ptrAt, sizeEq;
+import util.col.arrUtil : arrLiteral, fold, map, mapWithSize;
+import util.col.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
+import util.col.mutArr : MutArr, push;
 import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, noneMut, Opt, some, someConst, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;

@@ -1,7 +1,7 @@
 module util.perf;
 
 import util.alloc.alloc : Alloc, curBytes;
-import util.collection.arrUtil : sortInPlace;
+import util.col.arrUtil : sortInPlace;
 import util.comparison : compareUlong, oppositeComparison;
 import util.util : verify;
 

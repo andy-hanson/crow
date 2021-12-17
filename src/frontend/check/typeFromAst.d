@@ -33,9 +33,9 @@ import model.model :
 	TypeParam,
 	typeParams;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, toArr;
-import util.collection.arrUtil : arrLiteral, fillArr, find, findPtr, map;
-import util.collection.dict : getAt;
+import util.col.arr : empty, toArr;
+import util.col.arrUtil : arrLiteral, fillArr, find, findPtr, map;
+import util.col.dict : getAt;
 import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;

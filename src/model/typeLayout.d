@@ -13,8 +13,8 @@ import model.lowModel :
 	matchLowTypeCombinePtr,
 	PrimitiveType,
 	typeSize;
-import util.collection.arrUtil : every, map;
-import util.collection.fullIndexDict : fullIndexDictGet;
+import util.col.arrUtil : every, map;
+import util.col.fullIndexDict : fullIndexDictGet;
 import util.opt : none, Opt, some;
 import util.util : divRoundUp;
 

@@ -64,10 +64,10 @@ import frontend.parse.lexer :
 import frontend.parse.parseType : parseType, parseTypeRequireBracket, tryParseTypeArgsForExpr;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : ArrWithSize, empty, emptyArr, emptyArrWithSize, only, toArr;
-import util.collection.arrUtil : append, arrLiteral, arrWithSizeLiteral, prepend;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
+import util.col.arr : ArrWithSize, empty, emptyArr, emptyArrWithSize, only, toArr;
+import util.col.arrUtil : append, arrLiteral, arrWithSizeLiteral, prepend;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
 import util.memory : allocate;
 import util.opt : force, has, none, nonePtr, Opt, OptPtr, some, somePtr;
 import util.sourceRange : Pos, RangeWithinFile;

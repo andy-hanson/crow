@@ -5,12 +5,12 @@ module model.model;
 import model.constant : Constant;
 import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.alloc.alloc : Alloc;
-import util.collection.arr : ArrWithSize, empty, emptyArr, only, sizeEq, toArr;
-import util.collection.arrUtil : arrEqual;
-import util.collection.dict : SymDict;
-import util.collection.fullIndexDict : FullIndexDict;
-import util.collection.mutArr : MutArr;
-import util.collection.str : SafeCStr;
+import util.col.arr : ArrWithSize, empty, emptyArr, only, sizeEq, toArr;
+import util.col.arrUtil : arrEqual;
+import util.col.dict : SymDict;
+import util.col.fullIndexDict : FullIndexDict;
+import util.col.mutArr : MutArr;
+import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;

@@ -1,9 +1,9 @@
-module util.collection.dict;
+module util.col.dict;
 
 @safe @nogc pure nothrow:
 
-import util.collection.mutDict : getAt_mut, hasKey_mut, mustGetAt_mut, mutDictEach, MutDict;
-public import util.collection.mutDict : KeyValuePair;
+import util.col.mutDict : getAt_mut, hasKey_mut, mustGetAt_mut, mutDictEach, MutDict;
+public import util.col.mutDict : KeyValuePair;
 import util.opt : Opt;
 import util.ptr : hashPtr, Ptr, ptrEquals;
 import util.sym : hashSym, Sym, symEq;

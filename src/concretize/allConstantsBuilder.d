@@ -19,10 +19,10 @@ import model.concreteModel :
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantEqual;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, only;
-import util.collection.arrUtil : arrEqual, arrLiteral, findIndex_const, map, mapOp;
-import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push, tempAsArr;
-import util.collection.mutDict :
+import util.col.arr : empty, only;
+import util.col.arrUtil : arrEqual, arrLiteral, findIndex_const, map, mapOp;
+import util.col.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push, tempAsArr;
+import util.col.mutDict :
 	getOrAdd,
 	mapToArr_mut,
 	MutDict,
@@ -32,7 +32,7 @@ import util.collection.mutDict :
 	MutStringDict,
 	MutSymDict,
 	valuesArray;
-import util.collection.str : hashStr, strEq;
+import util.col.str : hashStr, strEq;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe_mut;

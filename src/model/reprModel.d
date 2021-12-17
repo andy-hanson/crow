@@ -49,10 +49,10 @@ import model.model :
 	Visibility;
 import model.reprConstant : reprOfConstant;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrUtil : map;
-import util.collection.str : safeCStrIsEmpty;
+import util.col.arr : empty;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrUtil : map;
+import util.col.str : safeCStrIsEmpty;
 import util.opt : force;
 import util.ptr : Ptr, ptrTrustMe;
 import util.repr :

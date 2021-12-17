@@ -51,9 +51,9 @@ import model.lowModel :
 	PrimitiveType;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.collection.arr : empty, emptyArr;
-import util.collection.arrUtil : map, mapWithIndex, zip;
-import util.collection.fullIndexDict :
+import util.col.arr : empty, emptyArr;
+import util.col.arrUtil : map, mapWithIndex, zip;
+import util.col.fullIndexDict :
 	FullIndexDict,
 	fullIndexDictCastImmutable,
 	fullIndexDictCastImmutable2,
@@ -63,7 +63,7 @@ import util.collection.fullIndexDict :
 	fullIndexDictZip3,
 	mapFullIndexDict,
 	mapFullIndexDict_mut;
-import util.collection.str : CStr;
+import util.col.str : CStr;
 import util.opt : force, forcePtr, has, none, nonePtr_mut, Opt, OptPtr, some, somePtr_mut;
 import util.ptr : castImmutable, Ptr, ptrTrustMe_mut;
 import util.sym : AllSymbols, writeSym;

@@ -29,9 +29,9 @@ import model.lowModel :
 	UpdateParam;
 import model.reprConcreteModel : reprOfConcreteStructRef;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : sizeEq;
-import util.collection.arrUtil : zip;
-import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet, fullIndexDictGetPtr;
+import util.col.arr : sizeEq;
+import util.col.arrUtil : zip;
+import util.col.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has;
 import util.ptr : Ptr, ptrTrustMe;
 import util.repr : Repr, reprRecord, reprSym;

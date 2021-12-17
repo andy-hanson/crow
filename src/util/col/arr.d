@@ -1,4 +1,4 @@
-module util.collection.arr;
+module util.col.arr;
 
 @safe @nogc pure nothrow:
 

@@ -23,7 +23,7 @@ import model.model :
 	StructInst,
 	Type,
 	TypeParam;
-import util.collection.arr : ptrsRange;
+import util.col.arr : ptrsRange;
 import util.opt : force, has, none, Opt, optOr2, some;
 import util.ptr : Ptr;
 import util.sourceRange : hasPos, Pos;

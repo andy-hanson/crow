@@ -4,8 +4,8 @@ module util.writer;
 
 import util.alloc.alloc : Alloc;
 import util.ptr : Ptr;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : CStr, eachChar, SafeCStr;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.str : CStr, eachChar, SafeCStr;
 import util.util : abs, verify;
 
 struct Writer {

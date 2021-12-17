@@ -25,7 +25,7 @@ import model.model :
 	Type,
 	Visibility;
 import model.parseDiag : ParseDiag;
-import util.collection.fullIndexDict : fullIndexDictGet;
+import util.col.fullIndexDict : fullIndexDictGet;
 import util.opt : Opt;
 import util.path : AbsolutePath, AllPaths, PathAndStorageKind;
 import util.ptr : Ptr;

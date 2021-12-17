@@ -118,8 +118,8 @@ import model.lowModel :
 	UpdateParam;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty;
-import util.collection.arrUtil :
+import util.col.arr : empty;
+import util.col.arrUtil :
 	find_mut,
 	makeArr,
 	map,
@@ -128,10 +128,10 @@ import util.collection.arrUtil :
 	mapWithIndex_mut,
 	zip,
 	zipFirstMut;
-import util.collection.dict : mustGetAt;
-import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictZip, mapFullIndexDict_mut;
-import util.collection.mutMaxArr : mustPop, MutMaxArr, push, tempAsArr_mut;
-import util.collection.str : CStr, SafeCStr, strToCStr;
+import util.col.dict : mustGetAt;
+import util.col.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictZip, mapFullIndexDict_mut;
+import util.col.mutMaxArr : mustPop, MutMaxArr, push, tempAsArr_mut;
+import util.col.str : CStr, SafeCStr, strToCStr;
 import util.opt : force, forcePtr, has, nonePtr, nonePtr_mut, Opt, OptPtr, somePtr, somePtr_mut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;

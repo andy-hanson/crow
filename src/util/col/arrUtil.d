@@ -1,8 +1,8 @@
-module util.collection.arrUtil;
+module util.col.arrUtil;
 
 import util.alloc.alloc : Alloc, allocateBytes, allocateT;
-import util.collection.arr : ArrWithSize, empty, ptrAt, ptrsRange, sizeEq, toArr;
-import util.collection.mutArr : mustPop, MutArr, mutArrAt, mutArrSize, setAt;
+import util.col.arr : ArrWithSize, empty, ptrAt, ptrsRange, sizeEq, toArr;
+import util.col.mutArr : mustPop, MutArr, mutArrAt, mutArrSize, setAt;
 import util.comparison : Comparer, Comparison, ConstComparer;
 import util.memory : initMemory, initMemory_mut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;

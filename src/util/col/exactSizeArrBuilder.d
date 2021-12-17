@@ -1,9 +1,9 @@
-module util.collection.exactSizeArrBuilder;
+module util.col.exactSizeArrBuilder;
 
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateBytes;
-import util.collection.arr : arrOfRange_mut;
+import util.col.arr : arrOfRange_mut;
 import util.memory : initMemory_mut, memcpy, memset;
 import util.util : verify;
 

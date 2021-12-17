@@ -5,7 +5,7 @@ module concretize.constantsOrExprs;
 import model.concreteModel : asConstant, ConcreteExpr, isConstant;
 import model.constant : Constant;
 import util.alloc.alloc : Alloc;
-import util.collection.arrUtil : every, map;
+import util.col.arrUtil : every, map;
 
 struct ConstantsOrExprs {
 	@safe @nogc pure nothrow:

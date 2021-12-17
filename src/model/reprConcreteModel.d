@@ -35,7 +35,7 @@ import model.constant : Constant;
 import model.model : EnumFunction, enumFunctionName, flagsFunctionName, FunInst, name, Param;
 import model.reprConstant : reprOfConstant;
 import util.alloc.alloc : Alloc;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.opt : force, has, Opt;
 import util.ptr : Ptr;
 import util.repr :

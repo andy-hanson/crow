@@ -1,9 +1,9 @@
-module util.collection.arrWithSizeBuilder;
+module util.col.arrWithSizeBuilder;
 
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateBytes, freeBytesPartial;
-import util.collection.arr : ArrWithSize, emptyArrWithSize;
+import util.col.arr : ArrWithSize, emptyArrWithSize;
 import util.memory : initMemory;
 import util.util : verify;
 

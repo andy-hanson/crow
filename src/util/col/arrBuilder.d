@@ -1,10 +1,10 @@
-module util.collection.arrBuilder;
+module util.col.arrBuilder;
 
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arrUtil : sortInPlace;
-import util.collection.mutArr : moveToArr, MutArr, mutArrClear, mutArrSize, push, pushAll, tempAsArr, tempAsArr_mut;
+import util.col.arrUtil : sortInPlace;
+import util.col.mutArr : moveToArr, MutArr, mutArrClear, mutArrSize, push, pushAll, tempAsArr, tempAsArr_mut;
 import util.comparison : Comparer;
 
 struct ArrBuilder(T) {

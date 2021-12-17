@@ -6,7 +6,7 @@ import interpret.extern_ : Extern;
 import interpret.fakeExtern : FakeExternResult, withFakeExtern;
 import lib.compiler : ExitCode;
 import test.testUtil : Test;
-import util.collection.str : strEq;
+import util.col.str : strEq;
 import util.util : verify;
 
 void testFakeExtern(ref Test test) {

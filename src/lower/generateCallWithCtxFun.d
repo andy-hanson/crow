@@ -21,9 +21,9 @@ import model.lowModel :
 	LowParamSource,
 	LowType;
 import util.alloc.alloc : Alloc;
-import util.collection.arrUtil : mapWithFirst2, mapZip, prepend;
-import util.collection.dict : mustGetAt;
-import util.collection.fullIndexDict : fullIndexDictGet;
+import util.col.arrUtil : mapWithFirst2, mapZip, prepend;
+import util.col.dict : mustGetAt;
+import util.col.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate;
 import util.opt : some;
 import util.ptr : Ptr;

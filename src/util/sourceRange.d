@@ -3,7 +3,7 @@ module util.sourceRange;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.fullIndexDict : FullIndexDict;
+import util.col.fullIndexDict : FullIndexDict;
 import util.conv : safeToUint, safeToUshort;
 import util.path : PathAndStorageKind;
 import util.repr : Repr, reprNat, reprRecord;

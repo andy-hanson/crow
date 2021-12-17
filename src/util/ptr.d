@@ -2,7 +2,7 @@ module util.ptr;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : ArrWithSize, toArr;
+import util.col.arr : ArrWithSize, toArr;
 import util.hash : Hasher, hashSizeT;
 import util.util : verify;
 

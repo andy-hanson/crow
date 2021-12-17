@@ -3,7 +3,7 @@ module model.constant;
 @safe @nogc pure nothrow:
 
 import model.concreteModel : ConcreteFun;
-import util.collection.arrUtil : eachCorresponds;
+import util.col.arrUtil : eachCorresponds;
 import util.ptr : Ptr, ptrEquals;
 import util.util : verify;
 

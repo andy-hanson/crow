@@ -17,7 +17,7 @@ import test.testTokens : testTokens;
 import test.testUtil : Test;
 import test.testWriter : testWriter;
 import util.alloc.alloc : Alloc;
-import util.collection.str : strEq;
+import util.col.str : strEq;
 import util.dbg : Debug;
 import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe_mut;

@@ -32,7 +32,7 @@ import model.concreteModel :
 import model.constant : Constant;
 import model.model : EnumValue;
 import util.alloc.alloc : Alloc;
-import util.collection.arrUtil : map, mapWithIndex;
+import util.col.arrUtil : map, mapWithIndex;
 import util.memory : allocate, allocateMut;
 import util.opt : force, has, some;
 import util.ptr : castImmutable, Ptr, ptrTrustMe_mut;

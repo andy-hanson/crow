@@ -3,10 +3,10 @@ module util.repr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, emptyArr;
-import util.collection.arrUtil : arrLiteral, map, mapWithIndex;
-import util.collection.fullIndexDict : FullIndexDict;
-import util.collection.str : CStr, SafeCStr, strOfSafeCStr;
+import util.col.arr : empty, emptyArr;
+import util.col.arrUtil : arrLiteral, map, mapWithIndex;
+import util.col.fullIndexDict : FullIndexDict;
+import util.col.str : CStr, SafeCStr, strOfSafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr, ptrTrustMe_mut;

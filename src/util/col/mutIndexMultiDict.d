@@ -1,11 +1,11 @@
-module util.collection.mutIndexMultiDict;
+module util.col.mutIndexMultiDict;
 
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arrUtil : fillArr_mut;
-import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr_mut;
-import util.collection.mutArr : MutArr, push, tempAsArr;
+import util.col.arrUtil : fillArr_mut;
+import util.col.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr_mut;
+import util.col.mutArr : MutArr, push, tempAsArr;
 
 struct MutIndexMultiDict(K, V) {
 	private:

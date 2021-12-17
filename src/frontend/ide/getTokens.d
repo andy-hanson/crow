@@ -54,9 +54,9 @@ import frontend.parse.ast :
 	TypedAst;
 import model.model : Visibility;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : ArrWithSize, empty, toArr;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
+import util.col.arr : ArrWithSize, empty, toArr;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : compareNat32, Comparison;
 import util.conv : safeToUint;
 import util.opt : force, has, Opt, OptPtr, toOpt;

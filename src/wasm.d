@@ -14,7 +14,7 @@ import lib.server :
 	StrParseDiagnostic;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.collection.str : CStr, strToCStr;
+import util.col.str : CStr, strToCStr;
 import util.dbg : Debug;
 import util.memory : utilMemcpy = memcpy, utilMemset = memset;
 import util.path : StorageKind;

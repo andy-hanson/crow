@@ -1,10 +1,10 @@
-module util.collection.str;
+module util.col.str;
 
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateBytes;
-import util.collection.arr : freeArr;
-import util.collection.arrUtil : cat3;
+import util.col.arr : freeArr;
+import util.col.arrUtil : cat3;
 import util.hash : Hasher, hashUbyte;
 import util.memory : memcpy;
 import util.opt : force, has, none, Opt, some;

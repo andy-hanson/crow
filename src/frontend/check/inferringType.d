@@ -33,9 +33,9 @@ import model.model :
 	TypeParam;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.collection.arr : emptyArr, emptyArr_mut, setAt, sizeEq;
-import util.collection.arrUtil : map, mapOrNone, mapZipOrNone;
-import util.collection.mutArr : MutArr;
+import util.col.arr : emptyArr, emptyArr_mut, setAt, sizeEq;
+import util.col.arrUtil : map, mapOrNone, mapZipOrNone;
+import util.col.mutArr : MutArr;
 import util.opt : has, force, none, noneMut, Opt, OptPtr, some, toOpt;
 import util.perf : Perf;
 import util.ptr : Ptr, ptrEquals;

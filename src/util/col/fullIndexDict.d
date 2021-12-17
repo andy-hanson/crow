@@ -1,11 +1,11 @@
-module util.collection.fullIndexDict;
+module util.col.fullIndexDict;
 
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
 import util.conv : safeToUint, safeToUshort;
-import util.collection.arr : castImmutable, emptyArr, ptrAt, setAt;
-import util.collection.arrUtil : mapWithIndex, mapWithIndex_mut;
+import util.col.arr : castImmutable, emptyArr, ptrAt, setAt;
+import util.col.arrUtil : mapWithIndex, mapWithIndex_mut;
 import util.ptr : Ptr;
 import util.util : verify;
 

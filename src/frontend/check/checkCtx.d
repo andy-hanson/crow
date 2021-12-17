@@ -16,9 +16,9 @@ import model.model :
 	StructDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : castImmutable, setAt;
-import util.collection.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
-import util.collection.dict : getAt;
+import util.col.arr : castImmutable, setAt;
+import util.col.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
+import util.col.dict : getAt;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.ptr : Ptr;

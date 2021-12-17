@@ -4,8 +4,8 @@ module util.dictReadOnlyStorage;
 
 import frontend.lang : crowExtension;
 import model.model : AbsolutePathsGetter;
-import util.collection.mutDict : getAt_mut, MutDict;
-import util.collection.str : SafeCStr, safeCStr, strEq;
+import util.col.mutDict : getAt_mut, MutDict;
+import util.col.str : SafeCStr, safeCStr, strEq;
 import util.opt : asImmutable, Opt;
 import util.path : hashPathAndStorageKind, PathAndStorageKind, pathAndStorageKindEqual;
 import util.ptr : Ptr;

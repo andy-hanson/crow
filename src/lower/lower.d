@@ -108,9 +108,9 @@ import model.lowModel :
 	UpdateParam;
 import model.model : decl, EnumBackingType, EnumFunction, EnumValue, FlagsFunction, FunInst, name, range;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, emptyArr, only;
-import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
-import util.collection.arrUtil :
+import util.col.arr : empty, emptyArr, only;
+import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
+import util.col.arrUtil :
 	arrLiteral,
 	exists,
 	map,
@@ -118,11 +118,11 @@ import util.collection.arrUtil :
 	mapWithIndexAndConcatOne,
 	mapWithOptFirst,
 	mapWithOptFirst2;
-import util.collection.dict : getAt, mustGetAt, PtrDict;
-import util.collection.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
-import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr, fullIndexDictSize;
-import util.collection.mutIndexDict : getAt, getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
-import util.collection.mutDict :
+import util.col.dict : getAt, mustGetAt, PtrDict;
+import util.col.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
+import util.col.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr, fullIndexDictSize;
+import util.col.mutIndexDict : getAt, getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
+import util.col.mutDict :
 	addToMutDict,
 	getAt_mut,
 	getOrAdd,

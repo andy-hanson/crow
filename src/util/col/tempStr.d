@@ -1,9 +1,9 @@
-module util.collection.tempStr;
+module util.col.tempStr;
 
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.str : copyToSafeCStr, eachChar, SafeCStr;
+import util.col.str : copyToSafeCStr, eachChar, SafeCStr;
 import util.util : verify;
 
 struct TempStr {

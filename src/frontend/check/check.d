@@ -129,7 +129,7 @@ import model.model :
 	Visibility,
 	visibility;
 import util.alloc.alloc : Alloc;
-import util.collection.arr :
+import util.col.arr :
 	ArrWithSize,
 	castImmutable,
 	empty,
@@ -140,8 +140,8 @@ import util.collection.arr :
 	ptrsRange,
 	sizeEq,
 	toArr;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrUtil :
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrUtil :
 	arrLiteral,
 	arrWithSizeLiteral,
 	cat,
@@ -163,19 +163,19 @@ import util.collection.arrUtil :
 	zipFirstMut,
 	zipMutPtrFirst,
 	zipPtrFirst;
-import util.collection.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
-import util.collection.dict : dictEach, getAt, hasKey, KeyValuePair, SymDict;
-import util.collection.dictBuilder : finishDict, SymDictBuilder, tryAddToDict;
-import util.collection.exactSizeArrBuilder :
+import util.col.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
+import util.col.dict : dictEach, getAt, hasKey, KeyValuePair, SymDict;
+import util.col.dictBuilder : finishDict, SymDictBuilder, tryAddToDict;
+import util.col.exactSizeArrBuilder :
 	ExactSizeArrBuilder,
 	exactSizeArrBuilderAdd,
 	finish,
 	newExactSizeArrBuilder;
-import util.collection.multiDict : buildMultiDict, multiDictEach, multiDictGetAt;
-import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
-import util.collection.mutDict : insertOrUpdate, moveToDict, MutSymDict;
-import util.collection.mutSet : addToMutSymSetOkIfPresent;
-import util.collection.str : copySafeCStr, safeCStr;
+import util.col.multiDict : buildMultiDict, multiDictEach, multiDictGetAt;
+import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
+import util.col.mutDict : insertOrUpdate, moveToDict, MutSymDict;
+import util.col.mutSet : addToMutSymSetOkIfPresent;
+import util.col.str : copySafeCStr, safeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, OptPtr, some, someMut, toOpt;
 import util.perf : Perf;

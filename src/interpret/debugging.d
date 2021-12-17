@@ -31,8 +31,8 @@ import model.lowModel :
 	PrimitiveType,
 	symOfPrimitiveType;
 import model.model : ClosureField, decl, FunInst, name, Param, RecordField, Type, typeArgs, writeType;
-import util.collection.arr : empty;
-import util.collection.fullIndexDict : fullIndexDictGet;
+import util.col.arr : empty;
+import util.col.fullIndexDict : fullIndexDictGet;
 import util.opt : force, has;
 import util.ptr : Ptr;
 import util.writer : Writer, writeChar, writeNat, writeStatic, writeWithCommas;

@@ -35,11 +35,11 @@ import model.model :
 	typeParams,
 	UnionMember;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, only;
-import util.collection.arrUtil : findIndex;
-import util.collection.dict : dictEach;
-import util.collection.fullIndexDict : fullIndexDictGet;
-import util.collection.str : SafeCStr, strOfSafeCStr;
+import util.col.arr : empty, only;
+import util.col.arrUtil : findIndex;
+import util.col.dict : dictEach;
+import util.col.fullIndexDict : fullIndexDictGet;
+import util.col.str : SafeCStr, strOfSafeCStr;
 import util.opt : force, has, Opt;
 import util.path : AllPaths, eachPathPart, nPathComponents, Path;
 import util.ptr : Ptr, ptrTrustMe_mut;

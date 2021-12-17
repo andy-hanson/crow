@@ -40,13 +40,13 @@ import model.model :
 	typeArgs,
 	typeEquals;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : emptyArr, only;
-import util.collection.arrBuilder : finishArr_immutable;
-import util.collection.dict : getAt;
-import util.collection.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
-import util.collection.mutArr : moveToArr, MutArr;
-import util.collection.mutDict : mapToDict, mutDictIsEmpty;
-import util.collection.mutSet : moveSetToArr;
+import util.col.arr : emptyArr, only;
+import util.col.arrBuilder : finishArr_immutable;
+import util.col.dict : getAt;
+import util.col.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
+import util.col.mutArr : moveToArr, MutArr;
+import util.col.mutDict : mapToDict, mutDictIsEmpty;
+import util.col.mutSet : moveSetToArr;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;

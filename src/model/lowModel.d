@@ -17,8 +17,8 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model : asRecord, body_, EnumValue;
-import util.collection.dict : PtrDict;
-import util.collection.fullIndexDict : FullIndexDict;
+import util.col.dict : PtrDict;
+import util.col.fullIndexDict : FullIndexDict;
 import util.hash : Hasher, hashSizeT, hashUint;
 import util.opt : none, Opt;
 import util.ptr : Ptr;

@@ -2,7 +2,7 @@ module util.writerUtils;
 
 @safe @nogc pure nothrow:
 
-import util.collection.str : SafeCStr, startsWith, strOfSafeCStr;
+import util.col.str : SafeCStr, startsWith, strOfSafeCStr;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter;
 import util.opt : force, has, Opt;
 import util.path : AbsolutePath, AllPaths, baseName, nParents, parent, path, Path, PathAndStorageKind, RelPath;

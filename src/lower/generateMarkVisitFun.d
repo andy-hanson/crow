@@ -45,8 +45,8 @@ import lower.lowExprHelpers :
 	voidType,
 	wrapMulNat64;
 import util.alloc.alloc : Alloc;
-import util.collection.arrUtil : arrLiteral, mapWithIndex;
-import util.collection.fullIndexDict : fullIndexDictGet;
+import util.col.arrUtil : arrLiteral, mapWithIndex;
+import util.col.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;

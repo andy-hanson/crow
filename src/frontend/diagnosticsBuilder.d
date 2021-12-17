@@ -5,8 +5,8 @@ module frontend.diagnosticsBuilder;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import model.diag : Diag, Diagnostic, Diagnostics, DiagnosticWithinFile, DiagSeverity;
 import util.alloc.alloc : Alloc;
-import util.collection.arrBuilder : add, ArrBuilder, arrBuilderClear, arrBuilderSort, arrBuilderTempAsArr, finishArr;
-import util.collection.fullIndexDict : fullIndexDictGet;
+import util.col.arrBuilder : add, ArrBuilder, arrBuilderClear, arrBuilderSort, arrBuilderTempAsArr, finishArr;
+import util.col.fullIndexDict : fullIndexDictGet;
 import util.path : comparePathAndStorageKind;
 import util.sourceRange : FileAndRange, FileIndex, FilePaths;
 

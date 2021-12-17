@@ -1,9 +1,9 @@
-module util.collection.stack;
+module util.col.stack;
 
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateT;
-import util.collection.arrUtil : copyArr;
+import util.col.arrUtil : copyArr;
 import util.util : verify;
 
 struct Stack(T) {

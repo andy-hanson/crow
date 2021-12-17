@@ -142,18 +142,18 @@ import model.lowModel :
 import model.model : FunDecl, Module, name, Program, range;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : castImmutable, empty, only;
-import util.collection.arrUtil : map, mapOpWithIndex;
-import util.collection.dict : mustGetAt;
-import util.collection.fullIndexDict :
+import util.col.arr : castImmutable, empty, only;
+import util.col.arrUtil : map, mapOpWithIndex;
+import util.col.dict : mustGetAt;
+import util.col.fullIndexDict :
 	FullIndexDict,
 	fullIndexDictEach,
 	fullIndexDictGet,
 	fullIndexDictOfArr,
 	fullIndexDictSize,
 	mapFullIndexDict;
-import util.collection.mutDict : addToMutDict, mustDelete, mustGetAt_mut, MutPtrDict;
-import util.collection.mutIndexMultiDict :
+import util.col.mutDict : addToMutDict, mustDelete, mustGetAt_mut, MutPtrDict;
+import util.col.mutIndexMultiDict :
 	MutIndexMultiDict,
 	mutIndexMultiDictAdd,
 	mutIndexMultiDictMustGetAt,

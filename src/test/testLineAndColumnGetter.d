@@ -3,7 +3,7 @@ module test.testLineAndColumnGetter;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.collection.str : safeCStr;
+import util.col.str : safeCStr;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter, lineAndColumnGetterForText;
 import util.sourceRange : Pos;
 import util.util : verifyEq;

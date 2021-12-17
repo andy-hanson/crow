@@ -69,10 +69,10 @@ import model.model :
 	Type,
 	typeArgs;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : empty, emptyArr, only, ptrAt;
-import util.collection.arrUtil : arrLiteral, map, mapWithIndex;
-import util.collection.mutArr : MutArr, mutArrSize, push;
-import util.collection.mutDict : addToMutDict, getOrAdd, mustDelete, mustGetAt_mut, MutPtrDict;
+import util.col.arr : empty, emptyArr, only, ptrAt;
+import util.col.arrUtil : arrLiteral, map, mapWithIndex;
+import util.col.mutArr : MutArr, mutArrSize, push;
+import util.col.mutDict : addToMutDict, getOrAdd, mustDelete, mustGetAt_mut, MutPtrDict;
 import util.memory : allocate;
 import util.opt : force, has, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;

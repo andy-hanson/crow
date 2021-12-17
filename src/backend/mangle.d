@@ -35,10 +35,10 @@ import model.lowModel :
 	matchLowParamSource;
 import model.model : FunInst, name, Param;
 import util.alloc.alloc : Alloc;
-import util.collection.dict : getAt, PtrDict;
-import util.collection.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
-import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet;
-import util.collection.mutDict : insertOrUpdate, MutSymDict, setInDict;
+import util.col.dict : getAt, PtrDict;
+import util.col.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
+import util.col.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet;
+import util.col.mutDict : insertOrUpdate, MutSymDict, setInDict;
 import util.opt : force, has, Opt;
 import util.ptr : Ptr;
 import util.sym :

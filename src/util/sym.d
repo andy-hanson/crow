@@ -3,11 +3,11 @@ module util.sym;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : only;
-import util.collection.arrUtil : contains, every, findIndex;
-import util.collection.mutArr : MutArr, mutArrAt, mutArrSize, push;
-import util.collection.mutDict : addToMutDict, getAt_mut, mutDictSize, MutStringDict;
-import util.collection.str : copyToSafeCStr, CStr, eachChar, SafeCStr, safeCStr, strOfSafeCStr;
+import util.col.arr : only;
+import util.col.arrUtil : contains, every, findIndex;
+import util.col.mutArr : MutArr, mutArrAt, mutArrSize, push;
+import util.col.mutDict : addToMutDict, getAt_mut, mutDictSize, MutStringDict;
+import util.col.str : copyToSafeCStr, CStr, eachChar, SafeCStr, safeCStr, strOfSafeCStr;
 import util.conv : safeToSizeT;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;

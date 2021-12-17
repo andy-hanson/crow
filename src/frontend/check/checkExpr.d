@@ -104,7 +104,7 @@ import model.model :
 	UnionMember,
 	worstCasePurity;
 import util.alloc.alloc : Alloc;
-import util.collection.arr :
+import util.col.arr :
 	castImmutable,
 	empty,
 	emptyArr,
@@ -113,7 +113,7 @@ import util.collection.arr :
 	ptrsRange,
 	setAt,
 	sizeEq;
-import util.collection.arrUtil :
+import util.col.arrUtil :
 	arrLiteral,
 	arrsCorrespond,
 	arrWithSizeLiteral,
@@ -126,7 +126,7 @@ import util.collection.arrUtil :
 	mapZipWithIndex,
 	prepend,
 	zipPtrFirst;
-import util.collection.mutArr :
+import util.col.mutArr :
 	moveToArr,
 	mustPeek_mut,
 	mustPop,
@@ -139,7 +139,7 @@ import util.collection.mutArr :
 	push,
 	tempAsArr,
 	tempAsArr_mut;
-import util.collection.str : copyStr;
+import util.col.str : copyStr;
 import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;

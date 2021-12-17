@@ -3,7 +3,7 @@ module test.testWriter;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.collection.str : strEq;
+import util.col.str : strEq;
 import util.util : verify;
 import util.writer : finishWriter, writeFloatLiteral, Writer;
 

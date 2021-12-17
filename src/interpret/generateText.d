@@ -21,10 +21,10 @@ import model.lowModel :
 	PrimitiveType;
 import model.typeLayout : funPtrSize, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : castImmutable, empty, emptyArr, ptrAt, setAt;
-import util.collection.arrUtil : map, mapToMut, sum, zip;
-import util.collection.dict : mustGetAt;
-import util.collection.exactSizeArrBuilder :
+import util.col.arr : castImmutable, empty, emptyArr, ptrAt, setAt;
+import util.col.arrUtil : map, mapToMut, sum, zip;
+import util.col.dict : mustGetAt;
+import util.col.exactSizeArrBuilder :
 	exactSizeArrBuilderAdd,
 	add0Bytes,
 	add16,
@@ -37,8 +37,8 @@ import util.collection.exactSizeArrBuilder :
 	finish,
 	newExactSizeArrBuilder,
 	padTo;
-import util.collection.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
-import util.collection.mutIndexMultiDict : MutIndexMultiDict, mutIndexMultiDictAdd, newMutIndexMultiDict;
+import util.col.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
+import util.col.mutIndexMultiDict : MutIndexMultiDict, mutIndexMultiDictAdd, newMutIndexMultiDict;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.ptr : Ptr, ptrTrustMe;
 import util.util : todo, unreachable, verify;

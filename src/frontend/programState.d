@@ -15,8 +15,8 @@ import model.model :
 	StructDeclAndArgs,
 	structDeclAndArgsEqual,
 	StructInst;
-import util.collection.mutDict : MutDict;
-import util.collection.mutSet : MutSymSet;
+import util.col.mutDict : MutDict;
+import util.col.mutSet : MutSymSet;
 import util.ptr : Ptr;
 
 struct ProgramState {

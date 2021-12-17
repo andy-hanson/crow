@@ -3,9 +3,9 @@ module util.diff;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : only, setAt;
-import util.collection.arrUtil : arrMax, arrMaxIndex, contains, fillArrUninitialized;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arr : only, setAt;
+import util.col.arrUtil : arrMax, arrMaxIndex, contains, fillArrUninitialized;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
 import util.sym : AllSymbols, shortSym, Sym, symEq, symSize, writeSym;
 import util.writer : Writer, writeRed, writeReset, writeStatic;

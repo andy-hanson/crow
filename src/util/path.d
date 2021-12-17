@@ -3,8 +3,8 @@ module util.path;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateBytes;
-import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
-import util.collection.str : copyToSafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
+import util.col.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
+import util.col.str : copyToSafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;

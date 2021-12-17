@@ -1,10 +1,10 @@
-module util.collection.dictBuilder;
+module util.col.dictBuilder;
 
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.mutDict : getOrAddAndDidAdd, moveToDict, MutDict, ValueAndDidAdd;
-import util.collection.dict : Dict;
+import util.col.mutDict : getOrAddAndDidAdd, moveToDict, MutDict, ValueAndDidAdd;
+import util.col.dict : Dict;
 import util.opt : has, none, Opt, some;
 import util.ptr : hashPtr, Ptr, ptrEquals;
 import util.sym : hashSym, Sym, symEq;

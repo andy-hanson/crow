@@ -3,8 +3,8 @@ module util.lineAndColumnGetter;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : SafeCStr, safeCStr;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.str : SafeCStr, safeCStr;
 import util.conv : safeToUint, safeToUshort;
 import util.sourceRange : Pos;
 import util.util : verify;

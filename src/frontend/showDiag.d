@@ -31,9 +31,9 @@ import model.model :
 	writeType;
 import model.parseDiag : matchParseDiag, ParseDiag;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.collection.arr : empty, only;
-import util.collection.arrUtil : exists;
-import util.collection.fullIndexDict : fullIndexDictGet;
+import util.col.arr : empty, only;
+import util.col.arrUtil : exists;
+import util.col.fullIndexDict : fullIndexDictGet;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has;
 import util.path : AllPaths, baseName, PathAndStorageKind;

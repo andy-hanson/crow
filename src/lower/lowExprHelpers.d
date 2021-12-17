@@ -22,7 +22,7 @@ import model.lowModel :
 	PrimitiveType,
 	UpdateParam;
 import util.alloc.alloc : Alloc;
-import util.collection.fullIndexDict : fullIndexDictGet;
+import util.col.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;

@@ -1,12 +1,12 @@
-module util.collection.multiDict;
+module util.col.multiDict;
 
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.collection.arr : emptyArr, ptrAt;
-import util.collection.dict : dictEach, Dict, getAt, KeyValuePair;
-import util.collection.mutArr : moveToArr, MutArr, push;
-import util.collection.mutDict : getOrAdd, mapToDict, MutDict;
+import util.col.arr : emptyArr, ptrAt;
+import util.col.dict : dictEach, Dict, getAt, KeyValuePair;
+import util.col.mutArr : moveToArr, MutArr, push;
+import util.col.mutDict : getOrAdd, mapToDict, MutDict;
 import util.opt : force, has, Opt;
 import util.ptr : Ptr;
 import util.sym : hashSym, Sym, symEq;

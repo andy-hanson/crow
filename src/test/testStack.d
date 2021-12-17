@@ -3,8 +3,8 @@ module test.testStack;
 @safe @nogc nothrow: // not pure
 
 import test.testUtil : Test;
-import util.collection.arrUtil : arrEqual;
-import util.collection.stack :
+import util.col.arrUtil : arrEqual;
+import util.col.stack :
 	asTempArr,
 	peek,
 	pop,

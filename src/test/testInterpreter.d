@@ -69,10 +69,10 @@ import model.lowModel :
 import model.typeLayout : Pack, PackField;
 import test.testUtil : expectDataStack, expectReturnStack, Test;
 import util.alloc.alloc : Alloc;
-import util.collection.arr : emptyArr;
-import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
-import util.collection.stack : stackBegin, pop, push;
-import util.collection.str : safeCStr;
+import util.col.arr : emptyArr;
+import util.col.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
+import util.col.stack : stackBegin, pop, push;
+import util.col.str : safeCStr;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;

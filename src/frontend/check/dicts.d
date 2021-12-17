@@ -3,8 +3,8 @@ module frontend.check.dicts;
 @safe @nogc pure nothrow:
 
 import model.model : FunDecl, SpecDecl, StructOrAlias;
-import util.collection.dict : SymDict;
-import util.collection.multiDict : SymMultiDict;
+import util.col.dict : SymDict;
+import util.col.multiDict : SymMultiDict;
 import util.ptr : Ptr;
 
 alias StructsAndAliasesDict = SymDict!StructOrAliasAndIndex;

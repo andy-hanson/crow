@@ -1,8 +1,8 @@
-module util.collection.sortUtil;
+module util.col.sortUtil;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : empty;
+import util.col.arr : empty;
 import util.comparison : Comparer, Comparison;
 import util.opt : none, Opt, some;
 

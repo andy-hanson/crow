@@ -1,4 +1,4 @@
-module util.collection.mutMaxArr;
+module util.col.mutMaxArr;
 
 @safe @nogc pure nothrow:
 

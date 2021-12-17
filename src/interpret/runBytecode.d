@@ -22,8 +22,8 @@ import model.typeLayout : PackField;
 import util.alloc.alloc : TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.dbg : log, logNoNewline, logSymNoNewline;
-import util.collection.fullIndexDict : fullIndexDictGet;
-import util.collection.stack :
+import util.col.fullIndexDict : fullIndexDictGet;
+import util.col.stack :
 	asTempArr,
 	clearStack,
 	peek,
@@ -41,7 +41,7 @@ import util.collection.stack :
 	stackSize,
 	stackTop,
 	toArr;
-import util.collection.str : SafeCStr;
+import util.col.str : SafeCStr;
 import util.conv : safeToSizeT;
 import util.dbg : Debug;
 import util.memory : allocateMut, memcpy, memmove, memset, overwriteMemory;

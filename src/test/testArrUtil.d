@@ -3,7 +3,7 @@ module test.testArrUtil;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.collection.arrUtil : arrEqual, sortInPlace;
+import util.col.arrUtil : arrEqual, sortInPlace;
 import util.comparison : compareNat32;
 import util.util : verify;
 
