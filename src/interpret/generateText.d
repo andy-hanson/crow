@@ -207,7 +207,7 @@ void ensureConstant(
 		(ref immutable Constant.CString) {
 			// We wrote out all CStrings first, so no need to do anything here.
 		},
-		(immutable double) {},
+		(immutable Constant.Float) {},
 		(immutable Constant.FunPtr) {},
 		(immutable Constant.Integral) {},
 		(immutable Constant.Null) {},
@@ -315,13 +315,13 @@ void writeConstant(
 		(ref immutable Constant.CString it) {
 			add64TextPtr(ctx.text, ctx.cStringIndexToTextIndex[it.index]);
 		},
-		(immutable double it) {
+		(immutable Constant.Float it) {
 			switch (asPrimitive(type)) {
 				case PrimitiveType.float32:
-					add32(ctx.text, bitsOfFloat32(it));
+					add32(ctx.text, bitsOfFloat32(it.value));
 					break;
 				case PrimitiveType.float64:
-					add64(ctx.text, bitsOfFloat64(it));
+					add64(ctx.text, bitsOfFloat64(it.value));
 					break;
 				default:
 					unreachable!void();

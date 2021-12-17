@@ -17,8 +17,8 @@ immutable(Repr) reprOfConstant(ref Alloc alloc, ref immutable Constant a) {
 			reprBool(it.value),
 		(ref immutable Constant.CString it) =>
 			reprRecord(alloc, "c-str", [reprNat(it.index)]),
-		(immutable double it) =>
-			reprFloat(it),
+		(immutable Constant.Float it) =>
+			reprFloat(it.value),
 		(immutable Constant.FunPtr it) =>
 			reprRecord(alloc, "fun-ptr", [
 				reprOpt(alloc, name(it.fun.deref()), (ref immutable Sym name) => reprSym(name))]),

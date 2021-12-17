@@ -1286,11 +1286,11 @@ immutable(ExprResult) constantToGcc(
 			immutable char *cStr = strToCStr(ctx.alloc, ctx.program.allConstants.cStrings[it.index]);
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_string_literal(ctx.gcc, cStr));
 		},
-		(immutable double it) =>
+		(immutable Constant.Float it) =>
 			emitSimpleNoSideEffects(
 				ctx,
 				emit,
-				gcc_jit_context_new_rvalue_from_double(ctx.gcc, getGccType(ctx.types, type), it)),
+				gcc_jit_context_new_rvalue_from_double(ctx.gcc, getGccType(ctx.types, type), it.value)),
 		(immutable Constant.FunPtr it) {
 			immutable Ptr!gcc_jit_rvalue value = gcc_jit_function_get_address(
 				fullIndexDictGet(ctx.gccFuns, mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun)),

@@ -885,13 +885,13 @@ void generateConstant(
 		(ref immutable Constant.CString it) {
 			writePushConstantPointer(dbg, writer, source, getTextPointerForCString(ctx.textInfo, it));
 		},
-		(immutable double it) {
+		(immutable Constant.Float it) {
 			switch (asPrimitiveType(type)) {
 				case PrimitiveType.float32:
-					writePushConstant(dbg, writer, source, bitsOfFloat32(cast(float) it));
+					writePushConstant(dbg, writer, source, bitsOfFloat32(cast(float) it.value));
 					break;
 				case PrimitiveType.float64:
-					writePushConstant(dbg, writer, source, bitsOfFloat64(it));
+					writePushConstant(dbg, writer, source, bitsOfFloat64(it.value));
 					break;
 				default:
 					unreachable!void();

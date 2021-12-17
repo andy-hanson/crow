@@ -105,7 +105,7 @@ immutable(ConcreteExpr) safeValueForStruct(
 					return fromConstant(immutable Constant(immutable Constant.Integral('\0')));
 				case BuiltinStructKind.float32:
 				case BuiltinStructKind.float64:
-					return fromConstant(immutable Constant(0.0));
+					return fromConstant(immutable Constant(immutable Constant.Float(0)));
 				case BuiltinStructKind.fun:
 					return safeFunValue(alloc, ctx, range, struct_);
 				case BuiltinStructKind.funPtrN:

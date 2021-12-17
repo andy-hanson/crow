@@ -654,16 +654,16 @@ immutable(CheckedExpr) checkLiteral(
 	immutable IntegralTypes integrals = ctx.commonTypes.integrals;
 
 	immutable(CheckedExpr) asFloat32(immutable float value) {
-		immutable Expr e = immutable Expr(
-			range,
-			allocate(alloc, immutable Expr.Literal(ctx.commonTypes.float32, immutable Constant(value))));
+		immutable Expr e = immutable Expr(range, allocate(alloc, immutable Expr.Literal(
+			ctx.commonTypes.float32,
+			immutable Constant(immutable Constant.Float(value)))));
 		return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.float32), e);
 	}
 
 	immutable(CheckedExpr) asFloat64(immutable double value) {
-		immutable Expr e = immutable Expr(
-			range,
-			allocate(alloc, immutable Expr.Literal(ctx.commonTypes.float64, immutable Constant(value))));
+		immutable Expr e = immutable Expr(range, allocate(alloc, immutable Expr.Literal(
+			ctx.commonTypes.float64,
+			immutable Constant(immutable Constant.Float(value)))));
 		return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.float64), e);
 	}
 

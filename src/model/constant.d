@@ -25,6 +25,10 @@ struct Constant {
 	struct CString {
 		immutable size_t index; // Index into AllConstants#cStrings
 	}
+	// Used for float32 / float64
+	struct Float {
+		immutable double value;
+	}
 	struct FunPtr {
 		immutable Ptr!ConcreteFun fun;
 	}
@@ -67,7 +71,7 @@ struct Constant {
 		immutable ArrConstant arr_;
 		immutable BoolConstant bool_;
 		immutable CString cString;
-		immutable double float_;
+		immutable Float float_;
 		immutable FunPtr funPtr;
 		immutable Integral integral;
 		immutable Null null_;
@@ -80,8 +84,7 @@ struct Constant {
 	@trusted immutable this(immutable ArrConstant a) { kind = Kind.arr; arr_ = a; }
 	immutable this(immutable BoolConstant a) { kind = Kind.bool_; bool_ = a; }
 	immutable this(immutable CString a) { kind = Kind.cString; cString = a; }
-	// used for both float32 and float64
-	immutable this(immutable double a) { kind = Kind.float_; float_ = a; }
+	immutable this(immutable Float a) { kind = Kind.float_; float_ = a; }
 	immutable this(immutable FunPtr a) { kind = Kind.funPtr; funPtr = a; }
 	immutable this(immutable Integral a) { kind = Kind.integral; integral = a; }
 	immutable this(immutable Null a) { kind = Kind.null_; null_ = a; }
@@ -152,7 +155,7 @@ immutable(Constant.Integral) asIntegral(ref immutable Constant a) {
 	scope T delegate(ref immutable Constant.ArrConstant) @safe @nogc pure nothrow cbArr,
 	scope T delegate(immutable Constant.BoolConstant) @safe @nogc pure nothrow cbBool,
 	scope T delegate(ref immutable Constant.CString) @safe @nogc pure nothrow cbCString,
-	scope T delegate(immutable double) @safe @nogc pure nothrow cbFloat,
+	scope T delegate(immutable Constant.Float) @safe @nogc pure nothrow cbFloat,
 	scope T delegate(immutable Constant.FunPtr) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(immutable Constant.Integral) @safe @nogc pure nothrow cbIntegral,
 	scope T delegate(immutable Constant.Null) @safe @nogc pure nothrow cbNull,

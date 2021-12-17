@@ -1268,8 +1268,8 @@ void writeConstantRef(
 				writeEscapedChar_inner(writer, c);
 			writeChar(writer, '"');
 		},
-		(immutable double it) {
-			writeFloatLiteral(writer, it);
+		(immutable Constant.Float it) {
+			writeFloatLiteral(writer, it.value);
 		},
 		(immutable Constant.FunPtr it) {
 			immutable bool isRawPtr = matchLowType!(
