@@ -66,11 +66,6 @@ immutable(Program) frontendCompile(Storage)(
 	)(modelAlloc, perf, PerfMeasure.checkEverything);
 }
 
-private struct FileAstAndLineAndColumnGetter {
-	immutable FileAst ast;
-	immutable LineAndColumnGetter lineAndColumnGetter;
-}
-
 struct FileAstAndDiagnostics {
 	immutable FileAst ast;
 	immutable FilesInfo filesInfo;
@@ -91,7 +86,12 @@ immutable(FileAstAndDiagnostics) parseSingleAst(ReadOnlyStorage)(
 		crowExtension,
 		(immutable Opt!SafeCStr opFileContent) {
 			ArrBuilder!DiagnosticWithinFile diags;
-			immutable FileAstAndLineAndColumnGetter res = parseSingle(
+			immutable LineAndColumnGetters lc =
+				fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
+					arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForOptText(alloc, opFileContent)]));
+			immutable FilePaths filePaths = fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
+				arrLiteral!PathAndStorageKind(alloc, [path]));
+			immutable FileAst ast = parseSingle(
 				alloc,
 				alloc,
 				perf,
@@ -100,15 +100,10 @@ immutable(FileAstAndDiagnostics) parseSingleAst(ReadOnlyStorage)(
 				diags,
 				none!PathAndRange,
 				opFileContent);
-			immutable LineAndColumnGetters lc =
-				fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
-					arrLiteral!LineAndColumnGetter(alloc, [res.lineAndColumnGetter]));
-			immutable FilePaths filePaths = fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
-				arrLiteral!PathAndStorageKind(alloc, [path]));
 			DiagnosticsBuilder diagsBuilder;
 			addDiagnosticsForFile(alloc, diagsBuilder, immutable FileIndex(0), diags);
 			return immutable FileAstAndDiagnostics(
-				res.ast,
+				ast,
 				immutable FilesInfo(filePaths, storage.absolutePathsGetter(), lc),
 				finishDiagnostics(alloc, diagsBuilder, filePaths));
 		});
@@ -221,13 +216,14 @@ struct ParseStackEntry {
 	void pushIt(immutable PathAndStorageKind path, immutable Opt!PathAndRange importedFrom) {
 		storage.withFile!void(path, crowExtension, (immutable Opt!SafeCStr opFileContent) {
 			ArrBuilder!DiagnosticWithinFile diags;
-			immutable FileAstAndLineAndColumnGetter parseResult = parseSingle(
+			immutable LineAndColumnGetter lineAndColumnGetter =
+				lineAndColumnGetterForOptText(modelAlloc, opFileContent);
+			immutable FileAst ast = parseSingle(
 				modelAlloc, astAlloc, perf, allPaths, allSymbols, diags, importedFrom, opFileContent);
 			immutable ImportAndExportPaths importsAndExports = resolveImportAndExportPaths(
-				modelAlloc, astAlloc, allPaths, diags, path, parseResult.ast.imports, parseResult.ast.exports);
+				modelAlloc, astAlloc, allPaths, diags, path, ast.imports, ast.exports);
 			addToMutDict(astAlloc, statuses, path, immutable ParseStatus(immutable ParseStatus.Started()));
-			push(stack, ParseStackEntry(
-				path, parseResult.ast, parseResult.lineAndColumnGetter, importsAndExports, diags));
+			push(stack, ParseStackEntry(path, ast, lineAndColumnGetter, importsAndExports, diags));
 		});
 	}
 
@@ -361,7 +357,16 @@ immutable(PathAndStorageKind) runtimeMainPath(ref AllPaths allPaths) {
 
 alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter; // TODO: OrderedFullIndexDictBuilder?
 
-immutable(FileAstAndLineAndColumnGetter) parseSingle(
+immutable(LineAndColumnGetter) lineAndColumnGetterForOptText(
+	ref Alloc modelAlloc,
+	immutable Opt!SafeCStr opFileContent,
+) {
+	return has(opFileContent)
+		? lineAndColumnGetterForText(modelAlloc, force(opFileContent))
+		: lineAndColumnGetterForEmptyFile(modelAlloc);
+}
+
+immutable(FileAst) parseSingle(
 	ref Alloc modelAlloc,
 	ref Alloc astAlloc,
 	ref Perf perf,
@@ -371,19 +376,13 @@ immutable(FileAstAndLineAndColumnGetter) parseSingle(
 	immutable Opt!PathAndRange importedFrom,
 	immutable Opt!SafeCStr opFileContent,
 ) {
-	immutable LineAndColumnGetter lcg = has(opFileContent)
-		? lineAndColumnGetterForText(modelAlloc, force(opFileContent))
-		: lineAndColumnGetterForEmptyFile(modelAlloc);
-
 	// File content must go in astAlloc because we refer to strings without copying
 	if (has(opFileContent))
-		return immutable FileAstAndLineAndColumnGetter(
-			parseFile(astAlloc, perf, allPaths, allSymbols, diags, force(opFileContent)),
-			lcg);
+		return immutable parseFile(astAlloc, perf, allPaths, allSymbols, diags, force(opFileContent));
 	else {
 		add(modelAlloc, diags, immutable DiagnosticWithinFile(RangeWithinFile.empty, immutable Diag(
 			immutable ParseDiag(immutable ParseDiag.FileDoesNotExist(importedFrom)))));
-		return immutable FileAstAndLineAndColumnGetter(emptyFileAst, lcg);
+		return emptyFileAst;
 	}
 }
 
