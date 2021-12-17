@@ -58,7 +58,7 @@ import frontend.parse.lexer :
 	takeNameOrUnderscoreOrNone,
 	takeNewlineOrDedentAmount,
 	takeOrAddDiagExpectedToken,
-	takeStringPartAfterDoubleQuote,
+	takeStringPart,
 	Token,
 	tryTakeToken;
 import frontend.parse.parseType : parseType, parseTypeRequireBracket, tryParseTypeArgsForExpr;
@@ -841,7 +841,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 				return noDedent(tryParseDotsAndSubscripts(lexer, expr));
 			}
 		case Token.quoteDouble:
-			immutable StringPart part = takeStringPartAfterDoubleQuote(lexer);
+			immutable StringPart part = takeStringPart(lexer);
 			final switch (part.after) {
 				case StringPart.After.quote:
 					return handleLiteral(lexer, start, immutable LiteralAst(part.text));
@@ -932,7 +932,7 @@ immutable(ExprAst) takeInterpolatedRecur(ref Lexer lexer, immutable Pos start, r
 	immutable ExprAst e = parseExprNoBlock(lexer);
 	add(lexer.alloc, parts, immutable InterpolatedPart(e));
 	takeOrAddDiagExpectedToken(lexer, Token.braceRight, ParseDiag.Expected.Kind.closeInterpolated);
-	immutable StringPart part = takeStringPartAfterDoubleQuote(lexer);
+	immutable StringPart part = takeStringPart(lexer);
 	if (!empty(part.text))
 		add(lexer.alloc, parts, immutable InterpolatedPart(part.text));
 	final switch (part.after) {

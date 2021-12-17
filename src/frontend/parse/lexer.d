@@ -335,7 +335,7 @@ immutable(NameOrUnderscoreOrNone) takeNameOrUnderscoreOrNone(ref Lexer lexer) {
 
 immutable(string) takeQuotedStr(ref Lexer lexer) {
 	if (takeOrAddDiagExpectedToken(lexer, Token.quoteDouble, ParseDiag.Expected.Kind.quote)) {
-		immutable StringPart sp = takeStringPartAfterDoubleQuote(lexer);
+		immutable StringPart sp = takeStringPart(lexer);
 		final switch (sp.after) {
 			case StringPart.After.quote:
 				return sp.text;
@@ -931,36 +931,32 @@ public struct StringPart {
 	}
 }
 
-immutable(bool) allowedStringPartCharacter(immutable char c, immutable char endQuote) {
+immutable(bool) allowedStringPartCharacter(immutable char c) {
 	switch (c) {
 		case '\n':
 		case '\0':
 		case '{':
-		case endQuote:
+		case '"':
 			return false;
 		default:
 			return true;
 	}
 }
 
-public immutable(StringPart) takeStringPartAfterDoubleQuote(ref Lexer lexer) {
-	return takeStringPart(lexer, '"');
-}
-
-@trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable char endQuote) {
+public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer) {
 	immutable CStr begin = lexer.ptr;
 	size_t nEscapedCharacters = 0;
 	// First get the max size
-	while (allowedStringPartCharacter(*lexer.ptr, endQuote)) {
+	while (allowedStringPartCharacter(*lexer.ptr)) {
 		if (*lexer.ptr == '\\') {
 			lexer.ptr++;
 			nEscapedCharacters++;
 			if (*lexer.ptr == 'x') {
 				lexer.ptr++;
-				if (allowedStringPartCharacter(*lexer.ptr, endQuote)) {
+				if (allowedStringPartCharacter(*lexer.ptr)) {
 					lexer.ptr++;
 					nEscapedCharacters++;
-					if (allowedStringPartCharacter(*lexer.ptr, endQuote)) {
+					if (allowedStringPartCharacter(*lexer.ptr)) {
 						lexer.ptr++;
 						nEscapedCharacters++;
 					}
@@ -978,7 +974,7 @@ public immutable(StringPart) takeStringPartAfterDoubleQuote(ref Lexer lexer) {
 
 	size_t outI = 0;
 	lexer.ptr = begin;
-	while (allowedStringPartCharacter(*lexer.ptr, endQuote)) {
+	while (allowedStringPartCharacter(*lexer.ptr)) {
 		if (*lexer.ptr == '\\') {
 			lexer.ptr++;
 			immutable char c = () {
@@ -1005,8 +1001,8 @@ public immutable(StringPart) takeStringPartAfterDoubleQuote(ref Lexer lexer) {
 						return '{';
 					case '0':
 						return '\0';
-					case endQuote:
-						return endQuote;
+					case '"':
+						return '"';
 					default:
 						addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.InvalidStringEscape(esc)));
 						return 'a';
@@ -1025,7 +1021,7 @@ public immutable(StringPart) takeStringPartAfterDoubleQuote(ref Lexer lexer) {
 		switch (*lexer.ptr) {
 			case '{':
 				return StringPart.After.lbrace;
-			case endQuote:
+			case '"':
 				return StringPart.After.quote;
 			case '\n':
 			case '\0':
