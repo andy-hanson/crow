@@ -5,13 +5,14 @@ module util.sym;
 import util.alloc.alloc : Alloc;
 import util.collection.arr : only;
 import util.collection.arrUtil : contains, every, findIndex;
-import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
-import util.collection.str : copyToSafeCStr, CStr, eachChar, SafeCStr, safeCStr, safeCStrEq;
+import util.collection.mutArr : MutArr, mutArrAt, mutArrSize, push;
+import util.collection.mutDict : addToMutDict, getAt_mut, mutDictSize, MutStringDict;
+import util.collection.str : copyToSafeCStr, CStr, eachChar, SafeCStr, safeCStr, strOfSafeCStr;
 import util.conv : safeToSizeT;
 import util.hash : Hasher, hashUlong;
-import util.opt : Opt, none, some;
+import util.opt : force, has, Opt, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.util : unreachable, verify;
+import util.util : drop, unreachable, verify;
 import util.writer : finishWriter, writeChar, writeStatic, Writer;
 
 immutable(Opt!size_t) indexOfSym(ref immutable Sym[] a, immutable Sym value) {
@@ -39,19 +40,33 @@ struct Sym {
 struct AllSymbols {
 	@safe @nogc pure nothrow:
 
-	//TODO:PRIVATE
-	Ptr!Alloc alloc;
-	// Also includes symbols like '=='
-	MutArr!(immutable SafeCStr) largeStrings;
-
-	this(Ptr!Alloc alloc_) {
-		alloc = alloc_;
+	this(Ptr!Alloc allocPtr_) {
+		allocPtr = allocPtr_;
 		static assert(Operator.min == 0 && SpecialSym.min == 0);
 		for (Operator op = Operator.min; op <= Operator.max; op++)
-			push(alloc.deref(), largeStrings, strOfOperator(op));
+			drop(addLargeString(this, strOfOperator(op)));
 		for (SpecialSym s = SpecialSym.min; s <= SpecialSym.max; s++)
-			push(alloc.deref(), largeStrings, strOfSpecial(s));
+			drop(addLargeString(this, strOfSpecial(s)));
 	}
+
+	private:
+	Ptr!Alloc allocPtr;
+	MutStringDict!(immutable Sym) largeStringToIndex;
+	MutArr!(immutable SafeCStr) largeStringFromIndex;
+
+	ref Alloc alloc() return scope {
+		return allocPtr.deref();
+	}
+}
+
+// WARN: 'value' must have been allocated by a.alloc
+private immutable(Sym) addLargeString(ref AllSymbols a, immutable SafeCStr value) {
+	immutable size_t index = mutArrSize(a.largeStringFromIndex);
+	verify(mutDictSize(a.largeStringToIndex) == index);
+	immutable Sym res = immutable Sym(index);
+	addToMutDict(a.alloc, a.largeStringToIndex, strOfSafeCStr(value), res);
+	push(a.alloc, a.largeStringFromIndex, value);
+	return res;
 }
 
 immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
@@ -60,7 +75,7 @@ immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
 	immutable size_t newSize = 4 + oldSize;
 
 	//TODO: only do inside 'else'
-	Writer writer = Writer(allSymbols.alloc);
+	Writer writer = Writer(allSymbols.allocPtr);
 	writeStatic(writer, "set-");
 	writeSym(writer, allSymbols, a);
 	immutable string str = finishWriter(writer);
@@ -499,17 +514,12 @@ public immutable(bool) isLongSym(immutable Sym a) {
 
 @trusted immutable(SafeCStr) asLongSym(return scope ref const AllSymbols allSymbols, immutable Sym a) {
 	verify(isLongSym(a));
-	return mutArrAt(allSymbols.largeStrings, safeToSizeT(a.value));
+	return mutArrAt(allSymbols.largeStringFromIndex, safeToSizeT(a.value));
 }
 
 immutable(Sym) getSymFromLongStr(ref AllSymbols allSymbols, scope immutable string str) {
-	foreach (immutable size_t i, immutable SafeCStr x; mutArrRange(allSymbols.largeStrings))
-		if (safeCStrEq(x, str))
-			return immutable Sym(i);
-
-	immutable ulong res = mutArrSize(allSymbols.largeStrings);
-	push(allSymbols.alloc.deref(), allSymbols.largeStrings, copyToSafeCStr(allSymbols.alloc.deref(), str));
-	return immutable Sym(res);
+	const Opt!(immutable Sym) value = getAt_mut(allSymbols.largeStringToIndex, str);
+	return has(value) ? force(value) : addLargeString(allSymbols, copyToSafeCStr(allSymbols.alloc, str));
 }
 
 void assertSym(ref const AllSymbols allSymbols, immutable Sym sym, immutable string str) {
