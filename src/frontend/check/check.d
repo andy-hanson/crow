@@ -189,9 +189,11 @@ import util.sym :
 	prependSet,
 	shortSym,
 	shortSymValue,
+	SpecialSym,
 	Sym,
 	symEq,
-	symForOperator;
+	symForOperator,
+	symForSpecial;
 import util.util : todo, unreachable, verify;
 
 struct PathAndAst { //TODO:RENAME
@@ -1541,7 +1543,7 @@ void addFunsForFlags(
 	immutable FileAndRange range = struct_.deref().range;
 	addEnumFlagsCommonFunctions(
 		alloc, funsBuilder, ctx.programState, visibility, range, type, flags.backingType, commonTypes,
-		ctx.programState.symFlagsMembers);
+		symForSpecial(SpecialSym.flags_members));
 	exactSizeArrBuilderAdd(funsBuilder, flagsEmptyFunction(alloc, visibility, range, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsAllFunction(alloc, visibility, range, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsNegateFunction(alloc, visibility, range, type));

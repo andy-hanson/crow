@@ -548,7 +548,7 @@ immutable(Program) checkEverything(
 	ref immutable FilesInfo filesInfo,
 	ref immutable CommonModuleIndices moduleIndices,
 ) {
-	ProgramState programState = ProgramState(allSymbols);
+	ProgramState programState;
 	immutable ModulesAndCommonTypes modulesAndCommonTypes =
 		getModules(modelAlloc, perf, allSymbols, diagsBuilder, programState, moduleIndices.std, allAsts);
 	immutable Module[] modules = modulesAndCommonTypes.modules;

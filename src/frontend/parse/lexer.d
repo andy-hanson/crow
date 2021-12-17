@@ -19,6 +19,8 @@ import util.sym :
 	Operator,
 	shortSym,
 	shortSymValue,
+	SpecialSym,
+	specialSymValue,
 	Sym,
 	symForOperator,
 	symOfStr;
@@ -35,8 +37,6 @@ struct Lexer {
 	Ptr!Alloc allocPtr;
 	Ptr!AllSymbols allSymbolsPtr;
 	Ptr!(ArrBuilder!DiagnosticWithinFile) diagnosticsBuilderPtr;
-	immutable Sym symUnderscore;
-	immutable Sym symForceSendable;
 	immutable CStr sourceBegin;
 	CStr ptr;
 	immutable IndentKind indentKind;
@@ -66,8 +66,6 @@ ref AllSymbols allSymbols(return scope ref Lexer lexer) {
 		alloc,
 		allSymbols,
 		diagnosticsBuilder,
-		symOfStr(allSymbols.deref(), "_"),
-		symOfStr(allSymbols.deref(), "force-sendable"),
 		source.ptr,
 		source.ptr,
 		detectIndentKind(source));
@@ -625,12 +623,12 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.union_;
 		case shortSymValue("unsafe"):
 			return Token.unsafe;
+		case specialSymValue(SpecialSym.underscore):
+			return Token.underscore;
+		case specialSymValue(SpecialSym.force_sendable):
+			return Token.forceSendable;
 		default:
-			return a == lexer.symUnderscore
-				? Token.underscore
-				: a == lexer.symForceSendable
-				? Token.forceSendable
-				: nameToken(lexer, a);
+			return nameToken(lexer, a);
 	}
 }
 

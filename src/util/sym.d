@@ -126,7 +126,7 @@ enum SpecialSym {
 	pthread_mutex_unlock,
 	sched_yield,
 
-	// these are hyphenated
+	// all below are hyphenated
 	as_any_mut_ptr,
 	init_constants,
 	ptr_cast_from_extern,
@@ -145,6 +145,10 @@ enum SpecialSym {
 
 	call_with_ctx,
 	island_and_exclusion,
+
+	underscore,
+	force_sendable,
+	flags_members,
 }
 
 immutable(Sym) symForOperator(immutable Operator a) {
@@ -278,6 +282,13 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 			return safeCStr!"call-with-ctx";
 		case SpecialSym.island_and_exclusion:
 			return safeCStr!"island-and-exclusion";
+
+		case SpecialSym.underscore:
+			return safeCStr!"_";
+		case SpecialSym.force_sendable:
+			return safeCStr!"force-sendable";
+		case SpecialSym.flags_members:
+			return safeCStr!"flags-members";
 	}
 }
 
