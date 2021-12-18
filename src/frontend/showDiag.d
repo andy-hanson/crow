@@ -34,6 +34,7 @@ import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only;
 import util.col.arrUtil : exists;
 import util.col.fullIndexDict : fullIndexDictGet;
+import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has;
 import util.path : AllPaths, baseName, PathAndStorageKind;
@@ -43,6 +44,7 @@ import util.sym : AllSymbols, strOfOperator, Sym, writeSym;
 import util.util : unreachable;
 import util.writer :
 	finishWriter,
+	finishWriterToSafeCStr,
 	writeBold,
 	writeChar,
 	writeEscapedChar,
@@ -62,8 +64,7 @@ struct ShowDiagOptions {
 	immutable bool color;
 }
 
-immutable(string) strOfDiagnostics(
-	ref Alloc alloc,
+immutable(SafeCStr) strOfDiagnostics(	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
@@ -74,7 +75,7 @@ immutable(string) strOfDiagnostics(
 	writeWithNewlines!Diagnostic(writer, diagnostics.diags, (ref immutable Diagnostic it) {
 		showDiagnostic(alloc, writer, allSymbols, allPaths, options, filesInfo, it);
 	});
-	return finishWriter(writer);
+	return finishWriterToSafeCStr(writer);
 }
 
 immutable(string) strOfDiagnostic(

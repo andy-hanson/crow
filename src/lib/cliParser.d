@@ -1,12 +1,12 @@
 module lib.cliParser;
 
 import frontend.lang : crowExtension, JitOptions, OptimizationLevel;
-import lib.compiler : PrintFormat, PrintKind;
+import lib.compiler : DocumentKind, PrintFormat, PrintKind;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : findIndex, foldOrStop;
-import util.col.str : SafeCStr, safeCStrEq, startsWith, strEq, strOfSafeCStr;
+import util.col.str : SafeCStr, safeCStr, safeCStrEq, startsWith, strEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.path : AbsolutePath, AllPaths, parseAbsoluteOrRelPath, Path;
 import util.util : todo;
@@ -61,14 +61,14 @@ struct Command {
 	}
 	struct Document {
 		immutable ProgramDirAndMain programDirAndMain;
-		immutable Opt!AbsolutePath out_;
+		immutable DocumentArgs args;
 	}
 	struct Help {
 		enum Kind {
 			requested,
 			error,
 		}
-		immutable string helpText;
+		immutable SafeCStr helpText;
 		immutable Kind kind;
 	}
 	struct Print {
@@ -219,7 +219,7 @@ immutable(Command) useProgramDirAndMain(
 	immutable Opt!ProgramDirAndMain p = parseProgramDirAndMain(alloc, allPaths, cwd, arg);
 	return has(p)
 		? cb(force(p))
-		: immutable Command(immutable Command.Help("Invalid path", Command.Help.Kind.error));
+		: immutable Command(immutable Command.Help(safeCStr!"Invalid path", Command.Help.Kind.error));
 }
 
 immutable(Opt!ProgramDirAndMain) parseProgramDirAndMain(
@@ -297,9 +297,9 @@ immutable(Command) parseDocumentCommand(
 			cwd,
 			only(split.beforeFirstPart),
 			(ref immutable ProgramDirAndMain it) {
-				immutable Opt!(Opt!AbsolutePath) out_ = parseDocumentOut(alloc, allPaths, cwd, split.parts);
-				return has(out_) && empty(split.afterDashDash)
-					? immutable Command(immutable Command.Document(it, force(out_)))
+				immutable Opt!DocumentArgs args = parseDocumentArgs(alloc, allPaths, cwd, split.parts);
+				return has(args) && empty(split.afterDashDash)
+					? immutable Command(immutable Command.Document(it, force(args)))
 					: helpDocument;
 			});
 }
@@ -371,25 +371,35 @@ immutable(Opt!RunOptions) parseRunOptions(
 	}
 }
 
-// none for error, some(none) for nothing passed
-immutable(Opt!(Opt!AbsolutePath)) parseDocumentOut(
+public struct DocumentArgs {
+	immutable DocumentKind kind;
+	immutable Opt!AbsolutePath out_;
+}
+
+immutable(DocumentArgs) withKind(immutable DocumentArgs a, immutable DocumentKind kind) {
+	return immutable DocumentArgs(kind, a.out_);
+}
+
+immutable(DocumentArgs) withOut(immutable DocumentArgs a, immutable Opt!AbsolutePath out_) {
+	return immutable DocumentArgs(a.kind, out_);
+}
+
+immutable(Opt!DocumentArgs) parseDocumentArgs(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
 	immutable SafeCStr cwd,
 	immutable ArgsPart[] argParts,
 ) {
-	if (empty(argParts))
-		return some(none!AbsolutePath);
-	if (argParts.length != 1)
-		return none!(Opt!AbsolutePath);
-	else {
-		immutable ArgsPart part = only(argParts);
-		return safeCStrEq(part.tag, "--out") && part.args.length == 1
-			? some(some(parseAbsoluteOrRelPath(alloc, allPaths, cwd, only(part.args))))
-			: none!(Opt!AbsolutePath);
-	}
+	return foldOrStop!(DocumentArgs, ArgsPart)(
+		immutable DocumentArgs(DocumentKind.json, none!AbsolutePath),
+		argParts,
+		(immutable DocumentArgs cur, ref immutable ArgsPart part) =>
+			safeCStrEq(part.tag, "--pug")
+				? some(withKind(cur, DocumentKind.pug))
+				: safeCStrEq(part.tag, "--out") && part.args.length == 1
+				? some(withOut(cur, some(parseAbsoluteOrRelPath(alloc, allPaths, cwd, only(part.args)))))
+				: none!DocumentArgs);
 }
-
 
 immutable(Opt!BuildOptions) parseBuildOptions(
 	ref Alloc alloc,
@@ -510,25 +520,25 @@ immutable(Command) parseTestCommand(ref Alloc alloc, immutable SafeCStr[] args) 
 		return immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));
 }
 
-immutable string versionText =
-	"Approximately 0.000";
+immutable SafeCStr versionText =
+	safeCStr!"Approximately 0.000";
 
-immutable string helpAllText =
-	"Commands: (type a command then '--help' to see more)\n" ~
+immutable SafeCStr helpAllText =
+	safeCStr!("Commands: (type a command then '--help' to see more)\n" ~
 	"\t'crow build'\n" ~
 	"\t'crow run'\n" ~
-	"\t'crow version'";
+	"\t'crow version'");
 
-immutable string helpDocumentText =
-	"Command: crow document PATH --out [OUT.pug]\n" ~
-	"\tWrites documentation for the module at PATH to the output.\n";
+immutable SafeCStr helpDocumentText =
+	safeCStr!("Command: crow document PATH --out [OUT.pug]\n" ~
+	"\tWrites documentation for the module at PATH to the output.\n");
 
-immutable string helpBuildText =
-	"Command: crow build PATH --out OUT [--optimize]\n" ~
+immutable SafeCStr helpBuildText =
+	safeCStr!("Command: crow build PATH --out OUT [--optimize]\n" ~
 	"\tCompiles the program at PATH to an executable OUT.\n" ~
-	"\tIf OUT has a '.c' extension, it will be C source code instead.\n";
+	"\tIf OUT has a '.c' extension, it will be C source code instead.\n");
 
-immutable string helpRunText =
-	"Command: crow run [PATH] [build args] -- [programArgs]\n" ~
+immutable SafeCStr helpRunText =
+	safeCStr!("Command: crow run [PATH] [build args] -- [programArgs]\n" ~
 	"\tBuild args are same as for 'crow build'.\n" ~
-	"Arguments after '--' will be sent to the program.";
+	"Arguments after '--' will be sent to the program.");

@@ -88,7 +88,7 @@ ALL_PUGS = $(wildcard site/*.pug site/tutorial/*.pug) site/documentation/index.p
 HTMLS = $(patsubst site/%.pug, site/%.html, $(ALL_PUGS))
 
 site/documentation/%.pug: include/%.crow bin/crow
-	bin/crow doc $< --out $@
+	bin/crow doc $< --pug --out $@
 
 # Pug automatically writes to the corresponding *.html file
 site/%.html: site/%.pug

@@ -4,7 +4,7 @@ module lib.compiler;
 
 import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
-import document.document : document;
+import document.document : documentPug, documentJSON;
 import frontend.parse.ast : FileAst, reprAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
 import frontend.ide.getTokens : Token, tokensOfAst, reprTokens;
@@ -23,16 +23,16 @@ import model.reprLowModel : reprOfLowProgram;
 import model.reprModel : reprModule;
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptyArr;
-import util.col.str : SafeCStr;
+import util.col.str : SafeCStr, safeCStr, safeCStrSize;
 import util.dbg : Debug;
 import util.opt : force, none, Opt, some;
 import util.path : AllPaths, PathAndStorageKind;
 import util.perf : Perf;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.repr : Repr, writeRepr, writeReprJSON;
 import util.sym : AllSymbols, Sym;
 import util.util : castImmutableRef;
-import util.writer : finishWriter, Writer;
+import util.writer : finishWriterToSafeCStr, Writer;
 
 enum PrintFormat {
 	repr,
@@ -48,8 +48,8 @@ enum PrintKind {
 }
 
 struct DiagsAndResultStrs {
-	immutable string diagnostics;
-	immutable string result;
+	immutable SafeCStr diagnostics;
+	immutable SafeCStr result;
 }
 
 immutable(DiagsAndResultStrs) print(ReadOnlyStorage)(
@@ -137,8 +137,8 @@ private:
 	ref immutable Diagnostics diagnostics,
 ) {
 	immutable int stderr = 2;
-	immutable string s = strOfDiagnostics(alloc, allSymbols, allPaths, showDiagOptions, filesInfo, diagnostics);
-	extern_.write(stderr, s.ptr, s.length);
+	immutable SafeCStr s = strOfDiagnostics(alloc, allSymbols, allPaths, showDiagOptions, filesInfo, diagnostics);
+	extern_.write(stderr, s.ptr, safeCStrSize(s));
 }
 
 immutable(DiagsAndResultStrs) printTokens(ReadOnlyStorage)(
@@ -187,11 +187,11 @@ immutable(DiagsAndResultStrs) printModel(ReadOnlyStorage)(
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, main);
 	return !hasDiags(program)
 		? immutable DiagsAndResultStrs(
-			"",
+			safeCStr!"",
 			showModule(alloc, allSymbols, program.specialModules.mainModule.deref(), format))
 		: immutable DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allSymbols, allPaths, showDiagOptions, program.filesInfo, program.diagnostics),
-			"");
+			safeCStr!"");
 }
 
 immutable(DiagsAndResultStrs) printConcreteModel(ReadOnlyStorage)(
@@ -207,11 +207,13 @@ immutable(DiagsAndResultStrs) printConcreteModel(ReadOnlyStorage)(
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, main);
 	if (!hasDiags(program)) {
 		immutable ConcreteProgram concreteProgram = concretize(alloc, perf, allSymbols, program);
-		return immutable DiagsAndResultStrs("", showConcreteProgram(alloc, allSymbols, concreteProgram, format));
+		return immutable DiagsAndResultStrs(
+			safeCStr!"",
+			showConcreteProgram(alloc, allSymbols, concreteProgram, format));
 	} else
 		return immutable DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allSymbols, allPaths, showDiagOptions, program.filesInfo, program.diagnostics),
-			"");
+			safeCStr!"");
 }
 
 immutable(DiagsAndResultStrs) printLowModel(ReadOnlyStorage)(
@@ -228,15 +230,15 @@ immutable(DiagsAndResultStrs) printLowModel(ReadOnlyStorage)(
 	if (!hasDiags(program)) {
 		immutable ConcreteProgram concreteProgram = concretize(alloc, perf, allSymbols, program);
 		immutable LowProgram lowProgram = lower(alloc, perf, concreteProgram);
-		return immutable DiagsAndResultStrs("", showLowProgram(alloc, allSymbols, lowProgram, format));
+		return immutable DiagsAndResultStrs(safeCStr!"", showLowProgram(alloc, allSymbols, lowProgram, format));
 	} else
 		return immutable DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allSymbols, allPaths, showDiagOptions, program.filesInfo, program.diagnostics),
-			"");
+			safeCStr!"");
 }
 
 //TODO:INLINE
-immutable(string) showAst(
+immutable(SafeCStr) showAst(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
@@ -247,7 +249,7 @@ immutable(string) showAst(
 }
 
 //TODO:INLINE
-immutable(string) showModule(
+immutable(SafeCStr) showModule(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref immutable Module a,
@@ -257,7 +259,7 @@ immutable(string) showModule(
 }
 
 //TODO:INLINE
-immutable(string) showConcreteProgram(
+immutable(SafeCStr) showConcreteProgram(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref immutable ConcreteProgram a,
@@ -267,7 +269,7 @@ immutable(string) showConcreteProgram(
 }
 
 //TODO:INLINE
-immutable(string) showLowProgram(
+immutable(SafeCStr) showLowProgram(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref immutable LowProgram a,
@@ -289,8 +291,8 @@ public immutable(ExitCode) justTypeCheck(ReadOnlyStorage)(
 }
 
 public struct BuildToCResult {
-	immutable string cSource;
-	immutable string diagnostics;
+	immutable SafeCStr cSource;
+	immutable SafeCStr diagnostics;
 	immutable Sym[] allExternLibraryNames;
 }
 
@@ -307,10 +309,10 @@ public immutable(BuildToCResult) buildToC(ReadOnlyStorage)(
 	return !hasDiags(programs.program)
 		? immutable BuildToCResult(
 			writeToC(alloc, alloc, castImmutableRef(allSymbols), force(programs.concreteAndLowProgram).lowProgram),
-			"",
+			safeCStr!"",
 			force(programs.concreteAndLowProgram).concreteProgram.allExternLibraryNames)
 		: immutable BuildToCResult(
-			"",
+			safeCStr!"",
 			strOfDiagnostics(
 				alloc,
 				allSymbols,
@@ -322,9 +324,11 @@ public immutable(BuildToCResult) buildToC(ReadOnlyStorage)(
 }
 
 public struct DocumentResult {
-	immutable string document;
-	immutable string diagnostics;
+	immutable SafeCStr document;
+	immutable SafeCStr diagnostics;
 }
+
+public enum DocumentKind { json, pug }
 
 public immutable(DocumentResult) compileAndDocument(ReadOnlyStorage)(
 	ref Alloc alloc,
@@ -334,13 +338,23 @@ public immutable(DocumentResult) compileAndDocument(ReadOnlyStorage)(
 	ref ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
+	immutable DocumentKind documentKind,
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, main);
-	return !hasDiags(program)
-		? immutable DocumentResult(
-			document(alloc, allSymbols, allPaths, program, program.specialModules.mainModule.deref()), "")
-		: immutable DocumentResult(
-			"",
+	if (!hasDiags(program)) {
+		immutable SafeCStr res = () {
+			immutable Ptr!Module main = program.specialModules.mainModule;
+			final switch (documentKind) {
+				case DocumentKind.pug:
+					return documentPug(alloc, allSymbols, allPaths, program, main.deref());
+				case DocumentKind.json:
+					return documentJSON(alloc, allSymbols, allPaths, program, main.deref());
+			}
+		}();
+		return immutable DocumentResult(res, safeCStr!"");
+	} else
+		return immutable DocumentResult(
+			safeCStr!"",
 			strOfDiagnostics(alloc, allSymbols, allPaths, showDiagOptions, program.filesInfo, program.diagnostics));
 }
 
@@ -379,7 +393,7 @@ public immutable(ProgramsAndFilesInfo) buildToLowProgram(ReadOnlyStorage)(
 		return immutable ProgramsAndFilesInfo(program, none!ConcreteAndLowProgram);
 }
 
-immutable(string) showRepr(
+immutable(SafeCStr) showRepr(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	immutable Repr a,
@@ -394,5 +408,5 @@ immutable(string) showRepr(
 			writeReprJSON(writer, allSymbols, a);
 			break;
 	}
-	return finishWriter(writer);
+	return finishWriterToSafeCStr(writer);
 }

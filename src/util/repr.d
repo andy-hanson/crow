@@ -6,14 +6,14 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr;
 import util.col.arrUtil : arrLiteral, map, mapWithIndex;
 import util.col.fullIndexDict : FullIndexDict;
-import util.col.str : CStr, SafeCStr, strOfSafeCStr;
+import util.col.str : SafeCStr, strOfSafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : AllSymbols, shortSym, Sym, symSize, writeSym;
 import util.util : abs, todo;
 import util.writer :
-	finishWriterToCStr,
+	finishWriterToSafeCStr,
 	writeChar,
 	writeFloatLiteral,
 	writeInt,
@@ -45,16 +45,24 @@ private struct ReprRecord {
 	immutable Repr[] children;
 }
 
-immutable(Repr) reprNamedRecord(immutable string name, immutable NameAndRepr[] children) {
-	return immutable Repr(immutable ReprNamedRecord(shortSym(name), children));
+immutable(Repr) reprNamedRecord(immutable Sym name, immutable NameAndRepr[] children) {
+	return immutable Repr(immutable ReprNamedRecord(name, children));
 }
 
-immutable(Repr) reprNamedRecord(
-	ref Alloc alloc,
-	immutable string name,
-	scope immutable NameAndRepr[] children,
-) {
+immutable(Repr) reprNamedRecord(immutable string name, immutable NameAndRepr[] children) {
+	return reprNamedRecord(shortSym(name), children);
+}
+
+immutable(Repr) reprNamedRecord(ref Alloc alloc, immutable Sym name, scope immutable NameAndRepr[] children) {
 	return reprNamedRecord(name, arrLiteral(alloc, children));
+}
+
+immutable(Repr) reprNamedRecord(ref Alloc alloc, immutable string name, scope immutable NameAndRepr[] children) {
+	return reprNamedRecord(name, arrLiteral(alloc, children));
+}
+
+immutable(Repr) reprArr(immutable Repr[] elements) {
+	return immutable Repr(immutable ReprArr(false, elements), true);
 }
 
 immutable(Repr) reprArr(T)(
@@ -62,7 +70,7 @@ immutable(Repr) reprArr(T)(
 	immutable T[] xs,
 	scope immutable(Repr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	return immutable Repr(immutable ReprArr(false, map(alloc, xs, cb)), true);
+	return reprArr(map(alloc, xs, cb));
 }
 
 immutable(Repr) reprArr(T)(
@@ -228,10 +236,10 @@ void writeRepr(ref Writer writer, ref const AllSymbols allSymbols, immutable Rep
 	writeChar(writer, '\n');
 }
 
-immutable(CStr) jsonStrOfRepr(ref Alloc alloc, ref const AllSymbols allSymbols, ref immutable Repr a) {
+immutable(SafeCStr) jsonStrOfRepr(ref Alloc alloc, ref const AllSymbols allSymbols, immutable Repr a) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
 	writeReprJSON(writer, allSymbols, a);
-	return finishWriterToCStr(writer);
+	return finishWriterToSafeCStr(writer);
 }
 
 void writeReprJSON(ref Writer writer, ref const AllSymbols allSymbols, ref immutable Repr a) {

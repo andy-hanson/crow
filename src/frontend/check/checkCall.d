@@ -245,18 +245,17 @@ void eachFunInScope(
 ) {
 	size_t totalIndex = 0;
 	foreach (immutable Ptr!SpecInst specInst; ctx.outermostFunSpecs)
-		matchSpecBody!(
-			void,
-			(ref immutable SpecBody.Builtin) {},
-			(ref immutable Sig[] sigs) {
+		matchSpecBody!void(
+			specInst.deref().body_,
+			(immutable SpecBody.Builtin) {},
+			(immutable Sig[] sigs) {
 				foreach (immutable size_t i, ref immutable Sig sig; sigs)
 					if (symEq(sig.name, funName)) {
 						immutable Opt!UsedFun used = none!UsedFun;
 						cb(used, immutable CalledDecl(immutable SpecSig(specInst, ptrAt(sigs, i), totalIndex + i)));
 					}
 				totalIndex += sigs.length;
-			},
-		)(specInst.deref().body_);
+			});
 
 	foreach (ref immutable FunDeclAndIndex f; multiDictGetAt(ctx.funsDict, funName)) {
 		immutable Opt!UsedFun used = some(immutable UsedFun(f.index));
@@ -354,8 +353,8 @@ immutable(Type) getCandidateExpectedParameterTypeRecur(
 	ref const Candidate candidate,
 	immutable Type candidateParamType,
 ) {
-	return matchType!(
-		immutable Type,
+	return matchType!(immutable Type)(
+		candidateParamType,
 		(immutable Type.Bogus) =>
 			immutable Type(Type.Bogus()),
 		(immutable Ptr!TypeParam p) {
@@ -373,8 +372,7 @@ immutable(Type) getCandidateExpectedParameterTypeRecur(
 					alloc,
 					programState,
 					immutable StructDeclAndArgs(i.deref().decl, typeArgs)));
-		},
-	)(candidateParamType);
+		});
 }
 
 immutable(Type) getCandidateExpectedParameterType(
@@ -571,14 +569,13 @@ immutable(bool) findBuiltinSpecOnType(
 	immutable Type type,
 ) {
 	return exists!(Ptr!SpecInst)(ctx.outermostFunSpecs, (ref immutable Ptr!SpecInst inst) =>
-		matchSpecBody!(
-			immutable bool,
-			(ref immutable SpecBody.Builtin b) =>
+		matchSpecBody!(immutable bool)(
+			inst.deref().body_,
+			(immutable SpecBody.Builtin b) =>
 				b.kind == kind && typeEquals(only(inst.deref().typeArgs), type),
-			(ref immutable Sig[]) =>
+			(immutable Sig[]) =>
 				//TODO: might inherit from builtin spec?
-				false,
-		)(inst.deref().body_));
+				false));
 }
 
 immutable(bool) checkBuiltinSpec(
@@ -630,11 +627,11 @@ immutable(bool) checkBuiltinSpec(
 			// Meed to instantiate it again.
 			immutable TypeParamsAndArgs tpa = immutable TypeParamsAndArgs(called.deref().typeParams, typeArgz);
 			immutable Ptr!SpecInst specInstInstantiated = instantiateSpecInst(alloc, programState(ctx), specInst, tpa);
-			immutable bool succeeded = matchSpecBody!(
-				immutable bool,
-				(ref immutable SpecBody.Builtin b) =>
+			immutable bool succeeded = matchSpecBody!(immutable bool)(
+				specInstInstantiated.deref().body_,
+				(immutable SpecBody.Builtin b) =>
 					checkBuiltinSpec(alloc, ctx, called, range, b.kind, only(typeArgs(specInstInstantiated.deref()))),
-				(ref immutable Sig[] sigs) {
+				(immutable Sig[] sigs) {
 					foreach (ref immutable Sig sig; sigs) {
 						immutable Opt!Called impl = findSpecSigImplementation(alloc, ctx, range, sig, called);
 						if (!has(impl))
@@ -643,8 +640,7 @@ immutable(bool) checkBuiltinSpec(
 						outI++;
 					}
 					return true;
-				},
-			)(specInstInstantiated.deref().body_);
+				});
 			if (!succeeded)
 				allSucceeded = false;
 		}

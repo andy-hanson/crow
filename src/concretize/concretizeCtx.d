@@ -393,8 +393,8 @@ immutable(ConcreteType) getConcreteType(
 	immutable Type t,
 	immutable TypeArgsScope typeArgsScope,
 ) {
-	return matchType!(
-		immutable ConcreteType,
+	return matchType!(immutable ConcreteType)(
+		t,
 		(immutable Type.Bogus) =>
 			unreachable!(immutable ConcreteType),
 		(immutable Ptr!TypeParam p) {
@@ -403,8 +403,7 @@ immutable(ConcreteType) getConcreteType(
 			return typeArgsScope.typeArgs[p.deref().index];
 		},
 		(immutable Ptr!StructInst i) =>
-			getConcreteType_forStructInst(alloc, ctx, i, typeArgsScope),
-	)(t);
+			getConcreteType_forStructInst(alloc, ctx, i, typeArgsScope));
 }
 
 immutable(ConcreteType[]) typesToConcreteTypes(
@@ -627,8 +626,8 @@ void initializeConcreteStruct(
 	Ptr!ConcreteStruct res,
 	immutable TypeArgsScope typeArgsScope,
 ) {
-	matchStructBody!(
-		void,
+	matchStructBody!void(
+		body_(i),
 		(ref immutable StructBody.Bogus) => unreachable!void,
 		(ref immutable StructBody.Builtin) {
 			immutable BuiltinStructKind kind = getBuiltinStructKind(i.decl.deref().name);
@@ -695,8 +694,7 @@ void initializeConcreteStruct(
 				lateSet(res.deref().typeSize_, unionSize(members));
 			else
 				push(alloc, ctx.deferredUnions, DeferredUnionBody(res, members));
-		},
-	)(body_(i));
+		});
 }
 
 immutable(ConcreteMutability) toConcreteMutability(immutable FieldMutability a) {
@@ -877,8 +875,8 @@ immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(
 }
 
 immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType type) {
-	return matchStructBody!(
-		immutable StructBody.Enum.Member[],
+	return matchStructBody!(immutable StructBody.Enum.Member[])(
+		body_(decl(asInst(mustBeNonPointer(type).deref().source).inst.deref()).deref()),
 		(ref immutable StructBody.Bogus) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
 		(ref immutable StructBody.Builtin) =>
@@ -892,8 +890,7 @@ immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType ty
 		(ref immutable StructBody.Record) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
 		(ref immutable StructBody.Union) =>
-			unreachable!(immutable StructBody.Enum.Member[]),
-	)(body_(decl(asInst(mustBeNonPointer(type).deref().source).inst.deref()).deref()));
+			unreachable!(immutable StructBody.Enum.Member[]));
 }
 
 immutable(ConcreteFunBody) bodyForAllTests(ref Alloc alloc, ref ConcretizeCtx ctx, immutable ConcreteType returnType) {

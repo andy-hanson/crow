@@ -23,6 +23,7 @@ import lib.cliParser :
 	BuildOptions,
 	CCompileOptions,
 	Command,
+	DocumentArgs,
 	matchCommand,
 	parseCommand,
 	ProgramDirAndMain,
@@ -44,7 +45,6 @@ import model.model : AbsolutePathsGetter, getAbsolutePath, hasDiags;
 import test.test : test;
 import util.alloc.alloc : Alloc, allocateT, freeT, TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.col.arr : empty;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : prepend, zipImpureSystem;
 import util.col.str :
@@ -55,6 +55,8 @@ import util.col.str :
 	safeCStr,
 	safeCStrEq,
 	safeCStrEqCat,
+	safeCStrIsEmpty,
+	safeCStrSize,
 	strOfCStr,
 	strToCStr,
 	strOfSafeCStr;
@@ -149,7 +151,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 		(ref immutable Command.Build it) =>
 			runBuild(alloc, perf, allSymbols, allPaths, cwd, includeDir, tempDir, it.programDirAndMain, it.options),
 		(ref immutable Command.Document it) =>
-			runDocument(alloc, perf, allSymbols, allPaths, cwd, includeDir, it.programDirAndMain, it.out_),
+			runDocument(alloc, perf, allSymbols, allPaths, cwd, includeDir, it.programDirAndMain, it.args),
 		(ref immutable Command.Help it) =>
 			help(it),
 		(ref immutable Command.Print it) {
@@ -169,9 +171,9 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 				it.kind,
 				it.format,
 				getMain(allPaths, includeDir, it.programDirAndMain));
-			if (!empty(printed.diagnostics)) printErr(printed.diagnostics);
-			if (!empty(printed.result)) print(printed.result);
-			return empty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
+			if (!safeCStrIsEmpty(printed.diagnostics)) printErr(printed.diagnostics);
+			if (!safeCStrIsEmpty(printed.result)) print(printed.result);
+			return safeCStrIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
 		},
 		(ref immutable Command.Run run) {
 			RealReadOnlyStorage storage = RealReadOnlyStorage(
@@ -300,7 +302,7 @@ immutable(ExitCode) runDocument(
 	immutable SafeCStr cwd,
 	immutable SafeCStr includeDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
-	ref immutable Opt!AbsolutePath out_,
+	ref immutable DocumentArgs args,
 ) {
 	RealReadOnlyStorage storage = RealReadOnlyStorage(
 		ptrTrustMe_mut(allPaths),
@@ -310,11 +312,12 @@ immutable(ExitCode) runDocument(
 		programDirAndMain.programDir);
 	immutable DocumentResult result = compileAndDocument(
 		alloc, perf, allSymbols, allPaths, storage, showDiagOptions,
-		getMain(allPaths, includeDir, programDirAndMain));
-	return empty(result.diagnostics)
-		? has(out_)
-			? writeFile(alloc, pathToSafeCStr(alloc, allPaths, force(out_)), result.document)
-			: print(result.document)
+		getMain(allPaths, includeDir, programDirAndMain),
+		args.kind);
+	return safeCStrIsEmpty(result.diagnostics)
+		? has(args.out_)
+			? writeFile(alloc, pathToSafeCStr(alloc, allPaths, force(args.out_)), result.document)
+			: println(result.document)
 		: printErr(result.diagnostics);
 }
 
@@ -423,7 +426,7 @@ immutable(ExitCode) buildToCAndCompile(
 		programDirAndMain.programDir);
 	immutable BuildToCResult result = buildToC(
 		alloc, perf, allSymbols, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
-	if (empty(result.diagnostics)) {
+	if (safeCStrIsEmpty(result.diagnostics)) {
 		immutable ExitCode res = writeFile(alloc, pathToSafeCStr(alloc, allPaths, cPath), result.cSource);
 		return res == ExitCode.ok && has(exePath)
 			? compileC(
@@ -564,17 +567,18 @@ immutable(SafeCStr[]) cCompileArgs(
 	return finishArr(alloc, args);
 }
 
-@trusted immutable(ExitCode) print(immutable string a) {
-	printf("%.*s", cast(uint) a.length, a.ptr);
+@trusted immutable(ExitCode) print(immutable SafeCStr a) {
+	printf("%s", a.ptr);
 	return ExitCode.ok;
 }
 
-@trusted void println(immutable string a) {
-	printf("%.*s\n", cast(uint) a.length, a.ptr);
+@trusted immutable(ExitCode) println(immutable SafeCStr a) {
+	printf("%s\n", a.ptr);
+	return ExitCode.ok;
 }
 
-@trusted immutable(ExitCode) printErr(immutable string a) {
-	fprintf(stderr, "%.*s", cast(uint) a.length, a.ptr);
+@trusted immutable(ExitCode) printErr(immutable SafeCStr a) {
+	fprintf(stderr, "%s", a.ptr);
 	return ExitCode.error;
 }
 
@@ -890,7 +894,7 @@ extern(C) {
 	return cb(some(immutable SafeCStr(cast(immutable) content)));
 }
 
-@trusted immutable(ExitCode) writeFile(TempAlloc)(ref TempAlloc tempAlloc, immutable SafeCStr path, string content) {
+@trusted immutable(ExitCode) writeFile(ref TempAlloc tempAlloc, immutable SafeCStr path, immutable SafeCStr content) {
 	immutable int fd = tryOpenFile(tempAlloc, path);
 	if (fd == -1) {
 		fprintf(stderr, "Failed to write file %s: %s\n", path.ptr, strerror(errno));
@@ -898,8 +902,9 @@ extern(C) {
 	} else {
 		scope(exit) close(fd);
 
-		immutable long wroteBytes = posixWrite(fd, content.ptr, content.length);
-		if (wroteBytes != content.length)
+		immutable size_t size = safeCStrSize(content);
+		immutable long wroteBytes = posixWrite(fd, content.ptr, size);
+		if (wroteBytes != size)
 			if (wroteBytes == -1)
 				todo!void("writeFile failed");
 			else
@@ -908,7 +913,7 @@ extern(C) {
 	}
 }
 
-@system immutable(int) tryOpenFile(TempAlloc)(ref TempAlloc tempAlloc, immutable SafeCStr path) {
+@system immutable(int) tryOpenFile(ref TempAlloc tempAlloc, immutable SafeCStr path) {
 	immutable int fd = open(path.ptr, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
 	if (fd == -1 && errno == ENOENT) {
 		immutable Opt!string par = pathParent(strOfSafeCStr(path));

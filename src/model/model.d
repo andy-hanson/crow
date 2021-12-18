@@ -123,7 +123,12 @@ struct Type {
 	TaggedPtr!Kind inner;
 }
 
-@trusted immutable(T) matchType(T, alias cbBogus, alias cbTypeParam, alias cbStructInst)(immutable Type a) {
+@trusted immutable(T) matchType(T)(
+	immutable Type a,
+	scope immutable(T) delegate(immutable Type.Bogus) @safe @nogc pure nothrow cbBogus,
+	scope immutable(T) delegate(immutable Ptr!TypeParam) @safe @nogc pure nothrow cbTypeParam,
+	scope immutable(T) delegate(immutable Ptr!StructInst) @safe @nogc pure nothrow cbStructInst
+) {
 	final switch (a.inner.tag()) {
 		case Type.Kind.bogus:
 			immutable Type.Bogus bogus = immutable Type.Bogus();
@@ -136,86 +141,77 @@ struct Type {
 }
 
 immutable(bool) isBogus(immutable Type a) {
-	return matchType!(
-		immutable bool,
+	return matchType!(immutable bool)(
+		a,
 		(immutable Type.Bogus) => true,
 		(immutable Ptr!TypeParam) => false,
-		(immutable Ptr!StructInst) => false,
-	)(a);
+		(immutable Ptr!StructInst) => false);
 }
 immutable(bool) isTypeParam(immutable Type a) {
-	return matchType!(
-		immutable bool,
+	return matchType!(immutable bool)(
+		a,
 		(immutable Type.Bogus) => false,
 		(immutable Ptr!TypeParam) => true,
-		(immutable Ptr!StructInst) => false,
-	)(a);
+		(immutable Ptr!StructInst) => false);
 }
 @trusted immutable(Ptr!TypeParam) asTypeParam(immutable Type a) {
-	return matchType!(
-		immutable Ptr!TypeParam,
+	return matchType!(immutable Ptr!TypeParam)(
+		a,
 		(immutable Type.Bogus) => unreachable!(immutable Ptr!TypeParam),
 		(immutable Ptr!TypeParam it) => it,
-		(immutable Ptr!StructInst) => unreachable!(immutable Ptr!TypeParam),
-	)(a);
+		(immutable Ptr!StructInst) => unreachable!(immutable Ptr!TypeParam));
 }
 immutable(bool) isStructInst(immutable Type a) {
-	return matchType!(
-		immutable bool,
+	return matchType!(immutable bool)(
+		a,
 		(immutable Type.Bogus) => false,
 		(immutable Ptr!TypeParam) => false,
-		(immutable Ptr!StructInst) => true,
-	)(a);
+		(immutable Ptr!StructInst) => true);
 }
 @trusted immutable(Ptr!StructInst) asStructInst(immutable Type a) {
-	return matchType!(
-		immutable Ptr!StructInst,
+	return matchType!(immutable Ptr!StructInst)(
+		a,
 		(immutable Type.Bogus) => unreachable!(immutable Ptr!StructInst),
 		(immutable Ptr!TypeParam) => unreachable!(immutable Ptr!StructInst),
-		(immutable Ptr!StructInst it) => it,
-	)(a);
+		(immutable Ptr!StructInst it) => it);
 }
 
 immutable(Purity) bestCasePurity(immutable Type a) {
-	return matchType!(
-		immutable Purity,
+	return matchType!(immutable Purity)(
+		a,
 		(immutable Type.Bogus) => Purity.data,
 		(immutable Ptr!TypeParam) => Purity.data,
-		(immutable Ptr!StructInst i) => i.deref().bestCasePurity,
-	)(a);
+		(immutable Ptr!StructInst i) => i.deref().bestCasePurity);
 }
 
 immutable(Purity) worstCasePurity(immutable Type a) {
-	return matchType!(
-		immutable Purity,
+	return matchType!(immutable Purity)(
+		a,
 		(immutable Type.Bogus) => Purity.data,
 		(immutable Ptr!TypeParam) => Purity.mut,
-		(immutable Ptr!StructInst i) => i.deref().worstCasePurity,
-	)(a);
+		(immutable Ptr!StructInst i) => i.deref().worstCasePurity);
 }
 
 //TODO:MOVE?
 immutable(bool) typeEquals(immutable Type a, immutable Type b) {
-	return matchType!(
-		immutable bool,
+	return matchType!(immutable bool)(
+		a,
 		(immutable Type.Bogus) =>
 			isBogus(b),
 		(immutable Ptr!TypeParam p) =>
 			isTypeParam(b) && ptrEquals(p, asTypeParam(b)),
 		(immutable Ptr!StructInst i) =>
-			isStructInst(b) && ptrEquals(i, asStructInst(b)),
-	)(a);
+			isStructInst(b) && ptrEquals(i, asStructInst(b)));
 }
 
 private void hashType(ref Hasher hasher, immutable Type a) {
-	matchType!(
-		void,
+	matchType!void(
+		a,
 		(immutable Type.Bogus) {},
 		(immutable Ptr!TypeParam p) =>
 			hashPtr(hasher, p),
 		(immutable Ptr!StructInst i) =>
-			hashPtr(hasher, i),
-	)(a);
+			hashPtr(hasher, i));
 }
 
 struct Param {
@@ -509,16 +505,16 @@ private immutable(bool) isUnion(ref immutable StructBody a) {
 	return a.union_;
 }
 
-@trusted T matchStructBody(
-	T,
-	alias cbBogus,
-	alias cbBuiltin,
-	alias cbEnum,
-	alias cbFlags,
-	alias cbExternPtr,
-	alias cbRecord,
-	alias cbUnion,
-)(ref immutable StructBody a) {
+@trusted immutable(T) matchStructBody(T)(
+	ref immutable StructBody a,
+	scope immutable(T) delegate(ref immutable StructBody.Bogus) @safe @nogc pure nothrow cbBogus,
+	scope immutable(T) delegate(ref immutable StructBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope immutable(T) delegate(ref immutable StructBody.Enum) @safe @nogc pure nothrow cbEnum,
+	scope immutable(T) delegate(ref immutable StructBody.Flags) @safe @nogc pure nothrow cbFlags,
+	scope immutable(T) delegate(ref immutable StructBody.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
+	scope immutable(T) delegate(ref immutable StructBody.Record) @safe @nogc pure nothrow cbRecord,
+	scope immutable(T) delegate(ref immutable StructBody.Union) @safe @nogc pure nothrow cbUnion,
+) {
 	final switch (a.kind) {
 		case StructBody.Kind.bogus:
 			return cbBogus(a.bogus);
@@ -688,7 +684,11 @@ struct SpecBody {
 	@trusted immutable this(immutable Sig[] a) { kind = Kind.sigs; sigs = a; }
 }
 
-@trusted T matchSpecBody(T, alias cbBuiltin, alias cbSigs)(ref immutable SpecBody a) {
+@trusted immutable(T) matchSpecBody(T)(
+	ref immutable SpecBody a,
+	scope immutable(T) delegate(immutable SpecBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope immutable(T) delegate(immutable Sig[]) @safe @nogc pure nothrow cbSigs,
+) {
 	final switch (a.kind) {
 		case SpecBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
@@ -698,11 +698,10 @@ struct SpecBody {
 }
 
 immutable(size_t) nSigs(ref immutable SpecBody a) {
-	return matchSpecBody!(
-		immutable size_t,
-		(ref immutable SpecBody.Builtin) => immutable size_t(0),
-		(ref immutable Sig[] sigs) => sigs.length,
-	)(a);
+	return matchSpecBody!(immutable size_t)(
+		a,
+		(immutable SpecBody.Builtin) => immutable size_t(0),
+		(immutable Sig[] sigs) => sigs.length);
 }
 
 struct SpecDecl {
@@ -1341,7 +1340,11 @@ struct StructOrAlias {
 	return a.structDecl_;
 }
 
-@trusted T matchStructOrAlias(T, alias cbAlias, alias cbStructDecl)(ref immutable StructOrAlias a) {
+@trusted immutable(T) matchStructOrAlias(T)(
+	ref immutable StructOrAlias a,
+	scope immutable(T) delegate(ref immutable StructAlias) @safe @nogc pure nothrow cbAlias,
+	scope immutable(T) delegate(ref immutable StructDecl) @safe @nogc pure nothrow cbStructDecl,
+) {
 	final switch (a.kind) {
 		case StructOrAlias.Kind.alias_:
 			return cbAlias(a.alias_.deref());
@@ -1360,35 +1363,31 @@ struct StructOrAlias {
 }
 
 immutable(TypeParam[]) typeParams(ref immutable StructOrAlias a) {
-	return matchStructOrAlias!(
-		immutable TypeParam[],
+	return matchStructOrAlias!(immutable TypeParam[])(
+		a,
 		(ref immutable StructAlias al) => al.typeParams,
-		(ref immutable StructDecl d) => d.typeParams,
-	)(a);
+		(ref immutable StructDecl d) => d.typeParams);
 }
 
 immutable(FileAndRange) range(ref immutable StructOrAlias a) {
-	return matchStructOrAlias!(
-		immutable FileAndRange,
+	return matchStructOrAlias!(immutable FileAndRange)(
+		a,
 		(ref immutable StructAlias al) => al.range,
-		(ref immutable StructDecl d) => d.range,
-	)(a);
+		(ref immutable StructDecl d) => d.range);
 }
 
 immutable(Visibility) visibility(ref immutable StructOrAlias a) {
-	return matchStructOrAlias!(
-		immutable Visibility,
+	return matchStructOrAlias!(immutable Visibility)(
+		a,
 		(ref immutable StructAlias al) => al.visibility,
-		(ref immutable StructDecl d) => d.visibility,
-	)(a);
+		(ref immutable StructDecl d) => d.visibility);
 }
 
 immutable(Sym) name(ref immutable StructOrAlias a) {
-	return matchStructOrAlias!(
-		immutable Sym,
+	return matchStructOrAlias!(immutable Sym)(
+		a,
 		(ref immutable StructAlias al) => al.name,
-		(ref immutable StructDecl d) => d.name,
-	)(a);
+		(ref immutable StructDecl d) => d.name);
 }
 
 struct Module {
@@ -1811,9 +1810,9 @@ void writeStructInst(ref Writer writer, ref const AllSymbols allSymbols, ref imm
 }
 
 //TODO:MOVE
-void writeType(ref Writer writer, ref const AllSymbols allSymbols, immutable Type type) {
-	matchType!(
-		void,
+void writeType(ref Writer writer, ref const AllSymbols allSymbols, immutable Type a) {
+	matchType!void(
+		a,
 		(immutable Type.Bogus) {
 			writeStatic(writer, "<<bogus>>");
 		},
@@ -1822,8 +1821,7 @@ void writeType(ref Writer writer, ref const AllSymbols allSymbols, immutable Typ
 		},
 		(immutable Ptr!StructInst s) {
 			writeStructInst(writer, allSymbols, s.deref());
-		},
-	)(type);
+		});
 }
 
 enum Visibility : ubyte {

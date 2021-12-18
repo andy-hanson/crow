@@ -544,8 +544,8 @@ immutable(Params) checkParams(
 		(ref immutable ParamsAst.Varargs varargs) {
 			immutable Param param = checkParam(
 				alloc, ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts, varargs.param, 0);
-			immutable Type elementType = matchType!(
-				immutable Type,
+			immutable Type elementType = matchType!(immutable Type)(
+				param.type,
 				(immutable Type.Bogus) =>
 					immutable Type(immutable Type.Bogus()),
 				(immutable Ptr!TypeParam) =>
@@ -556,8 +556,7 @@ immutable(Params) checkParams(
 					} else {
 						return todo!(immutable Type)("diagnostic");
 					}
-				},
-			)(param.type);
+				});
 			return immutable Params(allocate(alloc, immutable Params.Varargs(param, elementType)));
 		},
 	)(ast);
@@ -973,8 +972,8 @@ immutable(EnumBackingType) getEnumTypeFromType(
 	immutable Type type,
 ) {
 	immutable IntegralTypes integrals = commonTypes.integrals;
-	return matchType!(
-		immutable EnumBackingType,
+	return matchType!(immutable EnumBackingType)(
+		type,
 		(immutable Type.Bogus) =>
 			defaultEnumBackingType(),
 		(immutable Ptr!TypeParam) =>
@@ -1000,8 +999,7 @@ immutable(EnumBackingType) getEnumTypeFromType(
 				: (() {
 					addDiag(alloc, ctx, range, immutable Diag(immutable Diag.EnumBackingTypeInvalid(it)));
 					return defaultEnumBackingType();
-				})(),
-	)(type);
+				})());
 }
 
 immutable(Ptr!StructInst) getBackingTypeFromEnumType(
@@ -1454,8 +1452,8 @@ immutable(size_t) countFunsForStruct(
 	ref immutable StructDecl[] structs,
 ) {
 	return asts.length + sum!StructDecl(structs, (ref immutable StructDecl s) =>
-		matchStructBody!(
-			immutable size_t,
+		matchStructBody!(immutable size_t)(
+			body_(s),
 			(ref immutable StructBody.Bogus) =>
 				immutable size_t(0),
 			(ref immutable StructBody.Builtin) =>
@@ -1476,8 +1474,7 @@ immutable(size_t) countFunsForStruct(
 				return nConstructors + it.fields.length + nMutableFields;
 			},
 			(ref immutable StructBody.Union it) =>
-				it.members.length
-		)(body_(s)));
+				it.members.length));
 }
 
 void addFunsForStruct(
@@ -1488,8 +1485,8 @@ void addFunsForStruct(
 	ref immutable CommonTypes commonTypes,
 	immutable Ptr!StructDecl struct_,
 ) {
-	matchStructBody!(
-		void,
+	matchStructBody!void(
+		body_(struct_.deref()),
 		(ref immutable StructBody.Bogus) {},
 		(ref immutable StructBody.Builtin) {},
 		(ref immutable StructBody.Enum it) {
@@ -1504,8 +1501,7 @@ void addFunsForStruct(
 		},
 		(ref immutable StructBody.Union it) {
 			addFunsForUnion(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_, it);
-		},
-	)(body_(struct_.deref()));
+		});
 }
 
 void addFunsForEnum(

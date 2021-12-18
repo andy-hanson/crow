@@ -66,12 +66,13 @@ import util.col.arr : empty, emptyArr, only, sizeEq;
 import util.col.arrUtil : arrLiteral, every, map, zip;
 import util.col.dict : mustGetAt;
 import util.col.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey, fullIndexDictGet, fullIndexDictGetPtr;
+import util.col.str : SafeCStr;
 import util.opt : force, has, some;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sym : AllSymbols;
 import util.util : abs, drop, todo, unreachable, verify;
 import util.writer :
-	finishWriter,
+	finishWriterToSafeCStr,
 	writeChar,
 	writeEscapedChar_inner,
 	writeFloatLiteral,
@@ -82,7 +83,7 @@ import util.writer :
 	writeStatic,
 	writeWithCommas;
 
-immutable(string) writeToC(
+immutable(SafeCStr) writeToC(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref immutable AllSymbols allSymbols,
@@ -112,7 +113,7 @@ immutable(string) writeToC(
 			writeFunDefinition(writer, tempAlloc, ctx, funIndex, fun);
 		});
 
-	return finishWriter(writer);
+	return finishWriterToSafeCStr(writer);
 }
 
 private:

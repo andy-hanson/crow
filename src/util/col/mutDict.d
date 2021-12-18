@@ -192,22 +192,6 @@ private void removeAndShiftLeft(K, V, alias equal, alias hash)(ref MutDict!(K, V
 	}
 }
 
-@trusted immutable(Out[]) mapToArr_mut(Out, K, V, alias equal, alias hash)(
-	ref Alloc alloc,
-	ref MutDict!(K, V, equal, hash) a,
-	scope immutable(Out) delegate(immutable K, ref V) @safe @nogc pure nothrow cb,
-) {
-	Out* res = allocateT!Out(alloc, a.size);
-	Out* cur = res;
-	foreach (ref Opt!(KeyValuePair!(K, V)) pair; a.pairs) {
-		if (has(pair)) {
-			initMemory(cur, cb(force(pair).key, force(pair).value));
-			cur++;
-		}
-	}
-	verify(cur == res + a.size);
-	return cast(immutable) res[0 .. a.size];
-}
 private @trusted immutable(Out[]) mapToArr_const(Out, K, V, alias equal, alias hash)(
 	ref Alloc alloc,
 	ref const MutDict!(K, V, equal, hash) a,
@@ -223,6 +207,14 @@ private @trusted immutable(Out[]) mapToArr_const(Out, K, V, alias equal, alias h
 	}
 	verify(cur == res + a.size);
 	return cast(immutable) res[0 .. a.size];
+}
+@trusted immutable(Out[]) mapToArr_mut(Out, K, V, alias equal, alias hash)(
+	ref Alloc alloc,
+	ref MutDict!(K, V, equal, hash) a,
+	scope immutable(Out) delegate(immutable K, ref V) @safe @nogc pure nothrow cb,
+) {
+	return mapToArr_const!(Out, K, V, equal, hash)(alloc, a, (immutable K k, ref const V v) =>
+		cb(k, cast(V) v));
 }
 
 @trusted immutable(Dict!(K, V, equal, hash)) moveToDict(K, V, alias equal, alias hash)(

@@ -73,8 +73,8 @@ void getHover(
 			writeStatic(writer, "TODO: spec hover");
 		},
 		(ref immutable StructDecl it) {
-			matchStructBody!(
-				void,
+			matchStructBody!void(
+				body_(it),
 				(ref immutable StructBody.Bogus) {
 					writeStatic(writer, "type ");
 				},
@@ -95,8 +95,7 @@ void getHover(
 				},
 				(ref immutable StructBody.Union) {
 					writeStatic(writer, "union ");
-				},
-			)(body_(it));
+				});
 			writeSym(writer, allSymbols, it.name);
 		},
 		(ref immutable TypeParam) {

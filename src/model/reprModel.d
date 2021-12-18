@@ -219,16 +219,15 @@ immutable(Repr) reprFunBody(ref Alloc alloc, ref Ctx ctx, ref immutable FunBody 
 	)(a);
 }
 
-immutable(Repr) reprType(ref Alloc alloc, ref Ctx ctx, immutable Type t) {
-	return matchType!(
-		immutable Repr,
+immutable(Repr) reprType(ref Alloc alloc, ref Ctx ctx, immutable Type a) {
+	return matchType!(immutable Repr)(
+		a,
 		(immutable Type.Bogus) =>
 			reprSym("bogus"),
 		(immutable Ptr!TypeParam p) =>
 			reprRecord(alloc, "type-param", [reprSym(p.deref().name)]),
 		(immutable Ptr!StructInst a) =>
-			reprStructInst(alloc, ctx, a.deref()),
-	)(t);
+			reprStructInst(alloc, ctx, a.deref()));
 }
 
 immutable(Repr) reprStructInst(ref Alloc alloc, ref Ctx ctx, ref immutable StructInst a) {

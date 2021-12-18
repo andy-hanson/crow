@@ -939,8 +939,8 @@ immutable(CheckedExpr) checkLambdaCommon(
 
 	immutable Type actualPossiblyFutReturnType = inferred(returnTypeInferrer);
 	immutable Opt!Type actualNonFutReturnType = kind == FunKind.ref_
-		? matchType!(
-			immutable Opt!Type,
+		? matchType!(immutable Opt!Type)(
+			actualPossiblyFutReturnType,
 			(immutable Type.Bogus) =>
 				some(immutable Type(immutable Type.Bogus())),
 			(immutable Ptr!TypeParam) =>
@@ -948,8 +948,7 @@ immutable(CheckedExpr) checkLambdaCommon(
 			(immutable Ptr!StructInst ap) =>
 				ptrEquals(ap.deref().decl, ctx.commonTypes.fut)
 					? some!Type(only(ap.deref().typeArgs))
-					: none!Type,
-		)(actualPossiblyFutReturnType)
+					: none!Type)
 		: some!Type(actualPossiblyFutReturnType);
 	if (!has(actualNonFutReturnType)) {
 		addDiag2(alloc, ctx, range, immutable Diag(Diag.SendFunDoesNotReturnFut(actualPossiblyFutReturnType)));
@@ -1042,13 +1041,13 @@ struct EnumOrUnionAndMembers {
 }
 
 immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type a) {
-	return matchType!(
-		immutable Opt!EnumOrUnionAndMembers,
+	return matchType!(immutable Opt!EnumOrUnionAndMembers)(
+		a,
 		(immutable Type.Bogus) => none!EnumOrUnionAndMembers,
 		(immutable Ptr!TypeParam) => none!EnumOrUnionAndMembers,
 		(immutable Ptr!StructInst structInst) =>
-			matchStructBody!(
-				immutable Opt!EnumOrUnionAndMembers,
+			matchStructBody!(immutable Opt!EnumOrUnionAndMembers)(
+				body_(structInst.deref()),
 				(ref immutable StructBody.Bogus) =>
 					none!EnumOrUnionAndMembers,
 				(ref immutable StructBody.Builtin) =>
@@ -1062,9 +1061,7 @@ immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type a) {
 				(ref immutable StructBody.Record) =>
 					none!EnumOrUnionAndMembers,
 				(ref immutable StructBody.Union it) =>
-					some(immutable EnumOrUnionAndMembers(immutable UnionAndMembers(structInst, it.members))),
-			)(body_(structInst.deref())),
-	)(a);
+					some(immutable EnumOrUnionAndMembers(immutable UnionAndMembers(structInst, it.members)))));
 }
 
 immutable(CheckedExpr) checkMatch(

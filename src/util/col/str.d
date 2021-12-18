@@ -79,9 +79,13 @@ immutable(bool) startsWith(immutable SafeCStr a, immutable SafeCStr b) {
 	return immutable SafeCStr(content);
 }
 
+@trusted immutable(size_t) safeCStrSize(immutable SafeCStr a) {
+	return end(a.ptr) - a.ptr;
+}
+
 @system void freeSafeCStr(ref Alloc alloc, immutable SafeCStr a) {
-	immutable size_t size = end(a.ptr) - a.ptr;
-	freeArr(alloc, a.ptr[0 .. size + 1]);
+	// + 1 to free the '\0' too
+	freeArr(alloc, a.ptr[0 .. safeCStrSize(a) + 1]);
 }
 
 immutable(bool) safeCStrIsEmpty(immutable SafeCStr a) {

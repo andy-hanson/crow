@@ -434,8 +434,8 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(
 	immutable Type a,
 	ref const InferringTypeArgs inferringTypeArgs,
 ) {
-	return matchType!(
-		immutable Opt!Type,
+	return matchType!(immutable Opt!Type)(
+		a,
 		(immutable Type.Bogus) =>
 			some(immutable Type(Type.Bogus())),
 		(immutable Ptr!TypeParam p) {
@@ -452,8 +452,7 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(
 					programState,
 					immutable StructDeclAndArgs(decl(i.deref()), force(typeArgs)))))
 				: none!Type;
-		},
-	)(a);
+		});
 }
 
 immutable(SetTypeResult) checkAssignabilityOpt(
@@ -499,8 +498,8 @@ immutable(SetTypeResult) checkAssignability(
 	immutable Type b,
 	ref InferringTypeArgs aInferringTypeArgs,
 ) {
-	return matchType!(
-		immutable SetTypeResult,
+	return matchType!(immutable SetTypeResult)(
+		a,
 		(immutable Type.Bogus) =>
 			// TODO: make sure to infer type params in this case!
 			immutable SetTypeResult(SetTypeResult.Keep()),
@@ -508,8 +507,8 @@ immutable(SetTypeResult) checkAssignability(
 			Opt!(Ptr!SingleInferringType) aInferring = tryGetTypeArgFromInferringTypeArgs(aInferringTypeArgs, pa);
 			return has(aInferring)
 				? setTypeNoDiagnosticWorker_forSingleInferringType(alloc, programState, force(aInferring).deref, b)
-				: matchType!(
-					immutable SetTypeResult,
+				: matchType!(immutable SetTypeResult)(
+					b,
 					(immutable Type.Bogus) =>
 						// Bogus is assignable to anything
 						immutable SetTypeResult(SetTypeResult.Keep()),
@@ -519,12 +518,11 @@ immutable(SetTypeResult) checkAssignability(
 							: immutable SetTypeResult(SetTypeResult.Fail()),
 					(immutable Ptr!StructInst) =>
 						// Expecting a type param, got a particular type
-						immutable SetTypeResult(SetTypeResult.Fail()),
-				)(b);
+						immutable SetTypeResult(SetTypeResult.Fail()));
 		},
 		(immutable Ptr!StructInst ai) =>
-			matchType!(
-				immutable SetTypeResult,
+			matchType!(immutable SetTypeResult)(
+				b,
 				(immutable Type.Bogus) =>
 					// Bogus is assignable to anything
 					immutable SetTypeResult(SetTypeResult.Keep()),
@@ -536,7 +534,5 @@ immutable(SetTypeResult) checkAssignability(
 						programState,
 						ai,
 						bi,
-						aInferringTypeArgs),
-			)(b)
-	)(a);
+						aInferringTypeArgs)));
 }

@@ -2,7 +2,7 @@ module util.col.dict;
 
 @safe @nogc pure nothrow:
 
-import util.col.mutDict : getAt_mut, hasKey_mut, mustGetAt_mut, mutDictEach, MutDict;
+import util.col.mutDict : getAt_mut, hasKey_mut, mustGetAt_mut, MutDict, mutDictEach;
 public import util.col.mutDict : KeyValuePair;
 import util.opt : Opt;
 import util.ptr : hashPtr, Ptr, ptrEquals;

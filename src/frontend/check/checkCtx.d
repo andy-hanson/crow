@@ -153,15 +153,14 @@ struct ImportIndex {
 }
 
 void markUsedStructOrAlias(ref CheckCtx ctx, ref immutable StructOrAliasAndIndex a) {
-	matchStructOrAlias!(
-		void,
+	matchStructOrAlias!void(
+		a.structOrAlias,
 		(ref immutable StructAlias) {
 			setAt(ctx.structAliasesUsed, a.index.index, true);
 		},
 		(ref immutable StructDecl) {
 			setAt(ctx.structsUsed, a.index.index, true);
-		},
-	)(a.structOrAlias);
+		});
 }
 
 void markUsedSpec(ref CheckCtx ctx, immutable ModuleLocalSpecIndex a) {

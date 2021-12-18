@@ -190,8 +190,8 @@ immutable(Opt!Position) positionInImportsOrExports(
 immutable(Position) positionInStruct(ref const AllSymbols allSymbols, immutable Ptr!StructDecl a, immutable Pos pos) {
 	//TODO: look through type params!
 
-	immutable Opt!Position specific = matchStructBody!(
-		immutable Opt!Position,
+	immutable Opt!Position specific = matchStructBody!(immutable Opt!Position)(
+		body_(a.deref()),
 		(ref immutable StructBody.Bogus) =>
 			none!Position,
 		(ref immutable StructBody.Builtin) =>
@@ -212,18 +212,16 @@ immutable(Position) positionInStruct(ref const AllSymbols allSymbols, immutable 
 		},
 		(ref immutable StructBody.Union) =>
 			//TODO
-			none!Position,
-	)(body_(a.deref()));
+			none!Position);
 	return has(specific) ? force(specific) : immutable Position(a);
 }
 
 immutable(Opt!Position) positionOfType(immutable Type a) {
-	return matchType!(
-		immutable Opt!Position,
+	return matchType!(immutable Opt!Position)(
+		a,
 		(immutable Type.Bogus) => none!Position,
 		(immutable Ptr!TypeParam it) => some(immutable Position(it)),
-		(immutable Ptr!StructInst it) => some(immutable Position(decl(it.deref()))),
-	)(a);
+		(immutable Ptr!StructInst it) => some(immutable Position(decl(it.deref()))));
 }
 
 immutable(bool) nameHasPos(
