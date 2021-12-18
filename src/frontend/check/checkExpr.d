@@ -759,13 +759,18 @@ immutable(CheckedExpr) checkStringLiteral(
 	immutable string value,
 ) {
 	if (ptrEquals(expectedStruct, ctx.commonTypes.char_)) {
-		if (value.length != 1)
-			todo!void("char literal must be one char");
+		immutable char char_ = () {
+			if (value.length != 1) {
+				addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.CharLiteralMustBeOneChar()));
+				return empty(value) ? 'a' : value[0];
+			} else
+				return only(value);
+		}();
 		return immutable CheckedExpr(immutable Expr(
 			range,
 			allocate(alloc, immutable Expr.Literal(
 				expectedStruct,
-				immutable Constant(immutable Constant.Integral(only(value)))))));
+				immutable Constant(immutable Constant.Integral(char_))))));
 	} else if (ptrEquals(expectedStruct, ctx.commonTypes.sym))
 		return immutable CheckedExpr(immutable Expr(
 			range,

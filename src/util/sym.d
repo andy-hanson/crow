@@ -81,7 +81,7 @@ immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
 	if (has(short_))
 		return force(short_);
 	else {
-		TempStr temp;
+		TempStr!0x100 temp;
 		pushToTempStr(temp, "set-");
 		eachCharInSym(allSymbols, a, (immutable char x) {
 			pushToTempStr(temp, x);

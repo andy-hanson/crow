@@ -239,7 +239,7 @@ immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
 	ref AllPaths allPaths,
 	immutable SafeCStr crowDir,
 ) {
-	TempStr dirPath;
+	TempStr!0x1000 dirPath;
 	pushToTempStr(dirPath, crowDir);
 	pushToTempStr(dirPath, "/temp");
 	DIR* dir = opendir(tempStrBegin(dirPath));

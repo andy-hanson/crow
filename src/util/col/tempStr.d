@@ -3,58 +3,62 @@ module util.col.tempStr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.str : copyToSafeCStr, eachChar, SafeCStr;
+import util.col.str : copyStr, copyToSafeCStr, eachChar, SafeCStr;
 import util.util : verify;
 
-struct TempStr {
+struct TempStr(size_t capacity) {
 	private:
-	char[1024] buffer = void;
+	char[capacity] buffer = void;
 	size_t size;
 }
 
-immutable(SafeCStr) copyTempStrToSafeCStr(ref Alloc alloc, ref const TempStr a) {
+immutable(string) copyTempStrToString(size_t capacity)(ref Alloc alloc, ref const TempStr!capacity a) {
+	return copyStr(alloc, tempAsStr(a));
+}
+
+immutable(SafeCStr) copyTempStrToSafeCStr(size_t capacity)(ref Alloc alloc, ref const TempStr!capacity a) {
 	return copyToSafeCStr(alloc, a.buffer[0 .. a.size]);
 }
 
-@trusted immutable(string) tempAsStr(return ref const TempStr a) {
+@trusted immutable(string) tempAsStr(size_t capacity)(return ref const TempStr!capacity a) {
 	return cast(immutable) a.buffer[0 .. a.size];
 }
 
-@system const(char*) tempStrBegin(return ref TempStr a) {
+@system const(char*) tempStrBegin(size_t capacity)(return ref TempStr!capacity a) {
 	return a.buffer.ptr;
 }
 
-immutable(size_t) tempStrSize(ref TempStr a) {
+immutable(size_t) tempStrSize(size_t capacity)(ref TempStr!capacity a) {
 	return a.size;
 }
 
-void reduceSize(ref TempStr a, immutable size_t newSize) {
+void reduceSize(size_t capacity)(ref TempStr!capacity a, immutable size_t newSize) {
 	verify(newSize < a.size);
 	a.size = newSize;
 	a.buffer[a.size] = 0;
 }
 
-void pushToTempStr(ref TempStr a, immutable char b) {
+void pushToTempStr(size_t capacity)(ref TempStr!capacity a, immutable char b) {
 	verify(a.size < a.buffer.length);
 	a.buffer[a.size] = b;
 	a.size++;
 }
 
-void pushToTempStr(ref TempStr a, immutable SafeCStr b) {
+void pushToTempStr(size_t capacity)(ref TempStr!capacity a, immutable SafeCStr b) {
 	eachChar(b, (immutable char c) pure {
 		pushToTempStr(a, c);
 	});
 	nulTerminate(a);
 }
 
-void pushToTempStr(ref TempStr a, immutable string b) {
+void pushToTempStr(size_t capacity)(ref TempStr!capacity a, immutable string b) {
 	foreach (immutable char c; b)
 		pushToTempStr(a, c);
 }
 
 private:
 
-void nulTerminate(ref TempStr a) {
+void nulTerminate(size_t capacity)(ref TempStr!capacity a) {
 	verify(a.size < a.buffer.length);
 	a.buffer[a.size] = '\0';
 }

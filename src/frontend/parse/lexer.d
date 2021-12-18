@@ -5,11 +5,12 @@ module frontend.parse.lexer;
 import frontend.parse.ast : LiteralAst, LiteralIntOrNat, matchLiteralAst, NameAndRange, NameOrUnderscoreOrNone;
 import model.diag : Diag, DiagnosticWithinFile;
 import model.parseDiag : ParseDiag;
-import util.alloc.alloc : Alloc, allocateT;
+import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrOfRange, empty;
 import util.col.arrBuilder : add, ArrBuilder;
 import util.col.str : copyToSafeCStr, CStr, SafeCStr, safeCStr;
+import util.col.tempStr : copyTempStrToString, pushToTempStr, TempStr;
 import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.ptr : Ptr;
@@ -77,7 +78,7 @@ private immutable(char) curChar(ref const Lexer lexer) {
 
 @trusted immutable(Pos) curPos(ref Lexer lexer) {
 	// Ensure start is after any whitespace
-	while (*lexer.ptr == ' ') lexer.ptr++;
+	while (tryTakeChar(lexer, ' ')) {}
 	return posOfPtr(lexer, lexer.ptr);
 }
 
@@ -110,6 +111,13 @@ void addDiagUnexpectedCurToken(ref Lexer lexer, immutable Pos start, immutable T
 		}
 	}();
 	addDiagAtCurToken(lexer, start, diag);
+}
+
+// WARN: Caller should check for '\0'
+private @system immutable(char) takeChar(ref Lexer lexer) {
+	immutable char res = *lexer.ptr;
+	lexer.ptr++;
+	return res;
 }
 
 private @trusted immutable(bool) tryTakeChar(ref Lexer lexer, immutable char c) {
@@ -334,8 +342,8 @@ immutable(NameOrUnderscoreOrNone) takeNameOrUnderscoreOrNone(ref Lexer lexer) {
 }
 
 immutable(string) takeQuotedStr(ref Lexer lexer) {
-	if (takeOrAddDiagExpectedToken(lexer, Token.quoteDouble, ParseDiag.Expected.Kind.quote)) {
-		immutable StringPart sp = takeStringPart(lexer);
+	if (takeOrAddDiagExpectedToken(lexer, Token.quoteDouble, ParseDiag.Expected.Kind.quoteDouble)) {
+		immutable StringPart sp = takeStringPart(lexer, QuoteKind.double_);
 		final switch (sp.after) {
 			case StringPart.After.quote:
 				return sp.text;
@@ -360,10 +368,9 @@ private:
 	return copyToSafeCStr(lexer.alloc, arrOfRange(begin, end));
 }
 
-@trusted void skipRestOfLineAndNewline(ref Lexer lexer) {
+void skipRestOfLineAndNewline(ref Lexer lexer) {
 	skipUntilNewlineNoDiag(lexer);
-	if (*lexer.ptr == '\n')
-		lexer.ptr++;
+	drop(tryTakeChar(lexer, '\n'));
 }
 
 // Note: Not issuing any diagnostics here. We'll fail later if we detect the wrong indent kind.
@@ -445,6 +452,7 @@ public enum Token {
 	question, // '?'
 	questionEqual, // '?='
 	quoteDouble, // '"'
+	quoteDouble3, // '"""'
 	record, // 'record'
 	ref_, // 'ref'
 	sendable, // 'sendable'
@@ -458,8 +466,7 @@ public enum Token {
 }
 
 @trusted public immutable(Token) nextToken(ref Lexer lexer) {
-	immutable char c = *lexer.ptr;
-	lexer.ptr++;
+	immutable char c = takeChar(lexer);
 	switch (c) {
 		case '\0':
 			lexer.ptr--;
@@ -519,7 +526,9 @@ public enum Token {
 				? Token.colon2
 				: Token.colon;
 		case '"':
-			return Token.quoteDouble;
+			return tryTakeCStr(lexer, "\"\"")
+				? Token.quoteDouble3
+				: Token.quoteDouble;
 		case ',':
 			return Token.comma;
 		case '<':
@@ -795,6 +804,7 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.operator:
 		case Token.parenLeft:
 		case Token.quoteDouble:
+		case Token.quoteDouble3:
 			return true;
 	}
 }
@@ -931,109 +941,88 @@ public struct StringPart {
 	}
 }
 
-immutable(bool) allowedStringPartCharacter(immutable char c) {
-	switch (c) {
-		case '\n':
-		case '\0':
-		case '{':
-		case '"':
-			return false;
-		default:
-			return true;
-	}
+public enum QuoteKind {
+	double_,
+	double3,
 }
 
-public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer) {
-	immutable CStr begin = lexer.ptr;
-	size_t nEscapedCharacters = 0;
-	// First get the max size
-	while (allowedStringPartCharacter(*lexer.ptr)) {
-		if (*lexer.ptr == '\\') {
-			lexer.ptr++;
-			nEscapedCharacters++;
-			if (*lexer.ptr == 'x') {
-				lexer.ptr++;
-				if (allowedStringPartCharacter(*lexer.ptr)) {
-					lexer.ptr++;
-					nEscapedCharacters++;
-					if (allowedStringPartCharacter(*lexer.ptr)) {
-						lexer.ptr++;
-						nEscapedCharacters++;
-					}
-				}
-			} else {
-				lexer.ptr++;
-			}
-		} else {
-			lexer.ptr++;
-		}
-	}
-
-	immutable size_t size = (lexer.ptr - begin) - nEscapedCharacters;
-	char* res = allocateT!char(lexer.alloc, size);
-
-	size_t outI = 0;
-	lexer.ptr = begin;
-	while (allowedStringPartCharacter(*lexer.ptr)) {
-		if (*lexer.ptr == '\\') {
-			lexer.ptr++;
-			immutable char c = () {
-				immutable char esc = *lexer.ptr;
-				switch (esc) {
-					case 'x':
-						// Take two more
-						lexer.ptr++;
-						immutable char a = *lexer.ptr;
-						lexer.ptr++;
-						immutable char b = *lexer.ptr;
-						immutable size_t na = toHexDigit(a);
-						immutable size_t nb = toHexDigit(b);
-						return cast(char) (na * 16 + nb);
-					case 'n':
-						return '\n';
-					case 'r':
-						return '\r';
-					case 't':
-						return '\t';
-					case '\\':
-						return '\\';
-					case '{':
-						return '{';
-					case '0':
-						return '\0';
-					case '"':
-						return '"';
-					default:
-						addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.InvalidStringEscape(esc)));
-						return 'a';
-				}
-			}();
-			res[outI] = c;
-			outI++;
-		} else {
-			res[outI] = *lexer.ptr;
-			outI++;
-		}
-		lexer.ptr++;
-	}
-
+public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable QuoteKind quoteKind) {
+	TempStr!0x4000 res;
 	immutable StringPart.After after = () {
-		switch (*lexer.ptr) {
-			case '{':
-				return StringPart.After.lbrace;
-			case '"':
-				return StringPart.After.quote;
-			case '\n':
-			case '\0':
-				addDiagExpected(lexer, ParseDiag.Expected.Kind.quote);
-				return StringPart.After.quote;
-			default:
-				return unreachable!(immutable StringPart.After);
+		while (true) {
+			immutable char x = takeChar(lexer);
+			switch(x) {
+				case '"':
+					final switch (quoteKind) {
+						case QuoteKind.double_:
+							return StringPart.After.quote;
+						case QuoteKind.double3:
+							if (tryTakeCStr(lexer, "\"\""))
+								return StringPart.After.quote;
+							else
+								pushToTempStr(res, '"');
+							break;
+					}
+					break;
+				case '\n':
+					final switch (quoteKind) {
+						case QuoteKind.double_:
+							addDiagExpected(lexer, ParseDiag.Expected.Kind.quoteDouble);
+							return StringPart.After.quote;
+						case QuoteKind.double3:
+							pushToTempStr(res, '\n');
+							break;
+					}
+					break;
+				case '\0':
+					immutable ParseDiag.Expected.Kind expected = () {
+						final switch (quoteKind) {
+							case QuoteKind.double_:
+								return ParseDiag.Expected.Kind.quoteDouble;
+							case QuoteKind.double3:
+								return ParseDiag.Expected.Kind.quoteDouble3;
+						}
+					}();
+					addDiagExpected(lexer, expected);
+					return StringPart.After.quote;
+				case '{':
+					return StringPart.After.lbrace;
+				case '\\':
+					immutable char escapeCode = takeChar(lexer);
+					immutable char escaped = () {
+						switch (escapeCode) {
+							case 'x':
+								immutable size_t digit0 = toHexDigit(takeChar(lexer));
+								immutable size_t digit1 = toHexDigit(takeChar(lexer));
+								return cast(char) (digit0 * 16 + digit1);
+							case 'n':
+								return '\n';
+							case 'r':
+								return '\r';
+							case 't':
+								return '\t';
+							case '\\':
+								return '\\';
+							case '{':
+								return '{';
+							case '0':
+								return '\0';
+							case '"':
+								return '"';
+							default:
+								addDiagAtChar(lexer, immutable ParseDiag(
+									immutable ParseDiag.InvalidStringEscape(escapeCode)));
+								return 'a';
+						}
+					}();
+					pushToTempStr(res, escaped);
+					break;
+				default:
+					pushToTempStr(res, x);
+			}
 		}
 	}();
-	lexer.ptr++;
-	verify(outI == size);
-	return immutable StringPart(cast(immutable) res[0 .. size], after);
+	return immutable StringPart(copyTempStrToString(lexer.alloc, res), after);
 }
 
 @trusted immutable(string) takeNameRest(ref Lexer lexer, immutable CStr begin) {
@@ -1041,8 +1030,8 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer) {
 		lexer.ptr++;
 	if (*(lexer.ptr - 1) == '-')
 		lexer.ptr--;
-	else if (*lexer.ptr == '!')
-		lexer.ptr++;
+	else
+		drop(tryTakeChar(lexer, '!'));
 	return arrOfRange(begin, lexer.ptr);
 }
 
@@ -1050,14 +1039,13 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer) {
 @trusted uint takeIndentAmount(ref Lexer lexer) {
 	immutable CStr begin = lexer.ptr;
 	if (lexer.indentKind == IndentKind.tabs) {
-		while (*lexer.ptr == '\t') lexer.ptr++;
+		while (tryTakeChar(lexer, '\t')) {}
 		if (*lexer.ptr == ' ')
 			addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(true)));
 		return safeToUint(lexer.ptr - begin);
 	} else {
 		immutable Pos start = curPos(lexer);
-		while (*lexer.ptr == ' ')
-			lexer.ptr++;
+		while (tryTakeChar(lexer, ' ')) {}
 		if (*lexer.ptr == '\t')
 			addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(false)));
 		immutable uint nSpaces = safeToUint(lexer.ptr - begin);
@@ -1167,8 +1155,7 @@ immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(ref Lexer lexer, immutabl
 
 @trusted void skipRestOfBlockComment(ref Lexer lexer) {
 	skipRestOfLineAndNewline(lexer);
-	while (*lexer.ptr == '\t' || *lexer.ptr == ' ')
-		lexer.ptr++;
+	while (tryTakeChar(lexer, '\t') || tryTakeChar(lexer, ' ')) {}
 	if (!tryTakeCStr(lexer, "###\n")) {
 		if (*lexer.ptr == '\0')
 			addDiagExpected(lexer, ParseDiag.Expected.Kind.blockCommentEnd);

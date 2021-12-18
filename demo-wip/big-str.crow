@@ -1,0 +1,9 @@
+import
+	crow/io/print: print
+
+main fut nat(_ str[]) summon
+	print: """
+Am I a string?
+"Yes," apparently.
+"""
+	0 resolved

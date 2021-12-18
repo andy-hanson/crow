@@ -46,6 +46,7 @@ import frontend.parse.lexer :
 	nextToken,
 	peekToken,
 	peekTokenExpression,
+	QuoteKind,
 	range,
 	skipUntilNewlineNoDiag,
 	StringPart,
@@ -841,12 +842,14 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 				return noDedent(tryParseDotsAndSubscripts(lexer, expr));
 			}
 		case Token.quoteDouble:
-			immutable StringPart part = takeStringPart(lexer);
+		case Token.quoteDouble3:
+			immutable QuoteKind quoteKind = token == Token.quoteDouble ? QuoteKind.double_ : QuoteKind.double3;
+			immutable StringPart part = takeStringPart(lexer, quoteKind);
 			final switch (part.after) {
 				case StringPart.After.quote:
 					return handleLiteral(lexer, start, immutable LiteralAst(part.text));
 				case StringPart.After.lbrace:
-					immutable ExprAst interpolated = takeInterpolated(lexer, start, part.text);
+					immutable ExprAst interpolated = takeInterpolated(lexer, start, part.text, quoteKind);
 					return noDedent(tryParseDotsAndSubscripts(lexer, interpolated));
 			}
 		case Token.if_:
@@ -921,18 +924,28 @@ immutable(ExprAndMaybeDedent) handleName(ref Lexer lexer, immutable Pos start, i
 	}
 }
 
-immutable(ExprAst) takeInterpolated(ref Lexer lexer, immutable Pos start, immutable string firstText) {
+immutable(ExprAst) takeInterpolated(
+	ref Lexer lexer,
+	immutable Pos start,
+	immutable string firstText,
+	immutable QuoteKind quoteKind,
+) {
 	ArrBuilder!InterpolatedPart parts;
 	if (!empty(firstText))
 		add(lexer.alloc, parts, immutable InterpolatedPart(firstText));
-	return takeInterpolatedRecur(lexer, start, parts);
+	return takeInterpolatedRecur(lexer, start, parts, quoteKind);
 }
 
-immutable(ExprAst) takeInterpolatedRecur(ref Lexer lexer, immutable Pos start, ref ArrBuilder!InterpolatedPart parts) {
+immutable(ExprAst) takeInterpolatedRecur(
+	ref Lexer lexer,
+	immutable Pos start,
+	ref ArrBuilder!InterpolatedPart parts,
+	immutable QuoteKind quoteKind,
+) {
 	immutable ExprAst e = parseExprNoBlock(lexer);
 	add(lexer.alloc, parts, immutable InterpolatedPart(e));
 	takeOrAddDiagExpectedToken(lexer, Token.braceRight, ParseDiag.Expected.Kind.closeInterpolated);
-	immutable StringPart part = takeStringPart(lexer);
+	immutable StringPart part = takeStringPart(lexer, quoteKind);
 	if (!empty(part.text))
 		add(lexer.alloc, parts, immutable InterpolatedPart(part.text));
 	final switch (part.after) {
@@ -941,7 +954,7 @@ immutable(ExprAst) takeInterpolatedRecur(ref Lexer lexer, immutable Pos start, r
 				range(lexer, start),
 				immutable ExprAstKind(immutable InterpolatedAst(finishArr(lexer.alloc, parts))));
 		case StringPart.After.lbrace:
-			return takeInterpolatedRecur(lexer, start, parts);
+			return takeInterpolatedRecur(lexer, start, parts, quoteKind);
 	}
 }
 

@@ -18,6 +18,8 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 			DiagSeverity.checkError,
 		(ref immutable Diag.CantInferTypeArguments) =>
 			DiagSeverity.checkError,
+		(ref immutable Diag.CharLiteralMustBeOneChar) =>
+			DiagSeverity.checkError,
 		(ref immutable Diag.CommonFunMissing) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.CommonTypesMissing) =>

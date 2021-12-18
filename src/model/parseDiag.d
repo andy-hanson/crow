@@ -31,7 +31,8 @@ struct ParseDiag {
 			lambdaArrow,
 			name,
 			nameOrOperator,
-			quote,
+			quoteDouble,
+			quoteDouble3,
 			slash,
 			typeArgsEnd,
 		}

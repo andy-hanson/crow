@@ -107,6 +107,7 @@ struct Diag {
 	}
 
 	struct CantInferTypeArguments {}
+	struct CharLiteralMustBeOneChar {}
 	struct CommonFunMissing {
 		immutable Sym name;
 	}
@@ -302,6 +303,7 @@ struct Diag {
 		callNoMatch,
 		cantCall,
 		cantInferTypeArguments,
+		charLiteralMustBeOneChar,
 		commonFunMissing,
 		commonTypesMissing,
 		duplicateDeclaration,
@@ -358,6 +360,7 @@ struct Diag {
 		immutable CallNoMatch callNoMatch;
 		immutable CantCall cantCall;
 		immutable CantInferTypeArguments cantInferTypeArguments;
+		immutable CharLiteralMustBeOneChar charLiteralMustBeOneChar;
 		immutable CommonFunMissing commonFunMissing;
 		immutable CommonTypesMissing commonTypesMissing;
 		immutable DuplicateDeclaration duplicateDeclaration;
@@ -418,6 +421,9 @@ struct Diag {
 	@trusted immutable this(immutable CantCall a) { kind = Kind.cantCall; cantCall = a; }
 	@trusted immutable this(immutable CantInferTypeArguments a) {
 		kind = Kind.cantInferTypeArguments; cantInferTypeArguments = a;
+	}
+	immutable this(immutable CharLiteralMustBeOneChar a) {
+		kind = Kind.charLiteralMustBeOneChar; charLiteralMustBeOneChar = a;
 	}
 	@trusted immutable this(immutable CommonFunMissing a) { kind = Kind.commonFunMissing; commonFunMissing = a; }
 	@trusted immutable this(immutable CommonTypesMissing a) { kind = Kind.commonTypesMissing; commonTypesMissing = a; }
@@ -535,6 +541,9 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.CantInferTypeArguments
 	) @safe @nogc pure nothrow cbCantInferTypeArguments,
+	scope immutable(Out) delegate(
+		ref immutable Diag.CharLiteralMustBeOneChar
+	) @safe @nogc pure nothrow cbCharLiteralMustBeOneChar,
 	scope immutable(Out) delegate(
 		ref immutable Diag.CommonFunMissing
 	) @safe @nogc pure nothrow cbCommonFunMissing,
@@ -670,6 +679,8 @@ struct Diag {
 			return cbCantCall(a.cantCall);
 		case Diag.Kind.cantInferTypeArguments:
 			return cbCantInferTypeArguments(a.cantInferTypeArguments);
+		case Diag.Kind.charLiteralMustBeOneChar:
+			return cbCharLiteralMustBeOneChar(a.charLiteralMustBeOneChar);
 		case Diag.Kind.commonFunMissing:
 			return cbCommonFunMissing(a.commonFunMissing);
 		case Diag.Kind.commonTypesMissing:

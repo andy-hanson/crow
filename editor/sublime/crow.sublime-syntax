@@ -357,6 +357,9 @@ contexts:
     # `'foo'`
     - match: "'.*'"
       scope: constant.character.escape
+    # """foo"""
+    - match: '"""'
+      push: string3
     # `"foo"`
     - match: '"'
       push: string
@@ -376,11 +379,6 @@ contexts:
     - match: '\s+(:=)\s+'
       scope: keyword
 
-  # Give 'new-arr' a scope to ensure that after type arguments are parsed (from 'prototype' scope), we eat a space
-  new:
-    - match: \s+
-      pop: true
-
   string:
     - meta_scope: string.quoted
     - meta_include_prototype: false
@@ -388,8 +386,18 @@ contexts:
       pop: true
     - match: \\.
       scope: constant.character.escape
-    #- match: '\{'
-    #  scope: constant.character.escape
+    - match: \{([^}]*)\}
+      scope: constant.character.escape
+      captures:
+        1: string.interpolated
+
+  string3:
+    - meta_scope: string.quoted
+    - meta_include_prototype: false
+    - match: '"""'
+      pop: true
+    - match: \\.
+      scope: constant.character.escape
     - match: \{([^}]*)\}
       scope: constant.character.escape
       captures:

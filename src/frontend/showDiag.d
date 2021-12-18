@@ -177,8 +177,11 @@ void writeParseDiag(
 				case ParseDiag.Expected.Kind.nameOrOperator:
 					writeStatic(writer, "expected a name or operator");
 					break;
-				case ParseDiag.Expected.Kind.quote:
+				case ParseDiag.Expected.Kind.quoteDouble:
 					writeStatic(writer, "expected '\"'");
+					break;
+				case ParseDiag.Expected.Kind.quoteDouble3:
+					writeStatic(writer, "expected '\"\"\"'");
 					break;
 				case ParseDiag.Expected.Kind.slash:
 					writeStatic(writer, "expected '/'");
@@ -495,6 +498,9 @@ void writeDiag(
 		},
 		(ref immutable Diag.CantInferTypeArguments) {
 			writeStatic(writer, "can't infer type arguments");
+		},
+		(ref immutable Diag.CharLiteralMustBeOneChar) {
+			writeStatic(writer, "value of 'char' type must be a single character");
 		},
 		(ref immutable Diag.CommonFunMissing it) {
 			writeStatic(writer, "common function ");
@@ -1020,5 +1026,7 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected keyword 'unsafe'";
 		case Token.quoteDouble:
 			return "unexpected '\"'";
+		case Token.quoteDouble3:
+			return "unexpected '\"\"\"'";
 	}
 }
