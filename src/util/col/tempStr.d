@@ -16,6 +16,10 @@ immutable(SafeCStr) copyTempStrToSafeCStr(ref Alloc alloc, ref const TempStr a) 
 	return copyToSafeCStr(alloc, a.buffer[0 .. a.size]);
 }
 
+@trusted immutable(string) tempAsStr(return ref const TempStr a) {
+	return cast(immutable) a.buffer[0 .. a.size];
+}
+
 @system const(char*) tempStrBegin(return ref TempStr a) {
 	return a.buffer.ptr;
 }

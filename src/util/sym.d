@@ -7,13 +7,14 @@ import util.col.arr : only;
 import util.col.arrUtil : contains, every, findIndex;
 import util.col.mutArr : MutArr, mutArrAt, mutArrSize, push;
 import util.col.mutDict : addToMutDict, getAt_mut, mutDictSize, MutStringDict;
-import util.col.str : copyToSafeCStr, CStr, eachChar, SafeCStr, safeCStr, strOfSafeCStr;
+import util.col.str : copyToSafeCStr, eachChar, SafeCStr, safeCStr, strOfSafeCStr;
+import util.col.tempStr : pushToTempStr, tempAsStr, TempStr;
 import util.conv : safeToSizeT;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.util : drop, unreachable, verify;
-import util.writer : finishWriter, writeChar, writeStatic, Writer;
+import util.util : drop, verify;
+import util.writer : finishWriter, writeChar, Writer;
 
 immutable(Opt!size_t) indexOfSym(ref immutable Sym[] a, immutable Sym value) {
 	return findIndex!Sym(a, (ref immutable Sym it) => symEq(it, value));
@@ -45,8 +46,14 @@ struct AllSymbols {
 		static assert(Operator.min == 0 && SpecialSym.min == 0);
 		for (Operator op = Operator.min; op <= Operator.max; op++)
 			drop(addLargeString(this, strOfOperator(op)));
-		for (SpecialSym s = SpecialSym.min; s <= SpecialSym.max; s++)
-			drop(addLargeString(this, strOfSpecial(s)));
+		for (SpecialSym s = SpecialSym.min; s <= SpecialSym.max; s++) {
+			immutable SafeCStr str = strOfSpecial(s);
+			debug {
+				immutable Opt!Sym packed = tryPackShortSym(strOfSafeCStr(str));
+				verify(!has(packed));
+			}
+			drop(addLargeString(this, str));
+		}
 	}
 
 	private:
@@ -70,30 +77,28 @@ private immutable(Sym) addLargeString(ref AllSymbols a, immutable SafeCStr value
 }
 
 immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
-	verify(!isSymOperator(a));
-	immutable size_t oldSize = symSize(allSymbols, a);
-	immutable size_t newSize = 4 + oldSize;
-
-	//TODO: only do inside 'else'
-	Writer writer = Writer(allSymbols.allocPtr);
-	writeStatic(writer, "set-");
-	writeSym(writer, allSymbols, a);
-	immutable string str = finishWriter(writer);
-
-	if (isShortSym(a) && newSize <= shortSymMaxChars) {
-		immutable Sym res = prefixShortSymWithSet(a, oldSize);
-		verify(symEq(symOfStr(allSymbols, str), res));
-		return res;
-	} else
-		return getSymFromLongStr(allSymbols, str);
+	immutable Opt!Sym short_ = tryPrefixShortSymWithSet(a);
+	if (has(short_))
+		return force(short_);
+	else {
+		TempStr temp;
+		pushToTempStr(temp, "set-");
+		eachCharInSym(allSymbols, a, (immutable char x) {
+			pushToTempStr(temp, x);
+		});
+		return getSymFromLongStr(allSymbols, tempAsStr(temp));
+	}
 }
 
 immutable(Sym) symOfStr(ref AllSymbols allSymbols, scope immutable string str) {
-	immutable Sym res = canPackShortSym(str)
-		? immutable Sym(packShortSym(str))
+	return isCrowIdentifier(str)
+		? symOfStrCrowIdentifier(allSymbols, str)
 		: getSymFromLongStr(allSymbols, str);
-	assertSym(allSymbols, res, str);
-	return res;
+}
+
+immutable(Sym) symOfStrCrowIdentifier(ref AllSymbols allSymbols, scope immutable string str) {
+	immutable Opt!Sym packed = tryPackShortSym(str);
+	return has(packed) ? force(packed) : getSymFromLongStr(allSymbols, str);
 }
 
 enum Operator {
@@ -124,7 +129,6 @@ enum Operator {
 
 enum SpecialSym {
 	clock_gettime,
-	get_nprocs,
 	pthread_condattr_destroy,
 	pthread_condattr_init,
 	pthread_condattr_setclock,
@@ -132,14 +136,12 @@ enum SpecialSym {
 	pthread_cond_destroy,
 	pthread_cond_init,
 	pthread_create,
-	pthread_join,
 	pthread_mutexattr_destroy,
 	pthread_mutexattr_init,
 	pthread_mutex_destroy,
 	pthread_mutex_init,
 	pthread_mutex_lock,
 	pthread_mutex_unlock,
-	sched_yield,
 
 	// all below are hyphenated
 	as_any_mut_ptr,
@@ -161,9 +163,9 @@ enum SpecialSym {
 	call_with_ctx,
 	island_and_exclusion,
 
-	underscore,
 	force_sendable,
 	flags_members,
+	cur_island_and_exclusion,
 }
 
 immutable(Sym) symForOperator(immutable Operator a) {
@@ -229,8 +231,6 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 	final switch (a) {
 		case SpecialSym.clock_gettime:
 			return safeCStr!"clock_gettime";
-		case SpecialSym.get_nprocs:
-			return safeCStr!"get_nprocs";
 		case SpecialSym.pthread_condattr_destroy:
 			return safeCStr!"pthread_condattr_destroy";
 		case SpecialSym.pthread_condattr_init:
@@ -245,8 +245,6 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 			return safeCStr!"pthread_cond_init";
 		case SpecialSym.pthread_create:
 			return safeCStr!"pthread_create";
-		case SpecialSym.pthread_join:
-			return safeCStr!"pthread_join";
 		case SpecialSym.pthread_mutexattr_destroy:
 			return safeCStr!"pthread_mutexattr_destroy";
 		case SpecialSym.pthread_mutexattr_init:
@@ -259,8 +257,6 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 			return safeCStr!"pthread_mutex_lock";
 		case SpecialSym.pthread_mutex_unlock:
 			return safeCStr!"pthread_mutex_unlock";
-		case SpecialSym.sched_yield:
-			return safeCStr!"sched_yield";
 
 		case SpecialSym.as_any_mut_ptr:
 			return safeCStr!"as-any-mut-ptr";
@@ -298,12 +294,12 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 		case SpecialSym.island_and_exclusion:
 			return safeCStr!"island-and-exclusion";
 
-		case SpecialSym.underscore:
-			return safeCStr!"_";
 		case SpecialSym.force_sendable:
 			return safeCStr!"force-sendable";
 		case SpecialSym.flags_members:
 			return safeCStr!"flags-members";
+		case SpecialSym.cur_island_and_exclusion:
+			return safeCStr!"cur-island-and-exclusion";
 	}
 }
 
@@ -333,8 +329,8 @@ immutable(bool) symEq(immutable Sym a, immutable Sym b) {
 }
 
 immutable(Sym) shortSym(immutable string name) {
-	verify(canPackShortSym(name));
-	return immutable Sym(packShortSym(name));
+	immutable Opt!Sym opt = tryPackShortSym(name);
+	return force(opt);
 }
 
 immutable(ulong) shortSymValue(immutable string name) {
@@ -399,106 +395,129 @@ void hashSym(ref Hasher hasher, immutable Sym a) {
 
 private:
 
-immutable(bool) canPackChar5(immutable char c) {
-	return ('a' <= c && c <= 'z') || c == '-' || ('0' <= c && c <= '3');
-}
-
-immutable(bool) canPackChar6(immutable char c) {
-	return canPackChar5(c) || ('4' <= c && c <= '9') || c == '!';
-}
-
-immutable(ulong) packChar5(immutable char c) {
-	// 0 means no character, so start at 1
-	return 'a' <= c && c <= 'z' ? 1 + c - 'a' :
-		c == '-' ? 1 + 26 :
-		'0' <= c && c <= '3' ? 1 + 26 + 1 + c - '0' :
-		unreachable!ulong;
-}
-
-immutable(ulong) packChar6(immutable char c) {
-	return 'a' <= c && c <= 'z' ? 1 + c - 'a' :
-		c == '-' ? 1 + 26 :
-		'0' <= c && c <= '9' ? 1 + 26 + 1 + c - '0' :
-		c == '!' ? 1 + 26 + 1 + 10 :
-		unreachable!ulong;
-}
-
-immutable(char) unpackChar(immutable ulong n) {
-	verify(n != 0);
-	return n < 1 + 26 ? cast(char) ('a' + (n - 1)) :
-		n == 1 + 26 ? '-' :
-		n < 1 + 26 + 1 + 10 ? cast(char) ('0' + (n - 1 - 26 - 1)) :
-		n == 1 + 26 + 1 + 10 ? '!' :
-		unreachable!char;
-}
-
 // Bit to be set when the sym is short
 immutable ulong shortSymTag = 0x8000000000000000;
 
 immutable size_t shortSymMaxChars = 12;
 
-immutable(bool) canPackShortSym(immutable string str) {
-	return str.length > shortSymMaxChars
-		? false
-		: str.length <= 2
-		? every!char(str, (ref immutable char c) => canPackChar6(c))
-		: every!char(str[$ - 2 .. $], (ref immutable char c) => canPackChar6(c)) &&
-			every!char(str[0 .. $ - 2], (ref immutable char c) => canPackChar5(c));
+immutable(ulong) codeForLetter(immutable char a) {
+	verify('a' <= a && a <= 'z');
+	return 1 + a - 'a';
+}
+immutable(char) letterFromCode(immutable ulong code) {
+	verify(1 <= code && code <= 26);
+	return cast(immutable char) ('a' + (code - 1));
+}
+immutable ulong codeForHyphen = 27;
+immutable ulong codeForUnderscore = 28;
+immutable ulong codeForBang = 29;
+immutable ulong codeForNextIsCapitalLetter = 30;
+immutable ulong codeForNextIsDigit = 31;
+
+immutable(bool) isCrowIdentifier(immutable string a) {
+	return every!char(a, (ref immutable char x) =>
+		('a' <= x && x <= 'z') ||
+		x == '-' ||
+		x == '_' ||
+		x == '!' ||
+		('A' <= x && x <= 'Z') ||
+		('0' <= x && x <= '9'));
 }
 
 immutable ulong setPrefix =
-	(packChar5('-') << (5 * 3)) |
-	(packChar5('t') << (5 * 2)) |
-	(packChar5('e') << (5 * 1)) |
-	packChar5('s');
+	(codeForLetter('s') << (5 * (shortSymMaxChars - 1))) |
+	(codeForLetter('e') << (5 * (shortSymMaxChars - 2))) |
+	(codeForLetter('t') << (5 * (shortSymMaxChars - 3))) |
+	(codeForHyphen << (5 * (shortSymMaxChars - 4)));
 
-immutable(Sym) prefixShortSymWithSet(immutable Sym a, immutable size_t symSize) {
-	verify(isShortSym(a));
-	verify(symSize != 0);
-	immutable ulong inputSizeBits = symSize == 1
-		? 2 + 6
-		: 2 + 2 * 6 + (symSize - 2) * 5;
-	// If prepended to a symbol of size 1, the '-' should take up 6 bits.
-	immutable ulong prefixSizeBits = symSize == 1 ? 6 + 5 * 3 : 5 * 4;
-	immutable ulong prefixBits = setPrefix << (64 - inputSizeBits - prefixSizeBits);
-	return immutable Sym(a.value | prefixBits);
+immutable ulong setPrefixSizeBits = 5 * 4;
+immutable ulong setPrefixLowerBitsMask = (1 << setPrefixSizeBits) - 1;
+immutable ulong setPrefixMask = setPrefixLowerBitsMask << (5 * 8);
+
+immutable(Opt!Sym) tryPrefixShortSymWithSet(immutable Sym a) {
+	if (isShortSym(a) && (a.value & setPrefixMask) == 0) {
+		ulong shift = 0;
+		ulong value = a.value;
+		while (true) {
+			immutable ulong shifted = value << 5;
+			if ((shifted & setPrefixMask) != 0)
+				break;
+			value = shifted;
+			shift += 5;
+		}
+		return some(immutable Sym(shortSymTag | ((setPrefix | value) >> shift)));
+	} else
+		return none!Sym;
 }
 
-immutable(ulong) packShortSym(immutable string str) {
-	verify(canPackShortSym(str));
-
+immutable(Opt!Sym) tryPackShortSym(immutable string str) {
 	ulong res = 0;
-	foreach (immutable size_t i; 0 .. shortSymMaxChars) {
-		immutable bool is6Bit = i < 2;
-		immutable ulong value = () {
-			if (i < str.length) {
-				immutable char c = str[str.length - 1 - i];
-				return is6Bit ? packChar6(c) : packChar5(c);
-			} else
-				return 0;
-		}();
-		res = res << (is6Bit ? 6 : 5);
+	size_t len = 0;
+
+	void push(immutable ulong value) {
+		res = res << 5;
 		res |= value;
+		len++;
 	}
-	verify((res & shortSymTag) == 0);
-	return res | shortSymTag;
+
+	foreach (immutable char x; str) {
+		if ('a' <= x && x <= 'z')
+			push(codeForLetter(x));
+		else if (x == '-')
+			push(codeForHyphen);
+		else if (x == '!')
+			push(codeForBang);
+		else if (x == '_')
+			push(codeForUnderscore);
+		else if ('0' <= x && x <= '9') {
+			push(codeForNextIsDigit);
+			push(x - '0');
+		} else {
+			verify('A' <= x && x <= 'Z');
+			push(codeForNextIsCapitalLetter);
+			push(x - 'A');
+		}
+	}
+	return len > shortSymMaxChars ? none!Sym : some(immutable Sym(res | shortSymTag));
 }
 
 void eachCharInShortSym(
-	ulong p,
+	ulong value,
 	scope void delegate(immutable char) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0 .. 10) {
-		immutable size_t c = p & 0b11111;
-		if (c != 0)
-			cb(unpackChar(c));
-		p = p >> 5;
+	ulong remaining = shortSymMaxChars;
+	immutable(ulong) take() {
+		immutable ulong res = (value >> 55) & 0b11111;
+		value = value << 5;
+		remaining--;
+		return res;
 	}
-	foreach (immutable size_t i; 0 .. 2) {
-		immutable size_t c = p & 0b111111;
-		if (c != 0)
-			cb(unpackChar(c));
-		p = p >> 6;
+
+	while (remaining != 0) {
+		verify(remaining < 999);
+		immutable ulong x = take();
+		if (x < 27) {
+			if (x != 0)
+				cb(letterFromCode(x));
+		} else {
+			final switch (x) {
+				case codeForHyphen:
+					cb('-');
+					break;
+				case codeForUnderscore:
+					cb('_');
+					break;
+				case codeForBang:
+					cb('!');
+					break;
+				case codeForNextIsCapitalLetter:
+					cb(cast(immutable char) ('A' + take()));
+					break;
+				case codeForNextIsDigit:
+					cb(cast(immutable char) ('0' + take()));
+					break;
+			}
+		}
 	}
 }
 
@@ -520,21 +539,4 @@ public immutable(bool) isLongSym(immutable Sym a) {
 immutable(Sym) getSymFromLongStr(ref AllSymbols allSymbols, scope immutable string str) {
 	const Opt!(immutable Sym) value = getAt_mut(allSymbols.largeStringToIndex, str);
 	return has(value) ? force(value) : addLargeString(allSymbols, copyToSafeCStr(allSymbols.alloc, str));
-}
-
-void assertSym(ref const AllSymbols allSymbols, immutable Sym sym, immutable string str) {
-	//TODO:KILL
-	size_t idx = 0;
-	eachCharInSym(allSymbols, sym, (immutable char c) {
-		immutable char expected = str[idx];
-		idx = idx + 1;
-		verify(c == expected);
-	});
-	verify(idx == str.length);
-}
-
-@trusted immutable(bool) strEqCStr(immutable string a, immutable CStr b) {
-	return *b == '\0'
-		? a.length == 0
-		: a.length != 0 && a[0] == *b && strEqCStr(a[1 .. $], b + 1);
 }

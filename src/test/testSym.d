@@ -31,21 +31,16 @@ void testSym(ref Test test) {
 	immutable Sym nat8 = getSym("nat8");
 	verify(isShortSym(nat8));
 
-	immutable Sym shortSym = getSym("abc-def-gh64");
-	verify(isShortSym(shortSym));
-
 	immutable Sym operator = getSym("+");
 	immutable Opt!Operator optOperator = operatorForSym(operator);
 	verify(force(optOperator) == Operator.plus);
 	verify(symEq(operator, symForOperator(Operator.plus)));
-	verify(!symEq(shortSym, operator));
 
-	immutable Sym longSym = getSym("a9aa");
-	verify(isLongSym(longSym));
-	verify(symEq(longSym, getSym("a9aa")));
+	immutable Sym shortSym = getSym("a9aa");
+	verify(symEq(shortSym, getSym("a9aa")));
 
-	immutable Sym cStyle = getSym("C_STYLE");
-	verify(isLongSym(cStyle));
+	immutable Sym cStyle = getSym("C_Style");
+	verify(isShortSym(cStyle));
 
 	immutable Sym setA = prependSet(allSymbols, getSym("a"));
 	verify(symEq(setA, getSym("set-a")));
@@ -60,8 +55,11 @@ void testSym(ref Test test) {
 	verify(isLongSym(setAbcdefghi));
 
 	immutable Sym mvSize = getSym("mv_size");
-	verify(isLongSym(mvSize));
+	verify(isShortSym(mvSize));
 	immutable Sym setMvSize = prependSet(allSymbols, mvSize);
 	verify(symEq(setMvSize, getSym("set-mv_size")));
-	verify(isLongSym(setMvSize));
+	verify(isShortSym(setMvSize));
+
+	immutable Sym setN0 = prependSet(allSymbols, getSym("n0"));
+	verify(symEq(setN0, getSym("set-n0")));
 }

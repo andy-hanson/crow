@@ -50,7 +50,7 @@ import util.col.mutSet : moveSetToArr;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
-import util.sym : AllSymbols, shortSym, Sym, symOfStr;
+import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symForSpecial;
 import util.util : todo, verify;
 import util.writer : finishWriter, Writer;
 
@@ -74,7 +74,7 @@ immutable(ConcreteProgram) concretizeInner(
 ) {
 	ConcretizeCtx ctx = ConcretizeCtx(
 		ptrTrustMe_const(allSymbols),
-		getCurIslandAndExclusionFun(alloc, allSymbols, program),
+		getCurIslandAndExclusionFun(alloc, program),
 		program.commonTypes.ctx,
 		ptrTrustMe(program.commonTypes),
 		ptrTrustMe(program));
@@ -254,13 +254,10 @@ immutable(Ptr!FunInst) getAllFunsFun(ref Alloc alloc, ref immutable Program prog
 	return nonTemplateFunInst(alloc, only(funs));
 }
 
-immutable(Ptr!FunInst) getCurIslandAndExclusionFun(
-	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref immutable Program program,
-) {
-	immutable Sym sym = symOfStr(allSymbols, "cur-island-and-exclusion");
-	immutable Ptr!FunDecl[] funs = getFuns(program.specialModules.runtimeModule.deref(), sym);
+immutable(Ptr!FunInst) getCurIslandAndExclusionFun(ref Alloc alloc, ref immutable Program program) {
+	immutable Ptr!FunDecl[] funs = getFuns(
+		program.specialModules.runtimeModule.deref(),
+		symForSpecial(SpecialSym.cur_island_and_exclusion));
 	if (funs.length != 1)
 		todo!void("wrong number cur-island-and=exclusion funs");
 	return nonTemplateFunInst(alloc, only(funs));

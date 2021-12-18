@@ -23,7 +23,7 @@ import util.sym :
 	specialSymValue,
 	Sym,
 	symForOperator,
-	symOfStr;
+	symOfStrCrowIdentifier;
 import util.util : drop, todo, unreachable, verify;
 
 private enum IndentKind {
@@ -547,7 +547,7 @@ public enum Token {
 		default:
 			if (isAlphaIdentifierStart(c)) {
 				immutable string nameStr = takeNameRest(lexer, lexer.ptr - 1);
-				immutable Sym name = symOfStr(lexer.allSymbols, nameStr);
+				immutable Sym name = symOfStrCrowIdentifier(lexer.allSymbols, nameStr);
 				return tokenForSym(lexer, name);
 			} else if (isDigit(c)) {
 				backUp(lexer);
@@ -623,7 +623,7 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.union_;
 		case shortSymValue("unsafe"):
 			return Token.unsafe;
-		case specialSymValue(SpecialSym.underscore):
+		case shortSymValue("_"):
 			return Token.underscore;
 		case specialSymValue(SpecialSym.force_sendable):
 			return Token.forceSendable;

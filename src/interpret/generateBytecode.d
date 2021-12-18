@@ -417,7 +417,7 @@ immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
 			return some(ExternOp.write);
 		case specialSymValue(SpecialSym.clock_gettime):
 			return some(ExternOp.clockGetTime);
-		case specialSymValue(SpecialSym.get_nprocs):
+		case shortSymValue("get_nprocs"):
 			return some(ExternOp.getNProcs);
 		case specialSymValue(SpecialSym.pthread_condattr_destroy):
 			return some(ExternOp.pthreadCondattrDestroy);
@@ -433,7 +433,7 @@ immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
 			return some(ExternOp.pthreadCondInit);
 		case specialSymValue(SpecialSym.pthread_create):
 			return some(ExternOp.pthreadCreate);
-		case specialSymValue(SpecialSym.pthread_join):
+		case shortSymValue("pthread_join"):
 			return some(ExternOp.pthreadJoin);
 		case specialSymValue(SpecialSym.pthread_mutexattr_destroy):
 			return some(ExternOp.pthreadMutexattrDestroy);
@@ -447,7 +447,7 @@ immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
 			return some(ExternOp.pthreadMutexLock);
 		case specialSymValue(SpecialSym.pthread_mutex_unlock):
 			return some(ExternOp.pthreadMutexUnlock);
-		case specialSymValue(SpecialSym.sched_yield):
+		case shortSymValue("sched_yield"):
 			return some(ExternOp.schedYield);
 		default:
 			return none!ExternOp;
