@@ -2,7 +2,7 @@ module util.col.exactSizeArrBuilder;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateBytes;
+import util.alloc.alloc : Alloc, allocateT;
 import util.col.arr : arrOfRange_mut;
 import util.memory : initMemory_mut, memcpy, memset;
 import util.util : verify;
@@ -20,7 +20,7 @@ immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T 
 }
 
 @trusted ExactSizeArrBuilder!T newExactSizeArrBuilder(T)(ref Alloc alloc, immutable size_t size) {
-	T* begin = cast(T*) allocateBytes(alloc, T.sizeof * size);
+	T* begin = allocateT!T(alloc, size);
 	return ExactSizeArrBuilder!T(begin, begin, begin + size);
 }
 

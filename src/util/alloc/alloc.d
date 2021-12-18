@@ -16,16 +16,24 @@ ubyte* allocateBytes(ref Alloc alloc, immutable size_t size) {
 	return alloc.allocateBytesImpl(size);
 }
 
-T* allocateT(T)(ref Alloc alloc, immutable size_t size) {
-	return cast(T*) allocateBytes(alloc, T.sizeof * size);
+T* allocateT(T)(ref Alloc alloc, immutable size_t count) {
+	return cast(T*) allocateBytes(alloc, T.sizeof * count);
 }
 
-void freeBytes(ref Alloc alloc, ubyte* ptr, immutable size_t size) {
+private void freeBytes(ref Alloc alloc, ubyte* ptr, immutable size_t size) {
 	static assert(Alloc.stringof == "RangeAlloc");
 	alloc.freeBytesImpl(ptr, size);
 }
 
-void freeBytesPartial(ref Alloc alloc, ubyte* ptr, immutable size_t size) {
+private void freeBytesPartial(ref Alloc alloc, ubyte* ptr, immutable size_t size) {
 	static assert(Alloc.stringof == "RangeAlloc");
 	alloc.freeBytesPartialImpl(ptr, size);
+}
+
+void freeT(T)(ref Alloc alloc, T* ptr, immutable size_t count) {
+	freeBytes(alloc, cast(ubyte*) ptr, T.sizeof * count);
+}
+
+void freeTPartial(T)(ref Alloc alloc, T* ptr, immutable size_t count) {
+	freeBytesPartial(alloc, cast(ubyte*) ptr, T.sizeof * count);
 }

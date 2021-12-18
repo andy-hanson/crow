@@ -5,7 +5,7 @@ module frontend.parse.lexer;
 import frontend.parse.ast : LiteralAst, LiteralIntOrNat, matchLiteralAst, NameAndRange, NameOrUnderscoreOrNone;
 import model.diag : Diag, DiagnosticWithinFile;
 import model.parseDiag : ParseDiag;
-import util.alloc.alloc : Alloc, allocateBytes;
+import util.alloc.alloc : Alloc, allocateT;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrOfRange, empty;
 import util.col.arrBuilder : add, ArrBuilder;
@@ -970,7 +970,7 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer) {
 	}
 
 	immutable size_t size = (lexer.ptr - begin) - nEscapedCharacters;
-	char* res = cast(char*) allocateBytes(lexer.alloc, char.sizeof * size);
+	char* res = allocateT!char(lexer.alloc, size);
 
 	size_t outI = 0;
 	lexer.ptr = begin;

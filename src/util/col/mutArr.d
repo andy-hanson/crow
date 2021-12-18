@@ -2,7 +2,7 @@ module util.col.mutArr;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateBytes, freeBytes, freeBytesPartial;
+import util.alloc.alloc : Alloc, allocateT, freeT, freeTPartial;
 import util.conv : safeToSizeT;
 import util.memory : initMemory_mut, memcpy, overwriteMemory;
 import util.opt : force, noneConst, noneMut, Opt, someConst, someMut;
@@ -16,7 +16,7 @@ struct MutArr(T) {
 }
 
 @system MutArr!T newUninitializedMutArr(T)(ref Alloc alloc, immutable size_t size) {
-	return MutArr!T(cast(T*) allocateBytes(alloc, T.sizeof * size), size, size);
+	return MutArr!T(allocateT!T(alloc, size), size, size);
 }
 
 @system T* mutArrPtrAt(T)(ref MutArr!T a, immutable size_t index) {
@@ -53,9 +53,9 @@ immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 @trusted void push(T)(ref Alloc alloc, scope ref MutArr!T a, T value) {
 	if (a.size_ == a.capacity_) {
 		immutable size_t newCapacity = a.size_ == 0 ? 2 : a.size_ * 2;
-		T* newBegin = cast(T*) allocateBytes(alloc, newCapacity * T.sizeof);
+		T* newBegin = allocateT!T(alloc, newCapacity);
 		memcpy(cast(ubyte*) newBegin, cast(ubyte*) a.begin_, a.size_ * T.sizeof);
-		freeBytes(alloc, cast(ubyte*) a.begin_, a.size_ * T.sizeof);
+		freeT(alloc, a.begin_, a.size_);
 		a.begin_ = newBegin;
 		a.capacity_ = newCapacity;
 	}
@@ -123,7 +123,7 @@ static if (!is(size_t == ulong)) {
 }
 @trusted T[] moveToArr_mut(T)(ref Alloc alloc, ref MutArr!T a) {
 	T[] res = a.begin_[0 .. a.size_];
-	freeBytesPartial(alloc, cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
+	freeTPartial(alloc, a.begin_ + a.size_, a.capacity_ - a.size_);
 	a.begin_ = null;
 	a.size_ = 0;
 	a.capacity_ = 0;

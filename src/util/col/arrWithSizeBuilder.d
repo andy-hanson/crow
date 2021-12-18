@@ -2,7 +2,7 @@ module util.col.arrWithSizeBuilder;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateBytes, freeBytesPartial;
+import util.alloc.alloc : Alloc, allocateBytes, freeTPartial;
 import util.col.arr : ArrWithSize, emptyArrWithSize;
 import util.memory : initMemory;
 import util.util : verify;
@@ -42,7 +42,7 @@ immutable(bool) arrWithSizeBuilderIsEmpty(T)(ref const ArrWithSizeBuilder!T a) {
 	if (a.data_ == null)
 		return emptyArrWithSize!T;
 	else {
-		freeBytesPartial(alloc, cast(ubyte*) (begin(a) + a.size_), a.capacity_ - a.size_);
+		freeTPartial!T(alloc, (begin(a) + a.size_), a.capacity_ - a.size_);
 		*(cast(size_t*) a.data_) = a.size_;
 		return immutable ArrWithSize!T(cast(immutable) a.data_);
 	}

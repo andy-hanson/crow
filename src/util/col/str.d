@@ -2,7 +2,7 @@ module util.col.str;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateBytes;
+import util.alloc.alloc : Alloc, allocateT;
 import util.col.arr : freeArr;
 import util.col.arrUtil : cat3;
 import util.hash : Hasher, hashUbyte;
@@ -36,7 +36,7 @@ struct SafeCStr {
 }
 
 @trusted immutable(SafeCStr) copyToSafeCStr(ref Alloc alloc, scope const char[] s) {
-	char* res = cast(char*) allocateBytes(alloc, s.length + 1);
+	char* res = allocateT!char(alloc, s.length + 1);
 	static assert(ubyte.sizeof == char.sizeof);
 	memcpy(cast(ubyte*) res, cast(ubyte*) s.ptr, s.length);
 	res[s.length] = '\0';
@@ -52,7 +52,7 @@ immutable(bool) strEq(immutable string a, immutable string b) {
 }
 
 @trusted immutable(string) copyStr(ref Alloc alloc, scope immutable string a) {
-	char* begin = cast(char*) allocateBytes(alloc, char.sizeof * a.length);
+	char* begin = cast(char*) allocateT!char(alloc, a.length);
 	foreach (immutable size_t i, immutable char x; a)
 		begin[i] = x;
 	return cast(immutable) begin[0 .. a.length];

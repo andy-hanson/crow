@@ -42,7 +42,7 @@ import lib.compiler :
 	justTypeCheck;
 import model.model : AbsolutePathsGetter, getAbsolutePath, hasDiags;
 import test.test : test;
-import util.alloc.alloc : Alloc, allocateBytes, freeBytes, TempAlloc;
+import util.alloc.alloc : Alloc, allocateT, freeT, TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
@@ -875,8 +875,8 @@ extern(C) {
 	verify(off == 0);
 
 	immutable size_t contentSize = safeToSizeT(fileSize + 1);
-	char* content = cast(char*) allocateBytes(tempAlloc, char.sizeof * contentSize); // + 1 for the '\0'
-	scope (exit) freeBytes(tempAlloc, cast(ubyte*) content, char.sizeof * contentSize);
+	char* content = allocateT!char(tempAlloc, contentSize); // + 1 for the '\0'
+	scope (exit) freeT!char(tempAlloc, content, contentSize);
 	immutable long nBytesRead = read(fd, content, fileSize);
 
 	if (nBytesRead == -1)

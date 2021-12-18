@@ -12,7 +12,7 @@ import lib.server :
 	run,
 	Server,
 	StrParseDiagnostic;
-import util.alloc.alloc : Alloc, allocateBytes;
+import util.alloc.alloc : Alloc, allocateT;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.col.str : CStr, strToCStr;
 import util.dbg : Debug;
@@ -57,7 +57,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable size_t allocLength,
 ) {
 	RangeAlloc alloc = RangeAlloc(allocStart, allocLength);
-	Server* ptr = cast(Server*) allocateBytes(alloc, Server.sizeof);
+	Server* ptr = allocateT!Server(alloc, 1);
 	ptr.__ctor(alloc.move());
 	return ptr;
 }

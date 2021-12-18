@@ -2,7 +2,7 @@ module util.col.arr;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, freeBytes;
+import util.alloc.alloc : Alloc, freeT;
 import util.ptr : Ptr;
 import util.memory : overwriteMemory;
 import util.util : verify;
@@ -25,7 +25,7 @@ struct ArrWithSize(T) {
 }
 
 @system void freeArr(T)(ref Alloc alloc, immutable T[] a) {
-	freeBytes(alloc, cast(ubyte*) a.ptr, a.length * T.sizeof);
+	freeT!T(alloc, cast(T*) a.ptr, a.length);
 }
 
 @trusted T[] castMutable(T)(immutable T[] a) {
