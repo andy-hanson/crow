@@ -2101,12 +2101,12 @@ program(
 			expr-body(
 				expr(
 					nat-64
-					file-range(29, range(399, 411))
+					file-range(29, range(420, 432))
 					get-field(
 						expr(
 							record(9)
-							file-range(29, range(400, 407))
-							get-field(expr(record(8), file-range(29, range(399, 400)), param-ref(0)), false, 0))
+							file-range(29, range(421, 428))
+							get-field(expr(record(8), file-range(29, range(420, 421)), param-ref(0)), false, 0))
 						false
 						0))))
 		53: fun(
@@ -6277,14 +6277,14 @@ program(
 			expr-body(
 				expr(
 					bool
-					file-range(29, range(350, 366))
+					file-range(29, range(371, 387))
 					call(
 						163
 						[
 							expr(
 								record(9)
-								file-range(29, range(351, 358))
-								get-field(expr(record(8), file-range(29, range(350, 351)), param-ref(0)), false, 0))]))))
+								file-range(29, range(372, 379))
+								get-field(expr(record(8), file-range(29, range(371, 372)), param-ref(0)), false, 0))]))))
 		163: fun(
 			is-empty
 			bool
@@ -6813,17 +6813,17 @@ program(
 			expr-body(
 				expr(
 					bool
-					file-range(29, range(507, 529))
+					file-range(29, range(528, 550))
 					binary(
 						"== (nat-8)"
 						expr(
 							nat-8
-							file-range(29, range(508, 517))
-							unary("to-nat8 (from char8)", expr(char, file-range(29, range(507, 508)), param-ref(0))))
+							file-range(29, range(529, 538))
+							unary("to-nat8 (from char8)", expr(char, file-range(29, range(528, 529)), param-ref(0))))
 						expr(
 							nat-8
-							file-range(29, range(521, 529))
-							unary("to-nat8 (from char8)", expr(char, file-range(29, range(520, 521)), param-ref(1))))))))
+							file-range(29, range(542, 550))
+							unary("to-nat8 (from char8)", expr(char, file-range(29, range(541, 542)), param-ref(1))))))))
 		185: fun(
 			hard-unreachable
 			ptr-const(char)
@@ -7110,24 +7110,24 @@ program(
 			expr-body(
 				expr(
 					record(8)
-					file-range(29, range(302, 320))
+					file-range(29, range(323, 341))
 					record(
 						[
 							expr(
 								record(9)
-								file-range(29, range(302, 320))
+								file-range(29, range(323, 341))
 								call(
 									198
 									[
-										expr(gc-ptr(record(0)), file-range(29, range(302, 320)), param-ref(0))
+										expr(gc-ptr(record(0)), file-range(29, range(323, 341)), param-ref(0))
 										expr(
 											record(9)
-											file-range(29, range(303, 310))
-											get-field(expr(record(8), file-range(29, range(302, 303)), param-ref(1)), false, 0))
+											file-range(29, range(324, 331))
+											get-field(expr(record(8), file-range(29, range(323, 324)), param-ref(1)), false, 0))
 										expr(
 											record(9)
-											file-range(29, range(313, 319))
-											get-field(expr(record(8), file-range(29, range(312, 313)), param-ref(2)), false, 0))]))]))))
+											file-range(29, range(334, 340))
+											get-field(expr(record(8), file-range(29, range(333, 334)), param-ref(2)), false, 0))]))]))))
 		198: fun(
 			~
 			record(9)

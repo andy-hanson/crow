@@ -1,0 +1,36 @@
+import
+	crow/col/arr-util: map
+	crow/io/path: child-path
+	crow/str-util: join
+	./document-content: module-content
+	./get-module: get-module
+	./page-template: page-template
+	./path-and-content: new, path-and-content
+	./search-dir-recursive: remove-include-and-crow, search-dir-recursive
+
+documentation path-and-content[]() summon
+	all-modules = "include" search-dir-recursive (x => x != "private")
+	nav = all-modules map (x => x remove-include-and-crow) generate-nav
+	modules path-and-content[] = all-modules map path =>
+		module = path get-module
+		content = "module {path}" document-template module.module-content, nav
+		out-path = "doc" child-path "{path remove-include-and-crow}.html"
+		out-path, content 
+	index path-and-content = "doc/index.html", "documentation" document-template index-content, nav
+	(index,) ~ modules
+
+index-content str()
+	"""
+	<h2>documentation</h2>
+	<p>Use the left pane to navigate the generated documentation.</p>
+	<p>If instead you want a guided tour, see the <a href="../tutorial">tutorial</a>.</p>
+	"""
+
+.generate-nav str(all str[])
+	"""<nav><ul>{all map (x => x nav-part) join ""}</ul></nav>"""
+.nav-part str(a str)
+	"""<li><a href="/doc/{a}.html">{a}</a></li>"""
+
+.document-template str(title str, content str, nav str)
+	full = """<div class="documentation" id="side-nav-wrapper">{nav}<main>{content}</main></div>"""
+	title page-template full

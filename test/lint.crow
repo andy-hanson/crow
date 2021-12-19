@@ -28,7 +28,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 
 .excluded-from-lint bool(name str)
 	exclude-exts str[] = ".bmp", ".err", ".html", ".mdb", ".png", ".repr", ".svg", ".ttf", ".wasm", ".webp", ".xz"
-	exclude-names str[] = "documentation", "dyncall", "libfirm", "node_modules", "package-lock.json"
+	exclude-names str[] = "dyncall", "node_modules", "package-lock.json"
 	name starts-with "." || name in exclude-names || exclude-exts exists ext => name ends-with ext
 
 # Returns numner of errors

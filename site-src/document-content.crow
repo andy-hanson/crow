@@ -1,0 +1,156 @@
+import
+	crow/col/arr-util: map
+	crow/str-util: join
+	./module:
+		body_, doc-comment, exports, fields, is-mut, members, module, module-export,
+		module-export-value, name, param, params, record-field, return-type, sig, target,
+		type-param, type-params, type, type-args, type-ref, value
+
+module-content str(a module)
+	a.exports map (x => x export-content) join ""
+
+.export-content str(a module-export)
+	"""<section class="doc {a.value section-class}">
+		<h4>
+			<div>
+				<span class="{a.value name-class}">{a name}</span>
+				{a.type-params type-params-content}
+				{a.value export-header-extra}
+			</div>
+		</h4>
+		{a.value export-body}
+		{a.doc-comment}
+	</section>
+	"""
+
+.section-class str(a module-export-value)
+	match a
+	as alias-decl _
+		"alias"
+	as builtin-decl
+		"builtin"
+	as enum-decl _
+		"enum"
+	as extern-ptr-decl
+		"extern-ptr"
+	as flags-decl _
+		"flags"
+	as fun-decl _
+		"function"
+	as record-decl _
+		"record"
+	as spec-decl _
+		"spec"
+	as union-decl _
+		"union"
+
+.name-class str(a module-export-value)
+	match a
+	as alias-decl _
+		"struct-def"
+	as builtin-decl
+		"struct-def"
+	as enum-decl _
+		"struct-def"
+	as extern-ptr-decl
+		"struct-def"
+	as flags-decl _
+		"struct-def"
+	as fun-decl _
+		"fun-def"
+	as record-decl _
+		"struct-def"
+	as spec-decl _
+		"spec-def"
+	as union-decl _
+		"struct-def"
+
+.type-params-content str(a type-param[])
+	if !a.is-empty
+		"""<ul class="typeParams">{a map (x => x type-param-content) join ", "}</ul>"""
+	else
+		()
+
+.type-param-content str(a type-param)
+	"""<li class="tparam-def">{a name}</li>"""
+
+.export-header-extra str(a module-export-value)
+	match a
+	as alias-decl _
+		"alias"
+	as builtin-decl
+		"builtin"
+	as enum-decl _
+		"enum"
+	as extern-ptr-decl
+		"extern-ptr"
+	as flags-decl _
+		"flags"
+	as fun-decl f
+		"""{f.return-type type-ref-content}(<ul class="params">
+			{f.params map (x => x param-content) join ", "}
+		</ul>)"""
+	as record-decl _
+		"record"
+	as spec-decl _
+		"spec"
+	as union-decl _
+		"union"
+
+.export-body str(a module-export-value)
+	match a
+	as alias-decl al
+		al.target type-ref-content
+	as builtin-decl
+		()
+	as enum-decl e
+		e.members enum-flags-members-content
+	as extern-ptr-decl
+		()
+	as flags-decl f
+		f.members enum-flags-members-content
+	as fun-decl _
+		()
+	as record-decl r
+		fields = r.fields map (x => x field-content) join ""
+		"""<ul class="fields">{fields}</ul>"""
+	as spec-decl s
+		match s body_
+		as spec-builtin
+			"builtin"
+		as spec-sigs sigs
+			sigs-content = sigs map (x => x sig-content) join ""
+			"""<ul class="sigs">{sigs-content}</ul>"""
+	as union-decl _
+		# TODO: the members
+		()
+
+.enum-flags-members-content str(a sym[])
+	members = a map (x => "<li>{x}</li>") join ", "
+	"<ul>{members}</ul>"
+
+.field-content str(a record-field)
+	mut-str = if a is-mut
+		" mut"
+	else
+		()
+	"<li>{a name} {a.type type-ref-content}{mut-str}</li>"
+
+.sig-content str(a sig)
+	params = a.params map (x => x param-content) join ""
+	"""<li class="sig">{a name} {a.return-type type-ref-content}({params})</li>"""
+
+.param-content str(a param)
+	"""<span class="param-def">{a name}</span> {a.type type-ref-content}"""
+
+.type-ref-content str(a type-ref)
+	name = a name
+	if a.type-args is-empty
+		"""<span class="struct-ref">{name}</span>"""
+	else
+		# TODO: handle arr, dict specially
+		"""
+		<span class="struct-ref">
+		{name}<{a.type-args map (x => x type-ref-content) join ", "}>
+		</span>
+		"""

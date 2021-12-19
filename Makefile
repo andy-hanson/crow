@@ -1,4 +1,4 @@
-.PHONY: debug end-to-end-test end-to-end-test-overwrite pug-watch sdl-demo serve prepare-site test unit-test
+.PHONY: debug end-to-end-test end-to-end-test-overwrite serve prepare-site test unit-test
 
 # WARN: Does not clean `dyncall` as that takes too long to restore
 # Also does not clean `node_modules` for the VSCode plugin
@@ -7,10 +7,7 @@ clean:
 	rm -f site/*.html site/*/*.html site/*/*/*.html site/*/*/*/*.html
 	rm -rf temp
 
-all: clean test lint sdl-demo serve
-
-sdl-demo: bin/crow
-	#TODO: bin/crow run demo/ogl/ogl.crow --interpret
+all: clean test lint serve
 
 dyncall:
 	hg clone https://dyncall.org/pub/dyncall/dyncall/
@@ -79,25 +76,8 @@ ALL_INCLUDE = include/*.crow include/*/*.crow include/*/*/*.crow include/*/*/*/*
 bin/crow.tar.xz: bin/crow demo/* $(ALL_INCLUDE)
 	tar -C .. -cJf bin/crow.tar.xz crow/bin/crow crow/demo crow/include
 
-site/include-list.txt: bin/crow $(ALL_INCLUDE)
-	./bin/crow run script/gen-include-list.crow > site/include-list.txt
-
-INCLUDE_TO_DOCUMENT = $(wildcard include/crow/*.crow include/crow/crypto/*.crow include/crow/db/*.crow  include/crow/col/*.crow include/crow/io/*.crow include/crow/io/*/*.crow include/crow/math/*.crow include/crow/test/*.crow)
-DOC_PUGS = $(patsubst include/%.crow, site/documentation/%.pug, $(INCLUDE_TO_DOCUMENT))
-ALL_PUGS = $(wildcard site/*.pug site/tutorial/*.pug) site/documentation/index.pug $(DOC_PUGS)
-HTMLS = $(patsubst site/%.pug, site/%.html, $(ALL_PUGS))
-
-site/documentation/%.pug: include/%.crow bin/crow
-	bin/crow doc $< --pug --out $@
-
-# Pug automatically writes to the corresponding *.html file
-site/%.html: site/%.pug
-	pug $<
-
-prepare-site: bin/crow.wasm site/include-list.txt bin/crow.tar.xz $(HTMLS)
-
-watch-site:
-	while inotifywait --recursive --event modify,move,create,delete site; do make prepare-site; done
+prepare-site: bin/crow.wasm bin/crow.tar.xz $(HTMLS)
+	crow run site-src/site.crow
 
 serve: prepare-site
 	cd site && python -m SimpleHTTPServer 8080

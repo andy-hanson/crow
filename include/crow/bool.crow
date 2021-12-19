@@ -5,6 +5,9 @@ import
 export
 	./private/bool-low-level: !, &&, ||, bool, false, true
 
+new bool() noctx
+	false
+
 == bool(a bool, b bool) noctx
 	a.to-nat64 == b.to-nat64
 

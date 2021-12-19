@@ -1,0 +1,57 @@
+import
+	crow/col/arr-util: each, map
+	crow/io/file: make-directory, path-exists, read-file, try-read-file, write-file
+	crow/io/path: child-path, parent-path
+	crow/io/print: print
+	crow/str-util: ends-with, join, try-remove-start
+	./document: documentation
+	./pages: pages
+	./path-and-content: content, out-path, new, path-and-content
+	./search-dir-recursive: remove-include-and-crow, search-dir-recursive
+
+main fut nat(_ str[]) summon
+	all = all-to-copy ~ documentation ~ pages
+	all each cur =>
+		cur ensure-up-to-date
+	0 resolved
+
+.ensure-up-to-date void(a path-and-content) summon
+	full-out-path = "site" child-path a.out-path
+	if !(full-out-path is-up-to-date a.content)
+		full-out-path.parent-path ensure-directory-recursive
+		print: "update {full-out-path}"
+		full-out-path write-file a.content
+
+.is-up-to-date bool(path str, content str) summon
+	if cur-content ?= path try-read-file
+		cur-content == content
+	else
+		false
+
+.ensure-directory-recursive void(path str) summon
+	if path != "" && !path.path-exists
+		path.parent-path ensure-directory-recursive
+		path make-directory
+
+.all-to-copy path-and-content[]() summon
+	example = "site-src/example" search-all-with-content "site-src/"
+	include = "include" search-all-with-content ""
+	in-src-paths = ("site-src/crow.svg", "site-src/index.css", "site-src/font/russo/Russo_One.ttf")
+	in-src = in-src-paths to-paths-and-contents "site-src/"
+	scripts = ("site-src/script" search-dir-recursive x => x ends-with ".js") to-paths-and-contents "site-src/"
+	other = ("bin/crow.wasm", "bin/crow.tar.xz", "crow-js/crow.js") to-paths-and-contents ""
+	example ~ include ~ include.include-list ~ in-src ~ scripts ~ other
+
+.include-list path-and-content[](include path-and-content[]) summon
+	lines = include map x => x.out-path remove-include-and-crow
+	("include-list.txt", lines join "\n"),
+
+.search-all-with-content path-and-content[](path str, remove-prefix str) summon
+	path.search-dir-recursive to-paths-and-contents remove-prefix
+
+.to-paths-and-contents path-and-content[](paths str[], remove-prefix str) summon
+	paths map path =>
+		if rel-path ?= path try-remove-start remove-prefix
+			rel-path, path.read-file
+		else
+			"{path} didn't start with {remove-prefix}" throw

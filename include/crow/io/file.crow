@@ -11,7 +11,7 @@ import
 	../bool: !, &&, bool, false, to-nat64, true
 	../cell: *, cell, new
 	../col/arr: arr, begin-ptr, subscript
-	../col/arr-util: each
+	../col/arr-util: each, map
 	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
 	../col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	../col/sort: sort
@@ -73,22 +73,27 @@ path-exists bool(path str) summon
 .seek-end int32()
 	2
 
+# Like 'names-in-dir', but returns full paths
+paths-in-dir str[](path str) summon
+	path.names-in-dir map x =>
+		path child-path x
+
 ###
 Returns the basename of all children of the directory.
 Does not include ".." or ".".
 ###
-read-dir str[](path str) summon
-	path.to-c-str read-dir
+names-in-dir str[](path str) summon
+	path.to-c-str names-in-dir
 
-.read-dir str[](path c-str) trusted summon
+.names-in-dir str[](path c-str) trusted summon
 	dirp = path opendir
-	# TODO: handle errors
-	assert: dirp.ptr-cast-from-extern::any-const-ptr mut* != null
+	if dirp.ptr-cast-from-extern::any-const-ptr mut* == null
+		throw: "Failed to open dir {path}"
 	res str mut[] = ()
-	dirp read-dir-recur res
+	dirp names-in-dir-recur res
 	res.move-to-arr! sort
 
-.read-dir-recur void(dirp dir, res str mut[]) unsafe summon
+.names-in-dir-recur void(dirp dir, res str mut[]) unsafe summon
 	# Initial value of entry / result should not matter
 	entry dirent = 0, 0, 0, "\0", zero
 	result cell dirent = entry,
@@ -100,7 +105,7 @@ read-dir str[](path str) summon
 		name = entry.get-dirent-name
 		if name != "." && name != ".."
 			res ~= entry.get-dirent-name
-		dirp read-dir-recur res
+		dirp names-in-dir-recur res
 
 # Gets the path a link refers to.
 read-link str(path str) summon trusted
@@ -128,9 +133,7 @@ read-file str(path str) summon
 	if res ?= path try-read-file
 		res
 	else
-		# TODO: don't print, warn
-		print: "file does not exist: {path}"
-		""
+		throw: "file does not exist: {path}"
 
 ###
 Writes the full contents of the file as a string.
@@ -233,12 +236,11 @@ each-child-recursive void(path str, f act void(str)) summon
 # `each-child-recursive` that does not descend into a child if `f[child_name]` returns false.
 each-child-recursive void(path str, filter act bool(str), f act void(str)) summon
 	if path is-dir
-		path.read-dir each child_name =>
+		path.names-in-dir each child_name =>
 			if filter[child_name]
 				path child-path child_name each-child-recursive filter, f
 	else
 		f[path]
-
 
 permissions record
 	read bool
@@ -287,5 +289,5 @@ remove-directory-and-contents-non-recursive void(path str) summon
 	path remove-directory
 
 remove-directory-contents-non-recursive void(path str) summon
-	path.read-dir each child =>
+	path.names-in-dir each child =>
 		"{path}/{child}" remove-file

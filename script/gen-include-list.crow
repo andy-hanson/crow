@@ -1,9 +1,0 @@
-import
-	crow/io/file: each-child-recursive
-	crow/io/print: print
-	crow/str-util: try-remove-end, try-remove-start
-
-main fut nat(_ str[]) summon
-	"include" each-child-recursive path =>
-		print: (path try-remove-start "include/").force try-remove-end ".crow" force
-	0 resolved

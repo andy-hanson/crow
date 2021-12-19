@@ -2,7 +2,7 @@ no-std
 import
 	bits/types/sigset_t: __sigset_t
 	crow/c-types: c-int, u-long
-	crow/fun: fun-ptr0, fun-ptr1
+	crow/fun-util: fun-ptr0, fun-ptr1
 	crow/number: int32
 	crow/misc: void
 

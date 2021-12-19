@@ -23,7 +23,6 @@ import lib.cliParser :
 	BuildOptions,
 	CCompileOptions,
 	Command,
-	DocumentArgs,
 	matchCommand,
 	parseCommand,
 	ProgramDirAndMain,
@@ -151,7 +150,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 		(ref immutable Command.Build it) =>
 			runBuild(alloc, perf, allSymbols, allPaths, cwd, includeDir, tempDir, it.programDirAndMain, it.options),
 		(ref immutable Command.Document it) =>
-			runDocument(alloc, perf, allSymbols, allPaths, cwd, includeDir, it.programDirAndMain, it.args),
+			runDocument(alloc, perf, allSymbols, allPaths, cwd, includeDir, it.programDirAndMain),
 		(ref immutable Command.Help it) =>
 			help(it),
 		(ref immutable Command.Print it) {
@@ -302,7 +301,6 @@ immutable(ExitCode) runDocument(
 	immutable SafeCStr cwd,
 	immutable SafeCStr includeDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
-	ref immutable DocumentArgs args,
 ) {
 	RealReadOnlyStorage storage = RealReadOnlyStorage(
 		ptrTrustMe_mut(allPaths),
@@ -312,13 +310,8 @@ immutable(ExitCode) runDocument(
 		programDirAndMain.programDir);
 	immutable DocumentResult result = compileAndDocument(
 		alloc, perf, allSymbols, allPaths, storage, showDiagOptions,
-		getMain(allPaths, includeDir, programDirAndMain),
-		args.kind);
-	return safeCStrIsEmpty(result.diagnostics)
-		? has(args.out_)
-			? writeFile(alloc, pathToSafeCStr(alloc, allPaths, force(args.out_)), result.document)
-			: println(result.document)
-		: printErr(result.diagnostics);
+		getMain(allPaths, includeDir, programDirAndMain));
+	return safeCStrIsEmpty(result.diagnostics) ? println(result.document) : printErr(result.diagnostics);
 }
 
 struct RunBuildResult {

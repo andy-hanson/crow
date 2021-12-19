@@ -2,10 +2,10 @@ no-std
 import
 	crow/c-types: u-long
 	crow/extra-types: fd-t
-	crow/fun: fun-ptr6
+	crow/fun-util: fun-ptr6
 	crow/misc: void
 	crow/number: int32, int64, nat8, nat32, nat64
-	crow/ptr: any-ptr, null, ptr
+	crow/ptr: any-const-ptr, null, const-ptr
 	crow/str: c-str, str
 
 # /usr/include/openssl/ossl_typ.h
@@ -25,20 +25,20 @@ OPENSSL_init_ssl int32(opts nat64, settings openssl-init-settings) extern noctx 
 long alias
 	int64
 
-SSL_CTX_ctrl long(ctx ssl-ctx, cmd int32, larg long, parg any-ptr) extern noctx summon
+SSL_CTX_ctrl long(ctx ssl-ctx, cmd int32, larg long, parg any-const-ptr) extern noctx summon
 
 ssl-ctrl-options int32()
 	32
 ssl-ctrl-mode int32()
 	33
 
-ssl-ctx-set-options long(s ssl-ctx, op long) summon
+ssl-ctx-set-options long(s ssl-ctx, op long) unsafe summon
 	s SSL_CTX_ctrl ssl-ctrl-options, op, null
-ssl-ctx-set-mode long(s ssl-ctx, op long) summon
+ssl-ctx-set-mode long(s ssl-ctx, op long) unsafe summon
 	s SSL_CTX_ctrl ssl-ctrl-mode, op, null
 
 proto-select-cb alias
-	fun-ptr6<int32, ssl, ptr str, ptr nat8, ptr nat8, nat32, any-ptr>
+	fun-ptr6<int32, ssl, str*, nat8*, nat8*, nat32, any-const-ptr>
 
 SSL_CTX_set_next_proto_select_cb void(s ssl-ctx, cb proto-select-cb) extern noctx summon
 

@@ -1,0 +1,139 @@
+import
+	crow/col/arr-util: map
+	crow/io/environ: get-environ
+	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
+	crow/json: as-arr, as-bool, as-str, json, parse-json, subscript
+	./module:
+		alias-decl, builtin-decl, enum-decl, extern-ptr-decl, flags-decl, fun-decl, module,
+		module-export, module-export-value, new, param, spec-decl, type-param, type-ref, record-decl,
+		record-field, sig, spec-builtin, spec-sigs, union-decl, union-member
+
+get-module module(path str) summon
+	result = "bin/crow" spawn-and-wait-result ("doc", path), get-environ
+	if result.exit-code != 0 || !result.stderr.is-empty
+		"Could not document {path}: exit code {result exit-code}, stderr: {result stderr}" throw
+	result.stdout.parse-json.force to-module
+
+.to-module module(a json)
+	a.get-node-type is "module"
+	exports = a["exports"].force.as-arr.force map x => x to-export
+	exports,
+
+.get-node-type str(a json)
+	a["_type"].force.as-str.force
+
+.to-export module-export(a json)
+	a.get-node-type is "export"
+	name = a get-name
+	comment = if c ?= a["doc-comment"]
+		c.as-str force
+	else
+		""
+	type-params = if t ?= a["type-params"]
+		t.as-arr.force map x => x to-type-param
+	else
+		()
+	value = a["value"].force to-export-value
+	name, comment, type-params, value
+
+.to-export-value module-export-value(a json)
+	type = a get-node-type
+	if type == "alias"
+		a.to-alias-decl alias-decl
+	elif type == "builtin"
+		builtin-decl
+	elif type == "enum"
+		a.to-enum-decl enum-decl
+	elif type == "extern-ptr"
+		extern-ptr-decl
+	elif type == "flags"
+		a.to-flags-decl flags-decl
+	elif type == "fun"
+		a.to-fun-decl fun-decl
+	elif type == "spec"
+		a.to-spec-decl spec-decl
+	elif type == "record"
+		a.to-record-decl record-decl
+	elif type == "union"
+		a.to-union-decl union-decl
+	else
+		"unexpected export type {type}" throw
+
+.to-alias-decl alias-decl(a json)
+	target = a["target"].force to-type-ref
+	target,
+
+.to-enum-decl enum-decl(a json)
+	a.get-enum-flags-members,
+
+.to-flags-decl flags-decl(a json)
+	a.get-enum-flags-members,
+
+.get-enum-flags-members sym[](a json)
+	a["members"].force.as-arr.force map x => x.as-str.force str-to-sym
+
+.to-record-decl record-decl(a json)
+	fields = a["fields"].force.as-arr.force map x => x to-record-field
+	fields,
+
+.to-record-field record-field(a json)
+	a.get-node-type is "field"
+	is-mut = if m ?= a["mut"]
+		m.as-bool force
+	else
+		()
+	a.get-name, a.get-type, is-mut
+
+.to-union-decl union-decl(a json)
+	members = a["members"].force.as-arr.force map x => x to-union-member
+	members,
+
+.to-union-member union-member(a json)
+	a.get-node-type is "member"
+	type = if t ?= a["type"]
+		t.to-type-ref some
+	a.get-name, type
+
+.get-name sym(a json)
+	a["name"].force.as-str.force str-to-sym
+
+.to-type-param type-param(a json)
+	a.get-name,
+
+.get-type type-ref(a json)
+	a["type"].force to-type-ref
+
+.to-fun-decl fun-decl(a json)
+	a.get-return-type, a.get-params
+
+.to-spec-decl spec-decl(a json)
+	body-json = a["body"] force
+	type = body-json get-node-type
+	body_ = if type == "builtin"
+		spec-builtin
+	elif type == "sigs"
+		body-json["sigs"].force.as-arr.force map (x => x to-sig) spec-sigs
+	else
+		"unexpected spec type {type}" throw
+	body_,
+
+.to-sig sig(a json)
+	a.get-name, a.get-return-type, a.get-params
+
+.get-return-type type-ref(a json)
+	a["return-type"].force to-type-ref
+
+.get-params param[](a json)
+	a["params"].force.as-arr.force map x => x to-param
+
+.to-param param(a json)
+	a.get-node-type is "param"
+	a.get-name, a.get-type
+
+.to-type-ref type-ref(a json)
+	if str ?= a as-str
+		str.str-to-sym, ()
+	else
+		name = a.get-node-type str-to-sym
+		args = a["type-args"].force.as-arr.force map x => x to-type-ref
+		name, args

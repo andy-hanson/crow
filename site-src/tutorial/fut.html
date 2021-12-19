@@ -1,0 +1,117 @@
+<section>
+	<h2>Futures and the runtime</h2>
+	<h3>fut and task</h3>
+	<p>A <code class="struct-ref">fut</code> (<em>future</em>) is a holder that will eventually have a
+		value.
+		For example, it might represent the result of an HTTP request.
+		Filling in the value for a <code class="struct-ref">fut</code> is known as <em>resolving</em> it.
+		Normal code should treat a <code class="struct-ref">fut</code> as readonly,
+		so generally the runtime handles resolving it.</p>
+	<p>A <em>task</em> is a function returning a <code class="struct-ref">fut</code>.
+		<br />
+		All code that runs, runs as part of a task.
+		You've seen this with <code class="fun-ref">main</code> which is the first task.
+	</p>
+	<h4>Exclusion</h4>
+	<p>The runtime keeps a queue of tasks.
+		Each task has an <em>exclusion</em>, which is just a number to identify the mutable data it can
+		access.
+		No two tasks with the same exclusion will run at the same time.
+	</p>
+	<h4>ref</h4>
+	<p>There is a third type of function value: <code class="struct-ref">ref</code>.
+		<br />
+		A <code class="struct-ref">ref</code> is just an <code class="struct-ref">act</code> and its
+		exclusion.
+		(Though neither of those is accessible except by the runtime.)
+		<br />
+		Calling a <code class="struct-ref">ref</code> adds a new task to the queue
+		and returns a <code class="struct-ref">fut</code> for the task's result.
+	</p>
+	<p>A <code class="struct-ref">ref</code> must always return a <code class="struct-ref">fut</code>.
+		The syntax makes this implicit, so a <code>ref nat(str)</code>
+		is an <code>act fut nat(str)</code> and its exclusion.
+		<br />
+		It's called a <em>function reference</em> because the caller doesn't execute it,
+		just requests for it to be scheduled and references the result.
+	</p>
+	<p><code class="struct-ref">ref</code>s are created using the same syntax as
+		<code class="struct-ref">fun</code> and <code class="struct-ref">act</code>.
+		<br />
+		The new <code class="struct-ref">ref</code>'s exclusion can't be specified;
+		it always comes from the current task.
+	</p>
+	<h4>Adding tasks</h4>You can add tasks in a few ways:<ul>
+		<li>Calling a <code class="fun-ref">ref</code> directly.</li>
+		<li><code class="fun-ref">launch</code> directly adds a task to the queue.
+			<br />
+			The argument to <code class="fun-ref">launch</code> is a <code class="struct-ref">fun</code>.
+			Recall that a <code class="struct-ref">fun</code> can't have anything <code
+				class="spec-ref">mut</code>
+			in its closure, so the launched task will have a new exclusion (not shared by any existing task)
+			and will run in parallel.
+		</li>
+		<li><code class="fun-ref">then</code> takes a <code class="struct-ref">fut</code>
+			and a <code class="struct-ref">ref</code>.
+			Once the <code class="struct-ref">fut</code> is resolved,
+			it will call the <code class="struct-ref">ref</code> using the resolved value.
+		</li>
+	</ul>
+	<p>Every function for adding a task returns a <code class="struct-ref">fut</code> for the tasks's
+		result.
+		<br />
+		You can also create a <code class="struct-ref">fut</code> without launching a task
+		by using <code class="fun-ref">resolved</code>.
+	</p>
+</section>
+<section>
+	<h3>Example: 'then'</h3>
+	<crow-runnable src="then"></crow-runnable>
+	<p>Since this example only uses <code class="fun-ref">then</code> but not <code
+			class="fun-ref">launch</code>,
+		there is no parallelism; each task runs after the task it depends on.
+		<br />
+		<code class="local-def">b</code> waits on <code class="local-ref">a</code>, and is resolved by
+		<code>x + 1 resolved</code>.
+		<br />
+		Similarly, <code class="local-def">c</code> waits on <code class="local-ref">b</code>
+		and is resolevd by <code>0 resolved</code>.
+		<br />
+		<code class="fun-ref">main</code> returns <code class="local-ref">c</code>,
+		so the program's exit code is <code>0</code>.
+		<br />
+		Since <code class="fun-ref">then</code> just schedules a task,
+		<code>print: "this happens first"</code> happens before either of them.
+
+	<h4>&lt;- syntax</h4>
+
+	Since this non-parallel waiting on <code class="struct-ref">fut</code>s in sequence is common,
+	there's a special syntax for calling <code class="fun-ref">then</code>.
+	</p>
+	<crow-runnable src="then2"></crow-runnable>
+	<p>This is mostly equivalent to the previous example.
+
+		<code>x &lt;- a</code> is like <code>a then \x</code>,
+		with all the the below lines going inside the lambda.
+		<br />
+		<code>print: "this happens first"</code> had to be moved,
+		since the <code><-</code> syntax forces things to be written in the order they happen.
+	</p>
+	<h3>Example: launch</h3>
+	<crow-runnable src="launch"></crow-runnable>
+	<p>The web interpreter does not run in parallel,
+		so this example will be deterministic if run here.
+		<br />
+		If you run the program from the command line,
+		you may see <code>Hello from a</code> and <code>Hello from b</code> printed in different orders.
+	</p>
+	<p><code class="fun-ref">join</code> is like <code class="fun-ref">then</code>,
+		but waits on two <code class="struct-ref">fut</code>s instead of just one.
+		<br />
+		There is also a <code class="fun-ref">join</code> function that takes an array.
+		<br />
+		(<code class="fun-ref">join</code> is useful for restoring sequential execution, since
+		the code inside the <code>join</code> runs only after
+		<em>all</em> the parallel tasks in its arguments have completed.)
+	</p>
+</section><a id="next" href="module.html">Next: Modules</a>

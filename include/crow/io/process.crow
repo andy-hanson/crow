@@ -204,7 +204,7 @@ body
 		wait-status WEXITSTATUS
 	elif wait-status WIFSIGNALED
 		signal = wait-status WTERMSIG
-		print: "Process terminated with signal {signal}"
+		print: "Subprocess terminated with signal {signal}"
 		todo
 		# use `wait-status WTERMSIG`
 		# and `wait-status WCOREDUMP`

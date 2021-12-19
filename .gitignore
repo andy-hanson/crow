@@ -1,10 +1,5 @@
 bin
-site/documentation/*
-site/documentation/**/*
-!site/documentation/index.pug
-site/example/*.c
-*.html
-!demo-wip/**/*.html
+site
 dyncall
 crow-vscode/node_modules
 crow-vscode/client/node_modules

@@ -947,7 +947,7 @@ public enum QuoteKind {
 }
 
 public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable QuoteKind quoteKind) {
-	TempStr!0x4000 res;
+	TempStr!0x10000 res;
 	immutable StringPart.After after = () {
 		while (true) {
 			immutable char x = takeChar(lexer);

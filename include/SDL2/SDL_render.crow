@@ -10,7 +10,7 @@ import
 SDL_CreateRenderer SDL_Renderer
 	window SDL_Window
 	index c-int
-	flags SDL_RendererFlags
+	render-flags SDL_RendererFlags
 spec
 	extern<"SDL2">
 	noctx

@@ -1,0 +1,34 @@
+page-template str(title str, content str)
+	"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Crow programming language: {title}</title>
+	<link rel="icon" href="/crow.svg" type="image/x-icon">
+	<link rel="stylesheet" href="/index.css">
+	<script src="/crow-js/crow.js"></script>
+	<script type="module" async src="/script/index.js"></script>
+</head>
+<body>
+	<header>
+		<nav>
+			<div id="crow">
+				<a href="/">
+					<img src="https://openclipart.org/download/28309/drunken-duck-crow-silhouette.svg">
+				</a>
+			</div>
+			<ul class="grow">
+				<li><a href="/download.html">download</a></li>
+				<li><a href="/tutorial">tutorial</a></li>
+				<li><a href="/doc">documentation</a></li>
+			</ul>
+			<ul>
+				<li><a href="https://github.com/andy-hanson/crow">repository</a></li>
+			</ul>
+		</nav>
+	</header>
+	{content}
+</body>
+</html>
+"""

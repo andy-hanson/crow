@@ -1,0 +1,22 @@
+import
+	crow/col/arr-util: flat-map
+	crow/io/file: is-dir, names-in-dir
+	crow/io/path: child-path
+	crow/str-util: try-remove-end, try-remove-start
+
+remove-include-and-crow str(a str)
+	(a try-remove-start "include/").force try-remove-end ".crow" force
+
+search-dir-recursive str[](path str) summon
+	path search-dir-recursive (ignore => true)
+
+# file-filter acts on basename of files. (No dir filtering)
+search-dir-recursive str[](path str, file-filter act bool(str)) summon
+	path.names-in-dir flat-map name =>
+		child = path child-path name
+		if child is-dir
+			child search-dir-recursive file-filter
+		elif file-filter[name]
+			child,
+		else
+			()

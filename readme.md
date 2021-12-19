@@ -13,8 +13,6 @@ Install these tools (potentially from your operating system's package manager):
 * [`git`](https://git-scm.com/) (used to get this repository)
 * [`hg`](http://mercurial-scm.org) (used to clone the dyncall library)
 * [`ldc`](https://wiki.dlang.org/LDC) (used to compile `bin/crow.wasm`).
-* [`node`](https://nodejs.org/en/) (needed to run `pug` for the VSCode extension).
-* [`pug`](https://pugjs.org) (`npm install -g pug`) (needed to build the site).
 * [`python`](https://www.python.org/) (needed to serve the site locally).
 
 Then run:

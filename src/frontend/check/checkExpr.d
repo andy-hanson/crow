@@ -1166,10 +1166,10 @@ immutable(Expr.MatchUnion.Case) checkMatchCase(
 	ref immutable MatchAst.CaseAst caseAst,
 	ref Expected expected,
 ) {
+	immutable FileAndRange localRange = rangeInFile2(ctx, caseAst.localRange(ctx.allSymbols));
 	immutable Opt!(Ptr!Local) local = matchNameOrUnderscoreOrNone!(
 		immutable Opt!(Ptr!Local),
 		(immutable Sym name) {
-			immutable FileAndRange localRange = rangeInFile2(ctx, caseAst.localRange(ctx.allSymbols));
 			if (has(member.type))
 				return some(allocate(alloc, immutable Local(localRange, name, force(member.type))));
 			else {
@@ -1180,7 +1180,8 @@ immutable(Expr.MatchUnion.Case) checkMatchCase(
 		},
 		(ref immutable NameOrUnderscoreOrNone.Underscore) {
 			if (!has(member.type))
-				todo!void("diagnostic: unnecessary underscore");
+				addDiag2(alloc, ctx, localRange, immutable Diag(
+					immutable Diag.MatchCaseShouldNotHaveLocal(shortSym("_"))));
 			return none!(Ptr!Local);
 		},
 		(ref immutable NameOrUnderscoreOrNone.None) {

@@ -1,0 +1,57 @@
+import
+	crow/col/arr-util: map
+	crow/io/file: read-file
+	crow/str-util: join, split-by, strip, try-split-once
+	./page-template: page-template
+	./path-and-content: new, path-and-content
+
+pages path-and-content[]() summon
+	index path-and-content = "index.html", ("index" page-template "site-src/index.html".read-file)
+	download path-and-content = "download.html", ("download" page-template "site-src/download.html".read-file)
+	(index, download) ~ tutorial-pages
+
+tutorial-pages path-and-content[]() summon
+	tutorial-metas map meta =>
+		content = meta.title tutorial-template "site-src/tutorial/{meta key}.html".read-file
+		"tutorial/{meta key}.html", content
+
+.tutorial-metas tutorial-meta[]()
+	"""index: Hello World!
+	record: Records
+	enum: Enums
+	union: Unions
+	template: Templates and specs
+	collection: Collections
+	fun: Function values
+	fut: Futures and the runtime
+	module: Modules
+	extern: Extern functions and types
+	test: Tests""" split-by "\n" map line =>
+		pair = line.strip try-split-once ":" force
+		pair.a.strip, pair.b.strip
+
+.tutorial-meta record
+	key str
+	title str
+
+tutorial-nav str()
+	lines = tutorial-metas map x =>
+		key = x key
+		name = if key == "index"
+			"hello"
+		else
+			key
+		url = if key == "index"
+			""
+		else
+			"{key}.html"
+		"""<li><a href="/tutorial/{url}">{name}</a></li>"""
+	"<nav><ul>{lines join ""}</ul></nav>"
+
+.tutorial-template str(title str, content str)
+	title page-template """
+<div id="side-nav-wrapper">
+	{tutorial-nav}
+	<main>{content}</main>
+</div>
+"""

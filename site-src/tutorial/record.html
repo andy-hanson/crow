@@ -1,0 +1,34 @@
+<section>
+	<h2>records</h2>
+	<p>A record is a value that stores several other values by name.</p>
+	<crow-runnable src="record"></crow-runnable>
+	<p>The above program defines a record type <code class="struct-def">dinner</code> and two fields,
+		<code class="field-def">food</code> and <code class="field-def">drink</code>.
+	</p>
+	<p>Declaring the <code class="keyword">record</code> generates a function
+		<code class="fun-ref">dinner</code> for creating the record.
+		(A function may have the same name as a type).
+		It also generates getter functions <code class="fun-ref">food</code> and <code
+			class="fun-ref">drink</code>.
+	</p>
+	<p>These are ordinary functions and can be called using any syntax for calling functions.
+		(So <code>a.food</code> may be written <code>a food</code> or <code>food: a</code>.)
+		(Once we get to modules, they also must be imported separately from the record if using named
+		imports.)</p>
+	<p>That's all you do with records: build them out of their component fields and then get the fields
+		back.
+	</p>
+</section>
+<section>
+	<h2>mut</h2>
+	<p>A field can be made mutable by adding the <code class="keyword">mut</code> keyword after its name.
+		This generates a function by prepending <code>set-</code> to the name, such as
+		<code>set-food</code>.</p>
+	<p>There is a special syntax <code>a.food := "nothing"</code> to call <code>a set-food "nothing"</code>.
+		This is not specific to records, you can define your own setters for any type.
+	</p>
+	<crow-runnable src="record-mut"></crow-runnable>
+	<p>Since the field <code class="field-def">food</code> is <code class="keyword">mut</code>,
+		the record as a whole must be marked <code class="keyword">mut</code> too.
+		This would also apply to any record containing <code class="struct-ref">dinner</code>.</p>
+</section><a id="next" href="enum.html">Next: Enums</a>

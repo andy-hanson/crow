@@ -3,7 +3,7 @@ import
 	./bool: !, ==, bool, false, true
 	./col/arr: arr, arr-equal, is-empty, new
 	./col/arr-util: each
-	./col/dict: dict, dict-equal, each, is-empty, new
+	./col/dict: dict, dict-equal, each, is-empty, new, subscript
 	./col/mut-dict: move-to-dict!, mut-dict, new, set-subscript
 	./col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	./hash: hash-mix
@@ -124,8 +124,15 @@ as-object json[str]?(a json) noctx
 	as json-object o
 		o some
 
+subscript json?(a json, key str)
+	if o ?= a.as-object
+		o[key]
+
 parse-json json?(a str)
-	a with-reader r => r take-json!
+	a with-reader r =>
+		res = r take-json!
+		r skip-whitespace!
+		res
 
 to-str str(a json)
 	res writer = ()

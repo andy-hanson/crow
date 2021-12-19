@@ -1,7 +1,7 @@
 module lib.cliParser;
 
 import frontend.lang : crowExtension, JitOptions, OptimizationLevel;
-import lib.compiler : DocumentKind, PrintFormat, PrintKind;
+import lib.compiler : PrintFormat, PrintKind;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -61,7 +61,6 @@ struct Command {
 	}
 	struct Document {
 		immutable ProgramDirAndMain programDirAndMain;
-		immutable DocumentArgs args;
 	}
 	struct Help {
 		enum Kind {
@@ -296,12 +295,10 @@ immutable(Command) parseDocumentCommand(
 			allPaths,
 			cwd,
 			only(split.beforeFirstPart),
-			(ref immutable ProgramDirAndMain it) {
-				immutable Opt!DocumentArgs args = parseDocumentArgs(alloc, allPaths, cwd, split.parts);
-				return has(args) && empty(split.afterDashDash)
-					? immutable Command(immutable Command.Document(it, force(args)))
-					: helpDocument;
-			});
+			(ref immutable ProgramDirAndMain it) =>
+				empty(split.parts) && empty(split.afterDashDash)
+					? immutable Command(immutable Command.Document(it))
+					: helpDocument);
 }
 
 immutable(Command) parseBuildCommand(
@@ -369,36 +366,6 @@ immutable(Opt!RunOptions) parseRunOptions(
 		else
 			return none!RunOptions;
 	}
-}
-
-public struct DocumentArgs {
-	immutable DocumentKind kind;
-	immutable Opt!AbsolutePath out_;
-}
-
-immutable(DocumentArgs) withKind(immutable DocumentArgs a, immutable DocumentKind kind) {
-	return immutable DocumentArgs(kind, a.out_);
-}
-
-immutable(DocumentArgs) withOut(immutable DocumentArgs a, immutable Opt!AbsolutePath out_) {
-	return immutable DocumentArgs(a.kind, out_);
-}
-
-immutable(Opt!DocumentArgs) parseDocumentArgs(
-	ref Alloc alloc,
-	ref AllPaths allPaths,
-	immutable SafeCStr cwd,
-	immutable ArgsPart[] argParts,
-) {
-	return foldOrStop!(DocumentArgs, ArgsPart)(
-		immutable DocumentArgs(DocumentKind.json, none!AbsolutePath),
-		argParts,
-		(immutable DocumentArgs cur, ref immutable ArgsPart part) =>
-			safeCStrEq(part.tag, "--pug")
-				? some(withKind(cur, DocumentKind.pug))
-				: safeCStrEq(part.tag, "--out") && part.args.length == 1
-				? some(withOut(cur, some(parseAbsoluteOrRelPath(alloc, allPaths, cwd, only(part.args)))))
-				: none!DocumentArgs);
 }
 
 immutable(Opt!BuildOptions) parseBuildOptions(
@@ -530,8 +497,8 @@ immutable SafeCStr helpAllText =
 	"\t'crow version'");
 
 immutable SafeCStr helpDocumentText =
-	safeCStr!("Command: crow document PATH --out [OUT.pug]\n" ~
-	"\tWrites documentation for the module at PATH to the output.\n");
+	safeCStr!("Command: crow document PATH\n" ~
+	"\tGenerates JSON documentation for the module at PATH.\n");
 
 immutable SafeCStr helpBuildText =
 	safeCStr!("Command: crow build PATH --out OUT [--optimize]\n" ~

@@ -149,17 +149,6 @@ private immutable(Path) addManyChildren(ref AllPaths allPaths, immutable Path a,
 	return childPath(allPaths, has(bParent) ? addManyChildren(allPaths, a, force(bParent)) : a, baseName(allPaths, b));
 }
 
-public void eachPathPart(
-	ref const AllPaths allPaths,
-	immutable Path a,
-	scope void delegate(immutable Sym) @safe @nogc pure nothrow cb,
-) {
-	immutable Opt!Path par = parent(allPaths, a);
-	if (has(par))
-		eachPathPart(allPaths, force(par), cb);
-	cb(baseName(allPaths, a));
-}
-
 private void walkPathBackwards(
 	ref const AllPaths allPaths,
 	immutable Path a,
@@ -448,11 +437,6 @@ private immutable(bool) pathEqual(immutable Path a, immutable Path b) {
 
 immutable(Comparison) comparePath(immutable Path a, immutable Path b) {
 	return compareNat16(a.index, b.index);
-}
-
-immutable(uint) nPathComponents(ref const AllPaths allPaths, immutable Path a) {
-	immutable Opt!Path par = parent(allPaths, a);
-	return 1 + (has(par) ? nPathComponents(allPaths, force(par)) : 0);
 }
 
 enum StorageKind : ushort {

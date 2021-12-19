@@ -14,7 +14,7 @@ SDL_FreeSurface void(surface SDL_Surface) extern<"SDL2"> noctx summon unsafe
 
 SDL_Surface record mut
 	by-ref
-	flags nat32
+	surface-flags nat32
 	format SDL_PixelFormat mut*
 	w c-int
 	h c-int

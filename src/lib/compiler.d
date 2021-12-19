@@ -4,7 +4,7 @@ module lib.compiler;
 
 import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
-import document.document : documentPug, documentJSON;
+import document.document : documentJSON;
 import frontend.parse.ast : FileAst, reprAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
 import frontend.ide.getTokens : Token, tokensOfAst, reprTokens;
@@ -28,7 +28,7 @@ import util.dbg : Debug;
 import util.opt : force, none, Opt, some;
 import util.path : AllPaths, PathAndStorageKind;
 import util.perf : Perf;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.repr : Repr, writeRepr, writeReprJSON;
 import util.sym : AllSymbols, Sym;
 import util.util : castImmutableRef;
@@ -328,8 +328,6 @@ public struct DocumentResult {
 	immutable SafeCStr diagnostics;
 }
 
-public enum DocumentKind { json, pug }
-
 public immutable(DocumentResult) compileAndDocument(ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref Perf perf,
@@ -338,22 +336,13 @@ public immutable(DocumentResult) compileAndDocument(ReadOnlyStorage)(
 	ref ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
-	immutable DocumentKind documentKind,
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, main);
-	if (!hasDiags(program)) {
-		immutable SafeCStr res = () {
-			immutable Ptr!Module main = program.specialModules.mainModule;
-			final switch (documentKind) {
-				case DocumentKind.pug:
-					return documentPug(alloc, allSymbols, allPaths, program, main.deref());
-				case DocumentKind.json:
-					return documentJSON(alloc, allSymbols, allPaths, program, main.deref());
-			}
-		}();
-		return immutable DocumentResult(res, safeCStr!"");
-	} else
-		return immutable DocumentResult(
+	return !hasDiags(program)
+		? immutable DocumentResult(
+			documentJSON(alloc, allSymbols, allPaths, program, program.specialModules.mainModule.deref()),
+			safeCStr!"")
+		: immutable DocumentResult(
 			safeCStr!"",
 			strOfDiagnostics(alloc, allSymbols, allPaths, showDiagOptions, program.filesInfo, program.diagnostics));
 }

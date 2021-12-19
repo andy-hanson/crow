@@ -11,6 +11,9 @@ export
 str str(a char[]) noctx
 	a,
 
+new str() noctx
+	""
+
 ~ str(a str, b str)
 	a.chars ~ b.chars,
 

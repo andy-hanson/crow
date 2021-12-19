@@ -1,0 +1,83 @@
+<section>
+	<h2>Enums</h2>
+	<p>An enum type is a value with a specific set of possibilities.
+	</p>
+	<crow-runnable src="enum"></crow-runnable>
+	<p>Like with records, defining an enum type defines several other functions as side effects:
+	</p>
+	<ul>
+		<li><code class="fun-def">up</code> and <code class="fun-def">down</code>
+			functions for creating enum values.</li>
+		<li><code class="fun-def">==</code> for comparing values.
+			(It does not generate <code class="fun-def">!=</code> because that already exists as a template
+			that works on any type with <code class="fun-def">==</code>)</li>
+		<li><code class="fun-def">to-str</code> which gives the name from an enum member.
+		</li>
+	</ul>
+	<p>Again as with records, the functions have no special connection to the type
+		other than being auto-generated from it.
+	</p>
+	<h3>match</h3>
+	<p>There is also a <code class="keyword">match</code> syntax for using enums.
+		<br />
+		This works similar to <code class="keyword">switch</code> from C, though each case is an expression,
+		and the entire <code class="keyword">match</code> is also itself an expression.
+		<br />
+		That means there's no need to explicitly <code class="keyword">return</code> or
+		<code class="keyword">break</code> like it is in C.
+	</p>
+	<p>Each case of the match is introduced by the <code class="keyword">as</code> keyword,
+		and the case body is indented.
+		<br />
+		The cases must have the same order as the enum does, and there must be a case for every enum member.
+	</p>
+</section>
+<section>
+	<h2>Flags</h2>
+	<p>A flags type is like an enum that can have any combination of the available values,
+		where enums must have exactly one value.
+	</p>
+	<crow-runnable src="flags"></crow-runnable>
+</section>
+<section>
+	<h2>Other enum/flags features</h2>
+	<h3>Explicit backing type</h3>
+	<p>If you like, you can specify the backing type of the enum.</p>
+	<crow-runnable src="enum-explicit-backing-type"></crow-runnable>
+	<p>(<code class="fun-def">main</code> had to be <code class="keyword">trusted</code>
+		because <code class="fun-ref">size-of</code> is unsafe.)
+	</p>
+	<h3>Explicit values</h3>
+	<p>For compatibility with C libraries, you can also explicitly specify the values used in an
+		<code class="keyword">enum</code> or <code class="keyword">flags</code> type.
+		<br />
+		It's a compile error to repeat a value.
+		<br />
+		Like in C, Each ommitted value is 1 greater than the previous value.
+	</p>
+	<p>You can get the number back using <code class="fun-ref">to-nat32</code> which is automatically
+		generated.
+		If the enum has an explicit type, this function will match, e.g. <code
+			class="fun-ref">to-nat8</code>.
+	</p>
+	<crow-runnable src="enum-explicit-value"></crow-runnable>
+	<p>The same is true of flags.
+	</p>
+</section>
+<section>
+	<h3>Sym</h3>
+	<p>TODO TODO TODO
+	</p>
+	<crow-runnable src="sym"></crow-runnable>
+</section>
+<section>
+	<h3>Sym and enum</h3>
+	<p>The <code class="module">crow.enum</code> module (which is auto-imported)
+		defines helpful functions for working with enums and syms.</p>
+	<p><code class="fun-ref">to-sym</code> converts any enum to a sym.
+		This is useful for printing the value of an enum.</p>
+	<p><code class="fun-ref">to-enum</code> converts a sym to an enum.
+		It returns an <code class="struct-ref">opt</code> since the name might not appear in the enum.
+	</p>
+	<crow-runnable src="sym-and-enum"></crow-runnable>
+</section><a id="next" href="union.html">Next: Unions</a>

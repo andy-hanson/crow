@@ -1,0 +1,70 @@
+module record
+	exports module-export[]
+
+module-export record
+	name sym
+	doc-comment str
+	type-params type-param[]
+	value module-export-value
+
+module-export-value union
+	alias-decl alias-decl
+	builtin-decl
+	enum-decl enum-decl
+	extern-ptr-decl
+	flags-decl flags-decl
+	fun-decl fun-decl
+	record-decl record-decl
+	spec-decl spec-decl
+	union-decl union-decl
+
+alias-decl record
+	target type-ref
+
+enum-decl record
+	members sym[]
+
+flags-decl record
+	members sym[]
+
+fun-decl record
+	return-type type-ref
+	params param[]
+
+param record
+	name sym
+	type type-ref
+
+type-param record
+	name sym
+
+record-decl record
+	fields record-field[]
+
+record-field record
+	name sym
+	type type-ref
+	is-mut bool
+
+spec-decl record
+	body_ spec-body
+
+spec-body union
+	spec-builtin
+	spec-sigs sig[]
+
+sig record
+	name sym
+	return-type type-ref
+	params param[]
+
+union-decl record
+	members union-member[]
+
+union-member record
+	name sym
+	type type-ref?
+
+type-ref record
+	name sym
+	type-args type-ref[]
