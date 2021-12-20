@@ -16,7 +16,7 @@ import util.alloc.alloc : Alloc, allocateT;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.col.str : CStr, strToCStr;
 import util.dbg : Debug;
-import util.memory : utilMemcpy = memcpy, utilMemset = memset;
+import util.memory : utilMemcpy = memcpy, utilMemmove = memmove, utilMemset = memset;
 import util.path : StorageKind;
 import util.perf : Perf, withNullPerf;
 import util.ptr : ptrTrustMe_mut;
@@ -28,20 +28,23 @@ import util.writer : finishWriterToCStr, writeChar, writeNat, writeQuotedStr, Wr
 // seems to be the required entry point
 extern(C) void _start() {}
 
-extern(C) @system pure ubyte* memset(return scope ubyte* s, immutable int c, immutable size_t n) {
-	return utilMemset(s, cast(immutable ubyte) c, n);
+extern(C) @system pure ubyte* memset(return scope ubyte* dest, immutable int c, immutable size_t n) {
+	return utilMemset(dest, cast(immutable ubyte) c, n);
 }
 
-extern (C) @system pure int memcmp(scope const ubyte* s1, scope const ubyte* s2, immutable size_t n) {
+extern(C) @system pure int memcmp(scope const ubyte* s1, scope const ubyte* s2, immutable size_t n) {
 	foreach (immutable size_t i; 0 .. n)
 		if (s1[i] != s2[i])
 			return s1[i] < s2[i] ? -1 : 1;
 	return 0;
 }
 
-extern (C) @system pure void* memcpy(return scope ubyte* s1, scope const ubyte* s2, immutable size_t n) {
-	utilMemcpy(s1, s2, n);
-	return s1;
+extern(C) @system pure void* memcpy(return scope ubyte* dest, scope const ubyte* src, immutable size_t n) {
+	return utilMemcpy(dest, src, n);
+}
+
+extern(C) @system pure void* memmove(return scope ubyte* dest, scope const ubyte* src, immutable size_t n) {
+	return utilMemmove(dest, src, n);
 }
 
 extern(C) immutable(size_t) getGlobalBufferSizeBytes() {

@@ -17,13 +17,13 @@ import util.ptr : Ptr;
 }
 
 @system ubyte* memcpy(return scope ubyte* dest, scope const ubyte* src, immutable size_t length) {
-	foreach (immutable size_t i; 0 .. length)
-		dest[i] = src[i];
-	return dest;
+	return memmove(dest, src, length);
 }
 
 @system ubyte* memmove(return scope ubyte* dest, scope const ubyte* src, immutable size_t length) {
-	return memcpy(dest, src, length);
+	foreach (immutable size_t i; 0 .. length)
+		dest[i] = src[i];
+	return dest;
 }
 
 @system ubyte* memset(return scope ubyte* dest, immutable ubyte value, immutable size_t length) {

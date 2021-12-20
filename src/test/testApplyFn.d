@@ -34,9 +34,9 @@ import interpret.applyFn :
 	fnWrapMulIntegral,
 	fnWrapSubIntegral;
 import interpret.bytecode : ByteCodeSource, Operation;
-import interpret.bytecodeWriter : ByteCodeWriter, writeFnBinary, writeFnUnary, writeReturn;
+import interpret.bytecodeWriter : ByteCodeWriter, writeFnBinary, writeFnUnary, writePushConstants, writeReturn;
 import interpret.runBytecode : Interpreter;
-import test.testInterpreter : interpreterTest, stepAndExpect, stepExit;
+import test.testInterpreter : interpreterTest, stepUntilExitAndExpect;
 import test.testUtil : Test;
 import util.col.stack : push;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
@@ -47,6 +47,7 @@ void testApplyFn(ref Test test) {
 	one += 0;
 
 	testFnBinary!fnAddFloat32(test, [bitsOfFloat32(-1.5), bitsOfFloat32(2.7)], bitsOfFloat32(1.2));
+
 	testFnBinary!fnAddFloat64(test, [bitsOfFloat64(-1.5), bitsOfFloat64(2.6)], bitsOfFloat64(1.1));
 
 	testFnUnary!fnBitwiseNot(test, 0xa, 0xfffffffffffffff5);
@@ -144,14 +145,12 @@ immutable(ulong) u64OfI64Bits(immutable long a) {
 	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
+			writePushConstants(test.dbg, writer, source, stackIn);
 			writeFnBinary!fn(test.dbg, writer, source);
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* cur) {
-			foreach (immutable ulong x; stackIn)
-				push(interpreter.dataStack, x);
-			cur = stepAndExpect(test, interpreter, [stackOut], cur);
-			stepExit(test, interpreter, cur);
+			stepUntilExitAndExpect(test, interpreter, [stackOut], cur);
 		});
 }
 
@@ -164,7 +163,6 @@ immutable(ulong) u64OfI64Bits(immutable long a) {
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* cur) {
 			push(interpreter.dataStack, stackIn);
-			cur = stepAndExpect(test, interpreter, [stackOut], cur);
-			stepExit(test, interpreter, cur);
+			stepUntilExitAndExpect(test, interpreter, [stackOut], cur);
 		});
 }

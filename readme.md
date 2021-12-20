@@ -9,10 +9,10 @@ For information about the langauge itself, visit the [website](http://crow-lang.
 
 Install these tools (potentially from your operating system's package manager):
 
-* [`dmd`](https://dlang.org/download.html#dmd) (used to compile `bin/crow`)
 * [`git`](https://git-scm.com/) (used to get this repository)
+* [`ldc`](https://github.com/ldc-developers/ldc#installation) (used to compile `bin/crow`).
+* [`dmd`](https://dlang.org/download.html#dmd) (used to compile `bin/crow-debug` due to much faster compiles)
 * [`hg`](http://mercurial-scm.org) (used to clone the dyncall library)
-* [`ldc`](https://wiki.dlang.org/LDC) (used to compile `bin/crow.wasm`).
 * [`python`](https://www.python.org/) (needed to serve the site locally).
 
 Then run:
@@ -23,7 +23,7 @@ cd crow
 make all
 ```
 
-This will build `bin/crow`, test, run some demos, then open a local copy of the website.
+This will build `bin/crow`, test, then serve the website on localhost.
 
 
 # Testing

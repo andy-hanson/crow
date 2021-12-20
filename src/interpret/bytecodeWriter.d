@@ -20,6 +20,7 @@ import interpret.bytecode :
 import interpret.extern_ : DynCallType;
 import interpret.runBytecode :
 	opAssertUnreachable,
+	opBreak,
 	opCall,
 	opCallFunPtr,
 	opDupBytes,
@@ -122,6 +123,12 @@ immutable(ByteCodeIndex) nextByteCodeIndex(ref const ByteCodeWriter writer) {
 
 void writeAssertUnreachable(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 	pushOperationFn(writer, source, &opAssertUnreachable);
+}
+
+// This special instruction returns instead of proceeding to the next operation.
+// (Though in non-tail-recursive builds, all operations return.)
+void writeBreak(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
+	pushOperationFn(writer, source, &opBreak);
 }
 
 immutable(ByteCodeIndex) writeCallDelayed(

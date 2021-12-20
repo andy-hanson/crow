@@ -349,6 +349,10 @@ immutable(NextOperation) opAssertUnreachable(ref Interpreter a, immutable Operat
 	return unreachable!(immutable NextOperation)();
 }
 
+immutable(NextOperation) opBreak(ref Interpreter a, immutable Operation* cur) {
+	return immutable NextOperation(cur);
+}
+
 @system immutable(NextOperation) opRemove(immutable size_t offset, immutable size_t nEntries)(
 	ref Interpreter a,
 	immutable Operation* cur,
@@ -672,7 +676,7 @@ private alias JmpBufTag = InterpreterRestore*;
 private @system immutable(NextOperation) nextOperation(ref Interpreter a, immutable Operation* cur) {
 	static if (false)
 		return getNextOperationAndDebug(a, cur);
-	version(TailRecursionAvialable) {
+	version(TailRecursionAvailable) {
 		return cur.fn(a, cur + 1);
 	}
 	return immutable NextOperation(cur);

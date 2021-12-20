@@ -22,8 +22,8 @@ lint-imports-exports:
 
 lint: lint-dscanner lint-imports-exports
 
-debug: bin/crow
-	gdb ./bin/crow
+debug: bin/crow-debug
+	gdb ./bin/crow-debug
 
 unit-test: bin/crow
 	./bin/crow test
@@ -38,37 +38,39 @@ test: unit-test end-to-end-test
 
 src_deps = src/*.d src/*/*.d src/*/*/*.d
 cli_deps = dyncall $(src_deps)
-d_flags = -betterC -preview=dip25 -preview=dip1000
+d_flags_common = -betterC -preview=dip25 -preview=dip1000
+dmd_flags_assert= $(d_flags_common) -check=on -boundscheck=on
+ldc_flags_assert = $(d_flags_common) --enable-asserts=true --boundscheck=on
+ldc_flags_no_assert = $(d_flags_common) --enable-asserts=false --boundscheck=off
+ldc_small_flags = -Oz -L=--strip-all
+ldc_fast_flags = -O2 --d-version=TailRecursionAvailable
 app_link = -L=-ldyncall_s -L=-L./dyncall/dyncall -L=-lgccjit
 
 app_files = src/app.d src/*/*.d src/*/*/*.d
 # TODO: shouldn't need writeToC
 wasm_files = src/wasm.d src/backend/mangle.d src/backend/writeToC.d src/backend/writeTypes.d src/concretize/*.d src/document/*.d src/frontend/*.d src/frontend/*/*.d src/interpret/*.d src/lib/*.d src/lower/*.d src/model/*.d src/util/*.d src/util/*/*.d
 
+bin/crow-debug: $(cli_deps)
+	dmd -ofbin/crow-debug $(dmd_flags_assert) -debug -g $(app_files) $(app_link)
+	rm bin/crow-debug.o
+
 bin/crow: $(cli_deps)
-	dmd -ofbin/crow $(d_flags) -debug -g $(app_files) $(app_link)
+	ldc2 -ofbin/crow $(ldc_flags_assert) $(ldc_fast_flags) $(app_files) $(app_link)
 	rm bin/crow.o
 
-d_flags_fast = $(d_flags) --enable-asserts=false --boundscheck=off
+# 'fast' builds not currently used for anything.
+# Not much faster than with asserts.
+bin/crow-fast: $(cli_deps)
+	ldc2 -ofbin/crow-fast $(ldc_flags_no_assert) $(ldc_fast_flags) $(app_files) $(app_link)
+	rm bin/crow-fast.o
+bin/crow-fast-debug: $(cli_deps)
+	ldc2 -ofbin/crow-fast-debug $(ldc_flags_no_assert) $(ldc_fast_flags) -g $(app_files) $(app_link)
+	rm bin/crow-fast-debug.o
 
-# Optimized builds are not currently used for anything
-bin/crow-o2: $(cli_deps)
-	ldc2 -ofbin/crow-o2 $(d_flags_fast) -O2 --d-version=TailRecursionAvialable $(app_files) $(app_link)
-
-bin/crow-o2-debug: $(cli_deps)
-	ldc2 -ofbin/crow-o2-debug $(d_flags_fast) -O2 --d-version=TailRecursionAvialable -g $(app_files) $(app_link)
-
-# -O3 seems to have no benefit
-
-# Unfortunately it fails with `undefined symbol: __assert` regardless of the `--checkaction` setting without `--enable-asserts=false`
-# --static would be nice, but doesn't seem to work: `lld: error: unknown argument: -static`
-# Need '--boundscheck=off' to avoid `undefined symbol: __assert` on D array access
-wasm_flags = --enable-asserts=false --boundscheck=off
-
-# To debug: Add `--d-debug -g`, remove `--Oz` and `-L=--strip-all`
-# --Oz breaks it: CompileError: WebAssembly.instantiate(): Compiling function #6000:"_D10concretizeQm__TQrTS4util5alloc10rangeAlloc1..." failed: not enough arguments on the stack for local.set, expected 1 more @+1538610
+# To debug: Add `--d-debug -g`, remove $(ldc_small_flags)
+# Asserts don't work in WASM due to `undefined symbol: __assert`
 bin/crow.wasm: $(src_deps)
-	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm $(d_flags) $(wasm_flags) $(wasm_files) -L=--strip-all
+	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm $(ldc_flags_no_assert) $(ldc_small_flags) $(wasm_files)
 	rm bin/crow.o
 
 ALL_INCLUDE = include/*.crow include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow

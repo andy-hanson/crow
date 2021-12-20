@@ -13,7 +13,14 @@ import interpret.bytecode :
 	Operation;
 import interpret.extern_ : Extern;
 import interpret.fakeExtern : withFakeExtern;
-import interpret.runBytecode : byteCode, Interpreter, nextByteCodeIndex, opCall, opStopInterpretation, withInterpreter;
+import interpret.runBytecode :
+	byteCode,
+	Interpreter,
+	nextByteCodeIndex,
+	opBreak,
+	opCall,
+	opStopInterpretation,
+	withInterpreter;
 import interpret.bytecodeWriter :
 	ByteCodeWriter,
 	fillDelayedCall,
@@ -27,6 +34,7 @@ import interpret.bytecodeWriter :
 	StackEntries,
 	StackEntry,
 	SwitchDelayed,
+	writeBreak,
 	writeCallDelayed,
 	writeCallFunPtr,
 	writeDup,
@@ -183,12 +191,16 @@ void testCall(ref Test test) {
 
 	immutable StackEntry argsFirstStackEntry = getNextStackEntry(writer);
 	writePushConstants(test.dbg, writer, source, [1, 2]);
+	writeBreak(writer, source);
+
 	immutable ByteCodeIndex delayed = writeCallDelayed(writer, source, argsFirstStackEntry, 1);
 	immutable ByteCodeIndex afterCall = nextByteCodeIndex(writer);
+	writeBreak(writer, source);
 	writeReturn(test.dbg, writer, source);
 	immutable ByteCodeIndex fIndex = nextByteCodeIndex(writer);
 
 	// f:
+	writeBreak(writer, source);
 	writeFnBinary!fnWrapAddIntegral(test.dbg, writer, source);
 	writeReturn(test.dbg, writer, source);
 
@@ -197,18 +209,19 @@ void testCall(ref Test test) {
 		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(0), dummyFileToFuns());
 
 	doInterpret(test, byteCode, (scope ref Interpreter interpreter, immutable(Operation)* operation) {
-		operation = stepNAndExpect(test, interpreter, 2, [1, 2], operation);
+		stepUntilBreakAndExpect(test, interpreter, [1, 2], operation);
 		verify(operation.fn == &opCall);
-		operation = stepAndExpect(test, interpreter, [1, 2], operation);
+		stepUntilBreakAndExpect(test, interpreter, [1, 2], operation);
 		expectReturnStack(test, interpreter, [afterCall]);
-		// opCall returns the first operation and moves nextOperation to the one after
-		verify(operation == &byteCode.byteCode[fIndex.index]);
-		verify(curByteCodeIndex(interpreter, operation) == fIndex);
-		operation = stepAndExpect(test, interpreter, [3], operation); // +
-		operation = stepAndExpect(test, interpreter, [3], operation); // return
-		verify(curByteCodeIndex(interpreter, operation) == afterCall);
+		// opCall returns the first operation and moves nextOperation to the one after.
+		// + 1 because we are after the break.
+		verify(operation == &byteCode.byteCode[fIndex.index + 1]);
+		verify(curByteCodeIndex(interpreter, operation) == immutable ByteCodeIndex(fIndex.index + 1));
+		stepUntilBreakAndExpect(test, interpreter, [3], operation); // return
+		// + 1 because we are after the break.
+		verify(curByteCodeIndex(interpreter, operation) == immutable ByteCodeIndex(afterCall.index + 1));
 		expectReturnStack(test, interpreter, []);
-		stepExit(test, interpreter, operation);
+		stepUntilExit(interpreter, operation);
 	});
 }
 
@@ -228,12 +241,15 @@ void testCallFunPtr(ref Test test) {
 	immutable StackEntry argsFirstStackEntry = getNextStackEntry(writer);
 	immutable ByteCodeIndex delayed = writePushFunPtrDelayed(test.dbg, writer, source);
 	writePushConstants(test.dbg, writer, source, [1, 2]);
+	writeBreak(writer, source);
 	writeCallFunPtr(test.dbg, writer, source, argsFirstStackEntry, 1);
 	immutable ByteCodeIndex afterCall = nextByteCodeIndex(writer);
+	writeBreak(writer, source);
 	writeReturn(test.dbg, writer, source);
 	immutable ByteCodeIndex fIndex = nextByteCodeIndex(writer);
 
 	// f:
+	writeBreak(writer, source);
 	writeFnBinary!fnWrapAddIntegral(test.dbg, writer, source);
 	writeReturn(test.dbg, writer, source);
 
@@ -242,21 +258,19 @@ void testCallFunPtr(ref Test test) {
 		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(0), dummyFileToFuns());
 
 	doInterpret(test, byteCode, (ref Interpreter interpreter, immutable(Operation)* operation) {
-		operation = stepNAndExpect(
+		stepUntilBreakAndExpect(
 			test,
 			interpreter,
-			3,
 			[fIndex.index, 1, 2],
 			operation);
 		// call-fun-ptr
-		operation =stepAndExpect(test, interpreter, [1, 2], operation);
+		stepUntilBreakAndExpect(test, interpreter, [1, 2], operation);
 		expectReturnStack(test, interpreter, [afterCall]);
-		verify(curByteCodeIndex(interpreter, operation) == fIndex);
-		operation = stepAndExpect(test, interpreter, [3], operation); // +
-		operation = stepAndExpect(test, interpreter, [3], operation); // return
-		verify(curByteCodeIndex(interpreter, operation) == afterCall);
+		verify(curByteCodeIndex(interpreter, operation) == immutable ByteCodeIndex(fIndex.index + 1));
+		stepUntilBreakAndExpect(test, interpreter, [3], operation); // +
+		verify(curByteCodeIndex(interpreter, operation) == immutable ByteCodeIndex(afterCall.index + 1));
 		expectReturnStack(test, interpreter, []);
-		stepExit(test, interpreter, operation);
+		stepUntilExit(interpreter, operation);
 	});
 }
 
@@ -277,42 +291,47 @@ void testSwitchAndJump(ref Test test) {
 	//TODO: want to test both sides of the switch...
 	immutable StackEntry startStack = getNextStackEntry(writer);
 	writePushConstant(test.dbg, writer, source, 0);
+	writeBreak(writer, source);
 	immutable SwitchDelayed delayed = writeSwitch0ToNDelay(writer, source, 2);
 	fillDelayedSwitchEntry(writer, delayed, 0);
+	writeBreak(writer, source);
 	immutable ByteCodeIndex firstCase = nextByteCodeIndex(writer);
 	writePushConstant(test.dbg, writer, source, 3);
+	writeBreak(writer, source);
 	setNextStackEntry(writer, startStack);
 	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(test.dbg, writer, source);
 	fillDelayedSwitchEntry(writer, delayed, 1);
+	writeBreak(writer, source);
 	immutable ByteCodeIndex secondCase = nextByteCodeIndex(writer);
 	writePushConstant(test.dbg, writer, source, 5);
 	fillInJumpDelayed(writer, jumpIndex);
+	writeBreak(writer, source);
 	immutable ByteCodeIndex bottom = nextByteCodeIndex(writer);
 	writeReturn(test.dbg, writer, source);
 	immutable ByteCode byteCode =
 		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(0), dummyFileToFuns());
 
 	doInterpret(test, byteCode, (ref Interpreter interpreter, immutable(Operation)* operation) {
-		operation = stepAndExpect(test, interpreter, [0], operation);
-		operation = stepAndExpect(test, interpreter, [], operation);
+		 stepUntilBreakAndExpect(test, interpreter, [0], operation);
+		stepUntilBreakAndExpect(test, interpreter, [], operation);
 		verify(curByteCodeIndex(interpreter, operation) == firstCase);
-		operation = stepAndExpect(test, interpreter, [3], operation); // push 3
-		operation = stepAndExpect(test, interpreter, [3], operation); // jump
+		stepUntilBreakAndExpect(test, interpreter, [3], operation); // push 3
+		stepUntilBreakAndExpect(test, interpreter, [3], operation); // jump
 		verify(curByteCodeIndex(interpreter, operation) == bottom);
-		stepExit(test, interpreter, operation);
+		stepUntilExit(interpreter, operation);
 	});
 
 	doInterpret(test, byteCode, (scope ref Interpreter interpreter, immutable(Operation)* operation) {
 		// Manually change the value to '1' to test the other case.
-		operation = stepAndExpect(test, interpreter, [0], operation);
+		stepUntilBreakAndExpect(test, interpreter, [0], operation);
 		pop(interpreter.dataStack);
 		push(interpreter.dataStack, 1);
 		expectStack(test, interpreter, [1]);
-		operation = stepAndExpect(test, interpreter, [], operation);
+		stepUntilBreakAndExpect(test, interpreter, [], operation);
 		verify(curByteCodeIndex(interpreter, operation) == secondCase);
-		operation = stepAndExpect(test, interpreter, [5], operation);
+		stepUntilBreakAndExpect(test, interpreter, [5], operation);
 		verify(curByteCodeIndex(interpreter, operation) == bottom);
-		stepExit(test, interpreter, operation);
+		stepUntilExit(interpreter, operation);
 	});
 }
 
@@ -321,22 +340,25 @@ void testDup(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [55, 65, 75]);
+			writeBreak(writer, source);
 			verifyStackEntry(writer, 3);
 			writeDupEntry(test.dbg, writer, source, immutable StackEntry(0));
+			writeBreak(writer, source);
 			verifyStackEntry(writer, 4);
 			writeDupEntries(
 				test.dbg,
 				writer,
 				source,
 				immutable StackEntries(immutable StackEntry(2), 2));
+			writeBreak(writer, source);
 			verifyStackEntry(writer, 6);
 			writeReturn(test.dbg, writer, source);
 		},
 		(ref Interpreter interpreter, immutable(Operation)* operation) {
-			operation = stepNAndExpect(test, interpreter, 3, [55, 65, 75], operation);
-			operation = stepAndExpect(test, interpreter, [55, 65, 75, 55], operation);
-			operation = stepAndExpect(test, interpreter, [55, 65, 75, 55, 75, 55], operation);
-			stepExit(test, interpreter, operation);
+			stepUntilBreakAndExpect(test, interpreter, [55, 65, 75], operation);
+			stepUntilBreakAndExpect(test, interpreter, [55, 65, 75, 55], operation);
+			stepUntilBreakAndExpect(test, interpreter, [55, 65, 75, 55, 75, 55], operation);
+			stepUntilExit(interpreter, operation);
 		});
 }
 
@@ -345,17 +367,19 @@ void testRemoveOne(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [0, 1, 2]);
+			writeBreak(writer, source);
 			writeRemove(
 				test.dbg,
 				writer,
 				source,
 				immutable StackEntries(immutable StackEntry(1), 1));
+			writeBreak(writer, source);
 			writeReturn(test.dbg, writer, source);
 		},
 		(ref Interpreter interpreter, immutable(Operation)* operation) {
-			operation = stepNAndExpect(test, interpreter, 3, [0, 1, 2], operation);
-			operation = stepAndExpect(test, interpreter, [0, 2], operation);
-			stepExit(test, interpreter, operation);
+			stepUntilBreakAndExpect(test, interpreter, [0, 1, 2], operation);
+			stepUntilBreakAndExpect(test, interpreter, [0, 2], operation);
+			stepUntilExit(interpreter, operation);
 		});
 }
 
@@ -364,13 +388,15 @@ void testRemoveMany(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [0, 1, 2, 3, 4]);
+			writeBreak(writer, source);
 			writeRemove(test.dbg, writer, source, immutable StackEntries(immutable StackEntry(1), 2));
+			writeBreak(writer, source);
 			writeReturn(test.dbg, writer, source);
 		},
 		(ref Interpreter interpreter, immutable(Operation)* operation) {
-			operation = stepNAndExpect(test, interpreter, 5, [0, 1, 2, 3, 4], operation);
-			operation = stepAndExpect(test, interpreter, [0, 3, 4], operation);
-			stepExit(test, interpreter, operation);
+			stepUntilBreakAndExpect(test, interpreter, [0, 1, 2, 3, 4], operation);
+			stepUntilBreakAndExpect(test, interpreter, [0, 3, 4], operation);
+			stepUntilExit(interpreter, operation);
 		});
 }
 
@@ -390,17 +416,21 @@ void testDupPartial(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [u.n]);
+			writeBreak(writer, source);
 			writeDup(test.dbg, writer, source, immutable StackEntry(0), 0, 4);
+			writeBreak(writer, source);
 			writeDup(test.dbg, writer, source, immutable StackEntry(0), 4, 2);
+			writeBreak(writer, source);
 			writeDup(test.dbg, writer, source, immutable StackEntry(0), 6, 1);
+			writeBreak(writer, source);
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
-			operation = stepAndExpect(test, interpreter, [u.n], operation);
-			operation = stepAndExpect(test, interpreter, [u.n, 0x01234567], operation);
-			operation = stepAndExpect(test, interpreter, [u.n, 0x01234567, 0x89ab], operation);
-			operation = stepAndExpect(test, interpreter, [u.n, 0x01234567, 0x89ab, 0xcd], operation);
-			stepExit(test, interpreter, operation);
+			stepUntilBreakAndExpect(test, interpreter, [u.n], operation);
+			stepUntilBreakAndExpect(test, interpreter, [u.n, 0x01234567], operation);
+			stepUntilBreakAndExpect(test, interpreter, [u.n, 0x01234567, 0x89ab], operation);
+			stepUntilBreakAndExpect(test, interpreter, [u.n, 0x01234567, 0x89ab, 0xcd], operation);
+			stepUntilExit(interpreter, operation);
 		});
 }
 
@@ -409,16 +439,18 @@ void testPack(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [0x01234567, 0x89ab, 0xcd]);
+			writeBreak(writer, source);
 			scope immutable PackField[3] fields = [
 				immutable PackField(0, 0, 4),
 				immutable PackField(8, 4, 2),
 				immutable PackField(16, 6, 1)];
 			scope immutable Pack pack = immutable Pack(3, 1, fields);
 			writePack(test.dbg, writer, source, pack);
+			writeBreak(writer, source);
 			writeReturn(test.dbg, writer, source);
 		},
 		(ref Interpreter interpreter, immutable(Operation)* operation) {
-			operation = stepNAndExpect(test, interpreter, 3, [0x01234567, 0x89ab, 0xcd], operation);
+			stepUntilBreakAndExpect(test, interpreter, [0x01234567, 0x89ab, 0xcd], operation);
 			struct S {
 				uint a;
 				ushort b;
@@ -430,7 +462,8 @@ void testPack(ref Test test) {
 			}
 			U u;
 			u.s = immutable S(0x01234567, 0x89ab, 0xcd);
-			stepAndExpect(test, interpreter, [u.n], operation);
+			stepUntilBreakAndExpect(test, interpreter, [u.n], operation);
+			stepUntilExit(interpreter, operation);
 		});
 }
 
@@ -439,24 +472,23 @@ void testStackRef(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [1, 2]);
+			writeBreak(writer, source);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(0));
+			writeBreak(writer, source);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(1), 4);
+			writeBreak(writer, source);
+			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
-			testStackRefInner(test, interpreter, operation);
+			immutable ulong stack0 = cast(immutable ulong) stackBegin(interpreter.dataStack);
+			immutable ulong stack3 =
+				cast(immutable ulong) ((cast(immutable uint*) stackBegin(interpreter.dataStack)) + 3);
+
+			stepUntilBreakAndExpect(test, interpreter, [1, 2], operation);
+			stepUntilBreakAndExpect(test, interpreter, [1, 2, stack0], operation);
+			stepUntilBreakAndExpect(test, interpreter, [1, 2, stack0, stack3], operation);
+			stepUntilExit(interpreter, operation);
 		});
-}
-
-@trusted void testStackRefInner(ref Test test, scope ref Interpreter interpreter, immutable(Operation)* operation) {
-	immutable ulong stack0 = cast(immutable ulong) stackBegin(interpreter.dataStack);
-	immutable ulong stack1 = cast(immutable ulong) (stackBegin(interpreter.dataStack) + 1);
-	immutable ulong stack3 = cast(immutable ulong) ((cast(immutable uint*) stackBegin(interpreter.dataStack)) + 3);
-
-	operation = stepNAndExpect(test, interpreter, 2, [1, 2], operation);
-	operation = stepAndExpect(test, interpreter, [1, 2, stack0], operation);
-	operation = stepAndExpect(test, interpreter, [1, 2, stack0, stack1], operation);
-	operation = stepAndExpect(test, interpreter, [1, 2, stack0, stack1, 4], operation);
-	operation = stepAndExpect(test, interpreter, [1, 2, stack0, stack3], operation);
 }
 
 @trusted void testReadSubword(ref Test test) {
@@ -476,34 +508,33 @@ void testStackRef(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstant(test.dbg, writer, source, u.value);
+			writeBreak(writer, source);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(0));
+			writeBreak(writer, source);
 			writeRead(test.dbg, writer, source, 0, 4);
+			writeBreak(writer, source);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(0));
+			writeBreak(writer, source);
 			writeRead(test.dbg, writer, source, 4, 2);
+			writeBreak(writer, source);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(0));
+			writeBreak(writer, source);
 			writeRead(test.dbg, writer, source, 6, 1);
+			writeBreak(writer, source);
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
-			testReadSubwordInner(test, interpreter, u.value, operation);
+			immutable ulong value = u.value;
+			stepUntilBreakAndExpect(test, interpreter, [value], operation);
+			immutable ulong ptr = cast(immutable ulong) stackBegin(interpreter.dataStack);
+			stepUntilBreakAndExpect(test, interpreter, [value, ptr], operation);
+			stepUntilBreakAndExpect(test, interpreter, [value, 0x01234567], operation);
+			stepUntilBreakAndExpect(test, interpreter, [value, 0x01234567, ptr], operation);
+			stepUntilBreakAndExpect(test, interpreter, [value, 0x01234567, 0x89ab], operation);
+			stepUntilBreakAndExpect(test, interpreter, [value, 0x01234567, 0x89ab, ptr], operation);
+			stepUntilBreakAndExpect(test, interpreter, [value, 0x01234567, 0x89ab, 0xcd], operation);
+			stepUntilExit(interpreter, operation);
 		});
-}
-
-@trusted void testReadSubwordInner(
-	ref Test test,
-	scope ref Interpreter interpreter,
-	immutable ulong value,
-	immutable(Operation)* operation,
-) {
-	operation = stepAndExpect(test, interpreter, [value], operation);
-	immutable ulong ptr = cast(immutable ulong) stackBegin(interpreter.dataStack);
-	operation = stepAndExpect(test, interpreter, [value, ptr], operation);
-	operation = stepAndExpect(test, interpreter, [value, 0x01234567], operation);
-	operation = stepAndExpect(test, interpreter, [value, 0x01234567, ptr], operation);
-	operation = stepAndExpect(test, interpreter, [value, 0x01234567, 0x89ab], operation);
-	operation = stepAndExpect(test, interpreter, [value, 0x01234567, 0x89ab, ptr], operation);
-	operation = stepAndExpect(test, interpreter, [value, 0x01234567, 0x89ab, 0xcd], operation);
-	stepExit(test, interpreter, operation);
 }
 
 @trusted void testReadWords(ref Test test) {
@@ -511,45 +542,23 @@ void testStackRef(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [1, 2, 3]);
+			writeBreak(writer, source);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(0));
+			writeBreak(writer, source);
 			writeRead(test.dbg, writer, source, 8, 16);
+			writeBreak(writer, source);
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
-			testReadWordsInner(test, interpreter, operation);
+			stepUntilBreakAndExpect(test, interpreter, [1, 2, 3], operation);
+			immutable ulong ptr = cast(immutable ulong) stackBegin(interpreter.dataStack);
+			stepUntilBreakAndExpect(test, interpreter, [1, 2, 3, ptr], operation);
+			stepUntilBreakAndExpect(test, interpreter, [1, 2, 3, 2, 3], operation);
+			stepUntilExit(interpreter, operation);
 		});
-}
-
-@trusted void testReadWordsInner(ref Test test, scope ref Interpreter interpreter, immutable(Operation)* operation) {
-	operation = stepNAndExpect(test, interpreter, 3, [1, 2, 3], operation);
-	immutable ulong ptr = cast(immutable ulong) stackBegin(interpreter.dataStack);
-	operation = stepAndExpect(test, interpreter, [1, 2, 3, ptr], operation);
-	operation = stepAndExpect(test, interpreter, [1, 2, 3, 2, 3], operation);
-	stepExit(test, interpreter, operation);
 }
 
 @trusted void testWriteSubword(ref Test test) {
-	interpreterTest(
-		test,
-		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
-			writePushConstant(test.dbg, writer, source, 0);
-			writeStackRef(test.dbg, writer, source, immutable StackEntry(0));
-			writePushConstant(test.dbg, writer, source, 0x0123456789abcdef);
-			writeWrite(test.dbg, writer, source, 0, 4);
-			writeStackRef(test.dbg, writer, source, immutable StackEntry(0));
-			writePushConstant(test.dbg, writer, source, 0x0123456789abcdef);
-			writeWrite(test.dbg, writer, source, 4, 2);
-			writeStackRef(test.dbg, writer, source, immutable StackEntry(0));
-			writePushConstant(test.dbg, writer, source, 0x0123456789abcdef);
-			writeWrite(test.dbg, writer, source, 6, 1);
-			writeReturn(test.dbg, writer, source);
-		},
-		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
-			testWriteSubwordInner(test, interpreter, operation);
-		});
-}
-
-@trusted void testWriteSubwordInner(ref Test test, scope ref Interpreter interpreter, immutable(Operation)* operation) {
 	struct S {
 		uint a;
 		ushort b;
@@ -566,21 +575,56 @@ void testStackRef(ref Test test) {
 		return u.value;
 	}
 
-	operation = stepAndExpect(test, interpreter, [0], operation);
-	immutable ulong ptr = cast(immutable ulong) stackBegin(interpreter.dataStack);
-	operation = stepAndExpect(test, interpreter, [0, ptr], operation);
-	operation = stepAndExpect(test, interpreter, [0, ptr, 0x0123456789abcdef], operation);
-	operation = stepAndExpect(test, interpreter, [toUlong(immutable S(0x89abcdef, 0, 0, 0))], operation);
+	interpreterTest(
+		test,
+		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
+			writePushConstant(test.dbg, writer, source, 0);
+			writeBreak(writer, source);
 
-	operation = stepNAndExpect(
-		test, interpreter, 2, [toUlong(immutable S(0x89abcdef, 0, 0, 0)), ptr, 0x0123456789abcdef], operation);
-	operation = stepAndExpect(test, interpreter, [toUlong(immutable S(0x89abcdef, 0xcdef, 0, 0))], operation);
+			writeStackRef(test.dbg, writer, source, immutable StackEntry(0));
+			writeBreak(writer, source);
 
-	operation = stepNAndExpect(
-		test, interpreter, 2, [toUlong(immutable S(0x89abcdef, 0xcdef, 0, 0)), ptr, 0x0123456789abcdef], operation);
-	operation = stepAndExpect(test, interpreter, [toUlong(immutable S(0x89abcdef, 0xcdef, 0xef, 0))], operation);
+			writePushConstant(test.dbg, writer, source, 0x0123456789abcdef);
+			writeBreak(writer, source);
 
-	stepExit(test, interpreter, operation);
+			writeWrite(test.dbg, writer, source, 0, 4);
+			writeBreak(writer, source);
+
+			writeStackRef(test.dbg, writer, source, immutable StackEntry(0));
+			writePushConstant(test.dbg, writer, source, 0x0123456789abcdef);
+			writeBreak(writer, source);
+
+			writeWrite(test.dbg, writer, source, 4, 2);
+			writeBreak(writer, source);
+
+			writeStackRef(test.dbg, writer, source, immutable StackEntry(0));
+			writePushConstant(test.dbg, writer, source, 0x0123456789abcdef);
+			writeBreak(writer, source);
+
+			writeWrite(test.dbg, writer, source, 6, 1);
+			writeBreak(writer, source);
+
+			writeReturn(test.dbg, writer, source);
+		},
+		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
+			immutable ulong ptr = cast(immutable ulong) stackBegin(interpreter.dataStack);
+
+			stepUntilBreakAndExpect(test, interpreter, [0], operation);
+			stepUntilBreakAndExpect(test, interpreter, [0, ptr], operation);
+			stepUntilBreakAndExpect(test, interpreter, [0, ptr, 0x0123456789abcdef], operation);
+			stepUntilBreakAndExpect(test, interpreter, [toUlong(immutable S(0x89abcdef, 0, 0, 0))], operation);
+
+			stepUntilBreakAndExpect(
+				test, interpreter, [toUlong(immutable S(0x89abcdef, 0, 0, 0)), ptr, 0x0123456789abcdef], operation);
+			stepUntilBreakAndExpect(test, interpreter, [toUlong(immutable S(0x89abcdef, 0xcdef, 0, 0))], operation);
+
+			stepUntilBreakAndExpect(
+				test, interpreter,
+				[toUlong(immutable S(0x89abcdef, 0xcdef, 0, 0)), ptr, 0x0123456789abcdef],
+				operation);
+			stepUntilBreakAndExpect(test, interpreter, [toUlong(immutable S(0x89abcdef, 0xcdef, 0xef, 0))], operation);
+			stepUntilExit(interpreter, operation);
+		});
 }
 
 @trusted void testWriteWords(ref Test test) {
@@ -588,64 +632,63 @@ void testStackRef(ref Test test) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [0, 0, 0]);
+			writeBreak(writer, source);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(0));
+			writeBreak(writer, source);
 			writePushConstants(test.dbg, writer, source, [1, 2]);
+			writeBreak(writer, source);
 			writeWrite(test.dbg, writer, source, 8, 16);
+			writeBreak(writer, source);
 			writeReturn(test.dbg, writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* operation) {
-			testWriteWordsInner(test, interpreter, operation);
+			stepUntilBreakAndExpect(test, interpreter, [0, 0, 0], operation);
+			immutable ulong ptr = cast(immutable ulong) stackBegin(interpreter.dataStack);
+			stepUntilBreakAndExpect(test, interpreter, [0, 0, 0, ptr], operation);
+			stepUntilBreakAndExpect(test, interpreter, [0, 0, 0, ptr, 1, 2], operation);
+			stepUntilBreakAndExpect(test, interpreter, [0, 1, 2], operation);
+			stepUntilExit(interpreter, operation);
 		});
 }
 
-@trusted void testWriteWordsInner(ref Test test, scope ref Interpreter interpreter, immutable(Operation)* operation) {
-	operation = stepNAndExpect(test, interpreter, 3, [0, 0, 0], operation);
-	immutable ulong ptr = cast(immutable ulong) stackBegin(interpreter.dataStack);
-	operation = stepAndExpect(test, interpreter, [0, 0, 0, ptr], operation);
-	operation = stepNAndExpect(test, interpreter, 2, [0, 0, 0, ptr, 1, 2], operation);
-	operation = stepAndExpect(test, interpreter, [0, 1, 2], operation);
-	stepExit(test, interpreter, operation);
-}
-
-immutable(Operation*) stepNAndExpect(
+void stepUntilBreakAndExpect(
 	ref Test test,
 	scope ref Interpreter interpreter,
-	immutable uint n,
 	scope immutable ulong[] expected,
-	immutable(Operation)* operation,
+	ref immutable(Operation)* operation,
 ) {
-	foreach (immutable uint i; 0 .. n)
-		operation = stepContinue(test, interpreter, operation);
+	stepUntilBreak(interpreter, operation);
 	expectStack(test, interpreter, expected);
-	return operation;
-}
-
-public immutable(Operation*) stepAndExpect(
-	ref Test test,
-	scope ref Interpreter interpreter,
-	scope immutable ulong[] expected,
-	immutable(Operation)* operation,
-) {
-	return stepNAndExpect(test, interpreter, 1, expected, operation);
 }
 
 void verifyStackEntry(ref ByteCodeWriter writer, immutable size_t n) {
 	verify(getNextStackEntry(writer) == immutable StackEntry(n));
 }
 
-@trusted immutable(Operation*) stepContinue(
-	ref Test test,
-	scope ref Interpreter interpreter,
-	immutable Operation* operation,
-) {
-	immutable Operation* nextOperation = operation.fn(interpreter, operation + 1).operationPtr;
-	verify(nextOperation.fn != &opStopInterpretation);
-	return nextOperation;
+// Actually steps until the operation after the break.
+// This is designed to work the same whether 'nextOperation' is implemented with tail recursion or returns.
+// In the tail-recursive case, the while loop should be redundant,
+// since only an opBreak (or opStopInterpretation) instruction returns.
+@trusted void stepUntilBreak(scope ref Interpreter interpreter, ref immutable(Operation)* operation) {
+	do {
+		verify(operation.fn != &opStopInterpretation);
+		operation = operation.fn(interpreter, operation + 1).operationPtr;
+	} while ((operation - 1).fn != &opBreak);
 }
 
-public @trusted void stepExit(ref Test test, scope ref Interpreter interpreter, immutable Operation* operation) {
-	immutable Operation* nextOperation = operation.fn(interpreter, operation).operationPtr;
-	verify(nextOperation.fn == &opStopInterpretation);
+@trusted void stepUntilExit(scope ref Interpreter interpreter, ref immutable(Operation)* operation) {
+	while (operation.fn != &opStopInterpretation)
+		operation = operation.fn(interpreter, operation + 1).operationPtr;
+}
+
+public @trusted void stepUntilExitAndExpect(
+	ref Test test,
+	scope ref Interpreter interpreter,
+	scope immutable ulong[] expected,
+	ref immutable(Operation)* operation,
+) {
+	stepUntilExit(interpreter, operation);
+	expectStack(test, interpreter, expected);
 }
 
 void expectStack(ref Test test, scope ref Interpreter interpreter, scope immutable ulong[] expected) {

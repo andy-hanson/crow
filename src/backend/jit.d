@@ -381,7 +381,7 @@ struct ConversionFunctions {
 		makeConversionFunction(ctx, "__nat64ToPtr", unionType, nat64Type, nat64Field, voidPtrType, ptrField));
 }
 
-immutable(Ptr!gcc_jit_function) makeConversionFunction(
+@trusted immutable(Ptr!gcc_jit_function) makeConversionFunction(
 	ref gcc_jit_context ctx,
 	immutable CStr name,
 	immutable Ptr!gcc_jit_type converterType,
@@ -1337,7 +1337,7 @@ immutable(ExprResult) constantToGcc(
 			emitVoid(ctx, emit));
 }
 
-immutable(ExprResult) unaryToGcc(
+@trusted immutable(ExprResult) unaryToGcc(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
 	ref immutable LowExpr expr,
@@ -1407,7 +1407,7 @@ immutable(ExprResult) unaryToGcc(
 	}
 }
 
-immutable(ExprResult) countOnesToGcc(ref ExprCtx ctx, ref ExprEmit emit, ref immutable LowExpr arg) {
+@trusted immutable(ExprResult) countOnesToGcc(ref ExprCtx ctx, ref ExprEmit emit, ref immutable LowExpr arg) {
 	immutable Ptr!gcc_jit_rvalue argGcc = emitToRValue(ctx, arg);
 	immutable Ptr!gcc_jit_rvalue call = castImmutable(gcc_jit_context_new_call(
 		ctx.gcc,
