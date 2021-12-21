@@ -5,11 +5,11 @@ import lib.compiler : PrintFormat, PrintKind;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : findIndex, foldOrStop;
+import util.col.arrUtil : findIndex, foldOrStop, mapOrNone;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq, startsWith, strEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.path : AbsolutePath, AllPaths, parseAbsoluteOrRelPath, Path;
-import util.util : todo;
+import util.util : todo, verify;
 
 @safe @nogc nothrow: // not pure
 
@@ -60,7 +60,7 @@ struct Command {
 		immutable BuildOptions options;
 	}
 	struct Document {
-		immutable ProgramDirAndMain programDirAndMain;
+		immutable ProgramDirAndRootPaths programDirAndRootPaths;
 	}
 	struct Help {
 		enum Kind {
@@ -165,6 +165,11 @@ struct ProgramDirAndMain {
 	immutable Path mainPath;
 }
 
+struct ProgramDirAndRootPaths {
+	immutable SafeCStr programDir;
+	immutable Path[] rootPaths;
+}
+
 immutable(Command) parseCommand(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
@@ -221,6 +226,19 @@ immutable(Command) useProgramDirAndMain(
 		: immutable Command(immutable Command.Help(safeCStr!"Invalid path", Command.Help.Kind.error));
 }
 
+immutable(Command) useProgramDirAndRootPaths(
+	ref Alloc alloc,
+	ref AllPaths allPaths,
+	immutable SafeCStr cwd,
+	scope immutable SafeCStr[] args,
+	scope immutable(Command) delegate(ref immutable ProgramDirAndRootPaths) @safe pure @nogc nothrow cb,
+) {
+	immutable Opt!ProgramDirAndRootPaths p = parseProgramDirAndRootPaths(alloc, allPaths, cwd, args);
+	return has(p)
+		? cb(force(p))
+		: immutable Command(immutable Command.Help(safeCStr!"Invalid path", Command.Help.Kind.error));
+}
+
 immutable(Opt!ProgramDirAndMain) parseProgramDirAndMain(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
@@ -231,6 +249,31 @@ immutable(Opt!ProgramDirAndMain) parseProgramDirAndMain(
 	return empty(mainAbsolutePath.extension) || strEq(mainAbsolutePath.extension, crowExtension())
 		? some(immutable ProgramDirAndMain(mainAbsolutePath.root, mainAbsolutePath.path))
 		: none!ProgramDirAndMain;
+}
+
+immutable(Opt!ProgramDirAndRootPaths) parseProgramDirAndRootPaths(
+	ref Alloc alloc,
+	ref AllPaths allPaths,
+	immutable SafeCStr cwd,
+	scope immutable SafeCStr[] args,
+) {
+	verify(!empty(args));
+	immutable Opt!ProgramDirAndMain first = parseProgramDirAndMain(alloc, allPaths, cwd, args[0]);
+	if (!has(first))
+		return none!ProgramDirAndRootPaths;
+	else {
+		immutable SafeCStr programDir = force(first).programDir;
+		immutable Opt!(Path[]) rootPaths = mapOrNone(alloc, args, (ref immutable SafeCStr arg) {
+			immutable Opt!ProgramDirAndMain here = parseProgramDirAndMain(alloc, allPaths, cwd, arg);
+			// TODO: better handling if they don't all have same programDir
+			return has(here) && safeCStrEq(force(here).programDir, programDir)
+				? some(force(here).mainPath)
+				: none!Path;
+		});
+		return has(rootPaths)
+			? some(immutable ProgramDirAndRootPaths(programDir, force(rootPaths)))
+			: none!ProgramDirAndRootPaths;
+	}
 }
 
 struct FormatAndPath {
@@ -288,17 +331,15 @@ immutable(Command) parseDocumentCommand(
 	immutable Command helpDocument = immutable Command(
 		immutable Command.Help(helpDocumentText, Command.Help.Kind.error));
 	immutable SplitArgs split = splitArgs(alloc, args);
-	return split.beforeFirstPart.length != 1
-		? helpDocument
-		: useProgramDirAndMain(
-			alloc,
-			allPaths,
-			cwd,
-			only(split.beforeFirstPart),
-			(ref immutable ProgramDirAndMain it) =>
-				empty(split.parts) && empty(split.afterDashDash)
-					? immutable Command(immutable Command.Document(it))
-					: helpDocument);
+	return useProgramDirAndRootPaths(
+		alloc,
+		allPaths,
+		cwd,
+		split.beforeFirstPart,
+		(ref immutable ProgramDirAndRootPaths it) =>
+			empty(split.parts) && empty(split.afterDashDash)
+				? immutable Command(immutable Command.Document(it))
+				: helpDocument);
 }
 
 immutable(Command) parseBuildCommand(

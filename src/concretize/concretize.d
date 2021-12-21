@@ -59,9 +59,10 @@ immutable(ConcreteProgram) concretize(
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref immutable Program program,
+	immutable Ptr!Module mainModule,
 ) {
 	return withMeasure!(immutable ConcreteProgram, () =>
-		concretizeInner(alloc, allSymbols, program)
+		concretizeInner(alloc, allSymbols, program, mainModule)
 	)(alloc, perf, PerfMeasure.concretize);
 }
 
@@ -71,6 +72,7 @@ immutable(ConcreteProgram) concretizeInner(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref immutable Program program,
+	immutable Ptr!Module mainModule,
 ) {
 	ConcretizeCtx ctx = ConcretizeCtx(
 		ptrTrustMe_const(allSymbols),
@@ -86,7 +88,7 @@ immutable(ConcreteProgram) concretizeInner(
 	// We remove items from these dicts when we process them.
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 	immutable Ptr!ConcreteFun userMainConcreteFun =
-		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getUserMainFun(alloc, program));
+		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getUserMainFun(alloc, program, mainModule));
 	immutable Ptr!ConcreteFun allocFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getAllocFun(alloc, program));
 	immutable Ptr!ConcreteFun allFunsFun =
@@ -218,8 +220,8 @@ immutable(Ptr!FunInst) getRtMainFun(ref Alloc alloc, ref immutable Program progr
 	return nonTemplateFunInst(alloc, mainFun);
 }
 
-immutable(Ptr!FunInst) getUserMainFun(ref Alloc alloc, ref immutable Program program) {
-	immutable Ptr!FunDecl[] mainFuns = getFuns(program.specialModules.mainModule.deref(), shortSym("main"));
+immutable(Ptr!FunInst) getUserMainFun(ref Alloc alloc, ref immutable Program program, immutable Ptr!Module mainModule) {
+	immutable Ptr!FunDecl[] mainFuns = getFuns(mainModule.deref(), shortSym("main"));
 	if (mainFuns.length != 1)
 		todo!void("wrong number main funs");
 	immutable Ptr!FunDecl mainFun = only(mainFuns);

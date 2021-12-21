@@ -2,7 +2,6 @@ module document.document;
 
 @safe @nogc pure nothrow:
 
-import frontend.lang : crowExtension;
 import model.model :
 	body_,
 	FieldMutability,
@@ -55,12 +54,22 @@ immutable(SafeCStr) documentJSON(
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable Program program,
-	ref immutable Module a,
 ) {
-	return jsonStrOfRepr(alloc, allSymbols, documentModule(alloc, allSymbols, allPaths, program, a));
+	return jsonStrOfRepr(alloc, allSymbols, documentRootModules(alloc, allSymbols, allPaths, program));
 }
 
 private:
+
+immutable(Repr) documentRootModules(
+	ref Alloc alloc,
+	ref const AllSymbols allSymbols,
+	ref const AllPaths allPaths,
+	ref immutable Program program,
+) {
+	return reprNamedRecord(alloc, "root", [
+		nameAndRepr("modules", reprArr(alloc, program.specialModules.rootModules, (ref immutable Ptr!Module x) =>
+			documentModule(alloc, allSymbols, allPaths, program, x.deref())))]);
+}
 
 immutable(Repr) documentModule(
 	ref Alloc alloc,
@@ -70,7 +79,7 @@ immutable(Repr) documentModule(
 	ref immutable Module a,
 ) {
 	immutable Path path = fullIndexDictGet(program.filesInfo.filePaths, a.fileIndex).path;
-	immutable string pathStr = pathToStr(alloc, allPaths, safeCStr!"", path, crowExtension);
+	immutable string pathStr = pathToStr(alloc, allPaths, safeCStr!"", path, "");
 	ArrBuilder!Repr exports;
 	dictEach!(Sym, NameReferents, symEq, hashSym)(
 		a.allExportedNames,

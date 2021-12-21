@@ -17,13 +17,13 @@ void testPath(ref Test test) {
 	verify(comparePath(a, a) == Comparison.equal);
 	verify(comparePath(a, b) == Comparison.less);
 
-	verify(strEq(pathToStr(test.alloc, allPaths, safeCStr!"", a, ""), "/a"));
-	verify(strEq(pathToStr(test.alloc, allPaths, safeCStr!"", b, ""), "/b"));
+	verify(strEq(pathToStr(test.alloc, allPaths, safeCStr!"", a, ""), "a"));
+	verify(strEq(pathToStr(test.alloc, allPaths, safeCStr!"root", b, ""), "root/b"));
 
 	immutable Path aX = childPath(allPaths, a, shortSym("x"));
 	verify(childPath(allPaths, a, shortSym("x")) == aX);
 	immutable Path aY = childPath(allPaths, a, shortSym("y"));
 	verify(aX != aY);
-	verify(strEq(pathToStr(test.alloc, allPaths, safeCStr!"", aX, ""), "/a/x"));
-	verify(strEq(pathToStr(test.alloc, allPaths, safeCStr!"", aY, ""), "/a/y"));
+	verify(strEq(pathToStr(test.alloc, allPaths, safeCStr!"", aX, ""), "a/x"));
+	verify(strEq(pathToStr(test.alloc, allPaths, safeCStr!"root", aY, ""), "root/a/y"));
 }

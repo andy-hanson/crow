@@ -1497,7 +1497,7 @@ struct SpecialModules {
 	immutable Ptr!Module bootstrapModule;
 	immutable Ptr!Module runtimeModule;
 	immutable Ptr!Module runtimeMainModule;
-	immutable Ptr!Module mainModule;
+	immutable Ptr!Module[] rootModules;
 }
 
 struct Local {

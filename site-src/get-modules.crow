@@ -8,16 +8,20 @@ import
 		module-export, module-export-value, new, param, spec-decl, type-param, type-ref, record-decl,
 		record-field, sig, spec-builtin, spec-sigs, union-decl, union-member
 
-get-module module(path str) summon
-	result = "bin/crow" spawn-and-wait-result ("doc", path), get-environ
+get-modules module[](paths str[]) summon
+	result = "bin/crow" spawn-and-wait-result (("doc",) ~ paths), get-environ
 	if result.exit-code != 0 || !result.stderr.is-empty
-		"Could not document {path}: exit code {result exit-code}, stderr: {result stderr}" throw
-	result.stdout.parse-json.force to-module
+		"Could not get documentation: exit code {result exit-code}, stderr: {result stderr}" throw
+	result.stdout.parse-json.force to-modules
+
+.to-modules module[](a json)
+	a.get-node-type is "root"
+	a["modules"].force.as-arr.force map x => x to-module
 
 .to-module module(a json)
 	a.get-node-type is "module"
 	exports = a["exports"].force.as-arr.force map x => x to-export
-	exports,
+	a["path"].force.as-str.force, exports
 
 .get-node-type str(a json)
 	a["_type"].force.as-str.force

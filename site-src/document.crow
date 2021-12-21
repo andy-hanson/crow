@@ -3,18 +3,19 @@ import
 	crow/io/path: child-path
 	crow/str-util: join
 	./document-content: module-content
-	./get-module: get-module
+	./get-modules: get-modules
+	./module: path
 	./page-template: page-template
 	./path-and-content: new, path-and-content
 	./search-dir-recursive: remove-include-and-crow, search-dir-recursive
 
 documentation path-and-content[]() summon
-	all-modules = "include" search-dir-recursive (x => x != "private")
-	nav = all-modules map (x => x remove-include-and-crow) generate-nav
-	modules path-and-content[] = all-modules map path =>
-		module = path get-module
-		content = "module {path}" document-template module.module-content, nav
-		out-path = "doc" child-path "{path remove-include-and-crow}.html"
+	all-module-paths = "include" search-dir-recursive (x => x != "private")
+	nav = all-module-paths map (x => x remove-include-and-crow) generate-nav
+	all-modules = all-module-paths get-modules
+	modules path-and-content[] = all-modules map module =>
+		content = "module {module path}" document-template module.module-content, nav
+		out-path = "doc" child-path "{module.path}.html"
 		out-path, content 
 	index path-and-content = "doc/index.html", "documentation" document-template index-content, nav
 	(index,) ~ modules

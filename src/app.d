@@ -26,6 +26,7 @@ import lib.cliParser :
 	matchCommand,
 	parseCommand,
 	ProgramDirAndMain,
+	ProgramDirAndRootPaths,
 	matchRunOptions,
 	RunOptions;
 import lib.compiler :
@@ -45,7 +46,7 @@ import test.test : test;
 import util.alloc.alloc : Alloc, allocateT, freeT, TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.col.arrUtil : prepend, zipImpureSystem;
+import util.col.arrUtil : mapImpure, prepend, zipImpureSystem;
 import util.col.str :
 	catToSafeCStr,
 	copyToSafeCStr,
@@ -150,7 +151,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 		(ref immutable Command.Build it) =>
 			runBuild(alloc, perf, allSymbols, allPaths, cwd, includeDir, tempDir, it.programDirAndMain, it.options),
 		(ref immutable Command.Document it) =>
-			runDocument(alloc, perf, allSymbols, allPaths, cwd, includeDir, it.programDirAndMain),
+			runDocument(alloc, perf, allSymbols, allPaths, cwd, includeDir, it.programDirAndRootPaths),
 		(ref immutable Command.Help it) =>
 			help(it),
 		(ref immutable Command.Print it) {
@@ -169,7 +170,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 				showDiagOptions,
 				it.kind,
 				it.format,
-				getMain(allPaths, includeDir, it.programDirAndMain));
+				getRootPath(allPaths, includeDir, it.programDirAndMain));
 			if (!safeCStrIsEmpty(printed.diagnostics)) printErr(printed.diagnostics);
 			if (!safeCStrIsEmpty(printed.result)) print(printed.result);
 			return safeCStrIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
@@ -184,7 +185,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 			return matchRunOptions!(immutable ExitCode)(
 				run.options,
 				(ref immutable RunOptions.Interpret) {
-					immutable PathAndStorageKind main = getMain(allPaths, includeDir, run.programDirAndMain);
+					immutable PathAndStorageKind main = getRootPath(allPaths, includeDir, run.programDirAndMain);
 					return withRealExtern(alloc, allSymbols, (scope ref Extern extern_) => buildAndInterpret(
 						alloc,
 						dbg,
@@ -198,7 +199,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 						getAllArgs(alloc, allPaths, storage, main, run.programArgs)));
 				},
 				(ref immutable RunOptions.Jit it) {
-					immutable PathAndStorageKind main = getMain(allPaths, includeDir, run.programDirAndMain);
+					immutable PathAndStorageKind main = getRootPath(allPaths, includeDir, run.programDirAndMain);
 					return buildAndJit(
 						alloc,
 						perf,
@@ -300,17 +301,17 @@ immutable(ExitCode) runDocument(
 	ref AllPaths allPaths,
 	immutable SafeCStr cwd,
 	immutable SafeCStr includeDir,
-	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable ProgramDirAndRootPaths programDirAndRootPaths,
 ) {
 	RealReadOnlyStorage storage = RealReadOnlyStorage(
 		ptrTrustMe_mut(allPaths),
 		ptrTrustMe_mut(alloc),
 		cwd,
 		includeDir,
-		programDirAndMain.programDir);
+		programDirAndRootPaths.programDir);
 	immutable DocumentResult result = compileAndDocument(
 		alloc, perf, allSymbols, allPaths, storage, showDiagOptions,
-		getMain(allPaths, includeDir, programDirAndMain));
+		getRootPaths(alloc, allPaths, includeDir, programDirAndRootPaths));
 	return safeCStrIsEmpty(result.diagnostics) ? println(result.document) : printErr(result.diagnostics);
 }
 
@@ -342,7 +343,7 @@ immutable(ExitCode) runBuild(
 			includeDir,
 			programDirAndMain.programDir);
 		return justTypeCheck(
-			alloc, perf, allSymbols, allPaths, storage, getMain(allPaths, includeDir, programDirAndMain));
+			alloc, perf, allSymbols, allPaths, storage, getRootPath(allPaths, includeDir, programDirAndMain));
 	}
 }
 
@@ -418,7 +419,8 @@ immutable(ExitCode) buildToCAndCompile(
 		includeDir,
 		programDirAndMain.programDir);
 	immutable BuildToCResult result = buildToC(
-		alloc, perf, allSymbols, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
+		alloc, perf, allSymbols, allPaths, storage, showDiagOptions,
+		getRootPath(allPaths, includeDir, programDirAndMain));
 	if (safeCStrIsEmpty(result.diagnostics)) {
 		immutable ExitCode res = writeFile(alloc, pathToSafeCStr(alloc, allPaths, cPath), result.cSource);
 		return res == ExitCode.ok && has(exePath)
@@ -454,7 +456,17 @@ immutable(ExitCode) buildAndJit(
 			jitAndRun(alloc, perf, castImmutableRef(allSymbols), programs.lowProgram, jitOptions, programArgs));
 }
 
-immutable(PathAndStorageKind) getMain(
+immutable(PathAndStorageKind[]) getRootPaths(
+	ref Alloc alloc,
+	ref AllPaths allPaths,
+	immutable SafeCStr includeDir,
+	immutable ProgramDirAndRootPaths programDirAndRootPaths,
+) {
+	return mapImpure(alloc, programDirAndRootPaths.rootPaths, (ref immutable Path path) =>
+		getRootPath(allPaths, includeDir, immutable ProgramDirAndMain(programDirAndRootPaths.programDir, path)));
+}
+
+immutable(PathAndStorageKind) getRootPath(
 	ref AllPaths allPaths,
 	immutable SafeCStr includeDir,
 	immutable ProgramDirAndMain programDirAndMain,

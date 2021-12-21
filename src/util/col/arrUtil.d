@@ -37,6 +37,17 @@ import util.util : max, verify;
 		cb(a[i], b[i]);
 }
 
+@trusted immutable(Out[]) mapImpure(Out, In)(
+	ref Alloc alloc,
+	scope immutable In[] a,
+	scope immutable(Out) delegate(ref immutable In) @safe @nogc nothrow cb,
+) {
+	Out* res = allocateT!Out(alloc, a.length);
+	foreach (immutable size_t i, ref immutable In x; a)
+		initMemory(res + i, cb(x));
+	return cast(immutable) res[0 .. a.length];
+}
+
 pure:
 
 immutable(ArrWithSize!T) arrWithSizeLiteral(T)(ref Alloc alloc, scope immutable T[] values) {
@@ -371,7 +382,7 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 
 @trusted immutable(Opt!(Out[])) mapOrNone(Out, In)(
 	ref Alloc alloc,
-	immutable In[] a,
+	scope immutable In[] a,
 	scope immutable(Opt!Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);

@@ -1,4 +1,5 @@
 module record
+	path str
 	exports module-export[]
 
 module-export record

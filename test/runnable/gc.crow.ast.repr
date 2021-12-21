@@ -2,9 +2,9 @@ file-ast(
 	imports: ports(
 		range(0, 206)
 		[
-			import-ast("/crow/io/print", some([print]))
+			import-ast("crow/io/print", some([print]))
 			import-ast(
-				"/crow/private/alloc"
+				"crow/private/alloc"
 				some([
 					cur-word
 					gc-count
@@ -15,7 +15,7 @@ file-ast(
 					set-hard-limit
 					words-free
 					words-used]))
-			import-ast("/crow/ptr", some([-, as-any-const-ptr, by-val, size-of]))])
+			import-ast("crow/ptr", some([-, as-any-const-ptr, by-val, size-of]))])
 	specs: []
 	aliases: []
 	structs: [

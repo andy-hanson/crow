@@ -2,7 +2,8 @@ module util.path;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateBytes;
+import util.alloc.alloc : Alloc, allocateT;
+import util.col.arr : empty;
 import util.col.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
 import util.col.str : copyToSafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
@@ -152,19 +153,19 @@ private immutable(Path) addManyChildren(ref AllPaths allPaths, immutable Path a,
 private void walkPathBackwards(
 	ref const AllPaths allPaths,
 	immutable Path a,
-	scope void delegate(immutable Sym) @safe @nogc pure nothrow cb,
+	scope void delegate(immutable Sym, immutable bool isFirstPart) @safe @nogc pure nothrow cb,
 ) {
-	cb(baseName(allPaths, a));
 	immutable Opt!Path par = parent(allPaths, a);
+	cb(baseName(allPaths, a), !has(par));
 	if (has(par))
 		walkPathBackwards(allPaths, force(par), cb);
 }
 
 private size_t pathToStrSize(ref const AllPaths allPaths, immutable Path path) {
 	size_t sz = 0;
-	walkPathBackwards(allPaths, path, (immutable Sym part) {
+	walkPathBackwards(allPaths, path, (immutable Sym part, immutable bool isFirstPart) {
 		// 1 for '/'
-		sz += 1 + symSize(allPaths.allSymbols.deref(), part);
+		sz += (isFirstPart ? 0 : 1) + symSize(allPaths.allSymbols.deref(), part);
 	});
 	return sz;
 }
@@ -179,12 +180,13 @@ private @trusted immutable(string) pathToStrWorker(
 	immutable bool nulTerminated,
 ) {
 	immutable string root = strOfSafeCStr(rootCStr);
-	immutable size_t sz = root.length * rootMultiple +
+	immutable size_t length = root.length * rootMultiple +
+		(!empty(root) ? 1 : 0) +
 		pathToStrSize(allPaths, path) +
 		extension.length +
 		(nulTerminated ? 1 : 0);
-	char* begin = cast(char*) allocateBytes(alloc, char.sizeof * sz);
-	char* cur = begin + sz;
+	char* begin = allocateT!char(alloc, length);
+	char* cur = begin + length;
 	if (nulTerminated) {
 		cur--;
 		*cur = '\0';
@@ -193,8 +195,8 @@ private @trusted immutable(string) pathToStrWorker(
 		cur--;
 		*cur = c;
 	}
-	verify(cur == begin + root.length * rootMultiple + pathToStrSize(allPaths, path));
-	walkPathBackwards(allPaths, path, (immutable Sym part) @trusted {
+	verify(cur == begin + length - (nulTerminated ? 1 : 0) - extension.length);
+	walkPathBackwards(allPaths, path, (immutable Sym part, immutable bool isFirstPart) @trusted {
 		cur -= symSize(allPaths.allSymbols.deref(), part);
 		char* j = cur;
 		eachCharInSym(allPaths.allSymbols.deref(), part, (immutable char c) @trusted {
@@ -202,18 +204,24 @@ private @trusted immutable(string) pathToStrWorker(
 			j++;
 		});
 		verify(j == cur + symSize(allPaths.allSymbols.deref(), part));
+		if (!isFirstPart) {
+			cur--;
+			*cur = '/';
+		}
+	});
+	if (!empty(root)) {
 		cur--;
 		*cur = '/';
-	});
-	verify(cur == begin + root.length * rootMultiple);
-	foreach (immutable size_t i; 0 .. rootMultiple) {
-		foreach_reverse (immutable char c; root) {
-			cur--;
-			*cur = c;
+		verify(cur == begin + root.length * rootMultiple);
+		foreach (immutable size_t i; 0 .. rootMultiple) {
+			foreach_reverse (immutable char c; root) {
+				cur--;
+				*cur = c;
+			}
 		}
 	}
 	verify(cur == begin);
-	return cast(immutable) begin[0 .. sz];
+	return cast(immutable) begin[0 .. length];
 }
 
 immutable(string) absOrRelPathToStr(

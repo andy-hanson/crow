@@ -27,7 +27,7 @@ import util.util : verify, verifyFail;
 	addToMutDict(test.alloc, files, key, content);
 	const DictReadOnlyStorage storage = const DictReadOnlyStorage(ptrTrustMe_const(files));
 	immutable Program program = withNullPerf!(immutable Program, (scope ref Perf perf) =>
-		frontendCompile(test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, key));
+		frontendCompile(test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, [key]));
 	immutable Ptr!Module mainModule = lastPtr(program.allModules);
 
 	immutable(string) hover(immutable Pos pos) {

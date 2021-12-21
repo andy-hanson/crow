@@ -51,11 +51,11 @@ immutable(Program) frontendCompile(Storage)(
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
 	ref Storage storage,
-	immutable PathAndStorageKind main,
+	scope immutable PathAndStorageKind[] rootPaths,
 ) {
 	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
 	immutable ParsedEverything parsed = withMeasure!(immutable ParsedEverything, () =>
-		parseEverything(modelAlloc, perf, allPaths, allSymbols, diagsBuilder, storage, main, astsAlloc)
+		parseEverything(modelAlloc, perf, allPaths, allSymbols, diagsBuilder, storage, rootPaths, astsAlloc)
 	)(astsAlloc, perf, PerfMeasure.parseEverything);
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		parsed.filePaths,
@@ -146,7 +146,7 @@ T matchParseStatus(T)(
 	}
 }
 
-immutable(FileIndex) asDone(immutable ParseStatus a) {
+pure immutable(FileIndex) asDone(immutable ParseStatus a) {
 	verify(a.kind_ == ParseStatus.Kind.done);
 	return a.done_.fileIndex;
 }
@@ -181,10 +181,10 @@ struct ParsedEverything {
 struct CommonModuleIndices {
 	immutable FileIndex alloc;
 	immutable FileIndex bootstrap;
-	immutable FileIndex main;
+	immutable FileIndex std;
 	immutable FileIndex runtime;
 	immutable FileIndex runtimeMain;
-	immutable FileIndex std;
+	immutable FileIndex[] rootPaths;
 }
 
 struct ParseStackEntry {
@@ -203,7 +203,7 @@ struct ParseStackEntry {
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	ref ReadOnlyStorage storage,
-	immutable PathAndStorageKind mainPath,
+	scope immutable PathAndStorageKind[] rootPaths,
 	ref Alloc astAlloc,
 ) {
 	ArrBuilder!PathAndStorageKind fileIndexToPath;
@@ -292,28 +292,31 @@ struct ParseStackEntry {
 		}
 	}
 
-	scope immutable PathAndStorageKind[6] paths =
-		[bootstrapPath, allocPath, stdPath, runtimePath, runtimeMainPath, mainPath];
-	foreach (immutable PathAndStorageKind path; paths) {
+	void processRootPath(immutable PathAndStorageKind path) {
 		if (!hasKey_mut(statuses, path)) {
 			pushIt(path, none!PathAndRange);
 			process();
 		}
 	}
+	foreach (immutable PathAndStorageKind path; [bootstrapPath, allocPath, stdPath, runtimePath, runtimeMainPath])
+		processRootPath(path);
+	foreach (immutable PathAndStorageKind path; rootPaths)
+		processRootPath(path);
 
 	verify(isEmpty(stack));
 
-	immutable(FileIndex) getIndex(immutable PathAndStorageKind path) {
+	immutable(FileIndex) getIndex(immutable PathAndStorageKind path) pure {
 		return asDone(mustGetAt_mut(statuses, path));
 	}
 
 	immutable CommonModuleIndices commonModuleIndices = immutable CommonModuleIndices(
 		getIndex(allocPath),
 		getIndex(bootstrapPath),
-		getIndex(mainPath),
+		getIndex(stdPath),
 		getIndex(runtimePath),
 		getIndex(runtimeMainPath),
-		getIndex(stdPath));
+		map!(FileIndex, PathAndStorageKind)(modelAlloc, rootPaths, (ref immutable PathAndStorageKind path) =>
+			getIndex(path)));
 
 	return immutable ParsedEverything(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(finishArr(modelAlloc, fileIndexToPath)),
@@ -560,7 +563,8 @@ immutable(Program) checkEverything(
 			bootstrapModule,
 			ptrAt(modules, moduleIndices.runtime.index),
 			ptrAt(modules, moduleIndices.runtimeMain.index),
-			ptrAt(modules, moduleIndices.main.index)),
+			map(modelAlloc, moduleIndices.rootPaths, (ref immutable FileIndex index) =>
+				ptrAt(modules, index.index))),
 		modules,
 		modulesAndCommonTypes.commonTypes,
 		finishDiagnostics(modelAlloc, diagsBuilder, filesInfo.filePaths));

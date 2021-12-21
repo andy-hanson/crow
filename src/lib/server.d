@@ -153,7 +153,7 @@ immutable(string) getHover(
 ) {
 	immutable PathAndStorageKind pk = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
-	immutable Program program = frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, pk);
+	immutable Program program = frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [pk]);
 	return getHoverFromProgram(alloc, server, pk, program, pos);
 }
 
