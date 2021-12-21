@@ -44,13 +44,13 @@ import util.sourceRange : FileIndex, FilePaths, RangeWithinFile;
 import util.sym : AllSymbols, shortSym, Sym;
 import util.util : verify;
 
-immutable(Program) frontendCompile(Storage)(
+immutable(Program) frontendCompile(ReadOnlyStorage)(
 	ref Alloc modelAlloc,
 	ref Perf perf,
 	ref Alloc astsAlloc,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
-	ref Storage storage,
+	ref const ReadOnlyStorage storage,
 	scope immutable PathAndStorageKind[] rootPaths,
 ) {
 	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
@@ -77,7 +77,7 @@ immutable(FileAstAndDiagnostics) parseSingleAst(ReadOnlyStorage)(
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref ReadOnlyStorage storage,
+	ref const ReadOnlyStorage storage,
 	immutable PathAndStorageKind path,
 ) {
 	// In this case model alloc and AST alloc are the same
@@ -202,7 +202,7 @@ struct ParseStackEntry {
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
-	ref ReadOnlyStorage storage,
+	ref const ReadOnlyStorage storage,
 	scope immutable PathAndStorageKind[] rootPaths,
 	ref Alloc astAlloc,
 ) {

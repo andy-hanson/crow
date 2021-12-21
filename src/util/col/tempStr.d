@@ -6,42 +6,51 @@ import util.alloc.alloc : Alloc;
 import util.col.str : copyStr, copyToSafeCStr, eachChar, SafeCStr;
 import util.util : verify;
 
-struct TempStr(size_t capacity) {
+struct TempStr(size_t strCapacity) {
+	@safe @nogc pure nothrow:
+
+	@system inout(char*) ptr() inout {
+		return buffer.ptr;
+	}
+	immutable(size_t) capacity() {
+		return buffer.length;
+	}
+
 	private:
-	char[capacity] buffer = void;
-	size_t size;
+	char[strCapacity] buffer = void;
+	size_t length_;
+}
+
+immutable(size_t) length(size_t capacity)(ref const TempStr!capacity a) {
+	return a.length_;
+}
+
+void setLength(size_t capacity)(ref TempStr!capacity a, immutable size_t newLength) {
+	verify(newLength < capacity);
+	a.length_ = newLength;
+	nulTerminate(a);
 }
 
 immutable(string) copyTempStrToString(size_t capacity)(ref Alloc alloc, ref const TempStr!capacity a) {
 	return copyStr(alloc, tempAsStr(a));
 }
 
+@trusted immutable(SafeCStr) asTempSafeCStr(size_t capacity)(ref const TempStr!capacity a) {
+	return immutable SafeCStr(cast(immutable) a.buffer.ptr);
+}
+
 immutable(SafeCStr) copyTempStrToSafeCStr(size_t capacity)(ref Alloc alloc, ref const TempStr!capacity a) {
-	return copyToSafeCStr(alloc, a.buffer[0 .. a.size]);
+	return copyToSafeCStr(alloc, a.buffer[0 .. a.length]);
 }
 
 @trusted immutable(string) tempAsStr(size_t capacity)(return ref const TempStr!capacity a) {
-	return cast(immutable) a.buffer[0 .. a.size];
-}
-
-@system const(char*) tempStrBegin(size_t capacity)(return ref TempStr!capacity a) {
-	return a.buffer.ptr;
-}
-
-immutable(size_t) tempStrSize(size_t capacity)(ref TempStr!capacity a) {
-	return a.size;
-}
-
-void reduceSize(size_t capacity)(ref TempStr!capacity a, immutable size_t newSize) {
-	verify(newSize < a.size);
-	a.size = newSize;
-	a.buffer[a.size] = 0;
+	return cast(immutable) a.buffer[0 .. a.length];
 }
 
 void pushToTempStr(size_t capacity)(ref TempStr!capacity a, immutable char b) {
-	verify(a.size < a.buffer.length);
-	a.buffer[a.size] = b;
-	a.size++;
+	verify(a.length < a.buffer.length);
+	a.buffer[a.length] = b;
+	a.length_++;
 }
 
 void pushToTempStr(size_t capacity)(ref TempStr!capacity a, immutable SafeCStr b) {
@@ -59,6 +68,6 @@ void pushToTempStr(size_t capacity)(ref TempStr!capacity a, immutable string b) 
 private:
 
 void nulTerminate(size_t capacity)(ref TempStr!capacity a) {
-	verify(a.size < a.buffer.length);
-	a.buffer[a.size] = '\0';
+	verify(a.length < a.buffer.length);
+	a.buffer[a.length] = '\0';
 }

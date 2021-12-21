@@ -197,7 +197,7 @@ immutable(FakeExternResult) run(
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	scope immutable SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
-	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
+	const DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
 	return withFakeExtern(alloc, (scope ref Extern extern_) =>
 		buildAndInterpret(
 			alloc, dbg, perf, server.allSymbols, server.allPaths, storage, extern_, showDiagOptions, main, allArgs));

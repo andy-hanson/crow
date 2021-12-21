@@ -43,7 +43,7 @@ import lib.compiler :
 	justTypeCheck;
 import model.model : AbsolutePathsGetter, getAbsolutePath, hasDiags;
 import test.test : test;
-import util.alloc.alloc : Alloc, allocateT, freeT, TempAlloc;
+import util.alloc.alloc : Alloc, TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : mapImpure, prepend, zipImpureSystem;
@@ -60,8 +60,8 @@ import util.col.str :
 	strOfCStr,
 	strToCStr,
 	strOfSafeCStr;
-import util.col.tempStr : copyTempStrToSafeCStr, pushToTempStr, reduceSize, TempStr, tempStrBegin, tempStrSize;
-import util.conv : bitsOfFloat64, float32OfBits, float64OfBits, safeToSizeT;
+import util.col.tempStr : asTempSafeCStr, copyTempStrToSafeCStr, length, pushToTempStr, setLength, TempStr;
+import util.conv : bitsOfFloat64, float32OfBits, float64OfBits;
 import util.dbg : Debug;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
 import util.path :
@@ -72,11 +72,13 @@ import util.path :
 	PathAndStorageKind,
 	pathParent,
 	pathToSafeCStr,
+	pathToTempStr,
 	removeFirstPathComponentIf,
 	rootPath,
-	StorageKind;
+	StorageKind,
+	TempStrForPath;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : Ptr, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sym : AllSymbols, shortSym, Sym, symAsTempBuffer, writeSym;
 import util.util : castImmutableRef, todo, unreachable, verify;
 import util.writer : finishWriterToSafeCStr, Writer, writeStatic;
@@ -156,8 +158,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 			help(it),
 		(ref immutable Command.Print it) {
 			RealReadOnlyStorage storage = RealReadOnlyStorage(
-				ptrTrustMe_mut(allPaths),
-				ptrTrustMe_mut(alloc),
+				ptrTrustMe_const(allPaths),
 				cwd,
 				includeDir,
 				it.programDirAndMain.programDir);
@@ -177,8 +178,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 		},
 		(ref immutable Command.Run run) {
 			RealReadOnlyStorage storage = RealReadOnlyStorage(
-				ptrTrustMe_mut(allPaths),
-				ptrTrustMe_mut(alloc),
+				ptrTrustMe_const(allPaths),
 				cwd,
 				includeDir,
 				run.programDirAndMain.programDir);
@@ -244,10 +244,10 @@ immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
 	TempStr!0x1000 dirPath;
 	pushToTempStr(dirPath, crowDir);
 	pushToTempStr(dirPath, "/temp");
-	DIR* dir = opendir(tempStrBegin(dirPath));
+	DIR* dir = opendir(asTempSafeCStr(dirPath).ptr);
 	if (dir == null) {
 		if (errno == ENOENT) {
-			immutable int err = mkdir(tempStrBegin(dirPath), S_IRWXU);
+			immutable int err = mkdir(asTempSafeCStr(dirPath).ptr, S_IRWXU);
 			if (err != 0)
 				todo!void("error making temp");
 		} else
@@ -259,11 +259,11 @@ immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
 				break;
 			immutable SafeCStr entryName = immutable SafeCStr(entry.d_name.ptr);
 			if (!safeCStrEq(entryName, ".") && !safeCStrEq(entryName, "..")) {
-				immutable size_t oldSize = tempStrSize(dirPath);
+				immutable size_t oldLength = length(dirPath);
 				pushToTempStr(dirPath, '/');
 				pushToTempStr(dirPath, entryName);
-				immutable int err = unlink(tempStrBegin(dirPath));
-				reduceSize(dirPath, oldSize);
+				immutable int err = unlink(asTempSafeCStr(dirPath).ptr);
+				setLength(dirPath, oldLength);
 				if (err != 0) {
 					todo!void("failed to unlink");
 				}
@@ -304,8 +304,7 @@ immutable(ExitCode) runDocument(
 	ref immutable ProgramDirAndRootPaths programDirAndRootPaths,
 ) {
 	RealReadOnlyStorage storage = RealReadOnlyStorage(
-		ptrTrustMe_mut(allPaths),
-		ptrTrustMe_mut(alloc),
+		ptrTrustMe_const(allPaths),
 		cwd,
 		includeDir,
 		programDirAndRootPaths.programDir);
@@ -337,8 +336,7 @@ immutable(ExitCode) runBuild(
 			programDirAndMain, options, ExeKind.allowNoExe).err;
 	else {
 		RealReadOnlyStorage storage = RealReadOnlyStorage(
-			ptrTrustMe_mut(allPaths),
-			ptrTrustMe_mut(alloc),
+			ptrTrustMe_const(allPaths),
 			cwd,
 			includeDir,
 			programDirAndMain.programDir);
@@ -413,8 +411,7 @@ immutable(ExitCode) buildToCAndCompile(
 	ref immutable CCompileOptions cCompileOptions,
 ) {
 	RealReadOnlyStorage storage = RealReadOnlyStorage(
-		ptrTrustMe_mut(allPaths),
-		ptrTrustMe_mut(alloc),
+		ptrTrustMe_const(allPaths),
 		cwd,
 		includeDir,
 		programDirAndMain.programDir);
@@ -598,7 +595,7 @@ struct RealReadOnlyStorage {
 		immutable PathAndStorageKind pk,
 		immutable string extension,
 		scope immutable(T) delegate(immutable Opt!SafeCStr) @safe @nogc nothrow cb,
-	) {
+	) const {
 		immutable SafeCStr root = () {
 			final switch (pk.storageKind) {
 				case StorageKind.global:
@@ -608,12 +605,11 @@ struct RealReadOnlyStorage {
 			}
 		}();
 		immutable AbsolutePath ap = immutable AbsolutePath(root, pk.path, extension);
-		return tryReadFile(tempAlloc.deref(), allPaths.deref(), ap, cb);
+		return tryReadFile(allPaths.deref(), ap, cb);
 	}
 
 	private:
-	Ptr!AllPaths allPaths;
-	Ptr!Alloc tempAlloc;
+	const Ptr!AllPaths allPaths;
 	immutable SafeCStr cwd;
 	immutable SafeCStr include;
 	immutable SafeCStr user;
@@ -845,23 +841,20 @@ extern(C) {
 //extern void *dlopen (const char *__file, int __mode) __THROWNL;
 
 @trusted immutable(T) tryReadFile(T)(
-	ref TempAlloc tempAlloc,
 	ref const AllPaths allPaths,
 	immutable AbsolutePath path,
 	scope immutable(T) delegate(immutable Opt!SafeCStr) @safe @nogc nothrow cb,
 ) {
-	immutable CStr pathCStr = pathToSafeCStr(tempAlloc, allPaths, path).ptr;
-
-	immutable int fd = open(pathCStr, O_RDONLY);
+	TempStrForPath pathTempStr = pathToTempStr(allPaths, path);
+	immutable int fd = open(asTempSafeCStr(pathTempStr).ptr, O_RDONLY);
 	if (fd == -1) {
 		if (errno == ENOENT) {
 			return cb(none!SafeCStr);
 		} else {
-			fprintf(stderr, "Failed to open file %s\n", pathCStr);
+			fprintf(stderr, "Failed to open file %s\n", asTempSafeCStr(pathTempStr).ptr);
 			return todo!T("fail");
 		}
 	}
-
 	scope(exit) close(fd);
 
 	immutable off_t fileSizeOff = lseek(fd, 0, SEEK_END);
@@ -883,20 +876,18 @@ extern(C) {
 
 	verify(off == 0);
 
-	immutable size_t contentSize = safeToSizeT(fileSize + 1);
-	char* content = allocateT!char(tempAlloc, contentSize); // + 1 for the '\0'
-	scope (exit) freeT!char(tempAlloc, content, contentSize);
-	immutable long nBytesRead = read(fd, content, fileSize);
+	TempStr!0x100000 content;
+	verify(fileSize < content.capacity);
+	immutable long nBytesRead = read(fd, content.ptr, fileSize);
+	if (nBytesRead != fileSize) {
+		if (nBytesRead == -1)
+			return todo!T("read failed");
+		else
+			return todo!T("nBytesRead not right?");
+	}
 
-	if (nBytesRead == -1)
-		return todo!T("read failed");
-
-	if (nBytesRead != fileSize)
-		return todo!T("nBytesRead not right?");
-
-	content[fileSize] = '\0';
-
-	return cb(some(immutable SafeCStr(cast(immutable) content)));
+	setLength(content, nBytesRead);
+	return cb(some(asTempSafeCStr(content)));
 }
 
 @trusted immutable(ExitCode) writeFile(ref TempAlloc tempAlloc, immutable SafeCStr path, immutable SafeCStr content) {

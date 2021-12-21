@@ -3,9 +3,9 @@ module util.path;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateT;
-import util.col.arr : empty;
 import util.col.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
-import util.col.str : copyToSafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
+import util.col.str : copyToSafeCStr, eachChar, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize, strOfSafeCStr;
+import util.col.tempStr : TempStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
@@ -161,32 +161,62 @@ private void walkPathBackwards(
 		walkPathBackwards(allPaths, force(par), cb);
 }
 
-private size_t pathToStrSize(ref const AllPaths allPaths, immutable Path path) {
-	size_t sz = 0;
-	walkPathBackwards(allPaths, path, (immutable Sym part, immutable bool isFirstPart) {
-		// 1 for '/'
-		sz += (isFirstPart ? 0 : 1) + symSize(allPaths.allSymbols.deref(), part);
-	});
-	return sz;
-}
-
-private @trusted immutable(string) pathToStrWorker(
-	ref Alloc alloc,
+private size_t pathToStrLength(
 	ref const AllPaths allPaths,
-	immutable SafeCStr rootCStr,
+	immutable SafeCStr root,
 	immutable uint rootMultiple,
 	immutable Path path,
 	immutable string extension,
 	immutable bool nulTerminated,
 ) {
-	immutable string root = strOfSafeCStr(rootCStr);
-	immutable size_t length = root.length * rootMultiple +
-		(!empty(root) ? 1 : 0) +
-		pathToStrSize(allPaths, path) +
-		extension.length +
-		(nulTerminated ? 1 : 0);
+	size_t res = 0;
+	if (!safeCStrIsEmpty(root))
+		res += safeCStrSize(root) * rootMultiple + 1;
+	walkPathBackwards(allPaths, path, (immutable Sym part, immutable bool isFirstPart) {
+		// 1 for '/'
+		res += (isFirstPart ? 0 : 1) + symSize(allPaths.allSymbols.deref(), part);
+	});
+	res += extension.length;
+	res += nulTerminated ? 1 : 0;
+	return res;
+}
+
+alias TempStrForPath = TempStr!0x1000;
+
+@trusted immutable(TempStrForPath) pathToTempStr(ref const AllPaths allPaths, immutable AbsolutePath path) {
+	TempStrForPath res;
+	immutable size_t length = pathToStrLength(allPaths, path.root, 1, path.path, path.extension, false);
+	verify(length < res.capacity);
+	pathToStrWorker2(allPaths, path.root, 1, path.path, path.extension, false, res.ptr, res.ptr + length);
+	return res;
+}
+
+private @trusted immutable(string) pathToStrWorker(
+	ref Alloc alloc,
+	ref const AllPaths allPaths,
+	immutable SafeCStr root,
+	immutable uint rootMultiple,
+	immutable Path path,
+	immutable string extension,
+	immutable bool nulTerminated,
+) {
+	immutable size_t length = pathToStrLength(allPaths, root, rootMultiple, path, extension, nulTerminated);
 	char* begin = allocateT!char(alloc, length);
-	char* cur = begin + length;
+	pathToStrWorker2(allPaths, root, rootMultiple, path, extension, nulTerminated, begin, begin + length);
+	return cast(immutable) begin[0 .. length];
+}
+
+private @system void pathToStrWorker2(
+	ref const AllPaths allPaths,
+	immutable SafeCStr root,
+	immutable uint rootMultiple,
+	immutable Path path,
+	immutable string extension,
+	immutable bool nulTerminated,
+	char* begin,
+	char* end,
+) {
+	char* cur = end;
 	if (nulTerminated) {
 		cur--;
 		*cur = '\0';
@@ -195,7 +225,7 @@ private @trusted immutable(string) pathToStrWorker(
 		cur--;
 		*cur = c;
 	}
-	verify(cur == begin + length - (nulTerminated ? 1 : 0) - extension.length);
+	verify(cur == end - (nulTerminated ? 1 : 0) - extension.length);
 	walkPathBackwards(allPaths, path, (immutable Sym part, immutable bool isFirstPart) @trusted {
 		cur -= symSize(allPaths.allSymbols.deref(), part);
 		char* j = cur;
@@ -209,19 +239,19 @@ private @trusted immutable(string) pathToStrWorker(
 			*cur = '/';
 		}
 	});
-	if (!empty(root)) {
+	if (!safeCStrIsEmpty(root)) {
 		cur--;
 		*cur = '/';
-		verify(cur == begin + root.length * rootMultiple);
-		foreach (immutable size_t i; 0 .. rootMultiple) {
-			foreach_reverse (immutable char c; root) {
-				cur--;
+		const char* rootEnd = cur;
+		verify(rootEnd == begin + safeCStrSize(root) * rootMultiple);
+		cur = begin;
+		foreach (immutable size_t i; 0 .. rootMultiple)
+			eachChar(root, (immutable char c) @trusted {
 				*cur = c;
-			}
-		}
+				cur++;
+			});
+		verify(cur == rootEnd);
 	}
-	verify(cur == begin);
-	return cast(immutable) begin[0 .. length];
 }
 
 immutable(string) absOrRelPathToStr(
