@@ -94,7 +94,7 @@ import util.col.mutMaxArr :
 	tempAsArr_const,
 	tempAsArr_mut;
 import util.opt : force, has, none, Opt, some;
-import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure, withMeasure;
+import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, symEq;
@@ -159,7 +159,7 @@ immutable(CheckedExpr) checkCall(
 	immutable FileAndRange diagRange =
 		immutable FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName, ctx.allSymbols));
 
-	immutable CheckedExpr res = withMeasure!(immutable CheckedExpr, () {
+	immutable CheckedExpr res = () {
 		if (!has(args) || mutMaxArrSize(candidates) != 1) {
 			if (isEmpty(candidates)) {
 				immutable CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(alloc, ctx, funName);
@@ -176,7 +176,7 @@ immutable(CheckedExpr) checkCall(
 			return bogus(expected, range);
 		} else
 			return checkCallAfterChoosingOverload(alloc, ctx, only_const(candidates), range, force(args), expected);
-	})(alloc, ctx.perf, PerfMeasure.checkCallLastPart);
+	}();
 
 	endMeasure(alloc, ctx.perf, perfMeasurer);
 	return res;
@@ -686,7 +686,6 @@ immutable(Opt!Called) getCalledFromCandidate(
 					? some(immutable Called(
 						instantiateFun(
 							alloc,
-							ctx.perf,
 							programState(ctx),
 							immutable FunDeclAndArgs(f, typeArgs, force(specImpls)))))
 					: none!Called;

@@ -343,7 +343,6 @@ immutable(Expr) makeNone(
 	immutable Type typeArg = only(typeArgs(optStructInst));
 	immutable Ptr!FunInst noneInst = instantiateFun(
 		alloc,
-		ctx.perf,
 		ctx.checkCtx.programState,
 		immutable FunDeclAndArgs(ctx.commonFuns.noneFun, arrLiteral!Type(alloc, [typeArg]), emptyArr!Called));
 	return immutable Expr(
@@ -867,7 +866,6 @@ immutable(CheckedExpr) checkFunPtr(
 
 	immutable Ptr!FunInst funInst = instantiateFun(
 		alloc,
-		ctx.perf,
 		ctx.programState,
 		immutable FunDeclAndArgs(funDecl, emptyArr!Type, emptyArr!Called));
 

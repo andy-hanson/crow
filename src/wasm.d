@@ -14,11 +14,11 @@ import lib.server :
 	StrParseDiagnostic;
 import util.alloc.alloc : Alloc, allocateT;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.col.str : CStr, strToCStr;
+import util.col.str : CStr, SafeCStr, strToCStr;
 import util.dbg : Debug;
-import util.memory : utilMemcpy = memcpy, utilMemmove = memmove, utilMemset = memset;
+import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.path : StorageKind;
-import util.perf : Perf, withNullPerf;
+import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
 import util.ptr : ptrTrustMe_mut;
 import util.repr : Repr, jsonStrOfRepr, nameAndRepr, reprArr, reprNamedRecord, reprStr;
 import util.sourceRange : Pos, reprRangeWithinFile;
@@ -29,7 +29,11 @@ import util.writer : finishWriterToCStr, writeChar, writeNat, writeQuotedStr, Wr
 extern(C) void _start() {}
 
 extern(C) @system pure ubyte* memset(return scope ubyte* dest, immutable int c, immutable size_t n) {
-	return utilMemset(dest, cast(immutable ubyte) c, n);
+	// Can't reuse implementation from util.memory due to
+	// https://github.com/ldc-developers/ldc/issues/3843#issuecomment-999247519
+	foreach (immutable size_t i; 0 .. n)
+		dest[i] = cast(ubyte) c;
+	return dest;
 }
 
 extern(C) @system pure int memcmp(scope const ubyte* s1, scope const ubyte* s2, immutable size_t n) {
@@ -162,12 +166,31 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 		debugStart,
 		debugLength,
 		(scope ref Debug dbg) =>
-			withNullPerf!(immutable FakeExternResult, (scope ref Perf perf) =>
+			withWebPerf!(immutable FakeExternResult)((scope ref Perf perf) =>
 				run(dbg, perf, resultAlloc, *server, path)));
 	return writeRunResult(server.alloc, result);
 }
 
+// Not really pure, but JS doesn't know that
+extern(C) pure immutable(ulong) getTimeNanos();
+extern(C) void perfLog(
+	immutable char* name,
+	immutable ulong count,
+	immutable ulong nanoseconds,
+	immutable ulong bytesAllocated);
+
 private:
+
+immutable(T) withWebPerf(T)(
+	scope immutable(T) delegate(scope ref Perf perf) @safe @nogc nothrow cb,
+) {
+	scope Perf perf = Perf(() => getTimeNanos());
+	immutable T res = cb(perf);
+	eachMeasure(perf, (immutable SafeCStr name, immutable PerfMeasureResult m) {
+		perfLog(name.ptr, m.count, m.nanoseconds, m.bytesAllocated);
+	});
+	return res;
+}
 
 @system immutable(T) withWasmDebug(T)(
 	char* begin,

@@ -103,10 +103,10 @@ import util.writer : finishWriterToSafeCStr, Writer, writeStatic;
 private:
 
 void logPerf(scope ref Perf perf) {
-	eachMeasure(perf, (immutable string name, immutable PerfMeasureResult m) @trusted {
+	eachMeasure(perf, (immutable SafeCStr name, immutable PerfMeasureResult m) @trusted {
 		printf(
-			"%.*s * %d took %llums and %lluMB\n",
-			cast(int) name.length, name.ptr,
+			"%s * %d took %llums and %lluMB\n",
+			name.ptr,
 			m.count,
 			divRound(m.nanoseconds, 1_000_000),
 			divRound(m.bytesAllocated, 1024 * 1024));

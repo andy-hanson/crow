@@ -56,7 +56,7 @@ import util.writer : finishWriter, Writer;
 
 immutable(ConcreteProgram) concretize(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref immutable Program program,
 	immutable Ptr!Module mainModule,

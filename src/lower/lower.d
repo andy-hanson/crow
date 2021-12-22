@@ -140,7 +140,7 @@ import util.sourceRange : FileAndRange;
 import util.sym : shortSym, Sym;
 import util.util : unreachable, verify;
 
-immutable(LowProgram) lower(ref Alloc alloc, ref Perf perf, ref immutable ConcreteProgram a) {
+immutable(LowProgram) lower(ref Alloc alloc, scope ref Perf perf, ref immutable ConcreteProgram a) {
 	return withMeasure!(immutable LowProgram, () =>
 		lowerInner(alloc, a)
 	)(alloc, perf, PerfMeasure.lower);

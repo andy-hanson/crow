@@ -2,6 +2,7 @@ module util.perf;
 
 import util.alloc.alloc : Alloc, curBytes;
 import util.col.arrUtil : sortInPlace;
+import util.col.str : SafeCStr, safeCStr;
 import util.comparison : compareUlong, oppositeComparison;
 import util.util : verify;
 
@@ -130,7 +131,7 @@ private struct PerfResultWithMeasure {
 
 void eachMeasure(
 	scope ref Perf perf,
-	scope void delegate(immutable string, immutable PerfMeasureResult) @safe @nogc nothrow cb,
+	scope void delegate(immutable SafeCStr, immutable PerfMeasureResult) @safe @nogc nothrow cb,
 ) {
 	PerfResultWithMeasure[PerfMeasure.max + 1] results;
 	foreach (immutable uint measure; 0 .. PerfMeasure.max + 1)
@@ -146,13 +147,11 @@ void eachMeasure(
 enum PerfMeasure {
 	cCompile,
 	checkCall,
-	checkCallLastPart,
 	checkEverything,
 	concretize,
 	gccCompile,
 	gccCreateProgram,
 	gccJit,
-	instantiateFun,
 	lower,
 	parseEverything,
 	parseFile,
@@ -172,34 +171,30 @@ pure immutable(PerfMeasureResult) add(immutable PerfMeasureResult a, immutable P
 		a.nanoseconds + b.nanoseconds);
 }
 
-pure immutable(string) perfMeasureName(immutable PerfMeasure a) {
+pure immutable(SafeCStr) perfMeasureName(immutable PerfMeasure a) {
 	final switch (a) {
 		case PerfMeasure.cCompile:
-			return "cCompile";
+			return safeCStr!"cCompile";
 		case PerfMeasure.checkCall:
-			return "checkCall";
-		case PerfMeasure.checkCallLastPart:
-			return "checkCallLastPart";
+			return safeCStr!"checkCall";
 		case PerfMeasure.checkEverything:
-			return "checkEverything";
+			return safeCStr!"checkEverything";
 		case PerfMeasure.concretize:
-			return "concretize";
+			return safeCStr!"concretize";
 		case PerfMeasure.gccCreateProgram:
-			return "gccCreateProgram";
+			return safeCStr!"gccCreateProgram";
 		case PerfMeasure.gccCompile:
-			return "gccCompile";
+			return safeCStr!"gccCompile";
 		case PerfMeasure.gccJit:
-			return "gccJit";
-		case PerfMeasure.instantiateFun:
-			return "instantiateFun";
+			return safeCStr!"gccJit";
 		case PerfMeasure.lower:
-			return "lower";
+			return safeCStr!"lower";
 		case PerfMeasure.parseEverything:
-			return "parseEverything";
+			return safeCStr!"parseEverything";
 		case PerfMeasure.parseFile:
-			return "parseFile";
+			return safeCStr!"parseFile";
 		case PerfMeasure.run:
-			return "run";
+			return safeCStr!"run";
 	}
 }
 

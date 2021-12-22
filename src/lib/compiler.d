@@ -89,7 +89,7 @@ struct ExitCode {
 immutable(ExitCode) buildAndInterpret(
 	ref Alloc alloc,
 	scope ref Debug dbg,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	scope ref const ReadOnlyStorage storage,
@@ -369,7 +369,7 @@ public struct ProgramsAndFilesInfo {
 
 public immutable(ProgramsAndFilesInfo) buildToLowProgram(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	scope ref const ReadOnlyStorage storage,

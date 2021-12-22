@@ -42,8 +42,8 @@ d_flags_common = -betterC -preview=dip25 -preview=dip1000
 dmd_flags_assert= $(d_flags_common) -check=on -boundscheck=on
 ldc_flags_assert = $(d_flags_common) --enable-asserts=true --boundscheck=on
 ldc_flags_no_assert = $(d_flags_common) --enable-asserts=false --boundscheck=off
-ldc_small_flags = -Oz -L=--strip-all
-ldc_fast_flags = -O2 --d-version=TailRecursionAvailable
+ldc_fast_flags = -O2 --d-version=TailRecursionAvailable -L=--strip-all
+ldc_fast_flags_no_tail_call = -O2 -L=--strip-all
 app_link = -L=-ldyncall_s -L=-L./dyncall/dyncall -L=-lgccjit
 
 app_files = src/app.d src/*/*.d src/*/*/*.d
@@ -67,10 +67,10 @@ bin/crow-fast-debug: $(cli_deps)
 	ldc2 -ofbin/crow-fast-debug $(ldc_flags_no_assert) $(ldc_fast_flags) -g $(app_files) $(app_link)
 	rm bin/crow-fast-debug.o
 
-# To debug: Add `-g`, remove $(ldc_small_flags)
+# To debug: Add `-g`, remove $(ldc_fast_flags_no_tail_call)
 # Asserts don't work in WASM due to `undefined symbol: __assert`
 bin/crow.wasm: $(src_deps)
-	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm $(ldc_flags_no_assert) $(ldc_small_flags) -L-allow-undefined $(wasm_files)
+	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm $(ldc_flags_no_assert) $(ldc_fast_flags_no_tail_call) -L-allow-undefined $(wasm_files)
 	rm bin/crow.o
 
 ALL_INCLUDE = include/*.crow include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow

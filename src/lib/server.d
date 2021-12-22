@@ -81,7 +81,7 @@ pure void addOrChangeFile(
 		});
 }
 
-@trusted pure void deleteFile(ref Server server, immutable StorageKind storageKind, immutable string path) {
+@trusted pure void deleteFile(ref Server server, immutable StorageKind storageKind, scope immutable string path) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable(SafeCStr) deleted = mustDelete(server.files, key);
 	freeSafeCStr(server.alloc, deleted);
@@ -90,7 +90,7 @@ pure void addOrChangeFile(
 pure immutable(SafeCStr) getFile(
 	ref Server server,
 	immutable StorageKind storageKind,
-	immutable string path,
+	scope immutable string path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable Opt!(immutable SafeCStr) text = getAt_mut(server.files, key);
@@ -99,10 +99,10 @@ pure immutable(SafeCStr) getFile(
 
 immutable(Token[]) getTokens(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref Server server,
 	immutable StorageKind storageKind,
-	immutable string path,
+	scope immutable string path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable SafeCStr text = mustGetAt_mut(server.files, key);
@@ -119,10 +119,10 @@ struct StrParseDiagnostic {
 
 immutable(StrParseDiagnostic[]) getParseDiagnostics(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref Server server,
 	immutable StorageKind storageKind,
-	immutable string path,
+	scope immutable string path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable SafeCStr text = mustGetAt_mut(server.files, key);
@@ -145,11 +145,11 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 
 immutable(string) getHover(
 	scope ref Debug dbg,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	immutable StorageKind storageKind,
-	immutable string path,
+	scope immutable string path,
 	immutable Pos pos,
 ) {
 	immutable PathAndStorageKind pk = immutable PathAndStorageKind(toPath(server, path), storageKind);
@@ -191,10 +191,10 @@ private pure immutable(Opt!FileIndex) getFileIndex(
 
 immutable(FakeExternResult) run(
 	scope ref Debug dbg,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
-	immutable string mainPathStr,
+	scope immutable string mainPathStr,
 ) {
 	immutable PathAndStorageKind main = immutable PathAndStorageKind(toPath(server, mainPathStr), StorageKind.local);
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.

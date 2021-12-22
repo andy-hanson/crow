@@ -154,13 +154,20 @@ class Compiler {
 	static async makeFromBytes(bytes) {
 		const result = await WebAssembly.instantiate(bytes, {
 			env: {
+				getTimeNanos: () =>
+					BigInt(Math.round(performance.now() * 1_000_000)),
+				perfLog: (namePtr, count, nanoseconds, bytesAllocated) => {
+					const name = res._readCStr(namePtr)
+					console.log(`${name} x ${count} took ${nanoseconds / 1_000_000n}ms and ${bytesAllocated} bytes`)
+				},
 				verifyFail: () => {
 					throw new Error("Called jsFail!")
 				},
 			}
 		})
 		const { exports } = result.instance
-		return new Compiler(/** @type {Exports} */ (exports))
+		const res = new Compiler(/** @type {Exports} */ (exports))
+		return res
 	}
 
 	/**

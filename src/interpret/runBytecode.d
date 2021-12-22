@@ -57,7 +57,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writeStatic;
 
 @trusted immutable(int) runBytecode(
 	scope ref Debug dbg,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref TempAlloc tempAlloc,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
