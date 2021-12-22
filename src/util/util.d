@@ -47,8 +47,16 @@ immutable(T) divRoundUp(T)(immutable T a, immutable T b) {
 void verify(immutable bool condition) {
 	version(assert) {
 		if (!condition)
-			assert(0);
+			verifyFail();
 	}
+	version(WebAssembly) {
+		if (!condition)
+			verifyFail();
+	}
+}
+
+version(WebAssembly) {
+	extern(C) void verifyFail();
 }
 
 void verifyEq(T)(immutable T a, immutable T b) {
@@ -63,8 +71,13 @@ void verifyEq(T)(immutable T a, immutable T b) {
 	verify(a == b);
 }
 
-void verifyFail() {
-	assert(0);
+version(WebAssembly) {
+	extern(C) void verifyFail();
+}
+else {
+	void verifyFail() {
+		assert(0);
+	}
 }
 
 T unreachable(T)() {

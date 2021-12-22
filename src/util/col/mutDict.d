@@ -309,9 +309,10 @@ immutable(bool) shouldExpand(K, V, alias equal, alias hash)(ref const MutDict!(K
 
 @trusted void doExpand(K, V, alias equal, alias hash)(ref Alloc alloc, scope ref MutDict!(K, V, equal, hash) a) {
 	immutable size_t newSize = a.pairs.length < 2 ? 2 : a.pairs.length * 2;
-	// Make a bigger one
 	Opt!(KeyValuePair!(K, V))* newPairs = allocateT!(Opt!(KeyValuePair!(K, V)))(alloc, newSize);
 	MutDict!(K, V, equal, hash) bigger = MutDict!(K, V, equal, hash)(0, newPairs[0 .. newSize]);
+	foreach (ref Opt!(KeyValuePair!(K, V)) pair; bigger.pairs)
+		initMemory(&pair, none!(KeyValuePair!(K, V)));
 	foreach (ref Opt!(KeyValuePair!(K, V)) pair; a.pairs) {
 		if (has(pair))
 			setInDict!(K, V, equal, hash)(alloc, bigger, force(pair).key, force(pair).value);

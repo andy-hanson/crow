@@ -152,7 +152,13 @@ class Compiler {
 	@return {Promise<Compiler>}
 	*/
 	static async makeFromBytes(bytes) {
-		const result = await WebAssembly.instantiate(bytes, {})
+		const result = await WebAssembly.instantiate(bytes, {
+			env: {
+				verifyFail: () => {
+					throw new Error("Called jsFail!")
+				},
+			}
+		})
 		const { exports } = result.instance
 		return new Compiler(/** @type {Exports} */ (exports))
 	}

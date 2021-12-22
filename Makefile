@@ -67,10 +67,10 @@ bin/crow-fast-debug: $(cli_deps)
 	ldc2 -ofbin/crow-fast-debug $(ldc_flags_no_assert) $(ldc_fast_flags) -g $(app_files) $(app_link)
 	rm bin/crow-fast-debug.o
 
-# To debug: Add `--d-debug -g`, remove $(ldc_small_flags)
+# To debug: Add `-g`, remove $(ldc_small_flags)
 # Asserts don't work in WASM due to `undefined symbol: __assert`
 bin/crow.wasm: $(src_deps)
-	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm $(ldc_flags_no_assert) $(ldc_small_flags) $(wasm_files)
+	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm $(ldc_flags_no_assert) $(ldc_small_flags) -L-allow-undefined $(wasm_files)
 	rm bin/crow.o
 
 ALL_INCLUDE = include/*.crow include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
