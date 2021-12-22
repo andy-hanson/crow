@@ -289,10 +289,10 @@ immutable(string) pathToStr(
 
 @trusted immutable(SafeCStr) pathToSafeCStr(
 	ref Alloc alloc,
-	ref const AllPaths allPaths,
-	immutable SafeCStr root,
+	scope ref const AllPaths allPaths,
+	scope immutable SafeCStr root,
 	immutable Path path,
-	immutable string extension,
+	scope immutable string extension,
 ) {
 	return immutable SafeCStr(pathToStrWorker(alloc, allPaths, root, 1, path, extension, true).ptr);
 }
@@ -307,8 +307,8 @@ immutable(string) pathToStr(
 
 immutable(SafeCStr) pathToSafeCStr(
 	ref Alloc alloc,
-	ref const AllPaths allPaths,
-	ref immutable AbsolutePath path,
+	scope ref const AllPaths allPaths,
+	scope ref immutable AbsolutePath path,
 ) {
 	return pathToSafeCStr(alloc, allPaths, path.root, path.path, path.extension);
 }

@@ -78,7 +78,8 @@ import util.path :
 	StorageKind,
 	TempStrForPath;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
-import util.ptr : Ptr, ptrTrustMe_const, ptrTrustMe_mut;
+import util.ptr : Ptr, ptrTrustMe_mut;
+import util.readOnlyStorage : ReadOnlyStorage;
 import util.sym : AllSymbols, shortSym, Sym, symAsTempBuffer, writeSym;
 import util.util : castImmutableRef, todo, unreachable, verify;
 import util.writer : finishWriterToSafeCStr, Writer, writeStatic;
@@ -156,62 +157,65 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 			runDocument(alloc, perf, allSymbols, allPaths, cwd, includeDir, it.programDirAndRootPaths),
 		(ref immutable Command.Help it) =>
 			help(it),
-		(ref immutable Command.Print it) {
-			RealReadOnlyStorage storage = RealReadOnlyStorage(
-				ptrTrustMe_const(allPaths),
-				cwd,
-				includeDir,
-				it.programDirAndMain.programDir);
-			immutable DiagsAndResultStrs printed = print(
-				alloc,
-				perf,
-				allSymbols,
+		(ref immutable Command.Print it) =>
+			withReadOnlyStorage!(immutable ExitCode)(
 				allPaths,
-				storage,
-				showDiagOptions,
-				it.kind,
-				it.format,
-				getRootPath(allPaths, includeDir, it.programDirAndMain));
-			if (!safeCStrIsEmpty(printed.diagnostics)) printErr(printed.diagnostics);
-			if (!safeCStrIsEmpty(printed.result)) print(printed.result);
-			return safeCStrIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
-		},
-		(ref immutable Command.Run run) {
-			RealReadOnlyStorage storage = RealReadOnlyStorage(
-				ptrTrustMe_const(allPaths),
 				cwd,
 				includeDir,
-				run.programDirAndMain.programDir);
-			return matchRunOptions!(immutable ExitCode)(
-				run.options,
-				(ref immutable RunOptions.Interpret) {
-					immutable PathAndStorageKind main = getRootPath(allPaths, includeDir, run.programDirAndMain);
-					return withRealExtern(alloc, allSymbols, (scope ref Extern extern_) => buildAndInterpret(
-						alloc,
-						dbg,
-						perf,
-						allSymbols,
-						allPaths,
-						storage,
-						extern_,
-						showDiagOptions,
-						main,
-						getAllArgs(alloc, allPaths, storage, main, run.programArgs)));
-				},
-				(ref immutable RunOptions.Jit it) {
-					immutable PathAndStorageKind main = getRootPath(allPaths, includeDir, run.programDirAndMain);
-					return buildAndJit(
+				it.programDirAndMain.programDir,
+				(scope ref immutable ReadOnlyStorage storage) {
+					immutable DiagsAndResultStrs printed = print(
 						alloc,
 						perf,
 						allSymbols,
 						allPaths,
-						it.options,
-						showDiagOptions,
 						storage,
-						main,
-						getAllArgs(alloc, allPaths, storage, main, run.programArgs));
-				});
-		},
+						showDiagOptions,
+						it.kind,
+						it.format,
+						getRootPath(allPaths, includeDir, it.programDirAndMain));
+					if (!safeCStrIsEmpty(printed.diagnostics)) printErr(printed.diagnostics);
+					if (!safeCStrIsEmpty(printed.result)) print(printed.result);
+					return safeCStrIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
+			}),
+		(ref immutable Command.Run run) =>
+			withReadOnlyStorage(
+				allPaths,
+				cwd,
+				includeDir,
+				run.programDirAndMain.programDir,
+				(scope ref immutable ReadOnlyStorage storage) =>
+					matchRunOptions!(immutable ExitCode)(
+						run.options,
+						(ref immutable RunOptions.Interpret) {
+							immutable PathAndStorageKind main =
+								getRootPath(allPaths, includeDir, run.programDirAndMain);
+							return withRealExtern(alloc, allSymbols, (scope ref Extern extern_) => buildAndInterpret(
+								alloc,
+								dbg,
+								perf,
+								allSymbols,
+								allPaths,
+								storage,
+								extern_,
+								showDiagOptions,
+								main,
+								getAllArgs(alloc, allPaths, storage, main, run.programArgs)));
+						},
+						(ref immutable RunOptions.Jit it) {
+							immutable PathAndStorageKind main =
+								getRootPath(allPaths, includeDir, run.programDirAndMain);
+							return buildAndJit(
+								alloc,
+								perf,
+								allSymbols,
+								allPaths,
+								it.options,
+								showDiagOptions,
+								storage,
+								main,
+								getAllArgs(alloc, allPaths, storage, main, run.programArgs));
+						})),
 		(ref immutable Command.Test it) =>
 			test(dbg, alloc, it.name));
 }
@@ -219,21 +223,12 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 immutable(SafeCStr[]) getAllArgs(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	ref RealReadOnlyStorage storage,
+	scope ref immutable ReadOnlyStorage storage,
 	immutable PathAndStorageKind main,
 	immutable SafeCStr[] programArgs,
 ) {
-	immutable AbsolutePath mainAbsolutePath = getAbsolutePathFromStorage(storage, main, crowExtension);
+	scope immutable AbsolutePath mainAbsolutePath = getAbsolutePath(storage.absolutePathsGetter, main, crowExtension);
 	return prepend(alloc, pathToSafeCStr(alloc, allPaths, mainAbsolutePath), programArgs);
-}
-
-immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
-	ref Storage storage,
-	immutable PathAndStorageKind path,
-	immutable string extension,
-) {
-	immutable AbsolutePathsGetter abs = storage.absolutePathsGetter();
-	return getAbsolutePath(abs, path, extension);
 }
 
 @trusted immutable(SafeCStr) setupTempDir(
@@ -303,15 +298,17 @@ immutable(ExitCode) runDocument(
 	immutable SafeCStr includeDir,
 	ref immutable ProgramDirAndRootPaths programDirAndRootPaths,
 ) {
-	RealReadOnlyStorage storage = RealReadOnlyStorage(
-		ptrTrustMe_const(allPaths),
+	return withReadOnlyStorage!(immutable ExitCode)(
+		allPaths,
 		cwd,
 		includeDir,
-		programDirAndRootPaths.programDir);
-	immutable DocumentResult result = compileAndDocument(
-		alloc, perf, allSymbols, allPaths, storage, showDiagOptions,
-		getRootPaths(alloc, allPaths, includeDir, programDirAndRootPaths));
-	return safeCStrIsEmpty(result.diagnostics) ? println(result.document) : printErr(result.diagnostics);
+		programDirAndRootPaths.programDir,
+		(scope ref immutable ReadOnlyStorage storage) {
+			immutable DocumentResult result = compileAndDocument(
+				alloc, perf, allSymbols, allPaths, storage, showDiagOptions,
+				getRootPaths(alloc, allPaths, includeDir, programDirAndRootPaths));
+			return safeCStrIsEmpty(result.diagnostics) ? println(result.document) : printErr(result.diagnostics);
+		});
 }
 
 struct RunBuildResult {
@@ -330,19 +327,18 @@ immutable(ExitCode) runBuild(
 	ref immutable ProgramDirAndMain programDirAndMain,
 	ref immutable BuildOptions options,
 ) {
-	if (hasAnyOut(options.out_))
-		return runBuildInner(
+	return hasAnyOut(options.out_)
+		? runBuildInner(
 			alloc, perf, allSymbols, allPaths, cwd, includeDir, tempDir,
-			programDirAndMain, options, ExeKind.allowNoExe).err;
-	else {
-		RealReadOnlyStorage storage = RealReadOnlyStorage(
-			ptrTrustMe_const(allPaths),
+			programDirAndMain, options, ExeKind.allowNoExe).err
+		: withReadOnlyStorage!(immutable ExitCode)(
+			allPaths,
 			cwd,
 			includeDir,
-			programDirAndMain.programDir);
-		return justTypeCheck(
-			alloc, perf, allSymbols, allPaths, storage, getRootPath(allPaths, includeDir, programDirAndMain));
-	}
+			programDirAndMain.programDir,
+			(scope ref immutable ReadOnlyStorage storage) =>
+				justTypeCheck(
+					alloc, perf, allSymbols, allPaths, storage, getRootPath(allPaths, includeDir, programDirAndMain)));
 }
 
 enum ExeKind { ensureExe, allowNoExe }
@@ -410,23 +406,25 @@ immutable(ExitCode) buildToCAndCompile(
 	immutable Opt!AbsolutePath exePath,
 	ref immutable CCompileOptions cCompileOptions,
 ) {
-	RealReadOnlyStorage storage = RealReadOnlyStorage(
-		ptrTrustMe_const(allPaths),
+	return withReadOnlyStorage!(immutable ExitCode)(
+		allPaths,
 		cwd,
 		includeDir,
-		programDirAndMain.programDir);
-	immutable BuildToCResult result = buildToC(
-		alloc, perf, allSymbols, allPaths, storage, showDiagOptions,
-		getRootPath(allPaths, includeDir, programDirAndMain));
-	if (safeCStrIsEmpty(result.diagnostics)) {
-		immutable ExitCode res = writeFile(alloc, pathToSafeCStr(alloc, allPaths, cPath), result.cSource);
-		return res == ExitCode.ok && has(exePath)
-			? compileC(
-				alloc, perf, allSymbols, allPaths,
-				cPath, force(exePath), result.allExternLibraryNames, cCompileOptions)
-			: res;
-	} else
-		return printErr(result.diagnostics);
+		programDirAndMain.programDir,
+		(scope ref immutable ReadOnlyStorage storage) {
+			immutable BuildToCResult result = buildToC(
+				alloc, perf, allSymbols, allPaths, storage, showDiagOptions,
+				getRootPath(allPaths, includeDir, programDirAndMain));
+			if (safeCStrIsEmpty(result.diagnostics)) {
+				immutable ExitCode res = writeFile(alloc, pathToSafeCStr(alloc, allPaths, cPath), result.cSource);
+				return res == ExitCode.ok && has(exePath)
+					? compileC(
+						alloc, perf, allSymbols, allPaths,
+						cPath, force(exePath), result.allExternLibraryNames, cCompileOptions)
+					: res;
+			} else
+				return printErr(result.diagnostics);
+		});
 }
 
 immutable(ExitCode) buildAndJit(
@@ -436,7 +434,7 @@ immutable(ExitCode) buildAndJit(
 	ref AllPaths allPaths,
 	ref immutable JitOptions jitOptions,
 	ref immutable ShowDiagOptions showDiagOptions,
-	ref RealReadOnlyStorage storage,
+	scope ref immutable ReadOnlyStorage storage,
 	immutable PathAndStorageKind main,
 	immutable SafeCStr[] programArgs,
 ) {
@@ -584,35 +582,31 @@ immutable(SafeCStr[]) cCompileArgs(
 	return ExitCode.error;
 }
 
-struct RealReadOnlyStorage {
-	@safe @nogc nothrow: // not pure
-
-	immutable(AbsolutePathsGetter) absolutePathsGetter() const {
-		return immutable AbsolutePathsGetter(cwd, include, user);
-	}
-
-	immutable(T) withFile(T)(
-		immutable PathAndStorageKind pk,
-		immutable string extension,
-		scope immutable(T) delegate(immutable Opt!SafeCStr) @safe @nogc nothrow cb,
-	) const {
-		immutable SafeCStr root = () {
-			final switch (pk.storageKind) {
-				case StorageKind.global:
-					return include;
-				case StorageKind.local:
-					return user;
-			}
-		}();
-		immutable AbsolutePath ap = immutable AbsolutePath(root, pk.path, extension);
-		return tryReadFile(allPaths.deref(), ap, cb);
-	}
-
-	private:
-	const Ptr!AllPaths allPaths;
-	immutable SafeCStr cwd;
-	immutable SafeCStr include;
-	immutable SafeCStr user;
+immutable(T) withReadOnlyStorage(T)(
+	scope ref const AllPaths allPaths,
+	immutable SafeCStr cwd,
+	immutable SafeCStr include,
+	immutable SafeCStr user,
+	immutable(T) delegate(scope ref immutable ReadOnlyStorage) @safe @nogc nothrow cb,
+) {
+	scope immutable ReadOnlyStorage storage = immutable ReadOnlyStorage(
+		immutable AbsolutePathsGetter(cwd, include, user),
+		(
+			immutable PathAndStorageKind pk,
+			immutable string extension,
+			void delegate(immutable Opt!SafeCStr) @safe @nogc pure nothrow cb,
+		) {
+			immutable SafeCStr root = () {
+				final switch (pk.storageKind) {
+					case StorageKind.global:
+						return include;
+					case StorageKind.local:
+						return user;
+				}
+			}();
+			return tryReadFile(allPaths, immutable AbsolutePath(root, pk.path, extension), cb);
+		});
+	return cb(storage);
 }
 
 immutable(ExitCode) withRealExtern(
@@ -840,10 +834,10 @@ extern(C) {
 
 //extern void *dlopen (const char *__file, int __mode) __THROWNL;
 
-@trusted immutable(T) tryReadFile(T)(
-	ref const AllPaths allPaths,
+@trusted void tryReadFile(
+	scope ref const AllPaths allPaths,
 	immutable AbsolutePath path,
-	scope immutable(T) delegate(immutable Opt!SafeCStr) @safe @nogc nothrow cb,
+	scope void delegate(immutable Opt!SafeCStr) @safe @nogc pure nothrow cb,
 ) {
 	TempStrForPath pathTempStr = pathToTempStr(allPaths, path);
 	immutable int fd = open(asTempSafeCStr(pathTempStr).ptr, O_RDONLY);
@@ -852,17 +846,17 @@ extern(C) {
 			return cb(none!SafeCStr);
 		} else {
 			fprintf(stderr, "Failed to open file %s\n", asTempSafeCStr(pathTempStr).ptr);
-			return todo!T("fail");
+			todo!void("fail");
 		}
 	}
 	scope(exit) close(fd);
 
 	immutable off_t fileSizeOff = lseek(fd, 0, SEEK_END);
 	if (fileSizeOff < 0)
-		return todo!T("lseek fialed");
+		todo!void("lseek failed");
 
 	if (fileSizeOff > 99_999)
-		return todo!T("size suspiciously large");
+		todo!void("size suspiciously large");
 
 	immutable uint fileSize = cast(uint) fileSizeOff;
 
@@ -872,7 +866,7 @@ extern(C) {
 	// Go back to the beginning so we can read
 	immutable off_t off = lseek(fd, 0, SEEK_SET);
 	if (off == -1)
-		return todo!T("lseek failed");
+		todo!void("lseek failed");
 
 	verify(off == 0);
 
@@ -881,9 +875,9 @@ extern(C) {
 	immutable long nBytesRead = read(fd, content.ptr, fileSize);
 	if (nBytesRead != fileSize) {
 		if (nBytesRead == -1)
-			return todo!T("read failed");
+			todo!void("read failed");
 		else
-			return todo!T("nBytesRead not right?");
+			todo!void("nBytesRead not right?");
 	}
 
 	setLength(content, nBytesRead);

@@ -29,6 +29,7 @@ import util.opt : force, none, Opt, some;
 import util.path : AllPaths, PathAndStorageKind;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe_mut;
+import util.readOnlyStorage : ReadOnlyStorage;
 import util.repr : Repr, writeRepr, writeReprJSON;
 import util.sym : AllSymbols, Sym;
 import util.util : castImmutableRef;
@@ -52,12 +53,12 @@ struct DiagsAndResultStrs {
 	immutable SafeCStr result;
 }
 
-immutable(DiagsAndResultStrs) print(ReadOnlyStorage)(
+immutable(DiagsAndResultStrs) print(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref const ReadOnlyStorage storage,
+	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PrintKind kind,
 	immutable PrintFormat format,
@@ -85,13 +86,13 @@ struct ExitCode {
 	static immutable(ExitCode) error() { return immutable ExitCode(1); }
 }
 
-immutable(ExitCode) buildAndInterpret(ReadOnlyStorage)(
+immutable(ExitCode) buildAndInterpret(
 	ref Alloc alloc,
 	scope ref Debug dbg,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref const ReadOnlyStorage storage,
+	scope ref const ReadOnlyStorage storage,
 	scope ref Extern extern_,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
@@ -141,12 +142,12 @@ private:
 	extern_.write(stderr, s.ptr, safeCStrSize(s));
 }
 
-immutable(DiagsAndResultStrs) printTokens(ReadOnlyStorage)(
+immutable(DiagsAndResultStrs) printTokens(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref const ReadOnlyStorage storage,
+	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
 	immutable PrintFormat format,
@@ -158,12 +159,12 @@ immutable(DiagsAndResultStrs) printTokens(ReadOnlyStorage)(
 		showRepr(alloc, allSymbols, reprTokens(alloc, tokens), format));
 }
 
-immutable(DiagsAndResultStrs) printAst(ReadOnlyStorage)(
+immutable(DiagsAndResultStrs) printAst(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref const ReadOnlyStorage storage,
+	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
 	immutable PrintFormat format,
@@ -174,12 +175,12 @@ immutable(DiagsAndResultStrs) printAst(ReadOnlyStorage)(
 		showAst(alloc, allSymbols, allPaths, astResult.ast, format));
 }
 
-immutable(DiagsAndResultStrs) printModel(ReadOnlyStorage)(
+immutable(DiagsAndResultStrs) printModel(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref const ReadOnlyStorage storage,
+	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
 	immutable PrintFormat format,
@@ -194,12 +195,12 @@ immutable(DiagsAndResultStrs) printModel(ReadOnlyStorage)(
 			safeCStr!"");
 }
 
-immutable(DiagsAndResultStrs) printConcreteModel(ReadOnlyStorage)(
+immutable(DiagsAndResultStrs) printConcreteModel(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref const ReadOnlyStorage storage,
+	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
 	immutable PrintFormat format,
@@ -217,12 +218,12 @@ immutable(DiagsAndResultStrs) printConcreteModel(ReadOnlyStorage)(
 			safeCStr!"");
 }
 
-immutable(DiagsAndResultStrs) printLowModel(ReadOnlyStorage)(
+immutable(DiagsAndResultStrs) printLowModel(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref const ReadOnlyStorage storage,
+	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
 	immutable PrintFormat format,
@@ -280,12 +281,12 @@ immutable(SafeCStr) showLowProgram(
 	return showRepr(alloc, allSymbols, reprOfLowProgram(alloc, a), format);
 }
 
-public immutable(ExitCode) justTypeCheck(ReadOnlyStorage)(
+public immutable(ExitCode) justTypeCheck(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref const ReadOnlyStorage storage,
+	scope ref immutable ReadOnlyStorage storage,
 	immutable PathAndStorageKind main,
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
@@ -298,12 +299,12 @@ public struct BuildToCResult {
 	immutable Sym[] allExternLibraryNames;
 }
 
-public immutable(BuildToCResult) buildToC(ReadOnlyStorage)(
+public immutable(BuildToCResult) buildToC(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref const ReadOnlyStorage storage,
+	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
 ) {
@@ -330,12 +331,12 @@ public struct DocumentResult {
 	immutable SafeCStr diagnostics;
 }
 
-public immutable(DocumentResult) compileAndDocument(ReadOnlyStorage)(
+public immutable(DocumentResult) compileAndDocument(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref const ReadOnlyStorage storage,
+	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind[] rootPaths,
 ) {
@@ -366,12 +367,12 @@ public struct ProgramsAndFilesInfo {
 	}
 }
 
-public immutable(ProgramsAndFilesInfo) buildToLowProgram(ReadOnlyStorage)(
+public immutable(ProgramsAndFilesInfo) buildToLowProgram(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref const ReadOnlyStorage storage,
+	scope ref const ReadOnlyStorage storage,
 	immutable PathAndStorageKind main,
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);

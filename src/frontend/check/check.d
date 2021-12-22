@@ -209,7 +209,7 @@ struct BootstrapCheck {
 
 immutable(BootstrapCheck) checkBootstrap(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
@@ -233,7 +233,7 @@ immutable(BootstrapCheck) checkBootstrap(
 
 immutable(Module) check(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
@@ -2090,7 +2090,7 @@ immutable(SymDict!NameReferents) getAllExportedNames(
 
 immutable(BootstrapCheck) checkWorker(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,

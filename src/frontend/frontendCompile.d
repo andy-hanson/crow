@@ -3,7 +3,14 @@ module frontend.frontendCompile;
 @safe @nogc nothrow: // not pure
 
 import model.diag : Diag, Diagnostics, DiagnosticWithinFile, FilesInfo;
-import model.model : CommonTypes, LineAndColumnGetters, Module, ModuleAndNames, Program, SpecialModules;
+import model.model :
+	CommonTypes,
+	copyAbsolutePathsGetter,
+	LineAndColumnGetters,
+	Module,
+	ModuleAndNames,
+	Program,
+	SpecialModules;
 import model.parseDiag : ParseDiag;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, PathAndAst;
 import frontend.check.inferringType : CommonFuns;
@@ -40,17 +47,18 @@ import util.path :
 	StorageKind;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr;
+import util.readOnlyStorage : ReadOnlyStorage, withFile;
 import util.sourceRange : FileIndex, FilePaths, RangeWithinFile;
 import util.sym : AllSymbols, shortSym, Sym;
 import util.util : verify;
 
-immutable(Program) frontendCompile(ReadOnlyStorage)(
+immutable(Program) frontendCompile(
 	ref Alloc modelAlloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref Alloc astsAlloc,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
-	ref const ReadOnlyStorage storage,
+	scope ref const ReadOnlyStorage storage,
 	scope immutable PathAndStorageKind[] rootPaths,
 ) {
 	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
@@ -59,7 +67,7 @@ immutable(Program) frontendCompile(ReadOnlyStorage)(
 	)(astsAlloc, perf, PerfMeasure.parseEverything);
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		parsed.filePaths,
-		storage.absolutePathsGetter(),
+		copyAbsolutePathsGetter(modelAlloc, storage.absolutePathsGetter),
 		parsed.lineAndColumnGetters);
 	return withMeasure!(immutable Program, () =>
 		checkEverything(modelAlloc, perf, allSymbols, diagsBuilder, parsed.asts, filesInfo, parsed.commonModuleIndices)
@@ -72,41 +80,38 @@ struct FileAstAndDiagnostics {
 	immutable Diagnostics diagnostics;
 }
 
-immutable(FileAstAndDiagnostics) parseSingleAst(ReadOnlyStorage)(
+immutable(FileAstAndDiagnostics) parseSingleAst(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref const ReadOnlyStorage storage,
+	scope ref const ReadOnlyStorage storage,
 	immutable PathAndStorageKind path,
 ) {
 	// In this case model alloc and AST alloc are the same
-	return storage.withFile!(immutable FileAstAndDiagnostics)(
-		path,
-		crowExtension,
-		(immutable Opt!SafeCStr opFileContent) {
-			ArrBuilder!DiagnosticWithinFile diags;
-			immutable LineAndColumnGetters lc =
-				fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
-					arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForOptText(alloc, opFileContent)]));
-			immutable FilePaths filePaths = fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
-				arrLiteral!PathAndStorageKind(alloc, [path]));
-			immutable FileAst ast = parseSingle(
-				alloc,
-				alloc,
-				perf,
-				allPaths,
-				allSymbols,
-				diags,
-				none!PathAndRange,
-				opFileContent);
-			DiagnosticsBuilder diagsBuilder;
-			addDiagnosticsForFile(alloc, diagsBuilder, immutable FileIndex(0), diags);
-			return immutable FileAstAndDiagnostics(
-				ast,
-				immutable FilesInfo(filePaths, storage.absolutePathsGetter(), lc),
-				finishDiagnostics(alloc, diagsBuilder, filePaths));
-		});
+	return withFile(storage, path, crowExtension, (immutable Opt!SafeCStr opFileContent) {
+		ArrBuilder!DiagnosticWithinFile diags;
+		immutable LineAndColumnGetters lc =
+			fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
+				arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForOptText(alloc, opFileContent)]));
+		immutable FilePaths filePaths = fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
+			arrLiteral!PathAndStorageKind(alloc, [path]));
+		immutable FileAst ast = parseSingle(
+			alloc,
+			alloc,
+			perf,
+			allPaths,
+			allSymbols,
+			diags,
+			none!PathAndRange,
+			opFileContent);
+		DiagnosticsBuilder diagsBuilder;
+		addDiagnosticsForFile(alloc, diagsBuilder, immutable FileIndex(0), diags);
+		return immutable FileAstAndDiagnostics(
+			ast,
+			immutable FilesInfo(filePaths, storage.absolutePathsGetter, lc),
+			finishDiagnostics(alloc, diagsBuilder, filePaths));
+	});
 }
 
 private:
@@ -196,13 +201,13 @@ struct ParseStackEntry {
 }
 
 //TODO: Marked @trusted to avoid initializing stack...
-@trusted immutable(ParsedEverything) parseEverything(ReadOnlyStorage)(
+@trusted immutable(ParsedEverything) parseEverything(
 	ref Alloc modelAlloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
-	ref const ReadOnlyStorage storage,
+	scope ref const ReadOnlyStorage storage,
 	scope immutable PathAndStorageKind[] rootPaths,
 	ref Alloc astAlloc,
 ) {
@@ -214,7 +219,7 @@ struct ParseStackEntry {
 	MutMaxArr!(32, ParseStackEntry) stack;
 
 	void pushIt(immutable PathAndStorageKind path, immutable Opt!PathAndRange importedFrom) {
-		storage.withFile!void(path, crowExtension, (immutable Opt!SafeCStr opFileContent) {
+		withFile!void(storage, path, crowExtension, (immutable Opt!SafeCStr opFileContent) {
 			ArrBuilder!DiagnosticWithinFile diags;
 			immutable LineAndColumnGetter lineAndColumnGetter =
 				lineAndColumnGetterForOptText(modelAlloc, opFileContent);
@@ -372,7 +377,7 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForOptText(
 immutable(FileAst) parseSingle(
 	ref Alloc modelAlloc,
 	ref Alloc astAlloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!DiagnosticWithinFile diags,
@@ -491,7 +496,7 @@ struct ModulesAndCommonTypes {
 
 immutable(ModulesAndCommonTypes) getModules(
 	ref Alloc modelAlloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
@@ -544,7 +549,7 @@ immutable(ModulesAndCommonTypes) getModules(
 
 immutable(Program) checkEverything(
 	ref Alloc modelAlloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	ref immutable AstAndResolvedImports[] allAsts,

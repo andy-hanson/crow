@@ -11,11 +11,12 @@ import util.col.arr : lastPtr;
 import util.col.mutDict : addToMutDict;
 import util.col.str : end, SafeCStr, safeCStr, strEq;
 import util.dbg : Debug, log, logNat, logNoNewline;
-import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
+import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.opt : force, has, Opt;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
 import util.perf : Perf, withNullPerf;
-import util.ptr : Ptr, ptrTrustMe_const;
+import util.ptr : Ptr;
+import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : Pos;
 import util.sym : shortSym;
 import util.util : verify, verifyFail;
@@ -25,9 +26,11 @@ import util.util : verify, verifyFail;
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(path, StorageKind.local);
 	MutFiles files;
 	addToMutDict(test.alloc, files, key, content);
-	const DictReadOnlyStorage storage = const DictReadOnlyStorage(ptrTrustMe_const(files));
-	immutable Program program = withNullPerf!(immutable Program, (scope ref Perf perf) =>
-		frontendCompile(test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, [key]));
+	immutable Program program = withDictReadOnlyStorage!(immutable Program)(
+		files,
+		(scope ref const ReadOnlyStorage storage) =>
+			withNullPerf!(immutable Program, (scope ref Perf perf) =>
+				frontendCompile(test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, [key])));
 	immutable Ptr!Module mainModule = lastPtr(program.allModules);
 
 	immutable(string) hover(immutable Pos pos) {

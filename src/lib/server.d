@@ -23,7 +23,7 @@ import util.col.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
 import util.col.str : copyToSafeCStr, freeSafeCStr, SafeCStr, safeCStr;
 import util.conv : safeToUshort;
 import util.dbg : Debug;
-import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
+import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
 import util.opt : force, has, none, Opt, some;
 import util.path :
@@ -35,7 +35,8 @@ import util.path :
 	pathAndStorageKindEqual,
 	StorageKind;
 import util.perf : Perf;
-import util.ptr : Ptr, ptrTrustMe_const;
+import util.ptr : Ptr;
+import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
 import util.sym : AllSymbols;
 
@@ -152,8 +153,10 @@ immutable(string) getHover(
 	immutable Pos pos,
 ) {
 	immutable PathAndStorageKind pk = immutable PathAndStorageKind(toPath(server, path), storageKind);
-	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
-	immutable Program program = frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [pk]);
+	immutable Program program = withDictReadOnlyStorage!(immutable Program)(
+		server.files,
+		(scope ref const ReadOnlyStorage storage) =>
+			frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [pk]));
 	return getHoverFromProgram(alloc, server, pk, program, pos);
 }
 
@@ -197,10 +200,11 @@ immutable(FakeExternResult) run(
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	scope immutable SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
-	const DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
-	return withFakeExtern(alloc, (scope ref Extern extern_) =>
-		buildAndInterpret(
-			alloc, dbg, perf, server.allSymbols, server.allPaths, storage, extern_, showDiagOptions, main, allArgs));
+	return withDictReadOnlyStorage(server.files, (scope ref const ReadOnlyStorage storage) =>
+		withFakeExtern(alloc, (scope ref Extern extern_) =>
+			buildAndInterpret(
+				alloc, dbg, perf, server.allSymbols, server.allPaths, storage, extern_,
+				showDiagOptions, main, allArgs)));
 }
 
 private:

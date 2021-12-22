@@ -16,6 +16,7 @@ alias CStr = immutable(char)*;
 struct SafeCStr {
 	@safe @nogc pure nothrow:
 
+	@disable this();
 	@system immutable this(immutable CStr p) {
 		ptr = p;
 	}
@@ -30,7 +31,7 @@ struct SafeCStr {
 	return ptr;
 }
 
-@trusted immutable(string) strOfCStr(immutable CStr c) {
+@trusted immutable(string) strOfCStr(return scope immutable CStr c) {
 	immutable size_t size = end(c) - c;
 	return c[0 .. size];
 }
@@ -92,11 +93,11 @@ immutable(bool) safeCStrIsEmpty(immutable SafeCStr a) {
 	return *a.ptr == '\0';
 }
 
-immutable(string) strOfSafeCStr(immutable SafeCStr a) {
+immutable(string) strOfSafeCStr(return scope immutable SafeCStr a) {
 	return strOfCStr(a.ptr);
 }
 
-immutable(SafeCStr) copySafeCStr(ref Alloc alloc, immutable SafeCStr a) {
+immutable(SafeCStr) copySafeCStr(ref Alloc alloc, scope immutable SafeCStr a) {
 	return copyToSafeCStr(alloc, strOfSafeCStr(a));
 }
 

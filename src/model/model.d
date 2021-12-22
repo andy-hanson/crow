@@ -10,7 +10,7 @@ import util.col.arrUtil : arrEqual;
 import util.col.dict : SymDict;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
-import util.col.str : SafeCStr;
+import util.col.str : copySafeCStr, SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
@@ -38,8 +38,14 @@ struct AbsolutePathsGetter {
 	immutable SafeCStr globalPath;
 	immutable SafeCStr localPath;
 }
+immutable(AbsolutePathsGetter) copyAbsolutePathsGetter(ref Alloc alloc, scope ref immutable AbsolutePathsGetter a) {
+	return immutable AbsolutePathsGetter(
+		copySafeCStr(alloc, a.cwd),
+		copySafeCStr(alloc, a.globalPath),
+		copySafeCStr(alloc, a.localPath));
+}
 
-private immutable(SafeCStr) getBasePath(ref immutable AbsolutePathsGetter a, immutable StorageKind sk) {
+private immutable(SafeCStr) getBasePath(return scope ref immutable AbsolutePathsGetter a, immutable StorageKind sk) {
 	final switch (sk) {
 		case StorageKind.global:
 			return a.globalPath;
@@ -49,7 +55,7 @@ private immutable(SafeCStr) getBasePath(ref immutable AbsolutePathsGetter a, imm
 }
 
 immutable(AbsolutePath) getAbsolutePath(
-	ref immutable AbsolutePathsGetter a,
+	return scope ref immutable AbsolutePathsGetter a,
 	immutable PathAndStorageKind p,
 	immutable string extension,
 ) {

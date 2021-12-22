@@ -130,7 +130,7 @@ void doInterpret(
 	immutable PathAndStorageKind[1] pk = [immutable PathAndStorageKind(emptyPath, StorageKind.global)];
 	immutable LineAndColumnGetter[1] lcg = [lineAndColumnGetterForEmptyFile(test.alloc)];
 	immutable AbsolutePathsGetter emptyAbsolutePathsGetter =
-		immutable AbsolutePathsGetter(safeCStr!"", safeCStr!"");
+		immutable AbsolutePathsGetter(safeCStr!"", safeCStr!"", safeCStr!"");
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(pk),
 		emptyAbsolutePathsGetter,

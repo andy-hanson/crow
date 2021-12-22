@@ -1,6 +1,6 @@
 module util.dictReadOnlyStorage;
 
-@safe @nogc pure nothrow:
+@safe @nogc nothrow: // not pure
 
 import frontend.lang : crowExtension;
 import model.model : AbsolutePathsGetter;
@@ -8,27 +8,24 @@ import util.col.mutDict : getAt_mut, MutDict;
 import util.col.str : SafeCStr, safeCStr, strEq;
 import util.opt : asImmutable, Opt;
 import util.path : hashPathAndStorageKind, PathAndStorageKind, pathAndStorageKindEqual;
-import util.ptr : Ptr;
+import util.readOnlyStorage : ReadOnlyStorage;
 import util.util : verify;
 
-struct DictReadOnlyStorage {
-	@safe @nogc nothrow: // not pure
-
-	pure immutable(AbsolutePathsGetter) absolutePathsGetter() const {
-		return immutable AbsolutePathsGetter(safeCStr!"include", safeCStr!"user");
-	}
-
-	immutable(T) withFile(T)(
-		immutable PathAndStorageKind pk,
-		immutable string extension,
-		scope immutable(T) delegate(immutable Opt!SafeCStr) @safe @nogc nothrow cb,
-	) const {
-		verify(strEq(extension, crowExtension));
-		return cb(asImmutable(getAt_mut(files.deref(), pk)));
-	}
-
-	private:
-	const Ptr!MutFiles files;
+immutable(T) withDictReadOnlyStorage(T)(
+	scope ref const MutFiles files,
+	scope immutable(T) delegate(scope ref const ReadOnlyStorage) @safe @nogc nothrow cb,
+) {
+	scope const ReadOnlyStorage storage = const ReadOnlyStorage(
+		immutable AbsolutePathsGetter(safeCStr!"cwd", safeCStr!"include", safeCStr!"user"),
+		(
+			immutable PathAndStorageKind path,
+			immutable string extension,
+			void delegate(immutable Opt!SafeCStr) @safe @nogc pure nothrow cb,
+		) {
+			verify(strEq(extension, crowExtension));
+			cb(asImmutable(getAt_mut(files, path)));
+		});
+	return cb(storage);
 }
 
 alias MutFiles = MutDict!(
