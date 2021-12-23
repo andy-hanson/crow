@@ -8,7 +8,7 @@ main fut nat(_ str[]) summon
 	print: "nats sum: {nats sum}"
 	print: "floats size: {floats size}"
 	print: "floats sum: {floats sum}"
-	0 resolved
+	0,
 
 node<a> record
 	head a

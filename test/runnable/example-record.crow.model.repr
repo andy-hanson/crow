@@ -24,7 +24,7 @@ module(
 					call(
 						fun-inst(name: print)
 						[call(fun-inst(name: to-str), [call(fun-inst(name: area), [local-ref(r)])])])
-					call(fun-inst(name: resolved, type-args: [nat64()]), [literal(nat64(), 0)]))))
+					call(fun-inst(name: new), []))))
 		fun(
 			visibility: public
 			preferred: true

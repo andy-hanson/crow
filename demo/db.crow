@@ -3,8 +3,8 @@
 import
 	crow/col/arr-util: tail
 	crow/db/lmdb:
-		from-lmdb-key, get, lmdb-key-flags, lmdb-open-options, set, stat, to-lmdb-key, to-str,
-		with-db, with-env, with-read-transaction, with-write-transaction
+		from-lmdb-key, get, lmdb-key-flags, new, set, stat, to-lmdb-key, to-str, with-db, with-env,
+		with-read-transaction, with-write-transaction
 	crow/io/print: print
 	crow/parse-command: parse-named-args, single-str-or-throw
 	crow/serialize: from-bytes, to-bytes
@@ -21,8 +21,8 @@ main fut nat(args str[]) unsafe summon
 			db-path = named-args[0] single-str-or-throw "db-path"
 			db-name = named-args[1] single-str-or-throw "db-name"
 			key = named-args[2] single-str-or-throw "key"
-			db-path with-env true.lmdb-open-options, env =>
-				env with-db<void, str, str> db-name, db =>
+			db-path with-env (true,), env =>
+				env with-db@<void, str, str> db-name, db =>
 					print: env with-read-transaction txn =>
 						txn get db, key or-default "none"
 		as set
@@ -31,22 +31,22 @@ main fut nat(args str[]) unsafe summon
 			db-name = named-args[1] single-str-or-throw "db-name"
 			key = named-args[2] single-str-or-throw "key"
 			value = named-args[3] single-str-or-throw "value"
-			db-path with-env true.lmdb-open-options, env =>
-				env with-db<void, str, str> db-name, db =>
+			db-path with-env (true,), env =>
+				env with-db@<void, str, str> db-name, db =>
 					env with-write-transaction txn =>
 						txn set db, key, value
 		as stat
 			named-args = args.tail parse-named-args ("db-path", "db-name") force
 			db-path = named-args[0] single-str-or-throw "db-path"
 			db-name = named-args[1] single-str-or-throw "db-name"
-			db-path with-env true.lmdb-open-options, env =>
-				env with-db<void, str, str> db-name, db =>
+			db-path with-env (true,), env =>
+				env with-db@<void, str, str> db-name, db =>
 					print: env with-read-transaction txn =>
 						txn stat db to-str
-		0 resolved
+		()
 	else
 		print: usage
-		1 resolved
+		1,
 
 .usage str()
 	# TODO: Use a """ string
@@ -63,11 +63,11 @@ main fut nat(args str[]) unsafe summon
 
 .parse-command_name command?(a str)
 	if a == "get"
-		get some
+		get,
 	elif a == "set"
-		set some
+		set,
 	elif a == "stat"
-		stat some
+		stat,
 
 .command enum
 	get

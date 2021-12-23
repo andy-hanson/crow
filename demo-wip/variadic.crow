@@ -1,6 +1,6 @@
 main fut nat(_ str[]) summon
 	ahh
-	0 resolved
+	()
 
 ahh void() noctx
 	"a" foo "b"

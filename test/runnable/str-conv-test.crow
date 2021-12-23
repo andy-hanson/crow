@@ -14,4 +14,4 @@ main fut nat(_ str[]) summon
 	"*123".parse-int is ()
 
 	print: "1".parse-nat.to-str
-	0 resolved
+	()

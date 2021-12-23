@@ -40,7 +40,7 @@ main fut nat(_ str[]) unsafe summon
 			print: "posts:"
 			db.list-posts each post =>
 				print: post.to-str
-	0 resolved
+	()
 
 user alias
 	nat

@@ -18,18 +18,18 @@ import
 main fut nat(args str[]) unsafe summon
 	if args.size != 1
 		print: "Usage: server PORT"
-		1 resolved
+		1,
 	else
 		port = args[0]
 		db = open-real-db
 		handler http-handler = req =>
-			req handle-request db resolved
+			(req handle-request db),
 		server = port start-http-server handler
 		# TODO: do this after we've stopped the server
 		if false
 			db close-real-db
 		drop: server
-		0 resolved
+		()
 
 .handle-request http-response(req http-request, db db) summon
 	su = req.url split-url

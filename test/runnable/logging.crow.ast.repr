@@ -43,4 +43,4 @@ file-ast(
 												[name-range(277, ignore)]
 												call(empty-parens, name-range(287, new), [], [])))
 										lambda([], call(infix, name-range(321, log), [], [warn, literal("Logged never")]))]))
-							call(infix, name-range(343, resolved), [], [literal(nat(0, false))]))))))])
+							call(empty-parens, name-range(341, new), [], []))))))])

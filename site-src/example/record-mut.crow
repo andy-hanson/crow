@@ -6,7 +6,7 @@ main fut nat(_ str[]) summon
 	print: "yum, {a}"
 	a snarf!
 	print: "yum, {a}"
-	0 resolved
+	()
 
 dinner record mut
 	food mut str

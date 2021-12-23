@@ -9,7 +9,7 @@ main fut nat(_ str[]) summon
 	print: a intersection-or-distance b to-str
 	print: b intersection-or-distance c to-str
 	print: a intersection-or-distance c to-str
-	0 resolved
+	()
 
 to-str str(a result<rect, float>)
 	match a

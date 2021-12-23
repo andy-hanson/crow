@@ -62,4 +62,4 @@ module(
 											fun-act0(void())
 											mut
 											void())]))
-							call(fun-inst(name: resolved, type-args: [nat64()]), [literal(nat64(), 0)]))))))])
+							call(fun-inst(name: new), []))))))])

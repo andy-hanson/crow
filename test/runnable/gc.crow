@@ -28,8 +28,7 @@ main fut nat(_ str[]) summon unsafe
 	print: "gc count: {gc gc-count}"
 	print: "a: {a}"
 	print: "stats (after print): {gc get-stats}"
-
-	0 resolved
+	()
 
 r record
 	a nat

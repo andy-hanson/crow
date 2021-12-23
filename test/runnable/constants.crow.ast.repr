@@ -4,7 +4,7 @@ file-ast(
 	aliases: []
 	structs: [
 		struct(
-			range(129, 161)
+			range(120, 152)
 			""
 			public
 			[]
@@ -12,8 +12,8 @@ file-ast(
 			record(
 				none
 				[
-					field(range(147, 152), const, a, inststruct(range(149, 152), name-range(149, str)))
-					field(range(154, 159), const, b, inststruct(range(156, 159), name-range(156, str)))]))]
+					field(range(138, 143), const, a, inststruct(range(140, 143), name-range(140, str)))
+					field(range(145, 150), const, b, inststruct(range(147, 150), name-range(147, str)))]))]
 	funs: [
 		fun-decl(
 			visibility: public
@@ -32,15 +32,15 @@ file-ast(
 							call(prefix, name-range(84, foo), [], [r])
 							call(prefix, name-range(92, print), [], [call(infix, name-range(101, a), [], [r])]))
 						call(prefix, name-range(104, print), [], [call(infix, name-range(113, b), [], [r])]))
-					call(prefix, name-range(116, resolved), [], [literal(nat(0, false))]))))
+					call(empty-parens, name-range(116, new), [], []))))
 		fun-decl(
 			visibility: public
 			sig: sig-ast(
-				range(161, 183)
+				range(152, 174)
 				foo
-				inststruct(range(165, 169), name-range(165, void))
-				[param(range(170, 181), some(r), inststruct(range(172, 181), name-range(172, my-record)))])
+				inststruct(range(156, 160), name-range(156, void))
+				[param(range(161, 172), some(r), inststruct(range(163, 172), name-range(163, my-record)))])
 			summon: true
 			body: seq-ast(
-				call(prefix, name-range(191, print), [], [call(infix, name-range(200, a), [], [r])])
-				call(prefix, name-range(203, print), [], [call(infix, name-range(212, b), [], [r])])))])
+				call(prefix, name-range(182, print), [], [call(infix, name-range(191, a), [], [r])])
+				call(prefix, name-range(194, print), [], [call(infix, name-range(203, b), [], [r])])))])

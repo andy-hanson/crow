@@ -6,7 +6,7 @@ main fut nat(_ str[]) summon
 	foo: r
 	print: r a
 	print: r b
-	resolved: 0
+	()
 
 my-record record
 	a str

@@ -90,7 +90,7 @@ main fut nat(_ str[]) summon trusted
 	SDL_Quit
 
 	print: "Bye bye"
-	0 resolved
+	()
 
 .vertex record
 	by-val
@@ -195,7 +195,7 @@ continue-or-quit enum
 		<- interval delay
 		interval repeat-interval action
 	as quit
-		() resolved
+		()
 
 .vbo-create GLuint(vertices fix-arr vertex) summon unsafe
 	vbo-cell cell GLuint = 0,

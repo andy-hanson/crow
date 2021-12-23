@@ -5,5 +5,5 @@ import
 main fut nat(_ str[]) summon
 	s = safe-value::act nat(str)
 	print: s["hello"].to-str
-	0 resolved
+	()
 

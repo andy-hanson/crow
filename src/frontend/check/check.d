@@ -1602,7 +1602,7 @@ FunDecl enumEqualFunction(
 	return FunDecl(
 		safeCStr!"",
 		visibility,
-		FunFlags.generatedNoCtx,
+		FunFlags.generatedNoCtx.withOkIfUnused,
 		immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
 			symForOperator(Operator.equal),
@@ -1624,7 +1624,7 @@ FunDecl flagsEmptyFunction(
 	return FunDecl(
 		safeCStr!"",
 		visibility,
-		FunFlags.generatedNoCtx,
+		FunFlags.generatedNoCtx.withOkIfUnused,
 		immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
 			shortSym("empty"),
@@ -1687,7 +1687,7 @@ FunDecl enumToIntegralFunction(
 	return FunDecl(
 		safeCStr!"",
 		visibility,
-		FunFlags.generatedNoCtx,
+		FunFlags.generatedNoCtx.withOkIfUnused,
 		immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
 			enumToIntegralName(enumBackingType),
@@ -1711,7 +1711,7 @@ FunDecl enumOrFlagsMembersFunction(
 	return FunDecl(
 		safeCStr!"",
 		visibility,
-		FunFlags.generatedNoCtx,
+		FunFlags.generatedNoCtx.withOkIfUnused,
 		immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
 			name,

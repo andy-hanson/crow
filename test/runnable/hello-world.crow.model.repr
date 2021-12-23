@@ -6,6 +6,4 @@ module(
 			visibility: public
 			summon: true
 			sig: sig(file-pos(76, 30), main, fut(nat64()), [param(file-range(76, range(43, 50)), none, arr(str()))])
-			body: seq(
-				call(fun-inst(name: print), [string-lit("Hello, world!")])
-				call(fun-inst(name: resolved, type-args: [nat64()]), [literal(nat64(), 0)])))])
+			body: seq(call(fun-inst(name: print), [string-lit("Hello, world!")]), call(fun-inst(name: new), [])))])

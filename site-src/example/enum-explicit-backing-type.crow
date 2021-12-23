@@ -4,7 +4,7 @@ import
 
 main fut nat(_ str[]) summon trusted
 	print: size-of@<foo> to-str
-	0 resolved
+	()
 
 foo enum<nat8>
 	zip = 0

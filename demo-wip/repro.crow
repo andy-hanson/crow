@@ -1,6 +1,6 @@
 main fut nat(_ str[]) summon
 	0 f
-	0 resolved
+	()
 
 f<a> void(_ u a)
 	void

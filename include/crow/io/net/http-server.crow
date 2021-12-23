@@ -9,10 +9,10 @@ import
 	../../col/mut-arr: ~=, index-of, move-to-arr!, mut-arr, new, pop-n-from-start!, size
 	../../compare: !=, <=, >=
 	../../exception: assert, forbid, to-str
-	../../fut: fut, fut-catch, resolved, subscript, then
+	../../fut: fut, fut-catch, new, subscript, then
 	../../hash: hash-mix
 	../../log: error, log
-	../../misc: drop, new, void
+	../../misc: drop, void
 	../../number: ==, <=>, +, nat8, nat64, to-int64
 	../../opt: new, opt, or-default
 	../../extra-types: fd-t
@@ -45,23 +45,23 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 
 	on-accepted-client ref void(fd-t) = fd =>
 		client-states[fd] := ()
-		() resolved
+		()
 	on-received-chunk ref void(fd-t, nat8[]) = (fd, bytes) =>
 		if state ?= client-states[fd]
 			closed <- fd handle-chunk state, bytes.as-str, handler
 			if closed
 				client-states remove-key! fd drop
-			() resolved
+			()
 		else
 			print: "Ignoring unrecognized client"
-			() resolved
+			()
 	tcp-server = port start-tcp-server (on-accepted-client, on-received-chunk)
 
 	# TODO: KILL
 	ignore <- handler[(http-get, "", (), "")]
 	drop: ignore
 
-	(tcp-server.stop,) resolved
+	(tcp-server.stop,),
 
 # Returns true when closed client
 .handle-chunk fut bool(fd fd-t, state http-parse-state, chunk str, handler http-handler) summon trusted
@@ -84,9 +84,9 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		wrote = fd write res-str.chars.begin-ptr.ptr-cast, res-str.size-bytes
 		assert: wrote == res-str.size-bytes.to-int64
 		fd close-client
-		true resolved
+		true,
 	else
-		false resolved
+		false,
 
 .finish-request http-request(state http-parse-state)
 	state.method, state.url, state.headers.move-to-dict!, state.unparsed.move-to-arr!.str

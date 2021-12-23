@@ -30,4 +30,4 @@ module(
 										[
 											literal(nat64(), 1)
 											call(fun-inst(name: *), [literal(nat64(), 2), literal(nat64(), 3)])])])]))
-				call(fun-inst(name: resolved, type-args: [nat64()]), [literal(nat64(), 0)])))])
+				call(fun-inst(name: new), [])))])

@@ -3,4 +3,4 @@ import
 
 main fut nat(_ str[]) summon
 	print: "Hello, world!"
-	0 resolved
+	()

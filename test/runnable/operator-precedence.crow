@@ -4,4 +4,4 @@ import
 main fut nat(_ str[]) summon
 	print: to-str: 1 * 2 + 3
 	print: 1 + 2 * 3 to-str
-	0 resolved
+	()

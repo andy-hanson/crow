@@ -6,7 +6,7 @@ main fut nat(_ str[]) summon
 	print: alice flags-to-str
 	print: alice.naked to-str
 	print: alice.service to-str
-	0 resolved
+	()
 
 clothed flags
 	shoes

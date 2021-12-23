@@ -7,18 +7,16 @@ module(
 			summon: true
 			unsafe: true
 			sig: sig(file-pos(76, 0), main, fut(nat64()), [param(file-range(76, range(13, 20)), none, arr(str()))])
-			body: seq(
-				call(fun-inst(name: foo), [])
-				call(fun-inst(name: resolved, type-args: [nat64()]), [literal(nat64(), 0)])))
+			body: seq(call(fun-inst(name: foo), []), call(fun-inst(name: new), [])))
 		fun(
 			visibility: public
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(76, 54), foo, void(), [])
+			sig: sig(file-pos(76, 46), foo, void(), [])
 			body: call(fun-inst(name: bar), []))
 		fun(
 			visibility: public
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(76, 85), bar, void(), [])
+			sig: sig(file-pos(76, 77), bar, void(), [])
 			body: call(fun-inst(name: throw, type-args: [void()]), [string-lit("FOO")]))])

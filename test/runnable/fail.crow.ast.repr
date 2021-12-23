@@ -12,16 +12,16 @@ file-ast(
 				[param(range(13, 20), none, suffix(inststruct(range(15, 18), name-range(15, str)), arr))])
 			summon: true
 			unsafe: true
-			body: seq-ast(foo, call(infix, name-range(44, resolved), [], [literal(nat(0, false))])))
+			body: seq-ast(foo, call(empty-parens, name-range(42, new), [], [])))
 		fun-decl(
 			visibility: public
-			sig: sig-ast(range(54, 65), foo, inststruct(range(58, 62), name-range(58, void)), [])
+			sig: sig-ast(range(46, 57), foo, inststruct(range(50, 54), name-range(50, void)), [])
 			summon: true
 			unsafe: true
 			body: bar)
 		fun-decl(
 			visibility: public
-			sig: sig-ast(range(85, 96), bar, inststruct(range(89, 93), name-range(89, void)), [])
+			sig: sig-ast(range(77, 88), bar, inststruct(range(81, 85), name-range(81, void)), [])
 			summon: true
 			unsafe: true
-			body: call(prefix, name-range(111, throw), [], [literal("FOO")]))])
+			body: call(prefix, name-range(103, throw), [], [literal("FOO")]))])

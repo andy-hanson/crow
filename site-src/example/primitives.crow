@@ -9,4 +9,4 @@ main fut nat(_ str[]) summon
 	print: my-int / also-an-int to-str
 	my-float = 3.0
 	print: my-float / 2.0 to-str
-	0 resolved
+	()

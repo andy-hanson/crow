@@ -8,16 +8,16 @@ import
 main fut nat(args str[]) unsafe summon
 	if args.size != 1
 		print: "Usage: server PORT"
-		1 resolved
+		1,
 	else
 		port = args[0]
 		handler http-handler = req =>
 			descr = req describe-request
 			print: descr
-			(200, "OK", (), "Your request:\n{descr}") resolved
+			(200, "OK", (), "Your request:\n{descr}"),
 		server = port start-http-server handler
 		drop: server
-		0 resolved
+		()
 
 .describe-request str(a http-request)
 	h = a.headers map-to-arr (k, v) => "{k}: {v}"

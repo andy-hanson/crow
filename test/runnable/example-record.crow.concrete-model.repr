@@ -4519,10 +4519,11 @@ program(
 			new-record)
 		fun(noctx, island-id, type(false, nat64), none, [param(a, type(true, ctx))], field-get(1))
 		fun(noctx, exclusion, type(false, nat64), none, [param(a, type(true, ctx))], field-get(2))
-		fun(ctx, delay, type(true, fut), none, [], call(resolved, [call(new, [])]))
+		fun(ctx, delay, type(true, fut), none, [], call(new, []))
+		fun(ctx, new, type(true, fut), none, [], call(new, [call(new, [])]))
 		fun(
 			ctx
-			resolved
+			new
 			type(true, fut)
 			none
 			[param(value, type(false, void))]
@@ -6265,7 +6266,7 @@ program(
 			let(
 				r
 				call(new, [1.5, 2.5])
-				seq(call(print, [call(to-str, [call(area, [local-ref(r)])])]), call(resolved, [0]))))
+				seq(call(print, [call(to-str, [call(area, [local-ref(r)])])]), call(new, []))))
 		fun(
 			ctx
 			new
@@ -6628,9 +6629,10 @@ program(
 			call(*, [call(width, [param-ref(a)]), call(height, [param-ref(a)])]))
 		fun(noctx, width, type(false, float64), none, [param(a, type(false, rect))], field-get(0))
 		fun(noctx, height, type(false, float64), none, [param(a, type(false, rect))], field-get(1))
+		fun(ctx, new, type(true, fut), none, [], call(new, [0]))
 		fun(
 			ctx
-			resolved
+			new
 			type(true, fut)
 			none
 			[param(value, type(false, nat64))]

@@ -5,7 +5,7 @@ main fut nat(_ str[]) summon
 	print: up.opposite enum-to-str
 	print: up == up to-str
 	print: up == down to-str
-	0 resolved
+	()
 
 direction enum
 	up

@@ -6,7 +6,7 @@ main fut nat(_ str[]) summon
 		print: "bishop is {n to-nat32}"
 	if face ?= queen::chess-piece.to-sym.to-enum :: face-card?
 		print: "queen as face-card is {face to-nat32}"
-	0 resolved
+	()
 
 chess-piece enum
 	pawn

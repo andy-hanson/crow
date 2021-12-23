@@ -3,7 +3,7 @@ import
 
 main fut nat(_ str[]) summon
 	print: saturday.to-nat32 to-str
-	0 resolved
+	0,
 
 lucky-numbers enum
 	friday = 13

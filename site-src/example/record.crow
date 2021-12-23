@@ -7,7 +7,7 @@ main fut nat(_ str[]) summon
 	print: a to-str
 	print: b to-str
 	print: a mix b to-str
-	0 resolved
+	()
 
 dinner record
 	food str

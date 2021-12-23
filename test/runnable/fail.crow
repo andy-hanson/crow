@@ -1,6 +1,6 @@
 main fut nat(_ str[]) summon unsafe
 	foo
-	0 resolved
+	()
 
 foo void() unsafe summon
 	bar

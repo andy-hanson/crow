@@ -4,7 +4,7 @@ file-ast(
 	aliases: []
 	structs: [
 		struct(
-			range(167, 198)
+			range(158, 189)
 			""
 			public
 			[]
@@ -12,8 +12,8 @@ file-ast(
 			record(
 				none
 				[
-					field(range(185, 190), const, x, inststruct(range(187, 190), name-range(187, nat)))
-					field(range(192, 197), const, y, inststruct(range(194, 197), name-range(194, nat)))]))]
+					field(range(176, 181), const, x, inststruct(range(178, 181), name-range(178, nat)))
+					field(range(183, 188), const, y, inststruct(range(185, 188), name-range(185, nat)))]))]
 	funs: [
 		fun-decl(
 			visibility: public
@@ -60,4 +60,4 @@ file-ast(
 							name-range(135, print)
 							[]
 							[call(dot, name-range(146, to-str), [], [call(dot, name-range(144, y), [], [m])])]))
-					call(prefix, name-range(154, resolved), [], [literal(nat(0, false))]))))])
+					call(empty-parens, name-range(154, new), [], []))))])

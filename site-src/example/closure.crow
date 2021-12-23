@@ -6,7 +6,7 @@ main fut nat(_ str[]) summon
 	baker = "baked" make-cooker
 	print: fryer["plaintain"]
 	print: baker["potato"]
-	0 resolved
+	()
 
 make-cooker fun str(str)(type str)
 	b => "{type} {b}"

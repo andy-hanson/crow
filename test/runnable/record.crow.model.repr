@@ -1,7 +1,7 @@
 module(
 	path: 76
 	imports: [import(none, 59, none), import(some(range(8, 28)), 44, some([print]))]
-	structs: [struct(range: file-range(76, range(167, 198)), visibility: public, name: my-record)]
+	structs: [struct(range: file-range(76, range(158, 189)), visibility: public, name: my-record)]
 	funs: [
 		fun(
 			visibility: public
@@ -32,32 +32,32 @@ module(
 						call(
 							fun-inst(name: print)
 							[call(fun-inst(name: to-str), [call(fun-inst(name: y), [local-ref(m)])])]))
-					call(fun-inst(name: resolved, type-args: [nat64()]), [literal(nat64(), 0)]))))
+					call(fun-inst(name: new), []))))
 		fun(
 			visibility: public
 			preferred: true
 			sig: sig(
-				file-pos(76, 167)
+				file-pos(76, 158)
 				new
 				my-record()
-				[param(file-range(76, range(185, 190)), some(x), nat64()), param(file-range(76, range(192, 197)), some(y), nat64())])
+				[param(file-range(76, range(176, 181)), some(x), nat64()), param(file-range(76, range(183, 188)), some(y), nat64())])
 			body: new-record)
 		fun(
 			visibility: public
 			no-ctx: true
 			sig: sig(
-				file-pos(76, 167)
+				file-pos(76, 158)
 				new
 				by-val(my-record())
-				[param(file-range(76, range(185, 190)), some(x), nat64()), param(file-range(76, range(192, 197)), some(y), nat64())])
+				[param(file-range(76, range(176, 181)), some(x), nat64()), param(file-range(76, range(183, 188)), some(y), nat64())])
 			body: new-record)
 		fun(
 			visibility: public
 			no-ctx: true
-			sig: sig(file-pos(76, 185), x, nat64(), [param(file-range(76, range(185, 190)), some(a), my-record())])
+			sig: sig(file-pos(76, 176), x, nat64(), [param(file-range(76, range(176, 181)), some(a), my-record())])
 			body: field-get(0))
 		fun(
 			visibility: public
 			no-ctx: true
-			sig: sig(file-pos(76, 192), y, nat64(), [param(file-range(76, range(192, 197)), some(a), my-record())])
+			sig: sig(file-pos(76, 183), y, nat64(), [param(file-range(76, range(183, 188)), some(a), my-record())])
 			body: field-get(1))])

@@ -14,4 +14,4 @@ file-ast(
 			summon: true
 			body: seq-ast(
 				call(prefix, name-range(60, print), [], [literal("Hello, world!")])
-				call(infix, name-range(86, resolved), [], [literal(nat(0, false))])))])
+				call(empty-parens, name-range(84, new), [], [])))])

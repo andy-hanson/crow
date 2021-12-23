@@ -67,7 +67,7 @@ main fut nat(_ str[]) summon
 	drop: "".json-str
 	drop: () parse-named-args ()
 	run-all-tests
-	0 resolved
+	()
 
 test
 	1 + 1 is 2

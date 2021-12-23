@@ -4527,10 +4527,11 @@ program(
 			new-record)
 		fun(noctx, island-id, type(false, nat64), none, [param(a, type(true, ctx))], field-get(1))
 		fun(noctx, exclusion, type(false, nat64), none, [param(a, type(true, ctx))], field-get(2))
-		fun(ctx, delay, type(true, fut), none, [], call(resolved, [call(new, [])]))
+		fun(ctx, delay, type(true, fut), none, [], call(new, []))
+		fun(ctx, new, type(true, fut), none, [], call(new, [call(new, [])]))
 		fun(
 			ctx
-			resolved
+			new
 			type(true, fut)
 			none
 			[param(value, type(false, void))]
@@ -6282,7 +6283,7 @@ program(
 							seq(
 								call(with-log-handler, [local-ref(doubler), lambda(7, void)])
 								call(with-log-handler, [lambda(2, void), lambda(8, void)]))
-							call(resolved, [0]))))))
+							call(new, []))))))
 		fun(
 			ctx
 			log
@@ -6393,9 +6394,10 @@ program(
 			some(param("<<closure>>", type(false, void)))
 			[]
 			call(log, [call(warn, []), record([arr(0, 12)])]))
+		fun(ctx, new, type(true, fut), none, [], call(new, [0]))
 		fun(
 			ctx
-			resolved
+			new
 			type(true, fut)
 			none
 			[param(value, type(false, nat64))]

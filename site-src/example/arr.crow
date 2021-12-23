@@ -12,4 +12,4 @@ main fut nat(_ str[]) summon
 	hold-the-onion = chili[0 .. 2] ~ chili[3 .. 5]
 	print: hold-the-onion join ", "
 
-	0 resolved
+	()

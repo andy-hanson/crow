@@ -75,4 +75,4 @@ module(
 							call(
 								fun-inst(name: to-str, type-args: [nat64()], spec-impls: [fun-inst(name: to-str)])
 								[call(fun-inst(name: parse-nat), [string-lit("1")])])]))
-				call(fun-inst(name: resolved, type-args: [nat64()]), [literal(nat64(), 0)])))])
+				call(fun-inst(name: new), [])))])

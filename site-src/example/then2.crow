@@ -2,11 +2,11 @@ import
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	a = 3 resolved
+	a fut nat = 3,
 	print: "this happens first"
 	x <- a
 	print: x to-str
-	b = x + 1 resolved
+	b fut nat = x + 1,
 	y <- b
 	print: y to-str
-	0 resolved
+	()

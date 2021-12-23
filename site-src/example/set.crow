@@ -22,8 +22,7 @@ main fut nat(_ str[]) summon
 	print: "remove pepper again? {m try-remove! "pepper"}"
 	m ~= ("spray bottle", "cumin")::sym[]
 	print: "after concat: {m move-to-set!}"
-
-	0 resolved
+	()
 
 to-str str(a set sym)
 	a.to-arr map (x => x to-str) join ", "

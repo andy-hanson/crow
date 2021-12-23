@@ -5,7 +5,7 @@ The fix will be to infer noctx from the specs.
 
 main fut nat(_ str[]) summon
 	drop: my-type < my-type
-	0 resolved
+	()
 
 my-type record
 

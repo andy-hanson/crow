@@ -5,7 +5,7 @@ import
 
 main fut nat(_ str[]) summon unsafe
 	gonna-do-it!
-	0 resolved
+	()
 
 gonna-do-it! void() summon unsafe
 	really-gonna-do-it!

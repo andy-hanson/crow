@@ -6,7 +6,7 @@ main fut nat(_ str[]) summon trusted
 	c = 0 color-32 0, 0
 	v = p vertex c, p
 	print: "{v.color.g}"
-	0 resolved
+	()
 
 vertex record
 	by-val

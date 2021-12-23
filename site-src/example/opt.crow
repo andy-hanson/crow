@@ -4,7 +4,7 @@ import
 main fut nat(_ str[]) summon
 	print: "1" rate-my-number
 	print: "1.5" rate-my-number
-	0 resolved
+	()
 
 rate-my-number str(a str)
 	if n ?= a parse-nat

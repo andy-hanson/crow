@@ -20,7 +20,7 @@ file-ast(
 	aliases: []
 	structs: [
 		struct(
-			range(793, 824)
+			range(784, 815)
 			""
 			public
 			[]
@@ -28,9 +28,9 @@ file-ast(
 			record(
 				none
 				[
-					field(range(803, 808), const, a, inststruct(range(805, 808), name-range(805, nat)))
-					field(range(810, 815), const, b, inststruct(range(812, 815), name-range(812, nat)))
-					field(range(817, 822), const, c, inststruct(range(819, 822), name-range(819, nat)))]))]
+					field(range(794, 799), const, a, inststruct(range(796, 799), name-range(796, nat)))
+					field(range(801, 806), const, b, inststruct(range(803, 806), name-range(803, nat)))
+					field(range(808, 813), const, c, inststruct(range(810, 813), name-range(810, nat)))]))]
 	funs: [
 		fun-decl(
 			visibility: public
@@ -185,35 +185,35 @@ file-ast(
 														[
 															"stats (after print): "
 															call(infix, name-range(767, get-stats), [], [gc])])]))
-										call(infix, name-range(783, resolved), [], [literal(nat(0, false))])))))))))
+										call(empty-parens, name-range(780, new), [], [])))))))))
 		fun-decl(
 			visibility: public
 			sig: sig-ast(
-				range(824, 839)
+				range(815, 830)
 				to-str
-				inststruct(range(831, 834), name-range(831, str))
-				[param(range(835, 838), some(a), inststruct(range(837, 838), name-range(837, r)))])
+				inststruct(range(822, 825), name-range(822, str))
+				[param(range(826, 829), some(a), inststruct(range(828, 829), name-range(828, r)))])
 			body: interpolated(
 				[
 					"a="
-					call(infix, name-range(847, a), [], [a])
+					call(infix, name-range(838, a), [], [a])
 					", b="
-					call(infix, name-range(856, b), [], [a])
+					call(infix, name-range(847, b), [], [a])
 					", c="
-					call(infix, name-range(865, c), [], [a])]))
+					call(infix, name-range(856, c), [], [a])]))
 		fun-decl(
 			visibility: public
 			sig: sig-ast(
-				range(870, 893)
+				range(861, 884)
 				to-str
-				inststruct(range(877, 880), name-range(877, str))
-				[param(range(881, 891), some(a), inststruct(range(883, 891), name-range(883, gc-stats)))])
+				inststruct(range(868, 871), name-range(868, str))
+				[param(range(872, 882), some(a), inststruct(range(874, 882), name-range(874, gc-stats)))])
 			summon: true
 			body: interpolated(
 				[
 					"cur-word="
-					call(infix, name-range(914, cur-word), [], [a])
+					call(infix, name-range(905, cur-word), [], [a])
 					", words-used="
-					call(infix, name-range(939, words-used), [], [a])
+					call(infix, name-range(930, words-used), [], [a])
 					", words-free="
-					call(infix, name-range(966, words-free), [], [a])]))])
+					call(infix, name-range(957, words-free), [], [a])]))])

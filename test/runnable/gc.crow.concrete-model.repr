@@ -4534,10 +4534,11 @@ program(
 			new-record)
 		fun(noctx, island-id, type(false, nat64), none, [param(a, type(true, ctx))], field-get(1))
 		fun(noctx, exclusion, type(false, nat64), none, [param(a, type(true, ctx))], field-get(2))
-		fun(ctx, delay, type(true, fut), none, [], call(resolved, [call(new, [])]))
+		fun(ctx, delay, type(true, fut), none, [], call(new, []))
+		fun(ctx, new, type(true, fut), none, [], call(new, [call(new, [])]))
 		fun(
 			ctx
-			resolved
+			new
 			type(true, fut)
 			none
 			[param(value, type(false, void))]
@@ -6698,9 +6699,10 @@ program(
 			none
 			[param(gc, type(true, gc))]
 			call(set-needs-gc, [param-ref(gc), call(true, [])]))
+		fun(ctx, new, type(true, fut), none, [], call(new, [0]))
 		fun(
 			ctx
-			resolved
+			new
 			type(true, fut)
 			none
 			[param(value, type(false, nat64))]
@@ -6761,7 +6763,7 @@ program(
 										[
 											call(with-str, [call(interp, []), record([arr(0, 36)])])
 											call(get-stats, [get-field(param-ref("<<closure>>"), gc)])])])]))
-				call(resolved, [0])))
+				call(new, [])))
 		fun(noctx, static-syms, type(false, arr), none, [], builtin([]))]
 	rt-main
 	main

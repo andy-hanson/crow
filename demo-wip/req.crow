@@ -21,7 +21,7 @@ main fut nat(_ str[]) unsafe summon
 	socket receive-response!
 
 	print: "Hello, world!"
-	0 resolved
+	()
 
 .get-tcp-socket fd-t() unsafe summon
 	protoent = "tcp".to-c-str getprotobyname

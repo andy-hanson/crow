@@ -15,8 +15,7 @@ main fut nat(_ str[]) summon
 
 	xs str[] = "crow", "crime"
 	print: xs map (x => x reverse) join ", "
-
-	0 resolved
+	()
 
 call-it str(f fun str(nat))
 	f[3]

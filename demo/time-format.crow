@@ -18,4 +18,4 @@ main fut nat(_ str[]) summon unsafe
 	print: "time (local): {local-time time-of-day t}"
 	print: "day of week (UTC): {gmt day-of-week-long t}"
 	print: "day of week (local): {local-time day-of-week-long t}"
-	0 resolved
+	0,

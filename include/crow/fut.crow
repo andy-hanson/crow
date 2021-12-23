@@ -21,11 +21,17 @@ export
 # A future that resolves immediately.
 # Used to make code run in another task (to break up a big task).
 delay fut void()
-	() resolved
+	()
 
 # Converts a value to a `fut` resolved with that value.
-resolved<a> fut a(value a)
+new<a> fut a(value a)
 	lock-by-val, value.fut-state-resolved
+
+new fut void()
+	(),
+
+new fut nat64()
+	0,
 
 # Returns a `fut` resolved with an exception.
 rejected<a> fut a(err exception)

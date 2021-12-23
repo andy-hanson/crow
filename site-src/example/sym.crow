@@ -6,4 +6,4 @@ main fut nat(_ str[]) summon
 	print: x to-str
 	print: x == "glabberfast" to-str
 	print: x == ("flabber" ~ "gast").str-to-sym to-str
-	0 resolved
+	()

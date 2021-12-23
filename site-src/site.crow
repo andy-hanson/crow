@@ -13,7 +13,7 @@ main fut nat(_ str[]) summon
 	all = all-to-copy ~ documentation ~ pages
 	all each cur =>
 		cur ensure-up-to-date
-	0 resolved
+	()
 
 .ensure-up-to-date void(a path-and-content) summon
 	full-out-path = "site" child-path a.out-path

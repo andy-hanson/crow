@@ -56,4 +56,4 @@ file-ast(
 												name-range(99, *)
 												[]
 												[literal(nat(2, false)), literal(nat(3, false))])])])]))
-				call(infix, name-range(113, resolved), [], [literal(nat(0, false))])))])
+				call(empty-parens, name-range(111, new), [], [])))])

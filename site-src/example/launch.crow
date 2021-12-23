@@ -4,10 +4,10 @@ import
 main fut nat(_ str[]) summon
 	fut-a = launch: () =>
 		print: "Hello from a"
-		1 + 1 resolved
+		1 + 1,
 	fut-b = launch: () =>
 		print: "Hello from b"
-		2 + 2 resolved
+		2 + 2,
 	fut-a join fut-b, (a, b) =>
 		print: a + b to-str
-		0 resolved
+		()

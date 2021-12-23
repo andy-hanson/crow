@@ -11,4 +11,4 @@ main fut nat(_ str[]) summon
 		warn log "Logged twice"
 	(ignore => ()) with-log-handler () =>
 		warn log "Logged never"
-	0 resolved
+	()

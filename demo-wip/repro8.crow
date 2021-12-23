@@ -1,7 +1,7 @@
 main fut nat(_ str[]) summon trusted
 	a = none r
 	drop: a
-	0 resolved
+	()
 
 r record
 	next r?

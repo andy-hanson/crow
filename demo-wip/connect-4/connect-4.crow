@@ -12,26 +12,26 @@ main fut nat(_ str[]) summon
 	print: "Select a game:\n(If using hard CPU, compile with --optimize)\n"
 	print: "2: 2-player game\nE: Easy\nM: Medium\nH: Hard\nH2: Hard and CPU goes first\nCPU: CPU vs CPU\n"
 	#settings = "Invalid option" read-stdin-until-parse it => it parse-settings
-	settings ai-settings = 11.some, 11.some
-	empty-board print-board red, none
+	settings ai-settings = (11,), (11,)
+	empty-board print-board red, ()
 	winner <- empty-board play-recur red, settings
 	print: winner show-winner
-	0 resolved
+	0,
 
 # TODO:PRIVATE
 parse-settings ai-settings?(a str)
 	if a == "2"
-		(none, none) some
+		((), ()),
 	elif a == "E"
-		(none, 6.some) some
+		((), (6,)),
 	elif a == "M"
-		(none, 8.some) some
+		((), (8,)),
 	elif a == "H"
-		(none, 10.some) some
+		((), (10,)),
 	elif a == "H2"
-		(10.some, none) some
+		((10,), ()),
 	elif a == "CPU"
-		(10.some, 10.some) some
+		((10,), (10,)),
 
 .show-winner str(winner color?)
 	if w ?= winner
@@ -54,16 +54,16 @@ parse-settings ai-settings?(a str)
 	x <- if depth ?= cur-player ai-depth-for-color ai-settings
 		board ai-best-x depth
 	else
-		board human-player-move cur-player resolved
+		(board human-player-move cur-player),
 	new-board = board place x
 	other-player = cur-player opposite
-	new-board print-board other-player, x.some
+	new-board print-board other-player, (x,)
 	if new-board just-won
-		cur-player.some resolved
+		(cur-player,),
 	elif new-board has-empty
 		new-board play-recur other-player, ai-settings
 	else
-		none resolved
+		(),
 
 .print-board void(a board, cur-player color, last-x nat?) summon
 	clear-screen
@@ -83,16 +83,16 @@ parse-settings ai-settings?(a str)
 .column-of-str nat?(a str)
 	if n ?= a.strip letter-to-number
 		if n < width
-			n some
+			n,
 
 .letter-to-number nat?(a str)
 	if a.size-bytes == 1
 		n = a.chars[0] to-nat8
 		# TODO: type annotation should be unnecessary
 		if "A"::char.to-nat8 <= n && n < "Z"::char.to-nat8
-			some: n - "A"::char.to-nat8 to-nat64
+			(n - "A"::char.to-nat8 to-nat64),
 		elif "a"::char.to-nat8 <= n && n < "z"::char.to-nat8
-			some: n - "a"::char.to-nat8 to-nat64
+			(n - "a"::char.to-nat8 to-nat64),
 
 .strategy record
 	by-val
@@ -112,7 +112,7 @@ score-cache alias
 	<- delay
 	# Use a new cache each time, since each turn we're exploring to a further depth.
 	cache board-cache int32 = ()
-	resolved: cache strategy-recur board, ai-depth, (0, min-int32), 0, 0 x
+	(cache strategy-recur board, ai-depth, (0, min-int32), 0, 0 x),
 
 .strategy-score int32(cache score-cache, board board, ai-depth nat)
 	if cached ?= cache[board]

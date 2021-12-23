@@ -5,7 +5,7 @@ import
 main fut nat(_ str[]) summon
 	enum-members::named-val<e>[] each v =>
 		print: v.name.to-str
-	0 resolved
+	()
 
 e enum
 	x

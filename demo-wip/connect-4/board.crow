@@ -40,7 +40,7 @@ subscript<a> a?(a board-cache a, key board)
 	small-key = key board-key
 	index = small-key mod a.keys.size
 	if a.keys[index] == small-key.wrap-to-nat32
-		a.values[index] some
+		a.values[index],
 
 set-subscript<a> void(a board-cache a, key board, value a)
 	small-key = key board-key
@@ -115,16 +115,16 @@ empty-board board()
 .subscript color?(a board, x nat, y nat, cur-player color)
 	pos coord = x, y
 	if a.both-players grid-has pos
-		some: if a.current-player grid-has pos
-			cur-player
+		if a.current-player grid-has pos
+			cur-player,
 		else
-			cur-player opposite
+			cur-player.opposite,
 
 to-str str(a board, cur-player color, last-column nat?)
 	res writer = ()
 	0 .. width each x =>
 		text = " {x letter-of-alphabet}"
-		res ~= if x.some == last-column
+		res ~= if last-column == (x,)
 			"{term-bold}{text}{term-reset}"
 		else
 			text
