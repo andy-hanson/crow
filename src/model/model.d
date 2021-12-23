@@ -57,7 +57,7 @@ private immutable(SafeCStr) getBasePath(return scope ref immutable AbsolutePaths
 immutable(AbsolutePath) getAbsolutePath(
 	return scope ref immutable AbsolutePathsGetter a,
 	immutable PathAndStorageKind p,
-	immutable string extension,
+	immutable SafeCStr extension,
 ) {
 	return immutable AbsolutePath(getBasePath(a, p.storageKind), p.path, extension);
 }

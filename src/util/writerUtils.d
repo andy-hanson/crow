@@ -9,7 +9,7 @@ import util.path : AbsolutePath, AllPaths, baseName, nParents, parent, path, Pat
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, writeSym, writeSymAndGetSize;
 import util.util : todo;
-import util.writer : writeChar, writeNat, Writer, writeStatic, writeStr;
+import util.writer : writeChar, writeNat, Writer, writeStatic, writeSafeCStr, writeStr;
 
 private void writePath(
 	ref Writer writer,
@@ -21,7 +21,7 @@ private void writePath(
 		writePath(writer, allPaths, force(par));
 		writeChar(writer, '/');
 	}
-	writeSym(writer, allPaths.allSymbols.deref(), baseName(allPaths, p));
+	writeSym(writer, allPaths.allSymbols, baseName(allPaths, p));
 }
 
 void writePathRelativeToCwd(
@@ -44,7 +44,7 @@ void writePathRelativeToCwd(
 		writeChar(writer, '/');
 	}
 	writePath(writer, allPaths, path.path);
-	writeStr(writer, path.extension);
+	writeSafeCStr(writer, path.extension);
 }
 
 void writeRelPath(

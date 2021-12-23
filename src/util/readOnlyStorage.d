@@ -13,7 +13,7 @@ struct ReadOnlyStorage {
 	// WARN: The string used may be a temporary
 	void delegate(
 		immutable PathAndStorageKind path,
-		immutable string extension,
+		immutable SafeCStr extension,
 		scope void delegate(immutable Opt!SafeCStr) @safe @nogc pure nothrow cb,
 	) @safe @nogc nothrow withFile;
 }
@@ -21,7 +21,7 @@ struct ReadOnlyStorage {
 immutable(T) withFile(T)(
 	scope ref const ReadOnlyStorage storage,
 	immutable PathAndStorageKind path,
-	immutable string extension,
+	immutable SafeCStr extension,
 	immutable(T) delegate(immutable Opt!SafeCStr) @safe @nogc pure nothrow cb,
 ) {
 	static if (is(T == void)) {

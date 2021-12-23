@@ -57,10 +57,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	return cast(ubyte*) globalBuffer.ptr;
 }
 
-@system extern(C) Server* newServer(
-	ubyte* allocStart,
-	immutable size_t allocLength,
-) {
+@system extern(C) Server* newServer(ubyte* allocStart, immutable size_t allocLength) {
 	RangeAlloc alloc = RangeAlloc(allocStart, allocLength);
 	Server* ptr = allocateT!Server(alloc, 1);
 	ptr.__ctor(alloc.move());
@@ -70,43 +67,33 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 @system extern(C) void addOrChangeFile(
 	Server* server,
 	immutable StorageKind storageKind,
-	immutable char* pathStart,
-	immutable size_t pathLength,
-	immutable char* contentStart,
-	immutable size_t contentLength,
+	scope immutable CStr path,
+	scope immutable CStr content,
 ) {
-	immutable string path = pathStart[0 .. pathLength];
-	immutable string content = contentStart[0 .. contentLength];
-	addOrChangeFile(*server, storageKind, path, content);
+	addOrChangeFile(*server, storageKind, immutable SafeCStr(path), immutable SafeCStr(content));
 }
 
-@system extern(C) void deleteFile(
-	Server* server,
-	immutable StorageKind storageKind,
-	immutable char* pathStart,
-	immutable size_t pathLength,
-) {
-	deleteFile(*server, storageKind, pathStart[0 .. pathLength]);
+@system extern(C) void deleteFile(Server* server, immutable StorageKind storageKind, scope immutable CStr path) {
+	deleteFile(*server, storageKind, immutable SafeCStr(path));
 }
 
 @system extern(C) immutable(CStr) getFile(
 	Server* server,
 	immutable StorageKind storageKind,
-	immutable char* pathStart,
-	immutable size_t pathLength,
+	scope immutable CStr path,
 ) {
-	return getFile(*server, storageKind, pathStart[0 .. pathLength]).ptr;
+	return getFile(*server, storageKind, immutable SafeCStr(path)).ptr;
 }
 
 @system extern(C) immutable(CStr) getTokens(
 	ubyte* resultStart, immutable size_t resultLength,
 	Server* server,
 	immutable StorageKind storageKind,
-	immutable char* pathStart, immutable size_t pathLength,
+	scope immutable CStr path,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	immutable Token[] tokens = withNullPerf!(immutable Token[], (scope ref Perf perf) =>
-		getTokens(resultAlloc, perf, *server, storageKind, pathStart[0 .. pathLength]));
+		getTokens(resultAlloc, perf, *server, storageKind, immutable SafeCStr(path)));
 	immutable Repr repr = reprTokens(resultAlloc, tokens);
 	return jsonStrOfRepr(resultAlloc, server.allSymbols, repr).ptr;
 }
@@ -116,12 +103,11 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable size_t resultLength,
 	Server* server,
 	immutable StorageKind storageKind,
-	immutable char* pathStart,
-	immutable size_t pathLength,
+	scope immutable CStr path,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	immutable StrParseDiagnostic[] diags = withNullPerf!(immutable StrParseDiagnostic[], (scope ref Perf perf) =>
-		getParseDiagnostics(resultAlloc, perf, *server, storageKind, pathStart[0 .. pathLength]));
+		getParseDiagnostics(resultAlloc, perf, *server, storageKind, immutable SafeCStr(path)));
 	immutable Repr repr = reprParseDiagnostics(resultAlloc, diags);
 	return jsonStrOfRepr(resultAlloc, server.allSymbols, repr).ptr;
 }
@@ -131,27 +117,23 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable size_t resultLength,
 	Server* server,
 	immutable StorageKind storageKind,
-	immutable char* pathStart,
-	immutable size_t pathLength,
+	scope immutable CStr path,
 	immutable Pos pos,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
-	immutable string path = pathStart[0 .. pathLength];
 	return withNullPerf!(immutable SafeCStr, (scope ref Perf perf) =>
-		getHover(perf, resultAlloc, *server, storageKind, path, pos)).ptr;
+		getHover(perf, resultAlloc, *server, storageKind, immutable SafeCStr(path), pos)).ptr;
 }
 
 @system extern(C) immutable(CStr) run(
 	ubyte* resultStart,
 	immutable size_t resultLength,
 	Server* server,
-	immutable char* pathStart,
-	immutable size_t pathLength,
+	scope immutable CStr path,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
-	scope immutable string path = pathStart[0 .. pathLength];
 	immutable FakeExternResult result = withWebPerf!(immutable FakeExternResult)((scope ref Perf perf) =>
-		run(perf, resultAlloc, *server, path));
+		run(perf, resultAlloc, *server, immutable SafeCStr(path)));
 	return writeRunResult(server.alloc, result);
 }
 
@@ -165,8 +147,8 @@ extern(C) void perfLog(
 
 private:
 
-immutable(T) withWebPerf(T)(
-	scope immutable(T) delegate(scope ref Perf perf) @safe @nogc nothrow cb,
+@system immutable(T) withWebPerf(T)(
+	scope immutable(T) delegate(scope ref Perf perf) @nogc nothrow cb,
 ) {
 	scope Perf perf = Perf(() => getTimeNanos());
 	immutable T res = cb(perf);

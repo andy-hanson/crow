@@ -388,11 +388,11 @@ immutable(RunBuildResult) runBuildInner(
 	immutable Sym name = baseName(allPaths, programDirAndMain.mainPath);
 	immutable AbsolutePath cPath = has(options.out_.outC)
 		? force(options.out_.outC)
-		: immutable AbsolutePath(tempDir, rootPath(allPaths, name), ".c");
+		: immutable AbsolutePath(tempDir, rootPath(allPaths, name), safeCStr!".c");
 	immutable Opt!AbsolutePath exePath = has(options.out_.outExecutable)
 		? options.out_.outExecutable
 		: exeKind == ExeKind.ensureExe
-		? some(immutable AbsolutePath(tempDir, rootPath(allPaths, name), ""))
+		? some(immutable AbsolutePath(tempDir, rootPath(allPaths, name), safeCStr!""))
 		: none!AbsolutePath;
 	immutable ExitCode err = buildToCAndCompile(
 		alloc,
@@ -624,7 +624,7 @@ immutable(T) withReadOnlyStorage(T)(
 		immutable AbsolutePathsGetter(cwd, include, user),
 		(
 			immutable PathAndStorageKind pk,
-			immutable string extension,
+			immutable SafeCStr extension,
 			void delegate(immutable Opt!SafeCStr) @safe @nogc pure nothrow cb,
 		) {
 			immutable SafeCStr root = () {

@@ -14,19 +14,20 @@ if (typeof global !== "undefined")
 /** @typedef {number & {_isServer:true}} Server */
 
 /** @typedef {number} Ptr */
+/** @typedef {number} CStr */
 
 /**
 @typedef ExportFunctions
 @property {function(): number} getGlobalBufferSizeBytes
 @property {function(): number} getGlobalBufferPtr
 @property {function(Ptr, number): Server} newServer
-@property {function(Server, StorageKind, Ptr, number, Ptr, number): void} addOrChangeFile
-@property {function(Server, StorageKind, Ptr, number): void} deleteFile
-@property {function(Server, StorageKind, Ptr, number): number} getFile
-@property {function(Ptr, number, Server, StorageKind, Ptr, number): number} getTokens
-@property {function(Ptr, number, Server, StorageKind, Ptr, number): number} getParseDiagnostics
-@property {function(Ptr, number, Ptr, number, Server, StorageKind, Ptr, number, number): number} getHover
-@property {function(Ptr, number, Ptr, number, Server, Ptr, number): number} run
+@property {function(Server, StorageKind, CStr, CStr): void} addOrChangeFile
+@property {function(Server, StorageKind, CStr): void} deleteFile
+@property {function(Server, StorageKind, CStr): CStr} getFile
+@property {function(Ptr, number, Server, StorageKind, CStr): CStr} getTokens
+@property {function(Ptr, number, Server, StorageKind, CStr): CStr} getParseDiagnostics
+@property {function(Ptr, number, Ptr, number, Server, StorageKind, CStr, number): CStr} getHover
+@property {function(Ptr, number, Ptr, number, Server, CStr): number} run
 */
 
 /** @typedef {ExportFunctions & {memory:WebAssembly.Memory}} Exports */
@@ -106,13 +107,15 @@ class Allocator {
 
 	/**
 	@param {string} str
-	@return {BufferSpace}
+	@return {CStr}
 	*/
-	writeString(str) {
-		const res = this.reserve(str.length)
+	writeCStr(str) {
+		const res = this.reserve(str.length + 1).begin
 		for (let i = 0; i < str.length; i++)
-			this._view.setUint8(res.begin + i, str.charCodeAt(i))
-		if (readString(this._view, res.begin, res.size) !== str) throw new Error()
+			this._view.setUint8(res + i, str.charCodeAt(i))
+		this._view.setUint8(res + str.length, 0)
+		if (readCString(this._view, res, this._end - res) !== str)
+			throw new Error()
 		return res
 	}
 
@@ -160,8 +163,11 @@ class Compiler {
 					const name = res._readCStr(namePtr)
 					console.log(`${name} x ${count} took ${nanoseconds / 1_000_000n}ms and ${bytesAllocated} bytes`)
 				},
+				debugLog: str => {
+					console.log(res._readCStr(str))
+				},
 				verifyFail: () => {
-					throw new Error("Called jsFail!")
+					throw new Error("Called verifyFail!")
 				},
 			}
 		})
@@ -203,15 +209,11 @@ class Compiler {
 	*/
 	addOrChangeFile(storageKind, path, content) {
 		try {
-			const pathBuf = this._tempAlloc.writeString(path)
-			const contentBuf = this._tempAlloc.writeString(content)
 			this._exports.addOrChangeFile(
 				this._server,
 				storageKind,
-				pathBuf.begin,
-				pathBuf.size,
-				contentBuf.begin,
-				contentBuf.size)
+				this._tempAlloc.writeCStr(path),
+				this._tempAlloc.writeCStr(content))
 		} finally {
 			this._tempAlloc.clear()
 		}
@@ -224,8 +226,7 @@ class Compiler {
 	*/
 	deleteFile(storageKind, path) {
 		try {
-			const pathBuf = this._tempAlloc.writeString(path)
-			this._exports.deleteFile(this._server, storageKind, pathBuf.begin, pathBuf.size)
+			this._exports.deleteFile(this._server, storageKind, this._tempAlloc.writeCStr(path))
 		} finally {
 			this._tempAlloc.clear()
 		}
@@ -238,8 +239,7 @@ class Compiler {
 	*/
 	getFile(storageKind, path) {
 		try {
-			const pathBuf = this._tempAlloc.writeString(path)
-			return this._readCStr(this._exports.getFile(this._server, storageKind, pathBuf.begin, pathBuf.size))
+			return this._readCStr(this._exports.getFile(this._server, storageKind, this._tempAlloc.writeCStr(path)))
 		} finally {
 			this._tempAlloc.clear()
 		}
@@ -252,15 +252,14 @@ class Compiler {
 	*/
 	getTokens(storageKind, path) {
 		try {
-			const pathBuf = this._tempAlloc.writeString(path)
+			const pathCStr = this._tempAlloc.writeCStr(path)
 			const resultBuf = this._tempAlloc.reserveRest()
 			const res = this._exports.getTokens(
 				resultBuf.begin,
 				resultBuf.size,
 				this._server,
 				storageKind,
-				pathBuf.begin,
-				pathBuf.size)
+				pathCStr)
 			return JSON.parse(this._readCStr(res))
 		} finally {
 			this._tempAlloc.clear()
@@ -274,15 +273,14 @@ class Compiler {
 	*/
 	getParseDiagnostics(storageKind, path) {
 		try {
-			const pathBuf = this._tempAlloc.writeString(path)
+			const pathCStr = this._tempAlloc.writeCStr(path)
 			const resultBuf = this._tempAlloc.reserveRest()
 			const res = this._exports.getParseDiagnostics(
 				resultBuf.begin,
 				resultBuf.size,
 				this._server,
 				storageKind,
-				pathBuf.begin,
-				pathBuf.size)
+				pathCStr)
 			return JSON.parse(this._readCStr(res))
 		} finally {
 			this._tempAlloc.clear()
@@ -297,15 +295,14 @@ class Compiler {
 	*/
 	getHover(storageKind, path, pos) {
 		try {
-			const pathBuf = this._tempAlloc.writeString(path)
+			const pathCStr = this._tempAlloc.writeCStr(path)
 			const resultBuf = this._tempAlloc.reserveRest()
 			const res = this._exports.getHover(
 				resultBuf.begin,
 				resultBuf.size,
 				this._server,
 				storageKind,
-				pathBuf.begin,
-				pathBuf.size,
+				pathCStr,
 				pos)
 			return this._readCStr(res)
 		} finally {
@@ -319,14 +316,9 @@ class Compiler {
 	*/
 	run(path) {
 		try {
-			const pathBuf = this._tempAlloc.writeString(path)
+			const pathCStr = this._tempAlloc.writeCStr(path)
 			const resultBuf = this._tempAlloc.reserveRest()
-			const res = this._exports.run(
-				resultBuf.begin,
-				resultBuf.size,
-				this._server,
-				pathBuf.begin,
-				pathBuf.size)
+			const res = this._exports.run(resultBuf.begin, resultBuf.size, this._server, pathCStr)
 			return JSON.parse(this._readCStr(res))
 		} finally {
 			this._tempAlloc.clear()

@@ -2,9 +2,9 @@ module frontend.lang;
 
 @safe @nogc pure nothrow:
 
-immutable(string) crowExtension() {
-	return ".crow";
-}
+import util.col.str : SafeCStr, safeCStr;
+
+immutable(SafeCStr) crowExtension = safeCStr!".crow";
 
 struct JitOptions {
 	immutable OptimizationLevel optimization;

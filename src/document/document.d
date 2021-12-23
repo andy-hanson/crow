@@ -43,7 +43,7 @@ import util.col.dict : dictEach;
 import util.col.fullIndexDict : fullIndexDictGet;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths, Path, pathToStr;
+import util.path : AllPaths, Path, pathToSafeCStr;
 import util.ptr : Ptr;
 import util.repr : jsonStrOfRepr, NameAndRepr, nameAndRepr, Repr, reprArr, reprBool, reprNamedRecord, reprStr, reprSym;
 import util.sym : AllSymbols, hashSym, shortSym, Sym, symEq;
@@ -79,7 +79,7 @@ immutable(Repr) documentModule(
 	ref immutable Module a,
 ) {
 	immutable Path path = fullIndexDictGet(program.filesInfo.filePaths, a.fileIndex).path;
-	immutable string pathStr = pathToStr(alloc, allPaths, safeCStr!"", path, "");
+	immutable SafeCStr pathStr = pathToSafeCStr(alloc, allPaths, safeCStr!"", path, safeCStr!"");
 	ArrBuilder!Repr exports;
 	dictEach!(Sym, NameReferents, symEq, hashSym)(
 		a.allExportedNames,

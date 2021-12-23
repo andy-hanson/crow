@@ -5,7 +5,7 @@ module util.dictReadOnlyStorage;
 import frontend.lang : crowExtension;
 import model.model : AbsolutePathsGetter;
 import util.col.mutDict : getAt_mut, MutDict;
-import util.col.str : SafeCStr, safeCStr, strEq;
+import util.col.str : SafeCStr, safeCStr, safeCStrEq;
 import util.opt : asImmutable, Opt;
 import util.path : hashPathAndStorageKind, PathAndStorageKind, pathAndStorageKindEqual;
 import util.readOnlyStorage : ReadOnlyStorage;
@@ -19,10 +19,10 @@ immutable(T) withDictReadOnlyStorage(T)(
 		immutable AbsolutePathsGetter(safeCStr!"cwd", safeCStr!"include", safeCStr!"user"),
 		(
 			immutable PathAndStorageKind path,
-			immutable string extension,
+			immutable SafeCStr extension,
 			void delegate(immutable Opt!SafeCStr) @safe @nogc pure nothrow cb,
 		) {
-			verify(strEq(extension, crowExtension));
+			verify(safeCStrEq(extension, crowExtension));
 			cb(asImmutable(getAt_mut(files, path)));
 		});
 	return cb(storage);

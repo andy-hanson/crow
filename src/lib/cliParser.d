@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : findIndex, foldOrStop, mapOrNone;
-import util.col.str : SafeCStr, safeCStr, safeCStrEq, startsWith, strEq, strOfSafeCStr;
+import util.col.str : SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, startsWith, strEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.path : AbsolutePath, AllPaths, parseAbsoluteOrRelPath, Path;
 import util.util : todo, verify;
@@ -253,7 +253,7 @@ immutable(Opt!ProgramDirAndMain) parseProgramDirAndMain(
 	immutable SafeCStr arg,
 ) {
 	immutable AbsolutePath mainAbsolutePath = parseAbsoluteOrRelPath(alloc, allPaths, cwd, arg);
-	return empty(mainAbsolutePath.extension) || strEq(mainAbsolutePath.extension, crowExtension())
+	return safeCStrIsEmpty(mainAbsolutePath.extension) || safeCStrEq(mainAbsolutePath.extension, crowExtension)
 		? some(immutable ProgramDirAndMain(mainAbsolutePath.root, mainAbsolutePath.path))
 		: none!ProgramDirAndMain;
 }
@@ -428,7 +428,7 @@ immutable(Opt!BuildOptions) parseBuildOptions(
 		immutable BuildOptions(
 			immutable BuildOut(
 				none!AbsolutePath,
-				some(immutable AbsolutePath(programDirAndMain.programDir, programDirAndMain.mainPath, ""))),
+				some(immutable AbsolutePath(programDirAndMain.programDir, programDirAndMain.mainPath, safeCStr!""))),
 			immutable CCompileOptions(OptimizationLevel.none)),
 		argParts,
 		(immutable BuildOptions cur, ref immutable ArgsPart part) {
@@ -459,11 +459,11 @@ immutable(Opt!BuildOut) parseBuildOut(
 		args,
 		(immutable BuildOut o, ref immutable SafeCStr arg) {
 			immutable AbsolutePath path = parseAbsoluteOrRelPath(alloc, allPaths, cwd, arg);
-			if (empty(path.extension)) {
+			if (safeCStrIsEmpty(path.extension)) {
 				return has(o.outExecutable)
 					? none!BuildOut
 					: some(immutable BuildOut(o.outC, some(path)));
-			} else if (strEq(path.extension, ".c")) {
+			} else if (safeCStrEq(path.extension, safeCStr!".c")) {
 				return has(o.outC)
 					? none!BuildOut
 					: some(immutable BuildOut(some(path), o.outExecutable));

@@ -20,7 +20,7 @@ import util.col.arrBuilder : ArrBuilder;
 import util.col.arrUtil : arrLiteral, map;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize;
 import util.col.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
-import util.col.str : copyToSafeCStr, freeSafeCStr, SafeCStr, safeCStr;
+import util.col.str : copySafeCStr, freeSafeCStr, SafeCStr, safeCStr;
 import util.conv : safeToUshort;
 import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
@@ -58,11 +58,11 @@ struct Server {
 pure void addOrChangeFile(
 	ref Server server,
 	immutable StorageKind storageKind,
-	scope immutable string path,
-	scope immutable string content,
+	scope immutable SafeCStr path,
+	scope immutable SafeCStr content,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
-	immutable SafeCStr contentCopy = copyToSafeCStr(server.alloc, content);
+	immutable SafeCStr contentCopy = copySafeCStr(server.alloc, content);
 	insertOrUpdate!(
 		immutable PathAndStorageKind,
 		immutable SafeCStr,
@@ -79,7 +79,7 @@ pure void addOrChangeFile(
 		});
 }
 
-@trusted pure void deleteFile(ref Server server, immutable StorageKind storageKind, scope immutable string path) {
+@trusted pure void deleteFile(ref Server server, immutable StorageKind storageKind, scope immutable SafeCStr path) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable(SafeCStr) deleted = mustDelete(server.files, key);
 	freeSafeCStr(server.alloc, deleted);
@@ -88,7 +88,7 @@ pure void addOrChangeFile(
 pure immutable(SafeCStr) getFile(
 	ref Server server,
 	immutable StorageKind storageKind,
-	scope immutable string path,
+	scope immutable SafeCStr path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable Opt!(immutable SafeCStr) text = getAt_mut(server.files, key);
@@ -100,7 +100,7 @@ immutable(Token[]) getTokens(
 	scope ref Perf perf,
 	ref Server server,
 	immutable StorageKind storageKind,
-	scope immutable string path,
+	scope immutable SafeCStr path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable SafeCStr text = mustGetAt_mut(server.files, key);
@@ -120,7 +120,7 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 	scope ref Perf perf,
 	ref Server server,
 	immutable StorageKind storageKind,
-	scope immutable string path,
+	scope immutable SafeCStr path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable SafeCStr text = mustGetAt_mut(server.files, key);
@@ -146,7 +146,7 @@ immutable(SafeCStr) getHover(
 	ref Alloc alloc,
 	ref Server server,
 	immutable StorageKind storageKind,
-	scope immutable string path,
+	scope immutable SafeCStr path,
 	immutable Pos pos,
 ) {
 	immutable PathAndStorageKind pk = immutable PathAndStorageKind(toPath(server, path), storageKind);
@@ -190,9 +190,9 @@ immutable(FakeExternResult) run(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
-	scope immutable string mainPathStr,
+	scope immutable SafeCStr mainPath,
 ) {
-	immutable PathAndStorageKind main = immutable PathAndStorageKind(toPath(server, mainPathStr), StorageKind.local);
+	immutable PathAndStorageKind main = immutable PathAndStorageKind(toPath(server, mainPath), StorageKind.local);
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	scope immutable SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
@@ -205,7 +205,7 @@ immutable(FakeExternResult) run(
 
 private:
 
-pure immutable(Path) toPath(ref Server server, scope immutable string path) {
+pure immutable(Path) toPath(ref Server server, scope immutable SafeCStr path) {
 	return parsePath(server.allPaths, path);
 }
 
