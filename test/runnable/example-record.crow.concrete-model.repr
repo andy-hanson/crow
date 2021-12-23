@@ -497,8 +497,8 @@ program(
 			type(false, void)
 			none
 			[param(condition, type(false, bool))]
-			cond(param-ref(condition), call(void, []), call(abort, [])))
-		fun(noctx, void, type(false, void), none, [], builtin([]))
+			cond(param-ref(condition), call(new-void, []), call(abort, [])))
+		fun(noctx, new-void, type(false, void), none, [], builtin([]))
 		fun(noctx, abort, type(false, void), none, [], extern)
 		fun(
 			noctx
@@ -1145,7 +1145,8 @@ program(
 							call(as-any-mut-ptr, [param-ref(begin)])
 							0
 							call(wrap-mul, [param-ref(size), call(size-of, [])])])]))
-		fun(noctx, drop, type(false, void), none, [param("_", type(false, mut-ptr))], call(void, []))
+		fun(noctx, drop, type(false, void), none, [param("_", type(false, mut-ptr))], call(new, []))
+		fun(noctx, new, type(false, void), none, [], call(new-void, []))
 		fun(
 			noctx
 			memset
@@ -1217,8 +1218,8 @@ program(
 			[param(low, type(false, nat64)), param(high, type(false, nat64))]
 			cond(
 				call(<, [param-ref(low), param-ref(high)])
-				call(new, [call(void, []), param-ref(low), param-ref(high)])
-				call(new, [call(void, []), param-ref(high), param-ref(high)])))
+				call(new, [call(new, []), param-ref(low), param-ref(high)])
+				call(new, [call(new, []), param-ref(high), param-ref(high)])))
 		fun(
 			noctx
 			new
@@ -3867,7 +3868,7 @@ program(
 				match-union(
 					local-ref(old-state)
 					[
-						case(none, call(void, []))
+						case(none, call(new, []))
 						case(some(cbs), call(call-callbacks!, [local-ref(cbs), param-ref(result)]))
 						case(none, call(hard-unreachable, []))
 						case(none, call(hard-unreachable, []))])))
@@ -4518,7 +4519,7 @@ program(
 			new-record)
 		fun(noctx, island-id, type(false, nat64), none, [param(a, type(true, ctx))], field-get(1))
 		fun(noctx, exclusion, type(false, nat64), none, [param(a, type(true, ctx))], field-get(2))
-		fun(ctx, delay, type(true, fut), none, [], call(resolved, [call(void, [])]))
+		fun(ctx, delay, type(true, fut), none, [], call(resolved, [call(new, [])]))
 		fun(
 			ctx
 			resolved
@@ -4822,7 +4823,7 @@ program(
 			match-union(
 				param-ref(result)
 				[
-					case(none, call(void, []))
+					case(none, call(new, []))
 					case(some(e), call(subscript, [call(exception-handler, [call(get-cur-island, [])]), local-ref(e)]))]))
 		fun(
 			ctx
@@ -5204,7 +5205,7 @@ program(
 			match-union(
 				param-ref(a)
 				[case(none, call(true, [])), case(some(x), seq(call(drop, [local-ref(x)]), call(false, [])))]))
-		fun(noctx, drop, type(false, void), none, [param("_", type(true, task-queue-node))], call(void, []))
+		fun(noctx, drop, type(false, void), none, [param("_", type(true, task-queue-node))], call(new, []))
 		fun(
 			noctx
 			get-sequence
@@ -5490,7 +5491,7 @@ program(
 									call(
 										push-capacity-must-be-sufficient!
 										[local-ref(exclusions), call(exclusion, [local-ref(t)])]))
-								case(none, call(void, []))])
+								case(none, call(new, []))])
 						local-ref(res)))))
 		fun(
 			noctx
@@ -5873,7 +5874,7 @@ program(
 			none
 			[param(a, type(false, mut-ptr)), param(n, type(false, nat64))]
 			call(*, [call(+, [param-ref(a), param-ref(n)])]))
-		fun(noctx, drop, type(false, void), none, [param("_", type(false, nat64))], call(void, []))
+		fun(noctx, drop, type(false, void), none, [param("_", type(false, nat64))], call(new, []))
 		fun(
 			noctx
 			noctx-remove-unordered-at!

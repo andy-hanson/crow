@@ -5,7 +5,7 @@ import
 	../../fun-util: subscript
 	../../hash: hash-mix
 	../../log: info, log
-	../../misc: is-data, void
+	../../misc: is-data, new, void
 	../../opt: ==, is-empty, new, opt
 	../../ptr: ==, +, bits-equal, ref-eq, set-deref
 	../../str: ==, str
@@ -48,10 +48,10 @@ node-count<k, v> nat64(a compact-dict<k, v>)
 	prev impl<k, v>
 
 new<k, v> compact-dict<k, v>() is-data<k> compare<k> hash-mix<k>
-	void, ().end-node
+	(), ().end-node
 
 compact-dict<k, v> compact-dict<k, v>(a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
-	void, a.to-frozen-dict.end-node
+	(), a.to-frozen-dict.end-node
 
 keys<k, v> k[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, v) => k
@@ -113,7 +113,7 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	!a[key].is-empty
 
 .add-or-remove<k, v> compact-dict<k, v>(a compact-dict<k, v>, key k, value v?) is-data<k> compare<k> hash-mix<k>
-	void, ((((key, value),).to-frozen-dict, a.impl) merge-as-needed)
+	(), ((((key, value),).to-frozen-dict, a.impl) merge-as-needed)
 
 .merge-as-needed<k, v> impl<k, v>(a overlay<k, v>) is-data<k> compare<k> hash-mix<k>
 	match a prev
@@ -181,7 +181,7 @@ body
 region iteration
 
 each<k, v> void(a compact-dict<k, v>, f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	void fold a, (ignore, k, v) =>
+	() fold a, (ignore, k, v) =>
 		f[k, v]
 
 fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>

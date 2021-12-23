@@ -4,7 +4,7 @@ region basic types
 
 void builtin
 
-void void() noctx builtin
+new-void void() noctx builtin
 
 ###
 A type is data if it is:
@@ -142,7 +142,7 @@ todo<a> a() trusted noctx
 
 hard-assert void(condition bool) noctx unsafe
 	if condition
-		void
+		new-void
 	else
 		abort
 

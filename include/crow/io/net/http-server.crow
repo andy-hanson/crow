@@ -12,7 +12,7 @@ import
 	../../fut: fut, fut-catch, resolved, subscript, then
 	../../hash: hash-mix
 	../../log: error, log
-	../../misc: drop, void
+	../../misc: drop, new, void
 	../../number: ==, <=>, +, nat8, nat64, to-int64
 	../../opt: new, opt, or-default
 	../../extra-types: fd-t
@@ -45,16 +45,16 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 
 	on-accepted-client ref void(fd-t) = fd =>
 		client-states[fd] := ()
-		void resolved
+		() resolved
 	on-received-chunk ref void(fd-t, nat8[]) = (fd, bytes) =>
 		if state ?= client-states[fd]
 			closed <- fd handle-chunk state, bytes.as-str, handler
 			if closed
 				client-states remove-key! fd drop
-			void resolved
+			() resolved
 		else
 			print: "Ignoring unrecognized client"
-			void resolved
+			() resolved
 	tcp-server = port start-tcp-server (on-accepted-client, on-received-chunk)
 
 	# TODO: KILL

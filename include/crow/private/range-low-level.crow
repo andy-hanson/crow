@@ -1,7 +1,7 @@
 no-std
 import
 	../compare: <, compare
-	../misc: void
+	../misc: new, void
 
 # `low` is inclusive and `high` is exclusive.
 range<a> record
@@ -13,10 +13,10 @@ range<a> record
 
 .. <a> range<a>(low a, high a) noctx compare<a>
 	if low < high
-		void, low, high
+		(), low, high
 	else
 		# TODO:WARN
-		void, high, high
+		(), high, high
 
 size<a> a(a range a) minus<a>
 	a.high - a.low

@@ -2,7 +2,7 @@ no-std
 import
 	time: time, time_t
 	../fut: fut
-	../misc: void
+	../misc: new, void
 	../number: +
 	../ptr: null
 	../private/fut-low-level: resolve!, unresolved
@@ -23,5 +23,5 @@ delay fut void(duration duration) trusted summon
 	island = get-cur-island
 	res = unresolved@<void>
 	island add-task target-time, island.new-exclusion, () =>
-		res resolve! void
+		res resolve! ()
 	res

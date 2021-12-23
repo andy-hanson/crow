@@ -4,7 +4,7 @@ import
 	../../compare: <, <=, >=, compare, max, min
 	../../exception: unreachable
 	../../fun-util: subscript
-	../../misc: is-data, void
+	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, is-even, nat64
 	../../opt: ==, is-empty, new, opt, opt-or
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
@@ -264,7 +264,7 @@ compact<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>) is-data<k> 
 region iteration
 
 each<k, v> void(a compact-sorted-dict<k, v>, f act void(k, v)) is-data<k> compare<k>
-	void fold a, (ignore, k, v) =>
+	() fold a, (ignore, k, v) =>
 		f[k, v]
 
 fold<a, k, v> a(acc a, a compact-sorted-dict<k, v>, f act a(a, k, v)) is-data<k> compare<k>

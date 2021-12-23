@@ -7,7 +7,7 @@ import
 	../exception: assert
 	../fun-util: subscript
 	../log: info, log
-	../misc: drop, void
+	../misc: drop, new, void
 	../opt: is-empty, new, opt, or-default
 	../ptr: ==, +, *, const-ptr, ptr-to, set-deref
 	../range: .., each
@@ -411,7 +411,7 @@ to-str str(a index-set)
 region iteration
 
 each void(a index-set, f act void(nat64))
-	void fold a, (ignore, x) => f[x]
+	() fold a, (ignore, x) => f[x]
 
 fold<a> a(acc a, a index-set, f act a(a, nat64)) trusted
 	acc fold a.root, 0, a.capacity, f

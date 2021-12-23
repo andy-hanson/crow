@@ -22,7 +22,7 @@ import
 	../compare: <=
 	../exception: assert, throw
 	../extra-types: fd-t
-	../misc: void
+	../misc: new, void
 	../number: to-nat64
 	../ptr: +, any-const-ptr, as-any-mut-ptr, as-ref, by-val, const-ptr, null
 	../str: char, c-str, str
@@ -140,7 +140,7 @@ body
 	n-pollfds-with-events = to-int64: poll-fds.begin-ptr poll poll-fds.size, -1
 	if n-pollfds-with-events == 0
 		# TODO: is this even possible to reach ? I think we always get has-POLLHUP instead.
-		void
+		()
 	else
 		a = stdout-pollfd handle-revents stdout-builder
 		b = stderr-pollfd handle-revents stderr-builder
@@ -179,7 +179,6 @@ body
 	elif n-bytes-read == 0
 		# EOF, done
 		buffer unsafe-set-size! old-size
-		void
 	else
 		assert: n-bytes-read.to-nat64 <= read-max
 		new-size = old-size wrap-add n-bytes-read.to-nat64

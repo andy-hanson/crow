@@ -48,7 +48,7 @@ module(
 									[
 										lambda(
 											[param(file-range(77, range(277, 283)), some(ignore), logged())]
-											call(fun-inst(name: void), [])
+											call(fun-inst(name: new), [])
 											[]
 											fun1(void(), logged())
 											plain

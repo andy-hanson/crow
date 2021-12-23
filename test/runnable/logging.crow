@@ -9,6 +9,6 @@ main fut nat(_ str[]) summon
 		lh[logged]
 	doubler with-log-handler () =>
 		warn log "Logged twice"
-	(ignore => void) with-log-handler () =>
+	(ignore => ()) with-log-handler () =>
 		warn log "Logged never"
 	0 resolved

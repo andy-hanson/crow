@@ -5,7 +5,7 @@ import
 	../exception: assert, forbid
 	../fun-util: subscript
 	../hash: hash, hash-mix
-	../misc: drop, is-data, void
+	../misc: drop, is-data, new, void
 	../opt: ==, is-empty, new, opt
 	../ptr: ==, +, *, mut-ptr, set-deref
 	../str: ==, str
@@ -204,7 +204,7 @@ Returns the old value (if it exists).
 region iteration
 
 each<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	void fold a, (ignore, key, value) => f[key, value]
+	() fold a, (ignore, key, value) => f[key, value]
 
 fold<a, k, v> a(acc a, a v mut[k], f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
 	acc fold a.entries, (cur, entry) =>
@@ -222,7 +222,7 @@ filter!<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k> h
 	if entry-ptr != entry-end
 		match *entry-ptr
 		as none
-			void
+			()
 		as one ar
 			if !f[ar.from, ar.to]
 				*entry-ptr := none
@@ -256,7 +256,7 @@ map-values!<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<k> 
 	if entry-ptr != entry-end
 		match *entry-ptr
 		as none
-			void
+			()
 		as one ar
 			*entry-ptr := (ar.from, f[ar.from, ar.to]) one
 		as many m

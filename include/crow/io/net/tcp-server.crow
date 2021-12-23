@@ -20,7 +20,7 @@ import
 	../../exception: assert, message
 	../../extra-types: fd-t
 	../../fut: fut, handle-exceptions, then-void, fut-catch, resolved, subscript
-	../../misc: drop, void
+	../../misc: drop, new, void
 	../../number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../../private/bootstrap: todo
 	# TODO: don't use this
@@ -111,7 +111,7 @@ close-client void(client-fd fd-t) unsafe summon
 
 .tcp-server-loop fut void(state tcp-server-state) unsafe summon
 	if state should-stop
-		void resolved
+		() resolved
 	else
 		event epoll_event = 0, 0
 		timeout c-int = 0

@@ -4,7 +4,7 @@ import
 	../compare: !=, <, <=, >, >=, compare
 	../fun-util: subscript
 	../log: info, log
-	../misc: is-data, void
+	../misc: is-data, new, void
 	../opt: force, new, opt, or-default
 	../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../range: ..
@@ -280,7 +280,7 @@ body
 region iteration
 
 each<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
-	void fold a, (ignore, x) => f[x]
+	() fold a, (ignore, x) => f[x]
 
 fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 	acc fold-recur a.init-iters, a.remove, f

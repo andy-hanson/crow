@@ -3,7 +3,7 @@ import
 	../bool: !, &&, bool, false, true
 	../compare: <, >, <=, compare
 	../fun-util: subscript
-	../misc: is-data, void
+	../misc: is-data, new, void
 	../opt: force, is-empty, new, opt
 	../ptr: ==, +, -, mut-ptr, set-deref
 	../range: ..
@@ -219,7 +219,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 region iteration
 
 each<k, v> void(a priority-queue<k, v>, f act void(k, v)) is-data<k> compare<k>
-	void fold a, (ignore, k, v) => f[k, v]
+	() fold a, (ignore, k, v) => f[k, v]
 
 fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) is-data<k> compare<k>
 	acc walk-fold a.each-arr, f

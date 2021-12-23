@@ -6,7 +6,7 @@ import
 	../exception: assert, unreachable
 	../fun-util: subscript
 	../hash: hash, hash-mix
-	../misc: is-data, void
+	../misc: is-data, new, void
 	../opt: ==, force, is-empty, new, opt
 	../ptr: ==, +, set-deref
 	../range: ..
@@ -354,10 +354,10 @@ body
 region iteration
 
 each<k, v> void(a v[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	void fold a, (ignore, key, value) => f[key, value]
+	() fold a, (ignore, key, value) => f[key, value]
 
 each-key<k, v> void(a v[k], f act void(k)) is-data<k> compare<k> hash-mix<k>
-	void fold-keys a, (ignore, key) => f[key]
+	() fold-keys a, (ignore, key) => f[key]
 
 fold<a, k, v> a(acc a, a v[k], f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
 	acc fold-recur a.root, f

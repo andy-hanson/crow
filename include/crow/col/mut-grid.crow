@@ -5,7 +5,7 @@ import
 	../exception: assert
 	../fun-util: subscript
 	../log: info, log
-	../misc: void
+	../misc: new, void
 	../number: *
 	../ptr: ==, +, *, as-const, const-ptr, mut-ptr, set-deref
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
@@ -104,10 +104,10 @@ to-str<a> str(a mut-grid a) write<a>
 region iteration
 
 each<a> void(a mut-grid a, f act void(a))
-	void fold a, (ignore, value) => f[value]
+	() fold a, (ignore, value) => f[value]
 
 each-row<a> void(a mut-grid a, f act void(fix-arr a))
-	void fold-rows a, (ignore, row) => f[row]
+	() fold-rows a, (ignore, row) => f[row]
 
 fold-rows<a, b> a(acc a, a mut-grid b, f act a(a, fix-arr b))
 	acc fold-rows-recur a, 0, f
@@ -147,7 +147,7 @@ map-with-coords!<a> void(a mut-grid a, f act a(a, coord)) trusted
 	a.elements.begin-ptr map-with-coords-recur! a.elements.end-ptr, zero, a.width, f
 .map-with-coords-recur!<a> void(cur a mut*, end a mut*, coord coord, width nat64, f act a(a, coord)) unsafe
 	if cur == end
-		void
+		()
 	else
 		*cur := f[*cur, coord]
 		cur + 1 map-with-coords-recur! end, (coord next-coord width), width, f

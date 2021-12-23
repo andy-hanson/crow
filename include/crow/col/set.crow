@@ -6,7 +6,7 @@ import
 	../fun-util: subscript
 	../hash: hash-mix
 	../log: info, log
-	../misc: is-data, void
+	../misc: is-data, new, void
 	../opt: force, new, opt, or-default
 	../ptr: ==, <=>, +, *, const-ptr, mut-ptr, set-deref
 	../str: ==, str
@@ -205,7 +205,7 @@ body
 region iteration
 
 each<a> void(a set a, f act void(a)) is-data<a> compare<a> hash-mix<a>
-	void fold a, (ignore, x) =>
+	() fold a, (ignore, x) =>
 		f[x]
 
 fold<a, b> a(acc a, a set b, f act a(a, b)) is-data<b> compare<b> hash-mix<b>

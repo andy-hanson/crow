@@ -25,7 +25,7 @@ import
 	../fun-util: subscript
 	../io/file: make-directory, path-exists, remove-directory-and-contents-non-recursive
 	../log: info, log
-	../misc: is-data, void
+	../misc: is-data, new, void
 	../number: ==, *, nat, nat8, nat32, nat64, to-nat64
 	../opt: new, opt
 	../ptr: ==, +, as-mut, mut-ptr, null, ptr-cast-to-extern, set-deref, zeroed
@@ -152,7 +152,7 @@ transaction-result<a> union
 	transaction-commit a
 
 each<k, v> void(txn lMDB_txn, db lmdb-db<k, v>, f act void(k, v)) summon lmdb-key<k> serialize<v>
-	void fold txn, db, (ignore, key, value) => f[key, value]
+	() fold txn, db, (ignore, key, value) => f[key, value]
 
 map<out, k, v> out[](txn lMDB_txn, db lmdb-db<k, v>, f act out(k, v)) trusted summon lmdb-key<k> serialize<v>
 	out fix-arr out = txn count db uninitialized-fix-arr

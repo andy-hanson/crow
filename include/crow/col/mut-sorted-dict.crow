@@ -4,7 +4,7 @@ import
 	../compare: !=, <, >, <=, compare
 	../exception: assert
 	../fun-util: subscript
-	../misc: is-data, void
+	../misc: is-data, new, void
 	../number: ==, <=>, +, -, *, nat64
 	../opt: ==, force, is-empty, new, opt, or-default, size
 	../ptr: ==, -, *, mut-ptr, set-deref
@@ -234,7 +234,7 @@ remove-key!<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<
 region iteration
 
 each<k, v> void(a mut-sorted-dict<k, v>, f act void(k, v)) is-data<k> compare<k>
-	void fold a, (ignore, k, v) =>
+	() fold a, (ignore, k, v) =>
 		f[k, v]
 
 fold<a, k, v> a(acc a, a mut-sorted-dict<k, v>, f act a(a, k, v)) is-data<k> compare<k>

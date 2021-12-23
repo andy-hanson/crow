@@ -5,7 +5,7 @@ import
 	./col/arr-util: each-with-index, first-some, map
 	./exception: catch, exception
 	./fun-util: subscript
-	./misc: void
+	./misc: new, void
 	./opt: new, opt
 	./result: result
 	./private/bootstrap:
@@ -21,7 +21,7 @@ export
 # A future that resolves immediately.
 # Used to make code run in another task (to break up a big task).
 delay fut void()
-	void resolved
+	() resolved
 
 # Converts a value to a `fut` resolved with that value.
 resolved<a> fut a(value a)
@@ -220,6 +220,6 @@ handle-exceptions<a> void(a fut a) trusted
 	a callback! result =>
 		match result
 		as ok _
-			void
+			()
 		as err e
 			get-cur-island.exception-handler[e]

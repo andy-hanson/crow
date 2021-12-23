@@ -35,9 +35,12 @@ file-ast(
 										lambda([], call(infix, name-range(256, log), [], [warn, literal("Logged twice")]))])
 								call(
 									infix
-									name-range(293, with-log-handler)
+									name-range(291, with-log-handler)
 									[]
 									[
-										paren(lambda([name-range(277, ignore)], void))
-										lambda([], call(infix, name-range(323, log), [], [warn, literal("Logged never")]))]))
-							call(infix, name-range(345, resolved), [], [literal(nat(0, false))]))))))])
+										paren(
+											lambda(
+												[name-range(277, ignore)]
+												call(empty-parens, name-range(287, new), [], [])))
+										lambda([], call(infix, name-range(321, log), [], [warn, literal("Logged never")]))]))
+							call(infix, name-range(343, resolved), [], [literal(nat(0, false))]))))))])

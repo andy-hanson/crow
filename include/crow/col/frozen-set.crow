@@ -4,7 +4,7 @@ import
 	../compare: !=, <=, compare
 	../fun-util: subscript
 	../hash: hash, hash-mix
-	../misc: is-data, void
+	../misc: is-data, new, void
 	../opt: new, opt
 	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap!
 	../test-util: is
@@ -146,7 +146,7 @@ body
 region iteration
 
 each<a> void(a frozen-set a, f act void(a))
-	void fold a, (ignore, x) =>
+	() fold a, (ignore, x) =>
 		f[x]
 
 fold<a, b> a(acc a, a frozen-set b, f act a(a, b))

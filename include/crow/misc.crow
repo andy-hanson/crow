@@ -1,7 +1,12 @@
 no-std
+import
+	./private/bootstrap: new-void
 export
 	./private/bootstrap: is-data, name, named-val, val, void
 
+new void() noctx
+	new-void
+
 # Ignores the value and returns void.
 drop<a> void(_ a) noctx
-	void
+	()

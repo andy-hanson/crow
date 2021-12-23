@@ -275,6 +275,10 @@ immutable(BuiltinKind) getBuiltinKind(
 				isFloat32(p0) ? LowExprKind.SpecialUnary.Kind.isNanFloat32 :
 				isFloat64(p0) ? LowExprKind.SpecialUnary.Kind.isNanFloat64 :
 				failUnary());
+		case shortSymValue("new-void"):
+			return isVoid(rt)
+				? constant(immutable Constant(immutable Constant.Void()))
+				: fail();
 		case shortSymValue("null"):
 			return constant(immutable Constant(immutable Constant.Null()));
 		case shortSymValue("ptr-to"):
@@ -341,8 +345,6 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failBinary());
 		case shortSymValue("unsafe-mod"):
 			return isNat64(rt) ? binary(LowExprKind.SpecialBinary.Kind.unsafeModNat64) : fail();
-		case shortSymValue("void"):
-			return constant(immutable Constant(immutable Constant.Void()));
 		case shortSymValue("wrap-add"):
 			return binary(isInt16(rt)
 				? LowExprKind.SpecialBinary.Kind.wrapAddInt16
@@ -435,46 +437,50 @@ immutable(bool) isPrimitiveType(ref immutable LowType t, immutable PrimitiveType
 	return isPrimitive(t) && asPrimitive(t) == p;
 }
 
-immutable(bool) isChar(ref immutable LowType t) {
-	return isPrimitiveType(t, PrimitiveType.char_);
+immutable(bool) isChar(immutable LowType a) {
+	return isPrimitiveType(a, PrimitiveType.char_);
 }
 
-immutable(bool) isInt8(ref immutable LowType t) {
-	return isPrimitiveType(t, PrimitiveType.int8);
+immutable(bool) isInt8(immutable LowType a) {
+	return isPrimitiveType(a, PrimitiveType.int8);
 }
 
-immutable(bool) isInt16(ref immutable LowType t) {
-	return isPrimitiveType(t, PrimitiveType.int16);
+immutable(bool) isInt16(immutable LowType a) {
+	return isPrimitiveType(a, PrimitiveType.int16);
 }
 
-immutable(bool) isInt32(ref immutable LowType t) {
-	return isPrimitiveType(t, PrimitiveType.int32);
+immutable(bool) isInt32(immutable LowType a) {
+	return isPrimitiveType(a, PrimitiveType.int32);
 }
 
-immutable(bool) isInt64(ref immutable LowType t) {
-	return isPrimitiveType(t, PrimitiveType.int64);
+immutable(bool) isInt64(immutable LowType a) {
+	return isPrimitiveType(a, PrimitiveType.int64);
 }
 
-immutable(bool) isNat8(ref immutable LowType t) {
-	return isPrimitiveType(t, PrimitiveType.nat8);
+immutable(bool) isNat8(immutable LowType a) {
+	return isPrimitiveType(a, PrimitiveType.nat8);
 }
 
-immutable(bool) isNat16(ref immutable LowType t) {
-	return isPrimitiveType(t, PrimitiveType.nat16);
+immutable(bool) isNat16(immutable LowType a) {
+	return isPrimitiveType(a, PrimitiveType.nat16);
 }
 
-immutable(bool) isNat32(ref immutable LowType t) {
-	return isPrimitiveType(t, PrimitiveType.nat32);
+immutable(bool) isNat32(immutable LowType a) {
+	return isPrimitiveType(a, PrimitiveType.nat32);
 }
 
-immutable(bool) isNat64(ref immutable LowType t) {
-	return isPrimitiveType(t, PrimitiveType.nat64);
+immutable(bool) isNat64(immutable LowType a) {
+	return isPrimitiveType(a, PrimitiveType.nat64);
 }
 
-immutable(bool) isFloat32(ref immutable LowType t) {
-	return isPrimitiveType(t, PrimitiveType.float32);
+immutable(bool) isFloat32(immutable LowType a) {
+	return isPrimitiveType(a, PrimitiveType.float32);
 }
 
-immutable(bool) isFloat64(ref immutable LowType t) {
-	return isPrimitiveType(t, PrimitiveType.float64);
+immutable(bool) isFloat64(immutable LowType a) {
+	return isPrimitiveType(a, PrimitiveType.float64);
+}
+
+immutable(bool) isVoid(immutable LowType a) {
+	return isPrimitiveType(a, PrimitiveType.void_);
 }

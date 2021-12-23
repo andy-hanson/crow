@@ -4,7 +4,7 @@ import
 	../compare: !=
 	../exception: assert, forbid, throw
 	../fun-util: subscript
-	../misc: drop, void
+	../misc: drop, new, void
 	../opt: ==, is-empty, new, opt
 	../ptr: ==, +, -, set-deref
 	../str: str
@@ -189,7 +189,8 @@ test
 	d = c ~ 3
 	d.arr is (1, 2, 3)
 
-	each-spy spy-act1<void, nat64> = spy-act: void
+	# TODO: should not need type annotation
+	each-spy spy-act1<void, nat64> = spy-act: () :: void
 	d each each-spy.fn
 	each-spy.calls is (1, 2, 3)
 

@@ -118,18 +118,16 @@ body
 	res move-to-str!
 
 .remove-colors-recur! void(s str, out writer)
-	if s is-empty
-		void
-	elif rest ?= s try-remove-start "\x1b"
-		rest remove-colors-recur-2! out
-	else
-		out ~= s.chars[0]
-		s.chars.tail.str remove-colors-recur! out
+	if !s.is-empty
+		if rest ?= s try-remove-start "\x1b"
+			rest remove-colors-recur-2! out
+		else
+			out ~= s.chars[0]
+			s.chars.tail.str remove-colors-recur! out
 
 .remove-colors-recur-2! void(s str, out writer)
-	if s is-empty
-		void
-	elif rest ?= s try-remove-start "m"
-		rest remove-colors-recur! out
-	else
-		s.chars.tail.str remove-colors-recur-2! out
+	if !s.is-empty
+		if rest ?= s try-remove-start "m"
+			rest remove-colors-recur! out
+		else
+			s.chars.tail.str remove-colors-recur-2! out

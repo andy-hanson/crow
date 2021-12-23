@@ -195,7 +195,7 @@ continue-or-quit enum
 		<- interval delay
 		interval repeat-interval action
 	as quit
-		void resolved
+		() resolved
 
 .vbo-create GLuint(vertices fix-arr vertex) summon unsafe
 	vbo-cell cell GLuint = 0,
