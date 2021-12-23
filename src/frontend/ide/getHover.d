@@ -11,9 +11,11 @@ import model.model :
 	StructDecl,
 	matchStructBody,
 	name,
+	Param,
 	Program,
 	SpecDecl,
 	StructBody,
+	Type,
 	TypeParam,
 	writeStructDecl,
 	writeType;
@@ -61,6 +63,10 @@ void getHover(
 		(ref immutable Position.ImportedName it) {
 			getImportedNameHover(writer, it);
 		},
+		(ref immutable Param it) {
+			writeStatic(writer, "param ");
+			writeSym(writer, allSymbols, it.nameOrUnderscore);
+		},
 		(ref immutable Position.RecordFieldPosition it) {
 			writeStatic(writer, "field ");
 			writeStructDecl(writer, allSymbols, it.struct_.deref());
@@ -99,7 +105,10 @@ void getHover(
 				});
 			writeSym(writer, allSymbols, it.name);
 		},
-		(ref immutable TypeParam) {
+		(ref immutable Type a) {
+			writeStatic(writer, "TODO: hover for type");
+		},
+		(ref immutable(TypeParam)) {
 			writeStatic(writer, "TODO: type param");
 		});
 }

@@ -214,13 +214,14 @@ export const CrowText = makeCustomElement({
 			const leadingTabs = countLeadingTabs(lineText)
 			const tabsFix = leadingTabs * (tab_size - 1)
 			const column = clamp(columnPre - tabsFix, 0, lineText.length - 1)
-			const pos = sum(lines.slice(0, line), line => line.length) + column
+			const pos = sum(lines.slice(0, line), line => line.length + "\n".length) + column
 			mouseMoveIndex++
 
 			if (mouseMoveIndex === 2**16) mouseMoveIndex = 0
 			const saveMouseMoveIndex = mouseMoveIndex
 			setTimeout(() => {
 				if (mouseIsIn && mouseMoveIndex === saveMouseMoveIndex) {
+					console.log("POS IS", pos)
 					const hover = getHover(pos)
 					if (hover !== "") {
 						tooltip = div({class:hoverTooltipClass}, [hover])

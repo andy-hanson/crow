@@ -728,7 +728,7 @@ immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a, ref const 
 	return matchConcreteFunSource!(
 		immutable FileAndRange,
 		(ref immutable FunInst it) =>
-			range(decl(it).deref(), allSymbols),
+			decl(it).deref().range,
 		(ref immutable ConcreteFunSource.Lambda it) =>
 			it.range,
 		(ref immutable ConcreteFunSource.Test it) =>

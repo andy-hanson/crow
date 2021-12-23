@@ -14,13 +14,32 @@ import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.opt : force, has, Opt;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
 import util.perf : Perf, withNullPerf;
-import util.ptr : Ptr;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : Pos;
 import util.sym : shortSym;
 import util.util : verify, verifyFail;
 
 @trusted void testHover(ref Test test) {
+	testBasic(test);
+	testFunction(test);
+}
+
+private:
+
+struct HoverTest {
+	@safe @nogc pure nothrow:
+
+	Ptr!Test testPtr;
+	immutable Program program;
+	immutable Ptr!Module mainModule;
+
+	ref Test test() return scope {
+		return testPtr.deref();
+	}
+}
+
+HoverTest initHoverTest(ref Test test, immutable SafeCStr content) {
 	immutable Path path = rootPath(test.allPaths, shortSym("main"));
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(path, StorageKind.local);
 	MutFiles files;
@@ -31,33 +50,45 @@ import util.util : verify, verifyFail;
 			withNullPerf!(immutable Program, (scope ref Perf perf) =>
 				frontendCompile(test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, [key])));
 	immutable Ptr!Module mainModule = lastPtr(program.allModules);
+	return HoverTest(ptrTrustMe_mut(test), program, mainModule);
+}
 
-	immutable(SafeCStr) hover(immutable Pos pos) {
-		immutable Opt!Position position = getPosition(test.allSymbols, mainModule.deref(), pos);
-		return has(position)
-			? getHoverStr(test.alloc, test.alloc, test.allSymbols, test.allPaths, program, force(position))
-			: safeCStr!"";
-	}
+immutable(SafeCStr) hover(ref HoverTest a, immutable Pos pos) {
+	immutable Opt!Position position = getPosition(a.test.allSymbols, a.mainModule.deref(), pos);
+	return has(position)
+		? getHoverStr(a.test.alloc, a.test.alloc, a.test.allSymbols, a.test.allPaths, a.program, force(position))
+		: safeCStr!"";
+}
 
-	void checkHover(immutable Pos pos, immutable SafeCStr expected) {
-		verifyStrEq(pos, hover(pos), expected);
-	}
-	void checkHoverRange(immutable Pos start, immutable Pos end, immutable SafeCStr expected) {
-		foreach (immutable Pos pos; start .. end)
-			checkHover(pos, expected);
-	}
+void checkHover(ref HoverTest test, immutable Pos pos, immutable SafeCStr expected) {
+	verifyStrEq(pos, hover(test, pos), expected);
+}
 
-	checkHover(0, safeCStr!"");
-	checkHoverRange(1, 11, safeCStr!"builtin type nat");
-	checkHoverRange(12, 13, safeCStr!"");
+void checkHoverRange(ref HoverTest test, immutable Pos start, immutable Pos end, immutable SafeCStr expected) {
+	foreach (immutable Pos pos; start .. end)
+		checkHover(test, pos, expected);
+}
+
+@trusted void testBasic(ref Test test) {
+	immutable SafeCStr content = safeCStr!`
+nat builtin
+
+r record
+	fld nat
+`;
+	HoverTest a = initHoverTest(test, content);
+
+	checkHover(a, 0, safeCStr!"");
+	checkHoverRange(a, 1, 11, safeCStr!"builtin type nat");
+	checkHoverRange(a, 12, 13, safeCStr!"");
 	immutable Pos rStart = 14;
 	verify(content.ptr[rStart] == 'r');
 	immutable Pos fldStart = rStart + 10;
-	checkHoverRange(rStart, fldStart, safeCStr!"record r");
+	checkHoverRange(a, rStart, fldStart, safeCStr!"record r");
 	verify(content.ptr[fldStart] == 'f');
-	checkHoverRange(fldStart, fldStart + 3, safeCStr!"field r.fld (nat)");
-	checkHoverRange(fldStart + 3, fldStart + 7, safeCStr!"builtin type nat");
-	checkHoverRange(fldStart + 7, fldStart + 8, safeCStr!"record r");
+	checkHoverRange(a, fldStart, fldStart + 3, safeCStr!"field r.fld (nat)");
+	checkHoverRange(a, fldStart + 3, fldStart + 7, safeCStr!"builtin type nat");
+	checkHoverRange(a, fldStart + 7, fldStart + 8, safeCStr!"record r");
 	verify(content.ptr + fldStart + 8 == end(content.ptr));
 
 	// TODO: TEST:
@@ -67,7 +98,21 @@ import util.util : verify, verifyFail;
 	// * every expression
 }
 
-private:
+void testFunction(ref Test test) {
+	HoverTest a = initHoverTest(test, safeCStr!`f nat(a str, b nat)
+	a[b]
+`);
+
+	checkHover(a, 0, safeCStr!"fun f");
+	checkHoverRange(a, 1, 5, safeCStr!"TODO: hover for type");
+	checkHover(a, 6, safeCStr!"param a");
+	checkHoverRange(a, 7, 10, safeCStr!"TODO: hover for type");
+	checkHoverRange(a, 11, 13, safeCStr!"");
+	checkHover(a, 13, safeCStr!"param b");
+	checkHoverRange(a, 15, 18, safeCStr!"TODO: hover for type");
+
+	//TODO: hover in function body
+}
 
 void verifyStrEq(immutable Pos pos, immutable SafeCStr actual, immutable SafeCStr expected) {
 	if (!safeCStrEq(actual, expected)) {
@@ -78,10 +123,3 @@ void verifyStrEq(immutable Pos pos, immutable SafeCStr actual, immutable SafeCSt
 		verifyFail();
 	}
 }
-
-immutable SafeCStr content = safeCStr!`
-nat builtin
-
-r record
-	fld nat
-`;

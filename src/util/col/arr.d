@@ -88,7 +88,7 @@ immutable(Ptr!T) lastPtr(T)(ref immutable T[] a) {
 	return ptrAt(a, a.length - 1);
 }
 
-@trusted PtrsRange!T ptrsRange(T)(ref immutable T[] a) {
+@trusted PtrsRange!T ptrsRange(T)(immutable T[] a) {
 	return PtrsRange!T(a.ptr, a.ptr + a.length);
 }
 

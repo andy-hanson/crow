@@ -231,7 +231,7 @@ immutable(FileToFuns) fileToFuns(ref Alloc alloc, ref const AllSymbols allSymbol
 		modulesDict,
 		(immutable FileIndex, ref immutable Module module_) =>
 			map(alloc, module_.funs, (ref immutable FunDecl it) =>
-				immutable FunNameAndPos(name(it), range(it, allSymbols).range.start)));
+				immutable FunNameAndPos(name(it), it.fileAndPos.pos)));
 }
 
 immutable(TypeSize) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {

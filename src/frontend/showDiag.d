@@ -39,7 +39,7 @@ import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has;
 import util.path : AllPaths, baseName, PathAndStorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.sourceRange : FileAndRange;
+import util.sourceRange : FileAndPos;
 import util.sym : AllSymbols, strOfOperator, Sym, writeSym;
 import util.util : unreachable;
 import util.writer :
@@ -98,9 +98,9 @@ void writeLineNumber(
 	ref const AllPaths allPaths,
 	ref immutable ShowDiagOptions options,
 	immutable FilesInfo fi,
-	immutable FileAndRange range,
+	immutable FileAndPos pos,
 ) {
-	immutable PathAndStorageKind where = fullIndexDictGet(fi.filePaths, range.fileIndex);
+	immutable PathAndStorageKind where = fullIndexDictGet(fi.filePaths, pos.fileIndex);
 	if (options.color)
 		writeBold(writer);
 	writePathAndStorageKind(writer, allPaths, where);
@@ -108,10 +108,7 @@ void writeLineNumber(
 	if (options.color)
 		writeReset(writer);
 	writeStatic(writer, " line ");
-	immutable size_t line = lineAndColumnAtPos(
-		fullIndexDictGet(fi.lineAndColumnGetters, range.fileIndex),
-		range.range.start,
-	).line;
+	immutable size_t line = lineAndColumnAtPos(fullIndexDictGet(fi.lineAndColumnGetters, pos.fileIndex), pos.pos).line;
 	writeNat(writer, line + 1);
 }
 
@@ -350,7 +347,7 @@ void writeFunDeclLocation(
 	ref immutable FunDecl funDecl,
 ) {
 	writeStatic(writer, " (from ");
-	writeLineNumber(writer, allPaths, options, fi, range(funDecl, allSymbols));
+	writeLineNumber(writer, allPaths, options, fi, funDecl.fileAndPos);
 	writeChar(writer, ')');
 }
 

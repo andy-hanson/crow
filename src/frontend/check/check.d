@@ -1406,7 +1406,7 @@ immutable(FunsAndDict) checkFuns(
 					break;
 				case Visibility.private_:
 					if (!used && !okIfUnused(fun.deref()))
-						addDiag(alloc, ctx, range(fun.deref(), allSymbols), immutable Diag(
+						addDiag(alloc, ctx, fun.deref().range, immutable Diag(
 							immutable Diag.UnusedPrivateFun(fun)));
 			}
 		});

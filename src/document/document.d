@@ -46,7 +46,7 @@ import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, pathToSafeCStr;
 import util.ptr : Ptr;
 import util.repr : jsonStrOfRepr, NameAndRepr, nameAndRepr, Repr, reprArr, reprBool, reprNamedRecord, reprStr, reprSym;
-import util.sym : AllSymbols, hashSym, shortSym, Sym, symEq;
+import util.sym : AllSymbols, hashSym, Sym, symEq;
 import util.util : unreachable, verify;
 
 immutable(SafeCStr) documentJSON(
@@ -221,7 +221,7 @@ immutable(Repr) documentFun(ref Alloc alloc, ref immutable FunDecl a) {
 
 immutable(Repr) documentParam(ref Alloc alloc, ref immutable Param a) {
 	return reprNamedRecord(alloc, "param", [
-		nameAndRepr("name", reprSym(has(a.name) ? force(a.name) : shortSym("_"))),
+		nameAndRepr("name", reprSym(a.nameOrUnderscore)),
 		nameAndRepr("type", documentTypeRef(alloc, a.type))]);
 }
 

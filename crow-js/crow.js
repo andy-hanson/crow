@@ -163,8 +163,8 @@ class Compiler {
 					const name = res._readCStr(namePtr)
 					console.log(`${name} x ${count} took ${nanoseconds / 1_000_000n}ms and ${bytesAllocated} bytes`)
 				},
-				debugLog: str => {
-					console.log(res._readCStr(str))
+				debugLog: (str, value) => {
+					console.log(res._readCStr(str), value)
 				},
 				verifyFail: () => {
 					throw new Error("Called verifyFail!")

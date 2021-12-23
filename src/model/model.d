@@ -15,10 +15,16 @@ import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.memory : allocate;
-import util.opt : Opt, some;
+import util.opt : force, has, Opt, some;
 import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
 import util.ptr : hashPtr, Ptr, ptrEquals, TaggedPtr;
-import util.sourceRange : FileAndPos, FileAndRange, FileIndex, rangeOfStartAndName, RangeWithinFile;
+import util.sourceRange :
+	FileAndPos,
+	FileAndRange,
+	fileAndRangeFromFileAndPos,
+	FileIndex,
+	rangeOfStartAndName,
+	RangeWithinFile;
 import util.sym :
 	AllSymbols,
 	Operator,
@@ -28,7 +34,6 @@ import util.sym :
 	symEq,
 	symForOperator,
 	symForSpecial,
-	symSize,
 	writeSym;
 import util.util : todo, unreachable, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
@@ -221,11 +226,21 @@ private void hashType(ref Hasher hasher, immutable Type a) {
 }
 
 struct Param {
+	@safe @nogc pure nothrow:
+
 	//TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
 	immutable Opt!Sym name;
 	immutable Type type;
 	immutable size_t index;
+
+	immutable(Sym) nameOrUnderscore() immutable {
+		return has(name) ? force(name) : shortSym("_");
+	}
+
+	immutable(RangeWithinFile) nameRange(ref const AllSymbols allSymbols) immutable {
+		return rangeOfStartAndName(range.range.start, nameOrUnderscore, allSymbols);
+	}
 }
 
 immutable(Param) withType(ref immutable Param a, immutable Type t) {
@@ -353,17 +368,11 @@ struct Sig {
 	immutable Type returnType;
 	immutable Params params;
 
-	immutable(RangeWithinFile) range(ref const AllSymbols allSymbols) immutable {
+	immutable(RangeWithinFile) nameRange(ref const AllSymbols allSymbols) immutable {
 		return rangeOfStartAndName(fileAndPos.pos, name, allSymbols);
 	}
 }
 static assert(Sig.sizeof <= 48);
-
-immutable(FileAndRange) range(ref immutable Sig a, ref const AllSymbols allSymbols) {
-	return immutable FileAndRange(
-		a.fileAndPos.fileIndex,
-		immutable RangeWithinFile(a.fileAndPos.pos, a.fileAndPos.pos + symSize(allSymbols, a.name)));
-}
 
 immutable(Arity) arity(ref const Sig a) {
 	return arity(a.params);
@@ -972,6 +981,15 @@ struct FunDecl {
 	immutable ArrWithSize!TypeParam typeParams_;
 	immutable ArrWithSize!(Ptr!SpecInst) specs_;
 	FunBody body_;
+
+	immutable(FileAndPos) fileAndPos() immutable {
+		return sig.fileAndPos;
+	}
+
+	immutable(FileAndRange) range() immutable {
+		// TODO: end position
+		return fileAndRangeFromFileAndPos(fileAndPos);
+	}
 }
 
 immutable(TypeParam[]) typeParams(ref immutable FunDecl a) {
@@ -979,10 +997,6 @@ immutable(TypeParam[]) typeParams(ref immutable FunDecl a) {
 }
 immutable(Ptr!SpecInst[]) specs(ref immutable FunDecl a) {
 	return toArr(a.specs_);
-}
-
-immutable(FileAndRange) range(return scope ref immutable FunDecl a, ref const AllSymbols allSymbols) {
-	return range(a.sig, allSymbols);
 }
 
 immutable(bool) isExtern(ref immutable FunDecl a) {

@@ -49,8 +49,12 @@ struct FileAndPos {
 	immutable Pos pos;
 }
 
-immutable(FileAndPos) fileAndPosFromFileAndRange(ref immutable FileAndRange a) {
+immutable(FileAndPos) fileAndPosFromFileAndRange(immutable FileAndRange a) {
 	return immutable FileAndPos(a.fileIndex, a.start);
+}
+
+immutable(FileAndRange) fileAndRangeFromFileAndPos(immutable FileAndPos a) {
+	return immutable FileAndRange(a.fileIndex, immutable RangeWithinFile(a.pos, a.pos + 1));
 }
 
 struct FileAndRange {
