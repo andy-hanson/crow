@@ -39,6 +39,7 @@ import util.col.exactSizeArrBuilder :
 	padTo;
 import util.col.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
 import util.col.mutIndexMultiDict : MutIndexMultiDict, mutIndexMultiDictAdd, newMutIndexMultiDict;
+import util.col.str : SafeCStr, safeCStrSize;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.ptr : Ptr, ptrTrustMe;
 import util.util : todo, unreachable, verify;
@@ -118,7 +119,7 @@ TextAndInfo generateText(
 	// Ensure 0 is not a valid text index
 	exactSizeArrBuilderAdd(ctx.text, 0);
 
-	ctx.cStringIndexToTextIndex = map!size_t(alloc, allConstants.cStrings, (ref immutable string value) {
+	ctx.cStringIndexToTextIndex = map!size_t(alloc, allConstants.cStrings, (ref immutable SafeCStr value) {
 		immutable size_t textIndex = exactSizeArrBuilderCurSize(ctx.text);
 		addStringAndNulTerminate(ctx.text, value);
 		return textIndex;
@@ -280,8 +281,8 @@ void recurWritePointer(
 
 //TODO: should we align things?
 immutable(size_t) getAllConstantsSize(ref immutable LowProgram program, ref immutable AllConstantsLow allConstants) {
-	immutable size_t cStringsSize = sum(allConstants.cStrings, (ref immutable string s) =>
-		s.length + 1);
+	immutable size_t cStringsSize = sum(allConstants.cStrings, (ref immutable SafeCStr x) =>
+		safeCStrSize(x) + 1);
 	immutable size_t arrsSize = sum(allConstants.arrs, (ref immutable ArrTypeAndConstantsLow arrs) =>
 		sizeOfType(program, arrs.elementType).size *
 		sum(arrs.constants, (ref immutable Constant[] elements) => elements.length));

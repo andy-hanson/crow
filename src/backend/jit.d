@@ -131,7 +131,7 @@ import util.col.arrUtil :
 import util.col.dict : mustGetAt;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictZip, mapFullIndexDict_mut;
 import util.col.mutMaxArr : mustPop, MutMaxArr, push, tempAsArr_mut;
-import util.col.str : CStr, SafeCStr, strToCStr;
+import util.col.str : CStr, SafeCStr;
 import util.opt : force, forcePtr, has, nonePtr, nonePtr_mut, Opt, OptPtr, somePtr, somePtr_mut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
@@ -1281,11 +1281,10 @@ immutable(ExprResult) constantToGcc(
 				ctx.gcc,
 				getGccType(ctx.types, type),
 				it.value ? 1 : 0)),
-		(ref immutable Constant.CString it) {
-			//TODO:NO ALLOC
-			immutable char *cStr = strToCStr(ctx.alloc, ctx.program.allConstants.cStrings[it.index]);
-			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_string_literal(ctx.gcc, cStr));
-		},
+		(ref immutable Constant.CString it) =>
+			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_string_literal(
+				ctx.gcc,
+				ctx.program.allConstants.cStrings[it.index].ptr)),
 		(immutable Constant.Float it) =>
 			emitSimpleNoSideEffects(
 				ctx,

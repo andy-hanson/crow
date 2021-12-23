@@ -29,22 +29,22 @@ import util.col.mutDict :
 	mustGetAt_mut,
 	mutDictSize,
 	MutPtrDict,
-	MutStringDict,
+	MutSafeCStrDict,
 	MutSymDict,
 	valuesArray;
-import util.col.str : hashStr, strEq;
+import util.col.str : hashSafeCStr, SafeCStr, safeCStrEq;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe_mut;
-import util.sym : AllSymbols, hashSym, strOfSym, Sym, symEq;
+import util.sym : AllSymbols, hashSym, safeCStrOfSym, Sym, symEq;
 import util.util : verify;
 
 struct AllConstantsBuilder {
 	private:
 	@disable this(ref const AllConstantsBuilder);
-	MutStringDict!(immutable Constant.CString) cStrings;
+	MutSafeCStrDict!(immutable Constant.CString) cStrings;
 	MutSymDict!(immutable Constant) syms;
-	MutArr!(immutable string) cStringValues;
+	MutArr!(immutable SafeCStr) cStringValues;
 	MutDict!(immutable ConcreteType, ArrTypeAndConstants, concreteTypeEqual, hashConcreteType) arrs;
 	MutPtrDict!(ConcreteStruct, PointerTypeAndConstants) pointers;
 }
@@ -195,9 +195,9 @@ immutable(Constant) getConstantStr(
 private immutable(Constant.CString) getConstantCStr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
-	immutable string value,
+	immutable SafeCStr value,
 ) {
-	return getOrAdd!(immutable string, immutable Constant.CString, strEq, hashStr)(
+	return getOrAdd!(immutable SafeCStr, immutable Constant.CString, safeCStrEq, hashSafeCStr)(
 		alloc,
 		allConstants.cStrings,
 		value,
@@ -220,7 +220,8 @@ immutable(Constant) getConstantSym(
 		allConstants.syms,
 		value,
 		() {
-			immutable Constant.CString c = getConstantCStr(alloc, allConstants, strOfSym(alloc, allSymbols, value));
+			immutable Constant.CString c =
+				getConstantCStr(alloc, allConstants, safeCStrOfSym(alloc, allSymbols, value));
 			return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [immutable Constant(c)])));
 		});
 }

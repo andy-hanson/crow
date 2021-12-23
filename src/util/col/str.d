@@ -44,10 +44,6 @@ struct SafeCStr {
 	return immutable SafeCStr(cast(immutable) res);
 }
 
-immutable(CStr) strToCStr(ref Alloc alloc, scope immutable string s) {
-	return copyToSafeCStr(alloc, s).ptr;
-}
-
 immutable(bool) strEq(immutable string a, immutable string b) {
 	return a.length == b.length && (a.length == 0 || (a[0] == b[0] && strEq(a[1 .. $], b[1 .. $])));
 }
@@ -125,6 +121,12 @@ private @trusted immutable(Opt!SafeCStr) restIfStartsWith(immutable SafeCStr a, 
 void hashStr(ref Hasher hasher, immutable string a) {
 	foreach (immutable char c; a)
 		hashUbyte(hasher, c);
+}
+
+void hashSafeCStr(ref Hasher hasher, immutable SafeCStr a) {
+	eachChar(a, (immutable char c) {
+		hashUbyte(hasher, c);
+	});
 }
 
 @trusted void eachChar(scope immutable SafeCStr a, scope void delegate(immutable char) @safe @nogc pure nothrow cb) {

@@ -5,7 +5,7 @@
 clean:
 	rm -rf bin site temp
 
-all: clean test lint serve
+all: clean bin/crow-debug test lint serve
 
 dyncall:
 	hg clone https://dyncall.org/pub/dyncall/dyncall/

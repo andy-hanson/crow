@@ -19,6 +19,7 @@ import model.constant : Constant;
 import model.model : asRecord, body_, EnumValue;
 import util.col.dict : PtrDict;
 import util.col.fullIndexDict : FullIndexDict;
+import util.col.str : SafeCStr;
 import util.hash : Hasher, hashSizeT, hashUint;
 import util.opt : none, Opt;
 import util.ptr : Ptr;
@@ -1083,7 +1084,7 @@ struct PointerTypeAndConstantsLow {
 
 // TODO: rename -- this is not all constants, just the ones by-ref
 struct AllConstantsLow {
-	immutable string[] cStrings;
+	immutable SafeCStr[] cStrings;
 	//TODO:FullIndexDict
 	immutable ArrTypeAndConstantsLow[] arrs;
 	//TODO:FullIndexDict

@@ -80,7 +80,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : emptyArr;
 import util.col.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.col.stack : stackBegin, pop, push;
-import util.col.str : safeCStr;
+import util.col.str : SafeCStr, safeCStr;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
@@ -145,7 +145,7 @@ void doInterpret(
 	immutable LowProgram lowProgram = immutable LowProgram(
 		ConcreteFunToLowFunIndex(),
 		immutable AllConstantsLow(
-			emptyArr!string,
+			emptyArr!SafeCStr,
 			emptyArr!ArrTypeAndConstantsLow,
 			emptyArr!PointerTypeAndConstantsLow),
 		immutable AllLowTypes(

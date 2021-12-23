@@ -4,7 +4,8 @@ module util.col.exactSizeArrBuilder;
 
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arr : arrOfRange_mut;
-import util.memory : initMemory_mut, memcpy, memset;
+import util.col.str : eachChar, SafeCStr, safeCStrSize;
+import util.memory : initMemory_mut, memset;
 import util.util : verify;
 
 //TODO:MOVE
@@ -67,12 +68,12 @@ void padTo(ref ExactSizeArrBuilder!ubyte a, immutable size_t desiredSize) {
 	add64(a, cast(immutable ulong) (a.begin + textIndex));
 }
 
-@trusted void addStringAndNulTerminate(ref ExactSizeArrBuilder!ubyte a, immutable string value) {
-	//TODO:PERF
-	verify(a.cur + value.length + 1 <= a.end);
-	verify(ubyte.sizeof == char.sizeof);
-	memcpy(a.cur, cast(immutable ubyte*) value.ptr, value.length);
-	a.cur += value.length;
+@trusted void addStringAndNulTerminate(ref ExactSizeArrBuilder!ubyte a, immutable SafeCStr value) {
+	verify(a.cur + safeCStrSize(value) < a.end);
+	eachChar(value, (immutable char c) @trusted {
+		*a.cur = c;
+		a.cur++;
+	});
 	*a.cur = '\0';
 	a.cur++;
 }

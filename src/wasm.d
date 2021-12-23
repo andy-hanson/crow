@@ -14,14 +14,13 @@ import lib.server :
 	StrParseDiagnostic;
 import util.alloc.alloc : Alloc, allocateT;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.col.str : CStr, SafeCStr, strToCStr;
+import util.col.str : CStr, SafeCStr;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.path : StorageKind;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
 import util.ptr : ptrTrustMe_mut;
 import util.repr : Repr, jsonStrOfRepr, nameAndRepr, reprArr, reprNamedRecord, reprStr;
 import util.sourceRange : Pos, reprRangeWithinFile;
-import util.util : verify;
 import util.writer : finishWriterToCStr, writeChar, writeNat, writeQuotedStr, Writer, writeStatic;
 
 // seems to be the required entry point

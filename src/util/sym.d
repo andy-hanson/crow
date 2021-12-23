@@ -14,7 +14,7 @@ import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.util : drop, verify;
-import util.writer : finishWriter, writeChar, Writer;
+import util.writer : finishWriterToSafeCStr, writeChar, Writer;
 
 immutable(Opt!size_t) indexOfSym(ref immutable Sym[] a, immutable Sym value) {
 	return findIndex!Sym(a, (ref immutable Sym it) => symEq(it, value));
@@ -345,10 +345,14 @@ immutable(ulong) specialSymValue(immutable SpecialSym a) {
 	return symForSpecial(a).value;
 }
 
-immutable(string) strOfSym(ref Alloc alloc, ref const AllSymbols allSymbols, immutable Sym a) {
-	Writer writer = Writer(ptrTrustMe_mut(alloc));
-	writeSym(writer, allSymbols, a);
-	return finishWriter(writer);
+immutable(SafeCStr) safeCStrOfSym(ref Alloc alloc, ref const AllSymbols allSymbols, immutable Sym a) {
+	if (isLongSym(a))
+		return asLongSym(allSymbols, a);
+	else {
+		Writer writer = Writer(ptrTrustMe_mut(alloc));
+		writeSym(writer, allSymbols, a);
+		return finishWriterToSafeCStr(writer);
+	}
 }
 
 immutable(char[bufferSize]) symAsTempBuffer(size_t bufferSize)(ref const AllSymbols allSymbols, immutable Sym a) {

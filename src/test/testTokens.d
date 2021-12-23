@@ -58,6 +58,7 @@ void testOne(ref Test test, immutable SafeCStr source, immutable Token[] expecte
 	immutable Token[] tokens = tokensOfAst(test.alloc, allSymbols, ast);
 	if (!tokensEq(tokens, expectedTokens)) {
 		debug {
+			import core.stdc.stdio : printf;
 			Writer writer = Writer(test.allocPtr);
 			writeStatic(writer, "expected tokens:\n");
 			writeRepr(writer, allSymbols, reprTokens(test.alloc, expectedTokens));

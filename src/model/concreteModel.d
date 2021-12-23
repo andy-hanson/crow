@@ -28,6 +28,7 @@ import model.model :
 	summon;
 import util.col.arr : only;
 import util.col.dict : PtrDict;
+import util.col.str : SafeCStr;
 import util.hash : hashBool, Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
@@ -1013,7 +1014,7 @@ struct PointerTypeAndConstantsConcrete {
 
 // TODO: rename -- this is not all constants, just the ones by-ref
 struct AllConstantsConcrete {
-	immutable string[] cStrings;
+	immutable SafeCStr[] cStrings;
 	immutable Constant allFuns;
 	immutable Constant staticSyms;
 	immutable ArrTypeAndConstantsConcrete[] arrs;

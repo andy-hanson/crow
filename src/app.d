@@ -58,7 +58,6 @@ import util.col.str :
 	safeCStrIsEmpty,
 	safeCStrSize,
 	strOfCStr,
-	strToCStr,
 	strOfSafeCStr;
 import util.col.tempStr : asTempSafeCStr, copyTempStrToSafeCStr, length, pushToTempStr, setLength, TempStr;
 import util.conv : bitsOfFloat64, float32OfBits, float64OfBits;
@@ -281,13 +280,15 @@ immutable(SafeCStr[]) getAllArgs(
 	return rmdirRecur(dirPath, dir);
 }
 
-@system immutable(ExitCode) mkdirRecur(TempAlloc)(ref TempAlloc tempAlloc, immutable string dir) {
-	immutable char* dirCStr = strToCStr(tempAlloc, dir);
+@system immutable(ExitCode) mkdirRecur(immutable string dir) {
+	TempStrForPath path;
+	pushToTempStr(path, dir);
+	immutable char* dirCStr = asTempSafeCStr(path).ptr;
 	immutable int err = mkdir(dirCStr, S_IRWXU);
 	if (err == ENOENT) {
 		immutable Opt!string par = pathParent(dir);
 		if (has(par)) {
-			immutable ExitCode res = mkdirRecur(tempAlloc, force(par));
+			immutable ExitCode res = mkdirRecur(force(par));
 			return res == ExitCode.ok
 				? handleMkdirErr(mkdir(dirCStr, S_IRWXU), dirCStr)
 				: res;
@@ -446,7 +447,7 @@ immutable(ExitCode) buildToCAndCompile(
 				alloc, perf, allSymbols, allPaths, storage, showDiagOptions,
 				getRootPath(allPaths, includeDir, programDirAndMain));
 			if (safeCStrIsEmpty(result.diagnostics)) {
-				immutable ExitCode res = writeFile(alloc, pathToSafeCStr(alloc, allPaths, cPath), result.cSource);
+				immutable ExitCode res = writeFile(pathToSafeCStr(alloc, allPaths, cPath), result.cSource);
 				return res == ExitCode.ok && has(exePath)
 					? compileC(
 						alloc, perf, allSymbols, allPaths,
@@ -914,8 +915,8 @@ extern(C) {
 	return cb(some(asTempSafeCStr(content)));
 }
 
-@trusted immutable(ExitCode) writeFile(ref TempAlloc tempAlloc, immutable SafeCStr path, immutable SafeCStr content) {
-	immutable int fd = tryOpenFile(tempAlloc, path);
+@trusted immutable(ExitCode) writeFile(immutable SafeCStr path, immutable SafeCStr content) {
+	immutable int fd = tryOpenFile(path);
 	if (fd == -1) {
 		fprintf(stderr, "Failed to write file %s: %s\n", path.ptr, strerror(errno));
 		return ExitCode.error;
@@ -933,12 +934,12 @@ extern(C) {
 	}
 }
 
-@system immutable(int) tryOpenFile(ref TempAlloc tempAlloc, immutable SafeCStr path) {
+@system immutable(int) tryOpenFile(immutable SafeCStr path) {
 	immutable int fd = open(path.ptr, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
 	if (fd == -1 && errno == ENOENT) {
 		immutable Opt!string par = pathParent(strOfSafeCStr(path));
 		if (has(par)) {
-			immutable ExitCode res = mkdirRecur(tempAlloc, force(par));
+			immutable ExitCode res = mkdirRecur(force(par));
 			if (res == ExitCode.ok)
 				return open(path.ptr, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
 		}

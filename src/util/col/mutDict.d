@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc, allocateT;
 import util.col.arr : empty, emptyArr_mut;
 import util.col.arrUtil : map_mut;
 import util.col.dict : Dict;
-import util.col.str : strEq, hashStr;
+import util.col.str : SafeCStr, safeCStrEq, strEq, hashSafeCStr, hashStr;
 import util.hash : Hasher;
 import util.memory : initMemory, overwriteMemory;
 import util.opt : force, has, none, noneConst, Opt, some, someConst, someMut;
@@ -22,6 +22,9 @@ struct MutDict(K, V, alias equal, alias hash) {
 
 alias MutPtrDict(K, V) =
 	MutDict!(immutable Ptr!K, V, ptrEquals!K, hashPtr!K);
+
+alias MutSafeCStrDict(V) =
+	MutDict!(immutable SafeCStr, V, safeCStrEq, hashSafeCStr);
 
 alias MutStringDict(V) =
 	MutDict!(immutable string, V, strEq, hashStr);
