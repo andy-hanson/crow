@@ -14,7 +14,7 @@ import
 	../../log: error, log
 	../../misc: drop, void
 	../../number: ==, <=>, +, nat8, nat64, to-int64
-	../../opt: opt, or-default, some
+	../../opt: new, opt, or-default
 	../../extra-types: fd-t
 	../../ptr: ptr-cast
 	../../str: ==, <=>, char, chars, is-empty, size-bytes, str
@@ -164,7 +164,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 .try-take-first-line str?(a char mut[])
 	if index ?= a index-of "\n"
 		line = a pop-n-from-start! index + 1 rtail
-		line.str try-remove-end "\r" or-default line.str some
+		(line.str try-remove-end "\r" or-default line.str),
 
 .http-parse-state record mut
 	method mut http-method

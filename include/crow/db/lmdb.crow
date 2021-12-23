@@ -27,7 +27,7 @@ import
 	../log: info, log
 	../misc: is-data, void
 	../number: ==, *, nat, nat8, nat32, nat64, to-nat64
-	../opt: opt, some
+	../opt: new, opt
 	../ptr: ==, +, as-mut, mut-ptr, null, ptr-cast-to-extern, set-deref, zeroed
 	../serialize: from-bytes, serialize, to-4-bytes, to-8-bytes, to-bytes
 	../str: str
@@ -298,7 +298,7 @@ get<k, v> v?(txn lMDB_txn, db lmdb-db<k, v>, key k) trusted summon lmdb-key<k> s
 		if err != MDB_NOTFOUND
 			err check-lmdb-error
 			# TODO:PERF For some v types, the copy in 'bytes-of-val' is unnecessary.
-			value.bytes-of-val.from-bytes some
+			value.bytes-of-val.from-bytes,
 
 ###
 Fails if the key already exists.

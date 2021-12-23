@@ -6,9 +6,9 @@ import
 		contains-subseq, each, ends-with, first, last, map, reverse, rtail, split-by-subseq,
 		starts-with, tail, try-remove-end, try-remove-start, try-split-once
 	./col/mut-arr: ~=, move-to-arr!, mut-arr, new
-	./compare: <=
+	./compare: !=, <=
 	./number: ==, <=>, +, -, nat8
-	./opt: force, none, opt, some
+	./opt: force, new, opt
 	./ptr: +, *
 	./str: ==, ~, char, chars, c-str, str, to-char, to-nat8
 	./tuple: a, b, new, pair
@@ -35,11 +35,8 @@ If that is not found, return `none`.
 ###
 find-char-in-cstr c-str?(a c-str, c char) unsafe noctx
 	if *a == c
-		a some
-	elif *a == "\0"
-		# Did not find the char
-		none
-	else
+		a,
+	elif *a != "\0"
 		a + 1 find-char-in-cstr c
 
 # Pointer to the end of a c-str.
@@ -86,15 +83,15 @@ ends-with bool(a str, b str)
 
 try-remove-start str?(a str, b str)
 	if res ?= a.chars try-remove-start b.chars
-		res.str some
+		res.str,
 
 try-remove-end str?(a str, b str)
 	if res ?= a.chars try-remove-end b.chars
-		res.str some
+		res.str,
 
 try-split-once pair<str, str>?(a str, b char)
 	if res ?= a.chars try-split-once b
-		(res.a.str, res.b.str) some
+		(res.a.str, res.b.str),
 
 split-by str[](a str, b str)
 	a.chars split-by-subseq b.chars map chars => chars str

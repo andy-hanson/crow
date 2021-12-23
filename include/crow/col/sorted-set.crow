@@ -5,7 +5,7 @@ import
 	../fun-util: subscript
 	../log: info, log
 	../misc: is-data, void
-	../opt: force, none, opt, or-default, some
+	../opt: force, new, opt, or-default
 	../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../range: ..
 	../str: ==, <=>, str
@@ -43,7 +43,7 @@ new<a> sorted-set a(...a a[]) is-data<a> compare<a>
 
 to-sorted-set<a> sorted-set a(a a[]) is-data<a> compare<a>
 	# TODO: type annotation should be unnecessary
-	(a.sort, none) :: add-node<a>, ()
+	(a.sort, ()) :: add-node<a>, ()
 
 arr<a> a[](a sorted-set a) is-data<a> compare<a>
 	a map-to-arr x => x
@@ -74,7 +74,7 @@ in<a> bool(value a, a sorted-set a) is-data<a> compare<a>
 
 .find-in-add<a> nat64?(a add-node a, value a) compare<a>
 	if index ?= a.values binary-search-exact-index value
-		a.add-size-left wrap-add index some
+		(a.add-size-left wrap-add index),
 	elif left ?= a left
 		left find-in-add value
 
@@ -87,7 +87,7 @@ in<a> bool(value a, a sorted-set a) is-data<a> compare<a>
 .find-in-add-for-remove<a> find-in-add-for-remove-result?(a add-node a, value a, size-right nat64) compare<a>
 	if index ?= a.values binary-search-exact-index value
 		sl = a add-size-left
-		((sl wrap-add index), sl, a.values.size, size-right) some
+		((sl wrap-add index), sl, a.values.size, size-right),
 	elif left ?= a left
 		# TODO: should be able to write this inline
 		new-size-right = size-right wrap-add a.values.size
@@ -100,9 +100,9 @@ try-add<a> sorted-set<a>?(a sorted-set a, value a) is-data<a> compare<a>
 	if index ?= a.add find-in-add value
 		# In 'add', but may need to remove from removals
 		if new-remove ?= a.remove try-remove index
-			(a.add, new-remove) some
+			(a.add, new-remove),
 	else
-		a add-and-maybe-compact value some
+		(a add-and-maybe-compact value),
 
 - <a> sorted-set a(a sorted-set a, value a) is-data<a> compare<a>
 	a try-remove value or-default a
@@ -110,23 +110,23 @@ try-add<a> sorted-set<a>?(a sorted-set a, value a) is-data<a> compare<a>
 try-remove<a> sorted-set<a>?(a sorted-set a, value a) trusted is-data<a> compare<a>
 	if r ?= a.add find-in-add-for-remove value, 0
 		removals-here-and-right = 1 wrap-add (a.remove count-greater-or-equal r.size-left)
-		some: if r.size-here should-compact r.size-right, removals-here-and-right
+		if r.size-here should-compact r.size-right, removals-here-and-right
 			compacted-size = r.size-here wrap-add r.size-right wrap-sub 1
-			a remove-and-compact (r.size-left, compacted-size), r.value-index
+			(a remove-and-compact (r.size-left, compacted-size), r.value-index),
 		else
-			a.add, a.remove ~ r.value-index
+			(a.add, a.remove ~ r.value-index),
 
 .add-and-maybe-compact<a> sorted-set a(a sorted-set a, value a) trusted compare<a>
 	add-size = a.add add-size
 	if add-size == 0
 		# TODO: type annotation should be unnecessary
-		((value,), none) :: add-node<a>, ()
+		((value,), ()) :: add-node<a>, ()
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
 		if plan.compacted-size == 1
 			# TODO: type annotation should be unnecessary
-			((value,), a.add.some) :: add-node<a>, a.remove
+			((value,), (a.add,)) :: add-node<a>, a.remove
 		else
 			a add-and-compact add-size, plan, value
 

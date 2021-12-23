@@ -6,7 +6,7 @@ import
 	../../fun-util: subscript
 	../../misc: is-data, void
 	../../number: ==, <=>, +, -, is-even, nat64
-	../../opt: ==, is-empty, none, opt, opt-or, some
+	../../opt: ==, is-empty, new, opt, opt-or
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
 	../../range: ..
 	../../str: ==, chars, is-empty, size-bytes, str
@@ -70,7 +70,7 @@ arr<k, v> pair<k, v>[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 		e
 
 ~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, pair pair<k, v>) is-data<k> compare<k>
-	(a.impl add-or-remove pair.from, pair.to.some),
+	(a.impl add-or-remove pair.from, (pair.to,)),
 
 ~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b pair<k, v>[]) is-data<k> compare<k>
 	if b is-empty
@@ -79,13 +79,13 @@ arr<k, v> pair<k, v>[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 		b to-compact-sorted-dict
 	else
 		# TODO: 'pair<k, v?>[]' should be unnecessary
-		pairs pair<k, v?>[] = b map (x => x.from, x.to.some) sort-by it => it from
+		pairs pair<k, v?>[] = b map (x => x.from, (x.to,)) sort-by it => it from
 		# TODO: should not need type annotation
 		(pairs, a.impl)::overlay<k, v>.merge-as-needed,
 
 - <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, key k) is-data<k> compare<k>
 	if key in a
-		(a.impl add-or-remove key, none),
+		(a.impl add-or-remove key, ()),
 	else
 		a
 
@@ -104,7 +104,7 @@ subscript<k, v> v?(a compact-sorted-dict<k, v>, key k) is-data<k> compare<k>
 			o.prev subscript-recur key
 	as end-node e
 		if v ?= e binary-search-key key
-			v some
+			v,
 
 in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	!a[key].is-empty
@@ -290,7 +290,7 @@ body
 		take-from-end-node = !end-node.is-empty && least-key == end-node[0].from
 		# TODO: should not need 'v?'
 		val-from-end-node v? = if take-from-end-node
-			end-node[0].to some
+			end-node[0].to,
 		new-end-node = if take-from-end-node
 			end-node tail
 		else
@@ -316,7 +316,7 @@ Removes rightmost overlays from the fix-arr (by returning a new, smaller fix-arr
 Returns the rightmost value associated with that key.
 ###
 .take-key<k, v> took-key<k, v>(overlays fix-arr pair<k, v?>[], key k) is-data<k> compare<k>
-	overlays take-key-recur key, 0, none
+	overlays take-key-recur key, 0, ()
 .take-key-recur<k, v> took-key<k, v>
 	overlays fix-arr pair<k, v?>[]
 	key k
@@ -465,11 +465,11 @@ test
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"
-	a[10] is none
+	a[10] is ()
 
 	b = a ~ (10, "10")
 	b verify "[10 -> 10]"
-	b[10] is "10".some
+	b[10] is ("10",)
 
 	# TODO: type annotation should be unnecessary
 	c = b ~ ((15, "15"), (5, "5"), (20, "20")) :: pair<nat64, str>[]

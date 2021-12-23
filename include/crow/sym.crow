@@ -6,7 +6,7 @@ import
 	./col/arr-util: find
 	./compare: comparison
 	./misc: drop
-	./opt: opt, some
+	./opt: new, opt
 	./ptr:
 		==, as-const, by-val, mut-ptr, ptr-cast, ref-of-ptr, ref-of-val, set-deref, set-subscript
 	./str: ==, <=>, char, chars, c-str, str
@@ -48,13 +48,13 @@ str-to-sym sym(a str) trusted
 		sym sym = a.to-malloced-c-str,
 		node-ptr by-val<dynamic-sym-node> mut* = unmanaged-alloc-uninitialized
 		*node-ptr := sym, gctx.dynamic-syms
-		gctx.dynamic-syms := node-ptr.ref-of-ptr some
+		gctx.dynamic-syms := node-ptr.ref-of-ptr,
 		sym
 
 .find-dynamic-sym sym?(a dynamic-sym-node?, s str) unsafe noctx
 	if node ?= a
 		if node.sym.to-c-str.to-str == s
-			node.sym some
+			node.sym,
 		else
 			node.next find-dynamic-sym s
 

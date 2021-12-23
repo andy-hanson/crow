@@ -5,7 +5,7 @@ import
 	../fun-util: subscript
 	../hash: hash, hash-mix
 	../misc: is-data, void
-	../opt: opt, some
+	../opt: new, opt
 	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap!
 	../test-util: is
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
@@ -73,7 +73,7 @@ try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted is-data<a> co
 		else
 			a.bucket-starts unsafe-at (bucket-index wrap-add 1)
 		if ptr ?= bucket-start arr-from-begin-end bucket-end ptr-of value
-			ptr - a.begin-ptr some
+			ptr - a.begin-ptr,
 
 unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a
 	a fix-arr a

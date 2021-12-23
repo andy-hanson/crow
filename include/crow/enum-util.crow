@@ -5,7 +5,7 @@ import
 	./col/arr-util: first-some
 	./exception: throw
 	./misc: name, named-val, val
-	./opt: opt, some
+	./opt: new, opt
 	./sym: ==, sym, to-str
 	./str: str
 
@@ -16,7 +16,7 @@ enum-like<a> spec
 to-sym<a> sym(a a) enum-like<a>
 	res = enum-members first-some member =>
 		if member.val == a
-			member.name some
+			member.name,
 	if name ?= res
 		name
 	else
@@ -25,7 +25,7 @@ to-sym<a> sym(a a) enum-like<a>
 to-enum<a> a?(a sym) enum-like<a>
 	enum-members first-some member =>
 		if member.name == a
-			member.val some
+			member.val,
 
 enum-convert<out, in> out?(a in) enum-like<in> enum-like<out>
 	a.to-sym to-enum

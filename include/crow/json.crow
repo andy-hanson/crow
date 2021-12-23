@@ -9,7 +9,7 @@ import
 	./hash: hash-mix
 	./misc: void
 	./number: ==, float64
-	./opt: none, opt, some
+	./opt: new, opt
 	./reader:
 		reader, skip-whitespace!, try-take-char, take-float!, take-quoted-str!, try-take-str, with-reader
 	./str: ==, <=>, str
@@ -66,63 +66,63 @@ json union
 as-bool bool?(a json) noctx
 	match a
 	as json-bool b
-		b some
+		b,
 	as json-number _
-		none
+		()
 	as json-str _
-		none
+		()
 	as json-arr _
-		none
+		()
 	as json-object _
-		none
+		()
 as-number float64?(a json) noctx
 	match a
 	as json-bool _
-		none
+		()
 	as json-number n
-		n some
+		n,
 	as json-str _
-		none
+		()
 	as json-arr _
-		none
+		()
 	as json-object _
-		none
+		()
 as-str str?(a json) noctx
 	match a
 	as json-bool _
-		none
+		()
 	as json-number _
-		none
+		()
 	as json-str s
-		s some
+		s,
 	as json-arr _
-		none
+		()
 	as json-object _
-		none
+		()
 as-arr json[]?(a json) noctx
 	match a
 	as json-bool _
-		none
+		()
 	as json-number _
-		none
+		()
 	as json-str _
-		none
+		()
 	as json-arr arr
-		arr some
+		arr,
 	as json-object _
-		none
+		()
 as-object json[str]?(a json) noctx
 	match a
 	as json-bool _
-		none
+		()
 	as json-number _
-		none
+		()
 	as json-str _
-		none
+		()
 	as json-arr _
-		none
+		()
 	as json-object o
-		o some
+		o,
 
 subscript json?(a json, key str)
 	if o ?= a.as-object
@@ -169,23 +169,23 @@ to-str str(a json)
 take-json! json?(a reader)
 	a skip-whitespace!
 	if f ?= a take-float!
-		f.json-number some
+		f.json-number,
 	elif a try-take-str "true"
-		true.json-bool some
+		true.json-bool,
 	elif a try-take-str "false"
-		false.json-bool some
+		false.json-bool,
 	elif s ?= a take-quoted-str!
-		s.json-str some
+		s.json-str,
 	elif a try-take-char "["
 		a skip-whitespace!
 		if a try-take-char "]"
-			().json-arr some
+			().json-arr,
 		else
 			a take-arr-recur! ()
 	elif a try-take-char "\{"
 		a skip-whitespace!
 		if a try-take-char "}"
-			().json-object some
+			().json-object,
 		else
 			a take-object-recur! ()
 
@@ -197,7 +197,7 @@ take-json! json?(a reader)
 			a skip-whitespace!
 			a take-arr-recur! res
 		elif a try-take-char "]"
-			res.move-to-arr!.json-arr some
+			res.move-to-arr!.json-arr,
 
 .take-object-recur! json?(a reader, res json mut[str])
 	if key ?= a take-quoted-str!
@@ -210,12 +210,12 @@ take-json! json?(a reader)
 					a skip-whitespace!
 					a take-object-recur! res
 				elif a try-take-char "}"
-					res.move-to-dict!.json-object some
+					res.move-to-dict!.json-object,
 				else
 					a take-object-recur! res
 
 .verify void(a json, s str)
-	s.parse-json is a.some
+	s.parse-json is (a,)
 	a.to-str is s
 
 test

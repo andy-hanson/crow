@@ -4,7 +4,7 @@ import
 	../compare: <, >, <=, compare
 	../fun-util: subscript
 	../misc: is-data, void
-	../opt: force, is-empty, none, opt, some
+	../opt: force, is-empty, new, opt
 	../ptr: ==, +, -, mut-ptr, set-deref
 	../range: ..
 	../str: ==, str
@@ -49,14 +49,14 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 	next node<k, v>?
 
 new<k, v> priority-queue<k, v>() is-data<k> compare<k>
-	none,
+	(),
 
 priority-queue<k, v> priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
 	if a is-empty
 		()
 	else
 		sorted = a sort-by pair => pair from
-		(sorted.first.force, sorted.tail, none).some,
+		((sorted.first.force, sorted.tail, ()),),
 
 is-empty<k, v> bool(a priority-queue<k, v>) is-data<k> compare<k>
 	a.root is-empty
@@ -74,7 +74,7 @@ Add a pair to the queue.
 This is O(1).
 ###
 ~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b pair<k, v>) is-data<k> compare<k>
-	(b, (), a.root).some,
+	((b, (), a.root),),
 
 popped<k, v> record
 	popped pair<k, v>
@@ -83,17 +83,17 @@ popped<k, v> record
 pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	if root ?= a.compact-leading-nodes root
 		if next ?= root next
-			some: if popped ?= next pop-no-compact-recur root.min.from
-				root combine-with-popped popped
+			if popped ?= next pop-no-compact-recur root.min.from
+				(root combine-with-popped popped),
 			else
-				root pop-from-node
+				root.pop-from-node,
 		else
-			root.pop-from-node some
+			root.pop-from-node,
 
 .pop-from-node<k, v> popped<k, v>(a node<k, v>)
 	# TODO: node<k, v>? should not be necessary
 	rest node<k, v>? = if first ?= a.pairs first
-		(first, a.pairs.tail, a.next) some
+		(first, a.pairs.tail, a.next),
 	else
 		a next
 	a.min, (rest,)
@@ -107,14 +107,12 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 		else
 			min
 	if next ?= next-popped
-		a combine-with-popped next some
+		(a combine-with-popped next),
 	elif is-min
-		a.pop-from-node some
-	else
-		none
+		a.pop-from-node,
 
 combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
-	popped.popped, ((a.min, a.pairs, popped.rest.root).some,)
+	popped.popped, (((a.min, a.pairs, popped.rest.root),),)
 
 .compact-leading-nodes<k, v> priority-queue<k, v>(a priority-queue<k, v>) compare<k> trusted
 	mid = a.root find-mid 0
@@ -122,11 +120,11 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 		a
 	else
 		root = a.root force
-		new: some: match mid.mid plan root, mid.n-before-mid
+		new: match mid.mid plan root, mid.n-before-mid
 		as plan-did-compact compacted
-			compacted
+			compacted,
 		as plan-will-compact n
-			root do-compact n, mid.mid
+			(root do-compact n, mid.mid),
 
 .found-mid<k, v> record
 	mid node<k, v>?
@@ -139,9 +137,9 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 		if node.pairs is-empty
 			node.next find-mid (n-before wrap-add 1)
 		else
-			node.some, n-before
+			(node,), n-before
 	else
-		none, n-before
+		(), n-before
 
 .plan<k, v> union
 	plan-did-compact node<k, v>
@@ -154,14 +152,14 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	if node ?= a
 		match node.next plan root, n-singles
 		as plan-did-compact compacted
-			(node.min, node.pairs, compacted.some) plan-did-compact
+			(node.min, node.pairs, (compacted,)) plan-did-compact
 		as plan-will-compact n-elements-to-compact
 			node-size-here = 1 wrap-add node.pairs.size
 			if node-size-here <= n-elements-to-compact
 				n-elements-to-compact wrap-add node-size-here plan-will-compact
 			else
 				compacted = root do-compact n-elements-to-compact, node.next
-				(node.min, node.pairs, compacted.some) plan-did-compact
+				(node.min, node.pairs, (compacted,)) plan-did-compact
 	else
 		n-singles plan-will-compact
 
@@ -172,7 +170,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	hard-assert: end == compacted.end-ptr
 	compacted sort-by! pair => pair from
 	arr = compacted cast-immutable
-	arr.first.force, arr.tail, none
+	arr.first.force, arr.tail, ()
 
 .compact-singles!<k, v> pair<k, v> mut*(out pair<k, v> mut*, a node<k, v>) unsafe
 	if a.pairs is-empty

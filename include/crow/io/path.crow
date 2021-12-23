@@ -3,7 +3,7 @@ import
 	../col/arr: subscript
 	../col/arr-util: last, r-index-of, rtail
 	../number: ==, <=>, +, -, nat64
-	../opt: opt, some
+	../opt: new, opt
 	../range: ..
 	../str: ==, char, chars, size-bytes, str
 	../str-conv: finish, interp, to-str, with-str, with-value
@@ -26,7 +26,7 @@ child-path str(a str, child_name str)
 .last-index-of nat64?(a str, c char)
 	if last-char ?= a.chars last
 		if last-char == c
-			a.size-bytes - 1 some
+			a.size-bytes - 1,
 		else
 			a.chars.rtail.str last-index-of c
 
@@ -34,7 +34,7 @@ child-path str(a str, child_name str)
 # Returns none if there is no extension.
 get-extension str?(name str)
 	if index ?= name last-index-of "."
-		name.chars[index + 1 .. name.size-bytes].str some
+		name.chars[index + 1 .. name.size-bytes].str,
 
 # Removes the extension from a file name or path.
 remove-extension str(name str)

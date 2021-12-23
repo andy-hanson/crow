@@ -5,7 +5,7 @@ import
 	../fun-util: subscript
 	../hash: hash, hash-mix
 	../misc: is-data, void
-	../opt: ==, is-empty, none, opt, some
+	../opt: ==, is-empty, new, opt
 	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap!
 	../str: str
 	../test-util: is
@@ -48,7 +48,7 @@ to-arr<k, v> pair<k, v>[](a frozen-dict<k, v>)
 
 subscript<k, v> v?(a frozen-dict<k, v>, key k) trusted is-data<k> compare<k> hash-mix<k>
 	if ptr ?= a find-ptr key
-		ptr->to some
+		ptr->to,
 
 in<k, v> bool(key k, a frozen-dict<k, v>) trusted is-data<k> compare<k> hash-mix<k>
 	!(a find-ptr key is-empty)
@@ -56,7 +56,7 @@ in<k, v> bool(key k, a frozen-dict<k, v>) trusted is-data<k> compare<k> hash-mix
 # TODO:INTERNAL
 try-get-unordered-index<k, v> nat64?(a frozen-dict<k, v>, key k) trusted is-data<k> compare<k> hash-mix<k>
 	if ptr ?= a find-ptr key
-		ptr - a.pairs.begin-ptr some
+		ptr - a.pairs.begin-ptr,
 
 .find-ptr<k, v> pair<k, v>*?(a frozen-dict<k, v>, key k) unsafe is-data<k> compare<k> hash-mix<k>
 	bucket = if a.bucket-starts is-empty
@@ -74,13 +74,13 @@ try-get-unordered-index<k, v> nat64?(a frozen-dict<k, v>, key k) trusted is-data
 
 find-index<k, v> nat64?(pairs pair<k, v>[], key k) unsafe is-data<k> compare<k> hash-mix<k>
 	if ptr ?= pairs.begin-ptr find-ptr pairs.end-ptr, key
-		ptr - pairs.begin-ptr some
+		ptr - pairs.begin-ptr,
 
 find-ptr<k, v> pair<k, v>*?(cur pair<k, v>*, end pair<k, v>*, key k) unsafe is-data<k> compare<k> hash-mix<k>
 	if cur == end
-		none
+		()
 	elif cur->from == key
-		cur some
+		cur,
 	else
 		cur + 1 find-ptr end, key
 
@@ -272,33 +272,33 @@ test
 	a.is-empty is true
 	a.size is 0
 	a verify (), ()
-	a[0] is none
+	a[0] is ()
 	
 	b frozen-dict<nat64, str> = (3, "3"), (1, "1"), (5, "5"), (2, "2")
 	b verify (3, 1, 5, 2), ()
-	b[0] is none
-	b[1] is "1".some
-	b[2] is "2".some
-	b[3] is "3".some
-	b[4] is none
-	b[5] is "5".some
-	b[6] is none
+	b[0] is ()
+	b[1] is ("1",)
+	b[2] is ("2",)
+	b[3] is ("3",)
+	b[4] is ()
+	b[5] is ("5",)
+	b[6] is ()
 
 	c frozen-dict<nat64, str> = (3, "3"), (1, "1"), (5, "5"), (2, "2"), (8, "8")
 	c verify (2, 8, 3, 5, 1), (0, 2)
-	c[0] is none
-	c[1] is "1".some
-	c[2] is "2".some
-	c[3] is "3".some
-	c[4] is none
-	c[5] is "5".some
-	c[6] is none
-	c[7] is none
-	c[8] is "8".some
-	c[9] is none
+	c[0] is ()
+	c[1] is ("1",)
+	c[2] is ("2",)
+	c[3] is ("3",)
+	c[4] is ()
+	c[5] is ("5",)
+	c[6] is ()
+	c[7] is ()
+	c[8] is ("8",)
+	c[9] is ()
 
 test
 	a frozen-dict<nat64, str> = (1, "1"), (1, "2")
 	a.size is 1
 	a verify (1,), ()
-	a[1] is "2".some
+	a[1] is ("2",)

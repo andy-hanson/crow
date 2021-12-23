@@ -6,7 +6,7 @@ import
 	../../hash: hash-mix
 	../../log: info, log
 	../../misc: is-data, void
-	../../opt: ==, is-empty, none, opt, some
+	../../opt: ==, is-empty, new, opt
 	../../ptr: ==, +, bits-equal, ref-eq, set-deref
 	../../str: ==, str
 	../../str-conv: to-str
@@ -75,7 +75,7 @@ size<k, v> nat64(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	0 fold a, (acc, k, v) => acc wrap-add 1
 
 ~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, pair pair<k, v>) is-data<k> compare<k> hash-mix<k>
-	a add-or-remove pair.from, pair.to.some
+	a add-or-remove pair.from, (pair.to,)
 
 ###
 TODO
@@ -88,7 +88,7 @@ TODO
 
 - <k, v> compact-dict<k, v>(a compact-dict<k, v>, key k) is-data<k> compare<k> hash-mix<k>
 	if key in a
-		a add-or-remove key, none
+		a add-or-remove key, ()
 	else
 		a
 
@@ -255,7 +255,7 @@ verify void(a compact-dict<nat64, str>, expected str)
 		info log dbg
 	dbg is expected
 	a each (k, v) =>
-		a[k] is v.some
+		a[k] is (v,)
 
 .exact-eq<k, v> bool(a compact-dict<k, v>, b compact-dict<k, v>) unsafe
 	match a impl
@@ -277,14 +277,14 @@ test
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"
-	a[0] is none
+	a[0] is ()
 
 	# TODO: type annotation should be unnecessary
 	b = a ~ (10, "10")::pair<nat64, str>
 	b.is-empty is false
 	b.size is 1
 	b verify "[10 -> 10]"
-	b[10] is "10".some
+	b[10] is ("10",)
 
 	# TODO: type annotation should be unnecessary
 	c = b ~ ((15, "15"), (5, "5"), (20, "20")) :: pair<nat64, str>[]
@@ -296,16 +296,16 @@ test
 
 	e = d - 15
 	e verify "[10 -> 10, 15 -> 15, 5 -> 5, 20 -> 20], [11 -> 11, 15 -> _]"
-	e[10] is "10".some
-	e[11] is "11".some
-	e[15] is none
+	e[10] is ("10",)
+	e[11] is ("11",)
+	e[15] is ()
 
 	e - 15 exact-eq e is true
 	e - 16 exact-eq e is true
 
 	f = e - 10
 	f verify "[10 -> 10, 15 -> 15, 5 -> 5, 20 -> 20], [11 -> 11, 15 -> _, 10 -> _]"
-	f[10] is none
+	f[10] is ()
 	10 in f is false
 
 	# TODO: type annotation should be unnecessary

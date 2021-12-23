@@ -8,7 +8,7 @@ import
 	./number:
 		==, <=>, *, /, abs, float64, float32, int8, int16, int32, int64, is-multiple-of, mod, nat8,
 		nat16, nat32, nat64, to-float64, to-int64, to-nat64, truncate-to-int64
-	./opt: opt, some
+	./opt: new, opt
 	./reader: take-float!, take-int!, take-nat!, with-reader
 	./str: ==, ~, char, chars, str
 
@@ -29,9 +29,9 @@ to-str str(c char)
 # Parses "true" or "false".
 parse-bool bool?(a str)
 	if a == "true"
-		true some
+		true,
 	elif a == "false"
-		false some
+		false,
 
 ###
 Converts a nat64 to a str.

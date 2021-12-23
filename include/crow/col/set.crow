@@ -7,7 +7,7 @@ import
 	../hash: hash-mix
 	../log: info, log
 	../misc: is-data, void
-	../opt: force, none, opt, or-default, some
+	../opt: force, new, opt, or-default
 	../ptr: ==, <=>, +, *, const-ptr, mut-ptr, set-deref
 	../str: ==, str
 	../str-conv: to-str
@@ -46,7 +46,7 @@ new<a> set a(...a a[]) is-data<a> compare<a> hash-mix<a>
 
 to-set<a> set a(a a[]) is-data<a> compare<a> hash-mix<a>
 	# TODO: type annotation should be unnecessary
-	(a.to-frozen-set, none)::add-node<a>, ()
+	(a.to-frozen-set, ())::add-node<a>, ()
 
 to-arr<a> a[](a set a) is-data<a> compare<a> hash-mix<a>
 	# TODO: If a has a single add node and no remove, just return that
@@ -81,7 +81,7 @@ in<a> bool(value a, a set a) is-data<a> compare<a> hash-mix<a>
 
 .find-in-add<a> nat64?(a add-node a, value a) is-data<a> compare<a> hash-mix<a>
 	if index ?= a.here try-get-unordered-index value
-		a.add-size-left wrap-add index some
+		(a.add-size-left wrap-add index),
 	elif left ?= a left
 		left find-in-add value
 
@@ -105,21 +105,21 @@ in<a> bool(value a, a set a) is-data<a> compare<a> hash-mix<a>
 try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 	if index ?= a.add find-in-add value
 		if new-remove ?= a.remove try-remove index
-			(a.add, new-remove) some
+			(a.add, new-remove),
 	else
-		a add-and-maybe-compact value some
+		(a add-and-maybe-compact value),
 
 .add-and-maybe-compact<a> set a(a set a, value a) trusted is-data<a> compare<a> hash-mix<a>
 	add-size = a.add add-size
 	if add-size == 0
 		# TODO: type annotation should be unnecessary
-		((value,), none)::add-node<a>, ()
+		((value,), ())::add-node<a>, ()
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
 		if plan.compacted-size == 1
 			# TODO: type annotation should be unnecessary
-			((value,), a.add.some)::add-node<a>, a.remove
+			((value,), (a.add,))::add-node<a>, a.remove
 		else
 			a add-and-compact add-size, plan, value
 

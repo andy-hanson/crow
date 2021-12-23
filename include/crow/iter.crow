@@ -3,7 +3,7 @@ import
 	./bool: bool
 	./fun-util: subscript
 	./misc: void
-	./opt: opt, some
+	./opt: new, opt
 
 ###
 Function to get an iterator.
@@ -55,7 +55,7 @@ filter<a> iterable a(a iterable a, pred act bool(a))
 .filter-recur<a> a?(a iterator a, pred act bool(a))
 	if v ?= a next
 		if pred[v]
-			v some
+			v,
 		else
 			# This one didn't satisfy the predicate, but keep trying until we get one or each the end
 			a filter-recur pred
@@ -67,4 +67,4 @@ map<out, in> iterable out(a iterable in, f act out(in))
 		(() => itr map-recur f),
 .map-recur<out, in> out?(a iterator in, f act out(in))
 	if v ?= a next
-		f[v] some
+		f[v],

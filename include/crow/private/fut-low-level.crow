@@ -1,7 +1,7 @@
 no-std
 import
 	../fun-util: subscript
-	../opt: none, some
+	../opt: new
 	../ptr: ref-of-val
 	../result: err, ok, result
 	./bootstrap:
@@ -49,9 +49,9 @@ callback!<a> void(f fut a, cb act void(result<a, exception>)) unsafe
 	f.lk.ref-of-val with-lock () =>
 		match f state
 		as fut-state-no-callbacks
-			f.state := (cb, none) fut-state-callbacks
+			f.state := (cb, ()) fut-state-callbacks
 		as fut-state-callbacks cbs
-			f.state := (cb, cbs.some) fut-state-callbacks
+			f.state := (cb, (cbs,)) fut-state-callbacks
 		as fut-state-resolved r
 			cb[r ok]
 		as fut-state-exception e

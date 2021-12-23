@@ -5,7 +5,7 @@ import
 	../../exception: assert, forbid, unreachable
 	../../fun-util: subscript
 	../../misc: drop, is-data, void
-	../../opt: opt, some
+	../../opt: new, opt
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
 	../../range: ..
 	../../str: ==, <=>, chars, str
@@ -175,7 +175,7 @@ This is O(a.size ln).
 ###
 try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	if node ?= a.root try-remove-recur b
-		(node, (a.size wrap-sub 1)) some
+		(node, (a.size wrap-sub 1)),
 
 .try-remove-recur<a> node<a>?(a node a, b a) compare<a>
 	match a
@@ -183,23 +183,23 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		match b <=> i.value
 		as less
 			if new-left ?= i.left try-remove-recur b
-				(i.value, new-left, i.right).inner some
+				(i.value, new-left, i.right).inner,
 		as equal
-			some: if i.right node-is-empty
-				i left
+			if i.right node-is-empty
+				i.left,
 			else
 				# Remove the base of the tree -- making one of the sides take over.
 				if popped ?= i.left pop-right
-					(popped.value, popped.rest, i.right) inner
+					(popped.value, popped.rest, i.right).inner,
 				else
-					i right
+					i.right,
 		as greater
 			if new-right ?= i.right try-remove-recur b
-				(i.value, i.left, new-right).inner some
+				(i.value, i.left, new-right).inner,
 	as leaf l
 		# TODO: use a binary search (try-remove uses linear search since it's for arbitrary arr)
 		if l2 ?= l try-remove b
-			l2.leaf some
+			l2.leaf,
 
 .node-is-empty<a> bool(a node a)
 	match a
@@ -215,14 +215,14 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 .pop-right<a> popped<a>?(a node a)
 	match a
 	as inner i
-		some: if popped ?= i.right pop-right
-			popped.value, (i.value, i.left, popped.rest).inner
+		if popped ?= i.right pop-right
+			(popped.value, (i.value, i.left, popped.rest).inner),
 		else
 			# Then this is rightmost
-			i.value, i.left
+			(i.value, i.left),
 	as leaf l
 		if last ?= l last
-			(last, l.rtail.leaf) some
+			(last, l.rtail.leaf),
 
 - <a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a>
 	b-iter = b iter
@@ -248,9 +248,9 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 .peek<a> a?(a iter a)
 	if a.cur is-empty
 		if last ?= a.stack last
-			last.value some
+			last.value,
 	else
-		a.cur[0] some
+		a.cur[0],
 .next!<a> a?(a iter a) trusted
 	if a.cur is-empty
 		if node ?= a.stack pop!
@@ -260,11 +260,11 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 				a.stack ~= i
 			as leaf l
 				a.cur := l
-			res some
+			res,
 	else
 		res = a.cur[0]
 		a.cur := a.cur tail
-		res some
+		res,
 
 # Folds the remaining elements from the iter
 .fold-iter<a, b> a(acc a, a iter b, f act a(a, b))

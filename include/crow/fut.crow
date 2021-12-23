@@ -6,7 +6,7 @@ import
 	./exception: catch, exception
 	./fun-util: subscript
 	./misc: void
-	./opt: none, opt, some
+	./opt: new, opt
 	./result: result
 	./private/bootstrap:
 		action, exclusion, fut-state-exception, fut-state-resolved, hard-unreachable, is-sendable,
@@ -113,9 +113,9 @@ join<a> fut a[](a fut<a>[]) trusted is-sendable<a> is-sendable<a[]> summon
 		as fut-state-callbacks _
 			hard-unreachable
 		as fut-state-resolved _
-			none
+			()
 		as fut-state-exception e
-			e some
+			e,
 	if e ?= exception
 		res reject! e
 	else

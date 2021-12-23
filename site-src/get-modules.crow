@@ -94,8 +94,8 @@ get-modules module[](paths str[]) summon
 
 .to-union-member union-member(a json)
 	a.get-node-type is "member"
-	type = if t ?= a["type"]
-		t.to-type-ref some
+	type type-ref? = if t ?= a["type"]
+		t.to-type-ref,
 	a.get-name, type
 
 .get-name sym(a json)

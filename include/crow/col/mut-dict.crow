@@ -6,7 +6,7 @@ import
 	../fun-util: subscript
 	../hash: hash, hash-mix
 	../misc: drop, is-data, void
-	../opt: ==, is-empty, none, opt, some
+	../opt: ==, is-empty, new, opt
 	../ptr: ==, +, *, mut-ptr, set-deref
 	../str: ==, str
 	../str-conv: finish, interp, to-str, with-str, with-value
@@ -89,19 +89,19 @@ subscript<k, v> v?(a v mut[k], key k) trusted is-data<k> compare<k> hash-mix<k>
 	if !a.is-empty
 		match a.entries[key.hash unsafe-mod a.entries.size]
 		as none
-			none
+			()
 		as one ar
 			if ar.from == key
-				ar.to some
+				ar.to,
 		as many m
 			if index ?= m find-index pair => pair.from == key
-				m[index].to some
+				m[index].to,
 
 in<k, v> bool(key k, a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	!a[key].is-empty
 
 set-subscript<k, v> void(a v mut[k], key k, value v) is-data<k> compare<k> hash-mix<k>
-	drop: a update! key, value.some
+	drop: a update! key, (value,)
 
 empty!<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a.entries fill! none
@@ -119,7 +119,7 @@ remove-key!<k, v> void(a v mut[k], key k) is-data<k> compare<k> hash-mix<k>
 	drop: a try-remove-key! key
 
 try-remove-key!<k, v> v?(a v mut[k], key k) is-data<k> compare<k> hash-mix<k>
-	a update! key, none
+	a update! key, ()
 
 ###
 f: Takes the value (if it exists), returns the new value (or none to remove).
@@ -130,7 +130,7 @@ Returns the old value (if it exists).
 		if value ?= new-value
 			a.entries := (key, value).one,
 			a.total-size := 1
-		none
+		()
 	else
 		entry-index = key.hash unsafe-mod a.entries.size
 		match a.entries[entry-index]
@@ -138,7 +138,7 @@ Returns the old value (if it exists).
 			if value ?= new-value
 				a.entries[entry-index] := (key, value) one
 				a.total-size := a.total-size wrap-add 1
-			none
+			()
 		as one ar
 			if ar.from == key
 				a.entries[entry-index] := if value ?= new-value
@@ -146,7 +146,7 @@ Returns the old value (if it exists).
 				else
 					a.total-size := a.total-size wrap-sub 1
 					none
-				ar.to some
+				ar.to,
 			else
 				if value ?= new-value
 					if a should-expand
@@ -155,7 +155,7 @@ Returns the old value (if it exists).
 					else
 						a.entries[entry-index] := (ar, (key, value)) many
 						a.total-size := a.total-size wrap-add 1
-				none
+				()
 		as many m
 			if index ?= m find-index pair => pair.from == key
 				old-value = m[index] to
@@ -170,7 +170,7 @@ Returns the old value (if it exists).
 						z = m[0]
 						a.entries[entry-index] := z one
 					a.total-size := a.total-size wrap-sub 1
-				old-value some
+				old-value,
 			else
 				if value ?= new-value
 					if m.is-at-capacity && a.should-expand
@@ -179,7 +179,7 @@ Returns the old value (if it exists).
 					else
 						m ~= (key, value)
 						a.total-size := a.total-size wrap-add 1
-				none
+				()
 
 ~= <k, v> void(a v mut[k], b pair<k, v>) is-data<k> compare<k> hash-mix<k>
 	a[b from] := b to
@@ -295,8 +295,8 @@ test
 	a str mut[nat64] = ()
 
 	a[6] := "6"
-	a[5] is none
-	a[6] is "6".some
+	a[5] is ()
+	a[6] is ("6",)
 	a.size is 1
 	# TODO: a.arr is ((6, "6"),)
 	a.arr map (pair => pair from) is (6,)
@@ -316,9 +316,9 @@ test
 	a[8] := "8"
 	a verify "[4 -> 4, 8 -> 8] _ (6 -> six) (3 -> 3)"
 
-	a[4] is "4".some
-	a[8] is "8".some
-	a[5] is none
+	a[4] is ("4",)
+	a[8] is ("8",)
+	a[5] is ()
 
 	# TODO: a.arr is ((4, "4"), (8, "8"), (6, "six"), (3, "3"))
 	a.arr map (pair => pair from) is (4, 8, 6, 3)
@@ -327,8 +327,8 @@ test
 	a[12] := "12"
 	a verify "(8 -> 8) _ _ (3 -> 3) [4 -> 4, 12 -> 12] _ (6 -> six) _"
 
-	a try-remove-key! 5 is none
-	a try-remove-key! 4 is "4".some
+	a try-remove-key! 5 is ()
+	a try-remove-key! 4 is ("4",)
 
 	a verify "(8 -> 8) _ _ (3 -> 3) (12 -> 12) _ (6 -> six) _"
 

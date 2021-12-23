@@ -29,7 +29,7 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, o
 	res move-to-arr!
 
 .ext-is-crow bool(a str)
-	a.base-name.get-extension == "crow".some
+	a.base-name.get-extension == ("crow",)
 
 .run-single-crow-test failure[]
 	path-to-crow str
@@ -39,12 +39,12 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, o
 spec
 	summon
 body
-	op = ("ast", "model", "concrete-model", "low-model")::str[] first-some print-kind =>
+	op failure[]? = ("ast", "model", "concrete-model", "low-model")::str[] first-some print-kind =>
 		if options print-tests
 			print: "crow print {print-kind} {path}"
 		res = print-kind run-print-test path-to-crow, env, path, options.overwrite-output
 		if res should-stop
-			res.failures some
+			res.failures,
 	if res ?= op
 		res
 	else

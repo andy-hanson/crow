@@ -5,7 +5,7 @@ import
 	../compare: !=, <, <=, equal
 	../fun-util: subscript
 	../misc: drop, void
-	../opt: opt, some
+	../opt: new, opt
 	../ptr:
 		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,
 		ref-of-ptr, set-deref, set-subscript, size-of, subscript, swap!
@@ -124,11 +124,11 @@ unsafe-set-at!<a> void(a fix-arr a, index nat64, value a) unsafe
 
 first<a> a?(a fix-arr a)
 	if !a.is-empty
-		a[0] some
+		a[0],
 
 last<a> a?(a fix-arr a)
 	if !a.is-empty
-		a[0] some
+		a[0],
 
 tail<a> fix-arr a(a fix-arr a)
 	forbid: a is-empty

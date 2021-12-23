@@ -4,7 +4,7 @@ import
 	../exception: assert
 	../fun-util: subscript
 	../misc: void
-	../opt: force, is-empty, opt, some
+	../opt: force, is-empty, new, opt
 	../ptr: ==, +, -, set-deref
 	../range: ..
 	../str: ==, str
@@ -63,23 +63,23 @@ popped<a> record
 
 pop-left<a> popped<a>?(a deque a)
 	if popped ?= a.left pop
-		(popped.value, (popped.rest, a.mid, a.right)) some
+		(popped.value, (popped.rest, a.mid, a.right)),
 	elif first ?= a.mid first
-		(first, ((), a.mid.tail, a.right)) some
+		(first, ((), a.mid.tail, a.right)),
 	else
 		right-arr = a.right arr
 		if first ?= right-arr first
-			(first, ((), right-arr.tail, ())) some
+			(first, ((), right-arr.tail, ())),
 
 pop-right<a> popped<a>?(a deque a)
 	if popped ?= a.right pop
-		(popped.value, (a.left, a.mid, popped.rest)) some
+		(popped.value, (a.left, a.mid, popped.rest)),
 	elif last ?= a.mid last
-		(last, (a.left, a.mid.rtail, ())) some
+		(last, (a.left, a.mid.rtail, ())),
 	else
 		left-arr = a.left arr-reverse
 		if last ?= left-arr last
-			(last, ((), left-arr.rtail, ())) some
+			(last, ((), left-arr.rtail, ())),
 
 region iteration
 
@@ -133,7 +133,7 @@ test
 	assert: a is-empty
 	a.dbg is "[]"
 	a.arr is ()
-	# TODO: 'is none'
+	# TODO: 'a.pop-left is ()'
 	a.pop-left.is-empty is true
 	a.pop-right.is-empty is true
 

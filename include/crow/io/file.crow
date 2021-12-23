@@ -20,7 +20,7 @@ import
 	../fun-util: subscript
 	../misc: void
 	../number: ==, <=>, +, int32, nat8, nat16, nat32, to-int64, to-nat32, to-nat64
-	../opt: is-empty, opt, some
+	../opt: is-empty, new, opt
 	../ptr:
 		==, +, any-const-ptr, as-any-const-ptr, as-const, const-ptr, mut-ptr, null, ptr-cast,
 		ptr-cast-from-extern, ref-eq, size-of
@@ -187,7 +187,7 @@ try-read-file str?(path str) summon
 			# TODO: this is just a sanity check
 			assert: file-size < 1000000000
 			if file-size == 0
-				some: ""
+				"",
 			else
 				# Go back to beginning
 				off = fd lseek 0, seek-set
@@ -202,7 +202,7 @@ try-read-file str?(path str) summon
 				forbid: n-bytes-read == -1
 				assert: n-bytes-read == file-size
 				check-posix-error: fd close
-				res.cast-immutable.str some
+				res.cast-immutable.str,
 
 # Gets the current directory (of the user that ran the program).
 current-directory str() summon trusted
@@ -219,7 +219,7 @@ current-directory str() summon trusted
 	s = stat
 	err = path stat s
 	if err == 0
-		s some
+		s,
 	else
 		assert: err == -1
 		if errno != ENOENT

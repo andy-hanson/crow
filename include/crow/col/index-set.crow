@@ -8,7 +8,7 @@ import
 	../fun-util: subscript
 	../log: info, log
 	../misc: drop, void
-	../opt: is-empty, none, opt, or-default, some
+	../opt: is-empty, new, opt, or-default
 	../ptr: ==, +, *, const-ptr, ptr-to, set-deref
 	../range: .., each
 	../str: ==, str
@@ -130,7 +130,7 @@ try-add index-set?(a index-set, index nat64) trusted
 	if index >= a.capacity
 		a.quadruple-capacity try-add index
 	elif res ?= a.root try-add index, a.capacity
-		(a.capacity, res) some
+		(a.capacity, res),
 .try-add node?(a node, index nat64, n nat64) unsafe
 	hard-assert: index < n
 	match a
@@ -141,18 +141,18 @@ try-add index-set?(a index-set, index nat64) trusted
 		if index < half
 			if index < quarter
 				if res ?= i.a try-add index, quarter
-					(i with-a res).inner some
+					(i with-a res).inner,
 			else
 				if res ?= i.b try-add (index wrap-sub quarter), quarter
-					(i with-b res).inner some
+					(i with-b res).inner,
 		else
 			index2 = index wrap-sub half
 			if index2 < quarter
 				if res ?= i.c try-add index2, quarter
-					(i with-c res).inner some
+					(i with-c res).inner,
 			else
 				if res ?= i.d try-add (index2 wrap-sub quarter), quarter
-					(i with-d res).inner some
+					(i with-d res).inner,
 	as leaf l
 		hard-assert: n == bits-in-leaf-node
 		word-index = index word-index
@@ -160,7 +160,7 @@ try-add index-set?(a index-set, index nat64) trusted
 		word = l.values[word-index]
 		new-word = word add-bit bit-index
 		if new-word != word
-			(l update-leaf word-index, new-word).leaf some
+			(l update-leaf word-index, new-word).leaf,
 	as empty
 		new-node = if n == bits-in-leaf-node
 			empty-leaf-node leaf
@@ -177,7 +177,7 @@ try-add index-set?(a index-set, index nat64) trusted
 try-remove index-set?(a index-set, index nat64) trusted
 	if index < a.capacity
 		if removed ?= a.root try-remove index, a.capacity
-			removed simplify-after-remove-or-filter a.capacity some
+			(removed simplify-after-remove-or-filter a.capacity),
 .try-remove node?(a node, index nat64, n nat64) unsafe
 	hard-assert: index < n
 	match a
@@ -185,26 +185,26 @@ try-remove index-set?(a index-set, index nat64) trusted
 		assert: n > bits-in-leaf-node
 		half = n unsafe-div 2
 		quarter = half unsafe-div 2
-		opt-new-node = if index < half
+		opt-new-node inner-node? = if index < half
 			if index < quarter
 				if res ?= i.a try-remove index, quarter
-					i with-a res some
+					(i with-a res),
 			else
 				if res ?= i.b try-remove (index wrap-sub quarter), quarter
-					i with-b res some
+					(i with-b res),
 		else
 			index2 = index wrap-sub half
 			if index2 < quarter
 				if res ?= i.c try-remove index2, quarter
-					i with-c res some
+					(i with-c res),
 			else
 				if res ?= i.d try-remove (index2 wrap-sub quarter), quarter
-					i with-d res some
+					(i with-d res),
 		if new-node ?= opt-new-node
-			some: if new-node is-all-empty
-				empty
+			if new-node is-all-empty
+				empty,
 			else
-				new-node inner
+				new-node.inner,
 	as leaf l
 		assert: n == bits-in-leaf-node
 		word-index = index word-index
@@ -213,11 +213,11 @@ try-remove index-set?(a index-set, index nat64) trusted
 		new-word = word sub-bit bit-index
 		if new-word != word
 			if new-word == 0
-				empty some
+				empty,
 			else
-				(l update-leaf word-index, new-word).leaf some
+				(l update-leaf word-index, new-word).leaf,
 	as empty
-		none
+		()
 .simplify-after-remove-or-filter index-set(node node, capacity nat64) unsafe
 	match node
 	as inner i

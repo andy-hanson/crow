@@ -63,7 +63,7 @@ main fut nat(_ str[]) summon
 	drop: () :: tree-set<nat>
 	drop: () :: queue<nat>
 	drop: gmt
-	drop: ((() => none),) :: iterator<nat>
+	drop: ((() => ()),) :: iterator<nat>
 	drop: "".json-str
 	drop: () parse-named-args ()
 	run-all-tests

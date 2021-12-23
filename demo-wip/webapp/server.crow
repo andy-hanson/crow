@@ -99,20 +99,20 @@ split-url url(url-str str)
 
 # Extra cookies are ignored
 parse-cookies str[](s str, cookie-names str[])
-	res fix-arr str? = cookie-names.size fill-fix-arr none
+	res fix-arr str? = cookie-names.size fill-fix-arr ()
 	s split-by "; " each part =>
 		if pair ?= part try-split-once "="
 			if index ?= cookie-names index-of pair.a
-				res[index] := pair.b some
+				res[index] := pair.b,
 	res map-to-arr-with-index (x, index) =>
 		x or-throw () => "Did not get cookie value for {cookie-names[index]}"
 
 parse-query str[](s str, arg-names str[])
-	res fix-arr str? = arg-names.size fill-fix-arr none
+	res fix-arr str? = arg-names.size fill-fix-arr ()
 	s split-by "&" each part =>
 		if pair ?= part try-split-once "="
 			if index ?= arg-names index-of pair.a
-				res[index] := pair.b some
+				res[index] := pair.b,
 			else
 				throw: "Unexpected key {pair a}"
 		else

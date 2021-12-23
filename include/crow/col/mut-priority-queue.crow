@@ -4,7 +4,7 @@ import
 	../compare: <, compare
 	../exception: assert
 	../misc: is-data, void
-	../opt: force, is-empty, none, opt, some
+	../opt: force, is-empty, new, opt
 	../ptr: +, -, mut-ptr, set-deref
 	../str: ==, str
 	../test-util: is
@@ -110,7 +110,7 @@ body
 
 pop-value!<k, v> v?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	if pair ?= a pop!
-		pair.to some
+		pair.to,
 
 pop!<k, v> pair<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	res = a.mins pop!
@@ -154,7 +154,7 @@ pop!<k, v> pair<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 test
 	a mut-priority-queue<nat64, str> = ()
 	a.is-empty is true
-	a.pop! is none
+	a.pop! is ()
 	a verify ""
 
 	a ~= (5, "5")
@@ -174,16 +174,16 @@ test
 	a ~= (3, "3b")
 	a verify "5 -> 5 [6 -> 6], 2 -> 2 [3 -> 3a, 4 -> 4, 3 -> 3b]"
 
-	a.pop! is (2, "2").some
+	a.pop! is ((2, "2"),)
 	a verify "5 -> 5 [6 -> 6], 4 -> 4, 3 -> 3b, 3 -> 3a"
 
 	a ~= (4, "4b")
 	a verify "5 -> 5 [6 -> 6], 4 -> 4 [4 -> 4b], 3 -> 3b, 3 -> 3a"
 
-	a.pop! is (3, "3a").some
-	a.pop! is (3, "3b").some
+	a.pop! is ((3, "3a"),)
+	a.pop! is ((3, "3b"),)
 	a verify "5 -> 5 [6 -> 6], 4 -> 4 [4 -> 4b]"
-	a.pop! is (4, "4").some
+	a.pop! is ((4, "4"),)
 	a verify "5 -> 5 [6 -> 6], 4 -> 4b"
 
 	# TODO: a.arr is [4 -> "4b", 5 -> "5", 6 -> "6"]

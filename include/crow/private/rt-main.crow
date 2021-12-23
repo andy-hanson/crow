@@ -11,7 +11,7 @@ import
 	../fut: delay, fut, handle-exceptions, then-void
 	../io/process: exit-code
 	../misc: void
-	../opt: none
+	../opt: new
 	../ptr:
 		+, any-mut-ptr, arr-of-single, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr,
 		mut-ptr, null, ptr-to, ref-of-val, set-deref, subscript
@@ -40,7 +40,7 @@ rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summ
 	do-init-constants
 	n-threads = get_nprocs
 	f = false
-	gctx-by-val by-val global-ctx = lbv, lbv, lbv, none, empty-arr, n-threads, create-condition, f, f
+	gctx-by-val by-val global-ctx = lbv, lbv, lbv, (), empty-arr, n-threads, create-condition, f, f
 	gctx = gctx-by-val ref-of-val
 	island-by-val = gctx island 0, n-threads
 	island = island-by-val ref-of-val

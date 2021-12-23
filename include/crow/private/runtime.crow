@@ -6,7 +6,7 @@ import
 	../io/print: print-err, print-err-no-newline
 	../io/time-low-level: get-monotime-nsec, timestamp
 	../misc: void
-	../opt: none, opt, some
+	../opt: new, opt
 	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val
 	./alloc: gc, get-gc-ctx, needs-gc, return-gc-ctx, run-garbage-collection
 	./bool-low-level: !, &&, ||, bool, false, true
@@ -223,7 +223,7 @@ new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclu
 	# (That is unfair as island 0 will tend to get the most attention.)
 	cur-time = get-monotime-nsec
 	# TODO: should not need type annotation
-	res = match gctx.islands choose-task-recur 0, cur-time, false, none
+	res = match gctx.islands choose-task-recur 0, cur-time, false, ()
 	as rslt-chosen-task c
 		c rslt-chosen-task
 	as rslt-no-chosen-task n
@@ -267,7 +267,7 @@ body
 .min-time timestamp?(a timestamp?, b timestamp?) noctx
 	if ta ?= a
 		if tb ?= b
-			ta min tb some
+			(ta min tb),
 	else
 		b
 
@@ -297,7 +297,7 @@ body
 			# do nothing -- a thread is running on this island
 			# we can't do a GC now, but don't want to start a new task either
 			# because that would block GC
-			(true, none) tii-no-task
+			(true, ()) tii-no-task
 	else
 		match island.tasks pop-task! cur-time
 		as ptr-task t

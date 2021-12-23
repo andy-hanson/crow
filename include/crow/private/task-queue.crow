@@ -7,7 +7,7 @@ import
 	../compare: !=, <=
 	../io/time-low-level: timestamp
 	../misc: void
-	../opt: is-empty, none, opt, some
+	../opt: is-empty, new, opt
 	../ptr: by-val, ref-of-val
 	./bootstrap: exclusion, hard-assert
 	./number-low-level: ==, <=>, nat64, wrap-add
@@ -38,11 +38,11 @@ is-empty bool(a task-queue) noctx
 	a.head is-empty
 
 new by-val task-queue(max-threads nat64) unsafe noctx
-	none, max-threads.mut-arr-by-val-with-capacity-from-unmanaged-memory
+	(), max-threads.mut-arr-by-val-with-capacity-from-unmanaged-memory
 
 # Expose construction of nodes, because it's better to do this outside of a lock
 new task-queue-node(task task)
-	task, none
+	task, ()
 
 no-task record
 	by-val
@@ -66,9 +66,9 @@ pop-task! pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 				a.head := head.next
 				head.task ptr-task
 		else
-			(true, task.time.some) ptr-no-task
+			(true, (task.time,)) ptr-no-task
 	else
-		(false, none) ptr-no-task
+		(false, ()) ptr-no-task
 
 	match res
 	as ptr-task t
@@ -80,7 +80,7 @@ pop-task! pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 
 to-opt-time timestamp?(a timestamp) noctx
 	if a != no-timestamp
-		a some
+		a,
 
 return-task! void(a task-queue, task task) noctx unsafe
 	a.currently-running-exclusions.ref-of-val noctx-must-remove-unordered! task.exclusion
@@ -99,14 +99,14 @@ body
 		if task.time <= cur-time
 			if task.exclusion in exclusions
 				cur pop-recur! exclusions, cur-time, if t ?= first-task-time
-					t some
+					t,
 				else
 					task.time to-opt-time
 			else
 				prev.next := cur.next
 				task ptr-task
 		else
-			(true, task.time.some) ptr-no-task
+			(true, (task.time,)) ptr-no-task
 	else
 		(true, first-task-time) ptr-no-task
 
@@ -116,10 +116,10 @@ insert-task! void(a task-queue, inserted task-queue-node) noctx unsafe
 		if head.task.time <= inserted.task.time
 			head insert-recur inserted
 		else
-			inserted.next := head some
-			a.head := inserted some
+			inserted.next := head,
+			a.head := inserted,
 	else
-		a.head := inserted.some
+		a.head := inserted,
 	size-after = a size
 	hard-assert: (size-before wrap-add 1) == size-after
 
@@ -128,10 +128,10 @@ insert-task! void(a task-queue, inserted task-queue-node) noctx unsafe
 		if cur.task.time <= inserted.task.time
 			cur insert-recur inserted
 		else
-			inserted.next := cur some
-			prev.next := inserted some
+			inserted.next := cur,
+			prev.next := inserted,
 	else
-		prev.next := inserted some
+		prev.next := inserted,
 
 .size nat64(a task-queue) noctx
 	a.head size-recur 0

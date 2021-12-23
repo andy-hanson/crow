@@ -5,7 +5,7 @@ import
 	../fun-util: subscript
 	../misc: void
 	../number: +, -, nat64
-	../opt: is-empty, none, opt, some
+	../opt: is-empty, new, opt
 	../ptr: ==, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../test-util: is
 	../tuple: new, pair
@@ -131,11 +131,11 @@ flat-map<out, in> out[](a in[], f act out[](in))
 
 first<a> a?(a a[])
 	if !a.is-empty
-		a[0] some
+		a[0],
 
 last<a> a?(a a[])
 	if !a.is-empty
-		a[a.size - 1] some
+		a[a.size - 1],
 
 ###
 All but the first element of an arr.
@@ -206,12 +206,11 @@ test
 try-remove<a> a[]?(a a[], value a) equal<a>
 	a try-remove-recur 0, value
 .try-remove-recur<a> a[]?(a a[], index nat64, value a) equal<a>
-	if index == a.size
-		none
-	elif a[index] == value
-		a remove-index index some
-	else
-		a try-remove-recur index + 1, value
+	if index != a.size
+		if a[index] == value
+			(a remove-index index),
+		else
+			a try-remove-recur index + 1, value
 
 remove-index<a> a[](a a[], index nat64)
 	assert: index < a.size
@@ -239,13 +238,13 @@ ends-with<a> bool(a a[], end a[]) equal<a> equal<a[]>
 # If `a` starts with `start`, returns the remaining elements, else returns `none`.
 try-remove-start<a> a[]?(a a[], start a[]) equal<a> equal<a[]>
 	if a starts-with start
-		a[start.size .. a.size] some
+		a[start.size .. a.size],
 
 # TODO: equal<a[]> should be unnecessary
 # If `a` ends with `end`, returns the preceding elements, else returns `none`.
 try-remove-end<a> a[]?(a a[], end a[]) equal<a> equal<a[]>
 	if a ends-with end
-		a[0 .. a.size - end.size] some
+		a[0 .. a.size - end.size],
 
 ###
 This is like `each` but with a state variable that gets transformed by each call to `f`.
@@ -282,17 +281,16 @@ index-of-subseq<a> nat64?(a a[], subseq a[]) equal<a> equal<a[]>
 	a index-of-subseq-recur subseq, 0
 # TODO: equal<a[]> should be unnecessary
 .index-of-subseq-recur<a> nat64?(a a[], subseq a[], i nat64) equal<a> equal<a[]>
-	if i == a.size
-		none
-	elif a[i .. a.size] starts-with subseq
-		i some
-	else
-		a index-of-subseq-recur subseq, i + 1
+	if i != a.size
+		if a[i .. a.size] starts-with subseq
+			i,
+		else
+			a index-of-subseq-recur subseq, i + 1
 
 find<a> a?(a a[], f act bool(a))
 	if !a.is-empty
 		if f[a[0]]
-			a[0] some
+			a[0],
 		else
 			a.tail find f
 
@@ -302,12 +300,11 @@ Returns the first index for which `f[a[i]]` is true, or returns `none`.
 find-index<a> nat64?(a a[], f act bool(a))
 	a find-index-recur 0, f
 .find-index-recur<a> nat64?(a a[], index nat64, f act bool(a))
-	if index == a.size
-		none
-	elif f[a[index]]
-		index some
-	else
-		a find-index-recur index + 1, f
+	if index != a.size
+		if f[a[index]]
+			index,
+		else
+			a find-index-recur index + 1, f
 
 ###
 Like `find-index`, but starts from the end.
@@ -317,7 +314,7 @@ find-rindex<a> nat64?(a a[], f act bool(a))
 		a find-rindex-recur a.size - 1, f
 .find-rindex-recur<a> nat64?(a a[], index nat64, f act bool(a))
 	if f[a[index]]
-		index some
+		index,
 	elif index != 0
 		a find-rindex-recur index - 1, f
 
@@ -327,18 +324,17 @@ Equivalent to `a find-index it => it == value`.
 ###
 index-of<a> nat64?(a a[], value a) trusted equal<a>
 	if v ?= a ptr-of value
-		v - a.begin-ptr some
+		v - a.begin-ptr,
 
 # Like `index-of` but returns a ptr.
 ptr-of<a> a*?(a a[], value a) unsafe equal<a>
 	a.begin-ptr ptr-of-recur a.end-ptr, value
 .ptr-of-recur<a> a*?(cur a*, end a*, value a) unsafe equal<a>
-	if cur == end
-		none
-	elif *cur == value
-		cur some
-	else
-		cur + 1 ptr-of-recur end, value
+	if cur != end
+		if *cur == value
+			cur,
+		else
+			cur + 1 ptr-of-recur end, value
 
 ###
 Returns the last index where `a[i] == value`.
@@ -356,7 +352,7 @@ flatten<a> a[](a a[][])
 
 try-split-once<a> pair<a[], a[]>?(a a[], splitter a) equal<a>
 	if index ?= a index-of splitter
-		(a[0 .. index], a[index + 1 .. a.size]) some
+		(a[0 .. index], a[index + 1 .. a.size]),
 
 # TODO: equal<a[]> should be unnecessary
 split-by<a> a[][](a a[], splitter a) equal<a> equal<a[]> trusted
@@ -423,7 +419,7 @@ zip-larger<out, a, b> out[](a a[], b b[], f act out(a?, b?))
 
 .opt-subscript<a> a?(a a[], index nat64)
 	if index < a.size
-		a[index] some
+		a[index],
 
 # TODO: update-at
 update<a> a[](a a[], index nat64, new-value a)

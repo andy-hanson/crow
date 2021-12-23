@@ -4,7 +4,7 @@ import
 	../compare: !=, <
 	../exception: assert, forbid
 	../misc: void
-	../opt: ==, none, opt, some
+	../opt: ==, new, opt
 	../ptr: ==, <=>, +, -, *, as-const, mut-ptr, null, set-deref, zeroed
 	../range: ..
 	../str: ==, str
@@ -76,7 +76,7 @@ push!<a> void(a mut-deque a, value a) trusted
 
 first<a> a?(a mut-deque a) trusted
 	if a.left != null
-		*a.left some
+		*a.left,
 
 last<a> a?(a mut-deque a) trusted
 	if a.right != null
@@ -84,7 +84,7 @@ last<a> a?(a mut-deque a) trusted
 			a.inner end-ptr
 		else
 			a right
-		*(fixed-right - 1) some
+		*(fixed-right - 1),
 
 pop-left!<a> a?(a mut-deque a) trusted
 	if a.left != null
@@ -97,7 +97,7 @@ pop-left!<a> a?(a mut-deque a) trusted
 			a.left := null
 			a.right := null
 			# Still hold on to `a inner`
-		res some
+		res,
 
 pop-right!<a> a?(a mut-deque a) trusted
 	if a.right != null
@@ -110,7 +110,7 @@ pop-right!<a> a?(a mut-deque a) trusted
 			a.left := null
 			a.right := null
 			# Still hold on to `a inner`
-		res some
+		res,
 
 # This temporarily breaks the invariant that a.left and a.right are null for an empty queue.
 .ensure-capacity!<a> void(a mut-deque a) unsafe
@@ -165,8 +165,8 @@ pop-right!<a> a?(a mut-deque a) trusted
 
 test
 	a mut-deque nat64 = ()
-	a.pop-left! is none
-	a.pop-right! is none
+	a.pop-left! is ()
+	a.pop-right! is ()
 	a verify (), ""
 	1 push! a
 	a verify (1,), "<-R 0 L-> 1"
@@ -176,10 +176,10 @@ test
 	a-copy = a copy
 	a-copy verify (1, 2), "<-R L-> 1 2"
 
-	a.pop-right! is 2.some
+	a.pop-right! is (2,)
 	a verify (1,), "<-R 0 L-> 1"
 
-	a.pop-right! is 1.some
+	a.pop-right! is (1,)
 	assert: a.left == null
 	assert: a.right == null
 	a verify (), "0 0"

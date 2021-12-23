@@ -5,7 +5,7 @@ import
 	../../hash: hash-mix
 	../../misc: is-data, void
 	../../number: nat64
-	../../opt: is-empty, none, opt, some
+	../../opt: is-empty, new, opt
 	../../tuple: new
 	../arr: arr
 	../arr-util: map
@@ -40,9 +40,9 @@ in<a> bool(value a, a hamt-set a) is-data<a> compare<a> hash-mix<a>
 try-add<a> hamt-set<a>?(a hamt-set a, value a) is-data<a> compare<a> hash-mix<a>
 	match a.inner try-add value, () => void
 	as already-has-key _
-		none
+		()
 	as added res
-		(res,) some
+		(res,),
 
 - <a> hamt-set a(a hamt-set a, value a) is-data<a> compare<a> hash-mix<a>
 	if res ?= a try-remove value
@@ -52,7 +52,7 @@ try-add<a> hamt-set<a>?(a hamt-set a, value a) is-data<a> compare<a> hash-mix<a>
 
 try-remove<a> hamt-set<a>?(a hamt-set a, value a) is-data<a> compare<a> hash-mix<a>
 	if res ?= a.inner try-remove value
-		(res.new-dict,) some
+		(res.new-dict,),
 
 region iteration
 

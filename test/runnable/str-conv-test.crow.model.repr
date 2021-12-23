@@ -22,7 +22,7 @@ module(
 														spec-impls: [fun-inst(name: ==)])
 													[
 														call(fun-inst(name: parse-nat), [string-lit("")])
-														call(fun-inst(name: none, type-args: [nat64()]), [])])
+														call(fun-inst(name: new, type-args: [nat64()]), [])])
 												call(
 													fun-inst(
 														name: is
@@ -31,7 +31,7 @@ module(
 													[
 														call(fun-inst(name: parse-nat), [string-lit("1")])
 														call(
-															fun-inst(name: some, type-args: [nat64()])
+															fun-inst(name: new, type-args: [nat64()])
 															[literal(nat64(), 1)])]))
 											call(
 												fun-inst(
@@ -40,7 +40,7 @@ module(
 													spec-impls: [fun-inst(name: ==)])
 												[
 													call(fun-inst(name: parse-nat), [string-lit("1.2")])
-													call(fun-inst(name: none, type-args: [nat64()]), [])]))
+													call(fun-inst(name: new, type-args: [nat64()]), [])]))
 										call(
 											fun-inst(
 												name: is
@@ -48,27 +48,27 @@ module(
 												spec-impls: [fun-inst(name: ==)])
 											[
 												call(fun-inst(name: parse-nat), [string-lit("+1")])
-												call(fun-inst(name: none, type-args: [nat64()]), [])]))
+												call(fun-inst(name: new, type-args: [nat64()]), [])]))
 									call(
 										fun-inst(name: is, type-args: [opt(int64())], spec-impls: [fun-inst(name: ==)])
 										[
 											call(fun-inst(name: parse-int), [string-lit("123")])
-											call(fun-inst(name: some, type-args: [int64()]), [literal(int64(), 123)])]))
+											call(fun-inst(name: new, type-args: [int64()]), [literal(int64(), 123)])]))
 								call(
 									fun-inst(name: is, type-args: [opt(int64())], spec-impls: [fun-inst(name: ==)])
 									[
 										call(fun-inst(name: parse-int), [string-lit("-123")])
-										call(fun-inst(name: some, type-args: [int64()]), [literal(int64(), -123)])]))
+										call(fun-inst(name: new, type-args: [int64()]), [literal(int64(), -123)])]))
 							call(
 								fun-inst(name: is, type-args: [opt(int64())], spec-impls: [fun-inst(name: ==)])
 								[
 									call(fun-inst(name: parse-int), [string-lit("+123")])
-									call(fun-inst(name: some, type-args: [int64()]), [literal(int64(), 123)])]))
+									call(fun-inst(name: new, type-args: [int64()]), [literal(int64(), 123)])]))
 						call(
 							fun-inst(name: is, type-args: [opt(int64())], spec-impls: [fun-inst(name: ==)])
 							[
 								call(fun-inst(name: parse-int), [string-lit("*123")])
-								call(fun-inst(name: none, type-args: [int64()]), [])]))
+								call(fun-inst(name: new, type-args: [int64()]), [])]))
 					call(
 						fun-inst(name: print)
 						[

@@ -4,7 +4,7 @@ import
 	../../compare: ==, !=, <, >=, compare, comparison, equal
 	../../fun-util: subscript
 	../../misc: void
-	../../opt: none, opt, some
+	../../opt: new, opt
 	../../ptr: ==, +, -, *, as-const, as-mut, const-ptr, mut-ptr, null, set-deref
 	../../test-util: is
 	../../tuple: from, pair, to
@@ -32,42 +32,42 @@ binary-search-key<k, v> v?(a pair<k, v>[], key k) trusted compare<k>
 		as less
 			left binary-search-key-recur mid, key
 		as equal
-			mid->to some
+			mid->to,
 		as greater
 			mid + 1 binary-search-key-recur right, key
 .linear-search-key-recur<k, v> v?(left pair<k, v>*, right pair<k, v>*, key k) trusted compare<k>
 	if left == right
-		none
+		()
 	elif left->from == key
-		left->to some
+		left->to,
 	else
 		left + 1 linear-search-key-recur right, key
 
 binary-search-exact-index<a> nat64?(a a[], value a) trusted compare<a>
 	ptr = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
 	if ptr == null
-		none
+		()
 	else
-		ptr - a.begin-ptr some
+		ptr - a.begin-ptr,
 
 binary-search-exact-ptr<a> a mut*?(a a mut[], compare act comparison(a)) unsafe
 	a.temp-as-fix-arr binary-search-exact-ptr compare
 
 binary-search-exact-ptr<a> a mut*?(a fix-arr a, compare act comparison(a)) unsafe
 	if x ?= a.cast-immutable binary-search-exact-ptr compare
-		x.as-mut some
+		x.as-mut,
 
 binary-search-exact-ptr<a> a*?(a a[], value a) compare<a> unsafe
 	res = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
 	if res != null
-		res some
+		res,
 
 binary-search-exact-ptr<a> a*?(a a[], compare act comparison(a)) unsafe
 	ptr = a.begin-ptr binary-search-compare-recur a.end-ptr, compare
 	if ptr == a.end-ptr
-		none
+		()
 	elif compare[*ptr] == equal
-		ptr some
+		ptr,
 
 binary-search-insert-ptr<a> a mut*(a a mut[], compare act comparison(a)) unsafe
 	a.temp-as-fix-arr binary-search-insert-ptr compare

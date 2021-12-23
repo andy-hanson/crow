@@ -6,7 +6,7 @@ import
 	../fun-util: subscript
 	../misc: drop, void
 	../number: +, -, *, nat64
-	../opt: opt, some
+	../opt: new, opt
 	../ptr:
 		==, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, by-val, const-ptr, mut-ptr,
 		set-deref, set-subscript, size-of, subscript, zeroed
@@ -135,11 +135,11 @@ subscript<a> a(a a mut[], index nat64) trusted
 
 first<a> a?(a a mut[])
 	if !a.is-empty
-		a[0] some
+		a[0],
 
 last<a> a?(a a mut[])
 	if !a.is-empty
-		a[a.size - 1] some
+		a[a.size - 1],
 
 ###
 Sets the last element.
@@ -213,7 +213,7 @@ pop!<a> a?(a a mut[]) trusted
 		# Ensure GC doesn't hold on to the memory there
 		a[new-size] := zeroed
 		a.size := new-size
-		res some
+		res,
 
 ###
 Pops `n` times, discarding the result.

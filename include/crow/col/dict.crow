@@ -7,7 +7,7 @@ import
 	../fun-util: subscript
 	../hash: hash, hash-mix
 	../misc: is-data, void
-	../opt: ==, force, is-empty, none, opt, some
+	../opt: ==, force, is-empty, new, opt
 	../ptr: ==, +, set-deref
 	../range: ..
 	../str: ==, ~, str
@@ -111,9 +111,9 @@ subscript<k, v> v?(a v[k], key k) is-data<k> compare<k> hash-mix<k>
 		l subscript-leaf-recur key
 .subscript-leaf-recur<k, v> v?(a pair<k, v>[], key k) compare<k>
 	if a is-empty
-		none
+		()
 	elif a[0].from == key
-		a[0].to some
+		a[0].to,
 	else
 		a.tail subscript-leaf-recur key
 
@@ -164,7 +164,7 @@ try-remove-result<k, v> record
 try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> hash-mix<k>
 	res = a get-or-update key, old-value => remove
 	if value ?= res old-value
-		(value, (res.new-node.force,)) some
+		(value, (res.new-node.force,)),
 
 .get-or-update-result<k, v> record
 	by-val
@@ -214,21 +214,21 @@ body
 			child-res = i[which] get-or-update-recur key, next-hash, (hash-shift wrap-add 3), f
 			if node ?= child-res new-node
 				new-inner = i update-child which, node
-				new-inner.some, child-res.old-value
+				(new-inner,), child-res.old-value
 			else
 				child-res
 		else
-			match f[none]
+			match f[()]
 			as no-change
-				none, none
+				(), ()
 			as remove
-				none, none
+				(), ()
 			as insert ins
 				# TODO: type annotation should not be necessary
 				new-leaf node<k, v> = ((key, ins),) leaf-node
 				# TODO: type annotation should not be necessary
 				new-node node<k, v> = i update-with-default which, new-leaf, empty-leaf-node inner-node
-				new-node.some, none
+				(new-node,), ()
 	as leaf-node l
 		l get-or-update-leaf key, remaining-hash, hash-shift, f
 
@@ -279,12 +279,12 @@ body
 				out[out-index .. new-out-index] copy-from! l
 				new-out-index
 		assert: end == out.size
-		out.cast-immutable.leaf-node some
+		out.cast-immutable.leaf-node,
 
 .find-only-non-empty-child<k, v> node<k, v>?(children node<k, v>[])
 	first-non-empty-index = force: children find-index it => !it.node-is-empty
 	if children[(first-non-empty-index wrap-add 1) .. children.size] every it => it node-is-empty
-		children[first-non-empty-index] some
+		children[first-non-empty-index],
 
 .get-or-update-leaf<k, v> get-or-update-result<k, v>
 	a pair<k, v>[]
@@ -298,32 +298,32 @@ spec
 body
 	if index ?= a find-index it => it.from == key
 		old-value = a[index] to
-		new-node node<k, v>? = match f[old-value some]
+		new-node node<k, v>? = match f[(old-value,)]
 		as no-change
-			none
+			()
 		as remove
-			some: leaf-node: a remove-at index
+			(a remove-at index leaf-node),
 		as insert ins
-			some: leaf-node: a update index, (key, ins)
-		new-node, old-value.some
+			(a update index, (key, ins) leaf-node),
+		new-node, (old-value,)
 	else
-		new-node node<k, v>? = match f[none]
+		new-node node<k, v>? = match f[()]
 		as no-change
-			none
+			()
 		as remove
-			none
+			()
 		as insert ins
-			some: if a.size >= leaf-max-size
+			if a.size >= leaf-max-size
 				if hash-shift >= 64
 					# We've exhausted the hash.
 					# TODO: fall back to a sorted dict ?
 					todo
 				# If we get here, it's guaranteed that we don't need to recursively create leaves.
 				# Just group by hash.
-				a new-inner-node key, ins, remaining-hash, hash-shift
+				(a new-inner-node key, ins, remaining-hash, hash-shift),
 			else
-				a ~ ((key, ins),) leaf-node
-		new-node, none
+				(a ~ ((key, ins),) leaf-node),
+		new-node, ()
 
 # In order to get the hash, we need to know the shift amount
 .new-inner-node<k, v> node<k, v>
@@ -443,7 +443,7 @@ test
 	l0.is-empty is true
 	l0.size is 0
 	l0 verify "[]"
-	l0[0] is none
+	l0[0] is ()
 
 	l1 = l0 ~ (5, "5")
 	l1.is-empty is false
@@ -458,8 +458,8 @@ test
 	l3 verify "[5 -> 5, 1 -> 1, 3 -> 3, 9 -> 9, 13 -> 13]"
 	#l3 verify "1[1 -> 1, 9 -> 9] 3[3 -> 3] 5[13 -> 13, 5 -> 5]"
 
-	#l3[3] is "3".some
-	#l3[4] is none
+	#l3[3] is ("3",)
+	#l3[4] is ()
 
 	#l3 - 3 verify "[1 -> 1, 9 -> 9, 13 -> 13, 5 -> 5]"
 
