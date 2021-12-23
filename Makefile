@@ -3,9 +3,7 @@
 # WARN: Does not clean `dyncall` as that takes too long to restore
 # Also does not clean `node_modules` for the VSCode plugin
 clean:
-	rm -rf bin
-	rm -f site/*.html site/*/*.html site/*/*/*.html site/*/*/*/*.html
-	rm -rf temp
+	rm -rf bin site temp
 
 all: clean test lint serve
 
@@ -36,22 +34,31 @@ end-to-end-test-overwrite: bin/crow
 
 test: unit-test end-to-end-test
 
-src_deps = src/*.d src/*/*.d src/*/*/*.d
+src_deps = src/*.d src/*/*.d src/*/*/*.d bin/d-imports/date.txt bin/d-imports/commit-hash.txt
 cli_deps = dyncall $(src_deps)
-d_flags_common = -betterC -preview=dip25 -preview=dip1000
-dmd_flags_assert= $(d_flags_common) -check=on -boundscheck=on
+d_flags_common = -betterC -preview=dip25 -preview=dip1000 -J=bin/d-imports
+dmd_flags_assert = $(d_flags_common) -check=on -boundscheck=on
+dmd_flags_debug = -debug -g -version=Debug
 ldc_flags_assert = $(d_flags_common) --enable-asserts=true --boundscheck=on
 ldc_flags_no_assert = $(d_flags_common) --enable-asserts=false --boundscheck=off
-ldc_fast_flags = -O2 --d-version=TailRecursionAvailable -L=--strip-all
-ldc_fast_flags_no_tail_call = -O2 -L=--strip-all
+ldc_fast_flags = -O2 --d-version=Optimized --d-version=TailRecursionAvailable -L=--strip-all
+ldc_fast_flags_no_tail_call = -O2 --d-version=Optimized -L=--strip-all
 app_link = -L=-ldyncall_s -L=-L./dyncall/dyncall -L=-lgccjit
 
 app_files = src/app.d src/*/*.d src/*/*/*.d
 # TODO: shouldn't need writeToC
 wasm_files = src/wasm.d src/backend/mangle.d src/backend/writeToC.d src/backend/writeTypes.d src/concretize/*.d src/document/*.d src/frontend/*.d src/frontend/*/*.d src/interpret/*.d src/lib/*.d src/lower/*.d src/model/*.d src/util/*.d src/util/*/*.d
 
+bin/d-imports/date.txt:
+	mkdir -p bin/d-imports
+	date --iso-8601 --utc > bin/d-imports/date.txt
+
+bin/d-imports/commit-hash.txt:
+	mkdir -p bin/d-imports
+	git rev-parse --short HEAD > bin/d-imports/commit-hash.txt
+
 bin/crow-debug: $(cli_deps)
-	dmd -ofbin/crow-debug $(dmd_flags_assert) -debug -g $(app_files) $(app_link)
+	dmd -ofbin/crow-debug $(dmd_flags_assert) $(dmd_flags_debug) $(app_files) $(app_link)
 	rm bin/crow-debug.o
 
 bin/crow: $(cli_deps)

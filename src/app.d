@@ -8,7 +8,7 @@ import core.sys.posix.fcntl : open, O_CREAT, O_RDONLY, O_TRUNC, O_WRONLY, pid_t;
 import core.sys.posix.spawn : posix_spawn;
 import core.sys.posix.sys.wait : waitpid;
 import core.sys.posix.dirent : DIR, dirent, opendir, readdir;
-import core.sys.posix.sys.stat : mkdir, S_IRWXU;
+import core.sys.posix.sys.stat : mkdir, S_IFDIR, S_IFMT, S_IRWXU, stat, stat_t;
 import core.sys.posix.sys.types : off_t;
 import core.sys.posix.time : clock_gettime, CLOCK_MONOTONIC, timespec;
 import core.sys.posix.unistd : close, getcwd, lseek, read, readlink, unlink, posixWrite = write;
@@ -132,7 +132,10 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 	AllPaths allPaths = AllPaths(ptrTrustMe_mut(alloc), ptrTrustMe_mut(allSymbols));
 	immutable SafeCStr crowDir = getCrowDirectory(alloc, args.pathToThisExecutable);
 	immutable SafeCStr includeDir = getIncludeDirectory(alloc, crowDir);
-	immutable SafeCStr tempDir = setupTempDir(alloc, allPaths, crowDir);
+	immutable Opt!SafeCStr optTempDir = setupTempDir(alloc, allPaths, crowDir);
+	if (!has(optTempDir))
+		return ExitCode.error;
+	immutable SafeCStr tempDir = force(optTempDir);
 
 	immutable SafeCStr cwd = getCwd(alloc);
 	immutable Command command = parseCommand(alloc, allPaths, cwd, args.args);
@@ -217,7 +220,9 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 								getAllArgs(alloc, allPaths, storage, main, run.programArgs));
 						})),
 		(ref immutable Command.Test it) =>
-			test(dbg, alloc, it.name));
+			test(dbg, alloc, it.name),
+		(ref immutable Command.Version) =>
+			printVersion());
 }
 
 immutable(SafeCStr[]) getAllArgs(
@@ -231,7 +236,7 @@ immutable(SafeCStr[]) getAllArgs(
 	return prepend(alloc, pathToSafeCStr(alloc, allPaths, mainAbsolutePath), programArgs);
 }
 
-@trusted immutable(SafeCStr) setupTempDir(
+@trusted immutable(Opt!SafeCStr) setupTempDir(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
 	immutable SafeCStr crowDir,
@@ -243,29 +248,50 @@ immutable(SafeCStr[]) getAllArgs(
 	if (dir == null) {
 		if (errno == ENOENT) {
 			immutable int err = mkdir(asTempSafeCStr(dirPath).ptr, S_IRWXU);
-			if (err != 0)
-				todo!void("error making temp");
-		} else
-			todo!void("failed to open dir");
+			if (err != 0) {
+				fprintf(stderr, "error creating directory %s\n", asTempSafeCStr(dirPath).ptr);
+				return none!SafeCStr;
+			}
+		} else {
+			fprintf(stderr, "error opening directory %s: error code %d\n", asTempSafeCStr(dirPath).ptr, errno);
+			return none!SafeCStr;
+		}
 	} else {
-		while (true) {
-			immutable dirent* entry = cast(immutable) readdir(dir);
-			if (entry == null)
-				break;
-			immutable SafeCStr entryName = immutable SafeCStr(entry.d_name.ptr);
-			if (!safeCStrEq(entryName, ".") && !safeCStrEq(entryName, "..")) {
-				immutable size_t oldLength = length(dirPath);
-				pushToTempStr(dirPath, '/');
-				pushToTempStr(dirPath, entryName);
-				immutable int err = unlink(asTempSafeCStr(dirPath).ptr);
-				setLength(dirPath, oldLength);
-				if (err != 0) {
-					todo!void("failed to unlink");
-				}
+		immutable bool success = rmdirRecur(dirPath, dir);
+		if (!success) return none!SafeCStr;
+	}
+	return some(copyTempStrToSafeCStr(alloc, dirPath));
+}
+
+@system immutable(bool) rmdirRecur(ref TempStr!0x1000 dirPath, DIR* dir) {
+	immutable dirent* entry = cast(immutable) readdir(dir);
+	if (entry == null)
+		return true;
+	immutable SafeCStr entryName = immutable SafeCStr(entry.d_name.ptr);
+	if (!safeCStrEq(entryName, ".") && !safeCStrEq(entryName, "..")) {
+		immutable size_t oldLength = length(dirPath);
+		pushToTempStr(dirPath, '/');
+		pushToTempStr(dirPath, entryName);
+		stat_t s;
+		stat(asTempSafeCStr(dirPath).ptr, &s);
+		if ((s.st_mode & S_IFMT) == S_IFDIR) {
+			DIR* innerDir = opendir(asTempSafeCStr(dirPath).ptr);
+			if (innerDir == null) {
+				fprintf(stderr, "error opening directory %s (to delete contents)\n", asTempSafeCStr(dirPath).ptr);
+				return false;
+			}
+			immutable bool success = rmdirRecur(dirPath, innerDir);
+			if (!success) return false;
+		} else {
+			immutable int err = unlink(asTempSafeCStr(dirPath).ptr);
+			if (err != 0) {
+				fprintf(stderr, "error removing %s\n", asTempSafeCStr(dirPath).ptr);
+				return false;
 			}
 		}
+		setLength(dirPath, oldLength);
 	}
-	return copyTempStrToSafeCStr(alloc, dirPath);
+	return rmdirRecur(dirPath, dir);
 }
 
 @system immutable(ExitCode) mkdirRecur(TempAlloc)(ref TempAlloc tempAlloc, immutable string dir) {
@@ -287,6 +313,23 @@ immutable(SafeCStr[]) getAllArgs(
 	if (err != 0)
 		fprintf(stderr, "Error making directory %s: %s\n", dir, strerror(errno));
 	return immutable ExitCode(err);
+}
+
+@trusted immutable(ExitCode) printVersion() {
+	static immutable string date = import("date.txt")[0 .. "2020-02-02".length];
+	static immutable string commitHash = import("commit-hash.txt")[0 .. 8];
+	printf("%.*s %.*s", cast(int) date.length, date.ptr, cast(int) commitHash.length, commitHash.ptr);
+	version(Debug) {
+		printf(", debug build");
+	}
+	version(assert) {} else {
+		printf(", assertions disabled");
+	}
+	version(TailRecursionAvailable) {} else {
+		printf(", no tail calls");
+	}
+	printf("\n");
+	return ExitCode.ok;
 }
 
 immutable(ExitCode) runDocument(

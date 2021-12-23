@@ -15,12 +15,13 @@ import util.util : todo, verify;
 
 @trusted immutable(Out) matchCommand(Out)(
 	ref immutable Command a,
-	scope Out delegate(ref immutable Command.Build) @safe @nogc nothrow cbBuild,
-	scope Out delegate(ref immutable Command.Document) @safe @nogc nothrow cbDocument,
-	scope Out delegate(ref immutable Command.Help) @safe @nogc nothrow cbHelp,
-	scope Out delegate(ref immutable Command.Print) @safe @nogc nothrow cbPrint,
-	scope Out delegate(ref immutable Command.Run) @safe @nogc nothrow cbRun,
-	scope Out delegate(ref immutable Command.Test) @safe @nogc nothrow cbTest,
+	scope immutable(Out) delegate(ref immutable Command.Build) @safe @nogc nothrow cbBuild,
+	scope immutable(Out) delegate(ref immutable Command.Document) @safe @nogc nothrow cbDocument,
+	scope immutable(Out) delegate(ref immutable Command.Help) @safe @nogc nothrow cbHelp,
+	scope immutable(Out) delegate(ref immutable Command.Print) @safe @nogc nothrow cbPrint,
+	scope immutable(Out) delegate(ref immutable Command.Run) @safe @nogc nothrow cbRun,
+	scope immutable(Out) delegate(ref immutable Command.Test) @safe @nogc nothrow cbTest,
+	scope immutable(Out) delegate(ref immutable Command.Version) @safe @nogc nothrow cbVersion,
 ) {
 	final switch (a.kind) {
 		case Command.Kind.build:
@@ -35,6 +36,8 @@ import util.util : todo, verify;
 			return cbRun(a.run);
 		case Command.Kind.test:
 			return cbTest(a.test);
+		case Command.Kind.version_:
+			return cbVersion(a.version_);
 	}
 }
 
@@ -84,6 +87,7 @@ struct Command {
 	struct Test {
 		immutable Opt!string name;
 	}
+	struct Version {}
 
 	@trusted immutable this(immutable Build a) { kind = Kind.build; build = a; }
 	@trusted immutable this(immutable Document a) { kind = Kind.document; document = a; }
@@ -91,6 +95,7 @@ struct Command {
 	@trusted immutable this(immutable Print a) { kind = Kind.print; print = a; }
 	@trusted immutable this(immutable Run a) { kind = Kind.run; run = a; }
 	@trusted immutable this(immutable Test a) { kind = Kind.test; test = a; }
+	immutable this(immutable Version a) { kind = Kind.version_; version_ = a; }
 
 	private:
 	enum Kind {
@@ -100,6 +105,7 @@ struct Command {
 		print,
 		run,
 		test,
+		version_,
 	}
 	immutable Kind kind;
 	union {
@@ -109,6 +115,7 @@ struct Command {
 		immutable Print print;
 		immutable Run run;
 		immutable Test test;
+		immutable Version version_;
 	}
 }
 
@@ -184,7 +191,7 @@ immutable(Command) parseCommand(
 		return isHelp(arg0)
 			? immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.requested))
 			: isSpecialArg(arg0, "version")
-			? immutable Command(immutable Command.Help(versionText, Command.Help.Kind.requested))
+			? immutable Command(immutable Command.Version())
 			: strEq(arg0, "print")
 			? parsePrintCommand(alloc, allPaths, cwd, cmdArgs)
 			: strEq(arg0, "build")
@@ -527,9 +534,6 @@ immutable(Command) parseTestCommand(ref Alloc alloc, immutable SafeCStr[] args) 
 	else
 		return immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));
 }
-
-immutable SafeCStr versionText =
-	safeCStr!"Approximately 0.000";
 
 immutable SafeCStr helpAllText =
 	safeCStr!("Commands: (type a command then '--help' to see more)\n" ~
