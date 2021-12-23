@@ -1,4 +1,4 @@
-module include.libgccjit;
+module backend.libgccjit;
 
 @safe @nogc pure nothrow:
 

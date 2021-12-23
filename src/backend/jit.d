@@ -10,16 +10,7 @@ import backend.gccTypes :
 	getGccType,
 	getGccTypes,
 	UnionFields;
-import backend.mangle :
-	buildMangledNames,
-	MangledNames,
-	writeConstantArrStorageName,
-	writeConstantPointerStorageName,
-	writeLowLocalName,
-	writeLowFunMangledName,
-	writeLowParamName;
-import frontend.lang : JitOptions, OptimizationLevel;
-import include.libgccjit :
+import backend.libgccjit :
 	gcc_jit_binary_op,
 	gcc_jit_block,
 	gcc_jit_block_add_assignment,
@@ -88,6 +79,15 @@ import include.libgccjit :
 	gcc_jit_type,
 	gcc_jit_types,
 	gcc_jit_unary_op;
+import backend.mangle :
+	buildMangledNames,
+	MangledNames,
+	writeConstantArrStorageName,
+	writeConstantPointerStorageName,
+	writeLowLocalName,
+	writeLowFunMangledName,
+	writeLowParamName;
+import frontend.lang : JitOptions, OptimizationLevel;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	ArrTypeAndConstantsLow,

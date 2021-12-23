@@ -42,7 +42,9 @@ import lib.compiler :
 	ProgramsAndFilesInfo,
 	justTypeCheck;
 import model.model : AbsolutePathsGetter, getAbsolutePath, hasDiags;
-import test.test : test;
+version(Test) {
+	import test.test : test;
+}
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
@@ -205,8 +207,12 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 								main,
 								getAllArgs(alloc, allPaths, storage, main, run.programArgs));
 						})),
-		(ref immutable Command.Test it) =>
-			test(alloc, it.name),
+		(ref immutable Command.Test it) {
+			version(Test) {
+				return test(alloc, it.name);
+			} else
+				return printErr(safeCStr!"Did not compile with tests");
+		},
 		(ref immutable Command.Version) =>
 			printVersion());
 }

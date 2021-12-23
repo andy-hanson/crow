@@ -221,7 +221,6 @@ export const CrowText = makeCustomElement({
 			const saveMouseMoveIndex = mouseMoveIndex
 			setTimeout(() => {
 				if (mouseIsIn && mouseMoveIndex === saveMouseMoveIndex) {
-					console.log("POS IS", pos)
 					const hover = getHover(pos)
 					if (hover !== "") {
 						tooltip = div({class:hoverTooltipClass}, [hover])

@@ -2,9 +2,7 @@ module backend.gccTypes;
 
 @safe @nogc pure nothrow:
 
-import backend.mangle : MangledNames, writeStructMangledName;
-import backend.writeTypes : TypeWriters, writeTypes;
-import include.libgccjit :
+import backend.libgccjit :
 	gcc_jit_binary_op,
 	gcc_jit_block,
 	gcc_jit_block_end_with_return,
@@ -36,6 +34,8 @@ import include.libgccjit :
 	gcc_jit_type,
 	gcc_jit_type_get_pointer,
 	gcc_jit_types;
+import backend.mangle : MangledNames, writeStructMangledName;
+import backend.writeTypes : TypeWriters, writeTypes;
 import model.concreteModel : ConcreteStruct;
 import model.lowModel :
 	LowExternPtrType,
