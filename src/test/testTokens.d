@@ -11,13 +11,12 @@ import util.col.arr : emptyArr;
 import util.col.arrBuilder : ArrBuilder;
 import util.col.arrUtil : arrEqual, arrLiteral;
 import util.col.str : SafeCStr, safeCStr;
-import util.dbg : log;
 import util.perf : Perf, withNullPerf;
 import util.repr : writeRepr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols;
 import util.util : verifyFail;
-import util.writer : finishWriter, Writer, writeStatic;
+import util.writer : finishWriterToSafeCStr, Writer, writeStatic;
 
 void testTokens(ref Test test) {
 	testOne(test, safeCStr!"", emptyArr!Token);
@@ -58,15 +57,17 @@ void testOne(ref Test test, immutable SafeCStr source, immutable Token[] expecte
 			source));
 	immutable Token[] tokens = tokensOfAst(test.alloc, allSymbols, ast);
 	if (!tokensEq(tokens, expectedTokens)) {
-		Writer writer = Writer(test.allocPtr);
-		writeStatic(writer, "expected tokens:\n");
-		writeRepr(writer, allSymbols, reprTokens(test.alloc, expectedTokens));
-		writeStatic(writer, "\nactual tokens:\n");
-		writeRepr(writer, allSymbols, reprTokens(test.alloc, tokens));
+		debug {
+			Writer writer = Writer(test.allocPtr);
+			writeStatic(writer, "expected tokens:\n");
+			writeRepr(writer, allSymbols, reprTokens(test.alloc, expectedTokens));
+			writeStatic(writer, "\nactual tokens:\n");
+			writeRepr(writer, allSymbols, reprTokens(test.alloc, tokens));
 
-		writeStatic(writer, "\n\n(hint: ast is:)\n");
-		writeRepr(writer, allSymbols, reprAst(test.alloc, test.allPaths, ast));
-		log(test.dbg, finishWriter(writer));
+			writeStatic(writer, "\n\n(hint: ast is:)\n");
+			writeRepr(writer, allSymbols, reprAst(test.alloc, test.allPaths, ast));
+			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
+		}
 		verifyFail();
 	}
 }

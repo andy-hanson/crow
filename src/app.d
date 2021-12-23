@@ -62,7 +62,6 @@ import util.col.str :
 	strOfSafeCStr;
 import util.col.tempStr : asTempSafeCStr, copyTempStrToSafeCStr, length, pushToTempStr, setLength, TempStr;
 import util.conv : bitsOfFloat64, float32OfBits, float64OfBits;
-import util.dbg : Debug;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
 import util.path :
 	AbsolutePath,
@@ -140,17 +139,6 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 	immutable SafeCStr cwd = getCwd(alloc);
 	immutable Command command = parseCommand(alloc, allPaths, cwd, args.args);
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
-	scope Debug dbg = Debug(
-		(immutable char c) {
-			debug {
-				printf("%c", c);
-			}
-		},
-		(scope immutable string a) {
-			debug {
-				printf("%.*s", cast(immutable uint) a.length, a.ptr);
-			}
-		});
 
 	return matchCommand!(immutable ExitCode)(
 		command,
@@ -195,7 +183,6 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 								getRootPath(allPaths, includeDir, run.programDirAndMain);
 							return withRealExtern(alloc, allSymbols, (scope ref Extern extern_) => buildAndInterpret(
 								alloc,
-								dbg,
 								perf,
 								allSymbols,
 								allPaths,
@@ -220,7 +207,7 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 								getAllArgs(alloc, allPaths, storage, main, run.programArgs));
 						})),
 		(ref immutable Command.Test it) =>
-			test(dbg, alloc, it.name),
+			test(alloc, it.name),
 		(ref immutable Command.Version) =>
 			printVersion());
 }

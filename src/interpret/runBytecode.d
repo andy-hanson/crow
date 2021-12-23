@@ -21,7 +21,6 @@ import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import model.typeLayout : PackField;
 import util.alloc.alloc : TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.dbg : log, logNoNewline, logSymNoNewline;
 import util.col.fullIndexDict : fullIndexDictGet;
 import util.col.stack :
 	asTempArr,
@@ -43,7 +42,6 @@ import util.col.stack :
 	toArr;
 import util.col.str : SafeCStr;
 import util.conv : safeToSizeT;
-import util.dbg : Debug;
 import util.memory : allocateMut, memcpy, memmove, memset, overwriteMemory;
 import util.opt : has;
 import util.path : AllPaths;
@@ -53,10 +51,9 @@ import util.repr : writeReprNoNewline;
 import util.sourceRange : FileAndPos;
 import util.sym : AllSymbols, Sym;
 import util.util : divRoundUp, drop, min, unreachable, verify;
-import util.writer : finishWriter, Writer, writeChar, writeHex, writeStatic;
+import util.writer : finishWriterToSafeCStr, Writer, writeChar, writeHex, writeStatic;
 
 @trusted immutable(int) runBytecode(
-	scope ref Debug dbg,
 	scope ref Perf perf,
 	ref TempAlloc tempAlloc,
 	ref const AllSymbols allSymbols,
@@ -68,7 +65,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writeStatic;
 	scope immutable SafeCStr[] allArgs,
 ) {
 	return withInterpreter!(immutable int)(
-		dbg, tempAlloc, extern_, lowProgram, byteCode, allSymbols, allPaths, filesInfo,
+		tempAlloc, extern_, lowProgram, byteCode, allSymbols, allPaths, filesInfo,
 		(scope ref Interpreter interpreter) {
 			push(interpreter.dataStack, allArgs.length);
 			push(interpreter.dataStack, cast(immutable ulong) allArgs.ptr);
@@ -97,7 +94,6 @@ alias DataStack = Stack!ulong;
 private alias ReturnStack = Stack!(immutable(Operation)*);
 
 @system immutable(T) withInterpreter(T)(
-	ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref Extern extern_,
 	scope ref immutable LowProgram lowProgram,
@@ -108,7 +104,6 @@ private alias ReturnStack = Stack!(immutable(Operation)*);
 	scope immutable(T) delegate(scope ref Interpreter) @system @nogc nothrow cb,
 ) {
 	scope Interpreter interpreter = Interpreter(
-		ptrTrustMe_mut(dbg),
 		ptrTrustMe_mut(tempAlloc),
 		ptrTrustMe_mut(extern_),
 		ptrTrustMe(lowProgram),
@@ -139,7 +134,6 @@ struct Interpreter {
 
 	private:
 	@trusted this(
-		Ptr!Debug dbg,
 		Ptr!TempAlloc ta,
 		Ptr!Extern e,
 		immutable Ptr!LowProgram p,
@@ -148,7 +142,6 @@ struct Interpreter {
 		const Ptr!AllPaths ap,
 		immutable Ptr!FilesInfo f,
 	) {
-		debugPtr = dbg;
 		tempAllocPtr = ta;
 		externPtr = e;
 		lowProgramPtr = p;
@@ -160,7 +153,6 @@ struct Interpreter {
 		returnStack = ReturnStack(ta.deref(), 1024 * 4);
 	}
 
-	Ptr!Debug debugPtr;
 	//TODO:KILL
 	Ptr!TempAlloc tempAllocPtr;
 	Ptr!Extern externPtr;
@@ -174,9 +166,6 @@ struct Interpreter {
 	public ReturnStack returnStack;
 	// WARN: if adding any new mutable state here, make sure 'longjmp' still restores it
 
-	ref Debug dbg() return scope {
-		return debugPtr.deref();
-	}
 	//TODO:KILL
 	ref TempAlloc tempAlloc() return scope pure {
 		return tempAllocPtr.deref();
@@ -320,16 +309,17 @@ private immutable(ByteCodeSource) nextSource(ref const Interpreter a, immutable 
 private immutable(NextOperation) getNextOperationAndDebug(ref Interpreter a, immutable Operation* cur) {
 	immutable ByteCodeSource source = nextSource(a, cur);
 
-	{
+	debug {
+		import core.stdc.stdio : printf;
 		ubyte[10_000] mem;
 		scope RangeAlloc dbgAlloc = RangeAlloc(&mem[0], mem.length);
 		scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
 		showStack(writer, a);
 		showReturnStack(writer, a, cur);
-		log(a.dbg, finishWriter(writer));
+		printf("%s\n", finishWriterToSafeCStr(writer).ptr);
 	}
 
-	{
+	debug {
 		ubyte[10_000] mem;
 		scope RangeAlloc dbgAlloc = RangeAlloc(&mem[0], mem.length);
 		scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
@@ -339,7 +329,7 @@ private immutable(NextOperation) getNextOperationAndDebug(ref Interpreter a, imm
 		//writeChar(writer, ' ');
 		//writeReprNoNewline(writer, reprOperation(dbgAlloc, operation));
 		//writeChar(writer, '\n');
-		log(a.dbg, finishWriter(writer));
+		printf("%s\n", finishWriterToSafeCStr(writer).ptr);
 	}
 
 	return immutable NextOperation(cur);

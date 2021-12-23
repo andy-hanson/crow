@@ -15,7 +15,7 @@ import util.util : verify;
 	Server server = Server(RangeAlloc(bytes.ptr, bytes.length));
 	immutable string path = "main";
 	immutable SafeCStr content = safeCStr!"content";
-	addOrChangeFile(test.dbg, server, StorageKind.local, path, strOfSafeCStr(content));
+	addOrChangeFile(server, StorageKind.local, path, strOfSafeCStr(content));
 	immutable SafeCStr res = getFile(server, StorageKind.local, path);
 	verify(safeCStrEq(res, content));
 }

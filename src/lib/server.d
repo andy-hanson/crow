@@ -22,7 +22,6 @@ import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDict
 import util.col.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
 import util.col.str : copyToSafeCStr, freeSafeCStr, SafeCStr, safeCStr;
 import util.conv : safeToUshort;
-import util.dbg : Debug;
 import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
 import util.opt : force, has, none, Opt, some;
@@ -57,7 +56,6 @@ struct Server {
 }
 
 pure void addOrChangeFile(
-	ref Debug,
 	ref Server server,
 	immutable StorageKind storageKind,
 	scope immutable string path,
@@ -143,8 +141,7 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 				strOfDiagnostic(alloc, server.allSymbols, server.allPaths, showDiagOptions, filesInfo, it)));
 }
 
-immutable(string) getHover(
-	scope ref Debug dbg,
+immutable(SafeCStr) getHover(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
@@ -160,7 +157,7 @@ immutable(string) getHover(
 	return getHoverFromProgram(alloc, server, pk, program, pos);
 }
 
-private pure immutable(string) getHoverFromProgram(
+private pure immutable(SafeCStr) getHoverFromProgram(
 	ref Alloc alloc,
 	ref Server server,
 	immutable PathAndStorageKind pk,
@@ -173,9 +170,9 @@ private pure immutable(string) getHoverFromProgram(
 			getPosition(server.allSymbols, program.allModules[force(fileIndex).index], pos);
 		return has(position)
 			? getHoverStr(alloc, alloc, server.allSymbols, server.allPaths, program, force(position))
-			: "";
+			: safeCStr!"";
 	} else
-		return "";
+		return safeCStr!"";
 }
 
 //TODO:KILL, use a reverse lookup
@@ -190,7 +187,6 @@ private pure immutable(Opt!FileIndex) getFileIndex(
 }
 
 immutable(FakeExternResult) run(
-	scope ref Debug dbg,
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
@@ -203,7 +199,7 @@ immutable(FakeExternResult) run(
 	return withDictReadOnlyStorage(server.files, (scope ref const ReadOnlyStorage storage) =>
 		withFakeExtern(alloc, (scope ref Extern extern_) =>
 			buildAndInterpret(
-				alloc, dbg, perf, server.allSymbols, server.allPaths, storage, extern_,
+				alloc, perf, server.allSymbols, server.allPaths, storage, extern_,
 				showDiagOptions, main, allArgs)));
 }
 

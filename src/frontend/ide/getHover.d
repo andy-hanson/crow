@@ -18,12 +18,13 @@ import model.model :
 	writeStructDecl,
 	writeType;
 import util.alloc.alloc : Alloc, TempAlloc;
+import util.col.str : SafeCStr;
 import util.path : AllPaths;
 import util.ptr : ptrTrustMe_mut;
 import util.sym : AllSymbols, writeSym;
-import util.writer : finishWriter, writeChar, Writer, writeStatic;
+import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeStatic;
 
-immutable(string) getHoverStr(
+immutable(SafeCStr) getHoverStr(
 	ref TempAlloc tempAlloc,
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
@@ -33,7 +34,7 @@ immutable(string) getHoverStr(
 ) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
 	getHover(tempAlloc, writer, allSymbols, allPaths, program, pos);
-	return finishWriter(writer);
+	return finishWriterToSafeCStr(writer);
 }
 
 void getHover(

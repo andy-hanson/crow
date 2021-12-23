@@ -18,14 +18,11 @@ import test.testUtil : Test;
 import test.testWriter : testWriter;
 import util.alloc.alloc : Alloc;
 import util.col.str : strEq;
-import util.dbg : Debug;
 import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe_mut;
 
-immutable(ExitCode) test(scope ref Debug dbg, ref Alloc alloc, immutable Opt!string name) {
-	Test test = Test(
-		ptrTrustMe_mut(dbg),
-		ptrTrustMe_mut(alloc));
+immutable(ExitCode) test(ref Alloc alloc, immutable Opt!string name) {
+	Test test = Test(ptrTrustMe_mut(alloc));
 	foreach (ref immutable NameAndTest it; allTests)
 		if (!has(name) || strEq(force(name), it.name))
 			it.test(test);

@@ -9,8 +9,7 @@ import model.model : Module, Program;
 import test.testUtil : Test;
 import util.col.arr : lastPtr;
 import util.col.mutDict : addToMutDict;
-import util.col.str : end, SafeCStr, safeCStr, strEq;
-import util.dbg : Debug, log, logNat, logNoNewline;
+import util.col.str : end, SafeCStr, safeCStr, safeCStrEq;
 import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.opt : force, has, Opt;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
@@ -33,32 +32,32 @@ import util.util : verify, verifyFail;
 				frontendCompile(test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, [key])));
 	immutable Ptr!Module mainModule = lastPtr(program.allModules);
 
-	immutable(string) hover(immutable Pos pos) {
+	immutable(SafeCStr) hover(immutable Pos pos) {
 		immutable Opt!Position position = getPosition(test.allSymbols, mainModule.deref(), pos);
 		return has(position)
 			? getHoverStr(test.alloc, test.alloc, test.allSymbols, test.allPaths, program, force(position))
-			: "";
+			: safeCStr!"";
 	}
 
-	void checkHover(immutable Pos pos, immutable string expected) {
-		verifyStrEq(test.dbg, pos, hover(pos), expected);
+	void checkHover(immutable Pos pos, immutable SafeCStr expected) {
+		verifyStrEq(pos, hover(pos), expected);
 	}
-	void checkHoverRange(immutable Pos start, immutable Pos end, immutable string expected) {
+	void checkHoverRange(immutable Pos start, immutable Pos end, immutable SafeCStr expected) {
 		foreach (immutable Pos pos; start .. end)
 			checkHover(pos, expected);
 	}
 
-	checkHover(0, "");
-	checkHoverRange(1, 11, "builtin type nat");
-	checkHoverRange(12, 13, "");
+	checkHover(0, safeCStr!"");
+	checkHoverRange(1, 11, safeCStr!"builtin type nat");
+	checkHoverRange(12, 13, safeCStr!"");
 	immutable Pos rStart = 14;
 	verify(content.ptr[rStart] == 'r');
 	immutable Pos fldStart = rStart + 10;
-	checkHoverRange(rStart, fldStart, "record r");
+	checkHoverRange(rStart, fldStart, safeCStr!"record r");
 	verify(content.ptr[fldStart] == 'f');
-	checkHoverRange(fldStart, fldStart + 3, "field r.fld (nat)");
-	checkHoverRange(fldStart + 3, fldStart + 7, "builtin type nat");
-	checkHoverRange(fldStart + 7, fldStart + 8, "record r");
+	checkHoverRange(fldStart, fldStart + 3, safeCStr!"field r.fld (nat)");
+	checkHoverRange(fldStart + 3, fldStart + 7, safeCStr!"builtin type nat");
+	checkHoverRange(fldStart + 7, fldStart + 8, safeCStr!"record r");
 	verify(content.ptr + fldStart + 8 == end(content.ptr));
 
 	// TODO: TEST:
@@ -70,14 +69,12 @@ import util.util : verify, verifyFail;
 
 private:
 
-void verifyStrEq(scope ref Debug dbg, immutable Pos pos, immutable string actual, immutable string expected) {
-	if (!strEq(actual, expected)) {
-		logNoNewline(dbg, "at position ");
-		logNat(dbg, pos);
-		log(dbg, "\nactual:");
-		log(dbg, actual);
-		log(dbg, "expected:");
-		log(dbg, expected);
+void verifyStrEq(immutable Pos pos, immutable SafeCStr actual, immutable SafeCStr expected) {
+	if (!safeCStrEq(actual, expected)) {
+		debug {
+			import core.stdc.stdio : printf;
+			printf("at position %d:\nactual: %s\nexpected: %s\n", pos, actual.ptr, expected.ptr);
+		}
 		verifyFail();
 	}
 }

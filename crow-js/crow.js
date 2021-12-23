@@ -20,7 +20,7 @@ if (typeof global !== "undefined")
 @property {function(): number} getGlobalBufferSizeBytes
 @property {function(): number} getGlobalBufferPtr
 @property {function(Ptr, number): Server} newServer
-@property {function(Ptr, number, Server, StorageKind, Ptr, number, Ptr, number): void} addOrChangeFile
+@property {function(Server, StorageKind, Ptr, number, Ptr, number): void} addOrChangeFile
 @property {function(Server, StorageKind, Ptr, number): void} deleteFile
 @property {function(Server, StorageKind, Ptr, number): number} getFile
 @property {function(Ptr, number, Server, StorageKind, Ptr, number): number} getTokens
@@ -205,22 +205,13 @@ class Compiler {
 		try {
 			const pathBuf = this._tempAlloc.writeString(path)
 			const contentBuf = this._tempAlloc.writeString(content)
-			const debugBuf = this._tempAlloc.reserve(1024 * 1024)
-			try {
-				this._exports.addOrChangeFile(
-					debugBuf.begin,
-					debugBuf.size,
-					this._server,
-					storageKind,
-					pathBuf.begin,
-					pathBuf.size,
-					contentBuf.begin,
-					contentBuf.size)
-			} catch (e) {
-				const debug = readString(this._view, debugBuf.begin, debugBuf.size)
-				console.log("Error in addOrChangeFile. Debug is: " + debug)
-				throw e
-			}
+			this._exports.addOrChangeFile(
+				this._server,
+				storageKind,
+				pathBuf.begin,
+				pathBuf.size,
+				contentBuf.begin,
+				contentBuf.size)
 		} finally {
 			this._tempAlloc.clear()
 		}
@@ -307,17 +298,15 @@ class Compiler {
 	getHover(storageKind, path, pos) {
 		try {
 			const pathBuf = this._tempAlloc.writeString(path)
-			const debugBuf = this._tempAlloc.reserve(1024 * 1024)
 			const resultBuf = this._tempAlloc.reserveRest()
 			const res = this._exports.getHover(
 				resultBuf.begin,
 				resultBuf.size,
-				debugBuf.begin,
-				debugBuf.size,
 				this._server,
 				storageKind,
 				pathBuf.begin,
-				pathBuf.size, pos)
+				pathBuf.size,
+				pos)
 			return this._readCStr(res)
 		} finally {
 			this._tempAlloc.clear()
@@ -331,13 +320,10 @@ class Compiler {
 	run(path) {
 		try {
 			const pathBuf = this._tempAlloc.writeString(path)
-			const debugBuf = this._tempAlloc.reserve(1024 * 1024)
 			const resultBuf = this._tempAlloc.reserveRest()
 			const res = this._exports.run(
 				resultBuf.begin,
 				resultBuf.size,
-				debugBuf.begin,
-				debugBuf.size,
 				this._server,
 				pathBuf.begin,
 				pathBuf.size)

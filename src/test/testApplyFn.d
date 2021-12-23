@@ -145,9 +145,9 @@ immutable(ulong) u64OfI64Bits(immutable long a) {
 	interpreterTest(
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
-			writePushConstants(test.dbg, writer, source, stackIn);
-			writeFnBinary!fn(test.dbg, writer, source);
-			writeReturn(test.dbg, writer, source);
+			writePushConstants(writer, source, stackIn);
+			writeFnBinary!fn(writer, source);
+			writeReturn(writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* cur) {
 			stepUntilExitAndExpect(test, interpreter, [stackOut], cur);
@@ -159,7 +159,7 @@ immutable(ulong) u64OfI64Bits(immutable long a) {
 		test,
 		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 			writeFnUnary!fn(writer, source);
-			writeReturn(test.dbg, writer, source);
+			writeReturn(writer, source);
 		},
 		(scope ref Interpreter interpreter, immutable(Operation)* cur) {
 			push(interpreter.dataStack, stackIn);

@@ -15,7 +15,6 @@ import lib.server :
 import util.alloc.alloc : Alloc, allocateT;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.col.str : CStr, SafeCStr, strToCStr;
-import util.dbg : Debug;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.path : StorageKind;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
@@ -70,8 +69,6 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 }
 
 @system extern(C) void addOrChangeFile(
-	char* debugStart,
-	immutable size_t debugLength,
 	Server* server,
 	immutable StorageKind storageKind,
 	immutable char* pathStart,
@@ -81,9 +78,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 ) {
 	immutable string path = pathStart[0 .. pathLength];
 	immutable string content = contentStart[0 .. contentLength];
-	withWasmDebug!void(debugStart, debugLength, (scope ref Debug dbg) @trusted {
-		addOrChangeFile(dbg, *server, storageKind, path, content);
-	});
+	addOrChangeFile(*server, storageKind, path, content);
 }
 
 @system extern(C) void deleteFile(
@@ -135,8 +130,6 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 @system extern(C) immutable(CStr) getHover(
 	ubyte* resultStart,
 	immutable size_t resultLength,
-	char* debugStart,
-	immutable size_t debugLength,
 	Server* server,
 	immutable StorageKind storageKind,
 	immutable char* pathStart,
@@ -145,29 +138,21 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	immutable string path = pathStart[0 .. pathLength];
-	immutable string hover = withWasmDebug!(immutable string)(debugStart, debugLength, (scope ref Debug dbg) =>
-		withNullPerf!(immutable string, (scope ref Perf perf) =>
-			getHover(dbg, perf, resultAlloc, *server, storageKind, path, pos)));
-	return strToCStr(resultAlloc, hover);
+	return withNullPerf!(immutable SafeCStr, (scope ref Perf perf) =>
+		getHover(perf, resultAlloc, *server, storageKind, path, pos)).ptr;
 }
 
 @system extern(C) immutable(CStr) run(
 	ubyte* resultStart,
 	immutable size_t resultLength,
-	char* debugStart,
-	immutable size_t debugLength,
 	Server* server,
 	immutable char* pathStart,
 	immutable size_t pathLength,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	scope immutable string path = pathStart[0 .. pathLength];
-	immutable FakeExternResult result = withWasmDebug!(immutable FakeExternResult)(
-		debugStart,
-		debugLength,
-		(scope ref Debug dbg) =>
-			withWebPerf!(immutable FakeExternResult)((scope ref Perf perf) =>
-				run(dbg, perf, resultAlloc, *server, path)));
+	immutable FakeExternResult result = withWebPerf!(immutable FakeExternResult)((scope ref Perf perf) =>
+		run(perf, resultAlloc, *server, path));
 	return writeRunResult(server.alloc, result);
 }
 
@@ -190,43 +175,6 @@ immutable(T) withWebPerf(T)(
 		perfLog(name.ptr, m.count, m.nanoseconds, m.bytesAllocated);
 	});
 	return res;
-}
-
-@system immutable(T) withWasmDebug(T)(
-	char* begin,
-	immutable size_t size,
-	scope immutable(T) delegate(scope ref Debug) @system @nogc nothrow cb,
-) {
-	verify(size > 0);
-	char* ptr = begin;
-	const char* end = begin + size;
-	scope void delegate(immutable char) @safe @nogc pure nothrow writeChar = (immutable char a) {
-		ptr = trustedDebugWrite(ptr, a, begin, end);
-	};
-	scope Debug dbg = Debug(
-		writeChar,
-		(scope immutable string a) {
-			foreach (immutable char c; a)
-				writeChar(c);
-			writeChar('\n');
-		});
-	return cb(dbg);
-}
-
-pure @trusted char* trustedDebugWrite(char* ptr, immutable char a, char* begin, const char* end) {
-	if (!(begin <= ptr))
-		assert(0);
-	if (!(ptr < end))
-		assert(0);
-	*ptr = a;
-	ptr++;
-	if (ptr == end)
-		ptr = begin;
-	if (!(begin <= ptr))
-		assert(0);
-	if (!(ptr < end))
-		assert(0);
-	return ptr;
 }
 
 // declaring as ulong[] to ensure it's word aligned

@@ -8,7 +8,6 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : sizeEq;
 import util.col.arrUtil : eachCorresponds;
 import util.col.stack : asTempArr;
-import util.dbg : Debug;
 import util.path : AllPaths;
 import util.ptr : Ptr;
 import util.sym : AllSymbols;
@@ -18,13 +17,11 @@ import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 struct Test {
 	@safe @nogc pure nothrow:
 
-	Ptr!Debug dbgPtr;
 	Ptr!Alloc allocPtr;
 	AllSymbols allSymbols;
 	AllPaths allPaths;
 
-	this(Ptr!Debug dp, Ptr!Alloc ap) {
-		dbgPtr = dp;
+	this(Ptr!Alloc ap) {
 		allocPtr = ap;
 		allSymbols = AllSymbols(ap);
 		allPaths = AllPaths(ap, Ptr!AllSymbols(&allSymbols));
@@ -42,9 +39,6 @@ struct Test {
 		verify(false);
 	}
 
-	ref Debug dbg() return scope {
-		return dbgPtr.deref();
-	}
 	ref Alloc alloc() return scope {
 		return allocPtr.deref();
 	}

@@ -159,7 +159,6 @@ import util.col.mutIndexMultiDict :
 	mutIndexMultiDictMustGetAt,
 	newMutIndexMultiDict;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
-import util.dbg : Debug;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
@@ -169,7 +168,6 @@ import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
 immutable(ByteCode) generateBytecode(
-	scope ref Debug dbg,
 	ref Alloc codeAlloc,
 	ref TempAlloc tempAlloc,
 	ref const AllSymbols allSymbols,
@@ -190,7 +188,6 @@ immutable(ByteCode) generateBytecode(
 			(immutable LowFunIndex funIndex, ref immutable LowFun fun) {
 				immutable ByteCodeIndex funPos = nextByteCodeIndex(writer);
 				generateBytecodeForFun(
-					dbg,
 					tempAlloc,
 					writer,
 					funToReferences,
@@ -256,7 +253,6 @@ immutable(size_t) nStackEntriesForUnionType(ref const ExprCtx ctx, ref immutable
 }
 
 void generateBytecodeForFun(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences,
@@ -295,7 +291,7 @@ void generateBytecodeForFun(
 	matchLowFunBody!(
 		void,
 		(ref immutable LowFunBody.Extern body_) {
-			generateExternCall(dbg, tempAlloc, writer, allSymbols, funIndex, fun, body_);
+			generateExternCall(tempAlloc, writer, allSymbols, funIndex, fun, body_);
 		},
 		(ref immutable LowFunExprBody body_) {
 			ExprCtx ctx = ExprCtx(
@@ -307,22 +303,19 @@ void generateBytecodeForFun(
 				ptrTrustMe_mut(funToReferences),
 				nextByteCodeIndex(writer),
 				parameters);
-			generateExpr(dbg, tempAlloc, writer, ctx, body_.expr);
+			generateExpr(tempAlloc, writer, ctx, body_.expr);
 			verify(stackEntryAfterParameters.entry + returnEntries == getNextStackEntry(writer).entry);
-			writeRemove(
-				dbg,
-				writer,
-				source,
-				immutable StackEntries(immutable StackEntry(0), stackEntryAfterParameters.entry));
+			writeRemove(writer, source, immutable StackEntries(
+				immutable StackEntry(0),
+				stackEntryAfterParameters.entry));
 		},
 	)(fun.body_);
 	verify(getNextStackEntry(writer).entry == returnEntries);
-	writeReturn(dbg, writer, source);
+	writeReturn(writer, source);
 	setNextStackEntry(writer, immutable StackEntry(0));
 }
 
 void generateExternCall(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref const AllSymbols allSymbols,
@@ -342,7 +335,7 @@ void generateExternCall(
 		immutable DynCallType returnType = toDynCallType(fun.returnType);
 		writeExternDynCall(writer, source, name, returnType, parameterTypes);
 	}
-	writeReturn(dbg, writer, source);
+	writeReturn(writer, source);
 }
 
 immutable(DynCallType) toDynCallType(ref immutable LowType a) {
@@ -479,7 +472,6 @@ struct ExprCtx {
 }
 
 void generateExpr(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -491,37 +483,28 @@ void generateExpr(
 		(ref immutable LowExprKind.Call it) {
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			immutable size_t expectedStackEffect = nStackEntriesForType(ctx, expr.type);
-			generateArgs(dbg, tempAlloc, writer, ctx, it.args);
+			generateArgs(tempAlloc, writer, ctx, it.args);
 			registerFunAddress(tempAlloc, ctx, it.called,
 				writeCallDelayed(writer, source, stackEntryBeforeArgs, expectedStackEffect));
 			verify(stackEntryBeforeArgs.entry + expectedStackEffect == getNextStackEntry(writer).entry);
 		},
 		(ref immutable LowExprKind.CallFunPtr it) {
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
-			generateExpr(dbg, tempAlloc, writer, ctx, it.funPtr);
-			generateArgs(dbg, tempAlloc, writer, ctx, it.args);
-			writeCallFunPtr(dbg, writer, source, stackEntryBeforeArgs, nStackEntriesForType(ctx, expr.type));
+			generateExpr(tempAlloc, writer, ctx, it.funPtr);
+			generateArgs(tempAlloc, writer, ctx, it.args);
+			writeCallFunPtr(writer, source, stackEntryBeforeArgs, nStackEntriesForType(ctx, expr.type));
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
-			generateCreateRecord(dbg, tempAlloc, writer, ctx, asRecordType(expr.type), source, it);
+			generateCreateRecord(tempAlloc, writer, ctx, asRecordType(expr.type), source, it);
 		},
 		(ref immutable LowExprKind.CreateUnion it) {
-			generateCreateUnion(dbg, tempAlloc, writer, ctx, asUnionType(expr.type), source, it);
+			generateCreateUnion(tempAlloc, writer, ctx, asUnionType(expr.type), source, it);
 		},
 		(ref immutable LowExprKind.If it) {
 			generateIf(
-				dbg,
-				tempAlloc,
-				writer,
-				ctx,
-				source,
-				it.cond,
-				() {
-					generateExpr(dbg, tempAlloc, writer, ctx, it.then);
-				},
-				() {
-					generateExpr(dbg, tempAlloc, writer, ctx, it.else_);
-				});
+				tempAlloc, writer, ctx, source, it.cond,
+				() { generateExpr(tempAlloc, writer, ctx, it.then); },
+				() { generateExpr(tempAlloc, writer, ctx, it.else_); });
 		},
 		(ref immutable LowExprKind.InitConstants) {
 			// bytecode interpreter doesn't need to do anything in 'init-constants'
@@ -529,24 +512,24 @@ void generateExpr(
 		(ref immutable LowExprKind.Let it) {
 			immutable StackEntries localEntries =
 				immutable StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, it.local.deref().type));
-			generateExpr(dbg, tempAlloc, writer, ctx, it.value);
+			generateExpr(tempAlloc, writer, ctx, it.value);
 			verify(getNextStackEntry(writer).entry == localEntries.start.entry + localEntries.size);
 			addToMutDict(tempAlloc, ctx.localEntries, it.local, localEntries);
-			generateExpr(dbg, tempAlloc, writer, ctx, it.then);
+			generateExpr(tempAlloc, writer, ctx, it.then);
 			mustDelete(ctx.localEntries, it.local);
-			writeRemove(dbg, writer, source, localEntries);
+			writeRemove(writer, source, localEntries);
 		},
 		(ref immutable LowExprKind.LocalRef it) {
 			immutable StackEntries entries = mustGetAt_mut(ctx.localEntries, it.local);
 			if (entries.size != 0)
-				writeDupEntries(dbg, writer, source, entries);
+				writeDupEntries(writer, source, entries);
 		},
 		(ref immutable LowExprKind.MatchUnion it) {
 			immutable StackEntry startStack = getNextStackEntry(writer);
-			generateExpr(dbg, tempAlloc, writer, ctx, it.matchedValue);
+			generateExpr(tempAlloc, writer, ctx, it.matchedValue);
 			// Move the union kind to top of stack
-			writeDupEntry(dbg, writer, source, startStack);
-			writeRemove(dbg, writer, source, immutable StackEntries(startStack, 1));
+			writeDupEntry(writer, source, startStack);
+			writeRemove(writer, source, immutable StackEntries(startStack, 1));
 			// Get the kind (always the first entry)
 			immutable SwitchDelayed switchDelayed = writeSwitch0ToNDelay(writer, source, it.cases.length);
 			// Start of the union values is where the kind used to be.
@@ -568,12 +551,12 @@ void generateExpr(
 							force(case_.local),
 							immutable StackEntries(matchedEntriesWithoutKind.start, nEntries));
 					}
-					generateExpr(dbg, tempAlloc, writer, ctx, case_.then);
+					generateExpr(tempAlloc, writer, ctx, case_.then);
 					if (has(case_.local))
 						mustDelete(ctx.localEntries, force(case_.local));
 					if (caseIndex != it.cases.length - 1) {
 						setNextStackEntry(writer, stackAfterMatched);
-						return some(writeJumpDelayed(dbg, writer, source));
+						return some(writeJumpDelayed(writer, source));
 					} else
 						// For the last one, don't reset the stack as by the end one of the cases will have run.
 						// Last one doesn't need a jump, just continues straight into the code after it.
@@ -581,71 +564,67 @@ void generateExpr(
 				});
 			foreach (immutable ByteCodeIndex jumpIndex; delayedGotos)
 				fillInJumpDelayed(writer, jumpIndex);
-			writeRemove(dbg, writer, source, matchedEntriesWithoutKind);
+			writeRemove(writer, source, matchedEntriesWithoutKind);
 		},
 		(ref immutable LowExprKind.ParamRef it) {
 			immutable StackEntries entries = ctx.parameterEntries[it.index.index];
 			if (entries.size != 0)
-				writeDupEntries(dbg, writer, source, entries);
+				writeDupEntries(writer, source, entries);
 		},
 		(ref immutable LowExprKind.PtrCast it) {
-			generateExpr(dbg, tempAlloc, writer, ctx, it.target);
+			generateExpr(tempAlloc, writer, ctx, it.target);
 		},
 		(ref immutable LowExprKind.RecordFieldGet it) {
-			generateRecordFieldGet(dbg, tempAlloc, writer, ctx, source, it);
+			generateRecordFieldGet(tempAlloc, writer, ctx, source, it);
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
 			immutable StackEntry before = getNextStackEntry(writer);
 			verify(it.targetIsPointer);
-			generateExpr(dbg, tempAlloc, writer, ctx, it.target);
+			generateExpr(tempAlloc, writer, ctx, it.target);
 			immutable StackEntry mid = getNextStackEntry(writer);
-			generateExpr(dbg, tempAlloc, writer, ctx, it.value);
+			generateExpr(tempAlloc, writer, ctx, it.value);
 			immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
 			verify(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
-			writeWrite(dbg, writer, source, offsetAndSize.offset, offsetAndSize.size);
+			writeWrite(writer, source, offsetAndSize.offset, offsetAndSize.size);
 			verify(getNextStackEntry(writer) == before);
 		},
 		(ref immutable LowExprKind.Seq it) {
-			generateExpr(dbg, tempAlloc, writer, ctx, it.first);
-			generateExpr(dbg, tempAlloc, writer, ctx, it.then);
+			generateExpr(tempAlloc, writer, ctx, it.first);
+			generateExpr(tempAlloc, writer, ctx, it.then);
 		},
 		(ref immutable LowExprKind.SizeOf it) {
-			writePushConstant(dbg, writer, source, sizeOfType(ctx, it.type).size);
+			writePushConstant(writer, source, sizeOfType(ctx, it.type).size);
 		},
 		(ref immutable Constant it) {
-			generateConstant(dbg, tempAlloc, writer, ctx, source, expr.type, it);
+			generateConstant(tempAlloc, writer, ctx, source, expr.type, it);
 		},
 		(ref immutable LowExprKind.SpecialUnary it) {
-			generateSpecialUnary(dbg, tempAlloc, writer, ctx, source, expr.type, it);
+			generateSpecialUnary(tempAlloc, writer, ctx, source, expr.type, it);
 		},
 		(ref immutable LowExprKind.SpecialBinary it) {
-			generateSpecialBinary(dbg, tempAlloc, writer, ctx, source, it);
+			generateSpecialBinary(tempAlloc, writer, ctx, source, it);
 		},
 		(ref immutable LowExprKind.Switch0ToN it) {
-			generateSwitch0ToN(dbg, tempAlloc, writer, ctx, source, it);
+			generateSwitch0ToN(tempAlloc, writer, ctx, source, it);
 		},
 		(ref immutable LowExprKind.SwitchWithValues it) {
-			generateSwitchWithValues(dbg, tempAlloc, writer, ctx, source, it);
+			generateSwitchWithValues(tempAlloc, writer, ctx, source, it);
 		},
 		(ref immutable LowExprKind.TailRecur it) {
 			// We need to generate all new values before overwriting anything.
 			foreach (ref immutable UpdateParam updateParam; it.updateParams)
-				generateExpr(dbg, tempAlloc, writer, ctx, updateParam.newValue);
+				generateExpr(tempAlloc, writer, ctx, updateParam.newValue);
 			// Now pop them in reverse and write to the appropriate params
 			foreach_reverse (ref immutable UpdateParam updateParam; it.updateParams)
-				writeSet(dbg, writer, source, ctx.parameterEntries[updateParam.param.index]);
+				writeSet(writer, source, ctx.parameterEntries[updateParam.param.index]);
 
 			// Delete anything on the stack besides parameters
 			immutable StackEntry parametersEnd = empty(ctx.parameterEntries)
 				? immutable StackEntry(0)
 				: stackEntriesEnd(ctx.parameterEntries[$ - 1]);
 			immutable StackEntry localsEnd = getNextStackEntry(writer);
-			writeRemove(
-				dbg,
-				writer,
-				source,
-				immutable StackEntries(parametersEnd, localsEnd.entry - parametersEnd.entry));
-			writeJump(dbg, writer, source, ctx.startOfCurrentFun);
+			writeRemove(writer, source, immutable StackEntries(parametersEnd, localsEnd.entry - parametersEnd.entry));
+			writeJump(writer, source, ctx.startOfCurrentFun);
 
 			// We'll continue to write code after the jump for cleaning up the stack, but it's unreachable.
 			// Set the stack entry as if this was a regular call returning.
@@ -653,13 +632,12 @@ void generateExpr(
 			writeAssertUnreachable(writer, source);
 		},
 		(ref immutable LowExprKind.Zeroed) {
-			writePushEmptySpace(dbg, writer, source, nStackEntriesForType(ctx, expr.type));
+			writePushEmptySpace(writer, source, nStackEntriesForType(ctx, expr.type));
 		},
 	)(expr.kind);
 }
 
 void generateSwitch0ToN(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -667,9 +645,8 @@ void generateSwitch0ToN(
 	ref immutable LowExprKind.Switch0ToN it,
  ) {
 	immutable StackEntry stackBefore = getNextStackEntry(writer);
-	generateExpr(dbg, tempAlloc, writer, ctx, it.value);
+	generateExpr(tempAlloc, writer, ctx, it.value);
 	writeSwitchCases(
-		dbg,
 		tempAlloc,
 		writer,
 		ctx,
@@ -680,7 +657,6 @@ void generateSwitch0ToN(
 }
 
 void generateSwitchWithValues(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -688,9 +664,8 @@ void generateSwitchWithValues(
 	ref immutable LowExprKind.SwitchWithValues it,
 ) {
 	immutable StackEntry stackBefore = getNextStackEntry(writer);
-	generateExpr(dbg, tempAlloc, writer, ctx, it.value);
+	generateExpr(tempAlloc, writer, ctx, it.value);
 	writeSwitchCases(
-		dbg,
 		tempAlloc,
 		writer,
 		ctx,
@@ -701,7 +676,6 @@ void generateSwitchWithValues(
 }
 
 void writeSwitchCases(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -716,10 +690,10 @@ void writeSwitchCases(
 		cases,
 		(immutable size_t caseIndex, ref immutable LowExpr case_) {
 			fillDelayedSwitchEntry(writer, switchDelayed, caseIndex);
-			generateExpr(dbg, tempAlloc, writer, ctx, case_);
+			generateExpr(tempAlloc, writer, ctx, case_);
 			if (caseIndex != cases.length - 1) {
 				setNextStackEntry(writer, stackBefore);
-				return some(writeJumpDelayed(dbg, writer, source));
+				return some(writeJumpDelayed(writer, source));
 			} else
 				return none!ByteCodeIndex;
 		});
@@ -727,19 +701,12 @@ void writeSwitchCases(
 		fillInJumpDelayed(writer, jumpIndex);
 }
 
-void generateArgs(
-	scope ref Debug dbg,
-	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
-	ref ExprCtx ctx,
-	ref immutable LowExpr[] args,
-) {
+void generateArgs(ref TempAlloc tempAlloc, ref ByteCodeWriter writer, ref ExprCtx ctx, immutable LowExpr[] args) {
 	foreach (ref immutable LowExpr arg; args)
-		generateExpr(dbg, tempAlloc, writer, ctx, arg);
+		generateExpr(tempAlloc, writer, ctx, arg);
 }
 
 void generateCreateRecord(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -748,7 +715,6 @@ void generateCreateRecord(
 	ref immutable LowExprKind.CreateRecord it,
 ) {
 	generateCreateRecordOrConstantRecord(
-		dbg,
 		tempAlloc,
 		writer,
 		ctx,
@@ -757,12 +723,11 @@ void generateCreateRecord(
 		(immutable size_t fieldIndex, ref immutable LowType fieldType) {
 			immutable LowExpr arg = it.args[fieldIndex];
 			verify(lowTypeEqual(arg.type, fieldType));
-			generateExpr(dbg, tempAlloc, writer, ctx, arg);
+			generateExpr(tempAlloc, writer, ctx, arg);
 		});
 }
 
 void generateCreateRecordOrConstantRecord(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref const ExprCtx ctx,
@@ -778,13 +743,12 @@ void generateCreateRecordOrConstantRecord(
 
 	immutable Opt!Pack optPack = optPack(tempAlloc, ctx.program, type);
 	if (has(optPack))
-		writePack(dbg, writer, source, force(optPack));
+		writePack(writer, source, force(optPack));
 
 	verify(getNextStackEntry(writer).entry - before.entry == nStackEntriesForRecordType(ctx, type));
 }
 
 void generateCreateUnion(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -793,7 +757,6 @@ void generateCreateUnion(
 	ref immutable LowExprKind.CreateUnion it,
 ) {
 	generateCreateUnionOrConstantUnion(
-		dbg,
 		tempAlloc,
 		writer,
 		ctx,
@@ -801,12 +764,11 @@ void generateCreateUnion(
 		it.memberIndex,
 		source,
 		(ref immutable LowType) {
-			generateExpr(dbg, tempAlloc, writer, ctx, it.arg);
+			generateExpr(tempAlloc, writer, ctx, it.arg);
 		});
 }
 
 void generateCreateUnionOrConstantUnion(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref const ExprCtx ctx,
@@ -817,14 +779,14 @@ void generateCreateUnionOrConstantUnion(
 ) {
 	immutable StackEntry before = getNextStackEntry(writer);
 	immutable size_t size = nStackEntriesForUnionType(ctx, type);
-	writePushConstant(dbg, writer, source, memberIndex);
+	writePushConstant(writer, source, memberIndex);
 	immutable LowType memberType = fullIndexDictGet(ctx.program.allUnions, type).members[memberIndex];
 	cbGenerateMember(memberType);
 	immutable StackEntry after = getNextStackEntry(writer);
 	if (before.entry + size != after.entry) {
 		// Some members of a union are smaller than the union.
 		verify(before.entry + size > after.entry);
-		writePushEmptySpace(dbg, writer, source, before.entry + size - after.entry);
+		writePushEmptySpace(writer, source, before.entry + size - after.entry);
 	}
 }
 
@@ -853,7 +815,6 @@ void registerFunAddress(TempAlloc)(
 }
 
 void generateConstant(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -876,22 +837,22 @@ void generateConstant(
 		constant,
 		(ref immutable Constant.ArrConstant it) {
 			immutable TextArrInfo info = getTextInfoForArray(ctx.textInfo, ctx.program.allConstants, it);
-			writePushConstant(dbg, writer, source, info.size);
-			writePushConstantPointer(dbg, writer, source, info.textPtr);
+			writePushConstant(writer, source, info.size);
+			writePushConstantPointer(writer, source, info.textPtr);
 		},
 		(immutable Constant.BoolConstant it) {
-			writeBoolConstant(dbg, writer, source, it.value);
+			writeBoolConstant(writer, source, it.value);
 		},
 		(ref immutable Constant.CString it) {
-			writePushConstantPointer(dbg, writer, source, getTextPointerForCString(ctx.textInfo, it));
+			writePushConstantPointer(writer, source, getTextPointerForCString(ctx.textInfo, it));
 		},
 		(immutable Constant.Float it) {
 			switch (asPrimitiveType(type)) {
 				case PrimitiveType.float32:
-					writePushConstant(dbg, writer, source, bitsOfFloat32(cast(float) it.value));
+					writePushConstant(writer, source, bitsOfFloat32(cast(float) it.value));
 					break;
 				case PrimitiveType.float64:
-					writePushConstant(dbg, writer, source, bitsOfFloat64(it.value));
+					writePushConstant(writer, source, bitsOfFloat64(it.value));
 					break;
 				default:
 					unreachable!void();
@@ -900,33 +861,31 @@ void generateConstant(
 		},
 		(immutable Constant.FunPtr it) {
 			immutable LowFunIndex index = mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun);
-			registerFunAddress(tempAlloc, ctx, index, writePushFunPtrDelayed(dbg, writer, source));
+			registerFunAddress(tempAlloc, ctx, index, writePushFunPtrDelayed(writer, source));
 		},
 		(immutable Constant.Integral it) {
-			writePushConstant(dbg, writer, source, it.value);
+			writePushConstant(writer, source, it.value);
 		},
 		(immutable Constant.Null) {
-			writePushConstant(dbg, writer, source, 0);
+			writePushConstant(writer, source, 0);
 		},
 		(immutable Constant.Pointer it) {
 			immutable ubyte* pointer = getTextPointer(ctx.textInfo, it);
-			writePushConstantPointer(dbg, writer, source, pointer);
+			writePushConstantPointer(writer, source, pointer);
 		},
 		(ref immutable Constant.Record it) {
 			generateCreateRecordOrConstantRecord(
-				dbg,
 				tempAlloc,
 				writer,
 				ctx,
 				asRecordType(type),
 				source,
 				(immutable size_t argIndex, ref immutable LowType argType) {
-					generateConstant(dbg, tempAlloc, writer, ctx, source, argType, it.args[argIndex]);
+					generateConstant(tempAlloc, writer, ctx, source, argType, it.args[argIndex]);
 				});
 		},
 		(ref immutable Constant.Union it) {
 			generateCreateUnionOrConstantUnion(
-				dbg,
 				tempAlloc,
 				writer,
 				ctx,
@@ -934,7 +893,7 @@ void generateConstant(
 				it.memberIndex,
 				source,
 				(ref immutable LowType memberType) {
-					generateConstant(dbg, tempAlloc, writer, ctx, source, memberType, it.arg);
+					generateConstant(tempAlloc, writer, ctx, source, memberType, it.arg);
 				});
 		},
 		(immutable Constant.Void) {
@@ -942,17 +901,11 @@ void generateConstant(
 		});
 }
 
-void writeBoolConstant(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable bool value,
-) {
-	writePushConstant(dbg, writer, source, value ? 1 : 0);
+void writeBoolConstant(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable bool value) {
+	writePushConstant(writer, source, value ? 1 : 0);
 }
 
 void generateSpecialUnary(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -961,7 +914,7 @@ void generateSpecialUnary(
 	ref immutable LowExprKind.SpecialUnary a,
 ) {
 	void generateArg() {
-		generateExpr(dbg, tempAlloc, writer, ctx, a.arg);
+		generateExpr(tempAlloc, writer, ctx, a.arg);
 	}
 
 	void fn(alias cb)() {
@@ -1017,26 +970,26 @@ void generateSpecialUnary(
 		// So we must mask out just the lower bits now.
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat8:
 			generateArg();
-			writePushConstant(dbg, writer, source, ubyte.max);
-			writeFnBinary!fnBitwiseAnd(dbg, writer, source);
+			writePushConstant(writer, source, ubyte.max);
+			writeFnBinary!fnBitwiseAnd(writer, source);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat16:
 			generateArg();
-			writePushConstant(dbg, writer, source, ushort.max);
-			writeFnBinary!fnBitwiseAnd(dbg, writer, source);
+			writePushConstant(writer, source, ushort.max);
+			writeFnBinary!fnBitwiseAnd(writer, source);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
 			generateArg();
-			writePushConstant(dbg, writer, source, uint.max);
-			writeFnBinary!fnBitwiseAnd(dbg, writer, source);
+			writePushConstant(writer, source, uint.max);
+			writeFnBinary!fnBitwiseAnd(writer, source);
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
 			generateArg();
-			writeRead(dbg, writer, source, 0, sizeOfType(ctx, type).size);
+			writeRead(writer, source, 0, sizeOfType(ctx, type).size);
 			break;
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
-			generateRefOfVal(dbg, tempAlloc, writer, ctx, source, a.arg);
+			generateRefOfVal(tempAlloc, writer, ctx, source, a.arg);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
 			fn!fnFloat64FromFloat32();
@@ -1054,7 +1007,6 @@ void generateSpecialUnary(
 }
 
 void generateRefOfVal(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -1062,13 +1014,12 @@ void generateRefOfVal(
 	ref immutable LowExpr arg,
 ) {
 	if (isLocalRef(arg.kind))
-		writeStackRef(dbg, writer, source, mustGetAt_mut(ctx.localEntries, asLocalRef(arg.kind).local).start);
+		writeStackRef(writer, source, mustGetAt_mut(ctx.localEntries, asLocalRef(arg.kind).local).start);
 	else if (isParamRef(arg.kind))
-		writeStackRef(dbg, writer, source, ctx.parameterEntries[asParamRef(arg.kind).index.index].start);
+		writeStackRef(writer, source, ctx.parameterEntries[asParamRef(arg.kind).index.index].start);
 	else if (isRecordFieldGet(arg.kind)) {
 		immutable LowExprKind.RecordFieldGet rfa = asRecordFieldGet(arg.kind);
 		generatePtrToRecordFieldGet(
-			dbg,
 			tempAlloc,
 			writer,
 			ctx,
@@ -1081,7 +1032,7 @@ void generateRefOfVal(
 		immutable LowExprKind.SpecialUnary it = asSpecialUnary(arg.kind);
 		if (it.kind == LowExprKind.SpecialUnary.Kind.deref)
 			// Ref of deref just changes the type
-			generateExpr(dbg, tempAlloc, writer, ctx, it.arg);
+			generateExpr(tempAlloc, writer, ctx, it.arg);
 		else
 			todo!void("!");
 	} else
@@ -1089,7 +1040,6 @@ void generateRefOfVal(
 }
 
 void generateRecordFieldGet(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -1097,34 +1047,32 @@ void generateRecordFieldGet(
 	ref immutable LowExprKind.RecordFieldGet it,
 ) {
 	immutable StackEntry targetEntry = getNextStackEntry(writer);
-	generateExpr(dbg, tempAlloc, writer, ctx, it.target);
+	generateExpr(tempAlloc, writer, ctx, it.target);
 	immutable StackEntries targetEntries = immutable StackEntries(
 		targetEntry,
 		getNextStackEntry(writer).entry - targetEntry.entry);
 	immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
 	if (it.targetIsPointer) {
 		if (offsetAndSize.size == 0)
-			writeRemove(dbg, writer, source, targetEntries);
+			writeRemove(writer, source, targetEntries);
 		else
-			writeRead(dbg, writer, source, offsetAndSize.offset, offsetAndSize.size);
+			writeRead(writer, source, offsetAndSize.offset, offsetAndSize.size);
 	} else {
 		if (offsetAndSize.size != 0) {
 			immutable StackEntry firstEntry =
 				immutable StackEntry(targetEntry.entry + (offsetAndSize.offset / stackEntrySize));
 			writeDup(
-				dbg,
 				writer,
 				source,
 				firstEntry,
 				offsetAndSize.offset % stackEntrySize,
 				offsetAndSize.size);
 		}
-		writeRemove(dbg, writer, source, targetEntries);
+		writeRemove(writer, source, targetEntries);
 	}
 }
 
 void generatePtrToRecordFieldGet(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -1134,18 +1082,17 @@ void generatePtrToRecordFieldGet(
 	immutable bool targetIsPointer,
 	ref immutable LowExpr target,
 ) {
-	generateExpr(dbg, tempAlloc, writer, ctx, target);
+	generateExpr(tempAlloc, writer, ctx, target);
 	immutable size_t offset = fullIndexDictGet(ctx.program.allRecords, record).fields[fieldIndex].offset;
 	if (targetIsPointer) {
 		if (offset != 0)
-			writeAddConstantNat64(dbg, writer, source, offset);
+			writeAddConstantNat64(writer, source, offset);
 	} else
 		// This only works if it's a local .. or another RecordFieldGet
 		todo!void("ptr-to-record-field-get");
 }
 
 void generateSpecialBinary(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -1153,24 +1100,24 @@ void generateSpecialBinary(
 	ref immutable LowExprKind.SpecialBinary a,
 ) {
 	void fn(alias cb)() {
-		generateExpr(dbg, tempAlloc, writer, ctx, a.left);
-		generateExpr(dbg, tempAlloc, writer, ctx, a.right);
-		writeFnBinary!cb(dbg, writer, source);
+		generateExpr(tempAlloc, writer, ctx, a.left);
+		generateExpr(tempAlloc, writer, ctx, a.right);
+		writeFnBinary!cb(writer, source);
 	}
 
 	final switch (a.kind) {
 		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
 		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
 			immutable LowType pointee = asPtrRawPointee(a.left.type);
-			generateExpr(dbg, tempAlloc, writer, ctx, a.left);
-			generateExpr(dbg, tempAlloc, writer, ctx, a.right);
+			generateExpr(tempAlloc, writer, ctx, a.left);
+			generateExpr(tempAlloc, writer, ctx, a.right);
 			immutable size_t pointeeSize = sizeOfType(ctx, pointee).size;
 			if (pointeeSize != 1)
-				writeMulConstantNat64(dbg, writer, source, pointeeSize);
+				writeMulConstantNat64(writer, source, pointeeSize);
 			if (a.kind == LowExprKind.SpecialBinary.Kind.addPtrAndNat64)
-				writeFnBinary!fnWrapAddIntegral(dbg, writer, source);
+				writeFnBinary!fnWrapAddIntegral(writer, source);
 			else
-				writeFnBinary!fnWrapSubIntegral(dbg, writer, source);
+				writeFnBinary!fnWrapSubIntegral(writer, source);
 			break;
 		case LowExprKind.SpecialBinary.Kind.addFloat32:
 			fn!fnAddFloat32();
@@ -1180,18 +1127,9 @@ void generateSpecialBinary(
 			break;
 		case LowExprKind.SpecialBinary.Kind.and:
 			generateIf(
-				dbg,
-				tempAlloc,
-				writer,
-				ctx,
-				source,
-				a.left,
-				() {
-					generateExpr(dbg, tempAlloc, writer, ctx, a.right);
-				},
-				() {
-					writeBoolConstant(dbg, writer, source, false);
-				});
+				tempAlloc, writer, ctx, source, a.left,
+				() { generateExpr(tempAlloc, writer, ctx, a.right); },
+				() { writeBoolConstant(writer, source, false); });
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64:
 			fn!fnUnsafeBitShiftLeftNat64();
@@ -1275,18 +1213,9 @@ void generateSpecialBinary(
 			break;
 		case LowExprKind.SpecialBinary.Kind.or:
 			generateIf(
-				dbg,
-				tempAlloc,
-				writer,
-				ctx,
-				source,
-				a.left,
-				() {
-					writeBoolConstant(dbg, writer, source, true);
-				},
-				() {
-					generateExpr(dbg, tempAlloc, writer, ctx, a.right);
-				});
+				tempAlloc, writer, ctx, source, a.left,
+				() { writeBoolConstant(writer, source, true); },
+				() { generateExpr(tempAlloc, writer, ctx, a.right); });
 			break;
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 			fn!fnSubFloat64();
@@ -1333,15 +1262,14 @@ void generateSpecialBinary(
 			fn!fnWrapMulIntegral();
 			break;
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
-			generateExpr(dbg, tempAlloc, writer, ctx, a.left);
-			generateExpr(dbg, tempAlloc, writer, ctx, a.right);
-			writeWrite(dbg, writer, source, 0, sizeOfType(ctx, a.right.type).size);
+			generateExpr(tempAlloc, writer, ctx, a.left);
+			generateExpr(tempAlloc, writer, ctx, a.right);
+			writeWrite(writer, source, 0, sizeOfType(ctx, a.right.type).size);
 			break;
 	}
 }
 
 void generateIf(
-	scope ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -1351,11 +1279,11 @@ void generateIf(
 	scope void delegate() @safe @nogc pure nothrow cbElse,
 ) {
 	immutable StackEntry startStack = getNextStackEntry(writer);
-	generateExpr(dbg, tempAlloc, writer, ctx, cond);
+	generateExpr(tempAlloc, writer, ctx, cond);
 	immutable JumpIfFalseDelayed delayed = writeJumpIfFalseDelayed(writer, source);
 	cbThen();
 	// At the end of 'then', jump to the end.
-	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(dbg, writer, source);
+	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(writer, source);
 	fillDelayedJumpIfFalse(writer, delayed);
 	setNextStackEntry(writer, startStack);
 	cbElse();

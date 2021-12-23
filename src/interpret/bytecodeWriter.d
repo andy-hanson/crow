@@ -51,19 +51,15 @@ import interpret.runBytecode :
 	opWrite;
 import model.model : EnumValue;
 import model.typeLayout : Pack;
-import util.dbg : Debug;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
 import util.col.mutArr : moveToArr_mut, MutArr, mutArrEnd, mutArrPtrAt, mutArrSize, push, setAt;
-import util.dbg : dbgLog = log;
-import util.opt : force, has, none, Opt, some;
 import util.memory : initMemory, overwriteMemory;
 import util.ptr : Ptr;
 import util.sym : Sym;
 import util.util : divRoundUp, todo, verify;
-import util.writer : finishWriter, writeNat, Writer, writeStatic;
 
 struct ByteCodeWriter {
 	private:
@@ -153,14 +149,12 @@ immutable(ByteCodeIndex) writeCallDelayed(
 }
 
 void writeCallFunPtr(
-	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
 	// This is before the fun-ptr arg, which should be the first
 	immutable StackEntry stackEntryBeforeArgs,
 	immutable size_t nEntriesForReturnType,
 ) {
-	log(dbg, writer, "write call fun-ptr");
 	pushOperationFn(writer, source, &opCallFunPtr);
 	pushSizeT(writer, source, getStackOffsetTo(writer, stackEntryBeforeArgs));
 	writer.nextStackEntry = stackEntryBeforeArgs.entry + nEntriesForReturnType;
@@ -184,28 +178,17 @@ private immutable(StackOffsetBytes) getStackOffsetBytes(
 	return immutable StackOffsetBytes((getStackOffsetTo(writer, stackEntry) + 1) * 8 - offsetBytes);
 }
 
-void writeDupEntries(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable StackEntries entries,
-) {
+void writeDupEntries(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable StackEntries entries) {
 	verify(entries.size != 0);
 	verify(entries.start.entry + entries.size <= getNextStackEntry(writer).entry);
-	writeDup(dbg, writer, source, entries.start, 0, entries.size * 8);
+	writeDup(writer, source, entries.start, 0, entries.size * 8);
 }
 
-void writeDupEntry(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable StackEntry entry,
-) {
-	writeDup(dbg, writer, source, entry, 0, 8);
+void writeDupEntry(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable StackEntry entry) {
+	writeDup(writer, source, entry, 0, 8);
 }
 
 void writeDup(
-	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
 	immutable StackEntry start,
@@ -245,12 +228,7 @@ private void writeDupWord(ref ByteCodeWriter writer, immutable ByteCodeSource so
 	pushSizeT(writer, source, offset);
 }
 
-void writeSet(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable StackEntries entries,
-) {
+void writeSet(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable StackEntries entries) {
 	writeSetInner(writer, source, getStackOffsetTo(writer, entries.start), entries.size);
 	writer.nextStackEntry -= entries.size;
 }
@@ -274,13 +252,11 @@ private void writeSetInner(
 }
 
 void writeRead(
-	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
 	immutable size_t offset,
 	immutable size_t size,
 ) {
-	log(dbg, writer, "write read");
 	verify(size != 0);
 	if (offset % 8 == 0 && size % 8 == 0)
 		writeReadWords(writer, source, offset / 8, size / 8);
@@ -350,30 +326,26 @@ private void writeReadBytes(
 }
 
 void writeStackRef(
-	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
 	immutable StackEntry stackEntry,
 	immutable size_t byteOffset = 0,
 ) {
-	log(dbg, writer, "write stack ref");
 	pushOperationFn(writer, source, &opStackRef);
 	immutable StackOffset offset = immutable StackOffset(getStackOffsetTo(writer, stackEntry));
 	pushSizeT(writer, source, offset.offset);
 	writer.nextStackEntry += 1;
 
 	if (byteOffset != 0)
-		writeAddConstantNat64(dbg, writer, source, byteOffset);
+		writeAddConstantNat64(writer, source, byteOffset);
 }
 
 void writeWrite(
-	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
 	immutable size_t offset,
 	immutable size_t size,
 ) {
-	log(dbg, writer, "write write");
 	verify(size != 0);
 	pushOperationFn(writer, source, &opWrite);
 	pushSizeT(writer, source, offset);
@@ -381,81 +353,47 @@ void writeWrite(
 	writer.nextStackEntry -= divRoundUp(size, stackEntrySize) + 1;
 }
 
-void writeAddConstantNat64(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable ulong arg,
-) {
+void writeAddConstantNat64(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable ulong arg) {
 	verify(arg != 0);
-	writePushConstant(dbg, writer, source, arg);
-	writeFnBinary!fnWrapAddIntegral(dbg, writer, source);
+	writePushConstant(writer, source, arg);
+	writeFnBinary!fnWrapAddIntegral(writer, source);
 }
 
-void writeMulConstantNat64(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable ulong arg,
-) {
+void writeMulConstantNat64(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable ulong arg) {
 	verify(arg != 0 && arg != 1);
-	writePushConstant(dbg, writer, source, arg);
-	writeFnBinary!fnWrapMulIntegral(dbg, writer, source);
+	writePushConstant(writer, source, arg);
+	writeFnBinary!fnWrapMulIntegral(writer, source);
 }
 
 // Consume stack space without caring what's in it. Useful for unions.
-void writePushEmptySpace(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable size_t nSpaces,
-) {
+void writePushEmptySpace(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable size_t nSpaces) {
 	foreach (immutable ulong i; 0 .. nSpaces)
-		writePushConstant(dbg, writer, source, 0);
+		writePushConstant(writer, source, 0);
 }
 
-void writePushConstants(size_t n)(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable ulong[n] values,
-) {
+void writePushConstants(ref ByteCodeWriter writer, immutable ByteCodeSource source, scope immutable ulong[] values) {
 	foreach (immutable ulong value; values)
-		writePushConstant(dbg, writer, source, value);
+		writePushConstant(writer, source, value);
 }
 
-void writePushConstant(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable ulong value,
-) {
-	log(dbg, writer, "write push constant", value);
+void writePushConstant(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable ulong value) {
 	pushOperationFn(writer, source, &opPushValue64);
 	pushNat64(writer, source, value);
 	writer.nextStackEntry++;
 }
 
-void writePushConstantPointer(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable ubyte* value,
-) {
-	writePushConstant(dbg, writer, source, cast(ulong) value);
+void writePushConstantPointer(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable ubyte* value) {
+	writePushConstant(writer, source, cast(ulong) value);
 }
 
-void writeReturn(scope ref Debug dbg, ref ByteCodeWriter writer, immutable ByteCodeSource source) {
-	log(dbg, writer, "write return");
+void writeReturn(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 	pushOperationFn(writer, source, &opReturn);
 }
 
 immutable(ByteCodeIndex) writePushFunPtrDelayed(
-	scope ref Debug dbg,
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
 ) {
-	log(dbg, writer, "write push fun ptr delayed common");
 	pushOperationFn(writer, source, &opPushValue64);
 	immutable ByteCodeIndex fnAddress = nextByteCodeIndex(writer);
 	pushNat64(writer, source, 0);
@@ -463,13 +401,7 @@ immutable(ByteCodeIndex) writePushFunPtrDelayed(
 	return fnAddress;
 }
 
-void writeRemove(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable StackEntries entries,
-) {
-	log(dbg, writer, "write remove");
+void writeRemove(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable StackEntries entries) {
 	if (entries.size != 0) {
 		writeRemoveInner(
 			writer,
@@ -498,13 +430,7 @@ private void writeRemoveInner(
 	pushSizeT(writer, source, nEntries);
 }
 
-void writeJump(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable ByteCodeIndex target,
-) {
-	log(dbg, writer, "write jump");
+void writeJump(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable ByteCodeIndex target) {
 	pushOperationFn(writer, source, &opJump);
 	// We take the jump after having read the jump value
 	static assert(ByteCodeIndex.sizeof <= Operation.sizeof);
@@ -513,12 +439,7 @@ void writeJump(
 		immutable ByteCodeIndex(nextByteCodeIndex(writer).index + 1)).offset);
 }
 
-immutable(ByteCodeIndex) writeJumpDelayed(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-) {
-	log(dbg, writer, "write jump delayed");
+immutable(ByteCodeIndex) writeJumpDelayed(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 	pushOperationFn(writer, source, &opJump);
 	immutable ByteCodeIndex jumpOffsetIndex = nextByteCodeIndex(writer);
 	static assert(ByteCodeOffset.sizeof == long.sizeof);
@@ -542,12 +463,7 @@ private immutable(ByteCodeOffset) getByteCodeOffsetForJumpToCurrent(
 	return subtractByteCodeIndex(nextByteCodeIndex(writer), jumpEnd);
 }
 
-void writePack(
-	scope ref Debug dbg,
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	scope immutable Pack pack,
-) {
+void writePack(ref ByteCodeWriter writer, immutable ByteCodeSource source, scope immutable Pack pack) {
 	pushOperationFn(writer, source, &opPack);
 	pushSizeT(writer, source, pack.inEntries);
 	pushSizeT(writer, source, pack.outEntries);
@@ -706,7 +622,7 @@ void writeExternDynCall(
 	writer.nextStackEntry += (returnType == DynCallType.void_ ? 0 : 1);
 }
 
-void writeFnBinary(alias fn)(scope ref Debug dbg, ref ByteCodeWriter writer, immutable ByteCodeSource source) {
+void writeFnBinary(alias fn)(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
 	pushOperationFn(writer, source, &opFnBinary!fn);
 	writer.nextStackEntry--;
 }
@@ -734,36 +650,4 @@ private void pushNat64(ref ByteCodeWriter writer, immutable ByteCodeSource sourc
 
 private void pushSizeT(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable size_t value) {
 	pushNat64(writer, source, value);
-}
-
-void log(scope ref Debug dbg, ref ByteCodeWriter byteCodeWriter, immutable string message) {
-	log(dbg, byteCodeWriter, message, none!ulong);
-}
-
-void log(
-	scope ref Debug dbg,
-	ref ByteCodeWriter byteCodeWriter,
-	immutable string message,
-	immutable ulong value,
-) {
-	log(dbg, byteCodeWriter, message, some(value));
-}
-
-void log(
-	scope ref Debug dbg,
-	ref ByteCodeWriter byteCodeWriter,
-	immutable string message,
-	immutable Opt!ulong value,
-) {
-	if (dbg.enabled()) {
-		Writer writer = Writer(byteCodeWriter.alloc);
-		writeStatic(writer, message);
-		if (has(value)) {
-			writeStatic(writer, " = ");
-			writeNat(writer, force(value));
-		}
-		writeStatic(writer, " at bytecode offset ");
-		writeNat(writer, nextByteCodeIndex(byteCodeWriter).index);
-		dbgLog(dbg, finishWriter(writer));
-	}
 }

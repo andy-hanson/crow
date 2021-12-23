@@ -24,7 +24,6 @@ import model.reprModel : reprModule;
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptyArr, only;
 import util.col.str : SafeCStr, safeCStr, safeCStrSize;
-import util.dbg : Debug;
 import util.opt : force, none, Opt, some;
 import util.path : AllPaths, PathAndStorageKind;
 import util.perf : Perf;
@@ -88,7 +87,6 @@ struct ExitCode {
 
 immutable(ExitCode) buildAndInterpret(
 	ref Alloc alloc,
-	scope ref Debug dbg,
 	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
@@ -101,9 +99,8 @@ immutable(ExitCode) buildAndInterpret(
 	immutable ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, allSymbols, allPaths, storage, main);
 	if (!hasDiags(programs.program)) {
 		immutable LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
-		immutable ByteCode byteCode = generateBytecode(dbg, alloc, alloc, allSymbols, programs.program, lowProgram);
+		immutable ByteCode byteCode = generateBytecode(alloc, alloc, allSymbols, programs.program, lowProgram);
 		return immutable ExitCode(runBytecode(
-			dbg,
 			perf,
 			alloc,
 			allSymbols,
