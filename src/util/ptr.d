@@ -40,6 +40,9 @@ struct Ptr(T) {
 		ptr = cast(inout void*) p;
 		verify(ptr != null);
 	}
+	@trusted this(immutable T* p, immutable bool) immutable {
+		ptr = p;
+	}
 
 	// Using a void* greatly speeds up compile times. Don't know why.
 	private void* ptr;
@@ -58,6 +61,9 @@ struct Ptr(T) {
 	@trusted const(T*) rawPtr() const { return cast(const T*) ptr; }
 	@trusted immutable(T*) rawPtr() immutable { return cast(immutable T*) ptr; }
 }
+
+// Only for use as a sentinel
+static immutable Ptr!T nullPtr(T) = immutable Ptr!T(null, true);
 
 @trusted immutable(Ptr!T) ptrTrustMe(T)(scope ref immutable T t) {
 	return immutable Ptr!T(&t);
