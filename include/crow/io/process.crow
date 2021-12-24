@@ -13,7 +13,7 @@ import
 		WIFSTOPPED, WTERMSIG
 	unistd: close, new, pipe, pipes, read, read-pipe, write-pipe
 	../bool: !, &&, ||, bool, to-nat64
-	../bytes-types: zero
+	../bytes-types: new
 	../cell: *, cell, new
 	../col/arr: arr, begin-ptr
 	../col/arr-util: each, fold
@@ -89,7 +89,7 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 	stderr-pipes = make-pipes
 
 	# TODO: Neater, move to own function
-	actions posix_spawn_file_actions_t = 0, 0, null, zero
+	actions posix_spawn_file_actions_t = 0, 0, null, ()
 	check-posix-error: actions posix_spawn_file_actions_init
 	check-posix-error: actions posix_spawn_file_actions_addclose stdout-pipes.write-pipe
 	check-posix-error: actions posix_spawn_file_actions_addclose stderr-pipes.write-pipe

@@ -7,7 +7,7 @@ import
 	sys/types: ino_t, mode_t, off_t
 	unistd: close, getcwd, lseek, read, readlink, rmdir, unlink, write
 	../bits: &, |, <<
-	../bytes-types: zero
+	../bytes-types: new
 	../bool: !, &&, bool, false, new, to-nat64, true
 	../cell: *, cell, new
 	../col/arr: arr, begin-ptr, subscript
@@ -93,7 +93,7 @@ names-in-dir str[](path str) summon
 
 .names-in-dir-recur void(dirp dir, res str mut[]) unsafe summon
 	# Initial value of entry / result should not matter
-	entry dirent = 0, 0, 0, "\0", zero
+	entry dirent = 0, 0, 0, "\0", ()
 	result cell dirent = entry,
 	err = dirp readdir_r entry, result
 	# TODO: handle error

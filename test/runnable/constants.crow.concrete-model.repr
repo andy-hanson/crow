@@ -4244,7 +4244,7 @@ program(
 					call(jmp-buf-ptr, [param-ref(ec)])
 					let(
 						store
-						call(new, [call(zero, []), 0, call(zero, [])])
+						call(new, [call(new, []), call(new, []), call(new, [])])
 						seq(
 							call(set-jmp-buf-ptr, [param-ref(ec), call(ptr-to, [local-ref(store)])])
 							let(
@@ -4287,7 +4287,7 @@ program(
 				param(__mask_was_saved, type(false, int32))
 				param(__saved_mask, type(false, bytes128))]
 			new-record)
-		fun(noctx, zero, type(false, bytes64), none, [], call(new, [call(zero, []), call(zero, [])]))
+		fun(noctx, new, type(false, bytes64), none, [], call(new, [call(new, []), call(new, [])]))
 		fun(
 			noctx
 			new
@@ -4295,7 +4295,7 @@ program(
 			none
 			[param(n0, type(false, bytes32)), param(n1, type(false, bytes32))]
 			new-record)
-		fun(noctx, zero, type(false, bytes32), none, [], call(new, [call(zero, []), call(zero, [])]))
+		fun(noctx, new, type(false, bytes32), none, [], call(new, [call(new, []), call(new, [])]))
 		fun(
 			noctx
 			new
@@ -4303,7 +4303,7 @@ program(
 			none
 			[param(n0, type(false, bytes16)), param(n1, type(false, bytes16))]
 			new-record)
-		fun(noctx, zero, type(false, bytes16), none, [], call(new, [0, 0]))
+		fun(noctx, new, type(false, bytes16), none, [], call(new, [0, 0]))
 		fun(
 			noctx
 			new
@@ -4311,7 +4311,8 @@ program(
 			none
 			[param(n0, type(false, nat64)), param(n1, type(false, nat64))]
 			new-record)
-		fun(noctx, zero, type(false, bytes128), none, [], call(new, [call(zero, []), call(zero, [])]))
+		fun(noctx, new, type(false, int32), none, [], 0)
+		fun(noctx, new, type(false, bytes128), none, [], call(new, [call(new, []), call(new, [])]))
 		fun(
 			noctx
 			new

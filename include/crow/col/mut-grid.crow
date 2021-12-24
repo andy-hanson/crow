@@ -39,7 +39,7 @@ has-coord<a> bool(a mut-grid a, coord coord)
 to-str str(a coord)
 	"<{a.x}, {a.y}>"
 
-zero coord()
+new coord()
 	0, 0
 
 row<a> fix-arr a(a mut-grid a, y nat64)
@@ -121,7 +121,7 @@ fold<a, b> a(acc a, a mut-grid b, f act a(a, b))
 	acc fold a.elements, f
 
 fold-with-coords<a, b> a(acc a, a mut-grid b, f act a(a, b, coord)) trusted
-	acc fold-with-coords-recur a.elements.begin-ptr.as-const, a.elements.end-ptr.as-const, zero, a.width, f
+	acc fold-with-coords-recur a.elements.begin-ptr.as-const, a.elements.end-ptr.as-const, (), a.width, f
 .fold-with-coords-recur<a, b> a
 	acc a
 	cur b*
@@ -144,7 +144,7 @@ map!<a> void(a mut-grid a, f act a(a))
 	a.elements map! f
 
 map-with-coords!<a> void(a mut-grid a, f act a(a, coord)) trusted
-	a.elements.begin-ptr map-with-coords-recur! a.elements.end-ptr, zero, a.width, f
+	a.elements.begin-ptr map-with-coords-recur! a.elements.end-ptr, (), a.width, f
 .map-with-coords-recur!<a> void(cur a mut*, end a mut*, coord coord, width nat64, f act a(a, coord)) unsafe
 	if cur != end
 		*cur := f[*cur, coord]

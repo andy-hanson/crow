@@ -16,6 +16,11 @@ null<a> a*() noctx unsafe
 	null.as-const
 null<a> a mut*() noctx unsafe builtin
 
+new<a> a*() noctx unsafe
+	null
+new<a> a mut*() noctx unsafe
+	null
+
 # Advance the pointer by `offset`.
 + <a> a*(a a*, offset nat64) noctx unsafe
 	a.as-mut + offset as-const

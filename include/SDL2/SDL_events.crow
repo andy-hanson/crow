@@ -1,6 +1,6 @@
 no-std
 import
-	crow/bytes-types: bytes48, zero
+	crow/bytes-types: bytes48, new
 	crow/c-types: c-int, u-int
 	crow/misc: void
 	crow/number: nat32
@@ -16,7 +16,7 @@ SDL_Event record
 	padding bytes48
 
 SDL_Event SDL_Event()
-	SDL_FIRSTEVENT, 0, zero
+	SDL_FIRSTEVENT, 0, ()
 
 SDL_EventType enum<u-int>
 	SDL_FIRSTEVENT = 0
