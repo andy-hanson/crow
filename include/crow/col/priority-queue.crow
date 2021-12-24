@@ -52,9 +52,7 @@ new<k, v> priority-queue<k, v>() is-data<k> compare<k>
 	(),
 
 priority-queue<k, v> priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
-	if a is-empty
-		()
-	else
+	if !a.is-empty
 		sorted = a sort-by pair => pair from
 		((sorted.first.force, sorted.tail, ()),),
 

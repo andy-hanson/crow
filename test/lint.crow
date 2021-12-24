@@ -79,8 +79,6 @@ lint result<str, failure[]>(path str, options test-options) summon
 .n-tabs nat(line str)
 	if rest ?= line try-remove-start "\t"
 		rest.n-tabs + 1
-	else
-		0
 
 .tab-size nat()
 	4

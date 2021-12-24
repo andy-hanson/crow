@@ -10,7 +10,7 @@ export
 	./private/number-low-level:
 		==, <=>, float32, float64, int8, int16, int32, int64, is-even, is-odd, max-int8, max-int16,
 		max-int32, max-int64, max-nat8, max-nat16, max-nat32, max-nat64, min-int8, min-int16,
-		min-int32, min-int64, nat8, nat16, nat32, nat64, to-int64, to-nat64, unsafe-to-nat8
+		min-int32, min-int64, nat8, nat16, nat32, nat64, new, to-int64, to-nat64, unsafe-to-nat8
 
 int alias
 	int64

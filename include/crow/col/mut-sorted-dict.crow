@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, &&, bool, false, true
+	../bool: !, &&, bool, new, true
 	../compare: !=, <, >, <=, compare
 	../exception: assert
 	../fun-util: subscript
@@ -111,8 +111,6 @@ Returns true if it succeeded.
 	else
 		inserted = if next ?= a next
 			next insert-into-key-match-or-empty-slot! key, value
-		else
-			false
 
 		if inserted
 			true
@@ -127,8 +125,6 @@ Returns true if it succeeded.
 			a.node-size := a.node-size + 1
 			*(insert-ptr - 1) := key, (value,)
 			true
-		else
-			false
 
 # Returns the new physical size of this node and all nodes to the right
 .add-pair!<k, v> void(a mut-sorted-dict<k, v>, key k, value v) is-data<k> compare<k>

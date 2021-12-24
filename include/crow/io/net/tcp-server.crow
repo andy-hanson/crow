@@ -110,9 +110,7 @@ close-client void(client-fd fd-t) unsafe summon
 	handler tcp-handler
 
 .tcp-server-loop fut void(state tcp-server-state) unsafe summon
-	if state should-stop
-		()
-	else
+	if !state.should-stop
 		event epoll_event = 0, 0
 		timeout c-int = 0
 		num-events = state.epoll-fd epoll_wait event.ptr-to, 1, timeout

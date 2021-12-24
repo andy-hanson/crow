@@ -31,12 +31,8 @@ get-modules module[](paths str[]) summon
 	name = a get-name
 	comment = if c ?= a["doc-comment"]
 		c.as-str force
-	else
-		""
 	type-params = if t ?= a["type-params"]
 		t.as-arr.force map x => x to-type-param
-	else
-		()
 	value = a["value"].force to-export-value
 	name, comment, type-params, value
 
@@ -84,8 +80,6 @@ get-modules module[](paths str[]) summon
 	a.get-node-type is "field"
 	is-mut = if m ?= a["mut"]
 		m.as-bool force
-	else
-		()
 	a.get-name, a.get-type, is-mut
 
 .to-union-decl union-decl(a json)

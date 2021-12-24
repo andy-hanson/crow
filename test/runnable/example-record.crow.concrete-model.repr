@@ -5532,13 +5532,15 @@ program(
 			type(false, bool)
 			none
 			[param(value, type(false, nat64)), param(a, type(false, arr)), param(i, type(false, nat64))]
-			cond(
-				call(==, [param-ref(i), call(size, [param-ref(a)])])
-				call(false, [])
-				cond(
-					call(==, [call(noctx-at, [param-ref(a), param-ref(i)]), param-ref(value)])
-					call(true, [])
-					call(in-recur, [param-ref(value), param-ref(a), call(wrap-add, [param-ref(i), 1])]))))
+			call(
+				&&
+				[
+					call(!=, [param-ref(i), call(size, [param-ref(a)])])
+					call(
+						||
+						[
+							call(==, [call(noctx-at, [param-ref(a), param-ref(i)]), param-ref(value)])
+							call(in-recur, [param-ref(value), param-ref(a), call(wrap-add, [param-ref(i), 1])])])]))
 		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
 		fun(
 			noctx

@@ -5,7 +5,7 @@ import
 	../number: ==, <=>, +, -, nat64
 	../opt: new, opt
 	../range: ..
-	../str: ==, char, chars, size-bytes, str
+	../str: ==, char, chars, new, size-bytes, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 
 ###
@@ -15,8 +15,6 @@ Returns "" if the path has no parent.
 parent-path str(a str)
 	if index ?= a.chars r-index-of "/"
 		a.chars[0 .. index] str
-	else
-		""
 
 # Gets a child of a path.
 child-path str(a str, child_name str)

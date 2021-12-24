@@ -8,7 +8,7 @@ import
 	unistd: close, getcwd, lseek, read, readlink, rmdir, unlink, write
 	../bits: &, |, <<
 	../bytes-types: zero
-	../bool: !, &&, bool, false, to-nat64, true
+	../bool: !, &&, bool, false, new, to-nat64, true
 	../cell: *, cell, new
 	../col/arr: arr, begin-ptr, subscript
 	../col/arr-util: each, map
@@ -50,8 +50,6 @@ is-file bool(path str) summon
 .is-file bool(path c-str) summon
 	if stat ?= path get-stat
 		stat.st_mode & S_IFMT == S_IFREG
-	else
-		false
 
 # True if something (like a file or directory) exists at the path.
 path-exists bool(path str) summon

@@ -205,8 +205,6 @@ add-post! post(db db, cookie user-cookie, content str) summon
 .try-authenticate bool(db db, txn lMDB_txn, cookie user-cookie) summon
 	if login-cookie ?= txn get db.user-login-cookie, cookie.user
 		login-cookie cookie-matches cookie.inner.cookie, cookie-expire-seconds
-	else
-		false
 
 .db-path str()
 	"demo-wip/webapp/db"

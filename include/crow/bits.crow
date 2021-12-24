@@ -6,7 +6,7 @@ import
 	./private/bootstrap:
 		int8, int16, int32, int64, nat8, nat16, nat32, nat64, todo
 	./private/number-low-level:
-		==, <=>, to-int64, to-nat64, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat8,
+		==, <=>, new, to-int64, to-nat64, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat8,
 		unsafe-to-nat64, unsafe-to-nat16, unsafe-to-nat32, wrap-add, wrap-mul, wrap-sub
 
 ###
@@ -73,23 +73,15 @@ unsafe-bit-shift-right nat64(a nat64, b nat64) noctx builtin unsafe
 << nat8(a nat8, b nat8) noctx trusted
 	if b < 8
 		a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat8
-	else
-		0
 << nat16(a nat16, b nat16) noctx trusted
 	if b < 16
 		a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat16
-	else
-		0
 << nat32(a nat32, b nat32) noctx trusted
 	if b < 32
 		a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat32
-	else
-		0
 << nat64(a nat64, b nat64) noctx trusted
 	if b < 64
 		a unsafe-bit-shift-left b
-	else
-		0
 
 << nat64(a nat64, b int64) noctx trusted
 	if b < 0
@@ -101,13 +93,9 @@ unsafe-bit-shift-right nat64(a nat64, b nat64) noctx builtin unsafe
 >> nat32(a nat32, b nat32) noctx trusted
 	if b < 32
 		a.to-nat64 unsafe-bit-shift-right b.to-nat64 unsafe-to-nat32
-	else
-		0
 >> nat64(a nat64, b nat64) noctx trusted
 	if b < 64
 		a unsafe-bit-shift-right b
-	else
-		0
 
 >> nat64(a nat64, b int64) noctx trusted
 	if b < 0

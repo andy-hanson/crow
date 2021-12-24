@@ -21,8 +21,6 @@ main fut nat(args str[]) summon
 			# TODO: handle it..
 			assert: strs is-empty
 			true
-		else
-			false
 		max-failures = if strs ?= max-failures-strs
 			assert: strs.size == 1
 			strs[0].parse-nat force
@@ -31,8 +29,6 @@ main fut nat(args str[]) summon
 		match-test = if strs ?= match-test-strs
 			assert: strs.size == 1
 			strs[0]
-		else
-			""
 		(should-print-tests, overwrite-output, max-failures, match-test).do-test,
 	else
 		print-help

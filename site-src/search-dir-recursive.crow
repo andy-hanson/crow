@@ -18,5 +18,3 @@ search-dir-recursive str[](path str, file-filter act bool(str)) summon
 			child search-dir-recursive file-filter
 		elif file-filter[name]
 			child,
-		else
-			()

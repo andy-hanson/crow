@@ -41,9 +41,7 @@ tutorial-nav str()
 			"hello"
 		else
 			key
-		url = if key == "index"
-			""
-		else
+		url = if key != "index"
 			"{key}.html"
 		"""<li><a href="/tutorial/{url}">{name}</a></li>"""
 	"<nav><ul>{lines join ""}</ul></nav>"

@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: !, &&, ||, bool, false, true
+	./bool: !, &&, ||, bool, false, new, true
 	./col/arr: arr-from-begin-end, begin-ptr, end-ptr
 	./col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	./compare: <=, >=
@@ -44,8 +44,6 @@ try-take-char bool(a reader, c char)
 	if !a.is-empty && a.peek == c
 		a.next! drop
 		true
-	else
-		false
 
 skip-if-char! void(a reader, c char)
 	a try-take-char c drop
@@ -55,8 +53,6 @@ try-take-str bool(a reader, s str) trusted
 	if a.end - a.cur >= size && (a.cur arr-from-begin-end a.cur + size).str == s
 		a.cur := a.cur + size
 		true
-	else
-		false
 
 take-nat! nat64?(a reader)
 	if !a.is-empty

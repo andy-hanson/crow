@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, bool, false, true
+	../bool: !, bool, new, true
 	../compare: compare
 	../fun-util: subscript
 	../misc: is-data, new, void
@@ -67,9 +67,7 @@ Does nothing if the value is already in the set.
 
 try-add!<a> bool(a mut-sorted-set a, value a) is-data<a> compare<a>
 	# TODO:PERF do it without two lookups
-	if value in a.inner
-		false
-	else
+	if !(value in a.inner)
 		a.inner[value] := ()
 		true
 

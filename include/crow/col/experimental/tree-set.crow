@@ -1,7 +1,7 @@
 no-std
 import
-	../../bool: !, &&, bool, false, true
-	../../compare: !=, <, <=, >, compare
+	../../bool: !, &&, bool, false, new, true
+	../../compare: !=, <, <=, >, >=, compare
 	../../exception: assert, forbid, unreachable
 	../../fun-util: subscript
 	../../misc: drop, is-data, void
@@ -14,7 +14,7 @@ import
 	../../test-util: is
 	../../writer: ~=, backup!, move-to-str!, new, writer
 	../../private/bootstrap: hard-assert
-	../../private/number-low-level: ==, <=>, nat64, unsafe-div, wrap-add, wrap-sub
+	../../private/number-low-level: ==, <=>, nat64, new, unsafe-div, wrap-add, wrap-sub
 	../arr: arr, begin-ptr, end-ptr, is-empty, size, subscript
 	../arr-util: each, fold, insert, last, rtail, tail, try-remove
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
@@ -154,8 +154,6 @@ intersect<a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a
 		as greater
 			a.next! drop
 			a walk-iter-has value
-	else
-		false
 
 ###
 Returns a set that does not contain 'b'.
@@ -424,9 +422,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 
 # TODO:PERF
 .get-max-height nat64(size nat64) trusted
-	if size < 4
-		0
-	else
+	if size >= 4
 		(size unsafe-div 2).get-max-height wrap-add 1
 
 region iteration

@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: ||, bool, false
+	./bool: ||, bool, new
 	./cell: *, cell, new, set-deref
 	./compare: !=
 	./fun-util: subscript
@@ -43,8 +43,6 @@ each-reverse void(a range nat64, f act void(nat64))
 exists bool(a range nat64, f act bool(nat64))
 	if a.low != a.high
 		f[a low] || (a.low wrap-add 1) .. a.high exists f
-	else
-		false
 
 find nat64?(a range nat64, f act bool(nat64))
 	if a.low != a.high

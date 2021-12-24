@@ -68,8 +68,6 @@ module-content str(a module)
 .type-params-content str(a type-param[])
 	if !a.is-empty
 		"""<ul class="typeParams">{a map (x => x type-param-content) join ", "}</ul>"""
-	else
-		()
 
 .type-param-content str(a type-param)
 	"""<li class="tparam-def">{a name}</li>"""
@@ -132,8 +130,6 @@ module-content str(a module)
 .field-content str(a record-field)
 	mut-str = if a is-mut
 		" mut"
-	else
-		()
 	"<li>{a name} {a.type type-ref-content}{mut-str}</li>"
 
 .sig-content str(a sig)

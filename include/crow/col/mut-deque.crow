@@ -11,7 +11,7 @@ import
 	../str-conv: to-str
 	../test-util: is
 	../writer: ~=, backup!, move-to-str!, new, writer
-	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
+	../private/number-low-level: ==, <=>, nat64, new, wrap-add, wrap-mul
 	./arr: ==, arr, arr-from-begin-end, new, size
 	./arr-util: each-ptr, first, last
 	./fix-arr:
@@ -33,9 +33,7 @@ arr<a> a[](a mut-deque a) trusted
 	a.fix-arr cast-immutable
 
 fix-arr<a> fix-arr a(a mut-deque a) trusted
-	if a is-empty
-		()
-	else
+	if !a.is-empty
 		res fix-arr a = a.size uninitialized-fix-arr
 		res copy-from-deque! a
 		res
@@ -52,9 +50,7 @@ size<a> nat64(a mut-deque a) trusted
 	as less
 		a.right - a.left
 	as equal
-		if a.left == null
-			0
-		else
+		if a.left != null
 			a.inner size
 	as greater
 		a.inner.end-ptr - a.left wrap-add a.right - a.inner.begin-ptr

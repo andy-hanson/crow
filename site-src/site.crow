@@ -25,8 +25,6 @@ main fut nat(_ str[]) summon
 .is-up-to-date bool(path str, content str) summon
 	if cur-content ?= path try-read-file
 		cur-content == content
-	else
-		false
 
 .ensure-directory-recursive void(path str) summon
 	if path != "" && !path.path-exists

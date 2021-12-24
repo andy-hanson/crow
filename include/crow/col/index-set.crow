@@ -3,7 +3,7 @@ import
 	../bits:
 		&, <<, >>, add-bit, has-bit, count-ones, fold-one-bits, high-n-bits, low-n-bits, sub-bit
 	../bool: !, &&, ||, ==, bool, false, true
-	../compare: !=, <, >, >=, min
+	../compare: !=, <, <=, >, >=, min
 	../exception: assert
 	../fun-util: subscript
 	../log: info, log
@@ -17,7 +17,7 @@ import
 	../writer: ~=, backup!, move-to-str!, new, writer
 	../private/bootstrap: hard-assert, hard-unreachable
 	../private/number-low-level:
-		==, <=>, max-nat64, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
+		==, <=>, max-nat64, nat64, new, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	./arr: ==, arr, begin-ptr, end-ptr, new, size, subscript
 	./arr-util: fold, fold-with-index
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
@@ -277,21 +277,15 @@ intersect index-set(a index-set, b index-set)
 			a.rtail strip-trailing-zeroes
 		else
 			a
-	else
-		()
 ###
 
 # hi exclusive
 # TODO: use 'range' type
 count-range nat64(a index-set, low nat64, high nat64) trusted
-	if high < low
-		0
-	else
+	if low <= high
 		a.root count-range a.capacity, low, (high wrap-sub low)
 .count-range nat64(a node, n nat64, low nat64, len nat64) unsafe
-	if low > n
-		0
-	else
+	if low <= n
 		match a
 		as inner i
 			hard-assert: n > bits-in-leaf-node
@@ -385,12 +379,11 @@ filter-less index-set(a index-set, limit nat64) trusted
 		a filter-less-recur n, (limit wrap-sub offset)
 
 .filter-less-word nat64(a nat64, limit nat64, offset nat64)
-	if limit < offset
-		0
-	elif limit > (offset wrap-add 64)
-		a
-	else
-		a & (limit wrap-sub offset low-n-bits)
+	if limit >= offset
+		if limit > (offset wrap-add 64)
+			a
+		else
+			a & (limit wrap-sub offset low-n-bits)
 
 .word-index nat64(a nat64) trusted
 	a unsafe-div 64

@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, bool, false, true
+	../bool: !, bool, false, new, true
 	../compare: !=, <, >, equal, min
 	../exception: assert, forbid
 	../fun-util: subscript
@@ -55,8 +55,6 @@ list-equal<a> bool(a list a, b list a) trusted noctx equal<a>
 			true
 		as right-longer _
 			hard-unreachable
-	else
-		false
 
 .equal-with-remainder<a> union
 	not-equal
@@ -193,8 +191,6 @@ rtail<a> list a(a list a)
 	if a.values.size == 1
 		if prev ?= a prev
 			prev
-		else
-			()
 	else
 		a.prev, a.values.rtail
 		

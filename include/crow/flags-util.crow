@@ -24,8 +24,6 @@ to-syms<a> sym[](a a) flags-like<a>
 	flags-members flat-map member =>
 		if member.val is-in a
 			member.name,
-		else
-			()
 
 flags-to-str<a> str(a a) flags-like<a>
 	a.to-syms map (x => x to-str) join " | "

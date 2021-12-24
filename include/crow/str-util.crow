@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: &&, ||, bool
+	./bool: !, &&, ||, bool
 	./col/arr: arr, arr-cast, arr-from-begin-end, begin-ptr, is-empty
 	./col/arr-util:
 		contains-subseq, each, ends-with, first, last, map, reverse, rtail, split-by-subseq,
@@ -10,7 +10,7 @@ import
 	./number: ==, <=>, +, -, nat8
 	./opt: force, new, opt
 	./ptr: +, *
-	./str: ==, ~, char, chars, c-str, str, to-char, to-nat8
+	./str: ==, ~, char, chars, c-str, new, str, to-char, to-nat8
 	./tuple: a, b, new, pair
 	./private/bootstrap: hard-unreachable
 
@@ -97,9 +97,7 @@ split-by str[](a str, b str)
 	a.chars split-by-subseq b.chars map chars => chars str
 
 join str(a str[], b str)
-	if a is-empty
-		""
-	else
+	if !a.is-empty
 		res char mut[] = ()
 		a.rtail each x =>
 			res ~= x chars

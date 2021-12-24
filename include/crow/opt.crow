@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: bool, false, true
+	./bool: bool, false, new, true
 	./compare: equal
 	./fun-util: subscript
 	./misc: drop, new, void
@@ -32,8 +32,6 @@ new<a> a?(a a) noctx
 	if va ?= a
 		if vb ?= b
 			va == vb
-		else
-			false
 	else
 		b is-empty
 

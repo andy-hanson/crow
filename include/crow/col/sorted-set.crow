@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, &&, ==, bool, false, true
+	../bool: !, &&, ==, bool, false, new, true
 	../compare: !=, <, <=, >, >=, compare
 	../fun-util: subscript
 	../log: info, log
@@ -69,8 +69,6 @@ size<a> nat64(a sorted-set a)
 in<a> bool(value a, a sorted-set a) is-data<a> compare<a>
 	if index ?= a.add find-in-add value
 		!(index in a.remove)
-	else
-		false
 
 .find-in-add<a> nat64?(a add-node a, value a) compare<a>
 	if index ?= a.values binary-search-exact-index value

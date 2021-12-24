@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, bool, false, true
+	../bool: !, bool, new, true
 	../compare: compare
 	../hash: hash-mix
 	../misc: is-data, new, void
@@ -37,9 +37,7 @@ in<a> bool(value a, a mut-set a) is-data<a> compare<a> hash-mix<a>
 
 try-add!<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
 	# TODO:PERF do it without two lookups
-	if value in a
-		false
-	else
+	if !(value in a)
 		a ~= value
 		true
 

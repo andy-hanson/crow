@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, ==, bool, false, true
+	../bool: !, ==, bool, false, new, true
 	../compare: !=, <=, >, >=, compare
 	../exception: assert
 	../fun-util: subscript
@@ -73,8 +73,6 @@ size<a> nat64(a set a) is-data<a> compare<a> hash-mix<a>
 subscript<a> bool(a set a, value a) is-data<a> compare<a> hash-mix<a>
 	if index ?= a.add find-in-add value
 		!(index in a.remove)
-	else
-		false
 
 in<a> bool(value a, a set a) is-data<a> compare<a> hash-mix<a>
 	a[value]

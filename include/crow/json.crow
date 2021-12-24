@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: !, ==, bool, false, true
+	./bool: !, ==, bool, false, new, true
 	./col/arr: arr, arr-equal, is-empty, new
 	./col/arr-util: each
 	./col/dict: dict, dict-equal, each, is-empty, new, subscript
@@ -29,39 +29,25 @@ json union
 	as json-bool ba
 		if bb ?= b as-bool
 			ba == bb
-		else
-			false
 	as json-number fa
 		if fb ?= b as-number
 			fa == fb
-		else
-			false
 	as json-str sa
 		if sb ?= b as-str
 			sa == sb
-		else
-			false
 	as json-arr aa
 		if ab ?= b as-arr
 			aa arr-equal ab, (x, y) =>
 				x == y
-		else
-			false
 	as json-object oa
 		if ob ?= b as-object
 			oa dict-equal ob
-		else
-			false
 
 # TODO: opt equality should be generic
 == bool(a json?, b json?)
 	if va ?= a
 		if vb ?= b
 			va == vb
-		else
-			false
-	else
-		false
 
 as-bool bool?(a json) noctx
 	match a

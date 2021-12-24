@@ -12,7 +12,7 @@ import
 		ms_branch_pages, ms_depth, ms_entries, ms_leaf_pages, ms_overflow_pages, ms_psize, mv_data,
 		mv_size, new
 	../bits: |
-	../bool: !, &&, ||, bool, false, true
+	../bool: !, &&, ||, bool, new, true
 	../cell: *, cell, new
 	../col/arr: arr, begin-ptr, is-empty, new, size
 	../col/fix-arr:
@@ -194,9 +194,7 @@ body
 	db0-count = txn count db0
 	db1-count = txn count db1
 	assert: db0-count == db1-count
-	if db0-count == 0
-		()
-	else
+	if db0-count != 0
 		res fix-arr out = db0-count uninitialized-fix-arr
 		end = res.begin-ptr zip-fold-non-empty txn, db0, db1, (cur, key, value0, value1) =>
 			*cur := f[key, value0, value1]
@@ -310,9 +308,7 @@ add<k, v> void(txn lMDB_txn, db lmdb-db<k, v>, key k, value v) summon lmdb-key<k
 
 try-add<k, v> bool(txn lMDB_txn, db lmdb-db<k, v>, key k, value v) summon lmdb-key<k> serialize<v>
 	err = txn put-inner db, key, value, MDB_NOOVERWRITE
-	if err == MDB_KEYEXIST
-		false
-	else
+	if err != MDB_KEYEXIST
 		check-lmdb-error: err
 		true
 

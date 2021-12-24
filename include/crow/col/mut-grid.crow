@@ -146,9 +146,7 @@ map!<a> void(a mut-grid a, f act a(a))
 map-with-coords!<a> void(a mut-grid a, f act a(a, coord)) trusted
 	a.elements.begin-ptr map-with-coords-recur! a.elements.end-ptr, zero, a.width, f
 .map-with-coords-recur!<a> void(cur a mut*, end a mut*, coord coord, width nat64, f act a(a, coord)) unsafe
-	if cur == end
-		()
-	else
+	if cur != end
 		*cur := f[*cur, coord]
 		cur + 1 map-with-coords-recur! end, (coord next-coord width), width, f
 

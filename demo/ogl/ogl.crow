@@ -168,13 +168,7 @@ blue color-32()
 
 .look-for-quit-event bool() summon
 	e = SDL_Event
-	if e.SDL_PollEvent == 0
-		false
-	else
-		if e.type == SDL_Quit
-			true
-		else
-			look-for-quit-event
+	e.SDL_PollEvent != 0 && (e.type == SDL_Quit || look-for-quit-event)
 
 .handle-sdl-error void(err c-int, description str) summon trusted
 	if err != 0

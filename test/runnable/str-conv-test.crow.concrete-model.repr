@@ -5536,13 +5536,15 @@ program(
 			type(false, bool)
 			none
 			[param(value, type(false, nat64)), param(a, type(false, arr)), param(i, type(false, nat64))]
-			cond(
-				call(==, [param-ref(i), call(size, [param-ref(a)])])
-				call(false, [])
-				cond(
-					call(==, [call(noctx-at, [param-ref(a), param-ref(i)]), param-ref(value)])
-					call(true, [])
-					call(in-recur, [param-ref(value), param-ref(a), call(wrap-add, [param-ref(i), 1])]))))
+			call(
+				&&
+				[
+					call(!=, [param-ref(i), call(size, [param-ref(a)])])
+					call(
+						||
+						[
+							call(==, [call(noctx-at, [param-ref(a), param-ref(i)]), param-ref(value)])
+							call(in-recur, [param-ref(value), param-ref(a), call(wrap-add, [param-ref(i), 1])])])]))
 		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
 		fun(
 			noctx
@@ -6313,7 +6315,7 @@ program(
 						some(va)
 						match-union(
 							param-ref(b)
-							[case(none, call(false, [])), case(some(vb), call(==, [local-ref(va), local-ref(vb)]))]))]))
+							[case(none, call(new, [])), case(some(vb), call(==, [local-ref(va), local-ref(vb)]))]))]))
 		fun(
 			noctx
 			is-empty
@@ -6323,6 +6325,7 @@ program(
 			match-union(
 				param-ref(a)
 				[case(none, call(true, [])), case(some(x), seq(call(drop, [local-ref(x)]), call(false, [])))]))
+		fun(noctx, new, type(false, bool), none, [], call(false, []))
 		fun(
 			ctx
 			is
@@ -6519,7 +6522,7 @@ program(
 						some(va)
 						match-union(
 							param-ref(b)
-							[case(none, call(false, [])), case(some(vb), call(==, [local-ref(va), local-ref(vb)]))]))]))
+							[case(none, call(new, [])), case(some(vb), call(==, [local-ref(va), local-ref(vb)]))]))]))
 		fun(
 			noctx
 			is-empty
@@ -6614,7 +6617,7 @@ program(
 					&&
 					[call(!, [call(is-empty, [param-ref(a)])]), call(==, [call(peek, [param-ref(a)]), param-ref(c)])])
 				seq(call(drop, [call(next!, [param-ref(a)])]), call(true, []))
-				call(false, [])))
+				call(new, [])))
 		fun(noctx, drop, type(false, void), none, [param("_", type(false, bool))], call(new, []))
 		fun(noctx, new, type(false, opt), none, [param(a, type(false, int64))], call(some, [param-ref(a)]))
 		fun(noctx, some, type(false, opt), none, [param(a, type(false, int64))], new-union)
