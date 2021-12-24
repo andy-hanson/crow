@@ -44,7 +44,7 @@ main fut nat(args str[]) unsafe summon
 		elif path == "/posts"
 			200, "OK", (), db.list-posts.format-posts-as-json
 		elif path == "/user-name"
-			user = (query parse-query ("user",))[0].parse-nat force
+			user = (query parse-query ("user",))[0].parse-nat!
 			200, "OK", (), (db user-name user)
 		elif path == "/users"
 			200, "OK", (), db.list-users.format-users-as-json
@@ -77,7 +77,7 @@ main fut nat(args str[]) unsafe summon
 					"User does not exist" http-not-found
 		elif path == "/post"
 			if cookie ?= req.headers["Cookie"]
-				user-cookie = (cookie parse-cookies ("login",))[0].parse-user-cookie force
+				user-cookie = (cookie parse-cookies ("login",))[0].parse-user-cookie!
 				post = db add-post user-cookie, req.request-body
 				200, "OK", (), "\{\"postId\":{post}}"
 			else

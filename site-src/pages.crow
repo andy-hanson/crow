@@ -27,7 +27,7 @@ tutorial-pages path-and-content[]() summon
 	module: Modules
 	extern: Extern functions and types
 	test: Tests""" split-by "\n" map line =>
-		pair = line.strip try-split-once ":" force
+		pair = (line.strip try-split-once ":")!
 		pair.a.strip, pair.b.strip
 
 .tutorial-meta record

@@ -35,7 +35,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 .lint-file failure[](path str) summon
 	text = path read-file
 	res failure mut[] = ()
-	ext = path.get-extension force
+	ext = path.get-extension!
 	allow-double-space = ext == "err" || ext == "sublime-syntax"
 	text.lines each-with-index (line, line-num) =>
 		ln = line-num + 1 to-str

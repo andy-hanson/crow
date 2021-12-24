@@ -5,7 +5,7 @@ import
 	crow/str-util: try-remove-end, try-remove-start
 
 remove-include-and-crow str(a str)
-	(a try-remove-start "include/").force try-remove-end ".crow" force
+	((a try-remove-start "include/")! try-remove-end ".crow")!
 
 search-dir-recursive str[](path str) summon
 	path search-dir-recursive (ignore => true)

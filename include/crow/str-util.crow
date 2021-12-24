@@ -8,7 +8,7 @@ import
 	./col/mut-arr: ~=, move-to-arr, mut-arr, new
 	./compare: !=, <=
 	./number: ==, <=>, +, -, nat8
-	./opt: force, new, opt
+	./opt: !, new, opt
 	./ptr: +, *
 	./str: ==, ~, char, chars, c-str, new, str, to-char, to-nat8
 	./tuple: a, b, new, pair
@@ -102,7 +102,7 @@ join str(a str[], b str)
 		a.rtail each x =>
 			res ~= x chars
 			res ~= b chars
-		res ~= a.last.force.chars
+		res ~= a.last!.chars
 		res.move-to-arr str
 
 lower-case str(a str)

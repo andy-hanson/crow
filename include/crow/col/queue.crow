@@ -5,7 +5,7 @@ import
 	../exception: assert
 	../fun-util: subscript
 	../misc: void
-	../opt: force, is-empty, new, opt
+	../opt: !, is-empty, new, opt
 	../private/number-low-level: ==, <=>, nat64, wrap-add
 	../ptr: ==, +, -, set-deref
 	../test-util: is
@@ -94,18 +94,18 @@ test
 
 	b = a ~ 1
 	b.arr is (1,)
-	bd = b.dequeue force
+	bd = b.dequeue!
 	bd.value is 1
 	assert: bd.rest is-empty
 
 	c = b ~ 2
 	c.arr is (1, 2)
-	cd = c.dequeue force
+	cd = c.dequeue!
 	cd.value is 1
 	cdr = cd rest
 
 	cdr.arr is (2,)
-	cdd = cdr.dequeue force
+	cdd = cdr.dequeue!
 	cdd.value is 2
 	assert: cdd.rest is-empty
 

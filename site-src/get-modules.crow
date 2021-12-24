@@ -12,28 +12,28 @@ get-modules module[](paths str[]) summon
 	result = "bin/crow" spawn-and-wait-result (("doc",) ~ paths), get-environ
 	if result.exit-code != 0 || !result.stderr.is-empty
 		"Could not get documentation: exit code {result exit-code}, stderr: {result stderr}" throw
-	result.stdout.parse-json.force to-modules
+	result.stdout.parse-json! to-modules
 
 .to-modules module[](a json)
 	a.get-node-type is "root"
-	a["modules"].force.as-arr.force map x => x to-module
+	a["modules"]!.as-arr! map x => x to-module
 
 .to-module module(a json)
 	a.get-node-type is "module"
-	exports = a["exports"].force.as-arr.force map x => x to-export
-	a["path"].force.as-str.force, exports
+	exports = a["exports"]!.as-arr! map x => x to-export
+	a["path"]!.as-str!, exports
 
 .get-node-type str(a json)
-	a["_type"].force.as-str.force
+	a["_type"]!.as-str!
 
 .to-export module-export(a json)
 	a.get-node-type is "export"
 	name = a get-name
 	comment = if c ?= a["doc-comment"]
-		c.as-str force
+		c.as-str!
 	type-params = if t ?= a["type-params"]
-		t.as-arr.force map x => x to-type-param
-	value = a["value"].force to-export-value
+		t.as-arr! map x => x to-type-param
+	value = a["value"]! to-export-value
 	name, comment, type-params, value
 
 .to-export-value module-export-value(a json)
@@ -60,7 +60,7 @@ get-modules module[](paths str[]) summon
 		"unexpected export type {type}" throw
 
 .to-alias-decl alias-decl(a json)
-	target = a["target"].force to-type-ref
+	target = a["target"]! to-type-ref
 	target,
 
 .to-enum-decl enum-decl(a json)
@@ -70,20 +70,20 @@ get-modules module[](paths str[]) summon
 	a.get-enum-flags-members,
 
 .get-enum-flags-members sym[](a json)
-	a["members"].force.as-arr.force map x => x.as-str.force str-to-sym
+	a["members"]!.as-arr! map x => x.as-str! str-to-sym
 
 .to-record-decl record-decl(a json)
-	fields = a["fields"].force.as-arr.force map x => x to-record-field
+	fields = a["fields"]!.as-arr! map x => x to-record-field
 	fields,
 
 .to-record-field record-field(a json)
 	a.get-node-type is "field"
 	is-mut = if m ?= a["mut"]
-		m.as-bool force
+		m.as-bool!
 	a.get-name, a.get-type, is-mut
 
 .to-union-decl union-decl(a json)
-	members = a["members"].force.as-arr.force map x => x to-union-member
+	members = a["members"]!.as-arr! map x => x to-union-member
 	members,
 
 .to-union-member union-member(a json)
@@ -93,24 +93,24 @@ get-modules module[](paths str[]) summon
 	a.get-name, type
 
 .get-name sym(a json)
-	a["name"].force.as-str.force str-to-sym
+	a["name"]!.as-str! str-to-sym
 
 .to-type-param type-param(a json)
 	a.get-name,
 
 .get-type type-ref(a json)
-	a["type"].force to-type-ref
+	a["type"]! to-type-ref
 
 .to-fun-decl fun-decl(a json)
 	a.get-return-type, a.get-params
 
 .to-spec-decl spec-decl(a json)
-	body-json = a["body"] force
+	body-json = a["body"]!
 	type = body-json get-node-type
 	body_ = if type == "builtin"
 		spec-builtin
 	elif type == "sigs"
-		body-json["sigs"].force.as-arr.force map (x => x to-sig) spec-sigs
+		body-json["sigs"]!.as-arr! map (x => x to-sig) spec-sigs
 	else
 		"unexpected spec type {type}" throw
 	body_,
@@ -119,10 +119,10 @@ get-modules module[](paths str[]) summon
 	a.get-name, a.get-return-type, a.get-params
 
 .get-return-type type-ref(a json)
-	a["return-type"].force to-type-ref
+	a["return-type"]! to-type-ref
 
 .get-params param[](a json)
-	a["params"].force.as-arr.force map x => x to-param
+	a["params"]!.as-arr! map x => x to-param
 
 .to-param param(a json)
 	a.get-node-type is "param"
@@ -133,5 +133,5 @@ get-modules module[](paths str[]) summon
 		str.str-to-sym, ()
 	else
 		name = a.get-node-type str-to-sym
-		args = a["type-args"].force.as-arr.force map x => x to-type-ref
+		args = a["type-args"]!.as-arr! map x => x to-type-ref
 		name, args

@@ -61,6 +61,7 @@ import frontend.parse.lexer :
 	takeOrAddDiagExpectedToken,
 	takeStringPart,
 	Token,
+	tryTakeOperator,
 	tryTakeToken;
 import frontend.parse.parseType : parseType, parseTypeRequireBracket, tryParseTypeArgsForExpr;
 import model.parseDiag : ParseDiag;
@@ -359,6 +360,9 @@ immutable(ExprAndDedent) parseMutEquals(
 						else
 							// This is `~x := foo` or `-x := foo`. Have a diagnostic for this.
 							return todo!(immutable CallAst.Style)("!");
+					case CallAst.Style.suffixOperator:
+						// `x! := foo`
+						return todo!(immutable CallAst.Style)("!");
 					case CallAst.Style.comma:
 					case CallAst.Style.infix:
 					case CallAst.Style.prefix:
@@ -623,6 +627,13 @@ immutable(ExprAst) tryParseDotsAndSubscripts(ref Lexer lexer, immutable ExprAst 
 		return tryParseDotsAndSubscripts(lexer, immutable ExprAst(
 			range(lexer, start),
 			immutable ExprAstKind(allocate(lexer.alloc, immutable TypedAst(initial, type)))));
+	} else if (tryTakeOperator(lexer, Operator.not)) {
+		immutable CallAst call = immutable CallAst(
+			CallAst.Style.suffixOperator,
+			immutable NameAndRange(start, symForOperator(Operator.not)),
+			emptyArrWithSize!TypeAst,
+			arrWithSizeLiteral!ExprAst(lexer.alloc, [initial]));
+		return tryParseDotsAndSubscripts(lexer, immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)));
 	} else
 		return initial;
 }

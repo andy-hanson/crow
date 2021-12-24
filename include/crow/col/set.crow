@@ -7,7 +7,7 @@ import
 	../hash: hash-mix
 	../log: info, log
 	../misc: is-data, new, void
-	../opt: force, new, opt, or-default
+	../opt: !, new, opt, or-default
 	../ptr: ==, <=>, +, *, const-ptr, mut-ptr, set-deref
 	../str: ==, str
 	../str-conv: to-str
@@ -184,7 +184,7 @@ body
 	else
 		# TODO: should be able to write this inline
 		new-l = add-size-here-and-left wrap-sub a.here.size
-		compactor do-compact-recur a.left.force, new-l, remove
+		compactor do-compact-recur a.left!, new-l, remove
 
 .push<a> void(a compactor a, here frozen-set a, add-size-here-and-left nat64, remove index-set) unsafe
 	a push-recur here.begin-ptr, here.end-ptr, add-size-here-and-left, remove

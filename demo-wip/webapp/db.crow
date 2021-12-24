@@ -120,12 +120,12 @@ list-users user-info[](db db) summon
 
 user-name str(db db, user user) summon
 	db.env with-read-transaction txn =>
-		txn get db.user-name, user force
+		(txn get db.user-name, user)!
 
 list-posts post-info[](db db) summon
 	db.env with-read-transaction txn =>
 		txn zip db.post-user, db.post-content, (post, user, content) =>
-			user-name = txn get db.user-name, user force
+			user-name = (txn get db.user-name, user)!
 			post, user, user-name, content
 
 register-user-result union
@@ -169,7 +169,7 @@ login result<user-cookie, login-error>(db db, user-name str, password str) summo
 	else
 		db.env with-write-transaction txn =>
 			if user ?= db get-user txn, user-name
-				hash = txn get db.user-password-hash, user force
+				hash = (txn get db.user-password-hash, user)!
 				if !(password password-matches hash)
 					throw: "wrong password"
 				cookie = generate-login-cookie
@@ -180,9 +180,9 @@ login result<user-cookie, login-error>(db db, user-name str, password str) summo
 
 .get-post-info post-info(db db, post post) summon
 	db.env with-read-transaction txn =>
-		user = txn get db.post-user, post force
-		user-name = txn get db.user-name, user force
-		content = txn get db.post-content, post force
+		user = (txn get db.post-user, post)!
+		user-name = (txn get db.user-name, user)!
+		content = (txn get db.post-content, post)!
 		post, user, user-name, content
 
 add-post post(db db, cookie user-cookie, content str) summon

@@ -5,7 +5,7 @@ import
 	../fun-util: subscript
 	../log: info, log
 	../misc: is-data, new, void
-	../opt: force, new, opt, or-default
+	../opt: !, new, opt, or-default
 	../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../range: ..
 	../str: ==, <=>, str
@@ -203,7 +203,7 @@ body
 	else
 		# TODO: should be able to write this inline
 		new-l = add-size-here-and-left wrap-sub a.values.size
-		compactor do-compact-recur a.left.force, new-l, remove
+		compactor do-compact-recur a.left!, new-l, remove
 
 .merge<a> void(a compactor a, values a[], add-size-here-and-left nat64, remove index-set) unsafe compare<a>
 	n-remove = remove count-range (add-size-here-and-left wrap-sub values.size), add-size-here-and-left

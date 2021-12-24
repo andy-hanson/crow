@@ -7,7 +7,7 @@ import
 	../fun-util: subscript
 	../hash: hash, hash-mix
 	../misc: is-data, new, void
-	../opt: ==, force, is-empty, new, opt
+	../opt: !, ==, is-empty, new, opt
 	../ptr: ==, +, set-deref
 	../range: ..
 	../str: ==, ~, str
@@ -148,7 +148,7 @@ try-add<k, v> try-add-result<k, v>(a v[k], key k, get-value act v()) is-data<k> 
 	if value ?= res old-value
 		value already-has-key
 	else
-		(res.new-node.force,) added
+		(res.new-node!,) added
 
 - <k, v> v[k](a v[k], key k) is-data<k> compare<k> hash-mix<k>
 	if res ?= a try-remove key
@@ -164,7 +164,7 @@ try-remove-result<k, v> record
 try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> hash-mix<k>
 	res = a get-or-update key, old-value => remove
 	if value ?= res old-value
-		(value, (res.new-node.force,)),
+		(value, (res.new-node!,)),
 
 .get-or-update-result<k, v> record
 	by-val
@@ -282,7 +282,7 @@ body
 		out.cast-immutable.leaf-node,
 
 .find-only-non-empty-child<k, v> node<k, v>?(children node<k, v>[])
-	first-non-empty-index = force: children find-index it => !it.node-is-empty
+	first-non-empty-index = (children find-index it => !it.node-is-empty)!
 	if children[(first-non-empty-index wrap-add 1) .. children.size] every it => it node-is-empty
 		children[first-non-empty-index],
 

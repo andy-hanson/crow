@@ -81,16 +81,10 @@ or-default<a> a(a a?, default a)
 		default
 
 # Converts an option to a value by failing on `none`.
-force<a> a(a a?)
-	a force "tried to force empty option"
+!<a> a(a a?)
+	a or-throw () => "tried to force empty option"
 
-force<a> a(a a?, message str)
-	if v ?= a
-		v
-	else
-		message throw
-
-# TODO: Should be called 'force' too, but that loses the expected type
+# TODO: just use `a ?? message.throw`
 or-throw<a> a(a a?, get-message act str())
 	if v ?= a
 		v
@@ -115,7 +109,7 @@ opt-join<in0, in1> pair<in0, in1>?(a in0?, b in1?)
 		x, y
 
 ###
-Returns `f[a.force, b.force]` iff both `a` and `b` are `some`, else returns `none`.
+Returns `f[a!, b!]` iff both `a` and `b` are `some`, else returns `none`.
 ###
 opt-join<out, in0, in1> out?(a in0?, b in1?, f act out(in0, in1))
 	if va ?= a

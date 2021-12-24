@@ -4,7 +4,7 @@ import
 	../compare: <, compare
 	../exception: assert
 	../misc: is-data, new, void
-	../opt: force, is-empty, new, opt
+	../opt: !, is-empty, new, opt
 	../ptr: +, -, mut-ptr, set-deref
 	../str: ==, str
 	../test-util: is
@@ -116,7 +116,7 @@ pop<k, v> pair<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	res = a.mins pop
 	if a.mins.size < a.buckets.size
 		assert: (a.mins.size wrap-add 1) == a.buckets.size
-		bucket = a.buckets.pop force
+		bucket = a.buckets.pop!
 		bucket set-sort-by it => it from
 		# Mins are popped off from the right.
 		# Note thie preserves insertion order: 'set-sort-by' doesn't change that,

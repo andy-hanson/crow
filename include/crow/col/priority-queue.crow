@@ -4,7 +4,7 @@ import
 	../compare: <, >, <=, compare
 	../fun-util: subscript
 	../misc: is-data, new, void
-	../opt: force, is-empty, new, opt
+	../opt: !, is-empty, new, opt
 	../ptr: ==, +, -, mut-ptr, set-deref
 	../range: ..
 	../str: ==, str
@@ -54,7 +54,7 @@ new<k, v> priority-queue<k, v>() is-data<k> compare<k>
 priority-queue<k, v> priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
 	if !a.is-empty
 		sorted = a sort-by pair => pair from
-		((sorted.first.force, sorted.tail, ()),),
+		((sorted.first!, sorted.tail, ()),),
 
 is-empty<k, v> bool(a priority-queue<k, v>) is-data<k> compare<k>
 	a.root is-empty
@@ -117,7 +117,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	if mid.n-before-mid == 0
 		a
 	else
-		root = a.root force
+		root = a.root!
 		new: match mid.mid plan root, mid.n-before-mid
 		as plan-did-compact compacted
 			compacted,
@@ -168,7 +168,7 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	hard-assert: end == compacted.end-ptr
 	compacted set-sort-by pair => pair from
 	arr = compacted cast-immutable
-	arr.first.force, arr.tail, ()
+	arr.first!, arr.tail, ()
 
 .compact-singles<k, v> pair<k, v> mut*(out pair<k, v> mut*, a node<k, v>) unsafe
 	if a.pairs is-empty
@@ -317,7 +317,7 @@ test
 	p2.dbg is "6 6 []; 5 5 []"
 	p2.compact-leading-nodes.dbg is "5 5 [6 6]"
 
-	p2pop = p2.pop force
+	p2pop = p2.pop!
 	p2pop.popped is (5, "5")
 	p2pop.rest.dbg is "6 6 []"
 
@@ -326,14 +326,14 @@ test
 
 	p4.dbg is "7 7 []; 4 4 []; 6 6 []; 5 5 []"
 
-	p4pop = p4.pop force
+	p4pop = p4.pop!
 	p4pop.popped is (4, "4")
 	p4pop.rest.dbg is "5 5 [6 6, 7 7]"
 
 	p5 = p4pop.rest ~ (6, "6b") ~ (6, "6c")
 	p5.dbg is "6 6c []; 6 6b []; 5 5 [6 6, 7 7]"
 
-	p5pop = p5.pop force
+	p5pop = p5.pop!
 	p5pop.popped is (5, "5")
 	p5pop.rest.dbg is "6 6 [7 7]; 6 6b [6 6c]"
 
@@ -341,7 +341,7 @@ test
 	p6.dbg is "8 8 []; 7 7b []; 6 6 [7 7]; 6 6b [6 6c]"
 	p6.size is 6
 
-	p6pop = p6.pop force
+	p6pop = p6.pop!
 	p6pop.rest.dbg is "6 6b [6 6c, 7 7, 7 7b, 8 8]"
 
 	folded = "init" fold p6, (acc, k, v) => "{acc}, {k} -> {v}"

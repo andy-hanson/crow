@@ -6542,21 +6542,21 @@ program(
 			expr-body(
 				expr(
 					record(8)
-					file-range(38, range(862, 902))
+					file-range(38, range(858, 898))
 					call(
 						177
 						[
 							expr(
 								record(9)
-								file-range(38, range(862, 902))
+								file-range(38, range(858, 898))
 								call(
 									178
 									[
-										expr(ptr-const(char), file-range(38, range(862, 864)), param-ref(0))
+										expr(ptr-const(char), file-range(38, range(858, 860)), param-ref(0))
 										expr(
 											ptr-const(char)
-											file-range(38, range(884, 899))
-											call(185, [expr(ptr-const(char), file-range(38, range(883, 884)), param-ref(0))]))]))]))))
+											file-range(38, range(880, 895))
+											call(185, [expr(ptr-const(char), file-range(38, range(879, 880)), param-ref(0))]))]))]))))
 		177: fun(
 			str
 			record(8)
@@ -6752,19 +6752,19 @@ program(
 			expr-body(
 				expr(
 					ptr-const(char)
-					file-range(38, range(1209, 1272))
+					file-range(38, range(1205, 1268))
 					match(
 						expr(
 							union(17)
-							file-range(38, range(1217, 1241))
+							file-range(38, range(1213, 1237))
 							call(
 								186
 								[
-									expr(ptr-const(char), file-range(38, range(1217, 1219)), param-ref(0))
-									expr(char, file-range(38, range(1237, 1241)), 0)]))
+									expr(ptr-const(char), file-range(38, range(1213, 1215)), param-ref(0))
+									expr(char, file-range(38, range(1233, 1237)), 0)]))
 						[
-							case(none, expr(ptr-const(char), file-range(38, range(1254, 1270)), call(191, [])))
-							case(some(v), expr(ptr-const(char), file-range(38, range(1244, 1245)), local-ref(v)))]))))
+							case(none, expr(ptr-const(char), file-range(38, range(1250, 1266)), call(191, [])))
+							case(some(v), expr(ptr-const(char), file-range(38, range(1240, 1241)), local-ref(v)))]))))
 		186: fun(
 			find-char-in-cstr
 			union(17)
@@ -6773,54 +6773,54 @@ program(
 			expr-body(
 				expr(
 					union(17)
-					file-range(38, range(1071, 1133))
+					file-range(38, range(1067, 1129))
 					if(
 						expr(
 							bool
-							file-range(38, range(1071, 1081))
+							file-range(38, range(1067, 1077))
 							call(
 								187
 								[
 									expr(
 										char
-										file-range(38, range(1074, 1077))
-										call(74, [expr(ptr-const(char), file-range(38, range(1075, 1077)), param-ref(0))]))
-									expr(char, file-range(38, range(1080, 1081)), param-ref(1))]))
+										file-range(38, range(1070, 1073))
+										call(74, [expr(ptr-const(char), file-range(38, range(1071, 1073)), param-ref(0))]))
+									expr(char, file-range(38, range(1076, 1077)), param-ref(1))]))
 						expr(
 							union(17)
-							file-range(38, range(1084, 1086))
-							call(188, [expr(ptr-const(char), file-range(38, range(1084, 1085)), param-ref(0))]))
+							file-range(38, range(1080, 1082))
+							call(188, [expr(ptr-const(char), file-range(38, range(1080, 1081)), param-ref(0))]))
 						expr(
 							union(17)
-							file-range(38, range(1088, 1133))
+							file-range(38, range(1084, 1129))
 							if(
 								expr(
 									bool
-									file-range(38, range(1088, 1103))
+									file-range(38, range(1084, 1099))
 									call(
 										189
 										[
 											expr(
 												char
-												file-range(38, range(1093, 1096))
-												call(74, [expr(ptr-const(char), file-range(38, range(1094, 1096)), param-ref(0))]))
-											expr(char, file-range(38, range(1099, 1103)), 0)]))
+												file-range(38, range(1089, 1092))
+												call(74, [expr(ptr-const(char), file-range(38, range(1090, 1092)), param-ref(0))]))
+											expr(char, file-range(38, range(1095, 1099)), 0)]))
 								expr(
 									union(17)
-									file-range(38, range(1106, 1131))
+									file-range(38, range(1102, 1127))
 									tail-recur(
 										[
 											update(
 												0
 												expr(
 													ptr-const(char)
-													file-range(38, range(1106, 1130))
+													file-range(38, range(1102, 1126))
 													call(
 														75
 														[
-															expr(ptr-const(char), file-range(38, range(1106, 1108)), param-ref(0))
-															expr(nat-64, file-range(38, range(1110, 1112)), 1)])))]))
-								expr(union(17), file-range(38, range(1088, 1133)), call(190, []))))))))
+															expr(ptr-const(char), file-range(38, range(1102, 1104)), param-ref(0))
+															expr(nat-64, file-range(38, range(1106, 1108)), 1)])))]))
+								expr(union(17), file-range(38, range(1084, 1129)), call(190, []))))))))
 		187: fun(
 			==
 			bool

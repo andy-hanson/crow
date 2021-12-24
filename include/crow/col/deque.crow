@@ -4,7 +4,7 @@ import
 	../exception: assert
 	../fun-util: subscript
 	../misc: void
-	../opt: force, is-empty, new, opt
+	../opt: !, is-empty, new, opt
 	../ptr: ==, +, -, set-deref
 	../range: ..
 	../str: ==, str
@@ -140,37 +140,37 @@ test
 	bl = 1 ~ a
 	bl.dbg is "1 []"
 	bl.arr is (1,)
-	bl-pop-left = bl.pop-left force
+	bl-pop-left = bl.pop-left!
 	bl-pop-left.value is 1
 	# TODO: 'is deque'
 	bl-pop-left.rest.arr is ()
-	bl-pop-right = bl.pop-right force
+	bl-pop-right = bl.pop-right!
 	bl-pop-right.value is 1
 	bl-pop-right.rest.arr is ()
 
 	br = a ~ 1
 	br.dbg is "[] 1"
 	br.arr is bl.arr
-	br-pop-left = br.pop-left force
+	br-pop-left = br.pop-left!
 	br-pop-left.value is 1
 	br-pop-left.rest.arr is ()
-	br-pop-right = br.pop-right force
+	br-pop-right = br.pop-right!
 	br-pop-right.value is 1
 	br-pop-right.rest.arr is ()
 
 	c = bl ~ 2 ~ 3
 	c.dbg is "1 [] 2 3"
-	c-pop = c.pop-left force
+	c-pop = c.pop-left!
 	c-pop.value is 1
 
 	# Forces it to convert to an array
 	d = c-pop rest
 	d.dbg is "[] 2 3"
-	d-pop-left = d.pop-left force
+	d-pop-left = d.pop-left!
 	d-pop-left.value is 2
 	d-pop-left.rest.arr is (3,)
 
-	d-pop = d.pop-left force
+	d-pop = d.pop-left!
 	d-pop.value is 2
 	d-pop.rest.dbg is "[3]"
 
@@ -178,7 +178,7 @@ test
 	x = 1 ~ (2 ~ (3 ~ ().deque))
 	x.arr is (1, 2, 3)
 	x.dbg is "1 2 3 []"
-	x-pop = x.pop-right force
+	x-pop = x.pop-right!
 	x-pop.value is 3
 	x-pop.rest.dbg is "[1 2]"
 

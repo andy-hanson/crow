@@ -416,6 +416,7 @@ void addExprTokens(
 				case CallAst.Style.dot:
 				case CallAst.Style.setDot:
 				case CallAst.Style.infix:
+				case CallAst.Style.suffixOperator:
 					addExprTokens(alloc, tokens, allSymbols, args[0]);
 					addName();
 					addExprsTokens(alloc, tokens, allSymbols, args[1 .. $]);

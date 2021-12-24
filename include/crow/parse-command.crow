@@ -11,7 +11,7 @@ import
 	./hash: hash-mix
 	./misc: void
 	./number: ==, <=>, +
-	./opt: force, is-empty, new, opt
+	./opt: !, is-empty, new, opt
 	./range: ..
 	./str: ==, <=>, str
 	./str-conv: interp, finish, to-str, with-str, with-value
@@ -85,7 +85,7 @@ single-str-or-throw str(a str[]?, option-name str)
 	res move-to-dict
 
 .parse-named-args-recur void(args str[], builder str[] mut[str])
-	first-name = args[0] try-remove-start "--" force
+	first-name = (args[0] try-remove-start "--")!
 	tl = args tail
 	if next-named-arg-index ?= tl find-index arg => arg starts-with "--"
 		builder[first-name] := tl[0 .. next-named-arg-index]

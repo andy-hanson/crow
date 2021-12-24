@@ -23,10 +23,10 @@ main fut nat(args str[]) summon unsafe
 		print: "Usage: set-perf dict add iters max-value"
 		()
 	else
-		col-kind col-kind = args[0].str-to-sym.to-enum force
-		test-kind test-kind = args[1].str-to-sym.to-enum force
-		iters = args[2].parse-nat force
-		max-value = args[3].parse-nat force
+		col-kind col-kind = args[0].str-to-sym.to-enum!
+		test-kind test-kind = args[1].str-to-sym.to-enum!
+		iters = args[2].parse-nat!
+		max-value = args[3].parse-nat!
 
 		42 srand
 		gc = get-gc
