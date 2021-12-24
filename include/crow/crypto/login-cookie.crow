@@ -6,8 +6,9 @@ import
 	../exception: assert
 	../io/time: get-unix-time, new, seconds-since-epoch, unix-time
 	../log: info, log
+	../misc: new
 	../number: ==, <=>, -, nat8, nat64, to-int64
-	../opt: opt, opt-join
+	../opt: new, opt, opt-join
 	../range: ..
 	../serialize: from-bytes, to-8-bytes
 	../str: str

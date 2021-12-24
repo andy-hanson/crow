@@ -149,6 +149,8 @@ hard-assert void(condition bool) noctx unsafe
 hard-forbid void(condition bool) noctx unsafe
 	if condition
 		abort
+	else
+		new-void
 
 region bootstrap runtime
 

@@ -157,9 +157,6 @@ struct Diag {
 	struct IfNeedsOpt {
 		immutable Type actualType;
 	}
-	struct IfWithoutElse {
-		immutable Type thenType;
-	}
 	struct ImportRefersToNothing {
 		immutable Sym name;
 	}
@@ -315,7 +312,6 @@ struct Diag {
 		expectedTypeIsNotALambda,
 		externPtrHasTypeParams,
 		ifNeedsOpt,
-		ifWithoutElse,
 		importRefersToNothing,
 		lambdaCantInferParamTypes,
 		lambdaClosesOverMut,
@@ -372,7 +368,6 @@ struct Diag {
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
 		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
 		immutable IfNeedsOpt ifNeedsOpt;
-		immutable IfWithoutElse ifWithoutElse;
 		immutable ImportRefersToNothing importRefersToNothing;
 		immutable LambdaCantInferParamTypes lambdaCantInferParamTypes;
 		immutable LambdaClosesOverMut lambdaClosesOverMut;
@@ -444,7 +439,6 @@ struct Diag {
 		kind = Kind.externPtrHasTypeParams; externPtrHasTypeParams = a;
 	}
 	@trusted immutable this(immutable IfNeedsOpt a) { kind = Kind.ifNeedsOpt; ifNeedsOpt = a; }
-	@trusted immutable this(immutable IfWithoutElse a) { kind = Kind.ifWithoutElse; ifWithoutElse = a; }
 	immutable this(immutable ImportRefersToNothing a) { kind = Kind.importRefersToNothing; importRefersToNothing = a; }
 	@trusted immutable this(immutable LambdaCantInferParamTypes a) {
 		kind = Kind.lambdaCantInferParamTypes; lambdaCantInferParamTypes = a;
@@ -569,7 +563,6 @@ struct Diag {
 		ref immutable Diag.ExternPtrHasTypeParams
 	) @safe @nogc pure nothrow cbExternPtrHasTypeParams,
 	scope immutable(Out) delegate(ref immutable Diag.IfNeedsOpt) @safe @nogc pure nothrow cbIfNeedsOpt,
-	scope immutable(Out) delegate(ref immutable Diag.IfWithoutElse) @safe @nogc pure nothrow cbIfWithoutElse,
 	scope immutable(Out) delegate(
 		ref immutable Diag.ImportRefersToNothing
 	) @safe @nogc pure nothrow cbImportRefersToNothing,
@@ -703,8 +696,6 @@ struct Diag {
 			return cbExternPtrHasTypeParams(a.externPtrHasTypeParams);
 		case Diag.Kind.ifNeedsOpt:
 			return cbIfNeedsOpt(a.ifNeedsOpt);
-		case Diag.Kind.ifWithoutElse:
-			return cbIfWithoutElse(a.ifWithoutElse);
 		case Diag.Kind.importRefersToNothing:
 			return cbImportRefersToNothing(a.importRefersToNothing);
 		case Diag.Kind.lambdaCantInferParamTypes:

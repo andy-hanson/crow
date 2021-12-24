@@ -3,7 +3,7 @@ import
 	./bool: !, bool
 	./col/arr-util: each
 	./fun-util: subscript
-	./misc: void
+	./misc: new, void
 	./str: is-empty, str
 	./writer: ~=, move-to-str!, new, writer
 	./private/backtrace: return-stack

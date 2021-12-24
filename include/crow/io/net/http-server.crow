@@ -12,7 +12,7 @@ import
 	../../fut: fut, fut-catch, new, subscript, then
 	../../hash: hash-mix
 	../../log: error, log
-	../../misc: drop, void
+	../../misc: drop, new, void
 	../../number: ==, <=>, +, nat8, nat64, to-int64
 	../../opt: new, opt, or-default
 	../../extra-types: fd-t

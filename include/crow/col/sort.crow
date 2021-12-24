@@ -4,7 +4,7 @@ import
 	../compare: ==, !=, <, <=, >, compare, comparison, equal, less
 	../exception: assert, forbid
 	../fun-util: subscript
-	../misc: void
+	../misc: new, void
 	../number: ==, <=>, +, -, /, nat64
 	../ptr: ==, +, -, *, mut-ptr, set-deref
 	../range: ..

@@ -10,7 +10,7 @@ import
 	../fun-util: fun-ptr2, subscript
 	../fut: delay, fut, handle-exceptions, then-void
 	../io/process: exit-code
-	../misc: void
+	../misc: new, void
 	../opt: new
 	../ptr:
 		+, any-mut-ptr, arr-of-single, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr,

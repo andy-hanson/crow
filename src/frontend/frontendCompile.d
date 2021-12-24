@@ -13,7 +13,6 @@ import model.model :
 	SpecialModules;
 import model.parseDiag : ParseDiag;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, PathAndAst;
-import frontend.check.inferringType : CommonFuns;
 import frontend.diagnosticsBuilder : addDiagnosticsForFile, DiagnosticsBuilder, finishDiagnostics;
 import frontend.parse.ast : emptyFileAst, FileAst, ImportAst, ImportsOrExportsAst;
 import frontend.lang : crowExtension;
@@ -503,7 +502,6 @@ immutable(ModulesAndCommonTypes) getModules(
 	immutable FileIndex stdIndex,
 	ref immutable AstAndResolvedImports[] fileAsts,
 ) {
-	Late!(immutable CommonFuns) commonFuns = late!(immutable CommonFuns);
 	Late!(immutable CommonTypes) commonTypes = late!(immutable CommonTypes);
 	immutable Module[] modules = mapWithSoFar!Module(
 		modelAlloc,
@@ -532,14 +530,12 @@ immutable(ModulesAndCommonTypes) getModules(
 					mappedImports,
 					mappedExports,
 					pathAndAst,
-					lateGet(commonFuns),
 					lateGet(commonTypes));
 			} else {
 				// The first module to check is always 'bootstrap.crow'
 				verify(ast.resolvedImports.empty);
 				immutable BootstrapCheck res =
 					checkBootstrap(modelAlloc, perf, allSymbols, diagsBuilder, programState, pathAndAst);
-				lateSet(commonFuns, res.commonFuns);
 				lateSet(commonTypes, res.commonTypes);
 				return res.module_;
 			}

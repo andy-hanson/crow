@@ -3,7 +3,7 @@ import
 	../bool: !, &&, ||, ==, bool, false, to-nat64, true
 	../compare: !=, <, <=, >=, equal, max, min
 	../fun-util: subscript
-	../misc: void
+	../misc: new, void
 	../number: +, -, nat64
 	../opt: is-empty, new, opt
 	../ptr: ==, +, -, *, as-const, const-ptr, mut-ptr, set-deref

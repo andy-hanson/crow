@@ -5,7 +5,7 @@ import
 	./col/fix-arr: fill-fix-arr, set-subscript, subscript
 	./compare: !=
 	./io/time-low-level: get-monotime-nsec
-	./misc: void
+	./misc: new, void
 	./ptr: as-ref
 	./str: ==, str
 	./private/bootstrap: get-ctx, nat64, perf-ctx-ptr, thread-local-stuff

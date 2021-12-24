@@ -4,7 +4,7 @@ import
 	../bool: !, bool
 	../compare: <, <=, >, >=, equal
 	../fun-util: subscript
-	../misc: drop, void
+	../misc: drop, new, void
 	../number: +, -, *, nat64
 	../opt: new, opt
 	../ptr:

@@ -3,7 +3,7 @@ import
 	./bool: bool, false, true
 	./compare: equal
 	./fun-util: subscript
-	./misc: drop, void
+	./misc: drop, new, void
 	./str: ==, str
 	./tuple: new, pair
 	./private/bootstrap: char, none, some

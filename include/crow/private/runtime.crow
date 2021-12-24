@@ -5,7 +5,7 @@ import
 	../exception: exception, to-str
 	../io/print: print-err, print-err-no-newline
 	../io/time-low-level: get-monotime-nsec, timestamp
-	../misc: void
+	../misc: new, void
 	../opt: new, opt
 	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val
 	./alloc: gc, get-gc-ctx, needs-gc, return-gc-ctx, run-garbage-collection

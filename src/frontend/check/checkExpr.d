@@ -10,7 +10,6 @@ import frontend.check.inferringType :
 	bogus,
 	check,
 	CheckedExpr,
-	CommonFuns,
 	copyWithNewExpectedType,
 	Expected,
 	ExprCtx,
@@ -153,7 +152,6 @@ immutable(Expr) checkFunctionBody(
 	ref CheckCtx checkCtx,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable CommonTypes commonTypes,
-	ref immutable CommonFuns commonFuns,
 	ref immutable FunsDict funsDict,
 	ref bool[] usedFuns,
 	immutable Type returnType,
@@ -168,7 +166,6 @@ immutable(Expr) checkFunctionBody(
 		structsAndAliasesDict,
 		funsDict,
 		commonTypes,
-		commonFuns,
 		specs,
 		params,
 		typeParams,
@@ -287,77 +284,36 @@ immutable(CheckedExpr) checkIf(
 	ref Expected expected,
 ) {
 	immutable Expr cond = checkAndExpect(alloc, ctx, ast.cond, ctx.commonTypes.bool_);
-	if (has(ast.else_)) {
-		immutable Expr then = checkExpr(alloc, ctx, ast.then, expected);
-		immutable Expr else_ = checkExpr(alloc, ctx, force(ast.else_), expected);
-		return immutable CheckedExpr(immutable Expr(
-			range,
-			allocate(alloc, immutable Expr.Cond(inferred(expected), cond, then, else_))));
-	} else {
-		immutable ThenAndElse te = checkIfWithoutElse(alloc, ctx, range, none!(Ptr!Local), ast.then, expected);
-		return immutable CheckedExpr(immutable Expr(range, allocate(alloc, immutable Expr.Cond(
-			inferred(expected),
-			cond,
-			te.then,
-			te.else_))));
-	}
+	immutable Expr then = checkExpr(alloc, ctx, ast.then, expected);
+	immutable Expr else_ = checkExprOrEmptyNew(alloc, ctx, range, ast.else_, expected);
+	return immutable CheckedExpr(immutable Expr(
+		range,
+		allocate(alloc, immutable Expr.Cond(inferred(expected), cond, then, else_))));
 }
 
-struct ThenAndElse {
-	immutable Expr then;
-	immutable Expr else_;
-}
-
-immutable(ThenAndElse) checkIfWithoutElse(
+immutable(Expr) checkExprOrEmptyNew(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
-	immutable Opt!(Ptr!Local) local,
-	ref immutable ExprAst thenAst,
+	ref immutable Opt!ExprAst ast,
 	ref Expected expected,
 ) {
-	immutable Expr then = checkWithOptLocal(alloc, ctx, local, thenAst, expected);
-	immutable Type inferredType = inferred(expected);
-	if (isVoid(ctx, inferredType))
-		return immutable ThenAndElse(then, makeVoid(alloc, range, asStructInst(inferredType)));
-	else if (isOptType(ctx.commonTypes, inferredType))
-		return immutable ThenAndElse(then, makeNone(alloc, ctx, range, asStructInst(inferredType).deref()));
-	else {
-		addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.IfWithoutElse(inferredType)));
-		return immutable ThenAndElse(
-			then,
-			immutable Expr(range, immutable Expr.Bogus()));
-	}
+	return has(ast)
+		? checkExpr(alloc, ctx, force(ast), expected)
+		: checkEmptyNew(alloc, ctx, range, expected);
 }
 
-immutable(bool) isOptType(ref immutable CommonTypes commonTypes, immutable Type type) {
-	return isStructInst(type) && ptrEquals(decl(asStructInst(type).deref()), commonTypes.opt);
-}
-
-immutable(Expr) makeNone(
+immutable(Expr) checkEmptyNew(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
-	ref immutable StructInst optStructInst,
+	ref Expected expected,
 ) {
-	immutable Type typeArg = only(typeArgs(optStructInst));
-	immutable Ptr!FunInst noneInst = instantiateFun(
-		alloc,
-		ctx.checkCtx.programState,
-		immutable FunDeclAndArgs(ctx.commonFuns.noneFun, arrLiteral!Type(alloc, [typeArg]), emptyArr!Called));
-	return immutable Expr(
-		range,
-		immutable Expr.Call(immutable Called(noneInst), emptyArr!Expr()));
-}
-
-immutable(bool) isVoid(ref const ExprCtx ctx, immutable Type type) {
-	return isStructInst(type) && ptrEquals(asStructInst(type), ctx.commonTypes.void_);
-}
-
-immutable(Expr) makeVoid(ref Alloc alloc, ref immutable FileAndRange range, immutable Ptr!StructInst void_) {
-	return immutable Expr(range, allocate(alloc, immutable Expr.Literal(
-		void_,
-		immutable Constant(immutable Constant.Void()))));
+	immutable CallAst ast = immutable CallAst(CallAst.style.emptyParens,
+		immutable NameAndRange(range.start, shortSym("new")),
+		emptyArrWithSize!TypeAst,
+		emptyArrWithSize!ExprAst);
+	return checkCall(alloc, ctx, range, ast, expected).expr;
 }
 
 immutable(CheckedExpr) checkIfOption(
@@ -385,18 +341,11 @@ immutable(CheckedExpr) checkIfOption(
 			rangeInFile2(ctx, rangeOfNameAndRange(ast.name, ctx.allSymbols)),
 			ast.name.name,
 			innerType));
-		if (has(ast.else_)) {
-			immutable Expr then = checkWithLocal(alloc, ctx, local, ast.then, expected);
-			immutable Expr else_ = checkExpr(alloc, ctx, force(ast.else_), expected);
-			return immutable CheckedExpr(immutable Expr(
-				range,
-				allocate(alloc, immutable Expr.IfOption(inferred(expected), option, local, then, else_))));
-		} else {
-			immutable ThenAndElse te = checkIfWithoutElse(alloc, ctx, range, some(local), ast.then, expected);
-			return immutable CheckedExpr(immutable Expr(
-				range,
-				allocate(alloc, immutable Expr.IfOption(inferred(expected), option, local, te.then, te.else_))));
-		}
+		immutable Expr then = checkWithLocal(alloc, ctx, local, ast.then, expected);
+		immutable Expr else_ = checkExprOrEmptyNew(alloc, ctx, range, ast.else_, expected);
+		return immutable CheckedExpr(immutable Expr(
+			range,
+			allocate(alloc, immutable Expr.IfOption(inferred(expected), option, local, then, else_))));
 	}
 }
 

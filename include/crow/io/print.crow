@@ -5,7 +5,7 @@ import
 	../col/arr: begin-ptr
 	../compare: !=
 	../extra-types: fd-t
-	../misc: void
+	../misc: new, void
 	../ptr: as-any-const-ptr, size-of
 	../str: char, chars, size-bytes, str
 	../private/bootstrap: hard-assert, todo

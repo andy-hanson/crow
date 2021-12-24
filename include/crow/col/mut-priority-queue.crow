@@ -3,7 +3,7 @@ import
 	../bool: !, &&, ==, bool, false, true
 	../compare: <, compare
 	../exception: assert
-	../misc: is-data, void
+	../misc: is-data, new, void
 	../opt: force, is-empty, new, opt
 	../ptr: +, -, mut-ptr, set-deref
 	../str: ==, str

@@ -7,7 +7,7 @@ import
 	../col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	../compare: !=
 	../hash: hash-mix
-	../misc: void
+	../misc: new, void
 	../private/bootstrap: todo
 	../ptr: ==, +, *, const-ptr, null
 	../str: ==, <=>, ~, c-str, str

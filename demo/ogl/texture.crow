@@ -4,7 +4,7 @@ import
 	crow/compare: !=
 	crow/exception: throw
 	crow/io/print: print
-	crow/misc: void
+	crow/misc: new, void
 	crow/number: to-int32
 	crow/ptr: as-const, ptr-to
 	crow/str: str

@@ -42,8 +42,6 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 			DiagSeverity.checkError,
 		(ref immutable Diag.IfNeedsOpt) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.IfWithoutElse) =>
-			DiagSeverity.checkError,
 		(ref immutable Diag.ImportRefersToNothing) =>
 			DiagSeverity.nameNotFound,
 		(ref immutable Diag.LambdaCantInferParamTypes) =>

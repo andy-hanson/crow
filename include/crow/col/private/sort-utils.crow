@@ -3,7 +3,7 @@ import
 	../../bool: !, bool
 	../../compare: ==, !=, <, >=, compare, comparison, equal
 	../../fun-util: subscript
-	../../misc: void
+	../../misc: new, void
 	../../opt: new, opt
 	../../ptr: ==, +, -, *, as-const, as-mut, const-ptr, mut-ptr, null, set-deref
 	../../test-util: is

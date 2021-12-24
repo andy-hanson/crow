@@ -6,7 +6,7 @@ import
 	../bool: !, ||, bool, false, to-nat64, true
 	../compare: !=, <, <=, >
 	../fun-util: subscript
-	../misc: drop
+	../misc: drop, new
 	../ptr:
 		==, <=>, +, -, *, any-const-ptr, any-mut-ptr, as-any-const-ptr, as-any-mut-ptr, as-const,
 		as-mut, as-ref, by-val, const-ptr, mut-ptr, null, ptr-cast, ref-of-val, set-deref,
@@ -245,6 +245,8 @@ validate-gc void(gc gc) noctx unsafe
 			gc.mark-cur := gc.mark-cur + 1
 			gc.data-cur := gc.data-cur + 1
 			gc try-gc-alloc-recur size-bytes
+	else
+		none
 
 .range-free bool(mark bool mut*, end bool mut*) noctx unsafe
 	if mark == end
@@ -274,6 +276,8 @@ alloc-uninitialized<a> a mut*(size nat64) unsafe
 try-alloc-uninitialized<a> a mut*?(size nat64) unsafe
 	if res ?= size wrap-mul size-of@<a> try-alloc
 		res.ptr-cast some
+	else
+		none
 
 unmanaged-alloc-uninitialized<a> a mut*() noctx unsafe
 	1 unmanaged-alloc-elements

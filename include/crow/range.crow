@@ -5,7 +5,7 @@ import
 	./compare: !=
 	./fun-util: subscript
 	./iter: iterator, new
-	./misc: void
+	./misc: new, void
 	./number: ==, <=>, nat64
 	./opt: new, opt
 	./private/number-low-level: wrap-add, wrap-sub

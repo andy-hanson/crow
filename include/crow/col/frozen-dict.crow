@@ -4,7 +4,7 @@ import
 	../compare: !=, <=, compare, equal
 	../fun-util: subscript
 	../hash: hash, hash-mix
-	../misc: is-data, void
+	../misc: is-data, new, void
 	../opt: ==, is-empty, new, opt
 	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap!
 	../str: str

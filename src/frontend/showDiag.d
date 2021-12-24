@@ -583,11 +583,6 @@ void writeDiag(
 			writeStatic(writer, "Expected an 'opt', but got ");
 			writeType(writer, allSymbols, d.actualType);
 		},
-		(ref immutable Diag.IfWithoutElse d) {
-			writeStatic(writer, "'if' without 'else' should be 'void' or 'opt'. Instead got ");
-			writeType(writer, allSymbols, d.thenType);
-			writeChar(writer, '.');
-		},
 		(ref immutable Diag.ImportRefersToNothing it) {
 			writeStatic(writer, "imported name ");
 			writeName(writer, allSymbols, it.name);

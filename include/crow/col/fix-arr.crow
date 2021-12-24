@@ -4,7 +4,7 @@ import
 	../bool: !, bool
 	../compare: !=, <, <=, equal
 	../fun-util: subscript
-	../misc: drop, void
+	../misc: drop, new, void
 	../opt: new, opt
 	../ptr:
 		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,

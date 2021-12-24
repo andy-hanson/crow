@@ -2,7 +2,7 @@ no-std
 import
 	../bool: !, bool
 	../misc: void
-	../opt: opt
+	../opt: new, opt
 	./arr: arr
 	./mut-arr: ~=, arr, copy, each, filter!, fold, is-empty, last, map!, mut-arr, new, pop!, to-mut-arr
 

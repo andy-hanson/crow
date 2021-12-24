@@ -7,7 +7,7 @@ import
 	./col/mut-dict: move-to-dict!, mut-dict, new, set-subscript
 	./col/mut-arr: ~=, move-to-arr!, mut-arr, new
 	./hash: hash-mix
-	./misc: void
+	./misc: new, void
 	./number: ==, float64
 	./opt: new, opt
 	./reader:

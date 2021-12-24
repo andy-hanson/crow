@@ -15,7 +15,6 @@ import model.model :
 	CommonTypes,
 	decl,
 	Expr,
-	FunDecl,
 	FunFlags,
 	FunKind,
 	isBogus,
@@ -57,7 +56,6 @@ struct ExprCtx {
 	immutable StructsAndAliasesDict structsAndAliasesDict;
 	immutable FunsDict funsDict;
 	immutable CommonTypes commonTypes;
-	immutable CommonFuns commonFuns;
 	immutable Ptr!SpecInst[] outermostFunSpecs;
 	immutable Param[] outermostFunParams;
 	immutable TypeParam[] outermostFunTypeParams;
@@ -87,10 +85,6 @@ struct ExprCtx {
 	ref const(CheckCtx) checkCtx() return scope const {
 		return checkCtxPtr.deref();
 	}
-}
-
-struct CommonFuns {
-	immutable Ptr!FunDecl noneFun;
 }
 
 void markUsedLocalFun(ref ExprCtx a, immutable ModuleLocalFunIndex index) {

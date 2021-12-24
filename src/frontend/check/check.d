@@ -20,7 +20,6 @@ import frontend.check.dicts :
 	SpecsDict,
 	StructsAndAliasesDict,
 	StructOrAliasAndIndex;
-import frontend.check.inferringType : CommonFuns;
 import frontend.check.instantiate :
 	DelayStructInsts,
 	instantiateSpec,
@@ -171,7 +170,7 @@ import util.col.exactSizeArrBuilder :
 	exactSizeArrBuilderAdd,
 	finish,
 	newExactSizeArrBuilder;
-import util.col.multiDict : buildMultiDict, multiDictEach, multiDictGetAt;
+import util.col.multiDict : buildMultiDict, multiDictEach;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.col.mutDict : insertOrUpdate, moveToDict, MutSymDict;
 import util.col.mutSet : addToMutSymSetOkIfPresent;
@@ -180,7 +179,7 @@ import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, OptPtr, some, someMut, toOpt;
 import util.perf : Perf;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
-import util.sourceRange : FileAndPos, fileAndPosFromFileAndRange, FileAndRange, FileIndex, RangeWithinFile;
+import util.sourceRange : fileAndPosFromFileAndRange, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym :
 	AllSymbols,
 	containsSym,
@@ -203,7 +202,6 @@ struct PathAndAst { //TODO:RENAME
 
 struct BootstrapCheck {
 	immutable Module module_;
-	immutable CommonFuns commonFuns;
 	immutable CommonTypes commonTypes;
 }
 
@@ -224,7 +222,6 @@ immutable(BootstrapCheck) checkBootstrap(
 		emptyArr!ModuleAndNames,
 		emptyArr!ModuleAndNames,
 		pathAndAst,
-		none!CommonFuns,
 		(ref CheckCtx ctx,
 		ref immutable StructsAndAliasesDict structsAndAliasesDict,
 		ref MutArr!(Ptr!StructInst) delayedStructInsts) =>
@@ -240,7 +237,6 @@ immutable(Module) check(
 	ref immutable ModuleAndNames[] imports,
 	ref immutable ModuleAndNames[] exports,
 	ref immutable PathAndAst pathAndAst,
-	ref immutable CommonFuns commonFunsFromBootstrap,
 	ref immutable CommonTypes commonTypes,
 ) {
 	return checkWorker(
@@ -252,7 +248,6 @@ immutable(Module) check(
 		imports,
 		exports,
 		pathAndAst,
-		some(commonFunsFromBootstrap),
 		(ref CheckCtx, ref immutable(StructsAndAliasesDict), ref MutArr!(Ptr!StructInst)) => commonTypes,
 	).module_;
 }
@@ -1246,7 +1241,6 @@ struct FunsAndDict {
 	immutable FunDecl[] funs;
 	immutable Test[] tests;
 	immutable FunsDict funsDict;
-	immutable CommonFuns commonFuns;
 }
 
 immutable(ArrWithSize!(Ptr!SpecInst)) checkSpecUses(
@@ -1293,7 +1287,6 @@ immutable(FunsAndDict) checkFuns(
 	ref AllSymbols allSymbols,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	ref immutable Opt!CommonFuns commonFunsFromBootstrap,
 	ref immutable SpecsDict specsDict,
 	ref immutable StructDecl[] structs,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
@@ -1342,10 +1335,6 @@ immutable(FunsAndDict) checkFuns(
 	foreach (ref const FunDecl f; funs)
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.funNames, name(f));
 
-	immutable CommonFuns commonFuns = has(commonFunsFromBootstrap)
-		? force(commonFunsFromBootstrap)
-		: getCommonFuns(alloc, ctx, funsDict);
-
 	FunDecl[] funsWithAsts = funs[0 .. asts.length];
 	zipMutPtrFirst!(FunDecl, FunDeclAst)(funsWithAsts, asts, (Ptr!FunDecl fun, ref immutable FunDeclAst funAst) {
 		overwriteMemory(&fun.deref().body_, matchFunBodyAst!(
@@ -1366,7 +1355,6 @@ immutable(FunsAndDict) checkFuns(
 					ctx,
 					structsAndAliasesDict,
 					commonTypes,
-					commonFuns,
 					funsDict,
 					usedFuns,
 					returnType(f.deref()),
@@ -1386,7 +1374,6 @@ immutable(FunsAndDict) checkFuns(
 			ctx,
 			structsAndAliasesDict,
 			commonTypes,
-			commonFuns,
 			funsDict,
 			usedFuns,
 			voidType,
@@ -1411,40 +1398,7 @@ immutable(FunsAndDict) checkFuns(
 			}
 		});
 
-	return immutable FunsAndDict(castImmutable(funs), tests, funsDict, commonFuns);
-}
-
-immutable(CommonFuns) getCommonFuns(
-	ref Alloc alloc,
-	ref CheckCtx ctx,
-	ref immutable FunsDict funsDict,
-) {
-	immutable(Ptr!FunDecl) commonFunDecl(immutable string name) {
-		immutable Sym nameSym = shortSym(name);
-		immutable FunDeclAndIndex[] funs = multiDictGetAt(funsDict, nameSym);
-		if (funs.length != 1) {
-			addDiag(
-				alloc,
-				ctx,
-				immutable FileAndRange(ctx.fileIndex, RangeWithinFile.empty),
-				immutable Diag(immutable Diag.CommonFunMissing(nameSym)));
-			return castImmutable(allocateMut(alloc, FunDecl(
-				safeCStr!"",
-				Visibility.public_,
-				FunFlags.none,
-				immutable Sig(
-					immutable FileAndPos(ctx.fileIndex, 0),
-					nameSym,
-					immutable Type(immutable Type.Bogus()),
-					immutable Params(emptyArrWithSize!Param)),
-				emptyArrWithSize!TypeParam(),
-				emptyArrWithSize!(Ptr!SpecInst)())));
-		} else
-			return only(funs).decl;
-	}
-
-	immutable Ptr!FunDecl noneFun = commonFunDecl("none");
-	return immutable CommonFuns(noneFun);
+	return immutable FunsAndDict(castImmutable(funs), tests, funsDict);
 }
 
 immutable(size_t) countFunsForStruct(
@@ -1920,17 +1874,11 @@ immutable(SpecsDict) buildSpecsDict(
 	return finishDict(alloc, res);
 }
 
-struct ModuleAndCommonFuns {
-	immutable Module module_;
-	immutable CommonFuns commonFuns;
-}
-
-immutable(ModuleAndCommonFuns) checkWorkerAfterCommonTypes(
+immutable(Module) checkWorkerAfterCommonTypes(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	ref immutable Opt!CommonFuns commonFunsFromBootstrap,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable StructAlias[] structAliases,
 	ref StructDecl[] structs,
@@ -1966,7 +1914,6 @@ immutable(ModuleAndCommonFuns) checkWorkerAfterCommonTypes(
 		allSymbols,
 		ctx,
 		commonTypes,
-		commonFunsFromBootstrap,
 		specsDict,
 		structsImmutable,
 		structsAndAliasesDict,
@@ -1975,21 +1922,19 @@ immutable(ModuleAndCommonFuns) checkWorkerAfterCommonTypes(
 
 	checkForUnused(alloc, ctx, structAliases, castImmutable(structs), specs);
 
-	return immutable ModuleAndCommonFuns(
-		immutable Module(
-			fileIndex,
-			copySafeCStr(alloc, ast.docComment),
-			imports, reExports,
-			structsImmutable, specs, funsAndDict.funs, funsAndDict.tests,
-			getAllExportedNames(
-				alloc,
-				ctx.diagsBuilder,
-				reExports,
-				structsAndAliasesDict,
-				specsDict,
-				funsAndDict.funsDict,
-				fileIndex)),
-		funsAndDict.commonFuns);
+	return immutable Module(
+		fileIndex,
+		copySafeCStr(alloc, ast.docComment),
+		imports, reExports,
+		structsImmutable, specs, funsAndDict.funs, funsAndDict.tests,
+		getAllExportedNames(
+			alloc,
+			ctx.diagsBuilder,
+			reExports,
+			structsAndAliasesDict,
+			specsDict,
+			funsAndDict.funsDict,
+			fileIndex));
 }
 
 immutable(SymDict!NameReferents) getAllExportedNames(
@@ -2097,7 +2042,6 @@ immutable(BootstrapCheck) checkWorker(
 	immutable ModuleAndNames[] imports,
 	immutable ModuleAndNames[] reExports,
 	ref immutable PathAndAst pathAndAst,
-	immutable Opt!CommonFuns commonFunsFromBootstrap,
 	scope immutable(CommonTypes) delegate(
 		ref CheckCtx,
 		ref immutable StructsAndAliasesDict,
@@ -2151,12 +2095,11 @@ immutable(BootstrapCheck) checkWorker(
 		ast.structAliases,
 		delayStructInsts);
 
-	immutable ModuleAndCommonFuns res = checkWorkerAfterCommonTypes(
+	immutable Module res = checkWorkerAfterCommonTypes(
 		alloc,
 		allSymbols,
 		ctx,
 		commonTypes,
-		commonFunsFromBootstrap,
 		structsAndAliasesDict,
 		castImmutable(structAliases),
 		structs,
@@ -2165,7 +2108,7 @@ immutable(BootstrapCheck) checkWorker(
 		imports,
 		reExports,
 		ast);
-	return immutable BootstrapCheck(res.module_, res.commonFuns, commonTypes);
+	return immutable BootstrapCheck(res, commonTypes);
 }
 
 void checkImportsOrExports(

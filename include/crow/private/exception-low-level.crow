@@ -6,11 +6,12 @@ import
 	../col/arr: empty-arr
 	../compare: !=
 	../fun-util: subscript
+	../misc: new, void
 	../ptr: ==, as-ref, by-val, null, ptr-to
 	./backtrace: get-backtrace
 	./bootstrap:
 		err, exception-ctx-ptr, get-ctx, hard-assert, hard-unreachable, int32, new, ok, result,
-		str, thread-local-stuff, void
+		str, thread-local-stuff
 	./number-low-level: ==
 export
 	./bootstrap: exception, message
