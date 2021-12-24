@@ -86,27 +86,27 @@ contexts:
   decl_after_name:
     - match: '{{unindented_line}}'
       pop: true
-    - match: alias
+    - match: 'alias\n'
       scope: comment
       push: alias
-    - match: builtin
+    - match: 'builtin\n'
       scope: comment
       pop: true
-    - match: enum|flags
+    - match: '(enum|flags)[\n<]'
       scope: comment
       push: enum
-    - match: extern-ptr
+    - match: 'extern-ptr\n'
       scope: comment
       pop: true
-    - match: record
+    - match: 'record\s'
       scope: comment
       push: record
-    - match: spec
+    - match: 'spec\n'
       scope: comment
       push: spec
-    - match: builtin-spec
+    - match: 'builtin-spec\n'
       scope: comment
-    - match: union
+    - match: 'union\s'
       scope: comment
       push: union
     - match: '{{name}}'
