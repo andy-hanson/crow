@@ -8,7 +8,7 @@ import
 	../tuple: a, new, pair
 	./arr: arr
 	./arr-util: each, map
-	./mut-dict: ~=, move-to-arr!, mut-dict, in, to-mut-dict, try-remove-key!
+	./mut-dict: ~=, move-to-arr, mut-dict, in, to-mut-dict, try-remove-key
 	./set: set, to-set
 
 mut-set<a> record mut
@@ -18,11 +18,11 @@ new<a> mut-set a(...a a[]) is-data<a> compare<a> hash-mix<a>
 	# TODO: should not need type annotation
 	(a map (x => (x, ()) :: pair<a, void>)).to-mut-dict,
 
-move-to-arr!<a> a[](a mut-set a) is-data<a> compare<a> hash-mix<a>
-	a.inner.move-to-arr! map x => x.a
+move-to-arr<a> a[](a mut-set a) is-data<a> compare<a> hash-mix<a>
+	a.inner.move-to-arr map x => x.a
 
-move-to-set!<a> set a(a mut-set a) is-data<a> compare<a> hash-mix<a>
-	a.move-to-arr! to-set
+move-to-set<a> set a(a mut-set a) is-data<a> compare<a> hash-mix<a>
+	a.move-to-arr to-set
 
 ~= <a> void(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
 	# TODO: should not need type annotation
@@ -35,11 +35,11 @@ move-to-set!<a> set a(a mut-set a) is-data<a> compare<a> hash-mix<a>
 in<a> bool(value a, a mut-set a) is-data<a> compare<a> hash-mix<a>
 	value in a.inner
 
-try-add!<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
+try-add<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
 	# TODO:PERF do it without two lookups
 	if !(value in a)
 		a ~= value
 		true
 
-try-remove!<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
-	!(a.inner try-remove-key! value is-empty)
+try-remove<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
+	!(a.inner try-remove-key value is-empty)

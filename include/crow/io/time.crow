@@ -5,7 +5,7 @@ import
 	../misc: new, void
 	../number: +
 	../ptr: null
-	../private/fut-low-level: resolve!, unresolved
+	../private/fut-low-level: resolve, unresolved
 	../private/runtime: add-task, get-cur-island, new-exclusion
 	./duration: duration, nsec
 export
@@ -23,5 +23,5 @@ delay fut void(duration duration) trusted summon
 	island = get-cur-island
 	res = unresolved@<void>
 	island add-task target-time, island.new-exclusion, () =>
-		res resolve! ()
+		res resolve ()
 	res

@@ -8,13 +8,13 @@ import
 	crow/col/experimental/compact-sorted-dict: -, ~, compact-sorted-dict, in, new, size
 	crow/col/experimental/hamt-set: -, ~, hamt-set, in, new, size
 	crow/col/experimental/tree-set: -, ~, in, new, size, tree-set
-	crow/col/mut-arr: ~=, move-to-arr!, move-to-fix-arr!, mut-arr, new
+	crow/col/mut-arr: ~=, move-to-arr, move-to-fix-arr, mut-arr, new
 	crow/col/set: ~, in, new, node-count, set, size
 	crow/col/sorted-set: -, ~, in, new, sorted-set, size
 	crow/io/print: print
 	crow/io/time: get-monotime-nsec
 	crow/log: info, log
-	crow/private/alloc: force-needs-gc!, gc, get-gc, get-stats, words-used
+	crow/private/alloc: force-needs-gc, gc, get-gc, get-stats, words-used
 	crow/private/bootstrap: todo
 	crow/private/number-low-level: wrap-add
 
@@ -41,7 +41,7 @@ main fut nat(args str[]) summon unsafe
 		print: "took {(end-us - start-us) / 1000000}ms"
 		print: "allocated {gc current-kb}KB"
 
-		gc force-needs-gc!
+		gc force-needs-gc
 		<- delay
 
 		print: "size after GC is {gc current-kb}KB"
@@ -257,7 +257,7 @@ spec
 	summon
 body
 	if iters == 0
-		a.move-to-arr! to-frozen-dict
+		a.move-to-arr to-frozen-dict
 	else
 		# TODO: should not need type annotation
 		a ~= (max-value.rand-nat, ()) :: pair<nat, void>
@@ -265,7 +265,7 @@ body
 
 .frozen-set-add-test frozen-set nat(a nat mut[], iters nat, max-value nat) trusted summon
 	if iters == 0
-		a.move-to-fix-arr! unsafe-frozen-set-from-fix-arr-cast-immutable
+		a.move-to-fix-arr unsafe-frozen-set-from-fix-arr-cast-immutable
 	else
 		a ~= max-value rand-nat
 		a frozen-set-add-test iters - 1, max-value

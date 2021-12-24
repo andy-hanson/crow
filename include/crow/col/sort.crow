@@ -24,7 +24,7 @@ sort<a> a[](a a[]) compare<a>
 	a sort (x, y) => x <=> y
 sort<a> a[](a a[], comparer act comparison(a, a)) trusted
 	res = a to-fix-arr
-	res sort! comparer
+	res set-sort comparer
 	res cast-immutable
 sort-by<a, b> a[](a a[], f act b(a)) compare<b>
 	a sort (x, y) => f[x] <=> f[y]
@@ -37,7 +37,7 @@ That means `res[i] < res[i + 1]` for each element in the result.
 `[2, 1, 2] sort-unique` is `[1, 2]`.
 ###
 sort-unique<a> a[](a a[]) compare<a> trusted
-	a.to-fix-arr.sort-unique! cast-immutable
+	a.to-fix-arr.set-sort-unique cast-immutable
 
 test
 	()::nat64[].sort is ()
@@ -45,32 +45,32 @@ test
 
 	# Test that it's a stable sort
 	arr fix-arr str = "2a", "2b", "1a", "1b"
-	arr sort! (x, y) => x.chars[0] <=> y.chars[0]
+	arr set-sort (x, y) => x.chars[0] <=> y.chars[0]
 	arr.arr is ("1a", "1b", "2a", "2b")
 
 # Sort a mut-arr in place.
-sort<a> void(a a mut[]) compare<a> trusted
-	a.temp-as-fix-arr sort!
-sort<a> void(a a mut[], comparer act comparison(a, a)) trusted
-	a.temp-as-fix-arr sort! comparer
-sort-by!<a, b> void(a a mut[], f act b(a)) compare<b> trusted
-	a.temp-as-fix-arr sort-by! f
+set-sort<a> void(a a mut[]) compare<a> trusted
+	a.temp-as-fix-arr set-sort
+set-sort<a> void(a a mut[], comparer act comparison(a, a)) trusted
+	a.temp-as-fix-arr set-sort comparer
+set-sort-by<a, b> void(a a mut[], f act b(a)) compare<b> trusted
+	a.temp-as-fix-arr set-sort-by f
 
 # Sort a fix-arr in place.
-sort!<a> void(a fix-arr a) compare<a>
-	a sort! (x, y) => x <=> y
-sort!<a> void(a fix-arr a, comparer act comparison(a, a)) trusted
+set-sort<a> void(a fix-arr a) compare<a>
+	a set-sort (x, y) => x <=> y
+set-sort<a> void(a fix-arr a, comparer act comparison(a, a)) trusted
 	if !a.is-empty
-		a.begin-ptr insertion-sort-recur! a.begin-ptr + 1, a.end-ptr, comparer
-sort-by!<a, b> void(a fix-arr a, f act b(a)) compare<b>
-	a sort! (x, y) => f[x] <=> f[y]
+		a.begin-ptr insertion-sort-recur a.begin-ptr + 1, a.end-ptr, comparer
+set-sort-by<a, b> void(a fix-arr a, f act b(a)) compare<b>
+	a set-sort (x, y) => f[x] <=> f[y]
 
-.insertion-sort-recur!<a> void(begin a mut*, cur a mut*, end a mut*, comparer act comparison(a, a)) unsafe
+.insertion-sort-recur<a> void(begin a mut*, cur a mut*, end a mut*, comparer act comparison(a, a)) unsafe
 	if cur != end
-		begin insert! cur, *cur, comparer
-		begin insertion-sort-recur! cur + 1, end, comparer
+		begin insert cur, *cur, comparer
+		begin insertion-sort-recur cur + 1, end, comparer
 
-.insert!<a> void(begin a mut*, cur a mut*, value a, comparer act comparison(a, a)) unsafe
+.insert<a> void(begin a mut*, cur a mut*, value a, comparer act comparison(a, a)) unsafe
 	forbid: begin == cur
 	prev = cur - 1
 	if comparer[value, *prev] == less
@@ -78,23 +78,23 @@ sort-by!<a, b> void(a fix-arr a, f act b(a)) compare<b>
 		if begin == prev
 			*prev := value
 		else
-			begin insert! prev, value, comparer
+			begin insert prev, value, comparer
 	else
 		*cur := value
 
 # Sort a mut-arr in place, remove unique elements, and return the (now shorter) fix-arr.
-sort-unique!<a> fix-arr a(a fix-arr a) compare<a>
-	a sort-unique! (x, y) => x <=> y
-sort-unique!<a> fix-arr a(a fix-arr a, comparer act comparison(a, a)) trusted
+set-sort-unique<a> fix-arr a(a fix-arr a) compare<a>
+	a set-sort-unique (x, y) => x <=> y
+set-sort-unique<a> fix-arr a(a fix-arr a, comparer act comparison(a, a)) trusted
 	if a is-empty
 		a
 	else
-		a sort! comparer
-		end = *a.begin-ptr unique-recur! a.begin-ptr + 1, a.begin-ptr + 1, a.end-ptr, comparer
+		a set-sort comparer
+		end = *a.begin-ptr set-unique-recur a.begin-ptr + 1, a.begin-ptr + 1, a.end-ptr, comparer
 		a[0 .. end - a.begin-ptr]
-sort-unique-by!<a, b> fix-arr a(a fix-arr a, f act b(a)) compare<b>
-	a sort-unique! (x, y) => f[x] <=> f[y]
-.unique-recur!<a> a mut*
+set-sort-unique-by<a, b> fix-arr a(a fix-arr a, f act b(a)) compare<b>
+	a set-sort-unique (x, y) => f[x] <=> f[y]
+.set-unique-recur<a> a mut*
 	prev a
 	read a mut*
 	write a mut*
@@ -108,10 +108,10 @@ body
 	else
 		here = *read
 		if comparer[here, prev] == equal
-			prev unique-recur! read + 1, write, end, comparer
+			prev set-unique-recur read + 1, write, end, comparer
 		else
 			*write := here
-			here unique-recur! read + 1, write + 1, end, comparer
+			here set-unique-recur read + 1, write + 1, end, comparer
 
 .swap<a> void(a fix-arr a, x nat64, y nat64)
 	old-x = a[x]
@@ -126,34 +126,34 @@ sorted-by-first<a, b> record
 sort-by-first<a, b> sorted-by-first<a, b>(a a[], b b[]) compare<a> trusted
 	mut-a = a to-fix-arr
 	mut-b = b to-fix-arr
-	mut-a sort-by-first! mut-b
+	mut-a set-sort-by-first mut-b
 	mut-a.cast-immutable, mut-b.cast-immutable
 
 # Sort `a` in place, and apply the same permutation to `b` in place.
-sort-by-first!<a, b> void(a a mut[], b b mut[]) compare<a> trusted
-	a.temp-as-fix-arr sort-by-first! b.temp-as-fix-arr
+set-sort-by-first<a, b> void(a a mut[], b b mut[]) compare<a> trusted
+	a.temp-as-fix-arr set-sort-by-first b.temp-as-fix-arr
 
 # Sort `a` in place, and apply the same permutation to `b` in place.
-sort-by-first!<a, b> void(a fix-arr a, b fix-arr b) compare<a>
+set-sort-by-first<a, b> void(a fix-arr a, b fix-arr b) compare<a>
 	assert: a.size == b.size
 	if a.size > 1
 		a swap 0, a.size / 2
 		pivot = a[0]
-		new-pivot-index = (a partition-by-first! b, pivot, 1, a.size - 1) - 1
+		new-pivot-index = (a set-partition-by-first b, pivot, 1, a.size - 1) - 1
 		a swap 0, new-pivot-index
 		b swap 0, new-pivot-index
-		a[0 .. new-pivot-index] sort-by-first! b[0 .. new-pivot-index]
-		a[new-pivot-index + 1 .. a.size] sort-by-first! b[new-pivot-index + 1 .. b.size]
+		a[0 .. new-pivot-index] set-sort-by-first b[0 .. new-pivot-index]
+		a[new-pivot-index + 1 .. a.size] set-sort-by-first b[new-pivot-index + 1 .. b.size]
 
-.partition-by-first!<a, b> nat64(a fix-arr a, b fix-arr b, pivot a, l nat64, r nat64) compare<a>
+.set-partition-by-first<a, b> nat64(a fix-arr a, b fix-arr b, pivot a, l nat64, r nat64) compare<a>
 	assert: l <= a.size
 	assert: r < a.size
 	if l <= r
 		if a[l] < pivot
-			a partition-by-first! b, pivot, (l + 1), r
+			a set-partition-by-first b, pivot, (l + 1), r
 		else
 			a swap l, r
 			b swap l, r
-			a partition-by-first! b, pivot, l, r - 1
+			a set-partition-by-first b, pivot, l, r - 1
 	else
 		l

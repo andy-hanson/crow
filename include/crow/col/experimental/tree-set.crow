@@ -12,14 +12,14 @@ import
 	../../str-conv: interp, finish, to-str, with-str, with-value
 	../../str-util: starts-with
 	../../test-util: is
-	../../writer: ~=, backup!, move-to-str!, new, writer
+	../../writer: ~=, backup, move-to-str, new, writer
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, new, unsafe-div, wrap-add, wrap-sub
 	../arr: arr, begin-ptr, end-ptr, is-empty, size, subscript
 	../arr-util: each, fold, insert, last, rtail, tail, try-remove
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
-	../mut-stack: ~=, last, mut-stack, new, pop!
-	../sort: sort-unique, sort-unique!
+	../mut-stack: ~=, last, mut-stack, new, pop
+	../sort: sort-unique, set-sort-unique
 	../private/sort-utils: binary-search-has, binary-search-insert-ptr
 
 ###
@@ -115,13 +115,13 @@ This is O(a.size + b.size).
 	out fix-arr a = a.size wrap-add b.size uninitialized-fix-arr
 	b-iter = b iter
 	end = out.begin-ptr fold a, (cur, value) =>
-		cur walk-iter-union! value, b-iter
+		cur walk-iter-union value, b-iter
 	end2 = end fold-iter b-iter, (cur, value) =>
 		*cur := value
 		cur + 1
 	out[0 .. end2 - out.begin-ptr].cast-immutable to-tree-set
 
-.walk-iter-union!<a> a mut*(out a mut*, value a, a iter a) unsafe is-data<a> compare<a>
+.walk-iter-union<a> a mut*(out a mut*, value a, a iter a) unsafe is-data<a> compare<a>
 	if peek ?= a peek
 		match value <=> peek
 		as less
@@ -129,12 +129,12 @@ This is O(a.size + b.size).
 			out + 1
 		as equal
 			*out := value
-			a.next! drop
+			a.next drop
 			out + 1
 		as greater
 			*out := peek
-			a.next! drop
-			out + 1 walk-iter-union! value, a
+			a.next drop
+			out + 1 walk-iter-union value, a
 	else
 		*out := value
 		out + 1
@@ -149,10 +149,10 @@ intersect<a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a
 		as less
 			false
 		as equal
-			a.next! drop
+			a.next drop
 			true
 		as greater
-			a.next! drop
+			a.next drop
 			a walk-iter-has value
 
 ###
@@ -234,13 +234,13 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 
 .iter<a> iter a(a tree-set a) trusted
 	stack mut-stack inner-node a = ()
-	cur = stack init-iter-recur! a.root
+	cur = stack init-iter-recur a.root
 	cur, stack
-.init-iter-recur!<a> a[](stack mut-stack inner-node a, node node a)
+.init-iter-recur<a> a[](stack mut-stack inner-node a, node node a)
 	match node
 	as inner i
 		stack ~= i
-		stack init-iter-recur! i.left
+		stack init-iter-recur i.left
 	as leaf l
 		l
 .peek<a> a?(a iter a)
@@ -249,9 +249,9 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 			last.value,
 	else
 		a.cur[0],
-.next!<a> a?(a iter a) trusted
+.next<a> a?(a iter a) trusted
 	if a.cur is-empty
-		if node ?= a.stack pop!
+		if node ?= a.stack pop
 			res = node value
 			match node right
 			as inner i
@@ -269,7 +269,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	mid = acc fold a.cur, f
 	mid fold-iter-recur a.stack, f
 .fold-iter-recur<a, b> a(acc a, stack mut-stack inner-node b, f act a(a, b))
-	if popped ?= stack pop!
+	if popped ?= stack pop
 		mid = acc fold-recur-inner-node popped, f
 		mid fold-iter-recur stack, f
 	else
@@ -376,46 +376,46 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 
 .tree-to-arr<a> a[](a inner-node a, value a, size nat64) trusted compare<a>
 	out fix-arr a = size uninitialized-fix-arr
-	end = out.begin-ptr tree-to-arr-recur! a.inner, value
+	end = out.begin-ptr tree-to-arr-recur a.inner, value
 	hard-assert: end == out.end-ptr
 	out cast-immutable
 .tree-to-arr<a> a[](a inner-node a, size nat64) trusted compare<a>
 	out fix-arr a = size uninitialized-fix-arr
-	end = out.begin-ptr tree-to-arr-recur! a.inner
+	end = out.begin-ptr tree-to-arr-recur a.inner
 	hard-assert: end == out.end-ptr
 	out cast-immutable
-.tree-to-arr-recur!<a> a mut*(out a mut*, a node a, value a) compare<a> unsafe
+.tree-to-arr-recur<a> a mut*(out a mut*, a node a, value a) compare<a> unsafe
 	match a
 	as inner i
 		match value <=> i.value
 		as less
-			mid = out tree-to-arr-recur! i.left, value
+			mid = out tree-to-arr-recur i.left, value
 			*mid := i.value
-			mid + 1 tree-to-arr-recur! i.right
+			mid + 1 tree-to-arr-recur i.right
 		as equal
 			unreachable
 		as greater
-			mid = out tree-to-arr-recur! i.left
+			mid = out tree-to-arr-recur i.left
 			*mid := i.value
-			mid + 1 tree-to-arr-recur! i.right, value
+			mid + 1 tree-to-arr-recur i.right, value
 	as leaf l
 		# Find first x > value, insert it before there
 		index = (l binary-search-insert-ptr value) - l.begin-ptr
-		mid = out copy-out! l[0 .. index]
+		mid = out copy-out l[0 .. index]
 		*mid := value
-		mid + 1 copy-out! l[index .. l.size]
+		mid + 1 copy-out l[index .. l.size]
 # Version where we know we don't have to insert value
-.tree-to-arr-recur!<a> a mut*(out a mut*, a node a) unsafe
+.tree-to-arr-recur<a> a mut*(out a mut*, a node a) unsafe
 	match a
 	as inner i
-		mid = out tree-to-arr-recur! i.left
+		mid = out tree-to-arr-recur i.left
 		*mid := i.value
-		mid + 1 tree-to-arr-recur! i.right
+		mid + 1 tree-to-arr-recur i.right
 	as leaf l
-		out copy-out! l
+		out copy-out l
 
 # TODO:PERF (use memcpy)
-.copy-out!<a> a mut*(out a mut*, a a[]) unsafe
+.copy-out<a> a mut*(out a mut*, a a[]) unsafe
 	out fold a, (cur, x) =>
 		*cur := x
 		cur + 1
@@ -468,21 +468,21 @@ map<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> 
 		*cur := f[value]
 		cur + 1
 	hard-assert: end == out.end-ptr
-	out[0 .. end - out.begin-ptr].sort-unique!.cast-immutable to-tree-set
+	out[0 .. end - out.begin-ptr].set-sort-unique.cast-immutable to-tree-set
 
 .dbg<a> str(a tree-set a) to-str<a>
 	res writer = ()
-	res dbg-recur! a.root
-	res move-to-str!
-.dbg-recur!<a> void(res writer, a node a) to-str<a>
+	res dbg-recur a.root
+	res move-to-str
+.dbg-recur<a> void(res writer, a node a) to-str<a>
 	match a
 	as inner i
 		res ~= "("
-		res dbg-recur! i.left
+		res dbg-recur i.left
 		res ~= " "
 		res ~= i.value to-str
 		res ~= " "
-		res dbg-recur! i.right
+		res dbg-recur i.right
 		res ~= ")"
 	as leaf l
 		if l is-empty
@@ -492,7 +492,7 @@ map<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> 
 			l each x =>
 				res ~= x to-str
 				res ~= " "
-			res backup!
+			res backup
 			res ~= "]"
 
 .verify void(a tree-set str, expected str)

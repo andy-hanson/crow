@@ -30,7 +30,7 @@ import
 	crow/log: info, log
 	crow/parse-command: parse-named-args
 	crow/perf: perf-now
-	crow/reader: new, reader, take-quoted-str!
+	crow/reader: new, reader, take-quoted-str
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
 
@@ -77,7 +77,7 @@ test
 	info log "READER TEST START"
 
 	r reader = "\"j\"",
-	if s ?= r take-quoted-str!
+	if s ?= r take-quoted-str
 		info log "GOT A STRING: {s}"
 	else
 		info log "GOT NOTHIN"

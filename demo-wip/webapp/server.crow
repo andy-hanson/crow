@@ -9,10 +9,10 @@ import
 		request-body, url
 	crow/io/print: print
 	crow/str-util: split-by, try-split-once
-	crow/writer: ~=, backup!, move-to-str!, new, writer
+	crow/writer: ~=, backup, move-to-str, new, writer
 	./db:
-		add-post!, close-real-db, content, cookie-expire-seconds, db, list-posts, list-users,
-		login!, post, post-info, open-real-db, parse-user-cookie, register-user!, to-str, user,
+		add-post, close-real-db, content, cookie-expire-seconds, db, list-posts, list-users,
+		login, post, post-info, open-real-db, parse-user-cookie, register-user, to-str, user,
 		user-info, user-name
 
 main fut nat(args str[]) unsafe summon
@@ -55,7 +55,7 @@ main fut nat(args str[]) unsafe summon
 			args = req.request-body parse-query ("user-name", "password")
 			user-name = args[0]
 			password = args[1]
-			match db register-user! user-name, password
+			match db register-user user-name, password
 			as register-user-success user-id
 				# We need to get: user-name and password
 				200, "OK", (), "\{\"userId\":{user-id}}"
@@ -65,7 +65,7 @@ main fut nat(args str[]) unsafe summon
 			args = req.request-body parse-query ("user-name", "password")
 			user-name = args[0]
 			password = args[1]
-			match db login! user-name, password
+			match db login user-name, password
 			as ok cookie
 				headers str[str] = ("Set-Cookie", "login={cookie}; Max-Age={cookie-expire-seconds}"),
 				200, "OK", headers, "Logged in as {user-name}"
@@ -78,7 +78,7 @@ main fut nat(args str[]) unsafe summon
 		elif path == "/post"
 			if cookie ?= req.headers["Cookie"]
 				user-cookie = (cookie parse-cookies ("login",))[0].parse-user-cookie force
-				post = db add-post! user-cookie, req.request-body
+				post = db add-post user-cookie, req.request-body
 				200, "OK", (), "\{\"postId\":{post}}"
 			else
 				403, "No login cookie", (), "No login cookie"
@@ -130,9 +130,9 @@ parse-query str[](s str, arg-names str[])
 		res ~= user user-name
 		res ~= "\"},"
 	if !users.is-empty
-		res backup!
+		res backup
 	res ~= "]}"
-	res move-to-str!
+	res move-to-str
 
 .format-posts-as-json str(posts post-info[])
 	res writer = ()
@@ -149,6 +149,6 @@ parse-query str[](s str, arg-names str[])
 		res ~= post content
 		res ~= "\"},"
 	if !posts.is-empty
-		res backup!
+		res backup
 	res ~= "]}"
-	res move-to-str!
+	res move-to-str

@@ -7,7 +7,7 @@ import
 	../ptr:
 		==, <=>, +, *, any-const-ptr, as-const, const-ptr, mut-ptr, set-deref, set-subscript,
 		subscript
-	./alloc: copy-data-from!, try-alloc-uninitialized
+	./alloc: copy-data-from, try-alloc-uninitialized
 	./bootstrap: begin-ptr, hard-assert, nat64, new, none, opt, size, some, sym, void
 	./number-low-level:
 		==, <=>, int32, int64, to-int64, unsafe-div, unsafe-to-int64, unsafe-to-int32, unsafe-to-nat64, wrap-add,
@@ -43,13 +43,13 @@ int32-to-nat64 nat64(a int32) unsafe
 
 # TODO:INLINE
 .fill-arrs backtrace(arrs backtrace-arrs, n-code-ptrs nat64) unsafe
-	arrs.funs copy-data-from! all-funs.begin-ptr, all-funs.size
-	arrs.funs sort! all-funs.size
+	arrs.funs copy-data-from all-funs.begin-ptr, all-funs.size
+	arrs.funs set-sort all-funs.size
 	end-code-names = arrs.code-names + n-code-ptrs
-	arrs.code-names fill-code-names! end-code-names, arrs.code-ptrs.as-const, arrs.funs.as-const
+	arrs.code-names fill-code-names end-code-names, arrs.code-ptrs.as-const, arrs.funs.as-const
 	arrs.code-names.as-const[0 .. n-code-ptrs],
 
-.fill-code-names! void
+.fill-code-names void
 	code-names sym mut*
 	end-code-names sym mut*
 	code-ptrs any-const-ptr*
@@ -59,7 +59,7 @@ spec
 body
 	if code-names < end-code-names
 		*code-names := *code-ptrs get-fun-name funs, all-funs.size
-		code-names + 1 fill-code-names! end-code-names, code-ptrs + 1, funs
+		code-names + 1 fill-code-names end-code-names, code-ptrs + 1, funs
 
 .code-ptrs-size nat64()
 	8
@@ -93,26 +93,26 @@ body
 		code-ptr get-fun-name funs + 1, (size wrap-sub 1)
 
 # TODO: use the one from sort.crow
-.sort! void(a named-val<any-const-ptr> mut*, size nat64) noctx unsafe
+.set-sort void(a named-val<any-const-ptr> mut*, size nat64) noctx unsafe
 	if size > 1
-		a swap! 0, (size unsafe-div 2)
-		after-pivot = a partition! a->val, 1, (size wrap-sub 1)
+		a swap 0, (size unsafe-div 2)
+		after-pivot = a set-partition a->val, 1, (size wrap-sub 1)
 		new-pivot-index = after-pivot wrap-sub 1
-		a swap! 0, new-pivot-index
-		a sort! new-pivot-index
-		a + after-pivot sort! (size wrap-sub after-pivot)
+		a swap 0, new-pivot-index
+		a set-sort new-pivot-index
+		a + after-pivot set-sort (size wrap-sub after-pivot)
 
-.partition! nat64(a named-val<any-const-ptr> mut*, pivot any-const-ptr, l nat64, r nat64) noctx unsafe
+.set-partition nat64(a named-val<any-const-ptr> mut*, pivot any-const-ptr, l nat64, r nat64) noctx unsafe
 	if l <= r
 		if a[l].val < pivot
-			a partition! pivot, (l wrap-add 1), r
+			a set-partition pivot, (l wrap-add 1), r
 		else
-			a swap! l, r
-			a partition! pivot, l, (r wrap-sub 1)
+			a swap l, r
+			a set-partition pivot, l, (r wrap-sub 1)
 	else
 		l
 
-.swap!<a> void(a a mut*, lo nat64, hi nat64) noctx unsafe
+.swap<a> void(a a mut*, lo nat64, hi nat64) noctx unsafe
 	temp = a[lo]
 	a[lo] := a[hi]
 	a[hi] := temp

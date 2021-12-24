@@ -414,16 +414,14 @@ immutable(char) letterFromCode(immutable ulong code) {
 }
 immutable ulong codeForHyphen = 27;
 immutable ulong codeForUnderscore = 28;
-immutable ulong codeForBang = 29;
-immutable ulong codeForNextIsCapitalLetter = 30;
-immutable ulong codeForNextIsDigit = 31;
+immutable ulong codeForNextIsCapitalLetter = 29;
+immutable ulong codeForNextIsDigit = 30;
 
 immutable(bool) isCrowIdentifier(immutable string a) {
 	return every!char(a, (ref immutable char x) =>
 		('a' <= x && x <= 'z') ||
 		x == '-' ||
 		x == '_' ||
-		x == '!' ||
 		('A' <= x && x <= 'Z') ||
 		('0' <= x && x <= '9'));
 }
@@ -469,8 +467,6 @@ immutable(Opt!Sym) tryPackShortSym(immutable string str) {
 			push(codeForLetter(x));
 		else if (x == '-')
 			push(codeForHyphen);
-		else if (x == '!')
-			push(codeForBang);
 		else if (x == '_')
 			push(codeForUnderscore);
 		else if ('0' <= x && x <= '9') {
@@ -510,9 +506,6 @@ void eachCharInShortSym(
 					break;
 				case codeForUnderscore:
 					cb('_');
-					break;
-				case codeForBang:
-					cb('!');
 					break;
 				case codeForNextIsCapitalLetter:
 					cb(cast(immutable char) ('A' + take()));

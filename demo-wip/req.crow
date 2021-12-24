@@ -13,12 +13,12 @@ import
 main fut nat(_ str[]) unsafe summon
 	hostname = "duckduckgo.com"
 	socket = get-tcp-socket
-	socket connect-socket! hostname, 80
+	socket connect-socket hostname, 80
 
 	request = "GET / HTTP/1.1\r\nHost: duckduckgo.com\r\n\r\n"
 
-	socket send-request! request
-	socket receive-response!
+	socket send-request request
+	socket receive-response
 
 	print: "Hello, world!"
 	()
@@ -30,7 +30,7 @@ main fut nat(_ str[]) unsafe summon
 	forbid: socket-file-descriptor == -1
 	socket-file-descriptor
 
-.connect-socket! void(socket fd-t, hostname str, server-port nat16) unsafe summon
+.connect-socket void(socket fd-t, hostname str, server-port nat16) unsafe summon
 	hostent = hostname.to-c-str gethostbyname
 	assert: hostent.as-any-const-ptr != null
 	in_addr0 in_addr* = hostent.h_addr_list->ptr-cast
@@ -40,19 +40,19 @@ main fut nat(_ str[]) unsafe summon
 	sockaddr = sockaddr_in.ptr-to ptr-cast-to-extern@<sockaddr, sockaddr_in>
 	assert: (socket connect sockaddr, (size-of@<sockaddr_in> to-nat32)) == 0
 
-.send-request! void(socket fd-t, request str) unsafe summon
+.send-request void(socket fd-t, request str) unsafe summon
 	forbid: request is-empty
-	socket send-request-recur! request.bytes
-.send-request-recur! void(socket fd-t, bytes nat8[])
+	socket send-request-recur request.bytes
+.send-request-recur void(socket fd-t, bytes nat8[])
 	bytes-sent = socket write bytes.begin-ptr, bytes.size
 	# TODO: might be 0 if the socket is overloaded -- delay and try again
 	assert: bytes-sent > 0
 	if bytes-sent < bytes.size.to-int64
-		socket send-request-recur! bytes[bytes-sent.to-nat64 .. bytes.size]
+		socket send-request-recur bytes[bytes-sent.to-nat64 .. bytes.size]
 	else
 		assert: bytes-sent == bytes.size.to-int64
 
-.receive-response! void(socket fd-t) unsafe summon
+.receive-response void(socket fd-t) unsafe summon
 	buffer fix-arr nat8 = 0x2000 uninitialized-fix-arr
 	# TODO: use epoll like we did in the server, for a non-blocking read.
 	bytes-read = socket read buffer.begin-ptr, buffer.size

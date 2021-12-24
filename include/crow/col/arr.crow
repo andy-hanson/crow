@@ -6,7 +6,7 @@ import
 	../ptr:
 		*, ==, <=>, +, -, as-const, by-val, const-ptr, mut-ptr, null, ptr-cast, ref-of-ptr,
 		size-of, subscript
-	../private/alloc: alloc-uninitialized, copy-data-from!
+	../private/alloc: alloc-uninitialized, copy-data-from
 	../private/bootstrap: hard-assert, new
 	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
 	../private/range-low-level: low, high, range
@@ -133,6 +133,6 @@ If you need to concatenate often, consider using `mut-arr`.
 ~ <a> a[](a a[], b a[]) trusted
 	res-size = a.size wrap-add b.size
 	res a mut* = res-size alloc-uninitialized
-	res copy-data-from! a.begin-ptr, a.size
-	res + a.size copy-data-from! b.begin-ptr, b.size
+	res copy-data-from a.begin-ptr, a.size
+	res + a.size copy-data-from b.begin-ptr, b.size
 	res-size, res.as-const

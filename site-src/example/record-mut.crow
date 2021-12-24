@@ -4,7 +4,7 @@ import
 main fut nat(_ str[]) summon
 	a dinner = "lasagna", "wine"
 	print: "yum, {a}"
-	a snarf!
+	a snarf
 	print: "yum, {a}"
 	()
 
@@ -12,7 +12,7 @@ dinner record mut
 	food mut str
 	drink str
 
-snarf! void(a dinner)
+snarf void(a dinner)
 	a.food := "nothing"
 
 to-str str(a dinner)

@@ -14,9 +14,9 @@ import
 	./bootstrap:
 		gc-ctx-ptr, get-ctx, hard-assert, lock, nat64, none, opt, some, todo, void
 	./number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
-	./thread-utils: acquire!, lock-by-val, release!
+	./thread-utils: acquire, lock-by-val, release
 
-mem-copy!<a> void(dest a mut*, src a*, size nat64) unsafe noctx
+mem-copy<a> void(dest a mut*, src a*, size nat64) unsafe noctx
 	drop: dest.as-any-mut-ptr memcpy src.as-any-const-ptr, (size wrap-mul size-of@<a>)
 
 set-zero-range<a> void(begin a mut*, size nat64) noctx unsafe
@@ -104,11 +104,11 @@ set-hard-limit void(gc gc, size-words nat64) noctx unsafe
 # WARN: this locks up the GC for a long time
 get-stats gc-stats(gc gc) noctx unsafe
 	gc validate-gc
-	gc.lk.ref-of-val acquire!
+	gc.lk.ref-of-val acquire
 	cur-word = gc.mark-cur - gc.mark-begin
 	used-words-remaining = 0 words-used-in-range gc.mark-cur, gc.mark-end
 	total-words = gc.mark-end - gc.mark-begin
-	gc.lk.ref-of-val release!
+	gc.lk.ref-of-val release
 	cur-word, total-words, (cur-word wrap-add used-words-remaining)
 
 words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) noctx unsafe
@@ -145,16 +145,16 @@ run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 	prev-mark-cur = gc.mark-cur
 	gc.mark-cur := gc.mark-begin
 	gc.data-cur := gc.data-begin
-	gc.mark-begin clear-free-mem! prev-mark-cur, gc.data-begin
+	gc.mark-begin clear-free-mem prev-mark-cur, gc.data-begin
 	gc validate-gc
 	gc.needs-gc := false
 
 # TODO: use memset
-.clear-free-mem! void(mark-ptr bool mut*, mark-end bool mut*, data-ptr nat64 mut*) noctx unsafe
+.clear-free-mem void(mark-ptr bool mut*, mark-end bool mut*, data-ptr nat64 mut*) noctx unsafe
 	if mark-ptr != mark-end
 		if !*mark-ptr
 			*data-ptr := 0xfadefadefadefade
-		mark-ptr + 1 clear-free-mem! mark-end, data-ptr
+		mark-ptr + 1 clear-free-mem mark-end, data-ptr
 
 ###
 GC info specific to a ctx.
@@ -164,11 +164,11 @@ gc-ctx record mut
 	gc mut gc
 	next-ctx mut gc-ctx?
 
-force-needs-gc! void(gc gc) unsafe
+force-needs-gc void(gc gc) unsafe
 	gc.needs-gc := true
 
 get-gc-ctx gc-ctx(gc gc) noctx unsafe
-	gc.lk.ref-of-val acquire!
+	gc.lk.ref-of-val acquire
 	res = if c ?= gc.context-head
 		gc.context-head := c next-ctx
 		c.next-ctx := none
@@ -181,15 +181,15 @@ get-gc-ctx gc-ctx(gc gc) noctx unsafe
 		c.gc := gc
 		c.next-ctx := none
 		c
-	gc.lk.ref-of-val release!
+	gc.lk.ref-of-val release
 	res
 
 return-gc-ctx void(gc-ctx gc-ctx) noctx unsafe
 	gc = gc-ctx.gc
-	gc.lk.ref-of-val acquire!
+	gc.lk.ref-of-val acquire
 	gc-ctx.next-ctx := gc context-head
 	gc.context-head := gc-ctx some
-	gc.lk.ref-of-val release!
+	gc.lk.ref-of-val release
 
 get-gc-ctx gc-ctx() unsafe
 	get-ctx.gc-ctx-ptr as-ref
@@ -218,13 +218,13 @@ validate-gc void(gc gc) noctx unsafe
 	hard-assert: mark-idx == data-idx
 
 .try-gc-alloc any-mut-ptr?(gc gc, size-bytes nat64) noctx trusted
-	gc.lk.ref-of-val acquire!
+	gc.lk.ref-of-val acquire
 	res = gc try-gc-alloc-recur size-bytes
-	gc maybe-set-needs-gc!
-	gc.lk.ref-of-val release!
+	gc maybe-set-needs-gc
+	gc.lk.ref-of-val release
 	res
 
-.maybe-set-needs-gc! void(gc gc) noctx unsafe
+.maybe-set-needs-gc void(gc gc) noctx unsafe
 	cur-word = gc.mark-cur - gc.mark-begin
 	if cur-word > (gc.size-words unsafe-div 2)
 		gc.needs-gc := true
@@ -299,7 +299,7 @@ unmanaged-alloc-elements<a> a mut*(size-elements nat64) noctx unsafe
 unmanaged-free<a> void(p a mut*) noctx unsafe
 	p.as-any-mut-ptr free
 
-copy-data-from!<a> void(to a mut*, from a*, len nat64) unsafe
+copy-data-from<a> void(to a mut*, from a*, len nat64) unsafe
 	drop: to.as-any-mut-ptr memcpy from.as-any-const-ptr, (len wrap-mul size-of@<a>)
 
 fill-ptr-range<a> void(begin a mut*, size nat64, f act a(nat64)) unsafe

@@ -8,7 +8,7 @@ main fut nat(_ str[]) summon
 	xs ~= "d"
 	# TODO: should not need type annotation
 	xs ~= ("e", "f") :: str[]
-	a = xs move-to-arr!
+	a = xs move-to-arr
 	print: a join ", "
 	print: xs.is-empty to-str
 	()

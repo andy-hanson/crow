@@ -2,7 +2,7 @@ no-std
 import
 	./bool: bool
 	./col/arr-util: each
-	./col/mut-arr: ~=, move-to-arr!, mut-arr, new, pop-n!
+	./col/mut-arr: ~=, move-to-arr, mut-arr, new, pop-n
 	./misc: void
 	./number: float64, int64, nat64
 	./str: ==, char, chars, c-str, str
@@ -18,14 +18,14 @@ write<a> spec
 new writer()
 	(),
 
-move-to-str! str(a writer)
-	a.chars.move-to-arr! str
+move-to-str str(a writer)
+	a.chars.move-to-arr str
 
-backup! void(a writer)
-	a backup! 1
+backup void(a writer)
+	a backup 1
 
-backup! void(a writer, n nat64)
-	a.chars pop-n! n
+backup void(a writer, n nat64)
+	a.chars pop-n n
 
 ~= void(a writer, b char)
 	a.chars ~= b
@@ -48,7 +48,7 @@ backup! void(a writer, n nat64)
 ~= void(a writer, b float64)
 	a ~= b to-str
 
-write-quoted-str! void(out writer, a str)
+write-quoted-str void(out writer, a str)
 	out ~= "\""
 	a.chars each x =>
 		if x == "\""

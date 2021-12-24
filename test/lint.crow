@@ -1,7 +1,7 @@
 import
 	crow/cell: *, cell, new, swap
 	crow/col/arr-util: each-with-index, exists, in
-	crow/col/mut-arr: ~=, move-to-arr!, mut-arr, new
+	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
 	crow/io/print: print
@@ -24,7 +24,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 	path each-child-recursive (child => !child.excluded-from-lint), child =>
 		if !child.base-name.should-ignore-extension-of-name
 			res ~= child
-	res move-to-arr!
+	res move-to-arr
 
 .excluded-from-lint bool(name str)
 	exclude-exts str[] = ".bmp", ".err", ".html", ".mdb", ".png", ".repr", ".svg", ".ttf", ".wasm", ".webp", ".xz"
@@ -47,7 +47,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 		if width > max-line-length
 			message = "line {ln} is {width} columns long, should be <= {max-line-length}"
 			res ~= (path, message)
-	res move-to-arr!
+	res move-to-arr
 
 .ignored-extensions str[]()
 	"c", "data", "o", "out", "repr", "tmLanguage"
@@ -71,7 +71,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 			nl = last-nl swap index + 1
 			res ~= s.chars[nl .. index] str
 	res ~= s.chars[*last-nl .. s.size-bytes] str
-	res move-to-arr!
+	res move-to-arr
 
 .max-line-length nat()
 	120

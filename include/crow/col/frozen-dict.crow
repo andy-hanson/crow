@@ -6,7 +6,7 @@ import
 	../hash: hash, hash-mix
 	../misc: is-data, new, void
 	../opt: ==, is-empty, new, opt
-	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap!
+	../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
 	../str: str
 	../test-util: is
 	../tuple: from, new, pair, to
@@ -15,9 +15,9 @@ import
 	./arr: ==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, new, size, unsafe-at
 	./arr-util: each, fold, fold-with-index, map
 	./fix-arr:
-		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-fix-arr, fix-arr,
+		begin-ptr, cast-immutable, each, end-ptr, fill, fill-fix-arr, fix-arr,
 		fix-arr-from-begin-end, size, temp-as-arr, to-fix-arr, uninitialized-fix-arr, unsafe-at,
-		unsafe-set-at!
+		unsafe-set-at
 
 frozen-dict<k, v> record
 	by-val
@@ -98,8 +98,8 @@ body
 		n-buckets = a.size unsafe-div 2
 		bucket-counts = a get-bucket-counts n-buckets
 		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-arr
-		bucket-counts fill! 0
-		a.begin-ptr move-values-to-buckets-recur! a.end-ptr, bucket-counts, bucket-starts
+		bucket-counts fill 0
+		a.begin-ptr move-values-to-buckets-recur a.end-ptr, bucket-counts, bucket-starts
 		a.cast-immutable, bucket-starts.arr-cast
 
 .remove-duplicates<k, v> frozen-dict<k, v>
@@ -203,10 +203,10 @@ body
 	res = n-buckets fill-fix-arr 0
 	a each pair =>
 		bucket-index = pair.from get-bucket-index n-buckets
-		res unsafe-set-at! bucket-index, (res unsafe-at bucket-index wrap-add 1)
+		res unsafe-set-at bucket-index, (res unsafe-at bucket-index wrap-add 1)
 	res
 
-.move-values-to-buckets-recur!<k, v> void
+.move-values-to-buckets-recur<k, v> void
 	cur pair<k, v> mut*
 	end pair<k, v> mut*
 	bucket-counts fix-arr nat64
@@ -222,22 +222,22 @@ body
 		bucket-cur-end = bucket-start + bucket-count
 		new-cur = if bucket-start <= cur && cur <= bucket-cur-end
 			if cur == bucket-cur-end
-				bucket-counts unsafe-set-at! bucket-index, (bucket-count wrap-add 1)
+				bucket-counts unsafe-set-at bucket-index, (bucket-count wrap-add 1)
 			cur + 1
 		else
-			bucket-counts unsafe-set-at! bucket-index, (bucket-count wrap-add 1)
-			cur swap! bucket-cur-end
+			bucket-counts unsafe-set-at bucket-index, (bucket-count wrap-add 1)
+			cur swap bucket-cur-end
 			cur
-		new-cur move-values-to-buckets-recur! end, bucket-counts, bucket-starts
+		new-cur move-values-to-buckets-recur end, bucket-counts, bucket-starts
 
 .get-bucket-index<k> nat64(key k, n-buckets nat64) unsafe hash-mix<k>
 	key.hash unsafe-mod n-buckets
 
 .running-sum<k, v> pair<k, v> mut*[](acc pair<k, v> mut*, a nat64[]) trusted
 	out fix-arr pair<k, v> mut* = a.size uninitialized-fix-arr
-	acc running-sum-recur! out.begin-ptr, out.end-ptr, a.begin-ptr
+	acc running-sum-recur out.begin-ptr, out.end-ptr, a.begin-ptr
 	out cast-immutable
-.running-sum-recur!<k, v> void
+.running-sum-recur<k, v> void
 	acc pair<k, v> mut*
 	out pair<k, v> mut* mut*
 	out-end pair<k, v> mut* mut*
@@ -247,7 +247,7 @@ spec
 body
 	*out := acc
 	if out + 1 != out-end
-		acc + *read running-sum-recur! out + 1, out-end, read + 1
+		acc + *read running-sum-recur out + 1, out-end, read + 1
 
 region iteration
 

@@ -37,19 +37,19 @@ lock-by-val by-val lock() noctx trusted
 	hard-assert-posix-error: mutex pthread_mutex_init attr.ref-of-val
 	res
 
-try-acquire! bool(a lock) noctx trusted
+try-acquire bool(a lock) noctx trusted
 	a.mutex.ref-of-val.pthread_mutex_trylock == 0
 
-acquire! void(a lock) noctx unsafe
+acquire void(a lock) noctx unsafe
 	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_lock
 
-release! void(a lock) noctx unsafe
+release void(a lock) noctx unsafe
 	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_unlock
 
 with-lock<a> a(a lock, f act a()) trusted
-	a acquire!
+	a acquire
 	res = f[]
-	a release!
+	a release
 	res
 
 condition record mut
@@ -81,7 +81,7 @@ destroy-condition void(a condition) noctx unsafe
 .hard-assert-posix-error void(err err-t) noctx unsafe
 	hard-assert: err == 0
 
-broadcast! void(a condition) noctx trusted
+broadcast void(a condition) noctx trusted
 	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_lock
 	hard-assert-posix-error: a.cond.ref-of-val pthread_cond_broadcast
 	a.sequence := a.sequence wrap-add 1
@@ -127,20 +127,20 @@ new by-val thread-safe-counter(init nat64) noctx
 	lock-by-val, init
 
 # Returns the old value
-get-and-increment! nat64(t thread-safe-counter) noctx unsafe
-	t.lk.ref-of-val acquire!
+get-and-increment nat64(t thread-safe-counter) noctx unsafe
+	t.lk.ref-of-val acquire
 	old = t value
 	t.value := old wrap-add 1
-	t.lk.ref-of-val release!
+	t.lk.ref-of-val release
 	old
 
 # Returns the old value
-get-and-decrement! nat64(t thread-safe-counter) noctx unsafe
-	t.lk.ref-of-val acquire!
+get-and-decrement nat64(t thread-safe-counter) noctx unsafe
+	t.lk.ref-of-val acquire
 	old = t value
 	hard-forbid: old == 0
 	t.value := old wrap-sub 1
-	t.lk.ref-of-val release!
+	t.lk.ref-of-val release
 	old
 
 create-one-thread void

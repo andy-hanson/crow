@@ -1,7 +1,7 @@
 import
 	crow/io/print: print
 	crow/private/alloc:
-		cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc!, set-hard-limit, words-free, words-used
+		cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used
 	crow/ptr: -, as-any-const-ptr, by-val, size-of
 
 main fut nat(_ str[]) summon unsafe
@@ -20,7 +20,7 @@ main fut nat(_ str[]) summon unsafe
 	print: "a: {a}"
 	print: "stats (after print): {gc get-stats}"
 
-	gc force-needs-gc!
+	gc force-needs-gc
 	<- delay
 
 	print: "-- after gc --"

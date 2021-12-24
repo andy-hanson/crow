@@ -5,7 +5,7 @@ import
 	./col/arr-util:
 		contains-subseq, each, ends-with, first, last, map, reverse, rtail, split-by-subseq,
 		starts-with, tail, try-remove-end, try-remove-start, try-split-once
-	./col/mut-arr: ~=, move-to-arr!, mut-arr, new
+	./col/mut-arr: ~=, move-to-arr, mut-arr, new
 	./compare: !=, <=
 	./number: ==, <=>, +, -, nat8
 	./opt: force, new, opt
@@ -103,7 +103,7 @@ join str(a str[], b str)
 			res ~= x chars
 			res ~= b chars
 		res ~= a.last.force.chars
-		res.move-to-arr! str
+		res.move-to-arr str
 
 lower-case str(a str)
 	a.chars map (it => it lower-case-char) str

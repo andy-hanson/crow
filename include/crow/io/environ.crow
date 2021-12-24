@@ -3,8 +3,8 @@ import
 	unistd: __environ
 	../col/arr: begin-ptr, arr-from-begin-end
 	../col/dict: dict, each
-	../col/mut-dict: move-to-dict!, mut-dict, new, set-subscript
-	../col/mut-arr: ~=, move-to-arr!, mut-arr, new
+	../col/mut-dict: move-to-dict, mut-dict, new, set-subscript
+	../col/mut-arr: ~=, move-to-arr, mut-arr, new
 	../compare: !=
 	../hash: hash-mix
 	../misc: new, void
@@ -22,7 +22,7 @@ environ alias
 get-environ environ() summon trusted
 	res str mut[str] = ()
 	__environ get-environ-recur res
-	res move-to-dict!
+	res move-to-dict
 
 .get-environ-recur void(env c-str*, res str mut[str]) unsafe
 	if *env != null
@@ -47,4 +47,4 @@ convert-environ c-str*(environ environ) unsafe
 		res ~= key ~ "=" ~ value to-c-str
 	# TODO: type annotation should be unnecessary
 	res ~= null :: c-str
-	res.move-to-arr! begin-ptr
+	res.move-to-arr begin-ptr

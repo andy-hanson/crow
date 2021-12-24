@@ -4,18 +4,18 @@ import
 	./col/arr: arr, arr-equal, is-empty, new
 	./col/arr-util: each
 	./col/dict: dict, dict-equal, each, is-empty, new, subscript
-	./col/mut-dict: move-to-dict!, mut-dict, new, set-subscript
-	./col/mut-arr: ~=, move-to-arr!, mut-arr, new
+	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
+	./col/mut-arr: ~=, move-to-arr, mut-arr, new
 	./hash: hash-mix
 	./misc: new, void
 	./number: ==, float64
 	./opt: new, opt
 	./reader:
-		reader, skip-whitespace!, try-take-char, take-float!, take-quoted-str!, try-take-str, with-reader
+		reader, skip-whitespace, try-take-char, take-float, take-quoted-str, try-take-str, with-reader
 	./str: ==, <=>, str
 	./test-util: is
 	./tuple: new
-	./writer: ~=, backup!, move-to-str!, new, writer, write-quoted-str!
+	./writer: ~=, backup, move-to-str, new, writer, write-quoted-str
 
 json union
 	json-bool bool
@@ -116,89 +116,89 @@ subscript json?(a json, key str)
 
 parse-json json?(a str)
 	a with-reader r =>
-		res = r take-json!
-		r skip-whitespace!
+		res = r take-json
+		r skip-whitespace
 		res
 
 to-str str(a json)
 	res writer = ()
-	res to-str-recur! a
-	res move-to-str!
+	res to-str-recur a
+	res move-to-str
 
-.to-str-recur! void(out writer, a json)
+.to-str-recur void(out writer, a json)
 	match a
 	as json-bool b
 		out ~= b
 	as json-number f
 		out ~= f
 	as json-str s
-		out write-quoted-str! s
+		out write-quoted-str s
 	as json-arr xs
 		out ~= "["
 		xs each x =>
-			out to-str-recur! x
+			out to-str-recur x
 			out ~= ","
 		if !xs.is-empty
-			out backup!
+			out backup
 		out ~= "]"
 	as json-object o
 		out ~= "\{"
 		o each (key, value) =>
-			out write-quoted-str! key
+			out write-quoted-str key
 			out ~= ":"
-			out to-str-recur! value
+			out to-str-recur value
 			out ~= ","
 		if !o.is-empty
-			out backup!
+			out backup
 		out ~= "}"
 
-take-json! json?(a reader)
-	a skip-whitespace!
-	if f ?= a take-float!
+take-json json?(a reader)
+	a skip-whitespace
+	if f ?= a take-float
 		f.json-number,
 	elif a try-take-str "true"
 		true.json-bool,
 	elif a try-take-str "false"
 		false.json-bool,
-	elif s ?= a take-quoted-str!
+	elif s ?= a take-quoted-str
 		s.json-str,
 	elif a try-take-char "["
-		a skip-whitespace!
+		a skip-whitespace
 		if a try-take-char "]"
 			().json-arr,
 		else
-			a take-arr-recur! ()
+			a take-arr-recur ()
 	elif a try-take-char "\{"
-		a skip-whitespace!
+		a skip-whitespace
 		if a try-take-char "}"
 			().json-object,
 		else
-			a take-object-recur! ()
+			a take-object-recur ()
 
-.take-arr-recur! json?(a reader, res json mut[])
-	if j ?= a take-json!
+.take-arr-recur json?(a reader, res json mut[])
+	if j ?= a take-json
 		res ~= j
-		a skip-whitespace!
+		a skip-whitespace
 		if a try-take-char ","
-			a skip-whitespace!
-			a take-arr-recur! res
+			a skip-whitespace
+			a take-arr-recur res
 		elif a try-take-char "]"
-			res.move-to-arr!.json-arr,
+			res.move-to-arr.json-arr,
 
-.take-object-recur! json?(a reader, res json mut[str])
-	if key ?= a take-quoted-str!
-		a skip-whitespace!
+.take-object-recur json?(a reader, res json mut[str])
+	if key ?= a take-quoted-str
+		a skip-whitespace
 		if a try-take-char ":"
-			if j ?= a take-json!
+			if j ?= a take-json
 				res[key] := j
-				a skip-whitespace!
+				a skip-whitespace
 				if a try-take-char ","
-					a skip-whitespace!
-					a take-object-recur! res
+					a skip-whitespace
+					a take-object-recur res
 				elif a try-take-char "}"
-					res.move-to-dict!.json-object,
+					res.move-to-dict.json-object,
 				else
-					a take-object-recur! res
+					a take-object-recur res
 
 .verify void(a json, s str)
 	s.parse-json is (a,)

@@ -2,14 +2,14 @@ no-std
 import
 	./bool: bool, false, true
 	./col/arr: new
-	./col/mut-arr: ~=, move-to-arr!, mut-arr, new
+	./col/mut-arr: ~=, move-to-arr, mut-arr, new
 	./compare: <
 	./misc: void
 	./number:
 		==, <=>, *, /, abs, float64, float32, int8, int16, int32, int64, is-multiple-of, mod, nat8,
 		nat16, nat32, nat64, to-float64, to-int64, to-nat64, truncate-to-int64
 	./opt: new, opt
-	./reader: take-float!, take-int!, take-nat!, with-reader
+	./reader: take-float, take-int, take-nat, with-reader
 	./str: ==, ~, char, chars, str
 
 to-str str(_ void)
@@ -159,21 +159,21 @@ Parse digits as a nat64.
 Return none if the str contains any punctuation or whitespace.
 ###
 parse-nat nat64?(a str)
-	a with-reader r => r take-nat!
+	a with-reader r => r take-nat
 
 ###
 The str should be a series of digits, optionally preceded by "-" or "+".
 If not, this returns `none`.
 ###
 parse-int int64?(a str)
-	a with-reader r => r take-int!
+	a with-reader r => r take-int
 
 ###
 The str should be a valid int, optionally followed by a "." and then a valid int.
 If not, this returns `none`.
 ###
 parse-float float64?(a str)
-	a with-reader r => r take-float!
+	a with-reader r => r take-float
 
 region Interpolation
 
@@ -191,4 +191,4 @@ with-value<a> interp(a interp, b a) to-str<a>
 	a with-str b.to-str
 
 finish str(a interp)
-	a.inner.move-to-arr! str
+	a.inner.move-to-arr str

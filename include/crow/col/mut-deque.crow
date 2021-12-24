@@ -10,12 +10,12 @@ import
 	../str: ==, str
 	../str-conv: to-str
 	../test-util: is
-	../writer: ~=, backup!, move-to-str!, new, writer
+	../writer: ~=, backup, move-to-str, new, writer
 	../private/number-low-level: ==, <=>, nat64, new, wrap-add, wrap-mul
 	./arr: ==, arr, arr-from-begin-end, new, size
 	./arr-util: each-ptr, first, last
 	./fix-arr:
-		begin-ptr, cast-immutable, copy-from!, end-ptr, fix-arr, is-empty, new, set-zero-elements,
+		begin-ptr, cast-immutable, copy-from, end-ptr, fix-arr, is-empty, new, set-zero-elements,
 		size, subscript, uninitialized-fix-arr, zeroed-fix-arr
 
 mut-deque<a> record mut
@@ -35,7 +35,7 @@ arr<a> a[](a mut-deque a) trusted
 fix-arr<a> fix-arr a(a mut-deque a) trusted
 	if !a.is-empty
 		res fix-arr a = a.size uninitialized-fix-arr
-		res copy-from-deque! a
+		res copy-from-deque a
 		res
 
 copy<a> mut-deque a(a mut-deque a) trusted
@@ -56,16 +56,16 @@ size<a> nat64(a mut-deque a) trusted
 		a.inner.end-ptr - a.left wrap-add a.right - a.inner.begin-ptr
 
 # Push a value to the left.
-push!<a> void(value a, a mut-deque a) trusted
-	a ensure-capacity!
+push<a> void(value a, a mut-deque a) trusted
+	a ensure-capacity
 	if a.left == a.inner.begin-ptr
 		a.left := a.inner end-ptr
 	a.left := a.left - 1
 	*a.left := value
 
 # Push a value to the right.
-push!<a> void(a mut-deque a, value a) trusted
-	a ensure-capacity!
+push<a> void(a mut-deque a, value a) trusted
+	a ensure-capacity
 	assert: a.right < a.inner.end-ptr
 	*a.right := value
 	a.right := a.right + 1
@@ -82,7 +82,7 @@ last<a> a?(a mut-deque a) trusted
 			a right
 		*(fixed-right - 1),
 
-pop-left!<a> a?(a mut-deque a) trusted
+pop-left<a> a?(a mut-deque a) trusted
 	if a.left != null
 		res = *a.left
 		*a.left := zeroed
@@ -95,7 +95,7 @@ pop-left!<a> a?(a mut-deque a) trusted
 			# Still hold on to `a inner`
 		res,
 
-pop-right!<a> a?(a mut-deque a) trusted
+pop-right<a> a?(a mut-deque a) trusted
 	if a.right != null
 		if a.right == a.inner.begin-ptr
 			a.right := a.inner end-ptr
@@ -109,7 +109,7 @@ pop-right!<a> a?(a mut-deque a) trusted
 		res,
 
 # This temporarily breaks the invariant that a.left and a.right are null for an empty queue.
-.ensure-capacity!<a> void(a mut-deque a) unsafe
+.ensure-capacity<a> void(a mut-deque a) unsafe
 	if a.left == null
 		assert: a.right == null
 		if a.inner is-empty
@@ -124,20 +124,20 @@ pop-right!<a> a?(a mut-deque a) trusted
 			old-capacity = old-inner size
 			new-capacity = old-capacity wrap-mul 2
 			new-inner fix-arr a = new-capacity uninitialized-fix-arr
-			new-inner[0 .. old-capacity] copy-from-deque! a
+			new-inner[0 .. old-capacity] copy-from-deque a
 			new-inner[old-capacity .. new-capacity] set-zero-elements
 			a.inner := new-inner
 			a.left := a.inner begin-ptr
 			a.right := a.left + old-capacity
 
-.copy-from-deque!<a> void(dest fix-arr a, a mut-deque a) trusted
+.copy-from-deque<a> void(dest fix-arr a, a mut-deque a) trusted
 	assert: dest.size == a.size
 	if a.left < a.right
-		dest copy-from! (a.left.as-const arr-from-begin-end a.right.as-const)
+		dest copy-from (a.left.as-const arr-from-begin-end a.right.as-const)
 	else
 		left-to-end-size = a.inner.end-ptr - a.left
-		dest[0 .. left-to-end-size] copy-from! (a.left.as-const arr-from-begin-end a.inner.end-ptr.as-const)
-		dest[left-to-end-size .. dest.size] copy-from! (a.inner.begin-ptr.as-const arr-from-begin-end a.right.as-const)
+		dest[0 .. left-to-end-size] copy-from (a.left.as-const arr-from-begin-end a.inner.end-ptr.as-const)
+		dest[left-to-end-size .. dest.size] copy-from (a.inner.begin-ptr.as-const arr-from-begin-end a.right.as-const)
 
 .dbg str(a mut-deque nat64) trusted
 	out writer = ()
@@ -149,8 +149,8 @@ pop-right!<a> a?(a mut-deque a) trusted
 		out ~= *ptr to-str
 		out ~= " "
 	if !a.inner.is-empty
-		out backup!
-	out move-to-str!
+		out backup
+	out move-to-str
 
 .verify void(a mut-deque nat64, arr nat64[], expected str)
 	a.first is arr.first
@@ -161,30 +161,30 @@ pop-right!<a> a?(a mut-deque a) trusted
 
 test
 	a mut-deque nat64 = ()
-	a.pop-left! is ()
-	a.pop-right! is ()
+	a.pop-left is ()
+	a.pop-right is ()
 	a verify (), ""
-	1 push! a
+	1 push a
 	a verify (1,), "<-R 0 L-> 1"
-	a push! 2
+	a push 2
 	a verify (1, 2), "2 <-R L-> 1"
 
 	a-copy = a copy
 	a-copy verify (1, 2), "<-R L-> 1 2"
 
-	a.pop-right! is (2,)
+	a.pop-right is (2,)
 	a verify (1,), "<-R 0 L-> 1"
 
-	a.pop-right! is (1,)
+	a.pop-right is (1,)
 	assert: a.left == null
 	assert: a.right == null
 	a verify (), "0 0"
 
-	a push! 1
+	a push 1
 	a verify (1,), "L-> 1 <-R 0"
 
-	2 push! a
+	2 push a
 	a verify (2, 1), "1 <-R L-> 2"
 
-	3 push! a
+	3 push a
 	a verify (3, 2, 1), "2 1 <-R 0 L-> 3"

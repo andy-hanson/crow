@@ -9,8 +9,8 @@ main fut nat(_ str[]) summon
 	print: a[3] to-str
 
 	m str mut[nat] = 1 -> "one", 2 -> "two"
-	print: m remove-key! 1 to-str
-	print: m remove-key! 1 to-str
+	print: m remove-key 1 to-str
+	print: m remove-key 1 to-str
 	m[3] := "three"
 	print: m[3] to-str
 	()

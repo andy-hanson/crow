@@ -13,8 +13,8 @@ import
 	../../str-conv: interp, finish, to-str, with-str, with-value
 	../../test-util: is
 	../../tuple: from, new, pair, to
-	../../writer: ~=, backup!, move-to-str!, new, writer
-	../../private/alloc: mem-copy!
+	../../writer: ~=, backup, move-to-str, new, writer
+	../../private/alloc: mem-copy
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: wrap-add
 	../arr: arr, begin-ptr, is-empty, end-ptr, new, size, subscript
@@ -232,7 +232,7 @@ body
 
 .finish-rest<a> a mut*(out a mut*, cur a*, end a*) unsafe noctx
 	rest-size = end - cur
-	out mem-copy! cur, rest-size
+	out mem-copy cur, rest-size
 	out + rest-size
 
 .finish-rest-ignore-none<k, v> pair<k, v> mut*
@@ -354,7 +354,7 @@ body
 
 .init-iters<k, v> iters<k, v>(a compact-sorted-dict<k, v>) trusted
 	overlay-iters fix-arr pair<k, v?>[] = 0 overlay-count a.impl uninitialized-fix-arr
-	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur! a.impl
+	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur a.impl
 	end-pairs, overlay-iters
 
 .overlay-count<k, v> nat64(acc nat64, a impl<k, v>) noctx
@@ -365,11 +365,11 @@ body
 		acc
 
 # incidentally returns the end node pairs
-.init-overlay-iters-recur!<k, v> pair<k, v>[](out pair<k, v?>[] mut*, a impl<k, v>) noctx unsafe
+.init-overlay-iters-recur<k, v> pair<k, v>[](out pair<k, v?>[] mut*, a impl<k, v>) noctx unsafe
 	match a
 	as overlay o
 		*out := o pairs
-		out + 1 init-overlay-iters-recur! o.prev
+		out + 1 init-overlay-iters-recur o.prev
 	as end-node e
 		e
 
@@ -407,13 +407,13 @@ body
 # TODO:PRIVATE
 dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
 	out writer = ()
-	out dbg-recur! a.impl
-	out move-to-str!
+	out dbg-recur a.impl
+	out move-to-str
 
-.dbg-recur!<k, v> void(out writer, a impl<k, v>) to-str<k> to-str<v>
+.dbg-recur<k, v> void(out writer, a impl<k, v>) to-str<k> to-str<v>
 	match a
 	as overlay o
-		out dbg-recur! o.prev
+		out dbg-recur o.prev
 		out ~= ", ["
 		o.pairs each pair =>
 			out ~= pair.from.to-str
@@ -424,7 +424,7 @@ dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
 				"_"
 			out ~= ", "
 		if !o.pairs.is-empty
-			out backup! 2
+			out backup 2
 		out ~= "]"
 	as end-node e
 		out ~= "["
@@ -436,7 +436,7 @@ dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
 		if e is-empty
 			out ~= "]"
 		else
-			out backup! 2
+			out backup 2
 			out ~= "]"
 
 verify void(a compact-sorted-dict<nat64, str>, expected str)

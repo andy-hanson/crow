@@ -5,7 +5,7 @@ import
 	./fun-util: subscript
 	./misc: new, void
 	./str: is-empty, str
-	./writer: ~=, move-to-str!, new, writer
+	./writer: ~=, move-to-str, new, writer
 	./private/backtrace: return-stack
 	./private/bootstrap: backtrace, to-c-str
 export
@@ -82,4 +82,4 @@ to-str str(a exception) unsafe
 	a.backtrace.return-stack each x =>
 		res ~= "\n\tat "
 		res ~= x.to-c-str
-	res move-to-str!
+	res move-to-str

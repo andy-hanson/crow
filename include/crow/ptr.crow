@@ -176,7 +176,7 @@ to-const-ptr<a> a*(a nat64) noctx unsafe
 to-mut-ptr<a> a mut*(a nat64) noctx unsafe builtin
 
 # Swap the pointees. Does not change the pointer itself.
-swap!<a> void(a a mut*, b a mut*) noctx unsafe
+swap<a> void(a a mut*, b a mut*) noctx unsafe
 	temp = *a
 	*a := *b
 	*b := temp

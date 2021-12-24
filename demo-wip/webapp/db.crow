@@ -19,18 +19,18 @@ main fut nat(_ str[]) unsafe summon
 	db-path with-env (true,), env =>
 		env with-db db =>
 			if false
-				match db register-user! "alice", "swordfish"
+				match db register-user "alice", "swordfish"
 				as register-user-success user-id
 					print: "Success: user is {user-id}"
 				as user-already-exists
 					print: "That user already exists"
 
-			cookie = match db login! "alice", "swordfish"
+			cookie = match db login "alice", "swordfish"
 			as ok o
 				o
 			as err _
 				throw: "TODO"
-			post = db add-post! cookie, "hello world"
+			post = db add-post cookie, "hello world"
 			pi = db get-post-info post
 			print: "{pi user-name} ({pi user}): {pi content}"
 
@@ -146,7 +146,7 @@ register-user-result union
 		as user-already-exists
 			true
 
-register-user! register-user-result(db db, user-name str, password str) summon
+register-user register-user-result(db db, user-name str, password str) summon
 	db.env with-abortable-write-transaction txn =>
 		new-user-id = txn count db.user-from-name
 		user-count-check = txn count db.user-name
@@ -163,7 +163,7 @@ login-error enum
 	empty-name-or-password
 	user-does-not-exist
 
-login! result<user-cookie, login-error>(db db, user-name str, password str) summon
+login result<user-cookie, login-error>(db db, user-name str, password str) summon
 	if user-name.is-empty || password.is-empty
 		empty-name-or-password err
 	else
@@ -185,7 +185,7 @@ login! result<user-cookie, login-error>(db db, user-name str, password str) summ
 		content = txn get db.post-content, post force
 		post, user, user-name, content
 
-add-post! post(db db, cookie user-cookie, content str) summon
+add-post post(db db, cookie user-cookie, content str) summon
 	db.env with-write-transaction txn =>
 		user = db authenticate txn, cookie
 		post = txn count db.post-user
@@ -219,20 +219,20 @@ test
 			# TODO: way more tests
 
 			info log "A"
-			db register-user! "alice", "swordfish" is register-user-success: 0
+			db register-user "alice", "swordfish" is register-user-success: 0
 			info log "B"
-			db register-user! "bob", "gunfish" is register-user-success: 1
+			db register-user "bob", "gunfish" is register-user-success: 1
 			# TODO: test failed register
 
 			# TODO: test failed login
 			info log "C"
-			alice-login = match db login! "alice", "swordfish"
+			alice-login = match db login "alice", "swordfish"
 			as ok o
 				o
 			as err _
 				"TODO" throw
 			info log "D"
-			post = db add-post! alice-login, "Curiouser and curiouser!"
+			post = db add-post alice-login, "Curiouser and curiouser!"
 
 			info log "E"
 			post-info = db get-post-info post

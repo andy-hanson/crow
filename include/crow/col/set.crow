@@ -12,7 +12,7 @@ import
 	../str: ==, str
 	../str-conv: to-str
 	../test-util: is
-	../writer: ~=, backup!, move-to-str!, new, writer
+	../writer: ~=, backup, move-to-str, new, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
 	./arr: ==, arr, new
 	./arr-util: fold
@@ -22,7 +22,7 @@ import
 		try-get-unordered-index, unsafe-frozen-set-from-fix-arr-cast-immutable
 	./index-set:
 		count-greater-or-equal, each, filter-less, is-empty, in, index-set, new, size, try-remove
-	./mut-arr: ~=, move-to-arr!, mut-arr, new
+	./mut-arr: ~=, move-to-arr, mut-arr, new
 
 set<a> record
 	.add add-node a
@@ -158,7 +158,7 @@ body
 	compacted fix-arr a = plan.compacted-size uninitialized-fix-arr
 	*compacted.begin-ptr := value
 	compactor compactor a = compacted.begin-ptr, compacted.begin-ptr + 1, compacted.end-ptr
-	new-add = compactor do-compact-recur! a.add, add-size, a.remove
+	new-add = compactor do-compact-recur a.add, add-size, a.remove
 	new-add, (a.remove filter-less plan.add-size-left)
 
 .compactor<a> record mut
@@ -166,7 +166,7 @@ body
 	cur mut a mut*
 	end a mut*
 
-.do-compact-recur!<a> add-node a
+.do-compact-recur<a> add-node a
 	compactor compactor a
 	a add-node a
 	add-size-here-and-left nat64
@@ -177,23 +177,23 @@ spec
 	compare<a>
 	hash-mix<a>
 body
-	compactor push! a.here, add-size-here-and-left, remove
+	compactor push a.here, add-size-here-and-left, remove
 	assert: compactor.cur <= compactor.end
 	if compactor.cur == compactor.end
 		compactor.finish, a.left
 	else
 		# TODO: should be able to write this inline
 		new-l = add-size-here-and-left wrap-sub a.here.size
-		compactor do-compact-recur! a.left.force, new-l, remove
+		compactor do-compact-recur a.left.force, new-l, remove
 
-.push!<a> void(a compactor a, here frozen-set a, add-size-here-and-left nat64, remove index-set) unsafe
-	a push-recur! here.begin-ptr, here.end-ptr, add-size-here-and-left, remove
-.push-recur!<a> void(a compactor a, cur a*, end a*, remove-index nat64, remove index-set) unsafe
+.push<a> void(a compactor a, here frozen-set a, add-size-here-and-left nat64, remove index-set) unsafe
+	a push-recur here.begin-ptr, here.end-ptr, add-size-here-and-left, remove
+.push-recur<a> void(a compactor a, cur a*, end a*, remove-index nat64, remove index-set) unsafe
 	if cur != end
 		if !(remove-index in remove)
 			*a.cur := *cur
 			a.cur := a.cur + 1
-		a push-recur! cur + 1, end, (remove-index wrap-add 1), remove
+		a push-recur cur + 1, end, (remove-index wrap-add 1), remove
 
 
 .finish<a> frozen-set a(a compactor a) unsafe is-data<a> compare<a> hash-mix<a>
@@ -228,7 +228,7 @@ filter<a> set a(a set a, f act bool(a)) is-data<a> compare<a> hash-mix<a>
 	a each x =>
 		if f[x]
 			res ~= x
-	res.move-to-arr! to-set
+	res.move-to-arr to-set
 
 map-to-arr<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in> hash-mix<in>
 	out fix-arr out = a.size uninitialized-fix-arr
@@ -240,19 +240,19 @@ map-to-arr<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<i
 
 .dbg<a> str(a set a) to-str<a>
 	out writer = ()
-	out dbg-add-recur! a.add
+	out dbg-add-recur a.add
 	if !a.remove.is-empty
 		out ~= " - ["
 		a.remove each i =>
 			out ~= i to-str
 			out ~= " "
-		out backup!
+		out backup
 		out ~= "]"
-	out move-to-str!
+	out move-to-str
 
-.dbg-add-recur!<a> void(out writer, a add-node a) to-str<a>
+.dbg-add-recur<a> void(out writer, a add-node a) to-str<a>
 	if left ?= a left
-		out dbg-add-recur! left
+		out dbg-add-recur left
 		out ~= ", "
 
 	if a.here is-empty
@@ -262,7 +262,7 @@ map-to-arr<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<i
 		a.here each x =>
 			out ~= x to-str
 			out ~= " "
-		out backup!
+		out backup
 		out ~= "]"
 
 .verify void(a set nat64, expected str)

@@ -4,7 +4,7 @@ import
 	../misc: void
 	../opt: new, opt
 	./arr: arr
-	./mut-arr: ~=, arr, copy, each, filter!, fold, is-empty, last, map!, mut-arr, new, pop!, to-mut-arr
+	./mut-arr: ~=, arr, copy, each, fold, is-empty, last, mut-arr, new, pop, set-filter, set-map, to-mut-arr
 
 ###
 Unlike `mut-arr`, this is not guaranteed to be represented as an array.
@@ -38,8 +38,8 @@ last<a> a?(a mut-stack a)
 	if !a.is-empty
 		a.inner last
 
-pop!<a> a?(a mut-stack a)
-	a.inner pop!
+pop<a> a?(a mut-stack a)
+	a.inner pop
 
 region iteration
 
@@ -49,8 +49,8 @@ each<a> void(a mut-stack a, f act void(a))
 fold<a, b> a(acc a, a mut-stack b, f act a(a, b))
 	acc fold a.inner, f
 
-filter!<a> void(a mut-stack a, f act bool(a))
-	a.inner filter! f
+set-filter<a> void(a mut-stack a, f act bool(a))
+	a.inner set-filter f
 
-map!<a> void(a mut-stack a, f act a(a))
-	a.inner map! f
+set-map<a> void(a mut-stack a, f act a(a))
+	a.inner set-map f

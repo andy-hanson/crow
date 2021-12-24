@@ -10,8 +10,8 @@ import
 	./arr: arr
 	./arr-util: each, map
 	./mut-sorted-dict:
-		each, empty!, filter, filter!, fold, in, is-empty, map, map!, move-to-arr!,
-		mut-sorted-dict, new, remove-key!, set-subscript, size, subscript, to-mut-sorted-dict
+		clear, each, filter, fold, in, is-empty, map, move-to-arr,
+		mut-sorted-dict, new, remove-key, set-filter, set-map, set-subscript, size, subscript, to-mut-sorted-dict
 	./sorted-set: sorted-set, to-sorted-set
 
 ###
@@ -39,8 +39,8 @@ is-empty<a> bool(a mut-sorted-set a) is-data<a> compare<a>
 	a.inner is-empty
 
 # Removes all elements.
-empty!<a> void(a mut-sorted-set a) is-data<a> compare<a>
-	a.inner empty!
+clear<a> void(a mut-sorted-set a) is-data<a> compare<a>
+	a.inner clear
 
 # Number of values in the set.
 size<a> nat64(a mut-sorted-set a) is-data<a> compare<a>
@@ -65,7 +65,7 @@ Does nothing if the value is already in the set.
 	values each value =>
 		a ~= value
 
-try-add!<a> bool(a mut-sorted-set a, value a) is-data<a> compare<a>
+try-add<a> bool(a mut-sorted-set a, value a) is-data<a> compare<a>
 	# TODO:PERF do it without two lookups
 	if !(value in a.inner)
 		a.inner[value] := ()
@@ -76,17 +76,17 @@ Removes a value from the set.
 If the value was present, removes it and returns `true`.
 If the value was not present, does nothing and returns `false`.
 ###
-remove!<a> bool(a mut-sorted-set a, value a) is-data<a> compare<a>
-	!(a.inner remove-key! value is-empty)
+remove<a> bool(a mut-sorted-set a, value a) is-data<a> compare<a>
+	!(a.inner remove-key value is-empty)
 
 # Convert to an `arr`, clearing the original `mut-sorted-set` in the process.
-move-to-arr!<a> a[](a mut-sorted-set a) is-data<a> compare<a>
-	a.inner.move-to-arr! map pair => pair from
+move-to-arr<a> a[](a mut-sorted-set a) is-data<a> compare<a>
+	a.inner.move-to-arr map pair => pair from
 
 # Convert to a `sorted-set`, clearning the original `mut-sorted-set` in the process.
-move-to-sorted-set!<a> sorted-set a(a mut-sorted-set a) is-data<a> compare<a>
+move-to-sorted-set<a> sorted-set a(a mut-sorted-set a) is-data<a> compare<a>
 	# TODO:PERF avoid a copy: return a 'mut-arr' which the sorted-set can move into to itself
-	a.move-to-arr! to-sorted-set
+	a.move-to-arr to-sorted-set
 
 region iteration
 
@@ -104,8 +104,8 @@ map<out, in> mut-sorted-set out(a mut-sorted-set in, f act out(in)) is-data<in> 
 
 region mutating iteration
 
-filter!<a> void(a mut-sorted-set a, f act bool(a)) is-data<a> compare<a>
-	a.inner filter! (k, v) => f[k]
+set-filter<a> void(a mut-sorted-set a, f act bool(a)) is-data<a> compare<a>
+	a.inner set-filter (k, v) => f[k]
 
-map!<a> void(a mut-sorted-set a, f act a(a)) is-data<a> compare<a>
-	a.inner map! (k, v) => f[k], ()
+set-map<a> void(a mut-sorted-set a, f act a(a)) is-data<a> compare<a>
+	a.inner set-map (k, v) => f[k], ()

@@ -345,7 +345,7 @@ program(
 					field(action, const, type(false, fun-act1))]))
 		struct(name: fun-act1, body: builtin(fun, [type(true, fut), type(false, void)]))
 		struct(
-			name: lambda(callback!, 0)
+			name: lambda(callback, 0)
 			ptr: true
 			body: record([field(f, const, type(true, fut)), field(cb, const, type(false, fun-act1))]))
 		struct(
@@ -353,13 +353,13 @@ program(
 			ptr: true
 			body: record([field(cb, const, type(false, fun-ref1)), field(res, const, type(true, fut))]))
 		struct(
-			name: lambda(callback!, 0)
+			name: lambda(callback, 0)
 			ptr: true
 			body: record([field(f, const, type(true, fut)), field(cb, const, type(false, fun-act1))]))
-		struct(name: lambda(forward-to!, 0), body: record([field(to, const, type(true, fut))]))
+		struct(name: lambda(forward-to, 0), body: record([field(to, const, type(true, fut))]))
 		struct(name: fun-act0, body: builtin(fun, [type(false, fut-state)]))
 		struct(
-			name: lambda(resolve-or-reject!, 0)
+			name: lambda(resolve-or-reject, 0)
 			ptr: true
 			body: record([field(f, const, type(true, fut)), field(result, const, type(false, result))]))
 		struct(
@@ -1360,7 +1360,7 @@ program(
 							[
 								call(return-stack, [call(backtrace, [param-ref(a)])])
 								lambda(0, alloc(record([local-ref(res)])))]))
-					call(move-to-str!, [local-ref(res)]))))
+					call(move-to-str, [local-ref(res)]))))
 		fun(ctx, new, type(false, writer), none, [], call(new, [call(new, [create-arr(arr, [])])]))
 		fun(ctx, new, type(false, writer), none, [param(chars, type(true, mut-arr))], new-record)
 		fun(ctx, new, type(true, mut-arr), none, [param(a, type(false, arr))], call(to-mut-arr, [param-ref(a)]))
@@ -1510,13 +1510,13 @@ program(
 			seq(
 				seq(
 					seq(
-						call(incr-capacity!, [param-ref(a)])
+						call(incr-capacity, [param-ref(a)])
 						call(assert, [call(<, [call(size, [param-ref(a)]), call(capacity, [param-ref(a)])])]))
 					call(set-subscript, [call(begin-ptr, [param-ref(a)]), call(size, [param-ref(a)]), param-ref(value)]))
 				call(set-size, [param-ref(a), call(+, [call(size, [param-ref(a)]), 1])])))
 		fun(
 			ctx
-			incr-capacity!
+			incr-capacity
 			type(false, void)
 			none
 			[param(a, type(true, mut-arr))]
@@ -1531,7 +1531,7 @@ program(
 			[param(a, type(true, mut-arr)), param(min-capacity, type(false, nat64))]
 			cond(
 				call(<, [call(capacity, [param-ref(a)]), param-ref(min-capacity)])
-				call(increase-capacity-to!, [param-ref(a), param-ref(min-capacity)])
+				call(increase-capacity-to, [param-ref(a), param-ref(min-capacity)])
 				call(new, [])))
 		fun(
 			noctx
@@ -1551,7 +1551,7 @@ program(
 		fun(noctx, backing, type(false, fix-arr), none, [param(a, type(true, mut-arr))], field-get(0))
 		fun(
 			ctx
-			increase-capacity-to!
+			increase-capacity-to
 			type(false, void)
 			none
 			[param(a, type(true, mut-arr)), param(new-capacity, type(false, nat64))]
@@ -1564,7 +1564,7 @@ program(
 						seq(
 							call(set-backing, [param-ref(a), call(uninitialized-fix-arr, [param-ref(new-capacity)])])
 							call(
-								copy-data-from!
+								copy-data-from
 								[
 									call(begin-ptr, [param-ref(a)])
 									call(as-const, [local-ref(old-begin)])
@@ -1746,18 +1746,18 @@ program(
 			none
 			[param(gc, type(true, gc)), param(size-bytes, type(false, nat64))]
 			seq(
-				call(acquire!, [call(ref-of-val, [call(lk, [param-ref(gc)])])])
+				call(acquire, [call(ref-of-val, [call(lk, [param-ref(gc)])])])
 				let(
 					res
 					call(try-gc-alloc-recur, [param-ref(gc), param-ref(size-bytes)])
 					seq(
 						seq(
-							call(maybe-set-needs-gc!, [param-ref(gc)])
-							call(release!, [call(ref-of-val, [call(lk, [param-ref(gc)])])]))
+							call(maybe-set-needs-gc, [param-ref(gc)])
+							call(release, [call(ref-of-val, [call(lk, [param-ref(gc)])])]))
 						local-ref(res)))))
 		fun(
 			noctx
-			acquire!
+			acquire
 			type(false, void)
 			none
 			[param(a, type(true, lock))]
@@ -1880,7 +1880,7 @@ program(
 		fun(noctx, none, type(false, opt), none, [], new-union)
 		fun(
 			noctx
-			maybe-set-needs-gc!
+			maybe-set-needs-gc
 			type(false, void)
 			none
 			[param(gc, type(true, gc))]
@@ -1913,7 +1913,7 @@ program(
 			field-set(3))
 		fun(
 			noctx
-			release!
+			release
 			type(false, void)
 			none
 			[param(a, type(true, lock))]
@@ -2044,18 +2044,18 @@ program(
 			seq(
 				seq(
 					call(
-						copy-data-from!
+						copy-data-from
 						[
 							call(funs, [param-ref(arrs)])
 							call(begin-ptr, [call(all-funs, [])])
 							call(size, [call(all-funs, [])])])
-					call(sort!, [call(funs, [param-ref(arrs)]), call(size, [call(all-funs, [])])]))
+					call(set-sort, [call(funs, [param-ref(arrs)]), call(size, [call(all-funs, [])])]))
 				let(
 					end-code-names
 					call(+, [call(code-names, [param-ref(arrs)]), param-ref(n-code-ptrs)])
 					seq(
 						call(
-							fill-code-names!
+							fill-code-names
 							[
 								call(code-names, [param-ref(arrs)])
 								local-ref(end-code-names)
@@ -2071,7 +2071,7 @@ program(
 										call(.., [0, param-ref(n-code-ptrs)])])])))))
 		fun(
 			ctx
-			copy-data-from!
+			copy-data-from
 			type(false, void)
 			none
 			[param(to, type(false, mut-ptr)), param(from, type(false, const-ptr)), param(len, type(false, nat64))]
@@ -2116,35 +2116,35 @@ program(
 		fun(noctx, begin-ptr, type(false, const-ptr), none, [param(a, type(false, arr))], field-get(1))
 		fun(
 			noctx
-			sort!
+			set-sort
 			type(false, void)
 			none
 			[param(a, type(false, mut-ptr)), param(size, type(false, nat64))]
 			cond(
 				call(>, [param-ref(size), 1])
 				seq(
-					call(swap!, [param-ref(a), 0, call(unsafe-div, [param-ref(size), 2])])
+					call(swap, [param-ref(a), 0, call(unsafe-div, [param-ref(size), 2])])
 					let(
 						after-pivot
 						call(
-							partition!
+							set-partition
 							[param-ref(a), call(val, [call(*, [param-ref(a)])]), 1, call(wrap-sub, [param-ref(size), 1])])
 						let(
 							new-pivot-index
 							call(wrap-sub, [local-ref(after-pivot), 1])
 							seq(
 								seq(
-									call(swap!, [param-ref(a), 0, local-ref(new-pivot-index)])
-									call(sort!, [param-ref(a), local-ref(new-pivot-index)]))
+									call(swap, [param-ref(a), 0, local-ref(new-pivot-index)])
+									call(set-sort, [param-ref(a), local-ref(new-pivot-index)]))
 								call(
-									sort!
+									set-sort
 									[
 										call(+, [param-ref(a), local-ref(after-pivot)])
 										call(wrap-sub, [param-ref(size), local-ref(after-pivot)])])))))
 				call(new, [])))
 		fun(
 			noctx
-			swap!
+			swap
 			type(false, void)
 			none
 			[param(a, type(false, mut-ptr)), param(lo, type(false, nat64)), param(hi, type(false, nat64))]
@@ -2185,7 +2185,7 @@ program(
 			builtin([type(false, named-val)]))
 		fun(
 			noctx
-			partition!
+			set-partition
 			type(false, nat64)
 			none
 			[
@@ -2197,11 +2197,13 @@ program(
 				call(<=, [param-ref(l), param-ref(r)])
 				cond(
 					call(<, [call(val, [call(subscript, [param-ref(a), param-ref(l)])]), param-ref(pivot)])
-					call(partition!, [param-ref(a), param-ref(pivot), call(wrap-add, [param-ref(l), 1]), param-ref(r)])
+					call(
+						set-partition
+						[param-ref(a), param-ref(pivot), call(wrap-add, [param-ref(l), 1]), param-ref(r)])
 					seq(
-						call(swap!, [param-ref(a), param-ref(l), param-ref(r)])
+						call(swap, [param-ref(a), param-ref(l), param-ref(r)])
 						call(
-							partition!
+							set-partition
 							[param-ref(a), param-ref(pivot), param-ref(l), call(wrap-sub, [param-ref(r), 1])])))
 				param-ref(l)))
 		fun(
@@ -2253,7 +2255,7 @@ program(
 		fun(noctx, code-names, type(false, mut-ptr), none, [param(a, type(true, backtrace-arrs))], field-get(1))
 		fun(
 			ctx
-			fill-code-names!
+			fill-code-names
 			type(false, void)
 			none
 			[
@@ -2272,7 +2274,7 @@ program(
 								get-fun-name
 								[call(*, [param-ref(code-ptrs)]), param-ref(funs), call(size, [call(all-funs, [])])])])
 					call(
-						fill-code-names!
+						fill-code-names
 						[
 							call(+, [param-ref(code-names), 1])
 							param-ref(end-code-names)
@@ -2523,7 +2525,7 @@ program(
 					call(+, [param-ref(a), call(low, [param-ref(r)])])]))
 		fun(
 			ctx
-			copy-data-from!
+			copy-data-from
 			type(false, void)
 			none
 			[param(to, type(false, mut-ptr)), param(from, type(false, const-ptr)), param(len, type(false, nat64))]
@@ -2909,18 +2911,18 @@ program(
 				call(~=, [get-field(param-ref("<<closure>>"), res), call(to-c-str, [param-ref(x)])])))
 		fun(
 			ctx
-			move-to-str!
+			move-to-str
 			type(false, str)
 			none
 			[param(a, type(false, writer))]
-			call(str, [call(move-to-arr!, [call(chars, [param-ref(a)])])]))
+			call(str, [call(move-to-arr, [call(chars, [param-ref(a)])])]))
 		fun(
 			noctx
-			move-to-arr!
+			move-to-arr
 			type(false, arr)
 			none
 			[param(a, type(true, mut-arr))]
-			call(cast-immutable, [call(move-to-fix-arr!, [param-ref(a)])]))
+			call(cast-immutable, [call(move-to-fix-arr, [param-ref(a)])]))
 		fun(
 			noctx
 			cast-immutable
@@ -2930,7 +2932,7 @@ program(
 			call(inner, [param-ref(a)]))
 		fun(
 			noctx
-			move-to-fix-arr!
+			move-to-fix-arr
 			type(false, fix-arr)
 			none
 			[param(a, type(true, mut-arr))]
@@ -3014,10 +3016,10 @@ program(
 					seq(
 						seq(
 							call(
-								copy-data-from!
+								copy-data-from
 								[local-ref(res), call(begin-ptr, [param-ref(a)]), call(size, [param-ref(a)])])
 							call(
-								copy-data-from!
+								copy-data-from
 								[
 									call(+, [local-ref(res), call(size, [param-ref(a)])])
 									call(begin-ptr, [param-ref(b)])
@@ -3504,7 +3506,7 @@ program(
 			none
 			[param(gc, type(true, gc))]
 			seq(
-				call(acquire!, [call(ref-of-val, [call(lk, [param-ref(gc)])])])
+				call(acquire, [call(ref-of-val, [call(lk, [param-ref(gc)])])])
 				let(
 					res
 					match-union(
@@ -3527,7 +3529,7 @@ program(
 										call(set-context-head, [param-ref(gc), call(next-ctx, [local-ref(c)])])
 										call(set-next-ctx, [local-ref(c), call(none, [])]))
 									local-ref(c)))])
-					seq(call(release!, [call(ref-of-val, [call(lk, [param-ref(gc)])])]), local-ref(res)))))
+					seq(call(release, [call(ref-of-val, [call(lk, [param-ref(gc)])])]), local-ref(res)))))
 		fun(noctx, context-head, type(false, opt), none, [param(a, type(true, gc))], field-get(2))
 		fun(noctx, size-of, type(false, nat64), none, [], builtin([type(false, gc-ctx)]))
 		fun(
@@ -3642,7 +3644,7 @@ program(
 				res
 				call(unresolved, [])
 				seq(
-					call(callback!, [param-ref(a), lambda(0, alloc(record([param-ref(cb), local-ref(res)])))])
+					call(callback, [param-ref(a), lambda(0, alloc(record([param-ref(cb), local-ref(res)])))])
 					local-ref(res))))
 		fun(
 			ctx
@@ -3661,7 +3663,7 @@ program(
 		fun(noctx, fut-state-no-callbacks, type(false, fut-state), none, [], new-union)
 		fun(
 			ctx
-			callback!
+			callback
 			type(false, void)
 			none
 			[param(f, type(true, fut)), param(cb, type(false, fun-act1))]
@@ -3675,8 +3677,8 @@ program(
 			none
 			[param(a, type(true, lock)), param(f, type(false, fun-act0))]
 			seq(
-				call(acquire!, [param-ref(a)])
-				let(res, call(subscript, [param-ref(f)]), seq(call(release!, [param-ref(a)]), local-ref(res)))))
+				call(acquire, [param-ref(a)])
+				let(res, call(subscript, [param-ref(f)]), seq(call(release, [param-ref(a)]), local-ref(res)))))
 		fun(
 			ctx
 			subscript
@@ -3736,9 +3738,9 @@ program(
 		fun(noctx, err, type(false, result), none, [param(a, type(false, exception))], new-union)
 		fun(
 			ctx
-			lambda(callback!, 0)
+			lambda(callback, 0)
 			type(false, void)
-			some(param("<<closure>>", type(true, lambda(callback!, 0))))
+			some(param("<<closure>>", type(true, lambda(callback, 0))))
 			[]
 			match-union(
 				call(state, [get-field(param-ref("<<closure>>"), f)])
@@ -3765,14 +3767,14 @@ program(
 					case(some(e), call(subscript, [get-field(param-ref("<<closure>>"), cb), call(err, [local-ref(e)])]))]))
 		fun(
 			ctx
-			forward-to!
+			forward-to
 			type(false, void)
 			none
 			[param(from, type(true, fut)), param(to, type(true, fut))]
-			call(callback!, [param-ref(from), lambda(0, alloc(record([param-ref(to)])))]))
+			call(callback, [param-ref(from), lambda(0, alloc(record([param-ref(to)])))]))
 		fun(
 			ctx
-			callback!
+			callback
 			type(false, void)
 			none
 			[param(f, type(true, fut)), param(cb, type(false, fun-act1))]
@@ -3824,9 +3826,9 @@ program(
 		fun(noctx, err, type(false, result), none, [param(a, type(false, exception))], new-union)
 		fun(
 			ctx
-			lambda(callback!, 0)
+			lambda(callback, 0)
 			type(false, void)
-			some(param("<<closure>>", type(true, lambda(callback!, 0))))
+			some(param("<<closure>>", type(true, lambda(callback, 0))))
 			[]
 			match-union(
 				call(state, [get-field(param-ref("<<closure>>"), f)])
@@ -3853,7 +3855,7 @@ program(
 					case(some(e), call(subscript, [get-field(param-ref("<<closure>>"), cb), call(err, [local-ref(e)])]))]))
 		fun(
 			ctx
-			resolve-or-reject!
+			resolve-or-reject
 			type(false, void)
 			none
 			[param(f, type(true, fut)), param(result, type(false, result))]
@@ -3868,7 +3870,7 @@ program(
 					local-ref(old-state)
 					[
 						case(none, call(new, []))
-						case(some(cbs), call(call-callbacks!, [local-ref(cbs), param-ref(result)]))
+						case(some(cbs), call(call-callbacks, [local-ref(cbs), param-ref(result)]))
 						case(none, call(hard-unreachable, []))
 						case(none, call(hard-unreachable, []))])))
 		fun(
@@ -3878,8 +3880,8 @@ program(
 			none
 			[param(a, type(true, lock)), param(f, type(false, fun-act0))]
 			seq(
-				call(acquire!, [param-ref(a)])
-				let(res, call(subscript, [param-ref(f)]), seq(call(release!, [param-ref(a)]), local-ref(res)))))
+				call(acquire, [param-ref(a)])
+				let(res, call(subscript, [param-ref(f)]), seq(call(release, [param-ref(a)]), local-ref(res)))))
 		fun(
 			ctx
 			subscript
@@ -3898,9 +3900,9 @@ program(
 		fun(noctx, fut-state-exception, type(false, fut-state), none, [param(a, type(false, exception))], new-union)
 		fun(
 			ctx
-			lambda(resolve-or-reject!, 0)
+			lambda(resolve-or-reject, 0)
 			type(false, fut-state)
-			some(param("<<closure>>", type(true, lambda(resolve-or-reject!, 0))))
+			some(param("<<closure>>", type(true, lambda(resolve-or-reject, 0))))
 			[]
 			let(
 				old
@@ -3918,7 +3920,7 @@ program(
 					local-ref(old))))
 		fun(
 			ctx
-			call-callbacks!
+			call-callbacks
 			type(false, void)
 			none
 			[param(cbs, type(true, fut-state-callbacks)), param(value, type(false, result))]
@@ -3928,16 +3930,16 @@ program(
 					call(next, [param-ref(cbs)])
 					[
 						case(none, call(new, []))
-						case(some(next), call(call-callbacks!, [local-ref(next), param-ref(value)]))])))
+						case(some(next), call(call-callbacks, [local-ref(next), param-ref(value)]))])))
 		fun(noctx, cb, type(false, fun-act1), none, [param(a, type(true, fut-state-callbacks))], field-get(0))
 		fun(noctx, next, type(false, opt), none, [param(a, type(true, fut-state-callbacks))], field-get(1))
 		fun(
 			ctx
-			lambda(forward-to!, 0)
+			lambda(forward-to, 0)
 			type(false, void)
-			some(param("<<closure>>", type(true, lambda(forward-to!, 0))))
+			some(param("<<closure>>", type(true, lambda(forward-to, 0))))
 			[param(it, type(false, result))]
-			call(resolve-or-reject!, [get-field(param-ref("<<closure>>"), to), param-ref(it)]))
+			call(resolve-or-reject, [get-field(param-ref("<<closure>>"), to), param-ref(it)]))
 		fun(
 			ctx
 			subscript
@@ -4051,10 +4053,10 @@ program(
 				seq(
 					seq(
 						seq(
-							call(acquire!, [call(ref-of-val, [call(tasks-lock, [param-ref(a)])])])
-							call(insert-task!, [call(tasks, [param-ref(a)]), local-ref(node)]))
-						call(release!, [call(ref-of-val, [call(tasks-lock, [param-ref(a)])])]))
-					call(broadcast!, [call(ref-of-val, [call(may-be-work-to-do, [call(gctx, [param-ref(a)])])])]))))
+							call(acquire, [call(ref-of-val, [call(tasks-lock, [param-ref(a)])])])
+							call(insert-task, [call(tasks, [param-ref(a)]), local-ref(node)]))
+						call(release, [call(ref-of-val, [call(tasks-lock, [param-ref(a)])])]))
+					call(broadcast, [call(ref-of-val, [call(may-be-work-to-do, [call(gctx, [param-ref(a)])])])]))))
 		fun(
 			ctx
 			new
@@ -4082,7 +4084,7 @@ program(
 		fun(noctx, tasks-lock, type(false, lock), none, [param(a, type(true, island))], field-get(4))
 		fun(
 			noctx
-			insert-task!
+			insert-task
 			type(false, void)
 			none
 			[param(a, type(true, task-queue)), param(inserted, type(true, task-queue-node))]
@@ -4189,7 +4191,7 @@ program(
 		fun(noctx, tasks, type(false, task-queue), none, [param(a, type(true, island-gc-root))], field-get(0))
 		fun(
 			noctx
-			broadcast!
+			broadcast
 			type(false, void)
 			none
 			[param(a, type(true, condition))]
@@ -4370,7 +4372,7 @@ program(
 			some(param("<<closure>>", type(true, lambda(lambda(subscript, 0), 0))))
 			[]
 			call(
-				forward-to!
+				forward-to
 				[
 					call(
 						subscript
@@ -4380,18 +4382,18 @@ program(
 					get-field(param-ref("<<closure>>"), res)]))
 		fun(
 			ctx
-			reject!
+			reject
 			type(false, void)
 			none
 			[param(f, type(true, fut)), param(e, type(false, exception))]
-			call(resolve-or-reject!, [param-ref(f), call(err, [param-ref(e)])]))
+			call(resolve-or-reject, [param-ref(f), call(err, [param-ref(e)])]))
 		fun(
 			ctx
 			lambda(lambda(subscript, 0), 1)
 			type(false, void)
 			some(param("<<closure>>", type(true, lambda(lambda(subscript, 0), 1))))
 			[param(err, type(false, exception))]
-			call(reject!, [get-field(param-ref("<<closure>>"), res), param-ref(err)]))
+			call(reject, [get-field(param-ref("<<closure>>"), res), param-ref(err)]))
 		fun(
 			ctx
 			lambda(subscript, 0)
@@ -4422,11 +4424,11 @@ program(
 					case(
 						some(o)
 						call(
-							forward-to!
+							forward-to
 							[
 								call(subscript, [get-field(param-ref("<<closure>>"), cb), local-ref(o)])
 								get-field(param-ref("<<closure>>"), res)]))
-					case(some(e), call(reject!, [get-field(param-ref("<<closure>>"), res), local-ref(e)]))]))
+					case(some(e), call(reject, [get-field(param-ref("<<closure>>"), res), local-ref(e)]))]))
 		fun(
 			ctx
 			subscript
@@ -4473,7 +4475,7 @@ program(
 			some(param("<<closure>>", type(true, lambda(lambda(subscript, 0), 0))))
 			[]
 			call(
-				forward-to!
+				forward-to
 				[
 					call(subscript, [call(action, [get-field(param-ref("<<closure>>"), f)])])
 					get-field(param-ref("<<closure>>"), res)]))
@@ -4483,7 +4485,7 @@ program(
 			type(false, void)
 			some(param("<<closure>>", type(true, lambda(lambda(subscript, 0), 1))))
 			[param(err, type(false, exception))]
-			call(reject!, [get-field(param-ref("<<closure>>"), res), param-ref(err)]))
+			call(reject, [get-field(param-ref("<<closure>>"), res), param-ref(err)]))
 		fun(
 			ctx
 			lambda(subscript, 0)
@@ -4793,7 +4795,7 @@ program(
 			type(false, void)
 			none
 			[param(a, type(true, fut))]
-			call(callback!, [param-ref(a), lambda(1, void)]))
+			call(callback, [param-ref(a), lambda(1, void)]))
 		fun(
 			ctx
 			subscript
@@ -5086,12 +5088,12 @@ program(
 				seq(
 					seq(
 						seq(
-							call(acquire!, [call(ref-of-val, [call(lk, [param-ref(gctx)])])])
+							call(acquire, [call(ref-of-val, [call(lk, [param-ref(gctx)])])])
 							call(
 								set-n-live-threads
 								[param-ref(gctx), call(wrap-sub, [call(n-live-threads, [param-ref(gctx)]), 1])]))
 						call(assert-islands-are-shut-down, [0, call(islands, [param-ref(gctx)])]))
-					call(release!, [call(ref-of-val, [call(lk, [param-ref(gctx)])])]))
+					call(release, [call(ref-of-val, [call(lk, [param-ref(gctx)])])]))
 				seq(
 					call(hard-assert, [call(>, [call(n-live-threads, [param-ref(gctx)]), 0])])
 					let(
@@ -5118,7 +5120,7 @@ program(
 																	set-is-shut-down
 																	[param-ref(gctx), call(true, [])]))
 															call(
-																broadcast!
+																broadcast
 																[
 																	call(
 																		ref-of-val
@@ -5131,13 +5133,13 @@ program(
 																	[call(may-be-work-to-do, [param-ref(gctx)])])
 																call(first-task-time, [local-ref(n)])
 																local-ref(last-checked)]))
-													call(acquire!, [call(ref-of-val, [call(lk, [param-ref(gctx)])])]))
+													call(acquire, [call(ref-of-val, [call(lk, [param-ref(gctx)])])]))
 												call(
 													set-n-live-threads
 													[
 														param-ref(gctx)
 														call(wrap-add, [call(n-live-threads, [param-ref(gctx)]), 1])]))
-											call(release!, [call(ref-of-val, [call(lk, [param-ref(gctx)])])])))])
+											call(release, [call(ref-of-val, [call(lk, [param-ref(gctx)])])])))])
 							call(thread-function-recur, [param-ref(gctx), param-ref(tls)]))))))
 		fun(noctx, is-shut-down, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(7))
 		fun(noctx, lk, type(false, lock), none, [param(a, type(true, global-ctx))], field-get(0))
@@ -5165,13 +5167,13 @@ program(
 							seq(
 								seq(
 									seq(
-										call(acquire!, [call(ref-of-val, [call(tasks-lock, [local-ref(island)])])])
+										call(acquire, [call(ref-of-val, [call(tasks-lock, [local-ref(island)])])])
 										call(
 											hard-forbid
 											[call(needs-gc, [call(ref-of-val, [call(gc, [local-ref(island)])])])]))
 									call(hard-assert, [call(==, [call(n-threads-running, [local-ref(island)]), 0])]))
 								call(hard-assert, [call(is-empty, [call(tasks, [local-ref(island)])])]))
-							call(release!, [call(ref-of-val, [call(tasks-lock, [local-ref(island)])])]))
+							call(release, [call(ref-of-val, [call(tasks-lock, [local-ref(island)])])]))
 						call(assert-islands-are-shut-down, [call(wrap-add, [param-ref(i), 1]), param-ref(islands)])))
 				call(new, [])))
 		fun(
@@ -5234,7 +5236,7 @@ program(
 			none
 			[param(gctx, type(true, global-ctx))]
 			seq(
-				call(acquire!, [call(ref-of-val, [call(lk, [param-ref(gctx)])])])
+				call(acquire, [call(ref-of-val, [call(lk, [param-ref(gctx)])])])
 				let(
 					cur-time
 					call(get-monotime-nsec, [])
@@ -5274,7 +5276,7 @@ program(
 														[
 															local-ref(no-task-and-last-thread-out)
 															call(first-task-time, [local-ref(n)])])]))))])
-						seq(call(release!, [call(ref-of-val, [call(lk, [param-ref(gctx)])])]), local-ref(res))))))
+						seq(call(release, [call(ref-of-val, [call(lk, [param-ref(gctx)])])]), local-ref(res))))))
 		fun(
 			noctx
 			get-monotime-nsec
@@ -5405,7 +5407,7 @@ program(
 			none
 			[param(island, type(true, island)), param(cur-time, type(false, nat64))]
 			seq(
-				call(acquire!, [call(ref-of-val, [call(tasks-lock, [param-ref(island)])])])
+				call(acquire, [call(ref-of-val, [call(tasks-lock, [param-ref(island)])])])
 				let(
 					res
 					cond(
@@ -5415,7 +5417,7 @@ program(
 							call(do-a-gc, [])
 							call(tii-no-task, [call(new, [call(true, []), call(new, [])])]))
 						match-union(
-							call(pop-task!, [call(tasks, [param-ref(island)]), param-ref(cur-time)])
+							call(pop-task, [call(tasks, [param-ref(island)]), param-ref(cur-time)])
 							[
 								case(some(t), call(tii-task, [local-ref(t)]))
 								case(some(n), call(tii-no-task, [local-ref(n)]))]))
@@ -5429,7 +5431,7 @@ program(
 										param-ref(island)
 										call(wrap-add, [call(n-threads-running, [param-ref(island)]), 1])])
 								call(new, []))
-							call(release!, [call(ref-of-val, [call(tasks-lock, [param-ref(island)])])]))
+							call(release, [call(ref-of-val, [call(tasks-lock, [param-ref(island)])])]))
 						local-ref(res)))))
 		fun(noctx, do-a-gc, type(false, choose-task-in-island-result), none, [], new-union)
 		fun(
@@ -5450,7 +5452,7 @@ program(
 		fun(noctx, none, type(false, opt), none, [], new-union)
 		fun(
 			noctx
-			pop-task!
+			pop-task
 			type(false, pop-task-result)
 			none
 			[param(a, type(true, task-queue)), param(cur-time, type(false, nat64))]
@@ -5473,7 +5475,7 @@ program(
 										cond(
 											call(in, [call(exclusion, [local-ref(task)]), local-ref(exclusions)])
 											call(
-												pop-recur!
+												pop-recur
 												[
 													local-ref(head)
 													local-ref(exclusions)
@@ -5492,7 +5494,7 @@ program(
 								case(
 									some(t)
 									call(
-										push-capacity-must-be-sufficient!
+										push-capacity-must-be-sufficient
 										[local-ref(exclusions), call(exclusion, [local-ref(t)])]))
 								case(none, call(new, []))])
 						local-ref(res)))))
@@ -5608,7 +5610,7 @@ program(
 		fun(noctx, exclusion, type(false, nat64), none, [param(a, type(false, task))], field-get(1))
 		fun(
 			noctx
-			pop-recur!
+			pop-recur
 			type(false, pop-task-result)
 			none
 			[
@@ -5630,7 +5632,7 @@ program(
 								cond(
 									call(in, [call(exclusion, [local-ref(task)]), param-ref(exclusions)])
 									call(
-										pop-recur!
+										pop-recur
 										[
 											local-ref(cur)
 											param-ref(exclusions)
@@ -5658,7 +5660,7 @@ program(
 		fun(noctx, ptr-task, type(false, pop-task-result), none, [param(a, type(false, task))], new-union)
 		fun(
 			noctx
-			push-capacity-must-be-sufficient!
+			push-capacity-must-be-sufficient
 			type(false, void)
 			none
 			[param(a, type(true, mut-arr)), param(value, type(false, nat64))]
@@ -5808,16 +5810,16 @@ program(
 																	call(action, [local-ref(task)])
 																	call(ref-of-val, [local-ref(ctx)])])
 															call(
-																acquire!
+																acquire
 																[
 																	call(
 																		ref-of-val
 																		[call(tasks-lock, [local-ref(island)])])]))
 														call(
-															return-task!
+															return-task
 															[call(tasks, [local-ref(island)]), local-ref(task)]))
 													call(
-														release!
+														release
 														[call(ref-of-val, [call(tasks-lock, [local-ref(island)])])]))
 												call(return-ctx, [call(ref-of-val, [local-ref(ctx)])]))))
 									case(
@@ -5829,37 +5831,37 @@ program(
 													call(ref-of-val, [call(gc, [local-ref(island)])])
 													call(gc-root, [local-ref(island)])])
 											call(
-												broadcast!
+												broadcast
 												[call(ref-of-val, [call(may-be-work-to-do, [param-ref(gctx)])])])))])
-							call(acquire!, [call(ref-of-val, [call(tasks-lock, [local-ref(island)])])]))
+							call(acquire, [call(ref-of-val, [call(tasks-lock, [local-ref(island)])])]))
 						call(
 							set-n-threads-running
 							[local-ref(island), call(wrap-sub, [call(n-threads-running, [local-ref(island)]), 1])]))
-					call(release!, [call(ref-of-val, [call(tasks-lock, [local-ref(island)])])]))))
+					call(release, [call(ref-of-val, [call(tasks-lock, [local-ref(island)])])]))))
 		fun(noctx, task-island, type(true, island), none, [param(a, type(false, chosen-task))], field-get(0))
 		fun(noctx, task-or-gc, type(false, task-or-gc), none, [param(a, type(false, chosen-task))], field-get(1))
 		fun(noctx, action, type(false, fun-act0), none, [param(a, type(false, task))], field-get(2))
 		fun(
 			noctx
-			return-task!
+			return-task
 			type(false, void)
 			none
 			[param(a, type(true, task-queue)), param(task, type(false, task))]
 			call(
-				noctx-must-remove-unordered!
+				noctx-must-remove-unordered
 				[
 					call(ref-of-val, [call(currently-running-exclusions, [param-ref(a)])])
 					call(exclusion, [param-ref(task)])]))
 		fun(
 			noctx
-			noctx-must-remove-unordered!
+			noctx-must-remove-unordered
 			type(false, void)
 			none
 			[param(a, type(true, mut-arr)), param(value, type(false, nat64))]
-			call(noctx-must-remove-unordered-recur!, [param-ref(a), 0, param-ref(value)]))
+			call(noctx-must-remove-unordered-recur, [param-ref(a), 0, param-ref(value)]))
 		fun(
 			noctx
-			noctx-must-remove-unordered-recur!
+			noctx-must-remove-unordered-recur
 			type(false, void)
 			none
 			[param(a, type(true, mut-arr)), param(index, type(false, nat64)), param(value, type(false, nat64))]
@@ -5868,9 +5870,9 @@ program(
 				call(todo, [])
 				cond(
 					call(==, [call(subscript, [call(begin-ptr, [param-ref(a)]), param-ref(index)]), param-ref(value)])
-					call(drop, [call(noctx-remove-unordered-at!, [param-ref(a), param-ref(index)])])
+					call(drop, [call(noctx-remove-unordered-at, [param-ref(a), param-ref(index)])])
 					call(
-						noctx-must-remove-unordered-recur!
+						noctx-must-remove-unordered-recur
 						[param-ref(a), call(wrap-add, [param-ref(index), 1]), param-ref(value)]))))
 		fun(
 			noctx
@@ -5882,7 +5884,7 @@ program(
 		fun(noctx, drop, type(false, void), none, [param("_", type(false, nat64))], call(new, []))
 		fun(
 			noctx
-			noctx-remove-unordered-at!
+			noctx-remove-unordered-at
 			type(false, nat64)
 			none
 			[param(a, type(true, mut-arr)), param(index, type(false, nat64))]
@@ -5923,10 +5925,10 @@ program(
 				seq(
 					seq(
 						seq(
-							call(acquire!, [call(ref-of-val, [call(lk, [local-ref(gc)])])])
+							call(acquire, [call(ref-of-val, [call(lk, [local-ref(gc)])])])
 							call(set-next-ctx, [param-ref(gc-ctx), call(context-head, [local-ref(gc)])]))
 						call(set-context-head, [local-ref(gc), call(some, [param-ref(gc-ctx)])]))
-					call(release!, [call(ref-of-val, [call(lk, [local-ref(gc)])])]))))
+					call(release, [call(ref-of-val, [call(lk, [local-ref(gc)])])]))))
 		fun(noctx, some, type(false, opt), none, [param(a, type(true, gc-ctx))], new-union)
 		fun(
 			noctx
@@ -5968,7 +5970,7 @@ program(
 											call(set-mark-cur, [param-ref(gc), call(mark-begin, [param-ref(gc)])])
 											call(set-data-cur, [param-ref(gc), call(data-begin, [param-ref(gc)])]))
 										call(
-											clear-free-mem!
+											clear-free-mem
 											[
 												call(mark-begin, [param-ref(gc)])
 												local-ref(prev-mark-cur)
@@ -6009,7 +6011,7 @@ program(
 			builtin([type(true, mark-ctx)]))
 		fun(
 			noctx
-			clear-free-mem!
+			clear-free-mem
 			type(false, void)
 			none
 			[
@@ -6023,7 +6025,7 @@ program(
 						call(!, [call(*, [param-ref(mark-ptr)])])
 						call(set-deref, [param-ref(data-ptr), -369582283799201058])
 						call(new, []))
-					call(clear-free-mem!, [call(+, [param-ref(mark-ptr), 1]), param-ref(mark-end), param-ref(data-ptr)]))
+					call(clear-free-mem, [call(+, [param-ref(mark-ptr), 1]), param-ref(mark-end), param-ref(data-ptr)]))
 				call(new, [])))
 		fun(
 			noctx

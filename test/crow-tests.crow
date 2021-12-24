@@ -1,13 +1,13 @@
 import
 	crow/col/arr-util: first-some, tail
-	crow/col/mut-arr: ~=, move-to-arr!, mut-arr, new
+	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new
 	crow/io/environ: environ
 	crow/io/file: each-child-recursive
 	crow/io/path: base-name, get-extension
 	crow/io/print: print
 	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
 	crow/str-util: has-substr, try-remove-start
-	crow/writer: ~=, move-to-str!, new, writer
+	crow/writer: ~=, move-to-str, new, writer
 	./failure:
 		failure, flat-map-with-max-size, handle-output, max-failures, match-test, new,
 		overwrite-output, print-tests, test-options
@@ -26,7 +26,7 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, o
 	path each-child-recursive child =>
 		if child has-substr match-test && child.ext-is-crow
 			res ~= child
-	res move-to-arr!
+	res move-to-arr
 
 .ext-is-crow bool(a str)
 	a.base-name.get-extension == ("crow",)
@@ -114,20 +114,20 @@ body
 
 .remove-colors str(s str)
 	res writer = ()
-	s remove-colors-recur! res
-	res move-to-str!
+	s remove-colors-recur res
+	res move-to-str
 
-.remove-colors-recur! void(s str, out writer)
+.remove-colors-recur void(s str, out writer)
 	if !s.is-empty
 		if rest ?= s try-remove-start "\x1b"
-			rest remove-colors-recur-2! out
+			rest remove-colors-recur-2 out
 		else
 			out ~= s.chars[0]
-			s.chars.tail.str remove-colors-recur! out
+			s.chars.tail.str remove-colors-recur out
 
-.remove-colors-recur-2! void(s str, out writer)
+.remove-colors-recur-2 void(s str, out writer)
 	if !s.is-empty
 		if rest ?= s try-remove-start "m"
-			rest remove-colors-recur! out
+			rest remove-colors-recur out
 		else
-			s.chars.tail.str remove-colors-recur-2! out
+			s.chars.tail.str remove-colors-recur-2 out

@@ -12,10 +12,10 @@ import
 	../../private/number-low-level: ==, <=>, unsafe-div, wrap-add
 	../arr: ==, arr, arr-from-begin-end, begin-ptr, end-ptr, new
 	../fix-arr:
-		begin-ptr, cast-immutable, copy-from!, end-ptr, fix-arr, fix-arr-from-begin-end, new
+		begin-ptr, cast-immutable, copy-from, end-ptr, fix-arr, fix-arr-from-begin-end, new
 	../mut-arr:
-		arr, begin-ptr, empty!, end-ptr, is-empty, mut-arr, size, swap!, temp-as-fix-arr,
-		to-mut-arr, unsafe-set-size!
+		arr, begin-ptr, clear, end-ptr, is-empty, mut-arr, size, swap, temp-as-fix-arr,
+		to-mut-arr, unsafe-set-size
 
 binary-search-has<a> bool(a a[], value a) compare<a> trusted
 	(a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value) != null
@@ -156,23 +156,23 @@ hard-assert-comparison-not-equal unique-comparison(a comparison) unsafe
 		greater
 
 # 'a' and 'b' must be sorted. Moves contents of 'b' into 'a' and preserves sorting.
-merge-no-duplicates!<a> void(a a mut[], b a mut[], compare act unique-comparison(a, a)) trusted
+merge-no-duplicates<a> void(a a mut[], b a mut[], compare act unique-comparison(a, a)) trusted
 	if a.size < b.size
-		a swap! b
+		a swap b
 	hard-assert: a.size >= b.size
 	if !b.is-empty
 		a-old-size = a size
-		a unsafe-set-size! (a-old-size wrap-add b.size)
+		a unsafe-set-size (a-old-size wrap-add b.size)
 		a-read = a.begin-ptr.as-const + a-old-size - 1
 		a-write = a.end-ptr - 1
-		a.begin-ptr merge-reverse-recur! a-read, a-write, b.begin-ptr.as-const, b.end-ptr.as-const - 1, compare
-		b empty!
+		a.begin-ptr merge-reverse-recur a-read, a-write, b.begin-ptr.as-const, b.end-ptr.as-const - 1, compare
+		b clear
 
 ###
 Merge right-to-left so we never overwrite anything we still have to read.
 In condition: a-read, a-write, b-read are all valid pointers.
 ###
-.merge-reverse-recur!<a> void
+.merge-reverse-recur<a> void
 	a-begin a mut*
 	a-read a*
 	a-write a mut*
@@ -186,21 +186,21 @@ body
 	as less
 		*a-write := *b-read
 		if b-read != b-begin
-			a-begin merge-reverse-recur! a-read, a-write - 1, b-begin, b-read - 1, compare
+			a-begin merge-reverse-recur a-read, a-write - 1, b-begin, b-read - 1, compare
 		# Else -- we are done, don't need to touch 'a' any more
 	as greater
 		*a-write := *a-read
 		if a-read == a-begin.as-const
 			dest = a-begin fix-arr-from-begin-end a-write
 			src = b-begin arr-from-begin-end b-read + 1
-			dest copy-from! src
+			dest copy-from src
 		else
-			a-begin merge-reverse-recur! a-read - 1, a-write - 1, b-begin, b-read, compare
+			a-begin merge-reverse-recur a-read - 1, a-write - 1, b-begin, b-read, compare
 
 .test-one void(a nat64[], b nat64[], expected nat64[]) unsafe
 	a-mut = a to-mut-arr
 	b-mut = b to-mut-arr
-	a-mut merge-no-duplicates! b-mut, (x, y) =>
+	a-mut merge-no-duplicates b-mut, (x, y) =>
 		x <=> y hard-assert-comparison-not-equal
 	a-mut.arr is expected
 

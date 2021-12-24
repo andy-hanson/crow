@@ -14,7 +14,7 @@ import
 	../str: ==, str
 	../str-conv: to-hex, to-str
 	../test-util: is
-	../writer: ~=, backup!, move-to-str!, new, writer
+	../writer: ~=, backup, move-to-str, new, writer
 	../private/bootstrap: hard-assert, hard-unreachable
 	../private/number-low-level:
 		==, <=>, max-nat64, nat64, new, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
@@ -397,9 +397,9 @@ to-str str(a index-set)
 		out ~= x to-str
 		out ~= ", "
 	if !a.is-empty
-		out backup! 2
+		out backup 2
 	out ~= "]"
-	out move-to-str!
+	out move-to-str
 
 region iteration
 
@@ -449,20 +449,20 @@ map-to-arr<a> a[](a index-set, f act a(nat64)) trusted
 
 .dbg str(a index-set)
 	out writer = ()
-	out dbg-recur! a.root
-	out move-to-str!
+	out dbg-recur a.root
+	out move-to-str
 
-.dbg-recur! void(out writer, a node)
+.dbg-recur void(out writer, a node)
 	match a
 	as inner i
 		out ~= "("
-		out dbg-recur! i.a
+		out dbg-recur i.a
 		out ~= " "
-		out dbg-recur! i.b
+		out dbg-recur i.b
 		out ~= " "
-		out dbg-recur! i.c
+		out dbg-recur i.c
 		out ~= " "
-		out dbg-recur! i.d
+		out dbg-recur i.d
 		out ~= ")"
 	as leaf l
 		out ~= "["

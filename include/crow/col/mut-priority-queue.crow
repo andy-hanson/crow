@@ -9,15 +9,15 @@ import
 	../str: ==, str
 	../test-util: is
 	../tuple: from, new, pair, to
-	../writer: ~=, backup!, move-to-str!, new, writer
+	../writer: ~=, backup, move-to-str, new, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add
 	./arr: ==, arr, new
 	./arr-util: map
-	./fix-arr: begin-ptr, cast-immutable, copy, fix-arr, reverse!, uninitialized-fix-arr
+	./fix-arr: begin-ptr, cast-immutable, copy, fix-arr, set-reverse, uninitialized-fix-arr
 	./mut-arr:
-		~=, begin-ptr, each, each-with-index, empty!, fold, fold-reverse, is-empty, mut-arr,
-		new, pop!, reverse!, size, subscript, to-mut-arr
-	./sort: sort-by!
+		~=, begin-ptr, clear, each, each-with-index, fold, fold-reverse, is-empty, mut-arr,
+		new, pop, set-reverse, size, subscript, to-mut-arr
+	./sort: set-sort-by
 	./private/sort-utils: binary-search-insert-ptr
 
 mut-priority-queue<k, v> record mut
@@ -33,12 +33,12 @@ new<k, v> mut-priority-queue<k, v>() is-data<k> compare<k>
 
 mut-priority-queue<k, v> mut-priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
 	mins = a to-mut-arr
-	mins sort-by! pair => pair from
+	mins set-sort-by pair => pair from
 	mins, ()
 
-empty!<k, v> void(a mut-priority-queue<k, v>) is-data<k> compare<k>
-	a.mins empty!
-	a.buckets empty!
+clear<k, v> void(a mut-priority-queue<k, v>) is-data<k> compare<k>
+	a.mins clear
+	a.buckets clear
 
 is-empty<k, v> bool(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	a.mins is-empty
@@ -55,13 +55,13 @@ size<k, v> nat64(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	if index == a.mins.size
 		a.mins ~= pair
 	else
-		a.buckets add-to-bucket! index, pair
+		a.buckets add-to-bucket index, pair
 
 copy<k, v> mut-priority-queue<k, v>(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	mins = a spread-all-buckets
-	a.mins empty!
+	a.mins clear
 	a.mins ~= mins
-	a.buckets empty!
+	a.buckets clear
 	mins.mut-arr, ()
 
 arr<k, v> pair<k, v>[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
@@ -69,19 +69,19 @@ arr<k, v> pair<k, v>[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
 
 fix-arr<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	mins = a spread-all-buckets
-	a.mins empty!
+	a.mins clear
 	a.mins ~= mins
-	a.buckets empty!
+	a.buckets clear
 	res = mins copy
-	res reverse!
+	res set-reverse
 	res
 
 # Output is high-to-low
 .spread-all-buckets<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
 	new-mins fix-arr pair<k, v> = a.size uninitialized-fix-arr
-	new-mins.begin-ptr spread-all-buckets-recur! a, 0
+	new-mins.begin-ptr spread-all-buckets-recur a, 0
 	new-mins
-.spread-all-buckets-recur!<k, v> void
+.spread-all-buckets-recur<k, v> void
 	out pair<k, v> mut*
 	a mut-priority-queue<k, v>
 	index nat64
@@ -91,59 +91,59 @@ spec
 body
 	if index < a.mins.size
 		mid = if index < a.buckets.size
-			a.buckets[index] sort-by! it => it from
+			a.buckets[index] set-sort-by it => it from
 			out fold-reverse a.buckets[index], (cur, x) =>
 				*cur := x
 				cur + 1
 		else
 			out
 		*mid := a.mins[index]
-		mid + 1 spread-all-buckets-recur! a, (index wrap-add 1)
+		mid + 1 spread-all-buckets-recur a, (index wrap-add 1)
 
-.add-to-bucket!<k, v> void(buckets pair<k, v> mut[] mut[], index nat64, pair pair<k, v>)
+.add-to-bucket<k, v> void(buckets pair<k, v> mut[] mut[], index nat64, pair pair<k, v>)
 	if index < buckets.size
 		buckets[index] ~= pair
 	else
 		# TODO: type annotation should be unnecessary
 		buckets ~= ()::pair<k, v> mut[]
-		buckets add-to-bucket! index, pair
+		buckets add-to-bucket index, pair
 
-pop-value!<k, v> v?(a mut-priority-queue<k, v>) is-data<k> compare<k>
-	if pair ?= a pop!
+pop-value<k, v> v?(a mut-priority-queue<k, v>) is-data<k> compare<k>
+	if pair ?= a pop
 		pair.to,
 
-pop!<k, v> pair<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
-	res = a.mins pop!
+pop<k, v> pair<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
+	res = a.mins pop
 	if a.mins.size < a.buckets.size
 		assert: (a.mins.size wrap-add 1) == a.buckets.size
-		bucket = a.buckets.pop! force
-		bucket sort-by! it => it from
+		bucket = a.buckets.pop force
+		bucket set-sort-by it => it from
 		# Mins are popped off from the right.
-		# Note thie preserves insertion order: 'sort-by!' doesn't change that,
+		# Note thie preserves insertion order: 'set-sort-by' doesn't change that,
 		# then we reverse, then popping from the right reverses it again.
-		bucket reverse!
+		bucket set-reverse
 		a.mins ~= bucket
 	res
 
 .dbg str(a mut-priority-queue<nat64, str>)
 	out writer = ()
 	a.mins each-with-index (min, index) =>
-		out write-pair! min
+		out write-pair min
 		if index < a.buckets.size
 			bucket = a.buckets[index]
 			if !bucket.is-empty
 				out ~= " ["
 				bucket each pair =>
-					out write-pair! pair
+					out write-pair pair
 					out ~= ", "
-				out backup! 2
+				out backup 2
 				out ~= "]"
 		out ~= ", "
 	if !a.mins.is-empty
-		out backup! 2
-	out move-to-str!
+		out backup 2
+	out move-to-str
 
-.write-pair! void(out writer, pair pair<nat64, str>)
+.write-pair void(out writer, pair pair<nat64, str>)
 	out ~= pair from
 	out ~= " -> "
 	out ~= pair to
@@ -154,7 +154,7 @@ pop!<k, v> pair<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 test
 	a mut-priority-queue<nat64, str> = ()
 	a.is-empty is true
-	a.pop! is ()
+	a.pop is ()
 	a verify ""
 
 	a ~= (5, "5")
@@ -174,16 +174,16 @@ test
 	a ~= (3, "3b")
 	a verify "5 -> 5 [6 -> 6], 2 -> 2 [3 -> 3a, 4 -> 4, 3 -> 3b]"
 
-	a.pop! is ((2, "2"),)
+	a.pop is ((2, "2"),)
 	a verify "5 -> 5 [6 -> 6], 4 -> 4, 3 -> 3b, 3 -> 3a"
 
 	a ~= (4, "4b")
 	a verify "5 -> 5 [6 -> 6], 4 -> 4 [4 -> 4b], 3 -> 3b, 3 -> 3a"
 
-	a.pop! is ((3, "3a"),)
-	a.pop! is ((3, "3b"),)
+	a.pop is ((3, "3a"),)
+	a.pop is ((3, "3b"),)
 	a verify "5 -> 5 [6 -> 6], 4 -> 4 [4 -> 4b]"
-	a.pop! is ((4, "4"),)
+	a.pop is ((4, "4"),)
 	a verify "5 -> 5 [6 -> 6], 4 -> 4b"
 
 	# TODO: a.arr is [4 -> "4b", 5 -> "5", 6 -> "6"]

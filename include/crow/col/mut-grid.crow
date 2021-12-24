@@ -13,10 +13,10 @@ import
 	../str: ==, str
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../test-util: is
-	../writer: ~=, backup!, move-to-str!, new, write, writer
+	../writer: ~=, backup, move-to-str, new, write, writer
 	./fix-arr:
-		begin-ptr, copy, each, end-ptr, exists, fix-arr, fold, is-empty, map!, new, set-subscript,
-		size, subscript, uninitialized-fix-arr
+		begin-ptr, copy, each, end-ptr, exists, fix-arr, fold, is-empty, new, set-map,
+		set-subscript, size, subscript, uninitialized-fix-arr
 
 ###
 Mutable grid (matrix) type.
@@ -58,7 +58,7 @@ fill-mut-grid<a> mut-grid a(width nat64, height nat64, value a)
 
 make-mut-grid<a> mut-grid a(width nat64, height nat64, f act a(nat64, nat64)) trusted
 	res mut-grid a = (width * height).uninitialized-fix-arr, width, height
-	res map-with-coords! (ignore, coord) => f[coord.x, coord.y]
+	res set-map-with-coords (ignore, coord) => f[coord.x, coord.y]
 	res
 
 copy<a> mut-grid a(a mut-grid a)
@@ -95,11 +95,11 @@ to-str<a> str(a mut-grid a) write<a>
 			res ~= value
 			res ~= " "
 		if !row.is-empty
-			res backup!
+			res backup
 		res ~= "\n"
 	if a.height != 0
-		res backup!
-	res move-to-str!
+		res backup
+	res move-to-str
 
 region iteration
 
@@ -140,15 +140,15 @@ body
 exists<a> bool(a mut-grid a, f act bool(a))
 	a.elements exists f
 
-map!<a> void(a mut-grid a, f act a(a))
-	a.elements map! f
+set-map<a> void(a mut-grid a, f act a(a))
+	a.elements set-map f
 
-map-with-coords!<a> void(a mut-grid a, f act a(a, coord)) trusted
-	a.elements.begin-ptr map-with-coords-recur! a.elements.end-ptr, (), a.width, f
-.map-with-coords-recur!<a> void(cur a mut*, end a mut*, coord coord, width nat64, f act a(a, coord)) unsafe
+set-map-with-coords<a> void(a mut-grid a, f act a(a, coord)) trusted
+	a.elements.begin-ptr set-map-with-coords-recur a.elements.end-ptr, (), a.width, f
+.set-map-with-coords-recur<a> void(cur a mut*, end a mut*, coord coord, width nat64, f act a(a, coord)) unsafe
 	if cur != end
 		*cur := f[*cur, coord]
-		cur + 1 map-with-coords-recur! end, (coord next-coord width), width, f
+		cur + 1 set-map-with-coords-recur end, (coord next-coord width), width, f
 
 .next-coord coord(a coord, width nat64)
 	new-x = a.x wrap-add 1

@@ -12,7 +12,7 @@ import
 	../../str-conv: to-str
 	../../test-util: is
 	../../tuple: from, new, pair, to
-	../../writer: ~=, backup!, move-to-str!, new, writer
+	../../writer: ~=, backup, move-to-str, new, writer
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, wrap-add
 	../arr: arr, new
@@ -21,7 +21,7 @@ import
 		each, frozen-dict, fold, in, is-empty, fix-arr-to-frozen-dict-promise-no-duplicates, new,
 		size, subscript, to-frozen-dict
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
-	../mut-set: in, mut-set, new, try-add!
+	../mut-set: in, mut-set, new, try-add
 
 compact-dict<k, v> record
 	by-val
@@ -190,7 +190,7 @@ fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) is-data<k> compar
 	match a
 	as overlay o
 		mid = acc fold o.pairs, (cur, k, v-opt) =>
-			if seen try-add! k
+			if seen try-add k
 				if v ?= v-opt
 					f[cur, k, v]
 				else
@@ -216,13 +216,13 @@ map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> 
 
 .dbg<k, v> str(a compact-dict<k, v>) to-str<k> to-str<v>
 	out writer = ()
-	out dbg-recur! a.impl
-	out move-to-str!
+	out dbg-recur a.impl
+	out move-to-str
 
-.dbg-recur!<k, v> void(out writer, a impl<k, v>) to-str<k> to-str<v>
+.dbg-recur<k, v> void(out writer, a impl<k, v>) to-str<k> to-str<v>
 	match a
 	as overlay o
-		out dbg-recur! o.prev
+		out dbg-recur o.prev
 		out ~= ", ["
 		o.pairs each (k, v) =>
 			out ~= k to-str
@@ -233,7 +233,7 @@ map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> 
 				out ~= "_"
 			out ~= ", "
 		if !o.pairs.is-empty
-			out backup! 2
+			out backup 2
 		out ~= "]"
 	as end-node e
 		out ~= "["
@@ -243,7 +243,7 @@ map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> 
 			out ~= v to-str
 			out ~= ", "
 		if !e.is-empty
-			out backup! 2
+			out backup 2
 		out ~= "]"
 
 verify void(a compact-dict<nat64, str>, expected str)

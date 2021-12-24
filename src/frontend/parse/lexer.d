@@ -1030,8 +1030,6 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable 
 		lexer.ptr++;
 	if (*(lexer.ptr - 1) == '-')
 		lexer.ptr--;
-	else
-		drop(tryTakeChar(lexer, '!'));
 	return arrOfRange(begin, lexer.ptr);
 }
 
@@ -1220,6 +1218,5 @@ immutable(bool) isDigit(immutable char c) {
 }
 
 immutable(bool) isAlphaIdentifierContinue(immutable char c) {
-	//TODO: only last character should be '!'
-	return isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '!';
+	return isAlphaIdentifierStart(c) || c == '-' || isDigit(c);
 }

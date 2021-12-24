@@ -13,7 +13,7 @@ import
 	../col/arr: arr, begin-ptr, subscript
 	../col/arr-util: each, map
 	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
-	../col/mut-arr: ~=, move-to-arr!, mut-arr, new
+	../col/mut-arr: ~=, move-to-arr, mut-arr, new
 	../col/sort: sort
 	../compare: !=, <
 	../exception: assert, forbid, throw
@@ -89,7 +89,7 @@ names-in-dir str[](path str) summon
 		throw: "Failed to open dir {path}"
 	res str mut[] = ()
 	dirp names-in-dir-recur res
-	res.move-to-arr! sort
+	res.move-to-arr sort
 
 .names-in-dir-recur void(dirp dir, res str mut[]) unsafe summon
 	# Initial value of entry / result should not matter

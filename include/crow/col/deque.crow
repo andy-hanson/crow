@@ -10,7 +10,7 @@ import
 	../str: ==, str
 	../str-conv: to-str
 	../test-util: is
-	../writer: ~=, backup!, move-to-str!, new, writer
+	../writer: ~=, backup, move-to-str, new, writer
 	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, is-even, nat64, wrap-add
 	./arr: ==, arr, is-empty, new, size
@@ -121,12 +121,12 @@ map<out, in> deque out(a deque in, f act out(in)) trusted
 		a.mid each x =>
 			out ~= x to-str
 			out ~= " "
-		out backup!
+		out backup
 		out ~= "]"
 	a.right each x =>
 		out ~= " "
 		out ~= x
-	out move-to-str!
+	out move-to-str
 
 test
 	a deque nat64 = ()

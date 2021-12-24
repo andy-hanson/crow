@@ -12,16 +12,16 @@ import
 	../str: ==, chars, str
 	../test-util: is
 	../tuple: from, new, pair, to
-	../writer: ~=, backup!, move-to-str!, new, writer
+	../writer: ~=, backup, move-to-str, new, writer
 	./arr: arr, new, subscript
 	./arr-util: each
 	./mut-arr:
-		~=, begin-ptr, each, empty!, end-ptr, filter, filter!, fold, is-empty, map, map!,
-		map-to-arr, mut-arr, new, remove-at!, set-subscript, size, subscript
-	./sort: sort-by!
+		~=, begin-ptr, clear, each, end-ptr, filter, fold, is-empty, map, map-to-arr, mut-arr, new,
+		remove-at, set-filter, set-map, set-subscript, size, subscript
+	./sort: set-sort-by
 	./private/sort-utils:
 		binary-search-exact-ptr, binary-search-insert-ptr, hard-assert-comparison-not-equal,
-		merge-no-duplicates!
+		merge-no-duplicates
 
 ###
 Mutable dict: A list of key-value pairs, sorted by key, supporting efficient lookup.
@@ -53,9 +53,9 @@ This is O(1).
 is-empty<k, v> bool(a mut-sorted-dict<k, v>)
 	a.pairs is-empty
 
-empty!<k, v> void(a mut-sorted-dict<k, v>)
+clear<k, v> void(a mut-sorted-dict<k, v>)
 	a.next := ()
-	a.pairs empty!
+	a.pairs clear
 
 ###
 Number of pairs in the `mut-sorted-dict`.
@@ -81,8 +81,8 @@ subscript<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k>
 
 # Adds a key-value pair, replacing any existing one with that key.
 set-subscript<k, v> void(a mut-sorted-dict<k, v>, key k, value v) is-data<k> compare<k>
-	if !(a insert-into-key-match-or-empty-slot! key, value)
-		a add-pair! key, value
+	if !(a insert-into-key-match-or-empty-slot key, value)
+		a add-pair key, value
 
 in<k, v> bool(key k, a mut-sorted-dict<k, v>) trusted is-data<k> compare<k>
 	!(a find-exact-ptr key is-empty)
@@ -100,7 +100,7 @@ Traverses nodes left-to-right looking for the key.
 If that fails, traverses back right-to-left and inserts into an empty slot if possible.
 Returns true if it succeeded.
 ###
-.insert-into-key-match-or-empty-slot!<k, v> bool(a mut-sorted-dict<k, v>, key k, value v) trusted is-data<k> compare<k>
+.insert-into-key-match-or-empty-slot<k, v> bool(a mut-sorted-dict<k, v>, key k, value v) trusted is-data<k> compare<k>
 	insert-ptr = a find-insert-ptr key
 	can-insert = insert-ptr != a.pairs.end-ptr
 	if can-insert && insert-ptr->from == key
@@ -110,7 +110,7 @@ Returns true if it succeeded.
 		true
 	else
 		inserted = if next ?= a next
-			next insert-into-key-match-or-empty-slot! key, value
+			next insert-into-key-match-or-empty-slot key, value
 
 		if inserted
 			true
@@ -127,7 +127,7 @@ Returns true if it succeeded.
 			true
 
 # Returns the new physical size of this node and all nodes to the right
-.add-pair!<k, v> void(a mut-sorted-dict<k, v>, key k, value v) is-data<k> compare<k>
+.add-pair<k, v> void(a mut-sorted-dict<k, v>, key k, value v) is-data<k> compare<k>
 	if a.node-size < 4
 		if a.pairs is-empty
 			# TODO: should not need type annotation
@@ -135,16 +135,16 @@ Returns true if it succeeded.
 		else
 			# List has a small absolute size, so even if we can't insert near the end,
 			# there's an empty slot somewhere so we don't have to do much moving.
-			a.pairs insert-linear! 0, key, value
+			a.pairs insert-linear 0, key, value
 		a.node-size := a.node-size + 1
 	elif key > a.pairs[a.pairs.size - 4].from
 		# We can insert it near the end
-		a.pairs insert-linear! a.pairs.size - 4, key, value
+		a.pairs insert-linear a.pairs.size - 4, key, value
 		a.node-size := a.node-size + 1
 	else
 		if next ?= a next
-			next add-pair! key, value
-			a compact-if-needed!
+			next add-pair key, value
+			a compact-if-needed
 		else
 			new-pairs pair<k, v?> mut[] = ()
 			# TODO: should not need type annotation
@@ -152,55 +152,55 @@ Returns true if it succeeded.
 			a.next := (new-pairs, 1, ()),
 
 # Insert at the last place where the key is < that value.
-.insert-linear!<k, v> void(a pair<k, v?> mut[], index nat64, key k, value v) is-data<k> compare<k>
+.insert-linear<k, v> void(a pair<k, v?> mut[], index nat64, key k, value v) is-data<k> compare<k>
 	if key < a[index].from
-		a move-right! index
+		a move-right index
 		a[index] := key, (value,)
 	elif index == a.size - 1
 		# TODO: should not need type annotation
 		a ~= (key, (value,))::pair<k, v?>
 	else
-		a insert-linear! index + 1, key, value
+		a insert-linear index + 1, key, value
 
 # If there's something here, move it so something else can be inserted.
-.move-right!<k, v> void(a pair<k, v?> mut[], index nat64)
+.move-right<k, v> void(a pair<k, v?> mut[], index nat64)
 	if !a[index].to.is-empty
 		# If this is the last value, push it
 		if index == a.size - 1
 			a ~= a[index]
 		else
-			a move-right! index + 1
+			a move-right index + 1
 			a[index + 1] := a[index]
 
 # Convert to an `arr`, clearning the original `mut-sorted-dict` in the process.
-move-to-arr!<k, v> pair<k, v>[](a mut-sorted-dict<k, v>) is-data<k> compare<k>
+move-to-arr<k, v> pair<k, v>[](a mut-sorted-dict<k, v>) is-data<k> compare<k>
 	res = a map-to-arr (key, value) => key, value
-	a empty!
+	a clear
 	res
 
 ###
 Remove the pair with the given key, if it exists.
 Returns the old value (if it exists).
 ###
-remove-key!<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k>
+remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k>
 	if ptr ?= a find-exact-ptr key
 		res = if a.pairs.end-ptr - ptr < 4
-			a.pairs remove-at! ptr to
+			a.pairs remove-at ptr to
 		else
 			old-value = *ptr to
 			*ptr := key, ()
 			old-value
 		if !res.is-empty
 			a.node-size := a.node-size - 1
-		a compact-if-needed!
+		a compact-if-needed
 		res
 	elif next ?= a next
-		next remove-key! key
+		next remove-key key
 
-.compact-if-needed!<k, v> void(a mut-sorted-dict<k, v>) is-data<k> compare<k>
+.compact-if-needed<k, v> void(a mut-sorted-dict<k, v>) is-data<k> compare<k>
 	physical-size = a total-pairs-size
 	if a.node-size * 2 <= physical-size
-		a compact!
+		a compact
 		assert: a.node-size == a.total-pairs-size
 
 .total-pairs-size<k, v> nat64(a mut-sorted-dict<k, v>)
@@ -212,11 +212,11 @@ remove-key!<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<
 	else
 		mid
 
-.compact!<k, v> void(a mut-sorted-dict<k, v>) trusted is-data<k> compare<k>
+.compact<k, v> void(a mut-sorted-dict<k, v>) trusted is-data<k> compare<k>
 	if next ?= a next
-		next compact!
-		a.pairs filter! pair => !pair.to.is-empty
-		a.pairs merge-no-duplicates! next.pairs, (x, y) =>
+		next compact
+		a.pairs set-filter pair => !pair.to.is-empty
+		a.pairs merge-no-duplicates next.pairs, (x, y) =>
 			x.from <=> y.from hard-assert-comparison-not-equal
 		a.next := ()
 		a.node-size := a.pairs.size
@@ -234,12 +234,12 @@ each<k, v> void(a mut-sorted-dict<k, v>, f act void(k, v)) is-data<k> compare<k>
 		f[k, v]
 
 fold<a, k, v> a(acc a, a mut-sorted-dict<k, v>, f act a(a, k, v)) is-data<k> compare<k>
-	a compact!
+	a compact
 	acc fold a.pairs, (cur, pair) =>
 		f[cur, pair.from, pair.to.force]
 
 filter<k, v> mut-sorted-dict<k, v>(a mut-sorted-dict<k, v>, f act bool(k, v)) is-data<k> compare<k>
-	a compact!
+	a compact
 	from-sorted-pairs: a.pairs filter pair =>
 		f[pair.from, pair.to.force]
 
@@ -261,7 +261,7 @@ spec
 	is-data<k>
 	compare<k>
 body
-	a compact!
+	a compact
 	from-sorted-pairs: a.pairs map pair =>
 		# TODO: 'as' should be unnecessary
 		pair.from, (f[pair.from, pair.to.force],)
@@ -270,43 +270,43 @@ body
 	a, a.size, ()
 
 map-to-arr<out, k, v> out[](a mut-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
-	a compact!
+	a compact
 	a.pairs map-to-arr pair =>
 		f[pair.from, pair.to.force]
 
 region mutating iteration
 
-filter!<k, v> void(a mut-sorted-dict<k, v>, f act bool(k, v)) is-data<k> compare<k>
-	a compact!
-	a.pairs filter! pair =>
+set-filter<k, v> void(a mut-sorted-dict<k, v>, f act bool(k, v)) is-data<k> compare<k>
+	a compact
+	a.pairs set-filter pair =>
 		f[pair.from, pair.to.force]
 
-map!<k, v> void(a mut-sorted-dict<k, v>, f act pair<k, v>(k, v)) is-data<k> compare<k>
-	a compact!
-	a.pairs map! pair =>
+set-map<k, v> void(a mut-sorted-dict<k, v>, f act pair<k, v>(k, v)) is-data<k> compare<k>
+	a compact
+	a.pairs set-map pair =>
 		new-pair = f[pair.from, pair.to.force]
 		new-pair.from, (new-pair.to,)
-	a.pairs sort-by! pair => pair from
+	a.pairs set-sort-by pair => pair from
 
 test
 	a mut-sorted-dict<nat64, str> = (3, "30"), (6, "60")
 	a verify "[3 -> 30, 6 -> 60]"
-	a map! (k, v) =>
+	a set-map (k, v) =>
 		10 - k, v.chars[0 .. 1].str
 	a verify "[4 -> 6, 7 -> 3]"
 
-map-values!<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> compare<k>
-	a compact!
-	a.pairs map! pair =>
+set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> compare<k>
+	a compact
+	a.pairs set-map pair =>
 		pair.from, (f[pair.from, pair.to.force],)
 
 
 .dbg str(a mut-sorted-dict<nat64, str>)
 	out writer = ()
-	out dbg-recur! a
-	out move-to-str!
+	out dbg-recur a
+	out move-to-str
 
-.dbg-recur! void(out writer, a mut-sorted-dict<nat64, str>)
+.dbg-recur void(out writer, a mut-sorted-dict<nat64, str>)
 	out ~= "["
 	a.pairs each pair =>
 		out ~= pair from
@@ -316,12 +316,12 @@ map-values!<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> compar
 	if a.pairs is-empty
 		out ~= "]"
 	else
-		out backup! 2
+		out backup 2
 		out ~= "]"
 
 	if next ?= a next
 		out ~= ", "
-		out dbg-recur! next
+		out dbg-recur next
 
 .verify void(a mut-sorted-dict<nat64, str>, expected str)
 	a.dbg is expected
@@ -339,13 +339,13 @@ test
 	a verify "[3 -> 3, 5 -> 5, 7 -> 7, 8 -> 8, 9 -> 9, 10 -> 10]"
 
 	# Insert into the previous slot
-	a remove-key! 5 is ("5",)
+	a remove-key 5 is ("5",)
 	a verify "[3 -> 3, 5 -> _, 7 -> 7, 8 -> 8, 9 -> 9, 10 -> 10]"
 	a[6] := "6"
 	a verify "[3 -> 3, 6 -> 6, 7 -> 7, 8 -> 8, 9 -> 9, 10 -> 10]"
 
 	# Insert into the particular slot
-	a remove-key! 6 is ("6",)
+	a remove-key 6 is ("6",)
 	a verify "[3 -> 3, 6 -> _, 7 -> 7, 8 -> 8, 9 -> 9, 10 -> 10]"
 	a[5] := "5"
 	a verify "[3 -> 3, 5 -> 5, 7 -> 7, 8 -> 8, 9 -> 9, 10 -> 10]"
@@ -380,19 +380,19 @@ test
 	a verify "[5 -> 5, 7 -> 7, 8 -> 8, 10 -> 10, 11 -> 11], [0 -> 0, 1 -> one, 2 -> 2, 6 -> 6]"
 
 	# If near end, removes completely
-	a remove-key! 1 is ("one",)
+	a remove-key 1 is ("one",)
 	a verify "[5 -> 5, 7 -> 7, 8 -> 8, 10 -> 10, 11 -> 11], [0 -> 0, 2 -> 2, 6 -> 6]"
-	a remove-key! 1 is ()
+	a remove-key 1 is ()
 
 	# Adding some more values so removals can't fully remove
 	a ~= ((13, "13"), (15, "15"), (17, "17"))
 	a verify "[5 -> 5, 7 -> 7, 8 -> 8, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], [0 -> 0, 2 -> 2, 6 -> 6]"
 
-	a remove-key! 5 is ("5",)
+	a remove-key 5 is ("5",)
 	a verify "[5 -> _, 7 -> 7, 8 -> 8, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], [0 -> 0, 2 -> 2, 6 -> 6]"
-	a remove-key! 5 is ()
+	a remove-key 5 is ()
 
-	a remove-key! 8 is ("8",)
+	a remove-key 8 is ("8",)
 	a verify "[5 -> _, 7 -> 7, 8 -> _, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], [0 -> 0, 2 -> 2, 6 -> 6]"
 
 	# Setting near a deleted value re-uses the slot
@@ -400,20 +400,20 @@ test
 	a verify "[5 -> _, 7 -> 7, 9 -> 9, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], [0 -> 0, 2 -> 2, 6 -> 6]"
 
 	# Removing enough values makes us compact
-	a remove-key! 9 is ("9",)
+	a remove-key 9 is ("9",)
 	a verify "[5 -> _, 7 -> 7, 9 -> _, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], [0 -> 0, 2 -> 2, 6 -> 6]"
 
 	# Before, physical sizes are 8 and 3, and first logical size size is 6.
 	# After the removal, first node size is 5 and total physical size is 10, so we compact.
-	a remove-key! 10 is ("10",)
+	a remove-key 10 is ("10",)
 	a verify "[0 -> 0, 2 -> 2, 6 -> 6, 7 -> 7, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17]"
 
 	# Now test compaction for another reason -- enough items are inserted on the right
 
 	# First get 'a' down to size
-	a remove-key! 7 is ("7",)
-	a remove-key! 13 is ("13",)
-	a remove-key! 15 is ("15",)
+	a remove-key 7 is ("7",)
+	a remove-key 13 is ("13",)
+	a remove-key 15 is ("15",)
 	a verify "[0 -> 0, 2 -> 2, 6 -> 6, 7 -> _, 11 -> 11, 17 -> 17]"
 
 	# Now physical size of a is 6, logical size is 5.

@@ -14,7 +14,7 @@ import
 	../str-conv: to-str
 	../test-util: is
 	../tuple: from, new, pair, to
-	../writer: ~=, backup!, move-to-str!, new, writer
+	../writer: ~=, backup, move-to-str, new, writer
 	../private/bootstrap: hard-assert, todo
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	./arr: ~, arr, arr-equal, is-empty, new, size, subscript
@@ -22,7 +22,7 @@ import
 		each, each-with-index, every, find-index, fold, fold-with-index,
 		remove-at, rtail, tail, update, update-with-default
 	./fix-arr:
-		begin-ptr, cast-immutable, copy-from!, end-ptr, fill-fix-arr, fix-arr, set-subscript, size,
+		begin-ptr, cast-immutable, copy-from, end-ptr, fill-fix-arr, fix-arr, set-subscript, size,
 		subscript, uninitialized-fix-arr
 	./sort: sort-by
 
@@ -276,7 +276,7 @@ body
 				unreachable
 			as leaf-node l
 				new-out-index = out-index wrap-add l.size
-				out[out-index .. new-out-index] copy-from! l
+				out[out-index .. new-out-index] copy-from l
 				new-out-index
 		assert: end == out.size
 		out.cast-immutable.leaf-node,
@@ -391,7 +391,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> has
 .dbg str(a str[nat64])
 	res writer = ()
 	res dbg-recur a.root, ""
-	res move-to-str!
+	res move-to-str
 
 .dbg-recur void(out writer, a node<nat64, str>, path str)
 	match a
@@ -400,7 +400,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> has
 			if !child.node-is-empty
 				out dbg-recur child, path ~ index.to-str
 				out ~= " "
-		out backup!
+		out backup
 	as leaf-node l
 		out ~= path
 		out ~= "["
@@ -412,7 +412,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> has
 		if l is-empty
 			out ~= "]"
 		else
-			out backup! 2
+			out backup 2
 			out ~= "]"
 
 .dbg-recur void(out writer, a node<nat64, void>, path str)
@@ -422,7 +422,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> has
 			if !child.node-is-empty
 				out dbg-recur child, path ~ index.to-str
 				out ~= " "
-		out backup!
+		out backup
 	as leaf-node l
 		out ~= path
 		out ~= "["
@@ -432,7 +432,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> has
 		if l is-empty
 			out ~= "]"
 		else
-			out backup! 2
+			out backup 2
 			out ~= "]"
 
 verify void(a str[nat64], expected str)

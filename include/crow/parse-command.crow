@@ -5,8 +5,8 @@ import
 	./col/arr: arr, is-empty, new, size, subscript
 	./col/arr-util: find-index, index-of, tail
 	./col/dict: dict, each, new
-	./col/mut-dict: move-to-dict!, mut-dict, new, set-subscript
-	./col/mut-arr: fill-mut-arr, move-to-arr!, mut-arr, set-subscript, subscript
+	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
+	./col/mut-arr: fill-mut-arr, move-to-arr, mut-arr, set-subscript, subscript
 	./exception: assert, throw
 	./hash: hash-mix
 	./misc: void
@@ -43,7 +43,7 @@ parse-named-args str[]?[]?(args str[], arg-names str[])
 			throw: "Unexpected arg {key}"
 
 	if !*help
-		values.move-to-arr!,
+		values.move-to-arr,
 
 single-str-or-throw str(a str[]?, option-name str)
 	if strs ?= a
@@ -82,7 +82,7 @@ single-str-or-throw str(a str[]?, option-name str)
 .parse-named-args str[][str](args str[])
 	res str[] mut[str] = ()
 	args parse-named-args-recur res
-	res move-to-dict!
+	res move-to-dict
 
 .parse-named-args-recur void(args str[], builder str[] mut[str])
 	first-name = args[0] try-remove-start "--" force

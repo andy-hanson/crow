@@ -12,17 +12,17 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test-util: is
 	../tuple: from, new, pair, to
-	../writer: ~=, backup!, move-to-str!, new, writer
+	../writer: ~=, backup, move-to-str, new, writer
 	../private/number-low-level: ==, <=>, nat64, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	./arr: ==, arr, new, size
 	./arr-util: each, map
 	./dict: dict, to-dict
 	./fix-arr:
-		begin-ptr, cast-immutable, each, end-ptr, fill!, fill-fix-arr, fix-arr, fold, is-empty,
+		begin-ptr, cast-immutable, each, end-ptr, fill, fill-fix-arr, fix-arr, fold, is-empty,
 		map, new, set-subscript, size, subscript, uninitialized-fix-arr
 	./mut-arr:
-		~=, copy, each, filter!, find-index, fold, is-at-capacity, is-empty, map!, mut-arr, new,
-		remove-unordered-at!, set-subscript, size, subscript
+		~=, copy, each, find-index, fold, is-at-capacity, is-empty, mut-arr, new,
+		remove-unordered-at, set-filter, set-map, set-subscript, size, subscript
 
 mut-dict<k, v> record mut
 	.entries .mut fix-arr entry<k, v>
@@ -53,9 +53,9 @@ mut-dict-with-capacity<k, v> v mut[k](capacity nat64) is-data<k> compare<k> hash
 arr<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (key, value) => key, value
 
-move-to-arr!<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
+move-to-arr<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	res = a arr
-	a empty!
+	a clear
 	res
 
 copy<k, v> v mut[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
@@ -101,13 +101,13 @@ in<k, v> bool(key k, a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	!a[key].is-empty
 
 set-subscript<k, v> void(a v mut[k], key k, value v) is-data<k> compare<k> hash-mix<k>
-	drop: a update! key, (value,)
+	drop: a update key, (value,)
 
-empty!<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
-	a.entries fill! none
+clear<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
+	a.entries fill none
 	a.total-size := 0
 
-swap!<k, v> void(a v mut[k], b v mut[k]) is-data<k> compare<k> hash-mix<k>
+swap<k, v> void(a v mut[k], b v mut[k]) is-data<k> compare<k> hash-mix<k>
 	temp-entries = a.entries
 	a.entries := b.entries
 	b.entries := temp-entries
@@ -115,17 +115,17 @@ swap!<k, v> void(a v mut[k], b v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a.total-size := b.total-size
 	b.total-size := temp-size
 
-remove-key!<k, v> void(a v mut[k], key k) is-data<k> compare<k> hash-mix<k>
-	drop: a try-remove-key! key
+remove-key<k, v> void(a v mut[k], key k) is-data<k> compare<k> hash-mix<k>
+	drop: a try-remove-key key
 
-try-remove-key!<k, v> v?(a v mut[k], key k) is-data<k> compare<k> hash-mix<k>
-	a update! key, ()
+try-remove-key<k, v> v?(a v mut[k], key k) is-data<k> compare<k> hash-mix<k>
+	a update key, ()
 
 ###
 f: Takes the value (if it exists), returns the new value (or none to remove).
 Returns the old value (if it exists).
 ###
-.update!<k, v> v?(a v mut[k], key k, new-value v?) trusted is-data<k> compare<k> hash-mix<k>
+.update<k, v> v?(a v mut[k], key k, new-value v?) trusted is-data<k> compare<k> hash-mix<k>
 	if a.entries is-empty
 		if value ?= new-value
 			a.entries := (key, value).one,
@@ -150,7 +150,7 @@ Returns the old value (if it exists).
 			else
 				if value ?= new-value
 					if a should-expand
-						a expand!
+						a expand
 						a[key] := value
 					else
 						a.entries[entry-index] := (ar, (key, value)) many
@@ -162,7 +162,7 @@ Returns the old value (if it exists).
 				if value ?= new-value
 					m[index] := key, value
 				else
-					drop: m remove-unordered-at! index
+					drop: m remove-unordered-at index
 					if m is-empty
 						a.entries[entry-index] := none
 					elif m.size == 1
@@ -174,7 +174,7 @@ Returns the old value (if it exists).
 			else
 				if value ?= new-value
 					if m.is-at-capacity && a.should-expand
-						a expand!
+						a expand
 						a[key] := value
 					else
 						m ~= (key, value)
@@ -192,13 +192,13 @@ Returns the old value (if it exists).
 .should-expand<k, v> bool(a v mut[k])
 	a.total-size >= a.entries.size
 
-.expand!<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
+.expand<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	forbid: a.entries.size == 0
 	new-size = a.entries.size wrap-mul 2
 	bigger v mut[k] = new-size mut-dict-with-capacity
 	a each (key, value) =>
 		bigger[key] := value
-	a swap! bigger
+	a swap bigger
 	assert: a.entries.size == new-size
 
 region iteration
@@ -216,9 +216,9 @@ fold<a, k, v> a(acc a, a v mut[k], f act a(a, k, v)) is-data<k> compare<k> hash-
 		as many m
 			cur fold m, (cur2, pair) => f[cur2, pair.from, pair.to]
 
-filter!<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	a.entries.begin-ptr filter-recur! a.entries.end-ptr, f
-.filter-recur!<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act bool(k, v)) unsafe
+set-filter<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k> hash-mix<k>
+	a.entries.begin-ptr set-filter-recur a.entries.end-ptr, f
+.set-filter-recur<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act bool(k, v)) unsafe
 	if entry-ptr != entry-end
 		match *entry-ptr
 		as none
@@ -227,14 +227,14 @@ filter!<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k> h
 			if !f[ar.from, ar.to]
 				*entry-ptr := none
 		as many m
-			m filter! pair => f[pair.from, pair.to]
+			m set-filter pair => f[pair.from, pair.to]
 			if m is-empty
 				*entry-ptr := none
 			elif m.size == 1
 				# TODO: should not need a local
 				z = m[0]
 				*entry-ptr := z one
-		entry-ptr + 1 filter-recur! entry-end, f
+		entry-ptr + 1 set-filter-recur entry-end, f
 
 
 map-to-arr<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
@@ -245,14 +245,14 @@ map-to-arr<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> comp
 	assert: end == out.end-ptr
 	out cast-immutable
 
-move-to-dict!<k, v> v[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
+move-to-dict<k, v> v[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	res = a map-to-arr ((k, v) => k, v) to-dict
-	a empty!
+	a clear
 	res
 
-map-values!<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	a.entries.begin-ptr map-values-recur! a.entries.end-ptr, f
-.map-values-recur!<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act v(k, v)) unsafe
+set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<k> hash-mix<k>
+	a.entries.begin-ptr set-map-values-recur a.entries.end-ptr, f
+.set-map-values-recur<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act v(k, v)) unsafe
 	if entry-ptr != entry-end
 		match *entry-ptr
 		as none
@@ -260,8 +260,8 @@ map-values!<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<k> 
 		as one ar
 			*entry-ptr := (ar.from, f[ar.from, ar.to]) one
 		as many m
-			m map! pair => pair.from, f[pair.from, pair.to]
-		entry-ptr + 1 map-values-recur! entry-end, f
+			m set-map pair => pair.from, f[pair.from, pair.to]
+		entry-ptr + 1 set-map-values-recur entry-end, f
 
 .dbg str(a str mut[nat64])
 	out writer = ()
@@ -282,11 +282,11 @@ map-values!<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<k> 
 				out ~= " -> "
 				out ~= pair to
 				out ~= ", "
-			out backup! 2
+			out backup 2
 			out ~= "]"
 		out ~= " "
-	out backup!
-	out move-to-str!
+	out backup
+	out move-to-str
 
 .verify void(a str mut[nat64], expected str)
 	a.dbg is expected
@@ -327,16 +327,16 @@ test
 	a[12] := "12"
 	a verify "(8 -> 8) _ _ (3 -> 3) [4 -> 4, 12 -> 12] _ (6 -> six) _"
 
-	a try-remove-key! 5 is ()
-	a try-remove-key! 4 is ("4",)
+	a try-remove-key 5 is ()
+	a try-remove-key 4 is ("4",)
 
 	a verify "(8 -> 8) _ _ (3 -> 3) (12 -> 12) _ (6 -> six) _"
 
 	a[11] := "11"
 	a verify "(8 -> 8) _ _ [3 -> 3, 11 -> 11] (12 -> 12) _ (6 -> six) _"
 
-	a filter! (key, value) => key > 10 || value == "six"
+	a set-filter (key, value) => key > 10 || value == "six"
 	a verify "_ _ _ (11 -> 11) (12 -> 12) _ (6 -> six) _"
 
-	a map-values! (key, value) => "{key}-{value}"
+	a set-map-values (key, value) => "{key}-{value}"
 	a verify "_ _ _ (11 -> 11-11) (12 -> 12-12) _ (6 -> 6-six) _"

@@ -4,7 +4,7 @@ import
 	crow/col/mut-grid: coord, new, x, y
 	crow/io/terminal-color: term-bold, term-blue, term-red, term-reset
 	crow/ptr: zeroed
-	crow/writer: ~=, move-to-str!, new, writer
+	crow/writer: ~=, move-to-str, new, writer
 
 ###
 Board representation is bits: 7 bits for a column (max of 6 entries), over 6 rows.
@@ -136,7 +136,7 @@ to-str str(a board, cur-player color, last-column nat?)
 			res ~= "│"
 		res ~= "\n"
 	res ~= "╰─┴─┴─┴─┴─┴─┴─╯"
-	res move-to-str!
+	res move-to-str
 
 .letter-of-alphabet str(a nat)
 	# TODO: type annotation should be unnecessary

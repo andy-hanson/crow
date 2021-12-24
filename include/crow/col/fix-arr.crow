@@ -8,7 +8,7 @@ import
 	../opt: new, opt
 	../ptr:
 		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,
-		ref-of-ptr, set-deref, set-subscript, size-of, subscript, swap!
+		ref-of-ptr, set-deref, set-subscript, size-of, subscript, swap
 	../private/alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
 	../private/bootstrap: hard-assert
 	../private/exception-low-level: assert, forbid
@@ -62,12 +62,12 @@ copy<a> fix-arr a(a fix-arr a)
 copy-to-arr<a> a[](a fix-arr a) trusted
 	a.copy cast-immutable
 
-copy-from!<a> void(dest fix-arr a, source a[]) trusted
+copy-from<a> void(dest fix-arr a, source a[]) trusted
 	assert: dest.size == source.size
 	drop: dest.begin-ptr.as-any-mut-ptr memcpy source.begin-ptr.as-any-const-ptr, (dest.size wrap-mul size-of@<a>)
 
-copy-from!<a> void(dest fix-arr a, source fix-arr a) trusted
-	dest copy-from! source.cast-immutable
+copy-from<a> void(dest fix-arr a, source fix-arr a) trusted
+	dest copy-from source.cast-immutable
 
 is-empty<a> bool(a fix-arr a) noctx
 	a.size == 0
@@ -116,9 +116,9 @@ Throws if `index >= a.size`.
 ###
 set-subscript<a> void(a fix-arr a, index nat64, value a) trusted
 	assert: index < a.size
-	a unsafe-set-at! index, value
+	a unsafe-set-at index, value
 
-unsafe-set-at!<a> void(a fix-arr a, index nat64, value a) unsafe
+unsafe-set-at<a> void(a fix-arr a, index nat64, value a) unsafe
 	a.begin-ptr[index] := value
 
 
@@ -164,8 +164,8 @@ zeroed-fix-arr<a> fix-arr a(size nat64) unsafe
 	res set-zero-elements
 	res
 
-fill!<a> void(a fix-arr a, value a)
-	a map! ignore => value
+fill<a> void(a fix-arr a, value a)
+	a set-map ignore => value
 
 ###
 Unsafe cast a fix-arr to arr.
@@ -198,12 +198,12 @@ index-of<a> nat64?(a fix-arr a, value a) equal<a>
 find-index<a> nat64?(a fix-arr a, f act bool(a)) trusted
 	a.temp-as-arr find-index f
 
-reverse!<a> void(a fix-arr a) trusted
-	a.begin-ptr reverse-recur! a.end-ptr - 1
-.reverse-recur!<a> void(left a mut*, right a mut*) unsafe
+set-reverse<a> void(a fix-arr a) trusted
+	a.begin-ptr set-reverse-recur a.end-ptr - 1
+.set-reverse-recur<a> void(left a mut*, right a mut*) unsafe
 	if left < right
-		left swap! right
-		left + 1 reverse-recur! right - 1
+		left swap right
+		left + 1 set-reverse-recur right - 1
 
 region iteration
 
@@ -222,12 +222,12 @@ fold<a, b> a(acc a, a fix-arr b, f act a(a, b)) trusted
 fold-reverse<a, b> a(acc a, a fix-arr b, f act a(a, b)) trusted
 	acc fold-reverse a.temp-as-arr, f
 
-map!<a> void(a fix-arr a, f act a(a)) trusted
-	a.begin-ptr map-recur! a.end-ptr, f
-.map-recur!<a> void(cur a mut*, end a mut*, f act a(a)) unsafe
+set-map<a> void(a fix-arr a, f act a(a)) trusted
+	a.begin-ptr set-map-recur a.end-ptr, f
+.set-map-recur<a> void(cur a mut*, end a mut*, f act a(a)) unsafe
 	if cur != end
 		*cur := f[*cur]
-		cur + 1 map-recur! end, f
+		cur + 1 set-map-recur end, f
 
 map<out, in> fix-arr out(a fix-arr in, f act out(in)) trusted
 	a.size make-fix-arr i => f[a[i]]
