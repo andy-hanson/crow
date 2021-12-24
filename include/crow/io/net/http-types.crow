@@ -1,32 +1,47 @@
 no-std
 import
+	../../col/arr: arr
 	../../col/dict: dict, new
 	../../hash: hash-mix
-	../../number: nat64
+	../../number: nat8, nat64
 	../../str: ==, <=>, str
+	../../str-util: as-str, bytes
 
 # Parse of a single HTTP request.
 http-request record
 	method http-method
 	url str
 	headers str[str]
-	request-body str
+	request-body nat8[]
+
+# TODO: should this be trusted?
+request-body-str str(a http-request) trusted
+	a.request-body as-str
 
 # Response to send to a single HTTP request.
 http-response record
 	status nat64
 	status-desc str
 	headers str[str]
-	response-body str
+	response-body nat8[]
 
 http-bad-query http-response(message str)
-	400, message, (), message
+	400, message, (), message.bytes
+
+http-forbidden http-response(message str)
+	403, message, (), message.bytes
 
 http-not-found http-response()
 	"Not found" http-not-found
 
 http-not-found http-response(message str)
-	404, message, (), message
+	404, message, (), message.bytes
+
+http-ok http-response(message str)
+	message http-ok ()
+
+http-ok http-response(message str, headers str[str])
+	200, "OK", headers, message.bytes
 
 # Method used by an HTTP request.
 http-method enum

@@ -1,0 +1,48 @@
+import
+	crow/col/dict: new
+	crow/io/file: try-read-file-binary
+	crow/io/net/http-server: http-handler, start-http-server
+	crow/io/net/http-types: http-not-found, http-request, http-response, new, status, url
+	crow/io/path: child-path
+	crow/io/print: print
+	crow/log: info, log
+	crow/str-util: ends-with
+
+main fut nat(_ str[]) unsafe summon
+	port = "8080"
+	handler http-handler = req =>
+		res = req handle-request
+		info log "{req url} {res status}"
+		res,
+	server = port start-http-server handler
+	drop: server
+	print: "serving on http://localhost:{port}/"
+	()
+
+.handle-request http-response(a http-request) summon
+	path = "site" child-path a.url
+	if content ?= path try-read-file-binary
+		path file-response content
+	else
+		index = path child-path "index.html"
+		if content ?= index try-read-file-binary
+			index file-response content
+		else
+			http-not-found
+
+file-response http-response(path str, content nat8[])
+	200, "OK", (("Content-Type", path.content-type),), content
+
+content-type str(path str)
+	if path ends-with ".html"
+		"text/html"
+	elif path ends-with ".css"
+		"text/css"
+	elif path ends-with ".js"
+		"text/javascript"
+	elif path ends-with ".svg"
+		"image/svg+xml"
+	elif path ends-with ".wasm"
+		"text/wasm"
+	else
+		"text/plain"

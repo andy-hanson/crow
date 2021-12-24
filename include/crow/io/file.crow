@@ -10,7 +10,7 @@ import
 	../bytes-types: new
 	../bool: !, &&, bool, false, new, to-nat64, true
 	../cell: *, cell, new
-	../col/arr: arr, begin-ptr, subscript
+	../col/arr: arr, begin-ptr, new, subscript
 	../col/arr-util: each, map
 	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
 	../col/mut-arr: ~=, move-to-arr, mut-arr, new
@@ -27,7 +27,7 @@ import
 	../range: ..
 	../str: ==, <=>, char, chars, c-str, size-bytes, str
 	../str-conv: finish, interp, to-str, with-str, with-value
-	../str-util: bytes, to-c-str, to-str
+	../str-util: as-str, to-c-str, to-str
 	../private/bootstrap: todo
 	./path: child-path
 	./posix-util: check-errno, check-posix-error
@@ -123,12 +123,13 @@ If you are using the interpreter, this will be the path to `crow`.
 current-executable-path str() summon trusted
 	"/proc/self/exe" read-link
 
-read-file-binary nat8[](path str) summon
-	path.read-file bytes
+# Gets the full contents of the file as a nat8[].
+read-file str(path str) summon trusted
+	path.read-file-binary as-str
 
-# Gets the full contents of the file as a string.
-read-file str(path str) summon
-	if res ?= path try-read-file
+# Gets the full contents of the file as a nat8[].
+read-file-binary nat8[](path str) summon
+	if res ?= path try-read-file-binary
 		res
 	else
 		throw: "file does not exist: {path}"
@@ -168,10 +169,14 @@ write-file void(path str, content str) summon
 Like `read-file`, but returns `none` if the file does not exist.
 Other errors (like permission errors) still throw.
 ###
-try-read-file str?(path str) summon
-	path.to-c-str try-read-file
+try-read-file str?(path str) summon trusted
+	if bytes ?= path.try-read-file-binary
+		bytes.as-str,
 
-.try-read-file str?(path c-str) summon trusted
+try-read-file-binary nat8[]?(path str) summon
+	path.to-c-str try-read-file-binary
+
+.try-read-file-binary nat8[]?(path c-str) summon trusted
 	if path is-file
 		fd = path open O_RDONLY, 0
 		if fd == -1
@@ -185,7 +190,7 @@ try-read-file str?(path str) summon
 			# TODO: this is just a sanity check
 			assert: file-size < 1000000000
 			if file-size == 0
-				"",
+				(),
 			else
 				# Go back to beginning
 				off = fd lseek 0, seek-set
@@ -194,13 +199,13 @@ try-read-file str?(path str) summon
 
 				# TODO: allocation can fail, then 'fd' is left open. Need finalizers
 				file-size-nat = file-size to-nat64
-				res fix-arr char = file-size-nat uninitialized-fix-arr
+				res fix-arr nat8 = file-size-nat uninitialized-fix-arr
 				n-bytes-read = fd read res.begin-ptr.ptr-cast, file-size-nat
 				# TODO: handle errors
 				forbid: n-bytes-read == -1
 				assert: n-bytes-read == file-size
 				check-posix-error: fd close
-				res.cast-immutable.str,
+				res.cast-immutable,
 
 # Gets the current directory (of the user that ran the program).
 current-directory str() summon trusted

@@ -2,7 +2,7 @@ import
 	crow/str-util: join
 	crow/col/dict: map-to-arr, new
 	crow/io/net/http-server: http-handler, start-http-server
-	crow/io/net/http-types: body, headers, http-request, method, new, to-str, url
+	crow/io/net/http-types: request-body, headers, http-request, method, new, to-str, url
 	crow/io/print: print
 
 main fut nat(args str[]) unsafe summon
@@ -21,4 +21,4 @@ main fut nat(args str[]) unsafe summon
 
 .describe-request str(a http-request)
 	h = a.headers map-to-arr (k, v) => "{k}: {v}"
-	"{a method} {a url}\n{h join "\n"}\n\n{a body}"
+	"{a method} {a url}\n{h join "\n"}\n\n{a request-body}"

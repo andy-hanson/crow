@@ -13,7 +13,6 @@ Install these tools (potentially from your operating system's package manager):
 * [`ldc`](https://github.com/ldc-developers/ldc#installation) (used to compile `bin/crow`).
 * [`dmd`](https://dlang.org/download.html#dmd) (used to compile `bin/crow-debug` due to much faster compiles)
 * [`hg`](http://mercurial-scm.org) (used to clone the dyncall library)
-* [`python`](https://www.python.org/) (needed to serve the site locally).
 
 Then run:
 

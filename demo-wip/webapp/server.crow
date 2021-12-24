@@ -1,12 +1,12 @@
 import
 	crow/col/arr-util: each, index-of
-	crow/col/dict: dict, new, subscript
+	crow/col/dict: new, subscript
 	crow/col/fix-arr: fill-fix-arr, fix-arr, map-to-arr-with-index, set-subscript
 	crow/io/file: read-file
 	crow/io/net/http-server: http-handler, start-http-server
 	crow/io/net/http-types:
-		headers, http-bad-query, http-not-found, http-request, http-response, method, new,
-		request-body, url
+		headers, http-bad-query, http-forbidden, http-not-found, http-ok, http-request,
+		http-response, method, request-body-str, url
 	crow/io/print: print
 	crow/str-util: split-by, try-split-once
 	crow/writer: ~=, backup, move-to-str, new, writer
@@ -38,37 +38,36 @@ main fut nat(args str[]) unsafe summon
 	match req method
 	as http-get
 		if path == "/"
-			200, "OK", (), "demo-wip/webapp/index.html".read-file
+			"demo-wip/webapp/index.html".read-file http-ok
 		elif path == "/index.js"
-			200, "OK", (), "demo-wip/webapp/index.js".read-file
+			"demo-wip/webapp/index.js".read-file http-ok
 		elif path == "/posts"
-			200, "OK", (), db.list-posts.format-posts-as-json
+			db.list-posts.format-posts-as-json http-ok
 		elif path == "/user-name"
 			user = (query parse-query ("user",))[0].parse-nat!
-			200, "OK", (), (db user-name user)
+			db user-name user http-ok
 		elif path == "/users"
-			200, "OK", (), db.list-users.format-users-as-json
+			db.list-users.format-users-as-json http-ok
 		else
 			http-not-found
 	as http-post
 		if path == "/register"
-			args = req.request-body parse-query ("user-name", "password")
+			args = req.request-body-str parse-query ("user-name", "password")
 			user-name = args[0]
 			password = args[1]
 			match db register-user user-name, password
 			as register-user-success user-id
 				# We need to get: user-name and password
-				200, "OK", (), "\{\"userId\":{user-id}}"
+				"\{\"userId\":{user-id}}" http-ok
 			as user-already-exists
-				400, "User already exists", (), "User already exists"
+				"User already exists" http-bad-query
 		elif path == "/login"
-			args = req.request-body parse-query ("user-name", "password")
+			args = req.request-body-str parse-query ("user-name", "password")
 			user-name = args[0]
 			password = args[1]
 			match db login user-name, password
 			as ok cookie
-				headers str[str] = ("Set-Cookie", "login={cookie}; Max-Age={cookie-expire-seconds}"),
-				200, "OK", headers, "Logged in as {user-name}"
+				"Logged in as {user-name}" http-ok (("Set-Cookie", "login={cookie}; Max-Age={cookie-expire-seconds}"),)
 			as err e
 				match e
 				as empty-name-or-password
@@ -78,10 +77,10 @@ main fut nat(args str[]) unsafe summon
 		elif path == "/post"
 			if cookie ?= req.headers["Cookie"]
 				user-cookie = (cookie parse-cookies ("login",))[0].parse-user-cookie!
-				post = db add-post user-cookie, req.request-body
-				200, "OK", (), "\{\"postId\":{post}}"
+				post = db add-post user-cookie, req.request-body-str
+				"\{\"postId\":{post}}" http-ok
 			else
-				403, "No login cookie", (), "No login cookie"
+				"No login cookie" http-forbidden
 		else
 			http-not-found
 	#descr = req describe-request

@@ -1,25 +1,26 @@
 no-std
 import
+	errno: EAGAIN, errno
 	unistd: write
 	../../bool: !, bool, false, true
-	../../col/arr: arr, begin-ptr, size, subscript
+	../../col/arr: ~, arr, arr-cast, begin-ptr, is-empty, new, size, subscript
 	../../col/arr-util: rtail
 	../../col/dict: each, in, new
 	../../col/mut-dict: move-to-dict, mut-dict, new, remove-key, set-subscript, subscript
 	../../col/mut-arr: ~=, index-of, move-to-arr, mut-arr, new, pop-n-from-start, size
-	../../compare: !=, <=, >=
-	../../exception: assert, forbid, to-str
-	../../fut: fut, fut-catch, new, subscript, then
+	../../compare: !=, <=, >, >=
+	../../exception: assert, forbid, throw, to-str
+	../../fut: delay, fut, fut-catch, new, subscript, then, then-void
 	../../hash: hash-mix
 	../../log: error, log
 	../../misc: drop, new, void
-	../../number: ==, <=>, +, nat8, nat64, to-int64
+	../../number: ==, <=>, +, nat8, nat64, to-int64, to-nat64
 	../../opt: new, opt, or-default
 	../../extra-types: fd-t
-	../../ptr: ptr-cast
-	../../str: ==, <=>, char, chars, is-empty, size-bytes, str
-	../../str-conv: parse-nat, to-str
-	../../str-util: as-str, has-substr, split-by, try-remove-end
+	../../range: ..
+	../../str: ==, <=>, char, chars, is-empty, str
+	../../str-conv: finish, interp, parse-nat, to-str, with-str, with-value
+	../../str-util: as-str, bytes, has-substr, split-by, try-remove-end
 	../../writer: ~=, move-to-str, new, writer
 	../../private/bootstrap: todo
 	../print: print
@@ -58,7 +59,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	tcp-server = port start-tcp-server (on-accepted-client, on-received-chunk)
 
 	# TODO: KILL
-	ignore <- handler[(http-get, "", (), "")]
+	ignore <- handler[(http-get, "", (), ())]
 	drop: ignore
 
 	(tcp-server.stop,),
@@ -79,20 +80,33 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 			o
 		as err e
 			error log e.to-str
-			500, "Internal server error", (), "Internal server error"
-		res-str = response response-to-str
-		wrote = fd write res-str.chars.begin-ptr.ptr-cast, res-str.size-bytes
-		assert: wrote == res-str.size-bytes.to-int64
+			500, "Internal server error", (), "Internal server error".bytes
+		<- fd write-until-finished response.response-to-arr
 		fd close-client
 		true,
 	else
 		false,
 
-.finish-request http-request(state http-parse-state)
-	state.method, state.url, state.headers.move-to-dict, state.unparsed.move-to-arr.str
+.write-until-finished fut void(fd fd-t, content nat8[]) summon trusted
+	if !content.is-empty
+		wrote = fd write content.begin-ptr, content.size
+		if wrote != content.size.to-int64
+			if wrote == -1
+				err = errno
+				if err == EAGAIN
+					<- delay
+					fd write-until-finished content
+				else
+					"can't write to socket, errno {err}" throw
+			else
+				assert: wrote > 0
+				<- delay
+				fd write-until-finished content[wrote.to-nat64 .. content.size]
 
-# TODO: write out to a stream, not str
-.response-to-str str(a http-response)
+.finish-request http-request(state http-parse-state) trusted
+	state.method, state.url, state.headers.move-to-dict, state.unparsed.move-to-arr.arr-cast@<nat8, char>
+
+.response-to-arr nat8[](a http-response)
 	res writer = ()
 	res ~= "HTTP/1.1 "
 	res ~= a.status to-str
@@ -112,10 +126,9 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	if !a.response-body.is-empty
 		res ~= "\r\n"
 		res ~= "Content-Length: "
-		res ~= a.response-body.size-bytes to-str
+		res ~= a.response-body.size to-str
 	res ~= "\r\n\r\n"
-	res ~= a response-body
-	res move-to-str
+	res.move-to-str.bytes ~ a.response-body
 
 #ok-response str() noctx
 #	"HTTP/1.1 200 OK Feelin' Fine\nShoop: Da Woop\n\nHello, internet world!\n"

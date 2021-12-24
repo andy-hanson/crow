@@ -18,6 +18,7 @@ parent-path str(a str)
 
 # Gets a child of a path.
 child-path str(a str, child_name str)
+	# TODO: ensure child-name doesn't contain "../"
 	"{a}/{child_name}"
 
 # TODO:MOVE

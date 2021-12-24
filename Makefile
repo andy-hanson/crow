@@ -98,8 +98,8 @@ ALL_INCLUDE = include/*.crow include/*/*.crow include/*/*/*.crow include/*/*/*/*
 bin/crow.tar.xz: bin/crow demo/* $(ALL_INCLUDE)
 	tar -C .. -cJf bin/crow.tar.xz crow/bin/crow crow/demo crow/include
 
-prepare-site: bin/crow.wasm bin/crow.tar.xz $(HTMLS)
-	crow run site-src/site.crow
+prepare-site: bin/crow bin/crow.wasm bin/crow.tar.xz
+	bin/crow run site-src/site.crow
 
 serve: prepare-site
-	cd site && python -m SimpleHTTPServer 8080
+	bin/crow run site-src/serve
