@@ -44,7 +44,6 @@ import frontend.parse.lexer :
 	lookaheadWillTakeEqualsOrThen,
 	lookaheadWillTakeArrow,
 	nextToken,
-	peekToken,
 	peekTokenExpression,
 	QuoteKind,
 	range,
@@ -55,12 +54,12 @@ import frontend.parse.lexer :
 	takeName,
 	takeNameAndRange,
 	takeNameOrOperator,
-	takeNameOrOperatorAndRange,
 	takeNameOrUnderscoreOrNone,
 	takeNewlineOrDedentAmount,
 	takeOrAddDiagExpectedToken,
 	takeStringPart,
 	Token,
+	tryTakeNameOrOperatorAndRange,
 	tryTakeOperator,
 	tryTakeToken;
 import frontend.parse.parseType : parseType, parseTypeRequireBracket, tryParseTypeArgsForExpr;
@@ -439,11 +438,12 @@ immutable(ExprAndMaybeNameOrDedent) parseCalls(
 			return immutable ExprAndMaybeNameOrDedent(
 				lhs,
 				immutable OptNameOrDedent(immutable OptNameOrDedent.Comma()));
-	} else if (peekToken(lexer, Token.name) || peekToken(lexer, Token.operator)) {
-		immutable NameAndRange funName = takeNameOrOperatorAndRange(lexer);
-		return parseCallsAfterName(lexer, start, lhs, funName, argCtx);
-	} else
-		return immutable ExprAndMaybeNameOrDedent(lhs, noNameOrDedent());
+	} else {
+		immutable Opt!NameAndRange funName = tryTakeNameOrOperatorAndRange(lexer);
+		return has(funName)
+			? parseCallsAfterName(lexer, start, lhs, force(funName), argCtx)
+			: immutable ExprAndMaybeNameOrDedent(lhs, noNameOrDedent());
+	}
 }
 
 immutable(bool) canParseCommaExpr(ref immutable ArgCtx argCtx) {

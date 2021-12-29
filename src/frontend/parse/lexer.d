@@ -316,21 +316,25 @@ immutable(Sym) takeName(ref Lexer lexer) {
 	return takeNameAndRange(lexer).name;
 }
 
-immutable(NameAndRange) takeNameOrOperatorAndRange(ref Lexer lexer) {
+immutable(Opt!NameAndRange) tryTakeNameOrOperatorAndRange(ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
-	if (tryTakeToken(lexer, Token.name))
-		return immutable NameAndRange(start, getCurSym(lexer));
-	else if (tryTakeToken(lexer, Token.operator)) {
-		return immutable NameAndRange(start, symForOperator(getCurOperator(lexer)));
-	} else {
-		addDiag(lexer, range(lexer, start), immutable ParseDiag(
-			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
-		return immutable NameAndRange(start, shortSym("bogus"));
-	}
+	return tryTakeToken(lexer, Token.name)
+		? some(immutable NameAndRange(start, getCurSym(lexer)))
+		: tryTakeToken(lexer, Token.operator)
+		? some(immutable NameAndRange(start, symForOperator(getCurOperator(lexer))))
+		: none!NameAndRange;
 }
 
 immutable(Sym) takeNameOrOperator(ref Lexer lexer) {
-	return takeNameOrOperatorAndRange(lexer).name;
+	immutable Pos start = curPos(lexer);
+	immutable Opt!NameAndRange res = tryTakeNameOrOperatorAndRange(lexer);
+	if (has(res))
+		return force(res).name;
+	else {
+		addDiag(lexer, range(lexer, start), immutable ParseDiag(
+			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
+		return shortSym("bogus");
+	}
 }
 
 immutable(NameOrUnderscoreOrNone) takeNameOrUnderscoreOrNone(ref Lexer lexer) {
