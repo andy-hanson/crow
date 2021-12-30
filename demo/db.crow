@@ -10,10 +10,7 @@ import
 	crow/serialize: from-bytes, to-bytes
 
 main fut nat(args str[]) unsafe summon
-	command-name = if args is-empty
-		""
-	else
-		args[0]
+	command-name = !args.is-empty ? args[0]
 	if command ?= command-name.parse-command_name
 		match command
 		as get

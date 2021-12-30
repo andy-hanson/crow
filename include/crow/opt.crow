@@ -8,7 +8,7 @@ import
 	./tuple: new, pair
 	./private/bootstrap: char, none, some
 	./private/exception-low-level: throw
-	./private/number-low-level: ==, int64, nat64
+	./private/number-low-level: ==, int64, nat64, new
 export
 	./private/bootstrap: opt
 
@@ -45,9 +45,7 @@ is-empty<a> bool(a a?) noctx
 		true
 
 size<a> nat64(a a?) noctx
-	if a.is-empty
-		0
-	else
+	unless a is-empty
 		1
 
 # Calls `f` on the value in a `some`, or does nothing.

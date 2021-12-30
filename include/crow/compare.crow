@@ -43,17 +43,11 @@ compare<a> spec
 
 # Returns the lesser argument
 min<a> a(a a, b a) noctx compare<a>
-	if a < b
-		a
-	else
-		b
+	a < b ? a : b
 
 # Returns the greater argument
 max<a> a(a a, b a) noctx compare<a>
-	if a < b
-		b
-	else
-		a
+	a < b ? b : a
 
 max<a> a(a a, b a, c a) noctx compare<a>
 	a max b max c
@@ -72,9 +66,4 @@ to-str str(a comparison)
 		"greater"
 
 clamp<a> a(a a, min a, max a) noctx compare<a>
-	if a < min
-		min
-	elif a > max
-		max
-	else
-		a
+	a < min ? min : a > max ? max : a

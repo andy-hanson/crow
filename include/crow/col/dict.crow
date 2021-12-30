@@ -238,10 +238,7 @@ body
 	elif new-child node-is-empty
 		if which == (a.size wrap-sub 1)
 			new-children = a rtail
-			if new-children.size == 1
-				new-children[0]
-			else
-				new-children inner-node
+			new-children.size == 1 ? new-children[0] : new-children.inner-node
 		else
 			new-children = a update which, new-child
 			if child ?= new-children find-only-non-empty-child

@@ -17,7 +17,7 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, o
 	failures = tests flat-map-with-max-size options.max-failures, x =>
 		path-to-crow run-single-crow-test env, x, options
 	if failures is-empty
-		ok: "ran {tests size} tests in {path}"
+		"ran {tests size} tests in {path}" ok
 	else
 		failures err
 
@@ -43,8 +43,7 @@ body
 		if options print-tests
 			print: "crow print {print-kind} {path}"
 		res = print-kind run-print-test path-to-crow, env, path, options.overwrite-output
-		if res should-stop
-			res.failures,
+		res.should-stop ? res.failures,
 	if res ?= op
 		res
 	else
@@ -106,9 +105,7 @@ body
 		"run", path
 	res = path-to-crow spawn-and-wait-result args, env
 	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output
-	stderr-failures failure[] = if res.exit-code == 0 && res.stderr == ""
-		()
-	else
+	stderr-failures failure[] = if res.exit-code != 0 || res.stderr != ""
 		path handle-output ("{path}.stderr"), res.stderr, overwrite-output
 	stdout-failures ~ stderr-failures
 

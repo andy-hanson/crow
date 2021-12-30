@@ -14,9 +14,9 @@ enum-like<a> spec
 	== bool(a a, b a)
 
 to-sym<a> sym(a a) enum-like<a>
+	# TODO: use '??' operator'
 	res = enum-members first-some member =>
-		if member.val == a
-			member.name,
+		member.val == a ? member.name,
 	if name ?= res
 		name
 	else
@@ -24,8 +24,7 @@ to-sym<a> sym(a a) enum-like<a>
 
 to-enum<a> a?(a sym) enum-like<a>
 	enum-members first-some member =>
-		if member.name == a
-			member.val,
+		member.name == a ? member.val,
 
 enum-convert<out, in> out?(a in) enum-like<in> enum-like<out>
 	a.to-sym to-enum

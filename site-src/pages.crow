@@ -37,12 +37,9 @@ tutorial-pages path-and-content[]() summon
 tutorial-nav str()
 	lines = tutorial-metas map x =>
 		key = x key
-		name = if key == "index"
-			"hello"
-		else
-			key
 		url = unless key == "index"
 			"{key}.html"
+		name = key == "index" ? "hello" : key
 		"""<li><a href="/tutorial/{url}">{name}</a></li>"""
 	"<nav><ul>{lines join ""}</ul></nav>"
 

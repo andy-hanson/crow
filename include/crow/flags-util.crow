@@ -22,8 +22,7 @@ is-in<a> bool(a a, b a) flags-like<a>
 
 to-syms<a> sym[](a a) flags-like<a>
 	flags-members flat-map member =>
-		if member.val is-in a
-			member.name,
+		member.val is-in a ? member.name,
 
 flags-to-str<a> str(a a) flags-like<a>
 	a.to-syms map (x => x to-str) join " | "

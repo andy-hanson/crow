@@ -134,10 +134,7 @@ score-cache alias
 				0
 			else
 				-(cache strategy-score new-board, ai-depth - 1)
-			new-strategy = if score <= best.score
-				best
-			else
-				x, score
+			new-strategy = score <= best.score ? best : x, score
 			score, new-strategy
 		else
 			0, best

@@ -502,10 +502,7 @@ test
 
 	h-folded = "" fold h, (cur, key, value) =>
 		pair = "{key} -> {value}"
-		if cur.is-empty
-			pair
-		else
-			"{cur}, {pair}"
+		cur.is-empty ? pair : "{cur}, {pair}"
 	h-folded is "5 -> 5, 10 -> 10b, 15 -> 15, 20 -> 20"
 
 	h-filtered = h filter (k, v) =>

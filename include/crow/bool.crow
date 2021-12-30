@@ -1,7 +1,7 @@
 no-std
 import
 	./compare: comparison
-	./private/number-low-level: ==, <=>, nat64
+	./private/number-low-level: ==, <=>, nat64, new
 export
 	./private/bool-low-level: !, &&, ||, bool, false, true
 
@@ -16,7 +16,4 @@ new bool() noctx
 
 # 0 for false, 1 for true.
 to-nat64 nat64(a bool) noctx
-	if a
-		1
-	else
-		0
+	a ? 1

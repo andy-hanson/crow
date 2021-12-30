@@ -128,9 +128,7 @@ module-content str(a module)
 	"<ul>{members}</ul>"
 
 .field-content str(a record-field)
-	mut-str = if a is-mut
-		" mut"
-	"<li>{a name} {a.type type-ref-content}{mut-str}</li>"
+	"<li>{a name} {a.type type-ref-content}{a.is-mut ? " mut"}</li>"
 
 .sig-content str(a sig)
 	params = a.params map (x => x param-content) join ""

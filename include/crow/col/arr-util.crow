@@ -436,10 +436,7 @@ remove-at<a> a[](a a[], index nat64)
 	a[0 .. index] ~ a[index + 1 .. a.size]
 
 with-max-size<a> a[](a a[], max-size nat64)
-	if a.size <= max-size
-		a
-	else
-		a[0 .. max-size]
+	a.size <= max-size ? a : a[0 .. max-size]
 
 pad-left<a> a[](pad a, a a[], min-size nat64)
 	if a.size < min-size

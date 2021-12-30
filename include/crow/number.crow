@@ -1,7 +1,7 @@
 no-std
 import
-	./bool: &&, ||, bool
-	./compare: <, <=, >, >=
+	./bool: &&, bool
+	./compare: !=, <, <=, >, >=
 	./private/number-low-level:
 		unsafe-div, unsafe-to-int64, unsafe-to-int8, unsafe-to-int16, unsafe-to-int32,
 		unsafe-to-nat64, unsafe-to-nat32, unsafe-mod, wrap-add, wrap-mul, wrap-sub
@@ -78,9 +78,7 @@ is-multiple-of bool(a nat64, b nat64)
 # Multiply two nats. Fail if the result would overflow.
 * nat64(a nat64, b nat64)
 	# TODO: better safety check
-	if a == 0 || b == 0
-		0
-	else
+	if a != 0 && b != 0
 		res = a wrap-mul b
 		assert: res / b == a
 		assert: res / a == b
@@ -97,10 +95,7 @@ Throws if `b == 0`.
 # Like 'a / b' but takes the ceil instead of the floor.
 div-ceil nat64(a nat64, b nat64)
 	res = a / b
-	if res * b == a
-		res
-	else
-		res + 1
+	res + (res * b == a ? 1)
 
 # Remainder of `a / b`.
 mod nat64(a nat64, b nat64) trusted
@@ -112,9 +107,7 @@ mod nat64(a int64, b nat64)
 	forbid: b == 0
 	if a < 0
 		abs-mod = a.abs mod b
-		if abs-mod == 0
-			0
-		else
+		if abs-mod != 0
 			b - abs-mod
 	else
 		a.to-nat64 mod b
@@ -181,9 +174,7 @@ to-int32 int32(a nat64)
 	a.to-int64 to-int32
 
 clamp-to-nat64 nat64(a int64) trusted
-	if a < 0
-		0
-	else
+	if a >= 0
 		a unsafe-to-nat64
 
 clamp-to-int32 int32(a int64) noctx trusted
@@ -221,21 +212,12 @@ wrap-to-nat32 nat32(a nat64) noctx trusted
 
 # Absolute value of an int, as a nat.
 abs nat64(a int64)
-	to-nat64: if a < 0
-		-a
-	else
-		a
+	(a < 0 ? -a : a) to-nat64
 
 abs float32(a float32) noctx
-	if a < 0
-		-a
-	else
-		a
+	a < 0 ? -a : a
 abs float64(a float64) noctx
-	if a < 0
-		-a
-	else
-		a
+	a < 0 ? -a : a
 
 ** nat64(a nat64, b nat64)
 	if b == 0

@@ -150,20 +150,28 @@ immutable(AllowedCalls) allowAllCallsExceptComma() {
 	return immutable AllowedCalls(commaPrecedence);
 }
 
+enum AllowedPrefixCall { no, yes }
+
 struct ArgCtx {
-	// Allow things like 'if', 'match', '\' that continue into an indented block.
+	// Allow 'foo: bar'. Not allowed after a '?' because then this is a ternary 'a ? b : c'.
+	immutable AllowedPrefixCall allowedPrefixCall;
+	// Allow things like 'if' that continue into an indented block.
 	immutable AllowedBlock allowedBlock;
-	// In `a b: c d e`, we parse `a b (c d e) and not `(a b c) d e`, since `: turns on `allowCall`.
 	immutable AllowedCalls allowedCalls;
 }
 
-immutable(ArgCtx) requirePrecedenceGt(ref immutable ArgCtx a, immutable int precedence) {
+immutable(ArgCtx) forbidPrefixCall(immutable ArgCtx a) {
+	return immutable ArgCtx(AllowedPrefixCall.no, a.allowedBlock, a.allowedCalls);
+}
+
+immutable(ArgCtx) requirePrecedenceGt(immutable ArgCtx a, immutable int precedence) {
 	return immutable ArgCtx(
+		a.allowedPrefixCall,
 		a.allowedBlock,
 		immutable AllowedCalls(max(a.allowedCalls.minPrecedenceExclusive, precedence)));
 }
 
-immutable(ArgCtx) requirePrecedenceGtComma(ref immutable ArgCtx a) {
+immutable(ArgCtx) requirePrecedenceGtComma(immutable ArgCtx a) {
 	return requirePrecedenceGt(a, commaPrecedence);
 }
 
@@ -182,28 +190,36 @@ struct ExprAndMaybeDedent {
 struct OptNameOrDedent {
 	@safe @nogc pure nothrow:
 
+	struct Colon {}
 	struct Comma {}
 	struct Dedent { immutable uint dedents; }
 	struct None {}
+	struct Question {}
 
 	immutable this(immutable NameAndRange a) { kind = Kind.name; name = a; }
+	immutable this(immutable Colon a) { kind = Kind.colon; colon = a; }
 	immutable this(immutable Comma a) { kind = Kind.comma; comma = a; }
 	immutable this(immutable Dedent a) { kind = Kind.dedent; dedent = a; }
 	immutable this(immutable None a) { kind = Kind.none; none = a; }
+	immutable this(immutable Question a) { kind = Kind.question; question = a; }
 
 	private:
 	enum Kind {
 		name,
+		colon,
 		comma,
 		dedent,
 		none,
+		question,
 	}
 	immutable Kind kind;
 	union {
 		immutable NameAndRange name;
+		immutable Colon colon;
 		immutable Comma comma;
 		immutable Dedent dedent;
 		immutable None none;
+		immutable Question question;
 	}
 }
 
@@ -215,22 +231,28 @@ immutable(bool) isNone(ref immutable OptNameOrDedent a) {
 	return a.kind == OptNameOrDedent.Kind.none;
 }
 
-T matchOptNameOrDedent(T)(
+immutable(T) matchOptNameOrDedent(T)(
 	ref immutable OptNameOrDedent a,
-	scope T delegate(ref immutable OptNameOrDedent.None) @safe @nogc pure nothrow cbNone,
-	scope T delegate(ref immutable OptNameOrDedent.Comma) @safe @nogc pure nothrow cbComma,
-	scope T delegate(ref immutable NameAndRange) @safe @nogc pure nothrow cbName,
-	scope T delegate(ref immutable OptNameOrDedent.Dedent) @safe @nogc pure nothrow cbDedent,
+	scope immutable(T) delegate(ref immutable OptNameOrDedent.None) @safe @nogc pure nothrow cbNone,
+	scope immutable(T) delegate(ref immutable OptNameOrDedent.Colon) @safe @nogc pure nothrow cbColon,
+	scope immutable(T) delegate(ref immutable OptNameOrDedent.Comma) @safe @nogc pure nothrow cbComma,
+	scope immutable(T) delegate(ref immutable NameAndRange) @safe @nogc pure nothrow cbName,
+	scope immutable(T) delegate(ref immutable OptNameOrDedent.Dedent) @safe @nogc pure nothrow cbDedent,
+	scope immutable(T) delegate(ref immutable OptNameOrDedent.Question) @safe @nogc pure nothrow cbQuestion,
 ) {
 	final switch (a.kind) {
 		case OptNameOrDedent.Kind.none:
 			return cbNone(a.none);
+		case OptNameOrDedent.Kind.colon:
+			return cbColon(a.colon);
 		case OptNameOrDedent.Kind.comma:
 			return cbComma(a.comma);
 		case OptNameOrDedent.Kind.name:
 			return cbName(a.name);
 		case OptNameOrDedent.Kind.dedent:
 			return cbDedent(a.dedent);
+		case OptNameOrDedent.Kind.question:
+			return cbQuestion(a.question);
 	}
 }
 
@@ -272,7 +294,7 @@ immutable(ArrWithSize!ExprAst) parseSubscriptArgs(ref Lexer lexer) {
 		return emptyArrWithSize!ExprAst;
 	else {
 		ArrWithSizeBuilder!ExprAst builder;
-		immutable ArgCtx argCtx = immutable ArgCtx(noBlock(), allowAllCallsExceptComma());
+		immutable ArgCtx argCtx = immutable ArgCtx(AllowedPrefixCall.no, noBlock(), allowAllCallsExceptComma());
 		immutable ArgsAndMaybeNameOrDedent res = parseArgsRecur(lexer, argCtx, builder);
 		if (!tryTakeToken(lexer, Token.bracketRight))
 			addDiagAtChar(lexer, immutable ParseDiag(
@@ -281,7 +303,7 @@ immutable(ArrWithSize!ExprAst) parseSubscriptArgs(ref Lexer lexer) {
 	}
 }
 
-immutable(ArgsAndMaybeNameOrDedent) parseArgsForOperator(ref Lexer lexer, ref immutable ArgCtx ctx) {
+immutable(ArgsAndMaybeNameOrDedent) parseArgsForOperator(ref Lexer lexer, immutable ArgCtx ctx) {
 	immutable ExprAndMaybeNameOrDedent ad = parseExprAndCalls(lexer, ctx);
 	return immutable ArgsAndMaybeNameOrDedent(arrWithSizeLiteral!ExprAst(lexer.alloc, [ad.expr]), ad.nameOrDedent);
 }
@@ -291,6 +313,10 @@ immutable(ArgsAndMaybeNameOrDedent) parseArgs(ref Lexer lexer, immutable ArgCtx 
 		return immutable ArgsAndMaybeNameOrDedent(
 			emptyArrWithSize!ExprAst,
 			immutable OptNameOrDedent(immutable OptNameOrDedent.Comma()));
+	else if (tryTakeToken(lexer, Token.colon))
+		return immutable ArgsAndMaybeNameOrDedent(
+			emptyArrWithSize!ExprAst,
+			immutable OptNameOrDedent(immutable OptNameOrDedent.Colon()));
 	else if (peekTokenExpression(lexer)) {
 		ArrWithSizeBuilder!ExprAst builder;
 		return parseArgsRecur(lexer, ctx, builder);
@@ -313,11 +339,15 @@ immutable(ArgsAndMaybeNameOrDedent) parseArgsRecur(
 		ad.nameOrDedent,
 		(ref immutable OptNameOrDedent.None) =>
 			finish(),
+		(ref immutable OptNameOrDedent.Colon) =>
+			finish(),
 		(ref immutable OptNameOrDedent.Comma) =>
 			parseArgsRecur(lexer, ctx, args),
 		(ref immutable NameAndRange) =>
 			finish(),
 		(ref immutable OptNameOrDedent.Dedent) =>
+			finish(),
+		(ref immutable OptNameOrDedent.Question) =>
 			finish());
 }
 
@@ -439,12 +469,74 @@ immutable(ExprAndMaybeNameOrDedent) parseCalls(
 			return immutable ExprAndMaybeNameOrDedent(
 				lhs,
 				immutable OptNameOrDedent(immutable OptNameOrDedent.Comma()));
+	} else if (tryTakeToken(lexer, Token.question)) {
+		return parseCallsAfterQuestion(lexer, start, lhs, argCtx);
+	} else if (tryTakeToken(lexer, Token.colon)) {
+		return immutable ExprAndMaybeNameOrDedent(lhs, immutable OptNameOrDedent(immutable OptNameOrDedent.Colon()));
 	} else {
 		immutable Opt!NameAndRange funName = tryTakeNameOrOperatorAndRange(lexer);
 		return has(funName)
 			? parseCallsAfterName(lexer, start, lhs, force(funName), argCtx)
 			: immutable ExprAndMaybeNameOrDedent(lhs, noNameOrDedent());
 	}
+}
+
+immutable(ExprAndMaybeNameOrDedent) parseCallsAfterQuestion(
+	ref Lexer lexer,
+	immutable Pos start,
+	ref immutable ExprAst lhs,
+	immutable ArgCtx argCtx,
+) {
+	if (canParseTernaryExpr(argCtx)) {
+		immutable ExprAndMaybeNameOrDedent then = parseExprAndCalls(lexer, forbidPrefixCall(argCtx));
+		immutable(ExprAndMaybeNameOrDedent) stopHere() {
+			return immutable ExprAndMaybeNameOrDedent(
+				immutable ExprAst(range(lexer, start), immutable ExprAstKind(
+					allocate(lexer.alloc, immutable IfAst(lhs, then.expr, none!ExprAst)))),
+				then.nameOrDedent);
+		}
+		return matchOptNameOrDedent!(immutable ExprAndMaybeNameOrDedent)(
+			then.nameOrDedent,
+			(ref immutable OptNameOrDedent.None) =>
+				stopHere(),
+			(ref immutable OptNameOrDedent.Colon) {
+				immutable ExprAndMaybeNameOrDedent else_ = parseExprAndCalls(lexer, forbidPrefixCall(argCtx));
+				immutable(ExprAndMaybeNameOrDedent) stopAfterElse() {
+					return immutable ExprAndMaybeNameOrDedent(
+						immutable ExprAst(
+							range(lexer, start),
+							immutable ExprAstKind(allocate(lexer.alloc, immutable IfAst(lhs, then.expr, some(else_.expr))))),
+						else_.nameOrDedent);
+				}
+				return matchOptNameOrDedent!(immutable ExprAndMaybeNameOrDedent)(
+					else_.nameOrDedent,
+					(ref immutable OptNameOrDedent.None) =>
+						stopAfterElse(),
+					(ref immutable OptNameOrDedent.Colon) =>
+						todo!(immutable ExprAndMaybeNameOrDedent)("!"),
+					(ref immutable OptNameOrDedent.Comma) =>
+						unreachable!(immutable ExprAndMaybeNameOrDedent),
+					(ref immutable(NameAndRange)) =>
+						unreachable!(immutable ExprAndMaybeNameOrDedent),
+					(ref immutable OptNameOrDedent.Dedent) =>
+						unreachable!(immutable ExprAndMaybeNameOrDedent),
+					(ref immutable OptNameOrDedent.Question) =>
+						todo!(immutable ExprAndMaybeNameOrDedent)("!"));
+			},
+			(ref immutable OptNameOrDedent.Comma) =>
+				unreachable!(immutable ExprAndMaybeNameOrDedent),
+			(ref immutable(NameAndRange)) =>
+				unreachable!(immutable ExprAndMaybeNameOrDedent),
+			(ref immutable OptNameOrDedent.Dedent) =>
+				stopHere(),
+			(ref immutable OptNameOrDedent.Question) =>
+				todo!(immutable ExprAndMaybeNameOrDedent)("!"));
+	} else
+		return immutable ExprAndMaybeNameOrDedent(lhs, immutable OptNameOrDedent(immutable OptNameOrDedent.Question()));
+}
+
+immutable(bool) canParseTernaryExpr(ref immutable ArgCtx argCtx) {
+	return ternaryPrecedence > argCtx.allowedCalls.minPrecedenceExclusive;
 }
 
 immutable(bool) canParseCommaExpr(ref immutable ArgCtx argCtx) {
@@ -499,6 +591,8 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterName(
 			args.nameOrDedent,
 			(ref immutable OptNameOrDedent.None) =>
 				stopHere,
+			(ref immutable OptNameOrDedent.Colon) =>
+				stopHere,
 			(ref immutable OptNameOrDedent.Comma) =>
 				canParseCommaExpr(argCtx)
 					? parseCallsAfterComma(lexer, start, expr, argCtx)
@@ -506,7 +600,9 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterName(
 			(ref immutable NameAndRange name) =>
 				parseCallsAfterName(lexer, start, expr, name, argCtx),
 			(ref immutable OptNameOrDedent.Dedent) =>
-				stopHere);
+				stopHere,
+			(ref immutable OptNameOrDedent.Question) =>
+				parseCallsAfterQuestion(lexer, start, expr, argCtx));
 	} else
 		return immutable ExprAndMaybeNameOrDedent(lhs, immutable OptNameOrDedent(funName));
 }
@@ -516,6 +612,7 @@ immutable(int) symPrecedence(immutable Sym a) {
 	return has(operator) ? operatorPrecedence(force(operator)) : 0;
 }
 
+immutable int ternaryPrecedence = -5;
 // This is for the , in `1, 2`, not the comma between args
 immutable int commaPrecedence = -4;
 
@@ -567,7 +664,8 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterSimpleExpr(
 	immutable ArgCtx argCtx,
 ) {
 	immutable ExprAstKind kind = lhs.kind;
-	if (((isCall(kind) && asCall(kind).style == CallAst.Style.single) || isIdentifier(kind))
+	if (argCtx.allowedPrefixCall == AllowedPrefixCall.yes
+		&& ((isCall(kind) && asCall(kind).style == CallAst.Style.single) || isIdentifier(kind))
 		&& tryTakeToken(lexer, Token.colon)) {
 		struct NameAndTypeArgs {
 			immutable NameAndRange name;
@@ -694,7 +792,7 @@ immutable(ExprAndDedent) parseIfRecur(
 	immutable ExprAst optionOrCondition = isOption
 		? parseExprNoBlock(lexer)
 		: assertNoNameOrDedent(parseCallsAfterSimpleExpr(
-			lexer, start, beforeCall, immutable ArgCtx(noBlock(), allowAllCalls())));
+			lexer, start, beforeCall, immutable ArgCtx(AllowedPrefixCall.no, noBlock(), allowAllCalls())));
 	immutable ExprAndDedent thenAndDedent = takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
 		parseStatementsAndExtraDedents(lexer, curIndent + 1));
 	immutable ExprAst then = thenAndDedent.expr;
@@ -987,13 +1085,17 @@ immutable(Opt!uint) assertNoName(immutable OptNameOrDedent a) {
 		a,
 		(ref immutable OptNameOrDedent.None) =>
 			none!uint,
+		(ref immutable OptNameOrDedent.Colon) =>
+			unreachable!(immutable Opt!uint),
 		(ref immutable OptNameOrDedent.Comma) =>
 			unreachable!(immutable Opt!uint),
-		(ref immutable NameAndRange) =>
+		(ref immutable(NameAndRange)) =>
 			// We allowed all calls, so should be no dangling names
 			unreachable!(immutable Opt!uint),
 		(ref immutable OptNameOrDedent.Dedent it) =>
-			some(it.dedents));
+			some(it.dedents),
+		(ref immutable OptNameOrDedent.Question) =>
+			unreachable!(immutable Opt!uint));
 }
 
 immutable(ExprAst) parseExprNoBlock(ref Lexer lexer) {
@@ -1003,11 +1105,11 @@ immutable(ExprAst) parseExprNoBlock(ref Lexer lexer) {
 }
 
 immutable(ExprAndMaybeDedent) parseExprAndAllCalls(ref Lexer lexer, immutable AllowedBlock allowedBlock) {
-	immutable ArgCtx argCtx = immutable ArgCtx(allowedBlock, allowAllCalls());
+	immutable ArgCtx argCtx = immutable ArgCtx(AllowedPrefixCall.yes, allowedBlock, allowAllCalls());
 	return assertNoNameAfter(parseExprAndCalls(lexer, argCtx));
 }
 
-immutable(ExprAndMaybeNameOrDedent) parseExprAndCalls(ref Lexer lexer, ref immutable ArgCtx argCtx) {
+immutable(ExprAndMaybeNameOrDedent) parseExprAndCalls(ref Lexer lexer, immutable ArgCtx argCtx) {
 	immutable Pos start = curPos(lexer);
 	immutable ExprAndMaybeDedent ed = parseExprBeforeCall(lexer, argCtx.allowedBlock);
 	return has(ed.dedents)
@@ -1042,7 +1144,7 @@ immutable(ExprAndDedent) parseSingleStatementLine(ref Lexer lexer, immutable uin
 					lexer,
 					start,
 					expr.expr,
-					immutable ArgCtx(allowBlock(curIndent), allowAllCalls())));
+					immutable ArgCtx(AllowedPrefixCall.yes, allowBlock(curIndent), allowAllCalls())));
 			return addDedent(lexer, fullExpr, curIndent);
 		}
 	}

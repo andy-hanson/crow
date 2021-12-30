@@ -2617,8 +2617,7 @@ program(
 			none
 			[param(a, type(false, nat64)), param(b, type(false, nat64))]
 			cond(
-				call(||, [call(==, [param-ref(a), 0]), call(==, [param-ref(b), 0])])
-				0
+				call(&&, [call(!=, [param-ref(a), 0]), call(!=, [param-ref(b), 0])])
 				let(
 					res
 					call(wrap-mul, [param-ref(a), param-ref(b)])
@@ -2626,7 +2625,15 @@ program(
 						seq(
 							call(assert, [call(==, [call(/, [local-ref(res), param-ref(b)]), param-ref(a)])])
 							call(assert, [call(==, [call(/, [local-ref(res), param-ref(a)]), param-ref(b)])]))
-						local-ref(res)))))
+						local-ref(res)))
+				call(new, [])))
+		fun(
+			noctx
+			!=
+			type(false, bool)
+			none
+			[param(a, type(false, nat64)), param(b, type(false, nat64))]
+			call(!, [call(==, [param-ref(a), param-ref(b)])]))
 		fun(
 			ctx
 			/
@@ -2641,6 +2648,7 @@ program(
 			none
 			[param(condition, type(false, bool))]
 			cond(param-ref(condition), call(throw, [record([arr(0, 3)])]), call(new, [])))
+		fun(noctx, new, type(false, nat64), none, [], 0)
 		fun(
 			noctx
 			set-subscript
@@ -5504,13 +5512,6 @@ program(
 						[
 							call(==, [call(noctx-at, [param-ref(a), param-ref(i)]), param-ref(value)])
 							call(in-recur, [param-ref(value), param-ref(a), call(wrap-add, [param-ref(i), 1])])])]))
-		fun(
-			noctx
-			!=
-			type(false, bool)
-			none
-			[param(a, type(false, nat64)), param(b, type(false, nat64))]
-			call(!, [call(==, [param-ref(a), param-ref(b)])]))
 		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
 		fun(
 			noctx
