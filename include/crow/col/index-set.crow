@@ -8,7 +8,7 @@ import
 	../fun-util: subscript
 	../log: info, log
 	../misc: drop, new, void
-	../opt: is-empty, new, opt, or-default
+	../opt: ??, is-empty, new, opt
 	../ptr: ==, +, *, const-ptr, ptr-to, set-deref
 	../range: .., each
 	../str: ==, str
@@ -113,7 +113,7 @@ in bool(index nat64, a index-set) trusted
 		false
 
 ~ index-set(a index-set, index nat64)
-	a try-add index or-default a
+	a try-add index ?? a
 
 .quadruple-capacity index-set(a index-set)
 	if a.capacity == 0
@@ -172,7 +172,7 @@ try-add index-set?(a index-set, index nat64) trusted
 	a fold indices, (cur, index) => cur ~ index
 
 - index-set(a index-set, index nat64)
-	a try-remove index or-default a
+	a try-remove index ?? a
 
 try-remove index-set?(a index-set, index nat64) trusted
 	if index < a.capacity
@@ -267,7 +267,7 @@ intersect index-set(a index-set, b index-set)
 
 - index-set(a index-set, b index-set)
 	strip-trailing-zeroes: a.values zip-larger b.values, (x, y) =>
-		x or-default 0 bits-diff: y or-default 0
+		(x ?? 0) bits-diff (y ?? 0)
 
 .strip-trailing-zeroes index-set(a nat64[])
 	index-set: void, a.strip-trailing-zeroes

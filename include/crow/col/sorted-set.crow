@@ -5,7 +5,7 @@ import
 	../fun-util: subscript
 	../log: info, log
 	../misc: is-data, new, void
-	../opt: !, new, opt, or-default
+	../opt: !, ??, new, opt
 	../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../range: ..
 	../str: ==, <=>, str
@@ -92,7 +92,7 @@ in<a> bool(value a, a sorted-set a) is-data<a> compare<a>
 		left find-in-add-for-remove value, new-size-right
 
 ~ <a> sorted-set a(a sorted-set a, value a) is-data<a> compare<a>
-	a try-add value or-default a
+	a try-add value ?? a
 
 try-add<a> sorted-set<a>?(a sorted-set a, value a) is-data<a> compare<a>
 	if index ?= a.add find-in-add value
@@ -103,7 +103,7 @@ try-add<a> sorted-set<a>?(a sorted-set a, value a) is-data<a> compare<a>
 		(a add-and-maybe-compact value),
 
 - <a> sorted-set a(a sorted-set a, value a) is-data<a> compare<a>
-	a try-remove value or-default a
+	a try-remove value ?? a
 
 try-remove<a> sorted-set<a>?(a sorted-set a, value a) trusted is-data<a> compare<a>
 	if r ?= a.add find-in-add-for-remove value, 0

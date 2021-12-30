@@ -1660,7 +1660,7 @@ immutable(WriteExprResult) writeSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat32:
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat64:
 			return operator("*");
-		case LowExprKind.SpecialBinary.Kind.or:
+		case LowExprKind.SpecialBinary.Kind.orBool:
 			return writeLogicalOperator(
 				writer,
 				tempAlloc,

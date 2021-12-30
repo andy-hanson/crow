@@ -7,7 +7,7 @@ import
 	../hash: hash-mix
 	../log: info, log
 	../misc: is-data, new, void
-	../opt: !, new, opt, or-default
+	../opt: !, ??, new, opt
 	../ptr: ==, <=>, +, *, const-ptr, mut-ptr, set-deref
 	../str: ==, str
 	../str-conv: to-str
@@ -84,7 +84,7 @@ in<a> bool(value a, a set a) is-data<a> compare<a> hash-mix<a>
 		left find-in-add value
 
 ~ <a> set a(a set a, value a) is-data<a> compare<a> hash-mix<a>
-	a try-add value or-default a
+	a try-add value ?? a
 
 ~ <a> set a(a set a, values a[]) is-data<a> compare<a> hash-mix<a>
 	a fold values, (cur, value) => cur ~ value

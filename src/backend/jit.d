@@ -1513,7 +1513,7 @@ immutable(ExprResult) binaryToGcc(
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat64:
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MULT);
-		case LowExprKind.SpecialBinary.Kind.or:
+		case LowExprKind.SpecialBinary.Kind.orBool:
 			return logicalOperatorToGcc(ctx, emit, LogicalOperator.or, a.left, a.right);
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt16:

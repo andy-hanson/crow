@@ -20,6 +20,7 @@ import lower.lowExprHelpers :
 	genEnumIntersect,
 	genEnumToIntegral,
 	genEnumUnion,
+	genLocal,
 	genVoid,
 	getElementPtrTypeFromArrType,
 	getSizeOf,
@@ -1047,11 +1048,9 @@ immutable(Opt!LowFunIndex) tryGetLowFunIndex(ref const GetLowExprCtx ctx, immuta
 }
 
 immutable(Ptr!LowLocal) addTempLocal(ref Alloc alloc, ref GetLowExprCtx ctx, ref immutable LowType type) {
-	immutable Ptr!LowLocal res = allocate(alloc, immutable LowLocal(
-		immutable LowLocalSource(immutable LowLocalSource.Generated(shortSym("temp"), ctx.tempLocalIndex)),
-		type));
+	immutable size_t index = ctx.tempLocalIndex;
 	ctx.tempLocalIndex++;
-	return res;
+	return genLocal(alloc, shortSym("temp"), index, type);
 }
 
 enum ExprPos {
@@ -1398,7 +1397,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 			immutable ExprPos arg1Pos = () {
 				switch (kind) {
 					case LowExprKind.SpecialBinary.Kind.and:
-					case LowExprKind.SpecialBinary.Kind.or:
+					case LowExprKind.SpecialBinary.Kind.orBool:
 						return exprPos;
 					default:
 						return ExprPos.nonTail;
@@ -1408,6 +1407,29 @@ immutable(LowExprKind) getCallBuiltinExpr(
 				kind,
 				getArg(a.args[0], ExprPos.nonTail),
 				getArg(a.args[1], arg1Pos))));
+		},
+		(ref immutable BuiltinKind.OptOr) {
+			verify(a.args.length == 2);
+			verify(lowTypeEqual(p0, p1));
+			immutable Ptr!LowLocal lhsLocal = addTempLocal(alloc, ctx, p0);
+			immutable LowExpr lhsRef = localRef(alloc, range, lhsLocal);
+			return immutable LowExprKind(allocate(alloc, immutable LowExprKind.Let(
+				lhsLocal,
+				getArg(a.args[0], ExprPos.nonTail),
+				immutable LowExpr(p0, range, immutable LowExprKind(allocate(alloc, immutable LowExprKind.MatchUnion(
+					lhsRef,
+					arrLiteral!(LowExprKind.MatchUnion.Case)(alloc, [
+						immutable LowExprKind.MatchUnion.Case(none!(Ptr!LowLocal), getArg(a.args[1], ExprPos.tail)),
+						immutable LowExprKind.MatchUnion.Case(none!(Ptr!LowLocal), lhsRef)]))))))));
+		},
+		(ref immutable BuiltinKind.OptQuestion2) {
+			verify(a.args.length == 2);
+			immutable Ptr!LowLocal valueLocal = addTempLocal(alloc, ctx, p1);
+			return immutable LowExprKind(allocate(alloc, immutable LowExprKind.MatchUnion(
+				getArg(a.args[0], ExprPos.nonTail),
+				arrLiteral!(LowExprKind.MatchUnion.Case)(alloc, [
+					immutable LowExprKind.MatchUnion.Case(none!(Ptr!LowLocal), getArg(a.args[1], ExprPos.tail)),
+					immutable LowExprKind.MatchUnion.Case(some(valueLocal), localRef(alloc, range, valueLocal))]))));
 		},
 		(ref immutable BuiltinKind.PtrCast) {
 			verify(a.args.length == 1);

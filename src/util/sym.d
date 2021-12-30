@@ -105,6 +105,7 @@ enum Operator {
 	concatEquals,
 	or2,
 	and2,
+	question2,
 	equal,
 	notEqual,
 	less,
@@ -182,6 +183,8 @@ immutable(SafeCStr) strOfOperator(immutable Operator a) {
 			return safeCStr!"||";
 		case Operator.and2:
 			return safeCStr!"&&";
+		case Operator.question2:
+			return safeCStr!"??";
 		case Operator.concatEquals:
 			return safeCStr!"~=";
 		case Operator.equal:

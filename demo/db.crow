@@ -21,7 +21,7 @@ main fut nat(args str[]) unsafe summon
 			db-path with-env (true,), env =>
 				env with-db@<void, str, str> db-name, db =>
 					print: env with-read-transaction txn =>
-						txn get db, key or-default "none"
+						txn get db, key ?? "none"
 		as set
 			named-args = (args.tail parse-named-args ("db-path", "db-name", "key", "value"))!
 			db-path = named-args[0] single-str-or-throw "db-path"

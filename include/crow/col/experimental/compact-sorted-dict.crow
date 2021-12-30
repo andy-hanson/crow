@@ -6,7 +6,7 @@ import
 	../../fun-util: subscript
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, is-even, nat64
-	../../opt: ==, is-empty, new, opt, opt-or
+	../../opt: ==, ||, is-empty, new, opt
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
 	../../range: ..
 	../../str: ==, chars, is-empty, size-bytes, str
@@ -296,7 +296,7 @@ body
 		else
 			end-node
 		took-from-overlays = overlays take-key least-key
-		new-acc = if val ?= took-from-overlays.rightmost-value opt-or val-from-end-node
+		new-acc = if val ?= took-from-overlays.rightmost-value || val-from-end-node
 			f[acc, least-key, val]
 		else
 			acc

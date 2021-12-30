@@ -1223,7 +1223,7 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:
 			fn!fnMulFloat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.or:
+		case LowExprKind.SpecialBinary.Kind.orBool:
 			generateIf(
 				writer, ctx, source, locals, a.left,
 				() { writeBoolConstant(writer, source, true); },

@@ -466,8 +466,8 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "< (ptr)";
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:
 			return "* (float-64)";
-		case LowExprKind.SpecialBinary.Kind.or:
-			return "or";
+		case LowExprKind.SpecialBinary.Kind.orBool:
+			return "or (bool)";
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 			return "- (float-64)";
 		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:

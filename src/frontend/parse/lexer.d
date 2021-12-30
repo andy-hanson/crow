@@ -557,7 +557,11 @@ public enum Token {
 		case '/':
 			return operatorToken(lexer, Operator.divide);
 		case '?':
-			return tryTakeChar(lexer, '=') ? Token.questionEqual : Token.question;
+			return tryTakeChar(lexer, '=')
+				? Token.questionEqual
+				: tryTakeChar(lexer, '?')
+				? operatorToken(lexer, Operator.question2)
+				: Token.question;
 		default:
 			if (isAlphaIdentifierStart(c)) {
 				immutable string nameStr = takeNameRest(lexer, lexer.ptr - 1);

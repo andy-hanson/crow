@@ -6,7 +6,7 @@ import
 	../fun-util: subscript
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, *, nat64
-	../opt: !, ==, is-empty, new, opt, or-default, size
+	../opt: !, ??, ==, is-empty, new, opt, size
 	../ptr: ==, -, *, mut-ptr, set-deref
 	../range: ..
 	../str: ==, chars, str
@@ -311,7 +311,7 @@ set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> com
 	a.pairs each pair =>
 		out ~= pair from
 		out ~= " -> "
-		out ~= pair.to or-default "_"
+		out ~= pair.to ?? "_"
 		out ~= ", "
 	if a.pairs is-empty
 		out ~= "]"

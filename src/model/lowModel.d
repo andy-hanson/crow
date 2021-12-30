@@ -812,7 +812,7 @@ struct LowExprKind {
 			lessNat64,
 			lessPtr,
 			mulFloat64,
-			or,
+			orBool,
 			subFloat64,
 			subPtrAndNat64, // RHS is multiplied by size of pointee first
 			unsafeBitShiftLeftNat64,

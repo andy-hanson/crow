@@ -59,35 +59,14 @@ map<out, in> out?(a in?, f act out(in))
 		f[v],
 
 # Takes the leftmost `some` value.
-opt-or<a> a?(a a?, b a?)
-	if a is-empty
-		b
-	else
-		a
+||<a> a?(a a?, b a?) builtin
 
-# Converts an option to a value by supplying a default to handle `none`.
-or-default<a> a(a a?, default act a())
-	if v ?= a
-		v
-	else
-		default[]
-
-or-default<a> a(a a?, default a)
-	if v ?= a
-		v
-	else
-		default
+# Returns the option's value if it has one, else `default`.
+??<a> a(a a?, default a) builtin
 
 # Converts an option to a value by failing on `none`.
 !<a> a(a a?)
-	a or-throw () => "tried to force empty option"
-
-# TODO: just use `a ?? message.throw`
-or-throw<a> a(a a?, get-message act str())
-	if v ?= a
-		v
-	else
-		get-message[] throw
+	a ?? "tried to force empty option".throw
 
 ###
 If both `a` and `b` are non-empty, combines them using `f`.

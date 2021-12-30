@@ -721,7 +721,7 @@ program(
 									bool
 									file-range(20, range(2101, 2125))
 									binary(
-										"or"
+										"or (bool)"
 										expr(bool, file-range(20, range(2101, 2117)), param-ref(0))
 										expr(
 											bool
@@ -15344,7 +15344,7 @@ program(
 																	bool
 																	file-range(49, range(9156, 9180))
 																	binary(
-																		"or"
+																		"or (bool)"
 																		expr(bool, file-range(49, range(9156, 9166)), param-ref(3))
 																		expr(
 																			bool
@@ -15952,7 +15952,7 @@ program(
 							bool
 							file-range(33, range(4713, 4774))
 							binary(
-								"or"
+								"or (bool)"
 								expr(
 									bool
 									file-range(33, range(4713, 4740))

@@ -5,7 +5,7 @@ import
 	./col/arr-util: first-some
 	./exception: throw
 	./misc: name, named-val, val
-	./opt: new, opt
+	./opt: ??, new, opt
 	./sym: ==, sym, to-str
 	./str: str
 
@@ -14,13 +14,7 @@ enum-like<a> spec
 	== bool(a a, b a)
 
 to-sym<a> sym(a a) enum-like<a>
-	# TODO: use '??' operator'
-	res = enum-members first-some member =>
-		member.val == a ? member.name,
-	if name ?= res
-		name
-	else
-		"Invalid enum value" throw
+	(enum-members first-some x => x.val == a ? x.name,) ?? "Invalid enum value".throw
 
 to-enum<a> a?(a sym) enum-like<a>
 	enum-members first-some member =>

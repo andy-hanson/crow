@@ -21,6 +21,8 @@ struct BuiltinKind {
 	struct CallFunPtr {}
 	struct GetCtx {}
 	struct InitConstants {}
+	struct OptOr {}
+	struct OptQuestion2 {}
 	struct PtrCast {}
 	struct SizeOf {}
 	struct StaticSyms {}
@@ -31,6 +33,8 @@ struct BuiltinKind {
 	immutable this(immutable GetCtx a) { kind_ = Kind.getCtx; getCtx_ = a; }
 	@trusted immutable this(immutable Constant a) { kind_ = Kind.constant; constant_ = a; }
 	immutable this(immutable InitConstants a) { kind_ = Kind.initConstants; initConstants_ = a; }
+	immutable this(immutable OptOr a) { kind_ = Kind.optOr; optOr_ = a; }
+	immutable this(immutable OptQuestion2 a) { kind_ = Kind.optQuestion2; optQuestion2_ = a; }
 	immutable this(immutable LowExprKind.SpecialUnary.Kind a) { kind_ = Kind.unary; unary_ = a; }
 	immutable this(immutable LowExprKind.SpecialBinary.Kind a) { kind_ = Kind.binary; binary_ = a; }
 	immutable this(immutable PtrCast a) { kind_ = Kind.ptrCast; ptrCast_ = a; }
@@ -47,6 +51,8 @@ struct BuiltinKind {
 		initConstants,
 		unary,
 		binary,
+		optOr,
+		optQuestion2,
 		ptrCast,
 		sizeOf,
 		staticSyms,
@@ -61,6 +67,8 @@ struct BuiltinKind {
 		immutable InitConstants initConstants_;
 		immutable LowExprKind.SpecialUnary.Kind unary_;
 		immutable LowExprKind.SpecialBinary.Kind binary_;
+		immutable OptOr optOr_;
+		immutable OptQuestion2 optQuestion2_;
 		immutable PtrCast ptrCast_;
 		immutable SizeOf sizeOf_;
 		immutable StaticSyms staticSyms_;
@@ -68,19 +76,21 @@ struct BuiltinKind {
 	}
 }
 
-@trusted T matchBuiltinKind(T)(
+@trusted immutable(T) matchBuiltinKind(T)(
 	ref immutable BuiltinKind a,
-	scope T delegate(ref immutable BuiltinKind.AllFuns) @safe @nogc pure nothrow cbAllFuns,
-	scope T delegate(ref immutable BuiltinKind.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
-	scope T delegate(ref immutable BuiltinKind.GetCtx) @safe @nogc pure nothrow cbGetCtx,
-	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
-	scope T delegate(ref immutable BuiltinKind.InitConstants) @safe @nogc pure nothrow cbInitConstants,
-	scope T delegate(immutable LowExprKind.SpecialUnary.Kind) @safe @nogc pure nothrow cbUnary,
-	scope T delegate(immutable LowExprKind.SpecialBinary.Kind) @safe @nogc pure nothrow cbBinary,
-	scope T delegate(ref immutable BuiltinKind.PtrCast) @safe @nogc pure nothrow cbPtrCast,
-	scope T delegate(ref immutable BuiltinKind.SizeOf) @safe @nogc pure nothrow cbSizeOf,
-	scope T delegate(ref immutable BuiltinKind.StaticSyms) @safe @nogc pure nothrow cbStaticSyms,
-	scope T delegate(ref immutable BuiltinKind.Zeroed) @safe @nogc pure nothrow cbZeroed,
+	scope immutable(T) delegate(ref immutable BuiltinKind.AllFuns) @safe @nogc pure nothrow cbAllFuns,
+	scope immutable(T) delegate(ref immutable BuiltinKind.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
+	scope immutable(T) delegate(ref immutable BuiltinKind.GetCtx) @safe @nogc pure nothrow cbGetCtx,
+	scope immutable(T) delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
+	scope immutable(T) delegate(ref immutable BuiltinKind.InitConstants) @safe @nogc pure nothrow cbInitConstants,
+	scope immutable(T) delegate(immutable LowExprKind.SpecialUnary.Kind) @safe @nogc pure nothrow cbUnary,
+	scope immutable(T) delegate(immutable LowExprKind.SpecialBinary.Kind) @safe @nogc pure nothrow cbBinary,
+	scope immutable(T) delegate(ref immutable BuiltinKind.OptOr) @safe @nogc pure nothrow cbOptOr,
+	scope immutable(T) delegate(ref immutable BuiltinKind.OptQuestion2) @safe @nogc pure nothrow cbOptQuestion2,
+	scope immutable(T) delegate(ref immutable BuiltinKind.PtrCast) @safe @nogc pure nothrow cbPtrCast,
+	scope immutable(T) delegate(ref immutable BuiltinKind.SizeOf) @safe @nogc pure nothrow cbSizeOf,
+	scope immutable(T) delegate(ref immutable BuiltinKind.StaticSyms) @safe @nogc pure nothrow cbStaticSyms,
+	scope immutable(T) delegate(ref immutable BuiltinKind.Zeroed) @safe @nogc pure nothrow cbZeroed,
 ) {
 	final switch (a.kind_) {
 		case BuiltinKind.Kind.allFuns:
@@ -97,6 +107,10 @@ struct BuiltinKind {
 			return cbUnary(a.unary_);
 		case BuiltinKind.Kind.binary:
 			return cbBinary(a.binary_);
+		case BuiltinKind.Kind.optOr:
+			return cbOptOr(a.optOr_);
+		case BuiltinKind.Kind.optQuestion2:
+			return cbOptQuestion2(a.optQuestion2_);
 		case BuiltinKind.Kind.ptrCast:
 			return cbPtrCast(a.ptrCast_);
 		case BuiltinKind.Kind.sizeOf:
@@ -175,7 +189,11 @@ immutable(BuiltinKind) getBuiltinKind(
 		case operatorSymValue(Operator.and2):
 			return binary(LowExprKind.SpecialBinary.Kind.and);
 		case operatorSymValue(Operator.or2):
-			return binary(LowExprKind.SpecialBinary.Kind.or);
+			return isBool(rt)
+				? binary(LowExprKind.SpecialBinary.Kind.orBool)
+				: immutable BuiltinKind(immutable BuiltinKind.OptOr());
+		case operatorSymValue(Operator.question2):
+			return immutable BuiltinKind(immutable BuiltinKind.OptQuestion2());
 		case shortSymValue("as-ref"):
 			return unary(LowExprKind.SpecialUnary.Kind.asRef);
 		case operatorSymValue(Operator.and1):
@@ -433,8 +451,12 @@ immutable(BuiltinKind) getBuiltinKind(
 
 private:
 
-immutable(bool) isPrimitiveType(ref immutable LowType t, immutable PrimitiveType p) {
-	return isPrimitive(t) && asPrimitive(t) == p;
+immutable(bool) isPrimitiveType(immutable LowType a, immutable PrimitiveType p) {
+	return isPrimitive(a) && asPrimitive(a) == p;
+}
+
+immutable(bool) isBool(immutable LowType a) {
+	return isPrimitiveType(a, PrimitiveType.bool_);
 }
 
 immutable(bool) isChar(immutable LowType a) {
