@@ -9,7 +9,6 @@ import frontend.check.inferringType :
 	addDiag2,
 	bogus,
 	check,
-	CheckedExpr,
 	Expected,
 	ExprCtx,
 	inferred,
@@ -100,7 +99,7 @@ import util.sourceRange : FileAndRange;
 import util.sym : Sym, symEq;
 import util.util : Empty, todo, verify;
 
-immutable(CheckedExpr) checkCall(
+immutable(Expr) checkCall(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -159,7 +158,7 @@ immutable(CheckedExpr) checkCall(
 	immutable FileAndRange diagRange =
 		immutable FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName, ctx.allSymbols));
 
-	immutable CheckedExpr res = () {
+	immutable Expr res = () {
 		if (!has(args) || mutMaxArrSize(candidates) != 1) {
 			if (isEmpty(candidates)) {
 				immutable CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(alloc, ctx, funName);
@@ -182,7 +181,7 @@ immutable(CheckedExpr) checkCall(
 	return res;
 }
 
-immutable(CheckedExpr) checkIdentifierCall(
+immutable(Expr) checkIdentifierCall(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -697,7 +696,7 @@ immutable(Opt!Called) getCalledFromCandidate(
 		return none!Called;
 }
 
-immutable(CheckedExpr) checkCallAfterChoosingOverload(
+immutable(Expr) checkCallAfterChoosingOverload(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref const Candidate candidate,

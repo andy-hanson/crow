@@ -9,7 +9,6 @@ import frontend.check.inferringType :
 	addDiag2,
 	bogus,
 	check,
-	CheckedExpr,
 	copyWithNewExpectedType,
 	Expected,
 	ExprCtx,
@@ -186,15 +185,6 @@ immutable(Expr) checkFunctionBody(
 	return res;
 }
 
-immutable(Expr) checkExpr(
-	ref Alloc alloc,
-	ref ExprCtx ctx,
-	ref immutable ExprAst ast,
-	ref Expected expected,
-) {
-	return checkExprWorker(alloc, ctx, ast, expected).expr;
-}
-
 private:
 
 immutable(T) withLambda(T)(
@@ -255,7 +245,7 @@ immutable(Expr) checkAndExpect(
 	return checkAndExpect(alloc, ctx, ast, immutable Type(expected));
 }
 
-immutable(CheckedExpr) checkArrowAccess(
+immutable(Expr) checkArrowAccess(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -277,7 +267,7 @@ immutable(CheckedExpr) checkArrowAccess(
 	return checkCall(alloc, ctx, range, callName, expected);
 }
 
-immutable(CheckedExpr) checkIf(
+immutable(Expr) checkIf(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -287,12 +277,10 @@ immutable(CheckedExpr) checkIf(
 	immutable Expr cond = checkAndExpect(alloc, ctx, ast.cond, ctx.commonTypes.bool_);
 	immutable Expr then = checkExpr(alloc, ctx, ast.then, expected);
 	immutable Expr else_ = checkExprOrEmptyNew(alloc, ctx, range, ast.else_, expected);
-	return immutable CheckedExpr(immutable Expr(
-		range,
-		allocate(alloc, immutable Expr.Cond(inferred(expected), cond, then, else_))));
+	return immutable Expr(range, allocate(alloc, immutable Expr.Cond(inferred(expected), cond, then, else_)));
 }
 
-immutable(CheckedExpr) checkUnless(
+immutable(Expr) checkUnless(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -302,9 +290,7 @@ immutable(CheckedExpr) checkUnless(
 	immutable Expr cond = checkAndExpect(alloc, ctx, ast.cond, ctx.commonTypes.bool_);
 	immutable Expr else_ = checkExpr(alloc, ctx, ast.body_, expected);
 	immutable Expr then = checkEmptyNew(alloc, ctx, range, expected);
-	return immutable CheckedExpr(immutable Expr(
-		range,
-		allocate(alloc, immutable Expr.Cond(inferred(expected), cond, then, else_))));
+	return immutable Expr(range, allocate(alloc, immutable Expr.Cond(inferred(expected), cond, then, else_)));
 }
 
 immutable(Expr) checkExprOrEmptyNew(
@@ -329,10 +315,10 @@ immutable(Expr) checkEmptyNew(
 		immutable NameAndRange(range.start, shortSym("new")),
 		emptyArrWithSize!TypeAst,
 		emptyArrWithSize!ExprAst);
-	return checkCall(alloc, ctx, range, ast, expected).expr;
+	return checkCall(alloc, ctx, range, ast, expected);
 }
 
-immutable(CheckedExpr) checkIfOption(
+immutable(Expr) checkIfOption(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -359,13 +345,13 @@ immutable(CheckedExpr) checkIfOption(
 			innerType));
 		immutable Expr then = checkWithLocal(alloc, ctx, local, ast.then, expected);
 		immutable Expr else_ = checkExprOrEmptyNew(alloc, ctx, range, ast.else_, expected);
-		return immutable CheckedExpr(immutable Expr(
+		return immutable Expr(
 			range,
-			allocate(alloc, immutable Expr.IfOption(inferred(expected), option, local, then, else_))));
+			allocate(alloc, immutable Expr.IfOption(inferred(expected), option, local, then, else_)));
 	}
 }
 
-immutable(CheckedExpr) checkInterpolated(
+immutable(Expr) checkInterpolated(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -550,7 +536,7 @@ immutable(bool) nameIsParameterOrLocalInScope(ref ExprCtx ctx, immutable Sym nam
 	return has(getIdentifierNonCall(ctx, FileAndRange.empty, name));
 }
 
-immutable(CheckedExpr) checkRef(
+immutable(Expr) checkRef(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable Expr expr,
@@ -579,7 +565,7 @@ immutable(CheckedExpr) checkRef(
 	}
 }
 
-immutable(CheckedExpr) checkIdentifier(
+immutable(Expr) checkIdentifier(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -604,7 +590,7 @@ struct IntRange {
 	immutable long max;
 }
 
-immutable(CheckedExpr) checkLiteral(
+immutable(Expr) checkLiteral(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -617,14 +603,14 @@ immutable(CheckedExpr) checkLiteral(
 		: ctx.commonTypes.bool_; // Just picking a random one that won't match any of the below tests
 	immutable IntegralTypes integrals = ctx.commonTypes.integrals;
 
-	immutable(CheckedExpr) asFloat32(immutable float value) {
+	immutable(Expr) asFloat32(immutable float value) {
 		immutable Expr e = immutable Expr(range, allocate(alloc, immutable Expr.Literal(
 			ctx.commonTypes.float32,
 			immutable Constant(immutable Constant.Float(value)))));
 		return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.float32), e);
 	}
 
-	immutable(CheckedExpr) asFloat64(immutable double value) {
+	immutable(Expr) asFloat64(immutable double value) {
 		immutable Expr e = immutable Expr(range, allocate(alloc, immutable Expr.Literal(
 			ctx.commonTypes.float64,
 			immutable Constant(immutable Constant.Float(value)))));
@@ -632,7 +618,7 @@ immutable(CheckedExpr) checkLiteral(
 	}
 
 	return matchLiteralAst!(
-		immutable CheckedExpr,
+		immutable Expr,
 		(immutable LiteralAst.Float it) {
 			if (it.overflow)
 				todo!void("literal overflow");
@@ -660,8 +646,7 @@ immutable(CheckedExpr) checkLiteral(
 				if (has(intRange)) {
 					if (it.overflow || it.value < force(intRange).min || it.value > force(intRange).max)
 						todo!void("literal overflow");
-					return immutable CheckedExpr(
-						immutable Expr(range, allocate(alloc, immutable Expr.Literal(expectedStruct, constant))));
+					return immutable Expr(range, allocate(alloc, immutable Expr.Literal(expectedStruct, constant)));
 				} else {
 					immutable Expr e = immutable Expr(
 						range,
@@ -697,8 +682,7 @@ immutable(CheckedExpr) checkLiteral(
 				if (has(max)) {
 					if (it.overflow || it.value > force(max))
 						addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.LiteralOverflow(expectedStruct)));
-					return immutable CheckedExpr(
-						immutable Expr(range, allocate(alloc, immutable Expr.Literal(expectedStruct, constant))));
+					return immutable Expr(range, allocate(alloc, immutable Expr.Literal(expectedStruct, constant)));
 				} else {
 					if (it.overflow)
 						todo!void("literal overflow");
@@ -714,7 +698,7 @@ immutable(CheckedExpr) checkLiteral(
 	)(ast);
 }
 
-immutable(CheckedExpr) checkStringLiteral(
+immutable(Expr) checkStringLiteral(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -730,15 +714,13 @@ immutable(CheckedExpr) checkStringLiteral(
 			} else
 				return only(value);
 		}();
-		return immutable CheckedExpr(immutable Expr(
+		return immutable Expr(
 			range,
 			allocate(alloc, immutable Expr.Literal(
 				expectedStruct,
-				immutable Constant(immutable Constant.Integral(char_))))));
+				immutable Constant(immutable Constant.Integral(char_)))));
 	} else if (ptrEquals(expectedStruct, ctx.commonTypes.sym))
-		return immutable CheckedExpr(immutable Expr(
-			range,
-			immutable Expr.SymbolLiteral(symOfStr(ctx.allSymbols, value))));
+		return immutable Expr(range, immutable Expr.SymbolLiteral(symOfStr(ctx.allSymbols, value)));
 	else {
 		immutable Expr e = immutable Expr(range, immutable Expr.StringLiteral(copyStr(alloc, value)));
 		return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.str), e);
@@ -756,7 +738,7 @@ immutable(Expr) checkWithLocal(
 	// Look for a parameter with the name
 	if (nameIsParameterOrLocalInScope(ctx, local.deref().name)) {
 		addDiag2(alloc, ctx, local.deref().range, Diag(Diag.LocalShadowsPrevious(local.deref().name)));
-		return bogus(expected, rangeInFile2(ctx, ast.range)).expr;
+		return bogus(expected, rangeInFile2(ctx, ast.range));
 	} else {
 		Ptr!(MutArr!LocalAndUsed) locals = mutArrIsEmpty(ctx.lambdas)
 			? ptrTrustMe_mut(ctx.messageOrFunctionLocals)
@@ -790,7 +772,7 @@ immutable(Param[]) checkFunOrSendFunParamsForLambda(
 				index));
 }
 
-immutable(CheckedExpr) checkFunPtr(
+immutable(Expr) checkFunPtr(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -849,7 +831,7 @@ immutable(CheckedExpr) checkFunPtr(
 	return check(alloc, ctx, expected, immutable Type(structInst), expr);
 }
 
-immutable(CheckedExpr) checkLambda(
+immutable(Expr) checkLambda(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -859,7 +841,7 @@ immutable(CheckedExpr) checkLambda(
 	return checkLambdaCommon(alloc, ctx, range, ast.params, ast.body_, expected);
 }
 
-immutable(CheckedExpr) checkLambdaCommon(
+immutable(Expr) checkLambdaCommon(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -930,11 +912,11 @@ immutable(CheckedExpr) checkLambdaCommon(
 			instFunStruct,
 			kind,
 			actualPossiblyFutReturnType);
-		return immutable CheckedExpr(immutable Expr(range, allocate(alloc, lambda)));
+		return immutable Expr(range, allocate(alloc, lambda));
 	}
 }
 
-immutable(CheckedExpr) checkLet(
+immutable(Expr) checkLet(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -947,7 +929,7 @@ immutable(CheckedExpr) checkLet(
 		ast.name,
 		init.type));
 	immutable Expr then = checkWithLocal(alloc, ctx, local, ast.then, expected);
-	return immutable CheckedExpr(immutable Expr(range, allocate(alloc, immutable Expr.Let(local, init.expr, then))));
+	return immutable Expr(range, allocate(alloc, immutable Expr.Let(local, init.expr, then)));
 }
 
 immutable(Expr) checkWithOptLocal(
@@ -1027,7 +1009,7 @@ immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type a) {
 					some(immutable EnumOrUnionAndMembers(immutable UnionAndMembers(structInst, it.members)))));
 }
 
-immutable(CheckedExpr) checkMatch(
+immutable(Expr) checkMatch(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -1037,7 +1019,7 @@ immutable(CheckedExpr) checkMatch(
 	immutable ExprAndType matchedAndType = checkAndInfer(alloc, ctx, ast.matched);
 	immutable Opt!EnumOrUnionAndMembers enumOrUnionAndMembers = getEnumOrUnionBody(matchedAndType.type);
 	if (has(enumOrUnionAndMembers))
-		return matchEnumOrUnionAndMembers!(immutable CheckedExpr)(
+		return matchEnumOrUnionAndMembers!(immutable Expr)(
 			force(enumOrUnionAndMembers),
 			(ref immutable EnumAndMembers it) =>
 				checkMatchEnum(alloc, ctx, range, ast, expected, matchedAndType.expr, it.members),
@@ -1054,7 +1036,7 @@ immutable(CheckedExpr) checkMatch(
 	}
 }
 
-immutable(CheckedExpr) checkMatchEnum(
+immutable(Expr) checkMatchEnum(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -1084,13 +1066,11 @@ immutable(CheckedExpr) checkMatchEnum(
 			)(caseAst.local);
 			return checkExpr(alloc, ctx, caseAst.then, expected);
 		});
-		return immutable CheckedExpr(immutable Expr(
-			range,
-			allocate(alloc, immutable Expr.MatchEnum(matched, cases, inferred(expected)))));
+		return immutable Expr(range, allocate(alloc, immutable Expr.MatchEnum(matched, cases, inferred(expected))));
 	}
 }
 
-immutable(CheckedExpr) checkMatchUnion(
+immutable(Expr) checkMatchUnion(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -1116,9 +1096,9 @@ immutable(CheckedExpr) checkMatchUnion(
 			ast.cases,
 			(ref immutable UnionMember member, ref immutable MatchAst.CaseAst caseAst) =>
 				checkMatchCase(alloc, ctx, member, caseAst, expected));
-		return immutable CheckedExpr(immutable Expr(
+		return immutable Expr(
 			range,
-			allocate(alloc, immutable Expr.MatchUnion(matched, matchedUnion, cases, inferred(expected)))));
+			allocate(alloc, immutable Expr.MatchUnion(matched, matchedUnion, cases, inferred(expected))));
 	}
 }
 
@@ -1155,12 +1135,12 @@ immutable(Expr.MatchUnion.Case) checkMatchCase(
 		},
 	)(caseAst.local);
 	immutable Expr then = isBogus(expected)
-		? bogus(expected, rangeInFile2(ctx, caseAst.range)).expr
+		? bogus(expected, rangeInFile2(ctx, caseAst.range))
 		: checkWithOptLocal(alloc, ctx, local, caseAst.then, expected);
 	return immutable Expr.MatchUnion.Case(local, then);
 }
 
-immutable(CheckedExpr) checkSeq(
+immutable(Expr) checkSeq(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -1169,10 +1149,10 @@ immutable(CheckedExpr) checkSeq(
 ) {
 	immutable Expr first = checkAndExpect(alloc, ctx, ast.first, ctx.commonTypes.void_);
 	immutable Expr then = checkExpr(alloc, ctx, ast.then, expected);
-	return immutable CheckedExpr(immutable Expr(range, allocate(alloc, immutable Expr.Seq(first, then))));
+	return immutable Expr(range, allocate(alloc, immutable Expr.Seq(first, then)));
 }
 
-immutable(CheckedExpr) checkThen(
+immutable(Expr) checkThen(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -1194,7 +1174,7 @@ immutable(CheckedExpr) checkThen(
 	return checkCall(alloc, ctx, range, call, expected);
 }
 
-immutable(CheckedExpr) checkThenVoid(
+immutable(Expr) checkThenVoid(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -1213,7 +1193,7 @@ immutable(CheckedExpr) checkThenVoid(
 	return checkCall(alloc, ctx, range, call, expected);
 }
 
-immutable(CheckedExpr) checkTyped(
+immutable(Expr) checkTyped(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
@@ -1230,7 +1210,7 @@ immutable(CheckedExpr) checkTyped(
 	return check(alloc, ctx, expected, type, expr);
 }
 
-immutable(CheckedExpr) checkExprWorker(
+public immutable(Expr) checkExpr(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable ExprAst ast,
@@ -1238,7 +1218,7 @@ immutable(CheckedExpr) checkExprWorker(
 ) {
 	immutable FileAndRange range = rangeInFile2(ctx, ast.range);
 	return matchExprAstKind!(
-		immutable CheckedExpr,
+		immutable Expr,
 		(ref immutable ArrowAccessAst a) =>
 			checkArrowAccess(alloc, ctx, range, a, expected),
 		(ref immutable(BogusAst)) =>
@@ -1264,7 +1244,7 @@ immutable(CheckedExpr) checkExprWorker(
 		(ref immutable MatchAst a) =>
 			checkMatch(alloc, ctx, range, a, expected),
 		(ref immutable ParenthesizedAst a) =>
-			checkExprWorker(alloc, ctx, a.inner, expected),
+			checkExpr(alloc, ctx, a.inner, expected),
 		(ref immutable SeqAst a) =>
 			checkSeq(alloc, ctx, range, a, expected),
 		(ref immutable ThenAst a) =>

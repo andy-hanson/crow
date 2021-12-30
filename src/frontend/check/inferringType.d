@@ -169,11 +169,6 @@ struct InferringTypeArgs {
 	}
 }
 
-// Gets the type system to ensure that we set the expected type.
-struct CheckedExpr {
-	immutable Expr expr;
-}
-
 // Inferring type args are in 'a', not 'b'
 immutable(bool) matchTypesNoDiagnostic(
 	ref Alloc alloc,
@@ -255,9 +250,9 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedType(
 		: none!Type;
 }
 
-immutable(CheckedExpr) bogus(ref Expected expected, immutable FileAndRange range) {
+immutable(Expr) bogus(ref Expected expected, immutable FileAndRange range) {
 	cellSet(expected.type, some(immutable Type(immutable Type.Bogus())));
-	return immutable CheckedExpr(immutable Expr(range, immutable Expr.Bogus()));
+	return immutable Expr(range, immutable Expr.Bogus());
 }
 
 immutable(Type) inferred(ref const Expected expected) {
@@ -265,7 +260,7 @@ immutable(Type) inferred(ref const Expected expected) {
 	return force(opt);
 }
 
-immutable(CheckedExpr) check(
+immutable(Expr) check(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref Expected expected,
@@ -273,7 +268,7 @@ immutable(CheckedExpr) check(
 	ref immutable Expr expr,
 ) {
 	if (setTypeNoDiagnostic(alloc, programState(ctx), expected, exprType))
-		return CheckedExpr(expr);
+		return expr;
 	else {
 		// Failed to set type. This happens if there was already an inferred type.
 		immutable Opt!Type t = tryGetInferred(expected);
