@@ -11,7 +11,6 @@ import
 	time: CLOCK_MONOTONIC
 	../bool: bool
 	../cell: *, cell, new
-	../compare: !=
 	../extra-types: err-t
 	../fun-util: fun-ptr1, subscript
 	../io/time-low-level: timestamp, to-timespec
@@ -153,7 +152,7 @@ spec
 	summon
 body
 	err = tid pthread_create null, thread-fun, thread-arg
-	if err != 0
+	unless err == 0
 		if err == EAGAIN
 			# TODO: warn and make do with the threads it does let us create (so long as there's at least one)
 			todo
@@ -164,7 +163,7 @@ body
 join-one-thread void(tid pthread_t) noctx unsafe summon
 	thread-return by-val cell any-mut-ptr = null,
 	err = tid pthread_join thread-return.ref-of-val
-	if err != 0
+	unless err == 0
 		if err == EINVAL
 			todo
 		elif err == ESRCH

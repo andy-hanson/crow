@@ -5,7 +5,6 @@ import
 	../col/dict: dict, each
 	../col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	../col/mut-arr: ~=, move-to-arr, mut-arr, new
-	../compare: !=
 	../hash: hash-mix
 	../misc: new, void
 	../private/bootstrap: todo
@@ -25,7 +24,7 @@ get-environ environ() summon trusted
 	res move-to-dict
 
 .get-environ-recur void(env c-str*, res str mut[str]) unsafe
-	if *env != null
+	unless *env == null
 		entry = env->parse-environ-entry
 		res[entry from] := entry to
 		env + 1 get-environ-recur res

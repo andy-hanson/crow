@@ -1,7 +1,6 @@
 no-std
 import
-	../bool: !
-	../compare: ==, !=, <, <=, >, compare, comparison, equal, less
+	../compare: ==, <, <=, >, compare, comparison, equal, less
 	../exception: assert, forbid
 	../fun-util: subscript
 	../misc: new, void
@@ -60,13 +59,13 @@ set-sort-by<a, b> void(a a mut[], f act b(a)) compare<b> trusted
 set-sort<a> void(a fix-arr a) compare<a>
 	a set-sort (x, y) => x <=> y
 set-sort<a> void(a fix-arr a, comparer act comparison(a, a)) trusted
-	if !a.is-empty
+	unless a is-empty
 		a.begin-ptr insertion-sort-recur a.begin-ptr + 1, a.end-ptr, comparer
 set-sort-by<a, b> void(a fix-arr a, f act b(a)) compare<b>
 	a set-sort (x, y) => f[x] <=> f[y]
 
 .insertion-sort-recur<a> void(begin a mut*, cur a mut*, end a mut*, comparer act comparison(a, a)) unsafe
-	if cur != end
+	unless cur == end
 		begin insert cur, *cur, comparer
 		begin insertion-sort-recur cur + 1, end, comparer
 

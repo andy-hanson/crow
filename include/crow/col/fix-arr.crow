@@ -1,8 +1,8 @@
 no-std
 import
 	string: memcpy
-	../bool: !, bool
-	../compare: !=, <, <=, equal
+	../bool: bool
+	../compare: <, <=, equal
 	../fun-util: subscript
 	../misc: drop, new, void
 	../opt: new, opt
@@ -123,11 +123,11 @@ unsafe-set-at<a> void(a fix-arr a, index nat64, value a) unsafe
 
 
 first<a> a?(a fix-arr a)
-	if !a.is-empty
+	unless a is-empty
 		a[0],
 
 last<a> a?(a fix-arr a)
-	if !a.is-empty
+	unless a is-empty
 		a[0],
 
 tail<a> fix-arr a(a fix-arr a)
@@ -225,7 +225,7 @@ fold-reverse<a, b> a(acc a, a fix-arr b, f act a(a, b)) trusted
 set-map<a> void(a fix-arr a, f act a(a)) trusted
 	a.begin-ptr set-map-recur a.end-ptr, f
 .set-map-recur<a> void(cur a mut*, end a mut*, f act a(a)) unsafe
-	if cur != end
+	unless cur == end
 		*cur := f[*cur]
 		cur + 1 set-map-recur end, f
 

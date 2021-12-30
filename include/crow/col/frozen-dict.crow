@@ -1,7 +1,7 @@
 no-std
 import
 	../bool: !, &&, ==, bool, false, true
-	../compare: !=, <=, compare, equal
+	../compare: <=, compare, equal
 	../fun-util: subscript
 	../hash: hash, hash-mix
 	../misc: is-data, new, void
@@ -215,7 +215,7 @@ spec
 	unsafe
 	hash-mix<k>
 body
-	if cur != end
+	unless cur == end
 		bucket-index = cur->from get-bucket-index bucket-counts.size
 		bucket-count = bucket-counts unsafe-at bucket-index
 		bucket-start = bucket-starts unsafe-at bucket-index
@@ -246,7 +246,7 @@ spec
 	unsafe
 body
 	*out := acc
-	if out + 1 != out-end
+	unless out + 1 == out-end
 		acc + *read running-sum-recur out + 1, out-end, read + 1
 
 region iteration

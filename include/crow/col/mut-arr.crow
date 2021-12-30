@@ -1,7 +1,7 @@
 no-std
 import
 	string: memcpy, memmove
-	../bool: !, bool
+	../bool: bool
 	../compare: <, <=, >, >=, equal
 	../fun-util: subscript
 	../misc: drop, new, void
@@ -134,11 +134,11 @@ subscript<a> a(a a mut[], index nat64) trusted
 	a.begin-ptr[index]
 
 first<a> a?(a a mut[])
-	if !a.is-empty
+	unless a is-empty
 		a[0],
 
 last<a> a?(a a mut[])
-	if !a.is-empty
+	unless a is-empty
 		a[a.size - 1],
 
 ###
@@ -207,7 +207,7 @@ Removes the last element and returns it.
 Returns `none` if `a` is empty.
 ###
 pop<a> a?(a a mut[]) trusted
-	if !a.is-empty
+	unless a is-empty
 		new-size = a.size wrap-sub 1
 		res = a[new-size]
 		# Ensure GC doesn't hold on to the memory there

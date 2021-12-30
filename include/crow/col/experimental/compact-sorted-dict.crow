@@ -423,7 +423,7 @@ dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
 			else
 				"_"
 			out ~= ", "
-		if !o.pairs.is-empty
+		unless o.pairs is-empty
 			out backup 2
 		out ~= "]"
 	as end-node e

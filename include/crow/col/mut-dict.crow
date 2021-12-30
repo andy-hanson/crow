@@ -1,7 +1,7 @@
 no-std
 import
 	../bool: !, &&, ||, bool
-	../compare: !=, >, >=, compare
+	../compare: >, >=, compare
 	../exception: assert, forbid
 	../fun-util: subscript
 	../hash: hash, hash-mix
@@ -86,7 +86,7 @@ size<k, v> nat64(a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a total-size
 
 subscript<k, v> v?(a v mut[k], key k) trusted is-data<k> compare<k> hash-mix<k>
-	if !a.is-empty
+	unless a is-empty
 		match a.entries[key.hash unsafe-mod a.entries.size]
 		as none
 			()
@@ -219,12 +219,12 @@ fold<a, k, v> a(acc a, a v mut[k], f act a(a, k, v)) is-data<k> compare<k> hash-
 set-filter<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	a.entries.begin-ptr set-filter-recur a.entries.end-ptr, f
 .set-filter-recur<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act bool(k, v)) unsafe
-	if entry-ptr != entry-end
+	unless entry-ptr == entry-end
 		match *entry-ptr
 		as none
 			()
 		as one ar
-			if !f[ar.from, ar.to]
+			unless f[ar.from, ar.to]
 				*entry-ptr := none
 		as many m
 			m set-filter pair => f[pair.from, pair.to]
@@ -253,7 +253,7 @@ move-to-dict<k, v> v[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	a.entries.begin-ptr set-map-values-recur a.entries.end-ptr, f
 .set-map-values-recur<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act v(k, v)) unsafe
-	if entry-ptr != entry-end
+	unless entry-ptr == entry-end
 		match *entry-ptr
 		as none
 			()

@@ -1,6 +1,6 @@
 no-std
 import
-	../../bool: !, bool
+	../../bool: bool
 	../../compare: ==, !=, <, >=, compare, comparison, equal
 	../../fun-util: subscript
 	../../misc: new, void
@@ -45,7 +45,7 @@ binary-search-key<k, v> v?(a pair<k, v>[], key k) trusted compare<k>
 
 binary-search-exact-index<a> nat64?(a a[], value a) trusted compare<a>
 	ptr = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
-	if ptr != null
+	unless ptr == null
 		ptr - a.begin-ptr,
 
 binary-search-exact-ptr<a> a mut*?(a a mut[], compare act comparison(a)) unsafe
@@ -57,7 +57,7 @@ binary-search-exact-ptr<a> a mut*?(a fix-arr a, compare act comparison(a)) unsaf
 
 binary-search-exact-ptr<a> a*?(a a[], value a) compare<a> unsafe
 	res = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
-	if res != null
+	unless res == null
 		res,
 
 binary-search-exact-ptr<a> a*?(a a[], compare act comparison(a)) unsafe
@@ -160,7 +160,7 @@ merge-no-duplicates<a> void(a a mut[], b a mut[], compare act unique-comparison(
 	if a.size < b.size
 		a swap b
 	hard-assert: a.size >= b.size
-	if !b.is-empty
+	unless b is-empty
 		a-old-size = a size
 		a unsafe-set-size (a-old-size wrap-add b.size)
 		a-read = a.begin-ptr.as-const + a-old-size - 1
@@ -185,7 +185,7 @@ body
 	match compare[*a-read, *b-read]
 	as less
 		*a-write := *b-read
-		if b-read != b-begin
+		unless b-read == b-begin
 			a-begin merge-reverse-recur a-read, a-write - 1, b-begin, b-read - 1, compare
 		# Else -- we are done, don't need to touch 'a' any more
 	as greater

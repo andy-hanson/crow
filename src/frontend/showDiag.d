@@ -239,6 +239,8 @@ void writeParseDiag(
 						return "'match'";
 					case ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda:
 						return "lambda";
+					case ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.unless:
+						return "'unless'";
 				}
 			}());
 			writeStatic(writer, " expression must appear in a context where it can be followed by an indented block");
@@ -997,6 +999,10 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected '?'";
 		case Token.questionEqual:
 			return "unexpected '?='";
+		case Token.quoteDouble:
+			return "unexpected '\"'";
+		case Token.quoteDouble3:
+			return "unexpected '\"\"\"'";
 		case Token.record:
 			return "unexpected keyword 'record'";
 		case Token.ref_:
@@ -1017,9 +1023,7 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected keyword 'union'";
 		case Token.unsafe:
 			return "unexpected keyword 'unsafe'";
-		case Token.quoteDouble:
-			return "unexpected '\"'";
-		case Token.quoteDouble3:
-			return "unexpected '\"\"\"'";
+		case Token.unless:
+			return "unexpected keyword 'unless'";
 	}
 }

@@ -465,6 +465,11 @@ struct TypedAst {
 	immutable TypeAst type;
 }
 
+struct UnlessAst {
+	immutable ExprAst cond;
+	immutable ExprAst body_;
+}
+
 struct ExprAstKind {
 	@safe @nogc pure nothrow:
 
@@ -487,6 +492,7 @@ struct ExprAstKind {
 		then,
 		thenVoid,
 		typed,
+		unless,
 	}
 	immutable Kind kind;
 	union {
@@ -507,6 +513,7 @@ struct ExprAstKind {
 		immutable Ptr!ThenAst then;
 		immutable Ptr!ThenVoidAst thenVoid;
 		immutable Ptr!TypedAst typed;
+		immutable Ptr!UnlessAst unless;
 	}
 
 	public:
@@ -527,6 +534,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable Ptr!ThenAst a) { kind = Kind.then; then = a; }
 	@trusted immutable this(immutable Ptr!ThenVoidAst a) { kind = Kind.thenVoid; thenVoid = a; }
 	immutable this(immutable Ptr!TypedAst a) { kind = Kind.typed; typed = a; }
+	immutable this(immutable Ptr!UnlessAst a) { kind = Kind.unless; unless = a; }
 }
 static assert(ExprAstKind.sizeof <= 40);
 
@@ -565,6 +573,7 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	alias cbThen,
 	alias cbThenVoid,
 	alias cbTyped,
+	alias cbUnless,
 )(
 	scope ref immutable ExprAstKind a,
 ) {
@@ -603,6 +612,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbThenVoid(a.thenVoid.deref());
 		case ExprAstKind.Kind.typed:
 			return cbTyped(a.typed.deref());
+		case ExprAstKind.Kind.unless:
+			return cbUnless(a.unless.deref());
 	}
 }
 
@@ -1463,6 +1474,10 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 			reprRecord(alloc, "typed", [
 				reprExprAst(alloc, it.expr),
 				reprTypeAst(alloc, it.type)]),
+		(ref immutable UnlessAst it) =>
+			reprRecord(alloc, "unless", [
+				reprExprAst(alloc, it.cond),
+				reprExprAst(alloc, it.body_)]),
 	)(ast);
 }
 

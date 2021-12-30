@@ -1,7 +1,7 @@
 no-std
 import
 	../../bool: !, ==, bool, false, true
-	../../compare: !=, <=, compare, max
+	../../compare: <=, compare, max
 	../../fun-util: subscript
 	../../hash: hash-mix
 	../../log: info, log
@@ -143,11 +143,11 @@ body
 	res fix-arr pair<k, v?> = l.size wrap-add r.size uninitialized-fix-arr
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>
-		if !(k in r)
+		if k in r
+			cur
+		else
 			*cur := k, vl
 			cur + 1
-		else
-			cur
 	end = mid fold r, (cur, k, vr) =>
 		*cur := k, vr
 		cur + 1
@@ -165,11 +165,11 @@ body
 	res fix-arr pair<k, v> = l.size wrap-add r.size uninitialized-fix-arr
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>
-		if !(k in r)
+		if k in r
+			cur
+		else
 			*cur := k, vl
 			cur + 1
-		else
-			cur
 	end = mid fold r, (cur, k, vr) =>
 		if v ?= vr
 			*cur := k, v
@@ -232,7 +232,7 @@ map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> 
 			else
 				out ~= "_"
 			out ~= ", "
-		if !o.pairs.is-empty
+		unless o.pairs is-empty
 			out backup 2
 		out ~= "]"
 	as end-node e
@@ -242,13 +242,13 @@ map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> 
 			out ~= " -> "
 			out ~= v to-str
 			out ~= ", "
-		if !e.is-empty
+		unless e is-empty
 			out backup 2
 		out ~= "]"
 
 verify void(a compact-dict<nat64, str>, expected str)
 	dbg = a dbg
-	if dbg != expected
+	unless dbg == expected
 		info log "expected:"
 		info log expected
 		info log "but wss:"

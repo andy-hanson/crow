@@ -171,7 +171,7 @@ blue color-32()
 	e.SDL_PollEvent != 0 && (e.type == SDL_Quit || look-for-quit-event)
 
 .handle-sdl-error void(err c-int, description str) summon trusted
-	if err != 0
+	unless err == 0
 		description fail-sdl-error
 
 .fail-sdl-error void(description str) summon trusted
@@ -200,7 +200,7 @@ continue-or-quit enum
 	GL_ARRAY_BUFFER glBufferData vertices.n-bytes.to-int64, vertices.begin-ptr.as-const.ptr-cast, GL_STATIC_DRAW
 	GL_ARRAY_BUFFER glBindBuffer 0
 	err = glGetError
-	if err != GL_NO_ERROR
+	unless err == GL_NO_ERROR
 		n-buffers glDeleteBuffers vbo-cell.as-ptr.as-const
 		"Creating VBO failed: Code {err}" throw
 	vbo
@@ -213,5 +213,5 @@ n-bytes nat(vertices fix-arr vertex) unsafe
 
 .gl-check-error void(desc str) summon
 	err = glGetError
-	if err != GL_NO_ERROR
+	unless err == GL_NO_ERROR
 		"Gl error at {desc}: code {err}" throw

@@ -62,6 +62,7 @@ struct ParseDiag {
 			if_,
 			match,
 			lambda,
+			unless,
 		}
 		immutable Kind kind;
 	}

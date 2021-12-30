@@ -16,10 +16,7 @@ import
 		user-info, user-name
 
 main fut nat(args str[]) unsafe summon
-	if args.size != 1
-		print: "Usage: server PORT"
-		1,
-	else
+	if args.size == 1
 		port = args[0]
 		db = open-real-db
 		handler http-handler = req =>
@@ -30,6 +27,9 @@ main fut nat(args str[]) unsafe summon
 			db close-real-db
 		drop: server
 		()
+	else
+		print: "Usage: server PORT"
+		1,
 
 .handle-request http-response(req http-request, db db) summon
 	su = req.url split-url
@@ -128,7 +128,7 @@ parse-query str[](s str, arg-names str[])
 		res ~= ",\"userName\":\""
 		res ~= user user-name
 		res ~= "\"},"
-	if !users.is-empty
+	unless users is-empty
 		res backup
 	res ~= "]}"
 	res move-to-str
@@ -147,7 +147,7 @@ parse-query str[](s str, arg-names str[])
 		res ~= "\",\"content\":\""
 		res ~= post content
 		res ~= "\"},"
-	if !posts.is-empty
+	unless posts is-empty
 		res backup
 	res ~= "]}"
 	res move-to-str

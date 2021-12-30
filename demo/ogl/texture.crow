@@ -1,7 +1,6 @@
 no-std
 import
 	crow/cell: *, as-ptr, cell, new
-	crow/compare: !=
 	crow/exception: throw
 	crow/io/print: print
 	crow/misc: new, void
@@ -30,7 +29,7 @@ load-texture GLuint(path str) unsafe summon
 		GL_TEXTURE_2D glTexImage2D 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image-data
 
 		err = glGetError
-		if err != GL_NO_ERROR
+		unless err == GL_NO_ERROR
 			"Error loading image {path}: code {err}" throw
 
 		GL_TEXTURE_2D glTexParameteri GL_TEXTURE_MAG_FILTER, GL_LINEAR

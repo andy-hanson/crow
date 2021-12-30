@@ -81,7 +81,7 @@ subscript<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k>
 
 # Adds a key-value pair, replacing any existing one with that key.
 set-subscript<k, v> void(a mut-sorted-dict<k, v>, key k, value v) is-data<k> compare<k>
-	if !(a insert-into-key-match-or-empty-slot key, value)
+	unless a insert-into-key-match-or-empty-slot key, value
 		a add-pair key, value
 
 in<k, v> bool(key k, a mut-sorted-dict<k, v>) trusted is-data<k> compare<k>
@@ -164,7 +164,7 @@ Returns true if it succeeded.
 
 # If there's something here, move it so something else can be inserted.
 .move-right<k, v> void(a pair<k, v?> mut[], index nat64)
-	if !a[index].to.is-empty
+	unless a[index].to is-empty
 		# If this is the last value, push it
 		if index == a.size - 1
 			a ~= a[index]
@@ -190,7 +190,7 @@ remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k
 			old-value = *ptr to
 			*ptr := key, ()
 			old-value
-		if !res.is-empty
+		unless res is-empty
 			a.node-size := a.node-size - 1
 		a compact-if-needed
 		res

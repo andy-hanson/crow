@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, bool
+	../bool: bool
 	../compare: !=, <
 	../exception: assert, forbid
 	../misc: new, void
@@ -33,7 +33,7 @@ arr<a> a[](a mut-deque a) trusted
 	a.fix-arr cast-immutable
 
 fix-arr<a> fix-arr a(a mut-deque a) trusted
-	if !a.is-empty
+	unless a is-empty
 		res fix-arr a = a.size uninitialized-fix-arr
 		res copy-from-deque a
 		res
@@ -50,7 +50,7 @@ size<a> nat64(a mut-deque a) trusted
 	as less
 		a.right - a.left
 	as equal
-		if a.left != null
+		unless a.left == null
 			a.inner size
 	as greater
 		a.inner.end-ptr - a.left wrap-add a.right - a.inner.begin-ptr
@@ -71,11 +71,11 @@ push<a> void(a mut-deque a, value a) trusted
 	a.right := a.right + 1
 
 first<a> a?(a mut-deque a) trusted
-	if a.left != null
+	unless a.left == null
 		*a.left,
 
 last<a> a?(a mut-deque a) trusted
-	if a.right != null
+	unless a.right == null
 		fixed-right = if a.right == a.inner.begin-ptr
 			a.inner end-ptr
 		else
@@ -83,7 +83,7 @@ last<a> a?(a mut-deque a) trusted
 		*(fixed-right - 1),
 
 pop-left<a> a?(a mut-deque a) trusted
-	if a.left != null
+	unless a.left == null
 		res = *a.left
 		*a.left := zeroed
 		a.left := a.left + 1
@@ -96,7 +96,7 @@ pop-left<a> a?(a mut-deque a) trusted
 		res,
 
 pop-right<a> a?(a mut-deque a) trusted
-	if a.right != null
+	unless a.right == null
 		if a.right == a.inner.begin-ptr
 			a.right := a.inner end-ptr
 		a.right := a.right - 1
@@ -148,7 +148,7 @@ pop-right<a> a?(a mut-deque a) trusted
 			out ~= "L-> "
 		out ~= *ptr to-str
 		out ~= " "
-	if !a.inner.is-empty
+	unless a.inner is-empty
 		out backup
 	out move-to-str
 

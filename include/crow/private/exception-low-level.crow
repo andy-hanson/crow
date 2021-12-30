@@ -1,7 +1,7 @@
 no-std
 import
 	setjmp: jmp_buf, __jmp_buf_tag, longjmp, new, setjmp
-	../bool: !, bool
+	../bool: bool
 	../bytes-types: new
 	../col/arr: empty-arr
 	../compare: !=
@@ -72,7 +72,7 @@ throw<a> a(message str) trusted
 
 # Fail if the condition is false.
 assert void(condition bool)
-	if !condition
+	unless condition
 		"assert failed" throw
 
 # Fail if the condition is true.

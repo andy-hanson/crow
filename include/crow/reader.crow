@@ -55,7 +55,7 @@ try-take-str bool(a reader, s str) trusted
 		true
 
 take-nat nat64?(a reader)
-	if !a.is-empty
+	unless a is-empty
 		if first-digit ?= a.peek.char-to-nat64
 			a.next drop
 			(first-digit take-nat-recur a),
@@ -70,7 +70,7 @@ take-nat nat64?(a reader)
 
 take-int int64?(a reader) trusted
 	start = a cur
-	sign = if a.try-take-sign
+	sign = if a try-take-sign
 		+1
 	else
 		-1
@@ -119,7 +119,7 @@ take-quoted-str str?(a reader)
 		res
 
 .take-quoted-str-recur str?(a reader, res char mut[])
-	if !a.is-empty
+	unless a is-empty
 		if a try-take-char "\""
 			res.move-to-arr.str,
 		elif a try-take-char "\\"

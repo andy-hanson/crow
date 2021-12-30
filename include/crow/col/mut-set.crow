@@ -37,7 +37,7 @@ in<a> bool(value a, a mut-set a) is-data<a> compare<a> hash-mix<a>
 
 try-add<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
 	# TODO:PERF do it without two lookups
-	if !(value in a)
+	unless value in a
 		a ~= value
 		true
 

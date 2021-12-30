@@ -335,7 +335,7 @@ contexts:
       scope: comment
 
     # Keywords that are followed by a space
-    - match: '(elif|if|match)\s+'
+    - match: '(elif|if|match|unless)\s+'
       scope: keyword
     # Other keywords
     - match: '(as|else|it)(?=$|<|\,|\s|\}|\.)'

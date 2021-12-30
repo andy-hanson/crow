@@ -151,8 +151,8 @@ run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 
 # TODO: use memset
 .clear-free-mem void(mark-ptr bool mut*, mark-end bool mut*, data-ptr nat64 mut*) noctx unsafe
-	if mark-ptr != mark-end
-		if !*mark-ptr
+	unless mark-ptr == mark-end
+		unless *mark-ptr
 			*data-ptr := 0xfadefadefadefade
 		mark-ptr + 1 clear-free-mem mark-end, data-ptr
 
@@ -199,7 +199,7 @@ get-gc gc() unsafe
 
 # TODO: use memset
 fill-ptr-range<a> void(cur a mut*, end a mut*, value a) noctx unsafe
-	if cur != end
+	unless cur == end
 		*cur := value
 		cur + 1 fill-ptr-range end, value
 
@@ -306,6 +306,6 @@ fill-ptr-range<a> void(begin a mut*, size nat64, f act a(nat64)) unsafe
 	begin fill-ptr-range-recur 0, size, f
 
 .fill-ptr-range-recur<a> void(begin a mut*, i nat64, size nat64, f act a(nat64)) unsafe
-	if i != size
+	unless i == size
 		begin[i] := f[i]
 		begin fill-ptr-range-recur (i wrap-add 1), size, f

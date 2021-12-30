@@ -1,7 +1,7 @@
 no-std
 import
 	../bool: !, &&, ==, bool, false, new, true
-	../compare: !=, <, <=, >, >=, compare
+	../compare: <, <=, >, >=, compare
 	../fun-util: subscript
 	../log: info, log
 	../misc: is-data, new, void
@@ -208,7 +208,7 @@ body
 .merge<a> void(a compactor a, values a[], add-size-here-and-left nat64, remove index-set) unsafe compare<a>
 	n-remove = remove count-range (add-size-here-and-left wrap-sub values.size), add-size-here-and-left
 	n-added = values.size wrap-sub n-remove
-	if n-added != 0
+	unless n-added == 0
 		new-cur = a.cur + n-added
 		remove-index = add-size-here-and-left wrap-sub 1
 		if a.cur.as-const == a.begin
@@ -241,7 +241,7 @@ body
 		else
 			*a-write := *b-read
 			a-write - 1
-		if b-read != b-begin
+		unless b-read == b-begin
 			a-begin merge-recur a-read, new-a-write, b-begin, b-read - 1, (b-remove-index wrap-sub 1), b-remove
 		# Else -- done, everything from 'a' is in place
 	as equal
@@ -268,7 +268,7 @@ body
 	else
 		*a-write := *b-read
 		a-write - 1
-	if b-read != b-begin
+	unless b-read == b-begin
 		new-a-write copy-from-b-recur b-begin, b-read - 1, (b-remove-index wrap-sub 1), b-remove
 
 .finish<a> a[](a compactor a) unsafe
@@ -377,7 +377,7 @@ map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> co
 .dbg<a> str(a sorted-set a) to-str<a>
 	out writer = ()
 	out dbg-add-recur a.add
-	if !a.remove.is-empty
+	unless a.remove is-empty
 		out ~= " - ["
 		a.remove each i =>
 			out ~= i to-str

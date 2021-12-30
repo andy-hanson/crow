@@ -6,7 +6,6 @@ import
 	../cell: as-cell
 	../col/arr: arr, empty-arr, subscript
 	../col/arr-util: map, tail
-	../compare: !=
 	../fun-util: fun-ptr2, subscript
 	../fut: delay, fut, handle-exceptions, then-void
 	../io/process: exit-code
@@ -157,7 +156,7 @@ spec
 	unsafe
 	summon
 body
-	if i != n-threads
+	unless i == n-threads
 		thread-arg-ptr = thread-args-begin + i
 		*thread-arg-ptr := i, gctx
 		thread-ptr = threads + i
@@ -170,6 +169,6 @@ body
 	null
 
 .join-threads-recur void(i nat64, n-threads nat64, threads pthread_t*) noctx unsafe summon
-	if i != n-threads
+	unless i == n-threads
 		threads[i] join-one-thread
 		i wrap-add 1 join-threads-recur n-threads, threads

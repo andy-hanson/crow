@@ -54,7 +54,8 @@ import frontend.parse.ast :
 	ThenAst,
 	ThenVoidAst,
 	TypeAst,
-	TypedAst;
+	TypedAst,
+	UnlessAst;
 import model.constant : Constant;
 import model.diag : Diag;
 import model.model :
@@ -286,6 +287,21 @@ immutable(CheckedExpr) checkIf(
 	immutable Expr cond = checkAndExpect(alloc, ctx, ast.cond, ctx.commonTypes.bool_);
 	immutable Expr then = checkExpr(alloc, ctx, ast.then, expected);
 	immutable Expr else_ = checkExprOrEmptyNew(alloc, ctx, range, ast.else_, expected);
+	return immutable CheckedExpr(immutable Expr(
+		range,
+		allocate(alloc, immutable Expr.Cond(inferred(expected), cond, then, else_))));
+}
+
+immutable(CheckedExpr) checkUnless(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	ref immutable FileAndRange range,
+	ref immutable UnlessAst ast,
+	ref Expected expected,
+) {
+	immutable Expr cond = checkAndExpect(alloc, ctx, ast.cond, ctx.commonTypes.bool_);
+	immutable Expr else_ = checkExpr(alloc, ctx, ast.body_, expected);
+	immutable Expr then = checkEmptyNew(alloc, ctx, range, expected);
 	return immutable CheckedExpr(immutable Expr(
 		range,
 		allocate(alloc, immutable Expr.Cond(inferred(expected), cond, then, else_))));
@@ -1257,5 +1273,7 @@ immutable(CheckedExpr) checkExprWorker(
 			checkThenVoid(alloc, ctx, range, a, expected),
 		(ref immutable TypedAst a) =>
 			checkTyped(alloc, ctx, range, a, expected),
+		(ref immutable UnlessAst a) =>
+			checkUnless(alloc, ctx, range, a, expected),
 	)(ast.kind);
 }

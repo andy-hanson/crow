@@ -4,7 +4,7 @@ import
 	../col/mut-arr:
 		in, mut-arr, mut-arr-by-val-with-capacity-from-unmanaged-memory,
 		noctx-must-remove-unordered, push-capacity-must-be-sufficient
-	../compare: !=, <=
+	../compare: <=
 	../io/time-low-level: timestamp
 	../misc: new, void
 	../opt: is-empty, new, opt
@@ -79,7 +79,7 @@ pop-task pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 	res
 
 to-opt-time timestamp?(a timestamp) noctx
-	if a != no-timestamp
+	unless a == no-timestamp
 		a,
 
 return-task void(a task-queue, task task) noctx unsafe

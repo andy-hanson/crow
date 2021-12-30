@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, bool, false, new, true
+	../bool: bool, false, new, true
 	../compare: !=, <, >, equal, min
 	../exception: assert, forbid
 	../fun-util: subscript
@@ -211,7 +211,7 @@ Concatenate an array to a list.
 This is O(1).
 ###
 ~ <a> list a(a list a, b a[])
-	prev list<a>? = if !a.is-empty
+	prev list<a>? = unless a is-empty
 		a,
 	prev, b
 

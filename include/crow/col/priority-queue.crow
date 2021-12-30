@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, &&, bool, false, true
+	../bool: &&, bool, false, true
 	../compare: <, >, <=, compare
 	../fun-util: subscript
 	../misc: is-data, new, void
@@ -52,7 +52,7 @@ new<k, v> priority-queue<k, v>() is-data<k> compare<k>
 	(),
 
 priority-queue<k, v> priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
-	if !a.is-empty
+	unless a is-empty
 		sorted = a sort-by pair => pair from
 		((sorted.first!, sorted.tail, ()),),
 
@@ -198,13 +198,13 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 	res move-to-str
 .dbg-recur void(out writer, a node<nat64, str>?, first bool)
 	if node ?= a
-		if !first
+		unless first
 			out ~= "; "
 		out ~= node.min from
 		out ~= " "
 		out ~= node.min to
 		out ~= " ["
-		if !node.pairs.is-empty
+		unless node.pairs is-empty
 			node.pairs each pair =>
 				out ~= pair from
 				out ~= " "

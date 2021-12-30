@@ -51,7 +51,8 @@ import frontend.parse.ast :
 	ThenAst,
 	ThenVoidAst,
 	TypeAst,
-	TypedAst;
+	TypedAst,
+	UnlessAst;
 import model.model : Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : ArrWithSize, empty, toArr;
@@ -556,6 +557,10 @@ void addExprTokens(
 		(ref immutable TypedAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.expr);
 			addTypeTokens(alloc, tokens, allSymbols, it.type);
+		},
+		(ref immutable UnlessAst it) {
+			addExprTokens(alloc, tokens, allSymbols, it.cond);
+			addExprTokens(alloc, tokens, allSymbols, it.body_);
 		},
 	)(a.kind);
 }

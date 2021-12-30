@@ -159,7 +159,7 @@ try-add index-set?(a index-set, index nat64) trusted
 		bit-index = index bit-index
 		word = l.values[word-index]
 		new-word = word add-bit bit-index
-		if new-word != word
+		unless new-word == word
 			(l update-leaf word-index, new-word).leaf,
 	as empty
 		new-node = if n == bits-in-leaf-node
@@ -211,7 +211,7 @@ try-remove index-set?(a index-set, index nat64) trusted
 		bit-index = index bit-index
 		word = l.values[word-index]
 		new-word = word sub-bit bit-index
-		if new-word != word
+		unless new-word == word
 			if new-word == 0
 				empty,
 			else
@@ -396,7 +396,7 @@ to-str str(a index-set)
 	a each x =>
 		out ~= x to-str
 		out ~= ", "
-	if !a.is-empty
+	unless a is-empty
 		out backup 2
 	out ~= "]"
 	out move-to-str
@@ -479,7 +479,7 @@ map-to-arr<a> a[](a index-set, f act a(nat64)) trusted
 
 .verify void(a index-set, expected str, expected-arr nat64[])
 	actual = a.dbg
-	if actual != expected
+	unless actual == expected
 		info log "a.dbg is"
 		info log a.dbg
 		info log "but expected"

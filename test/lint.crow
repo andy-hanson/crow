@@ -22,7 +22,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 .list-lintable-files str[](path str) summon
 	res str mut[] = ()
 	path each-child-recursive (child => !child.excluded-from-lint), child =>
-		if !child.base-name.should-ignore-extension-of-name
+		unless child.base-name should-ignore-extension-of-name
 			res ~= child
 	res move-to-arr
 

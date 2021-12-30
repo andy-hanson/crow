@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: !, ==, bool, false, new, true
+	./bool: ==, bool, false, new, true
 	./col/arr: arr, arr-equal, is-empty, new
 	./col/arr-util: each
 	./col/dict: dict, dict-equal, each, is-empty, new, subscript
@@ -138,7 +138,7 @@ to-str str(a json)
 		xs each x =>
 			out to-str-recur x
 			out ~= ","
-		if !xs.is-empty
+		unless xs is-empty
 			out backup
 		out ~= "]"
 	as json-object o
@@ -148,7 +148,7 @@ to-str str(a json)
 			out ~= ":"
 			out to-str-recur value
 			out ~= ","
-		if !o.is-empty
+		unless o is-empty
 			out backup
 		out ~= "}"
 

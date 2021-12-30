@@ -3,7 +3,6 @@ import
 	./bool: ||
 	./col/arr: arr, size, subscript
 	./col/fix-arr: fill-fix-arr, set-subscript, subscript
-	./compare: !=
 	./io/time-low-level: get-monotime-nsec
 	./misc: new, void
 	./ptr: as-ref
@@ -35,7 +34,7 @@ perf-now perf-time() noctx
 perf-measure void(start perf-time, name str)
 	perf = get-perf-ctx
 	index = perf.measure-names find-index name
-	if index != perf.measure-names.size
+	unless index == perf.measure-names.size
 		ns = perf-now.ns wrap-sub start.ns
 		old = perf.measure-values[index]
 		perf.measure-values[index] := (old.count wrap-add 1), (old.total-ns wrap-add ns)

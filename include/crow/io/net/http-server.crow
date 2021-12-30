@@ -2,13 +2,13 @@ no-std
 import
 	errno: EAGAIN, errno
 	unistd: write
-	../../bool: !, bool, false, true
+	../../bool:  bool, false, true
 	../../col/arr: ~, arr, arr-cast, begin-ptr, is-empty, new, size, subscript
 	../../col/arr-util: rtail
 	../../col/dict: each, in, new
 	../../col/mut-dict: move-to-dict, mut-dict, new, remove-key, set-subscript, subscript
 	../../col/mut-arr: ~=, index-of, move-to-arr, mut-arr, new, pop-n-from-start, size
-	../../compare: !=, <=, >, >=
+	../../compare: <=, >, >=
 	../../exception: assert, forbid, throw, to-str
 	../../fut: delay, fut, fut-catch, new, subscript, then, then-void
 	../../hash: hash-mix
@@ -67,11 +67,11 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 # Returns true when closed client
 .handle-chunk fut bool(fd fd-t, state http-parse-state, chunk str, handler http-handler) summon trusted
 	state.unparsed ~= chunk chars
-	finished-request = if state.content-length != 0
+	finished-request = if state.content-length == 0
+		state handle-http-initial
+	else
 		assert: state.unparsed.size <= state.content-length
 		state.unparsed.size >= state.content-length
-	else
-		state handle-http-initial
 
 	if finished-request
 		handler-response <- handler[state finish-request] fut-catch
@@ -88,9 +88,9 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		false,
 
 .write-until-finished fut void(fd fd-t, content nat8[]) summon trusted
-	if !content.is-empty
+	unless content is-empty
 		wrote = fd write content.begin-ptr, content.size
-		if wrote != content.size.to-int64
+		unless wrote == content.size.to-int64
 			if wrote == -1
 				err = errno
 				if err == EAGAIN
@@ -123,7 +123,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		res ~= ": "
 		res ~= v
 	forbid: "Content-Length" in a.headers
-	if !a.response-body.is-empty
+	unless a.response-body is-empty
 		res ~= "\r\n"
 		res ~= "Content-Length: "
 		res ~= a.response-body.size to-str

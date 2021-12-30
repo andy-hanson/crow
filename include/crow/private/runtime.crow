@@ -1,7 +1,7 @@
 no-std
 import
 	../col/arr: arr, noctx-at, size, subscript
-	../compare: !=, >, min
+	../compare: >, min
 	../exception: exception, to-str
 	../io/print: print-err, print-err-no-newline
 	../io/time-low-level: get-monotime-nsec, timestamp
@@ -305,7 +305,7 @@ body
 		as ptr-no-task n
 			n tii-no-task
 
-	if !res.is-no-task
+	unless res is-no-task
 		island.n-threads-running := island.n-threads-running wrap-add 1
 
 	island.tasks-lock.ref-of-val release
@@ -314,7 +314,7 @@ body
 
 
 .assert-islands-are-shut-down void(i nat64, islands island[]) noctx unsafe
-	if i != islands.size
+	unless i == islands.size
 		island = islands noctx-at i
 
 		island.tasks-lock.ref-of-val acquire

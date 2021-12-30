@@ -8,14 +8,14 @@ import
 	unistd: close, getcwd, lseek, read, readlink, rmdir, unlink, write
 	../bits: &, |, <<
 	../bytes-types: new
-	../bool: !, &&, bool, false, new, to-nat64, true
+	../bool: !, ||, bool, false, new, to-nat64, true
 	../cell: *, cell, new
 	../col/arr: arr, begin-ptr, new, subscript
 	../col/arr-util: each, map
 	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
 	../col/mut-arr: ~=, move-to-arr, mut-arr, new
 	../col/sort: sort
-	../compare: !=, <
+	../compare: <
 	../exception: assert, forbid, throw
 	../fun-util: subscript
 	../misc: new, void
@@ -98,10 +98,10 @@ names-in-dir str[](path str) summon
 	err = dirp readdir_r entry, result
 	# TODO: handle error
 	assert: err == 0
-	if result->as-any-const-ptr != null
+	unless result->as-any-const-ptr == null
 		assert: *result ref-eq entry
 		name = entry.get-dirent-name
-		if name != "." && name != ".."
+		unless name == "." || name == ".."
 			res ~= entry.get-dirent-name
 		dirp names-in-dir-recur res
 
@@ -155,14 +155,14 @@ write-file void(path str, content str) summon
 		todo
 	else
 		wrote-bytes = fd write content.chars.begin-ptr.ptr-cast, content.size-bytes
-		if wrote-bytes != content.size-bytes.to-int64
+		unless wrote-bytes == content.size-bytes.to-int64
 			if wrote-bytes == -1
 				todo
 			else
 				# didn't write all the bytes?
 				todo
 		err = fd close
-		if err != 0
+		unless err == 0
 			todo
 
 ###
@@ -180,7 +180,7 @@ try-read-file-binary nat8[]?(path str) summon
 	if path is-file
 		fd = path open O_RDONLY, 0
 		if fd == -1
-			if errno != ENOENT
+			unless errno == ENOENT
 				print: "failed to open file {path}"
 				todo
 		else
@@ -225,7 +225,7 @@ current-directory str() summon trusted
 		s,
 	else
 		assert: err == -1
-		if errno != ENOENT
+		unless errno == ENOENT
 			todo
 
 ###

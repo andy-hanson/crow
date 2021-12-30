@@ -40,7 +40,7 @@ Calls `f` for each element in `a`.
 each<a> void(a a[], f act void(a)) trusted
 	a.begin-ptr each-recur a.end-ptr, f
 .each-recur<a> void(cur a*, end a*, f act void(a)) unsafe
-	if cur != end
+	unless cur == end
 		f[*cur]
 		cur + 1 each-recur end, f
 
@@ -51,14 +51,14 @@ Calls `f` for each element in `a`, also providing the index.
 each-with-index<a> void(a a[], f act void(a, nat64))
 	a each-with-index-recur f, 0
 .each-with-index-recur<a> void(a a[], f act void(a, nat64), n nat64)
-	if n != a.size
+	unless n == a.size
 		f[a[n], n]
 		a each-with-index-recur f, n + 1
 
 each-ptr<a> void(a a[], f act void(a*)) unsafe
 	a.begin-ptr each-ptr-recur a.end-ptr, f
 .each-ptr-recur<a> void(cur a*, end a*, f act void(a*)) unsafe
-	if cur != end
+	unless cur == end
 		f[cur]
 		cur + 1 each-ptr-recur end, f
 
@@ -124,15 +124,15 @@ map-with-index<out, in> out[](a in[], f act out(in, nat64))
 
 flat-map<out, in> out[](a in[], f act out[](in))
 	# TODO:PERF use a mut-arr
-	if !a.is-empty
+	unless a is-empty
 		f[a[0]] ~ (a.tail flat-map f)
 
 first<a> a?(a a[])
-	if !a.is-empty
+	unless a is-empty
 		a[0],
 
 last<a> a?(a a[])
-	if !a.is-empty
+	unless a is-empty
 		a[a.size - 1],
 
 ###
@@ -156,7 +156,7 @@ Calls `f` on each element of `a` and returns the first result that is `some`.
 Returns `none` if every call to `f` returned `none`.
 ###
 first-some<out, in> out?(a in[], f act out?(in))
-	if !a.is-empty
+	unless a is-empty
 		res = f[a[0]]
 		if res is-empty
 			a.tail first-some f
@@ -189,7 +189,7 @@ test
 try-remove<a> a[]?(a a[], value a) equal<a>
 	a try-remove-recur 0, value
 .try-remove-recur<a> a[]?(a a[], index nat64, value a) equal<a>
-	if index != a.size
+	unless index == a.size
 		if a[index] == value
 			(a remove-index index),
 		else
@@ -264,14 +264,14 @@ index-of-subseq<a> nat64?(a a[], subseq a[]) equal<a> equal<a[]>
 	a index-of-subseq-recur subseq, 0
 # TODO: equal<a[]> should be unnecessary
 .index-of-subseq-recur<a> nat64?(a a[], subseq a[], i nat64) equal<a> equal<a[]>
-	if i != a.size
+	unless i == a.size
 		if a[i .. a.size] starts-with subseq
 			i,
 		else
 			a index-of-subseq-recur subseq, i + 1
 
 find<a> a?(a a[], f act bool(a))
-	if !a.is-empty
+	unless a is-empty
 		if f[a[0]]
 			a[0],
 		else
@@ -283,7 +283,7 @@ Returns the first index for which `f[a[i]]` is true, or returns `none`.
 find-index<a> nat64?(a a[], f act bool(a))
 	a find-index-recur 0, f
 .find-index-recur<a> nat64?(a a[], index nat64, f act bool(a))
-	if index != a.size
+	unless index == a.size
 		if f[a[index]]
 			index,
 		else
@@ -293,7 +293,7 @@ find-index<a> nat64?(a a[], f act bool(a))
 Like `find-index`, but starts from the end.
 ###
 find-rindex<a> nat64?(a a[], f act bool(a))
-	if !a.is-empty
+	unless a is-empty
 		a find-rindex-recur a.size - 1, f
 .find-rindex-recur<a> nat64?(a a[], index nat64, f act bool(a))
 	if f[a[index]]
@@ -313,7 +313,7 @@ index-of<a> nat64?(a a[], value a) trusted equal<a>
 ptr-of<a> a*?(a a[], value a) unsafe equal<a>
 	a.begin-ptr ptr-of-recur a.end-ptr, value
 .ptr-of-recur<a> a*?(cur a*, end a*, value a) unsafe equal<a>
-	if cur != end
+	unless cur == end
 		if *cur == value
 			cur,
 		else

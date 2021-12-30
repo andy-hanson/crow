@@ -29,7 +29,8 @@ import frontend.parse.ast :
 	ThenAst,
 	ThenVoidAst,
 	TypeAst,
-	TypedAst;
+	TypedAst,
+	UnlessAst;
 import frontend.parse.lexer :
 	addDiag,
 	addDiagAtChar,
@@ -673,11 +674,7 @@ immutable(uint) parseMatchCases(
 		return 0;
 }
 
-immutable(ExprAndDedent) parseIf(
-	ref Lexer lexer,
-	immutable Pos start,
-	immutable uint curIndent,
-) {
+immutable(ExprAndDedent) parseIf(ref Lexer lexer, immutable Pos start, immutable uint curIndent) {
 	return parseIfRecur(lexer, start, curIndent);
 }
 
@@ -719,6 +716,17 @@ immutable(ExprAndDedent) parseIfRecur(
 			has(else_.expr) ? some(force(else_.expr)) : none!ExprAst)))
 		: immutable ExprAstKind(allocate(lexer.alloc, immutable IfAst(optionOrCondition, then, else_.expr)));
 	return immutable ExprAndDedent(immutable ExprAst(range(lexer, start), kind), else_.dedents);
+}
+
+immutable(ExprAndDedent) parseUnless(ref Lexer lexer, immutable Pos start, immutable uint curIndent) {
+	immutable ExprAst cond = parseExprNoBlock(lexer);
+	immutable ExprAndDedent thenAndDedent = takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
+		parseStatementsAndExtraDedents(lexer, curIndent + 1));
+	return immutable ExprAndDedent(
+		immutable ExprAst(
+			range(lexer, start),
+			immutable ExprAstKind(allocate(lexer.alloc, immutable UnlessAst(cond, thenAndDedent.expr)))),
+		thenAndDedent.dedents);
 }
 
 immutable(ExprAndDedent) takeIndentOrFail_ExprAndDedent(
@@ -893,6 +901,10 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 				return handlePrefixOperator(lexer, allowedBlock, start, getCurOperator(lexer));
 		case Token.literal:
 			return handleLiteral(lexer, start, getCurLiteral(lexer));
+		case Token.unless:
+			return isAllowBlock(allowedBlock)
+				? toMaybeDedent(parseUnless(lexer, start, asAllowBlock(allowedBlock).curIndent))
+				: exprBlockNotAllowed(lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.unless);
 		default:
 			addDiagUnexpectedCurToken(lexer, start, token);
 			return skipRestOfLineAndReturnBogusNoDiag(lexer, start);

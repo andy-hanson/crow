@@ -118,7 +118,7 @@ body
 	res move-to-str
 
 .remove-colors-recur void(s str, out writer)
-	if !s.is-empty
+	unless s is-empty
 		if rest ?= s try-remove-start "\x1b"
 			rest remove-colors-recur-2 out
 		else
@@ -126,7 +126,7 @@ body
 			s.chars.tail.str remove-colors-recur out
 
 .remove-colors-recur-2 void(s str, out writer)
-	if !s.is-empty
+	unless s is-empty
 		if rest ?= s try-remove-start "m"
 			rest remove-colors-recur out
 		else

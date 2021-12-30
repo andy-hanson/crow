@@ -1,7 +1,7 @@
 no-std
 import
 	../bool: !, ==, bool, false, new, true
-	../compare: !=, <=, >, >=, compare
+	../compare: <=, >, >=, compare
 	../exception: assert
 	../fun-util: subscript
 	../hash: hash-mix
@@ -189,8 +189,8 @@ body
 .push<a> void(a compactor a, here frozen-set a, add-size-here-and-left nat64, remove index-set) unsafe
 	a push-recur here.begin-ptr, here.end-ptr, add-size-here-and-left, remove
 .push-recur<a> void(a compactor a, cur a*, end a*, remove-index nat64, remove index-set) unsafe
-	if cur != end
-		if !(remove-index in remove)
+	unless cur == end
+		unless remove-index in remove
 			*a.cur := *cur
 			a.cur := a.cur + 1
 		a push-recur cur + 1, end, (remove-index wrap-add 1), remove
@@ -241,7 +241,7 @@ map-to-arr<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<i
 .dbg<a> str(a set a) to-str<a>
 	out writer = ()
 	out dbg-add-recur a.add
-	if !a.remove.is-empty
+	unless a.remove is-empty
 		out ~= " - ["
 		a.remove each i =>
 			out ~= i to-str
@@ -267,7 +267,7 @@ map-to-arr<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<i
 
 .verify void(a set nat64, expected str)
 	dbg = a dbg
-	if dbg != expected
+	unless dbg == expected
 		info log "expected:"
 		info log expected
 		info log "but was:"

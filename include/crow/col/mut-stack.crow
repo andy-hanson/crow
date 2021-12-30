@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, bool
+	../bool: bool
 	../misc: void
 	../opt: new, opt
 	./arr: arr
@@ -35,7 +35,7 @@ is-empty<a> bool(a mut-stack a)
 	a.inner ~= values
 
 last<a> a?(a mut-stack a)
-	if !a.is-empty
+	unless a is-empty
 		a.inner last
 
 pop<a> a?(a mut-stack a)

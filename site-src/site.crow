@@ -17,7 +17,7 @@ main fut nat(_ str[]) summon
 
 .ensure-up-to-date void(a path-and-content) summon
 	full-out-path = "site" child-path a.out-path
-	if !(full-out-path is-up-to-date a.content)
+	unless full-out-path is-up-to-date a.content
 		full-out-path.parent-path ensure-directory-recursive
 		print: "update {full-out-path}"
 		full-out-path write-file a.content
@@ -27,7 +27,7 @@ main fut nat(_ str[]) summon
 		cur-content == content
 
 .ensure-directory-recursive void(path str) summon
-	if path != "" && !path.path-exists
+	unless path == "" || path.path-exists
 		path.parent-path ensure-directory-recursive
 		path make-directory
 

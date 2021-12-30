@@ -397,7 +397,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> has
 	match a
 	as inner-node i
 		i each-with-index (child, index) =>
-			if !child.node-is-empty
+			unless child node-is-empty
 				out dbg-recur child, path ~ index.to-str
 				out ~= " "
 		out backup
@@ -419,7 +419,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> has
 	match a
 	as inner-node i
 		i each-with-index (child, index) =>
-			if !child.node-is-empty
+			unless child node-is-empty
 				out dbg-recur child, path ~ index.to-str
 				out ~= " "
 		out backup

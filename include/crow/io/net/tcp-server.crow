@@ -11,7 +11,7 @@ import
 	sys/types: socklen_t
 	unistd: close, read
 	../../bits: |, bits-intersect
-	../../bool: !, &&, ||, bool, false, true
+	../../bool: !, ||, bool, false, true
 	../../cell: cell, new
 	../../col/arr: arr, begin-ptr, subscript
 	../../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
@@ -64,7 +64,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		event-flags = EPOLLIN | EPOLLET
 		accept-event epoll_event = event-flags, port-fd.to-int64.to-nat64
 		ctl-err = epoll-fd epoll_ctl EPOLL_CTL_ADD, port-fd, accept-event.ptr-to
-		if ctl-err != 0
+		unless ctl-err == 0
 			perror: "epoll_ctl failed\0".chars.begin-ptr
 			todo
 
@@ -110,7 +110,7 @@ close-client void(client-fd fd-t) unsafe summon
 	handler tcp-handler
 
 .tcp-server-loop fut void(state tcp-server-state) unsafe summon
-	if !state.should-stop
+	unless state should-stop
 		event epoll_event = 0, 0
 		timeout c-int = 0
 		num-events = state.epoll-fd epoll_wait event.ptr-to, 1, timeout
@@ -142,7 +142,7 @@ close-client void(client-fd fd-t) unsafe summon
 	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val
 	if client-fd < 0
 		e = errno
-		if e != EAGAIN && e != EWOULDBLOCK
+		unless e == EAGAIN || e == EWOULDBLOCK
 			perror: "accept() error\0".chars.begin-ptr
 			todo
 	else
@@ -158,7 +158,7 @@ close-client void(client-fd fd-t) unsafe summon
 	count = fd read buf.begin-ptr, buf.size
 	if count < 0
 		err = errno
-		if err != EAGAIN
+		unless err == EAGAIN
 			perror: "read() failed\0".chars.begin-ptr
 	elif count != 0
 		chunk = buf.cast-immutable[0 .. count.to-nat64]
