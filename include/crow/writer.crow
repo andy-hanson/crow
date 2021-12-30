@@ -59,6 +59,8 @@ write-quoted-str void(out writer, a str)
 			out ~= "\\r"
 		elif x == "\t"
 			out ~= "\\t"
+		elif x == "\\"
+			out ~= "\\\\"
 		else
 			out ~= x
 	out ~= "\""

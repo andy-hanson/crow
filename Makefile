@@ -32,7 +32,10 @@ end-to-end-test: bin/crow
 end-to-end-test-overwrite: bin/crow
 	./bin/crow run test/test.crow -- --overwrite-output
 
-test: unit-test end-to-end-test
+test: unit-test wasm-test end-to-end-test
+
+wasm-test: prepare-site
+	./test/testWasm.js
 
 src_files_common = src/concretize/*.d \
 	src/frontend/*.d \

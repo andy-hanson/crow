@@ -84,10 +84,8 @@ export const CrowRunnable = makeCustomElement({
 		const crowText = CrowText.create({getHover, tokens, text})
 		const crowTextContainer = div({class:crowTextContainerClass}, [crowText])
 
-		// TODO: less hacky way of doing this
-		const includeFiles = await getIncludeFiles()
-		for (const file of includeFiles)
-			comp.addOrChangeFile(StorageKind.global, file.name, file.content)
+		for (const [name, content] of await getIncludeFiles())
+			comp.addOrChangeFile(StorageKind.global, name, content)
 
 		text.nowAndSubscribe(value => {
 			comp.addOrChangeFile(StorageKind.local, MAIN, value)
@@ -190,26 +188,9 @@ const icon = content => {
 	return res
 }
 
-/**
- * @typedef FileNameAndContent
- * @property {string} name
- * @property {string} content
- */
-
-/** @type {function(): Promise<ReadonlyArray<FileNameAndContent>>} */
+/** @type {function(): Promise<ReadonlyArray<[string, string]>>} */
 const getIncludeFiles = async () =>
-	await Promise.all((await listInclude()).map(async name => {
-		/** @type {FileNameAndContent} */
-		const res = {
-			name,
-			content: await (await fetch(`../include/${name}.crow`)).text(),
-		}
-		return res
-	}))
-
-/** @type {function(): Promise<ReadonlyArray<string>>} */
-const listInclude = async () =>
-	(await (await fetch('/include-list.txt')).text()).trim().split('\n')
+	Object.entries(await (await fetch('/include-all.json')).json())
 
 const Icon = makeCustomElement({
 	tagName: "crow-icon",

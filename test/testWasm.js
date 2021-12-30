@@ -1,26 +1,23 @@
+#! /usr/bin/env node
 
-import {Compiler, runCode} from "./crow-js/server.js"
-import fs from "fs"
-
-const TEST_SRC = fs.readFileSync("a.crow", "utf-8")
+require("../crow-js/crow.js")
+const fs = require("fs")
 
 const main = async () => {
-	const bytes = fs.readFileSync("bin/crow.wasm")
-	const compiler = await Compiler.makeFromBytes(bytes)
+	const comp = await compiler.Compiler.makeFromBytes(fs.readFileSync('bin/crow.wasm'))
+	const include = JSON.parse(fs.readFileSync("site/include-all.json", "utf-8"))
+	for (const path in include)
+		comp.addOrChangeFile(StorageKind.global, path, include[path])
+	const content = fs.readFileSync("demo/hello.crow", "utf-8")
+	comp.addOrChangeFile(StorageKind.local, "hello", content)
+	const result = comp.run('hello')
 
-	const includeList = fs.readFileSync("doc/include-list.txt", "utf-8").trim().split("\n")
-	const include = Object.fromEntries(includeList.map(nameAndText))
-	const runResult = runCode(compiler, include, TEST_SRC)
-	console.log("RUN RESULT", runResult)
+	if (result.stdout !== "Hello, world!\n" || result.err != 0 || result.stderr != '') {
+		console.error(result)
+		throw new Error("Bad result")
+	}
 }
-
-/** @type {function(string): [string, string]} */
-const nameAndText = name =>
-	[name, fs.readFileSync(`include/${name}.crow`, "utf-8")]
 
 main().catch(e => {
 	console.error("ERROR", e)
 })
-
-
-

@@ -324,14 +324,6 @@ class Compiler {
 			this._tempAlloc.clear()
 		}
 	}
-
-	/**
-	@param {string} file
-	@return {Promise<RunResult>}
-	*/
-	/*runFile(file) {
-		return this.run({include:this._includeFiles, user:{main:file}})
-	}*/
 }
 compiler.Compiler = Compiler
 
