@@ -230,16 +230,16 @@ void writeParseDiag(
 				writer,
 				"the final line of a block can not be 'x = y'\n(hint: remove 'x =', or add another line)");
 		},
-		(ref immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx it) {
+		(ref immutable ParseDiag.NeedsBlockCtx it) {
 			writeStatic(writer, () {
 				final switch (it.kind) {
-					case ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.if_:
+					case ParseDiag.NeedsBlockCtx.Kind.if_:
 						return "'if'";
-					case ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match:
+					case ParseDiag.NeedsBlockCtx.Kind.match:
 						return "'match'";
-					case ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda:
+					case ParseDiag.NeedsBlockCtx.Kind.lambda:
 						return "lambda";
-					case ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.unless:
+					case ParseDiag.NeedsBlockCtx.Kind.unless:
 						return "'unless'";
 				}
 			}());

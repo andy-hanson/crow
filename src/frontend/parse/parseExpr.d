@@ -797,7 +797,7 @@ immutable(ExprAndMaybeDedent) parseLambdaAfterArrow(
 		} else
 			return inLine
 				? noDedent(parseExprNoBlock(lexer))
-				: exprBlockNotAllowed(lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda);
+				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.lambda);
 	}();
 	return immutable ExprAndMaybeDedent(
 		immutable ExprAst(
@@ -826,12 +826,9 @@ immutable(ExprAndMaybeDedent) skipRestOfLineAndReturnBogus(
 immutable(ExprAndMaybeDedent) exprBlockNotAllowed(
 	ref Lexer lexer,
 	immutable Pos start,
-	immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind kind,
+	immutable ParseDiag.NeedsBlockCtx.Kind kind,
 ) {
-	return skipRestOfLineAndReturnBogus(
-		lexer,
-		start,
-		immutable ParseDiag(immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx(kind)));
+	return skipRestOfLineAndReturnBogus(lexer, start, immutable ParseDiag(immutable ParseDiag.NeedsBlockCtx(kind)));
 }
 
 immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable AllowedBlock allowedBlock) {
@@ -874,11 +871,11 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 		case Token.if_:
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseIf(lexer, start, asAllowBlock(allowedBlock).curIndent))
-				: exprBlockNotAllowed(lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.if_);
+				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.if_);
 		case Token.match:
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseMatch(lexer, start, asAllowBlock(allowedBlock).curIndent))
-				: exprBlockNotAllowed(lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match);
+				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.match);
 		case Token.name:
 			immutable Sym name = getCurSym(lexer);
 			if (tryTakeToken(lexer, Token.arrowLambda))
@@ -904,7 +901,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 		case Token.unless:
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseUnless(lexer, start, asAllowBlock(allowedBlock).curIndent))
-				: exprBlockNotAllowed(lexer, start, ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.unless);
+				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.unless);
 		default:
 			addDiagUnexpectedCurToken(lexer, start, token);
 			return skipRestOfLineAndReturnBogusNoDiag(lexer, start);

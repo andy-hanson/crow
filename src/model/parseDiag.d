@@ -57,7 +57,7 @@ struct ParseDiag {
 		immutable char actual;
 	}
 	struct LetMustHaveThen {}
-	struct MatchWhenOrLambdaNeedsBlockCtx {
+	struct NeedsBlockCtx {
 		enum Kind {
 			if_,
 			match,
@@ -103,7 +103,7 @@ struct ParseDiag {
 		invalidName,
 		invalidStringEscape,
 		letMustHaveThen,
-		matchWhenOrLambdaNeedsBlockCtx,
+		needsBlockCtx,
 		relativeImportReachesPastRoot,
 		unexpected,
 		unexpectedCharacter,
@@ -126,7 +126,7 @@ struct ParseDiag {
 		immutable InvalidName invalidName;
 		immutable InvalidStringEscape invalidStringEscape;
 		immutable LetMustHaveThen letMustHaveThen;
-		immutable MatchWhenOrLambdaNeedsBlockCtx matchWhenOrLambdaNeedsBlockCtx;
+		immutable NeedsBlockCtx needsBlockCtx;
 		immutable RelativeImportReachesPastRoot relativeImportReachesPastRoot;
 		immutable Unexpected unexpected;
 		immutable UnexpectedCharacter unexpectedCharacter;
@@ -151,8 +151,8 @@ struct ParseDiag {
 	@trusted immutable this(immutable InvalidName a) { kind = Kind.invalidName; invalidName = a; }
 	immutable this(immutable InvalidStringEscape a) { kind = Kind.invalidStringEscape; invalidStringEscape = a; }
 	immutable this(immutable LetMustHaveThen a) { kind = Kind.letMustHaveThen; letMustHaveThen = a; }
-	immutable this(immutable MatchWhenOrLambdaNeedsBlockCtx a) {
-		kind = Kind.matchWhenOrLambdaNeedsBlockCtx; matchWhenOrLambdaNeedsBlockCtx = a;
+	immutable this(immutable NeedsBlockCtx a) {
+		kind = Kind.needsBlockCtx; needsBlockCtx = a;
 	}
 	@trusted immutable this(immutable RelativeImportReachesPastRoot a) {
 		kind = Kind.relativeImportReachesPastRoot; relativeImportReachesPastRoot = a;
@@ -182,9 +182,7 @@ static assert(ParseDiag.sizeof <= 32);
 	scope T delegate(ref immutable ParseDiag.InvalidName) @safe @nogc pure nothrow cbInvalidName,
 	scope T delegate(ref immutable ParseDiag.InvalidStringEscape) @safe @nogc pure nothrow cbInvalidStringEscape,
 	scope T delegate(ref immutable ParseDiag.LetMustHaveThen) @safe @nogc pure nothrow cbLetMustHaveThen,
-	scope T delegate(
-		ref immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx
-	) @safe @nogc pure nothrow cbMatchWhenOrLambdaNeedsBlockCtx,
+	scope T delegate(ref immutable ParseDiag.NeedsBlockCtx) @safe @nogc pure nothrow cbNeedsBlockCtx,
 	scope immutable(T) delegate(
 		ref immutable ParseDiag.RelativeImportReachesPastRoot
 	) @safe @nogc pure nothrow cbRelativeImportReachesPastRoot,
@@ -220,8 +218,8 @@ static assert(ParseDiag.sizeof <= 32);
 			return cbInvalidStringEscape(a.invalidStringEscape);
 		case ParseDiag.Kind.letMustHaveThen:
 			return cbLetMustHaveThen(a.letMustHaveThen);
-		case ParseDiag.Kind.matchWhenOrLambdaNeedsBlockCtx:
-			return cbMatchWhenOrLambdaNeedsBlockCtx(a.matchWhenOrLambdaNeedsBlockCtx);
+		case ParseDiag.Kind.needsBlockCtx:
+			return cbNeedsBlockCtx(a.needsBlockCtx);
 		case ParseDiag.Kind.relativeImportReachesPastRoot:
 			return cbRelativeImportReachesPastRoot(a.relativeImportReachesPastRoot);
 		case ParseDiag.Kind.unexpected:
