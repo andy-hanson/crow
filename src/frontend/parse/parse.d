@@ -75,10 +75,10 @@ import util.col.arrWithSizeBuilder : add, ArrWithSizeBuilder, arrWithSizeBuilder
 import util.col.str : SafeCStr;
 import util.conv : safeToUshort;
 import util.memory : allocate;
-import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, OptPtr, some, somePtr;
+import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Operator, shortSymValue, Sym, symOfStr;
 import util.util : todo, unreachable, verify;
@@ -443,7 +443,7 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(ref Lexer lexer) {
 				return recur(newModifiers);
 			case NewlineOrDedent.dedent:
 				return immutable StructDeclAst.Body.Record(
-					newModifiers.any() ? somePtr(allocate(lexer.alloc, newModifiers)) : nonePtr!RecordModifiers,
+					newModifiers.any() ? some(allocate(lexer.alloc, newModifiers)) : none!(Ptr!RecordModifiers),
 					finishArrWithSize(lexer.alloc, res));
 		}
 	}
@@ -770,7 +770,7 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.enum_:
 			nextToken(lexer);
-			immutable OptPtr!TypeAst typeArg = tryParseTypeArg(lexer);
+			immutable Opt!(Ptr!TypeAst) typeArg = tryParseTypeArg(lexer);
 			addStruct(() => immutable StructDeclAst.Body(
 				immutable StructDeclAst.Body.Enum(typeArg, parseEnumOrFlagsMembers(lexer))));
 			break;
@@ -780,7 +780,7 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.flags:
 			nextToken(lexer);
-			immutable OptPtr!TypeAst typeArg = tryParseTypeArg(lexer);
+			immutable Opt!(Ptr!TypeAst) typeArg = tryParseTypeArg(lexer);
 			addStruct(() => immutable StructDeclAst.Body(
 				immutable StructDeclAst.Body.Flags(typeArg, parseEnumOrFlagsMembers(lexer))));
 			break;
@@ -791,7 +791,7 @@ void parseSpecOrStructOrFun(
 					final switch (takeNewlineOrIndent_topLevel(lexer)) {
 						case NewlineOrIndent.newline:
 							return immutable StructDeclAst.Body.Record(
-								nonePtr!RecordModifiers,
+								none!(Ptr!RecordModifiers),
 								emptyArrWithSize!(StructDeclAst.Body.Record.Field));
 						case NewlineOrIndent.indent:
 							return parseRecordBody(lexer);

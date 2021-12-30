@@ -60,7 +60,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : compareNat32, Comparison;
 import util.conv : safeToUint;
-import util.opt : force, has, Opt, OptPtr, toOpt;
+import util.opt : force, has, Opt;
 import util.ptr : Ptr;
 import util.repr : Repr, nameAndRepr, reprArr, reprNamedRecord, reprSym;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
@@ -211,7 +211,12 @@ void addSigReturnTypeAndParamsTokens(
 	)(a.params);
 }
 
-void addTypeTokens(ref Alloc alloc, ref ArrBuilder!Token tokens, ref const AllSymbols allSymbols, immutable TypeAst a) {
+void addTypeTokens(
+	ref Alloc alloc,
+	ref ArrBuilder!Token tokens,
+	ref const AllSymbols allSymbols,
+	scope immutable TypeAst a,
+) {
 	matchTypeAst!(
 		void,
 		(immutable TypeAst.Dict it) {
@@ -349,11 +354,11 @@ void addEnumOrFlagsTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	scope immutable OptPtr!TypeAst ptrTypeArg,
+	scope immutable Opt!(Ptr!TypeAst) typeArg,
 	scope immutable ArrWithSize!(StructDeclAst.Body.Enum.Member) members,
 ) {
-	immutable Opt!(Ptr!TypeAst) typeArg = toOpt(ptrTypeArg);
-	if (has(typeArg)) addTypeTokens(alloc, tokens, allSymbols, force(typeArg).deref());
+	if (has(typeArg))
+		addTypeTokens(alloc, tokens, allSymbols, force(typeArg).deref());
 	foreach (ref immutable StructDeclAst.Body.Enum.Member member; toArr(members)) {
 		add(alloc, tokens, immutable Token(
 			Token.Kind.fieldDef, // TODO: enumMemberREf

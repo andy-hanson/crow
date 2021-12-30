@@ -36,7 +36,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, toArr;
 import util.col.arrUtil : arrLiteral, fillArr, find, findPtr, map;
 import util.col.dict : getAt;
-import util.opt : force, has, mapOption, none, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : shortSymValue, Sym, symEq;
@@ -56,8 +56,9 @@ private immutable(Type) instStructFromAst(
 	immutable Opt!StructOrAliasAndIndex opDeclFromHere = getAt(structsAndAliasesDict, name);
 	if (has(opDeclFromHere))
 		markUsedStructOrAlias(ctx, force(opDeclFromHere));
-	immutable Opt!StructOrAlias here = mapOption(opDeclFromHere, (ref immutable StructOrAliasAndIndex it) =>
-		it.structOrAlias);
+	immutable Opt!StructOrAlias here = has(opDeclFromHere)
+		? some(force(opDeclFromHere).structOrAlias)
+		: none!StructOrAlias;
 	immutable Opt!StructOrAlias opDecl = tryFindT!StructOrAlias(
 		alloc,
 		ctx,
@@ -76,8 +77,8 @@ private immutable(Type) instStructFromAst(
 		immutable Type[] typeArgs = getTypeArgsIfNumberMatches(
 			alloc, ctx, commonTypes, range, structsAndAliasesDict,
 			sOrA, nExpectedTypeArgs, typeArgAsts, typeParamsScope, delayStructInsts);
-		return matchStructOrAliasPtr!(
-			immutable Type,
+		return matchStructOrAliasPtr!(immutable Type)(
+			sOrA,
 			(ref immutable StructAlias a) =>
 				nExpectedTypeArgs != 0
 					? todo!(immutable Type)("alias with type params")
@@ -87,8 +88,7 @@ private immutable(Type) instStructFromAst(
 					alloc,
 					ctx.programState,
 					immutable StructDeclAndArgs(decl, typeArgs),
-					delayStructInsts)),
-		)(sOrA);
+					delayStructInsts)));
 	}
 }
 
@@ -253,8 +253,7 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(
 	immutable Opt!SpecDeclAndIndex opDeclFromHere = getAt(specsDict, name);
 	if (has(opDeclFromHere))
 		markUsedSpec(ctx, force(opDeclFromHere).index);
-	immutable Opt!(Ptr!SpecDecl) here = mapOption(opDeclFromHere, (ref immutable SpecDeclAndIndex it) =>
-		it.decl);
+	immutable Opt!(Ptr!SpecDecl) here = has(opDeclFromHere) ? some(force(opDeclFromHere).decl) : none!(Ptr!SpecDecl);
 	return tryFindT!(Ptr!SpecDecl)(
 		alloc,
 		ctx,
@@ -294,49 +293,31 @@ immutable(Type) makeFutType(
 
 private:
 
-immutable(Opt!TDecl) tryFindT(TDecl)(
+immutable(Opt!T) tryFindT(T)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable Sym name,
 	immutable RangeWithinFile range,
-	ref immutable Opt!TDecl fromThisModule,
+	ref immutable Opt!T fromThisModule,
 	immutable Diag.DuplicateImports.Kind duplicateImportKind,
 	immutable Diag.NameNotFound.Kind nameNotFoundKind,
-	scope immutable(Opt!TDecl) delegate(ref immutable NameReferents) @safe @nogc pure nothrow getFromNameReferents,
+	scope immutable(Opt!T) delegate(ref immutable NameReferents) @safe @nogc pure nothrow getFromNameReferents,
 ) {
-	alias DAndM = DeclAndModule!TDecl;
-
-	immutable Opt!DAndM res = eachImportAndReExport!(Opt!DAndM)(
-		ctx,
-		name,
-		has(fromThisModule) ? some(immutable DAndM(force(fromThisModule), none!(Ptr!Module))) : none!DAndM,
-		(
-			immutable Opt!DAndM acc,
-			immutable Ptr!Module module_,
-			immutable ImportIndex index,
-			ref immutable NameReferents referents,
-		) {
-			immutable Opt!TDecl got = getFromNameReferents(referents);
+	immutable Opt!T res = eachImportAndReExport!(immutable Opt!T)(
+		ctx, name, fromThisModule,
+		(immutable Opt!T acc, immutable Ptr!Module, immutable ImportIndex index, ref immutable NameReferents referents) {
+			immutable Opt!T got = getFromNameReferents(referents);
 			if (has(got)) {
 				markUsedImport(ctx, index);
 				if (has(acc))
 					// TODO: include both modules in the diag
 					addDiag(alloc, ctx, range, immutable Diag(
 						immutable Diag.DuplicateImports(duplicateImportKind, name)));
-				return some(immutable DAndM(force(got), some(module_)));
+				return got;
 			} else
 				return acc;
 		});
-	if (has(res))
-		return some!TDecl(force(res).decl);
-	else {
+	if (!has(res))
 		addDiag(alloc, ctx, range, immutable Diag(immutable Diag.NameNotFound(nameNotFoundKind, name)));
-		return none!TDecl;
-	}
-}
-
-struct DeclAndModule(TDecl) {
-	immutable(TDecl) decl;
-	// none for the current module (which isn't created yet)
-	immutable Opt!(Ptr!Module) module_;
+	return res;
 }

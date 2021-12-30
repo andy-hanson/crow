@@ -10,7 +10,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty;
 import util.conv : safeToUint;
-import util.opt : force, has, none, Opt, OptPtr, some, toOpt;
+import util.opt : force, has, none, Opt, some;
 import util.path : AbsOrRelPath, absOrRelPathToStr, AllPaths;
 import util.ptr : Ptr;
 import util.repr :
@@ -307,7 +307,7 @@ struct LambdaAst {
 
 struct LetAst {
 	immutable Sym name;
-	immutable OptPtr!TypeAst type;
+	immutable Opt!(Ptr!TypeAst) type;
 	immutable ExprAst initializer;
 	immutable ExprAst then;
 }
@@ -815,12 +815,12 @@ struct StructDeclAst {
 				immutable Opt!LiteralIntOrNat value;
 			}
 
-			immutable OptPtr!TypeAst typeArg;
+			immutable Opt!(Ptr!TypeAst) typeArg;
 			immutable ArrWithSize!Member members;
 		}
 		struct Flags {
 			alias Member = Enum.Member;
-			immutable OptPtr!TypeAst typeArg;
+			immutable Opt!(Ptr!TypeAst) typeArg;
 			immutable ArrWithSize!Member members;
 		}
 		struct ExternPtr {}
@@ -834,14 +834,13 @@ struct StructDeclAst {
 				immutable FieldMutability mutability;
 				immutable TypeAst type;
 			}
-			private immutable OptPtr!RecordModifiers modifiers_;
+			private immutable Opt!(Ptr!RecordModifiers) modifiers_;
 			immutable ArrWithSize!Field fields;
 
 			//TODO: NOT INSTANCE
 			immutable(RecordModifiers) modifiers() immutable {
-				immutable Opt!(Ptr!RecordModifiers) m = toOpt(modifiers_);
-				return has(m)
-					? force(m).deref()
+				return has(modifiers_)
+					? force(modifiers_).deref()
 					: immutable RecordModifiers(none!Visibility, none!Pos, none!ExplicitByValOrRefAndRange);
 			}
 
@@ -1161,11 +1160,11 @@ immutable(Repr) reprOptExplicitByValOrRefAndRange(
 immutable(Repr) reprEnumOrFlags(
 	ref Alloc alloc,
 	immutable string name,
-	immutable OptPtr!TypeAst typeArg,
+	immutable Opt!(Ptr!TypeAst) typeArg,
 	immutable ArrWithSize!(StructDeclAst.Body.Enum.Member) members,
 ) {
 	return reprRecord(alloc, name, [
-		reprOpt(alloc, toOpt(typeArg), (ref immutable Ptr!TypeAst it) =>
+		reprOpt(alloc, typeArg, (ref immutable Ptr!TypeAst it) =>
 			reprTypeAst(alloc, it.deref())),
 		reprArr(alloc, toArr(members), (ref immutable StructDeclAst.Body.Enum.Member it) =>
 			reprEnumMember(alloc, it))]);

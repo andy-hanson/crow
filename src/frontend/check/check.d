@@ -176,7 +176,7 @@ import util.col.mutDict : insertOrUpdate, moveToDict, MutSymDict;
 import util.col.mutSet : addToMutSymSetOkIfPresent;
 import util.col.str : copySafeCStr, safeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
-import util.opt : force, has, none, noneMut, Opt, OptPtr, some, someMut, toOpt;
+import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.perf : Perf;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : fileAndPosFromFileAndRange, FileAndRange, FileIndex, RangeWithinFile;
@@ -294,13 +294,12 @@ immutable(Opt!(Ptr!StructInst)) instantiateNonTemplateStructOrAlias(
 	immutable StructOrAlias structOrAlias,
 ) {
 	verify(empty(typeParams(structOrAlias)));
-	return matchStructOrAliasPtr!(
-		immutable Opt!(Ptr!StructInst),
+	return matchStructOrAliasPtr!(immutable Opt!(Ptr!StructInst))(
+		structOrAlias,
 		(ref immutable StructAlias it) =>
 			target(it),
 		(immutable Ptr!StructDecl it) =>
-			some(instantiateNonTemplateStructDecl(alloc, programState, delayedStructInsts, it)),
-	)(structOrAlias);
+			some(instantiateNonTemplateStructDecl(alloc, programState, delayedStructInsts, it)));
 }
 
 immutable(Ptr!StructInst) instantiateNonTemplateStructDeclNeverDelay(
@@ -373,10 +372,8 @@ immutable(CommonTypes) getCommonTypes(
 	immutable Ptr!StructInst ctxStructInst = nonTemplate("ctx");
 
 	immutable(Ptr!StructDecl) com(immutable string name, immutable size_t nTypeParameters) {
-		immutable Opt!(Ptr!StructDecl) res = getCommonTemplateType(
-			structsAndAliasesDict,
-			shortSym(name),
-			nTypeParameters);
+		immutable Opt!(Ptr!StructDecl) res =
+			getCommonTemplateType(structsAndAliasesDict, shortSym(name), nTypeParameters);
 		if (has(res))
 			return force(res);
 		else {
@@ -853,7 +850,7 @@ immutable(EnumTypeAndMembers) checkEnumMembers(
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable RangeWithinFile range,
-	immutable OptPtr!TypeAst optPtrTypeArg,
+	immutable Opt!(Ptr!TypeAst) typeArg,
 	immutable ArrWithSize!(StructDeclAst.Body.Enum.Member) memberAsts,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 	scope immutable(ValueAndOverflow) delegate(
@@ -862,10 +859,9 @@ immutable(EnumTypeAndMembers) checkEnumMembers(
 	) @safe @nogc pure nothrow cbGetNextValue,
 ) {
 	immutable TypeParamsScope typeParamsScope = immutable TypeParamsScope(emptyArr!TypeParam);
-	immutable Opt!(Ptr!TypeAst) typeAst = toOpt(optPtrTypeArg);
-	immutable Type implementationType = has(typeAst)
+	immutable Type implementationType = has(typeArg)
 		? typeFromAst(
-			alloc, ctx, commonTypes, force(typeAst).deref(), structsAndAliasesDict, typeParamsScope,
+			alloc, ctx, commonTypes, force(typeArg).deref(), structsAndAliasesDict, typeParamsScope,
 			someMut(ptrTrustMe_mut(delayStructInsts)))
 		: immutable Type(commonTypes.integrals.nat32);
 	immutable EnumBackingType enumType = getEnumTypeFromType(alloc, ctx, range, commonTypes, implementationType);

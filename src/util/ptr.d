@@ -4,6 +4,7 @@ module util.ptr;
 
 import util.col.arr : ArrWithSize, toArr;
 import util.hash : Hasher, hashSizeT;
+import util.opt : hasInvalid;
 import util.util : verify;
 
 struct TaggedPtr(E) {
@@ -34,6 +35,9 @@ struct TaggedPtr(E) {
 
 // Non-null
 struct Ptr(T) {
+	static immutable Ptr!T INVALID = immutable Ptr!T(null, true);
+	static Ptr!T INVALID_mut = Ptr!T(null, true);
+
 	@safe @nogc pure nothrow:
 	@disable this(); // No nulls!
 	@trusted this(inout T* p) inout {
@@ -41,6 +45,9 @@ struct Ptr(T) {
 		verify(ptr != null);
 	}
 	@trusted this(immutable T* p, immutable bool) immutable {
+		ptr = p;
+	}
+	@trusted this(T* p, immutable bool) {
 		ptr = p;
 	}
 
@@ -61,6 +68,7 @@ struct Ptr(T) {
 	@trusted const(T*) rawPtr() const { return cast(const T*) ptr; }
 	@trusted immutable(T*) rawPtr() immutable { return cast(immutable T*) ptr; }
 }
+static assert(hasInvalid!(Ptr!int));
 
 // Only for use as a sentinel
 static immutable Ptr!T nullPtr(T) = immutable Ptr!T(null, true);

@@ -64,7 +64,7 @@ import util.col.fullIndexDict :
 	mapFullIndexDict,
 	mapFullIndexDict_mut;
 import util.col.str : CStr;
-import util.opt : force, forcePtr, has, none, nonePtr_mut, Opt, OptPtr, some, somePtr_mut;
+import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, Ptr, ptrTrustMe_mut;
 import util.sym : AllSymbols, writeSym;
 import util.util : verify;
@@ -97,11 +97,11 @@ immutable(GccTypes) getGccTypes(
 	GccTypesWip typesWip = GccTypesWip(
 		getPrimitiveTypes(ctx),
 		gccExternPtrTypes(alloc, ctx, program, mangledNames),
-		mapFullIndexDict_mut!(LowType.FunPtr, OptPtr!gcc_jit_type, LowFunPtrType)(
+		mapFullIndexDict_mut!(LowType.FunPtr, Opt!(Ptr!gcc_jit_type), LowFunPtrType)(
 			alloc,
 			program.allFunPtrTypes,
 			(immutable LowType.FunPtr, ref immutable LowFunPtrType) =>
-				nonePtr_mut!gcc_jit_type),
+				noneMut!(Ptr!gcc_jit_type)),
 		mapFullIndexDict_mut!(LowType.Record, Ptr!gcc_jit_struct, LowRecord)(
 			alloc,
 			program.allRecords,
@@ -141,12 +141,12 @@ immutable(GccTypes) getGccTypes(
 	return immutable GccTypes(
 		typesWip.primitiveTypes,
 		typesWip.externPtrs,
-		//TODO:PERF just cast, since OptPtr and Ptr representations are the same
-		mapFullIndexDict!(LowType.FunPtr, Ptr!gcc_jit_type, OptPtr!gcc_jit_type)(
+		//TODO:PERF just cast, since Opt!Ptr and Ptr representations are the same
+		mapFullIndexDict!(LowType.FunPtr, Ptr!gcc_jit_type, Opt!(Ptr!gcc_jit_type))(
 			alloc,
 			fullIndexDictCastImmutable(typesWip.funPtrs),
-			(immutable LowType.FunPtr, ref immutable OptPtr!gcc_jit_type a) =>
-				forcePtr(a)),
+			(immutable LowType.FunPtr, ref immutable Opt!(Ptr!gcc_jit_type) a) =>
+				force(a)),
 		fullIndexDictCastImmutable(typesWip.records),
 		fullIndexDictCastImmutable2!(LowType.Record, Ptr!gcc_jit_field[])(typesWip.recordFields),
 		fullIndexDictCastImmutable(typesWip.unions),
@@ -270,7 +270,7 @@ immutable(Ptr!gcc_jit_type) getGccType(ref GccTypesWip typesWip, immutable LowTy
 		(immutable LowType.ExternPtr x) =>
 			fullIndexDictGet(typesWip.externPtrs, x),
 		(immutable LowType.FunPtr x) =>
-			castImmutable(forcePtr!gcc_jit_type(fullIndexDictGet(typesWip.funPtrs, x))),
+			castImmutable(force(fullIndexDictGet(typesWip.funPtrs, x))),
 		(immutable PrimitiveType it) =>
 			typesWip.primitiveTypes[it],
 		(immutable LowPtrCombine it) =>
@@ -325,7 +325,7 @@ immutable(Ptr!gcc_jit_type) getOnePrimitiveType(ref gcc_jit_context ctx, immutab
 struct GccTypesWip {
 	immutable Ptr!gcc_jit_type[PrimitiveType.max + 1] primitiveTypes;
 	immutable FullIndexDict!(LowType.ExternPtr, Ptr!gcc_jit_type) externPtrs;
-	FullIndexDict!(LowType.FunPtr, OptPtr!gcc_jit_type) funPtrs;
+	FullIndexDict!(LowType.FunPtr, Opt!(Ptr!gcc_jit_type)) funPtrs;
 	FullIndexDict!(LowType.Record, Ptr!gcc_jit_struct) records;
 	FullIndexDict!(LowType.Record, immutable Ptr!gcc_jit_field[]) recordFields;
 	FullIndexDict!(LowType.Union, Ptr!gcc_jit_struct) unions;
@@ -339,7 +339,7 @@ struct GccTypesWip {
 	immutable LowType.FunPtr funPtrIndex,
 	ref immutable LowFunPtrType funPtr,
 ) {
-	Ptr!(OptPtr!gcc_jit_type) ptr = fullIndexDictGetPtr_mut(typesWip.funPtrs, funPtrIndex);
+	Ptr!(Opt!(Ptr!gcc_jit_type)) ptr = fullIndexDictGetPtr_mut(typesWip.funPtrs, funPtrIndex);
 	verify(!has(ptr.deref()));
 	const Ptr!gcc_jit_type returnType = getGccType(typesWip, funPtr.returnType);
 	//TODO:NO ALLOC
@@ -348,7 +348,7 @@ struct GccTypesWip {
 		funPtr.paramTypes,
 		(ref immutable LowType x) =>
 			getGccType(typesWip, x));
-	ptr.deref() = somePtr_mut!gcc_jit_type(gcc_jit_context_new_function_ptr_type(
+	ptr.deref() = someMut!(Ptr!gcc_jit_type)(gcc_jit_context_new_function_ptr_type(
 		ctx,
 		null,
 		returnType,

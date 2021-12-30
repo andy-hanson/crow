@@ -1373,7 +1373,11 @@ struct StructOrAlias {
 	}
 }
 
-@trusted T matchStructOrAliasPtr(T, alias cbAlias, alias cbStructDecl)(ref immutable StructOrAlias a) {
+@trusted immutable(T) matchStructOrAliasPtr(T)(
+	ref immutable StructOrAlias a,
+	scope immutable(T) delegate(ref immutable StructAlias) @safe @nogc pure nothrow cbAlias,
+	scope immutable(T) delegate(immutable Ptr!StructDecl) @safe @nogc pure nothrow cbStructDecl,
+) {
 	final switch (a.kind) {
 		case StructOrAlias.Kind.alias_:
 			return cbAlias(a.alias_.deref());

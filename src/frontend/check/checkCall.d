@@ -614,8 +614,7 @@ immutable(bool) checkBuiltinSpec(
 	immutable size_t nImpls = sum(specs(called.deref()), (ref immutable Ptr!SpecInst specInst) =>
 		nSigs(specInst.deref().body_));
 	if (nImpls != 0 && has(outerCalled)) {
-		addDiag2(alloc, ctx, range, immutable Diag(
-			immutable Diag.SpecImplHasSpecs(force(outerCalled), called)));
+		addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.SpecImplHasSpecs(force(outerCalled), called)));
 		return none!(Called[]);
 	} else {
 		MutArr!(immutable Called) res = newUninitializedMutArr!(immutable Called)(alloc, nImpls);

@@ -102,9 +102,7 @@ private immutable(Opt!Type) tryGetTypeArgFromTypeParamsAndArgs(
 	immutable Ptr!TypeParam typeParam,
 ) {
 	immutable Opt!(Ptr!Type) t = tryGetTypeArg(typeParamsAndArgs.typeParams, typeParamsAndArgs.typeArgs, typeParam);
-	return has(t)
-		? some(force(t).deref)
-		: none!Type;
+	return has(t) ? some(force(t).deref) : none!Type;
 }
 
 alias DelayStructInsts = Opt!(Ptr!(MutArr!(Ptr!StructInst)));

@@ -132,7 +132,7 @@ import util.col.dict : mustGetAt;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictZip, mapFullIndexDict_mut;
 import util.col.mutMaxArr : mustPop, MutMaxArr, push, tempAsArr_mut;
 import util.col.str : CStr, SafeCStr;
-import util.opt : force, forcePtr, has, nonePtr, nonePtr_mut, Opt, OptPtr, somePtr, somePtr_mut;
+import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
@@ -555,13 +555,13 @@ GlobalsForConstants generateGlobalsForConstants(
 struct ExprEmit {
 	@safe @nogc pure nothrow:
 
-	// Return from the block. Return nonePtr!gcc_jit_rvalue.
+	// Return from the block. Return none.
 	struct Return {}
-	// Return somePtr!gcc_jit_rvalue(...)
+	// Return some.
 	struct Value {}
 	// Don't return anything. (Don't even return_void). Only used for the first part of a Seq.
 	struct Void {}
-	// Write to this local. Return nonePtr!gcc_jit_rvalue.
+	// Write to this local. Return none.
 	struct WriteTo {
 		Ptr!gcc_jit_lvalue lvalue;
 	}
@@ -587,7 +587,7 @@ struct ExprEmit {
 	}
 }
 
-alias ExprResult = immutable OptPtr!gcc_jit_rvalue;
+alias ExprResult = immutable Opt!(Ptr!gcc_jit_rvalue);
 
 @trusted immutable(T) matchExprEmit(T)(
 	ref ExprEmit a,
@@ -626,18 +626,17 @@ immutable(ExprResult) emitSimpleNoSideEffects(
 		emit,
 		(ref immutable ExprEmit.Return) {
 			gcc_jit_block_end_with_return(ctx.curBlock, null, value);
-			return nonePtr!gcc_jit_rvalue;
+			return none!(Ptr!gcc_jit_rvalue);
 		},
-		(ref immutable ExprEmit.Value) {
-			return somePtr(value);
-		},
+		(ref immutable ExprEmit.Value) =>
+			some(value),
 		(ref immutable ExprEmit.Void) {
 			gcc_jit_block_add_eval(ctx.curBlock, null, value);
-			return nonePtr!gcc_jit_rvalue;
+			return none!(Ptr!gcc_jit_rvalue);
 		},
 		(ref ExprEmit.WriteTo it) {
 			gcc_jit_block_add_assignment(ctx.curBlock, null, it.lvalue, value);
-			return nonePtr!gcc_jit_rvalue;
+			return none!(Ptr!gcc_jit_rvalue);
 		});
 }
 
@@ -649,7 +648,7 @@ immutable(ExprResult) emitSimpleYesSideEffects(
 	immutable Ptr!gcc_jit_rvalue value,
 ) {
 	return isValue(emit)
-		? somePtr(getRValueUsingLocal(ctx, type, (Ptr!gcc_jit_lvalue local) {
+		? some(getRValueUsingLocal(ctx, type, (Ptr!gcc_jit_lvalue local) {
 			gcc_jit_block_add_assignment(ctx.curBlock, null, local, value);
 		}))
 		: emitSimpleNoSideEffects(ctx, emit, value);
@@ -676,15 +675,15 @@ immutable(ExprResult) emitWriteToLValue(
 		(ref immutable ExprEmit.Return) {
 			immutable Ptr!gcc_jit_rvalue rvalue = getRValueUsingLocal(ctx, type, cb);
 			gcc_jit_block_end_with_return(ctx.curBlock, null, rvalue);
-			return nonePtr!gcc_jit_rvalue;
+			return none!(Ptr!gcc_jit_rvalue);
 		},
 		(ref immutable ExprEmit.Value) =>
-			somePtr(getRValueUsingLocal(ctx, type, cb)),
+			some(getRValueUsingLocal(ctx, type, cb)),
 		(ref immutable ExprEmit.Void) =>
 			unreachable!(immutable ExprResult)(),
 		(ref ExprEmit.WriteTo it) {
 			cb(it.lvalue);
-			return nonePtr!gcc_jit_rvalue;
+			return none!(Ptr!gcc_jit_rvalue);
 		});
 }
 
@@ -697,15 +696,15 @@ immutable(ExprResult) emitVoid(
 		(ref immutable ExprEmit.Return) {
 			//TODO: this should be unnecessary, use local void
 			gcc_jit_block_end_with_return(ctx.curBlock, null, ctx.globalVoid);
-			return nonePtr!gcc_jit_rvalue;
+			return none!(Ptr!gcc_jit_rvalue);
 		},
 		(ref immutable ExprEmit.Value) =>
-			somePtr(ctx.globalVoid),
+			some(ctx.globalVoid),
 		(ref immutable ExprEmit.Void) =>
-			nonePtr!gcc_jit_rvalue,
+			none!(Ptr!gcc_jit_rvalue),
 		(ref ExprEmit.WriteTo it) {
 			gcc_jit_block_add_assignment(ctx.curBlock, null, it.lvalue, ctx.globalVoid);
-			return nonePtr!gcc_jit_rvalue;
+			return none!(Ptr!gcc_jit_rvalue);
 		});
 }
 
@@ -715,25 +714,25 @@ immutable(ExprResult) emitWithBranching(
 	immutable LowType type,
 	scope void delegate(
 		Ptr!gcc_jit_block originalBlock,
-		OptPtr!gcc_jit_block endBlock,
-		OptPtr!gcc_jit_lvalue local,
+		Opt!(Ptr!gcc_jit_block) endBlock,
+		Opt!(Ptr!gcc_jit_lvalue) local,
 	) @safe @nogc pure nothrow cb,
 ) {
-	OptPtr!gcc_jit_block endBlock = isReturn(emit)
-		? nonePtr_mut!gcc_jit_block
-		: somePtr_mut(gcc_jit_function_new_block(ctx.curFun, "switchEnd"));
-	OptPtr!gcc_jit_lvalue local = isValue(emit)
-		? somePtr_mut(gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, type), "temp"))
-		: nonePtr_mut!gcc_jit_lvalue;
+	Opt!(Ptr!gcc_jit_block) endBlock = isReturn(emit)
+		? noneMut!(Ptr!gcc_jit_block)
+		: someMut(gcc_jit_function_new_block(ctx.curFun, "switchEnd"));
+	Opt!(Ptr!gcc_jit_lvalue) local = isValue(emit)
+		? someMut(gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, type), "temp"))
+		: noneMut!(Ptr!gcc_jit_lvalue);
 	Ptr!gcc_jit_block originalBlock = ctx.curBlock;
 
 	cb(originalBlock, endBlock, local);
 
 	// If no endBlock, curBlock doesn't matter because nothing else will be done.
-	ctx.curBlock = has(endBlock) ? forcePtr(endBlock) : originalBlock;
+	ctx.curBlock = has(endBlock) ? force(endBlock) : originalBlock;
 	return has(local)
-		? somePtr(gcc_jit_lvalue_as_rvalue(forcePtr(local)))
-		: nonePtr!gcc_jit_rvalue;
+		? some(gcc_jit_lvalue_as_rvalue(force(local)))
+		: none!(Ptr!gcc_jit_rvalue);
 }
 
 immutable(ExprResult) emitSwitch(
@@ -746,7 +745,7 @@ immutable(ExprResult) emitSwitch(
 ) {
 	return emitWithBranching(
 		ctx, emit, type,
-		(Ptr!gcc_jit_block originalBlock, OptPtr!gcc_jit_block endBlock, OptPtr!gcc_jit_lvalue local) @trusted {
+		(Ptr!gcc_jit_block originalBlock, Opt!(Ptr!gcc_jit_block) endBlock, Opt!(Ptr!gcc_jit_lvalue) local) @trusted {
 			Ptr!gcc_jit_block defaultBlock = gcc_jit_function_new_block(ctx.curFun, "switchDefault");
 			gcc_jit_block_add_eval(
 				defaultBlock,
@@ -754,7 +753,7 @@ immutable(ExprResult) emitSwitch(
 				castImmutable(gcc_jit_context_new_call(ctx.gcc, null, ctx.abortFunction, 0, null)));
 			// Gcc requires that every block have an end.
 			if (has(endBlock))
-				gcc_jit_block_end_with_jump(defaultBlock, null, forcePtr(endBlock));
+				gcc_jit_block_end_with_jump(defaultBlock, null, force(endBlock));
 			else
 				gcc_jit_block_end_with_return(defaultBlock, null, arbitraryValue(ctx, type));
 
@@ -765,16 +764,15 @@ immutable(ExprResult) emitSwitch(
 					Ptr!gcc_jit_block caseBlock = gcc_jit_function_new_block(ctx.curFun, "switchCase");
 					ctx.curBlock = caseBlock;
 					if (has(local))
-						emitToLValueCb(forcePtr(local), (ref ExprEmit emitLocal) =>
+						emitToLValueCb(force(local), (ref ExprEmit emitLocal) =>
 							cbCase(emitLocal, i));
 					else {
 						immutable ExprResult result = cbCase(emit, i);
 						verify(!has(result));
 					}
-					if (has(endBlock)) {
+					if (has(endBlock))
 						// A nested branch may have changed to a new block, so use that instead of 'caseBlock'
-						gcc_jit_block_end_with_jump(ctx.curBlock, null, forcePtr(endBlock));
-					}
+						gcc_jit_block_end_with_jump(ctx.curBlock, null, force(endBlock));
 					immutable Ptr!gcc_jit_rvalue caseValue =
 						//TODO:PERF cache these?
 						gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, i);
@@ -900,7 +898,8 @@ immutable(Ptr!gcc_jit_rvalue) emitToRValueCb(
 	scope immutable(ExprResult) delegate(ref ExprEmit) @safe @nogc pure nothrow cbEmit,
 ) {
 	ExprEmit emit = ExprEmit(immutable ExprEmit.Value());
-	return forcePtr(cbEmit(emit));
+	immutable Opt!(Ptr!gcc_jit_rvalue) res = cbEmit(emit);
+	return force(res);
 }
 
 immutable(Ptr!gcc_jit_rvalue) emitToRValue(ref ExprCtx ctx, ref immutable LowExpr a) {
@@ -981,7 +980,7 @@ void emitToLValue(ref ExprCtx ctx, Ptr!gcc_jit_lvalue lvalue, ref immutable LowE
 				gcc_jit_lvalue_as_rvalue(local));
 		});
 	gcc_jit_block_end_with_jump(ctx.curBlock, null, ctx.entryBlock);
-	return nonePtr!gcc_jit_rvalue;
+	return none!(Ptr!gcc_jit_rvalue);
 }
 
 immutable(ExprResult) emitRecordCb(
@@ -1088,7 +1087,7 @@ immutable(ExprResult) emitWithLocal(
 	emitToLValueCb(gccLocal, (ref ExprEmit valueEmit) =>
 		cbValue(valueEmit));
 	push(ctx.locals, LocalPair(lowLocal, gccLocal));
-	immutable OptPtr!gcc_jit_rvalue res = toGccExpr(ctx, emit, then);
+	immutable Opt!(Ptr!gcc_jit_rvalue) res = toGccExpr(ctx, emit, then);
 	verify(ptrEquals(mustPop(ctx.locals).lowLocal, lowLocal));
 	return res;
 }
@@ -1669,21 +1668,21 @@ immutable(ExprResult) ifToGcc(
 	immutable Ptr!gcc_jit_rvalue condValue = emitToRValue(ctx, cond);
 	return emitWithBranching(
 		ctx, emit, type,
-		(Ptr!gcc_jit_block originalBlock, OptPtr!gcc_jit_block endBlock, OptPtr!gcc_jit_lvalue local) {
+		(Ptr!gcc_jit_block originalBlock, Opt!(Ptr!gcc_jit_block) endBlock, Opt!(Ptr!gcc_jit_lvalue) local) {
 			Ptr!gcc_jit_block thenBlock = gcc_jit_function_new_block(ctx.curFun, "then");
 			Ptr!gcc_jit_block elseBlock = gcc_jit_function_new_block(ctx.curFun, "else");
 			gcc_jit_block_end_with_conditional(originalBlock, null, condValue, thenBlock, elseBlock);
 			void branch(Ptr!gcc_jit_block block, ref immutable LowExpr blockExpr) {
 				ctx.curBlock = block;
 				if (has(local))
-					emitToLValue(ctx, forcePtr(local), blockExpr);
+					emitToLValue(ctx, force(local), blockExpr);
 				else {
 					immutable ExprResult result = toGccExpr(ctx, emit, blockExpr);
 					verify(!has(result));
 				}
 				if (has(endBlock)) {
 					// A nested if may have changed the block, so use 'curBlock' and not just 'block'
-					gcc_jit_block_end_with_jump(ctx.curBlock, null, forcePtr(endBlock));
+					gcc_jit_block_end_with_jump(ctx.curBlock, null, force(endBlock));
 				}
 			}
 			branch(thenBlock, then);

@@ -35,7 +35,7 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : emptyArr, emptyArr_mut, setAt, sizeEq;
 import util.col.arrUtil : map, mapOrNone, mapZipOrNone;
 import util.col.mutArr : MutArr;
-import util.opt : has, force, none, noneMut, Opt, OptPtr, some, toOpt;
+import util.opt : has, force, none, noneMut, Opt, some;
 import util.perf : Perf;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : FileAndRange, RangeWithinFile;
@@ -113,9 +113,8 @@ immutable(Type[]) typeArgsFromAsts(ref Alloc alloc, ref ExprCtx ctx, immutable T
 		typeFromAst2(alloc, ctx, it));
 }
 
-immutable(Opt!Type) typeFromOptAst(ref Alloc alloc, ref ExprCtx ctx, immutable OptPtr!TypeAst ast) {
-	immutable Opt!(Ptr!TypeAst) opt = toOpt(ast);
-	return has(opt) ? some(typeFromAst2(alloc, ctx, force(opt).deref())) : none!Type;
+immutable(Opt!Type) typeFromOptAst(ref Alloc alloc, ref ExprCtx ctx, immutable Opt!(Ptr!TypeAst) ast) {
+	return has(ast) ? some(typeFromAst2(alloc, ctx, force(ast).deref())) : none!Type;
 }
 
 immutable(Type) typeFromAst2(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst ast) {

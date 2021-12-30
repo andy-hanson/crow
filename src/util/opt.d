@@ -2,68 +2,65 @@ module util.opt;
 
 @safe @nogc pure nothrow:
 
-import util.ptr : Ptr;
 import util.util : verify;
-
-struct OptPtr(T) {
-	private:
-	void* value_;
-}
-
-immutable(OptPtr!T) somePtr(T)(immutable Ptr!T a) {
-	return immutable OptPtr!T(a.rawPtr());
-}
-
-OptPtr!T somePtr_mut(T)(Ptr!T a) {
-	return OptPtr!T(a.rawPtr());
-}
-
-immutable(OptPtr!T) nonePtr(T)() {
-	return immutable OptPtr!T(null);
-}
-
-OptPtr!T nonePtr_mut(T)() {
-	return OptPtr!T(null);
-}
-
-immutable(bool) has(T)(const OptPtr!T a) {
-	return a.value_ != null;
-}
-
-@trusted inout(Ptr!T) forcePtr(T)(inout OptPtr!T a) {
-	verify(has(a));
-	return Ptr!T(cast(T*) a.value_);
-}
-
-@trusted immutable(Opt!(Ptr!T)) toOpt(T)(immutable OptPtr!T a) {
-	return has(a) ? some(forcePtr!T(a)) : none!(Ptr!T);
-}
 
 struct Opt(T) {
 	private:
-	this(BeNone) {
-		has_ = false;
+	static if (hasInvalid!T) {
+		this(BeNone) immutable {
+			value_ = T.INVALID;
+		}
+		this(BeNone) const {
+			value_ = T.INVALID;
+		}
+		this(BeNone) {
+			value_ = T.INVALID_mut;
+		}
+		@trusted this(immutable T value) immutable {
+			value_ = value;
+		}
+		@trusted this(const T value) const {
+			value_ = value;
+		}
+		@trusted this(T value) {
+			value_ = value;
+		}
+		T value_;
+
+		immutable(bool) has_() const {
+			return value_ != T.INVALID;
+		}
+
+		static assert(Opt!T.sizeof == T.sizeof);
+	} else {
+		this(BeNone) immutable {
+			has_ = false;
+		}
+		this(BeNone) const {
+			has_ = false;
+		}
+		this(BeNone) {
+			has_ = false;
+		}
+		@trusted this(immutable T value) immutable {
+			has_ = true;
+			value_ = value;
+		}
+		@trusted this(const T value) const {
+			has_ = true;
+			value_ = value;
+		}
+		@trusted this(T value) {
+			has_ = true;
+			value_ = value;
+		}
+		bool has_;
+		T value_ = void;
 	}
-	this(BeNone) const {
-		has_ = false;
-	}
-	this(BeNone) immutable {
-		has_ = false;
-	}
-	@trusted this(T value) {
-		has_ = true;
-		value_ = value;
-	}
-	@trusted this(const T value) const {
-		has_ = true;
-		value_ = value;
-	}
-	@trusted this(immutable T value) immutable {
-		has_ = true;
-		value_ = value;
-	}
-	bool has_;
-	T value_ = void;
+}
+
+immutable(bool) hasInvalid(T)() {
+	return __traits(hasMember, T, "INVALID");
 }
 
 private struct BeNone {}
