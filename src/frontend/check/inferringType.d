@@ -4,7 +4,8 @@ module frontend.check.inferringType;
 
 import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.check.dicts : FunsDict, ModuleLocalFunIndex, StructsAndAliasesDict;
-import frontend.check.instantiate : instantiateStructNeverDelay, tryGetTypeArg, TypeParamsScope;
+import frontend.check.instantiate :
+	instantiateStructNeverDelay, tryGetTypeArg_const, tryGetTypeArg_mut, TypeParamsScope;
 import frontend.check.typeFromAst : typeFromAst;
 import frontend.parse.ast : TypeAst;
 import frontend.programState : ProgramState;
@@ -301,18 +302,18 @@ private immutable(bool) setTypeNoDiagnostic(
 			false);
 }
 
-private Opt!(Ptr!SingleInferringType) tryGetTypeArgFromInferringTypeArgs(
+private Opt!(Ptr!SingleInferringType) tryGetTypeArgFromInferringTypeArgs_mut(
 	ref InferringTypeArgs inferringTypeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
-	return tryGetTypeArg!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
+	return tryGetTypeArg_mut!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
 }
 
 const(Opt!(Ptr!SingleInferringType)) tryGetTypeArgFromInferringTypeArgs_const(
 	ref const InferringTypeArgs inferringTypeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
-	return tryGetTypeArg!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
+	return tryGetTypeArg_const!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
 }
 
 private:
@@ -492,7 +493,7 @@ immutable(SetTypeResult) checkAssignability(
 			// TODO: make sure to infer type params in this case!
 			immutable SetTypeResult(SetTypeResult.Keep()),
 		(immutable Ptr!TypeParam pa) {
-			Opt!(Ptr!SingleInferringType) aInferring = tryGetTypeArgFromInferringTypeArgs(aInferringTypeArgs, pa);
+			Opt!(Ptr!SingleInferringType) aInferring = tryGetTypeArgFromInferringTypeArgs_mut(aInferringTypeArgs, pa);
 			return has(aInferring)
 				? setTypeNoDiagnosticWorker_forSingleInferringType(alloc, programState, force(aInferring).deref, b)
 				: matchType!(immutable SetTypeResult)(

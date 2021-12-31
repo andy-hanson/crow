@@ -65,7 +65,7 @@ struct TypeParamsAndArgs {
 
 immutable(Opt!(Ptr!T)) tryGetTypeArg(T)(
 	immutable TypeParam[] typeParams,
-	ref immutable T[] typeArgs,
+	immutable T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
 	immutable size_t index = typeParam.deref().index;
@@ -75,9 +75,9 @@ immutable(Opt!(Ptr!T)) tryGetTypeArg(T)(
 		: none!(Ptr!T);
 }
 
-const(Opt!(Ptr!T)) tryGetTypeArg(T)(
+const(Opt!(Ptr!T)) tryGetTypeArg_const(T)(
 	immutable TypeParam[] typeParams,
-	ref const T[] typeArgs,
+	const T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
 	immutable size_t index = typeParam.deref().index;
@@ -86,9 +86,9 @@ const(Opt!(Ptr!T)) tryGetTypeArg(T)(
 		: none!(Ptr!T);
 }
 
-Opt!(Ptr!T) tryGetTypeArg(T)(
+Opt!(Ptr!T) tryGetTypeArg_mut(T)(
 	immutable TypeParam[] typeParams,
-	ref T[] typeArgs,
+	T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
 	immutable size_t index = typeParam.deref().index;

@@ -189,6 +189,12 @@ export class StyleBuilder {
 		return this
 	}
 
+	/** @return {this} */
+	log() {
+		console.log(this.out_.end())
+		return this
+	}
+
 	/** @return {Promise<CSSStyleSheet>} */
 	end() {
 		return styleSheetFromString(this.out_.end())
@@ -800,6 +806,7 @@ export class Color {
 	static pink = new Color("#ff6188")
 	static peach = new Color("#fc9867")
 	static yellow = new Color("#ffd866")
+	static yellowGray = new Color('#eedaa1')
 	static lightYellow = new Color("#ffebbd") // mine
 	static green = new Color("#a9dc76")
 	static greenDarker = new Color("#89bc56") //mine
@@ -951,6 +958,7 @@ export class Resize {
 
 export class Overflow {
 	static auto = new Overflow("auto")
+	static hidden = new Overflow("hidden")
 
 	/** @param {string} show */
 	constructor(show) {

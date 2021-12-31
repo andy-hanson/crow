@@ -39,12 +39,14 @@ export function element(name, options, children) {
 export const InputType = {}
 
 /**
+ * @param {ElementOptions} options
  * @param {NodeOrString} child
  * @return {HTMLButtonElement}
  */
-export function button(child) {
+export function button(options, child) {
 	return safeCast(element("button", {
 		attributes: { type: "button" },
+		...options,
 	}, [child]), HTMLButtonElement)
 }
 

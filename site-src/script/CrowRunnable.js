@@ -5,10 +5,12 @@ import {
 	cssClass,
 	Color,
 	Cursor,
+	Display,
 	FontFamily,
 	Margin,
 	Measure,
 	Outline,
+	Overflow,
 	Selector,
 	StyleBuilder,
 	WhiteSpace,
@@ -20,10 +22,13 @@ import {MutableObservable} from "./util/MutableObservable.js"
 import {nonNull} from "./util/util.js"
 
 const outputClass = cssClass("output")
+const outputRunningClass = cssClass("running")
 const outputOkClass = cssClass("ok")
 const outputErrClass = cssClass("err")
+const collapsedClass = cssClass("collapsed")
 const bottomClass = cssClass("bottom")
 const iconClass = cssClass("copy-icon")
+const runClass = cssClass("run")
 
 //TODO: just style CrowText?
 const crowTextContainerClass = cssClass("crow-text-container")
@@ -48,21 +53,33 @@ export const CrowRunnable = makeCustomElement({
 			font_family: FontFamily.monospace,
 			white_space: WhiteSpace.pre,
 			tab_size: 4,
+			overflow: Overflow.hidden,
+			transition: "height 0.25s ease",
+		})
+		.rule(Selector.and([Selector.class(outputClass), Selector.class(outputRunningClass)]), {
+			transition: "none",
 		})
 		.button({
 			border: Border.none,
 			outline: Outline.none,
-			background: Color.yellow,
+			color: Color.lightYellow,
+			background: Color.transparent,
 			cursor: Cursor.pointer,
+		})
+		.class(runClass, {
+			color: Color.yellow,
 		})
 		.class(bottomClass, {
 			border_radius_bottom: Measure.ex(1),
-			background: Color.yellow,
+			background: Color.midGray,
 			margin: Measure.zero,
 			padding: Measure.ex(0.25),
 		})
 		.rule(Selector.child(Selector.class(iconClass), Selector.tag("svg")), {
 			height: Measure.em(1.25),
+		})
+		.rule(Selector.and([Selector.tag("button"), Selector.class(collapsedClass)]), {
+			display: Display.none,
 		})
 		.end(),
 	init: () => ({state:null, out:null}),
@@ -93,25 +110,31 @@ export const CrowRunnable = makeCustomElement({
 		})
 
 		const output = div({class:outputClass})
+		output.style.height = "0"
 
-		const runButton = noRun ? null : button(playIcon())
+		const runButton = noRun ? null : button({class:runClass}, playIcon())
 		if (runButton) runButton.onclick = () => {
 			try {
 				output.className = outputClass.name
+				output.classList.add(outputRunningClass.name)
+				output.style.height = "2em"
 				removeAllChildren(output)
 				output.append(LoadingIcon.create(null))
 				output.append(div(), div(), div(), div())
 				// Put behind a timeout so loading will show
 				setTimeout(() => {
+					collapseButton.classList.remove(collapsedClass.name)
+					output.classList.remove(outputRunningClass.name)
 					const result = comp.run(MAIN)
-					output.textContent = result.stdout === "" && result.stderr === ""
-						? "no output"
-						: result.stdout === "" || result.stderr === ""
-						? result.stdout + result.stderr
-						: `stderr:\n${result.stderr}\nstdout:\n${result.stdout}`
-					output.className = result.err === 0
-						? `${outputClass.name} ${outputOkClass.name}`
-						: `${outputClass.name} ${outputErrClass.name}`
+					const text = result.stdout === "" && result.stderr === ""
+					? "no output"
+					: result.stdout === "" || result.stderr === ""
+					? result.stdout + result.stderr
+					: `stderr:\n${result.stderr}\nstdout:\n${result.stdout}`
+					output.textContent = text
+					const lines = text.split("\n").length
+					output.style.height = `${lines * 16}px`
+					output.classList.add(result.err === 0 ? outputOkClass.name : outputErrClass.name)
 				}, 0)
 			} catch (e) {
 				console.error("ERROR WHILE RUNNING", e)
@@ -119,25 +142,33 @@ export const CrowRunnable = makeCustomElement({
 			}
 		}
 
-		const copyButton = button(copyIcon())
+		const copyButton = button({}, copyIcon())
 		copyButton.onclick = () => {
 			navigator.clipboard.writeText(text.get()).catch(e => {
 				console.error(e)
 			})
 		}
 
-		const downloadButton = button(downloadIcon())
+		const downloadButton = button({}, downloadIcon())
 		downloadButton.onclick = () => {
-			console.log("Clicked download!")
 			const a = document.createElement("a")
 			a.href = "data:text/csv;charset=utf-8," + encodeURI(text.get())
 			a.target = "_blank"
 			a.download = "hello.crow"
 			a.click()
-			console.log("Clicked???")
 		}
 
-		const bottom = div({class:bottomClass}, [...(runButton ? [runButton] : []), copyButton, downloadButton])
+		const collapseButton = button({}, upIcon())
+		collapseButton.classList.add(collapsedClass.name)
+		collapseButton.style.float = "right"
+		collapseButton.onclick = () => {
+			output.style.height = "0"
+			collapseButton.classList.add(collapsedClass.name)
+		}
+
+		const bottom = div(
+			{class:bottomClass},
+			[...(runButton ? [runButton] : []), copyButton, downloadButton, collapseButton])
 
 		const outerContainer = div({class:outerContainerClass}, [crowTextContainer, output, bottom])
 		root.append(outerContainer)
@@ -167,6 +198,14 @@ const downloadIcon = () =>
 		d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
 	/>`)
 
+const upIcon = () =>
+	icon(`<path
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		stroke-width="2"
+		d="M5 15l7-7 7 7"
+	/>`)
+
 /** @return {HTMLElement} */
 const copyIcon = () => {
 	const data =
@@ -190,7 +229,7 @@ const icon = content => {
 
 /** @type {function(): Promise<ReadonlyArray<[string, string]>>} */
 const getIncludeFiles = async () =>
-	Object.entries(await (await fetch('/include-all.json')).json())
+	Object.entries(await (await fetch("/include-all.json")).json())
 
 const Icon = makeCustomElement({
 	tagName: "crow-icon",

@@ -116,7 +116,7 @@ export const CrowText = makeCustomElement({
 		})
 		.class(noTokenClass, {
 			font_weight: FontWeight.light,
-			color: Color.lightGray,
+			color: Color.lighterGray,
 		})
 		.class(cssClass("keyword"), {
 			font_weight: FontWeight.bold,
