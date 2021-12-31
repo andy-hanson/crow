@@ -9,7 +9,8 @@ import
 
 getcwd char mut*(buf char mut*, size size_t) unsafe extern noctx summon
 
-readlink ssize_t(path c-str, buf char mut*, len size_t) summon extern noctx
+readlink ssize_t(path c-str, buf char mut*, len size_t) unsafe summon extern noctx
+symlink c-int(target c-str, linkpath c-str) unsafe summon extern noctx
 
 close err-t(fd fd-t) summon extern noctx
 lseek off_t(f fd-t, offset off_t, whence int32) summon extern noctx

@@ -5,7 +5,7 @@ import
 	fcntl: O_CREAT, O_RDONLY, O_TRUNC, O_WRONLY, open
 	stat: mkdir, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
 	sys/types: ino_t, mode_t, off_t
-	unistd: close, getcwd, lseek, read, readlink, rmdir, unlink, write
+	unistd: close, getcwd, lseek, read, readlink, rmdir, symlink, unlink, write
 	../bits: &, |, <<
 	../bytes-types: new
 	../bool: !, ||, bool, false, new, to-nat64, true
@@ -113,6 +113,12 @@ read-link str(path str) summon trusted
 	if size == -1
 		check-errno
 	buff.cast-immutable[0 .. size.to-nat64] str
+
+make-symlink-to void(link str, target str) summon trusted
+	err = target.to-c-str symlink link.to-c-str
+	unless err == 0
+		assert: err == -1
+		check-errno
 
 ###
 Gets the path of the current executable.

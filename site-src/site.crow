@@ -1,7 +1,7 @@
 import
 	crow/col/arr-util: each, map
 	crow/col/dict: to-dict
-	crow/io/file: make-directory, path-exists, read-file, try-read-file, write-file
+	crow/io/file: current-directory, make-directory, make-symlink-to, path-exists, read-file, try-read-file, write-file
 	crow/io/path: child-path, parent-path
 	crow/io/print: print
 	crow/json: json-object, json-str, to-str
@@ -12,9 +12,12 @@ import
 	./search-dir-recursive: remove-include-and-crow, search-dir-recursive
 
 main fut nat(_ str[]) summon
-	all = all-to-copy ~ documentation ~ pages
-	all each cur =>
+	all-content = documentation ~ pages ~ (include-all,)
+	all-content each cur =>
 		cur ensure-up-to-date
+	cwd = current-directory
+	all-to-link each cur =>
+		cur ensure-link cwd
 	()
 
 .ensure-up-to-date void(a path-and-content) summon
@@ -23,6 +26,15 @@ main fut nat(_ str[]) summon
 		full-out-path.parent-path ensure-directory-recursive
 		print: "update {full-out-path}"
 		full-out-path write-file a.content
+
+.ensure-link void(a link, cwd str) summon
+	full-out-path = "site" child-path a.link-path
+	# TODO: check that link target is up to date
+	unless full-out-path path-exists
+		full-out-path.parent-path ensure-directory-recursive
+		full-target = cwd child-path a.target
+		print: "link {full-out-path} -> {full-target}"
+		full-out-path make-symlink-to full-target
 
 .is-up-to-date bool(path str, content str) summon
 	if cur-content ?= path try-read-file
@@ -33,13 +45,16 @@ main fut nat(_ str[]) summon
 		path.parent-path ensure-directory-recursive
 		path make-directory
 
-.all-to-copy path-and-content[]() summon
-	example = "site-src/example" search-all-with-content "site-src/"
-	in-src-paths = ("site-src/crow.svg", "site-src/index.css", "site-src/font/russo/Russo_One.ttf")
-	in-src = in-src-paths to-paths-and-contents "site-src/"
-	scripts = ("site-src/script" search-dir-recursive x => x ends-with ".js") to-paths-and-contents "site-src/"
-	other = ("bin/crow.wasm", "bin/crow.tar.xz", "crow-js/crow.js") to-paths-and-contents ""
-	example ~ (include-all,) ~ in-src ~ scripts ~ other
+link record
+	target str
+	link-path str
+
+.all-to-link link[]() summon
+	example = "site-src/example".search-dir-recursive to-links "site-src/"
+	in-src-paths link[] = ("crow.svg", "index.css", "font/russo/Russo_One.ttf") map x => ("site-src" child-path x), x
+	scripts = ("site-src/script" search-dir-recursive x => x ends-with ".js") to-links "site-src/"
+	other link[] = ("bin/crow.wasm", "bin/crow.tar.xz", "crow-js/crow.js") map x => x, x
+	example ~ in-src-paths ~ scripts ~ other
 
 .include-all path-and-content() summon
 	include = "include" search-all-with-content ""
@@ -48,6 +63,10 @@ main fut nat(_ str[]) summon
 
 .search-all-with-content path-and-content[](path str, remove-prefix str) summon
 	path.search-dir-recursive to-paths-and-contents remove-prefix
+
+.to-links link[](targets str[], remove-prefix str)
+	targets map target =>
+		target, target try-remove-start remove-prefix ?? "{target} didn't start with {remove-prefix}".throw
 
 .to-paths-and-contents path-and-content[](paths str[], remove-prefix str) summon
 	paths map path =>
