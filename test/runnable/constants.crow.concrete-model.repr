@@ -306,7 +306,6 @@ program(
 			name: arr
 			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, measure-value)]))
-		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, str)]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, measure-value)]))
 		struct(
 			name: arr
@@ -396,6 +395,7 @@ program(
 			body: record([field(main-ptr, const, type(false, fun-ptr2)), field(all-args, const, type(false, arr))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, str), type(false, const-ptr)]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, str), type(false, nat64)]))
+		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, str)]))
 		struct(
 			name: lambda(map, 0)
 			ptr: true
@@ -3363,23 +3363,6 @@ program(
 			none
 			[param(measure-names, type(false, arr)), param(measure-values, type(false, fix-arr))]
 			new-record)
-		fun(noctx, empty-arr, type(false, arr), none, [], call(new, [0, call(null, [])]))
-		fun(
-			noctx
-			new
-			type(false, arr)
-			none
-			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
-			new-record)
-		fun(noctx, null, type(false, const-ptr), none, [], call(as-const, [call(null, [])]))
-		fun(
-			noctx
-			as-const
-			type(false, const-ptr)
-			none
-			[param(a, type(false, mut-ptr))]
-			builtin([type(false, str)]))
-		fun(noctx, null, type(false, mut-ptr), none, [], builtin([type(false, str)]))
 		fun(
 			noctx
 			empty-fix-arr
@@ -4629,6 +4612,20 @@ program(
 			none
 			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, nat64))]
 			builtin([type(false, str), type(false, nat64)]))
+		fun(
+			noctx
+			new
+			type(false, arr)
+			none
+			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
+			new-record)
+		fun(
+			noctx
+			as-const
+			type(false, const-ptr)
+			none
+			[param(a, type(false, mut-ptr))]
+			builtin([type(false, str)]))
 		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
 		fun(
 			ctx

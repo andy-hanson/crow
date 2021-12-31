@@ -1,0 +1,142 @@
+import
+	crow/col/arr-util: each, in, map
+	crow/col/dict: dict, each-key, subscript
+	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new
+	crow/col/mut-dict: move-to-dict, mut-dict, new, subscript, set-subscript
+	crow/col/set: each, in, set
+	crow/col/mut-set: ~=, each, move-to-arr, move-to-set, mut-set, new, to-mut-set, try-remove
+	crow/io/file: read-file
+	crow/io/print: print-err
+	crow/io/process: shell-exec
+	crow/str-util:
+		ends-with, head, in, split-by, tail, try-split-once, try-split-once-by-fn, try-split-once-by-whitespace
+	../site-src/search-dir-recursive: search-dir-recursive
+
+main fut nat(_ str[]) summon
+	files = all-files
+	failures = files lint-files
+	failures each x => x print-err
+	failures.size,
+
+.lint-files str[](files file[]) summon
+	failures str mut[] = ()
+	all-imports = files get-all-imports
+	files each file =>
+		file.members.public each public-export =>
+			unless public-export in all-imports || public-export in excluded-public
+				failures ~= "{file path} export not used: {public-export}"
+	files each file =>
+		file.members.private each private-member =>
+			if file.uses[private-member]! < 2 && !(private-member in excluded-private)
+				failures ~= "{file path} private member not used: {private-member}"
+	files each file =>
+		failures lint-imports-in-file file
+	failures move-to-arr
+
+.get-all-imports set sym(files file[])
+	res mut-set sym = ()
+	files each file =>
+		file.imports each x =>
+			res ~= x
+	res move-to-set
+
+.excluded-public sym[]()
+	"derefConstantPointer", "diffSymbols", "test"
+
+.excluded-private sym[]()
+	"writeFieldName", "writeLocalName", "asConcreteFun"
+
+.file record
+	path str
+	members members
+	imports set sym
+	uses nat[sym]
+
+.members record
+	public sym[]
+	private sym[]
+
+all-files file[]() summon
+	"src".search-dir-recursive map path => path get-file
+
+.get-file file(path str) summon
+	imports-and-rest = path.read-file find-imports
+	path, path.get-members, imports-and-rest.imports, imports-and-rest.rest.get-uses
+
+.get-members members(path str) summon
+	stdout = "dub run dscanner -- --ctags {path}" shell-exec
+
+	public mut-set sym = ()
+	private mut-set sym = ()
+
+	look-for = "!_TAG_PROGRAM_URL	https://github.com/dlang-community/D-Scanner/\n"
+	rest = (stdout try-split-once look-for)!.b
+	rest split-by "\n" each line =>
+		unless line == "" || "enum:" in line || "struct:" in line
+			name = line.try-split-once-by-whitespace!.a str-to-sym
+			if "access:public" in line
+				public ~= name
+			elif "access:private" in line
+				private ~= name
+			else
+				unless path in excluded-unknown-access-paths || name in excluded-unknown-access
+					"Unexpected non-public, non-private member {name} in {path}" throw
+
+	public.move-to-arr, private.move-to-arr
+
+# extern functions are neither public nor private
+.excluded-unknown-access-paths str[]()
+	"src/app.d", "src/wasm.d"
+
+# for some reason, dscanner doesn't give non-nested unions like Converter64 access:private
+.excluded-unknown-access sym[]()
+	"Converter32", "Converter64", "DoubleToUlong"
+
+.imports-and-rest record
+	imports set sym
+	rest str
+
+.find-imports imports-and-rest(a str)
+	() find-imports-recur a, a
+.find-imports-recur imports-and-rest(res mut-set sym, since-last-import str, a str)
+	if pair ?= a try-split-once "import "
+		if pair.a ends-with "\n"
+			rest = pair b
+			after-colon = (rest try-split-once ":")!.b
+			split-semi = (after-colon try-split-once ";")!
+			split-semi.a each-word word =>
+				res ~= word
+			res find-imports-recur split-semi.b, split-semi.b
+		else
+			# This is an 'import' in a nested scope; don't count it
+			# (since we want only imports at top of file, not later on)
+			res find-imports-recur since-last-import, pair.b
+	else
+		res.move-to-set, since-last-import
+
+.get-uses nat[sym](a str)
+	res nat mut[sym] = ()
+	a each-word x =>
+		res[x] := (res[x] ?? 0) + 1
+	res move-to-dict
+
+.each-word void(a str, cb act void(sym))
+	unless a is-empty
+		if a.head is-identifier-char
+			if pair ?= a try-split-once-by-fn x => !x.is-identifier-char
+				cb[pair.a str-to-sym]
+				pair.b each-word cb
+			else
+				cb[a str-to-sym]
+		else
+			a.tail each-word cb
+
+.is-identifier-char bool(a char)
+	"a"::char <= a && a <= "z" || "A"::char <= a && a <= "Z" || "0"::char <= a && a <= "9" || a == "_"
+
+.lint-imports-in-file void(failures str mut[], a file)
+	not-used = a.imports to-mut-set
+	a.uses each-key x =>
+		drop: not-used try-remove x
+	not-used each x =>
+		failures ~= "{a path}: unused import {x}"

@@ -506,7 +506,10 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterQuestion(
 					return immutable ExprAndMaybeNameOrDedent(
 						immutable ExprAst(
 							range(lexer, start),
-							immutable ExprAstKind(allocate(lexer.alloc, immutable IfAst(lhs, then.expr, some(else_.expr))))),
+							immutable ExprAstKind(allocate(lexer.alloc, immutable IfAst(
+								lhs,
+								then.expr,
+								some(else_.expr))))),
 						else_.nameOrDedent);
 				}
 				return matchOptNameOrDedent!(immutable ExprAndMaybeNameOrDedent)(

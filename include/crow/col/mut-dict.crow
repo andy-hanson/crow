@@ -205,6 +205,9 @@ region iteration
 each<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
 	() fold a, (ignore, key, value) => f[key, value]
 
+each-key<k, v> void(a v mut[k], f act void(k)) is-data<k> compare<k> hash-mix<k>
+	a each (k, ignore) => f[k]
+
 fold<a, k, v> a(acc a, a v mut[k], f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
 	acc fold a.entries, (cur, entry) =>
 		match entry

@@ -2,7 +2,7 @@ no-std
 import
 	errno: EAGAIN, errno
 	unistd: write
-	../../bool:  bool, false, true
+	../../bool: bool, false, true
 	../../col/arr: ~, arr, arr-cast, begin-ptr, is-empty, new, size, subscript
 	../../col/arr-util: rtail
 	../../col/dict: each, in, new

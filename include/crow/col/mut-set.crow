@@ -8,11 +8,17 @@ import
 	../tuple: a, new, pair
 	./arr: arr
 	./arr-util: each, map
-	./mut-dict: ~=, move-to-arr, mut-dict, in, to-mut-dict, try-remove-key
-	./set: set, to-set
+	./mut-dict: ~=, each-key, move-to-arr, mut-dict, in, to-mut-dict, try-remove-key
+	./set: each, set, to-set
 
 mut-set<a> record mut
 	.inner void mut[a]
+
+to-mut-set<a> mut-set a(a set a) is-data<a> compare<a> hash-mix<a>
+	res mut-set a = ()
+	a each x =>
+		res ~= x
+	res
 
 new<a> mut-set a(...a a[]) is-data<a> compare<a> hash-mix<a>
 	# TODO: should not need type annotation
@@ -43,3 +49,6 @@ try-add<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
 
 try-remove<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
 	!(a.inner try-remove-key value is-empty)
+
+each<a> void(a mut-set a, cb act void(a)) is-data<a> compare<a> hash-mix<a>
+	a.inner each-key cb

@@ -1,6 +1,6 @@
 module(
 	path: 76
-	imports: [import(none, 59, none), import(some(range(8, 28)), 44, some([print]))]
+	imports: [import(none, 59, none), import(some(range(8, 28)), 46, some([print]))]
 	structs: [struct(range: file-range(76, range(30, 70)), visibility: public, name: rect)]
 	funs: [
 		fun(

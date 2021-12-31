@@ -63,7 +63,7 @@ struct TypeParamsAndArgs {
 	}
 }
 
-immutable(Opt!(Ptr!T)) tryGetTypeArg(T)(
+private immutable(Opt!(Ptr!T)) tryGetTypeArg(T)(
 	immutable TypeParam[] typeParams,
 	immutable T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,

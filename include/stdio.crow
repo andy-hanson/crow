@@ -1,8 +1,10 @@
 no-std
 import
+	crow/c-types: c-int
 	crow/extra-types: fd-t
 	crow/misc: void
-	crow/str: c-str
+	crow/ptr: mut-ptr
+	crow/str: char, c-str
 
 perror void(s c-str) unsafe summon extern noctx
 
@@ -12,3 +14,10 @@ stdout fd-t() noctx
 	1
 stderr fd-t() noctx
 	2
+
+FILE extern-ptr
+
+popen FILE(command c-str, modes c-str) unsafe summon extern noctx
+pclose c-int(stream FILE) unsafe summon extern noctx
+
+fgets char mut*(s char mut*, n c-int, stream FILE) unsafe summon extern noctx

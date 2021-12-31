@@ -2,11 +2,13 @@ no-std
 import
 	./bool: ||
 	./col/arr: arr, size, subscript
-	./col/fix-arr: fill-fix-arr, set-subscript, subscript
+	./col/arr-util: zip
+	./col/fix-arr: fill-fix-arr, set-subscript, subscript, temp-as-arr
+	./fun-util: subscript
 	./io/time-low-level: get-monotime-nsec
-	./misc: new, void
+	./misc: drop, new, void
 	./ptr: as-ref
-	./str: ==, str
+	./sym: ==, sym
 	./private/bootstrap: get-ctx, nat64, perf-ctx-ptr, thread-local-stuff
 	./private/number-low-level: ==, wrap-add, wrap-sub
 	./private/perf-low-level:
@@ -15,12 +17,18 @@ import
 export
 	./private/perf-low-level: count, measure-value, total-duration
 
-perf-reset void(names str[]) summon
+perf-reset void(names sym[]) summon
 	perf = get-perf-ctx
 	perf.measure-names := names
 	perf.measure-values := names.size fill-fix-arr (0, 0)
 
-perf-get-measure measure-value(name str) summon
+# TODO: what if a measurement is taken while this is running?
+perf-each-measure void(cb act void(sym, measure-value)) trusted
+	perf = get-perf-ctx
+	drop: perf.measure-names zip perf.measure-values.temp-as-arr, (name, value) =>
+		cb[name, value]
+
+perf-get-measure measure-value(name sym) summon
 	perf = get-perf-ctx
 	index = perf.measure-names find-index name
 	if index == perf.measure-names.size
@@ -31,7 +39,13 @@ perf-get-measure measure-value(name str) summon
 perf-now perf-time() noctx
 	get-monotime-nsec,
 
-perf-measure void(start perf-time, name str)
+with-perf-measure<a> a(name sym, cb act a())
+	start = perf-now
+	res = cb[]
+	start perf-measure name
+	res
+
+perf-measure void(start perf-time, name sym)
 	perf = get-perf-ctx
 	index = perf.measure-names find-index name
 	unless index == perf.measure-names.size
@@ -42,9 +56,9 @@ perf-measure void(start perf-time, name str)
 .get-perf-ctx perf-ctx() trusted
 	get-ctx.thread-local-stuff.perf-ctx-ptr as-ref
 
-.find-index nat64(names str[], name str)
+.find-index nat64(names sym[], name sym)
 	names find-index name, 0
-.find-index nat64(names str[], name str, index nat64)
+.find-index nat64(names sym[], name sym, index nat64)
 	if index == names.size || names[index] == name
 		index
 	else

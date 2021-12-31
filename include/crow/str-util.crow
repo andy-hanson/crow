@@ -1,15 +1,17 @@
 no-std
 import
 	./bool: &&, ||, bool
-	./col/arr: arr, arr-cast, arr-from-begin-end, begin-ptr, is-empty
+	./col/arr: arr, arr-cast, arr-from-begin-end, begin-ptr, is-empty, size, subscript
 	./col/arr-util:
 		contains-subseq, each, ends-with, first, last, map, reverse, rtail, split-by-subseq,
-		starts-with, tail, try-remove-end, try-remove-start, try-split-once
+		starts-with, tail, try-remove-end, try-remove-start, try-split-once-by-fn,
+		try-split-once-by-subseq
 	./col/mut-arr: ~=, move-to-arr, mut-arr, new
 	./compare: !=, <=
 	./number: ==, <=>, +, -, nat8
 	./opt: !, new, opt
-	./ptr: +, *
+	./ptr: +, *, as-const, as-mut, mut-ptr
+	./range: ..
 	./str: ==, ~, char, chars, c-str, new, str, to-char, to-nat8
 	./tuple: a, b, new, pair
 	./private/bootstrap: hard-unreachable
@@ -20,6 +22,15 @@ as-str str(bytes nat8[]) unsafe noctx
 
 bytes nat8[](a str) trusted noctx
 	a.chars arr-cast
+
+in bool(a str, b str)
+	b.chars contains-subseq a.chars
+
+head char(a str)
+	a.chars[0]
+
+tail str(a str)
+	a.chars[1 .. a.chars.size] str
 
 # Converts a str to a c-str by appending "\0".
 to-c-str c-str(a str)
@@ -45,6 +56,10 @@ find-cstr-end c-str(a c-str) unsafe noctx
 		v
 	else
 		hard-unreachable
+
+# Pointer to the end of a c-str.
+find-cstr-end char mut*(a char mut*) unsafe noctx
+	a.as-const.find-cstr-end.as-mut
 
 # Strips whitespace from both ends.
 strip str(a str)
@@ -89,12 +104,19 @@ try-remove-end str?(a str, b str)
 	if res ?= a.chars try-remove-end b.chars
 		res.str,
 
-try-split-once pair<str, str>?(a str, b char)
-	if res ?= a.chars try-split-once b
+try-split-once pair<str, str>?(a str, b str)
+	if res ?= a.chars try-split-once-by-subseq b.chars
 		(res.a.str, res.b.str),
 
 split-by str[](a str, b str)
 	a.chars split-by-subseq b.chars map chars => chars str
+
+try-split-once-by-fn pair<str, str>?(a str, b act bool(char))
+	if res ?= a.chars try-split-once-by-fn b
+		(res.a.str, res.b.str),
+
+try-split-once-by-whitespace pair<str, str>?(a str)
+	a try-split-once-by-fn x => x is-whitespace
 
 join str(a str[], b str)
 	unless a is-empty

@@ -6,7 +6,7 @@ import
 	spawn:
 		new, posix_spawn, posix_spawn_file_actions_addclose, posix_spawn_file_actions_adddup2,
 		posix_spawn_file_actions_init, posix_spawn_file_actions_t
-	stdio: stderr, stdout
+	stdio: fgets, FILE, pclose, popen, stderr, stdout
 	sys/types: pid_t
 	sys/wait:
 		status-t, waitpid, WEXITSTATUS, WIFCONTINUED, WIFEXITED, WIFSIGNALED,
@@ -18,21 +18,21 @@ import
 	../col/arr: arr, begin-ptr
 	../col/arr-util: each, fold
 	../col/fix-arr: begin-ptr, fix-arr, new, ref-of-val-at, size
-	../col/mut-arr: ~=, begin-ptr, move-to-arr, mut-arr, new, size, unsafe-set-size
+	../col/mut-arr: ~=, begin-ptr, end-ptr, move-to-arr, mut-arr, new, size, unsafe-set-size
 	../compare: <=
 	../exception: assert, throw
 	../extra-types: fd-t
 	../misc: new, void
-	../number: to-nat64
-	../ptr: +, any-const-ptr, as-any-mut-ptr, as-ref, by-val, const-ptr, null
+	../number: ==, <=>, int32, to-int32, to-int64, to-nat64
+	../ptr: ==, +, -, any-const-ptr, as-any-const-ptr, as-any-mut-ptr, as-ref, by-val, const-ptr, null
 	../str: char, c-str, str
 	../str-conv: finish, interp, to-str, with-str, with-value
-	../str-util: to-c-str
+	../str-util: find-cstr-end, to-c-str
 	../private/bootstrap: todo
-	../private/number-low-level: ==, <=>, int32, to-int64, wrap-add
+	../private/number-low-level: wrap-add
 	./environ: convert-environ, environ
 	./file: is-file
-	./posix-util: check-posix-error
+	./posix-util: check-errno, check-posix-error
 	./print: print
 
 # Alias for the exit code of a process.
@@ -60,6 +60,31 @@ spawn-and-wait-result process-result(exe str, args str[], environ environ) trust
 		exe-c-str spawn-and-wait-result (exe-c-str convert-args args), environ.convert-environ
 	else
 		throw: "{exe} is not a file"
+
+shell-exec str(command str) trusted summon
+	pipe = command.to-c-str popen "r".to-c-str
+	if pipe.as-any-const-ptr == null
+		todo
+	res char mut[] = ()
+	res keep-reading pipe
+	err = pipe pclose
+	assert: err == 0
+	res.move-to-arr str
+
+.keep-reading void(res char mut[], file FILE) unsafe summon
+	read-at-a-time = 0x1000
+	old-size = res size
+	res unsafe-set-size (old-size wrap-add read-at-a-time)
+	old-end = res.end-ptr - read-at-a-time
+	err = old-end fgets read-at-a-time.to-int32, file
+	if err == null
+		res unsafe-set-size old-size
+		# returns null on error or success
+		check-errno
+	else
+		new-end = old-end find-cstr-end
+		res unsafe-set-size new-end - res.begin-ptr
+		res keep-reading file
 
 ###
 Launches a process and synchronously waits on the result.

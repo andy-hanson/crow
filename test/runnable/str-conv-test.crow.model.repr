@@ -1,6 +1,6 @@
 module(
 	path: 76
-	imports: [import(none, 59, none), import(some(range(8, 28)), 44, some([print]))]
+	imports: [import(none, 59, none), import(some(range(8, 28)), 46, some([print]))]
 	funs: [
 		fun(
 			visibility: public

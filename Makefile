@@ -15,8 +15,8 @@ dyncall:
 lint-dscanner:
 	dub run dscanner -- --styleCheck src/*.d src/*/*.d src/*/*/*.d
 
-lint-imports-exports:
-	rdmd script/lint.d
+lint-imports-exports: bin/crow
+	./bin/crow run script/lint.crow --optimize
 
 lint: lint-dscanner lint-imports-exports
 

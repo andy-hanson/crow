@@ -168,7 +168,7 @@ Equivalent to `f[a[0]] or f[a[1]] or or ...`
 Calls `f` on each element of `a` and returns `true` the first time `f` does.
 ###
 exists<a> bool(a a[], f act bool(a))
-	!a.is-empty || f[a[0]] || (a.tail exists f)
+	!a.is-empty && (f[a[0]] || (a.tail exists f))
 
 every<a> bool(a a[], f act bool(a))
 	a.is-empty || (f[a[0]] && (a.tail every f))
@@ -337,10 +337,26 @@ try-split-once<a> pair<a[], a[]>?(a a[], splitter a) equal<a>
 	if index ?= a index-of splitter
 		(a[0 .. index], a[index + 1 .. a.size]),
 
+try-split-once-by-fn<a> pair<a[], a[]>?(a a[], splitter act bool(a))
+	if index ?= a find-index splitter
+		(a[0 .. index], a[index + 1 .. a.size]),
+
 # TODO: equal<a[]> should be unnecessary
 split-by<a> a[][](a a[], splitter a) equal<a> equal<a[]> trusted
 	# TODO:PERF
 	a split-by-subseq (splitter,)
+
+split-by-fn<a> a[][](a a[], splitter act bool(a)) trusted
+	# TODO:PERF use a mut-arr
+	if index ?= a find-index splitter
+		(a[0 .. index],) ~ (a[index .. a.size] split-by-fn splitter)
+	else
+		a,
+
+# TODO: equal<a[]> should be unnecessary
+try-split-once-by-subseq<a> pair<a[], a[]>?(a a[], splitter a[]) equal<a> equal<a[]> trusted
+	if index ?= a index-of-subseq splitter
+		(a[0 .. index], a[index + splitter.size .. a.size]),
 
 # TODO: equal<a[]> should be unnecessary
 ###

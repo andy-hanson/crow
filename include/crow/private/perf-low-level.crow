@@ -4,7 +4,7 @@ import
 	../col/arr: empty-arr
 	../col/fix-arr: empty-fix-arr, fix-arr
 	../ptr: by-val
-	./bootstrap: arr, nat64, str
+	./bootstrap: arr, nat64, sym
 
 perf-time record
 	by-val
@@ -12,7 +12,7 @@ perf-time record
 	ns nat64
 
 perf-ctx record mut
-	measure-names mut str[]
+	measure-names mut sym[]
 	measure-values mut fix-arr measure-value
 
 perf-ctx by-val perf-ctx() noctx

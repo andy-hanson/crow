@@ -304,8 +304,13 @@ immutable(Opt!T) tryFindT(T)(
 	scope immutable(Opt!T) delegate(ref immutable NameReferents) @safe @nogc pure nothrow getFromNameReferents,
 ) {
 	immutable Opt!T res = eachImportAndReExport!(immutable Opt!T)(
-		ctx, name, fromThisModule,
-		(immutable Opt!T acc, immutable Ptr!Module, immutable ImportIndex index, ref immutable NameReferents referents) {
+		ctx,
+		name,
+		fromThisModule,
+		(immutable Opt!T acc,
+		 immutable Ptr!Module,
+		 immutable ImportIndex index,
+		 ref immutable NameReferents referents) {
 			immutable Opt!T got = getFromNameReferents(referents);
 			if (has(got)) {
 				markUsedImport(ctx, index);
