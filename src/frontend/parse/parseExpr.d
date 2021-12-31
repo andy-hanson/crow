@@ -613,9 +613,10 @@ immutable(int) symPrecedence(immutable Sym a) {
 	return has(operator) ? operatorPrecedence(force(operator)) : 0;
 }
 
-immutable int ternaryPrecedence = -6;
 // This is for the , in `1, 2`, not the comma between args
-immutable int commaPrecedence = -5;
+immutable int commaPrecedence = -6;
+// Precedence for '?' and ':' in 'a ? b : c'
+immutable int ternaryPrecedence = -5;
 
 immutable(int) operatorPrecedence(immutable Operator a) {
 	final switch (a) {
