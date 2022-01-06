@@ -6660,7 +6660,7 @@ program(
 					~
 					[
 						call(to-base, [call(/, [param-ref(a), param-ref(base)]), param-ref(base)])
-						call(digit-to-str, [call(mod, [param-ref(a), param-ref(base)])])])))
+						call(digit-to-str, [call(%, [param-ref(a), param-ref(base)])])])))
 		fun(
 			ctx
 			digit-to-str
@@ -6718,7 +6718,7 @@ program(
 																			record([arr(0, 32)]))))))))))))))))))
 		fun(
 			ctx
-			mod
+			%
 			type(false, nat64)
 			none
 			[param(a, type(false, nat64)), param(b, type(false, nat64))]

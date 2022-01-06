@@ -1,72 +1,43 @@
 no-std
 import
-	./bool: bool, false, true
+	./bool: !, &&, bool, false, true
 	./cell: *, cell, new, set-deref
-	./col/arr: arr, is-empty, new, size, subscript
+	./col/arr: ~, arr, is-empty, new, size, subscript
 	./col/arr-util: find-index, index-of, tail
 	./col/dict: dict, each, new
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	./col/mut-arr: fill-mut-arr, move-to-arr, mut-arr, set-subscript, subscript
-	./exception: assert, throw
+	./exception: throw
 	./hash: hash-mix
 	./misc: void
 	./number: ==, <=>, +
-	./opt: !, is-empty, new, opt
+	./opt: !, ??, new, opt
 	./range: ..
 	./str: ==, <=>, str
 	./str-conv: interp, finish, to-str, with-str, with-value
 	./str-util: starts-with, try-remove-start
 
 ###
-Returns none on failure to parse.
-On success, returns an array of corresponding arguments.
-Each argument will be 'none' if the argument was passed, else an array of argument values.
-If the command line is "--a --c d" and arg-names are ("a", "b", "c"),
-"a" will get `(),`, "b" will get `none`, and "c" will get `("d",),`.
+In this syntax:
+* Each name starting with `--` is an argument name, and words after that are its argumets.
+* Everything before the first named argument will be left unparsed and put in `nameless`.
+* Everything after `--` will be left unparsed and put in `after`.
+
+For example, if the command is: `foo bar --a 1 --b 2 3 -- x y z`:
+`nameless` will be: `"foo", "bar"`
+`named` will be: `("a", (1,)), ("b", (2, 3))`
+`after` will be: `"x", "y", "z"`
 ###
-parse-named-args str[]?[]?(args str[], arg-names str[])
-	parsed = args parse-command-dynamic
-	parsed.nameless.is-empty assert "Should be no nameless args"
-	assert: parsed.after is-empty
-
-	values str[]? mut[] = arg-names.size fill-mut-arr ()
-	# TODO: should not need a type argument here
-	help cell bool = false,
-	parsed.named each (key, value) =>
-		if index ?= arg-names index-of key
-			# TODO: duplicate argument error
-			assert: values[index] is-empty
-			values[index] := (value,)
-		elif key == "help"
-			*help := true
-		else
-			throw: "Unexpected arg {key}"
-
-	unless *help
-		values.move-to-arr,
-
-single-str-or-throw str(a str[]?, option-name str)
-	if strs ?= a
-		if strs.size == 1
-			strs[0]
-		elif strs.size == 0
-			throw: "{option-name} needs a value"
-		else
-			throw: "{option-name} got too many values"
-	else
-		throw: "Need {option-name}"
-
-# Command line syntax:
-# `foo bar --a 1 --b 2 3 -- x y z`
-# nameless: foo bar
-# named: a = 1, b = 2 3
-# after: x y z
-.parsed-command record
+parsed-command record
 	nameless str[]
 	named str[][str]
 	after str[]
 
-.parse-command-dynamic parsed-command(args str[])
+###
+See comment on `parsed-command` for syntax.
+Parse errors aren't possible with this syntax.
+###
+parse-command parsed-command(args str[])
 	# Find the location of the first name beginning in '--'
 	if first-named-arg-index ?= args find-index arg => arg starts-with "--"
 		nameless = args[0 .. first-named-arg-index]
@@ -78,6 +49,47 @@ single-str-or-throw str(a str[]?, option-name str)
 			nameless, rest.parse-named-args, ()
 	else
 		args, (), ()
+
+###
+This is stricter than `parse-command`.
+It expects only named arguments with no `before` or `after`, and only the names in `arg-names` are allowed.
+
+Returns an array with an entry for each name in `arg-names`.
+Values in the array will be a list of the argument values,
+or an empty option if the corresponding argument name did not appear.
+
+For example, if the command line is "--a --c d" and arg-names are ("a", "b", "c"),
+This will return `((),) (), (("d",),)`.
+
+If the argument syntax is invalid, returns an empty option.
+###
+parse-named-args str[]?[]?(args str[], arg-names str[])
+	parsed = args parse-command
+	values str[]? mut[] = arg-names.size fill-mut-arr ()
+	err cell bool = false,
+	parsed.named each (key, value) =>
+		if index ?= arg-names index-of key
+			values[index] := ((values[index] ?? ()) ~ value),
+		else
+			*err := true
+	if parsed.nameless.is-empty && parsed.after.is-empty && !*err
+		values.move-to-arr,
+
+###
+If `a` as a single element, returns that; else throws an exception.
+
+Useful for arguments that should have a single string as their value.
+###
+single-str-or-throw str(a str[]?, option-name str)
+	if strs ?= a
+		if strs.size == 1
+			strs[0]
+		elif strs.size == 0
+			throw: "{option-name} needs a value"
+		else
+			throw: "{option-name} got too many values"
+	else
+		throw: "Need {option-name}"
 
 .parse-named-args str[][str](args str[])
 	res str[] mut[str] = ()

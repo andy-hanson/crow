@@ -5,7 +5,7 @@ import
 	../exception: assert, forbid
 	../misc: new, void
 	../opt: ==, new, opt
-	../ptr: ==, <=>, +, -, *, as-const, mut-ptr, null, set-deref, zeroed
+	../ptr: ==, <=>, +, -, *, as-const, each-ptr, mut-ptr, null, set-deref, zeroed
 	../range: ..
 	../str: ==, str
 	../str-conv: to-str
@@ -13,38 +13,48 @@ import
 	../writer: ~=, backup, move-to-str, new, writer
 	../private/number-low-level: ==, <=>, nat64, new, wrap-add, wrap-mul
 	./arr: ==, arr, arr-from-begin-end, new, size
-	./arr-util: each-ptr, first, last
+	./arr-util: first, last
 	./fix-arr:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fix-arr, is-empty, new, set-zero-elements,
 		size, subscript, uninitialized-fix-arr, zeroed-fix-arr
 
+# Mutable double-ended queue.
 mut-deque<a> record mut
 	.inner .mut fix-arr a
 	# Points to the first element. Null for an empty queue.
 	.left .mut a mut*
 	# Points to the element after the last. Null for an empty queue.
-	# This should never be inner.end-ptr, it wraps around to inner.begin-ptr
+	# This should never be inner.end-ptr; it wraps around to inner.begin-ptr
 	.right .mut a mut*
 
+# New empty `mut-deque`.
 new<a> mut-deque a() trusted
 	(), null, null
 
-arr<a> a[](a mut-deque a) trusted
-	a.fix-arr cast-immutable
+###
+Copy elements to an array.
 
-fix-arr<a> fix-arr a(a mut-deque a) trusted
+This is O(n).
+###
+to-arr<a> a[](a mut-deque a) trusted
+	a.to-fix-arr cast-immutable
+
+to-fix-arr<a> fix-arr a(a mut-deque a) no-doc trusted
 	unless a is-empty
 		res fix-arr a = a.size uninitialized-fix-arr
 		res copy-from-deque a
 		res
 
+# Copy elements to a new deque.
 copy<a> mut-deque a(a mut-deque a) trusted
-	inner = a fix-arr
+	inner = a to-fix-arr
 	inner, inner.begin-ptr, inner.begin-ptr
 
+# `true` iff `a.size == 0`.
 is-empty<a> bool(a mut-deque a) trusted
 	a.left == null
 
+# Number of elements in the deque.
 size<a> nat64(a mut-deque a) trusted
 	match a.left <=> a.right
 	as less
@@ -70,11 +80,21 @@ push<a> void(a mut-deque a, value a) trusted
 	*a.right := value
 	a.right := a.right + 1
 
-first<a> a?(a mut-deque a) trusted
+###
+Returns the leftmost element without removing it.
+
+Returns an empty option iff `a` is empty.
+###
+peek-left<a> a?(a mut-deque a) trusted
 	unless a.left == null
 		*a.left,
 
-last<a> a?(a mut-deque a) trusted
+###
+Returns the rightmost element without removing it.
+
+Returns an empty option iff `a` is empty.
+###
+peek-right<a> a?(a mut-deque a) trusted
 	unless a.right == null
 		fixed-right = if a.right == a.inner.begin-ptr
 			a.inner end-ptr
@@ -82,6 +102,11 @@ last<a> a?(a mut-deque a) trusted
 			a right
 		*(fixed-right - 1),
 
+###
+Removes and returns the leftmost element.
+
+Returns an empty option iff `a` was empty (before calling `pop-left`).
+###
 pop-left<a> a?(a mut-deque a) trusted
 	unless a.left == null
 		res = *a.left
@@ -95,6 +120,11 @@ pop-left<a> a?(a mut-deque a) trusted
 			# Still hold on to `a inner`
 		res,
 
+###
+Removes and returns the rightmost element.
+
+Returns an empty option iff `a` was empty (before calling `pop-right`).
+###
 pop-right<a> a?(a mut-deque a) trusted
 	unless a.right == null
 		if a.right == a.inner.begin-ptr
@@ -153,10 +183,10 @@ pop-right<a> a?(a mut-deque a) trusted
 	out move-to-str
 
 .verify void(a mut-deque nat64, arr nat64[], expected str)
-	a.first is arr.first
-	a.last is arr.last
+	a.peek-left is arr.first
+	a.peek-right is arr.last
 	a.size is arr.size
-	a.arr is arr
+	a.to-arr is arr
 	a.dbg is expected
 
 test

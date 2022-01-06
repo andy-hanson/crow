@@ -13,24 +13,35 @@ import
 	./arr: ==, arr, is-empty, new, size
 	./arr-util: each, first, fold, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
-	./stack: ~, arr, each, fold, is-empty, new, size, stack
+	./stack: ~, each, fold, is-empty, new, size, stack, to-arr
 
+###
+Immutable queue.
+
+Supports efficient removal from the left and insertion to the right.
+###
 queue<a> record
-	left a[]
-	right stack a
+	.left a[]
+	.right stack a
 
 # Empty queue.
 new<a> queue a()
 	(), ()
 
 ###
-Convert an arr to a queue.
+Converts an array to a queue.
+
 This is O(1).
 ###
 queue<a> queue a(a a[])
 	a, ()
 
-arr<a> a[](a queue a) trusted
+###
+Copies queue elements to an array.
+
+This is O(n).
+###
+to-arr<a> a[](a queue a) trusted
 	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := x
@@ -38,24 +49,31 @@ arr<a> a[](a queue a) trusted
 	assert: end == res.end-ptr
 	res cast-immutable
 
+# `true` iff `a.size == 0`.
+is-empty<a> bool(a queue a)
+	a.left.is-empty && a.right.is-empty
+
+# Number of elements in the queue.
 size<a> nat64(a queue a)
 	a.left.size wrap-add a.right.size
 
+# Adds a new element on the right.
 ~ <a> queue a(a queue a, value a)
 	a.left, a.right ~ value
-
-is-empty<a> bool(a queue a)
-	a.left.is-empty && a.right.is-empty
 
 dequeued<a> record
 	value a
 	rest queue a
 
+###
+Removes and returns an element from the left.
+Returns an empty option iff `a` is empty.
+###
 dequeue<a> dequeued<a>?(a queue a)
 	if first ?= a.left first
 		(first, (a.left.tail, a.right)),
 	else
-		right-arr = a.right arr
+		right-arr = a.right to-arr
 		if first ?= right-arr first
 			(first, (right-arr.tail, ())),
 
@@ -89,28 +107,28 @@ map<out, in> queue out(a queue in, f act out(in)) trusted
 test
 	a queue nat64 = ()
 	assert: a is-empty
-	a.arr is ()
+	a.to-arr is ()
 	a.dequeue.is-empty is true
 
 	b = a ~ 1
-	b.arr is (1,)
+	b.to-arr is (1,)
 	bd = b.dequeue!
 	bd.value is 1
 	assert: bd.rest is-empty
 
 	c = b ~ 2
-	c.arr is (1, 2)
+	c.to-arr is (1, 2)
 	cd = c.dequeue!
 	cd.value is 1
 	cdr = cd rest
 
-	cdr.arr is (2,)
+	cdr.to-arr is (2,)
 	cdd = cdr.dequeue!
 	cdd.value is 2
 	assert: cdd.rest is-empty
 
 	d = c ~ 3
-	d.arr is (1, 2, 3)
+	d.to-arr is (1, 2, 3)
 
-	(d filter x => x != 2).arr is (1, 3)
-	(d map x => x wrap-add 10).arr is (11, 12, 13)
+	(d filter x => x != 2).to-arr is (1, 3)
+	(d map x => x wrap-add 10).to-arr is (11, 12, 13)

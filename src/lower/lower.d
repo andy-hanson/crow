@@ -1267,14 +1267,14 @@ immutable(LowExprKind) getCallSpecial(
 			final switch (it.fn) {
 				case FlagsFunction.all:
 					return immutable LowExprKind(immutable Constant(immutable Constant.Integral(it.allValue)));
-				case FlagsFunction.empty:
-					return immutable LowExprKind(immutable Constant(immutable Constant.Integral(0)));
 				case FlagsFunction.negate:
 					return genFlagsNegate(
 						alloc,
 						range,
 						it.allValue,
 						getLowExpr(alloc, ctx, locals, only(a.args), ExprPos.nonTail));
+				case FlagsFunction.new_:
+					return immutable LowExprKind(immutable Constant(immutable Constant.Integral(0)));
 			}
 		},
 		(ref immutable ConcreteFunBody.RecordFieldGet it) =>

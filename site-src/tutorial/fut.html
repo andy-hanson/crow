@@ -1,117 +1,225 @@
 <section>
-	<h2>Futures and the runtime</h2>
-	<h3>fut and task</h3>
-	<p>A <code class="struct-ref">fut</code> (<em>future</em>) is a holder that will eventually have a
-		value.
-		For example, it might represent the result of an HTTP request.
-		Filling in the value for a <code class="struct-ref">fut</code> is known as <em>resolving</em> it.
-		Normal code should treat a <code class="struct-ref">fut</code> as readonly,
-		so generally the runtime handles resolving it.</p>
-	<p>A <em>task</em> is a function returning a <code class="struct-ref">fut</code>.
+	<h2>terminology</h2>
+
+	<h4>runtime</h4>
+	<p>
+		Crow doesn't depend on an <em>external</em> runtime;
+		you don't <code>crow</code> installed to run compiled crow code.
 		<br />
-		All code that runs, runs as part of a task.
-		You've seen this with <code class="fun-ref">main</code> which is the first task.
+		However, there is "runtime" code compiled into every crow program.
+		<br />
+		Standard library code dealing with things like tasks management is called the runtime.
 	</p>
-	<h4>Exclusion</h4>
-	<p>The runtime keeps a queue of tasks.
-		Each task has an <em>exclusion</em>, which is just a number to identify the mutable data it can
-		access.
-		No two tasks with the same exclusion will run at the same time.
+
+	<h4>fut</h4>
+	<p>
+		A <code class="struct">fut</code> ("future") reserves space for a value that is
+		not available immediately and will be filled in later.
+		<br />
+		For example, it might store the result of an HTTP request.
+		<br />
+		(A fut can sometimes have a value immediately.
+		<code>x,</code> creates a <code class="struct">fut</code> already resolved to <code>x</code>.)
 	</p>
-	<h4>ref</h4>
-	<p>There is a third type of function value: <code class="struct-ref">ref</code>.
+
+	<h4>resolving</h4>
+	<p>
+		When the value of a <code class="struct">fut</code> is filled in, this is called <em>resolving</em> it.
 		<br />
-		A <code class="struct-ref">ref</code> is just an <code class="struct-ref">act</code> and its
-		exclusion.
-		(Though neither of those is accessible except by the runtime.)
-		<br />
-		Calling a <code class="struct-ref">ref</code> adds a new task to the queue
-		and returns a <code class="struct-ref">fut</code> for the task's result.
+		Before this has happened, the fut is <em>unresolved</em>; afterwards it is <em>resolved</em>.
 	</p>
-	<p>A <code class="struct-ref">ref</code> must always return a <code class="struct-ref">fut</code>.
-		The syntax makes this implicit, so a <code>ref nat(str)</code>
-		is an <code>act fut nat(str)</code> and its exclusion.
+
+	<h4>task</h4>
+	<p>
+		A <em>task</em> is a function returning a <code class="struct">fut</code>.
+		All code that runs, runs as part of a task (except for the runtime itself).
 		<br />
-		It's called a <em>function reference</em> because the caller doesn't execute it,
-		just requests for it to be scheduled and references the result.
+		<code class="fun">main</code> is the first task and can launch other tasks.
 	</p>
-	<p><code class="struct-ref">ref</code>s are created using the same syntax as
-		<code class="struct-ref">fun</code> and <code class="struct-ref">act</code>.
-		<br />
-		The new <code class="struct-ref">ref</code>'s exclusion can't be specified;
-		it always comes from the current task.
+
+	<h4>thread</h4>
+	<p>
+		A <em>thread</em> means a Posix thread (pthread). Normal crow code deals with tasks, not threads.
 	</p>
-	<h4>Adding tasks</h4>You can add tasks in a few ways:<ul>
-		<li>Calling a <code class="fun-ref">ref</code> directly.</li>
-		<li><code class="fun-ref">launch</code> directly adds a task to the queue.
-			<br />
-			The argument to <code class="fun-ref">launch</code> is a <code class="struct-ref">fun</code>.
-			Recall that a <code class="struct-ref">fun</code> can't have anything <code
-				class="spec-ref">mut</code>
-			in its closure, so the launched task will have a new exclusion (not shared by any existing task)
-			and will run in parallel.
-		</li>
-		<li><code class="fun-ref">then</code> takes a <code class="struct-ref">fut</code>
-			and a <code class="struct-ref">ref</code>.
-			Once the <code class="struct-ref">fut</code> is resolved,
-			it will call the <code class="struct-ref">ref</code> using the resolved value.
-		</li>
-	</ul>
-	<p>Every function for adding a task returns a <code class="struct-ref">fut</code> for the tasks's
-		result.
+
+	<h4>task scheduler</h4>
+	<p>
+		Part of the runtime is the <em>task scheduler</em>.
+		This stores all of the tasks that have yet to be run.
 		<br />
-		You can also create a <code class="struct-ref">fut</code> without launching a task
-		by using <code class="fun-ref">resolved</code>.
+		The runtime manages threads, and when a thread is done running a task,
+		it will take another one from the task scheduler (if the <em>exclusion</em> allows it).
+		<br />
+		This means there can be many more tasks than threads, since threads are reused for different task.
+	</p>
+
+	<h4>exclusion</h4>
+	<p>
+		A task may reference a closure that may be mutable.
+		<br />
+		Each task has an <em>exclusion</em>, which is just a number.
+		<br />
+		If two tasks reference the same mutable data, they will have the same exclusion.
+		(They may also have the same exclusion without sharing mutable data.)
+		<br />
+		If two tasks have the same exclusion, they will not run at the same time.
 	</p>
 </section>
+
 <section>
-	<h3>Example: 'then'</h3>
+	<h2>function references</h2>
+	<crow-runnable src="ref"></crow-runnable>
+	<p>
+		In addition to <code class="keyword">fun</code> and <code class="keyword">act</code>,
+		there is a third type of function value: <code class="struct">ref</code>.
+		<br />
+		Calling a <code class="keyword">fun</code> or <code class="keyword">act</code>
+		evaluates the function immediately, but calling a <code class="keyword">ref</code>
+		schedules a task to evaluate the function.
+		<br />
+		So, calling a <code class="keyword">ref</code> always returns a <code class="keyword">fut</code>.
+		<br />
+		The syntax makes this implicit, so a <code>ref nat(str)</code> returns a <code>fut nat</code>.
+		<br />
+		The body of the <code class="keyword">ref</code> also must return a <code class="struct">fut</code>.
+	</p>
+	<p>
+		A <code class="keyword">ref</code> stores an exclusion; calling it creates a task with that exclusion.
+		<br />
+		The <code class="keyword">ref</code>'s exclusion is the same as the task that created it,
+		even if it doesn't have any mutable data in its closure.
+		<br />
+		That means that merely creating a <code class="keyword">ref</code>
+		doesn't make your code run in parallel. We'll get to how to do that later.
+	</p>
+
+	<h3>fut chaining</h3>
+	<p>
+		There may be some confusion here:
+		<br />
+		Calling <code>greet["crow"]</code> returns a <code class="struct">fut</code> <em>immediately</em>
+		and schedules the function body (with the <code class="fun">print</code> and <code>()</code>)
+		to run <em>later</em>.
+		<br />
+		Later, that body will return <code>()</code>,
+		which is a <em>different</em> <code class="struct">fut</code> value.
+		<br />
+		It will be forwarded to the <code class="struct">fut</code>
+		that was returned immediately by <code>greet["crow"]</code>.
+		<br />
+		Since the <code class="struct">fut</code>s are chained in this way,
+		we can treat the <code class="struct">fut</code> that was returned immediately
+		<em>as if</em> it's the one that was returned later.
+	</p>
+</section>
+
+<section>
+	<h2>then</h2>
+
+	<code class="fun">then</code> allows you to schedule work to be done once a
+	<code class="struct">fut</code> is resolved.
+	<br />
+
 	<crow-runnable src="then"></crow-runnable>
-	<p>Since this example only uses <code class="fun-ref">then</code> but not <code
-			class="fun-ref">launch</code>,
-		there is no parallelism; each task runs after the task it depends on.
-		<br />
-		<code class="local-def">b</code> waits on <code class="local-ref">a</code>, and is resolved by
-		<code>x + 1 resolved</code>.
-		<br />
-		Similarly, <code class="local-def">c</code> waits on <code class="local-ref">b</code>
-		and is resolevd by <code>0 resolved</code>.
-		<br />
-		<code class="fun-ref">main</code> returns <code class="local-ref">c</code>,
-		so the program's exit code is <code>0</code>.
-		<br />
-		Since <code class="fun-ref">then</code> just schedules a task,
-		<code>print: "this happens first"</code> happens before either of them.
 
-	<h4>&lt;- syntax</h4>
-
-	Since this non-parallel waiting on <code class="struct-ref">fut</code>s in sequence is common,
-	there's a special syntax for calling <code class="fun-ref">then</code>.
+	<p>
+		<code class="fun">then</code> is a function that takes a
+		<code class="struct">fut</code> and a <code class="keyword">ref</code>.
+		<br />
+		Once the <code class="struct">fut</code> is resolved,
+		it will call the <code class="struct">ref</code> using the resolved value.
+		<br />
+		<code class="fun">then</code> returns a ref for the eventual result of that,
+		which is suitable for calling <code class="fun">then</code> on again.
+		<br />
+		In this way, you can write a series of tasks that should happen in sequence,
+		without having to block waiting on anything.
 	</p>
+	<p>
+		Notice how the <code class="keyword">ref</code> is called later,
+		even though the value of <code class="local">a</code> is available immediately.
+	</p>
+	<p>
+		There is no parallelism in this example; there are no two tasks capable of running at the same time,
+		since all of the <code class="keyword">ref</code>s inherit the exclusion of <code class="fun">main</code>.
+	</p>
+</section>
+
+<section>
+	<h2><code>&lt;-</code> syntax</h2>
+	Since <code class="fun">then</code> is common, there's a special syntax for calling it.
 	<crow-runnable src="then2"></crow-runnable>
-	<p>This is mostly equivalent to the previous example.
-
-		<code>x &lt;- a</code> is like <code>a then \x</code>,
-		with all the the below lines going inside the lambda.
+	<p>
+		This is like the previous example, but using the special syntax.
 		<br />
-		<code>print: "this happens first"</code> had to be moved,
-		since the <code><-</code> syntax forces things to be written in the order they happen.
+		<code>x &lt;- a</code> is like <code>a then x =></code>,
+		with all the the below lines getting nested inside the <code class="keyword">=></code>.
+		<br />
+		(Meaning each <code class="keyword"><-</code> introduces a new level of nesting,
+		which is exactly why this special syntax exists — to avoid excessive visual nesting.)
 	</p>
-	<h3>Example: launch</h3>
+</section>
+
+<section>
+	<h2>launch</h2>
+	<code class="fun">launch</code> adds a task with a new exclusion, allowing it to run in parallel.
 	<crow-runnable src="launch"></crow-runnable>
-	<p>The web interpreter does not run in parallel,
+	<p>
+		The interpreter used on this website has only one thread,
 		so this example will be deterministic if run here.
 		<br />
 		If you run the program from the command line,
-		you may see <code>Hello from a</code> and <code>Hello from b</code> printed in different orders.
+		you may see <code>Hello from b</code> printed before <code>Hello from a</code>,
+		since those tasks run in parallel.
 	</p>
-	<p><code class="fun-ref">join</code> is like <code class="fun-ref">then</code>,
-		but waits on two <code class="struct-ref">fut</code>s instead of just one.
-		<br />
-		There is also a <code class="fun-ref">join</code> function that takes an array.
-		<br />
-		(<code class="fun-ref">join</code> is useful for restoring sequential execution, since
-		the code inside the <code>join</code> runs only after
-		<em>all</em> the parallel tasks in its arguments have completed.)
+	<p>
+		<code class="fun">launch</code> takes a <code class="struct">fun</code>.
+		A <code class="struct">fun</code> can't have anything <code class="spec">mut</code> in its closure,
+		ensuring that it's safe to run in parallel.
 	</p>
-</section><a id="next" href="module.html">Next: Modules</a>
+</section>
+<section>
+	<h3>Communication between tasks</h3>
+
+	<p>
+		Although a <code>fun</code> can't have anything <code class="keyword">mut</code> in its closure,
+		it can have a <code class="keyword">ref</code>,
+		and the <code class="keyword">ref</code> can have mutable data in <em>its</em> closure.
+	</p>
+	<p>
+		Though this technically gives one task a reference to another task's mutable data,
+		it is safe because a <code class="keyword">ref</code> only allows the caller to ask
+		for the function to be scheduled;
+		the <code class="keyword">ref</code>'s exclusion will ensure that it only runs one at a time.
+	</p>
+	<br />
+	This allows parallel tasks to safely communicate by referencing each other's functions.
+
+	<crow-runnable src="launch-with-closure"></crow-runnable>
+
+	<p>
+		Again, there is only one thread on this website, so you'll have to run on the command line
+		to see that <code class="local">values</code> can come in arbitrary order.
+		<br />
+		There will be no doubled or missing values
+		(when you include <code class="local">final-value</code>),
+		since <code>get-and-set</code> has an exclusion that ensures it will only run one at a time.
+	</p>
+
+	<p>
+		<code class="struct">store</code> had to be marked <code class="keyword">sendable</code>
+		because it contains <code class="keyword">ref</code>s.
+		<br />
+		<code class="keyword">sendable</code> means:
+		immutable data, <code class="struct">fut</code>, or <code class="keyword">ref</code>.
+		<br />
+		In the future, it may also include concurrent collections.
+		<br />
+		As contrasted with immutable data, <code class="keyword">sendable</code> data
+		can't be used as a key in a dictionary.
+	</p>
+	<p>
+		More functions for <code class="struct">fut</code> are in the
+		<a href="/doc/crow/fut.html">crow/fut</a> module.
+	</p>
+</section>

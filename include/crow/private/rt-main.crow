@@ -8,7 +8,6 @@ import
 	../col/arr-util: map, tail
 	../fun-util: fun-ptr2, subscript
 	../fut: delay, fut, handle-exceptions, then-void
-	../io/process: exit-code
 	../misc: new, void
 	../opt: new
 	../ptr:
@@ -35,7 +34,7 @@ import
 	fun-ptr2<fut nat64, ctx, str[]>
 
 # Treated specially by the compiler
-rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
+rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 	do-init-constants
 	n-threads = get_nprocs
 	f = false
@@ -54,7 +53,7 @@ rt-main exit-code(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summ
 
 	gctx exit-code-from-main-fut main-fut
 
-.exit-code-from-main-fut exit-code(gctx global-ctx, main-fut fut nat64) unsafe noctx
+.exit-code-from-main-fut int32(gctx global-ctx, main-fut fut nat64) unsafe noctx
 	match main-fut state
 	as fut-state-no-callbacks
 		# Should never happen

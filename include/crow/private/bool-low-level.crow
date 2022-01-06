@@ -7,13 +7,13 @@ export
 	a ? false : true
 
 ###
-If `a` is false, returns false immediately and does not evaluate `b`.
+If `a` is `false`, returns `false` immediately and does not evaluate `b`.
 Else, returns `b`.
 ###
 && bool(a bool, b bool) noctx builtin
 
 ###
-If `a` is `true`, returns `true` immediately and does not evaluate `a`.
+If `a` is `true`, returns `true` immediately and does not evaluate `b`.
 Else, returns `b`.
 ###
 || bool(a bool, b bool) noctx builtin

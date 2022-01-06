@@ -1,10 +1,115 @@
 <section>
-	<h2>Extern</h2>
-	<p>Interacting with C libraries requires using <code class="keyword">extern</code> functions.
+	<h2>calling external libraries</h2>
+	<p>
+		Crow code can call functions defined in external libraries.
+		<br />
+		In this example, we use the <code>regex.h</code> library.
+	</p>
 
-		TODO: An example -- maybe use regex.h
+	<crow-runnable no-run src="regex"></crow-runnable>
 
-		Or see https://en.cppreference.com/w/c/chrono/difftime
+	<p>
+		Since this needs to link to libraries on your system,
+		you need to download and run <code>crow run regex.crow</code>.
+	</p>
+</section>
+<section>
+	<h3>extern functions</h3>
 
-		Or think of some other example</p>
-</section><a id="next" href="test.html">Next: Tests</a>
+	<p>
+		<code>regfree void(preg regex_t mut*) unsafe noctx extern</code> declares an
+		<code class="keyword">extern</code> function,
+		based on the function of the same name in <code>/usr/include/regex.h</code>.
+		<br />
+		<br />
+		All <code class="keyword">extern</code> functions must be <code class="keyword">noctx</code>.
+		<code class="keyword">noctx</code> means that it does not use crow's facilities
+		for allocating memory, launching tasks, or throwing exceptions.
+		<br />
+		Since this function takes a pointer but has no way to validate it, it is <code class="keyword">unsafe</code>.
+	</p>
+	<p>
+		Other extern functions are spread out over multiple lines for readability;
+		this is a different syntax for the same thing.
+	</p>
+</section>
+<section>
+	<h3>pointers</h3>
+
+	<p>
+		<code>regex_t mut*</code> declares a mutable pointer type, equivalent to <code>regex_t*</code> in C.
+		<br />
+		<code>regex_t*</code> is an immutable pointer type, equivalent to <code>const regex_t*</code> in C.
+		<br />
+		Unlike in C, a const pointer isn't a subtype of a mutable one,
+		so you must call <code class="fun">as-const</code>.
+	</p>
+	<p>
+		Accessing a pointer works like with <code class="struct">cell</code>;
+		<code>*x</code> gets the value and <code>*x := v</code> sets it.
+	</p>
+	<p>
+		The function <code>as-ptr</code> converts a cell to a pointer.
+		<br />
+		Be sure to maintain a reference to the <code class="struct">cell</code>,
+		since the garbage collector traces that, but not pointers.
+	</p>
+</section>
+<section>
+	<h3>C types</h3>
+
+	<p>
+		A C <code class="keyword">int</code> is not the same as a crow <code class="struct">int</code>.
+		<br />
+		A crow <code class="struct">int</code> is always 64 bits,
+		but a C <code class="keyword">int</code> is usually shorter.
+		<br />
+		Always use <code class="struct">c-int</code> when translating cooe from C.
+	</p>
+	<p>
+		The <code>crow/c-types</code> module has other useful types from C like <code class="struct">size_t</code>.
+	</p>
+	<p>
+		<code class="struct">c-str</code> is equivalent to <code>char*</code>,
+		and implies (but does not enforce) that it should end in a <code>"\0"</code> character.
+	</p>
+</section>
+<section>
+	<h2>patterns for using C libraries</h2>
+
+	<section>
+		<h3>pointer to one: cell</h3>
+		<p>
+			Many C libraries expect to receive a pointer to data to fill in.
+			<br />
+			C examples will often declare an uninitialized variable and
+			get a pointer to it with <code>&x</code>; that's not supported in crow.
+			<br />
+			Instead, create a <code class="struct">cell</code> and use <code class="fun">as-ptr</code>.
+			That's what <code>new regex(source str)</code> does.
+			<br />
+			This function can be marked <code class="keyword">trusted</code> despite calling the unsafe function
+			<code class="fun">regcomp</code> because it knows the pointer will be valid.
+		</p>
+		<p>
+			Unlike a variable in C, a <code class="struct">cell</code> needs an initial value;
+			since it doesn't really matter, <code>new regex_t() unsafe</code> just uses an empty value for every field.
+		</p>
+	</section>
+
+	<section>
+		<h3>pointer to many: mut[]</h3>
+		<p>
+			In the <code class="keyword">else</code> branch of <code class="fun">matches</code>,
+			we need to call <code class="fun">regerror</code>, which takes a buffer to write its output.
+			<br />
+			Such a buffer would typically be allocated on the stack, which is not allowed in crow.
+			<br />
+			Instead, create a <code class="keyword">mut[]</code> and use its <code class="fun">begin-ptr</code>.
+			<br />
+			<code>to-str</code> here converts a C string to a crow string.
+		</p>
+	</section>
+</section>
+
+

@@ -1,0 +1,24 @@
+import
+	crow/io/print: print
+
+main fut nat(_ str[]) summon
+	x = 1 plus one
+	print: x to-str
+	y = "one" plus one
+	print: y to-str
+	# won't compile:
+	# z = one plus 1
+	z nat = one plus one
+	print: z to-str
+	()
+
+plus nat(a nat, b nat)
+	a + b
+
+plus str(a str, b str)
+	"{a}{b}"
+
+one nat()
+	1
+one str()
+	"one"

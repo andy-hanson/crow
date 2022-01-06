@@ -1,7 +1,7 @@
 module util.perf;
 
 import util.alloc.alloc : Alloc, curBytes;
-import util.col.arrUtil : sortInPlace;
+import util.col.sortUtil : sortInPlace;
 import util.col.str : SafeCStr, safeCStr;
 import util.comparison : compareUlong, oppositeComparison;
 import util.util : verify;

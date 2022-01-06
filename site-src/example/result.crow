@@ -1,11 +1,11 @@
 import
 	crow/io/print: print
-	crow/math/vec: length, to-str, vec-2
+	crow/math/vec
 
 main fut nat(_ str[]) summon
-	a = rect: 0.0, 1.0, 0.0, 1.0
-	b = rect: 0.75, 1.75, 0.5, 1.5
-	c = rect: 1.5, 2.5, 0.0, 1.0
+	a rect = 0.0, 1.0, 0.0, 1.0
+	b rect = 0.75, 1.75, 0.5, 1.5
+	c rect = 1.5, 2.5, 0.0, 1.0
 	print: a intersection-or-distance b to-str
 	print: b intersection-or-distance c to-str
 	print: a intersection-or-distance c to-str
@@ -13,10 +13,10 @@ main fut nat(_ str[]) summon
 
 to-str str(a result<rect, float>)
 	match a
-	as ok o
-		"intersection: " + o.value.bottom-left.to-str + " to " + o.value.top-right.to-str
-	as err e
-		"distance: " + e.value.to-str
+	as ok r
+		"intersection: {r bottom-left} to {r top-right}"
+	as err d
+		"distance: {d}"
 
 intersection-or-distance result<rect, float>(a rect, b rect)
 	x = a.x-range intersection-or-distance b.x-range
@@ -25,24 +25,25 @@ intersection-or-distance result<rect, float>(a rect, b rect)
 	as ok x-intersect
 		match y
 		as ok y-intersect
-			ok: rect: x-intersect.value, y-intersect.value
+			(x-intersect, y-intersect) ok
 		as err e
-			e
+			e err
 	as err dx
 		dy = match y
-		as ok
+		as ok _
 			0.0
 		as err e
-			e value
-		err: dx.value vec-2 dy length
+			e
+		d vec2 = dx, dy
+		d.length err
 
 intersection-or-distance result<float-range, float>(a float-range, b float-range)
 	if a.max < b.min
-		err: b.min - a.max
+		b.min - a.max err
 	elif a.min > b.max
-		err: a.min - b.max
+		a.min - b.max err
 	else
-		ok: float-range: (a.min max b.min), (b.max min a.max)
+		((a.min max b.min), (b.max min a.max)) ok
 
 float-range record
 	min float
@@ -54,17 +55,17 @@ float-range record
 	bottom float
 	top float
 
-rect rect(x-range float-range, y-range float-range)
-	rect: x-range.min, x-range.max, y-range.min, y-range.max
+new rect(x-range float-range, y-range float-range)
+	x-range.min, x-range.max, y-range.min, y-range.max
 
-bottom-left vec-2(a rect)
-	a.left vec-2 a.bottom
+bottom-left vec2(a rect)
+	a.left, a.bottom
 
-top-right vec-2(a rect)
-	a.right vec-2 a.top
+top-right vec2(a rect)
+	a.right, a.top
 
 x-range float-range(a rect)
-	a.left float-range a.right
+	a.left, a.right
 
 y-range float-range(a rect)
-	a.bottom float-range a.top
+	a.bottom, a.top

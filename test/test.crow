@@ -5,6 +5,7 @@ import
 	crow/io/path: child-path, parent-path
 	crow/io/print: print
 	crow/parse-command: parse-named-args
+	crow/reader: parse-nat
 	./failure: first-failures, new, print-failures, test-options
 	./lint: lint
 	./crow-tests: run-crow-tests

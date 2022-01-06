@@ -12,7 +12,7 @@ import
 	./str: ==, <=>, char, chars, c-str, str
 	./str-util: to-str
 	./private/alloc: unmanaged-alloc-elements, unmanaged-alloc-uninitialized
-	./private/bootstrap: new, static-syms
+	./private/bootstrap: new-sym, static-syms
 	./private/number-low-level: wrap-add
 	./private/runtime:
 		dynamic-sym-node, dynamic-syms, get-global-ctx, global-ctx, new, next, set-dynamic-syms,
@@ -26,6 +26,7 @@ export
 	# (this is pointer equality)
 	a.to-c-str == b.to-c-str
 
+# Same as `a.to-str <=> b.to-str`.
 <=> comparison(a sym, b sym) noctx
 	a.to-str <=> b.to-str
 
@@ -33,6 +34,7 @@ to-str str(a sym) noctx trusted
 	a.to-c-str to-str
 
 # TODO: name 'to-sym'
+# Interns a string.
 str-to-sym sym(a str) trusted
 	if sym ?= static-syms find s => s.to-str == a
 		sym
@@ -45,7 +47,7 @@ str-to-sym sym(a str) trusted
 	if sym ?= gctx.dynamic-syms find-dynamic-sym a
 		sym
 	else
-		sym sym = a.to-malloced-c-str,
+		sym sym = a.to-malloced-c-str new-sym
 		node-ptr by-val<dynamic-sym-node> mut* = unmanaged-alloc-uninitialized
 		*node-ptr := sym, gctx.dynamic-syms
 		gctx.dynamic-syms := node-ptr.ref-of-ptr,

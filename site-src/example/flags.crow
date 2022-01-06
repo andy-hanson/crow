@@ -2,20 +2,18 @@ import
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	alice = all & ~hat
-	print: alice flags-to-str
-	print: alice.naked to-str
-	print: alice.service to-str
+	x = shoes
+	print: "{x flags-to-str} receives service? {x receives-service}"
+	y = x | shirt
+	print: "{y flags-to-str} receives service? {y receives-service}"
+	print: "negate: {~y flags-to-str}"
+	print: "take off shoes: {y & ~shoes flags-to-str}"
 	()
 
-clothed flags
+clothes flags
 	shoes
-	pants
 	shirt
 	hat
 
-naked bool(a clothed)
-	a == empty
-
-service bool(a clothed)
-	(shoes | shirt) is-in a
+receives-service bool(a clothes)
+	shoes | shirt is-in a

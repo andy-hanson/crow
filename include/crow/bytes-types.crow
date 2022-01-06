@@ -1,71 +1,106 @@
+###
+Types for filling space.
+This is useful for external libraries where the size of a type matters but not its content.
+###
+
 no-std
 import
+	./misc: drop
 	./private/bootstrap: nat16, nat32, nat64
+	./private/number-low-level: new
 
-bytes2 alias
-	nat16
+# 2-byte type.
+bytes2 record
+	by-val
+	.n0 nat16
 
-bytes4 alias
-	nat32
+new bytes2() noctx
+	(),
 
-bytes8 alias
-	nat64
+# 4-byte type.
+bytes4 record
+	by-val
+	.n0 nat32
 
-bytes14 record
-	n0 bytes8
-	n1 bytes4
-	n2 bytes2
+new bytes4() noctx
+	(),
 
+# 8-byte type.
+bytes8 record
+	by-val
+	.n0 nat64
+
+new bytes8() noctx
+	(),
+
+# 16-byte type.
 bytes16 record
 	by-val
-	n0 bytes8
-	n1 bytes8
-
-bytes32 record
-	by-val
-	n0 bytes16
-	n1 bytes16
-
-bytes40 record
-	by-val
-	n0 bytes32
-	n1 bytes8
-
-bytes48 record
-	by-val
-	n0 bytes32
-	n1 bytes16
-
-bytes64 record
-	by-val
-	n0 bytes32
-	n1 bytes32
-
-bytes128 record
-	by-val
-	n0 bytes64
-	n1 bytes64
-
-# TODO: remove
-bytes256 record
-	by-val
-	n0 bytes128
-	n1 bytes128
+	.n0 bytes8
+	.n1 bytes8
 
 new bytes16() noctx
-	0, 0
+	(), ()
+
+# 32-byte type.
+bytes32 record
+	by-val
+	.n0 bytes16
+	.n1 bytes16
 
 new bytes32() noctx
 	(), ()
 
+# 48-byte type.
+bytes48 record
+	by-val
+	.n0 bytes32
+	.n1 bytes16
+
 new bytes48() noctx
 	(), ()
+
+# 64-byte type.
+bytes64 record
+	by-val
+	.n0 bytes32
+	.n1 bytes32
 
 new bytes64() noctx
 	(), ()
 
+# 128-byte type.
+bytes128 record
+	by-val
+	.n0 bytes64
+	.n1 bytes64
+
 new bytes128() noctx
 	(), ()
 
+# 256-byte type
+bytes256 record
+	by-val
+	.n0 bytes128
+	.n1 bytes128
+
 new bytes256() noctx
 	(), ()
+
+# Just ensuring that private fields are used...
+test
+	drop: ()::bytes2.n0
+	drop: ()::bytes4.n0
+	drop: ()::bytes8.n0
+	drop: ()::bytes16.n0
+	drop: ()::bytes16.n1
+	drop: ()::bytes32.n0
+	drop: ()::bytes32.n1
+	drop: ()::bytes48.n0
+	drop: ()::bytes48.n1
+	drop: ()::bytes64.n0
+	drop: ()::bytes64.n1
+	drop: ()::bytes128.n0
+	drop: ()::bytes128.n1
+	drop: ()::bytes256.n0
+	drop: ()::bytes256.n1

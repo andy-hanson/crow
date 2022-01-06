@@ -1,17 +1,37 @@
-term-reset str()
+###
+Functions for adding colors to terminal output.
+###
+no-std
+import
+	../number: *, clamp-to-nat8, clamp-to-nat64, float64, nat8, truncate-to-int64
+	../str: str
+	../str-conv: finish, interp, to-str, with-str, with-value
+
+# Resets any color.
+reset str()
 	"\x1b[m"
 
+term-foreground-color enum
+	black = 30
+	red = 31
+	green = 32
+	yellow = 33
+	blue = 34
+	purple = 35
+	cyan = 36
+	white = 37
+
+# String that when printed, will set the terminal's foreground color.
+foreground str(a term-foreground-color)
+	"\x1b[{a to-nat32}m"
+
+# String that when printed, will set the terminal's foreground color.
+foreground str(red float64, green float64, blue float64)
+	"\x1b[38;2;{red to-color};{green to-color};{blue to-color}m"
+
+# String that when printed, will make text bold.
 term-bold str()
 	"\x1b[1m"
 
-term-color str(r float64, g float64, b float64)
-	"\x1b[38;2;{r to-color};{g to-color};{b to-color}m"
-
-.to-color nat64(f float)
-	(f * 255.0).truncate-to-int64.clamp-to-nat64 clamp 0, 255
-
-term-red str()
-	"\x1b[31m"
-
-term-blue str()
-	"\x1b[36m"
+.to-color nat8(f float64)
+	(f * 255).truncate-to-int64.clamp-to-nat64 clamp-to-nat8

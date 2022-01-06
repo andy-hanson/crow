@@ -20,23 +20,37 @@ import
 	./arr: ~, arr, arr-equal, is-empty, new, size, subscript
 	./arr-util:
 		each, each-with-index, every, find-index, fold, fold-with-index,
-		remove-at, rtail, tail, update, update-with-default
+		remove-at, rtail, tail, update-at, update-at-with-default
 	./fix-arr:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fill-fix-arr, fix-arr, set-subscript, size,
 		subscript, uninitialized-fix-arr
 	./sort: sort-by
 
+###
+Immutable unordered dictionary type.
+A dictionary is logically a collection of key-value pairs (`pair<k, v>`).
+A key can appear at most once, and given a key, you can access the associated value in O(1).
+
+There should be `==`, `<=>`, and `hash-mix` functions defined for the key type `k`.
+
+This is unordered;
+functions dealing with multiple elements (like `to-arr` or `each`) work in arbitrary order.
+###
 dict<k, v> record
 	by-val
 	.root node<k, v>
 
 # TODO: comparison should be generic
-dict-equal<k, v> bool(a v[k], b v[k]) is-data<k> compare<k> hash-mix<k> equal<v>
-	# TODO:PERF
-	a.arr-sorted arr-equal b.arr-sorted, (x, y) =>
-		x.from == y.from && x.to == y.to
 
-node<k, v> union
+# True if the dictionaries have equal keys and values.
+dict-equal<k, v> bool(a v[k], b v[k]) no-doc is-data<k> compare<k> hash-mix<k> equal<v>
+	# TODO:PERF
+	a.to-arr-sorted arr-equal b.to-arr-sorted, (x, y) =>
+		x.from == y.from && x.to == y.to
+.to-arr-sorted<k, v> pair<k, v>[](a v[k]) is-data<k> compare<k> hash-mix<k>
+	a.to-arr sort-by pair => pair.from
+
+.node<k, v> union
 	inner-node node<k, v>[]
 	leaf-node pair<k, v>[]
 
@@ -52,22 +66,29 @@ node<k, v> union
 .leaf-max-size nat64()
 	8
 
+###
+Creates a new dict from the given key-value pairs.
+
+Later pairs overwrite earlier pairs with the same key.
+###
 new<k, v> v[k](...a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	a to-dict
 
+###
+Converts an array of pairs to a dictionary.
+Later pairs overwrite earlier pairs with the same key.
+###
 to-dict<k, v> v[k](a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	if a.size <= 4 && a.no-duplicate-keys
 		a.leaf-node,
 	else
-		# TODO: shuld be able to write this inline
+		# TODO: should be able to write this inline
 		empty node<k, v> = empty-leaf-node
 		(empty,) fold a, (cur, x) => cur ~ x
 
-arr<k, v> pair<k, v>[](a v[k]) is-data<k> compare<k> hash-mix<k>
+# Returns all pairs in the dictionary.
+to-arr<k, v> pair<k, v>[](a v[k]) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, v) => k, v
-
-arr-sorted<k, v> pair<k, v>[](a v[k]) is-data<k> compare<k> hash-mix<k>
-	a.arr sort-by pair => pair.from
 
 .no-duplicate-keys<k, v> bool(a pair<k, v>[]) compare<k>
 	if a.size <= 1
@@ -76,6 +97,7 @@ arr-sorted<k, v> pair<k, v>[](a v[k]) is-data<k> compare<k> hash-mix<k>
 		key = a[0] from
 		a.tail every (it => it.from != key) && a.tail.no-duplicate-keys
 
+# True iff the dict has no entries.
 is-empty<k, v> bool(a v[k]) is-data<k> compare<k> hash-mix<k>
 	a.root node-is-empty
 .node-is-empty<k, v> bool(a node<k, v>)
@@ -85,6 +107,7 @@ is-empty<k, v> bool(a v[k]) is-data<k> compare<k> hash-mix<k>
 	as leaf-node l
 		l is-empty
 
+# Number of pairs.
 size<k, v> nat64(a v[k]) is-data<k> compare<k> hash-mix<k>
 	0 size-recur a.root
 .size-recur<k, v> nat64(acc nat64, a node<k, v>)
@@ -94,6 +117,10 @@ size<k, v> nat64(a v[k]) is-data<k> compare<k> hash-mix<k>
 	as leaf-node l
 		acc wrap-add l.size
 
+###
+Gets the value associated with a key.
+Returns an empty option if the key is not in `a`.
+###
 subscript<k, v> v?(a v[k], key k) is-data<k> compare<k> hash-mix<k>
 	match a root
 	as inner-node _
@@ -117,9 +144,14 @@ subscript<k, v> v?(a v[k], key k) is-data<k> compare<k> hash-mix<k>
 	else
 		a.tail subscript-leaf-recur key
 
+# `true` iff the key is in the dictionary.
 in<k, v> bool(key k, a v[k]) is-data<k> compare<k> hash-mix<k>
 	!a[key].is-empty
 
+###
+Associates the key `pair.a` with the value `pair.b`.
+This may overwrite the key if it's already in `a`, or add a new entry.
+###
 ~ <k, v> v[k](a v[k], pair pair<k, v>) is-data<k> compare<k> hash-mix<k>
 	res = a get-or-update pair.from, old-value =>
 		pair.to insert
@@ -128,39 +160,54 @@ in<k, v> bool(key k, a v[k]) is-data<k> compare<k> hash-mix<k>
 	else
 		a
 
+###
+Adds/updates many entries to `a`.
+###
 ~ <k, v> v[k](a v[k], pairs pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	a fold pairs, (cur, pair) => cur ~ pair
 
-try-add-result<k, v> union
-	already-has-key v
+got-or-added<k, v> union
+	got v
 	added v[k]
 
-already-has-key<v> record
-	value v
-
-# Adds a value if the key doesn't already exist
-try-add<k, v> try-add-result<k, v>(a v[k], key k, get-value act v()) is-data<k> compare<k> hash-mix<k>
+###
+If `key` is already in `a`, return `already-has-key` with the old value.
+Else, add a new pair `key, get-value[]` return `added`.
+###
+get-or-add<k, v> got-or-added<k, v>(a v[k], key k, get-value act v()) is-data<k> compare<k> hash-mix<k>
 	res = a get-or-update key, old-value =>
 		if old-value is-empty
 			get-value[] insert
 		else
 			no-change
 	if value ?= res old-value
-		value already-has-key
+		value got
 	else
 		(res.new-node!,) added
 
+###
+Removes a key and its associated value.
+
+If the key is not in the dictionary, returns `a` unmodified.
+(To distinguish that case, and to get the removed value, use `try-remove`.)
+###
 - <k, v> v[k](a v[k], key k) is-data<k> compare<k> hash-mix<k>
 	if res ?= a try-remove key
-		res new-dict
+		res rest
 	else
 		a
 
+# Value removed from the dictionary, and the new dictionary.
 try-remove-result<k, v> record
 	by-val
-	old-value v
-	new-dict v[k]
+	value v
+	rest v[k]
 
+###
+Removes a key and its associated value, and returns the value and the new dictionary.
+
+If the key is not in the dictionary, returns an empty option.
+###
 try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> hash-mix<k>
 	res = a get-or-update key, old-value => remove
 	if value ?= res old-value
@@ -227,7 +274,7 @@ body
 				# TODO: type annotation should not be necessary
 				new-leaf node<k, v> = ((key, ins),) leaf-node
 				# TODO: type annotation should not be necessary
-				new-node node<k, v> = i update-with-default which, new-leaf, empty-leaf-node inner-node
+				new-node node<k, v> = i update-at-with-default which, new-leaf, empty-leaf-node inner-node
 				(new-node,), ()
 	as leaf-node l
 		l get-or-update-leaf key, remaining-hash, hash-shift, f
@@ -240,13 +287,13 @@ body
 			new-children = a rtail
 			new-children.size == 1 ? new-children[0] : new-children.inner-node
 		else
-			new-children = a update which, new-child
+			new-children = a update-at which, new-child
 			if child ?= new-children find-only-non-empty-child
 				child
 			else
 				new-children inner-node
 	else
-		a update which, new-child inner-node
+		a update-at which, new-child inner-node
 
 # Returns 'some' if we should change this to a leaf.
 .inner-node-to-leaf<k, v> node<k, v>?(a node<k, v>[], which nat64, new-child node<k, v>) trusted
@@ -301,7 +348,7 @@ body
 		as remove
 			(a remove-at index leaf-node),
 		as insert ins
-			(a update index, (key, ins) leaf-node),
+			(a update-at index, (key, ins) leaf-node),
 		new-node, (old-value,)
 	else
 		new-node node<k, v>? = match f[()]
@@ -371,12 +418,15 @@ fold-keys<a, k, v> a(acc a, a v[k], f act a(a, k)) is-data<k> compare<k> hash-mi
 # TODO: map
 # TODO: map-values
 
+# Array of every key in the dictionary.
 keys<k, v> k[](a v[k]) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (k, ignore) => k
 
+# Array of every value in the dictionary.
 values<k, v> v[](a v[k]) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (ignore, v) => v
 
+# Calls `f` on every pair in the dictionary and returns an array of the results.
 map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (cur, k, v) =>

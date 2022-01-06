@@ -38,6 +38,7 @@ import frontend.parse.ast :
 	FileAst,
 	FunBodyAst,
 	FunDeclAst,
+	FunDeclAstFlags,
 	LiteralAst,
 	matchFunBodyAst,
 	matchLiteralIntOrNat,
@@ -52,6 +53,7 @@ import frontend.parse.ast :
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
+	SpecSigAst,
 	SpecUseAst,
 	StructAliasAst,
 	StructDeclAst,
@@ -110,6 +112,7 @@ import model.model :
 	SpecBody,
 	SpecDecl,
 	SpecDeclAndArgs,
+	SpecDeclSig,
 	SpecInst,
 	specs,
 	StructAlias,
@@ -629,16 +632,16 @@ immutable(SpecBody) checkSpecBody(
 		immutable SpecBody,
 		(ref immutable SpecBodyAst.Builtin) =>
 			immutable SpecBody(SpecBody.Builtin(getSpecBodyBuiltinKind(alloc, ctx, range, name))),
-		(ref immutable SigAst[] sigs) =>
-			immutable SpecBody(map!Sig(alloc, sigs, (ref immutable SigAst it) =>
-				checkSig(
+		(ref immutable SpecSigAst[] sigs) =>
+			immutable SpecBody(map!SpecDeclSig(alloc, sigs, (ref immutable SpecSigAst it) =>
+				immutable SpecDeclSig(it.docComment, checkSig(
 					alloc,
 					ctx,
 					commonTypes,
-					it,
+					it.sig,
 					toArr(typeParams),
 					structsAndAliasesDict,
-					noneMut!(Ptr!(MutArr!(Ptr!StructInst)))))),
+					noneMut!(Ptr!(MutArr!(Ptr!StructInst))))))),
 	)(ast);
 }
 
@@ -1308,8 +1311,7 @@ immutable(FunsAndDict) checkFuns(
 			structsAndAliasesDict,
 			specsDict,
 			immutable TypeParamsScope(toArr(typeParams)));
-		immutable FunFlags flags =
-			immutable FunFlags(funAst.noCtx, funAst.summon, funAst.unsafe, funAst.trusted, false, false, false);
+		immutable FunFlags flags = flagsFromAst(funAst.flags);
 		exactSizeArrBuilderAdd(
 			funsBuilder,
 			FunDecl(copySafeCStr(alloc, funAst.docComment), funAst.visibility, flags, sig, typeParams, specUses));
@@ -1397,6 +1399,10 @@ immutable(FunsAndDict) checkFuns(
 	return immutable FunsAndDict(castImmutable(funs), tests, funsDict);
 }
 
+immutable(FunFlags) flagsFromAst(immutable FunDeclAstFlags a) {
+	return immutable FunFlags(a.noDoc, a.noCtx, a.summon, a.unsafe, a.trusted, false, false, false);
+}
+
 immutable(size_t) countFunsForStruct(
 	ref immutable FunDeclAst[] asts,
 	ref immutable StructDecl[] structs,
@@ -1412,7 +1418,7 @@ immutable(size_t) countFunsForStruct(
 				// '==', 'to-intXX'/'to-natXX', 'enum-members', and a constructor for each member
 				3 + it.members.length,
 			(ref immutable StructBody.Flags it) =>
-				// 'empty', 'all', '==', '~', '|', '&', 'to-intXX'/'to-natXX', 'flags-members',
+				// '()', 'all', '==', '~', '|', '&', 'to-intXX'/'to-natXX', 'flags-members',
 				// and a constructor for each member
 				8 + it.members.length,
 			(ref immutable StructBody.ExternPtr) =>
@@ -1490,7 +1496,7 @@ void addFunsForFlags(
 	addEnumFlagsCommonFunctions(
 		alloc, funsBuilder, ctx.programState, visibility, range, type, flags.backingType, commonTypes,
 		symForSpecial(SpecialSym.flags_members));
-	exactSizeArrBuilderAdd(funsBuilder, flagsEmptyFunction(alloc, visibility, range, type));
+	exactSizeArrBuilderAdd(funsBuilder, flagsNewFunction(alloc, visibility, range, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsAllFunction(alloc, visibility, range, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsNegateFunction(alloc, visibility, range, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
@@ -1565,7 +1571,7 @@ FunDecl enumEqualFunction(
 		immutable FunBody(EnumFunction.equal));
 }
 
-FunDecl flagsEmptyFunction(
+FunDecl flagsNewFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
@@ -1577,12 +1583,12 @@ FunDecl flagsEmptyFunction(
 		FunFlags.generatedNoCtx.withOkIfUnused,
 		immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
-			shortSym("empty"),
+			shortSym("new"),
 			enumType,
 			immutable Params(emptyArrWithSize!Param)),
 		emptyArrWithSize!TypeParam,
 		emptyArrWithSize!(Ptr!SpecInst),
-		immutable FunBody(FlagsFunction.empty));
+		immutable FunBody(FlagsFunction.new_));
 }
 
 FunDecl flagsAllFunction(

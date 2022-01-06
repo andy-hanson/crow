@@ -1,33 +1,49 @@
 <main>
-<crow-runnable src="fizz-buzz"></crow-runnable>
-<p>Crow is an upcoming programming language (in alpha state) featuring:</p>
-<ul>
-	<li>
-		<p><span class="par-first">Safety</span>:
-			A crow function is a "jail" that can't access data or perform side effects
-			unless a parameter gives it permission.
-			This means that just by looking at a function's signature, you know what it can do;
-			and if all parameters are <code>data</code>, it is functionally pure.
-			(Don't worry, you can directly call C libraries.)</p>
-		<p>That means no global state, and no unsafe memory operations.
-			They also can't perform I/O without permission being passed in by a parameter.
-			This means that if you're tracking down a bug, you can exclude a function (and all code in it)
-			based on just the arguments passed.
-			Unsafe code (such as calling C libraries) is possible
-			but can't be accidentally called from safe code.</p>
-	</li>
-	<li>
-		<p><span class="par-first">Data</span>:
-			immutable, serializable types that are just "plain old data".</p>
-		<p>The compiler keeps track of what is and is not data,
-			and allows <code>data</code> to be shared between parallel tasks,
-			and ensures mutable variables are only accesed sequentially.</p>
-	</li>
-	<li>
-		<p><span class="par-first">Templates</span>; everything is a template.</p>
-		<p>Templates are type-checked abstractly, as in Java generics, but they can use <code>spec</code>s
-			to refer to type-appropriate functions like <code>size-of</code> as in C++.</p>
-	</li>
-</ul>
-<p>Now, <a href="/download.html">download</a> crow or go straight to the the <a href="/tutorial">tutorial</a>.</p>
+	<crow-runnable src="fizz-buzz"></crow-runnable>
+	<p>
+		Crow is an upcoming programming language for high-quality code.
+		<br />
+		A "luxury" language, it prioritizes your code's readability and correctness
+		over the ease of implementing the language.
+	</p>
+	<p>Some interesting features:</p>
+	<ul class="bullets">
+		<li>
+			Crow is garbage collected and statically typed.
+			<br />
+			It does not rely on an external runtime and can call into C libraries.
+		</li>
+		<li>
+			Crow is expression-oriented instead of statement-oriented.
+			<br />
+			There is no <code class="keyword">return</code> keyword,
+			and <code class="keyword">if</code> is an expression rather than a statement.
+		</li>
+		<li>
+			Crow runs code directly and doesn't need a build system.
+			<br />
+			Ahead-of-time optimized compilation is also supported.
+		</li>
+		<li>
+			Crow detects nesting based on indentation, so it doesn't need braces.
+		</li>
+		<li>
+			Functions cannot perform I/O except by invoking a callback from a parameter.
+			<br />
+			If a function's parameters are all immutable data (not mutable objects or callbacks), it is a pure function.
+			<br />
+			(<code class="keyword">summon</code> functions are the exception.)
+		</li>
+		<li>
+			Crow has a strong type system, with no subtyping, implicit conversions or <code class="keyword">null</code>.
+		</li>
+		<li>
+			Launching tasks and getting the result back as a future is easy.
+			<br />
+			The type system ensures that mutable data will only be accessed by one thread at a time.
+		</li>
+	</ul>
+	<p>
+		To get started, read the <a href="/tutorial">tutorial</a>.
+	</p>
 </main>

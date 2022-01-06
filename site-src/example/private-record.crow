@@ -1,0 +1,25 @@
+# private-record.crow
+
+r record mut
+	public str
+	public-mutable mut str
+	public-readonly .mut str
+	.private str
+	.private-mutable .mut str
+
+new r()
+	"public", "public-mutable", "public-readonly", "private", "private-mutable"
+
+call-private-getters str(a r)
+	"{a private}|{a private-mutable}"
+
+call-private-setters void(a r)
+	a.public-readonly := "updated {a public-readonly}"
+	a.private-mutable := "updated {a private-mutable}"
+
+r2 record
+	.new
+	r2-field str
+
+new r2()
+	"r2-field",

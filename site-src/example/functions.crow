@@ -3,17 +3,17 @@ import
 	crow/str-util: ends-with
 
 main fut nat(_ str[]) summon
-	print: "albatross".greet
-	print: "fox".greet
-	print: "ox".greet
-	print: "crow".greet
+	print: "albatross" greet "morning"
+	print: "fox" greet "afternoon"
+	print: "ox" greet "evening"
+	print: "crow" greet "night"
 	()
 
-greet str(name str)
-	"{greeting}, {name plural}"
+greet str(name str, time str)
+	"{good} {time}, {name plural}"
 
-greeting str()
-	"Hello"
+good str()
+	"Good"
 
 plural str(name str)
 	suffix = if name ends-with "s" || name == "fox"
@@ -22,4 +22,4 @@ plural str(name str)
 		"en"
 	else
 		"s"
-	name ~ suffix
+	"{name}{suffix}"

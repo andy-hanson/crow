@@ -1,0 +1,23 @@
+import
+	crow/col/arr-util: in
+	crow/io/print: print
+	crow/str-util: head, join, tail
+
+main fut nat(_ str[]) summon
+	print: "crow" describe
+	print: "ermisepillo" describe
+	()
+
+describe str(a str)
+	"{a a-an} says {a.vowels join "-"}"
+
+vowels str[](a str)
+	unless a is-empty
+		# (a.head.to-str,) creates an array
+		(a.head.is-vowel ? (a.head.to-str,)) ~ a.tail.vowels
+
+a-an str(a str)
+	a.head.is-vowel ? "an {a}" : "a {a}"
+
+is-vowel bool(a char)
+	a in ("a", "e", "i", "o", "u")

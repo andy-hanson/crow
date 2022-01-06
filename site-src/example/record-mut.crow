@@ -2,18 +2,20 @@ import
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	a dinner = "lasagna", "wine"
-	print: "yum, {a}"
-	a snarf
-	print: "yum, {a}"
+	a bird = "crow", "cap"
+	b bird = "seagull", "stetson"
+	a steal-hat b
+	print: a to-str
+	print: b to-str
 	()
 
-dinner record mut
-	food mut str
-	drink str
+bird record mut
+	species str
+	hat mut str
 
-snarf void(a dinner)
-	a.food := "nothing"
+steal-hat void(a bird, b bird)
+	a.hat := "{a hat} and {b hat}"
+	b.hat := "missing hat"
 
-to-str str(a dinner)
-	"{a food} and {a drink}"
+to-str str(a bird)
+	"{a species} in a {a hat}"

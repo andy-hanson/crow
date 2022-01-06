@@ -24,6 +24,11 @@ import
 		~=, copy, each, find-index, fold, is-at-capacity, is-empty, mut-arr, new,
 		remove-unordered-at, set-filter, set-map, set-subscript, size, subscript
 
+###
+Mutable unordered dictionary.
+
+Unordered means that iteration functions like `each` reach each entry in arbitrary order.
+###
 mut-dict<k, v> record mut
 	.entries .mut fix-arr entry<k, v>
 	.total-size .mut nat64
@@ -33,9 +38,19 @@ mut-dict<k, v> record mut
 	one pair<k, v>
 	many pair<k, v> mut[]
 
+###
+New dictionary containing the given pairs.
+
+Later pairs overwrite earlier pairs with the same key.
+###
 new<k, v> v mut[k](...a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	a to-mut-dict
 
+###
+Convert an array of pairs to a dictionary.
+
+Later pairs overwrite earlier pairs with the same key.
+###
 to-mut-dict<k, v> v mut[k](a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	res v mut[k] = a.size mut-dict-with-capacity
 	a each pair =>
@@ -43,21 +58,26 @@ to-mut-dict<k, v> v mut[k](a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	res
 
 ###
-New dict with `capacity` empty entries.
-WARN: Due to hash conflicts, this doesn't guarantee that allocations won't be needed.
+New empty dictionary with space for about `capacity` entries.
+This can have a small performance benefit if you know that much space will be needed.
+
+Since hash conflicts are possible, this makes no guarantees about whether more allocations will be needed.
 ###
 mut-dict-with-capacity<k, v> v mut[k](capacity nat64) is-data<k> compare<k> hash-mix<k>
 	# TODO: should not need type annotation
 	(capacity fill-fix-arr none)::fix-arr<entry<k, v>>, 0
 
-arr<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
+# Copy pairs to an array.
+to-arr<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a map-to-arr (key, value) => key, value
 
+# Copy pairs to an array and clear the dictionary.
 move-to-arr<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
-	res = a arr
+	res = a to-arr
 	a clear
 	res
 
+# Copy pairs to a new dictionary.
 copy<k, v> v mut[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	entries fix-arr entry<k, v> = a.entries map entry =>
 		match entry
@@ -79,12 +99,19 @@ test
 	a verify "(6 -> 6) (1 -> 1) [2 -> 2, 5 -> 5]"
 	b verify "_ (1 -> 1) [2 -> 2, 5 -> 5]"
 
+# `true` iff `a.size == 0`.
 is-empty<k, v> bool(a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a.size == 0
 
+# Number of unique keys in the dictionary.
 size<k, v> nat64(a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a total-size
 
+###
+Gets the value associated with a key.
+
+Returns an empty option if the key is not in the dictionary.
+###
 subscript<k, v> v?(a v mut[k], key k) trusted is-data<k> compare<k> hash-mix<k>
 	unless a is-empty
 		match a.entries[key.hash unsafe-mod a.entries.size]
@@ -96,16 +123,24 @@ subscript<k, v> v?(a v mut[k], key k) trusted is-data<k> compare<k> hash-mix<k>
 			if index ?= m find-index pair => pair.from == key
 				m[index].to,
 
+# `true` iff the key is in the dictinoary.
 in<k, v> bool(key k, a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	!a[key].is-empty
 
+###
+Sets the key to the given value, so that `a[key]` will return `value`.
+
+If the key is already in the dictionary, this overwrites the previous value.
+###
 set-subscript<k, v> void(a v mut[k], key k, value v) is-data<k> compare<k> hash-mix<k>
 	drop: a update key, (value,)
 
+# Remove all keys, leaving the dictionary empty.
 clear<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a.entries fill none
 	a.total-size := 0
 
+# Set the contents of `a` to the contents of `b` and vice versa.
 swap<k, v> void(a v mut[k], b v mut[k]) is-data<k> compare<k> hash-mix<k>
 	temp-entries = a.entries
 	a.entries := b.entries
@@ -114,10 +149,12 @@ swap<k, v> void(a v mut[k], b v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a.total-size := b.total-size
 	b.total-size := temp-size
 
-remove-key<k, v> void(a v mut[k], key k) is-data<k> compare<k> hash-mix<k>
-	drop: a try-remove-key key
+###
+If the key was in the dictionary, remove it and return the old value.
 
-try-remove-key<k, v> v?(a v mut[k], key k) is-data<k> compare<k> hash-mix<k>
+Returns an empty option if the key was not in the dictionary.
+###
+try-remove<k, v> v?(a v mut[k], key k) is-data<k> compare<k> hash-mix<k>
 	a update key, ()
 
 ###
@@ -180,9 +217,11 @@ Returns the old value (if it exists).
 						a.total-size := a.total-size wrap-add 1
 				()
 
+# This is the same as calling `a[b a] := b b`.
 ~= <k, v> void(a v mut[k], b pair<k, v>) is-data<k> compare<k> hash-mix<k>
 	a[b from] := b to
 
+# This is the same as calling `a ~= x` for every `x` in `b`.
 ~= <k, v> void(a v mut[k], b pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	b each pair =>
 		a ~= pair
@@ -202,12 +241,23 @@ Returns the old value (if it exists).
 
 region iteration
 
+# Calls `f` for every key and value in the dictionary.
 each<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
 	() fold a, (ignore, key, value) => f[key, value]
 
+###
+Calls `f` for every key and value in the dictionary.
+
+This is like `each` but without providing values.
+###
 each-key<k, v> void(a v mut[k], f act void(k)) is-data<k> compare<k> hash-mix<k>
 	a each (k, ignore) => f[k]
 
+###
+Calls `f` for every key and value in the dictionary.
+
+Each call to `f` gets the previous accumulator and returns the new accumulator.
+###
 fold<a, k, v> a(acc a, a v mut[k], f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
 	acc fold a.entries, (cur, entry) =>
 		match entry
@@ -218,6 +268,11 @@ fold<a, k, v> a(acc a, a v mut[k], f act a(a, k, v)) is-data<k> compare<k> hash-
 		as many m
 			cur fold m, (cur2, pair) => f[cur2, pair.from, pair.to]
 
+###
+Filters the dictionary in place.
+
+Calls `f` on every key and value and removes the key if `f` returns false.
+###
 set-filter<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	a.entries.begin-ptr set-filter-recur a.entries.end-ptr, f
 .set-filter-recur<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act bool(k, v)) unsafe
@@ -238,7 +293,9 @@ set-filter<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k
 				*entry-ptr := z one
 		entry-ptr + 1 set-filter-recur entry-end, f
 
-
+###
+Calls `f` on every key and value and returns an array of the results.
+###
 map-to-arr<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	out fix-arr out = a.size uninitialized-fix-arr
 	end = out.begin-ptr fold a, (cur, key, value) =>
@@ -247,11 +304,18 @@ map-to-arr<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> comp
 	assert: end == out.end-ptr
 	out cast-immutable
 
+###
+Returns an immutable dictionary with this dictionary's contents.
+In the process, clears the mutable dictionary.
+###
 move-to-dict<k, v> v[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	res = a map-to-arr ((k, v) => k, v) to-dict
 	a clear
 	res
 
+###
+Calls `f` on every key and value, and replaces the value with the new value returned by `f`.
+###
 set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	a.entries.begin-ptr set-map-values-recur a.entries.end-ptr, f
 .set-map-values-recur<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act v(k, v)) unsafe
@@ -301,8 +365,8 @@ test
 	a[6] is ("6",)
 	a.size is 1
 	# TODO: a.arr is ((6, "6"),)
-	a.arr map (pair => pair from) is (6,)
-	a.arr map (pair => pair to) is ("6",)
+	a.to-arr map (pair => pair from) is (6,)
+	a.to-arr map (pair => pair to) is ("6",)
 
 	a verify "(6 -> 6)"
 
@@ -322,15 +386,15 @@ test
 	a[8] is ("8",)
 	a[5] is ()
 
-	# TODO: a.arr is ((4, "4"), (8, "8"), (6, "six"), (3, "3"))
-	a.arr map (pair => pair from) is (4, 8, 6, 3)
-	a.arr map (pair => pair to) is ("4", "8", "six", "3")
+	# TODO: a.to-arr is ((4, "4"), (8, "8"), (6, "six"), (3, "3"))
+	a.to-arr map (pair => pair from) is (4, 8, 6, 3)
+	a.to-arr map (pair => pair to) is ("4", "8", "six", "3")
 
 	a[12] := "12"
 	a verify "(8 -> 8) _ _ (3 -> 3) [4 -> 4, 12 -> 12] _ (6 -> six) _"
 
-	a try-remove-key 5 is ()
-	a try-remove-key 4 is ("4",)
+	a try-remove 5 is ()
+	a try-remove 4 is ("4",)
 
 	a verify "(8 -> 8) _ _ (3 -> 3) (12 -> 12) _ (6 -> six) _"
 

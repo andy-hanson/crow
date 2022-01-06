@@ -2,29 +2,29 @@ no-std
 import
 	./bool: bool, false, new, true
 	./compare: equal
-	./fun-util: subscript
-	./misc: drop, new, void
+	./misc: drop
 	./str: ==, str
-	./tuple: new, pair
 	./private/bootstrap: char, none, some
 	./private/exception-low-level: throw
 	./private/number-low-level: ==, int64, nat64, new
 export
 	./private/bootstrap: opt
 
+# Empty option.
 new<a> a?() noctx
 	none
 
+# Option containing `a`.
 new<a> a?(a a) noctx
 	a some
 
-== bool(a int64?, b int64?) noctx
+== bool(a int64?, b int64?) no-doc noctx
 	a opt-equal b
-== bool(a nat64?, b nat64?) noctx
+== bool(a nat64?, b nat64?) no-doc noctx
 	a opt-equal b
-== bool(a str?, b str?) noctx
+== bool(a str?, b str?) no-doc noctx
 	a opt-equal b
-== bool(a char?, b char?) noctx
+== bool(a char?, b char?) no-doc noctx
 	a opt-equal b
 
 # TODO:GENERIC
@@ -35,7 +35,7 @@ new<a> a?(a a) noctx
 	else
 		b is-empty
 
-# True iff a is `none`.
+# True iff `a` is an empty option.
 is-empty<a> bool(a a?) noctx
 	if x ?= a
 		# TODO: use '_'
@@ -44,51 +44,25 @@ is-empty<a> bool(a a?) noctx
 	else
 		true
 
+# 1 if `a` has a value, else 0.
 size<a> nat64(a a?) noctx
 	unless a is-empty
 		1
 
-# Calls `f` on the value in a `some`, or does nothing.
-each<a> void(a a?, f act void(a))
-	if v ?= a
-		f[v]
-
-# Converts `none` to `none`, or `some` to another `some` with `f` applied.
-map<out, in> out?(a in?, f act out(in))
-	if v ?= a
-		f[v],
-
-# Takes the leftmost `some` value.
+###
+Lazily-evaluated.
+If `a` is non-empty, returns it and does not evaluate `b`.
+Else, returns `b`.
+###
 ||<a> a?(a a?, b a?) builtin
 
-# Returns the option's value if it has one, else `default`.
+###
+Lazily-evaluated. 
+If `a` is non-empty, returns its value and does not evaluate `b`.
+Else, returns `b`.
+###
 ??<a> a(a a?, default a) builtin
 
-# Converts an option to a value by failing on `none`.
+# If `a` is non-empty, returns its value; else throws.
 !<a> a(a a?)
-	a ?? "tried to force empty option".throw
-
-###
-If both `a` and `b` are non-empty, combines them using `f`.
-Else, returns the non-empty one.
-###
-opt-combine<a> a?(a a?, b a?, f act a(a, a))
-	if va ?= a
-		if vb ?= b
-			f[va, vb],
-		else
-			a
-	else
-		b
-
-opt-join<in0, in1> pair<in0, in1>?(a in0?, b in1?)
-	a opt-join b, (x, y) =>
-		x, y
-
-###
-Returns `f[a!, b!]` iff both `a` and `b` are `some`, else returns `none`.
-###
-opt-join<out, in0, in1> out?(a in0?, b in1?, f act out(in0, in1))
-	if va ?= a
-		if vb ?= b
-			f[va, vb],
+	a ?? "tried to force empty option" throw

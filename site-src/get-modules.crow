@@ -5,8 +5,9 @@ import
 	crow/json: as-arr, as-bool, as-str, json, parse-json, subscript
 	./module:
 		alias-decl, builtin-decl, enum-decl, extern-ptr-decl, flags-decl, fun-decl, module,
-		module-export, module-export-value, new, param, spec-decl, type-param, type-ref, record-decl,
-		record-field, sig, spec-builtin, spec-sigs, union-decl, union-member
+		module-export, module-export-value, new, param, p-data, p-mut, p-sendable, purity,
+		spec-decl, spec-ref, type-param, type-ref, record-decl, record-field, spec-builtin,
+		spec-sig, spec-sigs, union-decl, union-member
 
 get-modules module[](paths str[]) summon
 	result = "bin/crow" spawn-and-wait-result (("doc",) ~ paths), get-environ
@@ -21,20 +22,21 @@ get-modules module[](paths str[]) summon
 .to-module module(a json)
 	a.get-node-type is "module"
 	exports = a["exports"]!.as-arr! map x => x to-export
-	a["path"]!.as-str!, exports
+	a["path"]!.as-str!, a.get-comment, exports
+
+.get-comment str(a json)
+	if c ?= a["comment"]
+		c.as-str!
 
 .get-node-type str(a json)
 	a["_type"]!.as-str!
 
 .to-export module-export(a json)
 	a.get-node-type is "export"
-	name = a get-name
-	comment = if c ?= a["doc-comment"]
-		c.as-str!
 	type-params = if t ?= a["type-params"]
 		t.as-arr! map x => x to-type-param
 	value = a["value"]! to-export-value
-	name, comment, type-params, value
+	a.get-name, a.get-comment, type-params, value
 
 .to-export-value module-export-value(a json)
 	type = a get-node-type
@@ -73,8 +75,21 @@ get-modules module[](paths str[]) summon
 	a["members"]!.as-arr! map x => x.as-str! str-to-sym
 
 .to-record-decl record-decl(a json)
+	has-private = if h ?= a["has-private"]
+		h.as-bool!
 	fields = a["fields"]!.as-arr! map x => x to-record-field
-	fields,
+	a.get-purity, has-private, fields
+
+.get-purity purity(a json)
+	if p ?= a["purity"]
+		s = p.as-str!
+		if s == "sendable"
+			p-sendable
+		else
+			s is "mut"
+			p-mut
+	else
+		p-data
 
 .to-record-field record-field(a json)
 	a.get-node-type is "field"
@@ -84,7 +99,7 @@ get-modules module[](paths str[]) summon
 
 .to-union-decl union-decl(a json)
 	members = a["members"]!.as-arr! map x => x to-union-member
-	members,
+	a.get-purity, members
 
 .to-union-member union-member(a json)
 	a.get-node-type is "member"
@@ -101,8 +116,16 @@ get-modules module[](paths str[]) summon
 .get-type type-ref(a json)
 	a["type"]! to-type-ref
 
+.get-type-args type-ref[](a json)
+	if args ?= a["type-args"]
+		args.as-arr! map x => x to-type-ref
+
 .to-fun-decl fun-decl(a json)
-	a.get-return-type, a.get-params
+	variadic = if v ?= a["variadic"]
+		v.as-bool!
+	specs = if s ?= a["specs"]
+		s.as-arr! map (x => x to-spec-ref)
+	a.get-return-type, variadic, a.get-params, specs
 
 .to-spec-decl spec-decl(a json)
 	body-json = a["body"]!
@@ -115,8 +138,8 @@ get-modules module[](paths str[]) summon
 		"unexpected spec type {type}" throw
 	body_,
 
-.to-sig sig(a json)
-	a.get-name, a.get-return-type, a.get-params
+.to-sig spec-sig(a json)
+	a.get-comment, a.get-name, a.get-return-type, a.get-params
 
 .get-return-type type-ref(a json)
 	a["return-type"]! to-type-ref
@@ -129,9 +152,19 @@ get-modules module[](paths str[]) summon
 	a.get-name, a.get-type
 
 .to-type-ref type-ref(a json)
-	if str ?= a as-str
-		str.str-to-sym, ()
+	node-type = a get-node-type
+	name = a["name"]!.as-str! str-to-sym
+	if node-type == "type-param"
+		name, ()
 	else
-		name = a.get-node-type str-to-sym
-		args = a["type-args"]!.as-arr! map x => x to-type-ref
-		name, args
+		node-type is "struct"
+		name, a.get-type-args
+
+.to-spec-ref spec-ref(a json)
+	node-type = a get-node-type
+	name = a["name"]!.as-str! str-to-sym
+	if node-type == "special"
+		name, ()
+	else
+		node-type is "spec"
+		name, a.get-type-args

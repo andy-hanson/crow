@@ -54,7 +54,7 @@ capacity<a> nat64(a a mut[]) noctx unsafe
 mut-arr-by-val<a> by-val a mut[]() noctx trusted
 	empty-fix-arr, 0
 
-mut-arr-by-val-with-capacity-from-unmanaged-memory<a> by-val<a mut[]>(capacity nat64) noctx unsafe
+mut-arr-by-val-with-capacity-from-unmanaged-memory<a> by-val<a mut[]>(capacity nat64) no-doc noctx unsafe
 	backing a mut* = capacity unmanaged-alloc-zeroed-elements
 	backing[0 .. capacity], 0
 
@@ -101,7 +101,7 @@ copy<a> a mut[](a a mut[]) trusted
 Copies a `mut-arr` to an `arr`.
 Writes to the `mut-arr` won't affect the `arr`.
 ###
-arr<a> a[](a a mut[])
+to-arr<a> a[](a a mut[])
 	a.copy move-to-arr
 
 ###
@@ -427,6 +427,11 @@ map-opt-to-fix-arr<out, in> fix-arr out(a in mut[], f act out?(in)) trusted
 
 region mutating iteration
 
+# TODO: what happens if data accessed during filtering?
+###
+Removes every element `x` where `!f[x]`.
+This can be written as `a.filter := f`.
+###
 set-filter<a> void(a a mut[], f act bool(a)) trusted
 	new-end = a.begin-ptr set-filter-recur a.begin-ptr.as-const, a.end-ptr.as-const, f
 	new-size = new-end - a.begin-ptr
@@ -443,5 +448,9 @@ set-filter<a> void(a a mut[], f act bool(a)) trusted
 			out
 		new-out set-filter-recur in + 1, end, f
 
+###
+Overwrites every element `x` with `f[x]`.
+This can be written as `a.map := f`.
+###
 set-map<a> void(a a mut[], f act a(a)) trusted
 	a.temp-as-fix-arr set-map f

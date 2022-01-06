@@ -1,11 +1,13 @@
+###
+More functions on arrays are in the `crow/arr-util` module.
+###
+
 no-std
 import
 	../bool: &&, bool
 	../compare: !=, <, <=, compare, comparison, equal, greater, less
 	../fun-util: subscript
-	../ptr:
-		*, ==, <=>, +, -, as-const, by-val, const-ptr, mut-ptr, null, ptr-cast, ref-of-ptr,
-		size-of, subscript
+	../ptr: *, ==, <=>, +, -, as-const, const-ptr, mut-ptr, null, ptr-cast, size-of, subscript
 	../private/alloc: alloc-uninitialized, copy-data-from
 	../private/bootstrap: hard-assert, new
 	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
@@ -13,19 +15,20 @@ import
 export
 	../private/bootstrap: arr, begin-ptr, size
 
+# Create an array with the given elements.
 new<a> a[](...a a[]) noctx
 	a
 
-# TODO:INTERNAL
 # This exists because noctx functions can't call `new` in general. But they can for empty arryas.
-empty-arr<a> a[]() noctx trusted
+empty-arr<a> a[]() no-doc noctx trusted
 	(0, null)
 
+# Pointer to the end of an array.
 end-ptr<a> a*(a a[]) noctx unsafe
 	a.begin-ptr + a.size
 
 # TODO: arr comparison should be generic
-arr-equal<a> bool(a a[], b a[]) trusted noctx equal<a>
+arr-equal<a> bool(a a[], b a[]) no-doc trusted noctx equal<a>
 	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr
 .equal-recur<a> bool(a a*, a-end a*, b a*, b-end a*) unsafe noctx equal<a>
 	if a == a-end
@@ -33,7 +36,7 @@ arr-equal<a> bool(a a[], b a[]) trusted noctx equal<a>
 	else
 		b != b-end && *a == *b && a + 1 equal-recur a-end, b + 1, b-end
 
-arr-equal<a> bool(a a[], b a[], eq act bool(a, a)) trusted
+arr-equal<a> bool(a a[], b a[], eq act bool(a, a)) no-doc trusted
 	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr, eq
 .equal-recur<a> bool(a a*, a-end a*, b a*, b-end a*, eq act bool(a, a)) unsafe
 	if a == a-end
@@ -41,7 +44,7 @@ arr-equal<a> bool(a a[], b a[], eq act bool(a, a)) trusted
 	else
 		b != b-end && eq[*a, *b] && a + 1 equal-recur a-end, b + 1, b-end, eq
 
-arr-compare<a> comparison(a a[], b a[]) trusted noctx compare<a>
+arr-compare<a> comparison(a a[], b a[]) no-doc trusted noctx compare<a>
 	a.begin-ptr compare-recur a.end-ptr, b.begin-ptr, b.end-ptr
 .compare-recur<a> comparison(a a*, a-end a*, b a*, b-end a*) unsafe noctx compare<a>
 	if a == a-end
@@ -60,14 +63,14 @@ arr-compare<a> comparison(a a[], b a[]) trusted noctx compare<a>
 		as greater
 			greater
 
-== bool(a nat8[], b nat8[]) noctx
+== bool(a nat8[], b nat8[]) no-doc noctx
 	a arr-equal b
-<=> comparison(a nat8[], b nat8[]) noctx
+<=> comparison(a nat8[], b nat8[]) no-doc noctx
 	a arr-compare b
 
-== bool(a nat64[], b nat64[]) noctx
+== bool(a nat64[], b nat64[]) no-doc noctx
 	a arr-equal b
-<=> comparison(a nat64[], b nat64[]) noctx
+<=> comparison(a nat64[], b nat64[]) no-doc noctx
 	a arr-compare b
 
 ###
@@ -75,60 +78,56 @@ Arr or the range from begin to end.
 `begin` is inclusive and `end` is exclusive.
 UB if begin > end.
 ###
-arr-from-begin-end<a> a[](begin a*, end a*) unsafe noctx
+arr-from-begin-end<a> a[](begin a*, end a*) no-doc unsafe noctx
 	hard-assert: begin <= end
 	end - begin, begin
 
-arr-cast<out, in> out[](a in[]) unsafe noctx
+arr-cast<out, in> out[](a in[]) no-doc unsafe noctx
 	hard-assert: size-of@<out> == size-of@<in>
 	a.size, a.begin-ptr.ptr-cast
 
-# True iff `a.size == 0`.
+# `true` iff `a.size == 0`.
 is-empty<a> bool(a a[]) noctx
 	a.size == 0
 
-noctx-at<a> a(a a[], index nat64) unsafe noctx
+noctx-at<a> a(a a[], index nat64) no-doc unsafe noctx
 	hard-assert: index < a.size
 	a unsafe-at index
 
-unsafe-at<a> a(a a[], index nat64) unsafe noctx
+unsafe-at<a> a(a a[], index nat64) no-doc unsafe noctx
 	a.begin-ptr[index]
 
+# Create an array from a range of pointers.
 subscript<a> a[](a a*, r range nat64) noctx unsafe
 	(r.high wrap-sub r.low), a + r.low
 
 ###
 Gets the element at the index.
-Fails if `index >= a.size`.
+Throws if `index >= a.size`.
 ###
 subscript<a> a(a a[], index nat64) trusted
-	# TODO: warn instead of hard-assert
+	# TODO: throw instead of hard-assert
 	hard-assert: index < a.size
 	a unsafe-at index
 
 ###
-Slices the arr.
+Gets an array elements from 'range.low' (inclusive) to 'range.height' (exclusive).
 This works in O(1) without copying any elements.
-Fails if `range.from > range.to`.
-Fails if the slice would exceed the bounds of the arr.
+Throws if the slice would exceed the bounds of the arr.
 ###
 subscript<a> a[](a a[], range range nat64) trusted
 	# TODO: warn instead of hard-assert
 	hard-assert: range.high <= a.size
 	(range.high wrap-sub range.low), a.begin-ptr + range.low
 
-unsafe-slice<a> a[](a a[], begin nat64, end nat64) unsafe noctx
+unsafe-slice<a> a[](a a[], begin nat64, end nat64) no-doc unsafe noctx
 	a.begin-ptr + begin arr-from-begin-end a.begin-ptr + end
 
-ref-of-val-at<a> a(a by-val<a>[], index nat64) trusted
-	# TODO: warn instead of hard-assert
-	hard-assert: index < a.size
-	a.begin-ptr + index ref-of-ptr
-
 ###
-Concatenates two arrs.
-This involves copying every element from both arrs into the new arr.
-If you need to concatenate often, consider using `mut-arr`.
+Concatenates two arrays.
+This is O(n).
+
+If you need concatenate many arrays, use a `mut[]` to accumulate elements, then call `move-to-arr`.
 ###
 ~ <a> a[](a a[], b a[]) trusted
 	res-size = a.size wrap-add b.size

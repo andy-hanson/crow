@@ -1,21 +1,21 @@
 import
 	crow/col/arr-util: each
-	crow/crypto/login-cookie:
+	crow/crypto/experimental/login-cookie:
 		cookie, cookie-matches, from-bytes, generate-login-cookie, login-cookie,
 		parse-login-cookie, to-bytes, to-str
-	crow/crypto/password: password-hash, password-matches, quality-moderate
+	crow/crypto/password-hash: password-hash, password-matches-hash, quality-moderate
 	crow/db/lmdb:
-		add, close-db, count, from-lmdb-key, get, lmdb-close-env, lmdb-db, lmdb-env,
-		lmdb-key-flags, lmdb-open-env, lMDB_txn, map, new, open-db, set, to-lmdb-key,
+		add, close-db, close-env, count, from-lmdb-key, get, lmdb-db, lmdb-env,
+		lmdb-key-flags, lmdb-txn, map, new, open-db, open-env, set, to-lmdb-key,
 		transaction-abort, transaction-commit, try-add, with-abortable-write-transaction, with-env,
 		with-read-transaction, with-test-env, with-write-transaction, zip
 	crow/io/print: print
 	crow/log: info, log
+	crow/reader: parse-nat
 	crow/serialize: from-bytes, to-bytes
 	crow/str-util: try-split-once
 
 main fut nat(_ str[]) unsafe summon
-	print: "Hello, world!"
 	db-path with-env (true,), env =>
 		env with-db db =>
 			if false
@@ -70,8 +70,9 @@ user-cookie record
 
 parse-user-cookie user-cookie?(a str)
 	if split ?= a try-split-once "|"
-		split.a.parse-nat opt-join split.b.parse-login-cookie, (user, inner) =>
-			user, inner
+		if user ?= split.a parse-nat
+			if inner ?= split.b parse-login-cookie
+				(user, inner),
 
 to-str str(a user-cookie)
 	"{a user}|{a inner}"
@@ -86,12 +87,12 @@ db record mut
 	.post-content lmdb-db<post, str>
 
 open-real-db db() unsafe summon
-	env = db-path lmdb-open-env (true,)
+	env = db-path open-env (true,)
 	env db-open
 
 close-real-db void(db db) unsafe summon
 	db db-close
-	db.env lmdb-close-env
+	db.env close-env
 
 .with-db<a> a(env lmdb-env, f act a(db)) trusted summon
 	db = env db-open
@@ -155,9 +156,9 @@ register-user register-user-result(db db, user-name str, password str) summon
 			txn add db.user-name, new-user-id, user-name
 			hash = password password-hash quality-moderate
 			txn add db.user-password-hash, new-user-id, hash
-			new-user-id.register-user-success transaction-commit
+			new-user-id.register-user-success, transaction-commit
 		else
-			user-already-exists transaction-abort
+			user-already-exists, transaction-abort
 
 login-error enum
 	empty-name-or-password
@@ -170,7 +171,7 @@ login result<user-cookie, login-error>(db db, user-name str, password str) summo
 		db.env with-write-transaction txn =>
 			if user ?= db get-user txn, user-name
 				hash = (txn get db.user-password-hash, user)!
-				unless password password-matches hash
+				unless password password-matches-hash hash
 					throw: "wrong password"
 				cookie = generate-login-cookie
 				txn set db.user-login-cookie, user, cookie
@@ -193,16 +194,16 @@ add-post post(db db, cookie user-cookie, content str) summon
 		txn add db.post-content, post, content
 		post
 
-.get-user user?(db db, txn lMDB_txn, user-name str) summon
+.get-user user?(db db, txn lmdb-txn, user-name str) summon
 	txn get db.user-from-name, user-name
 
-.authenticate user(db db, txn lMDB_txn, cookie user-cookie) summon
+.authenticate user(db db, txn lmdb-txn, cookie user-cookie) summon
 	if db try-authenticate txn, cookie
 		cookie user
 	else
 		"Login cookie invalid (may have expired)" throw
 
-.try-authenticate bool(db db, txn lMDB_txn, cookie user-cookie) summon
+.try-authenticate bool(db db, txn lmdb-txn, cookie user-cookie) summon
 	if login-cookie ?= txn get db.user-login-cookie, cookie.user
 		login-cookie cookie-matches cookie.inner.cookie, cookie-expire-seconds
 

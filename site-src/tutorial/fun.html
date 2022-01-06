@@ -1,67 +1,89 @@
 <section>
-	<h2>Function values</h2>
-	<h3>fun</h3>
-	<p>A <em>function value</em> is a value that references a function,
-		as well as a <em>closure</em> of data for the function to access.
-	</p>
+	<h2>fun</h2>
+	<p>A <em>function value</em> is a value that implements a function.</p>
+
 	<crow-runnable src="fun"></crow-runnable>
-	<p>The <code>x => x + 1 to-str</code> syntax introduces a new function value.
-		<code>x</code> is its parameter.
-		When there are multiple (or zero) parameters,
-		you must put them in parentheses, like <code>(x, y) =></code>.
 
-		The parameter list may not contain types; they are inferred from the type the expression must have.
-		For example, <code class="fun-ref">call-it</code> takes a <code>fun str(nat)</code>,
-		so <code>x</code> must be a <code>nat</code>.
-
+	<h3>syntax for function values</h3>
+	<p>
+		<code>(x, y) => "{x}-{y}"</code> creates a function value with two parameters
+		<code class="param">x</code> and <code class="param">y</code>.
 		<br />
+		If there is a single parameter, the parentheses can be ommitted, as in <code>x => x + 1</code>.
+	</p>
+	<p>
+		Parameter types of a function value are always inferred.
+	</p>
+	<p>
+		The result of the function value can be written inline or in an indented block.
+	</p>
 
-		If the compiler doesn't infer a type, you could write
-		<code>as&lt;fun str(nat)&gt;: x => x + 1 to-str</code> to make it explicit.
+	<h3>function type syntax</h3>
+	<p>
+		<code>fun str(str, str)</code> means a function that returns a 	<code class="struct">str</code> given a
+		<code class="struct">str</code> and <code class="struct">str</code>.
+		<br />
+		For another example, <code>fun bool(nat)</code> is a function returning a <code class="struct">bool</code>
+		given a <code class="struct">nat</code>.
 	</p>
-	<p>The function result can either go on the same line after the `=>`, or you can start a new indented
-		block.
+
+	<h3>calling function values</h3>
+
+	<p>
+		The function value is called like <code>f[xs[0], xs[1]]</code>.
+		<br />
+		<code>f[a, b]</code> is shorthand for <code>f subscript a, b</code>,
+		so the sholw expression is <code>f subscript (xs subscript 0), (xs subscript 1)</code>.
+		<br />
+		(<code class="fun">subscript</code> is overloaded for both arrays and function values.)
 	</p>
-	<p><code>fun str(nat)</code> is the type of a function value returning a
-		<code class="struct-ref">str</code> given a <code class="struct-ref">nat</code>.
-	</p>
-	<p><code>f[3]</code> is syntax for calling the function value.
-		It's identical to <code>f subscript 3</code>;
-		<code>subscript</code> is an auto-imported function that calls function values.
-	</p>
-	<h4>closures</h4>
-	<p>The inner function may access variables from the outer function;
-		the variable is stored along with the function value.
+</section>
+
+<section>
+	<h2>closures</h2>
+
+	<p>
+		Unlike a top-level function, a function value can refer to run-time data.
 		<br />
 		This is called a <em>closure</em>.
 	</p>
-	<crow-runnable src="closure"></crow-runnable>
-	<p>In this example, the <code class="param-def">type</code> variable becomes part of the closure
-		returned by <code class="fun-def">make-cooker</code>.
 
-		The closure of a <code class="struct-ref">fun</code> must be <code class="spec-ref">data</code>.
+	<crow-runnable src="fun-closure"></crow-runnable>
 
-		This almost makes them pure functions, although performing I/O is still allowed.
+	<p>
+		In this example, the <code class="param">type</code> variable becomes part of the closure
+		returned by <code class="fun">make-cooker</code>.
 	</p>
 </section>
+
 <section>
-	<h3>act</h3>
-	<p>An <code class="struct-ref">act</code> is like a <code class="struct-ref">fun</code>,
-		except the closure may include mutable values.
-		That's the only difference — the syntax to create and use them is identical.
-	</p>
-	<p>A <code class="struct-ref">fun</code> can be run in a parallel task,
-		but an <code class="struct-ref">act</code> always runs in the context that created it.
-		No two <code class="struct-ref">act</code>s closing over the same mutable value can run at the same
-		time.
-	</p>
-	<p>Most common functions that take a function value and immediately call it take an
-		<code class="struct-ref">act</code> to give the caller more flexibility.
+	<h2>act</h2>
 
-		One example is <code class="fun-ref">map</code> from <code
-			class="import">collection.arr-util</code>;
-		this produces an output array from an input array by applying a function to each element.
+	<p>
+		Most types in crow are immutable, such as <code class="struct">nat</code>,
+		<code class="struct">str</code>, or even <code class="struct">nat[]</code>.
+		<br />
+		Exceptions include <code class="struct">cell</code>, <code class="struct">nat mut[]</code>,
+		or a record with a <code class="keyword">mut</code> field.
 	</p>
+	<p>
+		The closure of a <code class="struct">fun</code> can't be mutable.
+		<br />
+		For that, there is <code class="struct">act</code>,
+		which works the same way as <code class="struct">fun</code>,
+		but can have a mutable closure.
+		<br />
+	</p>
+
+	<p>
+		Most functions that take a function value take an <code class="struct">act</code>
+		to give the caller more flexibility.
+	</p>
+
 	<crow-runnable src="act"></crow-runnable>
+
+	<p>
+		In the next section we'll see why the difference between
+		<code class="keyword">fun</code> and <code class="keyword">act</code> matters.
+	</p>
 </section>
-<a id="next" href="fut.html">Next: Futures and the runtime</a>

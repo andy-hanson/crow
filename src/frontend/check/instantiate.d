@@ -23,6 +23,7 @@ import model.model :
 	Sig,
 	SpecBody,
 	SpecDeclAndArgs,
+	SpecDeclSig,
 	SpecInst,
 	StructBody,
 	StructDeclAndArgs,
@@ -288,13 +289,13 @@ immutable(Ptr!SpecInst) instantiateSpec(
 			declAndArgs.decl.deref().body_,
 			(immutable SpecBody.Builtin b) =>
 				immutable SpecBody(SpecBody.Builtin(b.kind)),
-			(immutable Sig[] sigs) =>
-				immutable SpecBody(map!Sig(alloc, sigs, (ref immutable Sig sig) =>
-					instantiateSig(
+			(immutable SpecDeclSig[] sigs) =>
+				immutable SpecBody(map!SpecDeclSig(alloc, sigs, (ref immutable SpecDeclSig sig) =>
+					immutable SpecDeclSig(sig.docComment, instantiateSig(
 						alloc,
 						programState,
-						sig,
-						immutable TypeParamsAndArgs(declAndArgs.decl.deref().typeParams, declAndArgs.typeArgs))))))));
+						sig.sig,
+						immutable TypeParamsAndArgs(declAndArgs.decl.deref().typeParams, declAndArgs.typeArgs)))))))));
 }
 
 immutable(Ptr!SpecInst) instantiateSpecInst(

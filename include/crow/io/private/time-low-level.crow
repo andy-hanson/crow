@@ -1,0 +1,31 @@
+no-std
+import
+	time: clock_gettime, CLOCK_MONOTONIC, new, timespec, tv_nsec, tv_sec
+	../../cell: *, cell, new
+	../../ptr: by-val, ref-of-val
+	../../private/bootstrap: nat64, todo
+	../../private/number-low-level:
+		==, unsafe-div, unsafe-mod, unsafe-to-int64, unsafe-to-nat64, wrap-add, wrap-mul
+
+# Monotime in nanoseconds.
+timestamp alias
+	nat64
+
+###
+Get the value from a monotonic clock.
+WARN: THis should be 'summon', but I didn't mark it that way so 'perf' can use it.
+###
+get-monotime-nsec timestamp() noctx trusted
+	time-cell by-val cell timespec = (0, 0),
+	err = CLOCK_MONOTONIC clock_gettime time-cell.ref-of-val
+	if err == 0
+		time = *time-cell.ref-of-val
+		time.tv_sec wrap-mul 1000000000 wrap-add time.tv_nsec unsafe-to-nat64
+	else
+		todo
+
+to-timespec timespec(a timestamp) noctx unsafe
+	second = 1000000000
+	seconds = a unsafe-div second unsafe-to-int64
+	ns = a unsafe-mod second unsafe-to-int64
+	seconds, ns

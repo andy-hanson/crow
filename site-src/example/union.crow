@@ -1,37 +1,38 @@
 import
 	crow/io/print: print
-	crow/math/vec
+	crow/str-util: try-remove-start
 
 main fut nat(_ str[]) summon
-	c = ((1, 1), 1) h-circle
-	print: (1.7, 1.7) in c to-str
-	print: (1.7, 1.8) in c to-str
-	r = (1, 2, 3, 4) h-rect
-	print: (1.1, 3) in r to-str
-	print: (1.1, 2.9) in r to-str
-	print: (0, 0) in empty to-str
+	print: "crow" describe
+	print: "dr. mario" describe
+	print: "soap" describe
 	()
 
-in bool(v vec-2, h hitbox)
-	match h
-	as h-circle c
-		(v - c.center).length-squared <= c.radius ** 2
-	as h-rect r
-		r.left <= v.x && v.x <= r.right && r.bottom <= v.y && v.y <= r.top
-	as empty
-		false
+entity union
+	bird bird
+	doctor str
+	unknown
 
-hitbox union
-	h-circle circle
-	h-rect rect
-	empty
+bird enum
+	crow
+	seagull
 
-circle record
-	center vec-2
-	radius float
+describe str(a str)
+	"{a}: {a.parse greet}"
 
-rect record
-	left float
-	right float
-	bottom float
-	top float
+parse entity(a str)
+	if d ?= a try-remove-start "dr. "
+		d doctor
+	elif b ?= a.to-enum :: bird?
+		b bird
+	else
+		unknown
+
+greet str(a entity)
+	match a
+	as bird b
+		"hello, you {b enum-to-str}"
+	as doctor d
+		"greetings, doctor {d}"
+	as unknown
+		"don't know what to do with this"

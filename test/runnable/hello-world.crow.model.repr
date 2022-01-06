@@ -1,9 +1,11 @@
 module(
-	path: 76
-	imports: [import(none, 59, none), import(some(range(8, 28)), 46, some([print]))]
+	path: 59
+	imports: [import(none, 56, none), import(some(range(8, 28)), 44, some([print]))]
 	funs: [
 		fun(
 			visibility: public
 			summon: true
-			sig: sig(file-pos(76, 30), main, fut(nat64()), [param(file-range(76, range(43, 50)), none, arr(str()))])
-			body: seq(call(fun-inst(name: print), [string-lit("Hello, world!")]), call(fun-inst(name: new), [])))])
+			sig: sig(file-pos(59, 30), main, fut(nat64()), [param(file-range(59, range(43, 50)), none, arr(str()))])
+			body: seq(
+				call(fun-inst(name: print), [string-lit("Hello, world!")])
+				call(fun-inst(name: new, type-args: [nat64()], spec-impls: [fun-inst(name: new)]), [])))])

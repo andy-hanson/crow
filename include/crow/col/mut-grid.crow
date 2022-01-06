@@ -20,61 +20,99 @@ import
 
 ###
 Mutable grid (matrix) type.
-Not really intended for linear algebra.
-Rows are stored contiguously.
+This is intended for data that happens to fall in a grid; it may not be ideal for linear algebra.
+
+This is row-major, meaning rows are stored contiguously.
+So, iteration functions typically start with the top row left-to-right,
+then the second row left-to-right, etc.
+
+Grid elements are mutable, but changing the width or height is not supported.
 ###
 mut-grid<a> record mut
 	.elements fix-arr a
 	width nat64
 	height nat64
 
-# TODO: OWN FILE?
+###
+Coordinate in a grid.
+
+`x` is the column index. The leftmost column is 0; the rightmost column is `width - 1`.
+`y` is the row index. The top row is 0; the bottom row is `height - 1`.
+###
 coord record
 	x nat64
 	y nat64
 
-has-coord<a> bool(a mut-grid a, coord coord)
-	coord.x < a.width && coord.y < a.height
-
-to-str str(a coord)
-	"<{a.x}, {a.y}>"
-
+# Same as `0, 0`.
 new coord()
 	0, 0
 
+== bool(a coord, b coord)
+	a.x == b.x && a.y == b.y
+
+# `"<x, y>"`
+to-str str(a coord)
+	"<{a.x}, {a.y}>"
+
+# `true` if `coord` is a valid coordinate (within the width and height of the grid).
+has-coord<a> bool(a mut-grid a, coord coord)
+	coord.x < a.width && coord.y < a.height
+
+###
+Returns the entire row `y`.
+This is O(1).
+Throws if `y` is out of range.
+###
 row<a> fix-arr a(a mut-grid a, y nat64)
 	assert: y < a.height
 	begin = y wrap-mul a.width
 	a.elements[begin .. (begin wrap-add a.width)]
 
+# New empty grid with width and height 0.
 new<a> mut-grid a()
 	(), 0, 0
 
+# Number of elements in the grid (width * height).
 size<a> nat64(a mut-grid a)
 	a.elements size
 
+# Creates a new grid with the given width and height, setting every element to `value`.
 fill-mut-grid<a> mut-grid a(width nat64, height nat64, value a)
 	width make-mut-grid height, (ignore, ignore2) => value
 
+# Creates a new grid with the given width and height, setting every element to `f[x, y]`.
 make-mut-grid<a> mut-grid a(width nat64, height nat64, f act a(nat64, nat64)) trusted
 	res mut-grid a = (width * height).uninitialized-fix-arr, width, height
 	res set-map-with-coords (ignore, coord) => f[coord.x, coord.y]
 	res
 
+# Copy elements to a new grid.
 copy<a> mut-grid a(a mut-grid a)
 	a.elements.copy, a.width, a.height
 
+###
+Gets the element in the `x`th column and `y`th row.
+
+Throws if either `x` or `y` is out of bounds.
+###
 subscript<a> a(a mut-grid a, x nat64, y nat64)
 	index = a index-for x, y
 	a.elements[index]
 
+# Same as the other `subscript`, but takes a `coord`.
 subscript<a> a(a mut-grid a, coord coord)
 	a[coord.x, coord.y]
 
+###
+Sets the element in the `x`th column and `y`th row.
+
+Throws if either `x` or `y` is out of bounds.
+###
 set-subscript<a> void(a mut-grid a, x nat64, y nat64, value a)
 	index = a index-for x, y
 	a.elements[index] := value
 
+# Same as the other `set-subscript`, but takes a `coord`.
 set-subscript<a> void(a mut-grid a, coord coord, value a)
 	a[coord.x, coord.y] := value
 
@@ -86,7 +124,10 @@ set-subscript<a> void(a mut-grid a, coord coord, value a)
 	res
 
 ###
-Represented with row 0 coming first.
+Returns a string with one line for each row.
+Each row will have a space in between columns.
+
+This makes no attempt to add padding to ensure columns line up. (TODO?)
 ###
 to-str<a> str(a mut-grid a) write<a>
 	res writer = ()

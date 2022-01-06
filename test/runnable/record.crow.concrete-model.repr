@@ -74,7 +74,7 @@ program(
 			name: arr
 			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
 		struct(name: backtrace, body: record([field(return-stack, const, type(false, arr))]))
-		struct(name: sym, body: record([field(to-c-str, const, type(false, const-ptr))]))
+		struct(name: sym, body: record([field(sym-to-c-str, const, type(false, const-ptr))]))
 		struct(
 			name: arr
 			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
@@ -210,9 +210,10 @@ program(
 					field(cond-attr, const, type(false, pthread_condattr_t))
 					field(cond, const, type(false, pthread_cond_t))
 					field(sequence, mutable, type(false, nat64))]))
-		struct(name: pthread_mutexattr_t, ptr: true, body: record([field(sizer, const, type(false, nat32))]))
+		struct(name: pthread_mutexattr_t, ptr: true, body: record([field(sizer, const, type(false, bytes4))]))
+		struct(name: bytes4, body: record([field(n0, const, type(false, nat32))]))
 		struct(name: nat32, body: builtin(nat-32, []))
-		struct(name: pthread_condattr_t, ptr: true, body: record([field(sizer, const, type(false, nat32))]))
+		struct(name: pthread_condattr_t, ptr: true, body: record([field(sizer, const, type(false, bytes4))]))
 		struct(name: pthread_cond_t, ptr: true, body: record([field(sizer, const, type(false, bytes48))]))
 		struct(
 			name: bytes48
@@ -222,15 +223,12 @@ program(
 			body: record([field(n0, const, type(false, bytes16)), field(n1, const, type(false, bytes16))]))
 		struct(
 			name: bytes16
-			body: record([field(n0, const, type(false, nat64)), field(n1, const, type(false, nat64))]))
+			body: record([field(n0, const, type(false, bytes8)), field(n1, const, type(false, bytes8))]))
+		struct(name: bytes8, body: record([field(n0, const, type(false, nat64))]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(true, island)]))
 		struct(
 			name: range
-			body: record(
-				[
-					field(ignore, const, type(false, void))
-					field(low, const, type(false, nat64))
-					field(high, const, type(false, nat64))]))
+			body: record([field(low, const, type(false, nat64)), field(high, const, type(false, nat64))]))
 		struct(name: int64, body: builtin(int-64, []))
 		struct(name: writer, body: record([field(chars, const, type(true, mut-arr))]))
 		struct(
@@ -299,14 +297,14 @@ program(
 			body: record(
 				[field(measure-names, mutable, type(false, arr)), field(measure-values, mutable, type(false, fix-arr))]))
 		struct(
-			name: measure-value
-			body: record([field(count, const, type(false, nat64)), field(total-ns, const, type(false, nat64))]))
+			name: perf-measure-value
+			body: record([field(count, const, type(false, nat64)), field(total-nsec, const, type(false, nat64))]))
 		struct(name: fix-arr, body: record([field(inner, const, type(false, arr))]))
 		struct(
 			name: arr
 			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
-		struct(name: const-ptr, body: builtin(ptr-const, [type(false, measure-value)]))
-		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, measure-value)]))
+		struct(name: const-ptr, body: builtin(ptr-const, [type(false, perf-measure-value)]))
+		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, perf-measure-value)]))
 		struct(
 			name: arr
 			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
@@ -350,7 +348,7 @@ program(
 		struct(
 			name: lambda(then, 0)
 			ptr: true
-			body: record([field(cb, const, type(false, fun-ref1)), field(res, const, type(true, fut))]))
+			body: record([field(f, const, type(false, fun-ref1)), field(res, const, type(true, fut))]))
 		struct(
 			name: lambda(callback, 0)
 			ptr: true
@@ -379,7 +377,7 @@ program(
 					field(p0, const, type(false, void))
 					field(res, const, type(true, fut))]))
 		struct(name: lambda(lambda(subscript, 0), 1), body: record([field(res, const, type(true, fut))]))
-		struct(name: lambda(then-void, 0), ptr: true, body: record([field(cb, const, type(false, fun-ref0))]))
+		struct(name: lambda(then-void, 0), ptr: true, body: record([field(f, const, type(false, fun-ref0))]))
 		struct(
 			name: lambda(subscript, 0)
 			ptr: true
@@ -406,7 +404,11 @@ program(
 			ptr: true
 			body: record([field(thread-id, const, type(false, nat64)), field(gctx, const, type(true, global-ctx))]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, thread-args)]))
-		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, mutable, type(false, nat64))]))
+		struct(
+			name: cell
+			mut: true
+			ptr: true
+			body: record([field(ignore, const, type(false, void)), field(inner-value, mutable, type(false, nat64))]))
 		struct(name: fun-ptr1, body: builtin(fun-ptr, [type(false, mut-ptr), type(false, mut-ptr)]))
 		struct(
 			name: choose-task-result
@@ -425,7 +427,11 @@ program(
 		struct(
 			name: timespec
 			body: record([field(tv_sec, const, type(false, int64)), field(tv_nsec, const, type(false, int64))]))
-		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, mutable, type(false, timespec))]))
+		struct(
+			name: cell
+			mut: true
+			ptr: true
+			body: record([field(ignore, const, type(false, void)), field(inner-value, mutable, type(false, timespec))]))
 		struct(
 			name: choose-task-in-island-result
 			body: union([some(type(false, task)), none, some(type(false, no-task))]))
@@ -434,7 +440,11 @@ program(
 			body: record([field(any-tasks, const, type(false, bool)), field(first-task-time, const, type(false, opt))]))
 		struct(name: pop-task-result, body: union([some(type(false, task)), some(type(false, no-task))]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, timespec)]))
-		struct(name: cell, mut: true, ptr: true, body: record([field(inner-value, mutable, type(false, mut-ptr))]))
+		struct(
+			name: cell
+			mut: true
+			ptr: true
+			body: record([field(ignore, const, type(false, void)), field(inner-value, mutable, type(false, mut-ptr))]))
 		struct(
 			name: my-record
 			body: record([field(x, const, type(false, nat64)), field(y, const, type(false, nat64))]))]
@@ -1192,8 +1202,8 @@ program(
 			none
 			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
 			new-record)
-		fun(noctx, high, type(false, nat64), none, [param(a, type(false, range))], field-get(2))
-		fun(noctx, low, type(false, nat64), none, [param(a, type(false, range))], field-get(1))
+		fun(noctx, high, type(false, nat64), none, [param(a, type(false, range))], field-get(1))
+		fun(noctx, low, type(false, nat64), none, [param(a, type(false, range))], field-get(0))
 		fun(
 			noctx
 			+
@@ -1216,14 +1226,14 @@ program(
 			[param(low, type(false, nat64)), param(high, type(false, nat64))]
 			cond(
 				call(<, [param-ref(low), param-ref(high)])
-				call(new, [call(new, []), param-ref(low), param-ref(high)])
-				call(new, [call(new, []), param-ref(high), param-ref(high)])))
+				call(new, [param-ref(low), param-ref(high)])
+				call(new, [param-ref(high), param-ref(high)])))
 		fun(
 			noctx
 			new
 			type(false, range)
 			none
-			[param(ignore, type(false, void)), param(low, type(false, nat64)), param(high, type(false, nat64))]
+			[param(low, type(false, nat64)), param(high, type(false, nat64))]
 			new-record)
 		fun(
 			noctx
@@ -1996,7 +2006,7 @@ program(
 			[param(a, type(false, int32))]
 			call(unsafe-to-nat64, [call(to-int64, [param-ref(a)])]))
 		fun(noctx, unsafe-to-nat64, type(false, nat64), none, [param(a, type(false, int64))], builtin([]))
-		fun(noctx, to-int64, type(false, int64), none, [param(i, type(false, int32))], builtin([]))
+		fun(noctx, to-int64, type(false, int64), none, [param(a, type(false, int32))], builtin([]))
 		fun(
 			noctx
 			backtrace
@@ -2886,7 +2896,14 @@ program(
 		fun(noctx, none, type(false, opt), none, [], new-union)
 		fun(noctx, hard-unreachable, type(false, const-ptr), none, [], seq(call(abort, []), call(zeroed, [])))
 		fun(noctx, zeroed, type(false, const-ptr), none, [], builtin([type(false, const-ptr)]))
-		fun(noctx, to-c-str, type(false, const-ptr), none, [param(a, type(false, sym))], field-get(0))
+		fun(
+			noctx
+			to-c-str
+			type(false, const-ptr)
+			none
+			[param(a, type(false, sym))]
+			call(sym-to-c-str, [param-ref(a)]))
+		fun(noctx, sym-to-c-str, type(false, const-ptr), none, [param(a, type(false, sym))], field-get(0))
 		fun(
 			ctx
 			lambda(to-str, 0)
@@ -3384,8 +3401,8 @@ program(
 			type(false, const-ptr)
 			none
 			[param(a, type(false, mut-ptr))]
-			builtin([type(false, measure-value)]))
-		fun(noctx, null, type(false, mut-ptr), none, [], builtin([type(false, measure-value)]))
+			builtin([type(false, perf-measure-value)]))
+		fun(noctx, null, type(false, mut-ptr), none, [], builtin([type(false, perf-measure-value)]))
 		fun(noctx, new, type(false, fix-arr), none, [param(inner, type(false, arr))], new-record)
 		fun(
 			noctx
@@ -3600,21 +3617,21 @@ program(
 			then-void
 			type(true, fut)
 			none
-			[param(a, type(true, fut)), param(cb, type(false, fun-ref0))]
+			[param(a, type(true, fut)), param(f, type(false, fun-ref0))]
 			call(
 				then
-				[param-ref(a), record([call(cur-island-and-exclusion, []), lambda(0, alloc(record([param-ref(cb)])))])]))
+				[param-ref(a), record([call(cur-island-and-exclusion, []), lambda(0, alloc(record([param-ref(f)])))])]))
 		fun(
 			ctx
 			then
 			type(true, fut)
 			none
-			[param(a, type(true, fut)), param(cb, type(false, fun-ref1))]
+			[param(a, type(true, fut)), param(f, type(false, fun-ref1))]
 			let(
 				res
 				call(unresolved, [])
 				seq(
-					call(callback, [param-ref(a), lambda(0, alloc(record([param-ref(cb), local-ref(res)])))])
+					call(callback, [param-ref(a), lambda(0, alloc(record([param-ref(f), local-ref(res)])))])
 					local-ref(res))))
 		fun(
 			ctx
@@ -4274,14 +4291,16 @@ program(
 			none
 			[param(n0, type(false, bytes16)), param(n1, type(false, bytes16))]
 			new-record)
-		fun(noctx, new, type(false, bytes16), none, [], call(new, [0, 0]))
+		fun(noctx, new, type(false, bytes16), none, [], call(new, [call(new, []), call(new, [])]))
 		fun(
 			noctx
 			new
 			type(false, bytes16)
 			none
-			[param(n0, type(false, nat64)), param(n1, type(false, nat64))]
+			[param(n0, type(false, bytes8)), param(n1, type(false, bytes8))]
 			new-record)
+		fun(noctx, new, type(false, bytes8), none, [], call(new, [call(new, [])]))
+		fun(noctx, new, type(false, bytes8), none, [param(n0, type(false, nat64))], new-record)
 		fun(noctx, new, type(false, int32), none, [], 0)
 		fun(noctx, new, type(false, bytes128), none, [], call(new, [call(new, []), call(new, [])]))
 		fun(
@@ -4396,7 +4415,7 @@ program(
 						call(
 							forward-to
 							[
-								call(subscript, [get-field(param-ref("<<closure>>"), cb), local-ref(o)])
+								call(subscript, [get-field(param-ref("<<closure>>"), f), local-ref(o)])
 								get-field(param-ref("<<closure>>"), res)]))
 					case(some(e), call(reject, [get-field(param-ref("<<closure>>"), res), local-ref(e)]))]))
 		fun(
@@ -4476,7 +4495,7 @@ program(
 			type(true, fut)
 			some(param("<<closure>>", type(true, lambda(then-void, 0))))
 			[param(ignore, type(false, void))]
-			call(subscript, [get-field(param-ref("<<closure>>"), cb)]))
+			call(subscript, [get-field(param-ref("<<closure>>"), f)]))
 		fun(
 			ctx
 			cur-island-and-exclusion
@@ -5273,7 +5292,20 @@ program(
 											call(wrap-mul, [call(tv_sec, [local-ref(time)]), 1000000000])
 											call(tv_nsec, [local-ref(time)])])]))
 						call(todo, [])))))
-		fun(noctx, new, type(false, cell), none, [param(inner-value, type(false, timespec))], new-record)
+		fun(
+			noctx
+			new
+			type(false, cell)
+			none
+			[param(a, type(false, timespec))]
+			call(new, [call(new, []), param-ref(a)]))
+		fun(
+			noctx
+			new
+			type(false, cell)
+			none
+			[param(ignore, type(false, void)), param(inner-value, type(false, timespec))]
+			new-record)
 		fun(
 			noctx
 			new
@@ -5290,7 +5322,7 @@ program(
 			extern)
 		fun(noctx, ref-of-val, type(true, cell), none, [param(a, type(false, cell))], builtin([type(true, cell)]))
 		fun(noctx, *, type(false, timespec), none, [param(a, type(true, cell))], call(inner-value, [param-ref(a)]))
-		fun(noctx, inner-value, type(false, timespec), none, [param(a, type(true, cell))], field-get(0))
+		fun(noctx, inner-value, type(false, timespec), none, [param(a, type(true, cell))], field-get(1))
 		fun(
 			noctx
 			wrap-add
@@ -6135,7 +6167,20 @@ program(
 						call(
 							hard-assert
 							[call(==, [call(*, [call(ref-of-val, [local-ref(thread-return)])]), call(null, [])])])))))
-		fun(noctx, new, type(false, cell), none, [param(inner-value, type(false, mut-ptr))], new-record)
+		fun(
+			noctx
+			new
+			type(false, cell)
+			none
+			[param(a, type(false, mut-ptr))]
+			call(new, [call(new, []), param-ref(a)]))
+		fun(
+			noctx
+			new
+			type(false, cell)
+			none
+			[param(ignore, type(false, void)), param(inner-value, type(false, mut-ptr))]
+			new-record)
 		fun(
 			noctx
 			pthread_join
@@ -6147,7 +6192,7 @@ program(
 		fun(noctx, EINVAL, type(false, int32), none, [], 22)
 		fun(noctx, ESRCH, type(false, int32), none, [], 3)
 		fun(noctx, *, type(false, mut-ptr), none, [param(a, type(true, cell))], call(inner-value, [param-ref(a)]))
-		fun(noctx, inner-value, type(false, mut-ptr), none, [param(a, type(true, cell))], field-get(0))
+		fun(noctx, inner-value, type(false, mut-ptr), none, [param(a, type(true, cell))], field-get(1))
 		fun(
 			noctx
 			unmanaged-free
@@ -6267,7 +6312,7 @@ program(
 					~
 					[
 						call(to-base, [call(/, [param-ref(a), param-ref(base)]), param-ref(base)])
-						call(digit-to-str, [call(mod, [param-ref(a), param-ref(base)])])])))
+						call(digit-to-str, [call(%, [param-ref(a), param-ref(base)])])])))
 		fun(
 			ctx
 			digit-to-str
@@ -6325,12 +6370,12 @@ program(
 																			record([arr(0, 26)]))))))))))))))))))
 		fun(
 			ctx
-			mod
+			%
 			type(false, nat64)
 			none
 			[param(a, type(false, nat64)), param(b, type(false, nat64))]
 			seq(call(forbid, [call(==, [param-ref(b), 0])]), call(unsafe-mod, [param-ref(a), param-ref(b)])))
-		fun(ctx, new, type(true, fut), none, [], call(new, [0]))
+		fun(ctx, new, type(true, fut), none, [], call(new, [call(new, [])]))
 		fun(
 			ctx
 			new

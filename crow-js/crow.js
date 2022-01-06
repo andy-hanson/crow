@@ -40,24 +40,19 @@ if (typeof global !== "undefined")
 /**
 @typedef {
 	| "by-val-ref"
-	| "field-def"
-	| "field-ref"
-	| "fun-def"
-	| "fun-ref"
+	| "fun"
 	| "identifier"
 	| "import"
 	| "keyword"
 	| "lit-num"
 	| "lit-str"
-	| "local-def"
-	| "param-def"
+	| "local"
+	| "member"
+	| "param"
 	| "purity"
-	| "spec-def"
-	| "spec-ref"
-	| "struct-def"
-	| "struct-ref"
-	| "tparam-def"
-	| "tparam-ref"
+	| "spec"
+	| "struct"
+	| "type-param"
 } TokenKind
 */
 compiler.TokenKind = {}

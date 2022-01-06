@@ -25,7 +25,10 @@ import interpret.applyFn :
 	fnLessInt16,
 	fnLessInt32,
 	fnLessInt64,
-	fnLessNat,
+	fnLessNat8,
+	fnLessNat16,
+	fnLessNat32,
+	fnLessNat64,
 	fnMulFloat64,
 	fnSubFloat64,
 	fnTruncateToInt64FromFloat64,
@@ -1196,11 +1199,17 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.lessBool:
 		case LowExprKind.SpecialBinary.Kind.lessChar:
 		case LowExprKind.SpecialBinary.Kind.lessNat8:
+			fn!fnLessNat8();
+			break;
 		case LowExprKind.SpecialBinary.Kind.lessNat16:
+			fn!fnLessNat16();
+			break;
 		case LowExprKind.SpecialBinary.Kind.lessNat32:
+			fn!fnLessNat32();
+			break;
 		case LowExprKind.SpecialBinary.Kind.lessNat64:
 		case LowExprKind.SpecialBinary.Kind.lessPtr:
-			fn!fnLessNat();
+			fn!fnLessNat64();
 			break;
 		case LowExprKind.SpecialBinary.Kind.lessFloat32:
 			fn!fnLessFloat32();

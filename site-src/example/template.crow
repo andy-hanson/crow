@@ -2,35 +2,31 @@ import
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	nats node nat = 1, (2, (3, none).some).some
-	floats node float = 1.1, (2.2, none).some
+	nats list nat = 1 ~ (2 ~ ())
+	floats list float = 0.5 ~ ()
 	print: "nats size: {nats size}"
-	print: "nats sum: {nats sum}"
 	print: "floats size: {floats size}"
-	print: "floats sum: {floats sum}"
 	0,
 
+list<a> record
+	head node<a>?
+
 node<a> record
-	head a
-	tail node<a>?
+	value a
+	next list a
 
-size<a> nat(a node a)
-	1 size a.tail
+new<a> list a()
+	(),
 
-size<a> nat(acc nat, a node<a>?)
-	if node ?= a
-		acc + 1 size node.tail
-	else
-		acc
+~<a> list a(head a, tail list a)
+	((head, tail),),
 
-plus<a> spec
-	+ a(a a, b a)
+size<a> nat(a list a)
+	0 fold a, (acc, x) =>
+		acc + 1
 
-sum<a> a(a node a) plus<a>
-	a.head sum a.tail
-
-sum<a> a(acc a, a node<a>?) plus<a>
-	if node ?= a
-		acc + node.head sum node.tail
+fold<a, b> a(acc a, list list b, f act a(a, b))
+	if node ?= list head
+		f[acc, node.value] fold node.next, f
 	else
 		acc

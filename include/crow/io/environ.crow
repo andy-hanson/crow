@@ -13,11 +13,11 @@ import
 	../str-util: find-char-in-cstr, find-cstr-end, to-c-str
 	../tuple: from, new, pair, to
 
-# Represents all environment variables.
+# Represents the environment variables available to this process.
 environ alias
 	str[str]
 
-# Get the environment variables for this process.
+# Get all environment variables for this process.
 get-environ environ() summon trusted
 	res str mut[str] = ()
 	__environ get-environ-recur res

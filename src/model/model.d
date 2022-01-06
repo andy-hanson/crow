@@ -360,6 +360,11 @@ immutable(Arity) arity(ref immutable Params a) {
 	)(a);
 }
 
+struct SpecDeclSig {
+	immutable SafeCStr docComment;
+	immutable Sig sig;
+}
+
 struct Sig {
 	@safe @nogc pure nothrow:
 
@@ -691,18 +696,18 @@ struct SpecBody {
 	immutable Kind kind;
 	union {
 		immutable Builtin builtin;
-		immutable Sig[] sigs;
+		immutable SpecDeclSig[] sigs;
 	}
 
 	public:
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-	@trusted immutable this(immutable Sig[] a) { kind = Kind.sigs; sigs = a; }
+	@trusted immutable this(immutable SpecDeclSig[] a) { kind = Kind.sigs; sigs = a; }
 }
 
 @trusted immutable(T) matchSpecBody(T)(
 	ref immutable SpecBody a,
 	scope immutable(T) delegate(immutable SpecBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
-	scope immutable(T) delegate(immutable Sig[]) @safe @nogc pure nothrow cbSigs,
+	scope immutable(T) delegate(immutable SpecDeclSig[]) @safe @nogc pure nothrow cbSigs,
 ) {
 	final switch (a.kind) {
 		case SpecBody.Kind.builtin:
@@ -716,7 +721,7 @@ immutable(size_t) nSigs(ref immutable SpecBody a) {
 	return matchSpecBody!(immutable size_t)(
 		a,
 		(immutable SpecBody.Builtin) => immutable size_t(0),
-		(immutable Sig[] sigs) => sigs.length);
+		(immutable SpecDeclSig[] sigs) => sigs.length);
 }
 
 struct SpecDecl {
@@ -760,7 +765,7 @@ immutable(Ptr!SpecDecl) decl(ref immutable SpecInst a) {
 	return a.declAndArgs.decl;
 }
 
-ref immutable(Type[]) typeArgs(return scope ref immutable SpecInst a) {
+immutable(Type[]) typeArgs(return scope ref immutable SpecInst a) {
 	return a.declAndArgs.typeArgs;
 }
 
@@ -793,18 +798,18 @@ immutable(Sym) enumFunctionName(immutable EnumFunction a) {
 
 enum FlagsFunction {
 	all,
-	empty,
 	negate,
+	new_,
 }
 
 immutable(Sym) flagsFunctionName(immutable FlagsFunction a) {
 	final switch (a) {
 		case FlagsFunction.all:
 			return shortSym("all");
-		case FlagsFunction.empty:
-			return shortSym("empty");
 		case FlagsFunction.negate:
 			return symForOperator(Operator.tilde);
+		case FlagsFunction.new_:
+			return shortSym("new");
 	}
 }
 
@@ -916,6 +921,7 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 struct FunFlags {
 	@safe @nogc pure nothrow:
 
+	immutable bool noDoc;
 	immutable bool noCtx;
 	immutable bool summon;
 	immutable bool unsafe;
@@ -924,17 +930,17 @@ struct FunFlags {
 	immutable bool preferred;
 	immutable bool okIfUnused;
 
-	//TODO:NOT INSTANCE
 	immutable(FunFlags) withOkIfUnused() immutable {
-		return immutable FunFlags(noCtx, summon, unsafe, trusted, generated, preferred, true);
+		return immutable FunFlags(noDoc, noCtx, summon, unsafe, trusted, generated, preferred, true);
 	}
 
-	static immutable FunFlags none = immutable FunFlags(false, false, false, false, false, false, false);
-	static immutable FunFlags generatedNoCtx = immutable FunFlags(true, false, false, false, true, false, false);
-	static immutable FunFlags generatedPreferred = immutable FunFlags(false, false, false, false, true, true, false);
-	static immutable FunFlags unsafeSummon = immutable FunFlags(false, true, true, false, false, false, false);
+	static immutable FunFlags none = immutable FunFlags(false, false, false, false, false, false, false, false);
+	static immutable FunFlags generatedNoCtx = immutable FunFlags(true, true, false, false, false, true, false, false);
+	static immutable FunFlags generatedPreferred =
+		immutable FunFlags(true, false, false, false, false, true, true, false);
+	static immutable FunFlags unsafeSummon = immutable FunFlags(false, false, true, true, false, false, false, false);
 }
-static assert(FunFlags.sizeof == 7);
+static assert(FunFlags.sizeof == 8);
 
 struct FunDecl {
 	@safe @nogc pure nothrow:
@@ -1006,6 +1012,9 @@ immutable(bool) isExtern(ref immutable FunDecl a) {
 immutable(bool) noCtx(ref const FunDecl a) {
 	return a.flags.noCtx;
 }
+immutable(bool) noDoc(ref immutable FunDecl a) {
+	return a.flags.noDoc;
+}
 immutable(bool) summon(ref immutable FunDecl a) {
 	return a.flags.summon;
 }
@@ -1014,9 +1023,6 @@ immutable(bool) unsafe(ref immutable FunDecl a) {
 }
 immutable(bool) trusted(ref immutable FunDecl a) {
 	return a.flags.trusted;
-}
-immutable(bool) generated(ref immutable FunDecl a) {
-	return a.flags.generated;
 }
 immutable(bool) okIfUnused(ref immutable FunDecl a) {
 	return a.flags.okIfUnused;
@@ -1153,7 +1159,7 @@ immutable(Arity) arity(ref immutable FunInst a) {
 
 struct SpecSig {
 	immutable Ptr!SpecInst specInst;
-	immutable Ptr!Sig sig;
+	immutable Ptr!SpecDeclSig sig;
 	immutable size_t indexOverAllSpecUses; // this is redundant to specInst and sig
 }
 
@@ -1168,7 +1174,7 @@ private void hashSpecSig(ref Hasher hasher, ref immutable SpecSig a) {
 }
 
 immutable(Sym) name(ref immutable SpecSig a) {
-	return a.sig.deref().name;
+	return a.sig.deref().sig.name;
 }
 
 // Like 'Called', but we haven't fully instantiated yet. (This is used for Candidate when checking a call expr.)
@@ -1205,7 +1211,7 @@ struct CalledDecl {
 		case CalledDecl.Kind.funDecl:
 			return a.funDecl.deref().sig;
 		case CalledDecl.Kind.specSig:
-			return a.specSig.sig.deref;
+			return a.specSig.sig.deref().sig;
 	}
 	//TODO: match can't return ref?
 	//return a.match(
@@ -1305,7 +1311,7 @@ private void hashCalled(ref Hasher hasher, ref immutable Called a) {
 		case Called.Kind.funInst:
 			return a.funInst.deref().sig;
 		case Called.Kind.specSig:
-			return a.specSig.sig.deref;
+			return a.specSig.sig.deref().sig;
 	}
 	//TODO: match can't return ref?
 	//return a.match(

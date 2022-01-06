@@ -1,0 +1,30 @@
+import
+	crow/col/arr-util: make-arr, map
+	crow/cell
+	crow/io/print: print
+	crow/str-util: join
+
+main fut nat(_ str[]) summon
+	adder <- 0 make-store
+	tasks = 10 make-arr x =>
+		launch: () =>
+			adder.get-and-set[x + 1]
+	values <- tasks wait-all
+	final-value <- adder.get[]
+	print: "values: {values map (x => x to-str) join ", "}"
+	print: "final value: {final-value}"
+	()
+
+store record sendable
+	get ref nat()
+	get-and-set ref nat(nat)
+
+make-store fut store(initial-value nat)
+	launch: () =>
+		cur cell nat = initial-value,
+		get ref nat() = () => *cur,
+		get-and-set ref nat(nat) = x =>
+			prev-value = *cur
+			*cur := x
+			prev-value,
+		(get, get-and-set),

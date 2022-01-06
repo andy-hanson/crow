@@ -1,11 +1,17 @@
-page-template str(title str, content str)
-	"""
+import
+	crow/str-util: starts-with
+	./path-and-content: new, path-and-content
+
+page-template path-and-content(path str, title str, content str)
+	current = " class=\"current\""
+	full-content = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="utf-8">
 	<title>Crow programming language: {title}</title>
-	<link rel="icon" href="/crow.svg" type="image/x-icon">
+	<link rel="icon" href="https://openclipart.org/download/252189" type="image/x-icon">
+	<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hack-font@3/build/web/hack-subset.css">
 	<link rel="stylesheet" href="/index.css">
 	<script src="/crow-js/crow.js"></script>
 	<script type="module" async src="/script/index.js"></script>
@@ -15,16 +21,22 @@ page-template str(title str, content str)
 		<nav>
 			<div id="crow">
 				<a href="/">
-					<img src="https://openclipart.org/download/28309/drunken-duck-crow-silhouette.svg">
+					<img
+						src="https://openclipart.org/download/252189"
+						alt="crow icon" />
 				</a>
 			</div>
 			<ul class="grow">
-				<li><a href="/download.html">download</a></li>
-				<li><a href="/tutorial">tutorial</a></li>
-				<li><a href="/doc">documentation</a></li>
+				<li><a href="/download.html"{path starts-with "download" ? current}>download</a></li>
+				<li><a href="/tutorial"{path starts-with "tutorial" ? current}>tutorial</a></li>
+				<li><a href="/doc"{path starts-with "doc" ? current}>documentation</a></li>
 			</ul>
 			<ul>
-				<li><a href="https://github.com/andy-hanson/crow">repository</a></li>
+				<li>
+					<a href="https://github.com/andy-hanson/crow">
+						repository<crow-icon icon="external-link" />
+					</a>
+				</li>
 			</ul>
 		</nav>
 	</header>
@@ -32,3 +44,4 @@ page-template str(title str, content str)
 </body>
 </html>
 """
+	path, full-content

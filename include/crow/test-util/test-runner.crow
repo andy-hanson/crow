@@ -8,10 +8,11 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../private/bootstrap: ctx, get-ctx
 
-all-tests fun-ptr1<void, ctx>[]() builtin
-
+# Run every `test` from all source files included in the compilation.
 run-all-tests void() summon trusted
 	tests = all-tests
 	print: "Running {tests size} tests"
 	tests each x => x[get-ctx]
 	print: "done"
+
+.all-tests fun-ptr1<void, ctx>[]() builtin

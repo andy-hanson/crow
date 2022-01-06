@@ -35,13 +35,9 @@ import
 	./posix-util: check-errno, check-posix-error
 	./print: print
 
-# Alias for the exit code of a process.
-exit-code alias
-	int32
-
 # Represents the output of running a process.
 process-result record
-	exit-code exit-code
+	exit-code int32
 	stdout str
 	stderr str
 
@@ -60,16 +56,6 @@ spawn-and-wait-result process-result(exe str, args str[], environ environ) trust
 		exe-c-str spawn-and-wait-result (exe-c-str convert-args args), environ.convert-environ
 	else
 		throw: "{exe} is not a file"
-
-shell-exec str(command str) trusted summon
-	pipe = command.to-c-str popen "r".to-c-str
-	if pipe.as-any-const-ptr == null
-		todo
-	res char mut[] = ()
-	res keep-reading pipe
-	err = pipe pclose
-	assert: err == 0
-	res.move-to-arr str
 
 .keep-reading void(res char mut[], file FILE) unsafe summon
 	read-at-a-time = 0x1000
@@ -90,7 +76,7 @@ shell-exec str(command str) trusted summon
 Launches a process and synchronously waits on the result.
 The child process shares stdout and stderr with the parent process.
 ###
-spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
+spawn-and-wait int32(exe str, args str[], environ environ) trusted summon
 	# TODO: kill, handle that error properly
 	if exe is-file
 		# First argument should be the executable path
@@ -99,6 +85,17 @@ spawn-and-wait exit-code(exe str, args str[], environ environ) trusted summon
 		exe-c-str spawn-and-wait (exe-c-str convert-args args), environ.convert-environ
 	else
 		throw: "{exe} is not a file"
+
+# Executes a shell command and returns its output.
+shell-exec str(command str) trusted summon
+	pipe = command.to-c-str popen "r".to-c-str
+	if pipe.as-any-const-ptr == null
+		todo
+	res char mut[] = ()
+	res keep-reading pipe
+	err = pipe pclose
+	assert: err == 0
+	res.move-to-arr str
 
 .convert-args c-str*(exe-c-str c-str, args str[]) unsafe
 	res c-str mut[] = ()
@@ -213,13 +210,13 @@ body
 # Args should be terminated by null.
 # Each entry in environ looks like "name=value", and final entry is null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
-.spawn-and-wait exit-code(exe c-str, args c-str*, environ c-str*) summon unsafe
+.spawn-and-wait int32(exe c-str, args c-str*, environ c-str*) summon unsafe
 	pid-cell cell pid_t = 0,
 	# TODO: null.as-ref is bad. If it's nullable it shouldn't be a ref.
 	check-posix-error: pid-cell posix_spawn exe, null::any-const-ptr.as-ref, null, args, environ
 	*pid-cell wait-and-get-exit-code
 
-.wait-and-get-exit-code exit-code(pid pid_t) summon unsafe
+.wait-and-get-exit-code int32(pid pid_t) summon unsafe
 	wait-status-cell cell status-t = 0,
 	res-pid = pid waitpid wait-status-cell, 0
 	wait-status = *wait-status-cell

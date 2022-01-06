@@ -59,21 +59,17 @@ immutable(ulong) fnLessFloat32(immutable ulong a, immutable ulong b) {
 immutable(ulong) fnLessFloat64(immutable ulong a, immutable ulong b) {
 	return float64OfBits(a) < float64OfBits(b);
 }
-immutable(ulong) fnLessInt8(immutable ulong a, immutable ulong b) {
-	return (cast(byte) a) < (cast(byte) b);
+private immutable(ulong) fnLessT(T)(immutable ulong a, immutable ulong b) {
+	return (cast(immutable T) a) < (cast(immutable T) b);
 }
-immutable(ulong) fnLessInt16(immutable ulong a, immutable ulong b) {
-	return (cast(short) a) < (cast(short) b);
-}
-immutable(ulong) fnLessInt32(immutable ulong a, immutable ulong b) {
-	return (cast(int) a) < (cast(int) b);
-}
-immutable(ulong) fnLessInt64(immutable ulong a, immutable ulong b) {
-	return (cast(long) a) < (cast(long) b);
-}
-immutable(ulong) fnLessNat(immutable ulong a, immutable ulong b) {
-	return a < b;
-}
+alias fnLessInt8 = fnLessT!(immutable byte);
+alias fnLessInt16 = fnLessT!(immutable short);
+alias fnLessInt32 = fnLessT!(immutable int);
+alias fnLessInt64 = fnLessT!(immutable long);
+alias fnLessNat8 = fnLessT!(immutable ubyte);
+alias fnLessNat16 = fnLessT!(immutable ushort);
+alias fnLessNat32 = fnLessT!(immutable uint);
+alias fnLessNat64 = fnLessT!(immutable ulong);
 immutable(ulong) fnMulFloat64(immutable ulong a, immutable ulong b) {
 	return binaryFloat64s!((immutable double x, immutable double y) => x * y)(a, b);
 }

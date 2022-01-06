@@ -312,7 +312,7 @@ immutable(SafeCStr[]) getAllArgs(
 @trusted immutable(ExitCode) printVersion() {
 	static immutable string date = import("date.txt")[0 .. "2020-02-02".length];
 	static immutable string commitHash = import("commit-hash.txt")[0 .. 8];
-	printf("%.*s %.*s", cast(int) date.length, date.ptr, cast(int) commitHash.length, commitHash.ptr);
+	printf("%.*s (%.*s)", cast(int) date.length, date.ptr, cast(int) commitHash.length, commitHash.ptr);
 	version(Debug) {
 		printf(", debug build");
 	}

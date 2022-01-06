@@ -1,0 +1,161 @@
+<section>
+	<h2>expected types</h2>
+
+	<p>
+		Many expressions in crow can have multiple possible types.
+		<br />
+		For example:
+		<ul class="bullets">
+			<li>
+				<code class="lit-num">7</code> can be a <code class="struct">nat</code>,
+				<code class="struct">int</code>, or <code class="struct">float</code> (and more).
+			</li>
+			<li>
+				<code class="lit-str">"foo"</code> can be a <code class="struct">str</code> or
+				<code class="struct">sym</code>.
+			</li>
+			<li>
+				<code>()</code> calls <code>new</code> with no arguments.
+				This function has many overloads returning different types.
+			</li>
+		</ul>
+	</p>
+
+	<p>
+		In this kind of situation, the expression needs an <em>expected type</em>.
+		<br />
+		Not all expressions require an expected type, so there won't always be one.
+		<br />
+		When there is an expected type, it's a compile error for the expression to have any type but the expected one.
+	</p>
+
+	<p>
+		The following example shows the most common ways an expression would have an expected type.
+	</p>
+
+	<crow-runnable src="type-inference"></crow-runnable>
+
+	<h4>from a return type</h4>
+	<p>
+		<code>infer-from-return-type str()</code> returns a <code class="struct">str</code>,
+		so the function's return expression (the last line of the function) expects a <code class="struct">t</code>.
+	</p>
+
+	<h4>from a local type</h4>
+	<p>
+		<code>x str = ()</code> declares a local <code class="local">x</code> of type <code class="struct">str</code>.
+		So, the right-hand side of the <code class="keyword">=</code> expects a <code class="struct">str</code>.
+	</p>
+
+	<h4>from an explicit type annotation</h4>
+	<p>
+		<code>() :: str</code> is an expression with an explicit type <code class="struct">str</code>.
+		So the left-hand side, <code class="keyword">()</code>, expects a <code class="struct">str</code>.
+	</p>
+
+	<h4>from a function parameter</h4>
+	<p>
+		There is only one function <code class="fun">takes-a-str</code>, and it takes a <code class="struct">str</code>.
+		So, in <code>() takes-a-str</code>, <code class="keyword">()</code> expects a <code class="struct">str</code>.
+	</p>
+
+	<h4>from statement position</h4>
+	<p>
+		Any expression in statement position — which is any expression not on the last line of its indented block —
+		expects a <code class="struct">void</code>.
+	</p>
+
+	<h3>when there is no expected type</h3>
+	<p>
+		The only cases where an expression would have expected type would be if:
+		<ul class="bullets">
+			<li>It is the initializer of a local variable has no declared type.</li>
+			<li>It is an argument to a function call, and different overloads take different argument types.</li>
+		</ul>
+	</p>
+	<p>
+		If an expression needs an expected type, do one of the following:
+		<ul class="bullets">
+			<li>Factor the expression out to a local variable with a declared type like <code>x str = ...</code>.</li>
+			<li>Factor the expression out to a function. The function's return type provides an expected type.</li>
+			<li>Add an inline type annotation like <code>x :: str</code>.</li>
+		</ul>
+	</p>
+</section>
+<section>
+	<h2>expected types in 'if'</h2>
+	<p>
+		The compiler works top-to-bottom, so it compiles the first part of an <code class="keyword">if</code> first.
+		<br />
+		So, even if the <code class="keyword">if</code> as a whole has no expected type,
+		the <code class="keyword">else</code> branch will expect the type of the first branch.
+	</p>
+	<crow-runnable src="type-inference-if"></crow-runnable>
+	<p>
+		This is especially useful since if the <code class="keyword">else</code> is just <code class="keyword">()</code>,
+		the entire <code class="keyword">else</code> branch may be omitted.
+	</p>
+</section>
+<section>
+	<h2>favored types</h2>
+
+	Number and string literals have a preferred type for when there is no expected type.
+
+	<ul class="bullets">
+		<li>A plain number literal like <code class="lit-num">0</code> will be a <code class="struct">nat</code>.</li>
+		<li>
+			A number with a sign like <code class="lit-num">+1</code> or <code class="lit-num">-1</code>
+			will be an <code class="struct">int</code>.
+		</li>
+		<li>
+			A number with a decimal point like <code class="lit-num">1.5</code>
+			will be a <code class="struct">float</code>.
+		</li>
+		<li>
+			String literals like <code class="lit-str">foo</code> will be a <code class="struct">str</code>
+			(instead of a <code class="struct">sym</code>).
+		</li>
+	</ul>
+</section>
+<section>
+	<h2>overload filtering</h2>
+	<crow-runnable src="type-inference-overloading"></crow-runnable>
+
+	<p>
+		If a function has no overloads, it has expected types for all arguments.
+		<br />
+		When a function does have overloads, it can still have expected types for later arguments
+		if earlier arguments allow the compiler to omit some overloads.
+	</p>
+
+	<p>
+		In <code>1 plus one</code>, the left-hand side <code class="lit-num">1</code> has no expected type,
+		but in case of ambiguity, <code class="lit-num">1</code> prefers to be a <code class="struct">nat</code>.
+		<br />
+		Once that <code class="lit-num">1</code> has been compiled, the compiler looks at the possible overloads again.
+		<br />
+		<code>plus str(a str, b str)</code> can now be excluded, since <code class="lit-num">1</code>
+		is not a <code class="struct">str</code>.
+	</p>
+	<p>
+		That leaves only <code>plus nat(a nat, b nat)</code> as a possible function to call.
+		<br />
+		Since overloading is no longer a concern, for the second argument <code>one</code>,
+		there is an expected type of <code class="struct">nat</code>.
+	</p>
+
+	<p>
+		<code>z = one plus 1</code> won't compile because the compiler works left-to-right;
+		it starts by trying to compile <code class="fun">one</code> and fails
+		before it ever sees <code class="lit-num">1</code>.
+	</p>
+
+	<p>
+		<code>z nat = one plus one</code> works due to the declared type <code class="struct">nat</code>.
+		<br />
+		Then when calling <code class="fun">plus</code>, the only possible overload
+		is the one returning a <code class="struct">nat</code>.
+		<br />
+		That way, the overload is resolved before any arguments are checked, so they both get expected types.
+	</p>
+</section>

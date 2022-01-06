@@ -1,3 +1,10 @@
+###
+Functions for getting hash codes.
+
+Hash codes are used internally by dictionary and set types,
+which require a `hash-mix` implementation for the key type.
+###
+
 no-std
 import
 	./bool: bool, to-nat64
@@ -9,19 +16,27 @@ import
 	./sym: sym, to-c-str
 	./private/number-low-level: unsafe-to-nat64, wrap-add
 
+###
+Spec that should be implemented for any type used as a dictionary key.
+
+`hash-mix` on a composite type (such as a record or collection)
+usually just calls `hash-mix` for each value it contains.
+
+`hash-mix` on a union should mix a number or name for the union member,
+then mix its associated value, if any.
+###
+hash-mix<a> spec
+	hash-mix void(hasher hasher, a a)
+
+# Get a hash code for any value.
 hash<a> nat64(a a) trusted hash-mix<a>
 	hasher by-val hasher = 0,
 	hasher.ref-of-val hash-mix a
 	hasher.ref-of-val cur
 
-hash-mix<a> spec
-	hash-mix void(hasher hasher, a a)
-
-hash nat64(a bool)
-	a to-nat64
-
+# Type that stores the state of hashing.
 hasher record mut
-	cur mut nat64
+	.cur mut nat64
 
 hash-mix void(hasher hasher, a nat8)
 	hasher hash-mix a.to-nat64

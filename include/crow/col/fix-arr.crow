@@ -18,60 +18,102 @@ import
 	./arr-util: each, each-with-index, exists, find-index, fold, fold-reverse
 
 ###
-Like `arr` but mutable.
-`fix-arr` is fixed-size, unlike `mut-arr`. It can change elements but can't add or remove them.
+`fix-arr` is a low-level type mostly useful for implementing other collections.
+For normal code, a `mut[]` is preferable.
+
+A `fix-arr` is like a `mut[]`, but while a `mut[]` has capacity for pushing elements, `fix-arr` is fixed-size.
+This has a small performance benefit, since (like an immutable array)
+a `fix-arr` is just a pointer and size which can be stored by value.
+
+You can't change what range of addresses a `fix-arr` points to, though you can write to its elements.
+
+Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `fix-arr`.
+Taking a slice aliases the elements, so writing to the slice writes to the original.
 ###
 fix-arr<a> record mut
 	by-val
 	.inner a[]
 
 # TODO:INTERNAL (or fix-arr-low-level)
-empty-fix-arr<a> fix-arr a() noctx
+empty-fix-arr<a> fix-arr a() no-doc noctx
 	# TODO: should not need type annotation
 	inner a[] = empty-arr
 	inner,
 
 ###
-Copies an `arr` to a `fix-arr`.
-Writing to the result won't affect the original.
+Creates a new `fix-arr` with the given elements.
 ###
 new<a> fix-arr a(...a a[])
 	a to-fix-arr
 
+###
+Copies the array elements to a new `fix-arr`.
+
+This is O(n).
+###
 to-fix-arr<a> fix-arr a(a a[])
 	a.size make-fix-arr i => a[i]
 
 ###
-Copies a `fix-arr` to an `arr`.
-Further writes to the `fix-arr` won't affect the `arr` that was copied from it.
+Copies the elements to an immutable array.
+
+This is O(n).
+
+There is no `move-to-arr` possible for `fix-arr` there might be slices that still refer to its elements.
 ###
-arr<a> a[](a fix-arr a)
+to-arr<a> a[](a fix-arr a)
 	a.copy.inner
 
+# Get a `fix-arr` from a poitner and range of indices.
+subscript<a> fix-arr a(a a mut*, range range nat64) noctx unsafe
+	a.as-const[range],
+
+# Creates a `fix-arr` from a range of pointers.
 fix-arr-from-begin-end<a> fix-arr a(begin a mut*, end a mut*) unsafe noctx
 	hard-assert: begin <= end
 	(begin.as-const arr-from-begin-end end.as-const),
 
 ###
-Copies the elements of a `fix-arr`.
-Writing to the result won't affect the original.
+Gets the element at the index.
+Throws if `index >= a.size`.
 ###
-copy<a> fix-arr a(a fix-arr a)
-	a.size make-fix-arr i => a[i]
+subscript<a> a(a fix-arr a, index nat64) trusted
+	assert: index < a.size
+	a unsafe-at index
 
-copy-to-arr<a> a[](a fix-arr a) trusted
-	a.copy cast-immutable
+# Like `subscript` but does not check the index.
+unsafe-at<a> a(a fix-arr a, index nat64) noctx unsafe
+	a.begin-ptr[index]
 
-copy-from<a> void(dest fix-arr a, source a[]) trusted
-	assert: dest.size == source.size
-	drop: dest.begin-ptr.as-any-mut-ptr memcpy source.begin-ptr.as-any-const-ptr, (dest.size wrap-mul size-of@<a>)
+###
+Slices the fix-arr.
+This is O(1).
 
-copy-from<a> void(dest fix-arr a, source fix-arr a) trusted
-	dest copy-from source.cast-immutable
+Slices alias the original: Writes to the slice will affect the original.
+(If you don't want that, slice then use `copy`.)
 
+Throws if the slice would be out of bounds.
+###
+subscript<a> fix-arr a(a fix-arr a, range range nat64)
+	a.inner[range],
+
+###
+Write to a single element.
+Throws if `index >= a.size`.
+###
+set-subscript<a> void(a fix-arr a, index nat64, value a) trusted
+	assert: index < a.size
+	a unsafe-set-at index, value
+
+# Like `set-subscript` but does not check the index.
+unsafe-set-at<a> void(a fix-arr a, index nat64, value a) noctx unsafe
+	a.begin-ptr[index] := value
+
+# `true` iff `a.size == 0`.
 is-empty<a> bool(a fix-arr a) noctx
 	a.size == 0
 
+# Number of elements.
 size<a> nat64(a fix-arr a) noctx
 	a.inner size
 
@@ -87,40 +129,95 @@ end-ptr<a> a mut*(a fix-arr a) noctx unsafe
 	a.begin-ptr + a.size
 
 ###
-Gets the element at the index.
-Throws if `index >= a.size`.
+Copies the elements to a new `fix-arr`.
+
+This is O(n).
 ###
-subscript<a> a(a fix-arr a, index nat64) trusted
-	assert: index < a.size
-	a unsafe-at index
-
-unsafe-at<a> a(a fix-arr a, index nat64) unsafe
-	a.begin-ptr[index]
-
-subscript<a> fix-arr a(a a mut*, range range nat64) noctx unsafe
-	a.as-const[range],
+copy<a> fix-arr a(a fix-arr a)
+	a.size make-fix-arr i => a[i]
 
 ###
-Slices the fix-arr.
-This is O(1).
-Writes to the slice will affect the original. (If you don't want that, use `copy`.)
-Throws if `range.from > range.to`.
-Throws if the slice would exceed the bounds of the `fix-arr`.
+Copies elements from `source` to `dest`.
+
+Throws if `dest` and `source` are not the same size.
+(Hint: Both `dest` and `source` can be slices of bigger arrays.)
+
+This is O(n).
 ###
-subscript<a> fix-arr a(a fix-arr a, range range nat64)
-	a.inner[range],
+copy-from<a> void(dest fix-arr a, source a[]) trusted
+	assert: dest.size == source.size
+	drop: dest.begin-ptr.as-any-mut-ptr memcpy source.begin-ptr.as-any-const-ptr, (dest.size wrap-mul size-of@<a>)
 
 ###
-Write to a single element.
-Throws if `index >= a.size`.
+Copies elements from `source` to `dest`.
+
+This is O(n).
 ###
-set-subscript<a> void(a fix-arr a, index nat64, value a) trusted
-	assert: index < a.size
-	a unsafe-set-at index, value
+copy-from<a> void(dest fix-arr a, source fix-arr a) trusted
+	dest copy-from source.temp-as-arr
 
-unsafe-set-at<a> void(a fix-arr a, index nat64, value a) unsafe
-	a.begin-ptr[index] := value
+###
+Allocates a `fix-arr` without initializing any of its elements.
 
+Since `fix-arr` is garbage-collected, this will cause problems unless either:
+* You write to all the elements before the current task ends.
+* You don't keep a reference to the `fix-arr` or to any uninitialized slice.
+
+Keep exceptions in mind: Don't store a reference to the result until it's initialized,
+since initialization code might throw an exception.
+
+See `zeroed-fix-arr` for a safer alternative, or `make-fix-arr` for a fully safe alternative.
+###
+uninitialized-fix-arr<a> fix-arr a(size nat64) unsafe
+	ptr a mut* = size alloc-uninitialized
+	ptr[0 .. size]
+
+###
+This is like `uninitialized-fix-arr` but fills memory with zeroes.
+
+Zeroed memory is GC-safe, since the GC ignores null pointers,
+but is still not safe to expose to readers (who may try to dereference the null pointers).
+
+This is used by collections like `mut[]` that need some excess capacity that will be GC-safe.
+###
+zeroed-fix-arr<a> fix-arr a(size nat64) unsafe
+	res fix-arr a = size uninitialized-fix-arr
+	res set-zero-elements
+	res
+
+###
+Sets every element to `zeroed`. See comment on `zeroed-fix-arr` for why this is useful.
+###
+set-zero-elements<a> void(a fix-arr a) noctx unsafe
+	a.begin-ptr set-zero-range a.size
+
+###
+`fix-arr` where each element is `f[i]`.
+Equivalent to `f[0], f[1], ...`.
+###
+make-fix-arr<a> fix-arr a(size nat64, f act a(nat64)) trusted
+	res fix-arr a = size uninitialized-fix-arr
+	res.begin-ptr fill-ptr-range size, f
+	res
+
+###
+`fix-arr` where every element is `value`.
+Equivalent to `value, value, ...`.
+###
+fill-fix-arr<a> fix-arr a(size nat64, value a)
+	size make-fix-arr ignore => value
+
+# Sets every element to `value`.
+fill<a> void(a fix-arr a, value a)
+	a set-map ignore => value
+
+###
+Unsafe cast a fix-arr to arr.
+Equivalent to `temp-as-arr`, but the implication is that
+the `fix-arr` will never be written to again, so the `arr` can be used forever.
+###
+cast-immutable<a> a[](a fix-arr a) noctx unsafe
+	a inner
 
 first<a> a?(a fix-arr a)
 	unless a is-empty
@@ -138,57 +235,16 @@ rtail<a> fix-arr a(a fix-arr a)
 	forbid: a is-empty
 	a[0 .. (a.size wrap-sub 1)]
 
-# Allocates a `fix-arr` without initializing any of its elements.
-uninitialized-fix-arr<a> fix-arr a(size nat64) unsafe
-	ptr a mut* = size alloc-uninitialized
-	ptr[0 .. size]
-
 ###
-`fix-arr` where each element is `f[i]`.
-Equivalent to `fix-arr: [f[0], f[1], ...]`.
-###
-make-fix-arr<a> fix-arr a(size nat64, f act a(nat64)) trusted
-	res fix-arr a = size uninitialized-fix-arr
-	res.begin-ptr fill-ptr-range size, f
-	res
+Unsafe cast to immutable array.
 
-###
-`fix-arr` where every element is `value`.
-Equivalent to `fix-arr: [value, value, ...]`.
-###
-fill-fix-arr<a> fix-arr a(size nat64, value a)
-	size make-fix-arr ignore => value
+This is O(1).
 
-zeroed-fix-arr<a> fix-arr a(size nat64) unsafe
-	res fix-arr a = size uninitialized-fix-arr
-	res set-zero-elements
-	res
-
-fill<a> void(a fix-arr a, value a)
-	a set-map ignore => value
-
-###
-Unsafe cast a fix-arr to arr.
-Called "temp" because it is UB if the fix-arr is written to while the `arr` is in use.
+Unsafe because an array is expected to be fully immutable (meaning: no mutable references exist),
+so this value should only be used temporarily.
 ###
 temp-as-arr<a> a[](a fix-arr a) noctx unsafe
 	a inner
-
-###
-Unsafe cast a fix-arr to arr.
-Equivalent to `temp-as-arr`, but the implication is that
-the `fix-arr` will never be written to again, so the `arr` can be used forever.
-###
-cast-immutable<a> a[](a fix-arr a) noctx unsafe
-	a inner
-
-###
-Fill the `fix-arr` with 0 bits.
-This prevents the garbage collector from tracing those elements.
-Data structures that use a `fix-arr` should `set-zero-elements` on any elements they don't use.
-###
-set-zero-elements<a> void(a fix-arr a) noctx unsafe
-	a.begin-ptr set-zero-range a.size
 
 # Equivalent to `a.temp-as-arr index-of value`.
 index-of<a> nat64?(a fix-arr a, value a) equal<a>
@@ -241,6 +297,6 @@ map-to-arr<out, in> out[](a fix-arr in, f act out(in)) trusted
 map-to-arr-with-index<out, in> out[](a fix-arr in, f act out(in, nat64)) trusted
 	a map-with-index f cast-immutable
 
-ref-of-val-at<a> a(a fix-arr by-val a, index nat64) unsafe
+ref-of-val-at<a> a(a fix-arr by-val a, index nat64) no-doc unsafe
 	assert: index < a.size
 	a.begin-ptr + index ref-of-ptr

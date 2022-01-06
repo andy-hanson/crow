@@ -4,13 +4,13 @@ module test.test;
 
 import lib.compiler : ExitCode;
 import test.testApplyFn : testApplyFn;
-import test.testArrUtil : testArrUtil;
 import test.testFakeExtern : testFakeExtern;
 import test.testHover : testHover;
 import test.testInterpreter : testInterpreter;
 import test.testLineAndColumnGetter : testLineAndColumnGetter;
 import test.testPath : testPath;
 import test.testServer : testServer;
+import test.testSortUtil : testSortUtil;
 import test.testStack : testStack;
 import test.testSym : testSym;
 import test.testTokens : testTokens;
@@ -32,7 +32,6 @@ immutable(ExitCode) test(ref Alloc alloc, immutable Opt!string name) {
 private:
 
 immutable(NameAndTest[]) allTests = [
-	immutable NameAndTest("arr-util", &testArrUtil),
 	immutable NameAndTest("apply-fn", &testApplyFn),
 	immutable NameAndTest("fake-extern", &testFakeExtern),
 	immutable NameAndTest("hover", &testHover),
@@ -40,6 +39,7 @@ immutable(NameAndTest[]) allTests = [
 	immutable NameAndTest("line-and-column-getter", &testLineAndColumnGetter),
 	immutable NameAndTest("path", &testPath),
 	immutable NameAndTest("server", &testServer),
+	immutable NameAndTest("sort-util", &testSortUtil),
 	immutable NameAndTest("stack", &testStack),
 	immutable NameAndTest("sym", &testSym),
 	immutable NameAndTest("tokens", &testTokens),

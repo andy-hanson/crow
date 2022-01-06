@@ -4,11 +4,12 @@ import
 	crow/str-util: join
 
 main fut nat(_ str[]) summon
-	xs str mut[] = "a", "b", "c"
-	xs ~= "d"
-	# TODO: should not need type annotation
-	xs ~= ("e", "f") :: str[]
+	xs str mut[] = "crow", "raven", "swan"
+	if popped ?= xs pop
+		print: "popped {popped}"
+	xs ~= "crow"
+	xs[1] := "crow"
 	a = xs move-to-arr
-	print: a join ", "
-	print: xs.is-empty to-str
+	print: "{xs is-empty}"
+	print: a join " "
 	()

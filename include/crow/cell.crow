@@ -1,25 +1,39 @@
 no-std
 import
-	./misc: void
-	./ptr: as-any-mut-ptr, as-ref, mut-ptr, ptr-cast
+	./misc: drop, new, void
+	./ptr: as-any-mut-ptr, as-ref, by-val, mut-ptr, ptr-cast
+	./private/number-low-level: nat64
 
 ###
 Mutable reference to a single value.
 Example:
 ```
-c = cell<nat>: 1
+c cell nat = 1,
 *c is 1
 *c := *c + 1
 *c is 2
 ```
 ###
 cell<a> record mut
-	# TOOD:PRIVATE
-	inner-value mut a
+	.ignore void
+	.inner-value mut a
 
+# Creates a new cell with `a` as its initial value.
+new<a> cell a(a a)
+	(), a
+
+new<a> by-val cell a(a a) no-doc noctx
+	(), a
+
+# Gets the value in the cell.
 * <a> a(a cell a) noctx
 	a inner-value
 
+###
+Sets the value in the cell.
+
+The special syntax `*a := value` is equivalent to `a set-deref value`.
+###
 set-deref<a> void(a cell a, value a) noctx
 	a.inner-value := value
 
@@ -27,14 +41,28 @@ set-deref<a> void(a cell a, value a) noctx
 Treats a pointer as a cell.
 UB if the pointer does not point to a mutable value.
 ###
-as-cell<a> cell a(a a mut*) noctx unsafe
+as-cell<a> cell a(a a mut*) no-doc noctx unsafe
 	a.as-any-mut-ptr as-ref
 
+###
+Treats a cell as a pointer.
+Make sure to use the pointer only temporarily (not past the end of this task).
+###
 as-ptr<a> a mut*(a cell a) noctx unsafe
 	a.as-any-mut-ptr ptr-cast
 
-# Put `v` into the cell, and return the old value.
-swap<a> a(c cell a, v a) noctx
-	res = *c
-	*c := v
+# Sets the value in `a` to `value`, and returns the value it had before.
+get-and-set<a> a(a cell a, value a) noctx
+	res = *a
+	*a := value
 	res
+
+# Swaps the values of two `cell`s.
+swap<a> void(a cell a, b cell a) noctx
+	temp = *a
+	*a := *b
+	*b := temp
+
+test
+	a cell nat64 = 1,
+	drop: a.ignore

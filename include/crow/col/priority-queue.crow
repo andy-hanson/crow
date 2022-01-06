@@ -10,7 +10,7 @@ import
 	../str: ==, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test-util: is
-	../test-util/spy: calls, fn, spy-act, spy-act2
+	../test-util/spy: calls, fn, new, spy-act2
 	../tuple: a, b, from, new, pair, to
 	../writer: ~=, backup, move-to-str, new, writer
 	../private/bootstrap: hard-assert
@@ -22,6 +22,14 @@ import
 		tail, uninitialized-fix-arr
 	./sort: set-sort-by, sort-by
 
+###
+Immutable priority queue.
+
+Elements are key-value pairs. Pairs are sorted by key.
+Popping removes the pair with the lowest key.
+
+If two pairs have the same key, the second pair added will be popped second.
+###
 priority-queue<k, v> record
 	.root node<k, v>?
 
@@ -48,17 +56,30 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 	pairs pair<k, v>[]
 	next node<k, v>?
 
-new<k, v> priority-queue<k, v>() is-data<k> compare<k>
-	(),
+# New priority queue containing the given pairs.
+new<k, v> priority-queue<k, v>(...a pair<k, v>[]) is-data<k> compare<k>
+	a to-priority-queue
 
-priority-queue<k, v> priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
-	unless a is-empty
+# New priority queue containing the given pairs.
+to-priority-queue<k, v> priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
+	if a is-empty
+		# TODO: type annotation should not be necessary
+		()::node<k, v>?,
+	else
 		sorted = a sort-by pair => pair from
-		((sorted.first!, sorted.tail, ()),),
+		root node<k, v> = sorted.first!, sorted.tail, ()
+		# TODO: type annotation should not be necessary
+		(root,)::node<k, v>?,
 
+# True iff `a.size == 0`.
 is-empty<k, v> bool(a priority-queue<k, v>) is-data<k> compare<k>
 	a.root is-empty
 
+###
+Number of pairs in the priority queue.
+
+This is O(n).
+###
 size<k, v> nat64(a priority-queue<k, v>) is-data<k> compare<k>
 	0 size-recur a.root
 .size-recur<k, v> nat64(acc nat64, a node<k, v>?)
@@ -68,16 +89,26 @@ size<k, v> nat64(a priority-queue<k, v>) is-data<k> compare<k>
 		acc
 
 ###
-Add a pair to the queue.
-This is O(1).
+Adds a pair to the queue.
+
+This is O(1), since the work of sorting pairs is actually done in `pop`.
 ###
 ~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b pair<k, v>) is-data<k> compare<k>
-	((b, (), a.root),),
+	root node<k, v> = b, (), a.root
+	# TODO: type annotation should not be necessary
+	(root,)::node<k, v>?,
 
 popped<k, v> record
 	popped pair<k, v>
 	rest priority-queue<k, v>
 
+###
+Removes and returns the pair with the lowest key.
+
+Returns an empty option iff `a` is empty.
+
+This is amortized O(log n).
+###
 pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	if root ?= a.compact-leading-nodes root
 		if next ?= root next
@@ -109,8 +140,10 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	elif is-min
 		a.pop-from-node,
 
-combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
-	popped.popped, (((a.min, a.pairs, popped.rest.root),),)
+.combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
+	root node<k, v> = a.min, a.pairs, popped.rest.root
+	# TODO: type annotation should not be necessary
+	popped.popped, ((root,)::node<k, v>?,)
 
 .compact-leading-nodes<k, v> priority-queue<k, v>(a priority-queue<k, v>) compare<k> trusted
 	mid = a.root find-mid 0
@@ -118,11 +151,13 @@ combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
 		a
 	else
 		root = a.root!
-		new: match mid.mid plan root, mid.n-before-mid
+		match mid.mid plan root, mid.n-before-mid
 		as plan-did-compact compacted
-			compacted,
+			# TODO: type annotation should not be necessary
+			(compacted,)::node<k, v>?,
 		as plan-will-compact n
-			(root do-compact n, mid.mid),
+			# TODO: type annotation should not be necessary
+			((root do-compact n, mid.mid),)::node<k, v>?,
 
 .found-mid<k, v> record
 	mid node<k, v>?
@@ -279,7 +314,7 @@ filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trus
 			cur + 1
 		else
 			cur
-	out[0 .. end - out.begin-ptr].cast-immutable priority-queue
+	out[0 .. end - out.begin-ptr].cast-immutable to-priority-queue
 
 map<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>
 	a priority-queue<k-in, v-in>
@@ -290,7 +325,7 @@ spec
 	is-data<k-out>
 	compare<k-out>
 body
-	a map-to-arr f priority-queue
+	a map-to-arr f to-priority-queue
 
 map-to-arr<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) is-data<k> compare<k> trusted
 	out fix-arr out = a.size uninitialized-fix-arr
@@ -348,7 +383,7 @@ test
 	folded is "init, 6 -> 6, 6 -> 6b, 6 -> 6c, 7 -> 7, 7 -> 7b, 8 -> 8"
 
 	p6-pairs pair<nat64, str>[] = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
-	filter-order spy-act2<bool, nat64, str> = spy-act: (k, v) => k == 6
+	filter-order spy-act2<bool, nat64, str> = new: (k, v) => k == 6
 	filtered = p6 filter filter-order.fn
 	filter-calls = filter-order calls
 	# TODO: filter-order.calls is p6-pairs
@@ -356,7 +391,7 @@ test
 	filter-calls map (x => x b) is (p6-pairs map x => x b)
 	filtered.dbg is "6 6 [6 6b, 6 6c]"
 
-	map-order spy-act2<pair<nat64, str>, nat64, str> = spy-act: (k, v) =>
+	map-order spy-act2<pair<nat64, str>, nat64, str> = new: (k, v) =>
 		(10 wrap-sub k), "{v}x"
 	mapped = p6 map map-order.fn
 	map-calls = map-order calls
@@ -369,5 +404,5 @@ test
 	p6.values is ("6", "6b", "6c", "7", "7b", "8")
 
 # TODO: pair should be equatable
-== bool(a pair<nat64, str>, b pair<nat64, str>) noctx
+.== bool(a pair<nat64, str>, b pair<nat64, str>) noctx
 	a.from == b.from && a.to == b.to

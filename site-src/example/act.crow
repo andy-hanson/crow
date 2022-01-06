@@ -1,10 +1,18 @@
 import
+	crow/cell
 	crow/col/arr-util: map
 	crow/io/print: print
 	crow/str-util: join
 
 main fut nat(_ str[]) summon
-	ingredients str[] = "plaintain", "potato"
-	fried = ingredients map ing => "fried {ing}"
-	print: fried join ", "
+	xs str[] = "crow", "raven"
+	count cell nat = 0,
+	ys = xs map x =>
+		"{count get-and-incr}: {x}"
+	print: ys join "; "
 	()
+
+get-and-incr nat(a cell nat)
+	res = *a
+	*a := *a + 1
+	res

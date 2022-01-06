@@ -20,6 +20,14 @@ import
 	./sort: set-sort-by
 	./private/sort-utils: binary-search-insert-ptr
 
+###
+Mutable priority queue.
+
+Elements are key-value pairs. Pairs are sorted by key.
+Popping removes the pair with the lowest key.
+
+If two pairs have the same key, the second pair added will be popped second.
+###
 mut-priority-queue<k, v> record mut
 	by-ref
 	# TODO: Use by-val
@@ -28,26 +36,38 @@ mut-priority-queue<k, v> record mut
 	# This may be shorter than mins -- buckets on the right considered missing.
 	.buckets pair<k, v> mut[] mut[]
 
-new<k, v> mut-priority-queue<k, v>() is-data<k> compare<k>
-	(), ()
+# New priority queue containing the given pairs.
+new<k, v> mut-priority-queue<k, v>(...a pair<k, v>[]) is-data<k> compare<k>
+	a to-mut-priority-queue
 
-mut-priority-queue<k, v> mut-priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
+# Copies an array to a new priority queue.
+to-mut-priority-queue<k, v> mut-priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
 	mins = a to-mut-arr
 	mins set-sort-by pair => pair from
 	mins, ()
 
+# Removes all pairs from the queue.
 clear<k, v> void(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	a.mins clear
 	a.buckets clear
 
+# True iff `a.size == 0`.
 is-empty<k, v> bool(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	a.mins is-empty
 
+###
+Number of pairs in the queue.
+This is O(n).
+###
 size<k, v> nat64(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	n-in-buckets = 0 fold a.buckets, (acc, b) =>
 		acc wrap-add b.size
 	a.mins.size wrap-add n-in-buckets
 
+###
+Adds a pair to the queue.
+This is O(log n).
+###
 ~= <k, v> void(a mut-priority-queue<k, v>, pair pair<k, v>) trusted is-data<k> compare<k>
 	# Highest min is on the right, so comparing in reverse
 	ptr = a.mins binary-search-insert-ptr it => it.from <=> pair.from
@@ -57,6 +77,35 @@ size<k, v> nat64(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	else
 		a.buckets add-to-bucket index, pair
 
+###
+Removes and returns the pair with the lowest key.
+
+Returns an empty option iff the queue was empty (before calling `pop`).
+
+This is amortized O(log n).
+###
+pop<k, v> pair<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
+	res = a.mins pop
+	if a.mins.size < a.buckets.size
+		assert: (a.mins.size wrap-add 1) == a.buckets.size
+		bucket = a.buckets.pop!
+		bucket set-sort-by it => it from
+		# Mins are popped off from the right.
+		# Note thie preserves insertion order: 'set-sort-by' doesn't change that,
+		# then we reverse, then popping from the right reverses it again.
+		bucket set-reverse
+		a.mins ~= bucket
+	res
+
+# Like `pop`, but discards the key.
+pop-value<k, v> v?(a mut-priority-queue<k, v>) is-data<k> compare<k>
+	if pair ?= a pop
+		pair.to,
+
+###
+Copy pairs to a new priority queue.
+This is O(n).
+###
 copy<k, v> mut-priority-queue<k, v>(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	mins = a spread-all-buckets
 	a.mins clear
@@ -64,10 +113,11 @@ copy<k, v> mut-priority-queue<k, v>(a mut-priority-queue<k, v>) is-data<k> compa
 	a.buckets clear
 	mins.mut-arr, ()
 
-arr<k, v> pair<k, v>[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
-	a.fix-arr cast-immutable
+# Copy pairs to an array.
+to-arr<k, v> pair<k, v>[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
+	a.to-fix-arr cast-immutable
 
-fix-arr<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) is-data<k> compare<k>
+to-fix-arr<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) no-doc is-data<k> compare<k>
 	mins = a spread-all-buckets
 	a.mins clear
 	a.mins ~= mins
@@ -107,23 +157,6 @@ body
 		# TODO: type annotation should be unnecessary
 		buckets ~= ()::pair<k, v> mut[]
 		buckets add-to-bucket index, pair
-
-pop-value<k, v> v?(a mut-priority-queue<k, v>) is-data<k> compare<k>
-	if pair ?= a pop
-		pair.to,
-
-pop<k, v> pair<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
-	res = a.mins pop
-	if a.mins.size < a.buckets.size
-		assert: (a.mins.size wrap-add 1) == a.buckets.size
-		bucket = a.buckets.pop!
-		bucket set-sort-by it => it from
-		# Mins are popped off from the right.
-		# Note thie preserves insertion order: 'set-sort-by' doesn't change that,
-		# then we reverse, then popping from the right reverses it again.
-		bucket set-reverse
-		a.mins ~= bucket
-	res
 
 .dbg str(a mut-priority-queue<nat64, str>)
 	out writer = ()
@@ -187,9 +220,17 @@ test
 	a verify "5 -> 5 [6 -> 6], 4 -> 4b"
 
 	# TODO: a.arr is [4 -> "4b", 5 -> "5", 6 -> "6"]
-	a.arr map (it => it from) is (4, 5, 6)
-	a.arr map (it => it to) is ("4b", "5", "6")
+	a.to-arr map (it => it from) is (4, 5, 6)
+	a.to-arr map (it => it to) is ("4b", "5", "6")
 	a verify "6 -> 6, 5 -> 5, 4 -> 4b"
+
+test
+	a mut-priority-queue<nat64, str> = ()
+	a ~= (5, "5")
+	a ~= (5, "five")
+	a.pop is ((5, "5"),)
+	a.pop is ((5, "five"),)
+	a.is-empty is true
 
 # TODO: opt should have generic ==
 .== bool(a pair<nat64, str>?, b pair<nat64, str>?) noctx

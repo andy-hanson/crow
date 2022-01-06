@@ -449,6 +449,7 @@ public enum Token {
 	name, // Any non-keyword, non-operator name; use getCurSym with this
 	newline, // end of line
 	noCtx, // 'noctx'
+	noDoc, // 'nodoc'
 	noStd, // 'no-std'
 	operator, // Any operator; use getCurOperator with this
 	parenLeft, // '('
@@ -488,6 +489,8 @@ public enum Token {
 				: Token.invalid;
 		case '!':
 			return operatorToken(lexer, tryTakeChar(lexer, '=') ? Operator.notEqual : Operator.not);
+		case '%':
+			return operatorToken(lexer, Operator.modulo);
 		case '^':
 			return operatorToken(lexer, Operator.xor1);
 		case '&':
@@ -621,6 +624,8 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.mut;
 		case shortSymValue("noctx"):
 			return Token.noCtx;
+		case shortSymValue("no-doc"):
+			return Token.noDoc;
 		case shortSymValue("no-std"):
 			return Token.noStd;
 		case shortSymValue("record"):
@@ -792,6 +797,7 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.mut:
 		case Token.newline:
 		case Token.noCtx:
+		case Token.noDoc:
 		case Token.noStd:
 		case Token.parenRight:
 		case Token.question:
@@ -1110,7 +1116,7 @@ public immutable(SafeCStr) skipBlankLinesAndGetDocComment(ref Lexer lexer) {
 
 immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(ref Lexer lexer, immutable SafeCStr comment) {
 	if (tryTakeChar(lexer, '\n'))
-		return skipBlankLinesAndGetDocCommentRecur(lexer, safeCStr!"");
+		return skipBlankLinesAndGetDocCommentRecur(lexer, comment);
 	else if (tryTakeCStr(lexer, "###\n"))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, takeRestOfBlockComment(lexer));
 	else if (tryTakeChar(lexer, '#'))

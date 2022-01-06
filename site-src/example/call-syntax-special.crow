@@ -1,0 +1,30 @@
+import
+	crow/cell
+	crow/col/mut-arr
+	crow/io/print: print
+
+main fut nat(_ str[]) summon
+	# "crow" new "duck"
+	xs str[] = "crow", "duck"
+	# xs subscript 0
+	print: xs[0]
+
+	# "duck" new
+	c cell str = "duck",
+	# c set-deref "crow"
+	*c := "crow"
+	# c.deref print
+	print: *c
+
+	# new
+	ys str mut[] = ()
+	ys ~= "duck"
+	ys ~= "goose"
+	# ys set-deref 0, "crow"
+	ys[0] := "crow"
+	# ys set-last crow
+	ys.last := "crow"
+	# ys subscript 1 print
+	print: ys[1]
+
+	()

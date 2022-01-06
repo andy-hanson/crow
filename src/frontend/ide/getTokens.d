@@ -44,6 +44,7 @@ import frontend.parse.ast :
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
+	SpecSigAst,
 	SpecUseAst,
 	StructAliasAst,
 	StructDeclAst,
@@ -70,24 +71,19 @@ import util.util : todo;
 struct Token {
 	enum Kind {
 		explicitByValOrRef,
-		fieldDef,
-		fieldRef,
-		funDef,
-		funRef,
+		fun,
 		identifier,
 		importPath,
 		keyword,
-		localDef,
+		local,
 		literalNumber,
 		literalString,
-		paramDef,
+		member, // record / union / enum / flags member
+		param,
 		purity,
-		specDef,
-		specRef,
-		structDef,
-		structRef,
-		typeParamDef,
-		typeParamRef,
+		spec,
+		struct_,
+		typeParam,
 	}
 	immutable Kind kind;
 	immutable RangeWithinFile range;
@@ -175,18 +171,18 @@ void addSpecTokens(
 	ref immutable SpecDeclAst a,
 ) {
 	add(alloc, tokens, immutable Token(
-		Token.Kind.specDef,
+		Token.Kind.spec,
 		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	matchSpecBodyAst!(
 		void,
 		(ref immutable SpecBodyAst.Builtin) {},
-		(ref immutable SigAst[] sigs) {
-			foreach (ref immutable SigAst sig; sigs) {
+		(ref immutable SpecSigAst[] sigs) {
+			foreach (ref immutable SpecSigAst sig; sigs) {
 				add(alloc, tokens, immutable Token(
-					Token.Kind.funDef,
-					rangeAtName(allSymbols, sig.range.start, sig.name)));
-				addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, sig);
+					Token.Kind.fun,
+					rangeAtName(allSymbols, sig.sig.range.start, sig.sig.name)));
+				addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, sig.sig);
 			}
 		},
 	)(a.body_);
@@ -252,7 +248,7 @@ void addInstStructTokens(
 	ref const AllSymbols allSymbols,
 	ref immutable TypeAst.InstStruct a,
 ) {
-	add(alloc, tokens, immutable Token(Token.Kind.structRef, rangeOfNameAndRange(a.name, allSymbols)));
+	add(alloc, tokens, immutable Token(Token.Kind.struct_, rangeOfNameAndRange(a.name, allSymbols)));
 	addTypeArgsTokens(alloc, tokens, allSymbols, a.typeArgs);
 }
 
@@ -274,7 +270,7 @@ void addParamTokens(
 ) {
 	if (has(a.name))
 		add(alloc, tokens, immutable Token(
-			Token.Kind.paramDef,
+			Token.Kind.param,
 			rangeOfStartAndName(a.range.start, force(a.name), allSymbols)));
 	addTypeTokens(alloc, tokens, allSymbols, a.type);
 }
@@ -286,7 +282,7 @@ void addTypeParamsTokens(
 	ref immutable ArrWithSize!NameAndRange a,
 ) {
 	foreach (ref immutable NameAndRange typeParam; toArr(a))
-		add(alloc, tokens, immutable Token(Token.Kind.typeParamDef, rangeOfNameAndRange(typeParam, allSymbols)));
+		add(alloc, tokens, immutable Token(Token.Kind.typeParam, rangeOfNameAndRange(typeParam, allSymbols)));
 }
 
 void addStructAliasTokens(
@@ -296,7 +292,7 @@ void addStructAliasTokens(
 	ref immutable StructAliasAst a,
 ) {
 	add(alloc, tokens, immutable Token(
-		Token.Kind.structDef,
+		Token.Kind.struct_,
 		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	addTypeTokens(alloc, tokens, allSymbols, a.target);
@@ -309,7 +305,7 @@ void addStructTokens(
 	ref immutable StructDeclAst a,
 ) {
 	add(alloc, tokens, immutable Token(
-		Token.Kind.structDef,
+		Token.Kind.struct_,
 		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	if (has(a.purity))
@@ -333,7 +329,7 @@ void addStructTokens(
 			}
 			foreach (ref immutable StructDeclAst.Body.Record.Field field; toArr(record.fields)) {
 				add(alloc, tokens, immutable Token(
-					Token.Kind.fieldDef,
+					Token.Kind.member,
 					rangeAtName(allSymbols, field.range.start, field.name)));
 				addTypeTokens(alloc, tokens, allSymbols, field.type);
 			}
@@ -341,7 +337,7 @@ void addStructTokens(
 		(ref immutable StructDeclAst.Body.Union union_) {
 			foreach (ref immutable StructDeclAst.Body.Union.Member member; union_.members) {
 				add(alloc, tokens, immutable Token(
-					Token.Kind.fieldDef, // TODO: Token.Kind.unionMember?
+					Token.Kind.member,
 					rangeAtName(allSymbols, member.range.start, member.name)));
 				if (has(member.type))
 					addTypeTokens(alloc, tokens, allSymbols, force(member.type));
@@ -360,9 +356,7 @@ void addEnumOrFlagsTokens(
 	if (has(typeArg))
 		addTypeTokens(alloc, tokens, allSymbols, force(typeArg).deref());
 	foreach (ref immutable StructDeclAst.Body.Enum.Member member; toArr(members)) {
-		add(alloc, tokens, immutable Token(
-			Token.Kind.fieldDef, // TODO: enumMemberREf
-			member.range));
+		add(alloc, tokens, immutable Token(Token.Kind.member, member.range));
 		if (has(member.value)) {
 			immutable uint addLen = " = ".length;
 			immutable Pos pos = member.range.start + symSize(allSymbols, member.name) + addLen;
@@ -380,12 +374,12 @@ void addFunTokens(
 	ref immutable FunDeclAst a,
 ) {
 	add(alloc, tokens, immutable Token(
-		Token.Kind.funDef,
+		Token.Kind.fun,
 		rangeAtName(allSymbols, a.visibility, a.range.start, a.sig.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, a.sig);
 	foreach (ref immutable SpecUseAst specUse; a.specUses) {
-		add(alloc, tokens, immutable Token(Token.Kind.specRef, rangeOfNameAndRange(specUse.spec, allSymbols)));
+		add(alloc, tokens, immutable Token(Token.Kind.spec, rangeOfNameAndRange(specUse.spec, allSymbols)));
 		addTypeArgsTokens(alloc, tokens, allSymbols, specUse.typeArgs);
 	}
 	matchFunBodyAst!(
@@ -408,14 +402,14 @@ void addExprTokens(
 		void,
 		(ref immutable ArrowAccessAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.left);
-			add(alloc, tokens, immutable Token(Token.Kind.funRef, rangeOfNameAndRange(it.name, allSymbols)));
+			add(alloc, tokens, immutable Token(Token.Kind.fun, rangeOfNameAndRange(it.name, allSymbols)));
 			addTypeArgsTokens(alloc, tokens, allSymbols, it.typeArgs);
 		},
 		(ref immutable BogusAst) {},
 		(ref immutable CallAst it) {
 			immutable ExprAst[] args = toArr(it.args);
 			void addName() {
-				add(alloc, tokens, immutable Token(Token.Kind.funRef, rangeOfNameAndRange(it.funName, allSymbols)));
+				add(alloc, tokens, immutable Token(Token.Kind.fun, rangeOfNameAndRange(it.funName, allSymbols)));
 				addTypeArgsTokens(alloc, tokens, allSymbols, it.typeArgs);
 			}
 			final switch (it.style) {
@@ -531,11 +525,11 @@ void addExprTokens(
 		(ref immutable MatchAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.matched);
 			foreach (ref immutable MatchAst.CaseAst case_; it.cases) {
-				add(alloc, tokens, immutable Token(Token.Kind.structRef, case_.memberNameRange(allSymbols)));
+				add(alloc, tokens, immutable Token(Token.Kind.struct_, case_.memberNameRange(allSymbols)));
 				matchNameOrUnderscoreOrNone!(
 					void,
 					(immutable(Sym)) {
-						add(alloc, tokens, immutable Token(Token.Kind.localDef, case_.localRange(allSymbols)));
+						add(alloc, tokens, immutable Token(Token.Kind.local, case_.localRange(allSymbols)));
 					},
 					(ref immutable NameOrUnderscoreOrNone.Underscore) {},
 					(ref immutable NameOrUnderscoreOrNone.None) {},
@@ -571,7 +565,7 @@ void addExprTokens(
 }
 
 immutable(Token) localDefOfNameAndRange(ref const AllSymbols allSymbols, immutable NameAndRange a) {
-	return immutable Token(Token.Kind.localDef, rangeOfNameAndRange(a, allSymbols));
+	return immutable Token(Token.Kind.local, rangeOfNameAndRange(a, allSymbols));
 }
 
 void addLambdaAstParam(
@@ -580,7 +574,7 @@ void addLambdaAstParam(
 	ref const AllSymbols allSymbols,
 	ref immutable LambdaAst.Param param,
 ) {
-	add(alloc, tokens, immutable Token(Token.Kind.paramDef, rangeOfNameAndRange(param, allSymbols)));
+	add(alloc, tokens, immutable Token(Token.Kind.param, rangeOfNameAndRange(param, allSymbols)));
 }
 
 void addExprsTokens(
@@ -609,14 +603,8 @@ immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 	final switch (kind) {
 		case Token.Kind.explicitByValOrRef:
 			return shortSym("by-val-ref");
-		case Token.Kind.fieldDef:
-			return shortSym("field-def");
-		case Token.Kind.fieldRef:
-			return shortSym("field-ref");
-		case Token.Kind.funDef:
-			return shortSym("fun-def");
-		case Token.Kind.funRef:
-			return shortSym("fun-ref");
+		case Token.Kind.fun:
+			return shortSym("fun");
 		case Token.Kind.identifier:
 			return shortSym("identifier");
 		case Token.Kind.importPath:
@@ -627,24 +615,20 @@ immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 			return shortSym("lit-num");
 		case Token.Kind.literalString:
 			return shortSym("lit-str");
-		case Token.Kind.localDef:
-			return shortSym("local-def");
-		case Token.Kind.paramDef:
-			return shortSym("param-def");
+		case Token.Kind.local:
+			return shortSym("local");
+		case Token.Kind.member:
+			return shortSym("member");
+		case Token.Kind.param:
+			return shortSym("param");
 		case Token.Kind.purity:
 			return shortSym("purity");
-		case Token.Kind.specDef:
-			return shortSym("spec-def");
-		case Token.Kind.specRef:
-			return shortSym("spec-ref");
-		case Token.Kind.structDef:
-			return shortSym("struct-def");
-		case Token.Kind.structRef:
-			return shortSym("struct-ref");
-		case Token.Kind.typeParamDef:
-			return shortSym("tparam-def");
-		case Token.Kind.typeParamRef:
-			return shortSym("tparam-ref");
+		case Token.Kind.spec:
+			return shortSym("spec");
+		case Token.Kind.struct_:
+			return shortSym("struct");
+		case Token.Kind.typeParam:
+			return shortSym("type-param");
 	}
 }
 

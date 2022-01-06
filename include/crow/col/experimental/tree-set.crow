@@ -16,9 +16,9 @@ import
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, new, unsafe-div, wrap-add, wrap-sub
 	../arr: arr, begin-ptr, end-ptr, is-empty, size, subscript
-	../arr-util: each, fold, insert, last, rtail, tail, try-remove
+	../arr-util: each, fold, insert-at-ptr, last, rtail, tail, try-remove
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
-	../mut-stack: ~=, last, mut-stack, new, pop
+	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique, set-sort-unique
 	../private/sort-utils: binary-search-has, binary-search-insert-ptr
 
@@ -31,8 +31,7 @@ tree-set<a> record
 	.total-size nat64
 
 .node<a> union
-	# TODO: SYNTAX should not require <>
-	inner inner-node<a>
+	inner inner-node a
 	leaf a[]
 
 .inner-node<a> record
@@ -60,9 +59,9 @@ to-tree-set<a> tree-set a(a a[]) is-data<a> compare<a>
 
 ###
 Array of all values in the set, in sorted order.
-This is O(a size).
+This is O(n).
 ###
-arr<a> a[](a tree-set a) is-data<a> compare<a>
+to-arr<a> a[](a tree-set a) is-data<a> compare<a>
 	match a.root
 	as inner i
 		i tree-to-arr a.size
@@ -245,8 +244,8 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		l
 .peek<a> a?(a iter a)
 	if a.cur is-empty
-		if last ?= a.stack last
-			last.value,
+		if x ?= a.stack peek
+			x.value,
 	else
 		a.cur[0],
 .next<a> a?(a iter a) trusted
@@ -319,7 +318,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	if insert-ptr != a.end-ptr && *insert-ptr == value
 		none
 	elif a.size < 4
-		(a insert insert-ptr, value).leaf inserted
+		(a insert-at-ptr insert-ptr, value).leaf inserted
 	elif max-height == 0
 		# Can't add new nodes
 		((a.size wrap-add 1), 1) find-scapegoat
@@ -460,7 +459,7 @@ filter<a> tree-set a(a tree-set a, f act bool(a)) trusted is-data<a> compare<a>
 			cur
 	out[0 .. end - out.begin-ptr].cast-immutable to-tree-set
 
-# TODO: first-some
+# TODO: find-and-get
 
 map<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> is-data<out> compare<out> trusted
 	out fix-arr out = a.size uninitialized-fix-arr

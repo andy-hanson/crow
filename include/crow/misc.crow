@@ -2,11 +2,16 @@ no-std
 import
 	./private/bootstrap: new-void
 export
-	./private/bootstrap: is-data, name, named-val, val, void
+	./private/bootstrap: is-data, is-sendable, name, named-val, val, void
 
+# Returns a `void` value.
 new void() noctx
 	new-void
 
-# Ignores the value and returns void.
+# Ignores the value and returns a `void`.
 drop<a> void(_ a) noctx
 	()
+
+# Spec that is satisfied by a `new` function with no arguments.
+new<a> spec
+	new a()

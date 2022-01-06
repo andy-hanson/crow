@@ -1,44 +1,8 @@
-import {assert} from "./util/assert.js"
-import {
-	Align,
-	Border,
-	Color,
-	Content,
-	cssClass,
-	Display,
-	FontFamily,
-	FontWeight,
-	Measure,
-	Outline,
-	Overflow,
-	Position,
-	Resize,
-	Selector,
-	StyleBuilder,
-	Visibility,
-	WhiteSpace,
-} from "./util/css.js"
-import {CustomElementClass, makeCustomElement} from "./util/CustomElement.js"
-import {removeAllChildren} from "./util/dom.js"
-import {div, span, textarea} from "./util/html.js"
-import {MutableObservable, Observable} from "./util/MutableObservable.js"
-import {nonNull} from "./util/util.js"
-
-const codeClass = cssClass("code")
-const measurerClass = cssClass("measurer")
-const highlightClass = cssClass("highlight")
-const lineClass = cssClass("line")
-const noTokenClass = cssClass("no-token")
-const diagClass = cssClass("diag")
-const hoverTooltipClass = cssClass("hover-tooltip")
+import { MutableObservable, Observable } from "./util/MutableObservable.js"
+import { assert, createDiv, createNode, createSpan, nonNull, removeAllChildren, setStyleSheet } from "./util/util.js"
 
 const lineHeightPx = 20
-const line_height = Measure.px(lineHeightPx)
 const tab_size = 4
-const font_size = Measure.em(1)
-
-const lineNumbersClass = cssClass("line-numbers")
-const rootClass = cssClass("root")
 
 /**
  * @typedef CrowTextProps
@@ -47,129 +11,133 @@ const rootClass = cssClass("root")
  * @property {MutableObservable<string>} text
  */
 
-/** @type {CustomElementClass<CrowTextProps, null, null>} */
-export const CrowText = makeCustomElement({
-	tagName: "crow-text",
-	styleSheet: new StyleBuilder()
-		.class(rootClass, {
-			display: Display.flex,
-			background: Color.darkGray,
-			font_family: FontFamily.monospace,
-		})
-		.class(lineNumbersClass, {
-			display: Display.inlineBlock,
-			width: Measure.em(1.5),
-			color: Color.lightGray,
-			border_right: Border.solid(Measure.em(0.1), Color.lightGray),
-			line_height,
-			text_align: Align.right,
-			white_space: WhiteSpace.pre,
-			padding_right: Measure.em(0.25),
-			margin_right: Measure.em(0.25),
-		})
-		.class(measurerClass, {
-			visibility: Visibility.hidden,
-			height: Measure.zero,
-		})
-		.class(codeClass, {
-			width: Measure.pct100,
-			height: Measure.pct100,
-			margin: Measure.zero,
-			padding: Measure.zero,
-			position: Position.relative,
-			tab_size: 4,
-			font_size,
-			line_height,
-			white_space: WhiteSpace.pre,
-			display: Display.inlineBlock,
-		})
-		.class(highlightClass, {
-			margin: Measure.zero,
-			padding: Measure.zero,
-			width: Measure.pct100,
-			height: Measure.pct100,
-			z_index: 10,
-		})
-		.class(lineClass, {height: line_height})
-		.textarea({
-			z_index: 0,
-			margin: Measure.zero,
-			padding: Measure.zero,
-			position: Position.absolute,
-			top: Measure.zero,
-			left: Measure.zero,
-			width: Measure.pct100,
-			height: Measure.pct100,
-			/* Visible enough that I can tell if the highlight is not lined up,
-				but not visible enough to lessen the highlight. */
-			color: new Color("#00000020"),
-			/* In contrast, cursor should remain 100% visible. */
-			caret_color: Color.white,
-			background: Color.transparent,
-			line_height,
-			font_size,
-			border: Border.none,
-			outline: Outline.none,
-			resize: Resize.none,
-			overflow: Overflow.auto,
-			white_space: WhiteSpace.pre,
-		})
-		.class(noTokenClass, {
-			font_weight: FontWeight.light,
-			color: Color.lighterGray,
-		})
-		.class(cssClass("keyword"), {
-			font_weight: FontWeight.bold,
-			color: Color.pink,
-		})
-		.class(cssClass("identifier"), {color: Color.lightYellow})
-		.class(cssClass("import"), {color: Color.pink})
-		.class(cssClass("purity"), {color: Color.pink})
-		.class(cssClass("fun-def"), {font_weight: FontWeight.bold, color: Color.blue})
-		.class(cssClass("fun-ref"), {color: Color.blue})
-		.class(cssClass("struct-def"), {font_weight: FontWeight.bold, color: Color.lavender})
-		.class(cssClass("struct-ref"), {color: Color.lavender})
-		.class(cssClass("tparam-def"), {font_weight: FontWeight.bold, color: Color.peach})
-		.class(cssClass("tparam-ref"), {color: Color.peach})
-		.class(cssClass("spec-def"), {font_weight: FontWeight.bold, color: Color.green})
-		.class(cssClass("spec-ref"), {color: Color.green})
-		.class(cssClass("param-def"), {font_weight: FontWeight.bold, color: Color.lightYellow})
-		.class(cssClass("local-def"), {font_weight: FontWeight.bold, color:Color.lightYellow})
-		.class(cssClass("lit-num"), {color: Color.yellow})
-		.class(cssClass("lit-str"), {color: Color.yellow})
-		.class(cssClass("field-def"), {font_weight: FontWeight.bold, color: Color.peach})
-		.class(cssClass("field-ref"), {color: Color.peach})
-		.class(cssClass("name"), {color: new Color("green")})
-		.class(diagClass, {
-			position: Position.relative,
-			border_bottom: Border.dotted(Measure.em(0.2), Color.red),
-		})
-		.rule(Selector.after(Selector.class(diagClass)), {
-			content: Content.attr("data-tooltip"),
-			position: Position.absolute,
-			white_space: WhiteSpace.noWrap,
-			background: new Color("#80000080"),
-			padding: Measure.em(0.5),
-			color: Color.white,
-			border_radius: Measure.em(0.5),
-			margin_left: Measure.em(-1),
-			margin_top: Measure.ex(0.5),
-			top: Measure.ex(3),
-		})
-		.class(hoverTooltipClass, {
-			background: Color.midGray,
-			color: Color.white,
-			position: Position.absolute,
-			padding: Measure.em(0.5),
-			border_radius: Measure.em(0.5),
-			z_index: 100,
-		})
-		.end(),
-	init: () =>
-		({state: null, out: null}),
-	connected: async ({ props: {getHover, tokens, text}, root }) => {
-		const highlightDiv = div({class:highlightClass}, [])
-		const ta = textarea()
+const css = `
+.root {
+	display: flex;
+	background: #2c292d;
+	font-family: "hack";
+	font-size: 85%;
+}
+.line-numbers {
+	display: inline-block;
+	width: 1.5em;
+	color: #6c696d;
+	border-right: 0.1em solid #6c696d;
+	line-height: 20px;
+	text-align: right;
+	white-space: pre;
+	padding-right: 0.25em;
+	margin-right: 0.25em;
+}
+.measurer {
+	visibility: hidden;
+	height: 0;
+}
+.code {
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	position: relative;
+	tab-size: 4;
+	font-size: 1em;
+	line-height: 20px;
+	white-space: pre;
+	display: inline-block;
+}
+.highlight {
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 10;
+}
+.line {
+	height: 20px;
+}
+textarea {
+	z-index: 0;
+	margin: 0;
+	padding: 0;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	color: #00000020;
+	caret-color: #fdf9f3;
+	background: #00000000;
+	line-height: 20px;
+	font-size: 1em;
+	border: none;
+	outline: none;
+	resize: none;
+	overflow: hidden;
+	white-space: pre;
+	font-family: "hack";
+}
+.no-token { font-weight: light; color: #aaa; }
+.keyword { font-weight: bold; color: #ff6188; }
+.identifier { color: #ffebbd; }
+.import { color: #ff6188; }
+.purity { color: #ff6188; }
+.by-val-ref { color: #ff6188; }
+.fun { color: #78dce8; }
+.struct { color: #ab9df2; }
+.type-param { color: #fc9867; }
+.spec { color: #a9dc76; }
+.param { color: #ffebbd; }
+.local { bold; color: #ffebbd; }
+.lit-num { color: #ffd866; }
+.lit-str { color: #ffd866; }
+.field { color: #fc9867; }
+.name { color: green; }
+.diag {
+	position: relative;
+	border-bottom: 0.2em dotted #e87878;
+}
+.diag::after {
+	content: attr(data-tooltip);
+	position: absolute;
+	white-space: nowrap;
+	background: #80000080;
+	padding: 0.5em;
+	color: #fdf9f3;
+	border-radius: 0.5em;
+	margin-left: -1em;
+	margin-top: 0.5ex;
+	top: 3ex;
+}
+.hover-tooltip {
+	background: #423e44;
+	color: #fdf9f3;
+	position: absolute;
+	padding: 0.5em;
+	border-radius: 0.5em;
+	z-index: 100;
+}
+`
+
+export class CrowText extends HTMLElement {
+	/**
+	 * @param {CrowTextProps} props
+	 * @return {CrowText}
+	 */
+	static create(props) {
+		const em = document.createElement("crow-text")
+		em.props = props
+		return em
+	}
+
+	constructor() {
+		super()
+		setStyleSheet(this.attachShadow({ mode: "open" }), css)
+	}
+
+	connectedCallback() {
+		const {getHover, tokens, text} = this.props
+		const highlightDiv = createDiv({className:"highlight"})
+		const ta = createNode("textarea")
 		const initialText = text.get()
 		ta.value = initialText
 		ta.setAttribute("spellcheck", "false")
@@ -223,7 +191,7 @@ export const CrowText = makeCustomElement({
 				if (mouseIsIn && mouseMoveIndex === saveMouseMoveIndex) {
 					const hover = getHover(pos)
 					if (hover !== "") {
-						tooltip = div({class:hoverTooltipClass}, [hover])
+						tooltip = createDiv({className:"hover-tooltip", children:[hover]})
 						textContainer.append(tooltip)
 						tooltip.style.left = offsetX + "px"
 						tooltip.style.top = offsetY + "px"
@@ -234,20 +202,20 @@ export const CrowText = makeCustomElement({
 			}, 200)
 		})
 
-		const lineNumbers = div({class:lineNumbersClass})
+		const lineNumbers = createDiv({className:"line-numbers"})
 
 		tokens.nowAndSubscribe(value => {
 			highlight(value, highlightDiv, ta.value)
 			lineNumbers.textContent = ta.value.split("\n").map((_, i) => String(i + 1)).join("\n")
 		})
 
-		const measurerSpan = span({}, ["a"])
-		const measurer = div({class:measurerClass}, [measurerSpan])
-		const textContainer = div({class:codeClass}, [measurer, highlightDiv, ta])
-		root.append(div({class:rootClass}, [lineNumbers, textContainer]))
-
-	},
-})
+		const measurerSpan = createSpan({children:["a"]})
+		const measurer = createDiv({className:"measurer", children:[measurerSpan]})
+		const textContainer = createDiv({className:"code", children:[measurer, highlightDiv, ta]})
+		this.shadowRoot.append(createDiv({className:"root", children:[lineNumbers, textContainer]}))
+	}
+}
+customElements.define("crow-text", CrowText)
 
 /**
  * @template T
@@ -286,13 +254,12 @@ const highlight = (tokens, highlightDiv, v) => {
 }
 
 /** @type {function(string, ReadonlyArray<Node | string>): HTMLSpanElement} */
-const createDiagSpan = (message, children) => {
-	return createSpan({
+const createDiagSpan = (message, children) =>
+	createSpan({
 		attr: {"data-tooltip": message},
-		className: diagClass.name,
+		className: "diag",
 		children,
 	})
-}
 
 /**
  * @typedef AllContainer
@@ -343,7 +310,7 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 		const child = popped.type === "diag"
 				? createDiagSpan(popped.message, popped.children)
 			: popped.type === "line"
-				? createDiv({ className: lineClass.name, children: popped.children })
+				? createDiv({ className: "line", children: popped.children })
 			: unreachable(`Unexpected type ${popped.type}`);
 		const lastContainer = last(containerStack)
 		if (/** @type {SomeContainer} */ (lastContainer).type === "text")
@@ -373,7 +340,7 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 			const newLast = last(containerStack)
 			if (newLast.type === "text")
 				throw new Error() // text can't contain other nodes
-			newLast.children.push(createSpan({ className: noTokenClass.name, children: [l.text] }))
+			newLast.children.push(createSpan({ className: "no-token", children: [l.text] }))
 		}
 	}
 
@@ -411,7 +378,7 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 	/** @type {function(number): HTMLSpanElement} */
 	const noTokenNode = startPos => {
 		assert(startPos < pos)
-		return createSpan({ className: noTokenClass.name, children: [text.slice(startPos, pos)] })
+		return createSpan({ className: "no-token", children: [text.slice(startPos, pos)] })
 	}
 
 	/** @type {function(number): void} */
@@ -455,7 +422,7 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 		const tokenEnd = token.range.args[1]
 		walkTo(tokenPos)
 		maybeStartDiag(tokenPos)
-		addSpan(classForKind(token.kind), tokenEnd)
+		addSpan(token.kind, tokenEnd)
 		maybeStopDiag(tokenEnd)
 	}
 
@@ -464,46 +431,6 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 	assert(containerStack.length === 1 && containerStack[0].type === "all")
 	return containerStack[0].children
 }
-
-/** @type {function(string): string} */
-const classForKind = kind => {
-	return kind
-}
-
-//TODO:KILL (use html.js)
-
-/**
- * @typedef CreateNodeOptions
- * @property {{[name: string]: string}} [attr]
- * @property {string} [className]
- * @property {ReadonlyArray<Node | string>} [children]
- */
-
-/**
- * @template {keyof HTMLElementTagNameMap} K
- * @param {K} tagName
- * @param {CreateNodeOptions} options
- * @return {HTMLElementTagNameMap[K]}
- */
-const createNode = (tagName, options) => {
-	const node = document.createElement(tagName)
-	if (options.attr)
-		for (const key in options.attr)
-			node.setAttribute(key, options.attr[key])
-	if (options.className)
-		node.className = options.className
-	if (options.children)
-		node.append(...options.children)
-	return node
-}
-
-/** @type {function(CreateNodeOptions): HTMLDivElement} */
-const createDiv = options =>
-	createNode("div", options)
-
-/** @type {function(CreateNodeOptions): HTMLSpanElement} */
-const createSpan = options =>
-	createNode("span", options)
 
 /**
  * @template T

@@ -3,12 +3,12 @@ import
 	crow/col/dict: dict, new
 	crow/col/experimental/compact-dict: compact-dict, new
 	crow/col/experimental/compact-sorted-dict: compact-sorted-dict, new
+	crow/col/experimental/frozen-dict: frozen-dict, new
+	crow/col/experimental/frozen-set: frozen-set, new
 	crow/col/experimental/hamt-set: hamt-set, new
+	crow/col/experimental/index-set: index-set, new
+	crow/col/experimental/list: list, new
 	crow/col/experimental/tree-set: new, tree-set
-	crow/col/frozen-dict: frozen-dict, new
-	crow/col/frozen-set: frozen-set, new
-	crow/col/index-set: index-set, new
-	crow/col/list: list, new
 	crow/col/mut-arr: mut-arr, new
 	crow/col/mut-deque: mut-deque, new
 	crow/col/mut-dict: mut-dict, new
@@ -23,13 +23,12 @@ import
 	crow/col/sorted-set: new, sorted-set
 	crow/col/stack: new, stack
 	crow/col/queue: new, queue
-	crow/crypto/password: quality-moderate
+	crow/crypto/password-hash: quality-moderate
 	crow/io/time-format: gmt
-	crow/iter: iterator, new
 	crow/json: json-str
 	crow/log: info, log
 	crow/parse-command: parse-named-args
-	crow/perf: perf-now
+	crow/perf: measure-total, new
 	crow/reader: new, reader, take-quoted-str
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
@@ -55,7 +54,7 @@ main fut nat(_ str[]) summon
 	drop: () :: mut-sorted-dict<nat, nat>
 	drop: () :: mut-sorted-set<nat>
 	drop: () :: mut-stack<nat>
-	drop: perf-now
+	drop: () :: measure-total
 	drop: () :: priority-queue<nat, nat>
 	drop: () :: set<nat>
 	drop: () :: sorted-set<nat>
@@ -63,7 +62,6 @@ main fut nat(_ str[]) summon
 	drop: () :: tree-set<nat>
 	drop: () :: queue<nat>
 	drop: gmt
-	drop: ((() => ()),) :: iterator<nat>
 	drop: "".json-str
 	drop: () parse-named-args ()
 	run-all-tests

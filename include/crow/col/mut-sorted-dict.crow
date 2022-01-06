@@ -24,7 +24,9 @@ import
 		merge-no-duplicates
 
 ###
-Mutable dict: A list of key-value pairs, sorted by key, supporting efficient lookup.
+Mutable sorted dictionary.
+
+This works like `mut-dict`, but iteration functions like `each` provide elements in sorted order.
 ###
 mut-sorted-dict<k, v> record mut
 	by-ref
@@ -36,29 +38,32 @@ mut-sorted-dict<k, v> record mut
 	.node-size .mut nat64
 	.next .mut mut-sorted-dict<k, v>?
 
+###
+New dictionary containing the given pairs.
+
+Later pairs overwrite earlier pairs with the same key.
+###
 new<k, v> mut-sorted-dict<k, v>(...a pair<k, v>[]) is-data<k> compare<k>
 	a to-mut-sorted-dict
 
-# Copies an `arr` to a `mut-sorted-dict`.
+# Copies pairs to a new dictionary.
 to-mut-sorted-dict<k, v> mut-sorted-dict<k, v>(a pair<k, v>[]) is-data<k> compare<k>
 	res mut-sorted-dict<k, v> = ()::pair<k, v?> mut[], 0, ()
 	a each pair =>
 		res[pair from] := pair to
 	res
 
-###
-True if the `mut-sorted-dict` has no elements.
-This is O(1).
-###
+# `true` iff the `a.size == 0`.
 is-empty<k, v> bool(a mut-sorted-dict<k, v>)
 	a.pairs is-empty
 
+# Removes every pair.
 clear<k, v> void(a mut-sorted-dict<k, v>)
 	a.next := ()
 	a.pairs clear
 
 ###
-Number of pairs in the `mut-sorted-dict`.
+Number of pairs in the dictionary.
 This is O(n).
 ###
 size<k, v> nat64(a mut-sorted-dict<k, v>)
@@ -71,9 +76,10 @@ size<k, v> nat64(a mut-sorted-dict<k, v>)
 		mid
 
 ###
-Look up a value from a key.
-Returns `none` if the key is not in the dict.
-This is O(a.size ln).
+Find the value associated with the key.
+
+Returns an empty option iff the key is not in the dictionary.
+This is O(log n).
 ###
 subscript<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k>
 	if ptr ?= a find-exact-ptr key
@@ -178,9 +184,10 @@ move-to-arr<k, v> pair<k, v>[](a mut-sorted-dict<k, v>) is-data<k> compare<k>
 	a clear
 	res
 
+# TODO: use the same `try-remove` interface that mut-dict uses.
 ###
-Remove the pair with the given key, if it exists.
-Returns the old value (if it exists).
+If the key is in the dictionary, removes it and returns the value that was associated with it.
+Else, returns an empty option.
 ###
 remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k>
 	if ptr ?= a find-exact-ptr key

@@ -4,53 +4,57 @@ import
 	../str: str
 	../str-conv: finish, interp, to-str, with-str, with-value
 
-###
-2-dimensional vector.
-Each element is a 64-bit float.
-###
-vec-2 record
+# 2-dimensional vector.
+vec2 record
 	by-val
 	x float64
 	y float64
 
-vec-2-32 record
+# 2-dimensional vector with 32-bit elements.
+vec2-32 record
 	by-val
 	x float32
 	y float32
 
-# Vector addition -- adds corresponding elements.
-+ vec-2(a vec-2, b vec-2) noctx
-	a.x + b.x, a.y + b.y
+# 0 vector.
+new vec2()
+	0, 0
+# 0 vector.
+new vec2-32()
+	0, 0
 
-+ vec-2-32(a vec-2-32, b vec-2-32) noctx
+# Vector addition -- adds corresponding elements.
++ vec2(a vec2, b vec2) noctx
+	a.x + b.x, a.y + b.y
++ vec2-32(a vec2-32, b vec2-32) noctx
 	a.x + b.x, a.y + b.y
 
 # Vector subtraction -- subtracts corresponding elements.
-- vec-2(a vec-2, b vec-2) noctx
+- vec2(a vec2, b vec2) noctx
 	a.x - b.x, a.y - b.y
-
-- vec-2-32(a vec-2-32, b vec-2-32) noctx
+- vec2-32(a vec2-32, b vec2-32) noctx
 	a.x - b.x, a.y - b.y
 
 # Scales a vector by a scalar.
-* vec-2(a vec-2, b float64) noctx
+* vec2(a vec2, b float64) noctx
 	a.x * b, a.y * b
-* vec-2-32(a vec-2-32, b float32) noctx
+* vec2-32(a vec2-32, b float32) noctx
 	a.x * b, a.y * b
 
 # Equivalent to `a.length ** 2` (but more efficient).
-length-squared float64(a vec-2) noctx
+length-squared float64(a vec2) noctx
 	a.x ** 2 + a.y ** 2
-length-squared float32(a vec-2-32) noctx
+length-squared float32(a vec2-32) noctx
 	a.x ** 2 + a.y ** 2
 
-# Vector length, also known as the magnitude, norm, or |a|.
-length float64(a vec-2) noctx
+# Vector length, also known as the magnitude or norm.
+length float64(a vec2) noctx
 	a.length-squared square-root
-length float32(a vec-2-32) noctx
+length float32(a vec2-32) noctx
 	a.length-squared square-root
 
-to-str str(a vec-2)
+# `"<x, y>"`
+to-str str(a vec2)
 	"<{a x}, {a y}>"
-to-str str(a vec-2-32)
+to-str str(a vec2-32)
 	"<{a x}, {a y}>"

@@ -4,6 +4,7 @@ import
 	crow/col/mut-grid: coord, new, x, y
 	crow/io/terminal-color: term-bold, term-blue, term-red, term-reset
 	crow/ptr: zeroed
+	crow/private/number-low-level: wrap-to-nat32
 	crow/writer: ~=, move-to-str, new, writer
 
 ###
@@ -38,13 +39,13 @@ new<a> board-cache a() trusted
 
 subscript<a> a?(a board-cache a, key board)
 	small-key = key board-key
-	index = small-key mod a.keys.size
+	index = small-key % a.keys.size
 	if a.keys[index] == small-key.wrap-to-nat32
 		a.values[index],
 
 set-subscript<a> void(a board-cache a, key board, value a)
 	small-key = key board-key
-	index = small-key mod a.keys.size
+	index = small-key % a.keys.size
 	a.keys[index] := small-key wrap-to-nat32
 	a.values[index] := value
 

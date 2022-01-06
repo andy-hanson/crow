@@ -17,6 +17,7 @@ import
 	crow/private/alloc: force-needs-gc, gc, get-gc, get-stats, words-used
 	crow/private/bootstrap: todo
 	crow/private/number-low-level: wrap-add
+	crow/reader: parse-nat
 
 main fut nat(args str[]) summon unsafe
 	if args.size < 4
@@ -376,7 +377,7 @@ body
 		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
 .rand-nat nat(max nat) summon
-	rand.to-nat64 mod max
+	rand.to-nat64 % max
 
 .rand int32() noctx extern summon
 

@@ -1,5 +1,5 @@
 import
-	crow/cell: *, cell, new, swap
+	crow/cell: *, cell, get-and-set, new
 	crow/col/arr-util: each-with-index, exists, in
 	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new
 	crow/io/file: each-child-recursive, read-file
@@ -27,8 +27,8 @@ lint result<str, failure[]>(path str, options test-options) summon
 	res move-to-arr
 
 .excluded-from-lint bool(name str)
-	exclude-exts str[] = ".bmp", ".err", ".html", ".mdb", ".png", ".repr", ".svg", ".ttf", ".wasm", ".webp", ".xz"
-	exclude-names str[] = "dyncall", "include-all.json", "node_modules", "package-lock.json"
+	exclude-exts str[] = ".bmp", ".err", ".mdb", ".png", ".repr", ".svg", ".ttf", ".wasm", ".webp", ".woff2", ".xz"
+	exclude-names str[] = "dyncall", "include-all.json", "node_modules", "package-lock.json", "site"
 	name starts-with "." || name in exclude-names || exclude-exts exists ext => name ends-with ext
 
 # Returns numner of errors
@@ -68,7 +68,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 	last-nl cell nat = 0,
 	s.chars each-with-index (c, index) =>
 		if c == "\n"
-			nl = last-nl swap index + 1
+			nl = last-nl get-and-set index + 1
 			res ~= s.chars[nl .. index] str
 	res ~= s.chars[*last-nl .. s.size-bytes] str
 	res move-to-arr

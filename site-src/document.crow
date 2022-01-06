@@ -1,37 +1,55 @@
 import
-	crow/col/arr-util: map
+	crow/col/arr-util: in, map
+	crow/col/sort: sort
+	crow/io/file: read-file
 	crow/io/path: child-path
-	crow/str-util: join
+	crow/str-util: join, try-split-once
 	./document-content: module-content
 	./get-modules: get-modules
 	./module: path
 	./page-template: page-template
-	./path-and-content: new, path-and-content
+	./path-and-content: path-and-content
 	./search-dir-recursive: remove-include-and-crow, search-dir-recursive
 
 documentation path-and-content[]() summon
-	all-module-paths = "include" search-dir-recursive (x => x != "private")
-	nav = all-module-paths map (x => x remove-include-and-crow) generate-nav
+	all-module-paths = "include/crow" search-dir-recursive (x => !x.ignore-dir), (x => x != "std.crow")
 	all-modules = all-module-paths get-modules
-	modules path-and-content[] = all-modules map module =>
-		content = "module {module path}" document-template module.module-content, nav
-		out-path = "doc" child-path "{module.path}.html"
-		out-path, content 
-	index path-and-content = "doc/index.html", "documentation" document-template index-content, nav
+	all-paths = all-module-paths map (x => x remove-include-and-crow) sort-paths
+	modules = all-modules map module =>
+		module.path document-template "module {module.path}", module.module-content, all-paths
+	index-content = "site-src/doc/index.html" read-file
+	index = "index" document-template "documentation", index-content, all-paths
 	(index,) ~ modules
 
-index-content str()
-	"""
-	<h2>documentation</h2>
-	<p>Use the left pane to navigate the generated documentation.</p>
-	<p>If instead you want a guided tour, see the <a href="../tutorial">tutorial</a>.</p>
-	"""
+.sort-paths str[](a str[])
+	a sort (x, y) => x compare-paths y
 
-.generate-nav str(all str[])
-	"""<nav><ul>{all map (x => x nav-part) join ""}</ul></nav>"""
-.nav-part str(a str)
-	"""<li><a href="/doc/{a}.html">{a}</a></li>"""
+.compare-paths comparison(a str, b str)
+	if pair-a ?= a try-split-once "/"
+		if pair-b ?= b try-split-once "/"
+			cmp = pair-a.a <=> pair-b.a
+			if cmp == equal
+				pair-a.b compare-paths pair-b.b
+			else
+				cmp
+		else
+			greater
+	elif b try-split-once "/" is-empty
+		a <=> b
+	else
+		less
 
-.document-template str(title str, content str, nav str)
+.ignore-dir bool(a str)
+	a in ("experimental", "private")
+
+.document-template path-and-content(path str, title str, content str, all-paths str[])
+	out-path = "doc" child-path "{path}.html"
+	nav = all-paths generate-nav path
 	full = """<div class="documentation" id="side-nav-wrapper">{nav}<main>{content}</main></div>"""
-	title page-template full
+	out-path page-template title, full
+
+.generate-nav str(all-paths str[], cur-path str)
+	"""<nav><ul>{all-paths map (x => x nav-part x == cur-path) join ""}</ul></nav>"""
+.nav-part str(a str, is-current bool)
+	cur = is-current ? " class=\"current\""
+	"""<li><a href="/doc/{a}.html"{cur}>{a}</a></li>"""

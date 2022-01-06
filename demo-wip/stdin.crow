@@ -5,5 +5,5 @@ import
 main fut nat(_ str[]) summon
 	print: "What's your name?"
 	name = read-stdin
-	print: "Hello, {name}"
+	print: "hello, {name}"
 	()

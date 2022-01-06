@@ -17,27 +17,31 @@ import
 	./arr-util: each, first, fold, last, rtail, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
 	./stack:
-		~, arr, arr-reverse, each, each-reverse, is-empty, fold, fold-reverse, new, pop, rest,
-		size, stack, value
+		~, each, each-reverse, is-empty, fold, fold-reverse, new, pop, rest, size, stack, to-arr,
+		to-arr-reverse, value
 
+# Immutable double-ended queue.
 deque<a> record
 	# NOTE: This is in reverse (top of the stack furthest left)
 	.left stack a
 	.mid a[]
 	.right stack a
 
-# Empty deque.
-new<a> deque a()
-	() deque
+###
+Deque containing the given elements.
+###
+new<a> deque a(...a a[])
+	a to-deque
 
 ###
-Convert an arr to a deque.
+Convert an array to a deque. 
 This is O(1).
 ###
-deque<a> deque a(a a[])
-	(), a, ()
+to-deque<a> deque a(a a[])
+	()::stack<a>, a, ()
 
-arr<a> a[](a deque a) trusted
+# Copy elements to an array.
+to-arr<a> a[](a deque a) trusted
 	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := x
@@ -45,41 +49,60 @@ arr<a> a[](a deque a) trusted
 	hard-assert: end == res.end-ptr
 	res cast-immutable
 
+###
+`true` iff `a.size == 0`.
+This is O(1).
+###
 is-empty<a> bool(a deque a)
 	a.left.is-empty && a.mid.is-empty && a.right.is-empty
 
+###
+Number of elements in the deque.
+This is O(n).
+###
 size<a> nat64(a deque a)
 	a.left.size wrap-add a.mid.size wrap-add a.right.size
 
+# Pushes an element on the right.
 ~ <a> deque a(a deque a, value a)
 	a.left, a.mid, a.right ~ value
 
+# Pushes an element on the left.
 ~ <a> deque a(value a, a deque a)
 	a.left ~ value, a.mid, a.right
 
+# Result of popping (left or right): The value popped and remaining values.
 popped<a> record
 	value a
 	rest deque a
 
+###
+Remove a value from the left.
+Returns an empty option iff `a` is empty.
+###
 pop-left<a> popped<a>?(a deque a)
 	if popped ?= a.left pop
 		(popped.value, (popped.rest, a.mid, a.right)),
 	elif first ?= a.mid first
-		(first, ((), a.mid.tail, a.right)),
+		(first, (()::stack<a>, a.mid.tail, a.right)),
 	else
-		right-arr = a.right arr
+		right-arr = a.right to-arr
 		if first ?= right-arr first
-			(first, ((), right-arr.tail, ())),
+			(first, right-arr.tail.to-deque),
 
+###
+Remove a value from the right.
+Returns an empty option iff `a` is empty.
+###
 pop-right<a> popped<a>?(a deque a)
 	if popped ?= a.right pop
 		(popped.value, (a.left, a.mid, popped.rest)),
 	elif last ?= a.mid last
 		(last, (a.left, a.mid.rtail, ())),
 	else
-		left-arr = a.left arr-reverse
+		left-arr = a.left to-arr-reverse
 		if last ?= left-arr last
-			(last, ((), left-arr.rtail, ())),
+			(last, left-arr.rtail.to-deque),
 
 region iteration
 
@@ -99,7 +122,7 @@ filter<a> deque a(a deque a, f act bool(a)) trusted
 			out + 1
 		else
 			out
-	res[0 .. end - res.begin-ptr].cast-immutable deque
+	res[0 .. end - res.begin-ptr].cast-immutable to-deque
 
 map<out, in> deque out(a deque in, f act out(in)) trusted
 	res fix-arr out = a.size uninitialized-fix-arr
@@ -107,7 +130,7 @@ map<out, in> deque out(a deque in, f act out(in)) trusted
 		*out := f[x]
 		out + 1
 	hard-assert: end == res.end-ptr
-	res.cast-immutable deque
+	res.cast-immutable to-deque
 
 .dbg str(a deque nat64)
 	out writer = ()
@@ -132,31 +155,31 @@ test
 	a deque nat64 = ()
 	assert: a is-empty
 	a.dbg is "[]"
-	a.arr is ()
+	a.to-arr is ()
 	# TODO: 'a.pop-left is ()'
 	a.pop-left.is-empty is true
 	a.pop-right.is-empty is true
 
 	bl = 1 ~ a
 	bl.dbg is "1 []"
-	bl.arr is (1,)
+	bl.to-arr is (1,)
 	bl-pop-left = bl.pop-left!
 	bl-pop-left.value is 1
 	# TODO: 'is deque'
-	bl-pop-left.rest.arr is ()
+	bl-pop-left.rest.to-arr is ()
 	bl-pop-right = bl.pop-right!
 	bl-pop-right.value is 1
-	bl-pop-right.rest.arr is ()
+	bl-pop-right.rest.to-arr is ()
 
 	br = a ~ 1
 	br.dbg is "[] 1"
-	br.arr is bl.arr
+	br.to-arr is bl.to-arr
 	br-pop-left = br.pop-left!
 	br-pop-left.value is 1
-	br-pop-left.rest.arr is ()
+	br-pop-left.rest.to-arr is ()
 	br-pop-right = br.pop-right!
 	br-pop-right.value is 1
-	br-pop-right.rest.arr is ()
+	br-pop-right.rest.to-arr is ()
 
 	c = bl ~ 2 ~ 3
 	c.dbg is "1 [] 2 3"
@@ -168,23 +191,23 @@ test
 	d.dbg is "[] 2 3"
 	d-pop-left = d.pop-left!
 	d-pop-left.value is 2
-	d-pop-left.rest.arr is (3,)
+	d-pop-left.rest.to-arr is (3,)
 
 	d-pop = d.pop-left!
 	d-pop.value is 2
 	d-pop.rest.dbg is "[3]"
 
 	# Test converting right stack to array
-	x = 1 ~ (2 ~ (3 ~ ().deque))
-	x.arr is (1, 2, 3)
+	x = 1 ~ (2 ~ (3 ~ ()))
+	x.to-arr is (1, 2, 3)
 	x.dbg is "1 2 3 []"
 	x-pop = x.pop-right!
 	x-pop.value is 3
 	x-pop.rest.dbg is "[1 2]"
 
-	six = 1 ~ (2 ~ (3, 4).deque) ~ 5 ~ 6
+	six = 1 ~ (2 ~ (3, 4)) ~ 5 ~ 6
 	six.dbg is "1 2 [3 4] 5 6"
 	folded = 10 fold six, (x, y) => x wrap-add y
 	folded is 31
-	(six filter it => it is-even).arr is (2, 4, 6)
-	(six map it => it wrap-add 10).arr is (11, 12, 13, 14, 15, 16)
+	(six filter it => it is-even).to-arr is (2, 4, 6)
+	(six map it => it wrap-add 10).to-arr is (11, 12, 13, 14, 15, 16)

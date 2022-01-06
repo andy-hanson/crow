@@ -16,8 +16,8 @@ import
 
 ###
 Reads from stdin.
-If that comes from the user typifng at the terminal, this will block until they hit enter.
-Result is `strip`ped.
+If that comes from the user typing at the terminal, this will block until they hit enter.
+Result will not have leading or trailing whitespace.
 ###
 read-stdin str() trusted summon
 	buffer fix-arr nat8 = 0x2000 uninitialized-fix-arr
@@ -30,7 +30,7 @@ read-stdin str() trusted summon
 		buffer[0 .. bytes-read].cast-immutable.as-str strip
 
 ###
-Keep reading from stdin until `parse` succeeds.
+Keep reading from stdin until `parse` returns a non-empty option.
 Print `error-message` after every failure.
 ###
 read-stdin-until-parse<a> a(error-message str, parse act a?(str)) summon

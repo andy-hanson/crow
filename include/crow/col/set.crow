@@ -16,20 +16,23 @@ import
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
 	./arr: ==, arr, new
 	./arr-util: fold
-	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
-	./frozen-set:
+	./experimental/index-set:
+		count-greater-or-equal, each, filter-less, is-empty, in, index-set, new, size, try-remove
+	./experimental/frozen-set:
 		begin-ptr, each, end-ptr, fold-with-index, frozen-set, is-empty, new, size, to-frozen-set,
 		try-get-unordered-index, unsafe-frozen-set-from-fix-arr-cast-immutable
-	./index-set:
-		count-greater-or-equal, each, filter-less, is-empty, in, index-set, new, size, try-remove
+	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
 	./mut-arr: ~=, move-to-arr, mut-arr, new
 
+###
+Immutable unsorted set.
+###
 set<a> record
 	.add add-node a
 	.remove index-set
 
 # TODO:KILL
-node-count<a> nat64(a set<a>)
+node-count<a> nat64(a set<a>) no-doc
 	0 node-count a.add
 .node-count<a> nat64(acc nat64, a add-node<a>)
 	if left ?= a.left
@@ -41,20 +44,25 @@ node-count<a> nat64(a set<a>)
 	here frozen-set a
 	left add-node<a>?
 
+# Set containing the given elements (with duplicates removed).
 new<a> set a(...a a[]) is-data<a> compare<a> hash-mix<a>
 	a to-set
 
+# Set containing the given elements (with duplicates removed).
 to-set<a> set a(a a[]) is-data<a> compare<a> hash-mix<a>
 	# TODO: type annotation should be unnecessary
 	(a.to-frozen-set, ())::add-node<a>, ()
 
+# Copies set elements to an array.
 to-arr<a> a[](a set a) is-data<a> compare<a> hash-mix<a>
 	# TODO: If a has a single add node and no remove, just return that
 	a map-to-arr x => x
 
+# `true` iff `a.size == 0`.
 is-empty<a> bool(a set a) is-data<a> compare<a> hash-mix<a>
 	a.add.here is-empty
 
+# Number of elements in the set.
 size<a> nat64(a set a) is-data<a> compare<a> hash-mix<a>
 	a.remove.size add-size-recur a.add
 
@@ -70,12 +78,10 @@ size<a> nat64(a set a) is-data<a> compare<a> hash-mix<a>
 	else
 		acc
 
-subscript<a> bool(a set a, value a) is-data<a> compare<a> hash-mix<a>
+# `true` iff `value` is an element of `a`.
+in<a> bool(value a, a set a) is-data<a> compare<a> hash-mix<a>
 	if index ?= a.add find-in-add value
 		!(index in a.remove)
-
-in<a> bool(value a, a set a) is-data<a> compare<a> hash-mix<a>
-	a[value]
 
 .find-in-add<a> nat64?(a add-node a, value a) is-data<a> compare<a> hash-mix<a>
 	if index ?= a.here try-get-unordered-index value
@@ -83,23 +89,48 @@ in<a> bool(value a, a set a) is-data<a> compare<a> hash-mix<a>
 	elif left ?= a left
 		left find-in-add value
 
+###
+Adds an element to the set.
+
+If `value` is alerady in the set, returns `a` unmodified.
+###
 ~ <a> set a(a set a, value a) is-data<a> compare<a> hash-mix<a>
 	a try-add value ?? a
 
+# Adds many elements to the set, ignoring those already in the set.
 ~ <a> set a(a set a, values a[]) is-data<a> compare<a> hash-mix<a>
 	a fold values, (cur, value) => cur ~ value
 
+###
+Union of two sets.
+
+This is a set containing all elements in either `a` or `b`.
+###
 | <a> set a(a set a, b set a) is-data<a> compare<a> hash-mix<a>
 	# TODO:PERF
 	a ~ b.to-arr
 
+###
+Intersection of two sets.
+
+This is a set containing all elements in both `a` and `b`.
+###
 & <a> set a(a set a, b set a) is-data<a> compare<a> hash-mix<a>
 	# TODO:PERF
 	a filter x => x in b
 
+###
+Set difference.
+
+This is a set containing all elements in `a` but not in `b`.
+###
 - <a> set a(a set a, b set a) is-data<a> compare<a> hash-mix<a>
 	a filter x => !(x in b)
 
+###
+If `value` is already in the set, returns an empty option.
+Else, adds it and returns the new set.
+###
 try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 	if index ?= a.add find-in-add value
 		if new-remove ?= a.remove try-remove index
@@ -298,15 +329,15 @@ test
 	e = d ~ (4, 10)::nat64[]
 	e verify "[1 4 6 5], [10 8]"
 	e.size is 6
-	e[0] is false
-	e[1] is true
-	e[2] is false
-	e[3] is false
-	e[4] is true
-	e[5] is true
-	e[6] is true
-	e[7] is false
-	e[8] is true
-	e[9] is false
-	e[10] is true
-	e[11] is false
+	0 in e is false
+	1 in e is true
+	2 in e is false
+	3 in e is false
+	4 in e is true
+	5 in e is true
+	6 in e is true
+	7 in e is false
+	8 in e is true
+	9 in e is false
+	10 in e is true
+	11 in e is false

@@ -1,12 +1,20 @@
 no-std
 
+###
+Generic pair type.
+Could be used for many things.
+
+This is often used as a key-value pair in a dictionary or priority queue.
+###
 pair<a, b> record
 	by-val
 	a a
 	b b
 
+# Same as `a.a`.
 from<a, b> a(a pair<a, b>) noctx
 	a a
 
+# Same as `a.b`.
 to<a, b> b(a pair<a, b>) noctx
 	a b

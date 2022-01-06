@@ -1,0 +1,283 @@
+no-std
+import
+	../../bool: bool
+	../../compare: !=, >
+	../../exception: assert, forbid
+	../../fun-util: subscript
+	../../misc: new, void
+	../../opt: ==, is-empty, new, opt
+	../../ptr: ==, +, -, *, const-ptr, mut-ptr, set-deref, set-subscript
+	../../range: ..
+	../../str: ==, str
+	../../test-util: is
+	../../writer: ~=, backup, move-to-str, new, writer
+	../../private/bootstrap: hard-assert
+	../../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
+	../arr: ==, arr, begin-ptr, end-ptr, is-empty, new, size
+	../arr-util: each, each-with-index, find-and-get, first, fold, last, rtail
+	../fix-arr:
+		begin-ptr, cast-immutable, copy-from, end-ptr, fix-arr, fix-arr-from-begin-end,
+		set-subscript, size, subscript, uninitialized-fix-arr
+
+###
+Immutable list type.
+Appending a value with `~` is amortized O(1).
+Popping a value with `rtail` and `last` is always O(1).
+###
+list<a> record
+	by-ref
+	.prev list<a>?
+	.values a[]
+
+new<a> list a(...a a[])
+	a to-list
+
+###
+Convert an arr to a list.
+This is O(1).
+###
+to-list<a> list a(a a[])
+	prev list<a>? = ()
+	prev, a
+
+###
+Copy a list to an arr.
+This is O(n).
+###
+to-arr<a> a[](a list a) trusted
+	res fix-arr a = a.size uninitialized-fix-arr
+	res.end-ptr write-out a
+	res cast-immutable
+
+###
+Append a value to the list.
+This is amortized O(1).
+This is because about every 2 steps it allocates an array of size 2,
+every 4 steps it allocates an array of size 4, etc.
+###
+~ <a> list a(a list a, value a) trusted
+	res = a push-recur 1
+	res.values[res.values.size wrap-sub 1] := value
+	res.prev-list, res.values.cast-immutable
+
+.list-builder<a> record mut
+	prev-list list<a>?
+	values fix-arr a
+
+.push-recur<a> list-builder a(a list a, size-right nat64) unsafe
+	if a.values.size > size-right
+		(a,), size-right.uninitialized-fix-arr
+	else
+		new-size-right = size-right wrap-add a.values.size
+		res = if prev ?= a prev
+			prev push-recur new-size-right
+		else
+			(), new-size-right.uninitialized-fix-arr
+		offset = res.values.size wrap-sub size-right wrap-sub a.values.size
+		res.values[offset .. (offset wrap-add a.values.size)] copy-from a.values
+		res
+
+# True iff the list is empty.
+is-empty<a> bool(a list a) trusted
+	res = a.values is-empty
+	if res
+		hard-assert: a.prev is-empty
+	res
+
+###
+Oldest appended value.
+This is O(a.size ln)
+###
+first<a> a?(a list a)
+	if prev ?= a prev
+		prev first
+	else
+		a.values first
+
+###
+Most recently appended value.
+This is O(1).
+###
+last<a> a?(a list a)
+	a.values last
+
+###
+All but the last value.
+This is O(1).
+Throws if the list is empty.
+###
+rtail<a> list a(a list a)
+	forbid: a.values.size == 0
+	if a.values.size == 1
+		if prev ?= a prev
+			prev
+	else
+		a.prev, a.values.rtail
+		
+###
+Number of elements in the list.
+This is O(ln a.size).
+###
+size<a> nat64(a list a) noctx
+	a.values.size size-recur a.prev
+.size-recur<a> nat64(acc nat64, a list<a>?) noctx
+	if node ?= a
+		acc wrap-add node.size size-recur node.prev
+	else
+		acc
+
+###
+Concatenate an array to a list.
+This is O(1).
+###
+~ <a> list a(a list a, b a[])
+	prev list<a>? = unless a is-empty
+		a,
+	prev, b
+
+###
+Concatenate two lists.
+This is O(n).
+###
+~ <a> list a(a list a, b list a) trusted
+	a-size = a size
+	res fix-arr a = a-size wrap-add b.size uninitialized-fix-arr
+	res.end-ptr write-out b
+	res.begin-ptr + a-size write-out a
+	res.cast-immutable to-list
+
+.write-out<a> void(end a mut*, a list a) unsafe
+	new-end = end - a.values.size
+	new-end fix-arr-from-begin-end end copy-from a.values
+	if prev ?= a prev
+		new-end write-out prev
+
+region iteration
+
+# Call a function for each element in the list.
+each<a> void(a list a, f act void(a))
+	if prev ?= a prev
+		prev each f
+	a.values each f
+
+# Call a function for each element in the list and accumulate.
+fold<a, b> a(acc a, a list b, f act a(a, b))
+	v = if prev ?= a prev
+		acc fold prev, f
+	else
+		acc
+	v fold a.values, f
+
+# Produce a list with `f[x]` applied to each element `x` in the input.
+map<out, in> list out(a list in, f act out(in)) trusted
+	res fix-arr out = a.size uninitialized-fix-arr
+	end = res.begin-ptr map-recur a, f
+	hard-assert: end == res.end-ptr
+	res.cast-immutable to-list
+.map-recur<out, in> out mut*(out out mut*, a list in, f act out(in)) unsafe
+	next-out = if prev ?= a prev
+		out map-recur prev, f
+	else
+		out
+	a.values each-with-index (value, index) =>
+		next-out[index] := f[value]
+	next-out + a.values.size
+
+filter<a> list a(a list a, f act bool(a)) trusted
+	res fix-arr a = a.size uninitialized-fix-arr
+	end = res.begin-ptr filter-recur a, f
+	res[0 .. end - res.begin-ptr].cast-immutable to-list
+.filter-recur<a> a mut*(out a mut*, a list a, f act bool(a)) unsafe
+	new-out = if prev ?= a prev
+		out filter-recur prev, f
+	else
+		out
+	new-out filter-recur-arr a.values.begin-ptr, a.values.end-ptr, f
+.filter-recur-arr<a> a mut*(out a mut*, cur a*, end a*, f act bool(a)) unsafe
+	if cur == end
+		out
+	else
+		new-out = if f[*cur]
+			*out := *cur
+			out + 1
+		else
+			out
+		new-out filter-recur-arr cur + 1, end, f
+
+find-and-get<out, in> out?(a list in, f act out?(in))
+	before = if prev ?= a prev
+		prev find-and-get f
+
+	if before is-empty
+		a.values find-and-get f
+	else
+		before
+
+.dbg str(a list nat64)
+	res writer = ()
+	res dbg-recur a
+	res move-to-str
+.dbg-recur void(out writer, a list nat64)
+	if prev ?= a prev
+		out dbg-recur prev
+		out ~= " "
+	out ~= "["
+	if a.values is-empty
+		out ~= "]"
+	else
+		a.values each x =>
+			out ~= x
+			out ~= " "
+		out backup
+		out ~= "]"
+
+test
+	a list nat64 = ()
+	assert: a is-empty
+	a.to-arr is ()
+	a.dbg is "[]"
+	a.last is ()
+
+	b = a ~ 1
+	b.dbg is "[1]"
+	b.last is (1,)
+	b.rtail.to-arr is ()
+	forbid: b is-empty
+
+	c = b ~ 2
+	c.dbg is "[1 2]"
+	c.last is (2,)
+	c.rtail.to-arr is (1,)
+
+	d = c ~ 3
+	d.dbg is "[1 2] [3]"
+	d.last is (3,)
+	d.rtail.to-arr is (1, 2)
+
+	e = d ~ 4
+	e.dbg is "[1 2 3 4]"
+	e.last is (4,)
+	e.rtail.to-arr is d.to-arr
+	e.size is 4
+
+	# TODO: should not need type annotation
+	e56 = e ~ (5, 6) :: nat64[]
+	e56.dbg is "[1 2 3 4] [5 6]"
+	(c ~ d).dbg is "[1 2 1 2 3]"
+
+	e2 = e map it => it wrap-add 10
+	e2.dbg is "[11 12 13 14]"
+
+	e3 = e filter it => it != 2
+	e3.dbg is "[1 3 4]"
+
+	folded = 5 fold e, (x, y) => x wrap-add y
+	folded is 15
+
+	# TODO: compiler crashes without a type argument here
+	(e find-and-get@<str, nat64> x => x if-eq 3, "three") is ("three",)
+	(e find-and-get@<str, nat64> x => x if-eq 5, "five") is ()
+
+.if-eq str?(actual nat64, expected nat64, result str)
+	if actual == expected
+		result,

@@ -1,85 +1,55 @@
 <section>
-	<h2>Templates and specs</h2>
-	<p>Types, functions, and specs can all be templated on type parameters.
+	<h2>declaring templates</h2>
+	<p>
+		We've seen many templates so far; for example,
+		<code>fut nat</code> instantiates the <code class="struct">fut</code> template, and
+		<code>nat[]</code> instantiates the <code class="struct">arr</code> template.
+		Dictionary and function types are also just syntax for templates.
+	</p>
+	<p>
+		A <em>template</em> is any function or type that has type parameters.
 		<br />
-		Common types like <code class="struct-ref">arr</code> and <code class="struct-ref">fut</code> are
-		templates.
+		When the type is used, those type parameters are filled in with actual types,
+		which are called the type arguments.
+		<br />
+		A <em>concrete</em> function or type is one with all type arguments filled in;
+		<code>fut</code> is a template and <code>fut nat</code> is a concrete type.
+	</p>
+	<p>
+		The example below declares a <code class="struct">list</code> type
+		that uses a type parameter for the element type.
 	</p>
 	<crow-runnable src="template"></crow-runnable>
-	<h4>Syntax for templates</h4>
-	<p>To define a template, put <code>&lt;></code> after the declaration name with type parameter names
-		inside.
+</section>
+<section>
+	<h3>template syntax</h3>
+	<p>
+		<code>list&lt;a> record</code> declares a type parameter <code class="tparam">a</code>,
+		making <code class="struct">list</code> a type template.
 		<br />
-		A type parameter name must start with a <code>?</code>. (The naming rules are otherwise unchanged.)
-		<br />
-		This same syntax works on types, functions, and specs.
+		Similarly, <code>fold&lt;a, b></code> declares two type parameters,
+		<code class="tparam">a</code> and <code class="tparam">b</code>,
+		making <code class="fun">fold</code> a function template.
 	</p>
-	<p>For a function, it's optional to declare type parameters.
+	<p>
+		When using (not declaring) a type template,
+		the <code>&lt;></code> may be omitted if there is only one type argument.
 		<br />
-		If they are not declared, the compiler will create a new type parameter
-		when it sees a name starting with <code>?</code> that it doesn't recognize.
+		That lets you write <code>list a</code> instead of <code>list&lt;a></code>.
 		<br />
-		(You may still want to declare them to force a certain order.)
-	</p>
-	<h4>Syntax for using templates</h4>
-	<p>The syntax to use a type template is <code>dict&lt;nat, str></code>.
-		<br />
-		When there is a single type argument, the <code>&lt;></code> may be omitted, as in
-		<code>arr str</code>.
-		This applies recursively, as in <code>opt node ?a</code>
-		which is equivalent to <code>opt&lt;node&lt;?a>></code>.
-	</p>
-	<p>For pedants:
-		<br />
-		When you write <code>node&lt;?a&gt; record</code> as a <em>declaration</em>,
-		the <code>?a</code> is a type <em>parameter</em>.
-		<br />
-		When you write <code>a node ?a</code>, the <code class="tparam-ref">?a</code> is a type
-		<em>argument</em>,
-		which happens to refer to the <code class="fun-ref">sum</code> function's type parameter;
-		just like <code class="struct-ref">nat</code> is the type argument in <code>node nat</code>.
-	</p>
-	<p>For functions, you don't usually need to specify type arguments, since the compiler can infer them.
-		<br />
-		If necessary, you can specify function type arguments using the same syntax as for types,
-		though the <code>&lt;&gt;</code> is never optional.
+		Sometimes you still need the <code>&lt;></code>;
+		since <code>node a?</code> would mean <code>node&lt;a?></code>,
+		you must write <code>node&lt;a>?</code> instead.
 	</p>
 </section>
 <section>
-	<h3>spec</h3>
-	<p>In C++, a template is type-checked each time it is instantiated,
-		so you can write code that depends on knowing what kind of types will appear.
+	<h3>type inference</h3>
+	<p>
+		When calling a function template like <code class="fun">size</code>,
+		you don't need to supply the type arguments; they are inferred.
 		<br />
-		In crow, templates are type-checked abstractly; the compiler only checks them once,
-		and checks that they work for all possible <code class="tparam-ref">?a</code>.
+		In the rare case you need to supply a type argument, you can write this like <code>size@&lt;nat></code>.
 		<br />
-		That means that you can't assume anything about <code class="tparam-ref">?a</code>.
-	</p>
-	<p>That works for <code class="fun-ref">size</code> which doesn't actually touch the <code>head</code>.
-		<br />
-		But <code class="fun-ref">sum</code> needs to call a <code class="fun-ref">+</code> function,
-		and which function it calls will depend on <code class="tparam-ref">?a</code>.
-	</p>
-	<p>The solution is a <code class="keyword">spec</code>, which allows you to call functions
-		that are provided by the <em>caller</em>, and don't need to be in the scope of the callee.
-	</p>
-	<p>In this example, <code class="fun-def">sum</code> wants to call a function
-		with the signature <code>+ ?a(a ?a, b ?a)</code>.
-		(With <code>?a</code> replaced by the type <code class="fun-ref">sum</code> was instantiated with.)
-	</p>
-	<p>The caller of <code class="fun-ref">sum</code> (in this case <code class="fun-ref">main</code>)
-		instantiates it as <code>sum&lt;nat&gt;</code> and can supply a <code class="fun-ref">+</code>
-		function
-		that has the signature <code class="fun-ref">+ nat(a nat, b nat)</code>.
+		(There's no syntax to do this for operators like <code class="fun">~</code>.)
 	</p>
 </section>
-<section>
-	<h3>Tail recursion</h3>
-	<p>Both <code>size</code> and <code>sum</code> (the second overload) are <em>tail-recursive</em>
-		functions.
-		This means that the very last operation is a call to itself (or is a base case returning
-		<code>acc</code>).</p>
-	<p>In crow, <em>tail recursive</em> calls do not increase the stack size,
-		so they are safe to use on long lists without overflowing the stack,
-		unlike non-tail recursive calls which may cause a stack overflow.</p>
-</section><a id="next" href="collection.html">Next: Collections</a>

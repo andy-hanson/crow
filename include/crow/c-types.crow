@@ -1,23 +1,48 @@
+###
+Types for compatibility with C.
+###
+
 no-std
 import
 	./private/bootstrap: char, float32, int32, int64, nat32, nat64
 
+# Equivalent to C's `char` type.
 c-char alias
 	char
+
+# Equivalent to C's `float` type.
 c-float alias
 	float32
+
+# Equivalent to C's `int` type.
 c-int alias
 	int32
+
+# Equivalent to C's `size_t` type.
 size_t alias
 	nat64
+
+# Equivalent to C's `ssize_t` type.
+ssize_t alias
+	int64
+
+# Equivalent to C's `long` type.
 s-long alias
 	int64
+
+# Equivalent to C's `long long` type.
 s-long-long alias
 	int64
+
+# Equivalent to C's `unsigned long` type.
 u-long alias
 	nat64
+
+# Equivalent to C's `unsigned long long` type.
 u-long-long alias
 	nat64
+
+# Equivalent to C's `unsigned int` type.
 u-int alias
 	nat32
 

@@ -1,3 +1,7 @@
+###
+Functions for use in tests.
+###
+
 no-std
 import
 	./compare: equal
@@ -5,12 +9,18 @@ import
 	./private/exception-low-level: assert, catch, message, throw
 	./str: ==, str
 
+###
+Asserts the the values are equal.
+###
 is<a> void(a a, b a) equal<a>
 	assert: a == b
 
+###
+Calls `f` and asserts that it throws an exception with the specified `message`.
+###
 throws<a> void(f act a(), message str)
 	match f catch
 	as ok _
-		throw: "Expected to throw an exception"
+		"Expected to throw an exception" throw
 	as err e
 		e.message is message

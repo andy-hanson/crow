@@ -11,13 +11,19 @@ export
 
 ###
 Sends a log to the current log handler.
+By default, this means the message is logged to the console.
+
+This is not considered `summon` since the I/O is done by the log handler,
+which is passed in via the crow context. `with-log-handler` can change it.
 ###
 log void(level log-level, message str) trusted
 	get-log-handler[(level, message)]
 
 ###
-Temporarily replaces the log handler for this task.
-(Does not affect other tasks.)
+Temporarily replaces the log handler.
+
+Only applies within this task. Even if you launch a task inside `with-log-handler`,
+that task will still have the default log handler.
 ###
 with-log-handler<a> a(handler log-handler, cb act a())
 	original-handler = get-log-handler

@@ -99,10 +99,10 @@ bin/crow.wasm: $(wasm_deps)
 ALL_INCLUDE = include/*.crow include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
 
 bin/crow.tar.xz: bin/crow demo/* $(ALL_INCLUDE)
-	tar -C .. -cJf bin/crow.tar.xz crow/bin/crow crow/demo crow/include
+	tar --directory .. --create --xz --file bin/crow.tar.xz crow/bin/crow crow/demo crow/include
 
 prepare-site: bin/crow bin/crow.wasm bin/crow.tar.xz
 	bin/crow run site-src/site.crow
 
 serve: prepare-site
-	bin/crow run site-src/serve
+	bin/crow run site-src/serve.crow -- 8080

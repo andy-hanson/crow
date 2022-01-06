@@ -1,37 +1,29 @@
 no-std
 import
-	./bool: bool, false, true
+	./bool: bool
 	./col/arr: new
 	./col/mut-arr: ~=, move-to-arr, mut-arr, new
 	./compare: <
 	./misc: void
 	./number:
-		==, <=>, *, /, abs, float64, float32, int8, int16, int32, int64, is-multiple-of, mod, nat8,
+		==, <=>, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-multiple-of, nat8,
 		nat16, nat32, nat64, to-float64, to-int64, to-nat64, truncate-to-int64
-	./opt: new, opt
-	./reader: take-float, take-int, take-nat, with-reader
-	./str: ==, ~, char, chars, str
+	./str: ~, char, chars, str
 
+# Returns `"void"`.
 to-str str(_ void)
 	"void"
 
-# "true" or "false".
+# `"true"` or `"false"`.
 to-str str(b bool) noctx
 	if b
 		"true"
 	else
 		"false"
 
-# Str containing a single character.
+# String containing a single character.
 to-str str(c char)
 	(c,) str
-
-# Parses "true" or "false".
-parse-bool bool?(a str)
-	if a == "true"
-		true,
-	elif a == "false"
-		false,
 
 ###
 Converts a nat64 to a str.
@@ -88,7 +80,7 @@ to-hex str(a nat8)
 	if a < base
 		a digit-to-str
 	else
-		(a / base to-base base) ~ (a mod base).digit-to-str
+		(a / base to-base base) ~ (a % base).digit-to-str
 .to-base str(a nat8, base nat64)
 	a.to-nat64 to-base base
 
@@ -99,12 +91,6 @@ to-str<a> spec
 # Identity function to satisfy the `to-str` spec.
 to-str str(a str)
 	a
-
-to-str<a> str(a a?) to-str<a>
-	if v ?= a
-		"some({v})"
-	else
-		"none"
 
 to-str str(a nat8)
 	a.to-nat64 to-str
@@ -144,7 +130,7 @@ to-str str(a float64)
 .to-str-positive str(a float64)
 	# TODO: Use a real float to str algorithm
 	times-100 = (a * 100.0).truncate-to-int64
-	hundredths = times-100 mod 100
+	hundredths = times-100 % 100
 	tenths = hundredths / 10
 	whole-part = (times-100 / 100).to-str
 	if hundredths == 0
@@ -153,27 +139,6 @@ to-str str(a float64)
 		"{whole-part}.{tenths}"
 	else
 		"{whole-part}.{hundredths}"
-
-###
-Parse digits as a nat64.
-Return none if the str contains any punctuation or whitespace.
-###
-parse-nat nat64?(a str)
-	a with-reader r => r take-nat
-
-###
-The str should be a series of digits, optionally preceded by "-" or "+".
-If not, this returns `none`.
-###
-parse-int int64?(a str)
-	a with-reader r => r take-int
-
-###
-The str should be a valid int, optionally followed by a "." and then a valid int.
-If not, this returns `none`.
-###
-parse-float float64?(a str)
-	a with-reader r => r take-float
 
 region Interpolation
 

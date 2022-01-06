@@ -1,0 +1,14 @@
+import
+	crow/col/dict
+	crow/col/mut-dict
+	crow/io/print: print
+
+main fut nat(_ str[]) summon
+	x str mut[nat] = (1, "one"), (2, "two")
+	print: x try-remove 1 ?? "n/a"
+	print: x try-remove 1 ?? "n/a"
+	x[2] := "dos"
+	y = x move-to-dict
+	print: x.is-empty to-str
+	print: y[2] ?? "n/a"
+	()

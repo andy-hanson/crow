@@ -34,7 +34,7 @@ import
 	../time: delay
 	./net: bind-to-port
 
-# Represents the state of the server.
+# Reference to a running server.
 tcp-server record sendable
 	stop ref void()
 
@@ -90,7 +90,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 			state.should-stop := true
 			done
 
-# Close the fd for a TCP client.
+# Close a TCP client.
 close-client void(client-fd fd-t) unsafe summon
 	sd-err = client-fd shutdown SHUT_RDWR
 	assert: sd-err == 0

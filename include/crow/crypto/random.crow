@@ -1,3 +1,7 @@
+###
+Functions for generating cryptographically random numbers.
+###
+
 no-std
 import
 	sodium: randombytes_random

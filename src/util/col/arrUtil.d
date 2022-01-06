@@ -3,8 +3,8 @@ module util.col.arrUtil;
 import util.alloc.alloc : Alloc, allocateBytes, allocateT;
 import util.col.arr : ArrWithSize, empty, ptrAt, ptrsRange, sizeEq, toArr;
 import util.col.mutArr : mustPop, MutArr, mutArrAt, mutArrSize, setAt;
-import util.comparison : Comparer, Comparison, ConstComparer;
-import util.memory : initMemory, initMemory_mut, overwriteMemory;
+import util.comparison : Comparer, Comparison;
+import util.memory : initMemory, initMemory_mut;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr;
 import util.util : max, verify;
@@ -585,32 +585,6 @@ private immutable(Acc) each(Acc, T)(
 	return cast(immutable) res[0 .. resSize];
 }
 
-//TODO:PERF More efficient than bubble sort..
-void sortInPlace(T)(scope T[] a, scope immutable ConstComparer!T compare) {
-	immutable size_t n = a.length; // avoiding dscanner warning `Avoid subtracting from '.length' as it may be unsigned`
-	if (n > 1) {
-		size_t lastNonSorted = 0;
-		foreach (immutable size_t i; 0 .. n - 1) {
-			final switch (compare(a[i], a[i + 1])) {
-				case Comparison.less:
-				case Comparison.equal:
-					break;
-				case Comparison.greater:
-					swap(a, i, i + 1);
-					lastNonSorted = i + 1;
-					break;
-			}
-		}
-		sortInPlace!T(a[0 .. lastNonSorted], compare);
-	}
-}
-
-private void swap(T)(scope T[] a, immutable size_t i, immutable size_t j) {
-	T tmp = a[i];
-	overwriteMemory(&a[i], a[j]);
-	overwriteMemory(&a[j], tmp);
-}
-
 void zip(T, U)(
 	immutable T[] a,
 	immutable U[] b,
@@ -869,7 +843,7 @@ private immutable(size_t) arrMaxIndexRecur(T, U)(
 	ref const U[] a,
 	immutable size_t index,
 	scope immutable(T) delegate(ref const U, immutable size_t) @safe @nogc pure nothrow cb,
-	Comparer!T compare,
+	scope immutable Comparer!T compare,
 ) {
 	if (index == a.length)
 		return indexOfMax;

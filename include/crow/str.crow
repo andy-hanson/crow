@@ -1,3 +1,8 @@
+###
+More string functions are in `crow/str-conv` and `crow/str-util`.
+Also, `crow/reader` is useful for parsing strings, and `crow-writer` is useful for generating strings.
+###
+
 no-std
 import
 	./bool: bool
@@ -8,18 +13,34 @@ import
 export
 	./private/bootstrap: char, chars, c-str, str, to-char, to-nat8
 
+###
+Treat an array of characters as a string.
+This is O(1).
+###
 str str(a char[]) noctx
 	a,
 
+# Same as `""`.
 new str() noctx
 	""
 
+###
+Concatenate two strings.
+This is O(n).
+
+If you need to concatenate many strings, consider using the `crow/writer` module.
+###
 ~ str(a str, b str)
 	a.chars ~ b.chars,
 
+# Same as `a == ""`.
 is-empty bool(a str) noctx
 	a.chars is-empty
 
+###
+Number of bytes in the UTF-8 representation of `a`.
+This is O(1).
+###
 size-bytes nat64(a str) noctx
 	a.chars size
 
@@ -34,7 +55,7 @@ size-bytes nat64(a str) noctx
 	a.to-nat8 <=> b.to-nat8
 
 # TODO: this should be generic on all arrs
-== bool(a char[], b char[]) noctx
+== bool(a char[], b char[]) no-doc noctx
 	a arr-equal b
-== bool(a str[], b str[]) noctx
+== bool(a str[], b str[]) no-doc noctx
 	a arr-equal b

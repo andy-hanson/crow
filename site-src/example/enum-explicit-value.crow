@@ -2,10 +2,10 @@ import
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	print: saturday.to-nat32 to-str
+	print: saturday.to-nat8 to-str
 	0,
 
-lucky-numbers enum
+lucky-numbers enum<nat8>
 	friday = 13
 	saturday
-	slots = 777
+	route = 66

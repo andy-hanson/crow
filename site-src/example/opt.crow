@@ -1,13 +1,26 @@
 import
 	crow/io/print: print
+	crow/str-util: starts-with
 
 main fut nat(_ str[]) summon
-	print: "1" rate-my-number
-	print: "1.5" rate-my-number
+	print: "crow" describe
+	print: "ox" describe
+	print: "dr. mario" describe
+	print: "soap" describe
 	()
 
-rate-my-number str(a str)
-	if n ?= a parse-nat
-		"as many as {n}"
-	else
-		"not a nat"
+describe str(a str)
+	"{a}: {a.category ?? "don't know what that is"}"
+
+category str?(a str)
+	a.class || a.profession
+
+class str?(a str)
+	if a == "crow"
+		"bird",
+	elif a == "ox"
+		"mammal",
+
+profession str?(a str)
+	if a starts-with "dr. "
+		"doctor",

@@ -2,12 +2,13 @@ import
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	fut-a = launch: () =>
+	fut-a fut str = launch: () =>
 		print: "Hello from a"
-		1 + 1,
-	fut-b = launch: () =>
+		"crow",
+	fut-b fut str = launch: () =>
 		print: "Hello from b"
-		2 + 2,
-	fut-a join fut-b, (a, b) =>
-		print: a + b to-str
-		()
+		"bar",
+	a <- fut-a
+	b <- fut-b
+	print: "{a}{b}"
+	()

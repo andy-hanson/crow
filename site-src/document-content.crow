@@ -1,25 +1,33 @@
 import
-	crow/col/arr-util: map
-	crow/str-util: join
+	crow/col/arr-util: in, map, tail
+	crow/str-util:
+		join, left, middle, replace, right, strip-left, try-remove-start, try-split-once,
+		try-split-once-by-fn
+	crow/writer: ~=, move-to-str, new, writer
 	./module:
-		body_, doc-comment, exports, fields, is-mut, members, module, module-export,
-		module-export-value, name, param, params, record-field, return-type, sig, target,
-		type-param, type-params, type, type-args, type-ref, value
+		body_, doc-comment, exports, fields, has-private-fields, is-mut, members, module,
+		module-export, module-export-value, name, param, params, path, purity, record-field,
+		return-type, spec-ref, spec-sig, specs, target, type-param, type-params, type, type-args,
+		type-ref, union-member, value, variadic
 
 module-content str(a module)
-	a.exports map (x => x export-content) join ""
+	exports = a.exports map (x => x export-content) join ""
+	doc = unless a.doc-comment is-empty
+		"""\n<section class="module-doc">{a.doc-comment format-comment}</section>"""
+	"{a.path module-top}{doc}\n{exports}"
+
+module-top str(path str)
+	# https://github.com/andy-hanson/crow/blob/master/include/crow/bits.crow
+	url = "https://github.com/andy-hanson/crow/blob/master/include/{path}.crow"
+	"""<h1><code class="module">{path}</code> <a class="source-link" href="{url}">(source)</a></h1>"""
 
 .export-content str(a module-export)
+	type-params = a.type-params type-params-content
+	header-extra = a.value export-header-extra
 	"""<section class="doc {a.value section-class}">
-		<h4>
-			<div>
-				<span class="{a.value name-class}">{a name}</span>
-				{a.type-params type-params-content}
-				{a.value export-header-extra}
-			</div>
-		</h4>
+		<h4><code class="{a.value name-class}">{a name}</code>{type-params} {header-extra}</h4>
 		{a.value export-body}
-		{a.doc-comment}
+		{a.doc-comment format-comment}
 	</section>
 	"""
 
@@ -47,58 +55,69 @@ module-content str(a module)
 .name-class str(a module-export-value)
 	match a
 	as alias-decl _
-		"struct-def"
+		"struct"
 	as builtin-decl
-		"struct-def"
+		"struct"
 	as enum-decl _
-		"struct-def"
+		"struct"
 	as extern-ptr-decl
-		"struct-def"
+		"struct"
 	as flags-decl _
-		"struct-def"
+		"struct"
 	as fun-decl _
-		"fun-def"
+		"fun"
 	as record-decl _
-		"struct-def"
+		"struct"
 	as spec-decl _
-		"spec-def"
+		"spec"
 	as union-decl _
-		"struct-def"
+		"struct"
 
 .type-params-content str(a type-param[])
 	unless a is-empty
-		"""<ul class="typeParams">{a map (x => x type-param-content) join ", "}</ul>"""
+		"""<ul class="type-params">{a map (x => x type-param-content) join ","}</ul>"""
 
 .type-param-content str(a type-param)
-	"""<li class="tparam-def">{a name}</li>"""
+	"""<li><code class="type-param">{a name}</code></li>"""
 
 .export-header-extra str(a module-export-value)
 	match a
 	as alias-decl _
-		"alias"
+		"alias" keyword
 	as builtin-decl
-		"builtin"
+		"builtin" keyword
 	as enum-decl _
-		"enum"
+		"enum" keyword
 	as extern-ptr-decl
-		"extern-ptr"
+		"extern-ptr" keyword
 	as flags-decl _
-		"flags"
+		"flags" keyword
 	as fun-decl f
-		"""{f.return-type type-ref-content}(<ul class="params">
-			{f.params map (x => x param-content) join ", "}
-		</ul>)"""
-	as record-decl _
-		"record"
-	as spec-decl _
-		"spec"
-	as union-decl _
-		"union"
+		f.return-type return-type-and-params-and-specs f.variadic, f.params, f.specs
+	as record-decl r
+		"{"record" keyword}{r.purity purity-content}"
+	as spec-decl s
+		match s body_
+		as spec-builtin
+			"spec builtin" keyword
+		as spec-sigs _
+			"spec" keyword
+	as union-decl u
+		"{"union" keyword}{u.purity purity-content}"
+
+.purity-content str(a purity)
+	match a
+	as p-data
+		""
+	as p-sendable
+		" sendable" keyword
+	as p-mut
+		" mut" keyword
 
 .export-body str(a module-export-value)
 	match a
 	as alias-decl al
-		al.target type-ref-content
+		"""<div class="alias-target">{al.target type-ref-content}</div>"""
 	as builtin-decl
 		()
 	as enum-decl e
@@ -110,41 +129,154 @@ module-content str(a module)
 	as fun-decl _
 		()
 	as record-decl r
+		pre = if r.has-private-fields
+			"""<p class="has-private">(has private fields)</p>"""
 		fields = r.fields map (x => x field-content) join ""
-		"""<ul class="fields">{fields}</ul>"""
+		"""{pre}<ul class="members">{fields}</ul>"""
 	as spec-decl s
 		match s body_
 		as spec-builtin
-			"builtin"
+			""
 		as spec-sigs sigs
-			sigs-content = sigs map (x => x sig-content) join ""
+			sigs-content = sigs map (x => x spec-sig-li) join ""
 			"""<ul class="sigs">{sigs-content}</ul>"""
-	as union-decl _
-		# TODO: the members
-		()
+	as union-decl u
+		members = u.members map (x => x union-member-content) join ""
+		"""<ul class="members">{members}</ul>"""
 
 .enum-flags-members-content str(a sym[])
-	members = a map (x => "<li>{x}</li>") join ", "
-	"<ul>{members}</ul>"
+	members = a map (x => """<li><code class="member">{x}</code></li>""") join ""
+	"""<ul class="members">{members}</ul>"""
 
 .field-content str(a record-field)
-	"<li>{a name} {a.type type-ref-content}{a.is-mut ? " mut"}</li>"
+	name = """<code class="member">{a name}</code>"""
+	mut-kw = a.is-mut ? """ <code class="keyword">mut</code>"""
+	"<li>{name}{mut-kw} {a.type type-ref-content}</li>"
 
-.sig-content str(a sig)
-	params = a.params map (x => x param-content) join ""
-	"""<li class="sig">{a name} {a.return-type type-ref-content}({params})</li>"""
+.union-member-content str(a union-member)
+	name = """<code class="member">{a name}</code>"""
+	type = if t ?= a type
+		" {t type-ref-content}"
+	"<li>{name}{type}</li>"
 
-.param-content str(a param)
-	"""<span class="param-def">{a name}</span> {a.type type-ref-content}"""
+.spec-sig-li str(a spec-sig)
+	rt = a.return-type return-type-and-params-and-specs false, a.params, ()
+	"""<li class="sig"><code class="fun">{a name}</code> {rt}</li>"""
+
+.return-type-and-params-and-specs str(return-type type-ref, variadic bool, params param[], specs spec-ref[])
+	params-lis = params map (x => x param-li variadic) join ","
+	specs-ul = unless specs is-empty
+		"""<ul class="specs">{specs map (x => x spec-ref-li) join ""}</ul>"""
+	"""{return-type type-ref-content}<ul class="params">{params-lis}</ul>{specs-ul}"""
+
+.param-li str(a param, variadic bool)
+	var = variadic ? """<code class="keyword">...</code>"""
+	"""<li>{var}<code class="param">{a name}</code> {a.type type-ref-content}</li>"""
 
 .type-ref-content str(a type-ref)
+	a type-ref-content-recur false
+
+.type-ref-with-subscript str(a type-ref)
+	a type-ref-content-recur true
+
+.type-ref-content-recur str(a type-ref, has-subscript bool)
 	name = a name
-	if a.type-args is-empty
-		"""<span class="struct-ref">{name}</span>"""
+	if name == "opt"
+		"{a.type-args.only type-ref-with-subscript}{"?" keyword}"
+	elif name == "arr"
+		"{a.type-args.only type-ref-with-subscript}{"[]" keyword}"
+	elif name == "mut-arr"
+		"{a.type-args.only type-ref-with-subscript}{" mut[]" keyword}"
+	elif name == "dict"
+		k = a.type-args[0] type-ref-content
+		v = a.type-args[1] type-ref-with-subscript
+		"{v}{"[" keyword}{k}{"]" keyword}"
+	elif name == "mut-dict"
+		k = a.type-args[0] type-ref-content
+		v = a.type-args[1] type-ref-with-subscript
+		"{v}{" mut[" keyword}{k}{"]" keyword}"
+	elif name == "const-ptr"
+		"{a.type-args.only type-ref-with-subscript}{"*" keyword}"
+	elif name == "mut-ptr"
+		"{a.type-args.only type-ref-with-subscript}{" mut*" keyword}"
+	elif name in ("fun0", "fun1", "fun2", "fun3", "fun4", "fun5")
+		a fun-type "fun"
+	elif name in ("fun-act0", "fun-act1", "fun-act2", "fun-act3", "fun-act4", "fun-act5")
+		a fun-type "act"
+	elif name in ("fun-ref0", "fun-ref1", "fun-ref2", "fun-ref3", "fun-ref4", "fun-ref5")
+		a fun-type "ref"
 	else
-		# TODO: handle arr, dict specially
-		"""
-		<span class="struct-ref">
-		{name}<{a.type-args map (x => x type-ref-content) join ", "}>
-		</span>
-		"""
+		inner = if a.type-args.size == 1 && !has-subscript
+			"{name} {a.type-args.only type-ref-content}"
+		else
+			"{name}{a.type-args type-args-content}"
+		"""<code class="struct">{inner}</code>"""
+
+.fun-type str(a type-ref, type str)
+	params = a.type-args.tail map (x => x type-ref-content) join ", "
+	kw = " {type}" keyword
+	"{a.type-args[0] type-ref-with-subscript}{kw}({params})"
+
+.spec-ref-li str(a spec-ref)
+	"""<li><code class="spec">{a name}</code>{a.type-args type-args-content}</li>"""
+
+.type-args-content str(a type-ref[])
+	unless a is-empty
+		"<{a map (x => x type-ref-content) join ","}>"
+
+.keyword str(a str)
+	"""<code class="keyword">{a}</code>"""
+
+.only<a> a(a a[])
+	assert: a.size == 1
+	a[0]
+
+.format-comment str(a str)
+	out writer = ()
+	out ~= "<p>"
+	new-state = out format-comment-recur text, a
+	out ~= new-state.close-state
+	out move-to-str
+
+.comment-state enum
+	text
+	code-block
+
+.close-state str(a comment-state)
+	match a
+	as text
+		"</p>"
+	as code-block
+		"</div>"
+
+.format-comment-recur comment-state(out writer, state comment-state, a str)
+	if split ?= a try-split-once-by-fn x => x == "\n" || x == "`"
+		out ~= split.left
+		mid = split middle
+		if mid == "\n"
+			if rest ?= state == text ? split.right try-remove-start "\n"
+				out ~= "</p><p>"
+				out format-comment-recur state, rest
+			else
+				out ~= "<br />"
+				out format-comment-recur state, split.right
+		else
+			assert: mid == "`"
+			if rest ?= split.right try-remove-start "``"
+				match state
+				as text
+					out ~= """</p><div class="code-block">"""
+					out format-comment-recur code-block, rest.strip-left
+				as code-block
+					out ~= "</div>"
+					out format-comment-recur text, rest.strip-left
+			elif pair ?= split.right try-split-once "`"
+				out ~= "<code>"
+				out ~= pair.a replace "<", "&lt;"
+				out ~= "</code>"
+				out format-comment-recur state, pair.b
+			else
+				out format-comment-recur state, split.right
+	else
+		out ~= a
+		state

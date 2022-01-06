@@ -1,0 +1,19 @@
+import
+	crow/col/arr-util: fold
+	crow/io/print: print
+	crow/math/vec
+
+main fut nat(_ str[]) summon
+	nats nat[] = 0, 1
+	vecs vec2[] = (0, 1), (2, 3)
+	print: "nats sum: {nats sum}"
+	print: "vecs sum: {vecs sum}"
+	()
+
+add<a> spec
+	new a()
+	+ a(a a, b a)
+
+sum<a> a(xs a[]) add<a>
+	() fold xs, (acc, x) =>
+		acc + x

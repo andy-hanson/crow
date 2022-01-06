@@ -3,23 +3,23 @@ import
 	time: time, time_t
 	../fut: fut
 	../misc: new, void
-	../number: +
+	../number: +, to-nat64
 	../ptr: null
 	../private/fut-low-level: resolve, unresolved
 	../private/runtime: add-task, get-cur-island, new-exclusion
+	./private/time-low-level: get-monotime-nsec
 	./duration: duration, nsec
-export
-	./time-low-level: get-monotime-nsec
 
 unix-time record
 	seconds-since-epoch time_t
 
+# Get the current Unix timestamp.
 get-unix-time unix-time() summon trusted
 	null.time,
 
 # Returns a `fut` that will resolve after `duration` has passed.
 delay fut void(duration duration) trusted summon
-	target-time = get-monotime-nsec + duration.nsec
+	target-time = get-monotime-nsec + duration.nsec.to-nat64
 	island = get-cur-island
 	res = unresolved@<void>
 	island add-task target-time, island.new-exclusion, () =>

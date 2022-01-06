@@ -1,3 +1,9 @@
+###
+Functions for formatting time values as strings.
+
+Most of these take a `unix-time`; see `get-unix-time` in `crow/io/time`.
+###
+
 no-std
 import
 	time: gmtime, localtime, strftime
@@ -22,25 +28,25 @@ local-time time-locale()
 gmt time-locale()
 	false,
 
-# E.g. "-0500"
+# Returns a value like `"-0500"`.
 timezone-offset str(locale time-locale, time unix-time) summon
 	locale format time, "%z", 5
 
-# E.g. "EST"
+# Returns a value like `"EST"`.
 timezone-name str(locale time-locale, time unix-time) summon
 	locale format time, "%Z", 20
 
-# E.g. "2000"
+# Year as a string, e.g. `"2000"`.
 year str(locale time-locale, time unix-time) summon
 	locale format time, "%Y", 5
 
-# E.g. "00"
+# Last 2 digits of the year, e.g. `"00"`.
 year-2-digit str(locale time-locale, time unix-time) summon
 	locale format time, "%y", 2
 
 ###
-Date formatted by local preferences
-E.g. "2020-01-30" or "01/30/20".
+Date formatted by local preferences.
+E.g., `"2020-01-30"` or `"01/30/20"`.
 ###
 date str(locale time-locale, time unix-time) summon
 	if locale is-local-time
@@ -48,66 +54,69 @@ date str(locale time-locale, time unix-time) summon
 	else
 		locale iso-date time
 
-# HH:MM:SS, e.g. 00:00:00
+# `HH:MM:SS`, e.g. `00:00:00`.
 time-of-day str(locale time-locale, time unix-time) summon
 	locale format time, "%X", 8
 
-# E.g. "Mon"
+# E.g. `"Mon"`.
 day-of-week-short str(locale time-locale, time unix-time) summon
 	locale format time, "%a", 3
 
-# E.g. "Monday"
+# E.g. `"Monday"`.
 day-of-week-long str(locale time-locale, time unix-time) summon
 	locale format time, "%A", 9
 
-# Day from 001 to 366 inclusive
+# Day from 001 to 366 inclusive.
 day-of-year str(locale time-locale, time unix-time) summon
 	locale format time, "%j", 3
 
-# Month like "Jan"
+# Month like `"Jan"`.
 month-short str(locale time-locale, time unix-time) summon
 	locale format time, "%b", 3
 
-# Month like "January"
+# Month like `"January"`.
 month-long str(locale time-locale, time unix-time) summon
 	locale format time, "%B", 9
 
-# Month from 01 to 12 inclusive
+# Month from `"01"` to `"12"` inclusive.
 month-number str(locale time-locale, time unix-time) summon
 	locale format time, "%m", 2
 
-# Day of month from "01" to "31" inclusive
+# Day of month from `"01"` to `"31"` inclusive.
 day-of-month str(locale time-locale, time unix-time) summon
 	locale format time, "%d", 2
 
-# YYYY-MM-DD (ISO 8601 date format)
+# `YYYY-MM-DD` (ISO 8601 date format)
 iso-date str(locale time-locale, time unix-time) summon
 	locale format time, "%F", 10
 
 ###
-ISO 8601 full timestamp, in UTC
-Example: 2000-01-01T00:00:00Z
+ISO 8601 full timestamp, in UTC.
+E.g.: `2000-01-01T00:00:00Z`
 ###
 iso-timestamp str(time unix-time) summon
 	gmt format time, "%FT%H:%M:%SZ", 20
 
-# Hour from 00 to 23 inclusive
+# Hour from 00 to 23 inclusive.
 hour-of-24 str(locale time-locale, time unix-time) summon
 	locale format time, "%H", 2
 
-# Hour from 1 to 12 inclusive
+# Hour from 1 to 12 inclusive.
 hour-of-12 str(locale time-locale, time unix-time) summon
 	locale format time, "%I", 2
 
-# "am" or "pm". Empty in GMT
+# `"am"` or `"pm"`. `""` in GMT.
 am-pm str(locale time-locale, time unix-time) summon
 	locale format time, "%P", 2
 
-# Minute from 00 to 59 inclusive
+# Minute from 00 to 59 inclusive.
 minute str(locale time-locale, time unix-time) summon
 	locale format time, "%M", 2
 
-# Second from 00 to 60 inclusive (60 for leap seconds)
+###
+Second from 00 to 60 inclusive.
+(60 for leap seconds.)
+###
 second str(locale time-locale, time unix-time) summon
 	locale format time, "%S", 2
 

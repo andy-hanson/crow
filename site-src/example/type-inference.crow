@@ -1,0 +1,28 @@
+main fut nat(_ str[]) summon
+	()
+
+infer-from-return-type str()
+	()
+
+infer-from-local-type str()
+	# The compiler doesn't work backwards to infer a type for 'x',
+	# so it needs an explicit type.
+	x str = ()
+	x
+
+use-type-annotation str()
+	x = () :: str
+	x
+
+infer-from-function-call void()
+	# () is a 'str'
+	() takes-a-str
+
+takes-a-str void(_ str)
+	()
+
+infer-from-statements-void str()
+	# Inferred as 'void' since any non-last line of a function is 'void'
+	()
+	# Inferred as 'str' since this is the returned expression
+	()

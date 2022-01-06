@@ -1,6 +1,5 @@
 no-std
 import
-	../io/duration: duration, nsec
 	../col/arr: empty-arr
 	../col/fix-arr: empty-fix-arr, fix-arr
 	../ptr: by-val
@@ -13,16 +12,12 @@ perf-time record
 
 perf-ctx record mut
 	measure-names mut sym[]
-	measure-values mut fix-arr measure-value
+	measure-values mut fix-arr perf-measure-value
 
 perf-ctx by-val perf-ctx() noctx
 	empty-arr, empty-fix-arr
 
-measure-value record
+perf-measure-value record
 	by-val
 	count nat64
-	# TODO:PRIVATE
-	total-ns nat64
-
-total-duration duration(a measure-value)
-	a.total-ns nsec
+	total-nsec nat64

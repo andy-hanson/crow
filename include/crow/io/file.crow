@@ -33,7 +33,7 @@ import
 	./posix-util: check-errno, check-posix-error
 	./print: print
 
-# True if this is the path of a directory.
+# `true` iff `path` is the path of a directory.
 is-dir bool(path str) summon trusted
 	path.to-c-str is-dir
 
@@ -43,16 +43,16 @@ is-dir bool(path str) summon trusted
 	else
 		throw: "path does not exist: {path}"
 
-# True if this is the path of a file.
-is-file bool(path str) summon
+# `true` iff `path` is the path of a file -- not a directory, possibly a symlink.
+is-file bool(path str) summon trusted
 	path.to-c-str is-file
 
 .is-file bool(path c-str) summon
 	if stat ?= path get-stat
 		stat.st_mode & S_IFMT == S_IFREG
 
-# True if something (like a file or directory) exists at the path.
-path-exists bool(path str) summon
+# `true` iff anything (like a file or directory) exists at the path.
+path-exists bool(path str) summon trusted
 	path.to-c-str path-exists
 
 .path-exists bool(path c-str) summon
@@ -71,7 +71,10 @@ path-exists bool(path str) summon
 .seek-end int32()
 	2
 
-# Like 'names-in-dir', but returns full paths
+###
+Returns all children of the directory `path`, as full paths.
+Use `names-in-dir` if you just want their names.
+###
 paths-in-dir str[](path str) summon
 	path.names-in-dir map x =>
 		path child-path x
@@ -79,8 +82,9 @@ paths-in-dir str[](path str) summon
 ###
 Returns the basename of all children of the directory.
 Does not include ".." or ".".
+Use `paths-in-dir` if you want full paths.
 ###
-names-in-dir str[](path str) summon
+names-in-dir str[](path str) summon trusted
 	path.to-c-str names-in-dir
 
 .names-in-dir str[](path c-str) trusted summon
@@ -105,7 +109,7 @@ names-in-dir str[](path str) summon
 			res ~= entry.get-dirent-name
 		dirp names-in-dir-recur res
 
-# Gets the path a link refers to.
+# Gets the path a symbolic link refers to.
 read-link str(path str) summon trusted
 	# TODO: smart small and retry if necessAry
 	buff fix-arr char = 1000 uninitialized-fix-arr
@@ -114,6 +118,7 @@ read-link str(path str) summon trusted
 		check-errno
 	buff.cast-immutable[0 .. size.to-nat64] str
 
+# Create a symbolic link at `link` with the target `target`.
 make-symlink-to void(link str, target str) summon trusted
 	err = target.to-c-str symlink link.to-c-str
 	unless err == 0
@@ -122,18 +127,17 @@ make-symlink-to void(link str, target str) summon trusted
 
 ###
 Gets the path of the current executable.
-If you did specify a built executable, this will be that.
-If you didn't specify a built executable, this will be in a temp directory.
-If you are using the interpreter, this will be the path to `crow`.
+If this program was built to executable, this will return its path.
+Otherwise, this will be the path where `crow` is installed.
 ###
 current-executable-path str() summon trusted
 	"/proc/self/exe" read-link
 
-# Gets the full contents of the file as a nat8[].
+# Reads the full contents of the file.
 read-file str(path str) summon trusted
 	path.read-file-binary as-str
 
-# Gets the full contents of the file as a nat8[].
+# Reads the full contents of the file as a `nat8[]`.
 read-file-binary nat8[](path str) summon
 	if res ?= path try-read-file-binary
 		res
@@ -144,7 +148,7 @@ read-file-binary nat8[](path str) summon
 Writes the full contents of the file as a string.
 If the file already exists, overwrites it.
 ###
-write-file void(path str, content str) summon
+write-file void(path str, content str) summon trusted
 	path.to-c-str write-file content
 
 .write-file void(path c-str, content str) summon trusted
@@ -172,14 +176,15 @@ write-file void(path str, content str) summon
 			todo
 
 ###
-Like `read-file`, but returns `none` if the file does not exist.
-Other errors (like permission errors) still throw.
+Like `read-file`, but returns an empty option if the file does not exist.
+Will still throw on other errors, like permission errors.
 ###
 try-read-file str?(path str) summon trusted
 	if bytes ?= path.try-read-file-binary
 		bytes.as-str,
 
-try-read-file-binary nat8[]?(path str) summon
+# Like `try-read-file` but returns binary data.
+try-read-file-binary nat8[]?(path str) summon trusted
 	path.to-c-str try-read-file-binary
 
 .try-read-file-binary nat8[]?(path c-str) summon trusted
@@ -242,7 +247,10 @@ each-child-recursive void(path str, f act void(str)) summon
 	filter act bool(str) = ignore => true
 	path each-child-recursive filter, f
 
-# `each-child-recursive` that does not descend into a child if `f[child_name]` returns false.
+###
+Like `each-child-recursive`, but calls `filter` on names of directory children
+and skips them if `filter` returns false.
+###
 each-child-recursive void(path str, filter act bool(str), f act void(str)) summon
 	if path is-dir
 		path.names-in-dir each child_name =>
@@ -251,6 +259,13 @@ each-child-recursive void(path str, filter act bool(str), f act void(str)) summo
 	else
 		f[path]
 
+# POSIX file permissions.
+file-permissions record
+	user permissions
+	group permissions
+	public permissions
+
+# Permissions for one of user, group, public.
 permissions record
 	read bool
 	write bool
@@ -265,17 +280,15 @@ no-permissions permissions()
 all-permissions permissions()
 	true, true, true
 
-file-permissions record
-	user permissions
-	group permissions
-	public permissions
-
 user-only file-permissions(user-permissions permissions)
 	user-permissions, no-permissions, no-permissions
 
+# Converts permissions to an integer.
 to-mode mode_t(a file-permissions)
 	a.user.to-mode << 6 | a.group.to-mode << 3 | a.public.to-mode
 
+# TODO: this might not be the correct default permissions
+# Creates a new empty directory at `path`.
 make-directory void(path str) summon
 	# TODO: all-permissions.user-only instead of a number literal
 	# TODO: 'to-nat32' should not be necessary
@@ -287,16 +300,21 @@ make-directory void(path str, permissions file-permissions) summon
 make-directory void(path str, permissions mode_t) trusted summon
 	check-posix-error: path.to-c-str mkdir permissions
 
+# Deletes the file at `path`.
 remove-file void(path str) trusted summon
 	check-posix-error: path.to-c-str unlink
 
+###
+Deletes the directory at `path`.
+It should be empty.
+###
 remove-directory void(path str) trusted summon
 	check-posix-error: path.to-c-str rmdir
 
-remove-directory-and-contents-non-recursive void(path str) summon
+remove-directory-and-contents-non-recursive void(path str) no-doc summon
 	path remove-directory-contents-non-recursive
 	path remove-directory
 
-remove-directory-contents-non-recursive void(path str) summon
+remove-directory-contents-non-recursive void(path str) no-doc summon
 	path.names-in-dir each child =>
 		"{path}/{child}" remove-file

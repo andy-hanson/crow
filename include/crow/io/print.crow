@@ -35,5 +35,6 @@ print-err-no-newline void(s str) summon trusted noctx
 		# TODO: Maybe retry
 		todo
 
+# Clear the terminal.
 clear-screen void() summon
 	"\x1bc" print-no-newline

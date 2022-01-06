@@ -9,7 +9,8 @@ import
 	crow/io/print: print-err
 	crow/io/process: shell-exec
 	crow/str-util:
-		ends-with, head, in, split-by, tail, try-split-once, try-split-once-by-fn, try-split-once-by-whitespace
+		ends-with, has-substr, head, left, right, split-by, tail, try-split-once,
+		try-split-once-by-fn, try-split-once-by-whitespace
 	../site-src/search-dir-recursive: search-dir-recursive
 
 main fut nat(_ str[]) summon
@@ -72,11 +73,11 @@ all-files file[]() summon
 	look-for = "!_TAG_PROGRAM_URL	https://github.com/dlang-community/D-Scanner/\n"
 	rest = (stdout try-split-once look-for)!.b
 	rest split-by "\n" each line =>
-		unless line == "" || "enum:" in line || "struct:" in line
+		unless line == "" || line has-substr "enum:" || line has-substr "struct:"
 			name = line.try-split-once-by-whitespace!.a str-to-sym
-			if "access:public" in line
+			if line has-substr "access:public"
 				public ~= name
-			elif "access:private" in line
+			elif line has-substr "access:private"
 				private ~= name
 			else
 				unless path in excluded-unknown-access-paths || name in excluded-unknown-access
@@ -124,8 +125,8 @@ all-files file[]() summon
 	unless a is-empty
 		if a.head is-identifier-char
 			if pair ?= a try-split-once-by-fn x => !x.is-identifier-char
-				cb[pair.a str-to-sym]
-				pair.b each-word cb
+				cb[pair.left str-to-sym]
+				pair.right each-word cb
 			else
 				cb[a str-to-sym]
 		else

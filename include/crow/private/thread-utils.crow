@@ -13,11 +13,11 @@ import
 	../cell: *, cell, new
 	../extra-types: err-t
 	../fun-util: fun-ptr1, subscript
-	../io/time-low-level: timestamp, to-timespec
+	../io/private/time-low-level: timestamp, to-timespec
 	../misc: new, void
-	../ptr: ==, any-mut-ptr, by-val, null, ptr-to, ref-of-val
+	../ptr: ==, any-mut-ptr, by-val, null, ptr-to, ref-of-val, zeroed
 	./bootstrap:
-		hard-assert, hard-forbid, mutex, nat64, new, opt, todo, zeroed
+		hard-assert, hard-forbid, mutex, nat64, new, opt, todo
 	./number-low-level: ==, wrap-add, wrap-sub
 export
 	./bootstrap: lock

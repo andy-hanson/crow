@@ -2,45 +2,92 @@ no-std
 
 region basic types
 
+###
+Empty type, for use by functions with nothing in particular to return.
+###
 void builtin
 
 new-void void() noctx builtin
 
 ###
-A type is data if it is:
-* A primitive
-* A record or union of pure types
+Specifies that a type must be immutable data.
+
+This includes most types in crow that are not `mut`.
+This does not include `fut` or `ref`, though these types work with `is-sendable`.
+
+To put it another way, a type works with `is-data` if it is:
+* A primitive like `nat`, an `enum`, or `flags`.
+* A record with no `mut` fields, whose fields are all `is-data`.
+* A union whose member types are all `is-data`.
+* Immutable collections like `x[]`, where the type arguments are all `is-data`.
+* A constant pointer like `nat*`.
 ###
 is-data<a> builtin-spec
 
-# A type is sendable if it does not have any thread-unsafe mutable state.
+###
+Specifies that a type must be safe to share between tasks that may run in parallel.
+
+Anything that satisfies `is-data` satisfies `is-sendable`.
+In addition, `fut` and `ref` types are sendable if their type arguments are.
+(`fut<cell nat>` is not sendable.)
+
+In the future, parallel-safe collections may be included here.
+###
 is-sendable<a> builtin-spec
 
 ## TODO: extern<a> builtin-spec for extern ptr types
 
 region opt.crow
 
+###
+Optional type. Read the tutorial to learn more.
+
+You never need to `match` on this union; use the `if x ?= y` syntax instead. 
+###
 opt<a> union
 	none
 	some a
 
 region result.crow
 
-# Union that represents a value that may have failed.
+###
+A `result` is either a success (`ok`) or failure (`err`) value.
+
+This provides a more explicit alternative to throwing an exception.
+Prefer this over throwing an exception if failure is likely.
+###
 result<ok, err> union
 	ok ok
 	err err
 
 region ptr.crow
 
+###
+Avoid using this; this may change in a future version.
+Forces a type to be passed by-value instead of by-reference.
+
+You'll usually need to call `ref-of-val` in order to pass the value to functions.
+
+This even works on mutable types; passing a mutable record by-value does a shallow copy.
+###
 by-val<a> builtin
 
 ###
-A raw pointer. GC will not trace these.
-WARN: If a is a reference type, mut-ptr<a> is a pointer to a pointer to a
+A raw pointer. Equivalent to `const a*` in C.
+
+The garbage collector does not trace raw pointers.
+
+If `a` is a reference type, `a*` is a pointer to a pointer.
+
+This is a read-only reference, is the pointee is not immutable;
+it could be modified if there are other references to it.
+###
+const-ptr<a> builtin
+
+###
+This is like `const-ptr` but supports writing to the contents.
 ###
 mut-ptr<a> builtin mut
-const-ptr<a> builtin
 
 any-const-ptr alias
 	nat8*
@@ -87,29 +134,81 @@ to-nat8 nat8(c char) noctx builtin
 
 region bool.crow
 
+###
+Boolean type: either `false` or `true`.
+
+Unlike in other programming languages, this isn't a numeric type.
+###
 bool builtin
+
+###
+False boolean value.
+This can also be written as `()`.
+###
 false bool() noctx builtin
+
+# True boolean value.
 true bool() noctx builtin
 
 region sym.crow
 
 sym record
 	by-val
-	to-c-str c-str
+	.sym-to-c-str c-str
+
+new-sym sym(a c-str) noctx unsafe
+	a,
+
+to-c-str c-str(a sym) no-doc noctx unsafe
+	a sym-to-c-str
 
 region bootstrap arithmetic
 
 # The compiler needs special access to these types to support number literals
 
+###
+8-bit natural number.
+An unsigned integer in the range 0 through 255.
+###
 nat8 builtin
+###
+16-bit natural number.
+An unsigned integer in the range 0 through 65_535.
+###
 nat16 builtin
+###
+32-bit natural number.
+An unsigned integer in the range 0 through 4_294_967_295 (4 billion).
+###
 nat32 builtin
+###
+64-bit natural number.
+An unsigned integer in the range 0 through 18_446_744_073_709_551_615 (18 quintillion).
+###
 nat64 builtin
+###
+8-bit signed integer.
+In the range -128 through 127.
+###
 int8 builtin
+###
+16-bit signed integer.
+In the range -32_768 through 32_767.
+###
 int16 builtin
+###
+32-bit signed integer.
+In the range -2_147_483_648 through 2_147_483_647 (-2 billion through 2 billion).
+###
 int32 builtin
+###
+64-bit signed integer,
+In the range 9_223_372_036_854_775_808 through 9_223_372_036_854_775_807 (-9 quintillion through 9 quintillion).
+###
 int64 builtin
+# 32-bit IEEE floating point number.
 float32 builtin
+# 64-bit IEEE floating point number.
 float64 builtin
 
 region hard assertions
@@ -187,7 +286,12 @@ island-and-exclusion record
 
 region fun
 
-# Low-level function pointer type. Must point to `noctx` code.
+###
+Low-level function pointer type. Must point to `noctx` code.
+These aren't used much in crow code.
+
+Create a function pointer by writing `&foo` where `foo` is the name of a function in scope.
+###
 fun-ptr0<r> builtin
 fun-ptr1<r, p0> builtin
 fun-ptr2<r, p0, p1> builtin
@@ -197,9 +301,11 @@ fun-ptr5<r, p0, p1, p2, p3, p4> builtin
 fun-ptr6<r, p0, p1, p2, p3, p4, p5> builtin
 
 ###
-Don't reference directly, instead use syntax `fun r(p0, p1)`
-Contrasted with `act`, a fun can't close over mutable data, so is thread-safe.
-It can still close over `send` data and perform I/O, so it's not a completely pure function.
+Non-mutating function type.
+This is usually written as `fun nat(str)` instead of `fun1<nat, str>`.
+
+Contrasted with `act`, a `fun` can't close over mutable data.
+It can still close over `sendable` data and perform I/O, so it's not a completely pure function.
 ###
 fun0<r> builtin sendable
 fun1<r, p0> builtin sendable
@@ -208,8 +314,9 @@ fun3<r, p0, p1, p2> builtin sendable
 fun4<r, p0, p1, p2, p3> builtin sendable
 
 ###
-Don't reference directly, instead use syntax `act r(p0, p1)`
-Can close over anything. Can only be run by the exclusion context that created it.
+This is usually written as `act nat(str, bool)` instead of `fun-act2<nat, str, bool>`.
+
+An `act` can have anything in its closure, including mutable data, so it's considered mutable.
 ###
 fun-act0<r> builtin mut
 fun-act1<r, p0> builtin mut
@@ -218,9 +325,11 @@ fun-act3<r, p0, p1, p2> builtin mut
 fun-act4<r, p0, p1, p2, p3> builtin mut
 
 ###
-Don't reference directly, instead use syntax `act r(p0, p1)`
-This wraps an `act` combined with the island/exclusion it came from, and becomes sendable
-since the `act` can't be called directly. Instead, it adds a task to the island.
+This is usually written as `ref nat(str)` instead of `fun-ref1<nat, str>`.
+
+This wraps an `act` combined with the exclusion it came from.
+This is sendable since the `act` isn't be called directly;
+instead a task is added that will call the `act` when its exclusion is available.
 ###
 fun-ref0<r> record force-sendable
 	by-val
@@ -243,7 +352,10 @@ fun-ref4<r, p0, p1, p2, p3> record force-sendable
 	island-and-exclusion island-and-exclusion
 	action act fut r(p0, p1, p2, p3)
 
-# Calls the function and returns its return value.
+###
+`f[x]` calls the function and returns its return value.
+`f[]` calls a function with no arguments and `f[x, y, z]` calls a function with 3 arguments.
+###
 subscript<r, p0, p1> r(a fun-ptr0 r) noctx builtin
 subscript<r, p0> r(a fun-ptr1<r, p0>, p0 p0) noctx builtin
 subscript<r, p0, p1> r(a fun-ptr2<r, p0, p1>, p0 p0, p1 p1) noctx builtin
@@ -303,12 +415,27 @@ backtrace record
 	by-val
 	return-stack sym[]
 
+###
+Type of a thrown exception.
+
+There is no exception subtyping in crow, so all exceptions have this type.
+###
 exception record
 	by-val
+	# Message passed to `throw`.
 	message str
-	## TODO: accessing backtrace should be unsafe
+	# TODO: accessing backtrace should be unsafe
+	###
+	Backtrace when the exception was created.
+	Catching and rethrowing the exception doesn't affect this.
+	###
 	backtrace backtrace
 
+###
+Future type.
+
+Ignore the fields, they should be private.
+###
 fut<a> record force-sendable
 	lk by-val lock
 	state mut fut-state a
@@ -333,15 +460,16 @@ lock record sendable
 
 region reflect
 
+# General-purpose type that stores a name and value.
 named-val<a> record
 	by-val
 	name sym
 	val a
 
-# all symbols that exist in the compiled code, in arbitrary order
+# All symbols that exist in the compiled code, in arbitrary order
 static-syms sym[]() noctx builtin
 
-# all named functions in arbitrary order
+# All named functions, in arbitrary order.
 all-funs named-val<any-const-ptr>[]() noctx unsafe builtin
 
 pthread_mutex_t record force-sendable

@@ -5,6 +5,7 @@ import
 export
 	./bootstrap: float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64
 
+# Same as 0.
 new nat8() noctx
 	0
 new nat16() noctx
@@ -93,13 +94,17 @@ unsafe-to-int16 int16(a int64) noctx unsafe builtin
 unsafe-to-int32 int32(a int64) noctx unsafe builtin
 unsafe-to-int64 int64(a nat64) noctx unsafe builtin
 
-to-nat64 nat64(n nat8) noctx builtin
-to-nat64 nat64(n nat16) noctx builtin
-to-nat64 nat64(n nat32) noctx builtin
+wrap-to-nat32 nat32(a nat64) noctx trusted
+	# TODO: Is this safe?
+	a unsafe-to-nat32
 
-to-int64 int64(i int8) noctx builtin
-to-int64 int64(i int16) noctx builtin
-to-int64 int64(i int32) noctx builtin
+to-nat64 nat64(a nat8) noctx builtin
+to-nat64 nat64(a nat16) noctx builtin
+to-nat64 nat64(a nat32) noctx builtin
+
+to-int64 int64(a int8) noctx builtin
+to-int64 int64(a int16) noctx builtin
+to-int64 int64(a int32) noctx builtin
 
 wrap-add nat8(a nat8, b nat8) noctx builtin
 wrap-add nat16(a nat16, b nat16) noctx builtin
@@ -131,47 +136,51 @@ wrap-mul nat64(a nat64, b nat64) noctx builtin
 unsafe-div nat64(a nat64, b nat64) noctx unsafe builtin
 unsafe-div int64(a int64, b int64) noctx unsafe builtin
 
-# Equivlaent to `a is-multiple-of 2`
+# Equivlaent to `a is-multiple-of 2`.
 is-even bool(a nat64) trusted
 	(a unsafe-mod 2) == 0
 
-# Not even
+# Equivalent to `!a.is-even`.
 is-odd bool(a nat64)
 	!a.is-even
 
 region constants
 
+# Least possible `int8`.
 min-int8 int8() noctx
 	-0x80
+# Least possible `int16`.
 min-int16 int16() noctx
 	-0x8000
-# Lowest possible int32.
+# Least possible `int32`.
 min-int32 int32() noctx
 	-0x80000000
-# Lowest possible int64.
+# Least possible `int64`.
 min-int64 int64() noctx
 	-0x8000000000000000
 
+# Greatest possible `int8`.
 max-int8 int8() noctx
 	0x7f
+# Greatest possible `int16`.
 max-int16 int16() noctx
 	0x7fff
-# Highest possible int32.
+# Greatest possible `int32`.
 max-int32 int32() noctx
 	0x7fffffff
-# Highest possible int64.
+# Greatest possible `int64`.
 max-int64 int64() noctx
 	0x7fffffffffffffff
 
-# Highest possible nat8.
+# Greatest possible `nat8`.
 max-nat8 nat8() noctx
 	0xff
-# Highest possible nat16.
+# Greatest possible `nat16`.
 max-nat16 nat16() noctx
 	0xffff
-# Highest possible nat32.
+# Greatest possible `nat32`.
 max-nat32 nat32() noctx
 	0xffffffff
-# Highest possible nat64.
+# Greatest possible `nat64`.
 max-nat64 nat64() noctx
 	0xffffffffffffffff

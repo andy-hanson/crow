@@ -19,7 +19,8 @@ import interpret.applyFn :
 	fnLessInt16,
 	fnLessInt32,
 	fnLessInt64,
-	fnLessNat,
+	fnLessNat8,
+	fnLessNat64,
 	fnMulFloat64,
 	fnSubFloat64,
 	fnTruncateToInt64FromFloat64,
@@ -87,8 +88,10 @@ void testApplyFn(ref Test test) {
 	testFnBinary!fnLessInt64(test, [u64OfI64Bits(-1), u64OfI64Bits(1)], 1);
 	testFnBinary!fnLessInt64(test, [u64OfI64Bits(long.max), u64OfI64Bits(1)], 0);
 
-	testFnBinary!fnLessNat(test, [1, 3], 1);
-	testFnBinary!fnLessNat(test, [1, one], 0);
+	testFnBinary!fnLessNat64(test, [1, 3], 1);
+	testFnBinary!fnLessNat64(test, [1, one], 0);
+	testFnBinary!fnLessNat64(test, [256, 1], 0);
+	testFnBinary!fnLessNat8(test, [256, 1], 1);
 
 	testFnBinary!fnMulFloat64(
 		test,

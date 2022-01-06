@@ -1,28 +1,60 @@
 no-std
 import
-	../number: *, /, nat64
+	../compare: >=
+	../number: ==, <=>, *, /, float64
+	../str: str
+	../str-conv: finish, interp, to-str, with-str, with-value
 
 # Represents an amount of time.
 duration record
-	.new
-	nsec nat64
+	by-val
+	.nanos float64
 
-seconds duration(a nat64)
-	a * 1000000000,
+# 0 duration.
+new duration()
+	0,
 
-msec duration(a nat64)
+# Duration of `a` seconds.
+seconds duration(a float64)
+	a * 1_000_000_000,
+
+# Duration of `a` milliseconds.
+msec duration(a float64)
 	a * 1000000,
 
-usec duration(a nat64)
+# Duration of `a` microseconds.
+usec duration(a float64)
 	a * 1000,
 
-nsec duration(a nat64)
+# Duration of `a` nanoseconds.
+nsec duration(a float64)
 	a,
 
-msec nat64(a duration)
-	# TODO:ROUND
-	a.nsec / 1000000
+# Number of seconds in `a`.
+seconds float64(a duration)
+	a.nanos / 1_000_000_000
 
-usec nat64(a duration)
+# Number of milliseconds in `a`.
+msec float64(a duration)
+	# TODO:ROUND
+	a.nsec / 1_000_000
+
+# Number of microseconds in `a`.
+usec float64(a duration)
 	# TODO:ROUND
 	a.nsec / 1000
+
+# Number of nanoseconds in `a`.
+nsec float64(a duration)
+	a nanos
+
+# Tries to pick an appropriate format for the value, like `1.5s` or `2.3us`.
+to-str str(a duration)
+	if a.nanos >= 1_000_000_000
+		"{a seconds}s"
+	elif a.nanos >= 1_000_000
+		"{a msec}ms"
+	elif a.nanos >= 1_000
+		"{a usec}us"
+	else
+		"{a nsec}ns"

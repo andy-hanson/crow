@@ -2,19 +2,19 @@ import
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	a dinner = "bruschetta", "wine"
-	b dinner = "chili", "milk"
+	a bird = "crow", "cap"
+	b bird = "seagull", "stetson"
 	print: a to-str
 	print: b to-str
 	print: a mix b to-str
 	()
 
-dinner record
-	food str
-	drink str
+bird record
+	species str
+	hat str
 
-mix dinner(a dinner, b dinner)
-	a.food, b.drink
+mix bird(a bird, b bird)
+	a.species, b.hat
 
-to-str str(a dinner)
-	"{a food} and {a drink}"
+to-str str(a bird)
+	"{a species} in a {a hat}"

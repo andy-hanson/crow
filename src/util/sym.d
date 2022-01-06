@@ -124,6 +124,7 @@ enum Operator {
 	minus,
 	times,
 	divide,
+	modulo,
 	exponent,
 	not,
 }
@@ -223,6 +224,8 @@ immutable(SafeCStr) strOfOperator(immutable Operator a) {
 			return safeCStr!"*";
 		case Operator.divide:
 			return safeCStr!"/";
+		case Operator.modulo:
+			return safeCStr!"%";
 		case Operator.exponent:
 			return safeCStr!"**";
 		case Operator.not:

@@ -1,22 +1,28 @@
+###
+Functions for operating on paths.
+There is technically no I/O here; for functions like reading from a path, see `crow/io/file`.
+###
+
 no-std
 import
 	../col/arr: subscript
-	../col/arr-util: last, r-index-of, rtail
+	../col/arr-util: last, index-of-reverse, rtail
 	../number: ==, <=>, +, -, nat64
 	../opt: new, opt
 	../range: ..
 	../str: ==, char, chars, new, size-bytes, str
 	../str-conv: finish, interp, to-str, with-str, with-value
+	../test-util: is
 
 ###
-Gets the parent of a path.
-Returns "" if the path has no parent.
+Parent of a path. This means removing the last path component.
+`""` if the path has no parent.
 ###
 parent-path str(a str)
-	if index ?= a.chars r-index-of "/"
+	if index ?= a.chars index-of-reverse "/"
 		a.chars[0 .. index] str
 
-# Gets a child of a path.
+# Adds a new path component onto the end.
 child-path str(a str, child_name str)
 	# TODO: ensure child-name doesn't contain "../"
 	"{a}/{child_name}"
@@ -29,18 +35,27 @@ child-path str(a str, child_name str)
 		else
 			a.chars.rtail.str last-index-of c
 
-# Gets the extension from a file name or path.
-# Returns none if there is no extension.
+###
+Gets the extension from a file name or path.
+Returns an empty option if there is no extension.
+###
 get-extension str?(name str)
 	if index ?= name last-index-of "."
 		name.chars[index + 1 .. name.size-bytes].str,
 
-# Removes the extension from a file name or path.
+###
+Removes the extension from a file name or path.
+This returns the path without the extension.
+
+For example: `"birds/crow.txt" remove-extension` is `"birds/crow"`.
+###
 remove-extension str(name str)
 	if index ?= name last-index-of "."
 		name.chars[0 .. index] str
 	else
 		name
+test
+	"birds/crow.txt".remove-extension is "birds/crow"
 
 ###
 Adds an extension to a file name or path.
@@ -48,10 +63,14 @@ If an extension already exists, adds a second one, as in `foo.png.txt`.
 ###
 add-extension str(name str, ext str)
 	"{name}.{ext}"
+test
+	"birds/crow.txt" add-extension "exe" is "birds/crow.txt.exe"
 
 # Removes the extension (if it exists) and adds a new one.
 change-extension str(name str, ext str)
 	name.remove-extension add-extension ext
+test
+	"birds/crow.txt" change-extension "exe" is "birds/crow.exe"
 
 # Gets just the file name without any directory names in from of it.
 base-name str(path str)
@@ -59,3 +78,5 @@ base-name str(path str)
 		path.chars[index + 1 .. path.size-bytes] str
 	else
 		path
+test
+	"birds/crow.txt".base-name is "crow.txt"

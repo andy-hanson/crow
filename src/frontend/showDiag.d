@@ -986,6 +986,8 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected newline";
 		case Token.noCtx:
 			return "unexpected keyword 'noctx'";
+		case Token.noDoc:
+			return "unexpected keyword 'no-doc'";
 		case Token.noStd:
 			return "unexpected keyword 'no-std'";
 		case Token.operator:

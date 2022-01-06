@@ -1,5 +1,5 @@
 import
-	crow/col/arr-util: first-some, tail
+	crow/col/arr-util: find-and-get, tail
 	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new
 	crow/io/environ: environ
 	crow/io/file: each-child-recursive
@@ -39,7 +39,7 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, o
 spec
 	summon
 body
-	op failure[]? = ("ast", "model", "concrete-model", "low-model")::str[] first-some print-kind =>
+	op failure[]? = ("ast", "model", "concrete-model", "low-model")::str[] find-and-get print-kind =>
 		if options print-tests
 			print: "crow print {print-kind} {path}"
 		res = print-kind run-print-test path-to-crow, env, path, options.overwrite-output

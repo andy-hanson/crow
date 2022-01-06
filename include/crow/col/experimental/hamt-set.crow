@@ -10,7 +10,7 @@ import
 	../arr: arr
 	../arr-util: map
 	../dict:
-		dict, each-key, fold-keys, is-empty, new, new-dict, size, subscript, to-dict, try-add,
+		dict, each-key, fold-keys, get-or-add, is-empty, new, rest, size, subscript, to-dict,
 		try-remove
 
 hamt-set<a> record
@@ -38,8 +38,8 @@ in<a> bool(value a, a hamt-set a) is-data<a> compare<a> hash-mix<a>
 		a
 
 try-add<a> hamt-set<a>?(a hamt-set a, value a) is-data<a> compare<a> hash-mix<a>
-	match a.inner try-add value, () => ()
-	as already-has-key _
+	match a.inner get-or-add value, () => ()
+	as got _
 		()
 	as added res
 		(res,),
@@ -52,7 +52,7 @@ try-add<a> hamt-set<a>?(a hamt-set a, value a) is-data<a> compare<a> hash-mix<a>
 
 try-remove<a> hamt-set<a>?(a hamt-set a, value a) is-data<a> compare<a> hash-mix<a>
 	if res ?= a.inner try-remove value
-		(res.new-dict,),
+		(res.rest,),
 
 region iteration
 

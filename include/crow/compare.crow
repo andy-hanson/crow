@@ -1,18 +1,40 @@
+###
+Functions for comparison.
+
+If you want a type to be comparable, just define `==` and `<=>`.
+Use the signatures defined in the `compare` spec.
+
+Other functions like `!=` are defined here, derived from those.
+###
+
 no-std
 import
 	./private/bool-low-level: !, bool, false, true
 	./private/bootstrap: str
 
+###
+Result of comparison.
+
+If `a <=> b` is `equal`, then any function on `a` should return ths same result as a on `b`.
+###
 comparison enum
 	less
 	equal
 	greater
 
+###
+Spec that only defines `==` but note `<=>`, since sometimes that's all that's needed.
+###
 equal<a> spec
 	== bool(a a, b a)
 
+###
+When defined for mutable values, this should compare their content without regard to mutablility;
+so it may consider values equal that may not be equal in the future.
+###
 compare<a> spec
 	== bool(a a, b a)
+	# This should return `equal` iff `==` would return `true`.
 	<=> comparison(a a, b a)
 
 # True iff `!(a == b)`.
@@ -29,7 +51,7 @@ compare<a> spec
 	as greater
 		false
 
-# True iff `!(a > b)`
+# True iff `(a <=> b) != greater`.
 <= <a> bool(a a, b a) noctx compare<a>
 	!(b < a)
 
@@ -37,25 +59,27 @@ compare<a> spec
 > <a> bool(a a, b a) noctx compare<a>
 	b < a
 
-# True iff `!(a < b)`.
+# True iff `(a <=> b) != less`.
 >= <a> bool(a a, b a) noctx compare<a>
 	!(a < b)
 
-# Returns the lesser argument
+###
+Returns the lesser argument.
+
+Returns `b` if they are equal.
+###
 min<a> a(a a, b a) noctx compare<a>
 	a < b ? a : b
 
-# Returns the greater argument
+###
+Returns the greater argument.
+
+Returns `b` if they are equal.
+###
 max<a> a(a a, b a) noctx compare<a>
-	a < b ? b : a
+	a > b ? a : b
 
-max<a> a(a a, b a, c a) noctx compare<a>
-	a max b max c
-
-max<a> a(a a, b a, c a, d a) noctx compare<a>
-	a max b max c max d
-
-# Returns "less", "equal", or "greater"
+# `"less"`, `"equal"`, or `"greater"`.
 to-str str(a comparison)
 	match a
 	as less
@@ -65,5 +89,11 @@ to-str str(a comparison)
 	as greater
 		"greater"
 
+###
+Clamps a value to an inclusive range.
+Returns the closest value to `a` that is >= min and <= max.
+
+This means: If `a` is too small, return `min`. If `a` is too large, return `max`.
+###
 clamp<a> a(a a, min a, max a) noctx compare<a>
 	a < min ? min : a > max ? max : a

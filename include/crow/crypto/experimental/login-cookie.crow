@@ -1,0 +1,51 @@
+no-std
+import
+	../../bool: &&, bool
+	../../col/arr: ~, arr, size, subscript
+	../../compare: <
+	../../exception: assert
+	../../io/time: get-unix-time, new, seconds-since-epoch, unix-time
+	../../log: info, log
+	../../misc: new
+	../../number: ==, <=>, -, nat8, nat64, to-int64
+	../../opt: new, opt
+	../../range: ..
+	../../reader: parse-int, parse-nat
+	../../serialize: from-bytes, to-8-bytes
+	../../str: str
+	../../str-conv: interp, finish, to-str, with-str, with-value
+	../../str-util: try-split-once
+	../../tuple: a, b
+	../random: random-nat64
+
+login-cookie record
+	timestamp unix-time
+	cookie nat64
+
+cookie-matches bool(a login-cookie, cookie nat64, expire-seconds nat64) summon
+	now = get-unix-time seconds-since-epoch
+	recent = now - a.timestamp.seconds-since-epoch < expire-seconds.to-int64
+	unless recent
+		info log "Cookie expired! now: {now}, then: {a.timestamp.seconds-since-epoch}, expire after: {expire-seconds}"
+	unless a.cookie == cookie
+		info log "Wrong cookie! expected: {a cookie}, got: {cookie}"
+	recent && a.cookie == cookie
+
+generate-login-cookie login-cookie() summon
+	get-unix-time, random-nat64
+
+to-bytes nat8[](a login-cookie)
+	a.timestamp.seconds-since-epoch.to-8-bytes ~ a.cookie.to-8-bytes
+
+from-bytes login-cookie(a nat8[])
+	assert: a.size == 16
+	(a[0 .. 8].from-bytes,), a[8 .. 16].from-bytes
+
+to-str str(a login-cookie)
+	"{a.timestamp seconds-since-epoch}|{a cookie}"
+
+parse-login-cookie login-cookie?(a str)
+	if split ?= a try-split-once "|"
+		if time ?= split.a parse-int
+			if cookie ?= split.b parse-nat
+				((time,), cookie),

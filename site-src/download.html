@@ -1,35 +1,38 @@
 <main>
-<h2>download</h2>
+	<h1>download</h1>
 
-Currently, the language only works on 64-bit Posix systems.
-If your system is not Linux and x64, you'll have to build from source.
+	<ul class="bullets">
+		<li>
+			<a href="./bin/crow.tar.xz">
+				<crow-icon icon="download"></crow-icon> Linux x64
+			</a>
+		</li>
+	</ul>
 
-<h3>
-	<a class="download-link" href="./bin/crow.tar.xz">
-		<crow-icon icon="download"></crow-icon> Linux x64
-	</a>
-</h3>
+	If you want it ported to a different system, just <a href="https://github.com/andy-hanson/crow/issues">ask</a>.
 
-Click the above link to download, then run:
-<p>
-	<code>
-		cd ~/Downloads
-		<br />
-		tar -xJf crow.tar.xz
-		<br />
-		cd crow
-		<br />
-		bin/crow run demo/hello
-	</code>
-</p>
+	<p>
+		After downloading, test it out with:
 
-This should print <code>Hello, world!</code>
+		<div class="code-block">
+			tar --extract --xz --file ~/Downloads/crow.tar.xz
+			<br />
+			./crow/bin/crow run crow/demo/hello
+		</div>
 
-<h4>Installing</h4>
+		This should print <code>hello, world!</code>.
+	</p>
 
-Optionally, add this to your <code>~/.bashrc</code> (or equivalent):
+	<p>
+		If there was an error, make sure <code>libgccjit</code> is installed on your system.
+	</p>
 
-<p><code>export PATH="~/Downloads/crow/bin:$PATH"</code></p>
-
-to make <code>crow</code> available on the command line anywhere.
+	<p>
+		To install:
+		<div class="code-block">
+			sudo ln --force --symbolic $PWD/crow/bin/crow /usr/local/bin/crow
+			<br />
+			crow run crow/demo/hello
+		</div>
+	</p>
 </main>

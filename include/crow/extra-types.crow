@@ -2,8 +2,12 @@ no-std
 import
 	./private/bootstrap: int32
 
+###
+Error code typically returned by POSIX functions.
+###
 err-t alias
 	int32
 
+# File descriptor type typically used by POSIX functions.
 fd-t alias
 	int32

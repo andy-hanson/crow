@@ -14,7 +14,7 @@ export
 region throwing
 
 ###
-Fail if the condition is false, providing a custom message.
+Throw if the condition is false, providing a custom message.
 The message is eagerly evaluated; pass a `fun str()` instead to have it lazily evaluatied.
 ###
 assert void(condition bool, message str)
@@ -55,8 +55,10 @@ unreachable<a> a()
 region handling
 
 ###
-Run `try`, and then run `after`, even if `try` threw an exception.
-(The exception is only temporarily caught to run `after` and is then rethrown.)
+Runs `try`, and then runs `after`, even if `try` threw an exception.
+
+If there was an exception, it will be rethrown after `after` finishes.
+If `after` throws an exception, the original exception will be lost.
 ###
 finally<a> a(after act void(), try act a())
 	res = after do-if-error try
@@ -64,15 +66,16 @@ finally<a> a(after act void(), try act a())
 	res
 
 ###
-Run `try`, and if there is an exception run `on-error`.
-Unlike `finally` this does not run in the successful case.
-(The exception is only temporarily caught to run `after` and is then rethrown.)
+Rus `try`, and if it throws an exception, runs `on-error`.
+
+This is like `finally`, but does not run in the successful case.
 ###
 do-if-error<a> a(on-error act void(), try act a())
 	try catch err =>
 		on-error[]
 		err throw
 
+# Outputs the exception's message and backtrace to a string.
 to-str str(a exception) unsafe
 	res writer = ()
 	res ~= if a.message.is-empty

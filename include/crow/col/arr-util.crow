@@ -4,7 +4,7 @@ import
 	../compare: !=, <, <=, >=, equal, max, min
 	../fun-util: subscript
 	../misc: new, void
-	../number: +, -, nat64
+	../number: +, -, *, nat64
 	../opt: is-empty, new, opt
 	../ptr: ==, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../test-util: is
@@ -12,13 +12,126 @@ import
 	../private/alloc: alloc-uninitialized, fill-ptr-range
 	../private/bootstrap: new
 	../private/exception-low-level: assert, forbid
-	../private/number-low-level: ==, <=>, unsafe-mod, wrap-add, wrap-mul
+	../private/number-low-level: ==, <=>, unsafe-mod, wrap-add
 	../private/range-low-level: ..
 	./arr: ==, ~, arr, arr-from-begin-end, begin-ptr, is-empty, end-ptr, new, noctx-at, size, subscript
 
+region basic array operations
+
+# Same as `a[0]`, but returns an empty option if `a` is empty.
+first<a> a?(a a[])
+	unless a is-empty
+		a[0],
+
+# Same as `a[a.size - 1]`, but returns an empty option if `a` is empty.
+last<a> a?(a a[])
+	unless a is-empty
+		a[a.size - 1],
+
 ###
-Equivalent to `[f[0], f[1], ..., f[size - 1]]`.
-Arr containing the result of `f` for each number 0 to size (exclusive).
+All but the first element.
+Same as `a[1 .. a.size]`.
+Throws if `a` is empty.
+###
+tail<a> a[](a a[])
+	forbid: a is-empty
+	a[1 .. a.size]
+
+###
+All but the last element.
+Same as `a[0 .. a.size - 1]`.
+Throws if `a` is empty.
+###
+rtail<a> a[](a a[])
+	forbid: a is-empty
+	a[0 .. a.size - 1]
+
+###
+Returns a new array like `a` but where `a[index]` is `new-value`.
+
+`index` must be a valid index into `a`. This can't be used to add a value to the end.
+###
+update-at<a> a[](a a[], index nat64, new-value a)
+	assert: index < a.size
+	# TODO:PERF (only concat once)
+	a[0 .. index] ~ (new-value,) ~ a[index + 1 .. a.size]
+
+###
+Unlike `update-at`, `index` doesn't need to be a valid index.
+If `index > a.size`, entries between the and of `a` and the new entries will be `default`.
+###
+update-at-with-default<a> a[](a a[], index nat64, new-value a, default a) no-doc
+	if index < a.size
+		a update-at index, new-value
+	else
+		index + 1 make-arr i =>
+			if i < a.size
+				a[i]
+			elif i == index
+				new-value
+			else
+				default
+
+###
+Inserts an element at index `index`, all elements there and after to the right.
+Unlike for `update-at`, `index` can be `a.size`, though it still can't be higher.
+###
+insert-at<a> a[](a a[], index nat64, value a)
+	assert: index <= a.size
+	# TODO:PERF (only concat once)
+	a[0 .. index] ~ (value,) ~ a[index .. a.size]
+
+insert-at-ptr<a> a[](a a[], ptr a*, value a) no-doc unsafe
+	a insert-at ptr - a.begin-ptr, value
+
+# Removes the element at index `index`, shifting all later elements to the left.
+remove-at<a> a[](a a[], index nat64)
+	assert: index < a.size
+	a[0 .. index] ~ a[index + 1 .. a.size]
+
+# If the array is longer than `max-size`, slice it to that size.
+with-max-size<a> a[](a a[], max-size nat64)
+	a.size <= max-size ? a : a[0 .. max-size]
+
+# While the array is shorter than `min-size`, add an element `pad` on the left.
+pad-left<a> a[](pad a, a a[], min-size nat64)
+	if a.size < min-size
+		diff = min-size - a.size
+		min-size make-arr index =>
+			if index < diff
+				pad
+			else
+				a[index - diff]
+	else
+		a
+
+# While the array is shorter than `min-size`, add an element `pad` on the right.
+pad-right<a> a[](a a[], pad a, min-size nat64)
+	if a.size < min-size
+		min-size make-arr index =>
+			if index < a.size
+				a[index]
+			else
+				pad
+	else
+		a
+
+# Concatenate `n` copies of `a`.
+repeat<a> a[](a a[], n nat64) trusted
+	a.size * n make-arr i =>
+		a[i unsafe-mod a.size]
+
+# Array where the leftmost element of `a` becomes the rightmost element, etc.
+reverse<a> a[](a a[])
+	a.size make-arr i =>
+		a[a.size - 1 - i]
+
+region creation
+
+###
+Equivalent to `f[0], f[1], ..., f[size - 1]`.
+
+Calls `f` for each number from 0 to `size` (exclusive) and returns an array of the results.
 ###
 make-arr<a> a[](size nat64, f act a(nat64)) trusted
 	res a mut* = size alloc-uninitialized
@@ -26,15 +139,19 @@ make-arr<a> a[](size nat64, f act a(nat64)) trusted
 	size, res.as-const
 
 ###
-Equivalent to `[value, value, ...]`.
-Arr with the given `size` where every element is `value`.
+Equivalent to `value, value, ...` or `size make-arr () => value`.
+
+Array with the given `size` where every element is `value`.
 ###
 fill-arr<a> a[](size nat64, value a)
 	size make-arr ignore =>
 		value
 
+region iteration
+
 ###
-Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc., in turn.
+Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
+
 Calls `f` for each element in `a`.
 ###
 each<a> void(a a[], f act void(a)) trusted
@@ -45,7 +162,8 @@ each<a> void(a a[], f act void(a)) trusted
 		cur + 1 each-recur end, f
 
 ###
-Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc., in turn.
+Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc.
+
 Calls `f` for each element in `a`, also providing the index.
 ###
 each-with-index<a> void(a a[], f act void(a, nat64))
@@ -55,20 +173,62 @@ each-with-index<a> void(a a[], f act void(a, nat64))
 		f[a[n], n]
 		a each-with-index-recur f, n + 1
 
-each-ptr<a> void(a a[], f act void(a*)) unsafe
-	a.begin-ptr each-ptr-recur a.end-ptr, f
-.each-ptr-recur<a> void(cur a*, end a*, f act void(a*)) unsafe
-	unless cur == end
-		f[cur]
-		cur + 1 each-ptr-recur end, f
+###
+This is like `each` but with a state variable that gets transformed by each call to `f`.
+For example, for a 2-element array, this is equivalent to `f[f[val, a[0]], a[1]]`.
+###
+fold<a, b> a(acc a, a b[], f act a(a, b)) trusted
+	acc fold-recur a.begin-ptr, a.end-ptr, f
+.fold-recur<a, b> a(acc a, cur b*, end b*, f act a(a, b)) unsafe
+	if cur == end
+		acc
+	else
+		f[acc, *cur] fold-recur cur + 1, end, f
+
+# Like `fold`, but provides the array index too.
+fold-with-index<a, b> a(acc a, a b[], f act a(a, b, nat64)) trusted
+	acc fold-with-index-recur 0, a.begin-ptr, a.end-ptr, f
+.fold-with-index-recur<a, b> a(acc a, index nat64, cur b*, end b*, f act a(a, b, nat64)) unsafe
+	if cur == end
+		acc
+	else
+		f[acc, *cur, index] fold-with-index-recur index + 1, cur + 1, end, f
+
+# Like `fold`, but iterates right-to-left.
+fold-reverse<a, b> a(acc a, a b[], f act a(a, b)) trusted
+	acc fold-reverse-recur a.begin-ptr, a.end-ptr, f
+.fold-reverse-recur<a, b> a(acc a, begin b*, cur b*, f act a(a, b)) unsafe
+	if cur == begin
+		acc
+	else
+		prev = cur - 1
+		f[acc, *prev] fold-reverse-recur begin, prev, f
 
 ###
-Arr of the elements of `a` for which `f[a[i]]` returns true.
+Equivalent to `f[a[0]], f[a[1]], ...`.
+Array containing `f[x]` for each `x` in `a`.
 ###
+map<out, in> out[](a in[], f act out(in))
+	a.size make-arr i =>
+		f[a[i]]
+
+# Like `map`, but also provides the element index.
+map-with-index<out, in> out[](a in[], f act out(in, nat64))
+	a.size make-arr i =>
+		f[a[i], i]
+
+# Like `map`, but `f` can return multiple values, that are all added to the output array>
+flat-map<out, in> out[](a in[], f act out[](in))
+	# TODO:PERF use a mut-arr
+	unless a is-empty
+		f[a[0]] ~ (a.tail flat-map f)
+
+# Array containing only the elements of `a` for which `f[a[i]]` returns true.
 filter<a> a[](a a[], f act bool(a))
 	a filter-with-index (cur, index) =>
 		f[cur]
 
+# Like `filter`, but also provides the element index.
 filter-with-index<a> a[](a a[], f act bool(a, nat64)) trusted
 	res a mut* = a.size alloc-uninitialized
 	end = res filter-with-index-recur a.begin-ptr, a.end-ptr, 0, f
@@ -92,91 +252,34 @@ body
 			out
 		new-out filter-with-index-recur cur + 1, end, index + 1, f
 
-###
-Like 'filter', but keeps everything after the first time `f` returns true.
-###
-strip-left-while<a> a[](a a[], f act bool(a))
-	if a.is-empty || !f[a[0]]
-		a
-	else
-		a.tail strip-left-while f
-test
-	(3, 2, 1) strip-left-while (it => it < 3) is (3, 2, 1)
-	#TODO
-	#(1, 3, 5, 3, 1) strip-left-while (it => it < 5) is (5, 3, 1)
-
 # TODO: move to iter-utiil since this works with any foldable
+# Calls `f` on every element, and returns the number of times `f` returned `true`.
 count<a> nat64(a a[], f act bool(a))
 	0 fold a, (cur, x) =>
 		cur wrap-add f[x].to-nat64
 
 ###
-Equivalent to `[f[a[0]], f[a[1]], ...]`.
-Arr of `f[x]` for each `x` in `a`.
-###
-map<out, in> out[](a in[], f act out(in))
-	a.size make-arr i =>
-		f[a[i]]
+Equivalent to `f[a[0]] || f[a[1]] || ... || f[a[a.size - 1]]`
 
-map-with-index<out, in> out[](a in[], f act out(in, nat64))
-	a.size make-arr i =>
-		f[a[i], i]
-
-flat-map<out, in> out[](a in[], f act out[](in))
-	# TODO:PERF use a mut-arr
-	unless a is-empty
-		f[a[0]] ~ (a.tail flat-map f)
-
-first<a> a?(a a[])
-	unless a is-empty
-		a[0],
-
-last<a> a?(a a[])
-	unless a is-empty
-		a[a.size - 1],
-
-###
-All but the first element of an arr.
-Throws if `a is-empty`.
-###
-tail<a> a[](a a[])
-	forbid: a is-empty
-	a[1 .. a.size]
-
-###
-All but the last element of an arr.
-Throws if `a is-empty`.
-###
-rtail<a> a[](a a[])
-	forbid: a is-empty
-	a[0 .. a.size - 1]
-
-###
-Calls `f` on each element of `a` and returns the first result that is `some`.
-Returns `none` if every call to `f` returned `none`.
-###
-first-some<out, in> out?(a in[], f act out?(in))
-	unless a is-empty
-		res = f[a[0]]
-		if res is-empty
-			a.tail first-some f
-		else
-			res
-
-###
-Equivalent to `f[a[0]] or f[a[1]] or or ...`
 Calls `f` on each element of `a` and returns `true` the first time `f` does.
+Returns `false` iff `f` returned `false` every time.
 ###
 exists<a> bool(a a[], f act bool(a))
 	!a.is-empty && (f[a[0]] || (a.tail exists f))
 
+###
+Equivalent to `f[a[0]] && f[a[1]] && ... && f[a[a.size - 1]]`.
+
+Calls `f` on each element of `a` and returns `false` the fist time `f` does.
+Returns `true` iff `f` returned `true` every time.
+###
 every<a> bool(a a[], f act bool(a))
 	a.is-empty || (f[a[0]] && (a.tail every f))
 
 # TODO: only written this way to be `noctx`, else could defer to `exists`
 ###
-Equivalent to `a exists it => it == value`.
-Also equivalent to `a[0] == value or a[1] == value or ...`.
+Equivalent to `a[0] == value || a[1] == value || ... || a[a.size - 1] == value`.
+Also equivalent to `a exists it => it == value`.
 ###
 in<a> bool(value a, a a[]) noctx equal<a>
 	value in-recur a, 0
@@ -186,90 +289,23 @@ test
 	2 in (1, 2, 3) is true
 	2 in (1, 3) is false
 
+###
+If `value` is in `a`, returns `a` with the first instance of `value` removed.
+Else, returns an empty option.
+###
 try-remove<a> a[]?(a a[], value a) equal<a>
 	a try-remove-recur 0, value
 .try-remove-recur<a> a[]?(a a[], index nat64, value a) equal<a>
 	unless index == a.size
 		if a[index] == value
-			(a remove-index index),
+			(a remove-at index),
 		else
 			a try-remove-recur index + 1, value
 
-remove-index<a> a[](a a[], index nat64)
-	assert: index < a.size
-	a[0 .. index] ~ a[index + 1 .. a.size]
-
-# TODO: equal<a[]> should be unnecessary
 ###
-True iff the sub-sequence appears in `a`.
-Equivalent to `a[0 .. subseq.size] == subseq or a[1 .. 1 + subseq.size] == subseq or ...`
+Returns the first element `x` of `a` such that `f[x]` is `true`.
+Returns an empty option iff `f` returns `false` for every element of `a`.
 ###
-contains-subseq<a> bool(a a[], subseq a[]) equal<a> equal<a[]>
-	!(a index-of-subseq subseq is-empty)
-
-# TODO: equal<a[]> should be unnecessary
-# True iff the first elements of `a` are `start`, meaning `a[0 .. start.size] == start`.
-starts-with<a> bool(a a[], start a[]) equal<a> equal<a[]>
-	a.size >= start.size && a[0 .. start.size] == start
-
-# TODO: equal<a[]> should be unnecessary
-# True iff the last elements of `a` are `end`, meaning `a[a.size - end.size .. a.size] == end`.
-ends-with<a> bool(a a[], end a[]) equal<a> equal<a[]>
-	a.size >= end.size && a[a.size - end.size .. a.size] == end
-
-# TODO: equal<a[]> should be unnecessary
-# If `a` starts with `start`, returns the remaining elements, else returns `none`.
-try-remove-start<a> a[]?(a a[], start a[]) equal<a> equal<a[]>
-	if a starts-with start
-		a[start.size .. a.size],
-
-# TODO: equal<a[]> should be unnecessary
-# If `a` ends with `end`, returns the preceding elements, else returns `none`.
-try-remove-end<a> a[]?(a a[], end a[]) equal<a> equal<a[]>
-	if a ends-with end
-		a[0 .. a.size - end.size],
-
-###
-This is like `each` but with a state variable that gets transformed by each call to `f`.
-For example, for a 2-element array, this is equivalent to `f[f[val, a[0]], a[1]]`.
-###
-fold<a, b> a(acc a, a b[], f act a(a, b)) trusted
-	acc fold-recur a.begin-ptr, a.end-ptr, f
-.fold-recur<a, b> a(acc a, cur b*, end b*, f act a(a, b)) unsafe
-	if cur == end
-		acc
-	else
-		f[acc, *cur] fold-recur cur + 1, end, f
-
-fold-with-index<a, b> a(acc a, a b[], f act a(a, b, nat64)) trusted
-	acc fold-with-index-recur 0, a.begin-ptr, a.end-ptr, f
-.fold-with-index-recur<a, b> a(acc a, index nat64, cur b*, end b*, f act a(a, b, nat64)) unsafe
-	if cur == end
-		acc
-	else
-		f[acc, *cur, index] fold-with-index-recur index + 1, cur + 1, end, f
-
-fold-reverse<a, b> a(acc a, a b[], f act a(a, b)) trusted
-	acc fold-reverse-recur a.begin-ptr, a.end-ptr, f
-.fold-reverse-recur<a, b> a(acc a, begin b*, cur b*, f act a(a, b)) unsafe
-	if cur == begin
-		acc
-	else
-		prev = cur - 1
-		f[acc, *prev] fold-reverse-recur begin, prev, f
-
-# TODO: equal<a[]> should be unnecessary
-# Finds the first index where `a[i .. i + subseq.size] == subseq`.
-index-of-subseq<a> nat64?(a a[], subseq a[]) equal<a> equal<a[]>
-	a index-of-subseq-recur subseq, 0
-# TODO: equal<a[]> should be unnecessary
-.index-of-subseq-recur<a> nat64?(a a[], subseq a[], i nat64) equal<a> equal<a[]>
-	unless i == a.size
-		if a[i .. a.size] starts-with subseq
-			i,
-		else
-			a index-of-subseq-recur subseq, i + 1
-
 find<a> a?(a a[], f act bool(a))
 	unless a is-empty
 		if f[a[0]]
@@ -278,7 +314,19 @@ find<a> a?(a a[], f act bool(a))
 			a.tail find f
 
 ###
-Returns the first index for which `f[a[i]]` is true, or returns `none`.
+For each element `x` in `a`, gets `y = f[x]` and returns `y` if it is a non-empty option.
+Returns an empty option iff `f` returns an empty option for every element of `a`.
+###
+find-and-get<out, in> out?(a in[], f act out?(in))
+	unless a is-empty
+		if x ?= f[a[0]]
+			x,
+		else
+			a.tail find-and-get f
+
+###
+Returns the first index `i` for which `f[a[i]]` is true.
+Returns an empty option iff `f` returns `false` for every element of `a`.
 ###
 find-index<a> nat64?(a a[], f act bool(a))
 	a find-index-recur 0, f
@@ -289,28 +337,39 @@ find-index<a> nat64?(a a[], f act bool(a))
 		else
 			a find-index-recur index + 1, f
 
-###
-Like `find-index`, but starts from the end.
-###
-find-rindex<a> nat64?(a a[], f act bool(a))
+# Like `find-index`, but searching starts from the end of `a` and moves left.
+find-index-reverse<a> nat64?(a a[], f act bool(a))
 	unless a is-empty
-		a find-rindex-recur a.size - 1, f
-.find-rindex-recur<a> nat64?(a a[], index nat64, f act bool(a))
+		a find-index-reverse-recur a.size - 1, f
+.find-index-reverse-recur<a> nat64?(a a[], index nat64, f act bool(a))
 	if f[a[index]]
 		index,
 	elif index != 0
-		a find-rindex-recur index - 1, f
+		a find-index-reverse-recur index - 1, f
 
 ###
-Returns the first index where `a[i] == value`.
-Equivalent to `a find-index it => it == value`.
+Returns the first index `i` where `a[i] == value`.
+
+Equivalent to `a find-index x => x == value`.
+Returns an empty option iff `value` is not in the array.
 ###
 index-of<a> nat64?(a a[], value a) trusted equal<a>
 	if v ?= a ptr-of value
 		v - a.begin-ptr,
 
-# Like `index-of` but returns a ptr.
-ptr-of<a> a*?(a a[], value a) unsafe equal<a>
+###
+Returns the last index `i` where `a[i] == value`.
+
+Equivalent to `a find-index-reverse x => x == value`.
+###
+index-of-reverse<a> nat64?(a a[], value a) equal<a>
+	a find-index-reverse it => it == value
+
+###
+Returns a pointer to the first element equal to `value`.
+Returns an empty option iff `value` is not in the array.
+###
+ptr-of<a> a*?(a a[], value a) no-doc unsafe equal<a>
 	a.begin-ptr ptr-of-recur a.end-ptr, value
 .ptr-of-recur<a> a*?(cur a*, end a*, value a) unsafe equal<a>
 	unless cur == end
@@ -320,32 +379,139 @@ ptr-of<a> a*?(a a[], value a) unsafe equal<a>
 			cur + 1 ptr-of-recur end, value
 
 ###
-Returns the last index where `a[i] == value`.
-Equivalent to `a find-rindex it => it == value`.
-###
-r-index-of<a> nat64?(a a[], value a) equal<a>
-	a find-rindex it => it == value
-
-###
 Concatenates many arrays into a single array.
 Equivalent to `a[0] ~ a[1] ~ ...`.
 ###
 flatten<a> a[](a a[][])
 	a flat-map (x => x)
 
+###
+Equivalent to `f[a[0], b[0]], f[a[1], b[1]], ...`.
+Calls `f` for corresponding elements `a[i]` and `b[i]` and returns an array of the results.
+
+Throws if the `a` and `b` have different sizes.
+###
+zip<out, a, b> out[](a a[], b b[], f act out(a, b))
+	assert: a.size == b.size
+	a.size make-arr i =>
+		f[a[i], b[i]]
+
+# Like `zip`, but when one array is larger, it is sliced to the smaller one's size before zipping.
+zip-smaller<out, a, b> out[](a a[], b b[], f act out(a, b))
+	size = a.size min b.size
+	a[0 .. size] zip b[0 .. size], f
+
+###
+Like `zip`, but when one array is smaller, passes an empty option to `f` to fill in for the shorter array's elements.
+
+This means that when calling `f[a[i], b[i]]`, if `i >= a.size`, it calls `f[(), b[i]]`.
+Similarly, if `i >= b.size`, it calls `f[a[i], ()]`.
+
+This never calls `f[(), ()]` with two empty options.
+
+The output size is the size of the larger array.
+###
+zip-larger<out, a, b> out[](a a[], b b[], f act out(a?, b?))
+	a.size max b.size make-arr i =>
+		f[(a opt-subscript i), (b opt-subscript i)]
+
+.opt-subscript<a> a?(a a[], index nat64)
+	if index < a.size
+		a[index],
+
+region misc
+
+# Removes elements from the left while `f` returns true.
+strip-left-while<a> a[](a a[], f act bool(a))
+	if a.is-empty || !f[a[0]]
+		a
+	else
+		a.tail strip-left-while f
+test
+	(3, 2, 1) strip-left-while (it => it < 3) is (3, 2, 1)
+	# TODO: should not need type annotation
+	(1, 3, 5, 3, 1)::nat64[] strip-left-while (it => it < 5) is (5, 3, 1)
+
+strip-right-while<a> a[](a a[], f act bool(a))
+	if a.is-empty || !f[a[a.size - 1]]
+		a
+	else
+		a.rtail strip-right-while f
+
+region subsequences
+
+# TODO: equal<a[]> should be unnecessary
+###
+`true` iff `subseq` appears in `a` is a subsequence of `a`.
+
+This means: `true` iff some slice of `a` is equal to `subseq`.
+Equivalent to `a[0 .. subseq.size] == subseq || a[1 .. 1 + subseq.size] == subseq || ...`.
+###
+contains-subseq<a> bool(a a[], subseq a[]) equal<a> equal<a[]>
+	!(a index-of-subseq subseq is-empty)
+
+# TODO: equal<a[]> should be unnecessary
+###
+Finds the first index where `a[i .. i + subseq.size] == subseq`.
+Returns an empty option iff `subseq` is not a subsequence of `a`.
+###
+index-of-subseq<a> nat64?(a a[], subseq a[]) equal<a> equal<a[]>
+	a index-of-subseq-recur subseq, 0
+# TODO: equal<a[]> should be unnecessary
+.index-of-subseq-recur<a> nat64?(a a[], subseq a[], i nat64) equal<a> equal<a[]>
+	unless i == a.size
+		if a[i .. a.size] starts-with subseq
+			i,
+		else
+			a index-of-subseq-recur subseq, i + 1
+
+# TODO: equal<a[]> should be unnecessary
+# Returns the number of non-overlapping occurences of the subsequence.
+count-subseqs<a> nat64(a a[], subseq a[]) equal<a> equal<a[]>
+	a count-subseqs-recur subseq, 0
+# TODO: equal<a[]> should be unnecessary
+.count-subseqs-recur<a> nat64(a a[], subseq a[], acc nat64) equal<a> equal<a[]>
+	if index ?= a index-of-subseq subseq
+		a[index + subseq.size .. a.size] count-subseqs-recur subseq, acc + 1
+	else
+		acc
+
+region splitting
+
+###
+Finds the first value `a[i]` equal to `splitter`, and returns the elements left and right of `i`.
+Returns an empty option iff `splitter` is not in the array.
+###
 try-split-once<a> pair<a[], a[]>?(a a[], splitter a) equal<a>
 	if index ?= a index-of splitter
 		(a[0 .. index], a[index + 1 .. a.size]),
 
-try-split-once-by-fn<a> pair<a[], a[]>?(a a[], splitter act bool(a))
+split<a> record
+	left a[]
+	middle a
+	right a[]
+
+###
+Finds the first value `a[i]` for which `splitter[a[i]]` is `true`, and returns the elements left and right of `i`.
+Returns an empty option iff `splitter` is `false` for every element in the array.
+###
+try-split-once-by-fn<a> split<a>?(a a[], splitter act bool(a))
 	if index ?= a find-index splitter
-		(a[0 .. index], a[index + 1 .. a.size]),
+		(a[0 .. index], a[index], a[index + 1 .. a.size]),
 
 # TODO: equal<a[]> should be unnecessary
+###
+For each value `a[i]` equal to `splitter`, splits the array at that index.
+Returns an array of all remaining parts between the splitters, including empty parts.
+###
 split-by<a> a[][](a a[], splitter a) equal<a> equal<a[]> trusted
 	# TODO:PERF
 	a split-by-subseq (splitter,)
 
+###
+For each value `a[i]` for which `splitter[a[i]]` is true, splits the array at that index.
+Returns an array of all remaining parts between the splitters, including empty parts.
+###
 split-by-fn<a> a[][](a a[], splitter act bool(a)) trusted
 	# TODO:PERF use a mut-arr
 	if index ?= a find-index splitter
@@ -354,16 +520,13 @@ split-by-fn<a> a[][](a a[], splitter act bool(a)) trusted
 		a,
 
 # TODO: equal<a[]> should be unnecessary
+# Like `try-split-once`, but the splitter is a subsequence instead of a single element.
 try-split-once-by-subseq<a> pair<a[], a[]>?(a a[], splitter a[]) equal<a> equal<a[]> trusted
 	if index ?= a index-of-subseq splitter
 		(a[0 .. index], a[index + splitter.size .. a.size]),
 
 # TODO: equal<a[]> should be unnecessary
-###
-Splits `a` each time it finds `splitter`.
-For example, "a rose is a hose is a nose" split-by-subseq "is" would be
-("a rose ", " a hose ", " a nose").
-###
+# This is like `split-by`, but the splitter is a subsequence instead of a single element.
 split-by-subseq<a> a[][](a a[], splitter a[]) equal<a> equal<a[]> trusted
 	size = (a count-subseqs splitter) + 1
 	res a[] mut* = size alloc-uninitialized
@@ -379,96 +542,23 @@ split-by-subseq<a> a[][](a a[], splitter a[]) equal<a> equal<a[]> trusted
 		*out := a
 
 # TODO: equal<a[]> should be unnecessary
-# Returns the number of indices for which `a[i .. i + subseq.size] == subseq`.
-count-subseqs<a> nat64(a a[], subseq a[]) equal<a> equal<a[]>
-	a count-subseqs-recur subseq, 0
+# `true` iff the first elements of `a` are `start`, meaning `a[0 .. start.size] == start`.
+starts-with<a> bool(a a[], start a[]) equal<a> equal<a[]>
+	a.size >= start.size && a[0 .. start.size] == start
+
 # TODO: equal<a[]> should be unnecessary
-.count-subseqs-recur<a> nat64(a a[], subseq a[], acc nat64) equal<a> equal<a[]>
-	if index ?= a index-of-subseq subseq
-		a[index + subseq.size .. a.size] count-subseqs-recur subseq, acc + 1
-	else
-		acc
+# `true` iff the last elements of `a` are `end`, meaning `a[a.size - end.size .. a.size] == end`.
+ends-with<a> bool(a a[], end a[]) equal<a> equal<a[]>
+	a.size >= end.size && a[a.size - end.size .. a.size] == end
 
-###
-Arr containing the result of `f` for corresponding elements of `a` and `b`.
-Equivalent to `[f[a[0], b[0]], f[a[1], b[1]], ...]`.
-Throws if the arrs have different sizes.
-###
-zip<out, a, b> out[](a a[], b b[], f act out(a, b))
-	assert: a.size == b.size
-	a.size make-arr i =>
-		f[a[i], b[i]]
+# TODO: equal<a[]> should be unnecessary
+# If `a` starts with `start`, returns the remaining elements, else returns an empty option.
+try-remove-start<a> a[]?(a a[], start a[]) equal<a> equal<a[]>
+	if a starts-with start
+		a[start.size .. a.size],
 
-###
-Like `zip`, but instead of throwing on different sizes,
-cuts the larger array down to the smaller one's size.
-###
-zip-smaller<out, a, b> out[](a a[], b b[], f act out(a, b))
-	size = a.size min b.size
-	a[0 .. size] zip b[0 .. size], f
-
-
-###
-Returns an array as big as the bigger of 'a' and 'b'.
-Calls 'f' using corresponding elements, or 'none' if the arr is too short.
-###
-zip-larger<out, a, b> out[](a a[], b b[], f act out(a?, b?))
-	a.size max b.size make-arr i =>
-		f[(a opt-subscript i), (b opt-subscript i)]
-
-.opt-subscript<a> a?(a a[], index nat64)
-	if index < a.size
-		a[index],
-
-# TODO: update-at
-update<a> a[](a a[], index nat64, new-value a)
-	assert: index < a.size
-	# TODO:PERF (only concat once)
-	a[0 .. index] ~ (new-value,) ~ a[index + 1 .. a.size]
-
-update-with-default<a> a[](a a[], index nat64, new-value a, default a)
-	if index < a.size
-		a update index, new-value
-	else
-		index + 1 make-arr i =>
-			if i < a.size
-				a[i]
-			elif i == index
-				new-value
-			else
-				default
-
-# TODO: insert-at
-insert<a> a[](a a[], index nat64, value a)
-	assert: index <= a.size
-	# TODO:PERF (only concat once)
-	a[0 .. index] ~ (value,) ~ a[index .. a.size]
-
-insert<a> a[](a a[], ptr a*, value a) unsafe
-	a insert ptr - a.begin-ptr, value
-
-remove-at<a> a[](a a[], index nat64)
-	assert: index < a.size
-	a[0 .. index] ~ a[index + 1 .. a.size]
-
-with-max-size<a> a[](a a[], max-size nat64)
-	a.size <= max-size ? a : a[0 .. max-size]
-
-pad-left<a> a[](pad a, a a[], min-size nat64)
-	if a.size < min-size
-		diff = min-size - a.size
-		min-size make-arr index =>
-			if index < diff
-				pad
-			else
-				a[index - diff]
-	else
-		a
-
-repeat<a> a[](a a[], n nat64) trusted
-	a.size wrap-mul n make-arr i =>
-		a[i unsafe-mod a.size]
-
-reverse<a> a[](a a[])
-	a.size make-arr i =>
-		a[a.size - 1 - i]
+# TODO: equal<a[]> should be unnecessary
+# If `a` ends with `end`, returns the preceding elements, else returns an empty option.
+try-remove-end<a> a[]?(a a[], end a[]) equal<a> equal<a[]>
+	if a ends-with end
+		a[0 .. a.size - end.size],

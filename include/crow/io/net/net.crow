@@ -1,3 +1,7 @@
+###
+Module for low-level networking.
+###
+
 no-std
 import
 	bits/socket_type: SOCK_STREAM
@@ -19,7 +23,7 @@ import
 	../posix-util: check-posix-error
 	../print: print
 
-# Uniform Resource Identifier
+# Parsed Uniform Resource Identifier
 uri record
 	host str
 	port nat16
@@ -58,7 +62,7 @@ connect-to-uri fd-t(u uri) trusted summon
 				assert: err == 0
 				sock,
 
-# Returns an fd bound to the given port.
+# Returns a file descriptor bound to the given port.
 bind-to-port fd-t(port str) unsafe summon
 	# TODO: null.as-ref is evil
 	hints addrinfo = ai-passive, AF_INET, SOCK_STREAM, 0, 0, null::any-const-ptr.as-ref, null, null

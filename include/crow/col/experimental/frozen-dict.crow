@@ -1,0 +1,308 @@
+no-std
+import
+	../../bool: !, &&, ==, bool, false, true
+	../../compare: <=, compare, equal
+	../../fun-util: subscript
+	../../hash: hash, hash-mix
+	../../misc: is-data, new, void
+	../../opt: ==, is-empty, new, opt
+	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
+	../../str: str
+	../../test-util: is
+	../../tuple: from, new, pair, to
+	../../private/alloc: alloc-uninitialized
+	../../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
+	../arr: ==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, new, size, unsafe-at
+	../arr-util: each, fold, fold-with-index, map
+	../fix-arr:
+		begin-ptr, cast-immutable, each, end-ptr, fill, fill-fix-arr, fix-arr,
+		fix-arr-from-begin-end, size, temp-as-arr, to-fix-arr, uninitialized-fix-arr, unsafe-at,
+		unsafe-set-at
+
+###
+Immutable dictionary that is not efficient to update.
+However, this is more compact than `dict` and has faster lookups.
+###
+frozen-dict<k, v> record
+	by-val
+	.pairs pair<k, v>[]
+	.bucket-starts pair<k, v>*[]
+
+new<k, v> frozen-dict<k, v>(...a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
+	a to-frozen-dict
+
+to-frozen-dict<k, v> frozen-dict<k, v>(a pair<k, v>[]) trusted is-data<k> compare<k> hash-mix<k>
+	a.to-fix-arr.fix-arr-to-frozen-dict-promise-no-duplicates remove-duplicates
+
+# TODO:INTERNAL
+begin-ptr<k, v> pair<k, v>*(a frozen-dict<k, v>) unsafe
+	a.pairs begin-ptr
+
+end-ptr<k, v> pair<k, v>*(a frozen-dict<k, v>) unsafe
+	a.pairs end-ptr
+
+is-empty<k, v> bool(a frozen-dict<k, v>)
+	a.pairs is-empty
+
+size<k, v> nat64(a frozen-dict<k, v>)
+	a.pairs size
+
+to-arr<k, v> pair<k, v>[](a frozen-dict<k, v>)
+	a pairs
+
+subscript<k, v> v?(a frozen-dict<k, v>, key k) trusted is-data<k> compare<k> hash-mix<k>
+	if ptr ?= a find-ptr key
+		ptr->to,
+
+in<k, v> bool(key k, a frozen-dict<k, v>) trusted is-data<k> compare<k> hash-mix<k>
+	!(a find-ptr key is-empty)
+
+# TODO:INTERNAL
+try-get-unordered-index<k, v> nat64?(a frozen-dict<k, v>, key k) trusted is-data<k> compare<k> hash-mix<k>
+	if ptr ?= a find-ptr key
+		ptr - a.pairs.begin-ptr,
+
+.find-ptr<k, v> pair<k, v>*?(a frozen-dict<k, v>, key k) unsafe is-data<k> compare<k> hash-mix<k>
+	bucket = if a.bucket-starts is-empty
+		a pairs
+	else
+		bucket-index = key.hash unsafe-mod a.bucket-starts.size
+		bucket-start = a.bucket-starts unsafe-at bucket-index
+		bucket-end = if bucket-index == (a.bucket-starts.size wrap-sub 1)
+			a.pairs end-ptr
+		else
+			a.bucket-starts unsafe-at (bucket-index wrap-add 1)
+		bucket-start arr-from-begin-end bucket-end
+
+	bucket.begin-ptr find-ptr bucket.end-ptr, key
+
+find-index<k, v> nat64?(pairs pair<k, v>[], key k) unsafe is-data<k> compare<k> hash-mix<k>
+	if ptr ?= pairs.begin-ptr find-ptr pairs.end-ptr, key
+		ptr - pairs.begin-ptr,
+
+find-ptr<k, v> pair<k, v>*?(cur pair<k, v>*, end pair<k, v>*, key k) unsafe is-data<k> compare<k> hash-mix<k>
+	if cur == end
+		()
+	elif cur->from == key
+		cur,
+	else
+		cur + 1 find-ptr end, key
+
+fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>
+	a fix-arr pair<k, v>
+spec
+	unsafe
+	is-data<k>
+	compare<k>
+	hash-mix<k>
+body
+	if a.size <= 4
+		a.cast-immutable, ()
+	else
+		n-buckets = a.size unsafe-div 2
+		bucket-counts = a get-bucket-counts n-buckets
+		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-arr
+		bucket-counts fill 0
+		a.begin-ptr move-values-to-buckets-recur a.end-ptr, bucket-counts, bucket-starts
+		a.cast-immutable, bucket-starts.arr-cast
+
+.remove-duplicates<k, v> frozen-dict<k, v>
+	a frozen-dict<k, v>
+spec
+	unsafe
+	is-data<k>
+	compare<k>
+	hash-mix<k>
+body
+	if a has-duplicates
+		# Write out pairs from each bucket to a fix-arr, omitting a pair if its key appears later in the same bucket.
+		# Then call fix-arr-to-frozen-dict-promise-no-duplicates 
+		out-pairs pair<k, v> mut* = a.size alloc-uninitialized
+		end = out-pairs write-without-duplicates a
+		out-pairs fix-arr-from-begin-end end fix-arr-to-frozen-dict-promise-no-duplicates
+	else
+		a
+
+.write-without-duplicates<k, v> pair<k, v> mut*(out pair<k, v> mut*, a frozen-dict<k, v>) trusted equal<k>
+	if a.bucket-starts is-empty
+		out write-bucket-without-duplicates a.pairs.begin-ptr, a.pairs.end-ptr
+	else
+		cur = *a.bucket-starts.begin-ptr
+		next = a.bucket-starts.begin-ptr + 1
+		out write-without-duplicates-recur cur, next, a.bucket-starts.end-ptr, a.pairs.end-ptr
+.write-without-duplicates-recur<k, v> pair<k, v> mut*
+	out pair<k, v> mut*
+	cur-bucket-start pair<k, v>*
+	next-bucket pair<k, v>**
+	end-buckets pair<k, v>**
+	last-bucket-end pair<k, v>*
+spec
+	unsafe
+	equal<k>
+body
+	if next-bucket == end-buckets
+		out write-bucket-without-duplicates cur-bucket-start, last-bucket-end
+	else
+		mid = out write-bucket-without-duplicates cur-bucket-start, *next-bucket
+		mid write-without-duplicates-recur *next-bucket, next-bucket + 1, end-buckets, last-bucket-end
+
+.write-bucket-without-duplicates<k, v> pair<k, v> mut*
+	out pair<k, v> mut*
+	begin pair<k, v>*
+	end pair<k, v>*
+spec
+	unsafe
+	equal<k>
+body
+	if begin == end
+		out
+	else
+		mid = if begin->from key-in-range begin + 1, end
+			out
+		else
+			*out := *begin
+			out + 1
+		mid write-bucket-without-duplicates begin + 1, end
+
+.has-duplicates<k, v> bool(a frozen-dict<k, v>) trusted equal<k>
+	if a.bucket-starts is-empty
+		a.pairs.begin-ptr bucket-has-duplicates a.pairs.end-ptr
+	else
+		cur = *a.bucket-starts.begin-ptr
+		next = a.bucket-starts.begin-ptr + 1
+		cur has-duplicates-recur next, a.bucket-starts.end-ptr, a.pairs.end-ptr
+.has-duplicates-recur<k, v> bool
+	cur-bucket-start pair<k, v>*
+	next-bucket pair<k, v>**
+	end-buckets pair<k, v>**
+	last-bucket-end pair<k, v>*
+spec
+	unsafe
+	equal<k>
+body
+	if next-bucket == end-buckets
+		cur-bucket-start bucket-has-duplicates last-bucket-end
+	elif cur-bucket-start bucket-has-duplicates *next-bucket
+		true
+	else
+		*next-bucket has-duplicates-recur next-bucket + 1, end-buckets, last-bucket-end
+
+.bucket-has-duplicates<k, v> bool(begin pair<k, v>*, end pair<k, v>*) unsafe equal<k>
+	if begin == end
+		false
+	elif begin->from key-in-range begin + 1, end
+		true
+	else
+		begin + 1 bucket-has-duplicates end
+
+.key-in-range<k, v> bool(key k, begin pair<k, v>*, end pair<k, v>*) unsafe equal<k>
+	if begin == end
+		false
+	elif key == begin->from
+		true
+	else
+		key key-in-range begin + 1, end
+
+.get-bucket-counts<k, v> fix-arr nat64(a fix-arr pair<k, v>, n-buckets nat64) unsafe hash-mix<k>
+	res = n-buckets fill-fix-arr 0
+	a each pair =>
+		bucket-index = pair.from get-bucket-index n-buckets
+		res unsafe-set-at bucket-index, (res unsafe-at bucket-index wrap-add 1)
+	res
+
+.move-values-to-buckets-recur<k, v> void
+	cur pair<k, v> mut*
+	end pair<k, v> mut*
+	bucket-counts fix-arr nat64
+	bucket-starts pair<k, v> mut*[]
+spec
+	unsafe
+	hash-mix<k>
+body
+	unless cur == end
+		bucket-index = cur->from get-bucket-index bucket-counts.size
+		bucket-count = bucket-counts unsafe-at bucket-index
+		bucket-start = bucket-starts unsafe-at bucket-index
+		bucket-cur-end = bucket-start + bucket-count
+		new-cur = if bucket-start <= cur && cur <= bucket-cur-end
+			if cur == bucket-cur-end
+				bucket-counts unsafe-set-at bucket-index, (bucket-count wrap-add 1)
+			cur + 1
+		else
+			bucket-counts unsafe-set-at bucket-index, (bucket-count wrap-add 1)
+			cur swap bucket-cur-end
+			cur
+		new-cur move-values-to-buckets-recur end, bucket-counts, bucket-starts
+
+.get-bucket-index<k> nat64(key k, n-buckets nat64) unsafe hash-mix<k>
+	key.hash unsafe-mod n-buckets
+
+.running-sum<k, v> pair<k, v> mut*[](acc pair<k, v> mut*, a nat64[]) trusted
+	out fix-arr pair<k, v> mut* = a.size uninitialized-fix-arr
+	acc running-sum-recur out.begin-ptr, out.end-ptr, a.begin-ptr
+	out cast-immutable
+.running-sum-recur<k, v> void
+	acc pair<k, v> mut*
+	out pair<k, v> mut* mut*
+	out-end pair<k, v> mut* mut*
+	read nat64*
+spec
+	unsafe
+body
+	*out := acc
+	unless out + 1 == out-end
+		acc + *read running-sum-recur out + 1, out-end, read + 1
+
+region iteration
+
+each<k, v> void(a frozen-dict<k, v>, f act void(k, v))
+	a.pairs each pair =>
+		f[pair from, pair to]
+
+fold<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v))
+	acc fold a.pairs, (acc, pair) =>
+		f[acc, pair from, pair to]
+
+fold-with-index<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
+	acc fold-with-index a.pairs, (acc, pair, index) =>
+		f[acc, pair from, pair to, index]
+
+.verify void(a frozen-dict<nat64, str>, keys-order nat64[], bucket-starts nat64[]) unsafe
+	a.pairs map (pair => pair from) is keys-order
+	a.bucket-starts map (ptr => ptr - a.pairs.begin-ptr) is bucket-starts
+
+test
+	a frozen-dict<nat64, str> = ()
+	a.is-empty is true
+	a.size is 0
+	a verify (), ()
+	a[0] is ()
+	
+	b frozen-dict<nat64, str> = (3, "3"), (1, "1"), (5, "5"), (2, "2")
+	b verify (3, 1, 5, 2), ()
+	b[0] is ()
+	b[1] is ("1",)
+	b[2] is ("2",)
+	b[3] is ("3",)
+	b[4] is ()
+	b[5] is ("5",)
+	b[6] is ()
+
+	c frozen-dict<nat64, str> = (3, "3"), (1, "1"), (5, "5"), (2, "2"), (8, "8")
+	c verify (2, 8, 3, 5, 1), (0, 2)
+	c[0] is ()
+	c[1] is ("1",)
+	c[2] is ("2",)
+	c[3] is ("3",)
+	c[4] is ()
+	c[5] is ("5",)
+	c[6] is ()
+	c[7] is ()
+	c[8] is ("8",)
+	c[9] is ()
+
+test
+	a frozen-dict<nat64, str> = (1, "1"), (1, "2")
+	a.size is 1
+	a verify (1,), ()
+	a[1] is ("2",)

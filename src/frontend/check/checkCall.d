@@ -56,6 +56,7 @@ import model.model :
 	sig,
 	Sig,
 	SpecBody,
+	SpecDeclSig,
 	SpecInst,
 	specs,
 	SpecSig,
@@ -247,9 +248,9 @@ void eachFunInScope(
 		matchSpecBody!void(
 			specInst.deref().body_,
 			(immutable SpecBody.Builtin) {},
-			(immutable Sig[] sigs) {
-				foreach (immutable size_t i, ref immutable Sig sig; sigs)
-					if (symEq(sig.name, funName)) {
+			(immutable SpecDeclSig[] sigs) {
+				foreach (immutable size_t i, ref immutable SpecDeclSig sig; sigs)
+					if (symEq(sig.sig.name, funName)) {
 						immutable Opt!UsedFun used = none!UsedFun;
 						cb(used, immutable CalledDecl(immutable SpecSig(specInst, ptrAt(sigs, i), totalIndex + i)));
 					}
@@ -572,7 +573,7 @@ immutable(bool) findBuiltinSpecOnType(
 			inst.deref().body_,
 			(immutable SpecBody.Builtin b) =>
 				b.kind == kind && typeEquals(only(inst.deref().typeArgs), type),
-			(immutable Sig[]) =>
+			(immutable SpecDeclSig[]) =>
 				//TODO: might inherit from builtin spec?
 				false));
 }
@@ -629,9 +630,9 @@ immutable(bool) checkBuiltinSpec(
 				specInstInstantiated.deref().body_,
 				(immutable SpecBody.Builtin b) =>
 					checkBuiltinSpec(alloc, ctx, called, range, b.kind, only(typeArgs(specInstInstantiated.deref()))),
-				(immutable Sig[] sigs) {
-					foreach (ref immutable Sig sig; sigs) {
-						immutable Opt!Called impl = findSpecSigImplementation(alloc, ctx, range, sig, called);
+				(immutable SpecDeclSig[] sigs) {
+					foreach (ref immutable SpecDeclSig sig; sigs) {
+						immutable Opt!Called impl = findSpecSigImplementation(alloc, ctx, range, sig.sig, called);
 						if (!has(impl))
 							return false;
 						setAt(res, outI, force(impl));

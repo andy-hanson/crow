@@ -1,13 +1,14 @@
 import
 	crow/io/print: print
+	crow/str-util: reverse
 
 main fut nat(_ str[]) summon
-	a fut nat = 3,
-	b = a then x =>
-		print: x to-str
-		x + 1,
-	c = b then y =>
-		print: y to-str
+	a fut str = "crow",
+	b fut str = a then x =>
+		print: x
+		x.reverse,
+	c fut nat = b then y =>
+		print: y
 		()
 	print: "this happens first"
 	c

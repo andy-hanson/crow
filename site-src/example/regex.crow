@@ -1,0 +1,90 @@
+import
+	crow/cell: as-ptr, cell, new
+	crow/col/arr-util: each
+	crow/col/mut-arr
+	crow/c-types: c-int, size_t, u-long
+	crow/io/print: print
+	crow/ptr: as-const, const-ptr, mut-ptr, new
+	crow/str-util: to-c-str, to-str
+
+main fut nat(_ str[]) summon trusted
+	regex regex = "cro\\+w",
+	candidates str[] = "crow", "crooow", "duck"
+	candidates each x =>
+		print: "{x}: {regex matches x}"
+	()
+
+regex record mut
+	regex cell regex_t
+
+new regex(source str) trusted
+	res regex = (()::regex_t,),
+	err = res.regex.as-ptr regcomp source.to-c-str, ()
+	assert: err == 0
+	res
+
+matches bool(a regex, candidate str) trusted
+	err = a.regex.as-ptr.as-const regexec candidate.to-c-str, (), (), ()
+	if err == REG_NOERROR
+		true
+	elif err == REG_NOMATCH
+		false
+	else
+		buf char mut[] = 1000 fill-mut-arr "\0"
+		drop: err regerror a.regex.as-ptr.as-const, buf.begin-ptr, buf.size
+		buf.begin-ptr.as-const.to-str throw
+
+regex_t record mut
+	by-val
+	buffer void mut*
+	allocated size_t
+	used size_t
+	syntax u-long
+	fastmap char mut*
+	translate nat8 mut*
+	re_nsub size_t
+	re_flags nat8
+
+new regex_t() unsafe
+	(), (), (), (), (), (), (), ()
+
+regoff_t alias
+	c-int
+
+regmatch_t record
+	by-val
+	rm_so regoff_t
+	rm_eo regoff_t
+
+reg_errcode_t enum
+	REG_NOERROR = 0
+	REG_NOMATCH
+
+regcomp c-int
+	regex regex_t mut*
+	pattern c-str
+	cflags c-int
+spec
+	unsafe
+	noctx
+	extern
+regfree void(preg regex_t mut*) unsafe noctx extern
+regexec reg_errcode_t
+	preg regex_t*
+	string c-str
+	nmatch size_t
+	pmatch regmatch_t mut*
+	eflags c-int
+spec
+	unsafe
+	noctx
+	extern
+regerror size_t
+	errcode reg_errcode_t
+	preg regex_t*
+	errbuff char mut*
+	errbuf_size size_t
+spec
+	unsafe
+	noctx
+	extern

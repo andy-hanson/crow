@@ -3,13 +3,9 @@ import
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	chili str[] = "beans", "garlic", "onion", "pepper", "cumin"
-	print: chili[2]
-
-	to-chop = chili[1 .. 4]
-	print: to-chop join ", "
-
-	hold-the-onion = chili[0 .. 2] ~ chili[3 .. 5]
-	print: hold-the-onion join ", "
-
+	xs str[] = "swan", "crow"
+	print: xs[1]
+	ys = xs ~ ("raven", "nightingale")
+	print: ys join ", "
+	print: ys[1 .. 3] join ", "
 	()

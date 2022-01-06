@@ -1,0 +1,7 @@
+import
+	crow/io/print: print
+
+main fut nat(_ str[]) summon
+	print: "2".parse-nat! * 2 to-str
+	print: "two".parse-nat! * 2 to-str
+	()

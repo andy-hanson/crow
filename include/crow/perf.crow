@@ -1,65 +1,102 @@
+###
+Functions for measuring performance.
+
+Even non-`summon` code is can measure perf, but only `summon` code can access the measurements.
+
+To measure performance:
+* First call `perf-enable`.
+* Then wrap the code you want to measure in `with-perf-measure`.
+* Then call `perf-each-measure` or `perf-get-measure` and output the results.
+###
 no-std
 import
-	./bool: ||
-	./col/arr: arr, size, subscript
-	./col/arr-util: zip
+	./col/arr: arr, new, size
+	./col/arr-util: index-of, zip
 	./col/fix-arr: fill-fix-arr, set-subscript, subscript, temp-as-arr
 	./fun-util: subscript
-	./io/time-low-level: get-monotime-nsec
+	./io/duration: duration, new, nsec, to-str
+	./io/private/time-low-level: get-monotime-nsec
 	./misc: drop, new, void
+	./number: to-float64
+	./opt: new, opt
 	./ptr: as-ref
+	./str: str
+	./str-conv: finish, interp, to-str, with-str, with-value
 	./sym: ==, sym
 	./private/bootstrap: get-ctx, nat64, perf-ctx-ptr, thread-local-stuff
-	./private/number-low-level: ==, wrap-add, wrap-sub
+	./private/number-low-level: wrap-add, wrap-sub
 	./private/perf-low-level:
-		measure-names, measure-values, new, ns, perf-ctx, perf-time, set-measure-names,
-		set-measure-values, total-ns
-export
-	./private/perf-low-level: count, measure-value, total-duration
+		count, measure-names, measure-values, new, ns, perf-ctx, perf-measure-value, perf-time,
+		set-measure-names, set-measure-values, total-nsec
 
-perf-reset void(names sym[]) summon
+###
+Enables performance measurement.
+Only names in `names` will be measured; others will be ignored.
+
+If measurement was already enabled, this sets all measurements to 0 (and may change measured names)
+###
+perf-enable void(measure-names sym[]) summon
 	perf = get-perf-ctx
-	perf.measure-names := names
-	perf.measure-values := names.size fill-fix-arr (0, 0)
+	perf.measure-names := measure-names
+	perf.measure-values := measure-names.size fill-fix-arr (0, 0)
 
-# TODO: what if a measurement is taken while this is running?
-perf-each-measure void(cb act void(sym, measure-value)) trusted
-	perf = get-perf-ctx
-	drop: perf.measure-names zip perf.measure-values.temp-as-arr, (name, value) =>
-		cb[name, value]
+# Disables performance measurement and clears all measurements.
+perf-disable void() summon
+	() perf-enable
 
-perf-get-measure measure-value(name sym) summon
-	perf = get-perf-ctx
-	index = perf.measure-names find-index name
-	if index == perf.measure-names.size
-		0, 0
-	else
-		perf.measure-values[index]
-
-perf-now perf-time() noctx
-	get-monotime-nsec,
-
-with-perf-measure<a> a(name sym, cb act a())
+###
+Run `f` and measure its time.
+This will be added to the total time for this measure name.
+###
+with-perf-measure<a> a(measure-name sym, f act a())
 	start = perf-now
-	res = cb[]
-	start perf-measure name
+	res = f[]
+	perf = get-perf-ctx
+	if index ?= perf.measure-names index-of measure-name
+		ns = perf-now.ns wrap-sub start.ns
+		cur = perf.measure-values[index]
+		perf.measure-values[index] := (cur.count wrap-add 1), (cur.total-nsec wrap-add ns)
 	res
 
-perf-measure void(start perf-time, name sym)
+# Count and total duration of all measurements with the same name.
+measure-total record
+	# Number of times a perf measure happend with this name.
+	count nat64
+	# Total time spent in all measures with this name.
+	total-duration duration
+
+new measure-total()
+	0, ()
+
+to-str str(a measure-total)
+	"{a count} times, totaling {a total-duration}"
+
+# TODO: what if a measurement is taken while this is running?
+###
+Calls `f` for each performance measurement and its total.
+
+This must be called before `perf-disable`.
+###
+perf-each-measure void(f act void(sym, measure-total)) summon trusted
 	perf = get-perf-ctx
-	index = perf.measure-names find-index name
-	unless index == perf.measure-names.size
-		ns = perf-now.ns wrap-sub start.ns
-		old = perf.measure-values[index]
-		perf.measure-values[index] := (old.count wrap-add 1), (old.total-ns wrap-add ns)
+	drop: perf.measure-names zip perf.measure-values.temp-as-arr, (name, value) =>
+		f[name, value to-measure-total]
+
+###
+Gets the measure total for a particular name.
+
+This must be called before `perf-disable`.
+###
+perf-get-measure measure-total?(name sym) summon
+	perf = get-perf-ctx
+	if index ?= perf.measure-names index-of name
+		perf.measure-values[index].to-measure-total,
+
+.to-measure-total measure-total(a perf-measure-value)
+	a.count, a.total-nsec.to-float64.nsec
+
+.perf-now perf-time() noctx
+	get-monotime-nsec,
 
 .get-perf-ctx perf-ctx() trusted
 	get-ctx.thread-local-stuff.perf-ctx-ptr as-ref
-
-.find-index nat64(names sym[], name sym)
-	names find-index name, 0
-.find-index nat64(names sym[], name sym, index nat64)
-	if index == names.size || names[index] == name
-		index
-	else
-		names find-index name, (index wrap-add 1)

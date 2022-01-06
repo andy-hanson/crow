@@ -1,133 +1,146 @@
 <section>
-	<h2>Collections</h2>
-	<h3>opt</h3>
-	<p><code class="struct-ref">opt ?a</code> is like a collection with 0 or 1 value in it.
-		<code class="struct-ref">opt ?a</code> is
-		<code class="struct-ref">none</code> or <code class="struct-ref">some ?a</code>.
-
-		<br />
-		<code class="struct-ref">none</code> is an empty record,
-		and <code class="struct-ref">some</code> is a record with a single field <code
-			class="fun-ref">value</code>.
-	</p>
-	<crow-runnable src="opt"></crow-runnable>
-	<p><code class="struct-ref">opt</code> is useful for values
-		that might be null or a special code like -1 in other languages.
-
-		For example, it shows up when attempting to find something in a dict.
-	</p>
-</section>
-<section>
-	<h3>arr</h3>
-	<p>The <code class="struct-ref">arr</code> type, short for "array",
-		stores multiple values contiguously in memory.
-		An <code class="struct-ref">arr</code> is immutable, though it can store values with internal
-		mutability.
-		For a type template, the purity is affected by the type arguments,
-		so <code>arr nat</code> is <code class="spec-ref">data</code> but <code>arr fut nat</code> is not.
-	</p>
 	<crow-runnable src="arr"></crow-runnable>
-	<h4>array literals</h4>
-	<p>An array literal is specified inside of <code>[]</code>.</p>
-	<h4>Element access</h4>
-	<p><code>a[i]</code> gets the <code>i</code>th member of the array (0-indexed).
-		This syntax is equivalent to writing <code>a subscript i</code>; it's not particular to arrays.
+	<h2>arrays</h2>
+	<p>
+		<code>foo[]</code> declares an array type.
+		<br />
+		Arrays in crow are immutable.
+		<br />
+		As with other types, an array is created using a comma-separated list, like <code>"swan", "crow"</code>.
+		This is short for <code>"swan" new "crow"</code>.
+		<br />
+		(An array with one element is <code>("x",)</code>; an empty array is <code>()</code>.)
+	</p>	<p>
+		<code>x[i]</code> accesses a single element of the array. This is short for <code>x subscript i</code>.
 	</p>
-	<h4>Concatenation</h4>
-	<p>The <code class="fun-ref">~</code> function concatenates two arrays.
-		<code class="struct-ref">str</code> is <code class="struct-ref">arr char</code>, so this works on
-		them, too.
+	<p>
+		<code>x[i .. j]</code> slices the array, returning just the array elements
+		from index <code>i</code> up to (but not including) <code>j</code>.
+		<br />
+		<code>..</code> is just another operator, so this is the same as <code>x subscript i .. j</code>.
+		<br />
+		Slicing is O(1) and does not allocate memory; it is just a different slice of a same underlying data.
 	</p>
-	<h4>slicing</h4>
-	<p><code>1 -> 4</code> calls the <code class="fun-ref">-></code> function,
-		which just constructs a templated record type <code>arrow</code>
-		which has <code class="fun-ref">from</code> and <code class="fun-ref">to</code> fields of arbitrary
-		type.
-
-		Then, there is a function <code>subscript arr ?a(a arr ?a, range arrow&lt;nat, nat>)</code>
-		that slices an array.
-		The beginning of the range is inclusive and the end is exclusive.
-		Slicing an array doesn't allocate a new array.
-		In low-level terms, an array is just a pointer and size,
-		and slicing it changes the pointer and size without changing the data.
+	<p>
+		<code>x ~ y</code> concatenates arrays. This is O(n).
 	</p>
-</section>
-<section>
-	<h3>fix-arr</h3>
-	<p>The <code class="struct-ref">fix-arr</code> type is like <code class="struct-ref">arr</code>
-		but <code class="keyword">mut</code>.
-		It has mutable contents, but the size is not mutable,
-		so it's mostly useful for implementing other data structures.
-	</p>
-	<crow-runnable src="fix-arr"></crow-runnable>
-	<p><code class="struct-ref">opt</code> and <code class="struct-ref">arr</code>
-		are the only auto-imported collections; all others need to be explicitly imported.
-	</p>
-	<h4>set-subscript</h4>
-	<p>The syntax <code>ingredients[2] := "chocolate"</code> is short for
-		<code>ingredients set-subscript 2, "chocoloate"</code>.
-	</p>
-	<h4>conversion</h4>
-	<p>The <code class="fun-ref">arr</code> function imported from <code
-			class="import">crow/col/fix-arr</code>
-		converts to an <code class="struct-ref">arr</code>.
-		<code class="struct-ref">arr</code> is immutable, so this creates a copy.
-
-		Since it's also just a pointer and size, <code class="struct-ref">fix-arr</code> can be sliced just
-		like
-		<code class="struct-ref">arr</code>, and the slice will share the same mutable data.
-		(If you don't want that, there's a <code class="fun-ref">copy</code> function.)
+	<p>
+		Functions for arrays are in the <a href="/doc/crow/col/arr.html">crow/col/arr</a> and
+		<a href="/doc/crow/col/arr-util.html">crow/col/arr-util</a> modules.
 	</p>
 </section>
+
 <section>
-	<h3>mut-arr</h3>
-	<p><code class="struct-ref">mut-arr</code> is like <code class="struct-ref">fix-arr</code>
-		but with mutable size.
-		(It retains an excess capacity, so not every increase to the size requires a new allocation.)
-	</p>
+	<h2>mutable arrays</h2>
+
+	<code>foo mut[]</code> is like <code>foo[]</code>, but can add, remove, and change values.
+
 	<crow-runnable src="mut-arr"></crow-runnable>
-	<p>Like all collections, there's a function <code class="fun-ref">mut-arr</code>
-		to convert from <code class="struct-ref">arr</code>;
-		it can also take no arguments for an empty <code class="fun-ref">fix-arr</code>.
 
-		The <code class="fun-ref">~=</code> operator pushes elements; it can take one or multiple.
-
-		In addition to being useful for mutable data,
-		<code class="struct-ref">mut-arr</code> is a more efficient alternative to building an
-		<code class="struct-ref">arr</code> by concatenation.
-
-		The <code class="fun-ref">move-to-arr!</code> function converts to an immutable array.
-		To ensure it is immutable, the original <code class="fun-ref">mut-arr</code>
-		loses its reference to it and becomes empty.
+	<p>
+		<code>xs ~= x</code> pushes a value to the end of the array.
+	</p>
+	<p>
+		<code>xs pop</code> removes the last value if it exists and returns it;
+		if <code>xs</code> is empty, it returns an empty option.
+	</p>
+	<p>
+		<code>xs[i] := x</code> sets a value at an index. This will throw an exception if <code>xs.size <= i</code>.
+	</p>
+	<p>
+		<code>xs move-to-arr</code> clears <code>xs</code> and returns its data as an array, which is now immutable.
+		<br />
+		To efficiently create an array,
+		build up a <code>mut[]</code> and then use <code class="fun">move-to-arr</code>,
+		instead of concatenating immutable arrays.
+	</p>
+	<p>
+		Functions for mutable arrays are in the <a href="/doc/crow/col/mut-arr.html">crow/col/mut-arr</a> module.
 	</p>
 </section>
+
 <section>
-	<h3>set and mut-set</h3>
-	<p>A <code class="struct-ref">set</code> is like an <code class="struct-ref">arr</code>
-		that only stores each element once.
-		You can test for whether a value is in the set using the syntax <code>set[value]</code>.
-	</p>
-	<crow-runnable src="set"></crow-runnable>
-	<p>Following the usual pattern, there's a <code class="struct-ref">mut-set</code> type,
-		a <code class="fun-ref">~=</code> function to add values,
-		and <code class="run-ref">move-to-set!</code> to make it immutable.
-	</p>
-</section>
-<section>
-	<h3>dict and mut-dict</h3>
-	<p>A <code class="struct-ref">dict</code> gets you from a <em>key</em> to a value <em>value</em>.
-		A <code class="struct-ref">mut-dict</code> is a mutable version.
+	<h2>dictionaries</h2>
+	<p>
+		<code>v[k]</code> is a dictionary type.
+		This lets you get a <code>v</code> given a <code>k</code>.
+		<br />
+		Like arrays, dictionaries are immutable.
 	</p>
 	<crow-runnable src="dict"></crow-runnable>
-	<p>Creating a literal <code class="struct-ref">dict</code> reuses
-		<code class="fun-ref">-></code> as a key-value pair.
+	<p>
+		A dictionary is constructed using a list of pairs, like <code>(10, "ten"), (1, "one")</code>.
+	</p>
+	<p>
+		<code>x[k]</code> gets a value. This returns an empty option if the key is not in the dictionary.
 		<br />
-
-		The keys must be <code class="spec-ref">data</code> (even for a <code
-			class="struct-ref">mut-dict</code>);
-		the values may be any type.
-
-		Other than that, these follow the usual pattern for collections.
+		(If you're sure the key is in the dictionary, use <code>x[k]!</code>.)
+		<br />
+		This is O(ln n).
+	</p>
+	<p>
+		<code>~</code> adds a new key and value or overrides the old value for that key.
+		<br />
+		This works immutably; it returns a new dictionary the same as the old one but with the new key and value.
+		<br />
+		This is O(ln n).
+	</p>
+	<p>
+		The key type of a dictionary needs to be immutable.
+		<br />
+		All the basic types except <code>x mut[]</code> and <code>v mut[k]</code> are immutable.
+	</p>
+	<p>
+		Functions for dictionaries are in the <a href="/doc/crow/col/dict.html">crow/col/dict</a> module.
 	</p>
 </section>
-<a id="next" href="fun.html">Next: Function values</a>
+
+<section>
+	<h2>mutable dictionaries</h2>
+	<p>
+		<code>v mut[k]</code> is a mutable dictionary.
+		<br />
+		This supports the same operations as immutable dictionaries, but also supports mutable updates.
+	</p>
+	<crow-runnable src="mut-dict"></crow-runnable>
+	<p>
+		<code>x[k] := v</code> adds or overwrites the value for a key.
+	</p>
+	<p>
+		<code>x try-remove k</code> removes <code>k</code> and returns its associated value;
+		or returns an empty option if <code>k</code> is not in the dictionary.
+	</p>
+	<p>
+		As with arrays, there is <code>move-to-dict</code>
+		which makes <code>v mut[k]</code> useful for creating a <code>v[k]</code>.
+	</p>
+	<p>
+		Functions for mutable dictionaries are in the
+		<a href="/doc/crow/col/mut-dict.html">crow/col/mut-dict</a> module.
+	</p>
+</section>
+
+<section>
+	<h2>other collections</h2>
+	Other useful collections include:
+	<ul class="bullets">
+		<li>
+			<a href='/doc/crow/col/stack.html'>stack</a> / <a href='/doc/crow/col/stack.html'>mut-stack</a>
+		</li>
+		<li>
+			<a href='/doc/crow/col/set.html'>set</a> / <a href='/doc/crow/col/mut-set.html'>mut-set</a>
+		</li>
+		<li>
+			<a href='/doc/crow/col/priority-queue.html'>priority-queue</a> /
+			<a href='/doc/crow/col/mut-priority-queue.html'>mut-priority-queue</a>
+		</li>
+	</ul>
+</section>
+
+<section>
+	<h2>iteration</h2>
+	Crow does not have a <code>for</code> loop;
+	iteration is done using functions like <code>each</code> that take a function as an argument.
+	<br />
+	This will be explained in the section on <a href="./fun.html">function values</a>.
+</section>

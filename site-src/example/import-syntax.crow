@@ -1,0 +1,9 @@
+import
+	# import all names from module 'x'
+	x
+	# import just 'a' and 'b'
+	y: a, b
+	# import many names
+	z:
+		a, b,
+		c, d

@@ -8,7 +8,7 @@ export class Observable {
 		this.value_ = init
 	}
 
-	'get'() {
+	"get"() {
 		return this.value_
 	}
 
@@ -58,4 +58,3 @@ const remove = (xs, x) => {
 	const index = xs.indexOf(x)
 	xs.splice(index, 1)
 }
-

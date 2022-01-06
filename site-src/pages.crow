@@ -1,52 +1,67 @@
 import
-	crow/col/arr-util: map
+	crow/col/arr-util: map, map-with-index
 	crow/io/file: read-file
 	crow/str-util: join, split-by, strip, try-split-once
 	./page-template: page-template
-	./path-and-content: new, path-and-content
+	./path-and-content: path-and-content
 
 pages path-and-content[]() summon
-	index path-and-content = "index.html", ("index" page-template "site-src/index.html".read-file)
-	download path-and-content = "download.html", ("download" page-template "site-src/download.html".read-file)
+	index path-and-content = "index.html" page-template "index", "site-src/index.html".read-file
+	download path-and-content = "download.html" page-template "download", "site-src/download.html".read-file
 	(index, download) ~ tutorial-pages
 
 tutorial-pages path-and-content[]() summon
-	tutorial-metas map meta =>
-		content = meta.title tutorial-template "site-src/tutorial/{meta key}.html".read-file
-		"tutorial/{meta key}.html", content
+	metas = tutorial-metas
+	metas map-with-index (meta, index) =>
+		next tutorial-meta? = unless index + 1 == metas.size
+			metas[index + 1],
+		meta.path tutorial-template meta.title, "site-src/tutorial/{meta key}.html".read-file, next
 
 .tutorial-metas tutorial-meta[]()
-	"""index: Hello World!
-	record: Records
-	enum: Enums
-	union: Unions
-	template: Templates and specs
-	collection: Collections
-	fun: Function values
-	fut: Futures and the runtime
-	module: Modules
-	extern: Extern functions and types
-	test: Tests""" split-by "\n" map line =>
+	"""index: hello, world!
+	if: functions, 'if', and locals
+	types: basic types
+	infer: type inference
+	option: optional values
+	collection: collections
+	record: records
+	enum: enums and flags
+	union: unions
+	fun: function values
+	fut: futures and function references
+	template: templates
+	spec: specs
+	module: modules
+	extern: extern functions
+	next: where from here?""" split-by "\n" map line =>
 		pair = (line.strip try-split-once ":")!
-		pair.a.strip, pair.b.strip
+		pair.a.strip.str-to-sym, pair.b.strip
 
 .tutorial-meta record
-	key str
+	key sym
 	title str
 
-tutorial-nav str()
+path str(a tutorial-meta)
+	"tutorial/{a key}.html"
+
+tutorial-nav str(cur-path str)
 	lines = tutorial-metas map x =>
 		key = x key
-		url = unless key == "index"
-			"{key}.html"
-		name = key == "index" ? "hello" : key
-		"""<li><a href="/tutorial/{url}">{name}</a></li>"""
+		path = x path
+		name sym = key == "index" ? "syntax" : key
+		cur = path == cur-path ? " class=\"current\""
+		"""<li><a href="/{path}"{cur}>{name}</a></li>"""
 	"<nav><ul>{lines join ""}</ul></nav>"
 
-.tutorial-template str(title str, content str)
-	title page-template """
-<div id="side-nav-wrapper">
-	{tutorial-nav}
-	<main>{content}</main>
-</div>
-"""
+.tutorial-template path-and-content(path str, title str, content str, next tutorial-meta?)
+	next-link = if n ?= next
+		"""<a id="next" href="/{n path}">next: {n title}</a>"""
+	path page-template title, """
+	<div id="side-nav-wrapper">
+		{path tutorial-nav}
+		<main>
+			<h1>{title}</h1>
+			{content}
+			{next-link}
+		</main>
+	</div>"""

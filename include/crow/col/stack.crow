@@ -2,23 +2,22 @@ no-std
 import
 	../bool: bool
 	../compare: !=
-	../exception: assert, forbid, throw
+	../exception: assert, forbid
 	../fun-util: subscript
 	../misc: drop, new, void
-	../opt: ==, is-empty, new, opt
+	../opt: !, ==, is-empty, new, opt
 	../ptr: ==, +, -, set-deref
 	../str: str
 	../test-util: is
-	../test-util/spy: calls, fn, spy-act, spy-act1
+	../test-util/spy: calls, fn, new, spy-act1
 	../private/number-low-level: ==, nat64, wrap-add
 	./arr: ==, arr, new
 	./arr-util: fold
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
 
 ###
-Immutable stack ype.
-Appending a value with `~`, removing the last value with `rtail`, and `last` are always O(1).
-Accessing the first element of the stack is O(n).
+Immutable stack type.
+Iteration functions move from the bottom to the top.
 ###
 stack<a> record
 	.last-node node<a>?
@@ -27,16 +26,26 @@ stack<a> record
 	prev node<a>?
 	value a
 
-# Empty stack.
-new<a> stack a()
-	(),
+###
+Stack containing the given elements.
 
-# Copy an arr to a stack.
-stack<a> stack a(a a[])
-	() fold a, (stack, x) => stack ~ x
+The first element of `a` goes on the bottom and the last element of `a` goes on the top.
+###
+new<a> stack a(...a a[])
+	a to-stack
 
-# Copy a stack to an arr.
-arr<a> a[](a stack a) trusted
+###
+Stack containing the given elements.
+
+The first element of `a` goes on the bottom and the last element of `a` goes on the top.
+###
+to-stack<a> stack a(a a[])
+	# TODO: type annotation should not be necessary
+	empty stack a = (()::node<a>?,)
+	empty fold a, (stack, x) => stack ~ x
+
+# Copy elements an arrary.
+to-arr<a> a[](a stack a) trusted
 	res fix-arr a = a.size uninitialized-fix-arr
 	begin = res.end-ptr fold-reverse a, (out, x) =>
 		new-out = out - 1
@@ -45,7 +54,8 @@ arr<a> a[](a stack a) trusted
 	assert: begin == res.begin-ptr
 	res cast-immutable
 
-arr-reverse<a> a[](a stack a) trusted
+# Copy elements to an array, from top to bottom.
+to-arr-reverse<a> a[](a stack a) trusted
 	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold-reverse a, (out, x) =>
 		*out := x
@@ -53,7 +63,7 @@ arr-reverse<a> a[](a stack a) trusted
 	assert: end == res.end-ptr
 	res cast-immutable
 
-# True iff `a.size == 0`.
+# `true` iff `a.size == 0`.
 is-empty<a> bool(a stack a)
 	a.last-node is-empty
 
@@ -62,7 +72,8 @@ Appends an element to the stack.
 This is O(1).
 ###
 ~ <a> stack a(a stack a, b a)
-	((a.last-node, b),),
+	# TODO: type annotation should not be necessary
+	((a.last-node, b),)::node<a>?,
 
 ###
 Number of elements in the stack.
@@ -74,35 +85,22 @@ size<a> nat64(a stack a)
 		acc wrap-add 1
 
 ###
-Oldest element.
-This is O(a size).
-###
-first<a> a?(a stack a)
-	() fold-reverse a, (ignore, x) => x,
-
-###
-Most recently appended element.
+Top element.
+Returns an empty option iff `a` is empty.
 This is O(1).
 ###
-last<a> a?(a stack a)
+peek<a> a?(a stack a)
 	if node ?= a last-node
 		node.value,
-
-###
-All but the last element.
-This is O(1).
-Throws if the stack is empty.
-###
-rtail<a> stack a(a stack a)
-	if node ?= a last-node
-		node.prev,
-	else
-		throw: "Stack is empty"
 
 popped<a> record
 	value a
 	rest stack a
 
+###
+Returns the top element of the stack and a new stack with all elements but the top.
+Returns an empty option iff `a` is empty.
+###
 pop<a> popped<a>?(a stack a)
 	if node ?= a last-node
 		(node.value, (node.prev,)),
@@ -159,38 +157,36 @@ filter<a> stack a(a stack a, f act bool(a))
 		else
 			prev
 
-first-some<out, in> out?(a stack in, f act out?(in))
-	a.last-node first-some-recur f
-.first-some-recur<out, in> out?(a node<in>?, f act out?(in))
+find-and-get<out, in> out?(a stack in, f act out?(in))
+	a.last-node find-and-get-recur f
+.find-and-get-recur<out, in> out?(a node<in>?, f act out?(in))
 	if node ?= a
-		res = node.prev first-some-recur f
-		if res is-empty
-			f[node value]
+		if x ?= node.prev find-and-get-recur f
+			x,
 		else
-			res
+			f[node value]
 
 test
 	a stack nat64 = ()
 	assert: a is-empty
-	a.arr is ()
-	a.last is ()
+	a.to-arr is ()
+	a.peek is ()
 
 	b = a ~ 1
-	b.arr is (1,)
-	b.last is (1,)
-	b.rtail.arr is ()
+	b.to-arr is (1,)
+	b.peek is (1,)
+	b.pop!.rest.to-arr is ()
 	forbid: b is-empty
 
 	c = b ~ 2
-	c.arr is (1, 2)
-	c.last is (2,)
-	c.rtail.arr is (1,)
+	c.to-arr is (1, 2)
+	c.peek is (2,)
+	c.pop!.rest.to-arr is (1,)
 
 	d = c ~ 3
-	d.arr is (1, 2, 3)
+	d.to-arr is (1, 2, 3)
 
-	# TODO: should not need type annotation
-	each-spy spy-act1<void, nat64> = spy-act: () :: void
+	each-spy spy-act1<void, nat64> = new: ignore => ()
 	d each each-spy.fn
 	each-spy.calls is (1, 2, 3)
 
@@ -198,16 +194,16 @@ test
 	each-spy.calls is (3, 2, 1)
 
 	d2 = d map x => x wrap-add 10
-	d2.arr is (11, 12, 13)
+	d2.to-arr is (11, 12, 13)
 
 	d3 = d filter x => x != 2
-	d3.arr is (1, 3)
+	d3.to-arr is (1, 3)
 
 	folded = 5 fold d, (x, y) => x wrap-add y
 	folded is 11
 
-	(d first-some x => x if-eq 2, "two") is ("two",)
-	(d first-some x => x if-eq 5, "five") is ()
+	(d find-and-get x => x if-eq 2, "two") is ("two",)
+	(d find-and-get x => x if-eq 5, "five") is ()
 
 .if-eq str?(actual nat64, expected nat64, result str)
 	if actual == expected

@@ -1,25 +1,28 @@
 no-std
 import
 	../compare: <, compare
-	../misc: new, void
 
-# `low` is inclusive and `high` is exclusive.
+###
+Range of values. `low` is inclusive and `high` is exclusive.
+
+Usable for any type with a comparison function.
+###
 range<a> record
 	by-val
-	# TODO: private constructor
-	ignore void
 	low a
 	high a
 
+# Create a range from `low` (inclusive) to `high` (exclusive).
 .. <a> range<a>(low a, high a) noctx compare<a>
 	if low < high
-		(), low, high
+		low, high
 	else
 		# TODO:WARN
-		(), high, high
+		high, high
 
+# Size of the range; depends on a `-` function existing.
 size<a> a(a range a) minus<a>
 	a.high - a.low
 
-.minus<a> spec
+minus<a> spec
 	- a(a a, b a)

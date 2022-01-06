@@ -17,12 +17,12 @@ import
 	../../private/number-low-level: ==, <=>, nat64, wrap-add
 	../arr: arr, new
 	../arr-util: fold
-	../frozen-dict:
-		each, frozen-dict, fold, in, is-empty, fix-arr-to-frozen-dict-promise-no-duplicates, new,
-		size, subscript, to-frozen-dict
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
 	../mut-set: in, mut-set, new, try-add
-
+	./frozen-dict:
+		each, frozen-dict, fold, in, is-empty, fix-arr-to-frozen-dict-promise-no-duplicates, new,
+		size, subscript, to-frozen-dict
+	
 compact-dict<k, v> record
 	by-val
 	ignore void

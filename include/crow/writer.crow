@@ -9,21 +9,32 @@ import
 	./str-conv: to-str
 	./str-util: to-str
 
+###
+Used for generating a string left-to-right.
+
+The main operation is `~=` which adds to the end of the string being generated.
+Then, use `move-to-str` to get the result.
+###
 writer record mut
 	.chars char mut[]
 
+# Spec satisfied by any type that can be written to a `writer`.
 write<a> spec
 	~= void(writer writer, value a)
 
+# New writer initialized with an empty string.
 new writer()
 	(),
 
+# Returns the generated string and clears the writer.
 move-to-str str(a writer)
 	a.chars.move-to-arr str
 
+# Remove the last character written. Throws if the writer is empty.
 backup void(a writer)
 	a backup 1
 
+# Backup `n` times.
 backup void(a writer, n nat64)
 	a.chars pop-n n
 
@@ -48,6 +59,7 @@ backup void(a writer, n nat64)
 ~= void(a writer, b float64)
 	a ~= b to-str
 
+# Unlike `out ~= a`, this encloses `a` in quotes and escapes special characters.
 write-quoted-str void(out writer, a str)
 	out ~= "\""
 	a.chars each x =>

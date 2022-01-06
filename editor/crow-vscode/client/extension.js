@@ -183,11 +183,9 @@ const convertToken = kind => {
 	switch (kind) {
 		case "by-val-ref":
 			return "keyword"
-		case "field-def":
-		case "field-ref":
+		case "field":
 			return "property"
-		case "fun-def":
-		case "fun-ref":
+		case "fun":
 			return "function"
 		case "identifier":
 			return "variable"
@@ -199,17 +197,15 @@ const convertToken = kind => {
 			return "number"
 		case "lit-str":
 			return "string"
-		case "local-def":
+		case "local":
 			return "variable"
-		case "param-def":
+		case "param":
 			return "parameter"
 		case "purity":
 			return "keyword"
-		case "spec-def":
-		case "spec-ref":
+		case "spec":
 			return "label"
-		case "struct-def":
-		case "struct-ref":
+		case "struct":
 			return "type"
 		case "tparam-def":
 		case "tparam-ref":

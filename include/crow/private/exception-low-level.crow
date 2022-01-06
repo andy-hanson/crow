@@ -51,9 +51,17 @@ catch-with-exception-ctx<a> a(ec exception-ctx, try act a(), catcher act a(excep
 		catcher[thrown-exception]
 
 ###
-Throw an exception (that already exists).
-If you want to create and throw an exception, use `fail` instead.
-`throw` is useful for rethrowing an exception that was already caught.
+Create amd throw an exception with the given message.
+
+This gets the current backtrace to use in the exception.
+###
+throw<a> a(message str) trusted
+	(message, get-backtrace) throw
+
+###
+Throw an existing exception object.
+
+This is useful for rethrowing an exception that was already caught.
 Throwing an exception does not modify its backtrace.
 ###
 throw<a> a(e exception) trusted
@@ -63,19 +71,15 @@ throw<a> a(e exception) trusted
 	exn-ctx.jmp-buf-ptr longjmp number-to-throw
 	hard-unreachable
 
-# Create amd throw an exception with the given message.
-throw<a> a(message str) trusted
-	(message, get-backtrace) throw
-
 .number-to-throw int32()
 	7
 
-# Fail if the condition is false.
+# Throw iff the condition is `false`.
 assert void(condition bool)
 	unless condition
 		"assert failed" throw
 
-# Fail if the condition is true.
+# Throw iff the condition is `true`.
 forbid void(condition bool)
 	if condition
 		"forbid failed" throw

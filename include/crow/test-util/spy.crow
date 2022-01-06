@@ -1,41 +1,57 @@
+###
+Module for creating dummy callbacks for use in tests.
+Spies record each call and output to an array.
+###
+
 no-std
 import
-	../col/arr: arr
+	../bool: &&, bool
+	../col/arr: arr, arr-equal, new
 	../col/mut-arr: ~=, move-to-arr, mut-arr, new
 	../fun-util: subscript
-	../tuple: new, pair
+	../number: ==, +, nat64
+	../test-util: is
+	../tuple: a, b, new, pair
 
 spy-act1<out, in> record mut
 	.calls-builder in mut[]
 	fn act out(in)
 
-# Empties the list of calls and returns it.
-calls<out, in> in[](a spy-act1<out, in>)
-	a.calls-builder move-to-arr
-
-spy-act<out, in> spy-act1<out, in>(f act out(in))
+# Create a spy that calls `f`.
+new<out, in> spy-act1<out, in>(f act out(in))
 	calls in mut[] = ()
 	calls, in =>
 		calls ~= in
 		f[in]
 
-spy-act<out, in> spy-act1<out, in>(value out)
-	calls in mut[] = ()
-	calls, in =>
-		calls ~= in
-		value
+# Returns the argument to every call since the last time `calls` was called.
+calls<out, in> in[](a spy-act1<out, in>)
+	a.calls-builder move-to-arr
 
 spy-act2<out, in0, in1> record mut
 	.calls-builder pair<in0, in1> mut[]
 	fn act out(in0, in1)
 
-# Empties the list of calls and returns it.
-calls<out, in0, in1> pair<in0, in1>[](a spy-act2<out, in0, in1>)
-	a.calls-builder move-to-arr
-
-spy-act<out, in0, in1> spy-act2<out, in0, in1>(f act out(in0, in1))
+# Create a spy that calls `f`.
+new<out, in0, in1> spy-act2<out, in0, in1>(f act out(in0, in1))
 	calls pair<in0, in1> mut[] = ()
 	calls, (a, b) =>
 		# TODO: type annotation should be unnecessary
 		calls ~= (a, b) :: pair<in0, in1>
 		f[a, b]
+
+# Returns the arguments to every call since the last time `calls` was called.
+calls<out, in0, in1> pair<in0, in1>[](a spy-act2<out, in0, in1>)
+	a.calls-builder move-to-arr
+
+test
+	spy spy-act2<nat64, nat64, nat64> = new: (x, y) => x + y
+	spy.fn[1, 2] is 3
+	spy.fn[3, 4] is 7
+	spy.calls is ((1, 2), (3, 4))
+	spy.calls is ()
+
+# TODO: array equality should be generic
+== bool(a pair<nat64, nat64>[], b pair<nat64, nat64>[])
+	a arr-equal b, (x, y) =>
+		x.a == y.a && x.b == y.b

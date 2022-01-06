@@ -361,7 +361,9 @@ immutable(Repr) reprFunInst(ref Alloc alloc, ref Ctx ctx, ref immutable FunInst 
 }
 
 immutable(Repr) reprSpecSig(ref Alloc alloc, ref Ctx ctx, ref immutable SpecSig a) {
-	return reprRecord(alloc, "spec-sig", [reprSym(name(a.specInst.deref())), reprSym(a.sig.deref().name)]);
+	return reprRecord(alloc, "spec-sig", [
+		reprSym(name(a.specInst.deref())),
+		reprSym(a.sig.deref().sig.name)]);
 }
 
 public immutable(Repr) reprVisibility(immutable Visibility a) {

@@ -9,6 +9,7 @@ import frontend.parse.ast :
 	FileAst,
 	FunBodyAst,
 	FunDeclAst,
+	FunDeclAstFlags,
 	ImportAst,
 	ImportsOrExportsAst,
 	LiteralIntOrNat,
@@ -21,6 +22,7 @@ import frontend.parse.ast :
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
+	SpecSigAst,
 	SpecUseAst,
 	StructAliasAst,
 	StructDeclAst,
@@ -338,8 +340,13 @@ struct SigAstAndMaybeDedent {
 	immutable Opt!size_t dedents;
 }
 
-struct SigAstAndDedent {
-	immutable SigAst sig;
+struct SpecSigAstAndMaybeDedent {
+	immutable SpecSigAst sig;
+	immutable Opt!size_t dedents;
+}
+
+struct SpecSigAstAndDedent {
+	immutable SpecSigAst sig;
 	immutable size_t dedents;
 }
 
@@ -351,22 +358,37 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(ref Lexer lexer, immut
 		params.dedents);
 }
 
-immutable(SigAstAndDedent) parseSig(ref Lexer lexer, immutable uint curIndent) {
-	immutable Pos start = curPos(lexer);
-	immutable Sym sigName = takeNameOrOperator(lexer);
-	immutable SigAstAndMaybeDedent s = parseSigAfterNameAndSpace(lexer, start, sigName);
-	immutable size_t dedents = has(s.dedents) ? force(s.dedents) : takeNewlineOrDedentAmount(lexer, curIndent);
-	return SigAstAndDedent(s.sig, dedents);
+immutable(SpecSigAstAndMaybeDedent) parseSpecSigAfterNameAndSpace(
+	ref Lexer lexer,
+	immutable SafeCStr comment,
+	immutable Pos start,
+	immutable Sym name,
+) {
+	immutable TypeAst returnType = parseType(lexer);
+	immutable ParamsAndMaybeDedent params = parseParams(lexer);
+	return immutable SpecSigAstAndMaybeDedent(
+		immutable SpecSigAst(comment, immutable SigAst(range(lexer, start), name, returnType, params.params)),
+		params.dedents);
 }
 
-immutable(SigAst[]) parseIndentedSigs(ref Lexer lexer) {
+immutable(SpecSigAstAndDedent) parseSpecSig(ref Lexer lexer, immutable uint curIndent) {
+	// TODO: this doesn't work because the lexer already skipped comments
+	immutable SafeCStr comment = skipBlankLinesAndGetDocComment(lexer);
+	immutable Pos start = curPos(lexer);
+	immutable Sym sigName = takeNameOrOperator(lexer);
+	immutable SpecSigAstAndMaybeDedent s = parseSpecSigAfterNameAndSpace(lexer, comment, start, sigName);
+	immutable size_t dedents = has(s.dedents) ? force(s.dedents) : takeNewlineOrDedentAmount(lexer, curIndent);
+	return SpecSigAstAndDedent(s.sig, dedents);
+}
+
+immutable(SpecSigAst[]) parseIndentedSigs(ref Lexer lexer) {
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
-			return emptyArr!SigAst;
+			return emptyArr!SpecSigAst;
 		case NewlineOrIndent.indent:
-			ArrBuilder!SigAst res;
+			ArrBuilder!SpecSigAst res;
 			for (;;) {
-				immutable SigAstAndDedent sd = parseSig(lexer, 1);
+				immutable SpecSigAstAndDedent sd = parseSpecSig(lexer, 1);
 				add(lexer.alloc, res, sd.sig);
 				if (sd.dedents != 0) {
 					// We started at in indent level of only 1, so can't go down more than 1.
@@ -478,20 +500,14 @@ immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembers(ref Lexer lexer) 
 
 struct SpecUsesAndSigFlagsAndKwBody {
 	immutable SpecUseAst[] specUses;
-	immutable bool noCtx;
-	immutable bool summon;
-	immutable bool unsafe;
-	immutable bool trusted;
+	immutable FunDeclAstFlags flags;
 	immutable Opt!FunBodyAst body_; // none for 'builtin' or 'extern'
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
 	immutable SpecUsesAndSigFlagsAndKwBody(
 		[],
-		false,
-		false,
-		false,
-		false,
+		immutable FunDeclAstFlags(),
 		none!FunBodyAst);
 
 immutable(FunBodyAst.Extern) takeExternName(ref Lexer lexer, immutable bool isGlobal) {
@@ -510,13 +526,9 @@ immutable(Sym) takeExternLibraryName(ref Lexer lexer) {
 immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(
 	ref Lexer lexer,
 	ref ArrBuilder!SpecUseAst specUses,
-	immutable bool noCtx,
-	immutable bool summon,
-	immutable bool unsafe,
-	immutable bool trusted,
+	immutable FunDeclAstFlags flags,
 	immutable bool builtin,
 	immutable Opt!(FunBodyAst.Extern) extern_,
-	immutable Opt!string mangle,
 	scope immutable(bool) delegate() @safe @nogc pure nothrow canTakeNext,
 ) {
 	immutable Pos start = curPos(lexer);
@@ -526,31 +538,28 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(
 		if (has(extern_))
 			todo!void("duplicate");
 		immutable Opt!(FunBodyAst.Extern) extern2 = some(takeExternName(lexer, isGlobal));
-		return nextSpecOrStop(
-			lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern2, mangle, canTakeNext);
+		return nextSpecOrStop(lexer, specUses, flags, builtin, extern2, canTakeNext);
 	}
 
 	switch (token) {
 		case Token.noCtx:
-			if (noCtx) todo!void("duplicate");
-				return nextSpecOrStop(
-					lexer, specUses, true, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
+			if (flags.noCtx) todo!void("duplicate");
+			return nextSpecOrStop(lexer, specUses, flags.withNoCtx(), builtin, extern_, canTakeNext);
+		case Token.noDoc:
+			if (flags.noDoc) todo!void("duplicate");
+			return nextSpecOrStop(lexer, specUses, flags.withNoDoc(), builtin, extern_, canTakeNext);
 		case Token.summon:
-			if (summon) todo!void("duplicate");
-			return nextSpecOrStop(
-				lexer, specUses, noCtx, true, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
+			if (flags.summon) todo!void("duplicate");
+			return nextSpecOrStop(lexer, specUses, flags.withSummon(), builtin, extern_, canTakeNext);
 		case Token.unsafe:
-			if (unsafe) todo!void("duplicate");
-			return nextSpecOrStop(
-				lexer, specUses, noCtx, summon, true, trusted, builtin, extern_, mangle, canTakeNext);
+			if (flags.unsafe) todo!void("duplicate");
+			return nextSpecOrStop(lexer, specUses, flags.withUnsafe(), builtin, extern_, canTakeNext);
 		case Token.trusted:
-			if (trusted) todo!void("duplicate");
-			return nextSpecOrStop(
-				lexer, specUses, noCtx, summon, unsafe, true, builtin, extern_, mangle, canTakeNext);
+			if (flags.trusted) todo!void("duplicate");
+			return nextSpecOrStop(lexer, specUses, flags.withTrusted(), builtin, extern_, canTakeNext);
 		case Token.builtin:
 			if (builtin) todo!void("duplicate");
-			return nextSpecOrStop(
-				lexer, specUses, noCtx, summon, unsafe, trusted, true, extern_, mangle, canTakeNext);
+			return nextSpecOrStop(lexer, specUses, flags, true, extern_, canTakeNext);
 		case Token.extern_:
 			return setExtern(false);
 		case Token.global:
@@ -559,36 +568,29 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(
 			immutable NameAndRange name = getCurNameAndRange(lexer, start);
 			immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(lexer);
 			add(lexer.alloc, specUses, immutable SpecUseAst(range(lexer, start), name, typeArgs));
-			return nextSpecOrStop(
-				lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
+			return nextSpecOrStop(lexer, specUses, flags, builtin, extern_, canTakeNext);
 		default:
 			addDiagUnexpectedCurToken(lexer, start, token);
-			return nextSpecOrStop(
-				lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
+			return nextSpecOrStop(lexer, specUses, flags, builtin, extern_, canTakeNext);
 	}
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(
 	ref Lexer lexer,
 	ref ArrBuilder!SpecUseAst specUses,
-	immutable bool noCtx,
-	immutable bool summon,
-	immutable bool unsafe,
-	immutable bool trusted,
+	immutable FunDeclAstFlags flags,
 	immutable bool builtin,
 	immutable Opt!(FunBodyAst.Extern) extern_,
-	immutable Opt!string mangle,
 	scope immutable(bool) delegate() @safe @nogc pure nothrow canTakeNext,
 ) {
 	if (canTakeNext())
-		return parseNextSpec(
-			lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
+		return parseNextSpec(lexer, specUses, flags, builtin, extern_, canTakeNext);
 	else {
-		if (unsafe && trusted)
+		if (flags.unsafe && flags.trusted)
 			todo!void("'unsafe trusted' is redundant");
-		if (builtin && trusted)
+		if (builtin && flags.trusted)
 			todo!void("'builtin trusted' is silly as builtin fun has no body");
-		if (has(extern_) && trusted)
+		if (has(extern_) && flags.trusted)
 			todo!void("'extern trusted' is silly as extern fun has no body");
 
 		//TODO: assert 'builtin' and 'extern' and 'extern-global' can't be set together.
@@ -598,7 +600,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(
 			: has(extern_)
 			? some(immutable FunBodyAst(extern_.force))
 			: none!FunBodyAst;
-		return SpecUsesAndSigFlagsAndKwBody(finishArr(lexer.alloc, specUses), noCtx, summon, unsafe, trusted, body_);
+		return SpecUsesAndSigFlagsAndKwBody(finishArr(lexer.alloc, specUses), flags, body_);
 	}
 }
 
@@ -609,21 +611,14 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(ref Lexer lexer) {
 		return parseNextSpec(
 			lexer,
 			builder,
-			false,
-			false,
-			false,
-			false,
+			immutable FunDeclAstFlags(),
 			false,
 			none!(FunBodyAst.Extern),
-			none!string,
 			() => takeNewlineOrSingleDedent(lexer) == NewlineOrDedent.newline);
 	} else
 		return immutable SpecUsesAndSigFlagsAndKwBody(
 			emptyArr!SpecUseAst,
-			false,
-			false,
-			false,
-			false,
+			immutable FunDeclAstFlags(),
 			none!FunBodyAst);
 }
 
@@ -633,13 +628,9 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(ref Le
 	return nextSpecOrStop(
 		lexer,
 		builder,
-		false,
-		false,
-		false,
-		false,
+		immutable FunDeclAstFlags(),
 		false,
 		none!(FunBodyAst.Extern),
-		none!string,
 		() => !peekToken(lexer, Token.newline));
 }
 
@@ -685,10 +676,7 @@ immutable(FunDeclAst) parseFun(
 		sig.sig,
 		extra.specUses,
 		visibility,
-		extra.noCtx,
-		extra.summon,
-		extra.unsafe,
-		extra.trusted,
+		extra.flags,
 		stuff.body_);
 }
 
@@ -802,7 +790,7 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.spec:
 			nextToken(lexer);
-			immutable SigAst[] sigs = parseIndentedSigs(lexer);
+			immutable SpecSigAst[] sigs = parseIndentedSigs(lexer);
 			add(lexer.alloc, specs, immutable SpecDeclAst(
 				range(lexer, start),
 				docComment,

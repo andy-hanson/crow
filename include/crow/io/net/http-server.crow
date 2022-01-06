@@ -6,7 +6,7 @@ import
 	../../col/arr: ~, arr, arr-cast, begin-ptr, is-empty, new, size, subscript
 	../../col/arr-util: rtail
 	../../col/dict: each, in, new
-	../../col/mut-dict: move-to-dict, mut-dict, new, remove-key, set-subscript, subscript
+	../../col/mut-dict: move-to-dict, mut-dict, new, try-remove, set-subscript, subscript
 	../../col/mut-arr: ~=, index-of, move-to-arr, mut-arr, new, pop-n-from-start, size
 	../../compare: <=, >, >=
 	../../exception: assert, forbid, throw, to-str
@@ -18,8 +18,9 @@ import
 	../../opt: ??, new, opt
 	../../extra-types: fd-t
 	../../range: ..
+	../../reader: parse-nat
 	../../str: ==, <=>, char, chars, is-empty, str
-	../../str-conv: finish, interp, parse-nat, to-str, with-str, with-value
+	../../str-conv: finish, interp, to-str, with-str, with-value
 	../../str-util: as-str, bytes, has-substr, split-by, try-remove-end
 	../../writer: ~=, move-to-str, new, writer
 	../../private/bootstrap: todo
@@ -29,17 +30,17 @@ import
 		status, status-desc
 	./tcp-server: close-client, new, start-tcp-server, stop
 
-# Represents the state of the server.
+# Reference to a running server.
 http-server record sendable
 	stop ref void()
 
-# A function that can respond to HTTP requests.
+# Type of a function that can respond to HTTP requests.
 http-handler alias
 	ref http-response(http-request)
 
 ###
 Starts running an HTTP server on the given port.
-Once the future is resolved, it is already serving requests.
+The server will be running by the time the returned future is resolved.
 ###
 start-http-server fut http-server(port str, handler http-handler) trusted summon
 	client-states http-parse-state mut[fd-t] = ()
@@ -51,7 +52,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		if state ?= client-states[fd]
 			closed <- fd handle-chunk state, bytes.as-str, handler
 			if closed
-				client-states remove-key fd drop
+				drop: client-states try-remove fd drop
 			()
 		else
 			print: "Ignoring unrecognized client"
@@ -129,9 +130,6 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		res ~= a.response-body.size to-str
 	res ~= "\r\n\r\n"
 	res.move-to-str.bytes ~ a.response-body
-
-#ok-response str() noctx
-#	"HTTP/1.1 200 OK Feelin' Fine\nShoop: Da Woop\n\nHello, internet world!\n"
 
 # returns true if ready to call handler
 .handle-http-initial bool(state http-parse-state)

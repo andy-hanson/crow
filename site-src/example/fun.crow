@@ -1,24 +1,16 @@
 import
-	crow/col/arr-util: map
 	crow/io/print: print
-	crow/str-util: join, reverse
+	crow/str-util: join
 
 main fut nat(_ str[]) summon
-	print: call-it: x => x + 1 to-str
-	print: call-it: x =>
-		twice = x * 2
-		twice to-str
-	print: call-it-2: (x, y) => x + y to-str
-	print: call-it-2: (x, y) =>
-		product = x * y
-		product to-str
-
-	xs str[] = "crow", "crime"
-	print: xs map (x => x reverse) join ", "
+	xs str[] = "crow", "bar", "sea", "weed"
+	ys = xs map-pairs (x, y) => "{x}-{y}"
+	zs = ys map-pairs (x, y) =>
+		"{x}, {y}"
+	print: zs join "; "
 	()
 
-call-it str(f fun str(nat))
-	f[3]
-
-call-it-2 str(f fun str(nat, nat))
-	f[3, 4]
+# converts (a, b, c, d, ...) to (f[a, b], f[c, d], ...)
+map-pairs str[](xs str[], f fun str(str, str))
+	if xs.size >= 2
+		(f[xs[0], xs[1]],) ~ (xs[2 .. xs.size] map-pairs f)

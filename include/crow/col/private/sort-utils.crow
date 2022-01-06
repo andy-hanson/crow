@@ -14,7 +14,7 @@ import
 	../fix-arr:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fix-arr, fix-arr-from-begin-end, new
 	../mut-arr:
-		arr, begin-ptr, clear, end-ptr, is-empty, mut-arr, size, swap, temp-as-fix-arr,
+		begin-ptr, clear, end-ptr, is-empty, mut-arr, size, swap, temp-as-fix-arr, to-arr,
 		to-mut-arr, unsafe-set-size
 
 binary-search-has<a> bool(a a[], value a) compare<a> trusted
@@ -202,7 +202,7 @@ body
 	b-mut = b to-mut-arr
 	a-mut merge-no-duplicates b-mut, (x, y) =>
 		x <=> y hard-assert-comparison-not-equal
-	a-mut.arr is expected
+	a-mut.to-arr is expected
 
 test
 	(1, 2, 3) test-one (4, 5, 6), (1, 2, 3, 4, 5, 6)

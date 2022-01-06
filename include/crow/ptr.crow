@@ -1,14 +1,25 @@
+###
+Functions dealing with pointers and low-level memory issues.
+###
+
 no-std
 import
 	string: memcmp
 	./bool: bool
 	./compare: comparison, less, equal, greater
-	./private/bootstrap: arr, nat64, new, void
+	./fun-util: subscript
+	./misc: new
+	./private/bootstrap: arr, begin-ptr, nat64, new, size, void
 	./private/number-low-level: ==, unsafe-div, wrap-sub
 export
 	./private/bootstrap: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, zeroed
 
+# Treats a mutable pointer as constant.
 as-const<a> a*(a a mut*) noctx builtin
+###
+Treats a constant pointer as mutable.
+Do not actually write to it.
+###
 as-mut<a> a mut*(a a*) noctx unsafe builtin
 
 # Null pointer.
@@ -16,111 +27,66 @@ null<a> a*() noctx unsafe
 	null.as-const
 null<a> a mut*() noctx unsafe builtin
 
+# Same as `null`.
 new<a> a*() noctx unsafe
 	null
 new<a> a mut*() noctx unsafe
 	null
 
-# Advance the pointer by `offset`.
+# `*a` reads from the pointee, like in C.
+* <a> a(a a*) noctx unsafe
+	*a.as-mut
+* <a> a(a a mut*) noctx unsafe builtin
+
+# `*a := value` writes to the pointee, like in C.
+set-deref<a> void(a a mut*, value a) noctx unsafe builtin
+
+# `a[n]` is the same as `*(a + n)`, like in C.
+subscript<a> a(a a*, n nat64) noctx unsafe
+	*(a + n)
+subscript<a> a(a a mut*, n nat64) noctx unsafe
+	*(a + n)
+
+# `a[n] := value` is the same as `*(a + n) := value`, like in C.
+set-subscript<a> void(a a mut*, n nat64, value a) noctx unsafe
+	*(a + n) := value
+
+###
+`true` iff the two pointers are identical.
+(That means: `false` if they point to equal values but are different pointers.)
+###
+== <a> bool(a a*, b a*) noctx unsafe
+	a.as-mut == b.as-mut
+== <a> bool(a a mut*, b a mut*) noctx unsafe builtin
+
+###
+Advance the pointer past `offset` values of type `a`.
+
+Like in C, the raw address increases by `offset * size-of@<a>`.
+###
 + <a> a*(a a*, offset nat64) noctx unsafe
 	a.as-mut + offset as-const
 + <a> a mut*(a a mut*, offset nat64) noctx unsafe builtin
-# Back up the pointer by `offset`.
+
+# Back up the pointer by `offset` values of type `a`.
 - <a> a*(a a*, offset nat64) noctx unsafe
 	a.as-mut - offset as-const
 - <a> a mut*(a a mut*, offset nat64) noctx unsafe builtin
-# Get the difference between two pointers, measured in strides of `a`.
-# UB if `a < b` or if `size-of@<a> == 0`.
+
+###
+Get the difference between two pointers, measured in strides of `a`.
+
+This is undefined behavior if `a < b` or if `size-of@<a> == 0`.
+###
 - <a> nat64(a a*, b a*) noctx unsafe
 	a.as-mut - b.as-mut
 - <a> nat64(a a mut*, b a mut*) noctx unsafe
 	# TODO: what if a is an empty type ?
 	a.to-nat64 wrap-sub b.to-nat64 unsafe-div size-of@<a>
 
-###
-True if the bits of two values are equal.
-For reference types, this is true if the pointers are equal.
-###
-bits-equal<a> bool(a a, b a) noctx unsafe
-	ap a* = a ptr-to
-	bp a* = b ptr-to
-	(ap.as-any-const-ptr memcmp bp.as-any-const-ptr, size-of@<a>) == 0
-
-###
-Get the value pointed to.
-UB if this is not a valid pointer.
-###
-* <a> a(a a*) noctx unsafe
-	*a.as-mut
-* <a> a(a a mut*) noctx unsafe builtin
-###
-Get the value pointed to at the offset.
-UB if that is not a valid pointer.
-###
-subscript<a> a(a a*, n nat64) noctx unsafe
-	*(a + n)
-subscript<a> a(a a mut*, n nat64) noctx unsafe
-	*(a + n)
-
-###
-Set the value pointed to.
-UB if this is not a valid pointer.
-###
-set-deref<a> void(a a mut*, value a) noctx unsafe builtin
-###
-Set the value pointed to at the offset.
-UB if that is not a valid pointer.
-###
-set-subscript<a> void(a a mut*, n nat64, value a) noctx unsafe
-	*(a + n) := value
-
-###
-Reinterpret a pointer to a ref.
-Does nothing at runtime, just changes the type.
-###
-ref-of-ptr<a> a(p by-val<a>*) noctx unsafe
-	*p ref-of-val
-ref-of-ptr<a> a(p by-val<a> mut*) noctx unsafe
-	*p ref-of-val
-
-###
-Take a reference to something stored by-val.
-Unsafe because the ref will only be valid as long as `a` is.
-###
-ref-of-val<a> a(a by-val a) noctx unsafe builtin
-
-###
-Gets a pointer to something stored on the stack.
-WARN: If 'a' is a reference type already, this is a pointer to a pointer!
-###
-ptr-to<a> a*(a a) noctx unsafe builtin
-ptr-to<a> a mut*(a a) noctx unsafe builtin
-
-# TODO: this function only works for by-ref types -- currently that is not checked by the type checker
-# Convert a reference to `any-ptr`.
-as-any-const-ptr<a> any-const-ptr(reference a) noctx unsafe
-	reference.as-any-mut-ptr.as-const
-# TODO: this could just use ptr-cast? Doesn't need to be builtin?
-as-any-mut-ptr<a> any-mut-ptr(reference a) noctx unsafe builtin
-# TODO: this function only works for by-ref types -- currently that is not checked by the type checker
-as-ref<a> a(a any-const-ptr) noctx unsafe
-	a.as-mut as-ref
-###
-Convert a pointer to a reference of the chosen type.
-UB if a value of that type was not stored at the pointer.
-###
-as-ref<a> a(a any-mut-ptr) noctx unsafe builtin
-
-###
-True iff two pointers are identical.
-(False if they point to equal values but are different pointers.)
-###
-== <a> bool(a a*, b a*) noctx unsafe
-	a.as-mut == b.as-mut
-== <a> bool(a a mut*, b a mut*) noctx unsafe builtin
 # True iff `a.to-nat64 < b.to-nat64`.
 .is-less<a> bool(a a mut*, b a mut*) noctx unsafe builtin
-# Equal to `a.to-nat64 <=> b.to-nat64`.
+# Same as `a.to-nat64 <=> b.to-nat64`.
 <=> <a> comparison(a a*, b a*) noctx unsafe
 	a.as-mut <=> b.as-mut
 <=> <a> comparison(a a mut*, b a mut*) noctx unsafe
@@ -132,59 +98,122 @@ True iff two pointers are identical.
 		greater
 
 ###
+Number of bytes taken up by a type.
+You'll need to manually supply a type argument, as in `size-of@<nat>`.
+
+If `a` is a reference type, this is just the size of a pointer.
+Similarly, this is the same for all array types,
+regardless of the number of size of the array elements.
+###
+size-of<a> nat64() noctx unsafe builtin
+
+###
+Change the type of the pointee. This is like a pointer cast `(out*) a` in C.
+
+At a low level, this is just an identity function; it just changes the type.
+###
+ptr-cast<out, in> out*(a in*) noctx unsafe
+	a.as-mut.ptr-cast as-const
+ptr-cast<out, in> out mut*(a in mut*) noctx unsafe builtin
+
+# Raw address of a pointer.
+to-nat64<a> nat64(a a*) noctx unsafe
+	a.as-mut to-nat64
+to-nat64<a> nat64(a a mut*) noctx unsafe builtin
+# Get a pointer from a raw address.
+to-const-ptr<a> a*(a nat64) noctx unsafe
+	a.to-mut-ptr as-const
+to-mut-ptr<a> a mut*(a nat64) noctx unsafe builtin
+
+# Swap the pointees. Does not change the pointers theirselves.
+swap<a> void(a a mut*, b a mut*) noctx unsafe
+	temp = *a
+	*a := *b
+	*b := temp
+
+# Maximum pointer value.
+max-ptr<a> a*() noctx unsafe
+	max-ptr as-const
+max-ptr<a> a mut*() noctx unsafe
+	null + 0xffffffffffffffff
+
+# TODO:KILL
+arr-of-single<a> a[](a a*) no-doc noctx unsafe
+	1, a
+
+###
+True iff the bits of two values are equal.
+For reference types, this is true if the pointers are equal.
+###
+bits-equal<a> bool(a a, b a) no-doc noctx unsafe
+	ap a* = a ptr-to
+	bp a* = b ptr-to
+	(ap.as-any-const-ptr memcmp bp.as-any-const-ptr, size-of@<a>) == 0
+
+each-ptr<a> void(a a[], f act void(a*)) no-doc unsafe
+	a.begin-ptr each-ptr-recur a.begin-ptr + a.size, f
+.each-ptr-recur<a> void(cur a*, end a*, f act void(a*)) unsafe
+	unless cur == end
+		f[cur]
+		cur + 1 each-ptr-recur end, f
+
+region Conversion between pointers and pointer-like types
+
+###
+Reinterpret a pointer to a ref.
+Does nothing at runtime, just changes the type.
+###
+ref-of-ptr<a> a(p by-val<a>*) no-doc noctx unsafe
+	*p ref-of-val
+ref-of-ptr<a> a(p by-val<a> mut*) no-doc noctx unsafe
+	*p ref-of-val
+
+###
+Get a reference to a value stored by-val.
+
+Unsafe because the reference will only be valid as long as `a`is valid and does not move.
+###
+ref-of-val<a> a(a by-val a) no-doc noctx unsafe builtin
+
+###
+Gets a pointer to something stored on the stack.
+WARN: If 'a' is a reference type already, this is a pointer to a pointer!
+###
+ptr-to<a> a*(a a) no-doc noctx unsafe builtin
+ptr-to<a> a mut*(a a) no-doc noctx unsafe builtin
+
+# TODO: this function only works for by-ref types -- currently that is not checked by the type checker
+# Convert a reference to `any-ptr`.
+as-any-const-ptr<a> any-const-ptr(reference a) no-doc noctx unsafe
+	reference.as-any-mut-ptr.as-const
+# TODO: this could just use ptr-cast? Doesn't need to be builtin?
+as-any-mut-ptr<a> any-mut-ptr(reference a) no-doc noctx unsafe builtin
+# TODO: this function only works for by-ref types -- currently that is not checked by the type checker
+as-ref<a> a(a any-const-ptr) no-doc noctx unsafe
+	a.as-mut as-ref
+###
+Convert a pointer to a reference of the chosen type.
+UB if a value of that type was not stored at the pointer.
+###
+as-ref<a> a(a any-mut-ptr) no-doc noctx unsafe builtin
+
+###
 True if two references have the same pointer.
 Contrast with `a == b` which can also e true for different pointers with equal contents.
 ###
-ref-eq<a> bool(a a, b a) noctx unsafe
+ref-eq<a> bool(a a, b a) no-doc noctx unsafe
 	a.as-any-const-ptr == b.as-any-const-ptr
-
-###
-Number of bytes taken up by a type.
-For a reference type, this is the size of a pointer.
-0 for empty types like `void`.
-###
-size-of<a> nat64() noctx unsafe builtin
 
 # TODO: require that out be an extern-ptr type
 ###
 Convert a pointer to an `extern-ptr` type.
 Does nothing at runtime, just changes the type.
 ###
-ptr-cast-to-extern<out, in> out(p in mut*) noctx unsafe builtin
+ptr-cast-to-extern<out, in> out(p in mut*) no-doc noctx unsafe builtin
 
 # TODO: require that in be an extern-ptr type
 ###
 Convert an extern-ptr to another pointer.
 Does nothing at runtime, just changes the type.
 ###
-ptr-cast-from-extern<out, in> out mut*(p in) noctx unsafe builtin
-
-###
-Change the type pointed to.
-Does nothing at runtime, just changes the type.
-###
-ptr-cast<out, in> out*(a in*) noctx unsafe
-	a.as-mut.ptr-cast as-const
-ptr-cast<out, in> out mut*(a in mut*) noctx unsafe builtin
-
-# nat64 value of a pointer.
-to-nat64<a> nat64(a a*) noctx unsafe
-	a.as-mut to-nat64
-to-nat64<a> nat64(a a mut*) noctx unsafe builtin
-to-const-ptr<a> a*(a nat64) noctx unsafe
-	a.to-mut-ptr as-const
-to-mut-ptr<a> a mut*(a nat64) noctx unsafe builtin
-
-# Swap the pointees. Does not change the pointer itself.
-swap<a> void(a a mut*, b a mut*) noctx unsafe
-	temp = *a
-	*a := *b
-	*b := temp
-
-max-ptr<a> a*() noctx unsafe
-	max-ptr.as-const
-max-ptr<a> a mut*() noctx unsafe
-	null + 0xffffffffffffffff
-
-arr-of-single<a> a[](a a*) noctx unsafe
-	1, a
+ptr-cast-from-extern<out, in> out mut*(p in) no-doc noctx unsafe builtin

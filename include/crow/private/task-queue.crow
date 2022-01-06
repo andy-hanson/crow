@@ -5,7 +5,7 @@ import
 		in, mut-arr, mut-arr-by-val-with-capacity-from-unmanaged-memory,
 		noctx-must-remove-unordered, push-capacity-must-be-sufficient
 	../compare: <=
-	../io/time-low-level: timestamp
+	../io/private/time-low-level: timestamp
 	../misc: new, void
 	../opt: is-empty, new, opt
 	../ptr: by-val, ref-of-val

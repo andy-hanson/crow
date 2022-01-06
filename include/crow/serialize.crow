@@ -1,3 +1,9 @@
+###
+Functions for converting values to/from byte arrays.
+
+For JSON serialization, see the `crow/json` module.
+###
+
 no-std
 import
 	./bits: &, |, <<, >>
@@ -12,10 +18,16 @@ import
 	./private/bootstrap: todo
 	./private/number-low-level: ==, <=>, int64, max-int64, nat8, nat32, nat64, unsafe-to-nat8
 
+###
+A type is serializable if it can convert to and from a byte array.
+
+Implementations should ensure that `a.to-bytes.from-bytes == a`.
+###
 serialize<a> spec
 	to-bytes nat8[](a a)
 	from-bytes a(a nat8[])
 
+# Identity function to ensure that byte arrays are trivially serializable.
 to-bytes nat8[](a nat8[])
 	a
 from-bytes nat8[](a nat8[])
@@ -26,8 +38,15 @@ to-bytes nat8[](a str) trusted
 from-bytes str(a nat8[]) trusted
 	a.arr-cast str
 
+###
+Convert a number to a nat8[] simply by taking its component bytes in big-endian order.
+This strips leading 0 bytes.
+###
 to-bytes nat8[](a nat64)
 	a.to-8-bytes strip-left-while byte => byte == 0
+###
+Unlike `a to-bytes`, this always returns an 8-byte array, including any leading 0 bytes.
+###
 to-8-bytes nat8[](a nat64)
 	b0 = a >> 0x00 wrap-to-nat8
 	b1 = a >> 0x08 wrap-to-nat8
@@ -38,6 +57,7 @@ to-8-bytes nat8[](a nat64)
 	b6 = a >> 0x30 wrap-to-nat8
 	b7 = a >> 0x38 wrap-to-nat8
 	b7, b6, b5, b4, b3, b2, b1, b0
+# This works for the result of either `to-bytes` or `to-8-bytes`.
 from-bytes nat64(a nat8[])
 	assert: a.size <= 8
 	0 fold a, (cur, x) =>
@@ -56,14 +76,16 @@ test
 	masked = a & 0xff
 	masked unsafe-to-nat8
 
-to-4-bytes nat8[](a nat32)
-	a.to-nat64.to-8-bytes[4 .. 8]
 to-bytes nat8[](a nat32)
 	a.to-nat64 to-bytes
+to-4-bytes nat8[](a nat32)
+	a.to-nat64.to-8-bytes[4 .. 8]
 from-bytes nat32(a nat8[])
 	a.from-bytes :: nat64 to-nat32
 
-to-8-bytes nat8[](a int64)
+to-bytes nat8[](a int64) no-doc
+	a to-8-bytes
+to-8-bytes nat8[](a int64) no-doc
 	if a < 0
 		todo
 	else

@@ -10,11 +10,14 @@ remove-include-and-crow str(a str)
 search-dir-recursive str[](path str) summon
 	path search-dir-recursive (ignore => true)
 
-# file-filter acts on basename of files. (No dir filtering)
 search-dir-recursive str[](path str, file-filter act bool(str)) summon
+	path search-dir-recursive (ignore => true), file-filter
+
+search-dir-recursive str[](path str, dir-filter act bool(str), file-filter act bool(str)) summon
 	path.names-in-dir flat-map name =>
 		child = path child-path name
 		if child is-dir
-			child search-dir-recursive file-filter
+			if dir-filter[name]
+				child search-dir-recursive dir-filter, file-filter
 		elif file-filter[name]
 			child,

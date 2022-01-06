@@ -351,6 +351,8 @@ immutable(Opt!string) mangleChar(immutable char a) {
 			return some("__t");
 		case '!':
 			return some("__b");
+		case '%':
+			return some("__u");
 		case '^':
 			return some("__x");
 		case '&':

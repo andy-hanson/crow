@@ -1,48 +1,208 @@
 no-std
 import
-	./bool: &&, ||, bool
+	./bool: ||, bool
 	./col/arr: arr, arr-cast, arr-from-begin-end, begin-ptr, is-empty, size, subscript
 	./col/arr-util:
-		contains-subseq, each, ends-with, first, last, map, reverse, rtail, split-by-subseq,
-		starts-with, tail, try-remove-end, try-remove-start, try-split-once-by-fn,
-		try-split-once-by-subseq
+		contains-subseq, each, ends-with, first, last, left, map, middle, reverse, right, rtail,
+		split-by-subseq, starts-with, tail, try-remove-end, try-remove-start,
+		try-split-once-by-fn, try-split-once-by-subseq
 	./col/mut-arr: ~=, move-to-arr, mut-arr, new
-	./compare: !=, <=
-	./number: ==, <=>, +, -, nat8
+	./compare: !=, <
+	./number: ==, <=>, nat8
 	./opt: !, new, opt
 	./ptr: +, *, as-const, as-mut, mut-ptr
 	./range: ..
 	./str: ==, ~, char, chars, c-str, new, str, to-char, to-nat8
 	./tuple: a, b, new, pair
 	./private/bootstrap: hard-unreachable
+	./private/number-low-level: wrap-add, wrap-sub
 
-# Treats bytes as a string.
-as-str str(bytes nat8[]) unsafe noctx
-	bytes.arr-cast str
-
-bytes nat8[](a str) trusted noctx
-	a.chars arr-cast
-
-in bool(a str, b str)
-	b.chars contains-subseq a.chars
-
+# First character.
 head char(a str)
 	a.chars[0]
 
+# All but the first character.
 tail str(a str)
 	a.chars[1 .. a.chars.size] str
 
-# Converts a str to a c-str by appending "\0".
-to-c-str c-str(a str)
+# Strips whitespace from both ends.
+strip str(a str)
+	a.strip-left strip-right
+
+# Strips whitespace from the front.
+strip-left str(a str)
+	if c ?= a.chars first
+		if c is-whitespace
+			a.chars.tail.str strip-left
+		else
+			a
+	else
+		a
+
+# Strips whitespace from the end.
+strip-right str(a str)
+	if c ?= a.chars last
+		if c is-whitespace
+			a.chars.rtail.str strip-right
+		else
+			a
+	else
+		a
+
+.is-whitespace bool(a char)
+	a == " " || a == "\n" || a == "\t"
+
+###
+`true` iff `b` is a subtring of `a`.
+
+That means: The characters in `b` appear in `a`, in order, without interruptions.
+###
+has-substr bool(a str, b str)
+	a.chars contains-subseq b.chars
+
+# `true` iff the first characters of `a` are `b`.
+starts-with bool(a str, b str)
+	a.chars starts-with b.chars
+
+# `true` iff the last characters of `a` are `b`.
+ends-with bool(a str, b str)
+	a.chars ends-with b.chars
+
+###
+If `a` starts with `b`, returns the rest.
+Else, returns an empty option.
+###
+try-remove-start str?(a str, b str)
+	if res ?= a.chars try-remove-start b.chars
+		res.str,
+
+###
+If `a` ends with `b, returns the rest.
+Else, returns an empty option.
+###
+try-remove-end str?(a str, b str)
+	if res ?= a.chars try-remove-end b.chars
+		res.str,
+
+###
+If `b` is a substring of `a`, removes it and return the parts of `a` before and after it.
+###
+try-split-once pair<str, str>?(a str, b str)
+	if res ?= a.chars try-split-once-by-subseq b.chars
+		(res.a.str, res.b.str),
+
+###
+Removes every occurrence of the substring `b` in `a` and return the remaining parts as an array.
+The result may include empty strings.
+###
+split-by str[](a str, b str)
+	a.chars split-by-subseq b.chars map chars => chars str
+
+split-str record
+	left str
+	middle char
+	right str
+
+###
+Find the first character where `f` returns `true`, and return the parts of `a` before and after it.
+Returns an empty option if `f` does not returns `true` for any character in `a`.
+###
+try-split-once-by-fn split-str?(a str, f act bool(char))
+	if res ?= a.chars try-split-once-by-fn f
+		(res.left.str, res.middle, res.right.str),
+
+# Finds the first whitespace character in `a` and returns the parts before and after it.
+try-split-once-by-whitespace pair<str, str>?(a str)
+	if x ?= a try-split-once-by-fn x => x is-whitespace
+		(x.left, x.right),
+
+###
+Returns a string containing each element of `a`, with `b` as a separator.
+This is `a[0] ~ b ~ a[1] ~ b ~ ... ~ a[a.size - 1]`.
+###
+join str(a str[], b str)
+	unless a is-empty
+		res char mut[] = ()
+		a.rtail each x =>
+			res ~= x chars
+			res ~= b chars
+		res ~= a.last!.chars
+		res.move-to-arr str
+
+# Lower cases every character in `a`.
+lower-case str(a str)
+	a.chars map (it => it lower-case-char) str
+
+.lower-case-char char(a char) noctx
+	diff = a.to-nat8 wrap-sub "A".to-nat8
+	if diff < 26
+		"a".to-nat8 wrap-add diff to-char
+	else
+		a
+
+# Capitalizes every character in `a`.
+upper-case str(a str)
+	a.chars map (it => it upper-case-char) str
+
+.upper-case-char char(a char) noctx
+	diff = a.to-nat8 wrap-sub "a".to-nat8
+	if diff < 26
+		"A".to-nat8 wrap-add diff to-char
+	else
+		a
+
+# String with characters in reverse order.
+reverse str(a str)
+	a.chars.reverse str
+
+# Replaces every instance of the substring `find` with `replace-with`.
+replace str(a str, find str, replace-with str)
+	# TODO:PERF
+	if pair ?= a try-split-once find
+		pair.a ~ replace-with ~ (pair.b replace find, replace-with)
+	else
+		a
+
+region Conversion
+
+###
+Treats bytes as a string.
+This is O(1).
+###
+as-str str(bytes nat8[]) unsafe noctx
+	bytes.arr-cast str
+
+###
+Gets the raw UTF-8 bytes that represent a string.
+This is O(1).
+###
+bytes nat8[](a str) trusted noctx
+	a.chars arr-cast
+
+###
+Converts a str to a c-str by appending "\0".
+This is O(n).
+
+WARN: The resulting string is allocated from GC memory but isn't traced by the garbage collector,
+so it may be freed after the current task.
+###
+to-c-str c-str(a str) unsafe
 	(a ~ "\0").chars begin-ptr
 
-# Treats a c-str as a str by walking to the end.
+###
+Treats a c-str as a str by walking to the end.
+This does not copy the memory.
+
+Unsafe because:
+* `a` must end in a `"\0"` character somewhere.
+* The resulting string should not be used longer than `a` lives.
+###
 to-str str(a c-str) unsafe noctx
 	a arr-from-begin-end a.find-cstr-end str
 
 ###
 Walk a c-str and return a pointer to the first occurrence of `c`.
-If that is not found, return `none`.
+If that is not found, return an empty option.
 ###
 find-char-in-cstr c-str?(a c-str, c char) unsafe noctx
 	if *a == c
@@ -60,83 +220,3 @@ find-cstr-end c-str(a c-str) unsafe noctx
 # Pointer to the end of a c-str.
 find-cstr-end char mut*(a char mut*) unsafe noctx
 	a.as-const.find-cstr-end.as-mut
-
-# Strips whitespace from both ends.
-strip str(a str)
-	a.lstrip rstrip
-
-# Strips whitespace from the front.
-lstrip str(a str)
-	if c ?= a.chars first
-		if c is-whitespace
-			a.chars.tail.str lstrip
-		else
-			a
-	else
-		a
-
-rstrip str(a str)
-	if c ?= a.chars last
-		if c is-whitespace
-			a.chars.rtail.str rstrip
-		else
-			a
-	else
-		a
-
-.is-whitespace bool(a char)
-	a == " " || a == "\n" || a == "\t"
-
-has-substr bool(a str, b str)
-	a.chars contains-subseq b.chars
-
-starts-with bool(a str, b str)
-	a.chars starts-with b.chars
-
-ends-with bool(a str, b str)
-	a.chars ends-with b.chars
-
-try-remove-start str?(a str, b str)
-	if res ?= a.chars try-remove-start b.chars
-		res.str,
-
-try-remove-end str?(a str, b str)
-	if res ?= a.chars try-remove-end b.chars
-		res.str,
-
-try-split-once pair<str, str>?(a str, b str)
-	if res ?= a.chars try-split-once-by-subseq b.chars
-		(res.a.str, res.b.str),
-
-split-by str[](a str, b str)
-	a.chars split-by-subseq b.chars map chars => chars str
-
-try-split-once-by-fn pair<str, str>?(a str, b act bool(char))
-	if res ?= a.chars try-split-once-by-fn b
-		(res.a.str, res.b.str),
-
-try-split-once-by-whitespace pair<str, str>?(a str)
-	a try-split-once-by-fn x => x is-whitespace
-
-join str(a str[], b str)
-	unless a is-empty
-		res char mut[] = ()
-		a.rtail each x =>
-			res ~= x chars
-			res ~= b chars
-		res ~= a.last!.chars
-		res.move-to-arr str
-
-lower-case str(a str)
-	a.chars map (it => it lower-case-char) str
-
-.lower-case-char char(a char)
-	a-nat = a to-nat8
-	# TODO: support '<=' for chars
-	if "A".to-nat8 <= a-nat && a-nat <= "Z".to-nat8
-		to-char: "a".to-nat8 + a-nat - "A".to-nat8
-	else
-		a
-
-reverse str(a str)
-	a.chars.reverse str

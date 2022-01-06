@@ -5,7 +5,7 @@ import
 	crow/io/duration: duration, msec
 	crow/io/print: print
 	crow/io/time: delay
-	crow/math/vec: +, new, vec-2-32
+	crow/math/vec: +, new, vec2-32
 	crow/ptr: ==, as-any-const-ptr, as-const, null, ptr-cast, ptr-to, size-of, to-const-ptr
 	crow/str-util: join, to-c-str, to-str
 	GLES2/gl2:
@@ -63,14 +63,14 @@ main fut nat(_ str[]) summon trusted
 
 	texture = "demo/ogl/sprite.webp" load-texture
 
-	v0 vec-2-32 = -0.9, -0.9
-	v1 vec-2-32 = 0.9, -0.9
-	v2 vec-2-32 = 0.9, 0.9
-	v3 vec-2-32 = -0.9, 0.9
-	t0 vec-2-32 = 0.0, 0.0
-	t1 vec-2-32 = 1.0, 0.0
-	t2 vec-2-32 = 1.0, 1.0
-	t3 vec-2-32 = 0.0, 1.0
+	v0 vec2-32 = -0.9, -0.9
+	v1 vec2-32 = 0.9, -0.9
+	v2 vec2-32 = 0.9, 0.9
+	v3 vec2-32 = -0.9, 0.9
+	t0 vec2-32 = 0.0, 0.0
+	t1 vec2-32 = 1.0, 0.0
+	t2 vec2-32 = 1.0, 1.0
+	t3 vec2-32 = 0.0, 1.0
 	vertices fix-arr vertex = (v0, red, t0), (v1, green, t1), (v2, blue, t2), (v3, white, t3)
 	triangle-vbo = vertices vbo-create
 	assert: triangle-vbo != 0
@@ -94,27 +94,27 @@ main fut nat(_ str[]) summon trusted
 
 .vertex record
 	by-val
-	pos vec-2-32
-	color color-32
-	tex-coord vec-2-32
+	pos vec2-32
+	color color32
+	tex-coord vec2-32
 
 # TODO:MOVE
-color-32 record
+color32 record
 	by-val
 	r float32
 	g float32
 	b float32
 
-to-str str(a color-32)
+to-str str(a color32)
 	"<{a r}, {a g}, {a b}>"
 
-white color-32()
+white color32()
 	1, 1, 1
-red color-32()
+red color32()
 	1, 0, 0
-green color-32()
+green color32()
 	0, 1, 0
-blue color-32()
+blue color32()
 	0, 0, 1
 
 .renderer record mut

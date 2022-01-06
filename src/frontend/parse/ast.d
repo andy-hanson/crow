@@ -165,13 +165,13 @@ private immutable(uint) suffixLength(immutable TypeAst.Suffix.Kind a) {
 		case TypeAst.Suffix.Kind.arr:
 			return cast(uint) "[]".length;
 		case TypeAst.Suffix.Kind.arrMut:
-			return cast(uint) " mut[]".length;
+			return cast(uint) "mut[]".length;
 		case TypeAst.Suffix.Kind.opt:
 			return cast(uint) "?".length;
 		case TypeAst.Suffix.Kind.ptr:
 			return cast(uint) "*".length;
 		case TypeAst.Suffix.Kind.ptrMut:
-			return cast(uint) " mut*".length;
+			return cast(uint) "mut*".length;
 	}
 }
 
@@ -667,6 +667,11 @@ struct ParamsAst {
 	}
 }
 
+struct SpecSigAst {
+	immutable SafeCStr docComment;
+	immutable SigAst sig;
+}
+
 struct SigAst {
 	immutable RangeWithinFile range;
 	immutable Sym name; // Range starts at sig.range.start
@@ -946,12 +951,12 @@ struct SpecBodyAst {
 	immutable Kind kind;
 	union {
 		immutable Builtin builtin;
-		immutable SigAst[] sigs;
+		immutable SpecSigAst[] sigs;
 	}
 
 	public:
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-	@trusted immutable this(immutable SigAst[] a) { kind = Kind.sigs; sigs = a; }
+	@trusted immutable this(immutable SpecSigAst[] a) { kind = Kind.sigs; sigs = a; }
 }
 
 @trusted T matchSpecBodyAst(T, alias cbBuiltin, alias cbSigs)(ref immutable SpecBodyAst a) {
@@ -1018,11 +1023,34 @@ struct FunDeclAst {
 	immutable SigAst sig;
 	immutable SpecUseAst[] specUses;
 	immutable Visibility visibility;
-	immutable bool noCtx;
-	immutable bool summon;
-	immutable bool unsafe;
-	immutable bool trusted;
+	immutable FunDeclAstFlags flags;
 	immutable FunBodyAst body_;
+}
+
+struct FunDeclAstFlags {
+	@safe @nogc pure nothrow:
+
+	immutable bool noCtx;
+	immutable bool noDoc;
+	immutable bool summon;
+	immutable bool trusted;
+	immutable bool unsafe;
+
+	immutable(FunDeclAstFlags) withNoCtx() immutable {
+		return immutable FunDeclAstFlags(true, noDoc, summon, trusted, unsafe);
+	}
+	immutable(FunDeclAstFlags) withNoDoc() immutable {
+		return immutable FunDeclAstFlags(noCtx, true, summon, trusted, unsafe);
+	}
+	immutable(FunDeclAstFlags) withSummon() immutable {
+		return immutable FunDeclAstFlags(noCtx, noDoc, true, trusted, unsafe);
+	}
+	immutable(FunDeclAstFlags) withTrusted() immutable {
+		return immutable FunDeclAstFlags(noCtx, noDoc, summon, true, unsafe);
+	}
+	immutable(FunDeclAstFlags) withUnsafe() immutable {
+		return immutable FunDeclAstFlags(noCtx, noDoc, summon, trusted, true);
+	}
 }
 
 struct TestAst {
@@ -1126,9 +1154,11 @@ immutable(Repr) reprSpecBodyAst(ref Alloc alloc, ref immutable SpecBodyAst a) {
 		immutable Repr,
 		(ref immutable SpecBodyAst.Builtin) =>
 			reprSym("builtin"),
-		(ref immutable SigAst[] sigs) =>
-			reprArr(alloc, sigs, (ref immutable SigAst sig) =>
-				reprSig(alloc, sig)),
+		(ref immutable SpecSigAst[] sigs) =>
+			reprArr(alloc, sigs, (ref immutable SpecSigAst sig) =>
+				reprRecord(alloc, "spec-sig", [
+					reprStr(sig.docComment),
+					reprSig(alloc, sig.sig)])),
 	)(a);
 }
 
@@ -1276,13 +1306,15 @@ immutable(Repr) reprFunDeclAst(ref Alloc alloc, ref immutable FunDeclAst a) {
 	if (!empty(a.specUses))
 		add(alloc, fields, nameAndRepr("spec-uses", reprArr(alloc, a.specUses, (ref immutable SpecUseAst s) =>
 			reprSpecUseAst(alloc, s))));
-	if (a.noCtx)
+	if (a.flags.noDoc)
+		add(alloc, fields, nameAndRepr("nodoc", reprBool(true)));
+	if (a.flags.noCtx)
 		add(alloc, fields, nameAndRepr("noctx", reprBool(true)));
-	if (a.summon)
+	if (a.flags.summon)
 		add(alloc, fields, nameAndRepr("summon", reprBool(true)));
-	if (a.unsafe)
+	if (a.flags.unsafe)
 		add(alloc, fields, nameAndRepr("unsafe", reprBool(true)));
-	if (a.trusted)
+	if (a.flags.trusted)
 		add(alloc, fields, nameAndRepr("trusted", reprBool(true)));
 	add(alloc, fields, nameAndRepr("body", reprFunBodyAst(alloc, a.body_)));
 	return reprNamedRecord("fun-decl", finishArr(alloc, fields));

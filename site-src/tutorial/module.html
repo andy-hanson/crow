@@ -1,41 +1,103 @@
 <section>
-	<h2>Modules</h2>
-	<p>Each <code>.crow</code> file is a <em>module</em>.
-		Modules can access each other only through imports.</p>
-	<p>An import like <code>io.print</code> references a builtin module.
-		These come from the <code>include</code> directory that comes with Crow.
-	</p>
-	<p>To import a module of your own, consider the relative path from the importing module to the imported
-		module.
+	<h2>imports</h2>
+	<p>
+		Every function, type, or spec belongs to a module <em>module</em>.
 		<br />
-		The relative path is specified by climbing up and then down.
-		Start with a single <code>.</code>,
-		then an additional <code>.</code> for each parent directory you want to climb.
-		Then, write the name of each directory go down into, separated by <code>.</code>.
-	</p>If you have these files:<ul>
-		<li><code>root/a.crow</code></li>
-		<li><code>root/b.crow</code></li>
-		<li><code>root/x/c.crow</code></li>
-		<li><code>root/y/z/d.crow</code></li>
-	</ul>If <code>a</code> wants to import:<ul>
-		<li><code>b</code>: Use <code>.b</code></li>
-		<li><code>c</code>: Use <code>.x.c</code></li>
-		<li><code>d</code>: Use <code>.y.z.d</code></li>
-	</ul>If <code>d</code> wants to import:<ul>
-		<li><code>a</code>: Use <code>...a</code></li>
-		<li><code>b</code>: Use <code>...b</code></li>
-		<li><code>c</code>: Use <code>...x.c</code></li>
-	</ul>
-	<p>Circular imports between modules are not allowed, meaning if <code>a</code> imports <code>b</code>,
-		<code>b</code> can't import <code>a</code> (and can't import any module that does).
+		Every crow file is a module (and every module is a file).
 	</p>
 </section>
 <section>
-	<h3>Privacy</h3>
-	<p>To make a definition private to its module, prepend a <code>.</code> to its name.</p>
-	<crow-runnable no-run src="private"></crow-runnable>
-	<p>In the above example, other modules could import <code class="fun-def">f</code>
-		but not <code class="fun-def">g</code>.
+	<h4>global imports</h4>
+	<p>
+		<code>crow/io/print</code> imports a global module. Global modules are located where crow was installed.
+		<br />
+		If you installed crow in <code>/home/me/crow/bin/crow</code>,
+		the <code>crow/io/print</code> module will be in
+		<code>/home/me/crow/include/crow/io/print.crow</code>.
+		<br />
+		There's currently no way to install third-party libraries in a way that supports global import syntax.
+		(This is a TODO.)
+	</p>
+</h4>
+<section>
+	<h4>local imports</h4>
+	<p>
+		<code>./foo</code> imports a <em>local</em> module.
+		<br />
+		Local module paths work like Posix relative paths:
+		The start with either <code>./</code> or a series of <code>../</code>,
+		then use a series of directory names separated by <code>/</code>.
+		<br />
+		For example, if the module at <code>/home/me/ornithology/waterfowl.crow</code> imports from
+		<code>../../birds/duck</code>, that module should be in <code>/home/me/birds/duck.crow</code>.
+		<br />
+	</p>
+</section>
+<section>
+	<h4>named imports</h4>
+	The usual import syntax is to just write the module's path alone on a line.
+	<br />
+	You can specify particular names to be imported by adding a <code>:</code> after the module's path,
+	then names of imports separated by commas.
+	<br />
+	If there are many individual names to import, they can go in an indented block.
+	<crow-runnable no-run src="import-syntax"></crow-runnable>
+</section>
+<section>
+	<h4>circular imports</h4>
+	<p>
+		Circular imports between modules are not allowed.
+		<br />
+		That means that if module A imports module B,
+		B can't import A, or any module that imports A.
+	</p>
+</section>
+<section>
+	<h2>privacy</h2>
 
-		Functions, specs, and types can all be made private.</p>
-</section><a id="next" href="extern.html">Next: Extern functions and types</a>
+	<p>
+		By default, the declarations (functions, types, specs) in a module are public.
+		That means that they can be imported by other modules.
+	</p>
+
+	<p>
+		To make a declaration private to its module, put a <code>.</code> before its name.
+		(The <code>.</code> is not needed when using it.)
+		<br />
+		The same syntax works on functions, types, and specs.
+	</p>
+	<crow-runnable no-run src="private"></crow-runnable>
+	<p>
+		In the above example, other modules could import <code class="fun">f</code>
+		but not <code class="fun">g</code>.
+	</p>
+	<p>
+		It's allowed to have a public function and private function with the same name;
+		importers will only import the public definition.
+	</p>
+</section>
+<section>
+	<h3>privacy in records</h3>
+
+	<p>
+		Mark a record field private by putting a <code>.</code> before its name. This makes the getter function private.
+		<br />
+		If it is mutable, put a <code>.</code> before the <code class="keyword">mut</code>
+		keyword to make the setter private too.
+		<br />
+		You can also make the setter private but the getter public, as in <code>public-get .mut str</code>.
+	</p>
+
+	<p>
+		If a record has at least one private member, <code>new</code> will be private.
+		<br />
+		You can also make it public by writing <code>.new</code> on a line before the record's fields.
+	</p>
+
+	<p>
+		<crow-runnable no-run src="private-record"></crow-runnable>
+		<crow-runnable src="private-record-user"></crow-runnable>
+	</p>
+
+
+</section>

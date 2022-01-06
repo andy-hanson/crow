@@ -4,7 +4,7 @@ import
 	../compare: >, min
 	../exception: exception, to-str
 	../io/print: print-err, print-err-no-newline
-	../io/time-low-level: get-monotime-nsec, timestamp
+	../io/private/time-low-level: get-monotime-nsec, timestamp
 	../misc: new, void
 	../opt: new, opt
 	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val

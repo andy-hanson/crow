@@ -1,0 +1,99 @@
+<section>
+	<h2>Functions</h2>
+
+	Here's an example program that defines and calls a few functions.
+
+	<crow-runnable src="functions"></crow-runnable>
+
+	This program adds more function declarations than just <code class="fun">main</code>.
+
+	<ul class="bullets">
+		<li>
+			<code>greet str(name str, time str)</code> is a function with 2 arguments.
+			<br />
+			It's called by <code>"albatross" greet "morning"</code>.
+		</li>
+		<li>
+			<code>good str()</code> is a function with no arguments.
+			<br />
+			It's called by writing just <code>good</code>.
+		</li>
+		<li>
+			<code>plural str(name str)</code> is a function with one argument.
+			<br />
+			It's called by <code>name plural</code>.
+		</li>
+	</ul>
+
+	<h2>Local variables</h2>
+	<p>
+		<code class="fun">plural</code> has a local variable <code class="local">suffix</code>.
+		The syntax is <code>name type = value</code>, but the type is optional if it can be inferred.
+		Variables are immutable, meaning you can't write <code>suffix = "something-else"</code> if
+		<code class="local">suffix</code> is already defined.
+	</p>
+
+	<h2>'if'</h2>
+	<p>
+		The value of <code class="local">suffix</code> is an <code class="keyword">if</code> expression.
+		<br />
+		The condition of an <code class="keyword">if</code> (or <code class="keyword">elif</code>)
+		must fit on the same line and must be a <code class="struct">bool</code>.
+		<br />
+		The bodies of the <code class="keyword">if</code>, <code class="keyword">elif</code>,
+		and <code class="keyword">else</code> must be indented.
+	</p>
+
+	<h2>string interpolation</h2>
+	<p>
+		In a string literal, <code>"{x}"</code> calls <code>x to-str</code> and inserts it into the string.
+		<br />
+		<code>x</code> can be any expression, like <code>name plural</code>.
+	</p>
+
+</section>
+<section>
+	<h1>More 'if'</h1>
+	<crow-runnable src="if"></crow-runnable>
+
+	<h2>Implicit 'else'</h2>
+
+	<p>
+		When the <code class="keyword">else</code> case of an <code class="keyword">if</code> would be <code>()</code>,
+		it may be omitted.
+		<br />
+		For example, this is useful for <code class="struct">void</code>
+		which has <code>()</code> as the only possible value, or for arrays where <code>()</code> is an empty array.
+	</p>
+
+	<h2>'unless'</h2>
+
+	<p>
+		<code>unless condition</code> is the same as <code>if !condition</code>.
+		<br />
+		An <code>unless</code> can't have an explicit <code>else</code>,
+		since you could just use an <code>if</code> in that case.
+	</p>
+
+	<h2>Inline 'if'</h2>
+
+	<p>
+		Simple ifs can be written in one line using <code>?</code> and <code>:</code> like in C.
+		<br />
+		<code>a.head.is-vowel ? "an {a}" : "a {a}"</code> is equivalent to:
+		<div class="code-block">
+			if a.head is-vowel
+			<div class="indent">"an {a}"</div>
+			else
+			<div class="indent">"a {a}"</div>
+		</div>
+
+		The <code class="keyword">:</code> (equivalent to <code class="keyword">else</code>) is still optional.
+		<br />
+		<code>a.head.is-vowel ? (a.head.to-str,)</code> is equivalent to:
+		<div class="code-block">
+			if a.head is-vowel
+			<div class="indent">a.head.to-str,</div>
+		</div>
+	</p>
+</section>

@@ -11,20 +11,33 @@ import
 	../test-util: is
 	./arr: ==, arr, new, subscript
 	./fix-arr:
-		arr, begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, new, size, set-subscript,
-		subscript, to-fix-arr
+		begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, new, size, set-subscript,
+		subscript, to-arr, to-fix-arr
 	./mut-arr: mut-arr, temp-as-fix-arr
 
 ###
-Returns a new array containing the same elements as `a`, but in sorted order.
-That means `res[i] <= res[i + 1]` for each element in the result.
+Sorts the elements of `a` from least to greatest.
+
+That means that the result satisfies `res[i] <= res[i + 1]`.
+
+This is O(n * log(n)).
 ###
 sort<a> a[](a a[]) compare<a>
 	a sort (x, y) => x <=> y
+###
+Same as `sort`, but uses a custom comparer.
+
+`comparer` should be consistent, meaning always return the same result for the same inputs.
+###
 sort<a> a[](a a[], comparer act comparison(a, a)) trusted
 	res = a to-fix-arr
 	res set-sort comparer
 	res cast-immutable
+###
+Same as `sort`, but uses `f` to get the comparable part of each element.
+
+`f` should be consistent, meaning always return the same `b` for the same `a`.
+###
 sort-by<a, b> a[](a a[], f act b(a)) compare<b>
 	a sort (x, y) => f[x] <=> f[y]
 
@@ -33,7 +46,7 @@ sort-by<a, b> a[](a a[], f act b(a)) compare<b>
 ###
 Sort and remove duplicates.
 That means `res[i] < res[i + 1]` for each element in the result.
-`[2, 1, 2] sort-unique` is `[1, 2]`.
+`(2, 1, 2) sort-unique` is `1, 2`.
 ###
 sort-unique<a> a[](a a[]) compare<a> trusted
 	a.to-fix-arr.set-sort-unique cast-immutable
@@ -45,17 +58,18 @@ test
 	# Test that it's a stable sort
 	arr fix-arr str = "2a", "2b", "1a", "1b"
 	arr set-sort (x, y) => x.chars[0] <=> y.chars[0]
-	arr.arr is ("1a", "1b", "2a", "2b")
+	arr.to-arr is ("1a", "1b", "2a", "2b")
 
-# Sort a mut-arr in place.
+# Sort the elements of `a` from least to greatest.
 set-sort<a> void(a a mut[]) compare<a> trusted
 	a.temp-as-fix-arr set-sort
+# Like `set-sort`, but uses a custom comparer.
 set-sort<a> void(a a mut[], comparer act comparison(a, a)) trusted
 	a.temp-as-fix-arr set-sort comparer
+# Like `set-sort`, but `f` to get the comparable part of each element.
 set-sort-by<a, b> void(a a mut[], f act b(a)) compare<b> trusted
 	a.temp-as-fix-arr set-sort-by f
 
-# Sort a fix-arr in place.
 set-sort<a> void(a fix-arr a) compare<a>
 	a set-sort (x, y) => x <=> y
 set-sort<a> void(a fix-arr a, comparer act comparison(a, a)) trusted
@@ -81,7 +95,10 @@ set-sort-by<a, b> void(a fix-arr a, f act b(a)) compare<b>
 	else
 		*cur := value
 
-# Sort a mut-arr in place, remove unique elements, and return the (now shorter) fix-arr.
+###
+Sort `a` in place and remove unique elements.
+Returns is a slice of the original `a`, which will be shorter if non-unique elements were removed.
+###
 set-sort-unique<a> fix-arr a(a fix-arr a) compare<a>
 	a set-sort-unique (x, y) => x <=> y
 set-sort-unique<a> fix-arr a(a fix-arr a, comparer act comparison(a, a)) trusted
@@ -121,18 +138,24 @@ sorted-by-first<a, b> record
 	a a[]
 	b b[]
 
-# Sort `a`, and apply the same permutation to `b`.
+###
+Sort `a`, and move elements of `b` in the same permutation as `a`.
+
+This is useful if `a` and `b` are parallel arrays, meaning `a[i]` and `b[i]` belong together.
+
+Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j`.
+###
 sort-by-first<a, b> sorted-by-first<a, b>(a a[], b b[]) compare<a> trusted
 	mut-a = a to-fix-arr
 	mut-b = b to-fix-arr
 	mut-a set-sort-by-first mut-b
 	mut-a.cast-immutable, mut-b.cast-immutable
 
-# Sort `a` in place, and apply the same permutation to `b` in place.
+# Sort `a` in place, and move elements of `b` in the same permutation as `a`.
 set-sort-by-first<a, b> void(a a mut[], b b mut[]) compare<a> trusted
 	a.temp-as-fix-arr set-sort-by-first b.temp-as-fix-arr
 
-# Sort `a` in place, and apply the same permutation to `b` in place.
+# Sort `a` in place, and move elements of `b` in the same permutation as `a`.
 set-sort-by-first<a, b> void(a fix-arr a, b fix-arr b) compare<a>
 	assert: a.size == b.size
 	if a.size > 1

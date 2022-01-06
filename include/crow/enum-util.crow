@@ -2,27 +2,52 @@ no-std
 import
 	./bool: bool
 	./col/arr: arr
-	./col/arr-util: first-some
+	./col/arr-util: find-and-get
 	./exception: throw
 	./misc: name, named-val, val
 	./opt: ??, new, opt
 	./sym: ==, sym, to-str
-	./str: str
+	./str: ==, str
 
+# TODO: inherit from 'compare' spec
+###
+Spec that will be satisfied by generated functions for any `enum` type.
+Functions in this spec will be generated when you declare an `enum`.
+
+(Declaring an `enum` also generates other functions that aren't needed here.)
+###
 enum-like<a> spec
+	# Returns every name and value in the enum.
 	enum-members named-val<a>[]()
 	== bool(a a, b a)
 
+# Convert an enum value to name that was used to declare it.
 to-sym<a> sym(a a) enum-like<a>
-	(enum-members first-some x => x.val == a ? x.name,) ?? "Invalid enum value".throw
+	(enum-members find-and-get x => x.val == a ? x.name,) ?? "Invalid enum value".throw
 
+###
+Converts a symbol to the enum value that was declared with that name.
+
+Returns an empty option if `a` is not the name of an enum member.
+###
 to-enum<a> a?(a sym) enum-like<a>
-	enum-members first-some member =>
+	enum-members find-and-get member =>
 		member.name == a ? member.val,
 
+# Same as `a.to-sym to-enum`.
+to-enum<a> a?(a str) enum-like<a>
+	enum-members find-and-get member =>
+		member.name.to-str == a ? member.val,
+
+###
+Converts to the output enum value with the same name.
+
+Returns an empty option if there is no corresponding output value.
+###
 enum-convert<out, in> out?(a in) enum-like<in> enum-like<out>
 	a.to-sym to-enum
 
 # TODO: should just be called to-str, but that requires better overloading
+# Same as `a.to-sym to-str`.
 enum-to-str<a> str(a a) enum-like<a>
 	a.to-sym to-str

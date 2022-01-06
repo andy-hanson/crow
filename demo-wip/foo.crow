@@ -1,0 +1,5 @@
+r record
+	x pair<v?>
+
+x nat()
+	1

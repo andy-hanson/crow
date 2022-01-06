@@ -11,8 +11,7 @@ const main = async () => {
 	const content = fs.readFileSync("demo/hello.crow", "utf-8")
 	comp.addOrChangeFile(StorageKind.local, "hello", content)
 	const result = comp.run('hello')
-
-	if (result.stdout !== "Hello, world!\n" || result.err != 0 || result.stderr != '') {
+	if (result.stdout !== "hello, world!\n" || result.err != 0 || result.stderr != '') {
 		console.error(result)
 		throw new Error("Bad result")
 	}
@@ -20,4 +19,5 @@ const main = async () => {
 
 main().catch(e => {
 	console.error("ERROR", e)
+	process.exit(1)
 })

@@ -8,8 +8,14 @@ import
 	./str-util: join
 	./sym: sym, to-str
 
+###
+Spec that will be satisfied by generated functions for any `flags` type.
+Functions in this spec will be generated when you declare a `flags` type.
+
+(Declaring a `flags` type also generates other functions that aren't needed here.)
+###
 flags-like<a> spec
-	empty a()
+	new a()
 	all a()
 	flags-members named-val<a>[]()
 	== bool(a a, b a)
@@ -17,12 +23,17 @@ flags-like<a> spec
 	& a(a a, b a)
 	| a(a a, b a)
 
+###
+True if every flag set in `a` is set in `b`.
+###
 is-in<a> bool(a a, b a) flags-like<a>
 	a & b == a
 
+# Returns an array of the name of every flag set in `a`.
 to-syms<a> sym[](a a) flags-like<a>
 	flags-members flat-map member =>
 		member.val is-in a ? member.name,
 
+# Flag names separated by `|`, like `"foo | bar"`.
 flags-to-str<a> str(a a) flags-like<a>
 	a.to-syms map (x => x to-str) join " | "

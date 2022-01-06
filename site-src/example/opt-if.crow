@@ -1,0 +1,13 @@
+import
+	crow/io/print: print
+
+main fut nat(_ str[]) summon
+	print: "2" double
+	print: "X" double
+	()
+
+double str(a str)
+	if n ?= a parse-nat
+		"{n * 2}"
+	else
+		"{a}{a}"
