@@ -351,6 +351,16 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failUnary());
 		case shortSymValue("true"):
 			return constantBool(true);
+		case shortSymValue("unsafe-add"):
+			return binary(isInt8(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeAddInt8
+				: isInt16(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeAddInt16
+				: isInt32(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeAddInt32
+				: isInt64(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeAddInt64
+				: failBinary());
 		case shortSymValue("unsafe-div"):
 			return binary(isFloat32(rt)
 				? LowExprKind.SpecialBinary.Kind.unsafeDivFloat32
@@ -363,14 +373,28 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failBinary());
 		case shortSymValue("unsafe-mod"):
 			return isNat64(rt) ? binary(LowExprKind.SpecialBinary.Kind.unsafeModNat64) : fail();
-		case shortSymValue("wrap-add"):
-			return binary(isInt16(rt)
-				? LowExprKind.SpecialBinary.Kind.wrapAddInt16
+		case shortSymValue("unsafe-mul"):
+			return binary(isInt8(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeMulInt8
+				: isInt16(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeMulInt16
 				: isInt32(rt)
-				? LowExprKind.SpecialBinary.Kind.wrapAddInt32
+				? LowExprKind.SpecialBinary.Kind.unsafeMulInt32
 				: isInt64(rt)
-				? LowExprKind.SpecialBinary.Kind.wrapAddInt64
-				: isNat8(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeMulInt64
+				: failBinary());
+		case shortSymValue("unsafe-sub"):
+			return binary(isInt8(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeSubInt8
+				: isInt16(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeSubInt16
+				: isInt32(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeSubInt32
+				: isInt64(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeSubInt64
+				: failBinary());
+		case shortSymValue("wrap-add"):
+			return binary(isNat8(rt)
 				? LowExprKind.SpecialBinary.Kind.wrapAddNat8
 				: isNat16(rt)
 				? LowExprKind.SpecialBinary.Kind.wrapAddNat16
@@ -380,12 +404,8 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialBinary.Kind.wrapAddNat64
 				: failBinary());
 		case shortSymValue("wrap-mul"):
-			return binary(isInt16(rt)
-				? LowExprKind.SpecialBinary.Kind.wrapMulInt16
-				: isInt32(rt)
-				? LowExprKind.SpecialBinary.Kind.wrapMulInt32
-				: isInt64(rt)
-				? LowExprKind.SpecialBinary.Kind.wrapMulInt64
+			return binary(isNat8(rt)
+				? LowExprKind.SpecialBinary.Kind.wrapMulNat8
 				: isNat16(rt)
 				? LowExprKind.SpecialBinary.Kind.wrapMulNat16
 				: isNat32(rt)
@@ -394,13 +414,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialBinary.Kind.wrapMulNat64
 				: failBinary());
 		case shortSymValue("wrap-sub"):
-			return binary(isInt16(rt)
-				? LowExprKind.SpecialBinary.Kind.wrapSubInt16
-				: isInt32(rt)
-				? LowExprKind.SpecialBinary.Kind.wrapSubInt32
-				: isInt64(rt)
-				? LowExprKind.SpecialBinary.Kind.wrapSubInt64
-				: isNat8(rt)
+			return binary(isNat8(rt)
 				? LowExprKind.SpecialBinary.Kind.wrapSubNat8
 				: isNat16(rt)
 				? LowExprKind.SpecialBinary.Kind.wrapSubNat16

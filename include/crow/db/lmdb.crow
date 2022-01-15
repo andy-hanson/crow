@@ -224,7 +224,7 @@ get<k, v> v?(txn lmdb-txn, db lmdb-db<k, v>, key k) trusted summon lmdb-key<k> s
 	# TODO: this check should be unnecessary...
 	unless (txn count db) == 0
 		lmdb-key = key to-lmdb-key
-		lmdb-key.is-empty forbid "Empty key is not allowed"
+		"empty key is not allowed" forbid lmdb-key.is-empty
 		err = txn.txn mdb_get db.dbi, lmdb-key.val-of-bytes, value
 		unless err == MDB_NOTFOUND
 			err check-lmdb-error

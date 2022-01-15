@@ -302,7 +302,7 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat64:
 			return "bitwise-not (nat64)";
 		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
-			return "count-ones (nat-64)";
+			return "count-ones (nat64)";
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return "deref";
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
@@ -363,79 +363,79 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kind a) {
 	final switch (a) {
 		case LowExprKind.SpecialBinary.Kind.addFloat32:
-			return "+ (float-32)";
+			return "+ (float32)";
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
-			return "+ (float-64)";
+			return "+ (float64)";
 		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
 			return "+ (ptr + nat64)";
 		case LowExprKind.SpecialBinary.Kind.and:
 			return "and";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
-			return "bitwise-and (int-8)";
+			return "bitwise-and (int8)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:
-			return "bitwise-and (int-16)";
+			return "bitwise-and (int16)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt32:
-			return "bitwise-and (int-32)";
+			return "bitwise-and (int32)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt64:
-			return "bitwise-and (int-64)";
+			return "bitwise-and (int64)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat8:
-			return "bitwise-and (nat-8)";
+			return "bitwise-and (nat8)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat16:
-			return "bitwise-and (nat-16)";
+			return "bitwise-and (nat16)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat32:
-			return "bitwise-and (nat-32)";
+			return "bitwise-and (nat32)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat64:
-			return "bitwise-and (nat-64)";
+			return "bitwise-and (nat64)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt8:
-			return "bitwise-or (int-8)";
+			return "bitwise-or (int8)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt16:
-			return "bitwise-or (int-16)";
+			return "bitwise-or (int16)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt32:
-			return "bitwise-or (int-32)";
+			return "bitwise-or (int32)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt64:
-			return "bitwise-or (int-64)";
+			return "bitwise-or (int64)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat8:
-			return "bitwise-or (nat-8)";
+			return "bitwise-or (nat8)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat16:
-			return "bitwise-or (nat-16)";
+			return "bitwise-or (nat16)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat32:
-			return "bitwise-or (nat-32)";
+			return "bitwise-or (nat32)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat64:
-			return "bitwise-or (nat-64)";
+			return "bitwise-or (nat64)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt8:
-			return "bitwise-xor (int-8)";
+			return "bitwise-xor (int8)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt16:
-			return "bitwise-xor (int-16)";
+			return "bitwise-xor (int16)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt32:
-			return "bitwise-xor (int-32)";
+			return "bitwise-xor (int32)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt64:
-			return "bitwise-xor (int-64)";
+			return "bitwise-xor (int64)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat8:
-			return "bitwise-xor (nat-8)";
+			return "bitwise-xor (nat8)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat16:
-			return "bitwise-xor (nat-16)";
+			return "bitwise-xor (nat16)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat32:
-			return "bitwise-xor (nat-32)";
+			return "bitwise-xor (nat32)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat64:
-			return "bitwise-xor (nat-64)";
+			return "bitwise-xor (nat64)";
 		case LowExprKind.SpecialBinary.Kind.eqFloat64:
-			return "== (float-64)";
+			return "== (float64)";
 		case LowExprKind.SpecialBinary.Kind.eqInt8:
-			return "== (int-8)";
+			return "== (int8)";
 		case LowExprKind.SpecialBinary.Kind.eqInt16:
-			return "== (int-16)";
+			return "== (int16)";
 		case LowExprKind.SpecialBinary.Kind.eqInt32:
-			return "== (int-32)";
+			return "== (int32)";
 		case LowExprKind.SpecialBinary.Kind.eqInt64:
-			return "== (int-64)";
+			return "== (int64)";
 		case LowExprKind.SpecialBinary.Kind.eqNat8:
-			return "== (nat-8)";
+			return "== (nat8)";
 		case LowExprKind.SpecialBinary.Kind.eqNat16:
-			return "== (nat-16)";
+			return "== (nat16)";
 		case LowExprKind.SpecialBinary.Kind.eqNat32:
-			return "== (nat-32)";
+			return "== (nat32)";
 		case LowExprKind.SpecialBinary.Kind.eqNat64:
-			return "== (nat-64)";
+			return "== (nat64)";
 		case LowExprKind.SpecialBinary.Kind.eqPtr:
 			return "ptr-eq?";
 		case LowExprKind.SpecialBinary.Kind.lessBool:
@@ -443,89 +443,97 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 		case LowExprKind.SpecialBinary.Kind.lessChar:
 			return "< (char)";
 		case LowExprKind.SpecialBinary.Kind.lessFloat32:
-			return "< (float-32)";
+			return "< (float32)";
 		case LowExprKind.SpecialBinary.Kind.lessFloat64:
-			return "< (float-32)";
+			return "< (float32)";
 		case LowExprKind.SpecialBinary.Kind.lessInt8:
-			return "< (int-8)";
+			return "< (int8)";
 		case LowExprKind.SpecialBinary.Kind.lessInt16:
-			return "< (int-16)";
+			return "< (int16)";
 		case LowExprKind.SpecialBinary.Kind.lessInt32:
-			return "< (int-32)";
+			return "< (int32)";
 		case LowExprKind.SpecialBinary.Kind.lessInt64:
-			return "< (int-64)";
+			return "< (int64)";
 		case LowExprKind.SpecialBinary.Kind.lessNat8:
-			return "< (nat-8)";
+			return "< (nat8)";
 		case LowExprKind.SpecialBinary.Kind.lessNat16:
-			return "< (nat-16)";
+			return "< (nat16)";
 		case LowExprKind.SpecialBinary.Kind.lessNat32:
-			return "< (nat-32)";
+			return "< (nat32)";
 		case LowExprKind.SpecialBinary.Kind.lessNat64:
-			return "< (nat-64)";
+			return "< (nat64)";
 		case LowExprKind.SpecialBinary.Kind.lessPtr:
 			return "< (ptr)";
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:
-			return "* (float-64)";
+			return "* (float64)";
 		case LowExprKind.SpecialBinary.Kind.orBool:
 			return "or (bool)";
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
-			return "- (float-64)";
+			return "- (float64)";
 		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
-			return "- (ptr - nat-64)";
+			return "- (ptr - nat64)";
+		case LowExprKind.SpecialBinary.Kind.unsafeAddInt8:
+			return "unsafe-add (int8)";
+		case LowExprKind.SpecialBinary.Kind.unsafeAddInt16:
+			return "unsafe-add (int16)";
+		case LowExprKind.SpecialBinary.Kind.unsafeAddInt32:
+			return "unsafe-add (int32)";
+		case LowExprKind.SpecialBinary.Kind.unsafeAddInt64:
+			return "unsafe-add (int64)";
 		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64:
-			return "unsafe-bit-shift-left (nat-64)";
+			return "unsafe-bit-shift-left (nat64)";
 		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64:
-			return "unsafe-bit-shift-left (nat-64)";
+			return "unsafe-bit-shift-left (nat64)";
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat32:
-			return "unsafe-div (float-32)";
+			return "unsafe-div (float32)";
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
-			return "unsafe-div (float-64)";
+			return "unsafe-div (float64)";
 		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:
-			return "unsafe-div (int-64)";
+			return "unsafe-div (int64)";
 		case LowExprKind.SpecialBinary.Kind.unsafeDivNat64:
-			return "unsafe-div (nat-64)";
+			return "unsafe-div (nat64)";
 		case LowExprKind.SpecialBinary.Kind.unsafeModNat64:
-			return "unsafe-mod (nat-64)";
-		case LowExprKind.SpecialBinary.Kind.wrapAddInt16:
-			return "wrap-add (int-16)";
-		case LowExprKind.SpecialBinary.Kind.wrapAddInt32:
-			return "wrap-add (int-32)";
-		case LowExprKind.SpecialBinary.Kind.wrapAddInt64:
-			return "wrap-add (int-64)";
+			return "unsafe-mod (nat64)";
+		case LowExprKind.SpecialBinary.Kind.unsafeMulInt8:
+			return "unsafe-mul (int8)";
+		case LowExprKind.SpecialBinary.Kind.unsafeMulInt16:
+			return "unsafe-mul (int16)";
+		case LowExprKind.SpecialBinary.Kind.unsafeMulInt32:
+			return "unsafe-mul (int32)";
+		case LowExprKind.SpecialBinary.Kind.unsafeMulInt64:
+			return "unsafe-mul (int64)";
+		case LowExprKind.SpecialBinary.Kind.unsafeSubInt8:
+			return "unsafe-sub (int8)";
+		case LowExprKind.SpecialBinary.Kind.unsafeSubInt16:
+			return "unsafe-sub (int16)";
+		case LowExprKind.SpecialBinary.Kind.unsafeSubInt32:
+			return "unsafe-sub (int32)";
+		case LowExprKind.SpecialBinary.Kind.unsafeSubInt64:
+			return "unsafe-sub (int64)";
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat8:
-			return "wrap-add (nat-8)";
+			return "wrap-add (nat8)";
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat16:
-			return "wrap-add (nat-16)";
+			return "wrap-add (nat16)";
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat32:
-			return "wrap-add (nat-32)";
+			return "wrap-add (nat32)";
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat64:
-			return "wrap-add (nat-64)";
-		case LowExprKind.SpecialBinary.Kind.wrapMulInt16:
-			return "wrap-mul (int-16)";
-		case LowExprKind.SpecialBinary.Kind.wrapMulInt32:
-			return "wrap-mul (int-32)";
-		case LowExprKind.SpecialBinary.Kind.wrapMulInt64:
-			return "wrap-mul (int-64)";
+			return "wrap-add (nat64)";
+		case LowExprKind.SpecialBinary.Kind.wrapMulNat8:
+			return "wrap-mul (nat8)";
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat16:
-			return "wrap-mul (nat-16)";
+			return "wrap-mul (nat16)";
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat32:
-			return "wrap-mul (nat-32)";
+			return "wrap-mul (nat32)";
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat64:
-			return "wrap-mul (nat-64)";
-		case LowExprKind.SpecialBinary.Kind.wrapSubInt16:
-			return "wrap-sub (int-16)";
-		case LowExprKind.SpecialBinary.Kind.wrapSubInt32:
-			return "wrap-sub (int-32)";
-		case LowExprKind.SpecialBinary.Kind.wrapSubInt64:
-			return "wrap-sub (int-64)";
+			return "wrap-mul (nat64)";
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat8:
-			return "wrap-sub (nat-8)";
+			return "wrap-sub (nat8)";
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat16:
-			return "wrap-sub (nat-16)";
+			return "wrap-sub (nat16)";
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat32:
-			return "wrap-sub (nat-32)";
+			return "wrap-sub (nat32)";
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat64:
-			return "wrap-sub (nat-64)";
+			return "wrap-sub (nat64)";
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
 			return "wriite to ptr";
 	}

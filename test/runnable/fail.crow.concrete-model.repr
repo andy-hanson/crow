@@ -1353,7 +1353,7 @@ program(
 								local-ref(res)
 								cond(
 									call(is-empty, [call(message, [param-ref(a)])])
-									record([arr(0, 5)])
+									record([arr(0, 6)])
 									call(message, [param-ref(a)]))])
 						call(
 							each
@@ -2598,8 +2598,19 @@ program(
 				seq(
 					call(
 						assert
-						[call(&&, [call(>=, [local-ref(res), param-ref(a)]), call(>=, [local-ref(res), param-ref(b)])])])
+						[
+							record([arr(0, 4)])
+							call(
+								&&
+								[call(>=, [local-ref(res), param-ref(a)]), call(>=, [local-ref(res), param-ref(b)])])])
 					local-ref(res))))
+		fun(
+			ctx
+			assert
+			type(false, void)
+			none
+			[param(message, type(false, str)), param(condition, type(false, bool))]
+			cond(param-ref(condition), call(new, []), call(throw, [param-ref(message)])))
 		fun(noctx, &&, type(false, bool), none, [param(a, type(false, bool)), param(b, type(false, bool))], builtin([]))
 		fun(
 			noctx
@@ -2638,8 +2649,12 @@ program(
 					call(wrap-mul, [param-ref(a), param-ref(b)])
 					seq(
 						seq(
-							call(assert, [call(==, [call(/, [local-ref(res), param-ref(b)]), param-ref(a)])])
-							call(assert, [call(==, [call(/, [local-ref(res), param-ref(a)]), param-ref(b)])]))
+							call(
+								assert
+								[record([arr(0, 4)]), call(==, [call(/, [local-ref(res), param-ref(b)]), param-ref(a)])])
+							call(
+								assert
+								[record([arr(0, 4)]), call(==, [call(/, [local-ref(res), param-ref(a)]), param-ref(b)])]))
 						local-ref(res)))
 				call(new, [])))
 		fun(
@@ -2655,14 +2670,16 @@ program(
 			type(false, nat64)
 			none
 			[param(a, type(false, nat64)), param(b, type(false, nat64))]
-			seq(call(forbid, [call(==, [param-ref(b), 0])]), call(unsafe-div, [param-ref(a), param-ref(b)])))
+			seq(
+				call(forbid, [record([arr(0, 5)]), call(==, [param-ref(b), 0])])
+				call(unsafe-div, [param-ref(a), param-ref(b)])))
 		fun(
 			ctx
 			forbid
 			type(false, void)
 			none
-			[param(condition, type(false, bool))]
-			cond(param-ref(condition), call(throw, [record([arr(0, 4)])]), call(new, [])))
+			[param(message, type(false, str)), param(condition, type(false, bool))]
+			cond(param-ref(condition), call(throw, [param-ref(message)]), call(new, [])))
 		fun(noctx, new, type(false, nat64), none, [], 0)
 		fun(
 			noctx
@@ -2913,7 +2930,7 @@ program(
 			some(param("<<closure>>", type(true, lambda(to-str, 0))))
 			[param(x, type(false, sym))]
 			seq(
-				call(~=, [get-field(param-ref("<<closure>>"), res), record([arr(0, 6)])])
+				call(~=, [get-field(param-ref("<<closure>>"), res), record([arr(0, 7)])])
 				call(~=, [get-field(param-ref("<<closure>>"), res), call(to-c-str, [param-ref(x)])])))
 		fun(
 			ctx
@@ -2983,7 +3000,7 @@ program(
 					call(
 						~
 						[
-							call(~, [call(to-str, [call(level, [param-ref(a)])]), record([arr(0, 10)])])
+							call(~, [call(to-str, [call(level, [param-ref(a)])]), record([arr(0, 11)])])
 							call(message, [param-ref(a)])])]))
 		fun(
 			noctx
@@ -3037,7 +3054,7 @@ program(
 			type(false, str)
 			none
 			[param(a, type(false, log-level))]
-			match-enum(param-ref(a), [record([arr(0, 7)]), record([arr(0, 8)]), record([arr(0, 9)])]))
+			match-enum(param-ref(a), [record([arr(0, 8)]), record([arr(0, 9)]), record([arr(0, 10)])]))
 		fun(noctx, level, type(false, log-level), none, [param(a, type(true, logged))], field-get(0))
 		fun(noctx, message, type(false, str), none, [param(a, type(true, logged))], field-get(1))
 		fun(
@@ -3962,7 +3979,7 @@ program(
 			seq(
 				cond(
 					call(>=, [param-ref(index), call(size, [param-ref(a)])])
-					call(throw, [record([arr(0, 11)])])
+					call(throw, [record([arr(0, 12)])])
 					call(new, []))
 				call(unsafe-at, [param-ref(a), param-ref(index)])))
 		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
@@ -4670,7 +4687,7 @@ program(
 			seq(
 				cond(
 					call(>=, [param-ref(index), call(size, [param-ref(a)])])
-					call(throw, [record([arr(0, 11)])])
+					call(throw, [record([arr(0, 12)])])
 					call(new, []))
 				call(unsafe-at, [param-ref(a), param-ref(index)])))
 		fun(
@@ -4744,6 +4761,13 @@ program(
 			seq(
 				call(forbid, [call(is-empty, [param-ref(a)])])
 				call(subscript, [param-ref(a), call(.., [1, call(size, [param-ref(a)])])])))
+		fun(
+			ctx
+			forbid
+			type(false, void)
+			none
+			[param(condition, type(false, bool))]
+			cond(param-ref(condition), call(throw, [record([arr(0, 13)])]), call(new, [])))
 		fun(
 			noctx
 			is-empty
@@ -5295,9 +5319,9 @@ program(
 								unsafe-to-nat64
 								[
 									call(
-										wrap-add
+										unsafe-add
 										[
-											call(wrap-mul, [call(tv_sec, [local-ref(time)]), 1000000000])
+											call(unsafe-mul, [call(tv_sec, [local-ref(time)]), 1000000000])
 											call(tv_nsec, [local-ref(time)])])]))
 						call(todo, [])))))
 		fun(
@@ -5333,14 +5357,14 @@ program(
 		fun(noctx, inner-value, type(false, timespec), none, [param(a, type(true, cell))], field-get(1))
 		fun(
 			noctx
-			wrap-add
+			unsafe-add
 			type(false, int64)
 			none
 			[param(a, type(false, int64)), param(b, type(false, int64))]
 			builtin([]))
 		fun(
 			noctx
-			wrap-mul
+			unsafe-mul
 			type(false, int64)
 			none
 			[param(a, type(false, int64)), param(b, type(false, int64))]
@@ -6281,7 +6305,7 @@ program(
 			call(unsafe-to-int64, [param-ref(a)]))
 		fun(ctx, main, type(true, fut), none, [param("_", type(false, arr))], seq(call(foo, []), call(new, [])))
 		fun(ctx, foo, type(false, void), none, [], call(bar, []))
-		fun(ctx, bar, type(false, void), none, [], call(throw, [record([arr(0, 12)])]))
+		fun(ctx, bar, type(false, void), none, [], call(throw, [record([arr(0, 14)])]))
 		fun(ctx, new, type(true, fut), none, [], call(new, [call(new, [])]))
 		fun(
 			ctx

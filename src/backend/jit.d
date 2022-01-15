@@ -1438,9 +1438,10 @@ immutable(ExprResult) binaryToGcc(
 	final switch (a.kind) {
 		case LowExprKind.SpecialBinary.Kind.addFloat32:
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
-		case LowExprKind.SpecialBinary.Kind.wrapAddInt16:
-		case LowExprKind.SpecialBinary.Kind.wrapAddInt32:
-		case LowExprKind.SpecialBinary.Kind.wrapAddInt64:
+		case LowExprKind.SpecialBinary.Kind.unsafeAddInt8:
+		case LowExprKind.SpecialBinary.Kind.unsafeAddInt16:
+		case LowExprKind.SpecialBinary.Kind.unsafeAddInt32:
+		case LowExprKind.SpecialBinary.Kind.unsafeAddInt64:
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat8:
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat16:
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat32:
@@ -1504,9 +1505,11 @@ immutable(ExprResult) binaryToGcc(
 		case LowExprKind.SpecialBinary.Kind.lessPtr:
 			return comparison(gcc_jit_comparison.GCC_JIT_COMPARISON_LT);
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:
-		case LowExprKind.SpecialBinary.Kind.wrapMulInt16:
-		case LowExprKind.SpecialBinary.Kind.wrapMulInt32:
-		case LowExprKind.SpecialBinary.Kind.wrapMulInt64:
+		case LowExprKind.SpecialBinary.Kind.unsafeMulInt8:
+		case LowExprKind.SpecialBinary.Kind.unsafeMulInt16:
+		case LowExprKind.SpecialBinary.Kind.unsafeMulInt32:
+		case LowExprKind.SpecialBinary.Kind.unsafeMulInt64:
+		case LowExprKind.SpecialBinary.Kind.wrapMulNat8:
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat16:
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat32:
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat64:
@@ -1515,9 +1518,10 @@ immutable(ExprResult) binaryToGcc(
 		case LowExprKind.SpecialBinary.Kind.orBool:
 			return logicalOperatorToGcc(ctx, emit, LogicalOperator.or, a.left, a.right);
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
-		case LowExprKind.SpecialBinary.Kind.wrapSubInt16:
-		case LowExprKind.SpecialBinary.Kind.wrapSubInt32:
-		case LowExprKind.SpecialBinary.Kind.wrapSubInt64:
+		case LowExprKind.SpecialBinary.Kind.unsafeSubInt8:
+		case LowExprKind.SpecialBinary.Kind.unsafeSubInt16:
+		case LowExprKind.SpecialBinary.Kind.unsafeSubInt32:
+		case LowExprKind.SpecialBinary.Kind.unsafeSubInt64:
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat8:
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat16:
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat32:

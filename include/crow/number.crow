@@ -1,11 +1,14 @@
 no-std
 import
-	./bool: &&, bool
+	./bool: ||, &&, bool, false, new, true
 	./compare: !=, <, <=, >, >=
+	./misc: new
 	./private/number-low-level:
-		unsafe-div, unsafe-to-int64, unsafe-to-int8, unsafe-to-int16, unsafe-to-int32,
-		unsafe-to-nat8, unsafe-to-nat32, unsafe-to-nat64, unsafe-mod, wrap-add, wrap-mul, wrap-sub
-	./private/exception-low-level: assert, forbid
+		unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-sub, unsafe-to-int64,
+		unsafe-to-int8, unsafe-to-int16, unsafe-to-int32, unsafe-to-nat8, unsafe-to-nat32,
+		unsafe-to-nat64, wrap-add, wrap-mul, wrap-sub
+	./private/exception-low-level: assert, forbid, throw
+	./test-util: is, throws
 export
 	./private/number-low-level:
 		==, <=>, float32, float64, int8, int16, int32, int64, is-even, is-odd, max-int8, max-int16,
@@ -32,33 +35,33 @@ Throws if the result would overflow.
 ###
 + nat8(a nat8, b nat8)
 	res = a wrap-add b
-	assert: res >= a && res >= b
+	"integer overflow" assert (res >= a && res >= b)
 	res
 + nat16(a nat16, b nat16)
 	res = a wrap-add b
-	assert: res >= a && res >= b
+	"integer overflow" assert (res >= a && res >= b)
 	res
 + nat32(a nat32, b nat32)
 	res = a wrap-add b
-	assert: res >= a && res >= b
+	"integer overflow" assert (res >= a && res >= b)
 	res
 + nat64(a nat64, b nat64)
 	res = a wrap-add b
-	assert: res >= a && res >= b
+	"integer overflow" assert (res >= a && res >= b)
 	res
 
 # Throws if the result would be negative.
 - nat8(a nat8, b nat8)
-	assert: a >= b
+	"integer overflow" assert a >= b
 	a wrap-sub b
 - nat16(a nat16, b nat16)
-	assert: a >= b
+	"integer overflow" assert a >= b
 	a wrap-sub b
 - nat32(a nat32, b nat32)
-	assert: a >= b
+	"integer overflow" assert a >= b
 	a wrap-sub b
 - nat64(a nat64, b nat64)
-	assert: a >= b
+	"integer overflow" assert a >= b
 	a wrap-sub b
 
 # Throws if the result would overflow.
@@ -66,16 +69,17 @@ Throws if the result would overflow.
 	# TODO: better safety check
 	if a != 0 && b != 0
 		res = a wrap-mul b
-		assert: res / b == a
-		assert: res / a == b
+		"integer overflow" assert res / b == a
+		"integer overflow" assert res / a == b
 		res
+
 
 ###
 Flooring division of `a` divided by `b`.
 Throws if `b == 0`.
 ###
 / nat64(a nat64, b nat64) trusted
-	forbid: b == 0
+	"divide by 0" forbid b == 0
 	a unsafe-div b
 
 # Like 'a / b' but takes the ceil instead of the floor.
@@ -89,12 +93,12 @@ Result will be in the range `0 .. b`.
 Throws if `b == 0`.
 ###
 % nat64(a nat64, b nat64) trusted
-	forbid: b == 0
+	"modulo by 0" forbid b == 0
 	a unsafe-mod b
 
 # This returns a `nat64` since modulo always returns a non-negative number.
 % nat64(a int64, b nat64)
-	forbid: b == 0
+	"modulo by 0" forbid b == 0
 	if a < 0
 		abs-mod = a.abs % b
 		if abs-mod != 0
@@ -108,27 +112,56 @@ Throws if the result would overflow.
 "Overflow" means:
 Be less than the least possible value or greater than the greatest possible value.
 ###
-+ int32(a int32, b int32)
-	a.to-int64 wrap-add b.to-int64 to-int32
-+ int64(a int64, b int64)
-	# TODO: safety check
-	a wrap-add b
++ int32(a int32, b int32) trusted
+	a.to-int64 unsafe-add b.to-int64 to-int32
++ int64(a int64, b int64) trusted
+	"integer overflow" forbid if b > 0
+		a > (max-int64 unsafe-sub b)
+	else
+		a < (min-int64 unsafe-sub b)
+	a unsafe-add b
+test
+	+1 + 1 is 2
+	(() => max-int64 + 1) throws "integer overflow"
+	(() => min-int64 + -1) throws "integer overflow"
+	(() => min-int64 + min-int64) throws "integer overflow"
 
-- int32(a int32, b int32)
-	a.to-int64 wrap-sub b.to-int64 to-int32
-- int64(a int64, b int64)
-	# TODO: safety check
-	a wrap-sub b
+- int32(a int32, b int32) trusted
+	a.to-int64 unsafe-sub b.to-int64 to-int32
+- int64(a int64, b int64) trusted
+	"integer overflow" forbid if b > 0
+		a < (min-int64 unsafe-add b)
+	else
+		a > (max-int64 unsafe-add b)
+	a unsafe-sub b
+test
+	+1 - 2 is -1
+	(() => max-int64 - -1) throws "integer overflow"
+	(() => min-int64 - 1) throws "integer overflow"
+	min-int64 - min-int64 is 0
 
-* int8(a int8, b int8)
-	a.to-int64 wrap-mul b.to-int64 to-int8
-* int16(a int16, b int16)
-	a.to-int64 wrap-mul b.to-int64 to-int16
-* int32(a int32, b int32)
-	a.to-int64 wrap-mul b.to-int64 to-int32
-* int64(a int64, b int64)
-	# TODO: safety check
-	a wrap-mul b
+* int8(a int8, b int8) trusted
+	a.to-int64 unsafe-mul b.to-int64 to-int8
+* int16(a int16, b int16) trusted
+	a.to-int64 unsafe-mul b.to-int64 to-int16
+* int32(a int32, b int32) trusted
+	a.to-int64 unsafe-mul b.to-int64 to-int32
+* int64(a int64, b int64) trusted
+	"integer overflow" forbid if a == -1 && b == min-int64 || b == -1 && a == min-int64
+		true
+	elif b == 0
+		false
+	elif a > max-int64 / b
+		true
+	elif a < min-int64 / b
+		true
+	a unsafe-mul b
+test
+	max-int64 * 0 is 0
+	(() => (max-int64 / 3) * 4) throws "integer overflow"
+	(() => +4 * (max-int64 / 3)) throws "integer overflow"
+	(() => min-int64 * -1) throws "integer overflow"
+	(() => -1 * min-int64) throws "integer overflow"
 
 ###
 Negates a number.
@@ -152,8 +185,10 @@ Throws if the result would overflow, which only happens if
 `a` is the least possible value and `b` is `-1`.
 ###
 / int64(a int64, b int64) trusted
-	forbid: b == 0
-	forbid: a == min-int64 && b == -1
+	if b == 0
+		"divide by 0" throw
+	if a == min-int64 && b == -1
+		"integer overflow" throw
 	a unsafe-div b
 
 region misc
@@ -199,10 +234,10 @@ unsafe-div float64(a float64, b float64) no-doc noctx unsafe builtin
 
 # Throws if `b == 0`.
 / float32(a float32, b float32) trusted
-	forbid: b == 0.0
+	"divide by 0" forbid b == 0.0
 	a unsafe-div b
 / float64(a float64, b float64) trusted
-	forbid: b == 0.0
+	"divide by 0" forbid b == 0.0
 	a unsafe-div b
 
 # `a` to the power of `b`. Never throws.
@@ -244,23 +279,23 @@ to-nat64 nat64(a float64)
 
 # Throws if the result would overflow.
 to-int64 int64(a nat64) trusted
-	assert: a < max-int64.to-nat64
+	"integer overflow" assert a < max-int64.to-nat64
 	a unsafe-to-int64
 
 to-int8 int8(a int64) trusted
-	assert: a >= min-int8.to-int64
-	assert: a <= max-int8.to-int64
+	"integer overflow" assert a >= min-int8.to-int64
+	"integer overflow" assert a <= max-int8.to-int64
 	a unsafe-to-int8
 
 to-int16 int16(a int64) trusted
-	assert: a >= min-int16.to-int64
-	assert: a <= max-int16.to-int64
+	"integer overflow" assert a >= min-int16.to-int64
+	"integer overflow" assert a <= max-int16.to-int64
 	a unsafe-to-int16
 
 # Convert an int to 32 bits. Fail if the result would overflow.
 to-int32 int32(a int64) trusted
-	assert: a >= min-int32.to-int64
-	assert: a <= max-int32.to-int64
+	"integer overflow" assert a >= min-int32.to-int64
+	"integer overflow" assert a <= max-int32.to-int64
 	a unsafe-to-int32
 to-int32 int32(a nat32)
 	a.to-nat64 to-int32
@@ -290,23 +325,23 @@ clamp-to-int32 int32(a int64) noctx trusted
 		a unsafe-to-int32
 
 # Return the closest possible value to `a + b`. Never throws.
-clamp-add int32(a int32, b int32) noctx
-	a.to-int64 wrap-add b.to-int64 clamp-to-int32
+clamp-add int32(a int32, b int32) noctx trusted
+	a.to-int64 unsafe-add b.to-int64 clamp-to-int32
 
 # Throws if `a` is negative.
 to-nat64 nat64(a int64) trusted
-	forbid: a < 0
+	"integer overflow" forbid a < 0
 	a unsafe-to-nat64
 to-nat64 nat64(a int32)
 	a.to-int64 to-nat64
 
 to-nat8 nat8(a nat64) trusted
-	assert: a <= max-nat8.to-nat64
+	"integer overflow" assert a <= max-nat8.to-nat64
 	a unsafe-to-nat8
 to-nat32 nat32(a nat16) noctx trusted
 	a.to-nat64 unsafe-to-nat32
 
 # Convert a nat to 32 bits. Fail if the result would overflow.
 to-nat32 nat32(a nat64) trusted
-	assert: a < max-nat32.to-nat64
+	"integer overflow" assert a < max-nat32.to-nat64
 	a unsafe-to-nat32

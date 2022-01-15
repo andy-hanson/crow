@@ -79,10 +79,30 @@ assert void(condition bool)
 	unless condition
 		"assert failed" throw
 
+###
+Iff the condition is `false`, throw `message`.
+
+`message` is eagerly evaluated, so it should be a string literal;
+use `unless` and `throw` for a computed message.
+###
+assert void(message str, condition bool)
+	unless condition
+		message throw
+
 # Throw iff the condition is `true`.
 forbid void(condition bool)
 	if condition
 		"forbid failed" throw
+
+###
+Iff the condition is `true`, throw `message`.
+
+The message is eagerly evaluated, so it should be a string literal;
+use `if` and `throw` for a computed message.
+###
+forbid void(message str, condition bool)
+	if condition
+		message throw
 
 ###
 Run `try` and return `ok` containing its return value,

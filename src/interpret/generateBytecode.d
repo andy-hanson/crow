@@ -1241,9 +1241,10 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 			fn!fnSubFloat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.wrapSubInt16:
-		case LowExprKind.SpecialBinary.Kind.wrapSubInt32:
-		case LowExprKind.SpecialBinary.Kind.wrapSubInt64:
+		case LowExprKind.SpecialBinary.Kind.unsafeSubInt8:
+		case LowExprKind.SpecialBinary.Kind.unsafeSubInt16:
+		case LowExprKind.SpecialBinary.Kind.unsafeSubInt32:
+		case LowExprKind.SpecialBinary.Kind.unsafeSubInt64:
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat8:
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat16:
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat32:
@@ -1265,18 +1266,21 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.unsafeModNat64:
 			fn!fnUnsafeModNat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.wrapAddInt16:
-		case LowExprKind.SpecialBinary.Kind.wrapAddInt32:
-		case LowExprKind.SpecialBinary.Kind.wrapAddInt64:
+		case LowExprKind.SpecialBinary.Kind.unsafeAddInt8:
+		case LowExprKind.SpecialBinary.Kind.unsafeAddInt16:
+		case LowExprKind.SpecialBinary.Kind.unsafeAddInt32:
+		case LowExprKind.SpecialBinary.Kind.unsafeAddInt64:
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat8:
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat16:
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat32:
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat64:
 			fn!fnWrapAddIntegral();
 			break;
-		case LowExprKind.SpecialBinary.Kind.wrapMulInt16:
-		case LowExprKind.SpecialBinary.Kind.wrapMulInt32:
-		case LowExprKind.SpecialBinary.Kind.wrapMulInt64:
+		case LowExprKind.SpecialBinary.Kind.unsafeMulInt8:
+		case LowExprKind.SpecialBinary.Kind.unsafeMulInt16:
+		case LowExprKind.SpecialBinary.Kind.unsafeMulInt32:
+		case LowExprKind.SpecialBinary.Kind.unsafeMulInt64:
+		case LowExprKind.SpecialBinary.Kind.wrapMulNat8:
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat16:
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat32:
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat64:

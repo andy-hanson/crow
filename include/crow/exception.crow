@@ -1,49 +1,14 @@
 no-std
 import
-	./bool: bool
 	./col/arr-util: each
 	./fun-util: subscript
-	./misc: new, void
+	./misc: void
 	./str: is-empty, str
 	./writer: ~=, move-to-str, new, writer
 	./private/backtrace: return-stack
 	./private/bootstrap: backtrace, to-c-str
 export
 	./private/exception-low-level: assert, catch, exception, forbid, message, throw
-
-region throwing
-
-###
-Throw if the condition is false, providing a custom message.
-The message is eagerly evaluated; pass a `fun str()` instead to have it lazily evaluatied.
-###
-assert void(condition bool, message str)
-	unless condition
-		message throw
-
-###
-Fail if the condition is false, providing a custom message.
-The message is evaluated only if an exception will be thrown.
-###
-assert void(condition bool, message fun str())
-	unless condition
-		message[] throw
-
-###
-Fail if the condition is true, providing a custom message.
-The message is eagerly evaluated; pass a `fun str()` instead to have it lazily evaluatied.
-###
-forbid void(condition bool, message str)
-	if condition
-		message throw
-
-###
-Fail if the condition is false, providing a custom message.
-The message is evaluated only if an exception will be thrown.
-###
-forbid void(condition bool, message fun str())
-	if condition
-		message[] throw
 
 ###
 Fail unconditionally.

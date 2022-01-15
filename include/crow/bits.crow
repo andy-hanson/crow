@@ -8,13 +8,13 @@ So, the number 5 has bits 0 and 2 set, since 5 is `2**0 + 2**2`.
 no-std
 import
 	./bool: &&, bool
-	./compare: !=, <
+	./compare: !=, <, >
 	./fun-util: subscript
 	./private/bootstrap:
 		int8, int16, int32, int64, nat8, nat16, nat32, nat64, todo
 	./private/number-low-level:
-		==, <=>, new, to-int64, to-nat64, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat8,
-		unsafe-to-nat64, unsafe-to-nat16, unsafe-to-nat32, wrap-add, wrap-mul, wrap-sub
+		==, <=>, new, to-int64, to-nat64, unsafe-mul, unsafe-to-int32, unsafe-to-int64,
+		unsafe-to-nat8, unsafe-to-nat64, unsafe-to-nat16, unsafe-to-nat32, wrap-add, wrap-sub
 
 ###
 Negates every bit.
@@ -79,7 +79,10 @@ Does not rotate.
 		a unsafe-bit-shift-left b
 << nat64(a nat64, b int64) noctx trusted
 	if b < 0
-		a >> (b wrap-mul -1 unsafe-to-nat64)
+		if b > -64
+			a >> (b unsafe-mul -1 unsafe-to-nat64)
+		else
+			0
 	else
 		a << b.unsafe-to-nat64
 
@@ -96,7 +99,10 @@ Does not rotate.
 		a unsafe-bit-shift-right b
 >> nat64(a nat64, b int64) noctx trusted
 	if b < 0
-		a << (b wrap-mul -1 unsafe-to-nat64)
+		if b > -64
+			a << (b unsafe-mul -1 unsafe-to-nat64)
+		else
+			0
 	else
 		a >> b.unsafe-to-nat64
 >> int32(a int32, b int32) noctx trusted
