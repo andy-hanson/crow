@@ -2,7 +2,7 @@ no-std
 import
 	string: memcpy
 	./bool: bool
-	./col/arr: begin-ptr, size
+	./col/private/arr-low-level: begin-ptr, size
 	./col/arr-util: find
 	./compare: comparison
 	./misc: drop

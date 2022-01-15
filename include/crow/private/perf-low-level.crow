@@ -1,7 +1,7 @@
 no-std
 import
-	../col/arr: empty-arr
 	../col/fix-arr: empty-fix-arr, fix-arr
+	../col/private/arr-low-level: empty-arr
 	../ptr: by-val
 	./bootstrap: arr, nat64, sym
 

@@ -3,11 +3,12 @@ import
 	errno: EAGAIN, errno
 	unistd: write
 	../../bool: bool, false, true
-	../../col/arr: ~, arr, arr-cast, begin-ptr, is-empty, new, size, subscript
+	../../col/arr: ~, arr, is-empty, new, size, subscript
 	../../col/arr-util: rtail
 	../../col/dict: each, in, new
 	../../col/mut-dict: move-to-dict, mut-dict, new, try-remove, set-subscript, subscript
 	../../col/mut-arr: ~=, index-of, move-to-arr, mut-arr, new, pop-n-from-start, size
+	../../col/private/arr-low-level: arr-cast, begin-ptr
 	../../compare: <=, >, >=
 	../../exception: assert, forbid, throw, to-str
 	../../fut: delay, fut, fut-catch, new, subscript, then, then-void

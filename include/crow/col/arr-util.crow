@@ -14,7 +14,8 @@ import
 	../private/exception-low-level: assert, forbid
 	../private/number-low-level: ==, <=>, unsafe-mod, wrap-add
 	../private/range-low-level: ..
-	./arr: ==, ~, arr, arr-from-begin-end, begin-ptr, is-empty, end-ptr, new, noctx-at, size, subscript
+	./arr: ==, ~, arr, is-empty, new, size, subscript
+	./private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr, noctx-at
 
 region basic array operations
 

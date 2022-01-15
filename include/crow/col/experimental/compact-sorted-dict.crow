@@ -17,12 +17,13 @@ import
 	../../private/alloc: mem-copy
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: wrap-add
-	../arr: arr, begin-ptr, is-empty, end-ptr, new, size, subscript
+	../arr: arr, is-empty, new, size, subscript
 	../arr-util: each, filter, fold, map, tail
 	../fix-arr:
 		begin-ptr, cast-immutable, is-empty, fold, fix-arr, set-subscript, size, subscript, tail,
 		uninitialized-fix-arr
 	../sort: sort-by
+	../private/arr-low-level: begin-ptr, end-ptr
 	../private/sort-utils: binary-search-key
 
 compact-sorted-dict<k, v> record

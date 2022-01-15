@@ -20,10 +20,11 @@ import
 	../bits: |
 	../bool: !, &&, ||, bool, new, true
 	../cell: *, cell, new
-	../col/arr: arr, begin-ptr, is-empty, new, size
+	../col/arr: arr, is-empty, new, size
 	../col/fix-arr:
 		begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, to-arr,
 		uninitialized-fix-arr
+	../col/private/arr-low-level: begin-ptr
 	../c-types: u-int
 	../exception: assert, do-if-error, finally, forbid, throw
 	../extra-types: err-t

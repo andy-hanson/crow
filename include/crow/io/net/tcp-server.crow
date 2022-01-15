@@ -13,8 +13,9 @@ import
 	../../bits: |, bits-intersect
 	../../bool: !, ||, bool, false, true
 	../../cell: cell, new
-	../../col/arr: arr, begin-ptr, subscript
+	../../col/arr: arr, subscript
 	../../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
+	../../col/private/arr-low-level: begin-ptr
 	../../compare: !=, <
 	../../c-types: c-int
 	../../exception: assert, message

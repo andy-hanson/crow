@@ -3,7 +3,7 @@ import
 	setjmp: jmp_buf, __jmp_buf_tag, longjmp, new, setjmp
 	../bool: bool
 	../bytes-types: new
-	../col/arr: empty-arr
+	../col/private/arr-low-level: empty-arr
 	../compare: !=
 	../fun-util: subscript
 	../misc: new, void

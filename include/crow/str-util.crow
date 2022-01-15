@@ -1,7 +1,8 @@
 no-std
 import
 	./bool: ||, bool
-	./col/arr: arr, arr-cast, arr-from-begin-end, begin-ptr, is-empty, size, subscript
+	./col/arr: arr, is-empty, size, subscript
+	./col/private/arr-low-level: arr-cast, arr-from-begin-end, begin-ptr
 	./col/arr-util:
 		contains-subseq, each, ends-with, first, last, left, map, middle, reverse, right, rtail,
 		split-by-subseq, starts-with, tail, try-remove-end, try-remove-start,

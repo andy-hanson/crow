@@ -12,12 +12,13 @@ import
 	../../tuple: from, new, pair, to
 	../../private/alloc: alloc-uninitialized
 	../../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
-	../arr: ==, arr, arr-cast, arr-from-begin-end, begin-ptr, end-ptr, is-empty, new, size, unsafe-at
+	../arr: ==, arr, is-empty, new, size
 	../arr-util: each, fold, fold-with-index, map
 	../fix-arr:
 		begin-ptr, cast-immutable, each, end-ptr, fill, fill-fix-arr, fix-arr,
 		fix-arr-from-begin-end, size, temp-as-arr, to-fix-arr, uninitialized-fix-arr, unsafe-at,
 		unsafe-set-at
+	../private/arr-low-level: arr-cast, arr-from-begin-end, begin-ptr, end-ptr, unsafe-at
 
 ###
 Immutable dictionary that is not efficient to update.

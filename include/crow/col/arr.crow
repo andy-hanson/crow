@@ -5,27 +5,58 @@ More functions on arrays are in the `crow/arr-util` module.
 no-std
 import
 	../bool: &&, bool
-	../compare: !=, <, <=, compare, comparison, equal, greater, less
+	../compare: !=, >, >=, compare, comparison, equal, greater, less
 	../fun-util: subscript
-	../ptr: *, ==, <=>, +, -, as-const, const-ptr, mut-ptr, null, ptr-cast, size-of, subscript
+	../misc: new
 	../private/alloc: alloc-uninitialized, copy-data-from
-	../private/bootstrap: hard-assert, new
+	../private/bootstrap: new
+	../private/exception-low-level: throw
 	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
 	../private/range-low-level: low, high, range
+	../ptr: *, ==, +, as-const, const-ptr, mut-ptr
+	./private/arr-low-level: begin-ptr, end-ptr, unsafe-at
 export
-	../private/bootstrap: arr, begin-ptr, size
+	../private/bootstrap: arr, size
 
 # Create an array with the given elements.
 new<a> a[](...a a[]) noctx
 	a
 
-# This exists because noctx functions can't call `new` in general. But they can for empty arryas.
-empty-arr<a> a[]() no-doc noctx trusted
-	(0, null)
+# `true` iff `a.size == 0`.
+is-empty<a> bool(a a[]) noctx
+	a.size == 0
 
-# Pointer to the end of an array.
-end-ptr<a> a*(a a[]) noctx unsafe
-	a.begin-ptr + a.size
+###
+Gets the element at the index.
+Throws if `index >= a.size`.
+###
+subscript<a> a(a a[], index nat64) trusted
+	if index >= a.size
+		"index out of bounds" throw
+	a unsafe-at index
+
+###
+Gets an array elements from 'range.low' (inclusive) to 'range.height' (exclusive).
+This works in O(1) without copying any elements.
+Throws if the slice would exceed the bounds of the arr.
+###
+subscript<a> a[](a a[], range range nat64) trusted
+	if range.high > a.size
+		"slice out of bounds" throw
+	(range.high wrap-sub range.low), a.begin-ptr + range.low
+
+###
+Concatenates two arrays.
+This is O(n).
+
+If you need concatenate many arrays, use a `mut[]` to accumulate elements, then call `move-to-arr`.
+###
+~ <a> a[](a a[], b a[]) trusted
+	res-size = a.size wrap-add b.size
+	res a mut* = res-size alloc-uninitialized
+	res copy-data-from a.begin-ptr, a.size
+	res + a.size copy-data-from b.begin-ptr, b.size
+	res-size, res.as-const
 
 # TODO: arr comparison should be generic
 arr-equal<a> bool(a a[], b a[]) no-doc trusted noctx equal<a>
@@ -72,66 +103,3 @@ arr-compare<a> comparison(a a[], b a[]) no-doc trusted noctx compare<a>
 	a arr-equal b
 <=> comparison(a nat64[], b nat64[]) no-doc noctx
 	a arr-compare b
-
-###
-Arr or the range from begin to end.
-`begin` is inclusive and `end` is exclusive.
-UB if begin > end.
-###
-arr-from-begin-end<a> a[](begin a*, end a*) no-doc unsafe noctx
-	hard-assert: begin <= end
-	end - begin, begin
-
-arr-cast<out, in> out[](a in[]) no-doc unsafe noctx
-	hard-assert: size-of@<out> == size-of@<in>
-	a.size, a.begin-ptr.ptr-cast
-
-# `true` iff `a.size == 0`.
-is-empty<a> bool(a a[]) noctx
-	a.size == 0
-
-noctx-at<a> a(a a[], index nat64) no-doc unsafe noctx
-	hard-assert: index < a.size
-	a unsafe-at index
-
-unsafe-at<a> a(a a[], index nat64) no-doc unsafe noctx
-	a.begin-ptr[index]
-
-# Create an array from a range of pointers.
-subscript<a> a[](a a*, r range nat64) noctx unsafe
-	(r.high wrap-sub r.low), a + r.low
-
-###
-Gets the element at the index.
-Throws if `index >= a.size`.
-###
-subscript<a> a(a a[], index nat64) trusted
-	# TODO: throw instead of hard-assert
-	hard-assert: index < a.size
-	a unsafe-at index
-
-###
-Gets an array elements from 'range.low' (inclusive) to 'range.height' (exclusive).
-This works in O(1) without copying any elements.
-Throws if the slice would exceed the bounds of the arr.
-###
-subscript<a> a[](a a[], range range nat64) trusted
-	# TODO: warn instead of hard-assert
-	hard-assert: range.high <= a.size
-	(range.high wrap-sub range.low), a.begin-ptr + range.low
-
-unsafe-slice<a> a[](a a[], begin nat64, end nat64) no-doc unsafe noctx
-	a.begin-ptr + begin arr-from-begin-end a.begin-ptr + end
-
-###
-Concatenates two arrays.
-This is O(n).
-
-If you need concatenate many arrays, use a `mut[]` to accumulate elements, then call `move-to-arr`.
-###
-~ <a> a[](a a[], b a[]) trusted
-	res-size = a.size wrap-add b.size
-	res a mut* = res-size alloc-uninitialized
-	res copy-data-from a.begin-ptr, a.size
-	res + a.size copy-data-from b.begin-ptr, b.size
-	res-size, res.as-const

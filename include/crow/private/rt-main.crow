@@ -4,8 +4,9 @@ import
 	sys/sysinfo: get_nprocs
 	../bool: false
 	../cell: as-cell
-	../col/arr: arr, empty-arr, subscript
+	../col/arr: arr
 	../col/arr-util: map, tail
+	../col/private/arr-low-level: empty-arr, subscript
 	../fun-util: fun-ptr2, subscript
 	../fut: delay, fut, handle-exceptions, then-void
 	../misc: new, void

@@ -13,11 +13,12 @@ import
 	../../writer: ~=, backup, move-to-str, new, writer
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
-	../arr: ==, arr, begin-ptr, end-ptr, is-empty, new, size
+	../arr: ==, arr, is-empty, new, size
 	../arr-util: each, each-with-index, find-and-get, first, fold, last, rtail
 	../fix-arr:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fix-arr, fix-arr-from-begin-end,
 		set-subscript, size, subscript, uninitialized-fix-arr
+	../private/arr-low-level: begin-ptr, end-ptr
 
 ###
 Immutable list type.

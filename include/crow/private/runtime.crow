@@ -1,6 +1,7 @@
 no-std
 import
-	../col/arr: arr, noctx-at, size, subscript
+	../col/arr: arr, size, subscript
+	../col/private/arr-low-level: noctx-at
 	../compare: >, min
 	../exception: exception, to-str
 	../io/print: print-err, print-err-no-newline

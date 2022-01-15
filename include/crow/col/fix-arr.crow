@@ -14,7 +14,8 @@ import
 	../private/exception-low-level: assert, forbid
 	../private/number-low-level: ==, <=>, nat64, wrap-mul, wrap-sub
 	../private/range-low-level: .., range
-	./arr: arr, arr-from-begin-end, begin-ptr, empty-arr, size, subscript
+	./arr: arr, size, subscript
+	./private/arr-low-level: arr-from-begin-end, begin-ptr, empty-arr, subscript
 	./arr-util: each, each-with-index, exists, find-index, fold, fold-reverse
 
 ###

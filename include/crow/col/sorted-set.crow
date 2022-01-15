@@ -14,7 +14,7 @@ import
 	../writer: ~=, backup, move-to-str, new, writer
 	../private/bootstrap: hard-assert, hard-forbid, hard-unreachable
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul, wrap-sub
-	./arr: arr, arr-from-begin-end, begin-ptr, end-ptr, is-empty, new, size, subscript
+	./arr: arr, is-empty, new, size, subscript
 	./arr-util: each, tail
 	./experimental/index-set:
 		~, count-greater-or-equal, count-range, each, filter-less, in, index-set, is-empty, new,
@@ -23,6 +23,7 @@ import
 		begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, set-subscript, size, subscript,
 		uninitialized-fix-arr
 	./sort: sort
+	./private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr
 	./private/sort-utils: binary-search-exact-index
 
 # This is like `set`, but keeps elements in sorted order.

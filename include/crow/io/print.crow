@@ -2,7 +2,7 @@ no-std
 import
 	stdio: stderr, stdout
 	unistd: write
-	../col/arr: begin-ptr
+	../col/private/arr-low-level: begin-ptr
 	../extra-types: fd-t
 	../misc: new, void
 	../ptr: as-any-const-ptr, size-of

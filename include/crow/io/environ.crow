@@ -1,10 +1,10 @@
 no-std
 import
 	unistd: __environ
-	../col/arr: begin-ptr, arr-from-begin-end
 	../col/dict: dict, each
 	../col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	../col/mut-arr: ~=, move-to-arr, mut-arr, new
+	../col/private/arr-low-level: begin-ptr, arr-from-begin-end
 	../hash: hash-mix
 	../misc: new, void
 	../private/bootstrap: todo

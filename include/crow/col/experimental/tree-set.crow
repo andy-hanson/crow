@@ -15,11 +15,12 @@ import
 	../../writer: ~=, backup, move-to-str, new, writer
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, new, unsafe-div, wrap-add, wrap-sub
-	../arr: arr, begin-ptr, end-ptr, is-empty, size, subscript
+	../arr: arr, is-empty, size, subscript
 	../arr-util: each, fold, insert-at-ptr, last, rtail, tail, try-remove
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
 	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique, set-sort-unique
+	../private/arr-low-level: begin-ptr, end-ptr
 	../private/sort-utils: binary-search-has, binary-search-insert-ptr
 
 ###

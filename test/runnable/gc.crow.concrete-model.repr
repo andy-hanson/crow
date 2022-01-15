@@ -1373,7 +1373,7 @@ program(
 								local-ref(res)
 								cond(
 									call(is-empty, [call(message, [param-ref(a)])])
-									record([arr(0, 4)])
+									record([arr(0, 5)])
 									call(message, [param-ref(a)]))])
 						call(
 							each
@@ -1694,7 +1694,7 @@ program(
 			match-union(
 				call(try-alloc-backtrace-arrs, [])
 				[
-					case(none, call(new, [call(new, [create-arr(arr, [])])]))
+					case(none, call(new, [call(empty-arr, [])]))
 					case(
 						some(arrs)
 						let(
@@ -2002,7 +2002,23 @@ program(
 				param(funs, type(false, mut-ptr))]
 			new-record)
 		fun(noctx, new, type(false, backtrace), none, [param(return-stack, type(false, arr))], new-record)
-		fun(noctx, new, type(false, arr), none, [param(a, type(false, arr))], param-ref(a))
+		fun(noctx, empty-arr, type(false, arr), none, [], call(new, [0, call(null, [])]))
+		fun(
+			noctx
+			new
+			type(false, arr)
+			none
+			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
+			new-record)
+		fun(noctx, null, type(false, const-ptr), none, [], call(as-const, [call(null, [])]))
+		fun(
+			noctx
+			as-const
+			type(false, const-ptr)
+			none
+			[param(a, type(false, mut-ptr))]
+			builtin([type(false, sym)]))
+		fun(noctx, null, type(false, mut-ptr), none, [], builtin([type(false, sym)]))
 		fun(
 			ctx
 			backtrace-and-get-n-code-ptrs
@@ -2435,25 +2451,11 @@ program(
 					call(+, [param-ref(a), call(low, [param-ref(r)])])]))
 		fun(
 			noctx
-			new
-			type(false, arr)
-			none
-			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
-			new-record)
-		fun(
-			noctx
 			+
 			type(false, const-ptr)
 			none
 			[param(a, type(false, const-ptr)), param(offset, type(false, nat64))]
 			call(as-const, [call(+, [call(as-mut, [param-ref(a)]), param-ref(offset)])]))
-		fun(
-			noctx
-			as-const
-			type(false, const-ptr)
-			none
-			[param(a, type(false, mut-ptr))]
-			builtin([type(false, sym)]))
 		fun(noctx, as-mut, type(false, mut-ptr), none, [param(a, type(false, const-ptr))], builtin([type(false, sym)]))
 		fun(
 			noctx
@@ -2595,7 +2597,10 @@ program(
 			none
 			[param(a, type(false, arr)), param(range, type(false, range))]
 			seq(
-				call(hard-assert, [call(<=, [call(high, [param-ref(range)]), call(size, [param-ref(a)])])])
+				cond(
+					call(>, [call(high, [param-ref(range)]), call(size, [param-ref(a)])])
+					call(throw, [record([arr(0, 3)])])
+					call(new, []))
 				call(
 					new
 					[
@@ -2677,7 +2682,7 @@ program(
 			type(false, void)
 			none
 			[param(condition, type(false, bool))]
-			cond(param-ref(condition), call(throw, [record([arr(0, 3)])]), call(new, [])))
+			cond(param-ref(condition), call(throw, [record([arr(0, 4)])]), call(new, [])))
 		fun(noctx, new, type(false, nat64), none, [], 0)
 		fun(
 			noctx
@@ -2928,7 +2933,7 @@ program(
 			some(param("<<closure>>", type(true, lambda(to-str, 0))))
 			[param(x, type(false, sym))]
 			seq(
-				call(~=, [get-field(param-ref("<<closure>>"), res), record([arr(0, 5)])])
+				call(~=, [get-field(param-ref("<<closure>>"), res), record([arr(0, 6)])])
 				call(~=, [get-field(param-ref("<<closure>>"), res), call(to-c-str, [param-ref(x)])])))
 		fun(
 			ctx
@@ -2998,7 +3003,7 @@ program(
 					call(
 						~
 						[
-							call(~, [call(to-str, [call(level, [param-ref(a)])]), record([arr(0, 9)])])
+							call(~, [call(to-str, [call(level, [param-ref(a)])]), record([arr(0, 10)])])
 							call(message, [param-ref(a)])])]))
 		fun(
 			noctx
@@ -3052,7 +3057,7 @@ program(
 			type(false, str)
 			none
 			[param(a, type(false, log-level))]
-			match-enum(param-ref(a), [record([arr(0, 6)]), record([arr(0, 7)]), record([arr(0, 8)])]))
+			match-enum(param-ref(a), [record([arr(0, 7)]), record([arr(0, 8)]), record([arr(0, 9)])]))
 		fun(noctx, level, type(false, log-level), none, [param(a, type(true, logged))], field-get(0))
 		fun(noctx, message, type(false, str), none, [param(a, type(true, logged))], field-get(1))
 		fun(
@@ -3382,9 +3387,6 @@ program(
 			none
 			[param(jmp-buf-ptr, type(false, mut-ptr)), param(thrown-exception, type(false, exception))]
 			new-record)
-		fun(noctx, empty-arr, type(false, arr), none, [], call(new, [0, call(null, [])]))
-		fun(noctx, null, type(false, const-ptr), none, [], call(as-const, [call(null, [])]))
-		fun(noctx, null, type(false, mut-ptr), none, [], builtin([type(false, sym)]))
 		fun(noctx, log-ctx, type(false, log-ctx), none, [], call(new, [call(zeroed, [])]))
 		fun(noctx, new, type(false, log-ctx), none, [param(handler, type(false, fun1))], new-record)
 		fun(noctx, zeroed, type(false, fun1), none, [], builtin([type(false, fun1)]))
@@ -3978,7 +3980,10 @@ program(
 			none
 			[param(a, type(false, arr)), param(index, type(false, nat64))]
 			seq(
-				call(hard-assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
+				cond(
+					call(>=, [param-ref(index), call(size, [param-ref(a)])])
+					call(throw, [record([arr(0, 11)])])
+					call(new, []))
 				call(unsafe-at, [param-ref(a), param-ref(index)])))
 		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
 		fun(
@@ -4683,7 +4688,10 @@ program(
 			none
 			[param(a, type(false, arr)), param(index, type(false, nat64))]
 			seq(
-				call(hard-assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
+				cond(
+					call(>=, [param-ref(index), call(size, [param-ref(a)])])
+					call(throw, [record([arr(0, 11)])])
+					call(new, []))
 				call(unsafe-at, [param-ref(a), param-ref(index)])))
 		fun(
 			noctx
@@ -4770,7 +4778,10 @@ program(
 			none
 			[param(a, type(false, arr)), param(range, type(false, range))]
 			seq(
-				call(hard-assert, [call(<=, [call(high, [param-ref(range)]), call(size, [param-ref(a)])])])
+				cond(
+					call(>, [call(high, [param-ref(range)]), call(size, [param-ref(a)])])
+					call(throw, [record([arr(0, 3)])])
+					call(new, []))
 				call(
 					new
 					[
@@ -6336,7 +6347,7 @@ program(
 																		[
 																			call(
 																				with-str
-																				[call(interp, []), record([arr(0, 30)])])
+																				[call(interp, []), record([arr(0, 32)])])
 																			call(get-stats, [local-ref(gc)])])])]))
 												call(
 													print
@@ -6349,7 +6360,7 @@ program(
 																	[
 																		call(
 																			with-str
-																			[call(interp, []), record([arr(0, 31)])])
+																			[call(interp, []), record([arr(0, 33)])])
 																		call(gc-count, [local-ref(gc)])])])]))
 											call(
 												print
@@ -6362,7 +6373,7 @@ program(
 																[
 																	call(
 																		with-str
-																		[call(interp, []), record([arr(0, 35)])])
+																		[call(interp, []), record([arr(0, 37)])])
 																	local-ref(a)])])]))
 										call(
 											print
@@ -6373,7 +6384,7 @@ program(
 														call(
 															with-value
 															[
-																call(with-str, [call(interp, []), record([arr(0, 36)])])
+																call(with-str, [call(interp, []), record([arr(0, 38)])])
 																call(get-stats, [local-ref(gc)])])])]))
 									call(force-needs-gc, [local-ref(gc)]))
 								call(
@@ -6501,11 +6512,11 @@ program(
 													call(
 														with-value
 														[
-															call(with-str, [call(interp, []), record([arr(0, 27)])])
+															call(with-str, [call(interp, []), record([arr(0, 29)])])
 															call(cur-word, [param-ref(a)])])
-													record([arr(0, 28)])])
+													record([arr(0, 30)])])
 											call(words-used, [param-ref(a)])])
-									record([arr(0, 29)])])
+									record([arr(0, 31)])])
 							call(words-free, [param-ref(a)])])]))
 		fun(ctx, to-str, type(false, str), none, [param(a, type(false, nat64))], call(to-base, [param-ref(a), 10]))
 		fun(
@@ -6530,53 +6541,53 @@ program(
 			[param(a, type(false, nat64))]
 			cond(
 				call(==, [param-ref(a), 0])
-				record([arr(0, 10)])
+				record([arr(0, 12)])
 				cond(
 					call(==, [param-ref(a), 1])
-					record([arr(0, 11)])
+					record([arr(0, 13)])
 					cond(
 						call(==, [param-ref(a), 2])
-						record([arr(0, 12)])
+						record([arr(0, 14)])
 						cond(
 							call(==, [param-ref(a), 3])
-							record([arr(0, 13)])
+							record([arr(0, 15)])
 							cond(
 								call(==, [param-ref(a), 4])
-								record([arr(0, 14)])
+								record([arr(0, 16)])
 								cond(
 									call(==, [param-ref(a), 5])
-									record([arr(0, 15)])
+									record([arr(0, 17)])
 									cond(
 										call(==, [param-ref(a), 6])
-										record([arr(0, 16)])
+										record([arr(0, 18)])
 										cond(
 											call(==, [param-ref(a), 7])
-											record([arr(0, 17)])
+											record([arr(0, 19)])
 											cond(
 												call(==, [param-ref(a), 8])
-												record([arr(0, 18)])
+												record([arr(0, 20)])
 												cond(
 													call(==, [param-ref(a), 9])
-													record([arr(0, 19)])
+													record([arr(0, 21)])
 													cond(
 														call(==, [param-ref(a), 10])
-														record([arr(0, 20)])
+														record([arr(0, 22)])
 														cond(
 															call(==, [param-ref(a), 11])
-															record([arr(0, 21)])
+															record([arr(0, 23)])
 															cond(
 																call(==, [param-ref(a), 12])
-																record([arr(0, 22)])
+																record([arr(0, 24)])
 																cond(
 																	call(==, [param-ref(a), 13])
-																	record([arr(0, 23)])
+																	record([arr(0, 25)])
 																	cond(
 																		call(==, [param-ref(a), 14])
-																		record([arr(0, 24)])
+																		record([arr(0, 26)])
 																		cond(
 																			call(==, [param-ref(a), 15])
-																			record([arr(0, 25)])
-																			record([arr(0, 26)]))))))))))))))))))
+																			record([arr(0, 27)])
+																			record([arr(0, 28)]))))))))))))))))))
 		fun(
 			ctx
 			%
@@ -6698,11 +6709,11 @@ program(
 													call(
 														with-value
 														[
-															call(with-str, [call(interp, []), record([arr(0, 32)])])
+															call(with-str, [call(interp, []), record([arr(0, 34)])])
 															call(a, [param-ref(a)])])
-													record([arr(0, 33)])])
+													record([arr(0, 35)])])
 											call(b, [param-ref(a)])])
-									record([arr(0, 34)])])
+									record([arr(0, 36)])])
 							call(c, [param-ref(a)])])]))
 		fun(noctx, a, type(false, nat64), none, [param(a, type(true, r))], field-get(0))
 		fun(noctx, b, type(false, nat64), none, [param(a, type(true, r))], field-get(1))
@@ -6740,7 +6751,7 @@ program(
 					seq(
 						seq(
 							seq(
-								call(print, [record([arr(0, 37)])])
+								call(print, [record([arr(0, 39)])])
 								call(
 									print
 									[
@@ -6750,7 +6761,7 @@ program(
 												call(
 													with-value
 													[
-														call(with-str, [call(interp, []), record([arr(0, 30)])])
+														call(with-str, [call(interp, []), record([arr(0, 32)])])
 														call(get-stats, [get-field(param-ref("<<closure>>"), gc)])])])]))
 							call(
 								print
@@ -6761,7 +6772,7 @@ program(
 											call(
 												with-value
 												[
-													call(with-str, [call(interp, []), record([arr(0, 31)])])
+													call(with-str, [call(interp, []), record([arr(0, 33)])])
 													call(gc-count, [get-field(param-ref("<<closure>>"), gc)])])])]))
 						call(
 							print
@@ -6772,7 +6783,7 @@ program(
 										call(
 											with-value
 											[
-												call(with-str, [call(interp, []), record([arr(0, 35)])])
+												call(with-str, [call(interp, []), record([arr(0, 37)])])
 												get-field(param-ref("<<closure>>"), a)])])]))
 					call(
 						print
@@ -6783,7 +6794,7 @@ program(
 									call(
 										with-value
 										[
-											call(with-str, [call(interp, []), record([arr(0, 36)])])
+											call(with-str, [call(interp, []), record([arr(0, 38)])])
 											call(get-stats, [get-field(param-ref("<<closure>>"), gc)])])])]))
 				call(new, [])))
 		fun(noctx, static-syms, type(false, arr), none, [], builtin([]))]

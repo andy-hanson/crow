@@ -1,8 +1,8 @@
 no-std
 import
 	./bool: !, &&, ||, bool, false, new, true
-	./col/arr: arr-from-begin-end, begin-ptr, end-ptr
 	./col/mut-arr: ~=, move-to-arr, mut-arr, new
+	./col/private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr
 	./compare: <=, >=
 	./fun-util: subscript
 	./misc: drop, new, void

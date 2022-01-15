@@ -39,19 +39,19 @@ Pointer to the first element.
 Since `mut-arr` changes its underlying data occasionally,
 it's UB if this is used after the size of `a` changes.
 ###
-begin-ptr<a> a mut*(a a mut[]) noctx unsafe
+begin-ptr<a> a mut*(a a mut[]) no-doc noctx unsafe
 	a.backing begin-ptr
 
-end-ptr<a> a mut*(a a mut[]) noctx unsafe
+end-ptr<a> a mut*(a a mut[]) no-doc noctx unsafe
 	a.begin-ptr + a.size
 
-is-at-capacity<a> bool(a a mut[]) noctx unsafe
+is-at-capacity<a> bool(a a mut[]) no-doc noctx unsafe
 	a.capacity == a.size
 
-capacity<a> nat64(a a mut[]) noctx unsafe
+capacity<a> nat64(a a mut[]) no-doc noctx unsafe
 	a.backing size
 
-mut-arr-by-val<a> by-val a mut[]() noctx trusted
+mut-arr-by-val<a> by-val a mut[]() no-doc noctx trusted
 	empty-fix-arr, 0
 
 mut-arr-by-val-with-capacity-from-unmanaged-memory<a> by-val<a mut[]>(capacity nat64) no-doc noctx unsafe

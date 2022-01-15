@@ -10,10 +10,11 @@ import
 	../bytes-types: new
 	../bool: !, ||, bool, false, new, to-nat64, true
 	../cell: *, cell, new
-	../col/arr: arr, begin-ptr, new, subscript
+	../col/arr: arr, new, subscript
 	../col/arr-util: each, map
 	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
 	../col/mut-arr: ~=, move-to-arr, mut-arr, new
+	../col/private/arr-low-level: begin-ptr
 	../col/sort: sort
 	../compare: <
 	../exception: assert, forbid, throw

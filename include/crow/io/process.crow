@@ -15,10 +15,11 @@ import
 	../bool: &&, ||, bool, to-nat64
 	../bytes-types: new
 	../cell: *, cell, new
-	../col/arr: arr, begin-ptr
+	../col/arr: arr
 	../col/arr-util: each, fold
 	../col/fix-arr: begin-ptr, fix-arr, new, ref-of-val-at, size
 	../col/mut-arr: ~=, begin-ptr, end-ptr, move-to-arr, mut-arr, new, size, unsafe-set-size
+	../col/private/arr-low-level: begin-ptr
 	../compare: <=
 	../exception: assert, throw
 	../extra-types: fd-t

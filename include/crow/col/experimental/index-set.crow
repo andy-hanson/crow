@@ -18,9 +18,10 @@ import
 	../../private/bootstrap: hard-assert, hard-unreachable
 	../../private/number-low-level:
 		==, <=>, max-nat64, nat64, new, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
-	../arr: ==, arr, begin-ptr, end-ptr, new, size, subscript
+	../arr: ==, arr, new, size, subscript
 	../arr-util: fold, fold-with-index
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
+	../private/arr-low-level: begin-ptr, end-ptr, subscript
 
 index-set record
 	by-ref
