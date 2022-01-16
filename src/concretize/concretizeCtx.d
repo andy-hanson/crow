@@ -496,7 +496,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(
 	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
 		immutable ConcreteFunSource(key.inst),
 		returnType,
-		noCtx(decl.deref()) ? NeedsCtx.no : NeedsCtx.yes,
+		getNeedsCtx(decl.deref(), key.specImpls),
 		none!(Ptr!ConcreteParam),
 		params));
 	immutable ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
@@ -504,6 +504,12 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(
 		decl.deref().body_);
 	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
 	return castImmutable(res);
+}
+
+immutable(NeedsCtx) getNeedsCtx(ref immutable FunDecl decl, immutable Ptr!ConcreteFun[] specImpls) {
+	immutable bool res = !noCtx(decl) || exists(specImpls, (ref immutable Ptr!ConcreteFun impl) =>
+		impl.deref().needsCtx == NeedsCtx.yes);
+	return res ? NeedsCtx.yes : NeedsCtx.no;
 }
 
 void addConcreteFun(ref Alloc alloc, ref ConcretizeCtx ctx, immutable Ptr!ConcreteFun fun) {

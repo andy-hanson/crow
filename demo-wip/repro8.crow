@@ -1,5 +1,5 @@
 main fut nat(_ str[]) summon trusted
-	a = none r
+	a r = (),
 	drop: a
 	()
 

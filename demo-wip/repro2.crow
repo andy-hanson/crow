@@ -1,4 +1,0 @@
-# Parser crashes!
-
-f a<b><c>()
-	void
