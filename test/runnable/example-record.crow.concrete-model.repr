@@ -6480,26 +6480,21 @@ program(
 					[
 						record([arr(0, 4)])
 						cond(
-							call(
-								||
-								[
-									call(
-										&&
-										[call(==, [param-ref(a), -1]), call(==, [param-ref(b), call(min-int64, [])])])
-									call(
-										&&
-										[call(==, [param-ref(a), call(min-int64, [])]), call(==, [param-ref(b), -1])])])
-							call(true, [])
+							call(==, [param-ref(a), -1])
+							call(==, [param-ref(b), call(min-int64, [])])
 							cond(
-								call(==, [param-ref(b), 0])
-								call(false, [])
+								call(==, [param-ref(b), -1])
+								call(==, [param-ref(a), call(min-int64, [])])
 								cond(
-									call(>, [param-ref(a), call(/, [call(max-int64, []), param-ref(b)])])
-									call(true, [])
+									call(==, [param-ref(b), 0])
+									call(false, [])
 									cond(
-										call(<, [param-ref(a), call(/, [call(min-int64, []), param-ref(b)])])
+										call(>, [param-ref(a), call(/, [call(max-int64, []), param-ref(b)])])
 										call(true, [])
-										call(new, [])))))])
+										cond(
+											call(<, [param-ref(a), call(/, [call(min-int64, []), param-ref(b)])])
+											call(true, [])
+											call(new, []))))))])
 				call(unsafe-mul, [param-ref(a), param-ref(b)])))
 		fun(noctx, min-int64, type(false, int64), none, [], -9223372036854775808)
 		fun(
