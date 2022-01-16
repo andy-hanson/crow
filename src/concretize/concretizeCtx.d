@@ -26,7 +26,6 @@ import model.concreteModel :
 	ConcreteParamSource,
 	ConcreteType,
 	concreteTypeEqual,
-	concreteType_fromStruct,
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteStructInfo,
@@ -103,7 +102,7 @@ import util.col.mutDict :
 	ValueAndDidAdd;
 import util.col.mutSet : addToMutSetOkIfPresent, MutSymSet;
 import util.hash : Hasher;
-import util.late : Late, lateIsSet, lateSet, lateSetMaybeOverwrite, lateSetOverwrite, lazilySet;
+import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, hashPtr, Ptr, ptrEquals;
@@ -220,7 +219,9 @@ immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunBodyInputs a) {
 private struct DeferredRecordBody {
 	Ptr!ConcreteStruct struct_;
 	immutable bool packed;
+	immutable bool isSelfMutable;
 	immutable ConcreteField[] fields;
+	immutable FieldsType fieldsType;
 }
 
 private struct DeferredUnionBody {
@@ -383,7 +384,11 @@ immutable(ConcreteType) getConcreteType_forStructInst(
 			});
 		if (res.didAdd)
 			initializeConcreteStruct(alloc, ctx, typeArgs, i.deref(), castMutable(res.value), typeArgsScope);
-		return concreteType_fromStruct(res.value);
+		if (!lateIsSet(res.value.deref().defaultIsPointer_))
+			// The only way 'defaultIsPointer' would not be set is if we are still computing the size of 's'.
+			// In that case, it's a recursive record, so it should be by-ref.
+			lateSet!(immutable bool)(castMutable(res.value).deref().defaultIsPointer_, true);
+		return immutable ConcreteType(lateGet(res.value.deref().defaultIsPointer_), res.value);
 	}
 }
 
@@ -435,34 +440,38 @@ immutable(ConcreteType) concreteTypeFromClosure(
 			});
 		Ptr!ConcreteStruct cs = allocateMut(alloc, ConcreteStruct(purity, source));
 		lateSet(cs.deref().info_, getConcreteStructInfoForFields(closureFields));
-		setConcreteStructRecordSize(
-			alloc, ctx, cs, false, closureFields, false, ForcedByValOrRefOrNone.none, FieldsType.closure);
+		setConcreteStructRecordSizeOrDefer(
+			alloc, ctx, cs, false, closureFields, false, FieldsType.closure);
 		add(alloc, ctx.allConcreteStructs, castImmutable(cs));
 		// TODO: consider passing closure by value
 		return immutable ConcreteType(true, castImmutable(cs));
 	}
 }
 
-private void setConcreteStructRecordSize(
+private void setConcreteStructRecordSizeOrDefer(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	Ptr!ConcreteStruct cs,
 	immutable bool packed,
 	immutable ConcreteField[] fields,
 	immutable bool isSelfMutable,
-	immutable ForcedByValOrRefOrNone forcedByValOrRef,
 	immutable FieldsType fieldsType,
 ) {
-	if (canGetRecordSize(fields)) {
-		immutable TypeSizeAndFieldOffsets size = recordSize(alloc, packed, fields);
-		lateSetMaybeOverwrite(
-			cs.deref().defaultIsPointer_,
-			getDefaultIsPointerForFields(forcedByValOrRef, size.typeSize, isSelfMutable, fieldsType));
-		lateSet(cs.deref().typeSize_, size.typeSize);
-		lateSet(cs.deref().fieldOffsets_, size.fieldOffsets);
-	} else {
-		push(alloc, ctx.deferredRecords, DeferredRecordBody(cs, packed, fields));
-	}
+	DeferredRecordBody deferred = DeferredRecordBody(cs, packed, isSelfMutable, fields, fieldsType);
+	if (canGetRecordSize(fields))
+		setConcreteStructRecordSize(alloc, deferred);
+	else
+		push(alloc, ctx.deferredRecords, deferred);
+}
+
+private void setConcreteStructRecordSize(ref Alloc alloc, DeferredRecordBody a) {
+	immutable TypeSizeAndFieldOffsets size = recordSize(alloc, a.packed, a.fields);
+	if (!lateIsSet(a.struct_.deref().defaultIsPointer_))
+		lateSet(
+			a.struct_.deref().defaultIsPointer_,
+			getDefaultIsPointerForFields(size.typeSize, a.isSelfMutable, a.fieldsType));
+	lateSet(a.struct_.deref().typeSize_, size.typeSize);
+	lateSet(a.struct_.deref().fieldOffsets_, size.fieldOffsets);
 }
 
 //TODO: do eagerly?
@@ -558,28 +567,19 @@ immutable(TypeSize) unionSize(ref immutable Opt!ConcreteType[] members) {
 }
 
 immutable(bool) getDefaultIsPointerForFields(
-	immutable ForcedByValOrRefOrNone forcedByValOrRef,
 	immutable TypeSize typeSize,
 	immutable bool isSelfMutable,
 	immutable FieldsType type,
 ) {
-	final switch (forcedByValOrRef) {
-		case ForcedByValOrRefOrNone.none:
-			immutable size_t maxSize = () {
-				final switch (type) {
-					case FieldsType.closure:
-						return 8;
-					case FieldsType.record:
-						return 8 * 2;
-				}
-			}();
-			return isSelfMutable || typeSize.size > maxSize;
-		case ForcedByValOrRefOrNone.byVal:
-			verify(!isSelfMutable);
-			return false;
-		case ForcedByValOrRefOrNone.byRef:
-			return true;
-	}
+	immutable size_t maxSize = () {
+		final switch (type) {
+			case FieldsType.closure:
+				return 8;
+			case FieldsType.record:
+				return 8 * 2;
+		}
+	}();
+	return isSelfMutable || typeSize.size > maxSize;
 }
 
 enum FieldsType { record, closure }
@@ -666,11 +666,17 @@ void initializeConcreteStruct(
 			lateSet(res.deref().typeSize_, getBuiltinStructSize(BuiltinStructKind.ptrMut));
 		},
 		(ref immutable StructBody.Record r) {
-			// Initially make this a by-ref type, so we don't recurse infinitely when computing size
-			// TODO: is this a bug? We compute the size based on assuming it's a pointer,
-			// then make it not be a pointer and that would change the size?
-			// A record forced by-val should be marked early, in case it needs a 'ptr' to itself
-			lateSet(res.deref().defaultIsPointer_, r.flags.forcedByValOrRef != ForcedByValOrRefOrNone.byVal);
+			// don't set 'defaultIsPointer' until the end, unless explicit
+			final switch (r.flags.forcedByValOrRef) {
+				case ForcedByValOrRefOrNone.none:
+					break;
+				case ForcedByValOrRefOrNone.byVal:
+					lateSet(res.deref().defaultIsPointer_, false);
+					break;
+				case ForcedByValOrRefOrNone.byRef:
+					lateSet(res.deref().defaultIsPointer_, true);
+					break;
+			}
 
 			immutable ConcreteField[] fields =
 				mapPtrsWithIndex!ConcreteField(alloc, r.fields, (immutable size_t index, immutable Ptr!RecordField f) =>
@@ -682,8 +688,10 @@ void initializeConcreteStruct(
 			immutable bool packed = r.flags.packed;
 			immutable ConcreteStructInfo info = getConcreteStructInfoForFields(fields);
 			lateSet(res.deref().info_, info);
-			setConcreteStructRecordSize(
-				alloc, ctx, res, packed, fields, info.isSelfMutable, r.flags.forcedByValOrRef, FieldsType.record);
+			if (r.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal)
+				verify(!info.isSelfMutable);
+			setConcreteStructRecordSizeOrDefer(
+				alloc, ctx, res, packed, fields, info.isSelfMutable, FieldsType.record);
 		},
 		(ref immutable StructBody.Union u) {
 			lateSet(res.deref().defaultIsPointer_, false);
@@ -767,11 +775,7 @@ public void deferredFillRecordAndUnionBodies(ref Alloc alloc, ref ConcretizeCtx 
 		filterUnordered!DeferredRecordBody(ctx.deferredRecords, (ref DeferredRecordBody deferred) {
 			immutable bool canGet = canGetRecordSize(deferred.fields);
 			if (canGet) {
-				immutable TypeSizeAndFieldOffsets info = recordSize(alloc, deferred.packed, deferred.fields);
-				// NOTE: In the deferred case we don't compute 'defaultIsPointer_';
-				// it's already been assumed to be a pointer so we can't change it.
-				lateSet(deferred.struct_.deref().typeSize_, info.typeSize);
-				lateSet(deferred.struct_.deref().fieldOffsets_, info.fieldOffsets);
+				setConcreteStructRecordSize(alloc, deferred);
 				couldGetSomething = true;
 			}
 			return !canGet;

@@ -5,17 +5,20 @@ Module for low-level networking.
 no-std
 import
 	bits/socket_type: SOCK_STREAM
+	crow/misc: new, void
 	netdb:
-		addrinfo, ai_addr, ai_addrlen, ai_family, ai_next, ai-passive, ai_protocol, ai_socktype,
-		freeaddrinfo, getaddrinfo, new
+		==, addrinfo, ai_addr, ai_addrlen, ai_family, ai_next, ai-passive, ai_protocol,
+		ai_socktype, EAI_NONE, enum-members, freeaddrinfo, getaddrinfo, getaddrinfo_error, new
 	sys/socket: AF_INET, AF_UNSPEC, bind, connect, socket
 	unistd: close
 	../../cell: *, cell, new
-	../../exception: assert
+	../../compare: !=
+	../../enum-util: enum-to-str
+	../../exception: assert, throw
 	../../extra-types: fd-t
 	../../number: ==, nat16, to-int32
 	../../opt: !, new, opt
-	../../ptr: ==, *, any-const-ptr, as-const, as-ref, const-ptr, mut-ptr, null, ptr-to
+	../../ptr: ==, *, any-const-ptr, as-const, as-ref, const-ptr, mut-ptr, null, ptr-to, size-of
 	../../str: str
 	../../str-conv: finish, interp, to-str, with-str, with-value
 	../../str-util: to-c-str
@@ -36,7 +39,7 @@ connect-to-uri fd-t(u uri) trusted summon
 	# TODO: null.as-ref is evil
 	hints addrinfo = 0, AF_UNSPEC.to-int32, SOCK_STREAM, 0, 0, null::any-const-ptr.as-ref, null, null
 	result cell addrinfo mut* = null,
-	check-posix-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
+	check-getaddrinfo-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
 	op-sock = result->as-const find-and-connect-working-socket
 	*result freeaddrinfo
 	# TODO: handle failure
@@ -66,8 +69,9 @@ connect-to-uri fd-t(u uri) trusted summon
 bind-to-port fd-t(port str) unsafe summon
 	# TODO: null.as-ref is evil
 	hints addrinfo = ai-passive, AF_INET, SOCK_STREAM, 0, 0, null::any-const-ptr.as-ref, null, null
+	print: "addrinfo size: {size-of@<addrinfo>}"
 	result cell addrinfo mut* = null,
-	null getaddrinfo port.to-c-str, hints.ptr-to, result check-posix-error
+	check-getaddrinfo-error: null getaddrinfo port.to-c-str, hints.ptr-to, result
 	op-sock = result->as-const find-and-bind-working-socket
 	*result freeaddrinfo
 	if res ?= op-sock
@@ -89,3 +93,7 @@ bind-to-port fd-t(port str) unsafe summon
 			else
 				check-posix-error: listen-fd close
 				a.ai_next find-and-bind-working-socket
+
+.check-getaddrinfo-error void(err getaddrinfo_error)
+	if err != EAI_NONE
+		err.enum-to-str throw

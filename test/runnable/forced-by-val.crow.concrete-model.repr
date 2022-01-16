@@ -445,11 +445,9 @@ program(
 			mut: true
 			ptr: true
 			body: record([field(ignore, const, type(false, void)), field(inner-value, mutable, type(false, mut-ptr))]))
-		struct(
-			name: rect
-			body: record([field(width, const, type(false, float64)), field(height, const, type(false, float64))]))
-		struct(name: float64, body: builtin(float-64, []))
-		struct(name: interp, body: record([field(inner, const, type(true, mut-arr))]))]
+		struct(name: interp, body: record([field(inner, const, type(true, mut-arr))]))
+		struct(name: t, body: record([field(x, const, type(false, const-ptr)), field(y, const, type(false, nat64))]))
+		struct(name: const-ptr, body: builtin(ptr-const, [type(false, t)]))]
 	[
 		fun(
 			noctx
@@ -6314,251 +6312,15 @@ program(
 			type(true, fut)
 			none
 			[param("_", type(false, arr))]
-			let(
-				r
-				call(new, [1.5, 2.5])
-				seq(call(print, [call(to-str, [call(area, [local-ref(r)])])]), call(new, []))))
+			seq(call(print, [call(finish, [call(with-value, [call(interp, []), call(size-of, [])])])]), call(new, [])))
 		fun(
 			ctx
-			new
-			type(false, rect)
-			none
-			[param(width, type(false, float64)), param(height, type(false, float64))]
-			new-record)
-		fun(
-			ctx
-			to-str
+			finish
 			type(false, str)
 			none
-			[param(a, type(false, float64))]
-			let(
-				pos
-				call(to-str-positive, [call(abs, [param-ref(a)])])
-				cond(
-					call(<, [param-ref(a), 0.0])
-					call(
-						finish
-						[call(with-value, [call(with-str, [call(interp, []), record([arr(0, 33)])]), local-ref(pos)])])
-					local-ref(pos))))
-		fun(
-			ctx
-			to-str-positive
-			type(false, str)
-			none
-			[param(a, type(false, float64))]
-			let(
-				times-100
-				call(truncate-to-int64, [call(*, [param-ref(a), 100.0])])
-				let(
-					hundredths
-					call(%, [local-ref(times-100), 100])
-					let(
-						tenths
-						call(/, [local-ref(hundredths), 10])
-						let(
-							whole-part
-							call(to-str, [call(/, [local-ref(times-100), 100])])
-							cond(
-								call(==, [local-ref(hundredths), 0])
-								local-ref(whole-part)
-								cond(
-									call(is-multiple-of, [local-ref(hundredths), 10])
-									call(
-										finish
-										[
-											call(
-												with-value
-												[
-													call(
-														with-str
-														[
-															call(with-value, [call(interp, []), local-ref(whole-part)])
-															record([arr(0, 34)])])
-													local-ref(tenths)])])
-									call(
-										finish
-										[
-											call(
-												with-value
-												[
-													call(
-														with-str
-														[
-															call(with-value, [call(interp, []), local-ref(whole-part)])
-															record([arr(0, 34)])])
-													local-ref(hundredths)])]))))))))
-		fun(noctx, truncate-to-int64, type(false, int64), none, [param(a, type(false, float64))], builtin([]))
-		fun(
-			noctx
-			*
-			type(false, float64)
-			none
-			[param(a, type(false, float64)), param(b, type(false, float64))]
-			builtin([]))
-		fun(
-			ctx
-			%
-			type(false, nat64)
-			none
-			[param(a, type(false, int64)), param(b, type(false, nat64))]
-			seq(
-				call(forbid, [record([arr(0, 14)]), call(==, [param-ref(b), 0])])
-				cond(
-					call(<, [param-ref(a), 0])
-					let(
-						abs-mod
-						call(%, [call(abs, [param-ref(a)]), param-ref(b)])
-						cond(
-							call(!=, [local-ref(abs-mod), 0])
-							call(-, [param-ref(b), local-ref(abs-mod)])
-							call(new, [])))
-					call(%, [call(to-nat64, [param-ref(a)]), param-ref(b)]))))
-		fun(
-			noctx
-			<=>
-			type(false, comparison)
-			none
-			[param(a, type(false, int64)), param(b, type(false, int64))]
-			call(cmp, [param-ref(a), param-ref(b)]))
-		fun(
-			noctx
-			is-less
-			type(false, bool)
-			none
-			[param(a, type(false, int64)), param(b, type(false, int64))]
-			builtin([]))
-		fun(
-			noctx
-			cmp
-			type(false, comparison)
-			none
-			[param(a, type(false, int64)), param(b, type(false, int64))]
-			cond(
-				call(is-less, [param-ref(a), param-ref(b)])
-				call(less, [])
-				cond(call(==, [param-ref(a), param-ref(b)]), call(equal, []), call(greater, []))))
-		fun(
-			noctx
-			<
-			type(false, bool)
-			none
-			[param(a, type(false, int64)), param(b, type(false, int64))]
-			match-enum(call(<=>, [param-ref(a), param-ref(b)]), [call(true, []), call(false, []), call(false, [])]))
-		fun(
-			ctx
-			%
-			type(false, nat64)
-			none
-			[param(a, type(false, nat64)), param(b, type(false, nat64))]
-			seq(
-				call(forbid, [record([arr(0, 14)]), call(==, [param-ref(b), 0])])
-				call(unsafe-mod, [param-ref(a), param-ref(b)])))
-		fun(
-			ctx
-			abs
-			type(false, nat64)
-			none
-			[param(a, type(false, int64))]
-			call(to-nat64, [cond(call(<, [param-ref(a), 0]), call(-, [param-ref(a)]), param-ref(a))]))
-		fun(
-			ctx
-			to-nat64
-			type(false, nat64)
-			none
-			[param(a, type(false, int64))]
-			seq(call(forbid, [record([arr(0, 4)]), call(<, [param-ref(a), 0])]), call(unsafe-to-nat64, [param-ref(a)])))
-		fun(ctx, -, type(false, int64), none, [param(a, type(false, int64))], call(*, [param-ref(a), -1]))
-		fun(
-			ctx
-			*
-			type(false, int64)
-			none
-			[param(a, type(false, int64)), param(b, type(false, int64))]
-			seq(
-				call(
-					forbid
-					[
-						record([arr(0, 4)])
-						cond(
-							call(
-								||
-								[
-									call(
-										&&
-										[call(==, [param-ref(a), -1]), call(==, [param-ref(b), call(min-int64, [])])])
-									call(
-										&&
-										[call(==, [param-ref(a), call(min-int64, [])]), call(==, [param-ref(b), -1])])])
-							call(true, [])
-							cond(
-								call(==, [param-ref(b), 0])
-								call(false, [])
-								cond(
-									call(>, [param-ref(a), call(/, [call(max-int64, []), param-ref(b)])])
-									call(true, [])
-									cond(
-										call(<, [param-ref(a), call(/, [call(min-int64, []), param-ref(b)])])
-										call(true, [])
-										call(new, [])))))])
-				call(unsafe-mul, [param-ref(a), param-ref(b)])))
-		fun(noctx, min-int64, type(false, int64), none, [], -9223372036854775808)
-		fun(
-			noctx
-			>
-			type(false, bool)
-			none
-			[param(a, type(false, int64)), param(b, type(false, int64))]
-			call(<, [param-ref(b), param-ref(a)]))
-		fun(
-			ctx
-			/
-			type(false, int64)
-			none
-			[param(a, type(false, int64)), param(b, type(false, int64))]
-			seq(
-				seq(
-					cond(call(==, [param-ref(b), 0]), call(throw, [record([arr(0, 5)])]), call(new, []))
-					cond(
-						call(&&, [call(==, [param-ref(a), call(min-int64, [])]), call(==, [param-ref(b), -1])])
-						call(throw, [record([arr(0, 4)])])
-						call(new, [])))
-				call(unsafe-div, [param-ref(a), param-ref(b)])))
-		fun(
-			noctx
-			unsafe-div
-			type(false, int64)
-			none
-			[param(a, type(false, int64)), param(b, type(false, int64))]
-			builtin([]))
-		fun(noctx, max-int64, type(false, int64), none, [], 9223372036854775807)
-		fun(noctx, new, type(false, bool), none, [], call(false, []))
-		fun(
-			ctx
-			-
-			type(false, nat64)
-			none
-			[param(a, type(false, nat64)), param(b, type(false, nat64))]
-			seq(
-				call(assert, [record([arr(0, 4)]), call(>=, [param-ref(a), param-ref(b)])])
-				call(wrap-sub, [param-ref(a), param-ref(b)])))
-		fun(
-			ctx
-			to-str
-			type(false, str)
-			none
-			[param(a, type(false, int64))]
-			cond(
-				call(==, [param-ref(a), call(min-int64, [])])
-				record([arr(0, 15)])
-				let(
-					s
-					call(to-str, [call(abs, [param-ref(a)])])
-					cond(
-						call(<, [param-ref(a), 0])
-						call(
-							finish
-							[call(with-value, [call(with-str, [call(interp, []), record([arr(0, 33)])]), local-ref(s)])])
-						local-ref(s)))))
+			[param(a, type(false, interp))]
+			call(str, [call(move-to-arr, [call(inner, [param-ref(a)])])]))
+		fun(noctx, inner, type(true, mut-arr), none, [param(a, type(false, interp))], field-get(0))
 		fun(ctx, to-str, type(false, str), none, [param(a, type(false, nat64))], call(to-base, [param-ref(a), 10]))
 		fun(
 			ctx
@@ -6582,68 +6344,68 @@ program(
 			[param(a, type(false, nat64))]
 			cond(
 				call(==, [param-ref(a), 0])
-				record([arr(0, 16)])
+				record([arr(0, 14)])
 				cond(
 					call(==, [param-ref(a), 1])
-					record([arr(0, 17)])
+					record([arr(0, 15)])
 					cond(
 						call(==, [param-ref(a), 2])
-						record([arr(0, 18)])
+						record([arr(0, 16)])
 						cond(
 							call(==, [param-ref(a), 3])
-							record([arr(0, 19)])
+							record([arr(0, 17)])
 							cond(
 								call(==, [param-ref(a), 4])
-								record([arr(0, 20)])
+								record([arr(0, 18)])
 								cond(
 									call(==, [param-ref(a), 5])
-									record([arr(0, 21)])
+									record([arr(0, 19)])
 									cond(
 										call(==, [param-ref(a), 6])
-										record([arr(0, 22)])
+										record([arr(0, 20)])
 										cond(
 											call(==, [param-ref(a), 7])
-											record([arr(0, 23)])
+											record([arr(0, 21)])
 											cond(
 												call(==, [param-ref(a), 8])
-												record([arr(0, 24)])
+												record([arr(0, 22)])
 												cond(
 													call(==, [param-ref(a), 9])
-													record([arr(0, 25)])
+													record([arr(0, 23)])
 													cond(
 														call(==, [param-ref(a), 10])
-														record([arr(0, 26)])
+														record([arr(0, 24)])
 														cond(
 															call(==, [param-ref(a), 11])
-															record([arr(0, 27)])
+															record([arr(0, 25)])
 															cond(
 																call(==, [param-ref(a), 12])
-																record([arr(0, 28)])
+																record([arr(0, 26)])
 																cond(
 																	call(==, [param-ref(a), 13])
-																	record([arr(0, 29)])
+																	record([arr(0, 27)])
 																	cond(
 																		call(==, [param-ref(a), 14])
-																		record([arr(0, 30)])
+																		record([arr(0, 28)])
 																		cond(
 																			call(==, [param-ref(a), 15])
-																			record([arr(0, 31)])
-																			record([arr(0, 32)]))))))))))))))))))
+																			record([arr(0, 29)])
+																			record([arr(0, 30)]))))))))))))))))))
 		fun(
 			ctx
-			finish
-			type(false, str)
+			%
+			type(false, nat64)
 			none
-			[param(a, type(false, interp))]
-			call(str, [call(move-to-arr, [call(inner, [param-ref(a)])])]))
-		fun(noctx, inner, type(true, mut-arr), none, [param(a, type(false, interp))], field-get(0))
-		fun(ctx, to-str, type(false, str), none, [param(a, type(false, str))], param-ref(a))
+			[param(a, type(false, nat64)), param(b, type(false, nat64))]
+			seq(
+				call(forbid, [record([arr(0, 31)]), call(==, [param-ref(b), 0])])
+				call(unsafe-mod, [param-ref(a), param-ref(b)])))
 		fun(
 			ctx
 			with-value
 			type(false, interp)
 			none
-			[param(a, type(false, interp)), param(b, type(false, str))]
+			[param(a, type(false, interp)), param(b, type(false, nat64))]
 			call(with-str, [param-ref(a), call(to-str, [param-ref(b)])]))
 		fun(
 			ctx
@@ -6654,78 +6416,7 @@ program(
 			seq(call(~=, [call(inner, [param-ref(a)]), call(chars, [param-ref(b)])]), param-ref(a)))
 		fun(ctx, interp, type(false, interp), none, [], call(new, [call(new, [create-arr(arr, [])])]))
 		fun(ctx, new, type(false, interp), none, [param(inner, type(true, mut-arr))], new-record)
-		fun(
-			ctx
-			is-multiple-of
-			type(false, bool)
-			none
-			[param(a, type(false, nat64)), param(b, type(false, nat64))]
-			call(==, [call(%, [param-ref(a), param-ref(b)]), 0]))
-		fun(
-			ctx
-			with-value
-			type(false, interp)
-			none
-			[param(a, type(false, interp)), param(b, type(false, nat64))]
-			call(with-str, [param-ref(a), call(to-str, [param-ref(b)])]))
-		fun(
-			noctx
-			abs
-			type(false, float64)
-			none
-			[param(a, type(false, float64))]
-			cond(
-				call(<, [param-ref(a), 0.0])
-				call(-, [param-ref(a)])
-				param-ref(a)))
-		fun(
-			noctx
-			==
-			type(false, bool)
-			none
-			[param(a, type(false, float64)), param(b, type(false, float64))]
-			builtin([]))
-		fun(
-			noctx
-			<=>
-			type(false, comparison)
-			none
-			[param(a, type(false, float64)), param(b, type(false, float64))]
-			call(cmp, [param-ref(a), param-ref(b)]))
-		fun(
-			noctx
-			is-less
-			type(false, bool)
-			none
-			[param(a, type(false, float64)), param(b, type(false, float64))]
-			builtin([]))
-		fun(
-			noctx
-			cmp
-			type(false, comparison)
-			none
-			[param(a, type(false, float64)), param(b, type(false, float64))]
-			cond(
-				call(is-less, [param-ref(a), param-ref(b)])
-				call(less, [])
-				cond(call(==, [param-ref(a), param-ref(b)]), call(equal, []), call(greater, []))))
-		fun(
-			noctx
-			<
-			type(false, bool)
-			none
-			[param(a, type(false, float64)), param(b, type(false, float64))]
-			match-enum(call(<=>, [param-ref(a), param-ref(b)]), [call(true, []), call(false, []), call(false, [])]))
-		fun(noctx, -, type(false, float64), none, [param(a, type(false, float64))], call(*, [param-ref(a), -1.0]))
-		fun(
-			ctx
-			area
-			type(false, float64)
-			none
-			[param(a, type(false, rect))]
-			call(*, [call(width, [param-ref(a)]), call(height, [param-ref(a)])]))
-		fun(noctx, width, type(false, float64), none, [param(a, type(false, rect))], field-get(0))
-		fun(noctx, height, type(false, float64), none, [param(a, type(false, rect))], field-get(1))
+		fun(noctx, size-of, type(false, nat64), none, [], builtin([type(false, t)]))
 		fun(ctx, new, type(true, fut), none, [], call(new, [call(new, [])]))
 		fun(
 			ctx

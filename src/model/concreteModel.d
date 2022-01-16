@@ -303,6 +303,7 @@ struct ConcreteStruct {
 	immutable Purity purity;
 	immutable ConcreteStructSource source;
 	Late!(immutable ConcreteStructInfo) info_;
+	//TODO: this isn't needed outside of concretizeCtx.d
 	Late!(immutable bool) defaultIsPointer_;
 	Late!(immutable TypeSize) typeSize_;
 	// Only set for records
@@ -360,10 +361,6 @@ immutable(ConcreteType) byRef(immutable ConcreteType t) {
 
 immutable(ConcreteType) byVal(ref immutable ConcreteType t) {
 	return immutable ConcreteType(false, t.struct_);
-}
-
-immutable(ConcreteType) concreteType_fromStruct(immutable Ptr!ConcreteStruct s) {
-	return immutable ConcreteType(defaultIsPointer(s.deref()), s);
 }
 
 immutable(bool) concreteTypeEqual(ref immutable ConcreteType a, ref immutable ConcreteType b) {

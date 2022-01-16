@@ -147,7 +147,7 @@ test
 * int32(a int32, b int32) trusted
 	a.to-int64 unsafe-mul b.to-int64 to-int32
 * int64(a int64, b int64) trusted
-	"integer overflow" forbid if a == -1 && b == min-int64 || b == -1 && a == min-int64
+	"integer overflow" forbid if a == -1 && b == min-int64 || a == min-int64 && b == -1
 		true
 	elif b == 0
 		false
@@ -175,7 +175,7 @@ Throws if `a` is the least possible value.
 	a * -1
 - int32(a int32)
 	a * -1
-- int64(a int64)
+- int64(a int64) trusted
 	a * -1
 
 ###
@@ -193,7 +193,11 @@ Throws if the result would overflow, which only happens if
 
 region misc
 
-# Absolute value of an int, as a nat.
+###
+Absolute value of an int, as a nat.
+
+Throws for `min-int64`.
+###
 abs nat64(a int64)
 	(a < 0 ? -a : a) to-nat64
 
