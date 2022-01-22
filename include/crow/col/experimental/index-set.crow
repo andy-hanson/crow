@@ -14,7 +14,7 @@ import
 	../../str: ==, str
 	../../str-conv: to-hex, to-str
 	../../test-util: is
-	../../writer: ~=, backup, move-to-str, new, writer
+	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../../private/bootstrap: hard-assert, hard-unreachable
 	../../private/number-low-level:
 		==, <=>, max-nat64, nat64, new, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
@@ -169,7 +169,7 @@ try-add index-set?(a index-set, index nat64) trusted
 			empty-inner-node inner
 		new-node try-add index, n
 
-~ index-set(a index-set, indices nat64[])
+~~ index-set(a index-set, indices nat64[])
 	a fold indices, (cur, index) => cur ~ index
 
 - index-set(a index-set, index nat64)
@@ -395,8 +395,8 @@ to-str str(a index-set)
 	out writer = ()
 	out ~= "["
 	a each x =>
-		out ~= x to-str
-		out ~= ", "
+		out ~~= x to-str
+		out ~~= ", "
 	unless a is-empty
 		out backup 2
 	out ~= "]"
@@ -467,13 +467,13 @@ map-to-arr<a> a[](a index-set, f act a(nat64)) trusted
 		out ~= ")"
 	as leaf l
 		out ~= "["
-		out ~= l.a.to-hex
+		out ~~= l.a to-hex
 		out ~= " "
-		out ~= l.b.to-hex
+		out ~~= l.b to-hex
 		out ~= " "
-		out ~= l.c.to-hex
+		out ~~= l.c to-hex
 		out ~= " "
-		out ~= l.d.to-hex
+		out ~~= l.d to-hex
 		out ~= "]"
 	as empty
 		out ~= "_"
@@ -509,8 +509,7 @@ test
 	b count-range 4, 8 is 0
 	b count-range 8, 9 is 1
 
-	# TODO: should not need type annotation
-	c = b ~ (4, 9) :: nat64[]
+	c = b ~~ (4, 9)
 	c verify "[310 0 0 0]", (4, 8, 9)
 
 	# TODO: 'is none'

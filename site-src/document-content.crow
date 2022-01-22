@@ -3,7 +3,7 @@ import
 	crow/str-util:
 		join, left, middle, replace, right, strip-left, try-remove-start, try-split-once,
 		try-split-once-by-fn
-	crow/writer: ~=, move-to-str, new, writer
+	crow/writer: ~~=, move-to-str, new, writer
 	./module:
 		body_, doc-comment, exports, fields, has-private-fields, is-mut, members, module,
 		module-export, module-export-value, name, param, params, path, purity, record-field,
@@ -233,9 +233,9 @@ module-top str(path str)
 
 .format-comment str(a str)
 	out writer = ()
-	out ~= "<p>"
+	out ~~= "<p>"
 	new-state = out format-comment-recur text, a
-	out ~= new-state.close-state
+	out ~~= new-state close-state
 	out move-to-str
 
 .comment-state enum
@@ -251,32 +251,32 @@ module-top str(path str)
 
 .format-comment-recur comment-state(out writer, state comment-state, a str)
 	if split ?= a try-split-once-by-fn x => x == "\n" || x == "`"
-		out ~= split.left
+		out ~~= split.left
 		mid = split middle
 		if mid == "\n"
 			if rest ?= state == text ? split.right try-remove-start "\n"
-				out ~= "</p><p>"
+				out ~~= "</p><p>"
 				out format-comment-recur state, rest
 			else
-				out ~= "<br />"
+				out ~~= "<br />"
 				out format-comment-recur state, split.right
 		else
 			assert: mid == "`"
 			if rest ?= split.right try-remove-start "``"
 				match state
 				as text
-					out ~= """</p><div class="code-block">"""
+					out ~~= """</p><div class="code-block">"""
 					out format-comment-recur code-block, rest.strip-left
 				as code-block
-					out ~= "</div>"
+					out ~~= "</div>"
 					out format-comment-recur text, rest.strip-left
 			elif pair ?= split.right try-split-once "`"
-				out ~= "<code>"
-				out ~= pair.a replace "<", "&lt;"
-				out ~= "</code>"
+				out ~~= "<code>"
+				out ~~= pair.a replace "<", "&lt;"
+				out ~~= "</code>"
 				out format-comment-recur state, pair.b
 			else
 				out format-comment-recur state, split.right
 	else
-		out ~= a
+		out ~~= a
 		state

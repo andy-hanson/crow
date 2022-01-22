@@ -3,11 +3,11 @@ import
 	errno: EAGAIN, errno
 	unistd: write
 	../../bool: bool, false, true
-	../../col/arr: ~, arr, is-empty, new, size, subscript
+	../../col/arr: ~~, arr, is-empty, new, size, subscript
 	../../col/arr-util: rtail
 	../../col/dict: each, in, new
 	../../col/mut-dict: move-to-dict, mut-dict, new, try-remove, set-subscript, subscript
-	../../col/mut-arr: ~=, index-of, move-to-arr, mut-arr, new, pop-n-from-start, size
+	../../col/mut-arr: ~~=, index-of, move-to-arr, mut-arr, new, pop-n-from-start, size
 	../../col/private/arr-low-level: arr-cast, begin-ptr
 	../../compare: <=, >, >=
 	../../exception: assert, forbid, throw, to-str
@@ -23,7 +23,7 @@ import
 	../../str: ==, <=>, char, chars, is-empty, str
 	../../str-conv: finish, interp, to-str, with-str, with-value
 	../../str-util: as-str, bytes, has-substr, split-by, try-remove-end
-	../../writer: ~=, move-to-str, new, writer
+	../../writer: ~=, ~~=, move-to-str, new, writer
 	../../private/bootstrap: todo
 	../print: print
 	./http-types:
@@ -68,7 +68,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 
 # Returns true when closed client
 .handle-chunk fut bool(fd fd-t, state http-parse-state, chunk str, handler http-handler) summon trusted
-	state.unparsed ~= chunk chars
+	state.unparsed ~~= chunk chars
 	finished-request = if state.content-length == 0
 		state handle-http-initial
 	else
@@ -110,27 +110,27 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 
 .response-to-arr nat8[](a http-response)
 	res writer = ()
-	res ~= "HTTP/1.1 "
-	res ~= a.status to-str
+	res ~~= "HTTP/1.1 "
+	res ~~= a.status to-str
 	res ~= " "
 	forbid: a.status-desc has-substr "\n"
-	res ~= "\r\n"
-	res ~= a status-desc
+	res ~~= "\r\n"
+	res ~~= a status-desc
 	# TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
 	a.headers each (k, v) =>
-		res ~= "\r\n"
+		res ~~= "\r\n"
 		forbid: k has-substr "\n"
 		forbid: v has-substr "\n"
-		res ~= k
-		res ~= ": "
-		res ~= v
+		res ~~= k
+		res ~~= ": "
+		res ~~= v
 	forbid: "Content-Length" in a.headers
 	unless a.response-body is-empty
-		res ~= "\r\n"
-		res ~= "Content-Length: "
-		res ~= a.response-body.size to-str
-	res ~= "\r\n\r\n"
-	res.move-to-str.bytes ~ a.response-body
+		res ~~= "\r\n"
+		res ~~= "Content-Length: "
+		res ~~= a.response-body.size to-str
+	res ~~= "\r\n\r\n"
+	res.move-to-str.bytes ~~ a.response-body
 
 # returns true if ready to call handler
 .handle-http-initial bool(state http-parse-state)

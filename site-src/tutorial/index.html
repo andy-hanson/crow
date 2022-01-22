@@ -111,12 +111,15 @@
 			<th>meaning</th>
 		</tr>
 		<tr>
-			<td><code class="fun">~=</code></td>
-			<td>Mutating concatenation; add elements to a collection</td>
+			<td><code class="fun">~=</code>, <code class="fun">~~=</code></td>
+			<td>
+				Mutating concatenation; adds one (<code class="fun">~=</code>) or many (<code class="fun">~~=</code>)
+				elements to a collection.
+			</td>
 		</tr>
 		<tr>
 			<td><code class="fun">||</code></td>
-			<td>Logical "or"; or for option types, choose the first non-empty option</td>
+			<td>Logical "or"; or for option types, chooses the first non-empty option.</td>
 		</tr>
 		<tr>
 			<td><code class="fun">&&</code></td>
@@ -124,19 +127,21 @@
 		</tr>
 		<tr>
 			<td><code class="fun">??</code></td>
-			<td>Provide a default value for an option</td>
+			<td>Provides a default value for an option</td>
 		</tr>
 		<tr>
 			<td><code class="fun">foo</code></td>
-			<td>Regular functions</td>
+			<td>Ordinary named functions</td>
 		</tr>
 		<tr>
 			<td><code class="fun">..</code></td>
 			<td>Numerical range, e.g. <code>0 .. 10</code></td>
 		</tr>
 		<tr>
-			<td><code class="fun">~</code></td>
-			<td>Concatenation</td>
+			<td><code class="fun">~</code>, <code class="fun">~~</code></td>
+			<td>
+				Adds one (<code class="fun">~</code>) or many (<code class="fun">~~</code>) elements to a collection.
+			</td>
 		</tr>
 		<tr>
 			<td>
@@ -167,7 +172,7 @@
 		<tr>
 			<td><code class="fun">+</code>, <code class="fun">-</code></td>
 			<td>
-				Add and subtract. For math only; to "add" strings, use <code>~</code>.
+				Addition and subtraction. For math only; to "add" collections, use <code class="fun">~~</code>.
 			</td>
 		</tr>
 		<tr>
@@ -183,9 +188,13 @@
 	</table>
 
 	<p>
-		These are in order of operator precedence. <code>a / b ** c</code> parses as <code>a / (b ** c)</code>.
+		These are in order of operator precedence.
 		<br />
-		Operators behave like ordinary functions, and you can define your own functinos with operator names.
+		For example, <code>a / b ** c</code> parses as <code>a / (b ** c)</code> because
+		<code class="fun">**</code> appears later in the table.
+		<br />
+		Wioth a few exceptions, an operator is just a special syntax for an ordinary function,
+		so you can define your own function with an operator name.
 		<br />
 		The exceptions are <code class="fun">||</code>, <code class="fun">&&</code>,
 		and <code class="fun">??</code>, which are lazily evaluated.

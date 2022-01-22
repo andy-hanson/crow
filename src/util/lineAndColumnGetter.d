@@ -10,6 +10,7 @@ import util.sourceRange : Pos;
 import util.util : verify;
 
 struct LineAndColumn {
+	// both 0-indexed
 	immutable ushort line;
 	immutable ushort column;
 }

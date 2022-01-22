@@ -12,7 +12,7 @@ import
 	./search-dir-recursive: remove-include-and-crow, search-dir-recursive
 
 main fut nat(_ str[]) summon
-	all-content = documentation ~ pages ~ (include-all,)
+	all-content = documentation ~~ pages ~ include-all
 	all-content each cur =>
 		cur ensure-up-to-date
 	cwd = current-directory
@@ -55,7 +55,7 @@ link record
 	script = ("site-src/script" search-dir-recursive x => x ends-with ".js") to-links "site-src/"
 	font = "site-src/font".search-dir-recursive to-links "site-src/"
 	other link[] = ("bin/crow.wasm", "bin/crow.tar.xz", "crow-js/crow.js") map x => x, x
-	example ~ in-src-paths ~ script ~ font ~ other
+	example ~~ in-src-paths ~~ script ~~ font ~~ other
 
 .include-all path-and-content() summon
 	include = "include" search-all-with-content ""

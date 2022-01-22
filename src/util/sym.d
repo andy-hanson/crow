@@ -102,7 +102,6 @@ immutable(Sym) symOfStrCrowIdentifier(ref AllSymbols allSymbols, scope immutable
 }
 
 enum Operator {
-	concatEquals,
 	or2,
 	and2,
 	question2,
@@ -117,6 +116,9 @@ enum Operator {
 	xor1,
 	and1,
 	tilde,
+	tildeEquals,
+	tilde2,
+	tilde2Equals,
 	range,
 	shiftLeft,
 	shiftRight,
@@ -186,8 +188,6 @@ immutable(SafeCStr) strOfOperator(immutable Operator a) {
 			return safeCStr!"&&";
 		case Operator.question2:
 			return safeCStr!"??";
-		case Operator.concatEquals:
-			return safeCStr!"~=";
 		case Operator.equal:
 			return safeCStr!"==";
 		case Operator.notEqual:
@@ -212,6 +212,12 @@ immutable(SafeCStr) strOfOperator(immutable Operator a) {
 			return safeCStr!"..";
 		case Operator.tilde:
 			return safeCStr!"~";
+		case Operator.tildeEquals:
+			return safeCStr!"~=";
+		case Operator.tilde2:
+			return safeCStr!"~~";
+		case Operator.tilde2Equals:
+			return safeCStr!"~~=";
 		case Operator.shiftLeft:
 			return safeCStr!"<<";
 		case Operator.shiftRight:

@@ -46,7 +46,7 @@ Use `wait-fold` instead of you intend to iterate over the result anyway.
 ###
 wait-all<a> fut a[](futures fut<a>[]) is-sendable<a> is-sendable<a[]>
 	() wait-fold futures, (acc, x) =>
-		acc ~ (x,),
+		acc ~ x,
 
 ###
 Waits on each of `futures` in turn, calling `f` to get a new accumulator.

@@ -13,7 +13,7 @@ import
 	../../str-conv: interp, finish, to-str, with-str, with-value
 	../../test-util: is
 	../../tuple: from, new, pair, to
-	../../writer: ~=, backup, move-to-str, new, writer
+	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../../private/alloc: mem-copy
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: wrap-add
@@ -73,7 +73,7 @@ to-arr<k, v> pair<k, v>[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 ~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, pair pair<k, v>) is-data<k> compare<k>
 	(a.impl add-or-remove pair.from, (pair.to,)),
 
-~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b pair<k, v>[]) is-data<k> compare<k>
+~~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b pair<k, v>[]) is-data<k> compare<k>
 	if b is-empty
 		a
 	elif a is-empty
@@ -415,25 +415,25 @@ dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
 	match a
 	as overlay o
 		out dbg-recur o.prev
-		out ~= ", ["
+		out ~~= ", ["
 		o.pairs each pair =>
-			out ~= pair.from.to-str
-			out ~= " -> "
-			out ~= if t ?= pair.to
+			out ~~= pair.from to-str
+			out ~~= " -> "
+			out ~~= if t ?= pair.to
 				t to-str
 			else
 				"_"
-			out ~= ", "
+			out ~~= ", "
 		unless o.pairs is-empty
 			out backup 2
 		out ~= "]"
 	as end-node e
 		out ~= "["
 		e each pair =>
-			out ~= pair.from to-str
-			out ~= " -> "
-			out ~= pair.to to-str
-			out ~= ", "
+			out ~~= pair.from to-str
+			out ~~= " -> "
+			out ~~= pair.to to-str
+			out ~~= ", "
 		if e is-empty
 			out ~= "]"
 		else
@@ -472,8 +472,7 @@ test
 	b verify "[10 -> 10]"
 	b[10] is ("10",)
 
-	# TODO: type annotation should be unnecessary
-	c = b ~ ((15, "15"), (5, "5"), (20, "20")) :: pair<nat64, str>[]
+	c = b ~~ ((15, "15"), (5, "5"), (20, "20"))
 	c verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20]"
 
 	d = c ~ (11, "11")
@@ -497,8 +496,7 @@ test
 	# because we don't keep track of what a removal removes from, and it might be removing from the leftmost node.
 	h verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> _, 15 -> _]"
 
-	# TODO: type annotation should be unnecessary
-	i = h ~ ((11, "11"), (25, "25")) :: pair<nat64, str>[]
+	i = h ~~ ((11, "11"), (25, "25"))
 	i verify "[5 -> 5, 10 -> 10b, 11 -> 11, 20 -> 20, 25 -> 25]"
 
 	h-folded = "" fold h, (cur, key, value) =>

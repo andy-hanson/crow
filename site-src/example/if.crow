@@ -14,7 +14,7 @@ describe str(a str)
 vowels str[](a str)
 	unless a is-empty
 		# (a.head.to-str,) creates an array
-		(a.head.is-vowel ? (a.head.to-str,)) ~ a.tail.vowels
+		(a.head.is-vowel ? (a.head.to-str,)) ~~ a.tail.vowels
 
 a-an str(a str)
 	a.head.is-vowel ? "an {a}" : "a {a}"

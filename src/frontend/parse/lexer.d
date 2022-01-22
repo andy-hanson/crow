@@ -482,7 +482,9 @@ public enum Token {
 		case '\n':
 			return Token.newline;
 		case '~':
-			return operatorToken(lexer, tryTakeChar(lexer, '=') ? Operator.concatEquals : Operator.tilde);
+			return operatorToken(lexer, tryTakeChar(lexer, '~')
+				? tryTakeChar(lexer, '=') ? Operator.tilde2Equals : Operator.tilde2
+				: tryTakeChar(lexer, '=') ? Operator.tildeEquals : Operator.tilde);
 		case '@':
 			return tryTakeChar(lexer, '<')
 				? Token.atLess

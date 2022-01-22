@@ -13,4 +13,4 @@ main fut nat(_ str[]) summon
 # converts (a, b, c, d, ...) to (f[a, b], f[c, d], ...)
 map-pairs str[](xs str[], f fun str(str, str))
 	if xs.size >= 2
-		(f[xs[0], xs[1]],) ~ (xs[2 .. xs.size] map-pairs f)
+		f[xs[0], xs[1]] ~ (xs[2 .. xs.size] map-pairs f)

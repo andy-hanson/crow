@@ -60,8 +60,7 @@ const(Opt!V) getAt_mut(K, V, alias equal, alias hash)(ref const MutDict!(K, V, e
 		else if (equal(key, force(a.pairs[i]).key))
 			return someConst!V(force(a.pairs[i]).value);
 		else {
-			i++;
-			if (i == a.pairs.length) i = 0;
+			i = nextI(a, i);
 		}
 	}
 }
@@ -164,12 +163,12 @@ immutable(V) mustDelete(K, V, alias equal, alias hash)(ref MutDict!(K, V, equal,
 	verify(a.pairs.length != 0);
 	size_t i = getHash!(K, hash)(key) % a.pairs.length;
 	while (true) {
-		if (!has(a.pairs[i])) {
+		if (!has(a.pairs[i]))
 			return unreachable!(immutable V);
-		} else if (equal(key, force(a.pairs[i]).key)) {
+		else if (equal(key, force(a.pairs[i]).key)) {
 			immutable V res = force(a.pairs[i]).value;
 			a.size--;
-			removeAndShiftLeft(a, i);
+			fillHole(a, i, nextI(a, i));
 			return res;
 		} else {
 			i++;
@@ -178,21 +177,39 @@ immutable(V) mustDelete(K, V, alias equal, alias hash)(ref MutDict!(K, V, equal,
 	}
 }
 
-// Opening a gap means that things that were previously moved to the right must move left.
-private void removeAndShiftLeft(K, V, alias equal, alias hash)(ref MutDict!(K, V, equal, hash) a, size_t i) {
-	overwriteMemory(&a.pairs[i], none!(KeyValuePair!(K, V)));
-	// Avoid dscanner warning `Avoid subtracting from '.length' as it may be unsigned`
-	immutable size_t n = a.pairs.length;
-	verify(n != 0);
-	immutable size_t j = i == n - 1 ? 0 : i + 1;
-	if (has(a.pairs[j])) {
-		K key = force(a.pairs[j]).key;
-		immutable size_t desiredI = getHash!(K, hash)(key) % n;
-		if (desiredI != j) {
-			overwriteMemory(&a.pairs[i], a.pairs[j]);
-			removeAndShiftLeft(a, j);
-		}
+// When there is a hole, move anything there that would be closer to where it should be.
+private void fillHole(K, V, alias equal, alias hash)(
+	ref MutDict!(K, V, equal, hash) a,
+	immutable size_t holeI,
+	immutable size_t i,
+) {
+	if (has(a.pairs[i])) {
+		immutable K key = force(a.pairs[i]).key;
+		immutable size_t desiredI = getHash!(K, hash)(key) % a.pairs.length;
+		if (walkDistance(a, desiredI, holeI) < walkDistance(a, desiredI, i)) {
+			overwriteMemory(&a.pairs[holeI], a.pairs[i]);
+			fillHole(a, i, nextI(a, i));
+		} else
+			fillHole(a, holeI, nextI(a, i));
+	} else {
+		overwriteMemory(&a.pairs[holeI], none!(KeyValuePair!(K, V)));
 	}
+}
+
+immutable(size_t) nextI(K, V, alias equal, alias hash)(ref const MutDict!(K, V, equal, hash) a, immutable size_t i) {
+	verify(a.size < a.pairs.length);
+	immutable size_t res = i + 1;
+	return res == a.pairs.length ? 0 : res;
+}
+
+private immutable(size_t) walkDistance(K, V, alias equal, alias hash)(
+	ref const MutDict!(K, V, equal, hash) a,
+	immutable size_t i,
+	immutable size_t j,
+) {
+	return i <= j
+		? j - i
+		: a.pairs.length + j - i;
 }
 
 private @trusted immutable(Out[]) mapToArr_const(Out, K, V, alias equal, alias hash)(

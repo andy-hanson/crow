@@ -74,7 +74,7 @@ new<a> a mut[](...a a[])
 to-mut-arr<a> a mut[](a a[])
 	backing fix-arr a = empty-fix-arr
 	res a mut[] = backing, 0
-	res ~= a
+	res ~~= a
 	res
 
 # TODO: use an 'each' spec to combine these functions
@@ -84,7 +84,7 @@ Writes to the `mut-arr` won't affect the `fix-arr`.
 ###
 mut-arr<a> a mut[](a fix-arr a)
 	res a mut[] = ()
-	res ~= a
+	res ~~= a
 	res
 
 clear<a> void(a a mut[])
@@ -234,11 +234,11 @@ pop-n<a> void(a a mut[], n nat64) trusted
 
 # TODO: Use an 'each' spec..
 # Push multiple values onto the end of the list.
-~= <a> void(a a mut[], values a[])
+~~= <a> void(a a mut[], values a[])
 	values each x => a ~= x
-~= <a> void(a a mut[], values fix-arr a)
+~~= <a> void(a a mut[], values fix-arr a)
 	values each x => a ~= x
-~= <a> void(a a mut[], values a mut[])
+~~= <a> void(a a mut[], values a mut[])
 	values each x => a ~= x
 
 .incr-capacity<a> void(a a mut[]) unsafe

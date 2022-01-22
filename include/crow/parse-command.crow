@@ -2,7 +2,7 @@ no-std
 import
 	./bool: !, &&, bool, false, true
 	./cell: *, cell, new, set-deref
-	./col/arr: ~, arr, is-empty, new, size, subscript
+	./col/arr: ~~, arr, is-empty, new, size, subscript
 	./col/arr-util: find-index, index-of, tail
 	./col/dict: dict, each, new
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
@@ -69,7 +69,7 @@ parse-named-args str[]?[]?(args str[], arg-names str[])
 	err cell bool = false,
 	parsed.named each (key, value) =>
 		if index ?= arg-names index-of key
-			values[index] := ((values[index] ?? ()) ~ value),
+			values[index] := ((values[index] ?? ()) ~~ value),
 		else
 			*err := true
 	if parsed.nameless.is-empty && parsed.after.is-empty && !*err

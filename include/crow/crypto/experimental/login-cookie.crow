@@ -1,7 +1,7 @@
 no-std
 import
 	../../bool: &&, bool
-	../../col/arr: ~, arr, size, subscript
+	../../col/arr: ~~, arr, size, subscript
 	../../compare: <
 	../../exception: assert
 	../../io/time: get-unix-time, new, seconds-since-epoch, unix-time
@@ -35,7 +35,7 @@ generate-login-cookie login-cookie() summon
 	get-unix-time, random-nat64
 
 to-bytes nat8[](a login-cookie)
-	a.timestamp.seconds-since-epoch.to-8-bytes ~ a.cookie.to-8-bytes
+	a.timestamp.seconds-since-epoch.to-8-bytes ~~ a.cookie.to-8-bytes
 
 from-bytes login-cookie(a nat8[])
 	assert: a.size == 16

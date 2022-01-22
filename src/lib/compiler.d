@@ -205,7 +205,7 @@ immutable(DiagsAndResultStrs) printConcreteModel(
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
 	if (!hasDiags(program)) {
 		immutable ConcreteProgram concreteProgram =
-			concretize(alloc, perf, allSymbols, program, only(program.specialModules.rootModules));
+			concretize(alloc, perf, allSymbols, allPaths, program, only(program.specialModules.rootModules));
 		return immutable DiagsAndResultStrs(
 			safeCStr!"",
 			showConcreteProgram(alloc, allSymbols, concreteProgram, format));
@@ -228,7 +228,7 @@ immutable(DiagsAndResultStrs) printLowModel(
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
 	if (!hasDiags(program)) {
 		immutable ConcreteProgram concreteProgram =
-			concretize(alloc, perf, allSymbols, program, only(program.specialModules.rootModules));
+			concretize(alloc, perf, allSymbols, allPaths, program, only(program.specialModules.rootModules));
 		immutable LowProgram lowProgram = lower(alloc, perf, concreteProgram);
 		return immutable DiagsAndResultStrs(safeCStr!"", showLowProgram(alloc, allSymbols, lowProgram, format));
 	} else
@@ -375,7 +375,7 @@ public immutable(ProgramsAndFilesInfo) buildToLowProgram(
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
 	if (!hasDiags(program)) {
 		immutable ConcreteProgram concreteProgram =
-			concretize(alloc, perf, allSymbols, program, only(program.specialModules.rootModules));
+			concretize(alloc, perf, allSymbols, allPaths, program, only(program.specialModules.rootModules));
 		return immutable ProgramsAndFilesInfo(
 			program,
 			some(immutable ConcreteAndLowProgram(concreteProgram, lower(alloc, perf, concreteProgram))));

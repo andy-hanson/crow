@@ -237,9 +237,9 @@ immutable(Repr) reprStructInst(ref Alloc alloc, ref Ctx ctx, ref immutable Struc
 			reprType(alloc, ctx, it)));
 }
 
-immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr expr) {
-	return matchExpr!(
-		immutable Repr,
+immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
+	return matchExpr!(immutable Repr)(
+		a,
 		(ref immutable Expr.Bogus) =>
 			reprSym("bogus"),
 		(ref immutable Expr.Call e) =>
@@ -302,8 +302,7 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr expr) 
 		(ref immutable Expr.StringLiteral it) =>
 			reprRecord(alloc, "string-lit", [reprStr(it.literal)]),
 		(ref immutable Expr.SymbolLiteral it) =>
-			reprRecord(alloc, "sym-lit", [reprSym(it.value)]),
-	)(expr);
+			reprRecord(alloc, "sym-lit", [reprSym(it.value)]));
 }
 
 immutable(Repr) reprClosureField(ref Alloc alloc, ref Ctx ctx, ref immutable ClosureField a) {

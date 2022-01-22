@@ -6,8 +6,8 @@ import
 	../opt: new, opt
 	./arr: arr
 	./mut-arr:
-		~=, to-arr, copy, each, fold, is-empty, last, mut-arr, new, pop, set-filter, set-map, size,
-		to-mut-arr
+		~=, ~~=, to-arr, copy, each, fold, is-empty, last, mut-arr, new, pop, set-filter, set-map,
+		size, to-mut-arr
 
 ###
 Mutable stack.
@@ -51,8 +51,8 @@ size<a> nat64(a mut-stack a)
 	a.inner ~= value
 
 # Pushes many values to the top of the stack.
-~= <a> void(a mut-stack a, values a[])
-	a.inner ~= values
+~~= <a> void(a mut-stack a, values a[])
+	a.inner ~~= values
 
 ###
 Returns the top element of the stack without removing it.

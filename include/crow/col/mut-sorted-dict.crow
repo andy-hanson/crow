@@ -12,7 +12,7 @@ import
 	../str: ==, chars, str
 	../test-util: is
 	../tuple: from, new, pair, to
-	../writer: ~=, backup, move-to-str, new, writer
+	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	./arr: arr, new, subscript
 	./arr-util: each
 	./mut-arr:
@@ -97,7 +97,7 @@ in<k, v> bool(key k, a mut-sorted-dict<k, v>) trusted is-data<k> compare<k>
 Adds many key-value pairs, replacing existing ones with the same keys.
 Equivalent to adding each element of `b` separately.
 ###
-~= <k, v> void(a mut-sorted-dict<k, v>, b pair<k, v>[]) is-data<k> compare<k>
+~~= <k, v> void(a mut-sorted-dict<k, v>, b pair<k, v>[]) is-data<k> compare<k>
 	b each pair =>
 		a[pair from] := pair to
 
@@ -136,8 +136,7 @@ Returns true if it succeeded.
 .add-pair<k, v> void(a mut-sorted-dict<k, v>, key k, value v) is-data<k> compare<k>
 	if a.node-size < 4
 		if a.pairs is-empty
-			# TODO: should not need type annotation
-			a.pairs ~= (key, (value,))::pair<k, v?>
+			a.pairs ~= (key, (value,))
 		else
 			# List has a small absolute size, so even if we can't insert near the end,
 			# there's an empty slot somewhere so we don't have to do much moving.
@@ -153,8 +152,7 @@ Returns true if it succeeded.
 			a compact-if-needed
 		else
 			new-pairs pair<k, v?> mut[] = ()
-			# TODO: should not need type annotation
-			new-pairs ~= (key, (value,))::pair<k, v?>
+			new-pairs ~= (key, (value,))
 			a.next := (new-pairs, 1, ()),
 
 # Insert at the last place where the key is < that value.
@@ -163,8 +161,7 @@ Returns true if it succeeded.
 		a move-right index
 		a[index] := key, (value,)
 	elif index == a.size - 1
-		# TODO: should not need type annotation
-		a ~= (key, (value,))::pair<k, v?>
+		a ~= (key, (value,))
 	else
 		a insert-linear index + 1, key, value
 
@@ -316,10 +313,10 @@ set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> com
 .dbg-recur void(out writer, a mut-sorted-dict<nat64, str>)
 	out ~= "["
 	a.pairs each pair =>
-		out ~= pair from
-		out ~= " -> "
-		out ~= pair.to ?? "_"
-		out ~= ", "
+		out ~~= pair from
+		out ~~= " -> "
+		out ~~= pair.to ?? "_"
+		out ~~= ", "
 	if a.pairs is-empty
 		out ~= "]"
 	else
@@ -327,7 +324,7 @@ set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> com
 		out ~= "]"
 
 	if next ?= a next
-		out ~= ", "
+		out ~~= ", "
 		out dbg-recur next
 
 .verify void(a mut-sorted-dict<nat64, str>, expected str)
@@ -392,7 +389,7 @@ test
 	a remove-key 1 is ()
 
 	# Adding some more values so removals can't fully remove
-	a ~= ((13, "13"), (15, "15"), (17, "17"))
+	a ~~= ((13, "13"), (15, "15"), (17, "17"))
 	a verify "[5 -> 5, 7 -> 7, 8 -> 8, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], [0 -> 0, 2 -> 2, 6 -> 6]"
 
 	a remove-key 5 is ("5",)
@@ -424,7 +421,7 @@ test
 	a verify "[0 -> 0, 2 -> 2, 6 -> 6, 7 -> _, 11 -> 11, 17 -> 17]"
 
 	# Now physical size of a is 6, logical size is 5.
-	a ~= ((1, "1"), (5, "5"), (3, "3"))
+	a ~~= ((1, "1"), (5, "5"), (3, "3"))
 	a verify "[0 -> 0, 2 -> 2, 6 -> 6, 7 -> _, 11 -> 11, 17 -> 17], [1 -> 1, 3 -> 3, 5 -> 5]"
 
 	a[4] := "4"

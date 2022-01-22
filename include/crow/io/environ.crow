@@ -9,7 +9,8 @@ import
 	../misc: new, void
 	../private/bootstrap: todo
 	../ptr: ==, +, *, const-ptr, null
-	../str: ==, <=>, ~, c-str, str
+	../str: ==, <=>, c-str, str
+	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: find-char-in-cstr, find-cstr-end, to-c-str
 	../tuple: from, new, pair, to
 
@@ -43,7 +44,6 @@ get-environ environ() summon trusted
 convert-environ c-str*(environ environ) unsafe
 	res c-str mut[] = ()
 	environ each (key, value) =>
-		res ~= key ~ "=" ~ value to-c-str
-	# TODO: type annotation should be unnecessary
-	res ~= null :: c-str
+		res ~= "{key}={value}" to-c-str
+	res ~= null
 	res.move-to-arr begin-ptr

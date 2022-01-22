@@ -1,6 +1,7 @@
 import
 	crow/cell: *, as-ptr, cell, new
 	crow/col/fix-arr: begin-ptr, fix-arr, map-to-arr, new, set-subscript, size, subscript
+	crow/col/private/arr-low-level: subscript
 	crow/c-types: c-int
 	crow/io/duration: duration, msec
 	crow/io/print: print

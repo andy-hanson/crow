@@ -48,6 +48,7 @@ import util.col.mutArr : moveToArr, MutArr;
 import util.col.mutDict : mapToDict, mutDictIsEmpty;
 import util.col.mutSet : moveSetToArr;
 import util.opt : force, has, Opt;
+import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symForSpecial;
@@ -58,11 +59,12 @@ immutable(ConcreteProgram) concretize(
 	ref Alloc alloc,
 	scope ref Perf perf,
 	ref AllSymbols allSymbols,
+	ref const AllPaths allPaths,
 	ref immutable Program program,
 	immutable Ptr!Module mainModule,
 ) {
 	return withMeasure!(immutable ConcreteProgram, () =>
-		concretizeInner(alloc, allSymbols, program, mainModule)
+		concretizeInner(alloc, allSymbols, allPaths, program, mainModule)
 	)(alloc, perf, PerfMeasure.concretize);
 }
 
@@ -71,10 +73,12 @@ private:
 immutable(ConcreteProgram) concretizeInner(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
+	ref const AllPaths allPaths,
 	ref immutable Program program,
 	immutable Ptr!Module mainModule,
 ) {
 	ConcretizeCtx ctx = ConcretizeCtx(
+		ptrTrustMe_const(allPaths),
 		ptrTrustMe_const(allSymbols),
 		getCurIslandAndExclusionFun(alloc, program),
 		program.commonTypes.ctx,

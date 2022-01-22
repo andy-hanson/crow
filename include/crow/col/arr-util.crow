@@ -14,7 +14,7 @@ import
 	../private/exception-low-level: assert, forbid
 	../private/number-low-level: ==, <=>, unsafe-mod, wrap-add
 	../private/range-low-level: ..
-	./arr: ==, ~, arr, is-empty, new, size, subscript
+	./arr: ==, ~, ~~, arr, is-empty, new, size, subscript
 	./private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr, noctx-at
 
 region basic array operations
@@ -55,7 +55,7 @@ Returns a new array like `a` but where `a[index]` is `new-value`.
 update-at<a> a[](a a[], index nat64, new-value a)
 	assert: index < a.size
 	# TODO:PERF (only concat once)
-	a[0 .. index] ~ (new-value,) ~ a[index + 1 .. a.size]
+	a[0 .. index] ~ new-value ~~ a[index + 1 .. a.size]
 
 ###
 Unlike `update-at`, `index` doesn't need to be a valid index.
@@ -80,7 +80,7 @@ Unlike for `update-at`, `index` can be `a.size`, though it still can't be higher
 insert-at<a> a[](a a[], index nat64, value a)
 	assert: index <= a.size
 	# TODO:PERF (only concat once)
-	a[0 .. index] ~ (value,) ~ a[index .. a.size]
+	a[0 .. index] ~ value ~~ a[index .. a.size]
 
 insert-at-ptr<a> a[](a a[], ptr a*, value a) no-doc unsafe
 	a insert-at ptr - a.begin-ptr, value
@@ -88,7 +88,7 @@ insert-at-ptr<a> a[](a a[], ptr a*, value a) no-doc unsafe
 # Removes the element at index `index`, shifting all later elements to the left.
 remove-at<a> a[](a a[], index nat64)
 	assert: index < a.size
-	a[0 .. index] ~ a[index + 1 .. a.size]
+	a[0 .. index] ~~ a[index + 1 .. a.size]
 
 # If the array is longer than `max-size`, slice it to that size.
 with-max-size<a> a[](a a[], max-size nat64)
@@ -222,7 +222,7 @@ map-with-index<out, in> out[](a in[], f act out(in, nat64))
 flat-map<out, in> out[](a in[], f act out[](in))
 	# TODO:PERF use a mut-arr
 	unless a is-empty
-		f[a[0]] ~ (a.tail flat-map f)
+		f[a[0]] ~~ (a.tail flat-map f)
 
 # Array containing only the elements of `a` for which `f[a[i]]` returns true.
 filter<a> a[](a a[], f act bool(a))
@@ -516,7 +516,7 @@ Returns an array of all remaining parts between the splitters, including empty p
 split-by-fn<a> a[][](a a[], splitter act bool(a)) trusted
 	# TODO:PERF use a mut-arr
 	if index ?= a find-index splitter
-		(a[0 .. index],) ~ (a[index .. a.size] split-by-fn splitter)
+		a[0 .. index] ~ (a[index .. a.size] split-by-fn splitter)
 	else
 		a,
 

@@ -7,13 +7,13 @@ import
 		contains-subseq, each, ends-with, first, last, left, map, middle, reverse, right, rtail,
 		split-by-subseq, starts-with, tail, try-remove-end, try-remove-start,
 		try-split-once-by-fn, try-split-once-by-subseq
-	./col/mut-arr: ~=, move-to-arr, mut-arr, new
+	./col/mut-arr: ~~=, move-to-arr, mut-arr, new
 	./compare: !=, <
 	./number: ==, <=>, nat8
 	./opt: !, new, opt
 	./ptr: +, *, as-const, as-mut, mut-ptr
 	./range: ..
-	./str: ==, ~, char, chars, c-str, new, str, to-char, to-nat8
+	./str: ==, ~~, char, chars, c-str, new, str, to-char, to-nat8
 	./tuple: a, b, new, pair
 	./private/bootstrap: hard-unreachable
 	./private/number-low-level: wrap-add, wrap-sub
@@ -125,9 +125,9 @@ join str(a str[], b str)
 	unless a is-empty
 		res char mut[] = ()
 		a.rtail each x =>
-			res ~= x chars
-			res ~= b chars
-		res ~= a.last!.chars
+			res ~~= x chars
+			res ~~= b chars
+		res ~~= a.last! chars
 		res.move-to-arr str
 
 # Lower cases every character in `a`.
@@ -160,7 +160,7 @@ reverse str(a str)
 replace str(a str, find str, replace-with str)
 	# TODO:PERF
 	if pair ?= a try-split-once find
-		pair.a ~ replace-with ~ (pair.b replace find, replace-with)
+		pair.a ~~ replace-with ~~ (pair.b replace find, replace-with)
 	else
 		a
 
@@ -188,7 +188,7 @@ WARN: The resulting string is allocated from GC memory but isn't traced by the g
 so it may be freed after the current task.
 ###
 to-c-str c-str(a str) unsafe
-	(a ~ "\0").chars begin-ptr
+	(a ~~ "\0").chars begin-ptr
 
 ###
 Treats a c-str as a str by walking to the end.

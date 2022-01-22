@@ -10,7 +10,7 @@ import
 	crow/io/print: print
 	crow/reader: parse-nat
 	crow/str-util: split-by, try-split-once
-	crow/writer: ~=, backup, move-to-str, new, writer
+	crow/writer: ~~=, backup, move-to-str, new, writer
 	./db:
 		add-post, close-real-db, content, cookie-expire-seconds, db, list-posts, list-users,
 		login, post, post-info, open-real-db, parse-user-cookie, register-user, to-str, user,
@@ -122,33 +122,33 @@ parse-query str[](s str, arg-names str[])
 
 .format-users-as-json str(users user-info[])
 	res writer = ()
-	res ~= "\{\"users\":["
+	res ~~= "\{\"users\":["
 	users each user =>
-		res ~= "\{\"user\":"
-		res ~= user user
-		res ~= ",\"userName\":\""
-		res ~= user user-name
-		res ~= "\"},"
+		res ~~= "\{\"user\":"
+		res ~~= user user
+		res ~~= ",\"userName\":\""
+		res ~~= user user-name
+		res ~~= "\"},"
 	unless users is-empty
 		res backup
-	res ~= "]}"
+	res ~~= "]}"
 	res move-to-str
 
 .format-posts-as-json str(posts post-info[])
 	res writer = ()
-	res ~= "\{\"posts\":["
+	res ~~= "\{\"posts\":["
 	posts each post =>
 		# TODO: module for proper json formatting
-		res ~= "\{\"post\":"
-		res ~= post post
-		res ~= ",\"user\":"
-		res ~= post user
-		res ~= ",\"userName\":\""
-		res ~= post user-name
-		res ~= "\",\"content\":\""
-		res ~= post content
-		res ~= "\"},"
+		res ~~= "\{\"post\":"
+		res ~~= post post
+		res ~~= ",\"user\":"
+		res ~~= post user
+		res ~~= ",\"userName\":\""
+		res ~~= post user-name
+		res ~~= "\",\"content\":\""
+		res ~~= post content
+		res ~~= "\"},"
 	unless posts is-empty
 		res backup
-	res ~= "]}"
+	res ~~= "]}"
 	res move-to-str

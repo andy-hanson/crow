@@ -105,6 +105,7 @@ import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, Opt, some;
+import util.path : AllPaths;
 import util.ptr : castImmutable, castMutable, hashPtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, shortSymValue, Sym;
@@ -232,6 +233,7 @@ private struct DeferredUnionBody {
 struct ConcretizeCtx {
 	@safe @nogc pure nothrow:
 
+	const Ptr!AllPaths allPathsPtr; //TODO:KILL
 	const Ptr!AllSymbols allSymbolsPtr;
 	immutable Ptr!FunInst curIslandAndExclusionFun;
 	immutable Ptr!StructInst ctxStructInst;
@@ -266,6 +268,12 @@ struct ConcretizeCtx {
 	Late!(immutable ConcreteType) _ctxType;
 	Late!(immutable ConcreteType) _strType;
 	Late!(immutable ConcreteType) _symType;
+	int __nextId;
+
+	//TODO:KILL
+	int nextExprCtxId() {
+		return __nextId++;
+	}
 
 	ref const(AllSymbols) allSymbols() return scope const {
 		return allSymbolsPtr.deref();
@@ -798,6 +806,16 @@ void fillInConcreteFunBody(
 	ref ConcretizeCtx ctx,
 	Ptr!ConcreteFun cf,
 ) {
+	debug {
+		import core.stdc.stdio : printf;
+		import interpret.debugging : writeConcreteFunName;
+		import util.writer : finishWriterToCStr, Writer;
+		import util.ptr : ptrTrustMe_mut;
+		Writer writer = Writer(ptrTrustMe_mut(alloc));
+		writeConcreteFunName(writer, ctx.allSymbols, cast(immutable) cf.deref());
+		//printf("fillInConcreteFunBody %s\n", finishWriterToCStr(writer));
+	}
+
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf.deref()._body_)) {
 		// set to arbitrary temporarily

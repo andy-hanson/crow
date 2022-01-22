@@ -2,10 +2,10 @@ import
 	crow/bits: &, ^, |, <<, >>, has-bit, bits-intersect
 	crow/col/fix-arr: fill-fix-arr, fix-arr, set-subscript, size, subscript
 	crow/col/mut-grid: coord, new, x, y
-	crow/io/terminal-color: term-bold, term-blue, term-red, term-reset
+	crow/io/terminal-color: bold, blue, foreground, red, reset
 	crow/ptr: zeroed
 	crow/private/number-low-level: wrap-to-nat32
-	crow/writer: ~=, move-to-str, new, writer
+	crow/writer: ~=, ~~=, move-to-str, new, writer
 
 ###
 Board representation is bits: 7 bits for a column (max of 6 entries), over 6 rows.
@@ -73,17 +73,17 @@ opposite color(a color)
 to-str str(a color)
 	match a
 	as red
-		"{term-red}red{term-reset}"
+		"{red foreground}red{reset}"
 	as blue
-		"{term-blue}blue{term-reset}"
+		"{blue foreground}blue{reset}"
 
 .to-short-str str(a color?)
 	if c ?= a
 		match c
 		as red
-			"{term-red}✕{term-reset}"
+			"{red foreground}✕{reset}"
 		as blue
-			"{term-blue}●{term-reset}"
+			"{blue foreground}●{reset}"
 	else
 		" "
 
@@ -125,18 +125,18 @@ to-str str(a board, cur-player color, last-column nat?)
 	res writer = ()
 	0 .. width each x =>
 		text = " {x letter-of-alphabet}"
-		res ~= if last-column == (x,)
-			"{term-bold}{text}{term-reset}"
+		res ~~= if last-column == (x,)
+			"{bold}{text}{reset}"
 		else
 			text
 	res ~= "\n"
 	0 .. height each-reverse y =>
-		res ~= "│"
+		res ~~= "│"
 		0 .. width each x =>
-			res ~= a[x, y, cur-player] to-short-str
-			res ~= "│"
+			res ~~= a[x, y, cur-player] to-short-str
+			res ~~= "│"
 		res ~= "\n"
-	res ~= "╰─┴─┴─┴─┴─┴─┴─╯"
+	res ~~= "╰─┴─┴─┴─┴─┴─┴─╯"
 	res move-to-str
 
 .letter-of-alphabet str(a nat)

@@ -30,7 +30,7 @@ foreground str(red float64, green float64, blue float64)
 	"\x1b[38;2;{red to-color};{green to-color};{blue to-color}m"
 
 # String that when printed, will make text bold.
-term-bold str()
+bold str()
 	"\x1b[1m"
 
 .to-color nat8(f float64)

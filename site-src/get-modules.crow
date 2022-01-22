@@ -10,7 +10,7 @@ import
 		spec-sig, spec-sigs, union-decl, union-member
 
 get-modules module[](paths str[]) summon
-	result = "bin/crow" spawn-and-wait-result (("doc",) ~ paths), get-environ
+	result = "bin/crow" spawn-and-wait-result "doc" ~ paths, get-environ
 	unless result.exit-code == 0 && result.stderr.is-empty
 		"Could not get documentation: exit code {result exit-code}, stderr: {result stderr}" throw
 	result.stdout.parse-json! to-modules

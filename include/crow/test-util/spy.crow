@@ -36,8 +36,7 @@ spy-act2<out, in0, in1> record mut
 new<out, in0, in1> spy-act2<out, in0, in1>(f act out(in0, in1))
 	calls pair<in0, in1> mut[] = ()
 	calls, (a, b) =>
-		# TODO: type annotation should be unnecessary
-		calls ~= (a, b) :: pair<in0, in1>
+		calls ~= (a, b)
 		f[a, b]
 
 # Returns the arguments to every call since the last time `calls` was called.

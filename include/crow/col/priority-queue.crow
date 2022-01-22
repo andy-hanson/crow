@@ -12,7 +12,7 @@ import
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act2
 	../tuple: a, b, from, new, pair, to
-	../writer: ~=, backup, move-to-str, new, writer
+	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	./arr: ==, arr, is-empty, new, size
@@ -234,17 +234,17 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 .dbg-recur void(out writer, a node<nat64, str>?, first bool)
 	if node ?= a
 		unless first
-			out ~= "; "
-		out ~= node.min from
+			out ~~= "; "
+		out ~~= node.min from
 		out ~= " "
-		out ~= node.min to
-		out ~= " ["
+		out ~~= node.min to
+		out ~~= " ["
 		unless node.pairs is-empty
 			node.pairs each pair =>
-				out ~= pair from
+				out ~~= pair from
 				out ~= " "
-				out ~= pair to
-				out ~= ", "
+				out ~~= pair to
+				out ~~= ", "
 			out backup 2
 		out ~= "]"
 		out dbg-recur node.next, false

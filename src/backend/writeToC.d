@@ -139,8 +139,14 @@ void writeConstants(ref Writer writer, ref immutable Ctx ctx, ref immutable AllC
 			writeStatic(writer, " = ");
 			if (isChar(a.elementType)) {
 				writeChar(writer, '"');
-				foreach (immutable Constant element; elements)
-					writeEscapedChar_inner(writer, cast(immutable char) asIntegral(element).value);
+				foreach (immutable Constant element; elements) {
+					immutable char x =  cast(immutable char) asIntegral(element).value;
+					if (x == '?')
+						// avoid trigraphs
+						writeStatic(writer, "\\?");
+					else
+						writeEscapedChar_inner(writer, x);
+				}
 				writeChar(writer, '"');
 			} else {
 				writeChar(writer, '{');

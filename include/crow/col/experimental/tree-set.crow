@@ -12,7 +12,7 @@ import
 	../../str-conv: interp, finish, to-str, with-str, with-value
 	../../str-util: starts-with
 	../../test-util: is
-	../../writer: ~=, backup, move-to-str, new, writer
+	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, new, unsafe-div, wrap-add, wrap-sub
 	../arr: arr, is-empty, size, subscript
@@ -101,17 +101,10 @@ This is O(a.size ln)
 		unreachable
 
 ###
-Add many values to the set.
-This is O(a.size + b.size).
-###
-~ <a> tree-set a(a tree-set a, b a[]) is-data<a> compare<a>
-	a ~ b.to-tree-set
-
-###
 Union of two sets.
-This is O(a.size + b.size).
+This is O(n).
 ###
-~ <a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a>
+~~ <a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a>
 	out fix-arr a = a.size wrap-add b.size uninitialized-fix-arr
 	b-iter = b iter
 	end = out.begin-ptr fold a, (cur, value) =>
@@ -480,17 +473,17 @@ map<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> 
 		res ~= "("
 		res dbg-recur i.left
 		res ~= " "
-		res ~= i.value to-str
+		res ~~= i.value to-str
 		res ~= " "
 		res dbg-recur i.right
 		res ~= ")"
 	as leaf l
 		if l is-empty
-			res ~= "[]"
+			res ~~= "[]"
 		else
 			res ~= "["
 			l each x =>
-				res ~= x to-str
+				res ~~= x to-str
 				res ~= " "
 			res backup
 			res ~= "]"
@@ -550,7 +543,7 @@ test
 	s11 = s10 ~ "o"
 	s11 verify "[h i j ji jj jk k l m n o]"
 
-	s8 ~ ("a", "jii", "z") verify "[a h i j ji jii jj jk k l z]"
+	s8 ~~ ("a", "jii", "z") verify "[a h i j ji jii jj jk k l z]"
 	s8 - s4 verify "[ji jj jk l]"
 	s8-k-l intersect s3 verify "[h i]"
 

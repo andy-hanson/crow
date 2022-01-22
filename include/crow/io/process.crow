@@ -103,8 +103,7 @@ shell-exec str(command str) trusted summon
 	res ~= exe-c-str
 	args each x =>
 		res ~= x to-c-str
-	# TODO: type annotation should be unnecessary
-	res ~= null :: c-str
+	res ~= null
 	res.move-to-arr begin-ptr
 
 .spawn-and-wait-result process-result(exe c-str, args c-str*, environ c-str*) summon unsafe

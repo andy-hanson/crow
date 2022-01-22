@@ -10,7 +10,7 @@ import
 	../../range: ..
 	../../str: ==, str
 	../../test-util: is
-	../../writer: ~=, backup, move-to-str, new, writer
+	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	../arr: ==, arr, is-empty, new, size
@@ -128,19 +128,10 @@ size<a> nat64(a list a) noctx
 		acc
 
 ###
-Concatenate an array to a list.
-This is O(1).
-###
-~ <a> list a(a list a, b a[])
-	prev list<a>? = unless a is-empty
-		a,
-	prev, b
-
-###
 Concatenate two lists.
 This is O(n).
 ###
-~ <a> list a(a list a, b list a) trusted
+~~ <a> list a(a list a, b list a) trusted
 	a-size = a size
 	res fix-arr a = a-size wrap-add b.size uninitialized-fix-arr
 	res.end-ptr write-out b
@@ -227,7 +218,7 @@ find-and-get<out, in> out?(a list in, f act out?(in))
 		out ~= "]"
 	else
 		a.values each x =>
-			out ~= x
+			out ~~= x
 			out ~= " "
 		out backup
 		out ~= "]"
@@ -261,10 +252,9 @@ test
 	e.rtail.to-arr is d.to-arr
 	e.size is 4
 
-	# TODO: should not need type annotation
-	e56 = e ~ (5, 6) :: nat64[]
+	e56 = e ~ 5 ~ 6
 	e56.dbg is "[1 2 3 4] [5 6]"
-	(c ~ d).dbg is "[1 2 1 2 3]"
+	(c ~~ d).dbg is "[1 2 1 2 3]"
 
 	e2 = e map it => it wrap-add 10
 	e2.dbg is "[11 12 13 14]"

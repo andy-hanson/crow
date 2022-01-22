@@ -9,13 +9,13 @@ import
 	../str: ==, str
 	../test-util: is
 	../tuple: from, new, pair, to
-	../writer: ~=, backup, move-to-str, new, writer
+	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add
 	./arr: ==, arr, new
 	./arr-util: map
 	./fix-arr: begin-ptr, cast-immutable, copy, fix-arr, set-reverse, uninitialized-fix-arr
 	./mut-arr:
-		~=, begin-ptr, clear, each, each-with-index, fold, fold-reverse, is-empty, mut-arr,
+		~=, ~~=, begin-ptr, clear, each, each-with-index, fold, fold-reverse, is-empty, mut-arr,
 		new, pop, set-reverse, size, subscript, to-mut-arr
 	./sort: set-sort-by
 	./private/sort-utils: binary-search-insert-ptr
@@ -94,7 +94,7 @@ pop<k, v> pair<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 		# Note thie preserves insertion order: 'set-sort-by' doesn't change that,
 		# then we reverse, then popping from the right reverses it again.
 		bucket set-reverse
-		a.mins ~= bucket
+		a.mins ~~= bucket
 	res
 
 # Like `pop`, but discards the key.
@@ -109,7 +109,7 @@ This is O(n).
 copy<k, v> mut-priority-queue<k, v>(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	mins = a spread-all-buckets
 	a.mins clear
-	a.mins ~= mins
+	a.mins ~~= mins
 	a.buckets clear
 	mins.mut-arr, ()
 
@@ -120,7 +120,7 @@ to-arr<k, v> pair<k, v>[](a mut-priority-queue<k, v>) trusted is-data<k> compare
 to-fix-arr<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) no-doc is-data<k> compare<k>
 	mins = a spread-all-buckets
 	a.mins clear
-	a.mins ~= mins
+	a.mins ~~= mins
 	a.buckets clear
 	res = mins copy
 	res set-reverse
@@ -154,8 +154,7 @@ body
 	if index < buckets.size
 		buckets[index] ~= pair
 	else
-		# TODO: type annotation should be unnecessary
-		buckets ~= ()::pair<k, v> mut[]
+		buckets ~= ()
 		buckets add-to-bucket index, pair
 
 .dbg str(a mut-priority-queue<nat64, str>)
@@ -165,21 +164,21 @@ body
 		if index < a.buckets.size
 			bucket = a.buckets[index]
 			unless bucket is-empty
-				out ~= " ["
+				out ~~= " ["
 				bucket each pair =>
 					out write-pair pair
-					out ~= ", "
+					out ~~= ", "
 				out backup 2
 				out ~= "]"
-		out ~= ", "
+		out ~~= ", "
 	unless a.mins is-empty
 		out backup 2
 	out move-to-str
 
 .write-pair void(out writer, pair pair<nat64, str>)
-	out ~= pair from
-	out ~= " -> "
-	out ~= pair to
+	out ~~= pair from
+	out ~~= " -> "
+	out ~~= pair to
 
 .verify void(a mut-priority-queue<nat64, str>, expected str)
 	a.dbg is expected

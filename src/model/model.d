@@ -1725,25 +1725,25 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	return a.range_;
 }
 
-@trusted immutable(T) matchExpr(
-	T,
-	alias cbBogus,
-	alias cbCall,
-	alias cbClosureFieldRef,
-	alias cbCond,
-	alias cbFunPtr,
-	alias cbIfOption,
-	alias cbLambda,
-	alias cbLet,
-	alias cbLiteral,
-	alias cbLocalRef,
-	alias cbMatchEnum,
-	alias cbMatchUnion,
-	alias cbParamRef,
-	alias cbSeq,
-	alias cbStringLiteral,
-	alias cbSymbolLiteral,
-)(ref immutable Expr a) {
+@trusted immutable(T) matchExpr(T)(
+	ref immutable Expr a,
+	scope immutable(T) delegate(ref immutable Expr.Bogus) @safe @nogc pure nothrow cbBogus,
+	scope immutable(T) delegate(ref immutable Expr.Call) @safe @nogc pure nothrow cbCall,
+	scope immutable(T) delegate(ref immutable Expr.ClosureFieldRef) @safe @nogc pure nothrow cbClosureFieldRef,
+	scope immutable(T) delegate(ref immutable Expr.Cond) @safe @nogc pure nothrow cbCond,
+	scope immutable(T) delegate(ref immutable Expr.FunPtr) @safe @nogc pure nothrow cbFunPtr,
+	scope immutable(T) delegate(ref immutable Expr.IfOption) @safe @nogc pure nothrow cbIfOption,
+	scope immutable(T) delegate(ref immutable Expr.Lambda) @safe @nogc pure nothrow cbLambda,
+	scope immutable(T) delegate(ref immutable Expr.Let) @safe @nogc pure nothrow cbLet,
+	scope immutable(T) delegate(ref immutable Expr.Literal) @safe @nogc pure nothrow cbLiteral,
+	scope immutable(T) delegate(ref immutable Expr.LocalRef) @safe @nogc pure nothrow cbLocalRef,
+	scope immutable(T) delegate(ref immutable Expr.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
+	scope immutable(T) delegate(ref immutable Expr.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
+	scope immutable(T) delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
+	scope immutable(T) delegate(ref immutable Expr.Seq) @safe @nogc pure nothrow cbSeq,
+	scope immutable(T) delegate(ref immutable Expr.StringLiteral) @safe @nogc pure nothrow cbStringLiteral,
+	scope immutable(T) delegate(ref immutable Expr.SymbolLiteral) @safe @nogc pure nothrow cbSymbolLiteral,
+) {
 	final switch (a.kind) {
 		case Expr.Kind.bogus:
 			return cbBogus(a.bogus);
@@ -1781,8 +1781,8 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 }
 
 immutable(bool) typeIsBogus(ref immutable Expr a) {
-	return matchExpr!(
-		immutable bool,
+	return matchExpr!(immutable bool)(
+		a,
 		(ref immutable Expr.Bogus) => true,
 		(ref immutable Expr.Call e) => isBogus(returnType(e.called)),
 		(ref immutable Expr.ClosureFieldRef e) => isBogus(e.field.deref().type),
@@ -1798,13 +1798,12 @@ immutable(bool) typeIsBogus(ref immutable Expr a) {
 		(ref immutable Expr.ParamRef e) => isBogus(e.param.deref().type),
 		(ref immutable Expr.Seq e) => typeIsBogus(e.then),
 		(ref immutable Expr.StringLiteral) => false,
-		(ref immutable Expr.SymbolLiteral) => false,
-	)(a);
+		(ref immutable Expr.SymbolLiteral) => false);
 }
 
 immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTypes) {
-	return matchExpr!(
-		immutable Type,
+	return matchExpr!(immutable Type)(
+		a,
 		(ref immutable Expr.Bogus) => immutable Type(immutable Type.Bogus()),
 		(ref immutable Expr.Call e) => returnType(e.called),
 		(ref immutable Expr.ClosureFieldRef e) => e.field.deref().type,
@@ -1820,8 +1819,7 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.ParamRef e) => e.param.deref().type,
 		(ref immutable Expr.Seq e) => getType(e.then, commonTypes),
 		(ref immutable Expr.StringLiteral) => immutable Type(commonTypes.str),
-		(ref immutable Expr.SymbolLiteral) => immutable Type(commonTypes.sym),
-	)(a);
+		(ref immutable Expr.SymbolLiteral) => immutable Type(commonTypes.sym));
 }
 
 void writeStructDecl(ref Writer writer, ref const AllSymbols allSymbols, ref immutable StructDecl a) {

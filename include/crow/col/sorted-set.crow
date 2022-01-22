@@ -11,7 +11,7 @@ import
 	../str: ==, <=>, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test-util: is
-	../writer: ~=, backup, move-to-str, new, writer
+	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/bootstrap: hard-assert, hard-forbid, hard-unreachable
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul, wrap-sub
 	./arr: arr, is-empty, new, size, subscript
@@ -405,9 +405,9 @@ map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> co
 	out writer = ()
 	out dbg-add-recur a.add
 	unless a.remove is-empty
-		out ~= " - ["
+		out ~~= " - ["
 		a.remove each i =>
-			out ~= i to-str
+			out ~~= i to-str
 			out ~= " "
 		out backup
 		out ~= "]"
@@ -416,14 +416,14 @@ map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> co
 .dbg-add-recur<a> void(out writer, a add-node a) to-str<a>
 	if left ?= a left
 		out dbg-add-recur left
-		out ~= ", "
+		out ~~= ", "
 
 	if a.values is-empty
-		out ~= "[]"
+		out ~~= "[]"
 	else
 		out ~= "["
 		a.values each x =>
-			out ~= x to-str
+			out ~~= x to-str
 			out ~= " "
 		out backup
 		out ~= "]"

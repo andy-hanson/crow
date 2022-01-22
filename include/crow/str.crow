@@ -7,7 +7,7 @@ no-std
 import
 	./bool: bool
 	./compare: comparison
-	./col/arr: ~, arr, arr-compare, arr-equal, is-empty, size
+	./col/arr: ~~, arr, arr-compare, arr-equal, is-empty, size
 	./private/bootstrap: new
 	./private/number-low-level: ==, <=>, nat64
 export
@@ -30,8 +30,8 @@ This is O(n).
 
 If you need to concatenate many strings, consider using the `crow/writer` module.
 ###
-~ str(a str, b str)
-	a.chars ~ b.chars,
+~~ str(a str, b str)
+	a.chars ~~ b.chars,
 
 # Same as `a == ""`.
 is-empty bool(a str) noctx

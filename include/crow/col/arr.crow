@@ -46,12 +46,26 @@ subscript<a> a[](a a[], range range nat64) trusted
 	(range.high wrap-sub range.low), a.begin-ptr + range.low
 
 ###
+Prepend an element to an array.
+This is O(n).
+###
+~ <a> a[](a a, b a[])
+	(a,) ~~ b
+
+###
+Append an element to an array.
+This is O(n).
+###
+~ <a> a[](a a[], b a)
+	a ~~ (b,)
+
+###
 Concatenates two arrays.
 This is O(n).
 
 If you need concatenate many arrays, use a `mut[]` to accumulate elements, then call `move-to-arr`.
 ###
-~ <a> a[](a a[], b a[]) trusted
+~~ <a> a[](a a[], b a[]) trusted
 	res-size = a.size wrap-add b.size
 	res a mut* = res-size alloc-uninitialized
 	res copy-data-from a.begin-ptr, a.size

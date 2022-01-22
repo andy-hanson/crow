@@ -61,6 +61,7 @@ import model.model :
 	Local,
 	matchCalled,
 	matchExpr,
+	Program,
 	Purity,
 	range,
 	specImpls,
@@ -75,6 +76,7 @@ import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : addToMutDict, getOrAdd, mustDelete, mustGetAt_mut, MutPtrDict;
 import util.memory : allocate;
 import util.opt : force, has, none, some;
+import util.path : AllPaths;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSym, SpecialSym, symEq, symForSpecial;
@@ -87,7 +89,7 @@ immutable(ConcreteExpr) concretizeExpr(
 	immutable Ptr!ConcreteFun cf,
 	ref immutable Expr e,
 ) {
-	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe_mut(ctx), containing, cf);
+	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ctx.nextExprCtxId(), ptrTrustMe_mut(ctx), containing, cf);
 	return concretizeExpr(alloc, exprCtx, e);
 }
 
@@ -96,6 +98,7 @@ private:
 struct ConcretizeExprCtx {
 	@safe @nogc pure nothrow:
 
+	immutable int id;
 	Ptr!ConcretizeCtx concretizeCtxPtr;
 	immutable ContainingFunInfo containing;
 	immutable Ptr!ConcreteFun currentConcreteFunPtr; // This is the ConcreteFun* for a lambda, not its containing fun
@@ -565,9 +568,26 @@ immutable(ConcreteExpr) concretizeExpr(
 	ref ConcretizeExprCtx ctx,
 	ref immutable Expr e,
 ) {
+	debug {
+		import core.stdc.stdio : printf;
+		import util.col.fullIndexDict : fullIndexDictGet;
+		import util.col.str : safeCStr, SafeCStr;
+		import util.path : PathAndStorageKind, pathToSafeCStr;
+		import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos;
+
+		immutable PathAndStorageKind pk = fullIndexDictGet(ctx.concretizeCtx.program.filesInfo.filePaths, range(e).fileIndex);
+		immutable SafeCStr pathStr = pathToSafeCStr(alloc, ctx.concretizeCtx.allPathsPtr.deref(), safeCStr!"ROOT", pk.path, safeCStr!".EXT");
+
+		immutable LineAndColumn lc = lineAndColumnAtPos(
+			fullIndexDictGet(ctx.concretizeCtx.program.filesInfo.lineAndColumnGetters, range(e).fileIndex),
+			range(e).start);
+
+		//printf("concretizeExpr at %s:%d:%d\n", pathStr.ptr, lc.line + 1, lc.column);
+	}
+
 	immutable FileAndRange range = range(e);
-	return matchExpr!(
-		immutable ConcreteExpr,
+	return matchExpr!(immutable ConcreteExpr)(
+		e,
 		(ref immutable Expr.Bogus) =>
 			unreachable!(immutable ConcreteExpr),
 		(ref immutable Expr.Call e) =>
@@ -630,8 +650,7 @@ immutable(ConcreteExpr) concretizeExpr(
 			immutable ConcreteExpr(
 				symType(alloc, ctx.concretizeCtx),
 				range,
-				immutable ConcreteExprKind(constantSym(alloc, ctx.concretizeCtx, e.value))),
-	)(e);
+				immutable ConcreteExprKind(constantSym(alloc, ctx.concretizeCtx, e.value))));
 }
 
 immutable(ConstantsOrExprs) constantsOrExprsArr(

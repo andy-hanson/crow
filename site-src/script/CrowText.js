@@ -90,7 +90,7 @@ textarea {
 .local { bold; color: #ffebbd; }
 .lit-num { color: #ffd866; }
 .lit-str { color: #ffd866; }
-.field { color: #fc9867; }
+.member { color: #fc9867; }
 .name { color: green; }
 .diag {
 	position: relative;

@@ -1,8 +1,9 @@
 no-std
 import
 	crow/cell: *, cell, new
-	crow/col/arr: arr, begin-ptr, new, size
-	crow/col/fix-arr: begin-ptr, copy-to-arr, fix-arr, uninitialized-fix-arr
+	crow/col/arr: arr, new, size
+	crow/col/fix-arr: begin-ptr, fix-arr, to-arr, uninitialized-fix-arr
+	crow/col/private/arr-low-level: begin-ptr
 	crow/compare: !=
 	crow/exception: assert, throw
 	crow/io/file: read-file
@@ -39,7 +40,7 @@ shader-prog-load GLuint(vert-file-name str, frag-file-name str) summon unsafe
 		err-log fix-arr GLchar = log-length->to-nat64 uninitialized-fix-arr
 		shader-prog glGetProgramInfoLog *log-length, log-length, err-log.begin-ptr
 		shader-prog glDeleteProgram
-		err-log.copy-to-arr.str throw
+		err-log.to-arr.str throw
 
 shader-prog-destroy void(shader-prog GLuint) summon unsafe
 	shader-prog glDeleteProgram
@@ -57,7 +58,7 @@ shader-prog-destroy void(shader-prog GLuint) summon unsafe
 		err-log fix-arr GLchar = log-length->to-nat64 uninitialized-fix-arr
 		shader glGetShaderInfoLog *log-length, log-length, err-log.begin-ptr
 		shader glDeleteShader
-		err-log.copy-to-arr.str throw
+		err-log.to-arr.str throw
 
 .create-shader-from-source GLuint(file-name str, shader-type GLenum) summon unsafe
 	shader = shader-type glCreateShader

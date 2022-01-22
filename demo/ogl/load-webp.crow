@@ -2,7 +2,8 @@ no-std
 import
 	crow/c-types: c-int
 	crow/cell: *, cell, new
-	crow/col/arr: begin-ptr, size
+	crow/col/arr: size
+	crow/col/private/arr-low-level: begin-ptr
 	crow/exception: finally
 	crow/fun-util: subscript
 	crow/io/file: read-file-binary

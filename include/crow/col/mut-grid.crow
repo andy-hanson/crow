@@ -13,7 +13,7 @@ import
 	../str: ==, str
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../test-util: is
-	../writer: ~=, backup, move-to-str, new, write, writer
+	../writer: ~=, ~~=, backup, move-to-str, new, write, writer
 	./fix-arr:
 		begin-ptr, copy, each, end-ptr, exists, fix-arr, fold, is-empty, new, set-map,
 		set-subscript, size, subscript, uninitialized-fix-arr
@@ -133,7 +133,7 @@ to-str<a> str(a mut-grid a) write<a>
 	res writer = ()
 	a each-row row =>
 		row each value =>
-			res ~= value
+			res ~~= value
 			res ~= " "
 		unless row is-empty
 			res backup

@@ -15,7 +15,7 @@ import
 	./str: ==, <=>, str
 	./test-util: is
 	./tuple: new
-	./writer: ~=, backup, move-to-str, new, writer, write-quoted-str
+	./writer: ~=, ~~=, backup, move-to-str, new, writer, write-quoted-str
 
 ###
 JSON data.
@@ -157,9 +157,9 @@ to-str str(a json)
 .to-str-recur void(out writer, a json)
 	match a
 	as json-bool b
-		out ~= b
+		out ~~= b
 	as json-number f
-		out ~= f
+		out ~~= f
 	as json-str s
 		out write-quoted-str s
 	as json-arr xs

@@ -1,5 +1,6 @@
 import
 	crow/io/print: print
+	crow/reader: parse-nat
 
 main fut nat(_ str[]) summon
 	print: "2".parse-nat! * 2 to-str

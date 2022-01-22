@@ -48,14 +48,13 @@ Adds an element to the set.
 Does nothing if `value` is already in the set.
 ###
 ~= <a> void(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
-	# TODO: should not need type annotation
-	a.inner ~= (value, ()) :: pair<a, void>
+	a.inner ~= (value, ())
 
 ###
 Adds many elements to the set.
 Ignores values already in the set.
 ###
-~= <a> void(a mut-set a, values a[]) is-data<a> compare<a> hash-mix<a>
+~~= <a> void(a mut-set a, values a[]) is-data<a> compare<a> hash-mix<a>
 	values each x =>
 		a ~= x
 

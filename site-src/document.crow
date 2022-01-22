@@ -19,7 +19,7 @@ documentation path-and-content[]() summon
 		module.path document-template "module {module.path}", module.module-content, all-paths
 	index-content = "site-src/doc/index.html" read-file
 	index = "index" document-template "documentation", index-content, all-paths
-	(index,) ~ modules
+	index ~ modules
 
 .sort-paths str[](a str[])
 	a sort (x, y) => x compare-paths y

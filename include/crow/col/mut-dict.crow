@@ -12,7 +12,7 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test-util: is
 	../tuple: from, new, pair, to
-	../writer: ~=, backup, move-to-str, new, writer
+	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/number-low-level: ==, <=>, nat64, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	./arr: ==, arr, new, size
 	./arr-util: each, map
@@ -222,7 +222,7 @@ Returns the old value (if it exists).
 	a[b from] := b to
 
 # This is the same as calling `a ~= x` for every `x` in `b`.
-~= <k, v> void(a v mut[k], b pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
+~~= <k, v> void(a v mut[k], b pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	b each pair =>
 		a ~= pair
 
@@ -337,17 +337,17 @@ set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<
 			out ~= "_"
 		as one ar
 			out ~= "("
-			out ~= ar.from to-str
-			out ~= " -> "
-			out ~= ar to
+			out ~~= ar.from to-str
+			out ~~= " -> "
+			out ~~= ar to
 			out ~= ")"
 		as many m
 			out ~= "["
 			m each pair =>
-				out ~= pair.from to-str
-				out ~= " -> "
-				out ~= pair to
-				out ~= ", "
+				out ~~= pair.from to-str
+				out ~~= " -> "
+				out ~~= pair to
+				out ~~= ", "
 			out backup 2
 			out ~= "]"
 		out ~= " "

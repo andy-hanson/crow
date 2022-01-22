@@ -12,10 +12,9 @@ import
 	../str: ==, str
 	../str-conv: to-str
 	../test-util: is
-	../writer: ~=, backup, move-to-str, new, writer
+	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
 	./arr: ==, arr, new
-	./arr-util: fold
 	./experimental/index-set:
 		count-greater-or-equal, each, filter-less, is-empty, in, index-set, new, size, try-remove
 	./experimental/frozen-set:
@@ -97,9 +96,9 @@ If `value` is alerady in the set, returns `a` unmodified.
 ~ <a> set a(a set a, value a) is-data<a> compare<a> hash-mix<a>
 	a try-add value ?? a
 
-# Adds many elements to the set, ignoring those already in the set.
-~ <a> set a(a set a, values a[]) is-data<a> compare<a> hash-mix<a>
-	a fold values, (cur, value) => cur ~ value
+# Same as `a | b`.
+~~ <a> set a(a set a, b set a) is-data<a> compare<a> hash-mix<a>
+	a | b
 
 ###
 Union of two sets.
@@ -107,8 +106,7 @@ Union of two sets.
 This is a set containing all elements in either `a` or `b`.
 ###
 | <a> set a(a set a, b set a) is-data<a> compare<a> hash-mix<a>
-	# TODO:PERF
-	a ~ b.to-arr
+	a fold b, (cur, value) => cur ~ value
 
 ###
 Intersection of two sets.
@@ -273,9 +271,9 @@ map-to-arr<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<i
 	out writer = ()
 	out dbg-add-recur a.add
 	unless a.remove is-empty
-		out ~= " - ["
+		out ~~= " - ["
 		a.remove each i =>
-			out ~= i to-str
+			out ~~= i to-str
 			out ~= " "
 		out backup
 		out ~= "]"
@@ -284,14 +282,14 @@ map-to-arr<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<i
 .dbg-add-recur<a> void(out writer, a add-node a) to-str<a>
 	if left ?= a left
 		out dbg-add-recur left
-		out ~= ", "
+		out ~~= ", "
 
 	if a.here is-empty
-		out ~= "[]"
+		out ~~= "[]"
 	else
 		out ~= "["
 		a.here each x =>
-			out ~= x to-str
+			out ~~= x to-str
 			out ~= " "
 		out backup
 		out ~= "]"
@@ -317,16 +315,13 @@ test
 	b.to-arr is (5,)
 	b verify "[5]"
 
-	# TODO: type annotation should be unnecessary
-	c = b ~ (6, 4, 1)::nat64[]
+	c = b ~~ (6, 4, 1)
 	c verify "[1 4 6 5]"
 
-	# TODO: type annotation should be unnecessary
-	d = c ~ (8,)::nat64[]
+	d = c ~ 8
 	d verify "[1 4 6 5], [8]"
 
-	# TODO: type annotation should be unnecessary
-	e = d ~ (4, 10)::nat64[]
+	e = d ~~ (4, 10)
 	e verify "[1 4 6 5], [10 8]"
 	e.size is 6
 	0 in e is false

@@ -4,7 +4,7 @@ import
 	../ptr: as-ref, by-val
 	../misc: void
 	../ptr: zeroed
-	../str: ~, str
+	../str: ~~, str
 	./bootstrap: get-ctx, log-ctx-ptr, thread-local-stuff
 
 ###
@@ -62,7 +62,7 @@ log-handler alias
 	fun void(logged)
 
 default-log-handler void(a logged) summon
-	print: a.level.to-str ~ ": " ~ a.message
+	print: a.level.to-str ~~ ": " ~~ a.message
 
 .get-log-ctx log-ctx() trusted
 	get-ctx.thread-local-stuff.log-ctx-ptr as-ref

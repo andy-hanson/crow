@@ -623,7 +623,8 @@ immutable int ternaryPrecedence = -5;
 
 immutable(int) operatorPrecedence(immutable Operator a) {
 	final switch (a) {
-		case Operator.concatEquals:
+		case Operator.tildeEquals:
+		case Operator.tilde2Equals:
 			return -4;
 		case Operator.or2:
 			return -3;
@@ -634,6 +635,7 @@ immutable(int) operatorPrecedence(immutable Operator a) {
 		case Operator.range:
 			return 1;
 		case Operator.tilde:
+		case Operator.tilde2:
 			return 2;
 		case Operator.equal:
 		case Operator.notEqual:

@@ -4,6 +4,7 @@ module test.test;
 
 import lib.compiler : ExitCode;
 import test.testApplyFn : testApplyFn;
+import test.testDict : testDict;
 import test.testFakeExtern : testFakeExtern;
 import test.testHover : testHover;
 import test.testInterpreter : testInterpreter;
@@ -33,6 +34,7 @@ private:
 
 immutable(NameAndTest[]) allTests = [
 	immutable NameAndTest("apply-fn", &testApplyFn),
+	immutable NameAndTest("dict", &testDict),
 	immutable NameAndTest("fake-extern", &testFakeExtern),
 	immutable NameAndTest("hover", &testHover),
 	immutable NameAndTest("interpreter", &testInterpreter),
