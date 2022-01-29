@@ -39,7 +39,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 	allow-double-space = ext == "err" || ext == "sublime-syntax"
 	text.lines each-with-index (line, line-num) =>
 		ln = line-num + 1 to-str
-		space-space = " " ~ " "
+		space-space = " " ~~ " "
 		if !allow-double-space && line has-substr space-space
 			message = "line {ln} contains a double space"
 			res ~= (path, message)

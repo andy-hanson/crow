@@ -206,6 +206,14 @@ fold-reverse<a, b> a(acc a, a b[], f act a(a, b)) trusted
 		f[acc, *prev] fold-reverse-recur begin, prev, f
 
 ###
+Same as `a[0] fold a.tail, f`.
+
+Throws if `a` is empty.
+###
+reduce<a> a(a a[], f act a(a, a))
+	a[0] fold a.tail, f
+
+###
 Equivalent to `f[a[0]], f[a[1]], ...`.
 Array containing `f[x]` for each `x` in `a`.
 ###

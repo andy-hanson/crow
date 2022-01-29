@@ -239,7 +239,7 @@ program(
 		struct(name: fix-arr, body: record([field(inner, const, type(false, arr))]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, char)]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, char)]))
-		struct(name: lambda(~=, 0), body: record([field(a, const, type(true, mut-arr))]))
+		struct(name: lambda(~~=, 0), body: record([field(a, const, type(true, mut-arr))]))
 		struct(
 			name: exception-ctx
 			mut: true
@@ -1348,7 +1348,7 @@ program(
 				seq(
 					seq(
 						call(
-							~=
+							~~=
 							[
 								local-ref(res)
 								cond(
@@ -1376,7 +1376,7 @@ program(
 				let(
 					res
 					call(new, [local-ref(backing), 0])
-					seq(call(~=, [local-ref(res), param-ref(a)]), local-ref(res)))))
+					seq(call(~~=, [local-ref(res), param-ref(a)]), local-ref(res)))))
 		fun(
 			noctx
 			empty-fix-arr
@@ -1411,7 +1411,7 @@ program(
 			new-record)
 		fun(
 			ctx
-			~=
+			~~=
 			type(false, void)
 			none
 			[param(a, type(true, mut-arr)), param(values, type(false, arr))]
@@ -2704,18 +2704,18 @@ program(
 			field-set(1))
 		fun(
 			ctx
-			lambda(~=, 0)
+			lambda(~~=, 0)
 			type(false, void)
-			some(param("<<closure>>", type(true, lambda(~=, 0))))
+			some(param("<<closure>>", type(true, lambda(~~=, 0))))
 			[param(x, type(false, char))]
 			call(~=, [get-field(param-ref("<<closure>>"), a), param-ref(x)]))
 		fun(
 			ctx
-			~=
+			~~=
 			type(false, void)
 			none
 			[param(a, type(false, writer)), param(b, type(false, str))]
-			call(~=, [call(chars, [param-ref(a)]), call(chars, [param-ref(b)])]))
+			call(~~=, [call(chars, [param-ref(a)]), call(chars, [param-ref(b)])]))
 		fun(noctx, chars, type(true, mut-arr), none, [param(a, type(false, writer))], field-get(0))
 		fun(
 			noctx
@@ -2793,11 +2793,11 @@ program(
 		fun(noctx, backtrace, type(false, backtrace), none, [param(a, type(false, exception))], field-get(1))
 		fun(
 			ctx
-			~=
+			~~=
 			type(false, void)
 			none
 			[param(a, type(false, writer)), param(b, type(false, const-ptr))]
-			call(~=, [param-ref(a), call(to-str, [param-ref(b)])]))
+			call(~~=, [param-ref(a), call(to-str, [param-ref(b)])]))
 		fun(
 			noctx
 			to-str
@@ -2930,8 +2930,8 @@ program(
 			some(param("<<closure>>", type(true, lambda(to-str, 0))))
 			[param(x, type(false, sym))]
 			seq(
-				call(~=, [get-field(param-ref("<<closure>>"), res), record([arr(0, 7)])])
-				call(~=, [get-field(param-ref("<<closure>>"), res), call(to-c-str, [param-ref(x)])])))
+				call(~~=, [get-field(param-ref("<<closure>>"), res), record([arr(0, 7)])])
+				call(~~=, [get-field(param-ref("<<closure>>"), res), call(to-c-str, [param-ref(x)])])))
 		fun(
 			ctx
 			move-to-str
@@ -2998,9 +2998,9 @@ program(
 				print
 				[
 					call(
-						~
+						~~
 						[
-							call(~, [call(to-str, [call(level, [param-ref(a)])]), record([arr(0, 11)])])
+							call(~~, [call(to-str, [call(level, [param-ref(a)])]), record([arr(0, 11)])])
 							call(message, [param-ref(a)])])]))
 		fun(
 			noctx
@@ -3019,14 +3019,14 @@ program(
 		fun(noctx, stdout, type(false, int32), none, [], 1)
 		fun(
 			ctx
-			~
+			~~
 			type(false, str)
 			none
 			[param(a, type(false, str)), param(b, type(false, str))]
-			call(new, [call(~, [call(chars, [param-ref(a)]), call(chars, [param-ref(b)])])]))
+			call(new, [call(~~, [call(chars, [param-ref(a)]), call(chars, [param-ref(b)])])]))
 		fun(
 			ctx
-			~
+			~~
 			type(false, arr)
 			none
 			[param(a, type(false, arr)), param(b, type(false, arr))]

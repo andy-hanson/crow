@@ -107,7 +107,7 @@ body
 	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output
 	stderr-failures failure[] = if res.exit-code != 0 || res.stderr != ""
 		path handle-output ("{path}.stderr"), res.stderr, overwrite-output
-	stdout-failures ~ stderr-failures
+	stdout-failures ~~ stderr-failures
 
 .remove-colors str(s str)
 	res writer = ()

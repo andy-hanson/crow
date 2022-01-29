@@ -568,23 +568,6 @@ immutable(ConcreteExpr) concretizeExpr(
 	ref ConcretizeExprCtx ctx,
 	ref immutable Expr e,
 ) {
-	debug {
-		import core.stdc.stdio : printf;
-		import util.col.fullIndexDict : fullIndexDictGet;
-		import util.col.str : safeCStr, SafeCStr;
-		import util.path : PathAndStorageKind, pathToSafeCStr;
-		import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos;
-
-		immutable PathAndStorageKind pk = fullIndexDictGet(ctx.concretizeCtx.program.filesInfo.filePaths, range(e).fileIndex);
-		immutable SafeCStr pathStr = pathToSafeCStr(alloc, ctx.concretizeCtx.allPathsPtr.deref(), safeCStr!"ROOT", pk.path, safeCStr!".EXT");
-
-		immutable LineAndColumn lc = lineAndColumnAtPos(
-			fullIndexDictGet(ctx.concretizeCtx.program.filesInfo.lineAndColumnGetters, range(e).fileIndex),
-			range(e).start);
-
-		//printf("concretizeExpr at %s:%d:%d\n", pathStr.ptr, lc.line + 1, lc.column);
-	}
-
 	immutable FileAndRange range = range(e);
 	return matchExpr!(immutable ConcreteExpr)(
 		e,

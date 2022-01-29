@@ -1,6 +1,6 @@
 import
 	crow/col/arr-util: each
-	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new, reduce-size-if-more-than, size
+	crow/col/mut-arr: ~~=, move-to-arr, mut-arr, new, reduce-size-if-more-than, size
 	crow/io/file: try-read-file, write-file
 	crow/io/path: base-name
 	crow/io/print: print, print-no-newline
@@ -32,7 +32,7 @@ flat-map-with-max-size<out, in> out[](a in[], max-size nat, mapper act out[](in)
 	res out mut[] = ()
 	a each x =>
 		if res.size < max-size
-			res ~= mapper[x]
+			res ~~= mapper[x]
 			res reduce-size-if-more-than max-size
 	res move-to-arr
 

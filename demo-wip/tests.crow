@@ -19,6 +19,7 @@ import
 	crow/col/mut-sorted-set: mut-sorted-set, new
 	crow/col/mut-stack: mut-stack, new
 	crow/col/priority-queue: new, priority-queue
+	crow/col/seq: new, seq
 	crow/col/set: new, set
 	crow/col/sorted-set: new, sorted-set
 	crow/col/stack: new, stack
@@ -56,6 +57,7 @@ main fut nat(_ str[]) summon
 	drop: () :: mut-stack<nat>
 	drop: () :: measure-total
 	drop: () :: priority-queue<nat, nat>
+	drop: () :: seq<nat>
 	drop: () :: set<nat>
 	drop: () :: sorted-set<nat>
 	drop: () :: stack<nat>
