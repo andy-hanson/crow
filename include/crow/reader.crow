@@ -9,7 +9,7 @@ import
 	./number: ==, <=>, +, *, **, float64, int64, nat64, to-float64, to-int64
 	./opt: is-empty, new, opt
 	./ptr: ==, <=>, +, -, *, const-ptr
-	./str: ==, char, chars, size-bytes, str
+	./str: ==, char, chars, literal, size-bytes, str
 	./test-util: is
 	./private/exception-low-level: assert, forbid
 

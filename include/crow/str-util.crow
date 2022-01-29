@@ -2,20 +2,18 @@ no-std
 import
 	./bool: ||, bool
 	./col/arr: arr, is-empty, size, subscript
-	./col/private/arr-low-level: arr-cast, arr-from-begin-end, begin-ptr
+	./col/private/arr-low-level: arr-cast, begin-ptr
 	./col/arr-util:
 		contains-subseq, each, ends-with, first, last, left, map, middle, reverse, right, rtail,
 		split-by-subseq, starts-with, tail, try-remove-end, try-remove-start,
 		try-split-once-by-fn, try-split-once-by-subseq
 	./col/mut-arr: ~~=, move-to-arr, mut-arr, new
-	./compare: !=, <
+	./compare: <
 	./number: ==, <=>, nat8
 	./opt: !, new, opt
-	./ptr: +, *, as-const, as-mut, mut-ptr
 	./range: ..
-	./str: ==, ~~, char, chars, c-str, new, str, to-char, to-nat8
+	./str: ==, ~, ~~, char, chars, c-str, literal, new, str, to-char, to-nat8
 	./tuple: a, b, new, pair
-	./private/bootstrap: hard-unreachable
 	./private/number-low-level: wrap-add, wrap-sub
 
 # First character.
@@ -188,7 +186,7 @@ WARN: The resulting string is allocated from GC memory but isn't traced by the g
 so it may be freed after the current task.
 ###
 to-c-str c-str(a str) unsafe
-	(a ~~ "\0").chars begin-ptr
+	(a ~ "\0").chars begin-ptr
 
 ###
 Treats a c-str as a str by walking to the end.
@@ -199,25 +197,4 @@ Unsafe because:
 * The resulting string should not be used longer than `a` lives.
 ###
 to-str str(a c-str) unsafe noctx
-	a arr-from-begin-end a.find-cstr-end str
-
-###
-Walk a c-str and return a pointer to the first occurrence of `c`.
-If that is not found, return an empty option.
-###
-find-char-in-cstr c-str?(a c-str, c char) unsafe noctx
-	if *a == c
-		a,
-	elif *a != "\0"
-		a + 1 find-char-in-cstr c
-
-# Pointer to the end of a c-str.
-find-cstr-end c-str(a c-str) unsafe noctx
-	if v ?= a find-char-in-cstr "\0"
-		v
-	else
-		hard-unreachable
-
-# Pointer to the end of a c-str.
-find-cstr-end char mut*(a char mut*) unsafe noctx
-	a.as-const.find-cstr-end.as-mut
+	a literal

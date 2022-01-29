@@ -20,7 +20,7 @@ import
 	./number: to-float64
 	./opt: new, opt
 	./ptr: as-ref
-	./str: str
+	./str: literal, str
 	./str-conv: finish, interp, to-str, with-str, with-value
 	./sym: ==, sym
 	./private/bootstrap: get-ctx, nat64, perf-ctx-ptr, thread-local-stuff

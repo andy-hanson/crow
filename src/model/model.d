@@ -1472,10 +1472,10 @@ struct CommonTypes {
 
 	immutable Ptr!StructInst bool_;
 	immutable Ptr!StructInst char_;
+	immutable Ptr!StructInst cStr;
 	immutable Ptr!StructInst float32;
 	immutable Ptr!StructInst float64;
 	immutable IntegralTypes integrals;
-	immutable Ptr!StructInst str;
 	immutable Ptr!StructInst sym;
 	immutable Ptr!StructInst void_;
 	immutable Ptr!StructInst ctx;
@@ -1631,8 +1631,8 @@ struct Expr {
 		immutable Expr then;
 	}
 
-	struct StringLiteral {
-		immutable string literal;
+	struct CStringLiteral {
+		immutable SafeCStr value;
 	}
 
 	struct SymbolLiteral {
@@ -1676,7 +1676,7 @@ struct Expr {
 		immutable Ptr!MatchUnion matchUnion;
 		immutable ParamRef paramRef;
 		immutable Ptr!Seq seq;
-		immutable StringLiteral stringLiteral;
+		immutable CStringLiteral stringLiteral;
 		immutable SymbolLiteral symbolLiteral;
 	}
 
@@ -1713,7 +1713,7 @@ struct Expr {
 		range_ = r; kind = Kind.paramRef; paramRef = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable Ptr!Seq a) { range_ = r; kind = Kind.seq; seq = a; }
-	@trusted immutable this(immutable FileAndRange r, immutable StringLiteral a) {
+	@trusted immutable this(immutable FileAndRange r, immutable CStringLiteral a) {
 		range_ = r; kind = Kind.stringLiteral; stringLiteral = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable SymbolLiteral a) {
@@ -1741,7 +1741,7 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	scope immutable(T) delegate(ref immutable Expr.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
 	scope immutable(T) delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
 	scope immutable(T) delegate(ref immutable Expr.Seq) @safe @nogc pure nothrow cbSeq,
-	scope immutable(T) delegate(ref immutable Expr.StringLiteral) @safe @nogc pure nothrow cbStringLiteral,
+	scope immutable(T) delegate(ref immutable Expr.CStringLiteral) @safe @nogc pure nothrow cbStringLiteral,
 	scope immutable(T) delegate(ref immutable Expr.SymbolLiteral) @safe @nogc pure nothrow cbSymbolLiteral,
 ) {
 	final switch (a.kind) {
@@ -1797,7 +1797,7 @@ immutable(bool) typeIsBogus(ref immutable Expr a) {
 		(ref immutable Expr.MatchUnion e) => isBogus(e.type),
 		(ref immutable Expr.ParamRef e) => isBogus(e.param.deref().type),
 		(ref immutable Expr.Seq e) => typeIsBogus(e.then),
-		(ref immutable Expr.StringLiteral) => false,
+		(ref immutable Expr.CStringLiteral) => false,
 		(ref immutable Expr.SymbolLiteral) => false);
 }
 
@@ -1818,7 +1818,7 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.MatchUnion) => todo!(immutable Type)("getType matchUnion"),
 		(ref immutable Expr.ParamRef e) => e.param.deref().type,
 		(ref immutable Expr.Seq e) => getType(e.then, commonTypes),
-		(ref immutable Expr.StringLiteral) => immutable Type(commonTypes.str),
+		(ref immutable Expr.CStringLiteral) => immutable Type(commonTypes.cStr),
 		(ref immutable Expr.SymbolLiteral) => immutable Type(commonTypes.sym));
 }
 

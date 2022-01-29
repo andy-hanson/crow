@@ -6,8 +6,8 @@ no-std
 import
 	./compare: equal
 	./misc: void
-	./private/exception-low-level: assert, catch, message, throw
-	./str: ==, str
+	./private/exception-low-level: assert, catch, message, throw-c-str
+	./str: ==, literal, str
 
 ###
 Asserts the the values are equal.
@@ -21,6 +21,6 @@ Calls `f` and asserts that it throws an exception with the specified `message`.
 throws<a> void(f act a(), message str)
 	match f catch
 	as ok _
-		"Expected to throw an exception" throw
+		"Expected to throw an exception" throw-c-str
 	as err e
-		e.message is message
+		e.message.literal is message

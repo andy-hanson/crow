@@ -5,10 +5,10 @@ import
 	../../exception: assert, forbid
 	../../fun-util: subscript
 	../../misc: new, void
-	../../opt: ==, is-empty, new, opt
+	../../opt: ==, is-empty, new, opt, opt-equal
 	../../ptr: ==, +, -, *, const-ptr, mut-ptr, set-deref, set-subscript
 	../../range: ..
-	../../str: ==, str
+	../../str: ==, literal, str
 	../../test-util: is
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../../private/bootstrap: hard-assert
@@ -268,6 +268,9 @@ test
 	# TODO: compiler crashes without a type argument here
 	(e find-and-get@<str, nat64> x => x if-eq 3, "three") is ("three",)
 	(e find-and-get@<str, nat64> x => x if-eq 5, "five") is ()
+
+.== bool(a str?, b str?)
+	a opt-equal b
 
 .if-eq str?(actual nat64, expected nat64, result str)
 	if actual == expected

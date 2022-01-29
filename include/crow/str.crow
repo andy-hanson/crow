@@ -7,9 +7,11 @@ no-std
 import
 	./bool: bool
 	./compare: comparison
-	./col/arr: ~~, arr, arr-compare, arr-equal, is-empty, size
+	./col/arr: ~, ~~, arr, arr-compare, arr-equal, is-empty, size
+	./col/private/arr-low-level: arr-from-begin-end
 	./private/bootstrap: new
 	./private/number-low-level: ==, <=>, nat64
+	./private/c-str-util: find-c-str-end
 export
 	./private/bootstrap: char, chars, c-str, str, to-char, to-nat8
 
@@ -19,6 +21,9 @@ This is O(1).
 ###
 str str(a char[]) noctx
 	a,
+
+literal str(a c-str) noctx trusted
+	a arr-from-begin-end a.find-c-str-end str
 
 # Same as `""`.
 new str() noctx
@@ -32,6 +37,12 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 ###
 ~~ str(a str, b str)
 	a.chars ~~ b.chars,
+
+~ str(a char, b str)
+	a ~ b.chars,
+
+~ str(a str, b char)
+	a.chars ~ b,
 
 # Same as `a == ""`.
 is-empty bool(a str) noctx

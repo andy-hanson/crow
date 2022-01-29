@@ -25,12 +25,13 @@ import
 	../extra-types: fd-t
 	../misc: new, void
 	../number: ==, <=>, int32, to-int32, to-int64, to-nat64
-	../ptr: ==, +, -, any-const-ptr, as-any-const-ptr, as-any-mut-ptr, as-ref, by-val, const-ptr, null
-	../str: char, c-str, str
-	../str-conv: finish, interp, to-str, with-str, with-value
-	../str-util: find-cstr-end, to-c-str
 	../private/bootstrap: todo
+	../private/c-str-util: find-c-str-end
 	../private/number-low-level: wrap-add
+	../ptr: ==, +, -, any-const-ptr, as-any-const-ptr, as-any-mut-ptr, as-ref, by-val, const-ptr, null
+	../str: char, c-str, literal, str
+	../str-conv: finish, interp, to-str, with-str, with-value
+	../str-util: to-c-str
 	./environ: convert-environ, environ
 	./file: is-file
 	./posix-util: check-errno, check-posix-error
@@ -69,7 +70,7 @@ spawn-and-wait-result process-result(exe str, args str[], environ environ) trust
 		# returns null on error or success
 		check-errno
 	else
-		new-end = old-end find-cstr-end
+		new-end = old-end find-c-str-end
 		res unsafe-set-size new-end - res.begin-ptr
 		res keep-reading file
 

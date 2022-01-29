@@ -1,6 +1,3 @@
-console.log("U R HERE")
-
-
 const getUserName = async () => {
 	const loginCookie = getCookie("login")
 	if (loginCookie === null)

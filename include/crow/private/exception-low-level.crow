@@ -10,8 +10,8 @@ import
 	../ptr: ==, as-ref, by-val, null, ptr-to
 	./backtrace: get-backtrace
 	./bootstrap:
-		err, exception-ctx-ptr, get-ctx, hard-assert, hard-unreachable, int32, new, ok, result,
-		str, thread-local-stuff
+		c-str, err, exception-ctx-ptr, get-ctx, hard-assert, hard-unreachable, int32, new, ok, result,
+		thread-local-stuff
 	./number-low-level: ==, new
 export
 	./bootstrap: exception, message
@@ -50,12 +50,7 @@ catch-with-exception-ctx<a> a(ec exception-ctx, try act a(), catcher act a(excep
 		ec.thrown-exception := old-thrown-exception
 		catcher[thrown-exception]
 
-###
-Create amd throw an exception with the given message.
-
-This gets the current backtrace to use in the exception.
-###
-throw<a> a(message str) trusted
+throw-c-str<a> a(message c-str) trusted
 	(message, get-backtrace) throw
 
 ###
@@ -77,7 +72,7 @@ throw<a> a(e exception) trusted
 # Throw iff the condition is `false`.
 assert void(condition bool)
 	unless condition
-		"assert failed" throw
+		"assert failed" throw-c-str
 
 ###
 Iff the condition is `false`, throw `message`.
@@ -85,14 +80,14 @@ Iff the condition is `false`, throw `message`.
 `message` is eagerly evaluated, so it should be a string literal;
 use `unless` and `throw` for a computed message.
 ###
-assert void(message str, condition bool)
+assert-c-str void(message c-str, condition bool)
 	unless condition
-		message throw
+		message throw-c-str
 
 # Throw iff the condition is `true`.
 forbid void(condition bool)
 	if condition
-		"forbid failed" throw
+		"forbid failed" throw-c-str
 
 ###
 Iff the condition is `true`, throw `message`.
@@ -100,9 +95,9 @@ Iff the condition is `true`, throw `message`.
 The message is eagerly evaluated, so it should be a string literal;
 use `if` and `throw` for a computed message.
 ###
-forbid void(message str, condition bool)
+forbid-c-str void(message c-str, condition bool)
 	if condition
-		message throw
+		message throw-c-str
 
 ###
 Run `try` and return `ok` containing its return value,

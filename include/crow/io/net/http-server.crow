@@ -20,7 +20,7 @@ import
 	../../extra-types: fd-t
 	../../range: ..
 	../../reader: parse-nat
-	../../str: ==, <=>, char, chars, is-empty, str
+	../../str: ==, <=>, char, chars, is-empty, literal, str
 	../../str-conv: finish, interp, to-str, with-str, with-value
 	../../str-util: as-str, bytes, has-substr, split-by, try-remove-end
 	../../writer: ~=, ~~=, move-to-str, new, writer

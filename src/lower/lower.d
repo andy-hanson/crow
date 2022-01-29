@@ -54,7 +54,6 @@ import model.concreteModel :
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteType,
-	ConcreteFunToName,
 	elementType,
 	fieldOffsets,
 	isCallWithCtxFun,
@@ -720,7 +719,6 @@ immutable(AllLowFuns) getAllLowFuns(
 			(immutable size_t index, ref immutable LowFunCause cause) =>
 				lowFunFromCause(
 					alloc,
-					program.funToName,
 					allTypes,
 					program.allConstants.allFuns,
 					program.allConstants.staticSyms,
@@ -771,7 +769,6 @@ public immutable(bool) concreteFunWillBecomeNonExternLowFun()(ref immutable Conc
 
 immutable(LowFun) lowFunFromCause(
 	ref Alloc alloc,
-	ref immutable ConcreteFunToName funToName,
 	ref immutable AllLowTypes allTypes,
 	ref immutable Constant allFuns,
 	ref immutable Constant staticSyms,

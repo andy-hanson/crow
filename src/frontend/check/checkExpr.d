@@ -16,6 +16,7 @@ import frontend.check.inferringType :
 	isBogus,
 	LambdaInfo,
 	LocalAndUsed,
+	mustSetType,
 	programState,
 	rangeInFile2,
 	shallowInstantiateType,
@@ -138,7 +139,7 @@ import util.col.mutArr :
 	push,
 	tempAsArr,
 	tempAsArr_mut;
-import util.col.str : copyStr;
+import util.col.str : copyStr, copyToSafeCStr;
 import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
@@ -594,13 +595,17 @@ immutable(Expr) checkLiteral(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
+	ref immutable ExprAst curAst,
 	ref immutable LiteralAst ast,
 	ref Expected expected,
 ) {
 	immutable Opt!Type expectedType = tryGetInferred(expected);
-	immutable Ptr!StructInst expectedStruct = has(expectedType) && isStructInst(force(expectedType))
-		? asStructInst(force(expectedType))
-		: ctx.commonTypes.bool_; // Just picking a random one that won't match any of the below tests
+	immutable Opt!(Ptr!StructInst) expectedStruct = has(expectedType) && isStructInst(force(expectedType))
+		? some(asStructInst(force(expectedType)))
+		: none!(Ptr!StructInst);
+	immutable(bool) expectedStructIs(immutable Ptr!StructInst x) {
+		return has(expectedStruct) && ptrEquals(force(expectedStruct), x);
+	}
 	immutable IntegralTypes integrals = ctx.commonTypes.integrals;
 
 	immutable(Expr) asFloat32(immutable float value) {
@@ -623,30 +628,32 @@ immutable(Expr) checkLiteral(
 			if (it.overflow)
 				todo!void("literal overflow");
 
-			return ptrEquals(expectedStruct, ctx.commonTypes.float32)
+			return expectedStructIs(ctx.commonTypes.float32)
 				? asFloat32(it.value)
 				: asFloat64(it.value);
 		},
 		(immutable LiteralAst.Int it) {
-			if (ptrEquals(expectedStruct, ctx.commonTypes.float32))
+			if (expectedStructIs(ctx.commonTypes.float32))
 				return asFloat32(cast(immutable float) it.value);
-			if (ptrEquals(expectedStruct, ctx.commonTypes.float64))
+			if (expectedStructIs(ctx.commonTypes.float64))
 				return asFloat64(cast(immutable double) it.value);
 			else {
-				immutable(Opt!IntRange) intRange = ptrEquals(expectedStruct, integrals.int8)
+				immutable(Opt!IntRange) intRange = expectedStructIs(integrals.int8)
 					? some(immutable IntRange(byte.min, byte.max))
-					: ptrEquals(expectedStruct, integrals.int16)
+					: expectedStructIs(integrals.int16)
 					? some(immutable IntRange(short.min, short.max))
-					: ptrEquals(expectedStruct, integrals.int32)
+					: expectedStructIs(integrals.int32)
 					? some(immutable IntRange(int.min, int.max))
-					: ptrEquals(expectedStruct, integrals.int64)
+					: expectedStructIs(integrals.int64)
 					? some(immutable IntRange(long.min, long.max))
 					: none!IntRange;
 				immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
 				if (has(intRange)) {
 					if (it.overflow || it.value < force(intRange).min || it.value > force(intRange).max)
 						todo!void("literal overflow");
-					return immutable Expr(range, allocate(alloc, immutable Expr.Literal(expectedStruct, constant)));
+					return immutable Expr(
+						range,
+						allocate(alloc, immutable Expr.Literal(force(expectedStruct), constant)));
 				} else {
 					immutable Expr e = immutable Expr(
 						range,
@@ -656,33 +663,33 @@ immutable(Expr) checkLiteral(
 			}
 		},
 		(immutable LiteralAst.Nat it) {
-			if (ptrEquals(expectedStruct, ctx.commonTypes.float32))
+			if (expectedStructIs(ctx.commonTypes.float32))
 				return asFloat32(cast(immutable float) it.value);
-			if (ptrEquals(expectedStruct, ctx.commonTypes.float64))
+			if (expectedStructIs(ctx.commonTypes.float64))
 				return asFloat64(cast(immutable double) it.value);
 			else {
-				immutable(Opt!ulong) max = ptrEquals(expectedStruct, integrals.nat8)
+				immutable(Opt!ulong) max = expectedStructIs(integrals.nat8)
 					? some!ulong(ubyte.max)
-					: ptrEquals(expectedStruct, integrals.nat16)
+					: expectedStructIs(integrals.nat16)
 					? some!ulong(ushort.max)
-					: ptrEquals(expectedStruct, integrals.nat32)
+					: expectedStructIs(integrals.nat32)
 					? some!ulong(uint.max)
-					: ptrEquals(expectedStruct, integrals.nat64)
+					: expectedStructIs(integrals.nat64)
 					? some(ulong.max)
-					: ptrEquals(expectedStruct, integrals.int8)
+					: expectedStructIs(integrals.int8)
 					? some!ulong(byte.max)
-					: ptrEquals(expectedStruct, integrals.int16)
+					: expectedStructIs(integrals.int16)
 					? some!ulong(short.max)
-					: ptrEquals(expectedStruct, integrals.int32)
+					: expectedStructIs(integrals.int32)
 					? some!ulong(int.max)
-					: ptrEquals(expectedStruct, integrals.int64)
+					: expectedStructIs(integrals.int64)
 					? some!ulong(long.max)
 					: none!ulong;
 				immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
 				if (has(max)) {
 					if (it.overflow || it.value > force(max))
-						addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.LiteralOverflow(expectedStruct)));
-					return immutable Expr(range, allocate(alloc, immutable Expr.Literal(expectedStruct, constant)));
+						addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.LiteralOverflow(force(expectedStruct))));
+					return immutable Expr(range, allocate(alloc, immutable Expr.Literal(force(expectedStruct), constant)));
 				} else {
 					if (it.overflow)
 						todo!void("literal overflow");
@@ -694,19 +701,20 @@ immutable(Expr) checkLiteral(
 			}
 		},
 		(immutable string value) =>
-			checkStringLiteral(alloc, ctx, range, expected, expectedStruct, value),
+			checkStringLiteral(alloc, ctx, curAst, range, expected, expectedStruct, value),
 	)(ast);
 }
 
 immutable(Expr) checkStringLiteral(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
+	ref immutable ExprAst curAst,
 	ref immutable FileAndRange range,
 	ref Expected expected,
-	immutable Ptr!StructInst expectedStruct,
+	immutable Opt!(Ptr!StructInst) expectedStruct,
 	immutable string value,
 ) {
-	if (ptrEquals(expectedStruct, ctx.commonTypes.char_)) {
+	if (has(expectedStruct) && ptrEquals(force(expectedStruct), ctx.commonTypes.char_)) {
 		immutable char char_ = () {
 			if (value.length != 1) {
 				addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.CharLiteralMustBeOneChar()));
@@ -717,14 +725,31 @@ immutable(Expr) checkStringLiteral(
 		return immutable Expr(
 			range,
 			allocate(alloc, immutable Expr.Literal(
-				expectedStruct,
+				force(expectedStruct),
 				immutable Constant(immutable Constant.Integral(char_)))));
-	} else if (ptrEquals(expectedStruct, ctx.commonTypes.sym))
+	} else if (has(expectedStruct) && ptrEquals(force(expectedStruct), ctx.commonTypes.sym))
 		return immutable Expr(range, immutable Expr.SymbolLiteral(symOfStr(ctx.allSymbols, value)));
+	else if (has(expectedStruct) && ptrEquals(force(expectedStruct), ctx.commonTypes.cStr))
+		return immutable Expr(
+			range,
+			immutable Expr.CStringLiteral(copyToSafeCStr(alloc, value)));
 	else {
-		immutable Expr e = immutable Expr(range, immutable Expr.StringLiteral(copyStr(alloc, value)));
-		return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.str), e);
+		if (!has(expectedStruct))
+			mustSetType(alloc, ctx.programState, expected, getStrType(alloc, ctx, range));
+		immutable CallAst call = immutable CallAst(
+				CallAst.Style.emptyParens,
+				immutable NameAndRange(range.start, shortSym("literal")),
+				emptyArrWithSize!TypeAst,
+				arrWithSizeLiteral!ExprAst(alloc, [curAst]));
+		return checkCall(alloc, ctx, range, call, expected);
 	}
+}
+
+immutable(Type) getStrType(ref Alloc alloc, ref ExprCtx ctx, immutable FileAndRange range) {
+	return typeFromAst2(alloc, ctx, immutable TypeAst(immutable TypeAst.InstStruct(
+		range.range,
+		immutable NameAndRange(range.start, shortSym("str")),
+		emptyArrWithSize!TypeAst)));
 }
 
 
@@ -1240,7 +1265,7 @@ public immutable(Expr) checkExpr(
 		(ref immutable LetAst a) =>
 			checkLet(alloc, ctx, range, a, expected),
 		(ref immutable LiteralAst a) =>
-			checkLiteral(alloc, ctx, range, a, expected),
+			checkLiteral(alloc, ctx, range, ast, a, expected),
 		(ref immutable MatchAst a) =>
 			checkMatch(alloc, ctx, range, a, expected),
 		(ref immutable ParenthesizedAst a) =>

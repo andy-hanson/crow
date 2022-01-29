@@ -8,7 +8,7 @@ import
 	../../opt: new, opt
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
 	../../range: ..
-	../../str: ==, <=>, chars, str
+	../../str: ==, <=>, chars, literal, str
 	../../str-conv: interp, finish, to-str, with-str, with-value
 	../../str-util: starts-with
 	../../test-util: is

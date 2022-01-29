@@ -6,7 +6,7 @@ import
 	crow/misc: new, void
 	crow/number: to-int32
 	crow/ptr: as-const, ptr-to
-	crow/str: str
+	crow/str: literal, str
 	crow/str-conv: finish, interp, to-str, with-str, with-value
 	GLES2/gl2:
 		==, glBindTexture, glDeleteTextures, glGetError, glGenTextures, GL_LINEAR, GL_NO_ERROR,

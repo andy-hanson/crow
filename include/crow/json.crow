@@ -12,7 +12,7 @@ import
 	./opt: new, opt
 	./reader:
 		reader, skip-whitespace, try-take-char, take-float, take-quoted-str, try-take-str, with-reader
-	./str: ==, <=>, str
+	./str: ==, <=>, literal, str
 	./test-util: is
 	./tuple: new
 	./writer: ~=, ~~=, backup, move-to-str, new, writer, write-quoted-str

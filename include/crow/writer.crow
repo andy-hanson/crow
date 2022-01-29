@@ -5,7 +5,7 @@ import
 	./col/mut-arr: ~=, ~~=, move-to-arr, mut-arr, new, pop-n
 	./misc: void
 	./number: float64, int64, nat64
-	./str: ==, char, chars, c-str, str
+	./str: ==, char, chars, c-str, literal, str
 	./str-conv: to-str
 	./str-util: to-str
 

@@ -7,7 +7,7 @@ import
 	./misc: name, named-val, val
 	./opt: ??, new, opt
 	./sym: ==, sym, to-str
-	./str: ==, str
+	./str: ==, literal, str
 
 # TODO: inherit from 'compare' spec
 ###
@@ -23,7 +23,7 @@ enum-like<a> spec
 
 # Convert an enum value to name that was used to declare it.
 to-sym<a> sym(a a) enum-like<a>
-	(enum-members find-and-get x => x.val == a ? x.name,) ?? "Invalid enum value".throw
+	(enum-members find-and-get x => x.val == a ? x.name,) ?? "Invalid enum value" throw
 
 ###
 Converts a symbol to the enum value that was declared with that name.

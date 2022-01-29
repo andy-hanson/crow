@@ -8,7 +8,7 @@ import concretize.concretizeCtx :
 	ConcreteFunKey,
 	concreteTypeFromClosure,
 	concretizeParams,
-	constantStr,
+	constantCStr,
 	constantSym,
 	ContainingFunInfo,
 	getOrAddNonTemplateConcreteFunAndFillBody,
@@ -17,7 +17,7 @@ import concretize.concretizeCtx :
 	getCurIslandAndExclusionFun,
 	getOrAddConcreteFunAndFillBody,
 	getConcreteFunForLambdaAndFillBody,
-	strType,
+	cStrType,
 	symType,
 	typeArgsScope,
 	TypeArgsScope,
@@ -624,11 +624,11 @@ immutable(ConcreteExpr) concretizeExpr(
 				: immutable ConcreteExpr(then.type, range, immutable ConcreteExprKind(
 					allocate(alloc, immutable ConcreteExprKind.Seq(first, then))));
 		},
-		(ref immutable Expr.StringLiteral e) =>
+		(ref immutable Expr.CStringLiteral e) =>
 			immutable ConcreteExpr(
-				strType(alloc, ctx.concretizeCtx),
+				cStrType(alloc, ctx.concretizeCtx),
 				range,
-				immutable ConcreteExprKind(constantStr(alloc, ctx.concretizeCtx, e.literal))),
+				immutable ConcreteExprKind(constantCStr(alloc, ctx.concretizeCtx, e.value))),
 		(ref immutable Expr.SymbolLiteral e) =>
 			immutable ConcreteExpr(
 				symType(alloc, ctx.concretizeCtx),

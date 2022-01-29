@@ -25,9 +25,13 @@ import
 	crow/col/stack: new, stack
 	crow/col/queue: new, queue
 	crow/crypto/password-hash: quality-moderate
+	crow/io/environ: environ
+	crow/io/process: new, process-result
+	crow/io/terminal-color: bold
 	crow/io/time-format: gmt
 	crow/json: json-str
 	crow/log: info, log
+	crow/math/vec: new, vec2
 	crow/parse-command: parse-named-args
 	crow/perf: measure-total, new
 	crow/reader: new, reader, take-quoted-str
@@ -37,10 +41,12 @@ import
 main fut nat(_ str[]) summon
 	drop: ().from-bytes :: nat8[]
 	drop: quality-moderate
+	drop: bold
 	drop: () :: compact-dict<nat, nat>
 	drop: () :: compact-sorted-dict<nat, nat>
 	drop: () :: deque<nat>
 	drop: () :: nat[nat]
+	drop: () :: environ
 	drop: () :: frozen-dict<nat, nat>
 	drop: () :: frozen-set<nat>
 	drop: () :: hamt-set<nat>
@@ -57,11 +63,13 @@ main fut nat(_ str[]) summon
 	drop: () :: mut-stack<nat>
 	drop: () :: measure-total
 	drop: () :: priority-queue<nat, nat>
+	drop: ((), (), ()) :: process-result
 	drop: () :: seq<nat>
 	drop: () :: set<nat>
 	drop: () :: sorted-set<nat>
 	drop: () :: stack<nat>
 	drop: () :: tree-set<nat>
+	drop: () :: vec2
 	drop: () :: queue<nat>
 	drop: gmt
 	drop: "".json-str

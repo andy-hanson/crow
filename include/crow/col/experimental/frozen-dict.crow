@@ -5,9 +5,9 @@ import
 	../../fun-util: subscript
 	../../hash: hash, hash-mix
 	../../misc: is-data, new, void
-	../../opt: ==, is-empty, new, opt
+	../../opt: is-empty, new, opt, opt-equal
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
-	../../str: str
+	../../str: ==, literal, str
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../private/alloc: alloc-uninitialized
@@ -271,6 +271,9 @@ fold-with-index<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
 .verify void(a frozen-dict<nat64, str>, keys-order nat64[], bucket-starts nat64[]) unsafe
 	a.pairs map (pair => pair from) is keys-order
 	a.bucket-starts map (ptr => ptr - a.pairs.begin-ptr) is bucket-starts
+
+.== bool(a str?, b str?)
+	a opt-equal b
 
 test
 	a frozen-dict<nat64, str> = ()

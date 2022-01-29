@@ -12,7 +12,7 @@ import
 	../../range: ..
 	../../reader: parse-int, parse-nat
 	../../serialize: from-bytes, to-8-bytes
-	../../str: str
+	../../str: literal, str
 	../../str-conv: interp, finish, to-str, with-str, with-value
 	../../str-util: try-split-once
 	../../tuple: a, b

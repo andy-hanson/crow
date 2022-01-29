@@ -7,7 +7,7 @@ import
 	../opt: !, is-empty, new, opt
 	../ptr: ==, +, -, set-deref
 	../range: ..
-	../str: ==, str
+	../str: ==, literal, str
 	../str-conv: to-str
 	../test-util: is
 	../writer: ~=, ~~=, backup, move-to-str, new, writer

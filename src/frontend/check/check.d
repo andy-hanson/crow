@@ -369,7 +369,6 @@ immutable(CommonTypes) getCommonTypes(
 	immutable Ptr!StructInst nat16 = nonTemplate("nat16");
 	immutable Ptr!StructInst nat32 = nonTemplate("nat32");
 	immutable Ptr!StructInst nat64 = nonTemplate("nat64");
-	immutable Ptr!StructInst str = nonTemplate("str");
 	immutable Ptr!StructInst sym = nonTemplate("sym");
 	immutable Ptr!StructInst void_ = nonTemplate("void");
 	immutable Ptr!StructInst ctxStructInst = nonTemplate("ctx");
@@ -413,6 +412,13 @@ immutable(CommonTypes) getCommonTypes(
 	immutable Ptr!StructDecl funRef3 = com("fun-ref3", 4);
 	immutable Ptr!StructDecl funRef4 = com("fun-ref4", 5);
 
+	immutable Ptr!StructDecl constPtr = com("const-ptr", 1);
+	immutable Ptr!StructInst cStr = instantiateStruct(
+		alloc,
+		ctx.programState,
+		immutable StructDeclAndArgs(constPtr, arrLiteral!Type(alloc, [immutable Type(char_)])),
+		someMut(ptrTrustMe_mut(delayedStructInsts)));
+
 	immutable string[] missingArr = finishArr(alloc, missing);
 
 	if (!empty(missingArr))
@@ -424,6 +430,7 @@ immutable(CommonTypes) getCommonTypes(
 	return immutable CommonTypes(
 		bool_,
 		char_,
+		cStr,
 		float32,
 		float64,
 		immutable IntegralTypes(
@@ -435,7 +442,6 @@ immutable(CommonTypes) getCommonTypes(
 			nat16,
 			nat32,
 			nat64),
-		str,
 		sym,
 		void_,
 		ctxStructInst,

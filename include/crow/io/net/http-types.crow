@@ -4,7 +4,7 @@ import
 	../../col/dict: dict, new
 	../../hash: hash-mix
 	../../number: nat8, nat64
-	../../str: ==, <=>, str
+	../../str: ==, <=>, literal, str
 	../../str-util: as-str, bytes
 
 # Parsed HTTP request.

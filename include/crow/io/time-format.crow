@@ -13,7 +13,7 @@ import
 	../number: ==, <=>, +, nat64
 	../ptr: ptr-to
 	../range: ..
-	../str: char, str
+	../str: char, literal, str
 	../str-util: to-c-str
 	./time: seconds-since-epoch, unix-time
 	

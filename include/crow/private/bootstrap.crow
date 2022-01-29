@@ -423,7 +423,7 @@ There is no exception subtyping in crow, so all exceptions have this type.
 exception record
 	by-val
 	# Message passed to `throw`.
-	message str
+	message c-str
 	# TODO: accessing backtrace should be unsafe
 	###
 	Backtrace when the exception was created.

@@ -6,9 +6,9 @@ import
 	../../hash: hash-mix
 	../../log: info, log
 	../../misc: is-data, new, void
-	../../opt: ==, is-empty, new, opt
+	../../opt: is-empty, new, opt, opt-equal
 	../../ptr: ==, +, bits-equal, ref-eq, set-deref
-	../../str: ==, str
+	../../str: ==, literal, str
 	../../str-conv: to-str
 	../../test-util: is
 	../../tuple: from, new, pair, to
@@ -256,6 +256,9 @@ verify void(a compact-dict<nat64, str>, expected str)
 	dbg is expected
 	a each (k, v) =>
 		a[k] is (v,)
+
+.== bool(a str?, b str?)
+	a opt-equal b
 
 .exact-eq<k, v> bool(a compact-dict<k, v>, b compact-dict<k, v>) unsafe
 	match a impl

@@ -179,20 +179,7 @@ private immutable(Constant) constantEmptyArr() {
 	return immutable Constant(immutable Constant.Record(fields));
 }
 
-immutable(Constant) getConstantStr(
-	ref Alloc alloc,
-	ref AllConstantsBuilder allConstants,
-	ref immutable ConcreteStruct strStruct,
-	immutable string str,
-) {
-	immutable Constant[] chars = map!Constant(alloc, str, (ref immutable char it) =>
-		constantChar(it));
-	immutable Ptr!ConcreteStruct arrCharStruct = mustBeNonPointer(only(asRecord(body_(strStruct)).fields).type);
-	immutable Constant arr = getConstantArr(alloc, allConstants, arrCharStruct, chars);
-	return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [arr])));
-}
-
-private immutable(Constant.CString) getConstantCStr(
+immutable(Constant.CString) getConstantCStr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	immutable SafeCStr value,

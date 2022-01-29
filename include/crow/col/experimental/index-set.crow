@@ -11,7 +11,7 @@ import
 	../../opt: ??, is-empty, new, opt
 	../../ptr: ==, +, *, const-ptr, ptr-to, set-deref
 	../../range: .., each
-	../../str: ==, str
+	../../str: ==, literal, str
 	../../str-conv: to-hex, to-str
 	../../test-util: is
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer

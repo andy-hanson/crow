@@ -4,7 +4,7 @@ import
 	./col/arr: arr, new
 	./col/arr-util: flat-map, map
 	./misc: name, named-val, val
-	./str: str
+	./str: literal, str
 	./str-util: join
 	./sym: sym, to-str
 

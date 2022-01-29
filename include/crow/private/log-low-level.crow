@@ -4,7 +4,7 @@ import
 	../ptr: as-ref, by-val
 	../misc: void
 	../ptr: zeroed
-	../str: ~~, str
+	../str: ~~, literal, str
 	./bootstrap: get-ctx, log-ctx-ptr, thread-local-stuff
 
 ###

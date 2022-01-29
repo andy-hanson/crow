@@ -3,9 +3,8 @@ import
 	./bool: bool, false, new, true
 	./compare: equal
 	./misc: drop
-	./str: ==, str
-	./private/bootstrap: char, none, some
-	./private/exception-low-level: throw
+	./private/bootstrap: none, some
+	./private/exception-low-level: throw-c-str
 	./private/number-low-level: ==, int64, nat64, new
 export
 	./private/bootstrap: opt
@@ -22,13 +21,9 @@ new<a> a?(a a) noctx
 	a opt-equal b
 == bool(a nat64?, b nat64?) no-doc noctx
 	a opt-equal b
-== bool(a str?, b str?) no-doc noctx
-	a opt-equal b
-== bool(a char?, b char?) no-doc noctx
-	a opt-equal b
 
 # TODO:GENERIC
-.opt-equal<a> bool(a a?, b a?) equal<a> noctx
+opt-equal<a> bool(a a?, b a?) equal<a> noctx no-doc
 	if va ?= a
 		if vb ?= b
 			va == vb
@@ -65,4 +60,4 @@ Else, returns `b`.
 
 # If `a` is non-empty, returns its value; else throws.
 !<a> a(a a?)
-	a ?? "tried to force empty option" throw
+	a ?? "tried to force empty option" throw-c-str

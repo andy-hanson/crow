@@ -26,7 +26,7 @@ import
 		==, +, any-const-ptr, as-any-const-ptr, as-const, const-ptr, mut-ptr, null, ptr-cast,
 		ptr-cast-from-extern, ref-eq, size-of
 	../range: ..
-	../str: ==, <=>, char, chars, c-str, size-bytes, str
+	../str: ==, <=>, char, chars, c-str, literal, size-bytes, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: as-str, to-c-str, to-str
 	../private/bootstrap: todo
@@ -42,7 +42,7 @@ is-dir bool(path str) summon trusted
 	if stat ?= path get-stat
 		stat.st_mode & S_IFMT == S_IFDIR
 	else
-		throw: "path does not exist: {path}"
+		"path does not exist: {path}" throw
 
 # `true` iff `path` is the path of a file -- not a directory, possibly a symlink.
 is-file bool(path str) summon trusted
@@ -218,6 +218,9 @@ try-read-file-binary nat8[]?(path str) summon trusted
 				assert: n-bytes-read == file-size
 				check-posix-error: fd close
 				res.cast-immutable,
+	else
+		print: "not a file"
+		()
 
 # Gets the current directory (of the user that ran the program).
 current-directory str() summon trusted

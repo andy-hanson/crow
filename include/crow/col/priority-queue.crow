@@ -7,7 +7,7 @@ import
 	../opt: !, is-empty, new, opt
 	../ptr: ==, +, -, mut-ptr, set-deref
 	../range: ..
-	../str: ==, str
+	../str: ==, literal, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act2

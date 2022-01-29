@@ -28,7 +28,8 @@ import
 	../../private/fut-low-level: callback
 	../../ptr: by-val, mut-ptr, ptr-cast-to-extern, ptr-to, ref-of-val, size-of
 	../../range: ..
-	../../str: chars, str
+	../../str: chars, literal, str
+	../../str-util: to-str
 	../duration: msec
 	../posix-util: check-posix-error
 	../print: print
@@ -81,8 +82,8 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 			as ok _
 				print: "stopped normally"
 			as err e
-				print: "An exception occurred in server"
-				print: e message
+				print: "An exception occurred in tcp-server"
+				print: e.message to-str
 
 		done handle-exceptions
 

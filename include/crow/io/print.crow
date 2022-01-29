@@ -6,7 +6,7 @@ import
 	../extra-types: fd-t
 	../misc: new, void
 	../ptr: as-any-const-ptr, size-of
-	../str: char, chars, size-bytes, str
+	../str: char, chars, literal, size-bytes, str
 	../private/bootstrap: hard-assert, todo
 	../private/number-low-level: ==, nat8, unsafe-to-int64
 

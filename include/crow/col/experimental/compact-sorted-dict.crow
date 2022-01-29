@@ -6,10 +6,10 @@ import
 	../../fun-util: subscript
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, is-even, nat64
-	../../opt: ==, ||, is-empty, new, opt
+	../../opt: ||, is-empty, new, opt, opt-equal
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
 	../../range: ..
-	../../str: ==, chars, is-empty, size-bytes, str
+	../../str: ==, chars, is-empty, size-bytes, literal, str
 	../../str-conv: interp, finish, to-str, with-str, with-value
 	../../test-util: is
 	../../tuple: from, new, pair, to
@@ -460,6 +460,9 @@ verify void(a compact-sorted-dict<nat64, str>, expected str)
 			false
 		as end-node eb
 			ea arr-ref-eq eb
+
+.== bool(a str?, b str?)
+	a opt-equal b
 
 test
 	a compact-sorted-dict<nat64, str> = ()

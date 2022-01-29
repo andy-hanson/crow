@@ -8,10 +8,11 @@ import
 	../hash: hash-mix
 	../misc: new, void
 	../private/bootstrap: todo
+	../private/c-str-util: find-char-in-c-str, find-c-str-end
 	../ptr: ==, +, *, const-ptr, null
-	../str: ==, <=>, c-str, str
+	../str: ==, <=>, c-str, literal, str
 	../str-conv: finish, interp, to-str, with-str, with-value
-	../str-util: find-char-in-cstr, find-cstr-end, to-c-str
+	../str-util: to-c-str
 	../tuple: from, new, pair, to
 
 # Represents the environment variables available to this process.
@@ -31,10 +32,10 @@ get-environ environ() summon trusted
 		env + 1 get-environ-recur res
 
 .parse-environ-entry pair<str, str>(entry c-str) unsafe
-	if key-end ?= entry find-char-in-cstr "="
+	if key-end ?= entry find-char-in-c-str "="
 		key = entry arr-from-begin-end key-end str
 		value-begin = key-end + 1
-		value-end = value-begin find-cstr-end
+		value-end = value-begin find-c-str-end
 		value = value-begin arr-from-begin-end value-end str
 		key, value
 	else

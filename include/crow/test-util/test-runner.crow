@@ -5,6 +5,7 @@ import
 	../fun-util: fun-ptr1, subscript
 	../io/print: print
 	../misc: void
+	../str: literal
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../private/bootstrap: ctx, get-ctx
 

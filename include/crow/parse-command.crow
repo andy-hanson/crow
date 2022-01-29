@@ -13,7 +13,7 @@ import
 	./number: ==, <=>, +
 	./opt: !, ??, new, opt
 	./range: ..
-	./str: ==, <=>, str
+	./str: ==, <=>, literal, str
 	./str-conv: interp, finish, to-str, with-str, with-value
 	./str-util: starts-with, try-remove-start
 

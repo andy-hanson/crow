@@ -7,7 +7,7 @@ import
 	../number: ==, <=>, +, -, /, nat64
 	../ptr: ==, +, -, *, mut-ptr, set-deref
 	../range: ..
-	../str: ==, <=>, chars, str
+	../str: ==, <=>, chars, literal, str
 	../test-util: is
 	./arr: ==, arr, new, subscript
 	./fix-arr:

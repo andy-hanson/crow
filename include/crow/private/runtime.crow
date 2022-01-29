@@ -9,6 +9,7 @@ import
 	../misc: new, void
 	../opt: new, opt
 	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val
+	../str: literal
 	./alloc: gc, get-gc-ctx, needs-gc, return-gc-ctx, run-garbage-collection
 	./bool-low-level: !, &&, ||, bool, false, true
 	./bootstrap:

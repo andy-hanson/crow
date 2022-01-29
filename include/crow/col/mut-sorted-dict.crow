@@ -6,10 +6,10 @@ import
 	../fun-util: subscript
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, *, nat64
-	../opt: !, ??, ==, is-empty, new, opt, size
+	../opt: !, ??, is-empty, new, opt, opt-equal, size
 	../ptr: ==, -, *, mut-ptr, set-deref
 	../range: ..
-	../str: ==, chars, str
+	../str: ==, chars, literal, str
 	../test-util: is
 	../tuple: from, new, pair, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
@@ -426,3 +426,6 @@ test
 
 	a[4] := "4"
 	a verify "[0 -> 0, 1 -> 1, 2 -> 2, 3 -> 3, 4 -> 4, 5 -> 5, 6 -> 6, 11 -> 11, 17 -> 17]"
+
+.== bool(a str?, b str?)
+	a opt-equal b

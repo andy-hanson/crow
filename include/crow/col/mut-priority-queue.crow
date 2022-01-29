@@ -6,7 +6,7 @@ import
 	../misc: is-data, new, void
 	../opt: !, is-empty, new, opt
 	../ptr: +, -, mut-ptr, set-deref
-	../str: ==, str
+	../str: ==, literal, str
 	../test-util: is
 	../tuple: from, new, pair, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer

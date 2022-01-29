@@ -10,7 +10,7 @@ import
 	../ptr: ==, +, *, as-const, const-ptr, mut-ptr, set-deref
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
 	../range: ..
-	../str: ==, str
+	../str: ==, literal, str
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../test-util: is
 	../writer: ~=, ~~=, backup, move-to-str, new, write, writer

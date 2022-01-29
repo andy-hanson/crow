@@ -1025,7 +1025,6 @@ struct ConcreteProgram {
 	immutable AllConstantsConcrete allConstants;
 	immutable Ptr!ConcreteStruct[] allStructs;
 	immutable Ptr!ConcreteFun[] allFuns;
-	immutable ConcreteFunToName funToName;
 	immutable PtrDict!(ConcreteStruct, ConcreteLambdaImpl[]) funStructToImpls;
 	immutable ConcreteCommonFuns commonFuns;
 	immutable Ptr!ConcreteStruct ctxType;
@@ -1044,8 +1043,6 @@ struct ConcreteCommonFuns {
 	immutable Ptr!ConcreteFun userMain;
 	immutable Ptr!ConcreteFun allocFun;
 }
-
-alias ConcreteFunToName = immutable PtrDict!(ConcreteFun, Constant);
 
 struct ConcreteLambdaImpl {
 	immutable ConcreteType closureType;

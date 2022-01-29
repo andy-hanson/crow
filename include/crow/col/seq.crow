@@ -2,13 +2,14 @@ no-std
 import
 	../bool: !, &&, ==, bool, false, new, true
 	../compare: <, <=, equal
-	../exception: assert, forbid, unreachable
+	../exception: assert
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, <=>, +, -, *, nat64
 	../opt: !, ||, is-empty, new, opt
+	../private/bootstrap: hard-assert, hard-forbid, hard-unreachable
 	../ptr: ==, <=>, +, set-deref, size-of
-	../str: ==, str
+	../str: ==, literal, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test-util: is
 	../tuple: a, b, new, pair
@@ -87,10 +88,10 @@ seq<a> record
 .depth-l2<a> nat64(_ l2 a)
 	2
 
-.as-branch<a, lower> branch<a, lower>(a node<a, lower>)
+.as-branch<a, lower> branch<a, lower>(a node<a, lower>) trusted
 	match a
 	as leaf _
-		unreachable
+		hard-unreachable
 	as branch b
 		b
 
@@ -178,6 +179,7 @@ This is O(log n), amortized O(1).
 	cat-left-array-lower act lower(a[], lower)
 	cat-left-node-lower act lower(lower, lower)
 spec
+	trusted
 	new<lower>
 body
 	match l
@@ -187,7 +189,7 @@ body
 		match r
 		as leaf _
 			# 'r' should be bigger
-			unreachable
+			hard-unreachable
 		as branch br
 			down1 = cat-left-array-lower[bl.right ~~ br.left, br.down]
 			down2 = cat-left-node-lower[bl.down, down1]
@@ -200,6 +202,7 @@ body
 	cat-right-array-lower act lower(lower, a[])
 	cat-right-node-lower act lower(lower, lower)
 spec
+	trusted
 	new<lower>
 body
 	match r
@@ -209,7 +212,7 @@ body
 		match l
 		as leaf _
 			# 'l' should be bigger
-			unreachable
+			hard-unreachable
 		as branch bl
 			down1 = cat-right-array-lower[bl.down, bl.right ~~ br.left]
 			down2 = cat-right-node-lower[down1, br.down]
@@ -327,7 +330,7 @@ value-and-rest<a> record
 Returns the next element and next iterator.
 Returns an empty option if the iterator was already at the end of the sequence.
 ###
-next<a> value-and-rest<a>?(a seq-iter a)
+next<a> value-and-rest<a>?(a seq-iter a) trusted
 	match a state
 	as l0-left xs
 		rest = if xs.tail is-empty
@@ -438,8 +441,8 @@ slice-right<a> seq a(a seq-iter a)
 			xs.to-array,
 
 .get-left-of-1d<a> a[](a a[], b a[]) trusted
-	assert: a.end-ptr == b.end-ptr
-	assert: a.begin-ptr <= b.begin-ptr
+	hard-assert: a.end-ptr == b.end-ptr
+	hard-assert: a.begin-ptr <= b.begin-ptr
 	a.begin-ptr arr-from-begin-end b.begin-ptr
 
 .get-left-of-2d<a> a[][](a a[][], b iter2d a)
@@ -463,7 +466,7 @@ slice-right<a> seq a(a seq-iter a)
 	pop-left pair<a[], l>(level l)
 	pop-right pair<l, a[]>(level l)
 
-.branch-or-leaf-generic<a, lower> node<a, lower>(left a[], down lower, right a[]) level<lower, a>
+.branch-or-leaf-generic<a, lower> node<a, lower>(left a[], down lower, right a[]) trusted level<lower, a>
 	if down is-empty
 		if left is-empty
 			right leaf
@@ -472,7 +475,7 @@ slice-right<a> seq a(a seq-iter a)
 		else
 			left ~~ right leaf
 	else
-		forbid: left.is-empty && right.is-empty
+		hard-forbid: left.is-empty && right.is-empty
 		if left is-empty
 			pair = down pop-left
 			if pair.b is-empty
@@ -592,8 +595,8 @@ slice-right<a> seq a(a seq-iter a)
 .cur<a> a(a iter2d a)
 	a.cur-array[0]
 
-.tail<a> iter2d<a>?(a iter2d a)
-	forbid: a.cur-array is-empty
+.tail<a> iter2d<a>?(a iter2d a) unsafe
+	hard-forbid: a.cur-array is-empty
 	if a.cur-array.size == 1
 		unless a.rest is-empty
 			(a.rest[0], a.rest.tail),
@@ -615,8 +618,8 @@ slice-right<a> seq a(a seq-iter a)
 .cur<a> a(a iter3d a)
 	a.cur-iter.cur
 
-.tail<a> iter3d<a>?(a iter3d a)
-	if t ?= a.cur-iter.tail
+.tail<a> iter3d<a>?(a iter3d a) unsafe
+	if t ?= a.cur-iter tail
 		(t, a.rest),
 	else
 		unless a.rest is-empty
@@ -677,7 +680,7 @@ flat-map<out, in> seq out(a seq in, f act seq out(in))
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
 		out + 1
-	assert: end == res.end-ptr
+	hard-assert: end == res.end-ptr
 	res cast-immutable
 
 .fold-chunks<a, b> a(acc a, xs seq b, f act a(a, b[]))
@@ -724,21 +727,21 @@ region test
 	out dbg-l0 a.root
 	out move-to-str
 
-.dbg<a> str(a seq-iter a) to-str<a>
+.dbg<a> str(a seq-iter a) trusted to-str<a>
 	match a state
 	as l0-left xs
-		forbid: xs is-empty
+		hard-forbid: xs is-empty
 		"l0-left at {xs[0]}"
 	as l0-right xs
 		"l0-right at {xs.is-empty ? "end" : xs[0] to-str}"
 	as l1-left iter
-		forbid: iter.cur-array is-empty
+		hard-forbid: iter.cur-array is-empty
 		"l1-left at {iter.cur-array[0]}"
 	as l1-right iter
-		forbid: iter.cur-array is-empty
+		hard-forbid: iter.cur-array is-empty
 		"l1-right at {iter.cur-array[0]}"
 	as l2 xs
-		forbid: xs.cur-iter.cur-array is-empty
+		hard-forbid: xs.cur-iter.cur-array is-empty
 		"l2 at {xs.cur-iter.cur-array[0]}"
 
 .dbg-l0<a> void(out writer, a l0 a) to-str<a>
@@ -790,16 +793,16 @@ region test
 		out backup
 	out ~= "]"
 
-.check-structure<a> void(a l0 a)
+.check-structure<a> void(a l0 a) unsafe
 	match a node
 	as leaf _
 		()
 	as branch b
-		"l0 left should be non-empty" forbid b.left.is-empty
-		"l0 right should be non-empty" forbid b.right.is-empty
+		hard-forbid: b.left.is-empty
+		hard-forbid: b.right.is-empty
 		b.down check-structure 
 
-.check-structure<a> void(a l1 a)
+.check-structure<a> void(a l1 a) unsafe
 	match a node
 	as leaf _
 		()
@@ -808,18 +811,18 @@ region test
 		b.down check-structure
 		b.right check-structure
 
-.check-structure<a> void(xs a[][])
-	"a[][] should be non-empty" forbid xs.is-empty
+.check-structure<a> void(xs a[][]) unsafe
+	hard-forbid: xs.is-empty
 	xs each ys =>
-		"inner array should be non-empty" forbid ys.is-empty
+		hard-forbid: ys.is-empty
 
-.check-structure<a> void(a l2 a)
+.check-structure<a> void(a l2 a) unsafe
 	a.nodes each ys =>
-		"inner array should be non-empty" forbid ys.is-empty
+		hard-forbid: ys.is-empty
 		ys each zs =>
-			"inner array should be non-empty" forbid zs.is-empty
+			hard-forbid: zs.is-empty
 
-.verify<a> void(a seq a, expected str) to-str<a>
+.verify<a> void(a seq a, expected str) trusted to-str<a>
 	a.dbg is expected
 	a.root check-structure
 

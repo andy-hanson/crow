@@ -5,7 +5,7 @@ module concretize.concretize;
 import concretize.allConstantsBuilder : finishAllConstants;
 import concretize.concretizeCtx :
 	ConcretizeCtx,
-	constantStr,
+	constantCStr,
 	ctxType,
 	deferredFillRecordAndUnionBodies,
 	getOrAddNonTemplateConcreteFunAndFillBody;
@@ -13,7 +13,6 @@ import interpret.debugging : writeConcreteFunName;
 import model.concreteModel :
 	ConcreteCommonFuns,
 	ConcreteFun,
-	ConcreteFunToName,
 	ConcreteLambdaImpl,
 	ConcreteProgram,
 	ConcreteStruct,
@@ -51,7 +50,7 @@ import util.opt : force, has, Opt;
 import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
-import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symForSpecial;
+import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symEq, symForSpecial;
 import util.util : todo, verify;
 import util.writer : finishWriter, Writer;
 
@@ -103,7 +102,6 @@ immutable(ConcreteProgram) concretizeInner(
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 
 	immutable Ptr!ConcreteFun[] allConcreteFuns = finishArr_immutable(alloc, ctx.allConcreteFuns);
-	immutable ConcreteFunToName funToName = getFunToName(alloc, ctx, allConcreteFuns);
 
 	deferredFillRecordAndUnionBodies(alloc, ctx);
 
@@ -117,7 +115,6 @@ immutable(ConcreteProgram) concretizeInner(
 			mustBeNonPointer(staticSymsFun.deref().returnType)),
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		allConcreteFuns,
-		funToName,
 		mapToDict!(
 			Ptr!ConcreteStruct,
 			ConcreteLambdaImpl[],
@@ -134,21 +131,6 @@ immutable(ConcreteProgram) concretizeInner(
 		moveSetToArr(alloc, ctx.allExternLibraryNames));
 }
 
-immutable(ConcreteFunToName) getFunToName(
-	ref Alloc alloc,
-	ref ConcretizeCtx ctx,
-	immutable Ptr!ConcreteFun[] allConcreteFuns,
-) {
-	PtrDictBuilder!(ConcreteFun, Constant) res;
-	foreach (immutable Ptr!ConcreteFun f; allConcreteFuns) {
-		Writer writer = Writer(ptrTrustMe_mut(alloc));
-		writeConcreteFunName(writer, ctx.allSymbols, f.deref());
-		immutable string name = finishWriter(writer);
-		mustAddToDict(alloc, res, f, constantStr(alloc, ctx, name));
-	}
-	return finishDict(alloc, res);
-}
-
 immutable(bool) isNat(ref immutable CommonTypes commonTypes, immutable Type type) {
 	return typeEquals(type, immutable Type(commonTypes.integrals.nat64));
 }
@@ -158,7 +140,8 @@ immutable(bool) isInt32(ref immutable CommonTypes commonTypes, immutable Type ty
 }
 
 immutable(bool) isStr(ref immutable CommonTypes commonTypes, immutable Type type) {
-	return typeEquals(type, immutable Type(commonTypes.str));
+	//TODO:better
+	return isStructInst(type) && symEq(asStructInst(type).deref().decl.deref().name, shortSym("str"));
 }
 
 immutable(bool) isFutNat(ref immutable CommonTypes commonTypes, immutable Type type) {

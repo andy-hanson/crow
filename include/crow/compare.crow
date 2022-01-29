@@ -10,7 +10,6 @@ Other functions like `!=` are defined here, derived from those.
 no-std
 import
 	./private/bool-low-level: !, bool, false, true
-	./private/bootstrap: str
 
 ###
 Result of comparison.
@@ -78,16 +77,6 @@ Returns `b` if they are equal.
 ###
 max<a> a(a a, b a) noctx compare<a>
 	a > b ? a : b
-
-# `"less"`, `"equal"`, or `"greater"`.
-to-str str(a comparison)
-	match a
-	as less
-		"less"
-	as equal
-		"equal"
-	as greater
-		"greater"
 
 ###
 Clamps a value to an inclusive range.

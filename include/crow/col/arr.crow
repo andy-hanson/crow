@@ -10,7 +10,7 @@ import
 	../misc: new
 	../private/alloc: alloc-uninitialized, copy-data-from
 	../private/bootstrap: new
-	../private/exception-low-level: throw
+	../private/exception-low-level: throw-c-str
 	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
 	../private/range-low-level: low, high, range
 	../ptr: *, ==, +, as-const, const-ptr, mut-ptr
@@ -32,7 +32,7 @@ Throws if `index >= a.size`.
 ###
 subscript<a> a(a a[], index nat64) trusted
 	if index >= a.size
-		"index out of bounds" throw
+		"index out of bounds" throw-c-str
 	a unsafe-at index
 
 ###
@@ -42,7 +42,7 @@ Throws if the slice would exceed the bounds of the arr.
 ###
 subscript<a> a[](a a[], range range nat64) trusted
 	if range.high > a.size
-		"slice out of bounds" throw
+		"slice out of bounds" throw-c-str
 	(range.high wrap-sub range.low), a.begin-ptr + range.low
 
 ###

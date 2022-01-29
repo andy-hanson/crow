@@ -277,9 +277,13 @@ immutable(Expr) check(
 	}
 }
 
+void mustSetType(ref Alloc alloc, ref ProgramState programState, ref Expected expected, immutable Type setType) {
+	immutable bool success = setTypeNoDiagnostic(alloc, programState, expected, setType);
+	verify(success);
+}
+
 // Note: this may infer type parameters
-private immutable(bool) setTypeNoDiagnostic(
-	ref Alloc alloc,
+private immutable(bool) setTypeNoDiagnostic(ref Alloc alloc,
 	ref ProgramState programState,
 	ref Expected expected,
 	immutable Type setType,

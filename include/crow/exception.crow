@@ -1,14 +1,33 @@
 no-std
 import
+	./bool: bool
 	./col/arr-util: each
 	./fun-util: subscript
-	./misc: void
-	./str: is-empty, str
+	./misc: new, void
+	./str: is-empty, literal, str
 	./writer: ~~=, move-to-str, new, writer
 	./private/backtrace: return-stack
 	./private/bootstrap: backtrace, to-c-str
+	./private/exception-low-level: throw-c-str
+	./str-util: to-c-str, to-str
 export
 	./private/exception-low-level: assert, catch, exception, forbid, message, throw
+
+assert void(message str, condition bool)
+	unless condition
+		message throw
+
+forbid void(message str, condition bool)
+	if condition
+		message throw
+
+###
+Create amd throw an exception with the given message.
+
+This gets the current backtrace to use in the exception.
+###
+throw<a> a(message str) trusted
+	message.to-c-str throw-c-str
 
 ###
 Fail unconditionally.
@@ -43,10 +62,8 @@ do-if-error<a> a(on-error act void(), try act a())
 # Outputs the exception's message and backtrace to a string.
 to-str str(a exception) unsafe
 	res writer = ()
-	res ~~= if a.message.is-empty
-		"<<empty message>>"
-	else
-		a message
+	message = a.message to-str
+	res ~~= (message.is-empty ? "<<empty message>>" : message)
 	a.backtrace.return-stack each x =>
 		res ~~= "\n\tat "
 		res ~~= x to-c-str

@@ -9,7 +9,7 @@ import
 	../misc: is-data, new, void
 	../opt: !, ??, new, opt
 	../ptr: ==, <=>, +, *, const-ptr, mut-ptr, set-deref
-	../str: ==, str
+	../str: ==, literal, str
 	../str-conv: to-str
 	../test-util: is
 	../writer: ~=, ~~=, backup, move-to-str, new, writer

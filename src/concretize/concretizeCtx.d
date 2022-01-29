@@ -2,7 +2,7 @@ module concretize.concretizeCtx;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArr, getConstantStr, getConstantSym;
+import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArr, getConstantCStr, getConstantSym;
 import concretize.concretizeExpr : concretizeExpr;
 import concretize.safeValue : bodyForSafeValue;
 import model.concreteModel :
@@ -101,6 +101,7 @@ import util.col.mutDict :
 	MutPtrDict,
 	ValueAndDidAdd;
 import util.col.mutSet : addToMutSetOkIfPresent, MutSymSet;
+import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : allocate, allocateMut;
@@ -266,7 +267,7 @@ struct ConcretizeCtx {
 	Late!(immutable ConcreteType) _boolType;
 	Late!(immutable ConcreteType) _voidType;
 	Late!(immutable ConcreteType) _ctxType;
-	Late!(immutable ConcreteType) _strType;
+	Late!(immutable ConcreteType) _cStrType;
 	Late!(immutable ConcreteType) _symType;
 	int __nextId;
 
@@ -296,9 +297,9 @@ immutable(ConcreteType) voidType(ref Alloc alloc, ref ConcretizeCtx a) {
 		getConcreteType_forStructInst(alloc, a, a.commonTypes.void_, TypeArgsScope.empty));
 }
 
-immutable(ConcreteType) strType(ref Alloc alloc, ref ConcretizeCtx a) {
-	return lazilySet(a._strType, () =>
-		getConcreteType_forStructInst(alloc, a, a.commonTypes.str, TypeArgsScope.empty));
+immutable(ConcreteType) cStrType(ref Alloc alloc, ref ConcretizeCtx a) {
+	return lazilySet(a._cStrType, () =>
+		getConcreteType_forStructInst(alloc, a, a.commonTypes.cStr, TypeArgsScope.empty));
 }
 
 immutable(ConcreteType) symType(ref Alloc alloc, ref ConcretizeCtx a) {
@@ -313,9 +314,8 @@ immutable(ConcreteType) ctxType(ref Alloc alloc, ref ConcretizeCtx a) {
 	return res;
 }
 
-immutable(Constant) constantStr(ref Alloc alloc, ref ConcretizeCtx a, immutable string value) {
-	immutable ConcreteType strType = strType(alloc, a);
-	return getConstantStr(alloc, a.allConstants, mustBeNonPointer(strType).deref(), value);
+immutable(Constant) constantCStr(ref Alloc alloc, ref ConcretizeCtx a, immutable SafeCStr value) {
+	return immutable Constant(getConstantCStr(alloc, a.allConstants, value));
 }
 
 immutable(Constant) constantSym(ref Alloc alloc, ref ConcretizeCtx a, immutable Sym value) {
@@ -801,21 +801,7 @@ public void deferredFillRecordAndUnionBodies(ref Alloc alloc, ref ConcretizeCtx 
 	}
 }
 
-void fillInConcreteFunBody(
-	ref Alloc alloc,
-	ref ConcretizeCtx ctx,
-	Ptr!ConcreteFun cf,
-) {
-	debug {
-		import core.stdc.stdio : printf;
-		import interpret.debugging : writeConcreteFunName;
-		import util.writer : finishWriterToCStr, Writer;
-		import util.ptr : ptrTrustMe_mut;
-		Writer writer = Writer(ptrTrustMe_mut(alloc));
-		writeConcreteFunName(writer, ctx.allSymbols, cast(immutable) cf.deref());
-		//printf("fillInConcreteFunBody %s\n", finishWriterToCStr(writer));
-	}
-
+void fillInConcreteFunBody(ref Alloc alloc, ref ConcretizeCtx ctx, Ptr!ConcreteFun cf) {
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf.deref()._body_)) {
 		// set to arbitrary temporarily

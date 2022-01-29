@@ -299,8 +299,8 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 			reprRecord(alloc, "seq", [
 				reprExpr(alloc, ctx, a.first),
 				reprExpr(alloc, ctx, a.then)]),
-		(ref immutable Expr.StringLiteral it) =>
-			reprRecord(alloc, "string-lit", [reprStr(it.literal)]),
+		(ref immutable Expr.CStringLiteral it) =>
+			reprRecord(alloc, "c-string-lit", [reprStr(it.value)]),
 		(ref immutable Expr.SymbolLiteral it) =>
 			reprRecord(alloc, "sym-lit", [reprSym(it.value)]));
 }

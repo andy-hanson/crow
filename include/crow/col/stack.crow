@@ -5,9 +5,9 @@ import
 	../exception: assert, forbid
 	../fun-util: subscript
 	../misc: drop, new, void
-	../opt: !, ==, is-empty, new, opt
+	../opt: !, ==, is-empty, new, opt, opt-equal
 	../ptr: ==, +, -, set-deref
-	../str: str
+	../str: ==, literal, str
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act1
 	../private/number-low-level: ==, nat64, wrap-add
@@ -204,6 +204,9 @@ test
 
 	(d find-and-get x => x if-eq 2, "two") is ("two",)
 	(d find-and-get x => x if-eq 5, "five") is ()
+
+.== bool(a str?, b str?)
+	a opt-equal b
 
 .if-eq str?(actual nat64, expected nat64, result str)
 	if actual == expected
