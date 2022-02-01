@@ -25,7 +25,7 @@ file-ast(
 			record(
 				none
 				[
-					field(range(108, 118), public, a, inststruct(range(115, 118), name-range(115, nat)))
-					field(range(120, 130), private, b, inststruct(range(127, 130), name-range(127, nat)))
-					field(range(132, 143), private, c, inststruct(range(140, 143), name-range(140, nat)))]))]
+					field(range(108, 118), public, j, inststruct(range(115, 118), name-range(115, nat)))
+					field(range(120, 130), private, k, inststruct(range(127, 130), name-range(127, nat)))
+					field(range(132, 143), private, l, inststruct(range(140, 143), name-range(140, nat)))]))]
 	funs: [])

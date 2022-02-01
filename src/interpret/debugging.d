@@ -153,7 +153,7 @@ void writeLowType(
 	)(a);
 }
 
-void writeConcreteFunName(ref Writer writer, ref const AllSymbols allSymbols, ref immutable ConcreteFun a) {
+private void writeConcreteFunName(ref Writer writer, ref const AllSymbols allSymbols, ref immutable ConcreteFun a) {
 	matchConcreteFunSource!(
 		void,
 		(ref immutable FunInst it) {

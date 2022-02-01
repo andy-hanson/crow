@@ -1,7 +1,7 @@
 import
 	crow/col/arr-util: each, in, map
 	crow/col/dict: dict, each-key, subscript
-	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new
+	crow/col/mut-arr: ~=, is-empty, move-to-arr, mut-arr, new
 	crow/col/mut-dict: move-to-dict, mut-dict, new, subscript, set-subscript
 	crow/col/set: each, in, set
 	crow/col/mut-set: ~=, each, move-to-arr, move-to-set, mut-set, new, to-mut-set, try-remove
@@ -9,8 +9,7 @@ import
 	crow/io/print: print-err
 	crow/io/process: shell-exec
 	crow/str-util:
-		ends-with, has-substr, head, left, right, split-by, tail, try-split-once,
-		try-split-once-by-fn, try-split-once-by-whitespace
+		contains-substr, each-char8, ends-with, lines, try-split-once, try-split-once-by-whitespace
 	../site-src/search-dir-recursive: search-dir-recursive
 
 main fut nat(_ str[]) summon
@@ -72,12 +71,12 @@ all-files file[]() summon
 
 	look-for = "!_TAG_PROGRAM_URL	https://github.com/dlang-community/D-Scanner/\n"
 	rest = (stdout try-split-once look-for)!.b
-	rest split-by "\n" each line =>
-		unless line == "" || line has-substr "enum:" || line has-substr "struct:"
+	rest.lines each line =>
+		unless line == "" || line contains-substr "enum:" || line contains-substr "struct:"
 			name = line.try-split-once-by-whitespace!.a str-to-sym
-			if line has-substr "access:public"
+			if line contains-substr "access:public"
 				public ~= name
-			elif line has-substr "access:private"
+			elif line contains-substr "access:private"
 				private ~= name
 			else
 				unless path in excluded-unknown-access-paths || name in excluded-unknown-access
@@ -122,15 +121,15 @@ all-files file[]() summon
 	res move-to-dict
 
 .each-word void(a str, cb act void(sym))
-	unless a is-empty
-		if a.head is-identifier-char
-			if pair ?= a try-split-once-by-fn x => !x.is-identifier-char
-				cb[pair.left str-to-sym]
-				pair.right each-word cb
-			else
-				cb[a str-to-sym]
+	word char mut[] = ()
+	a each-char8 x =>
+		if x is-identifier-char
+			word ~= x
 		else
-			a.tail each-word cb
+			unless word is-empty
+				cb[word.move-to-arr.str str-to-sym]
+	unless word is-empty
+		cb[word.move-to-arr.str str-to-sym]
 
 .is-identifier-char bool(a char)
 	"a"::char <= a && a <= "z" || "A"::char <= a && a <= "Z" || "0"::char <= a && a <= "9" || a == "_"

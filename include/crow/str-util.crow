@@ -1,103 +1,117 @@
 no-std
 import
 	./bool: ||, bool
-	./col/arr: arr, is-empty, size, subscript
+	./col/arr: arr, is-empty
 	./col/private/arr-low-level: arr-cast, begin-ptr
-	./col/arr-util:
-		contains-subseq, each, ends-with, first, last, left, map, middle, reverse, right, rtail,
-		split-by-subseq, starts-with, tail, try-remove-end, try-remove-start,
-		try-split-once-by-fn, try-split-once-by-subseq
+	./col/arr-util: each, last, rtail
+	./col/iter: new, rest, value, value-and-rest
 	./col/mut-arr: ~~=, move-to-arr, mut-arr, new
+	./col/seq:
+		contains-subseq, copy, drop-right-while, drop-while, each, ends-with, iter, left, map,
+		map-to-arr, middle, mut-iter, mut-seq-iter, next, peek, reverse, right, seq-iter,
+		slice-left, slice-right, split-by-subseq, starts-with, try-remove-end, try-remove-start,
+		try-split-once-by-fn, try-split-once-by-subseq
 	./compare: <
+	./misc: void
 	./number: ==, <=>, nat8
 	./opt: !, new, opt
-	./range: ..
-	./str: ==, ~, ~~, char, chars, c-str, literal, new, str, to-char, to-nat8
+	./str: ==, ~, ~~, as-seq, char, chars, c-str, literal, new, str, str-from-seq, to-char, to-nat8
 	./tuple: a, b, new, pair
 	./private/number-low-level: wrap-add, wrap-sub
 
-# First character.
-head char(a str)
-	a.chars[0]
+region iterator
 
-# All but the first character.
-tail str(a str)
-	a.chars[1 .. a.chars.size] str
+str-iter record
+	by-val
+	.inner seq-iter char
 
-# Strips whitespace from both ends.
-strip str(a str)
-	a.strip-left strip-right
+iter str-iter(a str)
+	a.as-seq.iter,
 
-# Strips whitespace from the front.
-strip-left str(a str)
-	if c ?= a.chars first
-		if c is-whitespace
-			a.chars.tail.str strip-left
-		else
-			a
-	else
-		a
+next value-and-rest<char, str-iter>?(a str-iter)
+	if res ?= a.inner next
+		rest str-iter = res.rest,
+		(res.value, rest),
 
-# Strips whitespace from the end.
-strip-right str(a str)
-	if c ?= a.chars last
-		if c is-whitespace
-			a.chars.rtail.str strip-right
-		else
-			a
-	else
-		a
+slice-left str(a str-iter)
+	a.inner.slice-left str-from-seq
 
-.is-whitespace bool(a char)
-	a == " " || a == "\n" || a == "\t"
+slice-right str(a str-iter)
+	a.inner.slice-right str-from-seq
+
+mut-str-iter record mut
+	.inner mut-seq-iter char
+
+mut-iter mut-str-iter(a str)
+	a.as-seq.mut-iter,
+
+copy mut-str-iter(a mut-str-iter)
+	a.inner.copy,
+
+peek char?(a mut-str-iter)
+	a.inner peek
+
+next char?(a mut-str-iter)
+	a.inner next
+
+region iteration
+
+each-char8 void(a str, f act void(char))
+	a.as-seq each f
+
+region split
 
 ###
 `true` iff `b` is a subtring of `a`.
 
 That means: The characters in `b` appear in `a`, in order, without interruptions.
 ###
-has-substr bool(a str, b str)
-	a.chars contains-subseq b.chars
+contains-substr bool(a str, b str)
+	a.as-seq contains-subseq b.as-seq
 
 # `true` iff the first characters of `a` are `b`.
 starts-with bool(a str, b str)
-	a.chars starts-with b.chars
+	a.as-seq starts-with b.as-seq
 
 # `true` iff the last characters of `a` are `b`.
 ends-with bool(a str, b str)
-	a.chars ends-with b.chars
+	a.as-seq ends-with b.as-seq
 
 ###
 If `a` starts with `b`, returns the rest.
 Else, returns an empty option.
 ###
 try-remove-start str?(a str, b str)
-	if res ?= a.chars try-remove-start b.chars
-		res.str,
+	if res ?= a.as-seq try-remove-start b.as-seq
+		res.str-from-seq,
 
 ###
 If `a` ends with `b, returns the rest.
 Else, returns an empty option.
 ###
 try-remove-end str?(a str, b str)
-	if res ?= a.chars try-remove-end b.chars
-		res.str,
+	if res ?= a.as-seq try-remove-end b.as-seq
+		res.str-from-seq,
 
 ###
 If `b` is a substring of `a`, removes it and return the parts of `a` before and after it.
 ###
 try-split-once pair<str, str>?(a str, b str)
-	if res ?= a.chars try-split-once-by-subseq b.chars
-		(res.a.str, res.b.str),
+	if res ?= a.as-seq try-split-once-by-subseq b.as-seq
+		(res.a.str-from-seq, res.b.str-from-seq),
 
 ###
 Removes every occurrence of the substring `b` in `a` and return the remaining parts as an array.
 The result may include empty strings.
 ###
 split-by str[](a str, b str)
-	a.chars split-by-subseq b.chars map chars => chars str
+	a.as-seq split-by-subseq b.as-seq map-to-arr x => x str-from-seq
+
+lines str[](a str)
+	a split-by "\n"
 
 split-str record
+	by-val
 	left str
 	middle char
 	right str
@@ -107,8 +121,8 @@ Find the first character where `f` returns `true`, and return the parts of `a` b
 Returns an empty option if `f` does not returns `true` for any character in `a`.
 ###
 try-split-once-by-fn split-str?(a str, f act bool(char))
-	if res ?= a.chars try-split-once-by-fn f
-		(res.left.str, res.middle, res.right.str),
+	if res ?= a.as-seq try-split-once-by-fn f
+		(res.left.str-from-seq, res.middle, res.right.str-from-seq),
 
 # Finds the first whitespace character in `a` and returns the parts before and after it.
 try-split-once-by-whitespace pair<str, str>?(a str)
@@ -130,7 +144,7 @@ join str(a str[], b str)
 
 # Lower cases every character in `a`.
 lower-case str(a str)
-	a.chars map (it => it lower-case-char) str
+	a.as-seq map (it => it lower-case-char) str-from-seq
 
 .lower-case-char char(a char) noctx
 	diff = a.to-nat8 wrap-sub "A".to-nat8
@@ -141,7 +155,7 @@ lower-case str(a str)
 
 # Capitalizes every character in `a`.
 upper-case str(a str)
-	a.chars map (it => it upper-case-char) str
+	a.as-seq map (it => it upper-case-char) str-from-seq
 
 .upper-case-char char(a char) noctx
 	diff = a.to-nat8 wrap-sub "a".to-nat8
@@ -152,7 +166,7 @@ upper-case str(a str)
 
 # String with characters in reverse order.
 reverse str(a str)
-	a.chars.reverse str
+	a.as-seq.reverse str-from-seq
 
 # Replaces every instance of the substring `find` with `replace-with`.
 replace str(a str, find str, replace-with str)
@@ -161,6 +175,23 @@ replace str(a str, find str, replace-with str)
 		pair.a ~~ replace-with ~~ (pair.b replace find, replace-with)
 	else
 		a
+
+region strip
+
+# Strips whitespace from both ends.
+strip str(a str)
+	a.strip-left strip-right
+
+# Strips whitespace from the front.
+strip-left str(a str)
+	a.as-seq drop-while (x => x is-whitespace) str-from-seq
+
+# Strips whitespace from the end.
+strip-right str(a str)
+	a.as-seq drop-right-while (x => x is-whitespace) str-from-seq
+
+.is-whitespace bool(a char)
+	a == " " || a == "\n" || a == "\t"
 
 region Conversion
 
@@ -173,9 +204,9 @@ as-str str(bytes nat8[]) unsafe noctx
 
 ###
 Gets the raw UTF-8 bytes that represent a string.
-This is O(1).
+This is O(n).
 ###
-bytes nat8[](a str) trusted noctx
+bytes nat8[](a str) trusted
 	a.chars arr-cast
 
 ###

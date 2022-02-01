@@ -1,15 +1,15 @@
 module(
-	path: 60
-	imports: [import(none, 57, none)]
-	structs: [struct(range: file-range(60, range(62, 80)), visibility: public, name: r)]
+	path: 63
+	imports: [import(none, 60, none)]
+	structs: [struct(range: file-range(63, range(62, 80)), visibility: public, name: r)]
 	funs: [
 		fun(
 			visibility: public
 			summon: true
 			trusted: true
-			sig: sig(file-pos(60, 0), main, fut(nat64()), [param(file-range(60, range(13, 20)), none, arr(str()))])
+			sig: sig(file-pos(63, 0), main, fut(nat64()), [param(file-range(63, range(13, 20)), none, arr(str()))])
 			body: let(
-				local(file-range(60, range(38, 39)), a, r())
+				local(file-range(63, range(38, 39)), a, r())
 				call(fun-inst(name: new), [call(fun-inst(name: new, type-args: [r()]), [])])
 				seq(
 					call(fun-inst(name: drop, type-args: [r()]), [local-ref(a)])
@@ -17,15 +17,15 @@ module(
 		fun(
 			visibility: public
 			preferred: true
-			sig: sig(file-pos(60, 62), new, r(), [param(file-range(60, range(72, 79)), some(next), opt(r()))])
+			sig: sig(file-pos(63, 62), new, r(), [param(file-range(63, range(72, 79)), some(next), opt(r()))])
 			body: new-record)
 		fun(
 			visibility: public
 			no-ctx: true
-			sig: sig(file-pos(60, 62), new, by-val(r()), [param(file-range(60, range(72, 79)), some(next), opt(r()))])
+			sig: sig(file-pos(63, 62), new, by-val(r()), [param(file-range(63, range(72, 79)), some(next), opt(r()))])
 			body: new-record)
 		fun(
 			visibility: public
 			no-ctx: true
-			sig: sig(file-pos(60, 72), next, opt(r()), [param(file-range(60, range(72, 79)), some(a), r())])
+			sig: sig(file-pos(63, 72), next, opt(r()), [param(file-range(63, range(72, 79)), some(a), r())])
 			body: field-get(0))])

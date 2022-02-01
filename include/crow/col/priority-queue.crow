@@ -404,5 +404,5 @@ test
 	p6.values is ("6", "6b", "6c", "7", "7b", "8")
 
 # TODO: pair should be equatable
-.== bool(a pair<nat64, str>, b pair<nat64, str>) noctx
+.== bool(a pair<nat64, str>, b pair<nat64, str>)
 	a.from == b.from && a.to == b.to

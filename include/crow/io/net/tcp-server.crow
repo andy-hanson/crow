@@ -15,7 +15,6 @@ import
 	../../cell: cell, new
 	../../col/arr: arr, subscript
 	../../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
-	../../col/private/arr-low-level: begin-ptr
 	../../compare: !=, <
 	../../c-types: c-int
 	../../exception: assert, message
@@ -28,7 +27,7 @@ import
 	../../private/fut-low-level: callback
 	../../ptr: by-val, mut-ptr, ptr-cast-to-extern, ptr-to, ref-of-val, size-of
 	../../range: ..
-	../../str: chars, literal, str
+	../../str: literal, str
 	../../str-util: to-str
 	../duration: msec
 	../posix-util: check-posix-error
@@ -60,14 +59,14 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 
 	epoll-fd = 0 epoll_create1
 	if epoll-fd < 0
-		perror: "epoll-create1 failed\0".chars.begin-ptr
+		perror: "epoll-create1 failed"
 		todo
 	else
 		event-flags = EPOLLIN | EPOLLET
 		accept-event epoll_event = event-flags, port-fd.to-int64.to-nat64
 		ctl-err = epoll-fd epoll_ctl EPOLL_CTL_ADD, port-fd, accept-event.ptr-to
 		unless ctl-err == 0
-			perror: "epoll_ctl failed\0".chars.begin-ptr
+			perror: "epoll_ctl failed"
 			todo
 
 		state tcp-server-state = false, false, 0, port-fd, epoll-fd, 0, handler
@@ -145,7 +144,7 @@ close-client void(client-fd fd-t) unsafe summon
 	if client-fd < 0
 		e = errno
 		unless e == EAGAIN || e == EWOULDBLOCK
-			perror: "accept() error\0".chars.begin-ptr
+			perror: "accept() error"
 			todo
 	else
 		client-fd set-non-blocking
@@ -161,7 +160,7 @@ close-client void(client-fd fd-t) unsafe summon
 	if count < 0
 		err = errno
 		unless err == EAGAIN
-			perror: "read() failed\0".chars.begin-ptr
+			perror: "read() failed"
 	elif count != 0
 		chunk = buf.cast-immutable[0 .. count.to-nat64]
 		on-received-chunk[fd, chunk] handle-exceptions
@@ -170,10 +169,10 @@ close-client void(client-fd fd-t) unsafe summon
 .set-non-blocking void(fd fd-t) noctx unsafe summon
 	file-flags = fd fcntl F_GETFL, 0
 	if file-flags < 0
-		perror: "fcntl() error\0".chars.begin-ptr
+		perror: "fcntl() error"
 		todo
 	else
 		err = fd fcntl F_SETFL, file-flags | O_NONBLOCK
 		if err < 0
-			perror: "fcntl() error\0".chars.begin-ptr
+			perror: "fcntl() error"
 			todo

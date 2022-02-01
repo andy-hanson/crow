@@ -27,7 +27,7 @@ export
 	a.to-c-str == b.to-c-str
 
 # Same as `a.to-str <=> b.to-str`.
-<=> comparison(a sym, b sym) noctx
+<=> comparison(a sym, b sym)
 	a.to-str <=> b.to-str
 
 to-str str(a sym) noctx trusted
@@ -43,7 +43,7 @@ str-to-sym sym(a str) trusted
 		gctx.syms-lock.ref-of-val with-lock () =>
 			gctx get-dynamic-sym a
 
-.get-dynamic-sym sym(gctx global-ctx, a str) unsafe noctx
+.get-dynamic-sym sym(gctx global-ctx, a str) unsafe
 	if sym ?= gctx.dynamic-syms find-dynamic-sym a
 		sym
 	else
@@ -53,14 +53,14 @@ str-to-sym sym(a str) trusted
 		gctx.dynamic-syms := node-ptr.ref-of-ptr,
 		sym
 
-.find-dynamic-sym sym?(a dynamic-sym-node?, s str) unsafe noctx
+.find-dynamic-sym sym?(a dynamic-sym-node?, s str) unsafe
 	if node ?= a
 		if node.sym.to-c-str.to-str == s
 			node.sym,
 		else
 			node.next find-dynamic-sym s
 
-.to-malloced-c-str c-str(a str) noctx unsafe
+.to-malloced-c-str c-str(a str) unsafe
 	n-chars = a.chars size
 	res char mut* = n-chars wrap-add 1 unmanaged-alloc-elements
 	drop: res.ptr-cast memcpy a.chars.begin-ptr.ptr-cast, n-chars

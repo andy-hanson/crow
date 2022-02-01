@@ -5,11 +5,9 @@ module concretize.concretize;
 import concretize.allConstantsBuilder : finishAllConstants;
 import concretize.concretizeCtx :
 	ConcretizeCtx,
-	constantCStr,
 	ctxType,
 	deferredFillRecordAndUnionBodies,
 	getOrAddNonTemplateConcreteFunAndFillBody;
-import interpret.debugging : writeConcreteFunName;
 import model.concreteModel :
 	ConcreteCommonFuns,
 	ConcreteFun,
@@ -17,7 +15,6 @@ import model.concreteModel :
 	ConcreteProgram,
 	ConcreteStruct,
 	mustBeNonPointer;
-import model.constant : Constant;
 import model.model :
 	assertNonVariadic,
 	asStructInst,
@@ -42,17 +39,15 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : emptyArr, only;
 import util.col.arrBuilder : finishArr_immutable;
 import util.col.dict : getAt;
-import util.col.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
 import util.col.mutArr : moveToArr, MutArr;
 import util.col.mutDict : mapToDict, mutDictIsEmpty;
 import util.col.mutSet : moveSetToArr;
 import util.opt : force, has, Opt;
 import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
+import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const;
 import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symEq, symForSpecial;
 import util.util : todo, verify;
-import util.writer : finishWriter, Writer;
 
 immutable(ConcreteProgram) concretize(
 	ref Alloc alloc,

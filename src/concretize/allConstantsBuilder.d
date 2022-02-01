@@ -7,20 +7,17 @@ import model.concreteModel :
 	AllConstantsConcrete,
 	ArrTypeAndConstantsConcrete,
 	asInst,
-	asRecord,
-	body_,
 	ConcreteFun,
 	ConcreteStruct,
 	ConcreteType,
 	concreteTypeEqual,
 	hashConcreteType,
-	mustBeNonPointer,
 	name,
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantEqual;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
-import util.col.arrUtil : arrEqual, arrLiteral, findIndex_const, map, mapOp;
+import util.col.arrUtil : arrEqual, arrLiteral, findIndex_const, mapOp;
 import util.col.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push, tempAsArr;
 import util.col.mutDict :
 	getOrAdd,
@@ -211,10 +208,6 @@ immutable(Constant) getConstantSym(
 				getConstantCStr(alloc, allConstants, safeCStrOfSym(alloc, allSymbols, value));
 			return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [immutable Constant(c)])));
 		});
-}
-
-private immutable(Constant) constantChar(immutable char a) {
-	return immutable Constant(immutable Constant.Integral(a));
 }
 
 private:

@@ -6,7 +6,7 @@ import
 	crow/io/path: base-name, get-extension
 	crow/io/print: print
 	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
-	crow/str-util: has-substr, try-remove-start
+	crow/str-util: contains-substr, try-remove-start
 	crow/writer: ~=, move-to-str, new, writer
 	./failure:
 		failure, flat-map-with-max-size, handle-output, max-failures, match-test, new,
@@ -24,12 +24,13 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, o
 .list-tests str[](path str, match-test str) summon
 	res str mut[] = ()
 	path each-child-recursive child =>
-		if child has-substr match-test && child.ext-is-crow
+		if child contains-substr match-test && child.ext-is-crow
 			res ~= child
 	res move-to-arr
 
 .ext-is-crow bool(a str)
-	a.base-name.get-extension == ("crow",)
+	if ext ?= a.base-name get-extension
+		ext == "crow"
 
 .run-single-crow-test failure[]
 	path-to-crow str

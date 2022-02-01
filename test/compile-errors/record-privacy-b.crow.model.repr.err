@@ -4,16 +4,14 @@ actual argument types:  (other arguments not checked, gave up early)
 candidates (with 1 arguments):
 	new arr<a>(...arr<a>) (from crow/col/arr.crow line 22)
 	new fut<a>(a) (from crow/fut.crow line 29)
-	new opt<a>(a) (from crow/opt.crow line 18)
+	new opt<a>(a) (from crow/opt.crow line 17)
 	new interp(mut-arr<char>) (from crow/str-conv.crow line 145)
 	new by-val<interp>(mut-arr<char>) (from crow/str-conv.crow line 145)
 
-./test/compile-errors/record-privacy-b.crow 9:11-9:12 the type of the expression conflicts with its expected type.
-	expected: pair<a, b>
-	actual: private-mut
+./test/compile-errors/record-privacy-b.crow 9:13-9:14 there is no function or field named 'j'
 
-./test/compile-errors/record-privacy-b.crow 10:6-10:11 there is no function named 'set-b'
+./test/compile-errors/record-privacy-b.crow 10:6-10:11 there is no function named 'set-k'
 
-./test/compile-errors/record-privacy-b.crow 12:6-12:11 there is no function named 'set-c'
+./test/compile-errors/record-privacy-b.crow 12:6-12:11 there is no function named 'set-l'
 
-./test/compile-errors/record-privacy-b.crow 13:13-13:14 there is no function or field named 'c'
+./test/compile-errors/record-privacy-b.crow 13:13-13:14 there is no function or field named 'l'

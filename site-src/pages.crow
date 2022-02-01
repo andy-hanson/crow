@@ -53,12 +53,12 @@ tutorial-nav str(cur-path str)
 		"""<li><a href="/{path}"{cur}>{name}</a></li>"""
 	"<nav><ul>{lines join ""}</ul></nav>"
 
-.tutorial-template path-and-content(path str, title str, content str, next tutorial-meta?)
+.tutorial-template path-and-content(page-path str, title str, content str, next tutorial-meta?)
 	next-link = if n ?= next
 		"""<a id="next" href="/{n path}">next: {n title}</a>"""
-	path page-template title, """
+	page-path page-template title, """
 	<div id="side-nav-wrapper">
-		{path tutorial-nav}
+		{page-path tutorial-nav}
 		<main>
 			<h1>{title}</h1>
 			{content}

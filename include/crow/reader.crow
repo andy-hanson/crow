@@ -2,16 +2,14 @@ no-std
 import
 	./bool: !, &&, ||, bool, false, new, true
 	./col/mut-arr: ~=, move-to-arr, mut-arr, new
-	./col/private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr
-	./compare: <=, >=
 	./fun-util: subscript
 	./misc: drop, new, void
-	./number: ==, <=>, +, *, **, float64, int64, nat64, to-float64, to-int64
-	./opt: is-empty, new, opt
-	./ptr: ==, <=>, +, -, *, const-ptr
-	./str: ==, char, chars, literal, size-bytes, str
+	./number: +, *, **, float64, int64, nat64, to-float64, to-int64
+	./opt: ??, is-empty, new, opt
+	./str: ==, char, literal, str
+	./str-util: copy, mut-iter, mut-str-iter, next, peek
 	./test-util: is
-	./private/exception-low-level: assert, forbid
+	./private/exception-low-level: throw-c-str
 
 ###
 Stateful type used for simple parsers that read strictly left-to-right.
@@ -19,11 +17,10 @@ Stateful type used for simple parsers that read strictly left-to-right.
 Once it gets to the end, `is-empty` will return `true`.
 ###
 reader record mut
-	.cur .mut char*
-	.end char*
+	.iter mut mut-str-iter
 
 new reader(a str) trusted
-	a.chars.begin-ptr, a.chars.end-ptr
+	a.mut-iter,
 
 ###
 Creates a reader for the string, calls `f`, and returns the result.
@@ -38,26 +35,21 @@ with-reader<a> a?(a str, f act a?(reader))
 
 # `true` iff the reader has reached the end of the string.
 is-empty bool(a reader) trusted
-	assert: a.cur <= a.end
-	a.cur == a.end
+	a.iter.peek is-empty
 
 ###
 Gets the next character without advancing.
 Throws if the reader has reached the end.
 ###
 peek char(a reader) trusted
-	forbid: a is-empty
-	*a.cur
+	a.iter.peek ?? "reader empty".throw-c-str
 
 ###
 Gets the next character and advances.
 Throws if the reader had already reached the end before calling `next`.
 ###
 next char(a reader) trusted
-	forbid: a is-empty
-	res = *a.cur
-	a.cur := a.cur + 1
-	res
+	a.iter.next ?? "reader empty".throw-c-str
 
 ###
 Iff the next character is `c`, advances and returns `true`.
@@ -66,9 +58,10 @@ Else, this does nothing and returns `false`.
 If the reader had already reached the end of the string before calling this, returns `false`.
 ###
 try-take-char bool(a reader, c char)
-	if !a.is-empty && a.peek == c
-		a.next drop
-		true
+	if peek ?= a.iter peek
+		if peek == c
+			a.next drop
+			true
 
 ###
 Like `try-take-char` but for a whole string.
@@ -79,10 +72,23 @@ Else, this does nothing and returns `false`.
 This will not read only part of `s`; it's all or nothing.
 ###
 try-take-str bool(a reader, s str) trusted
-	size = s size-bytes
-	if a.end - a.cur >= size && (a.cur arr-from-begin-end a.cur + size).str == s
-		a.cur := a.cur + size
+	start = a.iter copy
+	if a.iter try-take-str-recur s.mut-iter
 		true
+	else
+		a.iter := start
+		false
+
+try-take-str-recur bool(a mut-str-iter, b mut-str-iter)
+	if nb ?= b next
+		if na ?= a next
+			na == nb && a try-take-str-recur b
+	else
+		true
+
+.nat-and-count-digits record
+	.value nat64
+	.count-digits nat64
 
 ###
 Takes a number (a sequence of digits 0-9). Stops at the first non-digit.
@@ -91,22 +97,25 @@ Does not take separator characters like `,` or `_`.
 Returns an empty option if it could not parse any digits.
 ###
 take-nat nat64?(a reader)
+	if x ?= a.take-nat-and-count-digits
+		x.value,
+.take-nat-and-count-digits nat-and-count-digits?(a reader)
 	unless a is-empty
 		if first-digit ?= a.peek.char-to-nat64
 			a.next drop
-			(first-digit take-nat-recur a),
-.take-nat-recur nat64(acc nat64, a reader)
+			(first-digit take-nat-and-count-digits-recur 1, a),
+.take-nat-and-count-digits-recur nat-and-count-digits(acc nat64, count-digits nat64, a reader)
 	if a is-empty
-		acc
+		acc, count-digits
 	elif v ?= a.peek.char-to-nat64
 		a.next drop
-		acc * 10 + v take-nat-recur a
+		acc * 10 + v take-nat-and-count-digits-recur count-digits + 1, a
 	else
-		acc
+		acc, count-digits
 
 # This is like `take-nat`, but the number may start with a `+` or `-` sign.
 take-int int64?(a reader) trusted
-	start = a cur
+	start = a.iter copy
 	sign = if a try-take-sign
 		+1
 	else
@@ -114,7 +123,7 @@ take-int int64?(a reader) trusted
 	if n ?= a take-nat
 		n.to-int64 * sign,
 	else
-		a.cur := start
+		a.iter := start
 		()
 
 # TODO: use 'is-whitespace' function from str-util
@@ -143,14 +152,13 @@ take-float float64?(a reader) trusted
 		-1.0
 	if whole-nat ?= a take-nat
 		whole-part = whole-nat to-float64
-		before-dot = a cur
+		before-dot = a.iter copy
 		if a try-take-char "."
-			if n ?= a take-nat
-				digits-taken = a.cur - (before-dot + 1)
+			if nd ?= a take-nat-and-count-digits
 				# TODO: more accurate methods exist
-				sign * (whole-part + n.to-float64 * 0.1 ** digits-taken),
+				sign * (whole-part + nd.value.to-float64 * 0.1 ** nd.count-digits),
 			else
-				a.cur := before-dot
+				a.iter := before-dot
 				sign * whole-part,
 		else
 			sign * whole-part,
@@ -165,11 +173,11 @@ Unlike in crow, `{` is not a special character.
 Does nothing and returns an empty option if it did not take an entire quoted string correctly.
 ###
 take-quoted-str str?(a reader)
-	start = a cur
+	start = a.iter copy
 	if a try-take-char "\""
 		res = a take-quoted-str-recur ()
 		if res is-empty
-			a.cur := start
+			a.iter := start
 		res
 
 .take-quoted-str-recur str?(a reader, res char mut[])

@@ -1,0 +1,188 @@
+no-std
+import
+	../../bool: &&, bool
+	../../exception: assert, forbid
+	../../fun-util: subscript
+	../../misc: new, void
+	../../number: ==, nat64
+	../../opt: !
+	../../ptr: size-of
+	../../str: ==, literal, str
+	../../str-conv: finish, interp, to-str, with-str, with-value
+	../../test-util: is
+	../../tuple: a, b
+	../../writer: ~=, ~~=, backup, move-to-str, new, writer
+	../arr: arr, is-empty
+	../arr-util: each
+	../seq: ~, ~~, down, get-root, left, l0, l1, l2, new, node, nodes, right, seq, try-split-once-by-subseq
+
+dummy-seq-tests nat64()
+	0
+
+.verify<a> void(a seq a, expected str) no-doc trusted to-str<a>
+	a.dbg is expected
+	a.get-root check-structure
+
+.dbg<a> str(a seq a) to-str<a> no-doc
+	out writer = ()
+	out dbg-l0 a.get-root
+	out move-to-str
+
+.dbg-l0<a> void(out writer, a l0 a) to-str<a>
+	out dbg-node a.node, (x => out dbg-arr x), (x => out dbg-l1 x)
+
+.dbg-l1<a> void(out writer, a l1 a) to-str<a>
+	out dbg-node a.node, (x => out dbg-arr2d x), (x => out dbg-l2 x)
+
+.dbg-l2<a> void(out writer, a l2 a) to-str<a>
+	out dbg-arr3d a.nodes
+
+.dbg-node<a, lower> void(out writer, a node<a, lower>, dbg-a act void(a[]), dbg-lower act void(lower))
+	match a
+	as leaf l
+		dbg-a[l]
+	as branch b
+		out ~= "("
+		dbg-a[b left]
+		out ~= " "
+		dbg-lower[b down]
+		out ~= " "
+		dbg-a[b right]
+		out ~= ")"
+
+.dbg-arr<a> void(out writer, a a[]) to-str<a>
+	out ~= "["
+	unless a is-empty
+		a each x =>
+			out ~~= x to-str
+			out ~= " "
+		out backup
+	out ~= "]"
+
+.dbg-arr2d<a> void(out writer, a a[][]) to-str<a>
+	out ~= "["
+	unless a is-empty
+		a each x =>
+			out dbg-arr x
+			out ~= " "
+		out backup
+	out ~= "]"
+
+.dbg-arr3d<a> void(out writer, a a[][][]) to-str<a>
+	out ~= "["
+	unless a is-empty
+		a each x =>
+			out dbg-arr2d x
+			out ~= " "
+		out backup
+	out ~= "]"
+
+.check-structure<a> void(a l0 a) unsafe
+	match a node
+	as leaf _
+		()
+	as branch b
+		forbid: b.left.is-empty
+		forbid: b.right.is-empty
+		b.down check-structure 
+
+.check-structure<a> void(a l1 a) unsafe
+	match a node
+	as leaf _
+		()
+	as branch b
+		b.left check-structure
+		b.down check-structure
+		b.right check-structure
+
+.check-structure<a> void(xs a[][]) unsafe
+	forbid: xs is-empty
+	xs each ys =>
+		forbid: ys is-empty
+
+.check-structure<a> void(a l2 a) unsafe
+	a.nodes each ys =>
+		forbid: ys is-empty
+		ys each zs =>
+			forbid: zs is-empty
+
+test
+	a seq nat64 = ()
+	b = 1 ~ a
+	b verify "[1]"
+
+test
+	a seq nat64 = 1, 2, 3, 4, 5, 6, 7, 8
+	a verify "[1 2 3 4 5 6 7 8]"
+	b = 1 ~ a
+	b verify "([1] [] [1 2 3 4 5 6 7 8])"
+	c seq nat64 = (8, 7, 6, 5, 4, 3, 2) ~~ b
+	c verify "([8 7 6 5 4 3 2 1] [] [1 2 3 4 5 6 7 8])"
+	d = 9 ~ c
+	d verify "([9] [[8 7 6 5 4 3 2 1]] [1 2 3 4 5 6 7 8])"
+	e = d ~~ (1, 2, 3, 4, 5)
+	e verify "([9] [[8 7 6 5 4 3 2 1] [1 2 3 4 5 6 7 8]] [1 2 3 4 5])"
+
+test
+	a seq nat64 = 1, 2, 3, 4, 5
+	a verify "[1 2 3 4 5]"
+	b = a ~~ (9, 8, 7, 6)
+	b verify "([1 2 3 4 5] [] [9 8 7 6])"
+	c = b ~~ b
+	s = "[9 8 7 6 1 2 3 4 5]"
+	c verify "([1 2 3 4 5] [{s}] [9 8 7 6])"
+	d = c ~~ c
+	d verify "([1 2 3 4 5] [{s} {s} {s}] [9 8 7 6])"
+	e = d ~~ d
+	e verify "([1 2 3 4 5] ([{s} {s} {s} {s}] [] [{s} {s} {s}]) [9 8 7 6])"
+
+# use a big type to force smaller leaves for easier testing
+.big-nat record
+	by-val
+	a nat64
+	b nat64
+	c nat64
+
+.== bool(a big-nat, b big-nat)
+	a.a == b.a && a.b == b.b && a.c == b.c
+
+.big big-nat(a nat64)
+	a, a, a
+
+.to-str str(a big-nat)
+	a.a to-str
+
+test
+	assert: size-of@<big-nat> == 24
+	a seq big-nat = 5.big, 6.big
+	b seq big-nat = 4.big ~ a
+	b verify "([4] [] [5 6])"
+	
+	#b-split = (b try-split-once-by-subseq (5.big,))!
+	#b-split.a verify "[4]"
+	#b-split.b verify "[6]"
+
+	c seq big-nat = b ~ 7.big
+	c verify "([4] [[5 6]] [7])"
+
+	#c-split = (c try-split-once-by-subseq (5.big,))!
+	#c-split.a verify "[4]"
+	#c-split.b verify "[6 7]"
+
+	d seq big-nat = c ~ 8.big ~ 9.big ~ 10.big ~ 11.big
+	d verify "([4] [[5 6] [7 8] [9 10]] [11])"
+
+	d-split = (d try-split-once-by-subseq (6.big, 7.big))!
+	d-split.a verify "[4 5]"
+	d-split.b verify "([8] [[9 10]] [11])"
+
+	###
+	e seq big-nat = 0.big ~ (1.big ~ (2.big ~ (3.big ~ d)))
+	e verify "([0] ([[1 2]] [] [[3 4] [5 6] [7 8] [9 10]]) [11])"
+	f seq big-nat = e ~ 12.big ~ 13.big
+	f verify "([0] ([[1 2]] [[[3 4] [5 6] [7 8] [9 10]]] [[11 12]]) [13])"
+
+	f-split = (f try-split-once-by-subseq (4.big, 5.big))!
+	f-split.a verify "([0] [[1 2]] [3])"
+	f-split.b verify "([6] ([[7 8] [9 10]] [] [[11 12]]) [13])"
+	###

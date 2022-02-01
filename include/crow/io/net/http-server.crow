@@ -22,7 +22,7 @@ import
 	../../reader: parse-nat
 	../../str: ==, <=>, char, chars, is-empty, literal, str
 	../../str-conv: finish, interp, to-str, with-str, with-value
-	../../str-util: as-str, bytes, has-substr, split-by, try-remove-end
+	../../str-util: as-str, bytes, contains-substr, split-by, try-remove-end
 	../../writer: ~=, ~~=, move-to-str, new, writer
 	../../private/bootstrap: todo
 	../print: print
@@ -113,14 +113,14 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	res ~~= "HTTP/1.1 "
 	res ~~= a.status to-str
 	res ~= " "
-	forbid: a.status-desc has-substr "\n"
+	forbid: a.status-desc contains-substr "\n"
 	res ~~= "\r\n"
 	res ~~= a status-desc
 	# TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
 	a.headers each (k, v) =>
 		res ~~= "\r\n"
-		forbid: k has-substr "\n"
-		forbid: v has-substr "\n"
+		forbid: k contains-substr "\n"
+		forbid: v contains-substr "\n"
 		res ~~= k
 		res ~~= ": "
 		res ~~= v

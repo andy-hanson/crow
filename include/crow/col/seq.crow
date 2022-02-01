@@ -1,24 +1,22 @@
 no-std
 import
-	../bool: !, &&, ==, bool, false, new, true
-	../compare: <, <=, equal
-	../exception: assert
+	../bool: !, &&, bool, false, new
+	../compare: ==, <, <=, compare, comparison, equal, greater, less
 	../fun-util: subscript
 	../misc: new, void
-	../number: ==, <=>, +, -, *, nat64
 	../opt: !, ||, is-empty, new, opt
 	../private/bootstrap: hard-assert, hard-forbid, hard-unreachable
-	../ptr: ==, <=>, +, set-deref, size-of
-	../str: ==, literal, str
-	../str-conv: finish, interp, to-str, with-str, with-value
-	../test-util: is
+	../private/exception-low-level: forbid-c-str
+	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
+	../ptr: ==, +, set-deref, size-of
 	../tuple: a, b, new, pair
-	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	./arr: ~, ~~, arr, is-empty, new, size, subscript
-	./arr-util: each, find-and-get, fold, rtail, tail
+	./arr-util:
+		arr-iter, end-iter, find-and-get, fold, iter, next, prev, reverse, rtail, slice-left,
+		slice-right, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
+	./iter: new, rest, value, value-and-rest
 	./mut-arr: ~=, move-to-arr, mut-arr, new
-	./private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr
 
 ###
 Immutable sequence type.
@@ -29,26 +27,38 @@ It also is efficient to split from an iterator.
 It does not support efficient access by an index, so iterators should be used instead.
 ###
 seq<a> record
+	by-val
 	.root l0 a
 
-.l0<a> record
+get-root<a> l0 a(a seq a) no-doc
+	a.root
+
+# TODO: no-doc
+l0<a> record
+	by-val
 	node node<a, l1 a>
 
-.l1<a> record
+# TODO: no-doc
+l1<a> record
+	by-val
 	node node<a[], l2 a>
 
-.l2<a> record
+# TODO: no-doc
+l2<a> record
+	by-val
 	nodes a[][][]
 
-.node<a, lower> union
+# TODO: no-doc
+node<a, lower> union
 	leaf a[]
 	branch branch<a, lower>
 
 ###
+TODO: no-doc
 'left', 'down', and 'right' should all be non-empty.
 (Else, this layer should be a leaf. See `branch-or-leaf`.)
 ###
-.branch<a, lower> record
+branch<a, lower> record
 	left a[]
 	down lower
 	right a[]
@@ -98,6 +108,13 @@ seq<a> record
 .get-l0-branch<a> branch<a, l1 a>(a seq a)
 	a.root.node as-branch
 
+.try-get-l1<a> l1<a>?(a seq a)
+	match a.root node
+	as leaf _
+		()
+	as branch b
+		b.down,
+
 .get-l1<a> l1 a(a seq a)
 	a.get-l0-branch down
 
@@ -105,16 +122,41 @@ seq<a> record
 	a.get-l1.node.as-branch down
 
 # Sequence containing the given elements.
-new<a> seq a(...a a[])
+new<a> seq a(...a a[]) noctx
 	a to-seq
 
 ###
 Convert an array to a sequence.
 This is O(1).
 ###
-to-seq<a> seq a(a a[])
+to-seq<a> seq a(a a[]) noctx
 	l l0 a = a.leaf,
 	l,
+
+seq-equal<a> bool(a seq a, b seq a) equal<a>
+	a.iter seq-equal-recur b.iter
+.seq-equal-recur<a> bool(a seq-iter a, b seq-iter a) equal<a>
+	if na ?= a next
+		if nb ?= b.next
+			if na.value == nb.value
+				na.rest seq-equal-recur nb.rest
+	else
+		b.next is-empty
+
+seq-compare<a> comparison(a seq a, b seq a) compare<a>
+	a.iter seq-compare-recur b.iter
+.seq-compare-recur<a> comparison(a seq-iter a, b seq-iter a) compare<a>
+	if na ?= a next
+		if nb ?= b next
+			cmp = na.value <=> nb.value
+			if cmp == equal
+				na.rest seq-compare-recur nb.rest
+			else
+				cmp
+		else
+			greater
+	else
+		b.next.is-empty ? equal : less
 
 ###
 Convert a sequence to an array.
@@ -139,7 +181,7 @@ Number of elements in the sequence.
 This is O(n).
 ###
 size<a> nat64(a seq a)
-	0 fold-chunks a, (acc, xs) => acc + xs.size
+	0 fold-chunks a, (acc, xs) => acc wrap-add xs.size
 
 ###
 Concatenate two sequences.
@@ -228,12 +270,12 @@ spec
 body
 	match r
 	as leaf xs
-		if l.size-bytes + xs.size-bytes <= max-leaf-bytes
+		if (l.size-bytes wrap-add xs.size-bytes) <= max-leaf-bytes
 			l ~~ xs leaf
 		else
 			(l, (), xs) branch
 	as branch br
-		if l.size-bytes + br.left.size-bytes <= max-leaf-bytes
+		if (l.size-bytes wrap-add br.left.size-bytes) <= max-leaf-bytes
 			(l ~~ br.left, br.down, br.right) branch
 		else
 			(l, cat-left-lower[br.left, br.down], br.right) branch
@@ -247,12 +289,12 @@ spec
 body
 	match l
 	as leaf xs
-		if xs.size-bytes + r.size-bytes <= max-leaf-bytes
+		if (xs.size-bytes wrap-add r.size-bytes) <= max-leaf-bytes
 			xs ~~ r leaf
 		else
 			(xs, (), r) branch
 	as branch br
-		if br.right.size-bytes + r.size-bytes <= max-leaf-bytes
+		if (br.right.size-bytes wrap-add r.size-bytes) <= max-leaf-bytes
 			(br.left, br.down, br.right ~~ r) branch
 		else
 			(br.left, cat-right-lower[br.down, br.right], r) branch
@@ -303,74 +345,118 @@ body
 
 # 'trusted' since we are just using it to guide branch sizes (which should have no observable effect)
 .size-bytes<a> nat64(a a[]) trusted
-	a.size * size-of@<a>
+	a.size wrap-mul size-of@<a>
 
 region iter and slice
 
 
 # Immutable iterator over a sequence.
 seq-iter<a> record
-	seq seq a
-	state seq-iter-state a
+	by-val
+	.seq seq a
+	.state seq-iter-state a
+
+.seq-iter-state<a> union
+	# If l0 is a leaf, l0-left and l0-right are equivalent
+	l0-left arr-iter a
+	l0-right arr-iter a
+	# If l1 is a leaf, l1-left and l1-right are equivalent
+	l1-left arr-2d-iter a
+	l1-right arr-2d-iter a
+	l2 arr-3d-iter a
 
 # New iterator at the beginning of the sequence.
 iter<a> seq-iter<a>(a seq a)
 	match a.root node
 	as leaf xs
-		a, xs.l0-right
+		a, xs.iter.l0-right
 	as branch b
-		a, b.left.l0-left
+		a, b.left.iter.l0-left
 
-# Next value and next iterator.
-value-and-rest<a> record
-	value a
-	rest seq-iter<a>
+end-iter<a> seq-iter<a>(a seq a)
+	match a.root node
+	as leaf xs
+		a, xs.end-iter.l0-left
+	as branch b
+		a, b.right.end-iter.l0-right
 
 ###
 Returns the next element and next iterator.
 Returns an empty option if the iterator was already at the end of the sequence.
 ###
-next<a> value-and-rest<a>?(a seq-iter a) trusted
+next<a> value-and-rest<a, seq-iter a>?(a seq-iter a)
 	match a state
-	as l0-left xs
-		rest = if xs.tail is-empty
-			a.seq l1-iter
+	as l0-left iter
+		if n ?= iter next
+			(n.value, (a.seq, n.rest.l0-left)),
 		else
-			a.seq, xs.tail.l0-left
-		(xs[0], rest),
-	as l0-right xs
-		unless xs is-empty
-			(xs[0], (a.seq, xs.tail.l0-right)),
+			a.seq.l1-iter next
+	as l0-right iter
+		if n ?= iter next
+			(n.value, (a.seq, n.rest.l0-right)),
 	as l1-left iter
-		rest = if t ?= iter tail
-			a.seq, t.l1-left
+		if n ?= iter next
+			(n.value, (a.seq, n.rest.l1-left)),
 		else
-			a.seq.l2-iter
-		(iter.cur, rest),
+			a.seq.l2-iter next
 	as l1-right iter
-		rest seq-iter a = if t ?= iter tail
-			a.seq, t.l1-right
+		if n ?= iter next
+			(n.value, (a.seq, n.rest.l1-right)),
 		else
-			a.seq, a.seq.root.node.as-branch.right.l0-right
-		(iter.cur, rest),
+			l0 seq-iter a = a.seq, a.seq.get-l0-branch.right.iter l0-right
+			l0 next
 	as l2 iter
-		rest seq-iter a = if t ?= iter tail
-			a.seq, t.l2
+		if n ?= iter next
+			(n.value, (a.seq, n.rest.l2)),
 		else
-			a.seq, (a.seq.get-l1.node.as-branch.right,).l1-right
-		(iter.cur, rest),
+			l1 seq-iter a = a.seq, a.seq.get-l1.node.as-branch.right.iter2d l1-right
+			l1 next
+
+prev<a> value-and-rest<a, seq-iter a>?(a seq-iter a)
+	match a state
+	as l0-left iter
+		if p ?= iter prev
+			(p.value, (a.seq, p.rest.l0-left)),
+	as l0-right iter
+		if p ?= iter prev
+			(p.value, (a.seq, p.rest.l0-right)),
+		else
+			a.seq.l1-end-iter prev
+	as l1-left iter
+		if p ?= iter prev
+			(p.value, (a.seq, p.rest.l1-left)),
+		else
+			l0 seq-iter a = a.seq, a.seq.get-l0-branch.left.end-iter l0-left
+			l0 prev
+	as l1-right iter
+		if p ?= iter prev
+			(p.value, (a.seq, p.rest.l1-right)),
+		else
+			a.seq.l2-end-iter prev
+	as l2 iter
+		if p ?= iter prev
+			(p.value, (a.seq, p.rest.l2)),
+		else
+			l1 seq-iter a = a.seq, a.seq.get-l1.node.as-branch.left.end-iter2d l1-left
+			l1 prev
 
 # Mutable iterator over a sequence.
 mut-seq-iter<a> record mut
 	.inner mut seq-iter a
 
+# New mutable iterator at the beginning of the sequence.
+mut-iter<a> mut-seq-iter a(a seq a)
+	a.iter,
+
+end-mut-iter<a> mut-seq-iter a(a seq a)
+	a.end-iter,
+
 # Copy to an immutable iterator.
 iter<a> seq-iter a(a mut-seq-iter a)
 	a.inner
 
-# New mutable iterator at the beginning of the sequence.
-mut-iter<a> mut-seq-iter a(a seq a)
-	a.iter,
+copy<a> mut-seq-iter a(a mut-seq-iter a)
+	a.inner,
 
 ###
 Advances the iterator and returns the next element.
@@ -381,37 +467,50 @@ next<a> a?(a mut-seq-iter a)
 		a.inner := pair rest
 		pair.value,
 
+prev<a> a?(a mut-seq-iter a)
+	if pair ?= a.inner prev
+		a.inner := pair rest
+		pair.value,
+
+###
+Returns the next element without advancing the iterator.
+Returns an empty option if the iterator is at the end of the sequence.
+###
+peek<a> a?(a mut-seq-iter a)
+	if pair ?= a.inner next
+		pair.value,
+
 ###
 Seq of every element to the left of the iterator.
 This is O(log n).
 ###
 slice-left<a> seq a(a seq-iter a)
 	match a state
-	as l0-left xs
-		a.seq update-l0-branch b =>
-			(b.left get-left-of-1d xs).leaf,
-	as l0-right xs
+	as l0-left iter
+		iter.slice-left to-seq
+	as l0-right iter
 		match a.seq.root node
-		as leaf l
-			l0 l0 a = (l get-left-of-1d xs).leaf,
-			l0,
+		as leaf _
+			iter.slice-left to-seq
 		as branch b
-			(b.left branch-or-leaf-l0 b.down, (b.right get-left-of-1d xs)),
-	as l1-left xs
-		a.seq slice-left-update-l1 l1 =>
-			b = l1.node as-branch
-			left a[][] = b left
-			(left get-left-of-2d xs) branch-or-leaf-l1 b.down, b.right
-	as l1-right xs
+			(b.left branch-or-leaf-l0 b.down, iter.slice-left),
+	as l1-left iter
 		a.seq slice-left-update-l1 l1 =>
 			match l1 node
-			as leaf leaf
-				(leaf get-left-of-2d xs).leaf,
+			as leaf _
+				iter.slice-left.leaf,
 			as branch b
-				b.left branch-or-leaf-l1 b.down, (b.right get-left-of-2d xs)
-	as l2 xs
-		a.seq slice-left-update-l2 l2 =>
-			(l2.nodes get-left-of-3d xs),
+				iter.slice-left branch-or-leaf-l1 b.down, b.right
+	as l1-right iter
+		a.seq slice-left-update-l1 l1 =>
+			match l1 node
+			as leaf _
+				iter.slice-left.leaf,
+			as branch b
+				b.left branch-or-leaf-l1 b.down, iter.slice-left
+	as l2 iter
+		a.seq slice-left-update-l2 ignore =>
+			iter.slice-left,
 
 ###
 Seq of every element to the right of the iterator.
@@ -419,47 +518,26 @@ This is O(log n).
 ###
 slice-right<a> seq a(a seq-iter a)
 	match a state
-	as l0-left xs
+	as l0-left iter
 		a.seq update-l0-branch b =>
-			xs branch-or-leaf-l0 b.down, b.right
-	as l0-right xs
-		l0 l0 a = xs.leaf,
+			iter.slice-right branch-or-leaf-l0 b.down, b.right
+	as l0-right iter
+		l0 l0 a = iter.slice-right.leaf,
 		l0,
-	as l1-left xs
+	as l1-left iter
 		a.seq slice-right-update-l1 l1 =>
 			b = l1.node as-branch
-			xs.to-array branch-or-leaf-l1 b.down, b.right
-	as l1-right xs
+			iter.slice-right branch-or-leaf-l1 b.down, b.right
+	as l1-right iter
 		a.seq slice-right-update-l1 l1 =>
 			match l1 node
 			as leaf _
-				xs.to-array.leaf,
+				iter.slice-right.leaf,
 			as branch b
-				b.left branch-or-leaf-l1 b.down, xs.to-array
-	as l2 xs
+				b.left branch-or-leaf-l1 b.down, iter.slice-right
+	as l2 iter
 		a.seq slice-right-update-l2 ignore =>
-			xs.to-array,
-
-.get-left-of-1d<a> a[](a a[], b a[]) trusted
-	hard-assert: a.end-ptr == b.end-ptr
-	hard-assert: a.begin-ptr <= b.begin-ptr
-	a.begin-ptr arr-from-begin-end b.begin-ptr
-
-.get-left-of-2d<a> a[][](a a[][], b iter2d a)
-	left-1d = a get-left-of-1d b.rest
-	last-part = left-1d[left-1d.size - 1] get-left-of-1d b.cur-array
-	if last-part is-empty
-		left-1d rtail
-	else
-		left-1d.rtail ~ last-part
-
-.get-left-of-3d<a> a[][][](a a[][][], b iter3d a)
-	left-2d = a get-left-of-1d b.rest
-	last-part = left-2d[left-2d.size - 1] get-left-of-2d b.cur-iter
-	if last-part is-empty
-		left-2d rtail
-	else
-		left-2d.rtail ~ last-part
+			iter.slice-right,
 
 .level<l, a> spec
 	is-empty bool(level l)
@@ -516,9 +594,9 @@ slice-right<a> seq a(a seq-iter a)
 .pop-right<a> pair<l1 a, a[]>(a l1 a)
 	match a node
 	as leaf xs
-		(xs.rtail.leaf,), xs[xs.size - 1]
+		(xs.rtail.leaf,), xs[xs.size wrap-sub 1]
 	as branch b
-		popped = b.right[b.right.size - 1]
+		popped = b.right[b.right.size wrap-sub 1]
 		rest l1 a = if b.right.rtail is-empty
 			if b.down is-empty
 				b.left.leaf,
@@ -533,7 +611,7 @@ slice-right<a> seq a(a seq-iter a)
 	a.nodes[0], (a.nodes.tail,)
 
 .pop-right<a> pair<l2 a, a[][]>(a l2 a)
-	(a.nodes.rtail,), a.nodes[a.nodes.size - 1]
+	(a.nodes.rtail,), a.nodes[a.nodes.size wrap-sub 1]
 
 .update-l0<a> seq a(a seq a, f act l0 a(l0 a))
 	f[a root],
@@ -572,71 +650,125 @@ slice-right<a> seq a(a seq-iter a)
 			pair = new-l2 pop-left
 			(pair.a, pair.b, b.right).branch,
 
-.seq-iter-state<a> union
-	l0-left a[]
-	l0-right a[]
-	l1-left iter2d a
-	l1-right iter2d a
-	l2 iter3d a
-
 # Iterator through an a[][].
 # This will always be non-empty.
-.iter2d<a> record
+.arr-2d-iter<a> record
 	by-val
-	cur-array a[]
-	rest a[][]
+	cur-array arr-iter a
+	# This iterator comes after 'cur-array'
+	# That means 'prev' is more complicated than 'next'
+	after-cur-array arr-iter a[]
 
-.new<a> iter2d a(a a[][])
-	a[0], a.tail
+.iter2d<a> arr-2d-iter a(a a[][])
+	n = a.iter.next!
+	n.value.iter, n.rest
 
-.to-array<a> a[][](a iter2d a)
-	a.cur-array ~ a.rest
+.end-iter2d<a> arr-2d-iter a(a a[][])
+	p = a.end-iter.prev!
+	p.value.end-iter, p.rest
 
-.cur<a> a(a iter2d a)
-	a.cur-array[0]
+.next<a> value-and-rest<a, arr-2d-iter a>?(a arr-2d-iter a)
+	if n ?= a.cur-array next
+		(n.value, (n.rest, a.after-cur-array)),
+	elif n ?= a.after-cur-array next
+		(n.value.iter, n.rest)::arr-2d-iter<a> next
 
-.tail<a> iter2d<a>?(a iter2d a) unsafe
-	hard-forbid: a.cur-array is-empty
-	if a.cur-array.size == 1
-		unless a.rest is-empty
-			(a.rest[0], a.rest.tail),
+.prev<a> value-and-rest<a, arr-2d-iter a>?(a arr-2d-iter a)
+	if p ?= a.cur-array prev
+		(p.value, (p.rest, a.after-cur-array)),
 	else
-		(a.cur-array.tail, a.rest),
+		iter-cur-array = a.after-cur-array.prev!.rest
+		if p ?= iter-cur-array prev
+			(p.value.end-iter, iter-cur-array)::arr-2d-iter<a> prev
+
+.slice-left<a> a[][](a arr-2d-iter a)
+	# rtail since the last one is 'cur-array'
+	left-arrays = a.after-cur-array.slice-left rtail
+	last-part = a.cur-array slice-left
+	last-part.is-empty ? left-arrays : left-arrays ~ last-part
+
+.slice-right<a> a[][](a arr-2d-iter a)
+	first = a.cur-array slice-right
+	rest = a.after-cur-array slice-right
+	first.is-empty ? rest : first ~ rest
 
 # Iterator through an a[][][]
-.iter3d<a> record
+.arr-3d-iter<a> record
 	by-val
-	cur-iter iter2d a
-	rest a[][][]
+	cur-iter2d arr-2d-iter a
+	rest-arrays arr-iter a[][]
 
-.new<a> iter3d a(a a[][][])
-	(a[0],), a.tail
+.iter3d<a> arr-3d-iter a(a a[][][])
+	n = a.iter.next!
+	n.value.iter2d, n.rest
 
-.to-array<a> a[][][](a iter3d a)
-	a.cur-iter.to-array ~ a.rest
+.end-iter3d<a> arr-3d-iter a(a a[][][])
+	p = a.end-iter.prev!
+	p.value.iter2d, p.rest
 
-.cur<a> a(a iter3d a)
-	a.cur-iter.cur
+.next<a> value-and-rest<a, arr-3d-iter a>?(a arr-3d-iter a)
+	if n ?= a.cur-iter2d next
+		(n.value, (n.rest, a.rest-arrays)),
+	elif n ?= a.rest-arrays next
+		cur-array-next = n.value.iter2d.next!
+		(cur-array-next.value, (cur-array-next.rest, n.rest)),
 
-.tail<a> iter3d<a>?(a iter3d a) unsafe
-	if t ?= a.cur-iter tail
-		(t, a.rest),
-	else
-		unless a.rest is-empty
-			((a.rest[0],), a.rest.tail),
+.prev<a> value-and-rest<a, arr-3d-iter a>?(a arr-3d-iter a)
+	if p ?= a.cur-iter2d prev
+		(p.value, (p.rest, a.rest-arrays)),
+	elif p ?= a.rest-arrays.prev!.rest prev
+		cur-iter2d-prev = p.value.end-iter2d.prev!
+		(cur-iter2d-prev.value, (cur-iter2d-prev.rest, p.rest)),
+
+.slice-left<a> a[][][](a arr-3d-iter a)
+	left-arrays = a.rest-arrays.slice-left rtail
+	last-part = a.cur-iter2d slice-left
+	last-part.is-empty ? left-arrays : left-arrays ~ last-part
+
+.slice-right<a> a[][][](a arr-3d-iter a)
+	first = a.cur-iter2d slice-right
+	rest = a.rest-arrays slice-right
+	first.is-empty ? rest : first ~ rest
 
 .l1-iter<a> seq-iter a(a seq a)
-	a, match a.get-l1 node
-	as leaf xs
-		if xs is-empty
-			a.root.node.as-branch.right l0-right
-		else
-			(xs,) l1-right
-	as branch b
-		(b.left,) l1-left
+	a, if l1 ?= a try-get-l1
+		match l1 node
+		as leaf xs
+			if xs is-empty
+				a.get-l0-branch.right.iter l0-right
+			else
+				xs.iter2d l1-right
+		as branch b
+			b.left.iter2d l1-left
+	else
+		l0-right: match a.root node
+		as leaf xs
+			xs end-iter
+		as branch b
+			b.right iter
+
+.l1-end-iter<a> seq-iter a(a seq a)
+	a, if l1 ?= a try-get-l1
+		match l1 node
+		as leaf xs
+			if xs is-empty
+				a.get-l0-branch.left.end-iter l0-left
+			else
+				xs.end-iter2d l1-left
+		as branch b
+			b.right.end-iter2d l1-right
+	else
+		l0-left: match a.root node
+		as leaf xs
+			xs.iter
+		as branch b
+			b.left.end-iter
 
 .l2-iter<a> seq-iter a(a seq a)
-	a, (a.get-l2.nodes,).l2
+	a, (a.get-l2.nodes.iter3d).l2
+
+.l2-end-iter<a> seq-iter a(a seq a)
+	a, (a.get-l2.nodes.end-iter3d).l2
 
 region iteration
 
@@ -665,6 +797,24 @@ filter<a> seq a(a seq a, f act bool(a))
 		if f[x]
 			x,
 
+drop-while<a> seq a(a seq a, f act bool(a))
+	a.iter drop-while-recur f
+.drop-while-recur<a> seq a(a seq-iter a, f act bool(a))
+	if n ?= a next
+		if f[n value]
+			n.rest drop-while-recur f
+		else
+			a slice-right
+
+drop-right-while<a> seq a(a seq a, f act bool(a))
+	a.end-iter drop-right-while-recur f
+.drop-right-while-recur<a> seq a(a seq-iter a, f act bool(a))
+	if p ?= a prev
+		if f[p value]
+			p.rest drop-right-while-recur f
+		else
+			a slice-left
+
 map<out, in> seq out(a seq in, f act out(in))
 	a map-to-arr f to-seq
 
@@ -675,7 +825,7 @@ flat-map<out, in> seq out(a seq in, f act seq out(in))
 			res ~= out
 	res.move-to-arr to-seq
 
-.map-to-arr<out, in> out[](a seq in, f act out(in)) trusted
+map-to-arr<out, in> out[](a seq in, f act out(in)) trusted
 	res fix-arr out = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
@@ -720,122 +870,41 @@ flat-map<out, in> seq out(a seq in, f act seq out(in))
 	a.nodes find-and-get xs =>
 		xs find-and-get f
 
-region test
-
-.dbg<a> str(a seq a) to-str<a>
-	out writer = ()
-	out dbg-l0 a.root
-	out move-to-str
-
-.dbg<a> str(a seq-iter a) trusted to-str<a>
-	match a state
-	as l0-left xs
-		hard-forbid: xs is-empty
-		"l0-left at {xs[0]}"
-	as l0-right xs
-		"l0-right at {xs.is-empty ? "end" : xs[0] to-str}"
-	as l1-left iter
-		hard-forbid: iter.cur-array is-empty
-		"l1-left at {iter.cur-array[0]}"
-	as l1-right iter
-		hard-forbid: iter.cur-array is-empty
-		"l1-right at {iter.cur-array[0]}"
-	as l2 xs
-		hard-forbid: xs.cur-iter.cur-array is-empty
-		"l2 at {xs.cur-iter.cur-array[0]}"
-
-.dbg-l0<a> void(out writer, a l0 a) to-str<a>
-	out dbg-node a.node, (x => out dbg-arr x), (x => out dbg-l1 x)
-
-.dbg-l1<a> void(out writer, a l1 a) to-str<a>
-	out dbg-node a.node, (x => out dbg-arr2d x), (x => out dbg-l2 x)
-
-.dbg-l2<a> void(out writer, a l2 a) to-str<a>
-	out dbg-arr3d a.nodes
-
-.dbg-node<a, lower> void(out writer, a node<a, lower>, dbg-a act void(a[]), dbg-lower act void(lower))
-	match a
-	as leaf l
-		dbg-a[l]
-	as branch b
-		out ~= "("
-		dbg-a[b left]
-		out ~= " "
-		dbg-lower[b down]
-		out ~= " "
-		dbg-a[b right]
-		out ~= ")"
-
-.dbg-arr<a> void(out writer, a a[]) to-str<a>
-	out ~= "["
-	unless a is-empty
-		a each x =>
-			out ~~= x to-str
-			out ~= " "
-		out backup
-	out ~= "]"
-
-.dbg-arr2d<a> void(out writer, a a[][]) to-str<a>
-	out ~= "["
-	unless a is-empty
-		a each x =>
-			out dbg-arr x
-			out ~= " "
-		out backup
-	out ~= "]"
-
-.dbg-arr3d<a> void(out writer, a a[][][]) to-str<a>
-	out ~= "["
-	unless a is-empty
-		a each x =>
-			out dbg-arr2d x
-			out ~= " "
-		out backup
-	out ~= "]"
-
-.check-structure<a> void(a l0 a) unsafe
-	match a node
-	as leaf _
-		()
-	as branch b
-		hard-forbid: b.left.is-empty
-		hard-forbid: b.right.is-empty
-		b.down check-structure 
-
-.check-structure<a> void(a l1 a) unsafe
-	match a node
-	as leaf _
-		()
-	as branch b
-		b.left check-structure
-		b.down check-structure
-		b.right check-structure
-
-.check-structure<a> void(xs a[][]) unsafe
-	hard-forbid: xs.is-empty
-	xs each ys =>
-		hard-forbid: ys.is-empty
-
-.check-structure<a> void(a l2 a) unsafe
-	a.nodes each ys =>
-		hard-forbid: ys.is-empty
-		ys each zs =>
-			hard-forbid: zs.is-empty
-
-.verify<a> void(a seq a, expected str) trusted to-str<a>
-	a.dbg is expected
-	a.root check-structure
-
 starts-with<a> bool(a seq a, b seq a) equal<a>
-	!(a.iter iter-starts-with b).is-empty
+	!(a.iter iter-starts-with b.iter).is-empty
+
+ends-with<a> bool(a seq a, b seq a) equal<a>
+	!(a.end-iter iter-ends-with b.end-iter).is-empty
+
+try-remove-start<a> seq<a>?(a seq a, b seq a) equal<a>
+	if iter ?= a.iter iter-starts-with b.iter
+		iter.slice-right,
+
+try-remove-end<a> seq<a>?(a seq a, b seq a) equal<a>
+	if iter ?= a.end-iter iter-ends-with b.end-iter
+		iter.slice-left,
 
 ###
 `true` iff `b` is a subsequence of `a`.
 
 That means: The characters in `b` appear in `a`, in order, without interruptions.
 ###
-has-subseq<a> bool(a seq a, b seq a) equal<a>
+contains-subseq<a> bool(a seq a, b seq a) equal<a>
 	!(a iters-of-subseq b).is-empty
+
+split-seq<a> record
+	left seq a
+	middle a
+	right seq a
+
+try-split-once-by-fn<a> split-seq<a>?(a seq a, f act bool(a)) equal<a>
+	a.iter try-split-once-by-fn-recur f
+.try-split-once-by-fn-recur<a> split-seq<a>?(a seq-iter a, f act bool(a))
+	if n ?= a next
+		if f[n value]
+			(a.slice-left, n.value, n.rest.slice-right),
+		else
+			n.rest try-split-once-by-fn-recur f
 
 ###
 Finds the first apperance of `b` as a subsequence of `a`,
@@ -843,124 +912,48 @@ and returns slices of `a` to the left and right of that.
 
 Returns an empty option iff `b` is not a subsequence of `a`.
 ###
-split-on-subseq<a> pair<seq a, seq a>?(a seq a, b seq a) equal<a>
+try-split-once-by-subseq<a> pair<seq a, seq a>?(a seq a, b seq a) equal<a>
+	"can't split by empty sequence" forbid-c-str b.is-empty
 	if pair ?= a iters-of-subseq b
 		(pair.a.slice-left, pair.b.slice-right),
+
+split-by-subseq<a> seq seq a(a seq a, b seq a) equal<a>
+	"can't split by empty sequence" forbid-c-str b.is-empty
+	out seq<a> mut[] = ()
+	out split-by-subseq-recur a, b
+	out.move-to-arr to-seq
+.split-by-subseq-recur<a> void(out seq<a> mut[], a seq a, b seq a) equal<a>
+	if pair ?= a try-split-once-by-subseq b
+		out ~= pair.a
+		out split-by-subseq-recur pair.b, b
+	else
+		unless a is-empty
+			out ~= a
 
 .iters-of-subseq<a> pair<seq-iter a, seq-iter a>?(a seq a, b seq a) equal<a>
 	a.iter iters-of-subseq-recur b
 
 .iters-of-subseq-recur<a> pair<seq-iter a, seq-iter a>?(a seq-iter a, b seq a) equal<a>
-	if end-iter ?= a iter-starts-with b
+	if end-iter ?= a iter-starts-with b.iter
 		(a, end-iter),
 	elif n ?= a next
 		n.rest iters-of-subseq-recur b
 
-.iter-starts-with<a> seq-iter<a>?(a seq-iter a, b seq a) equal<a>
-	iter mut-seq-iter a = a,
-	success = b every x =>
-		if y ?= iter next
-			x == y
-	if success
-		iter.iter,
+.iter-starts-with<a> seq-iter<a>?(a seq-iter a, b seq-iter a) equal<a>
+	if bn ?= b next
+		if an ?= a next
+			if an.value == bn.value
+				an.rest iter-starts-with bn.rest
+	else
+		a,
 
-test
-	a seq nat64 = ()
-	b = 1 ~ a
-	b verify "[1]"
+.iter-ends-with<a> seq-iter<a>?(a seq-iter a, b seq-iter a) equal<a>
+	if bp ?= b prev
+		if ap ?= a prev
+			if ap.value == bp.value
+				ap.rest iter-ends-with bp.rest
+	else
+		a,
 
-test
-	a seq nat64 = 1, 2, 3, 4, 5, 6, 7, 8
-	a verify "[1 2 3 4 5 6 7 8]"
-	b = 1 ~ a
-	b verify "([1] [] [1 2 3 4 5 6 7 8])"
-	c seq nat64 = (8, 7, 6, 5, 4, 3, 2) ~~ b
-	c verify "([8 7 6 5 4 3 2 1] [] [1 2 3 4 5 6 7 8])"
-	d = 9 ~ c
-	d verify "([9] [[8 7 6 5 4 3 2 1]] [1 2 3 4 5 6 7 8])"
-	e = d ~~ (1, 2, 3, 4, 5)
-	e verify "([9] [[8 7 6 5 4 3 2 1] [1 2 3 4 5 6 7 8]] [1 2 3 4 5])"
-
-test
-	a seq nat64 = 1, 2, 3, 4, 5
-	a verify "[1 2 3 4 5]"
-	b = a ~~ (9, 8, 7, 6)
-	b verify "([1 2 3 4 5] [] [9 8 7 6])"
-	c = b ~~ b
-	s = "[9 8 7 6 1 2 3 4 5]"
-	c verify "([1 2 3 4 5] [{s}] [9 8 7 6])"
-	d = c ~~ c
-	d verify "([1 2 3 4 5] [{s} {s} {s}] [9 8 7 6])"
-	e = d ~~ d
-	e verify "([1 2 3 4 5] ([{s} {s} {s} {s}] [] [{s} {s} {s}]) [9 8 7 6])"
-
-# use a big type to force smaller leaves for easier testing
-.big-nat record
-	by-val
-	a nat64
-	b nat64
-	c nat64
-
-.== bool(a big-nat, b big-nat)
-	a.a == b.a && a.b == b.b && a.c == b.c
-
-.big big-nat(a nat64)
-	a, a, a
-
-.to-str str(a big-nat)
-	a.a to-str
-
-.verify<a> void(a seq-iter a, expected str) to-str<a>
-	a.dbg is expected
-
-test
-	assert: size-of@<big-nat> == 24
-	a seq big-nat = 5.big, 6.big
-	b seq big-nat = 4.big ~ a
-	b verify "([4] [] [5 6])"
-	
-	iter = b iter
-	iter verify "l0-left at 4"
-	n0 = iter.next!
-	n0.value is 4.big
-	iter1 = n0 rest
-	iter1 verify "l0-right at 5"
-	n1 = iter1.next!
-	n1.value is 5.big
-	iter2 = n1 rest
-	iter2 verify "l0-right at 6"
-	n2 = iter2.next!
-	n2.value is 6.big
-	iter3 = n2 rest
-	iter3.next.is-empty is true
-
-	b-split = (b split-on-subseq (5.big,))!
-	b-split.a verify "[4]"
-	b-split.b verify "[6]"
-
-	c seq big-nat = b ~ 7.big
-	c verify "([4] [[5 6]] [7])"
-
-	c-iters = (c iters-of-subseq (5.big,))!
-	c-iters.a verify "l1-right at 5"
-	c-iters.b verify "l1-right at 6"
-
-	c-split = (c split-on-subseq (5.big,))!
-	c-split.a verify "[4]"
-	c-split.b verify "[6 7]"
-
-	d seq big-nat = c ~ 8.big ~ 9.big ~ 10.big ~ 11.big
-	d verify "([4] [[5 6] [7 8] [9 10]] [11])"
-
-	d-split = (d split-on-subseq (6.big, 7.big))!
-	d-split.a verify "[4 5]"
-	d-split.b verify "([8] [[9 10]] [11])"
-
-	e seq big-nat = 0.big ~ (1.big ~ (2.big ~ (3.big ~ d)))
-	e verify "([0] ([[1 2]] [] [[3 4] [5 6] [7 8] [9 10]]) [11])"
-	f seq big-nat = e ~ 12.big ~ 13.big
-	f verify "([0] ([[1 2]] [[[3 4] [5 6] [7 8] [9 10]]] [[11 12]]) [13])"
-
-	f-split = (f split-on-subseq (4.big, 5.big))!
-	f-split.a verify "([0] [[1 2]] [3])"
-	f-split.b verify "([6] ([[7 8] [9 10]] [] [[11 12]]) [13])"
+reverse<a> seq a(a seq a)
+	a.to-arr.reverse to-seq

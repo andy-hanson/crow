@@ -68,11 +68,7 @@ program(
 			body: record([field(cb, const, type(false, fun-act1)), field(next, const, type(false, opt))]))
 		struct(
 			name: exception
-			body: record([field(message, const, type(false, str)), field(backtrace, const, type(false, backtrace))]))
-		struct(name: str, body: record([field(chars, const, type(false, arr))]))
-		struct(
-			name: arr
-			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
+			body: record([field(message, const, type(false, const-ptr)), field(backtrace, const, type(false, backtrace))]))
 		struct(name: backtrace, body: record([field(return-stack, const, type(false, arr))]))
 		struct(name: sym, body: record([field(sym-to-c-str, const, type(false, const-ptr))]))
 		struct(
@@ -82,6 +78,40 @@ program(
 		struct(name: result, body: union([some(type(false, nat64)), some(type(false, exception))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, result)]))
 		struct(name: opt, body: union([none, some(type(true, fut-state-callbacks))]))
+		struct(name: str, body: record([field(inner, const, type(false, seq))]))
+		struct(name: seq, body: record([field(root, const, type(false, l0))]))
+		struct(name: l0, body: record([field(node, const, type(false, node))]))
+		struct(name: l1, body: record([field(node, const, type(false, node))]))
+		struct(
+			name: arr
+			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
+		struct(name: l2, body: record([field(nodes, const, type(false, arr))]))
+		struct(
+			name: arr
+			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
+		struct(name: const-ptr, body: builtin(ptr-const, [type(false, arr)]))
+		struct(
+			name: arr
+			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
+		struct(name: const-ptr, body: builtin(ptr-const, [type(false, arr)]))
+		struct(name: node, body: union([some(type(false, arr)), some(type(true, branch))]))
+		struct(
+			name: branch
+			ptr: true
+			body: record(
+				[
+					field(left, const, type(false, arr))
+					field(down, const, type(false, l2))
+					field(right, const, type(false, arr))]))
+		struct(name: node, body: union([some(type(false, arr)), some(type(true, branch))]))
+		struct(
+			name: branch
+			ptr: true
+			body: record(
+				[
+					field(left, const, type(false, arr))
+					field(down, const, type(false, l1))
+					field(right, const, type(false, arr))]))
 		struct(
 			name: arr
 			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
@@ -230,14 +260,28 @@ program(
 			name: range
 			body: record([field(low, const, type(false, nat64)), field(high, const, type(false, nat64))]))
 		struct(name: int64, body: builtin(int-64, []))
+		struct(name: fun-act1, body: builtin(fun, [type(false, char), type(false, char)]))
+		struct(name: fix-arr, body: record([field(inner, const, type(false, arr))]))
+		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, char)]))
+		struct(name: opt, body: union([none, some(type(false, mut-ptr))]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, nat64), type(false, nat64), type(false, arr)]))
+		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, arr)]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, nat64), type(false, nat64), type(false, arr)]))
+		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, arr)]))
+		struct(name: lambda(fold-chunks-l2, 0), ptr: true, body: record([field(f, const, type(false, fun-act2))]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, mut-ptr), type(false, mut-ptr), type(false, char)]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, mut-ptr), type(false, mut-ptr), type(false, arr)]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, mut-ptr), type(false, mut-ptr), type(false, arr)]))
+		struct(name: lambda(fold-chunks-l2, 0), ptr: true, body: record([field(f, const, type(false, fun-act2))]))
+		struct(name: lambda(fold, 0), ptr: true, body: record([field(f, const, type(false, fun-act2))]))
+		struct(name: lambda(map-to-arr, 0), ptr: true, body: record([field(f, const, type(false, fun-act1))]))
+		struct(name: opt, body: union([none, some(type(false, const-ptr))]))
 		struct(name: writer, body: record([field(chars, const, type(true, mut-arr))]))
 		struct(
 			name: mut-arr
 			mut: true
 			ptr: true
 			body: record([field(backing, mutable, type(false, fix-arr)), field(size, mutable, type(false, nat64))]))
-		struct(name: fix-arr, body: record([field(inner, const, type(false, arr))]))
-		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, char)]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, char)]))
 		struct(name: lambda(~~=, 0), body: record([field(a, const, type(true, mut-arr))]))
 		struct(
@@ -280,7 +324,6 @@ program(
 		struct(name: opt, body: union([none, some(type(false, mut-ptr))]))
 		struct(name: opt, body: union([none, some(type(false, mut-ptr))]))
 		struct(name: opt, body: union([none, some(type(false, mut-ptr))]))
-		struct(name: opt, body: union([none, some(type(false, mut-ptr))]))
 		struct(
 			name: arr
 			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
@@ -288,7 +331,12 @@ program(
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, const-ptr)]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, sym)]))
 		struct(name: lambda(to-str, 0), body: record([field(res, const, type(false, writer))]))
-		struct(name: opt, body: union([none, some(type(false, const-ptr))]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, l1), type(false, arr), type(false, l1)]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, l1), type(false, l1), type(false, l1)]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, l2), type(false, arr), type(false, l2)]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, l2), type(false, l2), type(false, l2)]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, l1), type(false, l1), type(false, arr)]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, l2), type(false, l2), type(false, arr)]))
 		struct(name: log-ctx, mut: true, ptr: true, body: record([field(handler, mutable, type(false, fun1))]))
 		struct(
 			name: perf-ctx
@@ -1251,17 +1299,19 @@ program(
 			none
 			[param(e, type(false, exception))]
 			seq(
-				seq(call(print-err-no-newline, [record([arr(0, 0)])]), call(print-err, [call(to-str, [param-ref(e)])]))
+				seq(
+					call(print-err-no-newline, [call(literal, [c-str(0)])])
+					call(print-err, [call(to-str, [param-ref(e)])]))
 				call(set-any-unhandled-exceptions, [call(get-global-ctx, []), call(true, [])])))
 		fun(
-			noctx
+			ctx
 			print-err-no-newline
 			type(false, void)
 			none
 			[param(s, type(false, str))]
 			call(write-no-newline, [call(stderr, []), param-ref(s)]))
 		fun(
-			noctx
+			ctx
 			write-no-newline
 			type(false, void)
 			none
@@ -1311,429 +1361,77 @@ program(
 			[param(reference, type(false, const-ptr))]
 			builtin([type(false, const-ptr)]))
 		fun(noctx, begin-ptr, type(false, const-ptr), none, [param(a, type(false, arr))], field-get(1))
-		fun(noctx, chars, type(false, arr), none, [param(a, type(false, str))], field-get(0))
-		fun(
-			noctx
-			size-bytes
-			type(false, nat64)
-			none
-			[param(a, type(false, str))]
-			call(size, [call(chars, [param-ref(a)])]))
-		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
-		fun(
-			noctx
-			==
-			type(false, bool)
-			none
-			[param(a, type(false, int64)), param(b, type(false, int64))]
-			builtin([]))
-		fun(noctx, unsafe-to-int64, type(false, int64), none, [param(a, type(false, nat64))], builtin([]))
-		fun(noctx, todo, type(false, void), none, [], seq(call(abort, []), call(zeroed, [])))
-		fun(noctx, zeroed, type(false, void), none, [], builtin([type(false, void)]))
-		fun(noctx, stderr, type(false, int32), none, [], 2)
-		fun(
-			noctx
-			print-err
-			type(false, void)
-			none
-			[param(s, type(false, str))]
-			seq(call(print-err-no-newline, [param-ref(s)]), call(print-err-no-newline, [record([arr(0, 1)])])))
 		fun(
 			ctx
-			to-str
-			type(false, str)
-			none
-			[param(a, type(false, exception))]
-			let(
-				res
-				call(new, [])
-				seq(
-					seq(
-						call(
-							~~=
-							[
-								local-ref(res)
-								cond(
-									call(is-empty, [call(message, [param-ref(a)])])
-									record([arr(0, 6)])
-									call(message, [param-ref(a)]))])
-						call(
-							each
-							[
-								call(return-stack, [call(backtrace, [param-ref(a)])])
-								lambda(0, alloc(record([local-ref(res)])))]))
-					call(move-to-str, [local-ref(res)]))))
-		fun(ctx, new, type(false, writer), none, [], call(new, [call(new, [create-arr(arr, [])])]))
-		fun(ctx, new, type(false, writer), none, [param(chars, type(true, mut-arr))], new-record)
-		fun(ctx, new, type(true, mut-arr), none, [param(a, type(false, arr))], call(to-mut-arr, [param-ref(a)]))
-		fun(
-			ctx
-			to-mut-arr
-			type(true, mut-arr)
-			none
-			[param(a, type(false, arr))]
-			let(
-				backing
-				call(empty-fix-arr, [])
-				let(
-					res
-					call(new, [local-ref(backing), 0])
-					seq(call(~~=, [local-ref(res), param-ref(a)]), local-ref(res)))))
-		fun(
-			noctx
-			empty-fix-arr
-			type(false, fix-arr)
-			none
-			[]
-			let(inner, call(empty-arr, []), call(new, [local-ref(inner)])))
-		fun(noctx, empty-arr, type(false, arr), none, [], call(new, [0, call(null, [])]))
-		fun(
-			noctx
-			new
+			chars
 			type(false, arr)
 			none
-			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
-			new-record)
-		fun(noctx, null, type(false, const-ptr), none, [], call(as-const, [call(null, [])]))
-		fun(
-			noctx
-			as-const
-			type(false, const-ptr)
-			none
-			[param(a, type(false, mut-ptr))]
-			builtin([type(false, char)]))
-		fun(noctx, null, type(false, mut-ptr), none, [], builtin([type(false, char)]))
-		fun(noctx, new, type(false, fix-arr), none, [param(inner, type(false, arr))], new-record)
+			[param(a, type(false, str))]
+			call(to-arr, [call(inner, [param-ref(a)])]))
 		fun(
 			ctx
-			new
-			type(true, mut-arr)
+			to-arr
+			type(false, arr)
 			none
-			[param(backing, type(false, fix-arr)), param(size, type(false, nat64))]
-			new-record)
+			[param(a, type(false, seq))]
+			call(map-to-arr, [param-ref(a), lambda(0, void)]))
 		fun(
 			ctx
-			~~=
-			type(false, void)
+			map-to-arr
+			type(false, arr)
 			none
-			[param(a, type(true, mut-arr)), param(values, type(false, arr))]
-			call(each, [param-ref(values), lambda(0, alloc(record([param-ref(a)])))]))
-		fun(
-			ctx
-			each
-			type(false, void)
-			none
-			[param(a, type(false, arr)), param(f, type(false, fun-act1))]
-			call(each-recur, [call(begin-ptr, [param-ref(a)]), call(end-ptr, [param-ref(a)]), param-ref(f)]))
-		fun(
-			ctx
-			each-recur
-			type(false, void)
-			none
-			[param(cur, type(false, const-ptr)), param(end, type(false, const-ptr)), param(f, type(false, fun-act1))]
-			cond(
-				call(==, [param-ref(cur), param-ref(end)])
-				call(new, [])
-				seq(
-					call(subscript, [param-ref(f), call(*, [param-ref(cur)])])
-					call(each-recur, [call(+, [param-ref(cur), 1]), param-ref(end), param-ref(f)]))))
-		fun(
-			noctx
-			==
-			type(false, bool)
-			none
-			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
-			call(==, [call(as-mut, [param-ref(a)]), call(as-mut, [param-ref(b)])]))
-		fun(
-			noctx
-			==
-			type(false, bool)
-			none
-			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
-			builtin([type(false, char)]))
-		fun(noctx, as-mut, type(false, mut-ptr), none, [param(a, type(false, const-ptr))], builtin([type(false, char)]))
-		fun(
-			ctx
-			subscript
-			type(false, void)
-			none
-			[param(a, type(false, fun-act1)), param(p0, type(false, char))]
-			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0)]))
-		fun(
-			noctx
-			call-with-ctx
-			type(false, void)
-			none
-			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, char))]
-			builtin([type(false, void), type(false, char)]))
-		fun(ctx, get-ctx, type(true, ctx), none, [], builtin([]))
-		fun(
-			noctx
-			*
-			type(false, char)
-			none
-			[param(a, type(false, const-ptr))]
-			call(*, [call(as-mut, [param-ref(a)])]))
-		fun(noctx, *, type(false, char), none, [param(a, type(false, mut-ptr))], builtin([type(false, char)]))
-		fun(
-			noctx
-			+
-			type(false, const-ptr)
-			none
-			[param(a, type(false, const-ptr)), param(offset, type(false, nat64))]
-			call(as-const, [call(+, [call(as-mut, [param-ref(a)]), param-ref(offset)])]))
-		fun(
-			noctx
-			+
-			type(false, mut-ptr)
-			none
-			[param(a, type(false, mut-ptr)), param(offset, type(false, nat64))]
-			builtin([type(false, char)]))
-		fun(
-			noctx
-			end-ptr
-			type(false, const-ptr)
-			none
-			[param(a, type(false, arr))]
-			call(+, [call(begin-ptr, [param-ref(a)]), call(size, [param-ref(a)])]))
-		fun(
-			ctx
-			~=
-			type(false, void)
-			none
-			[param(a, type(true, mut-arr)), param(value, type(false, char))]
-			seq(
-				seq(
-					seq(
-						call(incr-capacity, [param-ref(a)])
-						call(assert, [call(<, [call(size, [param-ref(a)]), call(capacity, [param-ref(a)])])]))
-					call(set-subscript, [call(begin-ptr, [param-ref(a)]), call(size, [param-ref(a)]), param-ref(value)]))
-				call(set-size, [param-ref(a), call(+, [call(size, [param-ref(a)]), 1])])))
-		fun(
-			ctx
-			incr-capacity
-			type(false, void)
-			none
-			[param(a, type(true, mut-arr))]
-			call(
-				ensure-capacity
-				[param-ref(a), call(round-up-to-power-of-two, [call(+, [call(size, [param-ref(a)]), 1])])]))
-		fun(
-			ctx
-			ensure-capacity
-			type(false, void)
-			none
-			[param(a, type(true, mut-arr)), param(min-capacity, type(false, nat64))]
-			cond(
-				call(<, [call(capacity, [param-ref(a)]), param-ref(min-capacity)])
-				call(increase-capacity-to, [param-ref(a), param-ref(min-capacity)])
-				call(new, [])))
-		fun(
-			noctx
-			capacity
-			type(false, nat64)
-			none
-			[param(a, type(true, mut-arr))]
-			call(size, [call(backing, [param-ref(a)])]))
-		fun(
-			noctx
-			size
-			type(false, nat64)
-			none
-			[param(a, type(false, fix-arr))]
-			call(size, [call(inner, [param-ref(a)])]))
-		fun(noctx, inner, type(false, arr), none, [param(a, type(false, fix-arr))], field-get(0))
-		fun(noctx, backing, type(false, fix-arr), none, [param(a, type(true, mut-arr))], field-get(0))
-		fun(
-			ctx
-			increase-capacity-to
-			type(false, void)
-			none
-			[param(a, type(true, mut-arr)), param(new-capacity, type(false, nat64))]
-			seq(
-				call(assert, [call(>, [param-ref(new-capacity), call(capacity, [param-ref(a)])])])
-				let(
-					old-begin
-					call(begin-ptr, [param-ref(a)])
-					seq(
-						seq(
-							call(set-backing, [param-ref(a), call(uninitialized-fix-arr, [param-ref(new-capacity)])])
-							call(
-								copy-data-from
-								[
-									call(begin-ptr, [param-ref(a)])
-									call(as-const, [local-ref(old-begin)])
-									call(size, [param-ref(a)])]))
-						call(
-							set-zero-elements
-							[
-								call(
-									subscript
-									[
-										call(backing, [param-ref(a)])
-										call(
-											..
-											[
-												call(+, [call(size, [param-ref(a)]), 1])
-												call(size, [call(backing, [param-ref(a)])])])])])))))
-		fun(
-			ctx
-			assert
-			type(false, void)
-			none
-			[param(condition, type(false, bool))]
-			cond(param-ref(condition), call(new, []), call(throw, [record([arr(0, 2)])])))
-		fun(
-			ctx
-			throw
-			type(false, void)
-			none
-			[param(message, type(false, str))]
-			call(throw, [call(new, [param-ref(message), call(get-backtrace, [])])]))
-		fun(
-			ctx
-			throw
-			type(false, void)
-			none
-			[param(e, type(false, exception))]
+			[param(a, type(false, seq)), param(f, type(false, fun-act1))]
 			let(
-				exn-ctx
-				call(get-exception-ctx, [])
-				seq(
+				res
+				call(uninitialized-fix-arr, [call(size, [param-ref(a)])])
+				let(
+					end
+					call(
+						fold
+						[call(begin-ptr, [local-ref(res)]), param-ref(a), lambda(0, alloc(record([param-ref(f)])))])
 					seq(
-						seq(
-							call(hard-assert, [call(!=, [call(jmp-buf-ptr, [local-ref(exn-ctx)]), call(null, [])])])
-							call(set-thrown-exception, [local-ref(exn-ctx), param-ref(e)]))
-						call(longjmp, [call(jmp-buf-ptr, [local-ref(exn-ctx)]), call(number-to-throw, [])]))
-					call(hard-unreachable, []))))
+						call(hard-assert, [call(==, [local-ref(end), call(end-ptr, [local-ref(res)])])])
+						call(cast-immutable, [local-ref(res)])))))
 		fun(
 			ctx
-			get-exception-ctx
-			type(true, exception-ctx)
-			none
-			[]
-			call(as-ref, [call(exception-ctx-ptr, [call(thread-local-stuff, [call(get-ctx, [])])])]))
-		fun(
-			noctx
-			as-ref
-			type(true, exception-ctx)
-			none
-			[param(a, type(false, mut-ptr))]
-			builtin([type(true, exception-ctx)]))
-		fun(
-			noctx
-			exception-ctx-ptr
-			type(false, mut-ptr)
-			none
-			[param(a, type(true, thread-local-stuff))]
-			field-get(2))
-		fun(noctx, thread-local-stuff, type(true, thread-local-stuff), none, [param(a, type(true, ctx))], field-get(4))
-		fun(
-			noctx
-			==
-			type(false, bool)
-			none
-			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
-			builtin([type(false, __jmp_buf_tag)]))
-		fun(
-			noctx
-			!=
-			type(false, bool)
-			none
-			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
-			call(!, [call(==, [param-ref(a), param-ref(b)])]))
-		fun(noctx, jmp-buf-ptr, type(false, mut-ptr), none, [param(a, type(true, exception-ctx))], field-get(0))
-		fun(noctx, null, type(false, mut-ptr), none, [], builtin([type(false, __jmp_buf_tag)]))
-		fun(
-			noctx
-			set-thrown-exception
-			type(false, void)
-			none
-			[param(a, type(true, exception-ctx)), param(thrown-exception, type(false, exception))]
-			field-set(1))
-		fun(
-			noctx
-			longjmp
-			type(false, void)
-			none
-			[param(env, type(false, mut-ptr)), param(val, type(false, int32))]
-			extern)
-		fun(ctx, number-to-throw, type(false, int32), none, [], 7)
-		fun(noctx, hard-unreachable, type(false, void), none, [], seq(call(abort, []), call(zeroed, [])))
-		fun(
-			noctx
-			new
-			type(false, exception)
-			none
-			[param(message, type(false, str)), param(backtrace, type(false, backtrace))]
-			new-record)
-		fun(
-			ctx
-			get-backtrace
-			type(false, backtrace)
-			none
-			[]
-			match-union(
-				call(try-alloc-backtrace-arrs, [])
-				[
-					case(none, call(new, [call(empty-arr, [])]))
-					case(
-						some(arrs)
-						let(
-							n-code-ptrs
-							call(backtrace-and-get-n-code-ptrs, [local-ref(arrs)])
-							seq(
-								call(hard-assert, [call(<=, [local-ref(n-code-ptrs), call(code-ptrs-size, [])])])
-								call(fill-arrs, [local-ref(arrs), local-ref(n-code-ptrs)]))))]))
-		fun(
-			ctx
-			try-alloc-backtrace-arrs
-			type(false, opt)
-			none
-			[]
-			match-union(
-				call(try-alloc-uninitialized, [8])
-				[
-					case(none, call(none, []))
-					case(
-						some(code-ptrs)
-						match-union(
-							call(try-alloc-uninitialized, [8])
-							[
-								case(none, call(none, []))
-								case(
-									some(code-names)
-									match-union(
-										call(try-alloc-uninitialized, [call(size, [call(all-funs, [])])])
-										[
-											case(none, call(none, []))
-											case(
-												some(funs)
-												call(
-													some
-													[
-														call(
-															new
-															[
-																local-ref(code-ptrs)
-																local-ref(code-names)
-																local-ref(funs)])]))]))]))]))
-		fun(
-			ctx
-			try-alloc-uninitialized
-			type(false, opt)
+			uninitialized-fix-arr
+			type(false, fix-arr)
 			none
 			[param(size, type(false, nat64))]
-			match-union(
-				call(try-alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
-				[case(none, call(none, [])), case(some(res), call(some, [call(ptr-cast, [local-ref(res)])]))]))
+			let(
+				ptr
+				call(alloc-uninitialized, [param-ref(size)])
+				call(subscript, [local-ref(ptr), call(.., [0, param-ref(size)])])))
 		fun(
 			ctx
-			try-alloc
-			type(false, opt)
+			alloc-uninitialized
+			type(false, mut-ptr)
+			none
+			[param(size, type(false, nat64))]
+			call(ptr-cast, [call(alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])]))
+		fun(
+			noctx
+			ptr-cast
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, mut-ptr))]
+			builtin([type(false, char), type(false, nat8)]))
+		fun(
+			ctx
+			alloc
+			type(false, mut-ptr)
 			none
 			[param(size-bytes, type(false, nat64))]
-			call(try-gc-alloc, [call(get-gc, []), param-ref(size-bytes)]))
+			call(gc-alloc, [call(get-gc, []), param-ref(size-bytes)]))
+		fun(
+			ctx
+			gc-alloc
+			type(false, mut-ptr)
+			none
+			[param(gc, type(true, gc)), param(size, type(false, nat64))]
+			match-union(
+				call(try-gc-alloc, [param-ref(gc), param-ref(size)])
+				[case(none, call(todo, [])), case(some(res), local-ref(res))]))
 		fun(
 			noctx
 			try-gc-alloc
@@ -1916,11 +1614,1214 @@ program(
 				hard-assert-posix-error
 				[call(pthread_mutex_unlock, [call(ref-of-val, [call(mutex, [param-ref(a)])])])]))
 		fun(noctx, pthread_mutex_unlock, type(false, int32), none, [param(mutex, type(true, pthread_mutex_t))], extern)
+		fun(noctx, todo, type(false, mut-ptr), none, [], seq(call(abort, []), call(zeroed, [])))
+		fun(noctx, zeroed, type(false, mut-ptr), none, [], builtin([type(false, mut-ptr)]))
 		fun(ctx, get-gc, type(true, gc), none, [], call(gc, [call(get-gc-ctx, [])]))
 		fun(noctx, gc, type(true, gc), none, [param(a, type(true, gc-ctx))], field-get(0))
 		fun(ctx, get-gc-ctx, type(true, gc-ctx), none, [], call(as-ref, [call(gc-ctx-ptr, [call(get-ctx, [])])]))
 		fun(noctx, as-ref, type(true, gc-ctx), none, [param(a, type(false, mut-ptr))], builtin([type(true, gc-ctx)]))
 		fun(noctx, gc-ctx-ptr, type(false, mut-ptr), none, [param(a, type(true, ctx))], field-get(3))
+		fun(ctx, get-ctx, type(true, ctx), none, [], builtin([]))
+		fun(
+			noctx
+			subscript
+			type(false, fix-arr)
+			none
+			[param(a, type(false, mut-ptr)), param(range, type(false, range))]
+			call(new, [call(subscript, [call(as-const, [param-ref(a)]), param-ref(range)])]))
+		fun(noctx, new, type(false, fix-arr), none, [param(inner, type(false, arr))], new-record)
+		fun(
+			noctx
+			subscript
+			type(false, arr)
+			none
+			[param(a, type(false, const-ptr)), param(r, type(false, range))]
+			call(
+				new
+				[
+					call(wrap-sub, [call(high, [param-ref(r)]), call(low, [param-ref(r)])])
+					call(+, [param-ref(a), call(low, [param-ref(r)])])]))
+		fun(
+			noctx
+			new
+			type(false, arr)
+			none
+			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
+			new-record)
+		fun(
+			noctx
+			+
+			type(false, const-ptr)
+			none
+			[param(a, type(false, const-ptr)), param(offset, type(false, nat64))]
+			call(as-const, [call(+, [call(as-mut, [param-ref(a)]), param-ref(offset)])]))
+		fun(
+			noctx
+			as-const
+			type(false, const-ptr)
+			none
+			[param(a, type(false, mut-ptr))]
+			builtin([type(false, char)]))
+		fun(
+			noctx
+			+
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, mut-ptr)), param(offset, type(false, nat64))]
+			builtin([type(false, char)]))
+		fun(noctx, as-mut, type(false, mut-ptr), none, [param(a, type(false, const-ptr))], builtin([type(false, char)]))
+		fun(
+			ctx
+			size
+			type(false, nat64)
+			none
+			[param(a, type(false, seq))]
+			call(fold-chunks, [0, param-ref(a), lambda(0, void)]))
+		fun(
+			ctx
+			fold-chunks
+			type(false, nat64)
+			none
+			[param(acc, type(false, nat64)), param(xs, type(false, seq)), param(f, type(false, fun-act2))]
+			match-union(
+				call(node, [call(root, [param-ref(xs)])])
+				[
+					case(some(l), call(subscript, [param-ref(f), param-ref(acc), local-ref(l)]))
+					case(
+						some(b)
+						let(
+							mid
+							call(
+								fold-chunks-l1
+								[
+									call(subscript, [param-ref(f), param-ref(acc), call(left, [local-ref(b)])])
+									call(down, [local-ref(b)])
+									param-ref(f)])
+							call(subscript, [param-ref(f), local-ref(mid), call(right, [local-ref(b)])])))]))
+		fun(noctx, node, type(false, node), none, [param(a, type(false, l0))], field-get(0))
+		fun(noctx, root, type(false, l0), none, [param(a, type(false, seq))], field-get(0))
+		fun(
+			ctx
+			subscript
+			type(false, nat64)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, nat64)), param(p1, type(false, arr))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, nat64)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, nat64))
+				param(p1, type(false, arr))]
+			builtin([type(false, nat64), type(false, nat64), type(false, arr)]))
+		fun(
+			ctx
+			fold-chunks-l1
+			type(false, nat64)
+			none
+			[param(acc, type(false, nat64)), param(xs, type(false, l1)), param(f, type(false, fun-act2))]
+			match-union(
+				call(node, [param-ref(xs)])
+				[
+					case(some(l), call(fold, [param-ref(acc), local-ref(l), param-ref(f)]))
+					case(
+						some(b)
+						call(
+							fold
+							[
+								call(
+									fold-chunks-l2
+									[
+										call(fold, [param-ref(acc), call(left, [local-ref(b)]), param-ref(f)])
+										call(down, [local-ref(b)])
+										param-ref(f)])
+								call(right, [local-ref(b)])
+								param-ref(f)]))]))
+		fun(noctx, node, type(false, node), none, [param(a, type(false, l1))], field-get(0))
+		fun(
+			ctx
+			fold
+			type(false, nat64)
+			none
+			[param(acc, type(false, nat64)), param(a, type(false, arr)), param(f, type(false, fun-act2))]
+			call(
+				fold-recur
+				[param-ref(acc), call(begin-ptr, [param-ref(a)]), call(end-ptr, [param-ref(a)]), param-ref(f)]))
+		fun(
+			ctx
+			fold-recur
+			type(false, nat64)
+			none
+			[
+				param(acc, type(false, nat64))
+				param(cur, type(false, const-ptr))
+				param(end, type(false, const-ptr))
+				param(f, type(false, fun-act2))]
+			cond(
+				call(==, [param-ref(cur), param-ref(end)])
+				param-ref(acc)
+				call(
+					fold-recur
+					[
+						call(subscript, [param-ref(f), param-ref(acc), call(*, [param-ref(cur)])])
+						call(+, [param-ref(cur), 1])
+						param-ref(end)
+						param-ref(f)])))
+		fun(
+			noctx
+			==
+			type(false, bool)
+			none
+			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
+			call(==, [call(as-mut, [param-ref(a)]), call(as-mut, [param-ref(b)])]))
+		fun(
+			noctx
+			==
+			type(false, bool)
+			none
+			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
+			builtin([type(false, arr)]))
+		fun(noctx, as-mut, type(false, mut-ptr), none, [param(a, type(false, const-ptr))], builtin([type(false, arr)]))
+		fun(
+			noctx
+			*
+			type(false, arr)
+			none
+			[param(a, type(false, const-ptr))]
+			call(*, [call(as-mut, [param-ref(a)])]))
+		fun(noctx, *, type(false, arr), none, [param(a, type(false, mut-ptr))], builtin([type(false, arr)]))
+		fun(
+			noctx
+			+
+			type(false, const-ptr)
+			none
+			[param(a, type(false, const-ptr)), param(offset, type(false, nat64))]
+			call(as-const, [call(+, [call(as-mut, [param-ref(a)]), param-ref(offset)])]))
+		fun(
+			noctx
+			as-const
+			type(false, const-ptr)
+			none
+			[param(a, type(false, mut-ptr))]
+			builtin([type(false, arr)]))
+		fun(
+			noctx
+			+
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, mut-ptr)), param(offset, type(false, nat64))]
+			builtin([type(false, arr)]))
+		fun(noctx, begin-ptr, type(false, const-ptr), none, [param(a, type(false, arr))], field-get(1))
+		fun(
+			noctx
+			end-ptr
+			type(false, const-ptr)
+			none
+			[param(a, type(false, arr))]
+			call(+, [call(begin-ptr, [param-ref(a)]), call(size, [param-ref(a)])]))
+		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
+		fun(
+			ctx
+			fold-chunks-l2
+			type(false, nat64)
+			none
+			[param(acc, type(false, nat64)), param(xs, type(false, l2)), param(f, type(false, fun-act2))]
+			call(fold, [param-ref(acc), call(nodes, [param-ref(xs)]), lambda(0, alloc(record([param-ref(f)])))]))
+		fun(
+			ctx
+			fold
+			type(false, nat64)
+			none
+			[param(acc, type(false, nat64)), param(a, type(false, arr)), param(f, type(false, fun-act2))]
+			call(
+				fold-recur
+				[param-ref(acc), call(begin-ptr, [param-ref(a)]), call(end-ptr, [param-ref(a)]), param-ref(f)]))
+		fun(
+			ctx
+			fold-recur
+			type(false, nat64)
+			none
+			[
+				param(acc, type(false, nat64))
+				param(cur, type(false, const-ptr))
+				param(end, type(false, const-ptr))
+				param(f, type(false, fun-act2))]
+			cond(
+				call(==, [param-ref(cur), param-ref(end)])
+				param-ref(acc)
+				call(
+					fold-recur
+					[
+						call(subscript, [param-ref(f), param-ref(acc), call(*, [param-ref(cur)])])
+						call(+, [param-ref(cur), 1])
+						param-ref(end)
+						param-ref(f)])))
+		fun(
+			noctx
+			==
+			type(false, bool)
+			none
+			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
+			call(==, [call(as-mut, [param-ref(a)]), call(as-mut, [param-ref(b)])]))
+		fun(
+			noctx
+			==
+			type(false, bool)
+			none
+			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
+			builtin([type(false, arr)]))
+		fun(noctx, as-mut, type(false, mut-ptr), none, [param(a, type(false, const-ptr))], builtin([type(false, arr)]))
+		fun(
+			ctx
+			subscript
+			type(false, nat64)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, nat64)), param(p1, type(false, arr))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, nat64)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, nat64))
+				param(p1, type(false, arr))]
+			builtin([type(false, nat64), type(false, nat64), type(false, arr)]))
+		fun(
+			noctx
+			*
+			type(false, arr)
+			none
+			[param(a, type(false, const-ptr))]
+			call(*, [call(as-mut, [param-ref(a)])]))
+		fun(noctx, *, type(false, arr), none, [param(a, type(false, mut-ptr))], builtin([type(false, arr)]))
+		fun(
+			noctx
+			+
+			type(false, const-ptr)
+			none
+			[param(a, type(false, const-ptr)), param(offset, type(false, nat64))]
+			call(as-const, [call(+, [call(as-mut, [param-ref(a)]), param-ref(offset)])]))
+		fun(
+			noctx
+			as-const
+			type(false, const-ptr)
+			none
+			[param(a, type(false, mut-ptr))]
+			builtin([type(false, arr)]))
+		fun(
+			noctx
+			+
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, mut-ptr)), param(offset, type(false, nat64))]
+			builtin([type(false, arr)]))
+		fun(noctx, begin-ptr, type(false, const-ptr), none, [param(a, type(false, arr))], field-get(1))
+		fun(
+			noctx
+			end-ptr
+			type(false, const-ptr)
+			none
+			[param(a, type(false, arr))]
+			call(+, [call(begin-ptr, [param-ref(a)]), call(size, [param-ref(a)])]))
+		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
+		fun(noctx, nodes, type(false, arr), none, [param(a, type(false, l2))], field-get(0))
+		fun(
+			ctx
+			lambda(fold-chunks-l2, 0)
+			type(false, nat64)
+			some(param("<<closure>>", type(true, lambda(fold-chunks-l2, 0))))
+			[param(cur, type(false, nat64)), param(nodes, type(false, arr))]
+			call(fold, [param-ref(cur), param-ref(nodes), get-field(param-ref("<<closure>>"), f)]))
+		fun(noctx, left, type(false, arr), none, [param(a, type(true, branch))], field-get(0))
+		fun(noctx, down, type(false, l2), none, [param(a, type(true, branch))], field-get(1))
+		fun(noctx, right, type(false, arr), none, [param(a, type(true, branch))], field-get(2))
+		fun(noctx, left, type(false, arr), none, [param(a, type(true, branch))], field-get(0))
+		fun(noctx, down, type(false, l1), none, [param(a, type(true, branch))], field-get(1))
+		fun(noctx, right, type(false, arr), none, [param(a, type(true, branch))], field-get(2))
+		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
+		fun(
+			ctx
+			lambda(size, 0)
+			type(false, nat64)
+			some(param("<<closure>>", type(false, void)))
+			[param(acc, type(false, nat64)), param(xs, type(false, arr))]
+			call(wrap-add, [param-ref(acc), call(size, [param-ref(xs)])]))
+		fun(
+			ctx
+			fold
+			type(false, mut-ptr)
+			none
+			[param(acc, type(false, mut-ptr)), param(a, type(false, seq)), param(f, type(false, fun-act2))]
+			call(fold-chunks, [param-ref(acc), param-ref(a), lambda(0, alloc(record([param-ref(f)])))]))
+		fun(
+			ctx
+			fold-chunks
+			type(false, mut-ptr)
+			none
+			[param(acc, type(false, mut-ptr)), param(xs, type(false, seq)), param(f, type(false, fun-act2))]
+			match-union(
+				call(node, [call(root, [param-ref(xs)])])
+				[
+					case(some(l), call(subscript, [param-ref(f), param-ref(acc), local-ref(l)]))
+					case(
+						some(b)
+						let(
+							mid
+							call(
+								fold-chunks-l1
+								[
+									call(subscript, [param-ref(f), param-ref(acc), call(left, [local-ref(b)])])
+									call(down, [local-ref(b)])
+									param-ref(f)])
+							call(subscript, [param-ref(f), local-ref(mid), call(right, [local-ref(b)])])))]))
+		fun(
+			ctx
+			subscript
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, mut-ptr)), param(p1, type(false, arr))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, mut-ptr)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, mut-ptr))
+				param(p1, type(false, arr))]
+			builtin([type(false, mut-ptr), type(false, mut-ptr), type(false, arr)]))
+		fun(
+			ctx
+			fold-chunks-l1
+			type(false, mut-ptr)
+			none
+			[param(acc, type(false, mut-ptr)), param(xs, type(false, l1)), param(f, type(false, fun-act2))]
+			match-union(
+				call(node, [param-ref(xs)])
+				[
+					case(some(l), call(fold, [param-ref(acc), local-ref(l), param-ref(f)]))
+					case(
+						some(b)
+						call(
+							fold
+							[
+								call(
+									fold-chunks-l2
+									[
+										call(fold, [param-ref(acc), call(left, [local-ref(b)]), param-ref(f)])
+										call(down, [local-ref(b)])
+										param-ref(f)])
+								call(right, [local-ref(b)])
+								param-ref(f)]))]))
+		fun(
+			ctx
+			fold
+			type(false, mut-ptr)
+			none
+			[param(acc, type(false, mut-ptr)), param(a, type(false, arr)), param(f, type(false, fun-act2))]
+			call(
+				fold-recur
+				[param-ref(acc), call(begin-ptr, [param-ref(a)]), call(end-ptr, [param-ref(a)]), param-ref(f)]))
+		fun(
+			ctx
+			fold-recur
+			type(false, mut-ptr)
+			none
+			[
+				param(acc, type(false, mut-ptr))
+				param(cur, type(false, const-ptr))
+				param(end, type(false, const-ptr))
+				param(f, type(false, fun-act2))]
+			cond(
+				call(==, [param-ref(cur), param-ref(end)])
+				param-ref(acc)
+				call(
+					fold-recur
+					[
+						call(subscript, [param-ref(f), param-ref(acc), call(*, [param-ref(cur)])])
+						call(+, [param-ref(cur), 1])
+						param-ref(end)
+						param-ref(f)])))
+		fun(
+			ctx
+			fold-chunks-l2
+			type(false, mut-ptr)
+			none
+			[param(acc, type(false, mut-ptr)), param(xs, type(false, l2)), param(f, type(false, fun-act2))]
+			call(fold, [param-ref(acc), call(nodes, [param-ref(xs)]), lambda(0, alloc(record([param-ref(f)])))]))
+		fun(
+			ctx
+			fold
+			type(false, mut-ptr)
+			none
+			[param(acc, type(false, mut-ptr)), param(a, type(false, arr)), param(f, type(false, fun-act2))]
+			call(
+				fold-recur
+				[param-ref(acc), call(begin-ptr, [param-ref(a)]), call(end-ptr, [param-ref(a)]), param-ref(f)]))
+		fun(
+			ctx
+			fold-recur
+			type(false, mut-ptr)
+			none
+			[
+				param(acc, type(false, mut-ptr))
+				param(cur, type(false, const-ptr))
+				param(end, type(false, const-ptr))
+				param(f, type(false, fun-act2))]
+			cond(
+				call(==, [param-ref(cur), param-ref(end)])
+				param-ref(acc)
+				call(
+					fold-recur
+					[
+						call(subscript, [param-ref(f), param-ref(acc), call(*, [param-ref(cur)])])
+						call(+, [param-ref(cur), 1])
+						param-ref(end)
+						param-ref(f)])))
+		fun(
+			ctx
+			subscript
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, mut-ptr)), param(p1, type(false, arr))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, mut-ptr)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, mut-ptr))
+				param(p1, type(false, arr))]
+			builtin([type(false, mut-ptr), type(false, mut-ptr), type(false, arr)]))
+		fun(
+			ctx
+			lambda(fold-chunks-l2, 0)
+			type(false, mut-ptr)
+			some(param("<<closure>>", type(true, lambda(fold-chunks-l2, 0))))
+			[param(cur, type(false, mut-ptr)), param(nodes, type(false, arr))]
+			call(fold, [param-ref(cur), param-ref(nodes), get-field(param-ref("<<closure>>"), f)]))
+		fun(
+			ctx
+			fold
+			type(false, mut-ptr)
+			none
+			[param(acc, type(false, mut-ptr)), param(a, type(false, arr)), param(f, type(false, fun-act2))]
+			call(
+				fold-recur
+				[param-ref(acc), call(begin-ptr, [param-ref(a)]), call(end-ptr, [param-ref(a)]), param-ref(f)]))
+		fun(
+			ctx
+			fold-recur
+			type(false, mut-ptr)
+			none
+			[
+				param(acc, type(false, mut-ptr))
+				param(cur, type(false, const-ptr))
+				param(end, type(false, const-ptr))
+				param(f, type(false, fun-act2))]
+			cond(
+				call(==, [param-ref(cur), param-ref(end)])
+				param-ref(acc)
+				call(
+					fold-recur
+					[
+						call(subscript, [param-ref(f), param-ref(acc), call(*, [param-ref(cur)])])
+						call(+, [param-ref(cur), 1])
+						param-ref(end)
+						param-ref(f)])))
+		fun(
+			noctx
+			==
+			type(false, bool)
+			none
+			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
+			call(==, [call(as-mut, [param-ref(a)]), call(as-mut, [param-ref(b)])]))
+		fun(
+			noctx
+			==
+			type(false, bool)
+			none
+			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
+			builtin([type(false, char)]))
+		fun(
+			ctx
+			subscript
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, mut-ptr)), param(p1, type(false, char))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, mut-ptr)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, mut-ptr))
+				param(p1, type(false, char))]
+			builtin([type(false, mut-ptr), type(false, mut-ptr), type(false, char)]))
+		fun(
+			noctx
+			*
+			type(false, char)
+			none
+			[param(a, type(false, const-ptr))]
+			call(*, [call(as-mut, [param-ref(a)])]))
+		fun(noctx, *, type(false, char), none, [param(a, type(false, mut-ptr))], builtin([type(false, char)]))
+		fun(
+			noctx
+			end-ptr
+			type(false, const-ptr)
+			none
+			[param(a, type(false, arr))]
+			call(+, [call(begin-ptr, [param-ref(a)]), call(size, [param-ref(a)])]))
+		fun(
+			ctx
+			lambda(fold, 0)
+			type(false, mut-ptr)
+			some(param("<<closure>>", type(true, lambda(fold, 0))))
+			[param(cur, type(false, mut-ptr)), param(chunk, type(false, arr))]
+			call(fold, [param-ref(cur), param-ref(chunk), get-field(param-ref("<<closure>>"), f)]))
+		fun(
+			noctx
+			begin-ptr
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, fix-arr))]
+			call(as-mut, [call(begin-ptr, [call(inner, [param-ref(a)])])]))
+		fun(noctx, inner, type(false, arr), none, [param(a, type(false, fix-arr))], field-get(0))
+		fun(
+			noctx
+			set-deref
+			type(false, void)
+			none
+			[param(a, type(false, mut-ptr)), param(value, type(false, char))]
+			builtin([type(false, char)]))
+		fun(
+			ctx
+			subscript
+			type(false, char)
+			none
+			[param(a, type(false, fun-act1)), param(p0, type(false, char))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, char)
+			none
+			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, char))]
+			builtin([type(false, char), type(false, char)]))
+		fun(
+			ctx
+			lambda(map-to-arr, 0)
+			type(false, mut-ptr)
+			some(param("<<closure>>", type(true, lambda(map-to-arr, 0))))
+			[param(out, type(false, mut-ptr)), param(x, type(false, char))]
+			seq(
+				call(
+					set-deref
+					[param-ref(out), call(subscript, [get-field(param-ref("<<closure>>"), f), param-ref(x)])])
+				call(+, [param-ref(out), 1])))
+		fun(
+			noctx
+			end-ptr
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, fix-arr))]
+			call(+, [call(begin-ptr, [param-ref(a)]), call(size, [param-ref(a)])]))
+		fun(
+			noctx
+			size
+			type(false, nat64)
+			none
+			[param(a, type(false, fix-arr))]
+			call(size, [call(inner, [param-ref(a)])]))
+		fun(
+			noctx
+			cast-immutable
+			type(false, arr)
+			none
+			[param(a, type(false, fix-arr))]
+			call(inner, [param-ref(a)]))
+		fun(
+			ctx
+			lambda(to-arr, 0)
+			type(false, char)
+			some(param("<<closure>>", type(false, void)))
+			[param(x, type(false, char))]
+			param-ref(x))
+		fun(noctx, inner, type(false, seq), none, [param(a, type(false, str))], field-get(0))
+		fun(
+			ctx
+			size-bytes
+			type(false, nat64)
+			none
+			[param(a, type(false, str))]
+			call(size, [call(inner, [param-ref(a)])]))
+		fun(
+			noctx
+			==
+			type(false, bool)
+			none
+			[param(a, type(false, int64)), param(b, type(false, int64))]
+			builtin([]))
+		fun(noctx, unsafe-to-int64, type(false, int64), none, [param(a, type(false, nat64))], builtin([]))
+		fun(noctx, todo, type(false, void), none, [], seq(call(abort, []), call(zeroed, [])))
+		fun(noctx, zeroed, type(false, void), none, [], builtin([type(false, void)]))
+		fun(noctx, stderr, type(false, int32), none, [], 2)
+		fun(
+			noctx
+			literal
+			type(false, str)
+			none
+			[param(a, type(false, const-ptr))]
+			call(str, [call(arr-from-begin-end, [param-ref(a), call(find-c-str-end, [param-ref(a)])])]))
+		fun(noctx, str, type(false, str), none, [param(a, type(false, arr))], call(new, [call(to-seq, [param-ref(a)])]))
+		fun(noctx, new, type(false, str), none, [param(inner, type(false, seq))], new-record)
+		fun(
+			noctx
+			to-seq
+			type(false, seq)
+			none
+			[param(a, type(false, arr))]
+			let(l, call(new, [call(leaf, [param-ref(a)])]), call(new, [local-ref(l)])))
+		fun(noctx, new, type(false, l0), none, [param(node, type(false, node))], new-record)
+		fun(noctx, leaf, type(false, node), none, [param(a, type(false, arr))], new-union)
+		fun(noctx, new, type(false, seq), none, [param(root, type(false, l0))], new-record)
+		fun(
+			noctx
+			arr-from-begin-end
+			type(false, arr)
+			none
+			[param(begin, type(false, const-ptr)), param(end, type(false, const-ptr))]
+			seq(
+				call(hard-assert, [call(<=, [param-ref(begin), param-ref(end)])])
+				call(new, [call(-, [param-ref(end), param-ref(begin)]), param-ref(begin)])))
+		fun(
+			noctx
+			<=>
+			type(false, comparison)
+			none
+			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
+			call(<=>, [call(as-mut, [param-ref(a)]), call(as-mut, [param-ref(b)])]))
+		fun(
+			noctx
+			<=>
+			type(false, comparison)
+			none
+			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
+			cond(
+				call(is-less, [param-ref(a), param-ref(b)])
+				call(less, [])
+				cond(call(==, [param-ref(a), param-ref(b)]), call(equal, []), call(greater, []))))
+		fun(
+			noctx
+			is-less
+			type(false, bool)
+			none
+			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
+			builtin([type(false, char)]))
+		fun(
+			noctx
+			<=
+			type(false, bool)
+			none
+			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
+			call(!, [call(<, [param-ref(b), param-ref(a)])]))
+		fun(
+			noctx
+			<
+			type(false, bool)
+			none
+			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
+			match-enum(call(<=>, [param-ref(a), param-ref(b)]), [call(true, []), call(false, []), call(false, [])]))
+		fun(
+			noctx
+			-
+			type(false, nat64)
+			none
+			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
+			call(-, [call(as-mut, [param-ref(a)]), call(as-mut, [param-ref(b)])]))
+		fun(
+			noctx
+			-
+			type(false, nat64)
+			none
+			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
+			call(
+				unsafe-div
+				[call(wrap-sub, [call(to-nat64, [param-ref(a)]), call(to-nat64, [param-ref(b)])]), call(size-of, [])]))
+		fun(noctx, to-nat64, type(false, nat64), none, [param(a, type(false, mut-ptr))], builtin([type(false, char)]))
+		fun(
+			noctx
+			find-c-str-end
+			type(false, const-ptr)
+			none
+			[param(a, type(false, const-ptr))]
+			match-union(
+				call(find-char-in-c-str, [param-ref(a), 0])
+				[case(none, call(hard-unreachable, [])), case(some(v), local-ref(v))]))
+		fun(
+			noctx
+			find-char-in-c-str
+			type(false, opt)
+			none
+			[param(a, type(false, const-ptr)), param(c, type(false, char))]
+			cond(
+				call(==, [call(to-nat8, [call(*, [param-ref(a)])]), call(to-nat8, [param-ref(c)])])
+				call(new, [param-ref(a)])
+				cond(
+					call(!=, [call(to-nat8, [call(*, [param-ref(a)])]), 0])
+					call(find-char-in-c-str, [call(+, [param-ref(a), 1]), param-ref(c)])
+					call(new, []))))
+		fun(noctx, ==, type(false, bool), none, [param(a, type(false, nat8)), param(b, type(false, nat8))], builtin([]))
+		fun(noctx, to-nat8, type(false, nat8), none, [param(c, type(false, char))], builtin([]))
+		fun(noctx, new, type(false, opt), none, [param(a, type(false, const-ptr))], call(some, [param-ref(a)]))
+		fun(noctx, some, type(false, opt), none, [param(a, type(false, const-ptr))], new-union)
+		fun(
+			noctx
+			!=
+			type(false, bool)
+			none
+			[param(a, type(false, nat8)), param(b, type(false, nat8))]
+			call(!, [call(==, [param-ref(a), param-ref(b)])]))
+		fun(noctx, new, type(false, opt), none, [], call(none, []))
+		fun(noctx, none, type(false, opt), none, [], new-union)
+		fun(noctx, hard-unreachable, type(false, const-ptr), none, [], seq(call(abort, []), call(zeroed, [])))
+		fun(noctx, zeroed, type(false, const-ptr), none, [], builtin([type(false, const-ptr)]))
+		fun(
+			ctx
+			print-err
+			type(false, void)
+			none
+			[param(s, type(false, str))]
+			seq(call(print-err-no-newline, [param-ref(s)]), call(print-err-no-newline, [call(literal, [c-str(1)])])))
+		fun(
+			ctx
+			to-str
+			type(false, str)
+			none
+			[param(a, type(false, exception))]
+			let(
+				res
+				call(new, [])
+				let(
+					message
+					call(to-str, [call(message, [param-ref(a)])])
+					seq(
+						seq(
+							call(
+								~~=
+								[
+									local-ref(res)
+									cond(
+										call(is-empty, [local-ref(message)])
+										call(literal, [c-str(4)])
+										local-ref(message))])
+							call(
+								each
+								[
+									call(return-stack, [call(backtrace, [param-ref(a)])])
+									lambda(0, alloc(record([local-ref(res)])))]))
+						call(move-to-str, [local-ref(res)])))))
+		fun(ctx, new, type(false, writer), none, [], call(new, [call(new, [create-arr(arr, [])])]))
+		fun(ctx, new, type(false, writer), none, [param(chars, type(true, mut-arr))], new-record)
+		fun(ctx, new, type(true, mut-arr), none, [param(a, type(false, arr))], call(to-mut-arr, [param-ref(a)]))
+		fun(
+			ctx
+			to-mut-arr
+			type(true, mut-arr)
+			none
+			[param(a, type(false, arr))]
+			let(
+				backing
+				call(empty-fix-arr, [])
+				let(
+					res
+					call(new, [local-ref(backing), 0])
+					seq(call(~~=, [local-ref(res), param-ref(a)]), local-ref(res)))))
+		fun(
+			noctx
+			empty-fix-arr
+			type(false, fix-arr)
+			none
+			[]
+			let(inner, call(empty-arr, []), call(new, [local-ref(inner)])))
+		fun(noctx, empty-arr, type(false, arr), none, [], call(new, [0, call(null, [])]))
+		fun(noctx, null, type(false, const-ptr), none, [], call(as-const, [call(null, [])]))
+		fun(noctx, null, type(false, mut-ptr), none, [], builtin([type(false, char)]))
+		fun(
+			ctx
+			new
+			type(true, mut-arr)
+			none
+			[param(backing, type(false, fix-arr)), param(size, type(false, nat64))]
+			new-record)
+		fun(
+			ctx
+			~~=
+			type(false, void)
+			none
+			[param(a, type(true, mut-arr)), param(values, type(false, arr))]
+			call(each, [param-ref(values), lambda(0, alloc(record([param-ref(a)])))]))
+		fun(
+			ctx
+			each
+			type(false, void)
+			none
+			[param(a, type(false, arr)), param(f, type(false, fun-act1))]
+			call(each-recur, [call(begin-ptr, [param-ref(a)]), call(end-ptr, [param-ref(a)]), param-ref(f)]))
+		fun(
+			ctx
+			each-recur
+			type(false, void)
+			none
+			[param(cur, type(false, const-ptr)), param(end, type(false, const-ptr)), param(f, type(false, fun-act1))]
+			cond(
+				call(==, [param-ref(cur), param-ref(end)])
+				call(new, [])
+				seq(
+					call(subscript, [param-ref(f), call(*, [param-ref(cur)])])
+					call(each-recur, [call(+, [param-ref(cur), 1]), param-ref(end), param-ref(f)]))))
+		fun(
+			ctx
+			subscript
+			type(false, void)
+			none
+			[param(a, type(false, fun-act1)), param(p0, type(false, char))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, void)
+			none
+			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, char))]
+			builtin([type(false, void), type(false, char)]))
+		fun(
+			ctx
+			~=
+			type(false, void)
+			none
+			[param(a, type(true, mut-arr)), param(value, type(false, char))]
+			seq(
+				seq(
+					seq(
+						call(incr-capacity, [param-ref(a)])
+						call(hard-assert, [call(<, [call(size, [param-ref(a)]), call(capacity, [param-ref(a)])])]))
+					call(set-subscript, [call(begin-ptr, [param-ref(a)]), call(size, [param-ref(a)]), param-ref(value)]))
+				call(set-size, [param-ref(a), call(wrap-add, [call(size, [param-ref(a)]), 1])])))
+		fun(
+			ctx
+			incr-capacity
+			type(false, void)
+			none
+			[param(a, type(true, mut-arr))]
+			call(
+				ensure-capacity
+				[param-ref(a), call(round-up-to-power-of-two, [call(wrap-add, [call(size, [param-ref(a)]), 1])])]))
+		fun(
+			ctx
+			ensure-capacity
+			type(false, void)
+			none
+			[param(a, type(true, mut-arr)), param(min-capacity, type(false, nat64))]
+			cond(
+				call(<, [call(capacity, [param-ref(a)]), param-ref(min-capacity)])
+				call(increase-capacity-to, [param-ref(a), param-ref(min-capacity)])
+				call(new, [])))
+		fun(
+			noctx
+			capacity
+			type(false, nat64)
+			none
+			[param(a, type(true, mut-arr))]
+			call(size, [call(backing, [param-ref(a)])]))
+		fun(noctx, backing, type(false, fix-arr), none, [param(a, type(true, mut-arr))], field-get(0))
+		fun(
+			ctx
+			increase-capacity-to
+			type(false, void)
+			none
+			[param(a, type(true, mut-arr)), param(new-capacity, type(false, nat64))]
+			seq(
+				call(hard-assert, [call(>, [param-ref(new-capacity), call(capacity, [param-ref(a)])])])
+				let(
+					old-begin
+					call(begin-ptr, [param-ref(a)])
+					seq(
+						seq(
+							call(set-backing, [param-ref(a), call(uninitialized-fix-arr, [param-ref(new-capacity)])])
+							call(
+								copy-data-from
+								[
+									call(begin-ptr, [param-ref(a)])
+									call(as-const, [local-ref(old-begin)])
+									call(size, [param-ref(a)])]))
+						call(
+							set-zero-elements
+							[
+								call(
+									subscript
+									[
+										call(backing, [param-ref(a)])
+										call(
+											..
+											[
+												call(wrap-add, [call(size, [param-ref(a)]), 1])
+												call(size, [call(backing, [param-ref(a)])])])])])))))
+		fun(
+			noctx
+			begin-ptr
+			type(false, mut-ptr)
+			none
+			[param(a, type(true, mut-arr))]
+			call(begin-ptr, [call(backing, [param-ref(a)])]))
+		fun(
+			noctx
+			set-backing
+			type(false, void)
+			none
+			[param(a, type(true, mut-arr)), param(backing, type(false, fix-arr))]
+			field-set(0))
+		fun(
+			ctx
+			copy-data-from
+			type(false, void)
+			none
+			[param(to, type(false, mut-ptr)), param(from, type(false, const-ptr)), param(len, type(false, nat64))]
+			call(
+				drop
+				[
+					call(
+						memcpy
+						[
+							call(as-any-mut-ptr, [param-ref(to)])
+							call(as-any-const-ptr, [param-ref(from)])
+							call(wrap-mul, [param-ref(len), call(size-of, [])])])]))
+		fun(
+			noctx
+			memcpy
+			type(false, mut-ptr)
+			none
+			[param(dest, type(false, mut-ptr)), param(src, type(false, const-ptr)), param(size, type(false, nat64))]
+			extern)
+		fun(
+			noctx
+			as-any-mut-ptr
+			type(false, mut-ptr)
+			none
+			[param(reference, type(false, mut-ptr))]
+			builtin([type(false, mut-ptr)]))
+		fun(noctx, size, type(false, nat64), none, [param(a, type(true, mut-arr))], field-get(1))
+		fun(
+			noctx
+			set-zero-elements
+			type(false, void)
+			none
+			[param(a, type(false, fix-arr))]
+			call(set-zero-range, [call(begin-ptr, [param-ref(a)]), call(size, [param-ref(a)])]))
+		fun(
+			noctx
+			set-zero-range
+			type(false, void)
+			none
+			[param(begin, type(false, mut-ptr)), param(size, type(false, nat64))]
+			call(
+				drop
+				[
+					call(
+						memset
+						[
+							call(as-any-mut-ptr, [param-ref(begin)])
+							0
+							call(wrap-mul, [param-ref(size), call(size-of, [])])])]))
+		fun(
+			ctx
+			subscript
+			type(false, fix-arr)
+			none
+			[param(a, type(false, fix-arr)), param(range, type(false, range))]
+			call(new, [call(subscript, [call(inner, [param-ref(a)]), param-ref(range)])]))
+		fun(
+			ctx
+			subscript
+			type(false, arr)
+			none
+			[param(a, type(false, arr)), param(range, type(false, range))]
+			seq(
+				cond(
+					call(>, [call(high, [param-ref(range)]), call(size, [param-ref(a)])])
+					call(throw-c-str, [c-str(3)])
+					call(new, []))
+				call(
+					new
+					[
+						call(wrap-sub, [call(high, [param-ref(range)]), call(low, [param-ref(range)])])
+						call(+, [call(begin-ptr, [param-ref(a)]), call(low, [param-ref(range)])])])))
+		fun(
+			ctx
+			throw-c-str
+			type(false, void)
+			none
+			[param(message, type(false, const-ptr))]
+			call(throw, [call(new, [param-ref(message), call(get-backtrace, [])])]))
+		fun(
+			ctx
+			throw
+			type(false, void)
+			none
+			[param(e, type(false, exception))]
+			let(
+				exn-ctx
+				call(get-exception-ctx, [])
+				seq(
+					seq(
+						seq(
+							call(hard-assert, [call(!=, [call(jmp-buf-ptr, [local-ref(exn-ctx)]), call(null, [])])])
+							call(set-thrown-exception, [local-ref(exn-ctx), param-ref(e)]))
+						call(longjmp, [call(jmp-buf-ptr, [local-ref(exn-ctx)]), call(number-to-throw, [])]))
+					call(hard-unreachable, []))))
+		fun(
+			ctx
+			get-exception-ctx
+			type(true, exception-ctx)
+			none
+			[]
+			call(as-ref, [call(exception-ctx-ptr, [call(thread-local-stuff, [call(get-ctx, [])])])]))
+		fun(
+			noctx
+			as-ref
+			type(true, exception-ctx)
+			none
+			[param(a, type(false, mut-ptr))]
+			builtin([type(true, exception-ctx)]))
+		fun(
+			noctx
+			exception-ctx-ptr
+			type(false, mut-ptr)
+			none
+			[param(a, type(true, thread-local-stuff))]
+			field-get(2))
+		fun(noctx, thread-local-stuff, type(true, thread-local-stuff), none, [param(a, type(true, ctx))], field-get(4))
+		fun(
+			noctx
+			==
+			type(false, bool)
+			none
+			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
+			builtin([type(false, __jmp_buf_tag)]))
+		fun(
+			noctx
+			!=
+			type(false, bool)
+			none
+			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
+			call(!, [call(==, [param-ref(a), param-ref(b)])]))
+		fun(noctx, jmp-buf-ptr, type(false, mut-ptr), none, [param(a, type(true, exception-ctx))], field-get(0))
+		fun(noctx, null, type(false, mut-ptr), none, [], builtin([type(false, __jmp_buf_tag)]))
+		fun(
+			noctx
+			set-thrown-exception
+			type(false, void)
+			none
+			[param(a, type(true, exception-ctx)), param(thrown-exception, type(false, exception))]
+			field-set(1))
+		fun(
+			noctx
+			longjmp
+			type(false, void)
+			none
+			[param(env, type(false, mut-ptr)), param(val, type(false, int32))]
+			extern)
+		fun(ctx, number-to-throw, type(false, int32), none, [], 7)
+		fun(noctx, hard-unreachable, type(false, void), none, [], seq(call(abort, []), call(zeroed, [])))
+		fun(
+			noctx
+			new
+			type(false, exception)
+			none
+			[param(message, type(false, const-ptr)), param(backtrace, type(false, backtrace))]
+			new-record)
+		fun(
+			ctx
+			get-backtrace
+			type(false, backtrace)
+			none
+			[]
+			match-union(
+				call(try-alloc-backtrace-arrs, [])
+				[
+					case(none, call(new, [call(empty-arr, [])]))
+					case(
+						some(arrs)
+						let(
+							n-code-ptrs
+							call(backtrace-and-get-n-code-ptrs, [local-ref(arrs)])
+							seq(
+								call(hard-assert, [call(<=, [local-ref(n-code-ptrs), call(code-ptrs-size, [])])])
+								call(fill-arrs, [local-ref(arrs), local-ref(n-code-ptrs)]))))]))
+		fun(
+			ctx
+			try-alloc-backtrace-arrs
+			type(false, opt)
+			none
+			[]
+			match-union(
+				call(try-alloc-uninitialized, [8])
+				[
+					case(none, call(none, []))
+					case(
+						some(code-ptrs)
+						match-union(
+							call(try-alloc-uninitialized, [8])
+							[
+								case(none, call(none, []))
+								case(
+									some(code-names)
+									match-union(
+										call(try-alloc-uninitialized, [call(size, [call(all-funs, [])])])
+										[
+											case(none, call(none, []))
+											case(
+												some(funs)
+												call(
+													some
+													[
+														call(
+															new
+															[
+																local-ref(code-ptrs)
+																local-ref(code-names)
+																local-ref(funs)])]))]))]))]))
+		fun(
+			ctx
+			try-alloc-uninitialized
+			type(false, opt)
+			none
+			[param(size, type(false, nat64))]
+			match-union(
+				call(try-alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
+				[case(none, call(none, [])), case(some(res), call(some, [call(ptr-cast, [local-ref(res)])]))]))
+		fun(
+			ctx
+			try-alloc
+			type(false, opt)
+			none
+			[param(size-bytes, type(false, nat64))]
+			call(try-gc-alloc, [call(get-gc, []), param-ref(size-bytes)]))
 		fun(noctx, size-of, type(false, nat64), none, [], builtin([type(false, const-ptr)]))
 		fun(noctx, none, type(false, opt), none, [], new-union)
 		fun(noctx, some, type(false, opt), none, [param(a, type(false, mut-ptr))], new-union)
@@ -2095,13 +2996,6 @@ program(
 							call(as-any-mut-ptr, [param-ref(to)])
 							call(as-any-const-ptr, [param-ref(from)])
 							call(wrap-mul, [param-ref(len), call(size-of, [])])])]))
-		fun(
-			noctx
-			memcpy
-			type(false, mut-ptr)
-			none
-			[param(dest, type(false, mut-ptr)), param(src, type(false, const-ptr)), param(size, type(false, nat64))]
-			extern)
 		fun(
 			noctx
 			as-any-mut-ptr
@@ -2341,7 +3235,7 @@ program(
 				param(size, type(false, nat64))]
 			cond(
 				call(<, [param-ref(size), 2])
-				record([c-str(0)])
+				record([c-str(2)])
 				cond(
 					call(<, [param-ref(code-ptr), call(val, [call(subscript, [param-ref(funs), 1])])])
 					call(name, [call(*, [param-ref(funs)])])
@@ -2440,188 +3334,6 @@ program(
 			call(as-const, [call(+, [call(as-mut, [param-ref(a)]), param-ref(offset)])]))
 		fun(noctx, as-mut, type(false, mut-ptr), none, [param(a, type(false, const-ptr))], builtin([type(false, sym)]))
 		fun(
-			noctx
-			begin-ptr
-			type(false, mut-ptr)
-			none
-			[param(a, type(true, mut-arr))]
-			call(begin-ptr, [call(backing, [param-ref(a)])]))
-		fun(
-			noctx
-			begin-ptr
-			type(false, mut-ptr)
-			none
-			[param(a, type(false, fix-arr))]
-			call(as-mut, [call(begin-ptr, [call(inner, [param-ref(a)])])]))
-		fun(
-			noctx
-			set-backing
-			type(false, void)
-			none
-			[param(a, type(true, mut-arr)), param(backing, type(false, fix-arr))]
-			field-set(0))
-		fun(
-			ctx
-			uninitialized-fix-arr
-			type(false, fix-arr)
-			none
-			[param(size, type(false, nat64))]
-			let(
-				ptr
-				call(alloc-uninitialized, [param-ref(size)])
-				call(subscript, [local-ref(ptr), call(.., [0, param-ref(size)])])))
-		fun(
-			ctx
-			alloc-uninitialized
-			type(false, mut-ptr)
-			none
-			[param(size, type(false, nat64))]
-			call(ptr-cast, [call(alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])]))
-		fun(
-			noctx
-			ptr-cast
-			type(false, mut-ptr)
-			none
-			[param(a, type(false, mut-ptr))]
-			builtin([type(false, char), type(false, nat8)]))
-		fun(
-			ctx
-			alloc
-			type(false, mut-ptr)
-			none
-			[param(size-bytes, type(false, nat64))]
-			call(gc-alloc, [call(get-gc, []), param-ref(size-bytes)]))
-		fun(
-			ctx
-			gc-alloc
-			type(false, mut-ptr)
-			none
-			[param(gc, type(true, gc)), param(size, type(false, nat64))]
-			match-union(
-				call(try-gc-alloc, [param-ref(gc), param-ref(size)])
-				[case(none, call(todo, [])), case(some(res), local-ref(res))]))
-		fun(noctx, todo, type(false, mut-ptr), none, [], seq(call(abort, []), call(zeroed, [])))
-		fun(noctx, zeroed, type(false, mut-ptr), none, [], builtin([type(false, mut-ptr)]))
-		fun(
-			noctx
-			subscript
-			type(false, fix-arr)
-			none
-			[param(a, type(false, mut-ptr)), param(range, type(false, range))]
-			call(new, [call(subscript, [call(as-const, [param-ref(a)]), param-ref(range)])]))
-		fun(
-			noctx
-			subscript
-			type(false, arr)
-			none
-			[param(a, type(false, const-ptr)), param(r, type(false, range))]
-			call(
-				new
-				[
-					call(wrap-sub, [call(high, [param-ref(r)]), call(low, [param-ref(r)])])
-					call(+, [param-ref(a), call(low, [param-ref(r)])])]))
-		fun(
-			ctx
-			copy-data-from
-			type(false, void)
-			none
-			[param(to, type(false, mut-ptr)), param(from, type(false, const-ptr)), param(len, type(false, nat64))]
-			call(
-				drop
-				[
-					call(
-						memcpy
-						[
-							call(as-any-mut-ptr, [param-ref(to)])
-							call(as-any-const-ptr, [param-ref(from)])
-							call(wrap-mul, [param-ref(len), call(size-of, [])])])]))
-		fun(
-			noctx
-			as-any-mut-ptr
-			type(false, mut-ptr)
-			none
-			[param(reference, type(false, mut-ptr))]
-			builtin([type(false, mut-ptr)]))
-		fun(noctx, size, type(false, nat64), none, [param(a, type(true, mut-arr))], field-get(1))
-		fun(
-			noctx
-			set-zero-elements
-			type(false, void)
-			none
-			[param(a, type(false, fix-arr))]
-			call(set-zero-range, [call(begin-ptr, [param-ref(a)]), call(size, [param-ref(a)])]))
-		fun(
-			noctx
-			set-zero-range
-			type(false, void)
-			none
-			[param(begin, type(false, mut-ptr)), param(size, type(false, nat64))]
-			call(
-				drop
-				[
-					call(
-						memset
-						[
-							call(as-any-mut-ptr, [param-ref(begin)])
-							0
-							call(wrap-mul, [param-ref(size), call(size-of, [])])])]))
-		fun(
-			ctx
-			subscript
-			type(false, fix-arr)
-			none
-			[param(a, type(false, fix-arr)), param(range, type(false, range))]
-			call(new, [call(subscript, [call(inner, [param-ref(a)]), param-ref(range)])]))
-		fun(
-			ctx
-			subscript
-			type(false, arr)
-			none
-			[param(a, type(false, arr)), param(range, type(false, range))]
-			seq(
-				cond(
-					call(>, [call(high, [param-ref(range)]), call(size, [param-ref(a)])])
-					call(throw, [record([arr(0, 3)])])
-					call(new, []))
-				call(
-					new
-					[
-						call(wrap-sub, [call(high, [param-ref(range)]), call(low, [param-ref(range)])])
-						call(+, [call(begin-ptr, [param-ref(a)]), call(low, [param-ref(range)])])])))
-		fun(
-			ctx
-			+
-			type(false, nat64)
-			none
-			[param(a, type(false, nat64)), param(b, type(false, nat64))]
-			let(
-				res
-				call(wrap-add, [param-ref(a), param-ref(b)])
-				seq(
-					call(
-						assert
-						[
-							record([arr(0, 4)])
-							call(
-								&&
-								[call(>=, [local-ref(res), param-ref(a)]), call(>=, [local-ref(res), param-ref(b)])])])
-					local-ref(res))))
-		fun(
-			ctx
-			assert
-			type(false, void)
-			none
-			[param(message, type(false, str)), param(condition, type(false, bool))]
-			cond(param-ref(condition), call(new, []), call(throw, [param-ref(message)])))
-		fun(noctx, &&, type(false, bool), none, [param(a, type(false, bool)), param(b, type(false, bool))], builtin([]))
-		fun(
-			noctx
-			>=
-			type(false, bool)
-			none
-			[param(a, type(false, nat64)), param(b, type(false, nat64))]
-			call(!, [call(<, [param-ref(a), param-ref(b)])]))
-		fun(
 			ctx
 			round-up-to-power-of-two
 			type(false, nat64)
@@ -2637,52 +3349,14 @@ program(
 			cond(
 				call(>=, [param-ref(acc), param-ref(n)])
 				param-ref(acc)
-				call(round-up-to-power-of-two-recur, [call(*, [param-ref(acc), 2]), param-ref(n)])))
-		fun(
-			ctx
-			*
-			type(false, nat64)
-			none
-			[param(a, type(false, nat64)), param(b, type(false, nat64))]
-			cond(
-				call(&&, [call(!=, [param-ref(a), 0]), call(!=, [param-ref(b), 0])])
-				let(
-					res
-					call(wrap-mul, [param-ref(a), param-ref(b)])
-					seq(
-						seq(
-							call(
-								assert
-								[record([arr(0, 4)]), call(==, [call(/, [local-ref(res), param-ref(b)]), param-ref(a)])])
-							call(
-								assert
-								[record([arr(0, 4)]), call(==, [call(/, [local-ref(res), param-ref(a)]), param-ref(b)])]))
-						local-ref(res)))
-				call(new, [])))
+				call(round-up-to-power-of-two-recur, [call(wrap-mul, [param-ref(acc), 2]), param-ref(n)])))
 		fun(
 			noctx
-			!=
+			>=
 			type(false, bool)
 			none
 			[param(a, type(false, nat64)), param(b, type(false, nat64))]
-			call(!, [call(==, [param-ref(a), param-ref(b)])]))
-		fun(
-			ctx
-			/
-			type(false, nat64)
-			none
-			[param(a, type(false, nat64)), param(b, type(false, nat64))]
-			seq(
-				call(forbid, [record([arr(0, 5)]), call(==, [param-ref(b), 0])])
-				call(unsafe-div, [param-ref(a), param-ref(b)])))
-		fun(
-			ctx
-			forbid
-			type(false, void)
-			none
-			[param(message, type(false, str)), param(condition, type(false, bool))]
-			cond(param-ref(condition), call(throw, [param-ref(message)]), call(new, [])))
-		fun(noctx, new, type(false, nat64), none, [], 0)
+			call(!, [call(<, [param-ref(a), param-ref(b)])]))
 		fun(
 			noctx
 			set-subscript
@@ -2690,13 +3364,6 @@ program(
 			none
 			[param(a, type(false, mut-ptr)), param(n, type(false, nat64)), param(value, type(false, char))]
 			call(set-deref, [call(+, [param-ref(a), param-ref(n)]), param-ref(value)]))
-		fun(
-			noctx
-			set-deref
-			type(false, void)
-			none
-			[param(a, type(false, mut-ptr)), param(value, type(false, char))]
-			builtin([type(false, char)]))
 		fun(
 			noctx
 			set-size
@@ -2711,6 +3378,8 @@ program(
 			some(param("<<closure>>", type(true, lambda(~~=, 0))))
 			[param(x, type(false, char))]
 			call(~=, [get-field(param-ref("<<closure>>"), a), param-ref(x)]))
+		fun(noctx, to-str, type(false, str), none, [param(a, type(false, const-ptr))], call(literal, [param-ref(a)]))
+		fun(noctx, message, type(false, const-ptr), none, [param(a, type(false, exception))], field-get(0))
 		fun(
 			ctx
 			~~=
@@ -2720,12 +3389,21 @@ program(
 			call(~~=, [call(chars, [param-ref(a)]), call(chars, [param-ref(b)])]))
 		fun(noctx, chars, type(true, mut-arr), none, [param(a, type(false, writer))], field-get(0))
 		fun(
-			noctx
+			ctx
 			is-empty
 			type(false, bool)
 			none
 			[param(a, type(false, str))]
-			call(is-empty, [call(chars, [param-ref(a)])]))
+			call(is-empty, [call(inner, [param-ref(a)])]))
+		fun(
+			ctx
+			is-empty
+			type(false, bool)
+			none
+			[param(a, type(false, seq))]
+			match-union(
+				call(node, [call(root, [param-ref(a)])])
+				[case(some(xs), call(is-empty, [local-ref(xs)])), case(none, call(false, []))]))
 		fun(
 			noctx
 			is-empty
@@ -2733,7 +3411,6 @@ program(
 			none
 			[param(a, type(false, arr))]
 			call(==, [call(size, [param-ref(a)]), 0]))
-		fun(noctx, message, type(false, str), none, [param(a, type(false, exception))], field-get(0))
 		fun(
 			ctx
 			each
@@ -2802,123 +3479,6 @@ program(
 			call(~~=, [param-ref(a), call(to-str, [param-ref(b)])]))
 		fun(
 			noctx
-			to-str
-			type(false, str)
-			none
-			[param(a, type(false, const-ptr))]
-			call(str, [call(arr-from-begin-end, [param-ref(a), call(find-cstr-end, [param-ref(a)])])]))
-		fun(noctx, str, type(false, str), none, [param(a, type(false, arr))], call(new, [param-ref(a)]))
-		fun(noctx, new, type(false, str), none, [param(chars, type(false, arr))], new-record)
-		fun(
-			noctx
-			arr-from-begin-end
-			type(false, arr)
-			none
-			[param(begin, type(false, const-ptr)), param(end, type(false, const-ptr))]
-			seq(
-				call(hard-assert, [call(<=, [param-ref(begin), param-ref(end)])])
-				call(new, [call(-, [param-ref(end), param-ref(begin)]), param-ref(begin)])))
-		fun(
-			noctx
-			<=>
-			type(false, comparison)
-			none
-			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
-			call(<=>, [call(as-mut, [param-ref(a)]), call(as-mut, [param-ref(b)])]))
-		fun(
-			noctx
-			<=>
-			type(false, comparison)
-			none
-			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
-			cond(
-				call(is-less, [param-ref(a), param-ref(b)])
-				call(less, [])
-				cond(call(==, [param-ref(a), param-ref(b)]), call(equal, []), call(greater, []))))
-		fun(
-			noctx
-			is-less
-			type(false, bool)
-			none
-			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
-			builtin([type(false, char)]))
-		fun(
-			noctx
-			<=
-			type(false, bool)
-			none
-			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
-			call(!, [call(<, [param-ref(b), param-ref(a)])]))
-		fun(
-			noctx
-			<
-			type(false, bool)
-			none
-			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
-			match-enum(call(<=>, [param-ref(a), param-ref(b)]), [call(true, []), call(false, []), call(false, [])]))
-		fun(
-			noctx
-			-
-			type(false, nat64)
-			none
-			[param(a, type(false, const-ptr)), param(b, type(false, const-ptr))]
-			call(-, [call(as-mut, [param-ref(a)]), call(as-mut, [param-ref(b)])]))
-		fun(
-			noctx
-			-
-			type(false, nat64)
-			none
-			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
-			call(
-				unsafe-div
-				[call(wrap-sub, [call(to-nat64, [param-ref(a)]), call(to-nat64, [param-ref(b)])]), call(size-of, [])]))
-		fun(noctx, to-nat64, type(false, nat64), none, [param(a, type(false, mut-ptr))], builtin([type(false, char)]))
-		fun(
-			noctx
-			find-cstr-end
-			type(false, const-ptr)
-			none
-			[param(a, type(false, const-ptr))]
-			match-union(
-				call(find-char-in-cstr, [param-ref(a), 0])
-				[case(none, call(hard-unreachable, [])), case(some(v), local-ref(v))]))
-		fun(
-			noctx
-			find-char-in-cstr
-			type(false, opt)
-			none
-			[param(a, type(false, const-ptr)), param(c, type(false, char))]
-			cond(
-				call(==, [call(*, [param-ref(a)]), param-ref(c)])
-				call(new, [param-ref(a)])
-				cond(
-					call(!=, [call(*, [param-ref(a)]), 0])
-					call(find-char-in-cstr, [call(+, [param-ref(a), 1]), param-ref(c)])
-					call(new, []))))
-		fun(
-			noctx
-			==
-			type(false, bool)
-			none
-			[param(a, type(false, char)), param(b, type(false, char))]
-			call(==, [call(to-nat8, [param-ref(a)]), call(to-nat8, [param-ref(b)])]))
-		fun(noctx, ==, type(false, bool), none, [param(a, type(false, nat8)), param(b, type(false, nat8))], builtin([]))
-		fun(noctx, to-nat8, type(false, nat8), none, [param(c, type(false, char))], builtin([]))
-		fun(noctx, new, type(false, opt), none, [param(a, type(false, const-ptr))], call(some, [param-ref(a)]))
-		fun(noctx, some, type(false, opt), none, [param(a, type(false, const-ptr))], new-union)
-		fun(
-			noctx
-			!=
-			type(false, bool)
-			none
-			[param(a, type(false, char)), param(b, type(false, char))]
-			call(!, [call(==, [param-ref(a), param-ref(b)])]))
-		fun(noctx, new, type(false, opt), none, [], call(none, []))
-		fun(noctx, none, type(false, opt), none, [], new-union)
-		fun(noctx, hard-unreachable, type(false, const-ptr), none, [], seq(call(abort, []), call(zeroed, [])))
-		fun(noctx, zeroed, type(false, const-ptr), none, [], builtin([type(false, const-ptr)]))
-		fun(
-			noctx
 			to-c-str
 			type(false, const-ptr)
 			none
@@ -2932,7 +3492,7 @@ program(
 			some(param("<<closure>>", type(true, lambda(to-str, 0))))
 			[param(x, type(false, sym))]
 			seq(
-				call(~~=, [get-field(param-ref("<<closure>>"), res), record([arr(0, 7)])])
+				call(~~=, [get-field(param-ref("<<closure>>"), res), call(literal, [c-str(5)])])
 				call(~~=, [get-field(param-ref("<<closure>>"), res), call(to-c-str, [param-ref(x)])])))
 		fun(
 			ctx
@@ -2948,13 +3508,6 @@ program(
 			none
 			[param(a, type(true, mut-arr))]
 			call(cast-immutable, [call(move-to-fix-arr, [param-ref(a)])]))
-		fun(
-			noctx
-			cast-immutable
-			type(false, arr)
-			none
-			[param(a, type(false, fix-arr))]
-			call(inner, [param-ref(a)]))
 		fun(
 			noctx
 			move-to-fix-arr
@@ -3002,17 +3555,17 @@ program(
 					call(
 						~~
 						[
-							call(~~, [call(to-str, [call(level, [param-ref(a)])]), record([arr(0, 11)])])
+							call(~~, [call(to-str, [call(level, [param-ref(a)])]), call(literal, [c-str(9)])])
 							call(message, [param-ref(a)])])]))
 		fun(
-			noctx
+			ctx
 			print
 			type(false, void)
 			none
 			[param(a, type(false, str))]
-			seq(call(print-no-newline, [param-ref(a)]), call(print-no-newline, [record([arr(0, 1)])])))
+			seq(call(print-no-newline, [param-ref(a)]), call(print-no-newline, [call(literal, [c-str(1)])])))
 		fun(
-			noctx
+			ctx
 			print-no-newline
 			type(false, void)
 			none
@@ -3025,7 +3578,315 @@ program(
 			type(false, str)
 			none
 			[param(a, type(false, str)), param(b, type(false, str))]
-			call(new, [call(~~, [call(chars, [param-ref(a)]), call(chars, [param-ref(b)])])]))
+			call(new, [call(~~, [call(inner, [param-ref(a)]), call(inner, [param-ref(b)])])]))
+		fun(
+			ctx
+			~~
+			type(false, seq)
+			none
+			[param(a, type(false, seq)), param(b, type(false, seq))]
+			match-enum(
+				call(<=>, [call(depth, [param-ref(a)]), call(depth, [param-ref(b)])])
+				[
+					call(new, [call(cat-left-node-l0, [call(root, [param-ref(a)]), call(root, [param-ref(b)])])])
+					cond(
+						call(<, [call(size, [param-ref(a)]), call(size, [param-ref(b)])])
+						call(new, [call(cat-left-node-l0, [call(root, [param-ref(a)]), call(root, [param-ref(b)])])])
+						call(new, [call(cat-right-node-l0, [call(root, [param-ref(a)]), call(root, [param-ref(b)])])]))
+					call(new, [call(cat-right-node-l0, [call(root, [param-ref(a)]), call(root, [param-ref(b)])])])]))
+		fun(
+			ctx
+			depth
+			type(false, nat64)
+			none
+			[param(a, type(false, seq))]
+			match-union(
+				call(node, [call(root, [param-ref(a)])])
+				[case(none, 0), case(some(b), call(depth-l1, [call(down, [local-ref(b)])]))]))
+		fun(
+			ctx
+			depth-l1
+			type(false, nat64)
+			none
+			[param(a, type(false, l1))]
+			match-union(
+				call(node, [param-ref(a)])
+				[case(none, 1), case(some(b), call(depth-l2, [call(down, [local-ref(b)])]))]))
+		fun(ctx, depth-l2, type(false, nat64), none, [param("_", type(false, l2))], 2)
+		fun(
+			ctx
+			cat-left-node-l0
+			type(false, l0)
+			none
+			[param(l, type(false, l0)), param(r, type(false, l0))]
+			call(
+				new
+				[
+					call(
+						cat-left-node-level
+						[call(node, [param-ref(l)]), call(node, [param-ref(r)]), lambda(0, void), lambda(0, void)])]))
+		fun(ctx, new, type(false, l1), none, [], call(new, [call(new, [])]))
+		fun(noctx, new, type(false, l1), none, [param(node, type(false, node))], new-record)
+		fun(ctx, new, type(false, node), none, [], call(leaf, [call(new, [create-arr(arr, [])])]))
+		fun(noctx, leaf, type(false, node), none, [param(a, type(false, arr))], new-union)
+		fun(noctx, new, type(false, arr), none, [param(a, type(false, arr))], param-ref(a))
+		fun(
+			ctx
+			cat-left-node-level
+			type(false, node)
+			none
+			[
+				param(l, type(false, node))
+				param(r, type(false, node))
+				param(cat-left-array-lower, type(false, fun-act2))
+				param(cat-left-node-lower, type(false, fun-act2))]
+			match-union(
+				param-ref(l)
+				[
+					case(
+						some(xs)
+						call(cat-left-array-level, [local-ref(xs), param-ref(r), param-ref(cat-left-array-lower)]))
+					case(
+						some(bl)
+						match-union(
+							param-ref(r)
+							[
+								case(none, call(hard-unreachable, []))
+								case(
+									some(br)
+									let(
+										down1
+										call(
+											subscript
+											[
+												param-ref(cat-left-array-lower)
+												call(~~, [call(right, [local-ref(bl)]), call(left, [local-ref(br)])])
+												call(down, [local-ref(br)])])
+										let(
+											down2
+											call(
+												subscript
+												[
+													param-ref(cat-left-node-lower)
+													call(down, [local-ref(bl)])
+													local-ref(down1)])
+											call(
+												branch
+												[
+													call(
+														new
+														[
+															call(left, [local-ref(bl)])
+															local-ref(down2)
+															call(right, [local-ref(br)])])]))))]))]))
+		fun(
+			ctx
+			cat-left-array-level
+			type(false, node)
+			none
+			[param(l, type(false, arr)), param(r, type(false, node)), param(cat-left-lower, type(false, fun-act2))]
+			match-union(
+				param-ref(r)
+				[
+					case(
+						some(xs)
+						cond(
+							call(
+								<=
+								[
+									call(
+										wrap-add
+										[call(size-bytes, [param-ref(l)]), call(size-bytes, [local-ref(xs)])])
+									call(max-leaf-bytes, [])])
+							call(leaf, [call(~~, [param-ref(l), local-ref(xs)])])
+							call(branch, [call(new, [param-ref(l), call(new, []), local-ref(xs)])])))
+					case(
+						some(br)
+						cond(
+							call(
+								<=
+								[
+									call(
+										wrap-add
+										[
+											call(size-bytes, [param-ref(l)])
+											call(size-bytes, [call(left, [local-ref(br)])])])
+									call(max-leaf-bytes, [])])
+							call(
+								branch
+								[
+									call(
+										new
+										[
+											call(~~, [param-ref(l), call(left, [local-ref(br)])])
+											call(down, [local-ref(br)])
+											call(right, [local-ref(br)])])])
+							call(
+								branch
+								[
+									call(
+										new
+										[
+											param-ref(l)
+											call(
+												subscript
+												[
+													param-ref(cat-left-lower)
+													call(left, [local-ref(br)])
+													call(down, [local-ref(br)])])
+											call(right, [local-ref(br)])])])))]))
+		fun(
+			ctx
+			size-bytes
+			type(false, nat64)
+			none
+			[param(a, type(false, arr))]
+			call(wrap-mul, [call(size, [param-ref(a)]), call(size-of, [])]))
+		fun(ctx, max-leaf-bytes, type(false, nat64), none, [], 64)
+		fun(
+			ctx
+			~~
+			type(false, arr)
+			none
+			[param(a, type(false, arr)), param(b, type(false, arr))]
+			let(
+				res-size
+				call(wrap-add, [call(size, [param-ref(a)]), call(size, [param-ref(b)])])
+				let(
+					res
+					call(alloc-uninitialized, [local-ref(res-size)])
+					seq(
+						seq(
+							call(
+								copy-data-from
+								[local-ref(res), call(begin-ptr, [param-ref(a)]), call(size, [param-ref(a)])])
+							call(
+								copy-data-from
+								[
+									call(+, [local-ref(res), call(size, [param-ref(a)])])
+									call(begin-ptr, [param-ref(b)])
+									call(size, [param-ref(b)])]))
+						call(new, [local-ref(res-size), call(as-const, [local-ref(res)])])))))
+		fun(noctx, branch, type(false, node), none, [param(a, type(true, branch))], new-union)
+		fun(
+			ctx
+			new
+			type(true, branch)
+			none
+			[param(left, type(false, arr)), param(down, type(false, l1)), param(right, type(false, arr))]
+			new-record)
+		fun(
+			ctx
+			subscript
+			type(false, l1)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, arr)), param(p1, type(false, l1))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, l1)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, arr))
+				param(p1, type(false, l1))]
+			builtin([type(false, l1), type(false, arr), type(false, l1)]))
+		fun(noctx, hard-unreachable, type(false, node), none, [], seq(call(abort, []), call(zeroed, [])))
+		fun(noctx, zeroed, type(false, node), none, [], builtin([type(false, node)]))
+		fun(
+			ctx
+			subscript
+			type(false, l1)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, l1)), param(p1, type(false, l1))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, l1)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, l1))
+				param(p1, type(false, l1))]
+			builtin([type(false, l1), type(false, l1), type(false, l1)]))
+		fun(
+			ctx
+			cat-left-array-l1
+			type(false, l1)
+			none
+			[param(l, type(false, arr)), param(r, type(false, l1))]
+			call(new, [call(cat-left-array-level, [param-ref(l), call(node, [param-ref(r)]), lambda(0, void)])]))
+		fun(ctx, new, type(false, l2), none, [], call(new, [call(new, [create-arr(arr, [])])]))
+		fun(noctx, new, type(false, l2), none, [param(nodes, type(false, arr))], new-record)
+		fun(noctx, new, type(false, arr), none, [param(a, type(false, arr))], param-ref(a))
+		fun(
+			ctx
+			cat-left-array-level
+			type(false, node)
+			none
+			[param(l, type(false, arr)), param(r, type(false, node)), param(cat-left-lower, type(false, fun-act2))]
+			match-union(
+				param-ref(r)
+				[
+					case(
+						some(xs)
+						cond(
+							call(
+								<=
+								[
+									call(
+										wrap-add
+										[call(size-bytes, [param-ref(l)]), call(size-bytes, [local-ref(xs)])])
+									call(max-leaf-bytes, [])])
+							call(leaf, [call(~~, [param-ref(l), local-ref(xs)])])
+							call(branch, [call(new, [param-ref(l), call(new, []), local-ref(xs)])])))
+					case(
+						some(br)
+						cond(
+							call(
+								<=
+								[
+									call(
+										wrap-add
+										[
+											call(size-bytes, [param-ref(l)])
+											call(size-bytes, [call(left, [local-ref(br)])])])
+									call(max-leaf-bytes, [])])
+							call(
+								branch
+								[
+									call(
+										new
+										[
+											call(~~, [param-ref(l), call(left, [local-ref(br)])])
+											call(down, [local-ref(br)])
+											call(right, [local-ref(br)])])])
+							call(
+								branch
+								[
+									call(
+										new
+										[
+											param-ref(l)
+											call(
+												subscript
+												[
+													param-ref(cat-left-lower)
+													call(left, [local-ref(br)])
+													call(down, [local-ref(br)])])
+											call(right, [local-ref(br)])])])))]))
+		fun(
+			ctx
+			size-bytes
+			type(false, nat64)
+			none
+			[param(a, type(false, arr))]
+			call(wrap-mul, [call(size, [param-ref(a)]), call(size-of, [])]))
+		fun(noctx, size-of, type(false, nat64), none, [], builtin([type(false, arr)]))
 		fun(
 			ctx
 			~~
@@ -3052,11 +3913,632 @@ program(
 						call(new, [local-ref(res-size), call(as-const, [local-ref(res)])])))))
 		fun(
 			ctx
+			alloc-uninitialized
+			type(false, mut-ptr)
+			none
+			[param(size, type(false, nat64))]
+			call(ptr-cast, [call(alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])]))
+		fun(
+			noctx
+			ptr-cast
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, mut-ptr))]
+			builtin([type(false, arr), type(false, nat8)]))
+		fun(
+			ctx
+			copy-data-from
+			type(false, void)
+			none
+			[param(to, type(false, mut-ptr)), param(from, type(false, const-ptr)), param(len, type(false, nat64))]
+			call(
+				drop
+				[
+					call(
+						memcpy
+						[
+							call(as-any-mut-ptr, [param-ref(to)])
+							call(as-any-const-ptr, [param-ref(from)])
+							call(wrap-mul, [param-ref(len), call(size-of, [])])])]))
+		fun(
+			noctx
+			as-any-mut-ptr
+			type(false, mut-ptr)
+			none
+			[param(reference, type(false, mut-ptr))]
+			builtin([type(false, mut-ptr)]))
+		fun(
+			noctx
+			as-any-const-ptr
+			type(false, const-ptr)
+			none
+			[param(reference, type(false, const-ptr))]
+			call(as-const, [call(as-any-mut-ptr, [param-ref(reference)])]))
+		fun(
+			noctx
+			as-any-mut-ptr
+			type(false, mut-ptr)
+			none
+			[param(reference, type(false, const-ptr))]
+			builtin([type(false, const-ptr)]))
+		fun(
+			noctx
+			new
+			type(false, arr)
+			none
+			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
+			new-record)
+		fun(noctx, branch, type(false, node), none, [param(a, type(true, branch))], new-union)
+		fun(
+			ctx
+			new
+			type(true, branch)
+			none
+			[param(left, type(false, arr)), param(down, type(false, l2)), param(right, type(false, arr))]
+			new-record)
+		fun(
+			ctx
+			subscript
+			type(false, l2)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, arr)), param(p1, type(false, l2))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, l2)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, arr))
+				param(p1, type(false, l2))]
+			builtin([type(false, l2), type(false, arr), type(false, l2)]))
+		fun(
+			ctx
+			cat-left-array-l2
+			type(false, l2)
+			none
+			[param(l, type(false, arr)), param(r, type(false, l2))]
+			call(new, [call(~~, [param-ref(l), call(nodes, [param-ref(r)])])]))
+		fun(
+			ctx
+			~~
+			type(false, arr)
+			none
+			[param(a, type(false, arr)), param(b, type(false, arr))]
+			let(
+				res-size
+				call(wrap-add, [call(size, [param-ref(a)]), call(size, [param-ref(b)])])
+				let(
+					res
+					call(alloc-uninitialized, [local-ref(res-size)])
+					seq(
+						seq(
+							call(
+								copy-data-from
+								[local-ref(res), call(begin-ptr, [param-ref(a)]), call(size, [param-ref(a)])])
+							call(
+								copy-data-from
+								[
+									call(+, [local-ref(res), call(size, [param-ref(a)])])
+									call(begin-ptr, [param-ref(b)])
+									call(size, [param-ref(b)])]))
+						call(new, [local-ref(res-size), call(as-const, [local-ref(res)])])))))
+		fun(
+			ctx
+			alloc-uninitialized
+			type(false, mut-ptr)
+			none
+			[param(size, type(false, nat64))]
+			call(ptr-cast, [call(alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])]))
+		fun(
+			noctx
+			ptr-cast
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, mut-ptr))]
+			builtin([type(false, arr), type(false, nat8)]))
+		fun(noctx, size-of, type(false, nat64), none, [], builtin([type(false, arr)]))
+		fun(
+			ctx
+			copy-data-from
+			type(false, void)
+			none
+			[param(to, type(false, mut-ptr)), param(from, type(false, const-ptr)), param(len, type(false, nat64))]
+			call(
+				drop
+				[
+					call(
+						memcpy
+						[
+							call(as-any-mut-ptr, [param-ref(to)])
+							call(as-any-const-ptr, [param-ref(from)])
+							call(wrap-mul, [param-ref(len), call(size-of, [])])])]))
+		fun(
+			noctx
+			as-any-mut-ptr
+			type(false, mut-ptr)
+			none
+			[param(reference, type(false, mut-ptr))]
+			builtin([type(false, mut-ptr)]))
+		fun(
+			noctx
+			as-any-const-ptr
+			type(false, const-ptr)
+			none
+			[param(reference, type(false, const-ptr))]
+			call(as-const, [call(as-any-mut-ptr, [param-ref(reference)])]))
+		fun(
+			noctx
+			as-any-mut-ptr
+			type(false, mut-ptr)
+			none
+			[param(reference, type(false, const-ptr))]
+			builtin([type(false, const-ptr)]))
+		fun(
+			noctx
+			new
+			type(false, arr)
+			none
+			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
+			new-record)
+		fun(
+			ctx
+			lambda(cat-left-array-l1, 0)
+			type(false, l2)
+			some(param("<<closure>>", type(false, void)))
+			[param(xs, type(false, arr)), param(lower, type(false, l2))]
+			call(cat-left-array-l2, [call(new, [create-arr(arr, [param-ref(xs)])]), param-ref(lower)]))
+		fun(
+			ctx
+			lambda(cat-left-node-l0, 0)
+			type(false, l1)
+			some(param("<<closure>>", type(false, void)))
+			[param(xs, type(false, arr)), param(lower, type(false, l1))]
+			call(cat-left-array-l1, [call(new, [create-arr(arr, [param-ref(xs)])]), param-ref(lower)]))
+		fun(
+			ctx
+			cat-left-node-l1
+			type(false, l1)
+			none
+			[param(l, type(false, l1)), param(r, type(false, l1))]
+			call(
+				new
+				[
+					call(
+						cat-left-node-level
+						[call(node, [param-ref(l)]), call(node, [param-ref(r)]), lambda(1, void), lambda(0, void)])]))
+		fun(
+			ctx
+			cat-left-node-level
+			type(false, node)
+			none
+			[
+				param(l, type(false, node))
+				param(r, type(false, node))
+				param(cat-left-array-lower, type(false, fun-act2))
+				param(cat-left-node-lower, type(false, fun-act2))]
+			match-union(
+				param-ref(l)
+				[
+					case(
+						some(xs)
+						call(cat-left-array-level, [local-ref(xs), param-ref(r), param-ref(cat-left-array-lower)]))
+					case(
+						some(bl)
+						match-union(
+							param-ref(r)
+							[
+								case(none, call(hard-unreachable, []))
+								case(
+									some(br)
+									let(
+										down1
+										call(
+											subscript
+											[
+												param-ref(cat-left-array-lower)
+												call(~~, [call(right, [local-ref(bl)]), call(left, [local-ref(br)])])
+												call(down, [local-ref(br)])])
+										let(
+											down2
+											call(
+												subscript
+												[
+													param-ref(cat-left-node-lower)
+													call(down, [local-ref(bl)])
+													local-ref(down1)])
+											call(
+												branch
+												[
+													call(
+														new
+														[
+															call(left, [local-ref(bl)])
+															local-ref(down2)
+															call(right, [local-ref(br)])])]))))]))]))
+		fun(noctx, hard-unreachable, type(false, node), none, [], seq(call(abort, []), call(zeroed, [])))
+		fun(noctx, zeroed, type(false, node), none, [], builtin([type(false, node)]))
+		fun(
+			ctx
+			subscript
+			type(false, l2)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, l2)), param(p1, type(false, l2))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, l2)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, l2))
+				param(p1, type(false, l2))]
+			builtin([type(false, l2), type(false, l2), type(false, l2)]))
+		fun(
+			ctx
+			lambda(cat-left-node-l1, 0)
+			type(false, l2)
+			some(param("<<closure>>", type(false, void)))
+			[param(xs, type(false, arr)), param(lower, type(false, l2))]
+			call(cat-left-array-l2, [call(new, [create-arr(arr, [param-ref(xs)])]), param-ref(lower)]))
+		fun(
+			ctx
+			cat-left-node-l2
+			type(false, l2)
+			none
+			[param(l, type(false, l2)), param(r, type(false, l2))]
+			call(new, [call(~~, [call(nodes, [param-ref(l)]), call(nodes, [param-ref(r)])])]))
+		fun(
+			ctx
+			lambda(cat-left-node-l1, 1)
+			type(false, l2)
+			some(param("<<closure>>", type(false, void)))
+			[param(x, type(false, l2)), param(y, type(false, l2))]
+			call(cat-left-node-l2, [param-ref(x), param-ref(y)]))
+		fun(
+			ctx
+			lambda(cat-left-node-l0, 1)
+			type(false, l1)
+			some(param("<<closure>>", type(false, void)))
+			[param(x, type(false, l1)), param(y, type(false, l1))]
+			call(cat-left-node-l1, [param-ref(x), param-ref(y)]))
+		fun(
+			ctx
+			cat-right-node-l0
+			type(false, l0)
+			none
+			[param(l, type(false, l0)), param(r, type(false, l0))]
+			call(
+				new
+				[
+					call(
+						cat-right-node-level
+						[call(node, [param-ref(l)]), call(node, [param-ref(r)]), lambda(0, void), lambda(1, void)])]))
+		fun(
+			ctx
+			cat-right-node-level
+			type(false, node)
+			none
+			[
+				param(l, type(false, node))
+				param(r, type(false, node))
+				param(cat-right-array-lower, type(false, fun-act2))
+				param(cat-right-node-lower, type(false, fun-act2))]
+			match-union(
+				param-ref(r)
+				[
+					case(
+						some(xs)
+						call(cat-right-array-level, [param-ref(l), local-ref(xs), param-ref(cat-right-array-lower)]))
+					case(
+						some(br)
+						match-union(
+							param-ref(l)
+							[
+								case(none, call(hard-unreachable, []))
+								case(
+									some(bl)
+									let(
+										down1
+										call(
+											subscript
+											[
+												param-ref(cat-right-array-lower)
+												call(down, [local-ref(bl)])
+												call(~~, [call(right, [local-ref(bl)]), call(left, [local-ref(br)])])])
+										let(
+											down2
+											call(
+												subscript
+												[
+													param-ref(cat-right-node-lower)
+													local-ref(down1)
+													call(down, [local-ref(br)])])
+											call(
+												branch
+												[
+													call(
+														new
+														[
+															call(left, [local-ref(bl)])
+															local-ref(down2)
+															call(right, [local-ref(br)])])]))))]))]))
+		fun(
+			ctx
+			cat-right-array-level
+			type(false, node)
+			none
+			[param(l, type(false, node)), param(r, type(false, arr)), param(cat-right-lower, type(false, fun-act2))]
+			match-union(
+				param-ref(l)
+				[
+					case(
+						some(xs)
+						cond(
+							call(
+								<=
+								[
+									call(
+										wrap-add
+										[call(size-bytes, [local-ref(xs)]), call(size-bytes, [param-ref(r)])])
+									call(max-leaf-bytes, [])])
+							call(leaf, [call(~~, [local-ref(xs), param-ref(r)])])
+							call(branch, [call(new, [local-ref(xs), call(new, []), param-ref(r)])])))
+					case(
+						some(br)
+						cond(
+							call(
+								<=
+								[
+									call(
+										wrap-add
+										[
+											call(size-bytes, [call(right, [local-ref(br)])])
+											call(size-bytes, [param-ref(r)])])
+									call(max-leaf-bytes, [])])
+							call(
+								branch
+								[
+									call(
+										new
+										[
+											call(left, [local-ref(br)])
+											call(down, [local-ref(br)])
+											call(~~, [call(right, [local-ref(br)]), param-ref(r)])])])
+							call(
+								branch
+								[
+									call(
+										new
+										[
+											call(left, [local-ref(br)])
+											call(
+												subscript
+												[
+													param-ref(cat-right-lower)
+													call(down, [local-ref(br)])
+													call(right, [local-ref(br)])])
+											param-ref(r)])])))]))
+		fun(
+			ctx
+			subscript
+			type(false, l1)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, l1)), param(p1, type(false, arr))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, l1)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, l1))
+				param(p1, type(false, arr))]
+			builtin([type(false, l1), type(false, l1), type(false, arr)]))
+		fun(
+			ctx
+			cat-right-array-l1
+			type(false, l1)
+			none
+			[param(l, type(false, l1)), param(r, type(false, arr))]
+			call(new, [call(cat-right-array-level, [call(node, [param-ref(l)]), param-ref(r), lambda(0, void)])]))
+		fun(
+			ctx
+			cat-right-array-level
+			type(false, node)
+			none
+			[param(l, type(false, node)), param(r, type(false, arr)), param(cat-right-lower, type(false, fun-act2))]
+			match-union(
+				param-ref(l)
+				[
+					case(
+						some(xs)
+						cond(
+							call(
+								<=
+								[
+									call(
+										wrap-add
+										[call(size-bytes, [local-ref(xs)]), call(size-bytes, [param-ref(r)])])
+									call(max-leaf-bytes, [])])
+							call(leaf, [call(~~, [local-ref(xs), param-ref(r)])])
+							call(branch, [call(new, [local-ref(xs), call(new, []), param-ref(r)])])))
+					case(
+						some(br)
+						cond(
+							call(
+								<=
+								[
+									call(
+										wrap-add
+										[
+											call(size-bytes, [call(right, [local-ref(br)])])
+											call(size-bytes, [param-ref(r)])])
+									call(max-leaf-bytes, [])])
+							call(
+								branch
+								[
+									call(
+										new
+										[
+											call(left, [local-ref(br)])
+											call(down, [local-ref(br)])
+											call(~~, [call(right, [local-ref(br)]), param-ref(r)])])])
+							call(
+								branch
+								[
+									call(
+										new
+										[
+											call(left, [local-ref(br)])
+											call(
+												subscript
+												[
+													param-ref(cat-right-lower)
+													call(down, [local-ref(br)])
+													call(right, [local-ref(br)])])
+											param-ref(r)])])))]))
+		fun(
+			ctx
+			subscript
+			type(false, l2)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, l2)), param(p1, type(false, arr))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, l2)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, l2))
+				param(p1, type(false, arr))]
+			builtin([type(false, l2), type(false, l2), type(false, arr)]))
+		fun(
+			ctx
+			cat-right-array-l2
+			type(false, l2)
+			none
+			[param(l, type(false, l2)), param(r, type(false, arr))]
+			call(new, [call(~~, [call(nodes, [param-ref(l)]), param-ref(r)])]))
+		fun(
+			ctx
+			lambda(cat-right-array-l1, 0)
+			type(false, l2)
+			some(param("<<closure>>", type(false, void)))
+			[param(lower, type(false, l2)), param(xs, type(false, arr))]
+			call(cat-right-array-l2, [param-ref(lower), call(new, [create-arr(arr, [param-ref(xs)])])]))
+		fun(
+			ctx
+			lambda(cat-right-node-l0, 0)
+			type(false, l1)
+			some(param("<<closure>>", type(false, void)))
+			[param(lower, type(false, l1)), param(xs, type(false, arr))]
+			call(cat-right-array-l1, [param-ref(lower), call(new, [create-arr(arr, [param-ref(xs)])])]))
+		fun(
+			ctx
+			cat-right-node-l1
+			type(false, l1)
+			none
+			[param(l, type(false, l1)), param(r, type(false, l1))]
+			call(
+				new
+				[
+					call(
+						cat-right-node-level
+						[call(node, [param-ref(l)]), call(node, [param-ref(r)]), lambda(1, void), lambda(1, void)])]))
+		fun(
+			ctx
+			cat-right-node-level
+			type(false, node)
+			none
+			[
+				param(l, type(false, node))
+				param(r, type(false, node))
+				param(cat-right-array-lower, type(false, fun-act2))
+				param(cat-right-node-lower, type(false, fun-act2))]
+			match-union(
+				param-ref(r)
+				[
+					case(
+						some(xs)
+						call(cat-right-array-level, [param-ref(l), local-ref(xs), param-ref(cat-right-array-lower)]))
+					case(
+						some(br)
+						match-union(
+							param-ref(l)
+							[
+								case(none, call(hard-unreachable, []))
+								case(
+									some(bl)
+									let(
+										down1
+										call(
+											subscript
+											[
+												param-ref(cat-right-array-lower)
+												call(down, [local-ref(bl)])
+												call(~~, [call(right, [local-ref(bl)]), call(left, [local-ref(br)])])])
+										let(
+											down2
+											call(
+												subscript
+												[
+													param-ref(cat-right-node-lower)
+													local-ref(down1)
+													call(down, [local-ref(br)])])
+											call(
+												branch
+												[
+													call(
+														new
+														[
+															call(left, [local-ref(bl)])
+															local-ref(down2)
+															call(right, [local-ref(br)])])]))))]))]))
+		fun(
+			ctx
+			lambda(cat-right-node-l1, 0)
+			type(false, l2)
+			some(param("<<closure>>", type(false, void)))
+			[param(lower, type(false, l2)), param(xs, type(false, arr))]
+			call(cat-right-array-l2, [param-ref(lower), call(new, [create-arr(arr, [param-ref(xs)])])]))
+		fun(
+			ctx
+			cat-right-node-l2
+			type(false, l2)
+			none
+			[param(l, type(false, l2)), param(r, type(false, l2))]
+			call(new, [call(~~, [call(nodes, [param-ref(l)]), call(nodes, [param-ref(r)])])]))
+		fun(
+			ctx
+			lambda(cat-right-node-l1, 1)
+			type(false, l2)
+			some(param("<<closure>>", type(false, void)))
+			[param(x, type(false, l2)), param(y, type(false, l2))]
+			call(cat-right-node-l2, [param-ref(x), param-ref(y)]))
+		fun(
+			ctx
+			lambda(cat-right-node-l0, 1)
+			type(false, l1)
+			some(param("<<closure>>", type(false, void)))
+			[param(x, type(false, l1)), param(y, type(false, l1))]
+			call(cat-right-node-l1, [param-ref(x), param-ref(y)]))
+		fun(
+			ctx
 			to-str
 			type(false, str)
 			none
 			[param(a, type(false, log-level))]
-			match-enum(param-ref(a), [record([arr(0, 8)]), record([arr(0, 9)]), record([arr(0, 10)])]))
+			match-enum(param-ref(a), [call(literal, [c-str(6)]), call(literal, [c-str(7)]), call(literal, [c-str(8)])]))
 		fun(noctx, level, type(false, log-level), none, [param(a, type(true, logged))], field-get(0))
 		fun(noctx, message, type(false, str), none, [param(a, type(true, logged))], field-get(1))
 		fun(
@@ -3378,7 +4860,7 @@ program(
 			type(false, exception-ctx)
 			none
 			[]
-			call(new, [call(null, []), call(new, [record([record([0, null])]), call(new, [call(empty-arr, [])])])]))
+			call(new, [call(null, []), call(new, [c-str(10), call(new, [call(empty-arr, [])])])]))
 		fun(
 			noctx
 			new
@@ -3981,7 +5463,7 @@ program(
 			seq(
 				cond(
 					call(>=, [param-ref(index), call(size, [param-ref(a)])])
-					call(throw, [record([arr(0, 12)])])
+					call(throw-c-str, [c-str(11)])
 					call(new, []))
 				call(unsafe-at, [param-ref(a), param-ref(index)])))
 		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
@@ -4322,6 +5804,7 @@ program(
 			new-record)
 		fun(noctx, new, type(false, bytes8), none, [], call(new, [call(new, [])]))
 		fun(noctx, new, type(false, bytes8), none, [param(n0, type(false, nat64))], new-record)
+		fun(noctx, new, type(false, nat64), none, [], 0)
 		fun(noctx, new, type(false, int32), none, [], 0)
 		fun(noctx, new, type(false, bytes128), none, [], call(new, [call(new, []), call(new, [])]))
 		fun(
@@ -4689,7 +6172,7 @@ program(
 			seq(
 				cond(
 					call(>=, [param-ref(index), call(size, [param-ref(a)])])
-					call(throw, [record([arr(0, 12)])])
+					call(throw-c-str, [c-str(11)])
 					call(new, []))
 				call(unsafe-at, [param-ref(a), param-ref(index)])))
 		fun(
@@ -4761,15 +6244,15 @@ program(
 			none
 			[param(a, type(false, arr))]
 			seq(
-				call(forbid, [call(is-empty, [param-ref(a)])])
+				call(forbid-c-str, [c-str(12), call(is-empty, [param-ref(a)])])
 				call(subscript, [param-ref(a), call(.., [1, call(size, [param-ref(a)])])])))
 		fun(
 			ctx
-			forbid
+			forbid-c-str
 			type(false, void)
 			none
-			[param(condition, type(false, bool))]
-			cond(param-ref(condition), call(throw, [record([arr(0, 13)])]), call(new, [])))
+			[param(message, type(false, const-ptr)), param(condition, type(false, bool))]
+			cond(param-ref(condition), call(throw-c-str, [param-ref(message)]), call(new, [])))
 		fun(
 			noctx
 			is-empty
@@ -4786,7 +6269,7 @@ program(
 			seq(
 				cond(
 					call(>, [call(high, [param-ref(range)]), call(size, [param-ref(a)])])
-					call(throw, [record([arr(0, 3)])])
+					call(throw-c-str, [c-str(3)])
 					call(new, []))
 				call(
 					new
@@ -5578,6 +7061,14 @@ program(
 						[
 							call(==, [call(noctx-at, [param-ref(a), param-ref(i)]), param-ref(value)])
 							call(in-recur, [param-ref(value), param-ref(a), call(wrap-add, [param-ref(i), 1])])])]))
+		fun(noctx, &&, type(false, bool), none, [param(a, type(false, bool)), param(b, type(false, bool))], builtin([]))
+		fun(
+			noctx
+			!=
+			type(false, bool)
+			none
+			[param(a, type(false, nat64)), param(b, type(false, nat64))]
+			call(!, [call(==, [param-ref(a), param-ref(b)])]))
 		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
 		fun(
 			noctx

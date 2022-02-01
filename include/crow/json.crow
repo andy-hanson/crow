@@ -7,6 +7,7 @@ import
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	./col/mut-arr: ~=, move-to-arr, mut-arr, new
 	./hash: hash-mix
+	./log: info, log
 	./misc: new, void
 	./number: ==, float64
 	./opt: new, opt
@@ -250,6 +251,7 @@ test
 	"a\nb".json-str verify "\"a\\nb\""
 	"a\\nb".json-str verify "\"a\\\\nb\""
 
+	info log "ZZZ"
 	().json-arr verify "[]"
 	(1.0.json-number,).json-arr verify "[1]"
 	(1.0.json-number, true.json-bool).json-arr verify "[1,true]"

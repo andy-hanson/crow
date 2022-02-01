@@ -7,7 +7,7 @@ import
 main fut nat(_ str[]) summon unsafe
 	gc = get-gc
 	# To speed up 'gc.get-stats'
-	gc.hard-limit := 0x200
+	gc.hard-limit := 0x400
 
 	# We'll keep a alive, but not b
 	a r = 1, 2, 3

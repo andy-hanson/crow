@@ -1,11 +1,10 @@
 import
-	crow/cell: *, cell, get-and-set, new
 	crow/col/arr-util: each-with-index, exists, in
 	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
 	crow/io/print: print
-	crow/str-util: ends-with, has-substr, starts-with, try-remove-start
+	crow/str-util: contains-substr, ends-with, lines, starts-with, try-remove-start
 	./failure: failure, flat-map-with-max-size, max-failures, new, print-tests, test-options
 
 lint result<str, failure[]>(path str, options test-options) summon
@@ -40,7 +39,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 	text.lines each-with-index (line, line-num) =>
 		ln = line-num + 1 to-str
 		space-space = " " ~~ " "
-		if !allow-double-space && line has-substr space-space
+		if !allow-double-space && line contains-substr space-space
 			message = "line {ln} contains a double space"
 			res ~= (path, message)
 		width = line line-len
@@ -61,17 +60,6 @@ lint result<str, failure[]>(path str, options test-options) summon
 	else
 		# Ignore extensionless files
 		true
-
-# TODO: move to str-util, make a generic 'split' function
-.lines str[](s str)
-	res str mut[] = ()
-	last-nl cell nat = 0,
-	s.chars each-with-index (c, index) =>
-		if c == "\n"
-			nl = last-nl get-and-set index + 1
-			res ~= s.chars[nl .. index] str
-	res ~= s.chars[*last-nl .. s.size-bytes] str
-	res move-to-arr
 
 .max-line-length nat()
 	120

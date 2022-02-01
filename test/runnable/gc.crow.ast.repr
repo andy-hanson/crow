@@ -45,7 +45,7 @@ file-ast(
 				gc
 				get-gc
 				seq-ast(
-					call(set-dot, name-range(287, set-hard-limit), [], [gc, literal(nat(512, false))])
+					call(set-dot, name-range(287, set-hard-limit), [], [gc, literal(nat(1024, false))])
 					let(
 						a
 						call(

@@ -1,0 +1,22 @@
+no-std
+import
+	../bool: bool
+	../fun-util: subscript
+	../opt: opt
+
+value-and-rest<a, iter> record
+	by-val
+	value a
+	rest iter
+
+iterator<i, a> spec
+	next value-and-rest<a, i>?(iter i)
+
+iter-find<i, a> i(iter i, f act bool(a)) iterator<i, a>
+	if n ?= iter next
+		if f[n value]
+			iter
+		else
+			n.rest iter-find f
+	else
+		iter

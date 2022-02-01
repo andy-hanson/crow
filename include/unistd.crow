@@ -3,8 +3,7 @@ import
 	crow/c-types: c-int, size_t
 	crow/extra-types: err-t, fd-t
 	crow/ptr: any-const-ptr, any-mut-ptr, const-ptr, mut-ptr
-	crow/private/bootstrap: c-str, int32, int64, nat32
-	crow/str: char
+	crow/private/bootstrap: char, c-str, int32, int64, nat32
 	sys/types: off_t
 
 getcwd char mut*(buf char mut*, size size_t) unsafe extern noctx summon

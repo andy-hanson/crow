@@ -196,7 +196,10 @@ private void fillHole(K, V, alias equal, alias hash)(
 	}
 }
 
-immutable(size_t) nextI(K, V, alias equal, alias hash)(ref const MutDict!(K, V, equal, hash) a, immutable size_t i) {
+private immutable(size_t) nextI(K, V, alias equal, alias hash)(
+	ref const MutDict!(K, V, equal, hash) a,
+	immutable size_t i,
+) {
 	verify(a.size < a.pairs.length);
 	immutable size_t res = i + 1;
 	return res == a.pairs.length ? 0 : res;
@@ -204,12 +207,12 @@ immutable(size_t) nextI(K, V, alias equal, alias hash)(ref const MutDict!(K, V, 
 
 private immutable(size_t) walkDistance(K, V, alias equal, alias hash)(
 	ref const MutDict!(K, V, equal, hash) a,
-	immutable size_t i,
-	immutable size_t j,
+	immutable size_t i0,
+	immutable size_t i1,
 ) {
-	return i <= j
-		? j - i
-		: a.pairs.length + j - i;
+	return i0 <= i1
+		? i1 - i0
+		: a.pairs.length + i1 - i0;
 }
 
 private @trusted immutable(Out[]) mapToArr_const(Out, K, V, alias equal, alias hash)(

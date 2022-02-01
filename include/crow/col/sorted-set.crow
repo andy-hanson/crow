@@ -3,7 +3,6 @@ import
 	../bool: !, &&, ==, bool, false, new, true
 	../compare: <, <=, >, >=, compare
 	../fun-util: subscript
-	../log: info, log
 	../misc: is-data, new, void
 	../opt: !, ??, new, opt
 	../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
@@ -432,7 +431,6 @@ map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> co
 	a.dbg is expected
 
 test
-	info log "SET TEST START"
 	# TODO: be sure to test removing and then adding back
 	a sorted-set str = ()
 	a.is-empty is true
@@ -446,14 +444,10 @@ test
 
 	b - "r" verify "[]"
 
-	info log "CAC"
-
 	c = b ~ "o"
 	c verify "[o r]"
 
 	d = c ~ "c"
-	info log "D IS"
-	info log d.dbg
 	d verify "[c o r]"
 
 	d - "o" verify "[c r]"
@@ -475,5 +469,3 @@ test
 		else
 			"x"
 	dm verify "[arr oh sea]"
-
-	info log "SET TEST DONE"

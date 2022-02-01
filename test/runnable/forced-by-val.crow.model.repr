@@ -1,16 +1,16 @@
 module(
-	path: 60
+	path: 63
 	imports: [
-		import(none, 57, none)
-		import(some(range(8, 28)), 45, some([print]))
+		import(none, 60, none)
+		import(some(range(8, 28)), 47, some([print]))
 		import(some(range(30, 58)), 9, some([const-ptr, size-of]))]
-	structs: [struct(range: file-range(60, range(126, 156)), visibility: public, name: t)]
+	structs: [struct(range: file-range(63, range(126, 156)), visibility: public, name: t)]
 	funs: [
 		fun(
 			visibility: public
 			summon: true
 			trusted: true
-			sig: sig(file-pos(60, 60), main, fut(nat64()), [param(file-range(60, range(73, 80)), none, arr(str()))])
+			sig: sig(file-pos(63, 60), main, fut(nat64()), [param(file-range(63, range(73, 80)), none, arr(str()))])
 			body: seq(
 				call(
 					fun-inst(name: print)
@@ -31,20 +31,20 @@ module(
 			visibility: public
 			no-ctx: true
 			sig: sig(
-				file-pos(60, 126)
+				file-pos(63, 126)
 				new
 				t()
 				[
-					param(file-range(60, range(144, 148)), some(x), const-ptr(t()))
-					param(file-range(60, range(150, 155)), some(y), nat64())])
+					param(file-range(63, range(144, 148)), some(x), const-ptr(t()))
+					param(file-range(63, range(150, 155)), some(y), nat64())])
 			body: new-record)
 		fun(
 			visibility: public
 			no-ctx: true
-			sig: sig(file-pos(60, 144), x, const-ptr(t()), [param(file-range(60, range(144, 148)), some(a), t())])
+			sig: sig(file-pos(63, 144), x, const-ptr(t()), [param(file-range(63, range(144, 148)), some(a), t())])
 			body: field-get(0))
 		fun(
 			visibility: public
 			no-ctx: true
-			sig: sig(file-pos(60, 150), y, nat64(), [param(file-range(60, range(150, 155)), some(a), t())])
+			sig: sig(file-pos(63, 150), y, nat64(), [param(file-range(63, range(150, 155)), some(a), t())])
 			body: field-get(1))])

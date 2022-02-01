@@ -232,7 +232,7 @@ test
 	a.is-empty is true
 
 # TODO: opt should have generic ==
-.== bool(a pair<nat64, str>?, b pair<nat64, str>?) noctx
+.== bool(a pair<nat64, str>?, b pair<nat64, str>?)
 	if va ?= a
 		if vb ?= b
 			va.from == vb.from && va.to == vb.to

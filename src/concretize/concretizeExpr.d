@@ -61,7 +61,6 @@ import model.model :
 	Local,
 	matchCalled,
 	matchExpr,
-	Program,
 	Purity,
 	range,
 	specImpls,
@@ -76,7 +75,6 @@ import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : addToMutDict, getOrAdd, mustDelete, mustGetAt_mut, MutPtrDict;
 import util.memory : allocate;
 import util.opt : force, has, none, some;
-import util.path : AllPaths;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSym, SpecialSym, symEq, symForSpecial;

@@ -3,10 +3,8 @@ module test.testDict;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.col.mutDict : addToMutDict, KeyValuePair, mustDelete, MutDict;
+import util.col.mutDict : addToMutDict, mustDelete, MutDict;
 import util.hash : hashSizeT;
-import util.opt : force, has, Opt;
-import util.util : verify;
 
 void testDict(ref Test test) {
 	MutDict!(size_t, size_t, sizeTEq, hashSizeT) a;

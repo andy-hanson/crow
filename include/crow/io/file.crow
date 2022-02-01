@@ -219,7 +219,6 @@ try-read-file-binary nat8[]?(path str) summon trusted
 				check-posix-error: fd close
 				res.cast-immutable,
 	else
-		print: "not a file"
 		()
 
 # Gets the current directory (of the user that ran the program).

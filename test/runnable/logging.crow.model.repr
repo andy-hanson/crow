@@ -1,22 +1,24 @@
 module(
-	path: 61
+	path: 64
 	imports: [
-		import(none, 57, none)
-		import(some(range(8, 81)), 60, some([get-log-handler, info, log, log-handler, warn, with-log-handler]))]
+		import(none, 60, none)
+		import(some(range(8, 81)), 63, some([get-log-handler, info, log, log-handler, warn, with-log-handler]))]
 	funs: [
 		fun(
 			visibility: public
 			summon: true
-			sig: sig(file-pos(61, 83), main, fut(nat64()), [param(file-range(61, range(96, 103)), none, arr(str()))])
+			sig: sig(file-pos(64, 83), main, fut(nat64()), [param(file-range(64, range(96, 103)), none, arr(str()))])
 			body: seq(
-				call(fun-inst(name: log), [call(fun-inst(name: info), []), string-lit("Logged once")])
+				call(
+					fun-inst(name: log)
+					[call(fun-inst(name: info), []), call(fun-inst(name: literal), [c-string-lit("Logged once")])])
 				let(
-					local(file-range(61, range(137, 139)), lh, fun1(void(), logged()))
+					local(file-range(64, range(137, 139)), lh, fun1(void(), logged()))
 					call(fun-inst(name: get-log-handler), [])
 					let(
-						local(file-range(61, range(159, 166)), doubler, fun1(void(), logged()))
+						local(file-range(64, range(159, 166)), doubler, fun1(void(), logged()))
 						lambda(
-							[param(file-range(61, range(181, 187)), some(logged), logged())]
+							[param(file-range(64, range(181, 187)), some(logged), logged())]
 							seq(
 								call(
 									fun-inst(name: subscript, type-args: [void(), logged()])
@@ -38,7 +40,9 @@ module(
 											[]
 											call(
 												fun-inst(name: log)
-												[call(fun-inst(name: warn), []), string-lit("Logged twice")])
+												[
+													call(fun-inst(name: warn), [])
+													call(fun-inst(name: literal), [c-string-lit("Logged twice")])])
 											[]
 											fun-act0(void())
 											mut
@@ -47,7 +51,7 @@ module(
 									fun-inst(name: with-log-handler, type-args: [void()])
 									[
 										lambda(
-											[param(file-range(61, range(277, 283)), some(ignore), logged())]
+											[param(file-range(64, range(277, 283)), some(ignore), logged())]
 											call(fun-inst(name: new), [])
 											[]
 											fun1(void(), logged())
@@ -57,7 +61,9 @@ module(
 											[]
 											call(
 												fun-inst(name: log)
-												[call(fun-inst(name: warn), []), string-lit("Logged never")])
+												[
+													call(fun-inst(name: warn), [])
+													call(fun-inst(name: literal), [c-string-lit("Logged never")])])
 											[]
 											fun-act0(void())
 											mut

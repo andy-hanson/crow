@@ -139,7 +139,7 @@ import util.col.mutArr :
 	push,
 	tempAsArr,
 	tempAsArr_mut;
-import util.col.str : copyStr, copyToSafeCStr;
+import util.col.str : copyToSafeCStr;
 import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
@@ -688,8 +688,11 @@ immutable(Expr) checkLiteral(
 				immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
 				if (has(max)) {
 					if (it.overflow || it.value > force(max))
-						addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.LiteralOverflow(force(expectedStruct))));
-					return immutable Expr(range, allocate(alloc, immutable Expr.Literal(force(expectedStruct), constant)));
+						addDiag2(alloc, ctx, range, immutable Diag(
+							immutable Diag.LiteralOverflow(force(expectedStruct))));
+					return immutable Expr(
+						range,
+						allocate(alloc, immutable Expr.Literal(force(expectedStruct), constant)));
 				} else {
 					if (it.overflow)
 						todo!void("literal overflow");

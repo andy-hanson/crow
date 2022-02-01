@@ -117,10 +117,6 @@ region str
 # Single character in a string.
 # This could be any UTF-8 code point.
 char builtin
-# String type.
-str record
-	by-val
-	chars char[]
 ###
 C-style string. Always const.
 This should be a valid pointer whose content ends in a "\0", though this is not enforced.

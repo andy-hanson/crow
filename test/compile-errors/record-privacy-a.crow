@@ -8,6 +8,6 @@ redundant-private-ctor record
 
 private-mut record mut
 	new
-	.a mut nat
-	b .mut nat
-	.c .mut nat
+	.j mut nat
+	k .mut nat
+	.l .mut nat
