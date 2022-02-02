@@ -5,13 +5,12 @@ There is technically no I/O here; for functions like reading from a path, see `c
 
 no-std
 import
-	../col/arr: subscript
-	../col/arr-util: last, index-of-reverse, rtail
-	../number: ==, <=>, +, -, nat64
-	../opt: new, opt
-	../range: ..
-	../str: ==, char, chars, literal, new, size-bytes, str
+	../bool: bool
+	../opt: new, opt, opt-equal
+	../str: ==, literal, new, str
+	../tuple: a, b
 	../str-conv: finish, interp, to-str, with-str, with-value
+	../str-util: try-split-once-right
 	../test-util: is
 
 ###
@@ -19,29 +18,26 @@ Parent of a path. This means removing the last path component.
 `""` if the path has no parent.
 ###
 parent-path str(a str)
-	if index ?= a.chars index-of-reverse "/"
-		a.chars[0 .. index] str
+	if x ?= a try-split-once-right "/"
+		x a
 
 # Adds a new path component onto the end.
 child-path str(a str, child_name str)
 	# TODO: ensure child-name doesn't contain "../"
 	"{a}/{child_name}"
 
-# TODO:MOVE
-.last-index-of nat64?(a str, c char)
-	if last-char ?= a.chars last
-		if last-char == c
-			a.size-bytes - 1,
-		else
-			a.chars.rtail.str last-index-of c
-
 ###
 Gets the extension from a file name or path.
 Returns an empty option if there is no extension.
 ###
 get-extension str?(name str)
-	if index ?= name last-index-of "."
-		name.chars[index + 1 .. name.size-bytes].str,
+	if x ?= name try-split-once-right "."
+		x.b,
+test
+	"birds/crow.txt".get-extension is ("txt",)
+
+.== bool(a str?, b str?)
+	a opt-equal b
 
 ###
 Removes the extension from a file name or path.
@@ -50,8 +46,8 @@ This returns the path without the extension.
 For example: `"birds/crow.txt" remove-extension` is `"birds/crow"`.
 ###
 remove-extension str(name str)
-	if index ?= name last-index-of "."
-		name.chars[0 .. index] str
+	if x ?= name try-split-once-right "."
+		x a
 	else
 		name
 test
@@ -74,8 +70,8 @@ test
 
 # Gets just the file name without any directory names in from of it.
 base-name str(path str)
-	if index ?= path last-index-of "/"
-		path.chars[index + 1 .. path.size-bytes] str
+	if x ?= path try-split-once-right "/"
+		x b
 	else
 		path
 test

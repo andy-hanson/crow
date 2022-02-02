@@ -12,7 +12,7 @@ import
 	../tuple: a, b, new, pair
 	./arr: ~, ~~, arr, is-empty, new, size, subscript
 	./arr-util:
-		arr-iter, end-iter, find-and-get, fold, iter, next, prev, reverse, rtail, slice-left,
+		arr-iter, end-iter, find-and-get, fold, iter, next, prev, repeat, reverse, rtail, slice-left,
 		slice-right, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
 	./iter: new, rest, value, value-and-rest
@@ -519,11 +519,13 @@ This is O(log n).
 slice-right<a> seq a(a seq-iter a)
 	match a state
 	as l0-left iter
-		a.seq update-l0-branch b =>
-			iter.slice-right branch-or-leaf-l0 b.down, b.right
+		match a.seq.root node
+		as leaf _
+			iter.slice-right to-seq
+		as branch b
+			(iter.slice-right branch-or-leaf-l0 b.down, b.right),
 	as l0-right iter
-		l0 l0 a = iter.slice-right.leaf,
-		l0,
+		iter.slice-right to-seq
 	as l1-left iter
 		a.seq slice-right-update-l1 l1 =>
 			b = l1.node as-branch
@@ -613,13 +615,6 @@ slice-right<a> seq a(a seq-iter a)
 .pop-right<a> pair<l2 a, a[][]>(a l2 a)
 	(a.nodes.rtail,), a.nodes[a.nodes.size wrap-sub 1]
 
-.update-l0<a> seq a(a seq a, f act l0 a(l0 a))
-	f[a root],
-
-.update-l0-branch<a> seq a(a seq a, f act l0 a(branch<a, l1 a>))
-	a update-l0 l0 =>
-		f[l0.node as-branch]
-
 .slice-left-update-l1<a> seq a(a seq a, f act l1 a(l1 a))
 	old-l0 = a get-l0-branch
 	new-l1 = f[old-l0 down]
@@ -660,12 +655,18 @@ slice-right<a> seq a(a seq-iter a)
 	after-cur-array arr-iter a[]
 
 .iter2d<a> arr-2d-iter a(a a[][])
-	n = a.iter.next!
-	n.value.iter, n.rest
+	outer = a iter
+	if n ?= outer next
+		n.value.iter, n.rest
+	else
+		().iter, outer
 
 .end-iter2d<a> arr-2d-iter a(a a[][])
-	p = a.end-iter.prev!
-	p.value.end-iter, p.rest
+	outer = a end-iter
+	if p ?= outer prev
+		p.value.end-iter, p.rest
+	else
+		().end-iter, outer
 
 .next<a> value-and-rest<a, arr-2d-iter a>?(a arr-2d-iter a)
 	if n ?= a.cur-array next
@@ -699,12 +700,18 @@ slice-right<a> seq a(a seq-iter a)
 	rest-arrays arr-iter a[][]
 
 .iter3d<a> arr-3d-iter a(a a[][][])
-	n = a.iter.next!
-	n.value.iter2d, n.rest
+	outer = a iter
+	if n ?= outer next
+		n.value.iter2d, n.rest
+	else
+		().iter2d, outer
 
 .end-iter3d<a> arr-3d-iter a(a a[][][])
-	p = a.end-iter.prev!
-	p.value.iter2d, p.rest
+	outer = a iter
+	if p ?= outer prev
+		p.value.end-iter2d, p.rest
+	else
+		().iter2d, outer
 
 .next<a> value-and-rest<a, arr-3d-iter a>?(a arr-3d-iter a)
 	if n ?= a.cur-iter2d next
@@ -917,6 +924,11 @@ try-split-once-by-subseq<a> pair<seq a, seq a>?(a seq a, b seq a) equal<a>
 	if pair ?= a iters-of-subseq b
 		(pair.a.slice-left, pair.b.slice-right),
 
+try-split-once-by-subseq-right<a> pair<seq a, seq a>?(a seq a, b seq a) equal<a>
+	"can't split by empty sequence" forbid-c-str b.is-empty
+	if pair ?= a iters-of-subseq-right b
+		(pair.a.slice-left, pair.b.slice-right),
+
 split-by-subseq<a> seq seq a(a seq a, b seq a) equal<a>
 	"can't split by empty sequence" forbid-c-str b.is-empty
 	out seq<a> mut[] = ()
@@ -932,12 +944,19 @@ split-by-subseq<a> seq seq a(a seq a, b seq a) equal<a>
 
 .iters-of-subseq<a> pair<seq-iter a, seq-iter a>?(a seq a, b seq a) equal<a>
 	a.iter iters-of-subseq-recur b
-
 .iters-of-subseq-recur<a> pair<seq-iter a, seq-iter a>?(a seq-iter a, b seq a) equal<a>
 	if end-iter ?= a iter-starts-with b.iter
 		(a, end-iter),
 	elif n ?= a next
 		n.rest iters-of-subseq-recur b
+
+.iters-of-subseq-right<a> pair<seq-iter a, seq-iter a>?(a seq a, b seq a) equal<a>
+	a.end-iter iters-of-subseq-right-recur b
+.iters-of-subseq-right-recur<a> pair<seq-iter a, seq-iter a>?(a seq-iter a, b seq a) equal<a>
+	if start-iter ?= a iter-ends-with b.end-iter
+		(start-iter, a),
+	elif p ?= a prev
+		p.rest iters-of-subseq-right-recur b
 
 .iter-starts-with<a> seq-iter<a>?(a seq-iter a, b seq-iter a) equal<a>
 	if bn ?= b next
@@ -954,6 +973,9 @@ split-by-subseq<a> seq seq a(a seq a, b seq a) equal<a>
 				ap.rest iter-ends-with bp.rest
 	else
 		a,
+
+repeat<a> seq a(a seq a, n nat64)
+	a.to-arr repeat n to-seq
 
 reverse<a> seq a(a seq a)
 	a.to-arr.reverse to-seq

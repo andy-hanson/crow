@@ -8,13 +8,14 @@ import
 	../number: ==, <=>, +, -, *, nat64
 	../opt: !, ??, is-empty, new, opt, opt-equal, size
 	../ptr: ==, -, *, mut-ptr, set-deref
-	../range: ..
-	../str: ==, chars, literal, str
+	../str: ==, literal, str
+	../str-util: iter, next, slice-left
 	../test-util: is
 	../tuple: from, new, pair, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
-	./arr: arr, new, subscript
+	./arr: arr, new
 	./arr-util: each
+	./iter: rest
 	./mut-arr:
 		~=, begin-ptr, clear, each, end-ptr, filter, fold, is-empty, map, map-to-arr, mut-arr, new,
 		remove-at, set-filter, set-map, set-subscript, size, subscript
@@ -296,7 +297,7 @@ test
 	a mut-sorted-dict<nat64, str> = (3, "30"), (6, "60")
 	a verify "[3 -> 30, 6 -> 60]"
 	a set-map (k, v) =>
-		10 - k, v.chars[0 .. 1].str
+		10 - k, v.iter.next!.rest.slice-left
 	a verify "[4 -> 6, 7 -> 3]"
 
 set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> compare<k>

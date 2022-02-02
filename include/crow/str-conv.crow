@@ -2,13 +2,12 @@ no-std
 import
 	./bool: bool
 	./col/arr: new
-	./col/mut-arr: ~~=, move-to-arr, mut-arr, new
 	./compare: <
 	./misc: void
 	./number:
 		==, <=>, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-multiple-of,
 		min-int64, nat8, nat16, nat32, nat64, to-float64, to-int64, to-nat64, truncate-to-int64
-	./str: ~~, char, chars, literal, str
+	./str: ~~, char, literal, str
 
 # Returns `"void"`.
 to-str str(_ void)
@@ -143,17 +142,16 @@ to-str str(a float64)
 region Interpolation
 
 interp record mut
-	inner char mut[]
+	inner str
 
 interp interp()
-	(),
+	"",
 
 with-str interp(a interp, b str)
-	a.inner ~~= b chars
-	a
+	a.inner ~~ b,
 
 with-value<a> interp(a interp, b a) to-str<a>
 	a with-str b.to-str
 
 finish str(a interp)
-	a.inner.move-to-arr str
+	a inner

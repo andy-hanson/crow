@@ -259,10 +259,12 @@ program(
 		struct(
 			name: range
 			body: record([field(low, const, type(false, nat64)), field(high, const, type(false, nat64))]))
-		struct(name: int64, body: builtin(int-64, []))
+		struct(
+			name: arr
+			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
+		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, char)]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, char), type(false, char)]))
 		struct(name: fix-arr, body: record([field(inner, const, type(false, arr))]))
-		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, char)]))
 		struct(name: opt, body: union([none, some(type(false, mut-ptr))]))
 		struct(name: fun-act2, body: builtin(fun, [type(false, nat64), type(false, nat64), type(false, arr)]))
 		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, arr)]))
@@ -275,6 +277,7 @@ program(
 		struct(name: lambda(fold-chunks-l2, 0), ptr: true, body: record([field(f, const, type(false, fun-act2))]))
 		struct(name: lambda(fold, 0), ptr: true, body: record([field(f, const, type(false, fun-act2))]))
 		struct(name: lambda(map-to-arr, 0), ptr: true, body: record([field(f, const, type(false, fun-act1))]))
+		struct(name: int64, body: builtin(int-64, []))
 		struct(name: opt, body: union([none, some(type(false, const-ptr))]))
 		struct(name: writer, body: record([field(chars, const, type(true, mut-arr))]))
 		struct(
@@ -329,6 +332,13 @@ program(
 			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, named-val)]))
 		struct(name: const-ptr, body: builtin(ptr-const, [type(false, const-ptr)]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, void), type(false, void), type(false, char)]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, void), type(false, void), type(false, arr)]))
+		struct(name: fun-act2, body: builtin(fun, [type(false, void), type(false, void), type(false, arr)]))
+		struct(name: lambda(fold-chunks-l2, 0), ptr: true, body: record([field(f, const, type(false, fun-act2))]))
+		struct(name: lambda(fold, 0), ptr: true, body: record([field(f, const, type(false, fun-act2))]))
+		struct(name: lambda(each, 0), ptr: true, body: record([field(f, const, type(false, fun-act1))]))
+		struct(name: lambda(~~=, 0), body: record([field(a, const, type(false, writer))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, sym)]))
 		struct(name: lambda(to-str, 0), body: record([field(res, const, type(false, writer))]))
 		struct(name: fun-act2, body: builtin(fun, [type(false, l1), type(false, arr), type(false, l1)]))
@@ -1317,33 +1327,50 @@ program(
 			seq(
 				call(hard-assert, [call(==, [call(size-of, []), call(size-of, [])])])
 				let(
-					res
-					call(
-						write
-						[
-							param-ref(fd)
-							call(as-any-const-ptr, [call(begin-ptr, [call(chars, [param-ref(a)])])])
-							call(size-bytes, [param-ref(a)])])
-					cond(
-						call(==, [local-ref(res), call(unsafe-to-int64, [call(size-bytes, [param-ref(a)])])])
-						call(new, [])
-						call(todo, [])))))
+					bytes
+					call(bytes, [param-ref(a)])
+					let(
+						res
+						call(
+							write
+							[param-ref(fd), call(begin-ptr, [local-ref(bytes)]), call(size, [local-ref(bytes)])])
+						cond(
+							call(==, [local-ref(res), call(unsafe-to-int64, [call(size-char8s, [param-ref(a)])])])
+							call(new, [])
+							call(todo, []))))))
 		fun(noctx, size-of, type(false, nat64), none, [], builtin([type(false, char)]))
 		fun(noctx, size-of, type(false, nat64), none, [], builtin([type(false, nat8)]))
 		fun(
-			noctx
-			write
-			type(false, int64)
+			ctx
+			bytes
+			type(false, arr)
 			none
-			[param(fd, type(false, int32)), param(buf, type(false, const-ptr)), param(n-bytes, type(false, nat64))]
-			extern)
+			[param(a, type(false, str))]
+			call(arr-cast, [call(char8s, [param-ref(a)])]))
 		fun(
 			noctx
-			as-any-const-ptr
+			arr-cast
+			type(false, arr)
+			none
+			[param(a, type(false, arr))]
+			seq(
+				call(hard-assert, [call(==, [call(size-of, []), call(size-of, [])])])
+				call(new, [call(size, [param-ref(a)]), call(ptr-cast, [call(begin-ptr, [param-ref(a)])])])))
+		fun(
+			noctx
+			new
+			type(false, arr)
+			none
+			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
+			new-record)
+		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
+		fun(
+			noctx
+			ptr-cast
 			type(false, const-ptr)
 			none
-			[param(reference, type(false, const-ptr))]
-			call(as-const, [call(as-any-mut-ptr, [param-ref(reference)])]))
+			[param(a, type(false, const-ptr))]
+			call(as-const, [call(ptr-cast, [call(as-mut, [param-ref(a)])])]))
 		fun(
 			noctx
 			as-const
@@ -1353,15 +1380,16 @@ program(
 			builtin([type(false, nat8)]))
 		fun(
 			noctx
-			as-any-mut-ptr
+			ptr-cast
 			type(false, mut-ptr)
 			none
-			[param(reference, type(false, const-ptr))]
-			builtin([type(false, const-ptr)]))
+			[param(a, type(false, mut-ptr))]
+			builtin([type(false, nat8), type(false, char)]))
+		fun(noctx, as-mut, type(false, mut-ptr), none, [param(a, type(false, const-ptr))], builtin([type(false, char)]))
 		fun(noctx, begin-ptr, type(false, const-ptr), none, [param(a, type(false, arr))], field-get(1))
 		fun(
 			ctx
-			chars
+			char8s
 			type(false, arr)
 			none
 			[param(a, type(false, str))]
@@ -1667,7 +1695,6 @@ program(
 			none
 			[param(a, type(false, mut-ptr)), param(offset, type(false, nat64))]
 			builtin([type(false, char)]))
-		fun(noctx, as-mut, type(false, mut-ptr), none, [param(a, type(false, const-ptr))], builtin([type(false, char)]))
 		fun(
 			ctx
 			size
@@ -1943,7 +1970,6 @@ program(
 		fun(noctx, left, type(false, arr), none, [param(a, type(true, branch))], field-get(0))
 		fun(noctx, down, type(false, l1), none, [param(a, type(true, branch))], field-get(1))
 		fun(noctx, right, type(false, arr), none, [param(a, type(true, branch))], field-get(2))
-		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
 		fun(
 			ctx
 			lambda(size, 0)
@@ -2263,12 +2289,14 @@ program(
 			param-ref(x))
 		fun(noctx, inner, type(false, seq), none, [param(a, type(false, str))], field-get(0))
 		fun(
-			ctx
-			size-bytes
-			type(false, nat64)
+			noctx
+			write
+			type(false, int64)
 			none
-			[param(a, type(false, str))]
-			call(size, [call(inner, [param-ref(a)])]))
+			[param(fd, type(false, int32)), param(buf, type(false, const-ptr)), param(n-bytes, type(false, nat64))]
+			extern)
+		fun(noctx, begin-ptr, type(false, const-ptr), none, [param(a, type(false, arr))], field-get(1))
+		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
 		fun(
 			noctx
 			==
@@ -2277,6 +2305,13 @@ program(
 			[param(a, type(false, int64)), param(b, type(false, int64))]
 			builtin([]))
 		fun(noctx, unsafe-to-int64, type(false, int64), none, [param(a, type(false, nat64))], builtin([]))
+		fun(
+			ctx
+			size-char8s
+			type(false, nat64)
+			none
+			[param(a, type(false, str))]
+			call(size, [call(inner, [param-ref(a)])]))
 		fun(noctx, todo, type(false, void), none, [], seq(call(abort, []), call(zeroed, [])))
 		fun(noctx, zeroed, type(false, void), none, [], builtin([type(false, void)]))
 		fun(noctx, stderr, type(false, int32), none, [], 2)
@@ -2623,6 +2658,20 @@ program(
 			none
 			[param(reference, type(false, mut-ptr))]
 			builtin([type(false, mut-ptr)]))
+		fun(
+			noctx
+			as-any-const-ptr
+			type(false, const-ptr)
+			none
+			[param(reference, type(false, const-ptr))]
+			call(as-const, [call(as-any-mut-ptr, [param-ref(reference)])]))
+		fun(
+			noctx
+			as-any-mut-ptr
+			type(false, mut-ptr)
+			none
+			[param(reference, type(false, const-ptr))]
+			builtin([type(false, const-ptr)]))
 		fun(noctx, size, type(false, nat64), none, [param(a, type(true, mut-arr))], field-get(1))
 		fun(
 			noctx
@@ -3384,8 +3433,250 @@ program(
 			type(false, void)
 			none
 			[param(a, type(false, writer)), param(b, type(false, str))]
-			call(~~=, [call(chars, [param-ref(a)]), call(chars, [param-ref(b)])]))
+			call(each-char8, [param-ref(b), lambda(1, alloc(record([param-ref(a)])))]))
+		fun(
+			ctx
+			each-char8
+			type(false, void)
+			none
+			[param(a, type(false, str)), param(f, type(false, fun-act1))]
+			call(each, [call(as-seq, [param-ref(a)]), param-ref(f)]))
+		fun(
+			ctx
+			each
+			type(false, void)
+			none
+			[param(a, type(false, seq)), param(f, type(false, fun-act1))]
+			call(fold, [call(new, []), param-ref(a), lambda(0, alloc(record([param-ref(f)])))]))
+		fun(
+			ctx
+			fold
+			type(false, void)
+			none
+			[param(acc, type(false, void)), param(a, type(false, seq)), param(f, type(false, fun-act2))]
+			call(fold-chunks, [param-ref(acc), param-ref(a), lambda(0, alloc(record([param-ref(f)])))]))
+		fun(
+			ctx
+			fold-chunks
+			type(false, void)
+			none
+			[param(acc, type(false, void)), param(xs, type(false, seq)), param(f, type(false, fun-act2))]
+			match-union(
+				call(node, [call(root, [param-ref(xs)])])
+				[
+					case(some(l), call(subscript, [param-ref(f), param-ref(acc), local-ref(l)]))
+					case(
+						some(b)
+						let(
+							mid
+							call(
+								fold-chunks-l1
+								[
+									call(subscript, [param-ref(f), param-ref(acc), call(left, [local-ref(b)])])
+									call(down, [local-ref(b)])
+									param-ref(f)])
+							call(subscript, [param-ref(f), local-ref(mid), call(right, [local-ref(b)])])))]))
+		fun(
+			ctx
+			subscript
+			type(false, void)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, void)), param(p1, type(false, arr))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, void)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, void))
+				param(p1, type(false, arr))]
+			builtin([type(false, void), type(false, void), type(false, arr)]))
+		fun(
+			ctx
+			fold-chunks-l1
+			type(false, void)
+			none
+			[param(acc, type(false, void)), param(xs, type(false, l1)), param(f, type(false, fun-act2))]
+			match-union(
+				call(node, [param-ref(xs)])
+				[
+					case(some(l), call(fold, [param-ref(acc), local-ref(l), param-ref(f)]))
+					case(
+						some(b)
+						call(
+							fold
+							[
+								call(
+									fold-chunks-l2
+									[
+										call(fold, [param-ref(acc), call(left, [local-ref(b)]), param-ref(f)])
+										call(down, [local-ref(b)])
+										param-ref(f)])
+								call(right, [local-ref(b)])
+								param-ref(f)]))]))
+		fun(
+			ctx
+			fold
+			type(false, void)
+			none
+			[param(acc, type(false, void)), param(a, type(false, arr)), param(f, type(false, fun-act2))]
+			call(
+				fold-recur
+				[param-ref(acc), call(begin-ptr, [param-ref(a)]), call(end-ptr, [param-ref(a)]), param-ref(f)]))
+		fun(
+			ctx
+			fold-recur
+			type(false, void)
+			none
+			[
+				param(acc, type(false, void))
+				param(cur, type(false, const-ptr))
+				param(end, type(false, const-ptr))
+				param(f, type(false, fun-act2))]
+			cond(
+				call(==, [param-ref(cur), param-ref(end)])
+				param-ref(acc)
+				call(
+					fold-recur
+					[
+						call(subscript, [param-ref(f), param-ref(acc), call(*, [param-ref(cur)])])
+						call(+, [param-ref(cur), 1])
+						param-ref(end)
+						param-ref(f)])))
+		fun(
+			ctx
+			fold-chunks-l2
+			type(false, void)
+			none
+			[param(acc, type(false, void)), param(xs, type(false, l2)), param(f, type(false, fun-act2))]
+			call(fold, [param-ref(acc), call(nodes, [param-ref(xs)]), lambda(0, alloc(record([param-ref(f)])))]))
+		fun(
+			ctx
+			fold
+			type(false, void)
+			none
+			[param(acc, type(false, void)), param(a, type(false, arr)), param(f, type(false, fun-act2))]
+			call(
+				fold-recur
+				[param-ref(acc), call(begin-ptr, [param-ref(a)]), call(end-ptr, [param-ref(a)]), param-ref(f)]))
+		fun(
+			ctx
+			fold-recur
+			type(false, void)
+			none
+			[
+				param(acc, type(false, void))
+				param(cur, type(false, const-ptr))
+				param(end, type(false, const-ptr))
+				param(f, type(false, fun-act2))]
+			cond(
+				call(==, [param-ref(cur), param-ref(end)])
+				param-ref(acc)
+				call(
+					fold-recur
+					[
+						call(subscript, [param-ref(f), param-ref(acc), call(*, [param-ref(cur)])])
+						call(+, [param-ref(cur), 1])
+						param-ref(end)
+						param-ref(f)])))
+		fun(
+			ctx
+			subscript
+			type(false, void)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, void)), param(p1, type(false, arr))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, void)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, void))
+				param(p1, type(false, arr))]
+			builtin([type(false, void), type(false, void), type(false, arr)]))
+		fun(
+			ctx
+			lambda(fold-chunks-l2, 0)
+			type(false, void)
+			some(param("<<closure>>", type(true, lambda(fold-chunks-l2, 0))))
+			[param(cur, type(false, void)), param(nodes, type(false, arr))]
+			call(fold, [param-ref(cur), param-ref(nodes), get-field(param-ref("<<closure>>"), f)]))
+		fun(
+			ctx
+			fold
+			type(false, void)
+			none
+			[param(acc, type(false, void)), param(a, type(false, arr)), param(f, type(false, fun-act2))]
+			call(
+				fold-recur
+				[param-ref(acc), call(begin-ptr, [param-ref(a)]), call(end-ptr, [param-ref(a)]), param-ref(f)]))
+		fun(
+			ctx
+			fold-recur
+			type(false, void)
+			none
+			[
+				param(acc, type(false, void))
+				param(cur, type(false, const-ptr))
+				param(end, type(false, const-ptr))
+				param(f, type(false, fun-act2))]
+			cond(
+				call(==, [param-ref(cur), param-ref(end)])
+				param-ref(acc)
+				call(
+					fold-recur
+					[
+						call(subscript, [param-ref(f), param-ref(acc), call(*, [param-ref(cur)])])
+						call(+, [param-ref(cur), 1])
+						param-ref(end)
+						param-ref(f)])))
+		fun(
+			ctx
+			subscript
+			type(false, void)
+			none
+			[param(a, type(false, fun-act2)), param(p0, type(false, void)), param(p1, type(false, char))]
+			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0), param-ref(p1)]))
+		fun(
+			noctx
+			call-with-ctx
+			type(false, void)
+			none
+			[
+				param(f, type(false, fun-act2))
+				param(c, type(true, ctx))
+				param(p0, type(false, void))
+				param(p1, type(false, char))]
+			builtin([type(false, void), type(false, void), type(false, char)]))
+		fun(
+			ctx
+			lambda(fold, 0)
+			type(false, void)
+			some(param("<<closure>>", type(true, lambda(fold, 0))))
+			[param(cur, type(false, void)), param(chunk, type(false, arr))]
+			call(fold, [param-ref(cur), param-ref(chunk), get-field(param-ref("<<closure>>"), f)]))
+		fun(
+			ctx
+			lambda(each, 0)
+			type(false, void)
+			some(param("<<closure>>", type(true, lambda(each, 0))))
+			[param(ignore, type(false, void)), param(x, type(false, char))]
+			call(subscript, [get-field(param-ref("<<closure>>"), f), param-ref(x)]))
+		fun(ctx, as-seq, type(false, seq), none, [param(a, type(false, str))], call(inner, [param-ref(a)]))
 		fun(noctx, chars, type(true, mut-arr), none, [param(a, type(false, writer))], field-get(0))
+		fun(
+			ctx
+			lambda(~~=, 0)
+			type(false, void)
+			some(param("<<closure>>", type(true, lambda(~~=, 0))))
+			[param(x, type(false, char))]
+			call(~=, [call(chars, [get-field(param-ref("<<closure>>"), a)]), param-ref(x)]))
 		fun(
 			ctx
 			is-empty

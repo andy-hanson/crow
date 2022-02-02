@@ -72,4 +72,4 @@ lint result<str, failure[]>(path str, options test-options) summon
 	4
 
 .line-len nat(line str)
-	line.n-tabs * (tab-size - 1) + line.size-bytes
+	line.n-tabs * (tab-size - 1) + line.size-char8s

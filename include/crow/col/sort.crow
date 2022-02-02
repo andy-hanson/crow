@@ -5,14 +5,17 @@ import
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, <=>, +, -, /, nat64
+	../opt: !
 	../ptr: ==, +, -, *, mut-ptr, set-deref
 	../range: ..
-	../str: ==, <=>, chars, literal, str
+	../str: ==, <=>, literal, str
+	../str-util: iter, next, slice-left
 	../test-util: is
-	./arr: ==, arr, new, subscript
+	./arr: ==, arr, new
 	./fix-arr:
 		begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, new, size, set-subscript,
 		subscript, to-arr, to-fix-arr
+	./iter: rest
 	./mut-arr: mut-arr, temp-as-fix-arr
 
 ###
@@ -57,8 +60,11 @@ test
 
 	# Test that it's a stable sort
 	arr fix-arr str = "2a", "2b", "1a", "1b"
-	arr set-sort (x, y) => x.chars[0] <=> y.chars[0]
+	arr.sort := (x, y) => x.first-char <=> y.first-char
 	arr.to-arr is ("1a", "1b", "2a", "2b")
+
+.first-char str(a str)
+	a.iter.next!.rest slice-left
 
 # Sort the elements of `a` from least to greatest.
 set-sort<a> void(a a mut[]) compare<a> trusted

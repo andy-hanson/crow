@@ -1,21 +1,23 @@
 no-std
 import
 	./bool: ||, bool
-	./col/arr: arr, is-empty
+	./col/arr: arr
 	./col/private/arr-low-level: arr-cast, begin-ptr
-	./col/arr-util: each, last, rtail
+	./col/arr-util: fold
 	./col/iter: new, rest, value, value-and-rest
-	./col/mut-arr: ~~=, move-to-arr, mut-arr, new
 	./col/seq:
-		contains-subseq, copy, drop-right-while, drop-while, each, ends-with, iter, left, map,
-		map-to-arr, middle, mut-iter, mut-seq-iter, next, peek, reverse, right, seq-iter,
-		slice-left, slice-right, split-by-subseq, starts-with, try-remove-end, try-remove-start,
-		try-split-once-by-fn, try-split-once-by-subseq
+		contains-subseq, copy, drop-right-while, drop-while, each, end-iter, ends-with, fold, iter,
+		left, map, map-to-arr, middle, mut-iter, mut-seq-iter, next, peek, prev, repeat, reverse,
+		right, seq-iter, slice-left, slice-right, split-by-subseq, starts-with, try-remove-end,
+		try-remove-start, try-split-once-by-fn, try-split-once-by-subseq,
+		try-split-once-by-subseq-right
 	./compare: <
 	./misc: void
-	./number: ==, <=>, nat8
-	./opt: !, new, opt
-	./str: ==, ~, ~~, as-seq, char, chars, c-str, literal, new, str, str-from-seq, to-char, to-nat8
+	./number: ==, <=>, nat8, nat64
+	./opt: new, opt
+	./str:
+		==, ~, ~~, as-seq, char, char8s, c-str, is-empty, literal, str, str-from-seq, to-char,
+		to-nat8
 	./tuple: a, b, new, pair
 	./private/number-low-level: wrap-add, wrap-sub
 
@@ -28,10 +30,16 @@ str-iter record
 iter str-iter(a str)
 	a.as-seq.iter,
 
+end-iter str-iter(a str)
+	a.as-seq.end-iter,
+
 next value-and-rest<char, str-iter>?(a str-iter)
 	if res ?= a.inner next
-		rest str-iter = res.rest,
-		(res.value, rest),
+		(res.value, (res.rest,)),
+
+prev value-and-rest<char, str-iter>?(a str-iter)
+	if res ?= a.inner prev
+		(res.value, (res.rest,)),
 
 slice-left str(a str-iter)
 	a.inner.slice-left str-from-seq
@@ -58,6 +66,9 @@ region iteration
 
 each-char8 void(a str, f act void(char))
 	a.as-seq each f
+
+fold-char8s<a> a(acc a, b str, f act a(a, char))
+	acc fold b.as-seq, f
 
 region split
 
@@ -100,6 +111,11 @@ try-split-once pair<str, str>?(a str, b str)
 	if res ?= a.as-seq try-split-once-by-subseq b.as-seq
 		(res.a.str-from-seq, res.b.str-from-seq),
 
+# Like `try-split-once`, but splits on the rightmost occurrence of `b`.
+try-split-once-right pair<str, str>?(a str, b str)
+	if res ?= a.as-seq try-split-once-by-subseq-right b.as-seq
+		(res.a.str-from-seq, res.b.str-from-seq),
+
 ###
 Removes every occurrence of the substring `b` in `a` and return the remaining parts as an array.
 The result may include empty strings.
@@ -134,13 +150,11 @@ Returns a string containing each element of `a`, with `b` as a separator.
 This is `a[0] ~ b ~ a[1] ~ b ~ ... ~ a[a.size - 1]`.
 ###
 join str(a str[], b str)
-	unless a is-empty
-		res char mut[] = ()
-		a.rtail each x =>
-			res ~~= x chars
-			res ~~= b chars
-		res ~~= a.last! chars
-		res.move-to-arr str
+	"" fold a, (cur, x) =>
+		if cur is-empty
+			x
+		else
+			cur ~~ b ~~ x
 
 # Lower cases every character in `a`.
 lower-case str(a str)
@@ -207,7 +221,7 @@ Gets the raw UTF-8 bytes that represent a string.
 This is O(n).
 ###
 bytes nat8[](a str) trusted
-	a.chars arr-cast
+	a.char8s arr-cast
 
 ###
 Converts a str to a c-str by appending "\0".
@@ -217,7 +231,7 @@ WARN: The resulting string is allocated from GC memory but isn't traced by the g
 so it may be freed after the current task.
 ###
 to-c-str c-str(a str) unsafe
-	(a ~ "\0").chars begin-ptr
+	(a ~ "\0").char8s begin-ptr
 
 ###
 Treats a c-str as a str by walking to the end.
@@ -229,3 +243,8 @@ Unsafe because:
 ###
 to-str str(a c-str) unsafe noctx
 	a literal
+
+region other
+
+repeat str(a str, n nat64)
+	a.as-seq repeat n str-from-seq

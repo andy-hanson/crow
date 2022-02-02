@@ -5,12 +5,12 @@ import
 	../../exception: assert, forbid, unreachable
 	../../fun-util: subscript
 	../../misc: drop, is-data, void
-	../../opt: new, opt
+	../../opt: !, new, opt
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
 	../../range: ..
-	../../str: ==, <=>, chars, literal, str
+	../../str: ==, <=>, literal, str
 	../../str-conv: interp, finish, to-str, with-str, with-value
-	../../str-util: starts-with
+	../../str-util: iter, next, slice-left, starts-with
 	../../test-util: is
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../../private/bootstrap: hard-assert
@@ -18,6 +18,7 @@ import
 	../arr: arr, is-empty, size, subscript
 	../arr-util: each, fold, insert-at-ptr, last, rtail, tail, try-remove
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
+	../iter: rest
 	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique, set-sort-unique
 	../private/arr-low-level: begin-ptr, end-ptr
@@ -553,5 +554,8 @@ test
 	filtered = s8 filter x => !(x starts-with "j")
 	filtered verify "[h i k l]"
 
-	mapped = s8 map x => x.chars[0 .. 1] str
+	mapped = s8 map x => x first-char
 	mapped verify "[h i j k l]"
+
+.first-char str(a str)
+	a.iter.next!.rest slice-left

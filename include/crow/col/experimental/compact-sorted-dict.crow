@@ -6,11 +6,12 @@ import
 	../../fun-util: subscript
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, is-even, nat64
-	../../opt: ||, is-empty, new, opt, opt-equal
+	../../opt: !, ||, is-empty, new, opt, opt-equal
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
 	../../range: ..
-	../../str: ==, chars, is-empty, size-bytes, literal, str
+	../../str: ==, is-empty, literal, str
 	../../str-conv: interp, finish, to-str, with-str, with-value
+	../../str-util: end-iter, prev
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
@@ -22,6 +23,7 @@ import
 	../fix-arr:
 		begin-ptr, cast-immutable, is-empty, fold, fix-arr, set-subscript, size, subscript, tail,
 		uninitialized-fix-arr
+	../iter: value
 	../sort: sort-by
 	../private/arr-low-level: begin-ptr, end-ptr
 	../private/sort-utils: binary-search-key
@@ -512,7 +514,7 @@ test
 	h-filtered verify "[10 -> 10b, 20 -> 20]"
 
 	h-mapped = h map-values (k, v) =>
-		v.chars[v.size-bytes - 1 .. v.size-bytes] str
+		"{v.end-iter.prev! value}"
 	h-mapped verify "[5 -> 5, 10 -> b, 20 -> 0]"
 
 test

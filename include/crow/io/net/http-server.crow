@@ -20,9 +20,9 @@ import
 	../../extra-types: fd-t
 	../../range: ..
 	../../reader: parse-nat
-	../../str: ==, <=>, char, chars, is-empty, literal, str
+	../../str: ==, <=>, char, is-empty, literal, str, to-nat8
 	../../str-conv: finish, interp, to-str, with-str, with-value
-	../../str-util: as-str, bytes, contains-substr, split-by, try-remove-end
+	../../str-util: bytes, contains-substr, split-by, try-remove-end
 	../../writer: ~=, ~~=, move-to-str, new, writer
 	../../private/bootstrap: todo
 	../print: print
@@ -51,7 +51,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		()
 	on-received-chunk ref void(fd-t, nat8[]) = (fd, bytes) =>
 		if state ?= client-states[fd]
-			closed <- fd handle-chunk state, bytes.as-str, handler
+			closed <- fd handle-chunk state, bytes, handler
 			if closed
 				drop: client-states try-remove fd drop
 			()
@@ -67,8 +67,8 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	(tcp-server.stop,),
 
 # Returns true when closed client
-.handle-chunk fut bool(fd fd-t, state http-parse-state, chunk str, handler http-handler) summon trusted
-	state.unparsed ~~= chunk chars
+.handle-chunk fut bool(fd fd-t, state http-parse-state, chunk nat8[], handler http-handler) summon trusted
+	state.unparsed ~~= chunk
 	finished-request = if state.content-length == 0
 		state handle-http-initial
 	else
@@ -106,7 +106,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 				fd write-until-finished content[wrote.to-nat64 .. content.size]
 
 .finish-request http-request(state http-parse-state) trusted
-	state.method, state.url, state.headers.move-to-dict, state.unparsed.move-to-arr.arr-cast@<nat8, char>
+	state.method, state.url, state.headers.move-to-dict, state.unparsed move-to-arr
 
 .response-to-arr nat8[](a http-response)
 	res writer = ()
@@ -173,10 +173,11 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	else
 		todo
 
-.try-take-first-line str?(a char mut[])
-	if index ?= a index-of "\n"
-		line = a pop-n-from-start index + 1 rtail
-		(line.str try-remove-end "\r" ?? line.str),
+.try-take-first-line str?(a nat8 mut[]) trusted
+	if index ?= a index-of "\n".to-nat8
+		bytes = a pop-n-from-start index + 1 rtail
+		line = bytes.arr-cast@<char, nat8> str
+		(line try-remove-end "\r" ?? line),
 
 .http-parse-state record mut
 	method mut http-method
@@ -185,7 +186,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	# This is not set until after the end of headers
 	content-length mut nat64
 	# TODO:PERF: Use a circular buffer as we often take content off the front
-	unparsed char mut[]
+	unparsed nat8 mut[]
 
 .new http-parse-state()
 	http-get, "", (), 0, ()

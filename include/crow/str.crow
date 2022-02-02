@@ -35,7 +35,7 @@ str-from-seq str(a seq char) no-doc
 Converts a string to an array of UTF8 character codes.
 This is O(n).
 ###
-chars char[](a str)
+char8s char[](a str)
 	a.inner to-arr
 
 ###
@@ -72,10 +72,10 @@ is-empty bool(a str)
 	a.inner is-empty
 
 ###
-Number of bytes in the UTF-8 representation of `a`.
+Number of `char8`s in the UTF-8 representation of `a`.
 This is O(n).
 ###
-size-bytes nat64(a str)
+size-char8s nat64(a str)
 	a.inner size
 
 == bool(a str, b str) trusted

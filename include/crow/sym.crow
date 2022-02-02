@@ -1,18 +1,14 @@
 no-std
 import
-	string: memcpy
 	./bool: bool
-	./col/private/arr-low-level: begin-ptr, size
 	./col/arr-util: find
 	./compare: comparison
-	./misc: drop
 	./opt: new, opt
-	./ptr:
-		==, as-const, by-val, mut-ptr, ptr-cast, ref-of-ptr, ref-of-val, set-deref, set-subscript
-	./str: ==, <=>, char, chars, c-str, str
-	./str-util: to-str
+	./ptr: ==, +, as-const, by-val, mut-ptr, ref-of-ptr, ref-of-val, set-deref
+	./str: ==, <=>, char, c-str, size-char8s, str
+	./str-util: fold-char8s, to-str
 	./private/alloc: unmanaged-alloc-elements, unmanaged-alloc-uninitialized
-	./private/bootstrap: new-sym, static-syms
+	./private/bootstrap: hard-assert, new-sym, static-syms
 	./private/number-low-level: wrap-add
 	./private/runtime:
 		dynamic-sym-node, dynamic-syms, get-global-ctx, global-ctx, new, next, set-dynamic-syms,
@@ -61,8 +57,10 @@ str-to-sym sym(a str) trusted
 			node.next find-dynamic-sym s
 
 .to-malloced-c-str c-str(a str) unsafe
-	n-chars = a.chars size
-	res char mut* = n-chars wrap-add 1 unmanaged-alloc-elements
-	drop: res.ptr-cast memcpy a.chars.begin-ptr.ptr-cast, n-chars
-	res[n-chars] := "\0"
+	res char mut* = a.size-char8s wrap-add 1 unmanaged-alloc-elements
+	end = res fold-char8s a, (cur, x) =>
+		*cur := x
+		cur + 1
+	hard-assert: end == res + a.size-char8s
+	*end := "\0"
 	res as-const
