@@ -1,4 +1,7 @@
 no-std
+import
+	./bool: &&, bool
+	./compare: equal
 
 ###
 Generic pair type.
@@ -18,3 +21,6 @@ from<a, b> a(a pair<a, b>) noctx
 # Same as `a.b`.
 to<a, b> b(a pair<a, b>) noctx
 	a b
+
+pair-equal<a, b> bool(a pair<a, b>, b pair<a, b>) equal<a> equal<b>
+	a.a == b.a && a.b == b.b

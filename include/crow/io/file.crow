@@ -26,9 +26,9 @@ import
 		==, +, any-const-ptr, as-any-const-ptr, as-const, const-ptr, mut-ptr, null, ptr-cast,
 		ptr-cast-from-extern, ref-eq, size-of
 	../range: ..
-	../str: ==, <=>, char, c-str, literal, size-char8s, str
+	../str: ==, <=>, char, c-str, literal, str
 	../str-conv: finish, interp, to-str, with-str, with-value
-	../str-util: as-str, bytes, to-c-str, to-str
+	../str-util: as-str, to-bytes, to-c-str, to-str
 	../private/bootstrap: todo
 	./path: child-path
 	./posix-util: check-errno, check-posix-error
@@ -165,9 +165,9 @@ write-file void(path str, content str) summon trusted
 		print: "permission: {permission}"
 		todo
 	else
-		bytes = content bytes
+		bytes = content to-bytes
 		wrote-bytes = fd write bytes.begin-ptr, bytes.size
-		unless wrote-bytes == content.size-char8s.to-int64
+		unless wrote-bytes == bytes.size.to-int64
 			if wrote-bytes == -1
 				todo
 			else

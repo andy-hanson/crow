@@ -7,8 +7,8 @@ import
 	../extra-types: fd-t
 	../misc: new, void
 	../ptr: size-of
-	../str: char, literal, size-char8s, str
-	../str-util: bytes
+	../str: char, literal, str
+	../str-util: to-bytes
 	../private/bootstrap: hard-assert, todo
 	../private/number-low-level: ==, nat8, unsafe-to-int64
 
@@ -32,9 +32,9 @@ print-err-no-newline void(s str) summon trusted
 
 .write-no-newline void(fd fd-t, a str) summon unsafe
 	hard-assert: size-of@<char> == size-of@<nat8>
-	bytes = a bytes
+	bytes = a to-bytes
 	res = fd write bytes.begin-ptr, bytes.size
-	unless res == a.size-char8s.unsafe-to-int64
+	unless res == bytes.size.unsafe-to-int64
 		# TODO: Maybe retry
 		todo
 

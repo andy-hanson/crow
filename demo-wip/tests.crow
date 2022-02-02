@@ -30,11 +30,11 @@ import
 	crow/io/terminal-color: bold
 	crow/io/time-format: gmt
 	crow/json: json-str
-	crow/log: info, log
+	crow/log: info
 	crow/math/vec: new, vec2
 	crow/parse-command: parse-named-args
 	crow/perf: measure-total, new
-	crow/reader: new, reader, take-quoted-str
+	crow/reader: new, reader
 	crow/serialize: from-bytes
 	crow/str-util: strip
 	crow/test-util/test-runner: run-all-tests
@@ -54,6 +54,7 @@ main fut nat(_ str[]) summon
 	drop: () :: hamt-set<nat>
 	drop: "".strip
 	drop: () :: index-set
+	drop: info
 	drop: () :: list<nat>
 	drop: () :: nat mut[]
 	drop: () :: mut-deque<nat>
@@ -67,6 +68,7 @@ main fut nat(_ str[]) summon
 	drop: () :: measure-total
 	drop: () :: priority-queue<nat, nat>
 	drop: ((), (), ()) :: process-result
+	drop: () :: reader
 	drop: () :: set<nat>
 	drop: () :: sorted-set<nat>
 	drop: () :: stack<nat>
@@ -78,18 +80,3 @@ main fut nat(_ str[]) summon
 	drop: () parse-named-args ()
 	run-all-tests
 	()
-
-test
-	1 + 1 is 2
-	info log "I am a test!"
-
-test
-	info log "READER TEST START"
-
-	r reader = "\"j\"",
-	if s ?= r take-quoted-str
-		info log "GOT A STRING: {s}"
-	else
-		info log "GOT NOTHIN"
-
-	info log "READER TEST DONE"

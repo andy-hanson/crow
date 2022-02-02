@@ -5,7 +5,7 @@ import
 	../../hash: hash-mix
 	../../number: nat8, nat64
 	../../str: ==, <=>, literal, str
-	../../str-util: as-str, bytes
+	../../str-util: as-str, to-bytes
 
 # Parsed HTTP request.
 http-request record
@@ -32,7 +32,7 @@ http-bad-query http-response()
 
 # Creates a 400 response with the given message.
 http-bad-query http-response(message str)
-	400, message, (), message.bytes
+	400, message, (), message.to-bytes
 
 # Creates a 403 response with the message "Forbidden".
 http-forbidden http-response()
@@ -40,7 +40,7 @@ http-forbidden http-response()
 
 # Creates a 403 response with the given message.
 http-forbidden http-response(message str)
-	403, message, (), message.bytes
+	403, message, (), message.to-bytes
 
 # Creates a 404 response with the message "Not found".
 http-not-found http-response()
@@ -48,7 +48,13 @@ http-not-found http-response()
 
 # Creates a 404 response with the given message.
 http-not-found http-response(message str)
-	404, message, (), message.bytes
+	404, message, (), message.to-bytes
+
+http-internal-server-error http-response()
+	"Internal server error" http-internal-server-error
+
+http-internal-server-error http-response(message str)
+	500, message, (), message.to-bytes
 
 # Creates a 200 response with the message "OK".
 http-ok http-response()
@@ -60,7 +66,7 @@ http-ok http-response(message str)
 
 # Creates a 200 response with the given message and headers.
 http-ok http-response(message str, headers str[str])
-	200, "OK", headers, message.bytes
+	200, "OK", headers, message.to-bytes
 
 # Method used by an HTTP request.
 http-method enum

@@ -19,6 +19,9 @@ Once it gets to the end, `is-empty` will return `true`.
 reader record mut
 	.iter mut mut-str-iter
 
+new reader()
+	"",
+
 new reader(a str) trusted
 	a.mut-iter,
 

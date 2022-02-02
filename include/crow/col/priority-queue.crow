@@ -11,12 +11,12 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act2
-	../tuple: a, b, from, new, pair, to
+	../tuple: from, new, pair, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
-	./arr: ==, arr, is-empty, new, size
-	./arr-util: each, first, fold, map, tail
+	./arr: ==, arr, arr-equal, is-empty, new, size
+	./arr-util: each, first, fold, tail
 	./fix-arr:
 		begin-ptr, cast-immutable, end-ptr, first, fix-arr, set-subscript, size, subscript,
 		tail, uninitialized-fix-arr
@@ -70,6 +70,9 @@ to-priority-queue<k, v> priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<
 		root node<k, v> = sorted.first!, sorted.tail, ()
 		# TODO: type annotation should not be necessary
 		(root,)::node<k, v>?,
+
+to-arr<k, v> pair<k, v>[](a priority-queue<k, v>) is-data<k> compare<k>
+	a map-to-arr (k, v) => k, v
 
 # True iff `a.size == 0`.
 is-empty<k, v> bool(a priority-queue<k, v>) is-data<k> compare<k>
@@ -375,6 +378,10 @@ test
 	p6 = p5pop.rest ~ (7, "7b") ~ (8, "8")
 	p6.dbg is "8 8 []; 7 7b []; 6 6 [7 7]; 6 6b [6 6c]"
 	p6.size is 6
+	p6-pairs pair<nat64, str>[] = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
+	p6.to-arr is p6-pairs
+	p6.keys is (6, 6, 6, 7, 7, 8)
+	p6.values is ("6", "6b", "6c", "7", "7b", "8")
 
 	p6pop = p6.pop!
 	p6pop.rest.dbg is "6 6b [6 6c, 7 7, 7 7b, 8 8]"
@@ -382,27 +389,25 @@ test
 	folded = "init" fold p6, (acc, k, v) => "{acc}, {k} -> {v}"
 	folded is "init, 6 -> 6, 6 -> 6b, 6 -> 6c, 7 -> 7, 7 -> 7b, 8 -> 8"
 
-	p6-pairs pair<nat64, str>[] = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
 	filter-order spy-act2<bool, nat64, str> = new: (k, v) => k == 6
 	filtered = p6 filter filter-order.fn
 	filter-calls = filter-order calls
-	# TODO: filter-order.calls is p6-pairs
-	filter-calls map (x => x a) is (p6-pairs map x => x a)
-	filter-calls map (x => x b) is (p6-pairs map x => x b)
+	filter-calls is p6-pairs
 	filtered.dbg is "6 6 [6 6b, 6 6c]"
 
 	map-order spy-act2<pair<nat64, str>, nat64, str> = new: (k, v) =>
 		(10 wrap-sub k), "{v}x"
 	mapped = p6 map map-order.fn
 	map-calls = map-order calls
-	# TODO: map-order.calls is p6-pairs
-	map-calls map (x => x a) is (p6-pairs map x => x a)
-	map-calls map (x => x b) is (p6-pairs map x => x b)
+	map-calls is p6-pairs
 	mapped.dbg is "2 8x [3 7x, 3 7bx, 4 6x, 4 6bx, 4 6cx]"
 
-	p6.keys is (6, 6, 6, 7, 7, 8)
-	p6.values is ("6", "6b", "6c", "7", "7b", "8")
+.== bool(a pair<nat64, str>[], b pair<nat64, str>[])
+	a arr-equal b
 
 # TODO: pair should be equatable
 .== bool(a pair<nat64, str>, b pair<nat64, str>)
 	a.from == b.from && a.to == b.to
+
+.== bool(a str[], b str[])
+	a arr-equal b

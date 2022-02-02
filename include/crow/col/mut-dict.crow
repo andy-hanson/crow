@@ -14,7 +14,7 @@ import
 	../tuple: from, new, pair, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/number-low-level: ==, <=>, nat64, unsafe-mod, wrap-add, wrap-mul, wrap-sub
-	./arr: ==, arr, new, size
+	./arr: ==, arr, arr-equal, new, size
 	./arr-util: each, map
 	./dict: dict, to-dict
 	./fix-arr:
@@ -409,3 +409,6 @@ test
 
 .== bool(a str?, b str?)
 	a opt-equal b
+
+.== bool(a str[], b str[])
+	a arr-equal b

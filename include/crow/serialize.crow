@@ -14,11 +14,12 @@ import
 	./exception: assert
 	./number: to-int64, to-nat32, to-nat64
 	./range: ..
-	./str: str
-	./str-util: bytes
+	./str: char, str
 	./test-util: is
 	./private/bootstrap: todo
 	./private/number-low-level: ==, <=>, int64, max-int64, nat8, nat32, nat64, unsafe-to-nat8
+export
+	./str-util: to-bytes
 
 ###
 A type is serializable if it can convert to and from a byte array.
@@ -35,10 +36,8 @@ to-bytes nat8[](a nat8[])
 from-bytes nat8[](a nat8[])
 	a
 
-to-bytes nat8[](a str) trusted
-	a.bytes arr-cast
 from-bytes str(a nat8[]) trusted
-	a.arr-cast str
+	a.arr-cast@<char, nat8> str
 
 ###
 Convert a number to a nat8[] simply by taking its component bytes in big-endian order.

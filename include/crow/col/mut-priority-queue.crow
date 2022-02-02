@@ -8,16 +8,15 @@ import
 	../ptr: +, -, mut-ptr, set-deref
 	../str: ==, literal, str
 	../test-util: is
-	../tuple: from, new, pair, to
+	../tuple: from, new, pair, pair-equal, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/number-low-level: ==, <=>, nat64, wrap-add
-	./arr: ==, arr, new
-	./arr-util: map
+	./arr: new, arr, arr-equal
 	./fix-arr: begin-ptr, cast-immutable, copy, fix-arr, set-reverse, uninitialized-fix-arr
 	./mut-arr:
 		~=, ~~=, begin-ptr, clear, each, each-with-index, fold, fold-reverse, is-empty, mut-arr,
-		new, pop, set-reverse, size, subscript, to-mut-arr
-	./sort: set-sort-by
+		new, pop, size, subscript, to-mut-arr
+	./sort: set-sort-by, set-sort-by-reverse
 	./private/sort-utils: binary-search-insert-ptr
 
 ###
@@ -43,7 +42,7 @@ new<k, v> mut-priority-queue<k, v>(...a pair<k, v>[]) is-data<k> compare<k>
 # Copies an array to a new priority queue.
 to-mut-priority-queue<k, v> mut-priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
 	mins = a to-mut-arr
-	mins set-sort-by pair => pair from
+	mins.sort-by-reverse := pair => pair from
 	mins, ()
 
 # Removes all pairs from the queue.
@@ -89,11 +88,10 @@ pop<k, v> pair<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	if a.mins.size < a.buckets.size
 		assert: (a.mins.size wrap-add 1) == a.buckets.size
 		bucket = a.buckets.pop!
-		bucket set-sort-by it => it from
 		# Mins are popped off from the right.
-		# Note thie preserves insertion order: 'set-sort-by' doesn't change that,
+		# This preserves insertion order: 'sort-by' doesn't change that,
 		# then we reverse, then popping from the right reverses it again.
-		bucket set-reverse
+		bucket.sort-by-reverse := it => it from
 		a.mins ~~= bucket
 	res
 
@@ -141,7 +139,7 @@ spec
 body
 	if index < a.mins.size
 		mid = if index < a.buckets.size
-			a.buckets[index] set-sort-by it => it from
+			a.buckets[index].sort-by := it => it from
 			out fold-reverse a.buckets[index], (cur, x) =>
 				*cur := x
 				cur + 1
@@ -218,10 +216,9 @@ test
 	a.pop is ((4, "4"),)
 	a verify "5 -> 5 [6 -> 6], 4 -> 4b"
 
-	# TODO: a.arr is [4 -> "4b", 5 -> "5", 6 -> "6"]
-	a.to-arr map (it => it from) is (4, 5, 6)
-	a.to-arr map (it => it to) is ("4b", "5", "6")
+	a.to-arr is ((4, "4b"), (5, "5"), (6, "6"))
 	a verify "6 -> 6, 5 -> 5, 4 -> 4b"
+	a is ((4, "4b"), (5, "5"), (6, "6"))
 
 test
 	a mut-priority-queue<nat64, str> = ()
@@ -240,3 +237,12 @@ test
 			false
 	else
 		b is-empty
+
+.== bool(a mut-priority-queue<nat64, str>, b mut-priority-queue<nat64, str>)
+	a.to-arr == b.to-arr
+
+.== bool(a pair<nat64, str>[], b pair<nat64, str>[])
+	a arr-equal b
+
+.== bool(a pair<nat64, str>, b pair<nat64, str>)
+	a pair-equal b

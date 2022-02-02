@@ -4,7 +4,6 @@ import
 	../compare: <
 	../exception: assert
 	../fun-util: subscript
-	../log: info, log
 	../misc: new, void
 	../number: *
 	../ptr: ==, +, *, as-const, const-ptr, mut-ptr, set-deref
@@ -199,8 +198,6 @@ set-map-with-coords<a> void(a mut-grid a, f act a(a, coord)) trusted
 		new-x, a.y
 
 test
-	info log "START THE TEST"
-
 	a = 3 make-mut-grid 2, (x, y) => "{x}|{y}"
 	a.to-str is "0|0 1|0 2|0\n0|1 1|1 2|1"
 

@@ -1,6 +1,7 @@
 import
 	crow/col/arr-util: each-with-index, exists, in
 	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new
+	crow/col/seq: size
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
 	crow/io/print: print
@@ -72,4 +73,4 @@ lint result<str, failure[]>(path str, options test-options) summon
 	4
 
 .line-len nat(line str)
-	line.n-tabs * (tab-size - 1) + line.size-char8s
+	line.n-tabs * (tab-size - 1) + line.char8s.size

@@ -2,11 +2,12 @@ no-std
 import
 	./bool: bool
 	./col/arr-util: find
+	./col/seq: fold, size
 	./compare: comparison
 	./opt: new, opt
 	./ptr: ==, +, as-const, by-val, mut-ptr, ref-of-ptr, ref-of-val, set-deref
-	./str: ==, <=>, char, c-str, size-char8s, str
-	./str-util: fold-char8s, to-str
+	./str: ==, <=>, char, char8s, c-str, str
+	./str-util: to-str
 	./private/alloc: unmanaged-alloc-elements, unmanaged-alloc-uninitialized
 	./private/bootstrap: hard-assert, new-sym, static-syms
 	./private/number-low-level: wrap-add
@@ -57,10 +58,10 @@ str-to-sym sym(a str) trusted
 			node.next find-dynamic-sym s
 
 .to-malloced-c-str c-str(a str) unsafe
-	res char mut* = a.size-char8s wrap-add 1 unmanaged-alloc-elements
-	end = res fold-char8s a, (cur, x) =>
+	res char mut* = a.char8s.size wrap-add 1 unmanaged-alloc-elements
+	end = res fold a.char8s, (cur, x) =>
 		*cur := x
 		cur + 1
-	hard-assert: end == res + a.size-char8s
+	hard-assert: end == res + a.char8s.size
 	*end := "\0"
 	res as-const

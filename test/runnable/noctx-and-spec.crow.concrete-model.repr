@@ -262,8 +262,7 @@ program(
 		struct(
 			name: arr
 			body: record([field(size, const, type(false, nat64)), field(begin-ptr, const, type(false, const-ptr))]))
-		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, char)]))
-		struct(name: fun-act1, body: builtin(fun, [type(false, char), type(false, char)]))
+		struct(name: fun-act1, body: builtin(fun, [type(false, nat8), type(false, char)]))
 		struct(name: fix-arr, body: record([field(inner, const, type(false, arr))]))
 		struct(name: opt, body: union([none, some(type(false, mut-ptr))]))
 		struct(name: fun-act2, body: builtin(fun, [type(false, nat64), type(false, nat64), type(false, arr)]))
@@ -276,6 +275,7 @@ program(
 		struct(name: fun-act2, body: builtin(fun, [type(false, mut-ptr), type(false, mut-ptr), type(false, arr)]))
 		struct(name: lambda(fold-chunks-l2, 0), ptr: true, body: record([field(f, const, type(false, fun-act2))]))
 		struct(name: lambda(fold, 0), ptr: true, body: record([field(f, const, type(false, fun-act2))]))
+		struct(name: mut-ptr, body: builtin(ptr-mut, [type(false, char)]))
 		struct(name: lambda(map-to-arr, 0), ptr: true, body: record([field(f, const, type(false, fun-act1))]))
 		struct(name: int64, body: builtin(int-64, []))
 		struct(name: opt, body: union([none, some(type(false, const-ptr))]))
@@ -285,6 +285,7 @@ program(
 			mut: true
 			ptr: true
 			body: record([field(backing, mutable, type(false, fix-arr)), field(size, mutable, type(false, nat64))]))
+		struct(name: fix-arr, body: record([field(inner, const, type(false, arr))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, char)]))
 		struct(name: lambda(~~=, 0), body: record([field(a, const, type(true, mut-arr))]))
 		struct(
@@ -1329,79 +1330,25 @@ program(
 				call(hard-assert, [call(==, [call(size-of, []), call(size-of, [])])])
 				let(
 					bytes
-					call(bytes, [param-ref(a)])
+					call(to-bytes, [param-ref(a)])
 					let(
 						res
 						call(
 							write
 							[param-ref(fd), call(begin-ptr, [local-ref(bytes)]), call(size, [local-ref(bytes)])])
 						cond(
-							call(==, [local-ref(res), call(unsafe-to-int64, [call(size-char8s, [param-ref(a)])])])
+							call(==, [local-ref(res), call(unsafe-to-int64, [call(size, [local-ref(bytes)])])])
 							call(new, [])
 							call(todo, []))))))
 		fun(noctx, size-of, type(false, nat64), none, [], builtin([type(false, char)]))
 		fun(noctx, size-of, type(false, nat64), none, [], builtin([type(false, nat8)]))
 		fun(
 			ctx
-			bytes
+			to-bytes
 			type(false, arr)
 			none
 			[param(a, type(false, str))]
-			call(arr-cast, [call(char8s, [param-ref(a)])]))
-		fun(
-			noctx
-			arr-cast
-			type(false, arr)
-			none
-			[param(a, type(false, arr))]
-			seq(
-				call(hard-assert, [call(==, [call(size-of, []), call(size-of, [])])])
-				call(new, [call(size, [param-ref(a)]), call(ptr-cast, [call(begin-ptr, [param-ref(a)])])])))
-		fun(
-			noctx
-			new
-			type(false, arr)
-			none
-			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
-			new-record)
-		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
-		fun(
-			noctx
-			ptr-cast
-			type(false, const-ptr)
-			none
-			[param(a, type(false, const-ptr))]
-			call(as-const, [call(ptr-cast, [call(as-mut, [param-ref(a)])])]))
-		fun(
-			noctx
-			as-const
-			type(false, const-ptr)
-			none
-			[param(a, type(false, mut-ptr))]
-			builtin([type(false, nat8)]))
-		fun(
-			noctx
-			ptr-cast
-			type(false, mut-ptr)
-			none
-			[param(a, type(false, mut-ptr))]
-			builtin([type(false, nat8), type(false, char)]))
-		fun(noctx, as-mut, type(false, mut-ptr), none, [param(a, type(false, const-ptr))], builtin([type(false, char)]))
-		fun(noctx, begin-ptr, type(false, const-ptr), none, [param(a, type(false, arr))], field-get(1))
-		fun(
-			ctx
-			char8s
-			type(false, arr)
-			none
-			[param(a, type(false, str))]
-			call(to-arr, [call(inner, [param-ref(a)])]))
-		fun(
-			ctx
-			to-arr
-			type(false, arr)
-			none
-			[param(a, type(false, seq))]
-			call(map-to-arr, [param-ref(a), lambda(0, void)]))
+			call(map-to-arr, [call(char8s, [param-ref(a)]), lambda(0, void)]))
 		fun(
 			ctx
 			map-to-arr
@@ -1442,7 +1389,7 @@ program(
 			type(false, mut-ptr)
 			none
 			[param(a, type(false, mut-ptr))]
-			builtin([type(false, char), type(false, nat8)]))
+			builtin([type(false, nat8), type(false, nat8)]))
 		fun(
 			ctx
 			alloc
@@ -1688,14 +1635,14 @@ program(
 			type(false, const-ptr)
 			none
 			[param(a, type(false, mut-ptr))]
-			builtin([type(false, char)]))
+			builtin([type(false, nat8)]))
 		fun(
 			noctx
 			+
 			type(false, mut-ptr)
 			none
 			[param(a, type(false, mut-ptr)), param(offset, type(false, nat64))]
-			builtin([type(false, char)]))
+			builtin([type(false, nat8)]))
 		fun(
 			ctx
 			size
@@ -1971,6 +1918,7 @@ program(
 		fun(noctx, left, type(false, arr), none, [param(a, type(true, branch))], field-get(0))
 		fun(noctx, down, type(false, l1), none, [param(a, type(true, branch))], field-get(1))
 		fun(noctx, right, type(false, arr), none, [param(a, type(true, branch))], field-get(2))
+		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
 		fun(
 			ctx
 			lambda(size, 0)
@@ -2180,6 +2128,7 @@ program(
 			none
 			[param(a, type(false, mut-ptr)), param(b, type(false, mut-ptr))]
 			builtin([type(false, char)]))
+		fun(noctx, as-mut, type(false, mut-ptr), none, [param(a, type(false, const-ptr))], builtin([type(false, char)]))
 		fun(
 			ctx
 			subscript
@@ -2208,6 +2157,28 @@ program(
 		fun(noctx, *, type(false, char), none, [param(a, type(false, mut-ptr))], builtin([type(false, char)]))
 		fun(
 			noctx
+			+
+			type(false, const-ptr)
+			none
+			[param(a, type(false, const-ptr)), param(offset, type(false, nat64))]
+			call(as-const, [call(+, [call(as-mut, [param-ref(a)]), param-ref(offset)])]))
+		fun(
+			noctx
+			as-const
+			type(false, const-ptr)
+			none
+			[param(a, type(false, mut-ptr))]
+			builtin([type(false, char)]))
+		fun(
+			noctx
+			+
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, mut-ptr)), param(offset, type(false, nat64))]
+			builtin([type(false, char)]))
+		fun(noctx, begin-ptr, type(false, const-ptr), none, [param(a, type(false, arr))], field-get(1))
+		fun(
+			noctx
 			end-ptr
 			type(false, const-ptr)
 			none
@@ -2227,28 +2198,29 @@ program(
 			none
 			[param(a, type(false, fix-arr))]
 			call(as-mut, [call(begin-ptr, [call(inner, [param-ref(a)])])]))
+		fun(noctx, begin-ptr, type(false, const-ptr), none, [param(a, type(false, arr))], field-get(1))
 		fun(noctx, inner, type(false, arr), none, [param(a, type(false, fix-arr))], field-get(0))
 		fun(
 			noctx
 			set-deref
 			type(false, void)
 			none
-			[param(a, type(false, mut-ptr)), param(value, type(false, char))]
-			builtin([type(false, char)]))
+			[param(a, type(false, mut-ptr)), param(value, type(false, nat8))]
+			builtin([type(false, nat8)]))
 		fun(
 			ctx
 			subscript
-			type(false, char)
+			type(false, nat8)
 			none
 			[param(a, type(false, fun-act1)), param(p0, type(false, char))]
 			call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0)]))
 		fun(
 			noctx
 			call-with-ctx
-			type(false, char)
+			type(false, nat8)
 			none
 			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, char))]
-			builtin([type(false, char), type(false, char)]))
+			builtin([type(false, nat8), type(false, char)]))
 		fun(
 			ctx
 			lambda(map-to-arr, 0)
@@ -2274,6 +2246,7 @@ program(
 			none
 			[param(a, type(false, fix-arr))]
 			call(size, [call(inner, [param-ref(a)])]))
+		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
 		fun(
 			noctx
 			cast-immutable
@@ -2281,14 +2254,16 @@ program(
 			none
 			[param(a, type(false, fix-arr))]
 			call(inner, [param-ref(a)]))
+		fun(ctx, char8s, type(false, seq), none, [param(a, type(false, str))], call(inner, [param-ref(a)]))
+		fun(noctx, inner, type(false, seq), none, [param(a, type(false, str))], field-get(0))
+		fun(noctx, to-nat8, type(false, nat8), none, [param(c, type(false, char))], builtin([]))
 		fun(
 			ctx
-			lambda(to-arr, 0)
-			type(false, char)
+			lambda(to-bytes, 0)
+			type(false, nat8)
 			some(param("<<closure>>", type(false, void)))
 			[param(x, type(false, char))]
-			param-ref(x))
-		fun(noctx, inner, type(false, seq), none, [param(a, type(false, str))], field-get(0))
+			call(to-nat8, [param-ref(x)]))
 		fun(
 			noctx
 			write
@@ -2296,8 +2271,6 @@ program(
 			none
 			[param(fd, type(false, int32)), param(buf, type(false, const-ptr)), param(n-bytes, type(false, nat64))]
 			extern)
-		fun(noctx, begin-ptr, type(false, const-ptr), none, [param(a, type(false, arr))], field-get(1))
-		fun(noctx, size, type(false, nat64), none, [param(a, type(false, arr))], field-get(0))
 		fun(
 			noctx
 			==
@@ -2306,13 +2279,6 @@ program(
 			[param(a, type(false, int64)), param(b, type(false, int64))]
 			builtin([]))
 		fun(noctx, unsafe-to-int64, type(false, int64), none, [param(a, type(false, nat64))], builtin([]))
-		fun(
-			ctx
-			size-char8s
-			type(false, nat64)
-			none
-			[param(a, type(false, str))]
-			call(size, [call(inner, [param-ref(a)])]))
 		fun(noctx, todo, type(false, void), none, [], seq(call(abort, []), call(zeroed, [])))
 		fun(noctx, zeroed, type(false, void), none, [], builtin([type(false, void)]))
 		fun(noctx, stderr, type(false, int32), none, [], 2)
@@ -2384,6 +2350,13 @@ program(
 			match-enum(call(<=>, [param-ref(a), param-ref(b)]), [call(true, []), call(false, []), call(false, [])]))
 		fun(
 			noctx
+			new
+			type(false, arr)
+			none
+			[param(size, type(false, nat64)), param(begin-ptr, type(false, const-ptr))]
+			new-record)
+		fun(
+			noctx
 			-
 			type(false, nat64)
 			none
@@ -2422,7 +2395,6 @@ program(
 					call(find-char-in-c-str, [call(+, [param-ref(a), 1]), param-ref(c)])
 					call(new, []))))
 		fun(noctx, ==, type(false, bool), none, [param(a, type(false, nat8)), param(b, type(false, nat8))], builtin([]))
-		fun(noctx, to-nat8, type(false, nat8), none, [param(c, type(false, char))], builtin([]))
 		fun(noctx, new, type(false, opt), none, [param(a, type(false, const-ptr))], call(some, [param-ref(a)]))
 		fun(noctx, some, type(false, opt), none, [param(a, type(false, const-ptr))], new-union)
 		fun(
@@ -2497,6 +2469,7 @@ program(
 		fun(noctx, empty-arr, type(false, arr), none, [], call(new, [0, call(null, [])]))
 		fun(noctx, null, type(false, const-ptr), none, [], call(as-const, [call(null, [])]))
 		fun(noctx, null, type(false, mut-ptr), none, [], builtin([type(false, char)]))
+		fun(noctx, new, type(false, fix-arr), none, [param(inner, type(false, arr))], new-record)
 		fun(
 			ctx
 			new
@@ -2583,6 +2556,14 @@ program(
 			none
 			[param(a, type(true, mut-arr))]
 			call(size, [call(backing, [param-ref(a)])]))
+		fun(
+			noctx
+			size
+			type(false, nat64)
+			none
+			[param(a, type(false, fix-arr))]
+			call(size, [call(inner, [param-ref(a)])]))
+		fun(noctx, inner, type(false, arr), none, [param(a, type(false, fix-arr))], field-get(0))
 		fun(noctx, backing, type(false, fix-arr), none, [param(a, type(true, mut-arr))], field-get(0))
 		fun(
 			ctx
@@ -2625,11 +2606,60 @@ program(
 			call(begin-ptr, [call(backing, [param-ref(a)])]))
 		fun(
 			noctx
+			begin-ptr
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, fix-arr))]
+			call(as-mut, [call(begin-ptr, [call(inner, [param-ref(a)])])]))
+		fun(
+			noctx
 			set-backing
 			type(false, void)
 			none
 			[param(a, type(true, mut-arr)), param(backing, type(false, fix-arr))]
 			field-set(0))
+		fun(
+			ctx
+			uninitialized-fix-arr
+			type(false, fix-arr)
+			none
+			[param(size, type(false, nat64))]
+			let(
+				ptr
+				call(alloc-uninitialized, [param-ref(size)])
+				call(subscript, [local-ref(ptr), call(.., [0, param-ref(size)])])))
+		fun(
+			ctx
+			alloc-uninitialized
+			type(false, mut-ptr)
+			none
+			[param(size, type(false, nat64))]
+			call(ptr-cast, [call(alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])]))
+		fun(
+			noctx
+			ptr-cast
+			type(false, mut-ptr)
+			none
+			[param(a, type(false, mut-ptr))]
+			builtin([type(false, char), type(false, nat8)]))
+		fun(
+			noctx
+			subscript
+			type(false, fix-arr)
+			none
+			[param(a, type(false, mut-ptr)), param(range, type(false, range))]
+			call(new, [call(subscript, [call(as-const, [param-ref(a)]), param-ref(range)])]))
+		fun(
+			noctx
+			subscript
+			type(false, arr)
+			none
+			[param(a, type(false, const-ptr)), param(r, type(false, range))]
+			call(
+				new
+				[
+					call(wrap-sub, [call(high, [param-ref(r)]), call(low, [param-ref(r)])])
+					call(+, [param-ref(a), call(low, [param-ref(r)])])]))
 		fun(
 			ctx
 			copy-data-from
@@ -3414,6 +3444,13 @@ program(
 			call(set-deref, [call(+, [param-ref(a), param-ref(n)]), param-ref(value)]))
 		fun(
 			noctx
+			set-deref
+			type(false, void)
+			none
+			[param(a, type(false, mut-ptr)), param(value, type(false, char))]
+			builtin([type(false, char)]))
+		fun(
+			noctx
 			set-size
 			type(false, void)
 			none
@@ -3434,14 +3471,7 @@ program(
 			type(false, void)
 			none
 			[param(a, type(false, writer)), param(b, type(false, str))]
-			call(each-char8, [param-ref(b), lambda(1, alloc(record([param-ref(a)])))]))
-		fun(
-			ctx
-			each-char8
-			type(false, void)
-			none
-			[param(a, type(false, str)), param(f, type(false, fun-act1))]
-			call(each, [call(as-seq, [param-ref(a)]), param-ref(f)]))
+			call(each, [call(char8s, [param-ref(b)]), lambda(1, alloc(record([param-ref(a)])))]))
 		fun(
 			ctx
 			each
@@ -3669,7 +3699,6 @@ program(
 			some(param("<<closure>>", type(true, lambda(each, 0))))
 			[param(ignore, type(false, void)), param(x, type(false, char))]
 			call(subscript, [get-field(param-ref("<<closure>>"), f), param-ref(x)]))
-		fun(ctx, as-seq, type(false, seq), none, [param(a, type(false, str))], call(inner, [param-ref(a)]))
 		fun(noctx, chars, type(true, mut-arr), none, [param(a, type(false, writer))], field-get(0))
 		fun(
 			ctx
@@ -3798,6 +3827,13 @@ program(
 			none
 			[param(a, type(true, mut-arr))]
 			call(cast-immutable, [call(move-to-fix-arr, [param-ref(a)])]))
+		fun(
+			noctx
+			cast-immutable
+			type(false, arr)
+			none
+			[param(a, type(false, fix-arr))]
+			call(inner, [param-ref(a)]))
 		fun(
 			noctx
 			move-to-fix-arr

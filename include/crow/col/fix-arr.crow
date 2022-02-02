@@ -256,7 +256,9 @@ find-index<a> nat64?(a fix-arr a, f act bool(a)) trusted
 	a.temp-as-arr find-index f
 
 set-reverse<a> void(a fix-arr a) trusted
-	a.begin-ptr set-reverse-recur a.end-ptr - 1
+	# avoid 'a.end-ptr - 1' overflowing for null arrays
+	unless a is-empty
+		a.begin-ptr set-reverse-recur a.end-ptr - 1
 .set-reverse-recur<a> void(left a mut*, right a mut*) unsafe
 	if left < right
 		left swap right
