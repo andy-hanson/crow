@@ -90,7 +90,7 @@ immutable(TypeSize) primitiveSize(immutable PrimitiveType a) {
 		case PrimitiveType.void_:
 			return immutable TypeSize(0, 1);
 		case PrimitiveType.bool_:
-		case PrimitiveType.char_:
+		case PrimitiveType.char8:
 		case PrimitiveType.int8:
 		case PrimitiveType.nat8:
 			return immutable TypeSize(1, 1);

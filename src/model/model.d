@@ -1471,7 +1471,7 @@ struct CommonTypes {
 	@safe @nogc pure nothrow:
 
 	immutable Ptr!StructInst bool_;
-	immutable Ptr!StructInst char_;
+	immutable Ptr!StructInst char8;
 	immutable Ptr!StructInst cStr;
 	immutable Ptr!StructInst float32;
 	immutable Ptr!StructInst float64;

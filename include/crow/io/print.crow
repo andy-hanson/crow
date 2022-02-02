@@ -7,7 +7,7 @@ import
 	../extra-types: fd-t
 	../misc: new, void
 	../ptr: size-of
-	../str: char, literal, str
+	../str: char8, literal, str
 	../str-util: to-bytes
 	../private/bootstrap: hard-assert, todo
 	../private/number-low-level: ==, nat8, unsafe-to-int64
@@ -31,7 +31,7 @@ print-err-no-newline void(s str) summon trusted
 	stderr write-no-newline s
 
 .write-no-newline void(fd fd-t, a str) summon unsafe
-	hard-assert: size-of@<char> == size-of@<nat8>
+	hard-assert: size-of@<char8> == size-of@<nat8>
 	bytes = a to-bytes
 	res = fd write bytes.begin-ptr, bytes.size
 	unless res == bytes.size.unsafe-to-int64

@@ -4,7 +4,7 @@ import
 	crow/extra-types: fd-t
 	crow/misc: void
 	crow/ptr: mut-ptr
-	crow/str: char, c-str
+	crow/str: char8, c-str
 
 perror void(s c-str) unsafe summon extern noctx
 
@@ -20,4 +20,4 @@ FILE extern-ptr
 popen FILE(command c-str, modes c-str) unsafe summon extern noctx
 pclose c-int(stream FILE) unsafe summon extern noctx
 
-fgets char mut*(s char mut*, n c-int, stream FILE) unsafe summon extern noctx
+fgets char8 mut*(s char8 mut*, n c-int, stream FILE) unsafe summon extern noctx

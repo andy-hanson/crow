@@ -30,7 +30,7 @@ struct TimeSpec {
 // These should all fit in a single stack entry (except 'void')
 enum DynCallType : ubyte {
 	bool_,
-	char_,
+	char8,
 	int8,
 	int16,
 	int32,

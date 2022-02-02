@@ -730,7 +730,7 @@ immutable(ExitCode) withRealExtern(
 				case DynCallType.bool_:
 					dcArgBool(dcVm, cast(bool) value);
 					break;
-				case DynCallType.char_:
+				case DynCallType.char8:
 					todo!void("handle this type");
 					break;
 				case DynCallType.int8:
@@ -773,7 +773,7 @@ immutable(ExitCode) withRealExtern(
 		final switch (returnType) {
 			case DynCallType.bool_:
 				return todo!(immutable ulong)("handle this type");
-			case DynCallType.char_:
+			case DynCallType.char8:
 				return todo!(immutable ulong)("handle this type");
 			case DynCallType.int8:
 				return todo!(immutable ulong)("handle this type");

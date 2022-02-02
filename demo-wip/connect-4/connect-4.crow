@@ -1,7 +1,8 @@
 import
+	crow/col/iter: value
+	crow/col/seq: iter, next, size
 	crow/io/print: clear-screen, print
 	crow/io/stdin: read-stdin-until-parse
-	#log: info, log
 	crow/str-util: repeat, strip
 	./board:
 		board, board-cache, can-place, color, empty-board, has-empty, just-won, new, opposite,
@@ -87,12 +88,12 @@ parse-settings ai-settings?(a str)
 .letter-to-number nat?(a str)
 	chars = a char8s
 	if chars.size == 1
-		n = chars[0] to-nat8
+		n = chars.iter.next!.value to-nat8
 		# TODO: type annotation should be unnecessary
-		if "A"::char.to-nat8 <= n && n < "Z"::char.to-nat8
-			(n - "A"::char.to-nat8 to-nat64),
-		elif "a"::char.to-nat8 <= n && n < "z"::char.to-nat8
-			(n - "a"::char.to-nat8 to-nat64),
+		if "A"::char8.to-nat8 <= n && n < "Z"::char8.to-nat8
+			(n - "A"::char8.to-nat8 to-nat64),
+		elif "a"::char8.to-nat8 <= n && n < "z"::char8.to-nat8
+			(n - "a"::char8.to-nat8 to-nat64),
 
 .strategy record
 	by-val

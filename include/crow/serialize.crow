@@ -14,7 +14,7 @@ import
 	./exception: assert
 	./number: to-int64, to-nat32, to-nat64
 	./range: ..
-	./str: char, str
+	./str: char8, str
 	./test-util: is
 	./private/bootstrap: todo
 	./private/number-low-level: ==, <=>, int64, max-int64, nat8, nat32, nat64, unsafe-to-nat8
@@ -37,7 +37,7 @@ from-bytes nat8[](a nat8[])
 	a
 
 from-bytes str(a nat8[]) trusted
-	a.arr-cast@<char, nat8> str
+	a.arr-cast@<char8, nat8> str
 
 ###
 Convert a number to a nat8[] simply by taking its component bytes in big-endian order.

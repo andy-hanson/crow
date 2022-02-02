@@ -116,17 +116,17 @@ region str
 
 # Single character in a string.
 # This could be any UTF-8 code point.
-char builtin
+char8 builtin
 ###
 C-style string. Always const.
 This should be a valid pointer whose content ends in a "\0", though this is not enforced.
 Thus, all operations on `c-str` are unsafe.
 ###
 c-str alias
-	char*
+	char8*
 
-to-char char(a nat8) noctx builtin
-to-nat8 nat8(c char) noctx builtin
+to-char8 char8(a nat8) noctx builtin
+to-nat8 nat8(c char8) noctx builtin
 
 region bool.crow
 

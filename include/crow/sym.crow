@@ -6,7 +6,7 @@ import
 	./compare: comparison
 	./opt: new, opt
 	./ptr: ==, +, as-const, by-val, mut-ptr, ref-of-ptr, ref-of-val, set-deref
-	./str: ==, <=>, char, char8s, c-str, str
+	./str: ==, <=>, char8, char8s, c-str, str
 	./str-util: to-str
 	./private/alloc: unmanaged-alloc-elements, unmanaged-alloc-uninitialized
 	./private/bootstrap: hard-assert, new-sym, static-syms
@@ -58,7 +58,7 @@ str-to-sym sym(a str) trusted
 			node.next find-dynamic-sym s
 
 .to-malloced-c-str c-str(a str) unsafe
-	res char mut* = a.char8s.size wrap-add 1 unmanaged-alloc-elements
+	res char8 mut* = a.char8s.size wrap-add 1 unmanaged-alloc-elements
 	end = res fold a.char8s, (cur, x) =>
 		*cur := x
 		cur + 1

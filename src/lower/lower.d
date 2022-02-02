@@ -12,7 +12,7 @@ import lower.generateMarkVisitFun :
 import lower.getBuiltinCall : BuiltinKind, getBuiltinKind, matchBuiltinKind;
 import lower.lowExprHelpers :
 	anyPtrMutType,
-	charPtrPtrConstType,
+	char8PtrPtrConstType,
 	constantNat64,
 	genAddPtr,
 	genBitwiseNegate,
@@ -245,8 +245,8 @@ AllLowTypesWithCtx getAllLowTypes(
 				final switch (it.kind) {
 					case BuiltinStructKind.bool_:
 						return some(immutable LowType(PrimitiveType.bool_));
-					case BuiltinStructKind.char_:
-						return some(immutable LowType(PrimitiveType.char_));
+					case BuiltinStructKind.char8:
+						return some(immutable LowType(PrimitiveType.char8));
 					case BuiltinStructKind.float32:
 						return some(immutable LowType(PrimitiveType.float32));
 					case BuiltinStructKind.float64:
@@ -880,7 +880,7 @@ immutable(LowFun) mainFun(
 			int32Type),
 		immutable LowParam(
 			immutable LowParamSource(immutable LowParamSource.Generated(shortSym("argv"))),
-			charPtrPtrConstType)]);
+			char8PtrPtrConstType)]);
 	immutable LowParamIndex argc = immutable LowParamIndex(0);
 	immutable LowParamIndex argv = immutable LowParamIndex(1);
 	immutable LowExpr userMainFunPtr = immutable LowExpr(
@@ -894,7 +894,7 @@ immutable(LowFun) mainFun(
 			rtMainIndex,
 			arrLiteral!LowExpr(alloc, [
 				paramRef(FileAndRange.empty, int32Type, argc),
-				paramRef(FileAndRange.empty, charPtrPtrConstType, argv),
+				paramRef(FileAndRange.empty, char8PtrPtrConstType, argv),
 				userMainFunPtr]))));
 	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(false, call));
 	return immutable LowFun(

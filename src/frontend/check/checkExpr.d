@@ -717,7 +717,7 @@ immutable(Expr) checkStringLiteral(
 	immutable Opt!(Ptr!StructInst) expectedStruct,
 	immutable string value,
 ) {
-	if (has(expectedStruct) && ptrEquals(force(expectedStruct), ctx.commonTypes.char_)) {
+	if (has(expectedStruct) && ptrEquals(force(expectedStruct), ctx.commonTypes.char8)) {
 		immutable char char_ = () {
 			if (value.length != 1) {
 				addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.CharLiteralMustBeOneChar()));

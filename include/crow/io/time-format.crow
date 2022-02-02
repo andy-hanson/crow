@@ -13,7 +13,7 @@ import
 	../number: ==, <=>, +, nat64
 	../ptr: ptr-to
 	../range: ..
-	../str: char, literal, str
+	../str: char8, literal, str
 	../str-util: to-c-str
 	./time: seconds-since-epoch, unix-time
 	
@@ -125,6 +125,6 @@ second str(locale time-locale, time unix-time) summon
 		time.seconds-since-epoch.ptr-to localtime
 	else
 		time.seconds-since-epoch.ptr-to gmtime
-	res fix-arr char = max-size + 1 uninitialized-fix-arr
+	res fix-arr char8 = max-size + 1 uninitialized-fix-arr
 	len = res.begin-ptr strftime res.size, format.to-c-str, tm
 	res.cast-immutable[0 .. len] str

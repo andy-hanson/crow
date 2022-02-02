@@ -358,7 +358,7 @@ immutable(CommonTypes) getCommonTypes(
 	}
 
 	immutable Ptr!StructInst bool_ = nonTemplate("bool");
-	immutable Ptr!StructInst char_ = nonTemplate("char");
+	immutable Ptr!StructInst char8 = nonTemplate("char8");
 	immutable Ptr!StructInst float32 = nonTemplate("float32");
 	immutable Ptr!StructInst float64 = nonTemplate("float64");
 	immutable Ptr!StructInst int8 = nonTemplate("int8");
@@ -416,7 +416,7 @@ immutable(CommonTypes) getCommonTypes(
 	immutable Ptr!StructInst cStr = instantiateStruct(
 		alloc,
 		ctx.programState,
-		immutable StructDeclAndArgs(constPtr, arrLiteral!Type(alloc, [immutable Type(char_)])),
+		immutable StructDeclAndArgs(constPtr, arrLiteral!Type(alloc, [immutable Type(char8)])),
 		someMut(ptrTrustMe_mut(delayedStructInsts)));
 
 	immutable string[] missingArr = finishArr(alloc, missing);
@@ -429,7 +429,7 @@ immutable(CommonTypes) getCommonTypes(
 			immutable Diag(immutable Diag.CommonTypesMissing(missingArr)));
 	return immutable CommonTypes(
 		bool_,
-		char_,
+		char8,
 		cStr,
 		float32,
 		float64,

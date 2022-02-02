@@ -5,7 +5,7 @@ import
 	./col/seq: each
 	./misc: void
 	./number: float64, int64, nat64
-	./str: ==, char, char8s, c-str, literal, str
+	./str: ==, char8, char8s, c-str, literal, str
 	./str-conv: to-str
 	./str-util: to-str
 
@@ -16,7 +16,7 @@ The main operation is `~=` which adds to the end of the string being generated.
 Then, use `move-to-str` to get the result.
 ###
 writer record mut
-	.chars char mut[]
+	.chars char8 mut[]
 
 # Spec satisfied by any type that can be written to a `writer`.
 write<a> spec
@@ -38,7 +38,7 @@ backup void(a writer)
 backup void(a writer, n nat64)
 	a.chars pop-n n
 
-~= void(a writer, b char)
+~= void(a writer, b char8)
 	a.chars ~= b
 
 ~~= void(a writer, b c-str) unsafe

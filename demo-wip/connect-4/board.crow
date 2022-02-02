@@ -141,7 +141,7 @@ to-str str(a board, cur-player color, last-column nat?)
 
 .letter-of-alphabet str(a nat)
 	# TODO: type annotation should be unnecessary
-	("A"::char.to-nat8 + a.to-nat8).to-char to-str
+	("A"::char8.to-nat8 + a.to-nat8).to-char8 to-str
 
 just-won bool(a board)
 	a.current-player ^ a.both-players is-win

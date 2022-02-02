@@ -943,8 +943,8 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 	switch (name.value) {
 		case shortSymValue("bool"):
 			return BuiltinStructKind.bool_;
-		case shortSymValue("char"):
-			return BuiltinStructKind.char_;
+		case shortSymValue("char8"):
+			return BuiltinStructKind.char8;
 		case shortSymValue("float32"):
 			return BuiltinStructKind.float32;
 		case shortSymValue("float64"):
@@ -1000,7 +1000,7 @@ immutable(TypeSize) getBuiltinStructSize(immutable BuiltinStructKind kind) {
 		case BuiltinStructKind.void_:
 			return immutable TypeSize(0, 1);
 		case BuiltinStructKind.bool_:
-		case BuiltinStructKind.char_:
+		case BuiltinStructKind.char8:
 		case BuiltinStructKind.int8:
 		case BuiltinStructKind.nat8:
 			return immutable TypeSize(1, 1);

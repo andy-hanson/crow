@@ -4,7 +4,7 @@ import
 	crow/extra-types: err-t
 	crow/number: nat32
 	crow/ptr: const-ptr, mut-ptr
-	crow/str: char, c-str
+	crow/str: char8, c-str
 
 sodium_init err-t() noctx extern<"sodium"> unsafe
 
@@ -17,7 +17,7 @@ crypto_pwhash_memlimit_sensitive size_t() noctx extern<"sodium">
 
 crypto_pwhash_str err-t
 	# Length should be crypto_pwhash_strbytes
-	output char mut*
+	output char8 mut*
 	passwd c-str
 	passwdlen u-long-long
 	opslimit u-long-long
@@ -29,7 +29,7 @@ spec
 
 crypto_pwhash_str_verify err-t
 	# Length should be crypto_pwhash_strbytes
-	str char*
+	str char8*
 	passwd c-str
 	passwdlen u-long-long
 spec

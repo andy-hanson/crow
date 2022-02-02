@@ -30,11 +30,11 @@ import util.sym : shortSym, Sym, symEq;
 import util.util : unreachable, verify;
 
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
-private immutable LowType charType = immutable LowType(PrimitiveType.char_);
-private immutable LowType charPtrConstType =
-	immutable LowType(immutable LowType.PtrRawConst(immutable Ptr!LowType(&charType)));
-immutable LowType charPtrPtrConstType =
-	immutable LowType(immutable LowType.PtrRawConst(immutable Ptr!LowType(&charPtrConstType)));
+private immutable LowType char8Type = immutable LowType(PrimitiveType.char8);
+private immutable LowType char8PtrConstType =
+	immutable LowType(immutable LowType.PtrRawConst(immutable Ptr!LowType(&char8Type)));
+immutable LowType char8PtrPtrConstType =
+	immutable LowType(immutable LowType.PtrRawConst(immutable Ptr!LowType(&char8PtrConstType)));
 immutable LowType int32Type = immutable LowType(PrimitiveType.int32);
 immutable LowType nat64Type = immutable LowType(PrimitiveType.nat64);
 private immutable LowType nat8Type = immutable LowType(PrimitiveType.nat8);
@@ -242,7 +242,7 @@ immutable(LowExprKind) genEnumUnion(ref Alloc alloc, immutable LowExpr a, immuta
 private immutable(LowExprKind.SpecialUnary.Kind) bitwiseNegateForType(immutable PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
-		case PrimitiveType.char_:
+		case PrimitiveType.char8:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -265,7 +265,7 @@ private immutable(LowExprKind.SpecialUnary.Kind) bitwiseNegateForType(immutable 
 private immutable(LowExprKind.SpecialBinary.Kind) eqForType(immutable PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
-		case PrimitiveType.char_:
+		case PrimitiveType.char8:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -292,7 +292,7 @@ private immutable(LowExprKind.SpecialBinary.Kind) eqForType(immutable PrimitiveT
 private immutable(LowExprKind.SpecialBinary.Kind) intersectForType(immutable PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
-		case PrimitiveType.char_:
+		case PrimitiveType.char8:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -319,7 +319,7 @@ private immutable(LowExprKind.SpecialBinary.Kind) intersectForType(immutable Pri
 private immutable(LowExprKind.SpecialBinary.Kind) unionForType(immutable PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
-		case PrimitiveType.char_:
+		case PrimitiveType.char8:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:

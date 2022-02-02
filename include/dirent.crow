@@ -3,7 +3,7 @@ import
 	crow/bytes-types: bytes256
 	crow/cell: cell
 	crow/number: int32, nat16
-	crow/str: char, c-str
+	crow/str: char8, c-str
 	sys/types: ino_t, off_t
 
 dir extern-ptr
@@ -12,8 +12,8 @@ dirent record mut
 	d_ino mut ino_t
 	d_off mut off_t
 	d_reclen mut nat16
-	d_type mut char
-	# TODO: d_name char[256]
+	d_type mut char8
+	# TODO: d_name char8[256]
 	d_name mut bytes256
 
 opendir dir(name c-str) summon extern noctx

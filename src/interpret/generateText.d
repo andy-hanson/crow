@@ -346,7 +346,7 @@ void writeConstant(
 				case PrimitiveType.void_:
 					unreachable!void();
 					break;
-				case PrimitiveType.char_:
+				case PrimitiveType.char8:
 				case PrimitiveType.int8:
 				case PrimitiveType.nat8:
 					exactSizeArrBuilderAdd(ctx.text, cast(ubyte) it.value);

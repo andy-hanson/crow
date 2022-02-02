@@ -32,7 +32,7 @@ import model.lowModel :
 	asPtrGcPointee,
 	asRecordType,
 	asUnionType,
-	isChar,
+	isChar8,
 	isExtern,
 	isGlobal,
 	isVoid,
@@ -137,7 +137,7 @@ void writeConstants(ref Writer writer, ref immutable Ctx ctx, ref immutable AllC
 		foreach (immutable size_t i, immutable Constant[] elements; a.constants) {
 			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, elements.length);
 			writeStatic(writer, " = ");
-			if (isChar(a.elementType)) {
+			if (isChar8(a.elementType)) {
 				writeChar(writer, '"');
 				foreach (immutable Constant element; elements) {
 					immutable char x = cast(immutable char) asIntegral(element).value;
@@ -1206,7 +1206,7 @@ immutable(WriteExprResult) writeSwitch(
 immutable(bool) isSignedIntegral(ref immutable LowType a) {
 	final switch (asPrimitive(a)) {
 		case PrimitiveType.bool_:
-		case PrimitiveType.char_:
+		case PrimitiveType.char8:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -1346,7 +1346,7 @@ immutable(bool) isSignedIntegral(immutable PrimitiveType a) {
 		case PrimitiveType.int64:
 			return true;
 		case PrimitiveType.bool_:
-		case PrimitiveType.char_:
+		case PrimitiveType.char8:
 		case PrimitiveType.nat8:
 		case PrimitiveType.nat16:
 		case PrimitiveType.nat32:
@@ -1838,7 +1838,7 @@ void writePrimitiveType(ref Writer writer, immutable PrimitiveType a) {
 		final switch (a) {
 			case PrimitiveType.bool_:
 				return "uint8_t";
-			case PrimitiveType.char_:
+			case PrimitiveType.char8:
 				return "char";
 			case PrimitiveType.float32:
 				return "float";

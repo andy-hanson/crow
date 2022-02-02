@@ -313,7 +313,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				: fail();
 		case shortSymValue("static-syms"):
 			return immutable BuiltinKind(immutable BuiltinKind.StaticSyms());
-		case shortSymValue("to-char"):
+		case shortSymValue("to-char8"):
 			return unary(isNat8(p0)
 				? LowExprKind.SpecialUnary.Kind.toCharFromNat8
 				: failUnary());
@@ -474,7 +474,7 @@ immutable(bool) isBool(immutable LowType a) {
 }
 
 immutable(bool) isChar(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.char_);
+	return isPrimitiveType(a, PrimitiveType.char8);
 }
 
 immutable(bool) isInt8(immutable LowType a) {

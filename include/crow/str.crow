@@ -13,7 +13,7 @@ import
 	./private/number-low-level: ==, <=>
 	./private/c-str-util: find-c-str-end
 export
-	./private/bootstrap: char, c-str, to-char, to-nat8
+	./private/bootstrap: char8, c-str, to-char8, to-nat8
 
 ###
 String type.
@@ -23,19 +23,23 @@ They don't support efficient access by index, so use iterators instead.
 ###
 str record
 	by-val
-	.inner seq char
+	.inner seq char8
 
-char8s seq char(a str)
+char8s seq char8(a str)
 	a inner
 
-str str(a seq char)
+###
+Treat a seq of UTF-8 character codes as a string.
+This is O(1).
+###
+str str(a seq char8)
 	a,
 
 ###
-Treat an array of characters as a string.
+Treat an array of UTF-8 character codes as a string.
 This is O(1).
 ###
-str str(a char[]) noctx
+str str(a char8[]) noctx
 	a.to-seq,
 
 literal str(a c-str) noctx trusted
@@ -50,10 +54,10 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 ~~ str(a str, b str)
 	a.inner ~~ b.inner,
 
-~ str(a char, b str)
+~ str(a char8, b str)
 	a ~ b.inner,
 
-~ str(a str, b char)
+~ str(a str, b char8)
 	a.inner ~ b,
 
 # Same as `""`.
@@ -66,10 +70,10 @@ is-empty bool(a str)
 
 == bool(a str, b str) trusted
 	a.inner seq-equal b.inner
-== bool(a char, b char) noctx
+== bool(a char8, b char8) noctx
 	a.to-nat8 == b.to-nat8
 
 <=> comparison(a str, b str) trusted
 	a.inner seq-compare b.inner
-<=> comparison(a char, b char) noctx
+<=> comparison(a char8, b char8) noctx
 	a.to-nat8 <=> b.to-nat8

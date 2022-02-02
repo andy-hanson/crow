@@ -6,7 +6,7 @@ import
 	./misc: drop, new, void
 	./number: +, *, **, float64, int64, nat64, to-float64, to-int64
 	./opt: ??, is-empty, new, opt
-	./str: ==, char, literal, str
+	./str: ==, char8, literal, str
 	./str-util: copy, mut-iter, mut-str-iter, next, peek
 	./test-util: is
 	./private/exception-low-level: throw-c-str
@@ -44,14 +44,14 @@ is-empty bool(a reader) trusted
 Gets the next character without advancing.
 Throws if the reader has reached the end.
 ###
-peek char(a reader) trusted
+peek char8(a reader) trusted
 	a.iter.peek ?? "reader empty".throw-c-str
 
 ###
 Gets the next character and advances.
 Throws if the reader had already reached the end before calling `next`.
 ###
-next char(a reader) trusted
+next char8(a reader) trusted
 	a.iter.next ?? "reader empty".throw-c-str
 
 ###
@@ -60,7 +60,7 @@ Else, this does nothing and returns `false`.
 
 If the reader had already reached the end of the string before calling this, returns `false`.
 ###
-try-take-char bool(a reader, c char)
+try-take-char bool(a reader, c char8)
 	if peek ?= a.iter peek
 		if peek == c
 			a.next drop
@@ -183,7 +183,7 @@ take-quoted-str str?(a reader)
 			a.iter := start
 		res
 
-.take-quoted-str-recur str?(a reader, res char mut[])
+.take-quoted-str-recur str?(a reader, res char8 mut[])
 	unless a is-empty
 		if a try-take-char "\""
 			res.move-to-arr.str,
@@ -195,7 +195,7 @@ take-quoted-str str?(a reader)
 			res ~= a next
 			a take-quoted-str-recur res
 
-.escape char?(a char)
+.escape char8?(a char8)
 	if a == "n"
 		"\n",
 	elif a == "r"
@@ -209,7 +209,7 @@ take-quoted-str str?(a reader)
 	elif a == "0"
 		"\0",
 
-.char-to-nat64 nat64?(c char)
+.char-to-nat64 nat64?(c char8)
 	if c == "0"
 		0,
 	elif c == "1"

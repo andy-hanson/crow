@@ -101,7 +101,7 @@ immutable(ConcreteExpr) safeValueForStruct(
 			final switch (it.kind) {
 				case BuiltinStructKind.bool_:
 					return fromConstant(immutable Constant(immutable Constant.BoolConstant(false)));
-				case BuiltinStructKind.char_:
+				case BuiltinStructKind.char8:
 					return fromConstant(immutable Constant(immutable Constant.Integral('\0')));
 				case BuiltinStructKind.float32:
 				case BuiltinStructKind.float64:

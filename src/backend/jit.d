@@ -1725,7 +1725,7 @@ immutable(ExprResult) zeroedToGcc(
 		(immutable PrimitiveType it) {
 			final switch (it) {
 				case PrimitiveType.bool_:
-				case PrimitiveType.char_:
+				case PrimitiveType.char8:
 				case PrimitiveType.int8:
 				case PrimitiveType.int16:
 				case PrimitiveType.int32:

@@ -295,7 +295,7 @@ immutable(Ptr!gcc_jit_type) getOnePrimitiveType(ref gcc_jit_context ctx, immutab
 	final switch (a) {
 		case PrimitiveType.bool_:
 			return gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_BOOL);
-		case PrimitiveType.char_:
+		case PrimitiveType.char8:
 			return gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_CHAR);
 		case PrimitiveType.float32:
 			return gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_FLOAT);

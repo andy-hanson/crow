@@ -74,7 +74,7 @@ struct LowFunPtrType {
 
 enum PrimitiveType {
 	bool_,
-	char_,
+	char8,
 	float32,
 	float64,
 	int8,
@@ -93,8 +93,8 @@ immutable(Sym) symOfPrimitiveType(immutable PrimitiveType a) {
 		final switch (a) {
 			case PrimitiveType.bool_:
 				return "bool";
-			case PrimitiveType.char_:
-				return "char";
+			case PrimitiveType.char8:
+				return "char8";
 			case PrimitiveType.float32:
 				return "float-32";
 			case PrimitiveType.float64:
@@ -249,8 +249,8 @@ immutable(PrimitiveType) asPrimitive(immutable LowType a) {
 	return a.primitive_;
 }
 
-immutable(bool) isChar(immutable LowType a) {
-	return isPrimitive(a) && asPrimitive(a) == PrimitiveType.char_;
+immutable(bool) isChar8(immutable LowType a) {
+	return isPrimitive(a) && asPrimitive(a) == PrimitiveType.char8;
 }
 
 immutable(bool) isVoid(immutable LowType a) {

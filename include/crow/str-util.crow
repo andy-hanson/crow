@@ -14,7 +14,7 @@ import
 	./compare: <
 	./number: ==, <=>, nat8, nat64
 	./opt: new, opt
-	./str: ==, ~, ~~, char8s, char, c-str, is-empty, literal, str, to-char, to-nat8
+	./str: ==, ~, ~~, char8, char8s, c-str, is-empty, literal, str, to-char8, to-nat8
 	./tuple: a, b, new, pair
 	./private/number-low-level: wrap-add, wrap-sub
 
@@ -22,7 +22,7 @@ region iterator
 
 str-iter record
 	by-val
-	.inner seq-iter char
+	.inner seq-iter char8
 
 iter str-iter(a str)
 	a.char8s.iter,
@@ -30,11 +30,11 @@ iter str-iter(a str)
 end-iter str-iter(a str)
 	a.char8s.end-iter,
 
-next value-and-rest<char, str-iter>?(a str-iter)
+next value-and-rest<char8, str-iter>?(a str-iter)
 	if res ?= a.inner next
 		(res.value, (res.rest,)),
 
-prev value-and-rest<char, str-iter>?(a str-iter)
+prev value-and-rest<char8, str-iter>?(a str-iter)
 	if res ?= a.inner prev
 		(res.value, (res.rest,)),
 
@@ -45,7 +45,7 @@ slice-right str(a str-iter)
 	a.inner.slice-right str
 
 mut-str-iter record mut
-	.inner mut-seq-iter char
+	.inner mut-seq-iter char8
 
 mut-iter mut-str-iter(a str)
 	a.char8s.mut-iter,
@@ -53,10 +53,10 @@ mut-iter mut-str-iter(a str)
 copy mut-str-iter(a mut-str-iter)
 	a.inner.copy,
 
-peek char?(a mut-str-iter)
+peek char8?(a mut-str-iter)
 	a.inner peek
 
-next char?(a mut-str-iter)
+next char8?(a mut-str-iter)
 	a.inner next
 
 region split
@@ -118,14 +118,14 @@ lines str[](a str)
 split-str record
 	by-val
 	left str
-	middle char
+	middle char8
 	right str
 
 ###
 Find the first character where `f` returns `true`, and return the parts of `a` before and after it.
 Returns an empty option if `f` does not returns `true` for any character in `a`.
 ###
-try-split-once-by-fn split-str?(a str, f act bool(char))
+try-split-once-by-fn split-str?(a str, f act bool(char8))
 	if res ?= a.char8s try-split-once-by-fn f
 		(res.left.str, res.middle, res.right.str),
 
@@ -149,10 +149,10 @@ join str(a str[], b str)
 lower-case str(a str)
 	a.char8s map (it => it lower-case-char) str
 
-.lower-case-char char(a char) noctx
+.lower-case-char char8(a char8) noctx
 	diff = a.to-nat8 wrap-sub "A".to-nat8
 	if diff < 26
-		"a".to-nat8 wrap-add diff to-char
+		"a".to-nat8 wrap-add diff to-char8
 	else
 		a
 
@@ -160,10 +160,10 @@ lower-case str(a str)
 upper-case str(a str)
 	a.char8s map (it => it upper-case-char) str
 
-.upper-case-char char(a char) noctx
+.upper-case-char char8(a char8) noctx
 	diff = a.to-nat8 wrap-sub "a".to-nat8
 	if diff < 26
-		"A".to-nat8 wrap-add diff to-char
+		"A".to-nat8 wrap-add diff to-char8
 	else
 		a
 
@@ -193,7 +193,7 @@ strip-left str(a str)
 strip-right str(a str)
 	a.char8s drop-right-while (x => x is-whitespace) str
 
-.is-whitespace bool(a char)
+.is-whitespace bool(a char8)
 	a == " " || a == "\n" || a == "\t"
 
 region Conversion
@@ -203,7 +203,7 @@ Treats UTF-8 bytes as a string.
 This is O(1).
 ###
 as-str str(bytes nat8[]) unsafe noctx
-	bytes.arr-cast@<char, nat8> str
+	bytes.arr-cast@<char8, nat8> str
 
 ###
 Converts to an array of UTF-8 bytes.

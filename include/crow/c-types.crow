@@ -4,11 +4,10 @@ Types for compatibility with C.
 
 no-std
 import
-	./private/bootstrap: char, float32, int32, int64, nat32, nat64
+	./private/bootstrap: char8, float32, int32, int64, nat32, nat64
 
-# Equivalent to C's `char` type.
 c-char alias
-	char
+	char8
 
 # Equivalent to C's `float` type.
 c-float alias

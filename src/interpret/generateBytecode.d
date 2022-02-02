@@ -354,8 +354,8 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 			final switch (it) {
 				case PrimitiveType.bool_:
 					return DynCallType.bool_;
-				case PrimitiveType.char_:
-					return DynCallType.char_;
+				case PrimitiveType.char8:
+					return DynCallType.char8;
 				case PrimitiveType.float32:
 					return DynCallType.float32;
 				case PrimitiveType.float64:

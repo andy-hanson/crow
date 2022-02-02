@@ -26,7 +26,7 @@ import
 		==, +, any-const-ptr, as-any-const-ptr, as-const, const-ptr, mut-ptr, null, ptr-cast,
 		ptr-cast-from-extern, ref-eq, size-of
 	../range: ..
-	../str: ==, <=>, char, c-str, literal, str
+	../str: ==, <=>, char8, c-str, literal, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: as-str, to-bytes, to-c-str, to-str
 	../private/bootstrap: todo
@@ -61,8 +61,8 @@ path-exists bool(path str) summon trusted
 
 .get-dirent-name str(d dirent) unsafe
 	# TODO: this is offsetof(d, d_name)
-	name-offset = size-of@<ino_t> + size-of@<off_t> + size-of@<nat16> + size-of@<char>
-	name-ptr char* = d.as-any-const-ptr + name-offset ptr-cast
+	name-offset = size-of@<ino_t> + size-of@<off_t> + size-of@<nat16> + size-of@<char8>
+	name-ptr char8* = d.as-any-const-ptr + name-offset ptr-cast
 	name-ptr to-str
 
 .seek-set int32()
@@ -113,7 +113,7 @@ names-in-dir str[](path str) summon trusted
 # Gets the path a symbolic link refers to.
 read-link str(path str) summon trusted
 	# TODO: smart small and retry if necessAry
-	buff fix-arr char = 1000 uninitialized-fix-arr
+	buff fix-arr char8 = 1000 uninitialized-fix-arr
 	size = path.to-c-str readlink buff.begin-ptr, buff.size
 	if size == -1
 		check-errno
@@ -224,7 +224,7 @@ try-read-file-binary nat8[]?(path str) summon trusted
 
 # Gets the current directory (of the user that ran the program).
 current-directory str() summon trusted
-	buff fix-arr char = 256 uninitialized-fix-arr
+	buff fix-arr char8 = 256 uninitialized-fix-arr
 	b = buff.begin-ptr getcwd buff.size
 	if b == null
 		todo
