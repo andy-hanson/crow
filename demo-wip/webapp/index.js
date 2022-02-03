@@ -4,21 +4,17 @@ const getUserName = async () => {
 		return null
 	else {
 		const userId = loginCookie.split("|")[0]
-		console.log("HERE WE IS")
 		return (await fetch(`/user-name?user=${userId}`)).text()
 	}
 }
 
 const showLoggedIn = async () => {
 	const name = await getUserName()
-	console.log("NAME IS", name)
 	document.getElementById("showLoggedIn").textContent = name ? `Logged in as ${name}` : "Not logged in"
 }
 
 const getCookie = cookieName => {
-	console.log("COOKIE", document.cookie)
 	for (const part of document.cookie.split(";")) {
-		console.log("PART", part)
 		const [name, value] = part.split("=")
 		if (name === cookieName)
 			return value

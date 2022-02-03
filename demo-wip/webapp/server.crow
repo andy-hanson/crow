@@ -8,9 +8,9 @@ import
 		headers, http-bad-query, http-forbidden, http-not-found, http-ok, http-request,
 		http-response, method, request-body-str, url
 	crow/io/print: print
+	crow/json: json, new, to-str
 	crow/reader: parse-nat
 	crow/str-util: split-by, try-split-once
-	crow/writer: ~~=, backup, move-to-str, new, writer
 	./db:
 		add-post, close-real-db, content, cookie-expire-seconds, db, list-posts, list-users,
 		login, post, post-info, open-real-db, parse-user-cookie, register-user, to-str, user,
@@ -43,12 +43,12 @@ main fut nat(args str[]) unsafe summon
 		elif path == "/index.js"
 			"demo-wip/webapp/index.js".read-file http-ok
 		elif path == "/posts"
-			db.list-posts.format-posts-as-json http-ok
+			(("posts", db.list-posts.json),)::json.to-str http-ok
 		elif path == "/user-name"
 			user = (query parse-query ("user",))[0].parse-nat!
 			db user-name user http-ok
 		elif path == "/users"
-			db.list-users.format-users-as-json http-ok
+			(("users", db.list-users.json),)::json.to-str http-ok
 		else
 			http-not-found
 	as http-post
@@ -120,35 +120,8 @@ parse-query str[](s str, arg-names str[])
 	res map-to-arr-with-index (x, index) =>
 		x ?? "Did not get argument for {arg-names[index]}".throw
 
-.format-users-as-json str(users user-info[])
-	res writer = ()
-	res ~~= "\{\"users\":["
-	users each user =>
-		res ~~= "\{\"user\":"
-		res ~~= user user
-		res ~~= ",\"userName\":\""
-		res ~~= user user-name
-		res ~~= "\"},"
-	unless users is-empty
-		res backup
-	res ~~= "]}"
-	res move-to-str
+.json json(a user-info)
+	("user", a.user.json), ("userName", a.user-name.json)
 
-.format-posts-as-json str(posts post-info[])
-	res writer = ()
-	res ~~= "\{\"posts\":["
-	posts each post =>
-		# TODO: module for proper json formatting
-		res ~~= "\{\"post\":"
-		res ~~= post post
-		res ~~= ",\"user\":"
-		res ~~= post user
-		res ~~= ",\"userName\":\""
-		res ~~= post user-name
-		res ~~= "\",\"content\":\""
-		res ~~= post content
-		res ~~= "\"},"
-	unless posts is-empty
-		res backup
-	res ~~= "]}"
-	res move-to-str
+.json json(a post-info)
+	("post", a.post.json), ("user", a.user.json), ("userName", a.user-name.json), ("content", a.content.json)

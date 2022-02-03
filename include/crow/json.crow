@@ -2,19 +2,19 @@ no-std
 import
 	./bool: ==, bool, false, new, true
 	./col/arr: arr, arr-equal, is-empty, new
-	./col/arr-util: each
-	./col/dict: dict, dict-equal, each, is-empty, new, subscript
+	./col/arr-util: each, map
+	./col/dict: dict, dict-equal, each, is-empty, new, subscript, to-dict
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	./col/mut-arr: ~=, move-to-arr, mut-arr, new
 	./hash: hash-mix
 	./misc: new, void
-	./number: ==, float64
+	./number: ==, float64, int64, nat64, to-float64
 	./opt: new, opt
 	./reader:
 		reader, skip-whitespace, try-take-char, take-float, take-quoted-str, try-take-str, with-reader
 	./str: ==, <=>, literal, str
 	./test-util: is
-	./tuple: new
+	./tuple: new, pair
 	./writer: ~=, ~~=, backup, move-to-str, new, writer, write-quoted-str
 
 ###
@@ -28,6 +28,25 @@ json union
 	json-str str
 	json-arr json[]
 	json-object json[str]
+
+new json(...pairs pair<str, json>[])
+	pairs.to-dict json-object
+
+json<a> spec
+	json json(a a)
+
+json json(a bool)
+	a.json-bool
+json json(a nat64)
+	a.to-float64 json
+json json(a int64)
+	a.to-float64 json
+json json(a float64)
+	a json-number
+json json(a str)
+	a json-str
+json<a> json(a a[]) json<a>
+	a map (x => x json) json-arr
 
 ###
 True iff the two values are deeply equal.
