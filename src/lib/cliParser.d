@@ -1,7 +1,7 @@
 module lib.cliParser;
 
 import frontend.lang : crowExtension, JitOptions, OptimizationLevel;
-import lib.compiler : PrintFormat, PrintKind;
+import lib.compiler : PrintKind;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -76,7 +76,6 @@ struct Command {
 	struct Print {
 		immutable PrintKind kind;
 		immutable ProgramDirAndMain programDirAndMain;
-		immutable PrintFormat format;
 	}
 	struct Run {
 		immutable ProgramDirAndMain programDirAndMain;
@@ -283,36 +282,16 @@ immutable(Opt!ProgramDirAndRootPaths) parseProgramDirAndRootPaths(
 	}
 }
 
-struct FormatAndPath {
-	immutable PrintFormat format;
-	immutable SafeCStr path;
-}
-
 immutable(Command) parsePrintCommand(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
 	immutable SafeCStr cwd,
 	immutable SafeCStr[] args,
 ) {
-	if (args.length < 2)
-		return todo!Command("Command.HelpPrint");
-	else {
-		immutable FormatAndPath formatAndPath = args.length == 2
-			? immutable FormatAndPath(PrintFormat.repr, args[1])
-			: args.length == 4 && safeCStrEq(args[1], "--format") && safeCStrEq(args[2], "json")
-			? immutable FormatAndPath(PrintFormat.json, args[3])
-			: todo!(immutable FormatAndPath)("Command.HelpPrint");
-		return useProgramDirAndMain(
-			alloc,
-			allPaths,
-			cwd,
-			formatAndPath.path,
-			(ref immutable ProgramDirAndMain it) =>
-				immutable Command(immutable Command.Print(
-					parsePrintKind(args[0]),
-					it,
-					formatAndPath.format)));
-	}
+	return args.length != 2
+		? todo!Command("Command.HelpPrint")
+		: useProgramDirAndMain(alloc, allPaths, cwd, args[1], (ref immutable ProgramDirAndMain it) =>
+			immutable Command(immutable Command.Print(parsePrintKind(args[0]), it)));
 }
 
 immutable(PrintKind) parsePrintKind(immutable SafeCStr a) {

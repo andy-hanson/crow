@@ -109,6 +109,19 @@ void writeInt(ref Writer writer, immutable long i, immutable ulong base = 10) {
 	writeNat(writer, abs(i), base);
 }
 
+void writeJoin(T)(
+	ref Writer writer,
+	immutable T[] a,
+	immutable string joiner,
+	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	foreach (immutable size_t i, ref immutable T x; a) {
+		if (i != 0)
+			writeStatic(writer, joiner);
+		cb(x);
+	}
+}
+
 void writeWithCommas(T)(
 	ref Writer writer,
 	immutable T[] a,

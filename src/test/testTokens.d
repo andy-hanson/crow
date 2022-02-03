@@ -12,7 +12,7 @@ import util.col.arrBuilder : ArrBuilder;
 import util.col.arrUtil : arrEqual, arrLiteral;
 import util.col.str : SafeCStr, safeCStr;
 import util.perf : Perf, withNullPerf;
-import util.repr : writeRepr;
+import util.repr : writeReprJSON;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols;
 import util.util : verifyFail;
@@ -61,12 +61,12 @@ void testOne(ref Test test, immutable SafeCStr source, immutable Token[] expecte
 			import core.stdc.stdio : printf;
 			Writer writer = Writer(test.allocPtr);
 			writeStatic(writer, "expected tokens:\n");
-			writeRepr(writer, allSymbols, reprTokens(test.alloc, expectedTokens));
+			writeReprJSON(writer, allSymbols, reprTokens(test.alloc, expectedTokens));
 			writeStatic(writer, "\nactual tokens:\n");
-			writeRepr(writer, allSymbols, reprTokens(test.alloc, tokens));
+			writeReprJSON(writer, allSymbols, reprTokens(test.alloc, tokens));
 
 			writeStatic(writer, "\n\n(hint: ast is:)\n");
-			writeRepr(writer, allSymbols, reprAst(test.alloc, test.allPaths, ast));
+			writeReprJSON(writer, allSymbols, reprAst(test.alloc, test.allPaths, ast));
 			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
 		}
 		verifyFail();

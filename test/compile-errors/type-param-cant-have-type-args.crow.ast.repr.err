@@ -1,1 +1,0 @@
-./test/parse-errors/type-param-cant-have-type-args.crow 1:13-1:16 a type parameter can't have type arguments

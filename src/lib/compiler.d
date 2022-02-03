@@ -27,17 +27,10 @@ import util.col.str : SafeCStr, safeCStr, safeCStrSize;
 import util.opt : force, none, Opt, some;
 import util.path : AllPaths, PathAndStorageKind;
 import util.perf : Perf;
-import util.ptr : ptrTrustMe_mut;
 import util.readOnlyStorage : ReadOnlyStorage;
-import util.repr : Repr, writeRepr, writeReprJSON;
+import util.repr : jsonStrOfRepr;
 import util.sym : AllSymbols, Sym;
 import util.util : castImmutableRef;
-import util.writer : finishWriterToSafeCStr, Writer;
-
-enum PrintFormat {
-	repr,
-	json,
-}
 
 enum PrintKind {
 	tokens,
@@ -60,20 +53,19 @@ immutable(DiagsAndResultStrs) print(
 	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PrintKind kind,
-	immutable PrintFormat format,
 	immutable PathAndStorageKind main,
 ) {
 	final switch (kind) {
 		case PrintKind.tokens:
-			return printTokens(alloc, perf, allSymbols, allPaths, storage, showDiagOptions, main, format);
+			return printTokens(alloc, perf, allSymbols, allPaths, storage, showDiagOptions, main);
 		case PrintKind.ast:
-			return printAst(alloc, perf, allSymbols, allPaths, storage, showDiagOptions, main, format);
+			return printAst(alloc, perf, allSymbols, allPaths, storage, showDiagOptions, main);
 		case PrintKind.model:
-			return printModel(alloc, perf, allSymbols, allPaths, storage, showDiagOptions, main, format);
+			return printModel(alloc, perf, allSymbols, allPaths, storage, showDiagOptions, main);
 		case PrintKind.concreteModel:
-			return printConcreteModel(alloc, perf, allSymbols, allPaths, storage, showDiagOptions, main, format);
+			return printConcreteModel(alloc, perf, allSymbols, allPaths, storage, showDiagOptions, main);
 		case PrintKind.lowModel:
-			return printLowModel(alloc, perf, allSymbols, allPaths, storage, showDiagOptions, main, format);
+			return printLowModel(alloc, perf, allSymbols, allPaths, storage, showDiagOptions, main);
 	}
 }
 
@@ -147,13 +139,12 @@ immutable(DiagsAndResultStrs) printTokens(
 	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
-	immutable PrintFormat format,
 ) {
 	immutable FileAstAndDiagnostics astResult = parseSingleAst(alloc, perf, allSymbols, allPaths, storage, main);
 	immutable Token[] tokens = tokensOfAst(alloc, allSymbols, astResult.ast);
 	return immutable DiagsAndResultStrs(
 		strOfDiagnostics(alloc, allSymbols, allPaths, showDiagOptions, astResult.filesInfo, astResult.diagnostics),
-		showRepr(alloc, allSymbols, reprTokens(alloc, tokens), format));
+		jsonStrOfRepr(alloc, allSymbols, reprTokens(alloc, tokens)));
 }
 
 immutable(DiagsAndResultStrs) printAst(
@@ -164,12 +155,11 @@ immutable(DiagsAndResultStrs) printAst(
 	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
-	immutable PrintFormat format,
 ) {
 	immutable FileAstAndDiagnostics astResult = parseSingleAst(alloc, perf, allSymbols, allPaths, storage, main);
 	return immutable DiagsAndResultStrs(
 		strOfDiagnostics(alloc, allSymbols, allPaths, showDiagOptions, astResult.filesInfo, astResult.diagnostics),
-		showAst(alloc, allSymbols, allPaths, astResult.ast, format));
+		showAst(alloc, allSymbols, allPaths, astResult.ast));
 }
 
 immutable(DiagsAndResultStrs) printModel(
@@ -180,13 +170,12 @@ immutable(DiagsAndResultStrs) printModel(
 	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
-	immutable PrintFormat format,
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
 	return !hasDiags(program)
 		? immutable DiagsAndResultStrs(
 			safeCStr!"",
-			showModule(alloc, allSymbols, only(program.specialModules.rootModules).deref(), format))
+			showModule(alloc, allSymbols, only(program.specialModules.rootModules).deref()))
 		: immutable DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allSymbols, allPaths, showDiagOptions, program.filesInfo, program.diagnostics),
 			safeCStr!"");
@@ -200,15 +189,12 @@ immutable(DiagsAndResultStrs) printConcreteModel(
 	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
-	immutable PrintFormat format,
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
 	if (!hasDiags(program)) {
 		immutable ConcreteProgram concreteProgram =
 			concretize(alloc, perf, allSymbols, allPaths, program, only(program.specialModules.rootModules));
-		return immutable DiagsAndResultStrs(
-			safeCStr!"",
-			showConcreteProgram(alloc, allSymbols, concreteProgram, format));
+		return immutable DiagsAndResultStrs(safeCStr!"", showConcreteProgram(alloc, allSymbols, concreteProgram));
 	} else
 		return immutable DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allSymbols, allPaths, showDiagOptions, program.filesInfo, program.diagnostics),
@@ -223,14 +209,13 @@ immutable(DiagsAndResultStrs) printLowModel(
 	scope ref const ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PathAndStorageKind main,
-	immutable PrintFormat format,
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
 	if (!hasDiags(program)) {
 		immutable ConcreteProgram concreteProgram =
 			concretize(alloc, perf, allSymbols, allPaths, program, only(program.specialModules.rootModules));
 		immutable LowProgram lowProgram = lower(alloc, perf, concreteProgram);
-		return immutable DiagsAndResultStrs(safeCStr!"", showLowProgram(alloc, allSymbols, lowProgram, format));
+		return immutable DiagsAndResultStrs(safeCStr!"", showLowProgram(alloc, allSymbols, lowProgram));
 	} else
 		return immutable DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allSymbols, allPaths, showDiagOptions, program.filesInfo, program.diagnostics),
@@ -243,19 +228,13 @@ immutable(SafeCStr) showAst(
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable FileAst ast,
-	immutable PrintFormat format,
 ) {
-	return showRepr(alloc, allSymbols, reprAst(alloc, allPaths, ast), format);
+	return jsonStrOfRepr(alloc, allSymbols, reprAst(alloc, allPaths, ast));
 }
 
 //TODO:INLINE
-immutable(SafeCStr) showModule(
-	ref Alloc alloc,
-	ref const AllSymbols allSymbols,
-	ref immutable Module a,
-	immutable PrintFormat format,
-) {
-	return showRepr(alloc, allSymbols, reprModule(alloc, a), format);
+immutable(SafeCStr) showModule(ref Alloc alloc, ref const AllSymbols allSymbols, ref immutable Module a) {
+	return jsonStrOfRepr(alloc, allSymbols, reprModule(alloc, a));
 }
 
 //TODO:INLINE
@@ -263,19 +242,13 @@ immutable(SafeCStr) showConcreteProgram(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref immutable ConcreteProgram a,
-	immutable PrintFormat format,
 ) {
-	return showRepr(alloc, allSymbols, reprOfConcreteProgram(alloc, a), format);
+	return jsonStrOfRepr(alloc, allSymbols, reprOfConcreteProgram(alloc, a));
 }
 
 //TODO:INLINE
-immutable(SafeCStr) showLowProgram(
-	ref Alloc alloc,
-	ref const AllSymbols allSymbols,
-	ref immutable LowProgram a,
-	immutable PrintFormat format,
-) {
-	return showRepr(alloc, allSymbols, reprOfLowProgram(alloc, a), format);
+immutable(SafeCStr) showLowProgram(ref Alloc alloc, ref const AllSymbols allSymbols, ref immutable LowProgram a) {
+	return jsonStrOfRepr(alloc, allSymbols, reprOfLowProgram(alloc, a));
 }
 
 public immutable(ExitCode) justTypeCheck(
@@ -381,22 +354,4 @@ public immutable(ProgramsAndFilesInfo) buildToLowProgram(
 			some(immutable ConcreteAndLowProgram(concreteProgram, lower(alloc, perf, concreteProgram))));
 	} else
 		return immutable ProgramsAndFilesInfo(program, none!ConcreteAndLowProgram);
-}
-
-immutable(SafeCStr) showRepr(
-	ref Alloc alloc,
-	ref const AllSymbols allSymbols,
-	immutable Repr a,
-	immutable PrintFormat format,
-) {
-	Writer writer = Writer(ptrTrustMe_mut(alloc));
-	final switch (format) {
-		case PrintFormat.repr:
-			writeRepr(writer, allSymbols, a);
-			break;
-		case PrintFormat.json:
-			writeReprJSON(writer, allSymbols, a);
-			break;
-	}
-	return finishWriterToSafeCStr(writer);
 }

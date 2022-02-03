@@ -71,7 +71,7 @@ spec
 	summon
 body
 	res = path-to-crow spawn-and-wait-result ("print", print-kind, path), env
-	output-path = "{path}.{print-kind}.repr"
+	output-path = "{path}.{print-kind}.json"
 	# NOTE: compiler may have both stderr and stdout!
 	output-failures failure[] = if res.stdout.is-empty && res.exit-code != 0
 		# Just have a file for the err

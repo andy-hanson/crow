@@ -1,2 +1,0 @@
-/let-must-have-then.crow 2:5-3:1 the final line of a block can not be 'x = y'
-(hint: remove 'x =', or add another line)

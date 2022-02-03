@@ -47,7 +47,6 @@ import util.opt : has;
 import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
-import util.repr : writeReprNoNewline;
 import util.sourceRange : FileAndPos;
 import util.sym : AllSymbols, Sym;
 import util.util : divRoundUp, drop, min, unreachable, verify;

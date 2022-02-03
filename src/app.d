@@ -164,7 +164,6 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 						storage,
 						showDiagOptions,
 						it.kind,
-						it.format,
 						getRootPath(allPaths, includeDir, it.programDirAndMain));
 					if (!safeCStrIsEmpty(printed.diagnostics)) printErr(printed.diagnostics);
 					if (!safeCStrIsEmpty(printed.result)) print(printed.result);

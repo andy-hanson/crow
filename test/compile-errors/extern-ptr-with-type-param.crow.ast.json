@@ -1,0 +1,1 @@
+{"_type":"file-ast","specs":[],"aliases":[],"structs":[{"_type":"struct","args":[{"_type":"range","args":[0,15]},"","public",[{"_type":"name-range","args":[2,"a"]}],{"_type":"none"},"extern-ptr"]}],"funs":[]}
