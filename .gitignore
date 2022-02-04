@@ -1,9 +1,9 @@
 bin
 site
 dyncall
-crow-vscode/node_modules
-crow-vscode/client/node_modules
-crow-vscode/server/node_modules
+editor/crow-vscode/node_modules
+editor/crow-vscode/client/node_modules
+editor/crow-vscode/server/node_modules
 temp
 test/test
 *.mdb
