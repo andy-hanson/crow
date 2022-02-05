@@ -83,7 +83,7 @@ void writeFloatLiteral(ref Writer writer, immutable double a) {
 		writeStatic(writer, "0x1.");
 		writeHex(writer, fraction);
 		writeChar(writer, 'p');
-		writeHex(writer, exponent);
+		writeInt(writer, exponent);
 	}
 }
 

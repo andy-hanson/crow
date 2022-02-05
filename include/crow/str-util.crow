@@ -189,9 +189,23 @@ strip str(a str)
 strip-left str(a str)
 	a.char8s drop-while (x => x is-whitespace) str
 
+# Removes all occurrences of 'b' from the front of 'a'.
+strip-left str(a str, b str)
+	if x ?= a try-remove-start b
+		x strip-left b
+	else
+		a
+
 # Strips whitespace from the end.
 strip-right str(a str)
 	a.char8s drop-right-while (x => x is-whitespace) str
+
+# Removes all occurrences of 'b' from the end of 'a'.
+strip-right str(a str, b str)
+	if x ?= a try-remove-end b
+		x strip-right b
+	else
+		a
 
 .is-whitespace bool(a char8)
 	a == " " || a == "\n" || a == "\t"

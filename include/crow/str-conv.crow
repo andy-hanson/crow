@@ -5,9 +5,11 @@ import
 	./compare: <
 	./misc: void
 	./number:
-		==, <=>, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-multiple-of, is-nan,
-		min-int64, nat8, nat16, nat32, nat64, to-float64, to-int64, to-nat64, truncate-to-int64
-	./str: ~~, char8, literal, str
+		==, <=>, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-nan, min-int64,
+		nat8, nat16, nat32, nat64, to-float64, to-int64, to-nat64, truncate-to-int64
+	./str: ==, ~~, char8, literal, str
+	./str-util: strip-right
+	./test-util: is
 
 # Returns `"void"`.
 to-str str(_ void)
@@ -128,19 +130,26 @@ to-str str(a float64)
 			"-{pos}"
 		else
 			pos
+test
+	12.3.to-str is "12.3"
+	0.04.to-str is "0.04"
+	0.123.to-str is "0.123"
+	0.001.to-str is "0.001"
 
 .to-str-positive str(a float64)
 	# TODO: Use a real float to str algorithm
-	times-100 = (a * 100.0).truncate-to-int64
-	hundredths = times-100 % 100
+	times-1000 = (a * 1000.0).truncate-to-int64
+	thousandths = times-1000 % 1000
+	whole-part = "{times-1000 / 1000}"
+	hundredths = thousandths / 10
 	tenths = hundredths / 10
-	whole-part = (times-100 / 100).to-str
-	if hundredths == 0
+	d0 = tenths digit-to-str
+	d1 = hundredths % 10 digit-to-str
+	d2 = thousandths % 10 digit-to-str
+	if thousandths == 0
 		whole-part
-	elif hundredths is-multiple-of 10
-		"{whole-part}.{tenths}"
 	else
-		"{whole-part}.{hundredths}"
+		"{whole-part}.{d0}{d1}{d2}" strip-right "0"
 
 region Interpolation
 
