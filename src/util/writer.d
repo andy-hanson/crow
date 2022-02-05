@@ -24,7 +24,7 @@ immutable(string) finishWriter(scope ref Writer writer) {
 	return finishWriter(writer).ptr;
 }
 
-@trusted immutable(SafeCStr) finishWriterToSafeCStr(ref Writer writer) {
+@trusted immutable(SafeCStr) finishWriterToSafeCStr(scope ref Writer writer) {
 	return immutable SafeCStr(finishWriterToCStr(writer));
 }
 

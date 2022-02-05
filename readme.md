@@ -1,4 +1,5 @@
-[![Gitter](https://badges.gitter.im/crow-lang-org/community.svg)](https://gitter.im/crow-lang-org/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Gitter](https://badges.gitter.im/crow-lang-org/community.svg)]
+(https://gitter.im/crow-lang-org/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 # Crow
 
@@ -11,10 +12,12 @@ For information about the langauge itself, visit the [website](http://crow-lang.
 
 Install these tools (potentially from your operating system's package manager):
 
-* [`git`](https://git-scm.com/) (used to get this repository)
-* [`ldc`](https://github.com/ldc-developers/ldc#installation) (used to compile `bin/crow`).
 * [`dmd`](https://dlang.org/download.html#dmd) (used to compile `bin/crow-debug` due to much faster compiles)
-* [`hg`](http://mercurial-scm.org) (used to clone the dyncall library)
+* [`git`](https://git-scm.com/) (used to get this repository)
+* [`hg`](https://mercurial-scm.org) (used to clone the `dyncall` library)
+* [`ldc`](https://github.com/ldc-developers/ldc#installation) (used to compile `bin/crow`).
+	- `wasm-ld` may need to be installed separately (used to compile `bin/crow.wasm`)
+* [`libgccjit`](https://gcc.gnu.org/onlinedocs/jit) (`bin/crow` links to this)
 
 Then run:
 
