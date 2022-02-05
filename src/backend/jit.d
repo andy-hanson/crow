@@ -1358,9 +1358,6 @@ immutable(ExprResult) constantToGcc(
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(
 				gcc_jit_rvalue_dereference(emitToRValue(ctx, a.arg), null)));
 			return todo!(immutable ExprResult)("!");
-		case LowExprKind.SpecialUnary.Kind.isNanFloat32:
-		case LowExprKind.SpecialUnary.Kind.isNanFloat64:
-			return todo!(immutable ExprResult)("!");
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(getLValue(ctx, a.arg), null));
@@ -1368,6 +1365,7 @@ immutable(ExprResult) constantToGcc(
 		case LowExprKind.SpecialUnary.Kind.asRef:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
+		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
@@ -1479,6 +1477,7 @@ immutable(ExprResult) binaryToGcc(
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat32:
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_BITWISE_XOR);
+		case LowExprKind.SpecialBinary.Kind.eqFloat32:
 		case LowExprKind.SpecialBinary.Kind.eqFloat64:
 		case LowExprKind.SpecialBinary.Kind.eqInt8:
 		case LowExprKind.SpecialBinary.Kind.eqInt16:
@@ -1504,6 +1503,7 @@ immutable(ExprResult) binaryToGcc(
 		case LowExprKind.SpecialBinary.Kind.lessNat64:
 		case LowExprKind.SpecialBinary.Kind.lessPtr:
 			return comparison(gcc_jit_comparison.GCC_JIT_COMPARISON_LT);
+		case LowExprKind.SpecialBinary.Kind.mulFloat32:
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:
 		case LowExprKind.SpecialBinary.Kind.unsafeMulInt8:
 		case LowExprKind.SpecialBinary.Kind.unsafeMulInt16:
@@ -1517,6 +1517,7 @@ immutable(ExprResult) binaryToGcc(
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MULT);
 		case LowExprKind.SpecialBinary.Kind.orBool:
 			return logicalOperatorToGcc(ctx, emit, LogicalOperator.or, a.left, a.right);
+		case LowExprKind.SpecialBinary.Kind.subFloat32:
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 		case LowExprKind.SpecialBinary.Kind.unsafeSubInt8:
 		case LowExprKind.SpecialBinary.Kind.unsafeSubInt16:
@@ -1536,7 +1537,13 @@ immutable(ExprResult) binaryToGcc(
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_RSHIFT);
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat32:
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
+		case LowExprKind.SpecialBinary.Kind.unsafeDivInt8:
+		case LowExprKind.SpecialBinary.Kind.unsafeDivInt16:
+		case LowExprKind.SpecialBinary.Kind.unsafeDivInt32:
 		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:
+		case LowExprKind.SpecialBinary.Kind.unsafeDivNat8:
+		case LowExprKind.SpecialBinary.Kind.unsafeDivNat16:
+		case LowExprKind.SpecialBinary.Kind.unsafeDivNat32:
 		case LowExprKind.SpecialBinary.Kind.unsafeDivNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_DIVIDE);
 		case LowExprKind.SpecialBinary.Kind.unsafeModNat64:

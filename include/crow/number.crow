@@ -187,6 +187,10 @@ Throws if `b == 0`.
 Throws if the result would overflow, which only happens if
 `a` is the least possible value and `b` is `-1`.
 ###
+/ int32(a int32, b int32) trusted
+	"divide by 0" forbid-c-str b == 0
+	"integer overflow" forbid-c-str (a == min-int32 && b == -1)
+	a unsafe-div b
 / int64(a int64, b int64) trusted
 	"divide by 0" forbid-c-str b == 0
 	"integer overflow" forbid-c-str (a == min-int64 && b == -1)
@@ -262,20 +266,29 @@ square-root float64(a float64) noctx
 	a sqrt
 .sqrt float64(a float64) noctx extern
 square-root float32(a float32) noctx
-	a sqrt
-.sqrt float32(a float32) noctx extern
+	a.to-float64.sqrt to-float32
 
 # `true` iff `a` is "Not A Number".
-is-nan bool(a float64) noctx builtin
-is-nan bool(a float32) noctx builtin
+is-nan bool(a float64) noctx
+	a != a
+is-nan bool(a float32) noctx
+	a != a
 
 region conversion
+
+to-float32 float32(a nat64) noctx
+	a.to-float64 to-float32
+to-float32 float32(a int64) noctx
+	a.to-float64 to-float32
+to-float32 float32(a float64) noctx builtin
 
 # Never throws, but for very high values of `a`, the result will be approximate.
 to-float64 float64(a nat64) noctx builtin
 # Never throws, but for very low or very high values of `a`, the result will be approximate.
 to-float64 float64(a int64) noctx builtin
 to-float64 float64(a float32) noctx builtin
+
+
 # Convert a float to int by discarding the fractional part.
 truncate-to-int64 int64(a float64) noctx builtin
 

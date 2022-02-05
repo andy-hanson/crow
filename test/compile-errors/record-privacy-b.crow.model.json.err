@@ -5,8 +5,8 @@ candidates (with 1 arguments):
 	new arr<a>(...arr<a>) (from crow/col/arr.crow line 22)
 	new fut<a>(a) (from crow/fut.crow line 29)
 	new opt<a>(a) (from crow/opt.crow line 17)
-	new interp(str) (from crow/str-conv.crow line 144)
-	new by-val<interp>(str) (from crow/str-conv.crow line 144)
+	new interp(str) (from crow/str-conv.crow line 147)
+	new by-val<interp>(str) (from crow/str-conv.crow line 147)
 
 ./test/compile-errors/record-privacy-b.crow 9:13-9:14 there is no function or field named 'j'
 

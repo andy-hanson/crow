@@ -1,0 +1,215 @@
+import
+	crow/cell: *, as-const-ptr, as-mut-ptr, cell, new
+	crow/col/arr-util: flat-map, groups-of, map
+	crow/col/private/arr-low-level: begin-ptr, subscript
+	crow/c-types: c-int
+	crow/io/duration: msec
+	crow/io/print: print
+	crow/io/time: continue, continue-or-quit, get-monotime-msec, quit, repeat-interval
+	crow/math/mat: *, I, mat3-32, rotation, to-arr
+	crow/math/trig: pi
+	crow/math/vec: +, -, *, new, right, up, vec2-32, vec3-32
+	crow/ptr: ==, as-any-const-ptr, null, ptr-cast, ptr-to, size-of, to-const-ptr
+	crow/str-util: to-str
+	GLES2/gl2:
+		==, glActiveTexture, GL_ARRAY_BUFFER, GL_BACK, glBindBuffer, glBindTexture, glBufferData,
+		glBufferSubData, glClear, glClearColor, GL_COLOR_BUFFER_BIT, GL_CULL_FACE, glCullFace,
+		glDeleteBuffers, glDrawArrays, glEnable, glEnableVertexAttribArray, GL_FLOAT, glGenBuffers,
+		glGetError, glGetUniformLocation, GLint, GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0,
+		GL_TEXTURE_2D, GL_TRIANGLES, GLuint, glUniform1i, glUniformMatrix3fv, glUseProgram,
+		glVertexAttribPointer, to-str
+	SDL2/SDL:
+		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
+	SDL2/SDL_events:
+		==, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
+	SDL2/SDL_keyboard:
+		SDL_GetKeyboardState
+	SDL2/SDL_scancode:
+		SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to-nat32
+	SDL2/SDL_video:
+		|, SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
+		SDL_GL_DOUBLEBUFFER, SDL_GL_CONTEXT_MAJOR_VERSION, SDL_GL_CONTEXT_MINOR_VERSION,
+		SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_SetAttribute, SDL_GL_SwapWindow, SDL_Window,
+		SDL_WINDOW_OPENGL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN, to-int32
+	./shader: shader-prog-destroy, shader-prog-load
+	./texture: load-texture, free-texture
+
+main fut nat(_ str[]) summon trusted
+	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
+
+	SDL_GL_CONTEXT_PROFILE_MASK SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_ES.to-int32 handle-sdl-error "set GL ES"
+	SDL_GL_CONTEXT_MAJOR_VERSION SDL_GL_SetAttribute 3 handle-sdl-error "set major version"
+	SDL_GL_CONTEXT_MINOR_VERSION SDL_GL_SetAttribute 0 handle-sdl-error "set minor version"
+	SDL_GL_DOUBLEBUFFER SDL_GL_SetAttribute 1 handle-sdl-error "set double buffer"
+
+	wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
+	window = "crube" SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 480, 360, wflags
+	if window.as-any-const-ptr == null
+		"SDL_CreateWindow" fail-sdl-error
+
+	context = window SDL_GL_CreateContext
+	if context.as-any-const-ptr == null
+		"SDL_GL_CreateContext" fail-sdl-error
+
+	shader-prog = "demo/open-gl/vertex.vert.essl" shader-prog-load "demo/open-gl/fragment.frag.essl"
+	"after shader-prog" gl-check-error
+	shader-prog glUseProgram
+
+	tex-sampler-uniform-loc = shader-prog glGetUniformLocation "texSampler"
+	"after tex-sampler-uniform-loc" gl-check-error
+	assert: tex-sampler-uniform-loc >= 0
+	tex-sampler-uniform-loc glUniform1i 0
+	"after glUniform1i" gl-check-error
+
+	rotation-uniform-loc = shader-prog glGetUniformLocation "rotation"
+	"after rotation-uniform-loc" gl-check-error
+	assert: tex-sampler-uniform-loc >= 0
+	tex-sampler-uniform-loc glUniform1i 0
+	"after glUniform1i" gl-check-error
+	rotation-uniform-loc glUniformMatrix3fv 1, false, I.to-arr.begin-ptr
+	"after set rotation-uniform-loc" gl-check-error
+
+	texture = "demo/open-gl/crow.webp" load-texture
+
+	vertices vertex[] = make-cube
+	triangle-vbo = vertices vbo-create
+	assert: triangle-vbo != 0
+
+	renderer renderer = window, shader-prog, vertices, triangle-vbo, texture, rotation-uniform-loc
+	renderer set-up-renderer
+
+	<- 25.msec repeat-interval () => renderer main-loop-body
+
+	# TODO: use 'finally'
+	texture free-texture
+	triangle-vbo vbo-free
+	shader-prog shader-prog-destroy
+	window SDL_DestroyWindow
+	SDL_Quit
+	()
+
+.make-cube vertex[]()
+	front = I.cube-side ~~ (up rotation pi / 2 cube-side) ~~ (right rotation pi / 2 cube-side)
+	back vertex[] = front groups-of 3 flat-map xs =>
+		# Change order so that the triangles have reverse winding
+		xs[1].invert, xs[0].invert, xs[2].invert
+	front ~~ back map v =>
+		# choose vertex color from position
+		v.pos, v.normal, v.tex-coord, (v.pos + (1, 1, 1)) * 0.5
+
+.cube-side vertex[](mat mat3-32)
+	t0 vec2-32 = 0.0, 1.0
+	t1 vec2-32 = 1.0, 1.0
+	t2 vec2-32 = 0.0, 0.0
+	t3 vec2-32 = 1.0, 0.0
+	n vec3-32 = 0, 0, -1
+	black vec3-32 = 0, 0, 0
+	dl vertex = (-1, -1, -1), n, t0, black
+	dr vertex = (1, -1, -1), n, t1, black
+	ul vertex = (-1, 1, -1), n, t2, black
+	ur vertex = (1, 1, -1), n, t3, black
+	(dl, dr, ul, ul, dr, ur) apply mat
+
+.apply vertex[](a vertex[], m mat3-32)
+	a map x =>
+		m * x.pos, m * x.normal, x.tex-coord, x.color
+
+.vertex record
+	by-val
+	pos vec3-32
+	normal vec3-32
+	tex-coord vec2-32
+	color vec3-32
+
+.invert vertex(a vertex)
+	-a.pos, -a.normal, a.tex-coord, a.color
+
+.renderer record mut
+	window SDL_Window
+	shader-prog GLuint
+	vertices vertex[]
+	triangle-vbo GLuint
+	texture GLuint
+	rotation-uniform-loc GLint
+
+.set-up-renderer void(renderer renderer) unsafe summon
+	GL_CULL_FACE glEnable
+	GL_BACK glCullFace
+
+	renderer.shader-prog glUseProgram
+
+	GL_ARRAY_BUFFER glBindBuffer renderer.triangle-vbo
+	GL_ARRAY_BUFFER glBufferSubData 0, renderer.vertices.size-bytes.to-int64, renderer.vertices.begin-ptr.ptr-cast
+	stride = (to-int32: size-of@<vertex>)
+	0 glVertexAttribPointer 3, GL_FLOAT, false, stride, 0.to-const-ptr
+	0 glEnableVertexAttribArray
+	1 glVertexAttribPointer 3, GL_FLOAT, false, stride, (3 * size-of@<float32>).to-const-ptr
+	1 glEnableVertexAttribArray
+	2 glVertexAttribPointer 2, GL_FLOAT, false, stride, (6 * size-of@<float32>).to-const-ptr
+	2 glEnableVertexAttribArray
+	3 glVertexAttribPointer 3, GL_FLOAT, false, stride, (8 * size-of@<float32>).to-const-ptr
+	3 glEnableVertexAttribArray
+
+	GL_TEXTURE0 glActiveTexture
+	GL_TEXTURE_2D glBindTexture renderer.texture
+
+.main-loop-body continue-or-quit(renderer renderer) summon trusted
+	SDL_PumpEvents
+	if look-for-quit-event
+		quit
+	else
+		key-states-ptr = null SDL_GetKeyboardState
+		key-states = key-states-ptr[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
+		if key-states[SDL_SCANCODE_RETURN.to-nat32 to-nat64] != 0
+			print: "return is pressed"
+		renderer render
+		continue
+
+.render void(renderer renderer) summon unsafe
+	0.5 glClearColor 0.5, 0.5, 1
+	GL_COLOR_BUFFER_BIT glClear
+
+	t = get-monotime-msec.to-float32 * 0.0003::float32
+	mat mat3-32 = (0.5::float32) * ((1, 2, 3) rotation t)
+	renderer.rotation-uniform-loc glUniformMatrix3fv 1, false, mat.to-arr.begin-ptr
+
+	GL_TRIANGLES glDrawArrays 0, renderer.vertices.size.to-int32
+
+	renderer.window SDL_GL_SwapWindow
+
+.look-for-quit-event bool() summon
+	e = SDL_Event
+	e.SDL_PollEvent != 0 && (e.type == SDL_Quit || look-for-quit-event)
+
+.handle-sdl-error void(err c-int, description str) summon trusted
+	unless err == 0
+		description fail-sdl-error
+
+.fail-sdl-error void(description str) summon trusted
+	throw: "sdl error in {description}: {SDL_GetError}"
+	SDL_Quit
+
+.vbo-create GLuint(vertices vertex[]) summon unsafe
+	vbo-cell cell GLuint = 0,
+	n-buffers = 1 to-int32
+	n-buffers glGenBuffers vbo-cell.as-mut-ptr
+	vbo = *vbo-cell
+	GL_ARRAY_BUFFER glBindBuffer vbo
+	GL_ARRAY_BUFFER glBufferData vertices.size-bytes.to-int64, vertices.begin-ptr.ptr-cast, GL_STATIC_DRAW
+	GL_ARRAY_BUFFER glBindBuffer 0
+	err = glGetError
+	unless err == GL_NO_ERROR
+		n-buffers glDeleteBuffers vbo-cell.as-const-ptr
+		"Creating VBO failed: Code {err}" throw
+	vbo
+
+size-bytes nat(vertices vertex[]) unsafe
+	vertices.size * size-of@<vertex>
+
+.vbo-free void(vbo GLuint) summon unsafe
+	1 glDeleteBuffers vbo.ptr-to
+
+.gl-check-error void(desc str) summon
+	err = glGetError
+	unless err == GL_NO_ERROR
+		"Gl error at {desc}: code {err}" throw

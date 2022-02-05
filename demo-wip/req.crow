@@ -24,7 +24,7 @@ main fut nat(_ str[]) unsafe summon
 	()
 
 .get-tcp-socket fd-t() unsafe summon
-	protoent = "tcp".to-c-str getprotobyname
+	protoent = "tcp" getprotobyname
 	assert: protoent.as-any-const-ptr != null
 	socket-file-descriptor = AF_INET socket SOCK_STREAM, protoent.p_proto
 	forbid: socket-file-descriptor == -1

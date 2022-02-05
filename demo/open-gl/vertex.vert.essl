@@ -1,0 +1,18 @@
+#version 300 es
+
+uniform mat3 rotation;
+
+in vec3 vertPos;
+in vec3 vertNormal;
+in vec2 vertTextCoord;
+in vec3 vertColor;
+out vec3 normal;
+out vec2 texCoord;
+out vec3 color;
+
+void main() {
+	normal = rotation * vertNormal;
+	texCoord = vertTextCoord + 0.001 * vec2(vertNormal);
+	color = vertColor;
+	gl_Position = vec4(rotation * vertPos, 1.0);
+}

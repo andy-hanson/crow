@@ -1,14 +1,20 @@
 no-std
 import
 	time: time, time_t
-	../fut: fut
+	../compare: max
+	../fun-util: subscript
+	../fut: fut, new, then-void
 	../misc: new, void
-	../number: +, to-nat64
+	../number: ==, <=>, +, /, nat64, to-nat64
 	../ptr: null
 	../private/fut-low-level: resolve, unresolved
 	../private/runtime: add-task, get-cur-island, new-exclusion
-	./private/time-low-level: get-monotime-nsec
 	./duration: duration, nsec
+export
+	./private/time-low-level: get-monotime-nsec
+
+get-monotime-msec nat64()
+	get-monotime-nsec / 1000000
 
 unix-time record
 	seconds-since-epoch time_t
@@ -19,9 +25,27 @@ get-unix-time unix-time() summon trusted
 
 # Returns a `fut` that will resolve after `duration` has passed.
 delay fut void(duration duration) trusted summon
-	target-time = get-monotime-nsec + duration.nsec.to-nat64
+	get-monotime-nsec + duration.nsec.to-nat64 delay-until-time
+
+continue-or-quit enum
+	continue
+	quit
+
+# Call `action` now and on every `interval`.
+repeat-interval fut void(interval duration, action act continue-or-quit()) summon
+	get-monotime-nsec repeat-interval-recur interval.nsec.to-nat64, action
+.repeat-interval-recur fut void(start-nsec nat64, interval-nsec nat64, action act continue-or-quit()) trusted summon
+	match action[]
+	as continue
+		next-time = get-monotime-nsec max start-nsec + interval-nsec
+		<- next-time delay-until-time
+		next-time repeat-interval-recur interval-nsec, action
+	as quit
+		()
+
+.delay-until-time fut void(target-nsec nat64) unsafe summon
+	res fut void = unresolved
 	island = get-cur-island
-	res = unresolved@<void>
-	island add-task target-time, island.new-exclusion, () =>
+	island add-task target-nsec, island.new-exclusion, () =>
 		res resolve ()
 	res

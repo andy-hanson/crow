@@ -10,7 +10,7 @@ import
 	../private/alloc: alloc-uninitialized, fill-ptr-range
 	../private/bootstrap: new
 	../private/exception-low-level: assert-c-str, forbid-c-str
-	../private/number-low-level: ==, <=>, nat64, unsafe-mod, wrap-add, wrap-sub, wrap-mul
+	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub, wrap-mul
 	../private/range-low-level: ..
 	./arr: ~, ~~, arr, is-empty, new, size, subscript
 	./iter: new, value-and-rest
@@ -600,3 +600,11 @@ slice-left<a> a[](a arr-iter a)
 
 slice-right<a> a[](a arr-iter a)
 	a.xs[a.index .. a.xs.size]
+
+groups-of<a> a[][](a a[], group-size nat64) trusted
+	"group-size can't be 0" forbid-c-str group-size == 0
+	div = a.size unsafe-div group-size
+	out-size = (div wrap-mul group-size) == a.size ? div : div wrap-add 1
+	out-size make-arr group-index =>
+		start = group-index wrap-mul group-size
+		a[start .. (start wrap-add group-size min a.size)]

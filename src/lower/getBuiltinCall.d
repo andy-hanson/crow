@@ -164,7 +164,9 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialBinary.Kind.addPtrAndNat64
 				: failBinary());
 		case operatorSymValue(Operator.minus):
-			return binary(isFloat64(rt)
+			return binary(isFloat32(rt)
+				? LowExprKind.SpecialBinary.Kind.subFloat32
+				: isFloat64(rt)
 				? LowExprKind.SpecialBinary.Kind.subFloat64
 				: isPtrRawMut(rt) && isPtrRawMut(p0) && isNat64(p1)
 				? LowExprKind.SpecialBinary.Kind.subPtrAndNat64
@@ -172,7 +174,11 @@ immutable(BuiltinKind) getBuiltinKind(
 		case operatorSymValue(Operator.times):
 			return isPtrRawMut(p0)
 				? unary(LowExprKind.SpecialUnary.Kind.deref)
-				: binary(isFloat64(rt) ? LowExprKind.SpecialBinary.Kind.mulFloat64 : failBinary());
+				: binary(isFloat32(rt)
+					? LowExprKind.SpecialBinary.Kind.mulFloat32
+					: isFloat64(rt)
+					? LowExprKind.SpecialBinary.Kind.mulFloat64
+					: failBinary());
 		case operatorSymValue(Operator.equal):
 			return binary(
 				isNat8(p0) ? LowExprKind.SpecialBinary.Kind.eqNat8 :
@@ -183,6 +189,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				isInt16(p0) ? LowExprKind.SpecialBinary.Kind.eqInt16 :
 				isInt32(p0) ? LowExprKind.SpecialBinary.Kind.eqInt32 :
 				isInt64(p0) ? LowExprKind.SpecialBinary.Kind.eqInt64 :
+				isFloat32(p0) ? LowExprKind.SpecialBinary.Kind.eqFloat32 :
 				isFloat64(p0) ? LowExprKind.SpecialBinary.Kind.eqFloat64 :
 				isPtrRawMut(p0) ? LowExprKind.SpecialBinary.Kind.eqPtr :
 				failBinary());
@@ -288,11 +295,6 @@ immutable(BuiltinKind) getBuiltinKind(
 				isFloat64(p0) ? LowExprKind.SpecialBinary.Kind.lessFloat64 :
 				isPtrRawMut(p0) ? LowExprKind.SpecialBinary.Kind.lessPtr :
 				failBinary());
-		case shortSymValue("is-nan"):
-			return unary(
-				isFloat32(p0) ? LowExprKind.SpecialUnary.Kind.isNanFloat32 :
-				isFloat64(p0) ? LowExprKind.SpecialUnary.Kind.isNanFloat64 :
-				failUnary());
 		case shortSymValue("new-void"):
 			return isVoid(rt)
 				? constant(immutable Constant(immutable Constant.Void()))
@@ -316,6 +318,10 @@ immutable(BuiltinKind) getBuiltinKind(
 		case shortSymValue("to-char8"):
 			return unary(isNat8(p0)
 				? LowExprKind.SpecialUnary.Kind.toCharFromNat8
+				: failUnary());
+		case shortSymValue("to-float32"):
+			return unary(isFloat64(p0)
+				? LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64
 				: failUnary());
 		case shortSymValue("to-float64"):
 			return unary(isInt64(p0)
@@ -366,8 +372,20 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialBinary.Kind.unsafeDivFloat32
 				: isFloat64(rt)
 				? LowExprKind.SpecialBinary.Kind.unsafeDivFloat64
+				: isInt8(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeDivInt8
+				: isInt16(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeDivInt16
+				: isInt32(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeDivInt32
 				: isInt64(rt)
 				? LowExprKind.SpecialBinary.Kind.unsafeDivInt64
+				: isNat8(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeDivNat8
+				: isNat16(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeDivNat16
+				: isNat32(rt)
+				? LowExprKind.SpecialBinary.Kind.unsafeDivNat32
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.unsafeDivNat64
 				: failBinary());

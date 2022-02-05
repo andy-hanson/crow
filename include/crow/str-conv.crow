@@ -5,7 +5,7 @@ import
 	./compare: <
 	./misc: void
 	./number:
-		==, <=>, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-multiple-of,
+		==, <=>, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-multiple-of, is-nan,
 		min-int64, nat8, nat16, nat32, nat64, to-float64, to-int64, to-nat64, truncate-to-int64
 	./str: ~~, char8, literal, str
 
@@ -120,11 +120,14 @@ to-str str(a float32)
 	a.to-float64 to-str
 
 to-str str(a float64)
-	pos = a.abs to-str-positive
-	if a < 0
-		"-{pos}"
+	if a is-nan
+		"NaN"
 	else
-		pos
+		pos = a.abs to-str-positive
+		if a < 0
+			"-{pos}"
+		else
+			pos
 
 .to-str-positive str(a float64)
 	# TODO: Use a real float to str algorithm

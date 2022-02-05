@@ -1406,6 +1406,7 @@ immutable(WriteExprResult) writeSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.asRef:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
+		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
@@ -1449,9 +1450,6 @@ immutable(WriteExprResult) writeSpecialUnary(
 			return specialCall("__builtin_popcountl");
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return prefix("*");
-		case LowExprKind.SpecialUnary.Kind.isNanFloat32:
-		case LowExprKind.SpecialUnary.Kind.isNanFloat64:
-			return specialCall("__builtin_isnan");
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
 			return writeInlineableSimple(writer, tempAlloc, indent, ctx, writeKind, type, () {
@@ -1634,6 +1632,7 @@ immutable(WriteExprResult) writeSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat32:
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat64:
 			return operator("^");
+		case LowExprKind.SpecialBinary.Kind.eqFloat32:
 		case LowExprKind.SpecialBinary.Kind.eqFloat64:
 		case LowExprKind.SpecialBinary.Kind.eqInt8:
 		case LowExprKind.SpecialBinary.Kind.eqInt16:
@@ -1659,6 +1658,7 @@ immutable(WriteExprResult) writeSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.lessNat64:
 		case LowExprKind.SpecialBinary.Kind.lessPtr:
 			return operator("<");
+		case LowExprKind.SpecialBinary.Kind.mulFloat32:
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:
 		case LowExprKind.SpecialBinary.Kind.unsafeMulInt8:
 		case LowExprKind.SpecialBinary.Kind.unsafeMulInt16:
@@ -1679,6 +1679,7 @@ immutable(WriteExprResult) writeSpecialBinary(
 				LogicalOperator.or,
 				it.left,
 				it.right);
+		case LowExprKind.SpecialBinary.Kind.subFloat32:
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
 		case LowExprKind.SpecialBinary.Kind.unsafeSubInt8:
@@ -1696,7 +1697,13 @@ immutable(WriteExprResult) writeSpecialBinary(
 			return operator(">>");
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat32:
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
+		case LowExprKind.SpecialBinary.Kind.unsafeDivInt8:
+		case LowExprKind.SpecialBinary.Kind.unsafeDivInt16:
+		case LowExprKind.SpecialBinary.Kind.unsafeDivInt32:
 		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:
+		case LowExprKind.SpecialBinary.Kind.unsafeDivNat8:
+		case LowExprKind.SpecialBinary.Kind.unsafeDivNat16:
+		case LowExprKind.SpecialBinary.Kind.unsafeDivNat32:
 		case LowExprKind.SpecialBinary.Kind.unsafeDivNat64:
 			return operator("/");
 		case LowExprKind.SpecialBinary.Kind.unsafeModNat64:

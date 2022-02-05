@@ -31,4 +31,4 @@ SDL_Surface record mut
 SDL_LoadBMP_RW SDL_Surface(src SDL_RWops, freesrc c-int) extern<"SDL2"> noctx summon unsafe
 
 SDL_LoadBMP SDL_Surface(file str) summon unsafe
-	file.to-c-str SDL_RWFromFile "rb".to-c-str SDL_LoadBMP_RW 1
+	file.to-c-str SDL_RWFromFile "rb" SDL_LoadBMP_RW 1

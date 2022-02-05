@@ -11,11 +11,11 @@ import interpret.applyFn :
 	fnBitwiseXor,
 	fnCountOnesNat64,
 	fnEqBits,
+	fnEqFloat32,
 	fnEqFloat64,
-	fnIsNanFloat32,
-	fnIsNanFloat64,
 	fnInt64FromInt16,
 	fnInt64FromInt32,
+	fnFloat32FromFloat64,
 	fnFloat64FromFloat32,
 	fnFloat64FromInt64,
 	fnFloat64FromNat64,
@@ -29,14 +29,22 @@ import interpret.applyFn :
 	fnLessNat16,
 	fnLessNat32,
 	fnLessNat64,
+	fnMulFloat32,
 	fnMulFloat64,
+	fnSubFloat32,
 	fnSubFloat64,
 	fnTruncateToInt64FromFloat64,
 	fnUnsafeBitShiftLeftNat64,
 	fnUnsafeBitShiftRightNat64,
 	fnUnsafeDivFloat32,
 	fnUnsafeDivFloat64,
+	fnUnsafeDivInt8,
+	fnUnsafeDivInt16,
+	fnUnsafeDivInt32,
 	fnUnsafeDivInt64,
+	fnUnsafeDivNat8,
+	fnUnsafeDivNat16,
+	fnUnsafeDivNat32,
 	fnUnsafeDivNat64,
 	fnUnsafeModNat64,
 	fnWrapAddIntegral,
@@ -968,12 +976,6 @@ void generateSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
 			fn!fnCountOnesNat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.isNanFloat32:
-			fn!fnIsNanFloat32();
-			break;
-		case LowExprKind.SpecialUnary.Kind.isNanFloat64:
-			fn!fnIsNanFloat64();
-			break;
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
 			fn!fnInt64FromInt16();
 			break;
@@ -1005,6 +1007,9 @@ void generateSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
 			generateRefOfVal(writer, ctx, source, locals, a.arg);
+			break;
+		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
+			fn!fnFloat32FromFloat64();
 			break;
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
 			fn!fnFloat64FromFloat32();
@@ -1182,6 +1187,9 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat64:
 			fn!fnBitwiseXor();
 			break;
+		case LowExprKind.SpecialBinary.Kind.eqFloat32:
+			fn!fnEqFloat32();
+			break;
 		case LowExprKind.SpecialBinary.Kind.eqFloat64:
 			fn!fnEqFloat64();
 			break;
@@ -1229,6 +1237,9 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.lessInt64:
 			fn!fnLessInt64();
 			break;
+		case LowExprKind.SpecialBinary.Kind.mulFloat32:
+			fn!fnMulFloat32();
+			break;
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:
 			fn!fnMulFloat64();
 			break;
@@ -1237,6 +1248,9 @@ void generateSpecialBinary(
 				writer, ctx, source, locals, a.left,
 				() { writeBoolConstant(writer, source, true); },
 				() { generateExpr(writer, ctx, locals, a.right); });
+			break;
+		case LowExprKind.SpecialBinary.Kind.subFloat32:
+			fn!fnSubFloat32();
 			break;
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 			fn!fnSubFloat64();
@@ -1257,8 +1271,26 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
 			fn!fnUnsafeDivFloat64();
 			break;
+		case LowExprKind.SpecialBinary.Kind.unsafeDivInt8:
+			fn!fnUnsafeDivInt8();
+			break;
+		case LowExprKind.SpecialBinary.Kind.unsafeDivInt16:
+			fn!fnUnsafeDivInt16();
+			break;
+		case LowExprKind.SpecialBinary.Kind.unsafeDivInt32:
+			fn!fnUnsafeDivInt32();
+			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:
 			fn!fnUnsafeDivInt64();
+			break;
+		case LowExprKind.SpecialBinary.Kind.unsafeDivNat8:
+			fn!fnUnsafeDivNat8();
+			break;
+		case LowExprKind.SpecialBinary.Kind.unsafeDivNat16:
+			fn!fnUnsafeDivNat16();
+			break;
+		case LowExprKind.SpecialBinary.Kind.unsafeDivNat32:
+			fn!fnUnsafeDivNat32();
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeDivNat64:
 			fn!fnUnsafeDivNat64();

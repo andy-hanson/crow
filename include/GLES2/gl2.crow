@@ -1,5 +1,3 @@
-# /usr/include/GLES2/gl2.h
-
 no-std
 import
 	crow/bool: bool
@@ -69,6 +67,8 @@ glCreateProgram GLuint() extern<"GL"> noctx summon unsafe
 
 glCreateShader GLuint(type GLenum) extern<"GL"> noctx summon unsafe
 
+glCullFace void(mode GLenum) extern<"GL"> noctx summon unsafe
+
 glDeleteBuffers void(n GLsizei, buffers GLuint*) extern<"GL"> noctx summon unsafe
 
 glDeleteProgram void(program GLuint) extern<"GL"> noctx summon unsafe
@@ -79,6 +79,7 @@ glDeleteTextures void(n GLsizei, textures GLuint*) extern<"GL"> noctx summon uns
 
 glDrawArrays void(mode GLenum, first GLint, count GLsizei) extern noctx summon unsafe
 
+glEnable void(cap GLenum) extern<"GL"> noctx summon unsafe
 glEnableVertexAttribArray void(index GLuint) extern<"GL"> noctx summon unsafe
 
 glGenBuffers void(n GLsizei, buffers GLuint mut*) extern<"GL"> noctx summon unsafe
@@ -148,6 +149,17 @@ glTexParameteri void(target GLenum, pname GLenum, param GLenum) extern<"GL"> noc
 
 glUniform1i void(location GLint, v0 GLint) extern<"GL"> noctx summon unsafe
 
+glUniformMatrix3fv void
+	location GLint
+	count GLsizei
+	transpose GLboolean
+	value GLfloat*
+spec
+	extern<"GL">
+	noctx
+	summon
+	unsafe
+
 glUseProgram void(program GLuint) extern<"GL"> noctx summon unsafe
 
 glVertexAttribPointer void
@@ -173,6 +185,8 @@ GLenum enum
 	GL_TRIANGLES = 4
 	GL_TRIANGLE_STRIP = 5
 	GL_TRIANGLE_FAN = 6
+	GL_FRONT = 0x0404
+	GL_BACK = 0x0405
 	GL_TEXTURE_2D = 0x0de1
 	GL_UNSIGNED_BYTE = 0x1401
 	GL_FLOAT = 0x1406
@@ -197,6 +211,7 @@ GLenum enum
 	GL_TEXTURE_SWIZZLE_G = 0x8e43
 	GL_TEXTURE_SWIZZLE_B = 0x8e44
 	GL_TEXTURE_SWIZZLE_A = 0x8e45
+	GL_CULL_FACE = 0x0B44
 
 to-str str(a GLenum)
 	a enum-to-str

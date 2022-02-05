@@ -307,16 +307,14 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "deref";
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 			return "to integral (from enum)";
-		case LowExprKind.SpecialUnary.Kind.isNanFloat32:
-			return "nan? (float32)";
-		case LowExprKind.SpecialUnary.Kind.isNanFloat64:
-			return "nan? (float64)";
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 			return "ptr-to";
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
 			return "ref-of-val";
 		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
 			return "to-char8 (from nat8)";
+		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
+			return "to-float32 (from float64)";
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
 			return "to-float64 (from float32)";
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
@@ -418,6 +416,8 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "bitwise-xor (nat32)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat64:
 			return "bitwise-xor (nat64)";
+		case LowExprKind.SpecialBinary.Kind.eqFloat32:
+			return "== (float32)";
 		case LowExprKind.SpecialBinary.Kind.eqFloat64:
 			return "== (float64)";
 		case LowExprKind.SpecialBinary.Kind.eqInt8:
@@ -464,10 +464,14 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "< (nat64)";
 		case LowExprKind.SpecialBinary.Kind.lessPtr:
 			return "< (ptr)";
+		case LowExprKind.SpecialBinary.Kind.mulFloat32:
+			return "* (float32)";
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:
 			return "* (float64)";
 		case LowExprKind.SpecialBinary.Kind.orBool:
 			return "or (bool)";
+		case LowExprKind.SpecialBinary.Kind.subFloat32:
+			return "- (float32)";
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 			return "- (float64)";
 		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
@@ -488,8 +492,20 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "unsafe-div (float32)";
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
 			return "unsafe-div (float64)";
+		case LowExprKind.SpecialBinary.Kind.unsafeDivInt8:
+			return "unsafe-div (int8)";
+		case LowExprKind.SpecialBinary.Kind.unsafeDivInt16:
+			return "unsafe-div (int16)";
+		case LowExprKind.SpecialBinary.Kind.unsafeDivInt32:
+			return "unsafe-div (int32)";
 		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:
 			return "unsafe-div (int64)";
+		case LowExprKind.SpecialBinary.Kind.unsafeDivNat8:
+			return "unsafe-div (nat8)";
+		case LowExprKind.SpecialBinary.Kind.unsafeDivNat16:
+			return "unsafe-div (nat16)";
+		case LowExprKind.SpecialBinary.Kind.unsafeDivNat32:
+			return "unsafe-div (nat32)";
 		case LowExprKind.SpecialBinary.Kind.unsafeDivNat64:
 			return "unsafe-div (nat64)";
 		case LowExprKind.SpecialBinary.Kind.unsafeModNat64:

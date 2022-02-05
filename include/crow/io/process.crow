@@ -90,7 +90,7 @@ spawn-and-wait int32(exe str, args str[], environ environ) trusted summon
 
 # Executes a shell command and returns its output.
 shell-exec str(command str) trusted summon
-	pipe = command.to-c-str popen "r".to-c-str
+	pipe = command.to-c-str popen "r"
 	if pipe.as-any-const-ptr == null
 		todo
 	res char8 mut[] = ()

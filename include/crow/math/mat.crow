@@ -1,0 +1,106 @@
+no-std
+import
+	../col/arr: ~~, arr
+	../number: -, float32, float64
+	../str: literal, str
+	../str-conv: finish, interp, with-str, with-value
+	./trig: cos, sin
+	./vec: +, *, dot, new, normalize, to-arr, to-str, vec3-32, vec3-64, x, y, z
+
+mat3-32 record
+	by-val
+	row0 vec3-32
+	row1 vec3-32
+	row2 vec3-32
+mat3-64 record
+	by-val
+	row0 vec3-64
+	row1 vec3-64
+	row2 vec3-64
+
+# 0 matrix.
+new mat3-32()
+	(), (), ()
+new mat3-64()
+	(), (), ()
+
+# Identity matrix.
+I mat3-32() noctx
+	(1, 0, 0), (0, 1, 0), (0, 0, 1)
+I mat3-64() noctx
+	(1, 0, 0), (0, 1, 0), (0, 0, 1)
+
+to-arr float32[](a mat3-32)
+	a.row0.to-arr ~~ a.row1.to-arr ~~ a.row2.to-arr
+to-arr float64[](a mat3-64)
+	a.row0.to-arr ~~ a.row1.to-arr ~~ a.row2.to-arr
+
+col0 vec3-32(a mat3-32) noctx
+	a.row0.x, a.row1.x, a.row2.x
+col0 vec3-64(a mat3-64) noctx
+	a.row0.x, a.row1.x, a.row2.x
+col1 vec3-32(a mat3-32) noctx
+	a.row0.y, a.row1.y, a.row2.y
+col1 vec3-64(a mat3-64) noctx
+	a.row0.y, a.row1.y, a.row2.y
+col2 vec3-32(a mat3-32) noctx
+	a.row0.z, a.row1.z, a.row2.z
+col2 vec3-64(a mat3-64) noctx
+	a.row0.z, a.row1.z, a.row2.z
+
++ mat3-32(a mat3-32, b mat3-32) noctx
+	a.row0 + b.row0, a.row1 + b.row1, a.row2 + b.row2
++ mat3-64(a mat3-64, b mat3-64) noctx
+	a.row0 + b.row0, a.row1 + b.row1, a.row2 + b.row2
+
+* mat3-32(a mat3-32, b float32) noctx
+	a.row0 * b, a.row1 * b, a.row2 * b
+* mat3-64(a mat3-64, b float64) noctx
+	a.row0 * b, a.row1 * b, a.row2 * b
+
+* mat3-32(a float32, b mat3-32) noctx
+	b * a
+* mat3-64(a float64, b mat3-64) noctx
+	b * a
+
+* mat3-32(a mat3-32, b mat3-32) noctx
+	# TODO:PERF
+	row0 vec3-32 = (a.row0 dot b.col0), (a.row0 dot b.col1), (a.row0 dot b.col2)
+	row1 vec3-32 = (a.row1 dot b.col0), (a.row1 dot b.col1), (a.row1 dot b.col2)
+	row2 vec3-32 = (a.row2 dot b.col0), (a.row2 dot b.col1), (a.row2 dot b.col2)
+	row0, row1, row2
+* mat3-64(a mat3-64, b mat3-64) noctx
+	# TODO:PERF
+	row0 vec3-64 = (a.row0 dot b.col0), (a.row0 dot b.col1), (a.row0 dot b.col2)
+	row1 vec3-64 = (a.row1 dot b.col0), (a.row1 dot b.col1), (a.row1 dot b.col2)
+	row2 vec3-64 = (a.row2 dot b.col0), (a.row2 dot b.col1), (a.row2 dot b.col2)
+	row0, row1, row2
+
+* vec3-32(a mat3-32, b vec3-32) noctx
+	(a.row0 dot b), (a.row1 dot b), (a.row2 dot b)
+* vec3-64(a mat3-64, b vec3-64) noctx
+	(a.row0 dot b), (a.row1 dot b), (a.row2 dot b)
+
+rotation mat3-32(axis vec3-32, theta float32)
+	norm = axis normalize
+	cos = theta cos
+	cos * I + theta.sin * norm.cross-product-matrix + (1::float32 - cos) * (norm outer-product norm)
+rotation mat3-64(axis vec3-64, theta float64)
+	norm = axis normalize
+	cos = theta cos
+	cos * I + theta.sin * norm.cross-product-matrix + (1::float64 - cos) * (norm outer-product norm)
+
+.cross-product-matrix mat3-32(a vec3-32) noctx
+	(0, -a.z, a.y), (a.z, 0, -a.x), (-a.y, a.x, 0)
+.cross-product-matrix mat3-64(a vec3-64) noctx
+	(0, -a.z, a.y), (a.z, 0, -a.x), (-a.y, a.x, 0)
+
+outer-product mat3-32(a vec3-32, b vec3-32) noctx
+	b * a.x, b * a.y, b * a.z
+outer-product mat3-64(a vec3-64, b vec3-64) noctx
+	b * a.x, b * a.y, b * a.z
+
+to-str str(a mat3-32)
+	"[{a row0} {a row1} {a row2}]"
+to-str str(a mat3-64)
+	"[{a row0} {a row1} {a row2}]"

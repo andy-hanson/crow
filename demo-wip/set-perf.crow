@@ -1,18 +1,18 @@
 import
 	crow/col/dict: -, ~, dict, in, new, size
 	crow/col/experimental/compact-dict: -, ~, compact-dict, in, new, node-count, size
-	crow/col/frozen-dict: frozen-dict, in, size, to-frozen-dict
-	crow/col/frozen-set:
-		frozen-set, in, unsafe-frozen-set-from-fix-arr-cast-immutable, size
-	crow/col/index-set: -, ~, index-set, in, new, size
 	crow/col/experimental/compact-sorted-dict: -, ~, compact-sorted-dict, in, new, size
+	crow/col/experimental/frozen-dict: frozen-dict, in, size, to-frozen-dict
+	crow/col/experimental/frozen-set:
+		frozen-set, in, unsafe-frozen-set-from-fix-arr-cast-immutable, size
 	crow/col/experimental/hamt-set: -, ~, hamt-set, in, new, size
+	crow/col/experimental/index-set: -, ~, index-set, in, new, size
 	crow/col/experimental/tree-set: -, ~, in, new, size, tree-set
 	crow/col/mut-arr: ~=, move-to-arr, move-to-fix-arr, mut-arr, new
 	crow/col/set: ~, in, new, node-count, set, size
 	crow/col/sorted-set: -, ~, in, new, sorted-set, size
 	crow/io/print: print
-	crow/io/time: get-monotime-nsec
+	crow/io/private/time-low-level: get-monotime-nsec
 	crow/log: info, log
 	crow/private/alloc: force-needs-gc, gc, get-gc, get-stats, words-used
 	crow/private/bootstrap: todo
@@ -200,22 +200,19 @@ This ensures the collection is kept in memory.
 		a
 	else
 		n = max-value.rand-nat
-		# TODO: should not need type annotation
-		a ~ (n, ())::pair<nat, void> add-test iters - 1, max-value
+		a ~ (n, ()) add-test iters - 1, max-value
 
 .add-test compact-sorted-dict<nat, void>(a compact-sorted-dict<nat, void>, iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
-		# TODO: should not need type annotation
-		a ~ (max-value.rand-nat, ())::pair<nat, void> add-test iters - 1, max-value
+		a ~ (max-value.rand-nat, ()) add-test iters - 1, max-value
 
 .add-test void[nat](a void[nat], iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
-		# TODO: should not need type annotation
-		a ~ (max-value.rand-nat, ())::pair<nat, void> add-test iters - 1, max-value
+		a ~ (max-value.rand-nat, ()) add-test iters - 1, max-value
 
 .add-test hamt-set nat(a hamt-set nat, iters nat, max-value nat) summon
 	if iters == 0
@@ -260,8 +257,7 @@ body
 	if iters == 0
 		a.move-to-arr to-frozen-dict
 	else
-		# TODO: should not need type annotation
-		a ~= (max-value.rand-nat, ()) :: pair<nat, void>
+		a ~= (max-value.rand-nat, ())
 		a frozen-dict-add-test iters - 1, max-value
 
 .frozen-set-add-test frozen-set nat(a nat mut[], iters nat, max-value nat) trusted summon
@@ -275,22 +271,19 @@ body
 	if iters == 0
 		a
 	else
-		# TODO: should not need type annotation
-		(a ~ (max-value.rand-nat, ())::pair<nat, void>) - max-value.rand-nat rm-test iters - 1, max-value
+		(a ~ (max-value.rand-nat, ())) - max-value.rand-nat rm-test iters - 1, max-value
 
 .rm-test compact-sorted-dict<nat, void>(a compact-sorted-dict<nat, void>, iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
-		# TODO: should not need type annotation
-		(a ~ (max-value.rand-nat, ())::pair<nat, void>) - max-value.rand-nat rm-test iters - 1, max-value
+		(a ~ (max-value.rand-nat, ())) - max-value.rand-nat rm-test iters - 1, max-value
 
 .rm-test void[nat](a void[nat], iters nat, max-value nat) summon
 	if iters == 0
 		a
 	else
-		# TODO: should not need type annotation
-		(a ~ (max-value.rand-nat, ())::pair<nat, void>) - max-value.rand-nat rm-test iters - 1, max-value
+		(a ~ (max-value.rand-nat, ())) - max-value.rand-nat rm-test iters - 1, max-value
 
 .rm-test hamt-set nat(a hamt-set nat, iters nat, max-value nat) summon
 	if iters == 0

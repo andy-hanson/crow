@@ -1,0 +1,16 @@
+no-std
+import
+	crow/number: float64
+
+acos float64(a float64) noctx extern<"m">
+atan float64(a float64) noctx extern<"m">
+atan2 float64(y float64, x float64) noctx extern<"m">
+cos float64(a float64) noctx extern<"m">
+sin float64(a float64) noctx extern<"m">
+tan float64(a float64) noctx extern<"m">
+acosh float64(a float64) noctx extern<"m">
+asinh float64(a float64) noctx extern<"m">
+atanh float64(a float64) noctx extern<"m">
+cosh float64(a float64) noctx extern<"m">
+sinh float64(a float64) noctx extern<"m">
+tanh float64(a float64) noctx extern<"m">

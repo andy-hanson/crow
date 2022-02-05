@@ -1,7 +1,7 @@
 no-std
 import
 	./misc: drop, new, void
-	./ptr: as-any-mut-ptr, as-ref, by-val, mut-ptr, ptr-cast
+	./ptr: as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, ptr-cast
 	./private/number-low-level: nat64
 
 ###
@@ -48,8 +48,11 @@ as-cell<a> cell a(a a mut*) no-doc noctx unsafe
 Treats a cell as a pointer.
 Make sure to use the pointer only temporarily (not past the end of this task).
 ###
-as-ptr<a> a mut*(a cell a) noctx unsafe
+as-mut-ptr<a> a mut*(a cell a) noctx unsafe
 	a.as-any-mut-ptr ptr-cast
+
+as-const-ptr<a> a*(a cell a) noctx unsafe
+	a.as-mut-ptr as-const
 
 # Sets the value in `a` to `value`, and returns the value it had before.
 get-and-set<a> a(a cell a, value a) noctx

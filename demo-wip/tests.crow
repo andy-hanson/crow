@@ -31,7 +31,8 @@ import
 	crow/io/time-format: gmt
 	crow/json: json-str
 	crow/log: info
-	crow/math/vec: new, vec2
+	crow/math/mat: new, mat3-32
+	crow/math/vec: new, vec2-32
 	crow/parse-command: parse-named-args
 	crow/perf: measure-total, new
 	crow/reader: new, reader
@@ -57,6 +58,7 @@ main fut nat(_ str[]) summon
 	drop: info
 	drop: () :: list<nat>
 	drop: () :: nat mut[]
+	drop: () :: mat3-32
 	drop: () :: mut-deque<nat>
 	drop: () :: nat mut[nat]
 	drop: () :: mut-grid<nat>
@@ -73,7 +75,7 @@ main fut nat(_ str[]) summon
 	drop: () :: sorted-set<nat>
 	drop: () :: stack<nat>
 	drop: () :: tree-set<nat>
-	drop: () :: vec2
+	drop: () :: vec2-32
 	drop: () :: queue<nat>
 	drop: gmt
 	drop: "".json-str

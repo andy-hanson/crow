@@ -1,0 +1,9 @@
+# `crow build demo-wip/repro.crow` breaks
+
+import
+	crow/io/print: print
+
+main fut nat(_ str[]) summon
+	print: "{0.001::float32}"
+	()
+

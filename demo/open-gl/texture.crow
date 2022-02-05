@@ -1,8 +1,7 @@
 no-std
 import
-	crow/cell: *, as-ptr, cell, new
+	crow/cell: *, as-mut-ptr, cell, new
 	crow/exception: throw
-	crow/io/print: print
 	crow/misc: new, void
 	crow/number: to-int32
 	crow/ptr: as-const, ptr-to
@@ -18,14 +17,13 @@ import
 load-texture GLuint(path str) unsafe summon
 	path with-webp image =>
 		texture-cell cell GLuint = 0,
-		1 glGenTextures texture-cell.as-ptr
+		1 glGenTextures texture-cell.as-mut-ptr
 		texture = *texture-cell
 
 		GL_TEXTURE_2D glBindTexture texture
 		w = image.width to-int32
 		h = image.height to-int32
 		image-data = image.image-data as-const
-		print: "width is {w}, height is {h}"
 		GL_TEXTURE_2D glTexImage2D 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image-data
 
 		err = glGetError
