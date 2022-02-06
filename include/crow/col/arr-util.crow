@@ -8,13 +8,13 @@ import
 	../ptr: ==, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../tuple: new, pair
 	../private/alloc: alloc-uninitialized, fill-ptr-range
-	../private/bootstrap: new
+	../private/bootstrap: hard-assert, new
 	../private/exception-low-level: assert-c-str, forbid-c-str
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub, wrap-mul
 	../private/range-low-level: ..
 	./arr: ~, ~~, arr, is-empty, new, size, subscript
 	./iter: new, value-and-rest
-	./private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr, noctx-at
+	./private/arr-low-level: arr-from-begin-end, begin-ptr, empty-arr, end-ptr, noctx-at
 
 region basic array operations
 
@@ -577,23 +577,26 @@ arr-iter<a> record
 	# If at the end of the array, this iterator is empty.
 	.index nat64
 
-iter<a> arr-iter<a>(a a[])
+new<a> arr-iter a() noctx
+	empty-arr, 0
+
+iter<a> arr-iter<a>(a a[]) noctx
 	a, 0
 
 # Iterator at the end, suitable for iterating over `a` by calling `prev`.
-end-iter<a> arr-iter<a>(a a[])
+end-iter<a> arr-iter<a>(a a[]) noctx
 	a, a.size
 
-next<a> value-and-rest<a, arr-iter a>?(a arr-iter a)
-	"corrupt arr-iter" assert-c-str a.index <= a.xs.size
+next<a> value-and-rest<a, arr-iter a>?(a arr-iter a) trusted noctx
+	hard-assert: a.index <= a.xs.size
 	if a.index != a.xs.size
-		(a.xs[a.index], (a.xs, a.index wrap-add 1)),
+		((a.xs noctx-at a.index), (a.xs, a.index wrap-add 1)),
 
-prev<a> value-and-rest<a, arr-iter a>?(a arr-iter a)
-	"corrupt arr-iter" assert-c-str a.index <= a.xs.size
+prev<a> value-and-rest<a, arr-iter a>?(a arr-iter a) trusted noctx
+	hard-assert: a.index <= a.xs.size
 	if a.index != 0
 		prev-index = a.index wrap-sub 1
-		(a.xs[prev-index], (a.xs, prev-index)),
+		((a.xs noctx-at prev-index), (a.xs, prev-index)),
 
 slice-left<a> a[](a arr-iter a)
 	a.xs[0 .. a.index]
