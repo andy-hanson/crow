@@ -2,6 +2,7 @@ no-std
 import
 	../col/arr: arr, size, subscript
 	../col/private/arr-low-level: noctx-at
+	../col/dict: dict, empty-dict
 	../compare: >, min
 	../exception: exception, to-str
 	../io/print: print-err, print-err-no-newline
@@ -9,7 +10,7 @@ import
 	../misc: new, void
 	../opt: new, opt
 	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val
-	../str: literal
+	../str: literal, str
 	./alloc: gc, get-gc-ctx, needs-gc, return-gc-ctx, run-garbage-collection
 	./bool-low-level: !, &&, ||, bool, false, true
 	./bootstrap:
@@ -40,17 +41,9 @@ cur-island-and-exclusion island-and-exclusion() unsafe
 	c = get-ctx
 	c.island-id, c.exclusion
 
-dynamic-sym-node record
-	by-ref
-	sym sym
-	next dynamic-sym-node?
-
 global-ctx record mut
 	lk by-val lock
 	print-lock by-val lock
-	syms-lock by-val lock
-	# Dynamically allocated array. Terminated by a null sym. Capacity is a power of 2.
-	dynamic-syms mut dynamic-sym-node?
 	# TODO: fix-arr
 	islands mut island[]
 	# if a thread finds no work to do, it decrements this and waits on 'may-be-work-to-do'.
@@ -70,6 +63,7 @@ island record mut
 	gc-root by-val island-gc-root
 	# All below must not be GC allocated
 
+	syms-lock by-val lock
 	# these variables are all protected by tasks-lock
 	tasks-lock by-val lock
 	# Number of threads currently performing tasks in this island
@@ -79,10 +73,16 @@ island record mut
 
 island-gc-root record mut
 	tasks by-val task-queue
+	syms-table mut sym[str]
 	# If there's an uncaught exception (e.g. in 'call-ref-and-drop'), we'll call this.
 	# Default is to print it and set `gctx.any-unhandled-exceptions`
 	exception-handler mut fun void(exception)
 	log-handler mut log-handler
+
+syms-table sym[str](a island) trusted noctx
+	a.gc-root.ref-of-val syms-table
+set-syms-table void(a island, value sym[str]) trusted noctx
+	a.gc-root.ref-of-val.syms-table := value
 
 .tasks task-queue(a island) noctx unsafe
 	a.gc-root.ref-of-val.tasks ref-of-val
@@ -95,9 +95,9 @@ new-exclusion exclusion(v island) noctx trusted
 
 island by-val island(gctx global-ctx, id island-id, max-threads nat64) summon noctx unsafe
 	q by-val task-queue = max-threads,
-	gc-root by-val island-gc-root = q, (exn => exn default-exception-handler), log =>
+	gc-root by-val island-gc-root = q, empty-dict, (exn => exn default-exception-handler), log =>
 		log default-log-handler
-	gctx, id, gc, gc-root, lock-by-val, 0, ()
+	gctx, id, gc, gc-root, lock-by-val, lock-by-val, 0, ()
 
 default-exception-handler void(e exception) summon unsafe
 	print-err-no-newline: "uncaught exception: "

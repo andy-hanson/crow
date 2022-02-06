@@ -1,4 +1,5 @@
-Crow executables (e.g. `bin/crow` or `bin/crow-debug`) link to `libgccjit`. This uses a GPL license, and so the executables do too.
+Crow executables (e.g. `bin/crow` or `bin/crow-debug`) link to `libgccjit`.
+This uses a GPL license, and so the executables do too.
 
 Source code in this repository is in the public domain. This excludes:
 

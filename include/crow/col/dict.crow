@@ -24,6 +24,7 @@ import
 	./fix-arr:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fill-fix-arr, fix-arr, set-subscript, size,
 		subscript, uninitialized-fix-arr
+	./private/arr-low-level: empty-arr
 	./sort: sort-by
 
 ###
@@ -54,8 +55,8 @@ dict-equal<k, v> bool(a v[k], b v[k]) no-doc is-data<k> compare<k> hash-mix<k> e
 	inner-node node<k, v>[]
 	leaf-node pair<k, v>[]
 
-.empty-leaf-node<k, v> node<k, v>()
-	() leaf-node
+.empty-leaf-node<k, v> node<k, v>() noctx
+	empty-arr leaf-node
 
 .low-bits nat64(a nat64)
 	a & 0b111
@@ -65,6 +66,10 @@ dict-equal<k, v> bool(a v[k], b v[k]) no-doc is-data<k> compare<k> hash-mix<k> e
 
 .leaf-max-size nat64()
 	8
+
+empty-dict<k, v> v[k]() noctx
+	# TODO: should not need type annotation
+	empty-leaf-node@<k, v>,
 
 ###
 Creates a new dict from the given key-value pairs.
@@ -168,7 +173,7 @@ Adds/updates many entries to `a`.
 
 got-or-added<k, v> union
 	got v
-	added v[k]
+	added pair<v[k], v>
 
 ###
 If `key` is already in `a`, return `already-has-key` with the old value.
@@ -180,10 +185,10 @@ get-or-add<k, v> got-or-added<k, v>(a v[k], key k, get-value act v()) is-data<k>
 			get-value[] insert
 		else
 			no-change
-	if value ?= res old-value
-		value got
+	if v ?= res old-value
+		v got
 	else
-		(res.new-node!,) added
+		((res.new-node!,), res.new-value!) added
 
 ###
 Removes a key and its associated value.
@@ -218,6 +223,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 	# If none, don't update anything
 	new-node node<k, v>?
 	old-value v?
+	new-value v?
 
 .get-or-update-action<v> union
 	no-change
@@ -261,21 +267,21 @@ body
 			child-res = i[which] get-or-update-recur key, next-hash, (hash-shift wrap-add 3), f
 			if node ?= child-res new-node
 				new-inner = i update-child which, node
-				(new-inner,), child-res.old-value
+				(new-inner,), child-res.old-value, child-res.new-value
 			else
 				child-res
 		else
 			match f[()]
 			as no-change
-				(), ()
+				(), (), ()
 			as remove
-				(), ()
+				(), (), ()
 			as insert ins
 				# TODO: type annotation should not be necessary
 				new-leaf node<k, v> = ((key, ins),) leaf-node
 				# TODO: type annotation should not be necessary
 				new-node node<k, v> = i update-at-with-default which, new-leaf, empty-leaf-node inner-node
-				(new-node,), ()
+				(new-node,), (), (ins,)
 	as leaf-node l
 		l get-or-update-leaf key, remaining-hash, hash-shift, f
 
@@ -342,32 +348,32 @@ spec
 body
 	if index ?= a find-index it => it.from == key
 		old-value = a[index] to
-		new-node node<k, v>? = match f[(old-value,)]
+		match f[(old-value,)]
 		as no-change
-			()
+			(), (old-value,), ()
 		as remove
-			(a remove-at index leaf-node),
+			((a remove-at index leaf-node),), (old-value,), ()
 		as insert ins
-			(a update-at index, (key, ins) leaf-node),
-		new-node, (old-value,)
+			new-node node<k, v> = a update-at index, (key, ins) leaf-node
+			(new-node,), (old-value,), (ins,)
 	else
-		new-node node<k, v>? = match f[()]
+		match f[()]
 		as no-change
-			()
+			(), (), ()
 		as remove
-			()
+			(), (), ()
 		as insert ins
-			if a.size >= leaf-max-size
+			new-node node<k, v> = if a.size >= leaf-max-size
 				if hash-shift >= 64
 					# We've exhausted the hash.
 					# TODO: fall back to a sorted dict ?
 					todo
 				# If we get here, it's guaranteed that we don't need to recursively create leaves.
 				# Just group by hash.
-				(a new-inner-node key, ins, remaining-hash, hash-shift),
+				a new-inner-node key, ins, remaining-hash, hash-shift
 			else
-				(a ~ (key, ins) leaf-node),
-		new-node, ()
+				a ~ (key, ins) leaf-node
+			(new-node,), (), (ins,)
 
 # In order to get the hash, we need to know the shift amount
 .new-inner-node<k, v> node<k, v>

@@ -30,11 +30,11 @@ mark-ctx record mut
 
 # Returns true if the range is GC-allocated memory and was not already marked
 mark bool(ctx mark-ctx, ptr-any any-const-ptr, size-bytes nat64) noctx unsafe summon
-	hard-assert: ptr-any is-word-aligned
 	size-words = size-bytes words-of-bytes
 	ptr nat64* = ptr-any ptr-cast
 	index = ptr - ctx.memory-start.as-const
 	if index < ctx.memory-size-words
+		hard-assert: ptr-any is-word-aligned
 		hard-assert: (index wrap-add size-words) <= ctx.memory-size-words
 		mark-start = ctx.marks + index
 		mark-end = mark-start + size-words

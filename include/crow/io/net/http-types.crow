@@ -2,9 +2,8 @@ no-std
 import
 	../../col/arr: arr
 	../../col/dict: dict, new
-	../../hash: hash-mix
 	../../number: nat8, nat64
-	../../str: ==, <=>, literal, str
+	../../str: ==, <=>, hash-mix, literal, str
 	../../str-util: as-str, to-bytes
 
 # Parsed HTTP request.

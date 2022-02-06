@@ -8,13 +8,11 @@ which require a `hash-mix` implementation for the key type.
 no-std
 import
 	./bool: bool, to-nat64
-	./col/seq: each
 	./misc: void
-	./number: int8, int16, int32, int64, nat8, nat16, nat32, nat64, to-int64, to-nat64
-	./ptr: by-val, ref-of-val, to-nat64
-	./str: char8s, str, to-nat8
-	./sym: sym, to-c-str
-	./private/number-low-level: unsafe-to-nat64, wrap-add
+	./ptr: by-val, ref-of-val
+	./private/number-low-level:
+		int8, int16, int32, int64, nat8, nat16, nat32, nat64, to-int64, to-nat64, unsafe-to-nat64,
+		wrap-add
 
 ###
 Spec that should be implemented for any type used as a dictionary key.
@@ -58,10 +56,3 @@ hash-mix void(hasher hasher, a int64) trusted
 
 hash-mix void(hasher hasher, a bool)
 	hasher hash-mix a.to-nat64
-
-hash-mix void(hasher hasher, a str)
-	a.char8s each c =>
-		hasher hash-mix c.to-nat8.to-nat64
-
-hash-mix void(hasher hasher, a sym) trusted
-	hasher hash-mix a.to-c-str.to-nat64

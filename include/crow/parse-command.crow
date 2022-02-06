@@ -8,12 +8,11 @@ import
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	./col/mut-arr: fill-mut-arr, move-to-arr, mut-arr, set-subscript, subscript
 	./exception: throw
-	./hash: hash-mix
 	./misc: void
 	./number: ==, <=>, +
 	./opt: !, ??, new, opt
 	./range: ..
-	./str: ==, <=>, literal, str
+	./str: ==, <=>, hash-mix, literal, str
 	./str-conv: interp, finish, to-str, with-str, with-value
 	./str-util: starts-with, try-remove-start
 

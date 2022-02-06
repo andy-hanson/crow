@@ -1,0 +1,58 @@
+no-std
+import
+	../bool: bool
+	../col/arr-util: map
+	../col/dict: get-or-add, to-dict
+	../col/seq: fold, size
+	../compare: comparison
+	../misc: void
+	../ptr: ==, +, as-const, mut-ptr, ref-of-val, set-deref
+	../str: ==, <=>, char8, char8s, c-str, hash-mix, str
+	../str-util: to-str
+	../tuple: a, b, new
+	./alloc: unmanaged-alloc-elements
+	./bootstrap: hard-assert, new-sym, static-syms
+	./number-low-level: wrap-add
+	./runtime: get-cur-island, island, set-syms-table, syms-lock, syms-table
+	./thread-utils: with-lock
+export
+	# TODO: ensure that 'sym' constructor from c-str is not exported
+	../private/bootstrap: sym, to-c-str
+
+== bool(a sym, b sym) noctx trusted
+	# (this is pointer equality)
+	a.to-c-str == b.to-c-str
+
+# Same as `a.to-str <=> b.to-str`.
+<=> comparison(a sym, b sym)
+	a.to-str <=> b.to-str
+
+to-str str(a sym) noctx trusted
+	a.to-c-str to-str
+
+init-symbol-table void(a island)
+	a.syms-table := static-syms map (x => (x.to-str, x)) to-dict
+
+# TODO: name 'to-sym'
+###
+Interns a string.
+This is O(log n), where 'n' is the number of unique syms that exist.
+###
+str-to-sym sym(a str) trusted
+	island = get-cur-island
+	island.syms-lock.ref-of-val with-lock () =>
+		match island.syms-table get-or-add a, () => a.to-malloced-c-str new-sym
+		as got x
+			x
+		as added pair
+			island.syms-table := pair a
+			pair b
+
+.to-malloced-c-str c-str(a str) unsafe
+	res char8 mut* = a.char8s.size wrap-add 1 unmanaged-alloc-elements
+	end = res fold a.char8s, (cur, x) =>
+		*cur := x
+		cur + 1
+	hard-assert: end == res + a.char8s.size
+	*end := "\0"
+	res as-const

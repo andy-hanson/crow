@@ -5,12 +5,11 @@ import
 	../col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	../col/mut-arr: ~=, move-to-arr, mut-arr, new
 	../col/private/arr-low-level: begin-ptr, arr-from-begin-end
-	../hash: hash-mix
 	../misc: new, void
 	../private/bootstrap: todo
 	../private/c-str-util: find-char-in-c-str, find-c-str-end
 	../ptr: ==, +, *, const-ptr, null
-	../str: ==, <=>, c-str, literal, str
+	../str: ==, <=>, c-str, hash-mix, literal, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: to-c-str
 	../tuple: from, new, pair, to

@@ -1,67 +1,11 @@
 no-std
 import
-	./bool: bool
-	./col/arr-util: find
-	./col/seq: fold, size
-	./compare: comparison
-	./opt: new, opt
-	./ptr: ==, +, as-const, by-val, mut-ptr, ref-of-ptr, ref-of-val, set-deref
-	./str: ==, <=>, char8, char8s, c-str, str
-	./str-util: to-str
-	./private/alloc: unmanaged-alloc-elements, unmanaged-alloc-uninitialized
-	./private/bootstrap: hard-assert, new-sym, static-syms
-	./private/number-low-level: wrap-add
-	./private/runtime:
-		dynamic-sym-node, dynamic-syms, get-global-ctx, global-ctx, new, next, set-dynamic-syms,
-		sym, syms-lock
-	./private/thread-utils: with-lock
+	./hash: hasher, hash-mix
+	./misc: void
+	./private/sym-low-level: to-c-str
+	./ptr: to-nat64
 export
-	# TODO: ensure that 'sym' constructor from c-str is not exported
-	./private/bootstrap: sym, to-c-str
+	./private/sym-low-level: ==, <=>, sym, to-str, str-to-sym
 
-== bool(a sym, b sym) noctx trusted
-	# (this is pointer equality)
-	a.to-c-str == b.to-c-str
-
-# Same as `a.to-str <=> b.to-str`.
-<=> comparison(a sym, b sym)
-	a.to-str <=> b.to-str
-
-to-str str(a sym) noctx trusted
-	a.to-c-str to-str
-
-# TODO: name 'to-sym'
-# Interns a string.
-str-to-sym sym(a str) trusted
-	if sym ?= static-syms find s => s.to-str == a
-		sym
-	else
-		gctx = get-global-ctx
-		gctx.syms-lock.ref-of-val with-lock () =>
-			gctx get-dynamic-sym a
-
-.get-dynamic-sym sym(gctx global-ctx, a str) unsafe
-	if sym ?= gctx.dynamic-syms find-dynamic-sym a
-		sym
-	else
-		sym sym = a.to-malloced-c-str new-sym
-		node-ptr by-val<dynamic-sym-node> mut* = unmanaged-alloc-uninitialized
-		*node-ptr := sym, gctx.dynamic-syms
-		gctx.dynamic-syms := node-ptr.ref-of-ptr,
-		sym
-
-.find-dynamic-sym sym?(a dynamic-sym-node?, s str) unsafe
-	if node ?= a
-		if node.sym.to-c-str.to-str == s
-			node.sym,
-		else
-			node.next find-dynamic-sym s
-
-.to-malloced-c-str c-str(a str) unsafe
-	res char8 mut* = a.char8s.size wrap-add 1 unmanaged-alloc-elements
-	end = res fold a.char8s, (cur, x) =>
-		*cur := x
-		cur + 1
-	hard-assert: end == res + a.char8s.size
-	*end := "\0"
-	res as-const
+hash-mix void(hasher hasher, a sym) trusted
+	hasher hash-mix a.to-c-str.to-nat64

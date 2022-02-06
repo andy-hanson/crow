@@ -6,7 +6,7 @@ import
 	../../misc: is-data, new, void
 	../../number: nat64
 	../../opt: is-empty, new, opt
-	../../tuple: new
+	../../tuple: a, new
 	../arr: arr
 	../arr-util: map
 	../dict:
@@ -42,7 +42,7 @@ try-add<a> hamt-set<a>?(a hamt-set a, value a) is-data<a> compare<a> hash-mix<a>
 	as got _
 		()
 	as added res
-		(res,),
+		(res.a,),
 
 - <a> hamt-set a(a hamt-set a, value a) is-data<a> compare<a> hash-mix<a>
 	if res ?= a try-remove value

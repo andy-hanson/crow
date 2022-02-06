@@ -10,7 +10,6 @@ import
 	../fun-util: fun-ptr2, subscript
 	../fut: delay, fut, handle-exceptions, then-void
 	../misc: new, void
-	../opt: new
 	../ptr:
 		+, any-mut-ptr, arr-of-single, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr,
 		mut-ptr, null, ptr-to, ref-of-val, set-deref, subscript
@@ -26,8 +25,9 @@ import
 		wrap-add, wrap-sub
 	./perf-low-level: perf-ctx
 	./runtime:
-		any-unhandled-exceptions, global-ctx, island, may-be-work-to-do, new, new-ctx, print-lock,
-		set-islands, thread-function
+		any-unhandled-exceptions, get-cur-island, global-ctx, island, may-be-work-to-do, new,
+		new-ctx, print-lock, set-islands, thread-function
+	./sym-low-level: init-symbol-table
 	./thread-utils:
 		create-one-thread, create-condition, destroy-condition, join-one-thread, lock-by-val
 
@@ -39,7 +39,7 @@ rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 	do-init-constants
 	n-threads = get_nprocs
 	f = false
-	gctx-by-val by-val global-ctx = lbv, lbv, lbv, (), empty-arr, n-threads, create-condition, f, f
+	gctx-by-val by-val global-ctx = lbv, lbv, empty-arr, n-threads, create-condition, f, f
 	gctx = gctx-by-val ref-of-val
 	island-by-val = gctx island 0, n-threads
 	island = island-by-val ref-of-val
@@ -126,6 +126,7 @@ body
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for fut<void> taking lambda with 0 params
 	res = delay then-void () =>
+		get-cur-island init-symbol-table
 		# First argument is the path to this executable; omit from crow main
 		main-ptr[get-ctx, all-args.tail map arg => arg to-str]
 	res handle-exceptions

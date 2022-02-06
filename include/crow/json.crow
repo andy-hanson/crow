@@ -6,13 +6,12 @@ import
 	./col/dict: dict, dict-equal, each, is-empty, new, subscript, to-dict
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	./col/mut-arr: ~=, move-to-arr, mut-arr, new
-	./hash: hash-mix
 	./misc: new, void
 	./number: ==, float64, int64, nat64, to-float64
 	./opt: new, opt
 	./reader:
 		reader, skip-whitespace, try-take-char, take-float, take-quoted-str, try-take-str, with-reader
-	./str: ==, <=>, literal, str
+	./str: ==, <=>, hash-mix, literal, str
 	./test-util: is
 	./tuple: new, pair
 	./writer: ~=, ~~=, backup, move-to-str, new, writer, write-quoted-str
