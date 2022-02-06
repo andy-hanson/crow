@@ -11,28 +11,23 @@
 
 	If you want it ported to a different system, just <a href="https://github.com/andy-hanson/crow/issues">ask</a>.
 
-	<p>
-		After downloading, test it out with:
+	<p>After downloading, test it out with:</p>
 
-		<div class="code-block">
-			tar --extract --xz --file ~/Downloads/crow.tar.xz
-			<br />
-			./crow/bin/crow run crow/demo/hello
-		</div>
+	<div class="code-block">
+		tar --extract --xz --file ~/Downloads/crow.tar.xz
+		<br />
+		./crow/bin/crow run crow/demo/hello
+	</div>
 
-		This should print <code>hello, world!</code>.
-	</p>
+	<p>This should print <code>hello, world!</code>.</p>
 
-	<p>
-		If there was an error, make sure <code>libgccjit</code> is installed on your system.
-	</p>
+	<p>If there was an error, make sure <code>libgccjit</code> is installed on your system.</p>
 
-	<p>
-		To install:
-		<div class="code-block">
-			sudo ln --force --symbolic $PWD/crow/bin/crow /usr/local/bin/crow
-			<br />
-			crow run crow/demo/hello
-		</div>
-	</p>
+	<p>To install <code>crow</code> globally:</p>
+
+	<div class="code-block">
+		sudo ln --force --symbolic $PWD/crow/bin/crow /usr/local/bin/crow
+		<br />
+		crow run crow/demo/hello
+	</div>
 </main>

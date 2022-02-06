@@ -34,12 +34,12 @@ page-template path-and-content(path str, title str, content str)
 			<ul>
 				<li>
 					<a href="https://gitter.im/crow-lang-org/community">
-						chat<crow-icon icon="external-link" />
+						chat<crow-icon icon="external-link"></crow-icon>
 					</a>
 				</li>
 				<li>
 					<a href="https://github.com/andy-hanson/crow">
-						repository<crow-icon icon="external-link" />
+						repository<crow-icon icon="external-link"></crow-icon>
 					</a>
 				</li>
 			</ul>

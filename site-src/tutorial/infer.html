@@ -5,21 +5,21 @@
 		Many expressions in crow can have multiple possible types.
 		<br />
 		For example:
-		<ul class="bullets">
-			<li>
-				<code class="lit-num">7</code> can be a <code class="struct">nat</code>,
-				<code class="struct">int</code>, or <code class="struct">float</code> (and more).
-			</li>
-			<li>
-				<code class="lit-str">"foo"</code> can be a <code class="struct">str</code> or
-				<code class="struct">sym</code>.
-			</li>
-			<li>
-				<code>()</code> calls <code>new</code> with no arguments.
-				This function has many overloads returning different types.
-			</li>
-		</ul>
 	</p>
+	<ul class="bullets">
+		<li>
+			<code class="lit-num">7</code> can be a <code class="struct">nat</code>,
+			<code class="struct">int</code>, or <code class="struct">float</code> (and more).
+		</li>
+		<li>
+			<code class="lit-str">"foo"</code> can be a <code class="struct">str</code> or
+			<code class="struct">sym</code>.
+		</li>
+		<li>
+			<code>()</code> calls <code>new</code> with no arguments.
+			This function has many overloads returning different types.
+		</li>
+	</ul>
 
 	<p>
 		In this kind of situation, the expression needs an <em>expected type</em>.
@@ -66,21 +66,17 @@
 	</p>
 
 	<h3>when there is no expected type</h3>
-	<p>
-		The only cases where an expression would have expected type would be if:
-		<ul class="bullets">
-			<li>It is the initializer of a local variable has no declared type.</li>
-			<li>It is an argument to a function call, and different overloads take different argument types.</li>
-		</ul>
-	</p>
-	<p>
-		If an expression needs an expected type, do one of the following:
-		<ul class="bullets">
-			<li>Factor the expression out to a local variable with a declared type like <code>x str = ...</code>.</li>
-			<li>Factor the expression out to a function. The function's return type provides an expected type.</li>
-			<li>Add an inline type annotation like <code>x :: str</code>.</li>
-		</ul>
-	</p>
+	<p>The only cases where an expression would have expected type would be if:</p>
+	<ul class="bullets">
+		<li>It is the initializer of a local variable has no declared type.</li>
+		<li>It is an argument to a function call, and different overloads take different argument types.</li>
+	</ul>
+	<p>If an expression needs an expected type, do one of the following:</p>
+	<ul class="bullets">
+		<li>Factor the expression out to a local variable with a declared type like <code>x str = ...</code>.</li>
+		<li>Factor the expression out to a function. The function's return type provides an expected type.</li>
+		<li>Add an inline type annotation like <code>x :: str</code>.</li>
+	</ul>
 </section>
 <section>
 	<h2>expected types in 'if'</h2>

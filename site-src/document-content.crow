@@ -75,10 +75,10 @@ module-top str(path str)
 
 .type-params-content str(a type-param[])
 	unless a is-empty
-		"""<ul class="type-params">{a map (x => x type-param-content) join ","}</ul>"""
+		"""<span class="type-params">{a map (x => x type-param-content) join ","}</span>"""
 
 .type-param-content str(a type-param)
-	"""<li><code class="type-param">{a name}</code></li>"""
+	"""<code class="type-param">{a name}</code>"""
 
 .export-header-extra str(a module-export-value)
 	match a
@@ -164,14 +164,14 @@ module-top str(path str)
 	"""<li class="sig"><code class="fun">{a name}</code> {rt}</li>"""
 
 .return-type-and-params-and-specs str(return-type type-ref, variadic bool, params param[], specs spec-ref[])
-	params-lis = params map (x => x param-li variadic) join ","
+	params-content = params map (x => x param-content variadic) join ","
 	specs-ul = unless specs is-empty
-		"""<ul class="specs">{specs map (x => x spec-ref-li) join ""}</ul>"""
-	"""{return-type type-ref-content}<ul class="params">{params-lis}</ul>{specs-ul}"""
+		"""<span class="specs">{specs map (x => x spec-ref-content) join ""}</span>"""
+	"""{return-type type-ref-content}<span class="params">{params-content}</span>{specs-ul}"""
 
-.param-li str(a param, variadic bool)
+.param-content str(a param, variadic bool)
 	var = variadic ? """<code class="keyword">...</code>"""
-	"""<li>{var}<code class="param">{a name}</code> {a.type type-ref-content}</li>"""
+	"""<span class="param">{var}<code class="param">{a name}</code> {a.type type-ref-content}</span>"""
 
 .type-ref-content str(a type-ref)
 	a type-ref-content-recur false
@@ -217,12 +217,12 @@ module-top str(path str)
 	kw = " {type}" keyword
 	"{a.type-args[0] type-ref-with-subscript}{kw}({params})"
 
-.spec-ref-li str(a spec-ref)
-	"""<li><code class="spec">{a name}</code>{a.type-args type-args-content}</li>"""
+.spec-ref-content str(a spec-ref)
+	"""<span class="spec"><code class="spec">{a name}</code>{a.type-args type-args-content}</span>"""
 
 .type-args-content str(a type-ref[])
 	unless a is-empty
-		"<{a map (x => x type-ref-content) join ","}>"
+		"&lt;{a map (x => x type-ref-content) join ","}&gt;"
 
 .keyword str(a str)
 	"""<code class="keyword">{a}</code>"""

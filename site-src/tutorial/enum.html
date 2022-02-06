@@ -47,41 +47,39 @@
 		A <code class="keyword">flags</code> type is a type that can have any combination its flags set.
 	</p>
 	<crow-runnable src="flags"></crow-runnable>
-	<p>
-		Declaring a <code class="keyword">flags</code> also declares functions:
-		<table class="operators no-header">
-			<tr>
-				<td><code class="fun">()</code></td>
-				<td>empty value where no flag is set</td>
-			</tr>
-			<tr>
-				<td><code class="fun">all</code></td>
-				<td>value where every flag is set</td>
-			</tr>
-			<tr>
-				<td><code class="fun">==</code></td>
-				<td>true if two values are exactly the same</td>
-			</tr>
-			<tr>
-				<td><code class="fun">~</code></td>
-				<td>negation: all flags that were not set become set, and vice versa.</td>
-			</tr>
-			<tr>
-				<td><code class="fun">|</code></td>
-				<td>union: all flags in either <code>a</code> or <code>b</code> are set in <code>a | b</code></td>
-			</tr>
-			<tr>
-				<td><code class="fun">&amp;</code></td>
-				<td>
-					intersection: only flags in both <code>a</code> and <code>b</code> are set in <code>a &amp; b</code>
-				</td>
-			</tr>
-			<tr>
-				<td>to-nat32</td>
-				<td>returns the number representation</td>
-			</tr>
-		</table>
-	</p>
+	<p>Declaring a <code class="keyword">flags</code> also declares functions:</p>
+	<table class="operators no-header">
+		<tr>
+			<td><code class="fun">()</code></td>
+			<td>empty value where no flag is set</td>
+		</tr>
+		<tr>
+			<td><code class="fun">all</code></td>
+			<td>value where every flag is set</td>
+		</tr>
+		<tr>
+			<td><code class="fun">==</code></td>
+			<td>true if two values are exactly the same</td>
+		</tr>
+		<tr>
+			<td><code class="fun">~</code></td>
+			<td>negation: all flags that were not set become set, and vice versa.</td>
+		</tr>
+		<tr>
+			<td><code class="fun">|</code></td>
+			<td>union: all flags in either <code>a</code> or <code>b</code> are set in <code>a | b</code></td>
+		</tr>
+		<tr>
+			<td><code class="fun">&amp;</code></td>
+			<td>
+				intersection: only flags in both <code>a</code> and <code>b</code> are set in <code>a &amp; b</code>
+			</td>
+		</tr>
+		<tr>
+			<td>to-nat32</td>
+			<td>returns the number representation</td>
+		</tr>
+	</table>
 	<p>
 		<code>a | b</code> adds flags and <code>a & ~b</code> removes flags from <code>a</code>.
 		<br />

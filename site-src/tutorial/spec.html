@@ -45,22 +45,20 @@
 	A user-defined spec declares functions, but some builtin specs do other things.
 
 	<h3>type specs</h3>
-	<p>
-		Some specs are properties of a type itself.
-		<ul class="bullets">
-			<li>
-				<code class="spec">is-data&lt;a></code> is a spec that is only satisfied if
-				<code>a</code> is an immutable type.
-				<br />
-				This is used for dictionary keys, since changing a key would corrupt the dictionary.
-			</li>
-			<li>
-				<code class="spec">is-sendable</code> is like <code class="spec">is-data</code>
-				but supports <code class="struct">fut</code> and <code class="keyword">ref</code> types.
-				A type must be sendable to be used in the closure of a <code class="fun">launch</code>.
-			</li>
-		</ul>
-	</p>
+	<p>A few special specs are properties of a type itself.</p>
+	<ul class="bullets">
+		<li>
+			<code class="spec">is-data&lt;a></code> is a spec that is only satisfied if
+			<code>a</code> is an immutable type.
+			<br />
+			This is used for dictionary keys, since changing a key would corrupt the dictionary.
+		</li>
+		<li>
+			<code class="spec">is-sendable</code> is like <code class="spec">is-data</code>
+			but supports <code class="struct">fut</code> and <code class="keyword">ref</code> types.
+			A type must be sendable to be used in the closure of a <code class="fun">launch</code>.
+		</li>
+	</ul>
 
 	<h3>summon</h3>
 	<p>
