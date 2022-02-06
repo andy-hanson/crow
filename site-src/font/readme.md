@@ -1,2 +1,1 @@
-Hack from https://github.com/source-foundry/Hack
 Murecho from https://github.com/positype/Murecho-Project
