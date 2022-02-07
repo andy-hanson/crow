@@ -1,9 +1,9 @@
-stats: cur-word=37393, words-used=37393, words-free=28143
+stats: cur-word=35881, words-used=35881, words-free=29655
 gc count: 0
 a: a=1, b=2, c=3
-stats (after print): cur-word=37564, words-used=37564, words-free=27972
+stats (after print): cur-word=36052, words-used=36052, words-free=29484
 -- after gc --
-stats: cur-word=113, words-used=1702, words-free=63834
+stats: cur-word=108, words-used=1631, words-free=63905
 gc count: 1
 a: a=1, b=2, c=3
-stats (after print): cur-word=278, words-used=1867, words-free=63669
+stats (after print): cur-word=273, words-used=1796, words-free=63740

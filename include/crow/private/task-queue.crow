@@ -50,8 +50,8 @@ no-task record
 	first-task-time timestamp?
 
 pop-task-result union mut
-	ptr-task task
-	ptr-no-task no-task
+	task task
+	no-task no-task
 
 # Caller should call 'return-task' after running the task
 pop-task pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
@@ -64,16 +64,16 @@ pop-task pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 				head pop-recur exclusions, cur-time, task.time.to-opt-time
 			else
 				a.head := head.next
-				head.task ptr-task
+				head.task task
 		else
-			(true, (task.time,)) ptr-no-task
+			(true, (task.time,)) no-task
 	else
-		(false, ()) ptr-no-task
+		(false, ()) no-task
 
 	match res
-	as ptr-task t
+	as task t
 		exclusions push-capacity-must-be-sufficient t.exclusion
-	as ptr-no-task _
+	as no-task _
 		()
 
 	res
@@ -104,11 +104,11 @@ body
 					task.time to-opt-time
 			else
 				prev.next := cur.next
-				task ptr-task
+				task task
 		else
-			(true, (task.time,)) ptr-no-task
+			(true, (task.time,)) no-task
 	else
-		(true, first-task-time) ptr-no-task
+		(true, first-task-time) no-task
 
 insert-task void(a task-queue, inserted task-queue-node) noctx unsafe
 	size-before = a size

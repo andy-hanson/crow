@@ -9,7 +9,7 @@ import
 	./compare: comparison, less, equal, greater
 	./fun-util: subscript
 	./misc: new
-	./private/bootstrap: arr, begin-ptr, nat64, new, size, void
+	./private/bootstrap: arr, begin-ptr, nat64, size, void
 	./private/number-low-level: ==, unsafe-div, wrap-sub
 export
 	./private/bootstrap: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, zeroed
@@ -136,10 +136,6 @@ max-ptr<a> a*() noctx unsafe
 	max-ptr as-const
 max-ptr<a> a mut*() noctx unsafe
 	null + 0xffffffffffffffff
-
-# TODO:KILL
-arr-of-single<a> a[](a a*) no-doc noctx unsafe
-	1, a
 
 ###
 True iff the bits of two values are equal.

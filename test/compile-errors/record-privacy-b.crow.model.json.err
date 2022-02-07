@@ -3,7 +3,7 @@ expected return type: private-ctor
 actual argument types:  (other arguments not checked, gave up early)
 candidates (with 1 arguments):
 	new arr<a>(...arr<a>) (from crow/col/arr.crow line 22)
-	new fut<a>(a) (from crow/fut.crow line 29)
+	new fut<a>(a) (from crow/fut.crow line 28)
 	new opt<a>(a) (from crow/opt.crow line 17)
 	new interp(str) (from crow/str-conv.crow line 156)
 	new by-val<interp>(str) (from crow/str-conv.crow line 156)

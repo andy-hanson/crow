@@ -165,11 +165,10 @@ enum SpecialSym {
 	unsafe_to_nat64,
 
 	call_with_ctx,
-	island_and_exclusion,
 
 	force_sendable,
 	flags_members,
-	cur_island_and_exclusion,
+	cur_exclusion,
 }
 
 immutable(Sym) symForOperator(immutable Operator a) {
@@ -303,15 +302,13 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 
 		case SpecialSym.call_with_ctx:
 			return safeCStr!"call-with-ctx";
-		case SpecialSym.island_and_exclusion:
-			return safeCStr!"island-and-exclusion";
 
 		case SpecialSym.force_sendable:
 			return safeCStr!"force-sendable";
 		case SpecialSym.flags_members:
 			return safeCStr!"flags-members";
-		case SpecialSym.cur_island_and_exclusion:
-			return safeCStr!"cur-island-and-exclusion";
+		case SpecialSym.cur_exclusion:
+			return safeCStr!"cur-exclusion";
 	}
 }
 

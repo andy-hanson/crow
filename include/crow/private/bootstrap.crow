@@ -256,7 +256,6 @@ get-ctx ctx() unsafe builtin
 ctx record mut
 	by-ref
 	gctx-ptr any-mut-ptr
-	island-id island-id
 	exclusion exclusion
 	gc-ctx-ptr any-mut-ptr
 	thread-local-stuff thread-local-stuff
@@ -269,16 +268,8 @@ thread-local-stuff record mut
 	log-ctx-ptr any-mut-ptr
 	perf-ctx-ptr any-mut-ptr
 
-island-id alias
-	nat64
-
 exclusion alias
 	nat64
-
-island-and-exclusion record
-	by-val
-	island island-id
-	exclusion exclusion
 
 region fun
 
@@ -329,23 +320,23 @@ instead a task is added that will call the `act` when its exclusion is available
 ###
 fun-ref0<r> record force-sendable
 	by-val
-	island-and-exclusion island-and-exclusion
+	exclusion exclusion
 	action act fut r()
 fun-ref1<r, p0> record force-sendable
 	by-val
-	island-and-exclusion island-and-exclusion
+	exclusion exclusion
 	action act fut r(p0)
 fun-ref2<r, p0, p1> record force-sendable
 	by-val
-	island-and-exclusion island-and-exclusion
+	exclusion exclusion
 	action act fut r(p0, p1)
 fun-ref3<r, p0, p1, p2> record force-sendable
 	by-val
-	island-and-exclusion island-and-exclusion
+	exclusion exclusion
 	action act fut r(p0, p1, p2)
 fun-ref4<r, p0, p1, p2, p3> record force-sendable
 	by-val
-	island-and-exclusion island-and-exclusion
+	exclusion exclusion
 	action act fut r(p0, p1, p2, p3)
 
 ###

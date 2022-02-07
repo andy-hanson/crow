@@ -13,7 +13,7 @@ import
 	./alloc: unmanaged-alloc-elements
 	./bootstrap: hard-assert, new-sym, static-syms
 	./number-low-level: wrap-add
-	./runtime: get-cur-island, island, set-syms-table, syms-lock, syms-table
+	./runtime: get-global-ctx, global-ctx, set-syms-table, syms-lock, syms-table
 	./thread-utils: with-lock
 export
 	# TODO: ensure that 'sym' constructor from c-str is not exported
@@ -30,7 +30,7 @@ export
 to-str str(a sym) noctx trusted
 	a.to-c-str to-str
 
-init-symbol-table void(a island)
+init-symbol-table void(a global-ctx)
 	a.syms-table := static-syms map (x => (x.to-str, x)) to-dict
 
 # TODO: name 'to-sym'
@@ -39,13 +39,13 @@ Interns a string.
 This is O(log n), where 'n' is the number of unique syms that exist.
 ###
 str-to-sym sym(a str) trusted
-	island = get-cur-island
-	island.syms-lock.ref-of-val with-lock () =>
-		match island.syms-table get-or-add a, () => a.to-malloced-c-str new-sym
+	gctx = get-global-ctx
+	gctx.syms-lock.ref-of-val with-lock () =>
+		match gctx.syms-table get-or-add a, () => a.to-malloced-c-str new-sym
 		as got x
 			x
 		as added pair
-			island.syms-table := pair a
+			gctx.syms-table := pair a
 			pair b
 
 .to-malloced-c-str c-str(a str) unsafe

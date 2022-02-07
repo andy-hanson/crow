@@ -117,7 +117,7 @@ words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) noctx unsafe
 	else
 		acc wrap-add cur->to-nat64 words-used-in-range cur + 1, end
 
-gc by-val gc() noctx unsafe
+new by-val gc() noctx unsafe
 	# TODO: handle malloc failure
 	# 3 * 2**24 words = 3 * 2**27 bytes = 3 * 2**8 MB = 1.5 GB
 	# If changing this, be sure `globalBuffer` in `wasm.d` is big enough

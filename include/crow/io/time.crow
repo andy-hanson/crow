@@ -8,7 +8,7 @@ import
 	../number: ==, <=>, +, /, nat64, to-nat64
 	../ptr: null
 	../private/fut-low-level: resolve, unresolved
-	../private/runtime: add-task, get-cur-island, new-exclusion
+	../private/runtime: add-task, get-global-ctx, new-exclusion
 	./duration: duration, nsec
 export
 	./private/time-low-level: get-monotime-nsec
@@ -45,7 +45,7 @@ repeat-interval fut void(interval duration, action act continue-or-quit()) summo
 
 .delay-until-time fut void(target-nsec nat64) unsafe summon
 	res fut void = unresolved
-	island = get-cur-island
-	island add-task target-nsec, island.new-exclusion, () =>
+	gctx = get-global-ctx
+	gctx add-task target-nsec, gctx.new-exclusion, () =>
 		res resolve ()
 	res

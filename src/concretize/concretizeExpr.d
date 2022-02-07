@@ -14,7 +14,7 @@ import concretize.concretizeCtx :
 	getOrAddNonTemplateConcreteFunAndFillBody,
 	getConcreteType_fromConcretizeCtx = getConcreteType,
 	getConcreteType_forStructInst_fromConcretizeCtx = getConcreteType_forStructInst,
-	getCurIslandAndExclusionFun,
+	getCurExclusionFun,
 	getOrAddConcreteFunAndFillBody,
 	getConcreteFunForLambdaAndFillBody,
 	cStrType,
@@ -78,7 +78,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, some;
 import util.ptr : nullPtr, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSym, SpecialSym, symEq, symForSpecial;
+import util.sym : shortSym, symEq;
 import util.util : todo, unreachable, verify;
 
 @trusted immutable(ConcreteExpr) concretizeExpr(
@@ -274,14 +274,14 @@ immutable(ConcreteExpr) createAllocExpr(ref Alloc alloc, immutable ConcreteExpr 
 		immutable ConcreteExprKind(allocate(alloc, immutable ConcreteExprKind.Alloc(inner))));
 }
 
-immutable(ConcreteExpr) getGetIslandAndExclusion(
+immutable(ConcreteExpr) getGetExclusion(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable ConcreteType type,
 	ref immutable FileAndRange range,
 ) {
 	return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
-		immutable ConcreteExprKind.Call(getCurIslandAndExclusionFun(alloc, ctx.concretizeCtx), emptyArr!ConcreteExpr)));
+		immutable ConcreteExprKind.Call(getCurExclusionFun(alloc, ctx.concretizeCtx), emptyArr!ConcreteExpr)));
 }
 
 immutable(ConcreteField[]) concretizeClosureFields(
@@ -380,16 +380,15 @@ immutable(ConcreteExpr) concretizeLambda(
 		// For a fun-ref this is the inner 'act' type.
 		immutable ConcreteField[] fields = asRecord(body_(concreteStruct.deref())).fields;
 		verify(fields.length == 2);
-		immutable ConcreteField islandAndExclusionField = fields[0];
-		verify(symEq(name(islandAndExclusionField), symForSpecial(SpecialSym.island_and_exclusion)));
+		immutable ConcreteField exclusionField = fields[0];
+		verify(symEq(name(exclusionField), shortSym("exclusion")));
 		immutable ConcreteField actionField = fields[1];
 		verify(symEq(name(actionField), shortSym("action")));
 		immutable ConcreteType funType = actionField.type;
-		immutable ConcreteExpr islandAndExclusion =
-			getGetIslandAndExclusion(alloc, ctx, islandAndExclusionField.type, range);
+		immutable ConcreteExpr exclusion = getGetExclusion(alloc, ctx, exclusionField.type, range);
 		return immutable ConcreteExpr(concreteType, range, immutable ConcreteExprKind(
 			immutable ConcreteExprKind.CreateRecord(arrLiteral!ConcreteExpr(alloc, [
-				islandAndExclusion,
+				exclusion,
 				immutable ConcreteExpr(funType, range, lambda(mustBeNonPointer(funType)))]))));
 	} else
 		return immutable ConcreteExpr(concreteType, range, lambda(concreteStruct));

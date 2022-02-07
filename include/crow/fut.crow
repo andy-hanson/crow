@@ -7,10 +7,9 @@ import
 	./misc: new, void
 	./result: result
 	./private/bootstrap:
-		action, exclusion, fut-state-exception, fut-state-resolved, is-sendable, island,
-		island-and-exclusion, new
+		action, exclusion, fut-state-exception, fut-state-resolved, is-sendable, new
 	./private/fut-low-level: callback, reject, resolve, resolve-or-reject, unresolved
-	./private/runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
+	./private/runtime: add-task, exception-handler, get-global-ctx, new-exclusion
 	./private/thread-utils: lock-by-val
 export
 	./private/bootstrap: fut
@@ -104,8 +103,8 @@ which allows it to run in parallel.
 ###
 launch<a> fut a(f fun fut a()) trusted
 	res fut a = unresolved
-	island = get-cur-island
-	island add-task island.new-exclusion, () =>
+	gctx = get-global-ctx
+	gctx add-task gctx.new-exclusion, () =>
 		f[] forward-to res
 	res
 
@@ -117,15 +116,14 @@ and returns a `fut` for the result of that task.
 ###
 subscript<r> fut r(f ref r()) trusted is-sendable<r>
 	res fut r = unresolved
-	f.island-and-exclusion.island.get-island add-task f.island-and-exclusion.exclusion, () =>
+	get-global-ctx add-task f.exclusion, () =>
 		(() => f.action[] forward-to res) catch err => res reject err
 	res
 
 # Calls a `ref` with one argument.
 subscript<r, p0> fut r(f ref r(p0), p0 p0) trusted is-sendable<r> is-sendable<p0>
-	island = f.island-and-exclusion.island get-island
 	res fut r = unresolved
-	island add-task f.island-and-exclusion.exclusion, () =>
+	get-global-ctx add-task f.exclusion, () =>
 		(() => f.action[p0] forward-to res) catch err => res reject err
 	res
 
@@ -140,9 +138,8 @@ spec
 	is-sendable<p0>
 	is-sendable<p1>
 body
-	island = f.island-and-exclusion.island get-island
 	res fut r = unresolved
-	island add-task f.island-and-exclusion.exclusion, () =>
+	get-global-ctx add-task f.exclusion, () =>
 		(() => f.action[p0, p1] forward-to res) catch err => res reject err
 	res
 
@@ -156,4 +153,4 @@ handle-exceptions<a> void(a fut a) no-doc trusted
 		as ok _
 			()
 		as err e
-			get-cur-island.exception-handler[e]
+			get-global-ctx.exception-handler[e]

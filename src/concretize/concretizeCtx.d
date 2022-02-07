@@ -236,7 +236,7 @@ struct ConcretizeCtx {
 
 	const Ptr!AllPaths allPathsPtr; //TODO:KILL
 	const Ptr!AllSymbols allSymbolsPtr;
-	immutable Ptr!FunInst curIslandAndExclusionFun;
+	immutable Ptr!FunInst curExclusionFun;
 	immutable Ptr!StructInst ctxStructInst;
 	immutable Ptr!CommonTypes commonTypesPtr;
 	immutable Ptr!Program programPtr;
@@ -483,8 +483,8 @@ private void setConcreteStructRecordSize(ref Alloc alloc, DeferredRecordBody a) 
 }
 
 //TODO: do eagerly?
-immutable(Ptr!ConcreteFun) getCurIslandAndExclusionFun(ref Alloc alloc, ref ConcretizeCtx ctx) {
-	return getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, ctx.curIslandAndExclusionFun);
+immutable(Ptr!ConcreteFun) getCurExclusionFun(ref Alloc alloc, ref ConcretizeCtx ctx) {
+	return getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, ctx.curExclusionFun);
 }
 
 private:
