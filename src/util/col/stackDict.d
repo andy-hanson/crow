@@ -13,9 +13,9 @@ struct StackDict(K, V, immutable K emptySentinel, alias equal) {
 	immutable Ptr!(StackDict!(K, V, emptySentinel, equal)) next = void;
 }
 
-immutable(V) stackDictMustGet(K, V, immutable K emptySentinel, alias equal)(
-	scope ref immutable StackDict!(K, V, emptySentinel, equal) a,
-	immutable K key,
+ref immutable(V) stackDictMustGet(K, V, immutable K emptySentinel, alias equal)(
+	return scope ref immutable StackDict!(K, V, emptySentinel, equal) a,
+	scope immutable K key,
 ) {
 	verify(!equal(a.key, emptySentinel));
 	return equal(a.key, key)
