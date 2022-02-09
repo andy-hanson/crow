@@ -17,7 +17,6 @@ import
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
 	./iter: new, rest, value, value-and-rest
 	./mut-arr: ~=, move-to-arr, mut-arr, new
-	./private/arr-low-level: empty-arr
 
 ###
 Immutable sequence type.
@@ -667,7 +666,7 @@ slice-right<a> seq a(a seq-iter a) trusted
 	a cur-1d
 
 .to-iter3d<a> arr-3d-iter a(a arr-iter a) noctx
-	a, empty-arr.iter, empty-arr.iter
+	a, (), ()
 
 .arr-2d-iter<a> record
 	by-val
@@ -685,7 +684,7 @@ slice-right<a> seq a(a seq-iter a) trusted
 		p2.value.end-iter, p2.rest
 
 .to-iter3d<a> arr-3d-iter a(a arr-2d-iter a) noctx
-	a.cur-1d, a.cur-2d, empty-arr.iter
+	a.cur-1d, a.cur-2d, ()
 
 .iter3d<a> arr-3d-iter a(a a[][][]) unsafe noctx
 	if n3 ?= a.iter next

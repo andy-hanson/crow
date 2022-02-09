@@ -70,7 +70,7 @@ import model.model :
 	typeArgs;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only, ptrAt;
-import util.col.arrUtil : arrLiteral, map, mapWithIndex;
+import util.col.arrUtil : arrLiteral, map, mapWithIndex, mapZip;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : getOrAdd;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
@@ -185,22 +185,27 @@ immutable(ConcreteExpr) concretizeCall(
 ) {
 	immutable Ptr!ConcreteFun concreteCalled = getConcreteFunFromCalled(alloc, ctx, e.called);
 	immutable ConstantsOrExprs args =
-		!isSummon(concreteCalled.deref()) && purity(concreteCalled.deref().returnType) == Purity.data && false // TODO
+		empty(e.args) || (!isSummon(concreteCalled.deref()) && purity(concreteCalled.deref().returnType) == Purity.data)
 			? getConstantsOrExprs(alloc, ctx, locals, e.args)
 			: immutable ConstantsOrExprs(getArgs(alloc, ctx, locals, e.args));
 	immutable ConstantsOrExprs args2 = isVariadic(concreteCalled.deref())
 		? constantsOrExprsArr(alloc, ctx, range, args, only(concreteCalled.deref().paramsExcludingCtxAndClosure).type)
 		: args;
-	return matchConstantsOrExprs!(immutable ConcreteExpr)(
+	immutable ConcreteExprKind kind = matchConstantsOrExprs!(immutable ConcreteExprKind)(
 		args2,
-		(ref immutable Constant[] constants) => immutable ConcreteExpr(
-			concreteCalled.deref().returnType,
-			range,
-			immutable ConcreteExprKind(evalConstant(concreteCalled.deref(), constants))),
-		(ref immutable ConcreteExpr[] exprs) => immutable ConcreteExpr(
-			concreteCalled.deref().returnType,
-			range,
-			immutable ConcreteExprKind(immutable ConcreteExprKind.Call(concreteCalled, exprs))));
+		(ref immutable Constant[] constants) =>
+			//TODO: return immutable ConcreteExprKind(evalConstant(concreteCalled.deref(), constants)));
+			immutable ConcreteExprKind(immutable ConcreteExprKind.Call(
+				concreteCalled,
+				mapZip(
+					alloc,
+					concreteCalled.deref().paramsExcludingCtxAndClosure,
+					constants,
+					(ref immutable ConcreteParam p, ref immutable Constant x) =>
+						immutable ConcreteExpr(p.type, FileAndRange.empty, immutable ConcreteExprKind(x))))),
+		(ref immutable ConcreteExpr[] exprs) =>
+			immutable ConcreteExprKind(immutable ConcreteExprKind.Call(concreteCalled, exprs)));
+	return immutable ConcreteExpr(concreteCalled.deref().returnType, range, kind);
 }
 
 immutable(Ptr!ConcreteFun) getConcreteFunFromCalled(

@@ -24,7 +24,6 @@ import
 	./fix-arr:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fill-fix-arr, fix-arr, set-subscript, size,
 		subscript, uninitialized-fix-arr
-	./private/arr-low-level: empty-arr
 	./sort: sort-by
 
 ###
@@ -56,7 +55,7 @@ dict-equal<k, v> bool(a v[k], b v[k]) no-doc is-data<k> compare<k> hash-mix<k> e
 	leaf-node pair<k, v>[]
 
 .empty-leaf-node<k, v> node<k, v>() noctx
-	empty-arr leaf-node
+	() leaf-node
 
 .low-bits nat64(a nat64)
 	a & 0b111
@@ -67,7 +66,7 @@ dict-equal<k, v> bool(a v[k], b v[k]) no-doc is-data<k> compare<k> hash-mix<k> e
 .leaf-max-size nat64()
 	8
 
-empty-dict<k, v> v[k]() noctx
+empty-dict<k, v> v[k]() no-doc noctx
 	# TODO: should not need type annotation
 	empty-leaf-node@<k, v>,
 

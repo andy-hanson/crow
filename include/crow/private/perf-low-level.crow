@@ -1,7 +1,7 @@
 no-std
 import
 	../col/fix-arr: empty-fix-arr, fix-arr
-	../col/private/arr-low-level: empty-arr
+	../col/private/arr-low-level: new
 	../ptr: by-val
 	./bootstrap: arr, nat64, sym
 
@@ -15,7 +15,7 @@ perf-ctx record mut
 	measure-values mut fix-arr perf-measure-value
 
 perf-ctx by-val perf-ctx() noctx
-	empty-arr, empty-fix-arr
+	(), empty-fix-arr
 
 perf-measure-value record
 	by-val

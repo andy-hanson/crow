@@ -1,7 +1,7 @@
 no-std
 import
 	sys/execinfo: backtrace
-	../col/private/arr-low-level: empty-arr, subscript
+	../col/private/arr-low-level: new, subscript
 	../compare: <, <=, >
 	../misc: name, named-val, new, val
 	../ptr:
@@ -23,7 +23,7 @@ get-backtrace backtrace() unsafe
 		hard-assert: n-code-ptrs <= code-ptrs-size
 		arrs fill-arrs n-code-ptrs
 	else
-		empty-arr,
+		(),
 
 # TODO:INLINE
 .backtrace-and-get-n-code-ptrs nat64(arrs backtrace-arrs) unsafe

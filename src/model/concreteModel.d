@@ -26,7 +26,7 @@ import model.model :
 	RecordField,
 	StructInst,
 	summon;
-import util.col.arr : only;
+import util.col.arr : empty, only;
 import util.col.dict : PtrDict;
 import util.col.str : SafeCStr;
 import util.hash : hashBool, Hasher;
@@ -810,8 +810,16 @@ struct ConcreteExprKind {
 	}
 
 	struct CreateArr {
+		@safe @nogc pure nothrow:
+
 		immutable Ptr!ConcreteStruct arrType;
 		immutable ConcreteExpr[] args;
+
+		immutable this(immutable Ptr!ConcreteStruct at, immutable ConcreteExpr[] as) {
+			arrType = at;
+			args = as;
+			verify(!empty(args));
+		}
 	}
 
 	// TODO: this is only used for closures now, since normal record creation always goes through a function.

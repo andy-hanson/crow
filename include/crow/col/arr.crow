@@ -17,10 +17,7 @@ import
 	./private/arr-low-level: begin-ptr, end-ptr, unsafe-at
 export
 	../private/bootstrap: arr, size
-
-# Create an array with the given elements.
-new<a> a[](...a a[]) noctx
-	a
+	./private/arr-low-level: new
 
 # `true` iff `a.size == 0`.
 is-empty<a> bool(a a[]) noctx

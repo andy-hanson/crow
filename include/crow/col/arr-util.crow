@@ -14,7 +14,7 @@ import
 	../private/range-low-level: ..
 	./arr: ~, ~~, arr, is-empty, new, size, subscript
 	./iter: new, value-and-rest
-	./private/arr-low-level: arr-from-begin-end, begin-ptr, empty-arr, end-ptr, noctx-at
+	./private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr, noctx-at
 
 region basic array operations
 
@@ -578,7 +578,7 @@ arr-iter<a> record
 	.index nat64
 
 new<a> arr-iter a() noctx
-	empty-arr, 0
+	(), 0
 
 iter<a> arr-iter<a>(a a[]) noctx
 	a, 0

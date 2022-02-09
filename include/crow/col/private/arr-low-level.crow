@@ -1,16 +1,16 @@
 no-std
 import
 	../../compare: <, <=
-	../../ptr: ==, <=>, +, -, const-ptr, null, ptr-cast, size-of, subscript
+	../../ptr: ==, <=>, +, -, const-ptr, ptr-cast, size-of, subscript
 	../../private/bootstrap: hard-assert, new
 	../../private/number-low-level: ==, <=>, nat64, wrap-sub
 	../../private/range-low-level: high, low, range
 export
 	../../private/bootstrap: arr, begin-ptr, size
 
-# This exists because noctx functions can't call `new` in general. But they can for empty arryas.
-empty-arr<a> a[]() noctx trusted
-	(0, null)
+# Create an array with the given elements.
+new<a> a[](...a a[]) noctx
+	a
 
 # Pointer to the end of an array.
 end-ptr<a> a*(a a[]) noctx unsafe

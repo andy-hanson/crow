@@ -3,7 +3,7 @@ import
 	setjmp: jmp_buf, __jmp_buf_tag, longjmp, new, setjmp
 	../bool: bool
 	../bytes-types: new
-	../col/private/arr-low-level: empty-arr
+	../col/private/arr-low-level: new
 	../compare: !=
 	../fun-util: subscript
 	../misc: new, void
@@ -22,7 +22,7 @@ exception-ctx record mut
 
 exception-ctx by-val exception-ctx() noctx unsafe
 	# Nothing on the exception-ctx initially
-	null, ("", (empty-arr,))
+	null, ("", ((),))
 
 get-exception-ctx exception-ctx() unsafe
 	get-ctx.thread-local-stuff.exception-ctx-ptr as-ref

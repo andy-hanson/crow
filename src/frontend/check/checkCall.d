@@ -13,7 +13,6 @@ import frontend.check.inferringType :
 	ExprCtx,
 	inferred,
 	InferringTypeArgs,
-	LambdaInfo,
 	markUsedLocalFun,
 	matchTypesNoDiagnostic,
 	programState,
@@ -451,22 +450,24 @@ CommonOverloadExpected getCommonOverloadParamExpected(
 }
 
 immutable(Opt!(Diag.CantCall.Reason)) getCantCallReason(
-	immutable bool calledIsVariadic,
+	immutable bool calledIsVariadicNonEmpty,
 	immutable FunFlags calledFlags,
 	immutable FunFlags callerFlags,
-	immutable bool inLambda,
+	immutable bool callerInLambda,
 ) {
-	return !calledFlags.noCtx && callerFlags.noCtx && !inLambda
+	return !calledFlags.noCtx && callerFlags.noCtx && !callerInLambda
 		// TODO: need to explain this better in the case where noCtx is due to the lambda
 		? some(Diag.CantCall.Reason.nonNoCtx)
 		: calledFlags.summon && !callerFlags.summon
 		? some(Diag.CantCall.Reason.summon)
 		: calledFlags.unsafe && !callerFlags.trusted && !callerFlags.unsafe
 		? some(Diag.CantCall.Reason.unsafe)
-		: calledIsVariadic && callerFlags.noCtx
+		: calledIsVariadicNonEmpty && callerFlags.noCtx
 		? some(Diag.CantCall.Reason.variadicFromNoctx)
 		: none!(Diag.CantCall.Reason);
 }
+
+enum ArgsKind { empty, nonEmpty }
 
 void checkCallFlags(
 	ref Alloc alloc,
@@ -474,10 +475,14 @@ void checkCallFlags(
 	ref immutable FileAndRange range,
 	immutable Ptr!FunDecl called,
 	immutable FunFlags caller,
-	const Opt!(Ptr!LambdaInfo) callerLambda,
+	immutable bool callerInLambda,
+	immutable ArgsKind argsKind,
 ) {
-	immutable Opt!(Diag.CantCall.Reason) reason =
-		getCantCallReason(isVariadic(called.deref()), called.deref().flags, caller, has(callerLambda));
+	immutable Opt!(Diag.CantCall.Reason) reason = getCantCallReason(
+		isVariadic(called.deref()) && argsKind == ArgsKind.nonEmpty,
+		called.deref().flags,
+		caller,
+		callerInLambda);
 	if (has(reason))
 		addDiag(alloc, ctx, range, immutable Diag(Diag.CantCall(force(reason), called)));
 }
@@ -487,11 +492,12 @@ void checkCalledDeclFlags(
 	ref ExprCtx ctx,
 	ref immutable CalledDecl res,
 	ref immutable FileAndRange range,
+	immutable ArgsKind argsKind,
 ) {
 	matchCalledDecl!(
 		void,
 		(immutable Ptr!FunDecl f) {
-			checkCallFlags(alloc, ctx.checkCtx, range, f, ctx.outermostFunFlags, peek(ctx.lambdas));
+			checkCallFlags(alloc, ctx.checkCtx, range, f, ctx.outermostFunFlags, has(peek(ctx.lambdas)), argsKind);
 		},
 		(ref immutable SpecSig) {
 			// For a spec, we check the flags when providing the spec impl
@@ -554,7 +560,8 @@ immutable(Opt!Called) findSpecSigImplementation(
 			addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.SpecImplNotFound(specSig.name)));
 			return none!Called;
 		case 1:
-			return getCalledFromCandidate(alloc, ctx, range, only_const(candidates), some(outerCalled));
+			return getCalledFromCandidate(
+				alloc, ctx, range, only_const(candidates), some(outerCalled), ArgsKind.nonEmpty);
 		default:
 			addDiag2(alloc, ctx, range, immutable Diag(
 				immutable Diag.SpecImplFoundMultiple(specSig.name, candidatesForDiag(alloc, candidates))));
@@ -670,10 +677,11 @@ immutable(Opt!Called) getCalledFromCandidate(
 	ref immutable FileAndRange range,
 	ref const Candidate candidate,
 	immutable Opt!(Ptr!FunDecl) outerCalled,
+	immutable ArgsKind argsKind,
 ) {
 	if (has(candidate.used))
 		markUsedFun(ctx, force(candidate.used));
-	checkCalledDeclFlags(alloc, ctx, candidate.called, range);
+	checkCalledDeclFlags(alloc, ctx, candidate.called, range, argsKind);
 	immutable Opt!(Type[]) candidateTypeArgs = finishCandidateTypeArgs(alloc, ctx, range, candidate);
 	if (has(candidateTypeArgs)) {
 		immutable Type[] typeArgs = force(candidateTypeArgs);
@@ -704,7 +712,9 @@ immutable(Expr) checkCallAfterChoosingOverload(
 	immutable Expr[] args,
 	ref Expected expected,
 ) {
-	immutable Opt!Called opCalled = getCalledFromCandidate(alloc, ctx, range, candidate, none!(Ptr!FunDecl));
+	immutable Opt!Called opCalled = getCalledFromCandidate(
+		alloc, ctx, range, candidate, none!(Ptr!FunDecl),
+		empty(args) ? ArgsKind.empty : ArgsKind.nonEmpty);
 	if (has(opCalled)) {
 		immutable Called called = force(opCalled);
 		immutable Expr calledExpr = immutable Expr(range, Expr.Call(called, args));
