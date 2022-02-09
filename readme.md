@@ -1,5 +1,5 @@
-[![Gitter](https://badges.gitter.im/crow-lang-org/community.svg)]
-(https://gitter.im/crow-lang-org/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Gitter](https://badges.gitter.im/crow-lang-org/community.svg)](
+	https://gitter.im/crow-lang-org/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 # Crow
 
