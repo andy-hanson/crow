@@ -405,8 +405,7 @@ next<a> value-and-rest<a, seq-iter a>?(a seq-iter a) trusted noctx
 	if n ?= a.cur next
 		(n.value, (a.seq, n.rest, a.pos)),
 	elif pair ?= a.seq next-position a.pos
-		first = pair.a.next force
-		(first.value, (a.seq, first.rest, pair.b)),
+		(a.seq, pair.a, pair.b) next
 .next-position<a> pair<arr-3d-iter a, position>?(a seq a, pos position) unsafe noctx
 	match pos
 	as l0-leaf
@@ -428,8 +427,7 @@ prev<a> value-and-rest<a, seq-iter a>?(a seq-iter a) trusted noctx
 	if p ?= a.cur prev
 		(p.value, (a.seq, p.rest, a.pos)),
 	elif pair ?= a.seq prev-position a.pos
-		first = pair.a.prev force
-		(first.value, (a.seq, first.rest, pair.b)),
+		(a.seq, pair.a, pair.b) prev
 .prev-position<a> pair<arr-3d-iter a, position>?(a seq a, pos position) unsafe noctx
 	match pos
 	as l0-leaf
