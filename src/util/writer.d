@@ -5,6 +5,7 @@ module util.writer;
 import util.alloc.alloc : Alloc;
 import util.ptr : Ptr;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrUtil : zip;
 import util.col.str : CStr, eachChar, SafeCStr;
 import util.util : abs, verify;
 
@@ -127,32 +128,44 @@ void writeWithCommas(T)(
 	immutable T[] a,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	writeWithCommas!T(writer, a, false, cb);
+	writeWithCommas!T(writer, a, (ref immutable T) => true, cb);
 }
 
 void writeWithCommas(T)(
 	ref Writer writer,
 	immutable T[] a,
-	immutable bool leadingComma,
+	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow filter,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i, ref immutable T x; a) {
-		if (leadingComma || i != 0)
-			writeStatic(writer, ", ");
-		cb(x);
+	bool needsComma = false;
+	foreach (ref immutable T x; a) {
+		if (filter(x)) {
+			if (needsComma)
+				writeStatic(writer, ", ");
+			else
+				needsComma = true;
+			cb(x);
+		}
 	}
 }
 
-void writeWithCommas(
+void writeWithCommasZip(T, U)(
 	ref Writer writer,
-	immutable size_t n,
-	scope void delegate(immutable size_t) @safe @nogc pure nothrow cb,
+	immutable T[] a,
+	immutable U[] b,
+	scope immutable(bool) delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow filter,
+	scope void delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0 .. n) {
-		if (i != 0)
-			writeStatic(writer, ", ");
-		cb(i);
-	}
+	bool needsComma = false;
+	zip!(T, U)(a, b, (ref immutable T x, ref immutable U y) {
+		if (filter(x, y)) {
+			if (needsComma)
+				writeStatic(writer, ", ");
+			else
+				needsComma = true;
+			cb(x, y);
+		}
+	});
 }
 
 void writeWithNewlines(T)(
