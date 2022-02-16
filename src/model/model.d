@@ -627,7 +627,7 @@ struct StructDeclAndArgs {
 
 immutable(bool) structDeclAndArgsEqual(ref immutable StructDeclAndArgs a, ref immutable StructDeclAndArgs b) {
 	return ptrEquals(a.decl, b.decl) &&
-		arrEqual(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
+		arrEqual!(immutable Type)(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
 			typeEquals(ta, tb));
 }
 
@@ -746,7 +746,7 @@ struct SpecDeclAndArgs {
 
 immutable(bool) specDeclAndArgsEqual(ref immutable SpecDeclAndArgs a, ref immutable SpecDeclAndArgs b) {
 	return ptrEquals(a.decl, b.decl) &&
-		arrEqual(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
+		arrEqual!(immutable Type)(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
 			typeEquals(ta, tb));
 }
 

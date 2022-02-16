@@ -51,6 +51,7 @@ void pushToTempStr(size_t capacity)(ref TempStr!capacity a, immutable char b) {
 	verify(a.length < a.buffer.length);
 	a.buffer[a.length] = b;
 	a.length_++;
+	nulTerminate(a);
 }
 
 void pushToTempStr(size_t capacity)(ref TempStr!capacity a, immutable SafeCStr b) {

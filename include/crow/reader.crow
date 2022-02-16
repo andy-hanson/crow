@@ -132,7 +132,7 @@ take-int int64?(a reader) trusted
 # TODO: use 'is-whitespace' function from str-util
 # Skips whitespace characters: `" "`, `"\n"`, `"t"`.
 skip-whitespace void(a reader)
-	if a try-take-char " " || a try-take-char "\n" || a try-take-char "\t"
+	if a try-take-char " " || a try-take-char "\r" || a try-take-char "\n" || a try-take-char "\t"
 		a skip-whitespace
 
 .try-take-sign bool(a reader)

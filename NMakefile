@@ -1,0 +1,229 @@
+# WARN: If editing this file, change GNUmakefile too
+
+.PHONY: clone-dyncall debug end-to-end-test end-to-end-test-overwrite serve prepare-site test unit-test
+
+clean:
+	@call <<COMMANDS.bat
+@IF EXIST bin rmdir /s /q bin
+@IF EXIST site rmdir /s /q site
+@IF EXIST temp rmdir /s /q temp
+<<
+
+all: clean bin/crow-debug.exe test lint serve
+
+### test ###
+
+test: unit-test wasm-test end-to-end-test
+
+unit-test: bin/crow-debug.exe
+	.\bin\crow-debug.exe test
+
+end-to-end-test: bin/crow.exe
+	.\bin\crow.exe run test\test.crow
+
+end-to-end-test-overwrite: bin/crow.exe
+	.\bin\crow.exe run test\test.crow -- --overwrite-output
+
+wasm-test: prepare-site
+	node .\test\testWasm.js
+
+### external dependencies ###
+
+dyncall:
+	@call <<COMMANDS.bat
+hg clone https://dyncall.org/pub/dyncall/dyncall/
+cd dyncall
+call .\configure.bat /target-x64
+nmake /f Nmakefile
+<<
+
+### D build ###
+
+src_files_common = src\concretize\allConstantsBuilder.d \
+	src\concretize\concretize.d \
+	src\concretize\concretizeCtx.d \
+	src\concretize\concretizeExpr.d \
+	src\concretize\constantsOrExprs.d \
+	src\concretize\safeValue.d \
+	src\frontend\check\check.d \
+	src\frontend\check\checkCall.d \
+	src\frontend\check\checkCtx.d \
+	src\frontend\check\checkExpr.d \
+	src\frontend\check\dicts.d \
+	src\frontend\check\inferringType.d \
+	src\frontend\check\instantiate.d \
+	src\frontend\check\typeFromAst.d \
+	src\frontend\ide\getHover.d \
+	src\frontend\ide\getPosition.d \
+	src\frontend\ide\getTokens.d \
+	src\frontend\parse\ast.d \
+	src\frontend\parse\lexer.d \
+	src\frontend\parse\parse.d \
+	src\frontend\parse\parseExpr.d \
+	src\frontend\parse\parseType.d \
+	src\frontend\diagnosticsBuilder.d \
+	src\frontend\frontendCompile.d \
+	src\frontend\getDiagnosticSeverity.d \
+	src\frontend\lang.d \
+	src\frontend\programState.d \
+	src\frontend\showDiag.d \
+	src\interpret\applyFn.d \
+	src\interpret\bytecode.d \
+	src\interpret\bytecodeWriter.d \
+	src\interpret\debugging.d \
+	src\interpret\extern_.d \
+	src\interpret\fakeExtern.d \
+	src\interpret\generateBytecode.d \
+	src\interpret\generateText.d \
+	src\interpret\runBytecode.d \
+	src\lib\cliParser.d \
+	src\lib\compiler.d \
+	src\lib\server.d \
+	src\lower\checkLowModel.d \
+	src\lower\generateCallWithCtxFun.d \
+	src\lower\generateMarkVisitFun.d \
+	src\lower\getBuiltinCall.d \
+	src\lower\lower.d \
+	src\lower\lowExprHelpers.d \
+	src\model\concreteModel.d \
+	src\model\constant.d \
+	src\model\diag.d \
+	src\model\lowModel.d \
+	src\model\model.d \
+	src\model\parseDiag.d \
+	src\model\reprConcreteModel.d \
+	src\model\reprConstant.d \
+	src\model\reprLowModel.d \
+	src\model\reprModel.d \
+	src\model\typeLayout.d \
+	src\util\alloc\alloc.d \
+	src\util\alloc\rangeAlloc.d \
+	src\util\col\arr.d \
+	src\util\col\arrBuilder.d \
+	src\util\col\arrUtil.d \
+	src\util\col\arrWithSizeBuilder.d \
+	src\util\col\dict.d \
+	src\util\col\dictBuilder.d \
+	src\util\col\exactSizeArrBuilder.d \
+	src\util\col\fullIndexDict.d \
+	src\util\col\multiDict.d \
+	src\util\col\mutArr.d \
+	src\util\col\mutDict.d \
+	src\util\col\mutIndexDict.d \
+	src\util\col\mutIndexMultiDict.d \
+	src\util\col\mutMaxArr.d \
+	src\util\col\mutSet.d \
+	src\util\col\range.d \
+	src\util\col\sortUtil.d \
+	src\util\col\stack.d \
+	src\util\col\stackDict.d \
+	src\util\col\str.d \
+	src\util\col\tempStr.d \
+	src\util\cell.d \
+	src\util\comparison.d \
+	src\util\conv.d \
+	src\util\dictReadOnlyStorage.d \
+	src\util\diff.d \
+	src\util\fn.d \
+	src\util\hash.d \
+	src\util\late.d \
+	src\util\lineAndColumnGetter.d \
+	src\util\memory.d \
+	src\util\opt.d \
+	src\util\path.d \
+	src\util\perf.d \
+	src\util\ptr.d \
+	src\util\readOnlyStorage.d \
+	src\util\repr.d \
+	src\util\sourceRange.d \
+	src\util\sym.d \
+	src\util\util.d \
+	src\util\writer.d \
+	src\util\writerUtils.d
+app_src_no_test = src\app.d \
+	$(src_files_common) \
+	src\backend\mangle.d \
+	src\backend\writeToC.d \
+	src\backend\writeTypes.d \
+	src\document\document.d
+app_src_with_test = $(app_src_no_test) \
+	src\test\test.d \
+	src\test\testApplyFn.d \
+	src\test\testDict.d \
+	src\test\testFakeExtern.d \
+	src\test\testHover.d \
+	src\test\testInterpreter.d \
+	src\test\testLineAndColumnGetter.d \
+	src\test\testPath.d \
+	src\test\testServer.d \
+	src\test\testSortUtil.d \
+	src\test\testStack.d \
+	src\test\testSym.d \
+	src\test\testTokens.d \
+	src\test\testUtil.d \
+	src\test\testWriter.d
+other_deps = bin\d-imports\date.txt bin\d-imports\commit-hash.txt
+app_deps_no_test = $(app_src_no_test) $(other_deps) dyncall
+app_deps_with_test = $(app_src_with_test) $(other_deps) dyncall
+
+d_flags_common = -betterC -preview=dip25 -preview=dip1000 -J=bin\d-imports
+dmd_flags_assert = $(d_flags_common) -check=on -boundscheck=on
+dmd_flags_debug = -debug -g -version=Debug -version=Test
+ldc_flags_assert = $(d_flags_common) --enable-asserts=true --boundscheck=on
+ldc_flags_no_assert = $(d_flags_common) --enable-asserts=false --boundscheck=off
+ldc_fast_flags = -O2 --d-version=Optimized --d-version=TailRecursionAvailable
+ldc_fast_flags_no_tail_call = -O2 --d-version=Optimized
+
+app_link = -L=dyncall\dyncall\dyncall_s.lib -L=dyncall\dynload\dynload_s.lib -L=/stack:16777216
+
+app_files_no_test = src\app.d $(src_files_no_test)
+app_files_with_test = src\app.d $(src_files_with_test)
+# TODO: should not need document\mangle\writeToC\writeTypes
+wasm_src = src\wasm.d $(src_files_common) src\document\document.d src\backend\mangle.d src\backend\writeToC.d src\backend\writeTypes.d
+wasm_deps = $(wasm_src)
+
+bin/d-imports:
+	if not exist "bin\d-imports" mkdir bin\d-imports
+
+# TODO: UTC option for 'date'?
+bin\d-imports\date.txt: bin\d-imports
+	echo %date:~10,4%-%date:~4,2%-%date:~7,2% > bin/d-imports/date.txt
+
+bin\d-imports\commit-hash.txt: bin\d-imports
+	git rev-parse --short HEAD > bin\d-imports\commit-hash.txt
+
+bin\crow-debug.exe: $(app_deps_with_test)
+	dmd -ofbin\crow-debug.exe -m64 $(dmd_flags_assert) $(dmd_flags_debug) $(app_src_with_test) $(app_link)
+
+bin\crow.exe: $(app_deps_no_test)
+	ldc2 -ofbin\crow.exe $(ldc_flags_assert) $(ldc_fast_flags) $(app_src_no_test) $(app_link)
+	del bin\crow.obj
+
+bin/crow.wasm: $(wasm_deps)
+	ldc2 -ofbin\crow.wasm -mtriple=wasm32-unknown-unknown-wasm $(ldc_flags_no_assert) $(ldc_fast_flags_no_tail_call) -L-allow-undefined $(wasm_src)
+
+bin\crow.zip: bin\crow.exe demo\* include\*
+	mkdir bin\bin
+	copy bin\crow.exe bin\bin\crow.exe
+	powershell Compress-Archive -DestinationPath bin\crow.zip -Path bin\bin,demo,include -Force
+	del bin\bin\crow.exe
+	rmdir bin\bin
+
+### lint ###
+
+lint: lint-dscanner lint-imports-exports
+
+lint-dscanner:
+	dub run dscanner -- --styleCheck $(app_src_with_test)
+
+lint-imports-exports: bin\crow.exe
+	.\bin\crow.exe run script\lint.crow
+
+### site ###
+
+prepare-site: bin\crow.exe bin\crow.wasm bin\crow.zip
+	bin\crow run site-src\site.crow
+
+serve: prepare-site
+	echo "Serving site not yet supported on Windows"
+# bin\crow run site-src\serve.crow -- 8080

@@ -2,15 +2,23 @@ no-std
 import
 	stdio: stderr, stdout
 	unistd: write
+	win32:
+		DWORD, GetLastError, GetStdHandle, HANDLE, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE,
+		WriteFile
+	../cell: *, as-mut-ptr, cell, new
 	../col/arr: size
 	../col/private/arr-low-level: begin-ptr
+	../exception: throw
 	../extra-types: fd-t
 	../misc: new, void
-	../ptr: size-of
+	../ptr: null, size-of
 	../str: char8, literal, str
+	../str-conv: finish, interp, to-str, with-value
 	../str-util: to-bytes
+	../version: is-windows
 	../private/bootstrap: hard-assert, todo
-	../private/number-low-level: ==, nat8, unsafe-to-int64
+	../private/number-low-level: ==, nat8, unsafe-to-int64, unsafe-to-nat32
+	./win32-util: show-win32-error
 
 # Print to stdout, including a newline.
 print void(a str) summon
@@ -19,18 +27,35 @@ print void(a str) summon
 
 # Print to stdout, without appending a newline.
 print-no-newline void(a str) summon trusted
-	stdout write-no-newline a
+	if is-windows
+		STD_OUTPUT_HANDLE.GetStdHandle write-windows a
+	else
+		stdout write-posix a
 
 # Print to stderr, including a newline.
-print-err void(s str) summon
-	s print-err-no-newline
+print-err void(a str) summon
+	a print-err-no-newline
 	"\n" print-err-no-newline
 
 # Print to stderr, without appending a newline.
-print-err-no-newline void(s str) summon trusted
-	stderr write-no-newline s
+print-err-no-newline void(a str) summon trusted
+	if is-windows
+		STD_ERROR_HANDLE.GetStdHandle write-windows a
+	else
+		stderr write-posix a
 
-.write-no-newline void(fd fd-t, a str) summon unsafe
+.write-windows void(console HANDLE, a str) summon unsafe
+	bytes = a to-bytes
+	written cell DWORD = 0,
+	size32 = bytes.size unsafe-to-nat32
+	ok = console WriteFile bytes.begin-ptr, size32, written.as-mut-ptr, null
+	unless ok
+		"{GetLastError show-win32-error}" throw
+	unless *written == size32
+		# TODO: maybe retry
+		todo
+
+.write-posix void(fd fd-t, a str) summon unsafe
 	hard-assert: size-of@<char8> == size-of@<nat8>
 	bytes = a to-bytes
 	res = fd write bytes.begin-ptr, bytes.size

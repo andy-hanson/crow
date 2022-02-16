@@ -1,18 +1,19 @@
 no-std
 import
-	bits/types/sigset_t: __sigset_t
-	crow/c-types: c-int
 	crow/ptr: mut-ptr
-	crow/bytes-types: bytes64
+	crow/bytes-types: bytes256, new
 	crow/private/bootstrap: int32, void
 
+# Make this as big as the biggest one I've found, which is on Windows where it is 16 * 128 bits.
 __jmp_buf_tag record
 	by-val
-	__jmpbuf bytes64
-	__mask_was_saved c-int
-	__saved_mask __sigset_t
+	spacer bytes256
+
+new __jmp_buf_tag() noctx
+	(),
 
 # WARNING: This is declared as `typedef struct __jmp_buf_tag jmp_buf[1];`
+# (or on Windows, `typedef _JBTYPE jmp_buf[_JBLEN];` where JBLEN is 16)
 # So in some cases it's by value, in others by reference
 jmp_buf alias
 	__jmp_buf_tag mut*

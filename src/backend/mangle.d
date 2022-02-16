@@ -334,6 +334,12 @@ void addToPrevOrIndex(T)(
 }
 
 public void writeMangledName(ref Writer writer, scope ref immutable MangledNames mangledNames, immutable Sym a) {
+	//TODO: this applies to any C function. Maybe crow functions should have a common prefix.
+	if (a == shortSym("errno")) {
+		writeStatic(writer, "_crow_errno");
+		return;
+	}
+
 	if (conflictsWithCName(a))
 		writeChar(writer, '_');
 	eachCharInSym(mangledNames.allSymbols.deref(), a, (immutable char c) {

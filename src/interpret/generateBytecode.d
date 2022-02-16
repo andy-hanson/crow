@@ -422,39 +422,39 @@ immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
 		case shortSymValue("write"):
 			return some(ExternOp.write);
 		case specialSymValue(SpecialSym.clock_gettime):
-			return some(ExternOp.clockGetTime);
+			return some(ExternOp.clock_gettime);
 		case shortSymValue("get_nprocs"):
-			return some(ExternOp.getNProcs);
+			return some(ExternOp.get_nprocs);
 		case specialSymValue(SpecialSym.pthread_condattr_destroy):
-			return some(ExternOp.pthreadCondattrDestroy);
+			return some(ExternOp.pthread_condattr_destroy);
 		case specialSymValue(SpecialSym.pthread_condattr_init):
-			return some(ExternOp.pthreadCondattrInit);
+			return some(ExternOp.pthread_condattr_init);
 		case specialSymValue(SpecialSym.pthread_condattr_setclock):
-			return some(ExternOp.pthreadCondattrSetClock);
+			return some(ExternOp.pthread_condattr_setclock);
 		case specialSymValue(SpecialSym.pthread_cond_broadcast):
-			return some(ExternOp.pthreadCondBroadcast);
+			return some(ExternOp.pthread_cond_broadcast);
 		case specialSymValue(SpecialSym.pthread_cond_destroy):
-			return some(ExternOp.pthreadCondDestroy);
+			return some(ExternOp.pthread_cond_destroy);
 		case specialSymValue(SpecialSym.pthread_cond_init):
-			return some(ExternOp.pthreadCondInit);
+			return some(ExternOp.pthread_cond_init);
 		case specialSymValue(SpecialSym.pthread_create):
-			return some(ExternOp.pthreadCreate);
+			return some(ExternOp.pthread_create);
 		case shortSymValue("pthread_join"):
-			return some(ExternOp.pthreadJoin);
+			return some(ExternOp.pthread_join);
 		case specialSymValue(SpecialSym.pthread_mutexattr_destroy):
-			return some(ExternOp.pthreadMutexattrDestroy);
+			return some(ExternOp.pthread_mutexattr_destroy);
 		case specialSymValue(SpecialSym.pthread_mutexattr_init):
-			return some(ExternOp.pthreadMutexattrInit);
+			return some(ExternOp.pthread_mutexattr_init);
 		case specialSymValue(SpecialSym.pthread_mutex_destroy):
-			return some(ExternOp.pthreadMutexDestroy);
+			return some(ExternOp.pthread_mutex_destroy);
 		case specialSymValue(SpecialSym.pthread_mutex_init):
-			return some(ExternOp.pthreadMutexInit);
+			return some(ExternOp.pthread_mutex_init);
 		case specialSymValue(SpecialSym.pthread_mutex_lock):
-			return some(ExternOp.pthreadMutexLock);
+			return some(ExternOp.pthread_mutex_lock);
 		case specialSymValue(SpecialSym.pthread_mutex_unlock):
-			return some(ExternOp.pthreadMutexUnlock);
-		case shortSymValue("sched_yield"):
-			return some(ExternOp.schedYield);
+			return some(ExternOp.pthread_mutex_unlock);
+		case specialSymValue(SpecialSym.GetSystemInfo):
+			return some(ExternOp.GetSystemInfo);
 		default:
 			return none!ExternOp;
 	}
@@ -1102,14 +1102,20 @@ void generatePtrToRecordFieldGet(
 	immutable bool targetIsPointer,
 	ref immutable LowExpr target,
 ) {
-	generateExpr(writer, ctx, locals, target);
 	immutable size_t offset = fullIndexDictGet(ctx.program.allRecords, record).fields[fieldIndex].offset;
 	if (targetIsPointer) {
+		generateExpr(writer, ctx, locals, target);
 		if (offset != 0)
 			writeAddConstantNat64(writer, source, offset);
-	} else
+	} else if (isSpecialUnary(target.kind) && asSpecialUnary(target.kind).kind == LowExprKind.SpecialUnary.Kind.deref) {
+		generateExpr(writer, ctx, locals, asSpecialUnary(target.kind).arg);
+		if (offset != 0)
+			writeAddConstantNat64(writer, source, offset);
+	} else {
+		// Also allow: dereference ptr, get field, and get ptr of that
 		// This only works if it's a local .. or another RecordFieldGet
 		todo!void("ptr-to-record-field-get");
+	}
 }
 
 void generateSpecialBinary(

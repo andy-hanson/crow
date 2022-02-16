@@ -23,10 +23,14 @@ flags-like<a> spec
 	& a(a a, b a)
 	| a(a a, b a)
 
+min-flags-like<a> spec
+	== bool(a a, b a)
+	& a(a a, b a)
+
 ###
 True if every flag set in `a` is set in `b`.
 ###
-is-in<a> bool(a a, b a) flags-like<a>
+is-in<a> bool(a a, b a) min-flags-like<a>
 	a & b == a
 
 # Returns an array of the name of every flag set in `a`.

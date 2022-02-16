@@ -205,6 +205,12 @@ immutable(Command) parseCommand(
 	}
 }
 
+version (Windows) {
+	immutable SafeCStr defaultExeExtension = safeCStr!".exe";
+} else {
+	immutable SafeCStr defaultExeExtension = safeCStr!"";
+}
+
 private:
 
 immutable(BuildOut) emptyBuildOut() {
@@ -379,9 +385,13 @@ immutable(Opt!RunOptions) parseRunOptions(
 	ref AllPaths allPaths,
 	immutable ArgsPart[] argParts,
 ) {
-	if (empty(argParts))
-		return some(immutable RunOptions(immutable RunOptions.Jit()));
-	else if (argParts.length != 1)
+	if (empty(argParts)) {
+		version (Windows) {
+			return some(immutable RunOptions(immutable RunOptions.Interpret()));
+		} else {
+			return some(immutable RunOptions(immutable RunOptions.Jit()));
+		}
+	} else if (argParts.length != 1)
 		// TODO: better message -- can't combine '--interpret' with build options
 		return none!RunOptions;
 	else {
@@ -407,7 +417,10 @@ immutable(Opt!BuildOptions) parseBuildOptions(
 		immutable BuildOptions(
 			immutable BuildOut(
 				none!AbsolutePath,
-				some(immutable AbsolutePath(programDirAndMain.programDir, programDirAndMain.mainPath, safeCStr!""))),
+				some(immutable AbsolutePath(
+					programDirAndMain.programDir,
+					programDirAndMain.mainPath,
+					defaultExeExtension))),
 			immutable CCompileOptions(OptimizationLevel.none)),
 		argParts,
 		(immutable BuildOptions cur, ref immutable ArgsPart part) {

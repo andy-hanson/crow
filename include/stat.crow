@@ -29,10 +29,10 @@ stat record mut
 	st_ino mut u-long-long
 	unused mut u-long-long
 
-stat int32(path c-str, buf stat) noctx extern unsafe summon
-
-stat stat()
+new stat()
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+stat int32(path c-str, buf stat) noctx extern unsafe summon
 
 S_IFMT nat32() noctx
 	# TODO: "octal170000"

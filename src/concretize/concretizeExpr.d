@@ -23,6 +23,7 @@ import concretize.concretizeCtx :
 	TypeArgsScope,
 	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes;
 import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs, matchConstantsOrExprs;
+import lower.getBuiltinCall : isWindows;
 import model.concreteModel :
 	asConstant,
 	asRecord,
@@ -35,6 +36,7 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFieldSource,
 	ConcreteFun,
+	ConcreteFunBody,
 	ConcreteLambdaImpl,
 	ConcreteLocal,
 	ConcreteMutability,
@@ -47,6 +49,7 @@ import model.concreteModel :
 	isConstant,
 	isSummon,
 	isVariadic,
+	matchConcreteFunBody,
 	mustBeNonPointer,
 	name,
 	purity,
@@ -75,10 +78,10 @@ import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : getOrAdd;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.memory : allocate;
-import util.opt : force, has, none, some;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : nullPtr, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSym, symEq;
+import util.sym : shortSym, Sym, symEq;
 import util.util : todo, unreachable, verify;
 
 @trusted immutable(ConcreteExpr) concretizeExpr(
@@ -193,16 +196,19 @@ immutable(ConcreteExpr) concretizeCall(
 		: args;
 	immutable ConcreteExprKind kind = matchConstantsOrExprs!(immutable ConcreteExprKind)(
 		args2,
-		(ref immutable Constant[] constants) =>
-			//TODO: return immutable ConcreteExprKind(evalConstant(concreteCalled.deref(), constants)));
-			immutable ConcreteExprKind(immutable ConcreteExprKind.Call(
-				concreteCalled,
-				mapZip(
-					alloc,
-					concreteCalled.deref().paramsExcludingCtxAndClosure,
-					constants,
-					(ref immutable ConcreteParam p, ref immutable Constant x) =>
-						immutable ConcreteExpr(p.type, FileAndRange.empty, immutable ConcreteExprKind(x))))),
+		(ref immutable Constant[] constants) {
+			immutable Opt!Constant constant = tryEvalConstant(concreteCalled.deref(), constants);
+			return has(constant)
+				? immutable ConcreteExprKind(force(constant))
+				: immutable ConcreteExprKind(immutable ConcreteExprKind.Call(
+					concreteCalled,
+					mapZip(
+						alloc,
+						concreteCalled.deref().paramsExcludingCtxAndClosure,
+						constants,
+						(ref immutable ConcreteParam p, ref immutable Constant x) =>
+							immutable ConcreteExpr(p.type, FileAndRange.empty, immutable ConcreteExprKind(x)))));
+		},
 		(ref immutable ConcreteExpr[] exprs) =>
 			immutable ConcreteExprKind(immutable ConcreteExprKind.Call(concreteCalled, exprs)));
 	return immutable ConcreteExpr(concreteCalled.deref().returnType, range, kind);
@@ -686,6 +692,26 @@ immutable(ConstantsOrExprs) constantsOrExprsArr(
 					allocate(alloc, immutable ConcreteExprKind.CreateArr(arrayStruct, exprs))))])));
 }
 
-immutable(Constant) evalConstant(ref immutable ConcreteFun fn, immutable Constant[] /*parameters*/) {
-	return todo!(immutable Constant)("evalConstant");
+immutable(Opt!Constant) tryEvalConstant(ref immutable ConcreteFun fn, immutable Constant[] /*parameters*/) {
+	return matchConcreteFunBody!(immutable Opt!Constant)(
+		body_(fn),
+		(ref immutable ConcreteFunBody.Builtin) {
+			// TODO: don't just special-case this one..
+			immutable Opt!Sym name = name(fn);
+			return has(name) && symEq(force(name), shortSym("is-windows"))
+				? some(immutable Constant(immutable Constant.BoolConstant(isWindows())))
+				: none!Constant;
+		},
+		(ref immutable ConcreteFunBody.CreateEnum) => none!Constant,
+		(ref immutable ConcreteFunBody.CreateRecord) => none!Constant,
+		(ref immutable ConcreteFunBody.CreateUnion) => none!Constant,
+		(immutable EnumFunction) => none!Constant,
+		(ref immutable ConcreteFunBody.Extern) => none!Constant,
+		(ref immutable ConcreteExpr e) =>
+			isConstant(e.kind)
+				? some(asConstant(e.kind))
+				: none!Constant,
+		(ref immutable ConcreteFunBody.FlagsFn) => none!Constant,
+		(ref immutable ConcreteFunBody.RecordFieldGet) => none!Constant,
+		(ref immutable ConcreteFunBody.RecordFieldSet) => none!Constant);
 }

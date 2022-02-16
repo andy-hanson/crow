@@ -1,11 +1,9 @@
-#!/usr/bin/env crow
-
 import
-	crow/io/environ: get-environ
 	crow/io/path: child-path, parent-path
 	crow/io/print: print
 	crow/parse-command: parse-named-args
 	crow/reader: parse-nat
+	crow/version: is-windows
 	./failure: first-failures, new, print-failures, test-options
 	./lint: lint
 	./crow-tests: run-crow-tests
@@ -43,12 +41,13 @@ main fut nat(args str[]) summon
 
 .do-test nat(options test-options) summon
 	test-path = "./test"
-	crow-path = test-path parent-path
-	crow-exe = crow-path child-path "bin" child-path "crow"
-	env = get-environ
-
-	crow-failures = test-path child-path "parse-errors" run-crow-tests crow-exe, env, options first-failures () =>
-		test-path child-path "compile-errors" run-crow-tests crow-exe, env, options first-failures () =>
-			test-path child-path "runnable" run-crow-tests crow-exe, env, options
-	all-failures = crow-failures first-failures () => crow-path lint options
+	crow-dir = test-path parent-path
+	crow-exe = crow-dir crow-path
+	crow-failures = test-path child-path "parse-errors" run-crow-tests crow-exe, options first-failures () =>
+		test-path child-path "compile-errors" run-crow-tests crow-exe, options first-failures () =>
+			test-path child-path "runnable" run-crow-tests crow-exe, options
+	all-failures = crow-failures first-failures () => crow-dir lint options
 	all-failures print-failures options
+
+.crow-path str(crow-dir str) trusted
+	crow-dir child-path "bin" child-path "crow" ~~ (is-windows ? ".exe" : "")

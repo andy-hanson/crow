@@ -2,7 +2,7 @@ no-std
 import
 	crow/bool: bool
 	crow/cell: cell
-	crow/c-types: c-char, c-float, c-int, s-long, u-int
+	crow/c-types: c-char, c-float, c-int, long, u-int
 	crow/enum-util: enum-to-str
 	crow/misc: void
 	crow/ptr: any-const-ptr, const-ptr, mut-ptr
@@ -17,11 +17,11 @@ GLchar alias
 GLint alias
 	c-int
 GLintptr alias
-	s-long
+	long
 GLsizei alias
 	c-int
 GLsizeiptr alias
-	s-long
+	long
 GLuint alias
 	u-int
 GLfloat alias

@@ -2,21 +2,21 @@ import
 	crow/col/arr-util: find-and-get
 	crow/col/iter: rest, value
 	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new
-	crow/io/environ: environ
 	crow/io/file: each-child-recursive
 	crow/io/path: base-name, get-extension
 	crow/io/print: print
 	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
-	crow/str-util: contains-substr, iter, next, slice-right, str-iter, try-remove-start
+	crow/str-util: contains-substr, ends-with, iter, next, slice-right, str-iter, try-remove-start
+	crow/version: is-windows
 	crow/writer: ~=, move-to-str, new, writer
 	./failure:
 		failure, flat-map-with-max-size, handle-output, max-failures, match-test, new,
 		overwrite-output, print-tests, test-options
 
-run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, options test-options) summon
+run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-options) summon
 	tests = path list-tests options.match-test
 	failures = tests flat-map-with-max-size options.max-failures, x =>
-		path-to-crow run-single-crow-test env, x, options
+		path-to-crow run-single-crow-test x, options
 	if failures is-empty
 		"ran {tests size} tests in {path}" ok
 	else
@@ -25,35 +25,33 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, env environ, o
 .list-tests str[](path str, match-test str) summon
 	res str mut[] = ()
 	path each-child-recursive child =>
-		if child contains-substr match-test && child.ext-is-crow
+		if child contains-substr match-test && child.ext-is-crow && !child.is-excluded
 			res ~= child
 	res move-to-arr
+
+# Some tests have different output on Windows
+.is-excluded bool(a str) trusted
+	if is-windows
+		a ends-with "/fail.crow" || a ends-with "/gc.crow"
 
 .ext-is-crow bool(a str)
 	if ext ?= a.base-name get-extension
 		ext == "crow"
 
-.run-single-crow-test failure[]
-	path-to-crow str
-	env environ
-	path str
-	options test-options
-spec
-	summon
-body
-	op failure[]? = ("ast", "model", "concrete-model", "low-model")::str[] find-and-get print-kind =>
+.run-single-crow-test failure[](path-to-crow str, path str, options test-options) summon
+	op failure[]? = ("ast", "model")::str[] find-and-get print-kind =>
 		if options print-tests
 			print: "crow print {print-kind} {path}"
-		res = print-kind run-print-test path-to-crow, env, path, options.overwrite-output
+		res = print-kind run-print-test path-to-crow, path, options.overwrite-output
 		res.should-stop ? res.failures,
 	if res ?= op
 		res
 	else
-		if options.print-tests
+		if options print-tests
 			print: "crow run {path}"
-		interpret-failures = path-to-crow run-single-runnable-test env, path, true, options.overwrite-output
+		interpret-failures = path-to-crow run-single-runnable-test path, true, options.overwrite-output
 		if interpret-failures is-empty
-			path-to-crow run-single-runnable-test env, path, false, options.overwrite-output
+			path-to-crow run-single-runnable-test path, false, options.overwrite-output
 		else
 			interpret-failures
 
@@ -64,13 +62,12 @@ body
 .run-print-test print-test-result
 	print-kind str
 	path-to-crow str
-	env environ
 	path str
 	overwrite-output bool
 spec
 	summon
 body
-	res = path-to-crow spawn-and-wait-result ("print", print-kind, path), env
+	res = path-to-crow spawn-and-wait-result ("print", print-kind, path)
 	output-path = "{path}.{print-kind}.json"
 	# NOTE: compiler may have both stderr and stdout!
 	output-failures failure[] = if res.stdout.is-empty && res.exit-code != 0
@@ -94,7 +91,6 @@ body
 
 .run-single-runnable-test failure[]
 	path-to-crow str
-	env environ
 	path str
 	interpret bool
 	overwrite-output bool
@@ -105,7 +101,7 @@ body
 		"run", path, "--interpret"
 	else
 		"run", path
-	res = path-to-crow spawn-and-wait-result args, env
+	res = path-to-crow spawn-and-wait-result args
 	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output
 	stderr-failures failure[] = if res.exit-code != 0 || res.stderr != ""
 		path handle-output ("{path}.stderr"), res.stderr, overwrite-output

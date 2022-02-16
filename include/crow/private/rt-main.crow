@@ -1,7 +1,7 @@
 no-std
 import
-	pthread: pthread_t
 	sys/sysinfo: get_nprocs
+	win32: dwNumberOfProcessors, GetSystemInfo, new, SYSTEM_INFO
 	../cell: as-cell
 	../col/arr: arr
 	../col/arr-util: map, tail
@@ -10,24 +10,25 @@ import
 	../fut: delay, fut, handle-exceptions, then-void
 	../misc: new, void
 	../ptr:
-		+, any-mut-ptr, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, null,
+		+, any-mut-ptr, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, null, ptr-to,
 		ref-of-val, set-deref, subscript
 	../range: ..
 	../str: c-str, str
 	../str-util: to-str
+	../version: is-windows
 	./alloc: unmanaged-alloc-elements, unmanaged-free
 	./bootstrap: call-with-ctx, ctx, get-ctx, new, state, thread-local-stuff
 	./exception-low-level: exception-ctx
 	./log-low-level: log-ctx
 	./number-low-level:
-		==, <=>, int32, int64, nat64, to-int64, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat64,
-		wrap-add, wrap-sub
+		==, <=>, int32, int64, nat64, to-int64, to-nat64, unsafe-to-int32, unsafe-to-int64,
+		unsafe-to-nat64, wrap-add, wrap-sub
 	./perf-low-level: perf-ctx
 	./runtime:
-		any-unhandled-exceptions, get-global-ctx, global-ctx, may-be-work-to-do, new, new-ctx,
-		print-lock, thread-function
+		any-unhandled-exceptions, get-global-ctx, global-ctx, init, may-be-work-to-do, new-ctx,
+		print-lock, thread-function, uninit
 	./sym-low-level: init-symbol-table
-	./thread-utils: create-one-thread, destroy-condition, join-one-thread
+	./thread-utils: create-one-thread, destroy-condition, join-one-thread, thread-handle
 
 .main-ptr alias
 	fun-ptr2<fut nat64, ctx, str[]>
@@ -35,13 +36,22 @@ import
 # Treated specially by the compiler
 rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 	do-init-constants
-	n-threads = get_nprocs
-	gctx-by-val by-val global-ctx = n-threads,
+	n-threads = count-processors
+	gctx-by-val by-val global-ctx = n-threads uninit
 	gctx = gctx-by-val ref-of-val
+	gctx init
 	main-fut = gctx add-main-task (n-threads wrap-sub 1), argc, argv, main-ptr
 	n-threads run-threads gctx
 	gctx.may-be-work-to-do.ref-of-val destroy-condition
 	gctx exit-code-from-main-fut main-fut
+
+.count-processors nat64() unsafe noctx summon
+	if is-windows
+		res SYSTEM_INFO = ()
+		res.ptr-to GetSystemInfo
+		res.dwNumberOfProcessors to-nat64
+	else
+		get_nprocs
 
 .exit-code-from-main-fut int32(gctx global-ctx, main-fut fut nat64) unsafe noctx
 	match main-fut state
@@ -119,7 +129,7 @@ body
 
 # Each thread will get the thread ID, and the common arguments.
 .run-threads void(n-threads nat64, gctx global-ctx) noctx unsafe summon
-	threads pthread_t mut* = n-threads unmanaged-alloc-elements
+	threads thread-handle mut* = n-threads unmanaged-alloc-elements
 	thread-args by-val<thread-args> mut* = n-threads unmanaged-alloc-elements
 
 	actual-n-threads = n-threads wrap-sub 1
@@ -134,7 +144,7 @@ body
 .start-threads-recur void
 	i nat64
 	n-threads nat64
-	threads pthread_t mut*
+	threads thread-handle mut*
 	thread-args-begin by-val<thread-args> mut*
 	gctx global-ctx
 spec
@@ -154,7 +164,7 @@ body
 	args.thread-id thread-function args.gctx
 	null
 
-.join-threads-recur void(i nat64, n-threads nat64, threads pthread_t*) noctx unsafe summon
+.join-threads-recur void(i nat64, n-threads nat64, threads thread-handle*) noctx unsafe summon
 	unless i == n-threads
 		threads[i] join-one-thread
 		i wrap-add 1 join-threads-recur n-threads, threads

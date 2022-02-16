@@ -1,10 +1,15 @@
 no-std
 import
 	crow/extra-types: err-t
+	crow/version: is-windows
 	crow/ptr: *, mut-ptr
 
 errno err-t() unsafe noctx
-	*__errno_location
+	if is-windows
+		*_errno
+	else
+		*__errno_location
+._errno err-t mut*() extern noctx unsafe
 .__errno_location err-t mut*() extern noctx unsafe
 
 ENOENT err-t() noctx

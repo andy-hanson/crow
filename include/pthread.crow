@@ -1,15 +1,13 @@
 no-std
 import
-	crow/bytes-types: bytes4, bytes48
-	crow/cell: cell
+	crow/bytes-types: bytes4, bytes40, bytes48
 	crow/c-types: u-long
 	crow/extra-types: err-t
 	crow/fun-util: fun-ptr1
-	crow/ptr: any-const-ptr, any-mut-ptr, const-ptr, mut-ptr
+	crow/misc: drop
+	crow/ptr: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, ref-of-val, zeroed
 	crow/private/bootstrap: int32
 	time: __clockid_t, timespec
-export
-	crow/private/bootstrap: pthread_mutex_t
 
 pthread_t alias
 	u-long
@@ -17,7 +15,7 @@ pthread_t alias
 # writes to `thread`
 # TODO: attr -- not typing this as currently I only pass null
 pthread_create err-t
-	thread cell pthread_t
+	thread pthread_t mut*
 	attr any-const-ptr
 	start-routine fun-ptr1<any-mut-ptr, any-mut-ptr>
 	arg any-mut-ptr
@@ -27,13 +25,17 @@ spec
 	noctx
 	summon
 
-pthread_join err-t(thread pthread_t, thread-return cell any-mut-ptr) unsafe extern noctx summon
+pthread_join err-t(thread pthread_t, thread-return any-mut-ptr mut*) unsafe extern noctx summon
 
 region mutex
 
+pthread_mutex_t record force-sendable
+	by-ref
+	.sizer bytes40
+
 pthread_mutexattr_t record
 	by-ref
-	sizer bytes4
+	.sizer bytes4
 
 pthread_mutexattr_init err-t(attr pthread_mutexattr_t) unsafe extern noctx
 pthread_mutexattr_destroy err-t(attr pthread_mutexattr_t) unsafe extern noctx
@@ -62,11 +64,11 @@ region cond
 
 pthread_cond_t record
 	by-ref
-	sizer bytes48
+	.sizer bytes48
 
 pthread_condattr_t record
 	by-ref
-	sizer bytes4
+	.sizer bytes4
 
 pthread_condattr_init err-t(attr pthread_condattr_t) unsafe extern noctx
 pthread_condattr_destroy err-t(attr pthread_condattr_t) unsafe extern noctx
@@ -81,3 +83,13 @@ pthread_cond_signal err-t(cond pthread_cond_t) unsafe extern noctx
 pthread_cond_broadcast err-t(cond pthread_cond_t) unsafe extern noctx
 pthread_cond_wait err-t(cond pthread_cond_t, mutex pthread_mutex_t) unsafe extern noctx
 pthread_cond_timedwait err-t(cond pthread_cond_t, mutex pthread_mutex_t, abstime timespec*) unsafe extern noctx
+
+test
+	mutex by-val pthread_mutex_t = zeroed
+	drop: mutex.ref-of-val sizer
+	mutex-attr by-val pthread_mutexattr_t = zeroed
+	drop: mutex-attr.ref-of-val sizer
+	cond by-val pthread_cond_t = zeroed
+	drop: cond.ref-of-val sizer
+	cond-attr by-val pthread_condattr_t = zeroed
+	drop: cond-attr.ref-of-val sizer

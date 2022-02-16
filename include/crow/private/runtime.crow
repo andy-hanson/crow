@@ -9,7 +9,7 @@ import
 	../opt: new
 	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val
 	../str: literal, str
-	./alloc: gc, get-gc-ctx, needs-gc, new, return-gc-ctx, run-garbage-collection
+	./alloc: gc, get-gc-ctx, init, needs-gc, return-gc-ctx, run-garbage-collection, uninit
 	./bool-low-level: !, &&, bool, false, true
 	./bootstrap:
 		call-with-ctx, ctx, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
@@ -22,8 +22,8 @@ import
 		action, any-tasks, exclusion, first-task-time, insert-task, is-empty, new, no-task,
 		no-timestamp, pop-task, return-task, task, task-queue, task-queue-node
 	./thread-utils:
-		acquire, broadcast, condition, create-condition, get-and-increment, get-sequence,
-		lock-by-val, new, release, thread-safe-counter, wait-on
+		acquire, broadcast, condition, get-and-increment, get-sequence, init, release,
+		thread-safe-counter, uninit, wait-on
 
 get-global-ctx global-ctx() unsafe
 	get-ctx.gctx-ptr as-ref
@@ -56,14 +56,19 @@ global-ctx record mut
 	# not protected by tasks-lock, thread-safe on its own
 	next-exclusion by-val thread-safe-counter
 
-new by-val global-ctx(n-threads nat64) noctx unsafe summon
+uninit by-val global-ctx(n-threads nat64) noctx unsafe summon
 	q by-val task-queue = n-threads,
 	gc-root by-val gc-root = q, empty-dict, (exn => exn default-exception-handler), log =>
 		log default-log-handler
-	lbv, n-threads, create-condition, false, false, (), gc-root, lbv, lbv, 0, ()
+	uninit, n-threads, uninit, false, false, uninit, gc-root, uninit, uninit, 0, uninit
 
-.lbv by-val lock() noctx
-	lock-by-val
+init void(a global-ctx) noctx unsafe
+	a.print-lock.ref-of-val init
+	a.may-be-work-to-do.ref-of-val init
+	a.gc.ref-of-val init
+	a.syms-lock.ref-of-val init
+	a.tasks-lock.ref-of-val init
+	a.next-exclusion.ref-of-val init
 
 gc-root record mut
 	tasks by-val task-queue

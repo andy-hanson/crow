@@ -1,10 +1,9 @@
 no-std
 import
 	../compare: !=
-	../opt: new, opt
-	../ptr: +, *, as-const, as-mut, mut-ptr
-	./bootstrap: char8, c-str, hard-unreachable, to-nat8
-	./number-low-level: ==
+	../ptr: +, -, *, as-const, as-mut, mut-ptr
+	./bootstrap: char8, c-str, hard-unreachable, none, opt, some, to-nat8
+	./number-low-level: ==, nat64
 
 ###
 Walk a c-str and return a pointer to the first occurrence of `c`.
@@ -12,9 +11,11 @@ If that is not found, return an empty option.
 ###
 find-char-in-c-str c-str?(a c-str, c char8) unsafe noctx
 	if a->to-nat8 == c.to-nat8
-		a,
+		a some
 	elif a->to-nat8 != 0
 		a + 1 find-char-in-c-str c
+	else
+		none
 
 # Pointer to the end of a c-str.
 find-c-str-end c-str(a c-str) unsafe noctx
@@ -26,3 +27,6 @@ find-c-str-end c-str(a c-str) unsafe noctx
 # Pointer to the end of a c-str.
 find-c-str-end char8 mut*(a char8 mut*) unsafe noctx
 	a.as-const.find-c-str-end as-mut
+
+c-str-size nat64(a c-str) unsafe noctx
+	a.find-c-str-end - a

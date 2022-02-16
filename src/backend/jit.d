@@ -325,7 +325,7 @@ extern(C) {
 						writeFunName(writer, allSymbols, program, funIndex);
 						writeChar(writer, ' ');
 						writeFunSig(writer, allSymbols, program, fun);
-						printf("Stub %lu %s\n", funIndex.index, finishWriterToCStr(writer));
+						printf("Stub %llu %s\n", funIndex.index, finishWriterToCStr(writer));
 					}
 					gcc_jit_block_end_with_return(exprCtx.curBlock, null, arbitraryValue(exprCtx, expr.expr.type));
 				} else {
@@ -337,7 +337,7 @@ extern(C) {
 							writeFunName(writer, allSymbols, program, funIndex);
 							writeChar(writer, ' ');
 							writeFunSig(writer, allSymbols, program, fun);
-							printf("Generate %lu %s\n", funIndex.index, finishWriterToCStr(writer));
+							printf("Generate %llu %s\n", funIndex.index, finishWriterToCStr(writer));
 						}
 					}
 					ExprEmit emit = ExprEmit(immutable ExprEmit.Return());

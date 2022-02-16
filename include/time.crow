@@ -1,15 +1,15 @@
 no-std
 import
 	crow/cell: cell
-	crow/c-types: c-int, size_t, s-long
+	crow/c-types: c-int, size_t, long
 	crow/extra-types: err-t
 	crow/private/bootstrap: char8, c-str
 	crow/ptr: const-ptr, mut-ptr
 
 timespec record
 	by-val
-	tv_sec s-long
-	tv_nsec s-long
+	tv_sec long
+	tv_nsec long
 
 tm extern-ptr
 
@@ -32,4 +32,4 @@ __clockid_t alias
 
 # Seconds since the Epoch
 time_t alias
-	s-long
+	long

@@ -24,7 +24,6 @@ main fut nat(_ str[]) summon
 	full-out-path = "site" child-path a.out-path
 	unless full-out-path is-up-to-date a.content
 		full-out-path.parent-path ensure-directory-recursive
-		print: "update {full-out-path}"
 		full-out-path write-file a.content
 
 .ensure-link void(a link, cwd str) summon

@@ -8,10 +8,12 @@ import
 	./bootstrap:
 		cb, exception, fut, fut-state-callbacks, fut-state-exception, fut-state-no-callbacks,
 		fut-state-resolved, hard-unreachable, lk, new, next, set-state, state
-	./thread-utils: lock-by-val, with-lock
+	./thread-utils: init, uninit, with-lock
 
 unresolved<a> fut a() unsafe
-	lock-by-val, fut-state-no-callbacks
+	res fut a = uninit, fut-state-no-callbacks
+	res.lk.ref-of-val init
+	res
 
 resolve<a> void(f fut a, value a) unsafe
 	f resolve-or-reject value.ok

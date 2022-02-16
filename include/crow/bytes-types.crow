@@ -33,6 +33,24 @@ bytes8 record
 new bytes8() noctx
 	(),
 
+# 14-byte type.
+bytes12 record
+	by-val
+	.n0 bytes8
+	.n1 bytes4
+
+new bytes12() noctx
+	(), ()
+
+# 14-byte type.
+bytes14 record
+	by-val
+	.n0 bytes12
+	.n1 bytes2
+
+new bytes14() noctx
+	(), ()
+
 # 16-byte type.
 bytes16 record
 	by-val
@@ -49,6 +67,14 @@ bytes32 record
 	.n1 bytes16
 
 new bytes32() noctx
+	(), ()
+
+bytes40 record
+	by-val
+	.n0 bytes32
+	.n1 bytes8
+
+new bytes40() noctx
 	(), ()
 
 # 48-byte type.
@@ -92,10 +118,16 @@ test
 	drop: ()::bytes2.n0
 	drop: ()::bytes4.n0
 	drop: ()::bytes8.n0
+	drop: ()::bytes12.n0
+	drop: ()::bytes12.n1
+	drop: ()::bytes14.n0
+	drop: ()::bytes14.n1
 	drop: ()::bytes16.n0
 	drop: ()::bytes16.n1
 	drop: ()::bytes32.n0
 	drop: ()::bytes32.n1
+	drop: ()::bytes40.n0
+	drop: ()::bytes40.n1
 	drop: ()::bytes48.n0
 	drop: ()::bytes48.n1
 	drop: ()::bytes64.n0

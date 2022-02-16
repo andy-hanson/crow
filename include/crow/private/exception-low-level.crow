@@ -2,7 +2,6 @@ no-std
 import
 	setjmp: jmp_buf, __jmp_buf_tag, longjmp, new, setjmp
 	../bool: bool
-	../bytes-types: new
 	../col/private/arr-low-level: new
 	../compare: !=
 	../fun-util: subscript
@@ -12,7 +11,7 @@ import
 	./bootstrap:
 		c-str, err, exception-ctx-ptr, get-ctx, hard-assert, hard-unreachable, int32, new, ok, result,
 		thread-local-stuff
-	./number-low-level: ==, new
+	./number-low-level: ==
 export
 	./bootstrap: exception, message
 
@@ -30,7 +29,7 @@ get-exception-ctx exception-ctx() unsafe
 catch-with-exception-ctx<a> a(ec exception-ctx, try act a(), catcher act a(exception)) unsafe
 	old-thrown-exception = ec thrown-exception
 	old-jmp-buf = ec jmp-buf-ptr
-	store __jmp_buf_tag = (), (), ()
+	store __jmp_buf_tag = ()
 	ec.jmp-buf-ptr := store ptr-to
 	setjmp-result = ec.jmp-buf-ptr setjmp
 	if setjmp-result == 0

@@ -191,8 +191,11 @@ private immutable(bool) concreteFunKeyEqual(ref immutable ConcreteFunKey a, ref 
 	// (e.g. f<?t> and f<bool> if ?t = bool)
 	return ptrEquals(a.inst.deref().decl, b.inst.deref().decl) &&
 		concreteTypeArrEquals(a.typeArgs, b.typeArgs) &&
-		arrEqual(a.specImpls, b.specImpls, (ref immutable Ptr!ConcreteFun x, ref immutable Ptr!ConcreteFun y) =>
-			ptrEquals(x, y));
+		arrEqual!(immutable Ptr!ConcreteFun)(
+			a.specImpls,
+			b.specImpls,
+			(ref immutable Ptr!ConcreteFun x, ref immutable Ptr!ConcreteFun y) =>
+				ptrEquals(x, y));
 }
 
 private void hashConcreteFunKey(ref Hasher hasher, ref immutable ConcreteFunKey a) {
@@ -524,8 +527,10 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(
 }
 
 immutable(NeedsCtx) getNeedsCtx(ref immutable FunDecl decl, immutable Ptr!ConcreteFun[] specImpls) {
-	immutable bool res = !noCtx(decl) || exists(specImpls, (ref immutable Ptr!ConcreteFun impl) =>
-		impl.deref().needsCtx == NeedsCtx.yes);
+	immutable bool res = !noCtx(decl) || exists!(immutable Ptr!ConcreteFun)(
+		specImpls,
+		(ref immutable Ptr!ConcreteFun impl) =>
+			impl.deref().needsCtx == NeedsCtx.yes);
 	return res ? NeedsCtx.yes : NeedsCtx.no;
 }
 

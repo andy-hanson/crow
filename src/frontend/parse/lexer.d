@@ -239,7 +239,7 @@ immutable(T) takeIndentOrFailGeneric(T)(
 }
 
 private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(ref Lexer lexer, immutable uint curIndent) {
-	if (!tryTakeChar(lexer, '\n')) {
+	if (!tryTakeNewline(lexer)) {
 		//TODO: not always expecting indent..
 		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 		skipRestOfLineAndNewline(lexer);
@@ -359,7 +359,7 @@ immutable(string) takeQuotedStr(ref Lexer lexer) {
 }
 
 @trusted void skipUntilNewlineNoDiag(ref Lexer lexer) {
-	while (*lexer.ptr != '\n' && *lexer.ptr != '\0')
+	while (!isNewlineChar(*lexer.ptr) && *lexer.ptr != '\0')
 		lexer.ptr++;
 }
 
@@ -374,7 +374,7 @@ private:
 
 void skipRestOfLineAndNewline(ref Lexer lexer) {
 	skipUntilNewlineNoDiag(lexer);
-	drop(tryTakeChar(lexer, '\n'));
+	drop(tryTakeNewline(lexer));
 }
 
 // Note: Not issuing any diagnostics here. We'll fail later if we detect the wrong indent kind.
@@ -393,9 +393,10 @@ void skipRestOfLineAndNewline(ref Lexer lexer) {
 			// Only allowed amounts are 2 and 4.
 			return n == 2 ? IndentKind.spaces2 : IndentKind.spaces4;
 		default:
-			while (*ptr != '\0' && *ptr != '\n')
+			while (*ptr != '\0' && !isNewlineChar(*ptr))
 				ptr++;
-			if (*ptr == '\n') ptr++;
+			if (isNewlineChar(*ptr))
+				ptr++;
 			return detectIndentKind(immutable SafeCStr(ptr));
 	}
 }
@@ -479,6 +480,7 @@ public enum Token {
 			return Token.EOF;
 		case ' ':
 			return nextToken(lexer);
+		case '\r':
 		case '\n':
 			return Token.newline;
 		case '~':
@@ -984,13 +986,14 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable 
 							break;
 					}
 					break;
+				case '\r':
 				case '\n':
 					final switch (quoteKind) {
 						case QuoteKind.double_:
 							addDiagExpected(lexer, ParseDiag.Expected.Kind.quoteDouble);
 							return StringPart.After.quote;
 						case QuoteKind.double3:
-							pushToTempStr(res, '\n');
+							pushToTempStr(res, x);
 							break;
 					}
 					break;
@@ -1117,9 +1120,9 @@ public immutable(SafeCStr) skipBlankLinesAndGetDocComment(ref Lexer lexer) {
 }
 
 immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(ref Lexer lexer, immutable SafeCStr comment) {
-	if (tryTakeChar(lexer, '\n'))
+	if (tryTakeNewline(lexer))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, comment);
-	else if (tryTakeCStr(lexer, "###\n"))
+	else if (tryTakeTripleHashThenNewline(lexer))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, takeRestOfBlockComment(lexer));
 	else if (tryTakeChar(lexer, '#'))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, takeRestOfLineAndNewline(lexer));
@@ -1136,15 +1139,15 @@ immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(ref Lexer lexer, immutab
 immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(ref Lexer lexer, immutable uint curIndent) {
 	// comment / region counts as a blank line no matter its indent level.
 	immutable uint newIndent = takeIndentAmount(lexer);
-	if (tryTakeChar(lexer, '\n'))
+	if (tryTakeNewline(lexer))
 		// Ignore lines that are just whitespace
 		return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
 
 	// For indent == 0, we'll try taking any comments as doc comments
 	if (newIndent != 0) {
 		// Comments can mean a dedent
-		if (tryTakeCStr(lexer, "###\n")) {
-			skipRestOfBlockComment(lexer);
+		if (tryTakeTripleHashThenNewline(lexer)) {
+			drop(skipRestOfBlockComment(lexer));
 			return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
 		} else if (tryTakeChar(lexer, '#')) {
 			skipRestOfLineAndNewline(lexer);
@@ -1164,22 +1167,59 @@ immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(ref Lexer lexer, immutabl
 			: immutable IndentDelta(immutable IndentDelta.DedentOrSame(-delta));
 }
 
-@trusted immutable(SafeCStr) takeRestOfBlockComment(ref Lexer lexer) {
-	immutable char* begin = lexer.ptr;
-	skipRestOfBlockComment(lexer);
-	immutable char* end = lexer.ptr - "\n###\n".length;
-	return copyToSafeCStr(lexer.alloc, arrOfRange(begin, end));
+immutable(bool) isNewlineChar(immutable char c) {
+	return c == '\r' || c == '\n';
 }
 
-@trusted void skipRestOfBlockComment(ref Lexer lexer) {
+immutable(bool) tryTakeNewline(ref Lexer lexer) {
+	return tryTakeChar(lexer, '\r') || tryTakeChar(lexer, '\n');
+}
+
+immutable(bool) tryTakeTripleHashThenNewline(ref Lexer lexer) {
+	return tryTakeCStr(lexer, "###\r") || tryTakeCStr(lexer, "###\n");
+}
+
+@trusted immutable(SafeCStr) takeRestOfBlockComment(ref Lexer lexer) {
+	immutable char* begin = lexer.ptr;
+	immutable char* end = skipRestOfBlockComment(lexer);
+	return copyToSafeCStr(lexer.alloc, stripWhitespace(arrOfRange(begin, end)));
+}
+
+immutable(string) stripWhitespace(immutable string a) {
+	return stripWhitespaceRight(stripWhitespaceLeft(a));
+}
+
+immutable(char[]) stripWhitespaceLeft(immutable string a) {
+	return empty(a) || !isWhitespace(a[0]) ? a : stripWhitespaceLeft(a[1 .. $]);
+}
+
+immutable(char[]) stripWhitespaceRight(immutable string a) {
+	return empty(a) || !isWhitespace(a[$ - 1]) ? a : stripWhitespaceRight(a[0 .. $ - 1]);
+}
+
+immutable(bool) isWhitespace(immutable char a) {
+	switch (a) {
+		case ' ':
+		case '\t':
+		case '\r':
+		case '\n':
+			return true;
+		default:
+			return false;
+	}
+}
+
+@trusted immutable(char*) skipRestOfBlockComment(ref Lexer lexer) {
 	skipRestOfLineAndNewline(lexer);
 	while (tryTakeChar(lexer, '\t') || tryTakeChar(lexer, ' ')) {}
-	if (!tryTakeCStr(lexer, "###\n")) {
-		if (*lexer.ptr == '\0')
-			addDiagExpected(lexer, ParseDiag.Expected.Kind.blockCommentEnd);
-		else
-			skipRestOfBlockComment(lexer);
-	}
+	immutable char* end = lexer.ptr;
+	if (tryTakeTripleHashThenNewline(lexer))
+		return end;
+	else if (*lexer.ptr == '\0') {
+		addDiagExpected(lexer, ParseDiag.Expected.Kind.blockCommentEnd);
+		return end;
+	} else
+		return skipRestOfBlockComment(lexer);
 }
 
 public @trusted immutable(bool) lookaheadWillTakeEqualsOrThen(ref Lexer lexer) {
@@ -1219,6 +1259,7 @@ public @trusted immutable(bool) lookaheadWillTakeArrow(ref Lexer lexer) {
 				return false;
 			case ')':
 				return ptr[1] == ' ' && ptr[2] == '=' && ptr[3] == '>';
+			case '\r':
 			case '\n':
 			case '\0':
 				return false;

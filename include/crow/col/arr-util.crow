@@ -394,6 +394,11 @@ Equivalent to `a[0] ~ a[1] ~ ...`.
 flatten<a> a[](a a[][])
 	a flat-map (x => x)
 
+zip-each<a, b> void(a a[], b b[], f act void(a, b))
+	"zipped arrays must have same size" assert-c-str a.size == b.size
+	a each-with-index (x, i) =>
+		f[x, b[i]]
+
 ###
 Equivalent to `f[a[0], b[0]], f[a[1], b[1]], ...`.
 Calls `f` for corresponding elements `a[i]` and `b[i]` and returns an array of the results.

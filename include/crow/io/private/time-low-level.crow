@@ -3,9 +3,10 @@ import
 	time: clock_gettime, CLOCK_MONOTONIC, new, timespec, tv_nsec, tv_sec
 	../../cell: *, cell, new
 	../../ptr: by-val, ref-of-val
-	../../private/bootstrap: nat64, todo
+	../../private/bootstrap: nat32, nat64, todo
 	../../private/number-low-level:
-		==, unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-to-int64, unsafe-to-nat64
+		==, to-nat64, unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-to-int64, unsafe-to-nat64, wrap-mul
+	../../version: is-windows
 
 # Monotime in nanoseconds.
 timestamp alias
@@ -16,13 +17,24 @@ Get the value from a monotonic clock.
 WARN: THis should be 'summon', but I didn't mark it that way so 'perf' can use it.
 ###
 get-monotime-nsec timestamp() noctx trusted
-	time-cell by-val cell timespec = (0, 0),
-	err = CLOCK_MONOTONIC clock_gettime time-cell.ref-of-val
-	if err == 0
-		time = *time-cell.ref-of-val
-		time.tv_sec unsafe-mul 1000000000 unsafe-add time.tv_nsec unsafe-to-nat64
+	if is-windows
+		GetTickCount.to-nat64 msec-to-nsec
 	else
-		todo
+		time-cell by-val cell timespec = (0, 0),
+		err = CLOCK_MONOTONIC clock_gettime time-cell.ref-of-val
+		if err == 0
+			time = *time-cell.ref-of-val
+			time.tv_sec unsafe-mul 1000000000 unsafe-add time.tv_nsec unsafe-to-nat64
+		else
+			todo
+
+.msec-to-nsec nat64(a nat64) unsafe noctx
+	a wrap-mul 1000000
+
+nsec-to-msec nat64(a nat64) trusted noctx
+	a unsafe-div 1000000
+
+.GetTickCount nat32() noctx extern
 
 to-timespec timespec(a timestamp) noctx unsafe
 	second = 1000000000

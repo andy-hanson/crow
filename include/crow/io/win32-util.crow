@@ -1,0 +1,23 @@
+no-std
+import
+	../bits: |
+	../col/arr: subscript
+	../col/fix-arr: begin-ptr, cast-immutable, fix-arr, size, uninitialized-fix-arr
+	../number: ==, <=>, to-nat32, to-nat64
+	../ptr: null
+	../range: ..
+	../str: char8, literal, str
+	../str-conv: interp, finish, to-str, with-str, with-value
+	win32:
+		DWORD, FormatMessageA, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
+		LANG_NEUTRAL, MAKELANGID, SUBLANG_NEUTRAL
+
+show-win32-error str(err DWORD) unsafe summon
+	res fix-arr char8 = 1024 uninitialized-fix-arr
+	fmt = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS
+	lid = LANG_NEUTRAL MAKELANGID SUBLANG_NEUTRAL
+	size = fmt FormatMessageA null, err, lid, res.begin-ptr, res.size.to-nat32, null
+	if size == 0
+		"<<unknown error {err}>>"
+	else
+		res.cast-immutable[0 .. size.to-nat64] str

@@ -18,6 +18,8 @@ Install these tools (potentially from your operating system's package manager):
 * [`ldc`](https://github.com/ldc-developers/ldc#installation) (used to compile `bin/crow`).
 	- `wasm-ld` may need to be installed separately (used to compile `bin/crow.wasm`)
 * [`libgccjit`](https://gcc.gnu.org/onlinedocs/jit) (`bin/crow` links to this)
+	- Skip this on Windows
+* [`node.js](https://nodejs.org/) (used for tests of WASM module)
 
 Then run:
 
@@ -27,7 +29,7 @@ cd crow
 make all
 ```
 
-This will build `bin/crow`, test, then serve the website on localhost.
+This will build `bin/crow` (or `bin\crow.exe` on Windows), test, then serve the website on localhost.
 
 
 # Testing
@@ -46,11 +48,6 @@ Each test consists of a source file (ending in `.crow`) and output files that ad
 so a file `a.crow.stdout` would be an output of `a.crow`.
 The test runner will fail if the output is not exactly as in the file;
 if adding or changing tests, run `make end-to-end-test-overwrite`.
-
-
-# Working on the site
-
-`make watch-site` will automatically build `.html` files when the corresponding `.pug` file changes.
 
 
 # Debugging

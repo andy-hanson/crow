@@ -1,6 +1,7 @@
 no-std
 import
 	errno: EAGAIN, errno
+	sys/socket: as-fd, SOCKET
 	unistd: write
 	../../bool: bool, false, true
 	../../col/arr: ~~, arr, is-empty, new, size, subscript
@@ -17,7 +18,6 @@ import
 	../../misc: drop, new, void
 	../../number: ==, <=>, +, nat8, nat64, to-int64, to-nat64
 	../../opt: ??, new, opt
-	../../extra-types: fd-t
 	../../range: ..
 	../../reader: parse-nat
 	../../str: ==, <=>, hash-mix, is-empty, literal, str, to-nat8
@@ -44,16 +44,16 @@ Starts running an HTTP server on the given port.
 The server will be running by the time the returned future is resolved.
 ###
 start-http-server fut http-server(port str, handler http-handler) trusted summon
-	client-states http-parse-state mut[fd-t] = ()
+	client-states http-parse-state mut[SOCKET] = ()
 
-	on-accepted-client ref void(fd-t) = fd =>
-		client-states[fd] := ()
+	on-accepted-client ref void(SOCKET) = sock =>
+		client-states[sock] := ()
 		()
-	on-received-chunk ref void(fd-t, nat8[]) = (fd, bytes) =>
-		if state ?= client-states[fd]
-			closed <- fd handle-chunk state, bytes, handler
+	on-received-chunk ref void(SOCKET, nat8[]) = (sock, bytes) =>
+		if state ?= client-states[sock]
+			closed <- sock handle-chunk state, bytes, handler
 			if closed
-				drop: client-states try-remove fd drop
+				client-states try-remove sock drop
 			()
 		else
 			print: "Ignoring unrecognized client"
@@ -67,7 +67,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	(tcp-server.stop,),
 
 # Returns true when closed client
-.handle-chunk fut bool(fd fd-t, state http-parse-state, chunk nat8[], handler http-handler) summon trusted
+.handle-chunk fut bool(sock SOCKET, state http-parse-state, chunk nat8[], handler http-handler) summon trusted
 	state.unparsed ~~= chunk
 	finished-request = if state.content-length == 0
 		state handle-http-initial
@@ -83,27 +83,27 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		as err e
 			error log e.to-str
 			http-internal-server-error
-		<- fd write-until-finished response.response-to-arr
-		fd close-client
+		<- sock write-until-finished response.response-to-arr
+		sock close-client
 		true,
 	else
 		false,
 
-.write-until-finished fut void(fd fd-t, content nat8[]) summon trusted
+.write-until-finished fut void(sock SOCKET, content nat8[]) summon trusted
 	unless content is-empty
-		wrote = fd write content.begin-ptr, content.size
+		wrote = sock.as-fd write content.begin-ptr, content.size
 		unless wrote == content.size.to-int64
 			if wrote == -1
 				err = errno
 				if err == EAGAIN
 					<- delay
-					fd write-until-finished content
+					sock write-until-finished content
 				else
 					"can't write to socket, errno {err}" throw
 			else
 				assert: wrote > 0
 				<- delay
-				fd write-until-finished content[wrote.to-nat64 .. content.size]
+				sock write-until-finished content[wrote.to-nat64 .. content.size]
 
 .finish-request http-request(state http-parse-state) trusted
 	state.method, state.url, state.headers.move-to-dict, state.unparsed move-to-arr

@@ -4,6 +4,7 @@ import
 	crow/io/net/http-server: http-handler, start-http-server
 	crow/io/net/http-types: request-body, headers, http-request, method, new, to-str, url
 	crow/io/print: print
+	crow/str-util: as-str, to-bytes
 
 main fut nat(args str[]) unsafe summon
 	if args.size == 1
@@ -11,7 +12,7 @@ main fut nat(args str[]) unsafe summon
 		handler http-handler = req =>
 			descr = req describe-request
 			print: descr
-			(200, "OK", (), "Your request:\n{descr}"),
+			(200, "OK", (), "Your request:\n{descr}".to-bytes),
 		server = port start-http-server handler
 		drop: server
 		()
@@ -19,6 +20,6 @@ main fut nat(args str[]) unsafe summon
 		print: "Usage: server PORT"
 		1,
 
-.describe-request str(a http-request)
+.describe-request str(a http-request) trusted
 	h = a.headers map-to-arr (k, v) => "{k}: {v}"
-	"{a method} {a url}\n{h join "\n"}\n\n{a request-body}"
+	"{a method} {a url}\n{h join "\n"}\n\n{a.request-body as-str}"

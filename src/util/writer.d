@@ -227,16 +227,22 @@ void writeEscapedChar_inner(ref Writer writer, immutable char c) {
 }
 
 void writeBold(ref Writer writer) {
-	writeStatic(writer, "\x1b[1m");
+	version (Windows) { } else {
+		writeStatic(writer, "\x1b[1m");
+	}
 }
 
 void writeRed(ref Writer writer) {
-	writeStatic(writer, "\x1b[31m");
+	version (Windows) { } else {
+		writeStatic(writer, "\x1b[31m");
+	}
 }
 
 // Undo bold, color, etc
 void writeReset(ref Writer writer) {
-	writeStatic(writer, "\x1b[m");
+	version (Windows) { } else {
+		writeStatic(writer, "\x1b[m");
+	}
 }
 
 void writeHyperlink(
@@ -246,8 +252,7 @@ void writeHyperlink(
 ) {
 	// documentation: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 	// https://purpleidea.com/blog/2018/06/29/hyperlinks-in-gnome-terminal/
-	// TODO: I haven't got this to work on any terminal emulator I have installed. :(
-	if (false) {
+	if (canWriteHyperlink()) {
 		writeStatic(writer, "\x1b]8;;");
 		writeUrl();
 		writeStatic(writer, "\x1b\\");
@@ -255,6 +260,15 @@ void writeHyperlink(
 		writeStatic(writer, "\x1b]8;;\x1b\\");
 	} else {
 		writeText();
+	}
+}
+
+private immutable(bool) canWriteHyperlink() {
+	version (Windows) {
+		return false;
+	} else {
+		// TODO: I haven't got this to work on any terminal emulator I have installed. :(
+		return false;
 	}
 }
 

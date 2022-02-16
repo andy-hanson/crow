@@ -1,10 +1,13 @@
 no-std
 import
 	errno: errno
-	../exception: assert
+	../compare: !=
+	../exception: throw
 	../extra-types: err-t
-	../misc: void
+	../misc: new, void
 	../number: ==
+	../str: literal
+	../str-conv: finish, interp, to-str, with-str, with-value
 
 # Fail if `errno != 0`.
 check-errno void() unsafe
@@ -12,5 +15,5 @@ check-errno void() unsafe
 
 # Fail if `e != 0`.
 check-posix-error void(e err-t)
-	# TODO: throw an exception
-	assert: e == 0
+	if e != 0
+		"posix error {e}" throw

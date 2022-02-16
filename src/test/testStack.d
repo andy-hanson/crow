@@ -89,5 +89,5 @@ void verifyStack(ref Stack!int a, scope immutable int[] expected) {
 }
 
 immutable(bool) intArrEqual(scope immutable int[] a, scope immutable int[] b) {
-	return arrEqual(a, b, (ref immutable int x, ref immutable int y) => x == y);
+	return arrEqual!(immutable int)(a, b, (ref immutable int x, ref immutable int y) => x == y);
 }

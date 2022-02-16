@@ -1,0 +1,18 @@
+no-std
+import
+	./bool: bool
+
+###
+True iff the code is run on Windows.
+This value is known at compile-time.
+
+Given a conditional `if is-windows`, functions in the unused branch
+(the `false` branch on Windows, and the `true` branch on other OSes) will not be included in the compiled executable.
+
+This is important to avoid the compiler attempting to link to functions that don't exist on a machine.
+
+Code is always typechecked regardless of whether it will be used.
+
+The WASM interpreter used for the website is not considered Windows.
+###
+is-windows bool() noctx unsafe builtin

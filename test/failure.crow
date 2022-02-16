@@ -4,6 +4,7 @@ import
 	crow/io/file: try-read-file, write-file
 	crow/io/path: base-name
 	crow/io/print: print, print-no-newline
+	crow/str-util: normalize-newlines
 
 handle-output failure[]
 	original-path str
@@ -13,20 +14,21 @@ handle-output failure[]
 spec
 	summon
 body
+	actual-normalized = actual normalize-newlines
 	if text ?= output-path try-read-file
-		if text == actual
+		if text == actual-normalized
 			()
 		elif overwrite-output
-			output-path write-file actual
+			output-path write-file actual-normalized
 			()
 		else
-			message = "{output-path base-name} was not as expected. actual:\n{actual}"
+			message = "{output-path base-name} was not as expected. actual:\n{actual-normalized}"
 			(original-path, message),
 	elif overwrite-output
-		output-path write-file actual
+		output-path write-file actual-normalized
 		()
 	else
-		(original-path, "{output-path base-name} does not exist. actual was:\n{actual}"),
+		(original-path, "{output-path base-name} does not exist. actual was:\n{actual-normalized}"),
 
 flat-map-with-max-size<out, in> out[](a in[], max-size nat, mapper act out[](in)) trusted
 	res out mut[] = ()

@@ -14,7 +14,7 @@ import
 	./bootstrap:
 		gc-ctx-ptr, get-ctx, hard-assert, lock, nat64, none, opt, some, todo, void
 	./number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
-	./thread-utils: acquire, lock-by-val, release
+	./thread-utils: acquire, init, release, uninit
 
 mem-copy<a> void(dest a mut*, src a*, size nat64) unsafe noctx
 	drop: dest.as-any-mut-ptr memcpy src.as-any-const-ptr, (size wrap-mul size-of@<a>)
@@ -117,7 +117,7 @@ words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) noctx unsafe
 	else
 		acc wrap-add cur->to-nat64 words-used-in-range cur + 1, end
 
-new by-val gc() noctx unsafe
+uninit by-val gc() noctx unsafe
 	# TODO: handle malloc failure
 	# 3 * 2**24 words = 3 * 2**27 bytes = 3 * 2**8 MB = 1.5 GB
 	# If changing this, be sure `globalBuffer` in `wasm.d` is big enough
@@ -132,9 +132,12 @@ new by-val gc() noctx unsafe
 
 	drop: mark.as-any-mut-ptr memset 0, size-words
 
-	res by-val gc = lock-by-val, 0, none, false, size-words, mark, mark, mark-end, bytes, bytes, bytes-end
+	res by-val gc = uninit, 0, none, false, size-words, mark, mark, mark-end, bytes, bytes, bytes-end
 	res.ref-of-val validate-gc
 	res
+
+init void(a gc) noctx unsafe
+	a.lk.ref-of-val init
 
 run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 	hard-assert: gc needs-gc

@@ -295,6 +295,14 @@ immutable(BuiltinKind) getBuiltinKind(
 				isFloat64(p0) ? LowExprKind.SpecialBinary.Kind.lessFloat64 :
 				isPtrRawMut(p0) ? LowExprKind.SpecialBinary.Kind.lessPtr :
 				failBinary());
+		case shortSymValue("is-windows"): {
+			immutable bool b = isWindows();
+			debug {
+				import core.stdc.stdio : printf;
+				printf("isWindows? %d", b);
+			}
+			return constant(immutable Constant(immutable Constant.BoolConstant(b)));
+		}
 		case shortSymValue("new-void"):
 			return isVoid(rt)
 				? constant(immutable Constant(immutable Constant.Void()))
@@ -537,4 +545,12 @@ immutable(bool) isFloat64(immutable LowType a) {
 
 immutable(bool) isVoid(immutable LowType a) {
 	return isPrimitiveType(a, PrimitiveType.void_);
+}
+
+public immutable(bool) isWindows() {
+	version (Windows) {
+		return true;
+	} else {
+		return false;
+	}
 }

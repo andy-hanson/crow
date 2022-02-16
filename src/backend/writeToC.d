@@ -293,6 +293,11 @@ void writeStructEnd(ref Writer writer) {
 }
 
 void writeRecord(ref Writer writer, ref immutable Ctx ctx, ref immutable LowRecord a) {
+	if (a.packed) {
+		version (Windows) {
+			writeStatic(writer, "__pragma(pack(push, 1))\n");
+		}
+	}
 	writeStructHead(writer, ctx, a.source);
 	foreach (ref immutable LowField field; a.fields) {
 		if (!isVoid(field.type)) {
@@ -304,8 +309,13 @@ void writeRecord(ref Writer writer, ref immutable Ctx ctx, ref immutable LowReco
 		}
 	}
 	writeStatic(writer, "\n}");
-	if (a.packed)
-		writeStatic(writer, " __attribute__ ((__packed__))");
+	if (a.packed) {
+		version (Windows) {
+			writeStatic(writer, "__pragma(pack(pop))");
+		} else {
+			writeStatic(writer, " __attribute__ ((__packed__))");
+		}
+	}
 	writeStatic(writer, ";\n");
 }
 
@@ -429,7 +439,7 @@ void writeFunReturnTypeNameAndParams(
 	writeLowFunMangledName(writer, ctx.mangledNames, funIndex, fun);
 	if (!isGlobal(fun.body_)) {
 		writeChar(writer, '(');
-		if (empty(fun.params))
+		if (every!(immutable LowParam)(fun.params, (ref immutable LowParam x) => isVoid(x.type)))
 			writeStatic(writer, "void");
 		else
 			writeWithCommas!LowParam(
@@ -1226,11 +1236,10 @@ immutable(WriteExprResult) writeSwitch(
 	foreach (immutable size_t caseIndex, ref immutable LowExpr case_; cases) {
 		writeNewline(writer, indent + 1);
 		writeStatic(writer, "case ");
-		if (isSignedIntegral(value.type)) {
+		if (isSignedIntegral(asPrimitive(value.type)))
 			writeInt(writer, getValue(caseIndex).asSigned());
-		} else {
+		else
 			writeNat(writer, getValue(caseIndex).asUnsigned());
-		}
 		writeStatic(writer, ": {");
 		drop(writeExpr(writer, tempAlloc, indent + 2, ctx, nested.writeKind, case_));
 		if (!isReturn(nested.writeKind)) {
@@ -1254,10 +1263,8 @@ immutable(WriteExprResult) writeSwitch(
 	return nested.result;
 }
 
-immutable(bool) isSignedIntegral(ref immutable LowType a) {
-	final switch (asPrimitive(a)) {
-		case PrimitiveType.bool_:
-		case PrimitiveType.char8:
+immutable(bool) isSignedIntegral(immutable PrimitiveType a) {
+	final switch (a) {
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -1267,6 +1274,8 @@ immutable(bool) isSignedIntegral(ref immutable LowType a) {
 		case PrimitiveType.int32:
 		case PrimitiveType.int64:
 			return true;
+		case PrimitiveType.bool_:
+		case PrimitiveType.char8:
 		case PrimitiveType.nat8:
 		case PrimitiveType.nat16:
 		case PrimitiveType.nat32:
@@ -1348,7 +1357,9 @@ void writeConstantRef(
 		},
 		(immutable Constant.Integral it) {
 			if (isSignedIntegral(asPrimitive(type))) {
-				if (it.value == long.min)
+				if (it.value == int.min)
+					writeStatic(writer, "INT32_MIN");
+				else if (it.value == long.min)
 					// Can't write this as a literal since the '-' and rest are parsed separately,
 					// and the abs of the minimum integer is out of range.
 					writeStatic(writer, "INT64_MIN");
@@ -1393,25 +1404,6 @@ void writeConstantRef(
 		(immutable Constant.Void) {
 			unreachable!void();
 		});
-}
-
-immutable(bool) isSignedIntegral(immutable PrimitiveType a) {
-	switch (a) {
-		case PrimitiveType.int8:
-		case PrimitiveType.int16:
-		case PrimitiveType.int32:
-		case PrimitiveType.int64:
-			return true;
-		case PrimitiveType.bool_:
-		case PrimitiveType.char8:
-		case PrimitiveType.nat8:
-		case PrimitiveType.nat16:
-		case PrimitiveType.nat32:
-		case PrimitiveType.nat64:
-			return false;
-		default:
-			return unreachable!(immutable bool);
-	}
 }
 
 immutable(WriteExprResult) writeSpecialUnary(
@@ -1931,7 +1923,7 @@ void writePrimitiveType(ref Writer writer, immutable PrimitiveType a) {
 			case PrimitiveType.nat64:
 				return "uint64_t";
 			case PrimitiveType.void_:
-				return unreachable!(immutable string)();
+				return "void";
 		}
 	}());
 }

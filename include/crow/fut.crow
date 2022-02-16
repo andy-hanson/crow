@@ -5,12 +5,13 @@ import
 	./exception: catch, exception
 	./fun-util: subscript
 	./misc: new, void
+	./ptr: ref-of-val
 	./result: result
 	./private/bootstrap:
-		action, exclusion, fut-state-exception, fut-state-resolved, is-sendable, new
+		action, exclusion, fut-state-exception, fut-state-resolved, is-sendable, lk, new
 	./private/fut-low-level: callback, reject, resolve, resolve-or-reject, unresolved
 	./private/runtime: add-task, exception-handler, get-global-ctx, new-exclusion
-	./private/thread-utils: lock-by-val
+	./private/thread-utils: init, uninit
 export
 	./private/bootstrap: fut
 
@@ -25,16 +26,20 @@ delay fut void()
 	()
 
 # Converts a value to a `fut` resolved with that value.
-new<a> fut a(value a)
-	lock-by-val, value.fut-state-resolved
+new<a> fut a(value a) trusted
+	res fut a = uninit, value.fut-state-resolved
+	res.lk.ref-of-val init
+	res
 
 # `fut` resolved to `()`.
 new<a> fut a() new<a>
 	(),
 
 # `fut` resolved with an exception.
-rejected<a> fut a(err exception)
-	lock-by-val, err.fut-state-exception
+rejected<a> fut a(err exception) trusted
+	res fut a = uninit, err.fut-state-exception
+	res.lk.ref-of-val init
+	res
 
 # TODO: is-sendable<a[]> should not be necessary
 ###

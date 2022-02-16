@@ -6,44 +6,58 @@ import
 		pthread_condattr_t, pthread_cond_broadcast, pthread_cond_destroy, pthread_cond_init,
 		pthread_cond_t, pthread_cond_timedwait, pthread_cond_wait, pthread_create, pthread_join,
 		pthread_mutexattr_destroy, pthread_mutexattr_init, pthread_mutexattr_t,
-		pthread_mutex_destroy, pthread_mutex_init, pthread_mutex_lock, pthread_mutex_trylock, pthread_mutex_t,
+		pthread_mutex_destroy, pthread_mutex_init, pthread_mutex_lock, pthread_mutex_t,
 		pthread_mutex_unlock, pthread_t
 	time: CLOCK_MONOTONIC
-	../bool: bool
-	../cell: *, cell, new
+	win32:
+		_beginthreadex, CloseHandle, CONDITION_VARIABLE, CRITICAL_SECTION, DeleteCriticalSection,
+		EnterCriticalSection, ERROR_TIMEOUT, GetLastError, HANDLE, INFINITE,
+		InitializeConditionVariable, InitializeCriticalSection, LeaveCriticalSection,
+		SleepConditionVariableCS, WaitForSingleObject, WAIT_OBJECT_0, WakeAllConditionVariable
+	../cell: *, as-mut-ptr, cell, new, set-deref
+	../compare: !=, <, <=
 	../extra-types: err-t
 	../fun-util: fun-ptr1, subscript
-	../io/private/time-low-level: timestamp, to-timespec
+	../io/private/time-low-level: get-monotime-nsec, nsec-to-msec, timestamp, to-timespec
 	../misc: new, void
-	../ptr: ==, any-mut-ptr, by-val, null, ptr-to, ref-of-val, zeroed
-	./bootstrap:
-		hard-assert, hard-forbid, mutex, nat64, new, opt, todo
-	./number-low-level: ==, wrap-add, wrap-sub
+	../ptr:
+		==, any-mut-ptr, as-any-mut-ptr, as-ref, by-val, null, ptr-cast, ptr-to,
+		ref-of-val, size-of, to-nat64, zeroed
+	../version: is-windows
+	./bootstrap: hard-assert, hard-forbid, nat64, opt, todo
+	./number-low-level: ==, <=>, nat32, unsafe-to-nat32, wrap-add, wrap-sub
 export
 	./bootstrap: lock
 
-new lock() trusted
-	res lock = (0, 0, 0, 0, 0),
-	attr by-val pthread_mutexattr_t = zeroed
-	mutex = res.mutex ref-of-val
-	hard-assert-posix-error: mutex pthread_mutex_init attr.ref-of-val
-	res
+uninit by-val lock() noctx unsafe
+	zeroed
 
-lock-by-val by-val lock() noctx trusted
-	res by-val lock = (0, 0, 0, 0, 0),
-	attr by-val pthread_mutexattr_t = zeroed
-	mutex = res.ref-of-val.mutex ref-of-val
-	hard-assert-posix-error: mutex pthread_mutex_init attr.ref-of-val
-	res
+.as-critical-section CRITICAL_SECTION(a lock) noctx unsafe
+	hard-assert: size-of@<by-val CRITICAL_SECTION> <= size-of@<by-val lock>
+	a.as-any-mut-ptr as-ref
 
-try-acquire bool(a lock) noctx trusted
-	a.mutex.ref-of-val.pthread_mutex_trylock == 0
+.as-mutex pthread_mutex_t(a lock) noctx unsafe
+	hard-assert: size-of@<by-val pthread_mutex_t> <= size-of@<by-val lock>
+	a.as-any-mut-ptr as-ref
+
+init void(a lock) noctx unsafe
+	if is-windows
+		a.as-critical-section InitializeCriticalSection
+	else
+		attr by-val pthread_mutexattr_t = zeroed
+		hard-assert-posix-error: a.as-mutex pthread_mutex_init attr.ref-of-val
 
 acquire void(a lock) noctx unsafe
-	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_lock
+	if is-windows
+		a.as-critical-section EnterCriticalSection
+	else
+		hard-assert-posix-error: a.as-mutex pthread_mutex_lock
 
 release void(a lock) noctx unsafe
-	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_unlock
+	if is-windows
+		a.as-critical-section LeaveCriticalSection
+	else
+		hard-assert-posix-error: a.as-mutex pthread_mutex_unlock
 
 with-lock<a> a(a lock, f act a()) trusted
 	a acquire
@@ -52,48 +66,77 @@ with-lock<a> a(a lock, f act a()) trusted
 	res
 
 condition record mut
-	.mutex-attr by-val pthread_mutexattr_t
-	.mutex by-val pthread_mutex_t
-	.cond-attr by-val pthread_condattr_t
-	.cond by-val pthread_cond_t
-	# Incremented each time the condition fires.
-	# Used to avoid waiting on a condition that has already changed.
-	# WARN: this is mutable state, but should acquire the mutex first.
+	by-ref
+	# TODO: use union to safe space instead of storing posix/windows side-by-side
+	.posix-mutex-attr by-val pthread_mutexattr_t
+	.posix-mutex by-val pthread_mutex_t
+	.posix-cond-attr by-val pthread_condattr_t
+	.posix-cond by-val pthread_cond_t
+
+	.windows-condition by-val CONDITION_VARIABLE
+	.windows-critical-section by-val CRITICAL_SECTION
+
+	###
+	Incremented each time the condition fires.
+	Used to avoid waiting on a condition that has already changed.
+	WARN: this is mutable state, but should acquire the mutex first.
+	###
 	.sequence .mut sequence-id
 
-# Unsafe because you must remember to 'destroy-condition'
-create-condition by-val condition() noctx unsafe
-	res by-val condition = zeroed, zeroed, zeroed, zeroed, 0
-	hard-assert-posix-error: res.ref-of-val.mutex-attr.ref-of-val pthread_mutexattr_init
-	hard-assert-posix-error: res.ref-of-val.mutex.ref-of-val pthread_mutex_init res.ref-of-val.mutex-attr.ref-of-val
-	hard-assert-posix-error: res.ref-of-val.cond-attr.ref-of-val pthread_condattr_init
-	hard-assert-posix-error: res.ref-of-val.cond-attr.ref-of-val pthread_condattr_setclock CLOCK_MONOTONIC
-	hard-assert-posix-error: res.ref-of-val.cond.ref-of-val pthread_cond_init res.ref-of-val.cond-attr.ref-of-val
-	res
+uninit by-val condition() noctx unsafe
+	# The only thing that actually has to be 0 is 'sequence'
+	zeroed
+
+# Remember to 'destroy-condition'!
+init void(a condition) noctx unsafe
+	if is-windows
+		a.windows-condition.ref-of-val InitializeConditionVariable
+		a.windows-critical-section.ref-of-val InitializeCriticalSection
+	else
+		hard-assert-posix-error: a.posix-mutex-attr.ref-of-val pthread_mutexattr_init
+		hard-assert-posix-error: a.posix-mutex.ref-of-val pthread_mutex_init a.posix-mutex-attr.ref-of-val
+		hard-assert-posix-error: a.posix-cond-attr.ref-of-val pthread_condattr_init
+		hard-assert-posix-error: a.posix-cond-attr.ref-of-val pthread_condattr_setclock CLOCK_MONOTONIC
+		hard-assert-posix-error: a.posix-cond.ref-of-val pthread_cond_init a.posix-cond-attr.ref-of-val
 
 destroy-condition void(a condition) noctx unsafe
-	hard-assert-posix-error: a.mutex-attr.ref-of-val pthread_mutexattr_destroy
-	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_destroy
-	hard-assert-posix-error: a.cond-attr.ref-of-val pthread_condattr_destroy
-	hard-assert-posix-error: a.cond.ref-of-val pthread_cond_destroy
-
+	if is-windows
+		a.windows-critical-section.ref-of-val DeleteCriticalSection
+	else
+		hard-assert-posix-error: a.posix-mutex-attr.ref-of-val pthread_mutexattr_destroy
+		hard-assert-posix-error: a.posix-mutex.ref-of-val pthread_mutex_destroy
+		hard-assert-posix-error: a.posix-cond-attr.ref-of-val pthread_condattr_destroy
+		hard-assert-posix-error: a.posix-cond.ref-of-val pthread_cond_destroy
+	
 .hard-assert-posix-error void(err err-t) noctx unsafe
 	hard-assert: err == 0
 
 broadcast void(a condition) noctx trusted
-	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_lock
-	hard-assert-posix-error: a.cond.ref-of-val pthread_cond_broadcast
-	a.sequence := a.sequence wrap-add 1
-	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_unlock
+	if is-windows
+		a.windows-critical-section.ref-of-val EnterCriticalSection
+		a.sequence := a.sequence wrap-add 1
+		a.windows-condition.ref-of-val WakeAllConditionVariable
+		a.windows-critical-section.ref-of-val LeaveCriticalSection
+	else
+		hard-assert-posix-error: a.posix-mutex.ref-of-val pthread_mutex_lock
+		a.sequence := a.sequence wrap-add 1
+		hard-assert-posix-error: a.posix-cond.ref-of-val pthread_cond_broadcast
+		hard-assert-posix-error: a.posix-mutex.ref-of-val pthread_mutex_unlock
 
 sequence-id alias
 	nat64
 
 get-sequence sequence-id(a condition) noctx unsafe
-	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_lock
-	res = a sequence
-	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_unlock
-	res
+	if is-windows
+		a.windows-critical-section.ref-of-val EnterCriticalSection
+		res = a sequence
+		a.windows-critical-section.ref-of-val LeaveCriticalSection
+		res
+	else
+		hard-assert-posix-error: a.posix-mutex.ref-of-val pthread_mutex_lock
+		res = a sequence
+		hard-assert-posix-error: a.posix-mutex.ref-of-val pthread_mutex_unlock
+		res
 
 ###
 WARN: May wake up early. Use only to be avoid consuming CPU.
@@ -101,29 +144,46 @@ WARN: May wake up early. Use only to be avoid consuming CPU.
 'last-sequence' is to ensure that we don't wait at all if the condition has already triggered.
 ###
 wait-on void(a condition, until-time timestamp?, last-sequence sequence-id) noctx unsafe summon
-	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_lock
-	if a.sequence == last-sequence
-		hard-assert-posix-error: if t ?= until-time
-			abstime = t to-timespec
-			err = a.cond.ref-of-val pthread_cond_timedwait a.mutex.ref-of-val, abstime.ptr-to
-			if err == ETIMEDOUT
-				0
+	if is-windows
+		a.windows-critical-section.ref-of-val EnterCriticalSection
+		if a.sequence == last-sequence
+			wait = if t ?= until-time
+				now = get-monotime-nsec
+				if now < t
+					(t wrap-sub now).nsec-to-msec unsafe-to-nat32
+				else
+					0
 			else
-				err
-		else
-			a.cond.ref-of-val pthread_cond_wait a.mutex.ref-of-val
-	hard-assert-posix-error: a.mutex.ref-of-val pthread_mutex_unlock
+				INFINITE
+			ok = a.windows-condition.ref-of-val SleepConditionVariableCS a.windows-critical-section.ref-of-val, wait
+			unless ok
+				if GetLastError != ERROR_TIMEOUT
+					todo
+		a.windows-critical-section.ref-of-val LeaveCriticalSection
+	else
+		hard-assert-posix-error: a.posix-mutex.ref-of-val pthread_mutex_lock
+		if a.sequence == last-sequence
+			hard-assert-posix-error: if t ?= until-time
+				abstime = t to-timespec
+				err = a.posix-cond.ref-of-val pthread_cond_timedwait a.posix-mutex.ref-of-val, abstime.ptr-to
+				if err == ETIMEDOUT
+					0
+				else
+					err
+			else
+				a.posix-cond.ref-of-val pthread_cond_wait a.posix-mutex.ref-of-val
+		hard-assert-posix-error: a.posix-mutex.ref-of-val pthread_mutex_unlock
 
 # TODO: use atomic operations for this
 thread-safe-counter record mut
 	lk by-val lock
 	value mut nat64
 
-new by-val thread-safe-counter() noctx
-	0,
+uninit by-val thread-safe-counter() noctx unsafe
+	uninit, 0
 
-new by-val thread-safe-counter(init nat64) noctx
-	lock-by-val, init
+init void(a thread-safe-counter) noctx unsafe
+	a.lk.ref-of-val init
 
 # Returns the old value
 get-and-increment nat64(t thread-safe-counter) noctx unsafe
@@ -142,8 +202,16 @@ get-and-decrement nat64(t thread-safe-counter) noctx unsafe
 	t.lk.ref-of-val release
 	old
 
+thread-handle record mut
+	by-val
+	.storage any-mut-ptr
+.as-windows-handle HANDLE(a thread-handle) noctx unsafe
+	a.storage
+.as-pthread pthread_t(a thread-handle) noctx unsafe
+	a.storage to-nat64
+
 create-one-thread void
-	tid cell pthread_t
+	out cell thread-handle
 	thread-arg any-mut-ptr
 	thread-fun fun-ptr1<any-mut-ptr, any-mut-ptr>
 spec
@@ -151,23 +219,35 @@ spec
 	unsafe
 	summon
 body
-	err = tid pthread_create null, thread-fun, thread-arg
-	unless err == 0
-		if err == EAGAIN
-			# TODO: warn and make do with the threads it does let us create (so long as there's at least one)
-			todo
-		else
-			# Fatal error
-			todo
+	if is-windows
+		thread-id by-val cell nat32 = 0,
+		res = null _beginthreadex 0, thread-fun, thread-arg, 0, thread-id.ref-of-val.as-mut-ptr
+		*out := res,
+	else
+		err = out.as-mut-ptr.ptr-cast pthread_create null, thread-fun, thread-arg
+		unless err == 0
+			if err == EAGAIN
+				# TODO: warn and make do with the threads it does let us create (so long as there's at least one)
+				todo
+			else
+				# Fatal error
+				todo
 
-join-one-thread void(tid pthread_t) noctx unsafe summon
-	thread-return by-val cell any-mut-ptr = null,
-	err = tid pthread_join thread-return.ref-of-val
-	unless err == 0
-		if err == EINVAL
+join-one-thread void(a thread-handle) noctx unsafe summon
+	if is-windows
+		res = a.as-windows-handle WaitForSingleObject INFINITE
+		if res != WAIT_OBJECT_0
 			todo
-		elif err == ESRCH
-			todo
-		else
-			todo
-	hard-assert: *thread-return.ref-of-val == null
+		ok = a.as-windows-handle CloseHandle
+		hard-assert: ok
+	else
+		thread-return by-val cell any-mut-ptr = null,
+		err = a.as-pthread pthread_join thread-return.ref-of-val.as-mut-ptr
+		unless err == 0
+			if err == EINVAL
+				todo
+			elif err == ESRCH
+				todo
+			else
+				todo
+		hard-assert: *thread-return.ref-of-val == null

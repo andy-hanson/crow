@@ -100,7 +100,7 @@ all-files file[]() summon
 	() find-imports-recur a, a
 .find-imports-recur imports-and-rest(res mut-set sym, since-last-import str, a str)
 	if pair ?= a try-split-once "import "
-		if pair.a ends-with "\n"
+		if pair.a ends-with "\n" || pair.a ends-with "\n\t"
 			rest = pair b
 			after-colon = (rest try-split-once ":")!.b
 			split-semi = (after-colon try-split-once ";")!

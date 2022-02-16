@@ -198,7 +198,7 @@ void maybeAddPurity(ref Alloc alloc, ref ArrBuilder!NameAndRepr fields, ref immu
 }
 
 immutable(bool) hasPrivateFields(ref immutable StructBody.Record a) {
-	return exists(a.fields, (ref immutable RecordField x) {
+	return exists!(immutable RecordField)(a.fields, (ref immutable RecordField x) {
 		final switch (x.visibility) {
 			case Visibility.public_:
 				return false;

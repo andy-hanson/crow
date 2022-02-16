@@ -6,16 +6,21 @@ import
 	spawn:
 		new, posix_spawn, posix_spawn_file_actions_addclose, posix_spawn_file_actions_adddup2,
 		posix_spawn_file_actions_init, posix_spawn_file_actions_t
-	stdio: fgets, FILE, pclose, popen, stderr, stdout
+	stdio: feof, fgets, FILE, pclose, popen, stderr, stdout
 	sys/types: pid_t
 	sys/wait:
 		status-t, waitpid, WEXITSTATUS, WIFCONTINUED, WIFEXITED, WIFSIGNALED,
 		WIFSTOPPED, WTERMSIG
 	unistd: close, new, pipe, pipes, read, read-pipe, write-pipe
-	../bool: &&, ||, bool, to-nat64
+	win32:
+		CloseHandle, CreatePipe, CreateProcessA, DWORD, ERROR_BROKEN_PIPE, GetExitCodeProcess,
+		GetLastError, HANDLE, HANDLE_FLAG_INHERIT, hProcess, hThread, INFINITE, new, _pclose,
+		_popen, PROCESS_INFORMATION, ReadFile, SECURITY_ATTRIBUTES, SetHandleInformation,
+		STARTF_USESTDHANDLES, STARTUPINFOA, WaitForSingleObject
+	../bool: &&, ||, bool, to-nat64, true
 	../bytes-types: new
-	../cell: *, cell, new
-	../col/arr: arr
+	../cell: *, as-const-ptr, as-mut-ptr, cell, new
+	../col/arr: ~, arr
 	../col/arr-util: each, fold
 	../col/fix-arr: begin-ptr, fix-arr, new, ref-of-val-at, size
 	../col/mut-arr: ~=, begin-ptr, end-ptr, move-to-arr, mut-arr, new, size, unsafe-set-size
@@ -23,19 +28,23 @@ import
 	../compare: <=
 	../exception: assert, throw
 	../extra-types: fd-t
-	../misc: new, void
-	../number: ==, <=>, int32, to-int32, to-int64, to-nat64
+	../misc: drop, new, void
+	../number: ==, <=>, int32, nat8, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../private/bootstrap: todo
 	../private/c-str-util: find-c-str-end
 	../private/number-low-level: wrap-add
-	../ptr: ==, +, -, any-const-ptr, as-any-const-ptr, as-any-mut-ptr, as-ref, by-val, const-ptr, null
+	../ptr:
+		==, +, -, any-const-ptr, as-any-const-ptr, as-any-mut-ptr, as-ref, by-val, const-ptr, new,
+		null
 	../str: char8, c-str, literal, str
 	../str-conv: finish, interp, to-str, with-str, with-value
-	../str-util: to-c-str
-	./environ: convert-environ, environ
+	../str-util: as-str, join, to-c-str, to-str
+	../version: is-windows
+	./environ: get-environ-raw
 	./file: is-file
 	./posix-util: check-errno, check-posix-error
 	./print: print
+	./win32-util: show-win32-error
 
 # Represents the output of running a process.
 process-result record
@@ -47,17 +56,21 @@ process-result record
 Launches a process and synchronously waits on the result.
 The child process' stdout and stderr will be sent to the `process-result`,
 not to the parent's stdout and stderr.
+EXE should be a file path and not just a name; this does not search the system path for `exe`.
 ###
-spawn-and-wait-result process-result(exe str, args str[], environ environ) trusted summon
+spawn-and-wait-result process-result(exe str, args str[]) trusted summon
 	print: "spawn-and-wait-result: {exe}" fold args, (a, b) =>
 		"{a} {b}"
 
 	# TODO: kill, handle that error properly
 	if exe is-file
 		exe-c-str = exe to-c-str
-		exe-c-str spawn-and-wait-result (exe-c-str convert-args args), environ.convert-environ
+		if is-windows
+			exe-c-str spawn-and-wait-result-windows args
+		else
+			exe-c-str spawn-and-wait-result-posix (exe-c-str convert-args args)
 	else
-		throw: "{exe} is not a file"
+		"{exe} is not a file" throw
 
 .keep-reading void(res char8 mut[], file FILE) unsafe summon
 	read-at-a-time = 0x1000
@@ -67,8 +80,8 @@ spawn-and-wait-result process-result(exe str, args str[], environ environ) trust
 	err = old-end fgets read-at-a-time.to-int32, file
 	if err == null
 		res unsafe-set-size old-size
-		# returns null on error or success
-		check-errno
+		unless file feof
+			check-errno
 	else
 		new-end = old-end find-c-str-end
 		res unsafe-set-size new-end - res.begin-ptr
@@ -78,24 +91,25 @@ spawn-and-wait-result process-result(exe str, args str[], environ environ) trust
 Launches a process and synchronously waits on the result.
 The child process shares stdout and stderr with the parent process.
 ###
-spawn-and-wait int32(exe str, args str[], environ environ) trusted summon
+spawn-and-wait int32(exe str, args str[]) trusted summon
 	# TODO: kill, handle that error properly
 	if exe is-file
 		# First argument should be the executable path
 		# TODO: &to-c-str
 		exe-c-str = exe.to-c-str
-		exe-c-str spawn-and-wait (exe-c-str convert-args args), environ.convert-environ
+		exe-c-str spawn-and-wait (exe-c-str convert-args args)
 	else
 		throw: "{exe} is not a file"
 
 # Executes a shell command and returns its output.
 shell-exec str(command str) trusted summon
-	pipe = command.to-c-str popen "r"
+	cmd = command to-c-str
+	pipe = is-windows ? cmd _popen "r" : cmd popen "r"
 	if pipe.as-any-const-ptr == null
 		todo
 	res char8 mut[] = ()
 	res keep-reading pipe
-	err = pipe pclose
+	err = is-windows ? pipe _pclose : pipe pclose
 	assert: err == 0
 	res.move-to-arr str
 
@@ -107,7 +121,74 @@ shell-exec str(command str) trusted summon
 	res ~= null
 	res.move-to-arr begin-ptr
 
-.spawn-and-wait-result process-result(exe c-str, args c-str*, environ c-str*) summon unsafe
+.spawn-and-wait-result-windows process-result(exe c-str, args str[]) summon unsafe
+	all-args = (exe.to-str ~ args) join " " to-c-str
+
+	stdout-read cell HANDLE = (),
+	stdout-write cell HANDLE = (),
+	stderr-read cell HANDLE = (),
+	stderr-write cell HANDLE = (),
+	sec cell SECURITY_ATTRIBUTES = (null, true),
+
+	ok0 = stdout-read.as-mut-ptr CreatePipe stdout-write.as-mut-ptr, sec.as-const-ptr, 0
+	ok1 = *stdout-read SetHandleInformation HANDLE_FLAG_INHERIT, 0
+	ok2 = stderr-read.as-mut-ptr CreatePipe stderr-write.as-mut-ptr, sec.as-const-ptr, 0
+	ok3 = *stderr-read SetHandleInformation HANDLE_FLAG_INHERIT, 0
+	unless ok0 && ok1 && ok2 && ok3
+		todo
+
+	startup-info cell STARTUPINFOA = (STARTF_USESTDHANDLES, (), *stdout-write, *stderr-write),
+	process-info cell PROCESS_INFORMATION = (),
+	ok4 = exe CreateProcessA all-args, (), (), true, 0, (), (), startup-info.as-const-ptr, process-info.as-mut-ptr
+	unless ok4
+		todo
+
+	unless stdout-write->CloseHandle && stderr-write->CloseHandle
+		todo
+
+	stdout = stdout-read->read-from-pipe-windows
+	unless stdout-read->CloseHandle
+		todo
+	stderr = stderr-read->read-from-pipe-windows
+	unless stderr-read->CloseHandle
+		todo
+
+	drop: process-info->hProcess WaitForSingleObject INFINITE
+
+	exit-code cell DWORD = 0,
+	ok5 = process-info->hProcess GetExitCodeProcess exit-code.as-mut-ptr
+	unless ok5
+		todo
+	# TODO: should be in a 'finally'
+	unless process-info->hProcess.CloseHandle && process-info->hThread.CloseHandle
+		todo
+
+	exit-code->to-int32, stdout, stderr
+
+.read-from-pipe-windows str(pipe HANDLE) summon unsafe
+	res nat8 mut[] = ()
+	res read-from-pipe-windows-recur pipe
+	res.move-to-arr as-str
+
+.read-from-pipe-windows-recur void(res nat8 mut[], pipe HANDLE) summon unsafe
+	read-at-a-time = 0x1000
+	old-size = res size
+	res unsafe-set-size (old-size wrap-add read-at-a-time)
+	old-end = res.end-ptr - read-at-a-time
+	n-read-cell cell nat32 = 0,
+	ok = pipe ReadFile old-end, read-at-a-time.to-nat32, n-read-cell.as-mut-ptr, null
+	if ok
+		n-read = n-read-cell->to-nat64
+		assert: n-read <= read-at-a-time
+		res unsafe-set-size (old-size wrap-add n-read)
+		res read-from-pipe-windows-recur pipe
+	else
+		res unsafe-set-size old-size
+		err = GetLastError
+		unless err == ERROR_BROKEN_PIPE
+			"Error reading from pipe: {err show-win32-error}" throw
+
+.spawn-and-wait-result-posix process-result(exe c-str, args c-str*) summon unsafe
 	stdout-pipes = make-pipes
 	stderr-pipes = make-pipes
 
@@ -122,7 +203,7 @@ shell-exec str(command str) trusted summon
 	check-posix-error: actions posix_spawn_file_actions_addclose stderr-pipes.read-pipe
 
 	pid-cell cell pid_t = 0,
-	check-posix-error: pid-cell posix_spawn exe, actions, null, args, environ
+	check-posix-error: pid-cell posix_spawn exe, actions, null, args, get-environ-raw
 	pid = *pid-cell
 
 	# Close child-side of pipes (from this process, child still has them)
@@ -209,12 +290,11 @@ body
 		fd read-to-buffer-until-eof buffer
 
 # Args should be terminated by null.
-# Each entry in environ looks like "name=value", and final entry is null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
-.spawn-and-wait int32(exe c-str, args c-str*, environ c-str*) summon unsafe
+.spawn-and-wait int32(exe c-str, args c-str*) summon unsafe
 	pid-cell cell pid_t = 0,
 	# TODO: null.as-ref is bad. If it's nullable it shouldn't be a ref.
-	check-posix-error: pid-cell posix_spawn exe, null::any-const-ptr.as-ref, null, args, environ
+	check-posix-error: pid-cell posix_spawn exe, null::any-const-ptr.as-ref, null, args, get-environ-raw
 	*pid-cell wait-and-get-exit-code
 
 .wait-and-get-exit-code int32(pid pid_t) summon unsafe

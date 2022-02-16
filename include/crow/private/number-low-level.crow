@@ -97,8 +97,12 @@ unsafe-to-int64 int64(a nat64) noctx unsafe builtin
 wrap-to-nat32 nat32(a nat64) noctx trusted
 	a unsafe-to-nat32
 
+to-nat16 nat16(a nat8) noctx trusted
+	a.to-nat64 unsafe-to-nat16
 to-nat64 nat64(a nat8) noctx builtin
 to-nat64 nat64(a nat16) noctx builtin
+to-nat32 nat32(a nat16) noctx trusted
+	a.to-nat64 unsafe-to-nat32
 to-nat64 nat64(a nat32) noctx builtin
 
 to-int64 int64(a int8) noctx builtin

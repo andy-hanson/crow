@@ -7,6 +7,7 @@ import
 	../ptr:
 		==, <=>, +, *, any-const-ptr, as-const, const-ptr, mut-ptr, set-deref, set-subscript,
 		subscript
+	../version: is-windows
 	./alloc: copy-data-from, try-alloc-uninitialized
 	./bootstrap: begin-ptr, hard-assert, nat64, new, none, opt, size, some, sym, void
 	./number-low-level:
@@ -18,7 +19,9 @@ export
 
 get-backtrace backtrace() unsafe
 	# Being careful to avoid calling functions that may throw here
-	if arrs ?= try-alloc-backtrace-arrs
+	if is-windows
+		(),
+	elif arrs ?= try-alloc-backtrace-arrs
 		n-code-ptrs = arrs backtrace-and-get-n-code-ptrs
 		hard-assert: n-code-ptrs <= code-ptrs-size
 		arrs fill-arrs n-code-ptrs

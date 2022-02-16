@@ -11,12 +11,12 @@ To measure performance:
 no-std
 import
 	./col/arr: arr, new, size
-	./col/arr-util: index-of, zip
+	./col/arr-util: index-of, zip-each
 	./col/fix-arr: fill-fix-arr, set-subscript, subscript, temp-as-arr
 	./fun-util: subscript
 	./io/duration: duration, new, nsec, to-str
 	./io/private/time-low-level: get-monotime-nsec
-	./misc: drop, new, void
+	./misc: new, void
 	./number: to-float64
 	./opt: new, opt
 	./ptr: as-ref
@@ -79,7 +79,7 @@ This must be called before `perf-disable`.
 ###
 perf-each-measure void(f act void(sym, measure-total)) summon trusted
 	perf = get-perf-ctx
-	drop: perf.measure-names zip perf.measure-values.temp-as-arr, (name, value) =>
+	perf.measure-names zip-each perf.measure-values.temp-as-arr, (name, value) =>
 		f[name, value to-measure-total]
 
 ###

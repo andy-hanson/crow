@@ -552,7 +552,7 @@ immutable(SwitchDelayed) writeSwitchWithValuesDelay(
 void writeExtern(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable ExternOp op) {
 	immutable int stackEffect = () {
 		final switch (op) {
-			case ExternOp.pthreadCreate:
+			case ExternOp.pthread_create:
 				return -3;
 			case ExternOp.longjmp:
 			case ExternOp.memcpy:
@@ -561,27 +561,27 @@ void writeExtern(ref ByteCodeWriter writer, immutable ByteCodeSource source, imm
 			case ExternOp.write:
 				return -2;
 			case ExternOp.backtrace:
-			case ExternOp.clockGetTime:
+			case ExternOp.clock_gettime:
 			case ExternOp.free:
-			case ExternOp.pthreadCondattrSetClock:
-			case ExternOp.pthreadCondInit:
-			case ExternOp.pthreadJoin:
-			case ExternOp.pthreadMutexInit:
+			case ExternOp.GetSystemInfo:
+			case ExternOp.pthread_condattr_setclock:
+			case ExternOp.pthread_cond_init:
+			case ExternOp.pthread_join:
+			case ExternOp.pthread_mutex_init:
 				return -1;
 			case ExternOp.malloc:
-			case ExternOp.pthreadCondattrDestroy:
-			case ExternOp.pthreadCondattrInit:
-			case ExternOp.pthreadCondBroadcast:
-			case ExternOp.pthreadCondDestroy:
-			case ExternOp.pthreadMutexattrDestroy:
-			case ExternOp.pthreadMutexattrInit:
-			case ExternOp.pthreadMutexDestroy:
-			case ExternOp.pthreadMutexLock:
-			case ExternOp.pthreadMutexUnlock:
+			case ExternOp.pthread_condattr_destroy:
+			case ExternOp.pthread_condattr_init:
+			case ExternOp.pthread_cond_broadcast:
+			case ExternOp.pthread_cond_destroy:
+			case ExternOp.pthread_mutexattr_destroy:
+			case ExternOp.pthread_mutexattr_init:
+			case ExternOp.pthread_mutex_destroy:
+			case ExternOp.pthread_mutex_lock:
+			case ExternOp.pthread_mutex_unlock:
 			case ExternOp.setjmp:
 				return 0;
-			case ExternOp.getNProcs:
-			case ExternOp.schedYield:
+			case ExternOp.get_nprocs:
 				return 1;
 		}
 	}();

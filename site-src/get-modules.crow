@@ -1,8 +1,8 @@
 import
 	crow/col/arr-util: map
-	crow/io/environ: get-environ
 	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
 	crow/json: as-arr, as-bool, as-str, json, parse-json, subscript
+	crow/version: is-windows
 	./module:
 		alias-decl, builtin-decl, enum-decl, extern-ptr-decl, flags-decl, fun-decl, module,
 		module-export, module-export-value, new, param, p-data, p-mut, p-sendable, purity,
@@ -10,10 +10,16 @@ import
 		spec-sig, spec-sigs, union-decl, union-member
 
 get-modules module[](paths str[]) summon
-	result = "bin/crow" spawn-and-wait-result "doc" ~ paths, get-environ
+	result = crow-path spawn-and-wait-result "doc" ~ paths
 	unless result.exit-code == 0 && result.stderr.is-empty
 		"Could not get documentation: exit code {result exit-code}, stderr: {result stderr}" throw
 	result.stdout.parse-json! to-modules
+
+.crow-path str() trusted
+	if is-windows
+		"bin\\crow.exe"
+	else
+		"bin/crow"
 
 .to-modules module[](a json)
 	a.get-node-type is "root"

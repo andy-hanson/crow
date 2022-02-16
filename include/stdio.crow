@@ -1,10 +1,12 @@
 no-std
 import
-	crow/c-types: c-int
+	crow/bool: bool
+	crow/c-types: c-int, size_t, long
 	crow/extra-types: fd-t
 	crow/misc: void
-	crow/ptr: mut-ptr
-	crow/str: char8, c-str
+	crow/private/bootstrap: char8, c-str
+	crow/private/number-low-level: nat8
+	crow/ptr: const-ptr, mut-ptr
 
 perror void(s c-str) unsafe summon extern noctx
 
@@ -15,9 +17,42 @@ stdout fd-t() noctx
 stderr fd-t() noctx
 	2
 
-FILE extern-ptr
-
 popen FILE(command c-str, modes c-str) unsafe summon extern noctx
 pclose c-int(stream FILE) unsafe summon extern noctx
 
+feof bool(stream FILE) unsafe summon extern noctx
 fgets char8 mut*(s char8 mut*, n c-int, stream FILE) unsafe summon extern noctx
+
+
+FILE extern-ptr
+
+fopen FILE(filename c-str, mode c-str) unsafe summon extern noctx
+fclose c-int(stream FILE) unsafe summon extern noctx
+fseek c-int(stream FILE, offset long, whence SEEK) unsafe summon extern noctx
+ftell long(stream FILE) unsafe summon extern noctx
+ferror bool(stream FILE) unsafe summon extern noctx
+fread size_t
+	_Buffer nat8 mut*
+	_ElementSize size_t
+	_ElementCount size_t
+	_Stream FILE
+spec
+	unsafe
+	summon
+	extern
+	noctx
+fwrite size_t
+	_Buffer nat8*
+	_ElementSize size_t
+	_ElementCount size_t
+	_Stream FILE
+spec
+	unsafe
+	summon
+	extern
+	noctx
+
+SEEK enum
+	SEEK_SET
+	SEEK_CUR
+	SEEK_END

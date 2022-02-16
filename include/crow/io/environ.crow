@@ -18,10 +18,13 @@ import
 environ alias
 	str[str]
 
+get-environ-raw c-str*() summon unsafe
+	__environ
+
 # Get all environment variables for this process.
 get-environ environ() summon trusted
 	res str mut[str] = ()
-	__environ get-environ-recur res
+	get-environ-raw get-environ-recur res
 	res move-to-dict
 
 .get-environ-recur void(env c-str*, res str mut[str]) unsafe

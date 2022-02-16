@@ -5,10 +5,11 @@ import
 	./col/private/arr-low-level: arr-cast, begin-ptr
 	./col/arr-util: fold
 	./col/iter: new, rest, value, value-and-rest
+	./col/mut-arr: copy, move-to-arr, to-mut-arr
 	./col/seq:
 		contains-subseq, copy, drop-right-while, drop-while, end-iter, ends-with, iter,
 		left, map, map-to-arr, middle, mut-iter, mut-seq-iter, next, peek, prev, repeat, reverse,
-		right, seq-iter, slice-left, slice-right, split-by-subseq, starts-with, to-arr,
+		right, seq-iter, slice-left, slice-right, split-by-subseq, starts-with, to-arr, to-seq,
 		try-remove-end, try-remove-start, try-split-once-by-fn, try-split-once-by-subseq,
 		try-split-once-by-subseq-right
 	./compare: <
@@ -208,7 +209,10 @@ strip-right str(a str, b str)
 		a
 
 .is-whitespace bool(a char8)
-	a == " " || a == "\n" || a == "\t"
+	a == " " || a == "\r" || a == "\n" || a == "\t"
+
+normalize-newlines str(a str)
+	a replace "\r\n", "\n" replace "\r", "\n"
 
 region Conversion
 
@@ -246,6 +250,12 @@ Unsafe because:
 ###
 to-str str(a c-str) unsafe noctx
 	a literal
+
+###
+Like `to-str`, but takes a copy (in case `a` is temporary)
+###
+copy-to-str str(a c-str) unsafe
+	a.literal.char8s.to-arr.to-mut-arr.copy.move-to-arr.to-seq str
 
 region other
 

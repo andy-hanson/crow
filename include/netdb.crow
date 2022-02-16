@@ -1,6 +1,5 @@
 no-std
 import
-	crow/cell: cell
 	crow/c-types: c-int
 	crow/misc: void
 	crow/number: int32
@@ -23,13 +22,15 @@ addrinfo record mut
 ai-passive int32()
 	1
 
-# Remember to call 'freeaddrinfo'!
-# Writes to 'pai'
-getaddrinfo getaddrinfo_error
+###
+Remember to call 'freeaddrinfo'!
+And cast the result to an enum 'getaddrinfo_error_posix' or 'getaddrinfo_error_windows'
+###
+getaddrinfo c-int
 	name c-str
 	service c-str
 	req addrinfo*
-	pai cell<addrinfo mut*>
+	pai addrinfo mut* mut*
 spec
 	unsafe
 	extern
@@ -56,7 +57,7 @@ protoent record mut
 
 getprotobyname protoent(name c-str) unsafe extern noctx
 
-getaddrinfo_error enum<int32>
+getaddrinfo_error_posix enum<int32>
 	EAI_NONE = 0
 	EAI_BADFLAGS = -1
 	EAI_NONAME = -2
@@ -76,3 +77,15 @@ getaddrinfo_error enum<int32>
 	EAI_ALLDONE = -103
 	EAI_INTR = -104
 	EAI_IDN_ENCODE = -105
+
+getaddrinfo_error_windows enum<int32>
+	EAI_AGAIN = 11002
+	EAI_BADFLAGS = 10022
+	EAI_FAIL = 11003
+	EAI_FAMILY = 10047
+	EAI_MEMORY = 8
+	EAI_NOSECURENAME = 11032
+	EAI_NONAME = 11001
+	EAI_SERVICE = 10109
+	EAI_SOCKTYPE = 10044
+	EAI_IPSECPOLICY = 11033

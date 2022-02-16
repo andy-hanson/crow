@@ -314,7 +314,7 @@ private struct PathAndExtension {
 	scope immutable SafeCStr str,
 ) {
 	immutable(char)* ptr = str.ptr;
-	if (*ptr == '/')
+	if (isSlash(*ptr))
 		// Ignore leading slash
 		ptr++;
 	immutable string part = parsePathPart(allPaths, ptr);
@@ -331,7 +331,7 @@ private struct PathAndExtension {
 	immutable(char)* ptr,
 	immutable Path path,
 ) {
-	while (*ptr == '/')
+	while (isSlash(*ptr))
 		ptr++;
 
 	if (*ptr == '\0')
@@ -352,7 +352,7 @@ private struct PathAndExtension {
 }
 private @system immutable(string) parsePathPart(ref AllPaths allPaths, ref immutable(char)* ptr) {
 	immutable char* begin = ptr;
-	while (*ptr != '\0' && *ptr != '/')
+	while (*ptr != '\0' && !isSlash(*ptr))
 		ptr++;
 	return begin[0 .. (ptr - begin)];
 }
@@ -372,9 +372,9 @@ private @system immutable(RelPathAndExtension) parseRelPathAndExtensionRecur(
 ) {
 	immutable char* ptr = a.ptr;
 	if (ptr[0] == '.') {
-		if (ptr[1] == '/')
+		if (isSlash(ptr[1]))
 			return parseRelPathAndExtensionRecur(allPaths, nParents, immutable SafeCStr(ptr + 2));
-		else if (ptr[1] == '.' && ptr[2] == '/')
+		else if (ptr[1] == '.' && isSlash(ptr[2]))
 			return parseRelPathAndExtensionRecur(allPaths, nParents + 1, immutable SafeCStr(ptr + 3));
 	}
 	immutable PathAndExtension pe = parsePathAndExtension(allPaths, a);
@@ -413,9 +413,13 @@ immutable(Sym) baseName(ref const AllPaths allPaths, ref immutable AbsolutePath 
 		default:
 			verify(*a.ptr != '\0');
 			// Treat a plain string without '/' in front as a relative path
-			return a.ptr[1] == ':'
-				? todo!(immutable AbsolutePath)("C:/ ?")
-				: absolutePath(cwd, parsePathAndExtension(allPaths, a));
+			if (a.ptr[1] == ':') {
+				if (*a.ptr != 'C') todo!void("!");
+				return absolutePath(
+					copyToSafeCStr(alloc, a.ptr[0 .. 2]),
+					parsePathAndExtension(allPaths, immutable SafeCStr(a.ptr + 2)));
+			} else
+				return absolutePath(cwd, parsePathAndExtension(allPaths, a));
 	}
 }
 private immutable(AbsolutePath) absolutePath(immutable SafeCStr root, immutable PathAndExtension pe) {
@@ -460,7 +464,7 @@ immutable(AbsolutePath) childPath(
 
 private immutable(Opt!size_t) pathSlashIndex(immutable string a) {
 	for (size_t i = a.length - 1; i > 0; i--)
-		if (a[i] == '/')
+		if (isSlash(a[i]))
 			return some(i);
 	return none!size_t;
 }
@@ -518,4 +522,8 @@ void hashPathAndStorageKind(ref Hasher hasher, immutable PathAndStorageKind a) {
 struct PathAndRange {
 	immutable PathAndStorageKind path;
 	immutable RangeWithinFile range;
+}
+
+private immutable(bool) isSlash(immutable char a) {
+	return a == '/' || a == '\\';
 }

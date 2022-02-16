@@ -37,7 +37,7 @@ struct LineAndColumnGetter {
 	add(alloc, lineToNTabs, advanceAndGetNTabs(ptr));
 
 	while (*ptr != '\0') {
-		immutable bool nl = *ptr == '\n';
+		immutable bool nl = *ptr == '\n' || (*ptr == '\r' && *(ptr + 1) != '\n');
 		ptr++;
 		if (nl) {
 			add(alloc, lineToPos, safeToUint(ptr - text.ptr));

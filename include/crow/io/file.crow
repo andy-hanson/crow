@@ -2,75 +2,115 @@ no-std
 import
 	dirent: dir, dirent, new, opendir, readdir_r
 	errno: ENOENT, errno
-	fcntl: O_CREAT, O_RDONLY, O_TRUNC, O_WRONLY, open
-	stat: mkdir, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
+	stat: mkdir, new, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
+	stdio: fclose, ferror, FILE, fopen, fread, fseek, ftell, fwrite, SEEK_SET, SEEK_END
 	sys/types: ino_t, mode_t, off_t
-	unistd: close, getcwd, lseek, read, readlink, rmdir, symlink, unlink, write
+	unistd: getcwd, readlink, rmdir, symlink, unlink
+	win32:
+		&, |, ==, cFileName, CreateSymbolicLinkA, DeleteFileA, ERROR_FILE_NOT_FOUND,
+		ERROR_NO_MORE_FILES, ERROR_PATH_NOT_FOUND, FILE_ATTRIBUTE_DIRECTORY, FindClose,
+		FindFirstFileA, FindNextFileA, _getcwd, GetFileAttributesA, GetLastError, HANDLE,
+		INVALID_FILE_ATTRIBUTES, INVALID_HANDLE_VALUE, _mkdir, new,
+		SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE, SYMBOLIC_LINK_FLAG_DIRECTORY,
+		WIN32_FIND_DATAA
 	../bits: &, |, <<
 	../bytes-types: new
 	../bool: !, ||, bool, false, new, to-nat64, true
-	../cell: *, cell, new
+	../cell: *, as-mut-ptr, cell, new
 	../col/arr: arr, new, size, subscript
 	../col/arr-util: each, map
 	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
 	../col/mut-arr: ~=, move-to-arr, mut-arr, new
 	../col/private/arr-low-level: begin-ptr
 	../col/sort: sort
-	../compare: <
-	../exception: assert, forbid, throw
+	../compare: !=
+	../exception: assert, finally, forbid, throw
+	../flags-util: is-in
 	../fun-util: subscript
 	../misc: new, void
-	../number: ==, <=>, +, int32, nat8, nat16, nat32, to-int64, to-nat32, to-nat64
+	../number: ==, <=>, +, nat8, nat16, to-nat32, to-nat64
 	../opt: is-empty, new, opt
+	../private/bootstrap: todo
 	../ptr:
 		==, +, any-const-ptr, as-any-const-ptr, as-const, const-ptr, mut-ptr, null, ptr-cast,
 		ptr-cast-from-extern, ref-eq, size-of
 	../range: ..
 	../str: ==, <=>, char8, c-str, literal, str
 	../str-conv: finish, interp, to-str, with-str, with-value
-	../str-util: as-str, to-bytes, to-c-str, to-str
-	../private/bootstrap: todo
+	../str-util: as-str, copy-to-str, to-bytes, to-c-str, to-str
+	../version: is-windows
 	./path: child-path
 	./posix-util: check-errno, check-posix-error
 	./print: print
-
-# `true` iff `path` is the path of a directory.
-is-dir bool(path str) summon trusted
-	path.to-c-str is-dir
-
-.is-dir bool(path c-str) summon unsafe
-	if stat ?= path get-stat
-		stat.st_mode & S_IFMT == S_IFDIR
-	else
-		"path does not exist: {path}" throw
-
-# `true` iff `path` is the path of a file -- not a directory, possibly a symlink.
-is-file bool(path str) summon trusted
-	path.to-c-str is-file
-
-.is-file bool(path c-str) summon
-	if stat ?= path get-stat
-		stat.st_mode & S_IFMT == S_IFREG
+	./win32-util: show-win32-error
 
 # `true` iff anything (like a file or directory) exists at the path.
 path-exists bool(path str) summon trusted
-	path.to-c-str path-exists
+	!path.get-path-kind.is-empty
 
-.path-exists bool(path c-str) summon
-	!path.get-stat.is-empty
+###
+`true` iff `path` is the path of a directory.
+`false` if the path is a file.
+`true` if the path is a symlink to a directory.
+`false` if nothing exists at the path.
+###
+is-dir bool(path str) summon
+	if kind ?= path get-path-kind
+		kind == directory
+
+###
+`true` iff `path` is the path of a file.
+`false` if the path is a directory.
+`true` if the path is a symlink to a file.
+`false` if nothing exists at the path.
+###
+is-file bool(path str) trusted summon
+	path.to-c-str is-file
+.is-file bool(path c-str) unsafe summon
+	if kind ?= path get-path-kind
+		kind == file
+
+.path-kind enum
+	directory
+	file
+	other
+
+# Returns an empty option iff nothing exists at the path.
+.get-path-kind path-kind?(path str) trusted summon
+	path.to-c-str get-path-kind
+.get-path-kind path-kind?(path c-str) unsafe summon
+	if is-windows
+		attr = path GetFileAttributesA
+		if attr == INVALID_FILE_ATTRIBUTES
+			err = GetLastError
+			unless err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND
+				"error {err} while testing path {path}: {err show-win32-error}" throw
+		else
+			if FILE_ATTRIBUTE_DIRECTORY is-in attr
+				directory,
+			else
+				file,
+	else
+		s stat = ()
+		err = path stat s
+		if err == 0
+			if s.st_mode & S_IFMT == S_IFDIR
+				directory,
+			elif s.st_mode & S_IFMT == S_IFREG
+				file,
+			else
+				other,
+		else
+			assert: err == -1
+			unless errno == ENOENT
+				# TODO: show error message
+				"error while testing path {path}" throw
 
 .get-dirent-name str(d dirent) unsafe
 	# TODO: this is offsetof(d, d_name)
 	name-offset = size-of@<ino_t> + size-of@<off_t> + size-of@<nat16> + size-of@<char8>
 	name-ptr char8* = d.as-any-const-ptr + name-offset ptr-cast
-	name-ptr to-str
-
-.seek-set int32()
-	0
-#.seek-cur int32()
-#	1
-.seek-end int32()
-	2
+	name-ptr copy-to-str
 
 ###
 Returns all children of the directory `path`, as full paths.
@@ -89,14 +129,41 @@ names-in-dir str[](path str) summon trusted
 	path.to-c-str names-in-dir
 
 .names-in-dir str[](path c-str) trusted summon
-	dirp = path opendir
-	if dirp.ptr-cast-from-extern::any-const-ptr mut* == null
-		throw: "Failed to open dir {path}"
-	res str mut[] = ()
-	dirp names-in-dir-recur res
-	res.move-to-arr sort
+	if is-windows
+		path-search = "{path}\\*" to-c-str 
+		file-data cell WIN32_FIND_DATAA = (),
+		file = path-search FindFirstFileA file-data.as-mut-ptr
+		if file == INVALID_HANDLE_VALUE
+			"failed to open dir {path}" throw
+		else
+			res str mut[] = ()
+			res names-in-dir-recur path, file
+			ok = file FindClose
+			unless ok
+				"failed to close dir {path}" throw
+			res.move-to-arr sort
+	else
+		dirp = path opendir
+		if dirp.ptr-cast-from-extern::any-const-ptr mut* == null
+			"failed to open dir {path}" throw
+		res str mut[] = ()
+		res names-in-dir-recur dirp
+		res.move-to-arr sort
 
-.names-in-dir-recur void(dirp dir, res str mut[]) unsafe summon
+.names-in-dir-recur void(out str mut[], dir-path c-str, file HANDLE) unsafe summon
+	file-data cell WIN32_FIND_DATAA = (),
+	ok = file FindNextFileA file-data.as-mut-ptr
+	if ok
+		s = file-data.as-mut-ptr.cFileName.as-const copy-to-str
+		if s != ".."
+			out ~= s
+		out names-in-dir-recur dir-path, file
+	else
+		err = GetLastError
+		if err != ERROR_NO_MORE_FILES
+			"Error while reading directory {dir-path}: {err show-win32-error}" throw
+
+.names-in-dir-recur void(out str mut[], dirp dir) unsafe summon
 	# Initial value of entry / result should not matter
 	entry dirent = 0, 0, 0, "\0", ()
 	result cell dirent = entry,
@@ -105,10 +172,10 @@ names-in-dir str[](path str) summon trusted
 	assert: err == 0
 	unless result->as-any-const-ptr == null
 		assert: *result ref-eq entry
-		name = entry.get-dirent-name
+		name = entry get-dirent-name
 		unless name == "." || name == ".."
-			res ~= entry.get-dirent-name
-		dirp names-in-dir-recur res
+			out ~= name
+		out names-in-dir-recur dirp
 
 # Gets the path a symbolic link refers to.
 read-link str(path str) summon trusted
@@ -121,10 +188,16 @@ read-link str(path str) summon trusted
 
 # Create a symbolic link at `link` with the target `target`.
 make-symlink-to void(link str, target str) summon trusted
-	err = target.to-c-str symlink link.to-c-str
-	unless err == 0
-		assert: err == -1
-		check-errno
+	if is-windows
+		link-flags = SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE | (target.is-dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : ())
+		ok = link.to-c-str CreateSymbolicLinkA target.to-c-str, link-flags
+		unless ok
+			"Error creating link {link}: {GetLastError show-win32-error}" throw
+	else
+		err = target.to-c-str symlink link.to-c-str
+		unless err == 0
+			assert: err == -1
+			check-errno
 
 ###
 Gets the path of the current executable.
@@ -143,7 +216,7 @@ read-file-binary nat8[](path str) summon
 	if res ?= path try-read-file-binary
 		res
 	else
-		throw: "file does not exist: {path}"
+		"file does not exist: {path}" throw
 
 ###
 Writes the full contents of the file as a string.
@@ -152,37 +225,24 @@ If the file already exists, overwrites it.
 write-file void(path str, content str) summon trusted
 	path.to-c-str write-file content
 
-.write-file void(path c-str, content str) summon trusted
-	permission-rdwr nat32 = 6
-	permission-rd nat32 = 4
-	permission = permission-rdwr << 6 | permission-rd << 3 | permission-rd
-	file-flags = O_CREAT | O_WRONLY | O_TRUNC
-	fd = path open file-flags, permission
-	if fd == -1
-		print: "failed to open file for write: {path}"
-		print: "errno: {errno}"
-		print: "flags: {file-flags}"
-		print: "permission: {permission}"
-		todo
+.write-file void(path c-str, content str) summon unsafe
+	fd = path fopen "wb"
+	if fd.as-any-const-ptr == null
+		"failed to open file for write: {path}" throw
 	else
-		bytes = content to-bytes
-		wrote-bytes = fd write bytes.begin-ptr, bytes.size
-		unless wrote-bytes == bytes.size.to-int64
-			if wrote-bytes == -1
-				todo
-			else
-				# didn't write all the bytes?
-				todo
-		err = fd close
-		unless err == 0
-			todo
+		(() => fd close-fd path) finally () => fd write-fd path, content.to-bytes
+
+.write-fd void(fd FILE, path c-str, bytes nat8[]) summon unsafe
+	wrote-bytes = bytes.begin-ptr fwrite size-of@<nat8>, bytes.size, fd
+	unless wrote-bytes == bytes.size
+		"error writing file {path}" throw
 
 ###
 Like `read-file`, but returns an empty option if the file does not exist.
 Will still throw on other errors, like permission errors.
 ###
 try-read-file str?(path str) summon trusted
-	if bytes ?= path.try-read-file-binary
+	if bytes ?= path try-read-file-binary
 		bytes.as-str,
 
 # Like `try-read-file` but returns binary data.
@@ -191,57 +251,54 @@ try-read-file-binary nat8[]?(path str) summon trusted
 
 .try-read-file-binary nat8[]?(path c-str) summon trusted
 	if path is-file
-		fd = path open O_RDONLY, 0
-		if fd == -1
+		fd = path fopen "rb"
+		if fd.as-any-const-ptr == null
 			unless errno == ENOENT
 				print: "failed to open file {path}"
 				todo
 		else
-			file-size = fd lseek 0, seek-end
-			# TODO: handle errors
-			forbid: file-size == -1
-			# TODO: this is just a sanity check
-			assert: file-size < 1000000000
-			if file-size == 0
-				(),
-			else
-				# Go back to beginning
-				off = fd lseek 0, seek-set
-				# TODO: handle errors
-				assert: off == 0
-
-				# TODO: allocation can fail, then 'fd' is left open. Need finalizers
-				file-size-nat = file-size to-nat64
-				res fix-arr nat8 = file-size-nat uninitialized-fix-arr
-				n-bytes-read = fd read res.begin-ptr.ptr-cast, file-size-nat
-				# TODO: handle errors
-				forbid: n-bytes-read == -1
-				assert: n-bytes-read == file-size
-				check-posix-error: fd close
-				res.cast-immutable,
+			(() => fd close-fd path) finally () => (fd read-fd path),
 	else
 		()
+
+.read-fd nat8[](fd FILE, path c-str) summon unsafe
+	err = fd fseek 0, SEEK_END
+	if err != 0
+		"Error reading {path}" throw
+
+	file-size = fd ftell
+	# TODO: handle errors
+	forbid: file-size == -1
+	if file-size == 0
+		()
+	else
+		# Go back to beginning
+		err2 = fd fseek 0, SEEK_SET
+		# TODO: handle errors
+		assert: err2 == 0
+
+		# TODO: allocation can fail, then 'fd' is left open. Need finalizers
+		file-size-nat = file-size to-nat64
+		res fix-arr nat8 = file-size-nat uninitialized-fix-arr
+		n-bytes-read = res.begin-ptr.ptr-cast fread size-of@<nat8>, file-size-nat, fd
+		assert: n-bytes-read == file-size-nat
+		if fd ferror
+			"Error reading {path}" throw
+		res cast-immutable
+
+.close-fd void(fd FILE, path c-str) summon unsafe
+	if fd.fclose != 0
+		"Error closing {path}" throw
 
 # Gets the current directory (of the user that ran the program).
 current-directory str() summon trusted
 	buff fix-arr char8 = 256 uninitialized-fix-arr
-	b = buff.begin-ptr getcwd buff.size
+	b = is-windows ? buff.begin-ptr _getcwd buff.size : buff.begin-ptr getcwd buff.size
 	if b == null
 		todo
 	else
 		assert: b == buff.begin-ptr
 		b.as-const to-str
-
-.get-stat stat?(path c-str) summon trusted
-	# Initial value doesn't really matter
-	s = stat
-	err = path stat s
-	if err == 0
-		s,
-	else
-		assert: err == -1
-		unless errno == ENOENT
-			todo
 
 ###
 If `path` is a directory, calls `each-child-recursive` on every child of the directory.
@@ -302,11 +359,17 @@ make-directory void(path str, permissions file-permissions) summon
 	path make-directory permissions.to-mode
 
 make-directory void(path str, permissions mode_t) trusted summon
-	check-posix-error: path.to-c-str mkdir permissions
+	path-c-str = path to-c-str
+	check-posix-error: is-windows ? path-c-str _mkdir permissions : path-c-str mkdir permissions
 
 # Deletes the file at `path`.
 remove-file void(path str) trusted summon
-	check-posix-error: path.to-c-str unlink
+	if is-windows
+		ok = path.to-c-str DeleteFileA
+		unless ok
+			"error removing file at {path}: {GetLastError show-win32-error}" throw
+	else
+		check-posix-error: path.to-c-str unlink
 
 ###
 Deletes the directory at `path`.

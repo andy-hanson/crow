@@ -1,0 +1,477 @@
+no-std
+import
+	crow/bits: |, <<
+	crow/bool: bool
+	crow/c-types: c-char, c-int, u-short, u-int, size_t
+	crow/extra-types: err-t
+	crow/fun-util: fun-ptr1
+	crow/misc: drop, void
+	crow/private/bootstrap: c-str
+	crow/private/number-low-level:
+		int64, max-nat64, nat8, nat16, nat32, nat64, new, to-nat16, to-nat32, unsafe-to-nat32
+	crow/ptr: *, any-const-ptr, any-mut-ptr, const-ptr, mut-ptr, new, ptr-cast, ptr-to, size-of, to-mut-ptr
+	stdio: FILE
+	sys/types: mode_t
+
+CRITICAL_SECTION record
+	by-ref
+	n0 nat64
+	n1 nat64
+	n2 nat64
+	n3 nat64
+	n4 nat64
+
+InitializeCriticalSection void(a CRITICAL_SECTION) noctx unsafe extern
+
+EnterCriticalSection void(a CRITICAL_SECTION) noctx unsafe extern
+
+LeaveCriticalSection void(a CRITICAL_SECTION) noctx unsafe extern
+
+DeleteCriticalSection void(a CRITICAL_SECTION) noctx unsafe extern
+
+CONDITION_VARIABLE record
+	by-ref
+	n nat64
+
+InitializeConditionVariable void(a CONDITION_VARIABLE) noctx unsafe extern
+
+SleepConditionVariableCS bool(a CONDITION_VARIABLE, crit CRITICAL_SECTION, millis DWORD) noctx unsafe summon extern
+
+WakeAllConditionVariable void(a CONDITION_VARIABLE) noctx unsafe extern
+
+INFINITE DWORD() noctx
+	0xffffffff
+
+WORD alias
+	nat16
+DWORD alias
+	nat32
+
+GetLastError DWORD() noctx unsafe summon extern
+SetLastError void(err-code DWORD) noctx unsafe summon extern
+
+ERROR_BROKEN_PIPE DWORD() noctx
+	109
+ERROR_TIMEOUT DWORD() noctx
+	1460
+
+HANDLE alias
+	any-mut-ptr
+
+INVALID_HANDLE_VALUE HANDLE() noctx unsafe
+	max-nat64 to-mut-ptr
+
+WaitForSingleObject DWORD(handle HANDLE, milliseconds DWORD) noctx unsafe summon extern
+
+CloseHandle bool(a HANDLE) noctx unsafe extern
+
+_beginthreadex HANDLE
+	security any-mut-ptr
+	stack_size u-int
+	start-address fun-ptr1<any-mut-ptr, any-mut-ptr>
+	arglist any-mut-ptr
+	initflag u-int
+	thrdaddr u-int mut*
+spec
+	noctx
+	unsafe
+	extern
+
+WAIT_OBJECT_0 DWORD() noctx
+	0
+
+GetStdHandle HANDLE(stdHandle std-handle) noctx unsafe summon extern
+
+std-handle enum<DWORD>
+	# In winbase.h these are -10, -11, -12 even though DWORD is unsigned
+	STD_INPUT_HANDLE = 0xfffffff6
+	STD_OUTPUT_HANDLE = 0xfffffff5
+	STD_ERROR_HANDLE = 0xfffffff4
+
+WriteFile bool
+	hFile HANDLE
+	lpBuffer any-const-ptr
+	nNumberOfBytesToWrite DWORD
+	lpNumberOfBytesWritten DWORD mut*
+	lpOverlapped any-mut-ptr
+spec
+	noctx
+	unsafe
+	summon
+	extern
+
+WIN32_FIND_DATAA record
+	by-val
+	dwFileAttributes DWORD
+	ftCreationTime FILETIME
+	ftLastAccessTime FILETIME
+	ftLastWriteTime FILETIME
+	nFileSizeHigh DWORD
+	nFileSizeLow DWORD
+	dwReserved0 DWORD
+	dwReserved1 DWORD
+	cFileName_STORAGE chars-max-path
+	cAlternateFileName_STORAGE chars14
+
+new WIN32_FIND_DATAA() noctx
+	(), (), (), (), () , (), (), (), (), ()
+
+cFileName c-char mut*(a WIN32_FIND_DATAA mut*) unsafe
+	a->cFileName_STORAGE.ptr-to::chars-max-path mut* ptr-cast
+
+FILETIME record
+	by-val
+	dwLowDateTime DWORD
+	dwHighDateTime DWORD
+
+new FILETIME() noctx
+	(), ()
+
+DeleteFileA bool(lpFileName c-str) noctx unsafe summon extern
+
+GetFileAttributesA FileAttributes(lpFileName c-str) noctx unsafe summon extern
+
+FileAttributes flags<nat32>
+	FILE_ATTRIBUTE_READONLY = 0x1
+	FILE_ATTRIBUTE_HIDDEN = 0x2
+	FILE_ATTRIBUTE_SYSTEM = 0x4
+	FILE_ATTRIBUTE_DIRECTORY = 0x10
+	FILE_ATTRIBUTE_ARCHIVE = 0x20
+	FILE_ATTRIBUTE_DEVICE = 0x40
+	FILE_ATTRIBUTE_NORMAL = 0x80
+	FILE_ATTRIBUTE_TEMPORARY = 0x100
+	FILE_ATTRIBUTE_SPARSE_FILE = 0x200
+	FILE_ATTRIBUTE_REPARSE_POINT = 0x400
+	FILE_ATTRIBUTE_COMPRESSED = 0x800
+	FILE_ATTRIBUTE_OFFLINE = 0x1000
+	FILE_ATTRIBUTE_NOT_CONTENT_INDEXED = 0x2000
+	FILE_ATTRIBUTE_ENCRYPTED = 0x4000
+	FILE_ATTRIBUTE_INTEGRITY_STREAM = 0x8000
+	FILE_ATTRIBUTE_VIRTUAL = 0x10000
+	FILE_ATTRIBUTE_NO_SCRUB_DATA = 0x20000
+	FILE_ATTRIBUTE_PINNED = 0x80000
+	FILE_ATTRIBUTE_UNPINNED = 0x100000
+	FILE_ATTRIBUTE_RECALL_ON_OPEN = 0x40000
+	FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS = 0x400000
+	INVALID_FILE_ATTRIBUTES = 0xffffffff
+
+FindFirstFileA HANDLE(lpFileName c-str, lpFindFileData WIN32_FIND_DATAA mut*) noctx unsafe summon extern
+FindNextFileA bool(hFindFile HANDLE, lpFindFileData WIN32_FIND_DATAA mut*) noctx unsafe summon extern
+FindClose bool(hFindFile HANDLE) noctx unsafe summon extern
+
+_getcwd c-char mut*(buffer c-char mut*, size size_t) noctx unsafe summon extern
+_mkdir err-t(path c-str, mode mode_t) noctx unsafe summon extern
+_pclose err-t(stream FILE) noctx unsafe summon extern
+_popen FILE(command c-str, mode c-str) noctx unsafe summon extern
+
+ERROR_FILE_NOT_FOUND DWORD() noctx
+	2
+ERROR_PATH_NOT_FOUND DWORD() noctx
+	3
+ERROR_NO_MORE_FILES DWORD() noctx
+	18
+
+FormatMessageA DWORD
+	dwFlags DWORD
+	lpSource any-const-ptr
+	dwMessageId DWORD
+	dwLanguageId DWORD
+	lpBuffer c-char mut*
+	nSize DWORD
+	arguments any-mut-ptr
+spec
+	noctx
+	unsafe
+	summon
+	extern
+
+FORMAT_MESSAGE_IGNORE_INSERTS DWORD() noctx
+	0x200
+FORMAT_MESSAGE_FROM_STRING DWORD() noctx
+	0x400
+FORMAT_MESSAGE_FROM_HMODULE DWORD() noctx
+	0x800
+FORMAT_MESSAGE_FROM_SYSTEM DWORD() noctx
+	0x1000
+FORMAT_MESSAGE_ARGUMENT_ARRAY DWORD() noctx
+	0x2000
+
+LANG_NEUTRAL WORD()
+	0
+SUBLANG_NEUTRAL WORD()
+	0
+
+MAKELANGID DWORD(p WORD, s WORD) trusted noctx
+	(s.to-nat32 << 10) | p.to-nat32
+
+STARTUPINFOA record mut
+	by-val
+	cb DWORD
+	lpReserved c-char mut*
+	lpDesktop c-char mut*
+	lpTitle c-char mut*
+	dwX DWORD
+	dwY DWORD
+	dwXSize DWORD
+	dwYSize DWORD
+	dwXCountChars DWORD
+	dwYCountChars DWORD
+	dwFillAttribute DWORD
+	dwFlags startup-flags
+	wShowWindow WORD
+	cbReserved2 WORD
+	lpReserved2 nat8 mut*
+	hStdInput HANDLE
+	hStdOutput HANDLE
+	hStdError HANDLE
+
+startup-flags enum<DWORD>
+	STARTF_USESHOWWINDOW = 1
+	STARTF_USESIZE = 2
+	STARTF_USEPOSITION = 4
+	STARTF_USECOUNTCHARS = 8
+	STARTF_USEFILLATTRIBUTE = 0x10
+	STARTF_RUNFULLSCREEN = 0x20
+	STARTF_FORCEONFEEDBACK = 0x40
+	STARTF_FORCEOFFFEEDBACK = 0x80
+	STARTF_USESTDHANDLES = 0x100
+
+new STARTUPINFOA(dwFlags startup-flags, hStdInput HANDLE, hStdOutput HANDLE, hStdError HANDLE) unsafe noctx
+	size = size-of@<STARTUPINFOA> unsafe-to-nat32
+	size, (), (), (), (), (), (), (), (), (), (), dwFlags, (), (), (), hStdInput, hStdOutput, hStdError
+
+SECURITY_ATTRIBUTES record mut
+	by-val
+	nLength DWORD
+	lpSecurityDescriptor any-mut-ptr
+	bInheritHandle c-int
+
+new SECURITY_ATTRIBUTES(lpSecurityDescriptor any-mut-ptr, bInheritHandle bool) unsafe noctx
+	# TODO: shouldn't need parens
+	(size-of@<SECURITY_ATTRIBUTES>).unsafe-to-nat32, lpSecurityDescriptor, bInheritHandle ? 1 : 0
+
+PROCESS_INFORMATION record mut
+	by-val
+	hProcess HANDLE
+	hThread HANDLE
+	dwProcessId DWORD
+	dwThreadId DWORD
+
+new PROCESS_INFORMATION() unsafe noctx
+	(), (), (), ()
+
+CreatePipe bool
+	hReadPipe HANDLE mut*
+	hWritePipe HANDLE mut*
+	lpPipeAttributes SECURITY_ATTRIBUTES*
+	nSize DWORD
+spec
+	noctx
+	unsafe
+	summon
+	extern
+
+CreateSymbolicLinkA bool
+	lpSymlinkFileName c-str
+	lpTargetFileName c-str
+	dwFlags link-flags
+spec
+	noctx
+	unsafe
+	summon
+	extern
+
+link-flags flags<DWORD>
+	SYMBOLIC_LINK_FLAG_DIRECTORY = 1
+	SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE = 2
+
+SetHandleInformation bool(hObject HANDLE, dwMask DWORD, dwFlags DWORD) noctx unsafe summon extern
+
+HANDLE_FLAG_INHERIT DWORD() noctx
+	1
+HANDLE_FLAG_PROTECT_FROM_CLOSE DWORD() noctx
+	2
+
+CreateProcessA bool
+	lpApplicationName c-str
+	lpCommandLine c-str
+	lpProcessAttributes SECURITY_ATTRIBUTES*
+	lpThreadAttributes SECURITY_ATTRIBUTES*
+	bInheritHandles bool
+	dwCreationFlags DWORD
+	lpEnvironment any-mut-ptr
+	lpCurrentDirectory c-str
+	lpStartupInfo STARTUPINFOA*
+	lpProcessInformation PROCESS_INFORMATION mut*
+spec
+	noctx
+	unsafe
+	summon
+	extern
+
+GetExitCodeProcess bool(hProcess HANDLE, lpExitCode DWORD mut*) noctx unsafe summon extern
+
+ReadFile bool
+	hFile HANDLE
+	lpBuffer nat8 mut*
+	nNumberOfBytesToRead nat32
+	lpNumberOfBytesRead nat32 mut*
+	# TODO: Overlapped type
+	lpOverlapped any-mut-ptr
+spec
+	noctx
+	unsafe
+	summon
+	extern
+
+MAKEWORD WORD(a nat8, b nat8) trusted
+	(a.to-nat16 | (b.to-nat16 << 8))
+
+WSAStartup c-int(wVersionRequested WORD, lpWSAData WSADATA mut*) noctx unsafe summon extern
+
+WSADATA record mut
+	by-val
+	wVersion WORD
+	wHighVersion WORD
+	iMaxSockets u-short
+	iMaxUdpDg u-short
+	lpVendorInfo c-char mut*
+	szDescription_STORAGE chars257
+	szSystemStatus_STORAGE chars129
+
+new WSADATA() noctx unsafe
+	(), (), (), (), (), (), ()
+
+GetSystemInfo void(lpSystemInfo SYSTEM_INFO mut*) noctx unsafe summon extern
+
+SYSTEM_INFO record mut
+	by-val
+	DUMMYUNIONNAME DWORD
+	dwPageSize DWORD
+	lpMinimumApplicationAddress any-mut-ptr
+	lpMaximumApplicationAddress any-mut-ptr
+	dwActiveProcessorMask int64
+	dwNumberOfProcessors DWORD
+	dwProcessorType DWORD
+	dwAllocationGranularity DWORD
+	wProcessorLevel WORD
+	wProcessorRevision WORD
+
+new SYSTEM_INFO() noctx unsafe
+	(), (), (), (), (), (), (), (), (), ()
+
+# Not using bytes-types due to alignment
+
+.chars2 record
+	by-val
+	.n0 c-char
+	.n1 c-char
+.new chars2() noctx
+	"\0", "\0"
+
+.chars4 record
+	by-val
+	.n0 chars2
+	.n1 chars2
+.new chars4() noctx
+	(), ()
+
+.chars8 record
+	by-val
+	.n0 chars4
+	.n1 chars4
+.new chars8() noctx
+	(), ()
+
+.chars14 record
+	by-val
+	.n0 chars8
+	.n1 chars4
+	.n2 chars2
+.new chars14() noctx
+	(), (), ()
+
+.chars16 record
+	by-val
+	.n0 chars8
+	.n1 chars8
+.new chars16() noctx
+	(), ()
+
+.chars32 record
+	by-val
+	.n0 chars16
+	.n1 chars16
+.new chars32() noctx
+	(), ()
+
+.chars64 record
+	by-val
+	.n0 chars32
+	.n1 chars32
+.new chars64() noctx
+	(), ()
+
+.chars128 record
+	by-val
+	.n0 chars64
+	.n1 chars64
+.new chars128() noctx
+	(), ()
+
+.chars129 record
+	by-val
+	.n0 chars128
+	.n1 c-char
+.new chars129() noctx
+	(), "\0"
+
+.chars256 record
+	by-val
+	.n0 chars128
+	.n1 chars128
+.new chars256() noctx
+	(), ()
+
+.chars257 record
+	by-val
+	.n0 chars256
+	.n1 c-char
+.new chars257() noctx
+	(), "\0"
+
+# For char[MAX_PATH]
+.chars-max-path record
+	by-val
+	.n0 chars256
+	.n1 chars4
+.new chars-max-path() noctx
+	(), ()
+
+# Just ensuring that private fields are used...
+test
+	drop: ()::chars2.n0
+	drop: ()::chars2.n1
+	drop: ()::chars4.n0
+	drop: ()::chars4.n1
+	drop: ()::chars8.n0
+	drop: ()::chars8.n1
+	drop: ()::chars14.n0
+	drop: ()::chars14.n1
+	drop: ()::chars14.n2
+	drop: ()::chars16.n0
+	drop: ()::chars16.n1
+	drop: ()::chars32.n0
+	drop: ()::chars32.n1
+	drop: ()::chars64.n0
+	drop: ()::chars64.n1
+	drop: ()::chars128.n0
+	drop: ()::chars128.n1
+	drop: ()::chars129.n0
+	drop: ()::chars129.n1
+	drop: ()::chars256.n0
+	drop: ()::chars256.n1
+	drop: ()::chars257.n0
+	drop: ()::chars257.n1
+	drop: ()::chars-max-path.n0
+	drop: ()::chars-max-path.n1

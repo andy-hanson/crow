@@ -1,6 +1,8 @@
 no-std
 import
 	./bool: ||, bool, new
+	./col/arr: arr
+	./col/arr-util: make-arr
 	./fun-util: subscript
 	./misc: new, void
 	./number: ==, <=>, nat64
@@ -8,6 +10,9 @@ import
 	./private/number-low-level: wrap-add, wrap-sub
 export
 	./private/range-low-level: .., low, high, range, size
+
+to-arr nat64[](a range nat64)
+	a map x => x
 
 region iteration
 
@@ -25,6 +30,10 @@ each-reverse void(a range nat64, f act void(nat64))
 	f[cur]
 	unless cur == low
 		low each-reverse-recur (cur wrap-sub 1), f
+
+map<a> a[](a range nat64, f act a(nat64))
+	(a.high wrap-sub a.low) make-arr i =>
+		f[a.low wrap-add i]
 
 # `true` iff `f` is `true` for some value in the range.
 exists bool(a range nat64, f act bool(nat64))

@@ -2,6 +2,9 @@ module interpret.runBytecode;
 
 @safe @nogc nothrow: // not pure
 
+version (Windows) {
+	import core.sys.windows.core : SYSTEM_INFO;
+}
 import frontend.showDiag : ShowDiagOptions;
 import interpret.bytecode :
 	ByteCode,
@@ -526,7 +529,7 @@ private @system immutable(NextOperation) callCommon(
 			verify(res <= int.max);
 			push(a.dataStack, res);
 			break;
-		case ExternOp.clockGetTime:
+		case ExternOp.clock_gettime:
 			Ptr!TimeSpec timespecPtr = Ptr!TimeSpec(cast(TimeSpec*) pop(a.dataStack));
 			immutable int clockId = cast(int) pop(a.dataStack);
 			push(a.dataStack, cast(immutable ulong) a.extern_.clockGetTime(clockId, timespecPtr));
@@ -534,8 +537,17 @@ private @system immutable(NextOperation) callCommon(
 		case ExternOp.free:
 			a.extern_.free(cast(ubyte*) pop(a.dataStack));
 			break;
-		case ExternOp.getNProcs:
+		case ExternOp.get_nprocs:
 			push(a.dataStack, 1);
+			break;
+		case ExternOp.GetSystemInfo:
+			version (Windows) {
+				SYSTEM_INFO* info = cast(SYSTEM_INFO*) pop(a.dataStack);
+				memset(cast(ubyte*) info, 0, SYSTEM_INFO.sizeof);
+				info.dwNumberOfProcessors = 1;
+			} else {
+				unreachable!void();
+			}
 			break;
 		case ExternOp.longjmp:
 			immutable ulong val = pop(a.dataStack); // TODO: verify this is int32?
@@ -563,32 +575,31 @@ private @system immutable(NextOperation) callCommon(
 			ubyte* res = memset(begin, value, size);
 			push(a.dataStack, cast(immutable ulong) res);
 			break;
-		case ExternOp.pthreadCreate:
+		case ExternOp.pthread_create:
+			// The interpreter returns (via get_nprocs or GetSystemInfo) that only 1 processor exists,
+			// so this should never be called.
 			unreachable!void();
 			break;
-		case ExternOp.pthreadJoin:
+		case ExternOp.pthread_join:
 			unreachable!void();
 			break;
-		case ExternOp.pthreadCondattrDestroy:
-		case ExternOp.pthreadCondattrInit:
-		case ExternOp.pthreadCondBroadcast:
-		case ExternOp.pthreadCondDestroy:
-		case ExternOp.pthreadMutexattrDestroy:
-		case ExternOp.pthreadMutexattrInit:
-		case ExternOp.pthreadMutexDestroy:
-		case ExternOp.pthreadMutexLock:
-		case ExternOp.pthreadMutexUnlock:
+		case ExternOp.pthread_condattr_destroy:
+		case ExternOp.pthread_condattr_init:
+		case ExternOp.pthread_cond_broadcast:
+		case ExternOp.pthread_cond_destroy:
+		case ExternOp.pthread_mutexattr_destroy:
+		case ExternOp.pthread_mutexattr_init:
+		case ExternOp.pthread_mutex_destroy:
+		case ExternOp.pthread_mutex_lock:
+		case ExternOp.pthread_mutex_unlock:
 			pop(a.dataStack);
 			push(a.dataStack, 0);
 			break;
-		case ExternOp.pthreadCondattrSetClock:
-		case ExternOp.pthreadCondInit:
-		case ExternOp.pthreadMutexInit:
+		case ExternOp.pthread_condattr_setclock:
+		case ExternOp.pthread_cond_init:
+		case ExternOp.pthread_mutex_init:
 			pop(a.dataStack);
 			pop(a.dataStack);
-			push(a.dataStack, 0);
-			break;
-		case ExternOp.schedYield:
 			push(a.dataStack, 0);
 			break;
 		case ExternOp.setjmp:

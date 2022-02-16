@@ -1,9 +1,10 @@
 import
 	crow/col/fix-arr: begin-ptr, cast-immutable, fix-arr, size, subscript, uninitialized-fix-arr
+	crow/col/private/arr-low-level: begin-ptr
 	crow/extra-types: fd-t
 	crow/io/print: print
 	crow/ptr: ==, *, as-any-const-ptr, const-ptr, null, ptr-cast, ptr-cast-to-extern, ptr-to, size-of
-	crow/str-util: as-str, bytes, to-c-str
+	crow/str-util: as-str, to-bytes, to-c-str
 	arpa/inet: inet_addr, inet_ntoa
 	netdb: gethostbyname, getprotobyname, h_addr_list, p_proto
 	netinet/in: htons, in_addr, new, sockaddr_in
@@ -42,7 +43,7 @@ main fut nat(_ str[]) unsafe summon
 
 .send-request void(socket fd-t, request str) unsafe summon
 	forbid: request is-empty
-	socket send-request-recur request.bytes
+	socket send-request-recur request.to-bytes
 .send-request-recur void(socket fd-t, bytes nat8[])
 	bytes-sent = socket write bytes.begin-ptr, bytes.size
 	# TODO: might be 0 if the socket is overloaded -- delay and try again

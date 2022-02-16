@@ -424,6 +424,8 @@ Future type.
 Ignore the fields, they should be private.
 ###
 fut<a> record force-sendable
+	# It's important to make fut by-ref since its lock is by-val
+	by-ref
 	lk by-val lock
 	state mut fut-state a
 
@@ -443,7 +445,11 @@ region lock
 
 lock record sendable
 	by-ref
-	mutex by-val pthread_mutex_t
+	n0 nat64
+	n1 nat64
+	n2 nat64
+	n3 nat64
+	n4 nat64
 
 region reflect
 
@@ -458,14 +464,3 @@ static-syms sym[]() noctx builtin
 
 # All named functions, in arbitrary order.
 all-funs named-val<any-const-ptr>[]() noctx unsafe builtin
-
-pthread_mutex_t record force-sendable
-	by-ref
-	# TODO:PRIVATE
-	n0 mut nat64
-	n1 mut nat64
-	n2 mut nat64
-	n3 mut nat64
-	n4 mut nat64
-
-pthread_mutex_lock int32(mutex pthread_mutex_t) noctx unsafe extern
