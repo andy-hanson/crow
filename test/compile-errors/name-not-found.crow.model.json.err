@@ -3,3 +3,5 @@
 ./test/compile-errors/name-not-found.crow 3:11-3:12 type name not found: 'x'
 
 ./test/compile-errors/name-not-found.crow 8:5-8:6 type name not found: 't'
+
+./test/compile-errors/name-not-found.crow 8:9-8:10 spec name not found: 's'

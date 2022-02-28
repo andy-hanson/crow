@@ -1275,11 +1275,8 @@ immutable(ArrWithSize!(Ptr!SpecInst)) checkSpecUses(
 				return none!(Ptr!SpecInst);
 			} else
 				return some(instantiateSpec(alloc, ctx.programState, SpecDeclAndArgs(spec, typeArgs)));
-		} else {
-			addDiag(alloc, ctx, rangeOfNameAndRange(ast.spec, ctx.allSymbols), immutable Diag(
-				immutable Diag.NameNotFound(Diag.NameNotFound.Kind.spec, ast.spec.name)));
+		} else
 			return none!(Ptr!SpecInst);
-		}
 	});
 }
 

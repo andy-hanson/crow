@@ -5,7 +5,7 @@ r record
 u union
 	t
 
-foo t()
+foo t() s
 	x
 	a y
 	a z b
