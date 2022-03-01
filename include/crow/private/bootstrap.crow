@@ -249,6 +249,32 @@ hard-forbid void(condition bool) noctx unsafe
 
 region bootstrap runtime
 
+task record mut
+	by-val
+	exclusion exclusion
+	action act void()
+
+###
+NOTE: This mutable value is often *shared*.
+If on a fut, the lock on the fut should be held while working with this.
+WARN: Keep in sync with 'task-node-with-time', which casts to this.
+###
+task-node record mut
+	by-ref
+	task task
+	next mut task-node?
+
+task-list record mut
+	first mut task-node
+	last mut task-node
+
+# WARN: Keep in sync with 'task-node'.
+task-node-with-time record mut
+	by-ref
+	task task
+	next mut task-node-with-time?
+	time nat64
+
 # Since this fun is not marked 'noctx', it simply returns the ctx that already exists.
 get-ctx ctx() unsafe builtin
 
@@ -430,16 +456,18 @@ fut<a> record force-sendable
 	state mut fut-state a
 
 fut-state<a> union mut
-	fut-state-no-callbacks
-	fut-state-callbacks fut-state-callbacks<a>
-	fut-state-resolved a
-	fut-state-exception exception
-
-fut-state-callbacks<a> record mut
-	by-ref
-	# WARN: the cb will be called with whatever ctx resolves the fut, not the ctx that created it
-	cb act void(result<a, exception>)
-	next fut-state-callbacks<a>?
+	# The future hasn't been resolved or forwarded, and no tasks have been added.
+	empty
+	# The future has one task waiting for it to be resolved.
+	one-task task-node
+	# The future has multiple tasks attached.
+	tasks task-list
+	# All operations should be directed to another fut.
+	forwarded fut a
+	# The future was resolved successfully.
+	resolved a
+	# The future resolved with an exception.
+	rejected exception
 
 region lock
 

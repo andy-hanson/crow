@@ -6,21 +6,24 @@ import
 	../io/print: print-err, print-err-no-newline
 	../io/private/time-low-level: get-monotime-nsec, timestamp
 	../misc: void
-	../opt: new
+	../opt: new, opt
 	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val
 	../str: literal, str
-	./alloc: gc, get-gc-ctx, init, needs-gc, return-gc-ctx, run-garbage-collection, uninit
+	./alloc:
+		gc, get-gc-ctx, init, needs-gc, return-gc-ctx, run-garbage-collection,
+		uninit
 	./bool-low-level: !, &&, bool, false, true
 	./bootstrap:
-		call-with-ctx, ctx, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
+		call-with-ctx, ctx, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
 		lock, log-ctx-ptr, nat64, new, sym, thread-local-stuff
 	./exception-low-level: exception-ctx
 	./log-low-level: default-log-handler, log-ctx, log-handler, set-handler
 	./number-low-level: ==, <=>, wrap-add, wrap-sub
 	./perf-low-level: perf-ctx
 	./task-queue:
-		action, any-tasks, exclusion, first-task-time, insert-task, is-empty, new, no-task,
-		no-timestamp, pop-task, return-task, task, task-queue, task-queue-node
+		action, add-task, add-tasks, add-timed-task, any-tasks, exclusion, first-task-time, init,
+		is-empty, pop-task, return-task, task, task-list, task-node, task-node-with-time,
+		task-queue, uninit
 	./thread-utils:
 		acquire, broadcast, condition, get-and-increment, get-sequence, init, release,
 		thread-safe-counter, uninit, wait-on
@@ -49,7 +52,7 @@ global-ctx record mut
 	# All below must not be GC allocated
 
 	syms-lock by-val lock
-	# these variables are all protected by tasks-lock
+	# protects 'gc-root.tasks' as well as these variables by tasks-lock
 	tasks-lock by-val lock
 	# Number of threads currently performing tasks
 	n-threads-running mut nat64
@@ -57,7 +60,7 @@ global-ctx record mut
 	next-exclusion by-val thread-safe-counter
 
 uninit by-val global-ctx(n-threads nat64) noctx unsafe summon
-	q by-val task-queue = n-threads,
+	q by-val task-queue = n-threads uninit
 	gc-root by-val gc-root = q, empty-dict, (exn => exn default-exception-handler), log =>
 		log default-log-handler
 	uninit, n-threads, uninit, false, false, uninit, gc-root, uninit, uninit, 0, uninit
@@ -68,15 +71,20 @@ init void(a global-ctx) noctx unsafe
 	a.gc.ref-of-val init
 	a.syms-lock.ref-of-val init
 	a.tasks-lock.ref-of-val init
+	a.gc-root.ref-of-val init
 	a.next-exclusion.ref-of-val init
 
 gc-root record mut
+	# protected by 'tasks-lock' on the global ctx
 	tasks by-val task-queue
 	syms-table mut sym[str]
 	# If there's an uncaught exception (e.g. in 'call-ref-and-drop'), we'll call this.
 	# Default is to print it and set `gctx.any-unhandled-exceptions`
 	exception-handler mut fun void(exception)
 	log-handler mut log-handler
+
+.init void(a gc-root) noctx unsafe
+	a.tasks.ref-of-val init
 
 syms-table sym[str](a global-ctx) trusted noctx
 	a.gc-root.ref-of-val syms-table
@@ -101,18 +109,27 @@ default-exception-handler void(e exception) summon unsafe
 set-exception-handler void(exception-handler fun void(exception)) summon trusted
 	get-global-ctx.gc-root.ref-of-val.exception-handler := exception-handler
 
-add-task void(a global-ctx, timestamp timestamp, exclusion exclusion, action act void()) unsafe
-	# Do allocation outside of the lock
-	node task-queue-node = (timestamp, exclusion, action),
+add-task void(a global-ctx, exclusion exclusion, action act void()) unsafe
+	a add-task ((exclusion, action), ())
 
+add-task void(a global-ctx, task task-node) noctx unsafe
 	a.tasks-lock.ref-of-val acquire
-	a.tasks insert-task node
+	a.tasks add-task task
 	a.tasks-lock.ref-of-val release
-
 	a.may-be-work-to-do.ref-of-val broadcast
 
-add-task void(a global-ctx, exclusion exclusion, action act void()) unsafe
-	a add-task no-timestamp, exclusion, action
+add-tasks void(a global-ctx, task-list task-list) noctx unsafe
+	a.tasks-lock.ref-of-val acquire
+	a.tasks add-tasks task-list
+	a.tasks-lock.ref-of-val release
+	a.may-be-work-to-do.ref-of-val broadcast
+
+add-timed-task void(a global-ctx, time timestamp, exclusion exclusion, action act void()) unsafe
+	node task-node-with-time = (exclusion, action), (), time
+	a.tasks-lock.ref-of-val acquire
+	a.tasks add-timed-task node
+	a.tasks-lock.ref-of-val release
+	a.may-be-work-to-do.ref-of-val broadcast
 
 thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 	ectx = exception-ctx
@@ -142,8 +159,8 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 		match gctx choose-task
 		as task-or-gc t
 			gctx do-task tls, t
-		as no-task n
-			gctx.may-be-work-to-do.ref-of-val wait-on n.first-task-time, last-checked
+		as no-task wait-until-time
+			gctx.may-be-work-to-do.ref-of-val wait-on wait-until-time, last-checked
 			gctx add-live-thread
 		as no-tasks-and-last-thread-out
 			hard-forbid: gctx is-shut-down
@@ -197,7 +214,8 @@ new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, exclusion exclusion)
 
 .choose-task-result union mut
 	task-or-gc task-or-gc
-	no-task no-task
+	# has time of first task
+	no-task timestamp?
 	no-tasks-and-last-thread-out
 
 .choose-task choose-task-result(gctx global-ctx) noctx unsafe summon
@@ -206,13 +224,13 @@ new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, exclusion exclusion)
 
 	# TODO: ref-of-val should be unnecessary for property access ?
 	# TODO: should not need type annotation
-	res = if gctx.gc.ref-of-val.needs-gc
+	res = if gctx.gc.ref-of-val needs-gc
 		if gctx.n-threads-running == 0
 			gctx.n-threads-running := gctx.n-threads-running wrap-add 1
 			do-a-gc task-or-gc
 		else
 			gctx.n-live-threads := gctx.n-live-threads wrap-sub 1
-			(true, ()) no-task
+			() no-task
 	else
 		match gctx.tasks pop-task cur-time
 		as task t
@@ -223,7 +241,7 @@ new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, exclusion exclusion)
 			if !n.any-tasks && gctx.n-live-threads == 0
 				no-tasks-and-last-thread-out
 			else
-				n no-task
+				n.first-task-time no-task
 
 	gctx.tasks-lock.ref-of-val release
 	res

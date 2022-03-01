@@ -10,11 +10,11 @@ import
 	../../col/mut-dict: move-to-dict, mut-dict, new, try-remove, set-subscript, subscript
 	../../col/mut-arr: ~~=, index-of, move-to-arr, mut-arr, new, pop-n-from-start, size
 	../../col/private/arr-low-level: begin-ptr
-	../../compare: <=, >, >=
+	../../compare: <=, >
 	../../exception: assert, forbid, throw, to-str
 	../../fut: delay, fut, fut-catch, new, subscript, then, then-void
 	../../hash: hash-mix
-	../../log: error, log
+	../../log: error, log, warn
 	../../misc: drop, new, void
 	../../number: ==, <=>, +, nat8, nat64, to-int64, to-nat64
 	../../opt: ??, new, opt
@@ -25,7 +25,6 @@ import
 	../../str-util: as-str, contains-substr, split-by, to-bytes, try-remove-end
 	../../writer: ~=, ~~=, move-to-str, new, writer
 	../../private/bootstrap: todo
-	../print: print
 	./http-types:
 		headers, http-get, http-internal-server-error, http-method, http-post, http-request,
 		http-response, new, response-body, status, status-desc
@@ -56,7 +55,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 				client-states try-remove sock drop
 			()
 		else
-			print: "Ignoring unrecognized client"
+			warn log "Ignoring unrecognized client"
 			()
 	tcp-server = port start-tcp-server (on-accepted-client, on-received-chunk)
 
@@ -73,10 +72,11 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		state handle-http-initial
 	else
 		assert: state.unparsed.size <= state.content-length
-		state.unparsed.size >= state.content-length
+		state.unparsed.size == state.content-length
 
 	if finished-request
-		handler-response <- handler[state finish-request] fut-catch
+		request = state finish-request
+		handler-response <- handler[request] fut-catch
 		response = match handler-response
 		as ok o
 			o

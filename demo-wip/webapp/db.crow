@@ -163,6 +163,7 @@ register-user register-user-result(db db, user-name str, password str) summon
 login-error enum
 	empty-name-or-password
 	user-does-not-exist
+	wrong-password
 
 login result<user-cookie, login-error>(db db, user-name str, password str) summon
 	if user-name.is-empty || password.is-empty
@@ -171,11 +172,12 @@ login result<user-cookie, login-error>(db db, user-name str, password str) summo
 		db.env with-write-transaction txn =>
 			if user ?= db get-user txn, user-name
 				hash = (txn get db.user-password-hash, user)!
-				unless password password-matches-hash hash
-					throw: "wrong password"
-				cookie = generate-login-cookie
-				txn set db.user-login-cookie, user, cookie
-				(user, cookie) ok
+				if password password-matches-hash hash
+					cookie = generate-login-cookie
+					txn set db.user-login-cookie, user, cookie
+					(user, cookie) ok
+				else
+					wrong-password err
 			else
 				user-does-not-exist err
 

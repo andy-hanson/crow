@@ -17,8 +17,9 @@ import
 	../str-util: to-str
 	../version: is-windows
 	./alloc: unmanaged-alloc-elements, unmanaged-free
-	./bootstrap: call-with-ctx, ctx, get-ctx, new, state, thread-local-stuff
+	./bootstrap: call-with-ctx, ctx, get-ctx, new, thread-local-stuff
 	./exception-low-level: exception-ctx
+	./fut-low-level: get-result
 	./log-low-level: log-ctx
 	./number-low-level:
 		==, <=>, int32, int64, nat64, to-int64, to-nat64, unsafe-to-int32, unsafe-to-int64,
@@ -54,20 +55,14 @@ rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 		get_nprocs
 
 .exit-code-from-main-fut int32(gctx global-ctx, main-fut fut nat64) unsafe noctx
-	match main-fut state
-	as fut-state-no-callbacks
-		# Should never happen
-		1
-	as fut-state-callbacks _
-		# Should never happen
-		1
-	as fut-state-resolved r
+	match main-fut get-result
+	as ok v
 		# TODO: handle nat64 too big for int32
 		if gctx any-unhandled-exceptions
 			1
 		else
-			r.nat64-to-int64 unsafe-to-int32
-	as fut-state-exception _
+			v.nat64-to-int64 unsafe-to-int32
+	as err _
 		# 'handle-exceptions' should have logged the error
 		1
 

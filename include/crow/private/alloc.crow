@@ -259,7 +259,7 @@ validate-gc void(gc gc) noctx unsafe
 	else
 		mark + 1 range-free end
 
-gc-alloc any-mut-ptr(gc gc, size nat64) trusted
+gc-alloc any-mut-ptr(gc gc, size nat64) noctx trusted
 	if res ?= gc try-gc-alloc size
 		res
 	else
@@ -272,9 +272,14 @@ alloc any-mut-ptr(size-bytes nat64) unsafe
 try-alloc any-mut-ptr?(size-bytes nat64) unsafe
 	get-gc try-gc-alloc size-bytes
 
-alloc-uninitialized<a> a mut*(size nat64) unsafe
-	# TODO: wrap-mul is unsafe!
-	(size wrap-mul size-of@<a>).alloc ptr-cast
+alloc-uninitialized<a> a mut*(count nat64) unsafe
+	get-gc alloc-uninitialized count
+
+alloc-uninitialized<a> a mut*(gc gc, count nat64) noctx unsafe
+	gc gc-alloc (count wrap-mul size-of@<a>) ptr-cast
+
+alloc-uninitialized<a> a mut*(gc gc) noctx unsafe
+	gc alloc-uninitialized 1
 
 try-alloc-uninitialized<a> a mut*?(size nat64) unsafe
 	if res ?= size wrap-mul size-of@<a> try-alloc

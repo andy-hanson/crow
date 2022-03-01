@@ -1,143 +1,123 @@
 no-std
 import
-	../bool: bool, false, true
+	../bool: !, &&, bool
 	../col/mut-arr:
 		in, mut-arr, mut-arr-by-val-with-capacity-from-unmanaged-memory,
 		noctx-must-remove-unordered, push-capacity-must-be-sufficient
-	../compare: <=
+	../compare: <, <=
 	../io/private/time-low-level: timestamp
 	../misc: new, void
 	../opt: is-empty, new, opt
-	../ptr: by-val, ref-of-val
-	./bootstrap: exclusion, hard-assert
-	./number-low-level: ==, <=>, nat64, wrap-add
+	../ptr: by-val, ref-cast, ref-of-val, zeroed
+	./bootstrap: hard-unreachable, first, last, new, next, set-next, time
+	./number-low-level: ==, <=>, nat64
+export
+	./bootstrap: action, exclusion, task, task-list, task-node, task-node-with-time
 
-# TODO: use a heap, not a list
-
-no-timestamp nat64() noctx
-	0
-
-task record mut
-	by-val
-	# 0 for non-timed tasks
-	time timestamp
-	exclusion exclusion
-	action act void()
+# WARN: `task-queue` is not thread-safe; acquire `tasks-lock` on `global-ctx` first.
 
 task-queue record mut
-	# Very first node is a sentinel
-	.head .mut task-queue-node?
+	# sorted by time
+	# TODO: use a heap
+	# First node is an ignored sentinel.
+	.timed-sentinel-val by-val<task-node-with-time>
+	.non-timed-sentinel-val by-val<task-node>
+	.non-timed-last .mut task-node
 	# This is allocated with max-threads capacity on init, so never needs further allocation
 	.currently-running-exclusions by-val<exclusion mut[]>
 
-task-queue-node record mut
-	.task task
-	.next .mut task-queue-node?
+.timed-sentinel task-node-with-time(a task-queue) noctx trusted
+	a.timed-sentinel-val ref-of-val
+
+.non-timed-sentinel task-node(a task-queue) noctx trusted
+	a.non-timed-sentinel-val ref-of-val
 
 is-empty bool(a task-queue) noctx
-	a.head is-empty
+	a.timed-sentinel.next.is-empty && a.non-timed-sentinel.next.is-empty
 
-new by-val task-queue(max-threads nat64) unsafe noctx
-	(), max-threads.mut-arr-by-val-with-capacity-from-unmanaged-memory
+uninit by-val task-queue(max-threads nat64) noctx unsafe
+	timed-sentinel by-val task-node-with-time = (0, () => hard-unreachable), (), 0
+	non-timed-sentinel by-val task-node = (0, () => hard-unreachable), ()
+	timed-sentinel, non-timed-sentinel, zeroed, max-threads.mut-arr-by-val-with-capacity-from-unmanaged-memory
+
+init void(a task-queue) noctx unsafe
+	a.non-timed-last := a non-timed-sentinel
 
 # Expose construction of nodes, because it's better to do this outside of a lock
-new task-queue-node(task task)
+new task-node(task task)
 	task, ()
-
-no-task record
-	by-val
-	any-tasks bool
-	first-task-time timestamp?
 
 pop-task-result union mut
 	task task
 	no-task no-task
 
+no-task record
+	by-val
+	# True if there any tasks exist (whether timed or not).
+	any-tasks bool
+	# If any timed tasks exists, this is the time of the first one.
+	first-task-time timestamp?
+
 # Caller should call 'return-task' after running the task
 pop-task pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
+	a move-timed-tasks cur-time
 	exclusions = a.currently-running-exclusions ref-of-val
-	# TODO: should not need type annotation
-	res pop-task-result = if head ?= a.head
-		task = head task
-		if task.time <= cur-time
-			if task.exclusion in exclusions
-				head pop-recur exclusions, cur-time, task.time.to-opt-time
-			else
-				a.head := head.next
-				head.task task
-		else
-			(true, (task.time,)) no-task
-	else
-		(false, ()) no-task
-
-	match res
-	as task t
+	task = a try-pop-task exclusions
+	if t ?= task
 		exclusions push-capacity-must-be-sufficient t.exclusion
-	as no-task _
-		()
+		t task
+	else
+		first-task-time timestamp? = if head ?= a.timed-sentinel next
+			head.time,
+		(!a.is-empty, first-task-time) no-task
 
-	res
+# Move timed tasks to the non-timed queue if they are ready
+.move-timed-tasks void(a task-queue, cur-time timestamp) noctx
+	if head ?= a.timed-sentinel.next
+		if head.time <= cur-time
+			a.timed-sentinel.next := head next
+			head.next := ()
+			a add-task head.as-task-node
+			a move-timed-tasks cur-time
 
-to-opt-time timestamp?(a timestamp) noctx
-	unless a == no-timestamp
-		a,
+.as-task-node task-node(a task-node-with-time) noctx trusted
+	a ref-cast
+
+.try-pop-task task?(a task-queue, exclusions exclusion mut[]) noctx unsafe
+	a try-pop-task-recur a.non-timed-sentinel, exclusions
+
+.try-pop-task-recur task?(a task-queue, prev task-node, exclusions exclusion mut[]) noctx unsafe
+	if cur ?= prev next
+		task task = cur task
+		if task.exclusion in exclusions
+			a try-pop-task-recur cur, exclusions
+		else
+			prev.next := cur next
+			if prev.next is-empty
+				a.non-timed-last := prev
+			task,
 
 return-task void(a task-queue, task task) noctx unsafe
 	a.currently-running-exclusions.ref-of-val noctx-must-remove-unordered task.exclusion
 
-.pop-recur pop-task-result
-	prev task-queue-node
-	exclusions exclusion mut[]
-	cur-time timestamp
-	first-task-time timestamp?
-spec
-	noctx
-	unsafe
-body
+add-timed-task void(a task-queue, task task-node-with-time) noctx unsafe
+	a.timed-sentinel add-timed-task-recur task
+
+# TODO: use a heap
+.add-timed-task-recur void(prev task-node-with-time, task task-node-with-time) noctx
 	if cur ?= prev next
-		task = cur task
-		if task.time <= cur-time
-			if task.exclusion in exclusions
-				cur pop-recur exclusions, cur-time, if t ?= first-task-time
-					t,
-				else
-					task.time to-opt-time
-			else
-				prev.next := cur.next
-				task task
+		if task.time < cur.time
+			prev.next := task,
+			task.next := cur,
 		else
-			(true, (task.time,)) no-task
+			cur add-timed-task-recur task
 	else
-		(true, first-task-time) no-task
+		prev.next := task,
 
-insert-task void(a task-queue, inserted task-queue-node) noctx unsafe
-	size-before = a size
-	if head ?= a head
-		if head.task.time <= inserted.task.time
-			head insert-recur inserted
-		else
-			inserted.next := head,
-			a.head := inserted,
-	else
-		a.head := inserted,
-	size-after = a size
-	hard-assert: (size-before wrap-add 1) == size-after
+add-task void(a task-queue, task task-node) noctx
+	a.non-timed-last.next := task,
+	a.non-timed-last := task
 
-.insert-recur void(prev task-queue-node, inserted task-queue-node) noctx
-	if cur ?= prev next
-		if cur.task.time <= inserted.task.time
-			cur insert-recur inserted
-		else
-			inserted.next := cur,
-			prev.next := inserted,
-	else
-		prev.next := inserted,
-
-.size nat64(a task-queue) noctx
-	a.head size-recur 0
-
-.size-recur nat64(node task-queue-node?, acc nat64) noctx
-	if n ?= node
-		n.next size-recur (acc wrap-add 1)
-	else
-		acc
+add-tasks void(a task-queue, tasks task-list) noctx trusted
+	a.non-timed-last.next := tasks.first,
+	a.non-timed-last := tasks last

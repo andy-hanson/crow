@@ -3,12 +3,12 @@ import
 	time: time, time_t
 	../compare: max
 	../fun-util: subscript
-	../fut: fut, new, then-void
+	../fut: fut
 	../misc: new, void
 	../number: ==, <=>, +, /, nat64, to-nat64
 	../ptr: null
 	../private/fut-low-level: resolve, unresolved
-	../private/runtime: add-task, get-global-ctx, new-exclusion
+	../private/runtime: add-timed-task, get-global-ctx, new-exclusion
 	./duration: duration, nsec
 export
 	./private/time-low-level: get-monotime-nsec
@@ -32,20 +32,31 @@ continue-or-quit enum
 	quit
 
 # Call `action` now and on every `interval`.
-repeat-interval fut void(interval duration, action act continue-or-quit()) summon
-	get-monotime-nsec repeat-interval-recur interval.nsec.to-nat64, action
-.repeat-interval-recur fut void(start-nsec nat64, interval-nsec nat64, action act continue-or-quit()) trusted summon
+repeat-interval fut void(interval duration, action act continue-or-quit()) trusted summon
+	res fut void = unresolved
+	res repeat-interval-recur get-monotime-nsec, interval.nsec.to-nat64, action
+	res
+.repeat-interval-recur void
+	res fut void
+	start-nsec nat64
+	interval-nsec nat64
+	action act continue-or-quit()
+spec
+	trusted
+	summon
+body
 	match action[]
 	as continue
 		next-time = get-monotime-nsec max start-nsec + interval-nsec
-		<- next-time delay-until-time
-		next-time repeat-interval-recur interval-nsec, action
+		gctx = get-global-ctx
+		gctx add-timed-task next-time, gctx.new-exclusion, () =>
+			res repeat-interval-recur next-time, interval-nsec, action
 	as quit
-		()
+		res resolve ()
 
 .delay-until-time fut void(target-nsec nat64) unsafe summon
 	res fut void = unresolved
 	gctx = get-global-ctx
-	gctx add-task target-nsec, gctx.new-exclusion, () =>
+	gctx add-timed-task target-nsec, gctx.new-exclusion, () =>
 		res resolve ()
 	res

@@ -17,18 +17,15 @@ import
 	../../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
 	../../compare: !=, <
 	../../c-types: c-int
-	../../exception: assert, message
+	../../exception: assert
 	../../extra-types: fd-t
-	../../fut: fut, handle-exceptions, then-void, fut-catch, new, subscript
+	../../fut: fut, handle-exceptions, then-void, new, subscript
 	../../misc: drop, new, void
 	../../number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../../private/bootstrap: todo
-	# TODO: don't use this
-	../../private/fut-low-level: callback
 	../../ptr: by-val, mut-ptr, ptr-cast-to-extern, ptr-to, ref-of-val, size-of
 	../../range: ..
 	../../str: literal, str
-	../../str-util: to-str
 	../../version: is-windows
 	../duration: msec
 	../posix-util: check-posix-error
@@ -83,14 +80,6 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 
 		print: "starting the server loop"
 		done = state tcp-server-loop-linux
-		done.fut-catch callback r =>
-			match r
-			as ok _
-				print: "stopped normally"
-			as err e
-				print: "An exception occurred in tcp-server"
-				print: e.message to-str
-
 		done handle-exceptions
 
 		new: () =>
@@ -161,7 +150,7 @@ close-client void(client SOCKET) unsafe summon
 		listen-fd accept-clients epoll-fd, on-accepted-client
 
 .handle-client-linux void(fd fd-t, on-received-chunk ref void(SOCKET, nat8[])) unsafe summon
-	buf fix-arr nat8 = 256 uninitialized-fix-arr
+	buf fix-arr nat8 = 0x1000 uninitialized-fix-arr
 	count = fd read buf.begin-ptr, buf.size
 	if count < 0
 		err = errno

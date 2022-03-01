@@ -7,9 +7,8 @@ import
 	./misc: new, void
 	./ptr: ref-of-val
 	./result: result
-	./private/bootstrap:
-		action, exclusion, fut-state-exception, fut-state-resolved, is-sendable, lk, new
-	./private/fut-low-level: callback, reject, resolve, resolve-or-reject, unresolved
+	./private/bootstrap: action, exclusion, is-sendable, lk, new, rejected, resolved
+	./private/fut-low-level: add-task, get-result, forward-to, reject, resolve, unresolved
 	./private/runtime: add-task, exception-handler, get-global-ctx, new-exclusion
 	./private/thread-utils: init, uninit
 export
@@ -27,7 +26,7 @@ delay fut void()
 
 # Converts a value to a `fut` resolved with that value.
 new<a> fut a(value a) trusted
-	res fut a = uninit, value.fut-state-resolved
+	res fut a = uninit, value.resolved
 	res.lk.ref-of-val init
 	res
 
@@ -37,7 +36,7 @@ new<a> fut a() new<a>
 
 # `fut` resolved with an exception.
 rejected<a> fut a(err exception) trusted
-	res fut a = uninit, err.fut-state-exception
+	res fut a = uninit, err.rejected
 	res.lk.ref-of-val init
 	res
 
@@ -63,15 +62,13 @@ wait-fold<a, b> fut a(acc a, futures fut<b>[], f ref a(a, b)) is-sendable<a> is-
 		new-acc <- f[acc, cur]
 		new-acc wait-fold futures.tail, f
 
-.forward-to<a> void(from fut a, to fut a) unsafe
-	from callback it => to resolve-or-reject it
-
 ###
 Fut resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception.
 ###
-fut-catch<a> fut result<a, exception>(a fut a) trusted
+fut-catch<a> fut result<a, exception>(a fut a) trusted is-sendable<a>
 	res fut result<a, exception> = unresolved
-	a callback value => res resolve value
+	a add-task get-global-ctx.new-exclusion, () =>
+		res resolve a.get-result
 	res
 
 ###
@@ -83,10 +80,17 @@ and the result of `then` will have the same exception as `a`.
 ###
 then<out, in> fut out(a fut in, f ref out(in)) trusted is-sendable<out> is-sendable<in>
 	res fut out = unresolved
-	a callback result =>
-		match result
-		as ok o
-			f[o] forward-to res
+	action = f action
+	a add-task f.exclusion, () => 
+		match a get-result
+		as ok value
+			match (() => action[value]) catch
+			as ok fut
+				res forward-to fut
+			as err e
+				res reject e
+			# TODO: should not be necessary
+			()
 		as err e
 			res reject e
 	res
@@ -110,7 +114,11 @@ launch<a> fut a(f fun fut a()) trusted
 	res fut a = unresolved
 	gctx = get-global-ctx
 	gctx add-task gctx.new-exclusion, () =>
-		f[] forward-to res
+		match (() => f[]) catch
+		as ok fut
+			res forward-to fut
+		as err e
+			res reject e
 	res
 
 ###
@@ -121,15 +129,20 @@ and returns a `fut` for the result of that task.
 ###
 subscript<r> fut r(f ref r()) trusted is-sendable<r>
 	res fut r = unresolved
+	action = f action
 	get-global-ctx add-task f.exclusion, () =>
-		(() => f.action[] forward-to res) catch err => res reject err
+		match action catch
+		as ok fut
+			res forward-to fut
+		as err e
+			res reject e
 	res
 
 # Calls a `ref` with one argument.
 subscript<r, p0> fut r(f ref r(p0), p0 p0) trusted is-sendable<r> is-sendable<p0>
 	res fut r = unresolved
 	get-global-ctx add-task f.exclusion, () =>
-		(() => f.action[p0] forward-to res) catch err => res reject err
+		(() => res forward-to f.action[p0]) catch err => res reject err
 	res
 
 # Calls a `ref` with two arguments.
@@ -145,7 +158,7 @@ spec
 body
 	res fut r = unresolved
 	get-global-ctx add-task f.exclusion, () =>
-		(() => f.action[p0, p1] forward-to res) catch err => res reject err
+		(() => res forward-to f.action[p0, p1]) catch err => res reject err
 	res
 
 ###
@@ -153,8 +166,8 @@ If the fut resolves successfully, does nothing.
 Else, this will call the default exception handler.
 ###
 handle-exceptions<a> void(a fut a) no-doc trusted
-	a callback result =>
-		match result
+	a add-task get-global-ctx.new-exclusion, () =>
+		match a get-result
 		as ok _
 			()
 		as err e

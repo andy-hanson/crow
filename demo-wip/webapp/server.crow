@@ -75,6 +75,8 @@ main fut nat(args str[]) unsafe summon
 					"Invalid user or password" http-bad-query
 				as user-does-not-exist
 					"User does not exist" http-not-found
+				as wrong-password
+					"Wrong password" http-forbidden
 		elif path == "/post"
 			if cookie ?= req.headers["Cookie"]
 				user-cookie = (cookie parse-cookies ("login",))[0].parse-user-cookie!

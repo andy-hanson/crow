@@ -15,7 +15,7 @@ new duration()
 	0,
 
 # Duration of `a` seconds.
-seconds duration(a float64)
+sec duration(a float64)
 	a * 1_000_000_000,
 
 # Duration of `a` milliseconds.

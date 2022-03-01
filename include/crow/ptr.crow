@@ -116,6 +116,9 @@ ptr-cast<out, in> out*(a in*) noctx unsafe
 	a.as-mut.ptr-cast as-const
 ptr-cast<out, in> out mut*(a in mut*) noctx unsafe builtin
 
+ref-cast<out, in> out(a in) no-doc noctx unsafe
+	a.as-any-mut-ptr as-ref
+
 # Raw address of a pointer.
 to-nat64<a> nat64(a a*) noctx unsafe
 	a.as-mut to-nat64
