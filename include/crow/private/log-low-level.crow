@@ -45,8 +45,7 @@ logged record
 	level log-level
 	message str
 
-log-ctx record mut
-	by-ref
+log-ctx record mut by-ref
 	handler mut log-handler
 
 log-ctx by-val log-ctx() noctx unsafe

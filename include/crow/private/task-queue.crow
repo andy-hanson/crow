@@ -51,8 +51,7 @@ pop-task-result union mut
 	task task
 	no-task no-task
 
-no-task record
-	by-val
+no-task record by-val
 	# True if there any tasks exist (whether timed or not).
 	any-tasks bool
 	# If any timed tasks exists, this is the time of the first one.

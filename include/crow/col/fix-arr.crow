@@ -31,8 +31,7 @@ You can't change what range of addresses a `fix-arr` points to, though you can w
 Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `fix-arr`.
 Taking a slice aliases the elements, so writing to the slice writes to the original.
 ###
-fix-arr<a> record mut
-	by-val
+fix-arr<a> record mut by-val
 	.inner a[]
 
 # TODO:INTERNAL (or fix-arr-low-level)

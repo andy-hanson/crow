@@ -29,8 +29,7 @@ Mutable sorted dictionary.
 
 This works like `mut-dict`, but iteration functions like `each` provide elements in sorted order.
 ###
-mut-sorted-dict<k, v> record mut
-	by-ref
+mut-sorted-dict<k, v> record mut by-ref
 	# TODO: by-val
 	# Values are none if they have been deleted.
 	.pairs pair<k, v?> mut[]

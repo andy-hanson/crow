@@ -63,6 +63,8 @@ import frontend.parse.lexer :
 	takeTypeArgsEnd,
 	Token,
 	tryTakeIndent,
+	tryTakeName,
+	tryTakeNewlineOrIndent_topLevel,
 	tryTakeOperator,
 	tryTakeToken;
 import frontend.parse.parseExpr : parseFunExprBody;
@@ -73,7 +75,7 @@ import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrWithSizeBuilder : add, ArrWithSizeBuilder, arrWithSizeBuilderIsEmpty, finishArrWithSize;
+import util.col.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
 import util.col.str : SafeCStr;
 import util.conv : safeToUshort;
 import util.memory : allocate;
@@ -82,7 +84,7 @@ import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : AllSymbols, Operator, shortSymValue, Sym, symOfStr;
+import util.sym : AllSymbols, Operator, shortSym, shortSymValue, Sym, symEq, symOfStr;
 import util.util : todo, unreachable, verify;
 
 immutable(FileAst) parseFile(
@@ -425,51 +427,88 @@ immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) parseEnumOrFlagsMembers(
 }
 
 immutable(StructDeclAst.Body.Record) parseRecordBody(ref Lexer lexer) {
-	ArrWithSizeBuilder!(StructDeclAst.Body.Record.Field) res;
-	pure immutable(StructDeclAst.Body.Record) recur(immutable RecordModifiers prevModifiers) {
+	immutable NewlineOrIndentAndModifiers mod = parseRecordModifiers(
+		lexer,
+		immutable RecordModifiers(none!Visibility, none!Pos, none!ExplicitByValOrRefAndRange));
+	ArrWithSizeBuilder!(StructDeclAst.Body.Record.Field) fields;
+	final switch (mod.newlineOrIndent) {
+		case NewlineOrIndent.newline:
+			break;
+		case NewlineOrIndent.indent:
+			parseRecordFields(lexer, fields);
+			break;
+	}
+	return immutable StructDeclAst.Body.Record(
+		mod.modifiers.any() ? some(allocate(lexer.alloc, mod.modifiers)) : none!(Ptr!RecordModifiers),
+		finishArrWithSize(lexer.alloc, fields));
+}
+
+struct NewlineOrIndentAndModifiers {
+	immutable NewlineOrIndent newlineOrIndent;
+	immutable RecordModifiers modifiers;
+}
+
+immutable(NewlineOrIndentAndModifiers) parseRecordModifiers(ref Lexer lexer, immutable RecordModifiers cur) {
+	immutable Opt!NewlineOrIndent ni = tryTakeNewlineOrIndent_topLevel(lexer);
+	if (has(ni))
+		return immutable NewlineOrIndentAndModifiers(force(ni), cur);
+	else {
 		immutable Pos start = curPos(lexer);
-		immutable Visibility visibility = tryTakePrivate(lexer);
-		immutable Sym name = takeName(lexer);
-		immutable RecordModifiers newModifiers = () {
-			switch (name.value) {
-				case shortSymValue("new"):
-					if (!arrWithSizeBuilderIsEmpty(res))
-						todo!void("'.new' on later line");
-					if (has(prevModifiers.explicitNewVisibility))
-						todo!void("specified new visibility multiple times");
-					return withExplicitNewVisibility(prevModifiers, visibility);
-				case shortSymValue("by-val"):
-				case shortSymValue("by-ref"):
-					if (visibility == Visibility.private_) todo!void("diagnostic");
-					immutable ExplicitByValOrRef value = name.value == shortSymValue("by-val")
-						? ExplicitByValOrRef.byVal
-						: ExplicitByValOrRef.byRef;
-					if (has(prevModifiers.explicitByValOrRef) || !arrWithSizeBuilderIsEmpty(res))
-						todo!void("by-val or by-ref on later line");
-					return withExplicitByValOrRef(prevModifiers, immutable ExplicitByValOrRefAndRange(start, value));
-				case shortSymValue("packed"):
-					if (visibility == Visibility.private_) todo!void("diagnostic");
-					if (has(prevModifiers.packed) || !arrWithSizeBuilderIsEmpty(res))
-						todo!void("'packed' on later line");
-					return withPacked(prevModifiers, start);
-				default:
-					immutable FieldMutability mutability = parseFieldMutability(lexer);
-					immutable TypeAst type = parseType(lexer);
-					add(lexer.alloc, res, immutable StructDeclAst.Body.Record.Field(
-						range(lexer, start), visibility, name, mutability, type));
-					return prevModifiers;
-			}
-		}();
-		final switch (takeNewlineOrSingleDedent(lexer)) {
-			case NewlineOrDedent.newline:
-				return recur(newModifiers);
-			case NewlineOrDedent.dedent:
-				return immutable StructDeclAst.Body.Record(
-					newModifiers.any() ? some(allocate(lexer.alloc, newModifiers)) : none!(Ptr!RecordModifiers),
-					finishArrWithSize(lexer.alloc, res));
+		if (tryTakeToken(lexer, Token.dot)) {
+			immutable Opt!Sym name = tryTakeName(lexer);
+			if (!has(name) || !symEq(force(name), shortSym("new")))
+				todo!void("diagnostic: expected 'new' to follow '.'");
+			if (has(cur.explicitNewVisibility))
+				todo!void("'new' specified twice");
+			return parseRecordModifiers(lexer, withExplicitNewVisibility(cur, Visibility.private_));
+		} else {
+			immutable Sym name = takeName(lexer);
+			immutable RecordModifiers next = () {
+				switch (name.value) {
+					case shortSymValue("new"):
+						if (has(cur.explicitNewVisibility))
+							todo!void("'new' specified twice");
+						return withExplicitNewVisibility(cur, Visibility.public_);
+					case shortSymValue("by-val"):
+					case shortSymValue("by-ref"):
+						immutable ExplicitByValOrRef value = symEq(name, shortSym("by-val"))
+							? ExplicitByValOrRef.byVal
+							: ExplicitByValOrRef.byRef;
+						if (has(cur.explicitByValOrRef))
+							todo!void("'by-val' or 'by-ref' specified twice (or in contradiction)");
+						return withExplicitByValOrRef(cur, immutable ExplicitByValOrRefAndRange(start, value));
+					case shortSymValue("packed"):
+						if (has(cur.packed))
+							todo!void("'packed' specified twice");
+						return withPacked(cur, start);
+					default:
+						todo!void("unexpected record modifier");
+						return cur;
+				}
+			}();
+			return parseRecordModifiers(lexer, next);
 		}
 	}
-	return recur(immutable RecordModifiers(none!Visibility, none!Pos, none!ExplicitByValOrRefAndRange));
+}
+
+void parseRecordFields(
+	ref Lexer lexer,
+	ref ArrWithSizeBuilder!(StructDeclAst.Body.Record.Field) res,
+) {
+	immutable Pos start = curPos(lexer);
+	immutable Visibility visibility = tryTakePrivate(lexer);
+	immutable Sym name = takeName(lexer);
+	immutable FieldMutability mutability = parseFieldMutability(lexer);
+	immutable TypeAst type = parseType(lexer);
+	add(lexer.alloc, res,
+		immutable StructDeclAst.Body.Record.Field(range(lexer, start), visibility, name, mutability, type));
+	final switch (takeNewlineOrSingleDedent(lexer)) {
+		case NewlineOrDedent.newline:
+			parseRecordFields(lexer, res);
+			break;
+		case NewlineOrDedent.dedent:
+			break;
+	}
 }
 
 immutable(FieldMutability) parseFieldMutability(ref Lexer lexer) {
@@ -774,19 +813,8 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.record:
 			nextToken(lexer);
-			addStruct(() {
-				immutable StructDeclAst.Body.Record body_ = () {
-					final switch (takeNewlineOrIndent_topLevel(lexer)) {
-						case NewlineOrIndent.newline:
-							return immutable StructDeclAst.Body.Record(
-								none!(Ptr!RecordModifiers),
-								emptyArrWithSize!(StructDeclAst.Body.Record.Field));
-						case NewlineOrIndent.indent:
-							return parseRecordBody(lexer);
-					}
-				}();
-				return immutable StructDeclAst.Body(body_);
-			});
+			addStruct(() =>
+				immutable StructDeclAst.Body(parseRecordBody(lexer)));
 			break;
 		case Token.spec:
 			nextToken(lexer);

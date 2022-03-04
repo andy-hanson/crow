@@ -6,8 +6,7 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 
 # Represents an amount of time.
-duration record
-	by-val
+duration record by-val
 	.nanos float64
 
 # 0 duration.

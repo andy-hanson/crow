@@ -760,11 +760,6 @@ struct RecordModifiers {
 		explicitNewVisibility = v;
 		packed = p;
 		explicitByValOrRef = e;
-
-		if (has(packed) && has(explicitByValOrRef)) {
-			// TODO: ensure this in the parser
-			verify(force(explicitByValOrRef).start > force(packed));
-		}
 	}
 
 	//TODO:NOT INSTANCE

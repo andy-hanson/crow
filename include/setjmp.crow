@@ -5,8 +5,7 @@ import
 	crow/private/bootstrap: int32, void
 
 # Make this as big as the biggest one I've found, which is on Windows where it is 16 * 128 bits.
-__jmp_buf_tag record
-	by-val
+__jmp_buf_tag record by-val
 	spacer bytes256
 
 new __jmp_buf_tag() noctx

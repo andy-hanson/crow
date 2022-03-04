@@ -321,7 +321,7 @@ void addStructTokens(
 		},
 		(ref immutable StructDeclAst.Body.ExternPtr) {},
 		(ref immutable StructDeclAst.Body.Record record) {
-			//TODO: add token for 'packed' modifier
+			//TODO: add token for 'packed' modifier (note: this will require sorting modifiers by position)
 			immutable Opt!ExplicitByValOrRefAndRange explicitByValOrRef = record.explicitByValOrRef;
 			if (has(explicitByValOrRef)) {
 				add(alloc, tokens, immutable Token(

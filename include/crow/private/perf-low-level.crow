@@ -5,8 +5,7 @@ import
 	../ptr: by-val
 	./bootstrap: arr, nat64, sym
 
-perf-time record
-	by-val
+perf-time record by-val
 	# TODO:PRIVATE
 	ns nat64
 
@@ -17,7 +16,6 @@ perf-ctx record mut
 perf-ctx by-val perf-ctx() noctx
 	(), empty-fix-arr
 
-perf-measure-value record
-	by-val
+perf-measure-value record by-val
 	count nat64
 	total-nsec nat64

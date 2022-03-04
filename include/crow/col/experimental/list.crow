@@ -25,8 +25,7 @@ Immutable list type.
 Appending a value with `~` is amortized O(1).
 Popping a value with `rtail` and `last` is always O(1).
 ###
-list<a> record
-	by-ref
+list<a> record by-ref
 	.prev list<a>?
 	.values a[]
 

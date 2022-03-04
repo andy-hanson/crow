@@ -4,8 +4,7 @@ import
 	../fun-util: subscript
 	../opt: opt
 
-value-and-rest<a, iter> record
-	by-val
+value-and-rest<a, iter> record by-val
 	value a
 	rest iter
 

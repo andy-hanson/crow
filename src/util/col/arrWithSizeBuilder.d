@@ -34,10 +34,6 @@ private @system const(T*) begin(T)(ref const ArrWithSizeBuilder!T a) {
 	a.size_ += 1;
 }
 
-immutable(bool) arrWithSizeBuilderIsEmpty(T)(ref const ArrWithSizeBuilder!T a) {
-	return a.size_ == 0;
-}
-
 @trusted immutable(ArrWithSize!T) finishArrWithSize(T)(ref Alloc alloc, ref ArrWithSizeBuilder!T a) {
 	if (a.data_ == null)
 		return emptyArrWithSize!T;

@@ -9,8 +9,7 @@ Could be used for many things.
 
 This is often used as a key-value pair in a dictionary or priority queue.
 ###
-pair<a, b> record
-	by-val
+pair<a, b> record by-val
 	a a
 	b b
 

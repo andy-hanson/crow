@@ -104,8 +104,7 @@ body
 	all-args = argv[0 .. argc.to-int64.unsafe-to-nat64]
 	add call-with-ctx ctx, all-args, main-ptr
 
-.thread-args record mut
-	by-ref
+.thread-args record mut by-ref
 	thread-id nat64
 	gctx global-ctx
 

@@ -7,8 +7,7 @@ Range of values. `low` is inclusive and `high` is exclusive.
 
 Usable for any type with a comparison function.
 ###
-range<a> record
-	by-val
+range<a> record by-val
 	low a
 	high a
 

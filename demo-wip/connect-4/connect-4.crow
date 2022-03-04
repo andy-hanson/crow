@@ -95,13 +95,11 @@ parse-settings ai-settings?(a str)
 		elif "a"::char8.to-nat8 <= n && n < "z"::char8.to-nat8
 			(n - "a"::char8.to-nat8 to-nat64),
 
-.strategy record
-	by-val
+.strategy record by-val
 	x nat
 	score int32
 
-.score-and-best record
-	by-val
+.score-and-best record by-val
 	score int32
 	best strategy
 

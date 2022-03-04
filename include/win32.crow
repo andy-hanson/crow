@@ -13,8 +13,7 @@ import
 	stdio: FILE
 	sys/types: mode_t
 
-CRITICAL_SECTION record
-	by-ref
+CRITICAL_SECTION record by-ref
 	n0 nat64
 	n1 nat64
 	n2 nat64
@@ -29,8 +28,7 @@ LeaveCriticalSection void(a CRITICAL_SECTION) noctx unsafe extern
 
 DeleteCriticalSection void(a CRITICAL_SECTION) noctx unsafe extern
 
-CONDITION_VARIABLE record
-	by-ref
+CONDITION_VARIABLE record by-ref
 	n nat64
 
 InitializeConditionVariable void(a CONDITION_VARIABLE) noctx unsafe extern
@@ -100,8 +98,7 @@ spec
 	summon
 	extern
 
-WIN32_FIND_DATAA record
-	by-val
+WIN32_FIND_DATAA record by-val
 	dwFileAttributes DWORD
 	ftCreationTime FILETIME
 	ftLastAccessTime FILETIME
@@ -119,8 +116,7 @@ new WIN32_FIND_DATAA() noctx
 cFileName c-char mut*(a WIN32_FIND_DATAA mut*) unsafe
 	a->cFileName_STORAGE.ptr-to::chars-max-path mut* ptr-cast
 
-FILETIME record
-	by-val
+FILETIME record by-val
 	dwLowDateTime DWORD
 	dwHighDateTime DWORD
 
@@ -204,8 +200,7 @@ SUBLANG_NEUTRAL WORD()
 MAKELANGID DWORD(p WORD, s WORD) trusted noctx
 	(s.to-nat32 << 10) | p.to-nat32
 
-STARTUPINFOA record mut
-	by-val
+STARTUPINFOA record mut by-val
 	cb DWORD
 	lpReserved c-char mut*
 	lpDesktop c-char mut*
@@ -240,8 +235,7 @@ new STARTUPINFOA(dwFlags startup-flags, hStdInput HANDLE, hStdOutput HANDLE, hSt
 	size = size-of@<STARTUPINFOA> unsafe-to-nat32
 	size, (), (), (), (), (), (), (), (), (), (), dwFlags, (), (), (), hStdInput, hStdOutput, hStdError
 
-SECURITY_ATTRIBUTES record mut
-	by-val
+SECURITY_ATTRIBUTES record mut by-val
 	nLength DWORD
 	lpSecurityDescriptor any-mut-ptr
 	bInheritHandle c-int
@@ -250,8 +244,7 @@ new SECURITY_ATTRIBUTES(lpSecurityDescriptor any-mut-ptr, bInheritHandle bool) u
 	# TODO: shouldn't need parens
 	(size-of@<SECURITY_ATTRIBUTES>).unsafe-to-nat32, lpSecurityDescriptor, bInheritHandle ? 1 : 0
 
-PROCESS_INFORMATION record mut
-	by-val
+PROCESS_INFORMATION record mut by-val
 	hProcess HANDLE
 	hThread HANDLE
 	dwProcessId DWORD
@@ -329,8 +322,7 @@ MAKEWORD WORD(a nat8, b nat8) trusted
 
 WSAStartup c-int(wVersionRequested WORD, lpWSAData WSADATA mut*) noctx unsafe summon extern
 
-WSADATA record mut
-	by-val
+WSADATA record mut by-val
 	wVersion WORD
 	wHighVersion WORD
 	iMaxSockets u-short
@@ -344,8 +336,7 @@ new WSADATA() noctx unsafe
 
 GetSystemInfo void(lpSystemInfo SYSTEM_INFO mut*) noctx unsafe summon extern
 
-SYSTEM_INFO record mut
-	by-val
+SYSTEM_INFO record mut by-val
 	DUMMYUNIONNAME DWORD
 	dwPageSize DWORD
 	lpMinimumApplicationAddress any-mut-ptr
@@ -362,87 +353,75 @@ new SYSTEM_INFO() noctx unsafe
 
 # Not using bytes-types due to alignment
 
-.chars2 record
-	by-val
+.chars2 record by-val
 	.n0 c-char
 	.n1 c-char
 .new chars2() noctx
 	"\0", "\0"
 
-.chars4 record
-	by-val
+.chars4 record by-val
 	.n0 chars2
 	.n1 chars2
 .new chars4() noctx
 	(), ()
 
-.chars8 record
-	by-val
+.chars8 record by-val
 	.n0 chars4
 	.n1 chars4
 .new chars8() noctx
 	(), ()
 
-.chars14 record
-	by-val
+.chars14 record by-val
 	.n0 chars8
 	.n1 chars4
 	.n2 chars2
 .new chars14() noctx
 	(), (), ()
 
-.chars16 record
-	by-val
+.chars16 record by-val
 	.n0 chars8
 	.n1 chars8
 .new chars16() noctx
 	(), ()
 
-.chars32 record
-	by-val
+.chars32 record by-val
 	.n0 chars16
 	.n1 chars16
 .new chars32() noctx
 	(), ()
 
-.chars64 record
-	by-val
+.chars64 record by-val
 	.n0 chars32
 	.n1 chars32
 .new chars64() noctx
 	(), ()
 
-.chars128 record
-	by-val
+.chars128 record by-val
 	.n0 chars64
 	.n1 chars64
 .new chars128() noctx
 	(), ()
 
-.chars129 record
-	by-val
+.chars129 record by-val
 	.n0 chars128
 	.n1 c-char
 .new chars129() noctx
 	(), "\0"
 
-.chars256 record
-	by-val
+.chars256 record by-val
 	.n0 chars128
 	.n1 chars128
 .new chars256() noctx
 	(), ()
 
-.chars257 record
-	by-val
+.chars257 record by-val
 	.n0 chars256
 	.n1 c-char
 .new chars257() noctx
 	(), "\0"
 
 # For char[MAX_PATH]
-.chars-max-path record
-	by-val
+.chars-max-path record by-val
 	.n0 chars256
 	.n1 chars4
 .new chars-max-path() noctx

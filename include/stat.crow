@@ -6,8 +6,7 @@ import
 	crow/str: c-str
 	sys/types: blkcnt_t, blksize_t, dev_t, gid_t, ino_t, mode_t, nlink_t, off_t, time_t, uid_t
 
-stat record mut
-	by-ref
+stat record mut by-ref
 	st_dev mut dev_t
 	pad0 mut nat32
 	st_ino_unused mut ino_t

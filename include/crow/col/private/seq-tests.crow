@@ -137,8 +137,7 @@ test
 	e verify "([1 2 3 4 5] ([{s} {s} {s} {s}] [] [{s} {s} {s}]) [9 8 7 6])"
 
 # use a big type to force smaller leaves for easier testing
-.big-nat record
-	by-val
+.big-nat record by-val
 	a nat64
 	b nat64
 	c nat64

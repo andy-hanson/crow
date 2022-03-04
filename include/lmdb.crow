@@ -12,8 +12,7 @@ MDB_env extern-ptr
 MDB_dbi alias
 	u-int
 
-MDB_val record mut
-	by-ref
+MDB_val record mut by-ref
 	mv_size mut size_t
 	mv_data mut any-mut-ptr
 
@@ -86,8 +85,7 @@ spec
 	unsafe
 	summon
 
-mdb_stat record mut
-	by-ref
+mdb_stat record mut by-ref
 	ms_psize mut u-int
 	ms_depth mut u-int
 	ms_branch_pages mut size_t

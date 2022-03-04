@@ -2,8 +2,7 @@ no-std
 import
 	crow/c-types: c-int
 
-SDL_Rect record
-	by-val
+SDL_Rect record by-val
 	x c-int
 	y c-int
 	w c-int

@@ -575,8 +575,7 @@ try-remove-end<a> a[]?(a a[], end a[]) equal<a> equal<a[]>
 
 region iter
 
-arr-iter<a> record
-	by-val
+arr-iter<a> record by-val
 	.xs a[]
 	# Index of the next value to return.
 	# If at the end of the array, this iterator is empty.

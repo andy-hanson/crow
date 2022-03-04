@@ -8,8 +8,7 @@ import
 	crow/str: c-str
 	sys/types: mode_t, pid_t
 
-posix_spawn_file_actions_t record mut
-	by-ref
+posix_spawn_file_actions_t record mut by-ref
 	allocated mut int32
 	used mut int32
 	actions mut any-mut-ptr

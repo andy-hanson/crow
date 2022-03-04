@@ -28,16 +28,14 @@ import
 	../private/arr-low-level: begin-ptr, end-ptr
 	../private/sort-utils: binary-search-key
 
-compact-sorted-dict<k, v> record
-	by-val
+compact-sorted-dict<k, v> record by-val
 	.impl impl<k, v>
 
 .impl<k, v> union
 	overlay overlay<k, v>
 	end-node pair<k, v>[]
 
-.overlay<k, v> record
-	by-ref
+.overlay<k, v> record by-ref
 	# TODO: consider tracking the number of keys that are new, or change a value, or remove a value.
 	# We should merge more frequently if removing keys, less frequently if adding keys.
 	# never empty

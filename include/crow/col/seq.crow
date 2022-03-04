@@ -26,26 +26,22 @@ It also is efficient to split from an iterator.
 
 It does not support efficient access by an index, so iterators should be used instead.
 ###
-seq<a> record
-	by-val
+seq<a> record by-val
 	.root l0 a
 
 get-root<a> l0 a(a seq a) no-doc
 	a.root
 
 # TODO: no-doc
-l0<a> record
-	by-val
+l0<a> record by-val
 	node node<a, l1 a>
 
 # TODO: no-doc
-l1<a> record
-	by-val
+l1<a> record by-val
 	node node<a[], l2 a>
 
 # TODO: no-doc
-l2<a> record
-	by-val
+l2<a> record by-val
 	nodes a[][][]
 
 # TODO: no-doc
@@ -367,8 +363,7 @@ body
 region iter and slice
 
 # Immutable iterator over a sequence.
-seq-iter<a> record
-	by-val
+seq-iter<a> record by-val
 	.seq seq a
 	.cur arr-3d-iter a
 	.pos position
@@ -646,8 +641,7 @@ slice-right<a> seq a(a seq-iter a) trusted
 			(pair.a, pair.b, b.right).branch,
 
 # Iterator through an a[][][]
-.arr-3d-iter<a> record
-	by-val
+.arr-3d-iter<a> record by-val
 	cur-1d arr-iter a
 	cur-2d arr-iter a[]
 	cur-3d arr-iter a[][]
@@ -666,8 +660,7 @@ slice-right<a> seq a(a seq-iter a) trusted
 .to-iter3d<a> arr-3d-iter a(a arr-iter a) noctx
 	a, (), ()
 
-.arr-2d-iter<a> record
-	by-val
+.arr-2d-iter<a> record by-val
 	cur-1d arr-iter a
 	cur-2d arr-iter a[]
 .new<a> arr-2d-iter a() noctx

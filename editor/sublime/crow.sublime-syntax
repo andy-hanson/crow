@@ -159,7 +159,7 @@ contexts:
   record:
     - match: '{{unindented_line}}'
       pop: true
-    - match: 'data|force-sendable|mut|sendable'
+    - match: 'data|force-sendable|mut|sendable|\.?new|by-ref|by-val|packed'
       scope: keyword
     - match: $
       push: record_body
@@ -167,8 +167,6 @@ contexts:
   record_body:
     - match: '{{unindented_line}}'
       pop: true
-    - match: '\.?new|by-ref|by-val'
-      scope: keyword
     - match: '{{name}}'
       scope: identifier
       push: type_ending_in_nl

@@ -36,8 +36,7 @@ There should be `==`, `<=>`, and `hash-mix` functions defined for the key type `
 This is unordered;
 functions dealing with multiple elements (like `to-arr` or `each`) work in arbitrary order.
 ###
-dict<k, v> record
-	by-val
+dict<k, v> record by-val
 	.root node<k, v>
 
 # TODO: comparison should be generic
@@ -202,8 +201,7 @@ If the key is not in the dictionary, returns `a` unmodified.
 		a
 
 # Value removed from the dictionary, and the new dictionary.
-try-remove-result<k, v> record
-	by-val
+try-remove-result<k, v> record by-val
 	value v
 	rest v[k]
 
@@ -217,8 +215,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 	if value ?= res old-value
 		(value, (res.new-node!,)),
 
-.get-or-update-result<k, v> record
-	by-val
+.get-or-update-result<k, v> record by-val
 	# If none, don't update anything
 	new-node node<k, v>?
 	old-value v?

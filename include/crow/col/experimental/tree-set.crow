@@ -36,8 +36,7 @@ tree-set<a> record
 	inner inner-node a
 	leaf a[]
 
-.inner-node<a> record
-	by-ref
+.inner-node<a> record by-ref
 	value a
 	left node a
 	right node a

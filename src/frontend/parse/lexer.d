@@ -170,9 +170,19 @@ enum NewlineOrIndent {
 	indent,
 }
 
+immutable(Opt!NewlineOrIndent) tryTakeNewlineOrIndent_topLevel(ref Lexer lexer) {
+	return tryTakeToken(lexer, Token.newline)
+		? some(takeNewlineOrIndentAfterEOL(lexer))
+		: none!NewlineOrIndent;
+}
+
 immutable(NewlineOrIndent) takeNewlineOrIndent_topLevel(ref Lexer lexer) {
 	if (!takeOrAddDiagExpectedToken(lexer, Token.newline, ParseDiag.Expected.Kind.endOfLine))
 		skipRestOfLineAndNewline(lexer);
+	return takeNewlineOrIndentAfterEOL(lexer);
+}
+
+private immutable(NewlineOrIndent) takeNewlineOrIndentAfterEOL(ref Lexer lexer) {
 	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, 0);
 	return matchIndentDelta!(immutable NewlineOrIndent)(
 		delta,
@@ -180,9 +190,8 @@ immutable(NewlineOrIndent) takeNewlineOrIndent_topLevel(ref Lexer lexer) {
 			verify(it.nDedents == 0);
 			return NewlineOrIndent.newline;
 		},
-		(ref immutable IndentDelta.Indent) {
-			return NewlineOrIndent.indent;
-		});
+		(ref immutable IndentDelta.Indent) =>
+			NewlineOrIndent.indent);
 }
 
 immutable(bool) takeIndentOrDiagTopLevel(ref Lexer lexer) {
@@ -310,6 +319,12 @@ immutable(NameAndRange) takeNameAndRange(ref Lexer lexer) {
 			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.name)));
 		return immutable NameAndRange(start, shortSym("bogus"));
 	}
+}
+
+immutable(Opt!Sym) tryTakeName(ref Lexer lexer) {
+	return tryTakeToken(lexer, Token.name)
+		? some(getCurSym(lexer))
+		: none!Sym;
 }
 
 immutable(Sym) takeName(ref Lexer lexer) {

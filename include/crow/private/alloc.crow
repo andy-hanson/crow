@@ -80,8 +80,7 @@ gc record mut
 	data-cur mut nat64 mut*
 	data-end mut nat64 mut*
 
-gc-stats record
-	by-val
+gc-stats record by-val
 	cur-word nat64
 	total-words nat64
 	words-used nat64

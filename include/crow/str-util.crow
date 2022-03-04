@@ -21,8 +21,7 @@ import
 
 region iterator
 
-str-iter record
-	by-val
+str-iter record by-val
 	.inner seq-iter char8
 
 iter str-iter(a str)
@@ -116,8 +115,7 @@ split-by str[](a str, b str)
 lines str[](a str)
 	a split-by "\n"
 
-split-str record
-	by-val
+split-str record by-val
 	left str
 	middle char8
 	right str

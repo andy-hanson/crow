@@ -7,25 +7,21 @@ import
 	../test-util: throws
 
 # 2-dimensional vector with 32-bit elements.
-vec2-32 record
-	by-val
+vec2-32 record by-val
 	x float32
 	y float32
 # 2-dimensional vector with 64-bit elements.
-vec2-64 record
-	by-val
+vec2-64 record by-val
 	x float64
 	y float64
 
 # 3-dimensional vector with 32-bit elements.
-vec3-32 record
-	by-val
+vec3-32 record by-val
 	x float32
 	y float32
 	z float32
 # 3-dimensional vector with 64-bit elements.
-vec3-64 record
-	by-val
+vec3-64 record by-val
 	x float64
 	y float64
 	z float64

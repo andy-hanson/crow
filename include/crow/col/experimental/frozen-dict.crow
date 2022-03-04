@@ -24,8 +24,7 @@ import
 Immutable dictionary that is not efficient to update.
 However, this is more compact than `dict` and has faster lookups.
 ###
-frozen-dict<k, v> record
-	by-val
+frozen-dict<k, v> record by-val
 	.pairs pair<k, v>[]
 	.bucket-starts pair<k, v>*[]
 

@@ -65,8 +65,7 @@ with-lock<a> a(a lock, f act a()) trusted
 	a release
 	res
 
-condition record mut
-	by-ref
+condition record mut by-ref
 	# TODO: use union to safe space instead of storing posix/windows side-by-side
 	.posix-mutex-attr by-val pthread_mutexattr_t
 	.posix-mutex by-val pthread_mutex_t
@@ -202,8 +201,7 @@ get-and-decrement nat64(t thread-safe-counter) noctx unsafe
 	t.lk.ref-of-val release
 	old
 
-thread-handle record mut
-	by-val
+thread-handle record mut by-val
 	.storage any-mut-ptr
 .as-windows-handle HANDLE(a thread-handle) noctx unsafe
 	a.storage

@@ -338,8 +338,7 @@ body
 		else
 			current-least find-least-iter current-least-index, (iter-index wrap-add 1), iters
 
-.iter-part<a> record
-	by-val
+.iter-part<a> record by-val
 	values a[]
 	remove-index nat64
 
@@ -362,8 +361,7 @@ body
 	else
 		acc wrap-add 1
 
-.init-iters-result<a> record mut
-	by-val
+.init-iters-result<a> record mut by-val
 	next-remove-index nat64
 	out iter-part<a> mut*
 

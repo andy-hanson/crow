@@ -114,8 +114,7 @@ main fut nat(_ str[]) summon trusted
 	a map x =>
 		m * x.pos, m * x.normal, x.tex-coord, x.color
 
-.vertex record
-	by-val
+.vertex record by-val
 	pos vec3-32
 	normal vec3-32
 	tex-coord vec2-32

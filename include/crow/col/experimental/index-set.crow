@@ -23,8 +23,7 @@ import
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
 	../private/arr-low-level: begin-ptr, end-ptr, subscript
 
-index-set record
-	by-ref
+index-set record by-ref
 	# This is one more than the highest number that would currently fit in the tree.
 	capacity nat64
 	root node
@@ -34,14 +33,12 @@ index-set record
 	leaf leaf-node
 	empty
 # TODO: could save space by having separate types for inner node of inner nodes and inner node of leaf-node?
-.inner-node record
-	by-ref
+.inner-node record by-ref
 	a node
 	b node
 	c node
 	d node
-.leaf-node record
-	by-ref
+.leaf-node record by-ref
 	a nat64
 	b nat64
 	c nat64

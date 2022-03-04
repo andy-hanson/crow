@@ -6,7 +6,6 @@ main fut nat(_ str[]) trusted summon
 	print: "{size-of@<t>}"
 	()
 
-t record
-	by-val
+t record by-val
 	x t*
 	y nat

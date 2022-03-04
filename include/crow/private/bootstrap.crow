@@ -107,8 +107,7 @@ This means this is also the type for a slice of an array, and slicing is O(1).
 A slice does not keep the whole array alive, only the elements it can reach;
 elements not reachable by any slice will be garbage collected.
 ###
-arr<a> record
-	by-val
+arr<a> record by-val
 	size nat64
 	begin-ptr a*
 
@@ -148,8 +147,7 @@ true bool() noctx builtin
 
 region sym.crow
 
-sym record
-	by-val
+sym record by-val
 	.sym-to-c-str c-str
 
 new-sym sym(a c-str) noctx unsafe
@@ -249,8 +247,7 @@ hard-forbid void(condition bool) noctx unsafe
 
 region bootstrap runtime
 
-task record mut
-	by-val
+task record mut by-val
 	exclusion exclusion
 	action act void()
 
@@ -259,8 +256,7 @@ NOTE: This mutable value is often *shared*.
 If on a fut, the lock on the fut should be held while working with this.
 WARN: Keep in sync with 'task-node-with-time', which casts to this.
 ###
-task-node record mut
-	by-ref
+task-node record mut by-ref
 	task task
 	next mut task-node?
 
@@ -269,8 +265,7 @@ task-list record mut
 	last mut task-node
 
 # WARN: Keep in sync with 'task-node'.
-task-node-with-time record mut
-	by-ref
+task-node-with-time record mut by-ref
 	task task
 	next mut task-node-with-time?
 	time nat64
@@ -279,15 +274,13 @@ task-node-with-time record mut
 get-ctx ctx() unsafe builtin
 
 # The ctx only exists temporarily, so can use 'any-mut-ptr' without worrying about GC
-ctx record mut
-	by-ref
+ctx record mut by-ref
 	gctx-ptr any-mut-ptr
 	exclusion exclusion
 	gc-ctx-ptr any-mut-ptr
 	thread-local-stuff thread-local-stuff
 
-thread-local-stuff record mut
-	by-ref
+thread-local-stuff record mut by-ref
 	thread-id nat64
 	print-lock lock
 	exception-ctx-ptr any-mut-ptr
@@ -344,24 +337,19 @@ This wraps an `act` combined with the exclusion it came from.
 This is sendable since the `act` isn't be called directly;
 instead a task is added that will call the `act` when its exclusion is available.
 ###
-fun-ref0<r> record force-sendable
-	by-val
+fun-ref0<r> record force-sendable by-val
 	exclusion exclusion
 	action act fut r()
-fun-ref1<r, p0> record force-sendable
-	by-val
+fun-ref1<r, p0> record force-sendable by-val
 	exclusion exclusion
 	action act fut r(p0)
-fun-ref2<r, p0, p1> record force-sendable
-	by-val
+fun-ref2<r, p0, p1> record force-sendable by-val
 	exclusion exclusion
 	action act fut r(p0, p1)
-fun-ref3<r, p0, p1, p2> record force-sendable
-	by-val
+fun-ref3<r, p0, p1, p2> record force-sendable by-val
 	exclusion exclusion
 	action act fut r(p0, p1, p2)
-fun-ref4<r, p0, p1, p2, p3> record force-sendable
-	by-val
+fun-ref4<r, p0, p1, p2, p3> record force-sendable by-val
 	exclusion exclusion
 	action act fut r(p0, p1, p2, p3)
 
@@ -424,8 +412,7 @@ call-with-ctx<r, p0, p1, p2, p3> r(f act r(p0, p1, p2, p3), c ctx, p0 p0, p1 p1,
 
 region fut
 
-backtrace record
-	by-val
+backtrace record by-val
 	return-stack sym[]
 
 ###
@@ -433,8 +420,7 @@ Type of a thrown exception.
 
 There is no exception subtyping in crow, so all exceptions have this type.
 ###
-exception record
-	by-val
+exception record by-val
 	# Message passed to `throw`.
 	message c-str
 	# TODO: accessing backtrace should be unsafe
@@ -449,9 +435,8 @@ Future type.
 
 Ignore the fields, they should be private.
 ###
-fut<a> record force-sendable
-	# It's important to make fut by-ref since its lock is by-val
-	by-ref
+fut<a> record force-sendable by-ref
+	# It's important to make fut by-ref since its lock is by-val 
 	lk by-val lock
 	state mut fut-state a
 
@@ -471,8 +456,7 @@ fut-state<a> union mut
 
 region lock
 
-lock record sendable
-	by-ref
+lock record sendable by-ref
 	n0 nat64
 	n1 nat64
 	n2 nat64
@@ -482,8 +466,7 @@ lock record sendable
 region reflect
 
 # General-purpose type that stores a name and value.
-named-val<a> record
-	by-val
+named-val<a> record by-val
 	name sym
 	val a
 

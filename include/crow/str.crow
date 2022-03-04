@@ -23,8 +23,7 @@ String type.
 Strings are optimized for fast concatenation and splitting.
 They don't support efficient access by index, so use iterators instead.
 ###
-str record
-	by-val
+str record by-val
 	.inner seq char8
 
 char8s seq char8(a str)

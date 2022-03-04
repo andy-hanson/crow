@@ -29,12 +29,10 @@ pthread_join err-t(thread pthread_t, thread-return any-mut-ptr mut*) unsafe exte
 
 region mutex
 
-pthread_mutex_t record force-sendable
-	by-ref
+pthread_mutex_t record force-sendable by-ref
 	.sizer bytes40
 
-pthread_mutexattr_t record
-	by-ref
+pthread_mutexattr_t record by-ref
 	.sizer bytes4
 
 pthread_mutexattr_init err-t(attr pthread_mutexattr_t) unsafe extern noctx
@@ -62,12 +60,10 @@ pthread_mutex_unlock err-t(mutex pthread_mutex_t) unsafe extern noctx
 
 region cond
 
-pthread_cond_t record
-	by-ref
+pthread_cond_t record by-ref
 	.sizer bytes48
 
-pthread_condattr_t record
-	by-ref
+pthread_condattr_t record by-ref
 	.sizer bytes4
 
 pthread_condattr_init err-t(attr pthread_condattr_t) unsafe extern noctx

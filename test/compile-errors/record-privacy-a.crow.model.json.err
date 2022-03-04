@@ -1,1 +1,1 @@
-./test/compile-errors/record-privacy-a.crow 5:1-9:1 the 'new' function for this record is already 'private' by default
+./test/compile-errors/record-privacy-a.crow 4:1-7:1 the 'new' function for this record is already 'private' by default
