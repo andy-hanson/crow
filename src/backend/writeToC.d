@@ -988,27 +988,6 @@ immutable(WriteExprResult) writeInlineable(
 	}
 }
 
-immutable(WriteExprResult) returnZeroedValue(
-	ref Writer writer,
-	ref TempAlloc tempAlloc,
-	immutable size_t indent,
-	ref FunBodyCtx ctx,
-	ref immutable WriteKind writeKind,
-	ref immutable LowType type,
-) {
-	return writeInlineable(
-		writer,
-		tempAlloc,
-		indent,
-		ctx,
-		writeKind,
-		type,
-		[],
-		(ref immutable WriteExprResult[]) {
-			writeZeroedValue(writer, ctx.ctx, type);
-		});
-}
-
 immutable(WriteExprResult) writeInlineableSingleArg(
 	ref Writer writer,
 	ref TempAlloc tempAlloc,
@@ -1204,13 +1183,8 @@ immutable(WriteExprResult) writeMatchUnion(
 		writeNewline(writer, indent + 1);
 		writeChar(writer, '}');
 	}
-	if (!isVoid(type)) {
-		writeNewline(writer, indent + 1);
-		writeStatic(writer, "default:");
-		writeNewline(writer, indent + 2);
-		drop(returnZeroedValue(writer, tempAlloc, indent, ctx, nested.writeKind, type));
-		writeChar(writer, ';');
-	}
+	writeNewline(writer, indent + 1);
+	writeStatic(writer, "default: abort();");
 	writeNewline(writer, indent);
 	writeChar(writer, '}');
 	return nested.result;
@@ -1249,15 +1223,8 @@ immutable(WriteExprResult) writeSwitch(
 		writeNewline(writer, indent + 1);
 		writeChar(writer, '}');
 	}
-	if (!isVoid(type)) {
-		writeNewline(writer, indent + 1);
-		writeStatic(writer, "default:");
-		writeNewline(writer, indent + 2);
-		if (isReturn(nested.writeKind))
-			writeStatic(writer, "return ");
-		writeZeroedValue(writer, ctx.ctx, type);
-		writeChar(writer, ';');
-	}
+	writeNewline(writer, indent + 1);
+	writeStatic(writer, "default: abort();");
 	writeNewline(writer, indent);
 	writeChar(writer, '}');
 	return nested.result;

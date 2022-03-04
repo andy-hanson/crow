@@ -89,8 +89,6 @@ then<out, in> fut out(a fut in, f ref out(in)) trusted is-sendable<out> is-senda
 				res forward-to fut
 			as err e
 				res reject e
-			# TODO: should not be necessary
-			()
 		as err e
 			res reject e
 	res
