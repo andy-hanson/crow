@@ -24,7 +24,7 @@ import util.sym :
 	specialSymValue,
 	Sym,
 	symForOperator,
-	symOfStrCrowIdentifier;
+	symOfStr;
 import util.util : drop, todo, unreachable, verify;
 
 private enum IndentKind {
@@ -587,8 +587,7 @@ public enum Token {
 		default:
 			if (isAlphaIdentifierStart(c)) {
 				immutable string nameStr = takeNameRest(lexer, lexer.ptr - 1);
-				immutable Sym name = symOfStrCrowIdentifier(lexer.allSymbols, nameStr);
-				return tokenForSym(lexer, name);
+				return tokenForSym(lexer, symOfStr(lexer.allSymbols, nameStr));
 			} else if (isDigit(c)) {
 				backUp(lexer);
 				return literalToken(lexer, takeNumberAfterSign(lexer, none!Sign));

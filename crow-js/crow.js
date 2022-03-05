@@ -39,7 +39,6 @@ if (typeof global !== "undefined")
 
 /**
 @typedef {
-	| "by-val-ref"
 	| "fun"
 	| "identifier"
 	| "import"
@@ -48,8 +47,8 @@ if (typeof global !== "undefined")
 	| "lit-str"
 	| "local"
 	| "member"
+	| "modifier"
 	| "param"
-	| "purity"
 	| "spec"
 	| "struct"
 	| "type-param"

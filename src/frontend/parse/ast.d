@@ -28,7 +28,7 @@ import util.repr :
 	reprStr,
 	reprSym;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
-import util.sym : AllSymbols, shortSym, Sym, symSize;
+import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symForSpecial, symSize;
 import util.util : verify;
 
 struct NameAndRange {
@@ -723,61 +723,21 @@ struct StructAliasAst {
 	immutable TypeAst target;
 }
 
-enum ExplicitByValOrRef {
-	byVal,
-	byRef,
-}
-
-private immutable(Sym) symOfExplicitByValOrRef(immutable ExplicitByValOrRef a) {
-	final switch (a) {
-		case ExplicitByValOrRef.byVal:
-			return shortSym("by-val");
-		case ExplicitByValOrRef.byRef:
-			return shortSym("by-ref");
-	}
-}
-
-struct ExplicitByValOrRefAndRange {
-	immutable Pos start;
-	immutable ExplicitByValOrRef byValOrRef;
-}
-
-immutable(RangeWithinFile) rangeOfExplicitByValOrRef(
-	ref const AllSymbols allSymbols,
-	ref immutable ExplicitByValOrRefAndRange a,
-) {
-	return immutable RangeWithinFile(a.start, a.start + symSize(allSymbols, symOfExplicitByValOrRef(a.byValOrRef)));
-}
-
-struct RecordModifiers {
-	@safe @nogc pure nothrow:
-
-	immutable Opt!Visibility explicitNewVisibility;
-	immutable Opt!Pos packed;
-	immutable Opt!ExplicitByValOrRefAndRange explicitByValOrRef;
-
-	immutable this(immutable Opt!Visibility v, immutable Opt!Pos p, immutable Opt!ExplicitByValOrRefAndRange e) {
-		explicitNewVisibility = v;
-		packed = p;
-		explicitByValOrRef = e;
+struct RecordModifierAst {
+	enum Kind {
+		byRef,
+		byVal,
+		newPublic,
+		newPrivate,
+		packed,
 	}
 
-	//TODO:NOT INSTANCE
-	immutable(bool) any() immutable {
-		return has(explicitNewVisibility) || has(packed) || has(explicitByValOrRef);
-	}
+	immutable Pos pos;
+	immutable Kind kind;
 }
 
-immutable(RecordModifiers) withExplicitNewVisibility(immutable RecordModifiers a, immutable Visibility v) {
-	return immutable RecordModifiers(some(v), a.packed, a.explicitByValOrRef);
-}
-
-immutable(RecordModifiers) withPacked(immutable RecordModifiers a, immutable Pos p) {
-	return immutable RecordModifiers(a.explicitNewVisibility, some(p), a.explicitByValOrRef);
-}
-
-immutable(RecordModifiers) withExplicitByValOrRef(immutable RecordModifiers a, immutable ExplicitByValOrRefAndRange e) {
-	return immutable RecordModifiers(a.explicitNewVisibility, a.packed, some(e));
+immutable(RangeWithinFile) rangeOfRecordModifierAst(immutable RecordModifierAst a, ref const AllSymbols allSymbols) {
+	return rangeOfStartAndName(a.pos, symOfRecordModifierKind(a.kind), allSymbols);
 }
 
 struct LiteralIntOrNat {
@@ -795,7 +755,7 @@ struct LiteralIntOrNat {
 	}
 }
 
-@trusted T matchLiteralIntOrNat(T, alias cbInt, alias cbNat)(ref immutable LiteralIntOrNat a) {
+@trusted immutable(T) matchLiteralIntOrNat(T, alias cbInt, alias cbNat)(ref immutable LiteralIntOrNat a) {
 	final switch (a.kind) {
 		case LiteralIntOrNat.Kind.int_:
 			return cbInt(a.int_);
@@ -834,25 +794,8 @@ struct StructDeclAst {
 				immutable FieldMutability mutability;
 				immutable TypeAst type;
 			}
-			private immutable Opt!(Ptr!RecordModifiers) modifiers_;
+			immutable ArrWithSize!RecordModifierAst modifiers;
 			immutable ArrWithSize!Field fields;
-
-			//TODO: NOT INSTANCE
-			immutable(RecordModifiers) modifiers() immutable {
-				return has(modifiers_)
-					? force(modifiers_).deref()
-					: immutable RecordModifiers(none!Visibility, none!Pos, none!ExplicitByValOrRefAndRange);
-			}
-
-			//TODO: NOT INSTANCE
-			immutable(Opt!ExplicitByValOrRefAndRange) explicitByValOrRef() immutable {
-				return modifiers.explicitByValOrRef;
-			}
-
-			//TODO: NOT INSTANCE
-			immutable(Opt!Pos) packed() immutable {
-				return modifiers.packed;
-			}
 		}
 		struct Union {
 			struct Member {
@@ -1174,14 +1117,6 @@ immutable(Repr) reprOptPurity(ref Alloc alloc, immutable Opt!PuritySpecifierAndR
 			reprSym(symOfPuritySpecifier(it.specifier))]));
 }
 
-immutable(Repr) reprOptExplicitByValOrRefAndRange(
-	ref Alloc alloc,
-	immutable Opt!ExplicitByValOrRefAndRange a,
-) {
-	return reprOpt(alloc, a, (ref immutable ExplicitByValOrRefAndRange it) =>
-		reprRecord(alloc, "by-val-ref", [reprNat(it.start), reprSym(symOfExplicitByValOrRef(it.byValOrRef))]));
-}
-
 immutable(Repr) reprEnumOrFlags(
 	ref Alloc alloc,
 	immutable string name,
@@ -1246,9 +1181,29 @@ immutable(Repr) reprField(ref Alloc alloc, ref immutable StructDeclAst.Body.Reco
 
 immutable(Repr) reprRecord(ref Alloc alloc, ref immutable StructDeclAst.Body.Record a) {
 	return reprRecord(alloc, "record", [
-		reprOptExplicitByValOrRefAndRange(alloc, a.explicitByValOrRef),
+		reprArr(alloc, toArr(a.modifiers), (ref immutable RecordModifierAst it) =>
+			reprRecordModifierAst(alloc, it)),
 		reprArr(alloc, toArr(a.fields), (ref immutable StructDeclAst.Body.Record.Field it) =>
 			reprField(alloc, it))]);
+}
+
+immutable(Repr) reprRecordModifierAst(ref Alloc alloc, immutable RecordModifierAst a) {
+	return reprRecord(alloc, "record-mod", [reprNat(a.pos), reprSym(symOfRecordModifierKind(a.kind))]);
+}
+
+immutable(Sym) symOfRecordModifierKind(immutable RecordModifierAst.Kind a) {
+	final switch (a) {
+		case RecordModifierAst.Kind.byRef:
+			return shortSym("by-ref");
+		case RecordModifierAst.Kind.byVal:
+			return shortSym("by-val");
+		case RecordModifierAst.Kind.newPrivate:
+			return symForSpecial(SpecialSym.dotNew);
+		case RecordModifierAst.Kind.newPublic:
+			return shortSym("new");
+		case RecordModifierAst.Kind.packed:
+			return shortSym("packed");
+	}
 }
 
 immutable(Repr) reprUnion(ref Alloc alloc, ref immutable StructDeclAst.Body.Union a) {

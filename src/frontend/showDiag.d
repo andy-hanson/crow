@@ -635,6 +635,15 @@ void writeDiag(
 			writeStatic(writer, "can't match on non-union type ");
 			writeType(writer, allSymbols, d.type);
 		},
+		(ref immutable Diag.ModifierConflict d) {
+			writeName(writer, allSymbols, d.curModifier);
+			writeStatic(writer, " conflicts with ");
+			writeName(writer, allSymbols, d.prevModifier);
+		},
+		(ref immutable Diag.ModifierDuplicate d) {
+			writeStatic(writer, "redundant ");
+			writeName(writer, allSymbols, d.modifier);
+		},
 		(ref immutable Diag.MutFieldNotAllowed d) {
 			immutable string message = () {
 				final switch (d.reason) {

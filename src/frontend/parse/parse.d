@@ -4,8 +4,6 @@ module frontend.parse.parse;
 
 import frontend.parse.ast :
 	bogusTypeAst,
-	ExplicitByValOrRef,
-	ExplicitByValOrRefAndRange,
 	FileAst,
 	FunBodyAst,
 	FunDeclAst,
@@ -18,7 +16,7 @@ import frontend.parse.ast :
 	ParamsAst,
 	PuritySpecifier,
 	PuritySpecifierAndRange,
-	RecordModifiers,
+	RecordModifierAst,
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
@@ -27,10 +25,7 @@ import frontend.parse.ast :
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
-	TypeAst,
-	withExplicitByValOrRef,
-	withExplicitNewVisibility,
-	withPacked;
+	TypeAst;
 import frontend.parse.lexer :
 	addDiagAtChar,
 	addDiagUnexpectedCurToken,
@@ -427,68 +422,57 @@ immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) parseEnumOrFlagsMembers(
 }
 
 immutable(StructDeclAst.Body.Record) parseRecordBody(ref Lexer lexer) {
-	immutable NewlineOrIndentAndModifiers mod = parseRecordModifiers(
-		lexer,
-		immutable RecordModifiers(none!Visibility, none!Pos, none!ExplicitByValOrRefAndRange));
+	ArrWithSizeBuilder!RecordModifierAst modifiersBuilder;
+	immutable NewlineOrIndent ni = parseRecordModifiers(lexer, modifiersBuilder);
+	immutable ArrWithSize!RecordModifierAst modifiers = finishArrWithSize(lexer.alloc, modifiersBuilder);
 	ArrWithSizeBuilder!(StructDeclAst.Body.Record.Field) fields;
-	final switch (mod.newlineOrIndent) {
+	final switch (ni) {
 		case NewlineOrIndent.newline:
 			break;
 		case NewlineOrIndent.indent:
 			parseRecordFields(lexer, fields);
 			break;
 	}
-	return immutable StructDeclAst.Body.Record(
-		mod.modifiers.any() ? some(allocate(lexer.alloc, mod.modifiers)) : none!(Ptr!RecordModifiers),
-		finishArrWithSize(lexer.alloc, fields));
+	return immutable StructDeclAst.Body.Record(modifiers, finishArrWithSize(lexer.alloc, fields));
 }
 
-struct NewlineOrIndentAndModifiers {
-	immutable NewlineOrIndent newlineOrIndent;
-	immutable RecordModifiers modifiers;
-}
-
-immutable(NewlineOrIndentAndModifiers) parseRecordModifiers(ref Lexer lexer, immutable RecordModifiers cur) {
+immutable(NewlineOrIndent) parseRecordModifiers(ref Lexer lexer, ref ArrWithSizeBuilder!RecordModifierAst res) {
 	immutable Opt!NewlineOrIndent ni = tryTakeNewlineOrIndent_topLevel(lexer);
 	if (has(ni))
-		return immutable NewlineOrIndentAndModifiers(force(ni), cur);
+		return force(ni);
 	else {
 		immutable Pos start = curPos(lexer);
-		if (tryTakeToken(lexer, Token.dot)) {
-			immutable Opt!Sym name = tryTakeName(lexer);
-			if (!has(name) || !symEq(force(name), shortSym("new")))
-				todo!void("diagnostic: expected 'new' to follow '.'");
-			if (has(cur.explicitNewVisibility))
-				todo!void("'new' specified twice");
-			return parseRecordModifiers(lexer, withExplicitNewVisibility(cur, Visibility.private_));
+		immutable Opt!(RecordModifierAst.Kind) kind = tryParseRecordModifierKind(lexer);
+		if (has(kind)) {
+			add(lexer.alloc, res, immutable RecordModifierAst(start, force(kind)));
+			return parseRecordModifiers(lexer, res);
 		} else {
-			immutable Sym name = takeName(lexer);
-			immutable RecordModifiers next = () {
-				switch (name.value) {
-					case shortSymValue("new"):
-						if (has(cur.explicitNewVisibility))
-							todo!void("'new' specified twice");
-						return withExplicitNewVisibility(cur, Visibility.public_);
-					case shortSymValue("by-val"):
-					case shortSymValue("by-ref"):
-						immutable ExplicitByValOrRef value = symEq(name, shortSym("by-val"))
-							? ExplicitByValOrRef.byVal
-							: ExplicitByValOrRef.byRef;
-						if (has(cur.explicitByValOrRef))
-							todo!void("'by-val' or 'by-ref' specified twice (or in contradiction)");
-						return withExplicitByValOrRef(cur, immutable ExplicitByValOrRefAndRange(start, value));
-					case shortSymValue("packed"):
-						if (has(cur.packed))
-							todo!void("'packed' specified twice");
-						return withPacked(cur, start);
-					default:
-						todo!void("unexpected record modifier");
-						return cur;
-				}
-			}();
-			return parseRecordModifiers(lexer, next);
+			todo!void("diagnostic: expected a valid modifier");
+			skipUntilNewlineNoDiag(lexer);
+			return parseRecordModifiers(lexer, res);
 		}
 	}
+}
+
+immutable(Opt!(RecordModifierAst.Kind)) tryParseRecordModifierKind(ref Lexer lexer) {
+	if (tryTakeToken(lexer, Token.dot)) {
+		immutable Opt!Sym name = tryTakeName(lexer);
+		if (!has(name) || !symEq(force(name), shortSym("new")))
+			return none!(RecordModifierAst.Kind);
+		return some(RecordModifierAst.Kind.newPrivate);
+	} else
+		switch (takeName(lexer).value) {
+			case shortSymValue("by-val"):
+				return some(RecordModifierAst.Kind.byVal);
+			case shortSymValue("by-ref"):
+				return some(RecordModifierAst.Kind.byRef);
+			case shortSymValue("new"):
+				return some(RecordModifierAst.Kind.newPublic);
+			case shortSymValue("packed"):
+				return some(RecordModifierAst.Kind.packed);
+			default:
+				return none!(RecordModifierAst.Kind);
+		}
 }
 
 void parseRecordFields(

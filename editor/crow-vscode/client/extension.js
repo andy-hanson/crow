@@ -181,8 +181,6 @@ const provideDocumentSemanticTokens = async (document, _cancellationToken) => {
  */
 const convertToken = kind => {
 	switch (kind) {
-		case "by-val-ref":
-			return "keyword"
 		case "field":
 			return "property"
 		case "fun":
@@ -199,10 +197,10 @@ const convertToken = kind => {
 			return "string"
 		case "local":
 			return "variable"
+		case "modifier":
+			return "keyword"
 		case "param":
 			return "parameter"
-		case "purity":
-			return "keyword"
 		case "spec":
 			return "label"
 		case "struct":

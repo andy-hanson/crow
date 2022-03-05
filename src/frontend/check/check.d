@@ -32,8 +32,6 @@ import frontend.check.instantiate :
 import frontend.check.typeFromAst : tryFindSpec, typeArgsFromAsts, typeFromAst;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.parse.ast :
-	ExplicitByValOrRef,
-	ExplicitByValOrRefAndRange,
 	ExprAst,
 	FileAst,
 	FunBodyAst,
@@ -49,7 +47,9 @@ import frontend.parse.ast :
 	ParamAst,
 	ParamsAst,
 	PuritySpecifier,
+	rangeOfRecordModifierAst,
 	rangeOfNameAndRange,
+	RecordModifierAst,
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
@@ -121,6 +121,7 @@ import model.model :
 	StructDeclAndArgs,
 	StructInst,
 	StructOrAlias,
+	symOfForcedByValOrRefOrNone,
 	target,
 	Test,
 	Type,
@@ -1042,16 +1043,88 @@ immutable(bool) isSignedEnumBackingType(immutable EnumBackingType a) {
 	}
 }
 
-immutable(ForcedByValOrRefOrNone) getForcedByValOrRef(immutable Opt!ExplicitByValOrRefAndRange e) {
-	if (has(e))
-		final switch (force(e).byValOrRef) {
-			case ExplicitByValOrRef.byVal:
-				return ForcedByValOrRefOrNone.byVal;
-			case ExplicitByValOrRef.byRef:
-				return ForcedByValOrRefOrNone.byRef;
-		}
-	else
-		return ForcedByValOrRefOrNone.none;
+struct RecordModifiers {
+	immutable ForcedByValOrRefOrNone byValOrRefOrNone;
+	immutable Opt!Visibility newVisibility;
+	immutable bool packed;
+}
+
+immutable(RecordModifiers) withByValOrRef(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	immutable RecordModifiers cur,
+	immutable RangeWithinFile range,
+	immutable ForcedByValOrRefOrNone value,
+) {
+	if (cur.byValOrRefOrNone != ForcedByValOrRefOrNone.none) {
+		immutable Sym valueSym = symOfForcedByValOrRefOrNone(value);
+		addDiag(alloc, ctx, range, value == cur.byValOrRefOrNone
+			? immutable Diag(immutable Diag.ModifierDuplicate(valueSym))
+			: immutable Diag(
+				immutable Diag.ModifierConflict(symOfForcedByValOrRefOrNone(cur.byValOrRefOrNone), valueSym)));
+	}
+	return immutable RecordModifiers(value, cur.newVisibility, cur.packed);
+}
+
+immutable(RecordModifiers) withNewVisibility(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	immutable RecordModifiers cur,
+	immutable RangeWithinFile range,
+	immutable Visibility value,
+) {
+	if (has(cur.newVisibility)) {
+		immutable Sym valueSym = symOfNewVisibility(value);
+		addDiag(alloc, ctx, range, value == force(cur.newVisibility)
+			? immutable Diag(immutable Diag.ModifierDuplicate(valueSym))
+			: immutable Diag(immutable Diag.ModifierConflict(symOfNewVisibility(force(cur.newVisibility)), valueSym)));
+	}
+	return immutable RecordModifiers(cur.byValOrRefOrNone, some(value), cur.packed);
+}
+
+immutable(Sym) symOfNewVisibility(immutable Visibility a) {
+	final switch (a) {
+		case Visibility.private_:
+			return symForSpecial(SpecialSym.dotNew);
+		case Visibility.public_:
+			return shortSym("new");
+	}
+}
+
+immutable(RecordModifiers) withPacked(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	immutable RecordModifiers cur,
+	immutable RangeWithinFile range,
+) {
+	if (cur.packed)
+		addDiag(alloc, ctx, range, immutable Diag(immutable Diag.ModifierDuplicate(shortSym("packed"))));
+	return immutable RecordModifiers(cur.byValOrRefOrNone, cur.newVisibility, true);
+}
+
+immutable(RecordModifiers) checkRecordModifiers(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	immutable RecordModifierAst[] modifiers,
+) {
+	return fold(
+		immutable RecordModifiers(ForcedByValOrRefOrNone.none, none!Visibility, false),
+		modifiers,
+		(immutable RecordModifiers cur, ref immutable RecordModifierAst modifier) {
+			immutable RangeWithinFile range = rangeOfRecordModifierAst(modifier, ctx.allSymbols);
+			final switch (modifier.kind) {
+				case RecordModifierAst.Kind.byRef:
+					return withByValOrRef(alloc, ctx, cur, range, ForcedByValOrRefOrNone.byRef);
+				case RecordModifierAst.Kind.byVal:
+					return withByValOrRef(alloc, ctx, cur, range, ForcedByValOrRefOrNone.byVal);
+				case RecordModifierAst.Kind.newPrivate:
+					return withNewVisibility(alloc, ctx, cur, range, Visibility.private_);
+				case RecordModifierAst.Kind.newPublic:
+					return withNewVisibility(alloc, ctx, cur, range, Visibility.public_);
+				case RecordModifierAst.Kind.packed:
+					return withPacked(alloc, ctx, cur, range);
+			}
+		});
 }
 
 immutable(StructBody.Record) checkRecord(
@@ -1063,8 +1136,8 @@ immutable(StructBody.Record) checkRecord(
 	ref immutable StructDeclAst.Body.Record r,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	immutable ForcedByValOrRefOrNone forcedByValOrRef = getForcedByValOrRef(r.explicitByValOrRef);
-	immutable bool forcedByVal = forcedByValOrRef == ForcedByValOrRefOrNone.byVal;
+	immutable RecordModifiers modifiers = checkRecordModifiers(alloc, ctx, toArr(r.modifiers));
+	immutable bool forcedByVal = modifiers.byValOrRefOrNone == ForcedByValOrRefOrNone.byVal;
 	immutable RecordField[] fields = mapWithIndex(
 		alloc,
 		toArr(r.fields),
@@ -1100,9 +1173,9 @@ immutable(StructBody.Record) checkRecord(
 	});
 	return immutable StructBody.Record(
 		immutable RecordFlags(
-			recordNewVisibility(alloc, ctx, struct_.deref(), fields, r.modifiers.explicitNewVisibility),
-			has(r.packed),
-			forcedByValOrRef),
+			recordNewVisibility(alloc, ctx, struct_.deref(), fields, modifiers.newVisibility),
+			modifiers.packed,
+			modifiers.byValOrRefOrNone),
 		fields);
 }
 

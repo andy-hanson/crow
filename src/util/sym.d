@@ -4,7 +4,7 @@ module util.sym;
 
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
-import util.col.arrUtil : contains, every, findIndex;
+import util.col.arrUtil : contains, findIndex;
 import util.col.mutArr : MutArr, mutArrAt, mutArrSize, push;
 import util.col.mutDict : addToMutDict, getAt_mut, mutDictSize, MutStringDict;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, safeCStr, strOfSafeCStr;
@@ -91,12 +91,6 @@ immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
 }
 
 immutable(Sym) symOfStr(ref AllSymbols allSymbols, scope immutable string str) {
-	return isCrowIdentifier(str)
-		? symOfStrCrowIdentifier(allSymbols, str)
-		: getSymFromLongStr(allSymbols, str);
-}
-
-immutable(Sym) symOfStrCrowIdentifier(ref AllSymbols allSymbols, scope immutable string str) {
 	immutable Opt!Sym packed = tryPackShortSym(str);
 	return has(packed) ? force(packed) : getSymFromLongStr(allSymbols, str);
 }
@@ -170,6 +164,8 @@ enum SpecialSym {
 	force_sendable,
 	flags_members,
 	cur_exclusion,
+
+	dotNew,
 }
 
 immutable(Sym) symForOperator(immutable Operator a) {
@@ -312,6 +308,9 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 			return safeCStr!"flags-members";
 		case SpecialSym.cur_exclusion:
 			return safeCStr!"cur-exclusion";
+
+		case SpecialSym.dotNew:
+			return safeCStr!".new";
 	}
 }
 
@@ -429,15 +428,6 @@ immutable ulong codeForUnderscore = 28;
 immutable ulong codeForNextIsCapitalLetter = 29;
 immutable ulong codeForNextIsDigit = 30;
 
-immutable(bool) isCrowIdentifier(immutable string a) {
-	return every!char(a, (ref immutable char x) =>
-		('a' <= x && x <= 'z') ||
-		x == '-' ||
-		x == '_' ||
-		('A' <= x && x <= 'Z') ||
-		('0' <= x && x <= '9'));
-}
-
 immutable ulong setPrefix =
 	(codeForLetter('s') << (5 * (shortSymMaxChars - 1))) |
 	(codeForLetter('e') << (5 * (shortSymMaxChars - 2))) |
@@ -484,11 +474,11 @@ immutable(Opt!Sym) tryPackShortSym(immutable string str) {
 		else if ('0' <= x && x <= '9') {
 			push(codeForNextIsDigit);
 			push(x - '0');
-		} else {
-			verify('A' <= x && x <= 'Z');
+		} else if ('A' <= x && x <= 'Z') {
 			push(codeForNextIsCapitalLetter);
 			push(x - 'A');
-		}
+		} else
+			return none!Sym;
 	}
 	return len > shortSymMaxChars ? none!Sym : some(immutable Sym(res | shortSymTag));
 }

@@ -431,6 +431,17 @@ enum ForcedByValOrRefOrNone {
 	byRef,
 }
 
+immutable(Sym) symOfForcedByValOrRefOrNone(immutable ForcedByValOrRefOrNone a) {
+	final switch (a) {
+		case ForcedByValOrRefOrNone.none:
+			return shortSym("none");
+		case ForcedByValOrRefOrNone.byVal:
+			return shortSym("by-val");
+		case ForcedByValOrRefOrNone.byRef:
+			return shortSym("by-ref");
+	}
+}
+
 struct RecordFlags {
 	immutable Visibility newVisibility;
 	immutable bool packed;

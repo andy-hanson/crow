@@ -6,7 +6,6 @@ import frontend.parse.ast :
 	ArrowAccessAst,
 	BogusAst,
 	CallAst,
-	ExplicitByValOrRefAndRange,
 	ExprAst,
 	FileAst,
 	FunBodyAst,
@@ -37,9 +36,10 @@ import frontend.parse.ast :
 	ParamsAst,
 	ParenthesizedAst,
 	range,
-	rangeOfExplicitByValOrRef,
 	rangeOfNameAndRange,
 	rangeOfPuritySpecifier,
+	rangeOfRecordModifierAst,
+	RecordModifierAst,
 	SeqAst,
 	SigAst,
 	SpecBodyAst,
@@ -70,7 +70,6 @@ import util.util : todo;
 
 struct Token {
 	enum Kind {
-		explicitByValOrRef,
 		fun,
 		identifier,
 		importPath,
@@ -79,8 +78,8 @@ struct Token {
 		literalNumber,
 		literalString,
 		member, // record / union / enum / flags member
+		modifier,
 		param,
-		purity,
 		spec,
 		struct_,
 		typeParam,
@@ -309,7 +308,7 @@ void addStructTokens(
 		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	if (has(a.purity))
-		add(alloc, tokens, immutable Token(Token.Kind.purity, rangeOfPuritySpecifier(allSymbols, force(a.purity))));
+		add(alloc, tokens, immutable Token(Token.Kind.modifier, rangeOfPuritySpecifier(allSymbols, force(a.purity))));
 	matchStructDeclAstBody!(
 		void,
 		(ref immutable StructDeclAst.Body.Builtin) {},
@@ -321,11 +320,10 @@ void addStructTokens(
 		},
 		(ref immutable StructDeclAst.Body.ExternPtr) {},
 		(ref immutable StructDeclAst.Body.Record record) {
-			//TODO: add token for 'packed' modifier (note: this will require sorting modifiers by position)
-			immutable Opt!ExplicitByValOrRefAndRange explicitByValOrRef = record.explicitByValOrRef;
-			if (has(explicitByValOrRef)) {
+			foreach (ref immutable RecordModifierAst modifier; toArr(record.modifiers)) {
 				add(alloc, tokens, immutable Token(
-					Token.Kind.explicitByValOrRef, rangeOfExplicitByValOrRef(allSymbols, force(explicitByValOrRef))));
+					Token.Kind.modifier,
+					rangeOfRecordModifierAst(modifier, allSymbols)));
 			}
 			foreach (ref immutable StructDeclAst.Body.Record.Field field; toArr(record.fields)) {
 				add(alloc, tokens, immutable Token(
@@ -601,8 +599,6 @@ immutable(Comparison) compareRangeWithinFile(ref immutable RangeWithinFile a, re
 
 immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 	final switch (kind) {
-		case Token.Kind.explicitByValOrRef:
-			return shortSym("by-val-ref");
 		case Token.Kind.fun:
 			return shortSym("fun");
 		case Token.Kind.identifier:
@@ -619,10 +615,10 @@ immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 			return shortSym("local");
 		case Token.Kind.member:
 			return shortSym("member");
+		case Token.Kind.modifier:
+			return shortSym("modifier");
 		case Token.Kind.param:
 			return shortSym("param");
-		case Token.Kind.purity:
-			return shortSym("purity");
 		case Token.Kind.spec:
 			return shortSym("spec");
 		case Token.Kind.struct_:

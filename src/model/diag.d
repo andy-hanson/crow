@@ -187,6 +187,13 @@ struct Diag {
 		immutable Type type;
 	}
 
+	struct ModifierConflict {
+		immutable Sym prevModifier;
+		immutable Sym curModifier;
+	}
+	struct ModifierDuplicate {
+		immutable Sym modifier;
+	}
 	struct MutFieldNotAllowed {
 		enum Reason {
 			recordIsNotMut,
@@ -322,6 +329,8 @@ struct Diag {
 		matchCaseShouldHaveLocal,
 		matchCaseShouldNotHaveLocal,
 		matchOnNonUnion,
+		modifierConflict,
+		modifierDuplicate,
 		mutFieldNotAllowed,
 		nameNotFound,
 		paramShadowsPrevious,
@@ -378,6 +387,8 @@ struct Diag {
 		immutable MatchCaseShouldHaveLocal matchCaseShouldHaveLocal;
 		immutable MatchCaseShouldNotHaveLocal matchCaseShouldNotHaveLocal;
 		immutable MatchOnNonUnion matchOnNonUnion;
+		immutable ModifierConflict modifierConflict;
+		immutable ModifierDuplicate modifierDuplicate;
 		immutable MutFieldNotAllowed mutFieldNotAllowed;
 		immutable NameNotFound nameNotFound;
 		immutable ParamShadowsPrevious paramShadowsPrevious;
@@ -464,6 +475,12 @@ struct Diag {
 	}
 	@trusted immutable this(immutable MatchOnNonUnion a) {
 		kind = Kind.matchOnNonUnion; matchOnNonUnion = a;
+	}
+	@trusted immutable this(immutable ModifierConflict a) {
+		kind = Kind.modifierConflict; modifierConflict = a;
+	}
+	@trusted immutable this(immutable ModifierDuplicate a) {
+		kind = Kind.modifierDuplicate; modifierDuplicate = a;
 	}
 	@trusted immutable this(immutable MutFieldNotAllowed a) {
 		kind = Kind.mutFieldNotAllowed; mutFieldNotAllowed = a;
@@ -592,6 +609,12 @@ struct Diag {
 		ref immutable Diag.MatchOnNonUnion
 	) @safe @nogc pure nothrow cbMatchOnNonUnion,
 	scope immutable(Out) delegate(
+		ref immutable Diag.ModifierConflict
+	) @safe @nogc pure nothrow cbModifierConflict,
+	scope immutable(Out) delegate(
+		ref immutable Diag.ModifierDuplicate
+	) @safe @nogc pure nothrow cbModifierDuplicate,
+	scope immutable(Out) delegate(
 		ref immutable Diag.MutFieldNotAllowed
 	) @safe @nogc pure nothrow cbMutFieldNotAllowed,
 	scope immutable(Out) delegate(
@@ -716,6 +739,10 @@ struct Diag {
 			return cbMatchCaseShouldNotHaveLocal(a.matchCaseShouldNotHaveLocal);
 		case Diag.Kind.matchOnNonUnion:
 			return cbMatchOnNonUnion(a.matchOnNonUnion);
+		case Diag.Kind.modifierConflict:
+			return cbModifierConflict(a.modifierConflict);
+		case Diag.Kind.modifierDuplicate:
+			return cbModifierDuplicate(a.modifierDuplicate);
 		case Diag.Kind.mutFieldNotAllowed:
 			return cbMutFieldNotAllowed(a.mutFieldNotAllowed);
 		case Diag.Kind.nameNotFound:

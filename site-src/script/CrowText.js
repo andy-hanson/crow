@@ -80,8 +80,7 @@ textarea {
 .keyword { font-weight: bold; color: #ff6188; }
 .identifier { color: #ffebbd; }
 .import { color: #ff6188; }
-.purity { color: #ff6188; }
-.by-val-ref { color: #ff6188; }
+.modifier { color: #ff6188; }
 .fun { color: #78dce8; }
 .struct { color: #ab9df2; }
 .type-param { color: #fc9867; }
