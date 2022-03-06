@@ -11,12 +11,10 @@ import frontend.parse.ast :
 	ImportAst,
 	ImportsOrExportsAst,
 	LiteralIntOrNat,
+	ModifierAst,
 	NameAndRange,
 	ParamAst,
 	ParamsAst,
-	PuritySpecifier,
-	PuritySpecifierAndRange,
-	RecordModifierAst,
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
@@ -34,6 +32,7 @@ import frontend.parse.lexer :
 	createLexer,
 	curPos,
 	getCurNameAndRange,
+	getCurSym,
 	getPeekToken,
 	Lexer,
 	NewlineOrDedent,
@@ -52,6 +51,7 @@ import frontend.parse.lexer :
 	takeNewlineOrDedentAmount,
 	takeNewlineOrIndent_topLevel,
 	takeNewlineOrSingleDedent,
+	takeNewline_topLevel,
 	takeOrAddDiagExpectedOperator,
 	takeOrAddDiagExpectedToken,
 	takeQuotedStr,
@@ -112,33 +112,6 @@ immutable(ArrWithSize!NameAndRange) parseTypeParams(ref Lexer lexer) {
 		return finishArrWithSize(lexer.alloc, res);
 	} else
 		return emptyArrWithSize!NameAndRange;
-}
-
-immutable(Opt!PuritySpecifierAndRange) tryParsePurity(ref Lexer lexer) {
-	immutable Pos start = curPos(lexer);
-	immutable Opt!PuritySpecifier specifier = () {
-		switch (getPeekToken(lexer)) {
-			case Token.data:
-				nextToken(lexer);
-				return some(PuritySpecifier.data);
-			case Token.mut:
-				nextToken(lexer);
-				return some(PuritySpecifier.mut);
-			case Token.sendable:
-				nextToken(lexer);
-				return some(PuritySpecifier.sendable);
-			case Token.forceData:
-				nextToken(lexer);
-				return some(PuritySpecifier.forceData);
-			case Token.forceSendable:
-				nextToken(lexer);
-				return some(PuritySpecifier.forceSendable);
-			default:
-				return none!PuritySpecifier;
-		}
-	}();
-	return mapOption(specifier, (ref immutable PuritySpecifier it) =>
-		immutable PuritySpecifierAndRange(start, it));
 }
 
 struct ImportAndDedent {
@@ -422,57 +395,15 @@ immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) parseEnumOrFlagsMembers(
 }
 
 immutable(StructDeclAst.Body.Record) parseRecordBody(ref Lexer lexer) {
-	ArrWithSizeBuilder!RecordModifierAst modifiersBuilder;
-	immutable NewlineOrIndent ni = parseRecordModifiers(lexer, modifiersBuilder);
-	immutable ArrWithSize!RecordModifierAst modifiers = finishArrWithSize(lexer.alloc, modifiersBuilder);
 	ArrWithSizeBuilder!(StructDeclAst.Body.Record.Field) fields;
-	final switch (ni) {
+	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
 			break;
 		case NewlineOrIndent.indent:
 			parseRecordFields(lexer, fields);
 			break;
 	}
-	return immutable StructDeclAst.Body.Record(modifiers, finishArrWithSize(lexer.alloc, fields));
-}
-
-immutable(NewlineOrIndent) parseRecordModifiers(ref Lexer lexer, ref ArrWithSizeBuilder!RecordModifierAst res) {
-	immutable Opt!NewlineOrIndent ni = tryTakeNewlineOrIndent_topLevel(lexer);
-	if (has(ni))
-		return force(ni);
-	else {
-		immutable Pos start = curPos(lexer);
-		immutable Opt!(RecordModifierAst.Kind) kind = tryParseRecordModifierKind(lexer);
-		if (has(kind)) {
-			add(lexer.alloc, res, immutable RecordModifierAst(start, force(kind)));
-			return parseRecordModifiers(lexer, res);
-		} else {
-			todo!void("diagnostic: expected a valid modifier");
-			skipUntilNewlineNoDiag(lexer);
-			return parseRecordModifiers(lexer, res);
-		}
-	}
-}
-
-immutable(Opt!(RecordModifierAst.Kind)) tryParseRecordModifierKind(ref Lexer lexer) {
-	if (tryTakeToken(lexer, Token.dot)) {
-		immutable Opt!Sym name = tryTakeName(lexer);
-		if (!has(name) || !symEq(force(name), shortSym("new")))
-			return none!(RecordModifierAst.Kind);
-		return some(RecordModifierAst.Kind.newPrivate);
-	} else
-		switch (takeName(lexer).value) {
-			case shortSymValue("by-val"):
-				return some(RecordModifierAst.Kind.byVal);
-			case shortSymValue("by-ref"):
-				return some(RecordModifierAst.Kind.byRef);
-			case shortSymValue("new"):
-				return some(RecordModifierAst.Kind.newPublic);
-			case shortSymValue("packed"):
-				return some(RecordModifierAst.Kind.packed);
-			default:
-				return none!(RecordModifierAst.Kind);
-		}
+	return immutable StructDeclAst.Body.Record(finishArrWithSize(lexer.alloc, fields));
 }
 
 void parseRecordFields(
@@ -732,7 +663,7 @@ void parseSpecOrStructOrFun(
 	immutable ArrWithSize!NameAndRange typeParams = parseTypeParams(lexer);
 
 	void addStruct(scope immutable(StructDeclAst.Body) delegate() @safe @nogc pure nothrow cb) {
-		immutable Opt!PuritySpecifierAndRange purity = tryParsePurity(lexer);
+		immutable ArrWithSize!ModifierAst modifiers = parseModifiers(lexer);
 		immutable StructDeclAst.Body body_ = cb();
 		add(lexer.alloc, structs, immutable StructDeclAst(
 			range(lexer, start),
@@ -740,7 +671,7 @@ void parseSpecOrStructOrFun(
 			visibility,
 			name,
 			typeParams,
-			purity,
+			modifiers,
 			body_));
 	}
 
@@ -768,6 +699,7 @@ void parseSpecOrStructOrFun(
 		case Token.builtin:
 			nextToken(lexer);
 			addStruct(() => immutable StructDeclAst.Body(immutable StructDeclAst.Body.Builtin()));
+			takeNewline_topLevel(lexer);
 			break;
 		case Token.builtinSpec:
 			nextToken(lexer);
@@ -778,6 +710,7 @@ void parseSpecOrStructOrFun(
 				name,
 				typeParams,
 				immutable SpecBodyAst(immutable SpecBodyAst.Builtin())));
+			takeNewline_topLevel(lexer);
 			break;
 		case Token.enum_:
 			nextToken(lexer);
@@ -788,6 +721,7 @@ void parseSpecOrStructOrFun(
 		case Token.externPtr:
 			nextToken(lexer);
 			addStruct(() => immutable StructDeclAst.Body(immutable StructDeclAst.Body.ExternPtr()));
+			takeNewline_topLevel(lexer);
 			break;
 		case Token.flags:
 			nextToken(lexer);
@@ -797,8 +731,7 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.record:
 			nextToken(lexer);
-			addStruct(() =>
-				immutable StructDeclAst.Body(parseRecordBody(lexer)));
+			addStruct(() => immutable StructDeclAst.Body(parseRecordBody(lexer)));
 			break;
 		case Token.spec:
 			nextToken(lexer);
@@ -831,6 +764,70 @@ void parseSpecOrStructOrFun(
 		default:
 			add(lexer.alloc, funs, parseFun(lexer, docComment, visibility, start, name, typeParams));
 			break;
+	}
+}
+
+immutable(ArrWithSize!ModifierAst) parseModifiers(ref Lexer lexer) {
+	ArrWithSizeBuilder!ModifierAst res;
+	parseModifiersRecur(lexer, res);
+	return finishArrWithSize(lexer.alloc, res);
+}
+void parseModifiersRecur(ref Lexer lexer, ref ArrWithSizeBuilder!ModifierAst res) {
+	immutable Pos start = curPos(lexer);
+	immutable Opt!(ModifierAst.Kind) kind = tryParseModifierKind(lexer);
+	if (has(kind)) {
+		add(lexer.alloc, res, immutable ModifierAst(start, force(kind)));
+		return parseModifiersRecur(lexer, res);
+	}
+}
+
+immutable(Opt!(ModifierAst.Kind)) tryParseModifierKind(ref Lexer lexer) {
+	if (tryTakeToken(lexer, Token.dot)) {
+		immutable Opt!Sym name = tryTakeName(lexer);
+		if (!has(name) || !symEq(force(name), shortSym("new")))
+			todo!void("diagnostic: expected 'new' after '.'");
+		return some(ModifierAst.Kind.newPrivate);
+	} else {
+		immutable Opt!(ModifierAst.Kind) res = () {
+			switch (getPeekToken(lexer)) {
+				case Token.data:
+					return some(ModifierAst.Kind.data);
+				case Token.forceData:
+					return some(ModifierAst.Kind.forceData);
+				case Token.forceSendable:
+					return some(ModifierAst.Kind.forceSendable);
+				case Token.mut:
+					return some(ModifierAst.Kind.mut);
+				case Token.sendable:
+					return some(ModifierAst.Kind.sendable);
+				case Token.name:
+					immutable Opt!(ModifierAst.Kind) kind = modifierKindFromSym(getCurSym(lexer));
+					if (!has(kind))
+						todo!void("diagnostic: invalid modifier");
+					return kind;
+				default:
+					return none!(ModifierAst.Kind);
+			}
+		}();
+		if (has(res)) {
+			nextToken(lexer);
+		}
+		return res;
+	}
+}
+
+immutable(Opt!(ModifierAst.Kind)) modifierKindFromSym(immutable Sym a) {
+	switch (a.value) {
+		case shortSymValue("by-val"):
+			return some(ModifierAst.Kind.byVal);
+		case shortSymValue("by-ref"):
+			return some(ModifierAst.Kind.byRef);
+		case shortSymValue("new"):
+			return some(ModifierAst.Kind.newPublic);
+		case shortSymValue("packed"):
+			return some(ModifierAst.Kind.packed);
+		default:
+			return none!(ModifierAst.Kind);
 	}
 }
 

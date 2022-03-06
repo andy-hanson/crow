@@ -679,41 +679,6 @@ struct SigAst {
 	immutable ParamsAst params;
 }
 
-enum PuritySpecifier {
-	data,
-	forceData,
-	sendable,
-	forceSendable,
-	mut,
-}
-
-private immutable(Sym) symOfPuritySpecifier(immutable PuritySpecifier a) {
-	final switch (a) {
-		case PuritySpecifier.data:
-			return shortSym("data");
-		case PuritySpecifier.forceData:
-			return shortSym("force-data");
-		case PuritySpecifier.sendable:
-			return shortSym("sendable");
-		case PuritySpecifier.forceSendable:
-			return shortSym("force-send");
-		case PuritySpecifier.mut:
-			return shortSym("mut");
-	}
-}
-
-struct PuritySpecifierAndRange {
-	immutable Pos start;
-	immutable PuritySpecifier specifier;
-}
-
-immutable(RangeWithinFile) rangeOfPuritySpecifier(
-	ref const AllSymbols allSymbols,
-	ref immutable PuritySpecifierAndRange a,
-) {
-	return immutable RangeWithinFile(a.start, a.start + symSize(allSymbols, symOfPuritySpecifier(a.specifier)));
-}
-
 struct StructAliasAst {
 	immutable RangeWithinFile range;
 	immutable SafeCStr docComment;
@@ -723,21 +688,26 @@ struct StructAliasAst {
 	immutable TypeAst target;
 }
 
-struct RecordModifierAst {
+struct ModifierAst {
 	enum Kind {
 		byRef,
 		byVal,
+		data,
+		forceData,
+		forceSendable,
+		mut,
 		newPublic,
 		newPrivate,
 		packed,
+		sendable,
 	}
 
 	immutable Pos pos;
 	immutable Kind kind;
 }
 
-immutable(RangeWithinFile) rangeOfRecordModifierAst(immutable RecordModifierAst a, ref const AllSymbols allSymbols) {
-	return rangeOfStartAndName(a.pos, symOfRecordModifierKind(a.kind), allSymbols);
+immutable(RangeWithinFile) rangeOfModifierAst(immutable ModifierAst a, ref const AllSymbols allSymbols) {
+	return rangeOfStartAndName(a.pos, symOfModifierKind(a.kind), allSymbols);
 }
 
 struct LiteralIntOrNat {
@@ -794,7 +764,6 @@ struct StructDeclAst {
 				immutable FieldMutability mutability;
 				immutable TypeAst type;
 			}
-			immutable ArrWithSize!RecordModifierAst modifiers;
 			immutable ArrWithSize!Field fields;
 		}
 		struct Union {
@@ -841,7 +810,7 @@ struct StructDeclAst {
 	immutable Visibility visibility;
 	immutable Sym name; // start is range.start
 	immutable ArrWithSize!NameAndRange typeParams;
-	immutable Opt!PuritySpecifierAndRange purity;
+	immutable ArrWithSize!ModifierAst modifiers;
 	immutable Body body_;
 }
 static assert(StructDeclAst.Body.sizeof <= 24);
@@ -1083,7 +1052,7 @@ immutable(Repr) reprSpecDeclAst(ref Alloc alloc, ref immutable SpecDeclAst a) {
 		reprStr(a.docComment),
 		reprVisibility(a.visibility),
 		reprSym(a.name),
-		reprTypeParams(alloc, a.typeParams),
+		reprTypeParams(alloc, toArr(a.typeParams)),
 		reprSpecBodyAst(alloc, a.body_)]);
 }
 
@@ -1106,16 +1075,10 @@ immutable(Repr) reprStructAliasAst(ref Alloc alloc, ref immutable StructAliasAst
 		reprStr(a.docComment),
 		reprVisibility(a.visibility),
 		reprSym(a.name),
-		reprTypeParams(alloc, a.typeParams),
+		reprTypeParams(alloc, toArr(a.typeParams)),
 		reprTypeAst(alloc, a.target)]);
 }
 
-immutable(Repr) reprOptPurity(ref Alloc alloc, immutable Opt!PuritySpecifierAndRange purity) {
-	return reprOpt(alloc, purity, (ref immutable PuritySpecifierAndRange it) =>
-		reprRecord(alloc, "purity", [
-			reprNat(it.start),
-			reprSym(symOfPuritySpecifier(it.specifier))]));
-}
 
 immutable(Repr) reprEnumOrFlags(
 	ref Alloc alloc,
@@ -1181,28 +1144,32 @@ immutable(Repr) reprField(ref Alloc alloc, ref immutable StructDeclAst.Body.Reco
 
 immutable(Repr) reprRecord(ref Alloc alloc, ref immutable StructDeclAst.Body.Record a) {
 	return reprRecord(alloc, "record", [
-		reprArr(alloc, toArr(a.modifiers), (ref immutable RecordModifierAst it) =>
-			reprRecordModifierAst(alloc, it)),
 		reprArr(alloc, toArr(a.fields), (ref immutable StructDeclAst.Body.Record.Field it) =>
 			reprField(alloc, it))]);
 }
 
-immutable(Repr) reprRecordModifierAst(ref Alloc alloc, immutable RecordModifierAst a) {
-	return reprRecord(alloc, "record-mod", [reprNat(a.pos), reprSym(symOfRecordModifierKind(a.kind))]);
-}
-
-immutable(Sym) symOfRecordModifierKind(immutable RecordModifierAst.Kind a) {
+public immutable(Sym) symOfModifierKind(immutable ModifierAst.Kind a) {
 	final switch (a) {
-		case RecordModifierAst.Kind.byRef:
+		case ModifierAst.Kind.byRef:
 			return shortSym("by-ref");
-		case RecordModifierAst.Kind.byVal:
+		case ModifierAst.Kind.byVal:
 			return shortSym("by-val");
-		case RecordModifierAst.Kind.newPrivate:
+		case ModifierAst.Kind.data:
+			return shortSym("data");
+		case ModifierAst.Kind.forceData:
+			return shortSym("force-data");
+		case ModifierAst.Kind.forceSendable:
+			return symForSpecial(SpecialSym.force_sendable);
+		case ModifierAst.Kind.mut:
+			return shortSym("mut");
+		case ModifierAst.Kind.newPrivate:
 			return symForSpecial(SpecialSym.dotNew);
-		case RecordModifierAst.Kind.newPublic:
+		case ModifierAst.Kind.newPublic:
 			return shortSym("new");
-		case RecordModifierAst.Kind.packed:
+		case ModifierAst.Kind.packed:
 			return shortSym("packed");
+		case ModifierAst.Kind.sendable:
+			return shortSym("sendable");
 	}
 }
 
@@ -1234,13 +1201,26 @@ immutable(Repr) reprStructBodyAst(ref Alloc alloc, ref immutable StructDeclAst.B
 }
 
 immutable(Repr) reprStructDeclAst(ref Alloc alloc, ref immutable StructDeclAst a) {
-	return reprRecord(alloc, "struct", [
-		reprRangeWithinFile(alloc, a.range),
-		reprStr(a.docComment),
-		reprVisibility(a.visibility),
-		reprTypeParams(alloc, a.typeParams),
-		reprOptPurity(alloc, a.purity),
-		reprStructBodyAst(alloc, a.body_)]);
+	ArrBuilder!NameAndRepr fields;
+	add(alloc, fields, nameAndRepr("range", reprRangeWithinFile(alloc, a.range)));
+	if (!safeCStrIsEmpty(a.docComment))
+		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
+	add(alloc, fields, nameAndRepr("visibility", reprVisibility(a.visibility)));
+	maybeAddTypeParams(alloc, fields, toArr(a.typeParams));
+	if (!empty(toArr(a.modifiers)))
+		add(alloc, fields, nameAndRepr("modifiers", reprArr(alloc, toArr(a.modifiers), (ref immutable ModifierAst x) =>
+			reprModifierAst(alloc, x))));
+	add(alloc, fields, nameAndRepr("body", reprStructBodyAst(alloc, a.body_)));
+	return reprNamedRecord("struct-decl", finishArr(alloc, fields));
+}
+
+void maybeAddTypeParams(ref Alloc alloc, ref ArrBuilder!NameAndRepr fields, immutable NameAndRange[] typeParams) {
+	if (!empty(typeParams))
+		add(alloc, fields, nameAndRepr("type-params", reprTypeParams(alloc, typeParams)));
+}
+
+immutable(Repr) reprModifierAst(ref Alloc alloc, immutable ModifierAst a) {
+	return reprRecord(alloc, "modifier", [reprNat(a.pos), reprSym(symOfModifierKind(a.kind))]);
 }
 
 immutable(Repr) reprFunDeclAst(ref Alloc alloc, ref immutable FunDeclAst a) {
@@ -1248,10 +1228,7 @@ immutable(Repr) reprFunDeclAst(ref Alloc alloc, ref immutable FunDeclAst a) {
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
 	add(alloc, fields, nameAndRepr("visibility", reprVisibility(a.visibility)));
-	if (!empty(toArr(a.typeParams)))
-		add(alloc, fields, nameAndRepr(
-			"typeparams",
-			reprTypeParams(alloc, a.typeParams)));
+	maybeAddTypeParams(alloc, fields, toArr(a.typeParams));
 	add(alloc, fields, nameAndRepr("sig", reprSig(alloc, a.sig)));
 	if (!empty(a.specUses))
 		add(alloc, fields, nameAndRepr("spec-uses", reprArr(alloc, a.specUses, (ref immutable SpecUseAst s) =>
@@ -1501,7 +1478,7 @@ immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 	}
 }
 
-immutable(Repr) reprTypeParams(ref Alloc alloc, immutable ArrWithSize!NameAndRange typeParams) {
-	return reprArr(alloc, toArr(typeParams), (ref immutable NameAndRange a) =>
+immutable(Repr) reprTypeParams(ref Alloc alloc, immutable NameAndRange[] typeParams) {
+	return reprArr(alloc, typeParams, (ref immutable NameAndRange a) =>
 		reprNameAndRange(alloc, a));
 }

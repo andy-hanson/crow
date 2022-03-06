@@ -43,13 +43,12 @@ import frontend.parse.ast :
 	matchParamsAst,
 	matchSpecBodyAst,
 	matchStructDeclAstBody,
+	ModifierAst,
 	NameAndRange,
 	ParamAst,
 	ParamsAst,
-	PuritySpecifier,
-	rangeOfRecordModifierAst,
+	rangeOfModifierAst,
 	rangeOfNameAndRange,
-	RecordModifierAst,
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
@@ -57,6 +56,7 @@ import frontend.parse.ast :
 	SpecUseAst,
 	StructAliasAst,
 	StructDeclAst,
+	symOfModifierKind,
 	TestAst,
 	TypeAst;
 import frontend.programState : ProgramState;
@@ -692,48 +692,62 @@ struct PurityAndForced {
 	immutable bool forced;
 }
 
-immutable(PurityAndForced) getPurityFromAst(
+immutable(Opt!PurityAndForced) purityAndForcedFromModifier(immutable ModifierAst.Kind a) {
+	final switch (a) {
+		case ModifierAst.Kind.byRef:
+		case ModifierAst.Kind.byVal:
+		case ModifierAst.Kind.newPrivate:
+		case ModifierAst.Kind.newPublic:
+		case ModifierAst.Kind.packed:
+			return none!PurityAndForced;
+		case ModifierAst.Kind.data:
+			return some(immutable PurityAndForced(Purity.data, false));
+		case ModifierAst.Kind.forceData:
+			return some(immutable PurityAndForced(Purity.data, true));
+		case ModifierAst.Kind.forceSendable:
+			return some(immutable PurityAndForced(Purity.sendable, true));
+		case ModifierAst.Kind.mut:
+			return some(immutable PurityAndForced(Purity.mut, false));
+		case ModifierAst.Kind.sendable:
+			return some(immutable PurityAndForced(Purity.sendable, false));
+	}
+}
+
+// Note: purity is taken for granted here, and verified later when we check the body.
+immutable(PurityAndForced) getPurityFromModifiers(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
-	ref immutable StructDeclAst ast,
+	immutable TypeKind typeKind,
+	immutable ModifierAst[] modifiers,
 ) {
-	immutable Purity defaultPurity = matchStructDeclAstBody!(
-		immutable Purity,
-		(ref immutable StructDeclAst.Body.Builtin) =>
-			Purity.data,
-		(ref immutable StructDeclAst.Body.Enum) =>
-			Purity.data,
-		(ref immutable StructDeclAst.Body.Flags) =>
-			Purity.data,
-		(ref immutable StructDeclAst.Body.ExternPtr) =>
-			Purity.mut,
-		(ref immutable StructDeclAst.Body.Record) =>
-			Purity.data,
-		(ref immutable StructDeclAst.Body.Union) =>
-			Purity.data,
-	)(ast.body_);
-	// Note: purity is taken for granted here, and verified later when we check the body.
-	if (has(ast.purity)) {
-		immutable PurityAndForced res = () {
-			final switch (force(ast.purity).specifier) {
-				case PuritySpecifier.data:
-					return PurityAndForced(Purity.data, false);
-				case PuritySpecifier.forceData:
-					return PurityAndForced(Purity.data, true);
-				case PuritySpecifier.sendable:
-					return PurityAndForced(Purity.sendable, false);
-				case PuritySpecifier.forceSendable:
-					return PurityAndForced(Purity.sendable, true);
-				case PuritySpecifier.mut:
-					return PurityAndForced(Purity.mut, false);
-			}
-		}();
-		if (res.purity == defaultPurity && !res.forced)
-			addDiag(alloc, ctx, ast.range, immutable Diag(
-				immutable Diag.PuritySpecifierRedundant(defaultPurity, getTypeKind(ast.body_))));
-		return res;
-	} else
-		return PurityAndForced(defaultPurity, false);
+	return fold(
+		immutable PurityAndForced(defaultPurity(typeKind), false),
+		modifiers,
+		(immutable PurityAndForced cur, ref immutable ModifierAst mod) {
+			immutable Opt!PurityAndForced op = purityAndForcedFromModifier(mod.kind);
+			if (has(op)) {
+				immutable PurityAndForced next = force(op);
+				if (next.purity == cur.purity)
+					addDiag(alloc, ctx, rangeOfModifierAst(mod, ctx.allSymbols), cur.purity == defaultPurity(typeKind)
+						? immutable Diag(immutable Diag.PuritySpecifierRedundant(next.purity, typeKind))
+						: immutable Diag(immutable Diag.ModifierDuplicate(symOfModifierKind(mod.kind))));
+				return next;
+			} else
+				return cur;
+		});
+}
+
+immutable(Purity) defaultPurity(immutable TypeKind a) {
+	final switch (a) {
+		case TypeKind.builtin:
+		case TypeKind.enum_:
+		case TypeKind.flags:
+		case TypeKind.record:
+		case TypeKind.union_:
+			return Purity.data;
+		case TypeKind.externPtr:
+			return Purity.mut;
+	}
 }
 
 immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) {
@@ -754,7 +768,7 @@ StructDecl[] checkStructsInitial(
 	ref immutable StructDeclAst[] asts,
 ) {
 	return mapToMut!StructDecl(alloc, asts, (ref immutable StructDeclAst ast) {
-		immutable PurityAndForced p = getPurityFromAst(alloc, ctx, ast);
+		immutable PurityAndForced p = getPurityFromModifiers(alloc, ctx, getTypeKind(ast.body_), toArr(ast.modifiers));
 		return StructDecl(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(alloc, ast.docComment),
@@ -1102,27 +1116,30 @@ immutable(RecordModifiers) withPacked(
 	return immutable RecordModifiers(cur.byValOrRefOrNone, cur.newVisibility, true);
 }
 
-immutable(RecordModifiers) checkRecordModifiers(
-	ref Alloc alloc,
-	ref CheckCtx ctx,
-	immutable RecordModifierAst[] modifiers,
-) {
+immutable(RecordModifiers) checkRecordModifiers(ref Alloc alloc, ref CheckCtx ctx, immutable ModifierAst[] modifiers) {
 	return fold(
 		immutable RecordModifiers(ForcedByValOrRefOrNone.none, none!Visibility, false),
 		modifiers,
-		(immutable RecordModifiers cur, ref immutable RecordModifierAst modifier) {
-			immutable RangeWithinFile range = rangeOfRecordModifierAst(modifier, ctx.allSymbols);
+		(immutable RecordModifiers cur, ref immutable ModifierAst modifier) {
+			immutable RangeWithinFile range = rangeOfModifierAst(modifier, ctx.allSymbols);
 			final switch (modifier.kind) {
-				case RecordModifierAst.Kind.byRef:
+				case ModifierAst.Kind.byRef:
 					return withByValOrRef(alloc, ctx, cur, range, ForcedByValOrRefOrNone.byRef);
-				case RecordModifierAst.Kind.byVal:
+				case ModifierAst.Kind.byVal:
 					return withByValOrRef(alloc, ctx, cur, range, ForcedByValOrRefOrNone.byVal);
-				case RecordModifierAst.Kind.newPrivate:
+				case ModifierAst.Kind.newPrivate:
 					return withNewVisibility(alloc, ctx, cur, range, Visibility.private_);
-				case RecordModifierAst.Kind.newPublic:
+				case ModifierAst.Kind.newPublic:
 					return withNewVisibility(alloc, ctx, cur, range, Visibility.public_);
-				case RecordModifierAst.Kind.packed:
+				case ModifierAst.Kind.packed:
 					return withPacked(alloc, ctx, cur, range);
+				case ModifierAst.Kind.data:
+				case ModifierAst.Kind.forceData:
+				case ModifierAst.Kind.forceSendable:
+				case ModifierAst.Kind.mut:
+				case ModifierAst.Kind.sendable:
+					// already handled in getPurityFromModifiers
+					return cur;
 			}
 		});
 }
@@ -1133,10 +1150,11 @@ immutable(StructBody.Record) checkRecord(
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable Ptr!StructDecl struct_,
+	immutable ModifierAst[] modifierAsts,
 	ref immutable StructDeclAst.Body.Record r,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	immutable RecordModifiers modifiers = checkRecordModifiers(alloc, ctx, toArr(r.modifiers));
+	immutable RecordModifiers modifiers = checkRecordModifiers(alloc, ctx, modifierAsts);
 	immutable bool forcedByVal = modifiers.byValOrRefOrNone == ForcedByValOrRefOrNone.byVal;
 	immutable RecordField[] fields = mapWithIndex(
 		alloc,
@@ -1248,17 +1266,25 @@ void checkStructBodies(
 		structs,
 		asts,
 		(Ptr!StructDecl struct_, ref immutable StructDeclAst ast) {
+			immutable ModifierAst[] modifierAsts = toArr(ast.modifiers);
 			immutable StructBody body_ = matchStructDeclAstBody!(
 				immutable StructBody,
-				(ref immutable StructDeclAst.Body.Builtin) =>
-					immutable StructBody(immutable StructBody.Builtin()),
-				(ref immutable StructDeclAst.Body.Enum it) =>
-					immutable StructBody(
-						checkEnum(alloc, ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts)),
-				(ref immutable StructDeclAst.Body.Flags it) =>
-					immutable StructBody(
-						checkFlags(alloc, ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts)),
+				(ref immutable StructDeclAst.Body.Builtin) {
+					checkOnlyPurityModifiers(alloc, ctx, TypeKind.builtin, modifierAsts);
+					return immutable StructBody(immutable StructBody.Builtin());
+				},
+				(ref immutable StructDeclAst.Body.Enum it) {
+					checkOnlyPurityModifiers(alloc, ctx, TypeKind.enum_, modifierAsts);
+					return immutable StructBody(
+						checkEnum(alloc, ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
+				},
+				(ref immutable StructDeclAst.Body.Flags it) {
+					checkOnlyPurityModifiers(alloc, ctx, TypeKind.flags, modifierAsts);
+					return immutable StructBody(
+						checkFlags(alloc, ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
+				},
 				(ref immutable StructDeclAst.Body.ExternPtr) {
+					checkOnlyPurityModifiers(alloc, ctx, TypeKind.externPtr, modifierAsts);
 					if (!empty(toArr(ast.typeParams)))
 						addDiag(alloc, ctx, ast.range, immutable Diag(immutable Diag.ExternPtrHasTypeParams()));
 					return immutable StructBody(immutable StructBody.ExternPtr());
@@ -1270,20 +1296,35 @@ void checkStructBodies(
 						commonTypes,
 						structsAndAliasesDict,
 						castImmutable(struct_),
+						modifierAsts,
 						it,
 						delayStructInsts)),
-				(ref immutable StructDeclAst.Body.Union it) =>
-					immutable StructBody(checkUnion(
+				(ref immutable StructDeclAst.Body.Union it) {
+					checkOnlyPurityModifiers(alloc, ctx, TypeKind.union_, modifierAsts);
+					return immutable StructBody(checkUnion(
 						alloc,
 						ctx,
 						commonTypes,
 						structsAndAliasesDict,
 						castImmutable(struct_),
 						it,
-						delayStructInsts)),
+						delayStructInsts));
+				},
 			)(ast.body_);
 			setBody(struct_.deref(), body_);
 		});
+}
+
+void checkOnlyPurityModifiers(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	immutable TypeKind typeKind,
+	immutable ModifierAst[] modifiers,
+) {
+	foreach (immutable ModifierAst modifier; modifiers)
+		if (!has(purityAndForcedFromModifier(modifier.kind)))
+			addDiag(alloc, ctx, rangeOfModifierAst(modifier, ctx.allSymbols), immutable Diag(
+				immutable Diag.ModifierInvalid(symOfModifierKind(modifier.kind), typeKind)));
 }
 
 immutable(StructsAndAliasesDict) buildStructsAndAliasesDict(

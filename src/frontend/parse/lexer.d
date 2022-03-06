@@ -247,6 +247,13 @@ immutable(T) takeIndentOrFailGeneric(T)(
 		});
 }
 
+void takeNewline_topLevel(ref Lexer lexer) {
+	if (!tryTakeNewline(lexer)) {
+		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.endOfLine)));
+		skipRestOfLineAndNewline(lexer);
+	}
+}
+
 private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(ref Lexer lexer, immutable uint curIndent) {
 	if (!tryTakeNewline(lexer)) {
 		//TODO: not always expecting indent..

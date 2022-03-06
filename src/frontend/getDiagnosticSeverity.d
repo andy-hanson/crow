@@ -66,6 +66,8 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 			DiagSeverity.checkError,
 		(ref immutable Diag.ModifierDuplicate) =>
 			DiagSeverity.checkWarning,
+		(ref immutable Diag.ModifierInvalid) =>
+			DiagSeverity.checkError,
 		(ref immutable Diag.MutFieldNotAllowed) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.NameNotFound) =>

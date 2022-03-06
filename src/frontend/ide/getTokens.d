@@ -30,16 +30,15 @@ import frontend.parse.ast :
 	matchSpecBodyAst,
 	matchStructDeclAstBody,
 	matchTypeAst,
+	ModifierAst,
 	NameAndRange,
 	NameOrUnderscoreOrNone,
 	ParamAst,
 	ParamsAst,
 	ParenthesizedAst,
 	range,
+	rangeOfModifierAst,
 	rangeOfNameAndRange,
-	rangeOfPuritySpecifier,
-	rangeOfRecordModifierAst,
-	RecordModifierAst,
 	SeqAst,
 	SigAst,
 	SpecBodyAst,
@@ -307,8 +306,8 @@ void addStructTokens(
 		Token.Kind.struct_,
 		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
-	if (has(a.purity))
-		add(alloc, tokens, immutable Token(Token.Kind.modifier, rangeOfPuritySpecifier(allSymbols, force(a.purity))));
+	foreach (ref immutable ModifierAst modifier; toArr(a.modifiers))
+		add(alloc, tokens, immutable Token(Token.Kind.modifier, rangeOfModifierAst(modifier, allSymbols)));
 	matchStructDeclAstBody!(
 		void,
 		(ref immutable StructDeclAst.Body.Builtin) {},
@@ -320,11 +319,6 @@ void addStructTokens(
 		},
 		(ref immutable StructDeclAst.Body.ExternPtr) {},
 		(ref immutable StructDeclAst.Body.Record record) {
-			foreach (ref immutable RecordModifierAst modifier; toArr(record.modifiers)) {
-				add(alloc, tokens, immutable Token(
-					Token.Kind.modifier,
-					rangeOfRecordModifierAst(modifier, allSymbols)));
-			}
 			foreach (ref immutable StructDeclAst.Body.Record.Field field; toArr(record.fields)) {
 				add(alloc, tokens, immutable Token(
 					Token.Kind.member,

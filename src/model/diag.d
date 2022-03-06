@@ -194,6 +194,10 @@ struct Diag {
 	struct ModifierDuplicate {
 		immutable Sym modifier;
 	}
+	struct ModifierInvalid {
+		immutable Sym modifier;
+		immutable TypeKind typeKind;
+	}
 	struct MutFieldNotAllowed {
 		enum Reason {
 			recordIsNotMut,
@@ -331,6 +335,7 @@ struct Diag {
 		matchOnNonUnion,
 		modifierConflict,
 		modifierDuplicate,
+		modifierInvalid,
 		mutFieldNotAllowed,
 		nameNotFound,
 		paramShadowsPrevious,
@@ -389,6 +394,7 @@ struct Diag {
 		immutable MatchOnNonUnion matchOnNonUnion;
 		immutable ModifierConflict modifierConflict;
 		immutable ModifierDuplicate modifierDuplicate;
+		immutable ModifierInvalid modifierInvalid;
 		immutable MutFieldNotAllowed mutFieldNotAllowed;
 		immutable NameNotFound nameNotFound;
 		immutable ParamShadowsPrevious paramShadowsPrevious;
@@ -481,6 +487,9 @@ struct Diag {
 	}
 	@trusted immutable this(immutable ModifierDuplicate a) {
 		kind = Kind.modifierDuplicate; modifierDuplicate = a;
+	}
+	@trusted immutable this(immutable ModifierInvalid a) {
+		kind = Kind.modifierInvalid; modifierInvalid = a;
 	}
 	@trusted immutable this(immutable MutFieldNotAllowed a) {
 		kind = Kind.mutFieldNotAllowed; mutFieldNotAllowed = a;
@@ -608,12 +617,9 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.MatchOnNonUnion
 	) @safe @nogc pure nothrow cbMatchOnNonUnion,
-	scope immutable(Out) delegate(
-		ref immutable Diag.ModifierConflict
-	) @safe @nogc pure nothrow cbModifierConflict,
-	scope immutable(Out) delegate(
-		ref immutable Diag.ModifierDuplicate
-	) @safe @nogc pure nothrow cbModifierDuplicate,
+	scope immutable(Out) delegate(ref immutable Diag.ModifierConflict) @safe @nogc pure nothrow cbModifierConflict,
+	scope immutable(Out) delegate(ref immutable Diag.ModifierDuplicate) @safe @nogc pure nothrow cbModifierDuplicate,
+	scope immutable(Out) delegate(ref immutable Diag.ModifierInvalid) @safe @nogc pure nothrow cbModifierInvalid,
 	scope immutable(Out) delegate(
 		ref immutable Diag.MutFieldNotAllowed
 	) @safe @nogc pure nothrow cbMutFieldNotAllowed,
@@ -743,6 +749,8 @@ struct Diag {
 			return cbModifierConflict(a.modifierConflict);
 		case Diag.Kind.modifierDuplicate:
 			return cbModifierDuplicate(a.modifierDuplicate);
+		case Diag.Kind.modifierInvalid:
+			return cbModifierInvalid(a.modifierInvalid);
 		case Diag.Kind.mutFieldNotAllowed:
 			return cbMutFieldNotAllowed(a.mutFieldNotAllowed);
 		case Diag.Kind.nameNotFound:

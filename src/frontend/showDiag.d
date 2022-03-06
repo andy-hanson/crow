@@ -644,6 +644,11 @@ void writeDiag(
 			writeStatic(writer, "redundant ");
 			writeName(writer, allSymbols, d.modifier);
 		},
+		(ref immutable Diag.ModifierInvalid d) {
+			writeName(writer, allSymbols, d.modifier);
+			writeStatic(writer, " is not supported for ");
+			writeStatic(writer, aOrAnTypeKind(d.typeKind));
+		},
 		(ref immutable Diag.MutFieldNotAllowed d) {
 			immutable string message = () {
 				final switch (d.reason) {
