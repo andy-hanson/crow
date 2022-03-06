@@ -7,7 +7,7 @@ import
 
 epoll_create1 fd-t(epoll-flags c-int) unsafe noctx extern summon
 
-epoll_event record by-val packed
+epoll_event record by-val packed extern
 	events nat32
 	event_data nat64
 

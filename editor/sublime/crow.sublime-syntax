@@ -71,7 +71,7 @@ contexts:
     - match: export|import
       scope: keyword
       push: after_export_or_import_keyword
-    - match: test
+    - match: test$
       scope: keyword
       push: expression
     - match: '(\.)?{{name}}'
@@ -89,7 +89,7 @@ contexts:
     - match: 'alias\n'
       scope: comment
       push: alias
-    - match: 'builtin\n'
+    - match: 'builtin( extern)?\n'
       scope: comment
       pop: true
     - match: '(enum|flags)[\n<]'
@@ -159,7 +159,7 @@ contexts:
   record:
     - match: '{{unindented_line}}'
       pop: true
-    - match: 'data|force-sendable|mut|sendable|\.?new|by-ref|by-val|packed'
+    - match: 'data|extern|force-sendable|mut|sendable|\.?new|by-ref|by-val|packed'
       scope: keyword
     - match: $
       push: record_body

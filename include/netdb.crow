@@ -8,7 +8,7 @@ import
 	sys/socket: sockaddr
 	sys/types: socklen_t
 
-addrinfo record mut by-val
+addrinfo record mut by-val extern
 	ai_flags int32
 	ai_family int32
 	ai_socktype int32
@@ -38,7 +38,7 @@ spec
 freeaddrinfo void(ai addrinfo mut*) unsafe extern noctx
 gai_strerror c-str(ecode int32) extern noctx
 
-hostent record mut by-ref
+hostent record mut by-ref extern
 	h_name c-str
 	h_aliases c-str mut*
 	h_addrtype c-int
@@ -47,7 +47,7 @@ hostent record mut by-ref
 
 gethostbyname hostent(name c-str) unsafe extern noctx
 
-protoent record mut by-ref
+protoent record mut by-ref extern
 	p_name c-str
 	p_aliases c-str mut*
 	p_proto c-int

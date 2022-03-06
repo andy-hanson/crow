@@ -4,19 +4,19 @@ import
 	crow/number: nat8, nat16, nat32
 	crow/ptr: mut-ptr
 
-SDL_Color record by-val
+SDL_Color record by-val extern
 	r nat8
 	g nat8
 	b nat8
 	a nat8
 
-SDL_Palette record mut by-ref
+SDL_Palette record mut by-ref extern
 	ncolors c-int
 	colors SDL_Color mut*
 	version nat32
 	refcount c-int
 
-SDL_PixelFormat record mut by-val
+SDL_PixelFormat record mut by-val extern
 	format nat32
 	palette SDL_Palette
 	BitsPerPixel nat8

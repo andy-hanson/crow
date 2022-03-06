@@ -18,7 +18,7 @@ import model.model :
 	Type,
 	TypeParam,
 	writeStructDecl,
-	writeType;
+	writeTypeUnquoted;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.str : SafeCStr;
 import util.path : AllPaths;
@@ -73,7 +73,7 @@ void getHover(
 			writeChar(writer, '.');
 			writeSym(writer, allSymbols, it.field.deref().name);
 			writeStatic(writer, " (");
-			writeType(writer, allSymbols, it.field.deref().type);
+			writeTypeUnquoted(writer, allSymbols, it.field.deref().type);
 			writeChar(writer, ')');
 		},
 		(ref immutable SpecDecl) {

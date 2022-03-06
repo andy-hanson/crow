@@ -682,13 +682,12 @@ immutable(bool) isVariadic(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(
 		immutable bool,
 		(ref immutable FunInst i) =>
-			matchParams!(
-				immutable bool,
+			matchParams!(immutable bool)(
+				params(i),
 				(immutable Param[]) =>
 					false,
 				(ref immutable Params.Varargs) =>
-					true,
-			)(params(i)),
+					true),
 		(ref immutable ConcreteFunSource.Lambda) =>
 			false,
 		(ref immutable ConcreteFunSource.Test) =>

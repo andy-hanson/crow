@@ -924,7 +924,8 @@ immutable(Expr) checkLambdaCommon(
 					: none!Type)
 		: some!Type(actualPossiblyFutReturnType);
 	if (!has(actualNonFutReturnType)) {
-		addDiag2(alloc, ctx, range, immutable Diag(Diag.SendFunDoesNotReturnFut(actualPossiblyFutReturnType)));
+		addDiag2(alloc, ctx, range, immutable Diag(
+			immutable Diag.SendFunDoesNotReturnFut(actualPossiblyFutReturnType)));
 		return bogus(expected, range);
 	} else {
 		immutable Ptr!StructInst instFunStruct = instantiateStructNeverDelay(

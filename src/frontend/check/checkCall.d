@@ -37,7 +37,7 @@ import model.model :
 	FunDecl,
 	FunDeclAndArgs,
 	FunFlags,
-	isDataOrSendable,
+	isPurityAlwaysCompatible,
 	isVariadic,
 	matchArity,
 	matchCalledDecl,
@@ -51,6 +51,7 @@ import model.model :
 	Params,
 	params,
 	Purity,
+	purityRange,
 	returnType,
 	sig,
 	Sig,
@@ -66,8 +67,7 @@ import model.model :
 	typeEquals,
 	typeIsBogus,
 	TypeParam,
-	typeParams,
-	worstCasePurity;
+	typeParams;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, emptyArrWithSize, only, only_const, ptrAt, toArr;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -388,13 +388,12 @@ immutable(Type) getCandidateExpectedParameterType(
 }
 
 immutable(Type) paramTypeAt(ref immutable Params params, immutable size_t argIdx) {
-	return matchParams!(
-		immutable Type,
+	return matchParams!(immutable Type)(
+		params,
 		(immutable Param[] params) =>
 			params[argIdx].type,
 		(ref immutable Params.Varargs varargs) =>
-			varargs.elementType,
-	)(params);
+			varargs.elementType);
 }
 
 struct CommonOverloadExpected {
@@ -592,15 +591,13 @@ immutable(bool) checkBuiltinSpec(
 	ref immutable FileAndRange range,
 	immutable SpecBody.Builtin.Kind kind,
 	immutable Type typeArg,
- ) {
-	// TODO: Instead of worstCasePurity(), it type is a type parameter,
-	// see if the current function has its own spec requiring that it be data / send
+) {
 	immutable bool typeIsGood = () {
 		final switch (kind) {
 			case SpecBody.Builtin.Kind.data:
-				return worstCasePurity(typeArg) == Purity.data;
+				return isPurityAlwaysCompatible(Purity.data, purityRange(typeArg));
 			case SpecBody.Builtin.Kind.send:
-				return isDataOrSendable(worstCasePurity(typeArg));
+				return isPurityAlwaysCompatible(Purity.sendable, purityRange(typeArg));
 		}
 	}() || findBuiltinSpecOnType(ctx, kind, typeArg);
 	if (!typeIsGood)

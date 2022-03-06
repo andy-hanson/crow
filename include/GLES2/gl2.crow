@@ -180,7 +180,7 @@ GL_FALSE GLint() noctx
 GL_TRUE GLint() noctx
 	1
 
-GLenum enum
+GLenum enum extern
 	GL_NO_ERROR = 0
 	GL_TRIANGLES = 4
 	GL_TRIANGLE_STRIP = 5

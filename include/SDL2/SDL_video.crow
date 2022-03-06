@@ -24,7 +24,7 @@ spec
 	summon
 	unsafe
 
-SDL_WindowFlags flags<nat32>
+SDL_WindowFlags flags<nat32> extern
 	SDL_WINDOW_FULLSCREEN = 0x00000001
 	SDL_WINDOW_OPENGL = 0x00000002
 	SDL_WINDOW_SHOWN = 0x00000004
@@ -51,7 +51,7 @@ SDL_WindowFlags flags<nat32>
 
 SDL_GL_CreateContext SDL_GLContext(window SDL_Window) extern<"SDL2"> noctx summon unsafe
 
-SDL_GLattr enum<u-int>
+SDL_GLattr enum<u-int> extern
 	SDL_GL_RED_SIZE = 0
 	SDL_GL_GREEN_SIZE = 1
 	SDL_GL_BLUE_SIZE = 2

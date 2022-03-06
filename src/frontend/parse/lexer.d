@@ -170,12 +170,6 @@ enum NewlineOrIndent {
 	indent,
 }
 
-immutable(Opt!NewlineOrIndent) tryTakeNewlineOrIndent_topLevel(ref Lexer lexer) {
-	return tryTakeToken(lexer, Token.newline)
-		? some(takeNewlineOrIndentAfterEOL(lexer))
-		: none!NewlineOrIndent;
-}
-
 immutable(NewlineOrIndent) takeNewlineOrIndent_topLevel(ref Lexer lexer) {
 	if (!takeOrAddDiagExpectedToken(lexer, Token.newline, ParseDiag.Expected.Kind.endOfLine))
 		skipRestOfLineAndNewline(lexer);

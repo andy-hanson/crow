@@ -35,7 +35,7 @@ import util.sym :
 	symForOperator,
 	symForSpecial,
 	writeSym;
-import util.util : todo, unreachable, verify;
+import util.util : max, min, todo, unreachable, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
 struct AbsolutePathsGetter {
@@ -70,13 +70,31 @@ immutable(AbsolutePath) getAbsolutePath(
 alias LineAndColumnGetters = immutable FullIndexDict!(FileIndex, LineAndColumnGetter);
 
 enum Purity : ubyte {
+	// sorted best case to worst case
 	data,
 	sendable,
 	mut,
 }
 
-immutable(bool) isDataOrSendable(immutable Purity a) {
-	return a != Purity.mut;
+struct PurityRange {
+	immutable Purity bestCase;
+	immutable Purity worstCase;
+}
+
+immutable(PurityRange) combinePurityRange(immutable PurityRange a, immutable PurityRange b) {
+	return immutable PurityRange(worsePurity(a.bestCase, b.bestCase), worsePurity(a.worstCase, b.worstCase));
+}
+
+immutable(bool) isPurityAlwaysCompatible(immutable Purity referencer, immutable PurityRange referenced) {
+	return referenced.worstCase <= referencer;
+}
+
+immutable(bool) isPurityPossiblyCompatible(immutable Purity referencer, immutable PurityRange referenced) {
+	return referenced.bestCase <= referencer;
+}
+
+immutable(Purity) worsePurity(immutable Purity a, immutable Purity b) {
+	return max(a, b);
 }
 
 immutable(Sym) symOfPurity(immutable Purity a) {
@@ -88,14 +106,6 @@ immutable(Sym) symOfPurity(immutable Purity a) {
 		case Purity.mut:
 			return shortSym("mut");
 	}
-}
-
-immutable(bool) isPurityWorse(immutable Purity a, immutable Purity b) {
-	return a > b;
-}
-
-immutable(Purity) worsePurity(immutable Purity a, immutable Purity b) {
-	return isPurityWorse(a, b) ? a : b;
 }
 
 struct TypeParam {
@@ -187,20 +197,34 @@ immutable(bool) isStructInst(immutable Type a) {
 		(immutable Ptr!StructInst it) => it);
 }
 
-immutable(Purity) bestCasePurity(immutable Type a) {
-	return matchType!(immutable Purity)(
+immutable(PurityRange) purityRange(immutable Type a) {
+	return matchType!(immutable PurityRange)(
 		a,
-		(immutable Type.Bogus) => Purity.data,
-		(immutable Ptr!TypeParam) => Purity.data,
-		(immutable Ptr!StructInst i) => i.deref().bestCasePurity);
+		(immutable Type.Bogus) =>
+			immutable PurityRange(Purity.data, Purity.data),
+		(immutable Ptr!TypeParam) =>
+			immutable PurityRange(Purity.data, Purity.mut),
+		(immutable Ptr!StructInst i) =>
+			i.deref().purityRange);
+}
+
+immutable(Purity) bestCasePurity(immutable Type a) {
+	return purityRange(a).bestCase;
 }
 
 immutable(Purity) worstCasePurity(immutable Type a) {
-	return matchType!(immutable Purity)(
+	return purityRange(a).worstCase;
+}
+
+immutable(LinkageRange) linkageRange(immutable Type a) {
+	return matchType!(immutable LinkageRange)(
 		a,
-		(immutable Type.Bogus) => Purity.data,
-		(immutable Ptr!TypeParam) => Purity.mut,
-		(immutable Ptr!StructInst i) => i.deref().worstCasePurity);
+		(immutable Type.Bogus) =>
+			immutable LinkageRange(Linkage.extern_, Linkage.extern_),
+		(immutable Ptr!TypeParam) =>
+			immutable LinkageRange(Linkage.internal, Linkage.extern_),
+		(immutable Ptr!StructInst i) =>
+			i.deref().linkageRange);
 }
 
 //TODO:MOVE?
@@ -270,7 +294,11 @@ struct Params {
 	immutable TaggedPtr!Kind inner;
 }
 
-@trusted immutable(T) matchParams(T, alias cbRegular, alias cbVarargs)(ref immutable Params a) {
+@trusted immutable(T) matchParams(T)(
+	ref immutable Params a,
+	scope immutable(T) delegate(immutable Param[]) @safe @nogc pure nothrow cbRegular,
+	scope immutable(T) delegate(ref immutable Params.Varargs) @safe @nogc pure nothrow cbVarargs,
+) {
 	final switch (a.inner.tag()) {
 		case Params.Kind.regular:
 			return cbRegular(a.inner.arrWithSize!Param());
@@ -280,26 +308,24 @@ struct Params {
 }
 
 @trusted immutable(Param[]) paramsArray(return scope ref immutable Params a) {
-	return matchParams!(
-		immutable Param[],
+	return matchParams!(immutable Param[])(
+		a,
 		(immutable Param[] p) =>
 			p,
 		(ref immutable Params.Varargs v) =>
-			trustedParamsArray(v),
-	)(a);
+			trustedParamsArray(v));
 }
 private @trusted immutable(Param[]) trustedParamsArray(return ref immutable Params.Varargs v) {
 	return (&v.param)[0 .. 1];
 }
 
 immutable(Param[]) assertNonVariadic(ref immutable Params a) {
-	return matchParams!(
-		immutable Param[],
+	return matchParams!(immutable Param[])(
+		a,
 		(immutable Param[] p) =>
 			p,
 		(ref immutable Params.Varargs v) =>
-			unreachable!(immutable Param[]),
-	)(a);
+			unreachable!(immutable Param[]));
 }
 struct Arity {
 	@safe @nogc pure nothrow:
@@ -351,13 +377,12 @@ immutable(bool) arityMatches(immutable Arity sigArity, immutable size_t nArgs) {
 }
 
 immutable(Arity) arity(ref immutable Params a) {
-	return matchParams!(
-		immutable Arity,
+	return matchParams!(immutable Arity)(
+		a,
 		(immutable Param[] params) =>
 			immutable Arity(params.length),
 		(ref immutable Params.Varargs) =>
-			immutable Arity(immutable Arity.Varargs()),
-	)(a);
+			immutable Arity(immutable Arity.Varargs()));
 }
 
 struct SpecDeclSig {
@@ -375,6 +400,10 @@ struct Sig {
 
 	immutable(RangeWithinFile) nameRange(ref const AllSymbols allSymbols) immutable {
 		return rangeOfStartAndName(fileAndPos.pos, name, allSymbols);
+	}
+
+	immutable(FileAndRange) nameFileAndRange(ref const AllSymbols allSymbols) immutable {
+		return immutable FileAndRange(fileAndPos.fileIndex, nameRange(allSymbols));
 	}
 }
 static assert(Sig.sizeof <= 48);
@@ -589,6 +618,33 @@ void setTarget(ref StructAlias a, immutable Opt!(Ptr!StructInst) value) {
 	lateSet(a.target_, value);
 }
 
+// sorted least strict to most strict
+enum Linkage : ubyte { internal, extern_ }
+
+// Range of possible linkage
+struct LinkageRange {
+	immutable Linkage leastStrict;
+	immutable Linkage mostStrict;
+}
+
+immutable(LinkageRange) combineLinkageRange(immutable LinkageRange referencer, immutable LinkageRange referenced) {
+	return immutable LinkageRange(
+		lessStrictLinkage(referencer.leastStrict, referenced.leastStrict),
+		lessStrictLinkage(referencer.mostStrict, referenced.mostStrict));
+}
+
+private immutable(Linkage) lessStrictLinkage(immutable Linkage a, immutable Linkage b) {
+	return min(a, b);
+}
+
+immutable(bool) isLinkagePossiblyCompatible(immutable Linkage referencer, immutable LinkageRange referenced) {
+	return referenced.mostStrict >= referencer;
+}
+
+immutable(bool) isLinkageAlwaysCompatible(immutable Linkage referencer, immutable LinkageRange referenced) {
+	return referenced.leastStrict >= referencer;
+}
+
 struct StructDecl {
 	// TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
@@ -596,6 +652,7 @@ struct StructDecl {
 	immutable Sym name;
 	immutable ArrWithSize!TypeParam typeParams_;
 	immutable Visibility visibility;
+	immutable Linkage linkage;
 	// Note: purity on the decl does not take type args into account
 	immutable Purity purity;
 	immutable bool purityIsForced;
@@ -652,8 +709,10 @@ struct StructInst {
 	@safe @nogc pure nothrow:
 
 	immutable StructDeclAndArgs declAndArgs;
-	immutable Purity bestCasePurity; // inferred from declAndArgs
-	immutable Purity worstCasePurity; // inferred from declAndArgs
+
+	// these are inferred from declAndArgs:
+	immutable LinkageRange linkageRange;
+	immutable PurityRange purityRange;
 
 	private:
 	// Like decl.body but has type args filled in.
@@ -1009,6 +1068,10 @@ struct FunDecl {
 	}
 }
 
+immutable(Linkage) linkage(ref immutable FunDecl a) {
+	return isExtern(a.body_) ? Linkage.extern_ : Linkage.internal;
+}
+
 immutable(TypeParam[]) typeParams(ref immutable FunDecl a) {
 	return toArr(a.typeParams_);
 }
@@ -1052,11 +1115,10 @@ ref immutable(Params) params(return scope ref immutable FunDecl a) {
 }
 
 immutable(bool) isVariadic(ref immutable FunDecl a) {
-	return matchParams!(
-		immutable bool,
+	return matchParams!(immutable bool)(
+		params(a),
 		(immutable Param[]) => false,
-		(ref immutable Params.Varargs) => true,
-	)(params(a));
+		(ref immutable Params.Varargs) => true);
 }
 
 private immutable(size_t) nSpecImpls(ref immutable FunDecl a) {
@@ -1842,14 +1904,20 @@ void writeStructInst(ref Writer writer, ref const AllSymbols allSymbols, ref imm
 	if (!empty(s.typeArgs)) {
 		writeChar(writer, '<');
 		writeWithCommas!Type(writer, s.typeArgs, (ref immutable Type t) {
-			writeType(writer, allSymbols, t);
+			writeTypeUnquoted(writer, allSymbols, t);
 		});
 		writeChar(writer, '>');
 	}
 }
 
+void writeTypeQuoted(ref Writer writer, ref const AllSymbols allSymbols, immutable Type a) {
+	writeChar(writer, '\'');
+	writeTypeUnquoted(writer, allSymbols, a);
+	writeChar(writer, '\'');
+}
+
 //TODO:MOVE
-void writeType(ref Writer writer, ref const AllSymbols allSymbols, immutable Type a) {
+void writeTypeUnquoted(ref Writer writer, ref const AllSymbols allSymbols, immutable Type a) {
 	matchType!void(
 		a,
 		(immutable Type.Bogus) {

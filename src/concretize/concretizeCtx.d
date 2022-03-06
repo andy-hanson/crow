@@ -383,7 +383,7 @@ immutable(ConcreteType) getConcreteType_forStructInst(
 		immutable ValueAndDidAdd!(immutable Ptr!ConcreteStruct) res =
 			getOrAddAndDidAdd(alloc, ctx.nonLambdaConcreteStructs, key, () {
 				immutable Purity purity = fold(
-					i.deref().bestCasePurity,
+					i.deref().purityRange.bestCase,
 					typeArgs,
 					(immutable Purity p, ref immutable ConcreteType ta) =>
 						worsePurity(p, purity(ta)));

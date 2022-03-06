@@ -45,7 +45,7 @@ spec
 
 SDL_Renderer extern-ptr
 
-SDL_RendererFlags flags<u-int>
+SDL_RendererFlags flags<u-int> extern
 	SDL_RENDERER_SOFTWARE = 1
 	SDL_RENDERER_ACCELERATED = 2
 	SDL_RENDERER_PRESENTVSYNC = 4

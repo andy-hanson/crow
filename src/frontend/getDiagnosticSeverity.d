@@ -38,7 +38,13 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 			DiagSeverity.checkError,
 		(ref immutable Diag.ExpectedTypeIsNotALambda) =>
 			DiagSeverity.checkError,
+		(ref immutable Diag.ExternFunForbidden) =>
+			DiagSeverity.checkError,
 		(ref immutable Diag.ExternPtrHasTypeParams) =>
+			DiagSeverity.checkError,
+		(ref immutable Diag.ExternRecordMustBeByRefOrVal) =>
+			DiagSeverity.checkError,
+		(ref immutable Diag.ExternUnion) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.IfNeedsOpt) =>
 			DiagSeverity.checkError,
@@ -49,6 +55,10 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 		(ref immutable Diag.LambdaClosesOverMut) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.LambdaWrongNumberParams) =>
+			DiagSeverity.checkError,
+		(ref immutable Diag.LinkageWorseThanContainingFun) =>
+			DiagSeverity.checkError,
+		(ref immutable Diag.LinkageWorseThanContainingType) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.LiteralOverflow) =>
 			DiagSeverity.checkError,

@@ -20,7 +20,7 @@ write ssize_t(fd fd-t, buf any-const-ptr, n-bytes size_t) extern noctx
 pipe err-t(pipes pipes) summon extern noctx
 
 # The headers just use int[2], but this is easier to use from crow
-pipes record mut
+pipes record mut by-ref extern
 	write-pipe mut fd-t
 	read-pipe mut fd-t
 

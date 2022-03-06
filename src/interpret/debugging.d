@@ -30,7 +30,7 @@ import model.lowModel :
 	matchLowType,
 	PrimitiveType,
 	symOfPrimitiveType;
-import model.model : ClosureField, decl, FunInst, name, Param, RecordField, Type, typeArgs, writeType;
+import model.model : ClosureField, decl, FunInst, name, Param, RecordField, Type, typeArgs, writeTypeUnquoted;
 import util.col.arr : empty;
 import util.col.fullIndexDict : fullIndexDictGet;
 import util.opt : force, has;
@@ -161,7 +161,7 @@ private void writeConcreteFunName(ref Writer writer, ref const AllSymbols allSym
 			if (!empty(typeArgs(it))) {
 				writeChar(writer, '<');
 				writeWithCommas!Type(writer, typeArgs(it), (ref immutable Type typeArg) {
-					writeType(writer, allSymbols, typeArg);
+					writeTypeUnquoted(writer, allSymbols, typeArg);
 				});
 				writeChar(writer, '>');
 			}

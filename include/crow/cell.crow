@@ -14,7 +14,7 @@ c cell nat = 1,
 *c is 2
 ```
 ###
-cell<a> record mut
+cell<a> record mut by-ref extern
 	.ignore void
 	.inner-value mut a
 

@@ -52,7 +52,7 @@ spec
 	extern
 	noctx
 
-SEEK enum
+SEEK enum extern
 	SEEK_SET
 	SEEK_CUR
 	SEEK_END

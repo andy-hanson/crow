@@ -1,0 +1,23 @@
+r record extern
+	a str
+	b nat64[]
+
+u union extern
+	a str
+
+f void() noctx extern
+
+f void() extern
+
+f str() noctx extern
+
+f void(a str) noctx extern
+
+f<a> void(a a) noctx extern
+
+f void(...a nat64[]) noctx extern
+
+some-spec spec
+	foo void()
+
+f void() noctx extern some-spec

@@ -29,9 +29,92 @@
 		Since this function takes a pointer but has no way to validate it, it is <code class="keyword">unsafe</code>.
 	</p>
 	<p>
-		Other extern functions are spread out over multiple lines for readability;
-		this is a different syntax for the same thing.
+		The other <code class="keyword">extern</code> functions
+		<code class="fun">regcomp</code>, <code class="fun">regexec</code>, and <code class="fun">regerror</code>
+		are spread out over multiple lines for readability; this is a different syntax for the same thing.
 	</p>
+
+	<h3>extern types</h3>
+
+	<p>
+		Any type, such as <code class="struct">regex_t</code>,
+		referenced by an <code class="keyword">extern</code> function
+		must be marked <code class="keyword">extern</code> too.
+		<br />
+		Similarly, <code class="keyword">extern</code> types can only reference other
+		<code class="keyword">extern</code> types.
+		<br />
+		(Non-<code class="keyword">extern</code> types can reference anything.)
+	</p>
+
+	<p>
+		<code class="keyword">extern</code> ensures that the type has a layout like it would in C.
+		<br />
+		Types like <code class="keyword">nat64</code> with C analogs are <code class="keyword">extern</code>,
+		but not crow-specific types like <code class="keyword">str</code>.
+	</p>
+
+	<p>
+		A <code class="keyword">union</code> in crow is different from one in C,
+		so those can't be <code class="keyword">extern</code>.
+		<br />
+		(Crow unions are discriminated; they know which member they store.
+		C unions are undiscriminated, meaning they store some member but can't tell you which one.)
+		<br />
+		There is currently no way to declare a C <code class="keyword">union</code>
+		in crow; most libraries don't expose these directly.
+	</p>
+
+	<h3>by-ref and by-val</h3>
+	<p>
+		An <code class="keyword">extern</code> type must be explicitly
+		<code class="keyword">by-ref</code> (<em>by reference</em>) or
+		<code class="keyword">by-val</code> (<em>by value</em>).
+		<br />
+		If a type <code class="struct">foo</code> is <code class="keyword">by-ref</code>,
+		a <code class="struct">foo</code> value is equivalent to a <code>struct foo*</code> in C,
+		meaning it is passed using a pointer.
+		<br />
+		If it is <code class="keyword">by-val</code>, it is equivalent to a <code>struct foo</code> in C,
+		meaning it is be passed by value.
+		<br />
+		Since a <code class="keyword">by-val</code> type is copied every time it's passed, it can't have mutable fields.
+	</p>
+	<p>
+		<code class="keyword">by-ref</code> and <code class="keyword">by-val</code> apply everywhere the type is used:
+		parameters, return values, fields in a record, etc.
+	</p>
+	<p>
+		A non-<code class="keyword">extern</code> type will have a default choice of
+		<code class="keyword">by-ref</code> or <code class="keyword">by-val</code> based on heuristics.
+		<br />
+		You might improve performance by choosing one explicitly.
+		<br />
+		Currently, the compiler chooses <code class="keyword">by-ref</code> most of the time but
+		<code class="keyword">by-val</code> for small, immutable types.
+	</p>
+	<p>
+		For an <code class="keyword">extern</code> type, choose
+		<code class="keyword">by-ref</code> or <code class="keyworD">by-val</code>
+		based on how the type is typically used in the library.
+		<br />
+		You can override the default:
+	</p>
+
+	<ul class="bullets">
+		<li>
+			For a <code class="keyword">by-ref</code> type:
+			<br />
+			In the <a href="/doc/crow/ptr.html"><code class="module">crow/ptr</code></a> module,
+			there is a special <code class="struct">by-val</code> template
+			that lets you pass any type by value, even if it would normally be by reference.
+		</li>
+		<li>
+			For a <code class="keyword">by-val</code> type:
+			<br />
+			Use a pointer to pass it by reference.
+		</li>
+	</ul>
 </section>
 <section>
 	<h3>pointers</h3>
@@ -89,7 +172,7 @@
 			That's what <code>new regex(source str)</code> does.
 			<br />
 			This function can be marked <code class="keyword">trusted</code> despite calling the unsafe function
-			<code class="fun">regcomp</code> because it knows the pointer will be valid.
+			<code class="fun">regcomp</code> because it knows that the pointer will be valid.
 		</p>
 		<p>
 			Unlike a variable in C, a <code class="struct">cell</code> needs an initial value;

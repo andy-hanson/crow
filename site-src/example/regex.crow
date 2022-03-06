@@ -7,21 +7,37 @@ import
 	crow/ptr: as-const, const-ptr, mut-ptr, new
 	crow/str-util: to-c-str, to-str
 
-main fut nat(_ str[]) summon trusted
-	regex regex = "cro\\+w",
-	candidates str[] = "crow", "crooow", "duck"
-	candidates each x =>
-		print: "{x}: {regex matches x}"
+main fut nat(_ str[]) summon
+	"cro\\+w" test-regex ("crow", "crooow", "duck")
+	"[0-9" test-regex ("42",)
 	()
+
+test-regex void(source str, candidates str[]) summon trusted
+	match source parse
+	as ok regex
+		candidates each x =>
+			print: "{source} matches {x}? {regex matches x}"
+		regex free
+	as err e
+		print: "bad regex {source}: {e}"
 
 regex record mut
 	wrapped cell regex_t
 
-new regex(source str) trusted
-	res regex = ((),)::cell<regex_t>,
+# Unsafe because must 'free'
+parse result<regex, str>(source str) unsafe
+	res regex = ((),),
 	err = res.wrapped.as-mut-ptr regcomp source.to-c-str, ()
-	assert: err == 0
-	res
+	if err == REG_NOERROR
+		res ok
+	else
+		buf char8 mut[] = 1000 fill-mut-arr "\0"
+		drop: err regerror res.wrapped.as-const-ptr, buf.begin-ptr, buf.size
+		res free
+		buf.begin-ptr.as-const.to-str err
+
+free void(a regex) unsafe
+	a.wrapped.as-mut-ptr regfree
 
 matches bool(a regex, candidate str) trusted
 	err = a.wrapped.as-const-ptr regexec candidate.to-c-str, (), (), ()
@@ -34,7 +50,7 @@ matches bool(a regex, candidate str) trusted
 		drop: err regerror a.wrapped.as-const-ptr, buf.begin-ptr, buf.size
 		buf.begin-ptr.as-const.to-str throw
 
-regex_t record mut by-val
+regex_t record mut by-val extern
 	buffer void mut*
 	allocated size_t
 	used size_t
@@ -50,15 +66,28 @@ new regex_t() unsafe
 regoff_t alias
 	c-int
 
-regmatch_t record by-val
+regmatch_t record by-val extern
 	rm_so regoff_t
 	rm_eo regoff_t
 
-reg_errcode_t enum
-	REG_NOERROR = 0
+reg_errcode_t enum<c-int> extern
+	REG_ENOSYS = -1
+	REG_NOERROR
 	REG_NOMATCH
+	_REG_BADPAT
+	_REG_ECOLLATE
+	_REG_ECTYPE
+	_REG_EESCAPE
+	_REG_ESUBREG
+	_REG_EBRACK
+	_REG_EPAREN
+	_REG_EBRACE
+	_REG_BADBR
+	_REG_ERANGE
+	_REG_ESPACE
+	_REG_BADRPT
 
-regcomp c-int
+regcomp reg_errcode_t
 	regex regex_t mut*
 	pattern c-str
 	cflags c-int
@@ -66,7 +95,9 @@ spec
 	unsafe
 	noctx
 	extern
+
 regfree void(preg regex_t mut*) unsafe noctx extern
+
 regexec reg_errcode_t
 	preg regex_t*
 	string c-str
@@ -77,6 +108,7 @@ spec
 	unsafe
 	noctx
 	extern
+
 regerror size_t
 	errcode reg_errcode_t
 	preg regex_t*

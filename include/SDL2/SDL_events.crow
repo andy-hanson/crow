@@ -9,7 +9,7 @@ SDL_PumpEvents void() extern<"SDL2"> noctx summon
 
 SDL_PollEvent c-int(event SDL_Event) extern<"SDL2"> noctx summon
 
-SDL_Event record by-ref
+SDL_Event record by-ref extern
 	type SDL_EventType
 	timestamp nat32
 	padding bytes48
@@ -17,7 +17,7 @@ SDL_Event record by-ref
 SDL_Event SDL_Event()
 	SDL_FIRSTEVENT, 0, ()
 
-SDL_EventType enum<u-int>
+SDL_EventType enum<u-int> extern
 	SDL_FIRSTEVENT = 0
 
 	SDL_Quit = 0x100

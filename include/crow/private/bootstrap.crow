@@ -5,7 +5,7 @@ region basic types
 ###
 Empty type, for use by functions with nothing in particular to return.
 ###
-void builtin
+void builtin extern
 
 new-void void() noctx builtin
 
@@ -70,7 +70,7 @@ You'll usually need to call `ref-of-val` in order to pass the value to functions
 
 This even works on mutable types; passing a mutable record by-value does a shallow copy.
 ###
-by-val<a> builtin
+by-val<a> builtin extern
 
 ###
 A raw pointer. Equivalent to `const a*` in C.
@@ -82,12 +82,12 @@ If `a` is a reference type, `a*` is a pointer to a pointer.
 This is a read-only reference, is the pointee is not immutable;
 it could be modified if there are other references to it.
 ###
-const-ptr<a> builtin
+const-ptr<a> builtin extern
 
 ###
 This is like `const-ptr` but supports writing to the contents.
 ###
-mut-ptr<a> builtin mut
+mut-ptr<a> builtin mut extern
 
 any-const-ptr alias
 	nat8*
@@ -115,7 +115,7 @@ region str
 
 # Single character in a string.
 # This could be any UTF-8 code point.
-char8 builtin
+char8 builtin extern
 ###
 C-style string. Always const.
 This should be a valid pointer whose content ends in a "\0", though this is not enforced.
@@ -134,7 +134,7 @@ Boolean type: either `false` or `true`.
 
 Unlike in other programming languages, this isn't a numeric type.
 ###
-bool builtin
+bool builtin extern
 
 ###
 False boolean value.
@@ -164,46 +164,46 @@ region bootstrap arithmetic
 8-bit natural number.
 An unsigned integer in the range 0 through 255.
 ###
-nat8 builtin
+nat8 builtin extern
 ###
 16-bit natural number.
 An unsigned integer in the range 0 through 65_535.
 ###
-nat16 builtin
+nat16 builtin extern
 ###
 32-bit natural number.
 An unsigned integer in the range 0 through 4_294_967_295 (4 billion).
 ###
-nat32 builtin
+nat32 builtin extern
 ###
 64-bit natural number.
 An unsigned integer in the range 0 through 18_446_744_073_709_551_615 (18 quintillion).
 ###
-nat64 builtin
+nat64 builtin extern
 ###
 8-bit signed integer.
 In the range -128 through 127.
 ###
-int8 builtin
+int8 builtin extern
 ###
 16-bit signed integer.
 In the range -32_768 through 32_767.
 ###
-int16 builtin
+int16 builtin extern
 ###
 32-bit signed integer.
 In the range -2_147_483_648 through 2_147_483_647 (-2 billion through 2 billion).
 ###
-int32 builtin
+int32 builtin extern
 ###
 64-bit signed integer,
 In the range 9_223_372_036_854_775_808 through 9_223_372_036_854_775_807 (-9 quintillion through 9 quintillion).
 ###
-int64 builtin
+int64 builtin extern
 # 32-bit IEEE floating point number.
-float32 builtin
+float32 builtin extern
 # 64-bit IEEE floating point number.
-float64 builtin
+float64 builtin extern
 
 region hard assertions
 
@@ -298,13 +298,13 @@ These aren't used much in crow code.
 
 Create a function pointer by writing `&foo` where `foo` is the name of a function in scope.
 ###
-fun-ptr0<r> builtin
-fun-ptr1<r, p0> builtin
-fun-ptr2<r, p0, p1> builtin
-fun-ptr3<r, p0, p1, p2> builtin
-fun-ptr4<r, p0, p1, p2, p3> builtin
-fun-ptr5<r, p0, p1, p2, p3, p4> builtin
-fun-ptr6<r, p0, p1, p2, p3, p4, p5> builtin
+fun-ptr0<r> builtin extern
+fun-ptr1<r, p0> builtin extern
+fun-ptr2<r, p0, p1> builtin extern
+fun-ptr3<r, p0, p1, p2> builtin extern
+fun-ptr4<r, p0, p1, p2, p3> builtin extern
+fun-ptr5<r, p0, p1, p2, p3, p4> builtin extern
+fun-ptr6<r, p0, p1, p2, p3, p4, p5> builtin extern
 
 ###
 Non-mutating function type.

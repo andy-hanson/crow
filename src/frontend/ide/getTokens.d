@@ -306,19 +306,22 @@ void addStructTokens(
 		Token.Kind.struct_,
 		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
-	foreach (ref immutable ModifierAst modifier; toArr(a.modifiers))
-		add(alloc, tokens, immutable Token(Token.Kind.modifier, rangeOfModifierAst(modifier, allSymbols)));
 	matchStructDeclAstBody!(
 		void,
-		(ref immutable StructDeclAst.Body.Builtin) {},
+		(ref immutable StructDeclAst.Body.Builtin) {
+			addModifierTokens(alloc, tokens, allSymbols, a);
+		},
 		(ref immutable StructDeclAst.Body.Enum it) {
-			addEnumOrFlagsTokens(alloc, tokens, allSymbols, it.typeArg, it.members);
+			addEnumOrFlagsTokens(alloc, tokens, allSymbols, a, it.typeArg, it.members);
 		},
 		(ref immutable StructDeclAst.Body.Flags it) {
-			addEnumOrFlagsTokens(alloc, tokens, allSymbols, it.typeArg, it.members);
+			addEnumOrFlagsTokens(alloc, tokens, allSymbols, a, it.typeArg, it.members);
 		},
-		(ref immutable StructDeclAst.Body.ExternPtr) {},
+		(ref immutable StructDeclAst.Body.ExternPtr) {
+			addModifierTokens(alloc, tokens, allSymbols, a);
+		},
 		(ref immutable StructDeclAst.Body.Record record) {
+			addModifierTokens(alloc, tokens, allSymbols, a);
 			foreach (ref immutable StructDeclAst.Body.Record.Field field; toArr(record.fields)) {
 				add(alloc, tokens, immutable Token(
 					Token.Kind.member,
@@ -327,6 +330,7 @@ void addStructTokens(
 			}
 		},
 		(ref immutable StructDeclAst.Body.Union union_) {
+			addModifierTokens(alloc, tokens, allSymbols, a);
 			foreach (ref immutable StructDeclAst.Body.Union.Member member; union_.members) {
 				add(alloc, tokens, immutable Token(
 					Token.Kind.member,
@@ -338,15 +342,27 @@ void addStructTokens(
 	)(a.body_);
 }
 
+void addModifierTokens(
+	ref Alloc alloc,
+	ref ArrBuilder!Token tokens,
+	ref const AllSymbols allSymbols,
+	ref immutable StructDeclAst a,
+) {
+	foreach (ref immutable ModifierAst modifier; toArr(a.modifiers))
+		add(alloc, tokens, immutable Token(Token.Kind.modifier, rangeOfModifierAst(modifier, allSymbols)));
+}
+
 void addEnumOrFlagsTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
+	ref immutable StructDeclAst a,
 	scope immutable Opt!(Ptr!TypeAst) typeArg,
 	scope immutable ArrWithSize!(StructDeclAst.Body.Enum.Member) members,
 ) {
 	if (has(typeArg))
 		addTypeTokens(alloc, tokens, allSymbols, force(typeArg).deref());
+	addModifierTokens(alloc, tokens, allSymbols, a);
 	foreach (ref immutable StructDeclAst.Body.Enum.Member member; toArr(members)) {
 		add(alloc, tokens, immutable Token(Token.Kind.member, member.range));
 		if (has(member.value)) {

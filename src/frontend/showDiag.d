@@ -28,7 +28,8 @@ import model.model :
 	symOfVisibility,
 	Type,
 	writeStructInst,
-	writeType;
+	writeTypeQuoted,
+	writeTypeUnquoted;
 import model.parseDiag : matchParseDiag, ParseDiag;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only;
@@ -36,7 +37,7 @@ import util.col.arrUtil : exists;
 import util.col.fullIndexDict : fullIndexDictGet;
 import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
-import util.opt : force, has;
+import util.opt : force, has, Opt;
 import util.path : AllPaths, baseName, PathAndStorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos;
@@ -301,20 +302,19 @@ void writePurity(ref Writer writer, immutable Purity p) {
 void writeSig(ref Writer writer, ref const AllSymbols allSymbols, ref immutable Sig s) {
 	writeSym(writer, allSymbols, s.name);
 	writeChar(writer, ' ');
-	writeType(writer, allSymbols, s.returnType);
+	writeTypeUnquoted(writer, allSymbols, s.returnType);
 	writeChar(writer, '(');
-	matchParams!(
-		void,
+	matchParams!void(
+		s.params,
 		(immutable Param[] params) {
 			writeWithCommas!Param(writer, params, (ref immutable Param p) {
-				writeType(writer, allSymbols, p.type);
+				writeTypeUnquoted(writer, allSymbols, p.type);
 			});
 		},
 		(ref immutable Params.Varargs varargs) {
 			writeStatic(writer, "...");
-			writeType(writer, allSymbols, varargs.param.type);
-		},
-	)(s.params);
+			writeTypeUnquoted(writer, allSymbols, varargs.param.type);
+		});
 	writeChar(writer, ')');
 }
 
@@ -410,7 +410,7 @@ void writeCallNoMatch(
 
 		if (d.actualArgTypes.length == 1) {
 			writeStatic(writer, "\nargument type: ");
-			writeType(writer, allSymbols, only(d.actualArgTypes));
+			writeTypeQuoted(writer, allSymbols, only(d.actualArgTypes));
 		}
 	} else if (!someCandidateHasCorrectArity) {
 		writeStatic(writer, "there are functions named ");
@@ -437,12 +437,12 @@ void writeCallNoMatch(
 		writeStatic(writer, ".");
 		if (hasRet) {
 			writeStatic(writer, "\nexpected return type: ");
-			writeType(writer, allSymbols, force(d.expectedReturnType));
+			writeTypeQuoted(writer, allSymbols, force(d.expectedReturnType));
 		}
 		if (hasArgs) {
 			writeStatic(writer, "\nactual argument types: ");
 			writeWithCommas!Type(writer, d.actualArgTypes, (ref immutable Type t) {
-				writeType(writer, allSymbols, t);
+				writeTypeQuoted(writer, allSymbols, t);
 			});
 			if (d.actualArgTypes.length < d.actualArity)
 				writeStatic(writer, " (other arguments not checked, gave up early)");
@@ -573,17 +573,41 @@ void writeDiag(
 		(ref immutable Diag.ExpectedTypeIsNotALambda d) {
 			if (has(d.expectedType)) {
 				writeStatic(writer, "the expected type at the lambda is ");
-				writeType(writer, allSymbols, force(d.expectedType));
+				writeTypeQuoted(writer, allSymbols, force(d.expectedType));
 				writeStatic(writer, ", which is not a lambda type");
 			} else
 				writeStatic(writer, "there is no expected type at this location; lambdas need an expected type");
 		},
+		(ref immutable Diag.ExternFunForbidden d) {
+			writeStatic(writer, "'extern' function ");
+			writeName(writer, allSymbols, d.fun.deref().name);
+			writeStatic(writer, () {
+				final switch (d.reason) {
+					case Diag.ExternFunForbidden.Reason.hasSpecs:
+						return " can't have specs";
+					case Diag.ExternFunForbidden.Reason.hasTypeParams:
+						return " can't have type parameters";
+					case Diag.ExternFunForbidden.Reason.needsNoCtx:
+						return " must be 'noctx'";
+					case Diag.ExternFunForbidden.Reason.variadic:
+						return " can't be variadic";
+				}
+			}());
+		},
 		(ref immutable Diag.ExternPtrHasTypeParams) {
 			writeStatic(writer, "an 'extern-ptr' type should not be a template");
 		},
+		(ref immutable Diag.ExternRecordMustBeByRefOrVal d) {
+			writeStatic(writer, "'extern' record ");
+			writeName(writer, allSymbols, d.struct_.deref().name);
+			writeStatic(writer, " must be explicitly 'by-ref' or 'by-val'");
+		},
+		(ref immutable Diag.ExternUnion d) {
+			writeStatic(writer, "a union can't be 'extern'");
+		},
 		(ref immutable Diag.IfNeedsOpt d) {
-			writeStatic(writer, "Expected an 'opt', but got ");
-			writeType(writer, allSymbols, d.actualType);
+			writeStatic(writer, "Expected an option type, but got ");
+			writeTypeQuoted(writer, allSymbols, d.actualType);
 		},
 		(ref immutable Diag.ImportRefersToNothing it) {
 			writeStatic(writer, "imported name ");
@@ -597,7 +621,7 @@ void writeDiag(
 			writeStatic(writer, "lambda is a plain 'fun' but closes over ");
 			writeName(writer, allSymbols, d.field.deref().name);
 			writeStatic(writer, " of 'mut' type ");
-			writeType(writer, allSymbols, d.field.deref().type);
+			writeTypeQuoted(writer, allSymbols, d.field.deref().type);
 			writeStatic(writer, " (should it be an 'act' or 'ref' fun?)");
 		},
 		(ref immutable Diag.LambdaWrongNumberParams d) {
@@ -606,6 +630,25 @@ void writeDiag(
 			writeStatic(writer, " but lambda has ");
 			writeNat(writer, d.actualNParams);
 			writeStatic(writer, " parameters");
+		},
+		(ref immutable Diag.LinkageWorseThanContainingFun d) {
+			writeStatic(writer, "'extern' function ");
+			writeName(writer, allSymbols, name(d.containingFun.deref()));
+			if (has(d.param)) {
+				immutable Opt!Sym paramName = force(d.param).deref().name;
+				if (has(paramName)) {
+					writeStatic(writer, " parameter ");
+					writeName(writer, allSymbols, force(paramName));
+				}
+			}
+			writeStatic(writer, " can't reference non-extern type ");
+			writeTypeQuoted(writer, allSymbols, d.referencedType);
+		},
+		(ref immutable Diag.LinkageWorseThanContainingType d) {
+			writeStatic(writer, "extern type ");
+			writeName(writer, allSymbols, d.containingType.deref().name);
+			writeStatic(writer, " can't reference non-extern type ");
+			writeTypeQuoted(writer, allSymbols, d.referencedType);
 		},
 		(ref immutable Diag.LiteralOverflow d) {
 			writeStatic(writer, "literal exceeds the range of a ");
@@ -633,7 +676,7 @@ void writeDiag(
 		},
 		(ref immutable Diag.MatchOnNonUnion d) {
 			writeStatic(writer, "can't match on non-union type ");
-			writeType(writer, allSymbols, d.type);
+			writeTypeQuoted(writer, allSymbols, d.type);
 		},
 		(ref immutable Diag.ModifierConflict d) {
 			writeName(writer, allSymbols, d.curModifier);
@@ -694,9 +737,9 @@ void writeDiag(
 			writeStatic(writer, " has purity ");
 			writePurity(writer, d.parent.deref().purity);
 			writeStatic(writer, ", but member of type ");
-			writeType(writer, allSymbols, d.child);
+			writeTypeQuoted(writer, allSymbols, d.child);
 			writeStatic(writer, " has purity ");
-			writePurity(writer, d.child.bestCasePurity());
+			writePurity(writer, bestCasePurity(d.child));
 		},
 		(ref immutable Diag.PuritySpecifierRedundant d) {
 			writeStatic(writer, "redundant purity specifier of ");
@@ -711,14 +754,14 @@ void writeDiag(
 			writeStatic(writer, " by default");
 		},
 		(ref immutable Diag.SendFunDoesNotReturnFut d) {
-			writeStatic(writer, "a fun-ref should return a fut, but returns ");
-			writeType(writer, allSymbols, d.actualReturnType);
+			writeStatic(writer, "a 'ref' should return a 'fut', but this returns ");
+			writeTypeQuoted(writer, allSymbols, d.actualReturnType);
 		},
 		(ref immutable Diag.SpecBuiltinNotSatisfied d) {
 			writeStatic(writer, "trying to call ");
 			writeName(writer, allSymbols, d.called.deref.name);
 			writeStatic(writer, ", but ");
-			writeType(writer, allSymbols, d.type);
+			writeTypeQuoted(writer, allSymbols, d.type);
 			immutable string message = () {
 				final switch (d.kind) {
 					case SpecBody.Builtin.Kind.data:
@@ -749,14 +792,14 @@ void writeDiag(
 		},
 		(ref immutable Diag.TypeAnnotationUnnecessary d) {
 			writeStatic(writer, "type ");
-			writeType(writer, allSymbols, d.type);
+			writeTypeQuoted(writer, allSymbols, d.type);
 			writeStatic(writer, " was already inferred");
 		},
 		(ref immutable Diag.TypeConflict d) {
 			writeStatic(writer, "the type of the expression conflicts with its expected type.\n\texpected: ");
-			writeType(writer, allSymbols, d.expected);
+			writeTypeQuoted(writer, allSymbols, d.expected);
 			writeStatic(writer, "\n\tactual: ");
-			writeType(writer, allSymbols, d.actual);
+			writeTypeQuoted(writer, allSymbols, d.actual);
 		},
 		(ref immutable Diag.TypeParamCantHaveTypeArgs) {
 			writeStatic(writer, "a type parameter can't take type arguments");

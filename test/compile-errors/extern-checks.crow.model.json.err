@@ -1,0 +1,21 @@
+./test/compile-errors/extern-checks.crow 1:1-5:1 'extern' record 'r' must be explicitly 'by-ref' or 'by-val'
+
+./test/compile-errors/extern-checks.crow 2:5-2:10 extern type 'r' can't reference non-extern type 'str'
+
+./test/compile-errors/extern-checks.crow 3:5-3:14 extern type 'r' can't reference non-extern type 'arr<nat64>'
+
+./test/compile-errors/extern-checks.crow 5:1-8:1 a union can't be 'extern'
+
+./test/compile-errors/extern-checks.crow 10:1-10:2 'extern' function 'f' must be 'noctx'
+
+./test/compile-errors/extern-checks.crow 12:1-12:2 'extern' function 'f' can't reference non-extern type 'str'
+
+./test/compile-errors/extern-checks.crow 14:8-14:13 'extern' function 'f' parameter 'a' can't reference non-extern type 'str'
+
+./test/compile-errors/extern-checks.crow 16:1-16:2 'extern' function 'f' can't have type parameters
+
+./test/compile-errors/extern-checks.crow 16:11-16:14 'extern' function 'f' parameter 'a' can't reference non-extern type 'a'
+
+./test/compile-errors/extern-checks.crow 18:1-18:2 'extern' function 'f' can't be variadic
+
+./test/compile-errors/extern-checks.crow 23:1-23:2 'extern' function 'f' can't have specs

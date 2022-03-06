@@ -4,13 +4,17 @@ module frontend.check.instantiate;
 
 import frontend.programState : ProgramState;
 import model.model :
-	bestCasePurity,
 	body_,
 	bodyIsSet,
 	CommonTypes,
 	decl,
+	combineLinkageRange,
+	combinePurityRange,
 	FunDeclAndArgs,
 	FunInst,
+	Linkage,
+	LinkageRange,
+	linkageRange,
 	matchParams,
 	matchSpecBody,
 	matchStructBody,
@@ -18,6 +22,8 @@ import model.model :
 	Param,
 	Params,
 	Purity,
+	PurityRange,
+	purityRange,
 	RecordField,
 	setBody,
 	Sig,
@@ -33,9 +39,7 @@ import model.model :
 	TypeParam,
 	typeParams,
 	UnionMember,
-	withType,
-	worsePurity,
-	worstCasePurity;
+	withType;
 import util.alloc.alloc : Alloc;
 import util.col.arr : ptrAt, sizeEq;
 import util.col.arrUtil : arrLiteral, fold, map, mapWithSize;
@@ -196,13 +200,27 @@ immutable(Ptr!StructInst) instantiateStruct(
 	DelayStructInsts delayStructInsts,
 ) {
 	ValueAndDidAdd!(Ptr!StructInst) res = getOrAddAndDidAdd(alloc, programState.structInsts, declAndArgs, () {
-		immutable Purity declPurity = declAndArgs.decl.deref().purity;
 		immutable Type[] typeArgs = declAndArgs.typeArgs;
-		immutable Purity bestPurity = fold(declPurity, typeArgs, (immutable Purity pur, ref immutable Type typeArg) =>
-			worsePurity(pur, bestCasePurity(typeArg)));
-		immutable Purity worstPurity = fold(declPurity, typeArgs, (immutable Purity pur, ref immutable Type typeArg) =>
-			worsePurity(pur, worstCasePurity(typeArg)));
-		return allocateMut(alloc, StructInst(declAndArgs, bestPurity, worstPurity));
+		immutable Linkage declLinkage = declAndArgs.decl.deref().linkage;
+		immutable LinkageRange linkageRange = () {
+			final switch (declLinkage) {
+				case Linkage.internal:
+					return immutable LinkageRange(Linkage.internal, Linkage.internal);
+				case Linkage.extern_:
+					return fold(
+						immutable LinkageRange(Linkage.extern_, Linkage.extern_),
+						typeArgs,
+						(immutable LinkageRange cur, ref immutable Type typeArg) =>
+							combineLinkageRange(cur, linkageRange(typeArg)));
+			}
+		}();
+		immutable Purity declPurity = declAndArgs.decl.deref().purity;
+		immutable PurityRange purityRange = fold(
+			immutable PurityRange(declPurity, declPurity),
+			typeArgs,
+			(immutable PurityRange cur, ref immutable Type typeArg) =>
+				combinePurityRange(cur, purityRange(typeArg)));
+		return allocateMut(alloc, StructInst(declAndArgs, linkageRange, purityRange));
 	});
 
 	if (res.didAdd) {
@@ -320,16 +338,15 @@ immutable(Sig) instantiateSig(
 ) {
 	immutable Type returnType = instantiateType(
 		alloc, programState, sig.returnType, typeParamsAndArgs, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
-	immutable Params params = matchParams!(
-		immutable Params,
+	immutable Params params = matchParams!(immutable Params)(
+		sig.params,
 		(immutable Param[] params) =>
 			immutable Params(mapWithSize!Param(alloc, params, (ref immutable Param p) =>
 				instantiateParam(alloc, programState, typeParamsAndArgs, p))),
 		(ref immutable Params.Varargs v) =>
 			immutable Params(allocate(alloc, immutable Params.Varargs(
 				instantiateParam(alloc, programState, typeParamsAndArgs, v.param),
-				instantiateTypeNoDelay(alloc, programState, v.elementType, typeParamsAndArgs)))),
-	)(sig.params);
+				instantiateTypeNoDelay(alloc, programState, v.elementType, typeParamsAndArgs)))));
 	return immutable Sig(sig.fileAndPos, sig.name, returnType, params);
 }
 

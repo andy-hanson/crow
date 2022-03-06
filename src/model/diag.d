@@ -153,7 +153,16 @@ struct Diag {
 	struct ExpectedTypeIsNotALambda {
 		immutable Opt!Type expectedType;
 	}
+	struct ExternFunForbidden {
+		enum Reason { hasSpecs, hasTypeParams, needsNoCtx, variadic }
+		immutable Ptr!FunDecl fun;
+		immutable Reason reason;
+	}
 	struct ExternPtrHasTypeParams {}
+	struct ExternRecordMustBeByRefOrVal {
+		immutable Ptr!StructDecl struct_;
+	}
+	struct ExternUnion {}
 	struct IfNeedsOpt {
 		immutable Type actualType;
 	}
@@ -167,6 +176,16 @@ struct Diag {
 	struct LambdaWrongNumberParams {
 		immutable Ptr!StructInst expectedLambdaType;
 		immutable size_t actualNParams;
+	}
+	struct LinkageWorseThanContainingFun {
+		immutable Ptr!FunDecl containingFun;
+		immutable Type referencedType;
+		// empty for return type
+		immutable Opt!(Ptr!Param) param;
+	}
+	struct LinkageWorseThanContainingType {
+		immutable Ptr!StructDecl containingType;
+		immutable Type referencedType;
 	}
 	struct LiteralOverflow {
 		immutable Ptr!StructInst type;
@@ -321,12 +340,17 @@ struct Diag {
 		enumDuplicateValue,
 		enumMemberOverflows,
 		expectedTypeIsNotALambda,
+		externFunForbidden,
 		externPtrHasTypeParams,
+		externRecordMustBeByRefOrVal,
+		externUnion,
 		ifNeedsOpt,
 		importRefersToNothing,
 		lambdaCantInferParamTypes,
 		lambdaClosesOverMut,
 		lambdaWrongNumberParams,
+		linkageWorseThanContainingFun,
+		linkageWorseThanContainingType,
 		literalOverflow,
 		localShadowsPrevious,
 		matchCaseNamesDoNotMatch,
@@ -380,12 +404,17 @@ struct Diag {
 		immutable EnumDuplicateValue enumDuplicateValue;
 		immutable EnumMemberOverflows enumMemberOverflows;
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
+		immutable ExternFunForbidden externFunForbidden;
 		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
+		immutable ExternRecordMustBeByRefOrVal externRecordMustBeByRefOrVal;
+		immutable ExternUnion externUnion;
 		immutable IfNeedsOpt ifNeedsOpt;
 		immutable ImportRefersToNothing importRefersToNothing;
 		immutable LambdaCantInferParamTypes lambdaCantInferParamTypes;
 		immutable LambdaClosesOverMut lambdaClosesOverMut;
 		immutable LambdaWrongNumberParams lambdaWrongNumberParams;
+		immutable LinkageWorseThanContainingFun linkageWorseThanContainingFun;
+		immutable LinkageWorseThanContainingType linkageWorseThanContainingType;
 		immutable LiteralOverflow literalOverflow;
 		immutable LocalShadowsPrevious localShadowsPrevious;
 		immutable MatchCaseNamesDoNotMatch matchCaseNamesDoNotMatch;
@@ -452,8 +481,17 @@ struct Diag {
 	@trusted immutable this(immutable ExpectedTypeIsNotALambda a) {
 		kind = Kind.expectedTypeIsNotALambda; expectedTypeIsNotALambda = a;
 	}
+	immutable this(immutable ExternFunForbidden a) {
+		kind = Kind.externFunForbidden; externFunForbidden = a;
+	}
 	immutable this(immutable ExternPtrHasTypeParams a) {
 		kind = Kind.externPtrHasTypeParams; externPtrHasTypeParams = a;
+	}
+	immutable this(immutable ExternRecordMustBeByRefOrVal a) {
+		kind = Kind.externRecordMustBeByRefOrVal; externRecordMustBeByRefOrVal = a;
+	}
+	immutable this(immutable ExternUnion a) {
+		kind = Kind.externUnion; externUnion = a;
 	}
 	@trusted immutable this(immutable IfNeedsOpt a) { kind = Kind.ifNeedsOpt; ifNeedsOpt = a; }
 	immutable this(immutable ImportRefersToNothing a) { kind = Kind.importRefersToNothing; importRefersToNothing = a; }
@@ -465,6 +503,12 @@ struct Diag {
 	}
 	@trusted immutable this(immutable LambdaWrongNumberParams a) {
 		kind = Kind.lambdaWrongNumberParams; lambdaWrongNumberParams = a;
+	}
+	@trusted immutable this(immutable LinkageWorseThanContainingFun a) {
+		kind = Kind.linkageWorseThanContainingFun; linkageWorseThanContainingFun = a;
+	}
+	@trusted immutable this(immutable LinkageWorseThanContainingType a) {
+		kind = Kind.linkageWorseThanContainingType; linkageWorseThanContainingType = a;
 	}
 	@trusted immutable this(immutable LiteralOverflow a) { kind = Kind.literalOverflow; literalOverflow = a; }
 	@trusted immutable this(immutable LocalShadowsPrevious a) {
@@ -586,8 +630,15 @@ struct Diag {
 		ref immutable Diag.ExpectedTypeIsNotALambda
 	) @safe @nogc pure nothrow cbExpectedTypeIsNotALambda,
 	scope immutable(Out) delegate(
+		ref immutable Diag.ExternFunForbidden
+	) @safe @nogc pure nothrow cbExternFunForbidden,
+	scope immutable(Out) delegate(
 		ref immutable Diag.ExternPtrHasTypeParams
 	) @safe @nogc pure nothrow cbExternPtrHasTypeParams,
+	scope immutable(Out) delegate(
+		ref immutable Diag.ExternRecordMustBeByRefOrVal
+	) @safe @nogc pure nothrow cbExternRecordMustBeByRefOrVal,
+	scope immutable(Out) delegate(ref immutable Diag.ExternUnion) @safe @nogc pure nothrow cbExternUnion,
 	scope immutable(Out) delegate(ref immutable Diag.IfNeedsOpt) @safe @nogc pure nothrow cbIfNeedsOpt,
 	scope immutable(Out) delegate(
 		ref immutable Diag.ImportRefersToNothing
@@ -601,6 +652,12 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.LambdaWrongNumberParams
 	) @safe @nogc pure nothrow cbLambdaWrongNumberParams,
+	scope immutable(Out) delegate(
+		ref immutable Diag.LinkageWorseThanContainingFun
+	) @safe @nogc pure nothrow cbLinkageWorseThanContainingFun,
+	scope immutable(Out) delegate(
+		ref immutable Diag.LinkageWorseThanContainingType
+	) @safe @nogc pure nothrow cbLinkageWorseThanContainingType,
 	scope immutable(Out) delegate(ref immutable Diag.LiteralOverflow) @safe @nogc pure nothrow cbLiteralOverflow,
 	scope immutable(Out) delegate(
 		ref immutable Diag.LocalShadowsPrevious
@@ -721,8 +778,14 @@ struct Diag {
 			return cbEnumMemberOverflows(a.enumMemberOverflows);
 		case Diag.Kind.expectedTypeIsNotALambda:
 			return cbExpectedTypeIsNotALambda(a.expectedTypeIsNotALambda);
+		case Diag.Kind.externFunForbidden:
+			return cbExternFunForbidden(a.externFunForbidden);
 		case Diag.Kind.externPtrHasTypeParams:
 			return cbExternPtrHasTypeParams(a.externPtrHasTypeParams);
+		case Diag.Kind.externRecordMustBeByRefOrVal:
+			return cbExternRecordMustBeByRefOrVal(a.externRecordMustBeByRefOrVal);
+		case Diag.Kind.externUnion:
+			return cbExternUnion(a.externUnion);
 		case Diag.Kind.ifNeedsOpt:
 			return cbIfNeedsOpt(a.ifNeedsOpt);
 		case Diag.Kind.importRefersToNothing:
@@ -733,6 +796,10 @@ struct Diag {
 			return cbLambdaClosesOverMut(a.lambdaClosesOverMut);
 		case Diag.Kind.lambdaWrongNumberParams:
 			return cbLambdaWrongNumberParams(a.lambdaWrongNumberParams);
+		case Diag.Kind.linkageWorseThanContainingFun:
+			return cbLinkageWorseThanContainingFun(a.linkageWorseThanContainingFun);
+		case Diag.Kind.linkageWorseThanContainingType:
+			return cbLinkageWorseThanContainingType(a.linkageWorseThanContainingType);
 		case Diag.Kind.literalOverflow:
 			return cbLiteralOverflow(a.literalOverflow);
 		case Diag.Kind.localShadowsPrevious:

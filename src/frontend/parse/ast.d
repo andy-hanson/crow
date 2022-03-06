@@ -693,6 +693,7 @@ struct ModifierAst {
 		byRef,
 		byVal,
 		data,
+		extern_,
 		forceData,
 		forceSendable,
 		mut,
@@ -1156,6 +1157,8 @@ public immutable(Sym) symOfModifierKind(immutable ModifierAst.Kind a) {
 			return shortSym("by-val");
 		case ModifierAst.Kind.data:
 			return shortSym("data");
+		case ModifierAst.Kind.extern_:
+			return shortSym("extern");
 		case ModifierAst.Kind.forceData:
 			return shortSym("force-data");
 		case ModifierAst.Kind.forceSendable:

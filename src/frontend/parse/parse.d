@@ -59,7 +59,6 @@ import frontend.parse.lexer :
 	Token,
 	tryTakeIndent,
 	tryTakeName,
-	tryTakeNewlineOrIndent_topLevel,
 	tryTakeOperator,
 	tryTakeToken;
 import frontend.parse.parseExpr : parseFunExprBody;
@@ -74,7 +73,7 @@ import util.col.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
 import util.col.str : SafeCStr;
 import util.conv : safeToUshort;
 import util.memory : allocate;
-import util.opt : force, has, mapOption, none, Opt, optOr, some;
+import util.opt : force, has, none, Opt, optOr, some;
 import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr, ptrTrustMe_mut;
@@ -792,6 +791,8 @@ immutable(Opt!(ModifierAst.Kind)) tryParseModifierKind(ref Lexer lexer) {
 			switch (getPeekToken(lexer)) {
 				case Token.data:
 					return some(ModifierAst.Kind.data);
+				case Token.extern_:
+					return some(ModifierAst.Kind.extern_);
 				case Token.forceData:
 					return some(ModifierAst.Kind.forceData);
 				case Token.forceSendable:

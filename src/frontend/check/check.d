@@ -67,7 +67,6 @@ import model.model :
 	asRecord,
 	asStructDecl,
 	asStructInst,
-	bestCasePurity,
 	body_,
 	CommonTypes,
 	decl,
@@ -84,10 +83,16 @@ import model.model :
 	FunKindAndStructs,
 	IntegralTypes,
 	isBogus,
-	isPurityWorse,
+	isLinkageAlwaysCompatible,
+	isLinkagePossiblyCompatible,
+	isPurityPossiblyCompatible,
 	isRecord,
 	isStructInst,
 	leastVisibility,
+	Linkage,
+	linkage,
+	linkageRange,
+	matchParams,
 	matchStructBody,
 	matchStructOrAliasPtr,
 	matchType,
@@ -102,6 +107,7 @@ import model.model :
 	params,
 	paramsArray,
 	Purity,
+	purityRange,
 	range,
 	RecordField,
 	RecordFlags,
@@ -492,6 +498,7 @@ immutable(Ptr!StructDecl) bogusStructDecl(ref Alloc alloc, immutable size_t nTyp
 		shortSym("bogus"),
 		finishArrWithSize(alloc, typeParams),
 		Visibility.public_,
+		Linkage.internal,
 		Purity.data,
 		false));
 	setBody(res.deref(), immutable StructBody(immutable StructBody.Bogus()));
@@ -687,15 +694,25 @@ StructAlias[] checkStructAliasesInitial(
 			checkTypeParams(alloc, ctx, ast.typeParams)));
 }
 
+struct LinkageAndPurity {
+	immutable Linkage linkage;
+	immutable PurityAndForced purityAndForced;
+}
+
 struct PurityAndForced {
 	immutable Purity purity;
 	immutable bool forced;
+}
+
+immutable(bool) isStructModifier(immutable ModifierAst.Kind a) {
+	return a == ModifierAst.Kind.extern_ || has(purityAndForcedFromModifier(a));
 }
 
 immutable(Opt!PurityAndForced) purityAndForcedFromModifier(immutable ModifierAst.Kind a) {
 	final switch (a) {
 		case ModifierAst.Kind.byRef:
 		case ModifierAst.Kind.byVal:
+		case ModifierAst.Kind.extern_:
 		case ModifierAst.Kind.newPrivate:
 		case ModifierAst.Kind.newPublic:
 		case ModifierAst.Kind.packed:
@@ -714,27 +731,51 @@ immutable(Opt!PurityAndForced) purityAndForcedFromModifier(immutable ModifierAst
 }
 
 // Note: purity is taken for granted here, and verified later when we check the body.
-immutable(PurityAndForced) getPurityFromModifiers(
+immutable(LinkageAndPurity) getStructModifiers(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable TypeKind typeKind,
 	immutable ModifierAst[] modifiers,
 ) {
 	return fold(
-		immutable PurityAndForced(defaultPurity(typeKind), false),
+		immutable LinkageAndPurity(defaultLinkage(typeKind), immutable PurityAndForced(defaultPurity(typeKind), false)),
 		modifiers,
-		(immutable PurityAndForced cur, ref immutable ModifierAst mod) {
-			immutable Opt!PurityAndForced op = purityAndForcedFromModifier(mod.kind);
-			if (has(op)) {
-				immutable PurityAndForced next = force(op);
-				if (next.purity == cur.purity)
-					addDiag(alloc, ctx, rangeOfModifierAst(mod, ctx.allSymbols), cur.purity == defaultPurity(typeKind)
-						? immutable Diag(immutable Diag.PuritySpecifierRedundant(next.purity, typeKind))
-						: immutable Diag(immutable Diag.ModifierDuplicate(symOfModifierKind(mod.kind))));
-				return next;
-			} else
-				return cur;
+		(immutable LinkageAndPurity cur, ref immutable ModifierAst mod) {
+			if (mod.kind == ModifierAst.Kind.extern_) {
+				if (cur.linkage != Linkage.internal)
+					addDiag(alloc, ctx, rangeOfModifierAst(mod, ctx.allSymbols), immutable Diag(
+						immutable Diag.ModifierDuplicate(symOfModifierKind(mod.kind))));
+				return immutable LinkageAndPurity(Linkage.extern_, cur.purityAndForced);
+			} else {
+				immutable Opt!PurityAndForced op = purityAndForcedFromModifier(mod.kind);
+				if (has(op)) {
+					immutable PurityAndForced next = force(op);
+					if (next.purity == cur.purityAndForced.purity)
+						addDiag(
+							alloc,
+							ctx,
+							rangeOfModifierAst(mod, ctx.allSymbols),
+							cur.purityAndForced.purity == defaultPurity(typeKind)
+								? immutable Diag(immutable Diag.PuritySpecifierRedundant(next.purity, typeKind))
+								: immutable Diag(immutable Diag.ModifierDuplicate(symOfModifierKind(mod.kind))));
+					return immutable LinkageAndPurity(cur.linkage, next);
+				} else
+					return cur;
+			}
 		});
+}
+
+immutable(Linkage) defaultLinkage(immutable TypeKind a) {
+	final switch (a) {
+		case TypeKind.builtin:
+		case TypeKind.enum_:
+		case TypeKind.flags:
+		case TypeKind.record:
+		case TypeKind.union_:
+			return Linkage.internal;
+		case TypeKind.externPtr:
+			return Linkage.extern_;
+	}
 }
 
 immutable(Purity) defaultPurity(immutable TypeKind a) {
@@ -768,15 +809,16 @@ StructDecl[] checkStructsInitial(
 	ref immutable StructDeclAst[] asts,
 ) {
 	return mapToMut!StructDecl(alloc, asts, (ref immutable StructDeclAst ast) {
-		immutable PurityAndForced p = getPurityFromModifiers(alloc, ctx, getTypeKind(ast.body_), toArr(ast.modifiers));
+		immutable LinkageAndPurity p = getStructModifiers(alloc, ctx, getTypeKind(ast.body_), toArr(ast.modifiers));
 		return StructDecl(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(alloc, ast.docComment),
 			ast.name,
 			checkTypeParams(alloc, ctx, ast.typeParams),
 			ast.visibility,
-			p.purity,
-			p.forced);
+			p.linkage,
+			p.purityAndForced.purity,
+			p.purityAndForced.forced);
 	});
 }
 
@@ -1134,6 +1176,7 @@ immutable(RecordModifiers) checkRecordModifiers(ref Alloc alloc, ref CheckCtx ct
 				case ModifierAst.Kind.packed:
 					return withPacked(alloc, ctx, cur, range);
 				case ModifierAst.Kind.data:
+				case ModifierAst.Kind.extern_:
 				case ModifierAst.Kind.forceData:
 				case ModifierAst.Kind.forceSendable:
 				case ModifierAst.Kind.mut:
@@ -1156,34 +1199,15 @@ immutable(StructBody.Record) checkRecord(
 ) {
 	immutable RecordModifiers modifiers = checkRecordModifiers(alloc, ctx, modifierAsts);
 	immutable bool forcedByVal = modifiers.byValOrRefOrNone == ForcedByValOrRefOrNone.byVal;
+	if (struct_.deref().linkage != Linkage.internal && modifiers.byValOrRefOrNone == ForcedByValOrRefOrNone.none)
+		addDiag(alloc, ctx, struct_.deref().range, immutable Diag(
+				immutable Diag.ExternRecordMustBeByRefOrVal(struct_)));
 	immutable RecordField[] fields = mapWithIndex(
 		alloc,
 		toArr(r.fields),
-		(immutable size_t index, ref immutable StructDeclAst.Body.Record.Field field) {
-			immutable Type fieldType = typeFromAst(
-				alloc,
-				ctx,
-				commonTypes,
-				field.type,
-				structsAndAliasesDict,
-				TypeParamsScope(struct_.deref().typeParams),
-				someMut(ptrTrustMe_mut(delayStructInsts)));
-			if (isPurityWorse(bestCasePurity(fieldType), struct_.deref().purity) && !struct_.deref().purityIsForced)
-				addDiag(alloc, ctx, field.range, immutable Diag(
-					immutable Diag.PurityWorseThanParent(struct_, fieldType)));
-			if (field.mutability != FieldMutability.const_) {
-				immutable Opt!(Diag.MutFieldNotAllowed.Reason) reason =
-					struct_.deref().purity != Purity.mut && !struct_.deref().purityIsForced
-						? some(Diag.MutFieldNotAllowed.Reason.recordIsNotMut)
-						: forcedByVal
-						? some(Diag.MutFieldNotAllowed.Reason.recordIsForcedByVal)
-						: none!(Diag.MutFieldNotAllowed.Reason);
-				if (has(reason))
-					addDiag(alloc, ctx, field.range, immutable Diag(immutable Diag.MutFieldNotAllowed(force(reason))));
-			}
-			return immutable RecordField(
-				rangeInFile(ctx, field.range), field.visibility, field.name, field.mutability, fieldType, index);
-		});
+		(immutable size_t index, ref immutable StructDeclAst.Body.Record.Field field) =>
+			checkRecordField(
+				alloc, ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, forcedByVal, index, field));
 	everyPair!RecordField(fields, (ref immutable RecordField a, ref immutable RecordField b) {
 		if (symEq(a.name, b.name))
 			addDiag(alloc, ctx, b.range,
@@ -1195,6 +1219,65 @@ immutable(StructBody.Record) checkRecord(
 			modifiers.packed,
 			modifiers.byValOrRefOrNone),
 		fields);
+}
+
+immutable(RecordField) checkRecordField(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
+	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	ref MutArr!(Ptr!StructInst) delayStructInsts,
+	immutable Ptr!StructDecl struct_,
+	immutable bool forcedByVal,
+	immutable size_t index,
+	ref immutable StructDeclAst.Body.Record.Field ast,
+) {
+	immutable Type fieldType = typeFromAst(
+		alloc,
+		ctx,
+		commonTypes,
+		ast.type,
+		structsAndAliasesDict,
+		TypeParamsScope(struct_.deref().typeParams),
+		someMut(ptrTrustMe_mut(delayStructInsts)));
+	checkReferenceLinkageAndPurity(alloc, ctx, struct_, ast.range, fieldType);
+	if (ast.mutability != FieldMutability.const_) {
+		immutable Opt!(Diag.MutFieldNotAllowed.Reason) reason =
+			struct_.deref().purity != Purity.mut && !struct_.deref().purityIsForced
+				? some(Diag.MutFieldNotAllowed.Reason.recordIsNotMut)
+				: forcedByVal
+				? some(Diag.MutFieldNotAllowed.Reason.recordIsForcedByVal)
+				: none!(Diag.MutFieldNotAllowed.Reason);
+		if (has(reason))
+			addDiag(alloc, ctx, ast.range, immutable Diag(immutable Diag.MutFieldNotAllowed(force(reason))));
+	}
+	return immutable RecordField(
+		rangeInFile(ctx, ast.range), ast.visibility, ast.name, ast.mutability, fieldType, index);
+}
+
+void checkReferenceLinkageAndPurity(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	immutable Ptr!StructDecl struct_,
+	immutable RangeWithinFile range,
+	immutable Type referencedType,
+) {
+	if (!isLinkagePossiblyCompatible(struct_.deref().linkage, linkageRange(referencedType)))
+		addDiag(alloc, ctx, range, immutable Diag(
+			immutable Diag.LinkageWorseThanContainingType(struct_, referencedType)));
+	checkReferencePurity(alloc, ctx, struct_, range, referencedType);
+}
+
+void checkReferencePurity(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	immutable Ptr!StructDecl struct_,
+	immutable RangeWithinFile range,
+	immutable Type referencedType,
+) {
+	if (!isPurityPossiblyCompatible(struct_.deref().purity, purityRange(referencedType)) &&
+		!struct_.deref().purityIsForced)
+		addDiag(alloc, ctx, range, immutable Diag(immutable Diag.PurityWorseThanParent(struct_, referencedType)));
 }
 
 immutable(Visibility) recordNewVisibility(
@@ -1225,32 +1308,48 @@ immutable(StructBody.Union) checkUnion(
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable Ptr!StructDecl struct_,
-	ref immutable StructDeclAst.Body.Union un,
+	ref immutable StructDeclAst.Body.Union ast,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
+	final switch (struct_.deref().linkage) {
+		case Linkage.internal:
+			break;
+		case Linkage.extern_:
+			addDiag(alloc, ctx, struct_.deref().range, immutable Diag(immutable Diag.ExternUnion()));
+	}
 	immutable UnionMember[] members = map!UnionMember(
 		alloc,
-		un.members,
-		(ref immutable StructDeclAst.Body.Union.Member it) {
-			immutable Opt!Type type = !has(it.type) ? none!Type : some(typeFromAst(
-				alloc,
-				ctx,
-				commonTypes,
-				force(it.type),
-				structsAndAliasesDict,
-				TypeParamsScope(struct_.deref().typeParams),
-				someMut(ptrTrustMe_mut(delayStructInsts))));
-			if (has(type) && isPurityWorse(force(type).bestCasePurity, struct_.deref().purity))
-				addDiag(alloc, ctx, it.range, immutable Diag(
-					immutable Diag.PurityWorseThanParent(struct_, force(type))));
-			return immutable UnionMember(rangeInFile(ctx, it.range), it.name, type);
-		});
+		ast.members,
+		(ref immutable StructDeclAst.Body.Union.Member memberAst) =>
+			checkUnionMember(alloc, ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, memberAst));
 	everyPair!UnionMember(members, (ref immutable UnionMember a, ref immutable UnionMember b) {
 		if (symEq(a.name, b.name))
 			addDiag(alloc, ctx, b.range, immutable Diag(
 				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.name)));
 	});
 	return immutable StructBody.Union(members);
+}
+
+immutable(UnionMember) checkUnionMember(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
+	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	ref MutArr!(Ptr!StructInst) delayStructInsts,
+	immutable Ptr!StructDecl struct_,
+	ref immutable StructDeclAst.Body.Union.Member ast,
+) {
+	immutable Opt!Type type = !has(ast.type) ? none!Type : some(typeFromAst(
+		alloc,
+		ctx,
+		commonTypes,
+		force(ast.type),
+		structsAndAliasesDict,
+		TypeParamsScope(struct_.deref().typeParams),
+		someMut(ptrTrustMe_mut(delayStructInsts))));
+	if (has(type))
+		checkReferencePurity(alloc, ctx, struct_, ast.range, force(type));
+	return immutable UnionMember(rangeInFile(ctx, ast.range), ast.name, type);
 }
 
 void checkStructBodies(
@@ -1270,21 +1369,21 @@ void checkStructBodies(
 			immutable StructBody body_ = matchStructDeclAstBody!(
 				immutable StructBody,
 				(ref immutable StructDeclAst.Body.Builtin) {
-					checkOnlyPurityModifiers(alloc, ctx, TypeKind.builtin, modifierAsts);
+					checkOnlyStructModifiers(alloc, ctx, TypeKind.builtin, modifierAsts);
 					return immutable StructBody(immutable StructBody.Builtin());
 				},
 				(ref immutable StructDeclAst.Body.Enum it) {
-					checkOnlyPurityModifiers(alloc, ctx, TypeKind.enum_, modifierAsts);
+					checkOnlyStructModifiers(alloc, ctx, TypeKind.enum_, modifierAsts);
 					return immutable StructBody(
 						checkEnum(alloc, ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
 				},
 				(ref immutable StructDeclAst.Body.Flags it) {
-					checkOnlyPurityModifiers(alloc, ctx, TypeKind.flags, modifierAsts);
+					checkOnlyStructModifiers(alloc, ctx, TypeKind.flags, modifierAsts);
 					return immutable StructBody(
 						checkFlags(alloc, ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
 				},
 				(ref immutable StructDeclAst.Body.ExternPtr) {
-					checkOnlyPurityModifiers(alloc, ctx, TypeKind.externPtr, modifierAsts);
+					checkOnlyStructModifiers(alloc, ctx, TypeKind.externPtr, modifierAsts);
 					if (!empty(toArr(ast.typeParams)))
 						addDiag(alloc, ctx, ast.range, immutable Diag(immutable Diag.ExternPtrHasTypeParams()));
 					return immutable StructBody(immutable StructBody.ExternPtr());
@@ -1300,7 +1399,7 @@ void checkStructBodies(
 						it,
 						delayStructInsts)),
 				(ref immutable StructDeclAst.Body.Union it) {
-					checkOnlyPurityModifiers(alloc, ctx, TypeKind.union_, modifierAsts);
+					checkOnlyStructModifiers(alloc, ctx, TypeKind.union_, modifierAsts);
 					return immutable StructBody(checkUnion(
 						alloc,
 						ctx,
@@ -1315,14 +1414,14 @@ void checkStructBodies(
 		});
 }
 
-void checkOnlyPurityModifiers(
+void checkOnlyStructModifiers(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable TypeKind typeKind,
 	immutable ModifierAst[] modifiers,
 ) {
 	foreach (immutable ModifierAst modifier; modifiers)
-		if (!has(purityAndForcedFromModifier(modifier.kind)))
+		if (!isStructModifier(modifier.kind))
 			addDiag(alloc, ctx, rangeOfModifierAst(modifier, ctx.allSymbols), immutable Diag(
 				immutable Diag.ModifierInvalid(symOfModifierKind(modifier.kind), typeKind)));
 }
@@ -1434,7 +1533,7 @@ immutable(FunsAndDict) checkFuns(
 			FunDecl(copySafeCStr(alloc, funAst.docComment), funAst.visibility, flags, sig, typeParams, specUses));
 	}
 	foreach (immutable Ptr!StructDecl struct_; ptrsRange(structs))
-		addFunsForStruct(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_);
+		addFunsForStruct(alloc, ctx.allSymbols, ctx, funsBuilder, commonTypes, struct_);
 	FunDecl[] funs = finish(funsBuilder);
 	bool[] usedFuns = fillArr_mut!bool(alloc, funs.length, (immutable size_t) =>
 		false);
@@ -1456,13 +1555,8 @@ immutable(FunsAndDict) checkFuns(
 			immutable FunBody,
 			(ref immutable FunBodyAst.Builtin) =>
 				immutable FunBody(immutable FunBody.Builtin()),
-			(ref immutable FunBodyAst.Extern e) {
-				if (!fun.deref().noCtx)
-					todo!void("'extern' fun must be 'noctx'");
-				if (e.isGlobal && arityIsNonZero(arity(fun.deref())))
-					todo!void("'global' fun has parameters");
-				return immutable FunBody(immutable FunBody.Extern(e.isGlobal, e.libraryName));
-			},
+			(ref immutable FunBodyAst.Extern e) =>
+				immutable FunBody(checkExternFun(alloc, ctx, castImmutable(fun), e)),
 			(ref immutable ExprAst e) {
 				immutable Ptr!FunDecl f = castImmutable(fun);
 				return immutable FunBody(checkFunctionBody(
@@ -1514,6 +1608,47 @@ immutable(FunsAndDict) checkFuns(
 		});
 
 	return immutable FunsAndDict(castImmutable(funs), tests, funsDict);
+}
+
+immutable(FunBody.Extern) checkExternFun(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	immutable Ptr!FunDecl fun,
+	ref immutable FunBodyAst.Extern ast,
+) {
+	immutable Linkage funLinkage = Linkage.extern_;
+
+	if (!empty(fun.deref().typeParams))
+		addDiag(alloc, ctx, fun.deref().range, immutable Diag(
+			immutable Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasTypeParams)));
+	if (!empty(fun.deref().specs))
+		addDiag(alloc, ctx, fun.deref().range, immutable Diag(
+			immutable Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasSpecs)));
+	if (!fun.deref().noCtx)
+		addDiag(alloc, ctx, fun.deref().range, immutable Diag(
+			immutable Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.needsNoCtx)));
+
+	if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(fun.deref().returnType)))
+		addDiag(alloc, ctx, fun.deref().range, immutable Diag(
+			immutable Diag.LinkageWorseThanContainingFun(fun, fun.deref().returnType, none!(Ptr!Param))));
+	matchParams!void(
+		params(fun.deref()),
+		(immutable Param[] params) {
+			foreach (immutable Ptr!Param p; ptrsRange(params)) {
+				if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(p.deref().type)))
+					addDiag(alloc, ctx, p.deref().range, immutable Diag(
+						immutable Diag.LinkageWorseThanContainingFun(fun, p.deref().type, some(p))));
+			}
+		},
+		(ref immutable Params.Varargs) {
+			addDiag(alloc, ctx, fun.deref().range, immutable Diag(
+				immutable Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.variadic)));
+		});
+
+	if (ast.isGlobal && arityIsNonZero(arity(fun.deref())))
+		todo!void("'global' fun has parameters");
+
+	return immutable FunBody.Extern(ast.isGlobal, ast.libraryName);
 }
 
 immutable(FunFlags) flagsFromAst(immutable FunDeclAstFlags a) {
