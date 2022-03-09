@@ -1,7 +1,7 @@
 no-std
 import
-	crow/bytes-types: bytes4, bytes40, bytes48
-	crow/c-types: u-long
+	crow/bytes-types: bytes4, bytes32, bytes40, bytes48
+	crow/c-types: u-int, u-long
 	crow/extra-types: err-t
 	crow/fun-util: fun-ptr1
 	crow/misc: drop
@@ -60,10 +60,10 @@ pthread_mutex_unlock err-t(mutex pthread_mutex_t) unsafe extern noctx
 
 region cond
 
-pthread_cond_t record by-ref extern
+pthread_cond_t record by-ref sendable extern
 	.sizer bytes48
 
-pthread_condattr_t record by-ref extern
+pthread_condattr_t record by-ref mut extern
 	.sizer bytes4
 
 pthread_condattr_init err-t(attr pthread_condattr_t) unsafe extern noctx
@@ -80,6 +80,22 @@ pthread_cond_broadcast err-t(cond pthread_cond_t) unsafe extern noctx
 pthread_cond_wait err-t(cond pthread_cond_t, mutex pthread_mutex_t) unsafe extern noctx
 pthread_cond_timedwait err-t(cond pthread_cond_t, mutex pthread_mutex_t, abstime timespec*) unsafe extern noctx
 
+pthread_barrier_t record by-ref sendable extern
+	.sizer bytes32
+
+pthread_barrierattr_t record by-val mut extern
+	.sizer bytes4
+
+pthread_barrier_init err-t(barrier pthread_barrier_t, attr pthread_barrierattr_t*, count u-int) unsafe extern noctx
+pthread_barrier_destroy err-t(barrier pthread_barrier_t) unsafe extern noctx
+pthread_barrier_wait err-t(barrier pthread_barrier_t) unsafe extern noctx
+
+PTHREAD_BARRIER_SERIAL_THREAD err-t() unsafe noctx
+	-1
+
+pthread_barrierattr_init err-t(attr pthread_barrierattr_t mut*) unsafe extern noctx
+pthread_barrierattr_destroy err-t(attr pthread_barrierattr_t mut*) unsafe extern noctx
+
 test
 	mutex by-val pthread_mutex_t = zeroed
 	drop: mutex.ref-of-val sizer
@@ -89,3 +105,6 @@ test
 	drop: cond.ref-of-val sizer
 	cond-attr by-val pthread_condattr_t = zeroed
 	drop: cond-attr.ref-of-val sizer
+	barrier by-val pthread_barrier_t = zeroed
+	drop: barrier.ref-of-val sizer
+	drop: zeroed::pthread_barrierattr_t.sizer

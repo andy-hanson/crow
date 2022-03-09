@@ -555,6 +555,7 @@ void writeExtern(ref ByteCodeWriter writer, immutable ByteCodeSource source, imm
 			case ExternOp.pthread_create:
 				return -3;
 			case ExternOp.longjmp:
+			case ExternOp.pthread_barrier_init:
 			case ExternOp.memcpy:
 			case ExternOp.memmove:
 			case ExternOp.memset:
@@ -570,6 +571,8 @@ void writeExtern(ref ByteCodeWriter writer, immutable ByteCodeSource source, imm
 			case ExternOp.pthread_mutex_init:
 				return -1;
 			case ExternOp.malloc:
+			case ExternOp.pthread_barrier_destroy:
+			case ExternOp.pthread_barrier_wait:
 			case ExternOp.pthread_condattr_destroy:
 			case ExternOp.pthread_condattr_init:
 			case ExternOp.pthread_cond_broadcast:

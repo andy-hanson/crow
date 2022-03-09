@@ -425,6 +425,12 @@ immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
 			return some(ExternOp.clock_gettime);
 		case shortSymValue("get_nprocs"):
 			return some(ExternOp.get_nprocs);
+		case specialSymValue(SpecialSym.pthread_barrier_destroy):
+			return some(ExternOp.pthread_barrier_destroy);
+		case specialSymValue(SpecialSym.pthread_barrier_init):
+			return some(ExternOp.pthread_barrier_init);
+		case specialSymValue(SpecialSym.pthread_barrier_wait):
+			return some(ExternOp.pthread_barrier_wait);
 		case specialSymValue(SpecialSym.pthread_condattr_destroy):
 			return some(ExternOp.pthread_condattr_destroy);
 		case specialSymValue(SpecialSym.pthread_condattr_init):

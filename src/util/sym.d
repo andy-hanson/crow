@@ -128,6 +128,9 @@ enum Operator {
 enum SpecialSym {
 	clock_gettime,
 	GetSystemInfo,
+	pthread_barrier_destroy,
+	pthread_barrier_init,
+	pthread_barrier_wait,
 	pthread_condattr_destroy,
 	pthread_condattr_init,
 	pthread_condattr_setclock,
@@ -241,6 +244,12 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 			return safeCStr!"clock_gettime";
 		case SpecialSym.GetSystemInfo:
 			return safeCStr!"GetSystemInfo";
+		case SpecialSym.pthread_barrier_destroy:
+			return safeCStr!"pthread_barrier_destroy";
+		case SpecialSym.pthread_barrier_init:
+			return safeCStr!"pthread_barrier_init";
+		case SpecialSym.pthread_barrier_wait:
+			return safeCStr!"pthread_barrier_wait";
 		case SpecialSym.pthread_condattr_destroy:
 			return safeCStr!"pthread_condattr_destroy";
 		case SpecialSym.pthread_condattr_init:

@@ -14,7 +14,7 @@ import
 	./bootstrap:
 		gc-ctx-ptr, get-ctx, hard-assert, lock, nat64, none, opt, some, todo, void
 	./number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
-	./thread-utils: acquire, init, release, uninit
+	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
 
 mem-copy<a> void(dest a mut*, src a*, size nat64) unsafe noctx
 	drop: dest.as-any-mut-ptr memcpy src.as-any-const-ptr, (size wrap-mul size-of@<a>)
@@ -66,6 +66,7 @@ mark-visit<a> void(mark-ctx mark-ctx, value a) noctx unsafe builtin
 
 gc record mut
 	lk by-val lock
+	barrier by-val barrier
 	gc-count mut nat64
 	context-head mut gc-ctx?
 	needs-gc mut bool
@@ -131,25 +132,29 @@ uninit by-val gc() noctx unsafe
 
 	drop: mark.as-any-mut-ptr memset 0, size-words
 
-	res by-val gc = uninit, 0, none, false, size-words, mark, mark, mark-end, bytes, bytes, bytes-end
+	res by-val gc = uninit, uninit, 0, none, false, size-words, mark, mark, mark-end, bytes, bytes, bytes-end
 	res.ref-of-val validate-gc
 	res
 
-init void(a gc) noctx unsafe
+init void(a gc, n-threads nat64) noctx unsafe
 	a.lk.ref-of-val init
+	a.barrier.ref-of-val init n-threads
 
+# WARN: This should be called by all threads.
 run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 	hard-assert: gc needs-gc
-	gc.gc-count := gc.gc-count wrap-add 1
-	drop: gc.mark-begin.as-any-mut-ptr memset 0, gc.size-words
-	mark-ctx by-val mark-ctx = gc.size-words, gc.mark-begin, gc.data-begin
-	mark-ctx.ref-of-val mark-visit gc-root
-	prev-mark-cur = gc.mark-cur
-	gc.mark-cur := gc.mark-begin
-	gc.data-cur := gc.data-begin
-	gc.mark-begin clear-free-mem prev-mark-cur, gc.data-begin
-	gc validate-gc
-	gc.needs-gc := false
+	if gc.barrier.ref-of-val wait-barrier
+		gc.gc-count := gc.gc-count wrap-add 1
+		drop: gc.mark-begin.as-any-mut-ptr memset 0, gc.size-words
+		mark-ctx by-val mark-ctx = gc.size-words, gc.mark-begin, gc.data-begin
+		mark-ctx.ref-of-val mark-visit gc-root
+		prev-mark-cur = gc.mark-cur
+		gc.mark-cur := gc.mark-begin
+		gc.data-cur := gc.data-begin
+		gc.mark-begin clear-free-mem prev-mark-cur, gc.data-begin
+		gc validate-gc
+		gc.needs-gc := false
+	drop: gc.barrier.ref-of-val wait-barrier
 
 # TODO: use memset
 .clear-free-mem void(mark-ptr bool mut*, mark-end bool mut*, data-ptr nat64 mut*) noctx unsafe

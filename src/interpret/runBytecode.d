@@ -583,6 +583,12 @@ private @system immutable(NextOperation) callCommon(
 		case ExternOp.pthread_join:
 			unreachable!void();
 			break;
+		case ExternOp.pthread_barrier_wait:
+			pop(a.dataStack);
+			// PTHREAD_BARRIER_SERIAL_THREAD = -1, but importing that causes compile errors in WASM build
+			push(a.dataStack, -1);
+			break;
+		case ExternOp.pthread_barrier_destroy:
 		case ExternOp.pthread_condattr_destroy:
 		case ExternOp.pthread_condattr_init:
 		case ExternOp.pthread_cond_broadcast:
@@ -598,6 +604,12 @@ private @system immutable(NextOperation) callCommon(
 		case ExternOp.pthread_condattr_setclock:
 		case ExternOp.pthread_cond_init:
 		case ExternOp.pthread_mutex_init:
+			pop(a.dataStack);
+			pop(a.dataStack);
+			push(a.dataStack, 0);
+			break;
+		case ExternOp.pthread_barrier_init:
+			pop(a.dataStack);
 			pop(a.dataStack);
 			pop(a.dataStack);
 			push(a.dataStack, 0);

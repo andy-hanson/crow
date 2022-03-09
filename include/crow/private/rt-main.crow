@@ -26,10 +26,10 @@ import
 		unsafe-to-nat64, wrap-add, wrap-sub
 	./perf-low-level: perf-ctx
 	./runtime:
-		any-unhandled-exceptions, get-global-ctx, global-ctx, init, may-be-work-to-do, new-ctx,
-		print-lock, thread-function, uninit
+		any-unhandled-exceptions, free, get-global-ctx, global-ctx, init, new-ctx, print-lock,
+		thread-function, uninit
 	./sym-low-level: init-symbol-table
-	./thread-utils: create-one-thread, destroy-condition, join-one-thread, thread-handle
+	./thread-utils: create-one-thread, join-one-thread, thread-handle
 
 .main-ptr alias
 	fun-ptr2<fut nat64, ctx, str[]>
@@ -43,8 +43,9 @@ rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 	gctx init
 	main-fut = gctx add-main-task (n-threads wrap-sub 1), argc, argv, main-ptr
 	n-threads run-threads gctx
-	gctx.may-be-work-to-do.ref-of-val destroy-condition
-	gctx exit-code-from-main-fut main-fut
+	res = gctx exit-code-from-main-fut main-fut
+	gctx free
+	res
 
 .count-processors nat64() unsafe noctx summon
 	if is-windows

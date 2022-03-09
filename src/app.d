@@ -894,7 +894,7 @@ immutable(ExitCode) withRealExtern(
 	DCCallVM* dcVm,
 	const DLLib*[] libraries,
 ) {
-	immutable char[32] nameBuffer = symAsTempBuffer!32(allSymbols, name);
+	immutable char[256] nameBuffer = symAsTempBuffer!256(allSymbols, name);
 	immutable CStr nameCStr = nameBuffer.ptr;
 
 	//printf("Gonna call %s\n", nameCStr);

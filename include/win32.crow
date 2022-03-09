@@ -2,7 +2,7 @@ no-std
 import
 	crow/bits: |, <<
 	crow/bool: bool
-	crow/c-types: c-char, c-int, u-short, u-int, size_t
+	crow/c-types: c-char, c-int, long, u-short, u-int, size_t
 	crow/extra-types: err-t
 	crow/fun-util: fun-ptr1
 	crow/misc: drop, void
@@ -28,7 +28,7 @@ LeaveCriticalSection void(a CRITICAL_SECTION) noctx unsafe extern
 
 DeleteCriticalSection void(a CRITICAL_SECTION) noctx unsafe extern
 
-CONDITION_VARIABLE record by-ref extern
+CONDITION_VARIABLE record mut by-ref extern
 	n nat64
 
 InitializeConditionVariable void(a CONDITION_VARIABLE) noctx unsafe extern
@@ -40,10 +40,44 @@ WakeAllConditionVariable void(a CONDITION_VARIABLE) noctx unsafe extern
 INFINITE DWORD() noctx
 	0xffffffff
 
+SYNCHRONIZATION_BARRIER record mut by-val extern
+	Reserved1 DWORD
+	Reserved2 DWORD
+	Reserved3_0 ULONG_PTR
+	Reserved3_1 ULONG_PTR
+	Reserved4 DWORD
+	Reserved5 DWORD
+
+InitializeSynchronizationBarrier bool
+	lpBarrier SYNCHRONIZATION_BARRIER mut*
+	lTotalThreads long
+	lSpinCount long
+spec
+	noctx
+	unsafe
+	extern
+
+DeleteSynchronizationBarrier bool(lpBarrier SYNCHRONIZATION_BARRIER mut*) noctx unsafe extern
+
+EnterSynchronizationBarrier bool
+	lpBarrier SYNCHRONIZATION_BARRIER mut*
+	dwFlags EnterSynchronizationBarrierFlags
+spec
+	noctx
+	unsafe
+	extern
+
+EnterSynchronizationBarrierFlags flags<DWORD> extern
+	SYNCHRONIZATION_BARRIER_FLAGS_SPIN_ONLY = 1
+	SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY = 2
+	SYNCHRONIZATION_BARRIER_FLAGS_NO_DELETE = 4
+
 WORD alias
 	nat16
 DWORD alias
 	nat32
+ULONG_PTR alias
+	nat64
 
 GetLastError DWORD() noctx unsafe summon extern
 SetLastError void(err-code DWORD) noctx unsafe summon extern

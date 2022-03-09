@@ -1,7 +1,6 @@
 no-std
 import
 	../col/dict: dict, empty-dict
-	../compare: >
 	../exception: exception, to-str
 	../io/print: print-err, print-err-no-newline
 	../io/private/time-low-level: get-monotime-nsec, timestamp
@@ -12,21 +11,21 @@ import
 	./alloc:
 		gc, get-gc-ctx, init, needs-gc, return-gc-ctx, run-garbage-collection,
 		uninit
-	./bool-low-level: !, &&, bool, false, true
+	./bool-low-level: !, &&, ||, bool, false, true
 	./bootstrap:
-		call-with-ctx, ctx, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
-		lock, log-ctx-ptr, nat64, new, sym, thread-local-stuff
+		call-with-ctx, ctx, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, log-ctx-ptr, nat64, new,
+		sym, thread-local-stuff
 	./exception-low-level: exception-ctx
 	./log-low-level: default-log-handler, log-ctx, log-handler, set-handler
-	./number-low-level: ==, <=>, wrap-add, wrap-sub
+	./number-low-level: ==
 	./perf-low-level: perf-ctx
 	./task-queue:
 		action, add-task, add-tasks, add-timed-task, any-tasks, exclusion, first-task-time, init,
 		is-empty, pop-task, return-task, task, task-list, task-node, task-node-with-time,
 		task-queue, uninit
 	./thread-utils:
-		acquire, broadcast, condition, get-and-increment, get-sequence, init, release,
-		thread-safe-counter, uninit, wait-on
+		acquire, broadcast, condition, decrement, destroy-condition, get-and-increment,
+		get-sequence, increment-and-get, init, lock, release, thread-safe-counter, uninit, wait-on
 
 get-global-ctx global-ctx() unsafe
 	get-ctx.gctx-ptr as-ref
@@ -37,12 +36,7 @@ cur-exclusion exclusion() unsafe
 
 global-ctx record mut
 	print-lock by-val lock
-	# if a thread finds no work to do, it decrements this and waits on 'may-be-work-to-do'.
-	# if the last thread decrements this, it can't go to sleep!
-	# But if there's no work to do, it can set 'is-shut-down' and wake up the other threads so they can shut down too.
-	n-live-threads mut nat64
 	may-be-work-to-do by-val condition
-	is-shut-down mut bool
 	# Set to true the first time the default exception handler is invoked.
 	# Can never be unset.
 	any-unhandled-exceptions mut bool
@@ -52,27 +46,31 @@ global-ctx record mut
 	# All below must not be GC allocated
 
 	syms-lock by-val lock
-	# protects 'gc-root.tasks' as well as these variables by tasks-lock
-	tasks-lock by-val lock
-	# Number of threads currently performing tasks
-	n-threads-running mut nat64
-	# not protected by tasks-lock, thread-safe on its own
-	next-exclusion by-val thread-safe-counter
+	# protects 'gc-root.tasks'
+	.tasks-lock by-val lock
+	.n-threads nat64
+	.n-waiting-threads by-val thread-safe-counter
+	.next-exclusion by-val thread-safe-counter
+	.is-shut-down mut bool
 
 uninit by-val global-ctx(n-threads nat64) noctx unsafe summon
 	q by-val task-queue = n-threads uninit
 	gc-root by-val gc-root = q, empty-dict, (exn => exn default-exception-handler), log =>
 		log default-log-handler
-	uninit, n-threads, uninit, false, false, uninit, gc-root, uninit, uninit, 0, uninit
+	uninit, uninit, false, uninit, gc-root, uninit, uninit, n-threads, uninit, uninit, false
 
 init void(a global-ctx) noctx unsafe
 	a.print-lock.ref-of-val init
 	a.may-be-work-to-do.ref-of-val init
-	a.gc.ref-of-val init
+	a.gc.ref-of-val init a.n-threads
 	a.syms-lock.ref-of-val init
 	a.tasks-lock.ref-of-val init
 	a.gc-root.ref-of-val init
+	a.n-waiting-threads.ref-of-val init
 	a.next-exclusion.ref-of-val init
+
+free void(a global-ctx) noctx unsafe
+	a.may-be-work-to-do.ref-of-val destroy-condition
 
 gc-root record mut
 	# protected by 'tasks-lock' on the global ctx
@@ -143,40 +141,36 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 	gctx thread-function-recur tls.ref-of-val
 
 .thread-function-recur void(gctx global-ctx, tls thread-local-stuff) noctx unsafe summon
-	if gctx is-shut-down
-		gctx.tasks-lock.ref-of-val acquire
-		# Remove this thread from live threads for good.
-		gctx.n-live-threads := gctx.n-live-threads wrap-sub 1
-		hard-forbid: gctx.gc.ref-of-val needs-gc
-		hard-assert: gctx.n-threads-running == 0
-		hard-assert: gctx.tasks is-empty
-		gctx.tasks-lock.ref-of-val release
-	else
-		hard-assert: gctx.n-live-threads > 0
-		# Get a task to do; or sleep.
-		last-checked = gctx.may-be-work-to-do.ref-of-val get-sequence
-
-		match gctx choose-task
-		as task-or-gc t
-			gctx do-task tls, t
-		as no-task wait-until-time
-			gctx.may-be-work-to-do.ref-of-val wait-on wait-until-time, last-checked
-			gctx add-live-thread
-		as no-tasks-and-last-thread-out
-			hard-forbid: gctx is-shut-down
-			gctx.is-shut-down := true
-			# Wake up sleeping threads so they can shut down
-			gctx.may-be-work-to-do.ref-of-val broadcast
-			gctx add-live-thread
-
-		# Do another task
+	# Get a task to do; or sleep.
+	last-checked = gctx.may-be-work-to-do.ref-of-val get-sequence
+	match gctx choose-task
+	as task t
+		gctx do-task tls, t
 		gctx thread-function-recur tls
+	as gc
+		gctx.may-be-work-to-do.ref-of-val broadcast
+		gctx.gc.ref-of-val run-garbage-collection gctx.gc-root
+		gctx thread-function-recur tls
+	as wait-for-task wait-until-time
+		gctx.may-be-work-to-do.ref-of-val wait-on wait-until-time, last-checked
+		gctx.n-waiting-threads.ref-of-val decrement
+		gctx thread-function-recur tls
+	as shut-down
+		gctx thread-shut-down
 
-.add-live-thread void(a global-ctx) noctx unsafe
-	a.tasks-lock.ref-of-val acquire
-	# We decremented this while holding the lock, increment it again
-	a.n-live-threads := a.n-live-threads wrap-add 1
-	a.tasks-lock.ref-of-val release
+.do-task void(gctx global-ctx, tls thread-local-stuff, task task) noctx unsafe summon
+	ctx = gctx new-ctx tls, task.exclusion
+	task.action call-with-ctx ctx.ref-of-val
+	gctx.tasks-lock.ref-of-val acquire
+	gctx.tasks return-task task
+	gctx.tasks-lock.ref-of-val release
+	ctx.ref-of-val return-ctx
+
+.thread-shut-down void(gctx global-ctx) noctx unsafe summon
+	gctx.may-be-work-to-do.ref-of-val broadcast
+	gctx.tasks-lock.ref-of-val acquire
+	hard-assert: gctx.tasks is-empty
+	gctx.tasks-lock.ref-of-val release
 
 new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, exclusion exclusion) noctx unsafe
 	gc-ctx = gctx.gc.ref-of-val get-gc-ctx
@@ -186,62 +180,34 @@ new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, exclusion exclusion)
 .return-ctx void(c ctx) noctx unsafe
 	c.gc-ctx-ptr.as-ref return-gc-ctx
 
-.do-task void(gctx global-ctx, tls thread-local-stuff, chosen-task task-or-gc) noctx unsafe summon
-	match chosen-task
-	as task task
-		ctx = gctx new-ctx tls, task.exclusion
-		task.action call-with-ctx ctx.ref-of-val
-		gctx.tasks-lock.ref-of-val acquire
-		gctx.tasks return-task task
-		gctx.tasks-lock.ref-of-val release
-		ctx.ref-of-val return-ctx
-	as do-a-gc
-		# We avoid running GC twice at once because 'n-threads-running' will be 1 here
-		# and 'needs-gc' won't be set to false until the GC is complete
-		gctx.gc.ref-of-val run-garbage-collection gctx.gc-root
-		# We might have avoided doing a task because GC was running.
-		# Now those tasks can be done.
-		gctx.may-be-work-to-do.ref-of-val broadcast
-
-	# We incremented this if choosing the task.
-	gctx.tasks-lock.ref-of-val acquire
-	gctx.n-threads-running := gctx.n-threads-running wrap-sub 1
-	gctx.tasks-lock.ref-of-val release
-
-.task-or-gc union mut
-	task task
-	do-a-gc
-
 .choose-task-result union mut
-	task-or-gc task-or-gc
-	# has time of first task
-	no-task timestamp?
-	no-tasks-and-last-thread-out
+	task task
+	gc
+	# No task to do now, but wait on 'may-be-work-to-do'.
+	# Timestamp is time of the first first timed task, if any.
+	wait-for-task timestamp?
+	# No task to do now or ever, so shut down
+	shut-down
 
 .choose-task choose-task-result(gctx global-ctx) noctx unsafe summon
 	cur-time = get-monotime-nsec
 	gctx.tasks-lock.ref-of-val acquire
 
 	# TODO: ref-of-val should be unnecessary for property access ?
-	# TODO: should not need type annotation
 	res = if gctx.gc.ref-of-val needs-gc
-		if gctx.n-threads-running == 0
-			gctx.n-threads-running := gctx.n-threads-running wrap-add 1
-			do-a-gc task-or-gc
-		else
-			gctx.n-live-threads := gctx.n-live-threads wrap-sub 1
-			() no-task
+		gc
 	else
 		match gctx.tasks pop-task cur-time
 		as task t
-			gctx.n-threads-running := gctx.n-threads-running wrap-add 1
-			t.task task-or-gc
+			t task
 		as no-task n
-			gctx.n-live-threads := gctx.n-live-threads wrap-sub 1
-			if !n.any-tasks && gctx.n-live-threads == 0
-				no-tasks-and-last-thread-out
+			n-waiting = gctx.n-waiting-threads.ref-of-val increment-and-get
+			if (n-waiting == gctx.n-threads && !n.any-tasks) || gctx.is-shut-down
+				# Can't possibly be any more tasks: No timed tasks, no threads doing work to add tasks.
+				gctx.is-shut-down := true
+				shut-down
 			else
-				n.first-task-time no-task
+				n.first-task-time wait-for-task
 
 	gctx.tasks-lock.ref-of-val release
 	res
