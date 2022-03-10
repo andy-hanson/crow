@@ -63,7 +63,7 @@ import model.model : EnumValue, name;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, emptyArr, only, sizeEq;
-import util.col.arrUtil : arrLiteral, every, map, zip;
+import util.col.arrUtil : arrLiteral, every, exists, map, zip;
 import util.col.dict : mustGetAt;
 import util.col.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey, fullIndexDictGet, fullIndexDictGetPtr;
 import util.col.str : eachChar, SafeCStr;
@@ -94,6 +94,11 @@ immutable(SafeCStr) writeToC(
 
 	writeStatic(writer, "#include <stddef.h>\n"); // for NULL
 	writeStatic(writer, "#include <stdint.h>\n");
+	version (Windows) {
+		writeStatic(writer, "unsigned short __popcnt16(unsigned short value);\n");
+		writeStatic(writer, "unsigned int __popcnt(unsigned int value);\n");
+		writeStatic(writer, "unsigned __int64 __popcnt64(unsigned __int64 value);\n");
+	}
 
 	immutable Ctx ctx = immutable Ctx(ptrTrustMe(program), buildMangledNames(alloc, ptrTrustMe(allSymbols), program));
 
@@ -322,34 +327,34 @@ void writeRecord(ref Writer writer, ref immutable Ctx ctx, ref immutable LowReco
 void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion a) {
 	writeStructHead(writer, ctx, a.source);
 	writeStatic(writer, "\n\tuint64_t kind;");
-	writeStatic(writer, "\n\tunion {");
-	foreach (immutable size_t memberIndex, immutable LowType member; a.members) {
-		if (!isVoid(member)) {
-			writeStatic(writer, "\n\t\t");
-			writeType(writer, ctx, member);
-			writeStatic(writer, " as");
-			writeNat(writer, memberIndex);
-			writeChar(writer, ';');
-		}
-	}
-
-	matchConcreteStructBody!void(
+	immutable bool isBuiltin = matchConcreteStructBody!(immutable bool)(
 		body_(a.source.deref()),
 		(ref immutable ConcreteStructBody.Builtin it) {
 			verify(it.kind == BuiltinStructKind.fun);
-			// Fun types must be 16 bytes
-			if (every!LowType(a.members, (ref immutable LowType member) =>
-				sizeOfType(ctx.program, member).size < 8)) {
-				writeStatic(writer, "\n\t\tuint64_t __ensureSizeIs16;");
-			}
+			return true;
 		},
-		(ref immutable(ConcreteStructBody.Enum)) {},
-		(ref immutable(ConcreteStructBody.Flags)) {},
-		(ref immutable(ConcreteStructBody.ExternPtr)) {},
-		(ref immutable(ConcreteStructBody.Record)) {},
-		(ref immutable(ConcreteStructBody.Union)) {});
-
-	writeStatic(writer, "\n\t};");
+		(ref immutable(ConcreteStructBody.Enum)) => false,
+		(ref immutable(ConcreteStructBody.Flags)) => false,
+		(ref immutable(ConcreteStructBody.ExternPtr)) => false,
+		(ref immutable(ConcreteStructBody.Record)) => false,
+		(ref immutable(ConcreteStructBody.Union)) => false);
+	if (exists!(immutable LowType)(a.members, (ref immutable LowType member) => !isVoid(member)) || isBuiltin) {
+		writeStatic(writer, "\n\tunion {");
+		foreach (immutable size_t memberIndex, immutable LowType member; a.members) {
+			if (!isVoid(member)) {
+				writeStatic(writer, "\n\t\t");
+				writeType(writer, ctx, member);
+				writeStatic(writer, " as");
+				writeNat(writer, memberIndex);
+				writeChar(writer, ';');
+			}
+		}
+		// Fun types must be 16 bytes
+		if (isBuiltin &&
+			every!LowType(a.members, (ref immutable LowType member) => sizeOfType(ctx.program, member).size < 8))
+			writeStatic(writer, "\n\t\tuint64_t __ensureSizeIs16;");
+		writeStatic(writer, "\n\t};");
+	}
 	writeStructEnd(writer);
 }
 
@@ -1183,11 +1188,39 @@ immutable(WriteExprResult) writeMatchUnion(
 		writeNewline(writer, indent + 1);
 		writeChar(writer, '}');
 	}
-	writeNewline(writer, indent + 1);
-	writeStatic(writer, "default: abort();");
+	writeDefaultAbort(writer, tempAlloc, indent, ctx, nested.writeKind, type);
 	writeNewline(writer, indent);
 	writeChar(writer, '}');
 	return nested.result;
+}
+
+void writeDefaultAbort(
+	ref Writer writer,
+	ref TempAlloc tempAlloc,
+	immutable size_t indent,
+	ref FunBodyCtx ctx,
+	ref immutable WriteKind writeKind,
+	immutable LowType type,
+) {
+	writeNewline(writer, indent + 1);
+	writeStatic(writer, "default:");
+	writeNewline(writer, indent + 2);
+	writeStatic(writer, "abort();");
+	version (Windows) {
+		if (!isVoid(type)) {
+			drop(writeInlineableSimple(
+				writer,
+				tempAlloc,
+				indent,
+				ctx,
+				writeKind,
+				type,
+				() {
+					writeZeroedValue(writer, ctx.ctx, type);
+				}));
+			writeChar(writer, ';');
+		}
+	}
 }
 
 //TODO: share code with writeMatchUnion
@@ -1223,8 +1256,7 @@ immutable(WriteExprResult) writeSwitch(
 		writeNewline(writer, indent + 1);
 		writeChar(writer, '}');
 	}
-	writeNewline(writer, indent + 1);
-	writeStatic(writer, "default: abort();");
+	writeDefaultAbort(writer, tempAlloc, indent, ctx, writeKind, type);
 	writeNewline(writer, indent);
 	writeChar(writer, '}');
 	return nested.result;
@@ -1463,7 +1495,11 @@ immutable(WriteExprResult) writeSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat64:
 			return prefix("~");
 		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
-			return specialCall("__builtin_popcountl");
+			version (Windows) {
+				return specialCall("__popcnt64");
+			} else {
+				return specialCall("__builtin_popcountl");
+			}
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return prefix("*");
 		case LowExprKind.SpecialUnary.Kind.ptrTo:

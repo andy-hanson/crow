@@ -14,6 +14,7 @@ version (Windows) {
 		CreateProcessA,
 		DeleteFileA,
 		DWORD,
+		ERROR_BROKEN_PIPE,
 		ERROR_NO_MORE_FILES,
 		FILE_ATTRIBUTE_DIRECTORY,
 		FindClose,
@@ -1296,6 +1297,16 @@ immutable size_t maxPathSize = 0x1000;
 			return 1;
 		}
 
+		verifyOk(CloseHandle(stdoutWrite));
+		verifyOk(CloseHandle(stderrWrite));
+
+		TempStr!0x10000 stdoutBuf;
+		TempStr!0x10000 stderrBuf;
+		readFromPipe(stdoutBuf, stdoutRead);
+		verifyOk(CloseHandle(stdoutRead));
+		readFromPipe(stderrBuf, stderrRead);
+		verifyOk(CloseHandle(stderrRead));
+
 		WaitForSingleObject(processInfo.hProcess, INFINITE);
 
 		DWORD exitCode;
@@ -1303,21 +1314,15 @@ immutable size_t maxPathSize = 0x1000;
 		if (!ok2)
 			todo!void("");
 
-		CloseHandle(stdoutWrite);
-		CloseHandle(stderrWrite);
-
 		if (exitCode != 0) {
-			printf("Error invoking C compiler: %s%s\n", executablePath.ptr, asTempSafeCStr(argsStr).ptr);
-			printf("C compiler stderr:\n");
-			copyStdoutOrStderrFromPipe(stderrRead);
-			printf("C compiler stdout:\n");
-			copyStdoutOrStderrFromPipe(stdoutRead);
+			fprintf(stderr, "Error invoking C compiler: %s\n", asTempSafeCStr(argsStr).ptr);
+			fprintf(stderr, "Exit code %d\n", exitCode);
+			fprintf(stderr, "C compiler stderr: %s\n", stderrBuf.ptr);
+			printf("C compiler stdout: %s\n", stdoutBuf.ptr);
 		}
 
-		CloseHandle(processInfo.hProcess);
-		CloseHandle(processInfo.hThread);
-		CloseHandle(stdoutRead);
-		CloseHandle(stderrRead);
+		verifyOk(CloseHandle(processInfo.hProcess));
+		verifyOk(CloseHandle(processInfo.hThread));
 
 		return exitCode;
 	} else {
@@ -1347,17 +1352,34 @@ immutable size_t maxPathSize = 0x1000;
 	}
 }
 
+void verifyOk(int ok) {
+	verify(ok == 1);
+}
+
 version (Windows) {
-	@system void copyStdoutOrStderrFromPipe(HANDLE pipe) {
-		char[0x1000] buf;
-		uint nRead;
-		int success = ReadFile(pipe, buf.ptr, buf.length, &nRead, null);
-		if (!success) {
-			printLastError(GetLastError(), "copyStdoutOrStderrFromPipe");
-			todo!void("");
+	@system void readFromPipe(ref TempStr!0x10000 out_, HANDLE pipe) {
+		readFromPipeRecur(out_.ptr, out_.ptr + out_.capacity, pipe);
+	}
+
+	@system void readFromPipeRecur(char* out_, char* outEnd, HANDLE pipe) {
+		verify(out_ < outEnd);
+		if (out_ + 1 == outEnd) {
+			*out_ = '\0';
+		} else {
+			uint nRead;
+			int ok = ReadFile(pipe, out_, cast(uint) (outEnd - out_ - 1), &nRead, null);
+			if (ok) {
+				readFromPipeRecur(out_ + nRead, outEnd, pipe);
+			} else {
+				int err = GetLastError();
+				if (err == ERROR_BROKEN_PIPE) {
+					*out_ = '\0';
+				} else {
+					printLastError(GetLastError(), "readFromPipe");
+					todo!void("");
+				}
+			}
 		}
-		if (nRead != 0)
-			fprintf(stderr, "%.*s\n", nRead, buf.ptr);
 	}
 }
 
