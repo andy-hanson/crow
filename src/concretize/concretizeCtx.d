@@ -318,7 +318,7 @@ immutable(ConcreteType) ctxType(ref Alloc alloc, ref ConcretizeCtx a) {
 }
 
 immutable(Constant) constantCStr(ref Alloc alloc, ref ConcretizeCtx a, immutable SafeCStr value) {
-	return immutable Constant(getConstantCStr(alloc, a.allConstants, value));
+	return getConstantCStr(alloc, a.allConstants, value);
 }
 
 immutable(Constant) constantSym(ref Alloc alloc, ref ConcretizeCtx a, immutable Sym value) {

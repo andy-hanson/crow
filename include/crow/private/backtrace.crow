@@ -3,19 +3,21 @@ import
 	sys/execinfo: backtrace
 	../col/private/arr-low-level: new, subscript
 	../compare: <, <=, >
-	../misc: name, named-val, new, val
+	../misc: new, void
 	../ptr:
 		==, <=>, +, *, any-const-ptr, as-const, const-ptr, mut-ptr, set-deref, set-subscript,
 		subscript
 	../version: is-windows
 	./alloc: copy-data-from, try-alloc-uninitialized
-	./bootstrap: begin-ptr, hard-assert, nat64, new, none, opt, size, some, sym, void
+	./bootstrap:
+		all-funs, begin-ptr, c-str, fun-name, fun-name-and-ptr, fun-ptr, hard-assert, new, none,
+		opt, size, some
 	./number-low-level:
-		==, <=>, int32, int64, to-int64, unsafe-div, unsafe-to-int64, unsafe-to-int32, unsafe-to-nat64, wrap-add,
-		wrap-sub
+		==, <=>, int32, int64, nat64, to-int64, unsafe-div, unsafe-to-int64, unsafe-to-int32,
+		unsafe-to-nat64, wrap-add, wrap-sub
 	./range-low-level: ..
 export
-	./bootstrap: all-funs, backtrace, return-stack
+	./bootstrap: backtrace, return-stack
 
 get-backtrace backtrace() unsafe
 	# Being careful to avoid calling functions that may throw here
@@ -53,10 +55,10 @@ int32-to-nat64 nat64(a int32) unsafe
 	arrs.code-names.as-const[0 .. n-code-ptrs],
 
 .fill-code-names void
-	code-names sym mut*
-	end-code-names sym mut*
+	code-names c-str mut*
+	end-code-names c-str mut*
 	code-ptrs any-const-ptr*
-	funs named-val<any-const-ptr>*
+	funs fun-name-and-ptr*
 spec
 	unsafe
 body
@@ -69,15 +71,15 @@ body
 
 .backtrace-arrs record mut
 	code-ptrs any-const-ptr mut*
-	code-names sym mut*
-	funs named-val<any-const-ptr> mut*
+	code-names c-str mut*
+	funs fun-name-and-ptr mut*
 
 .try-alloc-backtrace-arrs backtrace-arrs?() unsafe
 	size = 8
 	# TODO: support type on left of '?='
 	if code-ptrs ?= size.try-alloc-uninitialized :: any-const-ptr mut*?
-		if code-names ?= size.try-alloc-uninitialized :: sym mut*?
-			if funs ?= all-funs.size.try-alloc-uninitialized :: named-val<any-const-ptr> mut*?
+		if code-names ?= size.try-alloc-uninitialized :: c-str mut*?
+			if funs ?= all-funs.size.try-alloc-uninitialized :: fun-name-and-ptr mut*?
 				(code-ptrs, code-names, funs) some
 			else
 				none
@@ -86,28 +88,28 @@ body
 	else
 		none
 
-.get-fun-name sym(code-ptr any-const-ptr, funs named-val<any-const-ptr>*, size nat64) unsafe noctx
+.get-fun-name c-str(code-ptr any-const-ptr, funs fun-name-and-ptr*, size nat64) unsafe noctx
 	# TODO: this will fail to give a name for the last function
 	if size < 2
 		"<<UNKNOWN>>"
-	elif code-ptr < funs[1].val
-		funs->name
+	elif code-ptr < funs[1].fun-ptr
+		funs->fun-name
 	else
 		code-ptr get-fun-name funs + 1, (size wrap-sub 1)
 
 # TODO: use the one from sort.crow
-.set-sort void(a named-val<any-const-ptr> mut*, size nat64) noctx unsafe
+.set-sort void(a fun-name-and-ptr mut*, size nat64) noctx unsafe
 	if size > 1
 		a swap 0, (size unsafe-div 2)
-		after-pivot = a set-partition a->val, 1, (size wrap-sub 1)
+		after-pivot = a set-partition a->fun-ptr, 1, (size wrap-sub 1)
 		new-pivot-index = after-pivot wrap-sub 1
 		a swap 0, new-pivot-index
 		a set-sort new-pivot-index
 		a + after-pivot set-sort (size wrap-sub after-pivot)
 
-.set-partition nat64(a named-val<any-const-ptr> mut*, pivot any-const-ptr, l nat64, r nat64) noctx unsafe
+.set-partition nat64(a fun-name-and-ptr mut*, pivot any-const-ptr, l nat64, r nat64) noctx unsafe
 	if l <= r
-		if a[l].val < pivot
+		if a[l].fun-ptr < pivot
 			a set-partition pivot, (l wrap-add 1), r
 		else
 			a swap l, r

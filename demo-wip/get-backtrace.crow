@@ -2,6 +2,7 @@ import
 	crow/col/arr-util: each
 	crow/io/print: print
 	crow/private/backtrace: get-backtrace, return-stack
+	crow/str-util: to-str
 
 main fut nat(_ str[]) summon unsafe
 	gonna-do-it

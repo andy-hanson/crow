@@ -109,7 +109,7 @@ private immutable(Constant) makeAllFuns(
 			immutable Opt!Sym name = name(it.deref());
 			return has(name) && concreteFunWillBecomeNonExternLowFun(it.deref())
 				? some(immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
-					getConstantSym(alloc, a, allSymbols, force(name)),
+					getConstantCStrForSym(alloc, a, allSymbols, force(name)),
 					immutable Constant(immutable Constant.FunPtr(it))]))))
 				: none!Constant;
 		}));
@@ -176,12 +176,21 @@ private immutable(Constant) constantEmptyArr() {
 	return immutable Constant(immutable Constant.Record(fields));
 }
 
-immutable(Constant.CString) getConstantCStr(
+private immutable(Constant) getConstantCStrForSym(
+	ref Alloc alloc,
+	ref AllConstantsBuilder allConstants,
+	ref const AllSymbols allSymbols,
+	immutable Sym value,
+) {
+	return getConstantCStr(alloc, allConstants, safeCStrOfSym(alloc, allSymbols, value));
+}
+
+immutable(Constant) getConstantCStr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	immutable SafeCStr value,
 ) {
-	return getOrAdd!(immutable SafeCStr, immutable Constant.CString, safeCStrEq, hashSafeCStr)(
+	return immutable Constant(getOrAdd!(immutable SafeCStr, immutable Constant.CString, safeCStrEq, hashSafeCStr)(
 		alloc,
 		allConstants.cStrings,
 		value,
@@ -190,7 +199,7 @@ immutable(Constant.CString) getConstantCStr(
 			verify(mutDictSize(allConstants.cStrings) == index);
 			push(alloc, allConstants.cStringValues, value);
 			return immutable Constant.CString(index);
-		});
+		}));
 }
 
 immutable(Constant) getConstantSym(
@@ -203,11 +212,9 @@ immutable(Constant) getConstantSym(
 		alloc,
 		allConstants.syms,
 		value,
-		() {
-			immutable Constant.CString c =
-				getConstantCStr(alloc, allConstants, safeCStrOfSym(alloc, allSymbols, value));
-			return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [immutable Constant(c)])));
-		});
+		() =>
+			immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
+				getConstantCStrForSym(alloc, allConstants, allSymbols, value)]))));
 }
 
 private:
