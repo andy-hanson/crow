@@ -105,7 +105,7 @@ immutable(GccTypes) getGccTypes(
 		mapFullIndexDict_mut!(LowType.Record, Ptr!gcc_jit_struct, LowRecord)(
 			alloc,
 			program.allRecords,
-			(immutable LowType.Record, ref immutable LowRecord record) =>
+			(immutable LowType.Record, scope ref immutable LowRecord record) =>
 				structStub(alloc, ctx, mangledNames, record.source)),
 		mapFullIndexDict_mut!(LowType.Record, immutable Ptr!gcc_jit_field[], LowRecord)(
 			alloc,
@@ -145,7 +145,7 @@ immutable(GccTypes) getGccTypes(
 		mapFullIndexDict!(LowType.FunPtr, Ptr!gcc_jit_type, Opt!(Ptr!gcc_jit_type))(
 			alloc,
 			fullIndexDictCastImmutable(typesWip.funPtrs),
-			(immutable LowType.FunPtr, ref immutable Opt!(Ptr!gcc_jit_type) a) =>
+			(immutable LowType.FunPtr, scope ref immutable Opt!(Ptr!gcc_jit_type) a) =>
 				force(a)),
 		fullIndexDictCastImmutable(typesWip.records),
 		fullIndexDictCastImmutable2!(LowType.Record, Ptr!gcc_jit_field[])(typesWip.recordFields),
@@ -153,7 +153,7 @@ immutable(GccTypes) getGccTypes(
 		mapFullIndexDict!(LowType.Union, UnionFields, Opt!UnionFields)(
 			alloc,
 			fullIndexDictCastImmutable2(typesWip.unionFields),
-			(immutable LowType.Union, ref immutable Opt!UnionFields it) =>
+			(immutable LowType.Union, scope ref immutable Opt!UnionFields it) =>
 				force(it)));
 }
 
@@ -242,7 +242,7 @@ immutable(Ptr!gcc_jit_function) generateAssertFieldOffsetsFunction(
 	return castImmutable(fn);
 }
 
-immutable(Ptr!gcc_jit_type) getGccType(ref immutable GccTypes types, immutable LowType a) {
+immutable(Ptr!gcc_jit_type) getGccType(ref immutable GccTypes types, scope immutable LowType a) {
 	immutable Ptr!gcc_jit_type res = matchLowTypeCombinePtr!(
 		immutable Ptr!gcc_jit_type,
 		(immutable LowType.ExternPtr x) =>
@@ -445,7 +445,7 @@ Ptr!gcc_jit_struct structStub(
 	ref Alloc alloc,
 	ref gcc_jit_context ctx,
 	ref immutable MangledNames mangledNames,
-	immutable Ptr!ConcreteStruct source,
+	scope immutable Ptr!ConcreteStruct source,
 ) {
 	//TODO:PERF use a temporary (dont' allocate string)
 	Writer writer = Writer(ptrTrustMe_mut(alloc));

@@ -273,7 +273,7 @@ extern(C) {
 		mapFullIndexDict_mut!(LowFunIndex, Ptr!gcc_jit_function, LowFun)(
 			alloc,
 			program.allFuns,
-			(immutable LowFunIndex funIndex, ref immutable LowFun fun) =>
+			(immutable LowFunIndex funIndex, scope ref immutable LowFun fun) =>
 				toGccFunctionSignature(alloc, ctx, program, mangledNames, gccTypes, funIndex, fun));
 
 	immutable Ptr!gcc_jit_type nat64Type = getGccType(gccTypes, immutable LowType(PrimitiveType.nat64));
@@ -460,12 +460,12 @@ GlobalsForConstants generateGlobalsForConstants(
 	Ptr!gcc_jit_lvalue[][] ptrGlobals = mapToMut!(Ptr!gcc_jit_lvalue[])(
 		alloc,
 		program.allConstants.pointers,
-		(ref immutable PointerTypeAndConstantsLow tc) {
+		(scope ref immutable PointerTypeAndConstantsLow tc) {
 			immutable Ptr!gcc_jit_type gccPointeeType = getGccType(types, tc.pointeeType);
 			return mapWithIndex_mut!(Ptr!gcc_jit_lvalue)(
 				alloc,
 				tc.constants,
-				(immutable size_t index, ref immutable Ptr!Constant) {
+				(immutable size_t index, scope ref immutable Ptr!Constant) {
 					//TODO:NO ALLOC
 					Writer writer = Writer(ptrTrustMe_mut(alloc));
 					writeConstantPointerStorageName(writer, mangledNames, program, tc.pointeeType, index);
@@ -489,7 +489,7 @@ GlobalsForConstants generateGlobalsForConstants(
 	scope ref immutable MangledNames mangledNames,
 	ref immutable GccTypes gccTypes,
 	immutable LowFunIndex funIndex,
-	ref immutable LowFun fun,
+	scope ref immutable LowFun fun,
 ) {
 	immutable gcc_jit_function_kind kind = matchLowFunBody!(
 		immutable gcc_jit_function_kind,
@@ -644,7 +644,7 @@ immutable(ExprResult) emitSimpleNoSideEffects(
 immutable(ExprResult) emitSimpleYesSideEffects(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
-	ref immutable LowType type,
+	immutable LowType type,
 	immutable Ptr!gcc_jit_rvalue value,
 ) {
 	return isValue(emit)
@@ -843,7 +843,7 @@ struct LocalPair {
 immutable(ExprResult) toGccExpr(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
-	ref immutable LowExpr a,
+	scope ref immutable LowExpr a,
 ) {
 	return matchLowExprKind!(
 		immutable ExprResult,
@@ -916,7 +916,7 @@ void emitToLValueCb(
 	verify(!has(result));
 }
 
-void emitToLValue(ref ExprCtx ctx, Ptr!gcc_jit_lvalue lvalue, ref immutable LowExpr a) {
+void emitToLValue(ref ExprCtx ctx, Ptr!gcc_jit_lvalue lvalue, scope ref immutable LowExpr a) {
 	emitToLValueCb(lvalue, (ref ExprEmit emitArg) =>
 		toGccExpr(ctx, emitArg, a));
 }
@@ -962,7 +962,7 @@ void emitToLValue(ref ExprCtx ctx, Ptr!gcc_jit_lvalue lvalue, ref immutable LowE
 
 	// We need to be sure to generate all the new parameter values before overwriting any,
 	Ptr!gcc_jit_lvalue[] locals =
-		mapToMut!(Ptr!gcc_jit_lvalue)(ctx.alloc, a.updateParams, (ref immutable UpdateParam updateParam) {
+		mapToMut!(Ptr!gcc_jit_lvalue)(ctx.alloc, a.updateParams, (scope ref immutable UpdateParam updateParam) {
 			Ptr!gcc_jit_lvalue local =
 				gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, updateParam.newValue.type), "temp");
 			emitToLValue(ctx, local, updateParam.newValue);

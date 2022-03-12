@@ -101,20 +101,20 @@ void fullIndexDictSet(K, V)(ref FullIndexDict!(K, V) a, immutable K key, immutab
 
 immutable(FullIndexDict!(K, VOut)) mapFullIndexDict(K, VOut, VIn)(
 	ref Alloc alloc,
-	immutable FullIndexDict!(K, VIn) a,
-	scope immutable(VOut) delegate(immutable K, ref immutable VIn) @safe @nogc pure nothrow cb,
+	scope immutable FullIndexDict!(K, VIn) a,
+	scope immutable(VOut) delegate(immutable K, scope ref immutable VIn) @safe @nogc pure nothrow cb,
 ) {
 	return fullIndexDictOfArr!(K, VOut)(
-		mapWithIndex(alloc, a.values, (immutable size_t index, ref immutable VIn v) =>
+		mapWithIndex(alloc, a.values, (immutable size_t index, scope ref immutable VIn v) =>
 			cb(immutable K(K.sizeof == 4 ? safeToUint(index) : safeToUshort(index)), v)));
 }
 
 FullIndexDict!(K, VOut) mapFullIndexDict_mut(K, VOut, VIn)(
 	ref Alloc alloc,
 	immutable FullIndexDict!(K, VIn) a,
-	scope VOut delegate(immutable K, ref immutable VIn) @safe @nogc pure nothrow cb,
+	scope VOut delegate(immutable K, scope ref immutable VIn) @safe @nogc pure nothrow cb,
 ) {
 	return fullIndexDictOfArr_mut!(K, VOut)(
-		mapWithIndex_mut!(VOut, VIn)(alloc, a.values, (immutable size_t index, ref immutable VIn v) =>
+		mapWithIndex_mut!(VOut, VIn)(alloc, a.values, (immutable size_t index, scope ref immutable VIn v) =>
 			cb(immutable K(K.sizeof == 4 ? safeToUint(index) : safeToUshort(index)), v)));
 }

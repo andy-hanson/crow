@@ -88,7 +88,7 @@ import versionInfo : VersionInfo;
 	ref ConcretizeCtx ctx,
 	ref immutable ContainingFunInfo containing,
 	immutable Ptr!ConcreteFun cf,
-	ref immutable Expr e,
+	scope ref immutable Expr e,
 ) {
 	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe_mut(ctx), containing, cf);
 	immutable Locals locals;
@@ -175,7 +175,7 @@ immutable(TypeArgsScope) typeScope(ref ConcretizeExprCtx ctx) {
 
 immutable(ConcreteExpr) concretizeCall(
 	ref ConcretizeExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	scope ref immutable Locals locals,
 	ref immutable Expr.Call e,
 ) {
@@ -233,7 +233,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromFunInst(
 
 immutable(ConcreteExpr) concretizeClosureFieldRef(
 	ref ConcretizeExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable Expr.ClosureFieldRef e,
 ) {
 	immutable Ptr!ConcreteParam closureParam = force(ctx.currentConcreteFun.closureParam);
@@ -274,7 +274,7 @@ immutable(ConcreteExpr) createAllocExpr(ref Alloc alloc, immutable ConcreteExpr 
 immutable(ConcreteExpr) getGetExclusion(
 	ref ConcretizeExprCtx ctx,
 	ref immutable ConcreteType type,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 ) {
 	return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
 		immutable ConcreteExprKind.Call(getCurExclusionFun(ctx.concretizeCtx), emptyArr!ConcreteExpr)));
@@ -295,7 +295,7 @@ immutable(ConcreteField[]) concretizeClosureFields(
 
 immutable(ConcreteExpr) concretizeFunPtr(
 	ref ConcretizeExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable Expr.FunPtr e,
 ) {
 	immutable Ptr!ConcreteFun fun = getOrAddNonTemplateConcreteFunAndFillBody(ctx.concretizeCtx, e.funInst);
@@ -313,7 +313,7 @@ public immutable(Ptr!ConcreteParam) closureParam(ref Alloc alloc, immutable Conc
 
 immutable(ConcreteExpr) concretizeLambda(
 	ref ConcretizeExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	scope ref immutable Locals locals,
 	ref immutable Expr.Lambda e,
 ) {
@@ -446,7 +446,7 @@ immutable(ConcreteExpr) concretizeWithLocal(
 
 immutable(ConcreteExpr) concretizeLet(
 	ref ConcretizeExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	scope ref immutable Locals locals,
 	ref immutable Expr.Let e,
 ) {
@@ -466,7 +466,7 @@ immutable(ConcreteExpr) concretizeLet(
 
 immutable(ConcreteExpr) concretizeIfOption(
 	ref ConcretizeExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	scope ref immutable Locals locals,
 	ref immutable Expr.IfOption e,
 ) {
@@ -492,7 +492,7 @@ immutable(ConcreteExpr) concretizeIfOption(
 }
 
 immutable(ConcreteExpr) concretizeLocalRef(
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	scope ref immutable Locals locals,
 	ref immutable Expr.LocalRef e,
 ) {
@@ -507,7 +507,7 @@ immutable(ConcreteExpr) concretizeLocalRef(
 
 immutable(ConcreteExpr) concretizeMatchEnum(
 	ref ConcretizeExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	scope ref immutable Locals locals,
 	ref immutable Expr.MatchEnum e,
 ) {
@@ -522,7 +522,7 @@ immutable(ConcreteExpr) concretizeMatchEnum(
 
 immutable(ConcreteExpr) concretizeMatchUnion(
 	ref ConcretizeExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	scope ref immutable Locals locals,
 	ref immutable Expr.MatchUnion e,
 ) {
@@ -561,7 +561,7 @@ immutable(ConcreteExpr) concretizeMatchUnion(
 
 immutable(ConcreteExpr) concretizeParamRef(
 	ref ConcretizeExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable Expr.ParamRef e,
 ) {
 	immutable size_t paramIndex = e.param.deref().index;

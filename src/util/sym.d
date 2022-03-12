@@ -334,7 +334,7 @@ immutable(char[bufferSize]) symAsTempBuffer(size_t bufferSize)(ref const AllSymb
 	return res;
 }
 
-immutable(size_t) writeSymAndGetSize(ref Writer writer, ref const AllSymbols allSymbols, immutable Sym a) {
+immutable(size_t) writeSymAndGetSize(scope ref Writer writer, scope ref const AllSymbols allSymbols, immutable Sym a) {
 	size_t size = 0;
 	eachCharInSym(allSymbols, a, (immutable char c) {
 		writeChar(writer, c);
@@ -343,7 +343,7 @@ immutable(size_t) writeSymAndGetSize(ref Writer writer, ref const AllSymbols all
 	return size;
 }
 
-void writeSym(ref Writer writer, ref const AllSymbols allSymbols, immutable Sym a) {
+void writeSym(scope ref Writer writer, scope ref const AllSymbols allSymbols, immutable Sym a) {
 	writeSymAndGetSize(writer, allSymbols, a);
 }
 

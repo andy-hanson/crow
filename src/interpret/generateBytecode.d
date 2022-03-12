@@ -182,8 +182,8 @@ immutable(ByteCode) generateBytecode(
 	ref Alloc codeAlloc,
 	ref TempAlloc tempAlloc,
 	ref const AllSymbols allSymbols,
-	ref immutable Program modelProgram,
-	ref immutable LowProgram program,
+	scope ref immutable Program modelProgram,
+	scope ref immutable LowProgram program,
 ) {
 	TextAndInfo text = generateText(codeAlloc, tempAlloc, program, program.allConstants);
 
@@ -196,7 +196,7 @@ immutable(ByteCode) generateBytecode(
 		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun)(
 			tempAlloc,
 			program.allFuns,
-			(immutable LowFunIndex funIndex, ref immutable LowFun fun) {
+			(immutable LowFunIndex funIndex, scope ref immutable LowFun fun) @safe {
 				immutable ByteCodeIndex funPos = nextByteCodeIndex(writer);
 				generateBytecodeForFun(
 					tempAlloc,
@@ -234,7 +234,11 @@ private:
 	return cast(Out*) ptr;
 }
 
-immutable(FileToFuns) fileToFuns(ref Alloc alloc, ref const AllSymbols allSymbols, ref immutable Program program) {
+immutable(FileToFuns) fileToFuns(
+	ref Alloc alloc,
+	ref const AllSymbols allSymbols,
+	scope ref immutable Program program,
+) {
 	immutable FullIndexDict!(FileIndex, Module) modulesDict =
 		fullIndexDictOfArr!(FileIndex, Module)(program.allModules);
 	return mapFullIndexDict!(FileIndex, FunNameAndPos[], Module)(
@@ -245,20 +249,20 @@ immutable(FileToFuns) fileToFuns(ref Alloc alloc, ref const AllSymbols allSymbol
 				immutable FunNameAndPos(name(it), it.fileAndPos.pos)));
 }
 
-immutable(TypeSize) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
+immutable(TypeSize) sizeOfType(ref const ExprCtx ctx, immutable LowType t) {
 	return sizeOfType(ctx.program, t);
 }
 
-immutable(size_t) nStackEntriesForType(ref const ExprCtx ctx, ref immutable LowType t) {
+immutable(size_t) nStackEntriesForType(ref const ExprCtx ctx, immutable LowType t) {
 	return nStackEntriesForType(ctx.program, t);
 }
 
-immutable(size_t) nStackEntriesForRecordType(ref const ExprCtx ctx, ref immutable LowType.Record t) {
+immutable(size_t) nStackEntriesForRecordType(ref const ExprCtx ctx, immutable LowType.Record t) {
 	immutable LowType type = immutable LowType(t);
 	return nStackEntriesForType(ctx, type);
 }
 
-immutable(size_t) nStackEntriesForUnionType(ref const ExprCtx ctx, ref immutable LowType.Union t) {
+immutable(size_t) nStackEntriesForUnionType(ref const ExprCtx ctx, immutable LowType.Union t) {
 	immutable LowType type = immutable LowType(t);
 	return nStackEntriesForType(ctx, type);
 }
@@ -269,9 +273,9 @@ void generateBytecodeForFun(
 	ref MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences,
 	ref const AllSymbols allSymbols,
 	ref immutable TextInfo textInfo,
-	ref immutable LowProgram program,
+	scope ref immutable LowProgram program,
 	immutable LowFunIndex funIndex,
-	ref immutable LowFun fun,
+	scope ref immutable LowFun fun,
 ) {
 	debug {
 		if (false) {
@@ -351,7 +355,7 @@ void generateExternCall(
 	writeReturn(writer, source);
 }
 
-immutable(DynCallType) toDynCallType(ref immutable LowType a) {
+immutable(DynCallType) toDynCallType(immutable LowType a) {
 	return matchLowType!(
 		immutable DynCallType,
 		(immutable LowType.ExternPtr) =>
@@ -537,7 +541,7 @@ void generateExpr(
 			immutable ByteCodeIndex[] delayedGotos = mapOpWithIndex!ByteCodeIndex(
 				ctx.tempAlloc,
 				it.cases,
-				(immutable size_t caseIndex, ref immutable LowExprKind.MatchUnion.Case case_) @safe {
+				(immutable size_t caseIndex, ref immutable LowExprKind.MatchUnion.Case case_) {
 					fillDelayedSwitchEntry(writer, switchDelayed, caseIndex);
 					if (has(case_.local)) {
 						immutable size_t nEntries = nStackEntriesForType(ctx, force(case_.local).deref().type);
@@ -720,7 +724,7 @@ void generateCreateRecord(
 		ctx,
 		type,
 		source,
-		(immutable size_t fieldIndex, ref immutable LowType fieldType) {
+		(immutable size_t fieldIndex, immutable LowType fieldType) {
 			immutable LowExpr arg = it.args[fieldIndex];
 			verify(lowTypeEqual(arg.type, fieldType));
 			generateExpr(writer, ctx, locals, arg);
@@ -732,7 +736,7 @@ void generateCreateRecordOrConstantRecord(
 	ref ExprCtx ctx,
 	immutable LowType.Record type,
 	immutable ByteCodeSource source,
-	scope void delegate(immutable size_t, ref immutable LowType) @safe @nogc pure nothrow cbGenerateField,
+	scope void delegate(immutable size_t, immutable LowType) @safe @nogc pure nothrow cbGenerateField,
 ) {
 	immutable StackEntry before = getNextStackEntry(writer);
 
@@ -761,7 +765,7 @@ void generateCreateUnion(
 		type,
 		it.memberIndex,
 		source,
-		(ref immutable LowType) {
+		(immutable LowType) {
 			generateExpr(writer, ctx, locals, it.arg);
 		});
 }
@@ -772,7 +776,7 @@ void generateCreateUnionOrConstantUnion(
 	immutable LowType.Union type,
 	immutable size_t memberIndex,
 	immutable ByteCodeSource source,
-	scope void delegate(ref immutable LowType) @safe @nogc pure nothrow cbGenerateMember,
+	scope void delegate(immutable LowType) @safe @nogc pure nothrow cbGenerateMember,
 ) {
 	immutable StackEntry before = getNextStackEntry(writer);
 	immutable size_t size = nStackEntriesForUnionType(ctx, type);
@@ -810,8 +814,8 @@ void generateConstant(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
-	ref immutable LowType type,
-	ref immutable Constant constant,
+	immutable LowType type,
+	immutable Constant constant,
 ) {
 	debug {
 		if (false) {
@@ -870,7 +874,7 @@ void generateConstant(
 				ctx,
 				asRecordType(type),
 				source,
-				(immutable size_t argIndex, ref immutable LowType argType) {
+				(immutable size_t argIndex, immutable LowType argType) {
 					generateConstant(writer, ctx, source, argType, it.args[argIndex]);
 				});
 		},
@@ -881,7 +885,7 @@ void generateConstant(
 				asUnionType(type),
 				it.memberIndex,
 				source,
-				(ref immutable LowType memberType) {
+				(immutable LowType memberType) {
 					generateConstant(writer, ctx, source, memberType, it.arg);
 				});
 		},
@@ -899,7 +903,7 @@ void generateSpecialUnary(
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
 	scope ref immutable Locals locals,
-	ref immutable LowType type,
+	immutable LowType type,
 	ref immutable LowExprKind.SpecialUnary a,
 ) {
 	void generateArg() {

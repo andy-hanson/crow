@@ -1794,7 +1794,7 @@ struct Expr {
 	}
 }
 
-ref immutable(FileAndRange) range(return ref immutable Expr a) {
+immutable(FileAndRange) range(scope ref immutable Expr a) {
 	return a.range_;
 }
 

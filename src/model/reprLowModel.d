@@ -74,7 +74,7 @@ immutable(Repr) reprOfLowProgram(ref Alloc alloc, ref immutable LowProgram a) {
 
 private:
 
-immutable(Repr) reprOfLowType(ref Alloc alloc, ref immutable LowType a) {
+immutable(Repr) reprOfLowType(ref Alloc alloc, immutable LowType a) {
 	return matchLowType!(
 		immutable Repr,
 		(immutable LowType.ExternPtr it) =>

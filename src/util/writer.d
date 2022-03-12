@@ -33,18 +33,18 @@ void writeChar(ref Writer writer, immutable char c) {
 	add(writer.alloc.deref(), writer.res, c);
 }
 
-void writeSafeCStr(ref Writer writer, immutable SafeCStr a) {
+void writeSafeCStr(ref Writer writer, scope immutable SafeCStr a) {
 	eachChar(a, (immutable char c) {
 		writeChar(writer, c);
 	});
 }
 
-void writeStr(ref Writer writer, immutable string s) {
+void writeStr(ref Writer writer, scope immutable string s) {
 	foreach (immutable char c; s)
 		writeChar(writer, c);
 }
 
-void writeStatic(ref Writer writer, immutable string c) {
+void writeStatic(ref Writer writer, scope immutable string c) {
 	writeStr(writer, c);
 }
 
@@ -52,7 +52,7 @@ void writeHex(ref Writer writer, immutable ulong a) {
 	writeNat(writer, a, 16);
 }
 
-void writeHex(ref Writer writer, immutable long a) {
+void writeHex(scope ref Writer writer, immutable long a) {
 	if (a < 0)
 		writeChar(writer, '-');
 	writeHex(writer, cast(immutable ulong) (a < 0 ? -a : a));
@@ -125,17 +125,17 @@ void writeJoin(T)(
 
 void writeWithCommas(T)(
 	ref Writer writer,
-	immutable T[] a,
-	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
+	scope immutable T[] a,
+	scope void delegate(scope ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	writeWithCommas!T(writer, a, (ref immutable T) => true, cb);
 }
 
 void writeWithCommas(T)(
 	ref Writer writer,
-	immutable T[] a,
-	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow filter,
-	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
+	scope immutable T[] a,
+	scope immutable(bool) delegate(scope ref immutable T) @safe @nogc pure nothrow filter,
+	scope void delegate(scope ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	bool needsComma = false;
 	foreach (ref immutable T x; a) {
@@ -151,10 +151,10 @@ void writeWithCommas(T)(
 
 void writeWithCommasZip(T, U)(
 	ref Writer writer,
-	immutable T[] a,
-	immutable U[] b,
-	scope immutable(bool) delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow filter,
-	scope void delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow cb,
+	scope immutable T[] a,
+	scope immutable U[] b,
+	scope immutable(bool) delegate(scope ref immutable T, scope ref immutable U) @safe @nogc pure nothrow filter,
+	scope void delegate(scope ref immutable T, scope ref immutable U) @safe @nogc pure nothrow cb,
 ) {
 	bool needsComma = false;
 	zip!(T, U)(a, b, (ref immutable T x, ref immutable U y) {

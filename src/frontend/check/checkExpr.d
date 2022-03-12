@@ -149,16 +149,16 @@ import util.util : todo, verify;
 
 immutable(Expr) checkFunctionBody(
 	ref CheckCtx checkCtx,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable CommonTypes commonTypes,
 	ref immutable FunsDict funsDict,
-	ref bool[] usedFuns,
+	scope bool[] usedFuns,
 	immutable Type returnType,
 	immutable TypeParam[] typeParams,
 	immutable Param[] params,
 	immutable Ptr!SpecInst[] specs,
 	immutable FunFlags flags,
-	ref immutable ExprAst ast,
+	scope ref immutable ExprAst ast,
 ) {
 	ExprCtx exprCtx = ExprCtx(
 		ptrTrustMe_mut(checkCtx),
@@ -210,23 +210,31 @@ immutable(ExprAndType) checkAndInfer(ref ExprCtx ctx, ref immutable ExprAst ast)
 	return immutable ExprAndType(expr, inferred(expected));
 }
 
-immutable(ExprAndType) checkAndExpect(ref ExprCtx ctx, ref immutable ExprAst ast, immutable Opt!Type expected) {
+immutable(ExprAndType) checkAndExpect(
+	scope ref ExprCtx ctx,
+	scope ref immutable ExprAst ast,
+	immutable Opt!Type expected,
+) {
 	Expected et = Expected(expected);
 	immutable Expr expr = checkExpr(ctx, ast, et);
 	return immutable ExprAndType(expr, inferred(et));
 }
 
-immutable(Expr) checkAndExpect(ref ExprCtx ctx, ref immutable ExprAst ast, immutable Type expected) {
+immutable(Expr) checkAndExpect(scope ref ExprCtx ctx, scope ref immutable ExprAst ast, immutable Type expected) {
 	return checkAndExpect(ctx, ast, some(expected)).expr;
 }
 
-immutable(Expr) checkAndExpect(ref ExprCtx ctx, ref immutable ExprAst ast, immutable Ptr!StructInst expected) {
+immutable(Expr) checkAndExpect(
+	scope ref ExprCtx ctx,
+	scope ref immutable ExprAst ast,
+	immutable Ptr!StructInst expected,
+) {
 	return checkAndExpect(ctx, ast, immutable Type(expected));
 }
 
 immutable(Expr) checkArrowAccess(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable ArrowAccessAst ast,
 	ref Expected expected,
 ) {
@@ -246,7 +254,7 @@ immutable(Expr) checkArrowAccess(
 
 immutable(Expr) checkIf(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable IfAst ast,
 	ref Expected expected,
 ) {
@@ -258,7 +266,7 @@ immutable(Expr) checkIf(
 
 immutable(Expr) checkUnless(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable UnlessAst ast,
 	ref Expected expected,
 ) {
@@ -270,7 +278,7 @@ immutable(Expr) checkUnless(
 
 immutable(Expr) checkExprOrEmptyNew(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable Opt!ExprAst ast,
 	ref Expected expected,
 ) {
@@ -281,7 +289,7 @@ immutable(Expr) checkExprOrEmptyNew(
 
 immutable(Expr) checkEmptyNew(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref Expected expected,
 ) {
 	immutable CallAst ast = immutable CallAst(CallAst.style.emptyParens,
@@ -293,7 +301,7 @@ immutable(Expr) checkEmptyNew(
 
 immutable(Expr) checkIfOption(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable IfOptionAst ast,
 	ref Expected expected,
 ) {
@@ -325,7 +333,7 @@ immutable(Expr) checkIfOption(
 
 immutable(Expr) checkInterpolated(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable InterpolatedAst ast,
 	ref Expected expected,
 ) {
@@ -398,7 +406,7 @@ struct ExpectedLambdaType {
 
 immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref Expected expected,
 ) {
 	immutable Opt!Type expectedType = shallowInstantiateType(expected);
@@ -446,7 +454,7 @@ immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable P
 }
 
 immutable(Opt!Expr) getIdentifierInLambda(
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	immutable Sym name,
 	ref LambdaInfo lambda,
 ) {
@@ -473,7 +481,7 @@ struct IdentifierAndLambdas {
 
 Opt!IdentifierAndLambdas getIdentifierNonCall(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	immutable Sym name,
 ) {
 	// Innermost lambda first
@@ -533,7 +541,7 @@ immutable(Expr) checkRef(
 
 immutable(Expr) checkIdentifier(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable IdentifierAst ast,
 	ref Expected expected,
 ) {
@@ -556,7 +564,7 @@ struct IntRange {
 
 immutable(Expr) checkLiteral(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable ExprAst curAst,
 	ref immutable LiteralAst ast,
 	ref Expected expected,
@@ -673,7 +681,7 @@ immutable(Expr) checkLiteral(
 immutable(Expr) checkStringLiteral(
 	ref ExprCtx ctx,
 	ref immutable ExprAst curAst,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref Expected expected,
 	immutable Opt!(Ptr!StructInst) expectedStruct,
 	immutable string value,
@@ -761,7 +769,7 @@ immutable(Param[]) checkFunOrSendFunParamsForLambda(
 
 immutable(Expr) checkFunPtr(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable FunPtrAst ast,
 	ref Expected expected,
 ) {
@@ -819,7 +827,7 @@ immutable(Expr) checkFunPtr(
 
 immutable(Expr) checkLambda(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable LambdaAst ast,
 	ref Expected expected,
 ) {
@@ -828,7 +836,7 @@ immutable(Expr) checkLambda(
 
 immutable(Expr) checkLambdaCommon(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	scope immutable LambdaAst.Param[] paramAsts,
 	ref immutable ExprAst bodyAst,
 	ref Expected expected,
@@ -903,7 +911,7 @@ immutable(Expr) checkLambdaCommon(
 
 immutable(Expr) checkLet(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable LetAst ast,
 	ref Expected expected,
 ) {
@@ -994,7 +1002,7 @@ immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type a) {
 
 immutable(Expr) checkMatch(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable MatchAst ast,
 	ref Expected expected,
 ) {
@@ -1017,7 +1025,7 @@ immutable(Expr) checkMatch(
 
 immutable(Expr) checkMatchEnum(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable MatchAst ast,
 	ref Expected expected,
 	ref immutable Expr matched,
@@ -1050,7 +1058,7 @@ immutable(Expr) checkMatchEnum(
 
 immutable(Expr) checkMatchUnion(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable MatchAst ast,
 	ref Expected expected,
 	ref immutable Expr matched,
@@ -1118,7 +1126,7 @@ immutable(Expr.MatchUnion.Case) checkMatchCase(
 
 immutable(Expr) checkSeq(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable SeqAst ast,
 	ref Expected expected,
 ) {
@@ -1129,7 +1137,7 @@ immutable(Expr) checkSeq(
 
 immutable(Expr) checkThen(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable ThenAst ast,
 	ref Expected expected,
 ) {
@@ -1149,7 +1157,7 @@ immutable(Expr) checkThen(
 
 immutable(Expr) checkThenVoid(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable ThenVoidAst ast,
 	ref Expected expected,
 ) {
@@ -1167,7 +1175,7 @@ immutable(Expr) checkThenVoid(
 
 immutable(Expr) checkTyped(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable TypedAst ast,
 	ref Expected expected,
 ) {
@@ -1182,9 +1190,9 @@ immutable(Expr) checkTyped(
 }
 
 public immutable(Expr) checkExpr(
-	ref ExprCtx ctx,
-	ref immutable ExprAst ast,
-	ref Expected expected,
+	scope ref ExprCtx ctx,
+	scope ref immutable ExprAst ast,
+	scope ref Expected expected,
 ) {
 	immutable FileAndRange range = rangeInFile2(ctx, ast.range);
 	return matchExprAstKind!(

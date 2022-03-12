@@ -64,7 +64,7 @@ immutable(bool) empty(T)(const T[] a) {
 	return a.length == 0;
 }
 
-@trusted inout(Ptr!T) ptrAt(T)(inout T[] a, immutable size_t index) {
+@trusted inout(Ptr!T) ptrAt(T)(return scope inout T[] a, immutable size_t index) {
 	verify(index < a.length);
 	return inout Ptr!T(&a[index]);
 }

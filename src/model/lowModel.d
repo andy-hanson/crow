@@ -979,7 +979,7 @@ static assert(LowExprKind.sizeof <= 32);
 	alias cbSwitchWithValues,
 	alias cbTailRecur,
 	alias cbZeroed,
-)(ref immutable LowExprKind a) {
+)(scope ref immutable LowExprKind a) {
 	final switch (a.kind) {
 		case LowExprKind.Kind.call:
 			return cbCall(a.call);

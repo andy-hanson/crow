@@ -251,8 +251,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 }
 @trusted Out[] mapToMut(Out, In)(
 	ref Alloc alloc,
-	immutable In[] a,
-	scope Out delegate(ref immutable In) @safe @nogc pure nothrow cb,
+	scope immutable In[] a,
+	scope Out delegate(scope ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
 	foreach (immutable size_t i, ref immutable In x; a) {
@@ -346,8 +346,8 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 
 @trusted immutable(ArrWithSize!Out) mapOpWithSize(Out, In)(
 	ref Alloc alloc,
-	immutable In[] a,
-	scope immutable(Opt!Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
+	scope immutable In[] a,
+	scope immutable(Opt!Out) delegate(scope ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	ubyte* res = allocateBytes(alloc, size_t.sizeof + Out.sizeof * a.length);
 	Out* elements = cast(Out*) (res + size_t.sizeof);
@@ -430,12 +430,22 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	immutable In[] a,
 	scope immutable(Out) delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
 ) {
+	Out* res = allocateT!Out(alloc, a.length);
+	foreach (immutable size_t i, ref immutable In x; a)
+		initMemory(res + i, cb(i, x));
+	return cast(immutable) res[0 .. a.length];
+}
+@trusted immutable(Out[]) mapWithIndex(Out, In)(
+	ref Alloc alloc,
+	scope immutable In[] a,
+	scope immutable(Out) delegate(immutable size_t, scope ref immutable In) @safe @nogc pure nothrow cb,
+) {
 	return cast(immutable) mapWithIndex_mut(alloc, a, cb);
 }
 @trusted Out[] mapWithIndex_mut(Out, In)(
 	ref Alloc alloc,
-	immutable In[] a,
-	scope Out delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
+	scope immutable In[] a,
+	scope Out delegate(immutable size_t, scope ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
 	foreach (immutable size_t i, ref immutable In x; a)

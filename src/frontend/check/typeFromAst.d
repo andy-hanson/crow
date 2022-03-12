@@ -118,8 +118,8 @@ private immutable(Type[]) getTypeArgsIfNumberMatches(
 immutable(Type) typeFromAst(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	scope immutable TypeAst ast,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	scope ref immutable TypeAst ast,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
@@ -238,7 +238,7 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(
 	ref CheckCtx ctx,
 	immutable Sym name,
 	immutable RangeWithinFile range,
-	ref immutable SpecsDict specsDict,
+	scope ref immutable SpecsDict specsDict,
 ) {
 	immutable Opt!SpecDeclAndIndex opDeclFromHere = getAt(specsDict, name);
 	if (has(opDeclFromHere))
@@ -259,7 +259,7 @@ immutable(Type[]) typeArgsFromAsts(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	scope immutable TypeAst[] typeAsts,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {

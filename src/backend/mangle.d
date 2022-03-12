@@ -124,7 +124,7 @@ immutable(MangledNames) buildMangledNames(
 void writeStructMangledName(
 	ref Writer writer,
 	ref immutable MangledNames mangledNames,
-	immutable Ptr!ConcreteStruct source,
+	scope immutable Ptr!ConcreteStruct source,
 ) {
 	matchConcreteStructSource!(
 		void,
@@ -210,7 +210,11 @@ void writeLowLocalName(ref Writer writer, ref immutable MangledNames mangledName
 	)(a.source);
 }
 
-void writeLowParamName(ref Writer writer, scope ref immutable MangledNames mangledNames, ref immutable LowParam a) {
+void writeLowParamName(
+	ref Writer writer,
+	scope ref immutable MangledNames mangledNames,
+	scope ref immutable LowParam a,
+) {
 	matchLowParamSource!(
 		void,
 		(ref immutable ConcreteParam cp) {
@@ -219,7 +223,7 @@ void writeLowParamName(ref Writer writer, scope ref immutable MangledNames mangl
 				(ref immutable ConcreteParamSource.Closure) {
 					writeStatic(writer, "_closure");
 				},
-				(ref immutable Param p) @safe {
+				(ref immutable Param p) {
 					if (has(p.name))
 						writeMangledName(writer, mangledNames, force(p.name));
 					else {
@@ -255,7 +259,7 @@ void writeConstantPointerStorageName(
 	ref Writer writer,
 	ref immutable MangledNames mangledNames,
 	ref immutable LowProgram program,
-	immutable LowType pointeeType,
+	scope immutable LowType pointeeType,
 	immutable size_t index,
 ) {
 	writeStatic(writer, "constant");

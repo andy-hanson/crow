@@ -95,8 +95,8 @@ immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutabl
 TextAndInfo generateText(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
-	ref immutable LowProgram program,
-	ref immutable AllConstantsLow allConstants,
+	scope ref immutable LowProgram program,
+	scope ref immutable AllConstantsLow allConstants,
 ) {
 	Ctx ctx = Ctx(
 		ptrTrustMe(program),
@@ -126,7 +126,7 @@ TextAndInfo generateText(
 	});
 
 	foreach (immutable size_t arrTypeIndex; 0 .. allConstants.arrs.length) {
-		immutable Ptr!ArrTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.arrs, arrTypeIndex);
+		scope immutable Ptr!ArrTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.arrs, arrTypeIndex);
 		foreach (immutable size_t constantIndex, ref immutable Constant[] elements; typeAndConstants.deref().constants)
 			recurWriteArr(
 				alloc,
@@ -187,7 +187,7 @@ void ensureConstant(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref Ctx ctx,
-	ref immutable LowType t,
+	scope immutable LowType t,
 	ref immutable Constant c,
 ) {
 	matchConstant!void(
@@ -247,9 +247,9 @@ void recurWriteArr(
 	ref TempAlloc tempAlloc,
 	ref Ctx ctx,
 	immutable size_t arrTypeIndex,
-	immutable LowType elementType,
+	scope immutable LowType elementType,
 	immutable size_t index, // constant index within the same type
-	immutable Constant[] elements,
+	scope immutable Constant[] elements,
 ) {
 	verify(!empty(elements));
 	size_t[] indexToTextIndex = ctx.arrTypeIndexToConstantIndexToTextIndex[arrTypeIndex];
@@ -267,7 +267,7 @@ void recurWritePointer(
 	ref TempAlloc tempAlloc,
 	ref Ctx ctx,
 	immutable size_t pointeeTypeIndex,
-	immutable LowType pointeeType,
+	scope immutable LowType pointeeType,
 	immutable size_t index,
 	ref immutable Constant pointee,
 ) {
@@ -295,7 +295,7 @@ void writeConstant(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref Ctx ctx,
-	ref immutable LowType type,
+	scope immutable LowType type,
 	ref immutable Constant constant,
 ) {
 	immutable size_t sizeBefore = exactSizeArrBuilderCurSize(ctx.text);

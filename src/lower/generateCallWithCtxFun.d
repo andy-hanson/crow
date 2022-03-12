@@ -37,7 +37,7 @@ immutable(LowFun) generateCallWithCtxFun(
 	ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	immutable LowType returnType,
 	immutable LowType funType,
-	ref immutable LowType ctxType,
+	immutable LowType ctxType,
 	immutable LowType[] nonFunNonCtxParamTypes,
 	immutable ConcreteLambdaImpl[] impls,
 ) {

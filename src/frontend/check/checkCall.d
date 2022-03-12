@@ -101,7 +101,7 @@ import util.util : Empty, todo, verify;
 
 immutable(Expr) checkCall(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable CallAst ast,
 	ref Expected expected,
 ) {
@@ -182,7 +182,7 @@ immutable(Expr) checkCall(
 
 immutable(Expr) checkIdentifierCall(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	immutable Sym name,
 	ref Expected expected,
 ) {
@@ -461,7 +461,7 @@ enum ArgsKind { empty, nonEmpty }
 
 void checkCallFlags(
 	ref CheckCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	immutable Ptr!FunDecl called,
 	immutable FunFlags caller,
 	immutable bool callerInLambda,
@@ -479,7 +479,7 @@ void checkCallFlags(
 void checkCalledDeclFlags(
 	ref ExprCtx ctx,
 	ref immutable CalledDecl res,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	immutable ArgsKind argsKind,
 ) {
 	matchCalledDecl!(
@@ -523,7 +523,7 @@ void filterByParamType(
 
 immutable(Opt!Called) findSpecSigImplementation(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable Sig specSig,
 	immutable Ptr!FunDecl outerCalled,
 ) {
@@ -574,7 +574,7 @@ immutable(bool) findBuiltinSpecOnType(
 immutable(bool) checkBuiltinSpec(
 	ref ExprCtx ctx,
 	immutable Ptr!FunDecl called,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	immutable SpecBody.Builtin.Kind kind,
 	immutable Type typeArg,
 ) {
@@ -595,7 +595,7 @@ immutable(bool) checkBuiltinSpec(
 //TODO: make @safe
 @trusted immutable(Opt!(Called[])) checkSpecImpls(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	immutable Ptr!FunDecl called,
 	immutable Type[] typeArgz,
 	immutable Opt!(Ptr!FunDecl) outerCalled,
@@ -643,7 +643,7 @@ immutable(bool) checkBuiltinSpec(
 
 immutable(Opt!(Type[])) finishCandidateTypeArgs(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref const Candidate candidate,
 ) {
 	immutable Opt!(Type[]) res =
@@ -656,7 +656,7 @@ immutable(Opt!(Type[])) finishCandidateTypeArgs(
 
 immutable(Opt!Called) getCalledFromCandidate(
 	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref const Candidate candidate,
 	immutable Opt!(Ptr!FunDecl) outerCalled,
 	immutable ArgsKind argsKind,
@@ -689,7 +689,7 @@ immutable(Opt!Called) getCalledFromCandidate(
 immutable(Expr) checkCallAfterChoosingOverload(
 	ref ExprCtx ctx,
 	ref const Candidate candidate,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	immutable Expr[] args,
 	ref Expected expected,
 ) {

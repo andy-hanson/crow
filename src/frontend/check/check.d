@@ -244,9 +244,9 @@ immutable(Module) check(
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
-	ref immutable ModuleAndNames[] imports,
-	ref immutable ModuleAndNames[] exports,
-	ref immutable PathAndAst pathAndAst,
+	immutable ModuleAndNames[] imports,
+	immutable ModuleAndNames[] exports,
+	scope ref immutable PathAndAst pathAndAst,
 	ref immutable CommonTypes commonTypes,
 ) {
 	return checkWorker(
@@ -509,7 +509,7 @@ immutable(Ptr!StructDecl) bogusStructDecl(ref Alloc alloc, immutable size_t nTyp
 
 immutable(ArrWithSize!TypeParam) checkTypeParams(
 	ref CheckCtx ctx,
-	ref immutable ArrWithSize!NameAndRange asts,
+	scope immutable ArrWithSize!NameAndRange asts,
 ) {
 	immutable ArrWithSize!TypeParam res =
 		mapWithSizeWithIndex!(TypeParam, NameAndRange)(
@@ -528,8 +528,8 @@ immutable(ArrWithSize!TypeParam) checkTypeParams(
 immutable(Params) checkParams(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	ref immutable ParamsAst ast,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	scope immutable ParamsAst ast,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable TypeParamsScope typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
 ) {
@@ -539,7 +539,7 @@ immutable(Params) checkParams(
 			immutable ArrWithSize!Param paramsWithSize = mapWithSizeWithIndex!(Param, ParamAst)(
 				ctx.alloc,
 				asts,
-				(immutable size_t index, scope ref immutable ParamAst ast) =>
+				(immutable size_t index, scope ref immutable ParamAst ast) @safe =>
 					checkParam(
 						ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts,
 						ast, index));
@@ -574,7 +574,7 @@ immutable(Params) checkParams(
 immutable(Param) checkParam(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable TypeParamsScope typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
 	scope ref immutable ParamAst ast,
@@ -593,9 +593,9 @@ immutable(Param) checkParam(
 immutable(Sig) checkSig(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	ref immutable SigAst ast,
+	scope ref immutable SigAst ast,
 	immutable TypeParam[] typeParams,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	DelayStructInsts delayStructInsts
 ) {
 	immutable TypeParamsScope typeParamsScope = TypeParamsScope(typeParams);
@@ -656,7 +656,7 @@ immutable(SpecDecl[]) checkSpecDecls(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	ref immutable SpecDeclAst[] asts,
+	scope immutable SpecDeclAst[] asts,
 ) {
 	return map!SpecDecl(ctx.alloc, asts, (ref immutable SpecDeclAst ast) {
 		immutable ArrWithSize!TypeParam typeParams = checkTypeParams(ctx, ast.typeParams);
@@ -672,8 +672,8 @@ immutable(SpecDecl[]) checkSpecDecls(
 	});
 }
 
-StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, ref immutable StructAliasAst[] asts) {
-	return mapToMut!StructAlias(ctx.alloc, asts, (ref immutable StructAliasAst ast) =>
+StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, scope immutable StructAliasAst[] asts) {
+	return mapToMut!StructAlias(ctx.alloc, asts, (scope ref immutable StructAliasAst ast) =>
 		StructAlias(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(ctx.alloc, ast.docComment),
@@ -722,7 +722,7 @@ immutable(Opt!PurityAndForced) purityAndForcedFromModifier(immutable ModifierAst
 immutable(LinkageAndPurity) getStructModifiers(
 	ref CheckCtx ctx,
 	immutable TypeKind typeKind,
-	immutable ModifierAst[] modifiers,
+	scope immutable ModifierAst[] modifiers,
 ) {
 	return fold(
 		immutable LinkageAndPurity(defaultLinkage(typeKind), immutable PurityAndForced(defaultPurity(typeKind), false)),
@@ -789,8 +789,8 @@ immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) {
 	)(a);
 }
 
-StructDecl[] checkStructsInitial(ref CheckCtx ctx, ref immutable StructDeclAst[] asts) {
-	return mapToMut!StructDecl(ctx.alloc, asts, (ref immutable StructDeclAst ast) {
+StructDecl[] checkStructsInitial(ref CheckCtx ctx, scope immutable StructDeclAst[] asts) {
+	return mapToMut!StructDecl(ctx.alloc, asts, (scope ref immutable StructDeclAst ast) {
 		immutable LinkageAndPurity p = getStructModifiers(ctx, getTypeKind(ast.body_), toArr(ast.modifiers));
 		return StructDecl(
 			rangeInFile(ctx, ast.range),
@@ -808,8 +808,8 @@ void checkStructAliasTargets(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	ref StructAlias[] aliases,
-	ref immutable StructAliasAst[] asts,
+	StructAlias[] aliases,
+	scope immutable StructAliasAst[] asts,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
 	zipFirstMut!(StructAlias, StructAliasAst)(
@@ -1319,7 +1319,7 @@ void checkStructBodies(
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref StructDecl[] structs,
-	ref immutable StructDeclAst[] asts,
+	scope immutable StructDeclAst[] asts,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
 	zipMutPtrFirst!(StructDecl, StructDeclAst)(
@@ -1417,9 +1417,9 @@ struct FunsAndDict {
 immutable(ArrWithSize!(Ptr!SpecInst)) checkSpecUses(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	ref immutable SpecUseAst[] asts,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	ref immutable SpecsDict specsDict,
+	scope ref immutable SpecUseAst[] asts,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	scope ref immutable SpecsDict specsDict,
 	immutable TypeParamsScope typeParamsScope,
 ) {
 	return mapOpWithSize!(Ptr!SpecInst)(ctx.alloc, asts, (ref immutable SpecUseAst ast) {
@@ -1451,11 +1451,11 @@ immutable(bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) {
 immutable(FunsAndDict) checkFuns(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	ref immutable SpecsDict specsDict,
-	ref immutable StructDecl[] structs,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	ref immutable FunDeclAst[] asts,
-	ref immutable TestAst[] testAsts,
+	scope ref immutable SpecsDict specsDict,
+	immutable StructDecl[] structs,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	scope immutable FunDeclAst[] asts,
+	scope immutable TestAst[] testAsts,
 ) {
 	ExactSizeArrBuilder!FunDecl funsBuilder =
 		newExactSizeArrBuilder!FunDecl(ctx.alloc, countFunsForStruct(asts, structs));
@@ -1523,7 +1523,7 @@ immutable(FunsAndDict) checkFuns(
 		)(funAst.body_));
 	});
 
-	immutable Test[] tests = map!(Test, TestAst)(ctx.alloc, testAsts, (ref immutable TestAst ast) {
+	immutable Test[] tests = map!(Test, TestAst)(ctx.alloc, testAsts, (scope ref immutable TestAst ast) {
 		immutable Type voidType = immutable Type(commonTypes.void_);
 		return immutable Test(checkFunctionBody(
 			ctx,
@@ -1704,7 +1704,7 @@ void addEnumFlagsCommonFunctions(
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref ProgramState programState,
 	immutable Visibility visibility,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	immutable Type type,
 	immutable EnumBackingType backingType,
 	ref immutable CommonTypes commonTypes,
@@ -1850,7 +1850,7 @@ FunDecl enumOrFlagsMembersFunction(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Visibility visibility,
-	ref immutable FileAndRange fileAndRange,
+	immutable FileAndRange fileAndRange,
 	immutable Sym name,
 	immutable Type enumType,
 	ref immutable CommonTypes commonTypes,
@@ -2065,12 +2065,12 @@ immutable(Module) checkWorkerAfterCommonTypes(
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable StructAlias[] structAliases,
-	ref StructDecl[] structs,
+	StructDecl[] structs,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 	immutable FileIndex fileIndex,
-	ref immutable ModuleAndNames[] imports,
-	ref immutable ModuleAndNames[] reExports,
-	ref immutable FileAst ast,
+	immutable ModuleAndNames[] imports,
+	immutable ModuleAndNames[] reExports,
+	scope ref immutable FileAst ast,
 ) {
 	checkStructBodies(ctx, commonTypes, structsAndAliasesDict, structs, ast.structs, delayStructInsts);
 	immutable StructDecl[] structsImmutable = castImmutable(structs);
@@ -2223,7 +2223,7 @@ immutable(BootstrapCheck) checkWorker(
 	ref ProgramState programState,
 	immutable ModuleAndNames[] imports,
 	immutable ModuleAndNames[] reExports,
-	ref immutable PathAndAst pathAndAst,
+	scope ref immutable PathAndAst pathAndAst,
 	scope immutable(CommonTypes) delegate(
 		ref CheckCtx,
 		ref immutable StructsAndAliasesDict,

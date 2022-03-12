@@ -124,9 +124,9 @@ struct BuiltinKind {
 
 immutable(BuiltinKind) getBuiltinKind(
 	immutable Sym name,
-	ref immutable LowType rt,
-	ref immutable LowType p0,
-	ref immutable LowType p1,
+	immutable LowType rt,
+	immutable LowType p0,
+	immutable LowType p1,
 ) {
 	immutable(BuiltinKind) constant(immutable Constant kind) {
 		return immutable BuiltinKind(kind);

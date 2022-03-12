@@ -40,8 +40,8 @@ import util.sym : AllSymbols, writeSym;
 
 void writeFunName(
 	ref Writer writer,
-	ref const AllSymbols allSymbols,
-	ref immutable LowProgram lowProgram,
+	scope ref const AllSymbols allSymbols,
+	scope ref immutable LowProgram lowProgram,
 	immutable LowFunIndex fun,
 ) {
 	writeFunName(writer, allSymbols, lowProgram, fullIndexDictGet(lowProgram.allFuns, fun));
@@ -49,9 +49,9 @@ void writeFunName(
 
 void writeFunName(
 	ref Writer writer,
-	ref const AllSymbols allSymbols,
-	ref immutable LowProgram lowProgram,
-	ref immutable LowFun a,
+	scope ref const AllSymbols allSymbols,
+	scope ref immutable LowProgram lowProgram,
+	scope ref immutable LowFun a,
 ) {
 	matchLowFunSource!(
 		void,
@@ -62,7 +62,7 @@ void writeFunName(
 			writeSym(writer, allSymbols, it.name);
 			if (!empty(it.typeArgs)) {
 				writeChar(writer, '<');
-				writeWithCommas!LowType(writer, it.typeArgs, (ref immutable LowType it) {
+				writeWithCommas!LowType(writer, it.typeArgs, (scope ref immutable LowType it) {
 					writeLowType(writer, allSymbols, lowProgram.allTypes, it);
 				});
 				writeChar(writer, '>');
@@ -73,10 +73,10 @@ void writeFunName(
 }
 
 void writeFunSig(
-	ref Writer writer,
-	ref const AllSymbols allSymbols,
-	ref immutable LowProgram lowProgram,
-	ref immutable LowFun a,
+	scope ref Writer writer,
+	scope ref const AllSymbols allSymbols,
+	scope ref immutable LowProgram lowProgram,
+	scope ref immutable LowFun a,
 ) {
 	matchLowFunSource!(
 		void,
@@ -86,19 +86,19 @@ void writeFunSig(
 			writeWithCommas!ConcreteParam(
 				writer,
 				it.deref().paramsExcludingCtxAndClosure,
-				(ref immutable ConcreteParam param) {
+				(scope ref immutable ConcreteParam param) @safe {
 					matchConcreteParamSource!void(
 						param.source,
-						(ref immutable ConcreteParamSource.Closure) {
+						(scope ref immutable ConcreteParamSource.Closure) @safe {
 							writeStatic(writer, "<closure>");
 						},
-						(ref immutable Param p) {
+						(scope ref immutable Param p) {
 							if (has(p.name))
 								writeSym(writer, allSymbols, force(p.name));
 							else
 								writeChar(writer, '_');
 						},
-						(ref immutable ConcreteParamSource.Synthetic) {
+						(scope ref immutable ConcreteParamSource.Synthetic) @safe {
 							writeChar(writer, '_');
 						});
 					writeChar(writer, ' ');
@@ -114,9 +114,9 @@ void writeFunSig(
 
 void writeLowType(
 	ref Writer writer,
-	ref const AllSymbols allSymbols,
-	ref immutable AllLowTypes lowTypes,
-	ref immutable LowType a,
+	scope ref const AllSymbols allSymbols,
+	scope ref immutable AllLowTypes lowTypes,
+	scope immutable LowType a,
 ) {
 	matchLowType!(
 		void,
@@ -180,7 +180,11 @@ private void writeConcreteFunName(ref Writer writer, ref const AllSymbols allSym
 
 private:
 
-void writeConcreteStruct(ref Writer writer, ref const AllSymbols allSymbols, ref immutable ConcreteStruct a) {
+void writeConcreteStruct(
+	scope ref Writer writer,
+	scope ref const AllSymbols allSymbols,
+	scope ref immutable ConcreteStruct a,
+) {
 	matchConcreteStructSource!(
 		void,
 		(ref immutable ConcreteStructSource.Inst it) {
@@ -201,7 +205,7 @@ void writeConcreteStruct(ref Writer writer, ref const AllSymbols allSymbols, ref
 	)(a.source);
 }
 
-void writeConcreteType(ref Writer writer, ref const AllSymbols allSymbols, immutable ConcreteType a) {
+void writeConcreteType(scope ref Writer writer, scope ref const AllSymbols allSymbols, scope immutable ConcreteType a) {
 	//TODO: if it doesn't have the usual by-ref or by-val we should write that
 	writeConcreteStruct(writer, allSymbols, a.struct_.deref());
 }

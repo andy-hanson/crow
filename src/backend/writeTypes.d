@@ -115,10 +115,7 @@ struct StructStates {
 	StructState[] unionStates;
 }
 
-immutable(bool) canReferenceTypeAsValue(
-	ref const StructStates states,
-	ref immutable LowType a,
-) {
+immutable(bool) canReferenceTypeAsValue(ref const StructStates states, immutable LowType a) {
 	return matchLowTypeCombinePtr!(
 		immutable bool,
 		(immutable LowType.ExternPtr) =>
@@ -137,10 +134,7 @@ immutable(bool) canReferenceTypeAsValue(
 	)(a);
 }
 
-immutable(bool) canReferenceTypeAsPointee(
-	ref const StructStates states,
-	ref immutable LowType a,
-) {
+immutable(bool) canReferenceTypeAsPointee(ref const StructStates states, immutable LowType a) {
 	return matchLowTypeCombinePtr!(
 		immutable bool,
 		(immutable LowType.ExternPtr) =>

@@ -520,7 +520,7 @@ void addConcreteFun(ref ConcretizeCtx ctx, immutable Ptr!ConcreteFun fun) {
 
 immutable(Ptr!ConcreteFun) concreteFunForTest(
 	ref ConcretizeCtx ctx,
-	ref immutable Test test,
+	scope ref immutable Test test,
 	immutable size_t testIndex,
 ) {
 	Ptr!ConcreteFun res = allocateMut(ctx.alloc, ConcreteFun(
@@ -898,7 +898,7 @@ immutable(ConcreteFunBody) bodyForAllTests(ref ConcretizeCtx ctx, immutable Conc
 		ctx.alloc,
 		ctx.allConstants,
 		mustBeNonPointer(returnType),
-		mapWithIndex(ctx.alloc, allTests, (immutable size_t testIndex, ref immutable Test it) =>
+		mapWithIndex(ctx.alloc, allTests, (immutable size_t testIndex, scope ref immutable Test it) =>
 			immutable Constant(immutable Constant.FunPtr(concreteFunForTest(ctx, it, testIndex)))));
 	return immutable ConcreteFunBody(immutable ConcreteExpr(
 		returnType,

@@ -56,7 +56,7 @@ import util.util : unreachable;
 
 immutable(LowFun) generateMarkVisitGcPtr(
 	ref Alloc alloc,
-	ref immutable LowType markCtxType,
+	immutable LowType markCtxType,
 	immutable LowFunIndex markFun,
 	immutable LowType.PtrGc pointerTypePtrGc,
 	immutable Opt!LowFunIndex visitPointee,
@@ -105,8 +105,8 @@ immutable(LowFun) generateMarkVisitNonArr(
 	ref Alloc alloc,
 	ref immutable AllLowTypes allTypes,
 	ref const MarkVisitFuns markVisitFuns,
-	ref immutable LowType markCtxType,
-	ref immutable LowType paramType,
+	immutable LowType markCtxType,
+	immutable LowType paramType,
 ) {
 	immutable FileAndRange range = FileAndRange.empty;
 	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
@@ -129,7 +129,7 @@ immutable(LowFun) generateMarkVisitNonArr(
 immutable(LowFun) generateMarkVisitArrInner(
 	ref Alloc alloc,
 	ref const MarkVisitFuns markVisitFuns,
-	ref immutable LowType markCtxType,
+	immutable LowType markCtxType,
 	immutable LowType.PtrRawConst elementPtrType,
 ) {
 	immutable FileAndRange range = FileAndRange.empty;
@@ -174,7 +174,7 @@ immutable(LowFun) generateMarkVisitArrInner(
 
 immutable(LowFun) generateMarkVisitArrOuter(
 	ref Alloc alloc,
-	ref immutable LowType markCtxType,
+	immutable LowType markCtxType,
 	immutable LowFunIndex markFun,
 	immutable LowType.Record arrType,
 	immutable LowType.PtrRawConst elementPtrType,
@@ -230,10 +230,10 @@ private:
 //TODO:INLINE
 immutable(LowFunExprBody) visitBody(
 	ref Alloc alloc,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref immutable AllLowTypes allTypes,
 	ref const MarkVisitFuns markVisitFuns,
-	ref immutable LowType valueType,
+	immutable LowType valueType,
 	ref immutable LowExpr markCtx,
 	ref immutable LowExpr value,
 ) {
@@ -272,7 +272,7 @@ immutable(LowFunExprBody) visitBody(
 
 immutable(LowFunExprBody) visitRecordBody(
 	ref Alloc alloc,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref const MarkVisitFuns markVisitFuns,
 	immutable LowField[] fields,
 	ref immutable LowExpr markCtx,
@@ -306,9 +306,9 @@ immutable(LowFunExprBody) visitRecordBody(
 
 immutable(LowFunExprBody) visitUnionBody(
 	ref Alloc alloc,
-	ref immutable FileAndRange range,
+	immutable FileAndRange range,
 	ref const MarkVisitFuns markVisitFuns,
-	ref immutable LowType[] unionMembers,
+	immutable LowType[] unionMembers,
 	ref immutable LowExpr markCtx,
 	ref immutable LowExpr value,
 ) {

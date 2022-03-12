@@ -99,7 +99,7 @@ void checkLowFun(ref Ctx ctx, ref immutable LowFun fun) {
 
 void checkLowExpr(
 	ref FunCtx ctx,
-	ref immutable LowType type,
+	immutable LowType type,
 	ref immutable LowExpr expr,
 ) {
 	checkTypeEqual(ctx.ctx, type, expr.type);
@@ -230,8 +230,8 @@ void checkLowExpr(
 
 void checkTypeEqual(
 	ref Ctx ctx,
-	ref immutable LowType expected,
-	ref immutable LowType actual,
+	immutable LowType expected,
+	immutable LowType actual,
 ) {
 	//debug {
 	//	if (!lowTypeEqual(expected, actual)) {
