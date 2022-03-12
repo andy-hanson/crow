@@ -126,7 +126,6 @@ enum Operator {
 }
 
 enum SpecialSym {
-	clock_gettime,
 	// all below are hyphenated
 	as_any_mut_ptr,
 	init_constants,
@@ -223,9 +222,6 @@ immutable(SafeCStr) strOfOperator(immutable Operator a) {
 
 private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 	final switch (a) {
-		case SpecialSym.clock_gettime:
-			return safeCStr!"clock_gettime";
-
 		case SpecialSym.as_any_mut_ptr:
 			return safeCStr!"as-any-mut-ptr";
 		case SpecialSym.init_constants:

@@ -559,7 +559,6 @@ void writeExtern(ref ByteCodeWriter writer, immutable ByteCodeSource source, imm
 			case ExternOp.write:
 				return -2;
 			case ExternOp.backtrace:
-			case ExternOp.clock_gettime:
 			case ExternOp.free:
 				return -1;
 			case ExternOp.malloc:

@@ -120,7 +120,6 @@ immutable size_t stackEntrySize = 8;
 
 enum ExternOp : ubyte {
 	backtrace,
-	clock_gettime,
 	free,
 	longjmp,
 	malloc,

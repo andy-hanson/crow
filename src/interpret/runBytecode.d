@@ -14,7 +14,7 @@ import interpret.bytecode :
 	NextOperation,
 	Operation;
 import interpret.debugging : writeFunName;
-import interpret.extern_ : DynCallType, Extern, TimeSpec;
+import interpret.extern_ : DynCallType, Extern;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
@@ -525,11 +525,6 @@ private @system immutable(NextOperation) callCommon(
 			immutable size_t res = backtrace(a, array, cast(uint) size);
 			verify(res <= int.max);
 			push(a.dataStack, res);
-			break;
-		case ExternOp.clock_gettime:
-			Ptr!TimeSpec timespecPtr = Ptr!TimeSpec(cast(TimeSpec*) pop(a.dataStack));
-			immutable int clockId = cast(int) pop(a.dataStack);
-			push(a.dataStack, cast(immutable ulong) a.extern_.clockGetTime(clockId, timespecPtr));
 			break;
 		case ExternOp.free:
 			a.extern_.free(cast(ubyte*) pop(a.dataStack));

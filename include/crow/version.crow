@@ -21,6 +21,11 @@ This will be `false` for non-interpreted code even on machines with multiple pro
 is-single-threaded bool() noctx unsafe builtin
 
 ###
+`true` iff the code is run in the WASM interpreter.
+###
+is-wasm bool() noctx unsafe builtin
+
+###
 `true` iff the code is run on Windows.
 
 The WASM interpreter used for the website is not considered Windows, even if run on Windows.

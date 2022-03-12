@@ -723,6 +723,8 @@ immutable(Opt!Constant) tryEvalConstantBuiltin(immutable Sym name, ref immutable
 	switch (name.value) {
 		case specialSymValue(SpecialSym.is_single_threaded):
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isSingleThreaded)));
+		case shortSymValue("is-wasm"):
+			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isWasm)));
 		case shortSymValue("is-windows"):
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isWindows)));
 		default:

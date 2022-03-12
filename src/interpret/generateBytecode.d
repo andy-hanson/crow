@@ -174,7 +174,7 @@ import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : nullPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
-import util.sym : AllSymbols, shortSymValue, SpecialSym, specialSymValue, Sym;
+import util.sym : AllSymbols, shortSymValue, Sym;
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
@@ -421,8 +421,6 @@ immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
 			return some(ExternOp.setjmp);
 		case shortSymValue("write"):
 			return some(ExternOp.write);
-		case specialSymValue(SpecialSym.clock_gettime):
-			return some(ExternOp.clock_gettime);
 		default:
 			return none!ExternOp;
 	}

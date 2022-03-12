@@ -2,11 +2,10 @@ module interpret.fakeExtern;
 
 @safe @nogc nothrow: // not pure
 
-import interpret.extern_ : DynCallType, Extern, TimeSpec;
+import interpret.extern_ : DynCallType, Extern;
 import lib.compiler : ExitCode;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.col.mutArr : moveToArr, MutArr, pushAll;
-import util.ptr : Ptr;
 import util.sym : AllSymbols, safeCStrOfSym, Sym;
 import util.util : debugLog, todo, verify;
 
@@ -23,16 +22,7 @@ immutable(FakeExternResult) withFakeExtern(
 ) {
 	MutArr!(immutable char) stdout;
 	MutArr!(immutable char) stderr;
-	uint monoTime = 0;
 	scope Extern extern_ = Extern(
-		(immutable int clockId, Ptr!TimeSpec timeSpec) {
-			if (clockId == 1) {
-				timeSpec.deref() = immutable TimeSpec(monoTime, 0);
-				monoTime++;
-				return 0;
-			} else
-				return todo!int("!");
-		},
 		(ubyte* ptr) {
 			// TODO: free
 		},

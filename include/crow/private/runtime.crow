@@ -8,6 +8,7 @@ import
 	../opt: new, opt
 	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val
 	../str: literal, str
+	../version: is-wasm
 	./alloc:
 		gc, get-gc-ctx, init, needs-gc, return-gc-ctx, run-garbage-collection,
 		uninit
@@ -190,7 +191,10 @@ new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, exclusion exclusion)
 	shut-down
 
 .choose-task choose-task-result(gctx global-ctx) noctx unsafe summon
-	cur-time = get-monotime-nsec
+	cur-time = if is-wasm
+		0
+	else
+		get-monotime-nsec
 	gctx.tasks-lock.ref-of-val acquire
 
 	# TODO: ref-of-val should be unnecessary for property access ?

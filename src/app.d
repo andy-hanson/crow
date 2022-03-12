@@ -60,7 +60,7 @@ version (Windows) { } else {
 import frontend.lang : crowExtension, JitOptions, OptimizationLevel;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.applyFn : u64OfI32, u64OfI64;
-import interpret.extern_ : DynCallType, Extern, TimeSpec;
+import interpret.extern_ : DynCallType, Extern;
 import lib.cliParser :
 	BuildOptions,
 	CCompileOptions,
@@ -124,7 +124,7 @@ import util.path :
 	StorageKind,
 	TempStrForPath;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sym : AllSymbols, shortSym, Sym, symAsTempBuffer, writeSym;
 import util.util : castImmutableRef, todo, unreachable, verify;
@@ -850,8 +850,6 @@ immutable(ExitCode) withRealExtern(
 	verify(dcVm != null);
 	dcMode(dcVm, DC_CALL_C_DEFAULT);
 	scope Extern extern_ = Extern(
-		(immutable int clockId, Ptr!TimeSpec timeSpec) =>
-			clockGetTime(clockId, timeSpec),
 		(ubyte* ptr) {
 			pureFree(ptr);
 		},
@@ -879,15 +877,6 @@ immutable(ExitCode) withRealExtern(
 
 	dcFree(dcVm);
 	return res;
-}
-
-@trusted immutable(int) clockGetTime(immutable int clockId, Ptr!TimeSpec timeSpec) {
-	version (Windows) {
-		// On Windows, a different function is used.
-		return unreachable!(immutable int)();
-	} else {
-		return clock_gettime(clockId, cast(timespec*) timeSpec.rawPtr());
-	}
 }
 
 @trusted immutable(ulong) doDynCall(
