@@ -7,8 +7,8 @@ import lib.compiler : ExitCode;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.col.mutArr : moveToArr, MutArr, pushAll;
 import util.ptr : Ptr;
-import util.sym : Sym;
-import util.util : todo, verify;
+import util.sym : AllSymbols, safeCStrOfSym, Sym;
+import util.util : debugLog, todo, verify;
 
 struct FakeExternResult {
 	immutable ExitCode err;
@@ -18,6 +18,7 @@ struct FakeExternResult {
 
 immutable(FakeExternResult) withFakeExtern(
 	ref Alloc alloc,
+	ref const AllSymbols allSymbols,
 	scope immutable(ExitCode) delegate(scope ref Extern) @safe @nogc nothrow cb,
 ) {
 	MutArr!(immutable char) stdout;
@@ -44,8 +45,13 @@ immutable(FakeExternResult) withFakeExtern(
 			pushAll!char(alloc, fd == 1 ? stdout : stderr, arr);
 			return nBytes;
 		},
-		(immutable(Sym), immutable(DynCallType), scope immutable ulong[], scope immutable DynCallType[]) =>
-			todo!(immutable ulong)("not for fake"));
+		(immutable Sym name, immutable(DynCallType), scope immutable ulong[], scope immutable DynCallType[]) {
+			version (WebAssembly) {
+				debugLog("Can't call extern function from fake extern\n");
+				debugLog(safeCStrOfSym(alloc, allSymbols, name).ptr);
+			}
+			return todo!(immutable ulong)("not for fake");
+		});
 	immutable ExitCode err = cb(extern_);
 	return immutable FakeExternResult(err, moveToArr(alloc, stdout), moveToArr(alloc, stderr));
 }

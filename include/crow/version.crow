@@ -1,18 +1,28 @@
-no-std
-import
-	./bool: bool
-
 ###
-True iff the code is run on Windows.
-This value is known at compile-time.
+Results of functions in this module are known at compile-time.
 
-Given a conditional `if is-windows`, functions in the unused branch
+For example, given a conditional `if is-windows`, functions in the unused branch
 (the `false` branch on Windows, and the `true` branch on other OSes) will not be included in the compiled executable.
 
 This is important to avoid the compiler attempting to link to functions that don't exist on a machine.
 
 Code is always typechecked regardless of whether it will be used.
+###
 
-The WASM interpreter used for the website is not considered Windows.
+no-std
+import
+	./bool: bool
+
+###
+`true` iff the code is run in the interpreter.
+
+This will be `false` for non-interpreted code even on machines with multiple processors.
+###
+is-single-threaded bool() noctx unsafe builtin
+
+###
+`true` iff the code is run on Windows.
+
+The WASM interpreter used for the website is not considered Windows, even if run on Windows.
 ###
 is-windows bool() noctx unsafe builtin

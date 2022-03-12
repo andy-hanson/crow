@@ -127,24 +127,6 @@ enum Operator {
 
 enum SpecialSym {
 	clock_gettime,
-	GetSystemInfo,
-	pthread_barrier_destroy,
-	pthread_barrier_init,
-	pthread_barrier_wait,
-	pthread_condattr_destroy,
-	pthread_condattr_init,
-	pthread_condattr_setclock,
-	pthread_cond_broadcast,
-	pthread_cond_destroy,
-	pthread_cond_init,
-	pthread_create,
-	pthread_mutexattr_destroy,
-	pthread_mutexattr_init,
-	pthread_mutex_destroy,
-	pthread_mutex_init,
-	pthread_mutex_lock,
-	pthread_mutex_unlock,
-
 	// all below are hyphenated
 	as_any_mut_ptr,
 	init_constants,
@@ -167,6 +149,7 @@ enum SpecialSym {
 	force_sendable,
 	flags_members,
 	cur_exclusion,
+	is_single_threaded,
 
 	dotNew,
 }
@@ -242,40 +225,6 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 	final switch (a) {
 		case SpecialSym.clock_gettime:
 			return safeCStr!"clock_gettime";
-		case SpecialSym.GetSystemInfo:
-			return safeCStr!"GetSystemInfo";
-		case SpecialSym.pthread_barrier_destroy:
-			return safeCStr!"pthread_barrier_destroy";
-		case SpecialSym.pthread_barrier_init:
-			return safeCStr!"pthread_barrier_init";
-		case SpecialSym.pthread_barrier_wait:
-			return safeCStr!"pthread_barrier_wait";
-		case SpecialSym.pthread_condattr_destroy:
-			return safeCStr!"pthread_condattr_destroy";
-		case SpecialSym.pthread_condattr_init:
-			return safeCStr!"pthread_condattr_init";
-		case SpecialSym.pthread_condattr_setclock:
-			return safeCStr!"pthread_condattr_setclock";
-		case SpecialSym.pthread_cond_broadcast:
-			return safeCStr!"pthread_cond_broadcast";
-		case SpecialSym.pthread_cond_destroy:
-			return safeCStr!"pthread_cond_destroy";
-		case SpecialSym.pthread_cond_init:
-			return safeCStr!"pthread_cond_init";
-		case SpecialSym.pthread_create:
-			return safeCStr!"pthread_create";
-		case SpecialSym.pthread_mutexattr_destroy:
-			return safeCStr!"pthread_mutexattr_destroy";
-		case SpecialSym.pthread_mutexattr_init:
-			return safeCStr!"pthread_mutexattr_init";
-		case SpecialSym.pthread_mutex_destroy:
-			return safeCStr!"pthread_mutex_destroy";
-		case SpecialSym.pthread_mutex_init:
-			return safeCStr!"pthread_mutex_init";
-		case SpecialSym.pthread_mutex_lock:
-			return safeCStr!"pthread_mutex_lock";
-		case SpecialSym.pthread_mutex_unlock:
-			return safeCStr!"pthread_mutex_unlock";
 
 		case SpecialSym.as_any_mut_ptr:
 			return safeCStr!"as-any-mut-ptr";
@@ -317,6 +266,8 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 			return safeCStr!"flags-members";
 		case SpecialSym.cur_exclusion:
 			return safeCStr!"cur-exclusion";
+		case SpecialSym.is_single_threaded:
+			return safeCStr!"is-single-threaded";
 
 		case SpecialSym.dotNew:
 			return safeCStr!".new";

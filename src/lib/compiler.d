@@ -31,6 +31,10 @@ import util.readOnlyStorage : ReadOnlyStorage;
 import util.repr : jsonStrOfRepr;
 import util.sym : AllSymbols, Sym;
 import util.util : castImmutableRef;
+import versionInfo : VersionInfo, versionInfoForInterpret;
+version (WebAssembly) {} else {
+	import versionInfo : versionInfoForBuildToC;
+}
 
 enum PrintKind {
 	tokens,
@@ -48,6 +52,7 @@ struct DiagsAndResultStrs {
 immutable(DiagsAndResultStrs) print(
 	ref Alloc alloc,
 	ref Perf perf,
+	immutable VersionInfo versionInfo,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	scope ref const ReadOnlyStorage storage,
@@ -63,9 +68,9 @@ immutable(DiagsAndResultStrs) print(
 		case PrintKind.model:
 			return printModel(alloc, perf, allSymbols, allPaths, storage, showDiagOptions, main);
 		case PrintKind.concreteModel:
-			return printConcreteModel(alloc, perf, allSymbols, allPaths, storage, showDiagOptions, main);
+			return printConcreteModel(alloc, perf, versionInfo, allSymbols, allPaths, storage, showDiagOptions, main);
 		case PrintKind.lowModel:
-			return printLowModel(alloc, perf, allSymbols, allPaths, storage, showDiagOptions, main);
+			return printLowModel(alloc, perf, versionInfo, allSymbols, allPaths, storage, showDiagOptions, main);
 	}
 }
 
@@ -88,7 +93,8 @@ immutable(ExitCode) buildAndInterpret(
 	immutable PathAndStorageKind main,
 	scope immutable SafeCStr[] allArgs,
 ) {
-	immutable ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, allSymbols, allPaths, storage, main);
+	immutable ProgramsAndFilesInfo programs =
+		buildToLowProgram(alloc, perf, versionInfoForInterpret(), allSymbols, allPaths, storage, main);
 	if (!hasDiags(programs.program)) {
 		immutable LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
 		immutable ByteCode byteCode = generateBytecode(alloc, alloc, allSymbols, programs.program, lowProgram);
@@ -184,6 +190,7 @@ immutable(DiagsAndResultStrs) printModel(
 immutable(DiagsAndResultStrs) printConcreteModel(
 	ref Alloc alloc,
 	ref Perf perf,
+	immutable VersionInfo versionInfo,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	scope ref const ReadOnlyStorage storage,
@@ -192,8 +199,9 @@ immutable(DiagsAndResultStrs) printConcreteModel(
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
 	if (!hasDiags(program)) {
-		immutable ConcreteProgram concreteProgram =
-			concretize(alloc, perf, allSymbols, allPaths, program, only(program.specialModules.rootModules));
+		immutable ConcreteProgram concreteProgram = concretize(
+			alloc, perf, versionInfo, allSymbols, allPaths, program,
+			only(program.specialModules.rootModules));
 		return immutable DiagsAndResultStrs(safeCStr!"", showConcreteProgram(alloc, allSymbols, concreteProgram));
 	} else
 		return immutable DiagsAndResultStrs(
@@ -204,6 +212,7 @@ immutable(DiagsAndResultStrs) printConcreteModel(
 immutable(DiagsAndResultStrs) printLowModel(
 	ref Alloc alloc,
 	ref Perf perf,
+	immutable VersionInfo versionInfo,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	scope ref const ReadOnlyStorage storage,
@@ -212,8 +221,9 @@ immutable(DiagsAndResultStrs) printLowModel(
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
 	if (!hasDiags(program)) {
-		immutable ConcreteProgram concreteProgram =
-			concretize(alloc, perf, allSymbols, allPaths, program, only(program.specialModules.rootModules));
+		immutable ConcreteProgram concreteProgram = concretize(
+			alloc, perf, versionInfo, allSymbols, allPaths, program,
+			only(program.specialModules.rootModules));
 		immutable LowProgram lowProgram = lower(alloc, perf, concreteProgram);
 		return immutable DiagsAndResultStrs(safeCStr!"", showLowProgram(alloc, allSymbols, lowProgram));
 	} else
@@ -263,37 +273,39 @@ public immutable(ExitCode) justTypeCheck(
 	return !hasDiags(program) ? immutable ExitCode(0) : immutable ExitCode(1);
 }
 
-public struct BuildToCResult {
-	immutable SafeCStr cSource;
-	immutable SafeCStr diagnostics;
-	immutable Sym[] allExternLibraryNames;
-}
-
-public immutable(BuildToCResult) buildToC(
-	ref Alloc alloc,
-	ref Perf perf,
-	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	scope ref const ReadOnlyStorage storage,
-	ref immutable ShowDiagOptions showDiagOptions,
-	immutable PathAndStorageKind main,
-) {
-	immutable ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, allSymbols, allPaths, storage, main);
-	return !hasDiags(programs.program)
-		? immutable BuildToCResult(
-			writeToC(alloc, alloc, castImmutableRef(allSymbols), force(programs.concreteAndLowProgram).lowProgram),
-			safeCStr!"",
-			force(programs.concreteAndLowProgram).concreteProgram.allExternLibraryNames)
-		: immutable BuildToCResult(
-			safeCStr!"",
-			strOfDiagnostics(
-				alloc,
-				allSymbols,
-				allPaths,
-				showDiagOptions,
-				programs.program.filesInfo,
-				programs.program.diagnostics),
-			emptyArr!Sym);
+version (WebAssembly) {} else {
+	public struct BuildToCResult {
+		immutable SafeCStr cSource;
+		immutable SafeCStr diagnostics;
+		immutable Sym[] allExternLibraryNames;
+	}
+	public immutable(BuildToCResult) buildToC(
+		ref Alloc alloc,
+		ref Perf perf,
+		ref AllSymbols allSymbols,
+		ref AllPaths allPaths,
+		scope ref const ReadOnlyStorage storage,
+		ref immutable ShowDiagOptions showDiagOptions,
+		immutable PathAndStorageKind main,
+	) {
+		immutable ProgramsAndFilesInfo programs =
+			buildToLowProgram(alloc, perf, versionInfoForBuildToC(), allSymbols, allPaths, storage, main);
+		return !hasDiags(programs.program)
+			? immutable BuildToCResult(
+				writeToC(alloc, alloc, castImmutableRef(allSymbols), force(programs.concreteAndLowProgram).lowProgram),
+				safeCStr!"",
+				force(programs.concreteAndLowProgram).concreteProgram.allExternLibraryNames)
+			: immutable BuildToCResult(
+				safeCStr!"",
+				strOfDiagnostics(
+					alloc,
+					allSymbols,
+					allPaths,
+					showDiagOptions,
+					programs.program.filesInfo,
+					programs.program.diagnostics),
+				emptyArr!Sym);
+	}
 }
 
 public struct DocumentResult {
@@ -340,6 +352,7 @@ public struct ProgramsAndFilesInfo {
 public immutable(ProgramsAndFilesInfo) buildToLowProgram(
 	ref Alloc alloc,
 	scope ref Perf perf,
+	immutable VersionInfo versionInfo,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	scope ref const ReadOnlyStorage storage,
@@ -347,8 +360,9 @@ public immutable(ProgramsAndFilesInfo) buildToLowProgram(
 ) {
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
 	if (!hasDiags(program)) {
-		immutable ConcreteProgram concreteProgram =
-			concretize(alloc, perf, allSymbols, allPaths, program, only(program.specialModules.rootModules));
+		immutable ConcreteProgram concreteProgram = concretize(
+			alloc, perf, versionInfo, allSymbols, allPaths, program,
+			only(program.specialModules.rootModules));
 		return immutable ProgramsAndFilesInfo(
 			program,
 			some(immutable ConcreteAndLowProgram(concreteProgram, lower(alloc, perf, concreteProgram))));

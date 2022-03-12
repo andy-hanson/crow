@@ -111,6 +111,7 @@ import util.ptr : castImmutable, castMutable, hashPtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, shortSymValue, Sym;
 import util.util : max, roundUp, todo, unreachable, verify;
+import versionInfo : VersionInfo;
 
 struct TypeArgsScope {
 	@safe @nogc pure nothrow:
@@ -237,6 +238,7 @@ private struct DeferredUnionBody {
 struct ConcretizeCtx {
 	@safe @nogc pure nothrow:
 
+	immutable VersionInfo versionInfo;
 	const Ptr!AllPaths allPathsPtr; //TODO:KILL
 	const Ptr!AllSymbols allSymbolsPtr;
 	immutable Ptr!FunInst curExclusionFun;

@@ -423,44 +423,6 @@ immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
 			return some(ExternOp.write);
 		case specialSymValue(SpecialSym.clock_gettime):
 			return some(ExternOp.clock_gettime);
-		case shortSymValue("get_nprocs"):
-			return some(ExternOp.get_nprocs);
-		case specialSymValue(SpecialSym.pthread_barrier_destroy):
-			return some(ExternOp.pthread_barrier_destroy);
-		case specialSymValue(SpecialSym.pthread_barrier_init):
-			return some(ExternOp.pthread_barrier_init);
-		case specialSymValue(SpecialSym.pthread_barrier_wait):
-			return some(ExternOp.pthread_barrier_wait);
-		case specialSymValue(SpecialSym.pthread_condattr_destroy):
-			return some(ExternOp.pthread_condattr_destroy);
-		case specialSymValue(SpecialSym.pthread_condattr_init):
-			return some(ExternOp.pthread_condattr_init);
-		case specialSymValue(SpecialSym.pthread_condattr_setclock):
-			return some(ExternOp.pthread_condattr_setclock);
-		case specialSymValue(SpecialSym.pthread_cond_broadcast):
-			return some(ExternOp.pthread_cond_broadcast);
-		case specialSymValue(SpecialSym.pthread_cond_destroy):
-			return some(ExternOp.pthread_cond_destroy);
-		case specialSymValue(SpecialSym.pthread_cond_init):
-			return some(ExternOp.pthread_cond_init);
-		case specialSymValue(SpecialSym.pthread_create):
-			return some(ExternOp.pthread_create);
-		case shortSymValue("pthread_join"):
-			return some(ExternOp.pthread_join);
-		case specialSymValue(SpecialSym.pthread_mutexattr_destroy):
-			return some(ExternOp.pthread_mutexattr_destroy);
-		case specialSymValue(SpecialSym.pthread_mutexattr_init):
-			return some(ExternOp.pthread_mutexattr_init);
-		case specialSymValue(SpecialSym.pthread_mutex_destroy):
-			return some(ExternOp.pthread_mutex_destroy);
-		case specialSymValue(SpecialSym.pthread_mutex_init):
-			return some(ExternOp.pthread_mutex_init);
-		case specialSymValue(SpecialSym.pthread_mutex_lock):
-			return some(ExternOp.pthread_mutex_lock);
-		case specialSymValue(SpecialSym.pthread_mutex_unlock):
-			return some(ExternOp.pthread_mutex_unlock);
-		case specialSymValue(SpecialSym.GetSystemInfo):
-			return some(ExternOp.GetSystemInfo);
 		default:
 			return none!ExternOp;
 	}

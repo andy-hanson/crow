@@ -48,17 +48,19 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const;
 import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symEq, symForSpecial;
 import util.util : todo, verify;
+import versionInfo : VersionInfo;
 
 immutable(ConcreteProgram) concretize(
 	ref Alloc alloc,
 	scope ref Perf perf,
+	immutable VersionInfo versionInfo,
 	ref AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable Program program,
 	immutable Ptr!Module mainModule,
 ) {
 	return withMeasure!(immutable ConcreteProgram, () =>
-		concretizeInner(alloc, allSymbols, allPaths, program, mainModule)
+		concretizeInner(alloc, versionInfo, allSymbols, allPaths, program, mainModule)
 	)(alloc, perf, PerfMeasure.concretize);
 }
 
@@ -66,12 +68,14 @@ private:
 
 immutable(ConcreteProgram) concretizeInner(
 	ref Alloc alloc,
+	immutable VersionInfo versionInfo,
 	ref AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable Program program,
 	immutable Ptr!Module mainModule,
 ) {
 	ConcretizeCtx ctx = ConcretizeCtx(
+		versionInfo,
 		ptrTrustMe_const(allPaths),
 		ptrTrustMe_const(allSymbols),
 		getCurExclusionFun(alloc, program),

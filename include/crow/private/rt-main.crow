@@ -1,7 +1,5 @@
 no-std
 import
-	sys/sysinfo: get_nprocs
-	win32: dwNumberOfProcessors, GetSystemInfo, new, SYSTEM_INFO
 	../cell: as-cell
 	../col/arr: arr
 	../col/arr-util: map, tail
@@ -10,26 +8,25 @@ import
 	../fut: delay, fut, handle-exceptions, then-void
 	../misc: new, void
 	../ptr:
-		+, any-mut-ptr, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, null, ptr-to,
+		+, any-mut-ptr, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, null,
 		ref-of-val, set-deref, subscript
 	../range: ..
 	../str: c-str, str
 	../str-util: to-str
-	../version: is-windows
 	./alloc: unmanaged-alloc-elements, unmanaged-free
 	./bootstrap: call-with-ctx, ctx, get-ctx, new, thread-local-stuff
 	./exception-low-level: exception-ctx
 	./fut-low-level: get-result
 	./log-low-level: log-ctx
 	./number-low-level:
-		==, <=>, int32, int64, nat64, to-int64, to-nat64, unsafe-to-int32, unsafe-to-int64,
-		unsafe-to-nat64, wrap-add, wrap-sub
+		==, <=>, int32, int64, nat64, to-int64, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat64,
+		wrap-add, wrap-sub
 	./perf-low-level: perf-ctx
 	./runtime:
 		any-unhandled-exceptions, free, get-global-ctx, global-ctx, init, new-ctx, print-lock,
 		thread-function, uninit
 	./sym-low-level: init-symbol-table
-	./thread-utils: create-one-thread, join-one-thread, thread-handle
+	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
 .main-ptr alias
 	fun-ptr2<fut nat64, ctx, str[]>
@@ -46,14 +43,6 @@ rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 	res = gctx exit-code-from-main-fut main-fut
 	gctx free
 	res
-
-.count-processors nat64() unsafe noctx summon
-	if is-windows
-		res SYSTEM_INFO = ()
-		res.ptr-to GetSystemInfo
-		res.dwNumberOfProcessors to-nat64
-	else
-		get_nprocs
 
 .exit-code-from-main-fut int32(gctx global-ctx, main-fut fut nat64) unsafe noctx
 	match main-fut get-result

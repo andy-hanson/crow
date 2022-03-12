@@ -23,7 +23,6 @@ import concretize.concretizeCtx :
 	TypeArgsScope,
 	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes;
 import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs, matchConstantsOrExprs;
-import lower.getBuiltinCall : isWindows;
 import model.concreteModel :
 	asConstant,
 	asRecord,
@@ -81,8 +80,9 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : nullPtr, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSym, Sym, symEq;
+import util.sym : shortSym, shortSymValue, SpecialSym, specialSymValue, Sym, symEq;
 import util.util : todo, unreachable, verify;
+import versionInfo : VersionInfo;
 
 @trusted immutable(ConcreteExpr) concretizeExpr(
 	ref Alloc alloc,
@@ -197,7 +197,8 @@ immutable(ConcreteExpr) concretizeCall(
 	immutable ConcreteExprKind kind = matchConstantsOrExprs!(immutable ConcreteExprKind)(
 		args2,
 		(ref immutable Constant[] constants) {
-			immutable Opt!Constant constant = tryEvalConstant(concreteCalled.deref(), constants);
+			immutable Opt!Constant constant =
+				tryEvalConstant(concreteCalled.deref(), constants, ctx.concretizeCtx.versionInfo);
 			return has(constant)
 				? immutable ConcreteExprKind(force(constant))
 				: immutable ConcreteExprKind(immutable ConcreteExprKind.Call(
@@ -692,15 +693,17 @@ immutable(ConstantsOrExprs) constantsOrExprsArr(
 					allocate(alloc, immutable ConcreteExprKind.CreateArr(arrayStruct, exprs))))])));
 }
 
-immutable(Opt!Constant) tryEvalConstant(ref immutable ConcreteFun fn, immutable Constant[] /*parameters*/) {
+immutable(Opt!Constant) tryEvalConstant(
+	ref immutable ConcreteFun fn,
+	immutable Constant[] /*parameters*/,
+	immutable VersionInfo versionInfo,
+) {
 	return matchConcreteFunBody!(immutable Opt!Constant)(
 		body_(fn),
 		(ref immutable ConcreteFunBody.Builtin) {
 			// TODO: don't just special-case this one..
 			immutable Opt!Sym name = name(fn);
-			return has(name) && symEq(force(name), shortSym("is-windows"))
-				? some(immutable Constant(immutable Constant.BoolConstant(isWindows())))
-				: none!Constant;
+			return has(name) ? tryEvalConstantBuiltin(force(name), versionInfo) : none!Constant;
 		},
 		(ref immutable ConcreteFunBody.CreateEnum) => none!Constant,
 		(ref immutable ConcreteFunBody.CreateRecord) => none!Constant,
@@ -714,4 +717,15 @@ immutable(Opt!Constant) tryEvalConstant(ref immutable ConcreteFun fn, immutable 
 		(ref immutable ConcreteFunBody.FlagsFn) => none!Constant,
 		(ref immutable ConcreteFunBody.RecordFieldGet) => none!Constant,
 		(ref immutable ConcreteFunBody.RecordFieldSet) => none!Constant);
+}
+
+immutable(Opt!Constant) tryEvalConstantBuiltin(immutable Sym name, ref immutable VersionInfo versionInfo) {
+	switch (name.value) {
+		case specialSymValue(SpecialSym.is_single_threaded):
+			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isSingleThreaded)));
+		case shortSymValue("is-windows"):
+			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isWindows)));
+		default:
+			return none!Constant;
+	}
 }

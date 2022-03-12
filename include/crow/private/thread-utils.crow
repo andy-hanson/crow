@@ -9,14 +9,15 @@ import
 		pthread_cond_wait, pthread_create, pthread_join, pthread_mutexattr_destroy,
 		pthread_mutexattr_init, pthread_mutexattr_t, pthread_mutex_destroy, pthread_mutex_init,
 		pthread_mutex_lock, pthread_mutex_t, pthread_mutex_unlock, pthread_t
+	sys/sysinfo: get_nprocs
 	time: CLOCK_MONOTONIC
 	win32:
 		_beginthreadex, CloseHandle, CONDITION_VARIABLE, CRITICAL_SECTION, DeleteCriticalSection,
-		DeleteSynchronizationBarrier, EnterCriticalSection, EnterSynchronizationBarrier,
-		ERROR_TIMEOUT, GetLastError, HANDLE, INFINITE, InitializeConditionVariable,
-		InitializeCriticalSection, InitializeSynchronizationBarrier, LeaveCriticalSection,
-		SleepConditionVariableCS, SYNCHRONIZATION_BARRIER,
-		SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY, WaitForSingleObject, WAIT_OBJECT_0,
+		DeleteSynchronizationBarrier, dwNumberOfProcessors, EnterCriticalSection,
+		EnterSynchronizationBarrier, ERROR_TIMEOUT, GetLastError, GetSystemInfo, HANDLE, INFINITE,
+		InitializeConditionVariable, InitializeCriticalSection, InitializeSynchronizationBarrier,
+		LeaveCriticalSection, new, SleepConditionVariableCS, SYNCHRONIZATION_BARRIER,
+		SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY, SYSTEM_INFO, WaitForSingleObject, WAIT_OBJECT_0,
 		WakeAllConditionVariable
 	../bool: bool, false, true
 	../cell: *, as-mut-ptr, cell, new, set-deref
@@ -28,11 +29,23 @@ import
 	../ptr:
 		==, any-mut-ptr, as-any-mut-ptr, as-ref, by-val, null, ptr-cast, ptr-to,
 		ref-of-val, size-of, to-nat64, zeroed
-	../version: is-windows
-	./bootstrap: hard-assert, hard-forbid, nat64, opt, todo
-	./number-low-level: ==, <=>, nat32, unsafe-to-int64, unsafe-to-nat32, wrap-add, wrap-sub
+	../version: is-single-threaded, is-windows
+	./bootstrap: hard-assert, hard-forbid, hard-unreachable, opt, todo
+	./number-low-level:
+		==, <=>, nat32, nat64, to-int64, to-nat64, unsafe-to-int64, unsafe-to-nat32, unsafe-to-nat64,
+		wrap-add, wrap-sub
 export
 	./bootstrap: lock
+
+count-processors nat64() unsafe noctx summon
+	if is-single-threaded
+		1
+	elif is-windows
+		res SYSTEM_INFO = ()
+		res.ptr-to GetSystemInfo
+		res.dwNumberOfProcessors to-nat64
+	else
+		get_nprocs.to-int64 unsafe-to-nat64
 
 uninit by-val lock() noctx unsafe
 	zeroed
@@ -46,20 +59,26 @@ uninit by-val lock() noctx unsafe
 	a.as-any-mut-ptr as-ref
 
 init void(a lock) noctx unsafe
-	if is-windows
+	if is-single-threaded
+		()
+	elif is-windows
 		a.as-critical-section InitializeCriticalSection
 	else
 		attr by-val pthread_mutexattr_t = zeroed
 		hard-assert-posix-error: a.as-mutex pthread_mutex_init attr.ref-of-val
 
 acquire void(a lock) noctx unsafe
-	if is-windows
+	if is-single-threaded
+		()
+	elif is-windows
 		a.as-critical-section EnterCriticalSection
 	else
 		hard-assert-posix-error: a.as-mutex pthread_mutex_lock
 
 release void(a lock) noctx unsafe
-	if is-windows
+	if is-single-threaded
+		()
+	elif is-windows
 		a.as-critical-section LeaveCriticalSection
 	else
 		hard-assert-posix-error: a.as-mutex pthread_mutex_unlock
@@ -93,7 +112,9 @@ uninit by-val condition() noctx unsafe
 
 # Remember to 'destroy-condition'!
 init void(a condition) noctx unsafe
-	if is-windows
+	if is-single-threaded
+		()
+	elif is-windows
 		a.windows-condition.ref-of-val InitializeConditionVariable
 		a.windows-critical-section.ref-of-val InitializeCriticalSection
 	else
@@ -104,7 +125,9 @@ init void(a condition) noctx unsafe
 		hard-assert-posix-error: a.posix-cond.ref-of-val pthread_cond_init a.posix-cond-attr.ref-of-val
 
 destroy-condition void(a condition) noctx unsafe
-	if is-windows
+	if is-single-threaded
+		()
+	elif is-windows
 		a.windows-critical-section.ref-of-val DeleteCriticalSection
 	else
 		hard-assert-posix-error: a.posix-mutex-attr.ref-of-val pthread_mutexattr_destroy
@@ -116,7 +139,9 @@ destroy-condition void(a condition) noctx unsafe
 	hard-assert: err == 0
 
 broadcast void(a condition) noctx trusted
-	if is-windows
+	if is-single-threaded
+		()
+	elif is-windows
 		a.windows-critical-section.ref-of-val EnterCriticalSection
 		a.sequence := a.sequence wrap-add 1
 		a.windows-condition.ref-of-val WakeAllConditionVariable
@@ -131,7 +156,9 @@ sequence-id alias
 	nat64
 
 get-sequence sequence-id(a condition) noctx unsafe
-	if is-windows
+	if is-single-threaded
+		0
+	elif is-windows
 		a.windows-critical-section.ref-of-val EnterCriticalSection
 		res = a sequence
 		a.windows-critical-section.ref-of-val LeaveCriticalSection
@@ -148,7 +175,9 @@ WARN: May wake up early. Use only to be avoid consuming CPU.
 'last-sequence' is to ensure that we don't wait at all if the condition has already triggered.
 ###
 wait-on void(a condition, until-time timestamp?, last-sequence sequence-id) noctx unsafe summon
-	if is-windows
+	if is-single-threaded
+		hard-unreachable
+	elif is-windows
 		a.windows-critical-section.ref-of-val EnterCriticalSection
 		if a.sequence == last-sequence
 			wait = if t ?= until-time
@@ -187,20 +216,26 @@ uninit by-val barrier() noctx unsafe
 	zeroed
 
 init void(a barrier, n-threads nat64) noctx unsafe
-	if is-windows
+	if is-single-threaded
+		hard-assert: n-threads == 1
+	elif is-windows
 		hard-assert: a.windows.ptr-to InitializeSynchronizationBarrier n-threads.unsafe-to-int64, 0
 	else
 		hard-assert-posix-error: a.posix.ref-of-val pthread_barrier_init null, n-threads.unsafe-to-nat32
 
 free void(a barrier) noctx unsafe
-	if is-windows
+	if is-single-threaded
+		()
+	elif is-windows
 		hard-assert: a.windows.ptr-to DeleteSynchronizationBarrier
 	else
 		hard-assert-posix-error: a.posix.ref-of-val pthread_barrier_destroy
 
 # Returns true for one of the threads.
 wait-barrier bool(a barrier) noctx unsafe
-	if is-windows
+	if is-single-threaded
+		true
+	elif is-windows
 		a.windows.ptr-to EnterSynchronizationBarrier SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY
 	else
 		res = a.posix.ref-of-val pthread_barrier_wait
@@ -260,7 +295,9 @@ spec
 	unsafe
 	summon
 body
-	if is-windows
+	if is-single-threaded
+		hard-unreachable
+	elif is-windows
 		thread-id by-val cell nat32 = 0,
 		res = null _beginthreadex 0, thread-fun, thread-arg, 0, thread-id.ref-of-val.as-mut-ptr
 		*out := res,
@@ -275,7 +312,9 @@ body
 				todo
 
 join-one-thread void(a thread-handle) noctx unsafe summon
-	if is-windows
+	if is-single-threaded
+		hard-unreachable
+	elif is-windows
 		res = a.as-windows-handle WaitForSingleObject INFINITE
 		if res != WAIT_OBJECT_0
 			todo

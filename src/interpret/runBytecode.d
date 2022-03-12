@@ -2,9 +2,6 @@ module interpret.runBytecode;
 
 @safe @nogc nothrow: // not pure
 
-version (Windows) {
-	import core.sys.windows.core : SYSTEM_INFO;
-}
 import frontend.showDiag : ShowDiagOptions;
 import interpret.bytecode :
 	ByteCode,
@@ -537,18 +534,6 @@ private @system immutable(NextOperation) callCommon(
 		case ExternOp.free:
 			a.extern_.free(cast(ubyte*) pop(a.dataStack));
 			break;
-		case ExternOp.get_nprocs:
-			push(a.dataStack, 1);
-			break;
-		case ExternOp.GetSystemInfo:
-			version (Windows) {
-				SYSTEM_INFO* info = cast(SYSTEM_INFO*) pop(a.dataStack);
-				memset(cast(ubyte*) info, 0, SYSTEM_INFO.sizeof);
-				info.dwNumberOfProcessors = 1;
-			} else {
-				unreachable!void();
-			}
-			break;
 		case ExternOp.longjmp:
 			immutable ulong val = pop(a.dataStack); // TODO: verify this is int32?
 			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack);
@@ -574,45 +559,6 @@ private @system immutable(NextOperation) callCommon(
 			ubyte* begin = cast(ubyte*) pop(a.dataStack);
 			ubyte* res = memset(begin, value, size);
 			push(a.dataStack, cast(immutable ulong) res);
-			break;
-		case ExternOp.pthread_create:
-			// The interpreter returns (via get_nprocs or GetSystemInfo) that only 1 processor exists,
-			// so this should never be called.
-			unreachable!void();
-			break;
-		case ExternOp.pthread_join:
-			unreachable!void();
-			break;
-		case ExternOp.pthread_barrier_wait:
-			pop(a.dataStack);
-			// PTHREAD_BARRIER_SERIAL_THREAD = -1, but importing that causes compile errors in WASM build
-			push(a.dataStack, -1);
-			break;
-		case ExternOp.pthread_barrier_destroy:
-		case ExternOp.pthread_condattr_destroy:
-		case ExternOp.pthread_condattr_init:
-		case ExternOp.pthread_cond_broadcast:
-		case ExternOp.pthread_cond_destroy:
-		case ExternOp.pthread_mutexattr_destroy:
-		case ExternOp.pthread_mutexattr_init:
-		case ExternOp.pthread_mutex_destroy:
-		case ExternOp.pthread_mutex_lock:
-		case ExternOp.pthread_mutex_unlock:
-			pop(a.dataStack);
-			push(a.dataStack, 0);
-			break;
-		case ExternOp.pthread_condattr_setclock:
-		case ExternOp.pthread_cond_init:
-		case ExternOp.pthread_mutex_init:
-			pop(a.dataStack);
-			pop(a.dataStack);
-			push(a.dataStack, 0);
-			break;
-		case ExternOp.pthread_barrier_init:
-			pop(a.dataStack);
-			pop(a.dataStack);
-			pop(a.dataStack);
-			push(a.dataStack, 0);
 			break;
 		case ExternOp.setjmp:
 			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack);

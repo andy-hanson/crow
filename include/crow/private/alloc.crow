@@ -13,7 +13,7 @@ import
 		set-subscript, size-of, to-nat64
 	./bootstrap:
 		gc-ctx-ptr, get-ctx, hard-assert, lock, nat64, none, opt, some, todo, void
-	./number-low-level: ==, <=>, unsafe-div, wrap-add, wrap-mul, wrap-sub
+	./number-low-level: ==, <=>, nat8, unsafe-div, wrap-add, wrap-mul, wrap-sub
 	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
 
 mem-copy<a> void(dest a mut*, src a*, size nat64) unsafe noctx
@@ -65,23 +65,24 @@ mark-range-recur bool(marked-anything bool, cur bool mut*, end bool mut*) noctx 
 mark-visit<a> void(mark-ctx mark-ctx, value a) noctx unsafe builtin
 
 gc record mut
-	lk by-val lock
-	barrier by-val barrier
-	gc-count mut nat64
-	context-head mut gc-ctx?
-	needs-gc mut bool
-	size-words mut nat64
+	.lk by-val lock
+	.barrier by-val barrier
+	.gc-count mut nat64
+	.context-head mut gc-ctx?
+	needs-gc .mut bool
+	.size-words mut nat64
 	# 'mark-cur' and 'data-cur' run in parallel
 	# mark-end must be `mark-begin + size-words` and similar for data-end
-	mark-begin bool mut*
-	mark-cur mut bool mut*
-	mark-end mut bool mut*
+	.mark-begin bool mut*
+	.mark-cur mut bool mut*
+	.mark-end mut bool mut*
 	# We allocate data in increments of nat64
-	data-begin nat64 mut*
-	data-cur mut nat64 mut*
-	data-end mut nat64 mut*
+	.data-begin nat64 mut*
+	.data-cur mut nat64 mut*
+	.data-end mut nat64 mut*
 
 gc-stats record by-val
+	gc-count nat64
 	cur-word nat64
 	total-words nat64
 	words-used nat64
@@ -105,11 +106,12 @@ set-hard-limit void(gc gc, size-words nat64) noctx unsafe
 get-stats gc-stats(gc gc) noctx unsafe
 	gc validate-gc
 	gc.lk.ref-of-val acquire
+	gc-count = gc gc-count
 	cur-word = gc.mark-cur - gc.mark-begin
 	used-words-remaining = 0 words-used-in-range gc.mark-cur, gc.mark-end
 	total-words = gc.mark-end - gc.mark-begin
 	gc.lk.ref-of-val release
-	cur-word, total-words, (cur-word wrap-add used-words-remaining)
+	gc-count, cur-word, total-words, (cur-word wrap-add used-words-remaining)
 
 words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) noctx unsafe
 	if cur == end
@@ -124,9 +126,10 @@ uninit by-val gc() noctx unsafe
 	size-words = 0x3000000
 	# 8 GB
 	#size-words = 0x40000000
-	mark bool mut* = size-words.malloc.ptr-cast
+	hard-assert: size-of@<bool> == size-of@<nat8>
+	mark bool mut* = size-words.malloc ptr-cast@<bool, nat8>
 	mark-end = mark + size-words
-	bytes nat64 mut* = (size-words wrap-mul size-of@<nat64>).malloc ptr-cast
+	bytes nat64 mut* = (size-words wrap-mul size-of@<nat64>).malloc ptr-cast@<nat64, nat8>
 	hard-assert: bytes.as-any-mut-ptr is-word-aligned
 	bytes-end = bytes + size-words
 

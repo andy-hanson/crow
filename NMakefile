@@ -139,7 +139,8 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\sym.d \
 	src\util\util.d \
 	src\util\writer.d \
-	src\util\writerUtils.d
+	src\util\writerUtils.d \
+	src\versionInfo.d
 app_src_no_test = src\app.d \
 	$(src_files_common) \
 	src\backend\mangle.d \

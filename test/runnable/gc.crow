@@ -16,7 +16,6 @@ main fut nat(_ str[]) summon unsafe
 	assert: b.as-any-const-ptr - a.as-any-const-ptr == 24
 
 	print: "stats: {gc get-stats}"
-	print: "gc count: {gc gc-count}"
 	print: "a: {a}"
 	print: "stats (after print): {gc get-stats}"
 
@@ -25,7 +24,6 @@ main fut nat(_ str[]) summon unsafe
 
 	print: "-- after gc --"
 	print: "stats: {gc get-stats}"
-	print: "gc count: {gc gc-count}"
 	print: "a: {a}"
 	print: "stats (after print): {gc get-stats}"
 	()
@@ -39,4 +37,4 @@ to-str str(a r)
 	"a={a a}, b={a b}, c={a c}"
 
 to-str str(a gc-stats) summon
-	"cur-word={a cur-word}, words-used={a words-used}, words-free={a words-free}"
+	"gc-count={a gc-count}, cur-word={a cur-word}, words-used={a words-used}, words-free={a words-free}"

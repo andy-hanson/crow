@@ -552,10 +552,7 @@ immutable(SwitchDelayed) writeSwitchWithValuesDelay(
 void writeExtern(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable ExternOp op) {
 	immutable int stackEffect = () {
 		final switch (op) {
-			case ExternOp.pthread_create:
-				return -3;
 			case ExternOp.longjmp:
-			case ExternOp.pthread_barrier_init:
 			case ExternOp.memcpy:
 			case ExternOp.memmove:
 			case ExternOp.memset:
@@ -564,28 +561,10 @@ void writeExtern(ref ByteCodeWriter writer, immutable ByteCodeSource source, imm
 			case ExternOp.backtrace:
 			case ExternOp.clock_gettime:
 			case ExternOp.free:
-			case ExternOp.GetSystemInfo:
-			case ExternOp.pthread_condattr_setclock:
-			case ExternOp.pthread_cond_init:
-			case ExternOp.pthread_join:
-			case ExternOp.pthread_mutex_init:
 				return -1;
 			case ExternOp.malloc:
-			case ExternOp.pthread_barrier_destroy:
-			case ExternOp.pthread_barrier_wait:
-			case ExternOp.pthread_condattr_destroy:
-			case ExternOp.pthread_condattr_init:
-			case ExternOp.pthread_cond_broadcast:
-			case ExternOp.pthread_cond_destroy:
-			case ExternOp.pthread_mutexattr_destroy:
-			case ExternOp.pthread_mutexattr_init:
-			case ExternOp.pthread_mutex_destroy:
-			case ExternOp.pthread_mutex_lock:
-			case ExternOp.pthread_mutex_unlock:
 			case ExternOp.setjmp:
 				return 0;
-			case ExternOp.get_nprocs:
-				return 1;
 		}
 	}();
 	pushOperationFn(writer, source, &opExtern);

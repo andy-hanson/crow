@@ -80,6 +80,22 @@ else {
 	}
 }
 
+void debugLog(immutable char* message) {
+	debugLog(message, 0);
+}
+
+version (WebAssembly) {
+	// WARN: 'message' must be heap allocated, not on stack
+	extern(C) void debugLog(immutable char* message, immutable size_t value);
+} else {
+	void debugLog(immutable char* message, immutable size_t value) {
+		import core.stdc.stdio : printf;
+		debug {
+			printf("debug log: %s == %lu\n", message, value);
+		}
+	}
+}
+
 T unreachable(T)() {
 	assert(0);
 }

@@ -156,7 +156,7 @@ void doInterpret(
 		fullIndexDictOfArr!(LowFunIndex, LowFun)(lowFun),
 		immutable LowFunIndex(0),
 		emptyArr!Sym);
-	withFakeExtern(test.alloc, (scope ref Extern extern_) @trusted {
+	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_) @trusted {
 		withInterpreter!void(
 			test.alloc, extern_, lowProgram, byteCode, test.allSymbols, test.allPaths, filesInfo,
 			(scope ref Interpreter interpreter) {

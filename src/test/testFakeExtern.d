@@ -17,7 +17,7 @@ void testFakeExtern(ref Test test) {
 private:
 
 @trusted void testMallocAndFree(ref Test test) {
-	withFakeExtern(test.alloc, (scope ref Extern extern_) @trusted {
+	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_) @trusted {
 		ubyte* ptr = extern_.malloc(8);
 		ubyte* ptr2 = extern_.malloc(16);
 		*ptr = 1;
@@ -30,12 +30,13 @@ private:
 }
 
 void testWrite(ref Test test) {
-	immutable FakeExternResult result = withFakeExtern(test.alloc, (scope ref Extern extern_) @trusted {
-		extern_.write(1, "gnarly", 4);
-		extern_.write(2, "tubular", 2);
-		extern_.write(1, "way cool", 5);
-		return immutable ExitCode(42);
-	});
+	immutable FakeExternResult result =
+		withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_) @trusted {
+			extern_.write(1, "gnarly", 4);
+			extern_.write(2, "tubular", 2);
+			extern_.write(1, "way cool", 5);
+			return immutable ExitCode(42);
+		});
 	verify(result.err.value == 42);
 	verify(strEq(result.stdout, "gnarway c"));
 	verify(strEq(result.stderr, "tu"));

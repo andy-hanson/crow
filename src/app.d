@@ -129,6 +129,7 @@ import util.readOnlyStorage : ReadOnlyStorage;
 import util.sym : AllSymbols, shortSym, Sym, symAsTempBuffer, writeSym;
 import util.util : castImmutableRef, todo, unreachable, verify;
 import util.writer : finishWriterToSafeCStr, Writer, writeSafeCStr, writeStatic;
+import versionInfo : versionInfoForJIT;
 
 @system extern(C) immutable(int) main(immutable size_t argc, immutable CStr* argv) {
 	immutable size_t memorySizeBytes = 1536 * 1024 * 1024; // 1.5 GB
@@ -209,6 +210,8 @@ immutable(ExitCode) go(ref Alloc alloc, ref Perf perf, ref immutable CommandLine
 					immutable DiagsAndResultStrs printed = print(
 						alloc,
 						perf,
+						// Just going with this arbitrarily. Only affects concrete-model priting.
+						versionInfoForJIT(),
 						allSymbols,
 						allPaths,
 						storage,
@@ -608,7 +611,8 @@ version (Windows) { } else { immutable(ExitCode) buildAndJit(
 	immutable PathAndStorageKind main,
 	immutable SafeCStr[] programArgs,
 ) {
-	immutable ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, allSymbols, allPaths, storage, main);
+	immutable ProgramsAndFilesInfo programs =
+		buildToLowProgram(alloc, perf, versionInfoForJIT(), allSymbols, allPaths, storage, main);
 	return hasDiags(programs.program)
 		? printErr(strOfDiagnostics(
 			alloc,

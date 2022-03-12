@@ -45,7 +45,8 @@ src_files_common = src/concretize/*.d \
 	src/lower/*.d \
 	src/model/*.d \
 	src/util/*.d \
-	src/util/*/*.d
+	src/util/*/*.d \
+	src/versionInfo.d
 app_src_no_test = src/app.d $(src_files_common) src/backend/*.d src/document/*.d
 app_src_with_test = $(app_src_no_test) src/test/*.d
 other_deps = bin/d-imports/date.txt bin/d-imports/commit-hash.txt
@@ -94,7 +95,7 @@ bin/crow-fast-debug: $(app_deps_no_test)
 
 # To debug: Add `-g`, remove $(ldc_fast_flags_no_tail_call)
 bin/crow.wasm: $(wasm_deps)
-	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm $(ldc_flags_no_assert) $(ldc_fast_flags_no_tail_call) -L-allow-undefined $(wasm_src)
+	ldc2 -g -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm $(ldc_flags_no_assert) -L-allow-undefined $(wasm_src)
 	rm bin/crow.o
 
 ALL_INCLUDE = include/*.crow include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
