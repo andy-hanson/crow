@@ -455,38 +455,12 @@ immutable(CommonTypes) getCommonTypes(
 		fut,
 		namedVal,
 		opt,
-		//TODO: this could have a compile-time length
-		arrLiteral!(Ptr!StructDecl)(ctx.alloc, [
-			funPtr0,
-			funPtr1,
-			funPtr2,
-			funPtr3,
-			funPtr4,
-			funPtr5,
-			funPtr6]),
-		//TODO: this could have a compile-time length
-		arrLiteral!FunKindAndStructs(ctx.alloc, [
-			//TODO: this could have a compile-time length
-			immutable FunKindAndStructs(FunKind.plain, arrLiteral!(Ptr!StructDecl)(ctx.alloc, [
-				fun0,
-				fun1,
-				fun2,
-				fun3,
-				fun4])),
-			//TODO: this could have a compile-time length
-			immutable FunKindAndStructs(FunKind.mut, arrLiteral!(Ptr!StructDecl)(ctx.alloc, [
-				funAct0,
-				funAct1,
-				funAct2,
-				funAct3,
-				funAct4])),
-			//TODO: this could have a compile-time length
-			immutable FunKindAndStructs(FunKind.ref_, arrLiteral!(Ptr!StructDecl)(ctx.alloc, [
-				funRef0,
-				funRef1,
-				funRef2,
-				funRef3,
-				funRef4]))]));
+		[funPtr0, funPtr1, funPtr2, funPtr3, funPtr4, funPtr5, funPtr6],
+		[
+			immutable FunKindAndStructs(FunKind.plain, [fun0, fun1, fun2, fun3, fun4]),
+			immutable FunKindAndStructs(FunKind.mut, [funAct0, funAct1, funAct2, funAct3, funAct4]),
+			immutable FunKindAndStructs(FunKind.ref_, [funRef0, funRef1, funRef2, funRef3, funRef4])
+		]);
 }
 
 immutable(Ptr!StructDecl) bogusStructDecl(ref Alloc alloc, immutable size_t nTypeParameters) {

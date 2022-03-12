@@ -1537,7 +1537,7 @@ enum FunKind {
 
 struct FunKindAndStructs {
 	immutable FunKind kind;
-	immutable Ptr!StructDecl[] structs;
+	immutable Ptr!StructDecl[5] structs;
 }
 
 struct CommonTypes {
@@ -1557,8 +1557,8 @@ struct CommonTypes {
 	immutable Ptr!StructDecl fut;
 	immutable Ptr!StructDecl namedVal;
 	immutable Ptr!StructDecl opt;
-	immutable Ptr!StructDecl[] funPtrStructs; // Indexed by arity
-	immutable FunKindAndStructs[] funKindsAndStructs;
+	immutable Ptr!StructDecl[7] funPtrStructs; // Indexed by arity
+	immutable FunKindAndStructs[3] funKindsAndStructs;
 }
 
 struct IntegralTypes {
