@@ -28,6 +28,7 @@ import util.sym : AllSymbols, indexOfSym, Sym;
 struct CheckCtx {
 	@safe @nogc pure nothrow:
 
+	Ptr!Alloc allocPtr;
 	Ptr!Perf perfPtr;
 	Ptr!ProgramState programStatePtr;
 	Ptr!AllSymbols allSymbolsPtr;
@@ -41,6 +42,10 @@ struct CheckCtx {
 	bool[] structsUsed;
 	bool[] specsUsed;
 	Ptr!DiagnosticsBuilder diagsBuilderPtr;
+
+	ref Alloc alloc() return scope {
+		return allocPtr.deref();
+	}
 
 	ref const(AllSymbols) allSymbols() return scope const {
 		return allSymbolsPtr.deref();
@@ -77,13 +82,12 @@ bool[] newUsedImportsAndReExports(
 }
 
 void checkForUnused(
-	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable StructAlias[] structAliases,
 	immutable StructDecl[] structDecls,
 	immutable SpecDecl[] specDecls,
 ) {
-	checkUnusedImports(alloc, ctx);
+	checkUnusedImports(ctx);
 
 	zipPtrFirst!(StructAlias, bool)(
 		structAliases,
@@ -94,7 +98,7 @@ void checkForUnused(
 					break;
 				case Visibility.private_:
 					if (!used)
-						addDiag(alloc, ctx, alias_.deref().range, immutable Diag(
+						addDiag(ctx, alias_.deref().range, immutable Diag(
 							immutable Diag.UnusedPrivateStructAlias(alias_)));
 			}
 		});
@@ -108,7 +112,7 @@ void checkForUnused(
 					break;
 				case Visibility.private_:
 					if (!used)
-						addDiag(alloc, ctx, struct_.deref().range, immutable Diag(
+						addDiag(ctx, struct_.deref().range, immutable Diag(
 							immutable Diag.UnusedPrivateStruct(struct_)));
 			}
 		});
@@ -122,24 +126,24 @@ void checkForUnused(
 					break;
 				case Visibility.private_:
 					if (!used)
-						addDiag(alloc, ctx, spec.deref().range, immutable Diag(immutable Diag.UnusedPrivateSpec(spec)));
+						addDiag(ctx, spec.deref().range, immutable Diag(immutable Diag.UnusedPrivateSpec(spec)));
 			}
 		});
 }
 
-private void checkUnusedImports(ref Alloc alloc, ref CheckCtx ctx) {
+private void checkUnusedImports(ref CheckCtx ctx) {
 	size_t index = 0;
 	foreach (ref immutable ModuleAndNames it; ctx.imports) {
 		if (has(it.names)) {
 			foreach (ref immutable Sym name; force(it.names)) {
 				if (!ctx.importsAndReExportsUsed[index] && has(it.importSource))
-					addDiag(alloc, ctx, force(it.importSource), immutable Diag(
+					addDiag(ctx, force(it.importSource), immutable Diag(
 						immutable Diag.UnusedImport(it.modulePtr, some(name))));
 				index++;
 			}
 		} else {
 			if (!ctx.importsAndReExportsUsed[index] && has(it.importSource))
-				addDiag(alloc, ctx, force(it.importSource), immutable Diag(
+				addDiag(ctx, force(it.importSource), immutable Diag(
 					immutable Diag.UnusedImport(it.modulePtr, none!Sym)));
 			index++;
 		}
@@ -217,11 +221,11 @@ immutable(FileAndRange) rangeInFile(ref const CheckCtx ctx, immutable RangeWithi
 	return immutable FileAndRange(ctx.fileIndex, range);
 }
 
-void addDiag(ref Alloc alloc, ref CheckCtx ctx, immutable FileAndRange range, immutable Diag diag) {
-	addDiagnostic(alloc, ctx.diagsBuilder, range, diag);
+void addDiag(ref CheckCtx ctx, immutable FileAndRange range, immutable Diag diag) {
+	addDiagnostic(ctx.alloc, ctx.diagsBuilder, range, diag);
 }
 
-void addDiag(ref Alloc alloc, ref CheckCtx ctx, immutable RangeWithinFile range, immutable Diag diag) {
-	addDiag(alloc, ctx, immutable FileAndRange(ctx.fileIndex, range), diag);
+void addDiag(ref CheckCtx ctx, immutable RangeWithinFile range, immutable Diag diag) {
+	addDiag(ctx, immutable FileAndRange(ctx.fileIndex, range), diag);
 }
 

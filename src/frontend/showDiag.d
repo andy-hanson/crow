@@ -615,7 +615,7 @@ void writeDiag(
 			writeStatic(writer, " does not refer to anything");
 		},
 		(ref immutable Diag.LambdaCantInferParamTypes) {
-			writeStatic(writer, "can't infer parameter types for lambda.\nconsider prefixing with 'as<...>:'");
+			writeStatic(writer, "lambda expression needs an expected type");
 		},
 		(ref immutable Diag.LambdaClosesOverMut d) {
 			writeStatic(writer, "lambda is a plain 'fun' but closes over ");

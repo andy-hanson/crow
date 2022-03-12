@@ -39,14 +39,13 @@ import util.ptr : castImmutable, Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 
 immutable(ConcreteFunBody) bodyForSafeValue(
-	ref Alloc alloc,
 	ref ConcretizeCtx concretizeCtx,
 	immutable Ptr!ConcreteFun containingFun,
 	immutable FileAndRange range,
 	immutable ConcreteType type,
 ) {
 	Ctx ctx = Ctx(ptrTrustMe_mut(concretizeCtx), containingFun);
-	return immutable ConcreteFunBody(safeValueForType(alloc, ctx, range, type));
+	return immutable ConcreteFunBody(safeValueForType(ctx, range, type));
 }
 
 private:
@@ -58,31 +57,29 @@ struct Ctx {
 	immutable Ptr!ConcreteFun containingFun;
 	size_t nextLambdaIndex;
 
+	ref Alloc alloc() return scope {
+		return concretizeCtx.alloc;
+	}
+
 	ref ConcretizeCtx concretizeCtx() return scope {
 		return concretizeCtxPtr.deref();
 	}
 }
 
-immutable(ConcreteExpr) safeValueForType(
-	ref Alloc alloc,
-	ref Ctx ctx,
-	immutable FileAndRange range,
-	immutable ConcreteType type,
-) {
-	immutable ConcreteExpr inner = safeValueForStruct(alloc, ctx, range, type.struct_);
+immutable(ConcreteExpr) safeValueForType(ref Ctx ctx, immutable FileAndRange range, immutable ConcreteType type) {
+	immutable ConcreteExpr inner = safeValueForStruct(ctx, range, type.struct_);
 	return type.isPointer
 		? immutable ConcreteExpr(type, range, isConstant(inner.kind)
 			? immutable ConcreteExprKind(getConstantPtr(
-				alloc,
+				ctx.alloc,
 				ctx.concretizeCtx.allConstants,
 				type.struct_,
 				asConstant(inner.kind)))
-			: immutable ConcreteExprKind(allocate(alloc, immutable ConcreteExprKind.Alloc(inner))))
+			: immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.Alloc(inner))))
 		: inner;
 }
 
 immutable(ConcreteExpr) safeValueForStruct(
-	ref Alloc alloc,
 	ref Ctx ctx,
 	immutable FileAndRange range,
 	immutable Ptr!ConcreteStruct struct_,
@@ -107,7 +104,7 @@ immutable(ConcreteExpr) safeValueForStruct(
 				case BuiltinStructKind.float64:
 					return fromConstant(immutable Constant(immutable Constant.Float(0)));
 				case BuiltinStructKind.fun:
-					return safeFunValue(alloc, ctx, range, struct_);
+					return safeFunValue(ctx, range, struct_);
 				case BuiltinStructKind.funPtrN:
 					return fromConstant(immutable Constant(immutable Constant.Null()));
 				case BuiltinStructKind.int8:
@@ -141,13 +138,13 @@ immutable(ConcreteExpr) safeValueForStruct(
 			fromConstant(immutable Constant(immutable Constant.Null())),
 		(ref immutable ConcreteStructBody.Record it) {
 			immutable ConcreteExpr[] fieldExprs = map!(immutable ConcreteExpr, ConcreteField)(
-				alloc,
+				ctx.alloc,
 				it.fields,
 				(ref immutable ConcreteField field) =>
-					safeValueForType(alloc, ctx, range, field.type));
+					safeValueForType(ctx, range, field.type));
 			immutable ConstantsOrExprs fieldConstantsOrExprs = isSelfMutable(struct_.deref())
 				? immutable ConstantsOrExprs(fieldExprs)
-				: asConstantsOrExprs(alloc, fieldExprs);
+				: asConstantsOrExprs(ctx.alloc, fieldExprs);
 			return immutable ConcreteExpr(type, range, matchConstantsOrExprs!(immutable ConcreteExprKind)(
 				fieldConstantsOrExprs,
 				(ref immutable Constant[] constants) =>
@@ -157,27 +154,22 @@ immutable(ConcreteExpr) safeValueForStruct(
 		},
 		(ref immutable ConcreteStructBody.Union it) {
 			immutable ConcreteExpr member = has(it.members[0])
-				? safeValueForType(alloc, ctx, range, force(it.members[0]))
+				? safeValueForType(ctx, range, force(it.members[0]))
 				: fromConstant(immutable Constant(immutable Constant.Void()));
 			//TODO: we need to find the function that creates that union...
 			return isConstant(member.kind)
 				? fromConstant(immutable Constant(
-					allocate(alloc, immutable Constant.Union(0, asConstant(member.kind)))))
+					allocate(ctx.alloc, immutable Constant.Union(0, asConstant(member.kind)))))
 				: immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
-					allocate(alloc, immutable ConcreteExprKind.CreateUnion(0, member))));
+					allocate(ctx.alloc, immutable ConcreteExprKind.CreateUnion(0, member))));
 		});
 }
 
-immutable(ConcreteExpr) safeFunValue(
-	ref Alloc alloc,
-	ref Ctx ctx,
-	immutable FileAndRange range,
-	immutable Ptr!ConcreteStruct struct_,
-) {
+immutable(ConcreteExpr) safeFunValue(ref Ctx ctx, immutable FileAndRange range, immutable Ptr!ConcreteStruct struct_) {
 	immutable ConcreteType[] typeArgs = asInst(struct_.deref().source).typeArgs;
 	immutable ConcreteType returnType = typeArgs[0];
 	immutable ConcreteParam[] params = mapWithIndex!(immutable ConcreteParam, ConcreteType)(
-		alloc,
+		ctx.alloc,
 		typeArgs[1 .. $],
 		(immutable size_t index, ref immutable ConcreteType paramType) =>
 			immutable ConcreteParam(
@@ -186,26 +178,23 @@ immutable(ConcreteExpr) safeFunValue(
 				paramType));
 	immutable size_t lambdaIndex = ctx.nextLambdaIndex;
 	ctx.nextLambdaIndex++;
-	immutable ConcreteType closureType = voidType(alloc, ctx.concretizeCtx);
-	Ptr!ConcreteFun fun = allocateMut(alloc, ConcreteFun(
+	immutable ConcreteType closureType = voidType(ctx.concretizeCtx);
+	Ptr!ConcreteFun fun = allocateMut(ctx.alloc, ConcreteFun(
 		immutable ConcreteFunSource(
-			allocate(alloc, immutable ConcreteFunSource.Lambda(range, ctx.containingFun, lambdaIndex))),
+			allocate(ctx.alloc, immutable ConcreteFunSource.Lambda(range, ctx.containingFun, lambdaIndex))),
 		returnType,
 		NeedsCtx.yes,
-		some(closureParam(alloc, closureType)),
+		some(closureParam(ctx.alloc, closureType)),
 		params));
-	setBody(fun.deref(), immutable ConcreteFunBody(safeValueForType(alloc, ctx, range, returnType)));
+	setBody(fun.deref(), immutable ConcreteFunBody(safeValueForType(ctx, range, returnType)));
 	immutable Ptr!ConcreteFun impl = castImmutable(fun);
-	addConcreteFun(alloc, ctx.concretizeCtx, impl);
-	immutable size_t id = nextLambdaImplId(
-		alloc,
-		ctx.concretizeCtx,
-		struct_,
-		immutable ConcreteLambdaImpl(closureType, impl));
+	addConcreteFun(ctx.concretizeCtx, impl);
+	immutable size_t id =
+		nextLambdaImplId(ctx.concretizeCtx, struct_, immutable ConcreteLambdaImpl(closureType, impl));
 	return immutable ConcreteExpr(
 		immutable ConcreteType(false, struct_),
 		range,
-		immutable ConcreteExprKind(allocate(alloc, immutable ConcreteExprKind.Lambda(
+		immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.Lambda(
 			id,
 			immutable ConcreteExpr(
 				closureType,

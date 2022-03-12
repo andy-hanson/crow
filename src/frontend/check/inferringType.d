@@ -71,6 +71,10 @@ struct ExprCtx {
 	// and LambdaInfo should not be copied.
 	MutArr!(Ptr!LambdaInfo) lambdas;
 
+	ref Alloc alloc() return scope {
+		return checkCtx().alloc();
+	}
+
 	ref const(AllSymbols) allSymbols() return scope const {
 		return checkCtx().allSymbols();
 	}
@@ -105,22 +109,21 @@ ref ProgramState programState(return scope ref ExprCtx ctx) {
 	return ctx.checkCtx.programState;
 }
 
-void addDiag2(ref Alloc alloc, ref ExprCtx ctx, immutable FileAndRange range, immutable Diag diag) {
-	addDiag(alloc, ctx.checkCtx, range, diag);
+void addDiag2(ref ExprCtx ctx, immutable FileAndRange range, immutable Diag diag) {
+	addDiag(ctx.checkCtx, range, diag);
 }
 
-immutable(Type[]) typeArgsFromAsts(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst[] typeAsts) {
-	return map!Type(alloc, typeAsts, (ref immutable TypeAst it) =>
-		typeFromAst2(alloc, ctx, it));
+immutable(Type[]) typeArgsFromAsts(ref ExprCtx ctx, immutable TypeAst[] typeAsts) {
+	return map!Type(ctx.alloc, typeAsts, (ref immutable TypeAst it) =>
+		typeFromAst2(ctx, it));
 }
 
-immutable(Opt!Type) typeFromOptAst(ref Alloc alloc, ref ExprCtx ctx, immutable Opt!(Ptr!TypeAst) ast) {
-	return has(ast) ? some(typeFromAst2(alloc, ctx, force(ast).deref())) : none!Type;
+immutable(Opt!Type) typeFromOptAst(ref ExprCtx ctx, immutable Opt!(Ptr!TypeAst) ast) {
+	return has(ast) ? some(typeFromAst2(ctx, force(ast).deref())) : none!Type;
 }
 
-immutable(Type) typeFromAst2(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst ast) {
+immutable(Type) typeFromAst2(ref ExprCtx ctx, immutable TypeAst ast) {
 	return typeFromAst(
-		alloc,
 		ctx.checkCtx,
 		ctx.commonTypes,
 		ast,
@@ -261,18 +264,17 @@ immutable(Type) inferred(ref const Expected expected) {
 }
 
 immutable(Expr) check(
-	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref Expected expected,
 	immutable Type exprType,
 	ref immutable Expr expr,
 ) {
-	if (setTypeNoDiagnostic(alloc, programState(ctx), expected, exprType))
+	if (setTypeNoDiagnostic(ctx.alloc, ctx.programState, expected, exprType))
 		return expr;
 	else {
 		// Failed to set type. This happens if there was already an inferred type.
 		immutable Opt!Type t = tryGetInferred(expected);
-		addDiag2(alloc, ctx, range(expr), immutable Diag(immutable Diag.TypeConflict(force(t), exprType)));
+		addDiag2(ctx, range(expr), immutable Diag(immutable Diag.TypeConflict(force(t), exprType)));
 		return bogus(expected, range(expr));
 	}
 }
@@ -283,7 +285,8 @@ void mustSetType(ref Alloc alloc, ref ProgramState programState, ref Expected ex
 }
 
 // Note: this may infer type parameters
-private immutable(bool) setTypeNoDiagnostic(ref Alloc alloc,
+private immutable(bool) setTypeNoDiagnostic(
+	ref Alloc alloc,
 	ref ProgramState programState,
 	ref Expected expected,
 	immutable Type setType,

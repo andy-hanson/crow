@@ -43,7 +43,6 @@ import util.sym : shortSymValue, Sym, symEq;
 import util.util : todo;
 
 private immutable(Type) instStructFromAst(
-	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	immutable Sym name,
@@ -60,7 +59,6 @@ private immutable(Type) instStructFromAst(
 		? some(force(opDeclFromHere).structOrAlias)
 		: none!StructOrAlias;
 	immutable Opt!StructOrAlias opDecl = tryFindT!StructOrAlias(
-		alloc,
 		ctx,
 		name,
 		range,
@@ -75,7 +73,7 @@ private immutable(Type) instStructFromAst(
 		immutable StructOrAlias sOrA = force(opDecl);
 		immutable size_t nExpectedTypeArgs = typeParams(sOrA).length;
 		immutable Type[] typeArgs = getTypeArgsIfNumberMatches(
-			alloc, ctx, commonTypes, range, structsAndAliasesDict,
+			ctx, commonTypes, range, structsAndAliasesDict,
 			sOrA, nExpectedTypeArgs, typeArgAsts, typeParamsScope, delayStructInsts);
 		return matchStructOrAliasPtr!(immutable Type)(
 			sOrA,
@@ -85,7 +83,7 @@ private immutable(Type) instStructFromAst(
 					: typeFromOptInst(target(a)),
 			(immutable Ptr!StructDecl decl) =>
 				immutable Type(instantiateStruct(
-					alloc,
+					ctx.alloc,
 					ctx.programState,
 					immutable StructDeclAndArgs(decl, typeArgs),
 					delayStructInsts)));
@@ -93,7 +91,6 @@ private immutable(Type) instStructFromAst(
 }
 
 private immutable(Type[]) getTypeArgsIfNumberMatches(
-	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	immutable RangeWithinFile range,
@@ -105,12 +102,11 @@ private immutable(Type[]) getTypeArgsIfNumberMatches(
 	DelayStructInsts delayStructInsts,
 ) {
 	if (typeArgAsts.length != nExpectedTypeArgs) {
-		addDiag(alloc, ctx, range, immutable Diag(
+		addDiag(ctx, range, immutable Diag(
 			immutable Diag.WrongNumberTypeArgsForStruct(sOrA, nExpectedTypeArgs, typeArgAsts.length)));
-		return fillArr!Type(alloc, nExpectedTypeArgs, (immutable size_t) => immutable Type(Type.Bogus()));
+		return fillArr!Type(ctx.alloc, nExpectedTypeArgs, (immutable size_t) => immutable Type(Type.Bogus()));
 	} else
 		return typeArgsFromAsts(
-			alloc,
 			ctx,
 			commonTypes,
 			typeArgAsts,
@@ -120,7 +116,6 @@ private immutable(Type[]) getTypeArgsIfNumberMatches(
 }
 
 immutable(Type) typeFromAst(
-	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	scope immutable TypeAst ast,
@@ -132,7 +127,6 @@ immutable(Type) typeFromAst(
 		immutable Type,
 		(immutable TypeAst.Dict it) =>
 			instStructFromAst(
-				alloc,
 				ctx,
 				commonTypes,
 				symForTypeAstDict(it.kind),
@@ -142,22 +136,21 @@ immutable(Type) typeFromAst(
 				typeParamsScope,
 				delayStructInsts),
 		(immutable TypeAst.Fun it) =>
-			typeFromFunAst(alloc, ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts),
+			typeFromFunAst(ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts),
 		(immutable TypeAst.InstStruct iAst) {
 			immutable Opt!(Diag.TypeShouldUseSyntax.Kind) optSyntax = typeSyntaxKind(iAst.name.name);
 			if (has(optSyntax))
-				addDiag(alloc, ctx, iAst.range, immutable Diag(immutable Diag.TypeShouldUseSyntax(force(optSyntax))));
+				addDiag(ctx, iAst.range, immutable Diag(immutable Diag.TypeShouldUseSyntax(force(optSyntax))));
 
 			immutable Opt!(Ptr!TypeParam) found =
 				findPtr!TypeParam(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>
 					symEq(it.deref().name, iAst.name.name));
 			if (has(found)) {
 				if (!empty(toArr(iAst.typeArgs)))
-					addDiag(alloc, ctx, iAst.range, immutable Diag(immutable Diag.TypeParamCantHaveTypeArgs()));
+					addDiag(ctx, iAst.range, immutable Diag(immutable Diag.TypeParamCantHaveTypeArgs()));
 				return immutable Type(force(found));
 			} else
 				return instStructFromAst(
-					alloc,
 					ctx,
 					commonTypes,
 					iAst.name.name,
@@ -169,7 +162,6 @@ immutable(Type) typeFromAst(
 		},
 		(immutable TypeAst.Suffix it) =>
 			instStructFromAst(
-				alloc,
 				ctx,
 				commonTypes,
 				symForTypeAstSuffix(it.kind),
@@ -207,7 +199,6 @@ private immutable(Type) typeFromOptInst(immutable Opt!(Ptr!StructInst) a) {
 }
 
 private immutable(Type) typeFromFunAst(
-	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	immutable TypeAst.Fun ast,
@@ -234,17 +225,16 @@ private immutable(Type) typeFromFunAst(
 		// We don't have a fun type big enough
 		todo!void("!");
 	immutable Ptr!StructDecl decl = structs[ast.returnAndParamTypes.length - 1];
-	immutable Type[] typeArgs = map!Type(alloc, ast.returnAndParamTypes, (ref immutable TypeAst it) =>
-		typeFromAst(alloc, ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts));
+	immutable Type[] typeArgs = map!Type(ctx.alloc, ast.returnAndParamTypes, (ref immutable TypeAst it) =>
+		typeFromAst(ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts));
 	return immutable Type(instantiateStruct(
-		alloc,
+		ctx.alloc,
 		ctx.programState,
 		immutable StructDeclAndArgs(decl, typeArgs),
 		delayStructInsts));
 }
 
 immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(
-	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable Sym name,
 	immutable RangeWithinFile range,
@@ -255,7 +245,6 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(
 		markUsedSpec(ctx, force(opDeclFromHere).index);
 	immutable Opt!(Ptr!SpecDecl) here = has(opDeclFromHere) ? some(force(opDeclFromHere).decl) : none!(Ptr!SpecDecl);
 	return tryFindT!(Ptr!SpecDecl)(
-		alloc,
 		ctx,
 		name,
 		range,
@@ -267,7 +256,6 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(
 }
 
 immutable(Type[]) typeArgsFromAsts(
-	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	scope immutable TypeAst[] typeAsts,
@@ -275,8 +263,8 @@ immutable(Type[]) typeArgsFromAsts(
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
-	return map!Type(alloc, typeAsts, (ref immutable TypeAst it) =>
-		typeFromAst(alloc, ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts));
+	return map!Type(ctx.alloc, typeAsts, (ref immutable TypeAst it) =>
+		typeFromAst(ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts));
 }
 
 immutable(Type) makeFutType(
@@ -294,7 +282,6 @@ immutable(Type) makeFutType(
 private:
 
 immutable(Opt!T) tryFindT(T)(
-	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable Sym name,
 	immutable RangeWithinFile range,
@@ -316,13 +303,13 @@ immutable(Opt!T) tryFindT(T)(
 				markUsedImport(ctx, index);
 				if (has(acc))
 					// TODO: include both modules in the diag
-					addDiag(alloc, ctx, range, immutable Diag(
+					addDiag(ctx, range, immutable Diag(
 						immutable Diag.DuplicateImports(duplicateImportKind, name)));
 				return got;
 			} else
 				return acc;
 		});
 	if (!has(res))
-		addDiag(alloc, ctx, range, immutable Diag(immutable Diag.NameNotFound(nameNotFoundKind, name)));
+		addDiag(ctx, range, immutable Diag(immutable Diag.NameNotFound(nameNotFoundKind, name)));
 	return res;
 }

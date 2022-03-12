@@ -45,7 +45,7 @@ import util.col.mutSet : moveSetToArr;
 import util.opt : force, has, Opt;
 import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const;
+import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symEq, symForSpecial;
 import util.util : todo, verify;
 import versionInfo : VersionInfo;
@@ -75,34 +75,34 @@ immutable(ConcreteProgram) concretizeInner(
 	immutable Ptr!Module mainModule,
 ) {
 	ConcretizeCtx ctx = ConcretizeCtx(
+		ptrTrustMe_mut(alloc),
 		versionInfo,
-		ptrTrustMe_const(allPaths),
 		ptrTrustMe_const(allSymbols),
 		getCurExclusionFun(alloc, program),
 		program.commonTypes.ctx,
 		ptrTrustMe(program.commonTypes),
 		ptrTrustMe(program));
-	immutable Ptr!ConcreteStruct ctxStruct = ctxType(alloc, ctx).struct_;
+	immutable Ptr!ConcreteStruct ctxStruct = ctxType(ctx).struct_;
 	immutable Ptr!ConcreteFun markConcreteFun =
-		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getMarkFun(alloc, program));
+		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getMarkFun(alloc, program));
 	immutable Ptr!ConcreteFun rtMainConcreteFun =
-		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getRtMainFun(alloc, program));
+		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getRtMainFun(alloc, program));
 	// We remove items from these dicts when we process them.
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 	immutable Ptr!ConcreteFun userMainConcreteFun =
-		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getUserMainFun(alloc, program, mainModule));
+		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getUserMainFun(alloc, program, mainModule));
 	immutable Ptr!ConcreteFun allocFun =
-		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getAllocFun(alloc, program));
+		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getAllocFun(alloc, program));
 	immutable Ptr!ConcreteFun allFunsFun =
-		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getAllFunsFun(alloc, program));
+		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getAllFunsFun(alloc, program));
 	immutable Ptr!ConcreteFun staticSymsFun =
-		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getStaticSymsFun(alloc, program));
+		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getStaticSymsFun(alloc, program));
 	// We remove items from these dicts when we process them.
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 
 	immutable Ptr!ConcreteFun[] allConcreteFuns = finishArr_immutable(alloc, ctx.allConcreteFuns);
 
-	deferredFillRecordAndUnionBodies(alloc, ctx);
+	deferredFillRecordAndUnionBodies(ctx);
 
 	return immutable ConcreteProgram(
 		finishAllConstants(

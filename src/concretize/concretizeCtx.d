@@ -106,7 +106,6 @@ import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths;
 import util.ptr : castImmutable, castMutable, hashPtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, shortSymValue, Sym;
@@ -238,8 +237,8 @@ private struct DeferredUnionBody {
 struct ConcretizeCtx {
 	@safe @nogc pure nothrow:
 
+	Ptr!Alloc allocPtr;
 	immutable VersionInfo versionInfo;
-	const Ptr!AllPaths allPathsPtr; //TODO:KILL
 	const Ptr!AllSymbols allSymbolsPtr;
 	immutable Ptr!FunInst curExclusionFun;
 	immutable Ptr!StructInst ctxStructInst;
@@ -274,11 +273,9 @@ struct ConcretizeCtx {
 	Late!(immutable ConcreteType) _ctxType;
 	Late!(immutable ConcreteType) _cStrType;
 	Late!(immutable ConcreteType) _symType;
-	int __nextId;
 
-	//TODO:KILL
-	int nextExprCtxId() {
-		return __nextId++;
+	ref Alloc alloc() return scope {
+		return allocPtr.deref();
 	}
 
 	ref const(AllSymbols) allSymbols() return scope const {
@@ -292,53 +289,48 @@ struct ConcretizeCtx {
 	}
 }
 
-immutable(ConcreteType) boolType(ref Alloc alloc, ref ConcretizeCtx a) {
+immutable(ConcreteType) boolType(ref ConcretizeCtx a) {
 	return lazilySet(a._boolType, () =>
-		getConcreteType_forStructInst(alloc, a, a.commonTypes.bool_, TypeArgsScope.empty));
+		getConcreteType_forStructInst(a, a.commonTypes.bool_, TypeArgsScope.empty));
 }
 
-immutable(ConcreteType) voidType(ref Alloc alloc, ref ConcretizeCtx a) {
+immutable(ConcreteType) voidType(ref ConcretizeCtx a) {
 	return lazilySet(a._voidType, () =>
-		getConcreteType_forStructInst(alloc, a, a.commonTypes.void_, TypeArgsScope.empty));
+		getConcreteType_forStructInst(a, a.commonTypes.void_, TypeArgsScope.empty));
 }
 
-immutable(ConcreteType) cStrType(ref Alloc alloc, ref ConcretizeCtx a) {
+immutable(ConcreteType) cStrType(ref ConcretizeCtx a) {
 	return lazilySet(a._cStrType, () =>
-		getConcreteType_forStructInst(alloc, a, a.commonTypes.cStr, TypeArgsScope.empty));
+		getConcreteType_forStructInst(a, a.commonTypes.cStr, TypeArgsScope.empty));
 }
 
-immutable(ConcreteType) symType(ref Alloc alloc, ref ConcretizeCtx a) {
+immutable(ConcreteType) symType(ref ConcretizeCtx a) {
 	return lazilySet(a._symType, () =>
-		getConcreteType_forStructInst(alloc, a, a.commonTypes.sym, TypeArgsScope.empty));
+		getConcreteType_forStructInst(a, a.commonTypes.sym, TypeArgsScope.empty));
 }
 
-immutable(ConcreteType) ctxType(ref Alloc alloc, ref ConcretizeCtx a) {
+immutable(ConcreteType) ctxType(ref ConcretizeCtx a) {
 	immutable ConcreteType res = lazilySet(a._ctxType, () =>
-		getConcreteType_forStructInst(alloc, a, a.ctxStructInst, TypeArgsScope.empty));
+		getConcreteType_forStructInst(a, a.ctxStructInst, TypeArgsScope.empty));
 	verify(res.isPointer);
 	return res;
 }
 
-immutable(Constant) constantCStr(ref Alloc alloc, ref ConcretizeCtx a, immutable SafeCStr value) {
-	return getConstantCStr(alloc, a.allConstants, value);
+immutable(Constant) constantCStr(ref ConcretizeCtx a, immutable SafeCStr value) {
+	return getConstantCStr(a.alloc, a.allConstants, value);
 }
 
-immutable(Constant) constantSym(ref Alloc alloc, ref ConcretizeCtx a, immutable Sym value) {
-	return getConstantSym(alloc, a.allConstants, a.allSymbols, value);
+immutable(Constant) constantSym(ref ConcretizeCtx a, immutable Sym value) {
+	return getConstantSym(a.alloc, a.allConstants, a.allSymbols, value);
 }
 
-immutable(Ptr!ConcreteFun) getOrAddConcreteFunAndFillBody(
-	ref Alloc alloc,
-	ref ConcretizeCtx ctx,
-	ref immutable ConcreteFunKey key,
-) {
-	Ptr!ConcreteFun cf = castMutable(getOrAddConcreteFunWithoutFillingBody(alloc, ctx, key));
-	fillInConcreteFunBody(alloc, ctx, cf);
+immutable(Ptr!ConcreteFun) getOrAddConcreteFunAndFillBody(ref ConcretizeCtx ctx, immutable ConcreteFunKey key) {
+	Ptr!ConcreteFun cf = castMutable(getOrAddConcreteFunWithoutFillingBody(ctx, key));
+	fillInConcreteFunBody(ctx, cf);
 	return castImmutable(cf);
 }
 
 immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(
-	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	immutable Ptr!ConcreteFun containingConcreteFun,
 	immutable size_t index,
@@ -348,55 +340,53 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(
 	ref immutable ContainingFunInfo containing,
 	ref immutable Expr body_,
 ) {
-	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
+	Ptr!ConcreteFun res = allocateMut(ctx.alloc, ConcreteFun(
 		immutable ConcreteFunSource(
-			allocate(alloc, immutable ConcreteFunSource.Lambda(body_.range, containingConcreteFun, index))),
+			allocate(ctx.alloc, immutable ConcreteFunSource.Lambda(body_.range, containingConcreteFun, index))),
 		returnType,
 		NeedsCtx.yes,
 		some(closureParam),
 		params));
 	immutable ConcreteFunBodyInputs bodyInputs = immutable ConcreteFunBodyInputs(containing, immutable FunBody(body_));
-	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
-	fillInConcreteFunBody(alloc, ctx, res);
-	addConcreteFun(alloc, ctx, castImmutable(res));
+	addToMutDict(ctx.alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
+	fillInConcreteFunBody(ctx, res);
+	addConcreteFun(ctx, castImmutable(res));
 	return castImmutable(res);
 }
 
 immutable(Ptr!ConcreteFun) getOrAddNonTemplateConcreteFunAndFillBody(
-	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	immutable Ptr!FunInst decl,
 ) {
 	immutable ConcreteFunKey key = immutable ConcreteFunKey(decl, emptyArr!ConcreteType, emptyArr!(Ptr!ConcreteFun));
-	return getOrAddConcreteFunAndFillBody(alloc, ctx, key);
+	return getOrAddConcreteFunAndFillBody(ctx, key);
 }
 
 immutable(ConcreteType) getConcreteType_forStructInst(
-	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	immutable Ptr!StructInst i,
 	immutable TypeArgsScope typeArgsScope,
 ) {
-	immutable ConcreteType[] typeArgs = typesToConcreteTypes(alloc, ctx, typeArgs(i.deref()), typeArgsScope);
+	immutable ConcreteType[] typeArgs = typesToConcreteTypes(ctx, typeArgs(i.deref()), typeArgsScope);
 	if (ptrEquals(i.deref().decl, ctx.commonTypes.byVal))
 		return byVal(only(typeArgs));
 	else {
 		immutable ConcreteStructKey key = ConcreteStructKey(i.deref().decl, typeArgs);
 		immutable ValueAndDidAdd!(immutable Ptr!ConcreteStruct) res =
-			getOrAddAndDidAdd(alloc, ctx.nonLambdaConcreteStructs, key, () {
+			getOrAddAndDidAdd(ctx.alloc, ctx.nonLambdaConcreteStructs, key, () {
 				immutable Purity purity = fold(
 					i.deref().purityRange.bestCase,
 					typeArgs,
 					(immutable Purity p, ref immutable ConcreteType ta) =>
 						worsePurity(p, purity(ta)));
-				immutable Ptr!ConcreteStruct res = allocate(alloc, immutable ConcreteStruct(
+				immutable Ptr!ConcreteStruct res = allocate(ctx.alloc, immutable ConcreteStruct(
 					purity,
 					immutable ConcreteStructSource(immutable ConcreteStructSource.Inst(i, key.typeArgs))));
-				add(alloc, ctx.allConcreteStructs, res);
+				add(ctx.alloc, ctx.allConcreteStructs, res);
 				return res;
 			});
 		if (res.didAdd)
-			initializeConcreteStruct(alloc, ctx, typeArgs, i.deref(), castMutable(res.value), typeArgsScope);
+			initializeConcreteStruct(ctx, typeArgs, i.deref(), castMutable(res.value), typeArgsScope);
 		if (!lateIsSet(res.value.deref().defaultIsPointer_))
 			// The only way 'defaultIsPointer' would not be set is if we are still computing the size of 's'.
 			// In that case, it's a recursive record, so it should be by-ref.
@@ -406,7 +396,6 @@ immutable(ConcreteType) getConcreteType_forStructInst(
 }
 
 immutable(ConcreteType) getConcreteType(
-	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	immutable Type t,
 	immutable TypeArgsScope typeArgsScope,
@@ -421,27 +410,25 @@ immutable(ConcreteType) getConcreteType(
 			return typeArgsScope.typeArgs[p.deref().index];
 		},
 		(immutable Ptr!StructInst i) =>
-			getConcreteType_forStructInst(alloc, ctx, i, typeArgsScope));
+			getConcreteType_forStructInst(ctx, i, typeArgsScope));
 }
 
 immutable(ConcreteType[]) typesToConcreteTypes(
-	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	immutable Type[] types,
 	immutable TypeArgsScope typeArgsScope,
 ) {
-	return map!ConcreteType(alloc, types, (ref immutable Type t) =>
-		getConcreteType(alloc, ctx, t, typeArgsScope));
+	return map!ConcreteType(ctx.alloc, types, (ref immutable Type t) =>
+		getConcreteType(ctx, t, typeArgsScope));
 }
 
 immutable(ConcreteType) concreteTypeFromClosure(
-	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	ref immutable ConcreteField[] closureFields,
 	immutable ConcreteStructSource source,
 ) {
 	if (empty(closureFields))
-		return voidType(alloc, ctx);
+		return voidType(ctx);
 	else {
 		immutable Purity purity = fold(
 			Purity.data,
@@ -451,18 +438,17 @@ immutable(ConcreteType) concreteTypeFromClosure(
 				verify(f.mutability == ConcreteMutability.const_);
 				return worsePurity(p, purity(f.type));
 			});
-		Ptr!ConcreteStruct cs = allocateMut(alloc, ConcreteStruct(purity, source));
+		Ptr!ConcreteStruct cs = allocateMut(ctx.alloc, ConcreteStruct(purity, source));
 		lateSet(cs.deref().info_, getConcreteStructInfoForFields(closureFields));
 		setConcreteStructRecordSizeOrDefer(
-			alloc, ctx, cs, false, closureFields, false, FieldsType.closure);
-		add(alloc, ctx.allConcreteStructs, castImmutable(cs));
+			ctx, cs, false, closureFields, false, FieldsType.closure);
+		add(ctx.alloc, ctx.allConcreteStructs, castImmutable(cs));
 		// TODO: consider passing closure by value
 		return immutable ConcreteType(true, castImmutable(cs));
 	}
 }
 
 private void setConcreteStructRecordSizeOrDefer(
-	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	Ptr!ConcreteStruct cs,
 	immutable bool packed,
@@ -472,9 +458,9 @@ private void setConcreteStructRecordSizeOrDefer(
 ) {
 	DeferredRecordBody deferred = DeferredRecordBody(cs, packed, isSelfMutable, fields, fieldsType);
 	if (canGetRecordSize(fields))
-		setConcreteStructRecordSize(alloc, deferred);
+		setConcreteStructRecordSize(ctx.alloc, deferred);
 	else
-		push(alloc, ctx.deferredRecords, deferred);
+		push(ctx.alloc, ctx.deferredRecords, deferred);
 }
 
 private void setConcreteStructRecordSize(ref Alloc alloc, DeferredRecordBody a) {
@@ -488,34 +474,26 @@ private void setConcreteStructRecordSize(ref Alloc alloc, DeferredRecordBody a) 
 }
 
 //TODO: do eagerly?
-immutable(Ptr!ConcreteFun) getCurExclusionFun(ref Alloc alloc, ref ConcretizeCtx ctx) {
-	return getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, ctx.curExclusionFun);
+immutable(Ptr!ConcreteFun) getCurExclusionFun(ref ConcretizeCtx ctx) {
+	return getOrAddNonTemplateConcreteFunAndFillBody(ctx, ctx.curExclusionFun);
 }
 
 private:
 
-immutable(Ptr!ConcreteFun) getOrAddConcreteFunWithoutFillingBody(
-	ref Alloc alloc,
-	ref ConcretizeCtx ctx,
-	ref immutable ConcreteFunKey key,
-) {
-	return getOrAdd(alloc, ctx.nonLambdaConcreteFuns, key, () {
-		immutable Ptr!ConcreteFun res = getConcreteFunFromKey(alloc, ctx, key);
-		addConcreteFun(alloc, ctx, res);
+immutable(Ptr!ConcreteFun) getOrAddConcreteFunWithoutFillingBody(ref ConcretizeCtx ctx, immutable ConcreteFunKey key) {
+	return getOrAdd(ctx.alloc, ctx.nonLambdaConcreteFuns, key, () {
+		immutable Ptr!ConcreteFun res = getConcreteFunFromKey(ctx, key);
+		addConcreteFun(ctx, res);
 		return res;
 	});
 }
 
-immutable(Ptr!ConcreteFun) getConcreteFunFromKey(
-	ref Alloc alloc,
-	ref ConcretizeCtx ctx,
-	ref immutable ConcreteFunKey key,
-) {
+immutable(Ptr!ConcreteFun) getConcreteFunFromKey(ref ConcretizeCtx ctx, ref immutable ConcreteFunKey key) {
 	immutable Ptr!FunDecl decl = key.inst.deref().decl;
 	immutable TypeArgsScope typeScope = typeArgsScope(key);
-	immutable ConcreteType returnType = getConcreteType(alloc, ctx, returnType(decl.deref()), typeScope);
-	immutable ConcreteParam[] params = concretizeParams(alloc, ctx, paramsArray(params(decl.deref())), typeScope);
-	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
+	immutable ConcreteType returnType = getConcreteType(ctx, returnType(decl.deref()), typeScope);
+	immutable ConcreteParam[] params = concretizeParams(ctx, paramsArray(params(decl.deref())), typeScope);
+	Ptr!ConcreteFun res = allocateMut(ctx.alloc, ConcreteFun(
 		immutable ConcreteFunSource(key.inst),
 		returnType,
 		getNeedsCtx(decl.deref(), key.specImpls),
@@ -524,7 +502,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(
 	immutable ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		toContainingFunInfo(key),
 		decl.deref().body_);
-	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
+	addToMutDict(ctx.alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
 	return castImmutable(res);
 }
 
@@ -536,19 +514,18 @@ immutable(NeedsCtx) getNeedsCtx(ref immutable FunDecl decl, immutable Ptr!Concre
 	return res ? NeedsCtx.yes : NeedsCtx.no;
 }
 
-void addConcreteFun(ref Alloc alloc, ref ConcretizeCtx ctx, immutable Ptr!ConcreteFun fun) {
-	add(alloc, ctx.allConcreteFuns, fun);
+void addConcreteFun(ref ConcretizeCtx ctx, immutable Ptr!ConcreteFun fun) {
+	add(ctx.alloc, ctx.allConcreteFuns, fun);
 }
 
 immutable(Ptr!ConcreteFun) concreteFunForTest(
-	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	ref immutable Test test,
 	immutable size_t testIndex,
 ) {
-	Ptr!ConcreteFun res = allocateMut(alloc, ConcreteFun(
-		immutable ConcreteFunSource(allocate(alloc, immutable ConcreteFunSource.Test(test.body_.range, testIndex))),
-		voidType(alloc, ctx),
+	Ptr!ConcreteFun res = allocateMut(ctx.alloc, ConcreteFun(
+		immutable ConcreteFunSource(allocate(ctx.alloc, immutable ConcreteFunSource.Test(test.body_.range, testIndex))),
+		voidType(ctx),
 		NeedsCtx.yes,
 		none!(Ptr!ConcreteParam),
 		emptyArr!ConcreteParam));
@@ -557,9 +534,9 @@ immutable(Ptr!ConcreteFun) concreteFunForTest(
 		emptyArr!ConcreteType,
 		emptyArr!(Ptr!ConcreteFun));
 	immutable ConcreteExpr body_ =
-		concretizeExpr(alloc, ctx, containing, castImmutable(res), test.body_);
+		concretizeExpr(ctx, containing, castImmutable(res), test.body_);
 	lateSet(res.deref()._body_, immutable ConcreteFunBody(body_));
-	addConcreteFun(alloc, ctx, castImmutable(res));
+	addConcreteFun(ctx, castImmutable(res));
 	return castImmutable(res);
 }
 
@@ -640,7 +617,6 @@ immutable(TypeSizeAndFieldOffsets) recordSize(
 }
 
 void initializeConcreteStruct(
-	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	ref immutable ConcreteType[] typeArgs,
 	ref immutable StructInst i,
@@ -661,14 +637,14 @@ void initializeConcreteStruct(
 		(ref immutable StructBody.Enum it) {
 			lateSet(res.deref().defaultIsPointer_, false);
 			lateSet(res.deref().info_, immutable ConcreteStructInfo(
-				immutable ConcreteStructBody(getConcreteStructBodyForEnum(alloc, it)),
+				immutable ConcreteStructBody(getConcreteStructBodyForEnum(ctx.alloc, it)),
 				false));
 			lateSet(res.deref().typeSize_, typeSizeForEnumOrFlags(it.backingType));
 		},
 		(ref immutable StructBody.Flags it) {
 			lateSet(res.deref().defaultIsPointer_, false);
 			lateSet(res.deref().info_, immutable ConcreteStructInfo(
-				immutable ConcreteStructBody(getConcreteStructBodyForFlags(alloc, it)),
+				immutable ConcreteStructBody(getConcreteStructBodyForFlags(ctx.alloc, it)),
 				false));
 			lateSet(res.deref().typeSize_, typeSizeForEnumOrFlags(it.backingType));
 		},
@@ -693,36 +669,38 @@ void initializeConcreteStruct(
 					break;
 			}
 
-			immutable ConcreteField[] fields =
-				mapPtrsWithIndex!ConcreteField(alloc, r.fields, (immutable size_t index, immutable Ptr!RecordField f) =>
+			immutable ConcreteField[] fields = mapPtrsWithIndex!ConcreteField(
+				ctx.alloc,
+				r.fields,
+				(immutable size_t index, immutable Ptr!RecordField f) =>
 					immutable ConcreteField(
 						immutable ConcreteFieldSource(f),
 						index,
 						toConcreteMutability(f.deref().mutability),
-						getConcreteType(alloc, ctx, f.deref().type, typeArgsScope)));
+						getConcreteType(ctx, f.deref().type, typeArgsScope)));
 			immutable bool packed = r.flags.packed;
 			immutable ConcreteStructInfo info = getConcreteStructInfoForFields(fields);
 			lateSet(res.deref().info_, info);
 			if (r.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal)
 				verify(!info.isSelfMutable);
 			setConcreteStructRecordSizeOrDefer(
-				alloc, ctx, res, packed, fields, info.isSelfMutable, FieldsType.record);
+				ctx, res, packed, fields, info.isSelfMutable, FieldsType.record);
 		},
 		(ref immutable StructBody.Union u) {
 			lateSet(res.deref().defaultIsPointer_, false);
 			immutable Opt!ConcreteType[] members = map!(Opt!ConcreteType)(
-				alloc,
+				ctx.alloc,
 				u.members,
 				(ref immutable UnionMember it) =>
 					has(it.type)
-						? some(getConcreteType(alloc, ctx, force(it.type), typeArgsScope))
+						? some(getConcreteType(ctx, force(it.type), typeArgsScope))
 						: none!ConcreteType);
 			lateSet(res.deref().info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(ConcreteStructBody.Union(members)), false));
 			if (canGetUnionSize(members))
 				lateSet(res.deref().typeSize_, unionSize(members));
 			else
-				push(alloc, ctx.deferredUnions, DeferredUnionBody(res, members));
+				push(ctx.alloc, ctx.deferredUnions, DeferredUnionBody(res, members));
 		});
 }
 
@@ -784,13 +762,13 @@ immutable(ConcreteStructBody.Flags) getConcreteStructBodyForFlags(
 			member.value.asUnsigned()));
 }
 
-public void deferredFillRecordAndUnionBodies(ref Alloc alloc, ref ConcretizeCtx ctx) {
+public void deferredFillRecordAndUnionBodies(ref ConcretizeCtx ctx) {
 	if (!mutArrIsEmpty(ctx.deferredRecords) || !mutArrIsEmpty(ctx.deferredUnions)) {
 		bool couldGetSomething = false;
 		filterUnordered!DeferredRecordBody(ctx.deferredRecords, (ref DeferredRecordBody deferred) {
 			immutable bool canGet = canGetRecordSize(deferred.fields);
 			if (canGet) {
-				setConcreteStructRecordSize(alloc, deferred);
+				setConcreteStructRecordSize(ctx.alloc, deferred);
 				couldGetSomething = true;
 			}
 			return !canGet;
@@ -804,11 +782,11 @@ public void deferredFillRecordAndUnionBodies(ref Alloc alloc, ref ConcretizeCtx 
 			return !canGet;
 		});
 		verify(couldGetSomething);
-		deferredFillRecordAndUnionBodies(alloc, ctx);
+		deferredFillRecordAndUnionBodies(ctx);
 	}
 }
 
-void fillInConcreteFunBody(ref Alloc alloc, ref ConcretizeCtx ctx, Ptr!ConcreteFun cf) {
+void fillInConcreteFunBody(ref ConcretizeCtx ctx, Ptr!ConcreteFun cf) {
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf.deref()._body_)) {
 		// set to arbitrary temporarily
@@ -820,10 +798,9 @@ void fillInConcreteFunBody(ref Alloc alloc, ref ConcretizeCtx ctx, Ptr!ConcreteF
 				immutable Ptr!FunInst inst = asFunInst(cf.deref().source);
 				switch (name(inst.deref()).value) {
 					case shortSymValue("all-tests"):
-						return bodyForAllTests(alloc, ctx, castImmutable(cf).deref().returnType);
+						return bodyForAllTests(ctx, castImmutable(cf).deref().returnType);
 					case shortSymValue("safe-value"):
 						return bodyForSafeValue(
-							alloc,
 							ctx,
 							castImmutable(cf),
 							concreteFunRange(castImmutable(cf).deref(), ctx.allSymbols),
@@ -846,17 +823,17 @@ void fillInConcreteFunBody(ref Alloc alloc, ref ConcretizeCtx ctx, Ptr!ConcreteF
 					case EnumFunction.union_:
 						return immutable ConcreteFunBody(it);
 					case EnumFunction.members:
-						return bodyForEnumOrFlagsMembers(alloc, ctx, castImmutable(cf).deref().returnType);
+						return bodyForEnumOrFlagsMembers(ctx, castImmutable(cf).deref().returnType);
 				}
 			},
 			(ref immutable FunBody.Extern e) {
 				if (has(e.libraryName))
 					//TODO: don't always copy
-					addToMutSetOkIfPresent(alloc, ctx.allExternLibraryNames, force(e.libraryName));
+					addToMutSetOkIfPresent(ctx.alloc, ctx.allExternLibraryNames, force(e.libraryName));
 				return immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(e.isGlobal));
 			},
 			(ref immutable Expr e) =>
-				immutable ConcreteFunBody(concretizeExpr(alloc, ctx, inputs.containing, castImmutable(cf), e)),
+				immutable ConcreteFunBody(concretizeExpr(ctx, inputs.containing, castImmutable(cf), e)),
 			(immutable FlagsFunction it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.FlagsFn(
 					getAllValue(asFlags(body_(mustBeNonPointer(castImmutable(cf).deref().returnType).deref()))),
@@ -875,22 +852,18 @@ immutable(ulong) getAllValue(ref immutable ConcreteStructBody.Flags flags) {
 		a | b);
 }
 
-immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(
-	ref Alloc alloc,
-	ref ConcretizeCtx ctx,
-	immutable ConcreteType returnType,
-) {
+immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, immutable ConcreteType returnType) {
 	immutable Ptr!ConcreteStruct arrayStruct = mustBeNonPointer(returnType);
 	immutable ConcreteType elementType = only(asInst(arrayStruct.deref().source).typeArgs); // named<e>
 	immutable ConcreteType enumOrFlagsType = only(asInst(mustBeNonPointer(elementType).deref().source).typeArgs);
 	immutable Constant[] elements = map!Constant(
-		alloc,
+		ctx.alloc,
 		enumOrFlagsMembers(enumOrFlagsType),
 		(ref immutable StructBody.Enum.Member member) =>
-			immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
-				constantSym(alloc, ctx, member.name),
+			immutable Constant(immutable Constant.Record(arrLiteral!Constant(ctx.alloc, [
+				constantSym(ctx, member.name),
 				immutable Constant(immutable Constant.Integral(member.value.value))]))));
-	immutable Constant arr = getConstantArr(alloc, ctx.allConstants, arrayStruct, elements);
+	immutable Constant arr = getConstantArr(ctx.alloc, ctx.allConstants, arrayStruct, elements);
 	return immutable ConcreteFunBody(
 		immutable ConcreteExpr(returnType, FileAndRange.empty, immutable ConcreteExprKind(arr)));
 }
@@ -914,19 +887,19 @@ immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType ty
 			unreachable!(immutable StructBody.Enum.Member[]));
 }
 
-immutable(ConcreteFunBody) bodyForAllTests(ref Alloc alloc, ref ConcretizeCtx ctx, immutable ConcreteType returnType) {
+immutable(ConcreteFunBody) bodyForAllTests(ref ConcretizeCtx ctx, immutable ConcreteType returnType) {
 	immutable Test[] allTests = () {
 		ArrBuilder!Test allTestsBuilder;
 		foreach (ref immutable Module m; ctx.program.allModules)
-			addAll(alloc, allTestsBuilder, m.tests);
-		return finishArr(alloc, allTestsBuilder);
+			addAll(ctx.alloc, allTestsBuilder, m.tests);
+		return finishArr(ctx.alloc, allTestsBuilder);
 	}();
 	immutable Constant arr = getConstantArr(
-		alloc,
+		ctx.alloc,
 		ctx.allConstants,
 		mustBeNonPointer(returnType),
-		mapWithIndex(alloc, allTests, (immutable size_t testIndex, ref immutable Test it) =>
-			immutable Constant(immutable Constant.FunPtr(concreteFunForTest(alloc, ctx, it, testIndex)))));
+		mapWithIndex(ctx.alloc, allTests, (immutable size_t testIndex, ref immutable Test it) =>
+			immutable Constant(immutable Constant.FunPtr(concreteFunForTest(ctx, it, testIndex)))));
 	return immutable ConcreteFunBody(immutable ConcreteExpr(
 		returnType,
 		FileAndRange.empty,
@@ -934,16 +907,15 @@ immutable(ConcreteFunBody) bodyForAllTests(ref Alloc alloc, ref ConcretizeCtx ct
 }
 
 immutable(ConcreteParam[]) concretizeParams(
-	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	immutable Param[] params,
 	immutable TypeArgsScope typeArgsScope,
 ) {
-	return mapPtrsWithIndex!ConcreteParam(alloc, params, (immutable size_t index, immutable Ptr!Param p) =>
+	return mapPtrsWithIndex!ConcreteParam(ctx.alloc, params, (immutable size_t index, immutable Ptr!Param p) =>
 		immutable ConcreteParam(
 			immutable ConcreteParamSource(p),
 			some!size_t(index),
-			getConcreteType(alloc, ctx, p.deref().type, typeArgsScope)));
+			getConcreteType(ctx, p.deref().type, typeArgsScope)));
 }
 
 immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
