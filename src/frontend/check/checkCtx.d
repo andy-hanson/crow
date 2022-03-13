@@ -2,7 +2,11 @@ module frontend.check.checkCtx;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.dicts : ModuleLocalSpecIndex, StructOrAliasAndIndex;
+import frontend.check.dicts :
+	ModuleLocalAliasIndex,
+	ModuleLocalSpecIndex,
+	ModuleLocalStructIndex,
+	StructOrAliasAndIndex;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
@@ -16,8 +20,9 @@ import model.model :
 	StructDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : castImmutable;
-import util.col.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
+import util.col.arrUtil : eachCat;
+import util.col.fullIndexDict :
+	FullIndexDict, fullIndexDictCastImmutable, fullIndexDictOfArr, fullIndexDictZipPtrs, makeFullIndexDict_mut;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.ptr : Ptr;
@@ -27,20 +32,24 @@ import util.sym : AllSymbols, indexOfSym, Sym;
 struct CheckCtx {
 	@safe @nogc pure nothrow:
 
+	private:
+
 	Ptr!Alloc allocPtr;
 	Ptr!Perf perfPtr;
 	Ptr!ProgramState programStatePtr;
 	Ptr!AllSymbols allSymbolsPtr;
-	immutable FileIndex fileIndex;
+	public immutable FileIndex fileIndex;
 	immutable ModuleAndNames[] imports;
 	immutable ModuleAndNames[] reExports;
 	// One entry for a whole-module import, or one entry for each named import
 	// Note: This is unnecessary for re-exports as those are never considered unused, but simpler to always have this
-	bool[] importsAndReExportsUsed;
-	bool[] structAliasesUsed;
-	bool[] structsUsed;
-	bool[] specsUsed;
+	FullIndexDict!(ImportIndex, bool) importsAndReExportsUsed;
+	FullIndexDict!(ModuleLocalAliasIndex, bool) structAliasesUsed;
+	FullIndexDict!(ModuleLocalStructIndex, bool) structsUsed;
+	FullIndexDict!(ModuleLocalSpecIndex, bool) specsUsed;
 	Ptr!DiagnosticsBuilder diagsBuilderPtr;
+
+	public:
 
 	ref Alloc alloc() return scope {
 		return allocPtr.deref();
@@ -66,7 +75,7 @@ struct CheckCtx {
 	}
 }
 
-bool[] newUsedImportsAndReExports(
+FullIndexDict!(ImportIndex, bool) newUsedImportsAndReExports(
 	ref Alloc alloc,
 	ref immutable ModuleAndNames[] imports,
 	ref immutable ModuleAndNames[] reExports,
@@ -77,7 +86,7 @@ bool[] newUsedImportsAndReExports(
 		reExports,
 		(immutable size_t acc, ref immutable ModuleAndNames it) =>
 			acc + (has(it.names) ? force(it.names).length : 1));
-	return fillArr_mut!bool(alloc, size, (immutable size_t) => false);
+	return makeFullIndexDict_mut!(ImportIndex, bool)(alloc, size, (immutable(ImportIndex)) => false);
 }
 
 void checkForUnused(
@@ -88,43 +97,43 @@ void checkForUnused(
 ) {
 	checkUnusedImports(ctx);
 
-	zipPtrFirst!(StructAlias, bool)(
-		structAliases,
-		castImmutable(ctx.structAliasesUsed),
-		(immutable Ptr!StructAlias alias_, ref immutable bool used) {
+	fullIndexDictZipPtrs!(ModuleLocalAliasIndex, StructAlias, bool)(
+		fullIndexDictOfArr!(ModuleLocalAliasIndex, StructAlias)(structAliases),
+		fullIndexDictCastImmutable(ctx.structAliasesUsed),
+		(immutable(ModuleLocalAliasIndex), immutable Ptr!StructAlias alias_, immutable Ptr!bool used) {
 			final switch (alias_.deref().visibility) {
 				case Visibility.public_:
 					break;
 				case Visibility.private_:
-					if (!used)
+					if (!used.deref())
 						addDiag(ctx, alias_.deref().range, immutable Diag(
 							immutable Diag.UnusedPrivateStructAlias(alias_)));
 			}
 		});
 
-	zipPtrFirst!(StructDecl, bool)(
-		structDecls,
-		castImmutable(ctx.structsUsed),
-		(immutable Ptr!StructDecl struct_, ref immutable bool used) {
+	fullIndexDictZipPtrs!(ModuleLocalStructIndex, StructDecl, bool)(
+		fullIndexDictOfArr!(ModuleLocalStructIndex, StructDecl)(structDecls),
+		fullIndexDictCastImmutable(ctx.structsUsed),
+		(immutable(ModuleLocalStructIndex), immutable Ptr!StructDecl struct_, immutable Ptr!bool used) {
 			final switch (struct_.deref().visibility) {
 				case Visibility.public_:
 					break;
 				case Visibility.private_:
-					if (!used)
+					if (!used.deref())
 						addDiag(ctx, struct_.deref().range, immutable Diag(
 							immutable Diag.UnusedPrivateStruct(struct_)));
 			}
 		});
 
-	zipPtrFirst!(SpecDecl, bool)(
-		specDecls,
-		castImmutable(ctx.specsUsed),
-		(immutable Ptr!SpecDecl spec, ref immutable bool used) {
+	fullIndexDictZipPtrs!(ModuleLocalSpecIndex, SpecDecl, bool)(
+		fullIndexDictOfArr!(ModuleLocalSpecIndex, SpecDecl)(specDecls),
+		fullIndexDictCastImmutable(ctx.specsUsed),
+		(immutable(ModuleLocalSpecIndex), immutable Ptr!SpecDecl spec, immutable Ptr!bool used) {
 			final switch (spec.deref().visibility) {
 				case Visibility.public_:
 					break;
 				case Visibility.private_:
-					if (!used)
+					if (!used.deref())
 						addDiag(ctx, spec.deref().range, immutable Diag(immutable Diag.UnusedPrivateSpec(spec)));
 			}
 		});
@@ -135,13 +144,13 @@ private void checkUnusedImports(ref CheckCtx ctx) {
 	foreach (ref immutable ModuleAndNames it; ctx.imports) {
 		if (has(it.names)) {
 			foreach (ref immutable Sym name; force(it.names)) {
-				if (!ctx.importsAndReExportsUsed[index] && has(it.importSource))
+				if (!ctx.importsAndReExportsUsed[immutable ImportIndex(index)] && has(it.importSource))
 					addDiag(ctx, force(it.importSource), immutable Diag(
 						immutable Diag.UnusedImport(it.modulePtr, some(name))));
 				index++;
 			}
 		} else {
-			if (!ctx.importsAndReExportsUsed[index] && has(it.importSource))
+			if (!ctx.importsAndReExportsUsed[immutable ImportIndex(index)] && has(it.importSource))
 				addDiag(ctx, force(it.importSource), immutable Diag(
 					immutable Diag.UnusedImport(it.modulePtr, none!Sym)));
 			index++;
@@ -159,19 +168,19 @@ void markUsedStructOrAlias(ref CheckCtx ctx, ref immutable StructOrAliasAndIndex
 	matchStructOrAlias!void(
 		a.structOrAlias,
 		(ref immutable StructAlias) {
-			ctx.structAliasesUsed[a.index.index] = true;
+			ctx.structAliasesUsed[a.index.asAlias] = true;
 		},
 		(ref immutable StructDecl) {
-			ctx.structsUsed[a.index.index] = true;
+			ctx.structsUsed[a.index.asStruct] = true;
 		});
 }
 
 void markUsedSpec(ref CheckCtx ctx, immutable ModuleLocalSpecIndex a) {
-	ctx.specsUsed[a.index] = true;
+	ctx.specsUsed[a] = true;
 }
 
 void markUsedImport(ref CheckCtx ctx, immutable ImportIndex index) {
-	ctx.importsAndReExportsUsed[index.index] = true;
+	ctx.importsAndReExportsUsed[index] = true;
 }
 
 immutable(Acc) eachImportAndReExport(Acc)(

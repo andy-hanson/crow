@@ -4,7 +4,7 @@ module frontend.check.checkExpr;
 
 import frontend.check.checkCall : checkCall, checkIdentifierCall, eachFunInScope, markUsedFun, UsedFun;
 import frontend.check.checkCtx : addDiag, CheckCtx;
-import frontend.check.dicts : FunsDict, StructsAndAliasesDict;
+import frontend.check.dicts : FunsDict, ModuleLocalFunIndex, StructsAndAliasesDict;
 import frontend.check.inferringType :
 	addDiag2,
 	bogus,
@@ -116,6 +116,7 @@ import util.col.arrUtil :
 	mapZipWithIndex,
 	prepend,
 	zipPtrFirst;
+import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr :
 	moveToArr,
 	mustPeek_mut,
@@ -143,7 +144,7 @@ immutable(Expr) checkFunctionBody(
 	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable CommonTypes commonTypes,
 	ref immutable FunsDict funsDict,
-	scope bool[] usedFuns,
+	scope FullIndexDict!(ModuleLocalFunIndex, bool) usedFuns,
 	immutable Type returnType,
 	immutable TypeParam[] typeParams,
 	immutable Param[] params,

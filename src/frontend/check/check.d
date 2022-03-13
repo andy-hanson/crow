@@ -13,8 +13,10 @@ import frontend.check.checkExpr : checkFunctionBody;
 import frontend.check.dicts :
 	FunDeclAndIndex,
 	FunsDict,
+	ModuleLocalAliasIndex,
 	ModuleLocalFunIndex,
 	ModuleLocalSpecIndex,
+	ModuleLocalStructIndex,
 	ModuleLocalStructOrAliasIndex,
 	SpecDeclAndIndex,
 	SpecsDict,
@@ -144,7 +146,6 @@ import util.col.arrUtil :
 	cat,
 	count,
 	eachPair,
-	fillArr_mut,
 	fold,
 	map,
 	mapAndFold,
@@ -156,15 +157,12 @@ import util.col.arrUtil :
 	mapWithIndex_scope,
 	sum,
 	zipFirstMut,
-	zipMutPtrFirst,
-	zipPtrFirst;
+	zipMutPtrFirst;
 import util.col.dict : dictEach, hasKey, KeyValuePair, SymDict;
 import util.col.dictBuilder : finishDict, SymDictBuilder, tryAddToDict;
-import util.col.exactSizeArrBuilder :
-	ExactSizeArrBuilder,
-	exactSizeArrBuilderAdd,
-	finish,
-	newExactSizeArrBuilder;
+import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
+import util.col.fullIndexDict :
+	FullIndexDict, fullIndexDictCastImmutable, fullIndexDictOfArr, fullIndexDictZipPtrs, makeFullIndexDict_mut;
 import util.col.multiDict : buildMultiDict, multiDictEach;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.col.mutDict : insertOrUpdate, moveToDict, MutSymDict;
@@ -1437,8 +1435,8 @@ immutable(FunsAndDict) checkFuns(
 	foreach (immutable Ptr!StructDecl struct_; ptrsRange(structs))
 		addFunsForStruct(ctx, funsBuilder, commonTypes, struct_);
 	FunDecl[] funs = finish(funsBuilder);
-	bool[] usedFuns = fillArr_mut!bool(ctx.alloc, funs.length, (immutable size_t) =>
-		false);
+	FullIndexDict!(ModuleLocalFunIndex, bool) usedFuns =
+		makeFullIndexDict_mut!(ModuleLocalFunIndex, bool)(ctx.alloc, funs.length, (immutable size_t) => false);
 
 	immutable FunsDict funsDict = buildMultiDict!(Sym, FunDeclAndIndex, symEq, hashSym, FunDecl)(
 		ctx.alloc,
@@ -1493,15 +1491,15 @@ immutable(FunsAndDict) checkFuns(
 			ast.body_));
 	});
 
-	zipPtrFirst!(FunDecl, bool)(
-		castImmutable(funs),
-		castImmutable(usedFuns),
-		(immutable Ptr!FunDecl fun, ref immutable bool used) {
+	fullIndexDictZipPtrs!(ModuleLocalFunIndex, FunDecl, bool)(
+		fullIndexDictOfArr!(ModuleLocalFunIndex, FunDecl)(castImmutable(funs)),
+		fullIndexDictCastImmutable(usedFuns),
+		(immutable(ModuleLocalFunIndex), immutable Ptr!FunDecl fun, immutable Ptr!bool used) {
 			final switch (fun.deref().visibility) {
 				case Visibility.public_:
 					break;
 				case Visibility.private_:
-					if (!used && !okIfUnused(fun.deref()))
+					if (!used.deref() && !okIfUnused(fun.deref()))
 						addDiag(ctx, fun.deref().range, immutable Diag(
 							immutable Diag.UnusedPrivateFun(fun)));
 			}
@@ -2198,11 +2196,14 @@ immutable(BootstrapCheck) checkWorker(
 		// TODO: use temp alloc
 		newUsedImportsAndReExports(alloc, imports, reExports),
 		// TODO: use temp alloc
-		fillArr_mut(alloc, ast.structAliases.length, (immutable size_t) => false),
+		makeFullIndexDict_mut!(ModuleLocalAliasIndex, bool)(
+			alloc, ast.structAliases.length, (immutable(ModuleLocalAliasIndex)) => false),
 		// TODO: use temp alloc
-		fillArr_mut(alloc, ast.structs.length, (immutable size_t) => false),
+		makeFullIndexDict_mut!(ModuleLocalStructIndex, bool)(
+			alloc, ast.structs.length, (immutable(ModuleLocalStructIndex)) => false),
 		// TODO: use temp alloc
-		fillArr_mut(alloc, ast.specs.length, (immutable size_t) => false),
+		makeFullIndexDict_mut!(ModuleLocalSpecIndex, bool)(
+			alloc, ast.specs.length, (immutable(ModuleLocalSpecIndex)) => false),
 		ptrTrustMe_mut(diagsBuilder));
 
 	// Since structs may refer to each other, first get a structsAndAliasesDict, *then* fill in bodies

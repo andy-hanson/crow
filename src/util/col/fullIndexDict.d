@@ -5,7 +5,7 @@ module util.col.fullIndexDict;
 import util.alloc.alloc : Alloc;
 import util.conv : safeToUint, safeToUshort;
 import util.col.arr : castImmutable, emptyArr;
-import util.col.arrUtil : mapWithIndex, mapWithIndex_mut;
+import util.col.arrUtil : fillArr_mut, mapWithIndex, mapWithIndex_mut;
 import util.memory : overwriteMemory;
 import util.ptr : Ptr;
 import util.util : verify;
@@ -50,8 +50,17 @@ FullIndexDict!(K, V) fullIndexDictOfArr_mut(K, V)(V[] values) {
 	return FullIndexDict!(K, V)(values);
 }
 
+FullIndexDict!(K, V) makeFullIndexDict_mut(K, V)(
+	ref Alloc alloc,
+	immutable size_t size,
+	scope V delegate(immutable K) @safe @nogc pure nothrow cb,
+) {
+	return fullIndexDictOfArr_mut!(K, V)(fillArr_mut(alloc, size, (immutable size_t i) =>
+		cb(immutable K(i))));
+}
+
 void fullIndexDictEachKey(K, V)(
-	ref immutable FullIndexDict!(K, V) a,
+	immutable FullIndexDict!(K, V) a,
 	scope void delegate(immutable K) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable size_t i; 0 .. fullIndexDictSize(a))
@@ -59,7 +68,7 @@ void fullIndexDictEachKey(K, V)(
 }
 
 void fullIndexDictEachValue(K, V)(
-	ref immutable FullIndexDict!(K, V) a,
+	immutable FullIndexDict!(K, V) a,
 	scope void delegate(ref immutable V) @safe @nogc pure nothrow cb,
 ) {
 	foreach (ref immutable V value; a.values)
@@ -67,7 +76,7 @@ void fullIndexDictEachValue(K, V)(
 }
 
 void fullIndexDictEach(K, V)(
-	ref immutable FullIndexDict!(K, V) a,
+	immutable FullIndexDict!(K, V) a,
 	scope void delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable size_t key, ref immutable V value; a.values)
@@ -75,7 +84,7 @@ void fullIndexDictEach(K, V)(
 }
 
 void fullIndexDictZip(K, V0, V1)(
-	ref immutable FullIndexDict!(K, V0) a,
+	immutable FullIndexDict!(K, V0) a,
 	ref FullIndexDict!(K, V1) b,
 	scope void delegate(immutable K, ref immutable V0, ref V1) @safe @nogc pure nothrow cb,
 ) {
@@ -84,10 +93,20 @@ void fullIndexDictZip(K, V0, V1)(
 		cb(immutable K(i), a.values[i], b.values[i]);
 }
 
+void fullIndexDictZipPtrs(K, V0, V1)(
+	immutable FullIndexDict!(K, V0) a,
+	immutable FullIndexDict!(K, V1) b,
+	scope void delegate(immutable K, immutable Ptr!V0, immutable Ptr!V1) @safe @nogc pure nothrow cb,
+) {
+	verify(fullIndexDictSize(a) == fullIndexDictSize(b));
+	foreach (immutable size_t i; 0 .. fullIndexDictSize(a))
+		cb(immutable K(i), a.ptrAt(immutable K(i)), b.ptrAt(immutable K(i)));
+}
+
 void fullIndexDictZip3(K, V0, V1, V2)(
-	ref immutable FullIndexDict!(K, V0) a,
-	ref immutable FullIndexDict!(K, V1) b,
-	ref immutable FullIndexDict!(K, V2) c,
+	immutable FullIndexDict!(K, V0) a,
+	immutable FullIndexDict!(K, V1) b,
+	immutable FullIndexDict!(K, V2) c,
 	scope void delegate(immutable K, ref immutable V0, ref immutable V1, ref immutable V2) @safe @nogc pure nothrow cb,
 ) {
 	verify(fullIndexDictSize(a) == fullIndexDictSize(b));
@@ -96,7 +115,7 @@ void fullIndexDictZip3(K, V0, V1, V2)(
 		cb(immutable K(i), a.values[i], b.values[i], c.values[i]);
 }
 
-immutable(Ptr!V) ptrAt(K, V)(ref immutable FullIndexDict!(K, V) a, immutable K key) {
+immutable(Ptr!V) ptrAt(K, V)(immutable FullIndexDict!(K, V) a, immutable K key) {
 	return immutable Ptr!V(&a.values[key.index]);
 }
 Ptr!V ptrAt_mut(K, V)(ref FullIndexDict!(K, V) a, immutable K key) {

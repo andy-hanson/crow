@@ -18,8 +18,21 @@ struct StructOrAliasAndIndex {
 
 // An index into the structs arr or alias arr (depends on context)
 struct ModuleLocalStructOrAliasIndex {
+	@safe @nogc pure nothrow:
+
 	immutable size_t index;
+
+	immutable(ModuleLocalAliasIndex) asAlias() immutable {
+		return immutable ModuleLocalAliasIndex(index);
+	}
+
+	immutable(ModuleLocalStructIndex) asStruct() immutable {
+		return immutable ModuleLocalStructIndex(index);
+	}
 }
+
+struct ModuleLocalAliasIndex { immutable size_t index; }
+struct ModuleLocalStructIndex { immutable size_t index; }
 
 struct SpecDeclAndIndex {
 	immutable Ptr!SpecDecl decl;

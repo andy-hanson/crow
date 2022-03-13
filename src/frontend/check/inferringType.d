@@ -35,6 +35,7 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : emptyArr, emptyArr_mut, sizeEq;
 import util.col.arrUtil : map, mapOrNone, mapZipOrNone;
+import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
 import util.opt : has, force, none, noneMut, Opt, some;
 import util.perf : Perf;
@@ -61,7 +62,7 @@ struct ExprCtx {
 	immutable Param[] outermostFunParams;
 	immutable TypeParam[] outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
-	bool[] funsUsed;
+	FullIndexDict!(ModuleLocalFunIndex, bool) funsUsed;
 	bool[] paramsUsed;
 
 	// Locals of the function or message. Lambda locals are stored in the lambda.
@@ -93,7 +94,7 @@ struct ExprCtx {
 }
 
 void markUsedLocalFun(ref ExprCtx a, immutable ModuleLocalFunIndex index) {
-	a.funsUsed[index.index] = true;
+	a.funsUsed[index] = true;
 }
 
 struct LocalAndUsed {
