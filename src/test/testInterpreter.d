@@ -54,7 +54,7 @@ import interpret.bytecodeWriter :
 	writeWrite;
 import lib.compiler : ExitCode;
 import lower.lowExprHelpers : nat64Type;
-import model.diag : FilesInfo;
+import model.diag : FilesInfo, filesInfoForSingle;
 import model.model : AbsolutePathsGetter;
 import model.lowModel :
 	AllConstantsLow,
@@ -81,7 +81,7 @@ import util.col.arr : emptyArr;
 import util.col.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.col.stack : stackBegin, pop, push;
 import util.col.str : SafeCStr, safeCStr;
-import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
+import util.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
 import util.ptr : ptrTrustMe_mut;
@@ -127,14 +127,13 @@ void doInterpret(
 	scope void delegate(scope ref Interpreter, immutable(Operation)*) @system @nogc nothrow runInterpreter,
 ) {
 	immutable Path emptyPath = rootPath(test.allPaths, shortSym("test"));
-	immutable PathAndStorageKind[1] pk = [immutable PathAndStorageKind(emptyPath, StorageKind.global)];
-	immutable LineAndColumnGetter[1] lcg = [lineAndColumnGetterForEmptyFile(test.alloc)];
 	immutable AbsolutePathsGetter emptyAbsolutePathsGetter =
 		immutable AbsolutePathsGetter(safeCStr!"", safeCStr!"", safeCStr!"");
-	immutable FilesInfo filesInfo = immutable FilesInfo(
-		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(pk),
-		emptyAbsolutePathsGetter,
-		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(lcg));
+	immutable FilesInfo filesInfo = filesInfoForSingle(
+		test.alloc,
+		immutable PathAndStorageKind(emptyPath, StorageKind.global),
+		lineAndColumnGetterForEmptyFile(test.alloc),
+		emptyAbsolutePathsGetter);
 	immutable LowFun[1] lowFun = [immutable LowFun(
 		immutable LowFunSource(allocate(test.alloc, immutable LowFunSource.Generated(
 			shortSym("test"), emptyArr!LowType))),

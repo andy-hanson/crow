@@ -4,14 +4,16 @@ module util.sourceRange;
 
 import util.alloc.alloc : Alloc;
 import util.col.fullIndexDict : FullIndexDict;
+import util.col.dict : Dict;
 import util.conv : safeToUint, safeToUshort;
-import util.path : PathAndStorageKind;
+import util.path : hashPathAndStorageKind, PathAndStorageKind, pathAndStorageKindEqual;
 import util.repr : Repr, reprNat, reprRecord;
 import util.sym : AllSymbols, Sym, symSize;
 
 alias Pos = uint;
 
 alias FilePaths = FullIndexDict!(FileIndex, PathAndStorageKind);
+alias PathToFile = Dict!(PathAndStorageKind, FileIndex, pathAndStorageKindEqual, hashPathAndStorageKind);
 
 struct FileIndex {
 	immutable ushort index;

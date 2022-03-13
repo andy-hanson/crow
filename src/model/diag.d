@@ -25,10 +25,15 @@ import model.model :
 	Type,
 	Visibility;
 import model.parseDiag : ParseDiag;
+import util.alloc.alloc : Alloc;
+import util.col.arrUtil : arrLiteral;
+import util.col.dict : dictLiteral;
+import util.col.fullIndexDict : fullIndexDictOfArr;
+import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : Opt;
-import util.path : AbsolutePath, AllPaths, PathAndStorageKind;
+import util.path : AbsolutePath, AllPaths, hashPathAndStorageKind, PathAndStorageKind, pathAndStorageKindEqual;
 import util.ptr : Ptr;
-import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths, RangeWithinFile;
+import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths, PathToFile, RangeWithinFile;
 import util.sym : Sym;
 import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
 import util.writerUtils : writePathRelativeToCwd, writePos, writeRangeWithinFile;
@@ -872,8 +877,25 @@ struct Diag {
 
 struct FilesInfo {
 	immutable FilePaths filePaths;
+	immutable PathToFile pathToFile;
 	immutable AbsolutePathsGetter absolutePathsGetter;
 	immutable LineAndColumnGetters lineAndColumnGetters;
+}
+
+immutable(FilesInfo) filesInfoForSingle(
+	ref Alloc alloc,
+	immutable PathAndStorageKind path,
+	immutable LineAndColumnGetter lineAndColumnGetter,
+	immutable AbsolutePathsGetter absolutePathsGetter,
+) {
+	return immutable FilesInfo(
+		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
+			arrLiteral!PathAndStorageKind(alloc, [path])),
+		dictLiteral!(PathAndStorageKind, FileIndex, pathAndStorageKindEqual, hashPathAndStorageKind)(
+			alloc, path, immutable FileIndex(0)),
+		absolutePathsGetter,
+		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
+			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetter])));
 }
 
 void writeFileAndRange(

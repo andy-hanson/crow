@@ -503,6 +503,7 @@ struct PathAndStorageKind {
 	immutable Path path;
 	immutable StorageKind storageKind;
 }
+static assert(PathAndStorageKind.sizeof == 4);
 
 immutable(bool) pathAndStorageKindEqual(immutable PathAndStorageKind a, immutable PathAndStorageKind b) {
 	return pathEqual(a.path, b.path) && a.storageKind == b.storageKind;

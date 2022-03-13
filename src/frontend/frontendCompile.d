@@ -2,7 +2,7 @@ module frontend.frontendCompile;
 
 @safe @nogc nothrow: // not pure
 
-import model.diag : Diag, Diagnostics, DiagnosticWithinFile, FilesInfo;
+import model.diag : Diag, Diagnostics, DiagnosticWithinFile, FilesInfo, filesInfoForSingle;
 import model.model :
 	CommonTypes,
 	copyAbsolutePathsGetter,
@@ -21,10 +21,11 @@ import frontend.programState : ProgramState;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, ptrAt;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
-import util.col.arrUtil : arrLiteral, copyArr, map, mapOp, mapOrNoneImpure, mapWithSoFar, prepend;
+import util.col.arrUtil : copyArr, map, mapOp, mapOrNoneImpure, mapWithSoFar, prepend;
+import util.col.dict : dictSize, mapValues;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize, ptrAt;
 import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, push;
-import util.col.mutDict : addToMutDict, getAt_mut, hasKey_mut, mustGetAt_mut, MutDict, setInDict;
+import util.col.mutDict : addToMutDict, getAt_mut, hasKey_mut, moveToDict, mustGetAt_mut, MutDict, setInDict;
 import util.col.str : SafeCStr;
 import util.conv : safeToUshort;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
@@ -47,7 +48,7 @@ import util.path :
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr;
 import util.readOnlyStorage : ReadOnlyStorage, withFile;
-import util.sourceRange : FileIndex, FilePaths, RangeWithinFile;
+import util.sourceRange : FileIndex, FilePaths, PathToFile, RangeWithinFile;
 import util.sym : AllSymbols, shortSym, Sym;
 import util.util : verify;
 
@@ -66,6 +67,7 @@ immutable(Program) frontendCompile(
 	)(astsAlloc, perf, PerfMeasure.parseEverything);
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		parsed.filePaths,
+		parsed.pathToFile,
 		copyAbsolutePathsGetter(modelAlloc, storage.absolutePathsGetter),
 		parsed.lineAndColumnGetters);
 	return withMeasure!(immutable Program, () =>
@@ -90,11 +92,6 @@ immutable(FileAstAndDiagnostics) parseSingleAst(
 	// In this case model alloc and AST alloc are the same
 	return withFile(storage, path, crowExtension, (immutable Opt!SafeCStr opFileContent) {
 		ArrBuilder!DiagnosticWithinFile diags;
-		immutable LineAndColumnGetters lc =
-			fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
-				arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForOptText(alloc, opFileContent)]));
-		immutable FilePaths filePaths = fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
-			arrLiteral!PathAndStorageKind(alloc, [path]));
 		immutable FileAst ast = parseSingle(
 			alloc,
 			alloc,
@@ -106,10 +103,15 @@ immutable(FileAstAndDiagnostics) parseSingleAst(
 			opFileContent);
 		DiagnosticsBuilder diagsBuilder;
 		addDiagnosticsForFile(alloc, diagsBuilder, immutable FileIndex(0), diags);
+		immutable FilesInfo filesInfo = filesInfoForSingle(
+			alloc,
+			path,
+			lineAndColumnGetterForOptText(alloc, opFileContent),
+			copyAbsolutePathsGetter(alloc, storage.absolutePathsGetter));
 		return immutable FileAstAndDiagnostics(
 			ast,
-			immutable FilesInfo(filePaths, storage.absolutePathsGetter, lc),
-			finishDiagnostics(alloc, diagsBuilder, filePaths));
+			filesInfo,
+			finishDiagnostics(alloc, diagsBuilder, filesInfo.filePaths));
 	});
 }
 
@@ -155,28 +157,36 @@ pure immutable(FileIndex) asDone(immutable ParseStatus a) {
 	return a.done_.fileIndex;
 }
 
-alias PathToStatus = MutDict!(PathAndStorageKind, ParseStatus, pathAndStorageKindEqual, hashPathAndStorageKind);
+alias PathToStatus = MutDict!(
+	immutable PathAndStorageKind,
+	immutable ParseStatus,
+	pathAndStorageKindEqual,
+	hashPathAndStorageKind);
 
 struct ParsedEverything {
 	@safe @nogc pure nothrow:
 
 	immutable FilePaths filePaths;
+	immutable PathToFile pathToFile;
 	immutable LineAndColumnGetters lineAndColumnGetters;
 	immutable CommonModuleIndices commonModuleIndices;
 	immutable AstAndResolvedImports[] asts;
 
 	immutable this(
 		immutable FilePaths fp,
+		immutable PathToFile ptf,
 		immutable LineAndColumnGetters lcg,
 		immutable CommonModuleIndices cmi,
 		immutable AstAndResolvedImports[] a,
 	) {
 		filePaths = fp;
+		pathToFile = ptf;
 		lineAndColumnGetters = lcg;
 		commonModuleIndices = cmi;
 		asts = a;
 
 		immutable size_t size = fullIndexDictSize(filePaths);
+		verify(dictSize(pathToFile) == size);
 		verify(fullIndexDictSize(lineAndColumnGetters) == size);
 		verify(asts.length == size);
 	}
@@ -240,7 +250,7 @@ struct ParseStackEntry {
 			immutable Opt!FileIndex importIndex = () {
 				if (has(import_.resolvedPath)) {
 					immutable PathAndStorageKind importPath = force(import_.resolvedPath);
-					immutable Opt!ParseStatus status = getAt_mut(statuses, importPath);
+					immutable Opt!(immutable ParseStatus) status = getAt_mut(statuses, importPath);
 					if (has(status))
 						return some(matchParseStatus!(immutable FileIndex)(
 							force(status),
@@ -324,6 +334,11 @@ struct ParseStackEntry {
 
 	return immutable ParsedEverything(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(finishArr(modelAlloc, fileIndexToPath)),
+		mapValues!(PathAndStorageKind, ParseStatus, FileIndex, pathAndStorageKindEqual, hashPathAndStorageKind)(
+			modelAlloc,
+			moveToDict(astAlloc, statuses),
+			(immutable(PathAndStorageKind), ref immutable ParseStatus x) =>
+				asDone(x)),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(finishArr(modelAlloc, lineAndColumnGetters)),
 		commonModuleIndices,
 		finishArr(astAlloc, res));

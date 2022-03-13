@@ -18,13 +18,13 @@ import model.model : AbsolutePathsGetter, Program;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : ArrBuilder;
 import util.col.arrUtil : arrLiteral, map;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize;
+import util.col.dict : dictLiteral;
+import util.col.fullIndexDict : fullIndexDictOfArr;
 import util.col.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
 import util.col.str : copySafeCStr, freeSafeCStr, SafeCStr, safeCStr;
-import util.conv : safeToUshort;
 import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, Opt;
 import util.path :
 	AllPaths,
 	hashPathAndStorageKind,
@@ -129,6 +129,8 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagsBuilder, text);
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(arrLiteral!PathAndStorageKind(alloc, [key])),
+		dictLiteral!(PathAndStorageKind, FileIndex, pathAndStorageKindEqual, hashPathAndStorageKind)(
+			alloc, key, immutable FileIndex(0)),
 		immutable AbsolutePathsGetter(safeCStr!"", safeCStr!"", safeCStr!""),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, text)])));
@@ -164,7 +166,7 @@ private pure immutable(SafeCStr) getHoverFromProgram(
 	ref immutable Program program,
 	immutable Pos pos,
 ) {
-	immutable Opt!FileIndex fileIndex = getFileIndex(program.filesInfo.filePaths, pk);
+	immutable Opt!FileIndex fileIndex = program.filesInfo.pathToFile[pk];
 	if (has(fileIndex)) {
 		immutable Opt!Position position =
 			getPosition(server.allSymbols, program.allModules[force(fileIndex).index], pos);
@@ -173,17 +175,6 @@ private pure immutable(SafeCStr) getHoverFromProgram(
 			: safeCStr!"";
 	} else
 		return safeCStr!"";
-}
-
-//TODO:KILL, use a reverse lookup
-private pure immutable(Opt!FileIndex) getFileIndex(
-	scope ref immutable FullIndexDict!(FileIndex, PathAndStorageKind) filePaths,
-	immutable PathAndStorageKind search,
-) {
-	foreach (immutable size_t i; 0 .. fullIndexDictSize(filePaths))
-		if (pathAndStorageKindEqual(filePaths.values[i], search))
-			return some(immutable FileIndex(safeToUshort(i)));
-	return none!FileIndex;
 }
 
 immutable(FakeExternResult) run(
