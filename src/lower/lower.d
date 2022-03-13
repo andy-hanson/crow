@@ -118,15 +118,15 @@ import util.col.arrUtil :
 	mapWithIndexAndConcatOne,
 	mapWithOptFirst,
 	mapWithOptFirst2;
-import util.col.dict : getAt, mustGetAt, PtrDict;
+import util.col.dict : mustGetAt, PtrDict;
 import util.col.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr, fullIndexDictSize;
-import util.col.mutIndexDict : getAt, getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
+import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize;
+import util.col.mutIndexDict : getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
 import util.col.mutDict : getAt_mut, getOrAdd, MutDict, MutPtrDict, ValueAndDidAdd;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
-import util.opt : asImmutable, force, has, mapOption, none, Opt, optOr, some;
+import util.opt : asImmutable, force, has, mapOption, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : nullPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
@@ -181,9 +181,9 @@ immutable(Opt!LowFunIndex) tryGetMarkVisitFun(ref const MarkVisitFuns funs, immu
 		(immutable LowType.PtrRawMut) =>
 			none!LowFunIndex,
 		(immutable LowType.Record it) =>
-			asImmutable(getAt(funs.recordValToVisit, it)),
+			asImmutable(funs.recordValToVisit[it]),
 		(immutable LowType.Union it) =>
-			asImmutable(getAt(funs.unionToVisit, it)),
+			asImmutable(funs.unionToVisit[it]),
 	)(type);
 }
 
@@ -409,7 +409,10 @@ immutable(LowType) getLowGcPtrType(
 }
 
 immutable(LowType) lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, immutable Ptr!ConcreteStruct it) {
-	return optOr!LowType(getAt(ctx.concreteStructToType, it), () {
+	immutable Opt!LowType res = ctx.concreteStructToType[it];
+	if (has(res))
+		return force(res);
+	else {
 		immutable ConcreteStructBody.Builtin builtin = asBuiltin(body_(it.deref()));
 		verify(builtin.kind == BuiltinStructKind.ptrConst || builtin.kind == BuiltinStructKind.ptrMut);
 		//TODO: cache the creation.. don't want an allocation for every BuiltinStructKind.ptr to the same target type
@@ -422,7 +425,7 @@ immutable(LowType) lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, immutable Pt
 			default:
 				return unreachable!(immutable LowType);
 		}
-	});
+	}
 }
 
 immutable(LowType) lowTypeFromConcreteType(ref GetLowTypeCtx ctx, immutable ConcreteType it) {
@@ -533,12 +536,12 @@ immutable(bool) needsMarkVisitFun(ref immutable AllLowTypes allTypes, immutable 
 		(immutable LowType.PtrRawMut) =>
 			false,
 		(immutable LowType.Record it) {
-			immutable LowRecord record = fullIndexDictGet(allTypes.allRecords, it);
+			immutable LowRecord record = allTypes.allRecords[it];
 			return isArr(record) || exists!LowField(record.fields, (ref immutable LowField field) =>
 				needsMarkVisitFun(allTypes, field.type));
 		},
 		(immutable LowType.Union it) =>
-			exists!LowType(fullIndexDictGet(allTypes.allUnions, it).members, (ref immutable LowType member) =>
+			exists!LowType(allTypes.allUnions[it].members, (ref immutable LowType member) =>
 				needsMarkVisitFun(allTypes, member)),
 	)(a);
 }
@@ -596,7 +599,7 @@ immutable(AllLowFuns) getAllLowFuns(
 			(immutable LowType.PtrRawMut) =>
 				unreachable!(immutable LowFunIndex),
 			(immutable LowType.Record it) {
-				immutable LowRecord record = fullIndexDictGet(allTypes.allRecords, it);
+				immutable LowRecord record = allTypes.allRecords[it];
 				if (isArr(record)) {
 					immutable LowType.PtrRawConst elementPtrType = getElementPtrTypeFromArrType(allTypes, it);
 					immutable ValueAndDidAdd!(immutable LowFunIndex) outerIndex = getOrAddAndDidAdd(
@@ -629,7 +632,7 @@ immutable(AllLowFuns) getAllLowFuns(
 				immutable ValueAndDidAdd!(immutable LowFunIndex) index =
 					getOrAddAndDidAdd(markVisitFuns.unionToVisit, it, () => addNonArr());
 				if (index.didAdd)
-					foreach (immutable LowType member; fullIndexDictGet(allTypes.allUnions, it).members)
+					foreach (immutable LowType member; allTypes.allUnions[it].members)
 						maybeGenerateMarkVisitForType(member);
 				return index.value;
 			},
@@ -655,7 +658,7 @@ immutable(AllLowFuns) getAllLowFuns(
 						(ref immutable ConcreteParam it) =>
 							lowTypeFromConcreteType(getLowTypeCtx, it.type));
 					// TODO: is it possible that we call a fun type but it's not implemented anywhere?
-					immutable Opt!(ConcreteLambdaImpl[]) optImpls = getAt(program.funStructToImpls, funStruct);
+					immutable Opt!(ConcreteLambdaImpl[]) optImpls = program.funStructToImpls[funStruct];
 					immutable ConcreteLambdaImpl[] impls = has(optImpls)
 						? force(optImpls)
 						: emptyArr!ConcreteLambdaImpl;
@@ -1029,7 +1032,7 @@ immutable(LowExpr) getCtxParamRef(ref const GetLowExprCtx ctx, immutable FileAnd
 }
 
 immutable(Opt!LowFunIndex) tryGetLowFunIndex(ref const GetLowExprCtx ctx, immutable Ptr!ConcreteFun it) {
-	return getAt(ctx.concreteFunToLowFunIndex, it);
+	return ctx.concreteFunToLowFunIndex[it];
 }
 
 immutable(Ptr!LowLocal) addTempLocal(ref GetLowExprCtx ctx, immutable LowType type) {

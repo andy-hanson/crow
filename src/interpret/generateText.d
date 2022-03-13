@@ -21,7 +21,7 @@ import model.lowModel :
 	PrimitiveType;
 import model.typeLayout : funPtrSize, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : castImmutable, empty, emptyArr, ptrAt, setAt;
+import util.col.arr : castImmutable, empty, emptyArr, ptrAt;
 import util.col.arrUtil : map, mapToMut, sum, zip;
 import util.col.dict : mustGetAt;
 import util.col.exactSizeArrBuilder :
@@ -37,7 +37,7 @@ import util.col.exactSizeArrBuilder :
 	finish,
 	newExactSizeArrBuilder,
 	padTo;
-import util.col.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
+import util.col.fullIndexDict : fullIndexDictSize;
 import util.col.mutIndexMultiDict : MutIndexMultiDict, mutIndexMultiDictAdd, newMutIndexMultiDict;
 import util.col.str : SafeCStr, safeCStrSize;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
@@ -220,7 +220,7 @@ void ensureConstant(
 				it.typeIndex, ptrs.deref().pointeeType, it.index, ptrs.deref().constants[it.index].deref());
 		},
 		(ref immutable Constant.Record it) {
-			immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, asRecordType(t));
+			immutable LowRecord record = ctx.program.allRecords[asRecordType(t)];
 			zip!(LowField, Constant)(
 				record.fields,
 				it.args,
@@ -239,7 +239,7 @@ ref immutable(LowType) unionMemberType(
 	immutable LowType.Union t,
 	immutable size_t memberIndex,
 ) {
-	return fullIndexDictGet(program.allUnions, t).members[memberIndex];
+	return program.allUnions[t].members[memberIndex];
 }
 
 void recurWriteArr(
@@ -256,7 +256,7 @@ void recurWriteArr(
 	if (indexToTextIndex[index] == 0) {
 		foreach (ref immutable Constant it; elements)
 			ensureConstant(alloc, tempAlloc, ctx, elementType, it);
-		setAt(indexToTextIndex, index, exactSizeArrBuilderCurSize(ctx.text));
+		indexToTextIndex[index] = exactSizeArrBuilderCurSize(ctx.text);
 		foreach (ref immutable Constant it; elements)
 			writeConstant(alloc, tempAlloc, ctx, elementType, it);
 	}
@@ -274,7 +274,7 @@ void recurWritePointer(
 	size_t[] indexToTextIndex = ctx.pointeeTypeIndexToIndexToTextIndex[pointeeTypeIndex];
 	if (indexToTextIndex[index] == 0) {
 		ensureConstant(alloc, tempAlloc, ctx, pointeeType, pointee);
-		setAt(indexToTextIndex, index, exactSizeArrBuilderCurSize(ctx.text));
+		indexToTextIndex[index] = exactSizeArrBuilderCurSize(ctx.text);
 		writeConstant(alloc, tempAlloc, ctx, pointeeType, pointee);
 	}
 }
@@ -374,7 +374,7 @@ void writeConstant(
 		},
 		(ref immutable Constant.Record it) {
 			immutable LowType.Record recordType = asRecordType(type);
-			immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, recordType);
+			immutable LowRecord record = ctx.program.allRecords[recordType];
 			immutable size_t start = exactSizeArrBuilderCurSize(ctx.text);
 			zip!(LowField, Constant)(
 				record.fields,

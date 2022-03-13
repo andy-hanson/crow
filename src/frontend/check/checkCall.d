@@ -79,8 +79,7 @@ import util.col.arrUtil :
 	map_const,
 	mapOrNone_const,
 	sum;
-import util.col.multiDict : multiDictGetAt;
-import util.col.mutArr : moveToArr, MutArr, newUninitializedMutArr, peek, setAt;
+import util.col.mutArr : moveToArr, MutArr, newUninitializedMutArr, peek;
 import util.col.mutMaxArr :
 	filterUnordered,
 	isEmpty,
@@ -252,7 +251,7 @@ void eachFunInScope(
 				totalIndex += sigs.length;
 			});
 
-	foreach (ref immutable FunDeclAndIndex f; multiDictGetAt(ctx.funsDict, funName)) {
+	foreach (ref immutable FunDeclAndIndex f; ctx.funsDict[funName]) {
 		immutable Opt!UsedFun used = some(immutable UsedFun(f.index));
 		cb(used, immutable CalledDecl(f.decl));
 	}
@@ -623,7 +622,7 @@ immutable(bool) checkBuiltinSpec(
 						immutable Opt!Called impl = findSpecSigImplementation(ctx, range, sig.sig, called);
 						if (!has(impl))
 							return false;
-						setAt(res, outI, force(impl));
+						res[outI] = force(impl);
 						outI++;
 					}
 					return true;

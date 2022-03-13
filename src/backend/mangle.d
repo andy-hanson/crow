@@ -35,9 +35,9 @@ import model.lowModel :
 	matchLowParamSource;
 import model.model : FunInst, name, Param;
 import util.alloc.alloc : Alloc;
-import util.col.dict : getAt, PtrDict;
+import util.col.dict : PtrDict;
 import util.col.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
-import util.col.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet;
+import util.col.fullIndexDict : fullIndexDictEachValue;
 import util.col.mutDict : insertOrUpdate, MutSymDict, setInDict;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
@@ -130,7 +130,7 @@ void writeStructMangledName(
 		void,
 		(ref immutable ConcreteStructSource.Inst it) {
 			writeMangledName(writer, mangledNames, name(it.inst.deref()));
-			maybeWriteIndexSuffix(writer, getAt(mangledNames.structToNameIndex, source));
+			maybeWriteIndexSuffix(writer, mangledNames.structToNameIndex[source]);
 		},
 		(ref immutable ConcreteStructSource.Lambda it) {
 			writeConcreteFunMangledName(writer, mangledNames, it.containingFun);
@@ -174,7 +174,7 @@ private void writeConcreteFunMangledName(
 				writeSym(writer, mangledNames.allSymbols.deref(), name);
 			else {
 				writeMangledName(writer, mangledNames, name);
-				maybeWriteIndexSuffix(writer, getAt(mangledNames.funToNameIndex, source));
+				maybeWriteIndexSuffix(writer, mangledNames.funToNameIndex[source]);
 			}
 		},
 		(ref immutable ConcreteFunSource.Lambda it) {
@@ -274,7 +274,7 @@ void writeRecordName(
 	ref immutable LowProgram program,
 	immutable LowType.Record a,
 ) {
-	writeStructMangledName(writer, mangledNames, fullIndexDictGet(program.allRecords, a).source);
+	writeStructMangledName(writer, mangledNames, program.allRecords[a].source);
 }
 
 private:

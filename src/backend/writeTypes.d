@@ -14,13 +14,8 @@ import model.lowModel :
 	LowUnion,
 	matchLowTypeCombinePtr;
 import util.alloc.alloc : Alloc;
-import util.col.arr : setAt;
 import util.col.arrUtil : every, fillArr_mut;
-import util.col.fullIndexDict :
-	fullIndexDictEachKey,
-	fullIndexDictEachValue,
-	fullIndexDictGet,
-	fullIndexDictSize;
+import util.col.fullIndexDict : fullIndexDictEachKey, fullIndexDictEachValue, fullIndexDictSize;
 import util.ptr : Ptr;
 import util.util : verify;
 
@@ -53,7 +48,7 @@ void writeTypes(
 				immutable bool curState = structStates.funPtrStates[funPtrIndex.index];
 				if (!curState) {
 					if (tryWriteFunPtrDeclaration(program, structStates, writers, funPtrIndex)) {
-						setAt(structStates.funPtrStates, funPtrIndex.index, true);
+						structStates.funPtrStates[funPtrIndex.index] = true;
 						madeProgress = true;
 					} else
 						someIncomplete = true;
@@ -68,7 +63,7 @@ void writeTypes(
 					immutable StructState didWork = writeRecordDeclarationOrDefinition(
 						program, writers, structStates, curState, recordIndex);
 					if (didWork > curState) {
-						setAt(structStates.recordStates, recordIndex.index, didWork);
+						structStates.recordStates[recordIndex.index] = didWork;
 						madeProgress = true;
 					} else
 						someIncomplete = true;
@@ -81,7 +76,7 @@ void writeTypes(
 				immutable StructState didWork = writeUnionDeclarationOrDefinition(
 					program, writers, structStates, curState, unionIndex);
 				if (didWork > curState) {
-					setAt(structStates.unionStates, unionIndex.index, didWork);
+					structStates.unionStates[unionIndex.index] = didWork;
 					madeProgress = true;
 				} else
 					someIncomplete = true;
@@ -161,7 +156,7 @@ immutable(StructState) writeRecordDeclarationOrDefinition(
 	immutable LowType.Record recordIndex,
 ) {
 	verify(prevState != StructState.defined);
-	immutable LowRecord record = fullIndexDictGet(program.allRecords, recordIndex);
+	immutable LowRecord record = program.allRecords[recordIndex];
 	immutable bool canWriteFields = every!LowField(record.fields, (ref immutable LowField f) =>
 		canReferenceTypeAsValue(structStates, f.type));
 	if (canWriteFields) {
@@ -181,7 +176,7 @@ immutable(StructState) writeUnionDeclarationOrDefinition(
 	immutable LowType.Union unionIndex,
 ) {
 	verify(prevState != StructState.defined);
-	immutable LowUnion union_ = fullIndexDictGet(program.allUnions, unionIndex);
+	immutable LowUnion union_ = program.allUnions[unionIndex];
 	if (every!LowType(union_.members, (ref immutable LowType t) => canReferenceTypeAsValue(structStates, t))) {
 		writers.cbWriteUnion(unionIndex, union_);
 		return StructState.defined;
@@ -197,7 +192,7 @@ immutable(bool) tryWriteFunPtrDeclaration(
 	ref immutable TypeWriters writers,
 	immutable LowType.FunPtr funPtrIndex,
 ) {
-	immutable LowFunPtrType funPtr = fullIndexDictGet(program.allFunPtrTypes, funPtrIndex);
+	immutable LowFunPtrType funPtr = program.allFunPtrTypes[funPtrIndex];
 	immutable bool canDeclare =
 		canReferenceTypeAsPointee(structStates, funPtr.returnType) &&
 		every!LowType(funPtr.paramTypes, (ref immutable LowType it) =>

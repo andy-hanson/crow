@@ -33,7 +33,7 @@ import model.model :
 	TypeParam;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : emptyArr, emptyArr_mut, setAt, sizeEq;
+import util.col.arr : emptyArr, emptyArr_mut, sizeEq;
 import util.col.arrUtil : map, mapOrNone, mapZipOrNone;
 import util.col.mutArr : MutArr;
 import util.opt : has, force, none, noneMut, Opt, some;
@@ -93,7 +93,7 @@ struct ExprCtx {
 }
 
 void markUsedLocalFun(ref ExprCtx a, immutable ModuleLocalFunIndex index) {
-	setAt(a.funsUsed, index.index, true);
+	a.funsUsed[index.index] = true;
 }
 
 struct LocalAndUsed {

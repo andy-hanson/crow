@@ -6,7 +6,6 @@ import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import model.diag : Diag, Diagnostic, Diagnostics, DiagnosticWithinFile, DiagSeverity;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderClear, arrBuilderSort, arrBuilderTempAsArr, finishArr;
-import util.col.fullIndexDict : fullIndexDictGet;
 import util.path : comparePathAndStorageKind;
 import util.sourceRange : FileAndRange, FileIndex, FilePaths;
 
@@ -32,9 +31,7 @@ void addDiagnostic(ref Alloc alloc, ref DiagnosticsBuilder a, immutable FileAndR
 immutable(Diagnostics) finishDiagnostics(ref Alloc alloc, ref DiagnosticsBuilder a, immutable FilePaths filePaths) {
 	arrBuilderSort!Diagnostic(a.diags, (ref immutable Diagnostic a, ref immutable Diagnostic b) =>
 		// TOOD: sort by file position too
-		comparePathAndStorageKind(
-			fullIndexDictGet(filePaths, a.where.fileIndex),
-			fullIndexDictGet(filePaths, b.where.fileIndex)));
+		comparePathAndStorageKind(filePaths[a.where.fileIndex], filePaths[b.where.fileIndex]));
 	return immutable Diagnostics(a.severity, finishArr(alloc, a.diags));
 }
 

@@ -3,7 +3,7 @@ module util.diff;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : only, setAt;
+import util.col.arr : only;
 import util.col.arrUtil : arrMax, arrMaxIndex, contains, fillArrUninitialized;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
@@ -37,7 +37,7 @@ void setAtPossiblyReversed(T)(
 	immutable T value,
 	immutable bool reversed,
 ) {
-	setAt(a, reversed ? a.length - 1 - i : i, value);
+	a[reversed ? a.length - 1 - i : i] = value;
 }
 
 // Returns the maximum subsequence length between a and each prefix of b.

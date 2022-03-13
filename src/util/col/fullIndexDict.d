@@ -4,8 +4,9 @@ module util.col.fullIndexDict;
 
 import util.alloc.alloc : Alloc;
 import util.conv : safeToUint, safeToUshort;
-import util.col.arr : castImmutable, emptyArr, ptrAt, setAt;
+import util.col.arr : castImmutable, emptyArr;
 import util.col.arrUtil : mapWithIndex, mapWithIndex_mut;
+import util.memory : overwriteMemory;
 import util.ptr : Ptr;
 import util.util : verify;
 
@@ -13,7 +14,17 @@ struct FullIndexDict(K, V) {
 	@disable this();
 	this(inout V[] vs) inout { values = vs; }
 
-	//TODO:PRIVATE:
+	ref inout(V) opIndex(immutable K key) inout {
+		return values[key.index];
+	}
+
+	static if ( __traits(isCopyable, V)) {
+		void opIndexAssign(V value, immutable K key) {
+			overwriteMemory!V(&values[key.index], value);
+		}
+	}
+
+	//TODO: private:
 	V[] values;
 }
 
@@ -85,18 +96,11 @@ void fullIndexDictZip3(K, V0, V1, V2)(
 		cb(immutable K(i), a.values[i], b.values[i], c.values[i]);
 }
 
-ref inout(V) fullIndexDictGet(K, V)(ref inout FullIndexDict!(K, V) a, immutable K key) {
-	verify(key.index < fullIndexDictSize(a));
-	return a.values[key.index];
+immutable(Ptr!V) ptrAt(K, V)(ref immutable FullIndexDict!(K, V) a, immutable K key) {
+	return immutable Ptr!V(&a.values[key.index]);
 }
-immutable(Ptr!V) fullIndexDictGetPtr(K, V)(ref immutable FullIndexDict!(K, V) a, immutable K key) {
-	return ptrAt(a.values, key.index);
-}
-Ptr!V fullIndexDictGetPtr_mut(K, V)(ref FullIndexDict!(K, V) a, immutable K key) {
-	return ptrAt(a.values, key.index);
-}
-void fullIndexDictSet(K, V)(ref FullIndexDict!(K, V) a, immutable K key, immutable V value) {
-	setAt(a.values, key.index, value);
+Ptr!V ptrAt_mut(K, V)(ref FullIndexDict!(K, V) a, immutable K key) {
+	return Ptr!V(&a.values[key.index]);
 }
 
 immutable(FullIndexDict!(K, VOut)) mapFullIndexDict(K, VOut, VIn)(

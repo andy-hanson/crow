@@ -157,17 +157,9 @@ import util.col.arr : castImmutable, empty, only;
 import util.col.arrUtil : map, mapOpWithIndex;
 import util.col.dict : mustGetAt;
 import util.col.fullIndexDict :
-	FullIndexDict,
-	fullIndexDictEach,
-	fullIndexDictGet,
-	fullIndexDictOfArr,
-	fullIndexDictSize,
-	mapFullIndexDict;
+	FullIndexDict, fullIndexDictEach, fullIndexDictOfArr, fullIndexDictSize, mapFullIndexDict;
 import util.col.mutIndexMultiDict :
-	MutIndexMultiDict,
-	mutIndexMultiDictAdd,
-	mutIndexMultiDictMustGetAt,
-	newMutIndexMultiDict;
+	MutIndexMultiDict, mutIndexMultiDictAdd, mutIndexMultiDictMustGetAt, newMutIndexMultiDict;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.memory : overwriteMemory;
@@ -224,7 +216,7 @@ immutable(ByteCode) generateBytecode(
 	return finishByteCode(
 		writer,
 		castImmutable(text.text),
-		fullIndexDictGet(funToDefinition, program.main),
+		funToDefinition[program.main],
 		fileToFuns(codeAlloc, allSymbols, modelProgram));
 }
 
@@ -740,7 +732,7 @@ void generateCreateRecordOrConstantRecord(
 ) {
 	immutable StackEntry before = getNextStackEntry(writer);
 
-	immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, type);
+	immutable LowRecord record = ctx.program.allRecords[type];
 	foreach (immutable size_t i, ref immutable LowField field; record.fields)
 		cbGenerateField(i, field.type);
 
@@ -781,7 +773,7 @@ void generateCreateUnionOrConstantUnion(
 	immutable StackEntry before = getNextStackEntry(writer);
 	immutable size_t size = nStackEntriesForUnionType(ctx, type);
 	writePushConstant(writer, source, memberIndex);
-	immutable LowType memberType = fullIndexDictGet(ctx.program.allUnions, type).members[memberIndex];
+	immutable LowType memberType = ctx.program.allUnions[type].members[memberIndex];
 	cbGenerateMember(memberType);
 	immutable StackEntry after = getNextStackEntry(writer);
 	if (before.entry + size != after.entry) {
@@ -801,7 +793,7 @@ immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	immutable LowType.Record record,
 	immutable size_t fieldIndex,
 ) {
-	immutable LowField field = fullIndexDictGet(ctx.program.allRecords, record).fields[fieldIndex];
+	immutable LowField field = ctx.program.allRecords[record].fields[fieldIndex];
 	immutable size_t size = sizeOfType(ctx, field.type).size;
 	return immutable FieldOffsetAndSize(field.offset, size);
 }
@@ -1072,7 +1064,7 @@ void generatePtrToRecordFieldGet(
 	immutable bool targetIsPointer,
 	ref immutable LowExpr target,
 ) {
-	immutable size_t offset = fullIndexDictGet(ctx.program.allRecords, record).fields[fieldIndex].offset;
+	immutable size_t offset = ctx.program.allRecords[record].fields[fieldIndex].offset;
 	if (targetIsPointer) {
 		generateExpr(writer, ctx, locals, target);
 		if (offset != 0)

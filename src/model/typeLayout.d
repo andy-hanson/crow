@@ -14,7 +14,6 @@ import model.lowModel :
 	PrimitiveType,
 	typeSize;
 import util.col.arrUtil : every, map;
-import util.col.fullIndexDict : fullIndexDictGet;
 import util.opt : none, Opt, some;
 import util.util : divRoundUp;
 
@@ -30,9 +29,9 @@ immutable(TypeSize) sizeOfType(ref immutable LowProgram program, immutable LowTy
 		(immutable LowPtrCombine) =>
 			ptrSize,
 		(immutable LowType.Record index) =>
-			typeSize(fullIndexDictGet(program.allRecords, index)),
+			typeSize(program.allRecords[index]),
 		(immutable LowType.Union index) =>
-			typeSize(fullIndexDictGet(program.allUnions, index)),
+			typeSize(program.allUnions[index]),
 	)(a);
 }
 
@@ -61,7 +60,7 @@ immutable(Opt!Pack) optPack(TempAlloc)(
 	ref immutable LowProgram program,
 	immutable LowType.Record type,
 ) {
-	immutable LowRecord record = fullIndexDictGet(program.allRecords, type);
+	immutable LowRecord record = program.allRecords[type];
 
 	if (every!LowField(record.fields, (ref immutable LowField field) => field.offset % 8 == 0))
 		return none!Pack;

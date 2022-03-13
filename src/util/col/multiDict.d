@@ -4,7 +4,7 @@ module util.col.multiDict;
 
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptyArr, ptrAt;
-import util.col.dict : dictEach, Dict, getAt, KeyValuePair;
+import util.col.dict : dictEach, Dict, KeyValuePair;
 import util.col.mutArr : moveToArr, MutArr, push;
 import util.col.mutDict : getOrAdd, mapToDict, MutDict;
 import util.opt : force, has, Opt;
@@ -12,8 +12,12 @@ import util.ptr : Ptr;
 import util.sym : hashSym, Sym, symEq;
 
 private struct MultiDict(K, V, alias equal, alias hash) {
-	private:
-	immutable Dict!(K, V[], equal, hash) inner;
+	private immutable Dict!(K, V[], equal, hash) inner;
+
+	immutable(V[]) opIndex(immutable K key) immutable {
+		immutable Opt!(V[]) res = inner[key];
+		return has(res) ? force(res) : emptyArr!V;
+	}
 }
 
 alias SymMultiDict(V) =
@@ -26,14 +30,6 @@ alias SymMultiDict(V) =
 	dictEach!(K, V[], equal, hash)(a.inner, (immutable K key, ref immutable V[] value) {
 		cb(key, value);
 	});
-}
-
-@trusted immutable(V[]) multiDictGetAt(K, V, alias equal, alias hash)(
-	ref immutable MultiDict!(K, V, equal, hash) a,
-	ref immutable K key,
-) {
-	immutable Opt!(V[]) res = getAt(a.inner, key);
-	return has(res) ? force(res) : emptyArr!V;
 }
 
 @trusted immutable(MultiDict!(K, V, equal, hash)) buildMultiDict(K, V, alias equal, alias hash, T)(

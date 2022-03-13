@@ -59,7 +59,7 @@ struct Ptr(T) {
 		ptr = p;
 	}
 	@trusted this(T* p, immutable bool) {
-		ptr = p;
+		ptr = cast(void*) p;
 	}
 
 	// Using a void* greatly speeds up compile times. Don't know why.

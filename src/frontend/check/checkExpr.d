@@ -103,15 +103,7 @@ import model.model :
 	TypeParam,
 	UnionMember,
 	worstCasePurity;
-import util.col.arr :
-	castImmutable,
-	empty,
-	emptyArr,
-	emptySmallArray,
-	only,
-	ptrsRange,
-	setAt,
-	sizeEq;
+import util.col.arr : castImmutable, empty, emptyArr, emptySmallArray, only, ptrsRange, sizeEq;
 import util.col.arrUtil :
 	arrLiteral,
 	arrsCorrespond,
@@ -500,7 +492,7 @@ Opt!IdentifierAndLambdas getIdentifierNonCall(
 		}
 	foreach (immutable Ptr!Param param; ptrsRange(ctx.outermostFunParams))
 		if (has(param.deref().name) && symEq(force(param.deref().name), name)) {
-			setAt(ctx.paramsUsed, param.deref().index, true);
+			ctx.paramsUsed[param.deref().index] = true;
 			return someMut(IdentifierAndLambdas(immutable Expr(range, immutable Expr.ParamRef(param)), allLambdas));
 		}
 	return noneMut!IdentifierAndLambdas;

@@ -34,7 +34,6 @@ import model.parseDiag : matchParseDiag, ParseDiag;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only;
 import util.col.arrUtil : exists;
-import util.col.fullIndexDict : fullIndexDictGet;
 import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has, Opt;
@@ -101,7 +100,7 @@ void writeLineNumber(
 	immutable FilesInfo fi,
 	immutable FileAndPos pos,
 ) {
-	immutable PathAndStorageKind where = fullIndexDictGet(fi.filePaths, pos.fileIndex);
+	immutable PathAndStorageKind where = fi.filePaths[pos.fileIndex];
 	if (options.color)
 		writeBold(writer);
 	writePathAndStorageKind(writer, allPaths, where);
@@ -109,7 +108,7 @@ void writeLineNumber(
 	if (options.color)
 		writeReset(writer);
 	writeStatic(writer, " line ");
-	immutable size_t line = lineAndColumnAtPos(fullIndexDictGet(fi.lineAndColumnGetters, pos.fileIndex), pos.pos).line;
+	immutable size_t line = lineAndColumnAtPos(fi.lineAndColumnGetters[pos.fileIndex], pos.pos).line;
 	writeNat(writer, line + 1);
 }
 
@@ -831,8 +830,7 @@ void writeDiag(
 			} else {
 				writeStatic(writer, "imported module ");
 				// TODO: helper fn
-				immutable Sym moduleName =
-					baseName(allPaths, fullIndexDictGet(fi.filePaths, it.importedModule.deref().fileIndex).path);
+				immutable Sym moduleName = baseName(allPaths, fi.filePaths[it.importedModule.deref().fileIndex].path);
 				writeSym(writer, allSymbols, moduleName);
 			}
 			writeStatic(writer, " is unused");

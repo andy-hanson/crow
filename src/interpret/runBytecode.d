@@ -21,7 +21,6 @@ import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import model.typeLayout : PackField;
 import util.alloc.alloc : TempAlloc;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.col.fullIndexDict : fullIndexDictGet;
 import util.col.stack :
 	asTempArr,
 	clearStack,
@@ -256,7 +255,7 @@ private void writeByteCodeSource(
 			writeFileAndPos(writer, allPaths, showDiagOptions, filesInfo, where);
 		},
 		(ref immutable LowFunSource.Generated) {},
-	)(fullIndexDictGet(lowProgram.allFuns, source.fun).source);
+	)(lowProgram.allFuns[source.fun].source);
 }
 
 private void writeFunNameAtIndex(
@@ -280,7 +279,7 @@ private void writeFunNameAtByteCodePtr(
 }
 
 private immutable(ByteCodeSource) byteCodeSourceAtIndex(ref const Interpreter a, immutable ByteCodeIndex index) {
-	return fullIndexDictGet(a.byteCode.sources, index);
+	return a.byteCode.sources[index];
 }
 
 private immutable(ByteCodeSource) byteCodeSourceAtByteCodePtr(

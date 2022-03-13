@@ -65,7 +65,7 @@ import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, emptyArr, only, sizeEq;
 import util.col.arrUtil : arrLiteral, every, exists, map, zip;
 import util.col.dict : mustGetAt;
-import util.col.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey, fullIndexDictGet, fullIndexDictGetPtr;
+import util.col.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey;
 import util.col.str : eachChar, SafeCStr;
 import util.opt : force, has, some;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
@@ -244,14 +244,11 @@ void writeType(ref Writer writer, ref immutable Ctx ctx, scope immutable LowType
 		void,
 		(immutable LowType.ExternPtr it) {
 			writeStatic(writer, "struct ");
-			writeStructMangledName(
-				writer,
-				ctx.mangledNames,
-				fullIndexDictGet(ctx.program.allExternPtrTypes, it).source);
+			writeStructMangledName(writer, ctx.mangledNames, ctx.program.allExternPtrTypes[it].source);
 			writeChar(writer, '*');
 		},
 		(immutable LowType.FunPtr it) {
-			writeStructMangledName(writer, ctx.mangledNames, fullIndexDictGet(ctx.program.allFunPtrTypes, it).source);
+			writeStructMangledName(writer, ctx.mangledNames, ctx.program.allFunPtrTypes[it].source);
 		},
 		(immutable PrimitiveType it) {
 			writePrimitiveType(writer, it);
@@ -265,7 +262,7 @@ void writeType(ref Writer writer, ref immutable Ctx ctx, scope immutable LowType
 		},
 		(immutable LowType.Union it) {
 			writeStatic(writer, "struct ");
-			writeStructMangledName(writer, ctx.mangledNames, fullIndexDictGet(ctx.program.allUnions, it).source);
+			writeStructMangledName(writer, ctx.mangledNames, ctx.program.allUnions[it].source);
 		},
 	)(t);
 }
@@ -1075,7 +1072,7 @@ immutable(WriteExprResult) writeCallExpr(
 ) {
 	immutable WriteExprResult[] args = writeExprsTempOrInline(writer, tempAlloc, indent, ctx, a.args);
 	return writeNonInlineable(writer, indent, ctx, writeKind, type, () {
-		immutable Ptr!LowFun called = fullIndexDictGetPtr(ctx.ctx.program.allFuns, a.called);
+		immutable Ptr!LowFun called = &ctx.ctx.program.allFuns[a.called];
 		writeLowFunMangledName(writer, ctx.mangledNames, a.called, called.deref());
 		if (!isGlobal(called.deref().body_)) {
 			writeChar(writer, '(');
@@ -1092,7 +1089,7 @@ void writeTailRecur(
 	ref FunBodyCtx ctx,
 	ref immutable LowExprKind.TailRecur a,
 ) {
-	immutable LowParam[] params = fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params;
+	immutable LowParam[] params = ctx.ctx.program.allFuns[ctx.curFun].params;
 	immutable WriteExprResult[] newValues =
 		map!WriteExprResult(tempAlloc, a.updateParams, (ref immutable UpdateParam updateParam) =>
 			writeExprTempOrInline(writer, tempAlloc, indent, ctx, updateParam.newValue));
@@ -1124,7 +1121,7 @@ void writeCreateUnion(
 	if (pos == ConstantRefPos.outer) writeCastToType(writer, ctx, type);
 	writeChar(writer, '{');
 	writeNat(writer, memberIndex);
-	immutable LowUnion union_ = fullIndexDictGet(ctx.program.allUnions, asUnionType(type));
+	immutable LowUnion union_ = ctx.program.allUnions[asUnionType(type)];
 	immutable LowType memberType = union_.members[memberIndex];
 	if (!isVoid(memberType)) {
 		writeStatic(writer, ", .as");
@@ -1136,14 +1133,11 @@ void writeCreateUnion(
 }
 
 void writeFunPtr(ref Writer writer, ref immutable Ctx ctx, immutable LowFunIndex a) {
-	writeLowFunMangledName(writer, ctx.mangledNames, a, fullIndexDictGet(ctx.program.allFuns, a));
+	writeLowFunMangledName(writer, ctx.mangledNames, a, ctx.program.allFuns[a]);
 }
 
 void writeParamRef(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowExprKind.ParamRef a) {
-	writeLowParamName(
-		writer,
-		ctx.mangledNames,
-		fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params[a.index.index]);
+	writeLowParamName(writer, ctx.mangledNames, ctx.ctx.program.allFuns[ctx.curFun].params[a.index.index]);
 }
 
 immutable(WriteExprResult) writeMatchUnion(
@@ -1289,7 +1283,7 @@ void writeRecordFieldRef(
 	writeMangledName(
 		writer,
 		ctx.mangledNames,
-		name(fullIndexDictGet(ctx.ctx.program.allRecords, record).fields[fieldIndex]));
+		name(ctx.ctx.program.allRecords[record].fields[fieldIndex]));
 }
 
 // For some reason, providing a type for a record makes it non-constant.
@@ -1372,7 +1366,7 @@ void writeConstantRef(
 			writeConstantPointerStorageName(writer, ctx.mangledNames, ctx.program, asPtrGcPointee(type), it.index);
 		},
 		(ref immutable Constant.Record it) {
-			immutable LowField[] fields = fullIndexDictGet(ctx.program.allRecords, asRecordType(type)).fields;
+			immutable LowField[] fields = ctx.program.allRecords[asRecordType(type)].fields;
 			verify(sizeEq(fields, it.args));
 			if (pos == ConstantRefPos.outer)
 				writeCastToType(writer, ctx, type);
@@ -1389,8 +1383,7 @@ void writeConstantRef(
 			writeChar(writer, '}');
 		},
 		(ref immutable Constant.Union it) {
-			immutable LowType memberType =
-				fullIndexDictGet(ctx.program.allUnions, asUnionType(type)).members[it.memberIndex];
+			immutable LowType memberType = ctx.program.allUnions[asUnionType(type)].members[it.memberIndex];
 			writeCreateUnion(writer, ctx, pos, type, it.memberIndex, () {
 				writeConstantRef(writer, ctx, ConstantRefPos.inner, memberType, it.arg);
 			});
@@ -1579,7 +1572,7 @@ void writeZeroedValue(ref Writer writer, ref immutable Ctx ctx, scope immutable 
 		(immutable LowType.Record it) {
 			writeCastToType(writer, ctx, type);
 			writeChar(writer, '{');
-			immutable LowField[] fields = fullIndexDictGet(ctx.program.allRecords, it).fields;
+			immutable LowField[] fields = ctx.program.allRecords[it].fields;
 			writeWithCommas!LowField(
 				writer,
 				fields,

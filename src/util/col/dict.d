@@ -10,6 +10,10 @@ import util.sym : hashSym, Sym, symEq;
 
 struct Dict(K, V, alias equal, alias hash) {
 	private immutable MutDict!(K, V, equal, hash) inner;
+
+	@trusted immutable(Opt!V) opIndex(const K key) immutable {
+		return cast(immutable) getAt_mut(inner, key);
+	}
 }
 
 alias PtrDict(K, V) =
@@ -20,10 +24,6 @@ alias SymDict(V) =
 
 immutable(bool) hasKey(K, V, alias equal, alias hash)(ref immutable Dict!(K, V, equal, hash) a, const K key) {
 	return hasKey_mut(a.inner, key);
-}
-
-@trusted immutable(Opt!V) getAt(K, V, alias equal, alias hash)(ref immutable Dict!(K, V, equal, hash) a, const K key) {
-	return cast(immutable) getAt_mut(a.inner, key);
 }
 
 @trusted immutable(V) mustGetAt(K, V, alias equal, alias hash)(ref immutable Dict!(K, V, equal, hash) a, const K key) {

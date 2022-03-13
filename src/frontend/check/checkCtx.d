@@ -16,9 +16,8 @@ import model.model :
 	StructDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : castImmutable, setAt;
+import util.col.arr : castImmutable;
 import util.col.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
-import util.col.dict : getAt;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.ptr : Ptr;
@@ -160,19 +159,19 @@ void markUsedStructOrAlias(ref CheckCtx ctx, ref immutable StructOrAliasAndIndex
 	matchStructOrAlias!void(
 		a.structOrAlias,
 		(ref immutable StructAlias) {
-			setAt(ctx.structAliasesUsed, a.index.index, true);
+			ctx.structAliasesUsed[a.index.index] = true;
 		},
 		(ref immutable StructDecl) {
-			setAt(ctx.structsUsed, a.index.index, true);
+			ctx.structsUsed[a.index.index] = true;
 		});
 }
 
 void markUsedSpec(ref CheckCtx ctx, immutable ModuleLocalSpecIndex a) {
-	setAt(ctx.specsUsed, a.index, true);
+	ctx.specsUsed[a.index] = true;
 }
 
 void markUsedImport(ref CheckCtx ctx, immutable ImportIndex index) {
-	setAt(ctx.importsAndReExportsUsed, index.index, true);
+	ctx.importsAndReExportsUsed[index.index] = true;
 }
 
 immutable(Acc) eachImportAndReExport(Acc)(
@@ -205,7 +204,7 @@ immutable(Acc) eachImportAndReExport(Acc)(
 				}
 			}();
 			if (has(importIndex)) {
-				immutable Opt!NameReferents referents = getAt(m.module_.allExportedNames, name);
+				immutable Opt!NameReferents referents = m.module_.allExportedNames[name];
 				if (has(referents))
 					return cb(acc, m.modulePtr, immutable ImportIndex(force(importIndex)), force(referents));
 			}

@@ -158,7 +158,7 @@ import util.col.arrUtil :
 	zipFirstMut,
 	zipMutPtrFirst,
 	zipPtrFirst;
-import util.col.dict : dictEach, getAt, hasKey, KeyValuePair, SymDict;
+import util.col.dict : dictEach, hasKey, KeyValuePair, SymDict;
 import util.col.dictBuilder : finishDict, SymDictBuilder, tryAddToDict;
 import util.col.exactSizeArrBuilder :
 	ExactSizeArrBuilder,
@@ -254,7 +254,7 @@ immutable(Opt!(Ptr!StructDecl)) getCommonTemplateType(
 	immutable Sym name,
 	immutable size_t expectedTypeParams,
 ) {
-	immutable Opt!StructOrAliasAndIndex res = getAt(structsAndAliasesDict, name);
+	immutable Opt!StructOrAliasAndIndex res = structsAndAliasesDict[name];
 	if (has(res)) {
 		// TODO: may fail -- builtin Template should not be an alias
 		immutable Ptr!StructDecl decl = asStructDecl(force(res).structOrAlias);
@@ -272,7 +272,7 @@ immutable(Opt!(Ptr!StructInst)) getCommonNonTemplateType(
 	immutable Sym name,
 	ref MutArr!(Ptr!StructInst) delayedStructInsts,
 ) {
-	immutable Opt!StructOrAliasAndIndex opStructOrAlias = getAt(structsAndAliasesDict, name);
+	immutable Opt!StructOrAliasAndIndex opStructOrAlias = structsAndAliasesDict[name];
 	return has(opStructOrAlias)
 		? instantiateNonTemplateStructOrAlias(
 			alloc,

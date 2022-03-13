@@ -117,14 +117,6 @@ ref immutable(T) forceOrTodo(T)(return scope ref immutable Opt!T a) {
 		assert(0);
 }
 
-immutable(T) optOr(T)(immutable Opt!T a, scope immutable(T) delegate() @safe @nogc pure nothrow cb) {
-	return has(a) ? force(a) : cb();
-}
-
-immutable(Opt!T) optOr2(T)(immutable Opt!T a, scope immutable(Opt!T) delegate() @safe @nogc pure nothrow cb) {
-	return has(a) ? a : cb();
-}
-
 immutable(Opt!Out) mapOption(Out, T)(
 	immutable Opt!T a,
 	scope immutable(Out) delegate(ref immutable T) @safe @nogc pure nothrow cb,

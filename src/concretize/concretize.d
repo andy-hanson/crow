@@ -38,7 +38,6 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptyArr, only;
 import util.col.arrBuilder : finishArr_immutable;
-import util.col.dict : getAt;
 import util.col.mutArr : moveToArr, MutArr;
 import util.col.mutDict : mapToDict, mutDictIsEmpty;
 import util.col.mutSet : moveSetToArr;
@@ -252,6 +251,6 @@ immutable(Ptr!FunInst) getCurExclusionFun(ref Alloc alloc, ref immutable Program
 }
 
 immutable(Ptr!FunDecl[]) getFuns(ref immutable Module a, immutable Sym name) {
-	immutable Opt!NameReferents optReferents = getAt(a.allExportedNames, name);
+	immutable Opt!NameReferents optReferents = a.allExportedNames[name];
 	return has(optReferents) ? force(optReferents).funs : emptyArr!(Ptr!FunDecl);
 }

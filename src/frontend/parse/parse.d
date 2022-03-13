@@ -72,7 +72,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.str : SafeCStr;
 import util.conv : safeToUshort;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, optOr, some;
+import util.opt : force, has, none, Opt, some;
 import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr, ptrTrustMe_mut;
@@ -605,15 +605,16 @@ immutable(FunDeclAst) parseFun(
 			immutable SpecUsesAndSigFlagsAndKwBody extra = tryTakeToken(lexer, Token.spec)
 				? parseIndentedSpecUses(lexer)
 				: emptySpecUsesAndSigFlagsAndKwBody;
-			immutable FunBodyAst body_ = optOr(extra.body_, () {
+			immutable FunBodyAst body_ = has(extra.body_) ? force(extra.body_) : () {
 				takeOrAddDiagExpectedToken(lexer, Token.body, ParseDiag.Expected.Kind.bodyKeyword);
 				return immutable FunBodyAst(parseFunExprBody(lexer));
-			});
+			}();
 			return immutable FunDeclStuff(extra, body_);
 		} else {
 			immutable SpecUsesAndSigFlagsAndKwBody extra = parseSpecUsesAndSigFlagsAndKwBody(lexer);
-			immutable FunBodyAst body_ = optOr(extra.body_, () =>
-				immutable FunBodyAst(parseFunExprBody(lexer)));
+			immutable FunBodyAst body_ = has(extra.body_)
+				? force(extra.body_)
+				: immutable FunBodyAst(parseFunExprBody(lexer));
 			return immutable FunDeclStuff(extra, body_);
 		}
 	}();

@@ -27,7 +27,7 @@ import model.model :
 	Type,
 	TypeParam;
 import util.col.arr : empty, ptrsRange;
-import util.opt : force, has, none, Opt, optOr2, some;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : hasPos, Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, symSize;
@@ -124,11 +124,12 @@ struct Position {
 }
 
 immutable(Opt!Position) getPosition(ref const AllSymbols allSymbols, ref immutable Module module_, immutable Pos pos) {
-	immutable Opt!Position fromImportsOrExports = optOr2(
-		positionInImportsOrExports(allSymbols, module_.imports, pos),
-		() => positionInImportsOrExports(allSymbols, module_.exports, pos));
-	if (has(fromImportsOrExports))
-		return fromImportsOrExports;
+	immutable Opt!Position fromImports = positionInImportsOrExports(allSymbols, module_.imports, pos);
+	if (has(fromImports))
+		return fromImports;
+	immutable Opt!Position fromExports = positionInImportsOrExports(allSymbols, module_.exports, pos);
+	if (has(fromExports))
+		return fromExports;
 
 	foreach (immutable Ptr!StructDecl s; ptrsRange(module_.structs))
 		if (hasPos(s.deref().range.range, pos))

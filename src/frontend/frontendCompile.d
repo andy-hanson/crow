@@ -22,7 +22,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, ptrAt;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.col.arrUtil : arrLiteral, copyArr, map, mapOp, mapOrNoneImpure, mapWithSoFar, prepend;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictGetPtr, fullIndexDictOfArr, fullIndexDictSize;
+import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize, ptrAt;
 import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, push;
 import util.col.mutDict : addToMutDict, getAt_mut, hasKey_mut, mustGetAt_mut, MutDict, setInDict;
 import util.col.str : SafeCStr;
@@ -482,10 +482,10 @@ immutable(ModuleAndNames[]) mapImportsOrExports(
 	ref immutable FileIndexAndNames[] paths,
 	ref immutable FullIndexDict!(FileIndex, Module) compiled,
 ) {
-	return mapOp(modelAlloc, paths, (ref immutable FileIndexAndNames it) =>
+	return mapOp!(ModuleAndNames, FileIndexAndNames)(modelAlloc, paths, (ref immutable FileIndexAndNames it) @safe =>
 		it.fileIndex == FileIndex.none
 			? none!ModuleAndNames
-			: some(immutable ModuleAndNames(it.range, fullIndexDictGetPtr(compiled, it.fileIndex), it.names)));
+			: some(immutable ModuleAndNames(it.range, ptrAt(compiled, it.fileIndex), it.names)));
 }
 
 struct ModulesAndCommonTypes {

@@ -32,7 +32,6 @@ import model.lowModel :
 	symOfPrimitiveType;
 import model.model : ClosureField, decl, FunInst, name, Param, RecordField, Type, typeArgs, writeTypeUnquoted;
 import util.col.arr : empty;
-import util.col.fullIndexDict : fullIndexDictGet;
 import util.opt : force, has;
 import util.ptr : Ptr;
 import util.writer : Writer, writeChar, writeNat, writeStatic, writeWithCommas;
@@ -44,7 +43,7 @@ void writeFunName(
 	scope ref immutable LowProgram lowProgram,
 	immutable LowFunIndex fun,
 ) {
-	writeFunName(writer, allSymbols, lowProgram, fullIndexDictGet(lowProgram.allFuns, fun));
+	writeFunName(writer, allSymbols, lowProgram, lowProgram.allFuns[fun]);
 }
 
 void writeFunName(
@@ -145,10 +144,10 @@ void writeLowType(
 			writeChar(writer, ')');
 		},
 		(immutable LowType.Record it) {
-			writeConcreteStruct(writer, allSymbols, fullIndexDictGet(lowTypes.allRecords, it).source.deref());
+			writeConcreteStruct(writer, allSymbols, lowTypes.allRecords[it].source.deref());
 		},
 		(immutable LowType.Union it) {
-			writeConcreteStruct(writer, allSymbols, fullIndexDictGet(lowTypes.allUnions, it).source.deref());
+			writeConcreteStruct(writer, allSymbols, lowTypes.allUnions[it].source.deref());
 		},
 	)(a);
 }

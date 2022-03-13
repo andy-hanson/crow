@@ -13,6 +13,12 @@ struct MutArr(T) {
 	T* begin_;
 	size_t size_;
 	size_t capacity_;
+
+	public:
+	@trusted void opIndexAssign(T value, immutable ulong index) {
+		verify(index < size_);
+		overwriteMemory(begin_ + safeToSizeT(index), value);
+	}
 }
 
 @system MutArr!T newUninitializedMutArr(T)(ref Alloc alloc, immutable size_t size) {
@@ -98,17 +104,6 @@ T mustPop(T)(ref MutArr!T a) {
 	verify(a.size_ != 0);
 	return a.begin_[a.size_ - 1];
 }
-
-@trusted void setAt(T)(ref MutArr!T a, immutable size_t index, T value) {
-	verify(index < a.size_);
-	overwriteMemory(a.begin_ + index, value);
-}
-static if (!is(size_t == ulong)) {
-	@trusted void setAt(T)(ref MutArr!T a, immutable ulong index, T value) {
-		setAt(a, safeToSizeT(index), value);
-	}
-}
-
 
 @trusted const(T[]) mutArrRange(T)(ref const MutArr!T a) {
 	return a.begin_[0 .. a.size_];

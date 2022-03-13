@@ -31,7 +31,7 @@ import model.reprConcreteModel : reprOfConcreteStructRef;
 import util.alloc.alloc : Alloc;
 import util.col.arr : sizeEq;
 import util.col.arrUtil : zip;
-import util.col.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet, fullIndexDictGetPtr;
+import util.col.fullIndexDict : fullIndexDictEachValue;
 import util.opt : force, has;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.repr : Repr, reprRecord, reprSym;
@@ -106,7 +106,7 @@ void checkLowExpr(
 	matchLowExprKind!(
 		void,
 		(ref immutable LowExprKind.Call it) {
-			immutable Ptr!LowFun fun = fullIndexDictGetPtr(ctx.ctx.program.allFuns, it.called);
+			immutable Ptr!LowFun fun = &ctx.ctx.program.allFuns[it.called];
 			checkTypeEqual(ctx.ctx, type, fun.deref().returnType);
 			verify(sizeEq(fun.deref().params, it.args));
 			zip!(LowParam, LowExpr)(
@@ -117,8 +117,7 @@ void checkLowExpr(
 				});
 		},
 		(ref immutable LowExprKind.CallFunPtr it) {
-			immutable LowFunPtrType funPtrType =
-				fullIndexDictGetPtr(ctx.ctx.program.allFunPtrTypes, asFunPtrType(it.funPtr.type)).deref();
+			immutable LowFunPtrType funPtrType = ctx.ctx.program.allFunPtrTypes[asFunPtrType(it.funPtr.type)];
 			checkTypeEqual(ctx.ctx, type, funPtrType.returnType);
 			verify(sizeEq(funPtrType.paramTypes, it.args));
 			zip!(LowType, LowExpr)(
@@ -129,14 +128,13 @@ void checkLowExpr(
 				});
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
-			immutable LowField[] fields = fullIndexDictGet(ctx.ctx.program.allRecords, asRecordType(type)).fields;
+			immutable LowField[] fields = ctx.ctx.program.allRecords[asRecordType(type)].fields;
 			zip!(LowField, LowExpr)(fields, it.args, (ref immutable LowField field, ref immutable LowExpr arg) {
 				checkLowExpr(ctx, field.type, arg);
 			});
 		},
 		(ref immutable LowExprKind.CreateUnion it) {
-			immutable LowType member =
-				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(type)).members[it.memberIndex];
+			immutable LowType member = ctx.ctx.program.allUnions[asUnionType(type)].members[it.memberIndex];
 			checkLowExpr(ctx, member, it.arg);
 		},
 		(ref immutable LowExprKind.If it) {
@@ -157,7 +155,7 @@ void checkLowExpr(
 		(ref immutable LowExprKind.MatchUnion it) {
 			checkLowExpr(ctx, it.matchedValue.type, it.matchedValue);
 			zip!(LowType, LowExprKind.MatchUnion.Case)(
-				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(it.matchedValue.type)).members,
+				ctx.ctx.program.allUnions[asUnionType(it.matchedValue.type)].members,
 				it.cases,
 				(ref immutable LowType memberType, ref immutable LowExprKind.MatchUnion.Case case_) {
 					if (has(case_.local))
@@ -178,8 +176,7 @@ void checkLowExpr(
 				? immutable LowType(immutable LowType.PtrGc(ptrTrustMe(targetTypeNonPtr)))
 				: targetTypeNonPtr;
 			checkLowExpr(ctx, targetType, it.target);
-			immutable LowType fieldType =
-				fullIndexDictGet(ctx.ctx.program.allRecords, it.record).fields[it.fieldIndex].type;
+			immutable LowType fieldType = ctx.ctx.program.allRecords[it.record].fields[it.fieldIndex].type;
 			checkTypeEqual(ctx.ctx, type, fieldType);
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
@@ -188,8 +185,7 @@ void checkLowExpr(
 				? immutable LowType(immutable LowType.PtrGc(ptrTrustMe(targetTypeNonPtr)))
 				: targetTypeNonPtr;
 			checkLowExpr(ctx, targetType, it.target);
-			immutable LowType fieldType =
-				fullIndexDictGet(ctx.ctx.program.allRecords, it.record).fields[it.fieldIndex].type;
+			immutable LowType fieldType = ctx.ctx.program.allRecords[it.record].fields[it.fieldIndex].type;
 			checkLowExpr(ctx, fieldType, it.value);
 			checkTypeEqual(ctx.ctx, type, voidType);
 		},
@@ -265,8 +261,8 @@ immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) {
 		(immutable LowType.PtrRawMut it) =>
 			reprRecord(ctx.alloc, "ptr-mut", [reprOfLowType2(ctx, it.pointee.deref())]),
 		(immutable LowType.Record it) =>
-			reprOfConcreteStructRef(ctx.alloc, fullIndexDictGet(ctx.program.allRecords, it).source.deref()),
+			reprOfConcreteStructRef(ctx.alloc, ctx.program.allRecords[it].source.deref()),
 		(immutable LowType.Union it) =>
-			reprOfConcreteStructRef(ctx.alloc, fullIndexDictGet(ctx.program.allUnions, it).source.deref()),
+			reprOfConcreteStructRef(ctx.alloc, ctx.program.allUnions[it].source.deref()),
 	)(a);
 }

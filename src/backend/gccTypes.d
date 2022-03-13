@@ -57,12 +57,10 @@ import util.col.fullIndexDict :
 	FullIndexDict,
 	fullIndexDictCastImmutable,
 	fullIndexDictCastImmutable2,
-	fullIndexDictGet,
-	fullIndexDictGetPtr_mut,
-	fullIndexDictSet,
 	fullIndexDictZip3,
 	mapFullIndexDict,
-	mapFullIndexDict_mut;
+	mapFullIndexDict_mut,
+	ptrAt_mut;
 import util.col.str : CStr;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, Ptr, ptrTrustMe_mut;
@@ -246,17 +244,17 @@ immutable(Ptr!gcc_jit_type) getGccType(ref immutable GccTypes types, scope immut
 	immutable Ptr!gcc_jit_type res = matchLowTypeCombinePtr!(
 		immutable Ptr!gcc_jit_type,
 		(immutable LowType.ExternPtr x) =>
-			fullIndexDictGet(types.externPtrs, x),
+			types.externPtrs[x],
 		(immutable LowType.FunPtr x) =>
-			fullIndexDictGet(types.funPtrs, x),
+			types.funPtrs[x],
 		(immutable PrimitiveType it) =>
 			types.primitiveTypes[it],
 		(immutable LowPtrCombine it) =>
 			gcc_jit_type_get_pointer(getGccType(types, it.pointee)),
 		(immutable LowType.Record x) =>
-			gcc_jit_struct_as_type(fullIndexDictGet(types.records, x)),
+			gcc_jit_struct_as_type(types.records[x]),
 		(immutable LowType.Union x) =>
-			gcc_jit_struct_as_type(fullIndexDictGet(types.unions, x)),
+			gcc_jit_struct_as_type(types.unions[x]),
 	)(a);
 	verify(res.rawPtr() != null);
 	return res;
@@ -268,17 +266,17 @@ immutable(Ptr!gcc_jit_type) getGccType(ref GccTypesWip typesWip, immutable LowTy
 	immutable Ptr!gcc_jit_type res = matchLowTypeCombinePtr!(
 		immutable Ptr!gcc_jit_type,
 		(immutable LowType.ExternPtr x) =>
-			fullIndexDictGet(typesWip.externPtrs, x),
+			typesWip.externPtrs[x],
 		(immutable LowType.FunPtr x) =>
-			castImmutable(force(fullIndexDictGet(typesWip.funPtrs, x))),
+			castImmutable(force(typesWip.funPtrs[x])),
 		(immutable PrimitiveType it) =>
 			typesWip.primitiveTypes[it],
 		(immutable LowPtrCombine it) =>
 			gcc_jit_type_get_pointer(getGccType(typesWip, it.pointee)),
 		(immutable LowType.Record x) =>
-			gcc_jit_struct_as_type(fullIndexDictGet(typesWip.records, x)),
+			gcc_jit_struct_as_type(typesWip.records[x]),
 		(immutable LowType.Union x) =>
-			gcc_jit_struct_as_type(fullIndexDictGet(typesWip.unions, x)),
+			gcc_jit_struct_as_type(typesWip.unions[x]),
 	)(a);
 	verify(res.rawPtr() != null);
 	return res;
@@ -339,7 +337,7 @@ struct GccTypesWip {
 	immutable LowType.FunPtr funPtrIndex,
 	ref immutable LowFunPtrType funPtr,
 ) {
-	Ptr!(Opt!(Ptr!gcc_jit_type)) ptr = fullIndexDictGetPtr_mut(typesWip.funPtrs, funPtrIndex);
+	Ptr!(Opt!(Ptr!gcc_jit_type)) ptr = ptrAt_mut(typesWip.funPtrs, funPtrIndex);
 	verify(!has(ptr.deref()));
 	const Ptr!gcc_jit_type returnType = getGccType(typesWip, funPtr.returnType);
 	//TODO:NO ALLOC
@@ -365,7 +363,7 @@ struct GccTypesWip {
 	immutable LowType.Record recordIndex,
 	ref immutable LowRecord record,
 ) {
-	Ptr!gcc_jit_struct struct_ = fullIndexDictGet(typesWip.records, recordIndex);
+	Ptr!gcc_jit_struct struct_ = typesWip.records[recordIndex];
 	immutable Ptr!gcc_jit_field[] fields = map!(Ptr!gcc_jit_field)(
 		alloc,
 		record.fields,
@@ -375,8 +373,8 @@ struct GccTypesWip {
 			writeSym(writer, allSymbols, name(field));
 			return gcc_jit_context_new_field(ctx, null, getGccType(typesWip, field.type), finishWriterToCStr(writer));
 		});
-	verify(empty(fullIndexDictGet(typesWip.recordFields, recordIndex)));
-	fullIndexDictSet(typesWip.recordFields, recordIndex, fields);
+	verify(empty(typesWip.recordFields[recordIndex]));
+	typesWip.recordFields[recordIndex] = fields;
 	gcc_jit_struct_set_fields(struct_, null, cast(int) fields.length, fields.ptr);
 }
 
@@ -388,7 +386,7 @@ struct GccTypesWip {
 	immutable LowType.Union unionIndex,
 	ref immutable LowUnion union_,
 ) {
-	Ptr!gcc_jit_struct struct_ = fullIndexDictGet(typesWip.unions, unionIndex);
+	Ptr!gcc_jit_struct struct_ = typesWip.unions[unionIndex];
 
 	//TODO:NO ALLOC
 	immutable CStr mangledNameInner = () {
@@ -420,11 +418,8 @@ struct GccTypesWip {
 	immutable Ptr!gcc_jit_field innerField = gcc_jit_context_new_field(ctx, null, innerUnion, "inner");
 	scope immutable Ptr!gcc_jit_field[2] outerFields = [kindField, innerField];
 	gcc_jit_struct_set_fields(struct_, null, 2, outerFields.ptr);
-	verify(!has(fullIndexDictGet(typesWip.unionFields, unionIndex)));
-	fullIndexDictSet(
-		typesWip.unionFields,
-		unionIndex,
-		some(immutable UnionFields(kindField, innerField, memberFields)));
+	verify(!has(typesWip.unionFields[unionIndex]));
+	typesWip.unionFields[unionIndex] = some(immutable UnionFields(kindField, innerField, memberFields));
 }
 
 immutable(FullIndexDict!(LowType.ExternPtr, Ptr!gcc_jit_type)) gccExternPtrTypes(

@@ -23,7 +23,6 @@ import model.lowModel :
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : mapWithFirst2, mapZip, prepend;
 import util.col.dict : mustGetAt;
-import util.col.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate;
 import util.opt : some;
 import util.ptr : Ptr;
@@ -50,7 +49,7 @@ immutable(LowFun) generateCallWithCtxFun(
 	immutable LowExprKind.MatchUnion.Case[] cases = mapZip(
 		alloc,
 		impls,
-		fullIndexDictGet(allTypes.allUnions, asUnionType(funType)).members,
+		allTypes.allUnions[asUnionType(funType)].members,
 		(ref immutable ConcreteLambdaImpl impl, ref immutable LowType closureType) {
 			immutable Ptr!LowLocal closureLocal =
 				genLocal(alloc, shortSym("closure"), localIndex, closureType);

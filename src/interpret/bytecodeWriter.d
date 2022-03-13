@@ -55,7 +55,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
-import util.col.mutArr : moveToArr_mut, MutArr, mutArrEnd, mutArrPtrAt, mutArrSize, push, setAt;
+import util.col.mutArr : moveToArr_mut, MutArr, mutArrEnd, mutArrPtrAt, mutArrSize, push;
 import util.memory : initMemory, overwriteMemory;
 import util.ptr : Ptr;
 import util.sym : Sym;
@@ -145,7 +145,7 @@ immutable(ByteCodeIndex) writeCallDelayed(
 	immutable ByteCodeIndex index,
 	immutable ByteCodeIndex value,
 ) {
-	setAt(writer.operations, index.index, immutable Operation(immutable ulong(value.index)));
+	writer.operations[index.index] = immutable Operation(immutable ulong(value.index));
 }
 
 void writeCallFunPtr(
@@ -449,7 +449,7 @@ immutable(ByteCodeIndex) writeJumpDelayed(ref ByteCodeWriter writer, immutable B
 
 @trusted void fillInJumpDelayed(ref ByteCodeWriter writer, immutable ByteCodeIndex jumpIndex) {
 	immutable ByteCodeOffset offset = getByteCodeOffsetForJumpToCurrent(writer, jumpIndex);
-	setAt(writer.operations, jumpIndex.index, immutable Operation(offset.offset));
+	writer.operations[jumpIndex.index] = immutable Operation(offset.offset);
 }
 
 private immutable(ByteCodeOffset) getByteCodeOffsetForJumpToCurrent(
@@ -492,7 +492,7 @@ immutable(JumpIfFalseDelayed) writeJumpIfFalseDelayed(ref ByteCodeWriter writer,
 			addByteCodeIndex(delayed.offsetIndex, 1),
 		).unsigned();
 	static assert(ByteCodeOffsetUnsigned.sizeof <= Operation.sizeof);
-	setAt(writer.operations, delayed.offsetIndex.index, immutable Operation(diff.offset));
+	writer.operations[delayed.offsetIndex.index] = immutable Operation(diff.offset);
 }
 
 struct SwitchDelayed {

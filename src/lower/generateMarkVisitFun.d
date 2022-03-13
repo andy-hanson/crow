@@ -46,7 +46,6 @@ import lower.lowExprHelpers :
 	wrapMulNat64;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : arrLiteral, mapWithIndex;
-import util.col.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
@@ -252,21 +251,9 @@ immutable(LowFunExprBody) visitBody(
 		(immutable LowType.PtrRawMut) =>
 			unreachable!(immutable LowFunExprBody),
 		(immutable LowType.Record it) =>
-			visitRecordBody(
-				alloc,
-				range,
-				markVisitFuns,
-				fullIndexDictGet(allTypes.allRecords, it).fields,
-				markCtx,
-				value),
+			visitRecordBody(alloc, range, markVisitFuns, allTypes.allRecords[it].fields, markCtx, value),
 		(immutable LowType.Union it) =>
-			visitUnionBody(
-				alloc,
-				range,
-				markVisitFuns,
-				fullIndexDictGet(allTypes.allUnions, it).members,
-				markCtx,
-				value),
+			visitUnionBody(alloc, range, markVisitFuns, allTypes.allUnions[it].members, markCtx, value),
 	)(valueType);
 }
 

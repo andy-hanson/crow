@@ -25,7 +25,6 @@ import model.model :
 	Type,
 	Visibility;
 import model.parseDiag : ParseDiag;
-import util.col.fullIndexDict : fullIndexDictGet;
 import util.opt : Opt;
 import util.path : AbsolutePath, AllPaths, PathAndStorageKind;
 import util.ptr : Ptr;
@@ -886,7 +885,7 @@ void writeFileAndRange(
 ) {
 	writeFileNoResetWriter(writer, allPaths, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
-		writeRangeWithinFile(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.range);
+		writeRangeWithinFile(writer, fi.lineAndColumnGetters[where.fileIndex], where.range);
 	if (options.color)
 		writeReset(writer);
 }
@@ -900,7 +899,7 @@ void writeFileAndPos(
 ) {
 	writeFileNoResetWriter(writer, allPaths, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
-		writePos(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.pos);
+		writePos(writer, fi.lineAndColumnGetters[where.fileIndex], where.pos);
 	if (options.color)
 		writeReset(writer);
 }
@@ -928,7 +927,7 @@ private void writeFileNoResetWriter(
 	if (fileIndex == FileIndex.none) {
 		writeStatic(writer, "<generated code> ");
 	} else {
-		immutable PathAndStorageKind path = fullIndexDictGet(fi.filePaths, fileIndex);
+		immutable PathAndStorageKind path = fi.filePaths[fileIndex];
 		immutable AbsolutePath abs = getAbsolutePath(fi.absolutePathsGetter, path, crowExtension);
 		if (options.color) {
 			writeHyperlink(

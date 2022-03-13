@@ -35,7 +35,6 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrUtil : arrLiteral, fillArr, find, findPtr, map;
-import util.col.dict : getAt;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
@@ -52,7 +51,7 @@ private immutable(Type) instStructFromAst(
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
-	immutable Opt!StructOrAliasAndIndex opDeclFromHere = getAt(structsAndAliasesDict, name);
+	immutable Opt!StructOrAliasAndIndex opDeclFromHere = structsAndAliasesDict[name];
 	if (has(opDeclFromHere))
 		markUsedStructOrAlias(ctx, force(opDeclFromHere));
 	immutable Opt!StructOrAlias here = has(opDeclFromHere)
@@ -240,7 +239,7 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(
 	immutable RangeWithinFile range,
 	scope ref immutable SpecsDict specsDict,
 ) {
-	immutable Opt!SpecDeclAndIndex opDeclFromHere = getAt(specsDict, name);
+	immutable Opt!SpecDeclAndIndex opDeclFromHere = specsDict[name];
 	if (has(opDeclFromHere))
 		markUsedSpec(ctx, force(opDeclFromHere).index);
 	immutable Opt!(Ptr!SpecDecl) here = has(opDeclFromHere) ? some(force(opDeclFromHere).decl) : none!(Ptr!SpecDecl);

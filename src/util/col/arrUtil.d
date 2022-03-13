@@ -2,7 +2,7 @@ module util.col.arrUtil;
 
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arr : empty, ptrAt, ptrsRange, sizeEq;
-import util.col.mutArr : mustPop, MutArr, mutArrAt, mutArrSize, setAt;
+import util.col.mutArr : mustPop, MutArr, mutArrAt, mutArrSize;
 import util.comparison : Comparer, Comparison;
 import util.memory : initMemory, initMemory_mut;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
@@ -766,8 +766,7 @@ void filterUnordered(T)(
 		else if (i == mutArrSize(a) - 1)
 			mustPop(a);
 		else {
-			T t = mustPop(a);
-			setAt(a, i, t);
+			a[i] = mustPop(a);
 		}
 	}
 }

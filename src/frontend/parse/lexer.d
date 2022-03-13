@@ -12,7 +12,7 @@ import util.col.arrBuilder : add, ArrBuilder;
 import util.col.str : copyToSafeCStr, CStr, SafeCStr, safeCStr;
 import util.col.tempStr : copyTempStrToString, pushToTempStr, TempStr;
 import util.conv : safeIntFromUint, safeToUint;
-import util.opt : force, has, none, Opt, optOr, some;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
@@ -884,7 +884,7 @@ public @trusted immutable(LiteralIntOrNat) takeIntOrNat(ref Lexer lexer) {
 	immutable LiteralAst.Nat n = takeNat(lexer, base);
 	if (*lexer.ptr == '.' && isDigit(*(lexer.ptr + 1))) {
 		lexer.ptr++;
-		return immutable LiteralAst(takeFloat(lexer, optOr!Sign(sign, () => Sign.plus), n, base));
+		return immutable LiteralAst(takeFloat(lexer, has(sign) ? force(sign) : Sign.plus, n, base));
 	} else if (has(sign))
 		final switch (force(sign)) {
 			case Sign.plus:

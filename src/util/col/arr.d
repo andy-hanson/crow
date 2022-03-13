@@ -4,7 +4,6 @@ module util.col.arr;
 
 import util.alloc.alloc : Alloc, freeT;
 import util.ptr : Ptr;
-import util.memory : overwriteMemory;
 import util.util : verify;
 
 struct SmallArray(T) {
@@ -91,11 +90,6 @@ immutable(bool) empty(T)(const T[] a) {
 @trusted inout(Ptr!T) ptrAt(T)(return scope inout T[] a, immutable size_t index) {
 	verify(index < a.length);
 	return inout Ptr!T(&a[index]);
-}
-
-@trusted void setAt(T)(scope T[] a, immutable size_t index, T value) {
-	verify(index < a.length);
-	overwriteMemory(&a[index], value);
 }
 
 ref immutable(T) only(T)(return scope immutable T[] a) {
